@@ -36,8 +36,8 @@ subroutine sqnm(runObj,outsIO,nproc,iproc,verbosity,ncount_bigdft,fail)
    integer :: lwork
    integer :: it,i,iat,l,j,idim,jdim,ihist,icheck !<counter variables
    integer :: itswitch
-   integer :: imode=1
-   integer :: nbond=1
+   integer :: imode
+   integer :: nbond
    type(state_properties) :: outs
    logical :: success=.false.
    logical :: debug !< set .true. for debug output to fort.100
@@ -113,6 +113,7 @@ subroutine sqnm(runObj,outsIO,nproc,iproc,verbosity,ncount_bigdft,fail)
    cutoffRatio=runObj%inputs%cutoffratio
    steepthresh=runObj%inputs%steepthresh
    trustr=runObj%inputs%trustr
+   nbond=1
    if(runObj%inputs%biomode)imode=2
 
    if (iproc==0.and.verbosity > 0) then

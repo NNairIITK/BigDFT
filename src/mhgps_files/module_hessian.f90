@@ -17,17 +17,17 @@ module module_hessian
 contains
 
    !> Reza's routine for finite difference hessian
-   subroutine cal_hessian_fd(iproc,nat,alat,runObj,outs,pos,hess)
+   subroutine cal_hessian_fd(mhgpsst,runObj,outs,pos,hess)
       use module_base, only: gp, f_malloc, f_free, assignment(=)
       use module_energyandforces, only: mhgpsenergyandforces
       use bigdft_run, only: run_objects, state_properties
+      use module_mhgps_state
       implicit none
-      integer, intent(in):: iproc, nat
+      type(mhgps_state), intent(inout) :: mhgpsst
       type(run_objects), intent(inout) :: runObj
       type(state_properties), intent(inout) :: outs
-      real(gp), dimension(3*nat), intent(in) :: pos
-      real(gp), dimension(3), intent(in) :: alat
-      real(gp), dimension(3*nat,3*nat), intent(inout) :: hess
+      real(gp), dimension(3*runObj%atoms%astruct%nat), intent(in) :: pos
+      real(gp), dimension(3*runObj%atoms%astruct%nat,3*runObj%atoms%astruct%nat), intent(inout) :: hess
       !local variables
       integer :: iat
       !real(gp) :: t1,t2,t3
@@ -35,14 +35,14 @@ contains
       real(gp), allocatable, dimension(:) :: tpos,grad,eval,workf
       real(gp) :: h,rlarge,twelfth,twothird,etot,cmx,cmy,cmz,dm,tt
       real(gp) :: s,fnoise
-      integer :: i,j,k,lworkf
+      integer :: i,j,k,lworkf,infocode
 
-      !allocate(hess(3*nat,3*nat))
-      tpos = f_malloc(3*nat,id='tpos')
-      grad = f_malloc(3*nat,id='grad')
-      eval = f_malloc(3*nat,id='eval')
+      !allocate(hess(3*runObj%atoms%astruct%nat,3*runObj%atoms%astruct%nat))
+      tpos = f_malloc(3*runObj%atoms%astruct%nat,id='tpos')
+      grad = f_malloc(3*runObj%atoms%astruct%nat,id='grad')
+      eval = f_malloc(3*runObj%atoms%astruct%nat,id='eval')
 
-      lworkf=1000*nat
+      lworkf=1000*runObj%atoms%astruct%nat
       workf = f_malloc(lworkf,id='workf')
 
       !h=1.e-1_gp
@@ -55,37 +55,37 @@ contains
       rlarge=1._gp*1.e4_gp
       twelfth=-1._gp/(12._gp*h)
       twothird=-2._gp/(3._gp*h)
-      if(iproc==0) write(*,*) '(hess) HESSIAN: h',h
+      if(mhgpsst%iproc==0) write(*,*) '(hess) HESSIAN: h',h
       !-------------------------------------------------------
-      do i=1,3*nat
+      do i=1,3*runObj%atoms%astruct%nat
          iat=(i-1)/3+1
-         do k=1,3*nat
+         do k=1,3*runObj%atoms%astruct%nat
              tpos(k)=pos(k)
              grad(k)=0._gp
          enddo
          !-----------------------------------------
          tpos(i)=tpos(i)-2*h
-         call mhgpsenergyandforces(nat,alat,runObj,outs,tpos,grad,fnoise,etot)
-         do j=1,3*nat
+         call mhgpsenergyandforces(mhgpsst,runObj,outs,tpos,grad,fnoise,etot,infocode)
+         do j=1,3*runObj%atoms%astruct%nat
              hess(j,i)=twelfth*grad(j)
          enddo
-         !if(iproc==0) write(*,*) 'ALIREZA-6',i,iat
+         !if(mhgpsst%iproc==0) write(*,*) 'ALIREZA-6',i,iat
          !-----------------------------------------
          tpos(i)=tpos(i)+h
-         call mhgpsenergyandforces(nat,alat,runObj,outs,tpos,grad,fnoise,etot)
-         do j=1,3*nat
+         call mhgpsenergyandforces(mhgpsst,runObj,outs,tpos,grad,fnoise,etot,infocode)
+         do j=1,3*runObj%atoms%astruct%nat
          hess(j,i)=hess(j,i)-twothird*grad(j)
          enddo
          !-----------------------------------------
          tpos(i)=tpos(i)+2*h
-         call mhgpsenergyandforces(nat,alat,runObj,outs,tpos,grad,fnoise,etot)
-         do j=1,3*nat
+         call mhgpsenergyandforces(mhgpsst,runObj,outs,tpos,grad,fnoise,etot,infocode)
+         do j=1,3*runObj%atoms%astruct%nat
          hess(j,i)=hess(j,i)+twothird*grad(j)
          enddo
          !-----------------------------------------
          tpos(i)=tpos(i)+h
-         call mhgpsenergyandforces(nat,alat,runObj,outs,tpos,grad,fnoise,etot)
-         do j=1,3*nat
+         call mhgpsenergyandforces(mhgpsst,runObj,outs,tpos,grad,fnoise,etot,infocode)
+         do j=1,3*runObj%atoms%astruct%nat
          hess(j,i)=hess(j,i)-twelfth*grad(j)
          !write(*,*) 'HESS ',j,i,hess(j,i)
          enddo
@@ -95,7 +95,7 @@ contains
 
       !check symmetry
       dm=0._gp
-      do i=1,3*nat
+      do i=1,3*runObj%atoms%astruct%nat
          do j=1,i-1
             s=.5_gp*(hess(i,j)+hess(j,i))
             tt=abs(hess(i,j)-hess(j,i))/(1._gp+abs(s))
@@ -106,9 +106,9 @@ contains
       enddo
       if (dm.gt.1.e-1_gp) write(*,*) '(hess) max dev from sym',dm
 
-   !   do j=1,3*nat
-   !   do i=1,3*nat
-   !   write(*,*) '(hess) hier',nat,hess(i,j)
+   !   do j=1,3*runObj%atoms%astruct%nat
+   !   do i=1,3*runObj%atoms%astruct%nat
+   !   write(*,*) '(hess) hier',runObj%atoms%astruct%nat,hess(i,j)
    !   write(499,*) hess(i,j)
    !   enddo
    !   enddo
@@ -116,15 +116,15 @@ contains
       !-------------------------------------------------------
       !project out rotations
       cmx=0._gp ; cmy=0._gp ; cmz=0._gp
-      do i=1,3*nat-2,3
+      do i=1,3*runObj%atoms%astruct%nat-2,3
          cmx=cmx+pos(i+0)
          cmy=cmy+pos(i+1)
          cmz=cmz+pos(i+2)
       enddo
-      cmx=cmx/nat ; cmy=cmy/nat ; cmz=cmz/nat
+      cmx=cmx/runObj%atoms%astruct%nat ; cmy=cmy/runObj%atoms%astruct%nat ; cmz=cmz/runObj%atoms%astruct%nat
      
       !x-y plane
-      do i=1,3*nat-2,3
+      do i=1,3*runObj%atoms%astruct%nat-2,3
          workf(i+1)= (pos(i+0)-cmx)
          workf(i+0)=-(pos(i+1)-cmy)
       enddo

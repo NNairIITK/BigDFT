@@ -23,72 +23,62 @@ module module_freezingstring
 contains
 
 
-subroutine get_ts_guess(nat,alat,runObj,outs,rxyz1,rxyz2,tsguess,minmodeguess,&
+subroutine get_ts_guess(mhgpsst,uinp,runObj,outs,rxyz1,rxyz2,tsguess,minmodeguess,&
                         tsgenergy,tsgforces)
     use module_base
     use yaml_output
-    use module_global_variables,&
-            only: iproc, mhgps_verbosity,&
-                  gammainv => ts_guess_gammainv,&
-                  perpnrmtol => ts_guess_perpnrmtol,&
-                  trust => ts_guess_trust,&
-                  nstepsmax => ts_guess_nstepsmax,&
-                  ef_counter
+    use module_mhgps_state
+    use module_userinput
     use bigdft_run, only: run_objects, state_properties
     implicit none
     !parameters
-    integer, intent(in) :: nat
-    real(gp), intent(in) :: alat(3)
+    type(mhgps_state), intent(inout) :: mhgpsst
+    type(userinput), intent(in) :: uinp
     type(run_objects), intent(inout) :: runObj
     type(state_properties), intent(inout) :: outs
-    real(gp), intent(in) :: rxyz1(3,nat),rxyz2(3,nat)
-    real(gp), intent(out) :: tsguess(3,nat),minmodeguess(3,nat)
-    real(gp), intent(out) :: tsgenergy, tsgforces(3,nat)
+    real(gp), intent(in) :: rxyz1(3,runObj%atoms%astruct%nat),rxyz2(3,runObj%atoms%astruct%nat)
+    real(gp), intent(out) :: tsguess(3,runObj%atoms%astruct%nat),minmodeguess(3,runObj%atoms%astruct%nat)
+    real(gp), intent(out) :: tsgenergy, tsgforces(3,runObj%atoms%astruct%nat)
     !internal
     real(gp) :: efcounter_start
     logical :: success
 
-    efcounter_start=ef_counter
-    if(iproc==0)then
+    efcounter_start=mhgpsst%ef_counter
+    if(mhgpsst%iproc==0)then
         call yaml_comment('(MHGPS) Generating TS input guess ....',&
                           hfill='-')
     endif
-    if(perpnrmtol<=0.0_gp .or. nstepsmax <= 0)then
-        call get_ts_guess_linsyn(nat,alat,runObj,outs,rxyz1,rxyz2,&
+    if(uinp%ts_guess_perpnrmtol<=0.0_gp .or. uinp%ts_guess_nstepsmax <= 0)then
+        call get_ts_guess_linsyn(mhgpsst,uinp,runObj,outs,rxyz1,rxyz2,&
              tsguess,minmodeguess,tsgenergy,tsgforces)
     else
-        call get_ts_guess_freeze(nat,alat,runObj,outs,rxyz1,rxyz2,&
+        call get_ts_guess_freeze(mhgpsst,uinp,runObj,outs,rxyz1,rxyz2,&
              tsguess,minmodeguess,tsgenergy,tsgforces,success)
         if(.not.success)then
-            call get_ts_guess_linsyn(nat,alat,runObj,outs,rxyz1,&
+            call get_ts_guess_linsyn(mhgpsst,uinp,runObj,outs,rxyz1,&
                  rxyz2,tsguess, minmodeguess,tsgenergy,tsgforces)
         endif
     endif
-    if(iproc==0)call yaml_map('(MHGPS) # Energy evaluations for '//&
-                              'TS guess:',ef_counter-efcounter_start)
+    if(mhgpsst%iproc==0)call yaml_map('(MHGPS) # Energy evaluations for '//&
+                              'TS guess:',mhgpsst%ef_counter-efcounter_start)
 end subroutine
-subroutine get_ts_guess_freeze(nat,alat,runObj,outs,rxyz1,rxyz2,&
+subroutine get_ts_guess_freeze(mhgpsst,uinp,runObj,outs,rxyz1,rxyz2,&
            tsguess,minmodeguess,tsgenergy,tsgforces,success)
     use module_base
     use yaml_output
-    use module_global_variables,&
-            only: iproc, mhgps_verbosity,&
-                  gammainv => ts_guess_gammainv,&
-                  perpnrmtol => ts_guess_perpnrmtol,&
-                  trust => ts_guess_trust,&
-                  nstepsmax => ts_guess_nstepsmax,&
-                  ef_counter
+    use module_mhgps_state
+    use module_userinput
     use bigdft_run, only: run_objects, state_properties
     use module_energyandforces
     implicit none
     !parameters
-    integer, intent(in) :: nat
-    real(gp), intent(in) :: alat(3)
+    type(mhgps_state), intent(inout) :: mhgpsst
+    type(userinput)      :: uinp
     type(run_objects), intent(inout) :: runObj
     type(state_properties), intent(inout) :: outs
-    real(gp), intent(in) :: rxyz1(3,nat),rxyz2(3,nat)
-    real(gp), intent(out) :: tsguess(3,nat),minmodeguess(3,nat)
-    real(gp), intent(out) :: tsgenergy, tsgforces(3,nat)
+    real(gp), intent(in) :: rxyz1(3,runObj%atoms%astruct%nat),rxyz2(3,runObj%atoms%astruct%nat)
+    real(gp), intent(out) :: tsguess(3,runObj%atoms%astruct%nat),minmodeguess(3,runObj%atoms%astruct%nat)
+    real(gp), intent(out) :: tsgenergy, tsgforces(3,runObj%atoms%astruct%nat)
     logical, intent(out) :: success
     !internal
     integer :: finished
@@ -96,6 +86,7 @@ subroutine get_ts_guess_freeze(nat,alat,runObj,outs,rxyz1,rxyz2,&
     integer :: npath,istring,istringmax,isidemax,ipathmax
     integer :: nnodes,nstring,nstringmax=20
     integer :: ncorr
+    integer :: infocode
     real(gp), allocatable :: string(:,:,:)
     real(gp), allocatable :: path(:,:,:)
     real(gp), allocatable :: forces(:,:,:)
@@ -111,13 +102,13 @@ subroutine get_ts_guess_freeze(nat,alat,runObj,outs,rxyz1,rxyz2,&
     real(gp) :: dnrm2
 
 
-    string = f_malloc((/ 1.to.3*nat, 1.to.2, 1.to.nstringmax/),&
+    string = f_malloc((/ 1.to.3*runObj%atoms%astruct%nat, 1.to.2, 1.to.nstringmax/),&
                      id='string')
-    call vcopy(3*nat, rxyz1(1,1), 1, string(1,1,1), 1)
-    call vcopy(3*nat, rxyz2(1,1), 1, string(1,2,1), 1)
+    call vcopy(3*runObj%atoms%astruct%nat, rxyz1(1,1), 1, string(1,1,1), 1)
+    call vcopy(3*runObj%atoms%astruct%nat, rxyz2(1,1), 1, string(1,2,1), 1)
     
-    call grow_freezstring(nat,alat,runObj,outs,gammainv,perpnrmtol,&
-         trust,nstepsmax,nstringmax,nstring,string,finished,success)
+    call grow_freezstring(mhgpsst,uinp,runObj,outs,uinp%ts_guess_gammainv,uinp%ts_guess_perpnrmtol,&
+         uinp%ts_guess_trust,uinp%ts_guess_nstepsmax,nstringmax,nstring,string,finished,success)
     if(.not. success)return
 
     nnodes=2*nstring
@@ -127,10 +118,10 @@ subroutine get_ts_guess_freeze(nat,alat,runObj,outs,rxyz1,rxyz2,&
         nnodes=nnodes-1
         ncorr = 1
     endif
-    path = f_malloc((/1.to.nnodes,1.to.3,1.to.nat/),id='path')
-    y2vec = f_malloc((/1.to.nnodes,1.to.3,1.to.nat/),id='y2vec')
-    forces = f_malloc((/1.to.3,1.to.nat,1.to.nnodes/),id='forces')
-    tangent = f_malloc((/1.to.3,1.to.nat,1.to.nnodes/),id='tangent')
+    path = f_malloc((/1.to.nnodes,1.to.3,1.to.runObj%atoms%astruct%nat/),id='path')
+    y2vec = f_malloc((/1.to.nnodes,1.to.3,1.to.runObj%atoms%astruct%nat/),id='y2vec')
+    forces = f_malloc((/1.to.3,1.to.runObj%atoms%astruct%nat,1.to.nnodes/),id='forces')
+    tangent = f_malloc((/1.to.3,1.to.runObj%atoms%astruct%nat,1.to.nnodes/),id='tangent')
     energies = f_malloc((/1.to.nnodes/),id='energies')
     arc = f_malloc((/1.to.nnodes/),id='arc')
 
@@ -144,7 +135,7 @@ subroutine get_ts_guess_freeze(nat,alat,runObj,outs,rxyz1,rxyz2,&
     npath=0
     do istring=1,nstring
         npath=npath+1
-        do iat=1,nat
+        do iat=1,runObj%atoms%astruct%nat
             path(npath,1,iat)=string(3*iat-2,1,istring)
             path(npath,2,iat)=string(3*iat-1,1,istring)
             path(npath,3,iat)=string(3*iat  ,1,istring)
@@ -155,8 +146,8 @@ subroutine get_ts_guess_freeze(nat,alat,runObj,outs,rxyz1,rxyz2,&
         if(istring>1)then
         !due to column major order,
         !pass string() to energy and forces, not path():
-        call mhgpsenergyandforces(nat,alat,runObj,outs,string(1,1,istring),&
-             forces(1,1,npath),fnoise,energies(npath))
+        call mhgpsenergyandforces(mhgpsst,runObj,outs,string(1,1,istring),&
+             forces(1,1,npath),fnoise,energies(npath),infocode)
         if(energies(npath)>emax)then
             emax       = energies(npath)
             istringmax = istring
@@ -167,7 +158,7 @@ subroutine get_ts_guess_freeze(nat,alat,runObj,outs,rxyz1,rxyz2,&
     enddo
     do istring=nstring-ncorr,1,-1
         npath=npath+1
-        do iat=1,nat
+        do iat=1,runObj%atoms%astruct%nat
             path(npath,1,iat)=string(3*iat-2,2,istring)
             path(npath,2,iat)=string(3*iat-1,2,istring)
             path(npath,3,iat)=string(3*iat  ,2,istring)
@@ -178,8 +169,8 @@ subroutine get_ts_guess_freeze(nat,alat,runObj,outs,rxyz1,rxyz2,&
         if(istring>1)then
         !due to column major order,
         !pass string() to energy and forces, not path():
-        call mhgpsenergyandforces(nat,alat,runObj,outs,string(1,2,istring),&
-             forces(1,1,npath),fnoise,energies(npath))
+        call mhgpsenergyandforces(mhgpsst,runObj,outs,string(1,2,istring),&
+             forces(1,1,npath),fnoise,energies(npath),infocode)
         if(energies(npath)>emax)then
             emax       = energies(npath)
             istringmax = istring
@@ -199,7 +190,7 @@ subroutine get_ts_guess_freeze(nat,alat,runObj,outs,rxyz1,rxyz2,&
 !!DEBUGGING send
 
     !tsguess is highest energy node:
-    do iat=1,nat
+    do iat=1,runObj%atoms%astruct%nat
         tsguess(1,iat) = path(ipathmax,1,iat)
         tsguess(2,iat) = path(ipathmax,2,iat)
         tsguess(3,iat) = path(ipathmax,3,iat)
@@ -212,7 +203,7 @@ subroutine get_ts_guess_freeze(nat,alat,runObj,outs,rxyz1,rxyz2,&
     !now we have to generate a guess for the minmode: 
 
     !generate spline parameters for splines used for tangents
-    do i=1,nat
+    do i=1,runObj%atoms%astruct%nat
         call spline_wrapper(arc,path(1,1,i),npath,&
                            yp1,ypn,y2vec(1,1,i))
         call spline_wrapper(arc,path(1,2,i),npath,&
@@ -223,7 +214,7 @@ subroutine get_ts_guess_freeze(nat,alat,runObj,outs,rxyz1,rxyz2,&
     !generate tangent
     do j=1,npath
         tau=real(j,gp)
-        do i=1,nat
+        do i=1,runObj%atoms%astruct%nat
             call splint_wrapper(arc,path(1,1,i),y2vec(1,1,i),&
                  npath,tau,rdmy,tangent(1,i,j))
             call splint_wrapper(arc,path(1,2,i),y2vec(1,2,i),&
@@ -231,13 +222,13 @@ subroutine get_ts_guess_freeze(nat,alat,runObj,outs,rxyz1,rxyz2,&
             call splint_wrapper(arc,path(1,3,i),y2vec(1,3,i),&
                  npath,tau,rdmy,tangent(3,i,j))
         enddo
-        rdmy = dnrm2(3*nat,tangent(1,1,j),1)
+        rdmy = dnrm2(3*runObj%atoms%astruct%nat,tangent(1,1,j),1)
         tangent(:,:,j) = tangent(:,:,j) / rdmy
     enddo
     minmodeguess=tangent(:,:,ipathmax)
 
-    if(iproc==0 .and. mhgps_verbosity>=5)then
-        call write_path_a(nat,runObj,outs,npath,path,energies,tangent)
+    if(mhgpsst%iproc==0 .and. uinp%mhgps_verbosity>=5)then
+        call write_path_a(mhgpsst,runObj,outs,npath,path,energies,tangent)
     endif     
 
     call f_free(string) 
@@ -249,29 +240,29 @@ subroutine get_ts_guess_freeze(nat,alat,runObj,outs,rxyz1,rxyz2,&
     call f_free(arc) 
 end subroutine
 
-subroutine write_path_a(nat,runObj,outs,npath,path,energies,tangent)
+subroutine write_path_a(mhgpsst,runObj,outs,npath,path,energies,tangent)
     use module_base
     use module_interfaces
     use module_atoms, only: astruct_dump_to_file
-    use module_global_variables, only: isadc,&
-                                       currDir
+    use module_mhgps_state
     use bigdft_run
     implicit none
     !parameters
-    integer, intent(in) :: nat, npath
+    type(mhgps_state), intent(in) :: mhgpsst
+    integer, intent(in) :: npath
     type(run_objects), intent(inout) :: runObj
     type(state_properties), intent(inout) :: outs
-    real(gp), intent(in) :: path(npath,3,nat)
+    real(gp), intent(in) :: path(npath,3,runObj%atoms%astruct%nat)
     real(gp), intent(in) :: energies(npath)
-    real(gp), intent(in) :: tangent(3,nat,npath)
+    real(gp), intent(in) :: tangent(3,runObj%atoms%astruct%nat,npath)
     !internal
     integer :: ipath,iat
     character(len=4) :: fn4
     character(len=150) :: comment
-    real(gp) :: pathint(3,nat,npath)
+    real(gp) :: pathint(3,runObj%atoms%astruct%nat,npath)
 
     do ipath=1,npath
-        do iat=1,nat
+        do iat=1,runObj%atoms%astruct%nat
             pathint(1,iat,ipath)=path(ipath,1,iat)
             pathint(2,iat,ipath)=path(ipath,2,iat)
             pathint(3,iat,ipath)=path(ipath,3,iat)
@@ -284,28 +275,28 @@ subroutine write_path_a(nat,runObj,outs,npath,path,energies,tangent)
            'ATTENTION! Forces below are no forces but tangents to '//&
            'the guessed reaction path'
         call astruct_dump_to_file(bigdft_get_astruct_ptr(runObj),&
-             currDir//'/sad'//isadc//'_igpath_'//fn4,&
+             mhgpsst%currDir//'/sad'//mhgpsst%isadc//'_igpath_'//fn4,&
              trim(comment),&
              energies(ipath),rxyz=pathint(:,:,ipath),&
              forces=tangent(:,:,ipath))
     enddo
 end subroutine
 !=====================================================================
-subroutine write_path_b(nat,runObj,outs,npath,path,energies,tangent)
+subroutine write_path_b(mhgpsst,runObj,outs,npath,path,energies,tangent)
     use module_base
     use module_interfaces
     use module_atoms, only: astruct_dump_to_file
-    use module_global_variables, only: isadc,&
-                                       currDir
     use bigdft_run
+    use module_mhgps_state
     implicit none
     !parameters
-    integer, intent(in) :: nat, npath
+    type(mhgps_state), intent(in) :: mhgpsst
+    integer, intent(in) :: npath
     type(run_objects), intent(inout) :: runObj
     type(state_properties), intent(inout) :: outs
-    real(gp), intent(in) :: path(3,nat,npath)
+    real(gp), intent(in) :: path(3,runObj%atoms%astruct%nat,npath)
     real(gp), intent(in) :: energies(npath)
-    real(gp), intent(in) :: tangent(3,nat,npath)
+    real(gp), intent(in) :: tangent(3,runObj%atoms%astruct%nat,npath)
     !internal
     integer :: ipath,iat
     character(len=4) :: fn4
@@ -317,7 +308,7 @@ subroutine write_path_b(nat,runObj,outs,npath,path,energies,tangent)
            'ATTENTION! Forces below are no forces but tangents to '//&
            'the guessed reaction path'
         call astruct_dump_to_file(bigdft_get_astruct_ptr(runObj),&
-             currDir//'/sad'//isadc//'_igpath_'//fn4,&
+             mhgpsst%currDir//'/sad'//mhgpsst%isadc//'_igpath_'//fn4,&
              trim(comment),&
              energies(ipath),rxyz=path(:,:,ipath),&
              forces=tangent(:,:,ipath))
@@ -326,15 +317,17 @@ end subroutine
 !=====================================================================
 
 
-subroutine grow_freezstring(nat,alat,runObj,outs,gammainv,perpnrmtol,trust,&
+subroutine grow_freezstring(mhgpsst,uinp,runObj,outs,gammainv,perpnrmtol,trust,&
                        nstepsmax,nstringmax,nstring,string,finished,success)
     use module_base
     use yaml_output
-    use module_global_variables, only: iproc
+    use module_userinput
+    use module_mhgps_state
     use bigdft_run, only: run_objects, state_properties
     implicit none
     !parameters
-    integer, intent(in) :: nat
+    type(mhgps_state), intent(inout) :: mhgpsst
+    type(userinput), intent(in) :: uinp
     type(run_objects), intent(inout) :: runObj
     type(state_properties), intent(inout) :: outs
     integer, intent(in) :: nstepsmax
@@ -348,7 +341,6 @@ subroutine grow_freezstring(nat,alat,runObj,outs,gammainv,perpnrmtol,trust,&
     real(gp) , intent(in) :: gammainv
     real(gp) , intent(in) :: perpnrmtol
     real(gp) , intent(in) :: trust
-    real(gp) , intent(in) :: alat(3)
     real(gp), allocatable, intent(inout) :: string(:,:,:)
     logical, intent(out) :: success
     !constants
@@ -357,8 +349,8 @@ subroutine grow_freezstring(nat,alat,runObj,outs,gammainv,perpnrmtol,trust,&
     integer :: i,k,istart
     integer, parameter :: resize=10
     real(gp), allocatable :: stringTMP(:,:,:)
-    real(gp) :: tangentleft(3*nat)
-    real(gp) :: tangentright(3*nat)
+    real(gp) :: tangentleft(3*runObj%atoms%astruct%nat)
+    real(gp) :: tangentright(3*runObj%atoms%astruct%nat)
     real(gp) :: step
     real(gp) :: perpnrmtol_squared
     real(gp) :: trust_squared
@@ -369,10 +361,10 @@ subroutine grow_freezstring(nat,alat,runObj,outs,gammainv,perpnrmtol,trust,&
     
     finished=2
 
-    if(iproc==0)call yaml_comment('(MHGPS) entering grow_freezstring')
+    if(mhgpsst%iproc==0)call yaml_comment('(MHGPS) entering grow_freezstring')
 
     if((.not. allocated(string)))then
-        if(iproc==0)call yaml_warning('(MHGPS) STOP, string in '//&
+        if(mhgpsst%iproc==0)call yaml_warning('(MHGPS) STOP, string in '//&
                     'grow_freezstring not allocated')
         stop
     endif
@@ -388,14 +380,14 @@ subroutine grow_freezstring(nat,alat,runObj,outs,gammainv,perpnrmtol,trust,&
         !in the following loop
         do i=istart,nstringmax-1
             if(finished==0 .or. finished==1)return!interpolation done
-            call interpol(method,nat,string(1,1,nstring),&
+            call interpol(method,runObj%atoms%astruct%nat,mhgpsst,uinp,string(1,1,nstring),&
                  string(1,2,nstring),step,string(1,1,nstring+1),&
                  string(1,2,nstring+1),tangentleft,tangentright,&
                  finished)
             if(finished/=0)then
 !if(i/=nstring)stop'DEBUGGING i/=nstring'
                if(perpnrmtol>0 .and. nstepsmax > 0)& 
-                call optim_cg(nat,alat,runObj,outs,finished,step,gammainv,&
+                call optim_cg(mhgpsst,runObj,outs,finished,step,gammainv,&
                     perpnrmtol_squared,trust_squared,nstepsmax,&
                     tangentleft,tangentright,string(1,1,i+1),&
                     string(1,2,i+1))
@@ -416,7 +408,7 @@ subroutine grow_freezstring(nat,alat,runObj,outs,gammainv,perpnrmtol,trust,&
 !            deallocate(stringTmp)
             call f_free(stringTmp)
         endif
-        stringTmp = f_malloc((/ 1.to.3*nat, 1.to.2, &
+        stringTmp = f_malloc((/ 1.to.3*runObj%atoms%astruct%nat, 1.to.2, &
                     1.to.nstringmax/),'stringTmp')
 !        allocate(stringTmp(3*nat,2,nstringmax))
         stringTmp=string
@@ -424,7 +416,7 @@ subroutine grow_freezstring(nat,alat,runObj,outs,gammainv,perpnrmtol,trust,&
 !        deallocate(string)
         nstringmax=nstringmax+resize
 !        allocate(string(3*nat,2,nstringmax))
-        string = f_malloc((/ 1.to.3*nat, 1.to.2, &
+        string = f_malloc((/ 1.to.3*runObj%atoms%astruct%nat, 1.to.2, &
                  1.to.nstringmax/),'string')
         do k=1,(nstringmax-resize)
             string(:,:,k)=stringTmp(:,:,k)
@@ -435,50 +427,50 @@ subroutine grow_freezstring(nat,alat,runObj,outs,gammainv,perpnrmtol,trust,&
 
 end subroutine
 !=====================================================================
-subroutine optim_cg(nat,alat,runObj,outs,finished,step,gammainv,&
+subroutine optim_cg(mhgpsst,runObj,outs,finished,step,gammainv,&
            perpnrmtol_squared,trust_squared,nstepsmax,tangent1,&
            tangent2,rxyz1,rxyz2)
     use module_base
     use module_energyandforces
-    use module_global_variables, only: iproc
+    use module_mhgps_state
     use bigdft_run, only: run_objects, state_properties
     implicit none
     !parameters
-    integer, intent(in)  :: nat
-    real(gp), intent(in) :: alat(3)
+    type(mhgps_state), intent(inout) :: mhgpsst
     type(run_objects), intent(inout) :: runObj
     type(state_properties), intent(inout) :: outs
     integer, intent(in)  :: finished
     integer, intent(in)  :: nstepsmax
-    real(gp), intent(in) :: tangent1(3*nat)
-    real(gp), intent(in) :: tangent2(3*nat)
+    real(gp), intent(in) :: tangent1(3*runObj%atoms%astruct%nat)
+    real(gp), intent(in) :: tangent2(3*runObj%atoms%astruct%nat)
     real(gp), intent(in) :: step
     real(gp), intent(in) :: gammainv
     real(gp), intent(in) :: perpnrmtol_squared
     real(gp), intent(in) :: trust_squared
-    real(gp), intent(inout) :: rxyz2(3*nat)
-    real(gp), intent(inout) :: rxyz1(3*nat)
+    real(gp), intent(inout) :: rxyz2(3*runObj%atoms%astruct%nat)
+    real(gp), intent(inout) :: rxyz1(3*runObj%atoms%astruct%nat)
     !internal
     real(gp) :: epot1
     real(gp) :: epot2
     real(gp) :: d0 !inital distance between the new nodes
-    real(gp) :: fxyz1(3*nat),fxyz2(3*nat)
-    real(gp) :: perp1(3*nat),perp2(3*nat)
-    real(gp) :: dmax,dist,dir(3*nat)
-    real(gp) :: dispPrev1(3*nat),disp1(3*nat)
-    real(gp) :: dispPrev2(3*nat),disp2(3*nat)
+    real(gp) :: fxyz1(3*runObj%atoms%astruct%nat),fxyz2(3*runObj%atoms%astruct%nat)
+    real(gp) :: perp1(3*runObj%atoms%astruct%nat),perp2(3*runObj%atoms%astruct%nat)
+    real(gp) :: dmax,dist,dir(3*runObj%atoms%astruct%nat)
+    real(gp) :: dispPrev1(3*runObj%atoms%astruct%nat),disp1(3*runObj%atoms%astruct%nat)
+    real(gp) :: dispPrev2(3*runObj%atoms%astruct%nat),disp2(3*runObj%atoms%astruct%nat)
     real(gp) :: alpha1,alpha2
     real(gp) :: perpnrmPrev1_squared, perpnrm1_squared
     real(gp) :: perpnrmPrev2_squared, perpnrm2_squared
     real(gp) :: dispnrm_squared
     integer :: istep
+    integer :: infocode
     real(gp) :: fnoise
     !functions
     real(gp) :: dnrm2, ddot
 
     if(finished==2)then
         dir=rxyz2-rxyz1
-        d0=dnrm2(3*nat,dir(1),1)
+        d0=dnrm2(3*runObj%atoms%astruct%nat,dir(1),1)
         dmax=d0+0.5_gp*step
     else
         dmax=0.5_gp*step
@@ -486,9 +478,9 @@ subroutine optim_cg(nat,alat,runObj,outs,finished,step,gammainv,&
 
     !first steps: steepest descent
     !left
-    call mhgpsenergyandforces(nat,alat,runObj,outs,rxyz1,fxyz1,fnoise,epot1)
-    call perpend(nat,tangent1,fxyz1,perp1)
-    perpnrmPrev1_squared = ddot(3*nat,perp1(1),1,perp1(1),1)
+    call mhgpsenergyandforces(mhgpsst,runObj,outs,rxyz1,fxyz1,fnoise,epot1,infocode)
+    call perpend(runObj%atoms%astruct%nat,tangent1,fxyz1,perp1)
+    perpnrmPrev1_squared = ddot(3*runObj%atoms%astruct%nat,perp1(1),1,perp1(1),1)
     perpnrm1_squared=perpnrmPrev1_squared
     dispPrev1=gammainv*perp1
     dispnrm_squared=maxval(dispPrev1**2)
@@ -498,11 +490,11 @@ subroutine optim_cg(nat,alat,runObj,outs,finished,step,gammainv,&
     rxyz1=rxyz1+dispPrev1
     !right
     if(finished==2)then
-        call mhgpsenergyandforces(nat,alat,runObj,outs,rxyz2,fxyz2,fnoise,epot2)
-        call perpend(nat,tangent2,fxyz2,perp2)
-        perpnrmPrev2_squared = ddot(3*nat,perp2(1),1,perp2(1),1)
+        call mhgpsenergyandforces(mhgpsst,runObj,outs,rxyz2,fxyz2,fnoise,epot2,infocode)
+        call perpend(runObj%atoms%astruct%nat,tangent2,fxyz2,perp2)
+        perpnrmPrev2_squared = ddot(3*runObj%atoms%astruct%nat,perp2(1),1,perp2(1),1)
         perpnrm2_squared=perpnrmPrev2_squared
-        if(iproc==0)write(*,'(a,i3.3,4(1x,es10.3))')&
+        if(mhgpsst%iproc==0)write(*,'(a,i3.3,4(1x,es10.3))')&
         '   (MHGPS) ',1,sqrt(perpnrm1_squared),epot1,&
         sqrt(perpnrm2_squared),epot2
         dispPrev2=gammainv*perp2
@@ -513,7 +505,7 @@ subroutine optim_cg(nat,alat,runObj,outs,finished,step,gammainv,&
         rxyz2=rxyz2+dispPrev2
     
         dir=rxyz2-rxyz1
-        dist=dnrm2(3*nat,dir(1),1)
+        dist=dnrm2(3*runObj%atoms%astruct%nat,dir(1),1)
         if(dist>dmax)then
             return
         endif
@@ -523,9 +515,9 @@ subroutine optim_cg(nat,alat,runObj,outs,finished,step,gammainv,&
     do istep=2,nstepsmax
 
         !move left node
-        call mhgpsenergyandforces(nat,alat,runObj,outs,rxyz1,fxyz1,fnoise,epot1)
-        call perpend(nat,tangent1,fxyz1,perp1)
-        perpnrm1_squared = ddot(3*nat,perp1(1),1,perp1(1),1)
+        call mhgpsenergyandforces(mhgpsst,runObj,outs,rxyz1,fxyz1,fnoise,epot1,infocode)
+        call perpend(runObj%atoms%astruct%nat,tangent1,fxyz1,perp1)
+        perpnrm1_squared = ddot(3*runObj%atoms%astruct%nat,perp1(1),1,perp1(1),1)
         if(perpnrm1_squared>perpnrmPrev1_squared)then
             alpha1=1._gp
         else
@@ -542,10 +534,10 @@ subroutine optim_cg(nat,alat,runObj,outs,finished,step,gammainv,&
         
         if(finished==2)then 
             !move right node
-            call mhgpsenergyandforces(nat,alat,runObj,outs,rxyz2,fxyz2,fnoise,epot2)
-            call perpend(nat,tangent2,fxyz2,perp2)
-            perpnrm2_squared = ddot(3*nat,perp2(1),1,perp2(1),1)
-            if(iproc==0)write(*,'(a,i3.3,4(1x,es10.3))')&
+            call mhgpsenergyandforces(mhgpsst,runObj,outs,rxyz2,fxyz2,fnoise,epot2,infocode)
+            call perpend(runObj%atoms%astruct%nat,tangent2,fxyz2,perp2)
+            perpnrm2_squared = ddot(3*runObj%atoms%astruct%nat,perp2(1),1,perp2(1),1)
+            if(mhgpsst%iproc==0)write(*,'(a,i3.3,4(1x,es10.3))')&
             '   (MHGPS) ',istep,sqrt(perpnrm1_squared),epot1,&
             sqrt(perpnrm2_squared),epot2
             if(perpnrm2_squared>perpnrmPrev2_squared)then
@@ -563,7 +555,7 @@ subroutine optim_cg(nat,alat,runObj,outs,finished,step,gammainv,&
             perpnrmPrev2_squared=perpnrm2_squared
         
             dir=rxyz2-rxyz1
-            dist=dnrm2(3*nat,dir(1),1)
+            dist=dnrm2(3*runObj%atoms%astruct%nat,dir(1),1)
             !perpnrm1_squared is from last iteration
             !but we accept this, since reevaluation
             !of energies and forces is too expensive
@@ -573,7 +565,7 @@ subroutine optim_cg(nat,alat,runObj,outs,finished,step,gammainv,&
             !if((perpnrm1_squared<perpnrmtol_squared &
                &.and. perpnrm2_squared<perpnrmtol_squared))then
             !!!if(dist>dmax)then
-            !!!!            if(dist>dmax.and.iproc==0)then
+            !!!!            if(dist>dmax.and.mhgpsst%iproc==0)then
             !!!                write(200,*)'exit due to dmax'   
             !!!            endif
                 !we do not compute and do not return energies and
@@ -643,7 +635,7 @@ stop 'lin_interpol not tested, yet'
     endif
 end subroutine
 !=====================================================================
-subroutine get_ts_guess_linsyn(nat,alat,runObj,outs,left,right,tsguess,minmodeguess,&
+subroutine get_ts_guess_linsyn(mhgpsst,uinp,runObj,outs,left,right,tsguess,minmodeguess,&
                              tsgenergy,tsgforces)
     !Given two distinct structures, get_ts_guess_linsyn interpolates
     !inwards (that is in a direction connecting both strucutres)
@@ -654,42 +646,42 @@ subroutine get_ts_guess_linsyn(nat,alat,runObj,outs,left,right,tsguess,minmodegu
     use module_base
     use bigdft_run, only: run_objects, state_properties
     use module_interpol
-    use module_global_variables, only:stepfrct=>lst_interpol_stepfrct,&
-                                      mhgps_verbosity,&
-                                      iproc
+    use module_userinput
+    use module_mhgps_state
     use module_energyandforces
     implicit none
     !parameters
-    integer, intent(in)      :: nat
-    real(gp), intent(in)     :: alat(3)
+    type(mhgps_state), intent(inout) :: mhgpsst
+    type(userinput), intent(in)      :: uinp
     type(run_objects), intent(inout) :: runObj
     type(state_properties), intent(inout) :: outs
-    real(gp), intent(in)     :: left(3,nat)
-    real(gp), intent(in)     :: right(3,nat)
-    real(gp), intent(out)    :: tsguess(3,nat)
-    real(gp), intent(out)    :: minmodeguess(3,nat)
+    real(gp), intent(in)     :: left(3,runObj%atoms%astruct%nat)
+    real(gp), intent(in)     :: right(3,runObj%atoms%astruct%nat)
+    real(gp), intent(out)    :: tsguess(3,runObj%atoms%astruct%nat)
+    real(gp), intent(out)    :: minmodeguess(3,runObj%atoms%astruct%nat)
     real(gp), intent(out)    :: tsgenergy
-    real(gp), intent(out)    :: tsgforces(3,nat)
+    real(gp), intent(out)    :: tsgforces(3,runObj%atoms%astruct%nat)
     !constants
     integer, parameter  :: nimages=200
     !internal
+    integer  :: infocode
     integer  :: i
     integer  :: j
     integer  :: iat
     integer  :: ipathmax
     integer  :: nimagespath
-    real(gp) :: lstpath(3,nat,nimages)
-    real(gp) :: lstpathRM(nimages,3,nat)
+    real(gp) :: lstpath(3,runObj%atoms%astruct%nat,nimages)
+    real(gp) :: lstpathRM(nimages,3,runObj%atoms%astruct%nat)
     real(gp), allocatable :: lstpathC(:,:,:)
     real(gp), allocatable :: forces(:,:,:)
     real(gp), allocatable :: energies(:)
     real(gp), allocatable :: tangent(:,:,:)
     real(gp) :: arc(nimages)
     real(gp) :: arcl
-    real(gp) :: diff(3,nat)
+    real(gp) :: diff(3,runObj%atoms%astruct%nat)
     real(gp) :: nimo
     real(gp) :: yp1=huge(1._gp), ypn=huge(1._gp)!natural splines
-    real(gp) :: y2vec(nimages,3,nat)
+    real(gp) :: y2vec(nimages,3,runObj%atoms%astruct%nat)
     real(gp) :: tau
     real(gp) :: lambda
     real(gp) :: emax
@@ -703,20 +695,20 @@ subroutine get_ts_guess_linsyn(nat,alat,runObj,outs,left,right,tsguess,minmodegu
     nimo=1._gp/real(nimages-1,gp)
     do i=1,nimages
         lambda  = real(i-1,gp)*nimo
-        call lstpthpnt(nat,left,right,lambda,lstpath(1,1,i))
+        call lstpthpnt(runObj%atoms%astruct%nat,mhgpsst,uinp,left,right,lambda,lstpath(1,1,i))
     enddo
 
     !measure arc length 
     arc(1)=0._gp
     do i=2,nimages
         diff = lstpath(:,:,i) - lstpath(:,:,i-1)
-        arc(i)  = arc(i-1) + dnrm2(3*nat,diff(1,1),1)
+        arc(i)  = arc(i-1) + dnrm2(3*runObj%atoms%astruct%nat,diff(1,1),1)
     enddo
     arcl=arc(nimages)
 
     !rewrite lstpath to row major ordering
     !(for access in spline routines)
-    do iat=1,nat
+    do iat=1,runObj%atoms%astruct%nat
         do i=1,nimages
             lstpathRM(i,1,iat)=lstpath(1,iat,i)
             lstpathRM(i,2,iat)=lstpath(2,iat,i)
@@ -727,7 +719,7 @@ subroutine get_ts_guess_linsyn(nat,alat,runObj,outs,left,right,tsguess,minmodegu
     !compute the spline parameters (y2vec)
     !parametrize curve as a function of the
     !integrated arc length
-    do i=1,nat
+    do i=1,runObj%atoms%astruct%nat
         call spline_wrapper(arc,lstpathRM(1,1,i),nimages,&
                            yp1,ypn,y2vec(1,1,i))
         call spline_wrapper(arc,lstpathRM(1,2,i),nimages,&
@@ -738,19 +730,19 @@ subroutine get_ts_guess_linsyn(nat,alat,runObj,outs,left,right,tsguess,minmodegu
 
     !generate nodes at which energies, forces and tangents are computed
     !ceiling(1.0_gp/stepfrct)-1+2=ceiling(1.0_gp/stepfrct)+1
-    nimagespath=max(ceiling(1.0_gp/stepfrct)+1,3)
-    lstpathC = f_malloc((/1.to.3,1.to.nat,1.to.nimagespath/),&
+    nimagespath=max(ceiling(1.0_gp/uinp%lst_interpol_stepfrct)+1,3)
+    lstpathC = f_malloc((/1.to.3,1.to.runObj%atoms%astruct%nat,1.to.nimagespath/),&
                  id='nimagespath')
-    forces    = f_malloc((/1.to.3,1.to.nat,1.to.nimagespath/),&
+    forces    = f_malloc((/1.to.3,1.to.runObj%atoms%astruct%nat,1.to.nimagespath/),&
                  id='forces')
     energies  = f_malloc((/1.to.nimagespath/),&
                  id='energies')
-    tangent   = f_malloc((/1.to.3,1.to.nat,1.to.nimagespath/),&
+    tangent   = f_malloc((/1.to.3,1.to.runObj%atoms%astruct%nat,1.to.nimagespath/),&
                  id='tangent')
     nimo = 1._gp/real(nimagespath-1,gp)
     do j=1,nimagespath
         tau = arcl*(j-1)*nimo
-        do i=1,nat
+        do i=1,runObj%atoms%astruct%nat
             call splint_wrapper(arc,lstpathRM(1,1,i),y2vec(1,1,i),&
                  nimages,tau,lstpathC(1,i,j),tangent(1,i,j))
             call splint_wrapper(arc,lstpathRM(1,2,i),y2vec(1,2,i),&
@@ -764,19 +756,19 @@ subroutine get_ts_guess_linsyn(nat,alat,runObj,outs,left,right,tsguess,minmodegu
     !left and right minima (at path ends)
     emax=-huge(1._gp)
     do j=2,nimagespath-1
-        call mhgpsenergyandforces(nat,alat,runObj,outs,lstpathC(1,1,j),&
-             forces(1,1,j),fnoise,energies(j))
+        call mhgpsenergyandforces(mhgpsst,runObj,outs,lstpathC(1,1,j),&
+             forces(1,1,j),fnoise,energies(j),infocode)
         if(energies(j)>emax)then
             emax       = energies(j)
             ipathmax   = j
         endif
     enddo
-    call vcopy(3*nat, lstpathC(1,1,ipathmax), 1, tsguess(1,1), 1)
-    call vcopy(3*nat, tangent(1,1,ipathmax), 1, minmodeguess(1,1), 1)
-    call vcopy(3*nat, forces(1,1,ipathmax), 1, tsgforces(1,1), 1)
+    call vcopy(3*runObj%atoms%astruct%nat, lstpathC(1,1,ipathmax), 1, tsguess(1,1), 1)
+    call vcopy(3*runObj%atoms%astruct%nat, tangent(1,1,ipathmax), 1, minmodeguess(1,1), 1)
+    call vcopy(3*runObj%atoms%astruct%nat, forces(1,1,ipathmax), 1, tsgforces(1,1), 1)
     tsgenergy = energies(ipathmax)
-    if(iproc==0 .and. mhgps_verbosity>=5)then
-        call write_path_b(nat,runObj,outs,nimagespath,lstpathC,energies,tangent)
+    if(mhgpsst%iproc==0 .and. uinp%mhgps_verbosity>=5)then
+        call write_path_b(mhgpsst,runObj,outs,nimagespath,lstpathC,energies,tangent)
     endif     
 
 
@@ -786,7 +778,7 @@ subroutine get_ts_guess_linsyn(nat,alat,runObj,outs,left,right,tsguess,minmodegu
     call f_free(tangent) 
 end subroutine
 !=====================================================================
-subroutine lst_interpol_freez(nat,left,right,step,interleft,interright,&
+subroutine lst_interpol_freez(nat,mhgpsst,uinp,left,right,step,interleft,interright,&
                         tangentleft,tangentright,finished)
     !Given two distinct structures, lst_interpol interpolates
     !inwards (that is in a direction connecting both strucutres)
@@ -810,11 +802,14 @@ subroutine lst_interpol_freez(nat,left,right,step,interleft,interright,&
     !                 nothing is returned, interleft and interright
     !                 are meaningless
     use module_base
+    use module_mhgps_state
     use module_interpol
-    use module_global_variables, only:stepfrct=>lst_interpol_stepfrct
+    use module_userinput
     implicit none
     !parameters
+    type(mhgps_state), intent(in) :: mhgpsst
     integer, intent(in)      :: nat
+    type(userinput), intent(in) :: uinp
     real(gp), intent(in)     :: left(3,nat)
     real(gp), intent(in)     :: right(3,nat)
     real(gp), intent(inout)  :: step
@@ -887,7 +882,7 @@ subroutine lst_interpol_freez(nat,left,right,step,interleft,interright,&
     nimo=1._gp/real(nimages-1,gp)
     do i=1,nimages
         lambda  = real(i-1,gp)*nimo
-        call lstpthpnt(nat,left,right,lambda,lstpath(1,1,i))
+        call lstpthpnt(nat,mhgpsst,uinp,left,right,lambda,lstpath(1,1,i))
     enddo
 
     !measure arc length 
@@ -898,7 +893,7 @@ subroutine lst_interpol_freez(nat,left,right,step,interleft,interright,&
     enddo
     arcl=arc(nimages)
 
-    if(step<0._gp)step=stepfrct*arcl
+    if(step<0._gp)step=uinp%lst_interpol_stepfrct*arcl
 !write(*,*)'arcl ',arcl,step
     if(arcl < step)then
 !write(*,*)'lstinterpol finished 0'
@@ -1108,13 +1103,17 @@ subroutine lst_interpol_freez(nat,left,right,step,interleft,interright,&
     endif
 end subroutine
 !=====================================================================
-subroutine interpol(method,nat,left,right,step,interleft,interright,&
+subroutine interpol(method,nat,mhgpsst,uinp,left,right,step,interleft,interright,&
                     tangentleft,tangentright,finished)
     use module_base
+    use module_mhgps_state
+    use module_userinput
     implicit none
     !parameters
+    type(mhgps_state), intent(in) :: mhgpsst
     character(len=*), intent(in) :: method
     integer, intent(in)  :: nat
+    type(userinput), intent(in) :: uinp
     real(gp), intent(in)  :: left(3*nat)
     real(gp), intent(in)  :: right(3*nat)
     real(gp), intent(inout)  :: step
@@ -1129,7 +1128,7 @@ subroutine interpol(method,nat,left,right,step,interleft,interright,&
                        tangentleft,finished)
         tangentright=tangentleft
     else if(trim(adjustl(method))=='linlst')then
-        call lst_interpol_freez(nat,left, right, step,interleft,interright,&
+        call lst_interpol_freez(nat,mhgpsst,uinp,left, right, step,interleft,interright,&
                        tangentleft,tangentright,finished)
     endif
 end subroutine

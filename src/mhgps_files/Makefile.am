@@ -2,8 +2,8 @@ vpath %.h ../modules
 
 
 mhgps_objects = \
-               module_global_variables.f90 \
-               module_init.f90 \
+               module_mhgps_state.f90 \
+               module_userinput.f90 \
                module_hessian.f90 \
                module_io.f90 \
                module_energyandforces.f90 \
@@ -31,32 +31,31 @@ noinst_LIBRARIES = libmhgps.a
 libmhgps_a_SOURCES = $(mhgps_SOURCES)
 #dependencies
 
-module_global_variables.o : ../modules/BigDFT_API.o
+module_mhgps_state.o : ../modules/BigDFT_API.o
 
-module_energyandforces.o : module_global_variables.o \
-                           module_init.o \
+module_energyandforces.o : module_mhgps_state.o \
                            ../modules/BigDFT_API.o
-module_init.o : module_global_variables.o ../modules/BigDFT_API.o 
-module_saddle.o : module_global_variables.o module_io.o\
+module_userinput.o : module_mhgps_state.o ../modules/BigDFT_API.o 
+module_saddle.o : module_userinput.o module_mhgps_state.o\
                   module_energyandforces.o ../modules/module_sqn.o\
                   ../modules/BigDFT_API.o
-module_minimizers.o : module_global_variables.o\
+module_minimizers.o : module_userinput.o module_mhgps_state.o\
                       module_energyandforces.o\
                       ../modules/module_sqn.o\
                       ../modules/BigDFT_API.o
-module_io.o : module_global_variables.o ../modules/BigDFT_API.o
+module_io.o : module_userinput.o module_mhgps_state.o ../modules/BigDFT_API.o
 module_freezingstring.o : module_energyandforces.o module_interpol.o \
-                          module_global_variables.o\
+                          module_userinput.o module_mhgps_state.o\
                           ../modules/BigDFT_API.o
-module_interpol.o : module_global_variables.o ../modules/BigDFT_API.o
-module_connect.o: module_misc.o module_ls_rmsd.o\
-                  module_global_variables.o module_saddle.o\
+module_interpol.o : module_userinput.o module_mhgps_state.o ../modules/BigDFT_API.o
+module_connect.o: module_userinput.o module_misc.o module_ls_rmsd.o\
+                  module_mhgps_state.o module_saddle.o\
                   module_freezingstring.o module_minimizers.o\
                   ../modules/BigDFT_API.o module_fingerprints.o
 module_ls_rmsd.o: module_misc.o ../modules/BigDFT_API.o
 module_misc.o: ../modules/BigDFT_API.o
-module_fingerprints.o: module_global_variables.o\
+module_fingerprints.o: module_userinput.o module_mhgps_state.o\
                       ../modules/BigDFT_API.o
-module_hessian.o: ../modules/BigDFT_API.o module_global_variables.o module_energyandforces.o
+module_hessian.o: module_userinput.o ../modules/BigDFT_API.o module_mhgps_state.o module_energyandforces.o
 
 mhgpstool.o: ../modules/BigDFT_API.o module_fingerprints.o

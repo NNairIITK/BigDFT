@@ -73,7 +73,7 @@ module bigdft_run
   public :: init_QM_restart_objects,init_MM_restart_objects,set_run_objects,nullify_QM_restart_objects
   public :: nullify_MM_restart_objects
   public :: bigdft_nat,bigdft_state,free_run_objects
-  public :: release_run_objects,bigdft_get_cell,bigdft_get_geocode,bigdft_get_run_properties
+  public :: release_run_objects,bigdft_get_cell,bigdft_get_cell_ptr,bigdft_get_geocode,bigdft_get_run_properties
   public :: bigdft_get_units, bigdft_set_units
   public :: bigdft_get_astruct_ptr,bigdft_write_atomic_file,bigdft_set_run_properties
   public :: bigdft_norb,bigdft_get_eval,bigdft_run_id_toa,bigdft_get_rxyz
@@ -1134,6 +1134,21 @@ contains
             err_name='BIGDFT_RUNTIME_ERROR')
     end if
   end function bigdft_get_cell
+
+  function bigdft_get_cell_ptr(runObj) result(cell)
+    implicit none
+    type(run_objects), intent(in) :: runObj
+    real(gp), dimension(:), pointer :: cell
+
+    nullify(cell)
+    if (associated(runObj%atoms))then
+        cell => runObj%atoms%astruct%cell_dim
+    else
+       call f_err_throw('Cell uninitialized',&
+            err_name='BIGDFT_RUNTIME_ERROR')
+    endif
+
+  end function bigdft_get_cell_ptr
 
   !=====================================================================
   subroutine bigdft_state(runObj,outs,infocode)
