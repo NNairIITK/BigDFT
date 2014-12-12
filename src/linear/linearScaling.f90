@@ -79,6 +79,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
   type(matrices) :: weight_matrix_
   real(kind=8) :: sign_of_energy_change
   integer :: nit_energyoscillation
+  integer(kind=8) :: nsize
 
   real(8),dimension(:),allocatable :: rho_tmp, tmparr
   real(8) :: tt, ddot
@@ -830,7 +831,8 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
                    end if
                    !pnrm_out = pnrm_out/dble(input%nspin)
 
-                   pnrm_out=sqrt(pnrm_out)/(KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*KSwfn%Lzd%Glr%d%n3i)
+                   nsize = int(KSwfn%Lzd%Glr%d%n1i,kind=8)*int(KSwfn%Lzd%Glr%d%n2i,kind=8)*int(KSwfn%Lzd%Glr%d%n3i,kind=8)
+                   pnrm_out=sqrt(pnrm_out)/real(nsize,kind=8)
                    !only want to copy across when CDFT loop has also converged
                    if (.not. input%lin%constrained_dft .or. (ebs-cdft%charge < cdft_charge_thresh) &
                         .or. target_function==TARGET_FUNCTION_IS_TRACE) then
