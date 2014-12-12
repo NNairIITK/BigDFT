@@ -454,7 +454,7 @@ subroutine sparse_matrix_init_fake(iproc,nproc,norb, norbp, isorb, nseg, nvctr, 
   use module_base
   use module_types
   use sparsematrix_base, only: sparse_matrix, sparse_matrix_null, deallocate_sparse_matrix
-  use sparsematrix_init, only: init_sparse_matrix, init_matrix_taskgroups, init_matrix_taskgroups
+  use sparsematrix_init, only: init_sparse_matrix, init_matrix_taskgroups
   use communications_base, only: comms_linear_null
   implicit none
 
@@ -514,7 +514,10 @@ subroutine sparse_matrix_init_fake(iproc,nproc,norb, norbp, isorb, nseg, nvctr, 
   call f_free(nvctr_per_segment)
 
   collcom_dummy = comms_linear_null()
-  call init_matrix_taskgroups(iproc, nproc, .false., collcom_dummy, collcom_dummy, smat)
+  ! since no taskgroups are used, the values of iirow and iicol are just set to
+  ! the minimum and maximum, respectively.
+  call init_matrix_taskgroups(iproc, nproc, .false., collcom_dummy, collcom_dummy, smat, &
+       (/1,norb/), (/1,norb/))
 
   !!! Initialize the parameters for the spare matrix matrix multiplication
   !!call init_sparse_matrix_matrix_multiplication(norb, norbp, isorb, smat%nseg, &
