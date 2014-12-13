@@ -129,17 +129,17 @@ subroutine write_jobs(mhgpsst,runObj,cobj)
             write(filenameR,'(a,i5.5,a)')'restart',ijob,'_R'
             call astruct_dump_to_file(bigdft_get_astruct_ptr(runObj),&
                  trim(adjustl(mhgpsst%currDir))//'/'//trim(filenameR),&
-                 comment,rxyz=cobj%todorxyz(1,1,1,ijob))
+                 comment,rxyz=cobj%todorxyz(1,1,2,ijob))
             write(filenameL,'(a,i5.5,a)')'restart',ijob,'_L'
             call astruct_dump_to_file(bigdft_get_astruct_ptr(runObj),&
                  trim(adjustl(mhgpsst%currDir))//'/'//trim(filenameL),&
-                 comment,rxyz=cobj%todorxyz(1,1,2,ijob))
+                 comment,rxyz=cobj%todorxyz(1,1,1,ijob))
             write(u,'(a,1x,a)')trim(adjustl(filenameL)),trim(adjustl(filenameR))
         enddo
     endif
     do ijob=mhgpsst%ijob+1,mhgpsst%njobs
-        write(u,'(a,1x,a)')trim(adjustl(mhgpsst%joblist(1,mhgpsst%ijob)(10:))),&
-                           trim(adjustl(mhgpsst%joblist(2,mhgpsst%ijob)(10:)))
+        write(u,'(a,1x,a)')trim(adjustl(mhgpsst%joblist(1,ijob)(10:))),&
+                           trim(adjustl(mhgpsst%joblist(2,ijob)(10:)))
     enddo
     close(u)
      
