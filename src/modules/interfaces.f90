@@ -2438,7 +2438,7 @@ module module_interfaces
          real(kind=8),intent(inout) :: fnrm_old
          real(8),dimension(tmb%orbs%norbp),intent(inout) :: alpha
          real(8),intent(out):: trH, fnrm, fnrmMax, alpha_mean, alpha_max
-         real(8),intent(inout):: trHold
+         real(8),intent(in):: trHold
          logical,intent(out) :: energy_increased
          real(8),dimension(tmb%orbs%npsidim_orbs),intent(inout):: lhphiold
          logical,intent(inout):: overlap_calculated
@@ -2453,8 +2453,8 @@ module module_interfaces
          type(workarr_precond),dimension(tmb%orbs%norbp),intent(inout) :: precond_workarrays
          type(work_transpose),intent(inout) :: wt_philarge
          type(work_transpose),intent(out) :: wt_hpsinoprecond
-         type(cdft_data),intent(in),optional :: cdft
-         type(fragmentInputParameters),optional,intent(in) :: input_frag
+         type(cdft_data),intent(inout),optional :: cdft
+         type(fragmentInputParameters), optional, intent(in) :: input_frag
          type(system_fragment), dimension(:), optional, intent(in) :: ref_frags
        end subroutine calculate_energy_and_gradient_linear
 
@@ -4176,7 +4176,7 @@ module module_interfaces
           type(sparse_matrix),intent(in),optional :: smat2
           type(matrices),intent(in),optional :: mat2
           integer,intent(in),optional :: i2shift
-          real(kind=8),dimension(smatl%nvctr),intent(out) :: matscal_compr
+          real(kind=8),dimension(smatl%nvctrp_tg),intent(out) :: matscal_compr
           real(kind=8),intent(out) :: scale_factor, shift_value
         end subroutine scale_and_shift_matrix
 
