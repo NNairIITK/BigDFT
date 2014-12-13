@@ -296,7 +296,7 @@ subroutine zero_work_arrays_locham(lr,nspinor,w)
   implicit none
   integer, intent(in) :: nspinor
   type(locreg_descriptors), intent(in) :: lr
-  type(workarr_locham), intent(out) :: w
+  type(workarr_locham), intent(inout) :: w
   !local variables
   integer :: n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3
 
