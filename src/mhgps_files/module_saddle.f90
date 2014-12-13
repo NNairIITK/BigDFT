@@ -341,24 +341,30 @@ subroutine findsad(mhgpsst,fsw,uinp,runObj,outs,rcov,nbond,iconnect,&
     fsw%rxyz_trans(:,:,0)=wpos
 
     if (bigdft_get_geocode(runObj) == 'F') then
-    call fixfrag_posvel(mhgpsst,runObj%atoms%astruct%nat,rcov,fsw%rxyz_trans(1,1,0),tnatdmy,1,fixfragmented)
-    if(fixfragmented .and. uinp%mhgps_verbosity >=0.and. mhgpsst%iproc==0)&
-       call yaml_comment('fragmentation fixed')
+    call fixfrag_posvel(mhgpsst,runObj%atoms%astruct%nat,rcov,&
+         fsw%rxyz_trans(1,1,0),tnatdmy,1,fixfragmented)
+        if(fixfragmented .and. uinp%mhgps_verbosity >=0.and. &
+          mhgpsst%iproc==0) call yaml_comment('fragmentation fixed')
     endif
 
     runObj%inputs%inputPsiId=0
     call minenergyandforces(mhgpsst,.true.,uinp%imode,runObj,outs,&
          fsw%rxyz_trans(1,1,0),fsw%rxyzraw_trans(1,1,0),&
-    fsw%fxyz_trans(1,1,0),fsw%fstretch_trans(1,1,0),fsw%fxyzraw_trans(1,1,0),etot,iconnect,nbond,&
-    fsw%wold_trans,uinp%saddle_alpha_stretch0,alpha_stretch)
+         fsw%fxyz_trans(1,1,0),fsw%fstretch_trans(1,1,0),&
+         fsw%fxyzraw_trans(1,1,0),etot,iconnect,nbond,fsw%wold_trans,&
+         uinp%saddle_alpha_stretch0,alpha_stretch)
     fsw%rxyzold_trans=fsw%rxyz_trans(:,:,0)
     ener_count=ener_count+1.0_gp
-    if(uinp%imode==2)fsw%rxyz_trans(:,:,0)=fsw%rxyz_trans(:,:,0)+alpha_stretch*fsw%fstretch_trans(:,:,0)
-    call fnrmandforcemax(fsw%fxyzraw_trans(1,1,0),fnrm,fmax,runObj%atoms%astruct%nat)
+    if(uinp%imode==2)then
+        fsw%rxyz_trans(:,:,0)=fsw%rxyz_trans(:,:,0)+&
+                              alpha_stretch*fsw%fstretch_trans(:,:,0)
+    endif
+    call fnrmandforcemax(fsw%fxyzraw_trans(1,1,0),fnrm,fmax,&
+         runObj%atoms%astruct%nat)
+
     fnrm=sqrt(fnrm)
     etotold=etot
     etotp=etot
-
 
 !    itswitch=2
     itswitch=-2

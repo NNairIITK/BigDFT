@@ -18,7 +18,7 @@ program mhgps
                             atomic_structure,&
                             read_atomic_file=>set_astruct_from_file,&
                             astruct_dump_to_file
-    
+    use module_connect_object
     use module_mhgps_state
     use module_userinput
     use module_energyandforces, only: mhgpsenergyandforces
@@ -28,10 +28,7 @@ program mhgps
     use module_saddle, only: findsad_work, findsad,&
                              allocate_finsad_workarrays,&
                              deallocate_finsad_workarrays
-    use module_connect, only: connect_recursively, connect,&
-                              connect_object,&
-                              deallocate_connect_object,&
-                              allocate_connect_object
+    use module_connect, only: connect_recursively, connect
     use module_fingerprints, only: fingerprint_interface
     use module_hessian, only: cal_hessian_fd 
     use module_minimizers
@@ -43,6 +40,7 @@ program mhgps
     integer                   :: nbond
     integer                   :: infocode
     integer                   :: ifolder
+    integer                   :: ifolderstart
     integer                   :: ijob
     integer                   :: ierr
     integer                   :: lwork
@@ -201,11 +199,14 @@ program mhgps
     endif
     call allocate_finsad_workarrays(runObj,uinp,nbond,fsw)
 
-    do ifolder = 1,999
+    ifolderstart=mhgpsst%ifolder
+    do ifolder = ifolderstart,999
+        mhgpsst%ifolder=ifolder
         write(mhgpsst%currDir,'(a,i3.3)')trim(adjustl(mhgpsst%dirprefix)),ifolder
         call read_jobs(uinp,mhgpsst)
 
         do ijob = 1,mhgpsst%njobs
+           mhgpsst%ijob=ijob
            call bigdft_get_rxyz(filename=&
                 trim(adjustl(mhgpsst%joblist(1,ijob))),rxyz=rxyz)
 
@@ -225,6 +226,7 @@ program mhgps
               write(comment,'(a)')&
                    'TS guess; forces below give guessed '//&
                    'minimummode.'
+              if(mhgpsst%iproc==0)then
               call astruct_dump_to_file(&
                    bigdft_get_astruct_ptr(runObj),mhgpsst%currDir//'/sad'//&
                    trim(adjustl(mhgpsst%isadc))//'_ig_finalM',comment,&
@@ -234,6 +236,7 @@ program mhgps
                    bigdft_get_astruct_ptr(runObj),mhgpsst%currDir//'/sad'//&
                    trim(adjustl(mhgpsst%isadc))//'_ig_finalF',comment,&
                    tsgenergy,rxyz=tsguess,forces=tsgforces)
+              endif
            case('connect')
               call bigdft_get_rxyz(filename=mhgpsst%joblist(2,ijob),&
                    rxyz=rxyz2)
@@ -259,12 +262,12 @@ program mhgps
               isame=0
               nsad=0
               connected=.true.
-              !call connect(bigdft_nat(runObj),mhgpsst%nid,alat,rcov,nbond,&
-              !     iconnect,rxyz,rxyz2,energy,energy2,fp,fp2,&
-              !     nsad,cobj,connected)
-              call connect_recursively(mhgpsst,fsw,uinp,runObj,outs,rcov,&
-                   nbond,isame,iconnect,rxyz,rxyz2,energy,energy2,fp,&
-                   fp2,nsad,cobj,connected)
+              call connect(mhgpsst,fsw,uinp,runObj,outs,rcov,nbond,&
+                   iconnect,rxyz,rxyz2,energy,energy2,fp,fp2,&
+                   nsad,cobj,connected)
+!              call connect_recursively(mhgpsst,fsw,uinp,runObj,outs,rcov,&
+!                   nbond,isame,iconnect,rxyz,rxyz2,energy,energy2,fp,&
+!                   fp2,nsad,cobj,connected)
               if(connected)then
                  if(mhgpsst%iproc==0)call yaml_map('(MHGPS) '//&
                       'succesfully connected, intermediate'//&
@@ -287,15 +290,14 @@ program mhgps
                     minmode(3,iat)=2.0_gp*&
                          (real(builtin_rand(idum),gp)-0.5_gp)
                  enddo
+                 if(mhgpsst%iproc==0)then
                  call write_mode(runObj,outs,&
                       trim(adjustl(mhgpsst%joblist(1,ijob)))//'_mode',minmode)
+                 endif
               else
                  call read_mode(mhgpsst,bigdft_nat(runObj),trim(adjustl(mhgpsst%joblist(1,ijob)))&
                       //'_mode',minmode)
               endif
-              !!call random_seed
-              !!call random_number(minmode)
-              !!minmode=2.d0*(minmode-0.5d0)
               !normalize
               minmode = minmode/dnrm2(3*bigdft_nat(runObj),minmode(1,1),1)
               ec=0.0_gp
@@ -385,8 +387,9 @@ program mhgps
                    trim(adjustl(uinp%operation_mode))//' unknown STOP')
               stop '(MHGPS) operation mode unknown STOP'
            end select
-           call write_jobs(mhgpsst,ijob)
-           call write_restart(mhgpsst)
+           if(mhgpsst%iproc==0)then
+              call write_restart(mhgpsst,runObj)
+           endif
         enddo
         call f_delete_file('restart')
         call f_delete_file(trim(adjustl(mhgpsst%currDir))//'/job_list_restart')

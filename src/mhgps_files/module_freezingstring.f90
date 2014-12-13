@@ -55,6 +55,10 @@ subroutine get_ts_guess(mhgpsst,uinp,runObj,outs,rxyz1,rxyz2,tsguess,minmodegues
         call get_ts_guess_freeze(mhgpsst,uinp,runObj,outs,rxyz1,rxyz2,&
              tsguess,minmodeguess,tsgenergy,tsgforces,success)
         if(.not.success)then
+            if(mhgpsst%iproc==0)then
+                call yaml_comment('(MHGPS) freezing string failed,'//&
+                ' will restore to linear synchroneous transit method.')
+            endif
             call get_ts_guess_linsyn(mhgpsst,uinp,runObj,outs,rxyz1,&
                  rxyz2,tsguess, minmodeguess,tsgenergy,tsgforces)
         endif
@@ -404,6 +408,7 @@ subroutine grow_freezstring(mhgpsst,uinp,runObj,outs,gammainv,perpnrmtol,trust,&
             success=.false.
             return
         endif
+        if(mhgpsst%iproc==0)call yaml_comment('(MHGPS) resizing string array')
         if(allocated(stringTmp))then
 !            deallocate(stringTmp)
             call f_free(stringTmp)

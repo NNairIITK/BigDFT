@@ -28,6 +28,8 @@ module module_mhgps_state
         character(len=100), allocatable :: joblist(:,:)
         integer            :: njobsmax
         integer            :: njobs
+        integer            :: ifolder
+        integer            :: ijob
         character(len=8)   :: currDir !length is length(dirprefix)+
                                       !number of digits
         real(gp)           :: ef_counter
@@ -57,6 +59,8 @@ subroutine init_mhgps_state(mhgpsst)
 
     mhgpsst%njobsmax      = 999
     mhgpsst%njobs         = -1
+    mhgpsst%ifolder       = -1
+    mhgpsst%ijob          = -1
 !   mhgpsst%joblist = f_malloc_str((/1.to.2, 1.to.999/),id='joblist') !how??
     allocate(mhgpsst%joblist(2,mhgpsst%njobsmax))
  

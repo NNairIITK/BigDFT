@@ -60,26 +60,6 @@ subroutine get_first_struct_file(mhgpsst,filename)
     endif
 end subroutine
 !=====================================================================
-subroutine write_jobs(mhgpsst,idone)
-    use module_base
-    use module_mhgps_state
-    implicit none
-    !parameters
-    type(mhgps_state), intent(inout) :: mhgpsst
-    integer, intent(in)  :: idone
-    !local
-    integer :: ijob, u
-
-    u=f_get_free_unit()
-    open(unit=u,file=trim(adjustl(mhgpsst%currdir))//'/job_list_restart')
-    do ijob=idone+1,mhgpsst%njobs
-        write(u,'(a,1x,a)')trim(adjustl(mhgpsst%joblist(1,ijob)(10:))),&
-                           trim(adjustl(mhgpsst%joblist(2,ijob)(10:)))
-    enddo
-    close(u)
-     
-end subroutine write_jobs
-!=====================================================================
 subroutine read_restart(mhgpsst)
     use module_base
     use module_mhgps_state
@@ -93,28 +73,77 @@ subroutine read_restart(mhgpsst)
     inquire(file='restart',exist=exists)
     if(exists)then
         open(unit=u,file='restart')
+        read(u,*)mhgpsst%ifolder
         read(u,*)mhgpsst%isad,mhgpsst%isadprob
         read(u,*)mhgpsst%ntodo
         close(u)
     else
+        mhgpsst%ifolder=1
         mhgpsst%isad=0
         mhgpsst%ntodo=0
     endif
 end subroutine read_restart
 !=====================================================================
-subroutine write_restart(mhgpsst)
+subroutine write_restart(mhgpsst,runObj,cobj)
     use module_base
+    use bigdft_run
     use module_mhgps_state
+    use module_connect_object
     implicit none
-    type(mhgps_state), intent(in) :: mhgpsst
+    type(mhgps_state), intent(in)              :: mhgpsst
+    type(run_objects), intent(in)     :: runObj
+    type(connect_object), optional, intent(in) :: cobj
     !local
     integer :: u
     u=f_get_free_unit()
     open(unit=u,file='restart')
+    write(u,*)mhgpsst%ifolder
     write(u,*)mhgpsst%isad,mhgpsst%isadprob
     write(u,*)mhgpsst%ntodo
     close(u)
+    
+    call write_jobs(mhgpsst,runObj,cobj)
 end subroutine write_restart
+!=====================================================================
+subroutine write_jobs(mhgpsst,runObj,cobj)
+    use module_base
+    use bigdft_run
+    use module_atoms, only: astruct_dump_to_file
+    use module_mhgps_state
+    use module_connect_object
+    implicit none
+    !parameters
+    type(mhgps_state), intent(in) :: mhgpsst
+    type(run_objects), intent(in)     :: runObj
+    type(connect_object), optional, intent(in) :: cobj
+    !local
+    integer :: ijob, u, ntodo
+    character(len=1) :: comment
+    character(len=14)  :: filenameR, filenameL
+    comment = ' ' 
+
+    u=f_get_free_unit()
+    open(unit=u,file=trim(adjustl(mhgpsst%currdir))//'/job_list_restart')
+    if(present(cobj))then
+        do ijob=cobj%ntodo,1,-1
+            write(filenameR,'(a,i5.5,a)')'restart',ijob,'_R'
+            call astruct_dump_to_file(bigdft_get_astruct_ptr(runObj),&
+                 trim(adjustl(mhgpsst%currDir))//'/'//trim(filenameR),&
+                 comment,rxyz=cobj%todorxyz(1,1,1,ijob))
+            write(filenameL,'(a,i5.5,a)')'restart',ijob,'_L'
+            call astruct_dump_to_file(bigdft_get_astruct_ptr(runObj),&
+                 trim(adjustl(mhgpsst%currDir))//'/'//trim(filenameL),&
+                 comment,rxyz=cobj%todorxyz(1,1,2,ijob))
+            write(u,'(a,1x,a)')trim(adjustl(filenameL)),trim(adjustl(filenameR))
+        enddo
+    endif
+    do ijob=mhgpsst%ijob+1,mhgpsst%njobs
+        write(u,'(a,1x,a)')trim(adjustl(mhgpsst%joblist(1,mhgpsst%ijob)(10:))),&
+                           trim(adjustl(mhgpsst%joblist(2,mhgpsst%ijob)(10:)))
+    enddo
+    close(u)
+     
+end subroutine write_jobs
 !=====================================================================
 subroutine read_jobs(uinp,mhgpsst)
     !reads jobs from file or from available xyz/ascii files.
