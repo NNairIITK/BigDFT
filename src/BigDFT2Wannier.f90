@@ -108,12 +108,6 @@ program BigDFT2Wannier
    call dict_free(user_inputs)
    call dict_free(options)
 
-!!$   if (input%verbosity > 2) then
-!!$      nproctiming=-nproc !timing in debug mode
-!!$   else
-!!$      nproctiming=nproc
-!!$   end if
-
    !call timing(nproctiming,'b2w_time.prc','IN')
    call f_timing_reset(filename=trim(input%dir_output)//'b2w_time.yaml',&
         master=iproc==0,&
@@ -135,10 +129,6 @@ program BigDFT2Wannier
          call yaml_comment('is smaller than number of desired states' // trim(yaml_toa(n_virt)))
          call yaml_comment('CORRECTION: Increase total number of virtual states')
          call yaml_comment('or decrease the number of desired states')
-         !write(*,'(A,1x,I4)') 'ERROR: total number of virtual states :',n_virt_tot
-         !write(*,'(A,1x,I4)') 'smaller than number of desired states:',n_virt
-         !write(*,'(A)') 'CORRECTION: Increase total number of virtual states'
-         !write(*,'(A)') 'or decrease the number of desired states'
       end if
       call mpi_finalize(ierr)
       stop

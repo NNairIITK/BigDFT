@@ -275,16 +275,6 @@ contains
 
           call f_free_ptr(bounds%gb%ibzxx_f)
           call f_free_ptr(bounds%gb%ibxxyy_f)
-
-          nullify(bounds%kb%ibyz_f)
-          nullify(bounds%kb%ibxz_f)
-          nullify(bounds%kb%ibxy_f)
-          nullify(bounds%sb%ibxy_ff)
-          nullify(bounds%sb%ibzzx_f)
-          nullify(bounds%sb%ibyyzz_f)
-          nullify(bounds%gb%ibyz_ff)
-          nullify(bounds%gb%ibzxx_f)
-          nullify(bounds%gb%ibxxyy_f)
        end if
     end if
 
@@ -305,14 +295,6 @@ contains
 
           call f_free_ptr(bounds%ibyyzz_r)
 
-          nullify(bounds%kb%ibyz_c)
-          nullify(bounds%kb%ibxz_c)
-          nullify(bounds%kb%ibxy_c)
-          nullify(bounds%sb%ibzzx_c)
-          nullify(bounds%sb%ibyyzz_c)
-          nullify(bounds%gb%ibzxx_c)
-          nullify(bounds%gb%ibxxyy_c)
-          nullify(bounds%ibyyzz_r)
        end if
     end if
 

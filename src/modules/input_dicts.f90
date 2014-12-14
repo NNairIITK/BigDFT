@@ -180,6 +180,8 @@ contains
   subroutine dict_get_run_properties(run,run_id,input_id,posinp_id,naming_id, &
        & outdir_id,log_to_disk,run_from_files)
     use public_keys, only: POSINP
+    use f_utils, only: f_zero
+    use yaml_strings, only: f_strcpy
     implicit none
     type(dictionary), pointer :: run
     character(len=*), intent(out), optional :: run_id, naming_id
@@ -194,10 +196,11 @@ contains
        else if (RADICAL_NAME .in. run) then
           input_id = run // RADICAL_NAME
        else
-          input_id = " "
+          call f_zero(input_id)
+          !input_id = " "
        end if
-       if (len_trim(input_id) == 0) &
-            & input_id = "input" // trim(run_id_toa())
+       if (len_trim(input_id) == 0) call f_strcpy(src=&
+            "input" // trim(run_id_toa()),dest=input_id)
     end if
     if (present(posinp_id)) then 
        if (POSINP .in. run) then
@@ -205,28 +208,33 @@ contains
        else if (RADICAL_NAME .in. run) then
           posinp_id = run // RADICAL_NAME
        else
-          posinp_id = " "
+          call f_zero(posinp_id)
+          !posinp_id = " "
        end if
-       if (len_trim(posinp_id) == 0) &
-            & posinp_id = "posinp" // trim(run_id_toa())
+       if (len_trim(posinp_id) == 0) call f_strcpy(src=&
+            "posinp" // trim(run_id_toa()),dest=posinp_id)
     end if
     if (present(naming_id)) then
        if (RADICAL_NAME .in. run) then
           naming_id = run // RADICAL_NAME
        else
-          naming_id = " "
+          call f_zero(naming_id)
+          !naming_id = " "
        end if
        if (len_trim(naming_id) == 0) then
-          naming_id = trim(run_id_toa())
+          !naming_id = trim(run_id_toa())
+          call f_strcpy(src=trim(run_id_toa()),dest=naming_id)
        else
-          naming_id = "-" // trim(naming_id)
+          call f_strcpy(src="-" // trim(naming_id),dest=naming_id)
+          !naming_id = "-" // trim(naming_id)
        end if
     end if
     if (present(run_id)) then
        if (RADICAL_NAME .in. run) then
           run_id = run // RADICAL_NAME
        else
-          run_id = " "
+          call f_zero(run_id)
+          !run_id = " "
        end if
     end if
     if (present(outdir_id) .and. has_key(run, OUTDIR)) outdir_id = run // OUTDIR

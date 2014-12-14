@@ -1214,9 +1214,6 @@ contains
           nullify(denspot%pkernelseq%kernel)
        end if
        call pkernel_free(denspot%pkernel)
-!!$       i_all=-product(shape(denspot%pkernel))*kind(denspot%pkernel)
-!!$       deallocate(denspot%pkernel,stat=i_stat)
-!!$       call memocc(i_stat,i_all,'kernel',subname)
 
        ! calc_tail false
        call f_free_ptr(denspot%rhov)
