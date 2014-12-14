@@ -165,6 +165,7 @@ TiMix:
 
 GEOPT-BFGS: 
  Epsilon: 2.71e-10
+ Mg: 1.01e-9
 
 GEOPT-LBFGS: 
  Epsilon: 4.8e-10
@@ -175,6 +176,7 @@ GEOPT-LBFGS:
  Eion: 8.5e-10
  Enl: 1.33e-9
  DIIS weights: 1.1e-5
+ Mg: 1.01e-9
  
 NaCl:
  Epsilon: 2.e-9

@@ -624,7 +624,7 @@ end subroutine calculate_energy_and_gradient_linear
 subroutine calculate_residue_ks(iproc, nproc, num_extra, ksorbs, tmb, hpsit_c, hpsit_f)
   use module_base
   use module_types
-  use module_interfaces, except_this_one => calculate_residue_ks
+  use module_interfaces, fake_name => calculate_residue_ks,fake_B=>calculate_energy_and_gradient_linear
   use sparsematrix_base, only: sparse_matrix, sparse_matrix_null, deallocate_sparse_matrix, &
                                matrices_null, allocate_matrices, deallocate_matrices
   use sparsematrix, only: uncompress_matrix
@@ -750,7 +750,7 @@ subroutine hpsitopsi_linear(iproc, nproc, it, ldiis, tmb,  &
   use module_base
   use module_types
   use yaml_output
-  use module_interfaces, except_this_one => hpsitopsi_linear
+  use module_interfaces, fake_name_A => hpsitopsi_linear,fake_name_C=>calculate_energy_and_gradient_linear
   implicit none
   
   ! Calling arguments

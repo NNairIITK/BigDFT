@@ -80,7 +80,6 @@ subroutine H_potential(datacode,kernel,rhopot,pot_ion,eh,offset,sumpion,&
    real(dp) :: scal,ehartreeLOC,pot
    real(dp), dimension(6) :: strten
    real(dp), dimension(:,:,:), allocatable :: zf
-   real(dp), dimension(:), allocatable :: zf1
    integer, dimension(:,:), allocatable :: gather_arr
    integer, dimension(3) :: n
    integer :: size1,size2,switch_alg
