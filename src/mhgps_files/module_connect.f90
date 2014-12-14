@@ -533,7 +533,6 @@ subroutine connect(mhgpsst,fsw,uinp,runObj,outs,rcov,nbond,&
     integer :: ntodo
     real(gp) :: fp1cur(mhgpsst%nid), fp2cur(mhgpsst%nid)
     real(gp) :: ener1cur, ener2cur
-    integer :: i
     integer :: isame
     integer :: ipush
     real(gp) :: scl
@@ -1021,9 +1020,6 @@ cycle
                           'of the checks in connect subroutine '//&
                           'were successful! STOP')
     endif
-!do i=1,2*uinp%nsadmax
-!write(*,*)'ener',todoenergy(1,i),todoenergy(2,i)
-!enddo
 enddo connectloop
 if(.not.connected)then
     call write_todoList(mhgpsst,runObj,cobj)
