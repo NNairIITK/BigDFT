@@ -2053,14 +2053,13 @@ contains
     integer :: ii,jj,n1dim,n2dim
 
     n1dim=size(cprj,dim=1);n2dim=size(cprj,dim=2)
-    !write(std_out,*) "cprj_free ndim = ", n1dim, n2dim
     do jj=1,n2dim
       do ii=1,n1dim
         if (associated(cprj(ii,jj)%cp))  then
-          call f_free_ptr(cprj(ii, jj)%cp)
+          call f_free_ptr(cprj(ii,jj)%cp)
         end if
         if (associated(cprj(ii,jj)%dcp))  then
-          call f_free_ptr(cprj(ii, jj)%dcp)
+          call f_free_ptr(cprj(ii,jj)%dcp)
         end if
       end do
     end do
@@ -2090,18 +2089,14 @@ contains
     do jj=1,n2dim
       do ii=1,n1dim
         nullify (cprj(ii,jj)%cp)
-        nullify (cprj(ii,jj)%dcp)
- 
+        nullify (cprj(ii,jj)%dcp) 
         nn=nlmn(ii)
-        cprj(ii,jj)%nlmn=nn
-        cprj(ii,jj)%cp = f_malloc_ptr((/ 2 , nn /),id='cprj(ii,jj)%cp')
-   !    XG 080820 Was needed to get rid of problems with test paral#R with four procs
-        cprj(ii,jj)%cp=0.0_dp
-   !    END XG 080820
- 
         cprj(ii,jj)%ncpgr=ncpgr
+        cprj(ii,jj)%nlmn=nn
+        cprj(ii,jj)%cp = f_malloc_ptr((/ 2 , nn /),id='cprj%cp')
+        cprj(ii,jj)%cp=0.0_dp
         if (ncpgr>0) then
-          cprj(ii,jj)%dcp = f_malloc_ptr((/ 2 , ncpgr,  nn /),id='cprj(ii,jj)%cp')
+          cprj(ii,jj)%dcp = f_malloc_ptr((/ 2 , ncpgr,  nn /),id='cprj%dcp')
           cprj(ii,jj)%dcp=0.0_dp
         end if
       end do
