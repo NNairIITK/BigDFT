@@ -922,7 +922,7 @@ module communications
       integer,dimension(:),allocatable :: npotarr
 
       ! if on BG/Q avoid mpi_get etc. as unstable
-      logical, parameter :: bgq=.true.
+      logical, parameter :: bgq=.false.
 
 
       !!do ist=1,nsendbuf

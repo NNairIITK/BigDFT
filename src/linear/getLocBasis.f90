@@ -210,9 +210,7 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
            tmb%psit_c, tmb%psit_f, tmb%psit_f, tmb%linmat%s, tmb%linmat%ovrlp_)
       !call gather_matrix_from_taskgroups_inplace(iproc, nproc, tmb%linmat%s, tmb%linmat%ovrlp_)
   end if
-open(10+iproc)
-write(10+iproc,*) tmb%linmat%ovrlp_%matrix_compr
-close(10+iproc)
+
   ovrlp_fullp = sparsematrix_malloc(tmb%linmat%l,iaction=DENSE_PARALLEL,id='ovrlp_fullp')
   max_deviation=0.d0
   mean_deviation=0.d0
@@ -225,11 +223,7 @@ close(10+iproc)
            tmb%linmat%s, max_deviation_p, mean_deviation_p)
       max_deviation = max_deviation + max_deviation_p/real(tmb%linmat%s%nspin,kind=8)
       mean_deviation = mean_deviation + mean_deviation_p/real(tmb%linmat%s%nspin,kind=8)
-open(20+iproc+10*ispin)
-write(20+iproc+10*ispin,*) ovrlp_fullp
-close(20+iproc+10*ispin)
   end do
-
   call f_free(ovrlp_fullp)
   if (iproc==0) then
       call yaml_map('max dev from unity',max_deviation,fmt='(es9.2)')
