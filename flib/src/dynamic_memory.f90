@@ -99,7 +99,7 @@ module dynamic_memory
      module procedure d1_all,d2_all,d3_all,d4_all,d5_all,d6_all,d7_all
      module procedure r1_all,r2_all,r3_all
      module procedure z2_all
-     module procedure li1_all,li2_all
+     module procedure li1_all,li2_all,li3_all,li4_all
      module procedure d1_ptr,d2_ptr,d3_ptr,d4_ptr,d5_ptr,d6_ptr
      module procedure i1_ptr,i2_ptr,i3_ptr,i4_ptr
      module procedure l2_ptr, l3_ptr
@@ -116,7 +116,7 @@ module dynamic_memory
      module procedure d1_all_free,d2_all_free,d1_all_free_multi,d3_all_free,d4_all_free,d5_all_free,d6_all_free,d7_all_free
      module procedure r1_all_free,r2_all_free,r3_all_free
      module procedure z2_all_free
-     module procedure li1_all_free,li2_all_free
+     module procedure li1_all_free,li2_all_free,li3_all_free,li4_all_free
   end interface
 
   interface f_free_ptr

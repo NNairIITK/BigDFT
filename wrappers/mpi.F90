@@ -74,8 +74,8 @@ module wrapper_MPI
   interface mpigather
      module procedure mpigather_d1d1,mpigather_d2d1,mpigather_d1d2,mpigather_d2
      module procedure mpigather_i0i2,mpigather_d0d2,mpigather_i1i2,mpigather_i2
-     module procedure mpigather_i1,mpigather_li1,mpigather_c1i2
-     module procedure mpigather_li0li2
+     module procedure mpigather_i1,mpigather_c1i2
+     module procedure mpigather_li1,mpigather_li0li2,mpigather_li1li2,mpigather_li2
   end interface mpigather
 
   interface mpibcast
@@ -524,19 +524,19 @@ contains
 
   pure function mpitype_i(data) result(mt)
     implicit none
-    integer, intent(in) :: data
+    integer(kind=4), intent(in) :: data
     integer :: mt
     mt=MPI_INTEGER
   end function mpitype_i
   pure function mpitype_i1(data) result(mt)
     implicit none
-    integer, dimension(:), intent(in) :: data
+    integer(kind=4), dimension(:), intent(in) :: data
     integer :: mt
     mt=MPI_INTEGER
   end function mpitype_i1
   pure function mpitype_i2(data) result(mt)
     implicit none
-    integer, dimension(:,:), intent(in) :: data
+    integer(kind=4), dimension(:,:), intent(in) :: data
     integer :: mt
     mt=MPI_INTEGER
   end function mpitype_i2
@@ -689,8 +689,8 @@ contains
     use dictionaries, only: f_err_throw,f_err_define
     use yaml_output, only: yaml_toa
     implicit none
-    integer, dimension(:), intent(in) :: sendbuf
-    integer, dimension(:,:), intent(inout) :: recvbuf
+    integer(kind=4), dimension(:), intent(in) :: sendbuf
+    integer(kind=4), dimension(:,:), intent(inout) :: recvbuf
     include 'gather-inc.f90'   
   end subroutine mpigather_i1i2
 
@@ -698,8 +698,8 @@ contains
     use dictionaries, only: f_err_throw,f_err_define
     use yaml_output, only: yaml_toa
     implicit none
-    integer, dimension(:,:), intent(in) :: sendbuf
-    integer, dimension(:,:), intent(inout) :: recvbuf
+    integer(kind=4), dimension(:,:), intent(in) :: sendbuf
+    integer(kind=4), dimension(:,:), intent(inout) :: recvbuf
     include 'gather-inc.f90'   
   end subroutine mpigather_i2
 
@@ -707,8 +707,8 @@ contains
     use dictionaries, only: f_err_throw,f_err_define
     use yaml_output, only: yaml_toa
     implicit none
-    integer, dimension(:), intent(in) :: sendbuf
-    integer, dimension(:), intent(inout) :: recvbuf
+    integer(kind=4), dimension(:), intent(in) :: sendbuf
+    integer(kind=4), dimension(:), intent(inout) :: recvbuf
     include 'gather-inc.f90'   
   end subroutine mpigather_i1
 
@@ -720,6 +720,24 @@ contains
     integer(kind=8), dimension(:), intent(inout) :: recvbuf
     include 'gather-inc.f90'   
   end subroutine mpigather_li1
+
+  subroutine mpigather_li1li2(sendbuf,recvbuf,root,comm)
+    use dictionaries, only: f_err_throw,f_err_define
+    use yaml_output, only: yaml_toa
+    implicit none
+    integer(kind=8), dimension(:), intent(in) :: sendbuf
+    integer(kind=8), dimension(:,:), intent(inout) :: recvbuf
+    include 'gather-inc.f90'
+  end subroutine mpigather_li1li2
+
+  subroutine mpigather_li2(sendbuf,recvbuf,root,comm)
+    use dictionaries, only: f_err_throw,f_err_define
+    use yaml_output, only: yaml_toa
+    implicit none
+    integer(kind=8), dimension(:,:), intent(in) :: sendbuf
+    integer(kind=8), dimension(:,:), intent(inout) :: recvbuf
+    include 'gather-inc.f90'
+  end subroutine mpigather_li2
 
 
   subroutine mpigather_d2d1(sendbuf,recvbuf,root,comm)
@@ -746,9 +764,9 @@ contains
     use dictionaries, only: f_err_throw,f_err_define
     use yaml_output, only: yaml_toa
     implicit none
-    integer, intent(inout) :: sendbuf
+    integer(kind=4), intent(inout) :: sendbuf
     integer, intent(in) :: sendcount
-    integer, dimension(:,:), intent(inout) :: recvbuf
+    integer(kind=4), dimension(:,:), intent(inout) :: recvbuf
     !---like gather-inc
     integer, intent(in), optional :: root !< 0 if absent
     integer, intent(in), optional :: comm !< MPI_COMM_WORLD if absent
@@ -871,9 +889,9 @@ contains
     use dictionaries, only: f_err_throw,f_err_define
     use dynamic_memory
     implicit none
-    integer, intent(inout) :: sendbuf
-    integer, intent(inout), optional :: recvbuf
-    integer, dimension(:), allocatable :: copybuf
+    integer(kind=4), intent(inout) :: sendbuf
+    integer(kind=4), intent(inout), optional :: recvbuf
+    integer(kind=4), dimension(:), allocatable :: copybuf
     include 'allreduce-inc.f90'
   end subroutine mpiallred_int
 
@@ -957,9 +975,9 @@ contains
     use dictionaries, only: f_err_throw
     use yaml_output !for check=.true.
     implicit none
-    integer, intent(inout) ::  buffer 
-    integer, intent(out), optional :: maxdiff
-    integer, dimension(:), allocatable :: array_diff
+    integer(kind=4), intent(inout) ::  buffer
+    integer(kind=4), intent(out), optional :: maxdiff
+    integer(kind=4), dimension(:), allocatable :: array_diff      
     include 'bcast-decl-inc.f90'
     include 'bcast-inc.f90'
   end subroutine mpibcast_i0

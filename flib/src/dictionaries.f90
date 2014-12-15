@@ -476,7 +476,7 @@ contains
    subroutine add_integer(dict,val, last_item_ptr)
      implicit none
      type(dictionary), pointer :: dict
-     integer, intent(in) :: val
+     integer(kind=4), intent(in) :: val
      type(dictionary), pointer, optional :: last_item_ptr
      include 'dict_add-inc.f90'
    end subroutine add_integer
@@ -1314,7 +1314,7 @@ contains
    recursive subroutine get_integer(ival,dict)
      use yaml_strings, only: is_atoi
      implicit none
-     integer, intent(out) :: ival
+     integer(kind=4), intent(out) :: ival
      type(dictionary), intent(in) :: dict
      !local variables
      integer :: ierror
@@ -1378,7 +1378,7 @@ contains
    subroutine get_ivec(arr,dict)
      use yaml_strings, only: yaml_toa
      implicit none
-     integer, dimension(:), intent(out) :: arr
+     integer(kind=4), dimension(:), intent(out) :: arr
      type(dictionary), intent(in) :: dict 
      !local variables
      integer :: tmp
@@ -1524,7 +1524,7 @@ contains
      use yaml_strings, only:yaml_toa
      implicit none
      type(dictionary), pointer :: dict
-     integer, intent(in) :: ival
+     integer(kind=4), intent(in) :: ival
      character(len=*), optional, intent(in) :: fmt
 
      if (present(fmt)) then
