@@ -505,7 +505,7 @@ subroutine li1_all_free(array)
 end subroutine li1_all_free
 
 subroutine li2_all(array,m)
-  use metadata_interfaces, metadata_address => geti1
+  use metadata_interfaces, metadata_address => geti2
   implicit none
   type(malloc_information_all), intent(in) :: m
   integer(kind=8), dimension(:,:), allocatable, intent(inout) :: array
@@ -516,7 +516,7 @@ subroutine li2_all(array,m)
 end subroutine li2_all
 
 subroutine li2_all_free(array)
-  use metadata_interfaces, metadata_address => geti1
+  use metadata_interfaces, metadata_address => geti2
   implicit none
   integer(kind=8), dimension(:,:), allocatable, intent(inout) :: array
   include 'deallocate-profile-inc.f90' 
