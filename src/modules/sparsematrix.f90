@@ -72,7 +72,7 @@ module sparsematrix
     
       if (sparsemat%parallel_compression==0.or.bigdft_mpi%nproc==1) then
          do ispin=1,sparsemat%nspin
-             ishift=(ispin-1)*sparsemat%nfvctr**2
+             ishift=(ispin-1)*sparsemat%nvctr
              !OpenMP broken on Vesta
              !$omp parallel default(none) private(iseg,j,jj,irowcol) &
              !$omp shared(sparsemat,inm,outm,ishift,ispin)

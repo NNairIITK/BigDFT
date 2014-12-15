@@ -468,7 +468,8 @@ subroutine coeff_weight_analysis(iproc, nproc, input, ksorbs, tmb, ref_frags)
   !real(kind=8), dimension(:,:,:), allocatable :: weight_coeff
   real(kind=8), dimension(:,:), allocatable :: weight_coeff_diag
   real(kind=8), dimension(:,:), pointer :: ovrlp_half
-  real(kind=8) :: max_error, mean_error
+  real(kind=8), dimension(:), allocatable :: weight_sum
+  real(kind=8) :: max_error, mean_error, occsum
   type(sparse_matrix) :: weight_matrix
   type(matrices) :: weight_matrix_
   type(matrices),dimension(1) :: inv_ovrlp
@@ -486,8 +487,8 @@ subroutine coeff_weight_analysis(iproc, nproc, input, ksorbs, tmb, ref_frags)
   !weight_matrix_%matrix_compr=f_malloc_ptr(weight_matrix%nvctr,id='weight_matrix%matrix_compr')
   weight_matrix_%matrix_compr=sparsematrix_malloc_ptr(weight_matrix,iaction=SPARSE_FULL,id='weight_matrix%matrix_compr')
 
- inv_ovrlp(1) = matrices_null()
- call allocate_matrices(tmb%linmat%l, allocate_full=.true., matname='inv_ovrlp', mat=inv_ovrlp(1))
+  inv_ovrlp(1) = matrices_null()
+  call allocate_matrices(tmb%linmat%l, allocate_full=.true., matname='inv_ovrlp', mat=inv_ovrlp(1))
 
   !weight_coeff=f_malloc((/ksorbs%norb,ksorbs%norb,input%frag%nfrag/), id='weight_coeff')
   weight_coeff_diag=f_malloc((/ksorbs%norb,input%frag%nfrag/), id='weight_coeff')
@@ -518,6 +519,8 @@ subroutine coeff_weight_analysis(iproc, nproc, input, ksorbs, tmb, ref_frags)
   if (iproc==0) call yaml_newline()
   if (iproc==0) call yaml_comment ('coeff, occ, eval, frac for each frag')
   ! only care about diagonal elements
+  !weight_sum=f_malloc(input%frag%nfrag,id='weight_sum')
+  !weight_sum=0.0d0
   do iorb=1,ksorbs%norb
      if (iproc==0) then
          call yaml_mapping_open(flow=.true.)
@@ -527,10 +530,27 @@ subroutine coeff_weight_analysis(iproc, nproc, input, ksorbs, tmb, ref_frags)
      end if
      do ifrag=1,input%frag%nfrag
         if (iproc==0) call yaml_map('frac',weight_coeff_diag(iorb,ifrag),fmt='(f6.4)')
+        !weight_sum(ifrag)=weight_sum(ifrag)+KSorbs%occup(iorb)*weight_coeff_diag(iorb,ifrag)
      end do
      if (iproc==0) call yaml_mapping_close()
      if (iproc==0) call yaml_newline()
   end do
+     
+  !tidy this up before keeping
+  !if (iproc==0) then
+  !   call yaml_mapping_open(flow=.true.)
+  !   call yaml_map('sum',iorb,fmt='(i4)')
+  !   occsum=sum(KSorbs%occup(1:ksorbs%norb))
+  !   call yaml_map('occ',occsum,fmt='(f6.4)')
+  !   call yaml_map('eval',0.0,fmt='(f10.6)') !something more relevant here?
+  !end if
+  !do ifrag=1,input%frag%nfrag
+  !   if (iproc==0) call yaml_map('frac',weight_sum(ifrag),fmt='(f6.4)')
+  !end do
+  !if (iproc==0) call yaml_mapping_close()
+  !if (iproc==0) call yaml_newline()
+  !call f_free(weight_sum)
+
   if (iproc==0) call yaml_sequence_close()
 
   call deallocate_matrices(inv_ovrlp(1))

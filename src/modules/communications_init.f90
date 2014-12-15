@@ -67,7 +67,7 @@ module communications_init
           if (jproc<=jjproc-1) i = i + 1
       end do
 
-      ! Determine the maximal extent in teh z direction that iproc has to handle
+      ! Determine the maximal extent in the z direction that iproc has to handle
       ii3min = 1000000000
       ii3max = -1000000000
       do iorb=1,orbs%norbp

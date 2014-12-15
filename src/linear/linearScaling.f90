@@ -22,7 +22,8 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
   use Poisson_Solver, except_dp => dp, except_gp => gp, except_wp => wp
   use communications_base, only: allocate_p2pComms_buffer, &
                                  deallocate_p2pComms_buffer
-  use communications, only: synchronize_onesided_communication
+  use communications, only: synchronize_onesided_communication, transpose_localized, untranspose_localized
+  !use communications_init, only: orbitals_communicators
   use sparsematrix_base, only: sparse_matrix, sparse_matrix_null, deallocate_sparse_matrix, &
                                matrices_null, allocate_matrices, deallocate_matrices, &
                                sparsematrix_malloc, sparsematrix_malloc_ptr, assignment(=), SPARSE_FULL
@@ -82,6 +83,18 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
 
   real(8),dimension(:),allocatable :: rho_tmp, tmparr
   real(8) :: tt, ddot
+
+  !better names/input variables
+  logical, parameter :: write_fragments=.true.
+  logical, parameter :: write_full_system=.true.
+
+
+  !integer :: ind, ilr, iorbp, iiorb, indg, npsidim_global
+  !real(kind=gp), allocatable, dimension(:) :: gpsi, psit_large_c, psit_large_f, kpsit_c, kpsit_f, kpsi, kpsi_small
+  !real(kind=gp), pointer, dimension(:) :: gpsi_all, gpsi_virt
+  !type(orbitals_data) :: fakeorbs
+  !type(comms_cubic) :: comms
+
 
   !!rho_tmp = f_malloc(size(denspot%rhov),id='rho_tmp')
 
@@ -512,17 +525,17 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
                call yaml_sequence_close()
            end if
 
-           !update weight matrix following basis optimization (could add check to ensure this is really necessary)
-           if (input%lin%constrained_dft) then
-              if (trim(cdft%method)=='fragment_density') then ! fragment density approach
-                 if (input%lin%diag_start) stop 'fragment_density not allowed'
-              else if (trim(cdft%method)=='lowdin') then ! direct weight matrix approach
-                 !should already have overlap matrix so no need to recalculate
-                 call calculate_weight_matrix_lowdin_wrapper(cdft,tmb,input,ref_frags,.false.,input%lin%order_taylor)
-              else 
-                 stop 'Error invalid method for calculating CDFT weight matrix'
-              end if
-           end if
+    !       !update weight matrix following basis optimization (could add check to ensure this is really necessary)
+    !       if (input%lin%constrained_dft) then
+    !          if (trim(cdft%method)=='fragment_density') then ! fragment density approach
+    !             if (input%lin%diag_start) stop 'fragment_density not allowed'
+    !          else if (trim(cdft%method)=='lowdin') then ! direct weight matrix approach
+    !             !should already have overlap matrix so no need to recalculate
+    !             call calculate_weight_matrix_lowdin_wrapper(cdft,tmb,input,ref_frags,.false.,input%lin%order_taylor)
+    !          else 
+    !             stop 'Error invalid method for calculating CDFT weight matrix'
+    !          end if
+    !       end if
 
            tmb%can_use_transposed=.false. !since basis functions have changed...
 
@@ -821,7 +834,8 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
                    nsize = int(KSwfn%Lzd%Glr%d%n1i,kind=8)*int(KSwfn%Lzd%Glr%d%n2i,kind=8)*int(KSwfn%Lzd%Glr%d%n3i,kind=8)
                    pnrm_out=sqrt(pnrm_out)/real(nsize,kind=8)
                    !only want to copy across when CDFT loop has also converged
-                   if (.not. input%lin%constrained_dft .or. (ebs-cdft%charge < cdft_charge_thresh)) then
+                   if (.not. input%lin%constrained_dft .or. (ebs-cdft%charge < cdft_charge_thresh) &
+                        .or. target_function==TARGET_FUNCTION_IS_TRACE) then
                       call vcopy(max(KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3d,1)*input%nspin, &
                         denspot%rhov(1), 1, rhopotOld_out(1), 1)
                    end if
@@ -896,7 +910,8 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
 
                    pnrm_out=sqrt(pnrm_out)/(KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*KSwfn%Lzd%Glr%d%n3i)!)*input%nspin)
                    !only want to copy across when CDFT loop has also converged
-                   if (.not. input%lin%constrained_dft .or. (ebs-cdft%charge < cdft_charge_thresh)) then
+                   if (.not. input%lin%constrained_dft .or. (ebs-cdft%charge < cdft_charge_thresh) &
+                        .or. target_function==TARGET_FUNCTION_IS_TRACE) then
                       call vcopy(max(KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3d,1)*input%nspin, &
                            denspot%rhov(1), 1, rhopotOld_out(1), 1) 
                    end if
@@ -998,7 +1013,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
             end if
 
             ! CDFT: exit when W is converged wrt both V and rho
-            if (abs(vgrad) < cdft_charge_thresh) then
+            if (abs(vgrad) < cdft_charge_thresh .or. target_function==TARGET_FUNCTION_IS_TRACE) then
                !call vcopy(max(KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3d,1)*input%nspin, &
                !     denspot%rhov(1), 1, rhopotOld_out(1), 1) 
                exit
@@ -1108,6 +1123,22 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
                energs, nlpsp, input, norder_taylor,&
                energy, energyDiff, energyold)
   end if
+
+
+  !TEMPORARY, to be cleaned/removed
+  !!!missing occs but otherwise ok? (at least doesn't crash, add occs and recheck by comparing with lowdin/do linear to cubic
+  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! here as I guess we're deallocating something we need later
+  !call nullify_orbitals_data(fakeorbs)
+  !call copy_orbitals_data(tmb%orbs, fakeorbs, subname)
+  !call orbitals_communicators(iproc, nproc, tmb%lzd%glr, fakeorbs, comms)
+  !
+  !npsidim_global=max(tmb%orbs%norbp*(tmb%lzd%glr%wfd%nvctr_c+7*tmb%lzd%glr%wfd%nvctr_f), &
+  !                   tmb%orbs%norb*comms%nvctr_par(iproc,0)*fakeorbs%nspinor)
+  !gpsi_all=f_malloc_ptr(npsidim_global,id='gpsi_all')
+  !call build_ks_orbitals_laura_tmp(iproc, nproc, tmb, KSwfn, at, rxyz, denspot, GPU, &
+  !         energs, nlpsp, input, norder_taylor, &
+  !         energy, energyDiff, energyold, npsidim_global, gpsi_all)
+  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 
   ! Diagonalize the matrix for the FOE/direct min case to get the coefficients. Only necessary if
@@ -1232,11 +1263,86 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
         ityp=at%astruct%iatype(iat)
         nelec=nelec+at%nelpsp(ityp)
      enddo
-     call writemywaves_linear(iproc,trim(input%dir_output) // 'minBasis',input%lin%plotBasisFunctions,&
-          max(tmb%npsidim_orbs,tmb%npsidim_comp),tmb%Lzd,tmb%orbs,nelec,at,rxyz,tmb%psi,tmb%coeff)
-     call write_linear_matrices(iproc,nproc,input%imethod_overlap,trim(input%dir_output),&
-          input%lin%plotBasisFunctions,tmb,at,rxyz)
+     if (write_full_system) then
+        call writemywaves_linear(iproc,trim(input%dir_output) // 'minBasis',input%lin%plotBasisFunctions,&
+             max(tmb%npsidim_orbs,tmb%npsidim_comp),tmb%Lzd,tmb%orbs,nelec,at,rxyz,tmb%psi,tmb%coeff)
+        call write_linear_matrices(iproc,nproc,input%imethod_overlap,trim(input%dir_output),&
+             input%lin%plotBasisFunctions,tmb,at,rxyz)
+     end if
+     !write as fragments - for now don't write matrices, think later if this is useful/worth the effort
+     if (write_fragments .and. input%lin%fragment_calculation) then
+        call writemywaves_linear_fragments(iproc,'minBasis',input%lin%plotBasisFunctions,&
+             max(tmb%npsidim_orbs,tmb%npsidim_comp),tmb%Lzd,tmb%orbs,nelec,at,rxyz,tmb%psi,tmb%coeff, &
+             trim(input%dir_output),input%frag,ref_frags)
+     end if
   end if
+
+
+  ! TEMPORARY DEBUG - plot in global box - CHECK WITH REFORMAT ETC IN LRs
+  !nullify(gpsi_virt)
+  !if (.false.) then
+  !   gpsi_all=f_malloc_ptr(tmb%orbs%norbp*(tmb%Lzd%glr%wfd%nvctr_c+7*tmb%Lzd%glr%wfd%nvctr_f),id='gpsi_all')
+  !   call to_zero(tmb%orbs%norbp*(tmb%Lzd%glr%wfd%nvctr_c+7*tmb%Lzd%glr%wfd%nvctr_f),gpsi_all)
+  !   psit_large_c=f_malloc(tmb%ham_descr%collcom%ndimind_c,id='psit_large_c')
+  !   psit_large_f=f_malloc(7*tmb%ham_descr%collcom%ndimind_f,id='psit_large_f')
+  !   kpsit_c=f_malloc(tmb%ham_descr%collcom%ndimind_c,id='psit_large_c')
+  !   kpsit_f=f_malloc(7*tmb%ham_descr%collcom%ndimind_f,id='psit_large_f')
+  !   kpsi=f_malloc(tmb%ham_descr%npsidim_orbs,id='kpsi')
+  !   kpsi_small=f_malloc(tmb%npsidim_orbs,id='kpsi_small')
+  !   !NB might need kernel without occs to avoid including occs twice, unless tmb%occs are all 1...
+  !   call small_to_large_locreg(iproc, tmb%npsidim_orbs, tmb%ham_descr%npsidim_orbs, tmb%lzd, tmb%ham_descr%lzd, &
+  !        tmb%orbs, tmb%psi, tmb%ham_descr%psi)
+  !   call transpose_localized(iproc, nproc, tmb%ham_descr%npsidim_orbs, tmb%orbs, tmb%ham_descr%collcom, &
+  !        tmb%ham_descr%psi, psit_large_c, psit_large_f, tmb%ham_descr%lzd)
+  !   call build_linear_combination_transposed(tmb%ham_descr%collcom, &
+  !        tmb%linmat%l, tmb%linmat%kernel_, psit_large_c, psit_large_f, .true., kpsit_c, kpsit_f, iproc)
+  !   call untranspose_localized(iproc, nproc, tmb%ham_descr%npsidim_orbs, tmb%orbs, tmb%ham_descr%collcom, &
+  !        kpsit_c, kpsit_f, kpsi, tmb%ham_descr%lzd)
+  !   call large_to_small_locreg(iproc, tmb%npsidim_orbs, tmb%ham_descr%npsidim_orbs, tmb%lzd, tmb%ham_descr%lzd, &
+  !        tmb%orbs, kpsi, kpsi_small)
+  !   call f_free(psit_large_c)
+  !   call f_free(psit_large_f)
+  !   call f_free(kpsit_c)
+  !   call f_free(kpsit_f)
+  !   call f_free(kpsi)
+  !end if
+
+  !ind=1
+  !!indg=1
+  !gpsi=f_malloc((tmb%Lzd%glr%wfd%nvctr_c+7*tmb%Lzd%glr%wfd%nvctr_f),id='gpsi')
+  !do iorbp=1,tmb%orbs%norbp
+  !   iiorb=iorbp+tmb%orbs%isorb
+  !   ilr = tmb%orbs%inwhichlocreg(iiorb)
+  !
+  !   call to_zero(tmb%Lzd%glr%wfd%nvctr_c+7*tmb%Lzd%glr%wfd%nvctr_f,gpsi)
+  !   !call to_zero(tmb%Lzd%glr%wfd%nvctr_c+7*tmb%Lzd%glr%wfd%nvctr_f,gpsi_all(indg))
+  !
+  !!call vcopy(tmb%Lzd%glr%wfd%nvctr_c+7*tmb%Lzd%glr%wfd%nvctr_f,gpsi(1),1,gpsi_all(indg),1)
+  !
+  !   !call Lpsi_to_global2(iproc, tmb%Lzd%Llr(ilr)%wfd%nvctr_c+7*tmb%Lzd%Llr(ilr)%wfd%nvctr_f, &
+  !   !     tmb%Lzd%glr%wfd%nvctr_c+7*tmb%Lzd%glr%wfd%nvctr_f, &
+  !   !     1, 1, 1, tmb%Lzd%glr, tmb%Lzd%Llr(ilr), kpsi_small(ind), gpsi_all(indg))
+  !
+  !   call Lpsi_to_global2(iproc, tmb%Lzd%Llr(ilr)%wfd%nvctr_c+7*tmb%Lzd%Llr(ilr)%wfd%nvctr_f, &
+  !        tmb%Lzd%glr%wfd%nvctr_c+7*tmb%Lzd%glr%wfd%nvctr_f, &
+  !        1, 1, 1, tmb%Lzd%glr, tmb%Lzd%Llr(ilr), tmb%psi(ind), gpsi)
+  ! 
+  !   call plot_wf(trim(input%dir_output)//trim(adjustl(yaml_toa(iiorb))),1,at,1.0_dp,tmb%Lzd%glr,&
+  !        tmb%Lzd%hgrids(1),tmb%Lzd%hgrids(2),tmb%Lzd%hgrids(3),rxyz,gpsi)
+  !   !call plot_wf(trim(adjustl(orbname)),1,at,1.0_dp,tmb%Lzd%Llr(ilr),&
+  !   !     tmb%Lzd%hgrids(1),tmb%Lzd%hgrids(2),tmb%Lzd%hgrids(3),rxyz,tmb%psi)
+  ! 
+  !   ind = ind + tmb%Lzd%Llr(ilr)%wfd%nvctr_c+7*tmb%Lzd%Llr(ilr)%wfd%nvctr_f
+  !   !indg = indg + tmb%Lzd%glr%wfd%nvctr_c+7*tmb%Lzd%glr%wfd%nvctr_f
+  !end do
+  !call f_free(gpsi)
+  !!call f_free(kpsi_small)
+
+  !fakeorbs%norb=0
+  !call local_analysis(iproc,nproc,KSwfn%Lzd%hgrids(1),KSwfn%Lzd%hgrids(2),KSwfn%Lzd%hgrids(3),at,rxyz,tmb%lzd%glr,&
+  !     tmb%orbs,fakeorbs,gpsi_all,gpsi_virt)
+  !call f_free_ptr(gpsi_all)
+  ! END DEBUG 
 
 
   ! check why this is here!

@@ -921,6 +921,9 @@ module communications
       integer :: ioffset_send, ist, i2, i3, ist2, ist3, info, nsize, size_of_double, npot, isend_shift
       integer,dimension(:),allocatable :: npotarr
 
+      ! if on BG/Q avoid mpi_get etc. as unstable
+      logical, parameter :: bgq=.false.
+
 
       !!do ist=1,nsendbuf
       !!    write(5400,'(a,2i12,es18.7)') 'iproc, ist, sendbuf(ist)', iproc, ist, sendbuf(ist)
@@ -987,6 +990,8 @@ module communications
                                1, comm%mpi_datatypes(joverlap), comm%window, ierr)
                       end if
                   end if
+
+
               end do
     
           else nproc_if
@@ -1012,8 +1017,15 @@ module communications
       end do spin_loop
       
       ! Flag indicating whether the communication is complete or not
-      if(nproc>1) then
+      if(nproc>1 .and. (.not. bgq)) then
           comm%communication_complete=.false.
+      else if (nproc>1) then
+          call mpi_win_fence(0, comm%window, ierr)
+          do joverlap=1,comm%noverlaps
+              call mpi_type_free(comm%mpi_datatypes(joverlap), ierr)
+          end do
+          call mpi_win_free(comm%window, ierr)
+          comm%communication_complete=.true.
       else
           comm%communication_complete=.true.
       end if

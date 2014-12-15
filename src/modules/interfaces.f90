@@ -3765,6 +3765,36 @@ module module_interfaces
           real(kind=8), intent(inout) :: energyold
         end subroutine build_ks_orbitals
 
+!TEMPORARY, to be cleaned/removed
+subroutine build_ks_orbitals_laura_tmp(iproc, nproc, tmb, KSwfn, at, rxyz, denspot, GPU, &
+           energs, nlpsp, input, order_taylor, &
+           energy, energyDiff, energyold, npsidim_global, phiwork_global)
+  use module_base
+  use module_types
+  use communications_base, only: comms_cubic
+  use communications_init, only: orbitals_communicators
+  use communications, only: transpose_v, untranspose_v
+  use sparsematrix_base, only: sparse_matrix
+  use yaml_output
+  implicit none
+  
+  ! Calling arguments
+  integer:: iproc, nproc
+  type(DFT_wavefunction),intent(inout) :: tmb, KSwfn
+  type(atoms_data), intent(in) :: at
+  real(gp), dimension(3,at%astruct%nat), intent(in) :: rxyz
+  type(DFT_local_fields), intent(inout) :: denspot
+  type(GPU_pointers), intent(inout) :: GPU
+  type(energy_terms),intent(inout) :: energs
+  type(DFT_PSP_projectors), intent(inout) :: nlpsp
+  type(input_variables),intent(in) :: input
+  integer,intent(inout) :: order_taylor
+  real(kind=8),intent(out) :: energy, energyDiff
+  real(kind=8), intent(inout) :: energyold
+integer, intent(in) :: npsidim_global
+real(kind=8),dimension(:),pointer :: phiwork_global
+end subroutine build_ks_orbitals_laura_tmp
+
         subroutine small_to_large_locreg(iproc, npsidim_orbs_small, npsidim_orbs_large, lzdsmall, lzdlarge, &
                orbs, phismall, philarge, to_global)
           use module_base
