@@ -701,14 +701,14 @@ subroutine calculate_residue_ks(iproc, nproc, num_extra, ksorbs, tmb, hpsit_c, h
      call dgemm('t', 'n', tmb%orbs%norb, tmb%orbs%norb, tmb%orbs%norbp, 1.d0, tmb%coeff(tmb%orbs%isorb+1,1), &
           tmb%orbs%norb, coeff_tmp, tmb%orbs%norbp, 0.d0, grad_coeff, tmb%orbs%norb)
   else
-     call to_zero(tmb%orbs%norb**2, grad_coeff(1,1))
+     call f_zero(grad_coeff)
   end if
 
   call f_free(coeff_tmp)
   call deallocate_matrices(grad_ovrlp_)
 
   if (nproc>1) then
-      call mpiallred(grad_coeff(1,1), tmb%orbs%norb**2, mpi_sum, bigdft_mpi%mpi_comm)
+      call mpiallred(grad_coeff, mpi_sum, bigdft_mpi%mpi_comm)
   end if
 
   ! now calculate sqrt(<g_i|g_i>) and mean value

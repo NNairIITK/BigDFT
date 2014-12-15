@@ -19,9 +19,9 @@ subroutine conjgrad(runObj,outs,nproc,iproc,ncount_bigdft)
   integer, intent(in) :: nproc,iproc
   integer, intent(inout) :: ncount_bigdft
   type(run_objects), intent(inout) :: runObj
-  type(DFT_global_output), intent(inout) :: outs
+  type(state_properties), intent(inout) :: outs
   !local variables
-  type(DFT_global_output) :: l_outs
+  type(state_properties) :: l_outs
   character(len=*), parameter :: subname='conjgrad'  
   integer :: nfail,it,iat,i_all,i_stat,infocode, nitsd
   real(gp) :: anoise,fluct,avbeta,avnum,fnrm,etotprev,beta0,beta
@@ -35,7 +35,7 @@ subroutine conjgrad(runObj,outs,nproc,iproc,ncount_bigdft)
   check=0
   tpos = f_malloc((/ 3, runObj%atoms%astruct%nat /),id='tpos')
   hh = f_malloc((/ 3, runObj%atoms%astruct%nat /),id='hh')
-  call init_global_output(l_outs, runObj%atoms%astruct%nat)
+  call init_state_properties(l_outs, runObj%atoms%astruct%nat)
 
   anoise=1.e-4_gp
   fluct=0._gp
@@ -84,7 +84,7 @@ subroutine conjgrad(runObj,outs,nproc,iproc,ncount_bigdft)
         call axpy(3 * runObj%atoms%astruct%nat, beta0, hh(1,1), 1, runObj%atoms%astruct%rxyz(1,1), 1)
 
         runObj%inputs%inputPsiId=1
-        call call_bigdft(runObj,l_outs,infocode)
+        call bigdft_state(runObj,l_outs,infocode)
 !!$        if (iproc == 0) then
 !!$           call transforce(at,gpf,sumx,sumy,sumz)
 !!$           write(*,'(a,1x,1pe24.17)') 'translational force along x=', sumx
@@ -126,7 +126,7 @@ subroutine conjgrad(runObj,outs,nproc,iproc,ncount_bigdft)
         end do
 
         etotprev=outs%energy
-        call call_bigdft(runObj,outs,infocode)
+        call bigdft_state(runObj,outs,infocode)
 !!$        if (iproc == 0) then
 !!$           call transforce(at,fxyz,sumx,sumy,sumz)
 !!$           write(*,'(a,1x,1pe24.17)') 'translational force along x=', sumx
@@ -316,7 +316,7 @@ contains
     !close(unit=16)
     call f_free(tpos)
     call f_free(hh)
-    call deallocate_global_output(l_outs)
+    call deallocate_state_properties(l_outs)
   END SUBROUTINE close_and_deallocate
 
 END SUBROUTINE conjgrad
@@ -335,7 +335,7 @@ subroutine steepdes(runObj,outs,nproc,iproc,ncount_bigdft,fnrm,forcemax_sw,nitsd
   implicit none
   integer, intent(in) :: nproc,iproc,nitsd
   type(run_objects), intent(inout) :: runObj
-  type(DFT_global_output), intent(inout) :: outs
+  type(state_properties), intent(inout) :: outs
   integer, intent(inout) :: ncount_bigdft
   real(gp), intent(out) :: fnrm
   real(gp), intent(inout) :: fluct
@@ -402,7 +402,7 @@ subroutine steepdes(runObj,outs,nproc,iproc,ncount_bigdft,fnrm,forcemax_sw,nitsd
         itot=itot+1
 
         runObj%inputs%inputPsiId=1
-        call call_bigdft(runObj,outs,infocode)
+        call bigdft_state(runObj,outs,infocode)
 !!$        if (iproc == 0) then
 !!$           call transforce(at,ff,sumx,sumy,sumz)
 !!$           write(*,'(a,1x,1pe24.17)') 'translational force along x=', sumx
@@ -610,10 +610,10 @@ subroutine vstepsd(runObj,outs,nproc,iproc,ncount_bigdft)
   integer, intent(in) :: nproc,iproc
   integer, intent(inout) :: ncount_bigdft
   type(run_objects), intent(inout) :: runObj
-  type(DFT_global_output), intent(inout) :: outs
+  type(state_properties), intent(inout) :: outs
   !local variables
   character(len=*), parameter :: subname='vstepsd'  
-  type(DFT_global_output) :: outsold
+  type(state_properties) :: outsold
   integer :: iat,i_all,i_stat,infocode, nitsd,itsd
   real(gp) :: fluct,fnrm,fnrmold,beta,betaxx,betalast !n(c) anoise,betalastold 
   real(gp) :: fmax,scpr,curv,tt,etotprev
@@ -626,7 +626,7 @@ subroutine vstepsd(runObj,outs,nproc,iproc,ncount_bigdft)
   check=0
   etotprev=outs%energy
   posold = f_malloc((/ 3, runObj%atoms%astruct%nat /),id='posold')
-  call init_global_output(outsold, runObj%atoms%astruct%nat)
+  call init_state_properties(outsold, runObj%atoms%astruct%nat)
 
   !n(c) anoise=1.e-4_gp
   fluct=0._gp
@@ -634,7 +634,7 @@ subroutine vstepsd(runObj,outs,nproc,iproc,ncount_bigdft)
   beta=runObj%inputs%betax
   itsd=0
   runObj%inputs%inputPsiId=1
-  call call_bigdft(runObj,outsold,infocode)
+  call bigdft_state(runObj,outsold,infocode)
   call fnrmandforcemax(outsold%fxyz,fnrm,fmax,outsold%fdim)
   if (fmax < 3.d-1) call updatefluctsum(outsold%fnoise,fluct) !n(m)
   if (iproc == 0) then
@@ -693,7 +693,7 @@ subroutine vstepsd(runObj,outs,nproc,iproc,ncount_bigdft)
   nitsd=1000
   loop_ntsd: do itsd=1,nitsd
      runObj%inputs%inputPsiId=1
-     call call_bigdft(runObj,outs,infocode)
+     call bigdft_state(runObj,outs,infocode)
 !!$     if (iproc == 0) then                                        
 !!$        call transforce(at,outs%fxyz,sumx,sumy,sumz)                         
 !!$        write(*,'(a,1x,1pe24.17)') 'translational force along x=', sumx  
@@ -842,6 +842,6 @@ subroutine vstepsd(runObj,outs,nproc,iproc,ncount_bigdft)
 
 
   call f_free(posold)
-  call deallocate_global_output(outsold)
+  call deallocate_state_properties(outsold)
 
 END SUBROUTINE vstepsd

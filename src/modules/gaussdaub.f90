@@ -183,16 +183,16 @@ module gaussdaub
          rights(0)=i0+right_t
 
 
-         call gauss_to_scf()
+!!$         call gauss_to_scf()
 
          ! special for periodic case:
-         call fold_tail
+!!$         call fold_tail
       else
          ! non-periodic: the Gaussian is bounded by the cell borders
          lefts( 0)=max(i0-right_t,   0)
          rights(0)=min(i0+right_t,nmax)
 
-         call gauss_to_scf
+!!$         call gauss_to_scf
 
          ! non-periodic: no tails to fold
          do i=0,length-1
@@ -218,6 +218,134 @@ module gaussdaub
       fac= hgrid**n_gau*sqrt(hgrid)*factor
       c=real(fac,wp)*c
       err_norm=error*fac
+      
+!!$    contains
+!!$
+!!$      !> Once the bounds LEFTS(0) and RIGHTS(0) of the expansion coefficient array
+!!$      !! are fixed, we get the expansion coefficients in the usual way:
+!!$      !! get them on the finest grid by quadrature
+!!$      !! then forward transform to get the coeffs on the coarser grid.
+!!$      !! All this is done assuming nonperiodic boundary conditions
+!!$      !! but will also work in the periodic case if the tails are folded
+!!$      subroutine gauss_to_scf
+!!$        n_left=lefts(0)
+!!$        n_right=rights(0)
+!!$        length=n_right-n_left+1
+!!$
+!!$        !print *,'nleft,nright',n_left,n_right
+!!$
+!!$        do k=1,4
+!!$           rights(k)=2*rights(k-1)+m
+!!$           lefts( k)=2*lefts( k-1)-m
+!!$        enddo
+!!$
+!!$        leftx = lefts(4)-n
+!!$        rightx=rights(4)+n  
+!!$
+!!$        !do not do anything if the gaussian is too extended
+!!$        if (rightx-leftx > nwork) then
+!!$           !STOP 'gaustodaub'
+!!$           return
+!!$        end if
+!!$
+!!$        !calculate the expansion coefficients at level 4, positions shifted by 16*i0 
+!!$
+!!$        !corrected for avoiding 0**0 problem
+!!$        if (n_gau == 0) then
+!!$           do i=leftx,rightx
+!!$              x=real(i-i0*16,gp)*h
+!!$              r=x-z0
+!!$              r2=r/a
+!!$              r2=r2*r2
+!!$              r2=0.5_gp*r2
+!!$              func=safe_exp(-r2)
+!!$              ww(i-leftx,1)=func
+!!$           enddo
+!!$        else
+!!$           do i=leftx,rightx
+!!$              x=real(i-i0*16,gp)*h
+!!$              r=x-z0
+!!$              coeff=r**n_gau
+!!$              r2=r/a
+!!$              r2=r2*r2
+!!$              r2=0.5_gp*r2
+!!$              func=safe_exp(-r2)
+!!$              func=real(coeff,wp)*func
+!!$              ww(i-leftx,1)=func
+!!$           enddo
+!!$        end if
+!!$
+!!$        call apply_w(1,ww(:,1),ww(:,2),&
+!!$             leftx   ,rightx   ,lefts(4),rights(4),h)
+!!$
+!!$        call forward_c(1,ww(0,2),ww(0,1),&
+!!$             lefts(4),rights(4),lefts(3),rights(3)) 
+!!$        call forward_c(1,ww(0,1),ww(0,2),&
+!!$             lefts(3),rights(3),lefts(2),rights(2)) 
+!!$        call forward_c(1,ww(0,2),ww(0,1),&
+!!$             lefts(2),rights(2),lefts(1),rights(1)) 
+!!$
+!!$        call forward(1,  ww(0,1),ww(0,2),&
+!!$             lefts(1),rights(1),lefts(0),rights(0)) 
+!!$
+!!$
+!!$      END SUBROUTINE gauss_to_scf
+!!$
+!!$
+!!$      !> One of the tails of the Gaussian is folded periodically
+!!$      !! We assume that the situation when we need to fold both tails
+!!$      !! will never arise
+!!$      subroutine fold_tail
+!!$
+!!$        !modification of the calculation.
+!!$        !at this stage the values of c are fixed to zero
+!!$
+!!$        do i=n_left,n_right
+!!$           j=modulo(i,nmax+1)
+!!$           c(j,1)=c(j,1)+ww(i-n_left       ,2)
+!!$           c(j,2)=c(j,2)+ww(i-n_left+length,2)
+!!$        end do
+!!$
+!!$        !!
+!!$        !!    !write(*,*) 'I fold the tail'
+!!$        !!    ! shift the resulting array and fold its periodic tails:
+!!$        !!    if (n_left.ge.0) then
+!!$        !!       if (n_right.le.nmax) then
+!!$        !!          ! normal situation: the gaussian is inside the box
+!!$        !!          do i=n_left,n_right
+!!$        !!             c(i,1)=ww(i-n_left       ,2)
+!!$        !!             c(i,2)=ww(i-n_left+length,2)
+!!$        !!          enddo
+!!$        !!       else
+!!$        !!          ! the gaussian extends beyond the right border
+!!$        !!
+!!$        !!          ! the normal part:
+!!$        !!          do i=n_left,nmax
+!!$        !!             c(i,1)=ww(i-n_left       ,2)
+!!$        !!             c(i,2)=ww(i-n_left+length,2)
+!!$        !!          enddo
+!!$        !!          ! the part of ww that goes beyond nmax 
+!!$        !!          ! is shifted by nmax+1 to the left
+!!$        !!          do i=nmax+1,n_right
+!!$        !!             c(i-nmax-1,1)=ww(i-n_left       ,2)
+!!$        !!             c(i-nmax-1,2)=ww(i-n_left+length,2)
+!!$        !!          enddo
+!!$        !!       endif
+!!$        !!    else
+!!$        !!       ! the gaussian extends beyond the left border
+!!$        !!       ! the part of ww to the left of 0
+!!$        !!       ! is shifted by nmax+1 to the right
+!!$        !!       do i=n_left,-1
+!!$        !!          c(i+nmax+1,1)=ww(i-n_left       ,2)
+!!$        !!          c(i+nmax+1,2)=ww(i-n_left+length,2)
+!!$        !!       enddo
+!!$        !!       ! the normal part:
+!!$        !!       do i=0,n_right
+!!$        !!          c(i,1)=ww(i-n_left       ,2)
+!!$        !!          c(i,2)=ww(i-n_left+length,2)
+!!$        !!       enddo
+!!$        !!    endif
+!!$      END SUBROUTINE fold_tail
 
     END SUBROUTINE gauss_to_daub
 

@@ -17,8 +17,10 @@ module module_atoms
   use m_pawtab, only: pawtab_type
   use m_pawang, only: pawang_type
   use dynamic_memory, only: f_reference_counter,nullify_f_ref,f_ref_new
-  use public_keys, only : ASTRUCT_CELL,ASTRUCT_POSITIONS,&
-       ASTRUCT_PROPERTIES,ASTRUCT_UNITS
+  use public_keys, only : ASTRUCT_CELL,ASTRUCT_POSITIONS, &
+       & ASTRUCT_PROPERTIES,ASTRUCT_UNITS, ASTRUCT_ATT_FROZEN, &
+       & ASTRUCT_ATT_IGSPIN, ASTRUCT_ATT_IGCHRG, ASTRUCT_ATT_IXYZ_1, &
+       & ASTRUCT_ATT_IXYZ_2, ASTRUCT_ATT_IXYZ_3
   implicit none
   private
 
@@ -107,11 +109,12 @@ module module_atoms
      type(atomic_structure), pointer :: astruct_ptr
   end type atoms_iterator
 
-  public :: atoms_data_null,nullify_atoms_data,deallocate_atoms_data
-  public :: atomic_structure_null,nullify_atomic_structure,deallocate_atomic_structure,astruct_merge_to_dict
+  public :: atoms_data_null,deallocate_atoms_data
+  public :: atomic_structure_null,nullify_atomic_structure,deallocate_atomic_structure
+  public :: astruct_merge_to_dict, astruct_at_from_dict
   public :: deallocate_symmetry_data,set_symmetry_data
   public :: set_astruct_from_file,astruct_dump_to_file
-  public :: allocate_atoms_data,move_this_coordinate,frozen_itof,frozen_ftoi
+  public :: allocate_atoms_data,move_this_coordinate,frozen_itof
   public :: rxyz_inside_box,check_atoms_positions
   public :: atomic_data_set_from_dict
 
@@ -315,7 +318,6 @@ contains
     type(atomic_structure), intent(inout) :: astruct
     !local variables
     character(len=*), parameter :: subname='deallocate_atomic_structure' !remove
-    !   integer :: i_stat, i_all
 
 
     ! Deallocations for the geometry part.
@@ -411,7 +413,7 @@ contains
       use ao_inguess, only: ao_ig_charge,atomic_info,aoig_set_from_dict,&
            print_eleconf,aoig_set
       use dictionaries
-      use yaml_output, only: yaml_warning, yaml_toa
+      use yaml_output, only: yaml_warning, yaml_toa, yaml_dict_dump
       use yaml_strings, only: f_strcpy
       use dynamic_memory
       implicit none
@@ -762,9 +764,6 @@ contains
               &  "In the file '"//trim(filename)//"' the number of atoms ("// &
               &  trim(yaml_toa(astruct%nat))//") should be >= 0.",err_id=BIGDFT_INPUT_VARIABLES_ERROR)) return
 
-      !control atom positions
-      call check_atoms_positions(astruct,(iproc == 0))
-
       ! We delay the calculation of the symmetries.
       !this should be already in the atoms_null routine
       astruct%sym=symmetry_data_null()
@@ -914,7 +913,7 @@ contains
       real(gp), dimension(3, astruct%nat), intent(in) :: rxyz
       character(len=*), intent(in), optional :: comment
       !local variables
-      type(dictionary), pointer :: pos, at
+      type(dictionary), pointer :: pos, at, last
       integer :: iat,ichg,ispol
       real(gp) :: factor(3)
       logical :: reduced
@@ -969,6 +968,7 @@ contains
       end select BC
       if (has_key(dict, ASTRUCT_POSITIONS)) call dict_remove(dict, ASTRUCT_POSITIONS)
       if (astruct%nat > 0) pos => dict // ASTRUCT_POSITIONS
+      nullify(last)
       do iat=1,astruct%nat
          call dict_init(at)
          call add(at // astruct%atomnames(astruct%iatype(iat)), rxyz(1,iat) * factor(1))
@@ -976,18 +976,18 @@ contains
          call add(at // astruct%atomnames(astruct%iatype(iat)), rxyz(3,iat) * factor(3))
          if (astruct%ifrztyp(iat) /= 0) then
             call frozen_itof(astruct%ifrztyp(iat), frzstr)
-            call set(at // "Frozen", adjustl(frzstr))
+            call set(at // ASTRUCT_ATT_FROZEN, adjustl(frzstr))
          end if
          call charge_and_spol(astruct%input_polarization(iat),ichg,ispol)
-         if (ichg /= 0) call set(at // "IGChg", ichg)
-         if (ispol /= 0) call set(at // "IGSpin", ispol)
+         if (ichg /= 0) call set(at // ASTRUCT_ATT_IGCHRG, ichg)
+         if (ispol /= 0) call set(at // ASTRUCT_ATT_IGSPIN, ispol)
          ! information for internal coordinates
          if (astruct%inputfile_format=='int') then
-            call set(at // "int_ref_atoms_1", astruct%ixyz_int(1,iat))
-            call set(at // "int_ref_atoms_2", astruct%ixyz_int(2,iat))
-            call set(at // "int_ref_atoms_3", astruct%ixyz_int(3,iat))
+            call set(at // ASTRUCT_ATT_IXYZ_1, astruct%ixyz_int(1,iat))
+            call set(at // ASTRUCT_ATT_IXYZ_2, astruct%ixyz_int(2,iat))
+            call set(at // ASTRUCT_ATT_IXYZ_3, astruct%ixyz_int(3,iat))
          end if
-         call add(pos, at)
+         call add(pos, at, last)
       end do
 
       if (present(comment)) then
@@ -999,6 +999,77 @@ contains
            & call set(dict // ASTRUCT_PROPERTIES // "format", astruct%inputfile_format)
     end subroutine astruct_merge_to_dict
 
+    subroutine astruct_at_from_dict(dict, symbol, rxyz, rxyz_add, ifrztyp, igspin, igchrg, ixyz, ixyz_add)
+      use dictionaries
+      use module_defs, only: UNINITIALIZED
+      use dynamic_memory
+      implicit none
+      type(dictionary), pointer :: dict
+      character(len = max_field_length), intent(out), optional :: symbol !< Symbol
+      integer, intent(out), optional :: ifrztyp !< Frozen id
+      integer, intent(out), optional :: igspin  !< Spin for input guess
+      integer, intent(out), optional :: igchrg  !< Charge for input guess
+      integer, dimension(3), intent(out), optional :: ixyz !< Reference atom for internal coordinates
+      integer, intent(out), optional :: ixyz_add !< Reference atom for internal coordinates address
+      real(gp), dimension(3), intent(out), optional :: rxyz !< Coordinates.
+      real(gp), intent(out), optional :: rxyz_add !< Coordinates address.
+
+      type(dictionary), pointer :: atData
+      character(len = max_field_length) :: str
+      integer :: ierr
+      integer, dimension(3) :: icoord
+      real(gp), dimension(3) :: rcoord
+
+      ! Default values.
+      if (present(symbol)) symbol = 'X'
+      if (present(rxyz)) rxyz = UNINITIALIZED(rxyz(1))
+      if (present(ixyz)) ixyz = UNINITIALIZED(ixyz(1))
+      if (present(ifrztyp)) ifrztyp = 0
+      if (present(igspin))  igspin = 0
+      if (present(igchrg))  igchrg = 0
+      
+      atData => dict_iter(dict)
+      do while(associated(atData))
+         str = dict_key(atData)
+         if (trim(str) == ASTRUCT_ATT_FROZEN) then
+            str = dict_value(atData)
+            if (present(ifrztyp)) call frozen_ftoi(str(1:4), ifrztyp, ierr)
+         else if (trim(str) == ASTRUCT_ATT_IGSPIN) then
+            if (present(igspin)) igspin = atData
+         else if (trim(str) == ASTRUCT_ATT_IGCHRG) then
+            if (present(igchrg)) igchrg = atData
+         else if (trim(str) == ASTRUCT_ATT_IXYZ_1) then
+            if (present(ixyz)) ixyz(1) = atData
+            if (present(ixyz_add)) then
+               call f_memcpy(icoord(1), ixyz_add, 3)
+               icoord(1) = atData
+               call f_memcpy(ixyz_add, icoord(1), 3)
+            end if
+         else if (trim(str) == ASTRUCT_ATT_IXYZ_2) then
+            if (present(ixyz)) ixyz(2) = atData
+            if (present(ixyz_add)) then
+               call f_memcpy(icoord(1), ixyz_add, 3)
+               icoord(2) = atData
+               call f_memcpy(ixyz_add, icoord(1), 3)
+            end if
+         else if (trim(str) == ASTRUCT_ATT_IXYZ_3) then
+            if (present(ixyz)) ixyz(3) = atData
+            if (present(ixyz_add)) then
+               call f_memcpy(icoord(1), ixyz_add, 3)
+               icoord(3) = atData
+               call f_memcpy(ixyz_add, icoord(1), 3)
+            end if
+         else if (dict_len(atData) == 3) then
+            if (present(symbol)) symbol = str
+            if (present(rxyz)) rxyz = atData
+            if (present(rxyz_add)) then
+               rcoord = atData
+               call f_memcpy(rxyz_add, rcoord(1), 3)
+            end if
+         end if
+         atData => dict_next(atData)
+      end do
+    end subroutine astruct_at_from_dict
 
     include 'astruct-inc.f90'
 
@@ -1033,7 +1104,7 @@ subroutine astruct_set_n_atoms(astruct, nat)
   astruct%iatype = f_malloc_ptr(astruct%nat,id='astruct%iatype')
   astruct%ifrztyp = f_malloc_ptr(astruct%nat,id='astruct%ifrztyp')
   astruct%input_polarization = f_malloc_ptr(astruct%nat,id='astruct%input_polarization')
-  astruct%rxyz = f_malloc_ptr((/ 3,astruct%nat /),id='astruct%rxyz')
+  astruct%rxyz = f_malloc0_ptr((/ 3,astruct%nat /),id='astruct%rxyz')
   astruct%rxyz_int = f_malloc_ptr((/ 3,astruct%nat /),id='astruct%rxyz_int')
   astruct%ixyz_int = f_malloc_ptr((/ 3,astruct%nat /),id='astruct%ixyz_int')
 
@@ -1044,7 +1115,7 @@ subroutine astruct_set_n_atoms(astruct, nat)
   !RULE natpol=charge*1000 + 100 + spinpol
   astruct%input_polarization(:)=100
 
-  if (astruct%nat > 0) call to_zero(3 * astruct%nat, astruct%rxyz(1,1))
+  !if (astruct%nat > 0) call to_zero(3 * astruct%nat, astruct%rxyz(1,1))
 END SUBROUTINE astruct_set_n_atoms
 
 
@@ -1058,7 +1129,6 @@ subroutine astruct_set_n_types(astruct, ntypes)
   !character(len = *), intent(in) :: subname
   !local variables
   character(len=*), parameter :: subname='astruct_set_n_types' !<remove
-  ! integer :: i
   ! integer :: i_stat
 
   astruct%ntypes = ntypes
@@ -1089,7 +1159,7 @@ subroutine astruct_set_from_file(lstat, astruct, filename)
   call f_err_open_try()
   call read_atomic_file(filename, 0, astruct)
   call f_err_close_try()
-  lstat = (f_err_pop(BIGDFT_INPUT_VARIABLES_ERROR) /= 0)
+  lstat = (f_err_pop(BIGDFT_INPUT_VARIABLES_ERROR) == 0)
 
 END SUBROUTINE astruct_set_from_file
 
@@ -1192,7 +1262,6 @@ subroutine allocate_atoms_nat(atoms)
   type(atoms_data), intent(inout) :: atoms
   integer :: iat
 
-  !create the reference counter
   atoms%refcnt=f_ref_new('atoms')
 
   allocate(atoms%aoig(atoms%astruct%nat))
@@ -1232,14 +1301,15 @@ END SUBROUTINE allocate_atoms_ntypes
 
 !> Allocate a new atoms_data type, for bindings.
 subroutine atoms_new(atoms)
-  use module_atoms, only: atoms_data,nullify_atoms_data
+  use module_atoms, only: atoms_data,atoms_data_null
+  use dynamic_memory
   implicit none
   type(atoms_data), pointer :: atoms
 
   type(atoms_data), pointer :: intern
   
   allocate(intern)
-  call nullify_atoms_data(intern)
+  intern = atoms_data_null()
   atoms => intern
 END SUBROUTINE atoms_new
 
@@ -1247,9 +1317,15 @@ END SUBROUTINE atoms_new
 !> Free an allocated atoms_data type.
 subroutine atoms_free(atoms)
   use module_atoms, only: atoms_data,deallocate_atoms_data
+  use dynamic_memory, only: f_ref_count, f_ref_new
   implicit none
   type(atoms_data), pointer :: atoms
   
+  if (f_ref_count(atoms%refcnt) < 0) then
+     ! Trick here to be sure that the deallocate won't complain in case of not
+     ! fully initialised atoms.
+     atoms%refcnt=f_ref_new('atoms')
+  end if
   call deallocate_atoms_data(atoms)
   deallocate(atoms)
 END SUBROUTINE atoms_free

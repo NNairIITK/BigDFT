@@ -27,7 +27,7 @@ program MINHOP
 !  type(restart_objects) :: rst
   !C parameters for minima hopping
   integer, parameter :: mdmin=2
-  real(kind=8), parameter :: beta_S=1.10d0,beta_O=1.10d0,beta_N=1.d0/1.10d0
+  real(kind=8), parameter :: beta_S=1.05d0,beta_O=1.10d0,beta_N=1.d0/1.10d0
   real(kind=8), parameter :: alpha_A=1.d0/1.10d0,alpha_R=1.10d0
   real(kind=8), allocatable, dimension(:,:) ::vxyz,gg,poshop
   real(kind=8), allocatable, dimension(:) :: rcov,ksevals
@@ -47,7 +47,7 @@ program MINHOP
   character(len=5) :: fn5
 !  character(len=16) :: fn16
 !  character(len=18) :: fn18
-  character(len=50) :: comment
+  character(len=50) :: comment,naming_id
   character(len=128) :: msg
 !  real(gp), parameter :: bohr=0.5291772108_gp !1 AU in angstroem
   ! integer :: nconfig
@@ -62,7 +62,7 @@ program MINHOP
   real(kind=8), dimension(:,:), pointer :: rxyz_opt,rxyz_md
   
   type(run_objects) :: run_opt,run_md !< the two runs parameters
-  type(DFT_global_output) :: outs
+  type(state_properties) :: outs
   !type(dictionary), pointer :: user_inputs
   type(dictionary), pointer :: options,run
   integer:: nposacc=0
@@ -91,13 +91,13 @@ program MINHOP
   call cpu_time(tcpu1)
 
   !reset input and output positions of run
-  call bigdft_get_run_properties(run,run_id=run_id)
-  call bigdft_set_run_properties(run,run_id=trim(run_id)//trim(bigdft_run_id_toa()),&
-       posinp='poscur'//trim(bigdft_run_id_toa()))
+  naming_id=repeat(' ',len(naming_id))
+  call bigdft_get_run_properties(run,input_id=run_id,naming_id=naming_id)
+  call bigdft_set_run_properties(run,posinp_id='poscur'//trim(naming_id))
 
   call run_objects_init(run_opt,run)
   !then the unoptimized parameters
-  call bigdft_set_run_properties(run,run_id='md'//trim(run_id)//trim(bigdft_run_id_toa()))
+  call bigdft_set_run_properties(run,input_id='md'//trim(run_id), log_to_disk=.false.)
 
   call run_objects_init(run_md,run,source=run_opt)
   
@@ -129,8 +129,8 @@ program MINHOP
 !!$  call deallocate_atoms_data(md_atoms) 
 
 !   write(*,*) 'nat=',atoms%astruct%nat
-  ! Create the DFT_global_output container.
-  call init_global_output(outs, bigdft_nat(run_opt))
+  ! Create the state_properties container.
+  call init_state_properties(outs, bigdft_nat(run_opt))
 
   !performs few checks
   if (run_opt%inputs%inguess_geopt .ne. run_md%inputs%inguess_geopt) then 
@@ -140,10 +140,12 @@ program MINHOP
 
   !associate the same output directory 
   if (run_opt%inputs%dir_output /= run_md%inputs%dir_output) then
-     call deldir(trim(run_md%inputs%dir_output),len_trim(run_md%inputs%dir_output),ierr)
-     if (ierr /=0) then
-        call yaml_warning('Error found while deleting '//&
-             trim(run_md%inputs%dir_output))
+     if (bigdft_mpi%iproc == 0) then
+        call deldir(trim(run_md%inputs%dir_output),len_trim(run_md%inputs%dir_output),ierr)
+        if (ierr /=0) then
+           call yaml_warning('Error found while deleting '//&
+                trim(run_md%inputs%dir_output))
+        end if
      end if
      run_md%inputs%dir_output=run_opt%inputs%dir_output
   end if
@@ -170,7 +172,7 @@ program MINHOP
   call give_rcov(bigdft_mpi%iproc,bigdft_get_astruct_ptr(run_opt),rcov)
 
 ! read random offset
-  open(unit=11,file='rand'//trim(bigdft_run_id_toa())//'.inp')
+  open(unit=11,file='rand'//trim(naming_id)//'.inp')
   read(11,*) nrandoff
   !        write(*,*) 'nrandoff ',nrandoff
   close(11)
@@ -189,8 +191,8 @@ program MINHOP
   endif
 
   ! read input parameters
-  write(filename,'(a6,i3.3)') 'ioput'//trim(bigdft_run_id_toa()) !,bigdft_mpi%iproc
-  open(unit=11,file='ioput'//trim(bigdft_run_id_toa()),status='old')
+  write(filename,'(a6,i3.3)') 'ioput'//trim(naming_id) !,bigdft_mpi%iproc
+  open(unit=11,file='ioput'//trim(naming_id),status='old')
   read(11,*) ediff,ekinetic,dt,nsoften
   close(11)
   if (bigdft_mpi%iproc == 0) call yaml_map('(MH) Input ediff, ekinetic, dt',(/ediff,ekinetic,dt/),fmt='(1pe10.3)')
@@ -221,7 +223,7 @@ program MINHOP
 !!$  call nullify_run_objects(runObj)
 !!$  call run_objects_associate(runObj, inputs_md, atoms, rst)
   !we start with md
-  call call_bigdft(run_md,outs,infocode)
+  call bigdft_state(run_md,outs,infocode)
 
 
   energyold=1.d100
@@ -232,7 +234,8 @@ program MINHOP
   ngeopt=0
   do 
      write(fn4,'(i4.4)') ngeopt+1
-     filename='poslocm_'//fn4//'_'//trim(bigdft_run_id_toa())//'.xyz'
+     !filename='poslocm_'//fn4//'_'//trim(bigdft_run_id_toa())//'.xyz'
+     filename='poslocm_'//fn4//trim(naming_id)//'.xyz'
 !     write(*,*) 'filename: ',filename
      inquire(file=trim(filename),exist=exist_poslocm)
      if (exist_poslocm) then
@@ -246,7 +249,8 @@ program MINHOP
   nposacc=0
   do 
      write(fn4,'(i4.4)') nposacc+1
-     filename='posacc_'//fn4//'_'//trim(bigdft_run_id_toa())//'.xyz'
+     !filename='posacc_'//fn4//'_'//trim(bigdft_run_id_toa())//'.xyz'
+     filename='posacc_'//fn4//trim(naming_id)//'.xyz'
 !     write(*,*) 'filename: ',filename
      inquire(file=trim(filename),exist=exist_posacc)
      if (exist_posacc) then
@@ -284,7 +288,7 @@ program MINHOP
 !         write(*,*) 'Generating new input guess'
 !          inputs_opt%inputPsiId=0
 !          call run_objects_associate(runObj, inputs_opt, atoms, rst)
-!          call call_bigdft(runObj,outs,bigdft_mpi%nproc,bigdft_mpi%iproc,infocode)
+!          call bigdft_state(runObj,outs,bigdft_mpi%nproc,bigdft_mpi%iproc,infocode)
 !          inputs_opt%inputPsiId=1
 !  endif   
   !call run_objects_associate(runObj, inputs_opt, atoms, rst)
@@ -326,7 +330,8 @@ program MINHOP
          write(comment,'(a,1pe10.3)')'ha_trans enabled, fnrm= ',tt
      endif
      call bigdft_write_atomic_file(run_opt,outs,&
-          'posacc_'//fn4//'_'//trim(bigdft_run_id_toa()),&
+          'posacc_'//fn4//trim(naming_id),&
+          !'posacc_'//fn4//'_'//trim(bigdft_run_id_toa()),&
           trim(comment),cwd_path=.true.)
 !!$     call write_atomic_file('posacc_'//fn4//'_'//trim(bigdft_run_id_toa()),&
 !!$          outs%energy,atoms%astruct%rxyz,atoms%astruct%ixyz_int,atoms,trim(comment),forces=outs%fxyz)
@@ -337,11 +342,13 @@ program MINHOP
      write(fn4,'(i4.4)') ngeopt
      write(comment,'(a,1pe10.3)')'fnrm= ',tt
      call bigdft_write_atomic_file(run_opt,outs,&
-          'poslocm_'//fn4//'_'//trim(bigdft_run_id_toa()),&
+          'poslocm_'//fn4//trim(naming_id),&
+          !'poslocm_'//fn4//'_'//trim(bigdft_run_id_toa()),&
           trim(comment),cwd_path=.true.)
 !!$     call write_atomic_file('poslocm_'//fn4//'_'//trim(bigdft_run_id_toa()),&
 !!$          outs%energy,atoms%astruct%rxyz,atoms%astruct%ixyz_int,atoms,trim(comment),forces=outs%fxyz)
-      open(unit=864,file='kseloc_'//fn4//'_'//trim(bigdft_run_id_toa()))
+     !open(unit=864,file='kseloc_'//fn4//'_'//trim(bigdft_run_id_toa()))
+      open(unit=864,file='kseloc_'//fn4//trim(naming_id))
       do i=1,nksevals
       write(864,*) ksevals(i)
       enddo
@@ -349,10 +356,10 @@ program MINHOP
   endif
 
 ! Read previously found energies and properties
-  if (bigdft_mpi%iproc == 0) call yaml_map('(MH) name of enarr','enarr'//trim(bigdft_run_id_toa()))
-  open(unit=12,file='enarr'//trim(bigdft_run_id_toa()),status='unknown')
-   if (bigdft_mpi%iproc == 0) call yaml_map('(MH) name of idarr','idarr'//trim(bigdft_run_id_toa()))
-  open(unit=14,file='idarr'//trim(bigdft_run_id_toa()),status='unknown')
+  if (bigdft_mpi%iproc == 0) call yaml_map('(MH) name of enarr','enarr'//trim(naming_id))
+  open(unit=12,file='enarr'//trim(naming_id),status='unknown')
+   if (bigdft_mpi%iproc == 0) call yaml_map('(MH) name of idarr','idarr'//trim(naming_id))
+  open(unit=14,file='idarr'//trim(naming_id),status='unknown')
   read(12,*) nlmin,nlminx,singlestep
   if (bigdft_mpi%iproc == 0) call yaml_map('(MH) nlmin,nlminx',(/nlmin,nlminx/))
   if (nlmin.gt.nlminx) stop 'nlmin>nlminx'
@@ -377,7 +384,7 @@ program MINHOP
   endif
   close(12)
   close(14)
-  if (bigdft_mpi%iproc == 0) call yaml_map('(MH) read idarr','idarr'//trim(bigdft_run_id_toa()))
+  if (bigdft_mpi%iproc == 0) call yaml_map('(MH) read idarr','idarr'//trim(naming_id))
   
   ! If restart read previous poslocm's
   ! here we should use bigdft built-in routines to read atomic positions
@@ -386,7 +393,8 @@ program MINHOP
   do ilmin=1,nlmin
 
      write(fn5,'(i5.5)') ilmin
-     filename = 'poslow'//fn5//'_'//trim(bigdft_run_id_toa())!//'.xyz'
+     !filename = 'poslow'//fn5//'_'//trim(bigdft_run_id_toa())!//'.xyz'
+     filename = 'poslow'//fn5//trim(naming_id)!//'.xyz'
 !!$     call f_file_exists(filename,exist_poslocm)
 !!$     if (.not. exist_poslocm) then
 !!$        write(*,*) bigdft_mpi%iproc,' COULD not read file ',filename
@@ -534,7 +542,8 @@ program MINHOP
      write(comment,'(a,1pe10.3)')'fnrm= ',tt
      
      call bigdft_write_atomic_file(run_md,outs,&
-          'posaftermd_'//fn4//'_'//trim(bigdft_run_id_toa()),&
+          !'posaftermd_'//fn4//'_'//trim(bigdft_run_id_toa()),&
+          'posaftermd_'//fn4//trim(naming_id),&
           trim(comment),cwd_path=.true.)
 
 !!$     call write_atomic_file('posaftermd_'//fn4//'_'//trim(bigdft_run_id_toa()),&
@@ -575,7 +584,7 @@ program MINHOP
 !         write(*,*) 'Generating new input guess'
 !          inputs_opt%inputPsiId=0
 !          call run_objects_associate(runObj, inputs_opt, atoms, rst)
-!          call call_bigdft(runObj,outs,bigdft_mpi%nproc,bigdft_mpi%iproc,infocode)
+!          call bigdft_state(runObj,outs,bigdft_mpi%nproc,bigdft_mpi%iproc,infocode)
 !          inputs_opt%inputPsiId=1
 !  endif   
   !call run_objects_associate(runObj, inputs_opt, atoms, rst)
@@ -600,12 +609,14 @@ program MINHOP
      write(fn4,'(i4.4)') ngeopt
      write(comment,'(a,1pe10.3)')'fnrm= ',tt
      call bigdft_write_atomic_file(run_opt,outs,&
-          'poslocm_'//fn4//'_'//trim(bigdft_run_id_toa()),trim(comment),&
+          !'poslocm_'//fn4//'_'//trim(bigdft_run_id_toa()),trim(comment),&
+          'poslocm_'//fn4//trim(naming_id),trim(comment),&
           cwd_path=.true.)
 
 !!$     call write_atomic_file('poslocm_'//fn4//'_'//trim(bigdft_run_id_toa()),&
 !!$          outs%energy,atoms%astruct%rxyz,atoms%astruct%ixyz_int,atoms,trim(comment),forces=outs%fxyz)
-        open(unit=864,file='kseloc_'//fn4//'_'//trim(bigdft_run_id_toa()))
+        !open(unit=864,file='kseloc_'//fn4//'_'//trim(bigdft_run_id_toa()))
+        open(unit=864,file='kseloc_'//fn4//trim(naming_id))
         do i=1,nksevals
           write(864,*) ksevals(i)
         enddo
@@ -630,7 +641,7 @@ program MINHOP
         fp_sep=max(fp_sep,d)
         ekinetic=ekinetic*beta_S
         if (bigdft_mpi%iproc == 0) then 
-             call wtioput(ediff,ekinetic,dt,nsoften)
+             call wtioput(naming_id,ediff,ekinetic,dt,nsoften)
              write(2,'((1x,f10.0),1x,1pe21.14,2(1x,1pe10.3),3(1x,0pf5.2),a)')  &
              escape,outs%energy,ediff,ekinetic, &
              escape_sam/escape,escape_old/escape,escape_new/escape,'  S '
@@ -659,18 +670,18 @@ program MINHOP
       nlmin=nlmin+1
       call insert(bigdft_mpi%iproc,nlminx,nlmin,nid,bigdft_nat(run_opt),k_e,outs%energy,wfp,&
            rxyz_opt,en_arr,ct_arr,fp_arr,pl_arr)
-! write intermediate results
-      if (bigdft_mpi%iproc == 0) call yaml_comment('(MH) WINTER')
-      if (bigdft_mpi%iproc == 0) call winter(natoms,bigdft_get_astruct_ptr(run_opt),nid,nlminx,nlmin,singlestep,en_delta,fp_delta, &
-           en_arr,ct_arr,fp_arr,pl_arr,ediff,ekinetic,dt,nsoften)
+      ! write intermediate results
       if (bigdft_mpi%iproc == 0) then
-         !call yaml_stream_attributes()
+         call yaml_comment('(MH) WINTER')
+         call winter(naming_id,natoms,bigdft_get_astruct_ptr(run_opt),nid,nlminx,nlmin,singlestep, &
+           en_delta,fp_delta,en_arr,ct_arr,fp_arr,pl_arr,ediff,ekinetic,dt,nsoften)
+        !call yaml_stream_attributes()
         call yaml_mapping_open('(MH) New minimum',flow=.true.)
         call yaml_map('(MH) has energy',outs%energy,fmt='(e14.7)')
         !if (dmin < 1.e100_gp) 
            call yaml_map('(MH) distance',dmin,fmt='(e11.4)')
         call yaml_mapping_close(advance='yes')
-      endif
+      end if
       nvisit=1
    else
       escape_old=escape_old+1.d0
@@ -732,7 +743,8 @@ program MINHOP
          write(comment,'(a)')'ha_trans enabled'
      endif
      call astruct_dump_to_file(bigdft_get_astruct_ptr(run_opt),&
-          'posacc_'//fn4//'_'//trim(bigdft_run_id_toa()),&
+          !'posacc_'//fn4//'_'//trim(bigdft_run_id_toa()),&
+          'posacc_'//fn4//trim(naming_id),&
           trim(comment),energy=e_pos,rxyz=pos)
 !!$     call write_atomic_file('posacc_'//fn4//'_'//trim(bigdft_run_id_toa()),&
 !!$          e_pos,pos,atoms%astruct%ixyz_int,atoms,trim(comment))
@@ -741,7 +753,8 @@ program MINHOP
      if (bigdft_mpi%iproc == 0) then
         !call yaml_mapping_open('(MH) Write poscur file')
         call astruct_dump_to_file(bigdft_get_astruct_ptr(run_opt),&
-             'poscur'//trim(bigdft_run_id_toa()),'',&
+             !'poscur'//trim(bigdft_run_id_toa()),'',&
+             'poscur'//trim(naming_id),'',&
              energy=e_pos,rxyz=pos)
 !!$       call write_atomic_file('poscur'//trim(bigdft_run_id_toa()),e_pos,pos,atoms%astruct%ixyz_int,atoms,'')
        call yaml_map('(MH) poscur.xyz for  RESTART written',.true.)
@@ -770,7 +783,7 @@ program MINHOP
      rejected=rejected+1.d0
      ediff=ediff*alpha_R
   endif
-     if (bigdft_mpi%iproc == 0) call wtioput(ediff,ekinetic,dt,nsoften)
+     if (bigdft_mpi%iproc == 0) call wtioput(naming_id,ediff,ekinetic,dt,nsoften)
 
 end do hopping_loop
 
@@ -780,7 +793,7 @@ end do hopping_loop
      call yaml_mapping_open('(MH) Final results')
      call yaml_map('(MH) Total number of minima found',nlmin)
      call yaml_map('(MH) Number of accepted minima',accepted)
-     call winter(natoms,bigdft_get_astruct_ptr(run_opt),nid,nlminx,nlmin,singlestep,en_delta,fp_delta, &
+     call winter(naming_id,natoms,bigdft_get_astruct_ptr(run_opt),nid,nlminx,nlmin,singlestep,en_delta,fp_delta, &
            en_arr,ct_arr,fp_arr,pl_arr,ediff,ekinetic,dt,nsoften)
   endif
 
@@ -844,7 +857,7 @@ end do hopping_loop
   call f_free(ksevals)
 !  if (iproc==0) write(*,*) 'quit 4'
 
-  call deallocate_global_output(outs)
+  call deallocate_state_properties(outs)
 !!$  call free_input_variables(inputs_md)
 !!$  call free_input_variables(inputs_opt)
 
@@ -869,7 +882,7 @@ contains
     integer :: nsoften,mdmin,ngeopt,iproc
     real(kind=8) :: ekinetic,dt,count_md
     type(run_objects), intent(inout) :: runObj
-    type(DFT_global_output), intent(inout) :: outs
+    type(state_properties), intent(inout) :: outs
     real(kind=8), dimension(3,natoms) :: gg,vxyz
     character(len=4) :: fn4
     real(gp) :: e0,enmin1,en0000,econs_max,econs_min,rkin,enmin2
@@ -910,7 +923,7 @@ contains
     call frozen_dof(bigdft_get_astruct_ptr(runObj),vxyz,ndfree,ndfroz)
   ! normalize velocities to target ekinetic
     call velnorm(natoms,(ekinetic*ndfree)/(ndfree+ndfroz),vxyz)
-    call to_zero(3*natoms,gg)
+    call f_zero(gg)
 
     if(iproc==0) call torque(natoms,rxyz_run,vxyz)
 
@@ -936,7 +949,7 @@ contains
        enmin1=en0000
        !    if (iproc == 0) write(*,*) 'CLUSTER FOR  MD'
        runObj%inputs%inputPsiId=1
-       call call_bigdft(runObj, outs,infocode)
+       call bigdft_state(runObj, outs,infocode)
 
        if (iproc == 0) then
           write(fn4,'(i4.4)') istep
@@ -954,7 +967,8 @@ contains
           write(fn4,'(i4.4)') ngeopt
           write(comment,'(a,i3)')'nummin= ',nummin
           call bigdft_write_atomic_file(runObj,outs,&
-               'poslocm_'//fn4//'_'//trim(bigdft_run_id_toa()),&
+               !'poslocm_'//fn4//'_'//trim(bigdft_run_id_toa()),&
+               'poslocm_'//fn4//trim(naming_id),&
                trim(comment),cwd_path=.true.)
 !!$          call write_atomic_file('poslocm_'//fn4//'_'//trim(bigdft_run_id_toa()), & 
 !!$               outs%energy,atoms%astruct%rxyz,atoms%astruct%ixyz_int,atoms,trim(comment),forces=outs%fxyz)
@@ -1045,7 +1059,7 @@ contains
     !Arguments
     integer, intent(in) :: nsoften,iproc
     type(run_objects), intent(inout) :: runObj
-    type(DFT_global_output), intent(inout) :: outs
+    type(state_properties), intent(inout) :: outs
     real(kind=8), dimension(3*natoms) :: vxyz
     !Local variables
     real(kind=8), dimension(3*natoms) :: pos0
@@ -1065,7 +1079,7 @@ contains
 
     runObj%inputs%inputPsiId=1
     if(iproc==0) call yaml_comment('(MH) soften initial step ',hfill='~')
-    call call_bigdft(runObj,outs,infocode)
+    call bigdft_state(runObj,outs,infocode)
     etot0 = outs%energy
 
     ! scale velocity to generate dimer 
@@ -1088,7 +1102,7 @@ contains
        !call vcopy(3*natoms, pos0(1), 1, bigdft_get_rxyz_ptr(runObj), 1)
        call bigdft_set_rxyz(runObj,rxyz_add=pos0(1))
        call daxpy(3*natoms, 1.d0, vxyz(1), 1,rxyz_run, 1)
-       call call_bigdft(runObj,outs,infocode)
+       call bigdft_state(runObj,outs,infocode)
        fd2=2.d0*(outs%energy-etot0)/eps_vxyz**2
 
        call atomic_dot(bigdft_get_astruct_ptr(runObj),vxyz,vxyz,svxyz)
@@ -1606,10 +1620,9 @@ subroutine elim_moment(nat,vxyz)
 END SUBROUTINE elim_moment
 
 
-subroutine winter(nat,astruct,nid,nlminx,nlmin,singlestep,en_delta,fp_delta, &
+subroutine winter(naming_id,nat,astruct,nid,nlminx,nlmin,singlestep,en_delta,fp_delta, &
      en_arr,ct_arr,fp_arr,pl_arr,ediff,ekinetic,dt,nsoften)
   use module_base
-  use bigdft_run, only: bigdft_run_id_toa
   use module_atoms, only: atomic_structure,astruct_dump_to_file
 !!$  use module_types
 !!$  use module_interfaces
@@ -1617,6 +1630,7 @@ subroutine winter(nat,astruct,nid,nlminx,nlmin,singlestep,en_delta,fp_delta, &
   use yaml_output
   implicit none
   !Arguments
+  character(len=*), intent(in) :: naming_id
   integer, intent(in) :: nlminx,nlmin,nsoften,nid
   real(gp), intent(in) :: ediff,ekinetic,dt,en_delta,fp_delta
   type(atomic_structure), intent(in) :: astruct
@@ -1628,11 +1642,11 @@ subroutine winter(nat,astruct,nid,nlminx,nlmin,singlestep,en_delta,fp_delta, &
   !character(len=50) :: comment
   character(len=5) :: fn5
 
-  call yaml_map('(MH) name of idarr','idarr'//trim(bigdft_run_id_toa()))
+  call yaml_map('(MH) name of idarr','idarr'//trim(naming_id))
 
   ! write enarr file
-  open(unit=12,file='enarr'//trim(bigdft_run_id_toa()),status='unknown')
-  write(12,'(2(i10),l,a)') nlmin,nlmin+5,singlestep, & 
+  open(unit=12,file='enarr'//trim(naming_id),status='unknown')
+  write(12,'(2(i10),l1,a)') nlmin,nlmin+5,singlestep, & 
       ' # of minima already found, # of minima to be found in consecutive run, singlestep mode'
   write(12,'(2(e24.17,1x),a)') en_delta,fp_delta,' en_delta,fp_delta'
   do k=1,nlmin
@@ -1642,7 +1656,7 @@ subroutine winter(nat,astruct,nid,nlminx,nlmin,singlestep,en_delta,fp_delta, &
   close(12)
 
   ! write fingerprint file
-  open(unit=14,file='idarr'//trim(bigdft_run_id_toa()),status='unknown')
+  open(unit=14,file='idarr'//trim(naming_id),status='unknown')
   do k=1,nlmin
      write(14,'(10(1x,e24.17))') (fp_arr(i,k),i=1,nid)
   enddo
@@ -1650,7 +1664,7 @@ subroutine winter(nat,astruct,nid,nlminx,nlmin,singlestep,en_delta,fp_delta, &
   call yaml_map('(MH) idarr for  RESTART written',.true.)
 
   ! write ioput file
-  call  wtioput(ediff,ekinetic,dt,nsoften)
+  call  wtioput(naming_id,ediff,ekinetic,dt,nsoften)
   call yaml_map('(MH) ioput for  RESTART written',.true.)
 
   ! write poslow files
@@ -1663,7 +1677,8 @@ subroutine winter(nat,astruct,nid,nlminx,nlmin,singlestep,en_delta,fp_delta, &
      write(fn5,'(i5.5)') k
      !        write(comment,'(a,1pe15.8)')'energy= ',en_arr(k)
      call astruct_dump_to_file(astruct,&
-          'poslow'//fn5//'_'//trim(bigdft_run_id_toa()),'',&
+          !'poslow'//fn5//'_'//trim(naming_id),'',&
+          'poslow'//fn5//trim(naming_id),'',&
           energy=en_arr(k),rxyz=pl_arr(:,:,k))
 !!$     call  write_atomic_file('poslow'//fn5//'_'//trim(bigdft_run_id_toa()),en_arr(k),pl_arr(1,1,k),&
 !!$           at%astruct%ixyz_int,at,'')
@@ -1674,15 +1689,15 @@ subroutine winter(nat,astruct,nid,nlminx,nlmin,singlestep,en_delta,fp_delta, &
 END SUBROUTINE winter
 
 
-subroutine wtioput(ediff,ekinetic,dt,nsoften)
-  use bigdft_run, only: bigdft_run_id_toa
+subroutine wtioput(naming_id,ediff,ekinetic,dt,nsoften)
   implicit none
   !Arguments
+  character(len=*), intent(in) :: naming_id
   real(kind=8), intent(in) :: ediff,ekinetic,dt
   integer, intent(in) :: nsoften
   !Local variables
   integer, parameter :: iunit=11
-  open(unit=iunit,file='ioput'//trim(bigdft_run_id_toa()),status='unknown')
+  open(unit=iunit,file='ioput'//trim(naming_id),status='unknown')
   write(iunit,'(3(1x,1pe24.17)1x,i4,a)') ediff,ekinetic,dt,nsoften,' ediff, ekinetic dt and nsoften'
   close(unit=iunit)
 END SUBROUTINE wtioput
@@ -1745,7 +1760,7 @@ END SUBROUTINE wtioput
 !!        
 !!        !C generate filename and open files
 !!        write(fn,'(i5.5)') kk
-!!        call  write_atomic_file('poslow'//fn//'_'//trim(bigdft_run_id_toa()),elocmin(k),pos(1,1,k),at,'')
+!!        call  write_atomic_file('poslow'//fn//'_'//trim(naming_id),elocmin(k),pos(1,1,k),at,'')
 !!     endif
 !!     
 !!  end do
@@ -2698,6 +2713,7 @@ END SUBROUTINE print_logo_MH
 
 
 subroutine identical(iproc,nlminx,nlmin,nid,e_wpos,wfp,en_arr,fp_arr,en_delta,fp_delta,newmin,kid,dmin,k_e_wpos,n_unique,n_nonuni)
+  use yaml_output
   implicit real*8 (a-h,o-z)
   dimension fp_arr(nid,nlminx),wfp(nid),en_arr(nlminx)
   logical newmin
@@ -2731,6 +2747,7 @@ subroutine identical(iproc,nlminx,nlmin,nid,e_wpos,wfp,en_arr,fp_arr,en_delta,fp
   dmin=1.d100
   do k=max(1,klow),min(nlmin,khigh)
      call fpdistance(nid,wfp,fp_arr(1,k),d)
+     if (iproc == 0) call yaml_map('(MH) Checking fpdistance',(/e_wpos-en_arr(k),d/),fmt='(e11.4)')
 !     if (iproc.eq.0) write(*,*) '(MH)  k,d',k,d
 !     if (iproc.eq.0) write(*,'(a,20(e10.3))') '(MH)    wfp', (wfp(i),i=1,nid)
 !     if (iproc.eq.0) write(*,'(a,20(e10.3))') '(MH) fp_arr', (fp_arr(i,k),i=1,nid)

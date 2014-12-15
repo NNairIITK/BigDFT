@@ -3,10 +3,9 @@
 !!     
 !! @author 
 !!    Copyright (C) 2014 UNIBAS (Bastian Schaefer)
-!!    This file is not freely distributed.
-!!    A licence is necessary from UNIBAS
-!!
-!!    Copyright (C) 2015-2015 BigDFT group
+!!    Copyright (C) 2014 BigDFT group
+!!    This file is distributed under the terms of the
+!!    GNU General Public License, see ~/COPYING file
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
@@ -41,7 +40,7 @@ subroutine minimize(imode,nat,alat,nbond,iconnect,rxyzio,fxyzio,&
     !internal
 
     if(.not.  external_mini)then
-        call minimizer_sbfgs(imode,nat,alat,nbond,iconnect,rxyzio,&
+        call minimizer_sqnm(imode,nat,alat,nbond,iconnect,rxyzio,&
              fxyzio,fnoiseio,energyio,energycounter,converged,&
              writePostfix)
     else
@@ -52,20 +51,20 @@ end subroutine
 
 
 !> call_bigdft has to be run once on runObj and outs !before calling this routine
-!! sbfgs will return to caller the energies and coordinates used/obtained from the last accepted iteration step
+!! sqnm will return to caller the energies and coordinates used/obtained from the last accepted iteration step
 !subroutine geopt(nat,wpos,etot,fout,fnrmtol,count,count_sd,displr)
-subroutine minimizer_sbfgs(imode,nat,alat,nbond,iconnect,rxyzio,fxyzio,fnoiseio,energyio,energycounter,converged,writePostfix)
+subroutine minimizer_sqnm(imode,nat,alat,nbond,iconnect,rxyzio,fxyzio,fnoiseio,energyio,energycounter,converged,writePostfix)
+
    use module_base
    use module_types
    use module_interfaces
    use yaml_output
-   use module_sbfgs
+   use module_sqn
    use module_energyandforces
    use module_global_variables, only: iproc,&
                                       inputPsiId,&
                                       mhgps_verbosity,&
-!                                      ixyz_int,&
-                                      astruct_ptr,&
+                                      runObj,&
                                       mini_frac_fluct,&
                                       mini_ncluster_x,&
                                       mini_betax,&
@@ -80,6 +79,7 @@ subroutine minimizer_sbfgs(imode,nat,alat,nbond,iconnect,rxyzio,fxyzio,fnoiseio,
                                       isadc,&
                                       currDir
    use module_atoms, only: astruct_dump_to_file
+   use bigdft_run
    implicit none
    !parameter
    integer, intent(in)                    :: nat, nbond,imode
@@ -90,7 +90,7 @@ subroutine minimizer_sbfgs(imode,nat,alat,nbond,iconnect,rxyzio,fxyzio,fnoiseio,
    integer, intent(in)                    :: iconnect(2,nbond)
    character(len=*), intent(in)           :: writePostfix
    !local variables
-   character(len=*), parameter :: subname='sbfgs'
+   character(len=*), parameter :: subname='sqnm'
    ! integer :: infocode !< variables containing state codes
    integer :: nhistx   !< maximum history length
    integer :: nhist    !< actual history length
@@ -187,7 +187,7 @@ subroutine minimizer_sbfgs(imode,nat,alat,nbond,iconnect,rxyzio,fxyzio,fnoiseio,
 
 !   if (iproc==0.and.mhgps_verbosity > 0) then
 !      call yaml_mapping_open('Geometry parameters')
-!         call yaml_map('Geometry Method','GEOPT_SBFGS')
+!         call yaml_map('Geometry Method','GEOPT_SQNM')
 !         call yaml_map('nhistx',nhistx)
 !         call yaml_map('biomode',imode==2)
 !         call yaml_map('betax', betax,fmt='(1pe21.14)')
@@ -259,8 +259,8 @@ subroutine minimizer_sbfgs(imode,nat,alat,nbond,iconnect,rxyzio,fxyzio,fnoiseio,
    if (fmax < 3.e-1_gp) call updatefluctsum(fnoise,fluct)
 if (iproc == 0 .and. mhgps_verbosity >=4) then
    write(fn4,'(i4.4)') 0
-   write(comment,'(a,1pe10.3)')'SBFGS:fnrm= ',fnrm
-   call astruct_dump_to_file(astruct_ptr,&
+   write(comment,'(a,1pe10.3)')'SQNM:fnrm= ',fnrm
+   call astruct_dump_to_file(bigdft_get_astruct_ptr(runObj),&
         currDir//'/sad'//trim(adjustl(isadc))&
         //'_posmini'//trim(adjustl(writePostfix))//'_'//fn4, &
         trim(comment),energy=etotp,rxyz=rxyz(:,:,nhist),&
@@ -280,8 +280,8 @@ endif
        write(cdmy9,'(es9.2)')abs(beta)
 
 
-       write(*,'(i5,1x,i5,2x,a10,2x,1es21.14,2x,es9.2,es11.3,3es10.2,2x,a6,a8,1x,a4,i3.3,1x,a5,a7,2(1x,a6,a11))') &
-       int(energycounter),0,'(MHGPS) GEOPT_SBFGS',etotp,detot,fmax,fnrm,fluct*mini_frac_fluct,fluct, &
+       write(*,'(i5,1x,i5,2x,a18,2x,1es21.14,2x,es9.2,es11.3,3es10.2,2x,a6,a8,1x,a4,i3.3,1x,a5,a7,2(1x,a6,a11))') &
+       int(energycounter),0,'(MHGPS) GEOPT_SQNM',etotp,detot,fmax,fnrm,fluct*mini_frac_fluct,fluct, &
        'beta=',trim(adjustl(cdmy9)),'dim=',ndim,'maxd=',trim(adjustl(cdmy8)),&
        'dsplr=',trim(adjustl(cdmy12_1)), 'dsplp=',trim(adjustl(cdmy12_2))
    endif
@@ -335,7 +335,7 @@ endif
       !only used when in steepest decent mode
       if(maxd>trustr .and. steep)then
          if(debug.and.iproc==0)write(100,'(a,1x,es24.17,1x,i0)')'step too large',maxd,it
-         if(iproc==0)write(*,'(a,2(1x,es9.2))')'(MHGPS) WARNING GEOPT_SBFGS: step too large: maxd, trustradius ',maxd,trustr
+         if(iproc==0)write(*,'(a,2(1x,es9.2))')'(MHGPS) WARNING GEOPT_SQNM: step too large: maxd, trustradius ',maxd,trustr
          scl=0.50_gp*trustr/maxd
          dd=dd*scl
          tt=tt*scl
@@ -374,8 +374,8 @@ endif
 
       if (iproc == 0 .and. mhgps_verbosity >=4) then
          write(fn4,'(i4.4)') int(energycounter)
-         write(comment,'(a,1pe10.3)')'SBFGS:fnrm= ',fnrm
-         call astruct_dump_to_file(astruct_ptr,&
+         write(comment,'(a,1pe10.3)')'SQNM:fnrm= ',fnrm
+         call astruct_dump_to_file(bigdft_get_astruct_ptr(runObj),&
               currDir//'/sad'//trim(adjustl(isadc))&
               //'_posmini'//trim(adjustl(writePostfix))//'_'//fn4, &
               trim(comment),energy=etotp,rxyz=rxyz(:,:,nhist),&
@@ -395,7 +395,7 @@ endif
       if (detot.gt.maxrise .and. beta > 1.e-1_gp*betax) then !
          if (debug.and.iproc==0) write(100,'(a,i0,1x,e9.2)') "WARN: it,detot", it,detot
          if (debug.and.iproc==0) write(*,'(a,i0,4(1x,e9.2))') &
-             "(MHGPS) WARNING GEOPT_SBFGS: Prevent energy to rise by more than maxrise: it,maxrise,detot,beta,1.e-1*betax ",&
+             "(MHGPS) WARNING GEOPT_SQNM: Prevent energy to rise by more than maxrise: it,maxrise,detot,beta,1.e-1*betax ",&
              it,maxrise,detot,beta,1.e-1_gp*betax
          if (iproc==0.and.mhgps_verbosity > 0) then
             !avoid space for leading sign (numbers are positive, anyway)
@@ -405,14 +405,14 @@ endif
             write(cdmy9,'(es9.2)')abs(beta)
 
 
-            write(*,'(i5,1x,i5,2x,a10,2x,1es21.14,2x,es9.2,es11.3,3es10.2,2x,a6,a8,1x,a4,i3.3,1x,a5,a7,2(1x,a6,a11))') &
-             int(energycounter),it,'(MHGPS) GEOPT_SBFGS',etotp,detot,fmax,fnrm,fluct*mini_frac_fluct,fluct, &
+            write(*,'(i5,1x,i5,2x,a18,2x,1es21.14,2x,es9.2,es11.3,3es10.2,2x,a6,a8,1x,a4,i3.3,1x,a5,a7,2(1x,a6,a11))') &
+             int(energycounter),it,'(MHGPS) GEOPT_SQNM',etotp,detot,fmax,fnrm,fluct*mini_frac_fluct,fluct, &
              'beta=',trim(adjustl(cdmy9)),'dim=',ndim,'maxd=',trim(adjustl(cdmy8)),&
              'dsplr=',trim(adjustl(cdmy12_1)),'dsplp=',trim(adjustl(cdmy12_2))
 !            call yaml_mapping_open('Geometry')
 !               call yaml_map('Ncount_BigDFT',int(energycounter))
 !               call yaml_map('Geometry step',it)
-!               call yaml_map('Geometry Method','GEOPT_SBFGS')
+!               call yaml_map('Geometry Method','GEOPT_SQNM')
 !               call yaml_map('ndim',ndim)
 !               call yaml_map('etot', etotp,fmt='(1pe21.14)')
 !               call yaml_map('detot',detot,fmt='(1pe21.14)')
@@ -435,12 +435,12 @@ endif
                  fxyzio(l,iat)= fxyzraw(l,iat,nhist-1)
               enddo
            enddo
-           goto 900  !sbfgs will return to caller the energies and coordinates used/obtained from the last ACCEPTED iteration step
+           goto 900  !sqnm will return to caller the energies and coordinates used/obtained from the last ACCEPTED iteration step
          endif
 
          !beta=min(.50_gp*beta,betax)
          beta=.50_gp*beta
-         if (debug.and.iproc==0) write(100,'(a,1x,e9.2)') 'WARNING GEOPT_SBFGS: beta reset ',beta
+         if (debug.and.iproc==0) write(100,'(a,1x,e9.2)') 'WARNING GEOPT_SQNM: beta reset ',beta
          ndim=0
          wold=0.0_gp
          if(.not.steep)then
@@ -464,16 +464,6 @@ endif
          goto  500
       endif
 
-      if (iproc == 0 .and. mhgps_verbosity >=4) then
-         write(fn4,'(i4.4)') it
-         write(comment,'(a,1pe10.3)')'SBFGS:fnrm= ',fnrm
-         call astruct_dump_to_file(astruct_ptr,&
-              currDir//'/sad'//trim(adjustl(isadc))&
-              //'_posminiP'//trim(adjustl(writePostfix))//'_'//fn4, &
-              trim(comment),energy=etotp,rxyz=rxyz(:,:,nhist),&
-              forces=fxyz(:,:,nhist))
-      endif
-
       delta=rxyz(:,:,nhist)-rxyzOld
       displp=displp+dnrm2(3*nat,delta(1,1),1)
       rxyzOld=rxyz(:,:,nhist)
@@ -486,14 +476,14 @@ endif
          write(cdmy9,'(es9.2)')abs(beta)
 
 
-         write(*,'(i5,1x,i5,2x,a10,2x,1es21.14,2x,es9.2,es11.3,3es10.2,2x,a6,a8,1x,a4,i3.3,1x,a5,a7,2(1x,a6,a11))') &
-          int(energycounter),it,'(MHGPS) GEOPT_SBFGS',etotp,detot,fmax,fnrm,fluct*mini_frac_fluct,fluct, &
+         write(*,'(i5,1x,i5,2x,a18,2x,1es21.14,2x,es9.2,es11.3,3es10.2,2x,a6,a8,1x,a4,i3.3,1x,a5,a7,2(1x,a6,a11))') &
+          int(energycounter),it,'(MHGPS) GEOPT_SQNM',etotp,detot,fmax,fnrm,fluct*mini_frac_fluct,fluct, &
           'beta=',trim(adjustl(cdmy9)),'dim=',ndim,'maxd=',trim(adjustl(cdmy8)),&
           'dsplr=',trim(adjustl(cdmy12_1)),'dsplp=',trim(adjustl(cdmy12_2))
 !         call yaml_mapping_open('Geometry')
 !            call yaml_map('Ncount_BigDFT',int(energycounter))
 !            call yaml_map('Geometry step',it)
-!            call yaml_map('Geometry Method','GEOPT_SBFGS')
+!            call yaml_map('Geometry Method','GEOPT_SQNM')
 !            call yaml_map('ndim',ndim)
 !            call yaml_map('etot', etotp,fmt='(1pe21.14)')
 !            call yaml_map('detot',detot,fmt='(1pe21.14)')
@@ -509,7 +499,7 @@ endif
 
       if(detot .gt. maxrise)then
          if (iproc==0) write(*,'(a,i0,4(1x,e9.2))') &
-             "(MHGPS) WARNING GEOPT_SBFGS: Allowed energy to rise by more than maxrise: it,maxrise,detot,beta,1.e-1*betax ",&
+             "(MHGPS) WARNING GEOPT_SQNM: Allowed energy to rise by more than maxrise: it,maxrise,detot,beta,1.e-1*betax ",&
              it,maxrise,detot,beta,1.e-1_gp*betax
       endif
 
@@ -531,7 +521,7 @@ endif
                  fxyzio(l,iat)= fxyzraw(l,iat,nhist)
               enddo
            enddo
-            goto 900  !sbfgs will return to caller the energies and coordinates used/obtained from the last accepted iteration step
+            goto 900  !sqnm will return to caller the energies and coordinates used/obtained from the last accepted iteration step
       endif
    
       if (cosangle.gt..200_gp) then
@@ -544,7 +534,7 @@ endif
 
       call getSubSpaceEvecEval('(MHGPS)',iproc,mhgps_verbosity,nat,nhist,nhistx,ndim,cutoffratio,lworkf,workf,rxyz,&
                    &fxyz,aa,rr,ff,rrr,fff,eval,res,success)
-      if(.not.success)stop 'subroutine minimizer_sbfgs: no success in getSubSpaceEvecEval.'
+      if(.not.success)stop 'subroutine minimizer_sqnm: no success in getSubSpaceEvecEval.'
 
    enddo!end main loop
 
@@ -553,7 +543,7 @@ endif
    !if code gets here, it failed
    if(debug.and.iproc==0) write(100,*) it,etot,fnrm
    if(iproc==0) write(*,'(a,3(1x,i0))') &
-       "(MHGPS) WARNING GEOPT_SBFGS: SBFGS not converged: it,energycounter,ncount_cluster_x: ", &
+       "(MHGPS) WARNING GEOPT_SQNM: SQNM not converged: it,energycounter,ncount_cluster_x: ", &
        it,int(energycounter),mini_ncluster_x
 !   stop "No convergence "
    converged=.false.
@@ -561,8 +551,8 @@ endif
 
 1000 continue!converged successfully
    
-   if(iproc==0) write(*,'(2(a,1x,i0))') "(MHGPS) SBFGS converged at iteration ",it,". Needed energy calls: ",int(energycounter)
-   if(iproc==0)  call yaml_map('Iterations when SBFGS converged',it)
+   if(iproc==0) write(*,'(2(a,1x,i0))') "(MHGPS) SQNM converged at iteration ",it,". Needed energy calls: ",int(energycounter)
+   if(iproc==0)  call yaml_map('Iterations when SQNM converged',it)
    converged=.true.
    
    energyio=etotp
@@ -600,7 +590,7 @@ subroutine minenergyandforces(eeval,imode,nat,alat,rat,rxyzraw,fat,fstretch,&
            fxyzraw,fnoise,epot,iconnect,nbond_,wold,alpha_stretch0,alpha_stretch)
     use module_base, only: gp
     use module_energyandforces
-    use module_sbfgs
+    use module_sqn
     implicit none
     !parameter
     integer, intent(in)           :: imode

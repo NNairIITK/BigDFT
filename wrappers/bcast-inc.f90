@@ -22,7 +22,8 @@
      call mpibarrier(comm=mpi_comm)
      if (mpirank(mpi_comm) == 0) call yaml_flush_document()
      !if barrier passed, verify that the size of the communicated objects is the same
-     ierr=mpimaxdiff([n,mpitype(buffer),iroot],comm=mpi_comm)
+     iarg_check=[n,mpitype(buffer),iroot]
+     ierr=mpimaxdiff(iarg_check,comm=mpi_comm)
      !inform that everything seems OK
      if (mpirank(mpi_comm) == 0) then
         call yaml_map('Check passed',ierr == 0)
@@ -39,6 +40,12 @@
      call f_err_throw('An error in calling to MPI_BCAST occured',&
           err_id=ERR_MPI_WRAPPERS)
      return
+  end if
+  !in the case of maxdiff, the broadcast is followed by a allreduce on the difference
+  if (present(maxdiff)) then
+     maxdiff=f_maxdiff(buffer,array_diff,n=n)
+     call mpiallred(maxdiff,1,MPI_MAX,comm=mpi_comm)
+     call f_free(array_diff)
   end if
 
   if (chk) then

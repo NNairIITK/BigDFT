@@ -58,7 +58,11 @@ subroutine initialize_work_arrays_locham(nlr,lr,nspinor,allocate_arrays,w)
       if (lr(ilr)%hybrid_on .neqv. hyb) stop 'lr(ilr)%hybrid_on .neqv. hyb'
   end do
 
-  if (allocate_arrays) then
+
+  if (allocate_arrays) then !this might create memory leaks if there is no check performed
+     !if (associated(w%xc)) &
+     !     call f_err_throw('Error in initialize_work_arrays_locham: arrays already allocated',&
+     !     err_name='BIGDFT_RUNTIME_ERROR')
      nullify(w%w1)
      nullify(w%w2)
      nullify(w%x_c)
@@ -105,13 +109,13 @@ subroutine initialize_work_arrays_locham(nlr,lr,nspinor,allocate_arrays,w)
      end if
 
      !initialisation of the work arrays
-     call to_zero(w%nxf1*nspinor,w%x_f1(1,1))
-     call to_zero(w%nxf2*nspinor,w%x_f2(1,1))
-     call to_zero(w%nxf3*nspinor,w%x_f3(1,1))
-     call to_zero(w%nxc*nspinor,w%x_c(1,1))
-     call to_zero(w%nxf*nspinor,w%x_f(1,1))
-     call to_zero(w%nyc*nspinor,w%y_c(1,1))
-     call to_zero(w%nyf*nspinor,w%y_f(1,1))
+     call f_zero(w%x_f1)
+     call f_zero(w%x_f2)
+     call f_zero(w%x_f3)
+     call f_zero(w%x_c)
+     call f_zero(w%x_f)
+     call f_zero(w%y_c)
+     call f_zero(w%y_f)
 
   case('S')
      w%nw1=0
@@ -319,13 +323,13 @@ subroutine zero_work_arrays_locham(lr,nspinor,w)
      w%nxf3=(nfu1-nfl1+1)*(nfu2-nfl2+1)*(nfu3-nfl3+1)
 
      !initialisation of the work arrays
-     call to_zero(w%nxf1*nspinor,w%x_f1(1,1))
-     call to_zero(w%nxf2*nspinor,w%x_f2(1,1))
-     call to_zero(w%nxf3*nspinor,w%x_f3(1,1))
-     call to_zero(w%nxc*nspinor,w%x_c(1,1))
-     call to_zero(w%nxf*nspinor,w%x_f(1,1))
-     call to_zero(w%nyc*nspinor,w%y_c(1,1))
-     call to_zero(w%nyf*nspinor,w%y_f(1,1))
+     call f_zero(w%x_f1)
+     call f_zero(w%x_f2)
+     call f_zero(w%x_f3)
+     call f_zero(w%x_c)
+     call f_zero(w%x_f)
+     call f_zero(w%y_c)
+     call f_zero(w%y_f)
 
   case('S')
 
@@ -416,8 +420,8 @@ subroutine psi_to_tpsi(hgrids,kptv,nspinor,lr,psi,w,hpsi,ekin,k_strten)
              w%x_c(1,idx),w%x_f(1,idx),&
              w%x_f1(1,idx),w%x_f2(1,idx),w%x_f3(1,idx))
 
-        call to_zero(w%nyc,w%y_c(1,idx))
-        call to_zero(w%nyf,w%y_f(1,idx))
+        call f_zero(w%nyc,w%y_c(1,idx))
+        call f_zero(w%nyf,w%y_f(1,idx))
 
         call ConvolkineticT(lr%d%n1,lr%d%n2,lr%d%n3,&
              lr%d%nfl1,lr%d%nfu1,lr%d%nfl2,lr%d%nfu2,lr%d%nfl3,lr%d%nfu3,  &
@@ -455,7 +459,7 @@ subroutine psi_to_tpsi(hgrids,kptv,nspinor,lr,psi,w,hpsi,ekin,k_strten)
         !Transposition of the work arrays (use y_c as workspace)
         call transpose_for_kpoints(nspinor,2*lr%d%n1+2,2*lr%d%n2+31,2*lr%d%n3+2,&
              w%x_c,w%y_c,.true.)
-        call to_zero(nspinor*w%nyc,w%y_c(1,1))
+        call f_zero(nspinor*w%nyc,w%y_c(1,1))
 
         ! compute the kinetic part and add  it to psi_out
         ! the kinetic energy is calculated at the same time
@@ -490,7 +494,7 @@ subroutine psi_to_tpsi(hgrids,kptv,nspinor,lr,psi,w,hpsi,ekin,k_strten)
                 lr%wfd%keygloc(1,isegf),lr%wfd%keyvloc(isegf),   &
                 psi(1,idx),psi(ipsif,idx),w%x_c(1,idx),w%y_c(1,idx))
 
-           call to_zero(w%nyc,w%y_c(1,idx))
+           call f_zero(w%nyc,w%y_c(1,idx))
            ! compute the kinetic part and add  it to psi_out
            ! the kinetic energy is calculated at the same time
            call convolut_kinetic_slab_T(2*lr%d%n1+1,2*lr%d%n2+15,2*lr%d%n3+1,&
@@ -526,8 +530,8 @@ subroutine psi_to_tpsi(hgrids,kptv,nspinor,lr,psi,w,hpsi,ekin,k_strten)
                 w%x_f1(1,idx),w%x_f2(1,idx),w%x_f3(1,idx),&
                 lr%d%nfl1,lr%d%nfu1,lr%d%nfl2,lr%d%nfu2,lr%d%nfl3,lr%d%nfu3)
 
-           call to_zero(w%nyc,w%y_c(1,idx))
-           call to_zero(w%nyf,w%y_f(1,idx))
+           call f_zero(w%nyc,w%y_c(1,idx))
+           call f_zero(w%nyf,w%y_f(1,idx))
 
            call convolut_kinetic_hyb_T(lr%d%n1,lr%d%n2,lr%d%n3, &
                 lr%d%nfl1,lr%d%nfu1,lr%d%nfl2,lr%d%nfu2,lr%d%nfl3,lr%d%nfu3,  &
@@ -561,7 +565,7 @@ subroutine psi_to_tpsi(hgrids,kptv,nspinor,lr,psi,w,hpsi,ekin,k_strten)
               call transpose_for_kpoints(nspinor,2*lr%d%n1+2,2*lr%d%n2+2,2*lr%d%n3+2,&
                    w%x_c,w%y_c,.true.)
 
-              call to_zero(nspinor*w%nyc,w%y_c(1,1))
+              call f_zero(w%y_c)
               ! compute the kinetic part and add  it to psi_out
               ! the kinetic energy is calculated at the same time
               do idx=1,nspinor,2
@@ -578,7 +582,7 @@ subroutine psi_to_tpsi(hgrids,kptv,nspinor,lr,psi,w,hpsi,ekin,k_strten)
                    w%y_c,w%x_c,.false.)
 
            else
-              call to_zero(nspinor*w%nyc,w%y_c(1,1))
+              call f_zero(w%y_c)
               do idx=1,nspinor,2
                  call convolut_kinetic_per_T_k_notranspose(2*lr%d%n1+1,2*lr%d%n2+1,2*lr%d%n3+1,&
                       hgridh,w%x_c(1,idx),w%y_c(1,idx),kstrteno,kptv(1),kptv(2),kptv(3))
@@ -607,7 +611,7 @@ subroutine psi_to_tpsi(hgrids,kptv,nspinor,lr,psi,w,hpsi,ekin,k_strten)
                    lr%wfd%keygloc(1,isegf),lr%wfd%keyvloc(isegf),   &
                    psi(1,idx),psi(ipsif,idx),w%x_c(1,idx),w%y_c(1,idx))
 
-              call to_zero(w%nyc,w%y_c(1,idx))
+              call f_zero(w%nyc,w%y_c(1,idx))
               ! compute the kinetic part and add  it to psi_out
               ! the kinetic energy is calculated at the same time
               call convolut_kinetic_per_t(2*lr%d%n1+1,2*lr%d%n2+1,2*lr%d%n3+1,&
@@ -654,11 +658,11 @@ subroutine daub_to_isf_locham(nspinor,lr,w,psi,psir)
   i_f=min(1,lr%wfd%nvctr_f)
   iseg_f=min(1,lr%wfd%nseg_f)
 
-  !call to_zero((2*n1+31)*(2*n2+31)*(2*n3+31)*nspinor,psir)
+  !call f_zero((2*n1+31)*(2*n2+31)*(2*n3+31)*nspinor,psir)
   !call MPI_COMM_RANK(bigdft_mpi%mpi_comm,iproc,ierr)
   select case(lr%geocode)
   case('F')
-     call to_zero(lr%d%n1i*lr%d%n2i*lr%d%n3i*nspinor,psir(1,1))
+     call f_zero(psir)
      !call timing(iproc,'CrtDescriptors','ON') !temporary
      do idx=1,nspinor  
         call uncompress_forstandard(lr%d%n1,lr%d%n2,lr%d%n3,&
@@ -1121,8 +1125,8 @@ subroutine initialize_work_arrays_sumrho(nlr,lr,allocate_arrays,w)
   
 
   if (geo == 'F') then
-     call to_zero(w%nxc,w%x_c(1))
-     call to_zero(w%nxf,w%x_f(1))
+     call f_zero(w%x_c)
+     call f_zero(w%x_f)
   end if
 
 
@@ -1248,7 +1252,7 @@ subroutine daub_to_isf(lr,w,psi,psir)
 
   select case(lr%geocode)
   case('F')
-     call to_zero(lr%d%n1i*lr%d%n2i*lr%d%n3i,psir(1))
+     call f_zero(psir)
 
      call uncompress_forstandard_short(lr%d%n1,lr%d%n2,lr%d%n3,&
           lr%d%nfl1,lr%d%nfu1,lr%d%nfl2,lr%d%nfu2,lr%d%nfl3,lr%d%nfu3,&

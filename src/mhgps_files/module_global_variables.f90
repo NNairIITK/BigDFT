@@ -1,14 +1,17 @@
 !! @file
 !! @author Bastian Schaefer
 !! @section LICENCE
-!!    Copyright (C) 2014 UNIBAS
-!!    This file is not freely distributed.
-!!    A licence is necessary from UNIBAS
+!!    Copyright (C) 2014 BigDFT group
+!!    This file is distributed under the terms of the
+!!    GNU General Public License, see ~/COPYING file
+!!    or http://www.gnu.org/copyleft/gpl.txt .
+!!    For the list of contributors, see ~/AUTHORS
 
 module module_global_variables
-    use module_base !bigdft base module
-    use module_types
-    use bigdft_run
+    use module_base, only: gp !bigdft base module
+    !use module_types
+    use module_atoms, only: atomic_structure
+    use bigdft_run, only: run_objects, state_properties
     implicit none
     character(len = *), public, parameter :: mhgps_version   = '0.01'
     character(len = *), public, parameter :: inputdir   = 'input'
@@ -16,14 +19,14 @@ module module_global_variables
 
     !input parameters for mhgps
     integer          :: mhgps_verbosity     = 3
-    character(len=10) :: efmethod            = "LJ" !method/force-field
-                                                   !for energies,
-                                                   !stresses and
+!    character(len=10) :: efmethod            = "LJ" !method/force-field
+!                                                   !for energies,
+!                                                   !stresses and
                                                    !forces
     logical          :: external_mini       = .false.
     character(len=5) :: input_dir           = "input"
 
-    !input parameters for sbfgs saddle_search
+    !input parameters for sqnm saddle_search
     character(len=20):: operation_mode             = 'connect'
     logical          :: saddle_biomode             = .false.
     logical          :: random_minmode_guess       = .true.
@@ -63,7 +66,7 @@ module module_global_variables
 
     !parameters for minimizers implemented in mhgps
     logical :: internal=.true. !use internal or external optimizers?
-        !SBFGS
+        !SQNM
         integer  :: mini_nhistx = 15
         integer  :: mini_ncluster_x = 5000
         real(gp) :: mini_frac_fluct = 0.0_gp
@@ -91,7 +94,7 @@ module module_global_variables
     !others
     integer               :: nbond = 1
     integer, allocatable  :: iconnect(:,:) 
-    integer, allocatable  :: ixyz_int(:,:)
+    !integer, allocatable  :: ixyz_int(:,:)
     real(gp), allocatable :: minmode(:,:)
     integer,parameter     :: usaddle=173
     character(len=60)     :: saddle_filename='saddle.mon'
@@ -101,6 +104,7 @@ module module_global_variables
     character(len=3), parameter :: prefix='pos'
     character(len=5)      :: isadc
     integer               :: isad
+    integer               :: ntodo
     character(len=5)      :: isadprobc
     integer               :: isadprob=0
     real(gp)              :: en_delta_min, fp_delta_min
@@ -109,16 +113,16 @@ module module_global_variables
     !bigdft data types and variables 
     !(these objects must preserve their status in the module)
     type(run_objects), save :: runObj
-    type(DFT_global_output), save :: outs
+    type(state_properties), save :: outs
     integer, save :: fdim
     !type(atoms_data), save :: atoms
-    type(atomic_structure), pointer, save :: astruct_ptr
+!    type(atomic_structure), pointer, save :: astruct_ptr
     !integer, dimension(4) :: mpi_info
-    integer :: infocode
-    integer :: inputPsiId=0
-    integer :: iproc=0,nproc=1,igroup=0,ngroups=1
-    integer :: itermin=0
-    real(gp) :: frac_fluct=0.d0
+    integer, save :: infocode
+    integer, save :: inputPsiId=0
+    integer, save :: iproc=0,nproc=1,igroup=0,ngroups=1
+    integer, save :: itermin=0
+    real(gp), save :: frac_fluct=0.d0
 
 
     !following variables might be packed in an own module...

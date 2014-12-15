@@ -23,10 +23,6 @@ module module_input_keys
   integer, public :: INPUT_VAR_ILLEGAL = ERR_UNDEF
   type(dictionary), pointer :: failed_exclusive
 
-!!$  character(len = *), parameter :: RANGE = "__range__", EXCLUSIVE = "__exclusive__"
-!!$  character(len = *), parameter :: DEFAULT = "default", COMMENT = "__comment__"
-!!$  character(len = *), parameter :: COND = "__condition__", WHEN = "__when__"
-!!$  character(len = *), parameter :: MASTER_KEY = "__master_key__"
   character(len = *), parameter :: ATTRS = "_attributes"
   character(len = *), parameter :: PROF_KEY = "PROFILE_FROM"
   character(len = *), parameter :: USER_KEY = "USER_DEFINED"
@@ -43,7 +39,7 @@ module module_input_keys
   public :: input_keys_init, input_keys_finalize
   public :: input_keys_fill_all, input_keys_dump
   public :: input_keys_equal, input_keys_get_source, input_keys_dump_def
-  public :: input_keys_get_profiles,input_keys_validate
+  public :: input_keys_get_profiles
   public :: input_keys_errors
 
   type(dictionary), pointer :: parameters=>null()
@@ -57,12 +53,15 @@ contains
   subroutine abort_excl()
     use yaml_output
     use dictionaries
+    use module_base, only: bigdft_mpi
     implicit none
 
-    call f_dump_last_error()
-    call yaml_mapping_open("allowed values")
-    call yaml_dict_dump(failed_exclusive)
-    call yaml_mapping_close()
+    !call f_dump_last_error()
+    if (bigdft_mpi%iproc==0) then
+       call yaml_mapping_open("allowed values")
+       call yaml_dict_dump(failed_exclusive)
+       call yaml_mapping_close()
+    end if
     call f_err_severe()
   end subroutine abort_excl
 
@@ -319,81 +318,6 @@ contains
     end if
   end function input_keys_get_source
 
-  !> this routine controls that the keys which are defined in the 
-  !! input dictionary are all valid.
-  !! in case there are some keys which are different, raise an error
-  subroutine input_keys_validate(dict)
-    use dictionaries
-    use yaml_output
-    use module_base, only: bigdft_mpi
-    implicit none
-    type(dictionary), pointer :: dict
-    !local variables
-    logical :: found
-    type(dictionary), pointer :: valid_entries,valid_patterns
-    type(dictionary), pointer :: iter,invalid_entries,iter2
-    
-
-    !> fill the list of valid entries
-    valid_entries=>list_new([&
-         .item. RADICAL_NAME, &
-         .item. POSINP,&  
-         .item. PERF_VARIABLES,&  
-         .item. DFT_VARIABLES,&   
-         .item. KPT_VARIABLES,&   
-         .item. GEOPT_VARIABLES,& 
-         .item. MIX_VARIABLES,&   
-         .item. SIC_VARIABLES,&   
-         .item. TDDFT_VARIABLES,& 
-         .item. LIN_GENERAL,&     
-         .item. LIN_BASIS,&       
-         .item. LIN_KERNEL,&      
-         .item. LIN_BASIS_PARAMS,&
-         .item. OCCUPATION,&
-         .item. IG_OCCUPATION,&
-         .item. FRAG_VARIABLES])
-    
-    !then the list of vaid patterns
-    valid_patterns=>list_new(&
-         .item. 'psppar' &
-         )
-
-    call dict_init(invalid_entries)
-    !for any of the keys of the dictionary iterate to find if it is allowed
-    iter=>dict_iter(dict)
-    do while(associated(iter))
-       if ((valid_entries .index. dict_key(iter)) < 0) then
-          found=.false.
-          iter2=>dict_iter(valid_patterns)
-          !check also if the key contains the allowed patterns
-          find_patterns: do while(associated(iter2))
-             if (index(dict_key(iter),trim(dict_value(iter2))) > 0) then
-                found=.true.
-                exit find_patterns
-             end if
-             iter2=>dict_next(iter2)
-          end do find_patterns
-          if (.not. found) call add(invalid_entries,dict_key(iter))
-       end if
-       iter=>dict_next(iter)
-    end do
-
-    if (dict_len(invalid_entries) > 0) then
-       if (bigdft_mpi%iproc==0) then
-          call yaml_map('Allowed keys',valid_entries)
-          call yaml_map('Allowed key patterns',valid_patterns)
-          call yaml_map('Invalid entries of the input dictionary',invalid_entries)
-       end if
-       call f_err_throw('The input dictionary contains invalid entries,'//&
-            ' check above the valid entries',err_name='BIGDFT_INPUT_VARIABLES_ERROR')
-    end if
-
-    call dict_free(invalid_entries)
-    call dict_free(valid_entries)
-    call dict_free(valid_patterns)
-
-  end subroutine input_keys_validate
-
   !> Fill all the input keys into dict
   subroutine input_keys_fill_all(dict,dict_minimal)
     use dictionaries
@@ -429,6 +353,7 @@ contains
     !call input_keys_control(dict,DFT_VARIABLES)
 
     call input_keys_fill(dict, PERF_VARIABLES)
+    call input_keys_fill(dict, MODE_VARIABLES)
     call input_keys_fill(dict, DFT_VARIABLES)
     call input_keys_fill(dict, KPT_VARIABLES)
     call input_keys_fill(dict, GEOPT_VARIABLES)
@@ -696,9 +621,6 @@ contains
        if (.not. (dict_key(dict_tmp) .in. ref) .and. &
             & index(dict_key(dict_tmp), ATTRS) == 0) then
     !      call yaml_map('Allowed keys',dict_keys(ref))
-          !even in a f_err_open_try section this error is assumed to be fatal
-          !for the moment. A mechanism to downgrade its gravity should be
-          !provided; -> LG 30/06/14: should work in try environment at present
           dict_it=>dict_iter(ref)
           call dict_init(dict_err)
           do while(associated(dict_it))
@@ -789,7 +711,8 @@ contains
              end do
              deallocate(keys)
              if (f_err_raise(.not. found, err_id = INPUT_VAR_NOT_IN_LIST, &
-                  & err_msg = trim(key) // " = '" // trim(val) // "' is not allowed.")) return
+                  & err_msg = trim(key) // " = '" // trim(val) //&
+                  "' is not allowed, see above the allowed values.")) return
              nullify(failed_exclusive)
           end if
        end if

@@ -335,7 +335,7 @@ subroutine system_initialization(iproc,nproc,dump,inputpsi,input_wf_format,dry_r
   !check the communication distribution
   if(inputpsi /= INPUT_PSI_LINEAR_AO .and. inputpsi /= INPUT_PSI_DISK_LINEAR &
      .and. inputpsi /= INPUT_PSI_MEMORY_LINEAR) then
-      call check_communications(iproc,nproc,orbs,Lzd,comms)
+     call check_communications(iproc,nproc,orbs,Lzd,comms)
   else
       ! Do not call check_communication, since the value of orbs%npsidim_orbs is wrong
       if(iproc==0) call yaml_warning('Do not call check_communications in the linear scaling version!')
@@ -472,9 +472,7 @@ subroutine calculate_rhocore(at,d,rxyz,hxh,hyh,hzh,i3s,i3xcsh,n3d,n3p,rhocore)
 
   if (at%donlcc) then
      !allocate pointer rhocore
-     rhocore = f_malloc_ptr((/ d%n1i , d%n2i , n3d , 10 /),id='rhocore')
-     !initalise it 
-     if (n3d > 0) call to_zero(d%n1i*d%n2i*n3d*10,rhocore(1,1,1,1))
+     rhocore = f_malloc0_ptr((/ d%n1i , d%n2i , n3d , 10 /),id='rhocore')
      !perform the loop on any of the atoms which have this feature
      do iat=1,at%astruct%nat
         ityp=at%astruct%iatype(iat)
@@ -534,60 +532,71 @@ subroutine calculate_rhocore(at,d,rxyz,hxh,hyh,hzh,i3s,i3xcsh,n3d,n3p,rhocore)
 END SUBROUTINE calculate_rhocore
 
 
-subroutine psp_from_file(filename, nzatom, nelpsp, npspcode, &
-     & ixcpsp, psppar, donlcc, rcore, qcore, radii_cf, exists, pawpatch)
+subroutine psp_from_stream(ios, nzatom, nelpsp, npspcode, &
+     & ixcpsp, psppar, donlcc, rcore, qcore, radii_cf, pawpatch)
   use module_base
   use ao_inguess
   use m_pawpsp, only: pawpsp_read_header_2
+  use dictionaries
+  use f_utils
   implicit none
   
-  character(len = *), intent(in) :: filename
+  type(io_stream), intent(inout) :: ios
   integer, intent(out) :: nzatom, nelpsp, npspcode, ixcpsp
   real(gp), intent(out) :: psppar(0:4,0:6), radii_cf(3), rcore, qcore
-  logical, intent(out) :: exists, pawpatch
+  logical, intent(out) :: pawpatch
   logical, intent(inout) ::  donlcc
+  
   !ALEX: Some local variables
   real(gp):: fourpi, sqrt2pi
   character(len=2) :: symbol
-  character(len=20) :: skip
 
   integer :: ierror, ierror1, i, j, nn, nlterms, nprl, l, nzatom_, nelpsp_, npspcode_
   integer :: lmax,lloc,mmax
   integer:: pspversion,basis_size,lmn_size
   real(dp) :: nelpsp_dp,nzatom_dp,r2well
-  character(len=100) :: line
+  character(len=max_field_length) :: line
+  logical :: exists, eof
 
   radii_cf = UNINITIALIZED(1._gp)
   pawpatch = .false.
-  inquire(file=trim(filename),exist=exists)
-  if (.not. exists) return
+  !inquire(file=trim(filename),exist=exists)
+  !if (.not. exists) return
 
   ! if (iproc.eq.0) write(*,*) 'opening PSP file ',filename
-  open(unit=11,file=trim(filename),status='old',iostat=ierror)
+  !open(unit=11,file=trim(filename),status='old',iostat=ierror)
   !Check the open statement
-  if (ierror /= 0) then
-     write(*,*) ': Failed to open the file (it must be in ABINIT format!): "',&
-          trim(filename),'"'
-     stop
-  end if
-  read(11,*)
-  read(11,*) nzatom_dp, nelpsp_dp
+  !if (ierror /= 0) then
+  !   write(*,*) ': Failed to open the file (it must be in ABINIT format!): "',&
+  !        trim(filename),'"'
+  !   stop
+  !end if
+  call f_iostream_get_line(ios, line)
+  call f_iostream_get_line(ios, line)
+  read(line,*) nzatom_dp, nelpsp_dp
   nzatom=int(nzatom_dp); nelpsp=int(nelpsp_dp)
-  read(11,*) npspcode, ixcpsp, lmax, lloc, mmax, r2well
+  call f_iostream_get_line(ios, line)
+  read(line,*) npspcode, ixcpsp, lmax, lloc, mmax, r2well
 
   psppar(:,:)=0._gp
   if (npspcode == 2) then !GTH case
-     read(11,*) (psppar(0,j),j=0,4)
+     call f_iostream_get_line(ios, line)
+     read(line,*) (psppar(0,j),j=0,4)
      do i=1,2
-        read(11,*) (psppar(i,j),j=0,3-i)
+        call f_iostream_get_line(ios, line)
+        read(line,*) (psppar(i,j),j=0,3-i)
      enddo
   else if (npspcode == 3) then !HGH case
-     read(11,*) (psppar(0,j),j=0,4)
-     read(11,*) (psppar(1,j),j=0,3)
+     call f_iostream_get_line(ios, line)
+     read(line,*) (psppar(0,j),j=0,4)
+     call f_iostream_get_line(ios, line)
+     read(line,*) (psppar(1,j),j=0,3)
      do i=2,4
-        read(11,*) (psppar(i,j),j=0,3)
+        call f_iostream_get_line(ios, line)
+        read(line,*) (psppar(i,j),j=0,3)
         !ALEX: Maybe this can prevent reading errors on CRAY machines?
-        read(11,*) skip !k coefficients, not used for the moment (no spin-orbit coupling)
+        call f_iostream_get_line(ios, line)
+        !read(11,*) skip !k coefficients, not used for the moment (no spin-orbit coupling)
      enddo
   else if (npspcode == 7) then !PAW Pseudos
      ! Need NC psp for input guess.
@@ -597,42 +606,53 @@ subroutine psp_from_file(filename, nzatom, nelpsp, npspcode, &
      if (.not.exists) stop "Implement here."
 
      ! PAW format using libPAW.
-     call pawpsp_read_header_2(11,pspversion,basis_size,lmn_size)
+     call pawpsp_read_header_2(ios%iunit,pspversion,basis_size,lmn_size)
      ! PAW data will not be saved in the input dictionary,
      ! we keep their reading for later.
      pawpatch = .true.
   else if (npspcode == 10) then !HGH-K case
-     read(11,*) psppar(0,0),nn,(psppar(0,j),j=1,nn) !local PSP parameters
-     read(11,*) nlterms !number of channels of the pseudo
+     call f_iostream_get_line(ios, line)
+     read(line,*) psppar(0,0),nn,(psppar(0,j),j=1,nn) !local PSP parameters
+     call f_iostream_get_line(ios, line)
+     read(line,*) nlterms !number of channels of the pseudo
      prjloop: do l=1,nlterms
-        read(11,*) psppar(l,0),nprl,psppar(l,1),&
+        call f_iostream_get_line(ios, line)
+        read(line,*) psppar(l,0),nprl,psppar(l,1),&
              (psppar(l,j+2),j=2,nprl) !h_ij terms
         do i=2,nprl
-           read(11,*) psppar(l,i),(psppar(l,i+j+1),j=i+1,nprl) !h_ij 
+           call f_iostream_get_line(ios, line)
+           read(line,*) psppar(l,i),(psppar(l,i+j+1),j=i+1,nprl) !h_ij 
         end do
         if (l==1) cycle
         do i=1,nprl
            !ALEX: Maybe this can prevent reading errors on CRAY machines?
-           read(11,*)skip !k coefficients, not used
+           call f_iostream_get_line(ios, line)
+           !read(11,*)skip !k coefficients, not used
         end do
      end do prjloop
   !ALEX: Add support for reading NLCC from psppar
   else if (npspcode == 12) then !HGH-NLCC: Same as HGH-K + one additional line
-     read(11,*) psppar(0,0),nn,(psppar(0,j),j=1,nn) !local PSP parameters
-     read(11,*) nlterms !number of channels of the pseudo
+     call f_iostream_get_line(ios, line)
+     read(line,*) psppar(0,0),nn,(psppar(0,j),j=1,nn) !local PSP parameters
+     call f_iostream_get_line(ios, line)
+     read(line,*) nlterms !number of channels of the pseudo
      do l=1,nlterms
-        read(11,*) psppar(l,0),nprl,psppar(l,1),&
+        call f_iostream_get_line(ios, line)
+        read(line,*) psppar(l,0),nprl,psppar(l,1),&
              (psppar(l,j+2),j=2,nprl) !h_ij terms
         do i=2,nprl
-           read(11,*) psppar(l,i),(psppar(l,i+j+1),j=i+1,nprl) !h_ij
+           call f_iostream_get_line(ios, line)
+           read(line,*) psppar(l,i),(psppar(l,i+j+1),j=i+1,nprl) !h_ij
         end do
         if (l==1) cycle
         do i=1,nprl
            !ALEX: Maybe this can prevent reading errors on CRAY machines?
-           read(11,*) skip !k coefficients, not used
+           call f_iostream_get_line(ios, line)
+           !read(11,*) skip !k coefficients, not used
         end do
      end do 
-     read(11,*) rcore, qcore
+     call f_iostream_get_line(ios, line)
+     read(line,*) rcore, qcore
      !convert the core charge fraction qcore to the amplitude of the Gaussian
      !multiplied by 4pi. This is the convention used in nlccpar(1,:).
      fourpi=4.0_gp*pi_param!8.0_gp*dacos(0.0_gp)
@@ -641,18 +661,15 @@ subroutine psp_from_file(filename, nzatom, nelpsp, npspcode, &
           (sqrt2pi*rcore)**3
      donlcc=.true.
   else
-     !if (iproc == 0) then
-     write(*,'(1x,a,a)') trim(filename),&
-          'unrecognized pspcode: only GTH, HGH & HGH-K pseudos (ABINIT format)'
-     !end if
-     stop
+     call f_err_throw('PSP code not recognised (' // trim(yaml_toa(npspcode)) // ')', &
+          err_id=BIGDFT_INPUT_VARIABLES_ERROR)
   end if
 
   if (npspcode /= 7) then
      
      !old way of calculating the radii, requires modification of the PSP files
-     read(11,'(a100)',iostat=ierror) line
-     if (ierror /=0) then
+     call f_iostream_get_line(ios, line, eof)
+     if (eof) then
         !if (iproc ==0) write(*,*)&
         !     ' WARNING: last line of pseudopotential missing, put an empty line'
         line=''
@@ -666,14 +683,12 @@ subroutine psp_from_file(filename, nzatom, nelpsp, npspcode, &
      end if
      pawpatch = (trim(line) == "PAWPATCH")
      do
-        read(11,'(a100)',iostat=ierror) line
-        if (ierror /= 0 .or. pawpatch) exit
+        call f_iostream_get_line(ios, line, eof)
+        if (eof .or. pawpatch) exit
         pawpatch = (trim(line) == "PAWPATCH")
      end do
   end if
-
-  close(11)
-END SUBROUTINE psp_from_file
+END SUBROUTINE psp_from_stream
 
 subroutine paw_from_file(pawrad, pawtab, filename, nzatom, nelpsp, ixc)
   use module_base
@@ -1280,7 +1295,7 @@ END SUBROUTINE kpts_to_procs_via_obj
 
 
 subroutine components_kpt_distribution(nproc,nkpts,norb,nvctr,norb_par,nvctr_par)
-  use module_base, only: gp, f_err_throw, to_zero,BIGDFT_RUNTIME_ERROR,&
+  use module_base, only: gp, f_err_throw, f_zero,BIGDFT_RUNTIME_ERROR,&
        UNINITIALIZED
   implicit none
   !Arguments
@@ -1292,8 +1307,7 @@ subroutine components_kpt_distribution(nproc,nkpts,norb,nvctr,norb_par,nvctr_par
   real(gp) :: strprc,endprc
 
   !for any of the k-points find the processors which have such k-point associated
-  call to_zero(nproc*nkpts,nvctr_par(0,1))
-
+  call f_zero(nvctr_par)
 
   !Loop over each k point
   do ikpt=1,nkpts
@@ -1854,8 +1868,7 @@ subroutine paw_init(paw, at, nspinor, nspin, npsidim, norb)
 
   allocate(paw%cprj(at%astruct%nat, nspinor * nspin * norb))
   nlmn = f_malloc(at%astruct%nat, id = "nlmn")
-  nattyp = f_malloc(at%astruct%ntypes, id = "nattyp")
-  call to_zero(at%astruct%ntypes, nattyp(1))
+  nattyp = f_malloc0(at%astruct%ntypes, id = "nattyp")
   do i = 1, at%astruct%nat
      nattyp(at%astruct%iatype(i)) = nattyp(at%astruct%iatype(i)) + 1
   end do
@@ -1875,8 +1888,8 @@ subroutine paw_init(paw, at, nspinor, nspin, npsidim, norb)
   call f_free(l_size_atm)
 
   allocate(paw%pawrhoij(at%astruct%nat))
-  spinat = f_malloc((/3, at%astruct%nat/), id = "spinat")
-  call to_zero(3 * at%astruct%nat, spinat(1,1))
+  spinat = f_malloc0((/3, at%astruct%nat/), id = "spinat")
+
   lexexch = f_malloc(at%astruct%ntypes, id = "lexexch")
   lexexch = -1
   lpawu = f_malloc(at%astruct%ntypes, id = "lpawu")

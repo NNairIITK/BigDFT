@@ -40,6 +40,8 @@ libmodules_a_SOURCES = base.f90 \
 	interfaces.f90 \
 	private_api.f90 \
 	xc.f90 \
+	module_lj.f90 \
+	module_lenosky_si.f90 \
 	op2p_module.f90 \
 	BigDFT_API.f90 \
 	vdwcorrection.f90 \
@@ -59,7 +61,7 @@ libmodules_a_SOURCES = base.f90 \
 	internal_coordinates.f90 \
 	fermi_level.f90 \
 	copy_utils.f90 \
-	module_sbfgs.f90 \
+	module_sqn.f90 \
 	bigdft_run.f90 \
 	$(bindings_headers) \
 	$(LIBXC_MODULE) \
@@ -73,6 +75,7 @@ modules = MODULE_BASE.@MODULE_EXT@ \
 	MODULE_TYPES.@MODULE_EXT@ \
 	M_AB7_MIXING.@MODULE_EXT@ \
 	PUBLIC_KEYS.@MODULE_EXT@ \
+	PUBLIC_ENUMS.@MODULE_EXT@ \
 	MODULE_INTERFACES.@MODULE_EXT@ \
 	MODULE_PRIVATE_API.@MODULE_EXT@ \
 	MODULE_XC.@MODULE_EXT@ \
@@ -102,14 +105,17 @@ modules = MODULE_BASE.@MODULE_EXT@ \
 	INTERNAL_COORDINATES.@MODULE_EXT@ \
 	FERMI_LEVEL.@MODULE_EXT@ \
 	COPY_UTILS.@MODULE_EXT@ \
-	MODULE_SBFGS.@MODULE_EXT@ \
-	BIGDFT_RUN.@MODULE_EXT@
+	MODULE_SQN.@MODULE_EXT@ \
+	BIGDFT_RUN.@MODULE_EXT@ \
+	MODULE_LJ.@MODULE_EXT@ \
+	MODULE_LENOSKY_SI.@MODULE_EXT@
 else
 modules = module_base.@MODULE_EXT@ \
 	module_defs.@MODULE_EXT@ \
 	module_types.@MODULE_EXT@ \
 	m_ab7_mixing.@MODULE_EXT@ \
 	public_keys.@MODULE_EXT@ \
+	public_enums.@MODULE_EXT@ \
 	module_interfaces.@MODULE_EXT@ \
 	module_private_api.@MODULE_EXT@ \
 	module_xc.@MODULE_EXT@ \
@@ -139,8 +145,10 @@ modules = module_base.@MODULE_EXT@ \
 	internal_coordinates.@MODULE_EXT@ \
 	fermi_level.@MODULE_EXT@ \
 	copy_utils.@MODULE_EXT@ \
-	module_sbfgs.@MODULE_EXT@ \
-	bigdft_run.@MODULE_EXT@
+	module_sqn.@MODULE_EXT@ \
+	bigdft_run.@MODULE_EXT@ \
+	module_lj.@MODULE_EXT@ \
+	module_lenosky_si.@MODULE_EXT@
 else
 
 
@@ -151,7 +159,7 @@ ATOMS_INCLUDES = astruct-inc.f90
 COMMS_INCLUDES = check_array-inc.f90
 
 EXTRA_DIST = configure.inc.in bigdft_cst.h.in BigDFT.py \
-	$(AO_INCLUDES) $(ATOMS_INCLUDES) $(COMMS_INCLUDES)
+	$(AO_INCLUDES) $(ATOMS_INCLUDES) $(COMMS_INCLUDES) $(overrides_DATA)
 CLEANFILES = $(modules)
 
 AM_FCFLAGS = -I. -I$(srcdir) -I$(top_builddir)/includes @MPI_INCLUDE@ @LIBABINIT_INCLUDE@ @LIBXC_INCLUDE@
@@ -186,7 +194,7 @@ private_api.o: base.o types.o interfaces.o
 diis_module.o: base.o types.o
 fragments.o: base.o types.o
 constrained_dft.o: base.o types.o sparsematrix_base.o
-input_dicts.o: $(top_builddir)/flib/src/dynamic_memory.o types.o defs.o ao_inguess.o interfaces.o atoms_data.o input_keys.o public_keys.o
+input_dicts.o: $(top_builddir)/flib/src/dynamic_memory.o defs.o ao_inguess.o interfaces.o atoms_data.o input.o public_keys.o
 psp_projectors.o: locregs.o gaussians.o defs.o
 locregs.o: base.o
 ao_inguess.o: $(AO_INCLUDES) base.o psp_projectors.o
@@ -202,12 +210,15 @@ foe_base.o: base.o defs.o
 fermi_level.o: base.o
 copy_utils.o: base.o
 gaussdaub.o: base.o
-module_sbfgs.o: base.o
-bigdft_run.o: types.o input_dicts.o interfaces.o
+module_sqn.o: base.o
+bigdft_run.o: types.o input_dicts.o interfaces.o module_lenosky_si.o module_lj.o
 ab7_mixing.o: defs.o
+module_lj.o: defs.o
+module_lenosky_si.o: defs.o
 
 # Copy modules in a common include directory.
 all: all-am insmod
+install: install-am insmod
 check: check-am insmod
 insmod: $(modules) 
 	test -e "$(top_builddir)/includes" || $(INSTALL) -d -m 755 $(top_builddir)/includes

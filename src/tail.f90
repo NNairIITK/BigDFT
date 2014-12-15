@@ -298,7 +298,7 @@ subroutine CalculateTailCorrection(iproc,nproc,at,rbuf,orbs,&
   !if (iproc == 0) write(*,*) 'Allocation done'
 
   ! work arrays applylocpotkin
-  psir = f_malloc((2*nb1+31)*(2*nb2+31)*(2*nb3+31),id='psir')
+  psir = f_malloc0((2*nb1+31)*(2*nb2+31)*(2*nb3+31),id='psir')
 
   if (iproc == 0) then
      call yaml_map('Wavefunction memory occupation in the extended grid (Bytes):',(nvctrb_c+7*nvctrb_f)*8)
@@ -317,24 +317,24 @@ subroutine CalculateTailCorrection(iproc,nproc,at,rbuf,orbs,&
   nw2=max(4*(nb2+1)*(nb3+1)*(2*nb1+31),&
        4*(nb1+1)*(nb2+1)*(2*nb3+31))
 
-  x_c = f_malloc((/ 0.to.nb1, 0.to.nb2, 0.to.nb3 /),id='x_c')
-  y_c = f_malloc((/ 0.to.nb1, 0.to.nb2, 0.to.nb3 /),id='y_c')
-  x_f = f_malloc((/ 1.to.7, nbfl1.to.nbfu1, nbfl2.to.nbfu2, nbfl3.to.nbfu3 /),id='x_f')
-  y_f = f_malloc((/ 1.to.7, nbfl1.to.nbfu1, nbfl2.to.nbfu2, nbfl3.to.nbfu3 /),id='y_f')
+  x_c = f_malloc0((/ 0.to.nb1, 0.to.nb2, 0.to.nb3 /),id='x_c')
+  y_c = f_malloc0((/ 0.to.nb1, 0.to.nb2, 0.to.nb3 /),id='y_c')
+  x_f = f_malloc0((/ 1.to.7, nbfl1.to.nbfu1, nbfl2.to.nbfu2, nbfl3.to.nbfu3 /),id='x_f')
+  y_f = f_malloc0((/ 1.to.7, nbfl1.to.nbfu1, nbfl2.to.nbfu2, nbfl3.to.nbfu3 /),id='y_f')
   w1 = f_malloc(nw1,id='w1')
   w2 = f_malloc(nw2,id='w2')
-  x_f1 = f_malloc((/ nbfl1.to.nbfu1, nbfl2.to.nbfu2, nbfl3.to.nbfu3 /),id='x_f1')
-  x_f2 = f_malloc((/ nbfl1.to.nbfu1, nbfl2.to.nbfu2, nbfl3.to.nbfu3 /),id='x_f2')
-  x_f3 = f_malloc((/ nbfl1.to.nbfu1, nbfl2.to.nbfu2, nbfl3.to.nbfu3 /),id='x_f3')
+  x_f1 = f_malloc0((/ nbfl1.to.nbfu1, nbfl2.to.nbfu2, nbfl3.to.nbfu3 /),id='x_f1')
+  x_f2 = f_malloc0((/ nbfl1.to.nbfu1, nbfl2.to.nbfu2, nbfl3.to.nbfu3 /),id='x_f2')
+  x_f3 = f_malloc0((/ nbfl1.to.nbfu1, nbfl2.to.nbfu2, nbfl3.to.nbfu3 /),id='x_f3')
   !put to zero the arrays for the hamiltonian procedure
-  call to_zero((nbfu1-nbfl1+1)*(nbfu2-nbfl2+1)*(nbfu3-nbfl3+1),x_f1)
-  call to_zero((nbfu1-nbfl1+1)*(nbfu2-nbfl2+1)*(nbfu3-nbfl3+1),x_f2)
-  call to_zero((nbfu1-nbfl1+1)*(nbfu2-nbfl2+1)*(nbfu3-nbfl3+1),x_f3)
-  call to_zero((nb1+1)*(nb2+1)*(nb3+1),x_c)
-  call to_zero(7*(nbfu1-nbfl1+1)*(nbfu2-nbfl2+1)*(nbfu3-nbfl3+1),x_f)
-  call to_zero((nb1+1)*(nb2+1)*(nb3+1),y_c)
-  call to_zero(7*(nbfu1-nbfl1+1)*(nbfu2-nbfl2+1)*(nbfu3-nbfl3+1),y_f)
-  call to_zero((2*nb1+31)*(2*nb2+31)*(2*nb3+31),psir)
+  !call to_zero((nbfu1-nbfl1+1)*(nbfu2-nbfl2+1)*(nbfu3-nbfl3+1),x_f1)
+  !call to_zero((nbfu1-nbfl1+1)*(nbfu2-nbfl2+1)*(nbfu3-nbfl3+1),x_f2)
+  !call to_zero((nbfu1-nbfl1+1)*(nbfu2-nbfl2+1)*(nbfu3-nbfl3+1),x_f3)
+  !call to_zero((nb1+1)*(nb2+1)*(nb3+1),x_c)
+  !call to_zero(7*(nbfu1-nbfl1+1)*(nbfu2-nbfl2+1)*(nbfu3-nbfl3+1),x_f)
+  !call to_zero((nb1+1)*(nb2+1)*(nb3+1),y_c)
+  !call to_zero(7*(nbfu1-nbfl1+1)*(nbfu2-nbfl2+1)*(nbfu3-nbfl3+1),y_f)
+  !call to_zero((2*nb1+31)*(2*nb2+31)*(2*nb3+31),psir)
   ekin_sum=0.d0
   epot_sum=0.d0
   eproj_sum=0.d0
@@ -546,8 +546,8 @@ subroutine transform_fortail(n1,n2,n3,nb1,nb2,nbfl1,nbfu1,nbfl2,nbfu2,nbfl3,nbfu
   !Local variables
   integer :: iseg,jj,j0,j1,i0,i1,i2,i3,ii,i
 
-  call to_zero((n1+1+2*nbuf)*(n2+1+2*nbuf)*(n3+1+2*nbuf),psig_c)
-  call to_zero(7*(nbfu1-nbfl1+1)*(nbfu2-nbfl2+1)*(nbfu3-nbfl3+1),psig_f)
+  call f_zero(psig_c)
+  call f_zero(psig_f)
 
   ! coarse part
   do iseg=1,mseg_c
@@ -646,9 +646,9 @@ subroutine transform_fortail_prev(n1,n2,n3,nb1,nb2,nbfl1,nbfu1,nbfl2,nbfu2,nbfl3
   !Local variables
   integer :: iseg,j0,jj,j1,i0,i1,i2,i3,ii,i
 
-  call to_zero((n1+1+2*nbuf)*(n2+1+2*nbuf)*(n3+1+2*nbuf),psig_c)
-  call to_zero(3*(n1+1+2*nbuf)*(n2+1+2*nbuf)*(n3+1+2*nbuf),psig_fc)
-  call to_zero(7*(nbfu1-nbfl1+1)*(nbfu2-nbfl2+1)*(nbfu3-nbfl3+1),psig_f)
+  call f_zero(psig_c)
+  call f_zero(psig_fc)
+  call f_zero(psig_f)
 
   ! coarse part
   do iseg=1,mseg_c

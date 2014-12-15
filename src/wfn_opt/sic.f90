@@ -171,7 +171,7 @@ subroutine PZ_SIC_potential(iorb,lr,orbs,xc,hxh,hyh,hzh,pkernel,psir,vpsir,eSICi
 
   else
      !put to zero the corresponding potential
-     call to_zero(lr%d%n1i*lr%d%n2i*lr%d%n3i*orbs%nspinor,vpsir(1,1))
+     call f_zero(vpsir)
   end if
 
 
@@ -227,8 +227,8 @@ subroutine NK_SIC_potential(lr,orbs,xc,fref,hxh,hyh,hzh,pkernel,psi,poti,eSIC_DC
   if (virtual .and. savewxd) stop 'NKpot: options are mutually exclusive'
 
   !XC potential and work array for the cross-derivative summation (to be used in the occupied case and for saving)
-  wxd = f_malloc((/ lr%d%n1i*lr%d%n2i*lr%d%n3i, orbs%nspin /),id='wxd')
-  if (orbs%norbp==0) call to_zero(lr%d%n1i*lr%d%n2i*lr%d%n3i*orbs%nspin,wxd(1,1))
+  wxd = f_malloc0((/ lr%d%n1i*lr%d%n2i*lr%d%n3i, orbs%nspin /),id='wxd')
+  !if (orbs%norbp==0) call to_zero(lr%d%n1i*lr%d%n2i*lr%d%n3i*orbs%nspin,wxd(1,1))
 
   !quick return if norbp=0 (not possible due to the MPI_ALLREDUCE)
   if (orbs%norbp /= 0) then

@@ -281,7 +281,8 @@
        DIIS:   Direct inversion of iterative subspace
        FIRE:   Fast Inertial Relaxation Engine as described by Bitzek et al.
        NEB:    Nudged Elastic Band
-       SBFGS:  Stefans new optimizer
+       SBFGS:  SQNM minimizer, keyword deprecated, will be replaced by SQNM in future release
+       SQNM:   Stabilized quasi-Newton minimzer
      default: none
    ncount_cluster_x:
      COMMENT: Maximum number of force evaluations
@@ -317,6 +318,7 @@
        - FIRE
        - NEB
        - SBFGS
+       - SQNM
        - none
      PROFILE_FROM: method
      RANGE: [0., 100.]
@@ -353,6 +355,7 @@
        MASTER_KEY: method
        WHEN:
        - SBFGS
+       - SQNM
      RANGE: [0, 1000]
      default: 10
    biomode:
@@ -361,6 +364,7 @@
        MASTER_KEY: method
        WHEN:
        - SBFGS
+       - SQNM
      default: No
    beta_stretchx:
      COMMENT: Stepsize for steepest descent in stretching mode direction (only if in biomode)
@@ -376,6 +380,7 @@
        MASTER_KEY: method
        WHEN:
        - SBFGS
+       - SQNM
      RANGE: [0., 1e10]
      default: 1e-6
    cutoffratio:
@@ -384,6 +389,7 @@
        MASTER_KEY: method
        WHEN:
        - SBFGS
+       - SQNM
      RANGE: [0., 1.]
      default: 1e-4
    steepthresh:
@@ -392,6 +398,7 @@
        MASTER_KEY: method
        WHEN:
        - SBFGS
+       - SQNM
      RANGE: [0., 1e10]
      default: 0.5
    trustr:
@@ -400,6 +407,7 @@
        MASTER_KEY: method
        WHEN:
        - SBFGS
+       - SQNM
      RANGE: [0., 1e10]
      default: 0.5
    ionmov:
@@ -642,6 +650,18 @@
        none: no tddft post-processing
        TDA: ???
      default: none
+#overall run setup
+ mode:
+   method:
+     COMMENT: Run method of BigDFT call
+     EXCLUSIVE:
+       dft: Density Functional Theory
+       lj: Lennard-Jones force field
+       lensic: Lenosky Tight-Binding for Si clusters
+       lensib: Lenosky Tight-Binding for Si bulk
+       amber: AMBER Force Fields Package (requires AMBERtools)
+     default: dft
+     
 #Performance parameters
  perf:
    debug:
@@ -692,7 +712,7 @@
    ig_tol:
      COMMENT: Input guess Tolerance criterion
      RANGE: [0., 1.]
-     default: 1e-4
+     default: 1.0e-4
    methortho:
      COMMENT: Orthogonalisation
      EXCLUSIVE:
@@ -731,7 +751,7 @@
    tolsym:
      COMMENT: Tolerance for symmetry detection
      RANGE: [0., 1.]
-     default: 1e-8
+     default: 1.0e-8
    signaling:
      COMMENT: Expose calculation results on Network
      default: No
@@ -759,9 +779,6 @@
        2: ???
        3: ???
      default: 2
-   outdir:
-     COMMENT: Writing directory
-     default: .
    psp_onfly:
      COMMENT: Calculate pseudopotential projectors on the fly
      default: Yes

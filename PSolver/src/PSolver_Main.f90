@@ -163,10 +163,10 @@ subroutine H_potential(datacode,kernel,rhopot,pot_ion,eh,offset,sumpion,&
    !here the case ncplx/= 1 should be added
    
    !array allocations
-   zf = f_malloc((/ md1, md3, 2*md2/kernel%mpi_env%nproc /),id='zf')
    !initalise to zero the zf array
-   call to_zero(md1*md3*(md2/kernel%mpi_env%nproc),zf(1,1,1))
-   
+   zf = f_malloc0((/ md1, md3, 2*md2/kernel%mpi_env%nproc /),id='zf')
+
+  
    istart=kernel%mpi_env%iproc*(md2/kernel%mpi_env%nproc)
    iend=min((kernel%mpi_env%iproc+1)*md2/kernel%mpi_env%nproc,m2)
    if (istart <= m2-1) then
@@ -205,8 +205,6 @@ subroutine H_potential(datacode,kernel,rhopot,pot_ion,eh,offset,sumpion,&
    end do
    
    if (.not. cudasolver) then !CPU case
-
-      !call timing(kernel%mpi_env%iproc,'PSolv_comput  ','OF')
       call f_timing(TCAT_PSOLV_COMPUT,'OF')
       call G_PoissonSolver(kernel%mpi_env%iproc,kernel%mpi_env%nproc,&
            kernel%part_mpi%mpi_comm,kernel%inplane_mpi%iproc,kernel%inplane_mpi%mpi_comm,kernel%geocode,1,&
@@ -214,7 +212,6 @@ subroutine H_potential(datacode,kernel,rhopot,pot_ion,eh,offset,sumpion,&
            zf(1,1,1),&
            scal,kernel%hgrids(1),kernel%hgrids(2),kernel%hgrids(3),offset,strten)
       call f_timing(TCAT_PSOLV_COMPUT,'ON')
-      !call timing(kernel%mpi_env%iproc,'PSolv_comput  ','ON')
 
       !check for the presence of the stress tensor
       if (present(stress_tensor)) then

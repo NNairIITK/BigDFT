@@ -1,3 +1,11 @@
+!! @section LICENCE
+!!    Copyright (C) 2014 BigDFT group
+!!    This file is distributed under the terms of the
+!!    GNU General Public License, see ~/COPYING file
+!!    or http://www.gnu.org/copyleft/gpl.txt .
+!!    For the list of contributors, see ~/AUTHORS
+
+
 module module_lj
     implicit none
     private
@@ -7,7 +15,7 @@ module module_lj
 contains
 !=====================================================================
 subroutine lenjon(nat,rxyz,fxyz,etot)
-    use module_base
+    use module_defs, only: gp
     !energy and forces for Lennard Jones potential
     !input: nat: number of atoms
     !       rxyz: positions of atoms

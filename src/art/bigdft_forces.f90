@@ -141,33 +141,31 @@ module bigdft_forces
       integer :: natoms_calcul
       type(dictionary), pointer :: dict
       !_______________________
-
-      call dict_init(dict)
-      call read_input_dict_from_files("input", bigdft_mpi,dict)
+      type(atoms_data) :: atoms
 
       me = me_
       nproc = nproc_
 
-      allocate(runObj%atoms)
-      runObj%atoms = atoms_data_null()
-      allocate(runObj%inputs)
+      call dict_init(dict)
+      call read_input_dict_from_files("input", bigdft_mpi,dict)
+
+      atoms = atoms_data_null()
       if (nat .eq. total_nb_atoms .and. .not. passivate) then 
          ! we just reread all atoms
-         call read_atomic_file("posinp",me_,runObj%atoms%astruct)
+         call read_atomic_file("posinp",me_,atoms%astruct)
       else 
          !uses the big object to prepare. everything should
          ! be alright in the object exept the length
          call prepare_quantum_atoms_Si(atoms_all,posquant,natoms_calcul)
          !we just copy it in a smaller vect
-         call copy_atoms_object(atoms_all,runObj%atoms,runObj%atoms%astruct%rxyz,natoms_calcul,total_nb_atoms,posquant)
-         call initialize_atomic_file(me_,runObj%atoms%astruct,runObj%atoms%astruct%rxyz)
+         call copy_atoms_object(atoms_all,atoms,atoms%astruct%rxyz,natoms_calcul,total_nb_atoms,posquant)
+         call initialize_atomic_file(me_,atoms%astruct,atoms%astruct%rxyz)
       endif
-      call astruct_merge_to_dict(dict // "posinp", runObj%atoms%astruct, runObj%atoms%astruct%rxyz)
-
+      call astruct_merge_to_dict(dict // "posinp", atoms%astruct, atoms%astruct%rxyz)
       call atoms_file_merge_to_dict(dict)
+      call deallocate_atoms_data(atoms)
 
-      call standard_inputfile_names(runObj%inputs,'input')
-      call inputs_from_dict(runObj%inputs, runObj%atoms, dict)
+      call run_objects_init(runObj, dict)
 
       call dict_free(dict)
       
@@ -178,12 +176,6 @@ module bigdft_forces
       else
          gnrm_h = my_gnrm
       end if
-      ! The BigDFT restart structure.
-      allocate(runObj%rst)
-      call init_restart_objects(me, runObj%inputs, runObj%atoms, runObj%rst)
-
-!!$      runObj%radii_cf = f_malloc_ptr((/ runObj%atoms%astruct%ntypes, 3 /),id='runObj%radii_cf')
-!!$      runObj%radii_cf = runObj%atoms%radii_cf
 
    END SUBROUTINE bigdft_init_art
 
@@ -295,7 +287,7 @@ module bigdft_forces
 
       !Local variables
       integer  :: infocode, i, ierror 
-      type(DFT_global_output) :: outs
+      type(state_properties) :: outs
       !_______________________
 
       if ( conv ) then                    ! Convergence criterion for the wavefunction optimization
@@ -312,14 +304,14 @@ module bigdft_forces
               & posa(2 * runObj%atoms%astruct%nat + i) /) / Bohr_Ang
       end do
 
-      call init_global_output(outs, runObj%atoms%astruct%nat)
+      call init_state_properties(outs, runObj%atoms%astruct%nat)
 
       if ( first_time ) then              ! This is done by default at the beginning.
 
 
          runObj%inputs%inputPsiId = 0
          call MPI_Barrier(MPI_COMM_WORLD,ierror)
-         call call_bigdft(runObj, outs, infocode )
+         call bigdft_state(runObj, outs, infocode )
          evalf_number = evalf_number + 1
 
          runObj%inputs%inputPsiId = 1
@@ -344,7 +336,7 @@ module bigdft_forces
 
          ! Get into BigDFT
          call MPI_Barrier(MPI_COMM_WORLD,ierror)
-         call call_bigdft(runObj, outs, infocode )
+         call bigdft_state(runObj, outs, infocode )
          evalf_number = evalf_number + 1
 
       end if
@@ -369,7 +361,7 @@ module bigdft_forces
          forca( 2 * runObj%atoms%astruct%nat + i ) = outs%fxyz(3, i) * ht2ev / Bohr_Ang
       end do
 
-      call deallocate_global_output(outs)
+      call deallocate_state_properties(outs)
 
    END SUBROUTINE calcforce_bigdft
 
@@ -389,7 +381,7 @@ module bigdft_forces
 
       !Local variables
       integer :: i, ierror, ncount_bigdft
-      type(DFT_global_output) :: outs
+      type(state_properties) :: outs
 
       if ( .not. initialised ) then
          write(0,*) "No previous call to bigdft_init_art(). On strike, refuse to work."
@@ -410,7 +402,7 @@ module bigdft_forces
               & posa(2 * runObj%atoms%astruct%nat + i) /) / Bohr_Ang
       end do
 
-      call init_global_output(outs, runObj%atoms%astruct%nat)
+      call init_state_properties(outs, runObj%atoms%astruct%nat)
       do i = 1, runObj%atoms%astruct%nat, 1
          outs%fxyz(:, i) = (/ forca(i), forca(runObj%atoms%astruct%nat + i), &
               & forca(2 * runObj%atoms%astruct%nat + i) /) * Bohr_Ang / ht2ev
@@ -431,7 +423,7 @@ module bigdft_forces
          posa(2 * runObj%atoms%astruct%nat + i) = runObj%atoms%astruct%rxyz(3, i) * Bohr_Ang
       end do
 
-      call deallocate_global_output(outs)
+      call deallocate_state_properties(outs)
 
    END SUBROUTINE mingeo
 
@@ -697,7 +689,7 @@ module bigdft_forces
 
       !Local variables
       integer      :: infocode, i, ierror, ncount_bigdft 
-      type(DFT_global_output) :: outs
+      type(state_properties) :: outs
       real(gp)     ::  fmax, fnrm
       !_______________________
 
@@ -712,7 +704,7 @@ module bigdft_forces
       end do
 
       call MPI_Barrier(MPI_COMM_WORLD,ierror)
-      call call_bigdft(runObj, outs, infocode )
+      call bigdft_state(runObj, outs, infocode )
       evalf_number = evalf_number + 1
       runObj%inputs%inputPsiId = 1
 
@@ -733,7 +725,7 @@ module bigdft_forces
          ! and we clean again here
          runObj%inputs%inputPsiId = 0 
          call MPI_Barrier(MPI_COMM_WORLD,ierror)
-         call call_bigdft(runObj, outs, infocode )
+         call bigdft_state(runObj, outs, infocode )
          evalf_number = evalf_number + 1
          runObj%inputs%inputPsiId = 1
 
@@ -749,7 +741,7 @@ module bigdft_forces
 
       end if 
 
-      call deallocate_global_output(outs)
+      call deallocate_state_properties(outs)
 
    END SUBROUTINE check_force_clean_wf
 

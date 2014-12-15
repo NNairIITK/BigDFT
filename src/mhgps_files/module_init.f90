@@ -1,3 +1,13 @@
+!! @file
+!! @author Bastian Schaefer
+!! @section LICENCE
+!!    Copyright (C) 2014 BigDFT group
+!!    This file is distributed under the terms of the
+!!    GNU General Public License, see ~/COPYING file
+!!    or http://www.gnu.org/copyleft/gpl.txt .
+!!    For the list of contributors, see ~/AUTHORS
+
+
 module module_init
     use module_base !bigdft base module
     use module_global_variables
@@ -94,7 +104,7 @@ contains
             read(u,*)mhgps_verbosity
             read(u,*)operation_mode, random_minmode_guess
             read(u,*)nsadmax
-            read(u,*)efmethod,external_mini
+            read(u,*)external_mini
             read(u,*)en_delta_min,fp_delta_min
             read(u,*)en_delta_sad,fp_delta_sad
             read(u,*)saddle_biomode
@@ -148,8 +158,8 @@ contains
             write(u,'(1x,1L1,1x,1L1,1x,1a)')trim(adjustl(operation_mode)),random_minmode_guess,&
                  ' #mode, random_minmode_guess'
             write(u,'(1x,i0.0,1x,1a)')nsadmax,' #nsadmax'
-            write(u,'(1x,1a,1x,1L1,1x,1a)')trim(adjustl(efmethod)),external_mini,&
-                 ' #efmethod, external minimizer'
+            write(u,'(1x,1L1,1x,1a)')external_mini,&
+                           ' #external minimizer'
             write(u,'(es10.3,1x,es10.3,1x,1a)')en_delta_min,fp_delta_min,' #en_delta_min, fp_delta_min'
             write(u,'(es10.3,1x,es10.3,1x,1a)')en_delta_sad,fp_delta_sad,' #en_delta_sad, fp_delta_sad'
             write(u,'(1x,1L1,1x,1a)')saddle_biomode,' #biomode'
@@ -204,7 +214,6 @@ contains
         call yaml_map('(MHGPS) operation_mode',trim(adjustl(operation_mode)))
         call yaml_map('(MHGPS) random_minmode_guess',random_minmode_guess)
         call yaml_map('(MHGPS) nsadmax',nsadmax)
-        call yaml_map('(MHGPS) Energy and forces method',trim(adjustl(efmethod)))
         call yaml_map('(MHGPS) external minimizer',external_mini)
         call yaml_map('(MHGPS) en_delta_min',en_delta_min)
         call yaml_map('(MHGPS) en_delta_sad',en_delta_sad)

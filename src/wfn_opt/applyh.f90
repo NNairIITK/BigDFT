@@ -281,13 +281,13 @@ subroutine psi_to_vlocpsi(iproc,npsidim_orbs,orbs,Lzd,&
      if (orbs%nspinor == 2) npot=1
 
      ! Wavefunction in real space
-     psir = f_malloc((/ nbox, orbs%nspinor /),id='psir')
+     psir = f_malloc0((/ nbox, orbs%nspinor /),id='psir')
 
      if (present(vpsi_noconf)) then
          psir_noconf = f_malloc((/ nbox, orbs%nspinor /),id='psir_noconf')
      end if
 
-     call to_zero(nbox*orbs%nspinor,psir(1,1))
+     !call to_zero(nbox*orbs%nspinor,psir(1,1))
 
      ! wavefunction after application of the self-interaction potential
      if (ipotmethod == 2 .or. ipotmethod == 3) then
