@@ -552,13 +552,14 @@ END SUBROUTINE shell_name
 
 
 !> Perform a total DOS output.
-subroutine global_analysis(orbs,wf,occopt)
+subroutine global_analysis(orbs,wf,occopt,filename)
    use module_base
    use module_types
    implicit none
    type(orbitals_data), intent(in) :: orbs
    real(gp), intent(in) :: wf
    integer , intent(in) :: occopt
+   character(len = *), intent(in) :: filename
 
    integer, parameter :: DOS = 123456
    integer :: ikpt, iorb, index, i
@@ -566,7 +567,7 @@ subroutine global_analysis(orbs,wf,occopt)
 
 
    ! We define a Gnuplot file.
-   open(unit = DOS, file = "dos.gnuplot", action = "write")
+   open(unit = DOS, file = trim(filename), action = "write")
 
    minE = 999_dp
    maxE = -999_dp

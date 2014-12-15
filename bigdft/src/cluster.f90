@@ -1076,7 +1076,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,energs,fxyz,strten,fnoise,press
           atoms,rxyz,KSwfn%Lzd%Glr,KSwfn%orbs,VTwfn%orbs,KSwfn%psi,VTwfn%psi)
   else if (DoLastRunThings .and. optLoop%itrpmax /= 1 .and. verbose >= 2) then
      ! Do a full DOS calculation.
-     if (iproc == 0) call global_analysis(KSwfn%orbs, in%Tel,in%occopt)
+     if (iproc == 0) call global_analysis(KSwfn%orbs, in%Tel,in%occopt,trim(in%dir_output) // "dos.gnuplot")
   end if
 
 !!$  i_all=-product(shape(denspot%pkernel))*kind(denspot%pkernel)
