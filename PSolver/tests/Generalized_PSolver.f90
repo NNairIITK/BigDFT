@@ -285,6 +285,7 @@ end subroutine PolarizationIteration
 subroutine Prec_conjugate_gradient(n01,n02,n03,nspden,b,acell,eps,nord,pkernel,potential)
 
   use Poisson_Solver
+  use yaml_output
 
   implicit none
   integer, intent(in) :: n01
@@ -314,9 +315,11 @@ subroutine Prec_conjugate_gradient(n01,n02,n03,nspden,b,acell,eps,nord,pkernel,p
   open(unit=18,file='PCGConvergence.out',status='unknown')
   open(unit=38,file='MaxAnalysisPCG.out',status='unknown')
 
-  write(*,'(a)')'--------------------------------------------------------------------------------------------'
-  write(*,'(a)')'Starting Preconditioned Conjugate Gradient'
-  write(*,'(a)')'Starting PCG iteration 1'
+  call yaml_sequence_open('Embedded PSolver, Preconditioned Conjugate Gradient Method')
+
+  !write(*,'(a)')'--------------------------------------------------------------------------------------------'
+  !write(*,'(a)')'Starting Preconditioned Conjugate Gradient'
+  !write(*,'(a)')'Starting PCG iteration 1'
 
 !------------------------------------------------------------------------------------
 ! Set the correction vector for the Generalized Laplace operator
@@ -349,6 +352,7 @@ subroutine Prec_conjugate_gradient(n01,n02,n03,nspden,b,acell,eps,nord,pkernel,p
   end do
   normb=dsqrt(normb)
 
+  call yaml_sequence(advance='no')
   call H_potential('G',pkernel,lv,pot_ion,ehartree,offset,.false.)
 
   isp=1
@@ -380,7 +384,7 @@ subroutine Prec_conjugate_gradient(n01,n02,n03,nspden,b,acell,eps,nord,pkernel,p
 !------------------------------------------------------------------------------------
 
   alpha = beta/k
-  write(*,*)alpha
+  !write(*,*)alpha
   normr=0.d0
   isp=1
   do i3=1,n03
@@ -397,24 +401,25 @@ subroutine Prec_conjugate_gradient(n01,n02,n03,nspden,b,acell,eps,nord,pkernel,p
 
   ratio=normr/normb
 
+  call PCG_iter_output(1,normb,normr,ratio,alpha,beta)
 !  call writeroutine(n01,n02,n03,nspden,r,1)
   call writeroutinePot(n01,n02,n03,nspden,potential,0,potential)
   call writeroutinePot(n01,n02,n03,nspden,x,1,potential)
 
   write(18,'(1x,I8,2(1x,e14.7))')1,ratio,beta
-  write(*,'(1x,I8,2(1x,e14.7))')1,ratio,beta
-
+  !write(*,'(1x,I8,2(1x,e14.7))')1,ratio,beta
 
   do i=2,max_iter
 
    if (ratio.lt.error) exit
    if (ratio.gt.max_ratioex) exit
 
-   write(*,'(a)')'--------------------------------------------------------------------------------------------'
-   write(*,*)'Starting PCG iteration ',i
+   !write(*,'(a)')'--------------------------------------------------------------------------------------------!'
+   !write(*,*)'Starting PCG iteration ',i
 
 !  Apply the Preconditioner
 
+   call yaml_sequence(advance='no')
    call H_potential('G',pkernel,lv,pot_ion,ehartree,offset,.false.)
 
    beta0 = beta
@@ -445,7 +450,7 @@ subroutine Prec_conjugate_gradient(n01,n02,n03,nspden,b,acell,eps,nord,pkernel,p
    end do
 
    alpha = beta/k
-   write(*,*)alpha
+   !write(*,*)alpha
 
    normr=0.d0
    isp=1
@@ -463,9 +468,12 @@ subroutine Prec_conjugate_gradient(n01,n02,n03,nspden,b,acell,eps,nord,pkernel,p
 
    ratio=normr/normb
    write(18,'(1x,I8,2(1x,e14.7))')i,ratio,beta
-   write(*,'(1x,I8,2(1x,e14.7))')i,ratio,beta
+   !write(*,'(1x,I8,2(1x,e14.7))')i,ratio,beta
+   call PCG_iter_output(i,normb,normr,ratio,alpha,beta)
 !   call writeroutine(n01,n02,n03,nspden,r,i)
    call writeroutinePot(n01,n02,n03,nspden,x,i,potential)
+
+
 
   end do
 
@@ -489,10 +497,33 @@ subroutine Prec_conjugate_gradient(n01,n02,n03,nspden,b,acell,eps,nord,pkernel,p
   close(unit=18)
   close(unit=38)
 
-  write(*,'(a)')'Termination of Preconditioned Conjugate Gradient'
-  write(*,'(a)')'--------------------------------------------------------------------------------------------'
+  !write(*,'(a)')'Termination of Preconditioned Conjugate Gradient'
+  !write(*,'(a)')'--------------------------------------------------------------------------------------------'
+
+  call yaml_sequence_close()
 
 end subroutine  Prec_conjugate_gradient
+
+subroutine PCG_iter_output(iter,normb,normr,ratio,alpha,beta)
+  use module_defs, only: dp
+  use yaml_output
+  implicit none
+  integer, intent(in) :: iter
+  real(dp), intent(in) :: normb,normr,ratio,beta,alpha
+
+  call yaml_mapping_open('Iteration quality',flow=.true.)
+  call yaml_comment('PCG iteration '//trim(yaml_toa(iter)),hfill='_')
+  !write the PCG iteration
+  call yaml_map('iter',iter,fmt='(i4)')
+  !call yaml_map('rho_norm',normb)
+  call yaml_map('res',normr,fmt='(1pe16.4)')
+  call yaml_map('ratio',ratio,fmt='(1pe16.4)')
+  call yaml_map('alpha',alpha,fmt='(1pe16.4)')
+  call yaml_map('beta',beta,fmt='(1pe16.4)')
+
+  call yaml_mapping_close()
+end subroutine PCG_iter_output
+
 
 subroutine writeroutine(n01,n02,n03,nspden,r,i)
 
@@ -549,7 +580,7 @@ subroutine writeroutine(n01,n02,n03,nspden,r,i)
 end subroutine writeroutine
 
 subroutine writeroutinePot(n01,n02,n03,nspden,ri,i,potential)
-
+  use yaml_output
   implicit none
   integer, intent(in) :: n01
   integer, intent(in) :: n02
@@ -582,8 +613,18 @@ subroutine writeroutinePot(n01,n02,n03,nspden,ri,i,potential)
       end do
       write(38,'(4(1x,I4),4(1x,e22.15))')i,i1_max,i2_max,i3_max,max_val,&
            re(n01/2,n02/2,n03/2,1),re(2,n02/2,n03/2,1),re(10,n02/2,n03/2,1)
-      write(*,'(4(1x,I4),4(1x,e22.15))')i,i1_max,i2_max,i3_max,max_val,&
-           re(n01/2,n02/2,n03/2,1),re(2,n02/2,n03/2,1),re(10,n02/2,n03/2,1)
+      !write(*,'(4(1x,I4),4(1x,e22.15))')i,i1_max,i2_max,i3_max,max_val,&
+      !     re(n01/2,n02/2,n03/2,1),re(2,n02/2,n03/2,1),re(10,n02/2,n03/2,1)
+      if (max_val == 0.d0) then
+         call yaml_map('Inf. Norm difference with reference',0.d0)
+      else
+         call yaml_mapping_open('Inf. Norm difference with reference')
+         call yaml_map('Value',max_val,fmt='(1pe22.15)')
+         call yaml_map('Point',[i1_max,i2_max,i3_max],fmt='(i4)')
+         call yaml_map('Some values',[re(n01/2,n02/2,n03/2,1),re(2,n02/2,n03/2,1),re(10,n02/2,n03/2,1)],&
+              fmt='(1pe22.15)')
+         call yaml_mapping_close()
+      end if
 
 end subroutine writeroutinePot
 

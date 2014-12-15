@@ -206,9 +206,12 @@ subroutine pkernel_set(kernel,wrtmsg) !optional arguments
   kernelnproc=kernel%mpi_env%nproc
   if (kernel%igpu == 1) kernelnproc=1
 
+
   select case(kernel%geocode)
      !if (kernel%geocode == 'P') then
   case('P')
+
+     kernel%geo=[1,1,1]
      
      if (dump) then
         call yaml_map('Boundary Conditions','Periodic')
@@ -267,6 +270,9 @@ subroutine pkernel_set(kernel,wrtmsg) !optional arguments
 
   !else if (kernel%geocode == 'S') then
   case('S')     
+
+     kernel%geo=[1,0,1]
+
      if (dump) then
         call yaml_map('Boundary Conditions','Surface')
      end if
@@ -336,6 +342,8 @@ subroutine pkernel_set(kernel,wrtmsg) !optional arguments
 
   !else if (kernel%geocode == 'F') then
   case('F')
+     kernel%geo=[0,0,0]
+
      if (dump) then
         call yaml_map('Boundary Conditions','Free')
      end if
@@ -398,6 +406,8 @@ subroutine pkernel_set(kernel,wrtmsg) !optional arguments
 
   !else if (kernel%geocode == 'W') then
   case('W')
+
+     kernel%geo=[0,0,1]
 
      if (dump) then
         call yaml_map('Boundary Conditions','Wire')
@@ -570,29 +580,6 @@ subroutine pkernel_set(kernel,wrtmsg) !optional arguments
     if (kernel%igpu == 2) kernel%kernel=pkernel2
    endif
 
-   select case(kernel%geocode)
-   case('P')
-      !if(kernel%geocode == 'P') then
-      kernel%geo(1)=1
-      kernel%geo(2)=1
-      kernel%geo(3)=1
-      !else if (kernel%geocode == 'S') then
-   case('S')
-      kernel%geo(1)=1
-      kernel%geo(2)=0
-      kernel%geo(3)=1
-      !else if (kernel%geocode == 'F') then
-   case('F')
-      kernel%geo(1)=0
-      kernel%geo(2)=0
-      kernel%geo(3)=0
-      !else if (kernel%geocode == 'W') then
-   case('W')
-      kernel%geo(1)=0
-      kernel%geo(2)=0
-      kernel%geo(3)=1
-   end select
-
    if (kernel%mpi_env%iproc == 0) then
     if (kernel%igpu == 1) then 
       call reset_gpu_data((n1/2+1)*n2*n3,pkernel2,kernel%k_GPU)
@@ -609,7 +596,7 @@ subroutine pkernel_set(kernel,wrtmsg) !optional arguments
     endif
 
     call f_free(pkernel2)
-  endif
+ endif
 
 endif
   
@@ -640,6 +627,26 @@ endif
   else
      kernel%grid%n3p=0
   end if
+
+  !add the checks that are done at the beginning of the Poisson Solover
+  if (mod(kernel%grid%n1,2) /= 0 .and. kernel%geo(1)==0) &
+       call f_err_throw('Parallel convolution:ERROR:n1') !this can be avoided
+  if (mod(kernel%grid%n2,2) /= 0 .and. kernel%geo(3)==0) &
+       call f_err_throw('Parallel convolution:ERROR:n2') !this can be avoided
+  if (mod(kernel%grid%n3,2) /= 0 .and. kernel%geo(2)==0) &
+       call f_err_throw('Parallel convolution:ERROR:n3') !this can be avoided
+  if (kernel%grid%nd1 < kernel%grid%n1/2+1) call f_err_throw('Parallel convolution:ERROR:nd1') 
+  if (kernel%grid%nd2 < kernel%grid%n2/2+1) call f_err_throw('Parallel convolution:ERROR:nd2')
+  if (kernel%grid%nd3 < kernel%grid%n3/2+1) call f_err_throw('Parallel convolution:ERROR:nd3')
+  !these can be relaxed
+!!$  if (kernel%grid%md1 < n1dim) call f_err_throw('Parallel convolution:ERROR:md1')
+!!$  if (kernel%grid%md2 < n2dim) call f_err_throw('Parallel convolution:ERROR:md2')
+!!$  if (kernel%grid%md3 < n3dim) call f_err_throw('Parallel convolution:ERROR:md3')
+  if (mod(kernel%grid%nd3,kernel%mpi_env%nproc) /= 0) &
+       call f_err_throw('Parallel convolution:ERROR:nd3')
+  if (mod(kernel%grid%md2,kernel%mpi_env%nproc) /= 0) &
+       call f_err_throw('Parallel convolution:ERROR:md2')
+
 
   call f_timing(TCAT_PSOLV_KERNEL,'OF')
   !call timing(kernel%mpi_env%iproc+kernel%mpi_env%igroup*kernel%mpi_env%nproc,'PSolvKernel   ','OF')

@@ -97,18 +97,18 @@ subroutine G_PoissonSolver(iproc,nproc,planes_comm,iproc_inplane,inplane_comm,ge
   call f_timing(TCAT_PSOLV_COMPUT,'ON')
   !call timing(iproc,'PSolv_comput  ','ON')
   ! check input
-  !these checks can be moved at the creation
-  if (mod(n1,2) /= 0 .and. .not. perx) stop 'Parallel convolution:ERROR:n1' !this can be avoided
-  if (mod(n2,2) /= 0 .and. .not. perz) stop 'Parallel convolution:ERROR:n2' !this can be avoided
-  if (mod(n3,2) /= 0 .and. .not. pery) stop 'Parallel convolution:ERROR:n3' !this can be avoided
-  if (nd1 < n1/2+1) stop 'Parallel convolution:ERROR:nd1' 
-  if (nd2 < n2/2+1) stop 'Parallel convolution:ERROR:nd2' 
-  if (nd3 < n3/2+1) stop 'Parallel convolution:ERROR:nd3' 
+!!$  !these checks can be moved at the creation
+!!$  if (mod(n1,2) /= 0 .and. .not. perx) stop 'Parallel convolution:ERROR:n1' !this can be avoided
+!!$  if (mod(n2,2) /= 0 .and. .not. perz) stop 'Parallel convolution:ERROR:n2' !this can be avoided
+!!$  if (mod(n3,2) /= 0 .and. .not. pery) stop 'Parallel convolution:ERROR:n3' !this can be avoided
+!!$  if (nd1 < n1/2+1) stop 'Parallel convolution:ERROR:nd1' 
+!!$  if (nd2 < n2/2+1) stop 'Parallel convolution:ERROR:nd2' 
+!!$  if (nd3 < n3/2+1) stop 'Parallel convolution:ERROR:nd3' 
   if (md1 < n1dim) stop 'Parallel convolution:ERROR:md1'
   if (md2 < n2dim) stop 'Parallel convolution:ERROR:md2'
   if (md3 < n3dim) stop 'Parallel convolution:ERROR:md3'
-  if (mod(nd3,nproc) /= 0) stop 'Parallel convolution:ERROR:nd3'
-  if (mod(md2,nproc) /= 0) stop 'Parallel convolution:ERROR:md2'
+!!$  if (mod(nd3,nproc) /= 0) stop 'Parallel convolution:ERROR:nd3'
+!!$  if (mod(md2,nproc) /= 0) stop 'Parallel convolution:ERROR:md2'
   
   if (ncache <= max(n1,n2,n3dim)*4) ncache=max(n1,n2,n3dim)*4
 
@@ -151,19 +151,10 @@ subroutine G_PoissonSolver(iproc,nproc,planes_comm,iproc_inplane,inplane_comm,ge
   !Allocations
   btrig1 = f_malloc((/ 2, ntrig /),id='btrig1')
   ftrig1 = f_malloc((/ 2, ntrig /),id='ftrig1')
-!  after1 = f_malloc(7,id='after1')
-!  now1 = f_malloc(7,id='now1')
-!  before1 = f_malloc(7,id='before1')
   btrig2 = f_malloc((/ 2, ntrig /),id='btrig2')
   ftrig2 = f_malloc((/ 2, ntrig /),id='ftrig2')
-!  after2 = f_malloc(7,id='after2')
-!  now2 = f_malloc(7,id='now2')
-!  before2 = f_malloc(7,id='before2')
   btrig3 = f_malloc((/ 2, ntrig /),id='btrig3')
   ftrig3 = f_malloc((/ 2, ntrig /),id='ftrig3')
-!  after3 = f_malloc(7,id='after3')
-!  now3 = f_malloc(7,id='now3')
-!  before3 = f_malloc(7,id='before3')
   !allocate(zw(2,ncache/4,2+ndebug),stat=i_stat)
   !call memocc(i_stat,zw,'zw',subname)
   !allocate(zt(2,lzt,n1+ndebug),stat=i_stat)
@@ -591,19 +582,10 @@ subroutine G_PoissonSolver(iproc,nproc,planes_comm,iproc_inplane,inplane_comm,ge
   !De-allocations  
   call f_free(btrig1)
   call f_free(ftrig1)
-!  call f_free(after1)
-!  call f_free(now1)
-!  call f_free(before1)
   call f_free(btrig2)
   call f_free(ftrig2)
-!  call f_free(after2)
-!  call f_free(now2)
-!  call f_free(before2)
   call f_free(btrig3)
   call f_free(ftrig3)
-!  call f_free(after3)
-!  call f_free(now3)
-!  call f_free(before3)
   call f_free(zmpi2)
   !i_all=-product(shape(zw))*kind(zw)
   !deallocate(zw,stat=i_stat)
