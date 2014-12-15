@@ -94,10 +94,14 @@ program mhgps
     endif
     run => options // 'BigDFT' // 0
 
+    !initalize mhgps internal state
     call init_mhgps_state(mhgpsst)
-    !read mhgps.inp
+    !read user input file mhgps.inp
     call read_input(uinp)
+    !obtain first strucutre (used for initialization of
+    !bigdft)
     call get_first_struct_file(mhgpsst,filename)
+    !now read state of previous mhgps run (if present)
     call read_restart(mhgpsst)
 
     if(mhgpsst%iproc==0) call print_logo_mhgps(mhgpsst)

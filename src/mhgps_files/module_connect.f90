@@ -26,7 +26,7 @@ module module_connect
     public :: connect
 contains
 !=====================================================================
-!This recursive subroutine does not support the full restart
+!> This recursive subroutine does not fully support a restart
 recursive subroutine connect_recursively(mhgpsst,fsw,uinp,runObj,outs,&
                      rcov,nbond,isame,iconnect,rxyz1,rxyz2,ener1,&
                      ener2,fp1,fp2,nsad,cobj,connected)

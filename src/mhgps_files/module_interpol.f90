@@ -436,8 +436,12 @@ subroutine fire(mhgpsst,uinp,nat,valforce,rxyz,fxyz,epot)
         power = ddot(3*nat,fxyz,1,vxyz,1)
         vxyz_norm = dnrm2(3*nat,vxyz,1)
         fxyz_norm = dnrm2(3*nat,fxyz,1)
-        vxyz = (1.0_gp-alpha)*vxyz + &
-               alpha * fxyz * vxyz_norm / fxyz_norm
+        if(abs(fxyz_norm)>1.e-14_gp)then
+            vxyz = (1.0_gp-alpha)*vxyz + &
+                   alpha * fxyz * vxyz_norm / fxyz_norm
+        else
+            vxyz = (1.0_gp-alpha)*vxyz
+        endif
         if(power<=0 .or. epot>epotold)then
             vxyz=0.0_gp
             cut=iter
