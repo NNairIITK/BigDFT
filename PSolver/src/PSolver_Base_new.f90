@@ -1351,7 +1351,7 @@ END SUBROUTINE G_unmpiswitch_downcorn2
 !!     Copyright (C) 2002 Stefan Goedecker, CEA Grenoble
 !!     This file is distributed under the terms of the
 !!     GNU General Public License, see http://www.gnu.org/copyleft/gpl.txt .
-!! Author:S
+!! Author:
 !!    S. Goedecker, L. Genovese
 subroutine unfill_downcorn(md1,md3,lot,nfft,n3,zw,zf&
      ,scal)!,ehartreetmp)

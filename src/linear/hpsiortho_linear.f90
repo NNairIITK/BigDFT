@@ -194,7 +194,7 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
   !!    do ispin=1,tmb%linmat%l%nspin
   !!        do i=1,tmb%linmat%l%nvctr
   !!            ist=ist+1
-  !!            write(4241,'(a,3i8,es14.6)') 'ispin, i, ist, tmb%linmat%kernel_%matrix_compr(ist)', ispin, i, ist, tmb%linmat%kernel_%matrix_compr(ist)
+  !!            write(4241,'(a,3i8,es14.6)') 'ispin, i, ist, tmb%linmat%kernel_%matrix_compr(ist)',&ispin, i, ist, tmb%linmat%kernel_%matrix_compr(ist)
   !!        end do
   !!    end do
   !!end if
@@ -396,7 +396,8 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
           tmb%linmat%kernel_,cdft%weight_matrix_,trkw,tmb%coeff,tmb%orbs,tmb%orbs,.false.)
      !cdft%charge is always constant (as is lagmult in this loop) so could in theory be ignored as in optimize_coeffs
      trH = trH + cdft%lag_mult*(trkw - cdft%charge)
-     if (iproc==0) print*,'trH,trH+V(trkw-N),V(trkw-N)',trH-cdft%lag_mult*(trkw - cdft%charge),trH,cdft%lag_mult*(trkw - cdft%charge)
+     if (iproc==0) print*,'trH,trH+V(trkw-N),V(trkw-N)',trH-cdft%lag_mult*(trkw - cdft%charge),&
+          trH,cdft%lag_mult*(trkw - cdft%charge)
   end if
 
 
@@ -732,7 +733,8 @@ subroutine calculate_residue_ks(iproc, nproc, num_extra, ksorbs, tmb, hpsit_c, h
        tmb%linmat%kernel_, grad_ovrlp_, &
        ksres_sum,tmb%coeff,tmb%orbs,tmb%orbs,.false.)
   call deallocate_matrices(grad_ovrlp_)
-  if (iproc==0) write(*,*) 'KS residue from trace',dsqrt(ksres_sum)/real(tmb%orbs%norb,gp) ! should update normalization as would only be occ here not extra?
+  if (iproc==0) write(*,*) 'KS residue from trace',&
+       dsqrt(ksres_sum)/real(tmb%orbs%norb,gp) ! should update normalization as would only be occ here not extra?
 
   call deallocate_sparse_matrix(grad_ovrlp)
 
