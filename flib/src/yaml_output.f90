@@ -1255,7 +1255,7 @@ contains
 
   subroutine yaml_map_i(mapname,mapvalue,label,advance,unit,fmt)
     implicit none
-    integer, intent(in) :: mapvalue
+    integer(kind=4), intent(in) :: mapvalue
     include 'yaml_map-inc.f90'
   end subroutine yaml_map_i
 
@@ -1311,7 +1311,7 @@ contains
 
   subroutine yaml_map_iv(mapname,mapvalue,label,advance,unit,fmt)
     implicit none
-    integer, dimension(:), intent(in) :: mapvalue
+    integer(kind=4), dimension(:), intent(in) :: mapvalue
     include 'yaml_map-arr-inc.f90'
   end subroutine yaml_map_iv
 

@@ -57,7 +57,7 @@ contains
 
   pure function fmt_i(data)
     implicit none
-    integer, intent(in) :: data
+    integer(kind=4), intent(in) :: data
     character(len=len(yaml_int_fmt)) :: fmt_i
     fmt_i=yaml_int_fmt
   end function fmt_i
@@ -192,7 +192,7 @@ contains
   !> Convert integer to character
   pure function yaml_itoa(data,fmt) result(str)
     implicit none
-    integer, intent(in) :: data
+    integer(kind=4), intent(in) :: data
     include 'yaml_toa-inc.f90'
   end function yaml_itoa
 
@@ -313,7 +313,7 @@ contains
   !> Convert vector of integer to character
   pure function yaml_ivtoa(vec,fmt) result(vec_toa)
     implicit none
-    integer, dimension(:), intent(in) :: vec
+    integer(kind=4), dimension(:), intent(in) :: vec
     include 'yaml_toa-arr-inc.f90'
   end function yaml_ivtoa
 

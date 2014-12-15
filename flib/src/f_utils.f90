@@ -43,6 +43,7 @@ module f_utils
      module procedure f_diff_i,f_diff_r,f_diff_d,f_diff_li,f_diff_l
      module procedure f_diff_d2d3,f_diff_d2d1,f_diff_d1d2,f_diff_d2,f_diff_d1
      module procedure f_diff_i2i1,f_diff_i1,f_diff_i2,f_diff_i1i2
+     module procedure f_diff_li2li1,f_diff_li1,f_diff_li2,f_diff_li1li2
      module procedure f_diff_d0d1,f_diff_i0i1
      module procedure f_diff_c1i1,f_diff_li0li1
   end interface f_diff
@@ -383,45 +384,45 @@ contains
   subroutine f_diff_i(n,a_add,b_add,diff)
     implicit none
     integer, intent(in) :: n
-    integer, intent(inout) :: a_add
-    integer, intent(inout) :: b_add
-    integer, intent(out) :: diff
+    integer(kind=4), intent(inout) :: a_add
+    integer(kind=4), intent(inout) :: b_add
+    integer(kind=4), intent(out) :: diff
     external :: diff_i
     call diff_i(n,a_add,b_add,diff)
   end subroutine f_diff_i
   subroutine f_diff_i2i1(n,a,b,diff)
     implicit none
     integer, intent(in) :: n
-    integer, dimension(:,:),   intent(in) :: a
-    integer, dimension(:), intent(in) :: b
-    integer, intent(out) :: diff
+    integer(kind=4), dimension(:,:),   intent(in) :: a
+    integer(kind=4), dimension(:), intent(in) :: b
+    integer(kind=4), intent(out) :: diff
     external :: diff_i
     call diff_i(n,a(1,1),b(1),diff)
   end subroutine f_diff_i2i1
   subroutine f_diff_i2(n,a,b,diff)
     implicit none
     integer, intent(in) :: n
-    integer, dimension(:,:),   intent(in) :: a
-    integer, dimension(:,:), intent(in) :: b
-    integer, intent(out) :: diff
+    integer(kind=4), dimension(:,:),   intent(in) :: a
+    integer(kind=4), dimension(:,:), intent(in) :: b
+    integer(kind=4), intent(out) :: diff
     external :: diff_i
     call diff_i(n,a(1,1),b(1,1),diff)
   end subroutine f_diff_i2
   subroutine f_diff_i1(n,a,b,diff)
     implicit none
     integer, intent(in) :: n
-    integer, dimension(:),   intent(in) :: a
-    integer, dimension(:), intent(in) :: b
-    integer, intent(out) :: diff
+    integer(kind=4), dimension(:),   intent(in) :: a
+    integer(kind=4), dimension(:), intent(in) :: b
+    integer(kind=4), intent(out) :: diff
     external :: diff_i
     call diff_i(n,a(1),b(1),diff)
   end subroutine f_diff_i1
   subroutine f_diff_i1i2(n,a,b,diff)
     implicit none
     integer, intent(in) :: n
-    integer, dimension(:),   intent(in) :: a
-    integer, dimension(:,:), intent(in) :: b
-    integer, intent(out) :: diff
+    integer(kind=4), dimension(:),   intent(in) :: a
+    integer(kind=4), dimension(:,:), intent(in) :: b
+    integer(kind=4), intent(out) :: diff
     external :: diff_i
     call diff_i(n,a(1),b(1,1),diff)
   end subroutine f_diff_i1i2
@@ -436,6 +437,43 @@ contains
     external :: diff_li
     call diff_li(n,a_add,b_add,diff)
   end subroutine f_diff_li
+  subroutine f_diff_li2li1(n,a,b,diff)
+    implicit none
+    integer, intent(in) :: n
+    integer(kind=8), dimension(:,:),   intent(in) :: a
+    integer(kind=8), dimension(:), intent(in) :: b
+    integer(kind=8), intent(out) :: diff
+    external :: diff_li
+    call diff_li(n,a(1,1),b(1),diff)
+  end subroutine f_diff_li2li1
+  subroutine f_diff_li2(n,a,b,diff)
+    implicit none
+    integer, intent(in) :: n
+    integer(kind=8), dimension(:,:),   intent(in) :: a
+    integer(kind=8), dimension(:,:), intent(in) :: b
+    integer(kind=8), intent(out) :: diff
+    external :: diff_li
+    call diff_li(n,a(1,1),b(1,1),diff)
+  end subroutine f_diff_li2
+  subroutine f_diff_li1(n,a,b,diff)
+    implicit none
+    integer, intent(in) :: n
+    integer(kind=8), dimension(:),   intent(in) :: a
+    integer(kind=8), dimension(:), intent(in) :: b
+    integer(kind=8), intent(out) :: diff
+    external :: diff_li
+    call diff_li(n,a(1),b(1),diff)
+  end subroutine f_diff_li1
+  subroutine f_diff_li1li2(n,a,b,diff)
+    implicit none
+    integer, intent(in) :: n
+    integer(kind=8), dimension(:),   intent(in) :: a
+    integer(kind=8), dimension(:,:), intent(in) :: b
+    integer(kind=8), intent(out) :: diff
+    external :: diff_li
+    call diff_li(n,a(1),b(1,1),diff)
+  end subroutine f_diff_li1li2
+
 
   subroutine f_diff_r(n,a_add,b_add,diff)
     implicit none
@@ -546,9 +584,9 @@ contains
   subroutine f_diff_i0i1(n,a,b,diff)
     implicit none
     integer, intent(in) :: n
-    integer, intent(inout) :: a
-    integer, dimension(:), intent(in) :: b
-    integer, intent(out) :: diff
+    integer(kind=4), intent(inout) :: a
+    integer(kind=4), dimension(:), intent(in) :: b
+    integer(kind=4), intent(out) :: diff
     external :: diff_i
     call diff_i(n,a,b(1),diff)
   end subroutine f_diff_i0i1
