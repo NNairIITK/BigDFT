@@ -42,6 +42,7 @@ subroutine optimize_coeffs(iproc, nproc, orbs, tmb, ldiis_coeff, fnrm, fnrm_crit
   real(kind=gp),dimension(:),allocatable:: mat_coeff_diag
   real(kind=gp) :: tt, ddot, energy0, pred_e
 
+  write(*,*) 'tmb%orbs%norb, orbs%norb, num_extra', tmb%orbs%norb, orbs%norb, num_extra
 
   if (present(num_extra) .and. tmb%linmat%m%nspin==2) then
       stop 'ERROR: optimize_coeffs not yet implemented for nspin=2 and num_extra present!'

@@ -3771,14 +3771,8 @@ subroutine build_ks_orbitals_laura_tmp(iproc, nproc, tmb, KSwfn, at, rxyz, densp
            energy, energyDiff, energyold, npsidim_global, phiwork_global)
   use module_base
   use module_types
-  use communications_base, only: comms_cubic
-  use communications_init, only: orbitals_communicators
-  use communications, only: transpose_v, untranspose_v
-  use sparsematrix_base, only: sparse_matrix
   use yaml_output
   implicit none
-  
-  ! Calling arguments
   integer:: iproc, nproc
   type(DFT_wavefunction),intent(inout) :: tmb, KSwfn
   type(atoms_data), intent(in) :: at
