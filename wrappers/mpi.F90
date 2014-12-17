@@ -1520,8 +1520,6 @@ subroutine getall_d(nproc,recvcounts,displs,window,nrecvbuffer,recvbuffer)
 
 end subroutine getall_d
 
-
-
 !> Activates the nesting for UNBLOCK_COMMS performance case
 subroutine bigdft_open_nesting(num_threads)
   use wrapper_mpi

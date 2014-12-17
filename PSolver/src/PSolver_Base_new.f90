@@ -97,6 +97,7 @@ subroutine G_PoissonSolver(iproc,nproc,planes_comm,iproc_inplane,inplane_comm,ge
   call f_timing(TCAT_PSOLV_COMPUT,'ON')
   !call timing(iproc,'PSolv_comput  ','ON')
   ! check input
+  !these checks can be moved at the creation
   if (mod(n1,2) /= 0 .and. .not. perx) stop 'Parallel convolution:ERROR:n1' !this can be avoided
   if (mod(n2,2) /= 0 .and. .not. perz) stop 'Parallel convolution:ERROR:n2' !this can be avoided
   if (mod(n3,2) /= 0 .and. .not. pery) stop 'Parallel convolution:ERROR:n3' !this can be avoided
@@ -1350,7 +1351,7 @@ END SUBROUTINE G_unmpiswitch_downcorn2
 !!     Copyright (C) 2002 Stefan Goedecker, CEA Grenoble
 !!     This file is distributed under the terms of the
 !!     GNU General Public License, see http://www.gnu.org/copyleft/gpl.txt .
-!! Author:S
+!! Author:
 !!    S. Goedecker, L. Genovese
 subroutine unfill_downcorn(md1,md3,lot,nfft,n3,zw,zf&
      ,scal)!,ehartreetmp)

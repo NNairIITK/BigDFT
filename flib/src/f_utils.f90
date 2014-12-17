@@ -50,6 +50,7 @@ module f_utils
 
   !> Initialize to zero an array (should be called f_memset)
   interface f_zero
+     module procedure zero_string
      module procedure put_to_zero_simple
      module procedure put_to_zero_double, put_to_zero_double_1, put_to_zero_double_2
      module procedure put_to_zero_double_3, put_to_zero_double_4, put_to_zero_double_5
@@ -589,6 +590,13 @@ contains
     external :: diff_i
     call diff_i(n,a,b(1),diff)
   end subroutine f_diff_i0i1
+
+  subroutine zero_string(str)
+    use yaml_strings, only: f_strcpy
+    implicit none
+    character(len=*), intent(out) :: str
+    call f_strcpy(src=' ',dest=str)
+  end subroutine zero_string
 
   subroutine put_to_zero_simple(n,da)
     implicit none

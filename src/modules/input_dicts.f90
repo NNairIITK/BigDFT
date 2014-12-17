@@ -44,7 +44,7 @@ module module_input_dicts
   public :: astruct_file_merge_to_dict
   public :: occupation_data_file_merge_to_dict
   public :: dict_set_run_properties,dict_get_run_properties,dict_run_new,bigdft_options
-  public :: set_dict_run_file,create_log_file
+  public :: set_dict_run_file,create_log_file,dict_run_validate
 
   !> Keys of a run dict. All private, use get_run_prop() and set_run_prop() to change them.
   character(len = *), parameter :: RADICAL_NAME = "radical"
@@ -180,6 +180,8 @@ contains
   subroutine dict_get_run_properties(run,run_id,input_id,posinp_id,naming_id, &
        & outdir_id,log_to_disk,run_from_files)
     use public_keys, only: POSINP
+    use f_utils, only: f_zero
+    use yaml_strings, only: f_strcpy
     implicit none
     type(dictionary), pointer :: run
     character(len=*), intent(out), optional :: run_id, naming_id
@@ -191,30 +193,50 @@ contains
     if (present(input_id)) then
        if (INPUT_NAME .in. run) then
           input_id = run // INPUT_NAME
-       else
+       else if (RADICAL_NAME .in. run) then
           input_id = run // RADICAL_NAME
+       else
+          call f_zero(input_id)
+          !input_id = " "
        end if
-       if (len_trim(input_id) == 0) &
-            & input_id = "input" // trim(run_id_toa())
+       if (len_trim(input_id) == 0) call f_strcpy(src=&
+            "input" // trim(run_id_toa()),dest=input_id)
     end if
-    if (present(posinp_id)) then   
+    if (present(posinp_id)) then 
        if (POSINP .in. run) then
           posinp_id = run // POSINP
-       else
+       else if (RADICAL_NAME .in. run) then
           posinp_id = run // RADICAL_NAME
+       else
+          call f_zero(posinp_id)
+          !posinp_id = " "
        end if
-       if (len_trim(posinp_id) == 0) &
-            & posinp_id = "posinp" // trim(run_id_toa())
+       if (len_trim(posinp_id) == 0) call f_strcpy(src=&
+            "posinp" // trim(run_id_toa()),dest=posinp_id)
     end if
     if (present(naming_id)) then
-       naming_id = run // RADICAL_NAME
-       if (len_trim(naming_id) == 0) then
-          naming_id = trim(run_id_toa())
+       if (RADICAL_NAME .in. run) then
+          naming_id = run // RADICAL_NAME
        else
-          naming_id = "-" // trim(naming_id)
+          call f_zero(naming_id)
+          !naming_id = " "
+       end if
+       if (len_trim(naming_id) == 0) then
+          !naming_id = trim(run_id_toa())
+          call f_strcpy(src=trim(run_id_toa()),dest=naming_id)
+       else
+          call f_strcpy(src="-" // trim(naming_id),dest=naming_id)
+          !naming_id = "-" // trim(naming_id)
        end if
     end if
-    if (present(run_id)) run_id = run // RADICAL_NAME
+    if (present(run_id)) then
+       if (RADICAL_NAME .in. run) then
+          run_id = run // RADICAL_NAME
+       else
+          call f_zero(run_id)
+          !run_id = " "
+       end if
+    end if
     if (present(outdir_id) .and. has_key(run, OUTDIR)) outdir_id = run // OUTDIR
     if (present(log_to_disk) .and. has_key(run, LOGFILE)) log_to_disk = run // LOGFILE
     if (present(run_from_files) .and. has_key(run, USE_FILES)) run_from_files = run // USE_FILES
@@ -234,6 +256,91 @@ contains
     end if
 
   end function run_id_toa
+
+  !> this routine controls that the keys which are defined in the 
+  !! input dictionary are all valid.
+  !! in case there are some keys which are different, raise an error
+  subroutine dict_run_validate(dict)
+    use dictionaries
+    use yaml_output
+    use module_base, only: bigdft_mpi
+    use public_keys, only: POSINP, PERF_VARIABLES, DFT_VARIABLES, KPT_VARIABLES, &
+         & GEOPT_VARIABLES, MIX_VARIABLES, SIC_VARIABLES, TDDFT_VARIABLES, LIN_GENERAL, &
+         & LIN_BASIS, LIN_KERNEL, LIN_BASIS_PARAMS, OCCUPATION, IG_OCCUPATION, FRAG_VARIABLES, &
+         & MODE_VARIABLES
+    implicit none
+    type(dictionary), pointer :: dict
+    !local variables
+    logical :: found
+    type(dictionary), pointer :: valid_entries,valid_patterns
+    type(dictionary), pointer :: iter,invalid_entries,iter2
+
+
+    !> fill the list of valid entries
+    valid_entries=>list_new([&
+         .item. OUTDIR,&
+         .item. RADICAL_NAME,&
+         .item. USE_FILES,&
+         .item. INPUT_NAME,&
+         .item. LOGFILE,&
+         .item. POSINP,&
+         .item. MODE_VARIABLES,&
+         .item. PERF_VARIABLES,&  
+         .item. DFT_VARIABLES,&   
+         .item. KPT_VARIABLES,&   
+         .item. GEOPT_VARIABLES,& 
+         .item. MIX_VARIABLES,&   
+         .item. SIC_VARIABLES,&   
+         .item. TDDFT_VARIABLES,& 
+         .item. LIN_GENERAL,&     
+         .item. LIN_BASIS,&       
+         .item. LIN_KERNEL,&      
+         .item. LIN_BASIS_PARAMS,&
+         .item. OCCUPATION,&
+         .item. IG_OCCUPATION,&
+         .item. FRAG_VARIABLES])
+
+    !then the list of vaid patterns
+    valid_patterns=>list_new(&
+         .item. 'psppar' &
+         )
+
+    call dict_init(invalid_entries)
+    !for any of the keys of the dictionary iterate to find if it is allowed
+    iter=>dict_iter(dict)
+    do while(associated(iter))
+       if ((valid_entries .index. dict_key(iter)) < 0) then
+          found=.false.
+          iter2=>dict_iter(valid_patterns)
+          !check also if the key contains the allowed patterns
+          find_patterns: do while(associated(iter2))
+             if (index(dict_key(iter),trim(dict_value(iter2))) > 0) then
+                found=.true.
+                exit find_patterns
+             end if
+             iter2=>dict_next(iter2)
+          end do find_patterns
+          if (.not. found) call add(invalid_entries,dict_key(iter))
+       end if
+       iter=>dict_next(iter)
+    end do
+
+    if (dict_len(invalid_entries) > 0) then
+       if (bigdft_mpi%iproc==0) then
+          call yaml_map('Allowed keys',valid_entries)
+          call yaml_map('Allowed key patterns',valid_patterns)
+          call yaml_map('Invalid entries of the input dictionary',invalid_entries)
+       end if
+       call f_err_throw('The input dictionary contains invalid entries,'//&
+            ' check above the valid entries',err_name='BIGDFT_INPUT_VARIABLES_ERROR')
+    end if
+
+    call dict_free(invalid_entries)
+    call dict_free(valid_entries)
+    call dict_free(valid_patterns)
+
+  end subroutine dict_run_validate
+
 
   subroutine create_log_file(dict,dict_from_files)
     use module_base
@@ -624,6 +731,9 @@ contains
     integer :: ityp, ityp2
     character(len = 27) :: filename
     real(gp), dimension(3) :: radii_cf
+    real(gp) :: rloc
+    real(gp), dimension(4) :: lcoeff
+    real(gp), dimension(4,0:6) :: psppar
     logical :: pawpatch, l
     integer :: paw_tot_l,  paw_tot_q, paw_tot_coefficients, paw_tot_matrices
     character(len = max_field_length) :: fpaw
@@ -635,11 +745,14 @@ contains
     pawpatch = .true.
     do ityp=1,atoms%astruct%ntypes
        filename = 'psppar.'//atoms%astruct%atomnames(ityp)
-       call psp_set_from_dict(dict // filename, &
+       call psp_set_from_dict(dict // filename, l, &
             & atoms%nzatom(ityp), atoms%nelpsp(ityp), atoms%npspcode(ityp), &
-            & atoms%ixcpsp(ityp), atoms%iradii_source(ityp), atoms%psppar(:,:,ityp), radii_cf)
+            & atoms%ixcpsp(ityp), atoms%iradii_source(ityp), radii_cf, rloc, lcoeff, psppar)
        !To eliminate the runtime warning due to the copy of the array (TD)
        atoms%radii_cf(ityp,:)=radii_cf(:)
+       atoms%psppar(0,0,ityp)=rloc
+       atoms%psppar(0,1:4,ityp)=lcoeff
+       atoms%psppar(1:4,0:6,ityp)=psppar
 
        l = .false.
        if (has_key(dict // filename, "PAW patch")) l = dict // filename // "PAW patch"
@@ -769,100 +882,104 @@ contains
     end if
   end subroutine nlcc_set_from_dict
 
-
   !> Set the value for atoms_data from the dictionary
-  subroutine psp_set_from_dict(dict, &
-       & nzatom, nelpsp, npspcode, ixcpsp, iradii_source, psppar, radii_cf)
+  subroutine psp_set_from_dict(dict, valid, &
+       & nzatom, nelpsp, npspcode, ixcpsp, iradii_source, radii_cf, rloc, lcoeff, psppar)
     use module_defs, only: gp, UNINITIALIZED
     use module_atoms
     use psp_projectors, only: PSPCODE_GTH, PSPCODE_HGH, PSPCODE_HGH_K, PSPCODE_HGH_K_NLCC, PSPCODE_PAW
     implicit none
     !Arguments
     type(dictionary), pointer :: dict
-    integer, intent(out) :: nzatom, nelpsp, npspcode, ixcpsp, iradii_source
-    real(gp), dimension(0:4,0:6), intent(out) :: psppar
+    logical, intent(out), optional :: valid !< .true. if all required info for a pseudo are present
+    integer, intent(out), optional :: nzatom, nelpsp, npspcode, ixcpsp, iradii_source
+    real(gp), intent(out), optional :: rloc
+    real(gp), dimension(4), intent(out), optional :: lcoeff
+    real(gp), dimension(4,0:6), intent(out), optional :: psppar
+    real(gp), dimension(3), intent(out), optional :: radii_cf
     !Local variables
     type(dictionary), pointer :: loc
     character(len = max_field_length) :: str
-    real(gp), dimension(3) :: radii_cf
-    integer :: i, l,nlen
+    integer :: l
 
-    nzatom = -1
-    radii_cf(:) = UNINITIALIZED(1._gp)
-    psppar(:,:) = 0._gp
+    ! Default values
+    if (present(valid)) valid = .true.
 
-    ! We set nzatom at the end as a flag that the psp data are complete.
-    if (.not. has_key(dict, ELECTRON_NUMBER)) return
-    nelpsp = dict // ELECTRON_NUMBER
-    if (.not. has_key(dict, PSPXC_KEY)) return
-    ixcpsp = dict // PSPXC_KEY
+    ! Parameters
+    if (present(nzatom)) nzatom = -1
+    if (present(nelpsp)) nelpsp = -1
+    if (present(ixcpsp)) ixcpsp = -1
+    if (has_key(dict, ATOMIC_NUMBER) .and. present(nzatom))   nzatom = dict // ATOMIC_NUMBER
+    if (has_key(dict, ELECTRON_NUMBER) .and. present(nelpsp)) nelpsp = dict // ELECTRON_NUMBER
+    if (has_key(dict, PSPXC_KEY) .and. present(ixcpsp))       ixcpsp = dict // PSPXC_KEY
+    if (present(valid)) valid = valid .and. has_key(dict, ATOMIC_NUMBER) .and. &
+         & has_key(dict, ELECTRON_NUMBER) .and. has_key(dict, PSPXC_KEY)
+
     ! Local terms
-    if (.not. has_key(dict, LPSP_KEY)) return
-    loc => dict // LPSP_KEY
-    if (.not. has_key(loc, "Rloc")) return
-    psppar(0,0) = loc // 'Rloc'
-    if (.not. has_key(loc, "Coefficients (c1 .. c4)")) return
-    psppar(0,1:4) = loc // 'Coefficients (c1 .. c4)'
-    !psppar(0,1) = loc // 'Coefficients (c1 .. c4)' // 0
-    !psppar(0,2) = loc // 'Coefficients (c1 .. c4)' // 1
-    !psppar(0,3) = loc // 'Coefficients (c1 .. c4)' // 2
-    !psppar(0,4) = loc // 'Coefficients (c1 .. c4)' // 3
+    if (present(rloc))   rloc      = 0._gp
+    if (present(lcoeff)) lcoeff(:) = 0._gp
+    if (has_key(dict, LPSP_KEY)) then
+       loc => dict // LPSP_KEY
+       if (has_key(loc, "Rloc") .and. present(rloc)) rloc = loc // 'Rloc'
+       if (has_key(loc, "Coefficients (c1 .. c4)") .and. present(lcoeff)) lcoeff = loc // 'Coefficients (c1 .. c4)'
+       ! Validate
+       if (present(valid)) valid = valid .and. has_key(loc, "Rloc") .and. &
+            & has_key(loc, "Coefficients (c1 .. c4)")
+    end if
 
     ! Nonlocal terms
-    if (has_key(dict, NLPSP_KEY)) then
-       nlen=dict_len(dict // NLPSP_KEY)
-       do i = 1, nlen
-          loc => dict // NLPSP_KEY // (i - 1)
-          if (.not. has_key(loc, "Channel (l)")) return
-          l = loc // "Channel (l)"
-          l = l + 1
-          if (.not. has_key(loc, "Rloc")) return
-          psppar(l,0) = loc // 'Rloc'
-          if (.not. has_key(loc, "h_ij terms")) return
-          psppar(l,1:6) = loc // 'h_ij terms'
-          !psppar(l,1) = loc // 'h_ij terms' // 0
-          !psppar(l,2) = loc // 'h_ij terms' // 1
-          !psppar(l,3) = loc // 'h_ij terms' // 2
-          !psppar(l,4) = loc // 'h_ij terms' // 3
-          !psppar(l,5) = loc // 'h_ij terms' // 4
-          !psppar(l,6) = loc // 'h_ij terms' // 5
+    if (present(psppar))   psppar(:,:) = 0._gp
+    if (has_key(dict, NLPSP_KEY) .and. present(psppar)) then
+       loc => dict_iter(dict // NLPSP_KEY)
+       do while (associated(loc))
+          if (has_key(loc, "Channel (l)")) then
+             l = loc // "Channel (l)"
+             l = l + 1
+             if (has_key(loc, "Rloc"))       psppar(l,0)   = loc // 'Rloc'
+             if (has_key(loc, "h_ij terms")) psppar(l,1:6) = loc // 'h_ij terms'
+             if (present(valid)) valid = valid .and. has_key(loc, "Rloc") .and. &
+                  & has_key(loc, "h_ij terms")
+          else
+             if (present(valid)) valid = .false.
+          end if
+          loc => dict_next(loc)
        end do
     end if
+
     ! Type
-    if (.not. has_key(dict, PSP_TYPE)) return
-    str = dict // PSP_TYPE
-    select case(trim(str))
-    case("GTH")
-       npspcode = PSPCODE_GTH
-    case("HGH")
-       npspcode = PSPCODE_HGH
-    case("HGH-K")
-       npspcode = PSPCODE_HGH_K
-    case("HGH-K + NLCC")
-       npspcode = PSPCODE_HGH_K_NLCC
-    case("PAW")
-       npspcode = PSPCODE_PAW
-    case default
-       return
-    end select
-    if (npspcode == PSPCODE_HGH_K_NLCC) then
-       if (.not. has_key(dict, 'Non Linear Core Correction term')) return
-       loc => dict // 'Non Linear Core Correction term'
-       if (.not. has_key(loc, "Rcore")) return
-       if (.not. has_key(loc, "Core charge")) return
+    if (present(npspcode)) npspcode = UNINITIALIZED(npspcode)
+    if (has_key(dict, PSP_TYPE) .and. present(npspcode)) then
+       str = dict // PSP_TYPE
+       select case(trim(str))
+       case("GTH")
+          npspcode = PSPCODE_GTH
+       case("HGH")
+          npspcode = PSPCODE_HGH
+       case("HGH-K")
+          npspcode = PSPCODE_HGH_K
+       case("HGH-K + NLCC")
+          npspcode = PSPCODE_HGH_K_NLCC
+          if (present(valid)) valid = valid .and. &
+               & has_key(dict, 'Non Linear Core Correction term') .and. &
+               & has_key(dict // 'Non Linear Core Correction term', "Rcore") .and. &
+               & has_key(dict // 'Non Linear Core Correction term', "Core charge")
+       case("PAW")
+          npspcode = PSPCODE_PAW
+       case default
+          if (present(valid)) valid = .false.
+       end select
     end if
-    ! Valid pseudo, we set nzatom
-    if (.not. has_key(dict, ATOMIC_NUMBER)) return
-    nzatom = dict // ATOMIC_NUMBER
 
     ! Optional values.
+    if (present(iradii_source)) iradii_source = RADII_SOURCE_HARD_CODED
+    if (present(radii_cf))      radii_cf(:)   = UNINITIALIZED(1._gp)
     if (has_key(dict, RADII_KEY)) then
        loc => dict // RADII_KEY
-       if (has_key(loc, COARSE)) radii_cf(1) =  loc // COARSE
-       if (has_key(loc, FINE)) radii_cf(2) =  loc // FINE
-       if (has_key(loc, COARSE_PSP)) radii_cf(3) =  loc // COARSE_PSP
+       if (has_key(loc, COARSE) .and. present(radii_cf))     radii_cf(1) = loc // COARSE
+       if (has_key(loc, FINE) .and. present(radii_cf))       radii_cf(2) = loc // FINE
+       if (has_key(loc, COARSE_PSP) .and. present(radii_cf)) radii_cf(3) = loc // COARSE_PSP
        
-       if (has_key(loc, SOURCE_KEY)) then
+       if (has_key(loc, SOURCE_KEY) .and. present(iradii_source)) then
           ! Source of the radii
           str = loc // SOURCE_KEY
           select case(str)
@@ -877,9 +994,6 @@ contains
              iradii_source = RADII_SOURCE_UNKNOWN
           end select
        end if
-
-    else
-       iradii_source = RADII_SOURCE_HARD_CODED
     end if
 
   end subroutine psp_set_from_dict
@@ -980,7 +1094,7 @@ contains
     logical :: exists
 
     ! Loop on types for atomic data.
-    call astruct_dict_get_types(dict //POSINP, types)
+    call astruct_dict_get_types(dict // POSINP, types)
     if ( .not. associated(types)) return
     allocate(keys(dict_size(types)))
     keys = dict_keys(types)

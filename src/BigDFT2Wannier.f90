@@ -61,7 +61,7 @@ program BigDFT2Wannier
    real, dimension(3,3) :: real_latt, recip_latt
    integer :: n_kpts, n_nnkpts, n_excb, n_at, s
    integer :: n_occ, n_virt, n_virt_tot!,nconfig
-   logical :: w_unk, w_sph, w_ang, w_rad, pre_check
+   logical :: w_unk, w_sph, w_ang, w_rad, pre_check,dict_from_files
    real, allocatable, dimension (:,:) :: kpts
    real(kind=8), allocatable, dimension (:,:) :: ctr_proj, x_proj, y_proj, z_proj
    integer, allocatable, dimension (:) :: l, mr, rvalue
@@ -99,18 +99,14 @@ program BigDFT2Wannier
 !!$   call memocc_set_memory_limit(memorylimit)
 
    if (bigdft_nruns(options) > 1) stop 'runs-file not supported for BigDFT2Wannier executable'
+   nullify(user_inputs)
    call dict_copy(user_inputs, options // 'BigDFT' // 0)
+   call create_log_file(user_inputs,dict_from_files)
    call bigdft_get_run_properties(user_inputs, input_id = run_id, posinp_id = filename)
    call user_dict_from_files(user_inputs, trim(run_id), trim(filename), bigdft_mpi)
    call inputs_from_dict(input, atoms, user_inputs)
    call dict_free(user_inputs)
    call dict_free(options)
-
-!!$   if (input%verbosity > 2) then
-!!$      nproctiming=-nproc !timing in debug mode
-!!$   else
-!!$      nproctiming=nproc
-!!$   end if
 
    !call timing(nproctiming,'b2w_time.prc','IN')
    call f_timing_reset(filename=trim(input%dir_output)//'b2w_time.yaml',&
@@ -133,10 +129,6 @@ program BigDFT2Wannier
          call yaml_comment('is smaller than number of desired states' // trim(yaml_toa(n_virt)))
          call yaml_comment('CORRECTION: Increase total number of virtual states')
          call yaml_comment('or decrease the number of desired states')
-         !write(*,'(A,1x,I4)') 'ERROR: total number of virtual states :',n_virt_tot
-         !write(*,'(A,1x,I4)') 'smaller than number of desired states:',n_virt
-         !write(*,'(A)') 'CORRECTION: Increase total number of virtual states'
-         !write(*,'(A)') 'or decrease the number of desired states'
       end if
       call mpi_finalize(ierr)
       stop
