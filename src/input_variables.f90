@@ -445,14 +445,15 @@ subroutine create_dir_output(iproc, in)
   integer, intent(in) :: iproc
   type(input_variables), intent(inout) :: in
 
-  character(len=100) :: dirname
+  integer(kind=4),parameter    :: dirlen=100
+  character(len=dirlen) :: dirname
   integer :: ierror
   integer(kind=4) :: i_stat, ierr
 
   ! Create a directory to put the files in.
   dirname=repeat(' ',len(dirname))
   if (iproc == 0) then
-     call getdir(in%dir_output, len_trim(in%dir_output), dirname, 100, i_stat)
+     call getdir(in%dir_output, len_trim(in%dir_output), dirname, dirlen, i_stat)
      if (i_stat /= 0) then
         call yaml_warning("Cannot create output directory '" // trim(in%dir_output) // "'.")
         call MPI_ABORT(bigdft_mpi%mpi_comm,ierror,ierr)
