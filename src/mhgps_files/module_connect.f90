@@ -665,20 +665,18 @@ connectloop: do while(cobj%ntodo>=1)
             !If now again sad1 is found, min4 and min2 was tried again
             !if we would not stop here.
             if(isame==3)then
+                if(mhgpsst%iproc==0)then
+                    call yaml_warning('(MHGPS) found same saddle '//&
+                                'point again. Aborting connection'//&
+                                ' attempt.')
+                endif
                 call write_todo(mhgpsst,runObj,outs,rxyz1,rxyz2,&
                      ener1,ener2)
                 connected=.false.
                 nsad=nsad-1
                 mhgpsst%isad=mhgpsst%isad-1
                 write(mhgpsst%isadc,'(i5.5)')mhgpsst%isad
-
-                if(mhgpsst%iproc==0)then
-                    call yaml_warning('(MHGPS) found same saddle '//&
-                                'point again. Aborting connection'//&
-                                ' attempt.')
-                endif
                 isame=0
-
                 exit connectloop !stop connection
             endif
         else

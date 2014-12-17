@@ -446,7 +446,8 @@ subroutine create_dir_output(iproc, in)
   type(input_variables), intent(inout) :: in
 
   character(len=100) :: dirname
-  integer :: i_stat,ierror,ierr
+  integer :: ierror
+  integer(kind=4) :: i_stat, ierr
 
   ! Create a directory to put the files in.
   dirname=repeat(' ',len(dirname))

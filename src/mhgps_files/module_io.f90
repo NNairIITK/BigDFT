@@ -285,8 +285,8 @@ subroutine check_struct_file_exists(filename,exists)
         if(present(exists))then
             exists=.false.
         else
-        call f_err_throw('File '//trim(adjustl(filename))//&
-                        ' does not exist.')
+            call f_err_throw('File '//trim(adjustl(filename))//&
+                             ' does not exist.')
         endif
     endif
 end subroutine

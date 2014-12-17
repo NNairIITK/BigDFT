@@ -15,11 +15,12 @@ mhgps_objects = \
                module_connect.f90 \
                module_misc.f90 \
                module_fingerprints.f90 \
-               module_freezingstring.f90
+               module_freezingstring.f90 \
+               module_mhgpstool.f90
 
 mhgps_SOURCES = $(mhgps_objects)
 
-mhgps_LDADD = $(top_builddir)/flib/src/libflib.a @LIB_YAML_LIBS@
+##mhgps_LDADD = $(top_builddir)/flib/src/libflib.a @LIB_YAML_LIBS@
 
 ##AM_FCFLAGS = -I. -I$(top_builddir)/includes
 ##AM_FCFLAGS = -I. I$(top_builddir)/includes
@@ -60,4 +61,6 @@ module_fingerprints.o: module_userinput.o module_mhgps_state.o\
                       ../modules/BigDFT_API.o
 module_hessian.o: module_userinput.o ../modules/BigDFT_API.o module_mhgps_state.o module_energyandforces.o
 
-mhgpstool.o: ../modules/BigDFT_API.o module_fingerprints.o
+mhgpstool.o: ../modules/BigDFT_API.o module_fingerprints.o module_mhgpstool.o
+
+module_mhgpstool.o: ../modules/BigDFT_API.o module_io.o

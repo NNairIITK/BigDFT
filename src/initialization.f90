@@ -265,7 +265,7 @@ subroutine ensure_log_file(writing_directory, logfile, ierr)
   use yaml_strings
   implicit none
   character(len = *), intent(in) :: writing_directory, logfile
-  integer, intent(out) :: ierr
+  integer(kind=4), intent(out) :: ierr
 
   logical :: exists
   integer :: lgt
