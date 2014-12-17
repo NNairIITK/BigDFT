@@ -117,6 +117,11 @@ subroutine orthonormalizeLocalized(iproc, nproc, methTransformOverlap, max_inver
   call build_linear_combination_transposed(collcom, inv_ovrlp_half, inv_ovrlp_half_(1), &
        psittemp_c, psittemp_f, .true., psit_c, psit_f, iproc)
   end if
+  !if (iproc==0) then
+  !    do i=1,size(inv_ovrlp_half_(1)%matrix_compr)
+  !        write(*,*) 'i, val', i, inv_ovrlp_half_(1)%matrix_compr(i)
+  !    end do
+  !end if
 
 
   norm = f_malloc(orbs%norb,id='norm')
@@ -2157,7 +2162,7 @@ subroutine overlap_power_minus_one_half_parallel(iproc, nproc, meth_overlap, orb
   ! Local variables
   integer(kind=8) :: ii, iend
   integer :: i, iorb, n, istat, iall, jorb, korb, jjorb, kkorb!, ilr
-  integer :: iiorb, ierr, iseg, ind, ishift, ispin
+  integer :: iiorb, ierr, iseg, ind, ishift_ovrlp, ishift_inv_ovrlp, ispin
   real(kind=8) :: error
   real(kind=8),dimension(:,:),pointer :: ovrlp_tmp, ovrlp_tmp_inv_half
   logical,dimension(:),allocatable :: in_neighborhood
@@ -2211,7 +2216,8 @@ subroutine overlap_power_minus_one_half_parallel(iproc, nproc, meth_overlap, orb
 
   spin_loop: do ispin=1,ovrlp%nspin
 
-      ishift=(ispin-1)*ovrlp%nvctr
+      ishift_ovrlp=(ispin-1)*ovrlp%nvctr
+      ishift_inv_ovrlp=(ispin-1)*inv_ovrlp_half%nvctr
 
       do iorb=1,ovrlp%nfvctrp
          iiorb=ovrlp%isfvctr+iorb
@@ -2226,6 +2232,7 @@ subroutine overlap_power_minus_one_half_parallel(iproc, nproc, meth_overlap, orb
          do 
             do i=ovrlp%keyg(1,1,iseg),ovrlp%keyg(2,1,iseg)
                in_neighborhood(i)=.true.
+               !if (iproc==0) write(*,*) 'iiorb, iseg, i, n', iiorb, iseg, i, n
                n=n+1
             end do
             iseg=iseg+1
@@ -2234,6 +2241,7 @@ subroutine overlap_power_minus_one_half_parallel(iproc, nproc, meth_overlap, orb
                  int(ovrlp%keyg(1,1,iseg),kind=8)
             if (ii>iend) exit
          end do
+         !if (iproc==0) write(*,*) 'iiorb, n', iiorb, n
 
          ovrlp_tmp = f_malloc0_ptr((/n,n/),id='ovrlp_tmp')
 
@@ -2255,7 +2263,7 @@ subroutine overlap_power_minus_one_half_parallel(iproc, nproc, meth_overlap, orb
                   !!    write(*,*) 'ind,imax',ind,imax
                   !!    stop 'ind>imax'
                   !!end if
-                  ind=ind+ishift
+                  ind=ind+ishift_ovrlp
                   ovrlp_tmp(kkorb,jjorb)=ovrlp_mat%matrix_compr(ind-ovrlp%isvctrp_tg)
                else
                   ovrlp_tmp(kkorb,jjorb)=0.d0
@@ -2310,8 +2318,10 @@ subroutine overlap_power_minus_one_half_parallel(iproc, nproc, meth_overlap, orb
                   kkorb=kkorb+1
                   ind = matrixindex_in_compressed(inv_ovrlp_half,korb,jorb)
                   if (ind>0) then
-                     ind=ind+ishift
+                     ind=ind+ishift_inv_ovrlp
                      inv_ovrlp_half_%matrix_compr(ind-inv_ovrlp_half%isvctrp_tg)=ovrlp_tmp_inv_half(kkorb,jjorb)
+                     !if (iproc==0) write(*,'(a,6i8,es16.8)') 'ind, inv_ovrlp_half%isvctrp_tg, jorb, korb, jjorb, kkorb, val', &
+                     !                  ind, inv_ovrlp_half%isvctrp_tg, jorb, korb, jjorb, kkorb, ovrlp_tmp_inv_half(kkorb,jjorb)
                      !if (iiorb==orbs%norb) print*,'problem here?!',iiorb,kkorb,jjorb,korb,jorb,ind,ovrlp_tmp_inv_half(kkorb,jjorb)
                   end if
                   !write(1300+iproc,'(2i8,es20.10)') kkorb, jjorb, ovrlp_tmp(kkorb,jjorb)
