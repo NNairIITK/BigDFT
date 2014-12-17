@@ -951,6 +951,8 @@ subroutine overlapPowerGeneral(iproc, nproc, iorder, ncalc, power, blocksize, im
           call transform_sparse_matrix_local(ovrlp_smat, inv_ovrlp_smat, &
                ovrlp_mat%matrix_compr, Amat12_compr, 'small_to_large')
           Amat12_seq = sparsematrix_malloc(inv_ovrlp_smat, iaction=SPARSEMM_SEQ, id='Amat12_seq')
+          Amat21_seq = sparsematrix_malloc(inv_ovrlp_smat, iaction=SPARSEMM_SEQ, id='Amat21_seq')
+          Amat21_compr = sparsematrix_malloc(inv_ovrlp_smat, iaction=SPARSE_FULL, id='Amat21_compr')
 
           do ispin=1,nspin
 
@@ -967,12 +969,10 @@ subroutine overlapPowerGeneral(iproc, nproc, iorder, ncalc, power, blocksize, im
               do iorb=1,inv_ovrlp_smat%smmm%nfvctrp
                   Amat21p(iorb+inv_ovrlp_smat%smmm%isfvctr,iorb)=1.0d0
               end do
-              Amat21_compr = sparsematrix_malloc(inv_ovrlp_smat, iaction=SPARSE_FULL, id='Amat21_compr')
               call timing(iproc,'lovrlp^-1     ','OF')
               call compress_matrix_distributed(iproc, nproc, inv_ovrlp_smat, DENSE_MATMUL, &
                    Amat21p, Amat21_compr(inv_ovrlp_smat%isvctrp_tg+1:))
               call timing(iproc,'lovrlp^-1     ','ON')
-              Amat21_seq = sparsematrix_malloc(inv_ovrlp_smat, iaction=SPARSEMM_SEQ, id='Amat21_seq')
               call sequential_acces_matrix_fast(inv_ovrlp_smat, Amat21_compr, Amat21_seq)
 
               ! calculate Xn+1=0.5*Xn*(3I-Xn**2)
@@ -1015,9 +1015,6 @@ subroutine overlapPowerGeneral(iproc, nproc, iorder, ncalc, power, blocksize, im
                   end if
               end do
 
-              call f_free(Amat12_seq)
-              nullify(Amat22p)
-              call f_free_ptr(Amat11p)
 
               if (power(1)==1) then
                   call timing(iproc,'lovrlp^-1     ','OF')
@@ -1033,6 +1030,10 @@ subroutine overlapPowerGeneral(iproc, nproc, iorder, ncalc, power, blocksize, im
               end if
 
           end do
+
+          call f_free(Amat12_seq)
+          nullify(Amat22p)
+          call f_free_ptr(Amat11p)
 
           nullify(Amat12_compr)
           call f_free(Amat21_compr)
