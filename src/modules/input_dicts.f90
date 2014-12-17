@@ -262,7 +262,7 @@ contains
        !add the output directory in the directory name
        if (bigdft_mpi%iproc == 0 .and. trim(writing_directory) /= '.') then
           call getdir(writing_directory,&
-               len_trim(writing_directory),path,len(path),ierr)
+               int(len_trim(writing_directory),kind=4),path,int(len(path),kind=4),ierr)
           if (ierr /= 0) then
              write(*,*) "ERROR: cannot create writing directory '"&
                   //trim(writing_directory) // "'."

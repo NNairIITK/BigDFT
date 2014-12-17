@@ -278,7 +278,7 @@ subroutine ensure_log_file(writing_directory, logfile, ierr)
   if (exists) then
      logfile_old=writing_directory//'logfiles'
      call getdir(logfile_old,&
-          len_trim(logfile_old),logfile_dir,len(logfile_dir),ierr)
+          int(len_trim(logfile_old),kind=4),logfile_dir,int(len(logfile_dir),kind=4),ierr)
      if (ierr /= 0) then
         write(*,*) "ERROR: cannot create writing directory '" //trim(logfile_dir) // "'."
         return
