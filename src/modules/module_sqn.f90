@@ -272,6 +272,7 @@ subroutine findbonds(label,iproc,verbosity,nat,rcov,pos,nbond,&
             endif
         enddo
     enddo
+    if(nbond==0)stop 'nbond==0'
     if(iproc==0.and.verbosity>=2)&
         call yaml_scalar(trim(adjustl(label))//&
         ' Found'//trim(yaml_toa(nbond))//' bonds.')

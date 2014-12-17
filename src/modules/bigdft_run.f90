@@ -18,7 +18,7 @@ module bigdft_run
        nullify_f_ref
   use f_utils
   use module_input_dicts, only: bigdft_set_run_properties => dict_set_run_properties,&
-       bigdft_get_run_properties => dict_get_run_properties,dict_run_new
+       bigdft_get_run_properties => dict_get_run_properties
   private
 
   !>  Used to restart a new DFT calculation or to save information 
@@ -71,13 +71,13 @@ module bigdft_run
   public :: state_properties_set_from_dict,bigdft_get_rxyz_ptr
   public :: run_objects_init,bigdft_init,bigdft_command_line_options,bigdft_nruns
   public :: init_QM_restart_objects,init_MM_restart_objects,set_run_objects,nullify_QM_restart_objects
-  public :: bigdft_nat,bigdft_state,free_run_objects,bigdft_run_new
-  public :: release_run_objects,bigdft_get_cell,bigdft_get_geocode,bigdft_get_run_properties
+  public :: nullify_MM_restart_objects
+  public :: bigdft_nat,bigdft_state,free_run_objects
+  public :: release_run_objects,bigdft_get_cell,bigdft_get_cell_ptr,bigdft_get_geocode,bigdft_get_run_properties
   public :: bigdft_get_units, bigdft_set_units
   public :: bigdft_get_astruct_ptr,bigdft_write_atomic_file,bigdft_set_run_properties
   public :: bigdft_norb,bigdft_get_eval,bigdft_run_id_toa,bigdft_get_rxyz
-  public :: bigdft_dot,bigdft_nrm2!,bigdft_run_validate
-
+  public :: bigdft_dot,bigdft_nrm2
 !!$  ! interfaces of external routines 
 !!$  interface
 !!$     subroutine geopt(runObj,outs,nproc,iproc,ncount_bigdft)
@@ -449,91 +449,6 @@ contains
 
   END SUBROUTINE run_objects_associate
 
-
-!!$  !> this routine controls that the keys which are defined in the 
-!!$  !! input dictionary are all valid.
-!!$  !! in case there are some keys which are different, raise an error
-!!$  subroutine bigdft_run_validate(dict)
-!!$    use dictionaries
-!!$    use yaml_output
-!!$    use module_base, only: bigdft_mpi
-!!$    use public_keys, only: POSINP, PERF_VARIABLES, DFT_VARIABLES, KPT_VARIABLES, &
-!!$         & GEOPT_VARIABLES, MIX_VARIABLES, SIC_VARIABLES, TDDFT_VARIABLES, LIN_GENERAL, &
-!!$         & LIN_BASIS, LIN_KERNEL, LIN_BASIS_PARAMS, OCCUPATION, IG_OCCUPATION, FRAG_VARIABLES, &
-!!$         & MODE_VARIABLES
-!!$    implicit none
-!!$    type(dictionary), pointer :: dict
-!!$    !local variables
-!!$    logical :: found
-!!$    type(dictionary), pointer :: valid_entries,valid_patterns
-!!$    type(dictionary), pointer :: iter,invalid_entries,iter2
-!!$
-!!$
-!!$    !> fill the list of valid entries
-!!$    valid_entries=>list_new([&
-!!$         .item. OUTDIR,&
-!!$         .item. RADICAL_NAME,&
-!!$         .item. USE_FILES,&
-!!$         .item. INPUT_NAME,&
-!!$         .item. LOGFILE,&
-!!$         .item. POSINP,&
-!!$         .item. MODE_VARIABLES,&
-!!$         .item. PERF_VARIABLES,&  
-!!$         .item. DFT_VARIABLES,&   
-!!$         .item. KPT_VARIABLES,&   
-!!$         .item. GEOPT_VARIABLES,& 
-!!$         .item. MIX_VARIABLES,&   
-!!$         .item. SIC_VARIABLES,&   
-!!$         .item. TDDFT_VARIABLES,& 
-!!$         .item. LIN_GENERAL,&     
-!!$         .item. LIN_BASIS,&       
-!!$         .item. LIN_KERNEL,&      
-!!$         .item. LIN_BASIS_PARAMS,&
-!!$         .item. OCCUPATION,&
-!!$         .item. IG_OCCUPATION,&
-!!$         .item. FRAG_VARIABLES])
-!!$
-!!$    !then the list of vaid patterns
-!!$    valid_patterns=>list_new(&
-!!$         .item. 'psppar' &
-!!$         )
-!!$
-!!$    call dict_init(invalid_entries)
-!!$    !for any of the keys of the dictionary iterate to find if it is allowed
-!!$    iter=>dict_iter(dict)
-!!$    do while(associated(iter))
-!!$       if ((valid_entries .index. dict_key(iter)) < 0) then
-!!$          found=.false.
-!!$          iter2=>dict_iter(valid_patterns)
-!!$          !check also if the key contains the allowed patterns
-!!$          find_patterns: do while(associated(iter2))
-!!$             if (index(dict_key(iter),trim(dict_value(iter2))) > 0) then
-!!$                found=.true.
-!!$                exit find_patterns
-!!$             end if
-!!$             iter2=>dict_next(iter2)
-!!$          end do find_patterns
-!!$          if (.not. found) call add(invalid_entries,dict_key(iter))
-!!$       end if
-!!$       iter=>dict_next(iter)
-!!$    end do
-!!$
-!!$    if (dict_len(invalid_entries) > 0) then
-!!$       if (bigdft_mpi%iproc==0) then
-!!$          call yaml_map('Allowed keys',valid_entries)
-!!$          call yaml_map('Allowed key patterns',valid_patterns)
-!!$          call yaml_map('Invalid entries of the input dictionary',invalid_entries)
-!!$       end if
-!!$       call f_err_throw('The input dictionary contains invalid entries,'//&
-!!$            ' check above the valid entries',err_name='BIGDFT_INPUT_VARIABLES_ERROR')
-!!$    end if
-!!$
-!!$    call dict_free(invalid_entries)
-!!$    call dict_free(valid_entries)
-!!$    call dict_free(valid_patterns)
-!!$
-!!$  end subroutine bigdft_run_validate
-
   !> copy the atom position in runObject into a workspace
   !! or retrieve the positions from a file
   subroutine bigdft_get_rxyz(runObj,filename,rxyz_add,rxyz)
@@ -831,6 +746,7 @@ contains
     use module_base, only: f_err_throw
     use module_interfaces, only: atoms_new, inputs_new, inputs_from_dict
     use module_atoms, only: deallocate_atoms_data
+    use module_input_dicts, only: dict_run_validate
     implicit none
     type(run_objects), intent(inout) :: runObj
     character(len=*), parameter :: subname = "run_objects_parse"
@@ -851,6 +767,7 @@ contains
     call inputs_new(runObj%inputs)
 
     ! Regenerate inputs and atoms.
+    call dict_run_validate(runObj%user_inputs)
     call inputs_from_dict(runObj%inputs, runObj%atoms, runObj%user_inputs)
 
     !associate the run_mode
@@ -1218,6 +1135,21 @@ contains
     end if
   end function bigdft_get_cell
 
+  function bigdft_get_cell_ptr(runObj) result(cell)
+    implicit none
+    type(run_objects), intent(in) :: runObj
+    real(gp), dimension(:), pointer :: cell
+
+    nullify(cell)
+    if (associated(runObj%atoms))then
+        cell => runObj%atoms%astruct%cell_dim
+    else
+       call f_err_throw('Cell uninitialized',&
+            err_name='BIGDFT_RUNTIME_ERROR')
+    endif
+
+  end function bigdft_get_cell_ptr
+
   !=====================================================================
   subroutine bigdft_state(runObj,outs,infocode)
     !IMPORTANT:
@@ -1253,22 +1185,24 @@ contains
     select case(trim(char(runObj%run_mode)))
     case('LENNARD_JONES_RUN_MODE')
        !if(trim(adjustl(efmethod))=='LJ')then
-       if (bigdft_mpi%iproc==0) call yaml_new_document()
+!BS: is new document necessary (high overhead for FF)?
+!       if (bigdft_mpi%iproc==0) call yaml_new_document()
        call lenjon(nat,rxyz_ptr,outs%fxyz,outs%energy)
        !         if (bigdft_mpi%iproc == 0) then
        !            call yaml_map('LJ state, energy',outs%energy,fmt='(1pe24.17)')
        !         end if
-       if (bigdft_mpi%iproc==0) call yaml_release_document()
+!       if (bigdft_mpi%iproc==0) call yaml_release_document()
     case('LENOSKY_SI_CLUSTERS_RUN_MODE')
        !else if(trim(adjustl(efmethod))=='LENSIc')then!for clusters
        call f_memcpy(src=rxyz_ptr,dest=runObj%mm_rst%rf_extra)
        !convert from bohr to angstroem
        call vscal(3*nat,Bohr_Ang,runObj%mm_rst%rf_extra(1,1),1)
        alatint=Bohr_Ang*bigdft_get_cell(runObj)
-       if (bigdft_mpi%iproc==0) call yaml_new_document()
+!BS: is new document necessary (high overhead for FF)?
+!       if (bigdft_mpi%iproc==0) call yaml_new_document()
        call lenosky_si_shift(nat,alatint,&
             runObj%mm_rst%rf_extra,outs%fxyz,outs%energy)
-       if (bigdft_mpi%iproc==0) call yaml_release_document()
+!       if (bigdft_mpi%iproc==0) call yaml_release_document()
        !convert energy from eV to Hartree
        outs%energy=ev_Ha*outs%energy
        !convert forces from eV/Angstroem to hartree/bohr
@@ -1279,9 +1213,10 @@ contains
        !convert from bohr to angstroem
        call vscal(3*nat,Bohr_Ang,runObj%mm_rst%rf_extra(1,1),1)
        alatint=Bohr_Ang*bigdft_get_cell(runObj)
-       if (bigdft_mpi%iproc==0) call yaml_new_document()
+!BS: is new document necessary (high overhead for FF)?
+!       if (bigdft_mpi%iproc==0) call yaml_new_document()
        call lenosky_si(nat,alatint,runObj%mm_rst%rf_extra,outs%fxyz,outs%energy)
-       if (bigdft_mpi%iproc==0) call yaml_release_document()
+!       if (bigdft_mpi%iproc==0) call yaml_release_document()
        !convert energy from eV to Hartree
        outs%energy=ev_Ha*outs%energy
        !convert forces from eV/Angstroem to hartree/bohr
@@ -1292,10 +1227,11 @@ contains
        call f_memcpy(src=rxyz_ptr,dest=runObj%mm_rst%rf_extra)
        !convert from bohr to angstroem
        call vscal(3*nat,Bohr_Ang,runObj%mm_rst%rf_extra(1,1),1)
-       if (bigdft_mpi%iproc==0) call yaml_new_document()
+!BS: is new document necessary (high overhead for FF)?
+!       if (bigdft_mpi%iproc==0) call yaml_new_document()
        !ATTENTION: call_nab_gradient returns gradient, not forces
        call call_nab_gradient(runObj%mm_rst%rf_extra,outs%fxyz,outs%energy,icc)
-       if (bigdft_mpi%iproc==0) call yaml_release_document()
+!       if (bigdft_mpi%iproc==0) call yaml_release_document()
        outs%energy=kcalMol_Ha*outs%energy
        !convert from gradient in kcal_th/mol/angstrom to
        !force in hartree/bohr (minus before kcalMolAng_HaBohr)
@@ -1304,6 +1240,7 @@ contains
        !else if(trim(adjustl(efmethod))=='BIGDFT')then
        !the yaml document is created in the cluster routine
        call quantum_mechanical_state(runObj,outs,infocode)
+       if (bigdft_mpi%iproc==0) call yaml_map('BigDFT infocode',infocode)
     case default
        call f_err_throw('Following method for evaluation of '//&
             'energies and forces is unknown: '//trim(yaml_toa(int(runObj%run_mode))))
@@ -1778,7 +1715,8 @@ subroutine run_objects_init_from_run_name(runObj, radical, posinp)
   !create the ad-hoc dictionary run to wrap the module routine
   !run_dict => dict_new('name' .is. radical, 'posinp' .is. posinp)
 
-  call dict_init(run_dict)
+  !call bigdft_run_new(run_dict)
+  nullify(run_dict)
   call bigdft_set_run_properties(run_dict,run_id=radical,posinp_id=posinp)
 
   call run_objects_init(runObj,run_dict)
@@ -1790,11 +1728,13 @@ subroutine run_objects_update(runObj, dict)
   use bigdft_run, only: run_objects,init_QM_restart_objects,init_MM_restart_objects,set_run_objects,bigdft_nat
   use dictionaries!, only: dictionary, dict_update,dict_copy,dict_free,dict_iter,dict_next
   use yaml_output
+  use module_input_dicts, only: create_log_file
   implicit none
   type(run_objects), intent(inout) :: runObj
   type(dictionary), pointer :: dict
   !local variables
   type(dictionary), pointer :: item
+  logical :: dict_from_files
 
   if (associated(runObj%user_inputs)) then
      item => dict_iter(dict)
@@ -1808,6 +1748,8 @@ subroutine run_objects_update(runObj, dict)
 
   ! We merge the previous dictionary with new entries.
   call dict_update(runObj%user_inputs, dict)
+
+  call create_log_file(runObj%user_inputs,dict_from_files)
 
   ! Parse new dictionary.
   call set_run_objects(runObj)

@@ -245,22 +245,23 @@ subroutine fpdistance(nid,fp1,fp2,d)
     d=sqrt(d/nid)
 end subroutine fpdistance
 !=====================================================================
-logical function equal(txt,nid,en_delta,fp_delta,epot1,epot2,fp1,fp2)
+logical function equal(mhgpsst,txt,nid,en_delta,fp_delta,epot1,epot2,fp1,fp2)
     use module_base
-    use module_global_variables, only: iproc
+    use module_mhgps_state
     implicit none
     !parameter
+    type(mhgps_state), intent(in) :: mhgpsst
     integer, intent(in) :: nid
     real(gp), intent(in) :: epot1,epot2
     real(gp), intent(in) :: en_delta, fp_delta
     real(gp), intent(in) :: fp1(nid), fp2(nid)
     character(len=2), intent(in) :: txt
     !internal
-    real(gp) :: d=1.d100
+    real(gp) :: d
 
     equal=.false.
     call fpdistance(nid,fp1,fp2,d)
-    if(iproc==0)write(*,'(a,1x,a,1x,es14.7,1x,es14.7)')'(MHGPS) ediff, fpdist ',txt,abs(epot1-epot2),d
+    if(mhgpsst%iproc==0)write(*,'(a,1x,a,1x,es14.7,1x,es14.7)')'(MHGPS) ediff, fpdist ',txt,abs(epot1-epot2),d
     if (abs(epot1-epot2).lt.en_delta) then
         call fpdistance(nid,fp1,fp2,d)
         if (d.lt.fp_delta) then ! identical

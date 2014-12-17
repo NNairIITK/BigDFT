@@ -1533,6 +1533,10 @@ subroutine run_objects_new(runObj)
   ! Allocate persistent structures.
   allocate(runObj%rst)
   call nullify_QM_restart_objects(runObj%rst)
+
+  ! Allocate persistent structures.
+  allocate(runObj%mm_rst)
+  call nullify_MM_restart_objects(runObj%mm_rst)
 END SUBROUTINE run_objects_new
 
 

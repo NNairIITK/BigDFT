@@ -71,16 +71,14 @@ subroutine H_potential(datacode,kernel,rhopot,pot_ion,eh,offset,sumpion,&
    character(len=*), parameter :: subname='H_potential'
    logical :: wrtmsg,cudasolver
    integer :: m1,m2,m3,md1,md2,md3,n1,n2,n3,nd1,nd2,nd3
-   integer :: i_stat,ierr,ind,ind2,ind3,indp,ind2p,ind3p,i
+   integer :: ierr,ind,ind2,ind3,indp,ind2p,ind3p,i
    integer :: i1,i2,i3,j2,istart,iend,i3start,jend,jproc,i3xcsh
    integer :: nxc,istden,istglo
-   real(dp) :: scal,ehartreeLOC,pot
+   real(dp) :: ehartreeLOC,pot
+   !real(dp) :: scal
    real(dp), dimension(6) :: strten
    real(dp), dimension(:,:,:), allocatable :: zf
-   real(dp), dimension(:), allocatable :: zf1
    integer, dimension(:,:), allocatable :: gather_arr
-   integer, dimension(3) :: n
-   integer :: size1,size2,switch_alg
 
    call f_routine(id='H_potential')
    
@@ -144,23 +142,22 @@ subroutine H_potential(datacode,kernel,rhopot,pot_ion,eh,offset,sumpion,&
 !      call yaml_newline()
    end if
    
-   select case(kernel%geocode)
-   case('P')
-      !no powers of hgrid because they are incorporated in the plane wave treatment
-      scal=1.0_dp/(real(n1,dp)*real(n2*n3,dp)) !to reduce chances of integer overflow
-   case('S')
-      !only one power of hgrid 
-      !factor of -4*pi for the definition of the Poisson equation
-      scal=-16.0_dp*atan(1.0_dp)*real(kernel%hgrids(2),dp)/real(n1*n2,dp)/real(n3,dp)
-   case('F','H')
-      !hgrid=max(hx,hy,hz)
-      scal=product(kernel%hgrids)/real(n1*n2,dp)/real(n3,dp)
-   case('W')
-      !only one power of hgrid 
-      !factor of -1/(2pi) already included in the kernel definition
-      scal=-2.0_dp*kernel%hgrids(1)*kernel%hgrids(2)/real(n1*n2,dp)/real(n3,dp)
-   end select
-   !here the case ncplx/= 1 should be added
+!!$   if(kernel%geocode == 'P') then
+!!$      !no powers of hgrid because they are incorporated in the plane wave treatment
+!!$      scal=1.0_dp/(real(n1,dp)*real(n2*n3,dp)) !to reduce chances of integer overflow
+!!$   else if (kernel%geocode == 'S') then
+!!$      !only one power of hgrid 
+!!$      !factor of -4*pi for the definition of the Poisson equation
+!!$      scal=-16.0_dp*atan(1.0_dp)*real(kernel%hgrids(2),dp)/real(n1*n2,dp)/real(n3,dp)
+!!$   else if (kernel%geocode == 'F' .or. kernel%geocode == 'H') then
+!!$      !hgrid=max(hx,hy,hz)
+!!$      scal=product(kernel%hgrids)/real(n1*n2,dp)/real(n3,dp)
+!!$   else if (kernel%geocode == 'W') then
+!!$      !only one power of hgrid 
+!!$      !factor of -1/(2pi) already included in the kernel definition
+!!$      scal=-2.0_dp*kernel%hgrids(1)*kernel%hgrids(2)/real(n1*n2,dp)/real(n3,dp)
+!!$   end if
+!!$   !here the case ncplx/= 1 should be added
    
    !array allocations
    !initalise to zero the zf array
@@ -203,101 +200,14 @@ subroutine H_potential(datacode,kernel,rhopot,pot_ion,eh,offset,sumpion,&
       end do
       !$omp end parallel do
    end do
-   
-   if (.not. cudasolver) then !CPU case
-      call f_timing(TCAT_PSOLV_COMPUT,'OF')
-      call G_PoissonSolver(kernel%mpi_env%iproc,kernel%mpi_env%nproc,&
-           kernel%part_mpi%mpi_comm,kernel%inplane_mpi%iproc,kernel%inplane_mpi%mpi_comm,kernel%geocode,1,&
-           n1,n2,n3,nd1,nd2,nd3,md1,md2,md3,kernel%kernel,&
-           zf(1,1,1),&
-           scal,kernel%hgrids(1),kernel%hgrids(2),kernel%hgrids(3),offset,strten)
-      call f_timing(TCAT_PSOLV_COMPUT,'ON')
 
-      !check for the presence of the stress tensor
-      if (present(stress_tensor)) then
-         call vcopy(6,strten(1),1,stress_tensor(1),1)
-      end if
-   
-   else !GPU case
-   
-      n(1)=n1!kernel%ndims(1)*(2-kernel%geo(1))
-      n(2)=n3!kernel%ndims(2)*(2-kernel%geo(2))
-      n(3)=n2!kernel%ndims(3)*(2-kernel%geo(3))
-   
-      size1=md1*md2*md3! nproc always 1 kernel%ndims(1)*kernel%ndims(2)*kernel%ndims(3)
-   
-      if (kernel%keepGPUmemory == 0) then
-        size2=2*n1*n2*n3
-        call cudamalloc(size2,kernel%work1_GPU,i_stat)
-        if (i_stat /= 0) print *,'error cudamalloc',i_stat
-        call cudamalloc(size2,kernel%work2_GPU,i_stat)
-        if (i_stat /= 0) print *,'error cudamalloc',i_stat
-      endif
-   
-    if (kernel%mpi_env%nproc > 1) then
-      zf1 = f_malloc(md1*md3*md2,id='zf1')
-   
-      call mpi_gather(zf,size1/kernel%mpi_env%nproc,mpidtypd,zf1,size1/kernel%mpi_env%nproc, &
-           mpidtypd,0,kernel%mpi_env%mpi_comm,ierr)
-   
-      if (kernel%mpi_env%iproc == 0) then
-       !fill the GPU memory
-   
-       call reset_gpu_data(size1,zf1,kernel%work1_GPU)
-   
-       switch_alg=0
-   
-       if (kernel%initCufftPlan == 1) then
-         call cuda_3d_psolver_general(n,kernel%plan,kernel%work1_GPU,kernel%work2_GPU, &
-           kernel%k_GPU,switch_alg,kernel%geo,scal)
-       else
-         call cuda_3d_psolver_plangeneral(n,kernel%work1_GPU,kernel%work2_GPU, &
-           kernel%k_GPU,kernel%geo,scal)
-       endif
-   
-       !take data from GPU
-       call get_gpu_data(size1,zf1,kernel%work1_GPU)
-       endif
-   
-       call MPI_Scatter(zf1,size1/kernel%mpi_env%nproc,mpidtypd,zf,size1/kernel%mpi_env%nproc, &
-            mpidtypd,0,kernel%mpi_env%mpi_comm,ierr)
-   
-       call f_free(zf1)
-   
-    else
-   
-      !fill the GPU memory
-      call reset_gpu_data(size1,zf,kernel%work1_GPU)
-   
-      switch_alg=0
-   
-      if (kernel%initCufftPlan == 1) then
-         call cuda_3d_psolver_general(n,kernel%plan,kernel%work1_GPU,kernel%work2_GPU, &
-           kernel%k_GPU,switch_alg,kernel%geo,scal)
-      else
-         call cuda_3d_psolver_plangeneral(n,kernel%work1_GPU,kernel%work2_GPU, &
-           kernel%k_GPU,kernel%geo,scal)
-      endif
-   
-   
-      !take data from GPU
-      call get_gpu_data(size1,zf,kernel%work1_GPU)
+   !core psolver routine
+   call apply_kernel(cudasolver,kernel,zf,offset,strten)
+
+   !check for the presence of the stress tensor
+   if (present(stress_tensor)) call f_memcpy(src=strten,dest=stress_tensor)
+
   
-   
-    endif
-   
-    if (kernel%keepGPUmemory == 0) then
-      call cudafree(kernel%work1_GPU)
-      call cudafree(kernel%work2_GPU)
-    endif
-   
-    if (kernel%keepGPUmemory == 0) then
-      call cudafree(kernel%work1_GPU)
-      call cudafree(kernel%work2_GPU)
-    endif
-   
-   endif
-   
    !the value of the shift depends on the distributed i/o or not
    if (datacode=='G') then
       i3xcsh=istart !beware on the fact that this is not what represents its name!!!
@@ -420,6 +330,118 @@ subroutine H_potential(datacode,kernel,rhopot,pot_ion,eh,offset,sumpion,&
    call f_release_routine()
 
 END SUBROUTINE H_potential
+
+
+!regroup the psolver from here -------------
+subroutine apply_kernel(gpu,kernel,zf,offset,strten)
+  use f_utils, only: f_zero
+  use time_profiling, only: f_timing
+  implicit none
+  logical, intent(in) :: gpu !< logical variable controlling the gpu acceleration
+  type(coulomb_operator), intent(in) :: kernel 
+  !> Total integral on the supercell of the final potential on output
+  real(dp), intent(in) :: offset
+  real(dp), intent(inout), dimension(kernel%grid%md1,kernel%grid%md3,2*kernel%grid%md2/kernel%mpi_env%nproc) :: zf
+  real(dp), dimension(6), intent(out) :: strten !< stress tensor associated to the cell
+  !local variables
+  integer, dimension(3) :: n
+  integer :: size1,size2,switch_alg,i_stat,ierr
+  real(dp), dimension(:), allocatable :: zf1
+
+  call f_zero(strten)
+  if (.not. gpu) then !CPU case
+     call f_timing(TCAT_PSOLV_COMPUT,'OF')
+     call G_PoissonSolver(kernel%mpi_env%iproc,kernel%mpi_env%nproc,&
+          kernel%part_mpi%mpi_comm,kernel%inplane_mpi%iproc,&
+          kernel%inplane_mpi%mpi_comm,kernel%geocode,1,&
+          kernel%grid%n1,kernel%grid%n2,kernel%grid%n3,&
+          kernel%grid%nd1,kernel%grid%nd2,kernel%grid%nd3,&
+          kernel%grid%md1,kernel%grid%md2,kernel%grid%md3,&
+          kernel%kernel,zf,&
+          kernel%grid%scal,kernel%hgrids(1),kernel%hgrids(2),kernel%hgrids(3),offset,strten)
+     call f_timing(TCAT_PSOLV_COMPUT,'ON')
+
+  else !GPU case
+
+     n(1)=kernel%grid%n1!kernel%ndims(1)*(2-kernel%geo(1))
+     n(2)=kernel%grid%n3!kernel%ndims(2)*(2-kernel%geo(2))
+     n(3)=kernel%grid%n2!kernel%ndims(3)*(2-kernel%geo(3))
+
+     size1=kernel%grid%md1*kernel%grid%md2*kernel%grid%md3! nproc always 1 kernel%ndims(1)*kernel%ndims(2)*kernel%ndims(3)
+
+     if (kernel%keepGPUmemory == 0) then
+        size2=2*kernel%grid%n1*kernel%grid%n2*kernel%grid%n3
+        call cudamalloc(size2,kernel%work1_GPU,i_stat)
+        if (i_stat /= 0) print *,'error cudamalloc',i_stat
+        call cudamalloc(size2,kernel%work2_GPU,i_stat)
+        if (i_stat /= 0) print *,'error cudamalloc',i_stat
+     endif
+
+     if (kernel%mpi_env%nproc > 1) then
+        zf1 = f_malloc(size1,id='zf1')
+
+        call mpi_gather(zf,size1/kernel%mpi_env%nproc,mpidtypd,zf1,size1/kernel%mpi_env%nproc, &
+             mpidtypd,0,kernel%mpi_env%mpi_comm,ierr)
+
+        if (kernel%mpi_env%iproc == 0) then
+           !fill the GPU memory
+
+           call reset_gpu_data(size1,zf1,kernel%work1_GPU)
+
+           switch_alg=0
+
+           if (kernel%initCufftPlan == 1) then
+              call cuda_3d_psolver_general(n,kernel%plan,kernel%work1_GPU,kernel%work2_GPU, &
+                   kernel%k_GPU,switch_alg,kernel%geo,kernel%grid%scal)
+           else
+              call cuda_3d_psolver_plangeneral(n,kernel%work1_GPU,kernel%work2_GPU, &
+                   kernel%k_GPU,kernel%geo,kernel%grid%scal)
+           endif
+
+           !take data from GPU
+           call get_gpu_data(size1,zf1,kernel%work1_GPU)
+        endif
+
+        call MPI_Scatter(zf1,size1/kernel%mpi_env%nproc,mpidtypd,zf,size1/kernel%mpi_env%nproc, &
+             mpidtypd,0,kernel%mpi_env%mpi_comm,ierr)
+
+        call f_free(zf1)
+
+     else
+
+        !fill the GPU memory
+        call reset_gpu_data(size1,zf,kernel%work1_GPU)
+
+        switch_alg=0
+
+        if (kernel%initCufftPlan == 1) then
+           call cuda_3d_psolver_general(n,kernel%plan,kernel%work1_GPU,kernel%work2_GPU, &
+                kernel%k_GPU,switch_alg,kernel%geo,kernel%grid%scal)
+        else
+           call cuda_3d_psolver_plangeneral(n,kernel%work1_GPU,kernel%work2_GPU, &
+                kernel%k_GPU,kernel%geo,kernel%grid%scal)
+        endif
+
+
+        !take data from GPU
+        call get_gpu_data(size1,zf,kernel%work1_GPU)
+
+
+     endif
+
+     if (kernel%keepGPUmemory == 0) then
+        call cudafree(kernel%work1_GPU)
+        call cudafree(kernel%work2_GPU)
+     endif
+
+     if (kernel%keepGPUmemory == 0) then
+        call cudafree(kernel%work1_GPU)
+        call cudafree(kernel%work2_GPU)
+     endif
+
+  endif
+
+end subroutine apply_kernel
 
 
 !> Calculate the dimensions needed for the allocation of the arrays 

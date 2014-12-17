@@ -1497,7 +1497,7 @@ end function trace_sparse
 subroutine ice(iproc, nproc, norder_polynomial, ovrlp_smat, inv_ovrlp_smat, ncalc, ex, ovrlp_mat, inv_ovrlp)
   use module_base
   use module_types
-  use module_interfaces, except_this_one => ice
+  use module_interfaces, except_this_one_A => ice
   use yaml_output
   use sparsematrix_base, only: sparsematrix_malloc_ptr, sparsematrix_malloc, &
                                sparsematrix_malloc0_ptr, assignment(=), &
@@ -1583,6 +1583,8 @@ subroutine ice(iproc, nproc, norder_polynomial, ovrlp_smat, inv_ovrlp_smat, ncal
      call foe_data_set_logical(foe_obj,"adjust_FOE_temperature",.false.)
 !@ ################################################
 
+
+  evbounds_shrinked = .false.
 
   !!!@ TEMPORARY: eigenvalues of  the overlap matrix ###################
   !!tempmat = f_malloc0((/ovrlp_smat%nfvctr,ovrlp_smat%nfvctr/),id='tempmat')
@@ -2104,7 +2106,7 @@ subroutine scale_and_shift_matrix(iproc, nproc, ispin, foe_obj, smatl, &
   type(sparse_matrix),intent(in),optional :: smat2
   type(matrices),intent(in),optional :: mat2
   integer,intent(in),optional :: i2shift
-  real(kind=8),dimension(smatl%nvctrp_tg),target,intent(out) :: matscal_compr
+  real(kind=8),dimension(smatl%nvctrp_tg),intent(out) :: matscal_compr
   real(kind=8),intent(out) :: scale_factor, shift_value
 
   ! Local variables

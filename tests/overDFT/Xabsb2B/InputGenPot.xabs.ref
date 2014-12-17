@@ -8,69 +8,69 @@
                                             ------
  Total number of projectors =                   24
  Total number of components =               202320
- Percent of zero components =                   18
+ Percent of zero components =                    2
  ------------------------------------------------------- Input Wavefunctions Creation
  writing local_potential
   going to calculate spectra 
   IN ROUTINE  chebychev  
- weigths    1.0000000000000000     
+ weigths    1.00000000000000     
  LB_nproc=            1
  USING PTILDES TO BUILD INITIAL WAVE
   EP_initialize_start    OK 
   done 
-new cheb coeffs     -0.9948564636D-03     0.6853159293D-03
+new cheb coeffs     -0.9948564637D-03     0.6853159295D-03
   done 
-new cheb coeffs     -0.2747272159D-03    -0.1177101889D-03
+new cheb coeffs     -0.2747272162D-03    -0.1177101886D-03
   done 
-new cheb coeffs      0.3901117896D-03    -0.4891136530D-03
+new cheb coeffs      0.3901117894D-03    -0.4891136530D-03
   done 
-new cheb coeffs      0.4232832761D-03    -0.2520288140D-03
+new cheb coeffs      0.4232832763D-03    -0.2520288144D-03
   done 
-new cheb coeffs      0.5938535700D-04     0.7926876638D-04
+new cheb coeffs      0.5938535737D-04     0.7926876616D-04
   done 
-new cheb coeffs     -0.1216796400D-03     0.6942486553D-04
+new cheb coeffs     -0.1216796401D-03     0.6942486578D-04
   done 
-new cheb coeffs      0.4040290681D-04    -0.1541137040D-03
+new cheb coeffs      0.4040290644D-04    -0.1541137036D-03
   done 
-new cheb coeffs      0.2254432800D-03    -0.2319479988D-03
+new cheb coeffs      0.2254432799D-03    -0.2319479989D-03
   done 
-new cheb coeffs      0.1814087442D-03    -0.1040688959D-03
+new cheb coeffs      0.1814087444D-03    -0.1040688962D-03
   done 
-new cheb coeffs      0.3836981903D-04    -0.1347500017D-04
+new cheb coeffs      0.3836981925D-04    -0.1347500016D-04
   done 
-new cheb coeffs      0.3869877970D-04    -0.1003253206D-03
+new cheb coeffs      0.3869877946D-04    -0.1003253202D-03
   done 
-new cheb coeffs      0.1695089422D-03    -0.2143601815D-03
+new cheb coeffs      0.1695089419D-03    -0.2143601813D-03
   done 
-new cheb coeffs      0.2142413918D-03    -0.1673015427D-03
+new cheb coeffs      0.2142413920D-03    -0.1673015431D-03
   done 
-new cheb coeffs      0.9144218010D-04    -0.1536515435D-04
+new cheb coeffs      0.9144218063D-04    -0.1536515480D-04
   done 
-new cheb coeffs     -0.3318322509D-04     0.3995591950D-04
+new cheb coeffs     -0.3318322490D-04     0.3995591964D-04
   done 
-new cheb coeffs     -0.9004531298D-05    -0.3902779570D-04
+new cheb coeffs     -0.9004531672D-05    -0.3902779529D-04
   done 
-new cheb coeffs      0.7719123391D-04    -0.8319996881D-04
+new cheb coeffs      0.7719123369D-04    -0.8319996893D-04
   done 
-new cheb coeffs      0.4935484028D-04     0.1583784744D-04
+new cheb coeffs      0.4935484076D-04     0.1583784674D-04
   done 
-new cheb coeffs     -0.9151662265D-04     0.1547810986D-03
+new cheb coeffs     -0.9151662196D-04     0.1547810982D-03
   done 
  writing spectra to  cheb_spectra_proc_0_orbp_1
  writing spectra to  cheb_spectra_40
   done 
-new cheb coeffs     -0.1895564970D-03     0.1932759295D-03
+new cheb coeffs     -0.1895564969D-03     0.1932759296D-03
  coefficients from Chebychev 
-   40 2.0891935563207710E+02 4.6868843983938159E-03
+   40 2.0891935572738046E+02 4.6868843963001876E-03
  ... 
- 3.9955919503308502E-05
--9.0045312977089093E-06
--3.9027795703531348E-05
- 7.7191233912234634E-05
--8.3199968810194775E-05
- 4.9354840282374974E-05
- 1.5837847437234201E-05
--9.1516622652610931E-05
- 1.5478109862586647E-04
--1.8955649700646139E-04
- CPU time/ELAPSED time for root process     0        21.12        25.32
+ 3.9955919638355207E-05
+-9.0045316723059640E-06
+-3.9027795288678084E-05
+ 7.7191233686157014E-05
+-8.3199968930376634E-05
+ 4.9354840762381633E-05
+ 1.5837846735247772E-05
+-9.1516621958124362E-05
+ 1.5478109815846085E-04
+-1.8955649688138327E-04
+ CPU time/ELAPSED time for root process     0         7.85        15.02

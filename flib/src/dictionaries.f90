@@ -1047,7 +1047,8 @@ contains
      !call set_field(repeat(' ',max_field_length),dict%data%value)
      if ( .not. associated(dict%child,target=subd) .and. &
           associated(dict%child)) then
-        call dict_free(dict%child)
+        !call dict_free(dict%child)
+        call free_child(dict)
      end if
      dict%child=>subd
      if (associated(subd%parent)) then
@@ -1059,6 +1060,17 @@ contains
      call define_parent(dict,dict%child)
    end subroutine put_child
 
+
+   subroutine free_child(dict)
+     implicit none
+     type(dictionary), pointer :: dict
+     
+     call dict_free(dict%child)
+     !reset the number of items
+     dict%data%nitems=0
+     dict%data%nelems=0
+
+   end subroutine free_child
 
    !> Append another dictionary
    recursive subroutine append(dict,brother)
@@ -1143,7 +1155,10 @@ contains
              trim(dict%data%key)//'"',err_id=DICT_VALUE_ABSENT)
         return
      end if
-     if (associated(dict%child)) call dict_free(dict%child)
+     if (associated(dict%child)) then
+        !call dict_free(dict%child)
+        call free_child(dict)
+     end if
 
      call f_strcpy(src=val,dest=dict%data%value)
      !call set_field(val,dict%data%value)

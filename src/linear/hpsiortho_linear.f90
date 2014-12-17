@@ -55,7 +55,7 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
   type(workarr_precond),dimension(tmb%orbs%norbp),intent(inout) :: precond_workarrays
   type(work_transpose),intent(inout) :: wt_philarge
   type(work_transpose),intent(out) :: wt_hpsinoprecond
-  !these must all be present together
+  !!!these must all be present together
   type(cdft_data),intent(inout),optional :: cdft
   type(fragmentInputParameters),optional,intent(in) :: input_frag
   type(system_fragment), dimension(:), optional, intent(in) :: ref_frags
@@ -63,8 +63,8 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
 
   ! Local variables
   integer :: iorb, iiorb, ilr, ncount, ierr, ist, ncnt, istat, iall, ii, jjorb, i
-  integer :: lwork, info, ishift,ispin, iseg
-  real(kind=8) :: ddot, tt, fnrmOvrlp_tot, fnrm_tot, fnrmold_tot, tt2, trkw
+  integer :: lwork, info, ishift,ispin, iseg, request
+  real(kind=8) :: ddot, tt, fnrmOvrlp_tot, fnrm_tot, fnrmold_tot, tt2, trkw, trH_sendbuf
   character(len=*), parameter :: subname='calculate_energy_and_gradient_linear'
   real(kind=8), dimension(:), pointer :: hpsittmp_c, hpsittmp_f
   real(kind=8), dimension(:), allocatable :: hpsi_conf
@@ -194,7 +194,7 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
   !!    do ispin=1,tmb%linmat%l%nspin
   !!        do i=1,tmb%linmat%l%nvctr
   !!            ist=ist+1
-  !!            write(4241,'(a,3i8,es14.6)') 'ispin, i, ist, tmb%linmat%kernel_%matrix_compr(ist)', ispin, i, ist, tmb%linmat%kernel_%matrix_compr(ist)
+  !!            write(4241,'(a,3i8,es14.6)') 'ispin, i, ist, tmb%linmat%kernel_%matrix_compr(ist)',&ispin, i, ist, tmb%linmat%kernel_%matrix_compr(ist)
   !!        end do
   !!    end do
   !!end if
@@ -285,66 +285,66 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
      if (.not.present(input_frag).or..not.present(ref_frags)) stop 'input_frag, ref_frags and cdft must be present together'
      cdft_gradt_c = f_malloc_ptr(tmb%ham_descr%collcom%ndimind_c,id='cdft_gradt_c')
      cdft_gradt_f = f_malloc_ptr(7*tmb%ham_descr%collcom%ndimind_f,id='cdft_gradt_f')
-    !calculate gradient (1st order taylor), assume S needs calculating though might not be needed
-    !print*,size(cdft_gradt_c),size(cdft_gradt_f),tmb%ham_descr%collcom%ndimind_c,7*tmb%ham_descr%collcom%ndimind_f
- 
+     !calculate gradient (1st order taylor), assume S needs calculating though might not be needed
+     !print*,size(cdft_gradt_c),size(cdft_gradt_f),tmb%ham_descr%collcom%ndimind_c,7*tmb%ham_descr%collcom%ndimind_f
 
-   call calculate_weight_matrix_lowdin_gradient(cdft%weight_matrix,cdft%weight_matrix_,cdft%ifrag_charged,&
-         tmb,input_frag,ref_frags,.true.,.true.,norder_taylor,cdft_gradt_c,cdft_gradt_f)
-    !add gradient to hpsi_t
-    !print*,'corr',cdft%lag_mult**2*ddot(tmb%ham_descr%collcom%ndimind_c, cdft_gradt_c(1), 1, cdft_gradt_c(1), 1),&
-    !     cdft%lag_mult**2*ddot(7*tmb%ham_descr%collcom%ndimind_f, cdft_gradt_f(1), 1, cdft_gradt_f(1), 1)
-    !print*,'orig',ddot(tmb%ham_descr%collcom%ndimind_c, hpsit_c(1), 1, hpsit_c(1), 1),&
-    !          ddot(7*tmb%ham_descr%collcom%ndimind_f, hpsit_f(1), 1, hpsit_f(1), 1)
-    !call daxpy(tmb%ham_descr%collcom%ndimind_c,cdft%lag_mult,cdft_gradt_c,1,hpsit_c,1)
-    !call daxpy(7*tmb%ham_descr%collcom%ndimind_f,cdft%lag_mult,cdft_gradt_f,1,hpsit_f,1)
-    !print*,'after',ddot(tmb%ham_descr%collcom%ndimind_c, hpsit_c(1), 1, hpsit_c(1), 1),&
-    !        ddot(7*tmb%ham_descr%collcom%ndimind_f, hpsit_f(1), 1, hpsit_f(1), 1)
-    !call dcopy(tmb%ham_descr%collcom%ndimind_c,cdft_gradt_c,1,hpsit_c,1)
-    !call dcopy(7*tmb%ham_descr%collcom%ndimind_f,cdft_gradt_f,1,hpsit_f,1)
 
-    cdft_grad=f_malloc_ptr(tmb%ham_descr%npsidim_orbs,id='cdft_grad')
-    call untranspose_localized(iproc, nproc, tmb%ham_descr%npsidim_orbs, tmb%orbs, tmb%ham_descr%collcom, &
-         TRANSPOSE_FULL, cdft_gradt_c, cdft_gradt_f, cdft_grad, tmb%ham_descr%lzd)
-    !print*,ddot(tmb%ham_descr%npsidim_orbs, cdft_grad(1), 1, cdft_grad(1), 1)
+     call calculate_weight_matrix_lowdin_gradient(cdft%weight_matrix,cdft%weight_matrix_,cdft%ifrag_charged,&
+          tmb,input_frag,ref_frags,.true.,.true.,norder_taylor,cdft_gradt_c,cdft_gradt_f)
+     !add gradient to hpsi_t
+     !print*,'corr',cdft%lag_mult**2*ddot(tmb%ham_descr%collcom%ndimind_c, cdft_gradt_c(1), 1, cdft_gradt_c(1), 1),&
+     !     cdft%lag_mult**2*ddot(7*tmb%ham_descr%collcom%ndimind_f, cdft_gradt_f(1), 1, cdft_gradt_f(1), 1)
+     !print*,'orig',ddot(tmb%ham_descr%collcom%ndimind_c, hpsit_c(1), 1, hpsit_c(1), 1),&
+     !          ddot(7*tmb%ham_descr%collcom%ndimind_f, hpsit_f(1), 1, hpsit_f(1), 1)
+     !call daxpy(tmb%ham_descr%collcom%ndimind_c,cdft%lag_mult,cdft_gradt_c,1,hpsit_c,1)
+     !call daxpy(7*tmb%ham_descr%collcom%ndimind_f,cdft%lag_mult,cdft_gradt_f,1,hpsit_f,1)
+     !print*,'after',ddot(tmb%ham_descr%collcom%ndimind_c, hpsit_c(1), 1, hpsit_c(1), 1),&
+     !        ddot(7*tmb%ham_descr%collcom%ndimind_f, hpsit_f(1), 1, hpsit_f(1), 1)
+     !call dcopy(tmb%ham_descr%collcom%ndimind_c,cdft_gradt_c,1,hpsit_c,1)
+     !call dcopy(7*tmb%ham_descr%collcom%ndimind_f,cdft_gradt_f,1,hpsit_f,1)
 
-   if (.false.) then
-   cdft_grad_small=f_malloc_ptr(tmb%npsidim_orbs,id='cdft_grad_small')
-   !no point keeping in tmblarge for now as fd will only be in small
-   call large_to_small_locreg(iproc, tmb%npsidim_orbs, tmb%ham_descr%npsidim_orbs, tmb%lzd, tmb%ham_descr%lzd, &
-        tmb%orbs, cdft_grad, cdft_grad_small)
-   !print CDFT gradient
-   !open(10+iproc)
-   !do iorb=19000,21500 !1,tmb%npsidim_orbs
-   !write(10+iproc,*) cdft_grad_small(iorb)
-   !end do
-   !close(10+iproc)
+     cdft_grad=f_malloc_ptr(tmb%ham_descr%npsidim_orbs,id='cdft_grad')
+     call untranspose_localized(iproc, nproc, tmb%ham_descr%npsidim_orbs, tmb%orbs, tmb%ham_descr%collcom, &
+          TRANSPOSE_FULL, cdft_gradt_c, cdft_gradt_f, cdft_grad, tmb%ham_descr%lzd)
+     !print*,ddot(tmb%ham_descr%npsidim_orbs, cdft_grad(1), 1, cdft_grad(1), 1)
 
-    call calculate_weight_matrix_lowdin_gradient_fd(cdft%weight_matrix,cdft%weight_matrix_,cdft%ifrag_charged,&
-         tmb,input_frag,ref_frags,.true.,.true.,norder_taylor,cdft_grad_small)
-    !call untranspose_localized(iproc, nproc, tmb%ham_descr%npsidim_orbs, tmb%orbs, tmb%ham_descr%collcom, &
-    !     cdft_gradt_c, cdft_gradt_f, cdft_grad, tmb%ham_descr%lzd)
+     if (.false.) then
+        cdft_grad_small=f_malloc_ptr(tmb%npsidim_orbs,id='cdft_grad_small')
+        !no point keeping in tmblarge for now as fd will only be in small
+        call large_to_small_locreg(iproc, tmb%npsidim_orbs, tmb%ham_descr%npsidim_orbs, tmb%lzd, tmb%ham_descr%lzd, &
+             tmb%orbs, cdft_grad, cdft_grad_small)
+        !print CDFT gradient
+        !open(10+iproc)
+        !do iorb=19000,21500 !1,tmb%npsidim_orbs
+        !write(10+iproc,*) cdft_grad_small(iorb)
+        !end do
+        !close(10+iproc)
 
-   !open(20+iproc)
-   !do iorb=19000,21500 !1,tmb%npsidim_orbs
-   !write(20+iproc,*) cdft_grad_small(iorb)
-   !end do
-   !close(20+iproc)
+        call calculate_weight_matrix_lowdin_gradient_fd(cdft%weight_matrix,cdft%weight_matrix_,cdft%ifrag_charged,&
+             tmb,input_frag,ref_frags,.true.,.true.,norder_taylor,cdft_grad_small)
+        !call untranspose_localized(iproc, nproc, tmb%ham_descr%npsidim_orbs, tmb%orbs, tmb%ham_descr%collcom, &
+        !     cdft_gradt_c, cdft_gradt_f, cdft_grad, tmb%ham_descr%lzd)
 
-   !call f_free_ptr(cdft_grad_small)
+        !open(20+iproc)
+        !do iorb=19000,21500 !1,tmb%npsidim_orbs
+        !write(20+iproc,*) cdft_grad_small(iorb)
+        !end do
+        !close(20+iproc)
 
-   !call mpi_finalize(bigdft_mpi%mpi_comm)
-   !stop
-   end if
+        !call f_free_ptr(cdft_grad_small)
 
-   call f_free_ptr(cdft_gradt_c)
-   call f_free_ptr(cdft_gradt_f)   
-   !call daxpy(tmb%ham_descr%npsidim_orbs,cdft%lag_mult,cdft_grad,1,tmb%hpsi,1)
-   call dcopy(tmb%ham_descr%npsidim_orbs,cdft_grad,1,tmb%hpsi,1)
-   !call dscal(tmb%ham_descr%npsidim_orbs,cdft%lag_mult,tmb%hpsi)
+        !call mpi_finalize(bigdft_mpi%mpi_comm)
+        !stop
+     end if
 
-   call f_free_ptr(cdft_grad)
-   end if
+     call f_free_ptr(cdft_gradt_c)
+     call f_free_ptr(cdft_gradt_f)   
+     !call daxpy(tmb%ham_descr%npsidim_orbs,cdft%lag_mult,cdft_grad,1,tmb%hpsi,1)
+     call dcopy(tmb%ham_descr%npsidim_orbs,cdft_grad,1,tmb%hpsi,1)
+     !call dscal(tmb%ham_descr%npsidim_orbs,cdft%lag_mult,tmb%hpsi)
+
+     call f_free_ptr(cdft_grad)
+  end if
 
 
   !!if (target_function==TARGET_FUNCTION_IS_ENERGY .and. iproc==0) then
@@ -387,19 +387,17 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
   !!    end do
   !!end if
 
-
-
-
-
   !experimental
   if (present(cdft).and..false.) then
-    !only correct energy not gradient for now
-    !can give tmb%orbs twice as ksorbs is only used for recalculating the kernel
-    call calculate_kernel_and_energy(iproc,nproc,tmb%linmat%l,cdft%weight_matrix, &
-           tmb%linmat%kernel_,cdft%weight_matrix_,trkw,tmb%coeff,tmb%orbs,tmb%orbs,.false.)
-    !cdft%charge is always constant (as is lagmult in this loop) so could in theory be ignored as in optimize_coeffs
-    trH = trH + cdft%lag_mult*(trkw - cdft%charge)
-    if (iproc==0) print*,'trH,trH+V(trkw-N),V(trkw-N)',trH-cdft%lag_mult*(trkw - cdft%charge),trH,cdft%lag_mult*(trkw - cdft%charge)
+     !only correct energy not gradient for now
+     !can give tmb%orbs twice as ksorbs is only used for recalculating the kernel
+     stop 'MAKE SURE THAN calculate_kernel_and_energy IS CALLED APPRORIATELY:'
+     call calculate_kernel_and_energy(iproc,nproc,tmb%linmat%l,cdft%weight_matrix, &
+          tmb%linmat%kernel_,cdft%weight_matrix_,trkw,tmb%coeff,tmb%orbs,tmb%orbs,.false.)
+     !cdft%charge is always constant (as is lagmult in this loop) so could in theory be ignored as in optimize_coeffs
+     trH = trH + cdft%lag_mult*(trkw - cdft%charge)
+     if (iproc==0) print*,'trH,trH+V(trkw-N),V(trkw-N)',trH-cdft%lag_mult*(trkw - cdft%charge),&
+          trH,cdft%lag_mult*(trkw - cdft%charge)
   end if
 
 
@@ -627,7 +625,7 @@ end subroutine calculate_energy_and_gradient_linear
 subroutine calculate_residue_ks(iproc, nproc, num_extra, ksorbs, tmb, hpsit_c, hpsit_f)
   use module_base
   use module_types
-  use module_interfaces, except_this_one => calculate_residue_ks
+  use module_interfaces, fake_name => calculate_residue_ks,fake_B=>calculate_energy_and_gradient_linear
   use sparsematrix_base, only: sparse_matrix, sparse_matrix_null, deallocate_sparse_matrix, &
                                matrices_null, allocate_matrices, deallocate_matrices
   use sparsematrix, only: uncompress_matrix
@@ -735,7 +733,8 @@ subroutine calculate_residue_ks(iproc, nproc, num_extra, ksorbs, tmb, hpsit_c, h
        tmb%linmat%kernel_, grad_ovrlp_, &
        ksres_sum,tmb%coeff,tmb%orbs,tmb%orbs,.false.)
   call deallocate_matrices(grad_ovrlp_)
-  if (iproc==0) write(*,*) 'KS residue from trace',dsqrt(ksres_sum)/real(tmb%orbs%norb,gp) ! should update normalization as would only be occ here not extra?
+  if (iproc==0) write(*,*) 'KS residue from trace',&
+       dsqrt(ksres_sum)/real(tmb%orbs%norb,gp) ! should update normalization as would only be occ here not extra?
 
   call deallocate_sparse_matrix(grad_ovrlp)
 
@@ -753,7 +752,7 @@ subroutine hpsitopsi_linear(iproc, nproc, it, ldiis, tmb,  &
   use module_base
   use module_types
   use yaml_output
-  use module_interfaces, except_this_one => hpsitopsi_linear
+  use module_interfaces, fake_name_A => hpsitopsi_linear,fake_name_C=>calculate_energy_and_gradient_linear
   implicit none
   
   ! Calling arguments
