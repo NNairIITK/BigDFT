@@ -1263,7 +1263,7 @@ subroutine calculate_coeff_gradient(iproc,nproc,tmb,order_taylor,max_inversion_e
 
   call f_free(sk)
 
-  skh=f_malloc((/tmb%linmat%m%nfvctr,tmb%linmat%m%nfvctr,ispin/), id='skh')
+  skh=f_malloc((/tmb%linmat%m%nfvctr,tmb%linmat%m%nfvctr,tmb%linmat%m%nspin/), id='skh')
 
   call timing(iproc,'dirmin_lagmat1','OF')
   call timing(iproc,'dirmin_lagmat2','ON')
@@ -1544,15 +1544,15 @@ subroutine calculate_coeff_gradient_extra(iproc,nproc,num_extra,tmb,order_taylor
   type(orbitals_data), intent(in) :: KSorbs
   real(gp), dimension(tmb%linmat%m%nfvctr,tmb%orbs%norbp), intent(out) :: grad_cov, grad  ! could make grad_cov KSorbs%norbp
 
-  integer :: iorb, iiorb, info, ierr
-  real(gp),dimension(:,:),allocatable :: sk, skh, skhp
+  integer :: iorb, iiorb, info, ierr, ispin
+  real(gp),dimension(:,:,:),allocatable :: sk, skhp, skh
   real(gp),dimension(:,:),pointer ::  inv_ovrlp
   real(kind=gp), dimension(:), allocatable:: occup_tmp
   real(kind=gp), dimension(:,:), allocatable:: grad_full
   real(kind=gp) :: max_error, mean_error
   type(matrices),dimension(1) :: inv_ovrlp_
 
-  if (tmb%linmat%m%nspin==2) stop 'ERROR: calculate_coeff_gradient_extra not yet implemented for npsin==2'
+  !!if (tmb%linmat%m%nspin==2) stop 'ERROR: calculate_coeff_gradient_extra not yet implemented for npsin==2'
 
   call f_routine(id='calculate_coeff_gradient_extra')
   call timing(iproc,'dirmin_lagmat1','ON')
@@ -1583,49 +1583,57 @@ subroutine calculate_coeff_gradient_extra(iproc,nproc,num_extra,tmb,order_taylor
   call vcopy(tmb%orbs%norb,occup_tmp(1),1,tmb%orbs%occup(1),1)
   call f_free(occup_tmp)
 
-  sk=f_malloc0((/tmb%linmat%l%nfvctrp,tmb%linmat%l%nfvctr/), id='sk')
+  sk=f_malloc0((/tmb%linmat%l%nfvctrp,tmb%linmat%l%nfvctr,tmb%linmat%l%nspin/), id='sk')
 
   ! calculate I-S*K - first set sk to identity
-  do iorb=1,tmb%linmat%l%nfvctrp
-     iiorb=tmb%linmat%l%isfvctr+iorb
-     sk(iorb,iiorb) = 1.d0
-  end do 
+  do ispin=1,tmb%linmat%l%nspin
+     do iorb=1,tmb%linmat%l%nfvctrp
+        iiorb=mod(tmb%linmat%l%isfvctr+iorb-1,tmb%linmat%l%nfvctr)+1
+        sk(iorb,iiorb,ispin) = 1.d0
+     end do 
+  end do
 
 
-  if (tmb%orbs%norbp>0) then
-     call dgemm('t', 'n', tmb%linmat%l%nfvctrp, tmb%linmat%l%nfvctr, tmb%linmat%l%nfvctr, -1.d0, &
-          tmb%linmat%ovrlp_%matrix(1,tmb%linmat%l%isfvctr+1,1), tmb%linmat%l%nfvctr, &
-          tmb%linmat%kernel_%matrix(1,1,1), tmb%linmat%l%nfvctr, 1.d0, sk, tmb%linmat%l%nfvctrp)
+  if (tmb%linmat%l%nfvctrp>0) then
+     do ispin=1,tmb%linmat%l%nspin
+        call dgemm('t', 'n', tmb%linmat%l%nfvctrp, tmb%linmat%l%nfvctr, tmb%linmat%l%nfvctr, -1.d0, &
+             tmb%linmat%ovrlp_%matrix(1,tmb%linmat%l%isfvctr+1,ispin), tmb%linmat%l%nfvctr, &
+             tmb%linmat%kernel_%matrix(1,1,ispin), tmb%linmat%l%nfvctr, 1.d0, sk(1,1,ispin), tmb%linmat%l%nfvctrp)
+      end do
   end if
 
 
   ! coeffs and therefore kernel will change, so no need to keep it
   call f_free_ptr(tmb%linmat%kernel_%matrix)
 
-  skhp=f_malloc((/tmb%linmat%l%nfvctr,tmb%linmat%l%nfvctrp/), id='skhp')
+  skhp=f_malloc((/tmb%linmat%l%nfvctr,tmb%linmat%l%nfvctrp,tmb%linmat%l%nspin/), id='skhp')
 
   ! multiply by H to get (I_ab - S_ag K^gb) H_bd, or in this case the transpose of the above
   if (tmb%linmat%l%nfvctrp>0) then
-     call dgemm('t', 't', tmb%linmat%l%nfvctr, tmb%linmat%l%nfvctrp, tmb%linmat%l%nfvctr, &
-          1.d0, tmb%linmat%ham_%matrix(1,1,1), &
-          tmb%linmat%l%nfvctr, sk(1,1), tmb%linmat%l%nfvctrp, 0.d0, skhp(1,1), tmb%linmat%l%nfvctr)
+     do ispin=1,tmb%linmat%l%nspin
+        call dgemm('t', 't', tmb%linmat%l%nfvctr, tmb%linmat%l%nfvctrp, tmb%linmat%l%nfvctr, &
+             1.d0, tmb%linmat%ham_%matrix(1,1,ispin), &
+             tmb%linmat%l%nfvctr, sk(1,1,ispin), tmb%linmat%l%nfvctrp, 0.d0, skhp(1,1,ispin), tmb%linmat%l%nfvctr)
+      end do
   end if
 
 
   call f_free(sk)
 
-  skh=f_malloc((/tmb%linmat%l%nfvctr,tmb%linmat%l%nfvctr/), id='skh')
+  skh=f_malloc((/tmb%linmat%l%nfvctr,tmb%linmat%l%nfvctr,tmb%linmat%l%nspin/), id='skh')
 
   call timing(iproc,'dirmin_lagmat1','OF')
   call timing(iproc,'dirmin_lagmat2','ON')
 
   ! gather together
   if(nproc > 1) then
-     call mpi_allgatherv(skhp, tmb%linmat%l%nfvctr*tmb%linmat%l%nfvctrp, mpi_double_precision, skh, &
-        tmb%linmat%l%nfvctr*tmb%linmat%l%nfvctr_par(:), tmb%linmat%l%nfvctr*tmb%linmat%l%isfvctr_par, &
-        mpi_double_precision, bigdft_mpi%mpi_comm, ierr)
+     do ispin=1,tmb%linmat%l%nspin
+        call mpi_allgatherv(skhp(1,1,ispin), tmb%linmat%l%nfvctr*tmb%linmat%l%nfvctrp, mpi_double_precision, skh(1,1,ispin), &
+           tmb%linmat%l%nfvctr*tmb%linmat%l%nfvctr_par(:), tmb%linmat%l%nfvctr*tmb%linmat%l%isfvctr_par, &
+           mpi_double_precision, bigdft_mpi%mpi_comm, ierr)
+     end do
   else
-     call vcopy(tmb%linmat%l%nfvctrp*tmb%linmat%l%nfvctr,skhp(1,1),1,skh(1,1),1)
+     call vcopy(tmb%linmat%l%nfvctrp*tmb%linmat%l%nfvctr*tmb%linmat%l%nspin,skhp(1,1,1),1,skh(1,1,1),1)
   end if
 
 
@@ -1635,9 +1643,17 @@ subroutine calculate_coeff_gradient_extra(iproc,nproc,num_extra,tmb,order_taylor
   call f_free(skhp)
 
   ! calc for i on this proc: (I_ab - S_ag K^gb) H_bg c_i^d
-  if (tmb%orbs%norbp>0) then
-     call dgemm('t', 'n', tmb%linmat%l%nfvctr, tmb%linmat%l%nfvctrp, tmb%linmat%l%nfvctr, 1.d0, skh(1,1), &
-          tmb%linmat%l%nfvctr, tmb%coeff(1,tmb%linmat%l%isfvctr+1), tmb%linmat%l%nfvctr, 0.d0, grad_cov(1,1), tmb%linmat%l%nfvctr)
+  if (tmb%linmat%l%nfvctrp>0) then
+     do iorb=1,tmb%linmat%l%nfvctrp
+        iiorb=tmb%linmat%l%isfvctr+iorb
+        if (tmb%orbs%spinsgn(iiorb)>0.d0) then
+            ispin=1
+        else
+            ispin=2
+        end if
+        call dgemm('t', 'n', tmb%linmat%l%nfvctr, 1, tmb%linmat%l%nfvctr, 1.d0, skh(1,1,ispin), &
+             tmb%linmat%l%nfvctr, tmb%coeff(1,tmb%linmat%l%isfvctr+iorb), tmb%linmat%l%nfvctr, 0.d0, grad_cov(1,iorb), tmb%linmat%l%nfvctr)
+      end do
   end if
 
   call f_free(skh)
