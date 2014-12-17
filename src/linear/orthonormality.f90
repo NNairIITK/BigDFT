@@ -701,8 +701,6 @@ subroutine overlapPowerGeneral(iproc, nproc, iorder, ncalc, power, blocksize, im
                   end if
               end do
 
-              nullify(Amat22p)
-              call f_free_ptr(Amat11p)
 
               if (power(1)==1) then
                   if (norbp>0) call dgemm('n', 'n', ovrlp_smat%nfvctr, norbp, ovrlp_smat%nfvctr, 1.0d0, Amat21(1,1), &
@@ -727,6 +725,8 @@ subroutine overlapPowerGeneral(iproc, nproc, iorder, ncalc, power, blocksize, im
 
           end do
 
+          nullify(Amat22p)
+          call f_free_ptr(Amat11p)
           call f_free(Amat12p)
           call f_free(Amat21p)
           nullify(Amat12)
