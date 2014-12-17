@@ -451,7 +451,7 @@ contains
 
   !> copy the atom position in runObject into a workspace
   !! or retrieve the positions from a file
-  subroutine bigdft_get_rxyz(runObj,filename,rxyz_add,rxyz)
+  subroutine bigdft_get_rxyz(runObj,filename,rxyz_add,rxyz,energy)
     use dynamic_memory, only: f_memcpy
     use yaml_strings, only: yaml_toa
     use module_atoms, only: atomic_structure,nullify_atomic_structure,&
@@ -470,20 +470,24 @@ contains
     real(gp), intent(inout), optional :: rxyz_add
     !> array of correct size (3,bigdft_nat(runObj)) with the atomic positions
     real(gp), dimension(:,:), intent(out), optional :: rxyz
+    real(gp), intent(out), optional :: energy
     !local variables
     integer :: n
     type(atomic_structure) :: astruct
 
     if (present(runObj) .eqv. present(filename)) then
-       call f_err_throw('Error in bigdft_get_rxyz: runObj *xor* filename'//&
+       call f_err_throw('Error in bigdft_get_rxyz: runObj *xor* filename '//&
             'should be present',err_name='BIGDFT_RUNTIME_ERROR')
+    elseif (present(runObj) .and. present(energy)) then
+       call f_err_throw('Error in bigdft_get_rxyz: energy must not be present '//&
+            'if runObj is present',err_name='BIGDFT_RUNTIME_ERROR')
     end if
 
     if (present(runObj)) then
        n=3*bigdft_nat(runObj)
 
        if (present(rxyz_add) .eqv. present(rxyz)) then
-          call f_err_throw('Error in bigdft_get_rxyz: rxyz_add *xor* rxyz'//&
+          call f_err_throw('Error in bigdft_get_rxyz: rxyz_add *xor* rxyz '//&
                'should be present',err_name='BIGDFT_RUNTIME_ERROR')
        end if
 
@@ -499,7 +503,7 @@ contains
        end if
     else if (present(filename)) then
        call nullify_atomic_structure(astruct)
-       call set_astruct_from_file(trim(filename), bigdft_mpi%iproc, astruct)
+       call set_astruct_from_file(trim(filename), bigdft_mpi%iproc, astruct,energy=energy)
        n=3*astruct%nat
        if (present(rxyz_add)) then
           call f_memcpy(n=n,dest=rxyz_add,src=astruct%rxyz(1,1))
@@ -511,7 +515,6 @@ contains
           end if
           call f_memcpy(dest=rxyz,src=astruct%rxyz)
        end if
-
        call deallocate_atomic_structure(astruct)
 
     end if
@@ -1037,18 +1040,39 @@ contains
 
   !accessors for external programs
   !> Get the number of orbitals of the run in rst
-  function bigdft_nat(runObj) result(nat)
+  function bigdft_nat(runObj,filename) result(nat)
+    use module_atoms, only: atomic_structure,nullify_atomic_structure,&
+         set_astruct_from_file,deallocate_atomic_structure
+    use module_base, only: bigdft_mpi
     implicit none
-    type(run_objects), intent(in) :: runObj !> BigDFT run structure
+    type(run_objects), intent(in),optional :: runObj !> BigDFT run structure
+    character(len=*), intent(in), optional :: filename
     integer :: nat !> Number of atoms
+    !local
+    type(atomic_structure) :: astruct
 
-    if (associated(runObj%atoms)) then
-       nat=runObj%atoms%astruct%nat
-    else
-       nat=-1
+    if (present(runObj) .eqv. present(filename)) then
+       call f_err_throw('Error in bigdft_nat: runObj *xor* filename '//&
+            'should be present',err_name='BIGDFT_RUNTIME_ERROR')
     end if
-    if (f_err_raise(nat < 0 ,'Number of atoms uninitialized',&
-         err_name='BIGDFT_RUNTIME_ERROR')) return
+
+
+    if(present(runObj))then
+       if (associated(runObj%atoms)) then
+          nat=runObj%atoms%astruct%nat
+       else
+          nat=-1
+       end if
+       if (f_err_raise(nat < 0 ,'Number of atoms uninitialized',&
+            err_name='BIGDFT_RUNTIME_ERROR')) return
+       return
+    else if (present(filename)) then
+       call nullify_atomic_structure(astruct)
+       call set_astruct_from_file(trim(filename),bigdft_mpi%iproc,astruct)
+       nat=astruct%nat
+       call deallocate_atomic_structure(astruct)
+       return
+    end if
 
   end function bigdft_nat
 

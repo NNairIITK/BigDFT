@@ -25,6 +25,7 @@ module module_io
     public :: write_restart
     public :: get_first_struct_file
     public :: print_logo_mhgps
+    public :: check_struct_file_exists
 
 contains
 !=====================================================================
