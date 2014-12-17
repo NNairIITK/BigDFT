@@ -22,6 +22,7 @@ program mhgpstool
     integer :: nat
     integer          :: nfolder
     character(len=500), allocatable :: folders(:)
+    character(len=600) :: filename
     integer, allocatable :: nsad(:)
 !character(len=500) :: fsaddle,comment
 !real(gp) :: energy
@@ -34,8 +35,8 @@ program mhgpstool
 
     call read_folders(nfolder,folders)
     nsad = f_malloc((/ 1.to.nfolder/),id='nsad')
-!    nat = bigdft_nat(trim(adjustl(folders(1))))
-nat=38
+    write(filename,'(a,i5.5,a)')trim(adjustl(folders(1))),1,'_finalF'
+    nat = bigdft_nat(filename=filename)
     call count_saddle_points(nfolder,folders,nsad)
     call init_mhgpstool_data(nat,nfolder,nsad,mdat)
 !    call read_data()
