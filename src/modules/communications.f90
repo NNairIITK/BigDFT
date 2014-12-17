@@ -957,7 +957,7 @@ module communications
                   call mpi_type_size(mpi_double_precision, size_of_double, ierr)
                   call mpi_info_create(info, ierr)
                   call mpi_info_set(info, "no_locks", "true", ierr)
-                  call mpi_win_create(sendbuf(1), int(n1*n2*n3p(iproc)*size_of_double,kind=mpi_address_kind), &
+                  call mpi_win_create(sendbuf(1), int(n1*n2*n3p(iproc)*comm%nspin*size_of_double,kind=mpi_address_kind), &
                        size_of_double, info, bigdft_mpi%mpi_comm, comm%window, ierr)
                   call mpi_info_free(info, ierr)
     
@@ -1020,7 +1020,7 @@ module communications
       if(nproc>1 .and. (.not. bgq)) then
           comm%communication_complete=.false.
       else if (nproc>1) then
-          call mpi_win_fence(0, comm%window, ierr)
+          call mpi_win_fence(mpi_mode_nosucceed, comm%window, ierr)
           do joverlap=1,comm%noverlaps
               call mpi_type_free(comm%mpi_datatypes(joverlap), ierr)
           end do
@@ -1052,7 +1052,7 @@ module communications
       
       
       if(.not.comm%communication_complete) then
-          call mpi_win_fence(0, comm%window, ierr)
+          call mpi_win_fence(mpi_mode_nosucceed, comm%window, ierr)
           do joverlap=1,comm%noverlaps
               call mpi_type_free(comm%mpi_datatypes(joverlap), ierr)
           end do
