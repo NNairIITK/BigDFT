@@ -233,7 +233,7 @@ end subroutine PS_Check_options
 subroutine PolarizationIteration(n01,n02,n03,nspden,b,acell,eps,nord,pkernel,potential)
   use yaml_output
   use Poisson_Solver
-
+  use wrapper_linalg
   implicit none
   integer, intent(in) :: n01
   integer, intent(in) :: n02
@@ -249,11 +249,12 @@ subroutine PolarizationIteration(n01,n02,n03,nspden,b,acell,eps,nord,pkernel,pot
   real(kind=8), parameter :: eta = 1.0d0 ! Polarization Iterative Method parameter.
   real(kind=8), parameter :: taupol = 1.0d-20 ! Polarization Iterative Method parameter.
   integer, parameter :: maxiterpol=50
-  real(kind=8), dimension(n01,n02,n03,nspden,3) :: dlv
+  !real(kind=8), dimension(n01,n02,n03,nspden,3) :: dlv
+  real(kind=8), dimension(3,n01,n02,n03) :: dlv
   real(kind=8), dimension(n01,n02,n03,3) :: deps
   real(kind=8), dimension(n01,n02,n03,nspden) :: rhosol,rhopol,rhotot,rhopolnew,rhopolold,rhores,lv
   integer :: i1,i2,i3,i,j,ip,isp
-  real(kind=8) :: divprod,rhores2,hx,hy,hz,offset,diffcurr,pi,ehartree
+  real(kind=8) :: divprod,rhores2,hx,hy,hz,offset,diffcurr,pi,ehartree,res,rho
 
   pi = 4.d0*datan(1.d0)
   hx = acell/real(n01,kind=8)
@@ -276,6 +277,12 @@ subroutine PolarizationIteration(n01,n02,n03,nspden,b,acell,eps,nord,pkernel,pot
     do i1=1,n01
      rhopol(i1,i2,i3,isp) = 0.d0
      rhosol(i1,i2,i3,isp) = b(i1,i2,i3,isp)
+
+     !switch and create the logarithmic derivative of epsilon
+     dlv(1,i1,i2,i3)=deps(i1,i2,i3,1)/eps(i1,i2,i3)
+     dlv(2,i1,i2,i3)=deps(i1,i2,i3,2)/eps(i1,i2,i3)
+     dlv(3,i1,i2,i3)=deps(i1,i2,i3,3)/eps(i1,i2,i3)
+
     end do
    end do
   end do
@@ -305,33 +312,46 @@ subroutine PolarizationIteration(n01,n02,n03,nspden,b,acell,eps,nord,pkernel,pot
      call H_potential('G',pkernel,lv,pot_ion,ehartree,offset,.false.)
 
      call writeroutinePot(n01,n02,n03,nspden,lv,ip,potential)
-     call fssnord3DmatNabla(n01,n02,n03,nspden,lv,dlv,nord,acell)
 
-     isp=1
-     do i3=1,n03
-      do i2=1,n02
-       do i1=1,n01
-        divprod = 0.d0
-        do j=1,3
-           divprod = divprod + deps(i1,i2,i3,j)*dlv(i1,i2,i3,isp,j)
-        end do
-        rhopolnew(i1,i2,i3,isp)=(1/(4.d0*pi))*(1/eps(i1,i2,i3))*divprod
-        rhopolold(i1,i2,i3,isp)=rhopol(i1,i2,i3,isp)
-        rhopol(i1,i2,i3,isp)=eta*rhopolnew(i1,i2,i3,isp) + (1.d0-eta)*rhopolold(i1,i2,i3,isp)
-        rhores(i1,i2,i3,isp) = rhopol(i1,i2,i3,isp) - rhopolold(i1,i2,i3,isp)
-       end do
-      end do
-     end do
+     call fssnord3DmatNabla_LG(n01,n02,n03,lv,nord,acell,eta,dlv,rhopol,rhores2)
+     !!!call fssnord3DmatNabla(n01,n02,n03,nspden,lv,dlv,nord,acell)
+     !!!
+     !!!isp=1
+     !!!rhores2=0.d0
+     !!!do i3=1,n03
+     !!! do i2=1,n02
+     !!!  do i1=1,n01
+     !!!   divprod = 0.d0
+     !!!   do j=1,3
+     !!!      divprod = divprod + deps(i1,i2,i3,j)*dlv(i1,i2,i3,isp,j)
+     !!!   end do
+     !!!   !rhopolnew(i1,i2,i3,isp)=(1/(4.d0*pi))*(1/eps(i1,i2,i3))*divprod
+     !!!   res=(1/(4.d0*pi))*(1/eps(i1,i2,i3))*divprod
+     !!!   rho=rhopol(i1,i2,i3,isp)
+     !!!   res=res-rho
+     !!!   res=eta*res
+     !!!   rhores2=rhores2+res*res
+     !!!   rhopol(i1,i2,i3,isp)=res+rho
+!!$  !!!      rhopolold(i1,i2,i3,isp)=rhopol(i1,i2,i3,isp)
+!!$  !!!      rhopol(i1,i2,i3,isp)=eta*rhopolnew(i1,i2,i3,isp) + (1.d0-eta)*rhopolold(i1,i2,i3,isp)
+!!$  !!!      rhores(i1,i2,i3,isp) = rhopol(i1,i2,i3,isp) - rhopolold(i1,i2,i3,isp)
+     !!!  end do
+     !!! end do
+     !!!end do
 
-     rhores2 = 0.d0
-     isp=1
-     do i3=1,n03
-      do i2=1,n02
-       do i1=1,n01
-        rhores2 = rhores2 + rhores(i1,i2,i3,isp)*rhores(i1,i2,i3,isp)
-       end do
-      end do
-     end do
+!!$     call axpy(n01*n02*n03,1.d0,rhopol(1,1,1,1),1,rhores(1,1,1,1),1)
+!!$     call axpy(n01*n02*n03,eta,rhores(1,1,1,1),1,rhopol(1,1,1,1),1)
+!!$     rhores2=dot(n01*n02*n03,rhores(1,1,1,1),1,rhores(1,1,1,1),1)
+
+!!$     rhores2 = 0.d0
+!!$     isp=1
+!!$     do i3=1,n03
+!!$      do i2=1,n02
+!!$       do i1=1,n01
+!!$        rhores2 = rhores2 + rhores(i1,i2,i3,isp)*rhores(i1,i2,i3,isp)
+!!$       end do
+!!$      end do
+!!$     end do
 
      write(18,'(1x,I8,1x,e14.7)')ip,rhores2
      !write(*,'(1x,I8,1x,e14.7)')ip,rhores2
@@ -930,6 +950,138 @@ subroutine fssnord3DmatNabla(n01,n02,n03,nspden,u,du,nord,acell)
       end do
 
 end subroutine fssnord3DmatNabla
+
+!> Like fssnord3DmatNabla but corrected such that the index goes at the beginning
+!! Multiplies also times (nabla epsilon)/(4pi*epsilon)= nabla (log(epsilon))/(4*pi)
+subroutine fssnord3DmatNabla_LG(n01,n02,n03,u,nord,acell,eta,dlogeps,rhopol,rhores2)
+  use module_defs, only: pi_param
+  implicit none
+
+  !c..this routine computes 'nord' order accurate first derivatives 
+  !c..on a equally spaced grid with coefficients from 'Matematica' program.
+
+  !c..input:
+  !c..ngrid       = number of points in the grid, 
+  !c..u(ngrid)    = function values at the grid points
+
+  !c..output:
+  !c..du(ngrid)   = first derivative values at the grid points
+
+  !c..declare the pass
+
+  integer, intent(in) :: n01,n02,n03,nord
+  real(kind=8), intent(in) :: acell,eta
+  real(kind=8), dimension(n01,n02,n03), intent(in) :: u
+  real(kind=8), dimension(3,n01,n02,n03), intent(in) :: dlogeps
+  real(kind=8), dimension(n01,n02,n03), intent(inout) :: rhopol
+  real(kind=8), intent(out) :: rhores2
+
+  !c..local variables
+  integer :: n,m,n_cell
+  integer :: i,j,ib,i1,i2,i3,isp,i1_max,i2_max
+  real(kind=8), parameter :: oneo4pi=0.25d0/pi_param
+  real(kind=8), dimension(-nord/2:nord/2,-nord/2:nord/2) :: c1D,c1DF
+  real(kind=8) :: hx,hy,hz,max_diff,fact,dx,dy,dz,res,rho
+
+  n = nord+1
+  m = nord/2
+  hx = acell/real(n01,kind=8)
+  hy = acell/real(n02,kind=8)
+  hz = acell/real(n03,kind=8)
+  n_cell = max(n01,n02,n03)
+
+  ! Beware that n_cell has to be > than n.
+  if (n_cell.lt.n) then
+     write(*,*)'ngrid in has to be setted > than n=nord + 1'
+     stop
+  end if
+
+  ! Setting of 'nord' order accurate first derivative coefficient from 'Matematica'.
+  !Only nord=2,4,6,8,16
+  if (all(nord /=[2,4,6,8,16])) then
+     write(*,*)'Only nord-order 2,4,6,8,16 accurate first derivative'
+     stop
+  end if
+
+  do i=-m,m
+     do j=-m,m
+        c1D(i,j)=0.d0
+        c1DF(i,j)=0.d0
+     end do
+  end do
+
+  include 'FiniteDiffCorff.inc'
+
+  rhores2=0.d0
+  do i3=1,n03
+     do i2=1,n02
+        do i1=1,n01
+
+           dx=0.d0
+
+           if (i1.le.m) then
+              do j=-m,m
+                 dx = dx + c1D(j,i1-m-1)*u(j+m+1,i2,i3)
+              end do
+           else if (i1.gt.n01-m) then
+              do j=-m,m
+                 dx = dx + c1D(j,i1-n01+m)*u(n01 + j - m,i2,i3)
+              end do
+           else
+              do j=-m,m
+                 dx = dx + c1D(j,0)*u(i1 + j,i2,i3)
+              end do
+           end if
+           dx=dx/hx
+
+           dy = 0.0d0
+           if (i2.le.m) then
+              do j=-m,m
+                 dy = dy + c1D(j,i2-m-1)*u(i1,j+m+1,i3)
+              end do
+           else if (i2.gt.n02-m) then
+              do j=-m,m
+                 dy = dy + c1D(j,i2-n02+m)*u(i1,n02 + j - m,i3)
+              end do
+           else
+              do j=-m,m
+                 dy = dy + c1D(j,0)*u(i1,i2 + j,i3)
+              end do
+           end if
+           dy=dy/hy
+
+           dz = 0.0d0
+           if (i3.le.m) then
+              do j=-m,m
+                 dz = dz + c1D(j,i3-m-1)*u(i1,i2,j+m+1)
+              end do
+           else if (i3.gt.n03-m) then
+              do j=-m,m
+                 dz = dz + c1D(j,i3-n03+m)*u(i1,i2,n03 + j - m)
+              end do
+           else
+              do j=-m,m
+                 dz = dz + c1D(j,0)*u(i1,i2,i3 + j)
+              end do
+           end if
+           dz=dz/hz
+           
+           !retrieve the previous treatment
+           res = dlogeps(1,i1,i2,i3)*dx + &
+                dlogeps(2,i1,i2,i3)*dy + dlogeps(3,i1,i2,i3)*dz
+           res = res*oneo4pi
+           rho=rhopol(i1,i2,i3)
+           res=res-rho
+           res=eta*res
+           rhores2=rhores2+res*res
+           rhopol(i1,i2,i3)=res+rho
+
+        end do
+     end do
+  end do
+
+end subroutine fssnord3DmatNabla_LG
+
 
 subroutine fssnord3DmatNabla3var(n01,n02,n03,nspden,u,du,nord,acell)
       implicit none
