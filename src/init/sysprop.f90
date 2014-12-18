@@ -646,7 +646,7 @@ subroutine system_initialization(iproc,nproc,dump,inputpsi,input_wf_format,dry_r
            end if
            if (jproc==nproc-1) exit
        end do
-       norb_par(nproc-1) = jjorb + (norb - jjorbtot) !take the rest
+       norb_par(nproc-1) = (norb - jjorbtot) !+jjorb -> why was this needed?! !take the rest
        do jproc=0,nproc-1
            !if (iproc==0) write(*,*) 'jproc, norb_par(jproc)', jproc, norb_par(jproc)
        end do

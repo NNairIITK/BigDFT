@@ -411,9 +411,9 @@ contains
       ! Not necessary to set the pritable flag (if nseq_min was zero before it should be zero here as well)
       if (nseq_min>0) then
           ratio_after = real(nseq_max,kind=8)/real(nseq_min,kind=8)
-          if (.not.printable) stop 'this should not happen'
+          if (.not.printable) stop 'this should not happen (sparsematrix)'
       else
-          if (printable) stop 'this should not happen'
+          if (printable) stop 'this should not happen (sparsematrix)'
       end if
       if (iproc==0) then
           if (printable) then
