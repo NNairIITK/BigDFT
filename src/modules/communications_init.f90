@@ -106,7 +106,7 @@ module communications_init
           i3start = min(i3start,lzd%llr(ilr)%ns3)
           i3end = max(i3end,lzd%llr(ilr)%ns3+lzd%llr(ilr)%d%n3)
       end do
-      if (orbs%norbp==0) then
+      if (orbs%norbp==0.or.i3start==1000000000) then ! need to account for the case when norbp/=0 but all orbitals were down but should probably do in a better way
          i3end=0
          i3start=1
       end if
