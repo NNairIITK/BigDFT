@@ -1628,9 +1628,11 @@ subroutine calculate_coeff_gradient_extra(iproc,nproc,num_extra,tmb,order_taylor
   ! gather together
   if(nproc > 1) then
      do ispin=1,tmb%linmat%l%nspin
-        call mpi_allgatherv(skhp(1,1,ispin), tmb%linmat%l%nfvctr*tmb%linmat%l%nfvctrp, mpi_double_precision, skh(1,1,ispin), &
-           tmb%linmat%l%nfvctr*tmb%linmat%l%nfvctr_par(:), tmb%linmat%l%nfvctr*tmb%linmat%l%isfvctr_par, &
-           mpi_double_precision, bigdft_mpi%mpi_comm, ierr)
+        call mpi_allgatherv(skhp(1,1,ispin), tmb%linmat%l%nfvctr*tmb%linmat%l%nfvctrp, &
+            mpi_double_precision, skh(1,1,ispin), &
+            tmb%linmat%l%nfvctr*tmb%linmat%l%nfvctr_par(:), &
+            tmb%linmat%l%nfvctr*tmb%linmat%l%isfvctr_par, &
+            mpi_double_precision, bigdft_mpi%mpi_comm, ierr)
      end do
   else
      call vcopy(tmb%linmat%l%nfvctrp*tmb%linmat%l%nfvctr*tmb%linmat%l%nspin,skhp(1,1,1),1,skh(1,1,1),1)
@@ -1652,7 +1654,8 @@ subroutine calculate_coeff_gradient_extra(iproc,nproc,num_extra,tmb,order_taylor
             ispin=2
         end if
         call dgemm('t', 'n', tmb%linmat%l%nfvctr, 1, tmb%linmat%l%nfvctr, 1.d0, skh(1,1,ispin), &
-             tmb%linmat%l%nfvctr, tmb%coeff(1,tmb%linmat%l%isfvctr+iorb), tmb%linmat%l%nfvctr, 0.d0, grad_cov(1,iorb), tmb%linmat%l%nfvctr)
+             tmb%linmat%l%nfvctr, tmb%coeff(1,tmb%linmat%l%isfvctr+iorb), tmb%linmat%l%nfvctr, &
+             0.d0, grad_cov(1,iorb), tmb%linmat%l%nfvctr)
       end do
   end if
 
