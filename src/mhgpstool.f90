@@ -39,7 +39,7 @@ program mhgpstool
     nat = bigdft_nat(filename=filename)
     call count_saddle_points(nfolder,folders,nsad)
     call init_mhgpstool_data(nat,nfolder,nsad,mdat)
-!    call read_data()
+    call read_data(folders,mdat)
 
     call read_mhgps_input(mhgps_uinp)
 !write(fsaddle,'(a,i5.5,a)')trim(adjustl(folders(1)))//&

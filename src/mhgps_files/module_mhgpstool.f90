@@ -17,6 +17,7 @@ module module_mhgpstool
 
     !routines
     public :: read_folders
+    public :: read_data
     public :: count_saddle_points
     public :: init_mhgpstool_data
     public :: finalize_mhgpstool_data
@@ -155,6 +156,19 @@ subroutine count_saddle_points(nfolder,folders,nsad)
     enddo
     call yaml_map('TOTAL',sum(nsad))
 end subroutine count_saddle_points
+!=====================================================================
+subroutine read_data(folders,mdat)
+    use module_base
+    implicit none
+    !parameters
+    character(len=500), intent(in) :: folders(:)
+    type(mhgpstool_data), intent(inout) :: mdat
+    !local
+    integer :: nfolder
+    nfolder = size(folders,1)
+
+    
+end subroutine read_data
 !=====================================================================
 
 end module
