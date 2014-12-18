@@ -10,14 +10,14 @@ program GPS_3D
    use dynamic_memory
    use dictionaries
    use time_profiling
-
+   use f_utils
    implicit none
    
    integer, parameter :: n01 = 200
    integer, parameter :: n02 = 200
    integer, parameter :: n03 = 200
    integer, parameter :: nspden = 1
-   character(len=*), parameter :: PSol='PCG' !    PCG = Preconditioned Conjugate Gradient Method.
+   character(len=40) :: PSol !, parameter :: PSol='PI'!'PCG' !    PCG = Preconditioned Conjugate Gradient Method.
                                              !    PI  = Polarization Iterative Method.
    !> To set 1 for Vacuum, 2 for error function in y direction, 3 for gaussian, 4 for electron dependence.
    integer, parameter :: SetEps = 3 
@@ -34,7 +34,8 @@ program GPS_3D
    integer, dimension(3) :: ndims
    real(8), dimension(3) :: hgrids
    real(kind=8), parameter :: a_gauss = 1.0d0,a2 = a_gauss**2
-   integer :: m1,m2,m3,md1,md2,md3,nd1,nd2,nd3,n1,n2,n3,itype_scf,i_all,i_stat,n_cell,iproc,nproc,ixc
+   !integer :: m1,m2,m3,md1,md2,md3,nd1,nd2,nd3,n1,n2,n3,
+   integer :: itype_scf,i_all,i_stat,n_cell,iproc,nproc,ixc
    real(kind=8) :: hx,hy,hz,freq,fz,fz1,fz2,pi,curr,average,CondNum,wcurr,ave1,ave2,rhores2,En1,En2,dVnorm,hgrid
    real(kind=8) :: Adiag,ersqrt,ercurr,factor,r,r2,max_diff,max_diffpot,fact,x1,x2,x3,derf_tt,diffcurr,diffcurrS,divprod,sum
    real(kind=8) :: ehartree,offset
@@ -45,9 +46,22 @@ program GPS_3D
    real(kind=8), dimension(:,:,:), allocatable :: eps,potential,pot_ion
    integer :: i1,i2,i3,whichone,i,ii,j,info,icurr,ip,isd,i1_max,i2_max,i3_max,n3d,n3p,n3pi,i3xcsh,i3s,n3pr2,n3pr1,ierr
 !   type(mpi_environment) :: bigdft_mpi
-   
+  type(dictionary), pointer :: options
+
+ 
 
    call f_lib_initialize()
+
+   !read command line
+   call PS_Check_command_line_options(options)
+
+   call f_zero(PSol)
+   PSol=options .get. 'method'
+   call dict_free(options)
+
+   call yaml_set_stream(record_length=92,tabbing=30)!unit=70,filename='log.yaml')
+   call yaml_new_document()
+
 
 !   call MPI_INIT(ierr)
 !   call MPI_COMM_RANK(MPI_COMM_WORLD,iproc,ierr)
@@ -85,7 +99,7 @@ program GPS_3D
    pkernel=pkernel_init(.true.,iproc,nproc,0,geocode,ndims,hgrids,itype_scf)
 
    call pkernel_set(pkernel,.true.)
-   call F_FFT_dimensions(n01,n02,n03,m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd3,nproc,0,.false.)
+   !call F_FFT_dimensions(n01,n02,n03,m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd3,nproc,0,.false.)
 
 !------------------------------------------------------------------------
 
@@ -105,25 +119,27 @@ program GPS_3D
    ! Calculate the charge starting from the potential applying the proper Laplace operator.
    call ApplyLaplace(n01,n02,n03,nspden,potential,rvApp,acell,eps,nord)
 
-   max_diffpot = 0.d0
-   i1_max = 1
-   i2_max = 1
-   i3_max = 1
-   do i3=1,n03
-    do i2=1,n02
-     do i1=1,n01
-     fact=abs(density(i1,i2,i3,1) - rvApp(i1,i2,i3,1))
-      if (max_diffpot < fact) then
-       max_diffpot = fact
-       i1_max = i1
-       i2_max = i2
-       i3_max = i3
-      end if
-     end do
-    end do
-   end do
-   write(*,*)'Max abs difference between analytic density - ApplyLaplace to potential'
-   write(*,'(3(1x,I4),2(1x,e14.7))')i1_max,i2_max,i3_max,max_diffpot,abs(density(n01/2,n02/2,n03/2,1)-rvApp(n01/2,n02/2,n03/2,1))
+   call writeroutinePot(n01,n02,n03,1,density,0,rvApp)
+
+!!$   max_diffpot = 0.d0
+!!$   i1_max = 1
+!!$   i2_max = 1
+!!$   i3_max = 1
+!!$   do i3=1,n03
+!!$    do i2=1,n02
+!!$     do i1=1,n01
+!!$     fact=abs(density(i1,i2,i3,1) - rvApp(i1,i2,i3,1))
+!!$      if (max_diffpot < fact) then
+!!$       max_diffpot = fact
+!!$       i1_max = i1
+!!$       i2_max = i2
+!!$       i3_max = i3
+!!$      end if
+!!$     end do
+!!$    end do
+!!$   end do
+!!$   write(*,*)'Max abs difference between analytic density - ApplyLaplace to potential'
+!!$   write(*,'(3(1x,I4),2(1x,e14.7))')i1_max,i2_max,i3_max,max_diffpot,abs(density(n01/2,n02/2,n03/2,1)-rvApp(n01/2,n02/2,n03/2,1))
 
   rhopot(:,:,:,:) = density(:,:,:,:)
 
@@ -144,14 +160,78 @@ program GPS_3D
   call f_free(eps)
   call f_free(potential)
   call f_free(pot_ion)
+
+  call yaml_release_document()
+  call yaml_close_all_streams()
+
   
   call f_lib_finalize()
   
+contains
+
+  !>identify the options from command line
+  !! and write the result in options dict
+  subroutine PS_Check_command_line_options(options)
+    use yaml_parse
+    use dictionaries
+    implicit none
+    !> dictionary of the options of the run
+    !! on entry, it contains the options for initializing
+    !! on exit, it contains in the key "BigDFT", a list of the 
+    !! dictionaries of each of the run that the local instance of BigDFT
+    !! code has to execute
+    type(dictionary), pointer :: options
+    !local variables
+    type(yaml_cl_parse) :: parser !< command line parser
+
+    !define command-line options
+    parser=yaml_cl_parse_null()
+    !between these lines, for another executable using BigDFT as a blackbox,
+    !other command line options can be specified
+    !then the bigdft options can be specified
+    call PS_check_options(parser)
+    !parse command line, and retrieve arguments
+    call yaml_cl_parse_cmd_line(parser,args=options)
+    !free command line parser information
+    call yaml_cl_parse_free(parser)
+
+  end subroutine PS_Check_command_line_options
 
 end program GPS_3D
 
-subroutine PolarizationIteration(n01,n02,n03,nspden,b,acell,eps,nord,pkernel,potential)
+subroutine PS_Check_options(parser)
+  use yaml_parse
+  use dictionaries, only: dict_new,operator(.is.)
+  implicit none
+  type(yaml_cl_parse), intent(inout) :: parser
 
+  call yaml_cl_parse_option(parser,'ndim','None',&
+       'Domain Sizes','n',&
+       dict_new('Usage' .is. &
+       'Sizes of the simulation domain of the check',&
+       'Allowed values' .is. &
+       'Yaml list of integers. If a scalar integer is given, all the dimensions will have this size.'),first_option=.true.)
+
+  call yaml_cl_parse_option(parser,'geocode','F',&
+       'Boundary conditions','g',&
+       dict_new('Usage' .is. &
+       'Set the boundary conditions of the run',&
+       'Allowed values' .is. &
+       'String scalar. "F","S","W","P" boundary conditions are allowed'))
+
+  call yaml_cl_parse_option(parser,'method','None',&
+       'Embedding method','m',&
+       dict_new('Usage' .is. &
+       'Set the embedding method used. A non present value implies vacuum treatment.',&
+       'Allowed values' .is. &
+       dict_new("PI" .is. 'Polarization iteration Method',&
+                "PCG" .is. 'Preconditioned Conjugate Gradient')))
+
+end subroutine PS_Check_options
+
+
+subroutine PolarizationIteration(n01,n02,n03,nspden,b,acell,eps,nord,pkernel,potential)
+  use yaml_output
   use Poisson_Solver
 
   implicit none
@@ -181,11 +261,12 @@ subroutine PolarizationIteration(n01,n02,n03,nspden,b,acell,eps,nord,pkernel,pot
   hz = acell/real(n03,kind=8)
 
 
-  write(*,'(a)')'--------------------------------------------------------------------------------------------'
-  write(*,'(a)')'Starting Polarization Iteration '
+  !write(*,'(a)')'--------------------------------------------------------------------------------------------'
+  !write(*,'(a)')'Starting Polarization Iteration '
 
   open(unit=18,file='PolConvergence.out',status='unknown')
   open(unit=38,file='MaxAnalysisPI.out',status='unknown')
+
 
   call fssnord3DmatNabla3var(n01,n02,n03,nspden,eps,deps,nord,acell)
 
@@ -203,10 +284,12 @@ subroutine PolarizationIteration(n01,n02,n03,nspden,b,acell,eps,nord,pkernel,pot
     call writeroutinePot(n01,n02,n03,nspden,potential,0,potential)
 !    call writeroutine(n01,n02,n03,nspden,rhosol,0)
 
+    call yaml_sequence_open('Embedded PSolver, Polarization Iteration Method')
+
     do ip=1,maxiterpol
 
-     write(*,'(a)')'--------------------------------------------------------------------------------------------'
-     write(*,*)'Starting PI iteration ',ip
+       !write(*,'(a)')'--------------------------------------------------------------------------------------------'
+       !write(*,*)'Starting PI iteration ',ip
 
      isp=1
      do i3=1,n03
@@ -218,7 +301,7 @@ subroutine PolarizationIteration(n01,n02,n03,nspden,b,acell,eps,nord,pkernel,pot
       end do
      end do
      
-
+     call yaml_sequence(advance='no')
      call H_potential('G',pkernel,lv,pot_ion,ehartree,offset,.false.)
 
      call writeroutinePot(n01,n02,n03,nspden,lv,ip,potential)
@@ -230,7 +313,7 @@ subroutine PolarizationIteration(n01,n02,n03,nspden,b,acell,eps,nord,pkernel,pot
        do i1=1,n01
         divprod = 0.d0
         do j=1,3
-         divprod = divprod + deps(i1,i2,i3,j)*dlv(i1,i2,i3,isp,j)
+           divprod = divprod + deps(i1,i2,i3,j)*dlv(i1,i2,i3,isp,j)
         end do
         rhopolnew(i1,i2,i3,isp)=(1/(4.d0*pi))*(1/eps(i1,i2,i3))*divprod
         rhopolold(i1,i2,i3,isp)=rhopol(i1,i2,i3,isp)
@@ -251,13 +334,14 @@ subroutine PolarizationIteration(n01,n02,n03,nspden,b,acell,eps,nord,pkernel,pot
      end do
 
      write(18,'(1x,I8,1x,e14.7)')ip,rhores2
-     write(*,'(1x,I8,1x,e14.7)')ip,rhores2
+     !write(*,'(1x,I8,1x,e14.7)')ip,rhores2
 
+     call EPS_iter_output(ip,0.0_dp,rhores2,0.0_dp,0.0_dp,0.0_dp)
      if (rhores2.lt.taupol) exit
 
 !     call writeroutine(n01,n02,n03,nspden,rhores,ip)
 
-    end do
+  end do
 
     isp=1
     do i3=1,n03
@@ -268,17 +352,21 @@ subroutine PolarizationIteration(n01,n02,n03,nspden,b,acell,eps,nord,pkernel,pot
      end do
     end do
 
+    call yaml_sequence_close()
+
     close(unit=18)
     close(unit=38)
-    write(*,*)
-    write(*,'(1x,a,1x,i8)')'Polarization iterations =',ip
-    write(*,'(1x,a,1x,e14.7)')'rhores polarization square =',rhores2
-    write(*,*)
-    write(*,'(a)')'Max abs difference between analytic potential and the computed one'
+    !write(*,*)
+    !write(*,'(1x,a,1x,i8)')'Polarization iterations =',ip
+    !write(*,'(1x,a,1x,e14.7)')'rhores polarization square =',rhores2
+    !write(*,*)
+    !write(*,'(a)')'Max abs difference between analytic potential and the computed one'
     call writeroutinePot(n01,n02,n03,nspden,b,ip,potential)
-    write(*,*)
-    write(*,'(a)')'Termination of Polarization Iteration'
-    write(*,'(a)')'--------------------------------------------------------------------------------------------'
+    !write(*,*)
+    !write(*,'(a)')'Termination of Polarization Iteration'
+    !write(*,'(a)')'--------------------------------------------------------------------------------------------'
+
+
 
 end subroutine PolarizationIteration
 
@@ -401,7 +489,7 @@ subroutine Prec_conjugate_gradient(n01,n02,n03,nspden,b,acell,eps,nord,pkernel,p
 
   ratio=normr/normb
 
-  call PCG_iter_output(1,normb,normr,ratio,alpha,beta)
+  call EPS_iter_output(1,normb,normr,ratio,alpha,beta)
 !  call writeroutine(n01,n02,n03,nspden,r,1)
   call writeroutinePot(n01,n02,n03,nspden,potential,0,potential)
   call writeroutinePot(n01,n02,n03,nspden,x,1,potential)
@@ -469,11 +557,9 @@ subroutine Prec_conjugate_gradient(n01,n02,n03,nspden,b,acell,eps,nord,pkernel,p
    ratio=normr/normb
    write(18,'(1x,I8,2(1x,e14.7))')i,ratio,beta
    !write(*,'(1x,I8,2(1x,e14.7))')i,ratio,beta
-   call PCG_iter_output(i,normb,normr,ratio,alpha,beta)
+   call EPS_iter_output(i,normb,normr,ratio,alpha,beta)
 !   call writeroutine(n01,n02,n03,nspden,r,i)
    call writeroutinePot(n01,n02,n03,nspden,x,i,potential)
-
-
 
   end do
 
@@ -486,11 +572,12 @@ subroutine Prec_conjugate_gradient(n01,n02,n03,nspden,b,acell,eps,nord,pkernel,p
     end do
    end do
 
-  write(*,*)
-  write(*,'(1x,a,1x,I8)')'PCG iterations =',i-1
-  write(*,'(1x,a,1x,e14.7)')'PCG error =',ratio
-  write(*,*)
-  write(*,*)'Max abs difference between analytic potential and the computed one'
+  call yaml_sequence_close()
+   !write(*,*)
+   !write(*,'(1x,a,1x,I8)')'PCG iterations =',i-1
+   !write(*,'(1x,a,1x,e14.7)')'PCG error =',ratio
+   !write(*,*)
+   !write(*,*)'Max abs difference between analytic potential and the computed one'
   call writeroutinePot(n01,n02,n03,nspden,b,i-1,potential)
   write(*,*)
 
@@ -500,11 +587,9 @@ subroutine Prec_conjugate_gradient(n01,n02,n03,nspden,b,acell,eps,nord,pkernel,p
   !write(*,'(a)')'Termination of Preconditioned Conjugate Gradient'
   !write(*,'(a)')'--------------------------------------------------------------------------------------------'
 
-  call yaml_sequence_close()
-
 end subroutine  Prec_conjugate_gradient
 
-subroutine PCG_iter_output(iter,normb,normr,ratio,alpha,beta)
+subroutine EPS_iter_output(iter,normb,normr,ratio,alpha,beta)
   use module_defs, only: dp
   use yaml_output
   implicit none
@@ -512,17 +597,17 @@ subroutine PCG_iter_output(iter,normb,normr,ratio,alpha,beta)
   real(dp), intent(in) :: normb,normr,ratio,beta,alpha
 
   call yaml_mapping_open('Iteration quality',flow=.true.)
-  call yaml_comment('PCG iteration '//trim(yaml_toa(iter)),hfill='_')
+  call yaml_comment('Iteration '//trim(yaml_toa(iter)),hfill='_')
   !write the PCG iteration
   call yaml_map('iter',iter,fmt='(i4)')
   !call yaml_map('rho_norm',normb)
-  call yaml_map('res',normr,fmt='(1pe16.4)')
-  call yaml_map('ratio',ratio,fmt='(1pe16.4)')
-  call yaml_map('alpha',alpha,fmt='(1pe16.4)')
-  call yaml_map('beta',beta,fmt='(1pe16.4)')
+  if (normr/=0.0_dp) call yaml_map('res',normr,fmt='(1pe16.4)')
+  if (ratio /= 0.0_dp) call yaml_map('ratio',ratio,fmt='(1pe16.4)')
+  if (alpha /= 0.0_dp) call yaml_map('alpha',alpha,fmt='(1pe16.4)')
+  if (beta /= 0.0_dp) call yaml_map('beta',beta,fmt='(1pe16.4)')
 
   call yaml_mapping_close()
-end subroutine PCG_iter_output
+end subroutine EPS_iter_output
 
 
 subroutine writeroutine(n01,n02,n03,nspden,r,i)
@@ -589,6 +674,7 @@ subroutine writeroutinePot(n01,n02,n03,nspden,ri,i,potential)
   integer, intent(in) :: i
   real(kind=8), dimension(n01,n02,n03,nspden), intent(in) :: ri
   real(kind=8), dimension(n01,n02,n03),intent(in) :: potential
+  !automatic array, to be check is stack poses problem
   real(kind=8), dimension(n01,n02,n03,nspden) :: re
   integer :: i1,i2,i3,j,i1_max,i2_max,i3_max,jj
   real(kind=8) :: max_val,fact
@@ -1458,7 +1544,7 @@ subroutine fssnord3DmatDiv3var(n01,n02,n03,nspden,u,du,nord,acell)
 end subroutine fssnord3DmatDiv3var
 
 subroutine SetInitDensPot(n01,n02,n03,nspden,eps,sigmaeps,erfR,acell,a_gauss,a2,hx,hy,hz,Setrho,density,potential)
-
+  use yaml_output
   implicit none
   integer, intent(in) :: n01
   integer, intent(in) :: n02
@@ -1627,9 +1713,14 @@ subroutine SetInitDensPot(n01,n02,n03,nspden,eps,sigmaeps,erfR,acell,a_gauss,a2,
 
   end if
 
-     write(*,*) 'charge sum',sum*hx*hy*hz,'potential sum',sump*hx*hy*hz
-     write(*,'(1x,a,1x,e14.7)')'Potential at the boundary 1 n02/2 1',potential(1,n02/2,1)
-     write(*,'(1x,a,1x,e14.7)')'Density at the boundary 1 n02/2 1',density(1,n02/2,1,1)
+  call yaml_map('Total Charge',sum*hx*hy*hz)
+  call yaml_map('Potential monopole',sump*hx*hy*hz)
+  call yaml_map('Potential at the boundary 1 n02/2 1',&
+       potential(1,n02/2,1))
+  call yaml_map('Density at the boundary 1 n02/2 1',density(1,n02/2,1,1))
+  !write(*,*) 'charge sum',sum*hx*hy*hz,'potential sum',sump*hx*hy*hz
+  !write(*,'(1x,a,1x,e14.7)')'Potential at the boundary 1 n02/2 1',poteantial(1,n02/2,1)
+  !write(*,'(1x,a,1x,e14.7)')'Density at the boundary 1 n02/2 1',density(1,n02/2,1,1)
 
 end subroutine SetInitDensPot
 

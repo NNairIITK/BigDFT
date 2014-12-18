@@ -989,6 +989,14 @@ subroutine PS_Check_options(parser)
        'Allowed values' .is. &
        'String scalar. "F","S","W","P" boundary conditions are allowed'))
 
+  call yaml_cl_parse_option(parser,'method','None',&
+       'Embedding method','m',&
+       dict_new('Usage' .is. &
+       'Set the embedding method used. A non present value implies vacuum treatment.',&
+       'Allowed values' .is. &
+       dict_new("PI" .is. 'Polarization iteration Method',&
+               "PCG" .is. 'Preconditioned Conjugate Gradient')))
+
 end subroutine PS_Check_options
 
 
