@@ -17,6 +17,7 @@ program MINHOP
 !  use m_ab6_symmetry
   use yaml_output
   use module_atoms, only: deallocate_atoms_data,atoms_data,astruct_dump_to_file
+  use module_fingerprints
   !implicit real(kind=8) (a-h,o-z) !!!dangerous when using modules!!!
   implicit none
   logical :: newmin,CPUcheck,occured,exist_poslocm,exist_posacc,singlestep
@@ -2534,6 +2535,7 @@ END SUBROUTINE print_logo_MH
 
 subroutine identical(iproc,nlminx,nlmin,nid,e_wpos,wfp,en_arr,fp_arr,en_delta,fp_delta,newmin,kid,dmin,k_e_wpos,n_unique,n_nonuni)
   use yaml_output
+  use module_fingerprints
   implicit real*8 (a-h,o-z)
   dimension fp_arr(nid,nlminx),wfp(nid),en_arr(nlminx)
   logical newmin
@@ -2917,17 +2919,17 @@ END subroutine hunt_orig
 !!$end subroutine fingerprint
 
 
-       subroutine fpdistance(nid,fp1,fp2,d)
-       implicit real*8 (a-h,o-z)
-       dimension fp1(nid),fp2(nid)
-
-       d=0.d0
-       do i=1,nid
-       d = d + (fp1(i)-fp2(i))**2
-       enddo
-       d=sqrt(d/nid)
-
-       end subroutine fpdistance
+!!$       subroutine fpdistance(nid,fp1,fp2,d)
+!!$       implicit real*8 (a-h,o-z)
+!!$       dimension fp1(nid),fp2(nid)
+!!$
+!!$       d=0.d0
+!!$       do i=1,nid
+!!$       d = d + (fp1(i)-fp2(i))**2
+!!$       enddo
+!!$       d=sqrt(d/nid)
+!!$
+!!$       end subroutine fpdistance
 
 
 
@@ -3070,6 +3072,7 @@ END SUBROUTINE ha_trans
 !> put velocities for frozen degrees of freedom to zero
 subroutine frozen_dof(astruct,vxyz,ndfree,ndfroz)
   use module_atoms, only: atomic_structure, move_this_coordinate
+  use module_fingerprints
   implicit none
   type(atomic_structure), intent(in) :: astruct
   integer, intent(out) :: ndfree,ndfroz

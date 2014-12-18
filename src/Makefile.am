@@ -324,15 +324,15 @@ bart_SOURCES = art.f90
 bart_FCFLAGS = -I. -Iart -I$(top_builddir)/includes @LIBABINIT_INCLUDE@ @LIBXC_INCLUDE@
 bart_LDADD = art/libart.a $(bigdft_library) @LINALG_LIBS@
 
-mhgps_SOURCES = mhgps.f90 fingerprint.f90
+mhgps_SOURCES = mhgps.f90
 mhgps_FCFLAGS = -I. -Imhgps_files -I$(top_builddir)/includes @LIBABINIT_INCLUDE@ @LIBXC_INCLUDE@
 mhgps_LDADD = mhgps_files/libmhgps.a $(amber_ld) $(bigdft_library) @LINALG_LIBS@
 
-mhgpstool_SOURCES = mhgpstool.f90 fingerprint.f90
+mhgpstool_SOURCES = mhgpstool.f90
 mhgpstool_FCFLAGS = -I. -Imhgps_files -I$(top_builddir)/includes @LIBABINIT_INCLUDE@ @LIBXC_INCLUDE@
-mhgpstool_LDADD = mhgps_files/libmhgps.a $(amber_ld) $(bigdft_library) @LINALG_LIBS@
+mhgpstool_LDADD = mhgps_files/libmhgps.a $(amber_ld) $(bigdft_library)  @LINALG_LIBS@
 
-global_SOURCES = global.f90 fingerprint.f90
+global_SOURCES = global.f90
 global_LDADD = $(bigdft_library) @LINALG_LIBS@
 
 CLEANFILES = *.@MODULE_EXT@ bindings_dbus.* introspect libbigdft-1.* input_variables_definition-inc.h
