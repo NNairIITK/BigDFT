@@ -1302,6 +1302,18 @@ module communications
                    covered(ilr,iproc)=.true.
                end if
            end do
+           ! For spin polarized calculations, norbup and norbp are different,
+           ! therefore one also has to check this distribution.
+           do jorb=1,orbs%norbup
+               jjorb=orbs%isorbu+jorb
+               jlr=orbs%inwhichlocreg(jjorb)
+               ! don't communicate to ourselves, or if we've already sent this locreg
+               if (iproc == root .or. covered(ilr,iproc)) cycle
+               call check_overlap_cubic_periodic(glr,llr(ilr),llr(jlr),isoverlap)
+               if (isoverlap) then         
+                   covered(ilr,iproc)=.true.
+               end if
+           end do
        end do
 
        ! Each process makes its data available in a contiguous workarray.
@@ -1359,7 +1371,7 @@ module communications
        end do
 
        ! Synchronize the communication
-       call mpi_win_fence(0, window, ierr)
+       call mpi_win_fence(mpi_mode_nosucceed, window, ierr)
        call mpi_win_free(window, ierr)
 
 
