@@ -48,8 +48,6 @@ program GPS_3D
 !   type(mpi_environment) :: bigdft_mpi
   type(dictionary), pointer :: options
 
- 
-
    call f_lib_initialize()
 
    !read command line
@@ -394,7 +392,8 @@ subroutine Prec_conjugate_gradient(n01,n02,n03,nspden,b,acell,eps,nord,pkernel,p
 
   use Poisson_Solver
   use yaml_output
-
+  use f_utils
+  use dynamic_memory
   implicit none
   integer, intent(in) :: n01
   integer, intent(in) :: n02
@@ -412,7 +411,7 @@ subroutine Prec_conjugate_gradient(n01,n02,n03,nspden,b,acell,eps,nord,pkernel,p
   real(kind=8), dimension(n01,n02,n03) :: de2,ddeps
   integer, parameter :: max_iter = 50
   real(kind=8), parameter :: max_ratioex = 1.0d10
-  real(kind=8) :: alpha,beta,beta0,betanew,normb,normr,ratio,k
+  real(kind=8) :: alpha,beta,beta0,betanew,normb,normr,ratio,k,epsc,zeta,pval,qval,rval
   integer :: i,ii,j,i1,i2,i3,isp
   real(kind=8), parameter :: error = 1.0d-20
   real(kind=8), dimension(n01,n02,n03) ::pot_ion
@@ -454,70 +453,86 @@ subroutine Prec_conjugate_gradient(n01,n02,n03,nspden,b,acell,eps,nord,pkernel,p
    do i2=1,n02
     do i1=1,n01
      normb=normb+b(i1,i2,i3,isp)*b(i1,i2,i3,isp)
-     lv(i1,i2,i3,isp) = b(i1,i2,i3,isp)/dsqrt(eps(i1,i2,i3))
+     !!lv(i1,i2,i3,isp) = b(i1,i2,i3,isp)/dsqrt(eps(i1,i2,i3))
     end do
    end do
   end do
   normb=dsqrt(normb)
 
-  call yaml_sequence(advance='no')
-  call H_potential('G',pkernel,lv,pot_ion,ehartree,offset,.false.)
-
-  isp=1
-  do i3=1,n03
-   do i2=1,n02
-    do i1=1,n01
-     p(i1,i2,i3,isp) = lv(i1,i2,i3,isp)/dsqrt(eps(i1,i2,i3))
-    end do
-   end do
-  end do
-
-!------------------------------------------------------------------------------------
-! Apply the Generalized Laplace operator nabla(eps*nabla) to the potential correction
-
-  beta=0.d0
-  k=0.d0
-  isp=1
-  do i3=1,n03
-   do i2=1,n02
-    do i1=1,n01
-     q(i1,i2,i3,isp)=b(i1,i2,i3,isp)+p(i1,i2,i3,isp)*corr(i1,i2,i3,isp)
-     qold(i1,i2,i3,isp)=q(i1,i2,i3,isp)
-     beta=beta+b(i1,i2,i3,isp)*p(i1,i2,i3,isp)
-     k=k+p(i1,i2,i3,isp)*q(i1,i2,i3,isp)
-    end do
-   end do
-  end do
-
-!------------------------------------------------------------------------------------
-
-  alpha = beta/k
-  !write(*,*)alpha
-  normr=0.d0
-  isp=1
-  do i3=1,n03
-   do i2=1,n02
-    do i1=1,n01
-     x(i1,i2,i3,isp) = alpha*p(i1,i2,i3,isp)
-     r(i1,i2,i3,isp) = b(i1,i2,i3,isp) - alpha*q(i1,i2,i3,isp)
-     normr=normr+r(i1,i2,i3,isp)*r(i1,i2,i3,isp)
-     lv(i1,i2,i3,isp) = r(i1,i2,i3,isp)/dsqrt(eps(i1,i2,i3))
-    end do
-   end do
-  end do
-  normr=dsqrt(normr)
-
-  ratio=normr/normb
-
-  call EPS_iter_output(1,normb,normr,ratio,alpha,beta)
-!  call writeroutine(n01,n02,n03,nspden,r,1)
-  call writeroutinePot(n01,n02,n03,nspden,potential,0,potential)
-  call writeroutinePot(n01,n02,n03,nspden,x,1,potential)
-
-  write(18,'(1x,I8,2(1x,e14.7))')1,ratio,beta
+!!$  call yaml_sequence(advance='no')
+!!$  call H_potential('G',pkernel,lv,pot_ion,ehartree,offset,.false.)
+!!$
+!!$  isp=1
+!!$  do i3=1,n03
+!!$   do i2=1,n02
+!!$    do i1=1,n01
+!!$     p(i1,i2,i3,isp) = lv(i1,i2,i3,isp)/dsqrt(eps(i1,i2,i3))
+!!$    end do
+!!$   end do
+!!$  end do
+!!$
+!!$!------------------------------------------------------------------------------------
+!!$! Apply the Generalized Laplace operator nabla(eps*nabla) to the potential correction
+!!$
+!!$  beta=0.d0
+!!$  k=0.d0
+!!$  isp=1
+!!$  do i3=1,n03
+!!$   do i2=1,n02
+!!$    do i1=1,n01
+!!$     q(i1,i2,i3,isp)=b(i1,i2,i3,isp)+p(i1,i2,i3,isp)*corr(i1,i2,i3,isp)
+!!$     qold(i1,i2,i3,isp)=q(i1,i2,i3,isp)
+!!$     beta=beta+b(i1,i2,i3,isp)*p(i1,i2,i3,isp)
+!!$     k=k+p(i1,i2,i3,isp)*q(i1,i2,i3,isp)
+!!$    end do
+!!$   end do
+!!$  end do
+!!$
+!!$!------------------------------------------------------------------------------------
+!!$
+!!$  alpha = beta/k
+!!$  !write(*,*)alpha
+!!$  normr=0.d0
+!!$  isp=1
+!!$  do i3=1,n03
+!!$   do i2=1,n02
+!!$    do i1=1,n01
+!!$     x(i1,i2,i3,isp) = alpha*p(i1,i2,i3,isp)
+!!$     r(i1,i2,i3,isp) = b(i1,i2,i3,isp) - alpha*q(i1,i2,i3,isp)
+!!$     normr=normr+r(i1,i2,i3,isp)*r(i1,i2,i3,isp)
+!!$     lv(i1,i2,i3,isp) = r(i1,i2,i3,isp)/dsqrt(eps(i1,i2,i3))
+!!$    end do
+!!$   end do
+!!$  end do
+!!$  normr=dsqrt(normr)
+!!$
+!!$  ratio=normr/normb
+!!$
+!!$  call EPS_iter_output(1,normb,normr,ratio,alpha,beta)
+!!$!  call writeroutine(n01,n02,n03,nspden,r,1)
+!!$  call writeroutinePot(n01,n02,n03,nspden,potential,0,potential)
+!!$  call writeroutinePot(n01,n02,n03,nspden,x,1,potential)
+!!$
+!!$  write(18,'(1x,I8,2(1x,e14.7))')1,ratio,beta
   !write(*,'(1x,I8,2(1x,e14.7))')1,ratio,beta
+  !initialization of the components
+  call f_memcpy(src=b,dest=r)
+  call f_zero(x)
+  call f_zero(q)
+  call f_zero(p)
+  beta=1.d0
+  ratio=1.d0
 
-  do i=2,max_iter
+  do i3=1,n03
+     do i2=1,n02
+        do i1=1,n01
+           lv(i1,i2,i3,isp) = r(i1,i2,i3,isp)/dsqrt(eps(i1,i2,i3))
+        end do
+     end do
+  end do
+
+
+  do i=1,max_iter
 
    if (ratio.lt.error) exit
    if (ratio.gt.max_ratioex) exit
@@ -539,20 +554,32 @@ subroutine Prec_conjugate_gradient(n01,n02,n03,nspden,b,acell,eps,nord,pkernel,p
       z(i1,i2,i3,isp) = lv(i1,i2,i3,isp)/dsqrt(eps(i1,i2,i3))
       beta=beta+r(i1,i2,i3,isp)*z(i1,i2,i3,isp)
 ! Apply the Generalized Laplace operator nabla(eps*nabla) to the potential correction
-      q(i1,i2,i3,isp)=r(i1,i2,i3,isp)+z(i1,i2,i3,isp)*corr(i1,i2,i3,isp)
+      !q(i1,i2,i3,isp)=r(i1,i2,i3,isp)+z(i1,i2,i3,isp)*corr(i1,i2,i3,isp)
      end do
     end do
    end do
 
+
    k=0.d0
    isp=1
-   do i3=1,n03
+
+  do i3=1,n03
     do i2=1,n02
      do i1=1,n01
-      p(i1,i2,i3,isp) = z(i1,i2,i3,isp)+(beta/beta0)*p(i1,i2,i3,isp)
-      q(i1,i2,i3,isp) = q(i1,i2,i3,isp)+(beta/beta0)*qold(i1,i2,i3,isp)
-      qold(i1,i2,i3,isp)=q(i1,i2,i3,isp)
-      k=k+p(i1,i2,i3,isp)*q(i1,i2,i3,isp)
+        zeta=z(i1,i2,i3,isp)
+        epsc=corr(i1,i2,i3,isp)
+        pval=p(i1,i2,i3,isp)
+        qval=q(i1,i2,i3,isp)
+        rval=r(i1,i2,i3,isp)
+        pval = zeta+(beta/beta0)*pval
+        qval = zeta*epsc+rval+(beta/beta0)*qval
+        k = k + pval*qval
+        p(i1,i2,i3,isp) = pval
+        q(i1,i2,i3,isp) = qval
+        !p(i1,i2,i3,isp) = z(i1,i2,i3,isp)+(beta/beta0)*p(i1,i2,i3,isp)
+        !q(i1,i2,i3,isp) = q(i1,i2,i3,isp)+(beta/beta0)*qold(i1,i2,i3,isp)
+        !qold(i1,i2,i3,isp)=q(i1,i2,i3,isp)
+        !k=k+p(i1,i2,i3,isp)*q(i1,i2,i3,isp)
      end do
     end do
    end do
