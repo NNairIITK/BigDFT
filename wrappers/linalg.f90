@@ -613,7 +613,7 @@ contains
   function dot_simple(n,sx,incx,sy,incy)
     implicit none
     integer, intent(in) :: n,incx,incy
-    real(kind=4), intent(inout) :: sx,sy
+    real(kind=4) :: sx,sy
     real(kind=4) :: dot_simple
     !local variables
     real(kind=4) :: cublas_sdot,sdot
@@ -641,7 +641,7 @@ contains
   function dot_double(n,dx,incx,dy,incy)
     implicit none
     integer, intent(in) :: n,incx,incy
-    real(kind=8), intent(inout) :: dx,dy
+    real(kind=8) :: dx,dy
     real(kind=8) :: dot_double
     !local variables
     real(kind=8) :: cublas_ddot,ddot
@@ -669,7 +669,7 @@ contains
   function nrm2_simple(n,x,incx)
     implicit none
     integer, intent(in) :: n,incx
-    real(kind=4), intent(inout) :: x
+    real(kind=4) :: x
     real(kind=4) :: nrm2_simple
     !local variables
     real(kind=4) :: cublas_snrm2,snrm2
@@ -685,7 +685,7 @@ contains
   function nrm2_double(n,x,incx)
     implicit none
     integer, intent(in) :: n,incx
-    real(kind=8), intent(inout) :: x
+    real(kind=8) :: x
     real(kind=8) :: nrm2_double
     !local variables
     real(kind=8) :: cublas_dnrm2,dnrm2

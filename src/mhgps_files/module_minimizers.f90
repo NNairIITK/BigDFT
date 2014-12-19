@@ -64,7 +64,7 @@ subroutine minimizer_sqnm(mhgpsst,uinp,runObj,outs,nbond,iconnect,&
            rxyzio,fxyzio,fnoiseio,energyio,energycounter,converged,&
            writePostfix)
 
-   use module_base
+   use module_base, except_this_one=> int
    use module_types
    use module_interfaces
    use yaml_output
