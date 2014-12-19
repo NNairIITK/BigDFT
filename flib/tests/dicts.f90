@@ -329,10 +329,14 @@ subroutine test_dictionaries1()
    call yaml_map('Values retrieved from the dict',tmp_arr,fmt='(1pg12.5)')
 
    dict2=>find_key(dictA,'Stack')
+   call yaml_map('Lenght zero',dict_len(dict2))
+   call yaml_map('Dict extracted',dict2)
    call dict_remove_last(dict2)
+   call yaml_map('Lenght first',dict_len(dict2))
 
 
    call dict_remove_last(dict2)
+   call yaml_map('Lenght second',dict_len(dict2))
 
    !  call push(dict2,'Element')
    !  call append(dictA,dictA2)
