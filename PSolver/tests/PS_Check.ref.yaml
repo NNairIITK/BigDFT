@@ -409,3 +409,556 @@
       Peak Value (MB): 11
       for the array: cosinarr
       in the routine: G_Poisson_Solver
+---
+  #------------------------------------------------------------------- Kernel Initialization
+ Poisson Kernel Initialization:
+   MPI tasks                 :  1
+   OpenMP threads per MPI task:  2
+ Poisson Kernel Creation:
+   Boundary Conditions       : Free
+   Memory Requirements per MPI task:
+     Density (MB)            :  61.04
+     Kernel (MB)             :  61.96
+     Full Grid Arrays (MB)   :  61.04
+ Total Charge                :  1.6039573335384041E-012
+ Potential monopole          :  0.999999999999676
+ Potential at the boundary 1 n02/2 1:  9.9999999999999992E-025
+ Density at the boundary 1 n02/2 1: -4.7879112046811841E-022
+ Inf. Norm difference with reference:
+   Value                     :  2.322257728337718E-07
+   Point                     :  [  100,  100,  100 ]
+   Some values: [ 2.322257728337718E-07, -2.332307622840479E-22, -1.962910964800043E-22]
+ Inf. Norm difference with reference:  0.0
+ Embedded PSolver, Polarization Iteration Method:
+ - Poisson Solver:
+     BC                      : Free
+     Box                     :  [  200,  200,  200 ]
+     MPI tasks               :  1
+   Inf. Norm difference with reference:
+     Value                   :  1.643548480043009E+00
+     Point                   :  [  100,  100,  100 ]
+     Some values: [-1.643548480043009E+00, -1.878814560492884E-01, -2.045820277007498E-01]
+   Iteration quality: { #_____________________________________________________ Iteration  1
+ iter:  1, res:  4.1296E+03}
+ - Poisson Solver:
+     BC                      : Free
+     Box                     :  [  200,  200,  200 ]
+     MPI tasks               :  1
+   Inf. Norm difference with reference:
+     Value                   :  3.014030683288580E+00
+     Point                   :  [  100,  100,  100 ]
+     Some values: [-3.014030683288580E+00, -6.616458202577321E-01, -7.204587793350582E-01]
+   Iteration quality: { #_____________________________________________________ Iteration  2
+ iter:  2, res:  3.7268E+03}
+ - Poisson Solver:
+     BC                      : Free
+     Box                     :  [  200,  200,  200 ]
+     MPI tasks               :  1
+   Inf. Norm difference with reference:
+     Value                   :  4.514093001255921E+00
+     Point                   :  [  100,  100,  100 ]
+     Some values: [-4.514093001255921E+00, -1.190895801472203E+00, -1.296753203953644E+00]
+   Iteration quality: { #_____________________________________________________ Iteration  3
+ iter:  3, res:  1.6618E+03}
+ - Poisson Solver:
+     BC                      : Free
+     Box                     :  [  200,  200,  200 ]
+     MPI tasks               :  1
+   Inf. Norm difference with reference:
+     Value                   :  5.069369155872995E+00
+     Point                   :  [  100,  100,  100 ]
+     Some values: [-5.069369155872995E+00, -1.453833789350007E+00, -1.583063458068553E+00]
+   Iteration quality: { #_____________________________________________________ Iteration  4
+ iter:  4, res:  7.1346E+02}
+ - Poisson Solver:
+     BC                      : Free
+     Box                     :  [  200,  200,  200 ]
+     MPI tasks               :  1
+   Inf. Norm difference with reference:
+     Value                   :  4.481707397371268E+00
+     Point                   :  [  100,  100,  100 ]
+     Some values: [-4.481707397371268E+00, -1.349936536188151E+00, -1.469930893681930E+00]
+   Iteration quality: { #_____________________________________________________ Iteration  5
+ iter:  5, res:  1.1776E+03}
+ - Poisson Solver:
+     BC                      : Free
+     Box                     :  [  200,  200,  200 ]
+     MPI tasks               :  1
+   Inf. Norm difference with reference:
+     Value                   :  3.258271691158621E+00
+     Point                   :  [  100,  100,  100 ]
+     Some values: [-3.258271691158621E+00, -1.014609579885428E+00, -1.104797096609268E+00]
+   Iteration quality: { #_____________________________________________________ Iteration  6
+ iter:  6, res:  1.2191E+03}
+ - Poisson Solver:
+     BC                      : Free
+     Box                     :  [  200,  200,  200 ]
+     MPI tasks               :  1
+   Inf. Norm difference with reference:
+     Value                   :  2.011237798889823E+00
+     Point                   :  [  100,  100,  100 ]
+     Some values: [-2.011237798889823E+00, -6.418720749844607E-01, -6.989273687310614E-01]
+   Iteration quality: { #_____________________________________________________ Iteration  7
+ iter:  7, res:  7.1380E+02}
+ - Poisson Solver:
+     BC                      : Free
+     Box                     :  [  200,  200,  200 ]
+     MPI tasks               :  1
+   Inf. Norm difference with reference:
+     Value                   :  1.079134325538667E+00
+     Point                   :  [  100,  100,  100 ]
+     Some values: [-1.079134325538667E+00, -3.510847773573527E-01, -3.822923110538052E-01]
+   Iteration quality: { #_____________________________________________________ Iteration  8
+ iter:  8, res:  2.7542E+02}
+ - Poisson Solver:
+     BC                      : Free
+     Box                     :  [  200,  200,  200 ]
+     MPI tasks               :  1
+   Inf. Norm difference with reference:
+     Value                   :  5.123197570530562E-01
+     Point                   :  [  100,  100,  100 ]
+     Some values: [-5.123197570530562E-01, -1.693084245374529E-01, -1.843580600445587E-01]
+   Iteration quality: { #_____________________________________________________ Iteration  9
+ iter:  9, res:  7.6796E+01}
+ - Poisson Solver:
+     BC                      : Free
+     Box                     :  [  200,  200,  200 ]
+     MPI tasks               :  1
+   Inf. Norm difference with reference:
+     Value                   :  2.182067266515157E-01
+     Point                   :  [  100,  100,  100 ]
+     Some values: [-2.182067266515157E-01, -7.306490015967529E-02, -7.955955563987430E-02]
+   Iteration quality: { #____________________________________________________ Iteration  10
+ iter:  10, res:  1.6384E+01}
+ - Poisson Solver:
+     BC                      : Free
+     Box                     :  [  200,  200,  200 ]
+     MPI tasks               :  1
+   Inf. Norm difference with reference:
+     Value                   :  8.430496845922875E-02
+     Point                   :  [  100,  100,  100 ]
+     Some values: [-8.430496845922875E-02, -2.854857811028734E-02, -3.108622714970390E-02]
+   Iteration quality: { #____________________________________________________ Iteration  11
+ iter:  11, res:  2.7798E+00}
+ - Poisson Solver:
+     BC                      : Free
+     Box                     :  [  200,  200,  200 ]
+     MPI tasks               :  1
+   Inf. Norm difference with reference:
+     Value                   :  2.981319472265165E-02
+     Point                   :  [  100,  100,  100 ]
+     Some values: [-2.981319472265165E-02, -1.019548369557883E-02, -1.110174655048040E-02]
+   Iteration quality: { #____________________________________________________ Iteration  12
+ iter:  12, res:  3.8573E-01}
+ - Poisson Solver:
+     BC                      : Free
+     Box                     :  [  200,  200,  200 ]
+     MPI tasks               :  1
+   Inf. Norm difference with reference:
+     Value                   :  9.722622952561544E-03
+     Point                   :  [  100,  100,  100 ]
+     Some values: [-9.722622952561544E-03, -3.353978188408321E-03, -3.652107215357056E-03]
+   Iteration quality: { #____________________________________________________ Iteration  13
+ iter:  13, res:  4.4722E-02}
+ - Poisson Solver:
+     BC                      : Free
+     Box                     :  [  200,  200,  200 ]
+     MPI tasks               :  1
+   Inf. Norm difference with reference:
+     Value                   :  2.942512375921247E-03
+     Point                   :  [  100,  100,  100 ]
+     Some values: [-2.942512375921247E-03, -1.023004127113341E-03, -1.113935458066878E-03]
+   Iteration quality: { #____________________________________________________ Iteration  14
+ iter:  14, res:  4.4061E-03}
+ - Poisson Solver:
+     BC                      : Free
+     Box                     :  [  200,  200,  200 ]
+     MPI tasks               :  1
+   Inf. Norm difference with reference:
+     Value                   :  8.309115078137808E-04
+     Point                   :  [  100,  100,  100 ]
+     Some values: [-8.309115078137808E-04, -2.909191755439916E-04, -3.167762880817792E-04]
+   Iteration quality: { #____________________________________________________ Iteration  15
+ iter:  15, res:  3.7401E-04}
+ - Poisson Solver:
+     BC                      : Free
+     Box                     :  [  200,  200,  200 ]
+     MPI tasks               :  1
+   Inf. Norm difference with reference:
+     Value                   :  2.199463347301034E-04
+     Point                   :  [  100,  100,  100 ]
+     Some values: [-2.199463347301034E-04, -7.750427928874251E-05, -8.439117868671973E-05]
+   Iteration quality: { #____________________________________________________ Iteration  16
+ iter:  16, res:  2.7667E-05}
+ - Poisson Solver:
+     BC                      : Free
+     Box                     :  [  200,  200,  200 ]
+     MPI tasks               :  1
+   Inf. Norm difference with reference:
+     Value                   :  5.479875336122930E-05
+     Point                   :  [  100,  100,  100 ]
+     Some values: [-5.479875336122930E-05, -1.942487668648925E-05, -2.114916248335196E-05]
+   Iteration quality: { #____________________________________________________ Iteration  17
+ iter:  17, res:  1.8011E-06}
+ - Poisson Solver:
+     BC                      : Free
+     Box                     :  [  200,  200,  200 ]
+     MPI tasks               :  1
+   Inf. Norm difference with reference:
+     Value                   :  1.289650202007664E-05
+     Point                   :  [  100,  100,  100 ]
+     Some values: [-1.289650202007664E-05, -4.597425266496662E-06, -5.003715372589252E-06]
+   Iteration quality: { #____________________________________________________ Iteration  18
+ iter:  18, res:  1.0405E-07}
+ - Poisson Solver:
+     BC                      : Free
+     Box                     :  [  200,  200,  200 ]
+     MPI tasks               :  1
+   Inf. Norm difference with reference:
+     Value                   :  2.876075907833585E-06
+     Point                   :  [  79,  104,  100 ]
+     Some values: [-2.876075900548614E-06, -1.031487054128528E-06, -1.120804872558466E-06]
+   Iteration quality: { #____________________________________________________ Iteration  19
+ iter:  19, res:  5.3732E-09}
+ - Poisson Solver:
+     BC                      : Free
+     Box                     :  [  200,  200,  200 ]
+     MPI tasks               :  1
+   Inf. Norm difference with reference:
+     Value                   :  6.095206286403990E-07
+     Point                   :  [  79,  104,  102 ]
+     Some values: [-6.095204936329424E-07, -2.206675283726738E-07, -2.379124996132572E-07]
+   Iteration quality: { #____________________________________________________ Iteration  20
+ iter:  20, res:  2.4962E-10}
+ - Poisson Solver:
+     BC                      : Free
+     Box                     :  [  200,  200,  200 ]
+     MPI tasks               :  1
+   Inf. Norm difference with reference:
+     Value                   :  1.230673038208133E-07
+     Point                   :  [  98,  79,  104 ]
+     Some values: [-1.230671542451489E-07, -4.580091043990633E-08, -4.750218220656117E-08]
+   Iteration quality: { #____________________________________________________ Iteration  21
+ iter:  21, res:  1.0492E-11}
+ - Poisson Solver:
+     BC                      : Free
+     Box                     :  [  200,  200,  200 ]
+     MPI tasks               :  1
+   Inf. Norm difference with reference:
+     Value                   :  2.372776375901553E-08
+     Point                   :  [  79,  104,  102 ]
+     Some values: [-2.372761276348001E-08, -9.929020323622820E-09, -8.441679664243003E-09]
+   Iteration quality: { #____________________________________________________ Iteration  22
+ iter:  22, res:  4.0101E-13}
+ - Poisson Solver:
+     BC                      : Free
+     Box                     :  [  200,  200,  200 ]
+     MPI tasks               :  1
+   Inf. Norm difference with reference:
+     Value                   :  4.402701692891020E-09
+     Point                   :  [  110,  70,  103 ]
+     Some values: [-4.377042728265224E-09, -2.911755151157114E-09, -8.006575542839195E-10]
+   Iteration quality: { #____________________________________________________ Iteration  23
+ iter:  23, res:  1.4002E-14}
+ - Poisson Solver:
+     BC                      : Free
+     Box                     :  [  200,  200,  200 ]
+     MPI tasks               :  1
+   Inf. Norm difference with reference:
+     Value                   :  1.718674264848234E-09
+     Point                   :  [  92,  176,  95 ]
+     Some values: [-7.734679563498048E-10, -1.599737939137066E-09,  6.279833729629269E-10]
+   Iteration quality: { #____________________________________________________ Iteration  24
+ iter:  24, res:  4.4845E-16}
+ - Poisson Solver:
+     BC                      : Free
+     Box                     :  [  200,  200,  200 ]
+     MPI tasks               :  1
+   Inf. Norm difference with reference:
+     Value                   :  1.418070349216579E-09
+     Point                   :  [  172,  81,  118 ]
+     Some values: [-1.305906494053488E-10, -1.364792194231667E-09,  8.838132107321621E-10]
+   Iteration quality: { #____________________________________________________ Iteration  25
+ iter:  25, res:  1.3225E-17}
+ - Poisson Solver:
+     BC                      : Free
+     Box                     :  [  200,  200,  200 ]
+     MPI tasks               :  1
+   Inf. Norm difference with reference:
+     Value                   :  1.400074912569834E-09
+     Point                   :  [  74,  183,  100 ]
+     Some values: [-2.051603331665319E-11, -1.324421074463236E-09,  9.277728594691369E-10]
+   Iteration quality: { #____________________________________________________ Iteration  26
+ iter:  26, res:  3.6037E-19}
+ - Poisson Solver:
+     BC                      : Free
+     Box                     :  [  200,  200,  200 ]
+     MPI tasks               :  1
+   Inf. Norm difference with reference:
+     Value                   :  1.407588066678726E-09
+     Point                   :  [  183,  126,  100 ]
+     Some values: [-2.396305376350938E-12, -1.317753025563941E-09,  9.350336495817931E-10]
+   Iteration quality: { #____________________________________________________ Iteration  27
+ iter:  27, res:  9.1019E-21}
+ Inf. Norm difference with reference:
+   Value                     :  1.407588066678726E-09
+   Point                     :  [  183,  126,  100 ]
+   Some values: [-2.396305376350938E-12, -1.317753025563941E-09,  9.350336495817931E-10]
+ Memory Consumption Report:
+   Tot. No. of Allocations             :  522
+   Tot. No. of Deallocations           :  522
+   Remaining Memory (B)                :  0
+   Memory occupation:
+     Peak Value (MB)                   :  795.638
+     for the array                     : cosinarr
+     in the routine                    : G_PoissonSolver
+     Memory Peak of process            : 1452.556 MB
+ Max No. of dictionaries used          :  203 #( 152 still in use)
+ Number of dictionary folders allocated:  1
+---
+  #------------------------------------------------------------------- Kernel Initialization
+ Poisson Kernel Initialization:
+   MPI tasks                 :  1
+   OpenMP threads per MPI task:  2
+ Poisson Kernel Creation:
+   Boundary Conditions       : Free
+   Memory Requirements per MPI task:
+     Density (MB)            :  61.04
+     Kernel (MB)             :  61.96
+     Full Grid Arrays (MB)   :  61.04
+ Total Charge                :  1.6039573335384041E-012
+ Potential monopole          :  0.999999999999676
+ Potential at the boundary 1 n02/2 1:  9.9999999999999992E-025
+ Density at the boundary 1 n02/2 1: -4.7879112046811841E-022
+ Inf. Norm difference with reference:
+   Value                     :  2.322257728337718E-07
+   Point                     :  [  100,  100,  100 ]
+   Some values: [ 2.322257728337718E-07, -2.332307622840479E-22, -1.962910964800043E-22]
+ Embedded PSolver, Preconditioned Conjugate Gradient Method:
+ - Poisson Solver:
+     BC                      : Free
+     Box                     :  [  200,  200,  200 ]
+     MPI tasks               :  1
+   Iteration quality: { #_____________________________________________________ Iteration  1
+ iter:  1, res:  1.6575E+03, ratio:  1.8637E-01, alpha:  9.3645E-01, beta:  4.2229E+05}
+   Inf. Norm difference with reference:  0.0
+   Inf. Norm difference with reference:
+     Value                   :  1.366200873790426E+00
+     Point                   :  [  95,  79,  73 ]
+     Some values: [-1.038857583301817E+00, -5.280851077831233E-01, -5.750259912450620E-01]
+ - Poisson Solver:
+     BC                      : Free
+     Box                     :  [  200,  200,  200 ]
+     MPI tasks               :  1
+   Iteration quality: { #_____________________________________________________ Iteration  2
+ iter:  2, res:  2.7997E+02, ratio:  3.1479E-02, alpha:  3.7814E-01, beta:  1.8460E+05}
+   Inf. Norm difference with reference:
+     Value                   :  6.183445964997751E-01
+     Point                   :  [  108,  102,  100 ]
+     Some values: [-5.916646850801983E-01, -1.575494925917093E-01, -1.715538722174179E-01]
+ - Poisson Solver:
+     BC                      : Free
+     Box                     :  [  200,  200,  200 ]
+     MPI tasks               :  1
+   Iteration quality: { #_____________________________________________________ Iteration  3
+ iter:  3, res:  1.2497E+02, ratio:  1.4052E-02, alpha:  1.5850E+00, beta:  4.7369E+02}
+   Inf. Norm difference with reference:
+     Value                   :  5.810931276165845E-01
+     Point                   :  [  100,  100,  100 ]
+     Some values: [-5.810931276165845E-01, -1.556820602607183E-01, -1.695204452816280E-01]
+ - Poisson Solver:
+     BC                      : Free
+     Box                     :  [  200,  200,  200 ]
+     MPI tasks               :  1
+   Iteration quality: { #_____________________________________________________ Iteration  4
+ iter:  4, res:  1.2352E+02, ratio:  1.3888E-02, alpha:  1.4154E+01, beta:  2.1887E+02}
+   Inf. Norm difference with reference:
+     Value                   :  9.793292566517731E-02
+     Point                   :  [  126,  101,  104 ]
+     Some values: [-8.912966105654307E-02, -4.876284922133628E-03, -5.309712524450533E-03]
+ - Poisson Solver:
+     BC                      : Free
+     Box                     :  [  200,  200,  200 ]
+     MPI tasks               :  1
+   Iteration quality: { #_____________________________________________________ Iteration  5
+ iter:  5, res:  2.0598E+00, ratio:  2.3159E-04, alpha:  1.0745E+00, beta:  4.3974E+02}
+   Inf. Norm difference with reference:
+     Value                   :  3.200627010028748E-04
+     Point                   :  [  68,  78,  80 ]
+     Some values: [ 1.245052598486396E-04, -1.503236696041134E-04, -1.636657514162108E-04]
+ - Poisson Solver:
+     BC                      : Free
+     Box                     :  [  200,  200,  200 ]
+     MPI tasks               :  1
+   Iteration quality: { #_____________________________________________________ Iteration  6
+ iter:  6, res:  1.1229E-01, ratio:  1.2626E-05, alpha:  9.7695E-01, beta:  6.9856E-02}
+   Inf. Norm difference with reference:
+     Value                   :  8.928396673990591E-06
+     Point                   :  [  100,  100,  100 ]
+     Some values: [ 8.928396673990591E-06,  2.142470017143567E-06,  2.352934661463765E-06]
+ - Poisson Solver:
+     BC                      : Free
+     Box                     :  [  200,  200,  200 ]
+     MPI tasks               :  1
+   Iteration quality: { #_____________________________________________________ Iteration  7
+ iter:  7, res:  1.3777E-03, ratio:  1.5491E-07, alpha:  1.0178E+00, beta:  3.4077E-05}
+   Inf. Norm difference with reference:
+     Value                   :  1.070832809998296E-07
+     Point                   :  [  72,  77,  73 ]
+     Some values: [ 9.002408241087778E-08, -6.072285320797571E-08, -4.609763602370694E-08]
+ - Poisson Solver:
+     BC                      : Free
+     Box                     :  [  200,  200,  200 ]
+     MPI tasks               :  1
+   Iteration quality: { #_____________________________________________________ Iteration  8
+ iter:  8, res:  1.1425E-05, ratio:  1.2847E-09, alpha:  9.9570E-01, beta:  1.2827E-08}
+   Inf. Norm difference with reference:
+     Value                   :  1.340937395944892E-08
+     Point                   :  [  73,  49,  35 ]
+     Some values: [ 4.624340910197589E-10, -9.992718566669945E-09,  9.141867774027226E-09]
+ - Poisson Solver:
+     BC                      : Free
+     Box                     :  [  200,  200,  200 ]
+     MPI tasks               :  1
+   Iteration quality: { #_____________________________________________________ Iteration  9
+ iter:  9, res:  4.2578E-06, ratio:  4.7874E-10, alpha:  6.3076E-01, beta:  1.5351E-12}
+   Inf. Norm difference with reference:
+     Value                   :  1.311830903308003E-08
+     Point                   :  [  64,  47,  58 ]
+     Some values: [ 4.445022128152232E-11, -1.142765184998688E-08,  7.579372797069480E-09]
+ - Poisson Solver:
+     BC                      : Free
+     Box                     :  [  200,  200,  200 ]
+     MPI tasks               :  1
+   Iteration quality: { #____________________________________________________ Iteration  10
+ iter:  10, res:  9.7300E-08, ratio:  1.0940E-11, alpha:  4.7364E-01, beta:  6.2335E-13}
+   Inf. Norm difference with reference:
+     Value                   :  1.253527700550389E-08
+     Point                   :  [  51,  55,  62 ]
+     Some values: [ 7.626344000755125E-11, -1.097181371583672E-08,  8.075727483353997E-09]
+ - Poisson Solver:
+     BC                      : Free
+     Box                     :  [  200,  200,  200 ]
+     MPI tasks               :  1
+   Iteration quality: { #____________________________________________________ Iteration  11
+ iter:  11, res:  1.3239E-09, ratio:  1.4886E-13, alpha:  1.0020E+00, beta:  4.8582E-17}
+   Inf. Norm difference with reference:
+     Value                   :  1.253213539206139E-08
+     Point                   :  [  139,  143,  150 ]
+     Some values: [ 7.465006390816598E-11, -1.096930119358350E-08,  8.078470402725241E-09]
+ - Poisson Solver:
+     BC                      : Free
+     Box                     :  [  200,  200,  200 ]
+     MPI tasks               :  1
+   Iteration quality: { #____________________________________________________ Iteration  12
+ iter:  12, res:  3.4204E-10, ratio:  3.8458E-14, alpha:  8.6234E-01, beta:  1.8172E-20}
+   Inf. Norm difference with reference:
+     Value                   :  1.253207878207225E-08
+     Point                   :  [  51,  55,  62 ]
+     Some values: [ 7.472955587672914E-11, -1.096933968626921E-08,  8.078423543060338E-09]
+ - Poisson Solver:
+     BC                      : Free
+     Box                     :  [  200,  200,  200 ]
+     MPI tasks               :  1
+   Iteration quality: { #____________________________________________________ Iteration  13
+ iter:  13, res:  2.1130E-09, ratio:  2.3758E-13, alpha:  3.3503E+00, beta:  7.1357E-21}
+   Inf. Norm difference with reference:
+     Value                   :  1.253191487697416E-08
+     Point                   :  [  139,  143,  150 ]
+     Some values: [ 7.525713385803101E-11, -1.096918553787839E-08,  8.078594624833296E-09]
+ - Poisson Solver:
+     BC                      : Free
+     Box                     :  [  200,  200,  200 ]
+     MPI tasks               :  1
+   Iteration quality: { #____________________________________________________ Iteration  14
+ iter:  14, res:  1.7075E-10, ratio:  1.9199E-14, alpha:  4.7190E+00, beta:  1.7205E-20}
+   Inf. Norm difference with reference:
+     Value                   :  1.253096854985384E-08
+     Point                   :  [  115,  174,  113 ]
+     Some values: [ 7.783462763200077E-11, -1.096849360666699E-08,  8.079346605147832E-09]
+ - Poisson Solver:
+     BC                      : Free
+     Box                     :  [  200,  200,  200 ]
+     MPI tasks               :  1
+   Iteration quality: { #____________________________________________________ Iteration  15
+ iter:  15, res:  1.7437E-12, ratio:  1.9606E-16, alpha:  1.0075E+00, beta:  5.1258E-23}
+   Inf. Norm difference with reference:
+     Value                   :  1.253097069444590E-08
+     Point                   :  [  115,  174,  113 ]
+     Some values: [ 7.784350941619778E-11, -1.096849525345547E-08,  8.079344813051601E-09]
+ - Poisson Solver:
+     BC                      : Free
+     Box                     :  [  200,  200,  200 ]
+     MPI tasks               :  1
+   Iteration quality: { #____________________________________________________ Iteration  16
+ iter:  16, res:  2.3423E-14, ratio:  2.6336E-18, alpha:  1.0030E+00, beta:  4.1238E-27}
+   Inf. Norm difference with reference:
+     Value                   :  1.253097068257316E-08
+     Point                   :  [  115,  174,  113 ]
+     Some values: [ 7.784350941619778E-11, -1.096849524331931E-08,  8.079344824115197E-09]
+ - Poisson Solver:
+     BC                      : Free
+     Box                     :  [  200,  200,  200 ]
+     MPI tasks               :  1
+   Iteration quality: { #____________________________________________________ Iteration  17
+ iter:  17, res:  1.2745E-14, ratio:  1.4330E-18, alpha:  3.1391E-01, beta:  4.4579E-29}
+   Inf. Norm difference with reference:
+     Value                   :  1.253097067467622E-08
+     Point                   :  [  115,  174,  113 ]
+     Some values: [ 7.784350941619778E-11, -1.096849523723494E-08,  8.079344830738177E-09]
+ - Poisson Solver:
+     BC                      : Free
+     Box                     :  [  200,  200,  200 ]
+     MPI tasks               :  1
+   Iteration quality: { #____________________________________________________ Iteration  18
+ iter:  18, res:  1.7389E-15, ratio:  1.9552E-19, alpha:  9.7633E-01, beta:  1.3131E-30}
+   Inf. Norm difference with reference:
+     Value                   :  1.253097067490491E-08
+     Point                   :  [  115,  174,  113 ]
+     Some values: [ 7.784350941619778E-11, -1.096849523757710E-08,  8.079344830361421E-09]
+ - Poisson Solver:
+     BC                      : Free
+     Box                     :  [  200,  200,  200 ]
+     MPI tasks               :  1
+   Iteration quality: { #____________________________________________________ Iteration  19
+ iter:  19, res:  6.0393E-16, ratio:  6.7904E-20, alpha:  8.3801E-01, beta:  8.8506E-32}
+   Inf. Norm difference with reference:
+     Value                   :  1.253097067497828E-08
+     Point                   :  [  115,  174,  113 ]
+     Some values: [ 7.784350941619778E-11, -1.096849523756676E-08,  8.079344830374285E-09]
+ - Poisson Solver:
+     BC                      : Free
+     Box                     :  [  200,  200,  200 ]
+     MPI tasks               :  1
+   Iteration quality: { #____________________________________________________ Iteration  20
+ iter:  20, res:  1.0594E-16, ratio:  1.1912E-20, alpha:  1.1847E+00, beta:  1.2795E-33}
+   Inf. Norm difference with reference:
+     Value                   :  1.253097067497172E-08
+     Point                   :  [  115,  174,  113 ]
+     Some values: [ 7.784350941619778E-11, -1.096849523755964E-08,  8.079344830382301E-09]
+ - Poisson Solver:
+     BC                      : Free
+     Box                     :  [  200,  200,  200 ]
+     MPI tasks               :  1
+   Iteration quality: { #____________________________________________________ Iteration  21
+ iter:  21, res:  2.9083E-17, ratio:  3.2700E-21, alpha:  1.0135E+00, beta:  6.3925E-35}
+   Inf. Norm difference with reference:
+     Value                   :  1.253097067497266E-08
+     Point                   :  [  115,  174,  113 ]
+     Some values: [ 7.784350941619778E-11, -1.096849523756028E-08,  8.079344830381530E-09]
+ Inf. Norm difference with reference:
+   Value                     :  1.253097067497266E-08
+   Point                     :  [  115,  174,  113 ]
+   Some values: [ 7.784350941619778E-11, -1.096849523756028E-08,  8.079344830381530E-09]
+
+ Memory Consumption Report:
+   Tot. No. of Allocations             :  468
+   Tot. No. of Deallocations           :  468
+   Remaining Memory (B)                :  0
+   Memory occupation:
+     Peak Value (MB)                   :  795.638
+     for the array                     : cosinarr
+     in the routine                    : G_PoissonSolver
+     Memory Peak of process            : 1455.564 MB
+ Max No. of dictionaries used          :  203 #( 152 still in use)
+ Number of dictionary folders allocated:  1

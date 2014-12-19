@@ -25,6 +25,7 @@ module module_io
     public :: write_restart
     public :: get_first_struct_file
     public :: print_logo_mhgps
+    public :: check_struct_file_exists
 
 contains
 !=====================================================================
@@ -76,11 +77,15 @@ subroutine read_restart(mhgpsst)
         read(u,*)mhgpsst%ifolder
         read(u,*)mhgpsst%isad,mhgpsst%isadprob
         read(u,*)mhgpsst%ntodo
+        read(u,*)mhgpsst%nrestart
+        mhgpsst%nrestart=mhgpsst%nrestart+1
         close(u)
     else
         mhgpsst%ifolder=1
         mhgpsst%isad=0
+        mhgpsst%isadprob=0
         mhgpsst%ntodo=0
+        mhgpsst%nrestart=0
     endif
 end subroutine read_restart
 !=====================================================================
@@ -90,7 +95,7 @@ subroutine write_restart(mhgpsst,runObj,cobj)
     use module_mhgps_state
     use module_connect_object
     implicit none
-    type(mhgps_state), intent(in)              :: mhgpsst
+    type(mhgps_state), intent(inout)              :: mhgpsst
     type(run_objects), intent(in)     :: runObj
     type(connect_object), optional, intent(in) :: cobj
     !local
@@ -100,6 +105,7 @@ subroutine write_restart(mhgpsst,runObj,cobj)
     write(u,*)mhgpsst%ifolder
     write(u,*)mhgpsst%isad,mhgpsst%isadprob
     write(u,*)mhgpsst%ntodo
+    write(u,*)mhgpsst%nrestart
     close(u)
     
     call write_jobs(mhgpsst,runObj,cobj)
@@ -113,27 +119,31 @@ subroutine write_jobs(mhgpsst,runObj,cobj)
     use module_connect_object
     implicit none
     !parameters
-    type(mhgps_state), intent(in) :: mhgpsst
+    type(mhgps_state), intent(inout) :: mhgpsst
     type(run_objects), intent(in)     :: runObj
     type(connect_object), optional, intent(in) :: cobj
     !local
     integer :: ijob, u, ntodo
     character(len=1) :: comment
-    character(len=14)  :: filenameR, filenameL
+    character(len=21)  :: filenameR, filenameL
     comment = ' ' 
 
     u=f_get_free_unit()
     open(unit=u,file=trim(adjustl(mhgpsst%currdir))//'/job_list_restart')
     if(present(cobj))then
         do ijob=cobj%ntodo,1,-1
-            write(filenameR,'(a,i5.5,a)')'restart',ijob,'_R'
+            !write files
+            write(filenameR,'(a,i5.5,a,i5.5,a)')'restart_',&
+                                        mhgpsst%nrestart,'_',ijob,'_R'
             call astruct_dump_to_file(bigdft_get_astruct_ptr(runObj),&
                  trim(adjustl(mhgpsst%currDir))//'/'//trim(filenameR),&
                  comment,rxyz=cobj%todorxyz(1,1,2,ijob))
-            write(filenameL,'(a,i5.5,a)')'restart',ijob,'_L'
+            write(filenameL,'(a,i5.5,a,i5.5,a)')'restart_',&
+                                        mhgpsst%nrestart,'_',ijob,'_L'
             call astruct_dump_to_file(bigdft_get_astruct_ptr(runObj),&
                  trim(adjustl(mhgpsst%currDir))//'/'//trim(filenameL),&
                  comment,rxyz=cobj%todorxyz(1,1,1,ijob))
+            !write job file
             write(u,'(a,1x,a)')trim(adjustl(filenameL)),trim(adjustl(filenameR))
         enddo
     endif
@@ -276,8 +286,8 @@ subroutine check_struct_file_exists(filename,exists)
         if(present(exists))then
             exists=.false.
         else
-        call f_err_throw('File '//trim(adjustl(filename))//&
-                        ' does not exist.')
+            call f_err_throw('File '//trim(adjustl(filename))//&
+                             ' does not exist.')
         endif
     endif
 end subroutine

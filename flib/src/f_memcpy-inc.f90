@@ -9,8 +9,8 @@
 subroutine f_memcpy_i0(dest,src,n)
   implicit none
   integer, intent(in) :: n !<nelems
-  integer :: dest !<destination buffer address
-  integer :: src !<source buffer address
+  integer(kind=4) :: dest !<destination buffer address
+  integer(kind=4) :: src !<source buffer address
 !!$  integer, intent(inout) :: dest !<destination buffer address
 !!$  integer, intent(inout) :: src !<source buffer address
   !local variables
@@ -146,6 +146,28 @@ subroutine f_memcpy_d2(dest,src)
   include 'f_memcpy-base-inc.f90'
 end subroutine f_memcpy_d2
 
+subroutine f_memcpy_d3(dest,src)
+  implicit none
+  double precision, dimension(:,:,:), intent(inout) :: dest !<destination buffer
+  double precision, dimension(:,:,:), intent(in) :: src !<source buffer 
+  !local variables
+  integer :: ns,nd
+  nd=size(dest)
+  ns=size(src)
+  include 'f_memcpy-base-inc.f90'
+end subroutine f_memcpy_d3
+
+subroutine f_memcpy_d4(dest,src)
+  implicit none
+  double precision, dimension(:,:,:,:), intent(inout) :: dest !<destination buffer
+  double precision, dimension(:,:,:,:), intent(in) :: src !<source buffer 
+  !local variables
+  integer :: ns,nd
+  nd=size(dest)
+  ns=size(src)
+  include 'f_memcpy-base-inc.f90'
+end subroutine f_memcpy_d4
+
 subroutine f_memcpy_d0d1(dest,src,n)
   implicit none
   integer, intent(in) :: n !<nelems
@@ -173,8 +195,8 @@ end subroutine f_memcpy_li0li1
 subroutine f_memcpy_i0i1(dest,src,n)
   implicit none
   integer, intent(in) :: n !<nelems
-  integer, dimension(:), intent(inout) :: dest !<destination buffer address
-  integer, intent(inout) :: src !<source buffer address
+  integer(kind=4), dimension(:), intent(inout) :: dest !<destination buffer address
+  integer(kind=4), intent(inout) :: src !<source buffer address
   !local variables
   integer :: ns,nd
   nd=size(dest)
@@ -438,9 +460,9 @@ end function f_maxdiff_i1
 function f_maxdiff_i1i2(a,b,n) result(maxdiff)
   use f_utils, only: f_diff
   implicit none
-  integer, dimension(:), intent(in) :: a 
-  integer, dimension(:,:), intent(in) :: b
-  integer :: maxdiff
+  integer(kind=4), dimension(:), intent(in) :: a 
+  integer(kind=4), dimension(:,:), intent(in) :: b
+  integer(kind=4) :: maxdiff
   integer, intent(in), optional :: n
   !local variables
   integer :: ns,nd,cnt
@@ -466,9 +488,9 @@ end function f_maxdiff_li0li1
 function f_maxdiff_i0i1(a,b,n) result(maxdiff)
   use f_utils, only: f_diff
   implicit none
-  integer, intent(inout) :: a 
-  integer, dimension(:), intent(in) :: b
-  integer :: maxdiff
+  integer(kind=4), intent(inout) :: a 
+  integer(kind=4), dimension(:), intent(in) :: b
+  integer(kind=4) :: maxdiff
   integer, intent(in), optional :: n
   !local variables
   integer :: ns,nd,cnt

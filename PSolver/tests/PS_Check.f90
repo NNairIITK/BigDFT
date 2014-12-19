@@ -81,22 +81,6 @@ program PS_Check
   !Start global timing
   call cpu_time(tcpu0)
   call system_clock(ncount0,ncount_rate,ncount_max)
-!!$
-!!$  !the first proc read the data and then send them to the others
-!!$  if (iproc==0) then
-!!$     !Use arguments
-!!$     call get_command_argument(1,value=chain)
-!!$     read(unit=chain,fmt=*) nxyz(1)
-!!$     call get_command_argument(2,value=chain)
-!!$     read(unit=chain,fmt=*) nxyz(2)
-!!$     call get_command_argument(3,value=chain)
-!!$     read(unit=chain,fmt=*) nxyz(3)
-!!$     call get_command_argument(4,value=chain)
-!!$     read(unit=chain,fmt=*) geocode
-!!$  end if
-!!$
-!!$  call MPI_BCAST(nxyz,3,MPI_INTEGER,0,MPI_COMM_WORLD,ierr)
-!!$  call MPI_BCAST(geocode,1,MPI_CHARACTER,0,MPI_COMM_WORLD,ierr)
 
 
   nxyz=options//'ndim'
@@ -246,8 +230,6 @@ program PS_Check
   if (pkernel%mpi_env%iproc +pkernel%mpi_env%igroup == 0 .and. pkernel%mpi_env%nproc > 1 ) then
      call yaml_mapping_open('Monoprocess run')
      rhopot=f_malloc(n01*n02*n03*2,id='rhopot')
-!!$      allocate(rhopot(n01*n02*n03*2+ndebug),stat=i_stat)
-!!$      call memocc(i_stat,rhopot,'rhopot',subname)
 
      ispden = 1
      call yaml_map('Number of Spins',ispden)
@@ -260,7 +242,7 @@ program PS_Check
      pkernelseq=pkernel_init(.true.,0,1,0,geocode,ndims,hgrids,itype_scf)
      call pkernel_set(pkernelseq,.true.)
 
-!!$       call createKernel(0,1,geocode,(/n01,n02,n03/),(/hx,hy,hz/),itype_scf,pkernelseq,.true.)
+
      call yaml_mapping_open('Comparison with a reference run')
 
      call compare_with_reference(1,geocode,'G',n01,n02,n03,ispden,offset,ehartree,&
@@ -273,9 +255,6 @@ program PS_Check
      call yaml_mapping_close() !comparison
 
      call f_free(rhopot)
-!!$     i_all=-product(shape(rhopot))*kind(rhopot)
-!!$     deallocate(rhopot,stat=i_stat)
-!!$     call memocc(i_stat,i_all,'rhopot',subname)
 
      call yaml_mapping_close()
   endif
@@ -1009,6 +988,14 @@ subroutine PS_Check_options(parser)
        'Set the boundary conditions of the run',&
        'Allowed values' .is. &
        'String scalar. "F","S","W","P" boundary conditions are allowed'))
+
+  call yaml_cl_parse_option(parser,'method','None',&
+       'Embedding method','m',&
+       dict_new('Usage' .is. &
+       'Set the embedding method used. A non present value implies vacuum treatment.',&
+       'Allowed values' .is. &
+       dict_new("PI" .is. 'Polarization iteration Method',&
+               "PCG" .is. 'Preconditioned Conjugate Gradient')))
 
 end subroutine PS_Check_options
 

@@ -35,6 +35,7 @@ module module_mhgps_state
         real(gp)           :: ef_counter
         integer            :: isad
         character(len=5)   :: isadc
+        integer            :: nrestart
         integer            :: ntodo
         character(len=5)   :: ntodoc
         integer            :: isadprob
@@ -69,6 +70,7 @@ subroutine init_mhgps_state(mhgpsst)
     mhgpsst%ef_counter      = 0.0_gp
     mhgpsst%isad            = 0 
     mhgpsst%isadc           = ''
+    mhgpsst%nrestart        = 0
     mhgpsst%ntodo           = 0
     mhgpsst%ntodoc          = ''
     mhgpsst%isadprob        = 0

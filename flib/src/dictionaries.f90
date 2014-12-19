@@ -129,7 +129,7 @@ module dictionaries
    public :: set,dict_init,dict_free,append,prepend,add
    public :: dict_copy, dict_update,dict_remove,dict_remove_last
    !> Handle exceptions
-   public :: find_key,dict_len,dict_size,dict_key,dict_item,dict_value,dict_next,dict_next_build
+   public :: dict_len,dict_size,dict_key,dict_item,dict_value,dict_next,dict_next_build,find_key
    public :: dict_new,list_new,dict_iter,has_key,dict_keys
    !> Public elements of dictionary_base
    public :: operator(.is.),operator(.item.)
@@ -333,86 +333,79 @@ contains
 
    contains
 
-     recursive subroutine pop_dict_(dict,key,dst)
+     subroutine pop_dict_(dict,key,dst)
        implicit none
        type(dictionary), intent(inout), pointer :: dict 
        character(len=*), intent(in) :: key
        logical, intent(in) :: dst
        !local variables
        type(dictionary), pointer :: dict_first !<in case of first occurrence
+       type(dictionary), pointer :: iter !to iterate over the dictionaries
+       logical :: key_found
+       type(dictionary), pointer :: dict_update      !< iterator for list renumbering
+       iter => dict
+       key_found=.false.
+       key_loop: do while(associated(iter))
+          !follow the chain, stop at the first occurence
+!          print *,'search',trim(key),trim(iter%data%key),'end'
 
-!!$       !$ logical :: key_found
-!!$       !$ type(dictionary), pointer :: iter       !< iterator to avoid stack overflow
-!!$       iter => dict
-!!$       key_found=.false.
-!!$       find_key: do while(associated(iter))
-!!$          !follow the chain, stop at the first occurence
-!!$          print *,'search',trim(key),trim(iter%data%key)
-!!$          if (trim(iter%data%key) == trim(key)) then
-!!$             if (associated(iter%parent)) then
-!!$                iter%parent%data%nelems=iter%parent%data%nelems-1
-!!$             else
-!!$                iter%data%nelems=iter%data%nelems-1
-!!$             end if
-!!$             dict_first => dict_extract(iter)
-!!$             if (dst) call dict_free(dict_first)
-!!$             key_found=.true.
-!!$             exit find_key
-!!$          end if
-!!$          iter => iter%next
-!!$       end do find_key
-!!$       if (.not. key_found) call f_err_throw(err_msg='Key is '//trim(key),&
-!!$            err_id=DICT_KEY_ABSENT)
-
-      if (associated(dict)) then
-         !follow the chain, stop at the first occurence
-         if (trim(dict%data%key) == trim(key)) then
-            !          print *,'here',trim(key),associated(dict%next)
-            if (associated(dict%parent)) then
-               dict%parent%data%nelems=dict%parent%data%nelems-1
+          if (trim(iter%data%key) == trim(key)) then
+             if (associated(iter%parent)) then
+                iter%parent%data%nelems=iter%parent%data%nelems-1
+             else
+                iter%data%nelems=iter%data%nelems-1
+             end if
+!!!!
+       !then check if there are brothers which have to be linked
+            if (associated(iter%next)) then
+        !this is valid if we are not at the first element
+              if (associated(iter%previous)) then
+                 call define_brother(iter%previous,iter%next) 
+                 iter%previous%next => iter%next
+              else
+                 nullify(iter%next%previous)
+                 !the next should now become the dictionary
+                 dict => iter%next
+                 nullify(dict%previous)
+              end if
+              !in case we were in a list, renumber the other brothers
+              ! Update data%item for all next.
+              if (iter%data%item >= 0) then
+                 dict_update => iter%next
+                 do while( associated(dict_update) )
+                    dict_update%data%item = dict_update%data%item - 1
+                    dict_update => dict_update%next
+                 end do
+              end if
             else
-               dict%data%nelems=dict%data%nelems-1
+              !here we should check if iter points to dict
+              if (associated(iter%previous)) then
+                  nullify(iter%previous%next)
+              end if
+               if (associated(iter,target=dict)) then
+                   nullify(dict)
+               end if
             end if
-!!!!$             if (associated(dict%next)) then
-!!!!$                call dict_free(dict%child)
-!!!!$                dict_first => dict
-!!!!$                !this is valid if we are not at the first element
-!!!!$                if (associated(dict%previous)) then
-!!!!$                   call define_brother(dict%previous,dict%next) 
-!!!!$                   dict%previous%next => dict%next
-!!!!$                else
-!!!!$                   nullify(dict%next%previous)
-!!!!$                   !the next should now become me
-!!!!$                   dict => dict%next
-!!!!$                end if
-!!!!$                !eliminate the top of the tree
-!!!!$                !but do not follow the nexts
-!!!!$                call dict_destroy(dict_first)
-!!!!$             else
-!!!!$                call dict_free(dict)
-!!!!$             end if
-            dict_first => dict_extract(dict)
-            if (dst) call dict_free(dict_first)
-
-         else if (associated(dict%next)) then
-            call pop_dict_(dict%next,key,dst)
-         else
-            call f_err_throw(err_msg='Key is '//trim(key),&
-                 err_id=DICT_KEY_ABSENT)
-            return
-         end if
-      else
-         call f_err_throw(err_msg='Key is '//trim(key),&
-              err_id=DICT_KEY_ABSENT)
-         return
-      end if
+            !never follow the brothers, the extracted dictionary is 
+            !intended to be alone
+            nullify(iter%next,iter%previous)
+            iter%data%item=-1
+            if (dst) call dict_free(iter)
+             key_found=.true.
+             exit key_loop
+          end if
+          iter => iter%next
+!       if (associated(iter)) print *,'search',trim(key),trim(iter%data%key),'end'
+       end do key_loop
+       if (.not. key_found) call f_err_throw(err_msg='Key is '//trim(key),&
+            err_id=DICT_KEY_ABSENT)
 
      end subroutine pop_dict_
    end subroutine remove_dict
-
-   !>extract the dictionary from its present context
-   !! in the case of a list renumber the items
-   !! return an object which is ready to be freed
+!!$
+!!$   !>extract the dictionary from its present context
+!!$   !! in the case of a list renumber the items
+!!$   !! return an object which is ready to be freed
    function dict_extract(dict) result(dict_first)
      implicit none
      type(dictionary), pointer, intent(inout) :: dict
@@ -456,8 +449,6 @@ contains
 
    end function dict_extract
 
-   
-
    !> Add to a list
    subroutine add_char(dict,val, last_item_ptr)
      implicit none
@@ -476,7 +467,7 @@ contains
    subroutine add_integer(dict,val, last_item_ptr)
      implicit none
      type(dictionary), pointer :: dict
-     integer, intent(in) :: val
+     integer(kind=4), intent(in) :: val
      type(dictionary), pointer, optional :: last_item_ptr
      include 'dict_add-inc.f90'
    end subroutine add_integer
@@ -829,7 +820,7 @@ contains
 
      !check if we are at the first level
  !!TEST   if (associated(dict%parent)) then
-        call pop_item_(dict%child,item,dst)
+     call pop_item_(dict%child,item,dst)
         !if it is the last the dictionary should be empty
         if (.not. associated(dict%parent) .and. .not. associated(dict%child)) then
            call dict_free(dict)
@@ -839,81 +830,148 @@ contains
 !TTEST       call pop_item_(dict,item)
 !TTEST    end if
    contains
-     !> Eliminate a key from a dictionary if it exists
-     recursive subroutine pop_item_(dict,item,dst)
-       use yaml_strings, only: yaml_toa
+
+     subroutine pop_item_(dict,item,dst)
        implicit none
        type(dictionary), intent(inout), pointer :: dict 
        integer, intent(in) :: item
        logical, intent(in) :: dst
        !local variables
        type(dictionary), pointer :: dict_first !<in case of first occurrence
-!!$       type(dictionary), pointer :: dict_update !<dict to update data%item field
-
-       if (associated(dict)) then
-!          print *,dict%data%item,trim(dict%data%key)
-          !follow the chain, stop at the first occurence
-          if (dict%data%item == item) then
-             if (associated(dict%parent)) then
-                dict%parent%data%nitems=dict%parent%data%nitems-1
+       type(dictionary), pointer :: iter !to iterate over the dictionaries
+       logical :: item_found
+       type(dictionary), pointer :: dict_update      !< iterator for list renumbering
+       iter => dict
+       item_found=.false.
+       item_loop: do while(associated(iter))
+          if (iter%data%item == item) then
+             if (associated(iter%parent)) then
+                iter%parent%data%nitems=iter%parent%data%nitems-1
+             else
+                iter%data%nitems=iter%data%nitems-1
              end if
-!!$             if (associated(dict%next)) then
-!!$                call dict_free(dict%child)
-!!$                dict_first => dict
-!!$                !this is valid if we are not at the first element
-!!$                if (associated(dict%previous)) then
-!!$                   call define_brother(dict%previous,dict%next) 
-!!$                   dict%previous%next => dict%next
-!!$                else
-!!$                   !the next should now become me
-!!$                   dict => dict%next
-!!$                end if
-!!$                ! Update data%item for all next.
-!!$                dict_update => dict_first%next
-!!$                do while( associated(dict_update) )
-!!$                   dict_update%data%item = dict_update%data%item - 1
-!!$                   dict_update => dict_update%next
-!!$                end do
-!!$                call dict_destroy(dict_first)
-!!$             else
-!!$                call dict_free(dict)
-!!$             end if
-             dict_first => dict_extract(dict)
-             if (dst) call dict_free(dict_first)
-          else if (associated(dict%next)) then
-             call pop_item_(dict%next,item,dst)
-          else
-             if (f_err_raise(err_msg='Item No. '//trim(yaml_toa(item)),&
-                  err_id=DICT_ITEM_NOT_VALID)) return
+
+             !then check if there are brothers which have to be linked
+             if (associated(iter%next)) then
+                !this is valid if we are not at the first element
+                if (associated(iter%previous)) then
+                   call define_brother(iter%previous,iter%next) 
+                   iter%previous%next => iter%next
+                else
+                   nullify(iter%next%previous)
+                   !the next should now become the dictionary
+                   dict => iter%next
+                   nullify(dict%previous)
+                end if
+                !in case we were in a list, renumber the other brothers
+                ! Update data%item for all next.
+                if (iter%data%item >= 0) then
+                   dict_update => iter%next
+                   do while( associated(dict_update) )
+                      dict_update%data%item = dict_update%data%item - 1
+                      dict_update => dict_update%next
+                   end do
+                end if
+             else
+                !here we should check if iter points to dict
+                if (associated(iter%previous)) then
+                   nullify(iter%previous%next)
+                end if
+                if (associated(iter,target=dict)) then
+                   nullify(dict)
+                end if
+             end if
+             !never follow the brothers, the extracted dictionary is 
+             !intended to be alone
+             nullify(iter%next,iter%previous)
+             iter%data%item=-1
+             if (dst) call dict_free(iter)
+             item_found=.true.
+             exit item_loop
           end if
-       else
-          if (f_err_raise(err_msg='Item No. '//trim(yaml_toa(item)),&
-               err_id=DICT_ITEM_NOT_VALID)) return
-       end if
+          iter => iter%next
+          !       if (associated(iter)) print *,'search',trim(key),trim(iter%data%key),'end'
+       end do item_loop
+       if (.not. item_found) call f_err_throw(err_msg='Item No. '//trim(yaml_toa(item)),&
+            err_id=DICT_ITEM_NOT_VALID)
 
      end subroutine pop_item_
+
+!!!     !> Eliminate a key from a dictionary if it exists
+!!!     recursive subroutine pop_item_(dict,item,dst)
+!!!       use yaml_strings, only: yaml_toa
+!!!       implicit none
+!!!       type(dictionary), intent(inout), pointer :: dict 
+!!!       integer, intent(in) :: item
+!!!       logical, intent(in) :: dst
+!!!       !local variables
+!!!       type(dictionary), pointer :: dict_first !<in case of first occurrence
+!!!!!$       type(dictionary), pointer :: dict_update !<dict to update data%item field
+!!!
+!!!       if (associated(dict)) then
+!!!!          print *,dict%data%item,trim(dict%data%key)
+!!!          !follow the chain, stop at the first occurence
+!!!          if (dict%data%item == item) then
+!!!             if (associated(dict%parent)) then
+!!!                dict%parent%data%nitems=dict%parent%data%nitems-1
+!!!             end if
+!!!!!$             if (associated(dict%next)) then
+!!!!!$                call dict_free(dict%child)
+!!!!!$                dict_first => dict
+!!!!!$                !this is valid if we are not at the first element
+!!!!!$                if (associated(dict%previous)) then
+!!!!!$                   call define_brother(dict%previous,dict%next) 
+!!!!!$                   dict%previous%next => dict%next
+!!!!!$                else
+!!!!!$                   !the next should now become me
+!!!!!$                   dict => dict%next
+!!!!!$                end if
+!!!!!$                ! Update data%item for all next.
+!!!!!$                dict_update => dict_first%next
+!!!!!$                do while( associated(dict_update) )
+!!!!!$                   dict_update%data%item = dict_update%data%item - 1
+!!!!!$                   dict_update => dict_update%next
+!!!!!$                end do
+!!!!!$                call dict_destroy(dict_first)
+!!!!!$             else
+!!!!!$                call dict_free(dict)
+!!!!!$             end if
+!!!             dict_first => dict_extract(dict)
+!!!             if (dst) call dict_free(dict_first)
+!!!          else if (associated(dict%next)) then
+!!!             call pop_item_(dict%next,item,dst)
+!!!          else
+!!!             if (f_err_raise(err_msg='Item No. '//trim(yaml_toa(item)),&
+!!!                  err_id=DICT_ITEM_NOT_VALID)) return
+!!!          end if
+!!!       else
+!!!          if (f_err_raise(err_msg='Item No. '//trim(yaml_toa(item)),&
+!!!               err_id=DICT_ITEM_NOT_VALID)) return
+!!!       end if
+!!!
+!!!     end subroutine pop_item_
    end subroutine remove_item
 
 
    !> Retrieve the pointer to the dictionary which has this key.
    !! If the key does not exist, search for it in the next chain 
    !! Key Must be already present, otherwise result is nullified
-   recursive function find_key(dict,key) result (dict_ptr)
+   recursive function find_key(dict,key) result(dict_ptr1)
      implicit none
      type(dictionary), intent(in), pointer :: dict !< Hidden inout
      character(len=*), intent(in) :: key
-     type(dictionary), pointer :: dict_ptr
+     type(dictionary), pointer :: dict_ptr1
      if (.not. associated(dict)) then
-        nullify(dict_ptr)
+        nullify(dict_ptr1)
         return
      end if
 
      if (.not. associated(dict%parent)) then
-        dict_ptr => find_key(dict%child,key)
+        dict_ptr1 => find_key(dict%child,key)
         return
      end if
 
-     dict_ptr => get_dict_from_key(dict,key)
+     dict_ptr1 => get_dict_from_key(dict,key)
 !!$     !print *,'here ',trim(key),', key ',trim(dict%data%key)
 !!$     !follow the chain, stop at the first occurence
 !!$     if (trim(dict%data%key) == trim(key)) then
@@ -1329,7 +1387,7 @@ contains
    recursive subroutine get_integer(ival,dict)
      use yaml_strings, only: is_atoi
      implicit none
-     integer, intent(out) :: ival
+     integer(kind=4), intent(out) :: ival
      type(dictionary), intent(in) :: dict
      !local variables
      integer :: ierror
@@ -1393,7 +1451,7 @@ contains
    subroutine get_ivec(arr,dict)
      use yaml_strings, only: yaml_toa
      implicit none
-     integer, dimension(:), intent(out) :: arr
+     integer(kind=4), dimension(:), intent(out) :: arr
      type(dictionary), intent(in) :: dict 
      !local variables
      integer :: tmp
@@ -1539,7 +1597,7 @@ contains
      use yaml_strings, only:yaml_toa
      implicit none
      type(dictionary), pointer :: dict
-     integer, intent(in) :: ival
+     integer(kind=4), intent(in) :: ival
      character(len=*), optional, intent(in) :: fmt
 
      if (present(fmt)) then
