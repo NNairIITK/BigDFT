@@ -1599,6 +1599,8 @@ subroutine ice(iproc, nproc, norder_polynomial, ovrlp_smat, inv_ovrlp_smat, ncal
 !@ ################################################
 
 
+  evbounds_shrinked = .false.
+
   !!!@ TEMPORARY: eigenvalues of  the overlap matrix ###################
   !!tempmat = f_malloc0((/ovrlp_smat%nfvctr,ovrlp_smat%nfvctr/),id='tempmat')
   !!do iseg=1,ovrlp_smat%nseg
@@ -2117,7 +2119,7 @@ subroutine scale_and_shift_matrix(iproc, nproc, ispin, foe_obj, smatl, &
   type(sparse_matrix),intent(in),optional :: smat2
   type(matrices),intent(in),optional :: mat2
   integer,intent(in),optional :: i2shift
-  real(kind=8),dimension(smatl%nvctrp_tg),target,intent(out) :: matscal_compr
+  real(kind=8),dimension(smatl%nvctrp_tg),intent(out) :: matscal_compr
   real(kind=8),intent(out) :: scale_factor, shift_value
 
   ! Local variables

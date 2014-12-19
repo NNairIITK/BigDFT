@@ -67,7 +67,7 @@ module communications_init
           if (jproc<=jjproc-1) i = i + 1
       end do
 
-      ! Determine the maximal extent in teh z direction that iproc has to handle
+      ! Determine the maximal extent in the z direction that iproc has to handle
       ii3min = 1000000000
       ii3max = -1000000000
       do iorb=1,orbs%norbp
@@ -106,7 +106,7 @@ module communications_init
           i3start = min(i3start,lzd%llr(ilr)%ns3)
           i3end = max(i3end,lzd%llr(ilr)%ns3+lzd%llr(ilr)%d%n3)
       end do
-      if (orbs%norbp==0) then
+      if (orbs%norbp==0.or.i3start==1000000000) then ! need to account for the case when norbp/=0 but all orbitals were down but should probably do in a better way
          i3end=0
          i3start=1
       end if

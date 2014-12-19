@@ -919,7 +919,11 @@ module communications
       !character(len=*), parameter :: subname='start_onesided_communication'
       integer :: jproc, joverlap, mpisource, istsource, mpidest, istdest, ierr, nit, ispin, ispin_shift
       integer :: ioffset_send, ist, i2, i3, ist2, ist3, info, nsize, size_of_double, npot, isend_shift
+      integer :: islices, ilines, ist1, ish1, ish2
       integer,dimension(:),allocatable :: npotarr
+
+      !!! if on BG/Q avoid mpi_get etc. as unstable
+      !!logical, parameter :: bgq=.false.
 
 
       !!do ist=1,nsendbuf
@@ -954,7 +958,7 @@ module communications
                   call mpi_type_size(mpi_double_precision, size_of_double, ierr)
                   call mpi_info_create(info, ierr)
                   call mpi_info_set(info, "no_locks", "true", ierr)
-                  call mpi_win_create(sendbuf(1), int(n1*n2*n3p(iproc)*size_of_double,kind=mpi_address_kind), &
+                  call mpi_win_create(sendbuf(1), int(n1*n2*n3p(iproc)*comm%nspin*size_of_double,kind=mpi_address_kind), &
                        size_of_double, info, bigdft_mpi%mpi_comm, comm%window, ierr)
                   call mpi_info_free(info, ierr)
     
@@ -976,16 +980,49 @@ module communications
                       call mpi_type_commit(comm%mpi_datatypes(joverlap), ierr)
                   end if
                   if (iproc==mpidest) then
-                      call mpi_type_size(comm%mpi_datatypes(joverlap), nsize, ierr)
-                      nsize=nsize/size_of_double
-                      if(nsize>0) then
-                          !!write(*,'(7(a,i0))') 'proc ',iproc,' gets ',nsize,' elements at ',ispin_shift+istdest, &
-                          !!                     ' from proc ',mpisource,' at ',isend_shift+istsource,&
-                          !!                     '; size(send)=',size(sendbuf),', size(recv)=',size(recvbuf)
-                          call mpi_get(recvbuf(ispin_shift+istdest), nsize, &
-                               mpi_double_precision, mpisource, int((isend_shift+istsource-1),kind=mpi_address_kind), &
-                               1, comm%mpi_datatypes(joverlap), comm%window, ierr)
-                      end if
+                      !!if (.not.bgq) then
+                           call mpi_type_size(comm%mpi_datatypes(joverlap), nsize, ierr)
+                           nsize=nsize/size_of_double
+                           if(nsize>0) then
+                               !!write(*,'(7(a,i0))') 'proc ',iproc,' gets ',nsize,' elements at ',ispin_shift+istdest, &
+                               !!                     ' from proc ',mpisource,' at ',isend_shift+istsource,&
+                               !!                     '; size(send)=',size(sendbuf),', size(recv)=',size(recvbuf)
+                               call mpi_get(recvbuf(ispin_shift+istdest), nsize, &
+                                    mpi_double_precision, mpisource, int((isend_shift+istsource-1),kind=mpi_address_kind), &
+                                    1, comm%mpi_datatypes(joverlap), comm%window, ierr)
+                           end if
+                       !!else
+                       !!    call mpi_type_size(comm%mpi_datatypes(joverlap), nsize, ierr)
+                       !!    nsize=nsize/size_of_double
+                       !!    if(nsize>0) then
+                       !!        nsize=nsize/nit
+                       !!        ist1=ispin_shift+istdest
+                       !!        ish1=isend_shift+istsource-1
+                       !!        do islices=1,nit
+                       !!            ist2=ist1
+                       !!            ish2=ish1
+                       !!            if (islices<nit) then
+                       !!                call mpi_get(recvbuf(ist1), nsize, &
+                       !!                     mpi_double_precision, mpisource,&
+                       !!                     int(ish1,kind=mpi_address_kind), &
+                       !!                     1, comm%mpi_datatypes(0), comm%window,ierr)
+                       !!            else
+                       !!                do ilines=1,comm%ise(4)-comm%ise(3)+1
+                       !!                    write(*,'(5(a,i0))') 'proc ',iproc,' gets ',comm%ise(2)-comm%ise(1)+1, &
+                       !!                        ' elements at position ',ist2,' from position ',ish2+1,' on proc ',mpisource
+                       !!                    call mpi_get(recvbuf(ist2), comm%ise(2)-comm%ise(1)+1, &
+                       !!                         mpi_double_precision, mpisource,&
+                       !!                         int(ish2,kind=mpi_address_kind), &
+                       !!                         comm%ise(2)-comm%ise(1)+1, mpi_double_precision, comm%window,ierr)
+                       !!                    ist2=ist2+comm%ise(2)-comm%ise(1)+1
+                       !!                    ish2=ish2+lzd%glr%d%n1i
+                       !!                end do
+                       !!            end if
+                       !!            ist1=ist1+nsize
+                       !!            ish1=ish1+ioffset_send
+                       !!        end do
+                       !!    end if
+                       !!end if
                   end if
               end do
     
@@ -1012,8 +1049,16 @@ module communications
       end do spin_loop
       
       ! Flag indicating whether the communication is complete or not
+      !if(nproc>1 .and. (.not. bgq)) then
       if(nproc>1) then
           comm%communication_complete=.false.
+      !else if (nproc>1) then
+      !    call mpi_win_fence(mpi_mode_nosucceed, comm%window, ierr)
+      !    do joverlap=1,comm%noverlaps
+      !        call mpi_type_free(comm%mpi_datatypes(joverlap), ierr)
+      !    end do
+      !    call mpi_win_free(comm%window, ierr)
+      !    comm%communication_complete=.true.
       else
           comm%communication_complete=.true.
       end if
@@ -1040,10 +1085,11 @@ module communications
       
       
       if(.not.comm%communication_complete) then
-          call mpi_win_fence(0, comm%window, ierr)
           do joverlap=1,comm%noverlaps
               call mpi_type_free(comm%mpi_datatypes(joverlap), ierr)
           end do
+          call mpibarrier(bigdft_mpi%mpi_comm)
+          call mpi_win_fence(mpi_mode_nosucceed, comm%window, ierr)
           call mpi_win_free(comm%window, ierr)
       end if
     
@@ -1290,6 +1336,18 @@ module communications
                    covered(ilr,iproc)=.true.
                end if
            end do
+           ! For spin polarized calculations, norbup and norbp are different,
+           ! therefore one also has to check this distribution.
+           do jorb=1,orbs%norbup
+               jjorb=orbs%isorbu+jorb
+               jlr=orbs%inwhichlocreg(jjorb)
+               ! don't communicate to ourselves, or if we've already sent this locreg
+               if (iproc == root .or. covered(ilr,iproc)) cycle
+               call check_overlap_cubic_periodic(glr,llr(ilr),llr(jlr),isoverlap)
+               if (isoverlap) then         
+                   covered(ilr,iproc)=.true.
+               end if
+           end do
        end do
 
        ! Each process makes its data available in a contiguous workarray.
@@ -1347,7 +1405,7 @@ module communications
        end do
 
        ! Synchronize the communication
-       call mpi_win_fence(0, window, ierr)
+       call mpi_win_fence(mpi_mode_nosucceed, window, ierr)
        call mpi_win_free(window, ierr)
 
 

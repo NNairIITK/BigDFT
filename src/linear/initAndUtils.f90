@@ -1315,7 +1315,8 @@ subroutine adjust_locregs_and_confinement(iproc, nproc, hx, hy, hz, at, input, &
   use communications_base, only: deallocate_comms_linear, deallocate_p2pComms
   use communications, only: synchronize_onesided_communication
   use sparsematrix_base, only: sparse_matrix_null, deallocate_sparse_matrix, allocate_matrices, deallocate_matrices
-  use sparsematrix_init, only: init_sparse_matrix, check_kernel_cutoff, init_matrix_taskgroups
+  use sparsematrix_init, only: init_sparse_matrix, check_kernel_cutoff, init_matrix_taskgroups, &
+                               check_local_matrix_extents
   use foe_base, only: foe_data_deallocate
   implicit none
   
@@ -1339,6 +1340,7 @@ subroutine adjust_locregs_and_confinement(iproc, nproc, hx, hy, hz, at, input, &
   real(kind=8),dimension(:), allocatable :: lphilarge, locrad_kernel, locrad_mult
   type(local_zone_descriptors) :: lzd_tmp
   character(len=*), parameter :: subname='adjust_locregs_and_confinement'
+  integer,dimension(2) :: irow, icol, iirow, iicol
 
   call f_routine(id='adjust_locregs_and_confinement')
 
@@ -1514,12 +1516,32 @@ subroutine adjust_locregs_and_confinement(iproc, nproc, hx, hy, hz, at, input, &
      !tmb%linmat%inv_ovrlp_large=sparse_matrix_null()
      !call sparse_copy_pattern(tmb%linmat%l, tmb%linmat%inv_ovrlp_large, iproc, subname)
 
+     iirow(1) = tmb%linmat%s%nfvctr
+     iirow(2) = 1
+     iicol(1) = tmb%linmat%s%nfvctr
+     iicol(2) = 1
+     call check_local_matrix_extents(iproc, nproc, tmb%collcom, tmb%collcom_sr, tmb%linmat%s, irow, icol)
+     iirow(1) = min(irow(1),iirow(1))
+     iirow(2) = max(irow(2),iirow(2))
+     iicol(1) = min(icol(1),iicol(1))
+     iicol(2) = max(icol(2),iicol(2))
+     call check_local_matrix_extents(iproc, nproc, tmb%ham_descr%collcom, tmb%collcom_sr, tmb%linmat%m, irow, icol)
+     iirow(1) = min(irow(1),iirow(1))
+     iirow(2) = max(irow(2),iirow(2))
+     iicol(1) = min(icol(1),iicol(1))
+     iicol(2) = max(icol(2),iicol(2))
+     call check_local_matrix_extents(iproc, nproc, tmb%ham_descr%collcom, tmb%collcom_sr, tmb%linmat%l, irow, icol)
+     iirow(1) = min(irow(1),iirow(1))
+     iirow(2) = max(irow(2),iirow(2))
+     iicol(1) = min(icol(1),iicol(1))
+     iicol(2) = max(icol(2),iicol(2))
+
      call init_matrix_taskgroups(iproc, nproc, input%enable_matrix_taskgroups, &
-          tmb%collcom, tmb%collcom_sr, tmb%linmat%s)
+          tmb%collcom, tmb%collcom_sr, tmb%linmat%s, iirow, iicol)
      call init_matrix_taskgroups(iproc, nproc, input%enable_matrix_taskgroups, &
-          tmb%ham_descr%collcom, tmb%collcom_sr, tmb%linmat%m)
+          tmb%ham_descr%collcom, tmb%collcom_sr, tmb%linmat%m, iirow, iicol)
      call init_matrix_taskgroups(iproc, nproc, input%enable_matrix_taskgroups, &
-          tmb%ham_descr%collcom, tmb%collcom_sr, tmb%linmat%l)
+          tmb%ham_descr%collcom, tmb%collcom_sr, tmb%linmat%l, iirow, iicol)
 
 
      nullify(tmb%linmat%ks)
@@ -1821,7 +1843,7 @@ subroutine determine_sparsity_pattern(iproc, nproc, orbs, lzd, nnonzero, nonzero
             call check_overlap_cubic_periodic(lzd%Glr,lzd%llr(ilr),lzd%llr(jlr),isoverlap)
             if(isoverlap) then
                ! From the viewpoint of the box boundaries, an overlap between ilr and jlr is possible.
-               ! Now explicitely check whether there is an overlap by using the descriptors.
+               ! Now explicitly check whether there is an overlap by using the descriptors.
                call check_overlap_from_descriptors_periodic(lzd%llr(ilr)%wfd%nseg_c, lzd%llr(jlr)%wfd%nseg_c,&
                     lzd%llr(ilr)%wfd%keyglob, lzd%llr(jlr)%wfd%keyglob, &
                     isoverlap, onseg)
