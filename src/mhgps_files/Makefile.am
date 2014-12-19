@@ -14,12 +14,12 @@ mhgps_objects = \
                module_connect_object.f90 \
                module_connect.f90 \
                module_misc.f90 \
-               module_fingerprints.f90 \
-               module_freezingstring.f90
+               module_freezingstring.f90 \
+               module_mhgpstool.f90
 
 mhgps_SOURCES = $(mhgps_objects)
 
-mhgps_LDADD = $(top_builddir)/flib/src/libflib.a @LIB_YAML_LIBS@
+##mhgps_LDADD = $(top_builddir)/flib/src/libflib.a @LIB_YAML_LIBS@
 
 ##AM_FCFLAGS = -I. -I$(top_builddir)/includes
 ##AM_FCFLAGS = -I. I$(top_builddir)/includes
@@ -53,11 +53,10 @@ module_connect_object.o: ../modules/BigDFT_API.o
 module_connect.o: module_connect_object.o module_io.o module_userinput.o module_misc.o module_ls_rmsd.o\
                   module_mhgps_state.o module_saddle.o\
                   module_freezingstring.o module_minimizers.o\
-                  ../modules/BigDFT_API.o module_fingerprints.o
+                  ../modules/BigDFT_API.o
 module_ls_rmsd.o: module_misc.o ../modules/BigDFT_API.o
 module_misc.o: ../modules/BigDFT_API.o
-module_fingerprints.o: module_userinput.o module_mhgps_state.o\
-                      ../modules/BigDFT_API.o
 module_hessian.o: module_userinput.o ../modules/BigDFT_API.o module_mhgps_state.o module_energyandforces.o
+mhgpstool.o: ../modules/BigDFT_API.o module_mhgpstool.o
 
-mhgpstool.o: ../modules/BigDFT_API.o module_fingerprints.o
+module_mhgpstool.o: ../modules/BigDFT_API.o module_io.o

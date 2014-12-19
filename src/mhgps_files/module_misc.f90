@@ -16,5 +16,4 @@ logical function almostequal( x, y, ulp )
     almostequal = abs(x-y)<( real(ulp,gp)*&
                   spacing(max(abs(x),abs(y))))
 end function
-!=====================================================================
 end module

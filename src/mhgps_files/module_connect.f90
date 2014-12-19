@@ -92,7 +92,7 @@ recursive subroutine connect_recursively(mhgpsst,fsw,uinp,runObj,outs,&
 
 
     !check if input structures are distinct 
-    if(equal(mhgpsst,'MM',mhgpsst%nid,uinp%en_delta_min,&
+    if(equal(mhgpsst%iproc,'(MHGPS)','MM',mhgpsst%nid,uinp%en_delta_min,&
                            uinp%fp_delta_min,ener1,ener2,fp1,fp2))then
         if(mhgpsst%iproc==0)call yaml_warning('(MHGPS) connect: '//&
                     'input minima are identical. Will NOT attempt'//&
@@ -171,7 +171,7 @@ recursive subroutine connect_recursively(mhgpsst,fsw,uinp,runObj,outs,&
          rcov,cobj%saddle(1,1,nsad),cobj%fpsad(1,nsad))
 
     if(nsad>1)then
-        if(equal(mhgpsst,'SS',mhgpsst%nid,uinp%en_delta_sad,&
+        if(equal(mhgpsst%iproc,'(MHGPS)','SS',mhgpsst%nid,uinp%en_delta_sad,&
           uinp%fp_delta_sad,cobj%enersad(nsad-1),cobj%enersad(nsad),&
           cobj%fpsad(1,nsad-1),cobj%fpsad(1,nsad)))then
             isame=isame+1
@@ -240,7 +240,7 @@ recursive subroutine connect_recursively(mhgpsst,fsw,uinp,runObj,outs,&
              runObj%atoms%astruct%cell_dim,&
              bigdft_get_geocode(runObj),rcov,cobj%leftmin(1,1,nsad),&
              cobj%fpleft(1,nsad))
-        if(.not.equal(mhgpsst,'MS',mhgpsst%nid,uinp%en_delta_sad,&
+        if(.not.equal(mhgpsst%iproc,'(MHGPS)','MS',mhgpsst%nid,uinp%en_delta_sad,&
            uinp%fp_delta_sad,cobj%enersad(nsad),cobj%enerleft(nsad),&
            cobj%fpsad(1,nsad),cobj%fpleft(1,nsad)))then
            exit loopL 
@@ -325,7 +325,7 @@ recursive subroutine connect_recursively(mhgpsst,fsw,uinp,runObj,outs,&
              cobj%fright(1,1,nsad))
         call fingerprint(runObj%atoms%astruct%nat,mhgpsst%nid,runObj%atoms%astruct%cell_dim,bigdft_get_geocode(runObj),rcov,&
                         cobj%rightmin(1,1,nsad),cobj%fpright(1,nsad))
-        if(.not.equal(mhgpsst,'MS',mhgpsst%nid,uinp%en_delta_sad,uinp%fp_delta_sad,&
+        if(.not.equal(mhgpsst%iproc,'(MHGPS)','MS',mhgpsst%nid,uinp%en_delta_sad,uinp%fp_delta_sad,&
            cobj%enersad(nsad),cobj%enerright(nsad),&
            cobj%fpsad(1,nsad),cobj%fpright(1,nsad)))then
            exit loopR 
@@ -376,22 +376,22 @@ recursive subroutine connect_recursively(mhgpsst,fsw,uinp,runObj,outs,&
 
     !is minimum, obtained by relaxation from left bar end identical to
     !left input minimum?
-    lnl=equal(mhgpsst,'MM',mhgpsst%nid,uinp%en_delta_min,uinp%fp_delta_min,ener1,&
+    lnl=equal(mhgpsst%iproc,'(MHGPS)','MM',mhgpsst%nid,uinp%en_delta_min,uinp%fp_delta_min,ener1,&
         cobj%enerleft(nsad),fp1,cobj%fpleft(1,nsad))
 
     !is minimum obtained by relaxation from right bar end identical to
     !right input minimum?
-    rnr=equal(mhgpsst,'MM',mhgpsst%nid,uinp%en_delta_min,uinp%fp_delta_min,ener2,&
+    rnr=equal(mhgpsst%iproc,'(MHGPS)','MM',mhgpsst%nid,uinp%en_delta_min,uinp%fp_delta_min,ener2,&
         cobj%enerright(nsad),fp2,cobj%fpright(1,nsad))
 
     !is minimum obtained by relaxation from left bar end identical to 
     !right input minimum?
-    lnr=equal(mhgpsst,'MM',mhgpsst%nid,uinp%en_delta_min,uinp%fp_delta_min,ener2,&
+    lnr=equal(mhgpsst%iproc,'(MHGPS)','MM',mhgpsst%nid,uinp%en_delta_min,uinp%fp_delta_min,ener2,&
         cobj%enerleft(nsad),fp2,cobj%fpleft(1,nsad))
 
     !is minimum obtained by relaxation from right bar end identical to
     !left input minimum?
-    rnl=equal(mhgpsst,'MM',mhgpsst%nid,uinp%en_delta_min,uinp%fp_delta_min,ener1,&
+    rnl=equal(mhgpsst%iproc,'(MHGPS)','MM',mhgpsst%nid,uinp%en_delta_min,uinp%fp_delta_min,ener1,&
         cobj%enerright(nsad),fp1,cobj%fpright(1,nsad))
 
     if((lnl .and. rnr) .or. (lnr .and. rnl))then!connection done
@@ -419,7 +419,7 @@ if(mhgpsst%iproc==0)write(*,'(a,es24.17,1x,es24.17)')'(MHGPS) connection check c
 !write(*,*)
 !write(*,*)cobj%leftmin(:,:,nsad_loc)
 !if(sqrt(sum((rxyz1-cobj%leftmin(:,:,nsad_loc))**2))<1.d-2)then
-!    lnl=equal(mhgpsst,mhgpsst%nid,en_delta_min,uinp%fp_delta_min,ener1,&
+!    lnl=equal(mhgpsst%iproc,'(MHGPS)',mhgpsst%nid,en_delta_min,uinp%fp_delta_min,ener1,&
 !        cobj%enerleft(nsad),fp1,cobj%fpleft(1,nsad))
 !!call fingerprint(nat,mhgpsst%nid,alat,atoms%astruct%geocode,rcov,&
 !!                cobj%leftmin(1,1,nsad_loc),cobj%fpleft(1,nsad_loc))
@@ -574,7 +574,7 @@ connectloop: do while(cobj%ntodo>=1)
     endif
 
     !check if input structures are distinct 
-    if(equal(mhgpsst,'MM',mhgpsst%nid,uinp%en_delta_min,&
+    if(equal(mhgpsst%iproc,'(MHGPS)','MM',mhgpsst%nid,uinp%en_delta_min,&
        uinp%fp_delta_min,cobj%todoenergy(1,cobj%ntodo),cobj%todoenergy(2,cobj%ntodo),&
                              cobj%todofp(1,1,cobj%ntodo),cobj%todofp(1,2,cobj%ntodo)))then
         if(mhgpsst%iproc==0)call yaml_warning('(MHGPS) connect: '//&
@@ -649,7 +649,7 @@ connectloop: do while(cobj%ntodo>=1)
          rcov,cobj%saddle(1,1,nsad),cobj%fpsad(1,nsad))
 
     if(nsad>1)then
-        if(equal(mhgpsst,'SS',mhgpsst%nid,uinp%en_delta_sad,&
+        if(equal(mhgpsst%iproc,'(MHGPS)','SS',mhgpsst%nid,uinp%en_delta_sad,&
           uinp%fp_delta_sad,cobj%enersad(nsad-1),cobj%enersad(nsad),&
           cobj%fpsad(1,nsad-1),cobj%fpsad(1,nsad)))then
             isame=isame+1
@@ -665,20 +665,18 @@ connectloop: do while(cobj%ntodo>=1)
             !If now again sad1 is found, min4 and min2 was tried again
             !if we would not stop here.
             if(isame==3)then
+                if(mhgpsst%iproc==0)then
+                    call yaml_warning('(MHGPS) found same saddle '//&
+                                'point again. Aborting connection'//&
+                                ' attempt.')
+                endif
                 call write_todo(mhgpsst,runObj,outs,rxyz1,rxyz2,&
                      ener1,ener2)
                 connected=.false.
                 nsad=nsad-1
                 mhgpsst%isad=mhgpsst%isad-1
                 write(mhgpsst%isadc,'(i5.5)')mhgpsst%isad
-
-                if(mhgpsst%iproc==0)then
-                    call yaml_warning('(MHGPS) found same saddle '//&
-                                'point again. Aborting connection'//&
-                                ' attempt.')
-                endif
                 isame=0
-
                 exit connectloop !stop connection
             endif
         else
@@ -727,7 +725,7 @@ connectloop: do while(cobj%ntodo>=1)
              runObj%atoms%astruct%cell_dim,&
              bigdft_get_geocode(runObj),rcov,cobj%leftmin(1,1,nsad),&
              cobj%fpleft(1,nsad))
-        if(.not.equal(mhgpsst,'MS',mhgpsst%nid,uinp%en_delta_sad,&
+        if(.not.equal(mhgpsst%iproc,'(MHGPS)','MS',mhgpsst%nid,uinp%en_delta_sad,&
            uinp%fp_delta_sad,cobj%enersad(nsad),cobj%enerleft(nsad),&
            cobj%fpsad(1,nsad),cobj%fpleft(1,nsad)))then
            exit loopL
@@ -813,7 +811,7 @@ connectloop: do while(cobj%ntodo>=1)
              cobj%fright(1,1,nsad))
         call fingerprint(runObj%atoms%astruct%nat,mhgpsst%nid,runObj%atoms%astruct%cell_dim,bigdft_get_geocode(runObj),rcov,&
                         cobj%rightmin(1,1,nsad),cobj%fpright(1,nsad))
-        if(.not.equal(mhgpsst,'MS',mhgpsst%nid,uinp%en_delta_sad,uinp%fp_delta_sad,&
+        if(.not.equal(mhgpsst%iproc,'(MHGPS)','MS',mhgpsst%nid,uinp%en_delta_sad,uinp%fp_delta_sad,&
            cobj%enersad(nsad),cobj%enerright(nsad),&
            cobj%fpsad(1,nsad),cobj%fpright(1,nsad)))then
            exit loopR
@@ -867,22 +865,22 @@ connectloop: do while(cobj%ntodo>=1)
 
     !is minimum, obtained by relaxation from left bar end identical to
     !left input minimum?
-    lnl=equal(mhgpsst,'MM',mhgpsst%nid,uinp%en_delta_min,uinp%fp_delta_min,ener1cur,&
+    lnl=equal(mhgpsst%iproc,'(MHGPS)','MM',mhgpsst%nid,uinp%en_delta_min,uinp%fp_delta_min,ener1cur,&
         cobj%enerleft(nsad),fp1cur,cobj%fpleft(1,nsad))
 
     !is minimum obtained by relaxation from right bar end identical to
     !right input minimum?
-    rnr=equal(mhgpsst,'MM',mhgpsst%nid,uinp%en_delta_min,uinp%fp_delta_min,ener2cur,&
+    rnr=equal(mhgpsst%iproc,'(MHGPS)','MM',mhgpsst%nid,uinp%en_delta_min,uinp%fp_delta_min,ener2cur,&
         cobj%enerright(nsad),fp2cur,cobj%fpright(1,nsad))
 
     !is minimum obtained by relaxation from left bar end identical to 
     !right input minimum?
-    lnr=equal(mhgpsst,'MM',mhgpsst%nid,uinp%en_delta_min,uinp%fp_delta_min,ener2cur,&
+    lnr=equal(mhgpsst%iproc,'(MHGPS)','MM',mhgpsst%nid,uinp%en_delta_min,uinp%fp_delta_min,ener2cur,&
         cobj%enerleft(nsad),fp2cur,cobj%fpleft(1,nsad))
 
     !is minimum obtained by relaxation from right bar end identical to
     !left input minimum?
-    rnl=equal(mhgpsst,'MM',mhgpsst%nid,uinp%en_delta_min,uinp%fp_delta_min,ener1cur,&
+    rnl=equal(mhgpsst%iproc,'(MHGPS)','MM',mhgpsst%nid,uinp%en_delta_min,uinp%fp_delta_min,ener1cur,&
         cobj%enerright(nsad),fp1cur,cobj%fpright(1,nsad))
 
     if((lnl .and. rnr) .or. (lnr .and. rnl))then!connection done
@@ -917,7 +915,7 @@ if(mhgpsst%iproc==0)write(*,'(a,es24.17,1x,es24.17)')'(MHGPS) connection check c
 !write(*,*)
 !write(*,*)cobj%leftmin(:,:,nsad_loc)
 !if(sqrt(sum((rxyz1-cobj%leftmin(:,:,nsad_loc))**2))<1.d-2)then
-!    lnl=equal(mhgpsst,nid,en_delta_min,fp_delta_min,ener1,&
+!    lnl=equal(mhgpsst%iproc,'(MHGPS)',nid,en_delta_min,fp_delta_min,ener1,&
 !        cobj%enerleft(nsad),fp1,cobj%fpleft(1,nsad))
 !!call fingerprint(nat,nid,alat,atoms%astruct%geocode,rcov,&
 !!                cobj%leftmin(1,1,nsad_loc),cobj%fpleft(1,nsad_loc))

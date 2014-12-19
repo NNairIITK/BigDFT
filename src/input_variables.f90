@@ -474,19 +474,22 @@ subroutine create_dir_output(iproc, in)
   integer, intent(in) :: iproc
   type(input_variables), intent(inout) :: in
 
-  character(len=100) :: dirname
-  integer :: i_stat,ierror,ierr
+  integer(kind=4),parameter    :: dirlen=100
+  character(len=dirlen) :: dirname
+  integer :: ierror
+  integer(kind=4) :: i_stat, ierr
+  integer         :: ierrr
 
   ! Create a directory to put the files in.
   dirname=repeat(' ',len(dirname))
   if (iproc == 0) then
-     call getdir(in%dir_output, len_trim(in%dir_output), dirname, 100, i_stat)
+     call getdir(in%dir_output, int(len_trim(in%dir_output),kind=4), dirname, dirlen, i_stat)
      if (i_stat /= 0) then
         call yaml_warning("Cannot create output directory '" // trim(in%dir_output) // "'.")
-        call MPI_ABORT(bigdft_mpi%mpi_comm,ierror,ierr)
+        call MPI_ABORT(bigdft_mpi%mpi_comm,ierror,ierrr)
      end if
   end if
-  call MPI_BCAST(dirname,len(dirname),MPI_CHARACTER,0,bigdft_mpi%mpi_comm,ierr)
+  call MPI_BCAST(dirname,len(dirname),MPI_CHARACTER,0,bigdft_mpi%mpi_comm,ierrr)
   in%dir_output=dirname
 END SUBROUTINE create_dir_output
 

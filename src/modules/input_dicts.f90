@@ -353,7 +353,8 @@ contains
     type(dictionary), pointer :: dict
     logical, intent(out) :: dict_from_files !<identifies if the dictionary comes from files
     !local variables
-    integer :: ierr,ierror,lgt,unit_log
+    integer :: ierror,lgt,unit_log,ierrr
+    integer(kind=4) :: ierr
     character(len = max_field_length) :: writing_directory, run_name
     character(len=500) :: logfilename,path
     integer :: iproc_node, nproc_node
@@ -368,7 +369,7 @@ contains
        !add the output directory in the directory name
        if (bigdft_mpi%iproc == 0 .and. trim(writing_directory) /= '.') then
           call getdir(writing_directory,&
-               len_trim(writing_directory),path,len(path),ierr)
+               int(len_trim(writing_directory),kind=4),path,int(len(path),kind=4),ierr)
           if (ierr /= 0) then
              write(*,*) "ERROR: cannot create writing directory '"&
                   //trim(writing_directory) // "'."
@@ -400,18 +401,18 @@ contains
           path = trim(writing_directory)//trim(logfilename)
           call yaml_map('<BigDFT> log of the run will be written in logfile',path,unit=6)
           ! Check if logfile is already connected.
-          call yaml_stream_connected(trim(path), unit_log, ierr)
-          if (ierr /= 0) then
+          call yaml_stream_connected(trim(path), unit_log, ierrr)
+          if (ierrr /= 0) then
              ! Move possible existing log file.
              call ensure_log_file(trim(writing_directory), trim(logfilename), ierr)
              if (ierr /= 0) call MPI_ABORT(bigdft_mpi%mpi_comm,ierror,ierr)
              ! Close active stream and logfile if any. (TO BE MOVED IN RUN_UPDATE TO AVOID CLOSURE OF UPLEVEL INSTANCE)
              call yaml_get_default_stream(unit_log)
-             if (unit_log /= 6) call yaml_close_stream(unit_log, ierr)
+             if (unit_log /= 6) call yaml_close_stream(unit_log, ierrr)
              !Create stream and logfile
-             call yaml_set_stream(filename=trim(path),record_length=92,istat=ierr)
+             call yaml_set_stream(filename=trim(path),record_length=92,istat=ierrr)
              !create that only if the stream is not already present, otherwise print a warning
-             if (ierr == 0) then
+             if (ierrr == 0) then
                 call yaml_get_default_stream(unit_log)
                 call input_set_stdout(unit=unit_log)
              else
@@ -419,11 +420,11 @@ contains
              end if
           else
              call yaml_release_document(unit_log)
-             call yaml_set_default_stream(unit_log, ierr)
+             call yaml_set_default_stream(unit_log, ierrr)
           end if ! Logfile already connected
        else
           !use stdout, do not crash if unit is present
-          call yaml_set_stream(record_length=92,istat=ierr)
+          call yaml_set_stream(record_length=92,istat=ierrr)
        end if ! Need to create a named logfile.
 
        !start writing on logfile

@@ -25,6 +25,7 @@ module module_io
     public :: write_restart
     public :: get_first_struct_file
     public :: print_logo_mhgps
+    public :: check_struct_file_exists
 
 contains
 !=====================================================================
@@ -285,8 +286,8 @@ subroutine check_struct_file_exists(filename,exists)
         if(present(exists))then
             exists=.false.
         else
-        call f_err_throw('File '//trim(adjustl(filename))//&
-                        ' does not exist.')
+            call f_err_throw('File '//trim(adjustl(filename))//&
+                             ' does not exist.')
         endif
     endif
 end subroutine
