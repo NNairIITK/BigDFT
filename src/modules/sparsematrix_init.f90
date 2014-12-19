@@ -27,6 +27,7 @@ module sparsematrix_init
 contains
 
 
+
     integer function matrixindex_in_compressed(sparsemat, iorb, jorb, init_, n_)
       use sparsematrix_base, only: sparse_matrix
       implicit none
@@ -76,6 +77,7 @@ contains
       end if
       iiorb=mod(iorb-1,sparsemat%nfvctr)+1 !orbital number regardless of the spin
       jjorb=mod(jorb-1,sparsemat%nfvctr)+1 !orbital number regardless of the spin
+      
     
       if (sparsemat%store_index) then
           ! Take the value from the array
@@ -87,7 +89,9 @@ contains
 
       ! Add the spin shift (i.e. the index is in the spin polarized matrix which is at the end)
       if (ispin==2) then
-          matrixindex_in_compressed = matrixindex_in_compressed + sparsemat%nvctr
+          if (matrixindex_in_compressed/=0) then
+              matrixindex_in_compressed = matrixindex_in_compressed + sparsemat%nvctr
+          end if
       end if
     
     contains
