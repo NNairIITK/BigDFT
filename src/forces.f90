@@ -4826,7 +4826,8 @@ subroutine nonlocal_forces_linear(iproc,nproc,npsidim_orbs,lr,hx,hy,hz,at,rxyz,&
                 ncount = 2*(ndir+1)*7*3*4*(iatmax-iatmin+1)
                 nat_on_task = iat_startend(2,jproc)-iat_startend(1,jproc)+1
                 if (ie>=is .and. ncount>0) then
-                    call mpi_type_vector(ie-is+1, ncount, 2*(ndir+1)*7*3*4*nat_on_task, mpi_double_precision, datatypes(jproc), ierr)
+                    call mpi_type_vector(ie-is+1, ncount, 2*(ndir+1)*7*3*4*nat_on_task, &
+                         mpi_double_precision, datatypes(jproc), ierr)
                     call mpi_type_commit(datatypes(jproc), ierr)
                     !!do iorb=is,ie
                     !!    if (ncount>0) then
