@@ -659,6 +659,7 @@ contains
     !local variables
     logical :: crt
     type(dictionary), pointer :: iter
+    integer(kind=8), external :: f_loc
 
     crt=.false.
     if (present(create)) crt=create
