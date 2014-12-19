@@ -193,7 +193,7 @@ program mhgps
     call allocate_connect_object(bigdft_nat(runObj),mhgpsst%nid,uinp%nsadmax,cobj)
 
     iconnect = 0
-    call give_rcov(mhgpsst,bigdft_get_astruct_ptr(runObj),bigdft_nat(runObj),rcov)
+    call give_rcov(mhgpsst%iproc,bigdft_get_astruct_ptr(runObj),bigdft_nat(runObj),rcov)
     !if in biomode, determine bonds betweens atoms once and for all
     !(it isassuemed that all conifugrations over which will be
     !iterated have the same bonds)
@@ -253,10 +253,14 @@ program mhgps
               runObj%inputs%inputPsiId=0
               call mhgpsenergyandforces(mhgpsst,runObj,outs,rxyz2,&
                                         fat,fnoise,energy2,infocode)
-              call fingerprint(bigdft_nat(runObj),mhgpsst%nid,runObj%atoms%astruct%cell_dim,&
-                   bigdft_get_geocode(runObj),rcov,rxyz(1,1),fp(1))
-              call fingerprint(bigdft_nat(runObj),mhgpsst%nid,runObj%atoms%astruct%cell_dim,&
-                   bigdft_get_geocode(runObj),rcov,rxyz2(1,1),fp2(1))
+              call fingerprint(bigdft_nat(runObj),mhgpsst%nid,&
+                              runObj%atoms%astruct%cell_dim,&
+                              bigdft_get_geocode(runObj),rcov,&
+                              rxyz(1,1),fp(1))
+              call fingerprint(bigdft_nat(runObj),mhgpsst%nid,&
+                              runObj%atoms%astruct%cell_dim,&
+                              bigdft_get_geocode(runObj),rcov,&
+                              rxyz2(1,1),fp2(1))
               if(mhgpsst%iproc==0)then
                  call yaml_comment('(MHGPS) Connect '//&
                       trim(adjustl(mhgpsst%joblist(1,ijob)))//' and '//&

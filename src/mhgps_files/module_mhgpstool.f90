@@ -8,6 +8,8 @@
 !!    For the list of contributors, see ~/AUTHORS
 module module_mhgpstool
     use module_base
+    use module_atoms, only: atomic_structure
+    use module_userinput, only: userinput
     implicit none
 
     private
@@ -29,6 +31,9 @@ module module_mhgpstool
         integer :: nmin
         integer :: nsadtot
         integer :: nmintot
+        type(atomic_structure) :: astruct
+        type(userinput) :: mhgps_uinp
+        real(gp), allocatable :: rcov(:)
         real(gp), allocatable :: fp_arr(:,:)
         real(gp), allocatable :: en_arr(:)
         real(gp), allocatable :: fp_arr_sad(:,:)
@@ -44,6 +49,7 @@ module module_mhgpstool
 !=====================================================================
 subroutine init_mhgpstool_data(nat,nfolder,nsad,mdat)
     use module_base
+    use module_atoms, only: nullify_atomic_structure
     implicit none
     !parameters
     integer, intent(in) :: nat
@@ -51,40 +57,46 @@ subroutine init_mhgpstool_data(nat,nfolder,nsad,mdat)
     integer, intent(in) :: nsad(:)
     type(mhgpstool_data), intent(inout) :: mdat
     !local
-    integer :: nid
-    integer :: nsadtot, nmintot
-    
+   
+    call nullify_atomic_structure(mdat%astruct)
+ 
     mdat%nat = nat
     mdat%nid = nat !s-overlap
 !    nid = 4*nat !sp-overlap
+
+    mdat%rcov = f_malloc((/nat/),id='rcov')
 
     mdat%nsad = -1
     mdat%nmin = -1
 
     mdat%nsadtot = sum(nsad)
-    mdat%nmintot = 2*nsadtot !worst case
-    mdat%fp_arr     = f_malloc((/nid,nmintot/),id='fp_arr')
-    mdat%fp_arr_sad = f_malloc((/nid,nsadtot/),id='fp_arr_sad')
-    mdat%en_arr     = f_malloc((/nmintot/),id='en_arr')
-    mdat%en_arr_sad = f_malloc((/nsadtot/),id='en_arr_sad')
+    mdat%nmintot = 2*mdat%nsadtot !worst case
+    mdat%fp_arr     = f_malloc((/mdat%nid,mdat%nmintot/),id='fp_arr')
+    mdat%fp_arr_sad = f_malloc((/mdat%nid,mdat%nsadtot/),id='fp_arr_sad')
+    mdat%en_arr     = f_malloc((/mdat%nmintot/),id='en_arr')
+    mdat%en_arr_sad = f_malloc((/mdat%nsadtot/),id='en_arr_sad')
 
-    mdat%sadneighb  = f_malloc((/2,nsadtot/),id='sadneighb')
+    mdat%sadneighb  = f_malloc((/2,mdat%nsadtot/),id='sadneighb')
 
-    mdat%minnumber = f_malloc((/nmintot/),id='minnumber')
-    mdat%sadnumber = f_malloc((/nsadtot/),id='sadnumber')
+    mdat%minnumber = f_malloc((/mdat%nmintot/),id='minnumber')
+    mdat%sadnumber = f_malloc((/mdat%nsadtot/),id='sadnumber')
 
-    mdat%exclude = f_malloc((/nsadtot/),id='exclude')
+    mdat%exclude = f_malloc((/mdat%nsadtot/),id='exclude')
     
-    mdat%path_sad = f_malloc_str(600,(/1.to.nsadtot/),id='path_sad')
-    mdat%path_min = f_malloc_str(600,(/1.to.nmintot/),id='path_min')
+    mdat%path_sad = f_malloc_str(600,(/1.to.mdat%nsadtot/),id='path_sad')
+    mdat%path_min = f_malloc_str(600,(/1.to.mdat%nmintot/),id='path_min')
 end subroutine init_mhgpstool_data
 !=====================================================================
 subroutine finalize_mhgpstool_data(mdat)
+    use module_atoms, only: deallocate_atomic_structure
     implicit none
     !parameters
     type(mhgpstool_data), intent(inout) :: mdat
 
 
+    call deallocate_atomic_structure(mdat%astruct)
+    call f_free(mdat%rcov)
+    
     call f_free(mdat%fp_arr)
     call f_free(mdat%fp_arr_sad)
     call f_free(mdat%en_arr)
@@ -145,16 +157,13 @@ subroutine count_saddle_points(nfolder,folders,nsad)
     do ifolder = 1, nfolder
         isad=0
         do
-            write(fsaddle,'(a,i5.5,a)')trim(adjustl(folders(ifolder)))//&
-                               '/sad',isad+1,'_finalF'
+            call construct_filenames(folders,ifolder,isad+1,fsaddle,&
+                 fminL,fminR)
             call check_struct_file_exists(fsaddle,fsaddleEx)
-            write(fminL,'(a,i5.5,a)')trim(adjustl(folders(ifolder)))//&
-                  '/sad',isad+1,'_minFinalL'
             call check_struct_file_exists(fminL,fminLex)
-            write(fminR,'(a,i5.5,a)')trim(adjustl(folders(ifolder)))//&
-                  '/sad',isad+1,'_minFinalR'
             call check_struct_file_exists(fminR,fminRex)
-            if((.not. fsaddleEx) .or. (.not. fminLex) .or. (.not. fminRex))then
+            if((.not. fsaddleEx) .or. (.not. fminLex) .or. &
+                                                  (.not. fminRex))then
                 exit
             endif
             isad=isad+1
@@ -165,19 +174,135 @@ subroutine count_saddle_points(nfolder,folders,nsad)
     call yaml_map('TOTAL',sum(nsad))
 end subroutine count_saddle_points
 !=====================================================================
-subroutine read_and_merge_data(folders,mdat)
+subroutine read_and_merge_data(folders,nsad,mdat)
     use module_base
+    use yaml_output
+    use module_atoms, only: set_astruct_from_file
+    use module_fingerprints
     implicit none
     !parameters
     character(len=500), intent(in) :: folders(:)
+    integer, intent(in) :: nsad(:)
     type(mhgpstool_data), intent(inout) :: mdat
     !local
     integer :: nfolder
     integer :: ifolder
+    integer :: isad
+    integer :: n
+    character(len=600) :: fsaddle, fminR, fminL
+    real(gp) :: rxyz(3,mdat%nat), fp(mdat%nid), epot
+    real(gp) :: en_delta, fp_delta
+    real(gp) :: en_delta_sad, fp_delta_sad
+    logical  :: lnew
+    integer  :: kid
+    integer  :: k_epot
+    integer  :: id_minleft, id_minright, id_saddle
     nfolder = size(folders,1)
 
+    en_delta = mdat%mhgps_uinp%en_delta_min
+    fp_delta = mdat%mhgps_uinp%fp_delta_min
+    en_delta_sad = mdat%mhgps_uinp%en_delta_sad
+    fp_delta_sad = mdat%mhgps_uinp%fp_delta_sad
     do ifolder =1, nfolder
-        
+        do isad =1, nsad(ifolder)
+            call construct_filenames(folders,ifolder,isad,fsaddle,&
+                 fminL,fminR)
+write(*,*)trim(adjustl(fsaddle)),trim(adjustl(fminL)),trim(adjustl(fminR))
+            !insert left minimum
+            call set_astruct_from_file(trim(fminL),0,mdat%astruct,&
+                 energy=epot)
+            n=3*mdat%astruct%nat
+            if (n /= size(rxyz)) then
+                call f_err_throw('Error in read_and_merge_data:'//&
+                     ' wrong size ('//trim(yaml_toa(n))//' /= '//&
+                     trim(yaml_toa(size(rxyz)))//')',&
+                     err_name='BIGDFT_RUNTIME_ERROR')
+            end if
+            call fingerprint(mdat%nat,mdat%nid,mdat%astruct%cell_dim,&
+                 mdat%astruct%geocode,mdat%rcov,rxyz(1,1),fp(1))
+
+            call identical(mdat%nmintot,mdat%nmin,mdat%nid,epot,fp,&
+                 mdat%en_arr,mdat%fp_arr,en_delta,fp_delta,lnew,kid,&
+                 k_epot)
+            if(lnew)then
+                call yaml_comment('Minimum '//trim(adjustl(fminL))//&
+                                  ' is new.')
+                call insert_min(mdat,k_epot,epot,fp,fminL)
+                id_minleft=mdat%minnumber(k_epot+1)
+            else
+                id_minleft=mdat%minnumber(kid)
+                call yaml_comment('Minimum '//trim(adjustl(fminL))//&
+                                  ' is identical to minimum '//&
+                                  trim(yaml_toa(id_minleft)))
+            endif 
+
+            !insert right minimum
+            call set_astruct_from_file(trim(fminR),0,mdat%astruct,&
+                 energy=epot)
+            n=3*mdat%astruct%nat
+            if (n /= size(rxyz)) then
+                call f_err_throw('Error in read_and_merge_data:'//&
+                     ' wrong size ('//trim(yaml_toa(n))//' /= '//&
+                     trim(yaml_toa(size(rxyz)))//')',&
+                     err_name='BIGDFT_RUNTIME_ERROR')
+            end if
+            call fingerprint(mdat%nat,mdat%nid,mdat%astruct%cell_dim,&
+                 mdat%astruct%geocode,mdat%rcov,rxyz(1,1),fp(1))
+
+            call identical(mdat%nmintot,mdat%nmin,mdat%nid,epot,fp,&
+                 mdat%en_arr,mdat%fp_arr,en_delta,fp_delta,lnew,kid,&
+                 k_epot)
+            if(lnew)then
+                call yaml_comment('Minimum '//trim(adjustl(fminR))//&
+                                  ' is new.')
+                call insert_min(mdat,k_epot,epot,fp,fminR)
+                id_minleft=mdat%minnumber(k_epot+1)
+            else
+                id_minleft=mdat%minnumber(kid)
+                call yaml_comment('Minimum '//trim(adjustl(fminL))//&
+                                  ' is identical to minimum '//&
+                                  trim(yaml_toa(id_minleft)))
+            endif 
+
+            !insert saddle
+            call set_astruct_from_file(trim(fsaddle),0,mdat%astruct,&
+                 energy=epot)
+            n=3*mdat%astruct%nat
+            if (n /= size(rxyz)) then
+                call f_err_throw('Error in read_and_merge_data:'//&
+                     ' wrong size ('//trim(yaml_toa(n))//' /= '//&
+                     trim(yaml_toa(size(rxyz)))//')',&
+                     err_name='BIGDFT_RUNTIME_ERROR')
+            end if
+            call fingerprint(mdat%nat,mdat%nid,mdat%astruct%cell_dim,&
+                 mdat%astruct%geocode,mdat%rcov,rxyz(1,1),fp(1))
+
+            call identical(mdat%nsadtot,mdat%nsad,mdat%nid,epot,fp,&
+                 mdat%en_arr_sad,mdat%fp_arr_sad,en_delta_sad,&
+                 fp_delta_sad,lnew,kid,k_epot)
+            if(lnew)then
+                call yaml_comment('Saddle '//trim(adjustl(fsaddle))//&
+                     ' is new.')
+                call insert_sad(mdat,k_epot,epot,fp,id_minleft,&
+                     id_minright,fsaddle)
+                id_saddle=mdat%sadnumber(k_epot+1)
+            else
+                id_saddle=mdat%sadnumber(kid)
+                call yaml_comment('Saddle '//trim(adjustl(fsaddle))//&
+                     ' is identical to minimum '//trim(yaml_toa(id_saddle)))
+                if(.not.( ((mdat%sadneighb(1,id_saddle)==id_minleft)&
+                         .and.(mdat%sadneighb(2,id_saddle)==id_minright))&
+                     &.or.((mdat%sadneighb(2,id_saddle)==id_minleft) &
+                         .and.(mdat%sadneighb(1,id_saddle)==id_minright))))then
+                    call yaml_warning('following saddle point has'//&
+                         ' more than two neighbored minima: '//&
+                         trim(yaml_toa(mdat%sadnumber(id_saddle))))
+!                    nexclude=nexclude+1
+!                    exclude(nexclude) = sadnumber_merged(kid_sad)
+                endif
+
+            endif 
+        enddo
     enddo
     
 end subroutine read_and_merge_data
@@ -191,6 +316,7 @@ end subroutine write_data
 subroutine identical(ndattot,ndat,nid,epot,fp,en_arr,fp_arr,en_delta,&
                     fp_delta,lnew,kid,k_epot)
     use module_base
+    use yaml_output
     use module_fingerprints
     implicit none
     !parameters
@@ -242,8 +368,10 @@ subroutine identical(ndattot,ndat,nid,epot,fp,en_arr,fp_arr,en_delta,&
             endif
         endif
     enddo
-    if (nsm.gt.1) write(*,*) '(MH) WARNING: more than one'//&
-                             ' identical configuration found'
+    if (nsm.gt.1) then
+        call yaml_warning('more than one identical configuration'//&
+             ' found')
+    endif
 end subroutine identical
 !=====================================================================
 subroutine insert_sad(mdat,k_epot,epot,fp,neighb1,neighb2,path)
@@ -259,9 +387,11 @@ subroutine insert_sad(mdat,k_epot,epot,fp,neighb1,neighb2,path)
     character(len=600)   :: path
     !local
     integer :: i,k
+write(*,*)'insert at',k_epot+1
     if(mdat%nsad+1>mdat%nsadtot)stop 'nsad+1>=nsadtot, out of bounds'
 
     mdat%nsad=mdat%nsad+1
+stop
     do k=mdat%nsad-1,k_epot+1,-1
         mdat%en_arr_sad(k+1)=mdat%en_arr_sad(k)
         mdat%sadnumber(k+1)=mdat%sadnumber(k)
@@ -294,6 +424,7 @@ subroutine insert_min(mdat,k_epot,epot,fp,path)
     character(len=600)   :: path
     !local
     integer :: i,k
+write(*,*)'insert at',k_epot+1
     if(mdat%nmin+1>mdat%nmintot)stop 'nmin+1>=nmintot, out of bounds'
 
     mdat%nmin=mdat%nmin+1
@@ -309,9 +440,25 @@ subroutine insert_min(mdat,k_epot,epot,fp,path)
     mdat%minnumber(k_epot+1)=mdat%nmin
     mdat%path_min(k_epot+1)=path
     do i=1,mdat%nid
-        mdat%fp_arr(i,k+1)=fp(i)
+        mdat%fp_arr(i,k_epot+1)=fp(i)
     enddo
 end subroutine insert_min
+!=====================================================================
+subroutine construct_filenames(folders,ifolder,isad,fsaddle,fminL,fminR)
+    implicit none
+    !parameters
+    character(len=500), intent(in) :: folders(:)
+    integer, intent(in)  ::  ifolder, isad
+    character(len=600), intent(out) :: fsaddle, fminR, fminL
+    !local
+    
+    write(fsaddle,'(a,i5.5,a)')trim(adjustl(folders(ifolder)))//&
+                       '/sad',isad,'_finalF'
+    write(fminL,'(a,i5.5,a)')trim(adjustl(folders(ifolder)))//&
+          '/sad',isad,'_minFinalL'
+    write(fminR,'(a,i5.5,a)')trim(adjustl(folders(ifolder)))//&
+          '/sad',isad,'_minFinalR'
+end subroutine
 !=====================================================================
 !> C x is in interval [xx(jlo),xx(jlow+1)
 ![ ; xx(0)=-Infinity ; xx(n+1) = Infinity

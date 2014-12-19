@@ -351,14 +351,14 @@ contains
     end subroutine print_input
 
 
-subroutine give_rcov(mhgpsst,astruct,nat,rcov)
+subroutine give_rcov(iproc,astruct,nat,rcov)
   use module_base, only: gp
   use module_types
   use yaml_output
   use module_mhgps_state
   implicit none
   !Arguments
-  type(mhgps_state), intent(in) :: mhgpsst
+  integer, intent(in) :: iproc
   integer, intent(in) :: nat
   type(atomic_structure), intent(in) :: astruct
   real(gp), intent(out) :: rcov(nat)
@@ -550,7 +550,7 @@ subroutine give_rcov(mhgpsst,astruct,nat,rcov)
              //trim(astruct%atomnames(astruct%iatype(iat))),&
              err_name='BIGDFT_RUNTIME_ERROR')
      end select
-     if (mhgpsst%iproc == 0) then
+     if (iproc == 0) then
         call yaml_map('(MHGPS) RCOV:'//trim(astruct%atomnames(astruct%iatype(iat))),rcov(iat))
      endif
   enddo
