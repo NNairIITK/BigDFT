@@ -904,7 +904,7 @@ module communications
     subroutine start_onesided_communication(iproc, nproc, n1, n2, n3p, sendbuf, nrecvbuf, recvbuf, comm, lzd)
       use module_base
       use module_types, only: local_zone_descriptors
-      use communications_base, only: p2pComms
+      use communications_base, only: p2pComms, bgq
       implicit none
       
       ! Calling arguments
@@ -929,7 +929,7 @@ module communications
       !!do ist=1,nsendbuf
       !!    write(5400,'(a,2i12,es18.7)') 'iproc, ist, sendbuf(ist)', iproc, ist, sendbuf(ist)
       !!end do
-      !!recvbuf=123456789.d0
+      !recvbuf=-123456789.d0
 
       !write(*,'(a,i12,es16.8)') 'in start_onesided_communication: nsendbuf, sum(sendbuf)', nsendbuf, sum(sendbuf)
     
@@ -980,7 +980,7 @@ module communications
                       call mpi_type_commit(comm%mpi_datatypes(joverlap), ierr)
                   end if
                   if (iproc==mpidest) then
-                      !!if (.not.bgq) then
+                      if (.not.bgq) then
                            call mpi_type_size(comm%mpi_datatypes(joverlap), nsize, ierr)
                            nsize=nsize/size_of_double
                            if(nsize>0) then
@@ -991,6 +991,11 @@ module communications
                                     mpi_double_precision, mpisource, int((isend_shift+istsource-1),kind=mpi_address_kind), &
                                     1, comm%mpi_datatypes(joverlap), comm%window, ierr)
                            end if
+                       else
+                           call mpi_get(recvbuf(ispin_shift+istdest), nit*lzd%glr%d%n1i*lzd%glr%d%n2i, &
+                                mpi_double_precision, mpisource, int((isend_shift+istsource-1),kind=mpi_address_kind), &
+                                nit*lzd%glr%d%n1i*lzd%glr%d%n2i, mpi_double_precision, comm%window, ierr)
+                       end if
                        !!else
                        !!    call mpi_type_size(comm%mpi_datatypes(joverlap), nsize, ierr)
                        !!    nsize=nsize/size_of_double
