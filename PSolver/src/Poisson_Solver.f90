@@ -55,10 +55,12 @@
 !!
 !! @ingroup PSOLVER
 module Poisson_Solver
+   use dictionaries, only: f_err_throw
    use wrapper_linalg
    use wrapper_MPI
    use dynamic_memory
-   use time_profiling, only: TIMING_UNINITIALIZED
+   use time_profiling, only: TIMING_UNINITIALIZED, f_timing
+   use yaml_output, only: yaml_map, yaml_toa, yaml_mapping_open, yaml_mapping_close
    !use m_profiling
    ! TO BE REMOVED with f_malloc
    

@@ -1631,7 +1631,6 @@ contains
     integer :: dummy_int, blocks(2)
     double precision :: dummy_real
     character(len = 7) :: dummy_str
-    character(len = max_field_length) :: dummy_path
 
     call input_set_file(iproc, (iproc == 0), filename, exists, PERF_VARIABLES)
     !if (exists) in%files = in%files + INPUTS_PERF

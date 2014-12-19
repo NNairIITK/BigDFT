@@ -7,6 +7,9 @@
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS
+
+
+!> Manage low-level operations (external files and basic memory operations)
 module f_utils
   use dictionaries, only: f_err_throw,f_err_define, &
        & dictionary, dict_len, dict_iter, dict_next, dict_value, max_field_length
@@ -15,7 +18,7 @@ module f_utils
 
   private
 
-  integer, save, private :: INPUT_OUTPUT_ERROR
+  integer, private, save :: INPUT_OUTPUT_ERROR
 
   integer, public, save :: TCAT_INIT_TO_ZERO
 
@@ -27,11 +30,13 @@ module f_utils
      integer :: iunit = 0
      type(dictionary), pointer :: lstring => null()
   end type io_stream
+
   !> enumerator type, useful to define different modes
   type, public :: f_enumerator
      character(len=64) :: name
      integer :: id
   end type f_enumerator
+
   integer, parameter, private :: NULL_INT=-1024
   character(len=*), parameter, private :: null_name='nullified enumerator'
 
@@ -668,7 +673,6 @@ contains
   subroutine put_to_zero_double_7(da)
     implicit none
     double precision, dimension(:,:,:,:,:,:,:), intent(out) :: da
-    logical :: within_openmp
     call f_timer_interrupt(TCAT_INIT_TO_ZERO) 
     call razero(size(da),da)
     call f_timer_resume() 

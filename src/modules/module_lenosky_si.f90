@@ -1,14 +1,17 @@
-!! @file
+!> @file
+!! Empirical potential for Si type Lenosky
 !! @author
-!! @section LICENCE
 !!    Copyright (C) 2014 BigDFT group
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS
-!  Copyright (C) 2001-2002 Stefan Goedecker, CEA Grenoble
-!  This file is distributed under the terms of the
-!  GNU General Public License, see http://www.gnu.org/copyleft/gpl.txt .
+!!  Copyright (C) 2001-2002 Stefan Goedecker, CEA Grenoble
+!!  This file is distributed under the terms of the
+!!  GNU General Public License, see http://www.gnu.org/copyleft/gpl.txt .
+
+
+!> Module defining quantities for Lensoky Si potential
 module module_lenosky_si
 
 private

@@ -17,6 +17,8 @@ program PSolver_Program
   use wrapper_mpi
   use time_profiling
   use dynamic_memory
+  use yaml_output
+  use dictionaries, only: f_err_throw
   implicit none
   !include 'mpif.h'
   !Order of interpolating scaling function
@@ -26,6 +28,17 @@ program PSolver_Program
   !Length of the box
   real(kind=8), parameter :: acell = 10.0d0
   real(kind=8), parameter :: EulerGamma = 0.5772156649015328d0
+
+  !Type of function
+  integer, parameter :: FUNC_CONSTANT = 1
+  integer, parameter :: FUNC_GAUSSIAN = 2
+  integer, parameter :: FUNC_GAUSSIAN_SHRINKED = 3
+  integer, parameter :: FUNC_COSINE = 4
+  integer, parameter :: FUNC_EXP_COSINE = 5
+  integer, parameter :: FUNC_SHRINK_GAUSSIAN = 6
+  integer, parameter :: FUNC_SINE = 7
+  integer, parameter :: FUNC_ATAN = 8
+
   character(len=50) :: chain
   character(len=1) :: geocode !< @copydoc poisson_solver::coulomb_operator::geocode
   character(len=1) :: datacode
@@ -140,32 +153,54 @@ program PSolver_Program
   call MPI_COMM_RANK(MPI_COMM_WORLD,iproc,ierr)
   call MPI_COMM_SIZE(MPI_COMM_WORLD,nproc,ierr)
 
-  if (geocode == 'P') then
+  select case(geocode)
+  
+  case('P')
 
-     if (iproc==0) print *,"PSolver, periodic BC: ",n01,n02,n03,'processes',nproc
+     !if (iproc==0) print *,"PSolver, periodic BC: ",n01,n02,n03,'processes',nproc
+     if (iproc==0) then
+        call yaml_map('PSolver, periodic BC', (/ n01,n02,n03 /))
+        call yaml_map('processes',nproc)
+     end if
      call P_FFT_dimensions(n01,n02,n03,m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd3,nproc,.false.)
   
-  else if (geocode == 'S') then
+  case('S')
 
-     if (iproc==0) print *,"PSolver for surfaces: ",n01,n02,n03,'processes',nproc
+     !if (iproc==0) print *,"PSolver for surfaces: ",n01,n02,n03,'processes',nproc
+     if (iproc==0) then
+        call yaml_map('PSolver, surface BC', (/ n01,n02,n03/))
+        call yaml_map('processes',nproc)
+     end if
      call S_FFT_dimensions(n01,n02,n03,m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd3,nproc,0,.false.)
   
-  else if (geocode == 'F') then
+  case('F')
 
-     if (iproc==0) print *,"PSolver, free BC: ",n01,n02,n03,'processes',nproc
+     !if (iproc==0) print *,"PSolver, free BC: ",n01,n02,n03,'processes',nproc
+     if (iproc==0) then
+        call yaml_map('PSolver, free BC', (/ n01,n02,n03 /))
+        call yaml_map('processes',nproc)
+     end if
      call F_FFT_dimensions(n01,n02,n03,m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd3,nproc,0,.false.)
   
-  else if (geocode == 'W') then
+  case('W')
     
-     if (iproc==0) print *,"PSolver, wires BC: ",n01,n02,n03,'processes',nproc
+     !if (iproc==0) print *,"PSolver, wires BC: ",n01,n02,n03,'processes',nproc
+     if (iproc==0) then
+        call yaml_map('PSolver, wire BC', (/ n01,n02,n03 /))
+        call yaml_map('processes',nproc)
+     end if
      call W_FFT_dimensions(n01,n02,n03,m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd3,nproc,0,.false.)
      
-  else if (geocode == 'H') then
+  case('H')
    
-     if (iproc==0) print *,"PSolver, Helmholtz Equation Solver: ",n01,n02,n03,'processes',nproc
+     !if (iproc==0) print *,"PSolver, Helmholtz Equation Solver: ",n01,n02,n03,'processes',nproc
+     if (iproc==0) then
+        call yaml_map('PSolver, Helmholtz Equation Solver', (/ n01,n02,n03 /))
+        call yaml_map('processes',nproc)
+     end if
      call F_FFT_dimensions(n01,n02,n03,m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd3,nproc,0,.false.)
   
-  end if
+  end select
 
   !write(*,*) n01,n02,n03,m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd3
 
@@ -178,7 +213,8 @@ program PSolver_Program
   hy=acell/real(n02,kind=8)
   hz=acell/real(n03,kind=8)
 
-  write(*,'(a5,1pe20.12)') ' hx = ', hx
+  !write(*,'(a5,1pe20.12)') ' hx = ', hx
+  call yaml_map('hx',hx)
 
   !grid for the free BC case
   hgrid=max(hx,hy,hz)
@@ -187,7 +223,8 @@ program PSolver_Program
   !we must choose properly a test case with a positive density
   !itype_scf=16
 
-  write(*,'(a12,i4)') ' itype_scf = ', itype_scf 
+  !write(*,'(a12,i4)') ' itype_scf = ', itype_scf 
+  call yaml_map('itype_scf',itype_scf)
 
   call f_timing_reset(filename='time.yaml',master=iproc==0)
   !call timing(nproc,'time.prc','IN')
@@ -233,7 +270,8 @@ program PSolver_Program
            end do
         end do
         offset=offset*hx*hy*hz*sqrt(detg) ! /// to be fixed ///
-        write(*,*) 'offset = ',offset
+        !write(*,*) 'offset = ',offset
+        call yaml_map('offset',offset)
      end if
 
      !dimension needed for allocations
@@ -263,7 +301,8 @@ program PSolver_Program
 !!$     call PSolver(geocode,datacode,iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
 !!$          density(1,1,i3sd),karray%kernel,pot_ion(1,1,i3s+i3xcsh),ehartree,eexcu,vexcu,offset,.true.,1,alpha,beta,gamma)
 
-     print *,'potential integral',sum(density)
+     !print *,'potential integral',sum(density)
+     call yaml_map('potential integral',sum(density))
 
      i3=n03/2
      do i2=1,n02
@@ -271,7 +310,7 @@ program PSolver_Program
            !j1=n01/2+1-abs(n01/2+1-i1)
            !j2=n02/2+1-abs(n02/2+1-i2)
            !j3=n03/2+1-abs(n03/2+1-i3)
-           write(111,*)i1*hx,i2*hy,rhopot(i1,i2,i3),potential(i1,i2,i3),density(i1,i2,i3)
+           write(111,*) i1*hx,i2*hy,rhopot(i1,i2,i3),potential(i1,i2,i3),density(i1,i2,i3)
            !write(111,*) i1*hx+hy*i2*dcos(alpha)+i3*hz*dcos(beta), &
            !     i2*hy*dsin(alpha)+i3*hz*(-dcos(alpha)*dcos(beta)+dcos(gamma))/dsin(alpha), &
            !     rhopot(i1,i2,i3),potential(i1,i2,i3), &
@@ -582,7 +621,8 @@ subroutine test_functions(geocode,ixc,n01,n02,n03,acell,a_gauss,hx,hy,hz,&
   !
   detg = 1.0_dp - dcos(alpha)**2 - dcos(beta)**2 - dcos(gamma)**2 + 2.0_dp*dcos(alpha)*dcos(beta)*dcos(gamma)
 
-  write(*,*) 'detg =', detg
+  !write(*,*) 'detg =', detg
+  call yaml_map('detg',detg)
   !
   !contravariant metric
   gu(1,1) = (dsin(gamma)**2)/detg
@@ -604,9 +644,9 @@ subroutine test_functions(geocode,ixc,n01,n02,n03,acell,a_gauss,hx,hy,hz,&
      length=acell
      a=0.5d0/a_gauss**2
      !test functions in the three directions
-     ifx=6
-     ify=6
-     ifz=6
+     ifx=FUNC_SHRINK_GAUSSIAN
+     ify=FUNC_SHRINK_GAUSSIAN
+     ifz=FUNC_SHRINK_GAUSSIAN
      !parameters of the test functions
      ax=length
      ay=length
@@ -626,7 +666,7 @@ subroutine test_functions(geocode,ixc,n01,n02,n03,acell,a_gauss,hx,hy,hz,&
         y = hz*real(i1-n03/2-1,kind=8) 
         call functions(x,ax,bx,fx,fx1,fx2,ifx)
         call functions(y,az,bz,fz,fz1,fz2,ifz)
-        write(20,*)i1,fx,fx2,fz,fz2
+        write(20,*) i1,fx,fx2,fz,fz2
      end do
 
      !Initialization of density and potential
@@ -730,10 +770,10 @@ subroutine test_functions(geocode,ixc,n01,n02,n03,acell,a_gauss,hx,hy,hz,&
      length=acell
      a=0.5d0/a_gauss**2
      !test functions in the three directions
-     ifx=5
-     ifz=1
+     ifx=FUNC_EXP_COSINE
+     ifz=FUNC_CONSTANT
      !non-periodic dimension
-     ify=6
+     ify=FUNC_SHRINK_GAUSSIAN
      !parameters of the test functions
      ax=length
      ay=length
@@ -756,7 +796,7 @@ subroutine test_functions(geocode,ixc,n01,n02,n03,acell,a_gauss,hx,hy,hz,&
         y = hy*real(i1-n02/2-1,kind=8) 
         call functions(x,ax,bx,fx,fx1,fx2,ifx)
         call functions(y,ay,by,fy,fy1,fy2,ify)
-        write(20,*)i1,fx,fx2,fy,fy2
+        write(20,*) i1,fx,fx2,fy,fy2
      end do
 
      !Initialisation of density and potential
@@ -945,8 +985,8 @@ subroutine test_functions(geocode,ixc,n01,n02,n03,acell,a_gauss,hx,hy,hz,&
      !a=0.5d0/a_gauss**2
      !test functions in the three directions
      !isolated directions
-     ifx=6
-     ify=6
+     ifx=FUNC_SHRINK_GAUSSIAN
+     ify=FUNC_SHRINK_GAUSSIAN
      !periodic direction
      ifz=5
      !parameters of the test functions
@@ -1164,8 +1204,9 @@ subroutine test_functions(geocode,ixc,n01,n02,n03,acell,a_gauss,hx,hy,hz,&
 
   else
 
-     print *,'geometry code not admitted',geocode
-     stop
+     !print *,'geometry code not admitted',geocode
+     !stop
+     call f_err_throw('geometry code not admitted "'//geocode//'"')
 
   end if
 
@@ -1184,8 +1225,10 @@ subroutine test_functions(geocode,ixc,n01,n02,n03,acell,a_gauss,hx,hy,hz,&
         end do
      end do
   end do
-  write(*,*) 'monopole = ', monopole
-  write(*,*) 'dipole = ', dipole
+  !write(*,*) 'monopole = ', monopole
+  !write(*,*) 'dipole = ', dipole
+  call yaml_map('monopole',monopole)
+  call yaml_map('dipole',dipole)
   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 
@@ -1220,11 +1263,15 @@ subroutine test_functions(geocode,ixc,n01,n02,n03,acell,a_gauss,hx,hy,hz,&
 end subroutine test_functions
 
 
+!> Define the test functions
 subroutine functions(x,a,b,f,f1,f2,whichone)
   implicit none
-  integer, intent(in) :: whichone
-  real(kind=8), intent(in) :: x,a,b
-  real(kind=8), intent(out) :: f,f1,f2
+  integer, intent(in) :: whichone   !< Choose the function
+  real(kind=8), intent(in) :: x     !< Argument of the function
+  real(kind=8), intent(in) :: a,b   !< Parameter of the functions
+  real(kind=8), intent(out) :: f    !< The value of the function
+  real(kind=8), intent(out) :: f1   !< The value of the first derivative
+  real(kind=8), intent(out) :: f2   !< The value of the second derivative
   !local variables
   real(kind=8) :: r,r2,y,yp,ys,factor,pi,g,h,g1,g2,h1,h2
   real(kind=8) :: length,frequency,nu,sigma,agauss
@@ -1233,17 +1280,17 @@ subroutine functions(x,a,b,f,f1,f2,whichone)
 
   pi = 4.d0*datan(1.d0)
   select case(whichone)
-  case(1)
+  case(FUNC_CONSTANT)
      !constant
      f=1.d0
      f1=0.d0
      f2=0.d0
-  case(2)
+  case(FUNC_GAUSSIAN)
      !gaussian of sigma s.t. a=1/(2*sigma^2)
      r2=a*x**2
      f=dexp(-r2)
      f2=(-2.d0*a+4.d0*a*r2)*dexp(-r2)
-  case(3)
+  case(FUNC_GAUSSIAN_SHRINKED)
      !gaussian "shrinked" with a=length of the system
      length=a
      r=pi*x/length
@@ -1253,7 +1300,7 @@ subroutine functions(x,a,b,f,f1,f2,whichone)
      factor=-2.d0*ys*y-2.d0*yp**2+4.d0*yp**2*y**2
      f2=factor*dexp(-y**2)
      f=dexp(-y**2)
-  case(4)
+  case(FUNC_COSINE)
      !cosine with a=length, b=frequency
      length=a
      frequency=b
@@ -1261,7 +1308,7 @@ subroutine functions(x,a,b,f,f1,f2,whichone)
      f=dcos(r)
      f1=-dsin(r)*frequency*pi/length
      f2=-(frequency*pi/length)**2*dcos(r)
-  case(5)
+  case(FUNC_EXP_COSINE)
      !exp of a cosine, a=length
      nu=2.d0
      r=pi*nu/a*x
@@ -1271,7 +1318,7 @@ subroutine functions(x,a,b,f,f1,f2,whichone)
      factor=(pi*nu/a)**2*(-y+yp**2)
      f1 = f*pi*nu/a*yp
      f2 = factor*f
-  case(6)
+  case(FUNC_SHRINK_GAUSSIAN)
      !gaussian times "shrinked" gaussian, sigma=length/10
      length=1.d0*a
      r=pi*x/length
@@ -1291,26 +1338,29 @@ subroutine functions(x,a,b,f,f1,f2,whichone)
      f=g*h
      f1=g1*h+g*h1
      f2=g2*h+g*h2+2.d0*g1*h1
-  case(7)
+  case(FUNC_SINE)
      !sine with a=length, b=frequency
      length=a
      frequency=b
      r=frequency*pi*x/length
      f=dsin(r)
      f2=-(frequency*pi/length)**2*dsin(r)
-  case(8)
+  case(FUNC_ATAN)
      !atan with a=length, b=frequency
      length=a
      nu = length
      f=(datan(nu*x/length))**2
      f2=2.0d0*nu**2*length*(length-2.0d0*nu*x*f)/(length**2+nu**2*x**2)**2
+  case default
+     !print *,"Unknow function:",whichone
+     !stop
+     call f_err_throw('Unknown function '//trim(yaml_toa(whichone)))
   end select
 
 end subroutine functions
 
 
 !> Purpose: Compute exponential integral E1(x)
-!! Output:  
 subroutine e1xb(x,e1)
   implicit none
   !Arguments
