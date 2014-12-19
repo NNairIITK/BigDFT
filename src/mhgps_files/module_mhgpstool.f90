@@ -66,8 +66,8 @@ subroutine init_mhgpstool_data(nat,nfolder,nsad,mdat)
 
     mdat%rcov = f_malloc((/nat/),id='rcov')
 
-    mdat%nsad = -1
-    mdat%nmin = -1
+    mdat%nsad = 0
+    mdat%nmin = 0
 
     mdat%nsadtot = sum(nsad)
     mdat%nmintot = 2*mdat%nsadtot !worst case
@@ -177,7 +177,8 @@ end subroutine count_saddle_points
 subroutine read_and_merge_data(folders,nsad,mdat)
     use module_base
     use yaml_output
-    use module_atoms, only: set_astruct_from_file
+    use module_atoms, only: set_astruct_from_file,&
+                            deallocate_atomic_structure
     use module_fingerprints
     implicit none
     !parameters
@@ -188,7 +189,6 @@ subroutine read_and_merge_data(folders,nsad,mdat)
     integer :: nfolder
     integer :: ifolder
     integer :: isad
-    integer :: n
     character(len=600) :: fsaddle, fminR, fminL
     real(gp) :: rxyz(3,mdat%nat), fp(mdat%nid), epot
     real(gp) :: en_delta, fp_delta
@@ -197,30 +197,38 @@ subroutine read_and_merge_data(folders,nsad,mdat)
     integer  :: kid
     integer  :: k_epot
     integer  :: id_minleft, id_minright, id_saddle
+integer :: i
     nfolder = size(folders,1)
 
     en_delta = mdat%mhgps_uinp%en_delta_min
     fp_delta = mdat%mhgps_uinp%fp_delta_min
     en_delta_sad = mdat%mhgps_uinp%en_delta_sad
     fp_delta_sad = mdat%mhgps_uinp%fp_delta_sad
+    call yaml_comment('Thresholds ....',hfill='-')
+    call yaml_map('en_delta',en_delta)
+    call yaml_map('fp_delta',fp_delta)
+    call yaml_map('en_delta_sad',en_delta_sad)
+    call yaml_map('fp_delta_sad',fp_delta_sad)
+    call yaml_comment('Merging ....',hfill='-')
     do ifolder =1, nfolder
         do isad =1, nsad(ifolder)
             call construct_filenames(folders,ifolder,isad,fsaddle,&
                  fminL,fminR)
 write(*,*)trim(adjustl(fsaddle)),trim(adjustl(fminL)),trim(adjustl(fminR))
+            call deallocate_atomic_structure(mdat%astruct)
             !insert left minimum
             call set_astruct_from_file(trim(fminL),0,mdat%astruct,&
                  energy=epot)
-            n=3*mdat%astruct%nat
-            if (n /= size(rxyz)) then
+write(*,*)epot
+            if (mdat%astruct%nat /= mdat%nat) then
                 call f_err_throw('Error in read_and_merge_data:'//&
-                     ' wrong size ('//trim(yaml_toa(n))//' /= '//&
-                     trim(yaml_toa(size(rxyz)))//')',&
+                     ' wrong size ('//trim(yaml_toa(mdat%astruct%nat))&
+                     //' /= '//trim(yaml_toa(mdat%nat))//')',&
                      err_name='BIGDFT_RUNTIME_ERROR')
             end if
             call fingerprint(mdat%nat,mdat%nid,mdat%astruct%cell_dim,&
-                 mdat%astruct%geocode,mdat%rcov,rxyz(1,1),fp(1))
-
+                 mdat%astruct%geocode,mdat%rcov,mdat%astruct%rxyz,&
+                 fp(1))
             call identical(mdat%nmintot,mdat%nmin,mdat%nid,epot,fp,&
                  mdat%en_arr,mdat%fp_arr,en_delta,fp_delta,lnew,kid,&
                  k_epot)
@@ -235,19 +243,25 @@ write(*,*)trim(adjustl(fsaddle)),trim(adjustl(fminL)),trim(adjustl(fminR))
                                   ' is identical to minimum '//&
                                   trim(yaml_toa(id_minleft)))
             endif 
+            call deallocate_atomic_structure(mdat%astruct)
+do i=1,mdat%nmin
+write(*,*)mdat%en_arr(i)
+enddo
+write(*,*)'---'
 
             !insert right minimum
             call set_astruct_from_file(trim(fminR),0,mdat%astruct,&
                  energy=epot)
-            n=3*mdat%astruct%nat
-            if (n /= size(rxyz)) then
+write(*,*)epot
+            if (mdat%astruct%nat /= mdat%nat) then
                 call f_err_throw('Error in read_and_merge_data:'//&
-                     ' wrong size ('//trim(yaml_toa(n))//' /= '//&
-                     trim(yaml_toa(size(rxyz)))//')',&
+                     ' wrong size ('//trim(yaml_toa(mdat%astruct%nat))&
+                     //' /= '//trim(yaml_toa(mdat%nat))//')',&
                      err_name='BIGDFT_RUNTIME_ERROR')
             end if
             call fingerprint(mdat%nat,mdat%nid,mdat%astruct%cell_dim,&
-                 mdat%astruct%geocode,mdat%rcov,rxyz(1,1),fp(1))
+                 mdat%astruct%geocode,mdat%rcov,mdat%astruct%rxyz,&
+                 fp(1))
 
             call identical(mdat%nmintot,mdat%nmin,mdat%nid,epot,fp,&
                  mdat%en_arr,mdat%fp_arr,en_delta,fp_delta,lnew,kid,&
@@ -256,27 +270,31 @@ write(*,*)trim(adjustl(fsaddle)),trim(adjustl(fminL)),trim(adjustl(fminR))
                 call yaml_comment('Minimum '//trim(adjustl(fminR))//&
                                   ' is new.')
                 call insert_min(mdat,k_epot,epot,fp,fminR)
-                id_minleft=mdat%minnumber(k_epot+1)
+                id_minright=mdat%minnumber(k_epot+1)
             else
-                id_minleft=mdat%minnumber(kid)
-                call yaml_comment('Minimum '//trim(adjustl(fminL))//&
+                id_minright=mdat%minnumber(kid)
+                call yaml_comment('Minimum '//trim(adjustl(fminR))//&
                                   ' is identical to minimum '//&
-                                  trim(yaml_toa(id_minleft)))
+                                  trim(yaml_toa(id_minright)))
             endif 
+do i=1,mdat%nmin
+write(*,*)mdat%en_arr(i)
+enddo
+write(*,*)'---'
 
             !insert saddle
+            call deallocate_atomic_structure(mdat%astruct)
             call set_astruct_from_file(trim(fsaddle),0,mdat%astruct,&
                  energy=epot)
-            n=3*mdat%astruct%nat
-            if (n /= size(rxyz)) then
+            if (mdat%astruct%nat /= mdat%nat) then
                 call f_err_throw('Error in read_and_merge_data:'//&
-                     ' wrong size ('//trim(yaml_toa(n))//' /= '//&
-                     trim(yaml_toa(size(rxyz)))//')',&
+                     ' wrong size ('//trim(yaml_toa(mdat%astruct%nat))&
+                     //' /= '//trim(yaml_toa(mdat%nat))//')',&
                      err_name='BIGDFT_RUNTIME_ERROR')
             end if
             call fingerprint(mdat%nat,mdat%nid,mdat%astruct%cell_dim,&
-                 mdat%astruct%geocode,mdat%rcov,rxyz(1,1),fp(1))
-
+                 mdat%astruct%geocode,mdat%rcov,mdat%astruct%rxyz,&
+                 fp(1))
             call identical(mdat%nsadtot,mdat%nsad,mdat%nid,epot,fp,&
                  mdat%en_arr_sad,mdat%fp_arr_sad,en_delta_sad,&
                  fp_delta_sad,lnew,kid,k_epot)
@@ -286,10 +304,11 @@ write(*,*)trim(adjustl(fsaddle)),trim(adjustl(fminL)),trim(adjustl(fminR))
                 call insert_sad(mdat,k_epot,epot,fp,id_minleft,&
                      id_minright,fsaddle)
                 id_saddle=mdat%sadnumber(k_epot+1)
+write(*,*)'nieghb.',mdat%sadneighb(1,id_saddle),mdat%sadneighb(2,id_saddle)
             else
                 id_saddle=mdat%sadnumber(kid)
                 call yaml_comment('Saddle '//trim(adjustl(fsaddle))//&
-                     ' is identical to minimum '//trim(yaml_toa(id_saddle)))
+                     ' is identical to saddle '//trim(yaml_toa(id_saddle)))
                 if(.not.( ((mdat%sadneighb(1,id_saddle)==id_minleft)&
                          .and.(mdat%sadneighb(2,id_saddle)==id_minright))&
                      &.or.((mdat%sadneighb(2,id_saddle)==id_minleft) &
@@ -368,6 +387,7 @@ subroutine identical(ndattot,ndat,nid,epot,fp,en_arr,fp_arr,en_delta,&
             endif
         endif
     enddo
+write(*,*)'dmin',dmin
     if (nsm.gt.1) then
         call yaml_warning('more than one identical configuration'//&
              ' found')
@@ -391,7 +411,6 @@ write(*,*)'insert at',k_epot+1
     if(mdat%nsad+1>mdat%nsadtot)stop 'nsad+1>=nsadtot, out of bounds'
 
     mdat%nsad=mdat%nsad+1
-stop
     do k=mdat%nsad-1,k_epot+1,-1
         mdat%en_arr_sad(k+1)=mdat%en_arr_sad(k)
         mdat%sadnumber(k+1)=mdat%sadnumber(k)
@@ -406,7 +425,7 @@ stop
     mdat%sadnumber(k_epot+1)=mdat%nsad
     mdat%path_sad(k_epot+1)=path
     mdat%sadneighb(1,k_epot+1)=neighb1
-    mdat%sadneighb(1,k_epot+1)=neighb2
+    mdat%sadneighb(2,k_epot+1)=neighb2
     do i=1,mdat%nid
         mdat%fp_arr_sad(i,k+1)=fp(i)
     enddo
