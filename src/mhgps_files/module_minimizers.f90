@@ -281,7 +281,7 @@ endif
 
 
        write(*,'(i5,1x,i5,2x,a18,2x,1es21.14,2x,es9.2,es11.3,3es10.2,2x,a6,a8,1x,a4,i3.3,1x,a5,a7,2(1x,a6,a11))') &
-       int(energycounter),0,'(MHGPS) GEOPT_SQNM',etotp,detot,fmax,fnrm,fluct*uinp%mini_frac_fluct,fluct, &
+       nint(energycounter),0,'(MHGPS) GEOPT_SQNM',etotp,detot,fmax,fnrm,fluct*uinp%mini_frac_fluct,fluct, &
        'beta=',trim(adjustl(cdmy9)),'dim=',ndim,'maxd=',trim(adjustl(cdmy8)),&
        'dsplr=',trim(adjustl(cdmy12_1)), 'dsplp=',trim(adjustl(cdmy12_2))
    endif
@@ -373,7 +373,7 @@ endif
       fnrm=sqrt(fnrm)
 
       if (mhgpsst%iproc == 0 .and. uinp%mhgps_verbosity >=4) then
-         write(fn4,'(i4.4)') int(energycounter)
+         write(fn4,'(i4.4)') nint(energycounter)
          write(comment,'(a,1pe10.3)')'SQNM:fnrm= ',fnrm
          call astruct_dump_to_file(bigdft_get_astruct_ptr(runObj),&
               mhgpsst%currDir//'/sad'//trim(adjustl(mhgpsst%isadc))&
@@ -406,11 +406,11 @@ endif
 
 
             write(*,'(i5,1x,i5,2x,a18,2x,1es21.14,2x,es9.2,es11.3,3es10.2,2x,a6,a8,1x,a4,i3.3,1x,a5,a7,2(1x,a6,a11))') &
-             int(energycounter),it,'(MHGPS) GEOPT_SQNM',etotp,detot,fmax,fnrm,fluct*uinp%mini_frac_fluct,fluct, &
+             nint(energycounter),it,'(MHGPS) GEOPT_SQNM',etotp,detot,fmax,fnrm,fluct*uinp%mini_frac_fluct,fluct, &
              'beta=',trim(adjustl(cdmy9)),'dim=',ndim,'maxd=',trim(adjustl(cdmy8)),&
              'dsplr=',trim(adjustl(cdmy12_1)),'dsplp=',trim(adjustl(cdmy12_2))
 !            call yaml_mapping_open('Geometry')
-!               call yaml_map('Ncount_BigDFT',int(energycounter))
+!               call yaml_map('Ncount_BigDFT',nint(energycounter))
 !               call yaml_map('Geometry step',it)
 !               call yaml_map('Geometry Method','GEOPT_SQNM')
 !               call yaml_map('ndim',ndim)
@@ -423,7 +423,7 @@ endif
 !            call yaml_mapping_close()
          end if
     
-         if(int(energycounter) >= nit)then!no convergence within ncount_cluster_x energy evaluations
+         if(nint(energycounter) >= nit)then!no convergence within ncount_cluster_x energy evaluations
             !following copy of rxyz(1,1,nhist-1) to runObj is necessary for returning to the caller
             !the energies and coordirunObj%atoms%astruct%nates used/obtained from/in the last ACCEPTED iteration step
             !(otherwise coordirunObj%atoms%astruct%nates of last call to call_bigdft would be returned)
@@ -477,11 +477,11 @@ endif
 
 
          write(*,'(i5,1x,i5,2x,a18,2x,1es21.14,2x,es9.2,es11.3,3es10.2,2x,a6,a8,1x,a4,i3.3,1x,a5,a7,2(1x,a6,a11))') &
-          int(energycounter),it,'(MHGPS) GEOPT_SQNM',etotp,detot,fmax,fnrm,fluct*uinp%mini_frac_fluct,fluct, &
+          nint(energycounter),it,'(MHGPS) GEOPT_SQNM',etotp,detot,fmax,fnrm,fluct*uinp%mini_frac_fluct,fluct, &
           'beta=',trim(adjustl(cdmy9)),'dim=',ndim,'maxd=',trim(adjustl(cdmy8)),&
           'dsplr=',trim(adjustl(cdmy12_1)),'dsplp=',trim(adjustl(cdmy12_2))
 !         call yaml_mapping_open('Geometry')
-!            call yaml_map('Ncount_BigDFT',int(energycounter))
+!            call yaml_map('Ncount_BigDFT',nint(energycounter))
 !            call yaml_map('Geometry step',it)
 !            call yaml_map('Geometry Method','GEOPT_SQNM')
 !            call yaml_map('ndim',ndim)
@@ -513,7 +513,7 @@ endif
                                                                        !otherwise energy will not match
                                                                        !the true energy of rxyz(:,:,nhist)
 
-      if(int(energycounter) >= nit)then!no convergence within ncount_cluster_x energy evaluations
+      if(nint(energycounter) >= nit)then!no convergence within ncount_cluster_x energy evaluations
             energyio=etot
             do iat=1,runObj%atoms%astruct%nat
               do l=1,3
@@ -546,7 +546,7 @@ endif
    if(debug.and.mhgpsst%iproc==0) write(100,*) it,etot,fnrm
    if(mhgpsst%iproc==0) write(*,'(a,3(1x,i0))') &
        "(MHGPS) WARNING GEOPT_SQNM: SQNM not converged: it,energycounter,ncount_cluster_x: ", &
-       it,int(energycounter),uinp%mini_ncluster_x
+       it,nint(energycounter),uinp%mini_ncluster_x
 !   stop "No convergence "
    converged=.false.
    goto 2000
@@ -555,7 +555,7 @@ endif
    
    if(mhgpsst%iproc==0) write(*,'(2(a,1x,i0))') "(MHGPS) SQNM"//&
                         " converged at iteration ",it,". Needed"//&
-                        " energy calls: ",int(energycounter)
+                        " energy calls: ",nint(energycounter)
    if(mhgpsst%iproc==0)  call yaml_map('Iterations when SQNM converged',it)
    converged=.true.
    
