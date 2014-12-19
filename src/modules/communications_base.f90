@@ -15,6 +15,8 @@ module communications_base
 
   private
 
+  ! Parameter for changing the communication of the potential on IBM BlueGene Q
+  logical,parameter,public :: bgq=.false.
 
   !> Contains the information needed for communicating the wavefunctions
   !! between processors for the transposition
