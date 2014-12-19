@@ -197,7 +197,7 @@ private_api.o: base.o types.o interfaces.o
 diis_module.o: base.o types.o
 fragments.o: base.o types.o
 constrained_dft.o: base.o types.o sparsematrix_base.o
-input_dicts.o: $(top_builddir)/flib/src/dynamic_memory.o types.o defs.o ao_inguess.o interfaces.o atoms_data.o input_keys.o public_keys.o
+input_dicts.o: $(top_builddir)/flib/src/dynamic_memory.o types.o defs.o ao_inguess.o interfaces.o atoms_data.o input_keys.o public_keys.o input.o
 psp_projectors.o: locregs.o gaussians.o defs.o
 locregs.o: base.o
 ao_inguess.o: $(AO_INCLUDES) base.o psp_projectors.o

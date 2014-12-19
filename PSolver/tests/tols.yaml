@@ -6,6 +6,9 @@ Default tolerances:
 #  Energy differences: 2.1e-10
   Exc: 1.e-8
   EVxc: 4.6e-9
+  Some values: 1.e-14
+  Maximum discrepancy: 1.e-14
+  Value: 1.e-15
 #  Energies: 2.1e-10
 
 Keys to ignore:
@@ -21,3 +24,4 @@ Keys to ignore:
 Patterns to ignore:
   - llocations
   - MB
+  - Point

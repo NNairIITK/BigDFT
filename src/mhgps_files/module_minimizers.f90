@@ -64,7 +64,7 @@ subroutine minimizer_sqnm(mhgpsst,uinp,runObj,outs,nbond,iconnect,&
            rxyzio,fxyzio,fnoiseio,energyio,energycounter,converged,&
            writePostfix)
 
-   use module_base
+   use module_base, except_this_one=> int
    use module_types
    use module_interfaces
    use yaml_output
@@ -160,7 +160,7 @@ subroutine minimizer_sqnm(mhgpsst,uinp,runObj,outs,nbond,iconnect,&
    character(len=8)                        :: cdmy8
     !functions
     real(gp) :: dnrm2
-
+    intrinsic :: int
 
      if (mhgpsst%iproc == 0 .and. uinp%mhgps_verbosity > 0) write(*,'(a)')  &
       '#(MHGPS) COUNT  IT  GEOPT_METHOD  ENERGY                 '//&
@@ -587,7 +587,7 @@ endif
    call f_free(rrr)
    call f_free(scpr)
    call f_free(wold)
-end subroutine
+ end subroutine minimizer_sqnm
 
 
 subroutine minenergyandforces(mhgpsst,eeval,imode,runObj,outs,rat,rxyzraw,fat,fstretch,&
