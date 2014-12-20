@@ -25,7 +25,7 @@ program mhgpstool
     character(len=600) :: filename
     integer, allocatable :: nsad(:)
     real(gp) :: energy
-!stop 'under development'
+stop 'under development'
 
     call f_lib_initialize()
 
@@ -52,6 +52,6 @@ program mhgpstool
     call f_free_str(500,folders)
     call f_free(nsad)
 
-    call f_lib_finalize()
     call yaml_release_document()
+    call f_lib_finalize()
 end program mhgpstool

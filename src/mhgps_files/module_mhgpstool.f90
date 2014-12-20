@@ -212,6 +212,7 @@ integer :: i
     call yaml_comment('Merging ....',hfill='-')
     do ifolder =1, nfolder
         do isad =1, nsad(ifolder)
+write(*,*)'================================================================='
             call construct_filenames(folders,ifolder,isad,fsaddle,&
                  fminL,fminR)
 write(*,*)trim(adjustl(fsaddle)),trim(adjustl(fminL)),trim(adjustl(fminR))
@@ -286,6 +287,7 @@ write(*,*)'---'
             call deallocate_atomic_structure(mdat%astruct)
             call set_astruct_from_file(trim(fsaddle),0,mdat%astruct,&
                  energy=epot)
+write(*,*)epot
             if (mdat%astruct%nat /= mdat%nat) then
                 call f_err_throw('Error in read_and_merge_data:'//&
                      ' wrong size ('//trim(yaml_toa(mdat%astruct%nat))&
@@ -309,18 +311,22 @@ write(*,*)'nieghb.',mdat%sadneighb(1,id_saddle),mdat%sadneighb(2,id_saddle)
                 id_saddle=mdat%sadnumber(kid)
                 call yaml_comment('Saddle '//trim(adjustl(fsaddle))//&
                      ' is identical to saddle '//trim(yaml_toa(id_saddle)))
-                if(.not.( ((mdat%sadneighb(1,id_saddle)==id_minleft)&
-                         .and.(mdat%sadneighb(2,id_saddle)==id_minright))&
-                     &.or.((mdat%sadneighb(2,id_saddle)==id_minleft) &
-                         .and.(mdat%sadneighb(1,id_saddle)==id_minright))))then
+                if(.not.( ((mdat%sadneighb(1,kid)==id_minleft)&
+                         .and.(mdat%sadneighb(2,kid)==id_minright))&
+                     &.or.((mdat%sadneighb(2,kid)==id_minleft) &
+                         .and.(mdat%sadneighb(1,kid)==id_minright))))then
                     call yaml_warning('following saddle point has'//&
-                         ' more than two neighbored minima: '//&
-                         trim(yaml_toa(mdat%sadnumber(id_saddle))))
+                         ' more than two neighboring minima: '//&
+                         trim(yaml_toa(id_saddle)))
 !                    nexclude=nexclude+1
 !                    exclude(nexclude) = sadnumber_merged(kid_sad)
                 endif
 
             endif 
+do i=1,mdat%nsad
+write(*,*)mdat%sadnumber(i),mdat%en_arr_sad(i)
+enddo
+write(*,*)'---'
         enddo
     enddo
     
