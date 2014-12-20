@@ -11,7 +11,7 @@
 !> Module containing variables used for the timing for BigDFT
 module time_profiling
   use dictionaries
-  use dynamic_memory, only: f_time
+  use f_utils, only: f_time
   implicit none
 
   private 
@@ -530,7 +530,7 @@ module time_profiling
     !> The same timing routine but with system_clock (in case of a supported specs)
     subroutine f_timing(cat_id,action)
       use dictionaries, only: f_err_raise,f_err_throw
-      use dynamic_memory, only: f_time
+      use f_utils, only: f_time
       use yaml_output, only: yaml_toa
       implicit none
       !Variables

@@ -64,6 +64,13 @@ module f_utils
      module procedure put_to_zero_integer3
   end interface f_zero
 
+  !to be verified if clock_gettime is without side-effect, otherwise the routine cannot be pure
+  interface
+     pure subroutine nanosec(itime)
+       implicit none
+       integer(kind=8), intent(out) :: itime
+     end subroutine nanosec
+  end interface
 
   interface operator(==)
      module procedure enum_is_int,enum_is_enum
@@ -81,7 +88,7 @@ module f_utils
   public :: f_utils_errors,f_utils_recl,f_file_exists,f_close,f_zero
   public :: f_get_free_unit,f_delete_file,f_getpid,f_rewind
   public :: f_iostream_from_file,f_iostream_from_lstring
-  public :: f_iostream_get_line,f_iostream_release,f_pause
+  public :: f_iostream_get_line,f_iostream_release,f_pause,f_time
 
 contains
 
@@ -137,6 +144,15 @@ contains
          err_action='Check if you have correct file system permission in i/o library or check the fortan runtime library')
 
   end subroutine f_utils_errors
+
+  pure function f_time()
+    integer(kind=8) :: f_time
+    !local variables
+    integer(kind=8) :: itime
+    call nanosec(itime)
+    f_time=itime
+  end function f_time
+
 
   !> gives the maximum record length allowed for a given unit
   subroutine f_utils_recl(unt,recl_max,recl)
@@ -375,13 +391,13 @@ contains
     implicit none
     integer, intent(in) :: sec !< seconds to be waited
     !local variables
-    real :: t0,t1
+    integer(kind=8) :: t0,t1
 
-    call cpu_time(t0)
+    if (sec <=0) return
+    t0=f_time()
     t1=t0
-    if (t0 < 0.e0) return ! no-clock case, according to specification
-    do while(nint(t1-t0) < sec)
-       call cpu_time(t1)
+    do while(real(t1-t0,kind=8)*1.d-9 < real(sec,kind=8))
+       t1=f_time()
     end do
   end subroutine f_pause
 

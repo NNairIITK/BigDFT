@@ -16,6 +16,7 @@ module dynamic_memory
   use yaml_strings, only: yaml_toa,yaml_date_and_time_toa
   use module_f_malloc
   use yaml_parse, only: yaml_a_todict
+  use f_utils, only: f_time
   implicit none
 
   private 
@@ -147,20 +148,12 @@ module dynamic_memory
      module procedure f_maxdiff_c1i1,f_maxdiff_li0li1
   end interface f_maxdiff
 
-  !to be verified if clock_gettime is without side-effect, otherwise the routine cannot be pure
-  interface
-     pure subroutine nanosec(itime)
-       implicit none
-       integer(kind=8), intent(out) :: itime
-     end subroutine nanosec
-  end interface
-
   !> Public routines
   public :: f_malloc,f_malloc0,f_malloc_ptr,f_malloc0_ptr,f_malloc_dump_status
   public :: f_malloc_str,f_malloc0_str,f_malloc_str_ptr,f_malloc0_str_ptr
   public :: f_free,f_free_ptr,f_free_str,f_free_str_ptr
   public :: f_routine,f_release_routine,f_malloc_set_status,f_malloc_initialize,f_malloc_finalize
-  public :: f_time,f_memcpy,f_maxdiff
+  public :: f_memcpy,f_maxdiff
   !reference counters
   public :: f_ref_new,f_ref_null,f_unref,f_ref_free,f_ref_associate
   public :: nullify_f_ref,f_ref,f_ref_count,f_update_database,f_purge_database
@@ -170,14 +163,6 @@ module dynamic_memory
   public :: dynamic_memory_errors
 
 contains
-
-  pure function f_time()
-    integer(kind=8) :: f_time
-    !local variables
-    integer(kind=8) :: itime
-    call nanosec(itime)
-    f_time=itime
-  end function f_time
 
   pure function mem_ctrl_null() result(mem)
     type(mem_ctrl) :: mem
