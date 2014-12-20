@@ -18,7 +18,6 @@ interfaces_12_hide_mpi.o: 12_hide_mpi/interfaces_12_hide_mpi.F90
 
 m_xmpi.o: 12_hide_mpi/m_xmpi.F90 \
 	defs_basis.o \
-	m_profiling_abi.o \
 	$(mpi_include)
 	$(PPFCCOMPILE) -c -o m_xmpi.o `test -f '12_hide_mpi/m_xmpi.F90' || echo '$(srcdir)/'`12_hide_mpi/m_xmpi.F90
 
@@ -41,7 +40,6 @@ wrtout.o: 14_hidewrite/wrtout.F90 \
 	defs_basis.o \
 	interfaces_14_hidewrite.o \
 	m_io_tools.o \
-	m_profiling_abi.o \
 	m_xmpi.o
 	$(PPFCCOMPILE) -c -o wrtout.o `test -f '14_hidewrite/wrtout.F90' || echo '$(srcdir)/'`14_hidewrite/wrtout.F90
 
@@ -66,16 +64,6 @@ m_errors.o: 16_hideleave/m_errors.F90 \
 
 m_xieee.o: 16_hideleave/m_xieee.F90
 	$(PPFCCOMPILE) -c -o m_xieee.o `test -f '16_hideleave/m_xieee.F90' || echo '$(srcdir)/'`16_hideleave/m_xieee.F90
-
-m_profiling.o: 18_memory/m_profiling.F90 \
-	defs_basis.o \
-	$(mpi_include)
-	$(PPFCCOMPILE) -c -o m_profiling.o `test -f '18_memory/m_profiling.F90' || echo '$(srcdir)/'`18_memory/m_profiling.F90
-
-m_profiling_abi.o: 18_memory/m_profiling_abi.F90 \
-	defs_basis.o \
-	$(mpi_include)
-	$(PPFCCOMPILE) -c -o m_profiling_abi.o `test -f '18_memory/m_profiling_abi.F90' || echo '$(srcdir)/'`18_memory/m_profiling_abi.F90
 
 interfaces_18_timing.o: 18_timing/interfaces_18_timing.F90 \
 	defs_basis.o
@@ -526,8 +514,7 @@ m_atompaw.o: 42_libpaw/m_atompaw.F90 \
 	m_errors.o \
 	m_paw_numeric.o \
 	m_pawrad.o \
-	m_pawtab.o \
-	m_profiling_abi.o
+	m_pawtab.o
 	$(PPFCCOMPILE) -c -o m_atompaw.o `test -f '42_libpaw/m_atompaw.F90' || echo '$(srcdir)/'`42_libpaw/m_atompaw.F90
 
 m_gaussfit.o: 42_libpaw/m_gaussfit.F90 \
@@ -536,14 +523,12 @@ m_gaussfit.o: 42_libpaw/m_gaussfit.F90 \
 	m_errors.o \
 	m_paw_numeric.o \
 	m_pawrad.o \
-	m_profiling_abi.o \
 	m_xmpi.o
 	$(PPFCCOMPILE) -c -o m_gaussfit.o `test -f '42_libpaw/m_gaussfit.F90' || echo '$(srcdir)/'`42_libpaw/m_gaussfit.F90
 
 m_paral_atom.o: 42_libpaw/m_paral_atom.F90 \
 	defs_basis.o \
 	m_errors.o \
-	m_profiling_abi.o \
 	m_xmpi.o
 	$(PPFCCOMPILE) -c -o m_paral_atom.o `test -f '42_libpaw/m_paral_atom.F90' || echo '$(srcdir)/'`42_libpaw/m_paral_atom.F90
 
@@ -554,7 +539,6 @@ m_paw_an.o: 42_libpaw/m_paw_an.F90 \
 	m_paral_atom.o \
 	m_pawang.o \
 	m_pawtab.o \
-	m_profiling_abi.o \
 	m_xmpi.o
 	$(PPFCCOMPILE) -c -o m_paw_an.o `test -f '42_libpaw/m_paw_an.F90' || echo '$(srcdir)/'`42_libpaw/m_paw_an.F90
 
@@ -563,7 +547,6 @@ m_paw_finegrid.o: 42_libpaw/m_paw_finegrid.F90 \
 	m_errors.o \
 	m_paw_numeric.o \
 	m_pawtab.o \
-	m_profiling_abi.o \
 	m_sphharm.o
 	$(PPFCCOMPILE) -c -o m_paw_finegrid.o `test -f '42_libpaw/m_paw_finegrid.F90' || echo '$(srcdir)/'`42_libpaw/m_paw_finegrid.F90
 
@@ -574,21 +557,18 @@ m_paw_ij.o: 42_libpaw/m_paw_ij.F90 \
 	m_paral_atom.o \
 	m_pawio.o \
 	m_pawtab.o \
-	m_profiling_abi.o \
 	m_xmpi.o
 	$(PPFCCOMPILE) -c -o m_paw_ij.o `test -f '42_libpaw/m_paw_ij.F90' || echo '$(srcdir)/'`42_libpaw/m_paw_ij.F90
 
 m_paw_numeric.o: 42_libpaw/m_paw_numeric.F90 \
 	defs_basis.o \
-	m_errors.o \
-	m_profiling_abi.o
+	m_errors.o
 	$(PPFCCOMPILE) -c -o m_paw_numeric.o `test -f '42_libpaw/m_paw_numeric.F90' || echo '$(srcdir)/'`42_libpaw/m_paw_numeric.F90
 
 m_pawang.o: 42_libpaw/m_pawang.F90 \
 	defs_basis.o \
 	interfaces_14_hidewrite.o \
 	m_errors.o \
-	m_profiling_abi.o \
 	m_sphharm.o \
 	m_xmpi.o
 	$(PPFCCOMPILE) -c -o m_pawang.o `test -f '42_libpaw/m_pawang.F90' || echo '$(srcdir)/'`42_libpaw/m_pawang.F90
@@ -597,7 +577,6 @@ m_pawcprj.o: 42_libpaw/m_pawcprj.F90 \
 	defs_basis.o \
 	m_errors.o \
 	m_pawtab.o \
-	m_profiling_abi.o \
 	m_xmpi.o
 	$(PPFCCOMPILE) -c -o m_pawcprj.o `test -f '42_libpaw/m_pawcprj.F90' || echo '$(srcdir)/'`42_libpaw/m_pawcprj.F90
 
@@ -615,7 +594,6 @@ m_pawdij.o: 42_libpaw/m_pawdij.F90 \
 	m_pawrad.o \
 	m_pawrhoij.o \
 	m_pawtab.o \
-	m_profiling_abi.o \
 	m_xmpi.o
 	$(PPFCCOMPILE) -c -o m_pawdij.o `test -f '42_libpaw/m_pawdij.F90' || echo '$(srcdir)/'`42_libpaw/m_pawdij.F90
 
@@ -624,15 +602,13 @@ m_pawfgrtab.o: 42_libpaw/m_pawfgrtab.F90 \
 	interfaces_14_hidewrite.o \
 	m_errors.o \
 	m_paral_atom.o \
-	m_profiling_abi.o \
 	m_xmpi.o
 	$(PPFCCOMPILE) -c -o m_pawfgrtab.o `test -f '42_libpaw/m_pawfgrtab.F90' || echo '$(srcdir)/'`42_libpaw/m_pawfgrtab.F90
 
 m_pawio.o: 42_libpaw/m_pawio.F90 \
 	defs_basis.o \
 	interfaces_14_hidewrite.o \
-	m_errors.o \
-	m_profiling_abi.o
+	m_errors.o
 	$(PPFCCOMPILE) -c -o m_pawio.o `test -f '42_libpaw/m_pawio.F90' || echo '$(srcdir)/'`42_libpaw/m_pawio.F90
 
 m_pawpsp.o: 42_libpaw/m_pawpsp.F90 \
@@ -649,7 +625,6 @@ m_pawpsp.o: 42_libpaw/m_pawpsp.F90 \
 	m_pawtab.o \
 	m_pawxc.o \
 	m_pawxmlps.o \
-	m_profiling_abi.o \
 	m_xmpi.o
 	$(PPFCCOMPILE) -c -o m_pawpsp.o `test -f '42_libpaw/m_pawpsp.F90' || echo '$(srcdir)/'`42_libpaw/m_pawpsp.F90
 
@@ -657,7 +632,6 @@ m_pawrad.o: 42_libpaw/m_pawrad.F90 \
 	defs_basis.o \
 	interfaces_14_hidewrite.o \
 	m_errors.o \
-	m_profiling_abi.o \
 	m_xmpi.o
 	$(PPFCCOMPILE) -c -o m_pawrad.o `test -f '42_libpaw/m_pawrad.F90' || echo '$(srcdir)/'`42_libpaw/m_pawrad.F90
 
@@ -671,7 +645,6 @@ m_pawrhoij.o: 42_libpaw/m_pawrhoij.F90 \
 	m_pawang.o \
 	m_pawio.o \
 	m_pawtab.o \
-	m_profiling_abi.o \
 	m_xmpi.o
 	$(PPFCCOMPILE) -c -o m_pawrhoij.o `test -f '42_libpaw/m_pawrhoij.F90' || echo '$(srcdir)/'`42_libpaw/m_pawrhoij.F90
 
@@ -679,32 +652,29 @@ m_pawtab.o: 42_libpaw/m_pawtab.F90 \
 	defs_basis.o \
 	interfaces_14_hidewrite.o \
 	m_errors.o \
-	m_profiling_abi.o \
 	m_xmpi.o
 	$(PPFCCOMPILE) -c -o m_pawtab.o `test -f '42_libpaw/m_pawtab.F90' || echo '$(srcdir)/'`42_libpaw/m_pawtab.F90
 
 m_pawxc.o: 42_libpaw/m_pawxc.F90 \
 	defs_basis.o \
+	interfaces_41_xc_lowlevel.o \
 	m_libxc_functionals.o \
 	m_errors.o \
 	m_pawang.o \
-	m_pawrad.o \
-	m_profiling_abi.o
+	m_pawrad.o
 	$(PPFCCOMPILE) -c -o m_pawxc.o `test -f '42_libpaw/m_pawxc.F90' || echo '$(srcdir)/'`42_libpaw/m_pawxc.F90
 
 m_pawxmlps.o: 42_libpaw/m_pawxmlps.F90 \
 	defs_basis.o \
 	m_errors.o \
 	m_paw_numeric.o \
-	m_pawrad.o \
-	m_profiling_abi.o
+	m_pawrad.o
 	$(PPFCCOMPILE) -c -o m_pawxmlps.o `test -f '42_libpaw/m_pawxmlps.F90' || echo '$(srcdir)/'`42_libpaw/m_pawxmlps.F90
 
 m_sphharm.o: 42_libpaw/m_sphharm.F90 \
 	defs_basis.o \
 	interfaces_14_hidewrite.o \
-	m_errors.o \
-	m_profiling_abi.o
+	m_errors.o
 	$(PPFCCOMPILE) -c -o m_sphharm.o `test -f '42_libpaw/m_sphharm.F90' || echo '$(srcdir)/'`42_libpaw/m_sphharm.F90
 
 defs_abitypes.o: 50_abitypes_defs/defs_abitypes.F90 \
@@ -745,8 +715,7 @@ interfaces_56_mixing.o: 56_mixing/interfaces_56_mixing.F90 \
 m_ab6_mixing.o: 56_mixing/m_ab6_mixing.F90 \
 	defs_basis.o \
 	interfaces_18_timing.o \
-	interfaces_56_mixing.o \
-	m_profiling.o
+	interfaces_56_mixing.o
 	$(PPFCCOMPILE) -c -o m_ab6_mixing.o `test -f '56_mixing/m_ab6_mixing.F90' || echo '$(srcdir)/'`56_mixing/m_ab6_mixing.F90
 
 scfcge.o: 56_mixing/scfcge.F90 \

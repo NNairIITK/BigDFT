@@ -5,7 +5,8 @@ else
 mpi_include = mpif.h
 endif
 
-EXTRA_DIST = 72_geomoptim/isokinetic.F90 \
+EXTRA_DIST = \
+	72_geomoptim/isokinetic.F90 \
 	72_geomoptim/isotemp.F90 \
 	72_geomoptim/isothermal.F90 \
 	72_geomoptim/langevin.F90 \
@@ -35,6 +36,7 @@ EXTRA_DIST = 72_geomoptim/isokinetic.F90 \
 	12_hide_mpi/xmpi_sum_master.finc \
 	42_geometry/symmetry-main.c \
 	42_geometry/symmetry.h \
+	42_libpaw/libpaw.h \
 	incs/abi_common.h
 
 lib_LIBRARIES = libabinit.a
@@ -60,7 +62,8 @@ DEFS = $(MPI_DEFS) $(LIBXC_DEFS) $(LIBPAW_DEFS)
 DEFS_1 = $(DEFS:-D%=@FCDEFS@-D%)
 DEFS_FORTRAN = $(DEFS_1:-U%=@FCDEFS@-U%)
 
-AM_FCFLAGS = @MPI_INCLUDE@ @LIBXC_INCLUDE@ -I$(srcdir)/72_geomoptim -I$(srcdir)/incs
+AM_FCFLAGS = @MPI_INCLUDE@ @LIBXC_INCLUDE@ -I$(srcdir)/72_geomoptim \
+	-I$(srcdir)/incs -I$(top_builddir)/includes
 
 # Hack for XLF strange DEFS option.
 PPFCCOMPILE = $(FC) $(DEFS_FORTRAN) $(DEFAULT_INCLUDES) $(INCLUDES) \
@@ -87,7 +90,8 @@ libpaw_files = \
 	42_libpaw/m_pawtab.F90 \
 	42_libpaw/m_pawxc.F90 \
 	42_libpaw/m_pawxmlps.F90 \
-	42_libpaw/m_sphharm.F90
+	42_libpaw/m_sphharm.F90 \
+	42_libpaw/libpaw.h
 else
 libpaw_files =
 endif
@@ -110,8 +114,6 @@ libabinit_a_SOURCES = \
 	16_hideleave/m_xieee.F90 \
 	18_timing/interfaces_18_timing.F90 \
 	18_timing/timab.F90 \
-	18_memory/m_profiling.F90 \
-	18_memory/m_profiling_abi.F90 \
 	28_numeric_noabirule/interfaces_28_numeric_noabirule.F90 \
 	28_numeric_noabirule/m_splines.F90 \
 	28_numeric_noabirule/sort_dp.F90 \

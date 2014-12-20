@@ -19,17 +19,13 @@
 !!
 !! SOURCE
 
-#if defined HAVE_CONFIG_H
-#include "config.h"
-#endif
-
-#include "abi_common.h"
+#include "libpaw.h"
 
 MODULE m_paw_finegrid
 
  use defs_basis
  use m_errors
- use m_profiling_abi
+ USE_MEMORY_PROFILING
 
  use m_pawtab,      only : pawtab_type
  use m_sphharm,     only : initylmr
@@ -213,7 +209,7 @@ subroutine pawgylm(gylm,gylmgr,gylmgr2,lm_size,nfgd,optgr0,optgr1,optgr2,pawtab,
  l_size=pawtab%lcut_size
 
 !Norms of vectors around the atom
- ABI_ALLOCATE(rnrm,(nfgd))
+ LIBPAW_ALLOCATE(rnrm,(nfgd))
  izero=-1
  do ic=1,nfgd
    rnrm(ic)=sqrt(rfgd(1,ic)**2+rfgd(2,ic)**2+rfgd(3,ic)**2)
@@ -230,8 +226,8 @@ subroutine pawgylm(gylm,gylmgr,gylmgr2,lm_size,nfgd,optgr0,optgr1,optgr2,pawtab,
  sigma=pawtab%shape_sigma;lambda=pawtab%shape_lambda
  pi_over_rshp=pi/pawtab%rshp
  if (shape_type==3) then
-   ABI_ALLOCATE(alpha,(2,l_size))
-   ABI_ALLOCATE(qq,(2,l_size))
+   LIBPAW_ALLOCATE(alpha,(2,l_size))
+   LIBPAW_ALLOCATE(qq,(2,l_size))
    do ll=1,l_size
      alpha(1:2,ll)=pawtab%shape_alpha(1:2,ll)
      qq(1:2,ll)=pawtab%shape_q(1:2,ll)
@@ -240,8 +236,8 @@ subroutine pawgylm(gylm,gylmgr,gylmgr2,lm_size,nfgd,optgr0,optgr1,optgr2,pawtab,
 
 !If needed, sort selected radii by increasing norm
  if (shape_type==-1) then
-   ABI_ALLOCATE(isort,(nfgd))
-   ABI_ALLOCATE(rnrm_sort,(nfgd))
+   LIBPAW_ALLOCATE(isort,(nfgd))
+   LIBPAW_ALLOCATE(rnrm_sort,(nfgd))
    do ic=1,nfgd
      isort(ic)=ic
    end do
@@ -251,9 +247,9 @@ subroutine pawgylm(gylm,gylmgr,gylmgr2,lm_size,nfgd,optgr0,optgr1,optgr2,pawtab,
 
 !If shape function is "numeric", spline it onto selected radii
  if (shape_type==-1) then
-   ABI_ALLOCATE(work,(nfgd))
+   LIBPAW_ALLOCATE(work,(nfgd))
    if (compute_gr0) then
-     ABI_ALLOCATE(shpfuncnum,(nfgd,l_size))
+     LIBPAW_ALLOCATE(shpfuncnum,(nfgd,l_size))
      do ll=1,l_size
        call paw_splint(pawtab%mesh_size,pawtab%rad_for_spline,pawtab%shapefunc(:,ll),&
 &       pawtab%dshpfunc(:,ll,2),nfgd,rnrm_sort,work)
@@ -263,7 +259,7 @@ subroutine pawgylm(gylm,gylmgr,gylmgr2,lm_size,nfgd,optgr0,optgr1,optgr2,pawtab,
      end do
    end if
    if(compute_gr1) then
-     ABI_ALLOCATE(dshpfuncnum,(nfgd,l_size))
+     LIBPAW_ALLOCATE(dshpfuncnum,(nfgd,l_size))
      do ll=1,l_size
        call paw_splint(pawtab%mesh_size,pawtab%rad_for_spline,pawtab%dshpfunc(:,ll,1),&
 &       pawtab%dshpfunc(:,ll,3),nfgd,rnrm_sort,work)
@@ -273,7 +269,7 @@ subroutine pawgylm(gylm,gylmgr,gylmgr2,lm_size,nfgd,optgr0,optgr1,optgr2,pawtab,
      end do
    end if
    if(compute_gr2) then
-     ABI_ALLOCATE(d2shpfuncnum,(nfgd,l_size))
+     LIBPAW_ALLOCATE(d2shpfuncnum,(nfgd,l_size))
      do ll=1,l_size
        call paw_splint(pawtab%mesh_size,pawtab%rad_for_spline,pawtab%dshpfunc(:,ll,2),&
 &       pawtab%dshpfunc(:,ll,4),nfgd,rnrm_sort,work)
@@ -282,17 +278,17 @@ subroutine pawgylm(gylm,gylmgr,gylmgr2,lm_size,nfgd,optgr0,optgr1,optgr2,pawtab,
        end do
      end do
    end if
-   ABI_DEALLOCATE(work)
+   LIBPAW_DEALLOCATE(work)
  end if
 
  if (shape_type==-1)  then
-   ABI_DEALLOCATE(isort)
-   ABI_DEALLOCATE(rnrm_sort)
+   LIBPAW_DEALLOCATE(isort)
+   LIBPAW_DEALLOCATE(rnrm_sort)
  end if
 
 !If needed, compute limits at r=0 of shape function and derivatives
  if (izero>0) then
-   ABI_ALLOCATE(cc,(3,min(l_size,3)))
+   LIBPAW_ALLOCATE(cc,(3,min(l_size,3)))
    cc=zero
    if (shape_type==-1) then
      splfact=(pawtab%rad_for_spline(4)-pawtab%rad_for_spline(1))&
@@ -348,13 +344,13 @@ subroutine pawgylm(gylm,gylmgr,gylmgr2,lm_size,nfgd,optgr0,optgr1,optgr2,pawtab,
 !==========================================================
  normchoice=1 ; option=max(optgr0,2*optgr1,3*optgr2)
  if(compute_gr0)  then
-   ABI_ALLOCATE(ylmr,(l_size**2,nfgd))
+   LIBPAW_ALLOCATE(ylmr,(l_size**2,nfgd))
  end if
  if(compute_gr1.and.(.not.compute_gr2))  then
-   ABI_ALLOCATE(ylmrgr,(3,l_size**2,nfgd))
+   LIBPAW_ALLOCATE(ylmrgr,(3,l_size**2,nfgd))
  end if
  if(compute_gr2)  then
-   ABI_ALLOCATE(ylmrgr,(9,l_size**2,nfgd))
+   LIBPAW_ALLOCATE(ylmrgr,(9,l_size**2,nfgd))
  end if
  if (compute_gr0.and.(.not.compute_gr1).and.(.not.compute_gr2)) then
    call initylmr(l_size,normchoice,nfgd,rnrm,option,rfgd,ylmr)
@@ -366,19 +362,19 @@ subroutine pawgylm(gylm,gylmgr,gylmgr2,lm_size,nfgd,optgr0,optgr1,optgr2,pawtab,
 !==========================================================
 !Compute gl(r), gl_prime(r)/r and (gl_prime_prime(r)-gl_prime(r)/r)/r**2
  if (compute_gr0)  then
-   ABI_ALLOCATE(gfact,(nfgd,0:l_size-1))
+   LIBPAW_ALLOCATE(gfact,(nfgd,0:l_size-1))
    gfact(:,:)=zero
  end if
  if (compute_gr1)  then
-   ABI_ALLOCATE(dgfact,(nfgd,0:l_size-1))
+   LIBPAW_ALLOCATE(dgfact,(nfgd,0:l_size-1))
     dgfact(:,:)=zero
  end if
  if (compute_gr2)  then
-   ABI_ALLOCATE(d2gfact,(nfgd,0:l_size-1))
+   LIBPAW_ALLOCATE(d2gfact,(nfgd,0:l_size-1))
    d2gfact(:,:)=zero
  end if
  if(compute_gr1) then
-   ABI_ALLOCATE(rnrm_inv,(nfgd))
+   LIBPAW_ALLOCATE(rnrm_inv,(nfgd))
    do ic=1,nfgd
      if (ic/=izero) rnrm_inv(ic)=one/rnrm(ic)
    end do
@@ -726,41 +722,41 @@ subroutine pawgylm(gylm,gylmgr,gylmgr2,lm_size,nfgd,optgr0,optgr1,optgr2,pawtab,
 
 !Memory deallocation
 !==========================================================
- ABI_DEALLOCATE(rnrm)
+ LIBPAW_DEALLOCATE(rnrm)
  if (allocated(cc)) then
-   ABI_DEALLOCATE(cc)
+   LIBPAW_DEALLOCATE(cc)
  end if
  if (compute_gr0)  then
-   ABI_DEALLOCATE(gfact)
+   LIBPAW_DEALLOCATE(gfact)
  end if
  if (compute_gr1)  then
-   ABI_DEALLOCATE(dgfact)
+   LIBPAW_DEALLOCATE(dgfact)
  end if
  if (compute_gr2)  then
-   ABI_DEALLOCATE(d2gfact)
+   LIBPAW_DEALLOCATE(d2gfact)
  end if
  if (compute_gr1)  then
-   ABI_DEALLOCATE(rnrm_inv)
+   LIBPAW_DEALLOCATE(rnrm_inv)
  end if
  if (shape_type==3)  then
-   ABI_DEALLOCATE(alpha)
-   ABI_DEALLOCATE(qq)
+   LIBPAW_DEALLOCATE(alpha)
+   LIBPAW_DEALLOCATE(qq)
  end if
  if (compute_gr0)  then
-   ABI_DEALLOCATE(ylmr)
+   LIBPAW_DEALLOCATE(ylmr)
  end if
  if (compute_gr1)  then
-   ABI_DEALLOCATE(ylmrgr)
+   LIBPAW_DEALLOCATE(ylmrgr)
  end if
  if (shape_type==-1) then
    if (compute_gr0)  then
-     ABI_DEALLOCATE(shpfuncnum)
+     LIBPAW_DEALLOCATE(shpfuncnum)
    end if
    if (compute_gr1)  then
-     ABI_DEALLOCATE(dshpfuncnum)
+     LIBPAW_DEALLOCATE(dshpfuncnum)
    end if
    if (compute_gr2)  then
-     ABI_DEALLOCATE(d2shpfuncnum)
+     LIBPAW_DEALLOCATE(d2shpfuncnum)
    end if
  end if
 
@@ -950,15 +946,15 @@ subroutine pawrfgd_fft(ifftsph,gmet,n1,n2,n3,nfgd,rcut,rfgd,rprimd,ucvol,xred, &
    me_fft_=me_fft ; fft_distrib_ => fft_distrib ; fft_index_ => fft_index
  else
    me_fft_=0
-   ABI_ALLOCATE(fft_distrib_,(n3))
-   ABI_ALLOCATE(fft_index_,(n3))
+   LIBPAW_ALLOCATE(fft_distrib_,(n3))
+   LIBPAW_ALLOCATE(fft_index_,(n3))
    fft_distrib_=0;fft_index_=(/(i3,i3=1,n3)/)
  end if
 
 !Temporary allocate "large" arrays
  ncmax=1+int(1.2_dp*(n1*n2*n3)*four_pi/(three*ucvol)*rcut**3)
- ABI_ALLOCATE(ifftsph_tmp,(ncmax))
- ABI_ALLOCATE(rfgd_tmp,(3,ncmax))
+ LIBPAW_ALLOCATE(ifftsph_tmp,(ncmax))
+ LIBPAW_ALLOCATE(rfgd_tmp,(3,ncmax))
 
 !Set number of points to zero
  nfgd=0
@@ -1006,22 +1002,22 @@ subroutine pawrfgd_fft(ifftsph,gmet,n1,n2,n3,nfgd,rcut,rfgd,rprimd,ucvol,xred, &
 
 !Now fill output arrays
  if (allocated(ifftsph)) then
-   ABI_DEALLOCATE(ifftsph)
+   LIBPAW_DEALLOCATE(ifftsph)
  end if
  if (allocated(rfgd)) then
-   ABI_DEALLOCATE(rfgd)
+   LIBPAW_DEALLOCATE(rfgd)
  end if
- ABI_ALLOCATE(ifftsph,(nfgd))
- ABI_ALLOCATE(rfgd,(3,nfgd))
+ LIBPAW_ALLOCATE(ifftsph,(nfgd))
+ LIBPAW_ALLOCATE(rfgd,(3,nfgd))
  ifftsph(1:nfgd)=ifftsph_tmp(1:nfgd)
  rfgd(1:3,1:nfgd)=rfgd_tmp(1:3,1:nfgd)
 
 !Release temporary memory
- ABI_DEALLOCATE(ifftsph_tmp)
- ABI_DEALLOCATE(rfgd_tmp)
+ LIBPAW_DEALLOCATE(ifftsph_tmp)
+ LIBPAW_DEALLOCATE(rfgd_tmp)
  if (.not.present(fft_distrib).or..not.present(fft_index)) then
-   ABI_DEALLOCATE(fft_distrib_)
-   ABI_DEALLOCATE(fft_index_)
+   LIBPAW_DEALLOCATE(fft_distrib_)
+   LIBPAW_DEALLOCATE(fft_index_)
  end if
 
  DBG_EXIT("COLL")
@@ -1126,8 +1122,8 @@ subroutine pawrfgd_wvl(geocode,hh,ifftsph,i3s,n1,n1i,n2,n2i,n3,n3pi,&
 !  use factor 1+int(1.1*, for safety reasons
  ncmax=1
  if (n3pi>0) ncmax=1+int((rcut/hh(1)+1.0)*(rcut/hh(2)+1.0)*(rcut/hh(3)+1.0)*four_pi/three)
- ABI_ALLOCATE(ifftsph_tmp,(ncmax))
- ABI_ALLOCATE(rfgd_tmp,(3,ncmax))
+ LIBPAW_ALLOCATE(ifftsph_tmp,(ncmax))
+ LIBPAW_ALLOCATE(rfgd_tmp,(3,ncmax))
 
 !Set number of points to zero
  nfgd=0
@@ -1162,19 +1158,19 @@ subroutine pawrfgd_wvl(geocode,hh,ifftsph,i3s,n1,n1i,n2,n2i,n3,n3pi,&
 
 !Now fill output arrays
  if (allocated(ifftsph)) then
-   ABI_DEALLOCATE(ifftsph)
+   LIBPAW_DEALLOCATE(ifftsph)
  end if
  if (allocated(rfgd)) then
-   ABI_DEALLOCATE(rfgd)
+   LIBPAW_DEALLOCATE(rfgd)
  end if
- ABI_ALLOCATE(ifftsph,(nfgd))
- ABI_ALLOCATE(rfgd,(3,nfgd))
+ LIBPAW_ALLOCATE(ifftsph,(nfgd))
+ LIBPAW_ALLOCATE(rfgd,(3,nfgd))
  ifftsph(1:nfgd)=ifftsph_tmp(1:nfgd)
  rfgd(1:3,1:nfgd)=rfgd_tmp(1:3,1:nfgd)
 
 !Release temporary memory
- ABI_DEALLOCATE(ifftsph_tmp)
- ABI_DEALLOCATE(rfgd_tmp)
+ LIBPAW_DEALLOCATE(ifftsph_tmp)
+ LIBPAW_DEALLOCATE(rfgd_tmp)
 
  DBG_EXIT("COLL")
 

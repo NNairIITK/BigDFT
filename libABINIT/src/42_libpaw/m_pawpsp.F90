@@ -18,18 +18,15 @@
 !!
 !! SOURCE
 
-#if defined HAVE_CONFIG_H
-#include "config.h"
-#endif
-
-#include "abi_common.h"
+#include "libpaw.h"
 
 module m_pawpsp
 
  use defs_basis
- use m_profiling_abi
  use m_errors
  use m_xmpi
+ USE_MEMORY_PROFILING
+
 #if defined HAVE_DFT_LIBXC
  use libxc_functionals
 #endif
@@ -184,13 +181,13 @@ subroutine pawpsp_nl(ffspl,indlmn,lmnmax,lnmax,mqgrid,qgrid,radmesh,wfll)
 
 !Init. temporary arrays and variables
  meshsz=radmesh%mesh_size;mmax=meshsz
- ABI_ALLOCATE(ff,(meshsz))
- ABI_ALLOCATE(gg,(meshsz))
- ABI_ALLOCATE(rr,(meshsz))
- ABI_ALLOCATE(rr2,(meshsz))
- ABI_ALLOCATE(rrwf,(meshsz))
- ABI_ALLOCATE(rr2wf,(meshsz))
- ABI_ALLOCATE(work,(mqgrid))
+ LIBPAW_ALLOCATE(ff,(meshsz))
+ LIBPAW_ALLOCATE(gg,(meshsz))
+ LIBPAW_ALLOCATE(rr,(meshsz))
+ LIBPAW_ALLOCATE(rr2,(meshsz))
+ LIBPAW_ALLOCATE(rrwf,(meshsz))
+ LIBPAW_ALLOCATE(rr2wf,(meshsz))
+ LIBPAW_ALLOCATE(work,(mqgrid))
  rr(:) =radmesh%rad(:)
  rr2(:)=two_pi*rr(:)*rr(:)
  argn=two_pi*qgrid(mqgrid)
@@ -274,13 +271,13 @@ subroutine pawpsp_nl(ffspl,indlmn,lmnmax,lnmax,mqgrid,qgrid,radmesh,wfll)
    end if
  end do
 
- ABI_DEALLOCATE(ff)
- ABI_DEALLOCATE(gg)
- ABI_DEALLOCATE(rr)
- ABI_DEALLOCATE(rr2)
- ABI_DEALLOCATE(rrwf)
- ABI_DEALLOCATE(rr2wf)
- ABI_DEALLOCATE(work)
+ LIBPAW_DEALLOCATE(ff)
+ LIBPAW_DEALLOCATE(gg)
+ LIBPAW_DEALLOCATE(rr)
+ LIBPAW_DEALLOCATE(rr2)
+ LIBPAW_DEALLOCATE(rrwf)
+ LIBPAW_DEALLOCATE(rr2wf)
+ LIBPAW_DEALLOCATE(work)
 
 end subroutine pawpsp_nl
 !!***
@@ -359,8 +356,8 @@ subroutine pawpsp_lo(epsatm,mqgrid,qgrid,q2vq,radmesh,vloc,yp1,ypn,zion)
    return
  end if
 
- ABI_ALLOCATE(ff,(radmesh%mesh_size))
- ABI_ALLOCATE(rvpz,(radmesh%mesh_size))
+ LIBPAW_ALLOCATE(ff,(radmesh%mesh_size))
+ LIBPAW_ALLOCATE(rvpz,(radmesh%mesh_size))
  ff=zero;rvpz=zero
 
 !Is mesh beginning with r=0 ?
@@ -455,8 +452,8 @@ subroutine pawpsp_lo(epsatm,mqgrid,qgrid,q2vq,radmesh,vloc,yp1,ypn,zion)
 !Some of the three parts
  ypn=two*(r0tor1+r1torm+rmtoin)
 
- ABI_DEALLOCATE(ff)
- ABI_DEALLOCATE(rvpz)
+ LIBPAW_DEALLOCATE(ff)
+ LIBPAW_DEALLOCATE(rvpz)
 
 end subroutine pawpsp_lo
 !!***
@@ -525,8 +522,8 @@ subroutine pawpsp_cg(dnqdq0,d2nqdq0,mqgrid,qgrid,nq,radmesh,nr,yp1,ypn)
 
 ! *************************************************************************
 
- ABI_ALLOCATE(ff,(radmesh%mesh_size))
- ABI_ALLOCATE(rnr,(radmesh%mesh_size))
+ LIBPAW_ALLOCATE(ff,(radmesh%mesh_size))
+ LIBPAW_ALLOCATE(rnr,(radmesh%mesh_size))
  ff=zero;rnr=zero
 
  do ir=1,radmesh%mesh_size
@@ -670,8 +667,8 @@ subroutine pawpsp_cg(dnqdq0,d2nqdq0,mqgrid,qgrid,nq,radmesh,nr,yp1,ypn)
 !Some of the three parts
  dnqdq0=-(2.d0/3.d0)*two_pi**3*(r0tor1+r1torm+rmtoin)
  
- ABI_DEALLOCATE(ff)
- ABI_DEALLOCATE(rnr)
+ LIBPAW_DEALLOCATE(ff)
+ LIBPAW_DEALLOCATE(rnr)
 
  d2nqdq0 = 1_dp
 
@@ -824,11 +821,11 @@ subroutine pawpsp_read(core_mesh,imainmesh,lmax,&
 
 !Have to maintain compatibility with Abinit v4.2.x
  if (pspversion==1) then
-   ABI_ALLOCATE(pawtab%orbitals,(pawtab%basis_size))
+   LIBPAW_ALLOCATE(pawtab%orbitals,(pawtab%basis_size))
    read(tmp_unit,*) (pawtab%orbitals(ib), ib=1,pawtab%basis_size)
    pawtab%l_size=2*maxval(pawtab%orbitals)+1
    nmesh=3
-   ABI_DATATYPE_ALLOCATE(radmesh,(nmesh))
+   LIBPAW_DATATYPE_ALLOCATE(radmesh,(nmesh))
    read(tmp_unit,'(a80)') pspline
    radmesh(1)%lstep=zero
    read(unit=pspline,fmt=*,err=10,end=10) radmesh(1)%mesh_type,&
@@ -851,11 +848,11 @@ subroutine pawpsp_read(core_mesh,imainmesh,lmax,&
  else
 
 !  Here psp file for Abinit 4.3+
-   ABI_ALLOCATE(pawtab%orbitals,(pawtab%basis_size))
+   LIBPAW_ALLOCATE(pawtab%orbitals,(pawtab%basis_size))
    read(tmp_unit,*) (pawtab%orbitals(ib), ib=1,pawtab%basis_size)
    pawtab%l_size=2*maxval(pawtab%orbitals)+1
    read(tmp_unit,*) nmesh
-   ABI_DATATYPE_ALLOCATE(radmesh,(nmesh))
+   LIBPAW_DATATYPE_ALLOCATE(radmesh,(nmesh))
    do imsh=1,nmesh
      rread2=zero
      read(tmp_unit,'(a80)') pspline
@@ -894,10 +891,10 @@ subroutine pawpsp_read(core_mesh,imainmesh,lmax,&
 
 !indlmn calculation (indices for (l,m,n) basis)
  if (allocated(pawtab%indlmn)) then
-   ABI_DEALLOCATE(pawtab%indlmn)
+   LIBPAW_DEALLOCATE(pawtab%indlmn)
  end if
- ABI_ALLOCATE(pawtab%indlmn,(6,pawtab%lmn_size))
- ABI_ALLOCATE(nprj,(0:maxval(pawtab%orbitals)))
+ LIBPAW_ALLOCATE(pawtab%indlmn,(6,pawtab%lmn_size))
+ LIBPAW_ALLOCATE(nprj,(0:maxval(pawtab%orbitals)))
  pawtab%indlmn(:,:)=0
  ilmn=0;iln=0;nprj=0
  do ib=1,pawtab%basis_size
@@ -914,7 +911,7 @@ subroutine pawpsp_read(core_mesh,imainmesh,lmax,&
    end do
    ilmn=ilmn+2*il+1
  end do
- ABI_DEALLOCATE(nprj)
+ LIBPAW_DEALLOCATE(nprj)
 !Are ilmn (found here) and pawtab%lmn_size compatibles ?
  if (ilmn/=pawtab%lmn_size) then
    write(message, '(a,a,a,a,a)' )&
@@ -954,8 +951,8 @@ subroutine pawpsp_read(core_mesh,imainmesh,lmax,&
  end if
 !If shapefunction type is Bessel, deduce here its parameters from rc
  if (pawtab%shape_type==3) then
-   ABI_ALLOCATE(pawtab%shape_alpha,(2,pawtab%l_size))
-   ABI_ALLOCATE(pawtab%shape_q,(2,pawtab%l_size))
+   LIBPAW_ALLOCATE(pawtab%shape_alpha,(2,pawtab%l_size))
+   LIBPAW_ALLOCATE(pawtab%shape_q,(2,pawtab%l_size))
    rc=pawtab%rshp;if (rc<1.d-8) rc=pawtab%rpaw
    do il=1,pawtab%l_size
      call atompaw_shapebes(pawtab%shape_alpha(1:2,il),pawtab%shape_q(1:2,il),il-1,rc)
@@ -1068,7 +1065,7 @@ subroutine pawpsp_read(core_mesh,imainmesh,lmax,&
 &     rstep=radmesh(iread1)%rstep,lstep=radmesh(iread1)%lstep,r_for_intg=pawtab%rpaw)
      pawtab%mesh_size=pawrad%mesh_size
      imainmesh=iread1
-     ABI_ALLOCATE(pawtab%phi,(pawrad%mesh_size,pawtab%basis_size))
+     LIBPAW_ALLOCATE(pawtab%phi,(pawrad%mesh_size,pawtab%basis_size))
    else if (iread1/=imainmesh) then
      write(message, '(a,a,a)' )&
 &     '  All Phi and tPhi must be given on the same radial mesh !',ch10,&
@@ -1080,7 +1077,7 @@ subroutine pawpsp_read(core_mesh,imainmesh,lmax,&
 
 !---------------------------------
 !Read pseudo wave-functions (tphi)
- ABI_ALLOCATE(pawtab%tphi,(pawrad%mesh_size,pawtab%basis_size))
+ LIBPAW_ALLOCATE(pawtab%tphi,(pawrad%mesh_size,pawtab%basis_size))
  do ib=1,pawtab%basis_size
    read (tmp_unit,*)
    if (pspversion==1) iread1=1
@@ -1107,7 +1104,7 @@ subroutine pawpsp_read(core_mesh,imainmesh,lmax,&
    if (ib==1) then
      iprojmesh=iread1
      call pawrad_copy(radmesh(iprojmesh),tproj_mesh)
-     ABI_ALLOCATE(tproj,(tproj_mesh%mesh_size,pawtab%basis_size))
+     LIBPAW_ALLOCATE(tproj,(tproj_mesh%mesh_size,pawtab%basis_size))
    else if (iread1/=iprojmesh) then
      write(message, '(a,a,a)' )&
 &     '  All tprojectors must be given on the same radial mesh !',ch10,&
@@ -1138,9 +1135,9 @@ subroutine pawpsp_read(core_mesh,imainmesh,lmax,&
        read(tmp_unit,*) pngau_, ptotgau_ !total number of gaussians
        if(ib==1) then
          pawtab%wvl%ptotgau=ptotgau_
-         ABI_ALLOCATE(pawtab%wvl%pngau,(pawtab%basis_size))
-         ABI_ALLOCATE(pawtab%wvl%parg,(2,pawtab%wvl%ptotgau))
-         ABI_ALLOCATE(pawtab%wvl%pfac,(2,pawtab%wvl%ptotgau))
+         LIBPAW_ALLOCATE(pawtab%wvl%pngau,(pawtab%basis_size))
+         LIBPAW_ALLOCATE(pawtab%wvl%parg,(2,pawtab%wvl%ptotgau))
+         LIBPAW_ALLOCATE(pawtab%wvl%pfac,(2,pawtab%wvl%ptotgau))
        else
          if(pawtab%wvl%ptotgau/=ptotgau_) then
            write(message,'(3a)')&
@@ -1180,31 +1177,31 @@ subroutine pawpsp_read(core_mesh,imainmesh,lmax,&
 &   '  Action: check your pseudopotential file.'
    MSG_ERROR(message)
  end if
- ABI_ALLOCATE(ncore,(core_mesh%mesh_size))
+ LIBPAW_ALLOCATE(ncore,(core_mesh%mesh_size))
  read (tmp_unit,*) (ncore(ir),ir=1,core_mesh%mesh_size)
 
 !Construct and save VH[z_NC] if requested
  if (pawtab%has_vhnzc==1) then
-   ABI_ALLOCATE(pawtab%VHnZC,(pawrad%mesh_size))
-   ABI_ALLOCATE(vhnzc,(core_mesh%mesh_size))
+   LIBPAW_ALLOCATE(pawtab%VHnZC,(pawrad%mesh_size))
+   LIBPAW_ALLOCATE(vhnzc,(core_mesh%mesh_size))
    call atompaw_vhnzc(ncore,core_mesh,vhnzc,znucl)
    pawtab%VHnZC(1:pawrad%mesh_size)=vhnzc(1:pawrad%mesh_size)
    pawtab%has_vhnzc=2
-   ABI_DEALLOCATE(vhnzc)
+   LIBPAW_DEALLOCATE(vhnzc)
  end if
 
  pawtab%core_mesh_size=pawrad%mesh_size
  if(save_core_msz) pawtab%core_mesh_size=core_mesh%mesh_size
- ABI_ALLOCATE(pawtab%coredens,(pawtab%core_mesh_size))
+ LIBPAW_ALLOCATE(pawtab%coredens,(pawtab%core_mesh_size))
  pawtab%rcore=core_mesh%rad(pawtab%core_mesh_size)
  pawtab%coredens(1:pawtab%core_mesh_size)=ncore(1:pawtab%core_mesh_size)
 
 !---------------------------------
 !Read pseudo core density (tcoredens)
  if(save_core_msz)  then
-   ABI_ALLOCATE(pawtab%tcoredens,(pawtab%core_mesh_size,6))
+   LIBPAW_ALLOCATE(pawtab%tcoredens,(pawtab%core_mesh_size,6))
  else
-   ABI_ALLOCATE(pawtab%tcoredens,(pawtab%core_mesh_size,1))
+   LIBPAW_ALLOCATE(pawtab%tcoredens,(pawtab%core_mesh_size,1))
  end if
  pawtab%tcoredens=zero
  read (tmp_unit,*)
@@ -1217,7 +1214,7 @@ subroutine pawpsp_read(core_mesh,imainmesh,lmax,&
 &   '  Action: check your pseudopotential file.'
    MSG_ERROR(message)
  end if
- ABI_ALLOCATE(tncore,(core_mesh%mesh_size))
+ LIBPAW_ALLOCATE(tncore,(core_mesh%mesh_size))
  read (tmp_unit,*) (tncore(ir),ir=1,core_mesh%mesh_size)
  if (maxval(abs(tncore(:)))<tol6) then
    pawtab%usetcore=0
@@ -1234,13 +1231,13 @@ subroutine pawpsp_read(core_mesh,imainmesh,lmax,&
 
 !---------------------------------
 !Read frozen part of Dij terms (dij0)
- ABI_ALLOCATE(pawtab%dij0,(pawtab%lmn2_size))
+ LIBPAW_ALLOCATE(pawtab%dij0,(pawtab%lmn2_size))
  read (tmp_unit,*)
  read (tmp_unit,*) (pawtab%dij0(ib),ib=1,pawtab%lmn2_size)
 
 !---------------------------------
 !Read initial guess of rhoij (rhoij0)
- ABI_ALLOCATE(pawtab%rhoij0,(pawtab%lmn2_size))
+ LIBPAW_ALLOCATE(pawtab%rhoij0,(pawtab%lmn2_size))
  read (tmp_unit,*)
  read (tmp_unit,*) (pawtab%rhoij0(ib),ib=1,pawtab%lmn2_size)
 
@@ -1273,7 +1270,7 @@ subroutine pawpsp_read(core_mesh,imainmesh,lmax,&
  end if
  usexcnhat_out=0;if (vlocopt==1) usexcnhat_out=1
  call pawrad_copy(radmesh(ivlocmesh),vloc_mesh)
- ABI_ALLOCATE(vlocr,(vloc_mesh%mesh_size))
+ LIBPAW_ALLOCATE(vlocr,(vloc_mesh%mesh_size))
  read (tmp_unit,*) (vlocr(ir),ir=1,vloc_mesh%mesh_size)
  write(message,'(a,i1)') &
 & ' Radial grid used for Vloc is grid ',ivlocmesh
@@ -1283,7 +1280,7 @@ subroutine pawpsp_read(core_mesh,imainmesh,lmax,&
 !---------------------------------
 !Eventually read "numeric" shapefunctions (if shape_type=-1)
  if (pawtab%shape_type==-1) then
-   ABI_ALLOCATE(pawtab%shapefunc,(pawrad%mesh_size,pawtab%l_size))
+   LIBPAW_ALLOCATE(pawtab%shapefunc,(pawrad%mesh_size,pawtab%l_size))
    do il=1,pawtab%l_size
      read (tmp_unit,*)
      if (pspversion==1) iread1=1
@@ -1291,7 +1288,7 @@ subroutine pawpsp_read(core_mesh,imainmesh,lmax,&
      if (il==1) then
        call pawrad_copy(radmesh(iread1),shpf_mesh)
        ishpfmesh=iread1
-       ABI_ALLOCATE(shpf,(shpf_mesh%mesh_size,pawtab%l_size))
+       LIBPAW_ALLOCATE(shpf,(shpf_mesh%mesh_size,pawtab%l_size))
      else if (iread1/=ishpfmesh) then
        write(message, '(a,a,a)' )&
 &       '  All shape functions must be given on the same radial mesh !',ch10,&
@@ -1308,10 +1305,10 @@ subroutine pawpsp_read(core_mesh,imainmesh,lmax,&
 !  Has to spline shape functions if mesh is not the "main" mesh
    if (ishpfmesh/=imainmesh) then
      msz=shpf_mesh%mesh_size
-     ABI_ALLOCATE(work1,(msz))
-     ABI_ALLOCATE(work2,(msz))
-     ABI_ALLOCATE(work3,(msz))
-     ABI_ALLOCATE(work4,(pawrad%mesh_size))
+     LIBPAW_ALLOCATE(work1,(msz))
+     LIBPAW_ALLOCATE(work2,(msz))
+     LIBPAW_ALLOCATE(work3,(msz))
+     LIBPAW_ALLOCATE(work4,(pawrad%mesh_size))
      work3(:)=shpf_mesh%rad(:)
      work4(:)=pawrad%rad(:)
      do il=1,pawtab%l_size
@@ -1319,14 +1316,14 @@ subroutine pawpsp_read(core_mesh,imainmesh,lmax,&
        call paw_spline(work3,shpf(:,il),msz,yp1,ypn,work1)
        call paw_splint(msz,work3,shpf(:,il),work1,pawrad%mesh_size,work4,pawtab%shapefunc(:,il))
      end do
-     ABI_DEALLOCATE(work1)
-     ABI_DEALLOCATE(work2)
-     ABI_DEALLOCATE(work3)
-     ABI_DEALLOCATE(work4)
+     LIBPAW_DEALLOCATE(work1)
+     LIBPAW_DEALLOCATE(work2)
+     LIBPAW_DEALLOCATE(work3)
+     LIBPAW_DEALLOCATE(work4)
    else
      pawtab%shapefunc(:,:)=shpf(:,:)
    end if
-   ABI_DEALLOCATE(shpf)
+   LIBPAW_DEALLOCATE(shpf)
    call pawrad_free(shpf_mesh)
  end if
 
@@ -1337,7 +1334,7 @@ subroutine pawpsp_read(core_mesh,imainmesh,lmax,&
    read (tmp_unit,*) iread1
    ivalemesh=iread1
    call pawrad_copy(radmesh(iread1),vale_mesh)
-   ABI_ALLOCATE(tnvale,(vale_mesh%mesh_size))
+   LIBPAW_ALLOCATE(tnvale,(vale_mesh%mesh_size))
    read (tmp_unit,*) (tnvale(ir),ir=1,vale_mesh%mesh_size)
    pawtab%has_tvale=1
    write(message,'(a,i1)') &
@@ -1346,7 +1343,7 @@ subroutine pawpsp_read(core_mesh,imainmesh,lmax,&
    call wrtout(std_out,  message,'COLL')
  else
    pawtab%has_tvale=0
-   ABI_ALLOCATE(tnvale,(0))
+   LIBPAW_ALLOCATE(tnvale,(0))
  end if
 
  DBG_EXIT("COLL")
@@ -1484,10 +1481,10 @@ subroutine pawpsp_read_corewf(energy_cor,indlmn_core,lcor,lmncmax,ncor,nphicor,p
    read(tmp_unit,*) nphicor
    read(tmp_unit,*) ! skip orbitals
    read(tmp_unit,*) nmesh
-   ABI_ALLOCATE(meshsz,(nmesh))
-   ABI_ALLOCATE(meshtp,(nmesh))
-   ABI_ALLOCATE(radstp,(nmesh))
-   ABI_ALLOCATE(logstp,(nmesh))
+   LIBPAW_ALLOCATE(meshsz,(nmesh))
+   LIBPAW_ALLOCATE(meshtp,(nmesh))
+   LIBPAW_ALLOCATE(radstp,(nmesh))
+   LIBPAW_ALLOCATE(logstp,(nmesh))
    do iln=1,nmesh
      r2=zero;read(tmp_unit,'(a80)') fline
      read(unit=fline,fmt=*,err=20,end=20) ib,i1,i2,r1,r2
@@ -1498,16 +1495,16 @@ subroutine pawpsp_read_corewf(energy_cor,indlmn_core,lcor,lmncmax,ncor,nphicor,p
      end if
    end do
    read(tmp_unit,*) ! skip rmax(core)
-   ABI_ALLOCATE(ncor,(nphicor))
-   ABI_ALLOCATE(lcor,(nphicor))
-   ABI_ALLOCATE(energy_cor,(nphicor))
-   ABI_ALLOCATE(phi_cor,(pawrad%mesh_size,nphicor))
+   LIBPAW_ALLOCATE(ncor,(nphicor))
+   LIBPAW_ALLOCATE(lcor,(nphicor))
+   LIBPAW_ALLOCATE(energy_cor,(nphicor))
+   LIBPAW_ALLOCATE(phi_cor,(pawrad%mesh_size,nphicor))
    do iln=1,nphicor
      read(tmp_unit,*) ! skip comment
      read(tmp_unit,*) i1
      read(tmp_unit,*) ncor(iln),lcor(iln)
      read(tmp_unit,*) energy_cor(iln)
-     ABI_ALLOCATE(phitmp,(meshsz(i1)))
+     LIBPAW_ALLOCATE(phitmp,(meshsz(i1)))
      read(tmp_unit,*) phitmp
      if ((pawrad%mesh_type/=meshtp(i1)) &
 &     .or.(pawrad%rstep/=radstp(i1)) &
@@ -1515,24 +1512,24 @@ subroutine pawpsp_read_corewf(energy_cor,indlmn_core,lcor,lmncmax,ncor,nphicor,p
        call pawrad_init(tmpmesh,mesh_size=meshsz(i1),mesh_type=meshtp(i1),rstep=radstp(i1),lstep=logstp(i1))
        npts=pawrad%mesh_size
        if (tmpmesh%rmax<pawrad%rmax+tol8) npts=pawrad_ifromr(pawrad,tmpmesh%rmax)-1
-       ABI_ALLOCATE(work,(meshsz(i1)))
+       LIBPAW_ALLOCATE(work,(meshsz(i1)))
        call bound_deriv(phitmp,tmpmesh,meshsz(i1),r1,r2)
        call paw_spline(tmpmesh%rad,phitmp,meshsz(i1),r1,r2,work)
        call paw_splint(meshsz(i1),tmpmesh%rad,phitmp,work,npts,pawrad%rad(1:npts),phi_cor(1:npts,iln))
        if (npts<pawrad%mesh_size) phi_cor(npts+1:pawrad%mesh_size,iln)=zero
-       ABI_DEALLOCATE(work)
+       LIBPAW_DEALLOCATE(work)
        call pawrad_free(tmpmesh)
      else
        npts=min(meshsz(i1),pawrad%mesh_size)
        phi_cor(1:npts,iln)=phitmp(1:npts)
        if (npts<pawrad%mesh_size) phi_cor(npts+1:pawrad%mesh_size,iln)=zero
      end if
-     ABI_DEALLOCATE(phitmp)
+     LIBPAW_DEALLOCATE(phitmp)
    end do
-   ABI_DEALLOCATE(meshsz)
-   ABI_DEALLOCATE(meshtp)
-   ABI_DEALLOCATE(radstp)
-   ABI_DEALLOCATE(logstp)
+   LIBPAW_DEALLOCATE(meshsz)
+   LIBPAW_DEALLOCATE(meshtp)
+   LIBPAW_DEALLOCATE(radstp)
+   LIBPAW_DEALLOCATE(logstp)
    close(tmp_unit)
  end if
 
@@ -1543,11 +1540,11 @@ subroutine pawpsp_read_corewf(energy_cor,indlmn_core,lcor,lmncmax,ncor,nphicor,p
      read(tmp_unit,'(a8)') dum
    end do
    read(tmp_unit,'(2i4)') npts,nphicor
-   ABI_ALLOCATE(ncor,(nphicor))
-   ABI_ALLOCATE(lcor,(nphicor))
-   ABI_ALLOCATE(energy_cor,(nphicor))
-   ABI_ALLOCATE(phi_cor,(npts,nphicor))
-   ABI_ALLOCATE(rad,(npts))
+   LIBPAW_ALLOCATE(ncor,(nphicor))
+   LIBPAW_ALLOCATE(lcor,(nphicor))
+   LIBPAW_ALLOCATE(energy_cor,(nphicor))
+   LIBPAW_ALLOCATE(phi_cor,(npts,nphicor))
+   LIBPAW_ALLOCATE(rad,(npts))
    do iln=1,nphicor
      read(tmp_unit,'("# n=",i4," l=",i4," nocc=",f15.7," energy=",f15.7)') &
 &       ncor(iln),lcor(iln),noccor,energy_cor(iln)
@@ -1556,7 +1553,7 @@ subroutine pawpsp_read_corewf(energy_cor,indlmn_core,lcor,lmncmax,ncor,nphicor,p
      end do
      read(tmp_unit,*)
    end do
-   ABI_DEALLOCATE(rad)
+   LIBPAW_DEALLOCATE(rad)
    close(tmp_unit)
  end if
 
@@ -1566,7 +1563,7 @@ subroutine pawpsp_read_corewf(energy_cor,indlmn_core,lcor,lmncmax,ncor,nphicor,p
    il=lcor(ib)
    lmncmax=lmncmax+2*il+1
  end do
- ABI_ALLOCATE(indlmn_core,(6,lmncmax))
+ LIBPAW_ALLOCATE(indlmn_core,(6,lmncmax))
  indlmn_core=0;ilmn=0;iln=0
  do ib=1,nphicor
    il=lcor(ib)
@@ -1940,14 +1937,14 @@ subroutine pawpsp_calc(core_mesh,epsatm,ffspl,imainmesh,ixc,lnmax,&
  if (pawxcdev==0) then
    pawang_tmp%l_size_max=1;pawang_tmp%angl_size=1;pawang_tmp%ylm_size=1
    pawang_tmp%use_ls_ylm=0;pawang_tmp%gnt_option=0;pawang_tmp%ngnt=0;pawang_tmp%nsym=0
-   ABI_ALLOCATE(pawang_tmp%angwgth,(1))
+   LIBPAW_ALLOCATE(pawang_tmp%angwgth,(1))
    pawang_tmp%angwgth(1)=one
-   ABI_ALLOCATE(pawang_tmp%anginit,(3,1))
+   LIBPAW_ALLOCATE(pawang_tmp%anginit,(3,1))
    pawang_tmp%anginit(1,1)=one
    pawang_tmp%anginit(2:3,1)=zero
-   ABI_ALLOCATE(pawang_tmp%ylmr,(1,1))
+   LIBPAW_ALLOCATE(pawang_tmp%ylmr,(1,1))
    pawang_tmp%ylmr(1,1)=1._dp/sqrt(four_pi)
-   ABI_ALLOCATE(pawang_tmp%ylmrgr,(3,1,1))
+   LIBPAW_ALLOCATE(pawang_tmp%ylmrgr,(3,1,1))
    pawang_tmp%ylmrgr(1:3,1,1)=zero
  end if
 
@@ -1991,7 +1988,7 @@ subroutine pawpsp_calc(core_mesh,epsatm,ffspl,imainmesh,ixc,lnmax,&
 
  if (pawtab%has_tvale==1) then
    msz=vale_mesh%mesh_size
-   ABI_ALLOCATE(nhat,(msz))
+   LIBPAW_ALLOCATE(nhat,(msz))
 !  A-Has to compute norm of nhat (Int[n-tild_n])
    testval=(abs(tnvale(msz))<tol9)
 !  A1-If tnvale is not given with enough points,
@@ -1999,8 +1996,8 @@ subroutine pawpsp_calc(core_mesh,epsatm,ffspl,imainmesh,ixc,lnmax,&
    if (.not.testval) then
      msz1=pawrad%mesh_size
 !    Compute n and tild_n from phi and tphi
-     ABI_ALLOCATE(work1,(msz1))
-     ABI_ALLOCATE(work2,(msz1))
+     LIBPAW_ALLOCATE(work1,(msz1))
+     LIBPAW_ALLOCATE(work2,(msz1))
      work1=zero
      work2=zero
      do jlmn=1,pawtab%lmn_size
@@ -2015,14 +2012,14 @@ subroutine pawpsp_calc(core_mesh,epsatm,ffspl,imainmesh,ixc,lnmax,&
        end do
      end do
 !    Spline tnvale onto pawrad if needed
-     ABI_ALLOCATE(nwk,(msz1))
+     LIBPAW_ALLOCATE(nwk,(msz1))
      if ((vale_mesh%mesh_type/=pawrad%mesh_type).or.(vale_mesh%rstep/=pawrad%rstep).or.&
 &     (vale_mesh%lstep/=pawrad%lstep)) then
-       ABI_ALLOCATE(work3,(vale_mesh%mesh_size))
+       LIBPAW_ALLOCATE(work3,(vale_mesh%mesh_size))
        call bound_deriv(tnvale(1:vale_mesh%mesh_size),vale_mesh,vale_mesh%mesh_size,yp1,ypn)
        call paw_spline(vale_mesh%rad,tnvale,vale_mesh%mesh_size,yp1,ypn,work3)
        call paw_splint(vale_mesh%mesh_size,vale_mesh%rad,tnvale,work3,msz1,pawrad%rad(1:msz1),nwk(1:msz1))
-       ABI_DEALLOCATE(work3)
+       LIBPAW_DEALLOCATE(work3)
      else
        nwk(1:msz1)=tnvale(1:msz1)
      end if
@@ -2041,9 +2038,9 @@ subroutine pawpsp_calc(core_mesh,epsatm,ffspl,imainmesh,ixc,lnmax,&
 &       '  in psp file. Some charge estimations will be coarse.'
        call wrtout(std_out,  message,'COLL')
      end if
-     ABI_DEALLOCATE(nwk)
-     ABI_DEALLOCATE(work1)
-     ABI_DEALLOCATE(work2)
+     LIBPAW_DEALLOCATE(nwk)
+     LIBPAW_DEALLOCATE(work1)
+     LIBPAW_DEALLOCATE(work2)
    end if
 !  A2-If tnvale is given with enough points, use it
    if (testval) then
@@ -2065,12 +2062,12 @@ subroutine pawpsp_calc(core_mesh,epsatm,ffspl,imainmesh,ixc,lnmax,&
    call wrtout(ab_out,message,'COLL')
    call wrtout(std_out,  message,'COLL')
    msz=core_mesh%mesh_size
-   ABI_ALLOCATE(r2k,(msz))
+   LIBPAW_ALLOCATE(r2k,(msz))
    call atompaw_shpfun(0,core_mesh,intg,pawtab,r2k)
    r2k(1:msz)=r2k(1:msz)*core_mesh%rad(1:msz)**2
 !  Compute VH[4pi.r2.n(r)=4pi.r2.tncore(r)+(Qcore-Z).r2.k(r)]
-   ABI_ALLOCATE(nwk,(core_mesh%mesh_size))
-   ABI_ALLOCATE(vh,(core_mesh%mesh_size))
+   LIBPAW_ALLOCATE(nwk,(core_mesh%mesh_size))
+   LIBPAW_ALLOCATE(vh,(core_mesh%mesh_size))
    if (core_mesh%mesh_type==5) then
      nwk(:)=tncore(:)*four_pi*core_mesh%rad(:)**2
      call simp_gen(qcore,nwk,core_mesh)
@@ -2089,20 +2086,20 @@ subroutine pawpsp_calc(core_mesh,epsatm,ffspl,imainmesh,ixc,lnmax,&
    vh(2:msz)=vh(2:msz)/core_mesh%rad(2:msz)
    call pawrad_deducer0(vh,msz,core_mesh)
 
-   ABI_DEALLOCATE(nwk)
+   LIBPAW_DEALLOCATE(nwk)
 !  Eventually spline Vbare
-   ABI_ALLOCATE(vbare,(core_mesh%mesh_size))
+   LIBPAW_ALLOCATE(vbare,(core_mesh%mesh_size))
    if ((core_mesh%mesh_type/=vloc_mesh%mesh_type).or.&
 &   (core_mesh%rstep    /=vloc_mesh%rstep)    .or.&
 &   (core_mesh%lstep    /=vloc_mesh%lstep)) then
      msz=core_mesh%mesh_size;if (vloc_mesh%rmax<core_mesh%rmax) msz=pawrad_ifromr(core_mesh,vloc_mesh%rmax)
      call bound_deriv(vlocr(1:vloc_mesh%mesh_size),vloc_mesh,vloc_mesh%mesh_size,yp1,ypn)
-     ABI_ALLOCATE(work1,(vloc_mesh%mesh_size))
-     ABI_ALLOCATE(work2,(vloc_mesh%mesh_size))
+     LIBPAW_ALLOCATE(work1,(vloc_mesh%mesh_size))
+     LIBPAW_ALLOCATE(work2,(vloc_mesh%mesh_size))
      call paw_spline(vloc_mesh%rad,vlocr,vloc_mesh%mesh_size,yp1,ypn,work1)
      call paw_splint(vloc_mesh%mesh_size,vloc_mesh%rad,vlocr,work1,msz,core_mesh%rad(1:msz),vbare)
-     ABI_DEALLOCATE(work1)
-     ABI_DEALLOCATE(work2)
+     LIBPAW_DEALLOCATE(work1)
+     LIBPAW_DEALLOCATE(work2)
    else
      msz=min(core_mesh%mesh_size,vloc_mesh%mesh_size)
      vbare(1:msz)=vlocr(1:msz)
@@ -2112,14 +2109,14 @@ subroutine pawpsp_calc(core_mesh,epsatm,ffspl,imainmesh,ixc,lnmax,&
    if(vloc_mesh%mesh_size>msz)then
      vlocr(msz+1:vloc_mesh%mesh_size)=vh(msz)*vloc_mesh%rad(msz)/vloc_mesh%rad(msz+1:vloc_mesh%mesh_size)
    end if
-   ABI_DEALLOCATE(vbare)
-   ABI_DEALLOCATE(vh)
+   LIBPAW_DEALLOCATE(vbare)
+   LIBPAW_DEALLOCATE(vh)
 
 !  Compute <tPhi_i|VH(tnzc)|tPhi_j> and int[VH(tnzc)*Qijhat(r)dr] parts of Dij0
 !  Note: it is possible as core_mesh and radmesh(imainmesh) have the same steps
    if (has_dij0) then
      msz=radmesh(imainmesh)%mesh_size
-     ABI_ALLOCATE(work1,(msz))
+     LIBPAW_ALLOCATE(work1,(msz))
      work1(1:msz)=vlocr(1:msz)*r2k(1:msz)
      call simp_gen(intvh,work1,radmesh(imainmesh))
      do jlmn=1,pawtab%lmn_size
@@ -2134,9 +2131,9 @@ subroutine pawpsp_calc(core_mesh,epsatm,ffspl,imainmesh,ixc,lnmax,&
          end if
        end do
      end do
-     ABI_DEALLOCATE(work1)
+     LIBPAW_DEALLOCATE(work1)
    end if
-   ABI_DEALLOCATE(r2k)
+   LIBPAW_DEALLOCATE(r2k)
  end if
 
 !==========================================================
@@ -2158,19 +2155,19 @@ subroutine pawpsp_calc(core_mesh,epsatm,ffspl,imainmesh,ixc,lnmax,&
    else
      msz=vloc_mesh%mesh_size
 !    Retrieve tvale and nhat onto vloc mesh
-     ABI_ALLOCATE(nwk,(msz))
-     ABI_ALLOCATE(ncorwk,(msz))
-     ABI_ALLOCATE(nhatwk,(msz))
+     LIBPAW_ALLOCATE(nwk,(msz))
+     LIBPAW_ALLOCATE(ncorwk,(msz))
+     LIBPAW_ALLOCATE(nhatwk,(msz))
      nwk=zero;ncorwk=zero;nhatwk=zero
      if ((core_mesh%mesh_type/=vloc_mesh%mesh_type).or.&
 &        (core_mesh%rstep    /=vloc_mesh%rstep)    .or.&
 &        (core_mesh%lstep    /=vloc_mesh%lstep)) then
-       ABI_ALLOCATE(work1,(core_mesh%mesh_size))
+       LIBPAW_ALLOCATE(work1,(core_mesh%mesh_size))
        msz1=msz;if (core_mesh%rmax<vloc_mesh%rmax) msz1=pawrad_ifromr(vloc_mesh,core_mesh%rmax)
        call bound_deriv(tncore(1:core_mesh%mesh_size),core_mesh,core_mesh%mesh_size,yp1,ypn)
        call paw_spline(core_mesh%rad,tncore,core_mesh%mesh_size,yp1,ypn,work1)
        call paw_splint(core_mesh%mesh_size,core_mesh%rad,tncore,work1,msz1,vloc_mesh%rad(1:msz1),ncorwk(1:msz1))
-       ABI_DEALLOCATE(work1)
+       LIBPAW_DEALLOCATE(work1)
      else
        msz1=min(core_mesh%mesh_size,msz)
        ncorwk(1:msz1)=tncore(1:msz1)
@@ -2178,7 +2175,7 @@ subroutine pawpsp_calc(core_mesh,epsatm,ffspl,imainmesh,ixc,lnmax,&
      if ((vale_mesh%mesh_type/=vloc_mesh%mesh_type).or.&
 &        (vale_mesh%rstep    /=vloc_mesh%rstep)    .or.&
 &        (vale_mesh%lstep    /=vloc_mesh%lstep)) then
-       ABI_ALLOCATE(work1,(vale_mesh%mesh_size))
+       LIBPAW_ALLOCATE(work1,(vale_mesh%mesh_size))
        msz1=msz;if (vale_mesh%rmax<vloc_mesh%rmax) msz1=pawrad_ifromr(vloc_mesh,vale_mesh%rmax)
        call bound_deriv(tnvale(1:vale_mesh%mesh_size),vale_mesh,vale_mesh%mesh_size,yp1,ypn)
        call paw_spline(vale_mesh%rad,tnvale,vale_mesh%mesh_size,yp1,ypn,work1)
@@ -2186,7 +2183,7 @@ subroutine pawpsp_calc(core_mesh,epsatm,ffspl,imainmesh,ixc,lnmax,&
        call bound_deriv(nhat(1:vale_mesh%mesh_size),vale_mesh,vale_mesh%mesh_size,yp1,ypn)
        call paw_spline(vale_mesh%rad,nhat,vale_mesh%mesh_size,yp1,ypn,work1)
        call paw_splint(vale_mesh%mesh_size,vale_mesh%rad,nhat,work1,msz1,vloc_mesh%rad(1:msz1),nhatwk(1:msz1))
-       ABI_DEALLOCATE(work1)
+       LIBPAW_DEALLOCATE(work1)
      else
        msz1=min(vale_mesh%mesh_size,msz)
        nwk   (1:msz1)=tnvale(1:msz1)
@@ -2201,11 +2198,11 @@ subroutine pawpsp_calc(core_mesh,epsatm,ffspl,imainmesh,ixc,lnmax,&
      if (ixc<0) nspden=libxc_functionals_nspin()
 #endif
      if (ixc<0) then
-       ABI_ALLOCATE(vxc1,(msz*nspden))
-       ABI_ALLOCATE(vxc2,(msz*nspden))
-       ABI_ALLOCATE(work1,(msz))
-       ABI_ALLOCATE(work2,(msz*nspden))
-       ABI_ALLOCATE(work3,(msz*nspden))
+       LIBPAW_ALLOCATE(vxc1,(msz*nspden))
+       LIBPAW_ALLOCATE(vxc2,(msz*nspden))
+       LIBPAW_ALLOCATE(work1,(msz))
+       LIBPAW_ALLOCATE(work2,(msz*nspden))
+       LIBPAW_ALLOCATE(work3,(msz*nspden))
        work2(1:msz)=nwk
        work3(1:msz)=nhatwk
        if (nspden==2) work2(msz+1:2*msz)=half*nwk
@@ -2222,16 +2219,16 @@ subroutine pawpsp_calc(core_mesh,epsatm,ffspl,imainmesh,ixc,lnmax,&
          call pawxc(ncorwk,yp1,ypn,ixc,work1,1,tmp_lmselect,work3,0,nspden,5,&
 &         pawang_tmp,vloc_mesh,work2,pawtab%usetcore,2,vxc2,xclevel,xc_denpos)
        end if
-       ABI_DEALLOCATE(nwk)
-       ABI_DEALLOCATE(ncorwk)
-       ABI_DEALLOCATE(nhatwk)
-       ABI_DEALLOCATE(work1)
-       ABI_DEALLOCATE(work2)
-       ABI_DEALLOCATE(work3)
+       LIBPAW_DEALLOCATE(nwk)
+       LIBPAW_DEALLOCATE(ncorwk)
+       LIBPAW_DEALLOCATE(nhatwk)
+       LIBPAW_DEALLOCATE(work1)
+       LIBPAW_DEALLOCATE(work2)
+       LIBPAW_DEALLOCATE(work3)
      else
-       ABI_ALLOCATE(vxc1,(msz))
-       ABI_ALLOCATE(vxc2,(msz))
-       ABI_ALLOCATE(work1,(msz))
+       LIBPAW_ALLOCATE(vxc1,(msz))
+       LIBPAW_ALLOCATE(vxc2,(msz))
+       LIBPAW_ALLOCATE(work1,(msz))
        if (pawxcdev/=0) then
          call pawxcm(ncorwk,yp1,ypn,0,ixc,work1,1,tmp_lmselect,nhatwk,0,1,5,&
 &         pawang_tmp,vloc_mesh,pawxcdev,nwk,pawtab%usetcore,0,vxc1,xclevel,xc_denpos)
@@ -2244,10 +2241,10 @@ subroutine pawpsp_calc(core_mesh,epsatm,ffspl,imainmesh,ixc,lnmax,&
          call pawxc(ncorwk,yp1,ypn,ixc,work1,1,tmp_lmselect,nhatwk,0,1,5,&
 &         pawang_tmp,vloc_mesh,nwk,pawtab%usetcore,2,vxc2,xclevel,xc_denpos)
        end if
-       ABI_DEALLOCATE(nwk)
-       ABI_DEALLOCATE(ncorwk)
-       ABI_DEALLOCATE(nhatwk)
-       ABI_DEALLOCATE(work1)
+       LIBPAW_DEALLOCATE(nwk)
+       LIBPAW_DEALLOCATE(ncorwk)
+       LIBPAW_DEALLOCATE(nhatwk)
+       LIBPAW_DEALLOCATE(work1)
      endif
 !    Compute difference of XC potentials
      if (usexcnhat==0.and.pawtab%usexcnhat/=0)  vxc1(1:msz)=vxc2(1:msz)-vxc1(1:msz)
@@ -2256,14 +2253,14 @@ subroutine pawpsp_calc(core_mesh,epsatm,ffspl,imainmesh,ixc,lnmax,&
      vlocr(1:msz)=vlocr(1:msz)-vxc1(1:msz)
      if (has_dij0) then
 !      Modify  Dij0
-       ABI_ALLOCATE(work2,(pawtab%lmn2_size))
+       LIBPAW_ALLOCATE(work2,(pawtab%lmn2_size))
        call atompaw_kij(pawtab%indlmn,work2,pawtab%lmn_size,ncore,0,0,pawtab,pawrad,&
 &                       core_mesh,vloc_mesh,vxc1(1:msz),znucl)
        pawtab%dij0=work2
-       ABI_DEALLOCATE(work2)
+       LIBPAW_DEALLOCATE(work2)
      end if
-     ABI_DEALLOCATE(vxc1)
-     ABI_DEALLOCATE(vxc2)
+     LIBPAW_DEALLOCATE(vxc1)
+     LIBPAW_DEALLOCATE(vxc2)
    end if ! has_tvale/=0
  end if
  if (pawtab%usexcnhat==0) then
@@ -2282,8 +2279,8 @@ subroutine pawpsp_calc(core_mesh,epsatm,ffspl,imainmesh,ixc,lnmax,&
 !==========================================================
 ! calculate the coefficient beta = \int { vH[nZc](r) - vloc(r) } 4pi r^2 dr
 !
- ABI_ALLOCATE(vhnzc,(core_mesh%mesh_size))
- ABI_ALLOCATE(nwk,(core_mesh%mesh_size))
+ LIBPAW_ALLOCATE(vhnzc,(core_mesh%mesh_size))
+ LIBPAW_ALLOCATE(nwk,(core_mesh%mesh_size))
 ! get vH[nZc]
  call atompaw_vhnzc(ncore,core_mesh,vhnzc,znucl)
 
@@ -2294,12 +2291,12 @@ subroutine pawpsp_calc(core_mesh,epsatm,ffspl,imainmesh,ixc,lnmax,&
 & (core_mesh%lstep    /=vloc_mesh%lstep)) then
    msz=core_mesh%mesh_size;if (vloc_mesh%rmax<core_mesh%rmax) msz=pawrad_ifromr(core_mesh,vloc_mesh%rmax)
    call bound_deriv(vlocr(1:vloc_mesh%mesh_size),vloc_mesh,vloc_mesh%mesh_size,yp1,ypn)
-   ABI_ALLOCATE(work1,(vloc_mesh%mesh_size))
-   ABI_ALLOCATE(work2,(vloc_mesh%mesh_size))
+   LIBPAW_ALLOCATE(work1,(vloc_mesh%mesh_size))
+   LIBPAW_ALLOCATE(work2,(vloc_mesh%mesh_size))
    call paw_spline(vloc_mesh%rad,vlocr,vloc_mesh%mesh_size,yp1,ypn,work1)
    call paw_splint(vloc_mesh%mesh_size,vloc_mesh%rad,vlocr,work1,msz,core_mesh%rad(1:msz),nwk)
-   ABI_DEALLOCATE(work1)
-   ABI_DEALLOCATE(work2)
+   LIBPAW_DEALLOCATE(work1)
+   LIBPAW_DEALLOCATE(work2)
  else
    msz=min(core_mesh%mesh_size,vloc_mesh%mesh_size)
    nwk(1:msz)=vlocr(1:msz)
@@ -2314,8 +2311,8 @@ subroutine pawpsp_calc(core_mesh,epsatm,ffspl,imainmesh,ixc,lnmax,&
 
  call simp_gen(pawtab%beta,nwk,core_mesh)
 
- ABI_DEALLOCATE(vhnzc)
- ABI_DEALLOCATE(nwk)
+ LIBPAW_DEALLOCATE(vhnzc)
+ LIBPAW_DEALLOCATE(nwk)
 
  write(message,'(a,e18.6)') &
 &  ' beta integral value: ',pawtab%beta
@@ -2332,22 +2329,22 @@ subroutine pawpsp_calc(core_mesh,epsatm,ffspl,imainmesh,ixc,lnmax,&
    lstep_tmp=log(0.9999999_dp*vloc_mesh%rmax/reduced_rstep)/dble(reduced_mshsz-2)
    call pawrad_init(rvloc_mesh,mesh_size=reduced_mshsz,mesh_type=3,&
 &   rstep=reduced_rstep,lstep=lstep_tmp)
-   ABI_ALLOCATE(rvlocr,(reduced_mshsz))
+   LIBPAW_ALLOCATE(rvlocr,(reduced_mshsz))
    call bound_deriv(vlocr(1:msz),vloc_mesh,msz,yp1,ypn)
-   ABI_ALLOCATE(work1,(msz))
-   ABI_ALLOCATE(work2,(msz))
-   ABI_ALLOCATE(work3,(msz))
+   LIBPAW_ALLOCATE(work1,(msz))
+   LIBPAW_ALLOCATE(work2,(msz))
+   LIBPAW_ALLOCATE(work3,(msz))
    work3(:)=vloc_mesh%rad(:)
    call paw_spline(work3,vlocr,msz,yp1,ypn,work1)
    call paw_splint(msz,work3,vlocr,work1,reduced_mshsz,rvloc_mesh%rad,rvlocr)
-   ABI_DEALLOCATE(work1)
-   ABI_DEALLOCATE(work2)
-   ABI_DEALLOCATE(work3)
+   LIBPAW_DEALLOCATE(work1)
+   LIBPAW_DEALLOCATE(work2)
+   LIBPAW_DEALLOCATE(work3)
  end if
 
 !Keep VH(tnZc) eventually in memory
  if (pawtab%has_vhtnzc==1) then
-   ABI_ALLOCATE(pawtab%vhtnzc,(pawrad%mesh_size))
+   LIBPAW_ALLOCATE(pawtab%vhtnzc,(pawrad%mesh_size))
    if ((reduced_vloc).and.(rvloc_mesh%mesh_type==pawrad%mesh_type)&
 &   .and.(rvloc_mesh%rstep==pawrad%rstep).and.(rvloc_mesh%lstep==pawrad%lstep)) then
      pawtab%vhtnzc(1:pawrad%mesh_size)=rvlocr(1:pawrad%mesh_size)
@@ -2372,17 +2369,17 @@ subroutine pawpsp_calc(core_mesh,epsatm,ffspl,imainmesh,ixc,lnmax,&
    lstep_tmp=log(0.9999999_dp*core_mesh%rmax/reduced_rstep)/dble(reduced_mshsz-2)
    call pawrad_init(rcore_mesh,mesh_size=reduced_mshsz,mesh_type=3,&
 &   rstep=reduced_rstep,lstep=lstep_tmp)
-   ABI_ALLOCATE(rtncor,(reduced_mshsz))
+   LIBPAW_ALLOCATE(rtncor,(reduced_mshsz))
    call bound_deriv(tncore(1:msz),core_mesh,msz,yp1,ypn)
-   ABI_ALLOCATE(work1,(msz))
-   ABI_ALLOCATE(work2,(msz))
-   ABI_ALLOCATE(work3,(msz))
+   LIBPAW_ALLOCATE(work1,(msz))
+   LIBPAW_ALLOCATE(work2,(msz))
+   LIBPAW_ALLOCATE(work3,(msz))
    work3(:)=core_mesh%rad(:)
    call paw_spline(work3,tncore,msz,yp1,ypn,work1)
    call paw_splint(msz,work3,tncore,work1,reduced_mshsz,rcore_mesh%rad,rtncor)
-   ABI_DEALLOCATE(work1)
-   ABI_DEALLOCATE(work2)
-   ABI_DEALLOCATE(work3)
+   LIBPAW_DEALLOCATE(work1)
+   LIBPAW_DEALLOCATE(work2)
+   LIBPAW_DEALLOCATE(work3)
  end if
 
 !==========================================================
@@ -2396,17 +2393,17 @@ subroutine pawpsp_calc(core_mesh,epsatm,ffspl,imainmesh,ixc,lnmax,&
      lstep_tmp=log(0.9999999_dp*vale_mesh%rmax/reduced_rstep)/dble(reduced_mshsz-2)
      call pawrad_init(rvale_mesh,mesh_size=reduced_mshsz,mesh_type=3,&
 &     rstep=reduced_rstep,lstep=lstep_tmp)
-     ABI_ALLOCATE(rtnval,(reduced_mshsz))
+     LIBPAW_ALLOCATE(rtnval,(reduced_mshsz))
      call bound_deriv(tnvale(1:msz),vale_mesh,msz,yp1,ypn)
-     ABI_ALLOCATE(work1,(msz))
-     ABI_ALLOCATE(work2,(msz))
-     ABI_ALLOCATE(work3,(msz))
+     LIBPAW_ALLOCATE(work1,(msz))
+     LIBPAW_ALLOCATE(work2,(msz))
+     LIBPAW_ALLOCATE(work3,(msz))
      work3(:)=vale_mesh%rad(:)
      call paw_spline(work3,tnvale,msz,yp1,ypn,work1)
      call paw_splint(msz,work3,tnvale,work1,reduced_mshsz,rvale_mesh%rad,rtnval)
-     ABI_DEALLOCATE(work1)
-     ABI_DEALLOCATE(work2)
-     ABI_DEALLOCATE(work3)
+     LIBPAW_DEALLOCATE(work1)
+     LIBPAW_DEALLOCATE(work2)
+     LIBPAW_DEALLOCATE(work3)
    end if
  else
    reduced_nval=.false.
@@ -2433,7 +2430,7 @@ subroutine pawpsp_calc(core_mesh,epsatm,ffspl,imainmesh,ixc,lnmax,&
 
  pawtab%mqgrid=mqgrid_vl
  xcccrc=core_mesh%rmax
- ABI_ALLOCATE(pawtab%tcorespl,(pawtab%mqgrid,2))
+ LIBPAW_ALLOCATE(pawtab%tcorespl,(pawtab%mqgrid,2))
 
  if(mqgrid_vl>0.and.pawtab%usetcore/=0) then
 !  Compute tcorespl(q)=tNc(q) from tNcore(r)
@@ -2454,7 +2451,7 @@ subroutine pawpsp_calc(core_mesh,epsatm,ffspl,imainmesh,ixc,lnmax,&
 !Compute tvalespl(q) (and second derivative) from tNvale(r)
 
  if (pawtab%has_tvale/=0.and.mqgrid_vl>0) then
-   ABI_ALLOCATE(pawtab%tvalespl,(pawtab%mqgrid,2))
+   LIBPAW_ALLOCATE(pawtab%tvalespl,(pawtab%mqgrid,2))
    if (reduced_nval) then
      call pawpsp_cg(pawtab%dnvdq0,d2nvdq0,mqgrid_vl,qgrid_vl,pawtab%tvalespl(:,1),rvale_mesh,rtnval,yp1,ypn)
      pawtab%tnvale_mesh_size=rvale_mesh%mesh_size
@@ -2477,10 +2474,10 @@ subroutine pawpsp_calc(core_mesh,epsatm,ffspl,imainmesh,ixc,lnmax,&
  if (ixc<0) nspden=libxc_functionals_nspin()
 #endif
 
- ABI_ALLOCATE(work1,(core_mesh%mesh_size*nspden))
- ABI_ALLOCATE(work2,(core_mesh%mesh_size*nspden))
- ABI_ALLOCATE(work3,(1))
- ABI_ALLOCATE(work4,(core_mesh%mesh_size))
+ LIBPAW_ALLOCATE(work1,(core_mesh%mesh_size*nspden))
+ LIBPAW_ALLOCATE(work2,(core_mesh%mesh_size*nspden))
+ LIBPAW_ALLOCATE(work3,(1))
+ LIBPAW_ALLOCATE(work4,(core_mesh%mesh_size))
  work1(:)=zero
  if (pawxcdev/=0) then
    call pawxcm(ncore,pawtab%exccore,yp1,0,ixc,work4,1,tmp_lmselect,work3,0,nspden,4,&
@@ -2489,17 +2486,17 @@ subroutine pawpsp_calc(core_mesh,epsatm,ffspl,imainmesh,ixc,lnmax,&
    call pawxc(ncore,pawtab%exccore,yp1,ixc,work4,1,tmp_lmselect,work3,0,nspden,4,&
 &   pawang_tmp,core_mesh,work1,1,0,work2,xclevel,xc_denpos)
  end if
- ABI_DEALLOCATE(work1)
- ABI_DEALLOCATE(work2)
- ABI_DEALLOCATE(work3)
- ABI_DEALLOCATE(work4)
+ LIBPAW_DEALLOCATE(work1)
+ LIBPAW_DEALLOCATE(work2)
+ LIBPAW_DEALLOCATE(work3)
+ LIBPAW_DEALLOCATE(work4)
 
 !==================================================
 !Compute atomic contribution to Dij (Dij0)
 !if not already in memory
 
  if ((.not.has_dij0).and.(pawtab%has_kij==2.or.pawtab%has_kij==-1)) then
-   ABI_ALLOCATE(pawtab%dij0,(pawtab%lmn2_size))
+   LIBPAW_ALLOCATE(pawtab%dij0,(pawtab%lmn2_size))
    if (reduced_vloc) then
      call atompaw_dij0(pawtab%indlmn,pawtab%kij,pawtab%lmn_size,ncore,0,pawtab,pawrad,core_mesh,&
 &                      rvloc_mesh,rvlocr,znucl)
@@ -2514,7 +2511,7 @@ subroutine pawpsp_calc(core_mesh,epsatm,ffspl,imainmesh,ixc,lnmax,&
 !Compute kinetic operator contribution to Dij
 
  if (pawtab%has_kij==1.and.has_dij0) then
-   ABI_ALLOCATE(pawtab%kij,(pawtab%lmn2_size))
+   LIBPAW_ALLOCATE(pawtab%kij,(pawtab%lmn2_size))
    call atompaw_kij(pawtab%indlmn,pawtab%kij,pawtab%lmn_size,ncore,0,1,pawtab,pawrad,core_mesh,&
 &                   vloc_mesh,vlocr,znucl)
    pawtab%has_kij=2
@@ -2522,7 +2519,7 @@ subroutine pawpsp_calc(core_mesh,epsatm,ffspl,imainmesh,ixc,lnmax,&
 
 !pawtab%has_kij=-1 means that kij does not have to be kept in memory
  if (pawtab%has_kij==-1) then
-   ABI_DEALLOCATE(pawtab%kij)
+   LIBPAW_DEALLOCATE(pawtab%kij)
    pawtab%has_kij=0
  end if
 
@@ -2537,18 +2534,18 @@ subroutine pawpsp_calc(core_mesh,epsatm,ffspl,imainmesh,ixc,lnmax,&
      ir=pawrad_ifromr(pawrad,tproj_mesh%rmax)
      call pawrad_init(tproj_mesh_new,mesh_size=ir,mesh_type=pawrad%mesh_type,&
 &                     rstep=pawrad%rstep,lstep=pawrad%lstep)
-     ABI_ALLOCATE(pawtab%tproj,(tproj_mesh_new%mesh_size,pawtab%basis_size))
-     ABI_ALLOCATE(work1,(tproj_mesh%mesh_size))
+     LIBPAW_ALLOCATE(pawtab%tproj,(tproj_mesh_new%mesh_size,pawtab%basis_size))
+     LIBPAW_ALLOCATE(work1,(tproj_mesh%mesh_size))
      do ib=1,pawtab%basis_size
        call bound_deriv(tproj(:,ib),tproj_mesh,tproj_mesh%mesh_size,yp1,ypn)
        call paw_spline(tproj_mesh%rad,tproj(:,ib),tproj_mesh%mesh_size,yp1,ypn,work1)
        call paw_splint(tproj_mesh%mesh_size,tproj_mesh%rad,tproj(:,ib),work1,&
 &           tproj_mesh_new%mesh_size,tproj_mesh_new%rad,pawtab%tproj(:,ib))
      end do
-     ABI_DEALLOCATE(work1)
+     LIBPAW_DEALLOCATE(work1)
      call pawrad_free(tproj_mesh_new)
    else
-     ABI_ALLOCATE(pawtab%tproj,(tproj_mesh%mesh_size,pawtab%basis_size))
+     LIBPAW_ALLOCATE(pawtab%tproj,(tproj_mesh%mesh_size,pawtab%basis_size))
      pawtab%tproj(:,:)=tproj(:,:)
    end if
    pawtab%has_tproj=2
@@ -2558,25 +2555,25 @@ subroutine pawpsp_calc(core_mesh,epsatm,ffspl,imainmesh,ixc,lnmax,&
 !Free temporary allocated space
 
  if (pawtab%has_tvale==1)  then
-   ABI_DEALLOCATE(nhat)
+   LIBPAW_DEALLOCATE(nhat)
  end if
  if (reduced_vloc) then
    call pawrad_free(rvloc_mesh)
-   ABI_DEALLOCATE(rvlocr)
+   LIBPAW_DEALLOCATE(rvlocr)
  end if
  if (reduced_ncor)  then
    call pawrad_free(rcore_mesh)
-   ABI_DEALLOCATE(rtncor)
+   LIBPAW_DEALLOCATE(rtncor)
  end if
  if (reduced_nval)  then
    call pawrad_free(rvale_mesh)
-   ABI_DEALLOCATE(rtnval)
+   LIBPAW_DEALLOCATE(rtnval)
  end if
  if (pawxcdev==0)  then
-   ABI_DEALLOCATE(pawang_tmp%angwgth)
-   ABI_DEALLOCATE(pawang_tmp%anginit)
-   ABI_DEALLOCATE(pawang_tmp%ylmr)
-   ABI_DEALLOCATE(pawang_tmp%ylmrgr)
+   LIBPAW_DEALLOCATE(pawang_tmp%angwgth)
+   LIBPAW_DEALLOCATE(pawang_tmp%anginit)
+   LIBPAW_DEALLOCATE(pawang_tmp%ylmr)
+   LIBPAW_DEALLOCATE(pawang_tmp%ylmrgr)
  end if
 
  DBG_EXIT('COLL')
@@ -2775,9 +2772,9 @@ subroutine pawpsp_vhar2rho(pawrad,rho,v)
 !write(500,'(100f15.7)')mesh_tmp%rad(ir),v2(ir),dfdr(ir,1),dfdr(ir,2)
 !end do
 !end debug
-!ABI_DEALLOCATE(v2)
-!ABI_DEALLOCATE(dfdr)
-!ABI_DEALLOCATE(ff)
+!LIBPAW_DEALLOCATE(v2)
+!LIBPAW_DEALLOCATE(dfdr)
+!LIBPAW_DEALLOCATE(ff)
 
  DBG_EXIT("COLL")
 
@@ -2863,9 +2860,9 @@ subroutine pawpsp_wvl_calc(pawtab,tnvale,usewvl,vale_mesh,vloc_mesh,vlocr)
  if (pawtab%has_tvale/=0) then
    if(usewvl==1) then
      if(allocated(pawtab%tvalespl)) then
-       ABI_DEALLOCATE(pawtab%tvalespl)
+       LIBPAW_DEALLOCATE(pawtab%tvalespl)
      end if
-     ABI_ALLOCATE(pawtab%tvalespl,(vale_mesh%mesh_size,2))
+     LIBPAW_ALLOCATE(pawtab%tvalespl,(vale_mesh%mesh_size,2))
      pawtab%tnvale_mesh_size=vale_mesh%mesh_size
      pawtab%tvalespl(:,1)=tnvale
 !    Compute second derivative of tvalespl(r)
@@ -2882,8 +2879,8 @@ subroutine pawpsp_wvl_calc(pawtab,tnvale,usewvl,vale_mesh,vloc_mesh,vlocr)
 !use the poisson eq.
  msz=vloc_mesh%mesh_size
  call wvlpaw_rholoc_free(pawtab%wvl%rholoc)
- ABI_ALLOCATE(pawtab%wvl%rholoc%d,(msz,4))
- ABI_ALLOCATE(pawtab%wvl%rholoc%rad,(msz))
+ LIBPAW_ALLOCATE(pawtab%wvl%rholoc%d,(msz,4))
+ LIBPAW_ALLOCATE(pawtab%wvl%rholoc%rad,(msz))
  pawtab%wvl%rholoc%msz=msz
  pawtab%wvl%rholoc%rad(:)=vloc_mesh%rad(:)
 
@@ -3055,7 +3052,7 @@ subroutine pawpsp_17in(epsatm,ffspl,ipsp,ixc,lmax,&
 
  ipsploc=ipsp2xml(ipsp)
  pawtab%basis_size=pawpsp_header%basis_size
- ABI_ALLOCATE(pawtab%orbitals,(pawtab%basis_size))
+ LIBPAW_ALLOCATE(pawtab%orbitals,(pawtab%basis_size))
  do ib=1,pawtab%basis_size
    pawtab%orbitals(ib)=paw_setup(ipsploc)%valence_states%state(ib)%ll
  end do
@@ -3070,11 +3067,11 @@ subroutine pawpsp_17in(epsatm,ffspl,ipsp,ixc,lmax,&
 
 !indlmn calculation (indices for (l,m,n) basis)
  if (allocated(pawtab%indlmn)) then
-   ABI_DEALLOCATE(pawtab%indlmn)
+   LIBPAW_DEALLOCATE(pawtab%indlmn)
  end if
- ABI_ALLOCATE(pawtab%indlmn,(6,pawtab%lmn_size))
+ LIBPAW_ALLOCATE(pawtab%indlmn,(6,pawtab%lmn_size))
  pawtab%indlmn(:,:)=0
- ABI_ALLOCATE(nprj,(0:maxval(pawtab%orbitals)))
+ LIBPAW_ALLOCATE(nprj,(0:maxval(pawtab%orbitals)))
  ilmn=0;iln=0;nprj=0
  do ib=1,pawtab%basis_size
    il=pawtab%orbitals(ib)
@@ -3090,7 +3087,7 @@ subroutine pawpsp_17in(epsatm,ffspl,ipsp,ixc,lmax,&
    end do
    ilmn=ilmn+2*il+1
  end do
- ABI_DEALLOCATE(nprj)
+ LIBPAW_DEALLOCATE(nprj)
 !Are ilmn (found here) and pawtab%lmn_size compatibles ?
  if (ilmn/=pawtab%lmn_size) then
    write(message, '(a,a,a,a,a)' )&
@@ -3104,7 +3101,7 @@ subroutine pawpsp_17in(epsatm,ffspl,ipsp,ixc,lmax,&
 !Read and initialize radial meshes
 
  nmesh=paw_setup(ipsploc)%ngrid
- ABI_DATATYPE_ALLOCATE(radmesh,(nmesh))
+ LIBPAW_DATATYPE_ALLOCATE(radmesh,(nmesh))
  do imsh=1,nmesh
    radmesh(imsh)%mesh_type=-1
    radmesh(imsh)%rstep=zero
@@ -3172,8 +3169,8 @@ subroutine pawpsp_17in(epsatm,ffspl,ipsp,ixc,lmax,&
 
 !If shapefunction type is Bessel, deduce here its parameters from rc
  if (pawtab%shape_type==3) then
-   ABI_ALLOCATE(pawtab%shape_alpha,(2,pawtab%l_size))
-   ABI_ALLOCATE(pawtab%shape_q,(2,pawtab%l_size))
+   LIBPAW_ALLOCATE(pawtab%shape_alpha,(2,pawtab%l_size))
+   LIBPAW_ALLOCATE(pawtab%shape_q,(2,pawtab%l_size))
    rc=pawtab%rshp;if (rc<1.d-8) rc=pawtab%rpaw
    do il=1,pawtab%l_size
      call atompaw_shapebes(pawtab%shape_alpha(1:2,il),pawtab%shape_q(1:2,il),il-1,rc)
@@ -3295,7 +3292,7 @@ subroutine pawpsp_17in(epsatm,ffspl,ipsp,ixc,lmax,&
          cycle
        end if
      end do
-     ABI_ALLOCATE(pawtab%phi,(pawrad%mesh_size,pawtab%basis_size))
+     LIBPAW_ALLOCATE(pawtab%phi,(pawrad%mesh_size,pawtab%basis_size))
    else if (trim(paw_setup(ipsploc)%ae_partial_wave(ib)%grid)/=trim(paw_setup(ipsploc)%radial_grid(imainmesh)%id)) then
      write(message, '(a,a,a)' )&
 &     '  All Phi and tPhi must be given on the same radial mesh !',ch10,&
@@ -3314,7 +3311,7 @@ subroutine pawpsp_17in(epsatm,ffspl,ipsp,ixc,lmax,&
 !---------------------------------
 !Read pseudo wave-functions (tphi)
 
- ABI_ALLOCATE(pawtab%tphi,(pawrad%mesh_size,pawtab%basis_size))
+ LIBPAW_ALLOCATE(pawtab%tphi,(pawrad%mesh_size,pawtab%basis_size))
  do ib=1,pawtab%basis_size
 
    if(trim(paw_setup(ipsploc)%pseudo_partial_wave(ib)%grid)/=trim(paw_setup(ipsploc)%radial_grid(imainmesh)%id)) then
@@ -3351,7 +3348,7 @@ subroutine pawpsp_17in(epsatm,ffspl,ipsp,ixc,lmax,&
        end if
      end do
      call pawrad_copy(radmesh(iprojmesh),tproj_mesh)
-     ABI_ALLOCATE(tproj,(tproj_mesh%mesh_size,pawtab%basis_size))
+     LIBPAW_ALLOCATE(tproj,(tproj_mesh%mesh_size,pawtab%basis_size))
    else if (trim(paw_setup(ipsploc)%projector_function(ib)%grid)/=trim(paw_setup(ipsploc)%radial_grid(iprojmesh)%id)) then
      write(message, '(a,a,a)' )&
 &     '  All tprojectors must be given on the same radial mesh !',ch10,&
@@ -3386,24 +3383,24 @@ subroutine pawpsp_17in(epsatm,ffspl,ipsp,ixc,lmax,&
 &   '  Action: check your pseudopotential file.'
    MSG_ERROR(message)
  end if
- ABI_ALLOCATE(ncore,(core_mesh%mesh_size))
+ LIBPAW_ALLOCATE(ncore,(core_mesh%mesh_size))
  ncore(1:core_mesh%mesh_size)=paw_setup(ipsploc)%ae_core_density%data(1:core_mesh%mesh_size)/sqrt(fourpi)
 !write(std_out,*)"NCORE= "
 !write(std_out,*)ncore(1:core_mesh%mesh_size)
 
 !Construct and save VH[z_NC] if requested
  if (pawtab%has_vhnzc==1) then
-   ABI_ALLOCATE(pawtab%VHnZC,(pawrad%mesh_size))
-   ABI_ALLOCATE(vhnzc,(core_mesh%mesh_size))
+   LIBPAW_ALLOCATE(pawtab%VHnZC,(pawrad%mesh_size))
+   LIBPAW_ALLOCATE(vhnzc,(core_mesh%mesh_size))
    call atompaw_vhnzc(ncore,core_mesh,vhnzc,znucl)
    pawtab%VHnZC(1:pawrad%mesh_size)=vhnzc(1:pawrad%mesh_size)
    pawtab%has_vhnzc=2
-   ABI_DEALLOCATE(vhnzc)
+   LIBPAW_DEALLOCATE(vhnzc)
  end if
 
  pawtab%core_mesh_size=pawrad%mesh_size
  if(save_core_msz) pawtab%core_mesh_size=core_mesh%mesh_size
- ABI_ALLOCATE(pawtab%coredens,(pawtab%core_mesh_size))
+ LIBPAW_ALLOCATE(pawtab%coredens,(pawtab%core_mesh_size))
  pawtab%rcore=core_mesh%rad(pawtab%core_mesh_size)
  pawtab%coredens(1:pawtab%core_mesh_size)=ncore(1:pawtab%core_mesh_size)
 
@@ -3422,14 +3419,14 @@ subroutine pawpsp_17in(epsatm,ffspl,ipsp,ixc,lmax,&
 &   '  Action: check your pseudopotential file.'
    MSG_ERROR(message)
  end if
- ABI_ALLOCATE(tncore,(core_mesh%mesh_size))
+ LIBPAW_ALLOCATE(tncore,(core_mesh%mesh_size))
  tncore(1:core_mesh%mesh_size)=paw_setup(ipsploc)%pseudo_core_density%data(1:core_mesh%mesh_size)/sqrt(fourpi)
 !write(std_out,*)"TNCORE= "
 !write(std_out,*)tncore(1:core_mesh%mesh_size)
  if(save_core_msz)  then
-   ABI_ALLOCATE(pawtab%tcoredens,(pawtab%core_mesh_size,6))
+   LIBPAW_ALLOCATE(pawtab%tcoredens,(pawtab%core_mesh_size,6))
  else
-   ABI_ALLOCATE(pawtab%tcoredens,(pawtab%core_mesh_size,1))
+   LIBPAW_ALLOCATE(pawtab%tcoredens,(pawtab%core_mesh_size,1))
  end if
  if (maxval(abs(tncore(:)))<tol6) then
    pawtab%usetcore=0
@@ -3459,7 +3456,7 @@ subroutine pawpsp_17in(epsatm,ffspl,ipsp,ixc,lmax,&
    end do
    ivlocmesh=iread1
    call pawrad_copy(radmesh(ivlocmesh),vloc_mesh)
-   ABI_ALLOCATE(vlocr,(vloc_mesh%mesh_size))
+   LIBPAW_ALLOCATE(vlocr,(vloc_mesh%mesh_size))
    vlocr(1:vloc_mesh%mesh_size)=paw_setup(ipsploc)%blochl_local_ionic_potential%data(1:vloc_mesh%mesh_size)/sqrt(fourpi)
 !  write(std_out,*)"VBLOCHL= "
 !  write(std_out,*)vlocr(1:vloc_mesh%mesh_size)
@@ -3475,7 +3472,7 @@ subroutine pawpsp_17in(epsatm,ffspl,ipsp,ixc,lmax,&
    end do
    ivlocmesh=iread1
    call pawrad_copy(radmesh(ivlocmesh),vloc_mesh)
-   ABI_ALLOCATE(vlocr,(vloc_mesh%mesh_size))
+   LIBPAW_ALLOCATE(vlocr,(vloc_mesh%mesh_size))
    vlocr(1:vloc_mesh%mesh_size)=paw_setup(ipsploc)%kresse_joubert_local_ionic_potential%data(1:vloc_mesh%mesh_size)/sqrt(fourpi)
 !  write(std_out,*)"VKRESSE-JOUBERT= "
 !  write(std_out,*)vlocr(1:vloc_mesh%mesh_size)
@@ -3494,7 +3491,7 @@ subroutine pawpsp_17in(epsatm,ffspl,ipsp,ixc,lmax,&
    vloc_mesh%mesh_size=pawrad_ifromr(radmesh(ivlocmesh),rmax_vloc)
    call pawrad_init(vloc_mesh)
 !   call pawrad_copy(radmesh(ivlocmesh),vloc_mesh)
-   ABI_ALLOCATE(vlocr,(vloc_mesh%mesh_size))
+   LIBPAW_ALLOCATE(vlocr,(vloc_mesh%mesh_size))
    vlocr=zero
 !   vlocr(1:radmesh(ivlocmesh)%mesh_size)=paw_setup(ipsploc)%zero_potential%data(1:radmesh(ivlocmesh)%mesh_size)/sqrt(fourpi)
    vlocr(1:vloc_mesh%mesh_size)=paw_setup(ipsploc)%zero_potential%data(1:vloc_mesh%mesh_size)/sqrt(fourpi)
@@ -3516,7 +3513,7 @@ subroutine pawpsp_17in(epsatm,ffspl,ipsp,ixc,lmax,&
 !---------------------------------
 !Eventually read "numeric" shapefunctions (if shape_type=-1)
  if (pawtab%shape_type==-1) then
-   ABI_ALLOCATE(pawtab%shapefunc,(pawrad%mesh_size,pawtab%l_size))
+   LIBPAW_ALLOCATE(pawtab%shapefunc,(pawrad%mesh_size,pawtab%l_size))
    do imsh=1,nmesh
      if(trim(paw_setup(ipsploc)%shape_function%grid)==trim(paw_setup(ipsploc)%radial_grid(imsh)%id)) then
        iread1=imsh
@@ -3525,7 +3522,7 @@ subroutine pawpsp_17in(epsatm,ffspl,ipsp,ixc,lmax,&
    end do
    call pawrad_copy(radmesh(iread1),shpf_mesh)
    ishpfmesh=iread1
-   ABI_ALLOCATE(shpf,(shpf_mesh%mesh_size,pawtab%l_size))
+   LIBPAW_ALLOCATE(shpf,(shpf_mesh%mesh_size,pawtab%l_size))
    shpf(1,1)=one
    do ir=2,shpf_mesh%mesh_size
      shpf(ir,1)=paw_setup(ipsploc)%shape_function%data(ir,1)
@@ -3554,10 +3551,10 @@ subroutine pawpsp_17in(epsatm,ffspl,ipsp,ixc,lmax,&
 !  Has to spline shape functions if mesh is not the "main" mesh
    if (ishpfmesh/=imainmesh) then
      msz=shpf_mesh%mesh_size
-     ABI_ALLOCATE(work1,(msz))
-     ABI_ALLOCATE(work2,(msz))
-     ABI_ALLOCATE(work3,(msz))
-     ABI_ALLOCATE(work4,(pawrad%mesh_size))
+     LIBPAW_ALLOCATE(work1,(msz))
+     LIBPAW_ALLOCATE(work2,(msz))
+     LIBPAW_ALLOCATE(work3,(msz))
+     LIBPAW_ALLOCATE(work4,(pawrad%mesh_size))
      work3(:)=shpf_mesh%rad(:)
      work4(:)=pawrad%rad(:)
      do il=1,pawtab%l_size
@@ -3565,14 +3562,14 @@ subroutine pawpsp_17in(epsatm,ffspl,ipsp,ixc,lmax,&
        call paw_spline(work3,shpf(:,il),msz,yp1,ypn,work1)
        call paw_splint(msz,work3,shpf(:,il),work1,pawrad%mesh_size,work4,pawtab%shapefunc(:,il))
      end do
-     ABI_DEALLOCATE(work1)
-     ABI_DEALLOCATE(work2)
-     ABI_DEALLOCATE(work3)
-     ABI_DEALLOCATE(work4)
+     LIBPAW_DEALLOCATE(work1)
+     LIBPAW_DEALLOCATE(work2)
+     LIBPAW_DEALLOCATE(work3)
+     LIBPAW_DEALLOCATE(work4)
    else
      pawtab%shapefunc(:,:)=shpf(:,:)
    end if
-   ABI_DEALLOCATE(shpf)
+   LIBPAW_DEALLOCATE(shpf)
  end if
 
 !---------------------------------
@@ -3586,7 +3583,7 @@ subroutine pawpsp_17in(epsatm,ffspl,ipsp,ixc,lmax,&
    end do
    ivalemesh=iread1
    call pawrad_copy(radmesh(iread1),vale_mesh)
-   ABI_ALLOCATE(tnvale,(vale_mesh%mesh_size))
+   LIBPAW_ALLOCATE(tnvale,(vale_mesh%mesh_size))
    tnvale(1:vale_mesh%mesh_size)=paw_setup(ipsploc)%pseudo_valence_density%data(1:vale_mesh%mesh_size)/sqrt(fourpi)
 !  write(std_out,*)"TNVALE= "
 !  write(std_out,*)tnvale(1:vale_mesh%mesh_size)
@@ -3597,13 +3594,13 @@ subroutine pawpsp_17in(epsatm,ffspl,ipsp,ixc,lmax,&
    call wrtout(std_out,  message,'COLL')
  else
    pawtab%has_tvale=0
-   ABI_ALLOCATE(tnvale,(0))
+   LIBPAW_ALLOCATE(tnvale,(0))
  end if
 
 !---------------------------------
 !Read initial guess of rhoij (rhoij0)
 
- ABI_ALLOCATE(pawtab%rhoij0,(pawtab%lmn2_size))
+ LIBPAW_ALLOCATE(pawtab%rhoij0,(pawtab%lmn2_size))
  pawtab%rhoij0=zero
  ilmn0=0
  do ib=1,pawtab%basis_size
@@ -3621,7 +3618,7 @@ subroutine pawpsp_17in(epsatm,ffspl,ipsp,ixc,lmax,&
 !---------------------------------
 !Read Kij terms (kij0) and deduce eventually Dij0
 
- ABI_ALLOCATE(kij,(pawtab%lmn2_size))
+ LIBPAW_ALLOCATE(kij,(pawtab%lmn2_size))
  kij=zero
  nval=paw_setup(ipsploc)%valence_states%nval
  do jlmn=1,pawtab%lmn_size
@@ -3637,27 +3634,27 @@ subroutine pawpsp_17in(epsatm,ffspl,ipsp,ixc,lmax,&
 !write(std_out,*)kij(1:pawtab%lmn2_size)
 
  if (vlocopt>0) then
-   ABI_ALLOCATE(pawtab%dij0,(pawtab%lmn2_size))
+   LIBPAW_ALLOCATE(pawtab%dij0,(pawtab%lmn2_size))
    call atompaw_dij0(pawtab%indlmn,kij,pawtab%lmn_size,ncore,0,pawtab,pawrad,core_mesh,&
 &                    vloc_mesh,vlocr,znucl)
  end if
 
 !Keep eventualy Kij in memory
  if (pawtab%has_kij==1.or.vlocopt==0) then
-   ABI_ALLOCATE(pawtab%kij,(pawtab%lmn2_size))
+   LIBPAW_ALLOCATE(pawtab%kij,(pawtab%lmn2_size))
    pawtab%kij(:)=kij(:)
    if (vlocopt> 0) pawtab%has_kij=2
 !  This -1 means that pawtab%kij will be freed later
    if (vlocopt==0) pawtab%has_kij=-1
  end if
  
- ABI_DEALLOCATE(kij)
+ LIBPAW_DEALLOCATE(kij)
 
 !---------------------------------
 !Read exact-exchange Fock terms for core-valence interactions (ex_cvij) 
  if (paw_setup(ipsploc)%exact_exchange_matrix%tread.eqv..true.) then
    pawtab%has_fock=2
-   ABI_ALLOCATE(pawtab%ex_cvij,(pawtab%lmn2_size))
+   LIBPAW_ALLOCATE(pawtab%ex_cvij,(pawtab%lmn2_size))
    pawtab%ex_cvij=zero
    nval=paw_setup(ipsploc)%valence_states%nval
    do jlmn=1,pawtab%lmn_size
@@ -3684,16 +3681,16 @@ subroutine pawpsp_17in(epsatm,ffspl,ipsp,ixc,lmax,&
 !Free temporary allocated space
 
  call pawrad_free(radmesh)
- ABI_DATATYPE_DEALLOCATE(radmesh)
+ LIBPAW_DATATYPE_DEALLOCATE(radmesh)
 
  call pawrad_free(tproj_mesh)
  call pawrad_free(core_mesh)
  call pawrad_free(vloc_mesh)
 
- ABI_DEALLOCATE(vlocr)
- ABI_DEALLOCATE(ncore)
- ABI_DEALLOCATE(tncore)
- ABI_DEALLOCATE(tproj)
+ LIBPAW_DEALLOCATE(vlocr)
+ LIBPAW_DEALLOCATE(ncore)
+ LIBPAW_DEALLOCATE(tncore)
+ LIBPAW_DEALLOCATE(tproj)
 
  if(pawtab%shape_type==-1) then
    call pawrad_free(shpf_mesh)
@@ -3702,7 +3699,7 @@ subroutine pawpsp_17in(epsatm,ffspl,ipsp,ixc,lmax,&
    call pawrad_free(vale_mesh)
  end if
 
- ABI_DEALLOCATE(tnvale)
+ LIBPAW_DEALLOCATE(tnvale)
 
  DBG_EXIT('COLL')
 
@@ -3829,21 +3826,21 @@ subroutine pawpsp_7in(epsatm,ffspl,icoulomb,ixc,&
  call pawrad_free(tproj_mesh)
  call pawrad_free(core_mesh)
  call pawrad_free(vloc_mesh)
- ABI_DATATYPE_DEALLOCATE(radmesh)
+ LIBPAW_DATATYPE_DEALLOCATE(radmesh)
  if (associated(vlocr)) then 
-   ABI_DEALLOCATE(vlocr)
+   LIBPAW_DEALLOCATE(vlocr)
  end if
  if (associated(ncore)) then 
-   ABI_DEALLOCATE(ncore)
+   LIBPAW_DEALLOCATE(ncore)
  end if
  if (associated(tncore)) then 
-   ABI_DEALLOCATE(tncore)
+   LIBPAW_DEALLOCATE(tncore)
  end if
  if (associated(tnvale)) then 
-   ABI_DEALLOCATE(tnvale)
+   LIBPAW_DEALLOCATE(tnvale)
  end if
  if (associated(tproj)) then
-   ABI_DEALLOCATE(tproj)
+   LIBPAW_DEALLOCATE(tproj)
  end if
  if (pspversion>=4)  then
    call pawrad_free(vale_mesh)
@@ -3932,9 +3929,9 @@ end subroutine pawpsp_7in
 !
    ngauss=ii
    wvl%ptotgau=ngauss !total number of complex gaussians
-   ABI_ALLOCATE(wvl%pfac,(2,ngauss))
-   ABI_ALLOCATE(wvl%parg,(2,ngauss))
-   ABI_ALLOCATE(wvl%pngau,(basis_size))
+   LIBPAW_ALLOCATE(wvl%pfac,(2,ngauss))
+   LIBPAW_ALLOCATE(wvl%parg,(2,ngauss))
+   LIBPAW_ALLOCATE(wvl%pngau,(basis_size))
    wvl%pngau(1:basis_size)=nparam(1:basis_size)/2 !option=4
 !
    ii=0
@@ -3981,9 +3978,9 @@ end subroutine pawpsp_7in
 !  write(*,*)'pawpsp_wvl_sin2gauss, comment me'
 !  nr=3000
 !  rmax=10.d0
-!  ABI_ALLOCATE(r,(nr))
-!  ABI_ALLOCATE(f,(nr))
-!  ABI_ALLOCATE(y,(nr))
+!  LIBPAW_ALLOCATE(r,(nr))
+!  LIBPAW_ALLOCATE(f,(nr))
+!  LIBPAW_ALLOCATE(y,(nr))
 !  step=rmax/real(nr-1,dp)
 !  do ir=1,nr
 !  r(ir)=real(ir-1,dp)*step
@@ -4004,9 +4001,9 @@ end subroutine pawpsp_7in
 !  write(unitp,'(3f16.7)')r(ir),real(f(ir))!,y(ir)
 !  end do
 !  end do
-!  ABI_DEALLOCATE(r)
-!  ABI_DEALLOCATE(f)
-!  ABI_DEALLOCATE(y)
+!  LIBPAW_DEALLOCATE(r)
+!  LIBPAW_DEALLOCATE(f)
+!  LIBPAW_DEALLOCATE(y)
 !  end debug
 
  end subroutine pawpsp_wvl_sin2gauss
@@ -4243,8 +4240,8 @@ implicit none
      nterm_bounds(ii)=ceiling(wvl_ngauss(ii)/2.0)
    end do
    mparam=nterm_bounds(2)*4
-   ABI_ALLOCATE(gauss_param,(mparam,pawtab%basis_size))
-   ABI_ALLOCATE(ngauss_param,(pawtab%basis_size))
+   LIBPAW_ALLOCATE(gauss_param,(mparam,pawtab%basis_size))
+   LIBPAW_ALLOCATE(ngauss_param,(pawtab%basis_size))
 !  compute tproj_mesh
    call pawrad_init(tproj_mesh,mesh_size=size(pawtab%tproj,1),&
 &    mesh_type=pawrad%mesh_type,rstep=pawrad%rstep, lstep=pawrad%lstep)
@@ -4264,8 +4261,8 @@ implicit none
 !  convert it to a sum of complex gaussians and fill %wvl object:
    call pawpsp_wvl_sin2gauss(pawtab%basis_size,mparam,&
 &   ngauss_param,gauss_param,pawtab%wvl)
-   ABI_DEALLOCATE(gauss_param)
-   ABI_DEALLOCATE(ngauss_param)
+   LIBPAW_DEALLOCATE(gauss_param)
+   LIBPAW_DEALLOCATE(ngauss_param)
 
    if(me==0) then
      call pawpsp_rw_atompaw(pawtab%basis_size,filpsp,pawtab%wvl)
@@ -4278,7 +4275,7 @@ implicit none
 !Projectors in real space are no more needed
  call pawrad_free(tproj_mesh)
  if(allocated(pawtab%tproj)) then 
-   ABI_DEALLOCATE(pawtab%tproj)
+   LIBPAW_DEALLOCATE(pawtab%tproj)
    pawtab%has_tproj=0
  end if
 
@@ -4639,7 +4636,7 @@ subroutine pawpsp_bcast(comm_mpi,epsatm,ffspl,pawrad,pawtab,vlspl,xcccrc)
  call pawtab_bcast(pawtab,comm_mpi,only_from_file=.true.)
 
 !Broadcast the sizes of the arrays
- ABI_ALLOCATE(list_int,(5))
+ LIBPAW_ALLOCATE(list_int,(5))
  if (me==0) then
    siz1_vlspl=size(vlspl,1); list_int(1)=siz1_vlspl
    siz2_vlspl=size(vlspl,2); list_int(2)=siz2_vlspl
@@ -4657,11 +4654,11 @@ subroutine pawpsp_bcast(comm_mpi,epsatm,ffspl,pawrad,pawtab,vlspl,xcccrc)
  end if
  siz_vlspl=siz1_vlspl*siz2_vlspl
  siz_ffspl=siz1_ffspl*siz2_ffspl*siz3_ffspl
- ABI_DEALLOCATE(list_int)
+ LIBPAW_DEALLOCATE(list_int)
 
 !Broadcast the reals
  nn_dpr=2+siz_vlspl+siz_ffspl
- ABI_ALLOCATE(list_dpr,(nn_dpr))
+ LIBPAW_ALLOCATE(list_dpr,(nn_dpr))
  if (me==0) then
    ii=1
    list_dpr(ii)=epsatm ;ii=ii+1
@@ -4679,7 +4676,7 @@ subroutine pawpsp_bcast(comm_mpi,epsatm,ffspl,pawrad,pawtab,vlspl,xcccrc)
    ffspl=reshape(list_dpr(ii:ii+siz_ffspl-1),(/siz1_ffspl,siz2_ffspl,siz3_ffspl/))
    ii=ii+siz_ffspl
  end if
- ABI_DEALLOCATE(list_dpr)
+ LIBPAW_DEALLOCATE(list_dpr)
 
 end subroutine pawpsp_bcast
 !!***

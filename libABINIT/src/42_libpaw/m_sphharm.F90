@@ -19,17 +19,13 @@
 !!
 !! SOURCE
 
-#if defined HAVE_CONFIG_H
-#include "config.h"
-#endif
-
-#include "abi_common.h"
+#include "libpaw.h"
 
 MODULE m_sphharm
 
  use defs_basis
  use m_errors
- use m_profiling_abi
+ USE_MEMORY_PROFILING
 
  implicit none
 
@@ -690,7 +686,7 @@ subroutine initylmr(mpsang,normchoice,npts,nrm,option,rr,ylmr,ylmr_gr)
 
 !      COMPUTE d2Ylm/dRidRj
        if (compute_ylm2gr) then
-         ABI_ALLOCATE(blm,(5,mpsang*mpsang))
+         LIBPAW_ALLOCATE(blm,(5,mpsang*mpsang))
          call plm_coeff(blm,mpsang,ctheta)
 
 !        Loop over angular momentum l
@@ -735,7 +731,7 @@ subroutine initylmr(mpsang,normchoice,npts,nrm,option,rr,ylmr,ylmr_gr)
              if (mm/=ll) fact=fact/real((ll+mm+1)*(ll-mm),dp)
            end do ! End loop over m
          end do  ! End loop over l
-         ABI_DEALLOCATE(blm)
+         LIBPAW_DEALLOCATE(blm)
        end if
 
 !      End condition r<>0
@@ -1608,7 +1604,7 @@ subroutine mat_mlms2jmj(lcor,mat_mlms,mat_jmj,ndij,option,optspin,prtvol,unitfi,
      if(abs(prtvol)>2.and.unitfi/=-1)&
 &     write(message,'(3a)') ch10,"assume spin dn is the first in the array"
    else if (optspin==1) then
-     ABI_ALLOCATE(mat_tmp,(2*lcor+1,2*lcor+1,ndij))
+     LIBPAW_ALLOCATE(mat_tmp,(2*lcor+1,2*lcor+1,ndij))
      if(abs(prtvol)>2.and.unitfi/=-1)&
 &     write(message,'(3a)') ch10,"change array in order that spin dn is the first in the array"
      mat_tmp(:,:,1)=mat_mlms(:,:,2)
@@ -1616,7 +1612,7 @@ subroutine mat_mlms2jmj(lcor,mat_mlms,mat_jmj,ndij,option,optspin,prtvol,unitfi,
      mat_tmp(:,:,3)=mat_mlms(:,:,4)
      mat_tmp(:,:,4)=mat_mlms(:,:,3)
      mat_mlms(:,:,:)=mat_tmp(:,:,:)
-     ABI_DEALLOCATE(mat_tmp)
+     LIBPAW_DEALLOCATE(mat_tmp)
    end if
    if(abs(prtvol)>2.and.unitfi/=-1) then
      call wrtout(unitfi,message,wrt_mode)
@@ -1638,10 +1634,10 @@ subroutine mat_mlms2jmj(lcor,mat_mlms,mat_jmj,ndij,option,optspin,prtvol,unitfi,
 
 !--------------- Built indices + allocations
  ll=lcor
- ABI_ALLOCATE(mlms2jmj,(2*(2*ll+1),2*(2*ll+1)))
+ LIBPAW_ALLOCATE(mlms2jmj,(2*(2*ll+1),2*(2*ll+1)))
  mlms2jmj=czero
- ABI_ALLOCATE(ind_msml,(2,-ll:ll))
- ABI_ALLOCATE(mat_mlms2,(2*(2*lcor+1),2*(2*lcor+1)))
+ LIBPAW_ALLOCATE(ind_msml,(2,-ll:ll))
+ LIBPAW_ALLOCATE(mat_mlms2,(2*(2*lcor+1),2*(2*lcor+1)))
  mlms2jmj=czero
  jc1=0
  do ms1=1,2
@@ -1770,9 +1766,9 @@ subroutine mat_mlms2jmj(lcor,mat_mlms,mat_jmj,ndij,option,optspin,prtvol,unitfi,
      end do
    end do
  end if
- ABI_DEALLOCATE(mlms2jmj)
- ABI_DEALLOCATE(ind_msml)
- ABI_DEALLOCATE(mat_mlms2)
+ LIBPAW_DEALLOCATE(mlms2jmj)
+ LIBPAW_DEALLOCATE(ind_msml)
+ LIBPAW_DEALLOCATE(mat_mlms2)
 
  end subroutine mat_mlms2jmj
 !!***
@@ -1872,7 +1868,7 @@ subroutine mat_slm2ylm(lcor,mat_inp_c,mat_out_c,ndij,option,optspin,prtvol,unitf
  end if
 
  ll=lcor
- ABI_ALLOCATE(slm2ylm,(2*ll+1,2*ll+1))
+ LIBPAW_ALLOCATE(slm2ylm,(2*ll+1,2*ll+1))
  slm2ylm=czero
  mat_out=zero
  mat_out_c=czero
@@ -1949,7 +1945,7 @@ subroutine mat_slm2ylm(lcor,mat_inp_c,mat_out_c,ndij,option,optspin,prtvol,unitf
    end do
  end do
 
- ABI_DEALLOCATE(slm2ylm)
+ LIBPAW_DEALLOCATE(slm2ylm)
 
 end subroutine mat_slm2ylm
 !!***

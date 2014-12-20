@@ -14,18 +14,14 @@
 !!
 !! SOURCE
 
-#if defined HAVE_CONFIG_H
-#include "config.h"
-#endif
-
-#include "abi_common.h"
+#include "libpaw.h"
 
 module m_atompaw
     
  use defs_basis
  use m_errors
- use m_profiling_abi
-
+ USE_MEMORY_PROFILING
+ 
  use m_paw_numeric, only : jbessel, solvbes, paw_spline, paw_splint
  use m_pawrad,      only : pawrad_type, simp_gen, poisson, pawrad_deducer0, bound_deriv, pawrad_ifromr
  use m_pawtab,      only : pawtab_type
@@ -162,7 +158,7 @@ subroutine atompaw_shpfun(ll,mesh,norm,pawtab,shapefunc)
 
 !Shape function normalization
  if (pawtab%shape_type==-1.or.pawtab%shape_type==1.or.pawtab%shape_type==2) then
-   ABI_ALLOCATE(r2k,(mesh%mesh_size))
+   LIBPAW_ALLOCATE(r2k,(mesh%mesh_size))
    r2k=zero
    r2k(2:ishp)=shapefunc(2:ishp)*mesh%rad(2:ishp)**(2+ll)
    if (mesh%mesh_type==5) then
@@ -172,7 +168,7 @@ subroutine atompaw_shpfun(ll,mesh,norm,pawtab,shapefunc)
    end if
    shapefunc(1:ishp)=shapefunc(1:ishp)*norm
    if (pawtab%shape_type==-1) norm=one
-   ABI_DEALLOCATE(r2k)
+   LIBPAW_DEALLOCATE(r2k)
  else if (pawtab%shape_type==3) then
    norm=one
  end if
@@ -307,14 +303,14 @@ end subroutine atompaw_shapebes
 
  DBG_ENTER("COLL")
 
- ABI_ALLOCATE(nwk,(radmesh_core%mesh_size))
+ LIBPAW_ALLOCATE(nwk,(radmesh_core%mesh_size))
 
  nwk(:)=ncore(:)*four_pi*radmesh_core%rad(:)**2
  call poisson(nwk,0,intg,radmesh_core,vhnzc)
  vhnzc(2:radmesh_core%mesh_size)=(vhnzc(2:radmesh_core%mesh_size)-znucl)/radmesh_core%rad(2:radmesh_core%mesh_size)
  call pawrad_deducer0(vhnzc,radmesh_core%mesh_size,radmesh_core)
 
- ABI_DEALLOCATE(nwk)
+ LIBPAW_DEALLOCATE(nwk)
 
  DBG_EXIT("COLL")
 
@@ -390,20 +386,20 @@ end subroutine atompaw_shapebes
 
  lmn2_size=pawtab%lmn2_size
  meshsz=min(radmesh%mesh_size,radmesh_core%mesh_size,radmesh_vloc%mesh_size)
- ABI_ALLOCATE(ff,(meshsz))
+ LIBPAW_ALLOCATE(ff,(meshsz))
 
 !Retrieve VH(tnZc) on the correct radial mesh
- ABI_ALLOCATE(vhtnzc_sph,(meshsz))
+ LIBPAW_ALLOCATE(vhtnzc_sph,(meshsz))
  if ((radmesh%mesh_type/=radmesh_vloc%mesh_type).or.&
 & (radmesh%rstep    /=radmesh_vloc%rstep)    .or.&
 & (radmesh%lstep    /=radmesh_vloc%lstep)) then
    call bound_deriv(vhtnzc(1:radmesh_vloc%mesh_size),radmesh_vloc,radmesh_vloc%mesh_size,yp1,ypn)
-   ABI_ALLOCATE(work1,(radmesh_vloc%mesh_size))
-   ABI_ALLOCATE(work2,(radmesh_vloc%mesh_size))
+   LIBPAW_ALLOCATE(work1,(radmesh_vloc%mesh_size))
+   LIBPAW_ALLOCATE(work2,(radmesh_vloc%mesh_size))
    call paw_spline(radmesh_vloc%rad,vhtnzc,radmesh_vloc%mesh_size,yp1,ypn,work1)
    call paw_splint(radmesh_vloc%mesh_size,radmesh_vloc%rad,vhtnzc,work1,meshsz,radmesh%rad(1:meshsz),vhtnzc_sph)
-   ABI_DEALLOCATE(work1)
-   ABI_DEALLOCATE(work2)
+   LIBPAW_DEALLOCATE(work1)
+   LIBPAW_DEALLOCATE(work2)
  else
    vhtnzc_sph(1:meshsz)=vhtnzc(1:meshsz)
  end if
@@ -414,7 +410,7 @@ end subroutine atompaw_shapebes
 
 !Computation of <phi_i|vh(nZc)|phi_j> on the PAW sphere
 !======================================================
- ABI_ALLOCATE(vhnzc,(radmesh_core%mesh_size))
+ LIBPAW_ALLOCATE(vhnzc,(radmesh_core%mesh_size))
  call atompaw_vhnzc(ncore,radmesh_core,vhnzc,znucl)
  do jlmn=1,pawtab%lmn_size
    j0lmn=jlmn*(jlmn-1)/2
@@ -429,7 +425,7 @@ end subroutine atompaw_shapebes
      end if
    end do
  end do
- ABI_DEALLOCATE(vhnzc)
+ LIBPAW_DEALLOCATE(vhnzc)
 
 !Computation of -<tphi_i|vh(tnZc)|tphi_j> on the PAW sphere
 !==========================================================
@@ -450,10 +446,10 @@ end subroutine atompaw_shapebes
 !Computation of -int[vh(tnzc)*Qijhat(r)dr]
 !=========================================
  if (opt_init==0) then
-   ABI_ALLOCATE(shpf,(radmesh%mesh_size))
+   LIBPAW_ALLOCATE(shpf,(radmesh%mesh_size))
    call atompaw_shpfun(0,radmesh,intg,pawtab,shpf)
    if (pawtab%shape_type==3) then
-     ABI_ALLOCATE(r2k,(radmesh%int_meshsz))
+     LIBPAW_ALLOCATE(r2k,(radmesh%int_meshsz))
      r2k=zero
      r2k(2:radmesh%int_meshsz)=shpf(2:radmesh%int_meshsz)*radmesh%rad(2:radmesh%int_meshsz)**(2)
      if(radmesh%mesh_type==5) then
@@ -462,10 +458,10 @@ end subroutine atompaw_shapebes
        call simp_gen(intg,r2k,radmesh,r_for_intg=pawtab%rshp)
      end if
      shpf(1:meshsz)=shpf(1:meshsz)/intg
-     ABI_DEALLOCATE(r2k)
+     LIBPAW_DEALLOCATE(r2k)
    end if 
    ff(1:meshsz)=vhtnzc_sph(1:meshsz)*shpf(1:meshsz)*radmesh%rad(1:meshsz)**2
-   ABI_DEALLOCATE(shpf)
+   LIBPAW_DEALLOCATE(shpf)
    call simp_gen(intvh,ff,radmesh)
    do jlmn=1,pawtab%lmn_size
      j0lmn=jlmn*(jlmn-1)/2
@@ -498,8 +494,8 @@ end subroutine atompaw_shapebes
    end do
  end if
 
- ABI_DEALLOCATE(ff)
- ABI_DEALLOCATE(vhtnzc_sph)
+ LIBPAW_DEALLOCATE(ff)
+ LIBPAW_DEALLOCATE(vhtnzc_sph)
 
  DBG_EXIT("COLL")
 
@@ -576,20 +572,20 @@ end subroutine atompaw_shapebes
 
  lmn2_size=pawtab%lmn2_size
  meshsz=min(radmesh%mesh_size,radmesh_core%mesh_size,radmesh_vloc%mesh_size)
- ABI_ALLOCATE(ff,(meshsz))
+ LIBPAW_ALLOCATE(ff,(meshsz))
 
 !Retrieve VH(tnZc) on the correct radial mesh
- ABI_ALLOCATE(vhtnzc_sph,(meshsz))
+ LIBPAW_ALLOCATE(vhtnzc_sph,(meshsz))
  if ((radmesh%mesh_type/=radmesh_vloc%mesh_type).or.&
 & (radmesh%rstep    /=radmesh_vloc%rstep)    .or.&
 & (radmesh%lstep    /=radmesh_vloc%lstep)) then
    call bound_deriv(vhtnzc(1:radmesh_vloc%mesh_size),radmesh_vloc,radmesh_vloc%mesh_size,yp1,ypn)
-   ABI_ALLOCATE(work1,(radmesh_vloc%mesh_size))
-   ABI_ALLOCATE(work2,(radmesh_vloc%mesh_size))
+   LIBPAW_ALLOCATE(work1,(radmesh_vloc%mesh_size))
+   LIBPAW_ALLOCATE(work2,(radmesh_vloc%mesh_size))
    call paw_spline(radmesh_vloc%rad,vhtnzc,radmesh_vloc%mesh_size,yp1,ypn,work1)
    call paw_splint(radmesh_vloc%mesh_size,radmesh_vloc%rad,vhtnzc,work1,meshsz,radmesh%rad(1:meshsz),vhtnzc_sph)
-   ABI_DEALLOCATE(work1)
-   ABI_DEALLOCATE(work2)
+   LIBPAW_DEALLOCATE(work1)
+   LIBPAW_DEALLOCATE(work2)
  else
    vhtnzc_sph(1:meshsz)=vhtnzc(1:meshsz)
  end if
@@ -601,7 +597,7 @@ end subroutine atompaw_shapebes
 !Substraction of <phi_i|vh(nZc)|phi_j> on the PAW sphere
 !=======================================================
  if (opt_vhnzc/=0) then
-   ABI_ALLOCATE(vhnzc,(radmesh_core%mesh_size))
+   LIBPAW_ALLOCATE(vhnzc,(radmesh_core%mesh_size))
    call atompaw_vhnzc(ncore,radmesh_core,vhnzc,znucl)
    do jlmn=1,pawtab%lmn_size
      j0lmn=jlmn*(jlmn-1)/2
@@ -616,7 +612,7 @@ end subroutine atompaw_shapebes
        end if
      end do
    end do
-   ABI_DEALLOCATE(vhnzc)
+   LIBPAW_DEALLOCATE(vhnzc)
  end if
 
 !Substraction of -<tphi_i|vh(tnZc)|tphi_j> on the PAW sphere
@@ -638,10 +634,10 @@ end subroutine atompaw_shapebes
 !Substraction of -int[vh(tnzc)*Qijhat(r)dr]
 !==========================================
  if (opt_init==0) then
-   ABI_ALLOCATE(shpf,(radmesh%mesh_size))
+   LIBPAW_ALLOCATE(shpf,(radmesh%mesh_size))
    call atompaw_shpfun(0,radmesh,intg,pawtab,shpf)
    ff(1:meshsz)=vhtnzc_sph(1:meshsz)*shpf(1:meshsz)*radmesh%rad(1:meshsz)**2
-   ABI_DEALLOCATE(shpf)
+   LIBPAW_DEALLOCATE(shpf)
    call simp_gen(intvh,ff,radmesh)
    do jlmn=1,pawtab%lmn_size
      j0lmn=jlmn*(jlmn-1)/2
@@ -674,8 +670,8 @@ end subroutine atompaw_shapebes
    end do
  end if
 
- ABI_DEALLOCATE(ff)
- ABI_DEALLOCATE(vhtnzc_sph)
+ LIBPAW_DEALLOCATE(ff)
+ LIBPAW_DEALLOCATE(vhtnzc_sph)
 
  DBG_EXIT("COLL")
 

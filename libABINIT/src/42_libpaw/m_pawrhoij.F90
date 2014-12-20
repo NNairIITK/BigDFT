@@ -20,18 +20,14 @@
 !!
 !! SOURCE
 
-#if defined HAVE_CONFIG_H
-#include "config.h"
-#endif
-
-#include "abi_common.h"
+#include "libpaw.h"
 
 MODULE m_pawrhoij
 
  use defs_basis
- use m_profiling_abi
  use m_errors
  use m_xmpi
+ USE_MEMORY_PROFILING
 
  use m_io_tools,   only : flush_unit
  use m_fstrings,   only : toupper
@@ -259,7 +255,7 @@ subroutine pawrhoij_alloc(pawrhoij,cplex,nspden,nspinor,nsppol,typat,&
      msg=' wrong sizes (2) !'
      MSG_BUG(msg)
    end if
-   ABI_ALLOCATE(lmn_size,(nn1))
+   LIBPAW_ALLOCATE(lmn_size,(nn1))
    do itypat=1,nn1
      lmn_size(itypat)=pawtab(itypat)%lmn_size
    end do
@@ -306,8 +302,8 @@ subroutine pawrhoij_alloc(pawrhoij,cplex,nspden,nspinor,nsppol,typat,&
      has_rhoijp=.true.; if (present(use_rhoijp)) has_rhoijp=(use_rhoijp>0)
      if (has_rhoijp) then
        pawrhoij(irhoij)%use_rhoijp=1
-       ABI_ALLOCATE(pawrhoij(irhoij)%rhoijselect,(lmn2_size))
-       ABI_ALLOCATE(pawrhoij(irhoij)%rhoijp,(cplex*lmn2_size,nspden))
+       LIBPAW_ALLOCATE(pawrhoij(irhoij)%rhoijselect,(lmn2_size))
+       LIBPAW_ALLOCATE(pawrhoij(irhoij)%rhoijp,(cplex*lmn2_size,nspden))
        pawrhoij(irhoij)%rhoijselect(:)=0
        pawrhoij(irhoij)%rhoijp(:,:)=zero
      end if
@@ -315,28 +311,28 @@ subroutine pawrhoij_alloc(pawrhoij,cplex,nspden,nspinor,nsppol,typat,&
      if (present(ngrhoij)) then
        if (ngrhoij>0) then
          pawrhoij(irhoij)%ngrhoij=ngrhoij
-         ABI_ALLOCATE(pawrhoij(irhoij)%grhoij,(ngrhoij,cplex*lmn2_size,nspden))
+         LIBPAW_ALLOCATE(pawrhoij(irhoij)%grhoij,(ngrhoij,cplex*lmn2_size,nspden))
          pawrhoij(irhoij)%grhoij=zero
        end if
      end if
      if (present(nlmnmix)) then
        if (nlmnmix>0) then
          pawrhoij(irhoij)%lmnmix_sz=nlmnmix
-         ABI_ALLOCATE(pawrhoij(irhoij)%kpawmix,(nlmnmix))
+         LIBPAW_ALLOCATE(pawrhoij(irhoij)%kpawmix,(nlmnmix))
          pawrhoij(irhoij)%kpawmix=0
        end if
      end if
      if (present(use_rhoij_)) then
        if (use_rhoij_>0) then
          pawrhoij(irhoij)%use_rhoij_=use_rhoij_
-         ABI_ALLOCATE(pawrhoij(irhoij)%rhoij_,(cplex*lmn2_size,nspden))
+         LIBPAW_ALLOCATE(pawrhoij(irhoij)%rhoij_,(cplex*lmn2_size,nspden))
          pawrhoij(irhoij)%rhoij_=zero
        end if
      end if
      if (present(use_rhoijres)) then
        if (use_rhoijres>0) then
          pawrhoij(irhoij)%use_rhoijres=use_rhoijres
-         ABI_ALLOCATE(pawrhoij(irhoij)%rhoijres,(cplex*lmn2_size,nspden))
+         LIBPAW_ALLOCATE(pawrhoij(irhoij)%rhoijres,(cplex*lmn2_size,nspden))
          pawrhoij(irhoij)%rhoijres=zero
        end if
      end if
@@ -345,7 +341,7 @@ subroutine pawrhoij_alloc(pawrhoij,cplex,nspden,nspinor,nsppol,typat,&
  end if
 
  if (present(pawtab)) then
-   ABI_DEALLOCATE(lmn_size)
+   LIBPAW_DEALLOCATE(lmn_size)
  end if
 
 !Destroy atom table used for parallelism
@@ -409,22 +405,22 @@ subroutine pawrhoij_free(pawrhoij)
      pawrhoij(irhoij)%use_rhoijp=0
      pawrhoij(irhoij)%use_rhoijres=0
      if (allocated(pawrhoij(irhoij)%rhoijp))       then
-       ABI_DEALLOCATE(pawrhoij(irhoij)%rhoijp)
+       LIBPAW_DEALLOCATE(pawrhoij(irhoij)%rhoijp)
      end if
      if (allocated(pawrhoij(irhoij)%rhoijselect))  then
-       ABI_DEALLOCATE(pawrhoij(irhoij)%rhoijselect)
+       LIBPAW_DEALLOCATE(pawrhoij(irhoij)%rhoijselect)
      end if
      if (allocated(pawrhoij(irhoij)%grhoij))       then
-       ABI_DEALLOCATE(pawrhoij(irhoij)%grhoij)
+       LIBPAW_DEALLOCATE(pawrhoij(irhoij)%grhoij)
      end if
      if (allocated(pawrhoij(irhoij)%kpawmix))      then
-       ABI_DEALLOCATE(pawrhoij(irhoij)%kpawmix)
+       LIBPAW_DEALLOCATE(pawrhoij(irhoij)%kpawmix)
      end if
      if (allocated(pawrhoij(irhoij)%rhoij_))       then
-       ABI_DEALLOCATE(pawrhoij(irhoij)%rhoij_)
+       LIBPAW_DEALLOCATE(pawrhoij(irhoij)%rhoij_)
      end if
      if (allocated(pawrhoij(irhoij)%rhoijres))     then
-       ABI_DEALLOCATE(pawrhoij(irhoij)%rhoijres)
+       LIBPAW_DEALLOCATE(pawrhoij(irhoij)%rhoijres)
      end if
    end do
  end if
@@ -606,11 +602,11 @@ subroutine pawrhoij_copy(pawrhoij_in,pawrhoij_cpy, &
      call get_my_natom(my_comm_atom,my_nrhoij,nrhoij_out)
      if (my_nrhoij==nrhoij_in) then
        paral_case=2;nrhoij_max=nrhoij_in
-       ABI_DATATYPE_ALLOCATE(pawrhoij_out,(nrhoij_in))
+       LIBPAW_DATATYPE_ALLOCATE(pawrhoij_out,(nrhoij_in))
        call pawrhoij_nullify(pawrhoij_out)
        if (nrhoij_in>0) then
-         ABI_ALLOCATE(typat,(nrhoij_in))
-         ABI_ALLOCATE(nlmn,(nrhoij_in))
+         LIBPAW_ALLOCATE(typat,(nrhoij_in))
+         LIBPAW_ALLOCATE(nlmn,(nrhoij_in))
          do irhoij=1,nrhoij_in
            typat(irhoij)=irhoij;nlmn(irhoij)=pawrhoij_in(irhoij)%lmn_size
          end do
@@ -620,8 +616,8 @@ subroutine pawrhoij_copy(pawrhoij_in,pawrhoij_cpy, &
 &         use_rhoij_=pawrhoij_cpy(1)%use_rhoij_,&
 &         use_rhoijp=pawrhoij_cpy(1)%use_rhoijp,&
 &         use_rhoijres=pawrhoij_cpy(1)%use_rhoijres)
-         ABI_DEALLOCATE(typat)
-         ABI_DEALLOCATE(nlmn)
+         LIBPAW_DEALLOCATE(typat)
+         LIBPAW_DEALLOCATE(nlmn)
        end if
      else
        msg=' nrhoij_in should be equal to my_natom !'
@@ -667,21 +663,21 @@ subroutine pawrhoij_copy(pawrhoij_in,pawrhoij_cpy, &
      use_rhoijp=pawrhoij_in(jrhoij)%use_rhoijp
      if (pawrhoij_out(irhoij)%use_rhoijp/=use_rhoijp) then
        if (pawrhoij_out(irhoij)%use_rhoijp>0)  then
-         ABI_DEALLOCATE(pawrhoij_out(irhoij)%rhoijp)
-         ABI_DEALLOCATE(pawrhoij_out(irhoij)%rhoijselect)
+         LIBPAW_DEALLOCATE(pawrhoij_out(irhoij)%rhoijp)
+         LIBPAW_DEALLOCATE(pawrhoij_out(irhoij)%rhoijselect)
        end if
        if (use_rhoijp>0)  then
-         ABI_ALLOCATE(pawrhoij_out(irhoij)%rhoijp,(cplex_out*lmn2_size_out,nspden_out))
-         ABI_ALLOCATE(pawrhoij_out(irhoij)%rhoijselect,(lmn2_size_out))
+         LIBPAW_ALLOCATE(pawrhoij_out(irhoij)%rhoijp,(cplex_out*lmn2_size_out,nspden_out))
+         LIBPAW_ALLOCATE(pawrhoij_out(irhoij)%rhoijselect,(lmn2_size_out))
        end if
        pawrhoij_out(irhoij)%use_rhoijp=use_rhoijp
      end if
      if (use_rhoijp>0) then
        if (change_dim) then
          if(allocated(pawrhoij_out(irhoij)%rhoijp)) then
-           ABI_DEALLOCATE(pawrhoij_out(irhoij)%rhoijp)
+           LIBPAW_DEALLOCATE(pawrhoij_out(irhoij)%rhoijp)
          end if
-         ABI_ALLOCATE(pawrhoij_out(irhoij)%rhoijp,(cplex_out*lmn2_size_out,nspden_out))
+         LIBPAW_ALLOCATE(pawrhoij_out(irhoij)%rhoijp,(cplex_out*lmn2_size_out,nspden_out))
        end if
        if (cplex_out==cplex_in.and.nspden_out==nspden_in) then
          do ispden=1,nspden_out
@@ -755,9 +751,9 @@ subroutine pawrhoij_copy(pawrhoij_in,pawrhoij_cpy, &
      if (use_rhoijp>0) then
        if (change_dim) then
          if(allocated(pawrhoij_out(irhoij)%rhoijselect)) then
-           ABI_DEALLOCATE(pawrhoij_out(irhoij)%rhoijselect)
+           LIBPAW_DEALLOCATE(pawrhoij_out(irhoij)%rhoijselect)
          end if
-         ABI_ALLOCATE(pawrhoij_out(irhoij)%rhoijselect,(lmn2_size_out))
+         LIBPAW_ALLOCATE(pawrhoij_out(irhoij)%rhoijselect,(lmn2_size_out))
        end if
        pawrhoij_out(irhoij)%rhoijselect(1:nselect)=pawrhoij_in(jrhoij)%rhoijselect(1:nselect)+0
        if ( (nselect<lmn2_size_out) .and. &
@@ -770,10 +766,10 @@ subroutine pawrhoij_copy(pawrhoij_in,pawrhoij_cpy, &
      lmnmix=pawrhoij_in(jrhoij)%lmnmix_sz
      if (pawrhoij_out(irhoij)%lmnmix_sz/=lmnmix) then
        if (pawrhoij_out(irhoij)%lmnmix_sz>0)  then
-         ABI_DEALLOCATE(pawrhoij_out(irhoij)%kpawmix)
+         LIBPAW_DEALLOCATE(pawrhoij_out(irhoij)%kpawmix)
        end if
        if (lmnmix>0)  then
-         ABI_ALLOCATE(pawrhoij_out(irhoij)%kpawmix,(lmnmix))
+         LIBPAW_ALLOCATE(pawrhoij_out(irhoij)%kpawmix,(lmnmix))
        end if
        pawrhoij_out(irhoij)%lmnmix_sz=lmnmix
      end if
@@ -783,17 +779,17 @@ subroutine pawrhoij_copy(pawrhoij_in,pawrhoij_cpy, &
      ngrhoij=pawrhoij_in(jrhoij)%ngrhoij
      if (pawrhoij_out(irhoij)%ngrhoij/=ngrhoij) then
        if (pawrhoij_out(irhoij)%ngrhoij>0)  then
-         ABI_DEALLOCATE(pawrhoij_out(irhoij)%grhoij)
+         LIBPAW_DEALLOCATE(pawrhoij_out(irhoij)%grhoij)
        end if
        if (ngrhoij>0)  then
-         ABI_ALLOCATE(pawrhoij_out(irhoij)%grhoij,(ngrhoij,cplex_out*lmn2_size_out,nspden_out))
+         LIBPAW_ALLOCATE(pawrhoij_out(irhoij)%grhoij,(ngrhoij,cplex_out*lmn2_size_out,nspden_out))
        end if
        pawrhoij_out(irhoij)%ngrhoij=ngrhoij
      end if
      if (ngrhoij>0) then
        if (change_dim) then
-         ABI_DEALLOCATE(pawrhoij_out(irhoij)%grhoij)
-         ABI_ALLOCATE(pawrhoij_out(irhoij)%grhoij,(ngrhoij,cplex_out*lmn2_size_out,nspden_out))
+         LIBPAW_DEALLOCATE(pawrhoij_out(irhoij)%grhoij)
+         LIBPAW_ALLOCATE(pawrhoij_out(irhoij)%grhoij,(ngrhoij,cplex_out*lmn2_size_out,nspden_out))
        end if
        if (cplex_out==cplex_in.and.nspden_out==nspden_in) then
          do ispden=1,nspden_out
@@ -856,17 +852,17 @@ subroutine pawrhoij_copy(pawrhoij_in,pawrhoij_cpy, &
      use_rhoijres=pawrhoij_in(jrhoij)%use_rhoijres
      if (pawrhoij_out(irhoij)%use_rhoijres/=use_rhoijres) then
        if (pawrhoij_out(irhoij)%use_rhoijres>0)  then
-         ABI_DEALLOCATE(pawrhoij_out(irhoij)%rhoijres)
+         LIBPAW_DEALLOCATE(pawrhoij_out(irhoij)%rhoijres)
        end if
        if (use_rhoijres>0)  then
-         ABI_ALLOCATE(pawrhoij_out(irhoij)%rhoijres,(cplex_out*lmn2_size_out,nspden_out))
+         LIBPAW_ALLOCATE(pawrhoij_out(irhoij)%rhoijres,(cplex_out*lmn2_size_out,nspden_out))
        end if
        pawrhoij_out(irhoij)%use_rhoijres=use_rhoijres
      end if
      if (use_rhoijres>0) then
        if (change_dim) then
-         ABI_DEALLOCATE(pawrhoij_out(irhoij)%rhoijres)
-         ABI_ALLOCATE(pawrhoij_out(irhoij)%rhoijres,(cplex_out*lmn2_size_out,nspden_out))
+         LIBPAW_DEALLOCATE(pawrhoij_out(irhoij)%rhoijres)
+         LIBPAW_ALLOCATE(pawrhoij_out(irhoij)%rhoijres,(cplex_out*lmn2_size_out,nspden_out))
        end if
        if (cplex_out==cplex_in.and.nspden_out==nspden_in) then
          do ispden=1,nspden_out
@@ -929,19 +925,19 @@ subroutine pawrhoij_copy(pawrhoij_in,pawrhoij_cpy, &
      use_rhoij_=pawrhoij_in(jrhoij)%use_rhoij_
      if (pawrhoij_out(irhoij)%use_rhoij_/=use_rhoij_) then
        if (pawrhoij_out(irhoij)%use_rhoij_>0)  then
-         ABI_DEALLOCATE(pawrhoij_out(irhoij)%rhoij_)
+         LIBPAW_DEALLOCATE(pawrhoij_out(irhoij)%rhoij_)
        end if
        if (use_rhoij_>0)  then
-         ABI_ALLOCATE(pawrhoij_out(irhoij)%rhoij_,(cplex_out*lmn2_size_out,nspden_out))
+         LIBPAW_ALLOCATE(pawrhoij_out(irhoij)%rhoij_,(cplex_out*lmn2_size_out,nspden_out))
        end if
        pawrhoij_out(irhoij)%use_rhoij_=use_rhoij_
      end if
      if (use_rhoij_>0) then
        if (change_dim) then
          if(allocated(pawrhoij_out(irhoij)%rhoij_)) then
-           ABI_DEALLOCATE(pawrhoij_out(irhoij)%rhoij_)
+           LIBPAW_DEALLOCATE(pawrhoij_out(irhoij)%rhoij_)
          end if
-         ABI_ALLOCATE(pawrhoij_out(irhoij)%rhoij_,(cplex_out*lmn2_size_out,nspden_out))
+         LIBPAW_ALLOCATE(pawrhoij_out(irhoij)%rhoij_,(cplex_out*lmn2_size_out,nspden_out))
        end if
        if (cplex_out==cplex_in.and.nspden_out==nspden_in) then
          do ispden=1,nspden_out
@@ -1009,7 +1005,7 @@ subroutine pawrhoij_copy(pawrhoij_in,pawrhoij_cpy, &
    call pawrhoij_free(pawrhoij_cpy)
    call pawrhoij_gather(pawrhoij_out,pawrhoij_cpy,-1,my_comm_atom)
    call pawrhoij_free(pawrhoij_out)
-   ABI_DATATYPE_DEALLOCATE(pawrhoij_out)
+   LIBPAW_DATATYPE_DEALLOCATE(pawrhoij_out)
 
 !  Sequential case: fill missing elements
  else if (paral_case==0) then
@@ -1176,8 +1172,8 @@ end subroutine pawrhoij_copy
  end do
 
 !Fill input buffers
- ABI_ALLOCATE(buf_int,(buf_int_size))
- ABI_ALLOCATE(buf_dp ,(buf_dp_size))
+ LIBPAW_ALLOCATE(buf_int,(buf_int_size))
+ LIBPAW_ALLOCATE(buf_dp ,(buf_dp_size))
  indx_int=1;indx_dp =1
  lmnmix=0;ngrhoij=0;nselect=0;rhoij_size2=0
  use_rhoijp=0;use_rhoijres=0;use_rhoij_=0
@@ -1288,11 +1284,11 @@ end subroutine pawrhoij_copy
      pawrhoij_gathered(jrhoij)%use_rhoijres=use_rhoijres
      pawrhoij_gathered(jrhoij)%use_rhoij_=use_rhoij_
      if (use_rhoijp>0) then
-       ABI_ALLOCATE(pawrhoij_gathered(jrhoij)%rhoijselect,(lmn2_size))
+       LIBPAW_ALLOCATE(pawrhoij_gathered(jrhoij)%rhoijselect,(lmn2_size))
        pawrhoij_gathered(jrhoij)%rhoijselect(1:nselect)=buf_int_all(indx_int:indx_int+nselect-1)
        if (nselect < lmn2_size )pawrhoij_gathered(jrhoij)%rhoijselect(nselect+1:lmn2_size)=zero
        indx_int=indx_int+nselect
-       ABI_ALLOCATE(pawrhoij_gathered(jrhoij)%rhoijp,(cplex*lmn2_size,nspden))
+       LIBPAW_ALLOCATE(pawrhoij_gathered(jrhoij)%rhoijp,(cplex*lmn2_size,nspden))
        do isp=1,nspden
          pawrhoij_gathered(jrhoij)%rhoijp(1:cplex*nselect,isp)=buf_dp_all(indx_dp:indx_dp+cplex*nselect-1)
          if (nselect < lmn2_size )pawrhoij_gathered(jrhoij)%rhoijp(cplex*nselect+1:cplex*lmn2_size,isp)=zero
@@ -1300,12 +1296,12 @@ end subroutine pawrhoij_copy
        end do
      end if
      if (lmnmix>0) then
-       ABI_ALLOCATE(pawrhoij_gathered(jrhoij)%kpawmix,(lmnmix))
+       LIBPAW_ALLOCATE(pawrhoij_gathered(jrhoij)%kpawmix,(lmnmix))
        pawrhoij_gathered(jrhoij)%kpawmix(1:lmnmix)=buf_int_all(indx_int:indx_int+lmnmix-1)
        indx_int=indx_int+lmnmix
      end if
      if (ngrhoij>0) then
-       ABI_ALLOCATE(pawrhoij_gathered(jrhoij)%grhoij,(ngrhoij,cplex*lmn2_size,nspden))
+       LIBPAW_ALLOCATE(pawrhoij_gathered(jrhoij)%grhoij,(ngrhoij,cplex*lmn2_size,nspden))
        do isp=1,nspden
          do ii=1,cplex*lmn2_size
            pawrhoij_gathered(jrhoij)%grhoij(1:ngrhoij,ii,isp)=buf_dp_all(indx_dp:indx_dp+ngrhoij-1)
@@ -1314,14 +1310,14 @@ end subroutine pawrhoij_copy
        end do
      end if
      if (use_rhoijres>0) then
-       ABI_ALLOCATE(pawrhoij_gathered(jrhoij)%rhoijres,(cplex*lmn2_size,nspden))
+       LIBPAW_ALLOCATE(pawrhoij_gathered(jrhoij)%rhoijres,(cplex*lmn2_size,nspden))
        do isp=1,nspden
          pawrhoij_gathered(jrhoij)%rhoijres(1:cplex*lmn2_size,isp)=buf_dp_all(indx_dp:indx_dp+cplex*lmn2_size-1)
          indx_dp=indx_dp+cplex*lmn2_size
        end do
      end if
      if (use_rhoij_>0) then
-       ABI_ALLOCATE(pawrhoij_gathered(jrhoij)%rhoij_,(cplex*lmn2_size,rhoij_size2))
+       LIBPAW_ALLOCATE(pawrhoij_gathered(jrhoij)%rhoij_,(cplex*lmn2_size,rhoij_size2))
        do isp=1,rhoij_size2
          pawrhoij_gathered(jrhoij)%rhoij_(1:cplex*lmn2_size,isp)=buf_dp_all(indx_dp:indx_dp+cplex*lmn2_size-1)
          indx_dp=indx_dp+cplex*lmn2_size
@@ -1336,10 +1332,10 @@ end subroutine pawrhoij_copy
 
 !Free memory
  call free_my_atmtab(my_atmtab,my_atmtab_allocated)
- ABI_DEALLOCATE(buf_int)
- ABI_DEALLOCATE(buf_dp)
- ABI_DEALLOCATE(buf_int_all)
- ABI_DEALLOCATE(buf_dp_all)
+ LIBPAW_DEALLOCATE(buf_int)
+ LIBPAW_DEALLOCATE(buf_dp)
+ LIBPAW_DEALLOCATE(buf_int_all)
+ LIBPAW_DEALLOCATE(buf_dp_all)
 
 end subroutine pawrhoij_gather
 !!***
@@ -1447,18 +1443,18 @@ end subroutine pawrhoij_gather
    nullify(my_atmtab)
    call get_my_atmtab(my_comm_atom,my_atmtab,my_atmtab_allocated,paral_atom, &
 &                     nrhoij_out_all,my_natom_ref=nrhoij_out)
-   ABI_ALLOCATE(disp_int,(nproc_atom))
-   ABI_ALLOCATE(count_int,(nproc_atom))
+   LIBPAW_ALLOCATE(disp_int,(nproc_atom))
+   LIBPAW_ALLOCATE(count_int,(nproc_atom))
    call xmpi_allgather(nrhoij_out,count_int,my_comm_atom,ierr)
    disp_int(1)=0
    do ii=2,nproc_atom
      disp_int(ii)=disp_int(ii-1)+count_int(ii-1)
    end do
-   ABI_ALLOCATE(atmtab,(nrhoij_in))
+   LIBPAW_ALLOCATE(atmtab,(nrhoij_in))
    call xmpi_gatherv(my_atmtab,nrhoij_out,atmtab,count_int,disp_int,&
 &                    master,my_comm_atom,ierr)
-   ABI_DEALLOCATE(disp_int)
-   ABI_DEALLOCATE(count_int)
+   LIBPAW_DEALLOCATE(disp_int)
+   LIBPAW_DEALLOCATE(count_int)
  end if
 
 !Compute size of input buffers
@@ -1489,11 +1485,11 @@ end subroutine pawrhoij_gather
 
 !Prepare buffers/tabs for communication
  if (paral_atom) then
-   ABI_ALLOCATE(count_int,(nproc_atom))
-   ABI_ALLOCATE(count_dp,(nproc_atom))
-   ABI_ALLOCATE(disp_int,(nproc_atom))
-   ABI_ALLOCATE(disp_dp,(nproc_atom))
-   ABI_ALLOCATE(count_siz,(2*nproc_atom))
+   LIBPAW_ALLOCATE(count_int,(nproc_atom))
+   LIBPAW_ALLOCATE(count_dp,(nproc_atom))
+   LIBPAW_ALLOCATE(disp_int,(nproc_atom))
+   LIBPAW_ALLOCATE(disp_dp,(nproc_atom))
+   LIBPAW_ALLOCATE(count_siz,(2*nproc_atom))
    buf_size(1)=buf_int_size
    buf_size(2)=buf_dp_size
    call xmpi_allgather(buf_size,2,count_siz,my_comm_atom,ierr)
@@ -1501,7 +1497,7 @@ end subroutine pawrhoij_gather
      count_int(iproc)=count_siz(2*iproc-1)
      count_dp(iproc)=count_siz(2*iproc)
    end do
-   ABI_DEALLOCATE(count_siz)
+   LIBPAW_DEALLOCATE(count_siz)
    disp_int(1)=0;disp_dp(1)=0
    do ii=2,nproc_atom
      disp_int(ii)=disp_int(ii-1)+count_int(ii-1)
@@ -1513,14 +1509,14 @@ end subroutine pawrhoij_gather
    buf_int_size_all=buf_int_size
    buf_dp_size_all =buf_dp_size
  end if
- ABI_ALLOCATE(buf_int,(buf_int_size))
- ABI_ALLOCATE(buf_dp ,(buf_dp_size))
+ LIBPAW_ALLOCATE(buf_int,(buf_int_size))
+ LIBPAW_ALLOCATE(buf_dp ,(buf_dp_size))
  if (me==master) then
-   ABI_ALLOCATE(buf_int_all,(buf_int_size_all))
-   ABI_ALLOCATE(buf_dp_all ,(buf_dp_size_all))
+   LIBPAW_ALLOCATE(buf_int_all,(buf_int_size_all))
+   LIBPAW_ALLOCATE(buf_dp_all ,(buf_dp_size_all))
  else
-   ABI_ALLOCATE(buf_int_all,(1))
-   ABI_ALLOCATE(buf_dp_all ,(1))
+   LIBPAW_ALLOCATE(buf_int_all,(1))
+   LIBPAW_ALLOCATE(buf_dp_all ,(1))
  end if
 
 !Fill input buffers
@@ -1632,22 +1628,22 @@ end subroutine pawrhoij_gather
    pawrhoij_out(irhoij)%use_rhoijres=use_rhoijres
    pawrhoij_out(irhoij)%use_rhoij_=use_rhoij_
    if (use_rhoijp>0) then
-     ABI_ALLOCATE(pawrhoij_out(irhoij)%rhoijselect,(nselect))
+     LIBPAW_ALLOCATE(pawrhoij_out(irhoij)%rhoijselect,(nselect))
      pawrhoij_out(irhoij)%rhoijselect(1:nselect)=buf_int(indx_int:indx_int+nselect-1)
      indx_int=indx_int+nselect
-     ABI_ALLOCATE(pawrhoij_out(irhoij)%rhoijp,(cplex*nselect,nspden))
+     LIBPAW_ALLOCATE(pawrhoij_out(irhoij)%rhoijp,(cplex*nselect,nspden))
      do isp=1,nspden
        pawrhoij_out(irhoij)%rhoijp(1:cplex*nselect,isp)=buf_dp(indx_dp:indx_dp+cplex*nselect-1)
        indx_dp=indx_dp+cplex*nselect
      end do
    end if
    if (lmnmix>0) then
-     ABI_ALLOCATE(pawrhoij_out(irhoij)%kpawmix,(lmnmix))
+     LIBPAW_ALLOCATE(pawrhoij_out(irhoij)%kpawmix,(lmnmix))
      pawrhoij_out(irhoij)%kpawmix(1:lmnmix)=buf_int(indx_int:indx_int+lmnmix-1)
      indx_int=indx_int+lmnmix
    end if
    if (ngrhoij>0) then
-     ABI_ALLOCATE(pawrhoij_out(irhoij)%grhoij,(ngrhoij,cplex*lmn2_size,nspden))
+     LIBPAW_ALLOCATE(pawrhoij_out(irhoij)%grhoij,(ngrhoij,cplex*lmn2_size,nspden))
      do isp=1,nspden
        do ii=1,cplex*lmn2_size
          pawrhoij_out(irhoij)%grhoij(1:ngrhoij,ii,isp)=buf_dp(indx_dp:indx_dp+ngrhoij-1)
@@ -1656,14 +1652,14 @@ end subroutine pawrhoij_gather
      end do
    end if
    if (use_rhoijres>0) then
-     ABI_ALLOCATE(pawrhoij_out(irhoij)%rhoijres,(cplex*lmn2_size,nspden))
+     LIBPAW_ALLOCATE(pawrhoij_out(irhoij)%rhoijres,(cplex*lmn2_size,nspden))
      do isp=1,nspden
        pawrhoij_out(irhoij)%rhoijres(1:cplex*lmn2_size,isp)=buf_dp(indx_dp:indx_dp+cplex*lmn2_size-1)
        indx_dp=indx_dp+cplex*lmn2_size
      end do
    end if
    if (use_rhoij_>0) then
-     ABI_ALLOCATE(pawrhoij_out(irhoij)%rhoij_,(cplex*lmn2_size,rhoij_size2))
+     LIBPAW_ALLOCATE(pawrhoij_out(irhoij)%rhoij_,(cplex*lmn2_size,rhoij_size2))
      do isp=1,rhoij_size2
        pawrhoij_out(irhoij)%rhoij_(1:cplex*lmn2_size,isp)=buf_dp(indx_dp:indx_dp+cplex*lmn2_size-1)
        indx_dp=indx_dp+cplex*lmn2_size
@@ -1677,16 +1673,16 @@ end subroutine pawrhoij_gather
  end if
 
 !Free memory
- ABI_DEALLOCATE(buf_int)
- ABI_DEALLOCATE(buf_dp)
- ABI_DEALLOCATE(buf_int_all)
- ABI_DEALLOCATE(buf_dp_all)
+ LIBPAW_DEALLOCATE(buf_int)
+ LIBPAW_DEALLOCATE(buf_dp)
+ LIBPAW_DEALLOCATE(buf_int_all)
+ LIBPAW_DEALLOCATE(buf_dp_all)
  if (paral_atom) then
-   ABI_DEALLOCATE(count_int)
-   ABI_DEALLOCATE(count_dp)
-   ABI_DEALLOCATE(disp_int)
-   ABI_DEALLOCATE(disp_dp)
-   ABI_DEALLOCATE(atmtab)
+   LIBPAW_DEALLOCATE(count_int)
+   LIBPAW_DEALLOCATE(count_dp)
+   LIBPAW_DEALLOCATE(disp_int)
+   LIBPAW_DEALLOCATE(disp_dp)
+   LIBPAW_DEALLOCATE(atmtab)
    call free_my_atmtab(my_atmtab,my_atmtab_allocated)
  end if
 
@@ -1794,14 +1790,14 @@ end subroutine pawrhoij_bcast
  if (.not.in_place) then
    if (associated(pawrhoij_out)) then
      call pawrhoij_free(pawrhoij_out)
-     ABI_DATATYPE_DEALLOCATE(pawrhoij_out)
+     LIBPAW_DATATYPE_DEALLOCATE(pawrhoij_out)
    end if
  end if
 
 !Special sequential case
  if (mpi_comm_in==xmpi_self.and.mpi_comm_out==xmpi_self) then
    if ((.not.in_place).and.(my_natom_in>0)) then
-     ABI_DATATYPE_ALLOCATE(pawrhoij_out,(my_natom_in))
+     LIBPAW_DATATYPE_ALLOCATE(pawrhoij_out,(my_natom_in))
      call pawrhoij_nullify(pawrhoij_out)
      call pawrhoij_copy(pawrhoij,pawrhoij_out,&
 &                    keep_cplex=.false.,keep_itypat=.false.,keep_nspden=.false.)
@@ -1845,25 +1841,25 @@ end subroutine pawrhoij_bcast
 !---------------------------------------------------------
  if (algo_option==1) then
 
-   ABI_DATATYPE_ALLOCATE(pawrhoij_all,(natom_tot))
+   LIBPAW_DATATYPE_ALLOCATE(pawrhoij_all,(natom_tot))
    call pawrhoij_nullify(pawrhoij_all)
    call pawrhoij_copy(pawrhoij,pawrhoij_all,comm_atom=mpi_comm_in,mpi_atmtab=my_atmtab_in,&
 &                  keep_cplex=.false.,keep_itypat=.false.,keep_nspden=.false.)
    if (in_place) then
      call pawrhoij_free(pawrhoij)
-     ABI_DATATYPE_DEALLOCATE(pawrhoij)
-     ABI_DATATYPE_ALLOCATE(pawrhoij,(my_natom_out))
+     LIBPAW_DATATYPE_DEALLOCATE(pawrhoij)
+     LIBPAW_DATATYPE_ALLOCATE(pawrhoij,(my_natom_out))
      call pawrhoij_nullify(pawrhoij)
      call pawrhoij_copy(pawrhoij_all,pawrhoij,comm_atom=mpi_comm_out,mpi_atmtab=my_atmtab_out,&
 &                       keep_cplex=.false.,keep_itypat=.false.,keep_nspden=.false.)
    else
-     ABI_DATATYPE_ALLOCATE(pawrhoij_out,(my_natom_out))
+     LIBPAW_DATATYPE_ALLOCATE(pawrhoij_out,(my_natom_out))
      call pawrhoij_nullify(pawrhoij_out)
      call pawrhoij_copy(pawrhoij_all,pawrhoij_out,comm_atom=mpi_comm_out,mpi_atmtab=my_atmtab_out,&
 &                       keep_cplex=.false.,keep_itypat=.false.,keep_nspden=.false.)
    end if
    call pawrhoij_free(pawrhoij_all)
-   ABI_DATATYPE_DEALLOCATE(pawrhoij_all)
+   LIBPAW_DATATYPE_DEALLOCATE(pawrhoij_all)
 
 
 !Asynchronous algorithm (asynchronous communications)
@@ -1874,13 +1870,13 @@ end subroutine pawrhoij_bcast
 
    if (in_place) then
      if ( my_natom_out > 0 ) then
-       ABI_DATATYPE_ALLOCATE(pawrhoij_out1,(my_natom_out))
+       LIBPAW_DATATYPE_ALLOCATE(pawrhoij_out1,(my_natom_out))
        call pawrhoij_nullify(pawrhoij_out1)
      else
-       ABI_DATATYPE_ALLOCATE(pawrhoij_out1,(0))
+       LIBPAW_DATATYPE_ALLOCATE(pawrhoij_out1,(0))
      end if
    else
-     ABI_DATATYPE_ALLOCATE(pawrhoij_out,(my_natom_out))
+     LIBPAW_DATATYPE_ALLOCATE(pawrhoij_out,(my_natom_out))
      call pawrhoij_nullify(pawrhoij_out)
      pawrhoij_out1=>pawrhoij_out
    end if
@@ -1892,22 +1888,22 @@ end subroutine pawrhoij_bcast
    me_exch=xcomm_rank(mpi_comm_exch)
 
 !  Dimension put to the maximum to send
-   ABI_ALLOCATE(atmtab_send,(nbsend))
-   ABI_ALLOCATE(atm_indx_in,(natom_tot))
+   LIBPAW_ALLOCATE(atmtab_send,(nbsend))
+   LIBPAW_ALLOCATE(atm_indx_in,(natom_tot))
    atm_indx_in=-1
    do iatom=1,my_natom_in
      atm_indx_in(my_atmtab_in(iatom))=iatom
    end do
-   ABI_ALLOCATE(atm_indx_out,(natom_tot))
+   LIBPAW_ALLOCATE(atm_indx_out,(natom_tot))
    atm_indx_out=-1
    do iatom=1,my_natom_out
      atm_indx_out(my_atmtab_out(iatom))=iatom
    end do
 
-   ABI_DATATYPE_ALLOCATE(tab_buf_int,(nbsend))
-   ABI_DATATYPE_ALLOCATE(tab_buf_dp,(nbsend))
-   ABI_DATATYPE_ALLOCATE(tab_buf_atom,(nbsend))
-   ABI_ALLOCATE(request,(3*nbsend))
+   LIBPAW_DATATYPE_ALLOCATE(tab_buf_int,(nbsend))
+   LIBPAW_DATATYPE_ALLOCATE(tab_buf_dp,(nbsend))
+   LIBPAW_DATATYPE_ALLOCATE(tab_buf_atom,(nbsend))
+   LIBPAW_ALLOCATE(request,(3*nbsend))
 
 !  A send buffer in an asynchrone communication couldn't be deallocate before it has been receive
    nbsent=0 ; ireq=0 ; iisend=0 ; nbsendreq=0 ; nb_msg=0
@@ -1938,13 +1934,13 @@ end subroutine pawrhoij_bcast
              nb_msg=nb_msg+1
              call pawrhoij_isendreceive_fillbuffer( &
 &                   pawrhoij,atmtab_send,atm_indx_in,nbsent,buf_int,nb_int,buf_dp,nb_dp)
-             ABI_ALLOCATE(tab_buf_int(nb_msg)%value,(nb_int))
-             ABI_ALLOCATE(tab_buf_dp(nb_msg)%value,(nb_dp))
+             LIBPAW_ALLOCATE(tab_buf_int(nb_msg)%value,(nb_int))
+             LIBPAW_ALLOCATE(tab_buf_dp(nb_msg)%value,(nb_dp))
              tab_buf_int(nb_msg)%value(1:nb_int)=buf_int(1:nb_int)
              tab_buf_dp(nb_msg)%value(1:nb_dp)=buf_dp(1:nb_dp)
-             ABI_DEALLOCATE(buf_int)
-             ABI_DEALLOCATE(buf_dp)
-             ABI_ALLOCATE(tab_buf_atom(nb_msg)%value, (nbsent))
+             LIBPAW_DEALLOCATE(buf_int)
+             LIBPAW_DEALLOCATE(buf_dp)
+             LIBPAW_ALLOCATE(tab_buf_atom(nb_msg)%value, (nbsent))
              tab_buf_atom(nb_msg)%value(1:nbsent)=atmtab_send(1:nbsent)
              imsg_current=nb_msg
            end if
@@ -1976,7 +1972,7 @@ end subroutine pawrhoij_bcast
      end if
    end do
 
-   ABI_ALLOCATE(From,(nbrecv))
+   LIBPAW_ALLOCATE(From,(nbrecv))
    From(:)=-1 ; nbrecvmsg=0
    do iircv=1,nbrecv
      iproc_send=RecvAtomProc(iircv) !receive from (RcvAtomProc is sorted by growing process)
@@ -1988,7 +1984,7 @@ end subroutine pawrhoij_bcast
      end if
    end do
 
-   ABI_ALLOCATE(msg_pick,(nbrecvmsg))
+   LIBPAW_ALLOCATE(msg_pick,(nbrecvmsg))
    msg_pick=.false.
    nbmsg_incoming=nbrecvmsg
    do while (nbmsg_incoming > 0)
@@ -2005,8 +2001,8 @@ end subroutine pawrhoij_bcast
            nb_int=buf_size(1)
            nb_dp=buf_size(2)
            npawrhoij_sent=buf_size(3)
-           ABI_ALLOCATE(buf_int1,(nb_int))
-           ABI_ALLOCATE(buf_dp1,(nb_dp))
+           LIBPAW_ALLOCATE(buf_int1,(nb_int))
+           LIBPAW_ALLOCATE(buf_dp1,(nb_dp))
            my_tag=101
            call xmpi_irecv(buf_int1,iproc_send,my_tag,mpi_comm_exch,request1(2),ierr)
            my_tag=102
@@ -2014,23 +2010,23 @@ end subroutine pawrhoij_bcast
            call xmpi_waitall(request1(2:3),ierr)
            call pawrhoij_isendreceive_getbuffer(pawrhoij_out1,npawrhoij_sent,atm_indx_out,buf_int1,buf_dp1)
            nbmsg_incoming=nbmsg_incoming-1
-           ABI_DEALLOCATE(buf_int1)
-           ABI_DEALLOCATE(buf_dp1)
+           LIBPAW_DEALLOCATE(buf_int1)
+           LIBPAW_DEALLOCATE(buf_dp1)
          end if
        end if
      end do
    end do
-   ABI_DEALLOCATE(msg_pick)
+   LIBPAW_DEALLOCATE(msg_pick)
 
    if (in_place) then
      call pawrhoij_free(pawrhoij)
-     ABI_DATATYPE_DEALLOCATE(pawrhoij)
-     ABI_DATATYPE_ALLOCATE(pawrhoij,(my_natom_out))
+     LIBPAW_DATATYPE_DEALLOCATE(pawrhoij)
+     LIBPAW_DATATYPE_ALLOCATE(pawrhoij,(my_natom_out))
      call pawrhoij_nullify(pawrhoij)
      call pawrhoij_copy(pawrhoij_out1,pawrhoij, &
 &         keep_cplex=.false.,keep_itypat=.false.,keep_nspden=.false.)
      call pawrhoij_free(pawrhoij_out1)
-     ABI_DATATYPE_DEALLOCATE(pawrhoij_out1)
+     LIBPAW_DATATYPE_DEALLOCATE(pawrhoij_out1)
    end if
 
 !  Wait for deallocating arrays that all sending operations has been realized
@@ -2040,18 +2036,18 @@ end subroutine pawrhoij_bcast
 
 !  Deallocate buffers
    do i1=1,nb_msg
-     ABI_DEALLOCATE(tab_buf_int(i1)%value)
-     ABI_DEALLOCATE(tab_buf_dp(i1)%value)
-     ABI_DEALLOCATE(tab_buf_atom(i1)%value)
+     LIBPAW_DEALLOCATE(tab_buf_int(i1)%value)
+     LIBPAW_DEALLOCATE(tab_buf_dp(i1)%value)
+     LIBPAW_DEALLOCATE(tab_buf_atom(i1)%value)
    end do
-   ABI_DATATYPE_DEALLOCATE(tab_buf_int)
-   ABI_DATATYPE_DEALLOCATE(tab_buf_dp)
-   ABI_DATATYPE_DEALLOCATE(tab_buf_atom)
-   ABI_DEALLOCATE(From)
-   ABI_DEALLOCATE(request)
-   ABI_DEALLOCATE(atmtab_send)
-   ABI_DEALLOCATE(atm_indx_in)
-   ABI_DEALLOCATE(atm_indx_out)
+   LIBPAW_DATATYPE_DEALLOCATE(tab_buf_int)
+   LIBPAW_DATATYPE_DEALLOCATE(tab_buf_dp)
+   LIBPAW_DATATYPE_DEALLOCATE(tab_buf_atom)
+   LIBPAW_DEALLOCATE(From)
+   LIBPAW_DEALLOCATE(request)
+   LIBPAW_DEALLOCATE(atmtab_send)
+   LIBPAW_DEALLOCATE(atm_indx_in)
+   LIBPAW_DEALLOCATE(atm_indx_out)
 
  end if !algo_option
 
@@ -2164,7 +2160,7 @@ subroutine pawrhoij_io(pawrhoij,unitfi,nsppol_in,nspinor_in,nspden_in,nlmn_type,
    case ("R","r") ! Reading the Rhoij tab
 
      if ((headform>=44).and.(headform<56)) then
-       ABI_ALLOCATE(nsel44,(nspden_in,natom))
+       LIBPAW_ALLOCATE(nsel44,(nspden_in,natom))
        if (isbinary) then
          read(unitfi  ) ((nsel44(ispden,iatom),ispden=1,nspden_in),iatom=1,natom)
        else
@@ -2175,8 +2171,8 @@ subroutine pawrhoij_io(pawrhoij,unitfi,nsppol_in,nspinor_in,nspden_in,nlmn_type,
          pawrhoij(iatom)%nrhoijsel=nsel44(1,iatom)
        end do
        bsize=sum(nsel44)
-       ABI_ALLOCATE(ibuffer,(bsize))
-       ABI_ALLOCATE(buffer,(bsize))
+       LIBPAW_ALLOCATE(ibuffer,(bsize))
+       LIBPAW_ALLOCATE(buffer,(bsize))
        if (isbinary) then
          read(unitfi  ) ibuffer(:),buffer(:)
        else
@@ -2191,11 +2187,11 @@ subroutine pawrhoij_io(pawrhoij,unitfi,nsppol_in,nspinor_in,nspden_in,nlmn_type,
            ii=ii+nselect
          end do
        end do
-       ABI_DEALLOCATE(ibuffer)
-       ABI_DEALLOCATE(buffer)
-       ABI_DEALLOCATE(nsel44)
+       LIBPAW_DEALLOCATE(ibuffer)
+       LIBPAW_DEALLOCATE(buffer)
+       LIBPAW_DEALLOCATE(nsel44)
      else if (headform>=56) then
-       ABI_ALLOCATE(nsel56,(natom))
+       LIBPAW_ALLOCATE(nsel56,(natom))
        if (headform==56) then
          if (isbinary) then
            read(unitfi  ) (nsel56(iatom),iatom=1,natom),my_cplex
@@ -2215,8 +2211,8 @@ subroutine pawrhoij_io(pawrhoij,unitfi,nsppol_in,nspinor_in,nspden_in,nlmn_type,
          pawrhoij(iatom)%nrhoijsel=nsel56(iatom)
        end do
        bsize=sum(nsel56)
-       ABI_ALLOCATE(ibuffer,(bsize))
-       ABI_ALLOCATE(buffer,(bsize*nspden_in*my_cplex))
+       LIBPAW_ALLOCATE(ibuffer,(bsize))
+       LIBPAW_ALLOCATE(buffer,(bsize*nspden_in*my_cplex))
        if (isbinary) then
          read(unitfi  ) ibuffer(:),buffer(:)
        else
@@ -2232,14 +2228,14 @@ subroutine pawrhoij_io(pawrhoij,unitfi,nsppol_in,nspinor_in,nspden_in,nlmn_type,
            jj=jj+my_cplex*nselect
          end do
        end do
-       ABI_DEALLOCATE(ibuffer)
-       ABI_DEALLOCATE(buffer)
-       ABI_DEALLOCATE(nsel56)
+       LIBPAW_DEALLOCATE(ibuffer)
+       LIBPAW_DEALLOCATE(buffer)
+       LIBPAW_DEALLOCATE(nsel56)
      end if
 
    case ("W","w") ! Writing the Rhoij tab (latest format is used)
 
-     ABI_ALLOCATE(nsel56,(natom))
+     LIBPAW_ALLOCATE(nsel56,(natom))
      my_cplex =pawrhoij(1)%cplex
      my_nspden=pawrhoij(1)%nspden
      do iatom=1,natom
@@ -2251,8 +2247,8 @@ subroutine pawrhoij_io(pawrhoij,unitfi,nsppol_in,nspinor_in,nspden_in,nlmn_type,
        write(unitfi,*) (nsel56(iatom),iatom=1,natom),my_cplex,my_nspden
      end if
      bsize=sum(nsel56)
-     ABI_ALLOCATE(ibuffer,(bsize))
-     ABI_ALLOCATE(buffer,(bsize*my_nspden*my_cplex))
+     LIBPAW_ALLOCATE(ibuffer,(bsize))
+     LIBPAW_ALLOCATE(buffer,(bsize*my_nspden*my_cplex))
      ii=0;jj=0
      do iatom=1,natom
        nselect=nsel56(iatom)
@@ -2268,15 +2264,15 @@ subroutine pawrhoij_io(pawrhoij,unitfi,nsppol_in,nspinor_in,nspden_in,nlmn_type,
      else
        write(unitfi,*) ibuffer(:),buffer(:)
      end if
-     ABI_DEALLOCATE(ibuffer)
-     ABI_DEALLOCATE(buffer)
-     ABI_DEALLOCATE(nsel56)
+     LIBPAW_DEALLOCATE(ibuffer)
+     LIBPAW_DEALLOCATE(buffer)
+     LIBPAW_DEALLOCATE(nsel56)
 
    case ("E","e") ! Echoing the Rhoij tab
 
      my_natinc=1; if(natom>1) my_natinc=natom-1
      if (PRESENT(natinc)) my_natinc = natinc ! user-defined increment.
-     ABI_ALLOCATE(ibuffer,(0))
+     LIBPAW_ALLOCATE(ibuffer,(0))
      do iatom=1,my_natom,my_natinc
        iatom_tot=iatom;if(paral_atom)iatom_tot=my_atmtab(iatom)
        do ispden=1,pawrhoij(iatom)%nspden
@@ -2288,14 +2284,14 @@ subroutine pawrhoij_io(pawrhoij,unitfi,nsppol_in,nspinor_in,nspden_in,nlmn_type,
 &         pawrhoij(iatom)%rhoijselect(:),-1.d0,1,mode_paral='PERS')
        end do
      end do
-     ABI_DEALLOCATE(ibuffer)
+     LIBPAW_DEALLOCATE(ibuffer)
 
   case ("D","d") ! Debug
 
      write(unitfi,'(a,i4)' ) 'size pawmkrhoij , natom = ' , my_natom
      my_natinc=1;  if(natom>1) my_natinc=natom-1
      if (PRESENT(natinc)) my_natinc = natinc ! user-defined increment.
-     ABI_ALLOCATE(ibuffer,(0))
+     LIBPAW_ALLOCATE(ibuffer,(0))
      do iatom=1,my_natom,my_natinc
        iatom_tot=iatom;if(paral_atom) iatom_tot=my_atmtab(iatom)
        if (iatom_tot/=1) cycle
@@ -2419,7 +2415,7 @@ subroutine pawrhoij_unpack(rhoij)
    lmn2_size =rhoij(iat)%lmn2_size
 
    if (rhoij(iat)%use_rhoij_/=1) then ! Have to allocate rhoij
-     ABI_ALLOCATE(rhoij(iat)%rhoij_,(cplex*lmn2_size,nspden))
+     LIBPAW_ALLOCATE(rhoij(iat)%rhoij_,(cplex*lmn2_size,nspden))
      rhoij(iat)%use_rhoij_=1
    end if
    rhoij(iat)%rhoij_ = zero
@@ -2481,9 +2477,9 @@ subroutine pawrhoij_init_unpacked(rhoij)
  do iat=1,nrhoij
 
    if (allocated(rhoij(iat)%rhoij_))  then
-     ABI_DEALLOCATE(rhoij(iat)%rhoij_)
+     LIBPAW_DEALLOCATE(rhoij(iat)%rhoij_)
    end if
-   ABI_ALLOCATE(rhoij(iat)%rhoij_,(rhoij(iat)%cplex*rhoij(iat)%lmn2_size,nsp2))
+   LIBPAW_ALLOCATE(rhoij(iat)%rhoij_,(rhoij(iat)%cplex*rhoij(iat)%lmn2_size,nsp2))
    rhoij(iat)%use_rhoij_=1
    rhoij(iat)%rhoij_=zero
 
@@ -2538,7 +2534,7 @@ subroutine pawrhoij_free_unpacked(rhoij)
  do iat=1,nrhoij
 
    if (allocated(rhoij(iat)%rhoij_))  then
-     ABI_DEALLOCATE(rhoij(iat)%rhoij_)
+     LIBPAW_DEALLOCATE(rhoij(iat)%rhoij_)
    end if
    rhoij(iat)%use_rhoij_=0
 
@@ -2612,12 +2608,12 @@ subroutine pawrhoij_mpisum_unpacked_1D(pawrhoij,comm1,comm2)
  if (nproc1==1.and.nproc2==1) RETURN
 
 !Fill the MPI buffer from the local rhoij_
- ABI_ALLOCATE(dimlmn,(natom))
+ LIBPAW_ALLOCATE(dimlmn,(natom))
  dimlmn(1:natom)=pawrhoij(1:natom)%cplex*pawrhoij(1:natom)%lmn2_size
  nsp2=pawrhoij(1)%nsppol; if (pawrhoij(1)%nspden==4) nsp2=4
  bufdim=sum(dimlmn)*nsp2
- ABI_ALLOCATE(buffer1,(bufdim))
- ABI_ALLOCATE(buffer2,(bufdim))
+ LIBPAW_ALLOCATE(buffer1,(bufdim))
+ LIBPAW_ALLOCATE(buffer2,(bufdim))
  jdim=0
  do iatom=1,natom
    do isppol=1,nsp2
@@ -2641,9 +2637,9 @@ subroutine pawrhoij_mpisum_unpacked_1D(pawrhoij,comm1,comm2)
    end do
  end do
 
- ABI_DEALLOCATE(buffer1)
- ABI_DEALLOCATE(buffer2)
- ABI_DEALLOCATE(dimlmn)
+ LIBPAW_DEALLOCATE(buffer1)
+ LIBPAW_DEALLOCATE(buffer2)
+ LIBPAW_DEALLOCATE(dimlmn)
 
  DBG_EXIT("COLL")
 
@@ -2716,12 +2712,12 @@ subroutine pawrhoij_mpisum_unpacked_2D(pawrhoij,comm1,comm2)
  if (nproc1==1.and.nproc2==1) RETURN
 
 !Fill the MPI buffer from the local rhoij_
- ABI_ALLOCATE(dimlmn,(natom,nrhoij))
+ LIBPAW_ALLOCATE(dimlmn,(natom,nrhoij))
  dimlmn(1:natom,1:nrhoij)=pawrhoij(1:natom,1:nrhoij)%cplex*pawrhoij(1:natom,1:nrhoij)%lmn2_size
  nsp2=pawrhoij(1,1)%nsppol; if (pawrhoij(1,1)%nspden==4) nsp2=4
  bufdim=sum(dimlmn)*nsp2
- ABI_ALLOCATE(buffer1,(bufdim))
- ABI_ALLOCATE(buffer2,(bufdim))
+ LIBPAW_ALLOCATE(buffer1,(bufdim))
+ LIBPAW_ALLOCATE(buffer2,(bufdim))
  jdim=0
  do irhoij=1,nrhoij
    do iatom=1,natom
@@ -2749,9 +2745,9 @@ subroutine pawrhoij_mpisum_unpacked_2D(pawrhoij,comm1,comm2)
    end do
  end do
 
- ABI_DEALLOCATE(buffer1)
- ABI_DEALLOCATE(buffer2)
- ABI_DEALLOCATE(dimlmn)
+ LIBPAW_DEALLOCATE(buffer1)
+ LIBPAW_DEALLOCATE(buffer2)
+ LIBPAW_DEALLOCATE(dimlmn)
 
  DBG_EXIT("COLL")
 
@@ -2950,39 +2946,39 @@ subroutine symrhoij(pawrhoij,pawrhoij_unsym,choice,gprimd,indsym,ipert,natom,nsy
 
 !  Several inits/allocations
    if (noncoll.and.optrhoij==1)  then
-     ABI_ALLOCATE(summag,(cplex_eff,3))
-     ABI_ALLOCATE(rotmag,(cplex_eff,3))
+     LIBPAW_ALLOCATE(summag,(cplex_eff,3))
+     LIBPAW_ALLOCATE(rotmag,(cplex_eff,3))
    end if
    if (noncoll) then
-     ABI_ALLOCATE(symrec_cart,(3,3,nsym))
+     LIBPAW_ALLOCATE(symrec_cart,(3,3,nsym))
      do irot=1,nsym
        symrec_cart(:,:,irot)=symrhoij_symcart(gprimd,rprimd,symrec(:,:,irot))
      end do
    end if
    ishift2=0;ishift3=0;ishift4=0
    if (choice>1) then
-     ABI_ALLOCATE(sumgr,(cplex_eff,ngrhoij))
+     LIBPAW_ALLOCATE(sumgr,(cplex_eff,ngrhoij))
      if (choice>2)  then
-       ABI_ALLOCATE(work1,(cplex_eff,3,3))
+       LIBPAW_ALLOCATE(work1,(cplex_eff,3,3))
      end if
      if (antiferro) then
-       ABI_ALLOCATE(rotgr,(cplex_eff,ngrhoij,2))
+       LIBPAW_ALLOCATE(rotgr,(cplex_eff,ngrhoij,2))
      else
-       ABI_ALLOCATE(rotgr,(cplex_eff,ngrhoij,1))
+       LIBPAW_ALLOCATE(rotgr,(cplex_eff,ngrhoij,1))
      end if
      if (noncoll) then
-       ABI_ALLOCATE(summaggr,(cplex_eff,ngrhoij,3))
-       ABI_ALLOCATE(rotmaggr,(cplex_eff,ngrhoij,3))
+       LIBPAW_ALLOCATE(summaggr,(cplex_eff,ngrhoij,3))
+       LIBPAW_ALLOCATE(rotmaggr,(cplex_eff,ngrhoij,3))
      end if
      if (choice==23) ishift2=6
      if (choice==24) ishift4=3
      if (.not.paral_atom_unsym) then
 !      Have to make a temporary copy of grhoij
-       ABI_DATATYPE_ALLOCATE(tmp_grhoij,(nrhoij))
+       LIBPAW_DATATYPE_ALLOCATE(tmp_grhoij,(nrhoij))
        do iatm=1,nrhoij
          sz1=pawrhoij_unsym(iatm)%cplex*pawrhoij_unsym(iatm)%lmn2_size
          sz2=pawrhoij_unsym(iatm)%nspden
-         ABI_ALLOCATE(tmp_grhoij(iatm)%value,(ngrhoij,sz1,sz2))
+         LIBPAW_ALLOCATE(tmp_grhoij(iatm)%value,(ngrhoij,sz1,sz2))
          tmp_grhoij(iatm)%value(1:ngrhoij,1:sz1,1:sz2)=pawrhoij_unsym(iatm)%grhoij(1:ngrhoij,1:sz1,1:sz2)
        end do
      end if
@@ -2990,7 +2986,7 @@ subroutine symrhoij(pawrhoij,pawrhoij_unsym,choice,gprimd,indsym,ipert,natom,nsy
 
 !  In case of paw_rhoij_unsym distributed over atomic sites, gather it
    if (paral_atom_unsym) then
-     ABI_DATATYPE_ALLOCATE(pawrhoij_unsym_all,(natom))
+     LIBPAW_DATATYPE_ALLOCATE(pawrhoij_unsym_all,(natom))
      call pawrhoij_nullify(pawrhoij_unsym_all)
      call pawrhoij_gather(pawrhoij_unsym,pawrhoij_unsym_all,-1,my_comm_atom,&
 &     with_lmnmix=.false.,with_rhoijp=.false.,&
@@ -3473,32 +3469,32 @@ subroutine symrhoij(pawrhoij,pawrhoij_unsym,choice,gprimd,indsym,ipert,natom,nsy
    end do ! End loop over iatm
 
    if (noncoll.and.optrhoij==1)  then
-     ABI_DEALLOCATE(summag)
-     ABI_DEALLOCATE(rotmag)
+     LIBPAW_DEALLOCATE(summag)
+     LIBPAW_DEALLOCATE(rotmag)
    end if
    if (noncoll)  then
-     ABI_DEALLOCATE(symrec_cart)
+     LIBPAW_DEALLOCATE(symrec_cart)
    end if
    if (choice>1) then
      if (.not.paral_atom_unsym) then
        do iatm=1,nrhoij
-         ABI_DEALLOCATE(tmp_grhoij(iatm)%value)
+         LIBPAW_DEALLOCATE(tmp_grhoij(iatm)%value)
        end do
-       ABI_DATATYPE_DEALLOCATE(tmp_grhoij)
+       LIBPAW_DATATYPE_DEALLOCATE(tmp_grhoij)
      end if
-     ABI_DEALLOCATE(sumgr)
-     ABI_DEALLOCATE(rotgr)
+     LIBPAW_DEALLOCATE(sumgr)
+     LIBPAW_DEALLOCATE(rotgr)
      if (choice>2)  then
-       ABI_DEALLOCATE(work1)
+       LIBPAW_DEALLOCATE(work1)
      end if
      if (noncoll)  then
-       ABI_DEALLOCATE(summaggr)
-       ABI_DEALLOCATE(rotmaggr)
+       LIBPAW_DEALLOCATE(summaggr)
+       LIBPAW_DEALLOCATE(rotmaggr)
      end if
    end if
    if(paral_atom_unsym) then
      call pawrhoij_free(pawrhoij_unsym_all)
-     ABI_DATATYPE_DEALLOCATE(pawrhoij_unsym_all)
+     LIBPAW_DATATYPE_DEALLOCATE(pawrhoij_unsym_all)
    end if
 
 
@@ -3761,11 +3757,11 @@ subroutine pawrhoij_isendreceive_getbuffer(pawrhoij,nrhoij_send,atm_indx_recv,bu
    pawrhoij1%use_rhoijres=use_rhoijres
    pawrhoij1%use_rhoij_=use_rhoij_
    if (use_rhoijp>0) then
-     ABI_ALLOCATE(pawrhoij1%rhoijselect,(lmn2_size))
+     LIBPAW_ALLOCATE(pawrhoij1%rhoijselect,(lmn2_size))
      pawrhoij1%rhoijselect(1:nselect)=buf_int(indx_int:indx_int+nselect-1)
      if (nselect < lmn2_size )pawrhoij1%rhoijselect(nselect+1:lmn2_size)=zero
      indx_int=indx_int+nselect
-     ABI_ALLOCATE(pawrhoij1%rhoijp,(cplex*lmn2_size,nspden))
+     LIBPAW_ALLOCATE(pawrhoij1%rhoijp,(cplex*lmn2_size,nspden))
      do isp=1,nspden
        pawrhoij1%rhoijp(1:cplex*nselect,isp)=buf_dp(indx_dp:indx_dp+cplex*nselect-1)
        if (nselect < lmn2_size )pawrhoij1%rhoijp(cplex*nselect+1:cplex*lmn2_size,isp)=zero
@@ -3773,12 +3769,12 @@ subroutine pawrhoij_isendreceive_getbuffer(pawrhoij,nrhoij_send,atm_indx_recv,bu
      end do
    end if
    if (lmnmix>0) then
-     ABI_ALLOCATE(pawrhoij1%kpawmix,(lmnmix))
+     LIBPAW_ALLOCATE(pawrhoij1%kpawmix,(lmnmix))
      pawrhoij1%kpawmix(1:lmnmix)=buf_int(indx_int:indx_int+lmnmix-1)
      indx_int=indx_int+lmnmix
    end if
    if (ngrhoij>0) then
-     ABI_ALLOCATE(pawrhoij1%grhoij,(ngrhoij,cplex*lmn2_size,nspden))
+     LIBPAW_ALLOCATE(pawrhoij1%grhoij,(ngrhoij,cplex*lmn2_size,nspden))
      do isp=1,nspden
        do ii=1,cplex*lmn2_size
          pawrhoij1%grhoij(1:ngrhoij,ii,isp)=buf_dp(indx_dp:indx_dp+ngrhoij-1)
@@ -3787,14 +3783,14 @@ subroutine pawrhoij_isendreceive_getbuffer(pawrhoij,nrhoij_send,atm_indx_recv,bu
      end do
    end if
    if (use_rhoijres>0) then
-     ABI_ALLOCATE(pawrhoij1%rhoijres,(cplex*lmn2_size,nspden))
+     LIBPAW_ALLOCATE(pawrhoij1%rhoijres,(cplex*lmn2_size,nspden))
      do isp=1,nspden
        pawrhoij1%rhoijres(1:cplex*lmn2_size,isp)=buf_dp(indx_dp:indx_dp+cplex*lmn2_size-1)
        indx_dp=indx_dp+cplex*lmn2_size
      end do
    end if
    if (use_rhoij_>0) then
-     ABI_ALLOCATE(pawrhoij1%rhoij_,(cplex*lmn2_size,rhoij_size2))
+     LIBPAW_ALLOCATE(pawrhoij1%rhoij_,(cplex*lmn2_size,rhoij_size2))
      do isp=1,rhoij_size2
        pawrhoij1%rhoij_(1:cplex*lmn2_size,isp)=buf_dp(indx_dp:indx_dp+cplex*lmn2_size-1)
        indx_dp=indx_dp+cplex*lmn2_size
@@ -3913,8 +3909,8 @@ implicit none
  end do
 
 !Fill input buffers
- ABI_ALLOCATE(buf_int,(buf_int_size))
- ABI_ALLOCATE(buf_dp,(buf_dp_size))
+ LIBPAW_ALLOCATE(buf_int,(buf_int_size))
+ LIBPAW_ALLOCATE(buf_dp,(buf_dp_size))
  indx_int=1;indx_dp =1
  lmnmix=0;ngrhoij=0;nselect=0;rhoij_size2=0
  use_rhoijp=0;use_rhoijres=0;use_rhoij_=0

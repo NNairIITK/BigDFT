@@ -63,8 +63,6 @@
 subroutine mkdenpos(iwarn,nfft,nspden,option,rhonow,xc_denpos)
 
  use defs_basis
-! use m_profiling
-! use m_errors
 
  implicit none
 

@@ -22,18 +22,14 @@
 !!
 !! SOURCE
 
-#if defined HAVE_CONFIG_H
-#include "config.h"
-#endif
-
-#include "abi_common.h"
+#include "libpaw.h"
 
 MODULE m_paral_atom
 
  use defs_basis
- use m_profiling_abi
  use m_errors
  use m_xmpi
+ USE_MEMORY_PROFILING
 
  implicit none
 
@@ -191,7 +187,7 @@ subroutine get_my_atmtab(comm_atom,my_atmtab,my_atmtab_allocated,paral_atom,nato
        if (me<=(mod(natom,nproc)-1)) my_natom=natom/nproc + 1
 !      Get table of atoms
        if (my_natom>0) then
-         ABI_ALLOCATE(my_atmtab,(my_natom))
+         LIBPAW_ALLOCATE(my_atmtab,(my_natom))
          my_atmtab_allocated=.true.
          if (my_natom==natom) then
            my_atmtab(1:my_natom)=(/(iatom,iatom=1,natom)/)
@@ -278,7 +274,7 @@ subroutine free_my_atmtab(my_atmtab,my_atmtab_allocated)
 ! *************************************************************************
 
  if (my_atmtab_allocated) then
-   ABI_DEALLOCATE(my_atmtab)
+   LIBPAW_DEALLOCATE(my_atmtab)
    nullify(my_atmtab)
    my_atmtab_allocated=.false.
  end if
@@ -346,7 +342,7 @@ end subroutine free_my_atmtab
 
 ! Get table of atoms
  if (natom_out>0) then
-   ABI_ALLOCATE(atmtab,(natom_out))
+   LIBPAW_ALLOCATE(atmtab,(natom_out))
 !  The atoms are distributed contigously by egal part
 !  The rest is distributed on all the procs
 !  (see get_my_atmtab)
@@ -362,7 +358,7 @@ end subroutine free_my_atmtab
 
  else
    natom_out=0
-   ABI_ALLOCATE(atmtab,(0))
+   LIBPAW_ALLOCATE(atmtab,(0))
  end if
 
 end subroutine get_proc_atmtab

@@ -23,6 +23,10 @@
 #endif
 
 #include "abi_common.h"
+#undef ABI_ALLOCATE
+#undef ABI_DEALLOCATE
+#define ABI_ALLOCATE(ARR,SIZE) allocate(ARR SIZE)
+#define ABI_DEALLOCATE(ARR) deallocate(ARR)
 
 MODULE m_xomp
 

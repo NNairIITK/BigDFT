@@ -33,18 +33,14 @@
 !!
 !! SOURCE
 
-#if defined HAVE_CONFIG_H
-#include "config.h"
-#endif
-
-#include "abi_common.h"
+#include "libpaw.h"
 
 MODULE m_pawang
 
  use defs_basis
  use m_errors
- use m_profiling_abi
  use m_xmpi
+ USE_MEMORY_PROFILING
 
  use m_sphharm, only : initylmr, mat_mlms2jmj, mat_slm2ylm
 
@@ -241,8 +237,8 @@ subroutine pawang_init(Pawang,gnt_option,lmax,nphi,nsym,ntheta,pawxcdev,use_ls_y
  end if
 
  if (Pawang%angl_size>0) then
-   ABI_ALLOCATE(Pawang%anginit,(3,Pawang%angl_size))
-   ABI_ALLOCATE(Pawang%angwgth,(Pawang%angl_size))
+   LIBPAW_ALLOCATE(Pawang%anginit,(3,Pawang%angl_size))
+   LIBPAW_ALLOCATE(Pawang%angwgth,(Pawang%angl_size))
    call initang(pawang)
  end if
 
@@ -250,9 +246,9 @@ subroutine pawang_init(Pawang,gnt_option,lmax,nphi,nsym,ntheta,pawxcdev,use_ls_y
    if (xclevel>=1) ll=Pawang%l_size_max
    if (xclevel>=2) ll=ll+1
    Pawang%ylm_size=ll**2
-   ABI_ALLOCATE(Pawang%ylmr,(Pawang%ylm_size,Pawang%angl_size))
+   LIBPAW_ALLOCATE(Pawang%ylmr,(Pawang%ylm_size,Pawang%angl_size))
    if (xclevel==2) then
-     ABI_ALLOCATE(Pawang%ylmrgr,(3,Pawang%ylm_size,Pawang%angl_size))
+     LIBPAW_ALLOCATE(Pawang%ylmrgr,(3,Pawang%ylm_size,Pawang%angl_size))
      call initylmr(ll,0,pawang%angl_size,pawang%angwgth,2,pawang%anginit,pawang%ylmr,&
 &                  ylmr_gr=pawang%ylmrgr)
    else
@@ -268,33 +264,33 @@ subroutine pawang_init(Pawang,gnt_option,lmax,nphi,nsym,ntheta,pawxcdev,use_ls_y
      sz1=(2*Pawang%l_max-1)**2*(Pawang%l_max)**4
      sz2=(Pawang%l_size_max)**2
      sz3=(Pawang%l_max**2)*(Pawang%l_max**2+1)/2
-     ABI_ALLOCATE(rgnt_tmp,(sz1))
-     ABI_ALLOCATE(pawang%gntselect,(sz2,sz3))
+     LIBPAW_ALLOCATE(rgnt_tmp,(sz1))
+     LIBPAW_ALLOCATE(pawang%gntselect,(sz2,sz3))
      call realgaunt(Pawang%l_max,Pawang%ngnt,Pawang%gntselect,rgnt_tmp)
    else if (Pawang%gnt_option==2) then
      sz1=(4*Pawang%l_max-3)**2*(2*Pawang%l_max-1)**4
      sz2=(2*Pawang%l_size_max-1)**2
      sz3=((2*Pawang%l_max-1)**2)*((2*Pawang%l_max-1)**2+1)/2
-     ABI_ALLOCATE(rgnt_tmp,(sz1))
-     ABI_ALLOCATE(pawang%gntselect,(sz2,sz3))
+     LIBPAW_ALLOCATE(rgnt_tmp,(sz1))
+     LIBPAW_ALLOCATE(pawang%gntselect,(sz2,sz3))
      call realgaunt(2*Pawang%l_max-1,Pawang%ngnt,Pawang%gntselect,rgnt_tmp)
    end if
    if (allocated(pawang%realgnt))  then
-     ABI_DEALLOCATE(pawang%realgnt)
+     LIBPAW_DEALLOCATE(pawang%realgnt)
    end if
-   ABI_ALLOCATE(Pawang%realgnt,(Pawang%ngnt))
+   LIBPAW_ALLOCATE(Pawang%realgnt,(Pawang%ngnt))
    Pawang%realgnt(1:Pawang%ngnt)=rgnt_tmp(1:Pawang%ngnt)
-   ABI_DEALLOCATE(rgnt_tmp)
+   LIBPAW_DEALLOCATE(rgnt_tmp)
  end if
 
  Pawang%use_ls_ylm=use_ls_ylm
  if (use_ls_ylm>0) then
-   ABI_ALLOCATE(pawang%ls_ylm,(2,Pawang%l_max**2*(Pawang%l_max**2+1)/2,2))
+   LIBPAW_ALLOCATE(pawang%ls_ylm,(2,Pawang%l_max**2*(Pawang%l_max**2+1)/2,2))
    call pawang_lsylm(pawang)
  end if
 
  if (nsym>0) then
-   ABI_ALLOCATE(Pawang%zarot,(Pawang%l_size_max,Pawang%l_size_max,Pawang%l_max,nsym))
+   LIBPAW_ALLOCATE(Pawang%zarot,(Pawang%l_size_max,Pawang%l_size_max,Pawang%l_max,nsym))
  end if
 
 end subroutine pawang_init
@@ -338,28 +334,28 @@ subroutine pawang_free(Pawang)
 
  !@Pawang_type
  if (allocated(pawang%angwgth))    then
-   ABI_DEALLOCATE(pawang%angwgth)
+   LIBPAW_DEALLOCATE(pawang%angwgth)
  end if
  if (allocated(pawang%anginit))    then
-   ABI_DEALLOCATE(pawang%anginit)
+   LIBPAW_DEALLOCATE(pawang%anginit)
  end if
  if (allocated(pawang%zarot))      then
-   ABI_DEALLOCATE(pawang%zarot)
+   LIBPAW_DEALLOCATE(pawang%zarot)
  end if
  if (allocated(pawang%gntselect))  then
-   ABI_DEALLOCATE(pawang%gntselect)
+   LIBPAW_DEALLOCATE(pawang%gntselect)
  end if
  if (allocated(pawang%realgnt))    then
-   ABI_DEALLOCATE(pawang%realgnt)
+   LIBPAW_DEALLOCATE(pawang%realgnt)
  end if
  if (allocated(pawang%ylmr))       then
-   ABI_DEALLOCATE(pawang%ylmr)
+   LIBPAW_DEALLOCATE(pawang%ylmr)
  end if
  if (allocated(pawang%ylmrgr))     then
-   ABI_DEALLOCATE(pawang%ylmrgr)
+   LIBPAW_DEALLOCATE(pawang%ylmrgr)
  end if
  if (allocated(pawang%ls_ylm))     then
-   ABI_DEALLOCATE(pawang%ls_ylm)
+   LIBPAW_DEALLOCATE(pawang%ls_ylm)
  end if
 
  pawang%angl_size =0
@@ -457,7 +453,7 @@ subroutine pawang_lsylm(pawang)
  do ll=1,l_max
 
 !  Transformation matrixes: real->complex spherical harmonics
-   ABI_ALLOCATE(slm2ylm,(2*ll+1,2*ll+1))
+   LIBPAW_ALLOCATE(slm2ylm,(2*ll+1,2*ll+1))
    slm2ylm=czero
    do im=1,2*ll+1
      mm=im-ll-1;jm=-mm+ll+1
@@ -477,14 +473,14 @@ subroutine pawang_lsylm(pawang)
 
 !  Compute <sigma, Y_lm1|L.S|Y_lm2, sigma_prime> (Y_lm=complex spherical harmonics)
 !  1= <up|L.S|up>  ;  2= <up|L.S|dn>
-   ABI_ALLOCATE(ls_cplx,(2*ll+1,2*ll+1,2))
+   LIBPAW_ALLOCATE(ls_cplx,(2*ll+1,2*ll+1,2))
    ls_cplx=czero
    if(tso)  then
-     ABI_ALLOCATE(mat_ls_ylm,(2*ll+1,2*ll+1,4))
+     LIBPAW_ALLOCATE(mat_ls_ylm,(2*ll+1,2*ll+1,4))
      if(tso) mat_ls_ylm=czero
    end if
    if(tso)  then
-     ABI_ALLOCATE(mat_jmj,(2*(2*ll+1),2*(2*ll+1)))
+     LIBPAW_ALLOCATE(mat_jmj,(2*(2*ll+1),2*(2*ll+1)))
      if(tso) mat_jmj=czero
    end if
    do im=1,2*ll+1
@@ -520,8 +516,8 @@ subroutine pawang_lsylm(pawang)
 !  Compute <sigma, S_lm1|L.S|S_lm2, sigma_prime> (S_lm=real spherical harmonics)
 !  1= <up|L.S|up>  ;  2= <up|L.S|dn>
    if(tso) then
-     ABI_ALLOCATE(mat_inp_c,(2*ll+1,2*ll+1,4))
-     ABI_ALLOCATE(mat_out_c,(2*ll+1,2*ll+1,4))
+     LIBPAW_ALLOCATE(mat_inp_c,(2*ll+1,2*ll+1,4))
+     LIBPAW_ALLOCATE(mat_out_c,(2*ll+1,2*ll+1,4))
    end if
    lm0=ll**2
    do jm=1,2*ll+1
@@ -563,14 +559,14 @@ subroutine pawang_lsylm(pawang)
          call wrtout(std_out,msg,'COLL')
        end do
      end do
-     ABI_DEALLOCATE(mat_inp_c)
-     ABI_DEALLOCATE(mat_ls_ylm)
-     ABI_DEALLOCATE(mat_jmj)
-     ABI_DEALLOCATE(mat_out_c)
+     LIBPAW_DEALLOCATE(mat_inp_c)
+     LIBPAW_DEALLOCATE(mat_ls_ylm)
+     LIBPAW_DEALLOCATE(mat_jmj)
+     LIBPAW_DEALLOCATE(mat_out_c)
    end if ! tso
 
-   ABI_DEALLOCATE(ls_cplx)
-   ABI_DEALLOCATE(slm2ylm)
+   LIBPAW_DEALLOCATE(ls_cplx)
+   LIBPAW_DEALLOCATE(slm2ylm)
 
 !  End loop on l
  end do
@@ -743,9 +739,9 @@ gntselect = 0; realgnt = zero
 
 !Compute matrix cc where Sl=cc*Yl (Sl=real sph. harm.)
 !------------------------------------------------
- ABI_DATATYPE_ALLOCATE(coeff,(4*l_max-3))
+ LIBPAW_DATATYPE_ALLOCATE(coeff,(4*l_max-3))
  do ll=1,4*l_max-3
-   ABI_ALLOCATE(coeff(ll)%value,(2,2*ll-1,2*ll-1))
+   LIBPAW_ALLOCATE(coeff(ll)%value,(2,2*ll-1,2*ll-1))
    coeff(ll)%value(:,:,:)=zero
    coeff(ll)%value(1,ll,ll)=one
    do mm=1,ll-1
@@ -756,7 +752,7 @@ gntselect = 0; realgnt = zero
    end do
  end do
 
- ABI_ALLOCATE(ssgn,(l_max**2))
+ LIBPAW_ALLOCATE(ssgn,(l_max**2))
  ssgn(:)=1
  if (l_max>0) then
    do l1=1,l_max-1
@@ -846,10 +842,10 @@ gntselect = 0; realgnt = zero
 !Deallocate memory
 !------------------------------------------------
  do ll=1,4*l_max-3
-   ABI_DEALLOCATE(coeff(ll)%value)
+   LIBPAW_DEALLOCATE(coeff(ll)%value)
  end do
- ABI_DATATYPE_DEALLOCATE(coeff)
- ABI_DEALLOCATE(ssgn)
+ LIBPAW_DATATYPE_DEALLOCATE(coeff)
+ LIBPAW_DEALLOCATE(ssgn)
 
 end subroutine realgaunt
 !!***

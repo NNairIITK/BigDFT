@@ -227,7 +227,6 @@ end subroutine wrtout
 subroutine wrtout_myproc(unit,message,mpicomm,do_flush) ! optional argument
 
  use defs_basis
- use m_profiling_abi
 
  use m_xmpi,      only : xmpi_sum
  use m_io_tools,  only : flush_unit

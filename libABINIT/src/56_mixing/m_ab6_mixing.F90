@@ -4,8 +4,8 @@
   
   module m_ab7_mixing
 
-    use m_profiling
     use defs_basis
+    use memory_profiling
 
     implicit none
 

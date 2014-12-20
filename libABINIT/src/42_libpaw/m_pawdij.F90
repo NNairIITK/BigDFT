@@ -25,17 +25,13 @@
 !!
 !! SOURCE
 
-#if defined HAVE_CONFIG_H
-#include "config.h"
-#endif
-
-#include "abi_common.h"
+#include "libpaw.h"
 
 MODULE m_pawdij
 
  use defs_basis
- use m_profiling_abi
  use m_errors
+ USE_MEMORY_PROFILING
 
  use m_paral_atom,   only : get_my_atmtab, free_my_atmtab
  use m_xmpi,         only : xcomm_size, xmpi_sum, xmpi_allgatherv, xmpi_self
@@ -336,7 +332,7 @@ subroutine pawdij(cplex,enunit,gprimd,ipert,my_natom,natom,nfft,nfftot,nspden,nt
          msg='invalid size for vxc!'
          MSG_BUG(msg)
        end if
-       ABI_ALLOCATE(v_dijhat,(cplex*nfft,nspden))
+       LIBPAW_ALLOCATE(v_dijhat,(cplex*nfft,nspden))
        v_dijhat_allocated=.true.
        v_dijhat=vtrial-vxc
      else
@@ -410,7 +406,7 @@ subroutine pawdij(cplex,enunit,gprimd,ipert,my_natom,natom,nfft,nfftot,nspden,nt
      if (paw_ij(iatom)%has_dij==1) then
        dij_need=.true.;paw_ij(iatom)%dij(:,:)=zero
      else if (paw_ij(iatom)%has_dij==0.and.need_to_print) then
-       ABI_ALLOCATE(paw_ij(iatom)%dij,(cplex_dij*lmn2_size,ndij))
+       LIBPAW_ALLOCATE(paw_ij(iatom)%dij,(cplex_dij*lmn2_size,ndij))
        dij_need=.true.;paw_ij(iatom)%dij(:,:)=zero
        paw_ij(iatom)%has_dij=-1
      end if
@@ -422,7 +418,7 @@ subroutine pawdij(cplex,enunit,gprimd,ipert,my_natom,natom,nfft,nfftot,nspden,nt
      if (paw_ij(iatom)%has_dij0==1) then
        dij0_need=.true.;paw_ij(iatom)%dij0(:)=zero
      else if (paw_ij(iatom)%has_dij0==0.and.need_to_print) then
-       ABI_ALLOCATE(paw_ij(iatom)%dij0,(lmn2_size))
+       LIBPAW_ALLOCATE(paw_ij(iatom)%dij0,(lmn2_size))
        dij0_need=.true.;paw_ij(iatom)%dij0(:)=zero
        paw_ij(iatom)%has_dij0=-1
      end if
@@ -434,7 +430,7 @@ subroutine pawdij(cplex,enunit,gprimd,ipert,my_natom,natom,nfft,nfftot,nspden,nt
      if (paw_ij(iatom)%has_dijfock==1) then
        dijfock_need=.true.;paw_ij(iatom)%dijfock(:,:)=zero
      else if (paw_ij(iatom)%has_dijfock==0.and.need_to_print) then
-       ABI_ALLOCATE(paw_ij(iatom)%dijfock,(cplex_dij*lmn2_size,ndij))
+       LIBPAW_ALLOCATE(paw_ij(iatom)%dijfock,(cplex_dij*lmn2_size,ndij))
        dijfock_need=.true.;paw_ij(iatom)%dijfock(:,:)=zero
        paw_ij(iatom)%has_dijfock=-1
      end if
@@ -446,7 +442,7 @@ subroutine pawdij(cplex,enunit,gprimd,ipert,my_natom,natom,nfft,nfftot,nspden,nt
      if (paw_ij(iatom)%has_dijhartree==1) then
        dijhartree_need=.true.;paw_ij(iatom)%dijhartree(:)=zero
      else if (paw_ij(iatom)%has_dijhartree==0) then
-       ABI_ALLOCATE(paw_ij(iatom)%dijhartree,(cplex*lmn2_size))
+       LIBPAW_ALLOCATE(paw_ij(iatom)%dijhartree,(cplex*lmn2_size))
        dijhartree_need=.true.;paw_ij(iatom)%dijhartree(:)=zero
        paw_ij(iatom)%has_dijhartree=-1
      end if
@@ -458,7 +454,7 @@ subroutine pawdij(cplex,enunit,gprimd,ipert,my_natom,natom,nfft,nfftot,nspden,nt
      if (paw_ij(iatom)%has_dijxc==1) then
        dijxc_need=.true.;paw_ij(iatom)%dijxc(:,:)=zero
      else if (paw_ij(iatom)%has_dijxc==0.and.need_to_print) then
-       ABI_ALLOCATE(paw_ij(iatom)%dijxc,(cplex_dij*lmn2_size,ndij))
+       LIBPAW_ALLOCATE(paw_ij(iatom)%dijxc,(cplex_dij*lmn2_size,ndij))
        dijxc_need=.true.;paw_ij(iatom)%dijxc(:,:)=zero
        paw_ij(iatom)%has_dijxc=-1
      end if
@@ -470,7 +466,7 @@ subroutine pawdij(cplex,enunit,gprimd,ipert,my_natom,natom,nfft,nfftot,nspden,nt
      if (paw_ij(iatom)%has_dijhat==1) then
        dijhat_need=.true.;paw_ij(iatom)%dijhat(:,:)=zero
      else if (paw_ij(iatom)%has_dijhat==0.and.need_to_print) then
-       ABI_ALLOCATE(paw_ij(iatom)%dijhat,(cplex_dij*lmn2_size,ndij))
+       LIBPAW_ALLOCATE(paw_ij(iatom)%dijhat,(cplex_dij*lmn2_size,ndij))
        dijhat_need=.true.;paw_ij(iatom)%dijhat(:,:)=zero
       paw_ij(iatom)%has_dijhat=-1
      end if
@@ -482,7 +478,7 @@ subroutine pawdij(cplex,enunit,gprimd,ipert,my_natom,natom,nfft,nfftot,nspden,nt
      if (paw_ij(iatom)%has_dijso==1) then
        dijso_need=.true.;paw_ij(iatom)%dijso(:,:)=zero
      else if (paw_ij(iatom)%has_dijso==0.and.need_to_print) then
-       ABI_ALLOCATE(paw_ij(iatom)%dijso,(cplex_dij*lmn2_size,ndij))
+       LIBPAW_ALLOCATE(paw_ij(iatom)%dijso,(cplex_dij*lmn2_size,ndij))
        dijso_need=.true.;paw_ij(iatom)%dijso(:,:)=zero
        paw_ij(iatom)%has_dijso=-1
      end if
@@ -494,7 +490,7 @@ subroutine pawdij(cplex,enunit,gprimd,ipert,my_natom,natom,nfft,nfftot,nspden,nt
      if (paw_ij(iatom)%has_dijU==1) then
        dijU_need=.true.;paw_ij(iatom)%dijU(:,:)=zero
      else if (paw_ij(iatom)%has_dijU==0.and.need_to_print) then
-       ABI_ALLOCATE(paw_ij(iatom)%dijU,(cplex_dij*lmn2_size,ndij))
+       LIBPAW_ALLOCATE(paw_ij(iatom)%dijU,(cplex_dij*lmn2_size,ndij))
        dijU_need=.true.;paw_ij(iatom)%dijU(:,:)=zero
        paw_ij(iatom)%has_dijU=-1
      end if
@@ -506,7 +502,7 @@ subroutine pawdij(cplex,enunit,gprimd,ipert,my_natom,natom,nfft,nfftot,nspden,nt
      if (paw_ij(iatom)%has_dijexxc==1) then
        dijexxc_need=.true.;paw_ij(iatom)%dijexxc(:,:)=zero
      else if (paw_ij(iatom)%has_dijexxc==0.and.need_to_print) then
-       ABI_ALLOCATE(paw_ij(iatom)%dijexxc,(cplex_dij*lmn2_size,ndij))
+       LIBPAW_ALLOCATE(paw_ij(iatom)%dijexxc,(cplex_dij*lmn2_size,ndij))
        dijexxc_need=.true.;paw_ij(iatom)%dijexxc(:,:)=zero
        paw_ij(iatom)%has_dijexxc=-1
      end if
@@ -518,7 +514,7 @@ subroutine pawdij(cplex,enunit,gprimd,ipert,my_natom,natom,nfft,nfftot,nspden,nt
      if (paw_ij(iatom)%has_dijxc_hat==1) then
        dijxchat_need=.true.;paw_ij(iatom)%dijxc_hat(:,:)=zero
 !      else if (paw_ij(iatom)%has_dijxc_hat==0.and.need_to_print) then
-!      ABI_ALLOCATE(paw_ij(iatom)%dijxc_hat,(cplex_dij*lmn2_size,ndij))
+!      LIBPAW_ALLOCATE(paw_ij(iatom)%dijxc_hat,(cplex_dij*lmn2_size,ndij))
 !      dijxchat_need=.true.;paw_ij(iatom)%dijxc_hat(:,:)=zero
 !      paw_ij(iatom)%has_dijxc_hat=-1
      end if
@@ -530,7 +526,7 @@ subroutine pawdij(cplex,enunit,gprimd,ipert,my_natom,natom,nfft,nfftot,nspden,nt
      if (paw_ij(iatom)%has_dijxc_val==1) then
        dijxcval_need=.true.;paw_ij(iatom)%dijxc_val(:,:)=zero
 !      else if (paw_ij(iatom)%has_dijxc_val==0.and.need_to_print) then
-!      ABI_ALLOCATE(paw_ij(iatom)%dijxc_val,(cplex_dij*lmn2_size,ndij))
+!      LIBPAW_ALLOCATE(paw_ij(iatom)%dijxc_val,(cplex_dij*lmn2_size,ndij))
 !      dijxcval_need=.true.;paw_ij(iatom)%dijxc_val(:,:)=zero
 !      paw_ij(iatom)%has_dijxc_val=-1
      end if
@@ -584,7 +580,7 @@ subroutine pawdij(cplex,enunit,gprimd,ipert,my_natom,natom,nfft,nfftot,nspden,nt
 
    if ((dij0_need.or.dij_need).and.dij0_available) then
 
-     ABI_ALLOCATE(dij0,(lmn2_size))
+     LIBPAW_ALLOCATE(dij0,(lmn2_size))
 !    ===== Dij0 already computed
      if (paw_ij(iatom)%has_dij0==2) then
        dij0(:)=paw_ij(iatom)%dij0(:)
@@ -604,7 +600,7 @@ subroutine pawdij(cplex,enunit,gprimd,ipert,my_natom,natom,nfft,nfftot,nspden,nt
          end do
        end do
      end if   
-     ABI_DEALLOCATE(dij0)
+     LIBPAW_DEALLOCATE(dij0)
 
    end if
 
@@ -621,7 +617,7 @@ subroutine pawdij(cplex,enunit,gprimd,ipert,my_natom,natom,nfft,nfftot,nspden,nt
      else
 
 !    ===== Need to compute DijFock
-       ABI_ALLOCATE(dijfock,(cplex_dij*lmn2_size,ndij))
+       LIBPAW_ALLOCATE(dijfock,(cplex_dij*lmn2_size,ndij))
        if (ipositron/=1) then
 ! Exact exchange is evaluated for electrons
          call pawdijfock(cplex,cplex_dij,dijfock,ndij,nspden,nsppol, &
@@ -632,7 +628,7 @@ subroutine pawdij(cplex,enunit,gprimd,ipert,my_natom,natom,nfft,nfftot,nspden,nt
        end if
        if (dijfock_need) paw_ij(iatom)%dijfock(:,:)=dijfock(:,:)
        if (dij_need) paw_ij(iatom)%dij(:,:)=paw_ij(iatom)%dij(:,:)+dijfock(:,:)
-       ABI_DEALLOCATE(dijfock)
+       LIBPAW_DEALLOCATE(dijfock)
      end if
  
    end if
@@ -643,7 +639,7 @@ subroutine pawdij(cplex,enunit,gprimd,ipert,my_natom,natom,nfft,nfftot,nspden,nt
 
    if ((dijhartree_need.or.dij_need).and.dijhartree_available) then
 
-     ABI_ALLOCATE(dijhartree,(cplex*lmn2_size))
+     LIBPAW_ALLOCATE(dijhartree,(cplex*lmn2_size))
 !    ===== DijHartree already computed
      if (paw_ij(iatom)%has_dijhartree==2) then
        dijhartree(:)=paw_ij(iatom)%dijhartree(:)
@@ -655,10 +651,10 @@ subroutine pawdij(cplex,enunit,gprimd,ipert,my_natom,natom,nfft,nfftot,nspden,nt
          dijhartree(:)=zero
        end if
        if (ipositron/=0) then
-         ABI_ALLOCATE(dij_ep,(cplex*lmn2_size))
+         LIBPAW_ALLOCATE(dij_ep,(cplex*lmn2_size))
          call pawdijhartree(cplex,dij_ep,nspden,electronpositron_pawrhoij(iatom),pawtab(itypat))
          dijhartree(:)=dijhartree(:)-dij_ep(:)
-         ABI_DEALLOCATE(dij_ep)
+         LIBPAW_DEALLOCATE(dij_ep)
        end if
        if (dijhartree_need) paw_ij(iatom)%dijhartree(:)=dijhartree(:)
      end if
@@ -676,7 +672,7 @@ subroutine pawdij(cplex,enunit,gprimd,ipert,my_natom,natom,nfft,nfftot,nspden,nt
        end do
      end if
 
-     ABI_DEALLOCATE(dijhartree)
+     LIBPAW_DEALLOCATE(dijhartree)
    end if
 
 !  ------------------------------------------------------------------------
@@ -691,15 +687,15 @@ subroutine pawdij(cplex,enunit,gprimd,ipert,my_natom,natom,nfft,nfftot,nspden,nt
      else
 
 !    ===== Need to compute DijXC
-       ABI_ALLOCATE(dijxc,(cplex_dij*lmn2_size,ndij))
+       LIBPAW_ALLOCATE(dijxc,(cplex_dij*lmn2_size,ndij))
        if (pawxcdev/=0) then
-         ABI_ALLOCATE(lmselect,(lm_size))
+         LIBPAW_ALLOCATE(lmselect,(lm_size))
          lmselect(:)=paw_an(iatom)%lmselect(:)
          if (ipositron/=0) lmselect(:)=(lmselect(:).or.electronpositron_lmselect(:,iatom))
          call pawdijxcm(cplex,cplex_dij,dijxc,lmselect,ndij,nspden,nsppol,pawang,&
 &                       pawrad(itypat),pawtab(itypat),paw_an(iatom)%vxc1,&
 &                       paw_an(iatom)%vxct1,usexcnhat)
-         ABI_DEALLOCATE(lmselect)
+         LIBPAW_DEALLOCATE(lmselect)
        else
          call pawdijxc(cplex,cplex_dij,dijxc,ndij,nspden,nsppol,&
 &                      pawang,pawrad(itypat),pawtab(itypat),paw_an(iatom)%vxc1,&
@@ -707,7 +703,7 @@ subroutine pawdij(cplex,enunit,gprimd,ipert,my_natom,natom,nfft,nfftot,nspden,nt
        end if
        if (dijxc_need) paw_ij(iatom)%dijxc(:,:)=dijxc(:,:)
        if (dij_need) paw_ij(iatom)%dij(:,:)=paw_ij(iatom)%dij(:,:)+dijxc(:,:)
-       ABI_DEALLOCATE(dijxc)
+       LIBPAW_DEALLOCATE(dijxc)
      end if
  
    end if
@@ -724,13 +720,13 @@ subroutine pawdij(cplex,enunit,gprimd,ipert,my_natom,natom,nfft,nfftot,nspden,nt
      else
 
 !    ===== Need to compute Dijhat
-       ABI_ALLOCATE(dijhat,(cplex_dij*lmn2_size,ndij))
+       LIBPAW_ALLOCATE(dijhat,(cplex_dij*lmn2_size,ndij))
        call pawdijhat(cplex,cplex_dij,dijhat,gprimd,iatom_tot,ipert,&
 &                     natom,ndij,nfft,nfftot,nspden,nsppol,pawang,pawfgrtab(iatom),&
 &                     pawtab(itypat),v_dijhat,qphon,ucvol,xred,mpi_comm_grid=my_comm_grid)
        if (dijhat_need) paw_ij(iatom)%dijhat(:,:)=dijhat(:,:)
        if (dij_need) paw_ij(iatom)%dij(:,:)=paw_ij(iatom)%dij(:,:)+dijhat(:,:)
-       ABI_DEALLOCATE(dijhat)
+       LIBPAW_DEALLOCATE(dijhat)
      end if
  
 !    ===== RF: add frozen part of 1st-order Dij
@@ -757,13 +753,13 @@ subroutine pawdij(cplex,enunit,gprimd,ipert,my_natom,natom,nfft,nfftot,nspden,nt
      else
 
 !    ===== Need to compute DijSO
-       ABI_ALLOCATE(dijso,(cplex_dij*lmn2_size,ndij))
+       LIBPAW_ALLOCATE(dijso,(cplex_dij*lmn2_size,ndij))
        call pawdijso(cplex_dij,dijso,ndij,nspden,&
 &                    pawang,pawrad(itypat),pawtab(itypat),pawxcdev,spnorbscl,&
 &                    paw_an(iatom)%vh1,paw_an(iatom)%vxc1)
        if (dijso_need) paw_ij(iatom)%dijso(:,:)=dijso(:,:)
        if (dij_need) paw_ij(iatom)%dij(:,:)=paw_ij(iatom)%dij(:,:)+dijso(:,:)
-       ABI_DEALLOCATE(dijso)
+       LIBPAW_DEALLOCATE(dijso)
      end if
  
    end if
@@ -781,8 +777,8 @@ subroutine pawdij(cplex,enunit,gprimd,ipert,my_natom,natom,nfft,nfftot,nspden,nt
 
 !    ===== Need to compute DijU
        lpawu=pawtab(itypat)%lpawu
-       ABI_ALLOCATE(dijpawu,(cplex_dij*lmn2_size,ndij))
-       ABI_ALLOCATE(vpawu,(cplex_dij,lpawu*2+1,lpawu*2+1,nspden))
+       LIBPAW_ALLOCATE(dijpawu,(cplex_dij*lmn2_size,ndij))
+       LIBPAW_ALLOCATE(vpawu,(cplex_dij,lpawu*2+1,lpawu*2+1,nspden))
        if (pawtab(itypat)%usepawu>=10) vpawu=zero ! if dmft, do not apply U in LDA+U
        if (pawtab(itypat)%usepawu< 10) then
          call pawpupot(cplex_dij,ndij,paw_ij(iatom)%noccmmp,paw_ij(iatom)%nocctot,&
@@ -795,10 +791,10 @@ subroutine pawdij(cplex,enunit,gprimd,ipert,my_natom,natom,nfft,nfftot,nspden,nt
 &                     natvshift=natvshift_,atvshift=atvshift(:,:,iatom_tot),&
 &                     fatvshift=fatvshift)
        end if
-       ABI_DEALLOCATE(vpawu)
+       LIBPAW_DEALLOCATE(vpawu)
        if (dijU_need) paw_ij(iatom)%dijU(:,:)=dijpawu(:,:)
        if (dij_need) paw_ij(iatom)%dij(:,:)=paw_ij(iatom)%dij(:,:)+dijpawu(:,:)
-       ABI_DEALLOCATE(dijpawu)
+       LIBPAW_DEALLOCATE(dijpawu)
      end if
  
    end if
@@ -815,26 +811,26 @@ subroutine pawdij(cplex,enunit,gprimd,ipert,my_natom,natom,nfft,nfftot,nspden,nt
      else
 
 !    ===== Need to compute DijEXXC
-       ABI_ALLOCATE(dijexxc,(cplex_dij*lmn2_size,ndij))
+       LIBPAW_ALLOCATE(dijexxc,(cplex_dij*lmn2_size,ndij))
        if (pawxcdev/=0) then
          if (paw_ij(iatom)%has_exexch_pot/=2) then
-           ABI_ALLOCATE(vpawx,(1,lmn2_size,nspden))
+           LIBPAW_ALLOCATE(vpawx,(1,lmn2_size,nspden))
            call pawxpot(nspden,pawprtvol,pawrhoij(iatom),pawtab(itypat),vpawx)
          else
            vpawx=>paw_ij(iatom)%vpawx
          end if
-         ABI_ALLOCATE(lmselect,(lm_size))
+         LIBPAW_ALLOCATE(lmselect,(lm_size))
          lmselect(:)=paw_an(iatom)%lmselect(:)
          if (ipositron/=0) lmselect(:)=(lmselect(:).or.electronpositron_lmselect(:,iatom))
          call pawdijexxc(cplex,cplex_dij,dijexxc,lmselect,ndij,nspden,nsppol,&
 &             pawang,pawrad(itypat),pawtab(itypat),vpawx,paw_an(iatom)%vxc_ex)
-         ABI_DEALLOCATE(lmselect)
+         LIBPAW_DEALLOCATE(lmselect)
          if (paw_ij(iatom)%has_exexch_pot/=2) then
-            ABI_DEALLOCATE(vpawx)
+            LIBPAW_DEALLOCATE(vpawx)
          end if
          if (dijexxc_need) paw_ij(iatom)%dijexxc(:,:)=dijexxc(:,:)
          if (dij_need) paw_ij(iatom)%dij(:,:)=paw_ij(iatom)%dij(:,:)+dijexxc(:,:)
-         ABI_DEALLOCATE(dijexxc)
+         LIBPAW_DEALLOCATE(dijexxc)
        end if
      end if
  
@@ -862,12 +858,12 @@ subroutine pawdij(cplex,enunit,gprimd,ipert,my_natom,natom,nfft,nfftot,nspden,nt
    if (dijxchat_need) then
 
      if (usexcnhat/=0) then
-       ABI_ALLOCATE(dijxchat,(cplex_dij*lmn2_size,ndij))
+       LIBPAW_ALLOCATE(dijxchat,(cplex_dij*lmn2_size,ndij))
        call pawdijhat(cplex,cplex_dij,dijxchat,gprimd,iatom_tot,ipert,&
 &                     natom,ndij,nfft,nfftot,nspden,nsppol,pawang,pawfgrtab(iatom),&
 &                     pawtab(itypat),vxc,qphon,ucvol,xred,mpi_comm_grid=my_comm_grid)
        paw_ij(iatom)%dijxc_hat(:,:)=dijxchat(:,:)
-       ABI_DEALLOCATE(dijxchat)
+       LIBPAW_DEALLOCATE(dijxchat)
 
      else ! usexcnhat=0
        paw_ij(iatom)%dijxc_hat=zero
@@ -881,23 +877,23 @@ subroutine pawdij(cplex,enunit,gprimd,ipert,my_natom,natom,nfft,nfftot,nspden,nt
 
    if (dijxcval_need) then
 
-     ABI_ALLOCATE(dijxcval,(cplex_dij*lmn2_size,ndij))
+     LIBPAW_ALLOCATE(dijxcval,(cplex_dij*lmn2_size,ndij))
 !    Note that usexcnhat=0 for this call (no compensation term)
      if (pawxcdev/=0) then
-       ABI_ALLOCATE(lmselect,(lm_size))
+       LIBPAW_ALLOCATE(lmselect,(lm_size))
        lmselect(:)=paw_an(iatom)%lmselect(:)
        if (ipositron/=0) lmselect(:)=(lmselect(:).or.electronpositron_lmselect(:,iatom))
        call pawdijxcm(cplex,cplex_dij,dijxcval,lmselect,ndij,nspden,nsppol,&
 &                     pawang,pawrad(itypat),pawtab(itypat),paw_an(iatom)%vxc1_val,&
 &                     paw_an(iatom)%vxct1_val,0)
-       ABI_DEALLOCATE(lmselect)
+       LIBPAW_DEALLOCATE(lmselect)
      else
        call pawdijxc(cplex,cplex_dij,dijxcval,ndij,nspden,nsppol,&
 &                    pawang,pawrad(itypat),pawtab(itypat),paw_an(iatom)%vxc1_val,&
 &                    paw_an(iatom)%vxct1_val,0)
      end if
      paw_ij(iatom)%dijxc_val(:,:)=dijxcval(:,:)
-     ABI_DEALLOCATE(dijxcval)
+     LIBPAW_DEALLOCATE(dijxcval)
 
    end if
 
@@ -934,52 +930,52 @@ subroutine pawdij(cplex,enunit,gprimd,ipert,my_natom,natom,nfft,nfftot,nspden,nt
 
 !Free temporary storage
  if (v_dijhat_allocated) then
-   ABI_DEALLOCATE(v_dijhat)
+   LIBPAW_DEALLOCATE(v_dijhat)
  end if
  do iatom=1,my_natom
    if (paw_ij(iatom)%has_dij0==-1) then
-     ABI_DEALLOCATE(paw_ij(iatom)%dij0)
+     LIBPAW_DEALLOCATE(paw_ij(iatom)%dij0)
      paw_ij(iatom)%has_dij0=0
    end if
    if (paw_ij(iatom)%has_dijfock==-1) then
-     ABI_DEALLOCATE(paw_ij(iatom)%dijfock)
+     LIBPAW_DEALLOCATE(paw_ij(iatom)%dijfock)
      paw_ij(iatom)%has_dijfock=0
    end if
 
    if (paw_ij(iatom)%has_dijhartree==-1) then
-     ABI_DEALLOCATE(paw_ij(iatom)%dijhartree)
+     LIBPAW_DEALLOCATE(paw_ij(iatom)%dijhartree)
      paw_ij(iatom)%has_dijhartree=0
    end if
    if (paw_ij(iatom)%has_dijxc==-1) then
-     ABI_DEALLOCATE(paw_ij(iatom)%dijxc)
+     LIBPAW_DEALLOCATE(paw_ij(iatom)%dijxc)
      paw_ij(iatom)%has_dijxc=0
    end if
    if (paw_ij(iatom)%has_dijhat==-1) then
-     ABI_DEALLOCATE(paw_ij(iatom)%dijhat)
+     LIBPAW_DEALLOCATE(paw_ij(iatom)%dijhat)
      paw_ij(iatom)%has_dijhat=0
    end if
    if (paw_ij(iatom)%has_dijfr==-1) then
-     ABI_DEALLOCATE(paw_ij(iatom)%dijfr)
+     LIBPAW_DEALLOCATE(paw_ij(iatom)%dijfr)
      paw_ij(iatom)%has_dijfr=0
    end if
    if (paw_ij(iatom)%has_dijso==-1) then
-     ABI_DEALLOCATE(paw_ij(iatom)%dijso)
+     LIBPAW_DEALLOCATE(paw_ij(iatom)%dijso)
      paw_ij(iatom)%has_dijso=0
    end if
    if (paw_ij(iatom)%has_dijU==-1) then
-     ABI_DEALLOCATE(paw_ij(iatom)%dijU)
+     LIBPAW_DEALLOCATE(paw_ij(iatom)%dijU)
      paw_ij(iatom)%has_dijU=0
    end if
    if (paw_ij(iatom)%has_dijexxc==-1) then
-     ABI_DEALLOCATE(paw_ij(iatom)%dijexxc)
+     LIBPAW_DEALLOCATE(paw_ij(iatom)%dijexxc)
      paw_ij(iatom)%has_dijexxc=0
    end if
    if (paw_ij(iatom)%has_dijxc_hat==-1) then
-     ABI_DEALLOCATE(paw_ij(iatom)%dijxc_hat)
+     LIBPAW_DEALLOCATE(paw_ij(iatom)%dijxc_hat)
      paw_ij(iatom)%has_dijxc_hat=0
    end if
    if (paw_ij(iatom)%has_dijxc_val==-1) then
-     ABI_DEALLOCATE(paw_ij(iatom)%dijxc_val)
+     LIBPAW_DEALLOCATE(paw_ij(iatom)%dijxc_val)
      paw_ij(iatom)%has_dijxc_val=0
    end if
  end do
@@ -1227,7 +1223,7 @@ subroutine pawdijxc(cplex,cplex_dij,dijxc,ndij,nspden,nsppol,&
 
 !Precompute products Ylm*Ylpmp
  lmax=maxval(pawtab%indklmn(4,1:lmn2_size))
- ABI_ALLOCATE(yylmr,(lmax**2*(lmax**2+1)/2,angl_size))
+ LIBPAW_ALLOCATE(yylmr,(lmax**2*(lmax**2+1)/2,angl_size))
  do ipts=1,angl_size
    do jlm=1,lmax**2
      j0lm=jlm*(jlm-1)/2
@@ -1240,11 +1236,11 @@ subroutine pawdijxc(cplex,cplex_dij,dijxc,ndij,nspden,nsppol,&
 
 !Init memory
  dijxc=zero
- ABI_ALLOCATE(dijxc_idij,(cplex*lmn2_size))
- ABI_ALLOCATE(vxcij1,(cplex*ij_size))
- ABI_ALLOCATE(vxcij2,(cplex*l_size))
- ABI_ALLOCATE(ff,(mesh_size))
- ABI_ALLOCATE(gg,(mesh_size))
+ LIBPAW_ALLOCATE(dijxc_idij,(cplex*lmn2_size))
+ LIBPAW_ALLOCATE(vxcij1,(cplex*ij_size))
+ LIBPAW_ALLOCATE(vxcij2,(cplex*l_size))
+ LIBPAW_ALLOCATE(ff,(mesh_size))
+ LIBPAW_ALLOCATE(gg,(mesh_size))
 
 !----------------------------------------------------------
 !Loop over spin components
@@ -1424,12 +1420,12 @@ subroutine pawdijxc(cplex,cplex_dij,dijxc,ndij,nspden,nsppol,&
  end do
 
 !Free temporary memory spaces
- ABI_DEALLOCATE(yylmr)
- ABI_DEALLOCATE(dijxc_idij)
- ABI_DEALLOCATE(vxcij1)
- ABI_DEALLOCATE(vxcij2)
- ABI_DEALLOCATE(ff)
- ABI_DEALLOCATE(gg)
+ LIBPAW_DEALLOCATE(yylmr)
+ LIBPAW_DEALLOCATE(dijxc_idij)
+ LIBPAW_DEALLOCATE(vxcij1)
+ LIBPAW_DEALLOCATE(vxcij2)
+ LIBPAW_DEALLOCATE(ff)
+ LIBPAW_DEALLOCATE(gg)
 
  DBG_EXIT("COLL")
 
@@ -1531,7 +1527,7 @@ subroutine pawdijfock(cplex,cplex_dij,dijfock,ndij,nspden,nsppol,pawrhoij,pawtab
 
 !Init memory
  dijfock=zero
- ABI_ALLOCATE(dijfock_idij,(cplex*lmn2_size))
+ LIBPAW_ALLOCATE(dijfock_idij,(cplex*lmn2_size))
 
 !----------------------------------------------------------
 !Loop over spin components
@@ -1704,7 +1700,7 @@ subroutine pawdijfock(cplex,cplex_dij,dijfock,ndij,nspden,nsppol,pawrhoij,pawtab
  end do
 
 !Free temporary memory spaces
- ABI_DEALLOCATE(dijfock_idij)
+ LIBPAW_DEALLOCATE(dijfock_idij)
 
  DBG_EXIT("COLL")
 
@@ -1818,10 +1814,10 @@ subroutine pawdijxcm(cplex,cplex_dij,dijxc,lmselect,ndij,nspden,nsppol,&
 
 !Init memory
  dijxc=zero
- ABI_ALLOCATE(dijxc_idij,(cplex*lmn2_size))
- ABI_ALLOCATE(vxcij1,(cplex*ij_size))
- ABI_ALLOCATE(ff,(mesh_size))
- ABI_ALLOCATE(gg,(mesh_size))
+ LIBPAW_ALLOCATE(dijxc_idij,(cplex*lmn2_size))
+ LIBPAW_ALLOCATE(vxcij1,(cplex*ij_size))
+ LIBPAW_ALLOCATE(ff,(mesh_size))
+ LIBPAW_ALLOCATE(gg,(mesh_size))
 
 !----------------------------------------------------------
 !Loop over spin components
@@ -1978,10 +1974,10 @@ subroutine pawdijxcm(cplex,cplex_dij,dijxc,lmselect,ndij,nspden,nsppol,&
  end do
 
 !Free temporary memory spaces
- ABI_DEALLOCATE(dijxc_idij)
- ABI_DEALLOCATE(vxcij1)
- ABI_DEALLOCATE(ff)
- ABI_DEALLOCATE(gg)
+ LIBPAW_DEALLOCATE(dijxc_idij)
+ LIBPAW_DEALLOCATE(vxcij1)
+ LIBPAW_DEALLOCATE(ff)
+ LIBPAW_DEALLOCATE(gg)
 
  DBG_EXIT("COLL")
 
@@ -2106,16 +2102,16 @@ subroutine pawdijhat(cplex,cplex_dij,dijhat,gprimd,iatom,ipert,&
    optgr0=0;optgr1=0
    if (pawfgrtab%gylm_allocated==0) then
      if (allocated(pawfgrtab%gylm))  then
-       ABI_DEALLOCATE(pawfgrtab%gylm)
+       LIBPAW_DEALLOCATE(pawfgrtab%gylm)
      end if
-     ABI_ALLOCATE(pawfgrtab%gylm,(nfgd,lm_size))
+     LIBPAW_ALLOCATE(pawfgrtab%gylm,(nfgd,lm_size))
      pawfgrtab%gylm_allocated=2;optgr0=1
    end if
    if ((ipert==iatom).and.(pawfgrtab%gylmgr_allocated==0)) then
      if (allocated(pawfgrtab%gylmgr))  then
-       ABI_DEALLOCATE(pawfgrtab%gylmgr)
+       LIBPAW_DEALLOCATE(pawfgrtab%gylmgr)
      end if
-     ABI_ALLOCATE(pawfgrtab%gylmgr,(3,nfgd,lm_size))
+     LIBPAW_ALLOCATE(pawfgrtab%gylmgr,(3,nfgd,lm_size))
      pawfgrtab%gylmgr_allocated=2;optgr1=1
    end if
    if (optgr0+optgr1>0) then
@@ -2127,9 +2123,9 @@ subroutine pawdijhat(cplex,cplex_dij,dijhat,gprimd,iatom,ipert,&
 !Eventually compute exp(-i.q.r) factors for the current atom (if not already done)
  if ((ipert==iatom).and.qne0.and.(pawfgrtab%expiqr_allocated==0)) then
    if (allocated(pawfgrtab%expiqr))  then
-     ABI_DEALLOCATE(pawfgrtab%expiqr)
+     LIBPAW_DEALLOCATE(pawfgrtab%expiqr)
    end if
-   ABI_ALLOCATE(pawfgrtab%expiqr,(2,nfgd))
+   LIBPAW_ALLOCATE(pawfgrtab%expiqr,(2,nfgd))
    call pawexpiqr(pawfgrtab%expiqr,gprimd,nfgd,qphon,pawfgrtab%rfgd,xred(:,iatom))
    pawfgrtab%expiqr_allocated=2
  end if
@@ -2137,8 +2133,8 @@ subroutine pawdijhat(cplex,cplex_dij,dijhat,gprimd,iatom,ipert,&
 
 !Init memory
  dijhat=zero
- ABI_ALLOCATE(prod,(cplex*lm_size))
- ABI_ALLOCATE(dijhat_idij,(cplex*lmn2_size))
+ LIBPAW_ALLOCATE(prod,(cplex*lm_size))
+ LIBPAW_ALLOCATE(dijhat_idij,(cplex*lmn2_size))
 
 !----------------------------------------------------------
 !Loop over spin components
@@ -2308,21 +2304,21 @@ subroutine pawdijhat(cplex,cplex_dij,dijhat,gprimd,iatom,ipert,&
  end do
 
 !Free temporary memory spaces
- ABI_DEALLOCATE(prod)
- ABI_DEALLOCATE(dijhat_idij)
+ LIBPAW_DEALLOCATE(prod)
+ LIBPAW_DEALLOCATE(dijhat_idij)
  if (pawfgrtab%gylm_allocated==2) then
-   ABI_DEALLOCATE(pawfgrtab%gylm)
-   ABI_ALLOCATE(pawfgrtab%gylm,(0,0))
+   LIBPAW_DEALLOCATE(pawfgrtab%gylm)
+   LIBPAW_ALLOCATE(pawfgrtab%gylm,(0,0))
    pawfgrtab%gylm_allocated=0
  end if
  if (pawfgrtab%gylmgr_allocated==2) then
-   ABI_DEALLOCATE(pawfgrtab%gylmgr)
-   ABI_ALLOCATE(pawfgrtab%gylmgr,(0,0,0))
+   LIBPAW_DEALLOCATE(pawfgrtab%gylmgr)
+   LIBPAW_ALLOCATE(pawfgrtab%gylmgr,(0,0,0))
    pawfgrtab%gylmgr_allocated=0
  end if
  if (pawfgrtab%expiqr_allocated==2) then
-   ABI_DEALLOCATE(pawfgrtab%expiqr)
-   ABI_ALLOCATE(pawfgrtab%expiqr,(0,0))
+   LIBPAW_DEALLOCATE(pawfgrtab%expiqr)
+   LIBPAW_ALLOCATE(pawfgrtab%expiqr,(0,0))
    pawfgrtab%expiqr_allocated=0
  end if
 
@@ -2432,10 +2428,10 @@ subroutine pawdiju(cplex_dij,dijpawu,ndij,nspden,nsppol,pawtab,vpawu,&
 
 !Init memory
  dijpawu=zero
- ABI_ALLOCATE(dijpawu_idij,(cplex_dij*lmn2_size))
- ABI_ALLOCATE(coeffpawu,(cplex_dij))
+ LIBPAW_ALLOCATE(dijpawu_idij,(cplex_dij*lmn2_size))
+ LIBPAW_ALLOCATE(coeffpawu,(cplex_dij))
  if (ndij==4) then
-   ABI_ALLOCATE(dijsymU,(cplex_dij*lmn2_size,4))
+   LIBPAW_ALLOCATE(dijsymU,(cplex_dij*lmn2_size,4))
  end if
 
 !Loop over spin components
@@ -2507,10 +2503,10 @@ subroutine pawdiju(cplex_dij,dijpawu,ndij,nspden,nsppol,pawtab,vpawu,&
  end do
 
 !Free temporary memory spaces
- ABI_DEALLOCATE(dijpawu_idij)
- ABI_DEALLOCATE(coeffpawu)
+ LIBPAW_DEALLOCATE(dijpawu_idij)
+ LIBPAW_DEALLOCATE(coeffpawu)
  if (ndij==4) then
-   ABI_DEALLOCATE(dijsymU)
+   LIBPAW_DEALLOCATE(dijsymU)
  end if
 
  DBG_EXIT("COLL")
@@ -2644,9 +2640,9 @@ subroutine pawdijso(cplex_dij,dijso,ndij,nspden,&
 !------------------------------------------------------------------------
 
 !Eventually compute <Phi_i|1/r.dV/dr|Phi_j>*alpha2/2*Y_00 (for spin-orbit)
- ABI_ALLOCATE(dv1dr,(mesh_size))
- ABI_ALLOCATE(dijso_rad,(ij_size))
- ABI_ALLOCATE(ff,(mesh_size))
+ LIBPAW_ALLOCATE(dv1dr,(mesh_size))
+ LIBPAW_ALLOCATE(dijso_rad,(ij_size))
+ LIBPAW_ALLOCATE(ff,(mesh_size))
  fact=one/sqrt(four_pi) ! Y_00
  if (pawxcdev/=0) then
    if (nspden==1) then
@@ -2679,8 +2675,8 @@ subroutine pawdijso(cplex_dij,dijso,ndij,nspden,&
    ff(1:mesh_size)= dv1dr(1:mesh_size)*pawtab%phiphj(1:mesh_size,kln)
    call simp_gen(dijso_rad(kln),ff,pawrad)
  end do
- ABI_DEALLOCATE(dv1dr)
- ABI_DEALLOCATE(ff)
+ LIBPAW_DEALLOCATE(dv1dr)
+ LIBPAW_DEALLOCATE(ff)
  dijso_rad(:)=spnorbscl*dijso_rad(:)
 
 !------------------------------------------------------------------------
@@ -2725,7 +2721,7 @@ subroutine pawdijso(cplex_dij,dijso,ndij,nspden,&
 !  ----- End loop over idij
  end do
 
- ABI_DEALLOCATE(dijso_rad)
+ LIBPAW_DEALLOCATE(dijso_rad)
 
  DBG_EXIT("COLL")
 
@@ -2846,10 +2842,10 @@ subroutine pawdijexxc(cplex,cplex_dij,dijexxc,lmselect,ndij,nspden,nsppol,&
 
 !Init memory
  dijexxc=zero
- ABI_ALLOCATE(dijexxc_idij,(cplex*lmn2_size))
- ABI_ALLOCATE(vxcij1,(cplex*ij_size))
- ABI_ALLOCATE(ff,(mesh_size))
- ABI_ALLOCATE(gg,(mesh_size))
+ LIBPAW_ALLOCATE(dijexxc_idij,(cplex*lmn2_size))
+ LIBPAW_ALLOCATE(vxcij1,(cplex*ij_size))
+ LIBPAW_ALLOCATE(ff,(mesh_size))
+ LIBPAW_ALLOCATE(gg,(mesh_size))
 
 !----------------------------------------------------------
 !Loop over spin components
@@ -3029,10 +3025,10 @@ subroutine pawdijexxc(cplex,cplex_dij,dijexxc,lmselect,ndij,nspden,nsppol,&
  end do
 
 !Free temporary memory spaces
- ABI_DEALLOCATE(dijexxc_idij)
- ABI_DEALLOCATE(vxcij1)
- ABI_DEALLOCATE(ff)
- ABI_DEALLOCATE(gg)
+ LIBPAW_DEALLOCATE(dijexxc_idij)
+ LIBPAW_DEALLOCATE(vxcij1)
+ LIBPAW_DEALLOCATE(ff)
+ LIBPAW_DEALLOCATE(gg)
 
  DBG_EXIT("COLL")
 
@@ -3215,16 +3211,16 @@ subroutine pawdijfr(cplex,gprimd,idir,ipert,my_natom,natom,nfft,ngfft,nspden,nty
        optgr0=0;optgr1=0;optgr2=0
        if ((need_dijfr_2.or. need_dijfr_4).and.(pawfgrtab(iatom)%gylm_allocated==0)) then
          if (allocated(pawfgrtab(iatom)%gylm))  then
-           ABI_DEALLOCATE(pawfgrtab(iatom)%gylm)
+           LIBPAW_DEALLOCATE(pawfgrtab(iatom)%gylm)
          end if
-         ABI_ALLOCATE(pawfgrtab(iatom)%gylm,(nfgd,lm_size))
+         LIBPAW_ALLOCATE(pawfgrtab(iatom)%gylm,(nfgd,lm_size))
          pawfgrtab(iatom)%gylm_allocated=2;optgr0=1
        end if
        if ((need_dijfr_1).and.(pawfgrtab(iatom)%gylmgr_allocated==0)) then
          if (allocated(pawfgrtab(iatom)%gylmgr))  then
-           ABI_DEALLOCATE(pawfgrtab(iatom)%gylmgr)
+           LIBPAW_DEALLOCATE(pawfgrtab(iatom)%gylmgr)
          end if
-         ABI_ALLOCATE(pawfgrtab(iatom)%gylmgr,(3,nfgd,lm_size))
+         LIBPAW_ALLOCATE(pawfgrtab(iatom)%gylmgr,(3,nfgd,lm_size))
          pawfgrtab(iatom)%gylmgr_allocated=2;optgr1=1
        end if
        if (optgr0+optgr1+optgr2>0) then
@@ -3239,9 +3235,9 @@ subroutine pawdijfr(cplex,gprimd,idir,ipert,my_natom,natom,nfft,ngfft,nspden,nty
    if (need_dijfr_2) then
      if (qne0.and.(pawfgrtab(iatom)%expiqr_allocated==0)) then
        if (allocated(pawfgrtab(iatom)%expiqr))  then
-         ABI_DEALLOCATE(pawfgrtab(iatom)%expiqr)
+         LIBPAW_DEALLOCATE(pawfgrtab(iatom)%expiqr)
        end if
-       ABI_ALLOCATE(pawfgrtab(iatom)%expiqr,(2,nfgd))
+       LIBPAW_ALLOCATE(pawfgrtab(iatom)%expiqr,(2,nfgd))
        call pawexpiqr(pawfgrtab(iatom)%expiqr,gprimd,nfgd,qphon,&
 &                     pawfgrtab(iatom)%rfgd,xred(:,iatom_tot))
        pawfgrtab(iatom)%expiqr_allocated=2
@@ -3257,7 +3253,7 @@ subroutine pawdijfr(cplex,gprimd,idir,ipert,my_natom,natom,nfft,ngfft,nspden,nty
 
        if (need_dijfr_1.or.need_dijfr_2) then
 
-         ABI_ALLOCATE(intv,(cplex,lm_size))
+         LIBPAW_ALLOCATE(intv,(cplex,lm_size))
          intv(:,:)=zero
 
 !        First part: Int_R^3{vtrial*Sum_LM[Q_ij_q^LM^(1)]}
@@ -3265,7 +3261,7 @@ subroutine pawdijfr(cplex,gprimd,idir,ipert,my_natom,natom,nfft,ngfft,nspden,nty
 
 !          ----- Retrieve potential Vlocal (subtle if nspden=4 ;-)
            if (nspden/=4) then
-             ABI_ALLOCATE(vloc,(1,nfgd))
+             LIBPAW_ALLOCATE(vloc,(1,nfgd))
              if (usexcnhat==0) then
                do ic=1,nfgd
                  jc=pawfgrtab(iatom)%ifftsph(ic)
@@ -3277,7 +3273,7 @@ subroutine pawdijfr(cplex,gprimd,idir,ipert,my_natom,natom,nfft,ngfft,nspden,nty
                end do
              end if
            else ! nspden/=4
-             ABI_ALLOCATE(vloc,(2,nfgd))
+             LIBPAW_ALLOCATE(vloc,(2,nfgd))
              if (ispden<=2) then
                if (usexcnhat==0) then
                  do ic=1,nfgd
@@ -3308,7 +3304,7 @@ subroutine pawdijfr(cplex,gprimd,idir,ipert,my_natom,natom,nfft,ngfft,nspden,nty
            end if
 
 !          ----- Compute Integral [ Vtrial(r).(g_l(r).Y_lm(r))^(1) dr ]
-           ABI_ALLOCATE(intv_tmp,(cplex,3))
+           LIBPAW_ALLOCATE(intv_tmp,(cplex,3))
            do ilslm=1,lm_size
              intv_tmp=zero
              if (nspden/=4) then
@@ -3334,8 +3330,8 @@ subroutine pawdijfr(cplex,gprimd,idir,ipert,my_natom,natom,nfft,ngfft,nspden,nty
 &             +rprimd(2,idir)*intv_tmp(1:cplex,2) &
 &             +rprimd(3,idir)*intv_tmp(1:cplex,3))
            end do
-           ABI_DEALLOCATE(vloc)
-           ABI_DEALLOCATE(intv_tmp)
+           LIBPAW_DEALLOCATE(vloc)
+           LIBPAW_DEALLOCATE(intv_tmp)
          end if ! need_dijfr_1
 
 !        2nd part: Int_R^3{Vloc^(1)*Sum_LM[Q_ij_q^LM]}
@@ -3344,14 +3340,14 @@ subroutine pawdijfr(cplex,gprimd,idir,ipert,my_natom,natom,nfft,ngfft,nspden,nty
            if (ispden==1) then
 
 !            ----- Retrieve potential Vloc^(1)
-             ABI_ALLOCATE(vloc,(cplex,nfgd))
+             LIBPAW_ALLOCATE(vloc,(cplex,nfgd))
              do ic=1,nfgd
                jc=cplex*pawfgrtab(iatom)%ifftsph(ic)-dplex
                vloc(1:cplex,ic)=vpsp1(jc:jc+dplex)
              end do
 
 !            ----- Compute Integral [ Vloc^(1)(r).g_l(r).Y_lm(r) ]
-             ABI_ALLOCATE(intvloc,(cplex,lm_size))
+             LIBPAW_ALLOCATE(intvloc,(cplex,lm_size))
              intvloc=zero
              if (has_phase) then
                if (cplex==1) then
@@ -3380,13 +3376,13 @@ subroutine pawdijfr(cplex,gprimd,idir,ipert,my_natom,natom,nfft,ngfft,nspden,nty
                  end do
                end do
              end if
-             ABI_DEALLOCATE(vloc)
+             LIBPAW_DEALLOCATE(vloc)
            end if ! ispden=1
 
            if (ispden<=min(nspden,2)) then
              intv(1:cplex,1:lm_size)=intv(1:cplex,1:lm_size)+intvloc(1:cplex,1:lm_size)
              if (ispden==min(nspden,2))  then
-               ABI_DEALLOCATE(intvloc)
+               LIBPAW_DEALLOCATE(intvloc)
              end if
            end if
          end if ! need_dijfr_2
@@ -3418,7 +3414,7 @@ subroutine pawdijfr(cplex,gprimd,idir,ipert,my_natom,natom,nfft,ngfft,nspden,nty
            end do
            klmn1=klmn1+paw_ij1(iatom)%cplex_dij
          end do
-         ABI_DEALLOCATE(intv)
+         LIBPAW_DEALLOCATE(intv)
 
 !        Dijfr is marked as computed
          paw_ij1(iatom)%has_dijfr=2
@@ -3438,8 +3434,8 @@ subroutine pawdijfr(cplex,gprimd,idir,ipert,my_natom,natom,nfft,ngfft,nspden,nty
 
          if (ispden==1) then
 
-           ABI_ALLOCATE(ff,(mesh_size))
-           ABI_ALLOCATE(rg,(3))
+           LIBPAW_ALLOCATE(ff,(mesh_size))
+           LIBPAW_ALLOCATE(rg,(3))
 
 !          loop over basis state pairs for this atom
            klmn1=1
@@ -3481,8 +3477,8 @@ subroutine pawdijfr(cplex,gprimd,idir,ipert,my_natom,natom,nfft,ngfft,nspden,nty
 
              klmn1=klmn1+paw_ij1(iatom)%cplex_dij
            end do ! end loop over lmn2_size pairs of basis states
-           ABI_DEALLOCATE(ff)
-           ABI_DEALLOCATE(rg)
+           LIBPAW_DEALLOCATE(ff)
+           LIBPAW_DEALLOCATE(rg)
 
 !          Dijfr is spin-independent for electric field case
          else if (ispden==2) then
@@ -3499,7 +3495,7 @@ subroutine pawdijfr(cplex,gprimd,idir,ipert,my_natom,natom,nfft,ngfft,nspden,nty
      else if (ipert==natom+3.or.ipert==natom+4) then
 !     ----- Retrieve potential Vlocal (subtle if nspden=4 ;-)
        if (nspden/=4) then
-         ABI_ALLOCATE(vloc,(1,nfgd))
+         LIBPAW_ALLOCATE(vloc,(1,nfgd))
          if (usexcnhat==0) then
            do ic=1,nfgd
              jc=pawfgrtab(iatom)%ifftsph(ic)
@@ -3511,7 +3507,7 @@ subroutine pawdijfr(cplex,gprimd,idir,ipert,my_natom,natom,nfft,ngfft,nspden,nty
            end do
          end if
        else ! nspden/=4
-         ABI_ALLOCATE(vloc,(2,nfgd))
+         LIBPAW_ALLOCATE(vloc,(2,nfgd))
          if (ispden<=2) then
            if (usexcnhat==0) then
              do ic=1,nfgd
@@ -3541,7 +3537,7 @@ subroutine pawdijfr(cplex,gprimd,idir,ipert,my_natom,natom,nfft,ngfft,nspden,nty
          end if
        end if
 
-       ABI_ALLOCATE(intv,(cplex,lm_size))
+       LIBPAW_ALLOCATE(intv,(cplex,lm_size))
        intv(:,:)=zero
 !      option = 0 Insulator case
        if(option==0)then
@@ -3616,8 +3612,8 @@ subroutine pawdijfr(cplex,gprimd,idir,ipert,my_natom,natom,nfft,ngfft,nspden,nty
          end do
          klmn1=klmn1+paw_ij1(iatom)%cplex_dij
        end do
-       ABI_DEALLOCATE(intv)
-       ABI_DEALLOCATE(vloc)
+       LIBPAW_DEALLOCATE(intv)
+       LIBPAW_DEALLOCATE(vloc)
 !      Dijfr is marked as computed
        paw_ij1(iatom)%has_dijfr=2
        
@@ -3638,18 +3634,18 @@ subroutine pawdijfr(cplex,gprimd,idir,ipert,my_natom,natom,nfft,ngfft,nspden,nty
 !  Eventually free temporary space for g_l(r).Y_lm(r) gradients and exp(-i.q.r)
    if (need_dijfr_1.or.need_dijfr_2) then
      if (pawfgrtab(iatom)%gylm_allocated==2) then
-       ABI_DEALLOCATE(pawfgrtab(iatom)%gylm)
-       ABI_ALLOCATE(pawfgrtab(iatom)%gylm,(0,0))
+       LIBPAW_DEALLOCATE(pawfgrtab(iatom)%gylm)
+       LIBPAW_ALLOCATE(pawfgrtab(iatom)%gylm,(0,0))
        pawfgrtab(iatom)%gylm_allocated=0
      end if
      if (pawfgrtab(iatom)%gylmgr_allocated==2) then
-       ABI_DEALLOCATE(pawfgrtab(iatom)%gylmgr)
-       ABI_ALLOCATE(pawfgrtab(iatom)%gylmgr,(0,0,0))
+       LIBPAW_DEALLOCATE(pawfgrtab(iatom)%gylmgr)
+       LIBPAW_ALLOCATE(pawfgrtab(iatom)%gylmgr,(0,0,0))
        pawfgrtab(iatom)%gylmgr_allocated=0
      end if
      if (pawfgrtab(iatom)%expiqr_allocated==2) then
-       ABI_DEALLOCATE(pawfgrtab(iatom)%expiqr)
-       ABI_ALLOCATE(pawfgrtab(iatom)%expiqr,(0,0))
+       LIBPAW_DEALLOCATE(pawfgrtab(iatom)%expiqr)
+       LIBPAW_ALLOCATE(pawfgrtab(iatom)%expiqr,(0,0))
        pawfgrtab(iatom)%expiqr_allocated=0
      end if
    end if
@@ -4267,16 +4263,16 @@ subroutine symdij(gprimd,indsym,ipert,my_natom,natom,nsym,ntypat,option_dij,&
      end if
    end if
    if (noncoll) then
-     ABI_ALLOCATE(summag,(cplex_dij,3))
-     ABI_ALLOCATE(rotmag,(cplex_dij,3))
-     ABI_ALLOCATE(work,(cplex_dij,3))
-     ABI_ALLOCATE(symrec_cart,(3,3,nsym))
+     LIBPAW_ALLOCATE(summag,(cplex_dij,3))
+     LIBPAW_ALLOCATE(rotmag,(cplex_dij,3))
+     LIBPAW_ALLOCATE(work,(cplex_dij,3))
+     LIBPAW_ALLOCATE(symrec_cart,(3,3,nsym))
      do irot=1,nsym
        symrec_cart(:,:,irot)=symdij_symcart(gprimd,rprimd,symrec(:,:,irot))
      end do
 !DEBUG_ALTERNATE_ALGO
 !    if(lsymnew) then
-!      ABI_ALLOCATE(sumrhoso,(cplex_dij,4))
+!      LIBPAW_ALLOCATE(sumrhoso,(cplex_dij,4))
 !    end if
 !DEBUG_ALTERNATE_ALGO
    end if
@@ -4294,11 +4290,11 @@ subroutine symdij(gprimd,indsym,ipert,my_natom,natom,nsym,ntypat,option_dij,&
    end if
 
 !  Have to make a temporary copy of dij
-   ABI_DATATYPE_ALLOCATE(my_tmp_dij,(my_natom))
+   LIBPAW_DATATYPE_ALLOCATE(my_tmp_dij,(my_natom))
    do iatom=1,my_natom
      sz1=paw_ij(iatom)%cplex_dij*paw_ij(iatom)%lmn2_size;sz2=paw_ij(iatom)%ndij
-     ABI_ALLOCATE(my_tmp_dij(iatom)%value,(sz1,sz2))
-     ABI_ALLOCATE(dijtmp,(sz1,sz2))
+     LIBPAW_ALLOCATE(my_tmp_dij(iatom)%value,(sz1,sz2))
+     LIBPAW_ALLOCATE(dijtmp,(sz1,sz2))
      if (option_dij==0) then
        dijtmp(:,:)=paw_ij(iatom)%dij(:,:)
      else if (option_dij==1) then
@@ -4333,17 +4329,17 @@ subroutine symdij(gprimd,indsym,ipert,my_natom,natom,nsym,ntypat,option_dij,&
      else
        my_tmp_dij(iatom)%value(:,:)=dijtmp(:,:)
      end if
-     ABI_DEALLOCATE(dijtmp)
+     LIBPAW_DEALLOCATE(dijtmp)
    end do
 
 !  Parallelism: gather all Dij
    if (paral_atom) then
-     ABI_DATATYPE_ALLOCATE(tmp_dij,(natom))
+     LIBPAW_DATATYPE_ALLOCATE(tmp_dij,(natom))
      call xmpi_allgatherv(my_tmp_dij,tmp_dij,my_comm_atom,my_atmtab,ierr)
      do iatom=1,my_natom
-       ABI_DEALLOCATE(my_tmp_dij(iatom)%value)
+       LIBPAW_DEALLOCATE(my_tmp_dij(iatom)%value)
      end do
-     ABI_DATATYPE_DEALLOCATE(my_tmp_dij)
+     LIBPAW_DATATYPE_DEALLOCATE(my_tmp_dij)
    else
      tmp_dij=>my_tmp_dij
    end if
@@ -4352,7 +4348,7 @@ subroutine symdij(gprimd,indsym,ipert,my_natom,natom,nsym,ntypat,option_dij,&
    if (antiferro) ndij1=2
    if (noncoll)   ndij1=4
    ndij0=ndij1-1
-   ABI_ALLOCATE(dijnew,(cplex_dij,ndij1))
+   LIBPAW_ALLOCATE(dijnew,(cplex_dij,ndij1))
 
 !  Loops over atoms and spin components
    do iatom=1,my_natom
@@ -4365,7 +4361,7 @@ subroutine symdij(gprimd,indsym,ipert,my_natom,natom,nsym,ntypat,option_dij,&
 
 !DEBUG_ALTERNATE_ALGO
 !    if (noncoll.and.lsymnew) then
-!      ABI_ALLOCATE(dijtemp,(paw_ij(iatom)%cplex_dij,paw_ij(iatom)%ndij))
+!      LIBPAW_ALLOCATE(dijtemp,(paw_ij(iatom)%cplex_dij,paw_ij(iatom)%ndij))
 !    end if
 !DEBUG_ALTERNATE_ALGO
 
@@ -4632,35 +4628,35 @@ subroutine symdij(gprimd,indsym,ipert,my_natom,natom,nsym,ntypat,option_dij,&
 
 !DEBUG_ALTERNATE_ALGO
 !    if (noncoll.and.lsymnew) then
-!      ABI_DEALLOCATE(dijtemp)
+!      LIBPAW_DEALLOCATE(dijtemp)
 !    end if
 !DEBUG_ALTERNATE_ALGO
 
    end do ! iatom
 
-   ABI_DEALLOCATE(dijnew)
+   LIBPAW_DEALLOCATE(dijnew)
    if (noncoll)  then
-     ABI_DEALLOCATE(summag)
-     ABI_DEALLOCATE(rotmag)
-     ABI_DEALLOCATE(symrec_cart)
-     ABI_DEALLOCATE(work)
+     LIBPAW_DEALLOCATE(summag)
+     LIBPAW_DEALLOCATE(rotmag)
+     LIBPAW_DEALLOCATE(symrec_cart)
+     LIBPAW_DEALLOCATE(work)
 !DEBUG_ALTERNATE_ALGO
 !    if (lsymnew) then
-!      ABI_DEALLOCATE(sumrhoso)
+!      LIBPAW_DEALLOCATE(sumrhoso)
 !    end if
 !DEBUG_ALTERNATE_ALGO
    end if
 
    if (paral_atom) then
      do iatom=1,natom
-       ABI_DEALLOCATE(tmp_dij(iatom)%value)
+       LIBPAW_DEALLOCATE(tmp_dij(iatom)%value)
      end do
-     ABI_DATATYPE_DEALLOCATE(tmp_dij)
+     LIBPAW_DATATYPE_DEALLOCATE(tmp_dij)
    else
      do iatom=1,my_natom
-       ABI_DEALLOCATE(my_tmp_dij(iatom)%value)
+       LIBPAW_DEALLOCATE(my_tmp_dij(iatom)%value)
      end do
-     ABI_DATATYPE_DEALLOCATE(my_tmp_dij)
+     LIBPAW_DATATYPE_DEALLOCATE(my_tmp_dij)
    end if
 
  else if (ipert/=natom+1.and.ipert/=natom+5) then  ! nsym>1

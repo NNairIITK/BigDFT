@@ -112,7 +112,7 @@ subroutine inputs_from_dict(in, atoms, dict)
   use module_input_keys
   use module_input_dicts
   use dynamic_memory
-  use m_profiling, only: ab7_memocc_set_state => memocc_set_state !< abinit module to be removed
+  use memory_profiling, only: memocc_set_state
   use module_xc
   use input_old_text_format, only: dict_from_frag
   use module_atoms, only: atoms_data,atoms_data_null
@@ -204,12 +204,12 @@ subroutine inputs_from_dict(in, atoms, dict)
 
   !status of the allocation verbosity and profiling
   if (.not. in%debug) then
-     call ab7_memocc_set_state(1)
+     call memocc_set_state(1)
      call f_malloc_set_status(output_level=1)
   end if
   call set_cache_size(in%ncache_fft)
   if (in%verbosity == 0 ) then
-     call ab7_memocc_set_state(0)
+     call memocc_set_state(0)
      call f_malloc_set_status(output_level=0)
   end if
 

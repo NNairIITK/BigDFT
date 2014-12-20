@@ -29,18 +29,14 @@
 !!
 !! SOURCE
 
-#if defined HAVE_CONFIG_H
-#include "config.h"
-#endif
-
-#include "abi_common.h"
+#include "libpaw.h"
 
 MODULE m_pawfgrtab
 
  use defs_basis
  use m_errors
- use m_profiling_abi
  use m_xmpi
+ USE_MEMORY_PROFILING
 
  use m_paral_atom, only : get_my_atmtab, free_my_atmtab, get_my_natom
 
@@ -251,21 +247,21 @@ subroutine pawfgrtab_init(Pawfgrtab,cplex,l_size_atm,nspden,typat,&
   Pawfgrtab(iat)%nspden            = nspden
   Pawfgrtab(iat)%l_size            = l_size_atm(iat)
   Pawfgrtab(iat)%nfgd              = 0
-  ABI_ALLOCATE(Pawfgrtab(iat)%ifftsph,(0))
+  LIBPAW_ALLOCATE(Pawfgrtab(iat)%ifftsph,(0))
   Pawfgrtab(iat)%gylm_allocated    = 0
-  ABI_ALLOCATE(Pawfgrtab(iat)%gylm,(0,0))
+  LIBPAW_ALLOCATE(Pawfgrtab(iat)%gylm,(0,0))
   Pawfgrtab(iat)%gylmgr_allocated  = 0
-  ABI_ALLOCATE(Pawfgrtab(iat)%gylmgr,(0,0,0))
+  LIBPAW_ALLOCATE(Pawfgrtab(iat)%gylmgr,(0,0,0))
   Pawfgrtab(iat)%gylmgr2_allocated = 0
-  ABI_ALLOCATE(Pawfgrtab(iat)%gylmgr2,(0,0,0))
+  LIBPAW_ALLOCATE(Pawfgrtab(iat)%gylmgr2,(0,0,0))
   Pawfgrtab(iat)%nhatfr_allocated  = 0
-  ABI_ALLOCATE(Pawfgrtab(iat)%nhatfr,(0,0))
+  LIBPAW_ALLOCATE(Pawfgrtab(iat)%nhatfr,(0,0))
   Pawfgrtab(iat)%nhatfrgr_allocated  = 0
-  ABI_ALLOCATE(Pawfgrtab(iat)%nhatfrgr,(0,0,0))
+  LIBPAW_ALLOCATE(Pawfgrtab(iat)%nhatfrgr,(0,0,0))
   Pawfgrtab(iat)%rfgd_allocated    = 0
-  ABI_ALLOCATE(Pawfgrtab(iat)%rfgd,(0,0))
+  LIBPAW_ALLOCATE(Pawfgrtab(iat)%rfgd,(0,0))
   Pawfgrtab(iat)%expiqr_allocated  = 0
-  ABI_ALLOCATE(Pawfgrtab(iat)%expiqr,(0,0))
+  LIBPAW_ALLOCATE(Pawfgrtab(iat)%expiqr,(0,0))
  end do
 
 !Destroy atom table used for parallelism
@@ -325,28 +321,28 @@ subroutine pawfgrtab_free(Pawfgrtab)
  natom=SIZE(Pawfgrtab);if (natom==0) return
  do iat=1,natom
   if (allocated(Pawfgrtab(iat)%ifftsph))  then
-    ABI_DEALLOCATE(Pawfgrtab(iat)%ifftsph)
+    LIBPAW_DEALLOCATE(Pawfgrtab(iat)%ifftsph)
   end if
   if (allocated(Pawfgrtab(iat)%gylm   ))  then
-    ABI_DEALLOCATE(Pawfgrtab(iat)%gylm)
+    LIBPAW_DEALLOCATE(Pawfgrtab(iat)%gylm)
   end if
   if (allocated(Pawfgrtab(iat)%gylmgr ))  then
-    ABI_DEALLOCATE(Pawfgrtab(iat)%gylmgr)
+    LIBPAW_DEALLOCATE(Pawfgrtab(iat)%gylmgr)
   end if
   if (allocated(Pawfgrtab(iat)%gylmgr2))  then
-    ABI_DEALLOCATE(Pawfgrtab(iat)%gylmgr2)
+    LIBPAW_DEALLOCATE(Pawfgrtab(iat)%gylmgr2)
   end if
   if (allocated(Pawfgrtab(iat)%nhatfr ))  then
-    ABI_DEALLOCATE(Pawfgrtab(iat)%nhatfr)
+    LIBPAW_DEALLOCATE(Pawfgrtab(iat)%nhatfr)
   end if
   if (allocated(Pawfgrtab(iat)%nhatfrgr))  then
-    ABI_DEALLOCATE(Pawfgrtab(iat)%nhatfrgr)
+    LIBPAW_DEALLOCATE(Pawfgrtab(iat)%nhatfrgr)
   end if
   if (allocated(Pawfgrtab(iat)%rfgd   ))  then
-    ABI_DEALLOCATE(Pawfgrtab(iat)%rfgd)
+    LIBPAW_DEALLOCATE(Pawfgrtab(iat)%rfgd)
   end if
   if (allocated(Pawfgrtab(iat)%expiqr))   then
-    ABI_DEALLOCATE(Pawfgrtab(iat)%expiqr)
+    LIBPAW_DEALLOCATE(Pawfgrtab(iat)%expiqr)
   end if
   Pawfgrtab(iat)%gylm_allocated=0
   Pawfgrtab(iat)%gylmgr_allocated=0
@@ -551,30 +547,30 @@ integer,optional,intent(in) :: comm_atom
      pawfgrtab_out(ij1)%nspden=nspden
      pawfgrtab_out(ij1)%rfgd_allocated=pawfgrtab_in(ij)%rfgd_allocated
      nfgd=pawfgrtab_in(ij)%nfgd
-     ABI_ALLOCATE(pawfgrtab_out(ij1)%ifftsph,(nfgd))
+     LIBPAW_ALLOCATE(pawfgrtab_out(ij1)%ifftsph,(nfgd))
      pawfgrtab_out(ij1)%ifftsph(:)=pawfgrtab_in(ij)%ifftsph(:)
      if (pawfgrtab_out(ij1)%expiqr_allocated>0) then
-       ABI_ALLOCATE(pawfgrtab_out(ij1)%expiqr,(2,nfgd))
+       LIBPAW_ALLOCATE(pawfgrtab_out(ij1)%expiqr,(2,nfgd))
        pawfgrtab_out(ij1)%expiqr(:,:)=pawfgrtab_in(ij)%expiqr(:,:)
      end if
      if (pawfgrtab_out(ij1)%gylm_allocated>0) then
-       ABI_ALLOCATE(pawfgrtab_out(ij1)%gylm,(nfgd,l_size2))
+       LIBPAW_ALLOCATE(pawfgrtab_out(ij1)%gylm,(nfgd,l_size2))
        pawfgrtab_out(ij1)%gylm(:,:)=pawfgrtab_in(ij)%gylm(:,:)
      end if
      if (pawfgrtab_out(ij1)%gylmgr_allocated>0) then
-       ABI_ALLOCATE(pawfgrtab_out(ij1)%gylmgr,(3,nfgd,l_size2))
+       LIBPAW_ALLOCATE(pawfgrtab_out(ij1)%gylmgr,(3,nfgd,l_size2))
        pawfgrtab_out(ij1)%gylmgr(:,:,:)=pawfgrtab_in(ij)%gylmgr(:,:,:)
      end if
      if (pawfgrtab_out(ij1)%gylmgr2_allocated>0) then
-       ABI_ALLOCATE(pawfgrtab_out(ij1)%gylmgr2,(6,nfgd,l_size2))
+       LIBPAW_ALLOCATE(pawfgrtab_out(ij1)%gylmgr2,(6,nfgd,l_size2))
        pawfgrtab_out(ij1)%gylmgr2(:,:,:)=pawfgrtab_in(ij)%gylmgr2(:,:,:)
      end if
      if (pawfgrtab_out(ij1)%nhatfrgr_allocated>0) then
-       ABI_ALLOCATE(pawfgrtab_out(ij1)%nhatfrgr,(3,nfgd,nspden))
+       LIBPAW_ALLOCATE(pawfgrtab_out(ij1)%nhatfrgr,(3,nfgd,nspden))
        pawfgrtab_out(ij1)%nhatfrgr(:,:,:)=pawfgrtab_in(ij)%nhatfrgr(:,:,:)
       end if
       if (pawfgrtab_out(ij1)%rfgd_allocated>0) then
-        ABI_ALLOCATE(pawfgrtab_out(ij1)%rfgd,(3,nfgd))
+        LIBPAW_ALLOCATE(pawfgrtab_out(ij1)%rfgd,(3,nfgd))
         pawfgrtab_out(ij1)%rfgd(:,:)=pawfgrtab_in(ij)%rfgd(:,:)
       end if
 
@@ -830,8 +826,8 @@ subroutine pawfgrtab_gather(pawfgrtab,pawfgrtab_gathered,comm_atom,istat, &
  end do
 
 !Fill in input buffers
- ABI_ALLOCATE(buf_int,(buf_int_size))
- ABI_ALLOCATE(buf_dp,(buf_dp_size))
+ LIBPAW_ALLOCATE(buf_int,(buf_int_size))
+ LIBPAW_ALLOCATE(buf_dp,(buf_dp_size))
  indx_int=1;indx_dp=1
  do iat=1,my_natom
    l_size=pawfgrtab(iat)%l_size
@@ -940,26 +936,26 @@ subroutine pawfgrtab_gather(pawfgrtab,pawfgrtab_gathered,comm_atom,istat, &
    nspden= pawfgrtab_gathered(iatot)%nspden
    l_size2=l_size*l_size
    if (nfgd>0) then
-     ABI_ALLOCATE(pawfgrtab_gathered(iatot)%ifftsph,(nfgd))
+     LIBPAW_ALLOCATE(pawfgrtab_gathered(iatot)%ifftsph,(nfgd))
      pawfgrtab_gathered(iatot)%ifftsph(1:nfgd)=buf_int_all(indx_int:indx_int+nfgd-1)
      indx_int=indx_int+nfgd
    end if
    if (pawfgrtab_gathered(iatot)%expiqr_allocated>0) then
-     ABI_ALLOCATE(pawfgrtab_gathered(iatot)%expiqr,(2,nfgd))
+     LIBPAW_ALLOCATE(pawfgrtab_gathered(iatot)%expiqr,(2,nfgd))
      do i1=1,nfgd
        pawfgrtab_gathered(iatot)%expiqr(1:2,i1)= buf_dp_all(indx_dp:indx_dp+1)
        indx_dp=indx_dp+2
      end do
    end if
    if (pawfgrtab_gathered(iatot)%gylm_allocated>0) then
-     ABI_ALLOCATE(pawfgrtab_gathered(iatot)%gylm,(nfgd,l_size2))
+     LIBPAW_ALLOCATE(pawfgrtab_gathered(iatot)%gylm,(nfgd,l_size2))
      do i1=1,l_size2
        pawfgrtab_gathered(iatot)%gylm(1:nfgd,i1)=buf_dp_all(indx_dp:indx_dp+nfgd-1)
        indx_dp=indx_dp+nfgd
      end do
    end if
    if (pawfgrtab_gathered(iatot)%gylmgr_allocated>0) then
-     ABI_ALLOCATE(pawfgrtab_gathered(iatot)%gylmgr,(3,nfgd,l_size2))
+     LIBPAW_ALLOCATE(pawfgrtab_gathered(iatot)%gylmgr,(3,nfgd,l_size2))
      do i1=1,l_size2
        do i2=1,nfgd
          pawfgrtab_gathered(iatot)%gylmgr(1:3,i2,i1)=buf_dp_all(indx_dp:indx_dp+2)
@@ -968,7 +964,7 @@ subroutine pawfgrtab_gather(pawfgrtab,pawfgrtab_gathered,comm_atom,istat, &
      end do
    end if
    if (pawfgrtab_gathered(iatot)%gylmgr2_allocated>0) then
-     ABI_ALLOCATE(pawfgrtab_gathered(iatot)%gylmgr2,(6,nfgd,l_size2))
+     LIBPAW_ALLOCATE(pawfgrtab_gathered(iatot)%gylmgr2,(6,nfgd,l_size2))
      do i1=1,l_size2
        do i2=1,nfgd
          pawfgrtab_gathered(iatot)%gylmgr2(1:6,i2,i1)=buf_dp_all(indx_dp:indx_dp+5)
@@ -977,14 +973,14 @@ subroutine pawfgrtab_gather(pawfgrtab,pawfgrtab_gathered,comm_atom,istat, &
      end do
    end if
    if (pawfgrtab_gathered(iatot)%nhatfr_allocated>0) then
-     ABI_ALLOCATE(pawfgrtab_gathered(iatot)%nhatfr,(nfgd,nspden))
+     LIBPAW_ALLOCATE(pawfgrtab_gathered(iatot)%nhatfr,(nfgd,nspden))
      do i1=1,nspden
        pawfgrtab_gathered(iatot)%nhatfr(1:nfgd,i1)=buf_dp_all(indx_dp:indx_dp+nfgd-1)
        indx_dp=indx_dp+nfgd
      end do
    end if
    if (pawfgrtab_gathered(iatot)%nhatfrgr_allocated>0) then
-     ABI_ALLOCATE(pawfgrtab_gathered(iatot)%nhatfrgr,(3,nfgd,nspden))
+     LIBPAW_ALLOCATE(pawfgrtab_gathered(iatot)%nhatfrgr,(3,nfgd,nspden))
      do i1=1,nspden
        do i2=1,nfgd
          pawfgrtab_gathered(iatot)%nhatfrgr(1:3,i2,i1)=buf_dp_all(indx_dp:indx_dp+2)
@@ -993,7 +989,7 @@ subroutine pawfgrtab_gather(pawfgrtab,pawfgrtab_gathered,comm_atom,istat, &
      end do
    end if
    if (pawfgrtab_gathered(iatot)%rfgd_allocated>0) then
-     ABI_ALLOCATE(pawfgrtab_gathered(iatot)%rfgd,(3,nfgd))
+     LIBPAW_ALLOCATE(pawfgrtab_gathered(iatot)%rfgd,(3,nfgd))
      do i1=1,nfgd
        pawfgrtab_gathered(iatot)%rfgd(1:3,i1)=buf_dp_all(indx_dp:indx_dp+2)
        indx_dp=indx_dp+3
@@ -1002,10 +998,10 @@ subroutine pawfgrtab_gather(pawfgrtab,pawfgrtab_gathered,comm_atom,istat, &
  end do
 
 !Free memory
- ABI_DEALLOCATE(buf_int)
- ABI_DEALLOCATE(buf_int_all)
- ABI_DEALLOCATE(buf_dp)
- ABI_DEALLOCATE(buf_dp_all)
+ LIBPAW_DEALLOCATE(buf_int)
+ LIBPAW_DEALLOCATE(buf_int_all)
+ LIBPAW_DEALLOCATE(buf_dp)
+ LIBPAW_DEALLOCATE(buf_dp_all)
 
 !Destroy atom table
  call free_my_atmtab(my_atmtab,my_atmtab_allocated)
@@ -1118,14 +1114,14 @@ subroutine pawfgrtab_redistribute(pawfgrtab,mpi_comm_in,mpi_comm_out,&
  if (.not.in_place) then
    if (associated(pawfgrtab_out)) then
      call pawfgrtab_free(pawfgrtab_out)
-     ABI_DATATYPE_DEALLOCATE(pawfgrtab_out)
+     LIBPAW_DATATYPE_DEALLOCATE(pawfgrtab_out)
    end if
  end if
 
 !Special sequential case
  if (mpi_comm_in==xmpi_self.and.mpi_comm_out==xmpi_self) then
    if ((.not.in_place).and.(my_natom_in>0)) then
-     ABI_DATATYPE_ALLOCATE(pawfgrtab_out,(my_natom_in))
+     LIBPAW_DATATYPE_ALLOCATE(pawfgrtab_out,(my_natom_in))
      call pawfgrtab_nullify(pawfgrtab_out)
      call pawfgrtab_copy(pawfgrtab,pawfgrtab_out)
    end if
@@ -1169,22 +1165,22 @@ subroutine pawfgrtab_redistribute(pawfgrtab,mpi_comm_in,mpi_comm_out,&
 !---------------------------------------------------------
  if (algo_option==1) then
 
-   ABI_DATATYPE_ALLOCATE(pawfgrtab_all,(natom_tot))
+   LIBPAW_DATATYPE_ALLOCATE(pawfgrtab_all,(natom_tot))
    call pawfgrtab_nullify(pawfgrtab_all)
    call pawfgrtab_copy(pawfgrtab,pawfgrtab_all,comm_atom=mpi_comm_in,mpi_atmtab=my_atmtab_in)
    if (in_place) then
     call pawfgrtab_free(pawfgrtab)
-    ABI_DATATYPE_DEALLOCATE(pawfgrtab)
-    ABI_DATATYPE_ALLOCATE(pawfgrtab,(my_natom_out))
+    LIBPAW_DATATYPE_DEALLOCATE(pawfgrtab)
+    LIBPAW_DATATYPE_ALLOCATE(pawfgrtab,(my_natom_out))
     call pawfgrtab_nullify(pawfgrtab)
     call pawfgrtab_copy(pawfgrtab_all,pawfgrtab,comm_atom=mpi_comm_out,mpi_atmtab=my_atmtab_out)
    else
-     ABI_DATATYPE_ALLOCATE(pawfgrtab_out,(my_natom_out))
+     LIBPAW_DATATYPE_ALLOCATE(pawfgrtab_out,(my_natom_out))
      call pawfgrtab_nullify(pawfgrtab_out)
      call pawfgrtab_copy(pawfgrtab_all,pawfgrtab_out,comm_atom=mpi_comm_out,mpi_atmtab=my_atmtab_out)
    end if
    call pawfgrtab_free(pawfgrtab_all)
-   ABI_DATATYPE_DEALLOCATE(pawfgrtab_all)
+   LIBPAW_DATATYPE_DEALLOCATE(pawfgrtab_all)
 
 
 !Asynchronous algorithm (asynchronous communications)
@@ -1195,13 +1191,13 @@ subroutine pawfgrtab_redistribute(pawfgrtab,mpi_comm_in,mpi_comm_out,&
 
    if (in_place) then
      if (my_natom_out > 0) then
-       ABI_DATATYPE_ALLOCATE(pawfgrtab_out1,(my_natom_out))
+       LIBPAW_DATATYPE_ALLOCATE(pawfgrtab_out1,(my_natom_out))
        call pawfgrtab_nullify(pawfgrtab_out1)
      else
-       ABI_DATATYPE_ALLOCATE(pawfgrtab_out1,(0))
+       LIBPAW_DATATYPE_ALLOCATE(pawfgrtab_out1,(0))
      end if
    else
-     ABI_DATATYPE_ALLOCATE(pawfgrtab_out,(my_natom_out))
+     LIBPAW_DATATYPE_ALLOCATE(pawfgrtab_out,(my_natom_out))
      call pawfgrtab_nullify(pawfgrtab_out)
      pawfgrtab_out1=>pawfgrtab_out
    end if
@@ -1213,22 +1209,22 @@ subroutine pawfgrtab_redistribute(pawfgrtab,mpi_comm_in,mpi_comm_out,&
    me_exch=xcomm_rank(mpi_comm_exch)
 
 !  Dimension put to the maximum to send
-   ABI_ALLOCATE(atmtab_send,(nbsend))
-   ABI_ALLOCATE(atm_indx_in,(natom_tot))
+   LIBPAW_ALLOCATE(atmtab_send,(nbsend))
+   LIBPAW_ALLOCATE(atm_indx_in,(natom_tot))
    atm_indx_in=-1
    do iatom=1,my_natom_in
      atm_indx_in(my_atmtab_in(iatom))=iatom
    end do
-   ABI_ALLOCATE(atm_indx_out,(natom_tot))
+   LIBPAW_ALLOCATE(atm_indx_out,(natom_tot))
    atm_indx_out=-1
    do iatom=1,my_natom_out
      atm_indx_out(my_atmtab_out(iatom))=iatom
    end do
 
-   ABI_DATATYPE_ALLOCATE(tab_buf_int,(nbsend))
-   ABI_DATATYPE_ALLOCATE(tab_buf_dp,(nbsend))
-   ABI_DATATYPE_ALLOCATE(tab_buf_atom,(nbsend))
-   ABI_ALLOCATE(request,(3*nbsend))
+   LIBPAW_DATATYPE_ALLOCATE(tab_buf_int,(nbsend))
+   LIBPAW_DATATYPE_ALLOCATE(tab_buf_dp,(nbsend))
+   LIBPAW_DATATYPE_ALLOCATE(tab_buf_atom,(nbsend))
+   LIBPAW_ALLOCATE(request,(3*nbsend))
 
 !  A send buffer in an asynchrone communication couldn't be deallocate before it has been receive
    nbsent=0 ; ireq=0 ; iisend=0 ; nbsendreq=0 ; nb_msg=0
@@ -1259,13 +1255,13 @@ subroutine pawfgrtab_redistribute(pawfgrtab,mpi_comm_in,mpi_comm_out,&
              nb_msg=nb_msg+1
              call pawfgrtab_isendreceive_fillbuffer( &
 &                   pawfgrtab,atmtab_send,atm_indx_in,nbsent,buf_int,nb_int,buf_dp,nb_dp)
-             ABI_ALLOCATE(tab_buf_int(nb_msg)%value,(nb_int))
-             ABI_ALLOCATE(tab_buf_dp(nb_msg)%value,(nb_dp))
+             LIBPAW_ALLOCATE(tab_buf_int(nb_msg)%value,(nb_int))
+             LIBPAW_ALLOCATE(tab_buf_dp(nb_msg)%value,(nb_dp))
              tab_buf_int(nb_msg)%value(1:nb_int)=buf_int(1:nb_int)
              tab_buf_dp(nb_msg)%value(1:nb_dp)=buf_dp(1:nb_dp)
-             ABI_DEALLOCATE(buf_int)
-             ABI_DEALLOCATE(buf_dp)
-             ABI_ALLOCATE(tab_buf_atom(nb_msg)%value, (nbsent))
+             LIBPAW_DEALLOCATE(buf_int)
+             LIBPAW_DEALLOCATE(buf_dp)
+             LIBPAW_ALLOCATE(tab_buf_atom(nb_msg)%value, (nbsent))
              tab_buf_atom(nb_msg)%value(1:nbsent)=atmtab_send(1:nbsent)
              imsg_current=nb_msg
            end if
@@ -1296,7 +1292,7 @@ subroutine pawfgrtab_redistribute(pawfgrtab,mpi_comm_in,mpi_comm_out,&
      end if
    end do
 
-   ABI_ALLOCATE(From,(nbrecv))
+   LIBPAW_ALLOCATE(From,(nbrecv))
    From(:)=-1 ; nbrecvmsg=0
    do iircv=1,nbrecv
      iproc_send=RecvAtomProc(iircv) !receive from (RcvAtomProc is sorted by growing process)
@@ -1308,7 +1304,7 @@ subroutine pawfgrtab_redistribute(pawfgrtab,mpi_comm_in,mpi_comm_out,&
      end if
    end do
 
-   ABI_ALLOCATE(msg_pick,(nbrecvmsg))
+   LIBPAW_ALLOCATE(msg_pick,(nbrecvmsg))
    msg_pick=.false.
    nbmsg_incoming=nbrecvmsg
    do while (nbmsg_incoming > 0)
@@ -1325,8 +1321,8 @@ subroutine pawfgrtab_redistribute(pawfgrtab,mpi_comm_in,mpi_comm_out,&
            nb_int=buf_size(1)
            nb_dp=buf_size(2)
            npawfgrtab_sent=buf_size(3)
-           ABI_ALLOCATE(buf_int1,(nb_int))
-           ABI_ALLOCATE(buf_dp1,(nb_dp))
+           LIBPAW_ALLOCATE(buf_int1,(nb_int))
+           LIBPAW_ALLOCATE(buf_dp1,(nb_dp))
            my_tag=401
            call xmpi_irecv(buf_int1,iproc_send,my_tag,mpi_comm_exch,request1(2),ierr)
            my_tag=402
@@ -1334,22 +1330,22 @@ subroutine pawfgrtab_redistribute(pawfgrtab,mpi_comm_in,mpi_comm_out,&
            call xmpi_waitall(request1(2:3),ierr)
            call pawfgrtab_isendreceive_getbuffer(pawfgrtab_out1,npawfgrtab_sent,atm_indx_out, buf_int1,buf_dp1)
            nbmsg_incoming=nbmsg_incoming-1
-           ABI_DEALLOCATE(buf_int1)
-           ABI_DEALLOCATE(buf_dp1)
+           LIBPAW_DEALLOCATE(buf_int1)
+           LIBPAW_DEALLOCATE(buf_dp1)
          end if
        end if
      end do
    end do
-   ABI_DEALLOCATE(msg_pick)
+   LIBPAW_DEALLOCATE(msg_pick)
 
    if (in_place) then
      call pawfgrtab_free(pawfgrtab)
-     ABI_DATATYPE_DEALLOCATE(pawfgrtab)
-     ABI_DATATYPE_ALLOCATE(pawfgrtab,(my_natom_out))
+     LIBPAW_DATATYPE_DEALLOCATE(pawfgrtab)
+     LIBPAW_DATATYPE_ALLOCATE(pawfgrtab,(my_natom_out))
      call pawfgrtab_nullify(pawfgrtab)
      call pawfgrtab_copy(pawfgrtab_out1,pawfgrtab)
      call pawfgrtab_free(pawfgrtab_out1)
-     ABI_DATATYPE_DEALLOCATE(pawfgrtab_out1)
+     LIBPAW_DATATYPE_DEALLOCATE(pawfgrtab_out1)
    end if
 
 !  Wait for deallocating arrays that all sending operations has been realized
@@ -1359,18 +1355,18 @@ subroutine pawfgrtab_redistribute(pawfgrtab,mpi_comm_in,mpi_comm_out,&
 
 !  Deallocate buffers
    do i1=1,nb_msg
-     ABI_DEALLOCATE(tab_buf_int(i1)%value)
-     ABI_DEALLOCATE(tab_buf_dp(i1)%value)
-     ABI_DEALLOCATE(tab_buf_atom(i1)%value)
+     LIBPAW_DEALLOCATE(tab_buf_int(i1)%value)
+     LIBPAW_DEALLOCATE(tab_buf_dp(i1)%value)
+     LIBPAW_DEALLOCATE(tab_buf_atom(i1)%value)
    end do
-   ABI_DATATYPE_DEALLOCATE(tab_buf_int)
-   ABI_DATATYPE_DEALLOCATE(tab_buf_dp)
-   ABI_DATATYPE_DEALLOCATE(tab_buf_atom)
-   ABI_DEALLOCATE(From)
-   ABI_DEALLOCATE(request)
-   ABI_DEALLOCATE(atmtab_send)
-   ABI_DEALLOCATE(atm_indx_in)
-   ABI_DEALLOCATE(atm_indx_out)
+   LIBPAW_DATATYPE_DEALLOCATE(tab_buf_int)
+   LIBPAW_DATATYPE_DEALLOCATE(tab_buf_dp)
+   LIBPAW_DATATYPE_DEALLOCATE(tab_buf_atom)
+   LIBPAW_DEALLOCATE(From)
+   LIBPAW_DEALLOCATE(request)
+   LIBPAW_DEALLOCATE(atmtab_send)
+   LIBPAW_DEALLOCATE(atm_indx_in)
+   LIBPAW_DEALLOCATE(atm_indx_out)
 
  end if !algo_option
 
@@ -1467,26 +1463,26 @@ implicit none
    nspden= pawfgrtab1%nspden
    l_size2=l_size*l_size
    if (nfgd>0) then
-     ABI_ALLOCATE(pawfgrtab1%ifftsph,(nfgd))
+     LIBPAW_ALLOCATE(pawfgrtab1%ifftsph,(nfgd))
      pawfgrtab1%ifftsph(1:nfgd)=buf_int(indx_int:indx_int+nfgd-1)
      indx_int=indx_int+nfgd
    end if
    if (pawfgrtab1%expiqr_allocated>0) then
-     ABI_ALLOCATE(pawfgrtab1%expiqr,(2,nfgd))
+     LIBPAW_ALLOCATE(pawfgrtab1%expiqr,(2,nfgd))
      do i1=1,nfgd
        pawfgrtab1%expiqr(1:2,i1)= buf_dp(indx_dp:indx_dp+1)
        indx_dp=indx_dp+2
      end do
    end if
    if (pawfgrtab1%gylm_allocated>0) then
-     ABI_ALLOCATE(pawfgrtab1%gylm,(nfgd,l_size2))
+     LIBPAW_ALLOCATE(pawfgrtab1%gylm,(nfgd,l_size2))
      do i1=1,l_size2
        pawfgrtab1%gylm(1:nfgd,i1)=buf_dp(indx_dp:indx_dp+nfgd-1)
        indx_dp=indx_dp+nfgd
      end do
    end if
    if (pawfgrtab1%gylmgr_allocated>0) then
-     ABI_ALLOCATE(pawfgrtab1%gylmgr,(3,nfgd,l_size2))
+     LIBPAW_ALLOCATE(pawfgrtab1%gylmgr,(3,nfgd,l_size2))
      do i1=1,l_size2
        do i2=1,nfgd
          pawfgrtab1%gylmgr(1:3,i2,i1)=buf_dp(indx_dp:indx_dp+2)
@@ -1495,7 +1491,7 @@ implicit none
      end do
    end if
    if (pawfgrtab1%gylmgr2_allocated>0) then
-     ABI_ALLOCATE(pawfgrtab1%gylmgr2,(6,nfgd,l_size2))
+     LIBPAW_ALLOCATE(pawfgrtab1%gylmgr2,(6,nfgd,l_size2))
      do i1=1,l_size2
        do i2=1,nfgd
          pawfgrtab1%gylmgr2(1:6,i2,i1)=buf_dp(indx_dp:indx_dp+5)
@@ -1504,14 +1500,14 @@ implicit none
      end do
    end if
    if (pawfgrtab1%nhatfr_allocated>0) then
-     ABI_ALLOCATE(pawfgrtab1%nhatfr,(nfgd,nspden))
+     LIBPAW_ALLOCATE(pawfgrtab1%nhatfr,(nfgd,nspden))
      do i1=1,nspden
        pawfgrtab1%nhatfr(1:nfgd,i1)=buf_dp(indx_dp:indx_dp+nfgd-1)
        indx_dp=indx_dp+nfgd
      end do
    end if
    if (pawfgrtab1%nhatfrgr_allocated>0) then
-     ABI_ALLOCATE(pawfgrtab1%nhatfrgr,(3,nfgd,nspden))
+     LIBPAW_ALLOCATE(pawfgrtab1%nhatfrgr,(3,nfgd,nspden))
      do i1=1,nspden
        do i2=1,nfgd
          pawfgrtab1%nhatfrgr(1:3,i2,i1)=buf_dp(indx_dp:indx_dp+2)
@@ -1520,7 +1516,7 @@ implicit none
      end do
    end if
    if (pawfgrtab1%rfgd_allocated>0) then
-     ABI_ALLOCATE(pawfgrtab1%rfgd,(3,nfgd))
+     LIBPAW_ALLOCATE(pawfgrtab1%rfgd,(3,nfgd))
      do i1=1,nfgd
        pawfgrtab1%rfgd(1:3,i1)=buf_dp(indx_dp:indx_dp+2)
        indx_dp=indx_dp+3
@@ -1631,8 +1627,8 @@ implicit none
  end do
 
 !Fill in input buffers
- ABI_ALLOCATE(buf_int,(buf_int_size))
- ABI_ALLOCATE(buf_dp,(buf_dp_size))
+ LIBPAW_ALLOCATE(buf_int,(buf_int_size))
+ LIBPAW_ALLOCATE(buf_dp,(buf_dp_size))
  indx_int=1;indx_dp=1
  do iat1=1,npawfgrtab_send
     iatom_tot=atmtab_send(iat1)

@@ -26,18 +26,14 @@
 !!
 !! SOURCE
 
-#if defined HAVE_CONFIG_H
-#include "config.h"
-#endif
-
-#include "abi_common.h"
+#include "libpaw.h"
 
 MODULE m_pawrad
 
  use defs_basis
  use m_errors
- use m_profiling_abi
  use m_xmpi
+ USE_MEMORY_PROFILING
 
  implicit none
 
@@ -239,9 +235,9 @@ subroutine pawrad_init(mesh,mesh_size,mesh_type,rstep,lstep,r_for_intg)
  mesh%mesh_type = mesh_type_
  mesh%rstep     = rstep_
  mesh%lstep     = lstep_
- ABI_ALLOCATE(mesh%rad    ,(mesh%mesh_size))
- ABI_ALLOCATE(mesh%radfact,(mesh%mesh_size))
- ABI_ALLOCATE(mesh%simfact,(mesh%mesh_size))
+ LIBPAW_ALLOCATE(mesh%rad    ,(mesh%mesh_size))
+ LIBPAW_ALLOCATE(mesh%radfact,(mesh%mesh_size))
+ LIBPAW_ALLOCATE(mesh%simfact,(mesh%mesh_size))
  mesh%simfact=zero
  if (mesh%mesh_type==1) then
    isim=3
@@ -362,13 +358,13 @@ subroutine pawrad_free_0D(Rmesh)
  !@Pawrad_type
 
  if (allocated(Rmesh%rad    ))  then
-   ABI_DEALLOCATE(Rmesh%rad)
+   LIBPAW_DEALLOCATE(Rmesh%rad)
  end if
  if (allocated(Rmesh%radfact))  then
-   ABI_DEALLOCATE(Rmesh%radfact)
+   LIBPAW_DEALLOCATE(Rmesh%radfact)
  end if
  if (allocated(Rmesh%simfact))  then
-   ABI_DEALLOCATE(Rmesh%simfact)
+   LIBPAW_DEALLOCATE(Rmesh%simfact)
  end if
  Rmesh%int_meshsz=0
  Rmesh%mesh_size=0
@@ -676,9 +672,9 @@ subroutine pawrad_copy(mesh1,mesh2)
  mesh2%stepint   =mesh1%stepint
  mesh2%rmax      =mesh1%rmax
 
- ABI_ALLOCATE(mesh2%rad,(mesh1%mesh_size))
- ABI_ALLOCATE(mesh2%radfact,(mesh1%mesh_size))
- ABI_ALLOCATE(mesh2%simfact,(mesh1%mesh_size))
+ LIBPAW_ALLOCATE(mesh2%rad,(mesh1%mesh_size))
+ LIBPAW_ALLOCATE(mesh2%radfact,(mesh1%mesh_size))
+ LIBPAW_ALLOCATE(mesh2%simfact,(mesh1%mesh_size))
  do ir=1,mesh1%mesh_size
    mesh2%rad(ir)    =mesh1%rad(ir)
    mesh2%radfact(ir)=mesh1%radfact(ir)
@@ -829,7 +825,7 @@ subroutine pawrad_bcast(pawrad,comm_mpi)
  end if
 
 !Brodcast the integers
- ABI_ALLOCATE(list_int,(6))
+ LIBPAW_ALLOCATE(list_int,(6))
  if(me==0) then
    list_int(1)=pawrad%int_meshsz
    list_int(2)=pawrad%mesh_size
@@ -847,11 +843,11 @@ subroutine pawrad_bcast(pawrad,comm_mpi)
    if_radfact=list_int(5)
    if_simfact=list_int(6)
  end if
- ABI_DEALLOCATE(list_int)
+ LIBPAW_DEALLOCATE(list_int)
 
 !Broadcast the reals
  nn=4+pawrad%mesh_size*(if_rad+if_radfact+if_simfact)
- ABI_ALLOCATE(list_dpr,(nn))
+ LIBPAW_ALLOCATE(list_dpr,(nn))
  if(me==0) then
    list_dpr(1)=pawrad%lstep
    list_dpr(2)=pawrad%rmax
@@ -883,35 +879,35 @@ subroutine pawrad_bcast(pawrad,comm_mpi)
    indx=5
 !  Deallocate all arrays:
    if (allocated(pawrad%rad)) then
-     ABI_DEALLOCATE(pawrad%rad)
+     LIBPAW_DEALLOCATE(pawrad%rad)
    end if
    if (allocated(pawrad%radfact)) then
-     ABI_DEALLOCATE(pawrad%radfact)
+     LIBPAW_DEALLOCATE(pawrad%radfact)
    end if
    if (allocated(pawrad%simfact)) then
-     ABI_DEALLOCATE(pawrad%simfact)
+     LIBPAW_DEALLOCATE(pawrad%simfact)
    end if
 !  Communicate if flag is set to 1:
    if(if_rad==1) then
      isz1=pawrad%mesh_size
-     ABI_ALLOCATE(pawrad%rad,(isz1))
+     LIBPAW_ALLOCATE(pawrad%rad,(isz1))
      pawrad%rad(:)=list_dpr(indx:indx+isz1-1)
      indx=indx+isz1
    end if
    if(if_radfact==1) then
      isz1=pawrad%mesh_size
-     ABI_ALLOCATE(pawrad%radfact,(isz1))
+     LIBPAW_ALLOCATE(pawrad%radfact,(isz1))
      pawrad%radfact(:)=list_dpr(indx:indx+isz1-1)
      indx=indx+isz1
    end if
    if(if_simfact==1) then
      isz1=pawrad%mesh_size
-     ABI_ALLOCATE(pawrad%simfact,(isz1))
+     LIBPAW_ALLOCATE(pawrad%simfact,(isz1))
      pawrad%simfact(:)=list_dpr(indx:indx+isz1-1)
      indx=indx+isz1
    end if
  end if
- ABI_DEALLOCATE(list_dpr)
+ LIBPAW_DEALLOCATE(list_dpr)
 
 end subroutine pawrad_bcast
 !!***
@@ -999,7 +995,7 @@ subroutine simp_gen(intg,func,radmesh,r_for_intg)
      MSG_ERROR(msg)
    end if
    isim=3; if (radmesh%mesh_type==3)isim=4
-   ABI_ALLOCATE(simfact,(radmesh%mesh_size))
+   LIBPAW_ALLOCATE(simfact,(radmesh%mesh_size))
    hh=radmesh%stepint/3.d0
    simfact(int_meshsz)=hh*radmesh%radfact(int_meshsz)
    simfact(1:isim-2)=zero
@@ -1017,7 +1013,7 @@ subroutine simp_gen(intg,func,radmesh,r_for_intg)
    do ii=1,nn
      simp=simp+func(ii)*simfact(ii)
    end do
-   ABI_DEALLOCATE(simfact)
+   LIBPAW_DEALLOCATE(simfact)
 
  else
    nn=radmesh%int_meshsz
@@ -1446,8 +1442,8 @@ subroutine poisson(den,ll,qq,radmesh,rv)
      nn=nn-1
    end do
    mm=nn;if (radmesh%mesh_type==3) mm=mm-1
-   ABI_ALLOCATE(radl,(nn))
-   ABI_ALLOCATE(radl1,(nn))
+   LIBPAW_ALLOCATE(radl,(nn))
+   LIBPAW_ALLOCATE(radl1,(nn))
    do jr=nn,2,-1
      ir=nn-jr+1
      radl(jr) =radmesh%rad(jr)**ll
@@ -1484,8 +1480,8 @@ subroutine poisson(den,ll,qq,radmesh,rv)
    end do
    if (nn<radmesh%mesh_size) rv(nn+1:radmesh%mesh_size)=rv(nn)
    qq=cc(nn)/(two*ll+one)
-   ABI_DEALLOCATE(radl)
-   ABI_DEALLOCATE(radl1)
+   LIBPAW_DEALLOCATE(radl)
+   LIBPAW_DEALLOCATE(radl1)
  end if
 
 end subroutine poisson
@@ -1627,8 +1623,8 @@ subroutine calc_slatradl(ll,mesh_size,ff1,ff2,Pawrad,integral)
   MSG_BUG("mesh_size /= Pawrad%mesh_size")
  end if
 
- ABI_ALLOCATE(hh,(mesh_size))
- ABI_ALLOCATE(gg,(mesh_size))
+ LIBPAW_ALLOCATE(hh,(mesh_size))
+ LIBPAW_ALLOCATE(gg,(mesh_size))
  !hh = zero
  !gg = zero
 
@@ -1647,12 +1643,12 @@ subroutine calc_slatradl(ll,mesh_size,ff1,ff2,Pawrad,integral)
 
  hh(1)          = zero
  hh(2:mesh_size)= ff1(2:mesh_size) * gg(2:mesh_size)
- ABI_DEALLOCATE(gg)
+ LIBPAW_DEALLOCATE(gg)
 
  call simp_gen(integral,hh,Pawrad)
  integral = four_pi * integral
 
- ABI_DEALLOCATE(hh)
+ LIBPAW_DEALLOCATE(hh)
 
 end subroutine calc_slatradl
 !!***

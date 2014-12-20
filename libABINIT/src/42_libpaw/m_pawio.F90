@@ -14,17 +14,13 @@
 !!
 !! SOURCE
 
-#if defined HAVE_CONFIG_H
-#include "config.h"
-#endif
-
-#include "abi_common.h"
+#include "libpaw.h"
 
 module m_pawio
     
  use defs_basis
  use m_errors
- use m_profiling_abi
+ USE_MEMORY_PROFILING
 
  implicit none
 
@@ -159,11 +155,11 @@ subroutine pawio_print_ij(unit,a_ij,adim,cplex,ndim,opt_l,opt_l_index,opt_pack,o
  nmin=min(ndim,maxprt)
 
  if (opt_l>=0) nmin=count(opt_l_index(:)==opt_l)
- ABI_ALLOCATE(prtab,(cplex,nmin,nmin))
+ LIBPAW_ALLOCATE(prtab,(cplex,nmin,nmin))
  dplex=cplex-1
 
 !Eventually unpack input matrix(es)
- ABI_ALLOCATE(b_ij,(cplex*ndim*(ndim+1)/2))
+ LIBPAW_ALLOCATE(b_ij,(cplex*ndim*(ndim+1)/2))
  if (opt_pack==0) then
    b_ij=a_ij
  else if (opt_pack==1) then
@@ -190,7 +186,7 @@ subroutine pawio_print_ij(unit,a_ij,adim,cplex,ndim,opt_l,opt_l_index,opt_pack,o
    end if
  end if
  if (use_asym) then
-   ABI_ALLOCATE(bsym_ij,(cplex*ndim*(ndim+1)/2))
+   LIBPAW_ALLOCATE(bsym_ij,(cplex*ndim*(ndim+1)/2))
    if (opt_pack==0) then
      bsym_ij=asym_ij
    else if (opt_pack==1) then
@@ -257,10 +253,10 @@ subroutine pawio_print_ij(unit,a_ij,adim,cplex,ndim,opt_l,opt_l_index,opt_pack,o
      end if
    end do
  end do
- ABI_DEALLOCATE(b_ij)
+ LIBPAW_DEALLOCATE(b_ij)
 
  if (use_asym)  then
-   ABI_DEALLOCATE(bsym_ij)
+   LIBPAW_DEALLOCATE(bsym_ij)
  end if
 
  if (unt==2) then
@@ -331,7 +327,7 @@ subroutine pawio_print_ij(unit,a_ij,adim,cplex,ndim,opt_l,opt_l_index,opt_pack,o
    end if
  end if
 
- ABI_DEALLOCATE(prtab)
+ LIBPAW_DEALLOCATE(prtab)
 
 !DEBUG
 !write(std_out,*)' pawio_print_ij : exit '

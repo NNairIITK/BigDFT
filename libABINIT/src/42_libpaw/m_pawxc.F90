@@ -14,17 +14,14 @@
 !!
 !! SOURCE
 
-#if defined HAVE_CONFIG_H
-#include "config.h"
-#endif
-
-#include "abi_common.h"
+#include "libpaw.h"
 
 module m_pawxc
 
  use defs_basis
  use m_errors
- use m_profiling_abi
+ USE_MEMORY_PROFILING
+
 #if defined HAVE_DFT_LIBXC
  use libxc_functionals
 #endif
@@ -128,7 +125,7 @@ subroutine pawxc_xcpositron_wrapper(fnxc,grhoe2,ixcpositron,ngr,npt,posdensity0_
 !Do not modify the following lines by hand.
 #undef ABI_FUNC
 #define ABI_FUNC 'pawxc_xcpositron_wrapper'
- !use interfaces_41_xc_lowlevel
+ use interfaces_41_xc_lowlevel
 !End of the abilint section
 
  implicit none
@@ -207,11 +204,11 @@ subroutine pawxc_xcpositron_wrapper(fnxc,grhoe2,ixcpositron,ngr,npt,posdensity0_
  end if
 
 !Compute density radii for rhor_el, rhor_pos
- ABI_ALLOCATE(rsepts,(npt))
+ LIBPAW_ALLOCATE(rsepts,(npt))
  call invcb(rhoer(:),rsepts,npt)
  rsepts(:)=rsfac*rsepts(:)
  if (ixcpositron==2) then
-   ABI_ALLOCATE(rsppts,(npt))
+   LIBPAW_ALLOCATE(rsppts,(npt))
    call invcb(rhopr(:),rsppts,npt)
    rsppts(:)=rsfac*rsppts(:)
  end if
@@ -410,9 +407,9 @@ subroutine pawxc_xcpositron_wrapper(fnxc,grhoe2,ixcpositron,ngr,npt,posdensity0_
 
  end do ! ipt
 
- ABI_DEALLOCATE(rsepts)
+ LIBPAW_DEALLOCATE(rsepts)
  if (ixcpositron==2) then
-   ABI_DEALLOCATE(rsppts)
+   LIBPAW_DEALLOCATE(rsppts)
  end if
 
 !Convert everything in Hartree units
@@ -467,7 +464,7 @@ subroutine pawxc_size_dvxc_wrapper(ixc,ndvxc,ngr2,nd2vxc,nspden,nvxcdgr,order)
 !Do not modify the following lines by hand.
 #undef ABI_FUNC
 #define ABI_FUNC 'pawxc_size_dvxc_wrapper'
- !use interfaces_41_xc_lowlevel
+ use interfaces_41_xc_lowlevel
 !End of the abilint section
 
  implicit none
@@ -619,7 +616,7 @@ subroutine pawxc_xcmult_wrapper (depsxc,nfft,ngrad,nspden,nspgrad,rhonow)
 !Do not modify the following lines by hand.
 #undef ABI_FUNC
 #define ABI_FUNC 'pawxc_xcmult_wrapper'
- !use interfaces_41_xc_lowlevel
+ use interfaces_41_xc_lowlevel
 !End of the abilint section
 
  implicit none
@@ -728,7 +725,7 @@ subroutine pawxc_mkdenpos_wrapper(iwarn,nfft,nspden,option,rhonow,xc_denpos)
 !Do not modify the following lines by hand.
 #undef ABI_FUNC
 #define ABI_FUNC 'pawxc_mkdenpos_wrapper'
- !use interfaces_41_xc_lowlevel
+ use interfaces_41_xc_lowlevel
 !End of the abilint section
 
  implicit none
@@ -1022,30 +1019,30 @@ subroutine pawxc(corexc,enxc,enxcdc,ixc,kxc,lm_size,lmselect,nhat,nkxc,nspden,op
 
  else
 
-   ABI_ALLOCATE(rhonow,(nrad,nspden,ngrad*ngrad))
-   ABI_ALLOCATE(rhoarr,(nrad,nspden))
+   LIBPAW_ALLOCATE(rhonow,(nrad,nspden,ngrad*ngrad))
+   LIBPAW_ALLOCATE(rhoarr,(nrad,nspden))
    if (usexcnhat>0) then
-     ABI_ALLOCATE(rhohat,(nrad,lm_size,nspden))
+     LIBPAW_ALLOCATE(rhohat,(nrad,lm_size,nspden))
      rhohat(:,:,:)=rhor(:,:,:)+nhat(:,:,:)
    end if
    if (nspden==4)  then
-     ABI_ALLOCATE(m_norm,(nrad))
+     LIBPAW_ALLOCATE(m_norm,(nrad))
    end if
    if (xclevel==2.and.usecore==1) then
-     ABI_ALLOCATE(drhocore,(nrad))
+     LIBPAW_ALLOCATE(drhocore,(nrad))
      call nderiv_gen(drhocore,corexc,1,pawrad)
    end if
    if (xclevel==2) then
 !    Convert Ylm derivatives from normalized to standard cartesian coordinates
 !    dYlm/dr_i = { dYlm/dr_i^hat - Sum_j[ dYlm/dr_j^hat (r_j/r)] } * (1/r)
-     ABI_ALLOCATE(dylmdr,(3,npts,pawang%ylm_size))
+     LIBPAW_ALLOCATE(dylmdr,(3,npts,pawang%ylm_size))
      do ilm=1,pawang%ylm_size
        do ipts=1,npts
          factor=sum(pawang%ylmrgr(1:3,ilm,ipts)*pawang%anginit(1:3,ipts))
          dylmdr(1:3,ipts,ilm)=pawang%ylmrgr(1:3,ilm,ipts)-factor*pawang%anginit(1:3,ipts)
        end do
      end do
-     ABI_ALLOCATE(gxc,(nrad,3,pawang%ylm_size,nspden_updn))
+     LIBPAW_ALLOCATE(gxc,(nrad,3,pawang%ylm_size,nspden_updn))
      gxc=zero
    end if
 
@@ -1077,8 +1074,8 @@ subroutine pawxc(corexc,enxc,enxcdc,ixc,kxc,lm_size,lmselect,nhat,nkxc,nspden,op
 !    GGA: compute gradient of density
      if (xclevel==2) then
        rhonow(:,:,2:4)=zero
-       ABI_ALLOCATE(drho,(nrad))
-       ABI_ALLOCATE(ff,(nrad))
+       LIBPAW_ALLOCATE(drho,(nrad))
+       LIBPAW_ALLOCATE(ff,(nrad))
        do ispden=1,nspden
          do ilm=1,lm_size_eff
            if (lmselect(ilm)) then
@@ -1094,8 +1091,8 @@ subroutine pawxc(corexc,enxc,enxcdc,ixc,kxc,lm_size,lmselect,nhat,nkxc,nspden,op
            end if
          end do
        end do
-       ABI_DEALLOCATE(drho)
-       ABI_DEALLOCATE(ff)
+       LIBPAW_DEALLOCATE(drho)
+       LIBPAW_DEALLOCATE(ff)
        if (usecore==1) then
          do ii=1,3
            rhonow(1:nrad,1,1+ii)=rhonow(1:nrad,1,1+ii) &
@@ -1115,16 +1112,16 @@ subroutine pawxc(corexc,enxc,enxcdc,ixc,kxc,lm_size,lmselect,nhat,nkxc,nspden,op
      order=1;if (nkxc>0) order=2
 
 !    Allocation of mandatory arguments of drivexc
-     ABI_ALLOCATE(exci,(nrad))
-     ABI_ALLOCATE(vxci,(nrad,nspden_updn))
-     ABI_ALLOCATE(rho_updn,(nrad,nspden_updn))
+     LIBPAW_ALLOCATE(exci,(nrad))
+     LIBPAW_ALLOCATE(vxci,(nrad,nspden_updn))
+     LIBPAW_ALLOCATE(rho_updn,(nrad,nspden_updn))
 
 !    Allocation of optional arguments
      call pawxc_size_dvxc_wrapper(ixc,ndvxc,ngr2,nd2vxc,nspden_updn,nvxcdgr,order)
-     ABI_ALLOCATE(dvxci,(nrad,ndvxc))
-     ABI_ALLOCATE(dvxcdgr,(nrad,nvxcdgr))
-     ABI_ALLOCATE(grho2_updn,(nrad,ngr2))
-     ABI_ALLOCATE(dnexcdn,(nrad,nspgrad))
+     LIBPAW_ALLOCATE(dvxci,(nrad,ndvxc))
+     LIBPAW_ALLOCATE(dvxcdgr,(nrad,nvxcdgr))
+     LIBPAW_ALLOCATE(grho2_updn,(nrad,ngr2))
+     LIBPAW_ALLOCATE(dnexcdn,(nrad,nspgrad))
 
 !    Storage of density (and gradient) in (up,dn) format
      if (nspden==1) then
@@ -1257,12 +1254,12 @@ subroutine pawxc(corexc,enxc,enxcdc,ixc,kxc,lm_size,lmselect,nhat,nkxc,nspden,op
 !    ----- Accumulate and store XC energy
 !    ----------------------------------------------------------------------
      if (option/=1.and.option/=5) then
-       ABI_ALLOCATE(ff,(nrad))
+       LIBPAW_ALLOCATE(ff,(nrad))
        ff(1:nrad)=rhoarr(1:nrad,1)*exci(1:nrad)*pawrad%rad(1:nrad)**2
        call simp_gen(enxcr,ff,pawrad)
        if (option/=4) enxc=enxc+enxcr*pawang%angwgth(ipts)
        if (option==4) enxc=enxc+enxcr
-       ABI_DEALLOCATE(ff)
+       LIBPAW_DEALLOCATE(ff)
      end if
 
 !    ----------------------------------------------------------------------
@@ -1285,7 +1282,7 @@ subroutine pawxc(corexc,enxc,enxcdc,ixc,kxc,lm_size,lmselect,nhat,nkxc,nspden,op
          if (nspden==2) rhoarr(1:nrad,2)=rhoarr(1:nrad,2)-half*corexc(1:nrad)
        end if
 !      Compute integral of Vxc*rho
-       ABI_ALLOCATE(ff,(nrad))
+       LIBPAW_ALLOCATE(ff,(nrad))
        if (nspden/=4) then
          ff(:)=vxc(:,ipts,1)*rhoarr(:,nspden)
          if (nspden==2) ff(:)=ff(:)+vxc(:,ipts,2)*(rhoarr(:,1)-rhoarr(:,2))
@@ -1296,17 +1293,17 @@ subroutine pawxc(corexc,enxc,enxcdc,ixc,kxc,lm_size,lmselect,nhat,nkxc,nspden,op
        ff(:)=ff(:)*pawrad%rad(:)**2
        call simp_gen(vxcrho,ff,pawrad)
        enxcdc=enxcdc+vxcrho*pawang%angwgth(ipts)
-       ABI_DEALLOCATE(ff)
+       LIBPAW_DEALLOCATE(ff)
      end if
 
 !    Deallocate temporary memory space
-     ABI_DEALLOCATE(exci)
-     ABI_DEALLOCATE(vxci)
-     ABI_DEALLOCATE(dvxci)
-     ABI_DEALLOCATE(dvxcdgr)
-     ABI_DEALLOCATE(rho_updn)
-     ABI_DEALLOCATE(grho2_updn)
-     ABI_DEALLOCATE(dnexcdn)
+     LIBPAW_DEALLOCATE(exci)
+     LIBPAW_DEALLOCATE(vxci)
+     LIBPAW_DEALLOCATE(dvxci)
+     LIBPAW_DEALLOCATE(dvxcdgr)
+     LIBPAW_DEALLOCATE(rho_updn)
+     LIBPAW_DEALLOCATE(grho2_updn)
+     LIBPAW_DEALLOCATE(dnexcdn)
 
 !    ----------------------------------------------------------------------
 !    ----- End of the loop on npts (angular part)
@@ -1315,23 +1312,23 @@ subroutine pawxc(corexc,enxc,enxcdc,ixc,kxc,lm_size,lmselect,nhat,nkxc,nspden,op
 
 !  Deallocate memory
    if (nspden==4)  then
-     ABI_DEALLOCATE(m_norm)
+     LIBPAW_DEALLOCATE(m_norm)
    end if
    if (xclevel==2.and.usecore==1)  then
-     ABI_DEALLOCATE(drhocore)
+     LIBPAW_DEALLOCATE(drhocore)
    end if
-   ABI_DEALLOCATE(rhonow)
+   LIBPAW_DEALLOCATE(rhonow)
 
 !  ----------------------------------------------------------------------
 !  ----- If GGA, modify potential with term from density gradient
 !  ----------------------------------------------------------------------
    if (xclevel==2.and.ixc/=13) then
 !    Compute divergence of gxc and substract it from Vxc
-     ABI_ALLOCATE(dgxc,(nrad))
+     LIBPAW_ALLOCATE(dgxc,(nrad))
 !    Need to multiply gxc by 2 in the non-polarised case
      factor=one;if (nspden==1) factor=two
      if (option/=4.and.option/=5) then
-       ABI_ALLOCATE(ff,(nrad))
+       LIBPAW_ALLOCATE(ff,(nrad))
        do ispden=1,nspden_updn
          do ilm=1,pawang%ylm_size
            do ii=1,3
@@ -1347,7 +1344,7 @@ subroutine pawxc(corexc,enxc,enxcdc,ixc,kxc,lm_size,lmselect,nhat,nkxc,nspden,op
            end do
          end do
        end do
-       ABI_DEALLOCATE(ff)
+       LIBPAW_DEALLOCATE(ff)
      else ! option==4 or option==5
        do ispden=1,nspden_updn
          call nderiv_gen(dgxc,gxc(:,1,1,ispden),1,pawrad)
@@ -1356,14 +1353,14 @@ subroutine pawxc(corexc,enxc,enxcdc,ixc,kxc,lm_size,lmselect,nhat,nkxc,nspden,op
          call pawrad_deducer0(vxc(:,1,ispden),nrad,pawrad)
        end do
      end if
-     ABI_DEALLOCATE(dgxc)
+     LIBPAW_DEALLOCATE(dgxc)
    end if ! GGA
 
 !  ----------------------------------------------------------------------
 !  ----- If GGA, accumulate and store XC double-counting energy here
 !  ----------------------------------------------------------------------
    if (xclevel==2.and.(option==0.or.option==2)) then
-     ABI_ALLOCATE(ff,(nrad))
+     LIBPAW_ALLOCATE(ff,(nrad))
      do ipts=1,npts !  Do loop on the angular part
 !      Compute density for this (theta,phi)
        rhoarr(:,:)=zero
@@ -1388,7 +1385,7 @@ subroutine pawxc(corexc,enxc,enxcdc,ixc,kxc,lm_size,lmselect,nhat,nkxc,nspden,op
        call simp_gen(vxcrho,ff,pawrad)
        enxcdc=enxcdc+vxcrho*pawang%angwgth(ipts)
      end do ! End of the loop on npts (angular part)
-     ABI_DEALLOCATE(ff)
+     LIBPAW_DEALLOCATE(ff)
    end if ! option
 
 !  ----------------------------------------------------------------------
@@ -1400,13 +1397,13 @@ subroutine pawxc(corexc,enxc,enxcdc,ixc,kxc,lm_size,lmselect,nhat,nkxc,nspden,op
 
 !  Final memory deallocation
    nullify(rho_)
-   ABI_DEALLOCATE(rhoarr)
+   LIBPAW_DEALLOCATE(rhoarr)
    if (usexcnhat>0)  then
-     ABI_DEALLOCATE(rhohat)
+     LIBPAW_DEALLOCATE(rhohat)
    end if
    if (xclevel==2) then
-     ABI_DEALLOCATE(gxc)
-     ABI_DEALLOCATE(dylmdr)
+     LIBPAW_DEALLOCATE(gxc)
+     LIBPAW_DEALLOCATE(dylmdr)
    end if
 
 !  ------------------------------------
@@ -1569,12 +1566,12 @@ subroutine pawxcpositron(calctype,corexc,enxc,enxcdc,ixcpositron,lm_size,lmselec
  end if
 
 !Allocations
- ABI_ALLOCATE(fxci,(nrad))
- ABI_ALLOCATE(vxci,(nrad))
- ABI_ALLOCATE(rhoarr,(nrad))
- ABI_ALLOCATE(rhoarr_ep,(nrad))
+ LIBPAW_ALLOCATE(fxci,(nrad))
+ LIBPAW_ALLOCATE(vxci,(nrad))
+ LIBPAW_ALLOCATE(rhoarr,(nrad))
+ LIBPAW_ALLOCATE(rhoarr_ep,(nrad))
  if (option==0.or.option==2)  then
-   ABI_ALLOCATE(rhoarrdc,(nrad))
+   LIBPAW_ALLOCATE(rhoarrdc,(nrad))
  end if
 
 !----------------------------------------------------------------------
@@ -1632,17 +1629,17 @@ subroutine pawxcpositron(calctype,corexc,enxc,enxcdc,ixcpositron,lm_size,lmselec
 !  ----------------------------------------------------------------------
 
 !  electron-positron correlation for the positron
-   ABI_ALLOCATE(vxci_ep,(nrad))
-   ABI_ALLOCATE(vxcigr,(ngr))
-   ABI_ALLOCATE(grho2,(ngr))
+   LIBPAW_ALLOCATE(vxci_ep,(nrad))
+   LIBPAW_ALLOCATE(vxcigr,(ngr))
+   LIBPAW_ALLOCATE(grho2,(ngr))
    if (calctype==1) then
      call pawxc_xcpositron_wrapper(fxci,grho2,ixcpositron,ngr,nrad,posdensity0_limit,rhoarr_ep,rhoarr,vxci_ep,vxcigr,vxci)
    else if (calctype==2) then
      call pawxc_xcpositron_wrapper(fxci,grho2,ixcpositron,ngr,nrad,posdensity0_limit,rhoarr,rhoarr_ep,vxci,vxcigr,vxci_ep)
    end if
-   ABI_DEALLOCATE(vxci_ep)
-   ABI_DEALLOCATE(vxcigr)
-   ABI_DEALLOCATE(grho2)
+   LIBPAW_DEALLOCATE(vxci_ep)
+   LIBPAW_DEALLOCATE(vxcigr)
+   LIBPAW_DEALLOCATE(grho2)
 
 !  ----------------------------------------------------------------------
 !  ----- Accumulate and store XC potential
@@ -1659,10 +1656,10 @@ subroutine pawxcpositron(calctype,corexc,enxc,enxcdc,ixcpositron,lm_size,lmselec
 
 !  ----- Calculate Exc term
    if (option/=1) then
-     ABI_ALLOCATE(ff,(nrad))
+     LIBPAW_ALLOCATE(ff,(nrad))
      ff(:)=fxci(:)*pawrad%rad(:)**2
      call simp_gen(enxcr,ff,pawrad)
-     ABI_DEALLOCATE(ff)
+     LIBPAW_DEALLOCATE(ff)
      if (option/=4) enxc=enxc+enxcr*pawang%angwgth(ipts)
      if (option==4) enxc=enxc+enxcr
    end if
@@ -1676,10 +1673,10 @@ subroutine pawxcpositron(calctype,corexc,enxc,enxcdc,ixcpositron,lm_size,lmselec
          end if
        end do
      end if
-     ABI_ALLOCATE(ff,(nrad))
+     LIBPAW_ALLOCATE(ff,(nrad))
      ff(:)=vxci(:)*rhoarrdc(:)*pawrad%rad(:)**2
      call simp_gen(vxcrho,ff,pawrad)
-     ABI_DEALLOCATE(ff)
+     LIBPAW_DEALLOCATE(ff)
      enxcdc=enxcdc+vxcrho*pawang%angwgth(ipts)
    end if
 
@@ -1692,12 +1689,12 @@ subroutine pawxcpositron(calctype,corexc,enxc,enxcdc,ixcpositron,lm_size,lmselec
  if (option==0.or.option==2) enxcdc=enxcdc*four_pi
 
 !Deallocations
- ABI_DEALLOCATE(fxci)
- ABI_DEALLOCATE(vxci)
- ABI_DEALLOCATE(rhoarr)
- ABI_DEALLOCATE(rhoarr_ep)
+ LIBPAW_DEALLOCATE(fxci)
+ LIBPAW_DEALLOCATE(vxci)
+ LIBPAW_DEALLOCATE(rhoarr)
+ LIBPAW_DEALLOCATE(rhoarr_ep)
  if (option==0.or.option==2)  then
-   ABI_DEALLOCATE(rhoarrdc)
+   LIBPAW_DEALLOCATE(rhoarrdc)
  end if
 
  DBG_EXIT("COLL")
@@ -1877,14 +1874,14 @@ subroutine pawxc3_gga(corexc1,cplex_den,cplex_vxc,d2enxc,ixc,kxc,lm_size,lmselec
    return
  end if
 
- ABI_ALLOCATE(rho1arr,(cplex_den*nrad,nspden,npts))
+ LIBPAW_ALLOCATE(rho1arr,(cplex_den*nrad,nspden,npts))
  if (usexcnhat>0) then
-   ABI_ALLOCATE(rhohat1,(cplex_den*nrad,lm_size,nspden))
+   LIBPAW_ALLOCATE(rhohat1,(cplex_den*nrad,lm_size,nspden))
    rhohat1(:,:,:)=rhor1(:,:,:)+nhat1(:,:,:)
  end if
 
  if (option==2) then
-   ABI_ALLOCATE(vxc1_,(cplex_vxc*nrad,npts,nspden))
+   LIBPAW_ALLOCATE(vxc1_,(cplex_vxc*nrad,npts,nspden))
  else
    vxc1_ => vxc1
  end if
@@ -1892,32 +1889,32 @@ subroutine pawxc3_gga(corexc1,cplex_den,cplex_vxc,d2enxc,ixc,kxc,lm_size,lmselec
 !Need gradients and additional allocations in case of GGA
  if (xclevel==2.and.option/=3) then
    nspden2=2 ! Force spin-polarized
-   ABI_ALLOCATE(rho_updn,(nrad,nspden2))
-   ABI_ALLOCATE(rho1_updn,(cplex_den*nrad,nspden2))
-   ABI_ALLOCATE(grho_updn,(cplex_den*nrad,nspden2,3))
-   ABI_ALLOCATE(grho1_updn,(cplex_den*nrad,nspden2,3))
-   ABI_ALLOCATE(gxc1,(cplex_vxc*nrad,3,pawang%ylm_size,nspden2))
+   LIBPAW_ALLOCATE(rho_updn,(nrad,nspden2))
+   LIBPAW_ALLOCATE(rho1_updn,(cplex_den*nrad,nspden2))
+   LIBPAW_ALLOCATE(grho_updn,(cplex_den*nrad,nspden2,3))
+   LIBPAW_ALLOCATE(grho1_updn,(cplex_den*nrad,nspden2,3))
+   LIBPAW_ALLOCATE(gxc1,(cplex_vxc*nrad,3,pawang%ylm_size,nspden2))
    gxc1=zero
    if (usecore==1) then
-     ABI_ALLOCATE(drho1core,(nrad,cplex_den))
+     LIBPAW_ALLOCATE(drho1core,(nrad,cplex_den))
      if (cplex_den==1)  then
        call nderiv_gen(drho1core,corexc1,1,pawrad)
      else
-       ABI_ALLOCATE(ff,(nrad))
-       ABI_ALLOCATE(gg,(nrad))
+       LIBPAW_ALLOCATE(ff,(nrad))
+       LIBPAW_ALLOCATE(gg,(nrad))
        do ir=1,nrad
          ff(ir)=corexc1(2*ir-1)
          gg(ir)=corexc1(2*ir  )
        end do
        call nderiv_gen(drho1core(:,1),ff,1,pawrad)
        call nderiv_gen(drho1core(:,2),gg,1,pawrad)
-       ABI_DEALLOCATE(ff)
-       ABI_DEALLOCATE(gg)
+       LIBPAW_DEALLOCATE(ff)
+       LIBPAW_DEALLOCATE(gg)
      end if
    end if
 !  Convert Ylm derivatives from normalized to standard cartesian coordinates
 !  dYlm/dr_i = { dYlm/dr_i^hat - Sum_j[ dYlm/dr_j^hat (r_j/r)] } * (1/r)
-   ABI_ALLOCATE(dylmdr,(3,npts,pawang%ylm_size))
+   LIBPAW_ALLOCATE(dylmdr,(3,npts,pawang%ylm_size))
    do ilm=1,pawang%ylm_size
      do ipts=1,npts
        factor=sum(pawang%ylmrgr(1:3,ilm,ipts)*pawang%anginit(1:3,ipts))
@@ -2050,9 +2047,9 @@ subroutine pawxc3_gga(corexc1,cplex_den,cplex_vxc,d2enxc,ixc,kxc,lm_size,lmselec
 
 !      First store the 1st-order density and its gradient in (up+dn,up) format
        rho1_updn(:,:)=rho1arr(:,:,ipts);grho1_updn(:,:,1:3)=zero
-       ABI_ALLOCATE(drho1,(nrad,cplex_den))
+       LIBPAW_ALLOCATE(drho1,(nrad,cplex_den))
        if (cplex_den==1) then
-         ABI_ALLOCATE(ff,(nrad))
+         LIBPAW_ALLOCATE(ff,(nrad))
          do ispden=1,min(nspden,nspden2)
            do ilm=1,lm_size_eff
              if (lmselect(ilm)) then
@@ -2068,10 +2065,10 @@ subroutine pawxc3_gga(corexc1,cplex_den,cplex_vxc,d2enxc,ixc,kxc,lm_size,lmselec
              end if
            end do
          end do
-         ABI_DEALLOCATE(ff)
+         LIBPAW_DEALLOCATE(ff)
        else
-         ABI_ALLOCATE(ff,(nrad))
-         ABI_ALLOCATE(gg,(nrad))
+         LIBPAW_ALLOCATE(ff,(nrad))
+         LIBPAW_ALLOCATE(gg,(nrad))
          do ispden=1,min(nspden,nspden2)
            do ilm=1,lm_size_eff
              if (lmselect(ilm)) then
@@ -2099,8 +2096,8 @@ subroutine pawxc3_gga(corexc1,cplex_den,cplex_vxc,d2enxc,ixc,kxc,lm_size,lmselec
              end if
            end do
          end do
-         ABI_DEALLOCATE(ff)
-         ABI_DEALLOCATE(gg)
+         LIBPAW_DEALLOCATE(ff)
+         LIBPAW_DEALLOCATE(gg)
        end if
        if (usecore==1) then
          if (cplex_den==1) then
@@ -2126,7 +2123,7 @@ subroutine pawxc3_gga(corexc1,cplex_den,cplex_vxc,d2enxc,ixc,kxc,lm_size,lmselec
            end do
          end if
        end if
-       ABI_DEALLOCATE(drho1)
+       LIBPAW_DEALLOCATE(drho1)
 
 !      Translate the 1st-order density and its gradient  in (up,dn) format
        if (nspden2==1) then
@@ -2296,15 +2293,15 @@ subroutine pawxc3_gga(corexc1,cplex_den,cplex_vxc,d2enxc,ixc,kxc,lm_size,lmselec
 !Deallocate memory
  nullify(rho1_)
  if (usexcnhat>0)  then
-   ABI_DEALLOCATE(rhohat1)
+   LIBPAW_DEALLOCATE(rhohat1)
  end if
  if (xclevel==2.and.option/=3) then
-   ABI_DEALLOCATE(rho_updn)
-   ABI_DEALLOCATE(rho1_updn)
-   ABI_DEALLOCATE(grho_updn)
-   ABI_DEALLOCATE(grho1_updn)
+   LIBPAW_DEALLOCATE(rho_updn)
+   LIBPAW_DEALLOCATE(rho1_updn)
+   LIBPAW_DEALLOCATE(grho_updn)
+   LIBPAW_DEALLOCATE(grho1_updn)
    if (usecore==1)  then
-     ABI_DEALLOCATE(drho1core)
+     LIBPAW_DEALLOCATE(drho1core)
    end if
  end if
 
@@ -2313,11 +2310,11 @@ subroutine pawxc3_gga(corexc1,cplex_den,cplex_vxc,d2enxc,ixc,kxc,lm_size,lmselec
 !----------------------------------------------------------------------
  if (xclevel==2.and.ixc/=13.and.option/=3) then
 !  Compute divergence of gxc1 and substract it from Vxc
-   ABI_ALLOCATE(dgxc1,(cplex_vxc*nrad))
+   LIBPAW_ALLOCATE(dgxc1,(cplex_vxc*nrad))
 !  Need to multiply gxc by 2 in the non-polarised case
    factor=one;if (nspden2==1) factor=two
    if (cplex_vxc==1) then
-     ABI_ALLOCATE(ff,(nrad))
+     LIBPAW_ALLOCATE(ff,(nrad))
      do ispden=1,nspden
 !      do ispden=1,nspden2
        do ilm=1,pawang%ylm_size
@@ -2334,10 +2331,10 @@ subroutine pawxc3_gga(corexc1,cplex_den,cplex_vxc,d2enxc,ixc,kxc,lm_size,lmselec
          end do
        end do
      end do
-     ABI_DEALLOCATE(ff)
+     LIBPAW_DEALLOCATE(ff)
 !    else
-!    ABI_ALLOCATE(ff,(nrad))
-!    ABI_ALLOCATE(gg,(nrad))
+!    LIBPAW_ALLOCATE(ff,(nrad))
+!    LIBPAW_ALLOCATE(gg,(nrad))
 !    do ispden=1,nspden
 !    !      do ispden=1,nspden2
 !    do ilm=1,pawang%ylm_size
@@ -2367,10 +2364,10 @@ subroutine pawxc3_gga(corexc1,cplex_den,cplex_vxc,d2enxc,ixc,kxc,lm_size,lmselec
 !    end do
 !    end do
 !    end do
-!    ABI_DEALLOCATE(ff)
-!    ABI_DEALLOCATE(gg)
+!    LIBPAW_DEALLOCATE(ff)
+!    LIBPAW_DEALLOCATE(gg)
 !    end if
-     ABI_DEALLOCATE(dgxc1)
+     LIBPAW_DEALLOCATE(dgxc1)
    end if
 
  end if ! GGA
@@ -2393,9 +2390,9 @@ subroutine pawxc3_gga(corexc1,cplex_den,cplex_vxc,d2enxc,ixc,kxc,lm_size,lmselec
      end if
 
 !    ----- Calculate d2Exc=Int[Vxc^(1)^*(r).n^(1)(r).dr]
-     ABI_ALLOCATE(ff,(nrad))
+     LIBPAW_ALLOCATE(ff,(nrad))
      if (need_impart) then
-       ABI_ALLOCATE(gg,(nrad))
+       LIBPAW_ALLOCATE(gg,(nrad))
      end if
 
 !    COLLINEAR MAGNETISM
@@ -2509,13 +2506,13 @@ subroutine pawxc3_gga(corexc1,cplex_den,cplex_vxc,d2enxc,ixc,kxc,lm_size,lmselec
      ff(:)=ff(:)*pawrad%rad(:)**2
      call simp_gen(vxcrho,ff,pawrad)
      d2enxc=d2enxc+vxcrho*pawang%angwgth(ipts)
-     ABI_DEALLOCATE(ff)
+     LIBPAW_DEALLOCATE(ff)
 
      if (need_impart) then
        gg(:)=gg(:)*pawrad%rad(:)**2
        call simp_gen(vxcrho,gg,pawrad)
        d2enxc_im=d2enxc_im+vxcrho*pawang%angwgth(ipts)
-       ABI_DEALLOCATE(gg)
+       LIBPAW_DEALLOCATE(gg)
      end if
 
 !    ----- End of the loop on npts (angular part)
@@ -2530,13 +2527,13 @@ subroutine pawxc3_gga(corexc1,cplex_den,cplex_vxc,d2enxc,ixc,kxc,lm_size,lmselec
  end if
 
 !Free memory
- ABI_DEALLOCATE(rho1arr)
+ LIBPAW_DEALLOCATE(rho1arr)
  if (option==2) then
-   ABI_DEALLOCATE(vxc1_)
+   LIBPAW_DEALLOCATE(vxc1_)
  end if
  if (xclevel==2.and.option/=3) then
-   ABI_DEALLOCATE(gxc1)
-   ABI_DEALLOCATE(dylmdr)
+   LIBPAW_DEALLOCATE(gxc1)
+   LIBPAW_DEALLOCATE(dylmdr)
  end if
 
 ! call timab(81,2,tsec)
@@ -2707,8 +2704,8 @@ subroutine pawxc3(corexc1,cplex_den,cplex_vxc,d2enxc,ixc,kxc,lm_size,lmselect,nh
    return
  end if
 
- ABI_ALLOCATE(rho1arr,(cplex_den*nrad,nspden))
- ABI_ALLOCATE(vxc1_,(cplex_vxc*nrad,nspden))
+ LIBPAW_ALLOCATE(rho1arr,(cplex_den*nrad,nspden))
+ LIBPAW_ALLOCATE(vxc1_,(cplex_vxc*nrad,nspden))
 
 !----------------------------------------------------------------------
 !----- Loop on the angular part and inits
@@ -2831,9 +2828,9 @@ subroutine pawxc3(corexc1,cplex_den,cplex_vxc,d2enxc,ixc,kxc,lm_size,lmselect,nh
      end if
 
 !    ----- Calculate d2Exc=Int[Vxc^(1)^*(r).n^(1)(r).dr]
-     ABI_ALLOCATE(ff,(nrad))
+     LIBPAW_ALLOCATE(ff,(nrad))
      if (need_impart) then
-       ABI_ALLOCATE(gg,(nrad))
+       LIBPAW_ALLOCATE(gg,(nrad))
      end if
 
 !    COLLINEAR MAGNETISM
@@ -2947,13 +2944,13 @@ subroutine pawxc3(corexc1,cplex_den,cplex_vxc,d2enxc,ixc,kxc,lm_size,lmselect,nh
      ff(:)=ff(:)*pawrad%rad(:)**2
      call simp_gen(vxcrho,ff,pawrad)
      d2enxc=d2enxc+vxcrho*pawang%angwgth(ipts)
-     ABI_DEALLOCATE(ff)
+     LIBPAW_DEALLOCATE(ff)
 
      if (need_impart) then
        gg(:)=gg(:)*pawrad%rad(:)**2
        call simp_gen(vxcrho,gg,pawrad)
        d2enxc_im=d2enxc_im+vxcrho*pawang%angwgth(ipts)
-       ABI_DEALLOCATE(gg)
+       LIBPAW_DEALLOCATE(gg)
      end if
 
    end if
@@ -2967,8 +2964,8 @@ subroutine pawxc3(corexc1,cplex_den,cplex_vxc,d2enxc,ixc,kxc,lm_size,lmselect,nh
    if (need_impart) d2enxc_im=d2enxc_im*four_pi
  end if
 
- ABI_DEALLOCATE(rho1arr)
- ABI_DEALLOCATE(vxc1_)
+ LIBPAW_DEALLOCATE(rho1arr)
+ LIBPAW_DEALLOCATE(vxc1_)
 
 ! call timab(81,2,tsec)
 
@@ -3077,20 +3074,20 @@ end subroutine pawxc3
 !-------------- GGA: computation of the gradient of the density
 !--------------------------------------------------------------------------
 
- ABI_ALLOCATE(grho2,(nrad,ngr2))
+ LIBPAW_ALLOCATE(grho2,(nrad,ngr2))
  if (xclevel==2) then
 
 !  grho_updn contains the gradient of the radial part
 !  grho2(:,1:3) contains the squared norm of this gradient (up, dn and total)
-   ABI_ALLOCATE(grho_updn,(nrad,nspden))
+   LIBPAW_ALLOCATE(grho_updn,(nrad,nspden))
 
 !  Gradient of radial part of density
-   ABI_ALLOCATE(dff,(nrad))
+   LIBPAW_ALLOCATE(dff,(nrad))
    do ispden=1,nspden
      call nderiv_gen(dff,rho_updn(:,ispden),1,pawrad)
      grho_updn(:,ispden)=dff(:)
    end do
-   ABI_DEALLOCATE(dff)
+   LIBPAW_DEALLOCATE(dff)
 
 !  Squared norm of the gradient
    grho2(:,1)=grho_updn(:,1)**2
@@ -3106,8 +3103,8 @@ end subroutine pawxc3
 !--------------------------------------------------------------------------
 
 !Allocate arrays
- ABI_ALLOCATE(dvxci,(nrad,ndvxc))
- ABI_ALLOCATE(dvxcdgr,(nrad,nvxcdgr))
+ LIBPAW_ALLOCATE(dvxci,(nrad,ndvxc))
+ LIBPAW_ALLOCATE(dvxcdgr,(nrad,nvxcdgr))
 
 !Call to main XC driver
  call pawxc_drivexc_main_wrapper(exc,ixc,mgga,ndvxc,nd2vxc,ngr2,nrad,nspden,nvxcdgr,order,rho_updn,vxc,xclevel, &
@@ -3134,7 +3131,7 @@ end subroutine pawxc3
      end do
    end if
  end if
- ABI_DEALLOCATE(dvxci)
+ LIBPAW_DEALLOCATE(dvxci)
 
 !--------------------------------------------------------------------------
 !-------------- GGA: gardient corrections
@@ -3155,7 +3152,7 @@ end subroutine pawxc3
 !  and if xclevel=2, dnexcdn(:,3)=1/|grad n_up|*d(n.exc)/d(|grad n_up|)
 !  dnexcdn(:,4)=1/|grad n_down|*d(n.exc)/d(|grad n_down|)
 !  dnexcdn(:,5)=1/|grad n|*d(n.exc)/d(|grad n|)
-   ABI_ALLOCATE(dnexcdn,(nrad,nspgrad))
+   LIBPAW_ALLOCATE(dnexcdn,(nrad,nspgrad))
 !  LDA term
    dnexcdn(:,1:nspden)=vxc(:,1:nspden)
 !  Additional GGA terms
@@ -3205,17 +3202,17 @@ end subroutine pawxc3
        end do
      end if
    end if
-   ABI_DEALLOCATE(dnexcdn)
+   LIBPAW_DEALLOCATE(dnexcdn)
 
 !  Compute Vxc
-   ABI_ALLOCATE(dff,(nrad))
+   LIBPAW_ALLOCATE(dff,(nrad))
    fact=one;if (nspden==1) fact=two
    do ispden=1,nspden
      call nderiv_gen(dff,grho_updn(:,ispden),1,pawrad)
      vxc(2:nrad,ispden)=vxc(2:nrad,ispden)-fact*(dff(2:nrad)+two*grho_updn(2:nrad,ispden)/pawrad%rad(2:nrad))
      call pawrad_deducer0(vxc(:,ispden),nrad,pawrad)
    end do
-   ABI_DEALLOCATE(dff)
+   LIBPAW_DEALLOCATE(dff)
 
  end if ! xclevel==2
 
@@ -3223,10 +3220,10 @@ end subroutine pawxc3
 !-------------- Deallocations
 !--------------------------------------------------------------------------
 
- ABI_DEALLOCATE(grho2)
- ABI_DEALLOCATE(dvxcdgr)
+ LIBPAW_DEALLOCATE(grho2)
+ LIBPAW_DEALLOCATE(dvxcdgr)
  if (xclevel==2)  then
-   ABI_DEALLOCATE(grho_updn)
+   LIBPAW_DEALLOCATE(grho_updn)
  end if
 
 end subroutine pawxcsph
@@ -3325,14 +3322,14 @@ subroutine pawxcsph3(cplex_den,cplex_vxc,ixc,nrad,nspden,pawrad,rho_updn,rho1_up
 !-------------- GGA: computation of the gradients of the densities
 !--------------------------------------------------------------------------
 
- ABI_ALLOCATE(grho2,(nrad,ngr2))
+ LIBPAW_ALLOCATE(grho2,(nrad,ngr2))
  if (ngrad==2) then
 
-   ABI_ALLOCATE(grho_updn,(nrad,nspden))
-   ABI_ALLOCATE(grho1_updn,(cplex_den*nrad,nspden))
+   LIBPAW_ALLOCATE(grho_updn,(nrad,nspden))
+   LIBPAW_ALLOCATE(grho1_updn,(cplex_den*nrad,nspden))
 
 !  Gradient of density
-   ABI_ALLOCATE(dff,(nrad))
+   LIBPAW_ALLOCATE(dff,(nrad))
    do ispden=1,nspden
      call nderiv_gen(dff,rho_updn(:,ispden),1,pawrad)
      grho_updn(:,ispden)=dff(:)
@@ -3344,9 +3341,9 @@ subroutine pawxcsph3(cplex_den,cplex_vxc,ixc,nrad,nspden,pawrad,rho_updn,rho1_up
        grho1_updn(:,ispden)=dff(:)
      end do
    else
-     ABI_ALLOCATE(ff,(nrad))
-     ABI_ALLOCATE(gg,(nrad))
-     ABI_ALLOCATE(dgg,(nrad))
+     LIBPAW_ALLOCATE(ff,(nrad))
+     LIBPAW_ALLOCATE(gg,(nrad))
+     LIBPAW_ALLOCATE(dgg,(nrad))
      do ispden=1,nspden
        do ir=1,nrad
          ff(ir)=rho1_updn(2*ir-1,ispden)
@@ -3359,11 +3356,11 @@ subroutine pawxcsph3(cplex_den,cplex_vxc,ixc,nrad,nspden,pawrad,rho_updn,rho1_up
          grho1_updn(2*ir  ,ispden)=dgg(ir)
        end do
      end do
-     ABI_DEALLOCATE(ff)
-     ABI_DEALLOCATE(gg)
-     ABI_DEALLOCATE(dgg)
+     LIBPAW_DEALLOCATE(ff)
+     LIBPAW_DEALLOCATE(gg)
+     LIBPAW_DEALLOCATE(dgg)
    end if
-   ABI_DEALLOCATE(dff)
+   LIBPAW_DEALLOCATE(dff)
 
 !  Squared norm of the gradient
    grho2(:,1)=grho_updn(:,1)**2
@@ -3378,10 +3375,10 @@ subroutine pawxcsph3(cplex_den,cplex_vxc,ixc,nrad,nspden,pawrad,rho_updn,rho1_up
 !-------------- Computation of Kxc (and Exc, Vxc)
 !--------------------------------------------------------------------------
 
- ABI_ALLOCATE(exc,(nrad))
- ABI_ALLOCATE(vxc,(nrad,nspden))
- ABI_ALLOCATE(dvxc,(nrad,ndvxc))
- ABI_ALLOCATE(dvxcdgr,(nrad,nvxcdgr))
+ LIBPAW_ALLOCATE(exc,(nrad))
+ LIBPAW_ALLOCATE(vxc,(nrad,nspden))
+ LIBPAW_ALLOCATE(dvxc,(nrad,ndvxc))
+ LIBPAW_ALLOCATE(dvxcdgr,(nrad,nvxcdgr))
 
 !Call to main XC driver
  call pawxc_drivexc_main_wrapper(exc,ixc,mgga,ndvxc,nd2vxc,ngr2,nrad,nspden,nvxcdgr,order,rho_updn,vxc,xclevel, &
@@ -3389,7 +3386,7 @@ subroutine pawxcsph3(cplex_den,cplex_vxc,ixc,nrad,nspden,pawrad,rho_updn,rho1_up
 
 
 !Transfer the XC kernel
- ABI_ALLOCATE(kxc,(nrad,nkxc))
+ LIBPAW_ALLOCATE(kxc,(nrad,nkxc))
  kxc(1:nrad,1:nkxc)=zero
  if (nkxc==1.and.ndvxc==15) then
    kxc(1:nrad,1)=half*(dvxc(1:nrad,1)+dvxc(1:nrad,9)+dvxc(1:nrad,10))
@@ -3401,10 +3398,10 @@ subroutine pawxcsph3(cplex_den,cplex_vxc,ixc,nrad,nspden,pawrad,rho_updn,rho1_up
    kxc(1:nrad,1:min(nkxc,ndvxc))=dvxc(1:nrad,1:min(nkxc,ndvxc))
  end if
 
- ABI_DEALLOCATE(exc)
- ABI_DEALLOCATE(vxc)
- ABI_DEALLOCATE(dvxc)
- ABI_DEALLOCATE(dvxcdgr)
+ LIBPAW_DEALLOCATE(exc)
+ LIBPAW_DEALLOCATE(vxc)
+ LIBPAW_DEALLOCATE(dvxc)
+ LIBPAW_DEALLOCATE(dvxcdgr)
 
 !--------------------------------------------------------------------------
 !-------------- LDA
@@ -3433,10 +3430,10 @@ subroutine pawxcsph3(cplex_den,cplex_vxc,ixc,nrad,nspden,pawrad,rho_updn,rho1_up
 
 !  FOR NSPDEN=1, should eliminate computation of gxc1i(...), vxc1i(...)
 
-   ABI_ALLOCATE(vxc1r,(nrad,2))
-   ABI_ALLOCATE(vxc1i,(nrad,2))
-   ABI_ALLOCATE(gxc1r,(nrad,2))
-   ABI_ALLOCATE(gxc1i,(nrad,2))
+   LIBPAW_ALLOCATE(vxc1r,(nrad,2))
+   LIBPAW_ALLOCATE(vxc1i,(nrad,2))
+   LIBPAW_ALLOCATE(gxc1r,(nrad,2))
+   LIBPAW_ALLOCATE(gxc1i,(nrad,2))
    do ir=1,nrad
      if (cplex_vxc==1) then  ! cplex_vxc==1 and (cplex_den==1 or cplex_den=2)
        jr=cplex_den*(ir-1)+1
@@ -3460,18 +3457,18 @@ subroutine pawxcsph3(cplex_den,cplex_vxc,ixc,nrad,nspden,pawrad,rho_updn,rho1_up
 !  Apply divergence
    fact=one;if (nspden==1) fact=two  ! Is it true  ? we force nspden=2 for gxc...
    if (cplex_vxc==1) then
-     ABI_ALLOCATE(dff,(nrad))
+     LIBPAW_ALLOCATE(dff,(nrad))
      do ispden=1,nspden
        call nderiv_gen(dff,gxc1r(:,ispden),1,pawrad)
        vxc1(2:nrad,ispden)=vxc1r(2:nrad,ispden)-fact*(dff(2:nrad)+two*gxc1r(2:nrad,ispden)/pawrad%rad(2:nrad))
        call pawrad_deducer0(vxc1(:,ispden),nrad,pawrad)
      end do
-     ABI_DEALLOCATE(dff)
+     LIBPAW_DEALLOCATE(dff)
    else
-     ABI_ALLOCATE(dff,(nrad))
-     ABI_ALLOCATE(dgg,(nrad))
-     ABI_ALLOCATE(ff,(nrad))
-     ABI_ALLOCATE(gg,(nrad))
+     LIBPAW_ALLOCATE(dff,(nrad))
+     LIBPAW_ALLOCATE(dgg,(nrad))
+     LIBPAW_ALLOCATE(ff,(nrad))
+     LIBPAW_ALLOCATE(gg,(nrad))
      do ispden=1,nspden
        call nderiv_gen(dff,gxc1r(:,ispden),1,pawrad)
        call nderiv_gen(dgg,gxc1i(:,ispden),1,pawrad)
@@ -3484,16 +3481,16 @@ subroutine pawxcsph3(cplex_den,cplex_vxc,ixc,nrad,nspden,pawrad,rho_updn,rho1_up
          vxc1(2*ir  ,ispden)=gg(ir)
        end do
      end do
-     ABI_DEALLOCATE(dff)
-     ABI_DEALLOCATE(dgg)
-     ABI_DEALLOCATE(ff)
-     ABI_DEALLOCATE(gg)
+     LIBPAW_DEALLOCATE(dff)
+     LIBPAW_DEALLOCATE(dgg)
+     LIBPAW_DEALLOCATE(ff)
+     LIBPAW_DEALLOCATE(gg)
    end if
 
-   ABI_DEALLOCATE(vxc1r)
-   ABI_DEALLOCATE(vxc1i)
-   ABI_DEALLOCATE(gxc1r)
-   ABI_DEALLOCATE(gxc1i)
+   LIBPAW_DEALLOCATE(vxc1r)
+   LIBPAW_DEALLOCATE(vxc1i)
+   LIBPAW_DEALLOCATE(gxc1r)
+   LIBPAW_DEALLOCATE(gxc1i)
 
  end if ! ngrad==2
 
@@ -3501,11 +3498,11 @@ subroutine pawxcsph3(cplex_den,cplex_vxc,ixc,nrad,nspden,pawrad,rho_updn,rho1_up
 !-------------- Deallocations
 !--------------------------------------------------------------------------
 
- ABI_DEALLOCATE(grho2)
- ABI_DEALLOCATE(kxc)
+ LIBPAW_DEALLOCATE(grho2)
+ LIBPAW_DEALLOCATE(kxc)
  if (ngrad==2) then
-   ABI_DEALLOCATE(grho_updn)
-   ABI_DEALLOCATE(grho1_updn)
+   LIBPAW_DEALLOCATE(grho_updn)
+   LIBPAW_DEALLOCATE(grho1_updn)
  end if
 
 end subroutine pawxcsph3
@@ -3587,9 +3584,9 @@ end subroutine pawxcsph3
 
 !Need gradient of density for GGA
  ngr=0;if (ixcpositron==3.or.ixcpositron==31) ngr=nrad
- ABI_ALLOCATE(rhograd,(ngr))
- ABI_ALLOCATE(rhograd2,(ngr))
- ABI_ALLOCATE(vxcegr,(ngr))
+ LIBPAW_ALLOCATE(rhograd,(ngr))
+ LIBPAW_ALLOCATE(rhograd2,(ngr))
+ LIBPAW_ALLOCATE(vxcegr,(ngr))
  if (ngr==nrad) then
    if (calctype==1) then
      call nderiv_gen(rhograd,rho_ep,1,pawrad)
@@ -3612,20 +3609,20 @@ end subroutine pawxcsph3
    call pawxc_xcpositron_wrapper(fxc,rhograd2,ixcpositron,ngr,nrad,posdensity0_limit,rho,rho_ep,vxce,vxcegr,vxcp)
  end if
 
- ABI_DEALLOCATE(rhograd2)
+ LIBPAW_DEALLOCATE(rhograd2)
 
 !---- GGA - gradient corrections
  if (ngr==nrad) then
-   ABI_ALLOCATE(dff,(nrad))
+   LIBPAW_ALLOCATE(dff,(nrad))
    vxcegr(1:nrad)=vxcegr(1:nrad)*rhograd(1:nrad)
    call nderiv_gen(dff,vxcegr,1,pawrad)
    vxcp(2:nrad)=vxcp(2:nrad)-(dff(2:nrad)+two*vxcegr(2:nrad)/pawrad%rad(2:nrad))
    call pawrad_deducer0(vxcp,nrad,pawrad)
-   ABI_DEALLOCATE(dff)
+   LIBPAW_DEALLOCATE(dff)
  end if
 
- ABI_DEALLOCATE(vxcegr)
- ABI_DEALLOCATE(rhograd)
+ LIBPAW_DEALLOCATE(vxcegr)
+ LIBPAW_DEALLOCATE(rhograd)
 
 end subroutine pawxcsphpositron
 !!***
@@ -4132,7 +4129,7 @@ end subroutine pawxcsphpositron
 !rho_updn contains the effective density used for XC
 !with core density and/or compensation density eventually included
 !-----------------------------------------------------------------
- ABI_ALLOCATE(rho_updn,(nrad,lm_size,nspden))
+ LIBPAW_ALLOCATE(rho_updn,(nrad,lm_size,nspden))
  rho_updn(:,:,:)=rhor(:,:,:)
  if (usexcnhat==2) rho_updn(:,:,:)=rho_updn(:,:,:)+nhat(:,:,:)
  if (usecore==1) then
@@ -4146,19 +4143,19 @@ end subroutine pawxcsphpositron
 
 !In case of collinear magnetism, separate up and down contributions
  if (nspden==2) then
-   ABI_ALLOCATE(ff,(nrad))
+   LIBPAW_ALLOCATE(ff,(nrad))
    do ilm=1,lm_size
      ff(:)=rho_updn(:,ilm,2)
      rho_updn(:,ilm,2)=rho_updn(:,ilm,1)-ff(:)
      rho_updn(:,ilm,1)=ff(:)
    end do
-   ABI_DEALLOCATE(ff)
+   LIBPAW_DEALLOCATE(ff)
  end if
 
 !rhoSPH contains the spherical part of effective density
 !(including Y00 spherical harmonic)
 !-----------------------------------------------------------------
- ABI_ALLOCATE(rhosph,(nrad,nspden_updn))
+ LIBPAW_ALLOCATE(rhosph,(nrad,nspden_updn))
 
 !Non-magnetic system: rhoSPH(;,1)=(1/2).rhoSPH_total
  if (nspden==1) then
@@ -4171,7 +4168,7 @@ end subroutine pawxcsphpositron
 !  Non-collinear magnetism: rhoSPH = (rhoSPH_up, rhoSPH_dn)
 !  obtained by rotating rho_updn
  else if (nspden==4) then
-   ABI_ALLOCATE(m_norm_inv,(nrad))
+   LIBPAW_ALLOCATE(m_norm_inv,(nrad))
    m_norm_min=EPSILON(0.0_dp)**2
    do ir=1,nrad
      m_norm=sqrt(rho_updn(ir,1,2)**2+rho_updn(ir,1,3)**2+rho_updn(ir,1,4)**2)
@@ -4193,9 +4190,9 @@ end subroutine pawxcsphpositron
 !----- Compute Exc(rhoSPH) and Vxc(rhoSPH)
 !----------------------------------------------------------------------
 
- ABI_ALLOCATE(exci,(nrad))
- ABI_ALLOCATE(vxci,(nrad,nspden_updn))
- ABI_ALLOCATE(kxci,(nrad,nkxc))
+ LIBPAW_ALLOCATE(exci,(nrad))
+ LIBPAW_ALLOCATE(vxci,(nrad,nspden_updn))
+ LIBPAW_ALLOCATE(kxci,(nrad,nkxc))
  call pawxcsph(exci,exexch,ixc,kxci,nkxc,nrad,nspden_updn,pawrad,rhosph,vxci,xclevel)
 
 !----------------------------------------------------------------------
@@ -4203,20 +4200,20 @@ end subroutine pawxcsphpositron
 !----------------------------------------------------------------------
 
  if (option/=4.and.option/=5) then
-   ABI_ALLOCATE(exc_,(nrad))
-   ABI_ALLOCATE(rho_,(nrad,nspden_updn))
+   LIBPAW_ALLOCATE(exc_,(nrad))
+   LIBPAW_ALLOCATE(rho_,(nrad,nspden_updn))
 
    if (nspden_updn==2) rho_(:,2)=rhosph(:,2)
 
 !  Compute Exc, Vxc for rho+delta_rho
-   ABI_ALLOCATE(vxc1,(nrad,nspden_updn))
-   ABI_ALLOCATE(kxc1,(nrad,nkxc))
+   LIBPAW_ALLOCATE(vxc1,(nrad,nspden_updn))
+   LIBPAW_ALLOCATE(kxc1,(nrad,nkxc))
    rho_(:,1)=(one+delta)*rhosph(:,1)
    call pawxcsph(exc_,exexch,ixc,kxc1,nkxc,nrad,nspden_updn,pawrad,rho_,vxc1,xclevel)
 
 !  Compute Exc, Vxc for rho-delta_rho
-   ABI_ALLOCATE(vxc2,(nrad,nspden_updn))
-   ABI_ALLOCATE(kxc2,(nrad,nkxc))
+   LIBPAW_ALLOCATE(vxc2,(nrad,nspden_updn))
+   LIBPAW_ALLOCATE(kxc2,(nrad,nkxc))
    rho_(:,1)=(one-delta)*rhosph(:,1)
    call pawxcsph(exc_,exexch,ixc,kxc2,nkxc,nrad,nspden_updn,pawrad,rho_,vxc2,xclevel)
 
@@ -4225,23 +4222,23 @@ end subroutine pawxcsphpositron
      rho_(:,1)=rhosph(:,1)
 
 !    Compute Exc, Vxc for rho+delta_rho_down
-     ABI_ALLOCATE(vxcdn1,(nrad,nspden_updn))
-     ABI_ALLOCATE(kxcdn1,(nrad,nkxc))
+     LIBPAW_ALLOCATE(vxcdn1,(nrad,nspden_updn))
+     LIBPAW_ALLOCATE(kxcdn1,(nrad,nkxc))
      rho_(:,2)=(one+delta)*rhosph(:,2)
      call pawxcsph(exc_,exexch,ixc,kxcdn1,nkxc,nrad,nspden_updn,pawrad,rho_,vxcdn1,xclevel)
 
 !    Compute Exc, Vxc for rho-delta_rho_down
-     ABI_ALLOCATE(vxcdn2,(nrad,nspden_updn))
-     ABI_ALLOCATE(kxcdn2,(nrad,nkxc))
+     LIBPAW_ALLOCATE(vxcdn2,(nrad,nspden_updn))
+     LIBPAW_ALLOCATE(kxcdn2,(nrad,nkxc))
      rho_(:,2)=(one-delta)*rhosph(:,2)
      call pawxcsph(exc_,exexch,ixc,kxcdn2,nkxc,nrad,nspden_updn,pawrad,rho_,vxcdn2,xclevel)
 
    end if !nspden_updn==2
-   ABI_DEALLOCATE(exc_)
-   ABI_DEALLOCATE(rho_)
+   LIBPAW_DEALLOCATE(exc_)
+   LIBPAW_DEALLOCATE(rho_)
 
 !  Store inverse of density finite step
-   ABI_ALLOCATE(rhoinv,(nrad,nspden_updn))
+   LIBPAW_ALLOCATE(rhoinv,(nrad,nspden_updn))
    fact=one/delta;if (nspden_updn==1) fact=half*fact
    do ispden=1,nspden_updn
      do ir=1,nrad
@@ -4254,7 +4251,7 @@ end subroutine pawxcsphpositron
    end do
 
 !  Compute numerical first derivatives of Vxc (by finite difference scheme)
-   ABI_ALLOCATE(d1vxc,(nrad,2*nspden_updn-1))
+   LIBPAW_ALLOCATE(d1vxc,(nrad,2*nspden_updn-1))
 !  Non-magnetic system: compute dVxc/dn
    if (nspden==1) then
      d1vxc(1:nrad,1)=(vxc1(1:nrad,1)-vxc2(1:nrad,1))*half*rhoinv(1:nrad,1)
@@ -4281,7 +4278,7 @@ end subroutine pawxcsphpositron
 
 !  Compute numerical second derivatives of Vxc (by finite difference scheme)
    if (option/=3.or.pawxcdev>=2) then
-     ABI_ALLOCATE(d2vxc,(nrad,3*nspden_updn-2))
+     LIBPAW_ALLOCATE(d2vxc,(nrad,3*nspden_updn-2))
 !    Non-magnetic system: compute d2Vxc/dn2
      if (nspden==1) then
        d2vxc(1:nrad,1)=(vxc1(1:nrad,1)+vxc2(1:nrad,1)-two*vxci(1:nrad,1))*rhoinv(1:nrad,1)**2
@@ -4315,15 +4312,15 @@ end subroutine pawxcsphpositron
    if (nkxc>0) then
 !    Non-magnetic system: compute dKxc/dn, d2Kxc/dn2
      if (nspden==1) then
-       ABI_ALLOCATE(d1kxc,(nrad,1))
-       ABI_ALLOCATE(d2kxc,(nrad,1))
+       LIBPAW_ALLOCATE(d1kxc,(nrad,1))
+       LIBPAW_ALLOCATE(d2kxc,(nrad,1))
        d1kxc(1:nrad,1)=(kxc1(1:nrad,1)-kxc2(1:nrad,1))*half*rhoinv(1:nrad,1)
        d2kxc(1:nrad,1)=(kxc1(1:nrad,1)+kxc2(1:nrad,1)-two*kxci(1:nrad,1))*rhoinv(1:nrad,1)**2
 !      Collinear magnetism: compute dKxc_upup/dn_up,dKxc_updn/dn_up,dKxc_updn/dn_dn,dKxc_dndn/dn_dn
 !      compute d2Kxc_upup/dn_up2,d2Kxc_updn/dn_up2,d2Kxc_upup/dn_dn2,d2Kxc_updn/dn_dn2,d2Kxc_dndn/dn_dn2
      else if (nspden==2) then
-       ABI_ALLOCATE(d1kxc,(nrad,4))
-       ABI_ALLOCATE(d2kxc,(nrad,5))
+       LIBPAW_ALLOCATE(d1kxc,(nrad,4))
+       LIBPAW_ALLOCATE(d2kxc,(nrad,5))
        d1kxc(1:nrad,1)=(kxc1(1:nrad,1)-kxc2(1:nrad,1))*half*rhoinv(1:nrad,1)     ! dKxc_upup/dn_up
        d1kxc(1:nrad,2)=(kxc1(1:nrad,2)-kxc2(1:nrad,2))*half*rhoinv(1:nrad,1)     ! dKxc_updn/dn_up
        d1kxc(1:nrad,3)=(kxc1(1:nrad,3)-kxc2(1:nrad,3))*half*rhoinv(1:nrad,1)     ! dKxc_dndn/dn_up
@@ -4336,21 +4333,21 @@ end subroutine pawxcsphpositron
      end if
    end if
 
-   ABI_DEALLOCATE(rhoinv)
-   ABI_DEALLOCATE(vxc1)
-   ABI_DEALLOCATE(vxc2)
-   ABI_DEALLOCATE(kxc1)
-   ABI_DEALLOCATE(kxc2)
+   LIBPAW_DEALLOCATE(rhoinv)
+   LIBPAW_DEALLOCATE(vxc1)
+   LIBPAW_DEALLOCATE(vxc2)
+   LIBPAW_DEALLOCATE(kxc1)
+   LIBPAW_DEALLOCATE(kxc2)
    if (nspden_updn==2) then
-     ABI_DEALLOCATE(vxcdn1)
-     ABI_DEALLOCATE(vxcdn2)
-     ABI_DEALLOCATE(kxcdn1)
-     ABI_DEALLOCATE(kxcdn2)
+     LIBPAW_DEALLOCATE(vxcdn1)
+     LIBPAW_DEALLOCATE(vxcdn2)
+     LIBPAW_DEALLOCATE(kxcdn1)
+     LIBPAW_DEALLOCATE(kxcdn2)
    end if
 
  end if ! (option/=4 and option/=5)
 
- ABI_DEALLOCATE(rhosph)
+ LIBPAW_DEALLOCATE(rhosph)
 
 !If non-collinear magnetism, store 1/2(Vxc_up+Vxc_dn) and 1/2(Vxc_up-Vxc_dn)
  if (nspden==4) then
@@ -4367,7 +4364,7 @@ end subroutine pawxcsphpositron
 !  Non-collinear magnetism: V0SUM=(m_0.m_L)/|m_0|
 !  --------------------------------------------------
    if (nspden==4) then
-     ABI_ALLOCATE(v0sum,(nrad,lm_size))
+     LIBPAW_ALLOCATE(v0sum,(nrad,lm_size))
      v0sum(:,1)=zero
      do ilm=2,lm_size
        v0sum(1:nrad,ilm)=(rho_updn(1:nrad,1,2)*rho_updn(1:nrad,ilm,2) &
@@ -4397,14 +4394,14 @@ end subroutine pawxcsphpositron
 !  V2SUM2(r,L)=Sum_L1_L2{n_L1(r) (m_0.m_L2)*Gaunt_(L,L1,L2)}/|m_0|
 !  V2SUM3(r,L)=Sum_L1_L2{(m_0.m_L1)*(m_0.m_L2)*Gaunt_(L,L1,L2)}/|m_0|^2
    if (pawxcdev>=1)  then
-     ABI_ALLOCATE(v1sum,(nrad,nsums))
+     LIBPAW_ALLOCATE(v1sum,(nrad,nsums))
    else
-     ABI_ALLOCATE(v1sum,(0,0))
+     LIBPAW_ALLOCATE(v1sum,(0,0))
    end if
    if (pawxcdev>=2)  then
-     ABI_ALLOCATE(v2sum,(nrad,lm_size,nsums))
+     LIBPAW_ALLOCATE(v2sum,(nrad,lm_size,nsums))
    else 
-     ABI_ALLOCATE(v2sum,(0,0,0))
+     LIBPAW_ALLOCATE(v2sum,(0,0,0))
    end if
    if (nspden/=4) then
      call pawxcsum(1,1,1,lmselect,lmselect,lm_size,nrad,nsums,pawxcdev,pawang,&
@@ -4627,13 +4624,13 @@ end subroutine pawxcsphpositron
  end if ! nkxc>0
 
  if (nspden==4)  then
-   ABI_DEALLOCATE(m_norm_inv)
+   LIBPAW_DEALLOCATE(m_norm_inv)
  end if
 
- ABI_DEALLOCATE(kxci)
+ LIBPAW_DEALLOCATE(kxci)
  if (nkxc>0.and.option/=4.and.option/=5) then
-   ABI_DEALLOCATE(d1kxc)
-   ABI_DEALLOCATE(d2kxc)
+   LIBPAW_DEALLOCATE(d1kxc)
+   LIBPAW_DEALLOCATE(d2kxc)
  end if
 
 !----------------------------------------------------------------------
@@ -4643,7 +4640,7 @@ end subroutine pawxcsphpositron
 !----- Calculate Exc (direct scheme) term
 !----------------------------------------
  if (option/=1.and.option/=5) then
-   ABI_ALLOCATE(ff,(nrad))
+   LIBPAW_ALLOCATE(ff,(nrad))
 
 !  Contribution from spherical part of rho
    if (nspden==1.or.nspden==4) then
@@ -4667,7 +4664,7 @@ end subroutine pawxcsphpositron
 
 !    Second order development
      if (pawxcdev>=2) then
-       ABI_ALLOCATE(gg,(nrad))
+       LIBPAW_ALLOCATE(gg,(nrad))
 
        gg=zero
        do ilm=2,lm_size
@@ -4708,34 +4705,34 @@ end subroutine pawxcsphpositron
          end do
          ff(1:nrad)=ff(1:nrad)+half*gg(1:nrad)*d2vxc(1:nrad,3)
        end if
-       ABI_DEALLOCATE(gg)
+       LIBPAW_DEALLOCATE(gg)
      end if
 
    end if ! option/=4
 
    ff(1:nrad)=ff(1:nrad)*pawrad%rad(1:nrad)**2
    call simp_gen(enxc,ff,pawrad)
-   ABI_DEALLOCATE(ff)
+   LIBPAW_DEALLOCATE(ff)
  end if ! option/=1 and option/=5
 
- ABI_DEALLOCATE(exci)
- ABI_DEALLOCATE(vxci)
+ LIBPAW_DEALLOCATE(exci)
+ LIBPAW_DEALLOCATE(vxci)
  if (nspden==4  .and.option/=4.and.option/=5)  then
-   ABI_DEALLOCATE(v0sum)
+   LIBPAW_DEALLOCATE(v0sum)
  end if
  !if (pawxcdev>=1.and.option/=4.and.option/=5)  then
  if (allocated(v1sum))  then
-   ABI_DEALLOCATE(v1sum)
+   LIBPAW_DEALLOCATE(v1sum)
  end if
  !if (pawxcdev>=2.and.option/=4.and.option/=5)  then
  if (allocated(v2sum))  then
-   ABI_DEALLOCATE(v2sum)
+   LIBPAW_DEALLOCATE(v2sum)
  end if
  if (option/=4.and.option/=5.and.(option/=3.or.pawxcdev>=2))  then
-   ABI_DEALLOCATE(d2vxc)
+   LIBPAW_DEALLOCATE(d2vxc)
  end if
  if (option/=4.and.option/=5)  then
-   ABI_DEALLOCATE(d1vxc)
+   LIBPAW_DEALLOCATE(d1vxc)
  end if
 
 !----- Calculate Excdc double counting term
@@ -4760,7 +4757,7 @@ end subroutine pawxcsphpositron
      end if
    end if
 
-   ABI_ALLOCATE(ff,(nrad))
+   LIBPAW_ALLOCATE(ff,(nrad))
    ff(1:nrad)=zero
 
 !  Non magnetic or collinear magnetic system:
@@ -4785,11 +4782,11 @@ end subroutine pawxcsphpositron
 
    ff(1:nrad)=ff(1:nrad)*pawrad%rad(1:nrad)**2
    call simp_gen(enxcdc,ff,pawrad)
-   ABI_DEALLOCATE(ff)
+   LIBPAW_DEALLOCATE(ff)
 
  end if ! option
 
- ABI_DEALLOCATE(rho_updn)
+ LIBPAW_DEALLOCATE(rho_updn)
 
 !----- End of routine
 ! call timab(81,2,tsec)
@@ -4956,7 +4953,7 @@ end subroutine pawxcsphpositron
 !rho1_updn contains the effective 1st-order density used for XC
 !with 1st-order core density and/or 1st-order compensation density eventually included
 !-----------------------------------------------------------------
- ABI_ALLOCATE(rho1_updn,(cplex_den*nrad,lm_size,nspden))
+ LIBPAW_ALLOCATE(rho1_updn,(cplex_den*nrad,lm_size,nspden))
  rho1_updn(:,:,:)=rhor1(:,:,:)
  if (usexcnhat==2) rho1_updn(:,:,:)=rho1_updn(:,:,:)+nhat1(:,:,:)
  if (usecore==1) then
@@ -4970,13 +4967,13 @@ end subroutine pawxcsphpositron
 
 !In case of collinear magnetism, separate up and down contributions
  if (nspden==2) then
-   ABI_ALLOCATE(ff,(cplex_den*nrad))
+   LIBPAW_ALLOCATE(ff,(cplex_den*nrad))
    do ilm=1,lm_size
      ff(:)=rho1_updn(:,ilm,2)
      rho1_updn(:,ilm,2)=rho1_updn(:,ilm,1)-ff(:)
      rho1_updn(:,ilm,1)=ff(:)
    end do
-   ABI_DEALLOCATE(ff)
+   LIBPAW_DEALLOCATE(ff)
  end if
 
 !
@@ -4985,7 +4982,7 @@ end subroutine pawxcsphpositron
 !----------------------------------------------------------------------
 
  if (option==2) then
-   ABI_ALLOCATE(vxc1_,(cplex_vxc*nrad,lm_size,nspden))
+   LIBPAW_ALLOCATE(vxc1_,(cplex_vxc*nrad,lm_size,nspden))
  else
    vxc1_ => vxc1
  end if
@@ -4993,8 +4990,8 @@ end subroutine pawxcsphpositron
  if (option/=3) then
 
    vxc1_=zero
-   ABI_ALLOCATE(v1sum,(cplex_vxc*nrad))
-   ABI_ALLOCATE(v2sum,(cplex_vxc*nrad,lm_size))
+   LIBPAW_ALLOCATE(v1sum,(cplex_vxc*nrad))
+   LIBPAW_ALLOCATE(v2sum,(cplex_vxc*nrad,lm_size))
 
    do ii=1,3*nspden-2
      ivxc=1;if (ii>2) ivxc=2
@@ -5030,8 +5027,8 @@ end subroutine pawxcsphpositron
      end if ! cplex_den and vxc_den
    end do ! ii=1,3*nspden-2
 
-   ABI_DEALLOCATE(v1sum)
-   ABI_DEALLOCATE(v2sum)
+   LIBPAW_DEALLOCATE(v1sum)
+   LIBPAW_DEALLOCATE(v2sum)
 
  end if
 
@@ -5046,10 +5043,10 @@ end subroutine pawxcsphpositron
      if (nspden==2) rho1_updn(:,:,2)=rho1_updn(:,:,2)+nhat1(:,:,1)-nhat1(:,:,2)
    end if
 
-   ABI_ALLOCATE(ff,(nrad))
+   LIBPAW_ALLOCATE(ff,(nrad))
    ff=zero
    if (need_impart) then
-     ABI_ALLOCATE(gg,(nrad))
+     LIBPAW_ALLOCATE(gg,(nrad))
      gg=zero
    end if
 
@@ -5103,20 +5100,20 @@ end subroutine pawxcsphpositron
    ff(:)=ff(:)*pawrad%rad(:)**2
    call simp_gen(vxcrho,ff,pawrad)
    d2enxc=d2enxc+vxcrho
-   ABI_DEALLOCATE(ff)
+   LIBPAW_DEALLOCATE(ff)
 
    if (need_impart) then
      gg(:)=gg(:)*pawrad%rad(:)**2
      call simp_gen(vxcrho,gg,pawrad)
      d2enxc_im=d2enxc_im+vxcrho
-     ABI_DEALLOCATE(gg)
+     LIBPAW_DEALLOCATE(gg)
    end if
 
  end if
 
- ABI_DEALLOCATE(rho1_updn)
+ LIBPAW_DEALLOCATE(rho1_updn)
  if (option==2) then
-   ABI_DEALLOCATE(vxc1_)
+   LIBPAW_DEALLOCATE(vxc1_)
  end if
 
 !----- End of routine
@@ -5278,8 +5275,8 @@ subroutine pawxcmpositron(calctype,corexc,enxc,enxcdc,ixcpositron,lm_size,lmsele
 !with core density and/or compensation density eventually included
 !-----------------------------------------------------------------
 !Input density
- ABI_ALLOCATE(rhotot,(nrad,lm_size))
- ABI_ALLOCATE(rhotot_ep,(nrad,lm_size))
+ LIBPAW_ALLOCATE(rhotot,(nrad,lm_size))
+ LIBPAW_ALLOCATE(rhotot_ep,(nrad,lm_size))
  rhotot   (:,:)=rhor   (:,:,1)
  rhotot_ep(:,:)=rhor_ep(:,:,1)
 !Eventually add compensation density
@@ -5296,8 +5293,8 @@ subroutine pawxcmpositron(calctype,corexc,enxc,enxcdc,ixcpositron,lm_size,lmsele
 !rhoSPH/rhoSPH_ep contain the spherical part of effective densities
 !(including Y00 spherical harmonic)
 !-----------------------------------------------------------------
- ABI_ALLOCATE(rhosph,(nrad))
- ABI_ALLOCATE(rhosph_ep,(nrad))
+ LIBPAW_ALLOCATE(rhosph,(nrad))
+ LIBPAW_ALLOCATE(rhosph_ep,(nrad))
 
  rhosph   (:)=rhotot   (:,1)*invsqfpi
  rhosph_ep(:)=rhotot_ep(:,1)*invsqfpi
@@ -5319,9 +5316,9 @@ subroutine pawxcmpositron(calctype,corexc,enxc,enxcdc,ixcpositron,lm_size,lmsele
 !----- Compute Exc(rhoSPH,rhoSPH_ep) and Vxc(rhoSPH,rhoSPH_ep)
 !----------------------------------------------------------------------
 
- ABI_ALLOCATE(fxci,(nrad))
- ABI_ALLOCATE(vxcei,(nrad))
- ABI_ALLOCATE(vxcpi,(nrad))
+ LIBPAW_ALLOCATE(fxci,(nrad))
+ LIBPAW_ALLOCATE(vxcei,(nrad))
+ LIBPAW_ALLOCATE(vxcpi,(nrad))
  call pawxcsphpositron(calctype,fxci,ixcpositron,nrad,pawrad,posdensity0_limit,rhosph,rhosph_ep,vxcei,vxcpi)
 
 !----------------------------------------------------------------------
@@ -5330,39 +5327,39 @@ subroutine pawxcmpositron(calctype,corexc,enxc,enxcdc,ixcpositron,lm_size,lmsele
 
  if (option/=4) then
 
-   ABI_ALLOCATE(fxc_,(nrad))
-   ABI_ALLOCATE(rho_,(nrad))
+   LIBPAW_ALLOCATE(fxc_,(nrad))
+   LIBPAW_ALLOCATE(rho_,(nrad))
 
 !  Compute Vxc for (rho+delta_rho,rho_ep)
-   ABI_ALLOCATE(vxce1,(nrad))
-   ABI_ALLOCATE(vxcp1,(nrad))
+   LIBPAW_ALLOCATE(vxce1,(nrad))
+   LIBPAW_ALLOCATE(vxcp1,(nrad))
    rho_(:)=(one+delta)*rhosph(:)
    call pawxcsphpositron(calctype,fxc_,ixcpositron,nrad,pawrad,posdensity0_limit,rho_,rhosph_ep,vxce1,vxcp1)
 
 !  Compute Vxc for(rho-delta_rho,rho_ep)
-   ABI_ALLOCATE(vxce2,(nrad))
-   ABI_ALLOCATE(vxcp2,(nrad))
+   LIBPAW_ALLOCATE(vxce2,(nrad))
+   LIBPAW_ALLOCATE(vxcp2,(nrad))
    rho_(:)=(one-delta)*rhosph(:)
    call pawxcsphpositron(calctype,fxc_,ixcpositron,nrad,pawrad,posdensity0_limit,rho_,rhosph_ep,vxce2,vxcp2)
 
 !  Compute Vxc for (rho,rho_ep+delta_rho_ep)
-   ABI_ALLOCATE(vxce1_ep,(nrad))
-   ABI_ALLOCATE(vxcp1_ep,(nrad))
+   LIBPAW_ALLOCATE(vxce1_ep,(nrad))
+   LIBPAW_ALLOCATE(vxcp1_ep,(nrad))
    rho_(:)=(one+delta)*rhosph_ep(:)
    call pawxcsphpositron(calctype,fxc_,ixcpositron,nrad,pawrad,posdensity0_limit,rhosph,rho_,vxce1_ep,vxcp1_ep)
 
 !  Compute Vxc for (rho,rho_ep-delta_rho_ep)
-   ABI_ALLOCATE(vxce2_ep,(nrad))
-   ABI_ALLOCATE(vxcp2_ep,(nrad))
+   LIBPAW_ALLOCATE(vxce2_ep,(nrad))
+   LIBPAW_ALLOCATE(vxcp2_ep,(nrad))
    rho_(:)=(one-delta)*rhosph_ep(:)
    call pawxcsphpositron(calctype,fxc_,ixcpositron,nrad,pawrad,posdensity0_limit,rhosph,rho_,vxce2_ep,vxcp2_ep)
 
-   ABI_DEALLOCATE(fxc_)
-   ABI_DEALLOCATE(rho_)
+   LIBPAW_DEALLOCATE(fxc_)
+   LIBPAW_DEALLOCATE(rho_)
 
 !  Store inverse of density finite step
-   ABI_ALLOCATE(rhoinv,(nrad))
-   ABI_ALLOCATE(rhoinv_ep,(nrad))
+   LIBPAW_ALLOCATE(rhoinv,(nrad))
+   LIBPAW_ALLOCATE(rhoinv_ep,(nrad))
    fact=one/delta
    do ir=1,nrad
      if (rhosph(ir)>tol14) then
@@ -5378,7 +5375,7 @@ subroutine pawxcmpositron(calctype,corexc,enxc,enxcdc,ixcpositron,lm_size,lmsele
    end do
 
 !  Compute numerical first derivatives of Vxc (by finite difference scheme)
-   ABI_ALLOCATE(d1vxc,(nrad,3))
+   LIBPAW_ALLOCATE(d1vxc,(nrad,3))
    if (calctype==1) then
      d1vxc(:,1)=(vxcp1   (:)-vxcp2   (:))*half*rhoinv   (:)  ! dVxc+/drho+
      d1vxc(:,2)=(vxcp1_ep(:)-vxcp2_ep(:))*half*rhoinv_ep(:)  ! dVxc+/drho-
@@ -5392,7 +5389,7 @@ subroutine pawxcmpositron(calctype,corexc,enxc,enxcdc,ixcpositron,lm_size,lmsele
 
 !  Compute numerical second derivatives of Vxc (by finite difference scheme)
    if (option<3.or.pawxcdev>1) then
-     ABI_ALLOCATE(d2vxc,(nrad,4))
+     LIBPAW_ALLOCATE(d2vxc,(nrad,4))
      if (calctype==1) then
        d2vxc(:,1)=(vxcp1   (:)+vxcp2   (:)-two*vxcpi(:))*rhoinv   (:)**2  ! d2Vxc+/drho+_drho+
        d2vxc(:,2)=(vxce1   (:)+vxce2   (:)-two*vxcei(:))*rhoinv   (:)**2  ! d2Vxc-/drho+_drho+
@@ -5406,21 +5403,21 @@ subroutine pawxcmpositron(calctype,corexc,enxc,enxcdc,ixcpositron,lm_size,lmsele
      end if
    end if ! option
 
-   ABI_DEALLOCATE(rhoinv)
-   ABI_DEALLOCATE(rhoinv_ep)
-   ABI_DEALLOCATE(vxce1)
-   ABI_DEALLOCATE(vxcp1)
-   ABI_DEALLOCATE(vxce2)
-   ABI_DEALLOCATE(vxcp2)
-   ABI_DEALLOCATE(vxce1_ep)
-   ABI_DEALLOCATE(vxcp1_ep)
-   ABI_DEALLOCATE(vxce2_ep)
-   ABI_DEALLOCATE(vxcp2_ep)
+   LIBPAW_DEALLOCATE(rhoinv)
+   LIBPAW_DEALLOCATE(rhoinv_ep)
+   LIBPAW_DEALLOCATE(vxce1)
+   LIBPAW_DEALLOCATE(vxcp1)
+   LIBPAW_DEALLOCATE(vxce2)
+   LIBPAW_DEALLOCATE(vxcp2)
+   LIBPAW_DEALLOCATE(vxce1_ep)
+   LIBPAW_DEALLOCATE(vxcp1_ep)
+   LIBPAW_DEALLOCATE(vxce2_ep)
+   LIBPAW_DEALLOCATE(vxcp2_ep)
 
  end if ! option/=4
 
- ABI_DEALLOCATE(rhosph)
- ABI_DEALLOCATE(rhosph_ep)
+ LIBPAW_DEALLOCATE(rhosph)
+ LIBPAW_DEALLOCATE(rhosph_ep)
 
 !----------------------------------------------------------------------
 !----- Compute useful sums of densities
@@ -5435,14 +5432,14 @@ subroutine pawxcmpositron(calctype,corexc,enxc,enxcdc,ixcpositron,lm_size,lmsele
 !  V2SUM2(r,L)=Sum_L1_L2{n^el_L1(r)*n^pos_L2(r)*Gaunt_(L,L1,L2)}
 !  V2SUM3(r,L)=Sum_L1_L2{n^pos_L1(r)*n^pos_L2(r)*Gaunt_(L,L1,L2)}
    if (pawxcdev>=1)  then
-     ABI_ALLOCATE(v1sum,(nrad,3))
+     LIBPAW_ALLOCATE(v1sum,(nrad,3))
    else
-     ABI_ALLOCATE(v1sum,(0,0))
+     LIBPAW_ALLOCATE(v1sum,(0,0))
    end if
    if (pawxcdev>=2)  then
-     ABI_ALLOCATE(v2sum,(nrad,lm_size,3))
+     LIBPAW_ALLOCATE(v2sum,(nrad,lm_size,3))
    else
-     ABI_ALLOCATE(v2sum,(0,0,0))
+     LIBPAW_ALLOCATE(v2sum,(0,0,0))
    end if
    call pawxcsum(1,1,1,lmselect,lmselect_ep,lm_size,nrad,3,pawxcdev,pawang,rhotot,rhotot_ep,v1sum,v2sum)
 
@@ -5540,8 +5537,8 @@ subroutine pawxcmpositron(calctype,corexc,enxc,enxcdc,ixcpositron,lm_size,lmsele
 
  end if !option<3
 
- ABI_DEALLOCATE(vxcei)
- ABI_DEALLOCATE(vxcpi)
+ LIBPAW_DEALLOCATE(vxcei)
+ LIBPAW_DEALLOCATE(vxcpi)
 
 !----------------------------------------------------------------------
 !----- Accumulate and store XC energies
@@ -5551,7 +5548,7 @@ subroutine pawxcmpositron(calctype,corexc,enxc,enxcdc,ixcpositron,lm_size,lmsele
 !----------------------------------------
 
  if (option/=1) then
-   ABI_ALLOCATE(ff,(nrad))
+   LIBPAW_ALLOCATE(ff,(nrad))
 
 !  Contribution from spherical part of rho
    ff(:)=fxci(:)*four_pi
@@ -5567,7 +5564,7 @@ subroutine pawxcmpositron(calctype,corexc,enxc,enxcdc,ixcpositron,lm_size,lmsele
 
 !    Second order development
      if (pawxcdev>=2) then
-       ABI_ALLOCATE(gg,(nrad))
+       LIBPAW_ALLOCATE(gg,(nrad))
        gg=zero
        do ilm=2,lm_size
          if (lmselect(ilm))    gg(:)=gg(:)+v2sum(:,ilm,1)*rhotot(:,ilm)
@@ -5588,26 +5585,26 @@ subroutine pawxcmpositron(calctype,corexc,enxc,enxcdc,ixcpositron,lm_size,lmsele
          if (lmselect_ep(ilm)) gg(:)=gg(:)+v2sum(:,ilm,3)*rhotot_ep(:,ilm)
        end do
        ff(:)=ff(:)+sixth*gg(:)*d2vxc(:,4)
-       ABI_DEALLOCATE(gg)
+       LIBPAW_DEALLOCATE(gg)
      end if ! pawxcdev>=2
 
    end if ! option/=4
 
    ff(:)=ff(:)*pawrad%rad(:)**2
    call simp_gen(enxc,ff,pawrad)
-   ABI_DEALLOCATE(ff)
+   LIBPAW_DEALLOCATE(ff)
  end if ! option/=1
 
- ABI_DEALLOCATE(fxci)
+ LIBPAW_DEALLOCATE(fxci)
  if (option<3.or.option/=1)  then
-   ABI_DEALLOCATE(v1sum)
-   ABI_DEALLOCATE(v2sum)
+   LIBPAW_DEALLOCATE(v1sum)
+   LIBPAW_DEALLOCATE(v2sum)
  end if
  if (option<3.or.(option/=4.and.pawxcdev>1))   then
-   ABI_DEALLOCATE(d2vxc)
+   LIBPAW_DEALLOCATE(d2vxc)
  end if
  if (option/=4)  then
-   ABI_DEALLOCATE(d1vxc)
+   LIBPAW_DEALLOCATE(d1vxc)
  end if
 
 !----- Calculate Excdc double counting term
@@ -5619,18 +5616,18 @@ subroutine pawxcmpositron(calctype,corexc,enxc,enxcdc,ixcpositron,lm_size,lmsele
    if (usecore==1.and.calctype==2) rhotot(:,1)=rhotot(:,1)-sqfpi*corexc(:)
 
 !  Integrate with potential
-   ABI_ALLOCATE(ff,(nrad))
+   LIBPAW_ALLOCATE(ff,(nrad))
    ff(:)=zero
    do ilm=1,lm_size
      if (lmselect(ilm)) ff(:)=ff(:)+vxc(:,ilm,1)*rhotot(:,ilm)
    end do
    ff(:)=ff(:)*pawrad%rad(:)**2
    call simp_gen(enxcdc,ff,pawrad)
-   ABI_DEALLOCATE(ff)
+   LIBPAW_DEALLOCATE(ff)
  end if ! option
 
- ABI_DEALLOCATE(rhotot)
- ABI_DEALLOCATE(rhotot_ep)
+ LIBPAW_DEALLOCATE(rhotot)
+ LIBPAW_DEALLOCATE(rhotot_ep)
 !if (option==0.or.option==2) deallocate(vxc_ep)
 
 !----- End of routine
@@ -5673,7 +5670,7 @@ end subroutine pawxcmpositron
 !Do not modify the following lines by hand.
 #undef ABI_FUNC
 #define ABI_FUNC 'pawxc_drivexc_main_wrapper'
- !use interfaces_41_xc_lowlevel
+ use interfaces_41_xc_lowlevel
 !End of the abilint section
 
  implicit none
@@ -5751,7 +5748,7 @@ subroutine pawxc_libxc()
 !Do not modify the following lines by hand.
 #undef ABI_FUNC
 #define ABI_FUNC 'pawxc_libxc'
- !use interfaces_41_xc_lowlevel
+ use interfaces_41_xc_lowlevel
 !End of the abilint section
 
  implicit none

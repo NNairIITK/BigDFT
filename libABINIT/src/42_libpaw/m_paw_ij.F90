@@ -33,18 +33,14 @@
 !!
 !! SOURCE
 
-#if defined HAVE_CONFIG_H
-#include "config.h"
-#endif
-
-#include "abi_common.h"
+#include "libpaw.h"
 
 MODULE m_paw_ij
 
  use defs_basis
  use m_errors
- use m_profiling_abi
  use m_xmpi
+ USE_MEMORY_PROFILING
 
  use m_paral_atom, only : get_my_atmtab, free_my_atmtab, get_my_natom
  use m_pawtab,     only : pawtab_type
@@ -388,7 +384,7 @@ subroutine paw_ij_init(Paw_ij,cplex,nspinor,nsppol,nspden,pawspnorb,natom,ntypat
   if (PRESENT(has_dij)) then
     if (has_dij/=0) then
       Paw_ij(iat)%has_dij=1
-      ABI_ALLOCATE(Paw_ij(iat)%dij,(cplex_dij*lmn2_size,ndij))
+      LIBPAW_ALLOCATE(Paw_ij(iat)%dij,(cplex_dij*lmn2_size,ndij))
       Paw_ij(iat)%dij(:,:)=zero
     end if
   end if
@@ -398,7 +394,7 @@ subroutine paw_ij_init(Paw_ij,cplex,nspinor,nsppol,nspden,pawspnorb,natom,ntypat
   if (PRESENT(has_dij0)) then
     if (has_dij0/=0) then
       Paw_ij(iat)%has_dij0=1
-      ABI_ALLOCATE(Paw_ij(iat)%dij0,(lmn2_size))
+      LIBPAW_ALLOCATE(Paw_ij(iat)%dij0,(lmn2_size))
       Paw_ij(iat)%dij0(:)=zero
     end if
   end if
@@ -408,7 +404,7 @@ subroutine paw_ij_init(Paw_ij,cplex,nspinor,nsppol,nspden,pawspnorb,natom,ntypat
   if (PRESENT(has_dijexxc)) then
     if (has_dijexxc/=0.and.Pawtab(itypat)%useexexch>0) then
       Paw_ij(iat)%has_dijexxc=1
-      ABI_ALLOCATE(Paw_ij(iat)%dijexxc,(cplex_dij*lmn2_size,ndij))
+      LIBPAW_ALLOCATE(Paw_ij(iat)%dijexxc,(cplex_dij*lmn2_size,ndij))
       Paw_ij(iat)%dijexxc(:,:)=zero
     end if
   end if
@@ -418,7 +414,7 @@ subroutine paw_ij_init(Paw_ij,cplex,nspinor,nsppol,nspden,pawspnorb,natom,ntypat
   if (PRESENT(has_dijfock)) then
     if (has_dijfock/=0) then
       Paw_ij(iat)%has_dijfock=1
-      ABI_ALLOCATE(Paw_ij(iat)%dijfock,(cplex_dij*lmn2_size,ndij))
+      LIBPAW_ALLOCATE(Paw_ij(iat)%dijfock,(cplex_dij*lmn2_size,ndij))
       Paw_ij(iat)%dijfock(:,:)=zero
     end if
   end if
@@ -428,7 +424,7 @@ subroutine paw_ij_init(Paw_ij,cplex,nspinor,nsppol,nspden,pawspnorb,natom,ntypat
   if (PRESENT(has_dijfr)) then
     if (has_dijfr/=0) then
       Paw_ij(iat)%has_dijfr=1
-      ABI_ALLOCATE(Paw_ij(iat)%dijfr,(cplex_dij*lmn2_size,ndij))
+      LIBPAW_ALLOCATE(Paw_ij(iat)%dijfr,(cplex_dij*lmn2_size,ndij))
       Paw_ij(iat)%dijfr(:,:)=zero
     end if
   end if
@@ -438,7 +434,7 @@ subroutine paw_ij_init(Paw_ij,cplex,nspinor,nsppol,nspden,pawspnorb,natom,ntypat
   if (PRESENT(has_dijhartree)) then
     if (has_dijhartree/=0) then
       Paw_ij(iat)%has_dijhartree=1
-      ABI_ALLOCATE(Paw_ij(iat)%dijhartree,(cplex*lmn2_size))
+      LIBPAW_ALLOCATE(Paw_ij(iat)%dijhartree,(cplex*lmn2_size))
       Paw_ij(iat)%dijhartree(:)=zero
     end if
   end if
@@ -448,7 +444,7 @@ subroutine paw_ij_init(Paw_ij,cplex,nspinor,nsppol,nspden,pawspnorb,natom,ntypat
   if (PRESENT(has_dijhat)) then
     if (has_dijhat/=0) then
       Paw_ij(iat)%has_dijhat=1
-      ABI_ALLOCATE(Paw_ij(iat)%dijhat,(cplex_dij*lmn2_size,ndij))
+      LIBPAW_ALLOCATE(Paw_ij(iat)%dijhat,(cplex_dij*lmn2_size,ndij))
       Paw_ij(iat)%dijhat(:,:)=zero
     end if
   end if
@@ -458,7 +454,7 @@ subroutine paw_ij_init(Paw_ij,cplex,nspinor,nsppol,nspden,pawspnorb,natom,ntypat
   if (PRESENT(has_dijso)) then
     if (has_dijso/=0.and.pawspnorb>0) then
       Paw_ij(iat)%has_dijso=1
-      ABI_ALLOCATE(Paw_ij(iat)%dijso,(cplex_dij*lmn2_size,ndij))
+      LIBPAW_ALLOCATE(Paw_ij(iat)%dijso,(cplex_dij*lmn2_size,ndij))
       Paw_ij(iat)%dijso(:,:)=zero
      end if
   end if
@@ -470,7 +466,7 @@ subroutine paw_ij_init(Paw_ij,cplex,nspinor,nsppol,nspden,pawspnorb,natom,ntypat
 !    dirty fix
     if (has_dijU/=0) then
       Paw_ij(iat)%has_dijU=1
-      ABI_ALLOCATE(Paw_ij(iat)%dijU,(cplex_dij*lmn2_size,ndij))
+      LIBPAW_ALLOCATE(Paw_ij(iat)%dijU,(cplex_dij*lmn2_size,ndij))
        Paw_ij(iat)%dijU(:,:)=zero
     end if
   end if
@@ -480,7 +476,7 @@ subroutine paw_ij_init(Paw_ij,cplex,nspinor,nsppol,nspden,pawspnorb,natom,ntypat
   if (PRESENT(has_dijxc)) then
     if (has_dijxc/=0) then
       Paw_ij(iat)%has_dijxc=1
-      ABI_ALLOCATE(Paw_ij(iat)%dijxc,(cplex_dij*lmn2_size,ndij))
+      LIBPAW_ALLOCATE(Paw_ij(iat)%dijxc,(cplex_dij*lmn2_size,ndij))
       Paw_ij(iat)%dijxc(:,:)=zero
     end if
   end if
@@ -490,7 +486,7 @@ subroutine paw_ij_init(Paw_ij,cplex,nspinor,nsppol,nspden,pawspnorb,natom,ntypat
   if (PRESENT(has_dijxc_hat)) then
     if (has_dijxc_hat/=0) then
       Paw_ij(iat)%has_dijxc_hat=1
-      ABI_ALLOCATE(Paw_ij(iat)%dijxc_hat,(cplex_dij*lmn2_size,ndij))
+      LIBPAW_ALLOCATE(Paw_ij(iat)%dijxc_hat,(cplex_dij*lmn2_size,ndij))
      Paw_ij(iat)%dijxc_hat(:,:)=zero
     end if
   end if
@@ -500,7 +496,7 @@ subroutine paw_ij_init(Paw_ij,cplex,nspinor,nsppol,nspden,pawspnorb,natom,ntypat
   if (PRESENT(has_dijxc_val)) then
     if (has_dijxc_val/=0) then
       Paw_ij(iat)%has_dijxc_val=1
-      ABI_ALLOCATE(Paw_ij(iat)%dijxc_val,(cplex_dij*lmn2_size,ndij))
+      LIBPAW_ALLOCATE(Paw_ij(iat)%dijxc_val,(cplex_dij*lmn2_size,ndij))
       Paw_ij(iat)%dijxc_val(:,:)=zero
     end if
   end if
@@ -510,8 +506,8 @@ subroutine paw_ij_init(Paw_ij,cplex,nspinor,nsppol,nspden,pawspnorb,natom,ntypat
   if (PRESENT(has_pawu_occ)) then
     if (has_pawu_occ/=0.and.Pawtab(itypat)%usepawu>0) then
       Paw_ij(iat)%has_pawu_occ=1
-      ABI_ALLOCATE(Paw_ij(iat)%noccmmp,(cplex_dij,2*Pawtab(itypat)%lpawu+1,2*Pawtab(itypat)%lpawu+1,ndij))
-      ABI_ALLOCATE(Paw_ij(iat)%nocctot,(ndij))
+      LIBPAW_ALLOCATE(Paw_ij(iat)%noccmmp,(cplex_dij,2*Pawtab(itypat)%lpawu+1,2*Pawtab(itypat)%lpawu+1,ndij))
+      LIBPAW_ALLOCATE(Paw_ij(iat)%nocctot,(ndij))
      Paw_ij(iat)%noccmmp(:,:,:,:)=zero
      Paw_ij(iat)%nocctot(:)=zero
     end if
@@ -523,7 +519,7 @@ subroutine paw_ij_init(Paw_ij,cplex,nspinor,nsppol,nspden,pawspnorb,natom,ntypat
     if (has_exexch_pot/=0.and.Pawtab(itypat)%useexexch>0) then
       Paw_ij(iat)%has_exexch_pot=1
     ! TODO solve issue with first dimension
-      ABI_ALLOCATE(Paw_ij(iat)%vpawx,(1,lmn2_size,nspden))
+      LIBPAW_ALLOCATE(Paw_ij(iat)%vpawx,(1,lmn2_size,nspden))
       Paw_ij(iat)%vpawx(:,:,:)=zero
      end if
   end if
@@ -586,49 +582,49 @@ subroutine paw_ij_free(Paw_ij)
 
  do iat=1,natom
   if (allocated(Paw_ij(iat)%dij       ))  then
-    ABI_DEALLOCATE(Paw_ij(iat)%dij)
+    LIBPAW_DEALLOCATE(Paw_ij(iat)%dij)
   end if
   if (allocated(Paw_ij(iat)%dij0      ))  then
-    ABI_DEALLOCATE(Paw_ij(iat)%dij0)
+    LIBPAW_DEALLOCATE(Paw_ij(iat)%dij0)
   end if
   if (allocated(Paw_ij(iat)%dijexxc   ))  then
-    ABI_DEALLOCATE(Paw_ij(iat)%dijexxc)
+    LIBPAW_DEALLOCATE(Paw_ij(iat)%dijexxc)
   end if
   if (allocated(Paw_ij(iat)%dijfock   ))  then
-    ABI_DEALLOCATE(Paw_ij(iat)%dijfock)
+    LIBPAW_DEALLOCATE(Paw_ij(iat)%dijfock)
   end if
   if (allocated(Paw_ij(iat)%dijfr     ))  then
-    ABI_DEALLOCATE(Paw_ij(iat)%dijfr)
+    LIBPAW_DEALLOCATE(Paw_ij(iat)%dijfr)
   end if
   if (allocated(Paw_ij(iat)%dijhartree))  then
-    ABI_DEALLOCATE(Paw_ij(iat)%dijhartree)
+    LIBPAW_DEALLOCATE(Paw_ij(iat)%dijhartree)
   end if
   if (allocated(Paw_ij(iat)%dijhat    ))  then
-    ABI_DEALLOCATE(Paw_ij(iat)%dijhat)
+    LIBPAW_DEALLOCATE(Paw_ij(iat)%dijhat)
   end if
   if (allocated(Paw_ij(iat)%dijU      ))  then
-    ABI_DEALLOCATE(Paw_ij(iat)%dijU)
+    LIBPAW_DEALLOCATE(Paw_ij(iat)%dijU)
   end if
   if (allocated(Paw_ij(iat)%dijso     ))  then
-    ABI_DEALLOCATE(Paw_ij(iat)%dijso)
+    LIBPAW_DEALLOCATE(Paw_ij(iat)%dijso)
   end if
   if (allocated(Paw_ij(iat)%dijxc     ))  then
-    ABI_DEALLOCATE(Paw_ij(iat)%dijxc)
+    LIBPAW_DEALLOCATE(Paw_ij(iat)%dijxc)
   end if
   if (allocated(Paw_ij(iat)%dijxc_hat ))  then
-    ABI_DEALLOCATE(Paw_ij(iat)%dijxc_hat)
+    LIBPAW_DEALLOCATE(Paw_ij(iat)%dijxc_hat)
   end if
   if (allocated(Paw_ij(iat)%dijxc_val ))  then
-    ABI_DEALLOCATE(Paw_ij(iat)%dijxc_val)
+    LIBPAW_DEALLOCATE(Paw_ij(iat)%dijxc_val)
   end if
   if (allocated(Paw_ij(iat)%noccmmp   ))  then
-    ABI_DEALLOCATE(Paw_ij(iat)%noccmmp)
+    LIBPAW_DEALLOCATE(Paw_ij(iat)%noccmmp)
   end if
   if (allocated(Paw_ij(iat)%nocctot   ))  then
-    ABI_DEALLOCATE(Paw_ij(iat)%nocctot)
+    LIBPAW_DEALLOCATE(Paw_ij(iat)%nocctot)
   end if
   if (allocated(Paw_ij(iat)%vpawx     ))  then
-    ABI_DEALLOCATE(Paw_ij(iat)%vpawx)
+    LIBPAW_DEALLOCATE(Paw_ij(iat)%vpawx)
   end if
 
   ! === Reset all has_* flags ===
@@ -855,82 +851,82 @@ character(len=500) :: msg
      paw_ij_out(ij1)%nsppol=paw_ij_in(ij)%nsppol
      if (paw_ij_in(ij)%has_dij>=1) then
        sz1=size(paw_ij_in(ij)%dij,1);sz2=size(paw_ij_in(ij)%dij,2)
-       ABI_ALLOCATE(paw_ij_out(ij1)%dij,(sz1,sz2))
+       LIBPAW_ALLOCATE(paw_ij_out(ij1)%dij,(sz1,sz2))
        if (paw_ij_in(ij)%has_dij==2) &
 &          paw_ij_out(ij1)%dij(:,:)=paw_ij_in(ij)%dij(:,:)
      end if
      if (paw_ij_in(ij)%has_dij0>=1) then
        sz1=size(paw_ij_in(ij)%dij0,1)
-       ABI_ALLOCATE(paw_ij_out(ij1)%dij0,(sz1))
+       LIBPAW_ALLOCATE(paw_ij_out(ij1)%dij0,(sz1))
       if (paw_ij_in(ij)%has_dij0 ==2) &
 &         paw_ij_out(ij1)%dij0(:)=paw_ij_in(ij)%dij0(:)
      end if
      if (paw_ij_in(ij)%has_dijexxc>=1) then
        sz1=size(paw_ij_in(ij)%dijexxc,1);sz2=size(paw_ij_in(ij)%dijexxc,2)
-       ABI_ALLOCATE(paw_ij_out(ij1)%dijexxc,(sz1,sz2))
+       LIBPAW_ALLOCATE(paw_ij_out(ij1)%dijexxc,(sz1,sz2))
        if (paw_ij_in(ij)%has_dijexxc==2) &
 &          paw_ij_out(ij1)%dijexxc(:,:)=paw_ij_in(ij)%dijexxc(:,:)
      end if
      if (paw_ij_in(ij)%has_dijfock>=1) then
        sz1=size(paw_ij_in(ij)%dijfock,1);sz2=size(paw_ij_in(ij)%dijfock,2)
-       ABI_ALLOCATE(paw_ij_out(ij1)%dijfock,(sz1,sz2))
+       LIBPAW_ALLOCATE(paw_ij_out(ij1)%dijfock,(sz1,sz2))
        if (paw_ij_in(ij)%has_dijfock==2) &
 &          paw_ij_out(ij1)%dijfock(:,:)=paw_ij_in(ij)%dijfock(:,:)
      end if
      if (paw_ij_in(ij)%has_dijfr>=1) then
        sz1=size(paw_ij_in(ij)%dijfr,1);sz2=size(paw_ij_in(ij)%dijfr,2)
-       ABI_ALLOCATE(paw_ij_out(ij1)%dijfr,(sz1,sz2))
+       LIBPAW_ALLOCATE(paw_ij_out(ij1)%dijfr,(sz1,sz2))
        if (paw_ij_in(ij)%has_dijfr==2) &
 &          paw_ij_out(ij1)%dijfr(:,:)=paw_ij_in(ij)%dijfr(:,:)
      end if
      if (paw_ij_in(ij)%has_dijhartree>=1) then
        sz1=size(paw_ij_in(ij)%dijhartree,1)
-       ABI_ALLOCATE(paw_ij_out(ij1)%dijhartree,(sz1))
+       LIBPAW_ALLOCATE(paw_ij_out(ij1)%dijhartree,(sz1))
        if (paw_ij_in(ij)%has_dijhartree==2) &
 &          paw_ij_out(ij1)%dijhartree(:)=paw_ij_in(ij)%dijhartree(:)
      end if
      if (paw_ij_in(ij)%has_dijhat>=1) then
        sz1=size(paw_ij_in(ij)%dijhat,1);sz2=size(paw_ij_in(ij)%dijhat,2)
-       ABI_ALLOCATE(paw_ij_out(ij1)%dijhat,(sz1,sz2))
+       LIBPAW_ALLOCATE(paw_ij_out(ij1)%dijhat,(sz1,sz2))
        if (paw_ij_in(ij)%has_dijhat==2) &
  &         paw_ij_out(ij1)%dijhat(:,:)=paw_ij_in(ij)%dijhat(:,:)
      end if
      if (paw_ij_in(ij)%has_dijU>=1) then
        sz1=size(paw_ij_in(ij)%dijU,1);sz2=size(paw_ij_in(ij)%dijU,2)
-       ABI_ALLOCATE(paw_ij_out(ij1)%dijU,(sz1,sz2))
+       LIBPAW_ALLOCATE(paw_ij_out(ij1)%dijU,(sz1,sz2))
        if (paw_ij_in(ij)%has_dijU==2) &
 &          paw_ij_out(ij1)%dijU(:,:)=paw_ij_in(ij)%dijU(:,:)
      end if
      if (paw_ij_in(ij)%has_dijso>=1) then
        sz1=size(paw_ij_in(ij)%dijso,1);sz2=size(paw_ij_in(ij)%dijso,2)
-       ABI_ALLOCATE(paw_ij_out(ij1)%dijso,(sz1,sz2))
+       LIBPAW_ALLOCATE(paw_ij_out(ij1)%dijso,(sz1,sz2))
        if (paw_ij_in(ij)%has_dijso==2) &
 &          paw_ij_out(ij1)%dijso(:,:)=paw_ij_in(ij)%dijso(:,:)
      end if
      if (paw_ij_in(ij)%has_dijxc>=1) then
        sz1=size(paw_ij_in(ij)%dijxc,1);sz2=size(paw_ij_in(ij)%dijxc,2)
-       ABI_ALLOCATE(paw_ij_out(ij1)%dijxc,(sz1,sz2))
+       LIBPAW_ALLOCATE(paw_ij_out(ij1)%dijxc,(sz1,sz2))
        if (paw_ij_in(ij)%has_dijxc==2) &
 &          paw_ij_out(ij1)%dijxc(:,:)=paw_ij_in(ij)%dijxc(:,:)
      end if
      if (paw_ij_in(ij)%has_dijxc_hat>=1) then
        sz1=size(paw_ij_in(ij)%dijxc_hat,1);sz2=size(paw_ij_in(ij)%dijxc_hat,2)
-       ABI_ALLOCATE(paw_ij_out(ij1)%dijxc_hat,(sz1,sz2))
+       LIBPAW_ALLOCATE(paw_ij_out(ij1)%dijxc_hat,(sz1,sz2))
        if (paw_ij_in(ij)%has_dijxc_hat==2) &
 &          paw_ij_out(ij1)%dijxc_hat(:,:)=paw_ij_in(ij)%dijxc_hat(:,:)
      end if
      if (paw_ij_in(ij)%has_dijxc_val>=1) then
        sz1=size(paw_ij_in(ij)%dijxc_val,1);sz2=size(paw_ij_in(ij)%dijxc_val,2)
-       ABI_ALLOCATE(paw_ij_out(ij1)%dijxc_val,(sz1,sz2))
+       LIBPAW_ALLOCATE(paw_ij_out(ij1)%dijxc_val,(sz1,sz2))
        if (paw_ij_in(ij)%has_dijxc_val==2) &
 &          paw_ij_out(ij1)%dijxc_val(:,:)=paw_ij_in(ij)%dijxc_val(:,:)
      end if
      if (paw_ij_in(ij)%has_pawu_occ>=1) then
        sz1=size(paw_ij_in(ij)%noccmmp,1);sz2=size(paw_ij_in(ij)%noccmmp,2)
        sz3=size(paw_ij_in(ij)%noccmmp,3);sz4=size(paw_ij_in(ij)%noccmmp,4)
-       ABI_ALLOCATE(paw_ij_out(ij1)%noccmmp,(sz1,sz2,sz3,sz4))
+       LIBPAW_ALLOCATE(paw_ij_out(ij1)%noccmmp,(sz1,sz2,sz3,sz4))
        sz1=size(paw_ij_in(ij)%nocctot,1)
-       ABI_ALLOCATE(paw_ij_out(ij1)%nocctot,(sz1))
+       LIBPAW_ALLOCATE(paw_ij_out(ij1)%nocctot,(sz1))
        if (paw_ij_in(ij)%has_pawu_occ==2) then
          paw_ij_out(ij1)%noccmmp(:,:,:,:)=paw_ij_in(ij)%noccmmp(:,:,:,:)
          paw_ij_out(ij1)%nocctot(:)=paw_ij_in(ij)%nocctot(:)
@@ -939,7 +935,7 @@ character(len=500) :: msg
      if (paw_ij_in(ij)%has_exexch_pot >= 1) then
        sz1=size(paw_ij_in(ij)%vpawx,1);sz2=size(paw_ij_in(ij)%vpawx,2)
        sz3=size(paw_ij_in(ij)%vpawx,3)
-       ABI_ALLOCATE(paw_ij_out(ij1)%vpawx,(sz1,sz2,sz3))
+       LIBPAW_ALLOCATE(paw_ij_out(ij1)%vpawx,(sz1,sz2,sz3))
        if (paw_ij_in(ij)%has_exexch_pot==2) &
 &          paw_ij_out(ij1)%vpawx(:,:,:)=paw_ij_in(ij)%vpawx(:,:,:)
      end if
@@ -1299,7 +1295,7 @@ subroutine paw_ij_print(Paw_ij,unit,pawprtvol,pawspnorb,mode_paral,enunit,ipert,
    end if
 
    if (idij>=3.and.Paw_ij(iatom)%has_dijso/=0.and.my_ipert<=0) then
-    ABI_ALLOCATE(dijsym,(Paw_ij(iatom)%cplex_dij*Paw_ij(iatom)%lmn2_size))
+    LIBPAW_ALLOCATE(dijsym,(Paw_ij(iatom)%cplex_dij*Paw_ij(iatom)%lmn2_size))
     dijsym(:)=Paw_ij(iatom)%dij(:,3)
     if (idij==3) then
      do klmn=1,Paw_ij(iatom)%cplex_dij*Paw_ij(iatom)%lmn2_size,2
@@ -1404,7 +1400,7 @@ subroutine paw_ij_print(Paw_ij,unit,pawprtvol,pawspnorb,mode_paral,enunit,ipert,
    end if
 
    if (allocated(dijsym)) then
-     ABI_DEALLOCATE(dijsym)
+     LIBPAW_DEALLOCATE(dijsym)
    end if
 
   end do !idij
@@ -1518,85 +1514,85 @@ subroutine paw_ij_gather(paw_ij_in,paw_ij_gathered,master,comm_atom)
        cplx_lmn2_size=paw_ij_gathered(iat)%cplex*lmn2_size
        nspden=paw_ij_gathered(iat)%nspden
        if (paw_ij_gathered(iat)%has_dij>=1) then
-         ABI_ALLOCATE(paw_ij_gathered(iat)%dij,(cplxdij_lmn2_size,ndij))
+         LIBPAW_ALLOCATE(paw_ij_gathered(iat)%dij,(cplxdij_lmn2_size,ndij))
          if (paw_ij_in(iat)%has_dij==2) then
            paw_ij_gathered(iat)%dij=paw_ij_in(iat)%dij
          end if
        end if
        if (paw_ij_gathered(iat)%has_dij0 >=1) then
-         ABI_ALLOCATE(paw_ij_gathered(iat)%dij0,(lmn2_size))
+         LIBPAW_ALLOCATE(paw_ij_gathered(iat)%dij0,(lmn2_size))
          if (paw_ij_in(iat)%has_dij0==2) then
            paw_ij_gathered(iat)%dij0=paw_ij_in(iat)%dij0
          end if
        end if   
        if (paw_ij_gathered(iat)%has_dijexxc >=1) then
-         ABI_ALLOCATE(paw_ij_gathered(iat)%dijexxc,(cplxdij_lmn2_size,ndij)) 
+         LIBPAW_ALLOCATE(paw_ij_gathered(iat)%dijexxc,(cplxdij_lmn2_size,ndij)) 
          if (paw_ij_in(iat)%has_dijexxc==2) then
            paw_ij_gathered(iat)%dijexxc(:,:)=paw_ij_in(iat)%dijexxc(:,:)
          end if
        end if
        if (paw_ij_gathered(iat)%has_dijfock >=1) then
-         ABI_ALLOCATE(paw_ij_gathered(iat)%dijfock,(cplxdij_lmn2_size,ndij)) 
+         LIBPAW_ALLOCATE(paw_ij_gathered(iat)%dijfock,(cplxdij_lmn2_size,ndij)) 
          if (paw_ij_in(iat)%has_dijfock==2) then
            paw_ij_gathered(iat)%dijfock(:,:)=paw_ij_in(iat)%dijfock(:,:)
          end if
        end if   
        if (paw_ij_gathered(iat)%has_dijfr >=1) then
-         ABI_ALLOCATE(paw_ij_gathered(iat)%dijfr,(cplxdij_lmn2_size,ndij))
+         LIBPAW_ALLOCATE(paw_ij_gathered(iat)%dijfr,(cplxdij_lmn2_size,ndij))
          if (paw_ij_in(iat)%has_dijfr==2) then
            paw_ij_gathered(iat)%dijfr(:,:)=paw_ij_in(iat)%dijfr(:,:)
          end if
        end if
          if (paw_ij_gathered(iat)%has_dijhartree >=1) then
-         ABI_ALLOCATE(paw_ij_gathered(iat)%dijhartree,(cplx_lmn2_size))
+         LIBPAW_ALLOCATE(paw_ij_gathered(iat)%dijhartree,(cplx_lmn2_size))
          if (paw_ij_in(iat)%has_dijhartree==2) then
            paw_ij_gathered(iat)%dijhartree(:)=paw_ij_in(iat)%dijhartree(:)
          end if
        end if
        if (paw_ij_gathered(iat)%has_dijhat >=1) then
-         ABI_ALLOCATE(paw_ij_gathered(iat)%dijhat,(cplxdij_lmn2_size,ndij))
+         LIBPAW_ALLOCATE(paw_ij_gathered(iat)%dijhat,(cplxdij_lmn2_size,ndij))
          if (paw_ij_in(iat)%has_dijhat==2) then
            paw_ij_gathered(iat)%dijhat(:,:)=paw_ij_in(iat)%dijhat(:,:)
          end if
        end if
        if (paw_ij_gathered(iat)%has_dijU >=1) then
-         ABI_ALLOCATE(paw_ij_gathered(iat)%dijU,(cplxdij_lmn2_size,ndij))
+         LIBPAW_ALLOCATE(paw_ij_gathered(iat)%dijU,(cplxdij_lmn2_size,ndij))
          if (paw_ij_in(iat)%has_dijU==2) then
          paw_ij_gathered(iat)%dijU(:,:)=paw_ij_in(iat)%dijU(:,:)
          end if
        end if
        if (paw_ij_gathered(iat)%has_dijso >=1) then
-         ABI_ALLOCATE(paw_ij_gathered(iat)%dijso,(cplxdij_lmn2_size,ndij))
+         LIBPAW_ALLOCATE(paw_ij_gathered(iat)%dijso,(cplxdij_lmn2_size,ndij))
          if (paw_ij_in(iat)%has_dijso==2) then
            paw_ij_gathered(iat)%dijso(:,:)=paw_ij_in(iat)%dijso(:,:)
          end if
        end if
        if (paw_ij_gathered(iat)%has_dijxc >=1) then
-         ABI_ALLOCATE(paw_ij_gathered(iat)%dijxc,(cplxdij_lmn2_size,ndij))
+         LIBPAW_ALLOCATE(paw_ij_gathered(iat)%dijxc,(cplxdij_lmn2_size,ndij))
          if (paw_ij_in(iat)%has_dijxc==2) then
            paw_ij_gathered(iat)%dijxc(:,:)=paw_ij_in(iat)%dijxc(:,:)
          end if
        end if
        if (paw_ij_gathered(iat)%has_dijxc_hat >=1) then
-         ABI_ALLOCATE(paw_ij_gathered(iat)%dijxc_hat,(cplxdij_lmn2_size,ndij))
+         LIBPAW_ALLOCATE(paw_ij_gathered(iat)%dijxc_hat,(cplxdij_lmn2_size,ndij))
          if (paw_ij_in(iat)%has_dijxc_hat==2) then
            paw_ij_gathered(iat)%dijxc_hat(:,:)=paw_ij_in(iat)%dijxc_hat(:,:)
          end if
        end if
        if (paw_ij_gathered(iat)%has_dijxc_val >=1) then
-         ABI_ALLOCATE(paw_ij_gathered(iat)%dijxc_val,(cplxdij_lmn2_size,ndij))
+         LIBPAW_ALLOCATE(paw_ij_gathered(iat)%dijxc_val,(cplxdij_lmn2_size,ndij))
          if (paw_ij_in(iat)%has_dijxc_val==2) then
            paw_ij_gathered(iat)%dijxc_val(:,:)=paw_ij_in(iat)%dijxc_val(:,:)
          end if
        end if
        if (paw_ij_gathered(iat)%has_pawu_occ >=1) then
-         ABI_ALLOCATE(paw_ij_gathered(iat)%nocctot,(ndij))
+         LIBPAW_ALLOCATE(paw_ij_gathered(iat)%nocctot,(ndij))
          if (paw_ij_gathered(iat)%has_pawu_occ==2) then
            paw_ij_gathered(iat)%nocctot(:)=paw_ij_in(iat)%nocctot(:)
            if (allocated(paw_ij_in(iat)%noccmmp)) then
              sz1=size(paw_ij_in(iat)%noccmmp,1);sz2=size(paw_ij_in(iat)%noccmmp,2)
              sz3=size(paw_ij_in(iat)%noccmmp,3);sz4=size(paw_ij_in(iat)%noccmmp,4)
-             ABI_ALLOCATE(paw_ij_gathered(iat)%noccmmp,(sz1,sz2,sz3,sz4))
+             LIBPAW_ALLOCATE(paw_ij_gathered(iat)%noccmmp,(sz1,sz2,sz3,sz4))
              paw_ij_gathered(iat)%noccmmp(:,:,:,:)=paw_ij_in(iat)%noccmmp(:,:,:,:)
            end if
          end if
@@ -1604,7 +1600,7 @@ subroutine paw_ij_gather(paw_ij_in,paw_ij_gathered,master,comm_atom)
        if (paw_ij_in(iat)%has_exexch_pot >=1) then
          sz1=size(paw_ij_in(iat)%vpawx,1);sz2=size(paw_ij_in(iat)%vpawx,2)
          sz3=size(paw_ij_in(iat)%vpawx,3)
-         ABI_ALLOCATE(paw_ij_gathered(iat)%vpawx,(sz1,sz2,sz3))
+         LIBPAW_ALLOCATE(paw_ij_gathered(iat)%vpawx,(sz1,sz2,sz3))
          if (paw_ij_in(iat)%has_exexch_pot==2) then
            paw_ij_gathered(iat)%vpawx(:,:,:)=paw_ij_in(iat)%vpawx(:,:,:)
          end if
@@ -1690,8 +1686,8 @@ subroutine paw_ij_gather(paw_ij_in,paw_ij_gathered,master,comm_atom)
  end do
 
 !Fill input buffers
- ABI_ALLOCATE(buf_int,(buf_int_size))
- ABI_ALLOCATE(buf_dp ,(buf_dp_size))
+ LIBPAW_ALLOCATE(buf_int,(buf_int_size))
+ LIBPAW_ALLOCATE(buf_dp ,(buf_dp_size))
  indx_int=1;indx_dp=1
  do ij=1,npaw_ij_in
    nspden=paw_ij_in(ij)%nspden
@@ -1862,7 +1858,7 @@ subroutine paw_ij_gather(paw_ij_in,paw_ij_gathered,master,comm_atom)
      ndij=paw_ij_gathered(iat)%ndij
      cplx_lmn2_size=paw_ij_gathered(iat)%cplex*lmn2_size
      if (paw_ij_gathered(iat)%has_dij>=1) then
-       ABI_ALLOCATE(paw_ij_gathered(iat)%dij,(cplxdij_lmn2_size,ndij))
+       LIBPAW_ALLOCATE(paw_ij_gathered(iat)%dij,(cplxdij_lmn2_size,ndij))
        if (paw_ij_gathered(iat)%has_dij==2) then
          paw_ij_gathered(iat)%dij(:,:)= &
  &         reshape(buf_dp_all(indx_dp:indx_dp+cplxdij_lmn2_size*ndij-1), &
@@ -1871,14 +1867,14 @@ subroutine paw_ij_gather(paw_ij_in,paw_ij_gathered,master,comm_atom)
        end if
      end if
      if (paw_ij_gathered(iat)%has_dij0 >=1) then
-       ABI_ALLOCATE(paw_ij_gathered(iat)%dij0,(lmn2_size))
+       LIBPAW_ALLOCATE(paw_ij_gathered(iat)%dij0,(lmn2_size))
        if (paw_ij_gathered(iat)%has_dij0==2) then
          paw_ij_gathered(iat)%dij0(:)=buf_dp_all(indx_dp:indx_dp+lmn2_size-1)
          indx_dp=indx_dp+lmn2_size
        end if
      end if
      if (paw_ij_gathered(iat)%has_dijexxc >=1) then
-       ABI_ALLOCATE(paw_ij_gathered(iat)%dijexxc,(cplxdij_lmn2_size,ndij))
+       LIBPAW_ALLOCATE(paw_ij_gathered(iat)%dijexxc,(cplxdij_lmn2_size,ndij))
        if (paw_ij_gathered(iat)%has_dijexxc==2) then
          paw_ij_gathered(iat)%dijexxc(:,:)= &
 &          reshape(buf_dp_all(indx_dp:indx_dp+cplxdij_lmn2_size*ndij-1), &
@@ -1887,7 +1883,7 @@ subroutine paw_ij_gather(paw_ij_in,paw_ij_gathered,master,comm_atom)
        end if
      end if   
      if (paw_ij_gathered(iat)%has_dijfock >=1) then
-        ABI_ALLOCATE(paw_ij_gathered(iat)%dijfock,(cplxdij_lmn2_size,ndij)) 
+        LIBPAW_ALLOCATE(paw_ij_gathered(iat)%dijfock,(cplxdij_lmn2_size,ndij)) 
         if (paw_ij_gathered(iat)%has_dijfock==2) then
           paw_ij_gathered(iat)%dijfock(:,:)= &      
 &           reshape(buf_dp_all(indx_dp:indx_dp+cplxdij_lmn2_size*ndij-1), &
@@ -1896,7 +1892,7 @@ subroutine paw_ij_gather(paw_ij_in,paw_ij_gathered,master,comm_atom)
         end if
       end if   
       if (paw_ij_gathered(iat)%has_dijfr >=1) then
-         ABI_ALLOCATE(paw_ij_gathered(iat)%dijfr,(cplxdij_lmn2_size,ndij))
+         LIBPAW_ALLOCATE(paw_ij_gathered(iat)%dijfr,(cplxdij_lmn2_size,ndij))
          if (paw_ij_gathered(iat)%has_dijfr==2) then
            paw_ij_gathered(iat)%dijfr(:,:)= &
 &            reshape(buf_dp_all(indx_dp:indx_dp+cplxdij_lmn2_size*ndij-1), &
@@ -1905,14 +1901,14 @@ subroutine paw_ij_gather(paw_ij_in,paw_ij_gathered,master,comm_atom)
          end if
        end if
        if (paw_ij_gathered(iat)%has_dijhartree >=1) then
-         ABI_ALLOCATE(paw_ij_gathered(iat)%dijhartree,(cplx_lmn2_size))
+         LIBPAW_ALLOCATE(paw_ij_gathered(iat)%dijhartree,(cplx_lmn2_size))
          if (paw_ij_gathered(iat)%has_dijhartree==2) then
            paw_ij_gathered(iat)%dijhartree(:)=buf_dp_all(indx_dp:indx_dp+cplx_lmn2_size-1)
            indx_dp=indx_dp+cplx_lmn2_size
          end if
        end if
        if (paw_ij_gathered(iat)%has_dijhat >=1) then
-         ABI_ALLOCATE(paw_ij_gathered(iat)%dijhat,(cplxdij_lmn2_size,ndij))
+         LIBPAW_ALLOCATE(paw_ij_gathered(iat)%dijhat,(cplxdij_lmn2_size,ndij))
          if (paw_ij_gathered(iat)%has_dijhat==2) then
            paw_ij_gathered(iat)%dijhat(:,:)= &
 &            reshape(buf_dp_all(indx_dp:indx_dp+cplxdij_lmn2_size*ndij-1), &
@@ -1921,7 +1917,7 @@ subroutine paw_ij_gather(paw_ij_in,paw_ij_gathered,master,comm_atom)
          end if
        end if
        if (paw_ij_gathered(iat)%has_dijU >=1) then
-         ABI_ALLOCATE(paw_ij_gathered(iat)%dijU,(cplxdij_lmn2_size,ndij))
+         LIBPAW_ALLOCATE(paw_ij_gathered(iat)%dijU,(cplxdij_lmn2_size,ndij))
          if (paw_ij_gathered(iat)%has_dijU==2) then
            paw_ij_gathered(iat)%dijU(:,:)= &
 &            reshape(buf_dp_all(indx_dp:indx_dp+cplxdij_lmn2_size*ndij-1), &
@@ -1930,7 +1926,7 @@ subroutine paw_ij_gather(paw_ij_in,paw_ij_gathered,master,comm_atom)
          end if
        end if
        if (paw_ij_gathered(iat)%has_dijso >=1) then
-         ABI_ALLOCATE(paw_ij_gathered(iat)%dijso,(cplxdij_lmn2_size,ndij))
+         LIBPAW_ALLOCATE(paw_ij_gathered(iat)%dijso,(cplxdij_lmn2_size,ndij))
          if (paw_ij_gathered(iat)%has_dijso==2) then
            paw_ij_gathered(iat)%dijso(:,:)= &
 &            reshape(buf_dp_all(indx_dp:indx_dp+cplxdij_lmn2_size*ndij-1), &
@@ -1939,7 +1935,7 @@ subroutine paw_ij_gather(paw_ij_in,paw_ij_gathered,master,comm_atom)
          end if
        end if
        if (paw_ij_gathered(iat)%has_dijxc >=1) then
-         ABI_ALLOCATE(paw_ij_gathered(iat)%dijxc,(cplxdij_lmn2_size,ndij))
+         LIBPAW_ALLOCATE(paw_ij_gathered(iat)%dijxc,(cplxdij_lmn2_size,ndij))
          if (paw_ij_gathered(iat)%has_dijxc==2) then
            paw_ij_gathered(iat)%dijxc(:,:)= &
 &            reshape(buf_dp_all(indx_dp:indx_dp+cplxdij_lmn2_size*ndij-1), &
@@ -1948,7 +1944,7 @@ subroutine paw_ij_gather(paw_ij_in,paw_ij_gathered,master,comm_atom)
          end if
        end if
        if (paw_ij_gathered(iat)%has_dijxc_hat >=1) then
-         ABI_ALLOCATE(paw_ij_gathered(iat)%dijxc_hat,(cplxdij_lmn2_size,ndij))
+         LIBPAW_ALLOCATE(paw_ij_gathered(iat)%dijxc_hat,(cplxdij_lmn2_size,ndij))
          if (paw_ij_gathered(iat)%has_dijxc_hat==2) then
            paw_ij_gathered(iat)%dijxc_hat(:,:)= &
 &            reshape(buf_dp_all(indx_dp:indx_dp+cplxdij_lmn2_size*ndij-1), &
@@ -1957,7 +1953,7 @@ subroutine paw_ij_gather(paw_ij_in,paw_ij_gathered,master,comm_atom)
          end if
        end if
        if (paw_ij_gathered(iat)%has_dijxc_val >=1) then
-         ABI_ALLOCATE(paw_ij_gathered(iat)%dijxc_val,(cplxdij_lmn2_size,ndij))
+         LIBPAW_ALLOCATE(paw_ij_gathered(iat)%dijxc_val,(cplxdij_lmn2_size,ndij))
          if (paw_ij_gathered(iat)%has_dijxc_val==2) then
            paw_ij_gathered(iat)%dijxc_val(:,:)= &
 &            reshape(buf_dp_all(indx_dp:indx_dp+cplxdij_lmn2_size*ndij-1), &
@@ -1967,11 +1963,11 @@ subroutine paw_ij_gather(paw_ij_in,paw_ij_gathered,master,comm_atom)
        end if
       if (paw_ij_gathered(iat)%has_pawu_occ >=1) then
         nocc=paw_ij_gathered(iat)%ndij
-        ABI_ALLOCATE(paw_ij_gathered(iat)%nocctot,(nocc))
+        LIBPAW_ALLOCATE(paw_ij_gathered(iat)%nocctot,(nocc))
         paw_ij_gathered(iat)%nocctot(1:nocc)=buf_dp_all(indx_dp:indx_dp+nocc-1)
         indx_dp=indx_dp+nocc
         nocc=nocc1*nocc2*nocc3*nocc4
-        ABI_ALLOCATE(paw_ij_gathered(iat)%noccmmp,(nocc1,nocc2,nocc3,nocc4))
+        LIBPAW_ALLOCATE(paw_ij_gathered(iat)%noccmmp,(nocc1,nocc2,nocc3,nocc4))
         paw_ij_gathered(iat)%noccmmp(1:nocc1,1:nocc2,1:nocc3,1:nocc4)= &
 &         reshape(buf_dp_all(indx_dp:indx_dp+nocc-1),(/nocc1,nocc2,nocc3,nocc4/))
         indx_dp=indx_dp+nocc
@@ -1980,7 +1976,7 @@ subroutine paw_ij_gather(paw_ij_in,paw_ij_gathered,master,comm_atom)
         sz1=buf_int_all(indx_int);indx_int=indx_int+1
         sz2=buf_int_all(indx_int);indx_int=indx_int+1
         sz3=buf_int_all(indx_int);indx_int=indx_int+1
-        ABI_ALLOCATE(paw_ij_gathered(iat)%vpawx,(sz1,sz2,sz3))
+        LIBPAW_ALLOCATE(paw_ij_gathered(iat)%vpawx,(sz1,sz2,sz3))
         if (paw_ij_gathered(iat)%has_exexch_pot == 2) then
           paw_ij_gathered(iat)%vpawx(:,:,:)=&
 &           reshape(buf_dp_all(indx_dp:indx_dp+sz1*sz2*sz3-1),(/sz1,sz2,sz3/))
@@ -1997,10 +1993,10 @@ subroutine paw_ij_gather(paw_ij_in,paw_ij_gathered,master,comm_atom)
 
 !Free memory
  call free_my_atmtab(my_atmtab,my_atmtab_allocated)
- ABI_DEALLOCATE(buf_int)
- ABI_DEALLOCATE(buf_dp)
- ABI_DEALLOCATE(buf_int_all)
- ABI_DEALLOCATE(buf_dp_all)
+ LIBPAW_DEALLOCATE(buf_int)
+ LIBPAW_DEALLOCATE(buf_dp)
+ LIBPAW_DEALLOCATE(buf_int_all)
+ LIBPAW_DEALLOCATE(buf_dp_all)
 
  DBG_EXIT("COLL")
 
@@ -2110,14 +2106,14 @@ subroutine paw_ij_redistribute(paw_ij,mpi_comm_in,mpi_comm_out,&
  if (.not.in_place) then
    if (associated(paw_ij_out)) then
      call paw_ij_free(paw_ij_out)
-     ABI_DATATYPE_DEALLOCATE(paw_ij_out)
+     LIBPAW_DATATYPE_DEALLOCATE(paw_ij_out)
    end if
  end if
 
 !Special sequential case
  if (mpi_comm_in==xmpi_self.and.mpi_comm_out==xmpi_self) then
    if ((.not.in_place).and.(my_natom_in>0)) then
-     ABI_DATATYPE_ALLOCATE(paw_ij_out,(my_natom_in))
+     LIBPAW_DATATYPE_ALLOCATE(paw_ij_out,(my_natom_in))
      call paw_ij_nullify(paw_ij_out)
      call paw_ij_copy(paw_ij,paw_ij_out)
    end if
@@ -2161,22 +2157,22 @@ subroutine paw_ij_redistribute(paw_ij,mpi_comm_in,mpi_comm_out,&
 !---------------------------------------------------------
  if (algo_option==1) then
 
-   ABI_DATATYPE_ALLOCATE(paw_ij_all,(natom_tot))
+   LIBPAW_DATATYPE_ALLOCATE(paw_ij_all,(natom_tot))
    call paw_ij_nullify(paw_ij_all)
    call paw_ij_copy(paw_ij,paw_ij_all,comm_atom=mpi_comm_in,mpi_atmtab=my_atmtab_in)
    if (in_place) then
     call paw_ij_free(paw_ij)
-    ABI_DATATYPE_DEALLOCATE(paw_ij)
-    ABI_DATATYPE_ALLOCATE(paw_ij,(my_natom_out))
+    LIBPAW_DATATYPE_DEALLOCATE(paw_ij)
+    LIBPAW_DATATYPE_ALLOCATE(paw_ij,(my_natom_out))
     call paw_ij_nullify(paw_ij)
     call paw_ij_copy(paw_ij_all,paw_ij,comm_atom=mpi_comm_out,mpi_atmtab=my_atmtab_out)
    else
-     ABI_DATATYPE_ALLOCATE(paw_ij_out,(my_natom_out))
+     LIBPAW_DATATYPE_ALLOCATE(paw_ij_out,(my_natom_out))
      call paw_ij_nullify(paw_ij_out)
      call paw_ij_copy(paw_ij_all,paw_ij_out,comm_atom=mpi_comm_out,mpi_atmtab=my_atmtab_out)
    end if
    call paw_ij_free(paw_ij_all)
-   ABI_DATATYPE_DEALLOCATE(paw_ij_all)
+   LIBPAW_DATATYPE_DEALLOCATE(paw_ij_all)
 
 
 !Asynchronous algorithm (asynchronous communications)
@@ -2187,13 +2183,13 @@ subroutine paw_ij_redistribute(paw_ij,mpi_comm_in,mpi_comm_out,&
 
    if (in_place) then
      if (my_natom_out > 0) then
-       ABI_DATATYPE_ALLOCATE(paw_ij_out1,(my_natom_out))
+       LIBPAW_DATATYPE_ALLOCATE(paw_ij_out1,(my_natom_out))
        call paw_ij_nullify(paw_ij_out1)
      else
-       ABI_DATATYPE_ALLOCATE(paw_ij_out1,(0))
+       LIBPAW_DATATYPE_ALLOCATE(paw_ij_out1,(0))
      end if
    else
-     ABI_DATATYPE_ALLOCATE(paw_ij_out,(my_natom_out))
+     LIBPAW_DATATYPE_ALLOCATE(paw_ij_out,(my_natom_out))
      call paw_ij_nullify(paw_ij_out)
       paw_ij_out1=>paw_ij_out
    end if
@@ -2206,22 +2202,22 @@ subroutine paw_ij_redistribute(paw_ij,mpi_comm_in,mpi_comm_out,&
 
 
 !  Dimension put to the maximum to send
-   ABI_ALLOCATE(atmtab_send,(nbsend))
-   ABI_ALLOCATE(atm_indx_in,(natom_tot))
+   LIBPAW_ALLOCATE(atmtab_send,(nbsend))
+   LIBPAW_ALLOCATE(atm_indx_in,(natom_tot))
    atm_indx_in=-1
    do iatom=1,my_natom_in
      atm_indx_in(my_atmtab_in(iatom))=iatom
    end do
-   ABI_ALLOCATE(atm_indx_out,(natom_tot))
+   LIBPAW_ALLOCATE(atm_indx_out,(natom_tot))
    atm_indx_out=-1
    do iatom=1,my_natom_out
      atm_indx_out(my_atmtab_out(iatom))=iatom
    end do
 
-   ABI_DATATYPE_ALLOCATE(tab_buf_int,(nbsend))
-   ABI_DATATYPE_ALLOCATE(tab_buf_dp,(nbsend))
-   ABI_DATATYPE_ALLOCATE(tab_buf_atom,(nbsend))
-   ABI_ALLOCATE(request,(3*nbsend))
+   LIBPAW_DATATYPE_ALLOCATE(tab_buf_int,(nbsend))
+   LIBPAW_DATATYPE_ALLOCATE(tab_buf_dp,(nbsend))
+   LIBPAW_DATATYPE_ALLOCATE(tab_buf_atom,(nbsend))
+   LIBPAW_ALLOCATE(request,(3*nbsend))
 
 !  A send buffer in an asynchrone communication couldn't be deallocate before it has been receive
    nbsent=0 ; ireq=0 ; iisend=0 ; nbsendreq=0 ; nb_msg=0
@@ -2252,13 +2248,13 @@ subroutine paw_ij_redistribute(paw_ij,mpi_comm_in,mpi_comm_out,&
              nb_msg=nb_msg+1
              call paw_ij_isendreceive_fillbuffer( &
 &                   paw_ij,atmtab_send,atm_indx_in,nbsent,buf_int,nb_int,buf_dp,nb_dp)
-             ABI_ALLOCATE(tab_buf_int(nb_msg)%value,(nb_int))
-             ABI_ALLOCATE(tab_buf_dp(nb_msg)%value,(nb_dp))
+             LIBPAW_ALLOCATE(tab_buf_int(nb_msg)%value,(nb_int))
+             LIBPAW_ALLOCATE(tab_buf_dp(nb_msg)%value,(nb_dp))
              tab_buf_int(nb_msg)%value(1:nb_int)=buf_int(1:nb_int)
              tab_buf_dp(nb_msg)%value(1:nb_dp)=buf_dp(1:nb_dp)
-             ABI_DEALLOCATE(buf_int)
-             ABI_DEALLOCATE(buf_dp)
-             ABI_ALLOCATE(tab_buf_atom(nb_msg)%value, (nbsent))
+             LIBPAW_DEALLOCATE(buf_int)
+             LIBPAW_DEALLOCATE(buf_dp)
+             LIBPAW_ALLOCATE(tab_buf_atom(nb_msg)%value, (nbsent))
              tab_buf_atom(nb_msg)%value(1:nbsent)=atmtab_send(1:nbsent)
              imsg_current=nb_msg
            end if
@@ -2289,7 +2285,7 @@ subroutine paw_ij_redistribute(paw_ij,mpi_comm_in,mpi_comm_out,&
      end if
    end do
 
-   ABI_ALLOCATE(From,(nbrecv))
+   LIBPAW_ALLOCATE(From,(nbrecv))
    From(:)=-1 ; nbrecvmsg=0
    do iircv=1,nbrecv
      iproc_send=RecvAtomProc(iircv) !receive from (RcvAtomProc is sorted by growing process)
@@ -2301,7 +2297,7 @@ subroutine paw_ij_redistribute(paw_ij,mpi_comm_in,mpi_comm_out,&
      end if
    end do
 
-   ABI_ALLOCATE(msg_pick,(nbrecvmsg))
+   LIBPAW_ALLOCATE(msg_pick,(nbrecvmsg))
    msg_pick=.false.
    nbmsg_incoming=nbrecvmsg
    do while (nbmsg_incoming > 0)
@@ -2318,8 +2314,8 @@ subroutine paw_ij_redistribute(paw_ij,mpi_comm_in,mpi_comm_out,&
            nb_int=buf_size(1)
            nb_dp=buf_size(2)
            npaw_ij_sent=buf_size(3)
-           ABI_ALLOCATE(buf_int1,(nb_int))
-           ABI_ALLOCATE(buf_dp1,(nb_dp))
+           LIBPAW_ALLOCATE(buf_int1,(nb_int))
+           LIBPAW_ALLOCATE(buf_dp1,(nb_dp))
            my_tag=201
            call xmpi_irecv(buf_int1,iproc_send,my_tag,mpi_comm_exch,request1(2),ierr)
            my_tag=202
@@ -2327,21 +2323,21 @@ subroutine paw_ij_redistribute(paw_ij,mpi_comm_in,mpi_comm_out,&
            call xmpi_waitall(request1(2:3),ierr)
            call paw_ij_isendreceive_getbuffer(paw_ij_out1,npaw_ij_sent,atm_indx_out,buf_int1,buf_dp1)
            nbmsg_incoming=nbmsg_incoming-1
-           ABI_DEALLOCATE(buf_int1)
-           ABI_DEALLOCATE(buf_dp1)
+           LIBPAW_DEALLOCATE(buf_int1)
+           LIBPAW_DEALLOCATE(buf_dp1)
          end if
        end if
      end do
    end do
-   ABI_DEALLOCATE(msg_pick)
+   LIBPAW_DEALLOCATE(msg_pick)
 
    if (in_place) then
      call paw_ij_free(paw_ij)
-     ABI_DATATYPE_DEALLOCATE(paw_ij)
-     ABI_DATATYPE_ALLOCATE(paw_ij,(my_natom_out))
+     LIBPAW_DATATYPE_DEALLOCATE(paw_ij)
+     LIBPAW_DATATYPE_ALLOCATE(paw_ij,(my_natom_out))
      call paw_ij_copy(paw_ij_out1,paw_ij)
      call paw_ij_free(paw_ij_out1)
-    ABI_DATATYPE_DEALLOCATE(paw_ij_out1)
+    LIBPAW_DATATYPE_DEALLOCATE(paw_ij_out1)
   end if
 
 !  Wait for deallocating arrays that all sending operations has been realized
@@ -2351,18 +2347,18 @@ subroutine paw_ij_redistribute(paw_ij,mpi_comm_in,mpi_comm_out,&
 
 !  Deallocate buffers
    do i1=1,nb_msg
-     ABI_DEALLOCATE(tab_buf_int(i1)%value)
-     ABI_DEALLOCATE(tab_buf_dp(i1)%value)
-     ABI_DEALLOCATE(tab_buf_atom(i1)%value)
+     LIBPAW_DEALLOCATE(tab_buf_int(i1)%value)
+     LIBPAW_DEALLOCATE(tab_buf_dp(i1)%value)
+     LIBPAW_DEALLOCATE(tab_buf_atom(i1)%value)
    end do
-   ABI_DATATYPE_DEALLOCATE(tab_buf_int)
-   ABI_DATATYPE_DEALLOCATE(tab_buf_dp)
-   ABI_DATATYPE_DEALLOCATE(tab_buf_atom)
-   ABI_DEALLOCATE(From)
-   ABI_DEALLOCATE(request)
-   ABI_DEALLOCATE(atmtab_send)
-   ABI_DEALLOCATE(atm_indx_in)
-   ABI_DEALLOCATE(atm_indx_out)
+   LIBPAW_DATATYPE_DEALLOCATE(tab_buf_int)
+   LIBPAW_DATATYPE_DEALLOCATE(tab_buf_dp)
+   LIBPAW_DATATYPE_DEALLOCATE(tab_buf_atom)
+   LIBPAW_DEALLOCATE(From)
+   LIBPAW_DEALLOCATE(request)
+   LIBPAW_DEALLOCATE(atmtab_send)
+   LIBPAW_DEALLOCATE(atm_indx_in)
+   LIBPAW_DEALLOCATE(atm_indx_out)
 
  end if !algo_option
 
@@ -2573,7 +2569,7 @@ implicit none
    ndij=paw_ij1%ndij
    cplx_lmn2_size=paw_ij1%cplex*lmn2_size
    if (paw_ij1%has_dij>=1) then
-     ABI_ALLOCATE(paw_ij1%dij,(cplxdij_lmn2_size,ndij))
+     LIBPAW_ALLOCATE(paw_ij1%dij,(cplxdij_lmn2_size,ndij))
      if (paw_ij1%has_dij==2) then
        paw_ij1%dij(:,:)= &
  &       reshape(buf_dp(indx_dp:indx_dp+cplxdij_lmn2_size*ndij-1), &
@@ -2582,14 +2578,14 @@ implicit none
      end if
    end if
    if (paw_ij1%has_dij0 >=1) then
-     ABI_ALLOCATE(paw_ij1%dij0,(lmn2_size))
+     LIBPAW_ALLOCATE(paw_ij1%dij0,(lmn2_size))
      if (paw_ij1%has_dij0==2) then
        paw_ij1%dij0(:)=buf_dp(indx_dp:indx_dp+lmn2_size-1)
        indx_dp=indx_dp+lmn2_size
      end if
    end if
    if (paw_ij1%has_dijexxc >=1) then
-      ABI_ALLOCATE(paw_ij1%dijexxc,(cplxdij_lmn2_size,ndij))
+      LIBPAW_ALLOCATE(paw_ij1%dijexxc,(cplxdij_lmn2_size,ndij))
       if (paw_ij1%has_dijexxc==2) then
         paw_ij1%dijexxc(:,:)= &
 &         reshape(buf_dp(indx_dp:indx_dp+cplxdij_lmn2_size*ndij-1), &
@@ -2598,7 +2594,7 @@ implicit none
       end if
     end if
     if (paw_ij1%has_dijfr >=1) then
-       ABI_ALLOCATE(paw_ij1%dijfr,(cplxdij_lmn2_size,ndij))
+       LIBPAW_ALLOCATE(paw_ij1%dijfr,(cplxdij_lmn2_size,ndij))
        if (paw_ij1%has_dijfr==2) then
          paw_ij1%dijfr(:,:)= &
 &          reshape(buf_dp(indx_dp:indx_dp+cplxdij_lmn2_size*ndij-1), &
@@ -2607,14 +2603,14 @@ implicit none
        end if
      end if
      if (paw_ij1%has_dijhartree >=1) then
-       ABI_ALLOCATE(paw_ij1%dijhartree,(cplx_lmn2_size))
+       LIBPAW_ALLOCATE(paw_ij1%dijhartree,(cplx_lmn2_size))
        if (paw_ij1%has_dijhartree==2) then
          paw_ij1%dijhartree(:)=buf_dp(indx_dp:indx_dp+cplx_lmn2_size-1)
          indx_dp=indx_dp+cplx_lmn2_size
        end if
      end if
      if (paw_ij1%has_dijhat >=1) then
-       ABI_ALLOCATE(paw_ij1%dijhat,(cplxdij_lmn2_size,ndij))
+       LIBPAW_ALLOCATE(paw_ij1%dijhat,(cplxdij_lmn2_size,ndij))
        if (paw_ij1%has_dijhat==2) then
          paw_ij1%dijhat(:,:)= &
 &          reshape(buf_dp(indx_dp:indx_dp+cplxdij_lmn2_size*ndij-1), &
@@ -2623,7 +2619,7 @@ implicit none
        end if
      end if
      if (paw_ij1%has_dijU >=1) then
-       ABI_ALLOCATE(paw_ij1%dijU,(cplxdij_lmn2_size,ndij))
+       LIBPAW_ALLOCATE(paw_ij1%dijU,(cplxdij_lmn2_size,ndij))
        if (paw_ij1%has_dijU==2) then
          paw_ij1%dijU(:,:)= &
 &          reshape(buf_dp(indx_dp:indx_dp+cplxdij_lmn2_size*ndij-1), &
@@ -2632,7 +2628,7 @@ implicit none
        end if
      end if
      if (paw_ij1%has_dijso >=1) then
-       ABI_ALLOCATE(paw_ij1%dijso,(cplxdij_lmn2_size,ndij))
+       LIBPAW_ALLOCATE(paw_ij1%dijso,(cplxdij_lmn2_size,ndij))
        if (paw_ij1%has_dijso==2) then
          paw_ij1%dijso(:,:)= &
 &          reshape(buf_dp(indx_dp:indx_dp+cplxdij_lmn2_size*ndij-1), &
@@ -2641,7 +2637,7 @@ implicit none
        end if
      end if
      if (paw_ij1%has_dijxc >=1) then
-       ABI_ALLOCATE(paw_ij1%dijxc,(cplxdij_lmn2_size,ndij))
+       LIBPAW_ALLOCATE(paw_ij1%dijxc,(cplxdij_lmn2_size,ndij))
        if (paw_ij1%has_dijxc==2) then
          paw_ij1%dijxc(:,:)= &
 &          reshape(buf_dp(indx_dp:indx_dp+cplxdij_lmn2_size*ndij-1), &
@@ -2650,7 +2646,7 @@ implicit none
        end if
      end if
      if (paw_ij1%has_dijxc_hat >=1) then
-       ABI_ALLOCATE(paw_ij1%dijxc_hat,(cplxdij_lmn2_size,ndij))
+       LIBPAW_ALLOCATE(paw_ij1%dijxc_hat,(cplxdij_lmn2_size,ndij))
        if (paw_ij1%has_dijxc_hat==2) then
          paw_ij1%dijxc_hat(:,:)= &
 &          reshape(buf_dp(indx_dp:indx_dp+cplxdij_lmn2_size*ndij-1), &
@@ -2659,7 +2655,7 @@ implicit none
        end if
      end if
      if (paw_ij1%has_dijxc_val >=1) then
-       ABI_ALLOCATE(paw_ij1%dijxc_val,(cplxdij_lmn2_size,ndij))
+       LIBPAW_ALLOCATE(paw_ij1%dijxc_val,(cplxdij_lmn2_size,ndij))
        if (paw_ij1%has_dijxc_val==2) then
          paw_ij1%dijxc_val(:,:)= &
 &          reshape(buf_dp(indx_dp:indx_dp+cplxdij_lmn2_size*ndij-1), &
@@ -2669,11 +2665,11 @@ implicit none
      end if
     if (paw_ij1%has_pawu_occ >=1) then
       nocc=paw_ij1%ndij
-      ABI_ALLOCATE(paw_ij1%nocctot,(nocc))
+      LIBPAW_ALLOCATE(paw_ij1%nocctot,(nocc))
       paw_ij1%nocctot(1:nocc)=buf_dp(indx_dp:indx_dp+nocc-1)
       indx_dp=indx_dp+nocc
       nocc=nocc1*nocc2*nocc3*nocc4
-      ABI_ALLOCATE(paw_ij1%noccmmp,(nocc1,nocc2,nocc3,nocc4))
+      LIBPAW_ALLOCATE(paw_ij1%noccmmp,(nocc1,nocc2,nocc3,nocc4))
       paw_ij1%noccmmp(1:nocc1,1:nocc2,1:nocc3,1:nocc4)= &
 &       reshape(buf_dp(indx_dp:indx_dp+nocc-1),(/nocc1,nocc2,nocc3,nocc4/))
       indx_dp=indx_dp+nocc
@@ -2682,7 +2678,7 @@ implicit none
       sz1=buf_int(indx_int);indx_int=indx_int+1
       sz2=buf_int(indx_int);indx_int=indx_int+1
       sz3=buf_int(indx_int);indx_int=indx_int+1
-      ABI_ALLOCATE(paw_ij1%vpawx,(sz1,sz2,sz3))
+      LIBPAW_ALLOCATE(paw_ij1%vpawx,(sz1,sz2,sz3))
       if (paw_ij1%has_exexch_pot == 2) then
         paw_ij1%vpawx(:,:,:)=&
 &         reshape(buf_dp(indx_dp:indx_dp+sz1*sz2*sz3-1),(/sz1,sz2,sz3/))
@@ -2823,8 +2819,8 @@ implicit none
  end do
 
 !Fill input buffers
- ABI_ALLOCATE(buf_int,(buf_int_size))
- ABI_ALLOCATE(buf_dp,(buf_dp_size))
+ LIBPAW_ALLOCATE(buf_int,(buf_int_size))
+ LIBPAW_ALLOCATE(buf_dp,(buf_dp_size))
  indx_int=1;indx_dp=1
  do ipaw_ij_send=1,npaw_ij_send
    iatom_tot=atmtab_send(ipaw_ij_send)

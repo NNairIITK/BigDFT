@@ -19,24 +19,20 @@
 !!
 !! SOURCE
 
-#if defined HAVE_CONFIG_H
-#include "config.h"
-#endif
-
-#include "abi_common.h"
-
+#include "libpaw.h"
 
 module m_pawxmlps
 
  use defs_basis
- use m_profiling_abi
  use m_errors
- use m_pawrad
+ USE_MEMORY_PROFILING
+
 #if defined HAVE_TRIO_FOX
  use fox_sax
 #endif
 
- use m_paw_numeric,   only : paw_spline,paw_splint
+ use m_pawrad     , only : pawrad_type, pawrad_init, pawrad_free, bound_deriv
+ use m_paw_numeric, only : paw_spline, paw_splint
 
  implicit none
 
@@ -350,8 +346,8 @@ select case(name)
         paw_setuploc%tread=.true.
         igrid=0;ishpf=0
         paw_setuploc%rpaw=-1.d0
-        ABI_DATATYPE_ALLOCATE(grids,(10))
-        ABI_DATATYPE_ALLOCATE(shpf,(7))
+        LIBPAW_DATATYPE_ALLOCATE(grids,(10))
+        LIBPAW_DATATYPE_ALLOCATE(shpf,(7))
         value = getValue(attributes,"version")
         write(std_out,'(3a)') "Processing a PSEUDO version ",trim(value)," XML file"
         paw_setuploc%version=trim(value)
@@ -409,7 +405,7 @@ select case(name)
          in_valenceStates=.true.
          ival=0
          lmax=0
-         ABI_DATATYPE_ALLOCATE(valstate,(50))
+         LIBPAW_DATATYPE_ALLOCATE(valstate,(50))
 
       case ("state")
          ival=ival+1
@@ -510,7 +506,7 @@ select case(name)
              end if
            end do
            ishpf=ishpf+1
-           ABI_ALLOCATE(shpf(ishpf)%data,(mesh_size))
+           LIBPAW_ALLOCATE(shpf(ishpf)%data,(mesh_size))
            rp=>shpf(ishpf)
            in_data=.true.
            ndata = 0
@@ -548,7 +544,7 @@ select case(name)
            end if
          end do
 
-         ABI_ALLOCATE(paw_setuploc%pseudo_partial_wave(ipswf)%data,(mesh_size))
+         LIBPAW_ALLOCATE(paw_setuploc%pseudo_partial_wave(ipswf)%data,(mesh_size))
          rp=>paw_setuploc%pseudo_partial_wave(ipswf)
          if(ipswf==paw_setuploc%valence_states%nval) ipswf=0
          in_data=.true.
@@ -571,7 +567,7 @@ select case(name)
            end if
          end do
 
-         ABI_ALLOCATE(paw_setuploc%ae_partial_wave(iaewf)%data,(mesh_size))
+         LIBPAW_ALLOCATE(paw_setuploc%ae_partial_wave(iaewf)%data,(mesh_size))
          rp=>paw_setuploc%ae_partial_wave(iaewf)
          if(iaewf==paw_setuploc%valence_states%nval) iaewf=0
          in_data=.true.
@@ -594,7 +590,7 @@ select case(name)
            end if
          end do
 
-         ABI_ALLOCATE(paw_setuploc%projector_function(iproj)%data,(mesh_size))
+         LIBPAW_ALLOCATE(paw_setuploc%projector_function(iproj)%data,(mesh_size))
          rp=>paw_setuploc%projector_function(iproj)
          if(iproj==paw_setuploc%valence_states%nval) iproj=0
          in_data=.true.
@@ -616,7 +612,7 @@ select case(name)
            end if
          end do
 
-         ABI_ALLOCATE(paw_setuploc%ae_core_density%data,(mesh_size))
+         LIBPAW_ALLOCATE(paw_setuploc%ae_core_density%data,(mesh_size))
          rp=>paw_setuploc%ae_core_density
          in_data=.true.
          ndata = 0
@@ -637,7 +633,7 @@ select case(name)
            end if
          end do
 
-         ABI_ALLOCATE(paw_setuploc%pseudo_core_density%data,(mesh_size))
+         LIBPAW_ALLOCATE(paw_setuploc%pseudo_core_density%data,(mesh_size))
          rp=>paw_setuploc%pseudo_core_density
          in_data=.true.
          ndata = 0
@@ -658,7 +654,7 @@ select case(name)
            end if
          end do
 
-         ABI_ALLOCATE(paw_setuploc%pseudo_valence_density%data,(mesh_size))
+         LIBPAW_ALLOCATE(paw_setuploc%pseudo_valence_density%data,(mesh_size))
          rp=>paw_setuploc%pseudo_valence_density
          in_data=.true.
          ndata = 0
@@ -679,7 +675,7 @@ select case(name)
            end if
          end do
 
-         ABI_ALLOCATE(paw_setuploc%zero_potential%data,(mesh_size))
+         LIBPAW_ALLOCATE(paw_setuploc%zero_potential%data,(mesh_size))
          rp=>paw_setuploc%zero_potential
          in_data=.true.
          ndata = 0
@@ -700,7 +696,7 @@ select case(name)
            end if
          end do
 
-         ABI_ALLOCATE(paw_setuploc%ae_core_kinetic_energy_density%data,(mesh_size))
+         LIBPAW_ALLOCATE(paw_setuploc%ae_core_kinetic_energy_density%data,(mesh_size))
          rp=>paw_setuploc%ae_core_kinetic_energy_density
          in_data=.true.
          ndata = 0
@@ -721,7 +717,7 @@ select case(name)
            end if
          end do
 
-         ABI_ALLOCATE(paw_setuploc%pseudo_core_kinetic_energy_density%data,(mesh_size))
+         LIBPAW_ALLOCATE(paw_setuploc%pseudo_core_kinetic_energy_density%data,(mesh_size))
          rp=>paw_setuploc%pseudo_core_kinetic_energy_density
          in_data=.true.
          ndata = 0
@@ -742,7 +738,7 @@ select case(name)
            end if
          end do
 
-         ABI_ALLOCATE(paw_setuploc%kresse_joubert_local_ionic_potential%data,(mesh_size))
+         LIBPAW_ALLOCATE(paw_setuploc%kresse_joubert_local_ionic_potential%data,(mesh_size))
          rp=>paw_setuploc%kresse_joubert_local_ionic_potential
          in_data=.true.
          ndata = 0
@@ -763,7 +759,7 @@ select case(name)
            end if
          end do
 
-         ABI_ALLOCATE(paw_setuploc%blochl_local_ionic_potential%data,(mesh_size))
+         LIBPAW_ALLOCATE(paw_setuploc%blochl_local_ionic_potential%data,(mesh_size))
          rp=>paw_setuploc%blochl_local_ionic_potential
          in_data=.true.
          ndata = 0
@@ -771,7 +767,7 @@ select case(name)
     case ("kinetic_energy_differences")
          paw_setuploc%kinetic_energy_differences%tread=.true.
          mesh_size=paw_setuploc%valence_states%nval*paw_setuploc%valence_states%nval
-         ABI_ALLOCATE(paw_setuploc%kinetic_energy_differences%data,(mesh_size))
+         LIBPAW_ALLOCATE(paw_setuploc%kinetic_energy_differences%data,(mesh_size))
          rp=>paw_setuploc%kinetic_energy_differences
          in_data=.true.
          ndata = 0
@@ -828,45 +824,45 @@ select case(name)
         in_valenceStates = .false.
         if(ival>50) MSG_ERROR("ival>50")
         if(ival>0)then
-          ABI_DATATYPE_ALLOCATE(paw_setuploc%valence_states%state,(ival))
+          LIBPAW_DATATYPE_ALLOCATE(paw_setuploc%valence_states%state,(ival))
           paw_setuploc%valence_states%state(ival)%tread=.true.
           paw_setuploc%valence_states%nval=ival
           do ii=1,ival
             paw_setuploc%valence_states%state(ii)=valstate(ii)
           end do
         end if
-        ABI_DATATYPE_DEALLOCATE(valstate)
+        LIBPAW_DATATYPE_DEALLOCATE(valstate)
         if(.not.allocated(paw_setuploc%ae_partial_wave)) then
-          ABI_DATATYPE_ALLOCATE(paw_setuploc%ae_partial_wave,(paw_setuploc%valence_states%nval))
+          LIBPAW_DATATYPE_ALLOCATE(paw_setuploc%ae_partial_wave,(paw_setuploc%valence_states%nval))
         end if
         if(.not.allocated(paw_setuploc%pseudo_partial_wave)) then
-          ABI_DATATYPE_ALLOCATE(paw_setuploc%pseudo_partial_wave,(paw_setuploc%valence_states%nval))
+          LIBPAW_DATATYPE_ALLOCATE(paw_setuploc%pseudo_partial_wave,(paw_setuploc%valence_states%nval))
         end if
         if(.not.allocated(paw_setuploc%projector_function)) then
-          ABI_DATATYPE_ALLOCATE(paw_setuploc%projector_function,(paw_setuploc%valence_states%nval))
+          LIBPAW_DATATYPE_ALLOCATE(paw_setuploc%projector_function,(paw_setuploc%valence_states%nval))
         end if
 
       case ("paw_setup")
         if(igrid>10) MSG_ERROR("igrid>10")
-        ABI_DATATYPE_ALLOCATE(paw_setuploc%radial_grid,(igrid))
+        LIBPAW_DATATYPE_ALLOCATE(paw_setuploc%radial_grid,(igrid))
         paw_setuploc%radial_grid(igrid)%tread=.true.
         paw_setuploc%ngrid=igrid
         do ii=1,igrid
           paw_setuploc%radial_grid(ii)=grids(ii)
         end do
-        ABI_DATATYPE_DEALLOCATE(grids)
+        LIBPAW_DATATYPE_DEALLOCATE(grids)
         do ii=1,igrid
           if(trim(paw_setuploc%shape_function%grid)==trim(paw_setuploc%radial_grid(ii)%id)) then
             mesh_size=paw_setuploc%radial_grid(ii)%iend-paw_setuploc%radial_grid(ii)%istart+1
           end if
         end do
         if(ishpf>10) MSG_ERROR("ishpf>7")
-        ABI_ALLOCATE(paw_setuploc%shape_function%data,(mesh_size,ishpf))
+        LIBPAW_ALLOCATE(paw_setuploc%shape_function%data,(mesh_size,ishpf))
         do ii=1,ishpf
           paw_setuploc%shape_function%data(:,ii)=shpf(ii)%data(:)
-          ABI_DEALLOCATE(shpf(ii)%data)
+          LIBPAW_DEALLOCATE(shpf(ii)%data)
         end do
-        ABI_DATATYPE_DEALLOCATE(shpf)
+        LIBPAW_DATATYPE_DEALLOCATE(shpf)
 
       case ("shape_function")
         in_data=.false.
@@ -1059,67 +1055,67 @@ subroutine paw_setup_free(paw_setupin)
  paw_setupin%exact_exchange_matrix%tread=.false.
 
  if(allocated( paw_setupin%shape_function%data)) then
-   ABI_DEALLOCATE(paw_setupin%shape_function%data)
+   LIBPAW_DEALLOCATE(paw_setupin%shape_function%data)
  end if
  if(allocated( paw_setupin%ae_core_density%data)) then
-   ABI_DEALLOCATE(paw_setupin%ae_core_density%data)
+   LIBPAW_DEALLOCATE(paw_setupin%ae_core_density%data)
  end if
  if(allocated( paw_setupin%pseudo_core_density%data)) then
-   ABI_DEALLOCATE(paw_setupin%pseudo_core_density%data)
+   LIBPAW_DEALLOCATE(paw_setupin%pseudo_core_density%data)
  end if
  if(allocated( paw_setupin%pseudo_valence_density%data)) then
-   ABI_DEALLOCATE(paw_setupin%pseudo_valence_density%data)
+   LIBPAW_DEALLOCATE(paw_setupin%pseudo_valence_density%data)
  end if
  if(allocated( paw_setupin%zero_potential%data)) then
-   ABI_DEALLOCATE(paw_setupin%zero_potential%data)
+   LIBPAW_DEALLOCATE(paw_setupin%zero_potential%data)
  end if
  if(allocated( paw_setupin%ae_core_kinetic_energy_density%data)) then
-   ABI_DEALLOCATE(paw_setupin%ae_core_kinetic_energy_density%data)
+   LIBPAW_DEALLOCATE(paw_setupin%ae_core_kinetic_energy_density%data)
  end if
  if(allocated( paw_setupin%pseudo_core_kinetic_energy_density%data)) then
-   ABI_DEALLOCATE(paw_setupin%pseudo_core_kinetic_energy_density%data)
+   LIBPAW_DEALLOCATE(paw_setupin%pseudo_core_kinetic_energy_density%data)
  end if
  if(allocated( paw_setupin%kresse_joubert_local_ionic_potential%data)) then
-   ABI_DEALLOCATE(paw_setupin%kresse_joubert_local_ionic_potential%data)
+   LIBPAW_DEALLOCATE(paw_setupin%kresse_joubert_local_ionic_potential%data)
  end if
  if(allocated( paw_setupin%blochl_local_ionic_potential%data)) then
-   ABI_DEALLOCATE(paw_setupin%blochl_local_ionic_potential%data)
+   LIBPAW_DEALLOCATE(paw_setupin%blochl_local_ionic_potential%data)
  end if
  if(allocated( paw_setupin%kinetic_energy_differences%data)) then
-   ABI_DEALLOCATE(paw_setupin%kinetic_energy_differences%data)
+   LIBPAW_DEALLOCATE(paw_setupin%kinetic_energy_differences%data)
  end if
  if(allocated( paw_setupin%exact_exchange_matrix%data)) then
-   ABI_DEALLOCATE(paw_setupin%exact_exchange_matrix%data)
+   LIBPAW_DEALLOCATE(paw_setupin%exact_exchange_matrix%data)
  end if
  if (allocated( paw_setupin%ae_partial_wave)) then
    do ii=1,paw_setupin%valence_states%nval
      if(allocated( paw_setupin%ae_partial_wave(ii)%data)) then
-       ABI_DEALLOCATE(paw_setupin%ae_partial_wave(ii)%data)
+       LIBPAW_DEALLOCATE(paw_setupin%ae_partial_wave(ii)%data)
      end if
    end do
-   ABI_DATATYPE_DEALLOCATE(paw_setupin%ae_partial_wave)
+   LIBPAW_DATATYPE_DEALLOCATE(paw_setupin%ae_partial_wave)
  end if
  if (allocated( paw_setupin%pseudo_partial_wave)) then
    do ii=1,paw_setupin%valence_states%nval
      if(allocated( paw_setupin%pseudo_partial_wave(ii)%data)) then
-       ABI_DEALLOCATE(paw_setupin%pseudo_partial_wave(ii)%data)
+       LIBPAW_DEALLOCATE(paw_setupin%pseudo_partial_wave(ii)%data)
      end if
    end do
-   ABI_DATATYPE_DEALLOCATE(paw_setupin%pseudo_partial_wave)
+   LIBPAW_DATATYPE_DEALLOCATE(paw_setupin%pseudo_partial_wave)
  end if
  if (allocated( paw_setupin%projector_function)) then
    do ii=1,paw_setupin%valence_states%nval
      if(allocated( paw_setupin%projector_function(ii)%data)) then
-       ABI_DEALLOCATE(paw_setupin%projector_function(ii)%data)
+       LIBPAW_DEALLOCATE(paw_setupin%projector_function(ii)%data)
      end if
    end do
-   ABI_DATATYPE_DEALLOCATE(paw_setupin%projector_function)
+   LIBPAW_DATATYPE_DEALLOCATE(paw_setupin%projector_function)
  end if
  if(allocated(paw_setupin%valence_states%state)) then
-   ABI_DATATYPE_DEALLOCATE(paw_setupin%valence_states%state)
+   LIBPAW_DATATYPE_DEALLOCATE(paw_setupin%valence_states%state)
  end if
  if(allocated( paw_setupin%radial_grid)) then
-   ABI_DATATYPE_DEALLOCATE(paw_setupin%radial_grid)
+   LIBPAW_DATATYPE_DEALLOCATE(paw_setupin%radial_grid)
  end if
 
 end subroutine paw_setup_free
@@ -1240,108 +1236,108 @@ subroutine paw_setup_copy(paw_setupin,paw_setupout)
  if (allocated(paw_setupin%shape_function%data)) then
    sz1=size(paw_setupin%shape_function%data,1)
    sz2=size(paw_setupin%shape_function%data,2)
-   ABI_ALLOCATE(paw_setupout%shape_function%data,(sz1,sz2))
+   LIBPAW_ALLOCATE(paw_setupout%shape_function%data,(sz1,sz2))
    paw_setupout%shape_function%data=paw_setupin%shape_function%data
  end if
  if (allocated(paw_setupin%ae_core_density%data)) then
    sz1=size(paw_setupin%ae_core_density%data,1)
-   ABI_ALLOCATE(paw_setupout%ae_core_density%data,(sz1))
+   LIBPAW_ALLOCATE(paw_setupout%ae_core_density%data,(sz1))
    paw_setupout%ae_core_density%data=paw_setupin%ae_core_density%data
  end if
  if (allocated(paw_setupin%pseudo_core_density%data)) then
    sz1=size(paw_setupin%pseudo_core_density%data,1)
-   ABI_ALLOCATE(paw_setupout%pseudo_core_density%data,(sz1))
+   LIBPAW_ALLOCATE(paw_setupout%pseudo_core_density%data,(sz1))
    paw_setupout%pseudo_core_density%data=paw_setupin%pseudo_core_density%data
  end if
  if (allocated(paw_setupin%pseudo_valence_density%data)) then
    sz1=size(paw_setupin%pseudo_valence_density%data,1)
-   ABI_ALLOCATE(paw_setupout%pseudo_valence_density%data,(sz1))
+   LIBPAW_ALLOCATE(paw_setupout%pseudo_valence_density%data,(sz1))
    paw_setupout%pseudo_valence_density%data=paw_setupin%pseudo_valence_density%data
  end if
  if (allocated(paw_setupin%zero_potential%data)) then
    sz1=size(paw_setupin%zero_potential%data,1)
-   ABI_ALLOCATE(paw_setupout%zero_potential%data,(sz1))
+   LIBPAW_ALLOCATE(paw_setupout%zero_potential%data,(sz1))
    paw_setupout%zero_potential%data=paw_setupin%zero_potential%data
  end if
  if (allocated(paw_setupin%ae_core_kinetic_energy_density%data)) then
    sz1=size(paw_setupin%ae_core_kinetic_energy_density%data,1)
-   ABI_ALLOCATE(paw_setupout%ae_core_kinetic_energy_density%data,(sz1))
+   LIBPAW_ALLOCATE(paw_setupout%ae_core_kinetic_energy_density%data,(sz1))
    paw_setupout%ae_core_kinetic_energy_density%data=paw_setupin%ae_core_kinetic_energy_density%data
  end if
  if (allocated(paw_setupin%pseudo_core_kinetic_energy_density%data)) then
    sz1=size(paw_setupin%pseudo_core_kinetic_energy_density%data,1)
-   ABI_ALLOCATE(paw_setupout%pseudo_core_kinetic_energy_density%data,(sz1))
+   LIBPAW_ALLOCATE(paw_setupout%pseudo_core_kinetic_energy_density%data,(sz1))
    paw_setupout%pseudo_core_kinetic_energy_density%data=paw_setupin%pseudo_core_kinetic_energy_density%data
  end if
  if (allocated(paw_setupin%kresse_joubert_local_ionic_potential%data)) then
    sz1=size(paw_setupin%kresse_joubert_local_ionic_potential%data,1)
-   ABI_ALLOCATE(paw_setupout%kresse_joubert_local_ionic_potential%data,(sz1))
+   LIBPAW_ALLOCATE(paw_setupout%kresse_joubert_local_ionic_potential%data,(sz1))
    paw_setupout%kresse_joubert_local_ionic_potential%data=paw_setupin%kresse_joubert_local_ionic_potential%data
  end if
  if (allocated(paw_setupin%blochl_local_ionic_potential%data)) then
    sz1=size(paw_setupin%blochl_local_ionic_potential%data,1)
-   ABI_ALLOCATE(paw_setupout%blochl_local_ionic_potential%data,(sz1))
+   LIBPAW_ALLOCATE(paw_setupout%blochl_local_ionic_potential%data,(sz1))
    paw_setupout%blochl_local_ionic_potential%data=paw_setupin%blochl_local_ionic_potential%data
  end if
  if (allocated(paw_setupin%exact_exchange_matrix%data)) then
    sz1=size(paw_setupin%exact_exchange_matrix%data,1)
-   ABI_ALLOCATE(paw_setupout%exact_exchange_matrix%data,(sz1))
+   LIBPAW_ALLOCATE(paw_setupout%exact_exchange_matrix%data,(sz1))
    paw_setupout%exact_exchange_matrix%data=paw_setupin%exact_exchange_matrix%data
  end if
  if (allocated(paw_setupin%kinetic_energy_differences%data)) then
    sz1=size(paw_setupin%kinetic_energy_differences%data,1)
-   ABI_ALLOCATE(paw_setupout%kinetic_energy_differences%data,(sz1))
+   LIBPAW_ALLOCATE(paw_setupout%kinetic_energy_differences%data,(sz1))
    paw_setupout%kinetic_energy_differences%data=paw_setupin%kinetic_energy_differences%data
  end if
  if(allocated( paw_setupin%radial_grid)) then
    sz1=size(paw_setupin%radial_grid,1)
-   ABI_DATATYPE_ALLOCATE(paw_setupout%radial_grid,(sz1))
+   LIBPAW_DATATYPE_ALLOCATE(paw_setupout%radial_grid,(sz1))
    paw_setupout%radial_grid=paw_setupin%radial_grid
  end if
  if(allocated(paw_setupin%valence_states%state)) then
    sz1=size(paw_setupin%valence_states%state,1)
-   ABI_DATATYPE_ALLOCATE(paw_setupout%valence_states%state,(sz1))
+   LIBPAW_DATATYPE_ALLOCATE(paw_setupout%valence_states%state,(sz1))
    paw_setupout%valence_states%state=paw_setupin%valence_states%state
  end if
 
  if (allocated( paw_setupin%ae_partial_wave)) then
    sz1=size(paw_setupin%ae_partial_wave,1)
-   ABI_DATATYPE_ALLOCATE(paw_setupout%ae_partial_wave,(sz1))
+   LIBPAW_DATATYPE_ALLOCATE(paw_setupout%ae_partial_wave,(sz1))
    do ii=1,paw_setupin%valence_states%nval
      paw_setupout%ae_partial_wave(ii)%tread=paw_setupin%ae_partial_wave(ii)%tread
      paw_setupout%ae_partial_wave(ii)%grid=paw_setupin%ae_partial_wave(ii)%grid
      paw_setupout%ae_partial_wave(ii)%state=paw_setupin%ae_partial_wave(ii)%state
      if(allocated( paw_setupin%ae_partial_wave(ii)%data)) then
        sz1=size(paw_setupin%ae_partial_wave(ii)%data,1)
-       ABI_ALLOCATE(paw_setupout%ae_partial_wave(ii)%data,(sz1))
+       LIBPAW_ALLOCATE(paw_setupout%ae_partial_wave(ii)%data,(sz1))
        paw_setupout%ae_partial_wave(ii)%data=paw_setupin%ae_partial_wave(ii)%data
      end if
    end do
  end if 
  if (allocated( paw_setupin%pseudo_partial_wave)) then
    sz1=size(paw_setupin%pseudo_partial_wave,1)
-   ABI_DATATYPE_ALLOCATE(paw_setupout%pseudo_partial_wave,(sz1))
+   LIBPAW_DATATYPE_ALLOCATE(paw_setupout%pseudo_partial_wave,(sz1))
    do ii=1,paw_setupin%valence_states%nval
      paw_setupout%pseudo_partial_wave(ii)%tread=paw_setupin%pseudo_partial_wave(ii)%tread
      paw_setupout%pseudo_partial_wave(ii)%grid=paw_setupin%pseudo_partial_wave(ii)%grid
      paw_setupout%pseudo_partial_wave(ii)%state=paw_setupin%pseudo_partial_wave(ii)%state
      if(allocated( paw_setupin%pseudo_partial_wave(ii)%data)) then
        sz1=size(paw_setupin%pseudo_partial_wave(ii)%data,1)
-       ABI_ALLOCATE(paw_setupout%pseudo_partial_wave(ii)%data,(sz1))
+       LIBPAW_ALLOCATE(paw_setupout%pseudo_partial_wave(ii)%data,(sz1))
        paw_setupout%pseudo_partial_wave(ii)%data=paw_setupin%pseudo_partial_wave(ii)%data
      end if
    end do
  end if 
   if (allocated( paw_setupin%projector_function)) then
    sz1=size(paw_setupin%projector_function,1)
-   ABI_DATATYPE_ALLOCATE(paw_setupout%projector_function,(sz1))
+   LIBPAW_DATATYPE_ALLOCATE(paw_setupout%projector_function,(sz1))
    do ii=1,paw_setupin%valence_states%nval
      paw_setupout%projector_function(ii)%tread=paw_setupin%projector_function(ii)%tread
      paw_setupout%projector_function(ii)%grid=paw_setupin%projector_function(ii)%grid
      paw_setupout%projector_function(ii)%state=paw_setupin%projector_function(ii)%state
      if(allocated( paw_setupin%projector_function(ii)%data)) then
        sz1=size(paw_setupin%projector_function(ii)%data,1)
-       ABI_ALLOCATE(paw_setupout%projector_function(ii)%data,(sz1))
+       LIBPAW_ALLOCATE(paw_setupout%projector_function(ii)%data,(sz1))
        paw_setupout%projector_function(ii)%data=paw_setupin%projector_function(ii)%data
      end if
    end do
@@ -1484,7 +1480,7 @@ end subroutine paw_setup_copy
    if ((line(1:10)=='<paw_setup').or.(line(1:12)=='<paw_dataset')) then
      paw_setup%tread=.true.
      igrid=0;ishpf=0
-     ABI_DATATYPE_ALLOCATE(grids,(10))
+     LIBPAW_DATATYPE_ALLOCATE(grids,(10))
 
      call paw_rdfromline(" version",line,strg,ierr)
      paw_setup%version=trim(strg)
@@ -1565,7 +1561,7 @@ end subroutine paw_setup_copy
 !  --Read BASIS SIZE, ORBITALS, RC AND OCCUPATIONS/STATE IDs
    if (line(1:16)=='<valence_states>') then
      paw_setup%valence_states%tread=.true.
-     ABI_DATATYPE_ALLOCATE(valstate,(50))
+     LIBPAW_DATATYPE_ALLOCATE(valstate,(50))
      ival=0
      lmax=0
      do while (line(1:17)/='</valence_states>')
@@ -1736,7 +1732,7 @@ end subroutine paw_setup_copy
          end if
        end do
        if(.not.allocated(shpf)) then
-         ABI_ALLOCATE(shpf,(mesh_size,7))
+         LIBPAW_ALLOCATE(shpf,(mesh_size,7))
        end if
        ishpf=ishpf+1
        read(funit,*) (shpf(ir,ishpf),ir=1,mesh_size)
@@ -1764,39 +1760,39 @@ end subroutine paw_setup_copy
    MSG_ERROR(message)
  end if
  if(ishpf>0)then
-   ABI_ALLOCATE(paw_setup%shape_function%data,(mesh_size,ishpf))
+   LIBPAW_ALLOCATE(paw_setup%shape_function%data,(mesh_size,ishpf))
    do ii=1,ishpf
      paw_setup%shape_function%data(:,ii)=shpf(:,ii)
    end do
-   ABI_DEALLOCATE(shpf)
+   LIBPAW_DEALLOCATE(shpf)
  end if
 
  if(ival>0)then
-   ABI_DATATYPE_ALLOCATE(paw_setup%valence_states%state,(ival))
+   LIBPAW_DATATYPE_ALLOCATE(paw_setup%valence_states%state,(ival))
    paw_setup%valence_states%state(ival)%tread=.true.
    paw_setup%valence_states%nval=ival
    do ii=1,ival
      paw_setup%valence_states%state(ii)=valstate(ii)
    end do
  end if
- ABI_DATATYPE_DEALLOCATE(valstate)
+ LIBPAW_DATATYPE_DEALLOCATE(valstate)
  if(.not.allocated(paw_setup%ae_partial_wave)) then
-   ABI_DATATYPE_ALLOCATE(paw_setup%ae_partial_wave,(paw_setup%valence_states%nval))
+   LIBPAW_DATATYPE_ALLOCATE(paw_setup%ae_partial_wave,(paw_setup%valence_states%nval))
  end if
  if(.not.allocated(paw_setup%pseudo_partial_wave)) then
-   ABI_DATATYPE_ALLOCATE(paw_setup%pseudo_partial_wave,(paw_setup%valence_states%nval))
+   LIBPAW_DATATYPE_ALLOCATE(paw_setup%pseudo_partial_wave,(paw_setup%valence_states%nval))
  end if
  if(.not.allocated(paw_setup%projector_function)) then
-   ABI_DATATYPE_ALLOCATE(paw_setup%projector_function,(paw_setup%valence_states%nval))
+   LIBPAW_DATATYPE_ALLOCATE(paw_setup%projector_function,(paw_setup%valence_states%nval))
  end if
 
- ABI_DATATYPE_ALLOCATE(paw_setup%radial_grid,(igrid))
+ LIBPAW_DATATYPE_ALLOCATE(paw_setup%radial_grid,(igrid))
  paw_setup%radial_grid(igrid)%tread=.true.
  paw_setup%ngrid=igrid
  do ii=1,igrid
    paw_setup%radial_grid(ii)=grids(ii)
  end do
- ABI_DATATYPE_DEALLOCATE(grids)
+ LIBPAW_DATATYPE_DEALLOCATE(grids)
 
 !Start a reading loop
  ipswf=0;iaewf=0;iproj=0
@@ -1828,7 +1824,7 @@ end subroutine paw_setup_copy
          read(unit=strg,fmt=*) rc(1)
        end if
      end if
-     ABI_ALLOCATE(paw_setup%ae_core_density%data,(mesh_size))
+     LIBPAW_ALLOCATE(paw_setup%ae_core_density%data,(mesh_size))
      !MGNAG v7[62]
      ! Runtime Error: m_pawxmlps_cpp.f90, line 1657: 
      ! Record too long for input bufferProgram terminated by I/O error on unit 9 
@@ -1858,7 +1854,7 @@ end subroutine paw_setup_copy
          read(unit=strg,fmt=*) rc(2)
        end if
      end if
-     ABI_ALLOCATE(paw_setup%pseudo_core_density%data,(mesh_size))
+     LIBPAW_ALLOCATE(paw_setup%pseudo_core_density%data,(mesh_size))
      read(funit,*) (paw_setup%pseudo_core_density%data(ir),ir=1,mesh_size)
      cycle
    end if
@@ -1884,7 +1880,7 @@ end subroutine paw_setup_copy
          read(unit=strg,fmt=*) rc(3)
        end if
      end if
-     ABI_ALLOCATE(paw_setup%pseudo_valence_density%data,(mesh_size))
+     LIBPAW_ALLOCATE(paw_setup%pseudo_valence_density%data,(mesh_size))
      read(funit,*) (paw_setup%pseudo_valence_density%data(ir),ir=1,mesh_size)
      cycle
    end if
@@ -1910,7 +1906,7 @@ end subroutine paw_setup_copy
          read(unit=strg,fmt=*) rc(4)
        end if
      end if
-     ABI_ALLOCATE(paw_setup%zero_potential%data,(mesh_size))
+     LIBPAW_ALLOCATE(paw_setup%zero_potential%data,(mesh_size))
      read(funit,*) (paw_setup%zero_potential%data(ir),ir=1,mesh_size)
      cycle
    end if
@@ -1936,7 +1932,7 @@ end subroutine paw_setup_copy
          read(unit=strg,fmt=*) rc(5)
        end if
      end if
-     ABI_ALLOCATE(paw_setup%kresse_joubert_local_ionic_potential%data,(mesh_size))
+     LIBPAW_ALLOCATE(paw_setup%kresse_joubert_local_ionic_potential%data,(mesh_size))
      read(funit,*) (paw_setup%kresse_joubert_local_ionic_potential%data(ir),ir=1,mesh_size)
      cycle
    end if
@@ -1960,7 +1956,7 @@ end subroutine paw_setup_copy
          read(unit=strg,fmt=*) rc(6)
        end if
      end if
-     ABI_ALLOCATE(paw_setup%blochl_local_ionic_potential%data,(mesh_size))
+     LIBPAW_ALLOCATE(paw_setup%blochl_local_ionic_potential%data,(mesh_size))
      read(funit,*) (paw_setup%blochl_local_ionic_potential%data(ir),ir=1,mesh_size)
      cycle
    end if
@@ -1980,7 +1976,7 @@ end subroutine paw_setup_copy
          exit
        end if
      end do
-     ABI_ALLOCATE(paw_setup%ae_partial_wave(iaewf)%data,(mesh_size))
+     LIBPAW_ALLOCATE(paw_setup%ae_partial_wave(iaewf)%data,(mesh_size))
      read(funit,*) (paw_setup%ae_partial_wave(iaewf)%data(ir),ir=1,mesh_size)
      cycle
    end if
@@ -2001,7 +1997,7 @@ end subroutine paw_setup_copy
          exit
        end if
      end do
-     ABI_ALLOCATE(paw_setup%pseudo_partial_wave(ipswf)%data,(mesh_size))
+     LIBPAW_ALLOCATE(paw_setup%pseudo_partial_wave(ipswf)%data,(mesh_size))
      read(funit,*) (paw_setup%pseudo_partial_wave(ipswf)%data(ir),ir=1,mesh_size)
      cycle
    end if
@@ -2021,7 +2017,7 @@ end subroutine paw_setup_copy
          exit
        end if
      end do
-     ABI_ALLOCATE(paw_setup%projector_function(iproj)%data,(mesh_size))
+     LIBPAW_ALLOCATE(paw_setup%projector_function(iproj)%data,(mesh_size))
      read(funit,*) (paw_setup%projector_function(iproj)%data(ir),ir=1,mesh_size)
      cycle
    end if
@@ -2030,7 +2026,7 @@ end subroutine paw_setup_copy
    if (line(1:28)=='<kinetic_energy_differences>') then
      paw_setup%kinetic_energy_differences%tread=.true.
      mesh_size=paw_setup%valence_states%nval*paw_setup%valence_states%nval
-     ABI_ALLOCATE(paw_setup%kinetic_energy_differences%data,(mesh_size))
+     LIBPAW_ALLOCATE(paw_setup%kinetic_energy_differences%data,(mesh_size))
      read(funit,*) (paw_setup%kinetic_energy_differences%data(ir),ir=1,mesh_size)
      cycle
    end if
@@ -2039,7 +2035,7 @@ end subroutine paw_setup_copy
    if (line(1:25)=='<exact_exchange_X_matrix>') then
      paw_setup%exact_exchange_matrix%tread=.true.
      mesh_size=paw_setup%valence_states%nval*paw_setup%valence_states%nval
-     ABI_ALLOCATE(paw_setup%exact_exchange_matrix%data,(mesh_size))
+     LIBPAW_ALLOCATE(paw_setup%exact_exchange_matrix%data,(mesh_size))
      read(funit,*) (paw_setup%exact_exchange_matrix%data(ir),ir=1,mesh_size)
      cycle
    end if
@@ -2165,7 +2161,7 @@ end subroutine paw_setup_copy
    if (line(1:10)=='<paw_setup') then
      tread=.true.
      igrid=0
-     ABI_DATATYPE_ALLOCATE(grids,(10))
+     LIBPAW_DATATYPE_ALLOCATE(grids,(10))
 
      call paw_rdfromline(" version",line,strg,ierr)
      version=trim(strg)
@@ -2175,7 +2171,7 @@ end subroutine paw_setup_copy
 !  --Read BASIS SIZE, ORBITALS, RC AND OCCUPATIONS/STATE IDs
    if (line(1:13)=='<core_states>') then
      tread=.true.
-     ABI_DATATYPE_ALLOCATE(corestate,(50))
+     LIBPAW_DATATYPE_ALLOCATE(corestate,(50))
      icor=0
      do while (line(1:14)/='</core_states>')
        read(funit,'(a)') readline;line=adjustl(readline)
@@ -2318,7 +2314,7 @@ end subroutine paw_setup_copy
  nphicor=icor
  nmesh=igrid
  if(nmesh>0)then
-   ABI_DATATYPE_ALLOCATE(radmesh,(nmesh))
+   LIBPAW_DATATYPE_ALLOCATE(radmesh,(nmesh))
    do imsh=1,nmesh
      radmesh(imsh)%mesh_type=-1
      radmesh(imsh)%rstep=zero
@@ -2362,10 +2358,10 @@ end subroutine paw_setup_copy
 !Start a reading loop
  iaewf=0
  endfile=.false.
- ABI_ALLOCATE(gridwf,(nphicor))
- ABI_ALLOCATE(statewf,(nphicor))
+ LIBPAW_ALLOCATE(gridwf,(nphicor))
+ LIBPAW_ALLOCATE(statewf,(nphicor))
  maxmeshz=maxval(radmesh(:)%mesh_size)
- ABI_ALLOCATE(phitmp,(nphicor, maxmeshz))
+ LIBPAW_ALLOCATE(phitmp,(nphicor, maxmeshz))
 
  do while (.not.endfile)
    read(funit,'(a)',err=11,end=11) readline
@@ -2395,10 +2391,10 @@ end subroutine paw_setup_copy
  end do
 
  if(nphicor>0)then
-   ABI_ALLOCATE(ncor,(nphicor))
-   ABI_ALLOCATE(lcor,(nphicor))
-   ABI_ALLOCATE(energy_cor,(nphicor))
-   ABI_ALLOCATE(phi_cor,(maxmeshz,nphicor))
+   LIBPAW_ALLOCATE(ncor,(nphicor))
+   LIBPAW_ALLOCATE(lcor,(nphicor))
+   LIBPAW_ALLOCATE(energy_cor,(nphicor))
+   LIBPAW_ALLOCATE(phi_cor,(maxmeshz,nphicor))
    do ii=1,nphicor
      ncor(ii)=corestate(ii)%nn
      lcor(ii)=corestate(ii)%ll
@@ -2418,12 +2414,12 @@ end subroutine paw_setup_copy
        end if
        call pawrad_init(tmpmesh,mesh_size=maxmeshz,mesh_type=radmesh(imeshae)%mesh_type,&
 &                 rstep=radmesh(imeshae)%rstep,lstep=radmesh(imeshae)%lstep)
-       ABI_ALLOCATE(work,(maxmeshz))
+       LIBPAW_ALLOCATE(work,(maxmeshz))
        call bound_deriv(phitmp(ii,:),tmpmesh,maxmeshz,radmesh(imeshae)%rstep,radmesh(imeshae)%lstep)
        call paw_spline(tmpmesh%rad,phitmp(ii,:),maxmeshz,radmesh(imeshae)%rstep,radmesh(imeshae)%lstep,work)
        call paw_splint(maxmeshz,tmpmesh%rad,phitmp(ii,:),work,maxmeshz,pawrad%rad(1:maxmeshz),phi_cor(1:maxmeshz,ii))
        phi_cor(1:maxmeshz,ii)=phi_cor(1:maxmeshz,ii)*pawrad%rad(1:maxmeshz)
-       ABI_DEALLOCATE(work)
+       LIBPAW_DEALLOCATE(work)
        call pawrad_free(tmpmesh)
      else
        phi_cor(1:radmesh(imeshae)%mesh_size,ii)=phitmp(ii,1:radmesh(imeshae)%mesh_size)
@@ -2433,14 +2429,14 @@ end subroutine paw_setup_copy
    end do
  end if
 
- ABI_DATATYPE_DEALLOCATE(radmesh)
+ LIBPAW_DATATYPE_DEALLOCATE(radmesh)
 
- ABI_DATATYPE_DEALLOCATE(grids)
- ABI_DATATYPE_DEALLOCATE(corestate)
+ LIBPAW_DATATYPE_DEALLOCATE(grids)
+ LIBPAW_DATATYPE_DEALLOCATE(corestate)
 
- ABI_DEALLOCATE(gridwf)
- ABI_DEALLOCATE(statewf)
- ABI_DEALLOCATE(phitmp)
+ LIBPAW_DEALLOCATE(gridwf)
+ LIBPAW_DEALLOCATE(statewf)
+ LIBPAW_DEALLOCATE(phitmp)
 
 !Close the XML atomicdata file
  close(funit)

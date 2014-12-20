@@ -26,11 +26,17 @@
 #endif
 
 #include "abi_common.h"
+#undef ABI_ALLOCATE
+#undef ABI_DEALLOCATE
+#undef ABI_ALLOC_STAT_ABI
+#define ABI_ALLOCATE(ARR,SIZE) allocate(ARR SIZE)
+#define ABI_DEALLOCATE(ARR) deallocate(ARR)
+#define ABI_ALLOC_STAT_ABI 0
 
 MODULE m_xmpi
 
  use defs_basis
- use m_profiling_abi
+
 #ifdef HAVE_MPI2
  use mpi
 #endif

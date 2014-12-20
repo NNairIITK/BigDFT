@@ -14,18 +14,14 @@
 !!
 !! SOURCE
 
-#if defined HAVE_CONFIG_H
-#include "config.h"
-#endif
-
-#include "abi_common.h"
+#include "libpaw.h"
 
 module m_gaussfit
 
  use defs_basis
- use m_profiling_abi
  use m_errors
  use m_xmpi
+ USE_MEMORY_PROFILING
 
  use m_paw_numeric, only : paw_splint, paw_spline
  use m_pawrad,      only : pawrad_type, pawrad_init, pawrad_deducer0, pawrad_free
@@ -191,10 +187,10 @@ CONTAINS
 !
 !Allocate objects
 !
- ABI_ALLOCATE(y_out,(nr))
- ABI_ALLOCATE(chisq_array,(my_chisq_size))
+ LIBPAW_ALLOCATE(y_out,(nr))
+ LIBPAW_ALLOCATE(chisq_array,(my_chisq_size))
  if(master==me ) then
-   ABI_ALLOCATE(map_nterm,(nterm_bounds(1):nterm_bounds(2)))
+   LIBPAW_ALLOCATE(map_nterm,(nterm_bounds(1):nterm_bounds(2)))
    jj=1
    do ii=1,nproc
      do nterm=nterm_bounds(1),nterm_bounds(2)
@@ -263,20 +259,20 @@ CONTAINS
 !send distribution to master
  if(nproc>1) then
 !  Prepare communications:
-   ABI_ALLOCATE(counts,(nproc))
+   LIBPAW_ALLOCATE(counts,(nproc))
    counts(:)=0
    do nterm=nterm_bounds(1),nterm_bounds(2)
      counts(proc_dist(nterm))=counts(proc_dist(nterm))+1
    end do
    counts_all=sum(counts)
-   ABI_ALLOCATE(send_buf,(counts(me+1)))
+   LIBPAW_ALLOCATE(send_buf,(counts(me+1)))
    send_buf(:)=chisq_array(1:counts(me+1))
    if(me==master) then
-     ABI_ALLOCATE(recv_buf,(counts_all))
+     LIBPAW_ALLOCATE(recv_buf,(counts_all))
    else
-     ABI_ALLOCATE(recv_buf,(1))
+     LIBPAW_ALLOCATE(recv_buf,(1))
    end if
-   ABI_ALLOCATE(disp,(nproc))
+   LIBPAW_ALLOCATE(disp,(nproc))
    disp(1)=0
    do ii=2,nproc
      disp(ii)=disp(ii-1)+counts(ii-1)
@@ -291,10 +287,10 @@ CONTAINS
      end do
    end if
 !  Deallocate MPI arrays:
-   ABI_DEALLOCATE(recv_buf)
-   ABI_DEALLOCATE(counts)
-   ABI_DEALLOCATE(disp)
-   ABI_DEALLOCATE(send_buf)
+   LIBPAW_DEALLOCATE(recv_buf)
+   LIBPAW_DEALLOCATE(counts)
+   LIBPAW_DEALLOCATE(disp)
+   LIBPAW_DEALLOCATE(send_buf)
  end if
 
 !Print out info:
@@ -383,10 +379,10 @@ CONTAINS
    y=y_out !at output modify y for the fitted y
  end if
  
- ABI_DEALLOCATE(y_out)
- ABI_DEALLOCATE(chisq_array)
+ LIBPAW_DEALLOCATE(y_out)
+ LIBPAW_DEALLOCATE(chisq_array)
  if(me==master) then
-   ABI_DEALLOCATE(map_nterm)
+   LIBPAW_DEALLOCATE(map_nterm)
  end if
 
 !DEBUG
@@ -948,7 +944,7 @@ subroutine gaussfit_fit(chisq,constrains,&
 !
 ! *************************************************************************
 
- ABI_ALLOCATE(sy,(nx))
+ LIBPAW_ALLOCATE(sy,(nx))
 !
  sy(:)=1.0d0
 !
@@ -979,7 +975,7 @@ subroutine gaussfit_fit(chisq,constrains,&
 !  
  end if
 !
- ABI_DEALLOCATE(sy)
+ LIBPAW_DEALLOCATE(sy)
 end subroutine gaussfit_fit
 !!***
 
@@ -2546,9 +2542,9 @@ subroutine gaussfit_projector(basis_size,mparam,nparam_array,nterm_bounds,orbita
  call pawrad_init(mesh_tmp,mesh_size=msz2,mesh_type=mesh_tmp%mesh_type,&
 & rstep=mesh_tmp%rstep,lstep=mesh_tmp%lstep)
 !
- ABI_ALLOCATE(tproj_tmp1,(msz1))
- ABI_ALLOCATE(d2,(msz1))
- ABI_ALLOCATE(tproj_tmp2,(msz2))
+ LIBPAW_ALLOCATE(tproj_tmp1,(msz1))
+ LIBPAW_ALLOCATE(d2,(msz1))
+ LIBPAW_ALLOCATE(tproj_tmp2,(msz2))
 
 
  do ibasis=1,basis_size
@@ -2620,7 +2616,7 @@ subroutine gaussfit_projector(basis_size,mparam,nparam_array,nterm_bounds,orbita
    end if
 
 !  check
-!  ABI_ALLOCATE(y,(mesh_tmp%mesh_size))
+!  LIBPAW_ALLOCATE(y,(mesh_tmp%mesh_size))
 !  nterm=nparam_array(ibasis)/4
 !  call calcgaussc4(nparam_array(ibasis),nterm,mesh_tmp%mesh_size,1,param(:,ibasis),&
 !  &  mesh_tmp%rad,y)
@@ -2628,16 +2624,16 @@ subroutine gaussfit_projector(basis_size,mparam,nparam_array,nterm_bounds,orbita
 !  ! do ir=1,mesh_tmp%mesh_size
 !  !  write(unitp,'(2(f16.7,x,f16.7))')mesh_tmp%rad(ir),y(ir)
 !  ! end do
-!  ABI_DEALLOCATE(y) 
+!  LIBPAW_DEALLOCATE(y) 
 !  
  end do
 !
 !Deallocate
 !
  call pawrad_free(mesh_tmp)
- ABI_DEALLOCATE(tproj_tmp1)
- ABI_DEALLOCATE(tproj_tmp2)
- ABI_DEALLOCATE(d2)
+ LIBPAW_DEALLOCATE(tproj_tmp1)
+ LIBPAW_DEALLOCATE(tproj_tmp2)
+ LIBPAW_DEALLOCATE(d2)
 
 end subroutine gaussfit_projector
 !!***

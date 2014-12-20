@@ -22,18 +22,14 @@
 !!
 !! SOURCE
 
-#if defined HAVE_CONFIG_H
-#include "config.h"
-#endif
-
-#include "abi_common.h"
+#include "libpaw.h"
 
 module m_pawcprj
 
  use defs_basis
  use m_errors
- use m_profiling_abi
  use m_xmpi
+ USE_MEMORY_PROFILING
 
  use m_pawtab, only : pawtab_type
 
@@ -173,18 +169,18 @@ CONTAINS
  do jj=1,n2dim
    do ii=1,n1dim
      if (allocated(cprj(ii,jj)%cp)) then
-       ABI_DEALLOCATE(cprj(ii,jj)%cp)
+       LIBPAW_DEALLOCATE(cprj(ii,jj)%cp)
      end if
      if (allocated(cprj(ii,jj)%dcp)) then
-       ABI_DEALLOCATE(cprj(ii,jj)%dcp)
+       LIBPAW_DEALLOCATE(cprj(ii,jj)%dcp)
      end if
      nn=nlmn(ii)
      cprj(ii,jj)%nlmn=nn
-     ABI_ALLOCATE(cprj(ii,jj)%cp,(2,nn))
+     LIBPAW_ALLOCATE(cprj(ii,jj)%cp,(2,nn))
      cprj(ii,jj)%cp=zero
      cprj(ii,jj)%ncpgr=ncpgr
      if (ncpgr>0) then
-       ABI_ALLOCATE(cprj(ii,jj)%dcp,(2,ncpgr,nn))
+       LIBPAW_ALLOCATE(cprj(ii,jj)%dcp,(2,ncpgr,nn))
        cprj(ii,jj)%dcp=zero
      end if
    end do
@@ -250,10 +246,10 @@ end subroutine pawcprj_alloc
  do jj=1,n2dim
    do ii=1,n1dim
      if (allocated(cprj(ii,jj)%cp))  then
-       ABI_DEALLOCATE(cprj(ii,jj)%cp)
+       LIBPAW_DEALLOCATE(cprj(ii,jj)%cp)
      end if
      if (allocated(cprj(ii,jj)%dcp))  then
-       ABI_DEALLOCATE(cprj(ii,jj)%dcp)
+       LIBPAW_DEALLOCATE(cprj(ii,jj)%dcp)
      end if
    end do
  end do
@@ -1122,10 +1118,10 @@ end subroutine pawcprj_output
          else
            if (has_icpgr) then
              do iatom=1,dimcp
-               ABI_ALLOCATE(tmp,(2,ncpgr_,cprj_k(iatom,1)%nlmn))
+               LIBPAW_ALLOCATE(tmp,(2,ncpgr_,cprj_k(iatom,1)%nlmn))
                read(uncp) cprj_k(iatom,isp)%cp(:,:),tmp(:,:,:)
                cprj_k(iatom,isp)%dcp(:,1,:)=tmp(:,icpgr_,:)
-               ABI_DEALLOCATE(tmp)
+               LIBPAW_DEALLOCATE(tmp)
              end do
            else
              do iatom=1,dimcp
@@ -1143,10 +1139,10 @@ end subroutine pawcprj_output
            if (has_icpgr) then
              do iatom=1,dimcp
                iatm=min(atind(iatom),dimcp)
-               ABI_ALLOCATE(tmp,(2,ncpgr_,cprj_k(iatm,1)%nlmn))
+               LIBPAW_ALLOCATE(tmp,(2,ncpgr_,cprj_k(iatm,1)%nlmn))
                read(uncp) cprj_k(iatm,isp)%cp(:,:),tmp(:,:,:)
                cprj_k(iatm,isp)%dcp(:,1,:)=tmp(:,icpgr_,:)
-               ABI_DEALLOCATE(tmp)
+               LIBPAW_DEALLOCATE(tmp)
              end do
            else
              do iatom=1,dimcp
@@ -1393,8 +1389,8 @@ end subroutine pawcprj_get
  else ! mode_para==b and nband>1
 
    lmndim=2*sum(nlmn(1:dimcp))*(1+ncpgr)*nspinor
-   ABI_ALLOCATE(buffer1,(lmndim))
-   ABI_ALLOCATE(buffer2,(lmndim*nproc_band))
+   LIBPAW_ALLOCATE(buffer1,(lmndim))
+   LIBPAW_ALLOCATE(buffer2,(lmndim*nproc_band))
    isp=0;ibsp=ibg+nspinor*(iband1-1)
    do iband=1,nband  ! must be nblockbd for band-fft parallelism
      jj=1
@@ -1447,8 +1443,8 @@ end subroutine pawcprj_get
        end do !ispinor
      end do !ii=1,nproc_band
    end do !iband
-   ABI_DEALLOCATE(buffer1)
-   ABI_DEALLOCATE(buffer2)
+   LIBPAW_DEALLOCATE(buffer1)
+   LIBPAW_DEALLOCATE(buffer2)
 
  end if ! mode_para=b, nband
 
@@ -1528,12 +1524,12 @@ end subroutine pawcprj_put
  end do
  if (iexit==1) return
 
- ABI_ALLOCATE(nlmn,(n1cprj))
+ LIBPAW_ALLOCATE(nlmn,(n1cprj))
  do ii=1,n1cprj
    nlmn(ii)=cprj(ii,1)%nlmn
  end do
  ncpgr=cprj(1,1)%ncpgr
- ABI_DATATYPE_ALLOCATE(cprj_tmp,(n1cprj,n2cprj))
+ LIBPAW_DATATYPE_ALLOCATE(cprj_tmp,(n1cprj,n2cprj))
  call pawcprj_alloc(cprj_tmp,ncpgr,nlmn)
  call pawcprj_copy(cprj,cprj_tmp)
  call pawcprj_free(cprj)
@@ -1543,18 +1539,18 @@ end subroutine pawcprj_put
      kk=atm_indx(ii)
      cprj(kk,jj)%nlmn=nlmn(ii)
      cprj(kk,jj)%ncpgr=ncpgr
-     ABI_ALLOCATE(cprj(kk,jj)%cp,(2,nlmn(ii)))
+     LIBPAW_ALLOCATE(cprj(kk,jj)%cp,(2,nlmn(ii)))
      cprj(kk,jj)%cp(:,:)=cprj_tmp(ii,jj)%cp(:,:)
      if (ncpgr>0) then
-       ABI_ALLOCATE(cprj(kk,jj)%dcp,(2,ncpgr,nlmn(ii)))
+       LIBPAW_ALLOCATE(cprj(kk,jj)%dcp,(2,ncpgr,nlmn(ii)))
        cprj(kk,jj)%dcp(:,:,:)=cprj_tmp(kk,jj)%dcp(:,:,:)
      end if
    end do
  end do
 
  call pawcprj_free(cprj_tmp)
- ABI_DATATYPE_DEALLOCATE(cprj_tmp)
- ABI_DEALLOCATE(nlmn)
+ LIBPAW_DATATYPE_DEALLOCATE(cprj_tmp)
+ LIBPAW_DEALLOCATE(nlmn)
 
 end subroutine pawcprj_reorder
 !!***
@@ -1659,9 +1655,9 @@ subroutine pawcprj_mpi_exch(natom,n2dim,nlmn,ncpgr,Cprj_send,Cprj_recv,sender,re
 
  ntotcp=n2dim*SUM(nlmn(:))
 
- ABI_ALLOCATE(buffer_cp,(2,ntotcp))
+ LIBPAW_ALLOCATE(buffer_cp,(2,ntotcp))
  if (ncpgr/=0)  then
-   ABI_ALLOCATE(buffer_cpgr,(2,ncpgr,ntotcp))
+   LIBPAW_ALLOCATE(buffer_cpgr,(2,ncpgr,ntotcp))
  end if
 
 !=== Pack Cprj_send ===
@@ -1696,9 +1692,9 @@ subroutine pawcprj_mpi_exch(natom,n2dim,nlmn,ncpgr,Cprj_send,Cprj_recv,sender,re
    end do
  end if
 
- ABI_DEALLOCATE(buffer_cp)
+ LIBPAW_DEALLOCATE(buffer_cp)
  if (ncpgr/=0)  then
-   ABI_DEALLOCATE(buffer_cpgr)
+   LIBPAW_DEALLOCATE(buffer_cpgr)
  end if
 
 end subroutine pawcprj_mpi_exch
@@ -1782,9 +1778,9 @@ subroutine pawcprj_mpi_send(natom,n2dim,nlmn,ncpgr,cprj_out,receiver,spaceComm,i
 
  ntotcp=n2dim*SUM(nlmn(:))
 
- ABI_ALLOCATE(buffer_cp,(2,ntotcp))
+ LIBPAW_ALLOCATE(buffer_cp,(2,ntotcp))
  if (ncpgr/=0)  then
-   ABI_ALLOCATE(buffer_cpgr,(2,ncpgr,ntotcp))
+   LIBPAW_ALLOCATE(buffer_cpgr,(2,ncpgr,ntotcp))
  end if
 
 !=== Pack cprj_out ====
@@ -1807,9 +1803,9 @@ subroutine pawcprj_mpi_send(natom,n2dim,nlmn,ncpgr,cprj_out,receiver,spaceComm,i
  end if
 
 !=== Clean up ===
- ABI_DEALLOCATE(buffer_cp)
+ LIBPAW_DEALLOCATE(buffer_cp)
  if (ncpgr/=0)  then
-   ABI_DEALLOCATE(buffer_cpgr)
+   LIBPAW_DEALLOCATE(buffer_cpgr)
  end if
 
 end subroutine pawcprj_mpi_send
@@ -1893,9 +1889,9 @@ subroutine pawcprj_mpi_recv(natom,n2dim,nlmn,ncpgr,cprj_in,sender,spaceComm,ierr
 
  ntotcp=n2dim*SUM(nlmn(:))
 
- ABI_ALLOCATE(buffer_cp,(2,ntotcp))
+ LIBPAW_ALLOCATE(buffer_cp,(2,ntotcp))
  if (ncpgr/=0)  then
-   ABI_ALLOCATE(buffer_cpgr,(2,ncpgr,ntotcp))
+   LIBPAW_ALLOCATE(buffer_cpgr,(2,ncpgr,ntotcp))
  end if
 
 !=== Receive data ===
@@ -1918,9 +1914,9 @@ subroutine pawcprj_mpi_recv(natom,n2dim,nlmn,ncpgr,cprj_in,sender,spaceComm,ierr
  end do
 
 !=== Clean up ===
- ABI_DEALLOCATE(buffer_cp)
+ LIBPAW_DEALLOCATE(buffer_cp)
  if (ncpgr/=0)  then
-   ABI_DEALLOCATE(buffer_cpgr)
+   LIBPAW_DEALLOCATE(buffer_cpgr)
  end if
 
 end subroutine pawcprj_mpi_recv
@@ -1980,7 +1976,7 @@ subroutine pawcprj_mpi_sum(cprj,spaceComm,ierr)
  n1dim=size(cprj,1);n2dim=size(cprj,2)
  nlmn=sum(cprj(:,:)%nlmn)
  ncpgr=maxval(cprj(:,:)%ncpgr)
- ABI_ALLOCATE(buffer_cprj,(2,1+ncpgr,nlmn*n2dim))
+ LIBPAW_ALLOCATE(buffer_cprj,(2,1+ncpgr,nlmn*n2dim))
 
  ipck=0 ; buffer_cprj=zero
  do jj=1,n2dim
@@ -2004,7 +2000,7 @@ subroutine pawcprj_mpi_sum(cprj,spaceComm,ierr)
    end do
  end do
 
- ABI_DEALLOCATE(buffer_cprj)
+ LIBPAW_DEALLOCATE(buffer_cprj)
 
 end subroutine pawcprj_mpi_sum
 !!***
@@ -2095,8 +2091,8 @@ subroutine pawcprj_mpi_allgather(cprj_loc,cprj_gat,natom,n2dim,nlmn,ncpgr,nproc,
  rank_ordered_=.false.;if(present(rank_ordered)) rank_ordered_=rank_ordered
 
  ntotcp=n2dim*SUM(nlmn(:))
- ABI_ALLOCATE(buffer_cpgr,(2,1+ncpgr,ntotcp))
- ABI_ALLOCATE(buffer_cpgr_all,(2,1+ncpgr,nproc*ntotcp))
+ LIBPAW_ALLOCATE(buffer_cpgr,(2,1+ncpgr,ntotcp))
+ LIBPAW_ALLOCATE(buffer_cpgr_all,(2,1+ncpgr,nproc*ntotcp))
 
 !=== Pack cprj_loc ====
  ipck=0
@@ -2133,8 +2129,8 @@ subroutine pawcprj_mpi_allgather(cprj_loc,cprj_gat,natom,n2dim,nlmn,ncpgr,nproc,
  end do
 
 !=== Clean up ===
- ABI_DEALLOCATE(buffer_cpgr)
- ABI_DEALLOCATE(buffer_cpgr_all)
+ LIBPAW_DEALLOCATE(buffer_cpgr)
+ LIBPAW_DEALLOCATE(buffer_cpgr_all)
 
 end subroutine pawcprj_mpi_allgather
 !!***
@@ -2214,9 +2210,9 @@ subroutine pawcprj_bcast(Cprj,natom,n2dim,nlmn,ncpgr,master,spaceComm,ierr)
 
  ntotcp=n2dim*SUM(nlmn(:))
 
- ABI_ALLOCATE(buffer_cp,(2,ntotcp))
+ LIBPAW_ALLOCATE(buffer_cp,(2,ntotcp))
  if (ncpgr/=0)  then
-   ABI_ALLOCATE(buffer_cpgr,(2,ncpgr,ntotcp))
+   LIBPAW_ALLOCATE(buffer_cpgr,(2,ncpgr,ntotcp))
  end if
 
 !=== Master packs Cprj ===
@@ -2252,9 +2248,9 @@ subroutine pawcprj_bcast(Cprj,natom,n2dim,nlmn,ncpgr,master,spaceComm,ierr)
    end do
  end if
 
- ABI_DEALLOCATE(buffer_cp)
+ LIBPAW_DEALLOCATE(buffer_cp)
  if (ncpgr/=0)  then
-   ABI_DEALLOCATE(buffer_cpgr)
+   LIBPAW_DEALLOCATE(buffer_cpgr)
  end if
 
 end subroutine pawcprj_bcast
@@ -2360,8 +2356,8 @@ end subroutine pawcprj_bcast
  end if
 
 !Compute size of atom bloc (wr to cprj)
- ABI_ALLOCATE(cprjsz_atom,(natom))
- ABI_ALLOCATE(cprjsz_block,(np,nba))
+ LIBPAW_ALLOCATE(cprjsz_atom,(natom))
+ LIBPAW_ALLOCATE(cprjsz_block,(np,nba))
  cprjsz_atom=0;cprjsz_block=0
  if (transpose_mode==1) then
    do iatom=1,natom
@@ -2383,13 +2379,13 @@ end subroutine pawcprj_bcast
      cprjsz_block(iatom-iashft,iblock_atom)=cprjsz_atom(iatom)+2  ! +2 for nlmn et ncpgr
    end do
  end do
- ABI_DEALLOCATE(cprjsz_atom)
+ LIBPAW_DEALLOCATE(cprjsz_atom)
 
 !Allocations for MPI_ALLTOALL
- ABI_ALLOCATE(count_atom,(np))
- ABI_ALLOCATE(displ_atom,(np))
- ABI_ALLOCATE(count_band,(np))
- ABI_ALLOCATE(displ_band,(np))
+ LIBPAW_ALLOCATE(count_atom,(np))
+ LIBPAW_ALLOCATE(displ_atom,(np))
+ LIBPAW_ALLOCATE(count_band,(np))
+ LIBPAW_ALLOCATE(displ_band,(np))
 
 !Loop on blocks of bands
  do iblock_band=1,nbb !(note: np divides nband)
@@ -2440,8 +2436,8 @@ end subroutine pawcprj_bcast
 !    Allocation of buffers
      sbufsize=sdispl(np)+scount(np)
      rbufsize=rdispl(np)+rcount(np)
-     ABI_ALLOCATE(sbuf,(sbufsize))
-     ABI_ALLOCATE(rbuf,(rbufsize))
+     LIBPAW_ALLOCATE(sbuf,(sbufsize))
+     LIBPAW_ALLOCATE(rbuf,(rbufsize))
 
 !    Coying of input cprj to buffer for sending
      buf_indx=0
@@ -2501,19 +2497,19 @@ end subroutine pawcprj_bcast
      end if
 
 !    Deallocation of buffers
-     ABI_DEALLOCATE(sbuf)
-     ABI_DEALLOCATE(rbuf)
+     LIBPAW_DEALLOCATE(sbuf)
+     LIBPAW_DEALLOCATE(rbuf)
 
 !    End of loops
    end do ! do iblock_atom
  end do ! do iblock_atom
 
 !Free memory
- ABI_DEALLOCATE(count_atom)
- ABI_DEALLOCATE(displ_atom)
- ABI_DEALLOCATE(count_band)
- ABI_DEALLOCATE(displ_band)
- ABI_DEALLOCATE(cprjsz_block)
+ LIBPAW_DEALLOCATE(count_atom)
+ LIBPAW_DEALLOCATE(displ_atom)
+ LIBPAW_DEALLOCATE(count_band)
+ LIBPAW_DEALLOCATE(displ_band)
+ LIBPAW_DEALLOCATE(cprjsz_block)
  nullify(scount,rcount,sdispl,rdispl)
 
  end subroutine pawcprj_transpose
@@ -2594,8 +2590,8 @@ end subroutine pawcprj_bcast
  end do
  ncpgr=cprj(1,1)%ncpgr
  lmndim=2*n2size*sum(nlmn(1:natom))*(1+ncpgr)
- ABI_ALLOCATE(buffer1,(lmndim))
- ABI_ALLOCATE(buffer2,(lmndim*nspinortot))
+ LIBPAW_ALLOCATE(buffer1,(lmndim))
+ LIBPAW_ALLOCATE(buffer2,(lmndim*nspinortot))
 
  isp=0;ibsp=0
  jj=1
@@ -2640,8 +2636,8 @@ end subroutine pawcprj_bcast
    end do
  end do
 
- ABI_DEALLOCATE(buffer1)
- ABI_DEALLOCATE(buffer2)
+ LIBPAW_DEALLOCATE(buffer1)
+ LIBPAW_DEALLOCATE(buffer2)
 
  end subroutine pawcprj_gather_spin
 !!***

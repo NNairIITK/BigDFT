@@ -14,17 +14,13 @@
 !!
 !! SOURCE
 
-#if defined HAVE_CONFIG_H
-#include "config.h"
-#endif
-
-#include "abi_common.h"
+#include "libpaw.h"
 
 module m_paw_numeric
 
  use defs_basis
- use m_profiling_abi
  use m_errors
+ USE_MEMORY_PROFILING
 
  implicit none
 
@@ -168,7 +164,7 @@ subroutine paw_spline(t,y,n,ybcbeg,ybcend,ypp)
    MSG_ERROR("Fatal error")
  end if
 
- ABI_ALLOCATE(tmp,(n))
+ LIBPAW_ALLOCATE(tmp,(n))
 
  do i=1,n-1
    if (t(i)>=t(i+1)) then
@@ -216,7 +212,7 @@ subroutine paw_spline(t,y,n,ybcbeg,ybcend,ypp)
    ypp(k)=ypp(k)*ypp(k+1)+tmp(k)
  end do
 
- ABI_DEALLOCATE(tmp)
+ LIBPAW_DEALLOCATE(tmp)
 
 ! DBG_EXIT("COLL")
 
