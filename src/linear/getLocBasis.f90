@@ -1821,7 +1821,8 @@ subroutine DIISorSD(iproc, it, trH, tmbopt, ldiis, alpha, alphaDIIS, lphioldopt,
           ldiis%icountSwitch=ldiis%icountSwitch+1
           idsx=max(ldiis%DIISHistMin,ldiis%DIISHistMax-ldiis%icountSwitch)
           if(idsx>0) then
-              if(iproc==0) write(*,'(1x,a,i0)') 'switch to DIIS with new history length ', idsx
+              if(iproc==0) call yaml_map('Switch to DIIS with new history length',idsx)
+              !write(*,'(1x,a,i0)') 'switch to DIIS with new history length ', idsx
               ldiis%icountSDSatur=0
               ldiis%icountSwitch=0
               ldiis%icountDIISFailureTot=0

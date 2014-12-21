@@ -24,7 +24,6 @@
    calculate_gap: Yes
    correction_co_contra: Yes
    FOE_restart: 1
-   outdir: ./
  lin_general:
    hybrid: Yes
    nit: 20

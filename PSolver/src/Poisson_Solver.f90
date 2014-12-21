@@ -124,6 +124,13 @@ module Poisson_Solver
       real(gp), dimension(3) :: hgrids !<grid spacings in each direction
       real(gp), dimension(3) :: angrad !< angles in radiants between each of the axis
       real(dp), dimension(:), pointer :: kernel !< kernel of the Poisson Solver
+      !> logaritmic derivative of the dielectric function,
+      !! to be used in the case of Polarization Iteration method
+      real(dp), dimension(:,:,:,:), pointer :: dlogeps
+      !> inverse of the dielectric function
+      !! to be used in the case of Polarization Iteration method
+      real(dp), dimension(:,:,:), pointer :: oneoeps
+      !> correction term, given in terms of the multiplicative fa
       real(dp) :: work1_GPU,work2_GPU,k_GPU !<addresses for the GPU memory 
       integer, dimension(5) :: plan
       integer, dimension(3) :: geo
