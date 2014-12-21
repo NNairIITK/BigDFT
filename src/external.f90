@@ -226,7 +226,6 @@ subroutine bigdft_severe_abort()
   filename(1:len(filename))='bigdft-err-'//trim(adjustl(yaml_toa(bigdft_mpi%iproc)))//&
        '-'//trim(adjustl(yaml_toa(bigdft_mpi%igroup)))//'.yaml'
   call f_malloc_dump_status(filename=filename)
-  !call f_dump_last_error()
   if (bigdft_mpi%iproc ==0) then
      call f_dump_all_errors(-1)
      call yaml_comment('Error raised!',hfill='^')

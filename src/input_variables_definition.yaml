@@ -903,8 +903,8 @@
    FOE_restart:
      COMMENT: Restart method to be used for the FOE method
      EXCLUSVE:
-       0: REFORMAT
-       1: AO
+       0: AO
+       1: REFORMAT
      default: 0 
    imethod_overlap:
      COMMENT: method to calculate the overlap matrices (1=old, 2=new)
@@ -914,6 +914,13 @@
      default: 1
    enable_matrix_taskgroups:
      COMMENT: enable the matrix taskgroups
+     default: True
+   hamapp_radius_incr:
+     COMMENT: radius enlargement for the Hamiltonian application (in grid points)
+     default: 8
+     RANGE: [0,8]
+   adjust_kernel_iterations:
+     COMMENT: enable the addaptive ajustment of the number of kernel iterations
      default: True
  lin_general:
      hybrid: 
@@ -1003,7 +1010,7 @@
        COMMENT: diagonalization at the end
        DESCRIPTION: |
                     possible value: logical
-                    Indicates whether a diagonliazation shall be performed at the end of the run
+                    Indicates whether a diagonalization shall be performed at the end of the run
        default: No
      extra_states:
        COMMENT: extra states to optimize (dmin only)
@@ -1119,7 +1126,7 @@
                     Indicates the number of iterations in the (self-consistent) optimization of the density kernel.
                     The first entry is used for the low accuracy part, the second one for the high accuracy part.
                     When the hybrid mode is used, only the first entry is taken into account.
-       RANGE: [0,100]
+       RANGE: [0,1000]
        default: [5,5]
 # check whether there are different DIIS histories...
      idsx_coeff:

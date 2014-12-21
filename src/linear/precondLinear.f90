@@ -44,6 +44,9 @@ subroutine solvePrecondEquation(iproc,nproc,lr,ncplx,ncong,cprecr,&
   integer :: icong
   real(wp), dimension(:), allocatable :: b,r,d
   logical:: with_confpot
+
+  call f_routine(id='solvePrecondEquation')
+
   !!type(workarrays_quartic_convolutions):: work_conv
 
   !arrays for the CG procedure
@@ -53,7 +56,8 @@ subroutine solvePrecondEquation(iproc,nproc,lr,ncplx,ncong,cprecr,&
 
   !call allocate_work_arrays(lr%geocode,lr%hybrid_on,ncplx,lr%d,w)
 
-  call precondition_preconditioner(lr,ncplx,hx,hy,hz,scal,cprecr,w,x,b)
+  !call precondition_preconditioner(lr,ncplx,hx,hy,hz,scal,cprecr,w,x,b)
+  call precondition_preconditioner(lr,ncplx,hx,hy,hz,scal,cprecr,w,x,r)
 
   with_confpot=(potentialPrefac/=0.d0)
   !!call init_local_work_arrays(lr%d%n1, lr%d%n2, lr%d%n3, &
@@ -70,7 +74,9 @@ subroutine solvePrecondEquation(iproc,nproc,lr,ncplx,ncong,cprecr,&
 !!  write(*,*)'debug1',rmr_new
 
   !this operation should be rewritten in a better way
-  r=b-d ! r=b-Ax
+  !r=b-d ! r=b-Ax
+  ! Rewritten using axpy since precondition_preconditioner is now called with r instead of b
+  call axpy(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f, -1.d0, d(1), 1, r(1), 1)
 
   call calculate_rmr_new(lr%geocode,lr%hybrid_on,ncplx,lr%wfd,scal,r,d,rmr_new)
   !stands for
@@ -98,7 +104,9 @@ subroutine solvePrecondEquation(iproc,nproc,lr,ncplx,ncong,cprecr,&
 
      beta=rmr_new/rmr_old
 
-     d=b+beta*d
+     !d=b+beta*d
+     call swap(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f, b(1), 1, d(1), 1)
+     call axpy(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f, beta, b(1), 1, d(1), 1)
     
   enddo
 
@@ -113,6 +121,9 @@ subroutine solvePrecondEquation(iproc,nproc,lr,ncplx,ncong,cprecr,&
   !call timing(iproc,'deallocprec','ON') ! lr408t
   !call deallocate_work_arrays(lr%geocode,lr%hybrid_on,ncplx,w)
   !call timing(iproc,'deallocprec','OF') ! lr408t
+
+  call f_release_routine()
+
 END SUBROUTINE solvePrecondEquation
 
 
@@ -134,6 +145,8 @@ subroutine differentiateBetweenBoundaryConditions(iproc,nproc,ncplx,lr,hx,hy,hz,
   type(workarrays_quartic_convolutions),intent(inout):: work_conv
   !local variables
   integer :: idx,nf
+
+  call f_routine(id='differentiateBetweenBoundaryConditions')
 
   if (lr%geocode == 'F') then
      do idx=1,ncplx
@@ -195,6 +208,9 @@ subroutine differentiateBetweenBoundaryConditions(iproc,nproc,ncplx,lr,hx,hy,hz,
 
      end if
    end if
+
+  call f_release_routine()
+
 END SUBROUTINE differentiateBetweenBoundaryConditions
 
 
@@ -246,15 +262,21 @@ subroutine applyOperator(iproc,nproc,n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, ns1
   ! Local variables
   character(len=*),parameter:: subname='applyOperator'
 
+
+  call f_routine(id='applyOperator')
+
   ! Uncompress the wavefunction.
+  call f_routine(id='call_to_uncompress_for_quartic_convolutions')
   call uncompress_for_quartic_convolutions(n1, n2, n3, nfl1, nfu1, nfl2, nfu2, nfl3, nfu3, &
        nseg_c, nvctr_c, keyg_c, keyv_c, nseg_f, nvctr_f,  keyg_f, keyv_f, &
        scal, xpsi_c, xpsi_f, &
        work_conv)
+  call f_release_routine()
 
   ! Apply the  following operators to the wavefunctions: kinetic energy + cprec*Id + r^4.
   if(confPotOrder==4) then
      call timing(iproc,'convolQuartic ','ON')
+      call f_routine(id='call_to_ConvolQuartic4')
       call ConvolQuartic4(iproc, nproc, n1, n2, n3, nfl1, nfu1, nfl2, nfu2, nfl3, nfu3, &
            hgrid, ns1, ns2, ns3, ibyz_c, ibxz_c, ibxy_c, ibyz_f, ibxz_f, ibxy_f, &
            rxyzParab, parabPrefac, .true., cprecr, max(n1,n2,n3), &
@@ -279,6 +301,7 @@ subroutine applyOperator(iproc,nproc,n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, ns1
 !           work_conv%ceff0_2, work_conv%ceff1_2, work_conv%ceff2_2, work_conv%ceff3_2, &
 !           work_conv%eeff0_2, work_conv%eeff1_2, work_conv%eeff2_2, work_conv%eeff3_2, & 
            work_conv%y_c, work_conv%y_f)
+      call f_release_routine()
       call timing(iproc,'convolQuartic ','OF')
   else if(confPotOrder==6) then
 
@@ -287,10 +310,14 @@ subroutine applyOperator(iproc,nproc,n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, ns1
   end if
 
   ! Compress the wavefunctions.
+  call f_routine(id='compress_forstandard')
   call compress_forstandard(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,  &
        nseg_c,nvctr_c,keyg_c,keyv_c,  & 
        nseg_f,nvctr_f,keyg_f,keyv_f,  & 
        scal,work_conv%y_c,work_conv%y_f,ypsi_c,ypsi_f)
+  call f_release_routine()
+
+  call f_release_routine()
 
 END SUBROUTINE applyOperator
 

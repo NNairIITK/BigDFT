@@ -96,6 +96,7 @@ module dynamic_memory
 
   interface assignment(=)
      module procedure i1_all,i2_all,i3_all,i4_all
+!     module procedure il1_all, il2_all
      module procedure l1_all,l2_all,l3_all
      module procedure d1_all,d2_all,d3_all,d4_all,d5_all,d6_all,d7_all
      module procedure r1_all,r2_all,r3_all
@@ -112,6 +113,7 @@ module dynamic_memory
 
   interface f_free
      module procedure i1_all_free,i2_all_free,i3_all_free,i4_all_free
+!     module procedure il1_all_free, il2_all_free
      module procedure i1_all_free_multi
      module procedure l1_all_free,l2_all_free,l3_all_free
      module procedure d1_all_free,d2_all_free,d1_all_free_multi,d3_all_free,d4_all_free,d5_all_free,d6_all_free,d7_all_free
@@ -130,6 +132,7 @@ module dynamic_memory
 
   interface f_memcpy
      module procedure f_memcpy_i0,f_memcpy_i1
+     module procedure f_memcpy_il1
      module procedure f_memcpy_i1i2,f_memcpy_i2i1
      module procedure f_memcpy_r0
      module procedure f_memcpy_d0,f_memcpy_d1,f_memcpy_d2,f_memcpy_d0d1

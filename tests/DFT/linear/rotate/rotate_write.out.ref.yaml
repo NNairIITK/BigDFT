@@ -27,30 +27,28 @@
    |_____|_____|_____|_____|_____|______                    www.bigdft.org   "
  
  Reference Paper                       : The Journal of Chemical Physics 129, 014109 (2008)
- Version Number                        : 1.7.5.12
- Timestamp of this run                 : 2014-10-09 13:34:03.915
- Root process Hostname                 : phys-comp-03
- Number of MPI tasks                   :  4
+ Version Number                        : 1.7.5.13
+ Timestamp of this run                 : 2014-10-29 14:48:03.225
+ Root process Hostname                 : girofle
+ Number of MPI tasks                   :  3
  OpenMP parallelization                :  Yes
  Maximal OpenMP threads per MPI task   :  2
- MPI tasks of root process node        :  4
+ MPI tasks of root process node        :  3
   #------------------------------------------------------------------ Code compiling options
  Compilation options:
    Configure arguments:
-     " 'FC=/opt/openmpi-1.6.4/bin/mpif90' 'CC=icc' 'FCFLAGS=-O2 -i_dynamic -msse4.2 
-     -heap-arrays 1024 -openmp' 
-     '--with-ext-linalg=/opt/intel/composer_xe_2011_sp1.11.339/mkl/lib/intel64/libmkl_scalapa
-     ck_lp64.a  -Wl,--start-group  
-     /opt/intel/composer_xe_2011_sp1.11.339/mkl/lib/intel64/libmkl_cdft_core.a 
-     /opt/intel/composer_xe_2011_sp1.11.339/mkl/lib/intel64/libmkl_intel_lp64.a 
-     /opt/intel/composer_xe_2011_sp1.11.339/mkl/lib/intel64/libmkl_intel_thread.a 
-     /opt/intel/composer_xe_2011_sp1.11.339/mkl/lib/intel64/libmkl_core.a 
-     /opt/intel/composer_xe_2011_sp1.11.339/mkl/lib/intel64/libmkl_blacs_openmpi_lp64.a 
-     -Wl,--end-group -openmp -lpthread -lm'"
-   Compilers (CC, FC, CXX)             :  [ icc, /opt/openmpi-1.6.4/bin/mpif90, g++ ]
+     " 'FC=/local/stephanm/openmpi-1.6.5_intel/bin/mpif90' 'CC=icc' 'FCFLAGS=-O2 -xSSE4.2 
+     -openmp' 
+     '--with-ext-linalg=/opt/intel/composer_xe_2013_sp1.0.080/mkl/lib/intel64/libmkl_blas95_l
+     p64 /opt/intel/composer_xe_2013_sp1.0.080/mkl/lib/intel64/libmkl_lapack95_lp64 
+     -L/opt/intel/composer_xe_2013_sp1.0.080/mkl/lib/intel64 -lmkl_scalapack_lp64 
+     -lmkl_cdft_core -lmkl_intel_lp64 -lmkl_core -lmkl_intel_thread 
+     -lmkl_blacs_intelmpi_lp64 -lpthread -lm' '' '--enable-minima-hopping' 'build_alias=' 
+     'host_alias=' 'target_alias='"
+   Compilers (CC, FC, CXX): [icc, /local/stephanm/openmpi-1.6.5_intel/bin/mpif90, g++]
    Compiler flags:
      CFLAGS                            : -g -O2
-     FCFLAGS                           : -O2 -i_dynamic -msse4.2 -heap-arrays 1024 -openmp
+     FCFLAGS                           : -O2 -xSSE4.2 -openmp
      CXXFLAGS                          : -g -O2
   #------------------------------------------------------------------------ Input parameters
  radical                               : write
@@ -113,6 +111,7 @@
    fscale_upperbound                   : 5.0000000000000003E-002 # linear scaling upper bound for the error function decay length
    imethod_overlap                     : 1 #      method to calculate the overlap matrices (1=old, 2=new)
    FOE_restart                         : 0 #      Restart method to be used for the FOE method
+   enable_matrix_taskgroups            : True #   enable the matrix taskgroups
  dft:
    hgrids: [0.42, 0.42, 0.42] #                   Grid spacing in the three directions (bohr)
    rmult: [5.0, 7.0] #                            c(f)rmult*radii_cf(:,1(2))=coarse(fine) atom-based radius
@@ -414,20 +413,20 @@
  High Res. box is treated separately   :  Yes
   #------------------------------------------------------------------- Kernel Initialization
  Poisson Kernel Initialization:
-   MPI tasks                           :  4
+   MPI tasks                           :  3
    OpenMP threads per MPI task         :  2
  Poisson Kernel Creation:
    Boundary Conditions                 : Free
    Memory Requirements per MPI task:
-     Density (MB)                      :  4.15
-     Kernel (MB)                       :  4.31
+     Density (MB)                      :  5.54
+     Kernel (MB)                       :  5.71
      Full Grid Arrays (MB)             :  16.15
      Load Balancing of calculations:
        Density:
-         MPI tasks 0- 3                : 100%
-       Kernel:
          MPI tasks 0- 2                : 100%
-         MPI task 3                    :  92%
+       Kernel:
+         MPI tasks 0- 1                : 100%
+         MPI task 2                    :  96%
        Complete LB per task            : 1/3 LB_density + 2/3 LB_kernel
  Wavefunctions Descriptors, full simulation domain:
    Coarse resolution grid:
@@ -440,15 +439,16 @@
  Total Number of Electrons             :  30
  Spin treatment                        : Averaged
  Orbitals Repartition:
-   MPI tasks  0- 2                     :  4
-   MPI tasks  3- 3                     :  3
+   MPI tasks  0- 2                     :  5
  Total Number of Orbitals              :  15
  Input Occupation Numbers:
  - Occupation Numbers: {Orbitals No. 1-15:  2.0000}
+ preconditioning load balancing min/max before:  [  3.7E+05,  3.76E+05 ]
+ preconditioning load balancing min/max after:  [  3.7E+05,  3.76E+05 ]
+ task with max load                    :  [  0 ]
  Support function repartition:
-   MPI tasks  0- 1                     :  8
-   MPI tasks  2- 3                     :  7
- Wavefunctions memory occupation for root MPI process:  2 MB 474 KB 384 B
+   MPI tasks  0- 2                     :  10
+ Wavefunctions memory occupation for root MPI process:  3 MB 80 KB 992 B
  NonLocal PSP Projectors Descriptors:
    Creation strategy                   : On-the-fly
    Total number of projectors          :  6
@@ -460,34 +460,34 @@
  Memory requirements for principal quantities (MiB.KiB):
    Subspace Matrix                     : 0.1 #    (Number of Orbitals: 15)
    Single orbital                      : 0.631 #  (Number of Components: 80716)
-   All (distributed) orbitals          : 7.400 #  (Number of Orbitals per MPI task: 4)
-   Wavefunction storage size           : 36.972 # (DIIS/SD workspaces included)
+   All (distributed) orbitals          : 9.244 #  (Number of Orbitals per MPI task: 5)
+   Wavefunction storage size           : 46.192 # (DIIS/SD workspaces included)
    Nonlocal Pseudopotential Arrays     : 0.56
    Full Uncompressed (ISF) grid        : 16.156
    Workspaces storage size             : 1.470
  Accumulated memory requirements during principal run stages (MiB.KiB):
-   Kernel calculation                  : 82.447
-   Density Construction                : 96.358
-   Poisson Solver                      : 91.181
-   Hamiltonian application             : 97.790
-   Orbitals Orthonormalization         : 97.790
- Estimated Memory Peak (MB)            :  97
+   Kernel calculation                  : 109.177
+   Density Construction                : 111.152
+   Poisson Solver                      : 118.444
+   Hamiltonian application             : 112.583
+   Orbitals Orthonormalization         : 112.583
+ Estimated Memory Peak (MB)            :  118
  NonLocal PSP Projectors Descriptors:
    Creation strategy                   : On-the-fly
    Total number of projectors          :  6
    Total number of components          :  7118
    Percent of zero components          :  0
    Size of workspaces                  :  28488
-   Maximum size of masking arrays for a projector:  9993
-   Cumulative size of masking arrays   :  59514
+   Maximum size of masking arrays for a projector:  12501
+   Cumulative size of masking arrays   :  74502
  total elements                        :  900
  non-zero elements                     :  900
  sparsity in %                         :  0.00
- sparse matmul load balancing naive / optimized:  [  1.14,  1.14 ]
+ sparse matmul load balancing naive / optimized:  [  1.00,  1.00 ]
  total elements                        :  900
  non-zero elements                     :  900
  sparsity in %                         :  0.00
- sparse matmul load balancing naive / optimized:  [  1.14,  1.14 ]
+ sparse matmul load balancing naive / optimized:  [  1.00,  1.00 ]
  Checking Compression/Uncompression of small sparse matrices:
    Tolerances for this check           :  1.00000001335143196E-10
    Maxdiff for compress                :  0.00000000000000000E+00
@@ -501,21 +501,24 @@
  total elements                        :  900
  non-zero elements                     :  900
  sparsity in %                         :  0.00
- sparse matmul load balancing naive / optimized:  [  1.14,  1.14 ]
+ sparse matmul load balancing naive / optimized:  [  1.00,  1.00 ]
  taskgroup summary:
    number of taskgroups                :  1
    taskgroups overview:
-   -  {number of tasks:  4, IDs:  [  0,  1,  2,  3 ], 
+   -  {number of tasks:  3, IDs: { 0: {s:  1, e:  900},  1: {s:  1, e:  900},  2: {s:  1, 
+ e:  900}}, 
  start / end:  [  1,  900 ], start / end disjoint:  [  1,  900 ]}
  taskgroup summary:
    number of taskgroups                :  1
    taskgroups overview:
-   -  {number of tasks:  4, IDs:  [  0,  1,  2,  3 ], 
+   -  {number of tasks:  3, IDs: { 0: {s:  1, e:  900},  1: {s:  1, e:  900},  2: {s:  1, 
+ e:  900}}, 
  start / end:  [  1,  900 ], start / end disjoint:  [  1,  900 ]}
  taskgroup summary:
    number of taskgroups                :  1
    taskgroups overview:
-   -  {number of tasks:  4, IDs:  [  0,  1,  2,  3 ], 
+   -  {number of tasks:  3, IDs: { 0: {s:  1, e:  900},  1: {s:  1, e:  900},  2: {s:  1, 
+ e:  900}}, 
  start / end:  [  1,  900 ], start / end disjoint:  [  1,  900 ]}
  sparse matmul load balancing naive / optimized:  [  1.00,  1.00 ]
  sparse matmul load balancing naive / optimized:  [  1.00,  1.00 ]
@@ -537,16 +540,16 @@
    Tolerance for the following test    :  1.000000000000000036E-10
    calculation check, error max        :  4.547473508864641190E-13
  Checking Communications of Minimal Basis:
-   Number of coarse and fine DoF (MasterMPI task):  [  23431,  589 ]
-   Tolerances for this check: [ 3.24845004337145915E-06,  6.66133814775093924E-15]
-   Maxdiff for transpose (checksum)    :  2.32830643653869629E-10
-   Maxdiff for overlap calculation     :  3.72529029846191406E-08
+   Number of coarse and fine DoF (MasterMPI task):  [  26719,  749 ]
+   Tolerances for this check: [ 3.26708004362019641E-06,  6.66133814775093924E-15]
+   Maxdiff for transpose (checksum)    :  3.49245965480804443E-10
+   Maxdiff for overlap calculation     :  6.33299350738525391E-08
    Maxdiff for untranspose             :  0.00000000000000000E+00
  Checking Communications of Enlarged Minimal Basis:
-   Number of coarse and fine DoF (MasterMPI task):  [  19650,  544 ]
-   Tolerances for this check: [ 6.34417508470382085E-06,  6.66133814775093924E-15]
+   Number of coarse and fine DoF (MasterMPI task):  [  23863,  725 ]
+   Tolerances for this check: [ 6.38182008520643585E-06,  6.66133814775093924E-15]
    Maxdiff for transpose (checksum)    :  9.31322574615478516E-10
-   Maxdiff for overlap calculation     :  1.41561031341552734E-07
+   Maxdiff for overlap calculation     :  1.56462192535400391E-07
    Maxdiff for untranspose             :  0.00000000000000000E+00
  Ion-Ion interaction energy            :  1.03636581493943E+02
   #---------------------------------------------------------------- Ionic Potential Creation
@@ -554,13 +557,12 @@
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  105,  143,  141 ]
-   MPI tasks                           :  4
+   MPI tasks                           :  3
   #------------------------------------------------------------ Input Wavefunctions Creation
  Input Hamiltonian:
    Total No. of Atomic Input Orbitals  :  30
    Inputguess Orbitals Repartition:
-     MPI tasks  0- 1                   :  8
-     MPI tasks  2- 3                   :  7
+     MPI tasks  0- 2                   :  10
    Atomic Input Orbital Generation:
    -  {Atom Type: C, Electronic configuration: {s: [ 2.00], p: [ 2/3,  2/3,  2/3]}}
    -  {Atom Type: H, Electronic configuration: {s: [ 1.00]}}
@@ -570,7 +572,7 @@
    Poisson Solver:
      BC                                : Free
      Box                               :  [  105,  143,  141 ]
-     MPI tasks                         :  4
+     MPI tasks                         :  3
    orthonormalization of input guess   : standard
    Kernel update:
      max dev from unity                :  1.53E-03
@@ -602,7 +604,7 @@
  Energies: {Ekin:  4.50566520063E+01, Epot: -5.11419540945E+01, Enl:  4.26684292454E+00, 
               EH:  1.31646519797E+02,  EXC: -1.23137900169E+01, EvXC: -1.61057693058E+01}, 
     Total charge:  2.999999983833E+01, 
- Poisson Solver: {BC: Free, Box:  [  105,  143,  141 ], MPI tasks:  4}}
+ Poisson Solver: {BC: Free, Box:  [  105,  143,  141 ], MPI tasks:  3}}
     #================================================================= Input guess generated
   #------------------------------------------------------------------- Self-Consistent Cycle
  Ground State Optimization:
@@ -614,14 +616,14 @@
  Orthoconstraint:  Yes, calculation of S^-1: direct calculation, 
  calculate S^x: {mode: sparse, powers: {x: -1}, order:  0, 
  error estimation: [
- max / mean error:  [  1.74E-15,  9.97E-17 ]]}, 
+ max / mean error:  [  8.88E-16,  4.44E-17 ]]}, 
  Preconditioning:  Yes, 
- iter:  1, fnrm:  4.27E-01, Omega: -2.632842167452981E+01, D: -2.63E+01, D best: -2.63E+01, 
+ iter:  1, fnrm:  4.27E-01, Omega: -2.632842167452910E+01, D: -2.63E+01, D best: -2.63E+01, 
  Optimization: {algorithm: SD, mean alpha:  1.000E-01, max alpha:  1.000E-01, 
     consecutive successes:  1}, 
  calculate S^x: {mode: sparse, powers: {x: -1/2}, order:  0, 
  error estimation: [
- max / mean error:  [  4.66E-15,  5.75E-16 ]]}, 
+ max / mean error:  [  3.66E-15,  5.41E-16 ]]}, 
  Orthogonalization:  Yes, 
  Max deviation from unity in reorthonormalize_coeff:  1.32E-03, 
  Mean deviation from unity in reorthonormalize_coeff:  1.43E-04, 
@@ -633,14 +635,14 @@
  Orthoconstraint:  Yes, calculation of S^-1: direct calculation, 
  calculate S^x: {mode: sparse, powers: {x: -1}, order:  0, 
  error estimation: [
- max / mean error:  [  1.66E-15,  1.22E-16 ]]}, 
+ max / mean error:  [  6.66E-16,  5.06E-17 ]]}, 
  Preconditioning:  Yes, 
- iter:  2, fnrm:  3.92E-01, Omega: -2.668276668557019E+01, D: -3.54E-01, D best: -3.54E-01, 
+ iter:  2, fnrm:  3.92E-01, Omega: -2.668276668556948E+01, D: -3.54E-01, D best: -3.54E-01, 
  exit criterion: net number of iterations}
    -  &final_supfun001  { #-------------------------------------------------------- iter: 2
  target function: TRACE, 
  Energies: {Ekin:  4.90779776951E+01, Epot: -5.25986278134E+01, Enl:  2.32424601713E+00}, 
- iter:  2, fnrm:  3.92E-01, Omega: -2.668276668557019E+01, D: -3.54E-01, D best: -3.54E-01}
+ iter:  2, fnrm:  3.92E-01, Omega: -2.668276668556948E+01, D: -3.54E-01, D best: -3.54E-01}
       #Support functions created
     #=================================================================== kernel optimization
  - kernel optimization: &it_kernel001
@@ -654,7 +656,7 @@
        -  { #------------------------------------------------------------------ it coeff: 1
  communication strategy kernel: ALLREDUCE, 
  calculate S^x: {mode: dense, powers: {x: -1}, order:  0, 
- max / mean error:  [  1.66E-15,  1.25E-16 ]}, 
+ max / mean error:  [  6.66E-16,  4.25E-17 ]}, 
  Max deviation from unity in reorthonormalize_coeff:  6.92E-07, 
  Mean deviation from unity in reorthonormalize_coeff:  1.20E-07, 
  calculate S^x: {mode: dense, powers: {x: -1/2}, order:  0}, 
@@ -667,9 +669,9 @@
  Energies: {Ekin:  4.90779776951E+01, Epot: -5.29405636025E+01, Enl:  2.32424601713E+00, 
               EH:  1.31700240227E+02,  EXC: -1.22574576953E+01, EvXC: -1.60311579447E+01}, 
     Total charge:  2.999999983652E+01, 
- Poisson Solver: {BC: Free, Box:  [  105,  143,  141 ], MPI tasks:  4}}
-     summary: [ {kernel optimization: DMIN, mixing quantity: DENS, mix hist:  0, 
- iter:  1, delta:  7.37E-08, energy: -3.73283565747631201E+01, D: -3.733E+01}]
+ Poisson Solver: {BC: Free, Box:  [  105,  143,  141 ], MPI tasks:  3}}
+     summary: [ {kernel method: DMIN, mix entity: DENS, mix hist:  0, conv crit:  3.92E-11, 
+ iter:  1, delta:  7.37E-08, energy: -3.73283565747632906E+01, D: -3.733E+01}]
    -  #--------------------------------------------------------------------- kernel iter: 2
      Kernel update:
        max dev from unity              :  7.09E-04
@@ -680,24 +682,24 @@
        -  { #------------------------------------------------------------------ it coeff: 1
  communication strategy kernel: ALLREDUCE, 
  calculate S^x: {mode: dense, powers: {x: -1}, order:  0, 
- max / mean error:  [  1.66E-15,  1.25E-16 ]}, 
+ max / mean error:  [  6.66E-16,  4.25E-17 ]}, 
  Max deviation from unity in reorthonormalize_coeff:  2.06E-07, 
  Mean deviation from unity in reorthonormalize_coeff:  3.42E-08, 
  calculate S^x: {mode: dense, powers: {x: -1/2}, order:  0}, 
  communication strategy kernel: ALLREDUCE, method: DminSD, 
- iter:  1, fnrm:  2.09E-03, eBS: -1.30383980915392002E+01, D:  9.476E-02, 
+ iter:  1, fnrm:  2.09E-03, eBS: -1.30383980915381308E+01, D:  9.476E-02, 
           alpha:  2.000E-01}
        Kohn-Sham residue               :  2.041E-01
        Coefficients available          :  Yes
      alpha                             :  0.1
-     energydiff                        :  1.3371876065093602E-004
+     energydiff                        :  1.3371876104883995E-004
      Hamiltonian update: {
  Energies: {Ekin:  4.90779776951E+01, Epot: -5.28416967020E+01, Enl:  2.32424601713E+00, 
               EH:  1.31800774910E+02,  EXC: -1.22757653362E+01, EvXC: -1.60553754216E+01}, 
     Total charge:  2.999999983652E+01, 
- Poisson Solver: {BC: Free, Box:  [  105,  143,  141 ], MPI tasks:  4}}
-     summary: [ {kernel optimization: DMIN, mixing quantity: DENS, mix hist:  0, 
- iter:  2, delta:  2.84E-09, energy: -3.73282228560024691E+01, D:  1.337E-04}]
+ Poisson Solver: {BC: Free, Box:  [  105,  143,  141 ], MPI tasks:  3}}
+     summary: [ {kernel method: DMIN, mix entity: DENS, mix hist:  0, conv crit:  3.92E-11, 
+ iter:  2, delta:  2.84E-09, energy: -3.73282228560022418E+01, D:  1.337E-04}]
    -  #--------------------------------------------------------------------- kernel iter: 3
      Kernel update:
        max dev from unity              :  7.09E-04
@@ -708,12 +710,12 @@
        -  { #------------------------------------------------------------------ it coeff: 1
  communication strategy kernel: ALLREDUCE, 
  calculate S^x: {mode: dense, powers: {x: -1}, order:  0, 
- max / mean error:  [  1.66E-15,  1.25E-16 ]}, 
+ max / mean error:  [  6.66E-16,  4.25E-17 ]}, 
  Max deviation from unity in reorthonormalize_coeff:  2.04E-08, 
  Mean deviation from unity in reorthonormalize_coeff:  2.91E-09, 
  calculate S^x: {mode: dense, powers: {x: -1/2}, order:  0}, 
  communication strategy kernel: ALLREDUCE, method: DminSD, 
- iter:  1, fnrm:  1.20E-03, eBS: -1.29436395255523102E+01, D: -1.359E-03, 
+ iter:  1, fnrm:  1.20E-03, eBS: -1.29436395255518022E+01, D: -1.359E-03, 
           alpha:  1.000E-01}
        Kohn-Sham residue               :  2.041E-01
        Coefficients available          :  Yes
@@ -723,17 +725,17 @@
  Energies: {Ekin:  4.90779776951E+01, Epot: -5.28431819045E+01, Enl:  2.32424601713E+00, 
               EH:  1.31799324606E+02,  EXC: -1.22754750022E+01, EvXC: -1.60549924897E+01}, 
     Total charge:  2.999999983652E+01, 
- Poisson Solver: {BC: Free, Box:  [  105,  143,  141 ], MPI tasks:  4}}
-     summary: [ {kernel optimization: DMIN, mixing quantity: DENS, mix hist:  0, 
- iter:  3, delta:  7.17E-10, energy: -3.73282243234712610E+01, D: -1.467E-06}]
+ Poisson Solver: {BC: Free, Box:  [  105,  143,  141 ], MPI tasks:  3}}
+     summary: [ {kernel method: DMIN, mix entity: DENS, mix hist:  0, conv crit:  3.92E-11, 
+ iter:  3, delta:  7.17E-10, energy: -3.73282243234710336E+01, D: -1.467E-06}]
    -  &final_kernel001  { #-------------------------------------------------------- iter: 4
- summary: [ {kernel optimization: DMIN, mixing quantity: DENS, mix hist:  0, 
- iter:  4, delta:  7.17E-10, energy: -3.73282243234712610E+01, D: -1.467E-06}]}
+ summary: [ {kernel method: DMIN, mix entity: DENS, mix hist:  0, conv crit:  3.92E-11, 
+ iter:  4, delta:  7.17E-10, energy: -3.73282243234710336E+01, D: -1.467E-06}]}
     #================================================================= Summary of both steps
    self consistency summary: &it_sc001
-   -  {iter:  1, target function: TRACE,  #WARNING: support function optimization not converged
+   -  {iter:  1, Omega: TRACE,  #WARNING: support function optimization not converged
  kernel optimization: DIRMIN,  #WARNING: density optimization not converged
- iter low:  1, delta out:  7.342E-08, energy: -3.73282243234712610E+01, D: -3.733E+01}
+ iter low:  1, delta out:  7.342E-08, energy: -3.73282243234710336E+01, D: -3.733E+01}
     #========================================================= Adjustments for high accuracy
    Locreg increased                    :  No
    Kernel update:
@@ -745,12 +747,12 @@
      -  { #-------------------------------------------------------------------- it coeff: 1
  communication strategy kernel: ALLREDUCE, 
  calculate S^x: {mode: dense, powers: {x: -1}, order:  0, 
- max / mean error:  [  1.66E-15,  1.25E-16 ]}, 
+ max / mean error:  [  6.66E-16,  4.25E-17 ]}, 
  Max deviation from unity in reorthonormalize_coeff:  1.66E-08, 
  Mean deviation from unity in reorthonormalize_coeff:  2.28E-09, 
  calculate S^x: {mode: dense, powers: {x: -1/2}, order:  0}, 
  communication strategy kernel: ALLREDUCE, method: DminSD, 
- iter:  1, fnrm:  9.59E-04, eBS: -1.29449986987918386E+01, D: -2.293E-04, 
+ iter:  1, fnrm:  9.59E-04, eBS: -1.29449986987911227E+01, D: -2.293E-04, 
           alpha:  1.100E-01}
      Kohn-Sham residue                 :  2.041E-01
      Coefficients available            :  Yes
@@ -762,14 +764,14 @@
  Orthoconstraint:  Yes, calculation of S^-1: direct calculation, 
  calculate S^x: {mode: sparse, powers: {x: -1}, order:  0, 
  error estimation: [
- max / mean error:  [  1.66E-15,  1.22E-16 ]]}, 
+ max / mean error:  [  6.66E-16,  5.06E-17 ]]}, 
  Preconditioning:  Yes, 
- iter:  1, fnrm:  2.88E-01, Omega: -3.732822566757002E+01, D: -1.10E+01, D best: -1.10E+01, 
+ iter:  1, fnrm:  2.88E-01, Omega: -3.732822566756988E+01, D: -1.10E+01, D best: -1.10E+01, 
  Optimization: {algorithm: SD, mean alpha:  1.100E-01, max alpha:  1.100E-01, 
     consecutive successes:  1}, 
  calculate S^x: {mode: sparse, powers: {x: -1/2}, order:  0, 
  error estimation: [
- max / mean error:  [  3.14E-15,  4.99E-16 ]]}, 
+ max / mean error:  [  4.0E-15,  5.33E-16 ]]}, 
  Orthogonalization:  Yes, 
  Max deviation from unity in reorthonormalize_coeff:  6.92E-04, 
  Mean deviation from unity in reorthonormalize_coeff:  7.74E-05, 
@@ -781,14 +783,14 @@
  Orthoconstraint:  Yes, calculation of S^-1: direct calculation, 
  calculate S^x: {mode: sparse, powers: {x: -1}, order:  0, 
  error estimation: [
- max / mean error:  [  2.42E-15,  1.13E-16 ]]}, 
+ max / mean error:  [  5.55E-16,  4.33E-17 ]]}, 
  Preconditioning:  Yes, 
- iter:  2, fnrm:  2.40E-01, Omega: -3.742769906889416E+01, D: -9.95E-02, D best: -9.95E-02, 
+ iter:  2, fnrm:  2.40E-01, Omega: -3.742769906889399E+01, D: -9.95E-02, D best: -9.95E-02, 
  exit criterion: net number of iterations}
    -  &final_supfun002  { #-------------------------------------------------------- iter: 2
  target function: ENERGY, 
  Energies: {Ekin:  4.91907599060E+01, Epot: -5.29198881807E+01, Enl:  2.23790773128E+00}, 
- iter:  2, fnrm:  2.40E-01, Omega: -3.742769906889416E+01, D: -9.95E-02, D best: -9.95E-02}
+ iter:  2, fnrm:  2.40E-01, Omega: -3.742769906889399E+01, D: -9.95E-02, D best: -9.95E-02}
       #Support functions created
     #=================================================================== kernel optimization
  - kernel optimization: &it_kernel002
@@ -802,21 +804,21 @@
        -  { #------------------------------------------------------------------ it coeff: 1
  communication strategy kernel: ALLREDUCE, 
  calculate S^x: {mode: dense, powers: {x: -1}, order:  0, 
- max / mean error:  [  2.42E-15,  1.23E-16 ]}, 
+ max / mean error:  [  4.44E-16,  4.15E-17 ]}, 
  Max deviation from unity in reorthonormalize_coeff:  1.15E-06, 
  Mean deviation from unity in reorthonormalize_coeff:  1.48E-07, 
  calculate S^x: {mode: dense, powers: {x: -1/2}, order:  0}, 
  communication strategy kernel: ALLREDUCE, method: DminSD, 
- iter:  1, fnrm:  4.24E-03, eBS: -1.29452280163977367E+01, D: -9.952E-02, 
+ iter:  1, fnrm:  4.24E-03, eBS: -1.29452280163971203E+01, D: -9.952E-02, 
           alpha:  2.000E-01}
        Coefficients available          :  Yes
      Hamiltonian update: {
  Energies: {Ekin:  4.90779776951E+01, Epot: -5.28434451756E+01, Enl:  2.32424601713E+00, 
               EH:  1.31799073795E+02,  EXC: -1.22754034060E+01, EvXC: -1.60548980563E+01}, 
     Total charge:  2.999999983051E+01, 
- Poisson Solver: {BC: Free, Box:  [  105,  143,  141 ], MPI tasks:  4}}
-     summary: [ {kernel optimization: DMIN, mixing quantity: DENS, mix hist:  0, 
- iter:  1, delta:  1.40E-07, energy: -3.74277422122136443E+01, D: -9.952E-02}]
+ Poisson Solver: {BC: Free, Box:  [  105,  143,  141 ], MPI tasks:  3}}
+     summary: [ {kernel method: DMIN, mix entity: DENS, mix hist:  0, conv crit:  2.40E-11, 
+ iter:  1, delta:  1.40E-07, energy: -3.74277422122135022E+01, D: -9.952E-02}]
    -  #--------------------------------------------------------------------- kernel iter: 2
      Kernel update:
        max dev from unity              :  4.92E-04
@@ -827,24 +829,24 @@
        -  { #------------------------------------------------------------------ it coeff: 1
  communication strategy kernel: ALLREDUCE, 
  calculate S^x: {mode: dense, powers: {x: -1}, order:  0, 
- max / mean error:  [  2.42E-15,  1.23E-16 ]}, 
+ max / mean error:  [  4.44E-16,  4.15E-17 ]}, 
  Max deviation from unity in reorthonormalize_coeff:  3.31E-07, 
  Mean deviation from unity in reorthonormalize_coeff:  3.53E-08, 
  calculate S^x: {mode: dense, powers: {x: -1/2}, order:  0}, 
  communication strategy kernel: ALLREDUCE, method: DminSD, 
- iter:  1, fnrm:  2.00E-03, eBS: -1.30447445610413411E+01, D:  5.850E-02, 
+ iter:  1, fnrm:  2.00E-03, eBS: -1.30447445610407478E+01, D:  5.850E-02, 
           alpha:  2.000E-01}
        Kohn-Sham residue               :  1.696E-01
        Coefficients available          :  Yes
      alpha                             :  0.1
-     energydiff                        :  2.481220887773361E-004
+     energydiff                        :  2.4812208835101046E-004
      Hamiltonian update: {
  Energies: {Ekin:  4.91907599060E+01, Epot: -5.28565749024E+01, Enl:  2.23790773128E+00, 
               EH:  1.31864191458E+02,  EXC: -1.22964307300E+01, EvXC: -1.60827891759E+01}, 
     Total charge:  2.999999983052E+01, 
- Poisson Solver: {BC: Free, Box:  [  105,  143,  141 ], MPI tasks:  4}}
-     summary: [ {kernel optimization: DMIN, mixing quantity: DENS, mix hist:  0, 
- iter:  2, delta:  1.56E-09, energy: -3.74274940901248669E+01, D:  2.481E-04}]
+ Poisson Solver: {BC: Free, Box:  [  105,  143,  141 ], MPI tasks:  3}}
+     summary: [ {kernel method: DMIN, mix entity: DENS, mix hist:  0, conv crit:  2.40E-11, 
+ iter:  2, delta:  1.56E-09, energy: -3.74274940901251512E+01, D:  2.481E-04}]
    -  #--------------------------------------------------------------------- kernel iter: 3
      Kernel update:
        max dev from unity              :  4.92E-04
@@ -855,32 +857,32 @@
        -  { #------------------------------------------------------------------ it coeff: 1
  communication strategy kernel: ALLREDUCE, 
  calculate S^x: {mode: dense, powers: {x: -1}, order:  0, 
- max / mean error:  [  2.42E-15,  1.23E-16 ]}, 
+ max / mean error:  [  4.44E-16,  4.15E-17 ]}, 
  Max deviation from unity in reorthonormalize_coeff:  3.09E-08, 
  Mean deviation from unity in reorthonormalize_coeff:  3.15E-09, 
  calculate S^x: {mode: dense, powers: {x: -1/2}, order:  0}, 
  communication strategy kernel: ALLREDUCE, method: DminSD, 
- iter:  1, fnrm:  1.20E-03, eBS: -1.29862425721407373E+01, D: -2.004E-03, 
+ iter:  1, fnrm:  1.20E-03, eBS: -1.29862425721399575E+01, D: -2.004E-03, 
           alpha:  1.000E-01}
        Kohn-Sham residue               :  1.696E-01
        Coefficients available          :  Yes
      alpha                             :  0.11
-     energydiff                        : -1.8597288828914316E-006
+     energydiff                        : -1.8597285418309184E-006
      Hamiltonian update: {
  Energies: {Ekin:  4.91907599060E+01, Epot: -5.28586041912E+01, Enl:  2.23790773128E+00, 
               EH:  1.31862134340E+02,  EXC: -1.22962576720E+01, EvXC: -1.60825610871E+01}, 
     Total charge:  2.999999983053E+01, 
- Poisson Solver: {BC: Free, Box:  [  105,  143,  141 ], MPI tasks:  4}}
-     summary: [ {kernel optimization: DMIN, mixing quantity: DENS, mix hist:  0, 
- iter:  3, delta:  4.12E-10, energy: -3.74274959498537498E+01, D: -1.860E-06}]
+ Poisson Solver: {BC: Free, Box:  [  105,  143,  141 ], MPI tasks:  3}}
+     summary: [ {kernel method: DMIN, mix entity: DENS, mix hist:  0, conv crit:  2.40E-11, 
+ iter:  3, delta:  4.12E-10, energy: -3.74274959498536930E+01, D: -1.860E-06}]
    -  &final_kernel002  { #-------------------------------------------------------- iter: 4
- summary: [ {kernel optimization: DMIN, mixing quantity: DENS, mix hist:  0, 
- iter:  4, delta:  4.12E-10, energy: -3.74274959498537498E+01, D: -1.860E-06}]}
+ summary: [ {kernel method: DMIN, mix entity: DENS, mix hist:  0, conv crit:  2.40E-11, 
+ iter:  4, delta:  4.12E-10, energy: -3.74274959498536930E+01, D: -1.860E-06}]}
     #================================================================= Summary of both steps
    self consistency summary: &it_sc002
-   -  {iter:  2, target function: ENERGY,  #WARNING: support function optimization not converged
+   -  {iter:  2, Omega: ENERGY,  #WARNING: support function optimization not converged
  kernel optimization: DIRMIN,  #WARNING: density optimization not converged
- iter high:  2, delta out:  1.404E-07, energy: -3.74274959498537498E+01, D: -9.927E-02}
+ iter high:  2, delta out:  1.404E-07, energy: -3.74274959498536930E+01, D: -9.927E-02}
    Kernel update:
      max dev from unity                :  4.92E-04
      mean dev from unity               :  9.34E-05
@@ -897,7 +899,7 @@
  {e: -6.623995486705E-01, f:  1.0000},  # 00003
  {e: -5.323384340607E-01, f:  1.0000},  # 00004
  {e: -5.321807490032E-01, f:  1.0000},  # 00005
- {e: -4.687911254070E-01, f:  1.0000},  # 00006
+ {e: -4.687911254069E-01, f:  1.0000},  # 00006
  {e: -3.975490209535E-01, f:  1.0000},  # 00007
  {e: -3.959502874573E-01, f:  1.0000},  # 00008
  {e: -3.677854737847E-01, f:  1.0000},  # 00009
@@ -907,15 +909,15 @@
  {e: -2.947227009350E-01, f:  1.0000},  # 00013
  {e: -2.159343425173E-01, f:  1.0000},  # 00014
  {e: -2.157983311563E-01, f:  1.0000},  # 00015
- {e: -8.869650472409E-04, f:  1.0000},  # 00016
- {e: -8.593025328425E-04, f:  1.0000},  # 00017
- {e:  1.483455457469E-01, f:  1.0000},  # 00018
- {e:  1.765058567286E-01, f:  1.0000},  # 00019
- {e:  2.341033510854E-01, f:  1.0000},  # 00020
+ {e: -8.869650472163E-04, f:  1.0000},  # 00016
+ {e: -8.593025328181E-04, f:  1.0000},  # 00017
+ {e:  1.483455457470E-01, f:  1.0000},  # 00018
+ {e:  1.765058567287E-01, f:  1.0000},  # 00019
+ {e:  2.341033510855E-01, f:  1.0000},  # 00020
  {e:  2.344336005306E-01, f:  1.0000},  # 00021
- {e:  3.263024946851E-01, f:  1.0000},  # 00022
+ {e:  3.263024946850E-01, f:  1.0000},  # 00022
  {e:  3.416226321179E-01, f:  1.0000},  # 00023
- {e:  3.422653281325E-01, f:  1.0000},  # 00024
+ {e:  3.422653281324E-01, f:  1.0000},  # 00024
  {e:  4.571846572809E-01, f:  1.0000},  # 00025
  {e:  4.578391344955E-01, f:  1.0000},  # 00026
  {e:  4.933572667224E-01, f:  1.0000},  # 00027
@@ -928,11 +930,13 @@
  Energies: {Ekin:  4.91907599060E+01, Epot: -5.28589292772E+01, Enl:  2.23790773128E+00, 
               EH:  1.31861805957E+02,  EXC: -1.22962245274E+01, EvXC: -1.60825174159E+01}, 
        iter high:  2,            delta out:  1.404E-07, 
-          energy: -3.74274959498537498E+01,                       D:  0.000E+00,  #FINAL
+          energy: -3.74274959498536930E+01,                       D:  0.000E+00,  #FINAL
  }
  Write wavefunctions to file           : ./data-write/minBasis.*
  Wavefunction written No.              :  7
  Wavefunction written No.              :  8
+ Wavefunction written No.              :  9
+ Wavefunction written No.              :  10
  Wavefunction written No.              :  3
  Wavefunction written No.              :  4
  Wavefunction written No.              :  5
@@ -941,7 +945,7 @@
  Wavefunction written No.              :  1
  Wavefunction coefficients written     :  Yes
  Write Waves Time:
- -  {Process:  0, Timing:  [  1.09E+00,  9.716E-01 ]}
+ -  {Process:  0, Timing:  [  1.104E+00,  8.543E-01 ]}
  Overview of the reformatting (several categories may apply):
    No reformatting required            :  4
    Grid spacing has changed            :  0
@@ -955,27 +959,27 @@
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  105,  143,  141 ]
-   MPI tasks                           :  4
+   MPI tasks                           :  3
  Calculate local forces: {Leaked force:  0.00000E+00}
  Calculate Non Local forces            :  Yes
- Average noise forces: {x: -1.65160993E-03, y:  5.14782019E-03, z: -6.87712812E-04, 
+ Average noise forces: {x: -1.65160993E-03, y:  5.14782019E-03, z: -6.87712811E-04, 
                     total:  5.44984559E-03}
- Clean forces norm (Ha/Bohr): {maxval:  6.403886279848E-02, fnrm2:  2.543841787755E-02}
- Raw forces norm (Ha/Bohr): {maxval:  6.260741084331E-02, fnrm2:  2.546882850161E-02}
+ Clean forces norm (Ha/Bohr): {maxval:  6.403886279847E-02, fnrm2:  2.543841787748E-02}
+ Raw forces norm (Ha/Bohr): {maxval:  6.260741084329E-02, fnrm2:  2.546882850154E-02}
   #--------------------------------------------------------------------------- Atomic Forces
  Atomic Forces (Ha/Bohr):
- -  {C: [-3.060524678682E-04,  2.213301931820E-02,  3.514707614825E-03]} # 0001
- -  {C: [-3.073837880714E-04,  9.728266668860E-03,  2.205146341941E-02]} # 0002
- -  {C: [-4.501995330669E-04, -1.219169920973E-02,  1.820006448864E-02]} # 0003
- -  {C: [-3.214721524219E-04, -1.945882908966E-02, -4.056369964125E-03]} # 0004
- -  {C: [-4.288758699618E-04, -4.668886470690E-03, -2.339481610949E-02]} # 0005
- -  {C: [-3.306044371646E-04,  1.650354849960E-02, -1.712710706866E-02]} # 0006
- -  {H: [ 3.020003433759E-04,  5.788936136102E-02,  1.016638294490E-02]} # 0007
- -  {H: [ 3.653781704979E-04,  2.055142117745E-02,  5.628241453642E-02]} # 0008
- -  {H: [ 3.731002197703E-04, -4.079964877528E-02,  4.768448897869E-02]} # 0009
- -  {H: [ 3.644524565542E-04, -6.318370926385E-02, -1.042410699251E-02]} # 0010
- -  {H: [ 3.787957549120E-04, -2.339125609767E-02, -5.684508933519E-02]} # 0011
- -  {H: [ 3.608613034445E-04,  3.688841188173E-02, -4.605203251292E-02]} # 0012
+ -  {C: [-3.060524678710E-04,  2.213301931800E-02,  3.514707615212E-03]} # 0001
+ -  {C: [-3.073837880734E-04,  9.728266668806E-03,  2.205146341916E-02]} # 0002
+ -  {C: [-4.501995330698E-04, -1.219169920957E-02,  1.820006448845E-02]} # 0003
+ -  {C: [-3.214721524220E-04, -1.945882908945E-02, -4.056369964120E-03]} # 0004
+ -  {C: [-4.288758699602E-04, -4.668886470632E-03, -2.339481610932E-02]} # 0005
+ -  {C: [-3.306044371634E-04,  1.650354849945E-02, -1.712710706853E-02]} # 0006
+ -  {H: [ 3.020003433777E-04,  5.788936136100E-02,  1.016638294482E-02]} # 0007
+ -  {H: [ 3.653781704987E-04,  2.055142117747E-02,  5.628241453635E-02]} # 0008
+ -  {H: [ 3.731002197732E-04, -4.079964877524E-02,  4.768448897864E-02]} # 0009
+ -  {H: [ 3.644524565543E-04, -6.318370926383E-02, -1.042410699251E-02]} # 0010
+ -  {H: [ 3.787957549111E-04, -2.339125609770E-02, -5.684508933519E-02]} # 0011
+ -  {H: [ 3.608613034448E-04,  3.688841188169E-02, -4.605203251296E-02]} # 0012
   #-------------------------------- Warnings obtained during the run, check their relevance!
  WARNINGS:
  - Do not call check_communications in the linear scaling version!
@@ -985,16 +989,16 @@
  - density optimization not converged
   #-------------------------------------------------------------------- Timing for root process
  Timings for root process:
-   CPU time (s)                        :  44.22
-   Elapsed time (s)                    :  24.45
+   CPU time (s)                        :  86.54
+   Elapsed time (s)                    :  45.33
  Memory Consumption Report:
-   Tot. No. of Allocations             :  9376
-   Tot. No. of Deallocations           :  9376
+   Tot. No. of Allocations             :  11542
+   Tot. No. of Deallocations           :  11542
    Remaining Memory (B)                :  0
    Memory occupation:
-     Peak Value (MB)                   :  500
-     for the array                     : psir
-     in the routine                    : LocalHamiltonianApplication
-     Memory Peak of process            : 538980 kB
- Max No. of dictionaries used          :  3343 #( 838 still in use)
+     Peak Value (MB)                   :  634.995
+     for the array                     : wt%nrecvdspls
+     in the routine                    : untranspose_localized
+     Memory Peak of process            : 665.980 MB
+ Max No. of dictionaries used          :  4074 #( 838 still in use)
  Number of dictionary folders allocated:  1

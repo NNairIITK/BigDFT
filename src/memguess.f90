@@ -532,7 +532,7 @@ program memguess
       nspinor=1
 
       call orbitals_descriptors(0,nproc,norb,norbu,norbd,runObj%inputs%nspin,nspinor, &
-           runObj%inputs%gen_nkpt,runObj%inputs%gen_kpt,runObj%inputs%gen_wkpt,orbstst,.false.)
+           runObj%inputs%gen_nkpt,runObj%inputs%gen_kpt,runObj%inputs%gen_wkpt,orbstst,LINEAR_PARTITION_NONE)
       orbstst%eval = f_malloc_ptr(orbstst%norbp,id='orbstst%eval')
       do iorb=1,orbstst%norbp
          orbstst%eval(iorb)=-0.5_gp

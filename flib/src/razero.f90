@@ -90,6 +90,36 @@ subroutine razero_integer(n,x)
   end do
 END SUBROUTINE razero_integer
 
+!>   Set to zero an array x(n)
+subroutine razero_integerlong(n,x)
+  implicit none
+  !Arguments
+  integer, intent(in) :: n
+  integer(kind=8), dimension(n), intent(out) :: x
+  !Local variables
+  integer :: i,m
+  !!do i=1,n
+  !!   x(i)=0
+  !!end do
+  m=mod(n,7)
+  if (m/=0) then
+      do i=1,m
+          x(i)=int(0,kind=8)
+      end do
+      if (n<7) return
+  end if
+  m=m+1
+  do i=m,n,7
+      x(i+0)=int(0,kind=8)
+      x(i+1)=int(0,kind=8)
+      x(i+2)=int(0,kind=8)
+      x(i+3)=int(0,kind=8)
+      x(i+4)=int(0,kind=8)
+      x(i+5)=int(0,kind=8)
+      x(i+6)=int(0,kind=8)
+  end do
+END SUBROUTINE razero_integerlong
+
 !!!>   Set to zero an array x(n): omp version of razero
 !!subroutine omp_razero(n,x)
 !!  use module_base

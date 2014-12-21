@@ -134,6 +134,11 @@ module module_types
   integer, parameter, public :: UPDATE_BY_PURIFICATION = 0
   integer, parameter, public :: UPDATE_BY_FOE = 1
   integer, parameter, public :: UPDATE_BY_RENORMALIZATION = 2
+
+  !> How to do the partition of the support functions (linear scaling version)
+  integer,parameter,public :: LINEAR_PARTITION_SIMPLE = 61
+  integer,parameter,public :: LINEAR_PARTITION_OPTIMAL = 62
+  integer,parameter,public :: LINEAR_PARTITION_NONE = 63
   
   !> Type used for the orthogonalisation parameters
   type, public :: orthon_data
@@ -470,6 +475,12 @@ module module_types
 
      !> linear scaling: enable the matrix taskgroups
      logical :: enable_matrix_taskgroups
+
+     !> linear scaling: radius enlargement for the Hamiltonian application (in grid points)
+     integer :: hamapp_radius_incr
+
+     !> linear scaling: enable the addaptive ajustment of the number of kernel iterations
+     logical :: adjust_kernel_iterations
 
   end type input_variables
 
@@ -859,6 +870,7 @@ module module_types
      integer :: npsidim_comp  !< Number of elements inside psi in the components distribution scheme
      type(hamiltonian_descriptors) :: ham_descr
      real(kind=8), dimension(:,:), pointer :: coeff          !< Expansion coefficients
+     real(kind=8) :: damping_factor_confinement !< damping for the confinement after a restart
   end type DFT_wavefunction
 
 
@@ -2322,6 +2334,12 @@ contains
        case (ENABLE_MATRIX_TASKGROUPS) 
            ! linear scaling: enable the matrix taskgroups
            in%enable_matrix_taskgroups = val
+       case (HAMAPP_RADIUS_INCR)
+           ! linear scaling: radius enlargement for the Hamiltonian application (in grid points)
+           in%hamapp_radius_incr = val
+       case (ADJUST_KERNEL_ITERATIONS) 
+           ! linear scaling: enable the addaptive ajustment of the number of kernel iterations
+           in%adjust_kernel_iterations = val
        case DEFAULT
           if (bigdft_mpi%iproc==0) &
                call yaml_warning("unknown input key '" // trim(level) // "/" // trim(dict_key(val)) // "'")

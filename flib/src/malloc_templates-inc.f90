@@ -199,6 +199,45 @@ subroutine i4_all_free(array)
   include 'deallocate-inc.f90' 
 end subroutine i4_all_free
 
+!!$! long integer arrays
+!!$subroutine il1_all(array,m)
+!!$  use metadata_interfaces, metadata_address => getil1
+!!$  implicit none
+!!$  type(malloc_information_all), intent(in) :: m
+!!$  integer(kind=8), dimension(:), allocatable, intent(inout) :: array
+!!$  include 'allocate-profile-inc.f90' 
+!!$  !allocate the array
+!!$  allocate(array(m%lbounds(1):m%ubounds(1)+ndebug),stat=ierror)
+!!$  include 'allocate-inc.f90'
+!!$end subroutine il1_all
+!!$
+!!$subroutine il1_all_free(array)
+!!$  use metadata_interfaces, metadata_address => getil1
+!!$  implicit none
+!!$  integer(kind=8), dimension(:), allocatable, intent(inout) :: array
+!!$  include 'deallocate-profile-inc.f90' 
+!!$  include 'deallocate-inc.f90' 
+!!$end subroutine il1_all_free
+
+subroutine il2_all(array,m)
+  use metadata_interfaces, metadata_address => getil2
+  implicit none
+  type(malloc_information_all), intent(in) :: m
+  integer(kind=8), dimension(:,:), allocatable, intent(inout) :: array
+  include 'allocate-profile-inc.f90' 
+  !allocate the array
+  allocate(array(m%lbounds(1):m%ubounds(1),m%lbounds(2):m%ubounds(2)+ndebug),stat=ierror)
+  include 'allocate-inc.f90'
+end subroutine il2_all
+
+subroutine il2_all_free(array)
+  use metadata_interfaces, metadata_address => getil2
+  implicit none
+  integer(kind=8), dimension(:,:), allocatable, intent(inout) :: array
+  include 'deallocate-profile-inc.f90' 
+  include 'deallocate-inc.f90' 
+end subroutine il2_all_free
+
 !character arrays
 subroutine c1_all(array,m)
   use metadata_interfaces, metadata_address => getc1

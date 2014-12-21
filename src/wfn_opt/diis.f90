@@ -463,6 +463,7 @@ subroutine mix_rhopot(iproc,nproc,npoints,alphamix,mix,rhopot,istep,&
   character(len = 500) :: errmess
   integer, allocatable :: user_data(:)
   real(8) :: ddot !debug
+  integer(kind=8) :: nsize
 
   call f_routine(id='mix_rhopot')
 
@@ -501,7 +502,8 @@ subroutine mix_rhopot(iproc,nproc,npoints,alphamix,mix,rhopot,istep,&
      call MPI_ABORT(bigdft_mpi%mpi_comm, ierr, ie)
   end if
   !write(*,'(a,i7,2es16.7)') 'in mix_rhopot: iproc, rpnrm, ddot', iproc, rpnrm, ddot(npoints,rhopot,1,rhopot,1)
-  rpnrm = sqrt(rpnrm) / real(n1 * n2 * n3, gp)
+  nsize = int(n1,kind=8)*int(n2,kind=8)*int(n3,kind=8)
+  rpnrm = sqrt(rpnrm) / real(nsize, gp)
   rpnrm = rpnrm / (1.d0 - alphamix)
   !write(*,*) 'in mix_rhopot 2: iproc, rpnrm', iproc, rpnrm
 
