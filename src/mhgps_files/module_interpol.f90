@@ -15,64 +15,190 @@
 !> minor module for wrapping the lst_penalty routine
 !! intended as a temporary patch to conceptual problem in using transforce
 !! routine
-module lst_penalty_wrapper
-  use module_defs, only: gp
-  implicit none  
+!!module lst_penalty_wrapper
+!!  use module_defs, only: gp
+!!  implicit none  
+!!
+!!  !usage of pointers, just for fun
+!!!  real(gp), pointer, private :: lambda_ptr=>null()
+!!!  real(gp), dimension(:,:), pointer, private :: rxyzR_ptr=>null(),rxyzP_ptr=>null()
+!!!  real(gp), private :: lambda_int
+!!!  real(gp), dimension(:,:), allocatable, private :: rxyzR_int,rxyzP_int
+!! 
+!!contains
+!!
+!!!subroutine init_lst_wrapper(nat,rxyzR,rxyzP,lambda)
+!!!    use module_base
+!!!    implicit none
+!!!    integer, intent(in) :: nat
+!!!!    real(gp), intent(in), target :: rxyzR(3,nat) !reactant
+!!!!    real(gp), intent(in), target :: rxyzP(3,nat) !product
+!!!!    real(gp), intent(in), target :: lambda !interpolation parameter
+!!!    real(gp), intent(in), target :: rxyzR(3,nat) !reactant
+!!!    real(gp), intent(in), target :: rxyzP(3,nat) !product
+!!!    real(gp), intent(in), target :: lambda !interpolation parameter
+!!!
+!!!!pointer lead to segault after some hours
+!!!!(intel ifort 14)
+!!!!    rxyzR_ptr => rxyzR
+!!!!    rxyzP_ptr => rxyzP
+!!!!    lambda_ptr=> lambda
+!!!    rxyzR_int = f_malloc((/ 1.to.3, 1.to.nat/),id='rxyzR_int')
+!!!    rxyzP_int = f_malloc((/ 1.to.3, 1.to.nat/),id='rxyzP_int')
+!!!
+!!!    rxyzR_int = rxyzR
+!!!    rxyzP_int = rxyzP
+!!!    lambda_int = lambda
+!!!
+!!!end subroutine init_lst_wrapper
+!!!!=====================================================================
+!!!subroutine finalize_lst_wrapper()
+!!!    use module_base
+!!!    implicit none
+!!!
+!!!    call f_free(rxyzR_int)
+!!!    call f_free(rxyzP_int)
+!!!end subroutine finalize_lst_wrapper
+!!!!=====================================================================
+!!!subroutine valforce(nat,rxyzR,rxyzP,lambda,rat,fat,epot)
+!!!     !wrapper function for lst_penalty
+!!!    use module_base
+!!!    implicit none
+!!!    !parameters
+!!!    integer, intent(in) :: nat
+!!!    real(gp), intent(in) :: rxyzR(3,nat) !reactant
+!!!    real(gp), intent(in) :: rxyzP(3,nat) !product
+!!!    real(gp), intent(in)  :: lambda !interpolation parameter
+!!!    real(gp), intent(in) :: rat(3,nat)
+!!!    real(gp), intent(out) :: fat(3,nat)
+!!!    real(gp), intent(out) :: epot
+!!!    !local variables
+!!!!    call lst_penalty(nat,rxyzR_ptr,rxyzP_ptr,rat,lambda_ptr,epot,fat)
+!!!    call lst_penalty(nat,rxyzR,rxyzP,rat,lambda,epot,fat)
+!!!end subroutine valforce
+!!
+!!!=====================================================================
+!!
+!!end module lst_penalty_wrapper
+module module_interpol
+    implicit none
 
-  !usage of pointers, just for fun
-!  real(gp), pointer, private :: lambda_ptr=>null()
-!  real(gp), dimension(:,:), pointer, private :: rxyzR_ptr=>null(),rxyzP_ptr=>null()
-  real(gp), private :: lambda_int
-  real(gp), dimension(:,:), allocatable, private :: rxyzR_int,rxyzP_int
- 
+    private
+
+    public :: lstpthpnt
+
+
 contains
-
-subroutine init_lst_wrapper(nat,rxyzR,rxyzP,lambda)
-    use module_base
-    implicit none
-    integer, intent(in) :: nat
-!    real(gp), intent(in), target :: rxyzR(3,nat) !reactant
-!    real(gp), intent(in), target :: rxyzP(3,nat) !product
-!    real(gp), intent(in), target :: lambda !interpolation parameter
-    real(gp), intent(in), target :: rxyzR(3,nat) !reactant
-    real(gp), intent(in), target :: rxyzP(3,nat) !product
-    real(gp), intent(in), target :: lambda !interpolation parameter
-
-!pointer lead to segault after some hours
-!(intel ifort 14)
-!    rxyzR_ptr => rxyzR
-!    rxyzP_ptr => rxyzP
-!    lambda_ptr=> lambda
-    rxyzR_int = f_malloc((/ 1.to.3, 1.to.nat/),id='rxyzR_int')
-    rxyzP_int = f_malloc((/ 1.to.3, 1.to.nat/),id='rxyzP_int')
-
-    rxyzR_int = rxyzR
-    rxyzP_int = rxyzP
-    lambda_int = lambda
-
-end subroutine init_lst_wrapper
 !=====================================================================
-subroutine finalize_lst_wrapper()
+subroutine lstpthpnt(nat,mhgpsst,uinp,rxyzR,rxyzP,lambda,rxyz)
+!returns rxyz which is a point on the
+!linear synchronous transit path
+!corresponding to the interpolation parameter
+!lambda
     use module_base
-    implicit none
-
-    call f_free(rxyzR_int)
-    call f_free(rxyzP_int)
-end subroutine finalize_lst_wrapper
-!=====================================================================
-subroutine valforce(nat,rat,fat,epot)
-     !wrapper function for lst_penalty
-    use module_base
+    use module_mhgps_state
+    use module_userinput
+!!    use lst_penalty_wrapper
     implicit none
     !parameters
+    type(mhgps_state), intent(in) :: mhgpsst
     integer, intent(in) :: nat
-    real(gp), intent(in) :: rat(3,nat)
-    real(gp), intent(out) :: fat(3,nat)
-    real(gp), intent(out) :: epot
-    !local variables
-!    call lst_penalty(nat,rxyzR_ptr,rxyzP_ptr,rat,lambda_ptr,epot,fat)
-    call lst_penalty(nat,rxyzR_int,rxyzP_int,rat,lambda_int,epot,fat)
-end subroutine valforce
+    type(userinput), intent(in) :: uinp
+    real(gp), intent(in) :: rxyzR(3,nat) !reactant
+    real(gp), intent(in) :: rxyzP(3,nat) !product
+    real(gp), intent(in) :: lambda       !interpol. parameter
+    real(gp), intent(out) :: rxyz(3,nat)  !the positon on the
+                                          !linear synchr. transit
+                                          !path that corresponds
+                                          !to lambda
+    !internal
+    real(gp) :: oml
+!    real(gp), parameter :: fmax_tol=1.e-4_gp
+!    real(gp), parameter :: fmax_tol=5.e-3_gp
+    real(gp) :: fxyz(3,nat), epot
+
+!<-DEBUG START------------------------------------------------------>
+!character(len=5) :: fc5
+!character(len=200) :: filename,line
+!integer :: iat,istat
+!integer, save :: ic
+!real(gp) :: dmy
+!character(len=5):: xat(22)
+!<-DEBUG END-------------------------------------------------------->
+
+    oml = 1._gp-lambda
+
+!<-DEBUG START------------------------------------------------------>
+!ic=ic+1
+!close(33)
+!open(unit=33,file='input001/pos001.ascii')
+!read(33,*)
+!read(33,*)
+!read(33,*)
+!read(33,*)
+!do iat=1,22
+!    read(33,'(a)',iostat=istat)line
+!    if(istat/=0)exit
+!    read(line,*)dmy,dmy,dmy,xat(iat)
+!enddo
+!close(33)
+!<-DEBUG END-------------------------------------------------------->
+
+
+    !input guess
+    rxyz = oml*rxyzR+lambda*rxyzP
+!<-DEBUG START------------------------------------------------------>
+!if(mod(ic,10)==0)then
+!write(fc5,'(i5.5)')ic
+!write(filename,*)'posn_'//fc5//'.ascii'
+!open(99,file=trim(adjustl((filename))))
+!write(99,*)
+!write(99,*)10.0 ,0, 10.0 
+!write(99,*)0, 0, 10.0 
+!do iat=1,nat
+!write(99,'(3(1xes24.17),a)')rxyz(1,iat),rxyz(2,iat),&
+!          rxyz(3,iat),xat(iat)
+!enddo
+!close(99)
+!endif
+!<-DEBUG END-------------------------------------------------------->
+!    call init_lst_wrapper(nat,rxyzR,rxyzP,lambda)
+    call fire(mhgpsst,uinp,nat,rxyzR,rxyzP,lambda,rxyz,fxyz,epot)
+!    call finalize_lst_wrapper()
+!<-DEBUG START------------------------------------------------------>
+!if(mod(ic,10)==0)then
+!write(fc5,'(i5.5)')ic
+!write(filename,*)'posl_'//fc5//'.ascii'
+!open(99,file=trim(adjustl((filename))))
+!write(99,*)
+!write(99,*)10.0 ,0, 10.0 
+!write(99,*)0, 0, 10.0 
+!do iat=1,nat
+!write(99,'(3(1xes24.17),1x,a)')rxyz(1,iat)*0.529_gp,rxyz(2,iat)&
+!          *0.529_gp,rxyz(3,iat)*0.529_gp,xat(iat)
+!enddo
+!close(99)
+!endif
+!<-DEBUG END-------------------------------------------------------->
+
+!!$contains
+!!$
+!!$  !Fortran specifications forbids to pass internal routines as arguments
+!!$  !otherwise, better to leave it included in module but require interface in fire
+!!$  subroutine valforce(nat,rat,fat,epot)
+!!$    !wrapper function for lst_penalty
+!!$    use module_base
+!!$    implicit none
+!!$    !parameters
+!!$    integer, intent(in) :: nat
+!!$    real(gp), intent(in) :: rat(3,nat)
+!!$    real(gp), intent(out) :: fat(3,nat)
+!!$    real(gp), intent(out) :: epot
+!!$    !local variables
+!!$    call lst_penalty(nat,rxyzR,rxyzP,rat,lambda,epot,fat)
+!!$  end subroutine valforce
+  end subroutine lstpthpnt
+
 
 !=====================================================================
 subroutine lst_penalty(nat,rxyzR,rxyzP,rxyz,lambda,val,force)
@@ -196,131 +322,9 @@ subroutine lst_penalty(nat,rxyzR,rxyzP,rxyz,lambda,val,force)
        force(2,a) = force(2,a) + 2.e-6_gp * tty
        force(3,a) = force(3,a) + 2.e-6_gp * ttz
     enddo
-  end subroutine lst_penalty
-
-end module lst_penalty_wrapper
-module module_interpol
-    implicit none
-
-    private
-
-    public :: lstpthpnt
-
-
-contains
+end subroutine lst_penalty
 !=====================================================================
-subroutine lstpthpnt(nat,mhgpsst,uinp,rxyzR,rxyzP,lambda,rxyz)
-!returns rxyz which is a point on the
-!linear synchronous transit path
-!corresponding to the interpolation parameter
-!lambda
-    use module_base
-    use module_mhgps_state
-    use module_userinput
-    use lst_penalty_wrapper
-    implicit none
-    !parameters
-    type(mhgps_state), intent(in) :: mhgpsst
-    integer, intent(in) :: nat
-    type(userinput), intent(in) :: uinp
-    real(gp), intent(in) :: rxyzR(3,nat) !reactant
-    real(gp), intent(in) :: rxyzP(3,nat) !product
-    real(gp), intent(in) :: lambda       !interpol. parameter
-    real(gp), intent(out) :: rxyz(3,nat)  !the positon on the
-                                          !linear synchr. transit
-                                          !path that corresponds
-                                          !to lambda
-    !internal
-    real(gp) :: oml
-!    real(gp), parameter :: fmax_tol=1.e-4_gp
-!    real(gp), parameter :: fmax_tol=5.e-3_gp
-    real(gp) :: fxyz(3,nat), epot
-
-!<-DEBUG START------------------------------------------------------>
-!character(len=5) :: fc5
-!character(len=200) :: filename,line
-!integer :: iat,istat
-!integer, save :: ic
-!real(gp) :: dmy
-!character(len=5):: xat(22)
-!<-DEBUG END-------------------------------------------------------->
-
-    oml = 1._gp-lambda
-
-!<-DEBUG START------------------------------------------------------>
-!ic=ic+1
-!close(33)
-!open(unit=33,file='input001/pos001.ascii')
-!read(33,*)
-!read(33,*)
-!read(33,*)
-!read(33,*)
-!do iat=1,22
-!    read(33,'(a)',iostat=istat)line
-!    if(istat/=0)exit
-!    read(line,*)dmy,dmy,dmy,xat(iat)
-!enddo
-!close(33)
-!<-DEBUG END-------------------------------------------------------->
-
-
-    !input guess
-    rxyz = oml*rxyzR+lambda*rxyzP
-!<-DEBUG START------------------------------------------------------>
-!if(mod(ic,10)==0)then
-!write(fc5,'(i5.5)')ic
-!write(filename,*)'posn_'//fc5//'.ascii'
-!open(99,file=trim(adjustl((filename))))
-!write(99,*)
-!write(99,*)10.0 ,0, 10.0 
-!write(99,*)0, 0, 10.0 
-!do iat=1,nat
-!write(99,'(3(1xes24.17),a)')rxyz(1,iat),rxyz(2,iat),&
-!          rxyz(3,iat),xat(iat)
-!enddo
-!close(99)
-!endif
-!<-DEBUG END-------------------------------------------------------->
-    call init_lst_wrapper(nat,rxyzR,rxyzP,lambda)
-    call fire(mhgpsst,uinp,nat,valforce,rxyz,fxyz,epot)
-    call finalize_lst_wrapper()
-!<-DEBUG START------------------------------------------------------>
-!if(mod(ic,10)==0)then
-!write(fc5,'(i5.5)')ic
-!write(filename,*)'posl_'//fc5//'.ascii'
-!open(99,file=trim(adjustl((filename))))
-!write(99,*)
-!write(99,*)10.0 ,0, 10.0 
-!write(99,*)0, 0, 10.0 
-!do iat=1,nat
-!write(99,'(3(1xes24.17),1x,a)')rxyz(1,iat)*0.529_gp,rxyz(2,iat)&
-!          *0.529_gp,rxyz(3,iat)*0.529_gp,xat(iat)
-!enddo
-!close(99)
-!endif
-!<-DEBUG END-------------------------------------------------------->
-
-!!$contains
-!!$
-!!$  !Fortran specifications forbids to pass internal routines as arguments
-!!$  !otherwise, better to leave it included in module but require interface in fire
-!!$  subroutine valforce(nat,rat,fat,epot)
-!!$    !wrapper function for lst_penalty
-!!$    use module_base
-!!$    implicit none
-!!$    !parameters
-!!$    integer, intent(in) :: nat
-!!$    real(gp), intent(in) :: rat(3,nat)
-!!$    real(gp), intent(out) :: fat(3,nat)
-!!$    real(gp), intent(out) :: epot
-!!$    !local variables
-!!$    call lst_penalty(nat,rxyzR,rxyzP,rat,lambda,epot,fat)
-!!$  end subroutine valforce
-  end subroutine lstpthpnt
-
-
-!=====================================================================
-subroutine fire(mhgpsst,uinp,nat,valforce,rxyz,fxyz,epot)
+subroutine fire(mhgpsst,uinp,nat,rxyzR,rxyzP,lambda,rxyz,fxyz,epot)
     use module_base
     use module_userinput
     use yaml_output
@@ -329,22 +333,25 @@ subroutine fire(mhgpsst,uinp,nat,valforce,rxyz,fxyz,epot)
     !parameters
     type(mhgps_state), intent(in) :: mhgpsst
     type(userinput), intent(in) :: uinp
+    real(gp), intent(in) :: rxyzR(3,nat) !reactant
+    real(gp), intent(in) :: rxyzP(3,nat) !product
+    real(gp), intent(in) :: lambda !interpolation parameter
     integer, intent(in) :: nat
     real(gp), intent(inout) :: rxyz(3,nat),fxyz(3,nat)
     real(gp)  :: epot,fmax
     logical :: success
     !external :: valforce
-    interface
-       subroutine valforce(nat,rat,fat,epot)
-         use module_defs, only: gp
-         implicit none
-         !parameters
-         integer, intent(in) :: nat
-         real(gp), intent(in) :: rat(3,nat)
-         real(gp), intent(out) :: fat(3,nat)
-         real(gp), intent(out) :: epot
-       end subroutine valforce
-    end interface
+!    interface
+!       subroutine valforce(nat,rat,fat,epot)
+!         use module_defs, only: gp
+!         implicit none
+!         !parameters
+!         integer, intent(in) :: nat
+!         real(gp), intent(in) :: rat(3,nat)
+!         real(gp), intent(out) :: fat(3,nat)
+!         real(gp), intent(out) :: epot
+!       end subroutine valforce
+!    end interface
     !internal
     integer :: maxit
     real(gp) :: count_fr,fnrm
@@ -376,7 +383,8 @@ subroutine fire(mhgpsst,uinp,nat,valforce,rxyz,fxyz,epot)
     vxyz=0.0_gp
     check=0
     cut=1
-    call valforce(nat,rxyz,ff,epot)
+!    call valforce(nat,rxyz,ff,epot)
+    call lst_penalty(nat,rxyzR,rxyzP,rxyz,lambda,epot,ff)
     epotold=epot
     count_fr=count_fr+1.0_gp
     do iter=1,maxit
@@ -398,7 +406,8 @@ subroutine fire(mhgpsst,uinp,nat,valforce,rxyz,fxyz,epot)
 !!<-DEBUG END-------------------------------------------------------->
 
 
-        call valforce(nat,rxyz,fxyz,epot)
+!        call valforce(nat,rxyz,fxyz,epot)
+        call lst_penalty(nat,rxyzR,rxyzP,rxyz,lambda,epot,fxyz)
         count_fr=count_fr+1.0_gp
         do iat=1,nat
            at1=fxyz(1,iat)
