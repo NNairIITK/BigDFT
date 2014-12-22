@@ -184,7 +184,7 @@ program MINHOP
      call random_number(ts)
      itmp = builtin_rand(idum)
   enddo
-  if(bigdft_mpi%iproc == 0)call yaml_map('(MH) First random number',builtin_rand(idum))
+  if(bigdft_mpi%iproc == 0)call yaml_map('(MH) First random number',itmp)
 
   inquire(file='disable_hatrans',exist=disable_hatrans)
   
