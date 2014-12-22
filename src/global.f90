@@ -69,6 +69,7 @@ program MINHOP
   integer:: nposacc=0
   logical:: disable_hatrans
   integer, save :: idum=0
+  integer(kind=4) :: builtin_rand, itmp
 
   call f_lib_initialize()
 
@@ -178,10 +179,12 @@ program MINHOP
   read(11,*) nrandoff
   !        write(*,*) 'nrandoff ',nrandoff
   close(11)
+  idum=nrandoff
   do i=1,nrandoff
      call random_number(ts)
+     itmp = builtin_rand(idum)
   enddo
-  idum=nrandoff
+  if(bigdft_mpi%iproc == 0)call yaml_map('(MH) First random number',builtin_rand(idum))
 
   inquire(file='disable_hatrans',exist=disable_hatrans)
   
