@@ -4926,18 +4926,22 @@ subroutine nonlocal_forces_linear(iproc,nproc,npsidim_orbs,lr,hx,hy,hz,at,rxyz,&
                      do iseg=1,denskern%nseg
                         ! Check whether this segment is within the range to be considered (check 
                         ! only the line number as one segment is always on one single line).
-                        if (denskern%keyg(1,2,iseg)<iorbminmax(iiat,1) .or. denskern%keyg(1,2,iseg)>iorbminmax(iiat,2)) cycle
+                        iorbout = denskern%keyg(1,2,iseg)
+                        if (ispin==2) then
+                            iorbout = iorbout + denskern%nfvctr
+                        end if
+                        if (iorbout<iorbminmax(iiat,1) .or. iorbout>iorbminmax(iiat,2)) cycle
+                        !if (denskern%keyg(1,2,iseg)<iorbminmax(iiat,1) .or. denskern%keyg(1,2,iseg)>iorbminmax(iiat,2)) cycle
                         ii = denskern%keyv(iseg)-1 + (ispin-1)*denskern%nvctr 
                         do jjorb=denskern%keyg(1,1,iseg),denskern%keyg(2,1,iseg)
                            ii=ii+1
                            !!iorbout = (jjorb-1)/orbs%norb + 1
                            !!jorb = jjorb - (iorbout-1)*orbs%norb
-                           iorbout = denskern%keyg(1,2,iseg)
                            jorb = jjorb
                            if (jorb<iorbminmax(iiat,1) .or. jorb>iorbminmax(iiat,2)) cycle
                            !spin shift
                            if (ispin==2) then
-                               iorbout = iorbout + denskern%nfvctr
+                               !iorbout = iorbout + denskern%nfvctr
                                jorb = jorb + denskern%nfvctr
                            end if
                         !jorb=0 !THIS WILL CREATE PROBLEMS FOR K-POINTS!!

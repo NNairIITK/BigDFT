@@ -1265,7 +1265,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
      enddo
      if (write_full_system) then
         call writemywaves_linear(iproc,trim(input%dir_output) // 'minBasis',input%lin%plotBasisFunctions,&
-             max(tmb%npsidim_orbs,tmb%npsidim_comp),tmb%Lzd,tmb%orbs,nelec,at,rxyz,tmb%psi,tmb%coeff)
+             max(tmb%npsidim_orbs,tmb%npsidim_comp),tmb%Lzd,tmb%orbs,nelec,at,rxyz,tmb%psi,tmb%linmat%l%nfvctr,tmb%coeff)
         call write_linear_matrices(iproc,nproc,input%imethod_overlap,trim(input%dir_output),&
              input%lin%plotBasisFunctions,tmb,at,rxyz)
      end if

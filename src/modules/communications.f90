@@ -987,6 +987,15 @@ module communications
                                !!write(*,'(7(a,i0))') 'proc ',iproc,' gets ',nsize,' elements at ',ispin_shift+istdest, &
                                !!                     ' from proc ',mpisource,' at ',isend_shift+istsource,&
                                !!                     '; size(send)=',size(sendbuf),', size(recv)=',size(recvbuf)
+                               if (ispin_shift+istdest+nsize-1>nrecvbuf) stop 'ispin_shift+istdest+nsize-1>nrecvbuf'
+                               !!write(*,*) 'val, limit', isend_shift+istsource + &
+                               !!    (nit-1)*lzd%glr%d%n1i*lzd%glr%d%n2i + &
+                               !!    (comm%ise(4)-comm%ise(3))*lzd%glr%d%n1i + &
+                               !!    comm%ise(2)-comm%ise(1) , npotarr(mpisource)*comm%nspin 
+                               if (isend_shift+istsource + &
+                                   (nit-1)*lzd%glr%d%n1i*lzd%glr%d%n2i + &
+                                   (comm%ise(4)-comm%ise(3))*lzd%glr%d%n1i + &
+                                   comm%ise(2)-comm%ise(1) > npotarr(mpisource)*comm%nspin) stop 'out of window'
                                call mpi_get(recvbuf(ispin_shift+istdest), nsize, &
                                     mpi_double_precision, mpisource, int((isend_shift+istsource-1),kind=mpi_address_kind), &
                                     1, comm%mpi_datatypes(joverlap), comm%window, ierr)
@@ -1090,11 +1099,12 @@ module communications
       
       
       if(.not.comm%communication_complete) then
+          call mpi_win_fence(mpi_mode_nosucceed, comm%window, ierr)
           do joverlap=1,comm%noverlaps
               call mpi_type_free(comm%mpi_datatypes(joverlap), ierr)
           end do
           call mpibarrier(bigdft_mpi%mpi_comm)
-          call mpi_win_fence(mpi_mode_nosucceed, comm%window, ierr)
+          !call mpi_win_fence(mpi_mode_nosucceed, comm%window, ierr)
           call mpi_win_free(comm%window, ierr)
       end if
     
