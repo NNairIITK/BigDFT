@@ -25,7 +25,6 @@ program mhgpstool
     character(len=600) :: filename
     integer, allocatable :: nsad(:)
     real(gp) :: energy
-stop 'under development'
 
     call f_lib_initialize()
 
@@ -47,6 +46,7 @@ stop 'under development'
 !                               '/sad',1,'_finalF'
 !    call bigdft_get_rxyz(filename=trim(adjustl(fsaddle)),rxyz=rxyz,energy=energy)
 !write(*,*)energy
+    call write_data(mdat)
 
     call finalize_mhgpstool_data(mdat)
     call f_free_str(500,folders)

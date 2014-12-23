@@ -23,6 +23,7 @@ module module_mhgpstool
     public :: count_saddle_points
     public :: init_mhgpstool_data
     public :: finalize_mhgpstool_data
+    public :: write_data
 
     type mhgpstool_data
         integer :: nid
@@ -148,14 +149,15 @@ subroutine count_saddle_points(nfolder,folders,nsad)
     integer, intent(out) :: nsad(nfolder)
     !local
     integer :: ifolder
-    integer :: isad
+    integer :: isad, isadfolder
     character(len=5) :: isadc
     character(len=600) :: fsaddle, fminR, fminL
     logical :: fsaddleEx, fminRex, fminLex
     fsaddleEx=.false.; fminRex=.false.; fminLex=.false.
     call yaml_comment('Saddle counts ....',hfill='-')
+    isad=0
     do ifolder = 1, nfolder
-        isad=0
+        isadfolder=0
         do
             call construct_filenames(folders,ifolder,isad+1,fsaddle,&
                  fminL,fminR)
@@ -167,9 +169,10 @@ subroutine count_saddle_points(nfolder,folders,nsad)
                 exit
             endif
             isad=isad+1
+            isadfolder=isadfolder+1
         enddo
-        nsad(ifolder)=isad
-        call yaml_map(trim(adjustl(folders(ifolder))),isad)
+        nsad(ifolder)=isadfolder
+        call yaml_map(trim(adjustl(folders(ifolder))),isadfolder)
     enddo
     call yaml_map('TOTAL',sum(nsad))
 end subroutine count_saddle_points
@@ -197,6 +200,7 @@ subroutine read_and_merge_data(folders,nsad,mdat)
     integer  :: kid
     integer  :: k_epot
     integer  :: id_minleft, id_minright, id_saddle
+    integer :: isadcount
 integer :: i
     nfolder = size(folders,1)
 
@@ -210,17 +214,16 @@ integer :: i
     call yaml_map('en_delta_sad',en_delta_sad)
     call yaml_map('fp_delta_sad',fp_delta_sad)
     call yaml_comment('Merging ....',hfill='-')
+    isadcount=0
     do ifolder =1, nfolder
         do isad =1, nsad(ifolder)
-write(*,*)'================================================================='
-            call construct_filenames(folders,ifolder,isad,fsaddle,&
+            isadcount=isadcount+1
+            call construct_filenames(folders,ifolder,isadcount,fsaddle,&
                  fminL,fminR)
-write(*,*)trim(adjustl(fsaddle)),trim(adjustl(fminL)),trim(adjustl(fminR))
             call deallocate_atomic_structure(mdat%astruct)
             !insert left minimum
             call set_astruct_from_file(trim(fminL),0,mdat%astruct,&
                  energy=epot)
-write(*,*)epot
             if (mdat%astruct%nat /= mdat%nat) then
                 call f_err_throw('Error in read_and_merge_data:'//&
                      ' wrong size ('//trim(yaml_toa(mdat%astruct%nat))&
@@ -245,15 +248,10 @@ write(*,*)epot
                                   trim(yaml_toa(id_minleft)))
             endif 
             call deallocate_atomic_structure(mdat%astruct)
-do i=1,mdat%nmin
-write(*,*)mdat%en_arr(i)
-enddo
-write(*,*)'---'
 
             !insert right minimum
             call set_astruct_from_file(trim(fminR),0,mdat%astruct,&
                  energy=epot)
-write(*,*)epot
             if (mdat%astruct%nat /= mdat%nat) then
                 call f_err_throw('Error in read_and_merge_data:'//&
                      ' wrong size ('//trim(yaml_toa(mdat%astruct%nat))&
@@ -278,16 +276,11 @@ write(*,*)epot
                                   ' is identical to minimum '//&
                                   trim(yaml_toa(id_minright)))
             endif 
-do i=1,mdat%nmin
-write(*,*)mdat%en_arr(i)
-enddo
-write(*,*)'---'
 
             !insert saddle
             call deallocate_atomic_structure(mdat%astruct)
             call set_astruct_from_file(trim(fsaddle),0,mdat%astruct,&
                  energy=epot)
-write(*,*)epot
             if (mdat%astruct%nat /= mdat%nat) then
                 call f_err_throw('Error in read_and_merge_data:'//&
                      ' wrong size ('//trim(yaml_toa(mdat%astruct%nat))&
@@ -306,7 +299,6 @@ write(*,*)epot
                 call insert_sad(mdat,k_epot,epot,fp,id_minleft,&
                      id_minright,fsaddle)
                 id_saddle=mdat%sadnumber(k_epot+1)
-write(*,*)'nieghb.',mdat%sadneighb(1,id_saddle),mdat%sadneighb(2,id_saddle)
             else
                 id_saddle=mdat%sadnumber(kid)
                 call yaml_comment('Saddle '//trim(adjustl(fsaddle))//&
@@ -323,19 +315,40 @@ write(*,*)'nieghb.',mdat%sadneighb(1,id_saddle),mdat%sadneighb(2,id_saddle)
                 endif
 
             endif 
-do i=1,mdat%nsad
-write(*,*)mdat%sadnumber(i),mdat%en_arr_sad(i)
-enddo
-write(*,*)'---'
         enddo
     enddo
     
 end subroutine read_and_merge_data
 !=====================================================================
-subroutine write_data()
+subroutine write_data(mdat)
+    use module_base
     implicit none
     !parameters
+    type(mhgpstool_data), intent(inout) :: mdat
     !local
+    integer :: u
+    integer :: imin, isad
+    integer, allocatable :: mn(:)
+
+    mn = f_malloc((/1/),id='mn')
+
+    !write mdat file for minima
+    u=f_get_free_unit()
+    open(u,file='mindat')
+    do imin = 1,mdat%nmin
+        mn(mdat%minnumber(imin)) = imin
+        write(u,*)imin, mdat%en_arr(imin)
+    enddo 
+    close(u)
+    
+    !write tsdat file for saddle points and connection information
+    open(u,file='tsdat')
+    do isad=1,mdat%nsad
+        write(u,'(es24.17,4(1x,i0.0))')mdat%en_arr_sad(isad),0,0,mn(mdat%sadneighb(1,isad)),mn(mdat%sadneighb(2,isad))
+    enddo
+    close(u)
+    call f_free(mn)
+
 end subroutine write_data
 !=====================================================================
 subroutine identical(ndattot,ndat,nid,epot,fp,en_arr,fp_arr,en_delta,&
