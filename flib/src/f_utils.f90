@@ -88,7 +88,7 @@ module f_utils
   public :: f_utils_errors,f_utils_recl,f_file_exists,f_close,f_zero
   public :: f_get_free_unit,f_delete_file,f_getpid,f_rewind
   public :: f_iostream_from_file,f_iostream_from_lstring
-  public :: f_iostream_get_line,f_iostream_release,f_pause,f_time
+  public :: f_iostream_get_line,f_iostream_release,f_time,f_pause
 
 contains
 
@@ -153,6 +153,33 @@ contains
     f_time=itime
   end function f_time
 
+  !>enter in a infinite loop for sec seconds. Use cpu_time as granularity is enough
+  subroutine f_pause(sec,verbose)
+    implicit none
+    integer, intent(in) :: sec !< seconds to be waited
+    logical, intent(in), optional :: verbose !<for debugging purposes, do not eliminate
+    !local variables
+    logical :: verb
+    integer(kind=8) :: t0,t1
+    integer :: count
+
+    verb=.false.
+    if (present(verbose)) verb=verbose
+
+    if (sec <=0) return
+    t0=f_time()
+    t1=t0
+    !this loop has to be modified to avoid the compiler to perform too agressive optimisations
+    count=0
+    do while(real(t1-t0,kind=8)*1.d-9 < real(sec,kind=8))
+       count=count+1
+       t1=f_time()
+    end do
+    !this output is needed to avoid the compiler to perform too agressive optimizations
+    !therefore having a infinie loop
+    if (verb) print *,'Paused for '//trim(yaml_toa(sec))//' seconds, counting:'//&
+         trim(yaml_toa(count))
+  end subroutine f_pause
 
   !> gives the maximum record length allowed for a given unit
   subroutine f_utils_recl(unt,recl_max,recl)
@@ -385,25 +412,6 @@ contains
     ios%iunit = 0
     nullify(ios%lstring)
   end subroutine f_iostream_release
-
-  !>enter in a infinite loop for sec seconds. Use cpu_time as granularity is enough
-  subroutine f_pause(sec)
-    implicit none
-    integer, intent(in) :: sec !< seconds to be waited
-    !local variables
-    integer(kind=8) :: t0,t1
-    integer :: count
-
-    if (sec <=0) return
-    t0=f_time()
-    t1=t0
-    count=0
-    do while(real(t1-t0,kind=8)*1.d-9 < real(sec,kind=8))
-       count=count+1
-       t1=f_time()
-    end do
-    print *,'waited',sec,count
-  end subroutine f_pause
 
   !>perform a difference of two objects (of similar kind)
   subroutine f_diff_i(n,a_add,b_add,diff)

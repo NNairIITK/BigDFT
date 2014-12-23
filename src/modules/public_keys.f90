@@ -22,7 +22,7 @@ module public_keys
   character(len = *), parameter :: HGRIDS = "hgrids"
   character(len = *), parameter :: RMULT = "rmult"
   character(len = *), parameter :: IXC = "ixc"
-  character(len = *), parameter :: NCHARGE = "ncharge"
+  character(len = *), parameter :: NCHARGE = "qcharge"
   character(len = *), parameter :: ELECFIELD = "elecfield"
   character(len = *), parameter :: NSPIN = "nspin", MPOL = "mpol"
   character(len = *), parameter :: GNRM_CV = "gnrm_cv"

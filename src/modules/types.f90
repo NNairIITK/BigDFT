@@ -293,7 +293,7 @@ module module_types
 
      !> DFT basic parameters.
      integer :: ixc         !< XC functional Id
-     integer :: ncharge     !< Total charge of the system
+     real(gp):: qcharge     !< Total charge of the system
      integer :: itermax     !< Maximal number of SCF iterations
      integer :: itermin     !< Minimum number of SCF iterations !Bastian
      integer :: nrepmax
@@ -2108,9 +2108,16 @@ contains
           in%frmult = dummy_gp(2)
        case (IXC)
           in%ixc = val !XC functional (ABINIT XC codes)
-       case (NCHARGE)
-          in%ncharge = val !charge and electric field
-       case (ELECFIELD)
+       case (NCHARGE) !charge 
+          str=val
+          !check if the provided value is a integer
+          if (is_atoi(str)) then
+             ipos=val
+             in%qcharge=real(ipos,gp) !exact conversion
+          else
+             in%qcharge = val 
+          end if
+       case (ELECFIELD) !electric field
           in%elecfield = val
        case (NSPIN)
           in%nspin = val !spin and polarization

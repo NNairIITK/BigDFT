@@ -50,8 +50,8 @@
      B97-D: -170 #to be verified
      B3LYP: -402
      HF: 100 #Hartree-Fock
-   ncharge:
-     COMMENT: Charge of the system
+   qcharge:
+     COMMENT: Charge of the system. Can be integer or real.
      DESCRIPTION: Total charge of the system. A negative value means that extra electrons are added.
      RANGE: [-500., 500.]
      default: 0

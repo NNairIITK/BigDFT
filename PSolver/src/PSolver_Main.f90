@@ -181,7 +181,6 @@ subroutine H_potential(datacode,kernel,rhopot,pot_ion,eh,offset,sumpion,&
       i3start=1
    case default
       call f_err_throw('datacode ("'//datacode//'" not admitted in PSolver')
-      !stop 'PSolver: datacode not admitted'
    end select
    
    !this routine builds the values for each process of the potential (zf), multiplying by scal 

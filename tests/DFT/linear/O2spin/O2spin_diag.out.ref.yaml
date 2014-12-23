@@ -64,7 +64,7 @@
    idsx                                : 4 #      Wfn. diis history
    inputpsiid                          : 100 #    Input guess wavefunctions
    disablesym                          : Yes #    Disable the symmetry detection
-   ncharge                             : 0 #      Charge of the system
+   qcharge                             : 0 #      Charge of the system
    elecfield: [0., 0., 0.] #                      Electric field (Ex,Ey,Ez)
    gnrm_cv                             : 1.e-4 #  convergence criterion gradient
    itermin                             : 0 #      Min. iterations of wfn. opt. steps

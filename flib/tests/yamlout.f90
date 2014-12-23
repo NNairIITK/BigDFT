@@ -61,6 +61,17 @@ subroutine test_yaml_output1()
   call yaml_map('Is 0.000000000E+00 a real string',is_atof(' 0.0000000000000000'))
   call yaml_map('Is 0.000000000E+00 a integer string',is_atoi(' 0.0000000000000000'))
 
+  !check also side-effects of atoi and atof
+  call yaml_map('Is 1.5 a real string',is_atof('1.5'))
+  call yaml_map('Is 1.5 with spaces a real string',is_atof(' 1.5 '))
+  call yaml_map('Is 1.5 a integer string',is_atoi('1.5'))
+  call yaml_map('Is 1.5 with spaces a integer string',is_atoi(' 1.5 '))
+
+  call yaml_map('Is 1 a real string',is_atof('1'))
+  call yaml_map('Is 1 with spaces a real string',is_atof(' 1 '))
+  call yaml_map('Is 1 a integer string',is_atoi('1'))
+  call yaml_map('Is 1 with spaces a integer string',is_atoi(' 1 '))
+
 end subroutine test_yaml_output1
 
 

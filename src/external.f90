@@ -235,7 +235,7 @@ subroutine bigdft_severe_abort()
      call yaml_flush_document() !might help, sometimes..
   end if
   !call f_lib_finalize()
-  call f_pause(1) !< wait one seconds
+  call f_pause(1) !< wait one second
   call MPI_ABORT(MPI_COMM_WORLD,816437,ierr)
   if (ierr/=0) stop 'Problem in MPI_ABORT'
 

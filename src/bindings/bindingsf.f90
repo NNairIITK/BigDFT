@@ -554,15 +554,15 @@ subroutine inputs_get_output(in, dir_output)
 END SUBROUTINE inputs_get_output
 
 
-subroutine inputs_get_dft(in, hx, hy, hz, crmult, frmult, ixc, chg, efield, nspin, mpol, &
+subroutine inputs_get_dft(in, hx, hy, hz, crmult, frmult, ixc, qcharge, efield, nspin, mpol, &
      & gnrm, itermax, nrepmax, ncong, idsx, dispcorr, inpsi, outpsi, outgrid, &
      & rbuf, ncongt, davidson, nvirt, nplottedvirt, sym, last_run)
   use module_defs, only: gp
   use module_types
   implicit none
   type(input_variables), intent(in) :: in
-  real(gp), intent(out) :: hx, hy, hz, crmult, frmult, efield(3), gnrm, rbuf
-  integer, intent(out) :: ixc, chg, nspin, mpol, itermax, nrepmax, ncong, idsx, &
+  real(gp), intent(out) :: hx, hy, hz, crmult, frmult, efield(3), gnrm, rbuf, qcharge
+  integer, intent(out) :: ixc, nspin, mpol, itermax, nrepmax, ncong, idsx, &
        & dispcorr, inpsi, outpsi, outgrid, ncongt, davidson, nvirt, nplottedvirt, &
        & sym, last_run
   
@@ -572,7 +572,7 @@ subroutine inputs_get_dft(in, hx, hy, hz, crmult, frmult, ixc, chg, efield, nspi
   crmult = in%crmult
   frmult = in%frmult
   ixc = in%ixc
-  chg = in%ncharge
+  qcharge= in%qcharge !only works for integer values
   efield = in%elecfield
   nspin = in%nspin
   mpol = in%mpol

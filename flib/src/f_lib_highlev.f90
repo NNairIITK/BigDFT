@@ -162,7 +162,6 @@ subroutine f_lib_err_severe_external(message)
   call f_err_severe()
 end subroutine f_lib_err_severe_external
 
-
 !> Routine which finalize f_lib and dummp the finalization information
 subroutine f_lib_finalize()
   use dictionaries_base, only: dictionary_check_leak

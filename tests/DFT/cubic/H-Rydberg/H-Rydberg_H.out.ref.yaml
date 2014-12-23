@@ -57,7 +57,7 @@
    nvirt                               : 4 #      No. of virtual orbs
    norbv                               : 4 #      Davidson subspace dimension (No. virtual orbitals)
    disablesym                          : Yes #    Disable the symmetry detection
-   ncharge                             : 0 #      Charge of the system
+   qcharge                             : 0 #      Charge of the system
    elecfield: [0., 0., 0.] #                      Electric field (Ex,Ey,Ez)
    nspin                               : 1 #      Spin polarization treatment
    mpol                                : 0 #      Total magnetic moment
