@@ -848,7 +848,7 @@ subroutine writeLinearCoefficients(unitwf,useFormattedOutput,nat,rxyz,&
   implicit none
   logical, intent(in) :: useFormattedOutput
   integer, intent(in) :: unitwf,nat,ntmb,norb,nfvctr
-  real(wp), dimension(ntmb,ntmb), intent(in) :: coeff
+  real(wp), dimension(nfvctr,ntmb), intent(in) :: coeff
   real(wp), dimension(ntmb), intent(in) :: eval
   real(gp), dimension(3,nat), intent(in) :: rxyz
   !local variables
@@ -1725,7 +1725,7 @@ subroutine writemywaves_linear_fragments(iproc,filename,iformat,npsidim,Lzd,orbs
   type(local_zone_descriptors), intent(in) :: Lzd
   real(gp), dimension(3,at%astruct%nat), intent(in) :: rxyz
   real(wp), dimension(npsidim), intent(in) :: psi  ! Should be the real linear dimension and not the global
-  real(wp), dimension(orbs%norb,orbs%norb), intent(in) :: coeff
+  real(wp), dimension(orbs%norb,orbs%norb), intent(in) :: coeff !SM: IS this correcy even with spin?
   character(len=*), intent(in) :: dir_output, filename
   type(fragmentInputParameters), intent(in) :: input_frag
   type(system_fragment), dimension(input_frag%nfrag_ref), intent(inout) :: ref_frags
@@ -2176,7 +2176,7 @@ subroutine io_read_descr_coeff(unitwf, formatted, norb_old, ntmb_old, &
 END SUBROUTINE io_read_descr_coeff
 
 
-subroutine read_coeff_minbasis(unitwf,useFormattedInput,iproc,ntmb,norb_old,coeff,eval,nat,rxyz_old)
+subroutine read_coeff_minbasis(unitwf,useFormattedInput,iproc,ntmb,norb_old,nfvctr,coeff,eval,nat,rxyz_old)
   use module_base
   use module_types
   use internal_io
@@ -2184,9 +2184,9 @@ subroutine read_coeff_minbasis(unitwf,useFormattedInput,iproc,ntmb,norb_old,coef
   use yaml_output
   implicit none
   logical, intent(in) :: useFormattedInput
-  integer, intent(in) :: unitwf,iproc,ntmb
+  integer, intent(in) :: unitwf,iproc,ntmb,nfvctr
   integer, intent(out) :: norb_old
-  real(wp), dimension(ntmb,ntmb), intent(out) :: coeff
+  real(wp), dimension(nfvctr,ntmb), intent(out) :: coeff
   real(wp), dimension(ntmb), intent(out) :: eval
   integer, optional, intent(in) :: nat
   real(gp), dimension(:,:), optional, intent(out) :: rxyz_old
@@ -2225,7 +2225,7 @@ subroutine read_coeff_minbasis(unitwf,useFormattedInput,iproc,ntmb,norb_old,coef
 
   ! Now read the coefficients
   do i = 1, ntmb
-     do j = 1, ntmb
+     do j = 1,nfvctr
         if (useFormattedInput) then
            read(unitwf,*,iostat=i_stat) i1,i2,tt
         else
@@ -2238,7 +2238,7 @@ subroutine read_coeff_minbasis(unitwf,useFormattedInput,iproc,ntmb,norb_old,coef
 
   ! rescale so first significant element is +ve
   do i = 1, ntmb
-     do j = 1, ntmb
+     do j = 1,nfvctr
         if (abs(coeff(j,i))>1.0e-1) then
            if (coeff(j,i)<0.0_gp) call dscal(ntmb,-1.0_gp,coeff(1,i),1)
            exit
@@ -2681,7 +2681,7 @@ subroutine readmywaves_linear_new(iproc,nproc,dir_output,filename,iformat,at,tmb
 
      !if (input_frag%nfrag>1) then
         call read_coeff_minbasis(unitwf,(iformat == WF_FORMAT_PLAIN),iproc,ref_frags(ifrag_ref)%fbasis%forbs%norb,&
-             ref_frags(ifrag_ref)%nelec,ref_frags(ifrag_ref)%coeff,ref_frags(ifrag_ref)%eval)
+             ref_frags(ifrag_ref)%nelec,tmb%linmat%l%nfvctr,ref_frags(ifrag_ref)%coeff,ref_frags(ifrag_ref)%eval)
              !tmb%orbs%eval(isforb+1:isforb+ref_frags(ifrag_ref)%fbasis%forbs%norb))
              !tmb%orbs%eval(isforb+1)
         ! copying of coeffs from fragment to tmb%coeff now occurs after this routine
@@ -2984,21 +2984,21 @@ subroutine copy_old_supportfunctions(iproc,orbs,lzd,phi,lzd_old,phi_old)
 END SUBROUTINE copy_old_supportfunctions
 
 
-subroutine copy_old_coefficients(norb_tmb, coeff, coeff_old)
+subroutine copy_old_coefficients(norb_tmb, nfvctr, coeff, coeff_old)
   use module_base
   implicit none
 
   ! Calling arguments
-  integer,intent(in):: norb_tmb
+  integer,intent(in):: norb_tmb, nfvctr
   real(8),dimension(:,:),pointer:: coeff, coeff_old
 
   ! Local variables
   character(len=*),parameter:: subname='copy_old_coefficients'
 !  integer:: istat,iall
 
-  coeff_old = f_malloc_ptr((/ norb_tmb, norb_tmb /),id='coeff_old')
+  coeff_old = f_malloc_ptr((/ nfvctr, norb_tmb /),id='coeff_old')
 
-  call vcopy(norb_tmb*norb_tmb, coeff(1,1), 1, coeff_old(1,1), 1)
+  call vcopy(nfvctr*norb_tmb, coeff(1,1), 1, coeff_old(1,1), 1)
 
   !!iall=-product(shape(coeff))*kind(coeff)
   !!deallocate(coeff,stat=istat)

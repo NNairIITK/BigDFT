@@ -340,7 +340,7 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
           ! To do so, ensure that the first entry is always positive.
           do iorb=1,tmb%linmat%m%nfvctr
               if (matrixElements(1,iorb,1)<0.d0) then
-                  call dscal(tmb%orbs%norb, -1.d0, matrixElements(1,iorb,1), 1)
+                  call dscal(tmb%linmat%m%nfvctr, -1.d0, matrixElements(1,iorb,1), 1)
               end if
           end do
 
@@ -2245,7 +2245,7 @@ subroutine reorthonormalize_coeff(iproc, nproc, norb, blocksize_dsyev, blocksize
          ! gram-schmidt as too far from orthonormality to use iterative schemes for S^-1/2
          call f_free_ptr(ovrlp_coeff)
          call timing(iproc,'renormCoefCom2','ON')
-         call gramschmidt_coeff_trans(iproc,nproc,orbs%norb,basis_orbs,basis_overlap,basis_overlap_mat,coeff)
+         call gramschmidt_coeff_trans(iproc,nproc,orbs%norbu,orbs%norb,basis_orbs,basis_overlap,basis_overlap_mat,coeff)
          call timing(iproc,'renormCoefCom2','OF')
       else
          ! standard lowdin

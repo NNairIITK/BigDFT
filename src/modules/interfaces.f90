@@ -2759,12 +2759,12 @@ module module_interfaces
          real(gp), dimension(:,:), intent(out), optional :: rxyz_old
         end subroutine io_read_descr_coeff
 
-        subroutine read_coeff_minbasis(unitwf,useFormattedInput,iproc,ntmb,norb_old,coeff,eval,nat,rxyz_old)
+        subroutine read_coeff_minbasis(unitwf,useFormattedInput,iproc,ntmb,norb_old,nfvctr,coeff,eval,nat,rxyz_old)
           use module_base
           use module_types
           implicit none
           logical, intent(in) :: useFormattedInput
-          integer, intent(in) :: unitwf,iproc,ntmb
+          integer, intent(in) :: unitwf,iproc,ntmb,nfvctr
           integer, intent(out) :: norb_old
           real(wp), dimension(ntmb,ntmb), intent(out) :: coeff
           real(wp), dimension(ntmb), intent(out) :: eval
@@ -3121,10 +3121,10 @@ module module_interfaces
           type(cdft_data), intent(inout) :: cdft
         end subroutine input_memory_linear
 
-        subroutine copy_old_coefficients(norb_tmb, coeff, coeff_old)
+        subroutine copy_old_coefficients(norb_tmb, nfvctr, coeff, coeff_old)
           use module_base
           implicit none
-          integer,intent(in):: norb_tmb
+          integer,intent(in):: norb_tmb, nfvctr
           real(8),dimension(:,:),pointer:: coeff, coeff_old
         end subroutine copy_old_coefficients
 
