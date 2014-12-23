@@ -494,7 +494,7 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
    ndegree_ip=16 !default value
    pkernel=pkernel_init(.true.,iproc,nproc,in%matacc%PSolver_igpu,&
         atoms%astruct%geocode,dpcom%ndims,dpcom%hgrids,ndegree_ip)
-   call pkernel_set(pkernel,(verbose > 1))
+   call pkernel_set(pkernel,verbose=(verbose > 1))
    !call createKernel(iproc,nproc,atoms%astruct%geocode,dpcom%ndims,dpcom%hgrids,ndegree_ip,pkernel,&
    !     (verbose > 1))
 

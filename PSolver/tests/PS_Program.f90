@@ -230,8 +230,8 @@ program PSolver_Program
   !call timing(nproc,'time.prc','IN')
 
   karray=pkernel_init(.true.,iproc,nproc,0,&
-       geocode,(/n01,n02,n03/),(/hx,hy,hz/),itype_scf,mu0,(/alpha,beta,gamma/))
-  call pkernel_set(karray,.true.)
+       geocode,(/n01,n02,n03/),(/hx,hy,hz/),itype_scf,'VAC',mu0,(/alpha,beta,gamma/))
+  call pkernel_set(karray,verbose=.true.)
 
   !call createKernel(iproc,nproc,geocode,(/n01,n02,n03/),(/hx,hy,hz/),itype_scf,karray,.true.,mu0,(/alpha,beta,gamma/))
   !print *,'sum',sum(karray%kernel)
@@ -400,9 +400,9 @@ program PSolver_Program
      !call timing(0,'             ','IN')
 
      karray=pkernel_init(.true.,0,1,0,&
-          geocode,(/n01,n02,n03/),(/hx,hy,hz/),itype_scf,mu0,(/alpha,beta,gamma/))
+          geocode,(/n01,n02,n03/),(/hx,hy,hz/),itype_scf,'VAC',mu0,(/alpha,beta,gamma/))
 
-     call pkernel_set(karray,.true.)
+     call pkernel_set(karray,verbose=.true.)
 
 !!$     call createKernel(0,1,geocode,(/n01,n02,n03/),(/hx,hy,hz/),itype_scf,karray,.true.,mu0,&
 !!$          (/alpha,beta,gamma/))

@@ -96,7 +96,7 @@ program GPS_3D
 
    pkernel=pkernel_init(.true.,iproc,nproc,0,geocode,ndims,hgrids,itype_scf)
 
-   call pkernel_set(pkernel,.true.)
+   call pkernel_set(pkernel,verbose=.true.)
    !call F_FFT_dimensions(n01,n02,n03,m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd3,nproc,0,.false.)
 
 !------------------------------------------------------------------------

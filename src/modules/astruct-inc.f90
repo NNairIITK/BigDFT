@@ -878,6 +878,7 @@ end subroutine rxyz_inside_box
 
 !> Find extra information
 subroutine find_extra_info(line,extra,nspace)
+  use f_utils, only: f_zero
   implicit none
   character(len=*), intent(in) :: line
   character(len=120), intent(out) :: extra
@@ -886,6 +887,7 @@ subroutine find_extra_info(line,extra,nspace)
   logical :: space
   integer :: i,ispace
 
+  call f_zero(extra)
   i=1
   space=.true.
   ispace=-1

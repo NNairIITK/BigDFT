@@ -392,13 +392,17 @@ contains
     integer, intent(in) :: sec !< seconds to be waited
     !local variables
     integer(kind=8) :: t0,t1
+    integer :: count
 
     if (sec <=0) return
     t0=f_time()
     t1=t0
+    count=0
     do while(real(t1-t0,kind=8)*1.d-9 < real(sec,kind=8))
+       count=count+1
        t1=f_time()
     end do
+    print *,'waited',sec,count
   end subroutine f_pause
 
   !>perform a difference of two objects (of similar kind)

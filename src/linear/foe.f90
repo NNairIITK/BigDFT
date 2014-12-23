@@ -839,7 +839,7 @@ subroutine foe(iproc, nproc, tmprtr, &
               !$omp end do
               !$omp end parallel
           end if
-    
+
           if (nproc > 1) then
               call mpiallred(trace, 1, mpi_sum, bigdft_mpi%mpi_comm)
           end if

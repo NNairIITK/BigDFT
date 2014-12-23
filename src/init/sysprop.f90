@@ -785,10 +785,10 @@ subroutine system_createKernels(denspot, verb)
   logical, intent(in) :: verb
   type(DFT_local_fields), intent(inout) :: denspot
 
-  call pkernel_set(denspot%pkernel,verb)
+  call pkernel_set(denspot%pkernel,verbose=verb)
     !create the sequential kernel if pkernelseq is not pkernel
   if (denspot%pkernelseq%mpi_env%nproc == 1 .and. denspot%pkernel%mpi_env%nproc /= 1) then
-     call pkernel_set(denspot%pkernelseq,.false.)
+     call pkernel_set(denspot%pkernelseq,verbose=.false.)
   else
      denspot%pkernelseq = denspot%pkernel
   end if

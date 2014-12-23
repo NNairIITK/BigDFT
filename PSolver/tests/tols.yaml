@@ -16,6 +16,7 @@ Keys to ignore:
   - Timings for root process
   - MPI tasks*
   - OpenMP threads per task
+  - OpenMP threads per MPI task
   - Max. diff coordinates
   - Original
   - Result
