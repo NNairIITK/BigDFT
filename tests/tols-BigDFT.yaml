@@ -125,7 +125,7 @@ SiBulk:
 SiH4:
  #due to lack of functionality in fldiff, since energies field is updated
  Energies: &etol 4.6e-9
- Eion: &eion 3.7e-9
+ Eion: &eion 3.9e-9
  EH: *etol
  EXC: *etol
  Eion: *etol
@@ -1107,21 +1107,21 @@ O2spin_foe:
  relative diff: 2.6e-11
 
 O2spin_dirmin:
- Atomic Forces (Ha/Bohr): 9.1e-6
+ Atomic Forces (Ha/Bohr): 9.8e-6
  Average noise forces: 2.4e-5
- Clean forces norm (Ha/Bohr): 5.6e-5
+ Clean forces norm (Ha/Bohr): 6.1e-5
  Electric Dipole Moment (AU): 2.4e-5
  Electric Dipole Moment (Debye): 2.4e-5
  eBS: 6.1e-6
  fnrm: 1.1e-5
- EH: 7.9e-6
+ EH: 8.6e-6
  EXC: 5.6e-6
- Ekin: 6.6e-6
+ Ekin: 6.9e-6
  Enl: 1.9e-7
- Epot: 1.2e-5
+ Epot: 1.3e-5
  EvXC: 6.0e-6
  energydiff: 6.0e-6
- energy: 9.2e-7
+ energy: 1.0e-6
  Omega: 6.1e-6
  Raw forces norm (Ha/Bohr): 5.1e-5
  D: 2.1e-6
