@@ -330,21 +330,21 @@ subroutine write_data(mdat)
     integer :: imin, isad
     integer, allocatable :: mn(:)
 
-    mn = f_malloc((/1/),id='mn')
+    mn = f_malloc((/mdat%nmin/),id='mn')
 
     !write mdat file for minima
     u=f_get_free_unit()
     open(u,file='mindat')
     do imin = 1,mdat%nmin
         mn(mdat%minnumber(imin)) = imin
-        write(u,*)imin, mdat%en_arr(imin)
+        write(u,*)mdat%en_arr(imin)
     enddo 
     close(u)
     
     !write tsdat file for saddle points and connection information
     open(u,file='tsdat')
     do isad=1,mdat%nsad
-        write(u,'(es24.17,4(1x,i0.0))')mdat%en_arr_sad(isad),0,0,mn(mdat%sadneighb(1,isad)),mn(mdat%sadneighb(2,isad))
+        write(u,'(es24.17,1x,a,2(1x,i0.0))')mdat%en_arr_sad(isad),'0   0',mn(mdat%sadneighb(1,isad)),mn(mdat%sadneighb(2,isad))
     enddo
     close(u)
     call f_free(mn)
