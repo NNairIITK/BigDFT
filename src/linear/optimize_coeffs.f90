@@ -1123,6 +1123,8 @@ subroutine calculate_kernel_and_energy(iproc,nproc,denskern,ham,denskern_mat,ham
         if (ind_ham==0.or.ind_denskern==0) cycle
         energy = energy + &
             denskern_mat%matrix_compr(ind_denskern-denskern%isvctrp_tg)*ham_mat%matrix_compr(ind_ham-ham%isvctrp_tg)
+            !!write(*,'(a,5i8,2es16.7)') 'iorb, jorb, ispin, ind_denskern, ind_ham, val_denskern, val_ham', &
+            !!    iorb, jorb, ispin, mod(ind_denskern-denskern%isvctrp_tg-1,denskern%nvctr)+1, mod(ind_ham-ham%isvctrp_tg-1,ham%nvctr)+1, denskern_mat%matrix_compr(ind_denskern-denskern%isvctrp_tg), ham_mat%matrix_compr(ind_ham-ham%isvctrp_tg)
      end do
      !$omp end do
      !$omp end parallel

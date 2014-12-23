@@ -3879,7 +3879,6 @@ end subroutine build_ks_orbitals_laura_tmp
                    calculate_overlap_matrix,calculate_ovrlp_half,meth_overlap)
           use module_base
           use module_types
-          use communications, only: transpose_localized
           use sparsematrix_base, only: sparse_matrix
           implicit none
           integer,intent(in) :: iproc

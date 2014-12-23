@@ -338,72 +338,138 @@ contains
        logical, intent(in) :: dst
        !local variables
        type(dictionary), pointer :: dict_first !<in case of first occurrence
+       type(dictionary), pointer :: iter !to iterate over the dictionaries
+       logical :: key_found
+       type(dictionary), pointer :: dict_update      !< iterator for list renumbering
+       iter => dict
+       key_found=.false.
+       find_key: do while(associated(iter))
+          !follow the chain, stop at the first occurence
+!          print *,'search',trim(key),trim(iter%data%key),'end'
 
-!!$       !$ logical :: key_found
-!!$       !$ type(dictionary), pointer :: iter       !< iterator to avoid stack overflow
-!!$       iter => dict
-!!$       key_found=.false.
-!!$       find_key: do while(associated(iter))
-!!$          !follow the chain, stop at the first occurence
-!!$          print *,'search',trim(key),trim(iter%data%key)
-!!$          if (trim(iter%data%key) == trim(key)) then
-!!$             if (associated(iter%parent)) then
-!!$                iter%parent%data%nelems=iter%parent%data%nelems-1
-!!$             else
-!!$                iter%data%nelems=iter%data%nelems-1
-!!$             end if
-!!$             dict_first => dict_extract(iter)
-!!$             if (dst) call dict_free(dict_first)
-!!$             key_found=.true.
-!!$             exit find_key
-!!$          end if
-!!$          iter => iter%next
-!!$       end do find_key
-!!$       if (.not. key_found) call f_err_throw(err_msg='Key is '//trim(key),&
-!!$            err_id=DICT_KEY_ABSENT)
-
-      if (associated(dict)) then
-         !follow the chain, stop at the first occurence
-         if (trim(dict%data%key) == trim(key)) then
-            !          print *,'here',trim(key),associated(dict%next)
-            if (associated(dict%parent)) then
-               dict%parent%data%nelems=dict%parent%data%nelems-1
+          if (trim(iter%data%key) == trim(key)) then
+             if (associated(iter%parent)) then
+                iter%parent%data%nelems=iter%parent%data%nelems-1
+             else
+                iter%data%nelems=iter%data%nelems-1
+             end if
+!!!!
+       !then check if there are brothers which have to be linked
+            if (associated(iter%next)) then
+        !this is valid if we are not at the first element
+              if (associated(iter%previous)) then
+                 call define_brother(iter%previous,iter%next) 
+                 iter%previous%next => iter%next
+              else
+                 nullify(iter%next%previous)
+                 !the next should now become the dictionary
+                 dict => iter%next
+                 nullify(dict%previous)
+              end if
+              !in case we were in a list, renumber the other brothers
+              ! Update data%item for all next.
+              if (iter%data%item >= 0) then
+                 dict_update => iter%next
+                 do while( associated(dict_update) )
+                    dict_update%data%item = dict_update%data%item - 1
+                    dict_update => dict_update%next
+                 end do
+              end if
             else
-               dict%data%nelems=dict%data%nelems-1
+              !here we should check if iter points to dict
+              if (associated(iter%previous)) then
+                  nullify(iter%previous%next)
+              end if
+               if (associated(iter,target=dict)) then
+                   nullify(dict)
+               end if
             end if
-!!!!$             if (associated(dict%next)) then
-!!!!$                call dict_free(dict%child)
-!!!!$                dict_first => dict
-!!!!$                !this is valid if we are not at the first element
-!!!!$                if (associated(dict%previous)) then
-!!!!$                   call define_brother(dict%previous,dict%next) 
-!!!!$                   dict%previous%next => dict%next
-!!!!$                else
-!!!!$                   nullify(dict%next%previous)
-!!!!$                   !the next should now become me
-!!!!$                   dict => dict%next
-!!!!$                end if
-!!!!$                !eliminate the top of the tree
-!!!!$                !but do not follow the nexts
-!!!!$                call dict_destroy(dict_first)
-!!!!$             else
-!!!!$                call dict_free(dict)
-!!!!$             end if
-            dict_first => dict_extract(dict)
-            if (dst) call dict_free(dict_first)
+            !never follow the brothers, the extracted dictionary is 
+            !intended to be alone
+            nullify(iter%next,iter%previous)
+            iter%data%item=-1
+            if (dst) call dict_free(iter)
 
-         else if (associated(dict%next)) then
-            call pop_dict_(dict%next,key,dst)
-         else
-            call f_err_throw(err_msg='Key is '//trim(key),&
-                 err_id=DICT_KEY_ABSENT)
-            return
-         end if
-      else
-         call f_err_throw(err_msg='Key is '//trim(key),&
-              err_id=DICT_KEY_ABSENT)
-         return
-      end if
+!             dict_first => dict_extract(iter)
+!             if (dst) call dict_free(dict_first)
+             key_found=.true.
+             exit find_key
+          end if
+          iter => iter%next
+!       if (associated(iter)) print *,'search',trim(key),trim(iter%data%key),'end'
+       end do find_key
+       if (.not. key_found) call f_err_throw(err_msg='Key is '//trim(key),&
+            err_id=DICT_KEY_ABSENT)
+
+      !!!if (associated(iter)) then
+      !!!   !follow the chain, stop at the first occurence
+      !!!   if (trim(dict%data%key) == trim(key)) then
+      !!!      !          print *,'here',trim(key),associated(dict%next)
+      !!!      if (associated(dict%parent)) then
+      !!!         dict%parent%data%nelems=dict%parent%data%nelems-1
+      !!!      else
+      !!!         dict%data%nelems=dict%data%nelems-1
+      !!!      end if
+      !!!      dict_first => dict_extract(dict)
+      !!!      if (dst) call dict_free(dict_first)
+
+      !!!   else if (associated(dict%next)) then
+      !!!      call pop_dict_(dict%next,key,dst)
+      !!!   else
+      !!!      call f_err_throw(err_msg='Key is '//trim(key),&
+      !!!           err_id=DICT_KEY_ABSENT)
+      !!!      return
+      !!!   end if
+      !!!else
+      !!!   call f_err_throw(err_msg='Key is '//trim(key),&
+      !!!        err_id=DICT_KEY_ABSENT)
+      !!!   return
+      !!!end if
+
+
+
+      !!!if (associated(dict)) then
+      !!!   !follow the chain, stop at the first occurence
+      !!!   if (trim(dict%data%key) == trim(key)) then
+      !!!      !          print *,'here',trim(key),associated(dict%next)
+      !!!      if (associated(dict%parent)) then
+      !!!         dict%parent%data%nelems=dict%parent%data%nelems-1
+      !!!      else
+      !!!         dict%data%nelems=dict%data%nelems-1
+      !!!      end if
+!!!!$ !!!            if (associated(dict%next)) then
+!!!!$ !!!               call dict_free(dict%child)
+!!!!$ !!!               dict_first => dict
+!!!!$ !!!               !this is valid if we are not at the first element
+!!!!$ !!!               if (associated(dict%previous)) then
+!!!!$ !!!                  call define_brother(dict%previous,dict%next) 
+!!!!$ !!!                  dict%previous%next => dict%next
+!!!!$ !!!               else
+!!!!$ !!!                  nullify(dict%next%previous)
+!!!!$ !!!                  !the next should now become me
+!!!!$ !!!                  dict => dict%next
+!!!!$ !!!               end if
+!!!!$ !!!               !eliminate the top of the tree
+!!!!$ !!!               !but do not follow the nexts
+!!!!$ !!!               call dict_destroy(dict_first)
+!!!!$ !!!            else
+!!!!$ !!!               call dict_free(dict)
+!!!!$ !!!            end if
+      !!!      dict_first => dict_extract(dict)
+      !!!      if (dst) call dict_free(dict_first)
+
+      !!!   else if (associated(dict%next)) then
+      !!!      call pop_dict_(dict%next,key,dst)
+      !!!   else
+      !!!      call f_err_throw(err_msg='Key is '//trim(key),&
+      !!!           err_id=DICT_KEY_ABSENT)
+      !!!      return
+      !!!   end if
+      !!!else
+      !!!   call f_err_throw(err_msg='Key is '//trim(key),&
+      !!!        err_id=DICT_KEY_ABSENT)
+      !!!   return
+      !!!end if
 
      end subroutine pop_dict_
    end subroutine remove_dict

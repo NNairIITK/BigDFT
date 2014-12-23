@@ -3448,7 +3448,7 @@ module communications_init
     subroutine initialize_communication_potential(iproc, nproc, nscatterarr, orbs, lzd, nspin, comgp)
       use module_base
       use module_types
-      use communications_base, only: p2pComms_null
+      use communications_base, only: p2pComms_null, bgq
       implicit none
       
       ! Calling arguments
@@ -3520,10 +3520,19 @@ module communications_init
           end if
       
       end do
-      comgp%ise(1)=is1
-      comgp%ise(2)=ie1
-      comgp%ise(3)=is2
-      comgp%ise(4)=ie2
+      if (.not.bgq) then
+          ! Communicate only the essential part, i.e. a subbox of the slices
+          comgp%ise(1)=is1
+          comgp%ise(2)=ie1
+          comgp%ise(3)=is2
+          comgp%ise(4)=ie2
+      else
+          ! Communicate always the entire slices
+          comgp%ise(1)=1
+          comgp%ise(2)=lzd%glr%d%n1i
+          comgp%ise(3)=1
+          comgp%ise(4)=lzd%glr%d%n2i
+      end if
       comgp%ise(5)=is3
       comgp%ise(6)=ie3
     
@@ -3600,7 +3609,13 @@ module communications_init
                   if(ie3>ie3max .or. ioverlap==1) then
                       ie3max=ie3
                   end if
-                  istsource = ioffsetz*lzd%glr%d%n1i*lzd%glr%d%n2i + ioffsety*lzd%glr%d%n1i + ioffsetx
+                  !!if (.not.bgq) then
+                      ! Communicate only the essential part, i.e. set the starting point to this part
+                      istsource = ioffsetz*lzd%glr%d%n1i*lzd%glr%d%n2i + ioffsety*lzd%glr%d%n1i + ioffsetx
+                  !!else
+                  !!    ! Communicate the entire slice, i.e. set the starting point to the beginning of a slice
+                  !!    istsource = ioffsetz*lzd%glr%d%n1i*lzd%glr%d%n2i
+                  !!end if
                   ncount = 1
                   comgp%comarr(1,ioverlap)=kproc
                   comgp%comarr(2,ioverlap)=istsource
@@ -3612,16 +3627,12 @@ module communications_init
                       call mpi_type_vector(comgp%ise(4)-comgp%ise(3)+1, comgp%ise(2)-comgp%ise(1)+1, &
                            lzd%glr%d%n1i, mpi_double_precision, comgp%mpi_datatypes(0), ierr)
                       call mpi_type_commit(comgp%mpi_datatypes(0), ierr)
-                      !comgp%mpi_datatypes(2,jproc)=1
                       datatype_defined=.true.
                   end if
-        
                   istdest = istdest + &
                             (ie3-is3+1)*(comgp%ise(2)-comgp%ise(1)+1)*(comgp%ise(4)-comgp%ise(3)+1)
-                  !if(iproc==jproc) then
-                      comgp%nrecvBuf = comgp%nrecvBuf + &
+                  comgp%nrecvBuf = comgp%nrecvBuf + &
                             (ie3-is3+1)*(comgp%ise(2)-comgp%ise(1)+1)*(comgp%ise(4)-comgp%ise(3)+1)
-                  !end if
               else if(ie3j > lzd%Glr%d%n3i .and. lzd%Glr%geocode /= 'F')then
                    stop 'WILL PROBABLY NOT WORK!'
                    ie3j = comgp%ise(6) - lzd%Glr%d%n3i
