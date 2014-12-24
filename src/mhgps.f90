@@ -399,11 +399,15 @@ program mhgps
               call write_restart(mhgpsst,runObj)
            endif
         enddo
+        if(mhgpsst%iproc==0)then
         call f_delete_file('restart')
         call f_delete_file(trim(adjustl(mhgpsst%currDir))//'/job_list_restart')
+        endif
      enddo
 
+    if(mhgpsst%iproc==0)then
     call f_delete_file('restart')
+    endif
 
     !finalize (dealloctaion etc...)
     call free_run_objects(runObj)

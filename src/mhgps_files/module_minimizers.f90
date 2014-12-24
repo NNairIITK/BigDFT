@@ -263,7 +263,7 @@ if (mhgpsst%iproc == 0 .and. uinp%mhgps_verbosity >=4) then
    call astruct_dump_to_file(bigdft_get_astruct_ptr(runObj),&
         mhgpsst%currDir//'/sad'//trim(adjustl(mhgpsst%isadc))&
         //'_posmini'//trim(adjustl(writePostfix))//'_'//fn4, &
-        trim(comment),energy=etotp,rxyz=rxyz(:,:,nhist),&
+        trim(comment),energy=etot,rxyz=rxyz(:,:,nhist),&
         forces=fxyz(:,:,nhist))
 endif
    if(uinp%imode==2)rxyz(:,:,0)=rxyz(:,:,0)+beta_stretch*fstretch(:,:,0)
