@@ -656,7 +656,7 @@ end subroutine xmpi_end
 !!  [exit_status]=optional, shell return code, default 1
 !!
 !! PARENTS
-!!      initmpi_grid,leave_new,m_initcuda,m_xmpi
+!!      initmpi_grid,abi_leave_new,m_initcuda,m_xmpi
 !!
 !! CHILDREN
 !!      mpi_type_commit,mpi_type_size,xmpi_abort,xmpio_type_struct
@@ -793,7 +793,7 @@ end subroutine sys_exit
 !!  unt=Unit number for formatted output.
 !!
 !! PARENTS
-!!      abinit,leave_new,m_errors
+!!      abinit,abi_leave_new,m_errors
 !!
 !! CHILDREN
 !!      mpi_type_commit,mpi_type_size,xmpi_abort,xmpio_type_struct

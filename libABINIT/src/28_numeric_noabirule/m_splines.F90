@@ -332,8 +332,8 @@ subroutine spline( t, y, n, ybcbeg, ybcend, ypp )
     write(std_out,* ) 'SPLINE_CUBIC_SET - Fatal error!'
     write(std_out,* ) '  The number of knots must be at least 2.'
     write(std_out,* ) '  The input value of N = ', n
-    call wrtout(std_out,"Fatal error",'COLL')
-    call leave_new('COLL')
+    call abi_wrtout(std_out,"Fatal error",'COLL')
+    call abi_leave_new('COLL')
   end if
 
   allocate(tmp(n))
@@ -345,8 +345,8 @@ subroutine spline( t, y, n, ybcbeg, ybcend, ypp )
       write(std_out,* ) '  The knots must be strictly increasing, but'
       write(std_out,* ) '  T(',  i,') = ', t(i)
       write(std_out,* ) '  T(',i+1,') = ', t(i+1)
-      call wrtout(std_out,"Fatal error",'COLL')
-      call leave_new('COLL')
+      call abi_wrtout(std_out,"Fatal error",'COLL')
+      call abi_leave_new('COLL')
     end if
   end do
 !
@@ -682,13 +682,13 @@ subroutine splint(nspline,xspline,yspline,ysplin2,nfit,xfit,yfit,ierr)
          left = k-1
        else
          if (k-1.eq.1 .and. i.eq.1) then
-           call wrtout(std_out,'xfit(1) < xspline(1)','COLL')
-           call leave_new('COLL')
+           call abi_wrtout(std_out,'xfit(1) < xspline(1)','COLL')
+           call abi_leave_new('COLL')
            !my_err=my_err+1
            !exit
          else
-           call wrtout(std_out,'xfit not properly ordered','COLL')
-           call leave_new('COLL')
+           call abi_wrtout(std_out,'xfit not properly ordered','COLL')
+           call abi_leave_new('COLL')
          end if
        end if
        delarg= xspline(right) - xspline(left)

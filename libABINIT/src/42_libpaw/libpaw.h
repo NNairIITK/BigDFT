@@ -36,14 +36,15 @@
 #define LIBPAW_DATATYPE_ALLOCATE(ARR,SIZE) ABI_DATATYPE_ALLOCATE(ARR,SIZE)
 #define LIBPAW_DATATYPE_DEALLOCATE(ARR)    ABI_DATATYPE_DEALLOCATE(ARR)
 
+/* Messages, errors */
+#define USE_MSG_HANDLING use m_errors, only : msg_hndl
+/* Other macros already defined in abi_common.h */
+
 
 /* =============================
  * ========= BIGDFT ============
  * ============================= */
 #elif HAVE_LIBPAW_BIGDFT
-
-/* This is temporary (abi_common.h should disappear) */
-#include "abi_common.h"
 
 /* Allocation/deallocation with memory profiling */
 #define USE_MEMORY_PROFILING
@@ -52,14 +53,18 @@
 #define LIBPAW_DATATYPE_ALLOCATE(ARR,SIZE) allocate(ARR SIZE)
 #define LIBPAW_DATATYPE_DEALLOCATE(ARR)    deallocate(ARR)
 
+/* Messages, errors */
+#define USE_MSG_HANDLING use m_libpaw_tools, only : wrtout => libpaw_wrtout, libpaw_msg_hndl
+#define MSG_COMMENT(msg) call libpaw_msg_hndl(msg,"COMMENT","PERS",__FILE__,__LINE__)
+#define MSG_WARNING(msg) call libpaw_msg_hndl(msg,"WARNING","PERS",__FILE__,__LINE__)
+#define MSG_ERROR(msg)   call libpaw_msg_hndl(msg,"ERROR"  ,"PERS",__FILE__,__LINE__)
+#define MSG_BUG(msg)     call libpaw_msg_hndl(msg,"BUG"    ,"PERS",__FILE__,__LINE__)
+
 
 /* =============================
  * ========= DEFAULT ===========
  * ============================= */
 #else
-
-/* This is temporary (abi_common.h should disappear) */
-#include "abi_common.h"
 
 /* Allocation/deallocation */
 #define USE_MEMORY_PROFILING
@@ -67,6 +72,13 @@
 #define LIBPAW_DEALLOCATE(ARR)    deallocate(ARR)
 #define LIBPAW_DATATYPE_ALLOCATE(ARR,SIZE) allocate(ARR SIZE)
 #define LIBPAW_DATATYPE_DEALLOCATE(ARR)    deallocate(ARR)
+
+/* Messages, errors */
+#define USE_MSG_HANDLING use m_libpaw_tools, only : wrtout => libpaw_wrtout, libpaw_msg_hndl
+#define MSG_COMMENT(msg) call libpaw_msg_hndl(msg,"COMMENT","PERS")
+#define MSG_WARNING(msg) call libpaw_msg_hndl(msg,"WARNING","PERS")
+#define MSG_ERROR(msg)   call libpaw_msg_hndl(msg,"ERROR"  ,"PERS")
+#define MSG_BUG(msg)     call libpaw_msg_hndl(msg,"BUG"    ,"PERS")
 
 
 /* =============================

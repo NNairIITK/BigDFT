@@ -27,8 +27,8 @@
 MODULE m_paral_atom
 
  use defs_basis
- use m_errors
  use m_xmpi
+ USE_MSG_HANDLING
  USE_MEMORY_PROFILING
 
  implicit none

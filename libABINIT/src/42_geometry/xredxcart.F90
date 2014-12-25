@@ -49,7 +49,7 @@
 !!      wvl_wfsinp_reformat,wvl_wfsinp_scratch
 !!
 !! CHILDREN
-!!      leave_new,matr3inv,wrtout
+!!      abi_leave_new,matr3inv,abi_wrtout
 !!
 !! SOURCE
 
@@ -105,8 +105,8 @@ subroutine xredxcart(natom,option,rprimd,xcart,xred)
    write(message, '(a,a,a,a,i4,a)' ) ch10,&
 &   ' xredxcart : BUG -',ch10,&
 &   '  Option must be 1 or -1, while it is ',option,'.'
-   call wrtout(std_out,message,'COLL')
-   call leave_new('COLL')
+   call abi_wrtout(std_out,message,'COLL')
+   call abi_leave_new('COLL')
  end if
 
 end subroutine xredxcart

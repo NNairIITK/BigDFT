@@ -35,7 +35,7 @@
 !!      symanal
 !!
 !! CHILDREN
-!!      leave_new,symdet,wrtout
+!!      abi_leave_new,symdet,abi_wrtout
 !!
 !! SOURCE
 
@@ -185,8 +185,8 @@ subroutine symbrav(bravais,msym,nsym,ptgroup,rprimd,symrel,tolsym)
 &       '  account the symmetry operations. This might be due to an insufficient',ch10,&
 &       '  number of digits in the specification of rprim (at least 10),',ch10,&
 &       '  or to an erroneous rprim or angdeg. If this is not the case, then ...'
-       call wrtout(std_out,message,'COLL')
-       call leave_new('COLL')
+       call abi_wrtout(std_out,message,'COLL')
+       call abi_leave_new('COLL')
      end if
      if(iaxis==1)then
        write(message, '(6a,3i3,2a,i3,2a,i3)' )ch10,&
@@ -195,8 +195,8 @@ subroutine symbrav(bravais,msym,nsym,ptgroup,rprimd,symrel,tolsym)
 &       '  problem,iaxis,invariant=',problem,iaxis,invariant,ch10,&
 &       '  bravais(1)=',bravais(1),ch10,&
 &       '  iholohedry=',iholohedry
-       call wrtout(std_out,message,'COLL')
-       call leave_new('COLL')
+       call abi_wrtout(std_out,message,'COLL')
+       call abi_leave_new('COLL')
      end if
    end if
 
@@ -209,7 +209,7 @@ subroutine symbrav(bravais,msym,nsym,ptgroup,rprimd,symrel,tolsym)
 &       '  vectors, bravais(1)=',bravais(1),', is more symmetric',ch10,&
 &       '  than the real one, iholohedry=',iholohedry,', obtained by taking into',ch10,&
 &       '  account the atomic positions. Start deforming the primitive vector set.'
-       call wrtout(std_out,message,'COLL')
+       call abi_wrtout(std_out,message,'COLL')
        next_stage=1
      else if(iaxis/=0)then
        if(bravais(1)<bravais1now)then
@@ -219,7 +219,7 @@ subroutine symbrav(bravais,msym,nsym,ptgroup,rprimd,symrel,tolsym)
 &         '  vectors, bravais(1)=',bravais(1),', has a lower symmetry than before,',ch10,&
 &         '  but is still more symmetric than the real one, iholohedry=',iholohedry,ch10,&
 &         '  obtained by taking into account the atomic positions.'
-         call wrtout(std_out,message,'COLL')
+         call abi_wrtout(std_out,message,'COLL')
          next_stage=1
        else if(iaxis==1)then
          write(message, '(6a,3i3,2a,i3,2a,i3)' )ch10,&
@@ -228,8 +228,8 @@ subroutine symbrav(bravais,msym,nsym,ptgroup,rprimd,symrel,tolsym)
 &         '  problem,iaxis,invariant=',problem,iaxis,invariant,ch10,&
 &         '  bravais(1)=',bravais(1),ch10,&
 &         '  iholohedry=',iholohedry
-         call wrtout(std_out,message,'COLL')
-         call leave_new('COLL')
+         call abi_wrtout(std_out,message,'COLL')
+         call abi_leave_new('COLL')
        end if
      end if
    end if ! problem==1
@@ -274,7 +274,7 @@ subroutine symbrav(bravais,msym,nsym,ptgroup,rprimd,symrel,tolsym)
        iaxis=jaxis
        write(message, '(2a,i3)' )ch10,&
 &       ' symbrav : found invariant axis, jaxis=',iaxis
-       call wrtout(std_out,message,'COLL')
+       call abi_wrtout(std_out,message,'COLL')
        exit
      end if
    end do
@@ -292,8 +292,8 @@ subroutine symbrav(bravais,msym,nsym,ptgroup,rprimd,symrel,tolsym)
 &     '  problem,iaxis,invariant=',problem,iaxis,invariant,ch10,&
 &     '  bravais(1)=',bravais(1),ch10,&
 &     '  iholohedry=',iholohedry
-     call wrtout(std_out,message,'COLL')
-     call leave_new('COLL')
+     call abi_wrtout(std_out,message,'COLL')
+     call abi_leave_new('COLL')
    end if
 
    call matr3inv(rprimdconv,rprimdconv_invt)
@@ -319,8 +319,8 @@ subroutine symbrav(bravais,msym,nsym,ptgroup,rprimd,symrel,tolsym)
 &   '  Despite efforts, Could not succeed to determine the bravais lattice :',ch10,&
 &   '  bravais(1)=',bravais(1),ch10,&
 &   '  iholohedry=',iholohedry
-   call wrtout(std_out,message,'COLL')
-   call leave_new('COLL')
+   call abi_wrtout(std_out,message,'COLL')
+   call abi_leave_new('COLL')
  end if
 
  deallocate(symrelconv)

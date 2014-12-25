@@ -24,7 +24,7 @@
 module m_pawxmlps
 
  use defs_basis
- use m_errors
+ USE_MSG_HANDLING
  USE_MEMORY_PROFILING
 
 #if defined HAVE_TRIO_FOX
@@ -334,7 +334,7 @@ subroutine paw_begin_element1(namespaceURI,localName,name,attributes)
 character(len=*),intent(in)   :: namespaceURI,localName,name
 type(dictionary_t),intent(in) :: attributes
 
-character(len=100)  :: value
+character(len=100)  :: msg,value
 integer ::iaewf=0,iproj=0,ipswf=0
 !Just to fool abirules
  value=localName
@@ -356,32 +356,48 @@ select case(name)
       case ("atom")
          paw_setuploc%atom%tread=.true.
          value = getValue(attributes,"symbol")
-         if (value == "" ) MSG_ERROR("Cannot determine atomic symbol")
+         if (value == "" ) then
+           msg="Cannot determine atomic symbol"
+           MSG_ERROR(msg)
+         end if
          paw_setuploc%atom%symbol = trim(value)
 
          value = getValue(attributes,"Z") 
-         if (value == "" ) MSG_ERROR("Cannot determine znucl")
+         if (value == "" ) then
+           msg="Cannot determine znucl"
+           MSG_ERROR(msg)
+         end if
          read(unit=value,fmt=*) paw_setuploc%atom%znucl
 
          value = getValue(attributes,"core")
-         if (value == "" ) MSG_ERROR("Cannot determine zion")
+         if (value == "" ) then
+           msg="Cannot determine zion"
+           MSG_ERROR(msg)
+         end if
          read(unit=value,fmt=*) paw_setuploc%atom%zion
 
          value = getValue(attributes,"valence")
-         if (value == "" ) MSG_ERROR("Cannot determine zval")
+         if (value == "" ) then
+           msg="Cannot determine zval"
+           MSG_ERROR(msg)
+         end if
          read(unit=value,fmt=*) paw_setuploc%atom%zval
 
 
       case ("xc_functional")
          paw_setuploc%xc_functional%tread=.true.
          value = getValue(attributes,"type")
-         if (value == "" ) &
-&            MSG_ERROR("Cannot determine xc-functional-type")
+         if (value == "" ) then
+           msg="Cannot determine xc-functional-type"
+           MSG_ERROR(msg)
+         end if
          paw_setuploc%xc_functional%functionaltype = trim(value)
 
          value = getValue(attributes,"name")
-         if (value == "" ) &
-&            MSG_ERROR("Cannot determine xc-functional-name ")
+         if (value == "" ) then
+           msg="Cannot determine xc-functional-name "
+           MSG_ERROR(msg)
+         end if
          paw_setuploc%xc_functional%name= trim(value)
 
       case ("generator")
@@ -397,7 +413,10 @@ select case(name)
 
       case ("PAW_radius")
          value = getValue(attributes,"rpaw")
-         if (value == "" ) MSG_ERROR("Cannot determine rpaw")
+         if (value == "" ) then
+           msg="Cannot determine rpaw"
+           MSG_ERROR(msg)
+         end if
          read(unit=value,fmt=*) paw_setuploc%rpaw
 
       case ("valence_states")
@@ -418,7 +437,10 @@ select case(name)
          end if
  
          value = getValue(attributes,"l")
-         if (value == "" ) MSG_ERROR("Cannot determine l")
+         if (value == "" ) then
+           msg="Cannot determine l"
+           MSG_ERROR(msg)
+         end if
          read(unit=value,fmt=*) valstate(ival)%ll
          if(valstate(ival)%ll>lmax) lmax=valstate(ival)%ll
 
@@ -430,11 +452,17 @@ select case(name)
          end if
 
          value = getValue(attributes,"rc")
-         if (value == "" ) MSG_ERROR("Cannot determine rc")
+         if (value == "" ) then
+           msg="Cannot determine rc"
+           MSG_ERROR(msg)
+         end if
          read(unit=value,fmt=*) valstate(ival)%rc
 
          value = getValue(attributes,"e")
-         if (value == "" ) MSG_ERROR("Cannot determine e")
+         if (value == "" ) then
+           msg="Cannot determine e"
+           MSG_ERROR(msg)
+         end if
          read(unit=value,fmt=*) valstate(ival)%ee
 
          value = getValue(attributes,"id")
@@ -476,11 +504,17 @@ select case(name)
          end if
 
          value = getValue(attributes,"istart")
-         if (value == "" ) MSG_ERROR("Cannot determine istart")
+         if (value == "" ) then
+           msg="Cannot determine istart"
+           MSG_ERROR(msg)
+         end if
          read(unit=value,fmt=*) grids(igrid)%istart
 
          value = getValue(attributes,"iend")
-         if (value == "" ) MSG_ERROR("Cannot determine iend")
+         if (value == "" ) then
+           msg="Cannot determine iend"
+           MSG_ERROR(msg)
+         end if
          read(unit=value,fmt=*) grids(igrid)%iend
 
          value = getValue(attributes,"id")
@@ -514,7 +548,10 @@ select case(name)
 
          value = getValue(attributes,"rc")
          if (value == "" ) then
-           if(paw_setuploc%shape_function%gtype /="num") MSG_ERROR("Cannot determine rc")
+           if(paw_setuploc%shape_function%gtype /="num") then
+              msg="Cannot determine rc"
+              MSG_ERROR(msg)
+           end if
          else
            read(unit=value,fmt=*) paw_setuploc%shape_function%rc
          end if
@@ -535,7 +572,10 @@ select case(name)
          paw_setuploc%pseudo_partial_wave(ipswf)%grid=trim(value)
 
          value = getValue(attributes,"state")
-         if (value == "" ) MSG_ERROR("Cannot determine pseudo_partial_wave state")
+         if (value == "" ) then
+           msg="Cannot determine pseudo_partial_wave state"
+           MSG_ERROR(msg)
+         end if
          paw_setuploc%pseudo_partial_wave(ipswf)%state=trim(value)
 
          do ii=1,igrid
@@ -558,7 +598,10 @@ select case(name)
          paw_setuploc%ae_partial_wave(iaewf)%grid=trim(value)
 
          value = getValue(attributes,"state")
-         if (value == "" ) MSG_ERROR("Cannot determine ae_partial_wave state")
+         if (value == "" ) then
+           msg="Cannot determine ae_partial_wave state"
+           MSG_ERROR(msg)
+         end if
          paw_setuploc%ae_partial_wave(iaewf)%state=trim(value)
 
          do ii=1,igrid
@@ -581,7 +624,10 @@ select case(name)
          paw_setuploc%projector_function(iproj)%grid=trim(value)
 
          value = getValue(attributes,"state")
-         if (value == "" ) MSG_ERROR("Cannot determine projector_function state")
+         if (value == "" ) then
+           msg="Cannot determine projector_function state"
+           MSG_ERROR(msg)
+         end if
          paw_setuploc%projector_function(iproj)%state=trim(value)
 
          do ii=1,igrid
@@ -822,7 +868,10 @@ select case(name)
 
       case ("valence_states")
         in_valenceStates = .false.
-        if(ival>50) MSG_ERROR("ival>50")
+        if(ival>50) then
+          msg="ival>50"
+          MSG_ERROR(msg)
+        end if
         if(ival>0)then
           LIBPAW_DATATYPE_ALLOCATE(paw_setuploc%valence_states%state,(ival))
           paw_setuploc%valence_states%state(ival)%tread=.true.
@@ -843,7 +892,10 @@ select case(name)
         end if
 
       case ("paw_setup")
-        if(igrid>10) MSG_ERROR("igrid>10")
+        if(igrid>10) then
+          msg="igrid>10"
+          MSG_ERROR(msg)
+        end if
         LIBPAW_DATATYPE_ALLOCATE(paw_setuploc%radial_grid,(igrid))
         paw_setuploc%radial_grid(igrid)%tread=.true.
         paw_setuploc%ngrid=igrid
@@ -856,7 +908,10 @@ select case(name)
             mesh_size=paw_setuploc%radial_grid(ii)%iend-paw_setuploc%radial_grid(ii)%istart+1
           end if
         end do
-        if(ishpf>10) MSG_ERROR("ishpf>7")
+        if(ishpf>10) then
+          msg="ishpf>7"
+          MSG_ERROR(msg)
+        end if
         LIBPAW_ALLOCATE(paw_setuploc%shape_function%data,(mesh_size,ishpf))
         do ii=1,ishpf
           paw_setuploc%shape_function%data(:,ii)=shpf(ii)%data(:)
@@ -978,12 +1033,16 @@ if (in_data) then
   end do
 
   if ((ndata+ntokens)>size(x)) then 
-    MSG_ERROR("data array full")
+    msg="data array full"
+    MSG_ERROR(msg)
   end if
 
 ! Take the string and turn it into useful reals
   read(unit=str(1:last_pos),fmt=*,iostat=status) x(ndata+1:ndata+ntokens)
-  ABI_CHECK(status==0,"real conversion error")
+  if (status/=0) then
+    msg="real conversion error"
+    MSG_ERROR(msg)
+  end if
   ndata=ndata+ntokens
 
 end if
@@ -1450,7 +1509,7 @@ end subroutine paw_setup_copy
 !Local variables ---------------------------------------
  integer :: iaewf,ii,ipswf,iproj,ir,igrid,ival,ierr,ishpf,lmax,mesh_size
  logical :: endfile,found
- character(len=500) :: message
+ character(len=500) :: msg
  character (len=XML_RECL) :: line,readline
  character (len=XML_RECL) :: strg
  character (len=30) :: strg1
@@ -1570,7 +1629,8 @@ end subroutine paw_setup_copy
          ival=ival+1
          if (ival>50) then
            close(funit)
-           MSG_ERROR("Error in rdpawps1xml: basis size too large (>50)!")
+           msg="Error in rdpawps1xml: basis size too large (>50)!"
+           MSG_ERROR(msg)
          end if
          call paw_rdfromline(" n",line,strg,ierr)
          if (strg == "" ) then 
@@ -1690,7 +1750,8 @@ end subroutine paw_setup_copy
      grids(igrid)%id = trim(strg)
      if(igrid>10)then
        close(funit)
-       MSG_ERROR("igrid>10")
+       msg="igrid>10"
+       MSG_ERROR(msg)
      end if
      cycle
    end if
@@ -1742,9 +1803,9 @@ end subroutine paw_setup_copy
          if(paw_setup%valence_states%tread) then
            if(ishpf==2*lmax+1) found=.true.
          else
-           write(message,'(a,a,a)')"the grids and the states must be read before the shapefunction",ch10,&
+           write(msg,'(a,a,a)')"the grids and the states must be read before the shapefunction",ch10,&
 &           "Action: Modify your XML PAW data file"
-           MSG_ERROR(message)
+           MSG_ERROR(msg)
          end if
        end if
      end if
@@ -1755,9 +1816,9 @@ end subroutine paw_setup_copy
  end do
  
  if(igrid==0.or.ival==0) then
-   write(message,'(a,a,a)')"the grids and the states must be read before the shapefunction",ch10,&
+   write(msg,'(a,a,a)')"the grids and the states must be read before the shapefunction",ch10,&
 &   "Action: Modify your XML PAW data file"
-   MSG_ERROR(message)
+   MSG_ERROR(msg)
  end if
  if(ishpf>0)then
    LIBPAW_ALLOCATE(paw_setup%shape_function%data,(mesh_size,ishpf))
@@ -2056,10 +2117,10 @@ end subroutine paw_setup_copy
 !  --Read the Atompaw input file
    ir=0
    if ((line(1:13)=='<!-- Program:').and.(ir==1)) then
-     message=" "
-     do while ((message(1:9)/=' Program:').and.(message(1:8)/='Program:'))
-       read(funit,'(a)') message
-       write(ab_out,'(a)') trim(message)
+     msg=" "
+     do while ((msg(1:9)/=' Program:').and.(msg(1:8)/='Program:'))
+       read(funit,'(a)') msg
+       write(ab_out,'(a)') trim(msg)
      end do   
      cycle
    end if 
@@ -2074,12 +2135,27 @@ end subroutine paw_setup_copy
  found=paw_setup%atom%tread.and.paw_setup%valence_states%tread.and.&
 & paw_setup%xc_functional%tread.and.paw_setup%shape_function%tread
 
- if (.not.paw_setup%atom%tread) MSG_WARNING("ATOM SYMBOL not found !")
- if (.not.paw_setup%valence_states%tread) MSG_WARNING("VALENCE STATES not found!")
- if (.not.paw_setup%xc_functional%tread) MSG_WARNING("EXCHANGE/CORRELATION not found !")
- if (.not.paw_setup%shape_function%tread) MSG_WARNING("SHAPE FUNCTION TYPE not found !")
+ if (.not.paw_setup%atom%tread) then
+   msg="ATOM SYMBOL not found !"
+   MSG_WARNING(msg)
+ end if
+ if (.not.paw_setup%valence_states%tread) then
+   msg="VALENCE STATES not found!"
+   MSG_WARNING(msg)
+ end if
+ if (.not.paw_setup%xc_functional%tread) then
+   msg="EXCHANGE/CORRELATION not found !"
+   MSG_WARNING(msg)
+ end if
+ if (.not.paw_setup%shape_function%tread) then
+   msg="SHAPE FUNCTION TYPE not found !"
+   MSG_WARNING(msg)
+ end if
 
- if (.not.found) MSG_ERROR("Aborting now")
+ if (.not.found) then
+   msg="Aborting now"
+   MSG_ERROR(msg)
+ end if
  
  end subroutine rdpawpsxml
 !!***
@@ -2132,7 +2208,7 @@ end subroutine paw_setup_copy
  logical :: endfile,found, tread
  real(dp),allocatable ::work(:),phitmp(:,:)
  type(pawrad_type) :: tmpmesh
- character(len=500) :: message,version
+ character(len=500) :: msg,version
  character (len=XML_RECL) :: line,readline
  character (len=XML_RECL) :: strg
  character (len=30) ::strg1
@@ -2179,7 +2255,8 @@ end subroutine paw_setup_copy
          icor=icor+1
          if (icor>50) then
            close(funit)
-           MSG_ERROR("basis size too large (>50)!")
+           msg="basis size too large (>50)!"
+           MSG_ERROR(msg)
          end if
          call paw_rdfromline(" n",line,strg,ierr)
          if (strg == "" ) then 
@@ -2302,7 +2379,8 @@ end subroutine paw_setup_copy
      grids(igrid)%id = trim(strg)
      if(igrid>10)then
        close(funit) 
-       MSG_ERROR("igrid>10")
+       msg="igrid>10"
+       MSG_ERROR(msg)
      end if
      found=.true.
      cycle
@@ -2326,10 +2404,10 @@ end subroutine paw_setup_copy
          radmesh(imsh)%rstep=grids(imsh)%aa
          radmesh(imsh)%lstep=grids(imsh)%dd
        case("r=a*i/(1-b*i)")
-         write(message, '(3a)' )&
+         write(msg, '(3a)' )&
 &         '  the grid r=a*i/(1-b*i) is not implemented in ABINIT !',ch10,&
 &         '  Action: check your psp file.'
-         MSG_ERROR(message)
+         MSG_ERROR(msg)
        case("r=a*i/(n-i)")
          radmesh(imsh)%mesh_type=5
          radmesh(imsh)%mesh_size=grids(imsh)%iend-grids(imsh)%istart+1
@@ -2347,10 +2425,10 @@ end subroutine paw_setup_copy
          if(grids(imsh)%istart==1)radmesh(imsh)%mesh_size=radmesh(imsh)%mesh_size+1
          radmesh(imsh)%rstep=grids(imsh)%dd
        case("r=(i/n+a)^5/a-a^4")
-         write(message, '(3a)' )&
+         write(msg, '(3a)' )&
 &       '  the grid r=(i/n+a)^5/a-a^4 is not implemented in ABINIT !',ch10,&
 &       '  Action: check your psp file.'
-         MSG_ERROR(message)
+         MSG_ERROR(msg)
      end select
    end do
  end if
@@ -2407,10 +2485,10 @@ end subroutine paw_setup_copy
 &     .or.(pawrad%rstep/=radmesh(imeshae)%rstep) &
 &     .or.(pawrad%lstep/=radmesh(imeshae)%lstep)) then
        if(maxmeshz>pawrad%mesh_size) then
-         write(message, '(3a)' )&
+         write(msg, '(3a)' )&
 &         '  rdpawpsxml_core:maxmeshz>pawrad%mesh_size',ch10,&
 &         '  change pseudopotential'
-         MSG_ERROR(message)
+         MSG_ERROR(msg)
        end if
        call pawrad_init(tmpmesh,mesh_size=maxmeshz,mesh_type=radmesh(imeshae)%mesh_type,&
 &                 rstep=radmesh(imeshae)%rstep,lstep=radmesh(imeshae)%lstep)

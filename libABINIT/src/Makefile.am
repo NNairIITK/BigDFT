@@ -71,7 +71,7 @@ PPFCCOMPILE = $(FC) $(DEFS_FORTRAN) $(DEFAULT_INCLUDES) $(INCLUDES) \
 
 if BUILD_LIBPAW
 libpaw_files = \
-	42_libpaw/interfaces_42_libpaw.F90 \
+	42_libpaw/m_libpaw_tools.F90 \
 	42_libpaw/m_atompaw.F90 \
 	42_libpaw/m_gaussfit.F90 \
 	42_libpaw/m_paral_atom.F90 \
@@ -103,15 +103,10 @@ libabinit_a_SOURCES = \
 	10_defs/defs_parameters.F90 \
 	12_hide_mpi/interfaces_12_hide_mpi.F90 \
 	12_hide_mpi/m_xmpi.F90 \
-	12_hide_mpi/m_xomp.F90 \
 	14_hidewrite/interfaces_14_hidewrite.F90 \
-	14_hidewrite/wrtout.F90 \
-	14_hidewrite/m_fstrings.F90 \
-	14_hidewrite/m_io_tools.F90 \
+	14_hidewrite/abi_wrtout.F90 \
 	16_hideleave/interfaces_16_hideleave.F90 \
-	16_hideleave/leave_new.F90 \
-	16_hideleave/m_errors.F90 \
-	16_hideleave/m_xieee.F90 \
+	16_hideleave/abi_leave_new.F90 \
 	18_timing/interfaces_18_timing.F90 \
 	18_timing/timab.F90 \
 	28_numeric_noabirule/interfaces_28_numeric_noabirule.F90 \

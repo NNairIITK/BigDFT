@@ -33,7 +33,7 @@
 !!      driver,scfcv
 !!
 !! CHILDREN
-!!      leave_new,matr3eigval,matr3inv,wrtout
+!!      abi_leave_new,matr3eigval,matr3inv,abi_wrtout
 !!
 !! SOURCE
 
@@ -112,8 +112,8 @@ subroutine chkdilatmx(dilatmx,rprimd,rprimd_orig)
 &   '  this large change of unit cell parameters is not allowed by the present value of dilatmx.',ch10,&
 &   '  You need at least dilatmx=',dilatmx_new+tol6,ch10,&
 &   '  Action : increase the input variable dilatmx.'
-   call wrtout(std_out,message,'COLL')
-   call leave_new('COLL')
+   call abi_wrtout(std_out,message,'COLL')
+   call abi_leave_new('COLL')
  end if
 
 !DEBUG

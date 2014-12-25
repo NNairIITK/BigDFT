@@ -57,7 +57,7 @@
 !!      drivexc
 !!
 !! CHILDREN
-!!      leave_new,wrtout
+!!      abi_leave_new,abi_wrtout
 !!
 !! SOURCE
 
@@ -113,8 +113,8 @@ subroutine xctetr(exc,npt,order,rhor,rspts,vxc,& !Mandatory arguments
 &   '  With Teter 91 Ceperley-Alder xc functional, the only',ch10,&
 &   '  allowed values for order are 0, 1, 2 or 3, while it is found to be',&
 &   order,'.'
-   call wrtout(std_out,message,'COLL')
-   call leave_new('COLL')
+   call abi_wrtout(std_out,message,'COLL')
+   call abi_leave_new('COLL')
  end if
 !Checks the compatibility between the order and the presence of the optional arguments
  if(order /=3 .and. present(d2vxc))then
@@ -123,8 +123,8 @@ subroutine xctetr(exc,npt,order,rhor,rspts,vxc,& !Mandatory arguments
 &   '  The order chosen does not need the presence',ch10,&
 &   '  of the vector d2vxc, that is needed only with order=3, while we have',&
 &   order,'.'
-   call wrtout(std_out,message,'COLL')
-   call leave_new('COLL')
+   call abi_wrtout(std_out,message,'COLL')
+   call abi_leave_new('COLL')
  end if
  if(order <= 1 .and. present(dvxc))then
    write(message, '(a,a,a,a,a,a,i6,a)' )ch10,&
@@ -132,8 +132,8 @@ subroutine xctetr(exc,npt,order,rhor,rspts,vxc,& !Mandatory arguments
 &   '  The order chosen does not need the presence',ch10,&
 &   '  of the vector dvxc, that is needed with order > 1, while we have',&
 &   order,'.'
-   call wrtout(std_out,message,'COLL')
-   call leave_new('COLL')
+   call abi_wrtout(std_out,message,'COLL')
+   call abi_leave_new('COLL')
  end if
 
 !separated cases with respect to order

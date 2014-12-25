@@ -38,7 +38,7 @@
 !!      outscfcv
 !!
 !! CHILDREN
-!!      atmdata,leave_new,wrtout,xredxcart
+!!      atmdata,abi_leave_new,abi_wrtout,xredxcart
 !!
 !! SOURCE
 
@@ -102,13 +102,13 @@ subroutine bonds_lgth_angles(coordn,fnameabo_app_geo,natom,ntypat,&
 
 !Initialize the file
  write(message, '(a,a)' ) ' bonds_lgth_angles : about to open file ',fnameabo_app_geo
- call wrtout(std_out,message,'COLL')
- call wrtout(ab_out,message,'COLL')
+ call abi_wrtout(std_out,message,'COLL')
+ call abi_wrtout(ab_out,message,'COLL')
  open (unit=tmp_unit,file=fnameabo_app_geo,status='unknown',form='formatted')
  rewind(tmp_unit)
 
  write(message, '(a,a)' ) ch10,' ABINIT package : GEO file '
- call wrtout(tmp_unit,message,'COLL')
+ call abi_wrtout(tmp_unit,message,'COLL')
 
 !Compute maximum number of neighbors is the neighbor list,
 !from the indicative coordination number
@@ -121,7 +121,7 @@ subroutine bonds_lgth_angles(coordn,fnameabo_app_geo,natom,ntypat,&
 & ' nearest neighbors and next nearest neighbors, ',ch10,&
 & '                  and ',(coordn*(coordn-1))/2,&
 & ' distinct angles between nearest neighbors'
- call wrtout(tmp_unit,message,'COLL')
+ call abi_wrtout(tmp_unit,message,'COLL')
 
 !Compute metric tensor in real space rmet
  do nu=1,3
@@ -134,15 +134,15 @@ subroutine bonds_lgth_angles(coordn,fnameabo_app_geo,natom,ntypat,&
 
  write(message, '(a,a)' )ch10,&
 & ' Primitive vectors of the periodic cell (bohr)'
- call wrtout(tmp_unit,message,'COLL')
+ call abi_wrtout(tmp_unit,message,'COLL')
  do nu=1,3
    write(message, '(1x,a,i1,a,3f10.5)' ) '  R(',nu,')=',rprimd(:,nu)
-   call wrtout(tmp_unit,message,'COLL')
+   call abi_wrtout(tmp_unit,message,'COLL')
  end do
 
  write(message, '(a,a)' ) ch10,&
 & ' Atom list        Reduced coordinates          Cartesian coordinates (bohr)'
- call wrtout(tmp_unit,message,'COLL')
+ call abi_wrtout(tmp_unit,message,'COLL')
 
 !Set up a list of character identifiers for all atoms : iden(ia)
  allocate(iden(natom))
@@ -159,9 +159,9 @@ subroutine bonds_lgth_angles(coordn,fnameabo_app_geo,natom,ntypat,&
 &     ' bonds_lgth_angles : BUG -',ch10,&
 &     '  bonds_lgth_angles cannot handle more than 9999 atoms, while natom=',natom,ch10,&
 &     '  Action : decrease natom, or contact ABINIT group.'
-     call wrtout(std_out,message,'COLL')
+     call abi_wrtout(std_out,message,'COLL')
      close(tmp_unit)
-     call leave_new('COLL')
+     call abi_leave_new('COLL')
    end if
  end do
 
@@ -175,19 +175,19 @@ subroutine bonds_lgth_angles(coordn,fnameabo_app_geo,natom,ntypat,&
    write(message, '(a,a,3f10.5,a,3f10.5)' ) &
 &   '   ',iden(ia),(xred(ii,ia)+tol10,ii=1,3),&
 &   '    ',(xcart(ii,ia)+tol10,ii=1,3)
-   call wrtout(tmp_unit,message,'COLL')
+   call abi_wrtout(tmp_unit,message,'COLL')
  end do
 
  write(message, '(a,a,a,a,i4,a)' )ch10,&
 & ' XMOL data : natom, followed by cartesian coordinates in Angstrom',&
 & ch10,ch10,natom,ch10
- call wrtout(tmp_unit,message,'COLL')
+ call abi_wrtout(tmp_unit,message,'COLL')
 
  do ia=1,natom
    call atmdata(amu,rcov,symbol,znucl(typat(ia)))
    write(message, '(a,a,3f10.5)' ) &
 &   '   ',symbol,xangst(1:3,ia)
-   call wrtout(tmp_unit,message,'COLL')
+   call abi_wrtout(tmp_unit,message,'COLL')
  end do
 
  deallocate(xangst,xcart)
@@ -200,7 +200,7 @@ subroutine bonds_lgth_angles(coordn,fnameabo_app_geo,natom,ntypat,&
    write(message, '(a,a,a,a,a,a,a,a,a)' ) ch10,'===========',&
 &   '=====================================================================',&
 &   ch10,' ',iden(ia),ch10,ch10,' Bond lengths '
-   call wrtout(tmp_unit,message,'COLL')
+   call abi_wrtout(tmp_unit,message,'COLL')
 
 !  Search other atoms for bonds, but must proceed
 !  in such a way to consider a search box sufficiently large,
@@ -290,8 +290,8 @@ subroutine bonds_lgth_angles(coordn,fnameabo_app_geo,natom,ntypat,&
 &       ' bonds_lgth_angles : BUG -',ch10,&
 &       '  Did not succeed to generate a reliable list of bonds ',&
 &       '          since tmax is exceeded.'
-       call wrtout(std_out,message,'COLL')
-       call leave_new('COLL')
+       call abi_wrtout(std_out,message,'COLL')
+       call abi_leave_new('COLL')
      end if
 
 !    Copy the new list into the old list.
@@ -310,14 +310,14 @@ subroutine bonds_lgth_angles(coordn,fnameabo_app_geo,natom,ntypat,&
 &     '  ',trim(iden(ia)),' - ',trim(iden(ib)),&
 &     list_neighb(ineighb,2:4,1),'bond length is ',&
 &     length,' bohr  ( or ',Bohr_Ang*length,' Angst.)'
-     call wrtout(tmp_unit,message,'COLL')
+     call abi_wrtout(tmp_unit,message,'COLL')
    end do
 
 !  Output the angle list
    if(coordn>1)then
 
      write(message, '(a,a)' ) ch10,' Bond angles '
-     call wrtout(tmp_unit,message,'COLL')
+     call abi_wrtout(tmp_unit,message,'COLL')
 
      do ineighb=2,coordn
        do jneighb=ineighb+1,coordn+1
@@ -340,8 +340,8 @@ subroutine bonds_lgth_angles(coordn,fnameabo_app_geo,natom,ntypat,&
            else
              write(message, '(a,a)' )ch10,&
 &             ' bonds_lgth_angles : BUG - the evaluation of the angle is wrong. '
-             call wrtout(std_out,message,'COLL')
-             call leave_new('COLL')
+             call abi_wrtout(std_out,message,'COLL')
+             call abi_leave_new('COLL')
            end if
          else
            thdeg=acos(co)*180.d0*piinv
@@ -352,7 +352,7 @@ subroutine bonds_lgth_angles(coordn,fnameabo_app_geo,natom,ntypat,&
 &         trim(iden(ia)),' - ',trim(iden(ic)),&
 &         list_neighb(jneighb,2:4,1),'bond angle is ',&
 &         thdeg,' degrees '
-         call wrtout(tmp_unit,message,'COLL')
+         call abi_wrtout(tmp_unit,message,'COLL')
 
        end do
 

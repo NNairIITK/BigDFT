@@ -94,7 +94,7 @@
 !!      newrho,newvtr,newvtr3
 !!
 !! CHILDREN
-!!      aprxdr,findminscf,sqnormm_v,wrtout
+!!      aprxdr,findminscf,sqnormm_v,abi_wrtout
 !!
 !! SOURCE
 
@@ -319,7 +319,7 @@ subroutine scfcge(cplex,dbl_nnsclo,dtn_pc,etotal,f_atm,&
 &     etotal,etotal_old,etotal_predict,&
 &     lambda_new,lambda_old,lambda_predict,errid_,message)
      if (errid_ /= AB7_NO_ERROR) then
-        call wrtout(std_out,message,'COLL')
+        call abi_wrtout(std_out,message,'COLL')
      end if
 
 !    Suppress the next line for debugging  (there is another such line)
@@ -403,7 +403,7 @@ subroutine scfcge(cplex,dbl_nnsclo,dtn_pc,etotal,f_atm,&
 &     '  Potential-based CG line minimization has trouble to converge.',&
 &     ch10,&
 &     '  The algorithm is restarted with more secure parameters.'
-     call wrtout(std_out,message,'COLL')
+     call abi_wrtout(std_out,message,'COLL')
      number_of_restart=number_of_restart+1
 !    At the second restart, double the number of non-self consistent loops.
      if(number_of_restart>=2)dbl_nnsclo=1
@@ -552,11 +552,11 @@ subroutine scfcge(cplex,dbl_nnsclo,dtn_pc,etotal,f_atm,&
 !  DEBUG
 !  write(message, '(a,3es12.4)' )' scfcge: lambda_adapt',&
 !  &     lambda_adapt
-!  call wrtout(std_out,message,'COLL')
+!  call abi_wrtout(std_out,message,'COLL')
 
 !  write(message, '(a,3es12.4)' )' scfcge: dedv_old,dedv_new,dedv_mix',&
 !  &     dedv_old,dedv_new,dedv_mix
-!  call wrtout(std_out,message,'COLL')
+!  call abi_wrtout(std_out,message,'COLL')
 !  ENDDEBUG
 
 !  Then, compute a predicted point, either along the line,
@@ -573,7 +573,7 @@ subroutine scfcge(cplex,dbl_nnsclo,dtn_pc,etotal,f_atm,&
 &     etotal,etotal_old,etotal_predict,&
 &     lambda_new,lambda_old,lambda_predict,errid_,message)
      if (errid_ /= AB7_NO_ERROR) then
-        call wrtout(std_out,message,'COLL')
+        call abi_wrtout(std_out,message,'COLL')
      end if
      lambda_predict2=0.0_dp
 !    Suppress the next line for debugging (there is another such line)
@@ -599,7 +599,7 @@ subroutine scfcge(cplex,dbl_nnsclo,dtn_pc,etotal,f_atm,&
 !  DEBUG
 !  write(message, '(a,5es11.3)' )' scfcge: de1,de2,d2e11,d2e22,d2e12',&
 !  &               de1,de2,d2e11,d2e22,d2e12
-!  call wrtout(std_out,message,'COLL')
+!  call abi_wrtout(std_out,message,'COLL')
 !  write(06, '(a,2es12.4)' )' scfcge: la_predict,la_predict2',&
 !  &               lambda_predict,lambda_predict2
 !  -----
@@ -616,7 +616,7 @@ subroutine scfcge(cplex,dbl_nnsclo,dtn_pc,etotal,f_atm,&
 !  and advance to next 2D search.
    end_linmin=0
    write(message, '(a,2i3)' )' nlinear, ilinear',nlinear,ilinear
-   call wrtout(std_out,message,'COLL')
+   call abi_wrtout(std_out,message,'COLL')
    if(lambda_predict<0.0_dp)then
 !    Something is going wrong. Just take a reasonable step
 !    along the steepest descent direction (Region III).
@@ -650,7 +650,7 @@ subroutine scfcge(cplex,dbl_nnsclo,dtn_pc,etotal,f_atm,&
 !  write(message, '(a,2es12.4,i2)' )&
 !  &     ' scfcge : la_predict, la_predict2, region',&
 !  &       lambda_predict,lambda_predict2,end_linmin
-!  call wrtout(std_out,message,'COLL')
+!  call abi_wrtout(std_out,message,'COLL')
 !  ENDDEBUG
 
 !  Treat region I, in the same way as region III
@@ -712,7 +712,7 @@ subroutine scfcge(cplex,dbl_nnsclo,dtn_pc,etotal,f_atm,&
      end if
 !    Compute new search direction and trial potential
      write(message,*)' compute new search direction '
-     call wrtout(std_out,message,'COLL')
+     call abi_wrtout(std_out,message,'COLL')
      do isp=1,nspden
        do ifft=1,cplex*nfft
          f_fftgr(ifft,isp,6)=(vtrial(ifft,isp)-f_fftgr(ifft,isp,1))/lambda_new+ &
@@ -812,11 +812,11 @@ subroutine scfcge(cplex,dbl_nnsclo,dtn_pc,etotal,f_atm,&
 !      So, jump to the next line
        iline_cge=iline_cge+1
        write(message,*)' energy CG update : after 2D interpolation,'
-       call wrtout(std_out,message,'COLL')
+       call abi_wrtout(std_out,message,'COLL')
        write(message,*)'    computation in the next plane '
-       call wrtout(std_out,message,'COLL')
+       call abi_wrtout(std_out,message,'COLL')
        write(message,*)
-       call wrtout(std_out,message,'COLL')
+       call abi_wrtout(std_out,message,'COLL')
        lambda_old=0.0_dp
        lambda_new=lambda_adapt
 
@@ -851,7 +851,7 @@ subroutine scfcge(cplex,dbl_nnsclo,dtn_pc,etotal,f_atm,&
    write(message, '(a,a,a)' ) ' scfcge:',ch10,&
 &   ' scfcge:istep-iline_cge-ilinmin lambda      etot             resid '
 
-   call wrtout(std_out,message,'COLL')
+   call abi_wrtout(std_out,message,'COLL')
  end if
 
  if(ilinmin_input/=0 .or. istep==1)then
@@ -866,7 +866,7 @@ subroutine scfcge(cplex,dbl_nnsclo,dtn_pc,etotal,f_atm,&
 &     ' scfcge: actual  ',istep,'-',iline_cge_input,'-',ilinmin_input,&
 &     lambda_input,etotal_input,resid_input
    end if
-   call wrtout(std_out,message,'COLL')
+   call abi_wrtout(std_out,message,'COLL')
 
    if( (end_linmin==1.or.end_linmin==-1) .and. istep/=1 )then
 
@@ -881,7 +881,7 @@ subroutine scfcge(cplex,dbl_nnsclo,dtn_pc,etotal,f_atm,&
 &       ' restart the algorithm ',ch10,&
 &       ' scfcge:'
      end if
-     call wrtout(std_out,message,'COLL')
+     call abi_wrtout(std_out,message,'COLL')
 
      if(iline_cge_input<9)then
        write(message, '(a,i4,a,i1,a,i1,es13.4,es20.12,es12.4)' ) &
@@ -892,13 +892,13 @@ subroutine scfcge(cplex,dbl_nnsclo,dtn_pc,etotal,f_atm,&
 &       ' scfcge: start   ',istep,'-',iline_cge,'-',0,&
 &       0.0,etotal_old,resid_old
      end if
-     call wrtout(std_out,message,'COLL')
+     call abi_wrtout(std_out,message,'COLL')
 
    else if(istep/=1) then
      write(message, '(a,es13.4,a)' )&
 &     ' scfcge: predict         ',lambda_predict,&
 &     ' not close enough => continue minim.'
-     call wrtout(std_out,message,'COLL')
+     call abi_wrtout(std_out,message,'COLL')
    end if
 
  else
@@ -913,11 +913,11 @@ subroutine scfcge(cplex,dbl_nnsclo,dtn_pc,etotal,f_atm,&
 &     ' scfcge: actual  ',istep,'-',iline_cge_input,'-off',&
 &     lambda_adapt,etotal_input,resid_input,', end=',end_linmin
    end if
-   call wrtout(std_out,message,'COLL')
+   call abi_wrtout(std_out,message,'COLL')
 
    if(end_linmin==4)then
      write(message, '(a)' ) ' scfcge:'
-     call wrtout(std_out,message,'COLL')
+     call abi_wrtout(std_out,message,'COLL')
    end if
 
  end if

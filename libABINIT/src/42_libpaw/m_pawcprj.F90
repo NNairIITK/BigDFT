@@ -27,8 +27,8 @@
 module m_pawcprj
 
  use defs_basis
- use m_errors
  use m_xmpi
+ USE_MSG_HANDLING
  USE_MEMORY_PROFILING
 
  use m_pawtab, only : pawtab_type
@@ -156,14 +156,14 @@ CONTAINS
 !Local variables-------------------------------
 !scalars
  integer :: ii,jj,n1dim,n2dim,nn
- character(len=500) :: message
+ character(len=500) :: msg
 
 ! *************************************************************************
 
  n1dim=size(cprj,dim=1);n2dim=size(cprj,dim=2);nn=size(nlmn,dim=1)
  if (nn/=n1dim) then
-   write(message,*)"Error in pawcprj_alloc: wrong sizes !",nn,n1dim
-   MSG_ERROR(message)
+   write(msg,*) 'wrong sizes (pawcprj_alloc)! :',nn,n1dim
+   MSG_ERROR(msg)
  end if
 
  do jj=1,n2dim
@@ -855,7 +855,6 @@ end subroutine pawcprj_conjg
  if (n1in/=n1out) msg = TRIM(msg)//"Bug in pawcprj_lincom: n1 wrong sizes!"//ch10
  if (n2in/=n2out*nn) msg = TRIM(msg)//"Bug in pawcprj_lincom: n2 wrong sizes!"//ch10
  if (ncpgrin/=ncpgrout) msg = TRIM(msg)//"Bug in pawcprj_lincom: ncpgr wrong sizes!"//ch10
-
  if (LEN_TRIM(msg) > 0) then
    MSG_ERROR(msg)
  end if
@@ -1052,50 +1051,41 @@ end subroutine pawcprj_output
 !scalars
  integer :: iatm,iatom,ib,ibsp,icpgr_,isp,ispinor,jband,me,nband0,ncpgr_
  logical :: has_distrb,has_icpgr
- character(len=500) :: message
+ character(len=500) :: msg
 !arrays
  real(dp),allocatable :: tmp(:,:,:)
 
 ! *************************************************************************
 
- DBG_ENTER("COLL")
-
-
  ncpgr_=cprj_k(1,1)%ncpgr;if (present(ncpgr)) ncpgr_=ncpgr
  icpgr_=-1;if(present(icpgr)) icpgr_=icpgr
  has_icpgr=(icpgr_>0.and.icpgr_<=ncpgr_)
  if (present(icpgr).and.(.not.present(ncpgr))) then
-   message='  ncpgr must be present when icpgr is present !'
-   MSG_BUG(message)
+   msg='ncpgr must be present when icpgr is present (pawcprj_get)!'
+   MSG_BUG(msg)
  end if
  if (has_icpgr.and.cprj_k(1,1)%ncpgr<1) then
-   message='  cprj_k%ncpgr not consistent with icpgr !'
-   MSG_BUG(message)
+   msg='cprj_k%ncpgr not consistent with icpgr (pawcprj_get)!'
+   MSG_BUG(msg)
  end if
 
 !MPI data
  has_distrb=present(proc_distrb)
  if (has_distrb) then
    if (.not.present(mpicomm)) then
-     message='  mpicomm must be present when proc_distrb is present !'
-     MSG_BUG(message)
+     msg='mpicomm must be present when proc_distrb is present (pawcprj_get)!'
+     MSG_BUG(msg)
    end if
    me=xcomm_rank(mpicomm)
  end if
-
-
-
-
-
-
 
  if (mkmem==0) then
 
    if (iband1==1) then
      read(uncp) nband0
      if (nband_k/=nband0) then
-       message='  _PAW file was not created with the right options !'
-       MSG_BUG(message)
+       msg='_PAW file was not created with the right options (pawcprj_get)!'
+       MSG_BUG(msg)
      end if
    end if
 
@@ -1213,8 +1203,6 @@ end subroutine pawcprj_output
 
  end if
 
- DBG_EXIT("COLL")
-
 end subroutine pawcprj_get
 !!***
 
@@ -1299,7 +1287,7 @@ end subroutine pawcprj_get
  integer :: iatm,iatom,iband,ibsp,icpgr,ierr,ii,ilmn,isp,ispinor,jband,jj
  integer :: lmndim,me,ncpgr,nproc_band
  logical :: has_distrb,to_be_gathered_
- character(len=500) :: message
+ character(len=500) :: msg
 !arrays
  real(dp),allocatable :: buffer1(:),buffer2(:)
 ! *************************************************************************
@@ -1312,8 +1300,8 @@ end subroutine pawcprj_get
  has_distrb=present(proc_distrb)
  if (has_distrb) then
    if (.not.present(mpicomm)) then
-     message='  mpicomm must be present when proc_distrb is present !'
-     MSG_BUG(message)
+     msg='mpicomm must be present when proc_distrb is present (pawcprj_put)!'
+     MSG_BUG(msg)
    end if
    me=xcomm_rank(mpicomm)
  end if
@@ -1500,7 +1488,7 @@ end subroutine pawcprj_put
 !Local variables-------------------------------
 !scalars
  integer :: iexit,ii,jj,kk,n1atindx,n1cprj,n2cprj,ncpgr
- character(len=500) :: msg
+ character(len=100) :: msg
 !arrays
  integer,allocatable :: nlmn(:)
  type(pawcprj_type),allocatable :: cprj_tmp(:,:)
@@ -1512,7 +1500,7 @@ end subroutine pawcprj_put
  if (n1cprj==0.or.n2cprj==0.or.n1atindx<=1) return
 
  if (n1cprj/=n1atindx) then
-   msg=" Error in pawcprj_reorder: wrong sizes !"
+   msg='wrong sizes (pawcprj_reorder)!'
    MSG_BUG(msg)
  end if
 
@@ -1614,7 +1602,7 @@ subroutine pawcprj_mpi_exch(natom,n2dim,nlmn,ncpgr,Cprj_send,Cprj_recv,sender,re
 !scalars
  integer :: iat,jj,t2dim,tcpgr,n1dim,nn
  integer :: ntotcp,ipck,rank
- character(len=500) :: message
+ character(len=500) :: msg
 !arrays
  real(dp),allocatable :: buffer_cp(:,:),buffer_cpgr(:,:,:)
 
@@ -1631,7 +1619,6 @@ subroutine pawcprj_mpi_exch(natom,n2dim,nlmn,ncpgr,Cprj_send,Cprj_recv,sender,re
 
  rank = xcomm_rank(spaceComm)
 
-!#if defined DEBUG_MODE
  nn=size(nlmn,dim=1)
  if (rank==sender) then
    n1dim=size(Cprj_send,dim=1)
@@ -1644,14 +1631,10 @@ subroutine pawcprj_mpi_exch(natom,n2dim,nlmn,ncpgr,Cprj_send,Cprj_recv,sender,re
    tcpgr=Cprj_recv(1,1)%ncpgr
  end if
  if (rank/=sender.and.rank/=receiver) then
-   write(message, '(a,3i0)' ) &
-&   ' pawcprj_mpi_exch: rank is not equal to sender or receiver ',rank, sender, receiver
-   MSG_BUG(message)
+   write(msg,'(a,3i0)') &
+&   'rank is not equal to sender or receiver (pawcprj_mpi_exch): ',rank, sender, receiver
+   MSG_BUG(msg)
  end if
-!call assert(   (nn==n1dim),'pawcprj_mpi_exch: size mismatch in natom!')
-!call assert((t2dim==n2dim),'pawcprj_mpi_exch: size mismatch in dim=2!')
-!call assert((tcpgr==ncpgr),'pawcprj_mpi_exch: size mismatch in ncpgr!')
-!#endif
 
  ntotcp=n2dim*SUM(nlmn(:))
 
@@ -1757,6 +1740,7 @@ subroutine pawcprj_mpi_send(natom,n2dim,nlmn,ncpgr,cprj_out,receiver,spaceComm,i
 !scalars
  integer :: iat,jj,t2dim,tcpgr,n1dim,nn
  integer :: ntotcp,ipck,tag
+ character(len=100) :: msg
 !arrays
  real(dp),allocatable :: buffer_cp(:,:),buffer_cpgr(:,:,:)
 
@@ -1772,9 +1756,18 @@ subroutine pawcprj_mpi_send(natom,n2dim,nlmn,ncpgr,cprj_out,receiver,spaceComm,i
  t2dim=size(cprj_out,dim=2)
  tcpgr=cprj_out(1,1)%ncpgr
 
- call assert(   (nn==n1dim),'pawcprj_mpi_send: size mismatch in natom!')
- call assert((t2dim==n2dim),'pawcprj_mpi_send: size mismatch in dim=2!')
- call assert((tcpgr==ncpgr),'pawcprj_mpi_send: size mismatch in ncpgr!')
+ if (nn==n1dim) then
+   msg='size mismatch in natom (pawcprj_mpi_send)!'
+   MSG_BUG(msg)
+ end if
+ if (t2dim==n2dim) then
+   msg='size mismatch in dim=2 (pawcprj_mpi_send)!'
+   MSG_BUG(msg)
+ end if
+ if (tcpgr==ncpgr) then
+   msg='size mismatch in ncpgr (pawcprj_mpi_send)!'
+   MSG_BUG(msg)
+ end if
 
  ntotcp=n2dim*SUM(nlmn(:))
 
@@ -1868,6 +1861,7 @@ subroutine pawcprj_mpi_recv(natom,n2dim,nlmn,ncpgr,cprj_in,sender,spaceComm,ierr
 !scalars
  integer :: iat,jj,t2dim,tcpgr,n1dim,nn
  integer :: ntotcp,ipck,tag
+ character(len=100) :: msg
 !arrays
  real(dp),allocatable :: buffer_cp(:,:),buffer_cpgr(:,:,:)
 
@@ -1883,9 +1877,18 @@ subroutine pawcprj_mpi_recv(natom,n2dim,nlmn,ncpgr,cprj_in,sender,spaceComm,ierr
  t2dim=size(cprj_in,dim=2)
  tcpgr=cprj_in(1,1)%ncpgr
 
- call assert(   (nn==n1dim),'pawcprj_mpi_recv: size mismatch in natom!')
- call assert((t2dim==n2dim),'pawcprj_mpi_recv: size mismatch in dim=2!')
- call assert((tcpgr==ncpgr),'pawcprj_mpi_recv: size mismatch in ncpgr!')
+ if (nn==n1dim) then
+   msg='size mismatch in natom (pawcprj_mpi_recv)!'
+   MSG_BUG(msg)
+ end if
+ if (t2dim==n2dim) then
+   msg='size mismatch in dim=2 (pawcprj_mpi_recv)!'
+   MSG_BUG(msg)
+ end if
+ if (tcpgr==ncpgr) then
+   msg='size mismatch in ncpgr (pawcprj_mpi_recv)!'
+   MSG_BUG(msg)
+ end if
 
  ntotcp=n2dim*SUM(nlmn(:))
 
@@ -2066,6 +2069,7 @@ subroutine pawcprj_mpi_allgather(cprj_loc,cprj_gat,natom,n2dim,nlmn,ncpgr,nproc,
  integer :: iat,jj,t2dim,tcpgr,tg2dim,n1dim,nn
  integer :: ntotcp,ibuf,ipck,iproc
  logical :: rank_ordered_
+ character(len=100) :: msg
 !arrays
  real(dp),allocatable :: buffer_cpgr(:,:,:),buffer_cpgr_all(:,:,:)
 
@@ -2083,10 +2087,22 @@ subroutine pawcprj_mpi_allgather(cprj_loc,cprj_gat,natom,n2dim,nlmn,ncpgr,nproc,
  tg2dim=size(cprj_gat,dim=2)
  tcpgr=cprj_loc(1,1)%ncpgr
 
- call assert(   (nn==n1dim),'pawcprj_mpi_allgather: size mismatch in natom!')
- call assert((t2dim==n2dim),'pawcprj_mpi_allgather: size mismatch in dim=2!')
- call assert((tg2dim==n2dim*nproc),'pawcprj_mpi_allgather: size mismatch in dim=2!')
- call assert((tcpgr==ncpgr),'pawcprj_mpi_allgather: size mismatch in ncpgr!')
+ if (nn==n1dim) then
+   msg='size mismatch in natom (pawcprj_mpi_allgather)!'
+   MSG_BUG(msg)
+ end if
+ if (t2dim==n2dim) then
+   msg='size mismatch in dim=2 (pawcprj_mpi_allgather)!'
+   MSG_BUG(msg)
+ end if
+ if (tg2dim==n2dim*nproc) then
+   msg='size mismatch in dim=2 (pawcprj_mpi_allgather)!'
+   MSG_BUG(msg)
+ end if
+ if (tcpgr==ncpgr) then
+   msg='size mismatch in ncpgr (pawcprj_mpi_allgather)!'
+   MSG_BUG(msg)
+ end if
 
  rank_ordered_=.false.;if(present(rank_ordered)) rank_ordered_=rank_ordered
 
@@ -2187,8 +2203,8 @@ subroutine pawcprj_bcast(Cprj,natom,n2dim,nlmn,ncpgr,master,spaceComm,ierr)
 !Local variables-------------------------------
 !scalars
  integer :: iat,jj,n1dim,nn
-! integer :: tcpgr
  integer :: ntotcp,ipck,rank,nprocs
+ character(len=100) :: msg
 !arrays
  real(dp),allocatable :: buffer_cp(:,:),buffer_cpgr(:,:,:)
 
@@ -2200,13 +2216,12 @@ subroutine pawcprj_bcast(Cprj,natom,n2dim,nlmn,ncpgr,master,spaceComm,ierr)
 
  rank = xcomm_rank(spaceComm)
 
-!#if defined DEBUG_MODE
  nn=size(nlmn,dim=1)
  n1dim=size(Cprj,dim=1)
- call assert((nn==n1dim),'pawcprj_bcast: size mismatch in natom!')
-!!!tcpgr=Cprj(1,1)%ncpgr
-!!!call assert((tcpgr==ncpgr),'pawcprj_bcast: size mismatch in ncpgr!')
-!#endif
+ if (nn==n1dim) then
+   msg='size mismatch in natom (pawcprj_bcast)!'
+   MSG_BUG(msg)
+ end if
 
  ntotcp=n2dim*SUM(nlmn(:))
 
@@ -2319,6 +2334,7 @@ end subroutine pawcprj_bcast
  integer :: ib,iband,iband_1,iband_2,iband_shift,iblock_atom,iblock_band,ibshft
  integer :: ierr,ip,ispinor,me,nba,nbb,nbnp_sd,nbnp_rc,ncpgr,nlmn,np
  integer :: rbufsize,sbufsize,size11,size12,size21,size22,transpose_mode
+ character(len=100) :: msg
 !arrays
  integer,allocatable :: cprjsz_atom(:),cprjsz_block(:,:)
  integer,allocatable,target :: count_atom(:),count_band(:),displ_atom(:),displ_band(:)
@@ -2352,7 +2368,8 @@ end subroutine pawcprj_bcast
  else if (size11==nba.and.size12==nband*nspinor.and.&
 &   size21==natom.and.size22==nbb*bpp*nspinor) then
  else
-   MSG_BUG('  Wrong cprjin/cprjout sizes !')
+   msg='wrong cprjin/cprjout sizes (pawcprj_transpose)!'
+   MSG_BUG(msg)
  end if
 
 !Compute size of atom bloc (wr to cprj)
@@ -2462,7 +2479,8 @@ end subroutine pawcprj_bcast
        end do
      end if
      if (buf_indx/=sbufsize) then
-       MSG_BUG('  wrong buffer size for sending !')
+       msg='wrong buffer size for sending (pawcprj_transpose)!'
+       MSG_BUG(msg)
      end if
 
 !    Main call to MPI_ALLTOALL
@@ -2493,7 +2511,8 @@ end subroutine pawcprj_bcast
        cprjout(iatom,iband)%nlmn=0;cprjout(iatom,iband)%ncpgr=0
      end if
      if (buf_indx/=rbufsize) then
-       MSG_BUG('  Error: wrong buffer size for receiving !')
+       msg='wrong buffer size for receiving (pawcprj_transpose)!'
+       MSG_BUG(msg)
      end if
 
 !    Deallocation of buffers
@@ -2571,7 +2590,7 @@ end subroutine pawcprj_bcast
 !Local variables-------------------------------
 !scalars
  integer :: i1,iatom,ibsp,icpgr,ilmn,isp,ispinor,jj,lmndim,n2dim,n2dim_gat,ncpgr
- character(len=500) :: msg
+ character(len=100) :: msg
 !arrays
  integer :: nlmn(natom)
  real(dp),allocatable :: buffer1(:),buffer2(:)
@@ -2581,7 +2600,7 @@ end subroutine pawcprj_bcast
  n2dim    =size(cprj,dim=2)
  n2dim_gat=size(cprj_gat,dim=2)
  if (n2dim_gat/=(nspinortot/nspinor)*n2dim) then
-   write(msg,'(a)') "Wrong dims for cprj and cprj_gat !"
+   msg='wrong dims (pawcprj_gather_spin)!'
    MSG_BUG(msg)
  end if
 
@@ -2719,7 +2738,7 @@ subroutine pawcprj_getdim(dimcprj,natom,nattyp,ntypat,typat,Pawtab,sort_mode)
   end do
 
  CASE DEFAULT
-  msg = " Wrong value for sort_mode: "//TRIM(sort_mode)
+  msg='Wrong value for sort_mode: '//TRIM(sort_mode)
   MSG_ERROR(msg)
  END SELECT
 

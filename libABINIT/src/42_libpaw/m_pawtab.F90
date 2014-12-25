@@ -25,8 +25,8 @@
 MODULE m_pawtab
 
  use defs_basis
- use m_errors
  use m_xmpi
+ USE_MSG_HANDLING
  USE_MEMORY_PROFILING
 
  implicit none
@@ -1297,13 +1297,17 @@ subroutine pawtab_get_lsize(Pawtab,l_size_atm,natom,typat, &
 
 !Local variables-------------------------------
  integer :: ia,ityp,natom_typat
+ character(len=100) :: msg
 
 ! *************************************************************************
 
  !@pawtab_type
 
  natom_typat=size(typat)
- ABI_CHECK(size(pawtab)>=maxval(typat),'error on pawtab size!')
+ if (size(pawtab)<maxval(typat)) then
+   msg='error on pawtab size!'
+   MSG_BUG(msg)
+ end if
 
  if (.not.allocated(l_size_atm)) then
    LIBPAW_ALLOCATE(l_size_atm,(natom))
@@ -1326,7 +1330,8 @@ subroutine pawtab_get_lsize(Pawtab,l_size_atm,natom,typat, &
 
 !2nd case: parallel mode
    if (.not.present(mpi_atmtab)) then
-     MSG_BUG('optional args error!')
+     msg='optional args error!'
+     MSG_BUG(msg)
    end if
    do ia=1,natom
      ityp=typat(mpi_atmtab(ia))

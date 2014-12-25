@@ -36,7 +36,7 @@
 !!      chkinp,ingeo
 !!
 !! CHILDREN
-!!      leave_new,wrtout
+!!      abi_leave_new,abi_wrtout
 !!
 !! SOURCE
 
@@ -128,10 +128,10 @@ subroutine chkorthsy(gprimd,iout,nsym,rmet,rprimd,symrel)
 &     '  Action : modify rprim, acell and/or symrel so that',ch10,&
 &     '   vector lengths and angles are preserved.',ch10,&
 &     '   Beware, the tolerance on symmetry operations is very small.'
-     call wrtout(iout,message,'COLL')
-     call wrtout(std_out,  message,'COLL')
+     call abi_wrtout(iout,message,'COLL')
+     call abi_wrtout(std_out,  message,'COLL')
 !    Should use ierr
-     call leave_new('COLL')
+     call abi_leave_new('COLL')
    end if
 
 !  Also, the scalar product of rprimd_sym and gprimd must give integer numbers
@@ -158,10 +158,10 @@ subroutine chkorthsy(gprimd,iout,nsym,rmet,rprimd,symrel)
 &         '  a different lattice.',ch10,&
 &         '  Action : modify rprim, acell and/or symrel so that',ch10,&
 &         '   the lattice is preserved.'
-         call wrtout(iout,message,'COLL')
-         call wrtout(std_out,  message,'COLL')
+         call abi_wrtout(iout,message,'COLL')
+         call abi_wrtout(std_out,  message,'COLL')
 !        Should use ierr
-         call leave_new('COLL')
+         call abi_leave_new('COLL')
        end if
      end do
    end do

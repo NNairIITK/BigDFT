@@ -39,7 +39,7 @@
 !!      symsgcube,symsghexa,symsgortho,symsgtetra
 !!
 !! CHILDREN
-!!      leave_new,wrtout
+!!      abi_leave_new,abi_wrtout
 !!
 !! SOURCE
 
@@ -98,8 +98,8 @@ subroutine bldgrp(msym,nogen,nsym,symafm,symrel,tnons)
 &   '  and it should be greater than one',ch10,&
 &   '  This is not allowed.  ',ch10,&
 &   '  Action : Contact ABINIT group '
-   call wrtout(std_out,  message,'COLL')
-   call leave_new('COLL')
+   call abi_wrtout(std_out,  message,'COLL')
+   call abi_leave_new('COLL')
  end if
 
 !Transfer the generators to bcksymrel
@@ -195,8 +195,8 @@ subroutine bldgrp(msym,nogen,nsym,symafm,symrel,tnons)
 &   ' bldgrp : BUG -',ch10,&
 &   '  The symmetries obtained are  ',nogen,ch10,&
 &   '  and they should be ',nsym
-   call wrtout(std_out,  message,'COLL')
-   call leave_new('COLL')
+   call abi_wrtout(std_out,  message,'COLL')
+   call abi_leave_new('COLL')
  end if
 
 !DEBUG

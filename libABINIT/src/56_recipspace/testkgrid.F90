@@ -53,7 +53,7 @@
 !!      inkpts
 !!
 !! CHILDREN
-!!      getkgrid,leave_new,matr3inv,metric,smallprim,wrtout
+!!      getkgrid,abi_leave_new,matr3inv,metric,smallprim,abi_wrtout
 !!
 !! SOURCE
 
@@ -123,8 +123,8 @@ subroutine testkgrid(bravais,iout,kptrlatt,kptrlen,&
 &     '  The values of vacuum must be 0 or 1.',ch10,&
 &     '  However, the input vacuum(',ii,') is',vacuum(ii),ch10,&
 &     '  Action : correct vacuum in your input file.'
-     call wrtout(std_out,message,'COLL')
-     call leave_new('COLL')
+     call abi_wrtout(std_out,message,'COLL')
+     call abi_leave_new('COLL')
    end if
  end do
 
@@ -286,8 +286,8 @@ subroutine testkgrid(bravais,iout,kptrlatt,kptrlen,&
 &   '  Note that kptopt=1 in this analysis, irrespective of its input value.',&
    ch10,ch10,&
 &   ' Grid#    kptrlatt         shiftk         kptrlen       nkpt  iset',ch10
-   call wrtout(std_out,message,'COLL')
-   call wrtout(iout,message,'COLL')
+   call abi_wrtout(std_out,message,'COLL')
+   call abi_wrtout(iout,message,'COLL')
    allocate(grid_list(mkpt_list),kptrlen_list(mkpt_list))
    grid_list(:)=0
    kptrlen_list(:)=0.0_dp
@@ -310,8 +310,8 @@ subroutine testkgrid(bravais,iout,kptrlatt,kptrlen,&
 &     '    1  ',kptrlatt(:,1),'  ',shiftk(1,1),'  ',kptrlen,1,1,ch10,&
 &     '       ',kptrlatt(:,2),'  ',shiftk(2,1),ch10,&
 &     '       ',kptrlatt(:,3),'  ',shiftk(3,1),ch10
-     call wrtout(std_out,message,'COLL')
-     call wrtout(iout,message,'COLL')
+     call abi_wrtout(std_out,message,'COLL')
+     call abi_wrtout(iout,message,'COLL')
 !    The unit cell volume is fake
      ucvol=kptrlen**3
    end if
@@ -619,8 +619,8 @@ subroutine testkgrid(bravais,iout,kptrlatt,kptrlen,&
 &       '  ',kptrlen_trial,nkpt_trial,iset,ch10,&
 &       '       ',kptrlatt_trial(:,2),'  ',shiftk_trial(2,1),ch10,&
 &       '       ',kptrlatt_trial(:,3),'  ',shiftk_trial(3,1),ch10
-       call wrtout(std_out,message,'COLL')
-       call wrtout(iout,message,'COLL')
+       call abi_wrtout(std_out,message,'COLL')
+       call abi_wrtout(iout,message,'COLL')
 
 !      Keep track of this grid, if it is worth
        if(kptrlen_trial > kptrlen_list(nkpt_trial)*(1.0_dp+tol8))then
@@ -673,8 +673,8 @@ subroutine testkgrid(bravais,iout,kptrlatt,kptrlen,&
        write(message,'(2a)' )ch10,&
 &       ' Note that the system is zero-dimensional.'
      end if
-     call wrtout(std_out,message,'COLL')
-     call wrtout(iout,message,'COLL')
+     call abi_wrtout(std_out,message,'COLL')
+     call abi_wrtout(iout,message,'COLL')
    end if
 
 !  The asymptotic value of the merit factor is determined
@@ -692,8 +692,8 @@ subroutine testkgrid(bravais,iout,kptrlatt,kptrlen,&
 &   ch10,'  (and to one, two or four in 2 dimensions)',&
 &   ch10,ch10,&
 &   '    nkpt   kptrlen    grid#  merit_factor'
-   call wrtout(std_out,message,'COLL')
-   call wrtout(iout,message,'COLL')
+   call abi_wrtout(std_out,message,'COLL')
+   call abi_wrtout(iout,message,'COLL')
 
    kptrlen_max=0.0_dp
    do ii=1,mkpt_list
@@ -702,8 +702,8 @@ subroutine testkgrid(bravais,iout,kptrlatt,kptrlen,&
        merit_factor=kptrlen_max**ndims/dble(ii)*factor
        write(message, '(i6,es14.4,i6,f12.4)' )&
 &       ii,kptrlen_max,grid_list(ii),merit_factor
-       call wrtout(std_out,message,'COLL')
-       call wrtout(iout,message,'COLL')
+       call abi_wrtout(std_out,message,'COLL')
+       call abi_wrtout(iout,message,'COLL')
      end if
      if(kptrlen_max>1.2_dp*(1.0_dp-tol8)*kptrlen_target)exit
    end do
@@ -712,17 +712,17 @@ subroutine testkgrid(bravais,iout,kptrlatt,kptrlen,&
 &   ' For target kptrlen=',kptrlen_target,',',&
 &   ' the selected grid is number',igrid_current,',',ch10,&
 &   '     giving kptrlen=',kptrlen_current,' with nkpt=',nkpt_current
-   call wrtout(std_out,message,'COLL')
-   call wrtout(iout,message,'COLL')
+   call abi_wrtout(std_out,message,'COLL')
+   call abi_wrtout(iout,message,'COLL')
 
 !  call leave_test
 
    write(message,'(a,a,a,a)' )ch10,&
 &   ' testkgrid : stop after analysis of a series of k-grids.',ch10,&
 &   '  For usual production runs, set prtkpt back to 0 (the default).'
-   call wrtout(std_out,message,'COLL')
-   call wrtout(iout,message,'COLL')
-   call leave_new('COLL')
+   call abi_wrtout(std_out,message,'COLL')
+   call abi_wrtout(iout,message,'COLL')
+   call abi_leave_new('COLL')
  end if
 
 !DEBUG

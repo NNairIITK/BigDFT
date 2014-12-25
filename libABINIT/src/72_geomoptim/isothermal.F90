@@ -87,7 +87,7 @@ subroutine md_isothermal(acell, acell_next, amass, bmass, dtion, etotal, etotal0
      write(message, '(a,es18.10,a,es18.10,a,es18.10)' )&
           & ' dtotal=',(ekin+etotal)-etotal0, &
           & ', ekin=',ekin,', epot=', etotal
-     call wrtout(std_out,message,'COLL')
+     call abi_wrtout(std_out,message,'COLL')
      !   End of sub case optcell=0
      !   ##### sub  case optcell==1 Isothermal-Isenthalpic Ensemble (homogeneous cell deformation)##########
   else if (optcell==1) then
@@ -142,7 +142,7 @@ subroutine md_isothermal(acell, acell_next, amass, bmass, dtion, etotal, etotal0
      write(message, '(a,es18.10,a,es18.10,a,es18.10)' )&
           & ' dtotal=',(ekin+etotal)-etotal0, &
           & ', ekin=',ekin,', epot=', etotal
-     call wrtout(std_out,message,'COLL')
+     call abi_wrtout(std_out,message,'COLL')
      !   End of sub case optcell = 1
      !   ##### sub  case optcell==2 Isothermal-Isenthalpic Ensemble (full cell deformation)##########
   else if (optcell==2) then
@@ -211,7 +211,7 @@ subroutine md_isothermal(acell, acell_next, amass, bmass, dtion, etotal, etotal0
      write(message, '(a,es18.10,a,es18.10,a,es18.10)' )&
           & ' dtotal=',(ekin+etotal)-etotal0, &
           & ', ekin=',ekin,', epot=', etotal
-     call wrtout(std_out,message,'COLL')
+     call abi_wrtout(std_out,message,'COLL')
      !   Evolution of cell and volumr
      acell_next(:)=acell(:)
      ucvol_next=ucvol
@@ -221,8 +221,8 @@ subroutine md_isothermal(acell, acell_next, amass, bmass, dtion, etotal, etotal0
           &    ' moldyn : BUG -',ch10,&
           &    '  Disallowed value for optcell=',optcell,ch10,&
           &    '  Allowed values with ionmov=13 : 0 to 2.'
-     call wrtout(std_out,message,'COLL')
-     call leave_new('COLL')
+     call abi_wrtout(std_out,message,'COLL')
+     call abi_leave_new('COLL')
   end if
   deallocate(fcart_m)
 

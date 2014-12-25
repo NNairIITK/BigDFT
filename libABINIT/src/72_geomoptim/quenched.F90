@@ -46,8 +46,8 @@ subroutine md_quenched_stop_atoms(amass, dtion, ekin, fcart, iatfix, itime, &
 
   if(nstopped/=0)then
      write(message,'(a)') ' List of stopped atoms (ionmov=7) :'
-     call wrtout(ab_out,message,'COLL')
-     call wrtout(std_out,message,'COLL')
+     call abi_wrtout(ab_out,message,'COLL')
+     call abi_wrtout(std_out,message,'COLL')
      istopped=1
      do iatom=1,natom
         if(stopped(iatom)==1)then
@@ -57,8 +57,8 @@ subroutine md_quenched_stop_atoms(amass, dtion, ekin, fcart, iatfix, itime, &
      end do
      do ii=1,nstopped,16
         write(message, '(16i4)' )stopped(ii:min(ii+15,nstopped))
-        call wrtout(ab_out,message,'COLL')
-        call wrtout(std_out,message,'COLL')
+        call abi_wrtout(ab_out,message,'COLL')
+        call abi_wrtout(std_out,message,'COLL')
      end do
      !   End of test nstopped/=0
   end if

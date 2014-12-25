@@ -34,7 +34,7 @@
 !!      newrho,newvtr
 !!
 !! CHILDREN
-!!      wrtout
+!!      abi_wrtout
 !!
 !! SOURCE
 
@@ -90,7 +90,7 @@ subroutine scfeig(istep,nfft,nspden,vrespc,vtrial,vtrial0,work,errid,errmess)
 &   '    Note that fixed resid should always be much larger',ch10,&
 &   '    than initial PC resid square, still sufficiently',ch10,&
 &   '    small to reduce anharmonic effects ',ch10
-   call wrtout(std_out,message,'COLL')
+   call abi_wrtout(std_out,message,'COLL')
 
 !  Compute the preconditioned residual
    resid_old=0.0_dp
@@ -101,7 +101,7 @@ subroutine scfeig(istep,nfft,nspden,vrespc,vtrial,vtrial0,work,errid,errmess)
    end do
    write(message, '(a,es12.4)' )&
 &   ' scfeig : initial PC_residual square =',resid_old
-   call wrtout(std_out,message,'COLL')
+   call abi_wrtout(std_out,message,'COLL')
    if(resid_old>1.0d-8)then
       errid = AB7_ERROR_MIXING_ARG
       write(errmess,'(a,a,a,a,a,a,a,a,a,a)') ch10,&
@@ -147,8 +147,8 @@ subroutine scfeig(istep,nfft,nspden,vrespc,vtrial,vtrial0,work,errid,errmess)
    eigen_scf=eigen_scf/fix_resid
    write(message, '(a,es12.4,a)' ) &
 &   ' scfeig : Operator expectation value ',eigen_scf,' (extremal eigenvalue * diemix)'
-   call wrtout(std_out,message,'COLL')
-   call wrtout(ab_out,message,'COLL')
+   call abi_wrtout(std_out,message,'COLL')
+   call abi_wrtout(ab_out,message,'COLL')
 !  
 !  Compute residual of vect(*,2)
    resid_new=zero
@@ -169,12 +169,12 @@ subroutine scfeig(istep,nfft,nspden,vrespc,vtrial,vtrial0,work,errid,errmess)
    end if
    write(message, '(a,es12.4)' ) &
 &   ' scfeig : Inverse of renormalization factor ',one/factor
-   call wrtout(std_out,message,'COLL')
-   call wrtout(ab_out,message,'COLL')
+   call abi_wrtout(std_out,message,'COLL')
+   call abi_wrtout(ab_out,message,'COLL')
    write(message, '(a,es12.4)' ) &
 &   ' scfeig : Convergence criterion value (->0 at convergency) ',one/factor-eigen_scf-one
-   call wrtout(std_out,message,'COLL')
-   call wrtout(ab_out,message,'COLL')
+   call abi_wrtout(std_out,message,'COLL')
+   call abi_wrtout(ab_out,message,'COLL')
    
    work(:,:,1)=work(:,:,2)*factor
    vtrial(:,:)=vtrial0(:,:)+work(:,:,1)

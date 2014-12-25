@@ -28,7 +28,7 @@
 !!      mlwfovlp_ylmfar,piezo9,q0fit,setup_bethe_salpeter,spectra,strainsym
 !!
 !! CHILDREN
-!!      dbgmdi,dbgmlu,dgeicd,dgetrf,dgetri,leave_new,sgetrf,sgetri,wrtout
+!!      dbgmdi,dbgmlu,dgeicd,dgetrf,dgetri,abi_leave_new,sgetrf,sgetri,abi_wrtout
 !!
 !! SOURCE
 
@@ -98,8 +98,8 @@ subroutine matrginv(a,lda,n)
 &   '  is probably either singular or nearly singular.',ch10,&
 &   '  The ESSL routine dgeicd failed.',ch10,&
 &   '  Action : Contact ABINIT group '
-   call wrtout(std_out,message,'COLL')
-   call leave_new('COLL')
+   call abi_wrtout(std_out,message,'COLL')
+   call abi_leave_new('COLL')
  end if
 
 #elif defined HAVE_NEC_ASL
@@ -112,8 +112,8 @@ subroutine matrginv(a,lda,n)
 &   '  is probably either singular or nearly singular.',ch10,&
 &   '  The ASL routine dbgmlu failed.',ch10,&
 &   '  Action : Contact ABINIT group '
-   call wrtout(std_out,message,'COLL')
-   call leave_new('COLL')
+   call abi_wrtout(std_out,message,'COLL')
+   call abi_leave_new('COLL')
  end if
  call dbgmdi(a,lda,n,ipvt,det,-1,work,ierr)
  if(ierr /= 0) then
@@ -123,8 +123,8 @@ subroutine matrginv(a,lda,n)
 &   '  is probably either singular or nearly singular.',ch10,&
 &   '  The ASL routine dbgmdi failed.',ch10,&
 &   '  Action : Contact ABINIT group '
-   call wrtout(std_out,message,'COLL')
-   call leave_new('COLL')
+   call abi_wrtout(std_out,message,'COLL')
+   call abi_leave_new('COLL')
  end if
 
 #elif defined T3E
@@ -137,8 +137,8 @@ subroutine matrginv(a,lda,n)
 &   '  is probably either singular or nearly singular.',ch10,&
 &   '  The LAPACK routine sgetrf failed.',ch10,&
 &   '  Action : Contact ABINIT group '
-   call wrtout(std_out,message,'COLL')
-   call leave_new('COLL')
+   call abi_wrtout(std_out,message,'COLL')
+   call abi_leave_new('COLL')
  end if
  call sgetri(n,a,lda,ipvt,work,n,ierr)
  if(ierr /= 0) then
@@ -148,8 +148,8 @@ subroutine matrginv(a,lda,n)
 &   '  is probably either singular or nearly singular.',ch10,&
 &   '  The LAPACK routine sgetri failed.',ch10,&
 &   '  Action : Contact ABINIT group '
-   call wrtout(std_out,message,'COLL')
-   call leave_new('COLL')
+   call abi_wrtout(std_out,message,'COLL')
+   call abi_leave_new('COLL')
  end if
 
 #else
@@ -162,8 +162,8 @@ subroutine matrginv(a,lda,n)
 &   '  is probably either singular or nearly singular.',ch10,&
 &   '  The LAPACK routine dgetrf failed.',ch10,&
 &   '  Action : Contact ABINIT group '
-   call wrtout(std_out,message,'COLL')
-   call leave_new('COLL')
+   call abi_wrtout(std_out,message,'COLL')
+   call abi_leave_new('COLL')
  end if
  call dgetri(n,a,lda,ipvt,work,n,ierr)
  if(ierr /= 0) then
@@ -173,8 +173,8 @@ subroutine matrginv(a,lda,n)
 &   '  is probably either singular or nearly singular.',ch10,&
 &   '  The LAPACK routine dgetri failed.',ch10,&
 &   '  Action : Contact ABINIT group '
-   call wrtout(std_out,message,'COLL')
-   call leave_new('COLL')
+   call abi_wrtout(std_out,message,'COLL')
+   call abi_leave_new('COLL')
  end if
 
 #endif

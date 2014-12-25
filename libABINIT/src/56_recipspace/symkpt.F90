@@ -45,7 +45,7 @@
 !!      elphon,getkgrid,loper3,mkphdos,setup_little_group,thm9
 !!
 !! CHILDREN
-!!      leave_new,sort_dp,wrtout
+!!      abi_leave_new,sort_dp,abi_wrtout
 !!
 !! SOURCE
 
@@ -102,8 +102,8 @@ subroutine symkpt(gmet,indkpt1,kptns,nkpt,nkpt1,nsym1,option,&
 &   ' symkpt : BUG -',ch10,&
 &   '  timrev should be 0 or 1, while',ch10,&
 &   '  it is equal to ',timrev,'.'
-   call wrtout(std_out,message,'COLL')
-   call leave_new('COLL')
+   call abi_wrtout(std_out,message,'COLL')
+   call abi_leave_new('COLL')
  end if
 
 
@@ -123,7 +123,7 @@ subroutine symkpt(gmet,indkpt1,kptns,nkpt,nkpt1,nsym1,option,&
      if(tident==1)then
        identi=isym
        write(message, '(a,i3)' )' symkpt : found identity, with number',identi
-       call wrtout(std_out,message,'COLL')
+       call abi_wrtout(std_out,message,'COLL')
        exit
      end if
    end do
@@ -131,8 +131,8 @@ subroutine symkpt(gmet,indkpt1,kptns,nkpt,nkpt1,nsym1,option,&
      write(message, '(a,a,a)' )&
 &     ' symkpt : BUG -',ch10,&
 &     '  Did not found the identity operation.'
-     call wrtout(std_out,message,'COLL')
-     call leave_new('COLL')
+     call abi_wrtout(std_out,message,'COLL')
+     call abi_leave_new('COLL')
    end if
  end if
 
@@ -287,21 +287,21 @@ subroutine symkpt(gmet,indkpt1,kptns,nkpt,nkpt1,nsym1,option,&
      write(message, '(a,a,a,i6,a)' )&
 &     ' symkpt : the number of k-points, thanks to the symmetries,',ch10,&
 &     ' is reduced to',nkpt1,' .'
-     call wrtout(std_out,message,'COLL')
-     call wrtout(ab_out,message,'COLL')
+     call abi_wrtout(std_out,message,'COLL')
+     call abi_wrtout(ab_out,message,'COLL')
 !    DEBUG
 !    write(message, '(a)' )'   Here are the new weights :'
-!    call wrtout(std_out,message,'COLL')
+!    call abi_wrtout(std_out,message,'COLL')
 !    do ikpt=1,nkpt,6
 !    write(message, '(6f12.6)' ) wtk_folded(ikpt:min(nkpt,ikpt+5))
-!    call wrtout(std_out,message,'COLL')
+!    call abi_wrtout(std_out,message,'COLL')
 !    end do
 !    ENDDEBUG
    else
      write(message, '(a)' )&
 &     ' symkpt : not enough symmetry to change the number of k points.'
-     call wrtout(std_out,message,'COLL')
-     call wrtout(ab_out,message,'COLL')
+     call abi_wrtout(std_out,message,'COLL')
+     call abi_wrtout(ab_out,message,'COLL')
    end if
  end if
 

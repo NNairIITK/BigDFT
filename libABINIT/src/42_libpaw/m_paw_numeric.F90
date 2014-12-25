@@ -19,7 +19,7 @@
 module m_paw_numeric
 
  use defs_basis
- use m_errors
+ USE_MSG_HANDLING
  USE_MEMORY_PROFILING
 
  implicit none
@@ -134,7 +134,7 @@ subroutine paw_spline(t,y,n,ybcbeg,ybcend,ypp)
 #define ABI_FUNC 'paw_spline'
 !End of the abilint section
 
-  implicit none
+implicit none
 
 !Arguments ------------------------------------
 !scalars
@@ -148,32 +148,31 @@ subroutine paw_spline(t,y,n,ybcbeg,ybcend,ypp)
 !scalars
  integer :: ibcbeg,ibcend,i,k
  real(dp) :: ratio,pinv
+ character(len=500) :: msg
 !arrays
  real(dp),allocatable :: tmp(:)
 
 ! *************************************************************************
 
-! DBG_ENTER("COLL")
-
 !Check
  if (n<=1) then
-   write(std_out,*) ' '
-   write(std_out,*) 'SPLINE_CUBIC_SET - Fatal error!'
-   write(std_out,*) '  The number of knots must be at least 2.'
-   write(std_out,*) '  The input value of N = ', n
-   MSG_ERROR("Fatal error")
+   write(msg,'(6a,i8)') ch10, &
+&   'SPLINE_CUBIC_SET - Fatal error!',ch10, &
+&   '  The number of knots must be at least 2.',ch10, &
+&   '  The input value of N = ', n
+   MSG_ERROR(msg)
  end if
 
  LIBPAW_ALLOCATE(tmp,(n))
 
  do i=1,n-1
    if (t(i)>=t(i+1)) then
-     write(std_out,*) ' '
-     write(std_out,*) 'SPLINE_CUBIC_SET - Fatal error!'
-     write(std_out,*) '  The knots must be strictly increasing, but'
-     write(std_out,*) '  T(',  i,') = ', t(i)
-     write(std_out,*) '  T(',i+1,') = ', t(i+1)
-     MSG_ERROR("Fatal error")
+   write(msg,'(6a,i8,a,es18.12,2a,i8,a,es18.12)') ch10, &
+&   'SPLINE_CUBIC_SET - Fatal error!',ch10, &
+&   '  The knots must be strictly increasing, but',ch10, &
+&   '  T(',  i,') = ', t(i), ch10, &
+&   '  T(',i+1,') = ', t(i+1)
+   MSG_ERROR(msg)
    end if
  end do
 
@@ -213,8 +212,6 @@ subroutine paw_spline(t,y,n,ybcbeg,ybcend,ypp)
  end do
 
  LIBPAW_DEALLOCATE(tmp)
-
-! DBG_EXIT("COLL")
 
 end subroutine paw_spline
 !!***
@@ -275,11 +272,10 @@ subroutine paw_splint(nspline,xspline,yspline,ysplin2,nfit,xfit,yfit,ierr)
 !scalars
  integer :: left,i,k,right,my_err
  real(dp) :: delarg,invdelarg,aa,bb
+ character(len=50) :: msg
 !arrays
 
 ! *************************************************************************
-
- DBG_ENTER("COLL")
 
  my_err=0
  left=1
@@ -292,10 +288,11 @@ subroutine paw_splint(nspline,xspline,yspline,ysplin2,nfit,xfit,yfit,ierr)
          left = k-1
        else
          if (k-1.eq.1 .and. i.eq.1) then
-           MSG_ERROR('xfit(1) < xspline(1)')
+           msg='xfit(1) < xspline(1)'
          else
-           MSG_ERROR('xfit not properly ordered')
+           msg='xfit not properly ordered'
          end if
+         MSG_ERROR(msg)
        end if
        delarg= xspline(right) - xspline(left)
        invdelarg= 1.0_dp/delarg
@@ -310,8 +307,6 @@ subroutine paw_splint(nspline,xspline,yspline,ysplin2,nfit,xfit,yfit,ierr)
    if (k==nspline+1) my_err=my_err+1 ! xfit not found 
  end do ! i
  if (present(ierr)) ierr=my_err
-
- DBG_EXIT("COLL")
 
 end subroutine paw_splint
 !!***
@@ -369,8 +364,6 @@ subroutine paw_smooth(a,mesh,it)
 
 ! *************************************************************************
 
- DBG_ENTER("COLL")
-
  asm(1:4) = zero ! ?? Correct me ...
  do k=1,it
    asm(5)=0.2_dp*(a(3)+a(4)+a(5)+a(6)+a(7))
@@ -393,8 +386,6 @@ subroutine paw_smooth(a,mesh,it)
      a(i)=asm(i)
    end do
  end do
-
- DBG_EXIT("COLL")
 
 end subroutine paw_smooth
 !!***
@@ -452,21 +443,20 @@ subroutine paw_sort_dp(n,list,iperm,tol)
 !scalars
  integer :: l,ir,iap,i,j
  real(dp) :: ap
+ character(len=500) :: msg
 !arrays
 
 ! *************************************************************************
-
- DBG_ENTER("COLL")
 
 !Accomodate case of array of length 1: already sorted!
  if (n==1) return
 
 !Should not call with n<1
  if (n<1) then
-   write(std_out,'(a,i12,/,a)') &
-&   'paw_sort_dp has been called with array length n=',n,&
+   write(msg,'(a,i12,2a)') &
+&   'paw_sort_dp has been called with array length n=',n, ch10, &
 &   ' having a value less than 1.  This is not allowed.'
-   MSG_ERROR('fatal error')
+   MSG_ERROR(msg)
  end if
 
 !Conduct the usual sort
@@ -507,8 +497,6 @@ subroutine paw_sort_dp(n,list,iperm,tol)
    list(i)=ap
    iperm(i)=iap
  end do ! End infinite do-loop
-
- DBG_EXIT("COLL")
 
 end subroutine paw_sort_dp
 !!***
@@ -565,13 +553,13 @@ subroutine jbessel(bes,besp,bespp,ll,order,xx)
  integer :: ii,il
  real(dp),parameter :: prec=1.d-15
  real(dp) :: besp1,fact,factp,factpp,jn,jnp,jnpp,jr,xx2,xxinv
+ character(len=200) :: msg
 
 ! *********************************************************************
 
- DBG_ENTER("COLL")
-
- if (order>2) then 
-   MSG_BUG("Wrong order in jbessel!")
+ if (order>2) then
+   msg='Wrong order in jbessel!'
+   MSG_ERROR(msg)
  end if
 
  if (abs(xx)<prec) then
@@ -607,8 +595,9 @@ subroutine jbessel(bes,besp,bespp,ll,order,xx)
      jn=jn+jr
    end do
    bes=jn*fact
-   if (abs(jr)>prec) then 
-     MSG_ERROR('Bessel function did not converge!')
+   if (abs(jr)>prec) then
+     msg='Bessel function did not converge!'
+     MSG_ERROR(msg)
    end if
    if (order>=1) then
      factp=fact*xx/dble(2*ll+3)
@@ -618,8 +607,9 @@ subroutine jbessel(bes,besp,bespp,ll,order,xx)
        jnp=jnp+jr
      end do
      besp=-jnp*factp+jn*fact*xxinv*dble(ll)
-     if (abs(jr)>prec) then 
-       MSG_ERROR('1st der. of Bessel function did not converge!')
+     if (abs(jr)>prec) then
+       msg='1st der. of Bessel function did not converge!'
+       MSG_ERROR(msg)
      end if
    end if
    if (order==2) then
@@ -631,7 +621,8 @@ subroutine jbessel(bes,besp,bespp,ll,order,xx)
      end do
      besp1=-jnpp*factpp+jnp*factp*xxinv*dble(ll+1)
      if (abs(jr)>prec) then 
-       MSG_ERROR('2nd der. of Bessel function did not converge !')
+       msg='2nd der. of Bessel function did not converge !'
+       MSG_ERROR(msg)
      end if
    end if
  else
@@ -647,8 +638,6 @@ subroutine jbessel(bes,besp,bespp,ll,order,xx)
  end if
 
  if (order==2) bespp=-besp1+besp*ll*xxinv-bes*ll*xxinv*xxinv
-
- DBG_EXIT("COLL")
 
 end subroutine jbessel
 !!***
@@ -705,8 +694,6 @@ end subroutine jbessel
 
 ! *************************************************************************
 
- DBG_ENTER("COLL")
-
  qq=dh;nroot=0
 
  do while (nroot<nq)
@@ -737,8 +724,6 @@ end subroutine jbessel
    root(nroot)=qx
 
  end do
-
- DBG_EXIT("COLL")
 
 end subroutine solvbes
 !!***
@@ -787,7 +772,6 @@ subroutine jbessel_4spline(bes,besp,ll,order,xx,tol)
 
  implicit none
 
-
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
 #undef ABI_FUNC
@@ -805,7 +789,8 @@ subroutine jbessel_4spline(bes,besp,ll,order,xx,tol)
  real(dp) :: bespp
  real(dp) :: arg,bes0a,bes0ap,bes0b,bes0bp,bes1a,bes1ap,bes1b,bes1bp
  real(dp) :: bes2a,bes2ap,bes2b,bes2bp,bes3a,bes3ap,bes3b,bes3bp
- character(len=500) :: msg
+ character(len=100) :: msg
+
 ! *********************************************************************
 
 ! === l=0,1,2 and 3 spherical Bessel functions (and derivatives) ===
@@ -830,8 +815,9 @@ subroutine jbessel_4spline(bes,besp,ll,order,xx,tol)
  ! call jbessel(bes,besp,bespp,ll,order,xx)
  ! RETURN
 
- if (order>2) then 
-   MSG_ERROR("Wrong order in jbessel")
+ if (order>2) then
+   msg='Wrong order in jbessel'
+   MSG_ERROR(msg)
  end if
 
  select case (ll)

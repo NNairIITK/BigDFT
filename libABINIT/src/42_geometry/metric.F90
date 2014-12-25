@@ -48,7 +48,7 @@
 !!      wannier,wffile,wfread,xfpack
 !!
 !! CHILDREN
-!!      leave_new,matr3inv,wrtout
+!!      abi_leave_new,matr3inv,abi_wrtout
 !!
 !! SOURCE
 
@@ -104,8 +104,8 @@ subroutine metric(gmet,gprimd,iout,rmet,rprimd,ucvol)
 &   '  Input rprim and acell gives vanishing unit cell volume.',ch10,&
 &   '  This indicates linear dependency between primitive lattice vectors',&
 &   ch10,'  Action : correct either rprim or acell in input file.'
-   call wrtout(std_out,message,'COLL')
-   call leave_new('COLL')
+   call abi_wrtout(std_out,message,'COLL')
+   call abi_leave_new('COLL')
  end if
  if (ucvol<0.0d0)then
    write(message,&
@@ -119,8 +119,8 @@ subroutine metric(gmet,gprimd,iout,rmet,rprimd,ucvol)
 &   '   exchange two of the input rprim vectors;',ch10,&
 &   '   if you are optimizing the cell size and shape (optcell/=0),',ch10,&
 &   '   maybe the move was too large, and you might try to decrease strprecon.'
-   call wrtout(std_out,message,'COLL')
-   call leave_new('COLL')
+   call abi_wrtout(std_out,message,'COLL')
+   call abi_leave_new('COLL')
  end if
 
 !Generates gprimd
@@ -130,17 +130,17 @@ subroutine metric(gmet,gprimd,iout,rmet,rprimd,ucvol)
  if (iout>=0) then
    write(message, '(a,a)' )' Real(R)+Recip(G) ',&
 &   'space primitive vectors, cartesian coordinates (Bohr,Bohr^-1):'
-   call wrtout(iout,message,'COLL')
+   call abi_wrtout(iout,message,'COLL')
    do nu=1,3
      write(message, '(1x,a,i1,a,3f11.7,2x,a,i1,a,3f11.7)' ) &
 &     'R(',nu,')=',rprimd(:,nu)+tol10,&
 &     'G(',nu,')=',gprimd(:,nu)+tol10
-     call wrtout(iout,message,'COLL')
+     call abi_wrtout(iout,message,'COLL')
    end do
    write(message, '(a,1p,e15.7,a)' ) &
 &   ' Unit cell volume ucvol=',ucvol+tol10,' bohr^3'
-   call wrtout(iout,message,'COLL')
-   call wrtout(std_out,  message,'COLL')
+   call abi_wrtout(iout,message,'COLL')
+   call abi_wrtout(std_out,  message,'COLL')
  end if
 
 !Compute real space metrics
@@ -164,8 +164,8 @@ subroutine metric(gmet,gprimd,iout,rmet,rprimd,ucvol)
    angle(3)=acos(rmet(1,2)/sqrt(rmet(1,1)*rmet(2,2)))/two_pi*360.0d0
    write(message, '(a,3es16.8,a)' )&
 &   ' Angles (23,13,12)=',angle(1:3),' degrees'
-   call wrtout(iout,message,'COLL')
-   call wrtout(std_out,message,'COLL')
+   call abi_wrtout(iout,message,'COLL')
+   call abi_wrtout(std_out,message,'COLL')
  end if
 
 end subroutine metric

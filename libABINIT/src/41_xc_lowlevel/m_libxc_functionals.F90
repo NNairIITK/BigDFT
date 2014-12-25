@@ -140,17 +140,17 @@ contains
              &    '  is currently unsupported by ABINIT',ch10,&
              &    '  (-1 means the family is unknown to the LibXC itself)',ch10,&
              &    '  Please consult the LibXC documentation',ch10
-        call wrtout(std_out,message,'COLL')
-        call leave_new('COLL')
+        call abi_wrtout(std_out,message,'COLL')
+        call abi_leave_new('COLL')
       end select
 
       ! Dump functional information
       call xc_f90_info_name(funcs(i)%info,message)
-      call wrtout(std_out,message,'COLL')
+      call abi_wrtout(std_out,message,'COLL')
       ii = 0
       call xc_f90_info_refs(funcs(i)%info,ii,str,message)
       do while (ii >= 0)
-        call wrtout(std_out,message,'COLL')
+        call abi_wrtout(std_out,message,'COLL')
         call xc_f90_info_refs(funcs(i)%info,ii,str,message)
       end do
     end do
@@ -158,8 +158,8 @@ contains
     write(message, '(a,a,a,a)' ) ch10,&
          & ' wvl_init_type_wfs : LibXC library is not compiled.', ch10, &
          & '   Action, used the flag --enable-libxc when configuring.'
-    call wrtout(6,message,'COLL')
-    call leave_new('COLL')
+    call abi_wrtout(6,message,'COLL')
+    call abi_leave_new('COLL')
 #endif
   end subroutine libxc_functionals_init
 !!***
@@ -203,8 +203,8 @@ contains
     write(message, '(a,a,a,a)' ) ch10,&
          & ' wvl_init_type_wfs : LibXC library is not compiled.', ch10, &
          & '   Action, used the flag --enable-libxc when configuring.'
-    call wrtout(6,message,'COLL')
-    call leave_new('COLL')
+    call abi_wrtout(6,message,'COLL')
+    call abi_leave_new('COLL')
 #endif
   end subroutine libxc_functionals_end
 !!*** 
@@ -446,8 +446,8 @@ contains
 !                 &    ' libxc_functionals_init : ERROR -',ch10,&
 !                 &    '  MGGA that provide Exc are currently',ch10,&
 !                 &    '  unsupported by ABINIT',ch10
-!            call wrtout(std_out,message,'COLL')
-!            call leave_new('COLL')          
+!            call abi_wrtout(std_out,message,'COLL')
+!            call abi_leave_new('COLL')          
           end select
 
         else

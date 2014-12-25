@@ -53,7 +53,7 @@
 !!      brdmin,delocint,diisrelax,gstate,gstateimg,moldyn
 !!
 !! CHILDREN
-!!      wrtout
+!!      abi_wrtout
 !!
 !! SOURCE
 
@@ -143,8 +143,8 @@ subroutine fconv(fcart,iatfix,iexit,itime,natom,ntime,&
 &   ' At Broyd/MD step',itime,', gradients are converged : ',ch10,&
 &   '  max grad (force/stress) =',fmax,' < tolmxf=',tolmxf,&
 &   ' ha/bohr (free atoms)',ch10
-   call wrtout(ab_out,message,'COLL')
-   call wrtout(std_out,  message,'COLL')
+   call abi_wrtout(ab_out,message,'COLL')
+   call abi_wrtout(std_out,  message,'COLL')
    iexit=1
  else
    if(iexit==1)then
@@ -153,14 +153,14 @@ subroutine fconv(fcart,iatfix,iexit,itime,natom,ntime,&
 &     '  ntime=',ntime,' was not enough Broyd/MD steps to converge gradients: ',&
 &     ch10,'  max grad (force/stress) =',fmax,' > tolmxf=',tolmxf,&
 &     ' ha/bohr (free atoms)',ch10
-     call wrtout(std_out,  message,'COLL')
-     call wrtout(ab_out,  message,'COLL')
+     call abi_wrtout(std_out,  message,'COLL')
+     call abi_wrtout(ab_out,  message,'COLL')
    else
      write(message, '(a,i4,a,a,a,es11.4,a,es11.4,a,a)' ) &
 &     ' fconv : at Broyd/MD step',itime,', gradients have not converged yet. ',&
 &     ch10,'  max grad (force/stress) =',fmax,' > tolmxf=',tolmxf,&
 &     ' ha/bohr (free atoms)',ch10
-     call wrtout(std_out,  message,'COLL')
+     call abi_wrtout(std_out,  message,'COLL')
    end if
    iexit=0
  end if

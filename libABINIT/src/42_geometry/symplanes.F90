@@ -412,7 +412,7 @@ subroutine symplanes(center,iholohedry,isym,isymrelconv,itnonsconv,type_axis)
    write(message,'(a,i3,a)') &
 &   ' symplanes : the symmetry operation no. ',isym,' is a g plane'
  end if
- call wrtout(6,message,'COLL')
+ call abi_wrtout(6,message,'COLL')
 
 !call symlist(brvltt,nsymconv,n_axes,problem)
 

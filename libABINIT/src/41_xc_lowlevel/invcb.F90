@@ -25,7 +25,7 @@
 !!      drivexc,gammapositron,xchcth,xcpbe,xcpositron
 !!
 !! CHILDREN
-!!      leave_new,wrtout
+!!      abi_leave_new,abi_wrtout
 !!
 !! SOURCE
 
@@ -99,8 +99,8 @@
        write(message,'(a,a,a,a)' ) ch10,&
 &       ' invcb : BUG -',ch10,&
 &       '  Fast computation of inverse cubic root failed. '
-       call wrtout(std_out,message,'COLL')
-       call leave_new('COLL')
+       call abi_wrtout(std_out,message,'COLL')
+       call abi_leave_new('COLL')
      end if
    end if
    rspts(ipts)=rhomtrd

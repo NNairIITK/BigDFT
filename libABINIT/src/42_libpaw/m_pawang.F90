@@ -38,8 +38,8 @@
 MODULE m_pawang
 
  use defs_basis
- use m_errors
  use m_xmpi
+ USE_MSG_HANDLING
  USE_MEMORY_PROFILING
 
  use m_sphharm, only : initylmr, mat_mlms2jmj, mat_slm2ylm

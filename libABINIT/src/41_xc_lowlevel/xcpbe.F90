@@ -101,7 +101,7 @@
 !!      drivexc
 !!
 !! CHILDREN
-!!      invcb,leave_new,wrtout
+!!      invcb,abi_leave_new,abi_wrtout
 !!
 !! SOURCE
 !!$#if defined HAVE_CONFIG_H
@@ -214,16 +214,16 @@ subroutine xcpbe(exci,npts,nspden,option,order,rho_updn,vxci,ndvxci,ngr2,nd2vxci
    write(message, '(a,a,a,a,i12,a)' ) ch10,&
 &   ' xcpbe : BUG -',ch10,&
 &   '  Option must be 1, 2, 3, 5, 6, 7, -1 or -2 ; argument was ',option,'.'
-!  call wrtout(std_out,message,'COLL')
-!  call leave_new('COLL')
+!  call abi_wrtout(std_out,message,'COLL')
+!  call abi_leave_new('COLL')
  end if
 !Checks the compatibility between the presence of dvxci and ndvxci
  if(ndvxci /=0 .neqv. present(dvxci))then
    write(message, '(4a)' )ch10,&
 &   ' xcpbe : BUG -',ch10,&
 &   '  If ndvxci/=0 there must the optional arguments dvxci'
-   call wrtout(std_out,message,'COLL')
-   call leave_new('COLL')
+   call abi_wrtout(std_out,message,'COLL')
+   call abi_leave_new('COLL')
  end if
 !Checks the compatibility between the inputs and the presence of the optional arguments
  if(ndvxci /= 0 .and. abs(order) <= 1)then
@@ -232,8 +232,8 @@ subroutine xcpbe(exci,npts,nspden,option,order,rho_updn,vxci,ndvxci,ngr2,nd2vxci
 &   '  The order does not require the presence of dvxci',ch10,&
 &   '  that is allowed when |order|>1, while we have',&
 &   order,'.'
-   call wrtout(std_out,message,'COLL')
-   call leave_new('COLL')
+   call abi_wrtout(std_out,message,'COLL')
+   call abi_leave_new('COLL')
  end if
  if(ndvxci /= 0 .and. (&
 & ((option == 1 .or. option == -1 .or. option == 3) .and. ndvxci /= nspden + 1)&
@@ -249,16 +249,16 @@ subroutine xcpbe(exci,npts,nspden,option,order,rho_updn,vxci,ndvxci,ngr2,nd2vxci
 &   '    8          -2',ch10,&
 &   '    15       2, 5,6,7',ch10,&
 &   '  While we have: order=',order,'option=',option,'nspden=',nspden
-   call wrtout(std_out,message,'COLL')
-   call leave_new('COLL')
+   call abi_wrtout(std_out,message,'COLL')
+   call abi_leave_new('COLL')
  end if
  if (present(grho2_updn)) then
    if (ngr2/=2*nspden-1 ) then
      write(message, '(4a)' ) ch10,&
 &     ' xcpbe : BUG -',ch10,&
 &     '  ngr2 must be 2*nspden-1 !'
-     call wrtout(std_out,message,'COLL')
-     call leave_new('COLL')
+     call abi_wrtout(std_out,message,'COLL')
+     call abi_leave_new('COLL')
    end if
  end if
 
@@ -268,8 +268,8 @@ subroutine xcpbe(exci,npts,nspden,option,order,rho_updn,vxci,ndvxci,ngr2,nd2vxci
 &   '  The option chosen does not need the presence',ch10,&
 &   '  of the gradient, or of the array dvxcdgr in the input, needed if option/=1,-1,3 , while we have',&
 &   option,'.'
-   call wrtout(std_out,message,'COLL')
-   call leave_new('COLL')
+   call abi_wrtout(std_out,message,'COLL')
+   call abi_leave_new('COLL')
  end if
  if (order /= 3 .and. present(d2vxci)) then
    write(message, '(a,a,a,a,a,a,i6,a)' )ch10,&
@@ -277,8 +277,8 @@ subroutine xcpbe(exci,npts,nspden,option,order,rho_updn,vxci,ndvxci,ngr2,nd2vxci
 &   '  The order chosen does not need the presence',ch10,&
 &   '  of the array d2vxci, needed if order=3 , while we have',&
 &   order,'.'
-   call wrtout(std_out,message,'COLL')
-   call leave_new('COLL')
+   call abi_wrtout(std_out,message,'COLL')
+   call abi_leave_new('COLL')
  end if
 
  if(initialized==0)then
@@ -4609,8 +4609,8 @@ if (skip_the_rest) skip_the_rest=exexch==1
 &   ' xcpbe: BUG -',ch10,&
 &   '  Argument nspden must be 1 or 2; ',ch10,&
 &   '  Value provided as argument was ',nspden,'.'
-   call wrtout(std_out,message,'COLL')
-   call leave_new('COLL')
+   call abi_wrtout(std_out,message,'COLL')
+   call abi_leave_new('COLL')
  end if
 
 !DEBUG

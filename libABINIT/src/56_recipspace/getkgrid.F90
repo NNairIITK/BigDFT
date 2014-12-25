@@ -53,7 +53,7 @@
 !!      elphon,getshell,inkpts,nonlinear,testkgrid
 !!
 !! CHILDREN
-!!      leave_new,mati3inv,matr3inv,metric,smallprim,smpbz,symkpt,wrtout
+!!      abi_leave_new,mati3inv,matr3inv,metric,smallprim,smpbz,symkpt,abi_wrtout
 !!
 !! SOURCE
 
@@ -281,8 +281,8 @@ subroutine getkgrid(iout,iscf,kpt,kptopt,kptrlatt,kptrlen,&
              write(message, '(a,a,a,a)' ) ch10,&
 &             ' getkgrid : BUG -',ch10,&
 &             '  The search for a primitive k point lattice contains a bug.'
-             call wrtout(std_out,message,'COLL')
-             call leave_new('COLL')
+             call abi_wrtout(std_out,message,'COLL')
+             call abi_leave_new('COLL')
            end if
          end if
 
@@ -368,7 +368,7 @@ subroutine getkgrid(iout,iscf,kpt,kptopt,kptrlatt,kptrlen,&
  kptrlen=sqrt(length2)
  write(message,'(a,es16.6)' )&
 & ' getkgrid : length of smallest supercell vector (bohr)=',kptrlen
- call wrtout(std_out,message,'COLL')
+ call abi_wrtout(std_out,message,'COLL')
 !If the number of shifts has been decreased,
 !determine the set of kptrlatt2 vectors with minimal length (without using fact_vacuum)
 !It is worth to determine the minimal set of vectors
@@ -459,8 +459,8 @@ subroutine getkgrid(iout,iscf,kpt,kptopt,kptrlatt,kptrlen,&
 &   '  However, note that it might be due to the user,',ch10,&
 &   '  if nkpt is explicitely defined in the input file.',ch10,&
 &   '  In this case, please check your input file.'
-   call wrtout(std_out,message,'COLL')
-   call leave_new('COLL')
+   call abi_wrtout(std_out,message,'COLL')
+   call abi_leave_new('COLL')
  end if
 
 

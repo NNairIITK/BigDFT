@@ -32,7 +32,7 @@
 !! PARENTS
 !!
 !! CHILDREN
-!!      wrtout
+!!      abi_wrtout
 !!
 !! SOURCE
 
@@ -148,7 +148,7 @@ subroutine symmultsg(nsym,symafm,symrel,tnons)
    do ii=1,14
      if (nsym>ii*16) then
        write(message, '(1x,16i5)' )symequiv(isym,(ii-1)*16+1:ii*16)
-       call wrtout(std_out,message,'COLL')
+       call abi_wrtout(std_out,message,'COLL')
      else
        if (nsym-(ii-1)*16 == 1)  write(message, '(1x,1i5)' )  symequiv(isym,(ii-1)*16+1)
        if (nsym-(ii-1)*16 == 2)  write(message, '(1x,2i5)' )  symequiv(isym,(ii-1)*16+1:(ii-1)*16+2)
@@ -157,7 +157,7 @@ subroutine symmultsg(nsym,symafm,symrel,tnons)
        if (nsym-(ii-1)*16 == 6)  write(message, '(1x,6i5)' )  symequiv(isym,(ii-1)*16+1:(ii-1)*16+6)
        if (nsym-(ii-1)*16 == 8)  write(message, '(1x,8i5)' )  symequiv(isym,(ii-1)*16+1:(ii-1)*16+8)
        if (nsym-(ii-1)*16 == 12) write(message, '(1x,12i5)' ) symequiv(isym,(ii-1)*16+1:(ii-1)*16+12)
-       call wrtout(std_out,message,'COLL')
+       call abi_wrtout(std_out,message,'COLL')
        exit
      end if
    end do

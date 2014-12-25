@@ -204,7 +204,7 @@ subroutine symaxes(center,iholohedry,&
        write(message,'(a,i3,a)') &
 &       ' symaxes : the symmetry operation no. ',isym,' is a 2_1-axis '
      end if
-     call wrtout(6,message,'COLL')
+     call abi_wrtout(6,message,'COLL')
 
    case(3)                       ! point symmetry 3
      if(tnons_order==1)then
@@ -234,7 +234,7 @@ subroutine symaxes(center,iholohedry,&
        write(message,'(a,i3,a)') &
 &       ' symaxes : the symmetry operation no. ',isym,' is a 3_1 or 3_2-axis '
      end if
-     call wrtout(6,message,'COLL')
+     call abi_wrtout(6,message,'COLL')
 
    case(4)                       ! point symmetry 4
      if(tnons_order==1)then
@@ -273,7 +273,7 @@ subroutine symaxes(center,iholohedry,&
        write(message,'(a,i3,a)') &
 &       ' symaxes : the symmetry operation no. ',isym,' is a 4_1 or 4_3-axis '
      end if
-     call wrtout(6,message,'COLL')
+     call abi_wrtout(6,message,'COLL')
 
    case(6)                       ! point symmetry 6
      if(tnons_order==1)then
@@ -315,7 +315,7 @@ subroutine symaxes(center,iholohedry,&
        write(message,'(a,i3,a)') &
 &       ' symaxes : the symmetry operation no. ',isym,' is a 6_1 or 6_5-axis '
      end if
-     call wrtout(6,message,'COLL')
+     call abi_wrtout(6,message,'COLL')
 
  end select
 

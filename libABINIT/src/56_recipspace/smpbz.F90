@@ -53,7 +53,7 @@
 !!      elphon,getkgrid,initberry,mkifc9,thm9
 !!
 !! CHILDREN
-!!      wrap2_pmhalf,leave_new,matr3inv,wrtout
+!!      wrap2_pmhalf,abi_leave_new,matr3inv,abi_wrtout
 !!
 !! SOURCE
 
@@ -100,8 +100,8 @@ subroutine smpbz(brav,iout,kptrlatt,mkpt,nkpt,nshiftk,option,shiftk,spkpt)
 
  if(option/=0)then
    write(message,'(a)' )'       Homogeneous q point set in the B.Z.  '
-   call wrtout(std_out,message,'COLL')
-   call wrtout(iout,message,'COLL')
+   call abi_wrtout(std_out,message,'COLL')
+   call abi_wrtout(iout,message,'COLL')
  end if
 
  if(brav/=1)then
@@ -115,8 +115,8 @@ subroutine smpbz(brav,iout,kptrlatt,mkpt,nkpt,nshiftk,option,shiftk,spkpt)
 &     '  kptrlatt(:,1)=',kptrlatt(:,1),ch10,&
 &     '  kptrlatt(:,2)=',kptrlatt(:,2),ch10,&
 &     '  kptrlatt(:,3)=',kptrlatt(:,3)
-     call wrtout(std_out,message,'COLL')
-     call leave_new('COLL')
+     call abi_wrtout(std_out,message,'COLL')
+     call abi_leave_new('COLL')
    end if
 
    ngkpt(1)=kptrlatt(1,1)
@@ -134,8 +134,8 @@ subroutine smpbz(brav,iout,kptrlatt,mkpt,nkpt,nshiftk,option,shiftk,spkpt)
 &     ' ngk(q)pt(2) = ',ngkpt(2),ch10,&
 &     ' ngk(q)pt(3) = ',ngkpt(3),ch10,&
 &     ' Action : correct ngkpt or ngqpt in the input file.'
-     call wrtout(std_out,message,'COLL')
-     call leave_new('COLL')
+     call abi_wrtout(std_out,message,'COLL')
+     call abi_leave_new('COLL')
    end if
 
  end if
@@ -160,7 +160,7 @@ subroutine smpbz(brav,iout,kptrlatt,mkpt,nkpt,nshiftk,option,shiftk,spkpt)
 
 !  Simple Lattice
    write(message, '(a)' )'       Simple Lattice Grid '
-   call wrtout(std_out,message,'COLL')
+   call abi_wrtout(std_out,message,'COLL')
    if (mkpt<nkptlatt*nshiftk) then
      write(message, '(a,a,a,a,a,i8,a,a,a,a,a)' )&
 &     ' smpbz : BUG -',ch10,&
@@ -168,8 +168,8 @@ subroutine smpbz(brav,iout,kptrlatt,mkpt,nkpt,nshiftk,option,shiftk,spkpt)
 &     '  at least',nkptlatt*nshiftk,',',ch10,&
 &     '  Action : set mkpt to that value in the main routine,',ch10,&
 &     '  and recompile the code.'
-     call wrtout(std_out,message,'COLL')
-     call leave_new('COLL')
+     call abi_wrtout(std_out,message,'COLL')
+     call abi_leave_new('COLL')
    end if
 
 !  Build primitive vectors of the k lattice
@@ -244,15 +244,15 @@ subroutine smpbz(brav,iout,kptrlatt,mkpt,nkpt,nshiftk,option,shiftk,spkpt)
 &     ' smpbz : BUG -',ch10,&
 &     '  The number of k points ',nkpt,'  is not equal to',ch10,&
 &     '  nkptlatt*nshiftk which is',nkptlatt*nshiftk,'.'
-     call wrtout(std_out,message,'COLL')
-     call leave_new('COLL')
+     call abi_wrtout(std_out,message,'COLL')
+     call abi_leave_new('COLL')
    end if
 
  else if(brav==2)then
 
 !  Face-Centered Lattice
    write(message,*)'       Face-Centered Lattice Grid '
-   call wrtout(std_out,message,'COLL')
+   call abi_wrtout(std_out,message,'COLL')
    if (mkpt<ngkpt(1)*ngkpt(2)*ngkpt(3)*nshiftk/2) then
      write(message, '(a,a,a,a,a,i8,a,a,a,a,a)' )&
 &     ' smpbz : BUG -',ch10,&
@@ -260,8 +260,8 @@ subroutine smpbz(brav,iout,kptrlatt,mkpt,nkpt,nshiftk,option,shiftk,spkpt)
 &     '  at least',(ngkpt(1)*ngkpt(2)*ngkpt(3)*nshiftk)/2,',',ch10,&
 &     '  Action : set mkpt to that value in the main routine,',ch10,&
 &     '  and recompile the code.'
-     call wrtout(std_out,message,'COLL')
-     call leave_new('COLL')
+     call abi_wrtout(std_out,message,'COLL')
+     call abi_leave_new('COLL')
    end if
    nn=1
    if (ngkpt(1)/=ngkpt(2).or.ngkpt(1)/=ngkpt(3)) then
@@ -273,8 +273,8 @@ subroutine smpbz(brav,iout,kptrlatt,mkpt,nkpt,nshiftk,option,shiftk,spkpt)
 &     '  ngqpt(2) = ',ngkpt(2),ch10,&
 &     '  ngqpt(3) = ',ngkpt(3),ch10,&
 &     '  Action : modify ngqpt(1:3) in the input file.'
-     call wrtout(std_out,message,'COLL')
-     call leave_new('COLL')
+     call abi_wrtout(std_out,message,'COLL')
+     call abi_leave_new('COLL')
    end if
    if ((ngkpt(1)*nshiftk)/=(((ngkpt(1)*nshiftk)/2)*2)) then
      write(message, '(6a,3(a,i6,a),a)' )&
@@ -285,8 +285,8 @@ subroutine smpbz(brav,iout,kptrlatt,mkpt,nkpt,nshiftk,option,shiftk,spkpt)
 &     '  ngqpt(2)*nshiftk = ',ngkpt(2)*nshiftk,ch10,&
 &     '  ngqpt(3)*nshiftk = ',ngkpt(3)*nshiftk,ch10,&
 &     '  Action : modify ngqpt(1:3)*nshiftk in the input file.'
-     call wrtout(std_out,message,'COLL')
-     call leave_new('COLL')
+     call abi_wrtout(std_out,message,'COLL')
+     call abi_leave_new('COLL')
    end if
    if (ngkpt(1)==0.or.ngkpt(2)==0.or.ngkpt(3)==0) then
      spkpt(1,1)=0.0_dp
@@ -329,8 +329,8 @@ subroutine smpbz(brav,iout,kptrlatt,mkpt,nkpt,nshiftk,option,shiftk,spkpt)
 &       '  The number of k points ',nkpt,'  is not equal to',ch10,&
 &       '  (ngkpt(1)*ngkpt(2)*ngkpt(3)*nshiftk)/2 which is',&
 &       (ngkpt(1)*ngkpt(2)*ngkpt(3)*nshiftk)/2,'.'
-       call wrtout(std_out,message,'COLL')
-       call leave_new('COLL')
+       call abi_wrtout(std_out,message,'COLL')
+       call abi_leave_new('COLL')
      end if
    end if
 
@@ -338,7 +338,7 @@ subroutine smpbz(brav,iout,kptrlatt,mkpt,nkpt,nshiftk,option,shiftk,spkpt)
 
 !  Body-Centered Lattice (not mandatory cubic !)
    write(message, '(a)' )'       Body-Centered Lattice Grid '
-   call wrtout(std_out,message,'COLL')
+   call abi_wrtout(std_out,message,'COLL')
    if (mkpt<ngkpt(1)*ngkpt(2)*ngkpt(3)*nshiftk/4) then
      write(message, '(a,a,a,a,a,i8,a,a,a,a,a)' )&
 &     ' smpbz : BUG -',ch10,&
@@ -346,8 +346,8 @@ subroutine smpbz(brav,iout,kptrlatt,mkpt,nkpt,nshiftk,option,shiftk,spkpt)
 &     '  at least',(ngkpt(1)*ngkpt(2)*ngkpt(3)*nshiftk)/4,',',ch10,&
 &     '  Action : set mkpt to that value in the main routine,',ch10,&
 &     '  and recompile the code.'
-     call wrtout(std_out,message,'COLL')
-     call leave_new('COLL')
+     call abi_wrtout(std_out,message,'COLL')
+     call abi_leave_new('COLL')
    end if
    nn=1
    if ((ngkpt(1)*nshiftk)/=(((ngkpt(1)*nshiftk)/2)*2) .or.&
@@ -362,8 +362,8 @@ subroutine smpbz(brav,iout,kptrlatt,mkpt,nkpt,nshiftk,option,shiftk,spkpt)
 &     '  ngqpt(2)*nshiftk = ',ngkpt(2)*nshiftk,ch10,&
 &     '  ngqpt(3)*nshiftk = ',ngkpt(3)*nshiftk,ch10,&
 &     '  Action : modify ngqpt(1:3) in the input file.'
-     call wrtout(std_out,message,'COLL')
-     call leave_new('COLL')
+     call abi_wrtout(std_out,message,'COLL')
+     call abi_leave_new('COLL')
    end if
    if (ngkpt(1)==0.or.ngkpt(2)==0.or.ngkpt(3)==0) then
      spkpt(1,1)=0.0_dp
@@ -409,8 +409,8 @@ subroutine smpbz(brav,iout,kptrlatt,mkpt,nkpt,nshiftk,option,shiftk,spkpt)
 &       ' smpbz : ERROR -',ch10,&
 &       '  BCC lattice, input ngqpt=0, so no kpt is generated.',ch10,&
 &       '  Action : modify ngqpt(1:3) in the input file.'
-       call wrtout(std_out,message,'COLL')
-       call leave_new('COLL')
+       call abi_wrtout(std_out,message,'COLL')
+       call abi_leave_new('COLL')
      end if
      if(nkpt/=(ngkpt(1)*ngkpt(2)*ngkpt(3)*nshiftk)/4)then
        write(message, '(a,a,a,i8,a,a,a,i8,a)' )&
@@ -418,8 +418,8 @@ subroutine smpbz(brav,iout,kptrlatt,mkpt,nkpt,nshiftk,option,shiftk,spkpt)
 &       '  The number of k points ',nkpt,'  is not equal to',ch10,&
 &       '  (ngkpt(1)*ngkpt(2)*ngkpt(3)*nshiftk)/4 which is',&
 &       (ngkpt(1)*ngkpt(2)*ngkpt(3)*nshiftk)/4,'.'
-       call wrtout(std_out,message,'COLL')
-       call leave_new('COLL')
+       call abi_wrtout(std_out,message,'COLL')
+       call abi_leave_new('COLL')
      end if
    end if
 
@@ -428,7 +428,7 @@ subroutine smpbz(brav,iout,kptrlatt,mkpt,nkpt,nshiftk,option,shiftk,spkpt)
 !  Hexagonal Lattice  (D6h)
 
    write(message, '(a)' )'       Hexagonal Lattice Grid '
-   call wrtout(std_out,message,'COLL')
+   call abi_wrtout(std_out,message,'COLL')
    if (mkpt<ngkpt(1)*ngkpt(2)*ngkpt(3)) then
      write(message, '(a,a,a,a,a,i8,a,a,a,a,a)' )&
 &     ' smpbz : BUG -',ch10,&
@@ -436,8 +436,8 @@ subroutine smpbz(brav,iout,kptrlatt,mkpt,nkpt,nshiftk,option,shiftk,spkpt)
 &     '  at least',ngkpt(1)*ngkpt(2)*ngkpt(3),',',ch10,&
 &     '  Action : set mkpt to that value in the main routine,',ch10,&
 &     '  and recompile the code.'
-     call wrtout(std_out,message,'COLL')
-     call leave_new('COLL')
+     call abi_wrtout(std_out,message,'COLL')
+     call abi_leave_new('COLL')
    end if
    nn=1
    if (ngkpt(1)/=ngkpt(2)) then
@@ -448,16 +448,16 @@ subroutine smpbz(brav,iout,kptrlatt,mkpt,nkpt,nshiftk,option,shiftk,spkpt)
 &     '  ngqpt(1) = ',ngkpt(1),ch10,&
 &     '  ngqpt(2) = ',ngkpt(2),ch10,&
 &     '  Action : modify ngqpt(1:3) in the input file.'
-     call wrtout(std_out,message,'COLL')
-     call leave_new('COLL')
+     call abi_wrtout(std_out,message,'COLL')
+     call abi_leave_new('COLL')
    end if
    if (ngkpt(1)==0.or.ngkpt(2)==0.or.ngkpt(3)==0) then
      write(message, '(5a)' )&
 &     ' smpbz : ERROR -',ch10,&
 &     '  For hexagonal lattices, ngqpt(1:3)=0 is not permitted',ch10,&
 &     '  Action : modify ngqpt(1:3) in the input file.'
-     call wrtout(std_out,message,'COLL')
-     call leave_new('COLL')
+     call abi_wrtout(std_out,message,'COLL')
+     call abi_leave_new('COLL')
    else
      do kk=1,ngkpt(3)
        do jj=1,ngkpt(2)
@@ -483,8 +483,8 @@ subroutine smpbz(brav,iout,kptrlatt,mkpt,nkpt,nshiftk,option,shiftk,spkpt)
 &       '  The number of k points ',nkpt,'  is not equal to',ch10,&
 &       '  ngkpt(1)*ngkpt(2)*ngkpt(3)*nshiftk which is',&
 &       ngkpt(1)*ngkpt(2)*ngkpt(3)*nshiftk,'.'
-       call wrtout(std_out,message,'COLL')
-       call leave_new('COLL')
+       call abi_wrtout(std_out,message,'COLL')
+       call abi_leave_new('COLL')
      end if
    end if
 
@@ -494,28 +494,28 @@ subroutine smpbz(brav,iout,kptrlatt,mkpt,nkpt,nshiftk,option,shiftk,spkpt)
 &   ' smpbz : BUG -',ch10,&
 &   '  The calling routine asks brav=',brav,'.',ch10,&
 &   '  but only brav=1,2,3 or 4 are allowed.'
-   call wrtout(std_out,message,'COLL')
-   call leave_new('COLL')
+   call abi_wrtout(std_out,message,'COLL')
+   call abi_leave_new('COLL')
 
  end if
 
  if(option/=0)then
 
    write(message, '(a,i8)' )' Grid q points  : ',nkpt
-   call wrtout(std_out,message,'COLL')
-   call wrtout(iout,message,'COLL')
+   call abi_wrtout(std_out,message,'COLL')
+   call abi_wrtout(iout,message,'COLL')
    nkpout=nkpt
    if(nkpt>80)then
      write(message,'(a)' )' greater than 80, so only write 20 of them '
-     call wrtout(std_out,message,'COLL')
-     call wrtout(iout,message,'COLL')
+     call abi_wrtout(std_out,message,'COLL')
+     call abi_wrtout(iout,message,'COLL')
      nkpout=20
    end if
    do ii=1,nkpout
      write(message, '(1x,i2,a2,3es16.8)' )&
 &     ii,') ',spkpt(1,ii),spkpt(2,ii),spkpt(3,ii)
-     call wrtout(std_out,message,'COLL')
-     call wrtout(iout,message,'COLL')
+     call abi_wrtout(std_out,message,'COLL')
+     call abi_wrtout(iout,message,'COLL')
    end do
 
  end if

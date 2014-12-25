@@ -89,8 +89,8 @@ while ($line = <TEMP>){
      else{ 
       $go=0;
      }
-     $line2=$s0."call wrtout\(std_out,".$s5.",\'COLL\'\)\n";
-     $line3=$s0."call leave_new\(\'COLL\'\)\n";
+     $line2=$s0."call abi_wrtout\(std_out,".$s5.",\'COLL\'\)\n";
+     $line3=$s0."call abi_leave_new\(\'COLL\'\)\n";
      if($go==1){
       print $line2;  
       print $line3; 

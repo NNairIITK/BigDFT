@@ -46,8 +46,8 @@ subroutine md_langevin(amass, dtion, fcart, fcart_mold, friction, itime, ktemp, 
 !!$    if (mod(itime,dtset%delayperm)==0) then
 !!$!    Try commutation of atoms.
 !!$     write(message, '(a)')' Attempt of commutation '
-!!$     call wrtout(ab_out,message,'COLL')
-!!$     call wrtout(std_out,message,'COLL')
+!!$     call abi_wrtout(ab_out,message,'COLL')
+!!$     call abi_wrtout(std_out,message,'COLL')
 !!$!    Compute a 'permutation potential'
 !!$     do iatom=1,natom
 !!$      pot_perm(iatom)=0.0_dp
@@ -74,8 +74,8 @@ subroutine md_langevin(amass, dtion, fcart, fcart_mold, friction, itime, ktemp, 
 !!$     end do
 !!$     write(message, '(a,10f12.5)' )' Perm_pot ',&
 !!$&     (pot_perm(iatom1),iatom1=1,natom)
-!!$     call wrtout(ab_out,message,'COLL')
-!!$     call wrtout(std_out,message,'COLL')
+!!$     call abi_wrtout(ab_out,message,'COLL')
+!!$     call abi_wrtout(std_out,message,'COLL')
 !!$
 !!$!    Find the two atoms, of different types, with the highest perm_pot
 !!$     max_perm(:)=-1.0d9
@@ -88,12 +88,12 @@ subroutine md_langevin(amass, dtion, fcart, fcart_mold, friction, itime, ktemp, 
 !!$!    DEBUG
 !!$!    write(message, '(a,10f12.5)' )' max_Perm ',&
 !!$!    &      (max_perm(itypat),itypat=1,ntypat)
-!!$!    call wrtout(ab_out,message,'COLL')
-!!$!    call wrtout(std_out,message,'COLL')
+!!$!    call abi_wrtout(ab_out,message,'COLL')
+!!$!    call abi_wrtout(std_out,message,'COLL')
 !!$!    write(message, '(a,10i12)' )' imax_Perm ',&
 !!$!    &      (imax_perm(itypat),itypat=1,ntypat)
-!!$!    call wrtout(ab_out,message,'COLL')
-!!$!    call wrtout(std_out,message,'COLL')
+!!$!    call abi_wrtout(ab_out,message,'COLL')
+!!$!    call abi_wrtout(std_out,message,'COLL')
 !!$!    ENDDEBUG
 !!$
 !!$!    Loop and keep the 2 largest values
@@ -122,12 +122,12 @@ subroutine md_langevin(amass, dtion, fcart, fcart_mold, friction, itime, ktemp, 
 !!$     end do
 !!$     write(message, '(2(a,i5))' )' Will commute atom...',iatom1,'...of type ',&
 !!$&     typat(iatom1)
-!!$     call wrtout(ab_out,message,'COLL')
-!!$     call wrtout(std_out,message,'COLL')
+!!$     call abi_wrtout(ab_out,message,'COLL')
+!!$     call abi_wrtout(std_out,message,'COLL')
 !!$     write(message, '(2(a,i5))' )'         with atom...',iatom2,'...of type ',&
 !!$&     typat(iatom2)
-!!$     call wrtout(ab_out,message,'COLL')
-!!$     call wrtout(std_out,message,'COLL')
+!!$     call abi_wrtout(ab_out,message,'COLL')
+!!$     call abi_wrtout(std_out,message,'COLL')
 !!$
 !!$!    Commute the atoms positions
 !!$     distx=xcart(1,iatom1)
@@ -172,8 +172,8 @@ subroutine md_langevin(amass, dtion, fcart, fcart_mold, friction, itime, ktemp, 
 !!$!     Convert back to xred (reduced coordinates)
 !!$      call xredxcart(natom,-1,rprimd,xcart,xred)
 !!$      write(message, '(a)' )' Commutation unsuccessful, recomputing the forces'
-!!$      call wrtout(ab_out,message,'COLL')
-!!$      call wrtout(std_out,message,'COLL')
+!!$      call abi_wrtout(ab_out,message,'COLL')
+!!$      call abi_wrtout(std_out,message,'COLL')
 !!$
 !!$!     And recompute the forces
 !!$      iapp=-1
@@ -189,8 +189,8 @@ subroutine md_langevin(amass, dtion, fcart, fcart_mold, friction, itime, ktemp, 
 !!$     else
 !!$
 !!$      write(message, '(a)')' Commutation successful ! Going on'
-!!$      call wrtout(ab_out,message,'COLL')
-!!$      call wrtout(std_out,message,'COLL')
+!!$      call abi_wrtout(ab_out,message,'COLL')
+!!$      call abi_wrtout(std_out,message,'COLL')
 !!$
 !!$!     Get rid of mean force on whole unit cell, but only if no generalized
 !!$!     constraints are in effect
@@ -263,8 +263,8 @@ subroutine md_langevin(amass, dtion, fcart, fcart_mold, friction, itime, ktemp, 
      !   delxi=delxi/(3.0_dp*natom)
      !   write(message, '(2(a,es22.14))' )' variance =',delxi,'  asked =',&
      !   &    2.0_dp*(friction)*amass(2)*ktemp*dtion
-     !   call wrtout(ab_out,message,'COLL')
-     !   call wrtout(std_out,message,'COLL')
+     !   call abi_wrtout(ab_out,message,'COLL')
+     !   call abi_wrtout(std_out,message,'COLL')
      !   ENDDEBUG
      !   end if itime\=0
 
@@ -272,8 +272,8 @@ subroutine md_langevin(amass, dtion, fcart, fcart_mold, friction, itime, ktemp, 
 
   !  DEBUG
   !  write(message, '(a)' )' after initializing ran_force'
-  !  call wrtout(ab_out,message,'COLL')
-  !  call wrtout(std_out,message,'COLL')
+  !  call abi_wrtout(ab_out,message,'COLL')
+  !  call abi_wrtout(std_out,message,'COLL')
   !  ENDDEBUG
 
   allocate(lang_force(3, natom))
@@ -289,8 +289,8 @@ subroutine md_langevin(amass, dtion, fcart, fcart_mold, friction, itime, ktemp, 
 
   !  DEBUG
   !  write(message, '(a)' )'before verlet'
-  !  call wrtout(ab_out,message,'COLL')
-  !  call wrtout(std_out,message,'COLL')
+  !  call abi_wrtout(ab_out,message,'COLL')
+  !  call abi_wrtout(std_out,message,'COLL')
   !  ENDDEBUG
 
   !  Compute next atomic coordinates using Verlet algorithm

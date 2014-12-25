@@ -28,31 +28,29 @@ module interfaces_14_hidewrite
  implicit none
 
 interface
- subroutine wrtout(unit,msg,mode_paral,do_flush)
+ subroutine abi_wrtout(unit,msg,mode_paral)
   implicit none
   integer,intent(in) :: unit
-  logical,optional,intent(in) :: do_flush
   character(len=*),optional,intent(in) :: mode_paral
   character(len=*),intent(in) :: msg
- end subroutine wrtout
+ end subroutine abi_wrtout
 end interface
 
 interface
- subroutine wrtout_myproc(unit,message,mpicomm,do_flush) ! optional argument
+ subroutine abi_wrtout_myproc(unit,message,mpicomm)
   implicit none
   integer,intent(in),optional :: mpicomm
   integer,intent(in) :: unit
-  logical,optional,intent(in) :: do_flush
   character(len=*),intent(in) :: message
- end subroutine wrtout_myproc
+ end subroutine abi_wrtout_myproc
 end interface
 
 interface
- subroutine write_lines(unit,message)
+ subroutine abi_write_lines(unit,message)
   implicit none
   integer,intent(in) :: unit
   character(len=*),intent(in) :: message
- end subroutine write_lines
+ end subroutine abi_write_lines
 end interface
 
 end module interfaces_14_hidewrite

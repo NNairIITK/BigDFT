@@ -28,12 +28,12 @@ module interfaces_16_hideleave
  implicit none
 
 interface
- subroutine leave_new(mode_paral,exit_status,print_config)
+ subroutine abi_leave_new(mode_paral,exit_status,print_config)
   implicit none
   integer,intent(in),optional :: exit_status
   character(len=4),intent(in) :: mode_paral
   logical,intent(in),optional :: print_config
- end subroutine leave_new
+ end subroutine abi_leave_new
 end interface
 
 end module interfaces_16_hideleave

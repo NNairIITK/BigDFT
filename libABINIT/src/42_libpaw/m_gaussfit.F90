@@ -19,8 +19,8 @@
 module m_gaussfit
 
  use defs_basis
- use m_errors
  use m_xmpi
+ USE_MSG_HANDLING
  USE_MEMORY_PROFILING
 
  use m_paw_numeric, only : paw_splint, paw_spline
@@ -91,28 +91,15 @@ CONTAINS
 !!  outfile= filename to write out fitted functions.
 !!  rpaw=paw radius
 !!  y(nr)= function to fit
-!! 
 !!
 !! OUTPUT
 !! nparam_out= number of parameters found.
 !! param_out(nparam_out)= parameters (coefficients and factors of complex gaussians).
-!! 
-!!
-!! SIDE EFFECTS
-!!
-!! NOTES
-!!
-!! PARENTS
-!!      m_gaussfit
-!!
-!! CHILDREN
-!!      gaussfit_main,paw_spline,paw_splint,pawrad_deducer0,pawrad_free
-!!      pawrad_init,wrtout
 !!
 !! SOURCE
 
  subroutine gaussfit_main(mparam,nparam_out,nterm_bounds,nr,&
-&param_out,pawrad,option,outfile,rpaw,y,comm_mpi)
+&           param_out,pawrad,option,outfile,rpaw,y,comm_mpi)
 
 
 !This section has been created automatically by the script Abilint (TD).
@@ -132,19 +119,19 @@ CONTAINS
  real(dp),intent(inout)::y(nr)
  character(80),intent(in)::outfile
  type(pawrad_type),intent(in) :: pawrad
- !
  integer,intent(out)::nparam_out
- real(dp),intent(out)::param_out(mparam)!------------------------------------------------------------------
+ real(dp),intent(out)::param_out(mparam)
 
 !Local variables-------------------------------
+!scalars
  logical,parameter::modify_y=.false. !used only for plotting purposes
  integer :: ichisq,ierr,ii,jj
  integer :: master,me
  integer :: maxiter,minterm,my_chisq_size,counts_all
  integer :: ngauss,nparam,nproc,nterm
  integer :: verbosity
- real(dp):: chisq,chisq_min
-!real(dp)T1,T2 !uncomment for timming
+ real(dp) :: chisq,chisq_min
+!real(dp) :: T1,T2 !uncomment for timming
  !arrays
  integer::constrains(mparam)
  integer::proc_dist(nterm_bounds(1):nterm_bounds(2))
@@ -152,11 +139,10 @@ CONTAINS
  real(dp)::limit(mparam),param_tmp(mparam),weight(mparam)
  real(dp),allocatable::chisq_array(:),recv_buf(:),send_buf(:)
  real(dp),allocatable::y_out(:)
- character(len=500) :: message
+ character(len=500) :: msg
  
 ! *************************************************************************
 
-!
 !initialize variables
  maxiter=200
 !
@@ -295,16 +281,16 @@ CONTAINS
 
 !Print out info:
  if(me==master) then
-   write(message,'(3a)')'Preliminary results (with only 200 iter.):',ch10,'   ngauss    chisq'
-   call wrtout(std_out,message,'COLL')
+   write(msg,'(3a)')'Preliminary results (with only 200 iter.):',ch10,'   ngauss    chisq'
+   call wrtout(std_out,msg,'COLL')
    do nterm=nterm_bounds(1),nterm_bounds(2)
      if(option==1) ngauss=nterm*4
      if(option==2) ngauss=nterm*4
      if(option==3) ngauss=nterm*2
      if(option==4) ngauss=nterm*2
-     write(message,'(i4,2x,e13.6,1x)')ngauss,&
+     write(msg,'(i4,2x,e13.6,1x)')ngauss,&
 &     chisq_array(map_nterm(nterm))
-     call wrtout(std_out,message,'COLL')
+     call wrtout(std_out,msg,'COLL')
    end do
  end if
 
@@ -343,14 +329,14 @@ CONTAINS
 &   verbosity,weight(1:nparam),pawrad%rad(1:nr),y,y_out)
 
 !  Write out best solution   
-   write(message,'(3a)')"Best solution (with more iterations):",ch10,"   ngauss    chisq"
-   call wrtout(std_out,message,'COLL')
+   write(msg,'(3a)')"Best solution (with more iterations):",ch10,"   ngauss    chisq"
+   call wrtout(std_out,msg,'COLL')
    if(option==1) ngauss=nterm*4
    if(option==2) ngauss=nterm*4
    if(option==3) ngauss=nterm*2
    if(option==4) ngauss=nterm*2
-   write(message,'(i4,2x,e13.6,1x)')ngauss,chisq
-   call wrtout(std_out,message,'COLL')
+   write(msg,'(i4,2x,e13.6,1x)')ngauss,chisq
+   call wrtout(std_out,msg,'COLL')
  end if
 
 !Fill output variables
@@ -385,13 +371,10 @@ CONTAINS
    LIBPAW_DEALLOCATE(map_nterm)
  end if
 
-!DEBUG
-!write (std_out,*) ' gaussfit_main : exit'
-!stop
-!ENDDEBUG
-
 end subroutine gaussfit_main
 !!***
+
+!----------------------------------------------------------------------
 
 !!****f* m_gaussfit/gaussfit_mpi_set_weight
 !! NAME
@@ -408,17 +391,6 @@ end subroutine gaussfit_main
 !!
 !! OUTPUT
 !!
-!! SIDE EFFECTS
-!!
-!! NOTES
-!!
-!! PARENTS
-!!      m_gaussfit
-!!
-!! CHILDREN
-!!      gaussfit_main,paw_spline,paw_splint,pawrad_deducer0,pawrad_free
-!!      pawrad_init,wrtout
-!!
 !! SOURCE
 
  subroutine gaussfit_mpi_set_weight(f,x)
@@ -430,14 +402,17 @@ end subroutine gaussfit_main
 #define ABI_FUNC 'gaussfit_mpi_set_weight'
 !End of the abilint section
 
-  implicit none
-  !
+ implicit none
+
 !Arguments ------------------------------------
  integer,intent(in)::x
  integer,intent(out)::f
+
 !Local variables ------------------------------
  real(dp)::a,b,c,d,ff,xx
+
 !************************************************************************
+
  !The following parameters were obtained
  !from the time (in seconds) 
  !it takes to fit a given projector
@@ -451,12 +426,10 @@ end subroutine gaussfit_main
  ff=a+b*xx+c*xx**2+d*xx**3
  f=max(1,ceiling(ff))
 
-! write(500,*)'xx,f',xx,f
-
-
  end subroutine gaussfit_mpi_set_weight
 !!***
 
+!----------------------------------------------------------------------
 
 !!****f* m_gaussfit/gaussfit_mpi_remove_item
 !! NAME
@@ -467,17 +440,6 @@ end subroutine gaussfit_main
 !! INPUTS
 !!
 !! OUTPUT
-!!
-!! SIDE EFFECTS
-!!
-!! NOTES
-!!
-!! PARENTS
-!!      m_gaussfit
-!!
-!! CHILDREN
-!!      gaussfit_main,paw_spline,paw_splint,pawrad_deducer0,pawrad_free
-!!      pawrad_init,wrtout
 !!
 !! SOURCE
 
@@ -490,13 +452,15 @@ end subroutine gaussfit_main
 #define ABI_FUNC 'gaussfit_mpi_remove_item'
 !End of the abilint section
 
-  implicit none
-  !
+ implicit none
+
 !Arguments ------------------------------------
  integer,intent(in)::iterm
  integer,intent(inout)::pload
+
 !Local variables ------------------------------
  integer:: f_i
+
 !***********************************************************************
 
  call gaussfit_mpi_set_weight(f_i,iterm)
@@ -505,6 +469,7 @@ end subroutine gaussfit_main
  end subroutine gaussfit_mpi_remove_item
 !!***
 
+!----------------------------------------------------------------------
 
 !!****f* m_gaussfit/gaussfit_mpi_add_item
 !! NAME
@@ -515,17 +480,6 @@ end subroutine gaussfit_main
 !! INPUTS
 !!
 !! OUTPUT
-!!
-!! SIDE EFFECTS
-!!
-!! NOTES
-!!
-!! PARENTS
-!!      m_gaussfit
-!!
-!! CHILDREN
-!!      gaussfit_main,paw_spline,paw_splint,pawrad_deducer0,pawrad_free
-!!      pawrad_init,wrtout
 !!
 !! SOURCE
 
@@ -538,13 +492,15 @@ end subroutine gaussfit_main
 #define ABI_FUNC 'gaussfit_mpi_add_item'
 !End of the abilint section
 
-  implicit none
-  !
+ implicit none
+
 !Arguments ------------------------------------
  integer,intent(in)::iterm
  integer,intent(inout)::pload
+
 !Local variables ------------------------------
  integer:: f_i
+
 !************************************************************************
 
  call gaussfit_mpi_set_weight(f_i,iterm)
@@ -553,6 +509,7 @@ end subroutine gaussfit_main
  end subroutine gaussfit_mpi_add_item
 !!***
 
+!----------------------------------------------------------------------
 
 !!****f* m_gaussfit/gaussfit_mpi_calc_deviation
 !! NAME
@@ -563,17 +520,6 @@ end subroutine gaussfit_main
 !! INPUTS
 !!
 !! OUTPUT
-!!
-!! SIDE EFFECTS
-!!
-!! NOTES
-!!
-!! PARENTS
-!!      m_gaussfit
-!!
-!! CHILDREN
-!!      gaussfit_main,paw_spline,paw_splint,pawrad_deducer0,pawrad_free
-!!      pawrad_init,wrtout
 !!
 !! SOURCE
 
@@ -586,15 +532,17 @@ end subroutine gaussfit_main
 #define ABI_FUNC 'gaussfit_mpi_calc_deviation'
 !End of the abilint section
 
-  implicit none
-  !
+ implicit none
+
 !Arguments ------------------------------------
  integer,intent(in)::nproc
  integer,intent(in)::proc_load(nproc)
  integer,intent(out)::deviation
+
 !Local variables ------------------------------
-!************************************************************************
  integer:: jproc,kproc,kload,jload
+
+!************************************************************************
 
 ! deviation=0
 ! do jproc=1,nproc
@@ -613,6 +561,7 @@ end subroutine gaussfit_main
  end subroutine gaussfit_mpi_calc_deviation
 !!***
 
+!----------------------------------------------------------------------
 
 !!****f* m_gaussfit/gaussfit_mpi_swap
 !! NAME
@@ -624,21 +573,10 @@ end subroutine gaussfit_main
 !!
 !! OUTPUT
 !!
-!! SIDE EFFECTS
-!!
-!! NOTES
-!!
-!! PARENTS
-!!      m_gaussfit
-!!
-!! CHILDREN
-!!      gaussfit_main,paw_spline,paw_splint,pawrad_deducer0,pawrad_free
-!!      pawrad_init,wrtout
-!!
 !! SOURCE
 
  subroutine gaussfit_mpi_swap(iterm,jterm,&
-&nproc,nterm_bounds,proc_dist,proc_load)
+&           nproc,nterm_bounds,proc_dist,proc_load)
 
 
 !This section has been created automatically by the script Abilint (TD).
@@ -647,15 +585,17 @@ end subroutine gaussfit_main
 #define ABI_FUNC 'gaussfit_mpi_swap'
 !End of the abilint section
 
-  implicit none
-  !
+ implicit none
+ 
 !Arguments ------------------------------------
  integer,intent(in)::iterm,jterm,nproc,nterm_bounds(2)
  integer,intent(inout)::proc_dist(nterm_bounds(1):nterm_bounds(2)),proc_load(nproc)
+
 !Local variables ------------------------------
-!************************************************************************
  integer:: deviation1,deviation2
  integer:: iproc,jproc
+
+!************************************************************************
 
 !Calculate initial state
  call gaussfit_mpi_calc_deviation(deviation1,nproc,proc_load)
@@ -685,6 +625,8 @@ end subroutine gaussfit_main
  end subroutine gaussfit_mpi_swap
 !!***
 
+!----------------------------------------------------------------------
+
 !!****f* m_gaussfit/gaussfit_mpi_assign
 !! NAME
 !!  gaussfit_mpi_assign
@@ -696,22 +638,10 @@ end subroutine gaussfit_main
 !!
 !! OUTPUT
 !!
-!! SIDE EFFECTS
-!!
-!! NOTES
-!!
-!! PARENTS
-!!      m_gaussfit
-!!
-!! CHILDREN
-!!      gaussfit_main,paw_spline,paw_splint,pawrad_deducer0,pawrad_free
-!!      pawrad_init,wrtout
-!!
 !! SOURCE
 
  subroutine gaussfit_mpi_assign(iterm,nproc,nterm_bounds,&
 & proc_dist,proc_load)
-
 
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
@@ -719,16 +649,18 @@ end subroutine gaussfit_main
 #define ABI_FUNC 'gaussfit_mpi_assign'
 !End of the abilint section
 
-  implicit none
-  !
+ implicit none
+  
 !Arguments ------------------------------------
  integer,intent(in)::iterm,nproc,nterm_bounds(2)
  integer,intent(inout)::proc_dist(nterm_bounds(1):nterm_bounds(2)),proc_load(nproc)
+
 !Local variables ------------------------------
-!************************************************************************
  integer:: iproc,jproc,dev
  integer:: deviation(nproc),mindev
- character(len=500) :: message 
+ character(len=100) :: msg 
+
+!************************************************************************
 
  do iproc=1,nproc
   !add this term to iproc
@@ -750,8 +682,8 @@ end subroutine gaussfit_main
  end do
  if(jproc==-1) then
 !  One should not get here!
-   message = "Error in accomodate_mpi. Contact the ABINIT group"
-   MSG_ERROR(message)
+   msg = 'error in accomodate_mpi'
+   MSG_BUG(msg)
  end if
 
 !assign this term for jproc
@@ -760,6 +692,8 @@ end subroutine gaussfit_main
 
  end subroutine gaussfit_mpi_assign
 !!***
+
+!----------------------------------------------------------------------
 
 !!****f* m_gaussfit/gaussfit_mpi_main
 !! NAME
@@ -771,17 +705,6 @@ end subroutine gaussfit_main
 !! INPUTS
 !!
 !! OUTPUT
-!!
-!! SIDE EFFECTS
-!!
-!! NOTES
-!!
-!! PARENTS
-!!      m_gaussfit
-!!
-!! CHILDREN
-!!      gaussfit_main,paw_spline,paw_splint,pawrad_deducer0,pawrad_free
-!!      pawrad_init,wrtout
 !!
 !! SOURCE
 
@@ -795,18 +718,19 @@ end subroutine gaussfit_main
  use interfaces_14_hidewrite
 !End of the abilint section
 
-  implicit none
-  !
+ implicit none
+
 !Arguments ------------------------------------
  integer,intent(in)::nproc,nterm_bounds(2)
  integer,intent(out)::proc_dist(nterm_bounds(1):nterm_bounds(2))
 
 !Local variables ------------------------------
-!************************************************************************
  integer:: dev1,dev2,ii
  integer:: iproc,iterm,jterm,ngauss,weight
  integer:: proc_load(nproc)
- character(len=500) :: message
+ character(len=500) :: msg
+
+!************************************************************************
 
  proc_load=0; proc_dist=0 !initializations
 
@@ -842,24 +766,25 @@ end subroutine gaussfit_main
  end do
 
 !Write down distribution:
- write(message,'(3a)') 'MPI distribution',ch10,'N. gauss, iproc, weight '
- call wrtout(std_out,message,'COLL')
+ write(msg,'(3a)') 'MPI distribution',ch10,'N. gauss, iproc, weight '
+ call wrtout(std_out,msg,'COLL')
  do iterm=nterm_bounds(2),nterm_bounds(1),-1
      ngauss=iterm*2
      call gaussfit_mpi_set_weight(weight,iterm)
-     write(message,'(3(i4,1x))') ngauss,proc_dist(iterm),weight
-     call wrtout(std_out,message,'COLL')
+     write(msg,'(3(i4,1x))') ngauss,proc_dist(iterm),weight
+     call wrtout(std_out,msg,'COLL')
  end do
- write(message,'(a)') 'Load per processor: '
- call wrtout(std_out,message,'COLL')
+ write(msg,'(a)') 'Load per processor: '
+ call wrtout(std_out,msg,'COLL')
  do iproc=1,nproc
-   write(message,'(i5,1x,i10)') iproc,proc_load(iproc)
-   call wrtout(std_out,message,'COLL')
+   write(msg,'(i5,1x,i10)') iproc,proc_load(iproc)
+   call wrtout(std_out,msg,'COLL')
  end do
-!
 
  end subroutine gaussfit_mpi_main
 !!***
+
+!----------------------------------------------------------------------
 
 !!****f* m_gaussfit/gaussfit_fit
 !! NAME
@@ -898,15 +823,6 @@ end subroutine gaussfit_main
 !! SIDE EFFECTS
 !! if(verbosity>1) output files are written with y(x) and y_out(x)
 !!
-!! NOTES
-!!
-!! PARENTS
-!!      m_gaussfit
-!!
-!! CHILDREN
-!!      gaussfit_main,paw_spline,paw_splint,pawrad_deducer0,pawrad_free
-!!      pawrad_init,wrtout
-!!
 !! SOURCE
 
 subroutine gaussfit_fit(chisq,constrains,&
@@ -933,21 +849,19 @@ subroutine gaussfit_fit(chisq,constrains,&
  real(dp),intent(inout)::param(nparam)
  real(dp),intent(out)::chisq,y_out(nx)
  character(80),intent(in)::outfile
-!----------------------------------------
-!local variables
-!----------------------------------------
+
+!Local variables ------------------------------
+ integer, parameter :: wfn_unit=1007
  integer::ix
  real(dp)::rerror
- !
  real(dp),allocatable::sy(:)
- integer, parameter :: wfn_unit=1007
-!
+
 ! *************************************************************************
 
  LIBPAW_ALLOCATE(sy,(nx))
-!
+
  sy(:)=1.0d0
-!
+
  call gaussfit_rlsf(&
 & chisq,constrains,limit,maxiter,&
 & nterm,nparam,nx,option,param(1:nparam),&
@@ -972,12 +886,15 @@ subroutine gaussfit_fit(chisq,constrains,&
      write(wfn_unit,'(6(e20.12,1x))')x(ix),y(ix),y_out(ix),rerror
    end do
    close(wfn_unit)
-!  
+  
  end if
-!
+
  LIBPAW_DEALLOCATE(sy)
+
 end subroutine gaussfit_fit
 !!***
+
+!----------------------------------------------------------------------
 
 !!****f* m_gaussfit/gaussfit_calc_deriv_r
 !! NAME
@@ -991,16 +908,6 @@ end subroutine gaussfit_fit
 !! INPUTS
 !!
 !! OUTPUT
-!!
-!! SIDE EFFECTS
-!!
-!! NOTES
-!!
-!! PARENTS
-!!
-!! CHILDREN
-!!      gaussfit_main,paw_spline,paw_splint,pawrad_deducer0,pawrad_free
-!!      pawrad_init,wrtout
 !!
 !! SOURCE
 
@@ -1034,6 +941,7 @@ subroutine gaussfit_calc_deriv_r(nterm,nparam,nx,opt,param,x,y_out,&
  real(dp)::term1(nx,nterm)
  real(dp)::aux1(nx)
  !real(dp)::step
+
 ! *********************************************************************
 
 !
@@ -1097,8 +1005,11 @@ subroutine gaussfit_calc_deriv_r(nterm,nparam,nx,opt,param,x,y_out,&
      deriv(:,ii)=aux1(:)
    end do
  end if
+
 end subroutine gaussfit_calc_deriv_r
 !!***
+
+!----------------------------------------------------------------------
 
 !!****f* m_gaussfit/gaussfit_calc_deriv_c3
 !! NAME
@@ -1111,17 +1022,6 @@ end subroutine gaussfit_calc_deriv_r
 !! INPUTS
 !!
 !! OUTPUT
-!!
-!! SIDE EFFECTS
-!!
-!! NOTES
-!!
-!! PARENTS
-!!      m_gaussfit
-!!
-!! CHILDREN
-!!      gaussfit_main,paw_spline,paw_splint,pawrad_deducer0,pawrad_free
-!!      pawrad_init,wrtout
 !!
 !! SOURCE
 
@@ -1156,6 +1056,7 @@ subroutine gaussfit_calc_deriv_c3(nparam,nterm,nx,opt,param,x,y_out,&
  real(dp)::term1(nx,nterm)
  real(dp)::sin1(nx,nterm),cos1(nx,nterm)
  real(dp)::aux1(nx),aux2(nx)
+
 ! *********************************************************************
 
 !
@@ -1207,8 +1108,11 @@ subroutine gaussfit_calc_deriv_c3(nparam,nterm,nx,opt,param,x,y_out,&
      deriv(:,ii)=cos1(:,iexp)
    end do
  end if
+
 end subroutine gaussfit_calc_deriv_c3
 !!***
+
+!----------------------------------------------------------------------
 
 !!****f* m_gaussfit/gaussfit_calc_deriv_c2
 !! NAME
@@ -1222,18 +1126,8 @@ end subroutine gaussfit_calc_deriv_c3
 !!
 !! OUTPUT
 !!
-!! SIDE EFFECTS
-!!
-!! NOTES
-!!
-!! PARENTS
-!!      m_gaussfit
-!!
-!! CHILDREN
-!!      gaussfit_main,paw_spline,paw_splint,pawrad_deducer0,pawrad_free
-!!      pawrad_init,wrtout
-!!
 !! SOURCE
+
 subroutine gaussfit_calc_deriv_c2(nparam,nterm,nx,opt,param,x,y_out,&
 & deriv) ! optional
 
@@ -1265,6 +1159,7 @@ subroutine gaussfit_calc_deriv_c2(nparam,nterm,nx,opt,param,x,y_out,&
  real(dp)::term1(nx,nterm)
  real(dp)::sin1(nx,nterm),sin2(nx,nterm),cos1(nx,nterm),cos2(nx,nterm)
  real(dp)::aux1(nx),aux2(nx)
+
 ! *********************************************************************
 
 !
@@ -1336,8 +1231,11 @@ subroutine gaussfit_calc_deriv_c2(nparam,nterm,nx,opt,param,x,y_out,&
      deriv(:,ii)=aux1(:)
    end do
  end if
+
 end subroutine gaussfit_calc_deriv_c2
 !!***
+
+!----------------------------------------------------------------------
 
 !!****f* m_gaussfit/gaussfit_calc_deriv_c
 !! NAME
@@ -1351,19 +1249,8 @@ end subroutine gaussfit_calc_deriv_c2
 !!
 !! OUTPUT
 !!
-!! SIDE EFFECTS
-!!
-!! NOTES
-!!
-!! PARENTS
-!!      m_gaussfit
-!!
-!! CHILDREN
-!!      gaussfit_main,paw_spline,paw_splint,pawrad_deducer0,pawrad_free
-!!      pawrad_init,wrtout
-!!
 !! SOURCE
-!
+
 subroutine gaussfit_calc_deriv_c(nparam,nterm,nx,opt,param,x,y_out,&
 & deriv) ! optional
 
@@ -1395,6 +1282,7 @@ subroutine gaussfit_calc_deriv_c(nparam,nterm,nx,opt,param,x,y_out,&
  real(dp)::aux1(nx),aux2(nx)
  real(dp)::cos1(nx,nterm),cos2(nx,nterm),sin1(nx,nterm),sin2(nx,nterm)
  real(dp)::term1(nx,nterm),term2(nx,nterm)
+
 ! *********************************************************************
 
 !
@@ -1494,8 +1382,11 @@ subroutine gaussfit_calc_deriv_c(nparam,nterm,nx,opt,param,x,y_out,&
      deriv(:,ii)=aux1(:)*aux2(:)
    end do
  end if
+
 end subroutine gaussfit_calc_deriv_c
 !!***
+
+!----------------------------------------------------------------------
 
 !!****f* m_gaussfit/gaussfit_calc_deriv_c4
 !! NAME
@@ -1509,18 +1400,8 @@ end subroutine gaussfit_calc_deriv_c
 !!
 !! OUTPUT
 !!
-!! SIDE EFFECTS
-!!
-!! NOTES
-!!
-!! PARENTS
-!!      m_gaussfit
-!!
-!! CHILDREN
-!!      gaussfit_main,paw_spline,paw_splint,pawrad_deducer0,pawrad_free
-!!      pawrad_init,wrtout
-!!
 !! SOURCE
+
 subroutine gaussfit_calc_deriv_c4(nparam,nterm,nx,opt,param,x,y_out,&
 & deriv) ! optional
 
@@ -1553,6 +1434,7 @@ subroutine gaussfit_calc_deriv_c4(nparam,nterm,nx,opt,param,x,y_out,&
  real(dp)::aux1(nx),aux2(nx)
  real(dp)::cos1(nx,nterm),sin1(nx,nterm)
  real(dp)::term1(nx,nterm),term2(nx,nterm)
+
 ! *********************************************************************
 
 !
@@ -1633,8 +1515,11 @@ subroutine gaussfit_calc_deriv_c4(nparam,nterm,nx,opt,param,x,y_out,&
      deriv(:,ii)=aux1(:)
    end do
  end if
+
 end subroutine gaussfit_calc_deriv_c4
 !!***
+
+!----------------------------------------------------------------------
 
 !!****f* m_gaussfit/gaussfit_rlsf
 !! NAME
@@ -1665,17 +1550,6 @@ end subroutine gaussfit_calc_deriv_c4
 !!
 !! OUTPUT
 !!
-!! SIDE EFFECTS
-!!
-!! NOTES
-!!
-!! PARENTS
-!!      m_gaussfit
-!!
-!! CHILDREN
-!!      gaussfit_main,paw_spline,paw_splint,pawrad_deducer0,pawrad_free
-!!      pawrad_init,wrtout
-!!
 !! SOURCE
 
 subroutine gaussfit_rlsf(&
@@ -1695,7 +1569,6 @@ subroutine gaussfit_rlsf(&
 
 !Arguments -------------------------------
  real(dp),parameter::deltachi=tol10
- !
  integer, intent(in) ::maxiter,nparam,nterm,nx
  integer, intent(in) ::option ,verbosity
  integer, intent(in) ::constrains(nparam)
@@ -1709,7 +1582,6 @@ subroutine gaussfit_rlsf(&
  integer::flag,ii,info,iter,jj,niter
  real(dp):: deltax
  real(dp)::chisq0,flambda,eta,lastdeltachi
- !
  integer::ipvt(nparam)
  real(dp)::alpha(nparam,nparam)
  real(dp)::alpha0(nparam,nparam),beta(nparam)
@@ -1718,7 +1590,8 @@ subroutine gaussfit_rlsf(&
  real(dp)::work(nparam)
  real(dp)::workpar(nparam)
  real(dp)::yfit(nx)
- character(len=500) :: message
+ character(len=500) :: msg
+
 ! *********************************************************************
 
 !
@@ -1750,8 +1623,8 @@ subroutine gaussfit_rlsf(&
      call dgetrf(nparam,nparam,tmp1,nparam,ipvt,info)
      if (.not.info==0) then
        if(verbosity>1) then
-         write(message,'(a)')'Matrix is singular'
-         call wrtout(std_out,message,'COLL')
+         write(msg,'(a)')'Matrix is singular'
+         call wrtout(std_out,msg,'COLL')
        end if
        chisq=-1.d0
        exit iter_loop
@@ -1760,8 +1633,8 @@ subroutine gaussfit_rlsf(&
      deltapar=0.d0
      if (.not.info==0) then
        if(verbosity>2) then
-         write(message,'(a)')'Matrix is singular'
-         call wrtout(std_out,message,'COLL')
+         write(msg,'(a)')'Matrix is singular'
+         call wrtout(std_out,msg,'COLL')
        end if
        chisq=-1.d0
        exit iter_loop
@@ -1808,8 +1681,8 @@ subroutine gaussfit_rlsf(&
          flag=1
 !        iter=0
          if(verbosity>2) then
-           write(message,'(a)')'flambda > 1000.d0'
-           call wrtout(std_out,message,'COLL')
+           write(msg,'(a)')'flambda > 1000.d0'
+           call wrtout(std_out,msg,'COLL')
          end if
          exit iter_loop
        end if
@@ -1822,15 +1695,17 @@ subroutine gaussfit_rlsf(&
        chisq0=chisq
        flambda=flambda/2.d0
        if(verbosity>2) then
-         write(message,'("iter = ",i4," chisq = ",e15.6)')iter,chisq
-         call wrtout(std_out,message,'COLL')
+         write(msg,'("iter = ",i4," chisq = ",e15.6)')iter,chisq
+         call wrtout(std_out,msg,'COLL')
        end if
      end if
    end do while_flag
  end do iter_loop
-!
+
 end subroutine gaussfit_rlsf
 !!***
+
+!----------------------------------------------------------------------
 
 !!****f* m_gaussfit/gaussfit_chisq_alpha_beta
 !! NAME
@@ -1852,18 +1727,8 @@ end subroutine gaussfit_rlsf
 !!
 !! OUTPUT
 !!
-!! SIDE EFFECTS
-!!
-!! NOTES
-!!
-!! PARENTS
-!!      m_gaussfit
-!!
-!! CHILDREN
-!!      gaussfit_main,paw_spline,paw_splint,pawrad_deducer0,pawrad_free
-!!      pawrad_init,wrtout
-!!
 !! SOURCE
+
 subroutine gaussfit_chisq_alpha_beta(alpha,beta,chisq,&
 & nparam,nterm,nx,option,parameters,x,y)
 
@@ -1890,7 +1755,9 @@ subroutine gaussfit_chisq_alpha_beta(alpha,beta,chisq,&
  real(dp)::deltay(nx),deriv(nx,nparam),derivi(nx)
  real(dp)::yfit(nx)
  real(dp)::help0(nx),help2(nx),help3(nparam)
+
 ! *********************************************************************
+
  deltax=x(2)-x(1) !we assume a linear grid
 !
  if(option==1) then
@@ -1927,8 +1794,11 @@ subroutine gaussfit_chisq_alpha_beta(alpha,beta,chisq,&
  help2(:)=help0(:)*deltay(:)
  chisq=sum(help2)
  chisq=chisq*deltax
+
 end subroutine gaussfit_chisq_alpha_beta
 !!***
+
+!----------------------------------------------------------------------
 
 !!****f* m_gaussfit/gaussfit_set_param1
 !! NAME
@@ -1940,16 +1810,6 @@ end subroutine gaussfit_chisq_alpha_beta
 !! INPUTS
 !!
 !! OUTPUT
-!!
-!! SIDE EFFECTS
-!!
-!! NOTES
-!!
-!! PARENTS
-!!
-!! CHILDREN
-!!      gaussfit_main,paw_spline,paw_splint,pawrad_deducer0,pawrad_free
-!!      pawrad_init,wrtout
 !!
 !! SOURCE
 
@@ -1973,6 +1833,7 @@ subroutine gaussfit_set_param1(nterm,nparam,nx,param,sep,x,y)
 !Local variables-------------------------------
  integer::ii,jj
  real(dp)::raux
+
 ! *********************************************************************
 
 !
@@ -2007,8 +1868,11 @@ subroutine gaussfit_set_param1(nterm,nparam,nx,param,sep,x,y)
    param(ii)=sep**(jj)
 !  param(ii)=raux*real(jj,dp)
  end do
+
 end subroutine gaussfit_set_param1
 !!***
+
+!----------------------------------------------------------------------
 
 !!****f* m_gaussfit/gaussfit_set_param2
 !! NAME
@@ -2021,17 +1885,8 @@ end subroutine gaussfit_set_param1
 !!
 !! OUTPUT
 !!
-!! SIDE EFFECTS
-!!
-!! NOTES
-!!
-!! PARENTS
-!!
-!! CHILDREN
-!!      gaussfit_main,paw_spline,paw_splint,pawrad_deducer0,pawrad_free
-!!      pawrad_init,wrtout
-!!
 !! SOURCE
+
 subroutine gaussfit_set_param2(nterm,nparam,nx,param,rpaw,x,y)
 
 
@@ -2043,13 +1898,16 @@ subroutine gaussfit_set_param2(nterm,nparam,nx,param,rpaw,x,y)
 
  implicit none
 
+!Arguments -------------------------------
  integer,intent(in)::nterm,nparam,nx
  real(dp),intent(in)::rpaw
  real(dp),intent(in)::x(nx),y(nx)
  real(dp),intent(out)::param(nparam)
- !
+
+!Local variables-------------------------------
  integer::ii,jj
  real(dp)::exps,raux,sig,step
+
 ! *************************************************************************
 
  step=rpaw/real(nterm-1,dp)
@@ -2087,23 +1945,9 @@ subroutine gaussfit_set_param2(nterm,nparam,nx,param,rpaw,x,y)
 !!
 !! OUTPUT
 !!
-!! SIDE EFFECTS
-!!
-!! NOTES
-!!
-!! PARENTS
-!!      m_gaussfit
-!!
-!! CHILDREN
-!!      gaussfit_main,paw_spline,paw_splint,pawrad_deducer0,pawrad_free
-!!      pawrad_init,wrtout
-!!
 !! SOURCE
+
  subroutine gaussfit_param2_findsign()
-
-!Arguments -------------------------------
-
-!Local variables-------------------------------
 
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
@@ -2111,8 +1955,11 @@ subroutine gaussfit_set_param2(nterm,nparam,nx,param,rpaw,x,y)
 #define ABI_FUNC 'gaussfit_param2_findsign'
 !End of the abilint section
 
-  integer::ix,minx
-  real(dp)::dist,mindist,xx,yy
+!Arguments -------------------------------
+!Local variables-------------------------------
+ integer::ix,minx
+ real(dp)::dist,mindist,xx,yy
+
 ! *********************************************************************
 
    mindist=rpaw
@@ -2126,10 +1973,13 @@ subroutine gaussfit_set_param2(nterm,nparam,nx,param,rpaw,x,y)
    end do
    yy=y(minx)
    sig=yy
+
  end subroutine gaussfit_param2_findsign
 
 end subroutine gaussfit_set_param2
 !!***
+
+!----------------------------------------------------------------------
 
 !!****f* m_gaussfit/gaussfit_set_param3
 !! NAME
@@ -2141,16 +1991,6 @@ end subroutine gaussfit_set_param2
 !! INPUTS
 !!
 !! OUTPUT
-!!
-!! SIDE EFFECTS
-!!
-!! NOTES
-!!
-!! PARENTS
-!!
-!! CHILDREN
-!!      gaussfit_main,paw_spline,paw_splint,pawrad_deducer0,pawrad_free
-!!      pawrad_init,wrtout
 !!
 !! SOURCE
 
@@ -2173,6 +2013,7 @@ subroutine gaussfit_set_param3(nterm,nparam,param,sep)
 
 !Local variables-------------------------------
  integer::ii,jj
+
 ! *********************************************************************
 
  param(:)=1.0d0
@@ -2188,8 +2029,11 @@ subroutine gaussfit_set_param3(nterm,nparam,param,sep)
    param(ii)=sep**(jj)
 !  param(ii)=raux*real(i,dp)
  end do
+
 end subroutine gaussfit_set_param3
 !!***
+
+!----------------------------------------------------------------------
 
 !!****f* m_gaussfit/gaussfit_set_param4
 !! NAME
@@ -2201,17 +2045,6 @@ end subroutine gaussfit_set_param3
 !! INPUTS
 !!
 !! OUTPUT
-!!
-!! SIDE EFFECTS
-!!
-!! NOTES
-!!
-!! PARENTS
-!!      m_gaussfit
-!!
-!! CHILDREN
-!!      gaussfit_main,paw_spline,paw_splint,pawrad_deducer0,pawrad_free
-!!      pawrad_init,wrtout
 !!
 !! SOURCE
  
@@ -2229,14 +2062,17 @@ subroutine gaussfit_set_param4(nparam,param)
 !Arguments -------------------------------
  integer,intent(in)::nparam
  real(dp),intent(out)::param(nparam)
+
 !Local variables-------------------------------
 
 ! *********************************************************************
-!
+
  param(:)=1.0d0
-!
+
 end subroutine gaussfit_set_param4
 !!***
+
+!----------------------------------------------------------------------
 
 !!****f* m_gaussfit/gaussfit_set_param5
 !! NAME
@@ -2248,17 +2084,6 @@ end subroutine gaussfit_set_param4
 !! INPUTS
 !!
 !! OUTPUT
-!!
-!! SIDE EFFECTS
-!!
-!! NOTES
-!!
-!! PARENTS
-!!      m_gaussfit
-!!
-!! CHILDREN
-!!      gaussfit_main,paw_spline,paw_splint,pawrad_deducer0,pawrad_free
-!!      pawrad_init,wrtout
 !!
 !! SOURCE
 
@@ -2278,13 +2103,13 @@ subroutine gaussfit_set_param5(nterm,nparam,nx,param,rpaw,y)
  real(dp),intent(in)::rpaw
  real(dp),intent(in)::y(nx)
  real(dp),intent(out)::param(nparam)
- !
+
 !Local variables-------------------------------
  integer::ix
  real(dp)::raux,a1,r_c,m
+
 ! *********************************************************************
 
-!
  param(:)=1.0d0
 !
 !alpha1
@@ -2303,9 +2128,11 @@ subroutine gaussfit_set_param5(nterm,nparam,nx,param,rpaw,y)
  m=0.01d0
  raux=log(a1/m)/r_c**2
  param(nterm+1:nterm*2)=raux
-!
+
 end subroutine gaussfit_set_param5
 !!***
+
+!----------------------------------------------------------------------
 
 !!****f* m_gaussfit/gaussfit_constrains_init
 !! NAME
@@ -2319,17 +2146,6 @@ end subroutine gaussfit_set_param5
 !! INPUTS
 !!
 !! OUTPUT
-!!
-!! SIDE EFFECTS
-!!
-!! NOTES
-!!
-!! PARENTS
-!!      m_gaussfit
-!!
-!! CHILDREN
-!!      gaussfit_main,paw_spline,paw_splint,pawrad_deducer0,pawrad_free
-!!      pawrad_init,wrtout
 !!
 !! SOURCE
 
@@ -2355,6 +2171,7 @@ subroutine gaussfit_constrains_init(cons1,cons2,limit,nparam,nterm,nx,option,rpa
  integer,parameter::restricted=3
  integer :: ix
  real(dp)::rc,a1,mm,raux
+
 ! *********************************************************************
 
 !
@@ -2387,8 +2204,11 @@ subroutine gaussfit_constrains_init(cons1,cons2,limit,nparam,nterm,nx,option,rpa
    cons2(nterm+1:nterm*2)=restricted
    limit(nterm+1:nterm*2)=raux
  end if
+
 end subroutine gaussfit_constrains_init
 !!***
+
+!----------------------------------------------------------------------
 
 !!****f* m_gaussfit/gaussfit_apply_constrains
 !! NAME
@@ -2400,17 +2220,6 @@ end subroutine gaussfit_constrains_init
 !! INPUTS
 !!
 !! OUTPUT
-!!
-!! SIDE EFFECTS
-!!
-!! NOTES
-!!
-!! PARENTS
-!!      m_gaussfit
-!!
-!! CHILDREN
-!!      gaussfit_main,paw_spline,paw_splint,pawrad_deducer0,pawrad_free
-!!      pawrad_init,wrtout
 !!
 !! SOURCE
 
@@ -2432,9 +2241,10 @@ subroutine gaussfit_apply_constrains(const,limit,nparam,ioparams)
  integer,intent(in):: const(nparam)
  real(dp),intent(in):: limit(nparam)
  real(dp),intent(inout):: ioparams(nparam)
- !
+
 !Local variables-------------------------------
  integer::ii
+
 ! *********************************************************************
 
  do ii=1,nparam
@@ -2448,6 +2258,7 @@ subroutine gaussfit_apply_constrains(const,limit,nparam,ioparams)
 end subroutine gaussfit_apply_constrains
 !!***
 
+!----------------------------------------------------------------------
 
 !!****f* m_gaussfit/gaussfit_projector
 !! NAME
@@ -2473,13 +2284,6 @@ end subroutine gaussfit_apply_constrains
 !! chisq=accuracy_p= sum_x abs(f(x)-y(x))/nx. 
 !!    nx is the number of points, f(x) and y(x) are the fitted and original functions.
 !!
-!! PARENTS
-!!      m_pawpsp
-!!
-!! CHILDREN
-!!      gaussfit_main,paw_spline,paw_splint,pawrad_deducer0,pawrad_free
-!!      pawrad_init,wrtout
-!!
 !! SOURCE
 
 subroutine gaussfit_projector(basis_size,mparam,nparam_array,nterm_bounds,orbitals,param,pawrad,&
@@ -2503,7 +2307,6 @@ subroutine gaussfit_projector(basis_size,mparam,nparam_array,nterm_bounds,orbita
  type(pawrad_type),intent(in) :: pawrad
  real(dp),intent(in)    :: tproj(pawrad%mesh_size,basis_size)
  integer,intent(in)::mparam,nterm_bounds(2)
- !
  integer,intent(out)::nparam_array(basis_size)
  real(dp),intent(out)::param(mparam,basis_size)
  type(pawrad_type)::mesh_tmp
@@ -2513,7 +2316,7 @@ subroutine gaussfit_projector(basis_size,mparam,nparam_array,nterm_bounds,orbita
  integer :: msz1,msz2,option
  real(dp):: raux(1),rr(1)
  real(dp),allocatable::d2(:),tproj_tmp1(:),tproj_tmp2(:)
- character(len=500) :: message
+ character(len=500) :: msg
  character(80)::outfile
  !debug: uncomment
  !integer::i,nterm ,unitp
@@ -2546,11 +2349,10 @@ subroutine gaussfit_projector(basis_size,mparam,nparam_array,nterm_bounds,orbita
  LIBPAW_ALLOCATE(d2,(msz1))
  LIBPAW_ALLOCATE(tproj_tmp2,(msz2))
 
-
  do ibasis=1,basis_size
 !  
-   write(message,'(a," - Fitting wfn ",i4," to Gaussians")')ch10,ibasis
-   call wrtout(std_out,  message,'COLL')
+   write(msg,'(a," - Fitting wfn ",i4," to Gaussians")')ch10,ibasis
+   call wrtout(std_out,  msg,'COLL')
    !  
    tproj_tmp1=zero; d2=zero; tproj_tmp2=zero
 
@@ -2584,27 +2386,15 @@ subroutine gaussfit_projector(basis_size,mparam,nparam_array,nterm_bounds,orbita
      tproj_tmp2(ir)=raux(1)
    end do
 
-
-!  debug
-!  write(*,*)'gaussfit_projector: erase me: l2325 debug: write fort.800'
-!  i=800+ibasis
-!  do ir=1,msz2   
-!    write(i,*)mesh_tmp%rad(ir),tproj_tmp2(ir)
-!  end do
-!  i=1000+ibasis
-!  do ir=1,msz1   
-!    write(i,*)pawrad%rad(ir),tproj_tmp1(ir)
-!  end do
-
 !  Obtain the name for the output file
    if(ibasis<10) then
      write(outfile,'("wfn",i1,".fit")')ibasis
    elseif(ibasis<100) then
      write(outfile,'("wfn",i2,".fit")')ibasis
-     write(message,'(a,a,a,a)')ch10,&
+     write(msg,'(a,a,a,a)')ch10,&
 &     "ib (basis index) is too big!",ch10,&
 &     "Action: check your pseudopotentials"
-     MSG_BUG(message)
+     MSG_BUG(msg)
    end if
 !  
    if(present(comm_mpi)) then
@@ -2627,9 +2417,8 @@ subroutine gaussfit_projector(basis_size,mparam,nparam_array,nterm_bounds,orbita
 !  LIBPAW_DEALLOCATE(y) 
 !  
  end do
-!
+ 
 !Deallocate
-!
  call pawrad_free(mesh_tmp)
  LIBPAW_DEALLOCATE(tproj_tmp1)
  LIBPAW_DEALLOCATE(tproj_tmp2)
@@ -2637,6 +2426,8 @@ subroutine gaussfit_projector(basis_size,mparam,nparam_array,nterm_bounds,orbita
 
 end subroutine gaussfit_projector
 !!***
+
+!----------------------------------------------------------------------
 
 end module m_gaussfit
 !!***

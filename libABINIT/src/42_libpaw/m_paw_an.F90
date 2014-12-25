@@ -38,8 +38,8 @@
 MODULE m_paw_an
 
  use defs_basis
- use m_errors
  use m_xmpi
+ USE_MSG_HANDLING
  USE_MEMORY_PROFILING
 
  use m_paral_atom, only : get_my_atmtab, free_my_atmtab, get_my_natom
@@ -250,8 +250,6 @@ subroutine paw_an_init(Paw_an,natom,ntypat,nkxc1,nspden,cplex,pawxcdev,typat,Paw
 
 ! *************************************************************************
 
- DBG_ENTER("COLL")
-
 !@Paw_an_type
 
 !Set up parallelism over atoms
@@ -347,8 +345,6 @@ subroutine paw_an_init(Paw_an,natom,ntypat,nkxc1,nspden,cplex,pawxcdev,typat,Paw
 !Destroy atom table used for parallelism
  call free_my_atmtab(my_atmtab,my_atmtab_allocated)
 
- DBG_EXIT("COLL")
-
 end subroutine paw_an_init
 !!***
 
@@ -395,8 +391,6 @@ subroutine paw_an_free(Paw_an)
 
 ! *************************************************************************
 
- DBG_ENTER("COLL")
-
  !@Paw_an_type
 
  natom=SIZE(Paw_an);if (natom==0) return
@@ -440,9 +434,6 @@ subroutine paw_an_free(Paw_an)
   Paw_an(iat)%has_vxcval  =0
   Paw_an(iat)%has_vxc_ex  =0
  end do !iat
-
-
- DBG_EXIT("COLL")
 
 end subroutine paw_an_free
 !!***
@@ -568,8 +559,6 @@ subroutine paw_an_copy(paw_an_in,paw_an_cpy,&
  type(Paw_an_type), pointer :: paw_an_out(:)
 
 ! *************************************************************************
-
- DBG_ENTER("COLL")
 
 !@Paw_an_type
 
@@ -702,8 +691,6 @@ subroutine paw_an_copy(paw_an_in,paw_an_cpy,&
 !Destroy atom table used for parallelism
  call free_my_atmtab(my_atmtab,my_atmtab_allocated)
 
- DBG_EXIT("COLL")
-
  end subroutine paw_an_copy
 !!***
 
@@ -765,8 +752,6 @@ subroutine paw_an_print(Paw_an,unit,mode_paral, &
 
 ! *************************************************************************
 
- DBG_ENTER("COLL")
-
 !@Paw_an_type
 
  size_paw_an=SIZE(Paw_an)
@@ -815,8 +800,6 @@ subroutine paw_an_print(Paw_an,unit,mode_paral, &
    write(msg,'(a,i4)')'  nspden      = ',paw_an(iatom)%nspden
    call wrtout(my_unt,msg,my_mode)
  end do
-
- DBG_EXIT("COLL")
 
 end subroutine paw_an_print
 !!***
@@ -879,8 +862,6 @@ subroutine paw_an_gather(Paw_an_in,paw_an_gathered,master,comm_atom,mpi_atmtab)
  real(dp),allocatable :: buf_dp(:),buf_dp_all(:)
 
 ! *************************************************************************
-
- DBG_ENTER("COLL")
 
 !@Paw_an_type
 
@@ -1286,8 +1267,6 @@ subroutine paw_an_gather(Paw_an_in,paw_an_gathered,master,comm_atom,mpi_atmtab)
 !Destroy atom table
  call free_my_atmtab(my_atmtab,my_atmtab_allocated)
 
- DBG_EXIT("COLL")
-
 end subroutine paw_an_gather
 !!***
 
@@ -1381,8 +1360,6 @@ subroutine paw_an_redistribute(paw_an,mpi_comm_in,mpi_comm_out,&
  type(paw_an_type),pointer :: paw_an_out1(:)
 
 ! *************************************************************************
-
- DBG_ENTER("COLL")
 
 !@paw_an_type
 
@@ -1653,8 +1630,6 @@ subroutine paw_an_redistribute(paw_an,mpi_comm_in,mpi_comm_out,&
  call free_my_atmtab(my_atmtab_in,my_atmtab_in_allocated)
  call free_my_atmtab(my_atmtab_out,my_atmtab_out_allocated)
 
- DBG_EXIT("COLL")
-
 end subroutine paw_an_redistribute
 !!***
 
@@ -1697,8 +1672,6 @@ subroutine paw_an_reset_flags(Paw_an)
 
 ! *************************************************************************
 
- DBG_ENTER("COLL")
-
 !@Paw_an_type
 
  natom=SIZE(Paw_an);if (natom==0) return
@@ -1709,8 +1682,6 @@ subroutine paw_an_reset_flags(Paw_an)
    if (Paw_an(iat)%has_vxcval  >0) Paw_an(iat)%has_vxcval  =1
    if (Paw_an(iat)%has_vxc_ex  >0) Paw_an(iat)%has_vxc_ex  =1
  end do
-
- DBG_EXIT("COLL")
 
 end subroutine paw_an_reset_flags
 !!***
@@ -1772,8 +1743,6 @@ implicit none
 !arrays
 
 ! *********************************************************************
-
- DBG_ENTER("COLL")
 
  buf_int_size=size(buf_int)
  buf_dp_size=size(buf_dp)
@@ -1902,8 +1871,6 @@ implicit none
    MSG_BUG(msg)
  end if
 
- DBG_EXIT("COLL")
-
 end subroutine paw_an_isendreceive_getbuffer
 !!***
 
@@ -1969,8 +1936,6 @@ implicit none
 !arrays
 
 ! *********************************************************************
-
- DBG_ENTER("COLL")
 
 !Compute sizes of buffers
  buf_int_size=0 ; buf_dp_size=0
@@ -2124,10 +2089,9 @@ implicit none
    MSG_BUG(msg)
  end if
 
- DBG_EXIT("COLL")
-
 end subroutine paw_an_isendreceive_fillbuffer
 !!***
+
 !----------------------------------------------------------------------
 
 END MODULE m_paw_an

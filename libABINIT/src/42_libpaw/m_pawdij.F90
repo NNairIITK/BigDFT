@@ -30,7 +30,7 @@
 MODULE m_pawdij
 
  use defs_basis
- use m_errors
+ USE_MSG_HANDLING
  USE_MEMORY_PROFILING
 
  use m_paral_atom,   only : get_my_atmtab, free_my_atmtab
@@ -230,8 +230,6 @@ subroutine pawdij(cplex,enunit,gprimd,ipert,my_natom,natom,nfft,nfftot,nspden,nt
  real(dp),pointer :: v_dijhat(:,:),vpawu(:,:,:,:),vpawx(:,:,:)
 
 ! *************************************************************************
-
- DBG_ENTER("COLL")
 
 !------------------------------------------------------------------------
 !----- Check consistency of arguments
@@ -537,41 +535,53 @@ subroutine pawdij(cplex,enunit,gprimd,ipert,my_natom,natom,nfft,nfftot,nspden,nt
 !  === Print error messages if prerequesites are not fulfilled ===
 
    if (dij_need.and.(.not.dij_prereq)) then
-     MSG_BUG('Dij prerequesites missing!')
+     msg='Dij prerequesites missing!'
+     MSG_BUG(msg)
    end if
    if (dij0_need.and.(.not.dij0_prereq)) then
-     MSG_BUG('Dij0 prerequesites missing!')
+     msg='Dij0 prerequesites missing!'
+     MSG_BUG(msg)
    end if
    if (dijfock_need.and.(.not.dijfock_prereq)) then
-     MSG_BUG('DijFock prerequesites missing!')
+     msg='DijFock prerequesites missing!'
+     MSG_BUG(msg)
    end if
 
    if (dijhartree_need.and.(.not.dijhartree_prereq)) then
-     MSG_BUG('DijHartree prerequesites missing!')
+     msg='DijHartree prerequesites missing!'
+     MSG_BUG(msg)
    end if
    if (dijxc_need.and.(.not.dijxc_prereq)) then
-     MSG_BUG('Dij^XC prerequesites missing!')
+     msg='Dij^XC prerequesites missing!'
+     MSG_BUG(msg)
    end if
    if (dijhat_need.and.(.not.dijhat_prereq)) then
-     MSG_BUG('Dij^hat prerequesites missing!')
+     msg='Dij^hat prerequesites missing!'
+     MSG_BUG(msg)
    end if
    if (dijhatfr_need.and.(.not.dijhatfr_prereq)) then
-     MSG_BUG('DijFR^hat prerequesites missing!')
+     msg='DijFR^hat prerequesites missing!'
+     MSG_BUG(msg)
    end if
    if (dijso_need.and.(.not.dijso_prereq)) then
-     MSG_BUG('DijSO prerequesites missing!')
+     msg='DijSO prerequesites missing!'
+     MSG_BUG(msg)
    end if
    if (dijU_need.and.(.not.dijU_prereq)) then
-     MSG_BUG('DijU prerequesites missing!')
+     msg='DijU prerequesites missing!'
+     MSG_BUG(msg)
    end if
    if (dijexxc_need.and.(.not.dijexxc_prereq)) then
-     MSG_BUG('DijExcc prerequesites missing!')
+     msg='DijExcc prerequesites missing!'
+     MSG_BUG(msg)
    end if
    if (dijxchat_need.and.(.not.dijxchat_prereq)) then
-     MSG_BUG('DijXC^hat prerequesites missing!')
+     msg='DijXC^hat prerequesites missing!'
+     MSG_BUG(msg)
    end if
    if (dijxcval_need.and.(.not.dijxcval_prereq)) then
-     MSG_BUG('DijXC_val prerequesites missing!')
+     msg='DijXC_val prerequesites missing!'
+     MSG_BUG(msg)
    end if
 
 !  ------------------------------------------------------------------------
@@ -983,14 +993,10 @@ subroutine pawdij(cplex,enunit,gprimd,ipert,my_natom,natom,nfft,nfftot,nspden,nt
 !Destroy atom table used for parallelism
  call free_my_atmtab(my_atmtab,my_atmtab_allocated)
 
- DBG_EXIT("COLL")
-
 end subroutine pawdij
 !!***
 
-
 !----------------------------------------------------------------------
-
 
 !!****f* m_pawdij/pawdijhartree
 !! NAME
@@ -1044,8 +1050,6 @@ subroutine pawdijhartree(cplex,dijhartree,nspden,pawrhoij,pawtab)
  real(dp) :: ro(cplex)
 
 ! *************************************************************************
-
- DBG_ENTER("COLL")
 
 !Useful data
  lmn2_size=pawtab%lmn2_size
@@ -1111,14 +1115,10 @@ subroutine pawdijhartree(cplex,dijhartree,nspden,pawrhoij,pawtab)
    end do
  end if
 
- DBG_EXIT("COLL")
-
 end subroutine pawdijhartree
 !!***
 
-
 !----------------------------------------------------------------------
-
 
 !!****f* m_pawdij/pawdijxc
 !! NAME
@@ -1194,8 +1194,6 @@ subroutine pawdijxc(cplex,cplex_dij,dijxc,ndij,nspden,nsppol,&
  real(dp),allocatable :: dijxc_idij(:),ff(:),gg(:),vxcij1(:),vxcij2(:),yylmr(:,:)
 
 ! *************************************************************************
-
- DBG_ENTER("COLL")
 
 !Useful data
  lm_size=pawtab%lcut_size**2
@@ -1427,14 +1425,10 @@ subroutine pawdijxc(cplex,cplex_dij,dijxc,ndij,nspden,nsppol,&
  LIBPAW_DEALLOCATE(ff)
  LIBPAW_DEALLOCATE(gg)
 
- DBG_EXIT("COLL")
-
 end subroutine pawdijxc
 !!***
 
-
 !----------------------------------------------------------------------
-
 
 !!****f* m_pawdij/pawdijfock
 !! NAME
@@ -1509,8 +1503,6 @@ subroutine pawdijfock(cplex,cplex_dij,dijfock,ndij,nspden,nsppol,pawrhoij,pawtab
  real(dp),allocatable :: dijfock_idij(:)
   
 ! *************************************************************************
-
- DBG_ENTER("COLL")
 
 !Useful data
  lmn2_size=pawtab%lmn2_size
@@ -1702,12 +1694,11 @@ subroutine pawdijfock(cplex,cplex_dij,dijfock,ndij,nspden,nsppol,pawrhoij,pawtab
 !Free temporary memory spaces
  LIBPAW_DEALLOCATE(dijfock_idij)
 
- DBG_EXIT("COLL")
-
 end subroutine pawdijfock
 !!***
 
-!**************************************************************************************
+!----------------------------------------------------------------------
+
 !!****f* m_pawdij/pawdijxcm
 !! NAME
 !! pawdijxcm
@@ -1783,8 +1774,6 @@ subroutine pawdijxcm(cplex,cplex_dij,dijxc,lmselect,ndij,nspden,nsppol,&
  real(dp),allocatable :: dijxc_idij(:),ff(:),gg(:),vxcij1(:)
 
 ! *************************************************************************
-
- DBG_ENTER("COLL")
 
 !Useful data
  lm_size=pawtab%lcut_size**2
@@ -1979,14 +1968,10 @@ subroutine pawdijxcm(cplex,cplex_dij,dijxc,lmselect,ndij,nspden,nsppol,&
  LIBPAW_DEALLOCATE(ff)
  LIBPAW_DEALLOCATE(gg)
 
- DBG_EXIT("COLL")
-
 end subroutine pawdijxcm
 !!***
 
-
 !----------------------------------------------------------------------
-
 
 !!****f* m_pawdij/pawdijhat
 !! NAME
@@ -2071,8 +2056,6 @@ subroutine pawdijhat(cplex,cplex_dij,dijhat,gprimd,iatom,ipert,&
  real(dp),allocatable :: dijhat_idij(:),prod(:)
 
 ! *************************************************************************
-
- DBG_ENTER("COLL")
 
 !Useful data
  lm_size=pawtab%lcut_size**2
@@ -2322,14 +2305,10 @@ subroutine pawdijhat(cplex,cplex_dij,dijhat,gprimd,iatom,ipert,&
    pawfgrtab%expiqr_allocated=0
  end if
 
- DBG_EXIT("COLL")
-
 end subroutine pawdijhat
 !!***
 
-
 !----------------------------------------------------------------------
-
 
 !!****f* m_pawdij/pawdiju
 !! NAME
@@ -2397,8 +2376,6 @@ subroutine pawdiju(cplex_dij,dijpawu,ndij,nspden,nsppol,pawtab,vpawu,&
  real(dp),allocatable :: coeffpawu(:),dijpawu_idij(:),dijsymU(:,:)
 
 ! *************************************************************************
-
- DBG_ENTER("COLL")
 
 !Useful data
  lpawu=pawtab%lpawu
@@ -2509,14 +2486,10 @@ subroutine pawdiju(cplex_dij,dijpawu,ndij,nspden,nsppol,pawtab,vpawu,&
    LIBPAW_DEALLOCATE(dijsymU)
  end if
 
- DBG_EXIT("COLL")
-
 end subroutine pawdiju
 !!***
 
-
 !----------------------------------------------------------------------
-
 
 !!****f* m_pawdij/pawdijso
 !! NAME
@@ -2590,12 +2563,10 @@ subroutine pawdijso(cplex_dij,dijso,ndij,nspden,&
  real(dp) :: fact
  character(len=500) :: msg
 !arrays
- integer,ABI_CONTIGUOUS pointer :: indklmn(:,:)
+ integer, pointer :: indklmn(:,:)
  real(dp),allocatable :: dijso_rad(:),dv1dr(:),ff(:)
 
 ! *************************************************************************
-
- DBG_ENTER("COLL")
 
 !Useful data
  lm_size=pawtab%lcut_size**2
@@ -2723,14 +2694,10 @@ subroutine pawdijso(cplex_dij,dijso,ndij,nspden,&
 
  LIBPAW_DEALLOCATE(dijso_rad)
 
- DBG_EXIT("COLL")
-
 end subroutine pawdijso
 !!***
 
-
 !----------------------------------------------------------------------
-
 
 !!****f* m_pawdij/pawdijexxc
 !! NAME
@@ -2804,8 +2771,6 @@ subroutine pawdijexxc(cplex,cplex_dij,dijexxc,lmselect,ndij,nspden,nsppol,&
  real(dp),allocatable :: dijexxc_idij(:),ff(:),gg(:),vxcij1(:)
 
 ! *************************************************************************
-
- DBG_ENTER("COLL")
 
 !Useful data
  lm_size=pawtab%lcut_size**2
@@ -3030,14 +2995,10 @@ subroutine pawdijexxc(cplex,cplex_dij,dijexxc,lmselect,ndij,nspden,nsppol,&
  LIBPAW_DEALLOCATE(ff)
  LIBPAW_DEALLOCATE(gg)
 
- DBG_EXIT("COLL")
-
 end subroutine pawdijexxc
 !!***
 
-
 !----------------------------------------------------------------------
-
 
 !!****f* m_pawdij/pawdijfr
 !!
@@ -3129,6 +3090,7 @@ subroutine pawdijfr(cplex,gprimd,idir,ipert,my_natom,natom,nfft,ngfft,nspden,nty
  logical :: has_phase,my_atmtab_allocated,need_dijfr_1,need_dijfr_2,need_dijfr_3,need_dijfr_4
  logical :: paral_atom,qne0,testdij1,testdij2,testdij3
  real(dp) :: c1,fact,intg,rg1
+ character(len=500) :: msg
 !arrays
  integer,parameter :: m_index(3)=(/1,-1,0/)
  integer,pointer :: my_atmtab(:)
@@ -3137,8 +3099,6 @@ subroutine pawdijfr(cplex,gprimd,idir,ipert,my_natom,natom,nfft,ngfft,nspden,nty
  real(dp),allocatable :: ff(:),intv(:,:),intvloc(:,:),intv_tmp(:,:),rg(:),vloc(:,:)
 
 ! *************************************************************************
-
- DBG_ENTER("COLL")
 
 !Nothing to be done for DDK
  if (ipert==natom+1) return
@@ -3154,19 +3114,23 @@ subroutine pawdijfr(cplex,gprimd,idir,ipert,my_natom,natom,nfft,ngfft,nspden,nty
  qne0=(qphon(1)**2+qphon(2)**2+qphon(3)**2>=1.d-15)
  if (my_natom>0) then
    if (paw_ij1(1)%cplex_dij<cplex) then
-     MSG_BUG('paw_ij1()%cplex_dij must be >=cplex !')
+     msg='paw_ij1()%cplex_dij must be >=cplex !'
+     MSG_BUG(msg)
    end if
    if (paw_ij1(1)%cplex/=cplex) then
-     MSG_BUG('paw_ij1()%cplex and cplex must be equal !')
+     msg='paw_ij1()%cplex and cplex must be equal !'
+     MSG_BUG(msg)
    end if
    if (paw_ij1(1)%has_dijfr==0) then
-     MSG_BUG('pawdij1()%dijfr must be allocated !')
+     msg='pawdij1()%dijfr must be allocated !'
+     MSG_BUG(msg)
    end if
    testdij1=(ipert<=natom.and.option==0.and.pawfgrtab(1)%gylm_allocated==0)
    testdij2=(ipert<=natom.and.pawfgrtab(1)%gylmgr_allocated==0)
    testdij3=(testdij2.and.qne0.and.pawfgrtab(1)%expiqr_allocated==0)
    if ((testdij1.or.testdij2.or.testdij3).and.pawfgrtab(1)%rfgd_allocated==0) then
-     MSG_BUG('pawfgrtab()%rfgd array must be allocated  !')
+     msg='pawfgrtab()%rfgd array must be allocated  !'
+     MSG_BUG(msg)
    end if
  end if
 
@@ -3656,14 +3620,10 @@ subroutine pawdijfr(cplex,gprimd,idir,ipert,my_natom,natom,nfft,ngfft,nspden,nty
 !Destroy atom table used for parallelism
  call free_my_atmtab(my_atmtab,my_atmtab_allocated)
 
- DBG_EXIT("COLL")
-
 end subroutine pawdijfr
 !!***
 
-
 !----------------------------------------------------------------------
-
 
 !!****f* m_pawdij/pawpupot
 !! NAME
@@ -3733,8 +3693,6 @@ end subroutine pawdijfr
 !real(dp) :: n43_sig(cplex_dij)
 
 ! *****************************************************
-
- DBG_ENTER("COLL")
 
 !Useful data
  lpawu=pawtab%lpawu
@@ -3956,14 +3914,10 @@ end subroutine pawdijfr
 
  end do ! Loop on ispden
 
- DBG_EXIT("COLL")
-
  end subroutine pawpupot
 !!***
 
-
 !----------------------------------------------------------------------
-
 
 !!****f* m_pawdij/pawxpot
 !! NAME
@@ -4020,8 +3974,6 @@ end subroutine pawdijfr
  real(dp) :: factnk(6)
 
 ! *****************************************************
-
- DBG_ENTER("COLL")
 
 !Useful data
  lexexch=pawtab%lexexch
@@ -4091,14 +4043,10 @@ end subroutine pawdijfr
    call wrtout(std_out,msg,'COLL')
  end if
 
- DBG_EXIT("COLL")
-
  end subroutine pawxpot
 !!***
 
-
 !----------------------------------------------------------------------
-
 
 !!****f* m_pawdij/symdij
 !! NAME
@@ -4199,7 +4147,7 @@ subroutine symdij(gprimd,indsym,ipert,my_natom,natom,nsym,ntypat,option_dij,&
  character(len=500) :: msg
 !arrays
  integer :: nsym_used(2)
- integer, ABI_CONTIGUOUS pointer :: indlmn(:,:)
+ integer, pointer :: indlmn(:,:)
  integer,pointer :: my_atmtab(:)
  integer :: idum(0)
  real(dp) :: dijc(2),factsym(2),phase(2),rotdij(2,2),sumdij(2,2)
@@ -4218,8 +4166,6 @@ subroutine symdij(gprimd,indsym,ipert,my_natom,natom,nsym,ntypat,option_dij,&
 !DEBUG_ALTERNATE_ALGO
 
 ! *********************************************************************
-
- DBG_ENTER("COLL")
 
 !Tests of compatibility:
  if (my_natom>0) then
@@ -4666,7 +4612,8 @@ subroutine symdij(gprimd,indsym,ipert,my_natom,natom,nsym,ntypat,option_dij,&
 
    if (my_natom>0) then
      if(paw_ij(1)%nspden==2.and.paw_ij(1)%nsppol==1) then
-       MSG_BUG(' In the antiferromagnetic case, nsym cannot be 1')
+       msg='In the antiferromagnetic case, nsym cannot be 1'
+       MSG_BUG(msg)
      end if
    end if
    do iatom=1,my_natom
@@ -4761,8 +4708,6 @@ subroutine symdij(gprimd,indsym,ipert,my_natom,natom,nsym,ntypat,option_dij,&
 !Destroy atom table used for parallelism
  call free_my_atmtab(my_atmtab,my_atmtab_allocated)
 
- DBG_EXIT("COLL")
-
 !*********************************************************************
 !Small function: convert a symmetry operation
 !from reduced coordinates (integers) to cartesian coordinates (reals)
@@ -4802,9 +4747,7 @@ subroutine symdij(gprimd,indsym,ipert,my_natom,natom,nsym,ntypat,option_dij,&
 end subroutine symdij
 !!***
 
-
 !----------------------------------------------------------------------
-
 
 !!****f* m_pawdij/symdij_all
 !! NAME
@@ -4878,6 +4821,7 @@ subroutine symdij_all(gprimd,indsym,ipert,my_natom,natom,nsym,ntypat,&
  integer,parameter :: MAX_NOPTS=11
  integer :: ii,option_dij,my_comm_atom,nopt
  logical :: my_atmtab_allocated,paral_atom
+ character(len=500) :: msg
 !arrays
  integer :: options(MAX_NOPTS)
  integer,pointer :: my_atmtab(:)
@@ -4933,7 +4877,8 @@ subroutine symdij_all(gprimd,indsym,ipert,my_natom,natom,nsym,ntypat,&
 !FIXME  Dij_hartree and exech_pot are not symmetrized,
 
  if (ANY(paw_ij(:)%has_dijhartree==2)) then
-   MSG_WARNING("symdij does not symmetrize dijhartree term!")
+   msg='symdij does not symmetrize dijhartree term!'
+   MSG_WARNING(msg)
    !nopt = nopt + 1
    !options(nopt) = 9
  end if
@@ -4941,7 +4886,8 @@ subroutine symdij_all(gprimd,indsym,ipert,my_natom,natom,nsym,ntypat,&
  if (ANY(paw_ij(:)%has_exexch_pot==2)) then
    nopt = nopt + 1
    options(nopt) = 10
-   MSG_ERROR("Not coded")
+   msg='symetrization of dij_exexch not coded!'
+   MSG_ERROR(msg)
  end if
 
 !Set up parallelism over atoms
@@ -4969,7 +4915,6 @@ end subroutine symdij_all
 !!***
 
 !----------------------------------------------------------------------
-
 
 END MODULE m_pawdij
 !!***

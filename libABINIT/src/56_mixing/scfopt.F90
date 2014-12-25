@@ -60,7 +60,7 @@
 !!      newrho,newvtr,newvtr3
 !!
 !! CHILDREN
-!!      dgetrf,dgetri,dotprodm_v,sqnormm_v,wrtout
+!!      dgetrf,dgetri,dotprodm_v,sqnormm_v,abi_wrtout
 !!
 !! SOURCE
 
@@ -169,10 +169,10 @@ subroutine scfopt(cplex,f_fftgr,f_paw,iscf,istep,i_vrespc,i_vtrial,&
  if(istep==1 .or. iscf==2)then
 
    write(message,'(2a)') ch10,'Simple mixing update:'
-   call wrtout(std_out,message,'COLL')
+   call abi_wrtout(std_out,message,'COLL')
 
    write(message,*)' residual square of the potential :',resid_new(1)
-   call wrtout(std_out,message,'COLL')
+   call abi_wrtout(std_out,message,'COLL')
 
 !  Store information for later use
    if (iscf==3.or.iscf==4) resid_old=resid_new(1)
@@ -191,10 +191,10 @@ subroutine scfopt(cplex,f_fftgr,f_paw,iscf,istep,i_vrespc,i_vtrial,&
  else if((istep==2 .or. iscf==3).and.iscf/=7)then
 
    write(message,'(2a)') ch10,'Anderson update:'
-   call wrtout(std_out,message,'COLL')
+   call abi_wrtout(std_out,message,'COLL')
 
    write(message,*)' residual square of the potential: ',resid_new(1)
-   call wrtout(std_out,message,'COLL')
+   call abi_wrtout(std_out,message,'COLL')
 
 !  Compute prod_resid from f_fftgr/f_paw(:,:,i_vrespc(1)) and f_fftgr/f_paw(:,:,i_vrespc(2))
 !!$   call dotprodm_v(cplex,1,prod_resid,i_vrespc(1),i_vrespc(2),mpi_comm,mpi_summarize,1,1,&
@@ -209,14 +209,14 @@ subroutine scfopt(cplex,f_fftgr,f_paw,iscf,istep,i_vrespc,i_vtrial,&
 !  Compute mixing factor
    lambda=(resid_new(1)-prod_resid(1))/(resid_new(1)+resid_old-2*prod_resid(1))
    write(message,*)' mixing of old trial potential    :',lambda
-   call wrtout(std_out,message,'COLL')
+   call abi_wrtout(std_out,message,'COLL')
 
 !  Evaluate best residual square on the line
    resid_best=(1.0_dp-lambda)*(1.0_dp-lambda)*resid_new(1)&
 &   +(1.0_dp-lambda)*lambda        *2*prod_resid(1)&
 &   +lambda        *lambda        *resid_old
    write(message,*)' predicted best residual square on the line: ',resid_best
-   call wrtout(std_out,message,'COLL')
+   call abi_wrtout(std_out,message,'COLL')
 
 !  Store information for later use
    if (iscf==4) then
@@ -248,10 +248,10 @@ subroutine scfopt(cplex,f_fftgr,f_paw,iscf,istep,i_vrespc,i_vtrial,&
  else if(iscf==4.and.iscf/=7)then
 
    write(message,'(2a)') ch10,'Anderson (order 2) update:'
-   call wrtout(std_out,message,'COLL')
+   call abi_wrtout(std_out,message,'COLL')
 
    write(message,*)' residual square of the potential :',resid_new(1)
-   call wrtout(std_out,message,'COLL')
+   call abi_wrtout(std_out,message,'COLL')
 
 !  Compute prod_resid from f_fftgr/f_paw(:,:,i_vrespc(1)) and f_fftgr/f_paw(:,:,i_vrespc(2))
 !!$   call dotprodm_v(cplex,1,prod_resid,i_vrespc(1),i_vrespc(2),mpi_comm,mpi_summarize,1,1,&
@@ -283,7 +283,7 @@ subroutine scfopt(cplex,f_fftgr,f_paw,iscf,istep,i_vrespc,i_vtrial,&
    lambda =(aa2*cc1-bb*cc2)/det
    lambda2=(aa1*cc2-bb*cc1)/det
    write(message,*)' mixing of old trial potentials   :',lambda,lambda2
-   call wrtout(std_out,message,'COLL')
+   call abi_wrtout(std_out,message,'COLL')
 
 !  Store information for later use
    prod_resid_old=prod_resid(1)
@@ -319,7 +319,7 @@ subroutine scfopt(cplex,f_fftgr,f_paw,iscf,istep,i_vrespc,i_vtrial,&
    niter=min(istep,npulay+1)
 
    write(message,'(2a,i2,a)') ch10,' Pulay update with ',niter-1,' previous iterations:'
-   call wrtout(std_out,message,'COLL')
+   call abi_wrtout(std_out,message,'COLL')
 
    if (npulay>npulaymax) then
       errid = AB7_ERROR_MIXING_CONVERGENCE
@@ -369,7 +369,7 @@ subroutine scfopt(cplex,f_fftgr,f_paw,iscf,istep,i_vrespc,i_vtrial,&
    alpha(:)=alpha(:)/det
    deallocate(amatinv)
    write(message,'(a,5(1x,g10.3))')' mixing of old trial potential : alpha(m:m-4)=',(alpha(ii),ii=niter,max(1,niter-4),-1)
-   call wrtout(std_out,message,'COLL')
+   call abi_wrtout(std_out,message,'COLL')
 
 !  Save latest trial potential and compute new trial potential
    do isp=1,nspden

@@ -24,7 +24,7 @@
 MODULE m_sphharm
 
  use defs_basis
- use m_errors
+ USE_MSG_HANDLING
  USE_MEMORY_PROFILING
 
  implicit none
@@ -109,7 +109,7 @@ function ylmc(il,im,kcart)
 ! *************************************************************************
 
  if (ABS(im)>ABS(il)) then
-   write(msg,'(3(a,i0))')' m is,',im,' however it should be between ',-il,' and ',il
+   write(msg,'(3(a,i0))') 'm is,',im,' however it should be between ',-il,' and ',il
    MSG_ERROR(msg)
  end if
 
@@ -155,8 +155,9 @@ function ylmc(il,im,kcart)
    ylmc = SQRT(three/(four_pi))*costh
   else if (ABS(im)==1) then
    ylmc = -SQRT(three/(eight*pi))*sinth*CMPLX(cosphi,sinphi)
-  else 
-   MSG_ERROR("wrong im")
+  else
+   msg='wrong im'
+   MSG_ERROR(msg)
   end if
 
  case (2)
@@ -167,7 +168,8 @@ function ylmc(il,im,kcart)
   else if (ABS(im)==2) then
    ylmc = SQRT(15.d0/(32.d0*pi))*(sinth)**2*CMPLX(costwophi,sintwophi)
   else 
-   MSG_ERROR("wrong im")
+   msg='wrong im'
+   MSG_ERROR(msg)
   end if
 
  case (3)
@@ -180,7 +182,8 @@ function ylmc(il,im,kcart)
   else if (ABS(im)==3) then
    ylmc=-SQRT(35.d0/(64.d0*pi))*sinth**3*CMPLX(costhreephi,sinthreephi)
   else 
-   MSG_ERROR("wrong im")
+   msg='wrong im'
+   MSG_ERROR(msg)
   end if
 
  case default
@@ -994,15 +997,15 @@ subroutine plm_coeff(blm,mpsang,xx)
  integer :: il,ilm,ilm0,ilm1,im
  real(dp) :: dplm_dt,d2plm_dt2,llp1,onemx2,plm,sqrx,xsqrx,xx2,yy
  logical :: is_one
- character(len=500) :: message
+ character(len=500) :: msg
 !arrays
  real(dp) :: pl_d2(mpsang),plm_d2t(mpsang*mpsang)
 
 !************************************************************************
 
  if (abs(xx).gt.1.d0) then
-   message = ' plm_coeff :  xx > 1 !'
-   MSG_ERROR(message)
+   msg = ' plm_coeff :  xx > 1 !'
+   MSG_ERROR(msg)
  end if
 
  blm=zero
@@ -1099,20 +1102,22 @@ function ass_leg_pol(l,m,xarg)
 !Arguments ------------------------------------
 !scalars
  integer, intent(in) ::  l,m
- double precision, intent(in) :: xarg
- double precision :: ass_leg_pol
+ real(dp), intent(in) :: xarg
+ real(dp) :: ass_leg_pol
 
 !Local variables-------------------------------
 !scalars
  integer :: i,ll
- double precision :: pll,polmm,tmp1,sqrx,x
+ real(dp) :: pll,polmm,tmp1,sqrx,x
+ character(len=100) :: msg
 
 ! *************************************************************************
 
  x=xarg
  if (m.lt.0.or.m.gt.l.or.abs(x).gt.1.d0) then
    if (m.lt.0.or.m.gt.l.or.abs(x).gt.1.d0+1.d-10) then
-    MSG_BUG('Bad choice of l, m or x !')
+    msg='Bad choice of l, m or x !'
+    MSG_BUG(msg)
    endif
    x=1.d0
  endif
@@ -1190,12 +1195,12 @@ subroutine plm_d2theta(mpsang,plm_d2t,xx)
 !scalars
  integer :: il,ilm,ilmm1,ilmm2,im
  real(dp) :: sqrx
- character(len=500) :: message
+ character(len=500) :: msg
 
 !************************************************************************
  if (abs(xx).gt.1.d0) then
-   message = ' plm_d2theta : xx > 1 !'
-   MSG_ERROR(message)
+   msg = 'plm_d2theta : xx > 1 !'
+   MSG_ERROR(msg)
  end if
 
  plm_d2t=zero
@@ -1281,13 +1286,13 @@ function plm_dphi(ll,mm,xx)
 !scalars
  integer :: il,im
  real(dp) :: dosomx2,fact,pll,pmm,pmmp1,somx2
- character(len=500) :: message
+ character(len=500) :: msg
 
 ! *********************************************************************
 
  if (mm.lt.0.or.mm.gt.ll.or.abs(xx).gt.1.d0) then
-   message = ' plm_dphi : mm < 0 or mm > ll or xx > 1 !'
-   MSG_ERROR(message)
+   msg = 'plm_dphi : mm < 0 or mm > ll or xx > 1 !'
+   MSG_ERROR(msg)
  end if
 
  plm_dphi=zero
@@ -1376,13 +1381,13 @@ function plm_dtheta(ll,mm,xx)
 !scalars
  integer :: il,im
  real(dp) :: dosomx2,dpll,dpmm,dpmmp1,fact,pll,pmm,pmmp1,somx2
- character(len=500) :: message
+ character(len=500) :: msg
 
 ! *********************************************************************
 
  if (mm.lt.0.or.mm.gt.ll.or.abs(xx).gt.1.d0) then
-   message = ' plm_dtheta : mm < 0 or mm > ll or xx > 1 !'
-   MSG_ERROR(message)
+   msg = 'plm_dtheta : mm < 0 or mm > ll or xx > 1 !'
+   MSG_ERROR(msg)
  end if
 
  plm_dtheta=zero
@@ -1475,15 +1480,15 @@ subroutine pl_deriv(mpsang,pl_d2,xx)
 !scalars
  integer :: il,ilm
  real(dp) :: il_,il_m1,il_2m1
- character(len=500) :: message
+ character(len=500) :: msg
 !arrays
  real(dp) :: pl(mpsang),pl_d1(mpsang)
 
 ! *********************************************************************
 
  if (abs(xx).gt.1.d0) then
-   message = ' pl_deriv : xx > 1 !'
-   MSG_ERROR(message)
+   msg = 'pl_deriv : xx > 1 !'
+   MSG_ERROR(msg)
  end if
 
  pl_d2=zero; pl_d1=zero; pl=zero
@@ -1567,7 +1572,7 @@ subroutine mat_mlms2jmj(lcor,mat_mlms,mat_jmj,ndij,option,optspin,prtvol,unitfi,
  complex(dpc) :: tmp2
  character(len=9),parameter :: dspinold(6)=(/"up       ","down     ","up-up    ","down-down","up-dn    ","dn-up    "/)
  character(len=9),parameter :: dspin(6)=(/"dn       ","up       ","dn-dn    ","up-up    ","dn-up    ","up-dn    "/)
- character(len=500) :: message
+ character(len=500) :: msg
 !arrays
  integer, allocatable :: ind_msml(:,:)
  complex(dpc),allocatable :: mat_mlms2(:,:),mat_tmp(:,:,:),mlms2jmj(:,:)
@@ -1575,38 +1580,38 @@ subroutine mat_mlms2jmj(lcor,mat_mlms,mat_jmj,ndij,option,optspin,prtvol,unitfi,
 !*********************************************************************
 
  if(ndij/=4) then
-   message=" ndij/=4 !"
-   MSG_BUG(message)
+   msg=" ndij/=4 !"
+   MSG_BUG(msg)
  end if
  if (option/=1.and.option/=2) then
-   message=' option=/1 and =/2 !'
-   MSG_BUG(message)
+   msg=' option=/1 and =/2 !'
+   MSG_BUG(msg)
  end if
  if (optspin/=1.and.optspin/=2) then
-   message=' optspin=/1 and =/2 !'
-   MSG_BUG(message)
+   msg=' optspin=/1 and =/2 !'
+   MSG_BUG(msg)
  end if
  
  if (unitfi/=-1) then
    if(option==1) then
-     write(message,'(3a)') ch10,&
+     write(msg,'(3a)') ch10,&
 &     "matrix in |l,s,m_l,m_s> basis is changed into |l,s,j,m_j> basis"
-     call wrtout(unitfi,message,wrt_mode)
+     call wrtout(unitfi,msg,wrt_mode)
    else if(option==2) then
-     write(message,'(3a)') ch10,&
+     write(msg,'(3a)') ch10,&
 &     "matrix in |l,s,j,m_j> basis is changed into |l,s,m_l,m_s> basis"
-     call wrtout(unitfi,message,wrt_mode)
+     call wrtout(unitfi,msg,wrt_mode)
    end if
  end if
  
  if(option==1) then
    if(optspin==2) then
      if(abs(prtvol)>2.and.unitfi/=-1)&
-&     write(message,'(3a)') ch10,"assume spin dn is the first in the array"
+&     write(msg,'(3a)') ch10,"assume spin dn is the first in the array"
    else if (optspin==1) then
      LIBPAW_ALLOCATE(mat_tmp,(2*lcor+1,2*lcor+1,ndij))
      if(abs(prtvol)>2.and.unitfi/=-1)&
-&     write(message,'(3a)') ch10,"change array in order that spin dn is the first in the array"
+&     write(msg,'(3a)') ch10,"change array in order that spin dn is the first in the array"
      mat_tmp(:,:,1)=mat_mlms(:,:,2)
      mat_tmp(:,:,2)=mat_mlms(:,:,1)
      mat_tmp(:,:,3)=mat_mlms(:,:,4)
@@ -1615,19 +1620,19 @@ subroutine mat_mlms2jmj(lcor,mat_mlms,mat_jmj,ndij,option,optspin,prtvol,unitfi,
      LIBPAW_DEALLOCATE(mat_tmp)
    end if
    if(abs(prtvol)>2.and.unitfi/=-1) then
-     call wrtout(unitfi,message,wrt_mode)
+     call wrtout(unitfi,msg,wrt_mode)
    end if
  end if
 
  if(option==1.and.abs(prtvol)>2.and.unitfi/=-1) then
    do ispden=1,ndij
-     write(message,'(3a)') ch10,&
+     write(msg,'(3a)') ch10,&
 &     "Input matrix in the Ylm basis for component ",trim(dspin(ispden+2*(ndij/4)))
-     call wrtout(unitfi,message,wrt_mode)
+     call wrtout(unitfi,msg,wrt_mode)
      do im1=1,lcor*2+1
-       write(message,'(12(1x,9(1x,"(",f7.3,",",f7.3,")")))')&
+       write(msg,'(12(1x,9(1x,"(",f7.3,",",f7.3,")")))')&
 &       (mat_mlms(im1,im2,ispden),im2=1,lcor*2+1)
-       call wrtout(unitfi,message,wrt_mode)
+       call wrtout(unitfi,msg,wrt_mode)
      end do
    end do
  end if ! option==1
@@ -1664,12 +1669,12 @@ subroutine mat_mlms2jmj(lcor,mat_mlms,mat_jmj,ndij,option,optspin,prtvol,unitfi,
      end do
    end do
    if(abs(prtvol)>1.and.unitfi/=-1) then
-     write(message,'(3a)') ch10,"Input matrix in the lms basis for all component"
-     call wrtout(unitfi,message,wrt_mode)
+     write(msg,'(3a)') ch10,"Input matrix in the lms basis for all component"
+     call wrtout(unitfi,msg,wrt_mode)
      do im1=1,2*(lcor*2+1)
-       write(message,'(12(1x,18(1x,"(",f7.3,",",f7.3,")")))')&
+       write(msg,'(12(1x,18(1x,"(",f7.3,",",f7.3,")")))')&
 &       (mat_mlms2(im1,im2),im2=1,2*(lcor*2+1))
-       call wrtout(unitfi,message,wrt_mode)
+       call wrtout(unitfi,msg,wrt_mode)
      end do
    end if
  end if  ! option==1
@@ -1678,8 +1683,8 @@ subroutine mat_mlms2jmj(lcor,mat_mlms,mat_jmj,ndij,option,optspin,prtvol,unitfi,
 !do jj=ll,ll+1    ! the physical value of j are ll-0.5,ll+0.5
 !xj(jj)=jj-0.5
  if(ll==0)then
-   message=' ll should not be equal to zero !'
-   MSG_BUG(message)
+   msg=' ll should not be equal to zero !'
+   MSG_BUG(msg)
  end if
  jc1=0
  invsqrt2lp1=one/sqrt(float(2*lcor+1))
@@ -1705,11 +1710,11 @@ subroutine mat_mlms2jmj(lcor,mat_mlms,mat_jmj,ndij,option,optspin,prtvol,unitfi,
    end do
  end do
  if(abs(prtvol)>2.and.unitfi/=-1) then
-   write(message,'(3a)') ch10,"Matrix to go from |M_L,M_S> to |J,M_J>"
-   call wrtout(unitfi,message,wrt_mode)
+   write(msg,'(3a)') ch10,"Matrix to go from |M_L,M_S> to |J,M_J>"
+   call wrtout(unitfi,msg,wrt_mode)
    do im1=1,2*(lcor*2+1)
-     write(message,'(12(1x,18(1x,"(",f7.3,",",f7.3,")")))') (mlms2jmj(im1,im2),im2=1,2*(lcor*2+1))
-     call wrtout(unitfi,message,wrt_mode)
+     write(msg,'(12(1x,18(1x,"(",f7.3,",",f7.3,")")))') (mlms2jmj(im1,im2),im2=1,2*(lcor*2+1))
+     call wrtout(unitfi,msg,wrt_mode)
    end do
  end if
 
@@ -1734,20 +1739,20 @@ subroutine mat_mlms2jmj(lcor,mat_mlms,mat_jmj,ndij,option,optspin,prtvol,unitfi,
  end do
  if(option==1) then
    if (abs(prtvol)>=1.and.unitfi/=-1) then
-     write(message,'(3a)') ch10," Matrix in the J,M_J basis"
-     call wrtout(unitfi,message,wrt_mode)
+     write(msg,'(3a)') ch10," Matrix in the J,M_J basis"
+     call wrtout(unitfi,msg,wrt_mode)
      do im1=1,2*(lcor*2+1)
-       write(message,'(12(1x,18(1x,"(",f7.3,",",f7.3,")")))') (mat_jmj(im1,im2),im2=1,2*(lcor*2+1))
-       call wrtout(unitfi,message,wrt_mode)
+       write(msg,'(12(1x,18(1x,"(",f7.3,",",f7.3,")")))') (mat_jmj(im1,im2),im2=1,2*(lcor*2+1))
+       call wrtout(unitfi,msg,wrt_mode)
      end do
    end if
  else if(option==2) then
    if (abs(prtvol)>=1.and.unitfi/=-1) then
-     write(message,'(3a)') ch10," Matrix in the m_s m_l basis"
-     call wrtout(unitfi,message,wrt_mode)
+     write(msg,'(3a)') ch10," Matrix in the m_s m_l basis"
+     call wrtout(unitfi,msg,wrt_mode)
      do im1=1,2*(lcor*2+1)
-       write(message,'(12(1x,18(1x,"(",f7.3,",",f7.3,")")))') (mat_mlms2(im1,im2),im2=1,2*(lcor*2+1))
-       call wrtout(unitfi,message,wrt_mode)
+       write(msg,'(12(1x,18(1x,"(",f7.3,",",f7.3,")")))') (mat_mlms2(im1,im2),im2=1,2*(lcor*2+1))
+       call wrtout(unitfi,msg,wrt_mode)
      end do
    end if
    jc1=0
@@ -1837,33 +1842,33 @@ subroutine mat_slm2ylm(lcor,mat_inp_c,mat_out_c,ndij,option,optspin,prtvol,unitf
  complex(dpc) :: tmp2
  character(len=9),parameter :: dspinc(6)=(/"up       ","down     ","up-up    ","down-down","up-dn    ","dn-up    "/)! optspin 1
  character(len=9),parameter :: dspinc2(6)=(/"up       ","down     ","dn-dn    ","up-up    ","dn-up    ","up-dn    "/)! optspin 2
- character(len=500) :: message
+ character(len=500) :: msg
 !arrays
  complex(dpc),allocatable :: slm2ylm(:,:)
 
 ! *********************************************************************
 
  if(ndij/=4) then
-   message=' ndij:=4 !'
-   MSG_BUG(message)
+   msg=' ndij:=4 !'
+   MSG_BUG(msg)
  end if
  if (option/=1.and.option/=2.and.option/=3.and.option/=4) then
-   message=' option=/1 or 2 or 3 or 4 !'
-   MSG_BUG(message)
+   msg=' option=/1 or 2 or 3 or 4 !'
+   MSG_BUG(msg)
  end if
 
  if(abs(prtvol)>2.and.unitfi/=-1) then
-   write(message,'(3a)') ch10, "   mat_slm2ylm"
-   call wrtout(unitfi,message,wrt_mode)
+   write(msg,'(3a)') ch10, "   mat_slm2ylm"
+   call wrtout(unitfi,msg,wrt_mode)
  end if
  
  if(abs(prtvol)>2.and.unitfi/=-1) then
    if(option==1.or.option==3) then
-     write(message,'(3a)') ch10,"matrix in Slm basis is changed into Ylm basis"
-     call wrtout(unitfi,message,wrt_mode)
+     write(msg,'(3a)') ch10,"matrix in Slm basis is changed into Ylm basis"
+     call wrtout(unitfi,msg,wrt_mode)
    else if(option==2.or.option==4) then
-     write(message,'(3a)') ch10,"matrix in Ylm basis is changed into Slm basis"
-     call wrtout(unitfi,message,wrt_mode)
+     write(msg,'(3a)') ch10,"matrix in Ylm basis is changed into Slm basis"
+     call wrtout(unitfi,msg,wrt_mode)
    end if
  end if
 
@@ -1891,24 +1896,24 @@ subroutine mat_slm2ylm(lcor,mat_inp_c,mat_out_c,ndij,option,optspin,prtvol,unitf
    do ispden=1,ndij
      if(optspin==1) then
        if(option==1.or.option==3)&
-&       write(message,'(3a)') ch10,&
+&       write(msg,'(3a)') ch10,&
 &       "Input matrix in the Slm basis for component ",trim(dspinc(ispden+2*(ndij/4)))
        if(option==2.or.option==3)&
-&       write(message,'(3a)') ch10,&
+&       write(msg,'(3a)') ch10,&
 &       "Input matrix in the Ylm basis for component ",trim(dspinc(ispden+2*(ndij/4)))
      else
        if(option==1.or.option==3)&
-&       write(message,'(3a)') ch10,&
+&       write(msg,'(3a)') ch10,&
 &       "Input matrix in the Slm basis for component ",trim(dspinc2(ispden+2*(ndij/4)))
        if(option==2.or.option==3)&
-&       write(message,'(3a)') ch10,&
+&       write(msg,'(3a)') ch10,&
 &       "Input matrix in the Ylm basis for component ",trim(dspinc2(ispden+2*(ndij/4)))
      end if
-     call wrtout(unitfi,message,wrt_mode)
+     call wrtout(unitfi,msg,wrt_mode)
      do im1=1,lcor*2+1
-       write(message,'(12(1x,9(1x,"(",f9.5,",",f9.5,")")))')&
+       write(msg,'(12(1x,9(1x,"(",f9.5,",",f9.5,")")))')&
 &       (mat_inp_c(im1,im2,ispden),im2=1,lcor*2+1)
-       call wrtout(unitfi,message,wrt_mode)
+       call wrtout(unitfi,msg,wrt_mode)
      end do
    end do
  end if
@@ -1938,9 +1943,9 @@ subroutine mat_slm2ylm(lcor,mat_inp_c,mat_out_c,ndij,option,optspin,prtvol,unitf
 !    check that n_{m,m'}^{alpha,beta}=conjg(n_{m',m"}^{beta,alpha}).
      if((abs(aimag(mat_out_c(ii,jj,3))+aimag(mat_out_c(jj,ii,4))).ge.0.0001).or. &
 &     (abs(real(mat_out_c(ii,jj,3))-real(mat_out_c(jj,ii,4))).ge.0.0001)) then
-       write(message,'(a,4f10.4)') &
+       write(msg,'(a,4f10.4)') &
 &       ' prb with mat_out_c ',mat_out_c(ii,jj,3),mat_out_c(ii,jj,4)
-       MSG_BUG(message)
+       MSG_BUG(msg)
      end if
    end do
  end do

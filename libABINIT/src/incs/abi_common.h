@@ -232,7 +232,7 @@
 
 /* Macro for clean exit */
 /*
-#define ABI_EXIT(exit_status) call leave_new("COLL",exit_status=exit_status,print_config=.False.)
+#define ABI_EXIT(exit_status) call abi_leave_new("COLL",exit_status=exit_status,print_config=.False.)
 */
 
 /* Macro for checking whether allocation was successful */
@@ -353,7 +353,7 @@
 #undef HAVE_IBM6
 
 #ifdef HAVE_IBM6
-#define _IBM6(message) call wrtout(std_out,message,"COLL",do_flush=.True.)
+#define _IBM6(message) call abi_wrtout(std_out,message,"COLL",do_flush=.True.)
 #else
 #define _IBM6(message)
 #endif

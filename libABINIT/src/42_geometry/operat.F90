@@ -41,7 +41,7 @@
 !!      ingeo
 !!
 !! CHILDREN
-!!      leave_new,wrtout
+!!      abi_leave_new,abi_wrtout
 !!
 !! SOURCE
 
@@ -149,8 +149,8 @@ subroutine operat(natom,natrd,nsym,spinat,symafm,symrel,tnons,typat,xred)
 &  '  is greater than the input number of atoms, natom=',natom,ch10,&
 &  '  This is not allowed.  ',ch10,&
 &  '  Action : modify natom or the symmetry data in the input file.'
-  call wrtout(06,  message,'COLL')
-  call leave_new('COLL')
+  call abi_wrtout(06,  message,'COLL')
+  call abi_leave_new('COLL')
  end if
 
  if (curat<natom) then
@@ -160,8 +160,8 @@ subroutine operat(natom,natrd,nsym,spinat,symafm,symrel,tnons,typat,xred)
 &  '  is lower than the input number of atoms, natom=',natom,ch10,&
 &  '  This is not allowed.  ',ch10,&
 &  '  Action : modify natom or the symmetry data in the input file.'
-  call wrtout(06,  message,'COLL')
-  call leave_new('COLL')
+  call abi_wrtout(06,  message,'COLL')
+  call abi_leave_new('COLL')
  end if
 
 !Assignment of symmetry to xred

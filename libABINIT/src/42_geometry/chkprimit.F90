@@ -35,7 +35,7 @@
 !!      ingeo,ab6_symmetry_f90
 !!
 !! CHILDREN
-!!      leave_new,wrtout
+!!      abi_leave_new,abi_wrtout
 !!
 !! SOURCE
 
@@ -96,15 +96,15 @@ subroutine chkprimit(chkprim,multi,nsym,symafm,symrel)
 &     '  only when the input variable chkprim is 0.',ch10,&
 &     '  Action : either change your unit cell (rprim or angdeg),',ch10,&
 &     '  or set chkprim to 0.'
-     call wrtout(std_out,message,'COLL')
-     call leave_new('COLL')
+     call abi_wrtout(std_out,message,'COLL')
+     call abi_leave_new('COLL')
    else
      write(message,'(a,a,a,a,a,a,i3,a,a,a)') ch10,&
 &     ' chkprimit : COMMENT -',ch10,&
 &     '  According to the symmetry finder, the unit cell is',ch10,&
 &     '  not primitive, with multiplicity=',multi,'.',ch10,&
 &     '  This is allowed, as the input variable chkprim is 0.'
-     call wrtout(std_out,message,'COLL')
+     call abi_wrtout(std_out,message,'COLL')
    end if
  end if
 

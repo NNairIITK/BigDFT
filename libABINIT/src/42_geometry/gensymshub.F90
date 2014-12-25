@@ -34,7 +34,7 @@
 !!      ingeo
 !!
 !! CHILDREN
-!!      leave_new,wrtout
+!!      abi_leave_new,abi_wrtout
 !!
 !! SOURCE
 
@@ -546,8 +546,8 @@ subroutine gensymshub(genafm,spgroup,spgroupma,shubnikov)
 &     '  while the magnetic space group is specified, spgroupma= ',spgroupma,ch10,&
 &     '  This is not allowed.  ',ch10,&
 &     '  Action : specify spgroup in the input file.'
-     call wrtout(std_out,  message,'COLL')
-     call leave_new('COLL')
+     call abi_wrtout(std_out,  message,'COLL')
+     call abi_leave_new('COLL')
  end select
 
  if (spgrmatch==0) then
@@ -557,8 +557,8 @@ subroutine gensymshub(genafm,spgroup,spgroupma,shubnikov)
 &   '  and the magnetic space group ',spgroupma,ch10,&
 &   '  This is not allowed.  ',ch10,&
 &   '  Action : modify spgroup or spgroupma in the input file.'
-   call wrtout(std_out,  message,'COLL')
-   call leave_new('COLL')
+   call abi_wrtout(std_out,  message,'COLL')
+   call abi_leave_new('COLL')
  end if
 
 !DEBUG

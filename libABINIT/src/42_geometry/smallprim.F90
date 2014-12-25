@@ -34,7 +34,7 @@
 !!      getkgrid,symlatt,testkgrid
 !!
 !! CHILDREN
-!!      leave_new,wrtout
+!!      abi_leave_new,abi_wrtout
 !!
 !! SOURCE
 
@@ -233,8 +233,8 @@ subroutine smallprim(metmin,minim,rprimd)
    write(message, '(a,a,a,a)' ) ch10,&
 &   ' smallprim : BUG -',ch10,&
 &   '  minim gives vanishing unit cell volume.'
-   call wrtout(std_out,message,'COLL')
-   call leave_new('COLL')
+   call abi_wrtout(std_out,message,'COLL')
+   call abi_leave_new('COLL')
  end if
 
 !Final computation of metmin

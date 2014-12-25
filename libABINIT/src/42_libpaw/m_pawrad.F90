@@ -31,8 +31,8 @@
 MODULE m_pawrad
 
  use defs_basis
- use m_errors
  use m_xmpi
+ USE_MSG_HANDLING
  USE_MEMORY_PROFILING
 
  implicit none
@@ -219,8 +219,6 @@ subroutine pawrad_init(mesh,mesh_size,mesh_type,rstep,lstep,r_for_intg)
 
 ! *************************************************************************
 
- DBG_ENTER("COLL")
-
  !@pawrad_type
 
 !Retrieve mesh data
@@ -312,8 +310,6 @@ subroutine pawrad_init(mesh,mesh_size,mesh_type,rstep,lstep,r_for_intg)
 
  mesh%rmax=mesh%rad(mesh%mesh_size)
 
- DBG_EXIT("COLL")
-
 end subroutine pawrad_init
 !!***
 
@@ -353,8 +349,6 @@ subroutine pawrad_free_0D(Rmesh)
 
 ! *************************************************************************
 
- DBG_ENTER("COLL")
-
  !@Pawrad_type
 
  if (allocated(Rmesh%rad    ))  then
@@ -369,8 +363,6 @@ subroutine pawrad_free_0D(Rmesh)
  Rmesh%int_meshsz=0
  Rmesh%mesh_size=0
  Rmesh%mesh_type=-1
-
- DBG_EXIT("COLL")
 
 end subroutine pawrad_free_0D
 !!***
@@ -572,6 +564,7 @@ subroutine pawrad_isame(Rmesh1,Rmesh2,hasameq,whichdenser)
  type(pawrad_type),intent(in) :: Rmesh2
 
 !Local variables-------------------------------
+ character(len=50) :: msg
  
 ! *************************************************************************
 
@@ -597,7 +590,9 @@ subroutine pawrad_isame(Rmesh1,Rmesh2,hasameq,whichdenser)
    hasameq = (Rmesh1%rstep == Rmesh2%rstep)
 
  CASE DEFAULT
-   MSG_ERROR("Unknown mesh type")
+   msg='Unknown mesh type'
+   MSG_ERROR(msg)
+
  END SELECT
 
  ! === If meshes have same equation, check whether they are equal ===
@@ -784,7 +779,7 @@ subroutine pawrad_bcast(pawrad,comm_mpi)
 !scalars
  integer :: ierr,indx,me,nn,isz1
  integer :: if_rad,if_radfact,if_simfact !flags used to communicate
- character(len=500) :: message
+ character(len=500) :: msg
 !arrays
  integer,allocatable :: list_int(:)
  real(dp),allocatable :: list_dpr(:)
@@ -802,24 +797,24 @@ subroutine pawrad_bcast(pawrad,comm_mpi)
      if_rad=1 !communicate rad
      isz1=size(pawrad%rad)
      if(isz1/=pawrad%mesh_size) then
-       message='rad: sz1 /= pawrad%mesh_size'
-       MSG_BUG(message)
+       msg='rad: sz1 /= pawrad%mesh_size'
+       MSG_BUG(msg)
      end if
    end if
    if (allocated(pawrad%radfact)) then
      if_radfact=1 !communicate radfact
      isz1=size(pawrad%radfact)
      if(isz1/=pawrad%mesh_size) then
-       message='radfact: sz1 /= pawrad%mesh_size '
-       MSG_BUG(message)
+       msg='radfact: sz1 /= pawrad%mesh_size '
+       MSG_BUG(msg)
      end if
    end if
    if (allocated(pawrad%simfact)) then
      if_simfact=1 !communicate simfact
      isz1=size(pawrad%simfact)
      if(isz1/=pawrad%mesh_size) then
-       message='simfact: sz1 /= pawrad%mesh_size '
-       MSG_BUG(message)
+       msg='simfact: sz1 /= pawrad%mesh_size '
+       MSG_BUG(msg)
      end if
    end if
  end if
@@ -1613,14 +1608,15 @@ subroutine calc_slatradl(ll,mesh_size,ff1,ff2,Pawrad,integral)
 !scalars
  integer :: int_meshsz
  real(dp) :: qq
- !character(len=500) :: msg
+ character(len=100) :: msg
 !arrays
  real(dp),allocatable :: hh(:),gg(:)
  
 ! *************************************************************************
 
  if (mesh_size /= Pawrad%mesh_size) then 
-  MSG_BUG("mesh_size /= Pawrad%mesh_size")
+   msg='mesh_size /= Pawrad%mesh_size'
+   MSG_BUG(msg)
  end if
 
  LIBPAW_ALLOCATE(hh,(mesh_size))

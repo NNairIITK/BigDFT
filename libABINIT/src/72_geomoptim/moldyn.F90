@@ -151,8 +151,8 @@
 !!      gstate
 !!
 !! CHILDREN
-!!      chkexi,fconv,initylmg,leave_new,metric,mkrdim,prtxvf,scfcv,status
-!!      write_header_moldynnetcdf,write_moldynvaluenetcdf,wrtout,xfpack
+!!      chkexi,fconv,initylmg,abi_leave_new,metric,mkrdim,prtxvf,scfcv,status
+!!      write_header_moldynnetcdf,write_moldynvaluenetcdf,abi_wrtout,xfpack
 !!      xredxcart
 !!
 !! SOURCE
@@ -226,7 +226,7 @@ subroutine moldyn(acell,amass,me,&
  prtvol=0
  if(prtvol==-level)then
   write(message,'(80a,a,a)') ('=',ii=1,80),ch10,' moldyn : enter '
-  call wrtout(std_out,message,'COLL')
+  call abi_wrtout(std_out,message,'COLL')
  end if
 
  ipos=0
@@ -324,8 +324,8 @@ subroutine moldyn(acell,amass,me,&
 
   write(message, '(a,a,i4,a)' ) ch10,' MOLDYN STEP NUMBER ',itime,&
 &  '  ------------------------------------------------------'
-  call wrtout(ab_out,message,'COLL')
-  call wrtout(std_out,  message,'COLL')
+  call abi_wrtout(ab_out,message,'COLL')
+  call abi_wrtout(std_out,  message,'COLL')
 
   if (ionmov==8.or.ionmov==9.or.ionmov==13) then
 !  The temperature is linear between initial and final values
@@ -374,7 +374,7 @@ subroutine moldyn(acell,amass,me,&
 &   '        ',rprim(1:3,2),ch10,&
 &   '        ',rprim(1:3,3),ch10,&
 &   '  ucvol=',ucvol,' Bohr^3',ch10
-   call wrtout(std_out,message,'COLL')
+   call abi_wrtout(std_out,message,'COLL')
 
   end if
 
@@ -420,14 +420,14 @@ subroutine moldyn(acell,amass,me,&
 &   '  rprim=',rprim(1:3,1),ch10,&
 &   '        ',rprim(1:3,2),ch10,&
 &   '        ',rprim(1:3,3)
-   call wrtout(ab_out,message,'COLL')
-   call wrtout(std_out,message,'COLL')
+   call abi_wrtout(ab_out,message,'COLL')
+   call abi_wrtout(std_out,message,'COLL')
    write(message, '(a,es18.10,a,a,a,3es18.10,a,a,a,3f13.8,a)' )&
 &   '  ucvol=',ucvol,' Bohr^3',ch10,&
 &   '  lengths=',sqrt(rmet(1,1)),sqrt(rmet(2,2)),sqrt(rmet(3,3)),' Bohr',&
 &   ch10,'  angles (23,13,12)=',angle(1:3),' degrees'
-   call wrtout(ab_out,message,'COLL')
-   call wrtout(std_out,message,'COLL')
+   call abi_wrtout(ab_out,message,'COLL')
+   call abi_wrtout(std_out,message,'COLL')
   end if
 
 ! Get rid off mean force on whole unit cell
@@ -542,31 +542,31 @@ subroutine moldyn(acell,amass,me,&
 ! Output total energy in a format that can be captured easily
   write(message, '(a,i6,a,es22.14,a)' )&
 &  ' At the end of Moldyn step',itime,', POT.En.=',etotal,' Ha.'
-  call wrtout(ab_out,message,'COLL')
-  call wrtout(std_out,message,'COLL')
+  call abi_wrtout(ab_out,message,'COLL')
+  call abi_wrtout(std_out,message,'COLL')
   write(message, '(a,es22.14,a)' )&
 &  '                                  KIN.En.=',&
 &  ekin,' Ha.'
-  call wrtout(ab_out,message,'COLL')
-  call wrtout(std_out,message,'COLL')
+  call abi_wrtout(ab_out,message,'COLL')
+  call abi_wrtout(std_out,message,'COLL')
   write(message, '(a,es22.14,a)' )&
 &  '                              KIN+POT.En.=',&
 &  etotal+ekin,' Ha.'
-  call wrtout(ab_out,message,'COLL')
-  call wrtout(std_out,message,'COLL')
+  call abi_wrtout(ab_out,message,'COLL')
+  call abi_wrtout(std_out,message,'COLL')
   if(ionmov==7 .and. nstopped/=0)then
    write(message, '(a,es22.14,a)' )&
 &   '                    corrected KIN+POT.En.=',&
 &   etotal+ekin_corr,' Ha.'
-   call wrtout(ab_out,message,'COLL')
-   call wrtout(std_out,message,'COLL')
+   call abi_wrtout(ab_out,message,'COLL')
+   call abi_wrtout(std_out,message,'COLL')
   end if
   if(ionmov==9)then
    write(message, '(a,es22.14,2x,es22.14)' )&
 &   '           TEMP         TKA =',&
 &   ktemp/kb_HaK,ekin/(1.5_dp*natom*ktemp)
-   call wrtout(ab_out,message,'COLL')
-   call wrtout(std_out,message,'COLL')
+   call abi_wrtout(ab_out,message,'COLL')
+   call abi_wrtout(std_out,message,'COLL')
   end if
 
   call scfloop_output(acell, etotal, ekin, fred, itime, me, natom, rprimd, vel, xred)
@@ -622,16 +622,16 @@ subroutine moldyn(acell,amass,me,&
 
  if(ionmov==8)then
   write(message, '(a,i6)')'Nb time steps',nxfh
-  call wrtout(ab_out,message,'COLL')
-  call wrtout(std_out,message,'COLL')
+  call abi_wrtout(ab_out,message,'COLL')
+  call abi_wrtout(std_out,message,'COLL')
   do ierr=1,nxfh
    write(message, '(a,i6)')'step ',ierr
-   call wrtout(ab_out,message,'COLL')
-   call wrtout(std_out,message,'COLL')
+   call abi_wrtout(ab_out,message,'COLL')
+   call abi_wrtout(std_out,message,'COLL')
    do iatom = 1, natom
     write(message, '(a,i6,3es22.14)')'atom ',iatom,xfhist(1:3,iatom,1,ierr)
-    call wrtout(ab_out,message,'COLL')
-    call wrtout(std_out,message,'COLL')
+    call abi_wrtout(ab_out,message,'COLL')
+    call abi_wrtout(std_out,message,'COLL')
    end do
   end do
  end if
@@ -651,8 +651,8 @@ subroutine moldyn(acell,amass,me,&
 !!$ if(prtvol==-level)then
 !!$  write(message,'(a1,a,a1,a,i1,a)') ch10,' moldyn : exit ',&
 !!$&  ch10,'  prtvol=-',level,', debugging mode => stop '
-!!$  call wrtout(std_out,message,'COLL')
-!!$  call leave_new('COLL')
+!!$  call abi_wrtout(std_out,message,'COLL')
+!!$  call abi_leave_new('COLL')
 !!$ end if
 
  !!$ call status(0,dtfil%filstat,iexit,level,'exit          ')

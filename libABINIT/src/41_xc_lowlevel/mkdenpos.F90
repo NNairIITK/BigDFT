@@ -52,7 +52,7 @@
 !!      rhohxc,rhohxcpositron
 !!
 !! CHILDREN
-!!      wrtout
+!!      abi_wrtout
 !!
 !! SOURCE
 
@@ -154,8 +154,8 @@ subroutine mkdenpos(iwarn,nfft,nspden,option,rhonow,xc_denpos)
    end if  ! option
 
  else
-   call wrtout(std_out,'nspden>2 not allowed !','COLL')
-   call leave_new('COLL')
+   call abi_wrtout(std_out,'nspden>2 not allowed !','COLL')
+   call abi_leave_new('COLL')
  end if ! End choice between non-spin polarized and spin-polarized.
 
  if (numneg>0) then
@@ -166,7 +166,7 @@ subroutine mkdenpos(iwarn,nfft,nspden,option,rhonow,xc_denpos)
 &     '  and was set to xc_denpos=',xc_denpos,'.  Lowest was ',worst,'.',ch10,&
 &     '  Likely due to too low boxcut or too low ecut for',&
 &     ' pseudopotential core charge.'
-     call wrtout(std_out,message,'COLL')
+     call abi_wrtout(std_out,message,'COLL')
    end if
    iwarn=iwarn+1
  end if

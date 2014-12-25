@@ -60,16 +60,16 @@ subroutine md_nose_init(amass, natom, temp, vel)
   end do
   write(message, '(a)' )&
        &    ' Rescaling or initializing velocities to initial temperature'
-  call wrtout(ab_out,message,'COLL')
-  call wrtout(std_out,message,'COLL')
+  call abi_wrtout(ab_out,message,'COLL')
+  call abi_wrtout(std_out,message,'COLL')
   write(message, '(2(a,es22.14))' )&
        &    ' ---  Scaling factor : ',rescale_vel,' Asked T (K) ', temp
-  call wrtout(ab_out,message,'COLL')
-  call wrtout(std_out,message,'COLL')
+  call abi_wrtout(ab_out,message,'COLL')
+  call abi_wrtout(std_out,message,'COLL')
   write(message, '(a,es22.14)' )&
        &    ' ---  Effective temperature',v2nose/(3.0_dp*natom*kb_HaK)
-  call wrtout(ab_out,message,'COLL')
-  call wrtout(std_out,message,'COLL')
+  call abi_wrtout(ab_out,message,'COLL')
+  call abi_wrtout(std_out,message,'COLL')
 
 end subroutine md_nose_init
 
@@ -180,8 +180,8 @@ subroutine md_nose(amass, dtion, fcart, fcart_mold, gnose, itime, ktemp, mditemp
      !   delxi=(delxi+hzeronose*dnose)/(dnose+cibinose)
      !   DEBUG
      !   write(message, '(a,es22.14)' )' after delxi',delxi
-     !   call wrtout(ab_out,message,'COLL')
-     !   call wrtout(std_out,message,'COLL')
+     !   call abi_wrtout(ab_out,message,'COLL')
+     !   call abi_wrtout(std_out,message,'COLL')
      !   ENDDEBUG
      v2nose=0.0_dp
 
@@ -197,8 +197,8 @@ subroutine md_nose(amass, dtion, fcart, fcart_mold, gnose, itime, ktemp, mditemp
 
      !   DEBUG
      !   write(message, '(a,es22.14)' )' v2nose=',v2nose
-     !   call wrtout(ab_out,message,'COLL')
-     !   call wrtout(std_out,message,'COLL')
+     !   call abi_wrtout(ab_out,message,'COLL')
+     !   call abi_wrtout(std_out,message,'COLL')
      !   ENDDEBUG
 
      ready=.true.
@@ -233,8 +233,8 @@ subroutine md_nose(amass, dtion, fcart, fcart_mold, gnose, itime, ktemp, mditemp
   write(message, '(a,f12.3,a,f12.3,a)' ) &
        & ' Nose-Hoover updated velocities (T_ask = ', &
        & ktemp/kb_HaK, ' and T_eff = ', v2nose/(3.0_dp*natom*kb_HaK), ')'
-  call wrtout(ab_out,message,'COLL')
-  call wrtout(std_out,message,'COLL')
+  call abi_wrtout(ab_out,message,'COLL')
+  call abi_wrtout(std_out,message,'COLL')
 
   !  Update thermostat
   xi_nose=xin_nose
@@ -267,6 +267,6 @@ subroutine md_nose_finalise(etotal, gnose, itime, ktemp, noseinert, snose, &
        &   (xi_nose**2*noseinert)/2.0_dp+gnose*ktemp*snose
   write(message, '(a,i6,a,es22.14,a)' )&
        &   ' At the end of Moldyn step',itime,', ham=',hamnose,' Ha.'
-  call wrtout(ab_out,message,'COLL')
-  call wrtout(std_out,message,'COLL')
+  call abi_wrtout(ab_out,message,'COLL')
+  call abi_wrtout(std_out,message,'COLL')
 end subroutine md_nose_finalise

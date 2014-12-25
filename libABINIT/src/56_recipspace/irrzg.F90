@@ -47,7 +47,7 @@
 !!      calc_density,crho,setsym
 !!
 !! CHILDREN
-!!      leave_new,sort_int,wrtout
+!!      abi_leave_new,sort_int,abi_wrtout
 !!
 !! SOURCE
 
@@ -140,8 +140,8 @@ subroutine irrzg(irrzon,nspden,nsppol,nsym,n1,n2,n3,phnons,&
 &     '  The number of ferromagnetic symmetry operations must be',ch10,&
 &     '  half the total number of operations, while it is observed that',ch10,&
 &     '  nsym=',nsym,' and nsym_magn=',nsym_used
-     call wrtout(std_out,message,'COLL')
-     call leave_new('COLL')
+     call abi_wrtout(std_out,message,'COLL')
+     call abi_leave_new('COLL')
    end if
 
 !  DEBUG
@@ -278,8 +278,8 @@ subroutine irrzg(irrzon,nspden,nsppol,nsym,n1,n2,n3,phnons,&
 &             ' the input symmetries do not form a group.',ch10,&
 &             ' Action : check the input symmetries carefully do they',&
 &             ' form a group ? If they do, there is a code bug.'
-             call wrtout(std_out,message,'COLL')
-             call leave_new('COLL')
+             call abi_wrtout(std_out,message,'COLL')
+             call abi_leave_new('COLL')
            end if
 
 !          Compute phases for any nonsymmorphic symmetries
@@ -417,12 +417,12 @@ subroutine irrzg(irrzon,nspden,nsppol,nsym,n1,n2,n3,phnons,&
 &   '  and all symmetrically equivalent',&
 &   '  points, npt, does not equal the actual number',ch10,&
 &   '  of real space grid points.'
-   call wrtout(std_out,message,'COLL')
+   call abi_wrtout(std_out,message,'COLL')
    write(message, '(a,a,a)' ) &
 &   ' This may mean that the input symmetries do not form a group',&
 &   ch10,' Action : check input symmetries carefully for errors.'
-   call wrtout(std_out,message,'COLL')
-   call leave_new('COLL')
+   call abi_wrtout(std_out,message,'COLL')
+   call abi_leave_new('COLL')
  end if
 
 !Perform some checks
@@ -435,8 +435,8 @@ subroutine irrzg(irrzon,nspden,nsppol,nsym,n1,n2,n3,phnons,&
 &       '  ifft,irrzon(ifft,1,imagn),nfftot,imagn=',&
 &       ifft,irrzon(ifft,1,imagn),nfftot,imagn,ch10,&
 &       '  =>irrzon goes outside acceptable bounds.'
-       call wrtout(std_out,message,'COLL')
-       call leave_new('COLL')
+       call abi_wrtout(std_out,message,'COLL')
+       call abi_leave_new('COLL')
      end if
    end do
 
@@ -449,8 +449,8 @@ subroutine irrzg(irrzon,nspden,nsppol,nsym,n1,n2,n3,phnons,&
 &       '  izone,nzone,irrzon(izone,2,imagn),nsym,imagn=',&
 &       izone,nzone,irrzon(izone,2,imagn),nsym,imagn,ch10,&
 &       '  =>irrzon goes outside acceptable bounds.'
-       call wrtout(std_out,message,'COLL')
-       call leave_new('COLL')
+       call abi_wrtout(std_out,message,'COLL')
+       call abi_leave_new('COLL')
      end if
 !    Second index only goes up to nzone
      if(izonemax==0)then
@@ -461,8 +461,8 @@ subroutine irrzg(irrzon,nspden,nsppol,nsym,n1,n2,n3,phnons,&
          write(message, '(a,a,a,a)' ) ch10,&
 &         ' irrzg : BUG -',ch10,&
 &         '  beyond izonemax, irrzon(izone,2,imagn) should be zero'
-         call wrtout(std_out,message,'COLL')
-         call leave_new('COLL')
+         call abi_wrtout(std_out,message,'COLL')
+         call abi_leave_new('COLL')
        end if
      end if
    end do

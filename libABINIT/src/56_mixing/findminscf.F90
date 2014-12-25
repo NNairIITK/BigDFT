@@ -48,7 +48,7 @@
 !!      scfcge
 !!
 !! CHILDREN
-!!      wrtout
+!!      abi_wrtout
 !!
 !! SOURCE
 
@@ -148,7 +148,7 @@ subroutine findminscf(choice,dedv_1,dedv_2,dedv_predict,&
  write(message, '(a,es12.4,a,es18.10)' ) &
       &   ' findmin : lambda_predict ',lambda_predict,&
       &   ' etotal_predict ',etotal_predict
- call wrtout(std_out,message,'COLL')
+ call abi_wrtout(std_out,message,'COLL')
 
 end subroutine findminscf
 !!***

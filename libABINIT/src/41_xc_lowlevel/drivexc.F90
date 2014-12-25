@@ -101,7 +101,7 @@
 !!      pawxc,pawxcsph,rhohxc
 !!
 !! CHILDREN
-!!      invcb,leave_new,libxc_functionals_getvxc,wrtout,xchcth,xchelu,xclb
+!!      invcb,abi_leave_new,libxc_functionals_getvxc,abi_wrtout,xchcth,xchelu,xclb
 !!      xcpbe,xcpzca,xcspol,xctetr,xcwign,xcxalp
 !!
 !! SOURCE
@@ -163,8 +163,8 @@ subroutine drivexc(exc,ixc,npts,nspden,order,rho_updn,vxc,ndvxc,ngr2,nd2vxc,nvxc
 &   ' drivexc : BUG -',ch10,&
 &   '  The only allowed values for order are 1,2, -2, or 3, while it is found to be ',&
 &   order,'.'
-   call wrtout(std_out,message,'COLL')
-   call leave_new('COLL')
+   call abi_wrtout(std_out,message,'COLL')
+   call abi_leave_new('COLL')
  end if
 
 !Checks the compatibility between the inputs and the presence of the optional arguments
@@ -176,8 +176,8 @@ subroutine drivexc(exc,ixc,npts,nspden,order,rho_updn,vxc,ndvxc,ngr2,nd2vxc,nvxc
 &     '  The value of the number of the XC functional ixc',ch10,&
 &     '  or the value of order is not compatible with the presence of the array dvxc',ch10,&
 &     '  ixc=',ixc,'order=',order
-     call wrtout(std_out,message,'COLL')
-     call leave_new('COLL')
+     call abi_wrtout(std_out,message,'COLL')
+     call abi_leave_new('COLL')
    end if
  end if
 
@@ -188,8 +188,8 @@ subroutine drivexc(exc,ixc,npts,nspden,order,rho_updn,vxc,ndvxc,ngr2,nd2vxc,nvxc
 &     '  The value of the number of the XC functional ixc',ch10,&
 &     '  or the value of order is not compatible with the presence of the array d2vxc',ch10,&
 &     '  ixc=',ixc,'order=',order
-     call wrtout(std_out,message,'COLL')
-     call leave_new('COLL')
+     call abi_wrtout(std_out,message,'COLL')
+     call abi_leave_new('COLL')
    end if
  end if
 
@@ -201,8 +201,8 @@ subroutine drivexc(exc,ixc,npts,nspden,order,rho_updn,vxc,ndvxc,ngr2,nd2vxc,nvxc
 &     '  The value of the number of the XC functional ixc',ch10,&
 &     '  or the value of nvxcdgr is not compatible with the presence of the array vxcgr',ch10,&
 &     '  ixc=',ixc,'  nvxcdgr=',nvxcdgr
-     call wrtout(std_out,message,'COLL')
-     call leave_new('COLL')
+     call abi_wrtout(std_out,message,'COLL')
+     call abi_leave_new('COLL')
    end if
  end if
 
@@ -211,8 +211,8 @@ subroutine drivexc(exc,ixc,npts,nspden,order,rho_updn,vxc,ndvxc,ngr2,nd2vxc,nvxc
      write(message, '(4a)' ) ch10,&
 &     ' drivexc : BUG -',ch10,&
 &     '  ngr2 must be 2*nspden-1 !'
-!    call wrtout(std_out,message,'COLL')
-!    call leave_new('COLL')
+!    call abi_wrtout(std_out,message,'COLL')
+!    call abi_leave_new('COLL')
    end if
    if((ixc > 17 .and. ixc /= 23 .and. ixc/=26 .and. ixc/=27) .or. (ixc >= 0 .and. ixc < 11))then
      write(message, '(8a,i6)' )ch10,&
@@ -220,8 +220,8 @@ subroutine drivexc(exc,ixc,npts,nspden,order,rho_updn,vxc,ndvxc,ngr2,nd2vxc,nvxc
 &     '  The value of the number of the XC functional ixc',ch10,&
 &     '  is not compatible with the presence of the array grho2_updn',ch10,&
 &     '  ixc=',ixc
-     call wrtout(std_out,message,'COLL')
-     call leave_new('COLL')
+     call abi_wrtout(std_out,message,'COLL')
+     call abi_leave_new('COLL')
    end if
  end if
 
@@ -266,8 +266,8 @@ subroutine drivexc(exc,ixc,npts,nspden,order,rho_updn,vxc,ndvxc,ngr2,nd2vxc,nvxc
 &       '  the value of the spin polarization',ch10,&
 &       '  is not compatible with the ixc',ch10,&
 &       '  ixc=',ixc,'nspden=',nspden
-       call wrtout(std_out,message,'COLL')
-       call leave_new('COLL')
+       call abi_wrtout(std_out,message,'COLL')
+       call abi_leave_new('COLL')
      end if
      call xcspol(exc,npts,nspden,order,rspts,vxc,zeta,ndvxc,dvxc)
    end if
@@ -282,8 +282,8 @@ subroutine drivexc(exc,ixc,npts,nspden,order,rho_updn,vxc,ndvxc,ngr2,nd2vxc,nvxc
 &       ' drivexc : BUG -',ch10,&
 &       '  Wrong value of ndvxc:',ch10,&
 &       '  ixc=',ixc,'ndvxc=',ndvxc
-       call wrtout(std_out,message,'COLL')
-       call leave_new('COLL')
+       call abi_wrtout(std_out,message,'COLL')
+       call abi_leave_new('COLL')
      end if
      call xcpzca(exc,npts,order,rhotot,rspts,vxc(:,1),dvxc)
    end if
@@ -298,8 +298,8 @@ subroutine drivexc(exc,ixc,npts,nspden,order,rho_updn,vxc,ndvxc,ngr2,nd2vxc,nvxc
 &       ' drivexc : BUG -',ch10,&
 &       '  Wrong value of ndvxc:',ch10,&
 &       '  ixc=',ixc,'ndvxc=',ndvxc
-       call wrtout(std_out,message,'COLL')
-       call leave_new('COLL')
+       call abi_wrtout(std_out,message,'COLL')
+       call abi_leave_new('COLL')
      end if
      call xctetr(exc,npts,order,rhotot,rspts,vxc(:,1),dvxc=dvxc)
    else if (order == 3) then
@@ -308,8 +308,8 @@ subroutine drivexc(exc,ixc,npts,nspden,order,rho_updn,vxc,ndvxc,ngr2,nd2vxc,nvxc
 &       ' drivexc : BUG -',ch10,&
 &       '  Wrong value of ndvxc:',ch10,&
 &       '  ixc=',ixc,'ndvxc=',ndvxc
-       call wrtout(std_out,message,'COLL')
-       call leave_new('COLL')
+       call abi_wrtout(std_out,message,'COLL')
+       call abi_leave_new('COLL')
      end if
      call xctetr(exc,npts,order,rhotot,rspts,vxc(:,1),d2vxc,dvxc)
    end if
@@ -324,8 +324,8 @@ subroutine drivexc(exc,ixc,npts,nspden,order,rho_updn,vxc,ndvxc,ngr2,nd2vxc,nvxc
 &       ' drivexc : BUG -',ch10,&
 &       '  Wrong value of ndvxc:',ch10,&
 &       '  ixc=',ixc,'ndvxc=',ndvxc
-       call wrtout(std_out,message,'COLL')
-       call leave_new('COLL')
+       call abi_wrtout(std_out,message,'COLL')
+       call abi_leave_new('COLL')
      end if
      call xcwign(exc,npts,order,rspts,vxc(:,1),dvxc)
    end if
@@ -340,8 +340,8 @@ subroutine drivexc(exc,ixc,npts,nspden,order,rho_updn,vxc,ndvxc,ngr2,nd2vxc,nvxc
 &       ' drivexc : BUG -',ch10,&
 &       '  Wrong value of ndvxc:',ch10,&
 &       '  ixc=',ixc,'ndvxc=',ndvxc
-       call wrtout(std_out,message,'COLL')
-       call leave_new('COLL')
+       call abi_wrtout(std_out,message,'COLL')
+       call abi_leave_new('COLL')
      end if
      call xchelu(exc,npts,order,rspts,vxc(:,1),dvxc)
    end if
@@ -356,8 +356,8 @@ subroutine drivexc(exc,ixc,npts,nspden,order,rho_updn,vxc,ndvxc,ngr2,nd2vxc,nvxc
 &       ' drivexc : BUG -',ch10,&
 &       '  Wrong value of ndvxc:',ch10,&
 &       '  ixc=',ixc,'ndvxc=',ndvxc
-       call wrtout(std_out,message,'COLL')
-       call leave_new('COLL')
+       call abi_wrtout(std_out,message,'COLL')
+       call abi_leave_new('COLL')
      end if
      call xcxalp(exc,npts,order,rspts,vxc(:,1),dvxc)
    end if
@@ -390,8 +390,8 @@ subroutine drivexc(exc,ixc,npts,nspden,order,rho_updn,vxc,ndvxc,ngr2,nd2vxc,nvxc
 &         ' drivexc : BUG -',ch10,&
 &         '  Wrong value of ndvxc or nvxcdgr:',ch10,&
 &         '  ixc=',ixc,'ndvxc=',ndvxc,'nvxcdgr=',nvxcdgr
-         call wrtout(std_out,message,'COLL')
-         call leave_new('COLL')
+         call abi_wrtout(std_out,message,'COLL')
+         call abi_leave_new('COLL')
        end if
        call xcpbe(exc,npts,nspden,optpbe,order,rho_updn,vxc,ndvxc,ngr2,nd2vxc,dvxci=dvxc)
      else if (order ==3) then
@@ -400,8 +400,8 @@ subroutine drivexc(exc,ixc,npts,nspden,order,rho_updn,vxc,ndvxc,ngr2,nd2vxc,nvxc
 &         ' drivexc : BUG -',ch10,&
 &         '  Wrong value of ndvxc or nvxcdgr or nd2vxc:',ch10,&
 &         '  ixc=',ixc,'ndvxc=',ndvxc,'nvxcdgr=',nvxcdgr,'nd2vxc=',nd2vxc
-         call wrtout(std_out,message,'COLL')
-         call leave_new('COLL')
+         call abi_wrtout(std_out,message,'COLL')
+         call abi_leave_new('COLL')
        end if
        call xcpbe(exc,npts,nspden,optpbe,order,rho_updn,vxc,ndvxc,ngr2,nd2vxc,d2vxci=d2vxc,dvxci=dvxc)
      end if
@@ -420,8 +420,8 @@ subroutine drivexc(exc,ixc,npts,nspden,order,rho_updn,vxc,ndvxc,ngr2,nd2vxc,nvxc
 &         ' drivexc : BUG -',ch10,&
 &         '  Wrong value of ndvxc or nvxcdgr:',ch10,&
 &         '  ixc=',ixc,'ndvxc=',ndvxc,'nvxcdgr=',nvxcdgr
-         call wrtout(std_out,message,'COLL')
-         call leave_new('COLL')
+         call abi_wrtout(std_out,message,'COLL')
+         call abi_leave_new('COLL')
        end if
        call xcpbe(exc,npts,nspden,optpbe,order,rho_updn,vxc,ndvxc,ngr2,nd2vxc,&
        dvxcdgr=vxcgr,dvxci=dvxc,grho2_updn=grho2_updn)
@@ -431,8 +431,8 @@ subroutine drivexc(exc,ixc,npts,nspden,order,rho_updn,vxc,ndvxc,ngr2,nd2vxc,nvxc
 &         ' drivexc : BUG -',ch10,&
 &         '  Wrong value of ndvxc or nvxcdgr:',ch10,&
 &         '  ixc=',ixc,'ndvxc=',ndvxc,'nvxcdgr=',nvxcdgr
-         call wrtout(std_out,message,'COLL')
-         call leave_new('COLL')
+         call abi_wrtout(std_out,message,'COLL')
+         call abi_leave_new('COLL')
        end if
        call xcpbe(exc,npts,nspden,optpbe,order,rho_updn,vxc,ndvxc,ngr2,nd2vxc,d2vxci=d2vxc,dvxcdgr=vxcgr,dvxci=dvxc,&
 &       grho2_updn=grho2_updn)
@@ -469,8 +469,8 @@ subroutine drivexc(exc,ixc,npts,nspden,order,rho_updn,vxc,ndvxc,ngr2,nd2vxc,nvxc
 &       ' drivexc : BUG -',ch10,&
 &       '  Wrong value of ndvxc or nvxcdgr:',ch10,&
 &       '  ixc=',ixc,'ndvxc=',ndvxc,'nvxcdgr=',nvxcdgr
-       call wrtout(std_out,message,'COLL')
-       call leave_new('COLL')
+       call abi_wrtout(std_out,message,'COLL')
+       call abi_leave_new('COLL')
      end if
      allocate(exci_rpa(npts),vxci_rpa(npts,2))
      optpbe=3
@@ -486,8 +486,8 @@ subroutine drivexc(exc,ixc,npts,nspden,order,rho_updn,vxc,ndvxc,ngr2,nd2vxc,nvxc
 &       ' drivexc : BUG -',ch10,&
 &       '  Wrong value of ndvxc or nvxcdgr:',ch10,&
 &       '  ixc=',ixc,'ndvxc=',ndvxc,'nvxcdgr=',nvxcdgr
-       call wrtout(std_out,message,'COLL')
-       call leave_new('COLL')
+       call abi_wrtout(std_out,message,'COLL')
+       call abi_leave_new('COLL')
      end if
      allocate(exci_rpa(npts),vxci_rpa(npts,2))
      optpbe=3
@@ -513,8 +513,8 @@ subroutine drivexc(exc,ixc,npts,nspden,order,rho_updn,vxc,ndvxc,ngr2,nd2vxc,nvxc
 &       ' drivexc : BUG -',ch10,&
 &       '  Wrong value of ndvxc or nvxcdgr:',ch10,&
 &       '  ixc=',ixc,'ndvxc=',ndvxc,'nvxcdgr=',nvxcdgr
-       call wrtout(std_out,message,'COLL')
-       call leave_new('COLL')
+       call abi_wrtout(std_out,message,'COLL')
+       call abi_leave_new('COLL')
      end if
      optpbe=1
      call xcpbe(exc,npts,nspden,optpbe,order,rho_updn,vxc,ndvxc,ngr2,nd2vxc,dvxci=dvxc)
@@ -525,8 +525,8 @@ subroutine drivexc(exc,ixc,npts,nspden,order,rho_updn,vxc,ndvxc,ngr2,nd2vxc,nvxc
 &       ' drivexc : BUG -',ch10,&
 &       '  Wrong value of ndvxc or nvxcdgr:',ch10,&
 &       '  ixc=',ixc,'ndvxc=',ndvxc,'nvxcdgr=',nvxcdgr
-       call wrtout(std_out,message,'COLL')
-       call leave_new('COLL')
+       call abi_wrtout(std_out,message,'COLL')
+       call abi_leave_new('COLL')
      end if
      optpbe=1
      call xcpbe(exc,npts,nspden,optpbe,order,rho_updn,vxc,ndvxc,ngr2,nd2vxc,d2vxci=d2vxc,dvxci=dvxc)
@@ -539,8 +539,8 @@ subroutine drivexc(exc,ixc,npts,nspden,order,rho_updn,vxc,ndvxc,ngr2,nd2vxc,nvxc
 &     ' drivexc : BUG -',ch10,&
 &     '  Wrong value of nvxcdgr:',ch10,&
 &     '  ixc=',ixc,'ndvxcdgr=',nvxcdgr
-     call wrtout(std_out,message,'COLL')
-     call leave_new('COLL')
+     call abi_wrtout(std_out,message,'COLL')
+     call abi_leave_new('COLL')
    end if
    call xchcth(vxcgr,exc,grho2_updn,ixc,npts,nspden,order,rho_updn,vxc)
 
@@ -557,8 +557,8 @@ subroutine drivexc(exc,ixc,npts,nspden,order,rho_updn,vxc,ndvxc,ngr2,nd2vxc,nvxc
 &       '  At least one of the functionals is a GGA or a MGGA,',ch10,&
 &       '  but not all the necessary arrays are present.',ch10,&
 &       '  ixc=',ixc,'  nvxcdgr=',nvxcdgr,'  ngr2=',ngr2
-       call wrtout(std_out,message,'COLL')
-       call leave_new('COLL')
+       call abi_wrtout(std_out,message,'COLL')
+       call abi_leave_new('COLL')
      end if
 
      if (ngr2==0 .or. nvxcdgr/=3) then
@@ -567,8 +567,8 @@ subroutine drivexc(exc,ixc,npts,nspden,order,rho_updn,vxc,ndvxc,ngr2,nd2vxc,nvxc
 &       '  The value of the number of the XC functional ixc',ch10,&
 &       '  is not compatible with the value of nvxcdgr or ngr2',ch10,&
 &       '  ixc=',ixc,'  nvxcdgr=',nvxcdgr,'  ngr2=',ngr2
-       call wrtout(std_out,message,'COLL')
-       call leave_new('COLL')
+       call abi_wrtout(std_out,message,'COLL')
+       call abi_leave_new('COLL')
      end if
    end if
 
@@ -580,8 +580,8 @@ subroutine drivexc(exc,ixc,npts,nspden,order,rho_updn,vxc,ndvxc,ngr2,nd2vxc,nvxc
 &       '  At least one of the functionals is a MGGA,',ch10,&
 &       '  but not all the necessary arrays are present.',ch10,&
 &       '  ixc=',ixc
-       call wrtout(std_out,message,'COLL')
-       call leave_new('COLL')
+       call abi_wrtout(std_out,message,'COLL')
+       call abi_leave_new('COLL')
      end if
    end if
 
@@ -598,8 +598,8 @@ subroutine drivexc(exc,ixc,npts,nspden,order,rho_updn,vxc,ndvxc,ngr2,nd2vxc,nvxc
    write(message, '(5a)' )ch10,&
 &   ' drivexc : ERROR -',ch10,&
 &   '  ABINIT was not compiled with LibXC support',ch10
-   call wrtout(std_out,message,'COLL')
-   call leave_new('COLL')
+   call abi_wrtout(std_out,message,'COLL')
+   call abi_leave_new('COLL')
 #endif
  end if
 

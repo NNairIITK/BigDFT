@@ -25,7 +25,7 @@
 !!      remove_inversion,setsym,symanal,symspgr
 !!
 !! CHILDREN
-!!      leave_new,wrtout
+!!      abi_leave_new,abi_wrtout
 !!
 !! SOURCE
 
@@ -73,8 +73,8 @@ subroutine symdet(determinant,nsym,sym)
 &     ' is',det,' .',ch10,&
 &     '  For a legitimate symmetry, abs(determinant) must be 1.',ch10,&
 &     '  Action : check your symmetry operations (symrel) in input file.'
-     call wrtout(std_out,message,'COLL')
-     call leave_new('COLL')
+     call abi_wrtout(std_out,message,'COLL')
+     call abi_leave_new('COLL')
    end if
    determinant(isym)=det
  end do

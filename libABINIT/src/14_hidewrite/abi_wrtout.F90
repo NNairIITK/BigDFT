@@ -1,7 +1,7 @@
 !{\src2tex{textfont=tt}}
-!!****f* ABINIT/wrtout
+!!****f* ABINIT/abi_wrtout
 !! NAME
-!!  wrtout
+!!  abi_wrtout
 !!
 !! FUNCTION
 !!  Organizes the sequential or parallel version of the write intrinsic
@@ -23,90 +23,14 @@
 !!   'PERS' if the procs are calling the routine with different messages each to be written,
 !!          or if one proc is calling the routine
 !!   "INIT" to change the rank of the master node that prints the message if "COLL" is used.
-!!  [do_flush]=True to flush the unit. Defaults to .False.
 !!
 !! OUTPUT
 !!  (only writing)
 !!
 !! NOTES
 !!   The routine uses optional arguments, therefore the interface must be explicit.
-!!   Be careful when writing CPP macros that use wrtout since abilint won't see the call
+!!   Be careful when writing CPP macros that use abi_wrtout since abilint won't see the call
 !!   and no interface will be added to the source file.
-!!
-!! PARENTS
-!!      abinit,afterscfloop,anaddb,append_cml2,append_xyz,atm2fft,atomden
-!!      berryphase,berryphase_new,bethe_salpeter,bonds_lgth_angles,bsepostproc
-!!      calc_cs,calc_efg,calc_fc,calc_optical_mels,calc_rpa_functional
-!!      calc_sigc_me,calc_sigx_me,calc_ucrpa,calc_vhxc_me,calcdensph,cchi0
-!!      cchi0q0,cchi0q0_intraband,cgwf,cgwf3,chebfi,chiscwrt,chkdpr,chkinp
-!!      chkint_prt,chkneu,chkpawovlp,clnup1,clnup2,cohsex_me
-!!      compute_kgb_indicator,compute_levels,constrf,d2frnl_bec,d3output
-!!      datafordmft,debug_tools,deloc2xcart,denfgr,dfpt_write_cg,diel9,dielmt
-!!      dieltcel,dmft_solve,dos_hdr_write,driver,dyson,echo_xc_name,eig2stern
-!!      elast9,eliashberg_1d,elph2_fanddw,elphon,elpolariz,entropyrec
-!!      ep_fs_weights,ep_setupqpt,evdw_wannier,ewald4,exc_build_block
-!!      exc_build_ham,exc_den,exc_plot,exc_spectra,fconv,fermi_green
-!!      fermisolverec,fftprof,find_getdtset,finddistrproc,findmin,findminscf
-!!      first_rec,fred2fdeloc,fsumrule,gaus_dos,get_all_gkq,get_fs_bands
-!!      get_npert_rbz,get_nv_fs_en,get_nv_fs_temp,get_tau_k,getcgqphase,getcut
-!!      getdim_nloc,getghc,getmpw,getnel,getng,getshell,gran_potrec
-!!      green_kernel,gstate,gstateimg,gw_tools,gwcompleteness,gwls_communicate
-!!      gwls_polarisability,harmonic_thermo,hdr_vs_dtset,hermit,hubbard_one
-!!      importcml,importxyz,impurity_solve,inarray,ingeo,ingeobld,initberry
-!!      initberry3,initmpi_grid,initorbmag,initro,initwf,inkpts,inpgkk
-!!      inpspheads,instr9,instrng,insy3,intagm,integrate_gamma
-!!      integrate_gamma_alt,integrate_gamma_tr,integrate_gamma_tr_lova,invars1
-!!      invars1m,invars2,inwffil,ioarr,ioddb8_out,ioniondist,ioprof,irrzg
-!!      isfile,kpgio,kramerskronig,ks_ddiago,kss2wfk,lapackprof,ldau_self
-!!      leave_new,linemin,lobpcgwf,local_ks_green,loop3dte,loper3,m_abi_etsf
-!!      m_abilasi,m_anaddb_dataset,m_argparse,m_atom,m_bfgs,m_bs_defs,m_bse_io
-!!      m_bz_mesh,m_cgtools,m_chi0,m_commutator_vkbr,m_crystal,m_ddb
-!!      m_double_grid,m_dynmat,m_dyson_solver,m_ebands,m_eet,m_energy
-!!      m_entropyDMFT,m_errors,m_esymm,m_eval_lotf,m_exc_diago,m_exc_itdiago
-!!      m_exit,m_fft,m_fft_mesh,m_fft_prof,m_fftcore,m_fftw3,m_fock,m_gamma
-!!      m_gaussfit,m_geometry,m_gpu_detect,m_green,m_gsphere,m_hamiltonian
-!!      m_haydock,m_header,m_hexc,m_hidecudarec,m_hu,m_ifc,m_initcuda,m_invovl
-!!      m_io_gkk,m_io_kss,m_io_screening,m_iterators,m_kxc,m_libxc_functionals
-!!      m_lotf,m_matlu,m_matrix,m_melemts,m_mep,m_numeric_tools,m_oper,m_paw_an
-!!      m_paw_dmft,m_paw_ij,m_paw_pwij,m_paw_slater,m_pawang,m_pawdij,m_pawfgr
-!!      m_pawfgrtab,m_pawio,m_pawpsp,m_pawrad,m_pawrhoij,m_pawtab,m_phonons
-!!      m_pimd,m_plowannier,m_ppmodel,m_pptools,m_pred_lotf,m_pretty_rec,m_psps
-!!      m_ptgroups,m_qparticles,m_rec,m_screen,m_screening,m_self,m_shirley
-!!      m_sigma,m_slk,m_sphharm,m_vcoul,m_wffile,m_wfk,m_wfs,m_work_var_lotf
-!!      m_xc_vdw,m_xpapi,mag_constr_e,mag_out,mblktyp1,mblktyp5,memana,memorf
-!!      memory,metric,mka2f,mka2fQgrid,mka2f_tr,mka2f_tr_lova,mkcore_paw
-!!      mkcore_wvl,mkfilename,mkfskgrid,mklocl_recipspace,mklocl_wavelets
-!!      mknormpath,mkph_linwid,mkqptequiv,mkrho,mkrho3,mlwfovlp,mlwfovlp_proj
-!!      mlwfovlp_projpaw,mlwfovlp_pw,mlwfovlp_qp,mlwfovlp_seedname
-!!      mlwfovlp_setup,mover,mpi_setup,mrgddb,mrggkk,mrgscr,multipoles_fftr
-!!      mv_3dte,my_calc_wfwfg,newfermie1,newkpt,newocc,newton,nlenergyrec
-!!      nonlinear,normsq_gkq,nselt3,nstdy3,nstpaw3,out1dm,outelph,outgkk,outkss
-!!      outphbtrap,outqmc,outscfcv,outvars,outwant,outwf,paw_mknewh0,paw_qpscgw
-!!      pawdenpot,pawdensities,pawmkaewf,pawmkrhoij,pawprt,pawpuxinit
-!!      pawuenergy,pawuj_det,pawuj_red,pawuj_utils,pawxenergy,piezo9
-!!      pimd_nosehoover_nvt,polcart,posdoppler,poslifetime,pred_delocint
-!!      pred_isokinetic,pred_isothermal,pred_langevin,pred_nose,pred_verlet
-!!      predictimg,prep_calc_ucrpa,prt_cml2,prtefield,prteigrs,prtene,prtene3
-!!      prtfatbands,prtimg,prtph3,prtrhomxmn,prtspgroup,prtxf,prtxfase,prtxvf
-!!      psichi_renormalization,psolver_hartree,psolver_kernel,psolver_rhohxc
-!!      psp10in,psp1in,psp2in,psp2lo,psp3in,psp5in,psp6in,psp8in,psp9in
-!!      pspatm_abinit,pspatm_pspio,pspini,pspnl_hgh_rec,pspnl_operat_rec
-!!      psxml2ab,qmc_prep_ctqmc,randac,random_stopping_power,rayleigh_ritz
-!!      read_gkk,read_plowannier,recursion_nl,remove_inversion,respfn
-!!      rotate_rho,rotmat,scfcge,scfcv,scfcv3,scfeig,scfopt,scprqt,screening
-!!      setnoccmmp,setrhoijpbe0,setsymrhoij,setup1,setup2,setup_bse
-!!      setup_bse_interp,setup_positron,setup_screening,setup_sigma,shellstruct
-!!      sigma,smpbz,spectral_function,stress,sumrule,symanal,symatm,symaxes
-!!      symcharac,symkchk,symkpt,symlatt,symph3,symplanes,symq3,symspgr,tddft
-!!      testkgrid,tetrahedron,thmeig,timana,uderiv,ujdet,update_eb_field_vars
-!!      vdw_dftd2,vdw_kernelgen,vtorho,vtorhorec,vtorhotf,vtowfk,vtowfk3,wfconv
-!!      wfd_mkrho,wfd_pawrhoij,wfkfermi3,wfsinp,wrt_moldyn_netcdf,wrtloctens
-!!      wvl_denspot_set,wvl_descr_atoms_set_sym,wvl_hpsitopsi,wvl_initro
-!!      wvl_memory,wvl_mkrho,wvl_nl_gradient,wvl_projectors_set,wvl_psitohpsi
-!!      wvl_rwwf,wvl_setboxgeometry,wvl_setngfft,wvl_tail_corrections
-!!      wvl_wfs_set,wvl_wfsinp_disk,wvl_wfsinp_reformat,wvl_wfsinp_scratch
-!!
-!! CHILDREN
 !!
 !! SOURCE
 
@@ -116,18 +40,17 @@
 
 #include "abi_common.h"
 
-subroutine wrtout(unit,msg,mode_paral,do_flush)
+subroutine abi_wrtout(unit,msg,mode_paral)
 
  use defs_basis
 
  use m_xmpi,      only : xmpi_world, xcomm_rank, xcomm_size
- use m_io_tools,  only : flush_unit
 
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
 #undef ABI_FUNC
-#define ABI_FUNC 'wrtout'
- use interfaces_14_hidewrite, except_this_one => wrtout
+#define ABI_FUNC 'abi_wrtout'
+ use interfaces_14_hidewrite, except_this_one => abi_wrtout
 !End of the abilint section
 
  implicit none
@@ -136,12 +59,10 @@ subroutine wrtout(unit,msg,mode_paral,do_flush)
  integer,intent(in) :: unit
  character(len=*),intent(in) :: msg
  character(len=*),optional,intent(in) :: mode_paral
- logical,optional,intent(in) :: do_flush
 
 !Local variables-------------------------------
  integer :: comm,me,nproc
  integer,save :: master=0
- logical :: my_flush
  character(len=len(msg)+50) :: string
  character(len=500) :: my_mode_paral
 
@@ -151,7 +72,6 @@ subroutine wrtout(unit,msg,mode_paral,do_flush)
  if (unit == dev_null) RETURN
 
  my_mode_paral = "COLL"; if (PRESENT(mode_paral)) my_mode_paral = mode_paral
- my_flush = .false.; if (PRESENT(do_flush)) my_flush = do_flush
 
 !Communicator is xmpi_world by default, except for the parallelization over images
  if (abinit_comm_output/=-1) then
@@ -166,37 +86,32 @@ subroutine wrtout(unit,msg,mode_paral,do_flush)
 
  if( (my_mode_paral=='COLL') .or. (nproc==1) ) then
    if (me==master) then
-     call wrtout_myproc(unit, msg, do_flush=my_flush)
+     call abi_wrtout_myproc(unit, msg)
    end if
 
  else if (my_mode_paral=='PERS') then
-   call write_lines(unit,msg)
-
-   ! Flush unit
-   if (my_flush) then
-     call flush_unit(unit)
-   end if
+   call abi_write_lines(unit,msg)
 
  else if (my_mode_paral=='INIT') then
    master=unit
 
  else
    write(string,'(7a)')ch10,&
-&   'wrtout: ERROR -',ch10,&
+&   'abi_wrtout: ERROR -',ch10,&
 &   '  Unknown write mode: ',my_mode_paral,ch10,&
 &   '  Continuing anyway ...'
    write(unit, '(A)' ) trim(string)
  end if
 
-end subroutine wrtout
+end subroutine abi_wrtout
 !!***
 
-!!****f* ABINIT/wrtout_myproc
+!!****f* ABINIT/abi_wrtout_myproc
 !! NAME
-!!  wrtout_myproc
+!!  abi_wrtout_myproc
 !!
 !! FUNCTION
-!!  Do the output for one proc. For parallel or sequential output use wrtout()
+!!  Do the output for one proc. For parallel or sequential output use abi_wrtout()
 !!  instead. Also allows to treat correctly the write operations for Unix (+DOS) and MacOS.
 !!
 !!  Copyright (C) 1998-2014 ABINIT group (DCA, XG, GMR)
@@ -206,15 +121,9 @@ end subroutine wrtout
 !!  [mpicomm]= Optional argument. If present, no printing is done
 !!             Variables iexit, nwarning and ncomment are
 !!             summed over the mpicomm communicator
-!!  [do_flush]=True to flush the unit. Defaults to .False.
 !!
 !! OUTPUT
 !!  (only writing)
-!!
-!! PARENTS
-!!      gstateimg,wrtout
-!!
-!! CHILDREN
 !!
 !! SOURCE
 
@@ -224,18 +133,17 @@ end subroutine wrtout
 
 #include "abi_common.h"
 
-subroutine wrtout_myproc(unit,message,mpicomm,do_flush) ! optional argument
+subroutine abi_wrtout_myproc(unit,message,mpicomm) ! optional argument
 
  use defs_basis
 
  use m_xmpi,      only : xmpi_sum
- use m_io_tools,  only : flush_unit
 
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
 #undef ABI_FUNC
-#define ABI_FUNC 'wrtout_myproc'
- use interfaces_14_hidewrite, except_this_one => wrtout_myproc
+#define ABI_FUNC 'abi_wrtout_myproc'
+ use interfaces_14_hidewrite, except_this_one => abi_wrtout_myproc
 !End of the abilint section
 
  implicit none
@@ -245,7 +153,6 @@ subroutine wrtout_myproc(unit,message,mpicomm,do_flush) ! optional argument
  integer,intent(in) :: unit
  character(len=*),intent(in) :: message
  integer,intent(in),optional :: mpicomm
- logical,optional,intent(in) :: do_flush
 
 !Local variables-------------------------------
 !scalars
@@ -256,10 +163,6 @@ subroutine wrtout_myproc(unit,message,mpicomm,do_flush) ! optional argument
  integer :: buf(3)
 
 !******************************************************************
-
-!MG: TODO:
-! move iexit, ncomment and nwanings to m_errors.
-! provide an API to retrieve these values and to MPI sum them.
 
 !When I/O are redirected, it is sometimes necessary to reduce counters (saved) values;
 !this can be done by passing mpicomm optional argument to the routine In that case, no printing is done.
@@ -273,9 +176,9 @@ subroutine wrtout_myproc(unit,message,mpicomm,do_flush) ! optional argument
 
  print_std_err=(unit==std_out.and.(index(trim(message),'BUG')/=0.or.index(trim(message),'ERROR')/=0))
 
- call write_lines(unit,message)
+ call abi_write_lines(unit,message)
  if (print_std_err) then
-   call write_lines(std_err,message)
+   call abi_write_lines(std_err,message)
  end if
 
  if( index(trim(message),'BUG') /= 0 )then
@@ -309,26 +212,12 @@ subroutine wrtout_myproc(unit,message,mpicomm,do_flush) ! optional argument
    ncomment=ncomment+1
  end if
 
- ! Flush unit
- if (present(do_flush)) then
-   if (do_flush) then
-     call flush_unit(unit)
-   end if
- end if
-
-#ifdef DEBUG_MODE
- call flush_unit(unit)
- if (print_std_err) then
-   call flush_unit(std_err)
- end if
-#endif
-
-end subroutine wrtout_myproc
+end subroutine abi_wrtout_myproc
 !!***
 
-!!****f* ABINIT/write_lines
+!!****f* ABINIT/abi_write_lines
 !! NAME
-!!  write_lines
+!!  abi_write_lines
 !!
 !! FUNCTION
 !!  This routine receives a string, split the message in lines according to the 
@@ -341,21 +230,16 @@ end subroutine wrtout_myproc
 !! OUTPUT
 !!  Only writing.
 !!
-!! PARENTS
-!!      wrtout
-!!
-!! CHILDREN
-!!
 !! SOURCE
 
-subroutine write_lines(unit,message)
+subroutine abi_write_lines(unit,message)
 
  use defs_basis
 
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
 #undef ABI_FUNC
-#define ABI_FUNC 'write_lines'
+#define ABI_FUNC 'abi_write_lines'
 !End of the abilint section
 
  implicit none
@@ -410,5 +294,5 @@ subroutine write_lines(unit,message)
  ! end of the string was causing an extra newline!
  if (message(msg_size:msg_size) == ch10) write(unit,*)
 
-end subroutine write_lines
+end subroutine abi_write_lines
 !!***

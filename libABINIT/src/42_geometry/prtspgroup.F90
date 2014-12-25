@@ -33,7 +33,7 @@
 !!      invars2m
 !!
 !! CHILDREN
-!!      leave_new,ptgmadata,spgdata,wrtout,xredxcart
+!!      abi_leave_new,ptgmadata,spgdata,abi_wrtout,xredxcart
 !!
 !! SOURCE
 
@@ -110,8 +110,8 @@ subroutine prtspgroup(bravais,genafm,iout,jdtset,ptgroupma,spgroup)
 &     '  The magnetic translation generator,',ch10,&
 &     '  genafmconv(:)=',genafmconv(:),&
 &     '  could not be identified.'
-     call wrtout(std_out,message,'COLL')
-     call leave_new('COLL')
+     call abi_wrtout(std_out,message,'COLL')
+     call abi_leave_new('COLL')
    end if
  end if
 
@@ -124,8 +124,8 @@ subroutine prtspgroup(bravais,genafm,iout,jdtset,ptgroupma,spgroup)
      write(message,'(a,a)')ch10,&
 &     ' Symmetries : the unit cell is not primitive'
    end if
-   call wrtout(std_out,message,'COLL')
-   call wrtout(iout,message,'COLL')
+   call abi_wrtout(std_out,message,'COLL')
+   call abi_wrtout(iout,message,'COLL')
  else if(spgroup==0)then
    if(jdtset/=0)then
      write(message,'(a,a,i5,a)')ch10,&
@@ -134,8 +134,8 @@ subroutine prtspgroup(bravais,genafm,iout,jdtset,ptgroupma,spgroup)
      write(message,'(a,a)')ch10,&
 &     ' Symmetries : the space group has not been recognized'
    end if
-   call wrtout(std_out,message,'COLL')
-   call wrtout(iout,message,'COLL')
+   call abi_wrtout(std_out,message,'COLL')
+   call abi_wrtout(iout,message,'COLL')
  else
 
 !  ------------------------------------------------------------------
@@ -271,8 +271,8 @@ subroutine prtspgroup(bravais,genafm,iout,jdtset,ptgroupma,spgroup)
 &       ' Symmetries : space group ',trim(brvsb),trim(intsb),' (#',spgroup,')',&
 &       '; Bravais ',trim(bravais_name)
      end if
-     call wrtout(std_out,message,'COLL')
-     call wrtout(iout,message,'COLL')
+     call abi_wrtout(std_out,message,'COLL')
+     call abi_wrtout(iout,message,'COLL')
 
    else if(shubnikov==3)then
 
@@ -283,21 +283,21 @@ subroutine prtspgroup(bravais,genafm,iout,jdtset,ptgroupma,spgroup)
        write(message,'(2a)' )ch10,&
 &       ' Magnetic group, Shubnikov type III '
      end if
-     call wrtout(std_out,message,'COLL')
-     call wrtout(iout,message,'COLL')
+     call abi_wrtout(std_out,message,'COLL')
+     call abi_wrtout(iout,message,'COLL')
 
      write(message,'(a,a,a,a,i3,a,a,a)' )&
 &     ' Fedorov space group ',trim(brvsb),trim(intsb),' (#',spgroup,')',&
 &     '; Bravais ',trim(bravais_name)
-     call wrtout(std_out,message,'COLL')
-     call wrtout(iout,message,'COLL')
+     call abi_wrtout(std_out,message,'COLL')
+     call abi_wrtout(iout,message,'COLL')
 
      call ptgmadata(ptgroupma,ptgrpmasb)
 
      write(message,'(3a,i3,a)' )&
 &     ' Magnetic point group ',trim(ptgrpmasb),' (#',ptgroupma,')'
-     call wrtout(std_out,message,'COLL')
-     call wrtout(iout,message,'COLL')
+     call abi_wrtout(std_out,message,'COLL')
+     call abi_wrtout(iout,message,'COLL')
 
    else if(shubnikov==4)then
 
@@ -308,18 +308,18 @@ subroutine prtspgroup(bravais,genafm,iout,jdtset,ptgroupma,spgroup)
        write(message,'(2a)' )ch10,&
 &       ' Magnetic group, Shubnikov type IV '
      end if
-     call wrtout(std_out,message,'COLL')
-     call wrtout(iout,message,'COLL')
+     call abi_wrtout(std_out,message,'COLL')
+     call abi_wrtout(iout,message,'COLL')
 
      write(message,'(a,a,a,a,i3,a)' )&
 &     ' Fedorov space group ',trim(brvsb),trim(intsb),' (#',spgroup,')'
-     call wrtout(std_out,message,'COLL')
-     call wrtout(iout,message,'COLL')
+     call abi_wrtout(std_out,message,'COLL')
+     call abi_wrtout(iout,message,'COLL')
 
      write(message,'(2a)' )&
 &     ' Magnetic Bravais lattice ',trim(bravais_name)
-     call wrtout(std_out,message,'COLL')
-     call wrtout(iout,message,'COLL')
+     call abi_wrtout(std_out,message,'COLL')
+     call abi_wrtout(iout,message,'COLL')
 
    end if
  end if

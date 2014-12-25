@@ -52,7 +52,7 @@
 !!      ingeo,ab6_symmetry_f90
 !!
 !! CHILDREN
-!!      leave_new,wrtout
+!!      abi_leave_new,abi_wrtout
 !!
 !! SOURCE
 
@@ -292,8 +292,8 @@
 &       ' symfind : BUG -',ch10,&
 &       '  Problem with matching the spin part within a class.',ch10,&
 &       '  isym,iatom0,iatom1=',isym,iatom0,iatom1
-       call wrtout(std_out,message,'COLL')
-       call leave_new('COLL')
+       call abi_wrtout(std_out,message,'COLL')
+       call abi_leave_new('COLL')
      end if
 !    jellium slab case: check whether symmetry operation has no translational
 !    component along z
@@ -371,8 +371,8 @@
 &         '  translations) is larger than msym=',msym,ch10,&
 &         '  Action : take a cell that is primitive, or at least',ch10,&
 &         '  smaller than the present one.'
-         call wrtout(std_out,message,'COLL')
-         call leave_new('COLL')
+         call abi_wrtout(std_out,message,'COLL')
+         call abi_leave_new('COLL')
        end if
        ntrial=ntrial+1
        symrel(:,:,nsym)=ptsymrel(:,:,isym)

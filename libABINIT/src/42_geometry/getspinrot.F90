@@ -37,7 +37,7 @@
 !!      m_crystal,wfconv,symdij
 !!
 !! CHILDREN
-!!      matr3inv,wrtout
+!!      matr3inv,abi_wrtout
 !!
 !! SOURCE
 
@@ -150,7 +150,7 @@ subroutine getspinrot(rprimd,spinrot,symrel_conv)
          write(message,'(a,a,a,a)')ch10,&
 &         ' getspinrot : BUG -',ch10,&
 &         '  Cannot find the rotation axis.'
-         call wrtout(std_out,message,'COLL')
+         call abi_wrtout(std_out,message,'COLL')
        end if
      end if
      norminv=one/sqrt(scprod)

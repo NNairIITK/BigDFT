@@ -47,8 +47,8 @@
 !!      ingeo
 !!
 !! CHILDREN
-!!      chkgrp,leave_new,symsgcube,symsghexa,symsgmono,symsgortho,symsgtetra
-!!      wrtout
+!!      chkgrp,abi_leave_new,symsgcube,symsghexa,symsgmono,symsgortho,symsgtetra
+!!      abi_wrtout
 !!
 !! SOURCE
 
@@ -111,8 +111,8 @@ subroutine gensymspgr(brvltt,msym,nsym,shubnikov,spgaxor,spgorig,&
 &   '  spgroup must be between 1 to 230, but is ',spgroup,ch10,&
 &   '  This is not allowed.  ',ch10,&
 &   '  Action : modify spgroup in the input file.'
-   call wrtout(std_out,  message,'COLL')
-   call leave_new('COLL')
+   call abi_wrtout(std_out,  message,'COLL')
+   call abi_leave_new('COLL')
  end if
 
 !Checks the orientation
@@ -122,8 +122,8 @@ subroutine gensymspgr(brvltt,msym,nsym,shubnikov,spgaxor,spgorig,&
 &   '  spgaxor must be from 1 to 9, but is',spgaxor,ch10,&
 &   '  This is not allowed.  ',ch10,&
 &   '  Action : modify spgaxor in the input file.'
-   call wrtout(std_out,  message,'COLL')
-   call leave_new('COLL')
+   call abi_wrtout(std_out,  message,'COLL')
+   call abi_leave_new('COLL')
  end if
 
 !Checks the consistency between the origin and space group
@@ -135,8 +135,8 @@ subroutine gensymspgr(brvltt,msym,nsym,shubnikov,spgaxor,spgorig,&
 &   '  while it should be 0 or 1',ch10,&
 &   '  This is not allowed.  ',ch10,&
 &   '  Action : modify spgorig in the input file.'
-   call wrtout(std_out,  message,'COLL')
-   call leave_new('COLL')
+   call abi_wrtout(std_out,  message,'COLL')
+   call abi_leave_new('COLL')
  end if
 
  if (spgorig>1) then
@@ -149,8 +149,8 @@ subroutine gensymspgr(brvltt,msym,nsym,shubnikov,spgaxor,spgorig,&
 &       '  spgroup does not accept several axis choices',ch10,&
 &       '  This is not allowed.  ',ch10,&
 &       '  Action : modify spgorig in the input file.'
-       call wrtout(std_out,  message,'COLL')
-       call leave_new('COLL')
+       call abi_wrtout(std_out,  message,'COLL')
+       call abi_leave_new('COLL')
    end select
  end if
 
@@ -164,8 +164,8 @@ subroutine gensymspgr(brvltt,msym,nsym,shubnikov,spgaxor,spgorig,&
 &       '  spgroup does not accept several orientations',ch10,&
 &       '  This is not allowed.  ',ch10,&
 &       '  Action : modify spgaxor or spgroup in the input file.'
-       call wrtout(std_out,  message,'COLL')
-       call leave_new('COLL')
+       call abi_wrtout(std_out,  message,'COLL')
+       call abi_leave_new('COLL')
    end select
  end if
 
@@ -176,8 +176,8 @@ subroutine gensymspgr(brvltt,msym,nsym,shubnikov,spgaxor,spgorig,&
 &   '  and it should be an integer from -1 to 7',ch10,&
 &   '  This is not allowed.  ',ch10,&
 &   '  Action : modify brvltt  in the input file.'
-   call wrtout(std_out,  message,'COLL')
-   call leave_new('COLL')
+   call abi_wrtout(std_out,  message,'COLL')
+   call abi_leave_new('COLL')
  end if
 
 !Assign nsym for each group according first to the order of the group
@@ -352,7 +352,7 @@ subroutine gensymspgr(brvltt,msym,nsym,shubnikov,spgaxor,spgorig,&
 &     '  The assigned brvltt ',brvltt,' is not equal',ch10,&
 &     '  to the input value ',bckbrvltt,ch10,&
 &     '  Assume experienced user. Execution will continue.'
-     call wrtout(std_out,  message,'COLL')
+     call abi_wrtout(std_out,  message,'COLL')
    end if
  end if
 

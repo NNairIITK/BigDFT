@@ -67,7 +67,7 @@
 !!      wfkfermi3,wfsinp,xcden,xcpot,zprecon3
 !!
 !! CHILDREN
-!!      leave_new,papif_flops,papif_perror,timein,wrtout
+!!      abi_leave_new,papif_flops,papif_perror,timein,abi_wrtout
 !!
 !! SOURCE
 !!

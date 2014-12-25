@@ -40,7 +40,7 @@
 !!      ingeo
 !!
 !! CHILDREN
-!!      leave_new,wrtout
+!!      abi_leave_new,abi_wrtout
 !!
 !! SOURCE
 
@@ -85,8 +85,8 @@ subroutine gensymshub4(genafm,msym,nsym,symafm,symrel,tnons)
 &   ' gensymshub4 : BUG -',ch10,&
 &   '  The number of symmetries in the Shubnikov type IV space group',ch10,&
 &   '  is larger than the maximal allowed number of symmetries.'
-   call wrtout(std_out,message,'COLL')
-   call leave_new('COLL')
+   call abi_wrtout(std_out,message,'COLL')
+   call abi_leave_new('COLL')
  end if
 
  do ii=1,nsym

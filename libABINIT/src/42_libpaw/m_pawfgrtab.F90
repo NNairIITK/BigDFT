@@ -34,8 +34,8 @@
 MODULE m_pawfgrtab
 
  use defs_basis
- use m_errors
  use m_xmpi
+ USE_MSG_HANDLING
  USE_MEMORY_PROFILING
 
  use m_paral_atom, only : get_my_atmtab, free_my_atmtab, get_my_natom
@@ -220,8 +220,6 @@ subroutine pawfgrtab_init(Pawfgrtab,cplex,l_size_atm,nspden,typat,&
 
 ! *************************************************************************
 
- DBG_ENTER("COLL")
-
 !@Pawfgrtab_type
 
  my_natom=SIZE(Pawfgrtab);if (my_natom==0) return
@@ -266,8 +264,6 @@ subroutine pawfgrtab_init(Pawfgrtab,cplex,l_size_atm,nspden,typat,&
 
 !Destroy atom table used for parallelism
  call free_my_atmtab(my_atmtab,my_atmtab_allocated)
-
- DBG_EXIT("COLL")
 
 end subroutine pawfgrtab_init
 !!***
@@ -314,8 +310,6 @@ subroutine pawfgrtab_free(Pawfgrtab)
 
 ! *************************************************************************
 
- DBG_ENTER("COLL")
-
 !@Pawfgrtab_type
 
  natom=SIZE(Pawfgrtab);if (natom==0) return
@@ -352,8 +346,6 @@ subroutine pawfgrtab_free(Pawfgrtab)
   Pawfgrtab(iat)%rfgd_allocated=0
   Pawfgrtab(iat)%expiqr_allocated=0
  end do
-
- DBG_EXIT("COLL")
 
 end subroutine pawfgrtab_free
 !!***
@@ -398,8 +390,6 @@ subroutine pawfgrtab_nullify(Pawfgrtab)
 
 ! *************************************************************************
 
- DBG_ENTER("COLL")
-
 !@Pawfgrtab_type
 
 ! MGPAW: This one could be removed/renamed, 
@@ -417,8 +407,6 @@ subroutine pawfgrtab_nullify(Pawfgrtab)
   Pawfgrtab(iat)%rfgd_allocated    = 0
   Pawfgrtab(iat)%expiqr_allocated  = 0
  end do
-
- DBG_EXIT("COLL")
 
 end subroutine pawfgrtab_nullify
 !!***
@@ -483,8 +471,6 @@ integer,optional,intent(in) :: comm_atom
  type(Pawfgrtab_type), pointer :: pawfgrtab_out(:)
 
 ! *************************************************************************
-
- DBG_ENTER("COLL")
 
 !@Pawfgrtab_type
 
@@ -585,8 +571,6 @@ integer,optional,intent(in) :: comm_atom
 !Destroy atom table used for parallelism
  call free_my_atmtab(my_atmtab,my_atmtab_allocated)
 
- DBG_EXIT("COLL")
-
 end subroutine pawfgrtab_copy
 !!***
 
@@ -650,8 +634,6 @@ subroutine pawfgrtab_print(Pawfgrtab,natom,unit,prtvol,mode_paral,mpi_atmtab,com
 
 ! *************************************************************************
 
- DBG_ENTER("COLL")
-
 !@Pawfgrtab_type
 
  size_Pawfgrtab=SIZE(Pawfgrtab);if (size_Pawfgrtab==0) return
@@ -708,8 +690,6 @@ subroutine pawfgrtab_print(Pawfgrtab,natom,unit,prtvol,mode_paral,mpi_atmtab,com
 
 !Destroy atom table
  call free_my_atmtab(my_atmtab,my_atmtab_allocated)
-
- DBG_EXIT("COLL")
 
 end subroutine pawfgrtab_print
 !!***
@@ -773,8 +753,6 @@ subroutine pawfgrtab_gather(pawfgrtab,pawfgrtab_gathered,comm_atom,istat, &
  real(dp),allocatable :: buf_dp(:),buf_dp_all(:)
 
 ! *************************************************************************
-
- DBG_ENTER("COLL")
 
 !@Pawfgrtab_type
 
@@ -1006,8 +984,6 @@ subroutine pawfgrtab_gather(pawfgrtab,pawfgrtab_gathered,comm_atom,istat, &
 !Destroy atom table
  call free_my_atmtab(my_atmtab,my_atmtab_allocated)
 
- DBG_EXIT("COLL")
-
 end subroutine pawfgrtab_gather
 !!***
 
@@ -1102,8 +1078,6 @@ subroutine pawfgrtab_redistribute(pawfgrtab,mpi_comm_in,mpi_comm_out,&
  type(pawfgrtab_type),pointer :: pawfgrtab_out1(:)
 
 ! *************************************************************************
-
- DBG_ENTER("COLL")
 
 !@pawfgrtab_type
 
@@ -1374,8 +1348,6 @@ subroutine pawfgrtab_redistribute(pawfgrtab,mpi_comm_in,mpi_comm_out,&
  call free_my_atmtab(my_atmtab_in,my_atmtab_in_allocated)
  call free_my_atmtab(my_atmtab_out,my_atmtab_out_allocated)
 
- DBG_EXIT("COLL")
-
 end subroutine pawfgrtab_redistribute
 !!***
 
@@ -1435,8 +1407,6 @@ implicit none
  type(pawfgrtab_type),pointer :: pawfgrtab1
 
 ! *********************************************************************
-
- DBG_ENTER("COLL")
 
  buf_int_size=size(buf_int)
  buf_dp_size=size(buf_dp)
@@ -1528,8 +1498,6 @@ implicit none
    MSG_BUG(msg)
  end if
 
- DBG_EXIT("COLL")
-
 end subroutine pawfgrtab_isendreceive_getbuffer
 !!***
 
@@ -1593,8 +1561,6 @@ implicit none
  type(pawfgrtab_type),pointer :: pawfgrtab1
 
 ! *********************************************************************
-
- DBG_ENTER("COLL")
 
 !Compute size of buffers
  buf_int_size=0;buf_dp_size=0
@@ -1708,8 +1674,6 @@ implicit none
    write(msg,'(a,i10,a,i10)') 'Wrong buffer sizes: buf_int_size=',buf_int_size,' buf_dp_size=',buf_dp_size
    MSG_BUG(msg)
  end if
-
- DBG_EXIT("COLL")
 
 end subroutine pawfgrtab_isendreceive_fillbuffer
 !!***

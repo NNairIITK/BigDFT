@@ -38,8 +38,8 @@
 MODULE m_paw_ij
 
  use defs_basis
- use m_errors
  use m_xmpi
+ USE_MSG_HANDLING
  USE_MEMORY_PROFILING
 
  use m_paral_atom, only : get_my_atmtab, free_my_atmtab, get_my_natom
@@ -347,8 +347,6 @@ subroutine paw_ij_init(Paw_ij,cplex,nspinor,nsppol,nspden,pawspnorb,natom,ntypat
 
 ! *************************************************************************
 
- DBG_ENTER("COLL")
-
 !@Paw_ij_type
 
 !Set up parallelism over atoms
@@ -529,8 +527,6 @@ subroutine paw_ij_init(Paw_ij,cplex,nspinor,nsppol,nspden,pawspnorb,natom,ntypat
 !Destroy atom table used for parallelism
  call free_my_atmtab(my_atmtab,my_atmtab_allocated)
 
- DBG_EXIT("COLL")
-
 end subroutine paw_ij_init
 !!***
 
@@ -573,8 +569,6 @@ subroutine paw_ij_free(Paw_ij)
  integer :: iat,natom
 
 ! *************************************************************************
-
- DBG_ENTER("COLL")
 
 !@Paw_ij_type
 
@@ -645,8 +639,6 @@ subroutine paw_ij_free(Paw_ij)
  end do
 
  !call paw_ij_nullify(Paw_ij)
-
- DBG_EXIT("COLL")
 
 end subroutine paw_ij_free
 !!***
@@ -779,8 +771,6 @@ character(len=500) :: msg
  type(paw_ij_type),pointer :: paw_ij_out(:)
 
 ! *************************************************************************
-
- DBG_ENTER("COLL")
 
 !@Paw_ij_type
 
@@ -951,8 +941,6 @@ character(len=500) :: msg
 !Destroy atom table used for parallelism
  call free_my_atmtab(my_atmtab,my_atmtab_allocated)
 
- DBG_EXIT("COLL")
-
 end subroutine paw_ij_copy
 !!***
 
@@ -1028,8 +1016,6 @@ subroutine paw_ij_print(Paw_ij,unit,pawprtvol,pawspnorb,mode_paral,enunit,ipert,
  real(dp),pointer :: dij2p(:),dij2p_(:)
 
 ! *************************************************************************
-
- DBG_ENTER("COLL")
 
 !@Paw_ij_type
 
@@ -1408,8 +1394,6 @@ subroutine paw_ij_print(Paw_ij,unit,pawprtvol,pawspnorb,mode_paral,enunit,ipert,
 
  call wrtout(my_unt,' ',my_mode)
 
- DBG_EXIT("COLL")
-
 end subroutine paw_ij_print
 !!***
 
@@ -1470,8 +1454,6 @@ subroutine paw_ij_gather(paw_ij_in,paw_ij_gathered,master,comm_atom)
  real(dp),allocatable :: buf_dp(:),buf_dp_all(:)
 
 ! *************************************************************************
-
- DBG_ENTER("COLL")
 
 !@Paw_ij_type
 
@@ -1998,8 +1980,6 @@ subroutine paw_ij_gather(paw_ij_in,paw_ij_gathered,master,comm_atom)
  LIBPAW_DEALLOCATE(buf_int_all)
  LIBPAW_DEALLOCATE(buf_dp_all)
 
- DBG_EXIT("COLL")
-
 end subroutine paw_ij_gather
 !!***
 
@@ -2094,8 +2074,6 @@ subroutine paw_ij_redistribute(paw_ij,mpi_comm_in,mpi_comm_out,&
  type(paw_ij_type),pointer :: paw_ij_out1(:)
 
 ! *************************************************************************
-
- DBG_ENTER("COLL")
 
 !@Paw_ij_type
 
@@ -2366,8 +2344,6 @@ subroutine paw_ij_redistribute(paw_ij,mpi_comm_in,mpi_comm_out,&
  call free_my_atmtab(my_atmtab_in,my_atmtab_in_allocated)
  call free_my_atmtab(my_atmtab_out,my_atmtab_out_allocated)
 
- DBG_EXIT("COLL")
-
 end subroutine paw_ij_redistribute
 !!***
 
@@ -2412,8 +2388,6 @@ subroutine paw_ij_reset_flags(Paw_ij,all,dijhartree,self_consistent)
  logical :: all_,dijhartree_,self_consistent_
 
 ! *************************************************************************
-
- DBG_ENTER("COLL")
 
 !@Paw_ij_type
 
@@ -2461,8 +2435,6 @@ subroutine paw_ij_reset_flags(Paw_ij,all,dijhartree,self_consistent)
      if (Paw_ij(iat)%has_pawu_occ  >0) Paw_ij(iat)%has_pawu_occ  =1
    end do
  end if
-
- DBG_EXIT("COLL")
 
 end subroutine paw_ij_reset_flags
 !!***
@@ -2524,8 +2496,6 @@ implicit none
 !arrays
 
 ! *********************************************************************
-
- DBG_ENTER("COLL")
 
  buf_int_size=size(buf_int)
  buf_dp_size=size(buf_dp)
@@ -2691,8 +2661,6 @@ implicit none
     MSG_BUG(msg)
   end if
 
- DBG_EXIT("COLL")
-
 end subroutine paw_ij_isendreceive_getbuffer
 !!***
 
@@ -2759,8 +2727,6 @@ implicit none
 !arrays
 
 ! *********************************************************************
-
- DBG_ENTER("COLL")
 
 !Compute sizes of buffers
  buf_int_size=0;buf_dp_size=0
@@ -2933,8 +2899,6 @@ implicit none
    write(msg,'(a,i10,a,i10)') 'Wrong buffer sizes: buf_int_size=',buf_int_size,' buf_dp_size=',buf_dp_size
    MSG_BUG(msg)
  end if
-
- DBG_EXIT("COLL")
 
 end subroutine paw_ij_isendreceive_fillbuffer
 !!***

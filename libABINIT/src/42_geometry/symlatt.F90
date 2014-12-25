@@ -61,7 +61,7 @@
 !!      elphon,ingeo
 !!
 !! CHILDREN
-!!      holocell,leave_new,matr3inv,smallprim,symrelrot,wrtout
+!!      holocell,abi_leave_new,matr3inv,smallprim,symrelrot,abi_wrtout
 !!
 !! SOURCE
 
@@ -895,7 +895,7 @@ subroutine symlatt(bravais,msym,nptsym,ptsymrel,rprimd,tolsym)
 
  end if
 
- call wrtout(std_out,message,'COLL')
+ call abi_wrtout(std_out,message,'COLL')
 
 !--------------------------------------------------------------------------
 !Make sure that axes form a right-handed coordinate system
@@ -1002,8 +1002,8 @@ subroutine symlatt(bravais,msym,nptsym,ptsymrel,rprimd,tolsym)
 &       '        ',coord(:,2),ch10,&
 &       '        ',coord(:,3),ch10,&
 &       '  fact=',fact
-       call wrtout(std_out,message,'COLL')
-       call leave_new('COLL')
+       call abi_wrtout(std_out,message,'COLL')
+       call abi_leave_new('COLL')
      end if
      icoord(ii,jj)=nint(val)
    end do
@@ -1029,7 +1029,7 @@ subroutine symlatt(bravais,msym,nptsym,ptsymrel,rprimd,tolsym)
    write(message,'(a,a,a,a)')ch10,&
 &   ' symlatt : BUG -',ch10,&
 &   '  Crazy error, compiler bug '
-   call wrtout(std_out,message,'COLL')
+   call abi_wrtout(std_out,message,'COLL')
  end if
 
 !--------------------------------------------------------------------------

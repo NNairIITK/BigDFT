@@ -19,7 +19,7 @@
 module m_pawxc
 
  use defs_basis
- use m_errors
+ USE_MSG_HANDLING
  USE_MEMORY_PROFILING
 
 #if defined HAVE_DFT_LIBXC
@@ -300,7 +300,8 @@ subroutine pawxc_xcpositron_wrapper(fnxc,grhoe2,ixcpositron,ngr,npt,posdensity0_
      nqtf2=(rhoe*sqrt(four*kf/pi))**2
      eps=grhoe2(ipt)/nqtf2
      if (eps<zero) then 
-       MSG_ERROR('pawxc_xcpositron_wrapper: problem, negative GGA espilon !')
+       msg='pawxc_xcpositron_wrapper: problem, negative GGA espilon!'
+       MSG_ERROR(msg)
      end if
      expgga=exp(-alpha_gga*eps*third)
 
@@ -743,7 +744,7 @@ subroutine pawxc_mkdenpos_wrapper(iwarn,nfft,nspden,option,rhonow,xc_denpos)
 #ifndef HAVE_LIBPAW_ABINIT
  integer :: ifft,ispden,numneg
  real(dp) :: rhotmp,worst
- character(len=500) :: message
+ character(len=500) :: msg
 !arrays
  real(dp) :: rho(2)
 #endif
@@ -823,16 +824,17 @@ subroutine pawxc_mkdenpos_wrapper(iwarn,nfft,nspden,option,rhonow,xc_denpos)
    end if  ! option
 
  else
-   MSG_BUG('nspden>2 not allowed !')
+   msg='nspden>2 not allowed !'
+   MSG_BUG(msg)
  end if ! End choice between non-spin polarized and spin-polarized.
 
  if (numneg>0) then
    if (iwarn==0) then
-     write(message,'(a,i10,a,a,a,es10.2,a,e10.2,a,a,a,a)')&
+     write(msg,'(a,i10,a,a,a,es10.2,a,e10.2,a,a,a,a)')&
 &     'Density went too small (lower than xc_denpos) at',numneg,' points',ch10,&
 &     'and was set to xc_denpos=',xc_denpos,'.  Lowest was ',worst,'.',ch10,&
 &     'Likely due to too low boxcut or too low ecut for','pseudopotential core charge.'
-     MSG_WARNING(message)
+     MSG_WARNING(msg)
    end if
    iwarn=iwarn+1
  end if
@@ -952,45 +954,41 @@ subroutine pawxc(corexc,enxc,enxcdc,ixc,kxc,lm_size,lmselect,nhat,nkxc,nspden,op
 
 ! *************************************************************************
 
- DBG_ENTER("COLL")
-
-! call timab(81,1,tsec)
-
 !----------------------------------------------------------------------
 !----- Check options
 !----------------------------------------------------------------------
  if(nspden==4.and.nkxc>0) then
-   msg='  Kxc for nspden=4 not implemented !'
+   msg='Kxc for nspden=4 not implemented!'
    MSG_ERROR(msg)
  end if
  if(nspden==4.and.xclevel==2) then
-   msg='  GGA for nspden=4 not implemented !'
+   msg='GGA for nspden=4 not implemented!'
    MSG_ERROR(msg)
  end if
  if(pawang%angl_size==0) then
-   msg='  pawang%angl_size=0 !'
+   msg='pawang%angl_size=0!'
    MSG_BUG(msg)
  end if
  if(.not.allocated(pawang%ylmr)) then
-   msg='  pawang%ylmr must be allocated !'
+   msg='pawang%ylmr must be allocated!'
    MSG_BUG(msg)
  end if
  if(xclevel==2.and.(.not.allocated(pawang%ylmrgr))) then
-   msg='  pawang%ylmrgr must be allocated !'
+   msg='pawang%ylmrgr must be allocated!'
    MSG_BUG(msg)
  end if
  if(option==4.or.option==5) then
    if (pawang%angl_size/=1) then
-     msg='  When option=4 or 5, pawang%angl_size must be 1 !'
+     msg='When option=4 or 5, pawang%angl_size must be 1!'
      MSG_BUG(msg)
    end if
    if (pawang%ylm_size/=1) then
-     msg='  When option=4 or 5, pawang%ylm_size must be 1 !'
+     msg='When option=4 or 5, pawang%ylm_size must be 1!'
      MSG_BUG(msg)
    end if
    if (abs(pawang%anginit(1,1)-one)>tol12.or.abs(pawang%anginit(2,1))>tol12.or. &
 &   abs(pawang%anginit(3,1))>tol12) then
-     msg='  When option=4 or 5, pawang%anginit must be (1 0 0) !'
+     msg='When option=4 or 5, pawang%anginit must be (1 0 0)!'
      MSG_BUG(msg)
    end if
  end if
@@ -1410,10 +1408,6 @@ subroutine pawxc(corexc,enxc,enxcdc,ixc,kxc,lm_size,lmselect,nhat,nkxc,nspden,op
 !  End IF a xc part has to be computed
  end if
 
-! call timab(81,2,tsec)
-
- DBG_EXIT("COLL")
-
 end subroutine pawxc
 !!***
 
@@ -1524,23 +1518,21 @@ subroutine pawxcpositron(calctype,corexc,enxc,enxcdc,ixcpositron,lm_size,lmselec
 
 ! *************************************************************************
 
- DBG_ENTER("COLL")
-
 !----- Check options
  if(ixcpositron==3.or.ixcpositron==31) then
-   msg='  GGA is not implemented (use pawxcdev/=0) !'
+   msg='GGA is not implemented (use pawxcdev/=0)!'
    MSG_ERROR(msg)
  end if
  if(calctype/=1.and.calctype/=2) then
-   msg='  Invalid value for calctype'
+   msg='Invalid value for calctype!'
    MSG_BUG(msg)
  end if
  if(pawang%angl_size==0) then
-   msg='  pawang%angl_size=0 !'
+   msg='pawang%angl_size=0!'
    MSG_BUG(msg)
  end if
  if(.not.allocated(pawang%ylmr)) then
-   msg='  pawang%ylmr must be allocated !'
+   msg='pawang%ylmr must be allocated!'
    MSG_BUG(msg)
  end if
 
@@ -1697,8 +1689,6 @@ subroutine pawxcpositron(calctype,corexc,enxc,enxcdc,ixcpositron,lm_size,lmselec
    LIBPAW_DEALLOCATE(rhoarrdc)
  end if
 
- DBG_EXIT("COLL")
-
 end subroutine pawxcpositron
 !!***
 
@@ -1813,42 +1803,38 @@ subroutine pawxc3_gga(corexc1,cplex_den,cplex_vxc,d2enxc,ixc,kxc,lm_size,lmselec
 
 ! *************************************************************************
 
- DBG_ENTER("COLL")
-
-! call timab(81,1,tsec)
-
 !----------------------------------------------------------------------
 !----- Check options
 !----------------------------------------------------------------------
 
  if(option<0.or.option>3) then
-   msg='  Wrong option !'
+   msg='wrong option!'
    MSG_BUG(msg)
  end if
  if(option/=3) then
    if (xclevel==1.and.nkxc/=2*min(nspden,2)-1) then
-     msg='  nkxc must be 1 or 3 !'
+     msg='nkxc must be 1 or 3!'
      MSG_BUG(msg)
    end if
    if(xclevel==2.and.nkxc/=23) then
-     msg='  nkxc should be 23 for GGA !'
+     msg='nkxc should be 23 for GGA!'
      MSG_BUG(msg)
    end if
  end if
  if(nspden==4.and.option/=3) then
-   msg='  nspden=4 not implemented (for vxc) !'
+   msg='nspden=4 not implemented (for vxc)!'
    MSG_ERROR(msg)
  end if
  if(pawang%angl_size==0) then
-   msg='  pawang%angl_size=0 !'
+   msg='pawang%angl_size=0!'
    MSG_BUG(msg)
  end if
  if(.not.allocated(pawang%ylmr)) then
-   msg='  pawang%ylmr must be allocated !'
+   msg='pawang%ylmr must be allocated!'
    MSG_BUG(msg)
  end if
  if(xclevel==2.and.(.not.allocated(pawang%ylmrgr))) then
-   msg='  pawang%ylmrgr must be allocated !'
+   msg='pawang%ylmrgr must be allocated!'
    MSG_BUG(msg)
  end if
 
@@ -2536,10 +2522,6 @@ subroutine pawxc3_gga(corexc1,cplex_den,cplex_vxc,d2enxc,ixc,kxc,lm_size,lmselec
    LIBPAW_DEALLOCATE(dylmdr)
  end if
 
-! call timab(81,2,tsec)
-
- DBG_EXIT("COLL")
-
 end subroutine pawxc3_gga
 !!***
 
@@ -2640,16 +2622,12 @@ subroutine pawxc3(corexc1,cplex_den,cplex_vxc,d2enxc,ixc,kxc,lm_size,lmselect,nh
 
 ! *************************************************************************
 
- DBG_ENTER("COLL")
-
-! call timab(81,1,tsec)
-
 !----------------------------------------------------------------------
 !----- Check options
 !----------------------------------------------------------------------
 
  if(option<0.or.option>3) then
-   msg='  Wrong option !'
+   msg='wrong option!'
    MSG_BUG(msg)
  end if
 !if(xclevel==2) then
@@ -2663,23 +2641,23 @@ subroutine pawxc3(corexc1,cplex_den,cplex_vxc,d2enxc,ixc,kxc,lm_size,lmselect,nh
 &     option,pawang,pawrad,rhor1,usecore,usexcnhat,vxc1,xclevel)
    end if
    return
-   msg='  GGA is not implemented !'
+   msg='GGA is not implemented!'
    MSG_ERROR(msg)
  end if
  if(option/=3.and.nkxc/=2*min(nspden,2)-1) then
-   msg='  nkxc must be 1 or 3 !'
+   msg='nkxc must be 1 or 3!'
    MSG_BUG(msg)
  end if
  if(nspden==4.and.option/=3) then
-   msg='  nspden=4 not implemented (for vxc) !'
+   msg='nspden=4 not implemented (for vxc)!'
    MSG_ERROR(msg)
  end if
  if(pawang%angl_size==0) then
-   msg='  pawang%angl_size=0 !'
+   msg='pawang%angl_size=0!'
    MSG_BUG(msg)
  end if
  if(.not.allocated(pawang%ylmr)) then
-   msg='  pawang%ylmr must be allocated !'
+   msg='pawang%ylmr must be allocated!'
    MSG_BUG(msg)
  end if
 
@@ -2967,10 +2945,6 @@ subroutine pawxc3(corexc1,cplex_den,cplex_vxc,d2enxc,ixc,kxc,lm_size,lmselect,nh
  LIBPAW_DEALLOCATE(rho1arr)
  LIBPAW_DEALLOCATE(vxc1_)
 
-! call timab(81,2,tsec)
-
- DBG_EXIT("COLL")
-
 end subroutine pawxc3
 !!***
 
@@ -3050,16 +3024,16 @@ end subroutine pawxc3
 
  if(nspden>2)then
    write(msg, '(a,a,a,i0)' )&
-&   ' Only non-spin-polarised or collinear spin-densities are allowed,',ch10,&
-&   ' while the argument nspden=',nspden
+&   'Only non-spin-polarised or collinear spin-densities are allowed,',ch10,&
+&   'while the argument nspden=',nspden
    MSG_BUG(msg)
  end if
  if(nkxc>3)then
-   msg=' nkxc>3 not allowed (GGA) !'
+   msg='nkxc>3 not allowed (GGA)!'
    MSG_ERROR(msg)
  end if
  if(nrad/=pawrad%mesh_size)then
-   msg=' nrad is not equal to radial mesh size !'
+   msg='nrad is not equal to radial mesh size!'
    MSG_BUG(msg)
  end if
 
@@ -3302,12 +3276,12 @@ subroutine pawxcsph3(cplex_den,cplex_vxc,ixc,nrad,nspden,pawrad,rho_updn,rho1_up
 
  if(nspden>2)then
    write(msg, '(a,a,a,i0)' )&
-&   ' Only non-spin-polarised or collinear spin-densities are allowed,',ch10,&
-&   ' while the argument nspden=',nspden
+&   'Only non-spin-polarised or collinear spin-densities are allowed,',ch10,&
+&   'while the argument nspden=',nspden
    MSG_BUG(msg)
  end if
  if(nrad/=pawrad%mesh_size)then
-   msg=' nrad is not equal to radial mesh size !'
+   msg='nrad is not equal to radial mesh size!'
    MSG_BUG(msg)
  end if
 
@@ -3571,15 +3545,15 @@ end subroutine pawxcsph3
 !Local variables-------------------------------
 !scalars
  integer :: ngr
- character(len=500) :: message
+ character(len=500) :: msg
 !arrays
  real(dp),allocatable :: dff(:),rhograd(:),rhograd2(:),vxcegr(:)
 
 ! *************************************************************************
 
  if(nrad/=pawrad%mesh_size)then
-   write(message,'(a)')' nrad is not equal to radial mesh size !'
-   MSG_BUG(message)
+   msg='nrad is not equal to radial mesh size!'
+   MSG_BUG(msg)
  end if
 
 !Need gradient of density for GGA
@@ -3708,14 +3682,12 @@ end subroutine pawxcsphpositron
 
 !************************************************************************
 
- DBG_ENTER("COLL")
-
  if(nsums/=1.and.nsums/=3) then
-   msg='  nsums must be 1 or 3 !'
+   msg='nsums must be 1 or 3!'
    MSG_BUG(msg)
  end if
  if(pawang%gnt_option==0) then
-   msg='  pawang%gnt_option=0 !'
+   msg='pawang%gnt_option=0!'
    MSG_BUG(msg)
  end if
 
@@ -3965,8 +3937,6 @@ end subroutine pawxcsphpositron
 
  end if !option
 
- DBG_EXIT("COLL")
-
  end subroutine pawxcsum
 !!***
 
@@ -4085,16 +4055,12 @@ end subroutine pawxcsphpositron
 
 !************************************************************************
 
- DBG_ENTER("COLL")
-
-! call timab(81,1,tsec)
-
  if(nkxc>3) then
-   msg=' Kxc not implemented for GGA !'
+   msg='Kxc not implemented for GGA!'
    MSG_ERROR(msg)
  end if
  if(nkxc>0.and.nspden==4) then
-   msg=' Kxc not implemented for non-collinear magnetism !'
+   msg='Kxc not implemented for non-collinear magnetism!'
    MSG_ERROR(msg)
  end if
 
@@ -4788,11 +4754,6 @@ end subroutine pawxcsphpositron
 
  LIBPAW_DEALLOCATE(rho_updn)
 
-!----- End of routine
-! call timab(81,2,tsec)
-
- DBG_EXIT("COLL")
-
  end subroutine pawxcm
 !!***
 
@@ -4898,28 +4859,24 @@ end subroutine pawxcsphpositron
 !lmselect and lm_size are not necessarily the same for densities, kxc and vxc1
 !This is not taken into account for the moment, but has to be programmed...
 
- DBG_ENTER("COLL")
-
-! call timab(81,1,tsec)
-
 !----------------------------------------------------------------------
 !----- Check options
 !----------------------------------------------------------------------
 
  if(option<0.or.option>3) then
-   msg='  Wrong option !'
+   msg='wrong option!'
    MSG_BUG(msg)
  end if
  if(option/=3.and.nkxc/=2*min(nspden,2)-1) then
-   msg='  nkxc must be 1 or 3 !'
+   msg='nkxc must be 1 or 3!'
    MSG_BUG(msg)
  end if
  if(xclevel==2) then
-   msg='  GGA is not implemented !'
+   msg='GGA is not implemented!'
    MSG_ERROR(msg)
  end if
  if(nspden==4.and.option/=3) then
-   msg='  nspden=4 not implemented (for vxc) !'
+   msg='nspden=4 not implemented (for vxc)!'
    MSG_ERROR(msg)
  end if
 
@@ -5116,11 +5073,6 @@ end subroutine pawxcsphpositron
    LIBPAW_DEALLOCATE(vxc1_)
  end if
 
-!----- End of routine
-! call timab(81,2,tsec)
-
- DBG_EXIT("COLL")
-
  end subroutine pawxcm3
 !!***
 
@@ -5238,11 +5190,9 @@ subroutine pawxcmpositron(calctype,corexc,enxc,enxcdc,ixcpositron,lm_size,lmsele
 
 !************************************************************************
 
- DBG_ENTER("COLL")
-
 !----- Check options
  if(calctype/=1.and.calctype/=2) then
-   msg='  Invalid value for calctype'
+   msg='Invalid value for calctype'
    MSG_BUG(msg)
  end if
 
@@ -5628,10 +5578,6 @@ subroutine pawxcmpositron(calctype,corexc,enxc,enxcdc,ixcpositron,lm_size,lmsele
 
  LIBPAW_DEALLOCATE(rhotot)
  LIBPAW_DEALLOCATE(rhotot_ep)
-!if (option==0.or.option==2) deallocate(vxc_ep)
-
-!----- End of routine
- DBG_EXIT("COLL")
 
 end subroutine pawxcmpositron
 !!***
@@ -5687,14 +5633,19 @@ end subroutine pawxcmpositron
  real(dp),intent(out),optional:: dvxc(npts,ndvxc), vxcgrho(npts,nvxcgrho),d2vxc(npts,nd2vxc)
  real(dp),intent(out),optional:: vxclrho(npts,nspden*mgga),vxctau(npts,nspden*mgga)
 
+!Local variables-------------------------------
+ character(len=100) :: msg
+ 
 ! *************************************************************************
 
 #if defined HAVE_LIBPAW_ABINIT
 if(.not. present(dvxc) .or. .not. present(grho2) .or. .not. present(vxcgrho)) then
- MSG_ERROR('dvxc, grho2 and vxcgrho should be present in pawxc_drivexc_main_wrapper')
+  msg='dvxc, grho2 and vxcgrho should be present in pawxc_drivexc_main_wrapper'
+  MSG_BUG(msg)
 end if
 if(mgga==1) then
- MSG_ERROR('MGGA is not yet coded in pawxc_drivexc_main_wrapper')
+  msg='MGGA is not yet coded in pawxc_drivexc_main_wrapper'
+  MSG_ERROR(msg)
 end if
 
 !Call to main XC driver
@@ -5860,7 +5811,8 @@ subroutine pawxc_libxc()
      end if
    end if
  else
-      MSG_ERROR('IXC should be < 0 to use libxc')
+   msg='IXC should be < 0 to use libxc'
+   MSG_ERROR(msg)
  end if
 #endif
 

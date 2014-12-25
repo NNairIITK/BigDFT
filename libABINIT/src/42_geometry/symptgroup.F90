@@ -109,8 +109,8 @@ subroutine symptgroup(iholohedry,nsym,ptgroup,symrel)
      write(message, '(a,a,a,a,i4,a)' ) ch10,&
 &     ' symptgroup : BUG -',ch10,&
 &     '  The symmetry operation number',isym,' is not a root of unity'
-     call wrtout(std_out,message,'COLL')
-     call leave_new('COLL')
+     call abi_wrtout(std_out,message,'COLL')
+     call abi_leave_new('COLL')
    end if
 
 !  determinant, order and root_invers are enough to determine the
@@ -153,8 +153,8 @@ subroutine symptgroup(iholohedry,nsym,ptgroup,symrel)
 &     '  determinant(isym)=',determinant(isym),ch10,&
 &     '  root_invers(isym)=',root_invers(isym)
 
-     call wrtout(std_out,message,'COLL')
-     call leave_new('COLL')
+     call abi_wrtout(std_out,message,'COLL')
+     call abi_leave_new('COLL')
    end if
 
  end do
@@ -237,8 +237,8 @@ subroutine symptgroup(iholohedry,nsym,ptgroup,symrel)
    write(message, '(a,a,a,a)' )ch10,&
 &   ' symptgroup : BUG -',ch10,&
 &   '  Could not find the point group'
-   call wrtout(std_out,message,'COLL')
-   call leave_new('COLL')
+   call abi_wrtout(std_out,message,'COLL')
+   call abi_leave_new('COLL')
  end if
 
 !DEBUG

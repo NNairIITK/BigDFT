@@ -31,7 +31,7 @@
 !!      drivexc
 !!
 !! CHILDREN
-!!      leave_new,wrtout
+!!      abi_leave_new,abi_wrtout
 !!
 !! SOURCE
 
@@ -76,8 +76,8 @@ subroutine xcxalp(exc,npt,order,rspts,vxc, dvxc)  ! dvxc is optional
 &   '  With X-alpha xc functional, the only',ch10,&
 &   '  allowed values for order are 0, 1 or 2, while it is found to be',&
 &   order,'.'
-   call wrtout(std_out,message,'COLL')
-   call leave_new('COLL')
+   call abi_wrtout(std_out,message,'COLL')
+   call abi_leave_new('COLL')
  end if
 
 !Compute vfac=(3/(2*Pi))^(2/3)

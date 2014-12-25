@@ -134,7 +134,7 @@ subroutine symanal(bravais,chkprim,genafm,msym,nsym,ptgroupma,rprimd,spgroup,sym
    if(shubnikov/=1)then
      if(shubnikov==3)write(message, '(a)' )' Shubnikov space group type III'
      if(shubnikov==4)write(message, '(a)' )' Shubnikov space group type IV'
-     call wrtout(std_out,message,'COLL')
+     call abi_wrtout(std_out,message,'COLL')
    end if
 
    if(shubnikov==1 .or. shubnikov==3)then

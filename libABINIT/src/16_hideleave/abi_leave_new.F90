@@ -1,6 +1,7 @@
-!!****f* m_errors/leave_new
+!{\src2tex{textfont=tt}}
+!!****f* ABINIT/abi_leave_new
 !! NAME
-!!  leave_new
+!!  abi_leave_new
 !!
 !! FUNCTION
 !!  Routine for clean exit of f90 code, taking into account possible parallelization.
@@ -27,12 +28,6 @@
 !! NOTES
 !!  By default, it uses "call exit(1)", that is not completely portable.
 !!
-!! PARENTS
-!!      gwls_communicate,m_errors,testkgrid
-!!
-!! CHILDREN
-!!      dump_config,print_kinds,wrtout,xmpi_abort,xmpi_show_info
-!!
 !! SOURCE
 
 #if defined HAVE_CONFIG_H
@@ -42,7 +37,7 @@
 #include "abi_common.h"
 
 
-subroutine leave_new(mode_paral,exit_status,print_config)
+subroutine abi_leave_new(mode_paral,exit_status,print_config)
 
  use defs_basis
  use m_xmpi
@@ -52,7 +47,7 @@ subroutine leave_new(mode_paral,exit_status,print_config)
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
 #undef ABI_FUNC
-#define ABI_FUNC 'leave_new'
+#define ABI_FUNC 'abi_leave_new'
  use interfaces_14_hidewrite
 !End of the abilint section
 
@@ -69,11 +64,11 @@ subroutine leave_new(mode_paral,exit_status,print_config)
 
 ! **********************************************************************
 
- call wrtout(std_out,ch10//' leave_new : decision taken to exit ...','PERS')
+ call abi_wrtout(std_out,ch10//' abi_leave_new : decision taken to exit ...','PERS')
 
 ! Caveat: Do not use MPI collective calls!
  if (mode_paral == "COLL") then
-   call wrtout(std_out,"Why are you using COLL? Are you sure that ALL the processors are calling leave_new?")
+   call abi_wrtout(std_out,"Why are you using COLL? Are you sure that ALL the processors are calling abi_leave_new?")
  end if
 
 !Dump configuration before exiting
@@ -90,5 +85,5 @@ subroutine leave_new(mode_paral,exit_status,print_config)
    call xmpi_abort()
  end if
 
-end subroutine leave_new
+end subroutine abi_leave_new
 !!***

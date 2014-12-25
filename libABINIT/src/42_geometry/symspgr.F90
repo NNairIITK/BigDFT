@@ -58,8 +58,8 @@
 !!      ingeo
 !!
 !! CHILDREN
-!!      leave_new,spgdata,symaxes,symdet,symlist_bcc,symlist_fcc,symlist_others
-!!      symlist_prim,symplanes,symrelrot,wrtout,xredxcart
+!!      abi_leave_new,spgdata,symaxes,symdet,symlist_bcc,symlist_fcc,symlist_others
+!!      symlist_prim,symplanes,symrelrot,abi_wrtout,xredxcart
 !!
 !! SOURCE
 
@@ -233,8 +233,8 @@ subroutine symspgr(bravais,nsym,spgroup,symrel,tnons,tolsym)
      write(message, '(a,a,a,a,i4,a)' ) ch10,&
 &     ' symspgr : BUG -',ch10,&
 &     '  The symmetry operation number',isym,' is not a root of unity'
-     call wrtout(std_out,message,'COLL')
-     call leave_new('COLL')
+     call abi_wrtout(std_out,message,'COLL')
+     call abi_leave_new('COLL')
    end if
 
 !  DEBUG
@@ -282,14 +282,14 @@ subroutine symspgr(bravais,nsym,spgroup,symrel,tnons,tolsym)
 &       '  symrelconv(:,3,isym)=',symrelconv(:,3,isym),ch10,&
 &       '  tnonsconv(:,isym)=',tnonsconv(:,isym),ch10,&
 &       '  trialt(:)=',trialt(:)
-       call wrtout(std_out,message,'COLL')
+       call abi_wrtout(std_out,message,'COLL')
        write(message, '(4a,i4,2a)' )&
 &       ch10,&
 &       ' symspgr : BUG -',ch10,&
 &       '  The space symmetry operation number',isym,ch10,&
 &       '  is not a (translated) root of unity'
-       call wrtout(std_out,message,'COLL')
-       call leave_new('COLL')
+       call abi_wrtout(std_out,message,'COLL')
+       call abi_leave_new('COLL')
      end if
 
 !    Compute the translation vector associated with one rotation
@@ -325,12 +325,12 @@ subroutine symspgr(bravais,nsym,spgroup,symrel,tnons,tolsym)
            type_axis=8                 ! 1
            write(message,'(a,i3,a)') &
 &           ' symspgr : the symmetry operation no. ',isym,' is the identity'
-           call wrtout(6,message,'COLL')
+           call abi_wrtout(6,message,'COLL')
          else
            type_axis=7                 ! t
            write(message,'(a,i3,a)') &
 &           ' symspgr : the symmetry operation no. ',isym,' is a pure translation '
-           call wrtout(6,message,'COLL')
+           call abi_wrtout(6,message,'COLL')
          end if
        case(2,3,4,6)                 ! point symmetry 2,3,4,6 - rotations
          call symaxes(center,iholohedry,&
@@ -346,7 +346,7 @@ subroutine symspgr(bravais,nsym,spgroup,symrel,tnons,tolsym)
          type_axis=5                  ! -1
          write(message,'(a,i3,a)') &
 &         ' symspgr : the symmetry operation no. ',isym,' is an inversion'
-         call wrtout(6,message,'COLL')
+         call abi_wrtout(6,message,'COLL')
        case(2)                       ! point symmetry 2 - planes
          call symplanes(center,iholohedry,isym,&
 &         symrelconv(:,:,isym),tnonsconv(:,isym),type_axis)
@@ -354,17 +354,17 @@ subroutine symspgr(bravais,nsym,spgroup,symrel,tnons,tolsym)
          type_axis=3                  ! -3
          write(message,'(a,i3,a)') &
 &         ' symspgr : the symmetry operation no. ',isym,' is a -3 axis '
-         call wrtout(6,message,'COLL')
+         call abi_wrtout(6,message,'COLL')
        case(4)                       ! point symmetry 1
          type_axis=2                  ! -4
          write(message,'(a,i3,a)') &
 &         ' symspgr : the symmetry operation no. ',isym,' is a -4 axis '
-         call wrtout(6,message,'COLL')
+         call abi_wrtout(6,message,'COLL')
        case(6)                       ! point symmetry 1
          type_axis=1                  ! -6
          write(message,'(a,i3,a)') &
 &         ' symspgr : the symmetry operation no. ',isym,' is a -6 axis '
-         call wrtout(6,message,'COLL')
+         call abi_wrtout(6,message,'COLL')
      end select
 
    end if ! determinant==1 or -1
@@ -384,7 +384,7 @@ subroutine symspgr(bravais,nsym,spgroup,symrel,tnons,tolsym)
    '  This might be due either to an error in the input file',ch10,&
    '  or to a BUG in ABINIT',ch10,&
    '  Please contact the ABINIT group.'
-   call wrtout(6,message,'COLL')
+   call abi_wrtout(6,message,'COLL')
  end if
 
 !DEBUG
@@ -504,8 +504,8 @@ subroutine symspgr(bravais,nsym,spgroup,symrel,tnons,tolsym)
 &       '  For space groups 23, 24, 197 or 197, the three binary axes',ch10,&
 &       '  are not equally partitioned along the x, y and z directions',ch10,&
 &       '  test_direction(1:3)=',test_direction(:)
-       call wrtout(std_out,message,'COLL')
-       call leave_new('COLL')
+       call abi_wrtout(std_out,message,'COLL')
+       call abi_leave_new('COLL')
      end if
      additional_info=1
      if(abs(vect(1,2)-vect(1,3))>tol8 .or. &
@@ -530,7 +530,7 @@ subroutine symspgr(bravais,nsym,spgroup,symrel,tnons,tolsym)
    '  Could not find the space group.',ch10,&
    '  This often happens when the user selects a restricted set of symmetries ',ch10,&
    '  in the input file, instead of letting the code automatically find symmetries.'
-   call wrtout(6,message,'COLL')
+   call abi_wrtout(6,message,'COLL')
  end if
 
  spgorig=1 ; spgaxor=1
@@ -540,7 +540,7 @@ subroutine symspgr(bravais,nsym,spgroup,symrel,tnons,tolsym)
  if(spgroup/=0)then
    write(message, '(a,i4,2x,a,a,a,a,a)' ) ' symspgr : spgroup=',spgroup,&
 &   trim(brvsb),trim(intsb),'   (=',trim(schsb),')'
-   call wrtout(6,message,'COLL')
+   call abi_wrtout(6,message,'COLL')
  end if
 
  deallocate(determinant,order)

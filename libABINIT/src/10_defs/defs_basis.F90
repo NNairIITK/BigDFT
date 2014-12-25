@@ -84,7 +84,7 @@ module defs_basis
  integer, parameter :: std_in=5,ab_in=5
  integer, parameter :: std_out_default=6,ab_out_default=7
  integer, parameter :: std_err=0
- integer, parameter :: dev_null=-1       ! Fake unit number used to skip the printing in wrtout.
+ integer, parameter :: dev_null=-1       ! Fake unit number used to skip the printing in abi_wrtout.
  integer, parameter :: ab_xml_out = 50   ! this unit is used to print output into an XML file
  integer, parameter :: tmp_unit=9,tmp_unit2=10
 
@@ -325,11 +325,6 @@ CONTAINS  !=====================================================================
 !!  new_do_write_log=new value for do_write_log
 !!  new_do_write_status=new value for do_write_status
 !!
-!! PARENTS
-!!      iofn1,m_argparse
-!!
-!! CHILDREN
-!!
 !! SOURCE
 
  subroutine abi_log_status_state(new_do_write_log,new_do_write_status)
@@ -372,13 +367,6 @@ CONTAINS  !=====================================================================
 !!  new_std_out=new value for standard output unit
 !!  new_io_comm=new value for IO MPI communicator
 !!
-!! PARENTS
-!!      abinit,aim,anaddb,band2eps,bsepostproc,conducti,cut3d,driver,fftprof
-!!      initmpi_world,ioprof,kss2wfk,lapackprof,m_io_redirect,macroave
-!!      memory_eval,mpi_setup,mrgddb,mrggkk,mrgscr,optic,ujdet,vdw_kernelgen
-!!
-!! CHILDREN
-!!
 !! SOURCE
 
  subroutine abi_io_redirect(new_ab_out,new_std_out,new_io_comm,new_leave_comm)
@@ -419,10 +407,6 @@ CONTAINS  !=====================================================================
 !!  Restore default values for  unit numbers (and|or) MPI communicator for the IO (output and log file).
 !!  This routine can be used in client code (e.g. bigdft)
 !!  that wants to call the abinit routines packed in an external library.
-!!
-!! PARENTS
-!!
-!! CHILDREN
 !!
 !! NOTES
 !!  This routine is not usuable for the I/O communicator (put it to a fake zero value)
@@ -467,11 +451,6 @@ CONTAINS  !=====================================================================
 !!
 !! OUTPUT
 !!   Only printing.
-!!
-!! PARENTS
-!!      abinit,leave_new,m_errors
-!!
-!! CHILDREN
 !!
 !! SOURCE
 

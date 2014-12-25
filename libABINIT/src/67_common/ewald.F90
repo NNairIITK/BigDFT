@@ -33,7 +33,7 @@
 !!      setvtr
 !!
 !! CHILDREN
-!!      derfc,wrtout
+!!      derfc,abi_wrtout
 !!
 !! SOURCE
 
@@ -308,7 +308,7 @@ subroutine ewald(eew,gmet,grewtn,natom,ntypat,rmet,typat,ucvol,xred,zion)
 !Output the final values of ng and nr
  write(message, '(a,a,i4,a,i4)' )ch10,&
 & ' ewald : nr and ng are ',nr,' and ',ng
- call wrtout(std_out,message,'COLL')
+ call abi_wrtout(std_out,message,'COLL')
 
 end subroutine ewald
 !!***

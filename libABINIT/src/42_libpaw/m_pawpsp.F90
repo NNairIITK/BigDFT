@@ -23,8 +23,8 @@
 module m_pawpsp
 
  use defs_basis
- use m_errors
  use m_xmpi
+ USE_MSG_HANDLING
  USE_MEMORY_PROFILING
 
 #if defined HAVE_DFT_LIBXC
@@ -34,8 +34,8 @@ module m_pawpsp
  use fox_sax
 #endif
 
- use m_fstrings, only : basename
- use m_gaussfit, only: gaussfit_projector
+ use m_libpaw_tools, only : libpaw_basename
+
  use m_pawang, only: pawang_type
  use m_pawtab, only: pawtab_type, wvlpaw_type, wvlpaw_allocate, wvlpaw_rholoc_free, &
 &                    pawtab_free, wvlpaw_free, wvlpaw_rholoc_nullify, pawtab_bcast, &
@@ -48,6 +48,7 @@ module m_pawpsp
  use m_atompaw, only: atompaw_shapebes, atompaw_vhnzc, atompaw_shpfun, &
 &                     atompaw_dij0, atompaw_kij
  use m_pawxc, only: pawxc, pawxcm
+ use m_gaussfit, only: gaussfit_projector
 
  implicit none
 
@@ -168,6 +169,7 @@ subroutine pawpsp_nl(ffspl,indlmn,lmnmax,lnmax,mqgrid,qgrid,radmesh,wfll)
  real(dp) :: arg,argn,bes
  real(dp) :: besp,qr
  real(dp) :: yp1,ypn
+ character(len=100) :: msg
  type(pawrad_type) :: tmpmesh
 !arrays
  real(dp),allocatable :: ff(:),gg(:),rr(:),rr2(:),rr2wf(:),rrwf(:),work(:)
@@ -176,7 +178,8 @@ subroutine pawpsp_nl(ffspl,indlmn,lmnmax,lnmax,mqgrid,qgrid,radmesh,wfll)
 
 !Is mesh beginning with r=0 ?
  if (radmesh%rad(1)>tol10) then
-   MSG_BUG('Radial mesh cannot begin with r<>0 !')
+   msg='Radial mesh cannot begin with r<>0 !'
+   MSG_BUG(msg)
  end if
 
 !Init. temporary arrays and variables
@@ -805,13 +808,11 @@ subroutine pawpsp_read(core_mesh,imainmesh,lmax,&
  real(dp),allocatable :: work1(:),work2(:),work3(:),work4(:)
  character :: blank=' ',numb=' '
  character(len=80) :: pspline
- character(len=500) :: message,submessage
+ character(len=500) :: msg,submsg
  logical :: read_gauss=.false.
  type(pawrad_type)::shpf_mesh
 
 ! *************************************************************************
-
- DBG_ENTER("COLL")
 
 !==========================================================
 !Read lines 4 to 11 of the header
@@ -864,10 +865,10 @@ subroutine pawpsp_read(core_mesh,imainmesh,lmax,&
        radmesh(ii)%rstep=rread1
        radmesh(ii)%lstep=rread2
      else
-       write(message, '(3a)' )&
+       write(msg, '(3a)' )&
 &       '  Index of mesh out of range !',ch10,&
 &       '  Action : check your pseudopotential file.'
-       MSG_ERROR(message)
+       MSG_ERROR(msg)
      end if
    end do
    read(tmp_unit,*) pawtab%rpaw
@@ -914,11 +915,11 @@ subroutine pawpsp_read(core_mesh,imainmesh,lmax,&
  LIBPAW_DEALLOCATE(nprj)
 !Are ilmn (found here) and pawtab%lmn_size compatibles ?
  if (ilmn/=pawtab%lmn_size) then
-   write(message, '(a,a,a,a,a)' )&
+   write(msg, '(a,a,a,a,a)' )&
 &   '  Calculated lmn size differs from',ch10,&
 &   '  lmn_size read from pseudo !',ch10,&
 &   ' Action: check your pseudopotential file.'
-   MSG_ERROR(message)
+   MSG_ERROR(msg)
  end if
 
 !==========================================================
@@ -943,10 +944,10 @@ subroutine pawpsp_read(core_mesh,imainmesh,lmax,&
 !If shapefunction type is gaussian, check exponent
  if (pawtab%shape_type==1) then
    if (pawtab%shape_lambda<2) then
-     write(message, '(3a)' )&
+     write(msg, '(3a)' )&
 &     '  For a gaussian shape function, exponent lambda must be >1 !',ch10,&
 &     '  Action: check your psp file.'
-     MSG_ERROR(message)
+     MSG_ERROR(msg)
    end if
  end if
 !If shapefunction type is Bessel, deduce here its parameters from rc
@@ -962,91 +963,91 @@ subroutine pawpsp_read(core_mesh,imainmesh,lmax,&
 !==========================================================
 !Mirror pseudopotential parameters to the output and log files
 
- write(message,'(a,i1)')' Pseudopotential format is: paw',pspversion
- call wrtout(ab_out,message,'COLL')
- call wrtout(std_out,  message,'COLL')
- write(message,'(2(a,i3),a,64i4)') &
+ write(msg,'(a,i1)')' Pseudopotential format is: paw',pspversion
+ call wrtout(ab_out,msg,'COLL')
+ call wrtout(std_out,  msg,'COLL')
+ write(msg,'(2(a,i3),a,64i4)') &
 & ' basis_size (lnmax)=',pawtab%basis_size,' (lmn_size=',&
 & pawtab%lmn_size,'), orbitals=',pawtab%orbitals(1:pawtab%basis_size)
- call wrtout(ab_out,message,'COLL')
- call wrtout(std_out,  message,'COLL')
- write(message,'(a,f11.8)')' Spheres core radius: rc_sph=',pawtab%rpaw
- call wrtout(ab_out,message,'COLL')
- call wrtout(std_out,  message,'COLL')
- write(message,'(a,i1,a)')' ',nmesh,' radial meshes are used:'
- call wrtout(ab_out,message,'COLL')
- call wrtout(std_out,  message,'COLL')
+ call wrtout(ab_out,msg,'COLL')
+ call wrtout(std_out,  msg,'COLL')
+ write(msg,'(a,f11.8)')' Spheres core radius: rc_sph=',pawtab%rpaw
+ call wrtout(ab_out,msg,'COLL')
+ call wrtout(std_out,  msg,'COLL')
+ write(msg,'(a,i1,a)')' ',nmesh,' radial meshes are used:'
+ call wrtout(ab_out,msg,'COLL')
+ call wrtout(std_out,  msg,'COLL')
  do imsh=1,nmesh
    if (radmesh(imsh)%mesh_type==1) &
-&   write(message,'(a,i1,a,i4,a,g12.5)') &
+&   write(msg,'(a,i1,a,i4,a,g12.5)') &
 &   '  - mesh ',imsh,': r(i)=step*(i-1), size=',radmesh(imsh)%mesh_size,&
 &   ' , step=',radmesh(imsh)%rstep
    if (radmesh(imsh)%mesh_type==2) &
-&   write(message,'(a,i1,a,i4,2(a,g12.5))') &
+&   write(msg,'(a,i1,a,i4,2(a,g12.5))') &
 &   '  - mesh ',imsh,': r(i)=AA*[exp(BB*(i-1))-1], size=',radmesh(imsh)%mesh_size,&
 &   ' , AA=',radmesh(imsh)%rstep,' BB=',radmesh(imsh)%lstep
    if (radmesh(imsh)%mesh_type==3) &
-&   write(message,'(a,i1,a,i4,2(a,g12.5))') &
+&   write(msg,'(a,i1,a,i4,2(a,g12.5))') &
 &   '  - mesh ',imsh,': r(i)=AA*exp(BB*(i-2)), size=',radmesh(imsh)%mesh_size,&
 &   ' , AA=',radmesh(imsh)%rstep,' BB=',radmesh(imsh)%lstep
    if (radmesh(imsh)%mesh_type==4) &
-&   write(message,'(a,i1,a,i4,a,g12.5)') &
+&   write(msg,'(a,i1,a,i4,a,g12.5)') &
 &   '  - mesh ',imsh,': r(i)=-AA*ln(1-(i-1)/n), n=size=',radmesh(imsh)%mesh_size,&
 &   ' , AA=',radmesh(imsh)%rstep
-   call wrtout(ab_out,message,'COLL')
-   call wrtout(std_out,  message,'COLL')
+   call wrtout(ab_out,msg,'COLL')
+   call wrtout(std_out,  msg,'COLL')
  end do
  if (pawtab%shape_type==-1) then
-   write(message,'(a)')&
+   write(msg,'(a)')&
    ' Shapefunction is NUMERIC type: directly read from atomic data file'
-   call wrtout(ab_out,message,'COLL')
-   call wrtout(std_out,  message,'COLL')
+   call wrtout(ab_out,msg,'COLL')
+   call wrtout(std_out,  msg,'COLL')
  end if
  if (pawtab%shape_type==1) then
-   write(message,'(2a,a,f6.3,a,i3)')&
+   write(msg,'(2a,a,f6.3,a,i3)')&
 &   ' Shapefunction is EXP type: shapef(r)=exp(-(r/sigma)**lambda)',ch10,&
 &   '                            with sigma=',pawtab%shape_sigma,' and lambda=',pawtab%shape_lambda
-   call wrtout(ab_out,message,'COLL')
-   call wrtout(std_out,  message,'COLL')
+   call wrtout(ab_out,msg,'COLL')
+   call wrtout(std_out,  msg,'COLL')
  end if
  if (pawtab%shape_type==2) then
-   write(message,'(a)')&
+   write(msg,'(a)')&
    ' Shapefunction is SIN type: shapef(r)=[sin(pi*r/rshp)/(pi*r/rshp)]**2'
-   call wrtout(ab_out,message,'COLL')
-   call wrtout(std_out,  message,'COLL')
+   call wrtout(ab_out,msg,'COLL')
+   call wrtout(std_out,  msg,'COLL')
  end if
  if (pawtab%shape_type==3) then
-   write(message,'(a)')&
+   write(msg,'(a)')&
 &   ' Shapefunction is BESSEL type: shapef(r,l)=aa(1,l)*jl(q(1,l)*r)+aa(2,l)*jl(q(2,l)*r)'
-   call wrtout(ab_out,message,'COLL')
-   call wrtout(std_out,  message,'COLL')
+   call wrtout(ab_out,msg,'COLL')
+   call wrtout(std_out,  msg,'COLL')
  end if
  if (pawtab%rshp<1.d-8) then
-   write(message,'(a)') ' Radius for shape functions = sphere core radius'
+   write(msg,'(a)') ' Radius for shape functions = sphere core radius'
  else
-   write(message,'(a,f11.8)') ' Radius for shape functions = ',pawtab%rshp
+   write(msg,'(a,f11.8)') ' Radius for shape functions = ',pawtab%rshp
  end if
- call wrtout(ab_out,message,'COLL')
- call wrtout(std_out,  message,'COLL')
+ call wrtout(ab_out,msg,'COLL')
+ call wrtout(std_out,  msg,'COLL')
 
 !==========================================================
 !Perfom tests
 
 !Are lmax and orbitals compatibles ?
  if (lmax/=maxval(pawtab%orbitals)) then
-   write(message, '(a,a,a)' )&
+   write(msg, '(a,a,a)' )&
 &   '  lmax /= MAX(orbitals) !',ch10,&
 &   '  Action: check your pseudopotential file.'
-   MSG_ERROR(message)
+   MSG_ERROR(msg)
  end if
 
 !Only mesh_type=1,2, 3 or 4 allowed
  do imsh=1,nmesh
    if (radmesh(imsh)%mesh_type>4) then
-     write(message, '(a,a,a)' )&
+     write(msg, '(a,a,a)' )&
 &     '  Only mesh types 1,2, 3 or 4 allowed !',ch10,&
 &     '  Action : check your pseudopotential or input file.'
-     MSG_ERROR(message)
+     MSG_ERROR(msg)
    end if
  end do
 
@@ -1067,10 +1068,10 @@ subroutine pawpsp_read(core_mesh,imainmesh,lmax,&
      imainmesh=iread1
      LIBPAW_ALLOCATE(pawtab%phi,(pawrad%mesh_size,pawtab%basis_size))
    else if (iread1/=imainmesh) then
-     write(message, '(a,a,a)' )&
+     write(msg, '(a,a,a)' )&
 &     '  All Phi and tPhi must be given on the same radial mesh !',ch10,&
 &     '  Action: check your pseudopotential file.'
-     MSG_ERROR(message)
+     MSG_ERROR(msg)
    end if
    read (tmp_unit,*) (pawtab%phi(ir,ib),ir=1,pawrad%mesh_size)
  end do
@@ -1083,17 +1084,17 @@ subroutine pawpsp_read(core_mesh,imainmesh,lmax,&
    if (pspversion==1) iread1=1
    if (pspversion>1) read (tmp_unit,*) iread1
    if (iread1/=imainmesh) then
-     write(message, '(a,a,a)' )&
+     write(msg, '(a,a,a)' )&
 &     '  All Phi and tPhi must be given on the same radial mesh !',ch10,&
 &     '  Action: check your pseudopotential file.'
-     MSG_ERROR(message)
+     MSG_ERROR(msg)
    end if
    read (tmp_unit,*) (pawtab%tphi(ir,ib),ir=1,pawrad%mesh_size)
  end do
- write(message,'(a,i1)') &
+ write(msg,'(a,i1)') &
 & ' Radial grid used for partial waves is grid ',imainmesh
- call wrtout(ab_out,message,'COLL')
- call wrtout(std_out,  message,'COLL')
+ call wrtout(ab_out,msg,'COLL')
+ call wrtout(std_out,  msg,'COLL')
 
 !---------------------------------
 !Read projectors (tproj)
@@ -1106,18 +1107,18 @@ subroutine pawpsp_read(core_mesh,imainmesh,lmax,&
      call pawrad_copy(radmesh(iprojmesh),tproj_mesh)
      LIBPAW_ALLOCATE(tproj,(tproj_mesh%mesh_size,pawtab%basis_size))
    else if (iread1/=iprojmesh) then
-     write(message, '(a,a,a)' )&
+     write(msg, '(a,a,a)' )&
 &     '  All tprojectors must be given on the same radial mesh !',ch10,&
 &     '  Action: check your pseudopotential file.'
-     MSG_ERROR(message)
+     MSG_ERROR(msg)
    end if
 !  read projectors from a mesh
    read (tmp_unit,*) (tproj(ir,ib),ir=1,tproj_mesh%mesh_size)
  end do
- write(message,'(a,i2)') &
+ write(msg,'(a,i2)') &
 & ' Radial grid used for projectors is grid ',iprojmesh
- call wrtout(ab_out,message,'COLL')
- call wrtout(std_out,  message,'COLL')
+ call wrtout(ab_out,msg,'COLL')
+ call wrtout(std_out,  msg,'COLL')
 
 !---------------------------------
 !Read gaussian projectors for wavelets
@@ -1140,10 +1141,10 @@ subroutine pawpsp_read(core_mesh,imainmesh,lmax,&
          LIBPAW_ALLOCATE(pawtab%wvl%pfac,(2,pawtab%wvl%ptotgau))
        else
          if(pawtab%wvl%ptotgau/=ptotgau_) then
-           write(message,'(3a)')&
+           write(msg,'(3a)')&
 &           'Total number of gaussians, should be the same for all projectors !',ch10,&
 &           'Action: check your pseudopotential file.'
-           MSG_ERROR(message)
+           MSG_ERROR(msg)
          end if
        end if !ib==1
        read(tmp_unit,*)(pawtab%wvl%parg(:,ii),ii=jj+1,jj+pngau_)
@@ -1171,11 +1172,11 @@ subroutine pawpsp_read(core_mesh,imainmesh,lmax,&
  if ((radmesh(icoremesh)%mesh_type/=pawrad%mesh_type).or.&
 & (radmesh(icoremesh)%rstep    /=pawrad%rstep)    .or.&
 & (radmesh(icoremesh)%lstep    /=pawrad%lstep)) then
-   write(message, '(a,a,a,a,a)' )&
+   write(msg, '(a,a,a,a,a)' )&
 &   '  Ncore must be given on a radial mesh with the same',ch10,&
 &   '  type and step(s) than the main radial mesh (mesh for Phi) !',ch10,&
 &   '  Action: check your pseudopotential file.'
-   MSG_ERROR(message)
+   MSG_ERROR(msg)
  end if
  LIBPAW_ALLOCATE(ncore,(core_mesh%mesh_size))
  read (tmp_unit,*) (ncore(ir),ir=1,core_mesh%mesh_size)
@@ -1208,11 +1209,11 @@ subroutine pawpsp_read(core_mesh,imainmesh,lmax,&
  if (pspversion==1) iread1=1
  if (pspversion>1) read (tmp_unit,*) iread1
  if (iread1/=icoremesh) then
-   write(message, '(a,a,a,a,a,a,a,a)' )&
+   write(msg, '(a,a,a,a,a,a,a,a)' )&
 &   '  Pseudized core density (tNcore) must be given',ch10,&
 &   '  on the same radial mesh as core density (Ncore) !',ch10,&
 &   '  Action: check your pseudopotential file.'
-   MSG_ERROR(message)
+   MSG_ERROR(msg)
  end if
  LIBPAW_ALLOCATE(tncore,(core_mesh%mesh_size))
  read (tmp_unit,*) (tncore(ir),ir=1,core_mesh%mesh_size)
@@ -1224,10 +1225,10 @@ subroutine pawpsp_read(core_mesh,imainmesh,lmax,&
    pawtab%usetcore=1
    pawtab%tcoredens(1:pawtab%core_mesh_size,1)=tncore(1:pawtab%core_mesh_size)
  end if
- write(message,'(a,i1)') &
+ write(msg,'(a,i1)') &
 & ' Radial grid used for (t)core density is grid ',icoremesh
- call wrtout(ab_out,message,'COLL')
- call wrtout(std_out,  message,'COLL')
+ call wrtout(ab_out,msg,'COLL')
+ call wrtout(std_out,  msg,'COLL')
 
 !---------------------------------
 !Read frozen part of Dij terms (dij0)
@@ -1250,16 +1251,16 @@ subroutine pawpsp_read(core_mesh,imainmesh,lmax,&
    read (tmp_unit,*) ivlocmesh
  else if (pspversion>2) then
 !  read (tmp_unit,fmt=*,err=30,end=30) ivlocmesh,vlocopt
-   message=blank
-   read (tmp_unit,fmt='(a)') message
-   read (message,fmt=*) ivlocmesh
+   msg=blank
+   read (tmp_unit,fmt='(a)') msg
+   read (msg,fmt=*) ivlocmesh
    write(numb,'(i1)')ivlocmesh
-   ii=index(message,numb)
-   if(len_trim(trim(message(ii+1:)))/=0)then
-     submessage=trim(message(ii+1:))
-     if(len_trim(submessage)/=0)then
-       do ii=1,len_trim(submessage)
-         numb=submessage(ii:ii)
+   ii=index(msg,numb)
+   if(len_trim(trim(msg(ii+1:)))/=0)then
+     submsg=trim(msg(ii+1:))
+     if(len_trim(submsg)/=0)then
+       do ii=1,len_trim(submsg)
+         numb=submsg(ii:ii)
          if(numb==blank)cycle
          jj=index('0123456789',numb)
          if(jj<1 .or. jj>10)exit
@@ -1272,10 +1273,10 @@ subroutine pawpsp_read(core_mesh,imainmesh,lmax,&
  call pawrad_copy(radmesh(ivlocmesh),vloc_mesh)
  LIBPAW_ALLOCATE(vlocr,(vloc_mesh%mesh_size))
  read (tmp_unit,*) (vlocr(ir),ir=1,vloc_mesh%mesh_size)
- write(message,'(a,i1)') &
+ write(msg,'(a,i1)') &
 & ' Radial grid used for Vloc is grid ',ivlocmesh
- call wrtout(ab_out,message,'COLL')
- call wrtout(std_out,  message,'COLL')
+ call wrtout(ab_out,msg,'COLL')
+ call wrtout(std_out,  msg,'COLL')
 
 !---------------------------------
 !Eventually read "numeric" shapefunctions (if shape_type=-1)
@@ -1290,17 +1291,17 @@ subroutine pawpsp_read(core_mesh,imainmesh,lmax,&
        ishpfmesh=iread1
        LIBPAW_ALLOCATE(shpf,(shpf_mesh%mesh_size,pawtab%l_size))
      else if (iread1/=ishpfmesh) then
-       write(message, '(a,a,a)' )&
+       write(msg, '(a,a,a)' )&
 &       '  All shape functions must be given on the same radial mesh !',ch10,&
 &       '  Action: check your pseudopotential file.'
-       MSG_ERROR(message)
+       MSG_ERROR(msg)
      end if
      read (tmp_unit,*) (shpf(ir,il),ir=1,shpf_mesh%mesh_size)
    end do
-   write(message,'(a,i1)') &
+   write(msg,'(a,i1)') &
 &   ' Radial grid used for shape functions is grid ',iread1
-   call wrtout(ab_out,message,'COLL')
-   call wrtout(std_out,  message,'COLL')
+   call wrtout(ab_out,msg,'COLL')
+   call wrtout(std_out,  msg,'COLL')
 
 !  Has to spline shape functions if mesh is not the "main" mesh
    if (ishpfmesh/=imainmesh) then
@@ -1337,16 +1338,14 @@ subroutine pawpsp_read(core_mesh,imainmesh,lmax,&
    LIBPAW_ALLOCATE(tnvale,(vale_mesh%mesh_size))
    read (tmp_unit,*) (tnvale(ir),ir=1,vale_mesh%mesh_size)
    pawtab%has_tvale=1
-   write(message,'(a,i1)') &
+   write(msg,'(a,i1)') &
 &   ' Radial grid used for pseudo valence density is grid ',ivalemesh
-   call wrtout(ab_out,message,'COLL')
-   call wrtout(std_out,  message,'COLL')
+   call wrtout(ab_out,msg,'COLL')
+   call wrtout(std_out,  msg,'COLL')
  else
    pawtab%has_tvale=0
    LIBPAW_ALLOCATE(tnvale,(0))
  end if
-
- DBG_EXIT("COLL")
 
 end subroutine pawpsp_read
 !!***
@@ -1632,12 +1631,11 @@ subroutine pawpsp_rw_atompaw(basis_size,filpsp,wvl)
 
 ! *************************************************************************
 
- DBG_ENTER("COLL")
  step=0
 ! Open psp file for reading
   open(unit=tmp_unit,file=trim(filpsp),form='formatted',status='old')
 ! Open the file for writing
-  write(fname,'(2a)') basename(trim(filpsp)),".wvl"
+  write(fname,'(2a)') libpaw_basename(trim(filpsp)),".wvl"
   open(unit=tmp_unit2,file=fname,form='formatted',status='unknown')
 
   read_loop: do
@@ -1670,8 +1668,6 @@ subroutine pawpsp_rw_atompaw(basis_size,filpsp,wvl)
 
   close(tmp_unit)
   close(tmp_unit2)
-
- DBG_EXIT("COLL")
 
 end subroutine pawpsp_rw_atompaw
 !!***
@@ -1782,7 +1778,7 @@ subroutine pawpsp_calc(core_mesh,epsatm,ffspl,imainmesh,ixc,lnmax,&
  logical :: has_dij0,reduced_ncor,reduced_nval,reduced_vloc,testval
  real(dp),parameter :: reduced_rstep=0.00025_dp,rm_vloc=20.0_dp
  real(dp) :: d2nvdq0,intg,intvh,lstep_tmp,qcore,qq,rstep_tmp,yp1,ypn
- character(len=500) :: message
+ character(len=500) :: msg
  type(pawang_type) :: pawang_tmp
  type(pawrad_type) :: rcore_mesh,rvale_mesh,rvloc_mesh,tproj_mesh_new
 !arrays
@@ -1794,50 +1790,48 @@ subroutine pawpsp_calc(core_mesh,epsatm,ffspl,imainmesh,ixc,lnmax,&
 
 ! *************************************************************************
 
- DBG_ENTER("COLL")
-
 !==========================================================
 !Perfom tests on meshes
 
 !Are radial meshes for Phi and Vloc compatibles ?
  if (vloc_mesh%rmax<pawrad%rmax) then
-   write(message, '(a,a,a)' )&
+   write(msg, '(a,a,a)' )&
 &   '  Rmax for Vloc < Rmax for Phi !',ch10,&
 &   '  Action : check your pseudopotential (increase Vloc meshSize).'
-!   MSG_ERROR(message)
+!   MSG_ERROR(msg)
  end if
 
 !Are mmax and mesh_size for partial waves compatibles ?
  if (mmax/=pawrad%mesh_size) then
-   write(message, '(a,a,a)' )&
+   write(msg, '(a,a,a)' )&
 &   '  mmax /= phi_mesh_size in psp file !',ch10,&
 &   '  Action: check your pseudopotential file.'
-   MSG_ERROR(message)
+   MSG_ERROR(msg)
  end if
 
 !Are radial meshes for (t)Ncore and Phi compatibles ?
  if (core_mesh%mesh_size<pawrad%mesh_size) then
-   write(message, '(a,a,a,a,a)' )&
+   write(msg, '(a,a,a,a,a)' )&
 &   '  Mesh size for core density must be equal or larger',ch10,&
 &   '  than mesh size for spheres (partial waves) !',ch10,&
 &   '  Action : check your pseudopotential (increase Ncore meshSize).'
-   MSG_ERROR(message)
+   MSG_ERROR(msg)
  end if
 
 !Are radial meshes for (t)Nvale and Phi compatibles ?
  if ((pawtab%has_tvale==1).and.(vale_mesh%rmax<pawrad%rmax)) then
-   write(message, '(a,a,a)' )&
+   write(msg, '(a,a,a)' )&
 &   '  Rmax for tNvale < Rmax for Phi !',ch10,&
 &   '  Action : check your pseudopotential (increase tNvale meshSize).'
-   MSG_ERROR(message)
+   MSG_ERROR(msg)
  end if
 
 !Is PAW radius included inside radial mesh ?
  if (pawtab%rpaw>pawrad%rmax+tol8) then
-   write(message, '(a,a,a)' )&
+   write(msg, '(a,a,a)' )&
 &   '  Radius of PAW sphere is outside the radial mesh !',ch10,&
 &   '  Action: check your pseudopotential file.'
-   MSG_ERROR(message)
+   MSG_ERROR(msg)
  end if
 
 !Max. radius of mesh for Vloc has to be "small" in order to avoid numeric noise ?
@@ -1847,13 +1841,13 @@ subroutine pawpsp_calc(core_mesh,epsatm,ffspl,imainmesh,ixc,lnmax,&
    call pawrad_free(vloc_mesh)
    call pawrad_init(vloc_mesh,mesh_size=msz_tmp,mesh_type=mst_tmp,&
 &   rstep=rstep_tmp,lstep=lstep_tmp,r_for_intg=rm_vloc)
-   write(message, '(a,a,a,a,f6.2,a,a,a,a,a,i4,a)' ) ch10,&
+   write(msg, '(a,a,a,a,f6.2,a,a,a,a,a,i4,a)' ) ch10,&
 &   ' pawpsp_calc: WARNING -',ch10,&
 &   '  Max. radius for Vloc was too large (>',rm_vloc,' a.u.) !',ch10,&
 &   '  Numeric noise was possible.',ch10,&
 &   '  Mesh size for Vloc has been set to ',vloc_mesh%mesh_size,'.'
-   call wrtout(ab_out,message,'COLL')
-   call wrtout(std_out,  message,'COLL')
+   call wrtout(ab_out,msg,'COLL')
+   call wrtout(std_out,  msg,'COLL')
  end if
 
 !This test has been disable... MT 2006-25-10
@@ -1863,28 +1857,28 @@ subroutine pawpsp_calc(core_mesh,epsatm,ffspl,imainmesh,ixc,lnmax,&
 !if (mod(radmesh(imsh)%mesh_size,2)==0.and.radmesh(imsh)%mesh_type==1) itest=1
 !end do
 !if (itest==1) then
-!write(message, '(8a)' ) ch10,&
+!write(msg, '(8a)' ) ch10,&
 !&   ' psp7in: WARNING -',ch10,&
 !&   '  Regular radial meshes should have odd number of points ',ch10,&
 !&   '  for better accuracy of integration sheme (Simpson rule).',ch10,&
 !&   '  Althought it''s not compulsory, you should change mesh sizes in psp file.'
-!call wrtout(ab_out,message,'COLL')
-!call wrtout(std_out,  message,'COLL')
+!call wrtout(ab_out,msg,'COLL')
+!call wrtout(std_out,  msg,'COLL')
 !end if
 
 !Test the compatibilty between Rpaw and mesh for (t)Phi
  if (pspversion>=3) then
    itest=pawrad_ifromr(radmesh(imainmesh),pawtab%rpaw)
    if (itest+2>radmesh(imainmesh)%mesh_size) then
-     write(message, '(12a)' ) ch10,&
+     write(msg, '(12a)' ) ch10,&
 &     ' pawpsp_calc: WARNING -',ch10,&
 &     '  Atomic data could produce inaccurate results:',ch10,&
 &     '    Wavefunctions and pseudo-wavefunctions should',ch10,&
 &     '    be given on a radial mesh larger than the PAW',ch10,&
 &     '    spheres (at least 2 additional points) !',ch10,&
 &     '  Action: check your pseudopotential file.'
-     call wrtout(ab_out,message,'COLL')
-     call wrtout(std_out,  message,'COLL')
+     call wrtout(ab_out,msg,'COLL')
+     call wrtout(std_out,  msg,'COLL')
    end if
    if (abs(pawtab%rpaw-radmesh(imainmesh)%rad(itest))<tol8) itest=itest-1
    ib=0;isnotzero=0
@@ -1895,12 +1889,12 @@ subroutine pawpsp_calc(core_mesh,epsatm,ffspl,imainmesh,ixc,lnmax,&
      end do
    end do
    if (isnotzero>0) then
-     write(message, '(7a)' )&
+     write(msg, '(7a)' )&
 &     '  Atomic data are inconsistent:',ch10,&
 &     '  For r>=r_paw, pseudo wavefunctions are not',ch10,&
 &     '  equal to wave functions (Phi(r)/=tPhi(r)) !',ch10,&
 &     '  Action: check your pseudopotential file.'
-     MSG_ERROR(message)
+     MSG_ERROR(msg)
    end if
  else
 !  For compatibility reasons set PAW radius at the end of mesh (older versions)
@@ -1915,7 +1909,7 @@ subroutine pawpsp_calc(core_mesh,epsatm,ffspl,imainmesh,ixc,lnmax,&
 !If Vloc is a "Vbare" potential, it has to be localized inside PAW spheres
  if (vlocopt==0.and.(vloc_mesh%rmax>pawtab%rpaw+tol10)) then
    if(vlocr(pawrad_ifromr(vloc_mesh,pawtab%rpaw))>tol10) then
-     write(message, '(7a)' )&
+     write(msg, '(7a)' )&
 &     '  WARNING:Atomic data are inconsistent:',ch10,&
 &     '  Local potential is a "Vbare" potential',ch10,&
 &     '  and is not localized inside PAW sphere !',ch10,&
@@ -1923,7 +1917,7 @@ subroutine pawpsp_calc(core_mesh,epsatm,ffspl,imainmesh,ixc,lnmax,&
      do ir=pawrad_ifromr(vloc_mesh,pawtab%rpaw),vloc_mesh%mesh_size
        vlocr(ir)=zero
      end do
-!    MSG_ERROR(message)
+!    MSG_ERROR(msg)
    end if
  end if
 
@@ -1974,10 +1968,10 @@ subroutine pawpsp_calc(core_mesh,epsatm,ffspl,imainmesh,ixc,lnmax,&
    pawtab%rshp=radmesh(imainmesh)%rad(ir)
    do il=1,pawtab%l_size
      if (pawtab%shapefunc(ir,il)>tol6) then
-       write(message, '(a,a,a)' )&
+       write(msg, '(a,a,a)' )&
 &       '  Shape function is not zero at PAW radius !',ch10,&
 &       '  Action: check your pseudopotential file.'
-       MSG_ERROR(message)
+       MSG_ERROR(msg)
      end if
    end do
  end if
@@ -2032,11 +2026,11 @@ subroutine pawpsp_calc(core_mesh,epsatm,ffspl,imainmesh,ixc,lnmax,&
      else
 !      If not equality, will use tnvale
        testval=.true.
-       write(message, '(6a)' ) ch10,&
+       write(msg, '(6a)' ) ch10,&
 &       ' pawpsp_calc: WARNING -',ch10,&
 &       '  Valence density is not given with enough points',ch10,&
 &       '  in psp file. Some charge estimations will be coarse.'
-       call wrtout(std_out,  message,'COLL')
+       call wrtout(std_out,  msg,'COLL')
      end if
      LIBPAW_DEALLOCATE(nwk)
      LIBPAW_DEALLOCATE(work1)
@@ -2058,9 +2052,9 @@ subroutine pawpsp_calc(core_mesh,epsatm,ffspl,imainmesh,ixc,lnmax,&
 !If Vloc potential is in "Vbare" format, translate it into VH(tnzc) format
 
  if (vlocopt==0) then
-   write(message,'(a)') ' Local potential is in "Vbare" format... '
-   call wrtout(ab_out,message,'COLL')
-   call wrtout(std_out,  message,'COLL')
+   write(msg,'(a)') ' Local potential is in "Vbare" format... '
+   call wrtout(ab_out,msg,'COLL')
+   call wrtout(std_out,  msg,'COLL')
    msz=core_mesh%mesh_size
    LIBPAW_ALLOCATE(r2k,(msz))
    call atompaw_shpfun(0,core_mesh,intg,pawtab,r2k)
@@ -2144,14 +2138,14 @@ subroutine pawpsp_calc(core_mesh,epsatm,ffspl,imainmesh,ixc,lnmax,&
    pawtab%usexcnhat=usexcnhat
  else if (usexcnhat/=pawtab%usexcnhat) then
    if (pawtab%has_tvale==0) then
-     write(message, '(8a)' ) ch10,&
+     write(msg, '(8a)' ) ch10,&
 &     ' pawpsp_calc: ERROR -',ch10,&
 &     '  It is only possible to modify the use of compensation charge density',ch10,&
 &     '  for a file format greater or equal than paw4 !',ch10,&
 &     '  Action: use usexcnhat=-1 in input file or change psp file format.'
-     call wrtout(ab_out,message,'COLL')
-     call wrtout(std_out,message,'COLL')
-!    MSG_ERROR(message)
+     call wrtout(ab_out,msg,'COLL')
+     call wrtout(std_out,msg,'COLL')
+!    MSG_ERROR(msg)
    else
      msz=vloc_mesh%mesh_size
 !    Retrieve tvale and nhat onto vloc mesh
@@ -2264,16 +2258,16 @@ subroutine pawpsp_calc(core_mesh,epsatm,ffspl,imainmesh,ixc,lnmax,&
    end if ! has_tvale/=0
  end if
  if (pawtab%usexcnhat==0) then
-   write(message,'(a)') &
+   write(msg,'(a)') &
 &   ' Compensation charge density is not taken into account in XC energy/potential'
-   call wrtout(ab_out,message,'COLL')
-   call wrtout(std_out,  message,'COLL')
+   call wrtout(ab_out,msg,'COLL')
+   call wrtout(std_out,  msg,'COLL')
  end if
  if (pawtab%usexcnhat==1) then
-   write(message,'(a)') &
+   write(msg,'(a)') &
 &   ' Compensation charge density is taken into account in XC energy/potential'
-   call wrtout(ab_out,message,'COLL')
-   call wrtout(std_out,  message,'COLL')
+   call wrtout(ab_out,msg,'COLL')
+   call wrtout(std_out,  msg,'COLL')
  end if
 
 !==========================================================
@@ -2314,9 +2308,9 @@ subroutine pawpsp_calc(core_mesh,epsatm,ffspl,imainmesh,ixc,lnmax,&
  LIBPAW_DEALLOCATE(vhnzc)
  LIBPAW_DEALLOCATE(nwk)
 
- write(message,'(a,e18.6)') &
+ write(msg,'(a,e18.6)') &
 &  ' beta integral value: ',pawtab%beta
- call wrtout(std_out,message,'COLL')
+ call wrtout(std_out,msg,'COLL')
 
 
 !==========================================================
@@ -2354,8 +2348,8 @@ subroutine pawpsp_calc(core_mesh,epsatm,ffspl,imainmesh,ixc,lnmax,&
      pawtab%vhtnzc(1:pawrad%mesh_size)=vlocr(1:pawrad%mesh_size)
      pawtab%has_vhtnzc=2
    else
-     message = 'orbmag > 0: Vloc mesh is not right !'
-     MSG_ERROR(message)
+     msg = 'orbmag > 0: Vloc mesh is not right !'
+     MSG_ERROR(msg)
    end if
  end if 
 
@@ -2576,8 +2570,6 @@ subroutine pawpsp_calc(core_mesh,epsatm,ffspl,imainmesh,ixc,lnmax,&
    LIBPAW_DEALLOCATE(pawang_tmp%ylmrgr)
  end if
 
- DBG_EXIT('COLL')
-
 end subroutine pawpsp_calc
 !!***
 
@@ -2623,7 +2615,7 @@ subroutine pawpsp_calc_d5(mesh,tcoredens)
  real(dp),intent(inout) :: tcoredens(mesh%mesh_size,6)
 
 !Local variables-------------------------------
-!character(len=500) :: message                   ! to be uncommented, if needed
+!character(len=500) :: msg                   ! to be uncommented, if needed
  integer,parameter::it=1 !number of steps for smoothing function
  logical,parameter::use_smooth=.true.
 
@@ -2747,8 +2739,6 @@ subroutine pawpsp_vhar2rho(pawrad,rho,v)
 
 ! *************************************************************************
 
- DBG_ENTER("COLL")
-
  nr=pawrad%mesh_size
 
 !Laplacian =
@@ -2775,8 +2765,6 @@ subroutine pawpsp_vhar2rho(pawrad,rho,v)
 !LIBPAW_DEALLOCATE(v2)
 !LIBPAW_DEALLOCATE(dfdr)
 !LIBPAW_DEALLOCATE(ff)
-
- DBG_EXIT("COLL")
 
 end subroutine pawpsp_vhar2rho
 !!***
@@ -2844,8 +2832,6 @@ subroutine pawpsp_wvl_calc(pawtab,tnvale,usewvl,vale_mesh,vloc_mesh,vlocr)
 
 ! *************************************************************************
  
- DBG_ENTER("COLL")
-
 !If usewvl flag is on, we must have the pawtab%wvl pointer allocated
  if (pawtab%has_wvl==0) then
    msg='pawtab%has_wvl flag should be on o entry'
@@ -2917,8 +2903,6 @@ subroutine pawpsp_wvl_calc(pawtab,tnvale,usewvl,vale_mesh,vloc_mesh,vlocr)
 !write(401,'(10(f20.7,x))')raux1(ii),raux2(ii),raux2(ii)*raux1(ii)**2
 !end do
 !deallocate(raux1,raux2)
-
- DBG_EXIT('COLL')
 
 end subroutine pawpsp_wvl_calc
 !!***
@@ -3021,7 +3005,7 @@ subroutine pawpsp_17in(epsatm,ffspl,ipsp,ixc,lmax,&
  real(dp), parameter :: rmax_vloc=10.0_dp
  real(dp) :: fourpi,occ,rc,yp1,ypn
  logical,parameter :: save_core_msz=.false. ! Temporary
- character(len=500) :: message
+ character(len=500) :: msg
  type(pawrad_type) :: core_mesh,shpf_mesh,tproj_mesh,vale_mesh,vloc_mesh
 !arrays
  integer,allocatable :: nprj(:)
@@ -3031,8 +3015,6 @@ subroutine pawpsp_17in(epsatm,ffspl,ipsp,ixc,lmax,&
  type(pawrad_type),allocatable :: radmesh(:)
 
 !************************************************************************
-
- DBG_ENTER("COLL")
 
 !==========================================================
 !Destroy everything in pawtab but optional flags
@@ -3090,11 +3072,11 @@ subroutine pawpsp_17in(epsatm,ffspl,ipsp,ixc,lmax,&
  LIBPAW_DEALLOCATE(nprj)
 !Are ilmn (found here) and pawtab%lmn_size compatibles ?
  if (ilmn/=pawtab%lmn_size) then
-   write(message, '(a,a,a,a,a)' )&
+   write(msg, '(a,a,a,a,a)' )&
 &   '  Calculated lmn size differs from',ch10,&
 &   '  lmn_size read from pseudo !',ch10,&
 &   ' Action: check your pseudopotential file.'
-   MSG_ERROR(message)
+   MSG_ERROR(msg)
  end if
 
 !==========================================================
@@ -3113,10 +3095,10 @@ subroutine pawpsp_17in(epsatm,ffspl,ipsp,ixc,lmax,&
        radmesh(imsh)%rstep=paw_setup(ipsploc)%radial_grid(imsh)%aa
        radmesh(imsh)%lstep=paw_setup(ipsploc)%radial_grid(imsh)%dd
      case("r=a*i/(1-b*i)")
-       write(message, '(3a)' )&
+       write(msg, '(3a)' )&
 &       '  the grid r=a*i/(1-b*i) is not implemented in ABINIT !',ch10,&
 &       '  Action: check your psp file.'
-       MSG_ERROR(message)
+       MSG_ERROR(msg)
      case("r=a*i/(n-i)")
        radmesh(imsh)%mesh_type=5
        radmesh(imsh)%mesh_size=paw_setup(ipsploc)%radial_grid(imsh)%iend-paw_setup(ipsploc)%radial_grid(imsh)%istart+1
@@ -3134,10 +3116,10 @@ subroutine pawpsp_17in(epsatm,ffspl,ipsp,ixc,lmax,&
        if(paw_setup(ipsploc)%radial_grid(imsh)%istart==1)radmesh(imsh)%mesh_size=radmesh(imsh)%mesh_size+1
        radmesh(imsh)%rstep=paw_setup(ipsploc)%radial_grid(imsh)%dd
      case("r=(i/n+a)^5/a-a^4")
-       write(message, '(3a)' )&
+       write(msg, '(3a)' )&
 &       '  the grid r=(i/n+a)^5/a-a^4 is not implemented in ABINIT !',ch10,&
 &       '  Action: check your psp file.'
-       MSG_ERROR(message)
+       MSG_ERROR(msg)
    end select
  end do
 
@@ -3160,10 +3142,10 @@ subroutine pawpsp_17in(epsatm,ffspl,ipsp,ixc,lmax,&
 !If shapefunction type is gaussian, check exponent
  if (pawtab%shape_type==1) then
    if (pawtab%shape_lambda<2) then
-     write(message, '(3a)' )&
+     write(msg, '(3a)' )&
 &     '  For a gaussian shape function, exponent lambda must be >1 !',ch10,&
 &     '  Action: check your psp file.'
-     MSG_ERROR(message)
+     MSG_ERROR(msg)
    end if
  end if
 
@@ -3180,96 +3162,96 @@ subroutine pawpsp_17in(epsatm,ffspl,ipsp,ixc,lmax,&
 !==========================================================
 !Mirror pseudopotential parameters to the output and log files
 
- write(message,'(a,i2)')' Pseudopotential format is: paw',pspversion
- call wrtout(ab_out,message,'COLL')
- call wrtout(std_out,  message,'COLL')
- write(message,'(2(a,i3),a,64i4)') &
+ write(msg,'(a,i2)')' Pseudopotential format is: paw',pspversion
+ call wrtout(ab_out,msg,'COLL')
+ call wrtout(std_out,  msg,'COLL')
+ write(msg,'(2(a,i3),a,64i4)') &
 & ' basis_size (lnmax)=',pawtab%basis_size,' (lmn_size=',&
 & pawtab%lmn_size,'), orbitals=',pawtab%orbitals(1:pawtab%basis_size)
- call wrtout(ab_out,message,'COLL')
- call wrtout(std_out,  message,'COLL')
- write(message,'(a,f11.8)')' Spheres core radius: rc_sph=',pawtab%rpaw
- call wrtout(ab_out,message,'COLL')
- call wrtout(std_out,  message,'COLL')
- write(message,'(a,i1,a)')' ',nmesh,' radial meshes are used:'
- call wrtout(ab_out,message,'COLL')
- call wrtout(std_out,  message,'COLL')
+ call wrtout(ab_out,msg,'COLL')
+ call wrtout(std_out,  msg,'COLL')
+ write(msg,'(a,f11.8)')' Spheres core radius: rc_sph=',pawtab%rpaw
+ call wrtout(ab_out,msg,'COLL')
+ call wrtout(std_out,  msg,'COLL')
+ write(msg,'(a,i1,a)')' ',nmesh,' radial meshes are used:'
+ call wrtout(ab_out,msg,'COLL')
+ call wrtout(std_out,  msg,'COLL')
 
  do imsh=1,nmesh
    if (radmesh(imsh)%mesh_type==1) &
-&   write(message,'(a,i1,a,i4,a,g12.5)') &
+&   write(msg,'(a,i1,a,i4,a,g12.5)') &
 &   '  - mesh ',imsh,': r(i)=step*(i-1), size=',radmesh(imsh)%mesh_size,&
 &   ' , step=',radmesh(imsh)%rstep
    if (radmesh(imsh)%mesh_type==2) &
-&   write(message,'(a,i1,a,i4,2(a,g12.5))') &
+&   write(msg,'(a,i1,a,i4,2(a,g12.5))') &
 &   '  - mesh ',imsh,': r(i)=AA*[exp(BB*(i-1))-1], size=',radmesh(imsh)%mesh_size,&
 &   ' , AA=',radmesh(imsh)%rstep,' BB=',radmesh(imsh)%lstep
    if (radmesh(imsh)%mesh_type==3) &
-&   write(message,'(a,i1,a,i4,2(a,g12.5))') &
+&   write(msg,'(a,i1,a,i4,2(a,g12.5))') &
 &   '  - mesh ',imsh,': r(i)=AA*exp(BB*(i-2)), size=',radmesh(imsh)%mesh_size,&
 &   ' , AA=',radmesh(imsh)%rstep,' BB=',radmesh(imsh)%lstep
    if (radmesh(imsh)%mesh_type==4) &
-&   write(message,'(a,i1,a,i4,a,g12.5)') &
+&   write(msg,'(a,i1,a,i4,a,g12.5)') &
 &   '  - mesh ',imsh,': r(i)=-AA*ln(1-(i-1)/n), n=size=',radmesh(imsh)%mesh_size,&
 &   ' , AA=',radmesh(imsh)%rstep
    if (radmesh(imsh)%mesh_type==5) &
-&   write(message,'(a,i1,a,i4,2(a,g12.5))') &
+&   write(msg,'(a,i1,a,i4,2(a,g12.5))') &
 &   '  - mesh ',imsh,': r(i)=-AA*i/(NN-i)), n=size=',radmesh(imsh)%mesh_size,&
 &   ' , AA=',radmesh(imsh)%rstep,' NN=',radmesh(imsh)%lstep
-   call wrtout(ab_out,message,'COLL')
-   call wrtout(std_out,  message,'COLL')
+   call wrtout(ab_out,msg,'COLL')
+   call wrtout(std_out,  msg,'COLL')
  end do
  if (pawtab%shape_type==-1) then
-   write(message,'(a)')&
+   write(msg,'(a)')&
    ' Shapefunction is NUMERIC type: directly read from atomic data file'
-   call wrtout(ab_out,message,'COLL')
-   call wrtout(std_out,  message,'COLL')
+   call wrtout(ab_out,msg,'COLL')
+   call wrtout(std_out,  msg,'COLL')
  end if
  if (pawtab%shape_type==1) then
-   write(message,'(2a,a,f6.3,a,i3)')&
+   write(msg,'(2a,a,f6.3,a,i3)')&
 &   ' Shapefunction is EXP type: shapef(r)=exp(-(r/sigma)**lambda)',ch10,&
 &   '                            with sigma=',pawtab%shape_sigma,' and lambda=',pawtab%shape_lambda
-   call wrtout(ab_out,message,'COLL')
-   call wrtout(std_out,  message,'COLL')
+   call wrtout(ab_out,msg,'COLL')
+   call wrtout(std_out,  msg,'COLL')
  end if
  if (pawtab%shape_type==2) then
-   write(message,'(a)')&
+   write(msg,'(a)')&
    ' Shapefunction is SIN type: shapef(r)=[sin(pi*r/rshp)/(pi*r/rshp)]**2'
-   call wrtout(ab_out,message,'COLL')
-   call wrtout(std_out,  message,'COLL')
+   call wrtout(ab_out,msg,'COLL')
+   call wrtout(std_out,  msg,'COLL')
  end if
  if (pawtab%shape_type==3) then
-   write(message,'(a)')&
+   write(msg,'(a)')&
 &   ' Shapefunction is BESSEL type: shapef(r,l)=aa(1,l)*jl(q(1,l)*r)+aa(2,l)*jl(q(2,l)*r)'
-   call wrtout(ab_out,message,'COLL')
-   call wrtout(std_out,  message,'COLL')
+   call wrtout(ab_out,msg,'COLL')
+   call wrtout(std_out,  msg,'COLL')
  end if
  if (pawtab%rshp<1.d-8) then
-   write(message,'(a)') ' Radius for shape functions = sphere core radius'
+   write(msg,'(a)') ' Radius for shape functions = sphere core radius'
  else
-   write(message,'(a,f11.8)') ' Radius for shape functions = ',pawtab%rshp
+   write(msg,'(a,f11.8)') ' Radius for shape functions = ',pawtab%rshp
  end if
- call wrtout(ab_out,message,'COLL')
- call wrtout(std_out,  message,'COLL')
+ call wrtout(ab_out,msg,'COLL')
+ call wrtout(std_out,  msg,'COLL')
 
 !==========================================================
 !Perfom tests
 
 !Are lmax and orbitals compatibles ?
  if (lmax/=maxval(pawtab%orbitals)) then
-   write(message, '(a,a,a)' )&
+   write(msg, '(a,a,a)' )&
 &   '  lmax /= MAX(orbitals) !',ch10,&
 &   '  Action: check your pseudopotential file.'
-   MSG_ERROR(message)
+   MSG_ERROR(msg)
  end if
 
 !Only mesh_type=1,2, 3 or 5 allowed
  do imsh=1,nmesh
    if (radmesh(imsh)%mesh_type>5) then
-     write(message, '(a,a,a)' )&
+     write(msg, '(a,a,a)' )&
 &     '  Only mesh types 1,2,3 or 5 allowed !',ch10,&
 &     '  Action : check your pseudopotential or input file.'
-     MSG_ERROR(message)
+     MSG_ERROR(msg)
    end if
  end do
 
@@ -3294,19 +3276,19 @@ subroutine pawpsp_17in(epsatm,ffspl,ipsp,ixc,lmax,&
      end do
      LIBPAW_ALLOCATE(pawtab%phi,(pawrad%mesh_size,pawtab%basis_size))
    else if (trim(paw_setup(ipsploc)%ae_partial_wave(ib)%grid)/=trim(paw_setup(ipsploc)%radial_grid(imainmesh)%id)) then
-     write(message, '(a,a,a)' )&
+     write(msg, '(a,a,a)' )&
 &     '  All Phi and tPhi must be given on the same radial mesh !',ch10,&
 &     '  Action: check your pseudopotential file.'
-     MSG_ERROR(message)
+     MSG_ERROR(msg)
    end if
    pawtab%phi(1:pawrad%mesh_size,ib)=paw_setup(ipsploc)%ae_partial_wave(ib)%data(1:pawrad%mesh_size)*pawrad%rad(1:pawrad%mesh_size)
 !  write(std_out,*)"PHI= ",ib
 !  write(std_out,*)pawtab%phi(1:pawrad%mesh_size,ib)
  end do
- write(message,'(a,i4)') &
+ write(msg,'(a,i4)') &
 & ' mmax= ',mmax
- call wrtout(ab_out,message,'COLL')
- call wrtout(std_out,  message,'COLL')
+ call wrtout(ab_out,msg,'COLL')
+ call wrtout(std_out,  msg,'COLL')
 
 !---------------------------------
 !Read pseudo wave-functions (tphi)
@@ -3315,20 +3297,20 @@ subroutine pawpsp_17in(epsatm,ffspl,ipsp,ixc,lmax,&
  do ib=1,pawtab%basis_size
 
    if(trim(paw_setup(ipsploc)%pseudo_partial_wave(ib)%grid)/=trim(paw_setup(ipsploc)%radial_grid(imainmesh)%id)) then
-     write(message, '(a,a,a)' )&
+     write(msg, '(a,a,a)' )&
 &     '  All Phi and tPhi must be given on the same radial mesh !',ch10,&
 &     '  Action: check your pseudopotential file.'
-     MSG_ERROR(message)
+     MSG_ERROR(msg)
    end if
    pawtab%tphi(1:pawrad%mesh_size,ib)=&
 &   paw_setup(ipsploc)%pseudo_partial_wave(ib)%data(1:pawrad%mesh_size)*pawrad%rad(1:pawrad%mesh_size)
 !  write(std_out,*)"TPHI= ",ib
 !  write(std_out,*)pawtab%tphi(1:pawrad%mesh_size,ib)
  end do
- write(message,'(a,i1)') &
+ write(msg,'(a,i1)') &
 & ' Radial grid used for partial waves is grid ',imainmesh
- call wrtout(ab_out,message,'COLL')
- call wrtout(std_out,  message,'COLL')
+ call wrtout(ab_out,msg,'COLL')
+ call wrtout(std_out,  msg,'COLL')
 
 !---------------------------------
 !Read projectors (tproj)
@@ -3350,20 +3332,20 @@ subroutine pawpsp_17in(epsatm,ffspl,ipsp,ixc,lmax,&
      call pawrad_copy(radmesh(iprojmesh),tproj_mesh)
      LIBPAW_ALLOCATE(tproj,(tproj_mesh%mesh_size,pawtab%basis_size))
    else if (trim(paw_setup(ipsploc)%projector_function(ib)%grid)/=trim(paw_setup(ipsploc)%radial_grid(iprojmesh)%id)) then
-     write(message, '(a,a,a)' )&
+     write(msg, '(a,a,a)' )&
 &     '  All tprojectors must be given on the same radial mesh !',ch10,&
 &     '  Action: check your pseudopotential file.'
-     MSG_ERROR(message)
+     MSG_ERROR(msg)
    end if
    tproj(1:tproj_mesh%mesh_size,ib)=paw_setup(ipsploc)%projector_function(ib)%data(1:tproj_mesh%mesh_size)&
 &   *tproj_mesh%rad(1:tproj_mesh%mesh_size)
 !  write(std_out,*)"TPROJ= ",ib
 !  write(std_out,*)tproj(1:tproj_mesh%mesh_size,ib)
  end do
- write(message,'(a,i1)') &
+ write(msg,'(a,i1)') &
 & ' Radial grid used for projectors is grid ',iprojmesh
- call wrtout(ab_out,message,'COLL')
- call wrtout(std_out,  message,'COLL')
+ call wrtout(ab_out,msg,'COLL')
+ call wrtout(std_out,  msg,'COLL')
 
 !---------------------------------
 !Read core density (coredens)
@@ -3377,11 +3359,11 @@ subroutine pawpsp_17in(epsatm,ffspl,ipsp,ixc,lmax,&
  if ((radmesh(icoremesh)%mesh_type/=pawrad%mesh_type).or.&
 & (radmesh(icoremesh)%rstep    /=pawrad%rstep)    .or.&
 & (radmesh(icoremesh)%lstep    /=pawrad%lstep)) then
-   write(message, '(a,a,a,a,a)' )&
+   write(msg, '(a,a,a,a,a)' )&
 &   '  Ncore must be given on a radial mesh with the same',ch10,&
 &   '  type and step(s) than the main radial mesh (mesh for Phi) !',ch10,&
 &   '  Action: check your pseudopotential file.'
-   MSG_ERROR(message)
+   MSG_ERROR(msg)
  end if
  LIBPAW_ALLOCATE(ncore,(core_mesh%mesh_size))
  ncore(1:core_mesh%mesh_size)=paw_setup(ipsploc)%ae_core_density%data(1:core_mesh%mesh_size)/sqrt(fourpi)
@@ -3413,11 +3395,11 @@ subroutine pawpsp_17in(epsatm,ffspl,ipsp,ixc,lmax,&
    end if
  end do
  if (iread1/=icoremesh) then
-   write(message, '(a,a,a,a,a,a,a,a)' )&
+   write(msg, '(a,a,a,a,a,a,a,a)' )&
 &   '  Pseudized core density (tNcore) must be given',ch10,&
 &   '  on the same radial mesh as core density (Ncore) !',ch10,&
 &   '  Action: check your pseudopotential file.'
-   MSG_ERROR(message)
+   MSG_ERROR(msg)
  end if
  LIBPAW_ALLOCATE(tncore,(core_mesh%mesh_size))
  tncore(1:core_mesh%mesh_size)=paw_setup(ipsploc)%pseudo_core_density%data(1:core_mesh%mesh_size)/sqrt(fourpi)
@@ -3435,10 +3417,10 @@ subroutine pawpsp_17in(epsatm,ffspl,ipsp,ixc,lmax,&
    pawtab%usetcore=1
    pawtab%tcoredens(1:pawrad%mesh_size,1)=tncore(1:pawrad%mesh_size)
  end if
- write(message,'(a,i1)') &
+ write(msg,'(a,i1)') &
 & ' Radial grid used for (t)core density is grid ',icoremesh
- call wrtout(ab_out,message,'COLL')
- call wrtout(std_out,  message,'COLL')
+ call wrtout(ab_out,msg,'COLL')
+ call wrtout(std_out,  msg,'COLL')
 
 
 !---------------------------------
@@ -3499,16 +3481,16 @@ subroutine pawpsp_17in(epsatm,ffspl,ipsp,ixc,lmax,&
 !  write(std_out,*)vlocr(1:vloc_mesh%mesh_size)
 
  else
-   write(message, '(a,a,a,a,a)' )&
+   write(msg, '(a,a,a,a,a)' )&
 &   '  At least one local potential must be given',ch10,&
 &   '  Action: check your pseudopotential file.'
-   MSG_ERROR(message)
+   MSG_ERROR(msg)
  end if
 
- write(message,'(a,i1)') &
+ write(msg,'(a,i1)') &
 & ' Radial grid used for Vloc is grid ',ivlocmesh
- call wrtout(ab_out,message,'COLL')
- call wrtout(std_out,  message,'COLL')
+ call wrtout(ab_out,msg,'COLL')
+ call wrtout(std_out,  msg,'COLL')
 
 !---------------------------------
 !Eventually read "numeric" shapefunctions (if shape_type=-1)
@@ -3543,10 +3525,10 @@ subroutine pawpsp_17in(epsatm,ffspl,ipsp,ixc,lmax,&
        end do
      end do
    end if
-   write(message,'(a,i1)') &
+   write(msg,'(a,i1)') &
 &   ' Radial grid used for shape functions is grid ',iread1
-   call wrtout(ab_out,message,'COLL')
-   call wrtout(std_out,  message,'COLL')
+   call wrtout(ab_out,msg,'COLL')
+   call wrtout(std_out,  msg,'COLL')
 
 !  Has to spline shape functions if mesh is not the "main" mesh
    if (ishpfmesh/=imainmesh) then
@@ -3588,10 +3570,10 @@ subroutine pawpsp_17in(epsatm,ffspl,ipsp,ixc,lmax,&
 !  write(std_out,*)"TNVALE= "
 !  write(std_out,*)tnvale(1:vale_mesh%mesh_size)
    pawtab%has_tvale=1
-   write(message,'(a,i1)') &
+   write(msg,'(a,i1)') &
 &   ' Radial grid used for pseudo valence density is grid ',ivalemesh
-   call wrtout(ab_out,message,'COLL')
-   call wrtout(std_out,  message,'COLL')
+   call wrtout(ab_out,msg,'COLL')
+   call wrtout(std_out,  msg,'COLL')
  else
    pawtab%has_tvale=0
    LIBPAW_ALLOCATE(tnvale,(0))
@@ -3701,8 +3683,6 @@ subroutine pawpsp_17in(epsatm,ffspl,ipsp,ixc,lmax,&
 
  LIBPAW_DEALLOCATE(tnvale)
 
- DBG_EXIT('COLL')
-
 end subroutine pawpsp_17in
 !!***
 
@@ -3789,8 +3769,6 @@ subroutine pawpsp_7in(epsatm,ffspl,icoulomb,ixc,&
 
 !************************************************************************
 
- DBG_ENTER("COLL")
-
 !Destroy everything in pawtab but optional flags
  call pawtab_free(pawtab)
 !Destroy everything in pawrad
@@ -3845,8 +3823,6 @@ subroutine pawpsp_7in(epsatm,ffspl,icoulomb,ixc,&
  if (pspversion>=4)  then
    call pawrad_free(vale_mesh)
  end if
-
- DBG_EXIT('COLL')
 
 end subroutine pawpsp_7in
 !!***
@@ -4053,34 +4029,35 @@ implicit none
 !Local variables-------------------------------
  integer:: pspdat
  character(len=fnlen):: title
- character(len=500) :: message
+ character(len=500) :: msg
+
 ! *************************************************************************
 
 !Read and write some description of file from first line (character data)
  read (tmp_unit,'(a)') title
- write(message, '(a,a)' ) '- ',trim(title)
- call wrtout(ab_out,message,'COLL')
- call wrtout(std_out,  message,'COLL')
+ write(msg, '(a,a)' ) '- ',trim(title)
+ call wrtout(ab_out,msg,'COLL')
+ call wrtout(std_out,  msg,'COLL')
 
 !Read and write more data describing psp parameters
  read (tmp_unit,*) znucl,zion,pspdat
- write(message, '(a,f9.5,f10.5,2x,i8,t47,a)' ) &
+ write(msg, '(a,f9.5,f10.5,2x,i8,t47,a)' ) &
 & '-',znucl,zion,pspdat,'znucl, zion, pspdat'
- call wrtout(ab_out,message,'COLL')
- call wrtout(std_out,  message,'COLL')
+ call wrtout(ab_out,msg,'COLL')
+ call wrtout(std_out,  msg,'COLL')
 
  read (tmp_unit,*) pspcod,pspxc,lmax,lloc,mmax,r2well
  if(pspxc<0) then
-   write(message, '(i5,i8,2i5,i10,f10.5,t47,a)' ) &
+   write(msg, '(i5,i8,2i5,i10,f10.5,t47,a)' ) &
 &   pspcod,pspxc,lmax,lloc,mmax,r2well,&
 &   'pspcod,pspxc,lmax,lloc,mmax,r2well'
  else
-   write(message, '(4i5,i10,f10.5,t47,a)' ) &
+   write(msg, '(4i5,i10,f10.5,t47,a)' ) &
 &   pspcod,pspxc,lmax,lloc,mmax,r2well,&
 &   'pspcod,pspxc,lmax,lloc,mmax,r2well'
  end if
- call wrtout(ab_out,message,'COLL')
- call wrtout(std_out,  message,'COLL')
+ call wrtout(ab_out,msg,'COLL')
+ call wrtout(std_out,  msg,'COLL')
 
 end subroutine pawpsp_read_header
 !!***
@@ -4130,7 +4107,7 @@ implicit none
 !Local variables-------------------------------
  integer :: creatorid
  character(len=80) :: pspline
- character(len=500) :: message
+ character(len=500) :: msg
 
 ! *************************************************************************
 
@@ -4140,10 +4117,10 @@ implicit none
  if (pspline(1:3)=="paw".or.pspline(1:3)=="PAW") &
 & read(unit=pspline(4:80),fmt=*) pspversion
  if (pspversion<1.or.pspversion>5) then
-   write(message, '(a,i2,a,a,a)' )&
+   write(msg, '(a,i2,a,a,a)' )&
 &   '  This version of PAW psp file (',pspversion,') is not compatible with',ch10,&
 &   '  current version of Abinit.'
-   MSG_ERROR(message)
+   MSG_ERROR(msg)
  end if
 
  if (pspversion==1) then
@@ -4208,7 +4185,7 @@ implicit none
 !scalars
  integer:: ii, me, mparam, nterm_bounds(2)
  type(pawrad_type)::tproj_mesh
- character(len=500) :: message
+ character(len=500) :: msg
 !arrays
  integer,allocatable:: ngauss_param(:)
  real(dp),allocatable:: gauss_param(:,:)
@@ -4227,13 +4204,13 @@ implicit none
  if (usewvl ==1 .and. pawtab%wvl%ptotgau==0 ) then
 
    if (pawtab%has_tproj==0) then
-     message='pawtab%tproj must be allocated'
-     MSG_BUG(message)
+     msg='pawtab%tproj must be allocated'
+     MSG_BUG(msg)
    end if
 
 !  1) fit projectors to gaussians
-   write(message,'(a,a)')ch10,'Fitting tproj to Gaussians'
-   call wrtout(std_out,message,'COLL')
+   write(msg,'(a,a)')ch10,'Fitting tproj to Gaussians'
+   call wrtout(std_out,msg,'COLL')
 
 !  See fit_gen (option==4):
    do ii=1,2
@@ -4329,7 +4306,7 @@ implicit none
 !Local variables-------------------------------
  integer :: ii,il
  character(len=100) :: xclibxc
- character(len=500) :: message
+ character(len=500) :: msg
 !arrays
 
 ! *************************************************************************
@@ -4370,24 +4347,24 @@ implicit none
      pspxc = -(libxc_functionals_getid('XC_LDA_X')*1000 &
 &             +libxc_functionals_getid('XC_LDA_C_GL'))
 #else
-     write(message, '(7a)' )&
+     write(msg, '(7a)' )&
 &     '  The exchange and correlation functional by Gunnarson-Lundqvist', ch10,&
 &     '  is not implemented in Abinit.',ch10,&
 &     '  Action : choose another XC functional in the pseudopotential',ch10, &
 &     '           generation or compile ABINIT with the libXC library.'
-     MSG_ERROR(message)
+     MSG_ERROR(msg)
 #endif
    case('VWN')
 #if defined HAVE_DFT_LIBXC
      pspxc = -(libxc_functionals_getid('XC_LDA_X')*1000 &
 &             +libxc_functionals_getid('XC_LDA_C_VWN'))
 #else
-     write(message, '(7a)' )&
+     write(msg, '(7a)' )&
 &     '  The exchange and correlation functional by Vosko,Wilk and Nusair', ch10,&
 &     '  is not implemented in Abinit.',ch10,&
 &     '  Action : choose another XC functional in the pseudopotential',ch10, &
 &     '           generation or compile ABINIT with the libXC library.'
-     MSG_ERROR(message)
+     MSG_ERROR(msg)
 #endif
    case('PW')
      pspxc = 7
@@ -4418,24 +4395,24 @@ implicit none
      pspxc = -(libxc_functionals_getid('XC_GGA_X_PW91')*1000 &
 &             +libxc_functionals_getid('XC_GGA_C_PW91'))
 #else
-     write(message, '(7a)' )&
+     write(msg, '(7a)' )&
 &     '  The exchange and correlation functional by Perdew and Wang 91', ch10,&
 &     '  is not implemented in Abinit.',ch10,&
 &     '  Action : choose another XC functional in the pseudopotential',ch10, &
 &     '           generation or compile ABINIT with the libXC library.'
-     MSG_ERROR(message)
+     MSG_ERROR(msg)
 #endif
    case('BLYP')
 #if defined HAVE_DFT_LIBXC
      pspxc = -(libxc_functionals_getid('XC_GGA_X_B88')*1000 &
 &             +libxc_functionals_getid('XC_GGA_C_LYP'))
 #else
-     write(message, '(7a)' )&
+     write(msg, '(7a)' )&
 &     '  The exchange and correlation functional BLYP', ch10,&
 &     '  is not implemented in Abinit.',ch10,&
 &     '  Action : choose another XC functional in the pseudopotential',ch10, &
 &     '           generation or compile ABINIT with the libXC library.'
-     MSG_ERROR(message)
+     MSG_ERROR(msg)
 #endif
    case DEFAULT
      xclibxc=trim(psxml%xc_functional%name)
@@ -4453,8 +4430,8 @@ implicit none
          pspxc=-libxc_functionals_getid(xclibxc)
        end if
 #else
-       message='Cannot use LibXC functional because ABINIT is not compiled with LibXC !'
-       MSG_ERROR(message)
+       msg='Cannot use LibXC functional because ABINIT is not compiled with LibXC !'
+       MSG_ERROR(msg)
 #endif
 !      To be eliminated later (temporary)
      else if(trim(psxml%xc_functional%functionaltype)=='LIBXC')then
@@ -4463,12 +4440,12 @@ implicit none
        read(unit=xclibxc,fmt=*) pspxc
        pspxc=-pspxc
 #else
-       message='Cannot use LibXC functional because ABINIT is not compiled with LibXC !'
-       MSG_ERROR(message)
+       msg='Cannot use LibXC functional because ABINIT is not compiled with LibXC !'
+       MSG_ERROR(msg)
 #endif
      else
-       write(message, '(3a)') 'Unknown XC functional in psp file: ',trim(xclibxc),' !'
-       MSG_ERROR(message)
+       write(msg, '(3a)') 'Unknown XC functional in psp file: ',trim(xclibxc),' !'
+       MSG_ERROR(msg)
      end if
  end select
 
@@ -4772,19 +4749,17 @@ subroutine pawpsp_main( &
  integer :: pspcod,pspxc,usexml
  real(dp),parameter :: xc_denpos_default=tol14
  real(dp) :: my_xc_denpos,r2well,zion,znucl
- character(len=500) :: message
+ character(len=500) :: msg
  type(pawpsp_header_type) :: pawpsp_header
 !arrays
 
 ! *************************************************************************
 
- DBG_ENTER("COLL")
-
 !Check consistency of parameters
  if (icoulomb/= 0.or.usewvl==1) then
    if (.not.present(wvl_ngauss)) then
-     message='usewvl==1 or icoulomb/=0: a mandatory argument is missing!'
-     MSG_BUG(message)
+     msg='usewvl==1 or icoulomb/=0: a mandatory argument is missing!'
+     MSG_BUG(msg)
    end if
  end if
 
@@ -4792,12 +4767,12 @@ subroutine pawpsp_main( &
  mqgrid_vl=size(qgrid_vl)
  lnmax=size(ffspl,3)
  if (size(ffspl,1)/=mqgrid_ff.or.size(ffspl,2)/=2) then
-   message='invalid sizes for ffspl!'
-   MSG_BUG(message)
+   msg='invalid sizes for ffspl!'
+   MSG_BUG(msg)
  end if
  if (size(vlspl,1)/=mqgrid_vl.or.size(vlspl,2)/=2) then
-   message='invalid sizes for vlspl!'
-   MSG_BUG(message)
+   msg='invalid sizes for vlspl!'
+   MSG_BUG(msg)
  end if
 
  my_xc_denpos=xc_denpos_default;if (present(xc_denpos)) my_xc_denpos=xc_denpos
@@ -4809,9 +4784,9 @@ subroutine pawpsp_main( &
  call pawtab_set_flags(pawtab,has_tvale=1,has_wvl=has_wvl,has_tproj=has_tproj)
 
  if(me==0) then
-   write(message, '(a,t38,a)' )'- pspatm: opening atomic psp file',trim(filpsp)
-   call wrtout(ab_out,  message,'COLL')
-   call wrtout(std_out,  message,'COLL')
+   write(msg, '(a,t38,a)' )'- pspatm: opening atomic psp file',trim(filpsp)
+   call wrtout(ab_out,  msg,'COLL')
+   call wrtout(std_out,  msg,'COLL')
 
 !  This checks if file is xml or UPF
 !  It sets usexml as well
@@ -4828,10 +4803,10 @@ subroutine pawpsp_main( &
 
    else if (usexml == 1) then
 #if defined HAVE_TRIO_FOX
-     write(message,'(a,a)')  &
+     write(msg,'(a,a)')  &
 &     '- pawpsp : Reading pseudopotential header in XML form from ', trim(filpsp)
-     call wrtout(ab_out,message,'COLL')
-     call wrtout(std_out,  message,'COLL')
+     call wrtout(ab_out,msg,'COLL')
+     call wrtout(std_out,  msg,'COLL')
 
 !    Return header informations
      call pawpsp_read_header_xml(lloc,lmax,pspcod,&
@@ -4870,10 +4845,10 @@ subroutine pawpsp_main( &
 
  close(unit=tmp_unit)
 
- write(message,'(3a)') ' pawpsp: atomic psp has been read ',&
+ write(msg,'(3a)') ' pawpsp: atomic psp has been read ',&
 & ' and splines computed',ch10
- call wrtout(ab_out,message,'COLL')
- call wrtout(std_out,  message,'COLL')
+ call wrtout(ab_out,msg,'COLL')
+ call wrtout(std_out,  msg,'COLL')
 
 !Communicate PAW objects
  if(present(comm_mpi)) then
@@ -4890,8 +4865,6 @@ subroutine pawpsp_main( &
     call pawpsp_wvl(filpsp,pawrad,pawtab,usewvl,wvl_ngauss)
    end if
  end if
-
- DBG_EXIT("COLL")
 
 contains
 !!***
@@ -4947,10 +4920,10 @@ implicit none
      usexml = 1
      read(tmp_unit,*) testxml
      if(testxml(1:4)/='<paw')then
-       write(message, '(a,a,a,a,a,a,a,a)' ) ch10,&
+       write(msg, '(a,a,a,a,a,a,a,a)' ) ch10,&
 &       ' pawpsp_main: BUG -',ch10,&
 &       '  Reading a NC pseudopotential for a PAW calculation?'
-       MSG_ERROR(message)
+       MSG_ERROR(msg)
      end if
    else
      usexml = 0
@@ -4962,7 +4935,8 @@ implicit none
    rewind (unit=tmp_unit)
    read(tmp_unit,*) testxml ! just a string, no relation to xml.
    if(testxml(1:9)=='<PP_INFO>')then
-     MSG_ERROR("UPF format not allowed with PAW (USPP part not read yet)")
+     msg='UPF format not allowed with PAW (USPP part not read yet)'
+     MSG_ERROR(msg)
    end if
    close (unit=tmp_unit)
 
@@ -5012,47 +4986,47 @@ implicit none
 
 !Check pspcod=7 or 17
  if(pspcod/=7 .and. pspcod/=17)then
-   write(message, '(a,i2,a,a)' )&
+   write(msg, '(a,i2,a,a)' )&
 &   '  In reading atomic psp file, finds pspcod=',pspcod,ch10,&
 &   '  This is not an allowed value within PAW.'
-   MSG_BUG(message)
+   MSG_BUG(msg)
  end if
 
 !Temporary limitation
  if (pspcod==17) then
-   message='cannot work for XML PAW setups!'
-   MSG_BUG(message)
+   msg='cannot work for XML PAW setups!'
+   MSG_BUG(msg)
  end if
 
 !Does nuclear charge znuclpsp agree with psp input znucl
  if (abs(znuclpsp-znucl)>tol8) then
-   write(message, '(a,f10.5,2a,f10.5,5a)' )&
+   write(msg, '(a,f10.5,2a,f10.5,5a)' )&
 &   '  Pseudopotential file znucl=',znucl,ch10,&
 &   '  does not equal input znuclpsp=',znuclpsp,' better than 1e-08 .',ch10,&
 &   '  znucl is read from the psp file in pspatm_abinit, while',ch10,&
 &   '  znuclpsp is read in iofn2.'
-   MSG_BUG(message)
+   MSG_BUG(msg)
  end if
 
 !Does nuclear charge zionpsp agree with psp input zion
  if (abs(zionpsp-zion)>tol8) then
-   write(message, '(a,f10.5,2a,f10.5,5a)' )&
+   write(msg, '(a,f10.5,2a,f10.5,5a)' )&
 &   '  Pseudopotential file zion=',zion,ch10,&
 &   '  does not equal input zionpsp=',zionpsp,' better than 1e-08 .',ch10,&
 &   '  zion is read from the psp file in pawpsp_main, while',ch10,&
 &   '  zionpsp is read in iofn2.'
-   MSG_BUG(message)
+   MSG_BUG(msg)
  end if
 
 !Check several choices for ixc against pspxc
 !ixc is from ABINIT code; pspxc is from atomic psp file
  if (ixc==0) then
-   write(message, '(a,a,a,a)' )ch10,&
+   write(msg, '(a,a,a,a)' )ch10,&
 &   ' pawpsp_main: WARNING -',ch10,&
 &   '  Note that input ixc=0 => no xc is being used.'
-   call wrtout(std_out,  message,'COLL')
+   call wrtout(std_out,  msg,'COLL')
  else if(ixc/=pspxc) then
-   write(message, '(a,a,a,a,i8,a,a,a,i8,a,a,a,a,a,a,a,a,a,a)' )ch10,&
+   write(msg, '(a,a,a,a,i8,a,a,a,i8,a,a,a,a,a,a,a,a,a,a)' )ch10,&
 &   ' pawpsp_main: WARNING -',ch10,&
 &   '  Pseudopotential file pspxc=',pspxc,',',ch10,&
 &   '  not equal to input ixc=',ixc,'.',ch10,&
@@ -5060,15 +5034,15 @@ implicit none
 &   '  in ABINIT code as in psp construction.',ch10,&
 &   '  Action : check psp design or input file.',ch10,&
 &   '  Assume experienced user. Execution will continue.',ch10
-   call wrtout(std_out,  message,'COLL')
+   call wrtout(std_out,  msg,'COLL')
  end if
 
  if (lloc>lmax ) then
-   write(message, '(a,2i12,a,a,a,a)' )&
+   write(msg, '(a,2i12,a,a,a,a)' )&
 &   '  lloc,lmax=',lloc,lmax,ch10,&
 &   '  chosen l of local psp exceeds range from input data.',ch10,&
 &   '  Action : check pseudopotential input file.'
-   MSG_ERROR(message)
+   MSG_ERROR(msg)
  end if
    
 end subroutine pawpsp_consistency

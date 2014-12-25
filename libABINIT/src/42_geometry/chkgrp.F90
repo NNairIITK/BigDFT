@@ -34,7 +34,7 @@
 !!      chkinp,gensymspgr,m_bands_sym,m_bz_mesh,setsym
 !!
 !! CHILDREN
-!!      leave_new,wrtout
+!!      abi_leave_new,abi_wrtout
 !!
 !! SOURCE
 
@@ -111,13 +111,13 @@ subroutine chkgrp(nsym,symafm,symrel)
      write(message, '(a,a,a,a,2i3,a)' ) ch10,&
 &     ' chkgrp : ERROR -',ch10,&
 &     '  Error: product of symmetries',isym,jsym,' is not in group.'
-     call wrtout(std_out,message,'COLL')
+     call abi_wrtout(std_out,message,'COLL')
      write(message, '(a,a,a,a,a)' ) &
 &     '  This indicates that the input symmetry elements',ch10,&
 &     '  do not possess closure under group composition.',ch10,&
 &     '  Action : check symrel, symafm and fix them.'
-     call wrtout(std_out,message,'COLL')
-     call leave_new('COLL')
+     call abi_wrtout(std_out,message,'COLL')
+     call abi_leave_new('COLL')
 
 !    End loop on jsym. Note that an "exit" instruction is present inside the loop
    end do

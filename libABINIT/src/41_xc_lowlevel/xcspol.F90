@@ -65,7 +65,7 @@
 !!      drivexc
 !!
 !! CHILDREN
-!!      leave_new,wrtout
+!!      abi_leave_new,abi_wrtout
 !!
 !! SOURCE
 
@@ -133,8 +133,8 @@ subroutine xcspol(exc,npts,nspden,order,rspts,vxc,zeta,ndvxc,& !Mandatory argume
    write(message, '(4a)' )ch10,&
 &   ' xcspol : BUG -',ch10,&
 &   '  If ndvxc/=0 there must be the optional argument dvxc'
-   call wrtout(std_out,message,'COLL')
-   call leave_new('COLL')
+   call abi_wrtout(std_out,message,'COLL')
+   call abi_leave_new('COLL')
  end if
 !Checks the compatibility between the inputs and the presence of the optional arguments
  if(abs(order) <= 1 .and. ndvxc /= 0)then
@@ -143,24 +143,24 @@ subroutine xcspol(exc,npts,nspden,order,rspts,vxc,zeta,ndvxc,& !Mandatory argume
 &   '  The order chosen does not need the presence',ch10,&
 &   '  of the vector dvxc, that is needed only with |order|>1 , while we have',&
 &   order,'.'
-   call wrtout(std_out,message,'COLL')
-   call leave_new('COLL')
+   call abi_wrtout(std_out,message,'COLL')
+   call abi_leave_new('COLL')
  end if
  if(nspden == 1 .and. ndvxc /=0 .and. ndvxc /= 2)then
    write(message, '(a,a,a,a,i6,a)' )ch10,&
 &   ' xcspol : BUG -',ch10,&
 &   '  Once nspden=1 we must have ndvxc=2, while we have',&
 &   ndvxc,'.'
-   call wrtout(std_out,message,'COLL')
-   call leave_new('COLL')
+   call abi_wrtout(std_out,message,'COLL')
+   call abi_leave_new('COLL')
  end if
  if(nspden == 2 .and. ndvxc /=0 .and. ndvxc /= 3)then
    write(message, '(a,a,a,a,i6,a)' )ch10,&
 &   ' xcspol : BUG -',ch10,&
 &   '  Once nspden=2 we must have ndvxc=3, while we have',&
 &   ndvxc,'.'
-   call wrtout(std_out,message,'COLL')
-   call leave_new('COLL')
+   call abi_wrtout(std_out,message,'COLL')
+   call abi_leave_new('COLL')
  end if
 
 
@@ -497,8 +497,8 @@ else
 &   ' xcspol: BUG -',ch10,&
 &   '  Argument nspden must be 1 or 2; ',ch10,&
 &   '  Value provided as argument was ',nspden,'.'
-   call wrtout(std_out,message,'COLL')
-   call leave_new('COLL')
+   call abi_wrtout(std_out,message,'COLL')
+   call abi_leave_new('COLL')
  end if
 
 !DEBUG

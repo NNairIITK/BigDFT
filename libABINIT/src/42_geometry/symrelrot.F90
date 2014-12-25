@@ -31,7 +31,7 @@
 !!      ingeo,symbrav,symspgr
 !!
 !! CHILDREN
-!!      leave_new,matr3inv,wrtout
+!!      abi_leave_new,matr3inv,abi_wrtout
 !!
 !! SOURCE
 
@@ -104,8 +104,8 @@ subroutine symrelrot(nsym,rprimd,rprimd_new,symrel,tolsym)
 &         '  symrel=',matr2(:,1),ch10,&
 &         '         ',matr2(:,2),ch10,&
 &         '         ',matr2(:,3)
-         call wrtout(std_out,message,'COLL')
-         call leave_new('COLL')
+         call abi_wrtout(std_out,message,'COLL')
+         call abi_leave_new('COLL')
        end if
        symrel(ii,jj,isym)=nint(val)
      end do

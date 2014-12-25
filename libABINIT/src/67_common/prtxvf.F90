@@ -31,7 +31,7 @@
 !!      brdmin,constrf,delocint,moldyn,move
 !!
 !! CHILDREN
-!!      wrtout
+!!      abi_wrtout
 !!
 !! SOURCE
 
@@ -71,18 +71,18 @@ subroutine prtxvf(fcart,iatfix,iout,natom,prtvel,vel,xcart)
 !ENDDEBUG
 
  write(message, '(a)' ) ' Cartesian coordinates (bohr)'
- call wrtout(iout,message,'COLL')
+ call abi_wrtout(iout,message,'COLL')
  do iatom=1,natom
    write(message, '(1p,3e22.14)' )xcart(:,iatom)
-   call wrtout(iout,message,'COLL')
+   call abi_wrtout(iout,message,'COLL')
  end do
 
  if (prtvel == 1) then
    write(message, '(a)' ) ' Velocities (bohr/(atomic time unit))'
-   call wrtout(iout,message,'COLL')
+   call abi_wrtout(iout,message,'COLL')
    do iatom=1,natom
      write(message, '(1p,3e22.14)' ) vel(:,iatom)
-     call wrtout(iout,message,'COLL')
+     call abi_wrtout(iout,message,'COLL')
    end do
  end if
 
@@ -105,14 +105,14 @@ subroutine prtxvf(fcart,iatfix,iout,natom,prtvel,vel,xcart)
  write(message, '(a,1p,2e12.5,a)' ) &
 & ' Cartesian forces (hart/bohr); max,rms=',fmax,frms,&
 & ' (free atoms)'
- call wrtout(iout,message,'COLL')
+ call abi_wrtout(iout,message,'COLL')
  do iatom=1,natom
    write(message, '(1p,3e22.14)' )fcart(:,iatom)
-   call wrtout(iout,message,'COLL')
+   call abi_wrtout(iout,message,'COLL')
  end do
 
  write(message, '(a)' ) ' '
- call wrtout(iout,message,'COLL')
+ call abi_wrtout(iout,message,'COLL')
 
 !DEBUG
 !write(6,*)' prtxvf : exit '

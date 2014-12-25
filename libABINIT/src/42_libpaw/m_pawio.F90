@@ -19,7 +19,7 @@
 module m_pawio
     
  use defs_basis
- use m_errors
+ USE_MSG_HANDLING
  USE_MEMORY_PROFILING
 
  implicit none
@@ -121,7 +121,7 @@ subroutine pawio_print_ij(unit,a_ij,adim,cplex,ndim,opt_l,opt_l_index,opt_pack,o
  real(dp) :: testval
  logical :: use_asym
  character(len=4) :: mode_paral_
- character(len=500) :: message=""
+ character(len=500) :: msg=''
 !arrays
  real(dp),parameter :: fact_re(4)=(/one,one,-one,-one/),fact_im(4)=(/one,-one,-one,one/)
  real(dp) :: tabmax(cplex),tabmin(cplex)
@@ -268,47 +268,47 @@ subroutine pawio_print_ij(unit,a_ij,adim,cplex,ndim,opt_l,opt_l_index,opt_pack,o
  end if
 
  if (cplex==2) then
-   write(message,'(3x,a)') '=== REAL PART:'
-   call wrtout(unit,message,mode_paral_)
+   write(msg,'(3x,a)') '=== REAL PART:'
+   call wrtout(unit,msg,mode_paral_)
  end if
 
  if (ndim<=maxprt.or.opt_l>=0) then
    do ilmn=1,nmin
-     write(message,fmt=10) prtab(1,1:nmin,ilmn)
-     call wrtout(unit,message,mode_paral_)
+     write(msg,fmt=10) prtab(1,1:nmin,ilmn)
+     call wrtout(unit,msg,mode_paral_)
    end do
  else
    do ilmn=1,nmin
-     write(message,fmt=11) prtab(1,1:nmin,ilmn),' ...'
-     call wrtout(unit,message,mode_paral_)
+     write(msg,fmt=11) prtab(1,1:nmin,ilmn),' ...'
+     call wrtout(unit,msg,mode_paral_)
    end do
-   write(message,'(3x,a,i2,a)') '...  only ',maxprt,'  components have been written...'
-   call wrtout(unit,message,mode_paral_)
+   write(msg,'(3x,a,i2,a)') '...  only ',maxprt,'  components have been written...'
+   call wrtout(unit,msg,mode_paral_)
  end if
  if (opt_prtvol<0.and.opt_l<0) then
-   write(message,'(3x,2(a,es9.2))') 'max. value= ',tabmax(1),', min. value= ',tabmin(1)
-   call wrtout(unit,message,mode_paral_)
+   write(msg,'(3x,2(a,es9.2))') 'max. value= ',tabmax(1),', min. value= ',tabmin(1)
+   call wrtout(unit,msg,mode_paral_)
  end if
 
  if (cplex==2) then
-   write(message,'(3x,a)') '=== IMAGINARY PART:'
-   call wrtout(unit,message,mode_paral_)
+   write(msg,'(3x,a)') '=== IMAGINARY PART:'
+   call wrtout(unit,msg,mode_paral_)
    if (ndim<=maxprt.or.opt_l>=0) then
      do ilmn=1,nmin
-       write(message,fmt=10) prtab(2,1:nmin,ilmn)
-       call wrtout(unit,message,mode_paral_)
+       write(msg,fmt=10) prtab(2,1:nmin,ilmn)
+       call wrtout(unit,msg,mode_paral_)
      end do
    else
      do ilmn=1,nmin
-       write(message,fmt=11) prtab(2,1:nmin,ilmn),' ...'
-       call wrtout(unit,message,mode_paral_)
+       write(msg,fmt=11) prtab(2,1:nmin,ilmn),' ...'
+       call wrtout(unit,msg,mode_paral_)
      end do
-     write(message,'(3x,a,i2,a)') '...  only ',maxprt,'  components have been written...'
-     call wrtout(unit,message,mode_paral_)
+     write(msg,'(3x,a,i2,a)') '...  only ',maxprt,'  components have been written...'
+     call wrtout(unit,msg,mode_paral_)
    end if
    if (opt_prtvol<0.and.opt_l<0) then
-     write(message,'(3x,2(a,es9.2))') 'max. value= ',tabmax(2),', min. value= ',tabmin(2)
-     call wrtout(unit,message,mode_paral_)
+     write(msg,'(3x,2(a,es9.2))') 'max. value= ',tabmax(2),', min. value= ',tabmin(2)
+     call wrtout(unit,msg,mode_paral_)
    end if
  end if
 
@@ -316,14 +316,14 @@ subroutine pawio_print_ij(unit,a_ij,adim,cplex,ndim,opt_l,opt_l_index,opt_pack,o
    testval=test_value;if (unt==2) testval=testval*Ha_eV
    nhigh=0;nhigh=count(abs(prtab(:,:,:))>=testval)
    if (nhigh>0) then
-     write(message,'(5a,i3,a,f6.1,7a)')&
+     write(msg,'(5a,i3,a,f6.1,7a)')&
 &     ' pawio_print_ij: WARNING -',ch10,&
 &     '  The matrix seems to have high value(s) !',ch10,&
 &     '  (',nhigh,' components have a value greater than ',testval,').',ch10,&
 &     '  It can cause instabilities during SCF convergence.',ch10,&
 &     '  Action: you should check your atomic dataset (psp file)',ch10,&
 &     '          and look for "high" projector functions...'
-     call wrtout(unit,message,mode_paral_)
+     call wrtout(unit,msg,mode_paral_)
    end if
  end if
 

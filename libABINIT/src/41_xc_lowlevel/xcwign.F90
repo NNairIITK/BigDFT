@@ -31,7 +31,7 @@
 !!      drivexc
 !!
 !! CHILDREN
-!!      leave_new,wrtout
+!!      abi_leave_new,abi_wrtout
 !!
 !! SOURCE
 
@@ -78,8 +78,8 @@ subroutine xcwign(exc,npt,order,rspts,vxc,& !Mandatory arguments
 &   '  With Wigner xc functional, the only',ch10,&
 &   '  allowed values for order are 0, 1 or 2, while it is found to be',&
 &   order,'.'
-   call wrtout(std_out,message,'COLL')
-   call leave_new('COLL')
+   call abi_wrtout(std_out,message,'COLL')
+   call abi_leave_new('COLL')
  end if
 !Checks the compatibility between the order and the presence of the optional arguments
  if(order <= 1 .and. present(dvxc))then
@@ -88,8 +88,8 @@ subroutine xcwign(exc,npt,order,rspts,vxc,& !Mandatory arguments
 &   '  The order chosen does not need the presence',ch10,&
 &   '  of the vector dvxc, that is needed only with order=2 , while we have',&
 &   order,'.'
-   call wrtout(std_out,message,'COLL')
-   call leave_new('COLL')
+   call abi_wrtout(std_out,message,'COLL')
+   call abi_leave_new('COLL')
  end if
 
 !Compute vfac=(3/(2*Pi))^(2/3)

@@ -64,7 +64,7 @@
 !!      m_crystal,rdddb9,setsym
 !!
 !! CHILDREN
-!!      leave_new,symchk,wrtout
+!!      abi_leave_new,symchk,abi_wrtout
 !!
 !! SOURCE
 
@@ -142,20 +142,20 @@ subroutine symatm(indsym,natom,nsym,symrec,tnons,tolsym,typat,xred)
 &       '  gives tratom=',tratom(1:3),'.',ch10,&
 &       '  This is further away from every atom in crystal than',&
 &       ' the allowed tolerance.'
-       call wrtout(std_out,message,'COLL')
+       call abi_wrtout(std_out,message,'COLL')
        write(message, '(a,3i3,a,a,3i3,a,a,3i3)' ) &
 &       '  The inverse symmetry matrix is',symrec(1,1:3,isym),ch10,&
 &       '                                ',symrec(2,1:3,isym),ch10,&
 &       '                                ',symrec(3,1:3,isym)
-       call wrtout(std_out,message,'COLL')
+       call abi_wrtout(std_out,message,'COLL')
        write(message, '(a,3f13.7)' ) &
 &       '  and the nonsymmorphic transl. tnons =',&
 &       (tnons(mu,isym),mu=1,3)
-       call wrtout(std_out,message,'COLL')
+       call abi_wrtout(std_out,message,'COLL')
        write(message, '(a,1p,3e11.3,a,a,i5)' ) &
 &       '  The nearest coordinate differs by',difmin(1:3),ch10,&
 &       '  for indsym(nearest atom)=',indsym(4,isym,iatom)
-       call wrtout(std_out,message,'COLL')
+       call abi_wrtout(std_out,message,'COLL')
 !      
 !      Use errout to reduce volume of error diagnostic output
        if (errout==0) then
@@ -166,7 +166,7 @@ subroutine symatm(indsym,natom,nsym,symrec,tnons,tolsym,typat,xred)
 &         ' away than some',ch10,&
 &         '  tolerance.  Should check atomic coordinates', &
 &         ' and symmetry group input data.'
-         call wrtout(std_out,message,'COLL')
+         call abi_wrtout(std_out,message,'COLL')
          errout=1
        end if
 !      End difmax>tol
@@ -179,11 +179,11 @@ subroutine symatm(indsym,natom,nsym,symrec,tnons,tolsym,typat,xred)
  do iatom=1,natom
    write(message, '(a,i5,a)' ) &
 &   ' symatm: atom number',iatom,' is reached starting at atom'
-   call wrtout(std_out,message,'COLL')
+   call abi_wrtout(std_out,message,'COLL')
    do ii=1,(nsym-1)/24+1
      write(message, '(1x,24i3)' ) &
 &     (indsym(4,isym,iatom),isym=1+(ii-1)*24,min(nsym,ii*24))
-     call wrtout(std_out,message,'COLL')
+     call abi_wrtout(std_out,message,'COLL')
    end do
  end do
 
@@ -195,7 +195,7 @@ subroutine symatm(indsym,natom,nsym,symrec,tnons,tolsym,typat,xred)
  if (err>tolsym) then
    write(message, '(1x,a,1p,e14.5,a,e12.4)' ) &
 &   'symatm: maximum (delta t)=',err,' is larger than tol=',tolsym
-   call wrtout(std_out,message,'COLL')
+   call abi_wrtout(std_out,message,'COLL')
  end if
 
 !Stop execution if error is really big
@@ -206,8 +206,8 @@ subroutine symatm(indsym,natom,nsym,symrec,tnons,tolsym,typat,xred)
 &   '  atomic coordinates (xred)',ch10,&
 &   '  are wrong or space group symmetry data is wrong.',ch10,&
 &   '  Action : correct your input file.'
-   call wrtout(std_out,message,'COLL')
-   call leave_new('COLL')
+   call abi_wrtout(std_out,message,'COLL')
+   call abi_leave_new('COLL')
  end if
 !
 end subroutine symatm

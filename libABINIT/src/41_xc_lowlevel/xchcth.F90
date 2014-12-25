@@ -52,7 +52,7 @@
 !!      drivexc
 !!
 !! CHILDREN
-!!      invcb,leave_new,wrtout
+!!      invcb,abi_leave_new,abi_wrtout
 !!
 !! SOURCE
 
@@ -128,8 +128,8 @@ subroutine xchcth(dvxcdgr,exci,grho2_updn,ixc,npts,nspden,&
    write(message, '(a,a,a,a,i12,a)' ) ch10,&
 &   ' xchcth : BUG -',ch10,&
 &   '  Order must be 1 ; argument was ',order,'.'
-   call wrtout(std_out,message,'COLL')
-   call leave_new('COLL')
+   call abi_wrtout(std_out,message,'COLL')
+   call abi_leave_new('COLL')
  end if
 
  if(initialized==0)then
@@ -184,8 +184,8 @@ subroutine xchcth(dvxcdgr,exci,grho2_updn,ixc,npts,nspden,&
    write(message, '(a,a,a,a,i12,a)' ) ch10,&
 &   ' xchcth : BUG -',ch10,&
 &   '  ixc must be 16, 17, 26, or 27 ; argument was ',ixc,'.'
-   call wrtout(std_out,message,'COLL')
-   call leave_new('COLL')
+   call abi_wrtout(std_out,message,'COLL')
+   call abi_leave_new('COLL')
  end if
 
 !Parameters for the Perdew-Wang 92 LSD as well as LSD-RPA,
@@ -1127,8 +1127,8 @@ subroutine xchcth(dvxcdgr,exci,grho2_updn,ixc,npts,nspden,&
 &   ' xchcth: BUG -',ch10,&
 &   '  Argument nspden must be 1 or 2; ',ch10,&
 &   '  Value provided as argument was ',nspden,'.'
-   call wrtout(std_out,message,'COLL')
-   call leave_new('COLL')
+   call abi_wrtout(std_out,message,'COLL')
+   call abi_leave_new('COLL')
 
  end if
 

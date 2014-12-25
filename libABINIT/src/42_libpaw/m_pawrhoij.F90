@@ -25,12 +25,12 @@
 MODULE m_pawrhoij
 
  use defs_basis
- use m_errors
  use m_xmpi
+ USE_MSG_HANDLING
  USE_MEMORY_PROFILING
 
- use m_io_tools,   only : flush_unit
- use m_fstrings,   only : toupper
+ use m_libpaw_tools, only : libpaw_flush, libpaw_to_upper
+
  use m_pawio,      only : pawio_print_ij
  use m_pawang,     only : pawang_type
  use m_pawtab,     only : pawtab_type
@@ -1779,8 +1779,6 @@ end subroutine pawrhoij_bcast
 
 ! *************************************************************************
 
- DBG_ENTER("COLL")
-
 !@pawrhoij_type
 
  in_place=(.not.present(pawrhoij_out))
@@ -2055,8 +2053,6 @@ end subroutine pawrhoij_bcast
  call free_my_atmtab(my_atmtab_in,my_atmtab_in_allocated)
  call free_my_atmtab(my_atmtab_out,my_atmtab_out_allocated)
 
- DBG_EXIT("COLL")
-
 end subroutine pawrhoij_redistribute
 !!***
 
@@ -2131,11 +2127,11 @@ subroutine pawrhoij_io(pawrhoij,unitfi,nsppol_in,nspinor_in,nspden_in,nlmn_type,
  integer :: cplex,i1,i2,iatom,iatom_tot,natom,ispden,bsize,ii,jj,lmn2_size
  integer :: nselect,my_cplex,my_natinc,my_natom,my_nspden,ngrhoijmx,size_rhoij2
  logical :: isbinary, paral_atom
+ character(len=500) :: msg
 !arrays
  integer,allocatable :: ibuffer(:),nsel44(:,:),nsel56(:)
  integer,pointer :: my_atmtab(:)
  real(dp), allocatable :: buffer(:)
- character(len=500) :: msg
 
 ! *************************************************************************
 
@@ -2143,16 +2139,19 @@ subroutine pawrhoij_io(pawrhoij,unitfi,nsppol_in,nspinor_in,nspden_in,nlmn_type,
  natom=size(typat)
  paral_atom=(my_natom/=natom)
  if (present(mpi_atmtab)) then
-   if (.not.associated(mpi_atmtab)) MSG_ERROR("mpi_atmtab not associated")
+   if (.not.associated(mpi_atmtab)) then
+     msg='mpi_atmtab not associated (pawrhoij_io)'
+     MSG_BUG(msg)
+   end if
    my_atmtab=>mpi_atmtab
  else if (my_natom/=natom) then
-   write(msg,'(a)')'pawrhoij_io : my_natom /=natom, mpi_atmtab should be in argument'
+   msg='my_natom /=natom, mpi_atmtab should be in argument (pawrhoij_io)'
    MSG_BUG(msg)
  end if
 
  isbinary=.TRUE.
  if (PRESENT(form)) then
-   if (toupper(form)=="FORMATTED") isbinary=.FALSE.
+   if (libpaw_to_upper(form)=="FORMATTED") isbinary=.FALSE.
  end if
 
  select case (rdwr_mode(1:1))
@@ -2319,7 +2318,7 @@ subroutine pawrhoij_io(pawrhoij,unitfi,nsppol_in,nspinor_in,nspden_in,nlmn_type,
              end do
            end do
          end do
-         call flush_unit(unitfi)
+         call libpaw_flush(unitfi)
        end if
        if (pawrhoij(iatom)%use_rhoijres>0) then
          do ispden=1,pawrhoij(iatom)%nspden
@@ -2328,7 +2327,7 @@ subroutine pawrhoij_io(pawrhoij,unitfi,nsppol_in,nspinor_in,nspden_in,nlmn_type,
 &              pawrhoij(iatom)%rhoijres(i2,ispden)
            end do
          end do
-         call flush_unit(unitfi)
+         call libpaw_flush(unitfi)
        end if
        if (pawrhoij(iatom)%nrhoijsel>0) then
          do ispden=1,pawrhoij(iatom)%nspden
@@ -2337,7 +2336,7 @@ subroutine pawrhoij_io(pawrhoij,unitfi,nsppol_in,nspinor_in,nspden_in,nlmn_type,
 &              pawrhoij(iatom)%rhoijp(i2,ispden)
            end do
          end do
-         call flush_unit(unitfi)
+         call libpaw_flush(unitfi)
        end if
        if (pawrhoij(iatom)%use_rhoij_>0) then
          size_rhoij2=size(pawrhoij(iatom)%rhoij_,2)
@@ -2348,16 +2347,17 @@ subroutine pawrhoij_io(pawrhoij,unitfi,nsppol_in,nspinor_in,nspden_in,nlmn_type,
            end do
          end do
        end if
-       call flush_unit(unitfi)
+       call libpaw_flush(unitfi)
        if (pawrhoij(iatom)%lmnmix_sz>0) then
          write(unitfi,'(a)') 'kpawmix '
          write(unitfi,'(i4,i4,i4,i4)') pawrhoij(iatom)%kpawmix(:)
        end if
-       call flush_unit(unitfi)
+       call libpaw_flush(unitfi)
      end do
 
    case default
-     MSG_ERROR("Wrong rdwr_mode"//TRIM(rdwr_mode))
+     msg='Wrong rdwr_mode'//TRIM(rdwr_mode)
+     MSG_ERROR(msg)
 
  end select
 
@@ -2599,8 +2599,6 @@ subroutine pawrhoij_mpisum_unpacked_1D(pawrhoij,comm1,comm2)
 
 !************************************************************************
 
- DBG_ENTER("COLL")
-
  natom=SIZE(pawrhoij);if (natom==0) return
 
  nproc1 = xcomm_size(comm1)
@@ -2640,8 +2638,6 @@ subroutine pawrhoij_mpisum_unpacked_1D(pawrhoij,comm1,comm2)
  LIBPAW_DEALLOCATE(buffer1)
  LIBPAW_DEALLOCATE(buffer2)
  LIBPAW_DEALLOCATE(dimlmn)
-
- DBG_EXIT("COLL")
 
 end subroutine pawrhoij_mpisum_unpacked_1D
 !!***
@@ -2702,8 +2698,6 @@ subroutine pawrhoij_mpisum_unpacked_2D(pawrhoij,comm1,comm2)
 
 !************************************************************************
 
- DBG_ENTER("COLL")
-
  natom =SIZE(pawrhoij,1);if (natom ==0) return
  nrhoij=SIZE(pawrhoij,2);if (nrhoij==0) return
 
@@ -2748,8 +2742,6 @@ subroutine pawrhoij_mpisum_unpacked_2D(pawrhoij,comm1,comm2)
  LIBPAW_DEALLOCATE(buffer1)
  LIBPAW_DEALLOCATE(buffer2)
  LIBPAW_DEALLOCATE(dimlmn)
-
- DBG_EXIT("COLL")
 
 end subroutine pawrhoij_mpisum_unpacked_2D
 !!***
@@ -2862,11 +2854,11 @@ subroutine symrhoij(pawrhoij,pawrhoij_unsym,choice,gprimd,indsym,ipert,natom,nsy
  real(dp) :: arg,factafm,syma,zarot2
  logical :: antiferro,have_phase,my_atmtab_allocated,noncoll,paral_atom,paral_atom_unsym,use_afm,use_res
  character(len=8) :: pertstrg,wrt_mode
- character(len=500) :: message
+ character(len=500) :: msg
 !arrays
  integer,parameter :: alpha(6)=(/1,2,3,3,3,2/),beta(6)=(/1,2,3,2,1,1/)
  integer :: nsym_used(2)
- integer, ABI_CONTIGUOUS pointer :: indlmn(:,:)
+ integer, pointer :: indlmn(:,:)
  integer,pointer :: my_atmtab(:)
  integer :: idum(0)
  real(dp) :: factsym(2),phase(2),rhoijc(2),ro(2),sumrho(2,2),sum1(2),rotrho(2,2),xsym(3)
@@ -2877,8 +2869,6 @@ subroutine symrhoij(pawrhoij,pawrhoij_unsym,choice,gprimd,indsym,ipert,natom,nsy
  type(pawrhoij_type),pointer :: pawrhoij_unsym_all(:)
 
 ! *********************************************************************
-
- DBG_ENTER("COLL")
 
 !Sizes of pawrhoij datastructures
  nrhoij=size(pawrhoij)
@@ -2901,23 +2891,23 @@ subroutine symrhoij(pawrhoij,pawrhoij_unsym,choice,gprimd,indsym,ipert,natom,nsy
      if ((choice==1.and.ngrhoij/=0) .or.(choice==2.and.ngrhoij/=3).or. &
 &     (choice==3.and.ngrhoij/=6).or.(choice==23.and.ngrhoij/=9).or. &
 &     (choice==4.and.ngrhoij/=6).or.(choice==24.and.ngrhoij/=9) ) then
-       message='Inconsistency between variables choice and ngrhoij !'
-       MSG_BUG(message)
+       msg='Inconsistency between variables choice and ngrhoij !'
+       MSG_BUG(msg)
      end if
    end if
 
 !  Symetrization of gradients not compatible with nspden=4
    if (nrhoij>0) then
      if (choice>2.and.pawrhoij(1)%nspden==4) then
-       message='For the time being, choice>2 is not compatible with nspden=4 !'
-       MSG_BUG(message)
+       msg='For the time being, choice>2 is not compatible with nspden=4 !'
+       MSG_BUG(msg)
      end if
    end if
 
 !  Symetry matrixes must be in memory
    if (pawang%nsym==0) then
-     message='pawang%zarot must be allocated !'
-     MSG_BUG(message)
+     msg='pawang%zarot must be allocated !'
+     MSG_BUG(msg)
    end if
 
 !  Antiferro case ?
@@ -2935,12 +2925,12 @@ subroutine symrhoij(pawrhoij,pawrhoij_unsym,choice,gprimd,indsym,ipert,natom,nsy
    if (ipert>0.and.present(qphon).and.nrhoij>0) then
      have_phase=(abs(qphon(1))>tol8.or.abs(qphon(2))>tol8.or.abs(qphon(3))>tol8)
      if (choice>1) then
-       message='choice>1 not compatible with q-phase !'
-       MSG_BUG(message)
+       msg='choice>1 not compatible with q-phase !'
+       MSG_BUG(msg)
      end if
      if (have_phase.and.cplex_eff==1) then
-       message='Should have cplex_dij=2 for a non-zero q!'
-       MSG_BUG(message)
+       msg='Should have cplex_dij=2 for a non-zero q!'
+       MSG_BUG(msg)
      end if
    end if
 
@@ -3506,8 +3496,8 @@ subroutine symrhoij(pawrhoij,pawrhoij_unsym,choice,gprimd,indsym,ipert,natom,nsy
 
    if (nrhoij>0) then
      if(pawrhoij(1)%nspden==2.and.pawrhoij(1)%nsppol==1) then
-       message=' In the antiferromagnetic case, nsym cannot be 1'
-       MSG_BUG(message)
+       msg=' In the antiferromagnetic case, nsym cannot be 1'
+       MSG_BUG(msg)
      end if
    end if
    if (optrhoij==1) then
@@ -3583,24 +3573,24 @@ subroutine symrhoij(pawrhoij,pawrhoij_unsym,choice,gprimd,indsym,ipert,natom,nsy
      if (nrhoij==1.and.ipert>0.and.ipert<=natom) iatom=ipert
      idum1=2;if (pawrhoij(iatm)%cplex==2.and.pawrhoij(iatm)%nspinor==1) idum1=1
      if (abs(pawprtvol)>=1) then
-       write(message, '(6a,i3,a)') ch10," PAW TEST:",ch10,&
+       write(msg, '(6a,i3,a)') ch10," PAW TEST:",ch10,&
 &       ' ====== Values of ',trim(pertstrg),' in symrhoij (iatom=',iatom,') ======'
-       call wrtout(std_out,message,wrt_mode)
+       call wrtout(std_out,msg,wrt_mode)
      end if
      do ispden=1,pawrhoij(iatm)%nspden
        if (abs(pawprtvol)>=1.and.pawrhoij(iatm)%nspden/=1) then
-         write(message, '(3a)') '   Component ',trim(dspin(ispden+2*(pawrhoij(iatm)%nspden/4))),':'
+         write(msg, '(3a)') '   Component ',trim(dspin(ispden+2*(pawrhoij(iatm)%nspden/4))),':'
        else if (pawrhoij(iatm)%nspden/=1) then
-         if (pawrhoij(iatm)%nspden/=4) write(message, '(4a,i3,a,i1,a)') ch10,&
+         if (pawrhoij(iatm)%nspden/=4) write(msg, '(4a,i3,a,i1,a)') ch10,&
 &         ' *********** ',trim(pertstrg),' (atom ',iatom,', ispden=',ispden,') **********'
-         if (pawrhoij(iatm)%nspden==4) write(message, '(4a,i3,3a)') ch10,&
+         if (pawrhoij(iatm)%nspden==4) write(msg, '(4a,i3,3a)') ch10,&
 &         ' *********** ',trim(pertstrg),' (atom ',iatom,' - ',&
 &         trim(dspin(ispden+2*(pawrhoij(iatm)%nspden/4))),') **********'
        else
-         write(message, '(4a,i3,a)') ch10,&
+         write(msg, '(4a,i3,a)') ch10,&
 &         ' *********** ',trim(pertstrg),' (atom ',iatom,') **********'
        end if
-       call wrtout(std_out,message,wrt_mode)
+       call wrtout(std_out,msg,wrt_mode)
        call pawio_print_ij(std_out,pawrhoij(iatm)%rhoijp(:,ispden),&
 &       pawrhoij(iatm)%nrhoijsel,&
 &       pawrhoij(iatm)%cplex,&
@@ -3610,14 +3600,12 @@ subroutine symrhoij(pawrhoij,pawrhoij_unsym,choice,gprimd,indsym,ipert,natom,nsy
 &       opt_sym=idum1,mode_paral=wrt_mode)
      end do
    end do
-   message=''
-   call wrtout(std_out,message,wrt_mode)
+   msg=''
+   call wrtout(std_out,msg,wrt_mode)
  end if
 
 !Destroy atom table used for parallelism
  call free_my_atmtab(my_atmtab,my_atmtab_allocated)
-
- DBG_EXIT("COLL")
 
 !*********************************************************************
 !Small function: convert a symmetry operation
@@ -3717,8 +3705,6 @@ subroutine pawrhoij_isendreceive_getbuffer(pawrhoij,nrhoij_send,atm_indx_recv,bu
 
 ! *********************************************************************
 
- DBG_ENTER("COLL")
-
  buf_int_size=size(buf_int)
  buf_dp_size=size(buf_dp)
  indx_int=1;indx_dp=1
@@ -3802,8 +3788,6 @@ subroutine pawrhoij_isendreceive_getbuffer(pawrhoij,nrhoij_send,atm_indx_recv,bu
    MSG_BUG(msg)
  end if
 
- DBG_EXIT("COLL")
-
 end subroutine pawrhoij_isendreceive_getbuffer
 !!***
 
@@ -3870,8 +3854,6 @@ implicit none
 !arrays
 
 ! *********************************************************************
-
- DBG_ENTER("COLL")
 
 !Compute sizes of buffers
  buf_int_size=0;buf_dp_size=0
@@ -3982,8 +3964,6 @@ implicit none
    write(msg,'(a,i10,a,i10)') 'Wrong buffer sizes: buf_int_size=',buf_int_size,' buf_dp_size=',buf_dp_size
    MSG_BUG(msg)
  end if
-
- DBG_EXIT("COLL")
 
 end subroutine pawrhoij_isendreceive_fillbuffer
 !!***

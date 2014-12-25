@@ -53,7 +53,7 @@
  kk=1+(97*ii3)/im3
  if (kk<1.or.kk>97) then
    write(06, '(a,2i10,a)' ) ' trouble in uniformrandom; ii3,kk=',ii3,kk,' =>stop'
-   call leave_new('COLL')
+   call abi_leave_new('COLL')
  end if 
  uniformrandom=table(kk) 
 

@@ -37,7 +37,7 @@
 !!      read_gkk,setsym,strainsym,symdij,symdyma,wfconv
 !!
 !! CHILDREN
-!!      leave_new,wrtout
+!!      abi_leave_new,abi_wrtout
 !!
 !! SOURCE
 
@@ -89,8 +89,8 @@ subroutine mati3inv(mm,mit)
 &   ' mati3inv : BUG -',ch10,&
 &   '  Attempting to invert integer array',ch10,&
 &   mm(:,:),'   ==> determinant is zero.'
-   call wrtout(std_out,message,'COLL')
-   call leave_new('COLL')
+   call abi_wrtout(std_out,message,'COLL')
+   call abi_leave_new('COLL')
  end if
 
 end subroutine mati3inv

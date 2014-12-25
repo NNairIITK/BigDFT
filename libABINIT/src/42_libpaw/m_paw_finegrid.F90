@@ -24,7 +24,7 @@
 MODULE m_paw_finegrid
 
  use defs_basis
- use m_errors
+ USE_MSG_HANDLING
  USE_MEMORY_PROFILING
 
  use m_pawtab,      only : pawtab_type
@@ -179,8 +179,6 @@ subroutine pawgylm(gylm,gylmgr,gylmgr2,lm_size,nfgd,optgr0,optgr1,optgr2,pawtab,
 &                                 +alpha(2,1+argl)*(qq(2,1+argl)**2)*jbespp2
 
 ! *************************************************************************
-
- DBG_ENTER("COLL")
 
  if (optgr0==0.and.optgr1==0.and.optgr2==0) return
  if (nfgd==0) return
@@ -760,8 +758,6 @@ subroutine pawgylm(gylm,gylmgr,gylmgr2,lm_size,nfgd,optgr0,optgr1,optgr2,pawtab,
    end if
  end if
 
- DBG_EXIT("COLL")
-
 end subroutine pawgylm
 !!***
 
@@ -823,8 +819,6 @@ subroutine pawexpiqr(expiqr,gprimd,nfgd,qphon,rfgd,xred)
 
 ! *************************************************************************
 
- DBG_ENTER("COLL")
-
  if (size(rfgd)/=3*nfgd) then
    msg='rfgd array must be allocated!'
    MSG_BUG(msg)
@@ -848,8 +842,6 @@ subroutine pawexpiqr(expiqr,gprimd,nfgd,qphon,rfgd,xred)
      expiqr(2,ic)=sin(phase)
    end do
  end if
-
- DBG_EXIT("COLL")
 
 end subroutine pawexpiqr
 !!***
@@ -926,8 +918,6 @@ subroutine pawrfgd_fft(ifftsph,gmet,n1,n2,n3,nfgd,rcut,rfgd,rprimd,ucvol,xred, &
  real(dp),allocatable :: rfgd_tmp(:,:)
 
 ! *************************************************************************
-
- DBG_ENTER("COLL")
 
 !Define a "box" around the atom
  r2cut=1.0000001_dp*rcut**2
@@ -1020,8 +1010,6 @@ subroutine pawrfgd_fft(ifftsph,gmet,n1,n2,n3,nfgd,rcut,rfgd,rprimd,ucvol,xred, &
    LIBPAW_DEALLOCATE(fft_index_)
  end if
 
- DBG_EXIT("COLL")
-
 end subroutine pawrfgd_fft
 !!***
 
@@ -1094,8 +1082,6 @@ subroutine pawrfgd_wvl(geocode,hh,ifftsph,i3s,n1,n1i,n2,n2i,n3,n3pi,&
  real(dp),allocatable :: rfgd_tmp(:,:)
 
 ! *************************************************************************
-
- DBG_ENTER("COLL")
 
 !Data for periodicity in the three directions
  perx=(geocode/='F')
@@ -1171,8 +1157,6 @@ subroutine pawrfgd_wvl(geocode,hh,ifftsph,i3s,n1,n1i,n2,n2i,n3,n3pi,&
 !Release temporary memory
  LIBPAW_DEALLOCATE(ifftsph_tmp)
  LIBPAW_DEALLOCATE(rfgd_tmp)
-
- DBG_EXIT("COLL")
 
 !*********************************************************************
 !Small functions related to boundary conditions

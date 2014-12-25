@@ -75,16 +75,16 @@ subroutine md_isokinetic_init(amass, mditemp, natom, vel)
 
      write(message, '(a)' )&
           &    ' Rescaling or initializing velocities to initial temperature'
-     call wrtout(ab_out,message,'COLL')
-     call wrtout(std_out,message,'COLL')
+     call abi_wrtout(ab_out,message,'COLL')
+     call abi_wrtout(std_out,message,'COLL')
      write(message, '(a,d12.5,a,D12.5)' )&
           &    ' --- Scaling factor :',rescale_vel,' Asked T (K) ',mditemp
-     call wrtout(ab_out,message,'COLL')
-     call wrtout(std_out,message,'COLL')
+     call abi_wrtout(ab_out,message,'COLL')
+     call abi_wrtout(std_out,message,'COLL')
      write(message, '(a,d12.5,a,D12.5)' )&
           &    ' --- Effective temperature',v2gauss/(3*natom*kb_HaK),' From variance', sigma2
-     call wrtout(ab_out,message,'COLL')
-     call wrtout(std_out,message,'COLL')
+     call abi_wrtout(ab_out,message,'COLL')
+     call abi_wrtout(std_out,message,'COLL')
   end if
 end subroutine md_isokinetic_init
 

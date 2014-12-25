@@ -19,7 +19,7 @@
 module m_atompaw
     
  use defs_basis
- use m_errors
+ USE_MSG_HANDLING
  USE_MEMORY_PROFILING
  
  use m_paw_numeric, only : jbessel, solvbes, paw_spline, paw_splint
@@ -112,8 +112,6 @@ subroutine atompaw_shpfun(ll,mesh,norm,pawtab,shapefunc)
 
 !***************************************************************************
 
- DBG_ENTER("COLL")
-
 !Index for shape function cut-off radius
  ishp=pawrad_ifromr(mesh,pawtab%rshp)-1
 
@@ -173,11 +171,10 @@ subroutine atompaw_shpfun(ll,mesh,norm,pawtab,shapefunc)
    norm=one
  end if
 
- DBG_EXIT("COLL")
-
 end subroutine atompaw_shpfun
 !!***
 
+!----------------------------------------------------------------------
 
 !!****f* m_atompaw/atompaw_atompaw_shapebes
 !! NAME
@@ -253,6 +250,7 @@ end subroutine atompaw_shpfun
 end subroutine atompaw_shapebes
 !!***
 
+!----------------------------------------------------------------------
 
 !!****f* m_atompaw/atompaw_vhnzc
 !! NAME
@@ -297,11 +295,10 @@ end subroutine atompaw_shapebes
  real(dp), intent(out) :: vhnzc(radmesh_core%mesh_size)
 
 !Local variables ---------------------------------------
-  real(dp) :: intg
-  real(dp),allocatable :: nwk(:)
-! *********************************************************************
+ real(dp) :: intg
+ real(dp),allocatable :: nwk(:)
 
- DBG_ENTER("COLL")
+! *********************************************************************
 
  LIBPAW_ALLOCATE(nwk,(radmesh_core%mesh_size))
 
@@ -312,11 +309,10 @@ end subroutine atompaw_shapebes
 
  LIBPAW_DEALLOCATE(nwk)
 
- DBG_EXIT("COLL")
-
  end subroutine atompaw_vhnzc
 !!***
 
+!----------------------------------------------------------------------
 
 !!****f* m_atompaw/atompaw_dij0
 !! NAME
@@ -381,8 +377,6 @@ end subroutine atompaw_shapebes
  real(dp),allocatable :: ff(:),r2k(:),shpf(:),vhnzc(:),vhtnzc_sph(:),work1(:),work2(:)
 
 ! *********************************************************************
-
- DBG_ENTER("COLL")
 
  lmn2_size=pawtab%lmn2_size
  meshsz=min(radmesh%mesh_size,radmesh_core%mesh_size,radmesh_vloc%mesh_size)
@@ -497,11 +491,10 @@ end subroutine atompaw_shapebes
  LIBPAW_DEALLOCATE(ff)
  LIBPAW_DEALLOCATE(vhtnzc_sph)
 
- DBG_EXIT("COLL")
-
  end subroutine atompaw_dij0
 !!***
 
+!----------------------------------------------------------------------
 
 !!****f* m_atompaw/atompaw_kij
 !! NAME
@@ -567,8 +560,6 @@ end subroutine atompaw_shapebes
  real(dp),allocatable :: ff(:),shpf(:),vhnzc(:),vhtnzc_sph(:),work1(:),work2(:)
 
 ! *********************************************************************
-
- DBG_ENTER("COLL")
 
  lmn2_size=pawtab%lmn2_size
  meshsz=min(radmesh%mesh_size,radmesh_core%mesh_size,radmesh_vloc%mesh_size)
@@ -673,10 +664,10 @@ end subroutine atompaw_shapebes
  LIBPAW_DEALLOCATE(ff)
  LIBPAW_DEALLOCATE(vhtnzc_sph)
 
- DBG_EXIT("COLL")
-
  end subroutine atompaw_kij
 !!***
+
+!----------------------------------------------------------------------
 
 end module m_atompaw
 !!***
