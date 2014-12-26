@@ -125,7 +125,7 @@ subroutine pawxc_xcpositron_wrapper(fnxc,grhoe2,ixcpositron,ngr,npt,posdensity0_
 !Do not modify the following lines by hand.
 #undef ABI_FUNC
 #define ABI_FUNC 'pawxc_xcpositron_wrapper'
- use interfaces_41_xc_lowlevel
+ !use interfaces_41_xc_lowlevel
 !End of the abilint section
 
  implicit none
@@ -465,7 +465,7 @@ subroutine pawxc_size_dvxc_wrapper(ixc,ndvxc,ngr2,nd2vxc,nspden,nvxcdgr,order)
 !Do not modify the following lines by hand.
 #undef ABI_FUNC
 #define ABI_FUNC 'pawxc_size_dvxc_wrapper'
- use interfaces_41_xc_lowlevel
+ !use interfaces_41_xc_lowlevel
 !End of the abilint section
 
  implicit none
@@ -617,7 +617,7 @@ subroutine pawxc_xcmult_wrapper (depsxc,nfft,ngrad,nspden,nspgrad,rhonow)
 !Do not modify the following lines by hand.
 #undef ABI_FUNC
 #define ABI_FUNC 'pawxc_xcmult_wrapper'
- use interfaces_41_xc_lowlevel
+ !use interfaces_41_xc_lowlevel
 !End of the abilint section
 
  implicit none
@@ -726,7 +726,7 @@ subroutine pawxc_mkdenpos_wrapper(iwarn,nfft,nspden,option,rhonow,xc_denpos)
 !Do not modify the following lines by hand.
 #undef ABI_FUNC
 #define ABI_FUNC 'pawxc_mkdenpos_wrapper'
- use interfaces_41_xc_lowlevel
+ !use interfaces_41_xc_lowlevel
 !End of the abilint section
 
  implicit none
@@ -5616,7 +5616,7 @@ end subroutine pawxcmpositron
 !Do not modify the following lines by hand.
 #undef ABI_FUNC
 #define ABI_FUNC 'pawxc_drivexc_main_wrapper'
- use interfaces_41_xc_lowlevel
+ !use interfaces_41_xc_lowlevel
 !End of the abilint section
 
  implicit none
@@ -5699,7 +5699,7 @@ subroutine pawxc_libxc()
 !Do not modify the following lines by hand.
 #undef ABI_FUNC
 #define ABI_FUNC 'pawxc_libxc'
- use interfaces_41_xc_lowlevel
+ !use interfaces_41_xc_lowlevel
 !End of the abilint section
 
  implicit none

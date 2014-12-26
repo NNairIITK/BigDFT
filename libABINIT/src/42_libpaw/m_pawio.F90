@@ -96,7 +96,7 @@ subroutine pawio_print_ij(unit,a_ij,adim,cplex,ndim,opt_l,opt_l_index,opt_pack,o
 !Do not modify the following lines by hand.
 #undef ABI_FUNC
 #define ABI_FUNC 'pawio_print_ij'
- use interfaces_14_hidewrite
+ !use interfaces_14_hidewrite
 !End of the abilint section
 
  implicit none

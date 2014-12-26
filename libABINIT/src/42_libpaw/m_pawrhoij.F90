@@ -2822,7 +2822,7 @@ subroutine symrhoij(pawrhoij,pawrhoij_unsym,choice,gprimd,indsym,ipert,natom,nsy
 !Do not modify the following lines by hand.
 #undef ABI_FUNC
 #define ABI_FUNC 'symrhoij'
- use interfaces_14_hidewrite
+ !use interfaces_14_hidewrite
 !End of the abilint section
 
  implicit none

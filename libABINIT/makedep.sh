@@ -1,14 +1,24 @@
 #!/bin/bash
 
+#These modules/includes do not have to be processed
 uses_except="BigDFT_API xc_f90_types_m libxc_funcs_m xc_f90_lib_m mpi omp_lib \
              ifcore f90_unix_proc fox_sax ieee_exceptions memory_profiling \
              netcdf etsf_io etsf_io_low_level"
 includes_except="fexcp.h"
 
+#Some "use module" statements might be expressed as cpp macros
+n_macros=1
+macros_in=("USE_MSG_HANDLING")
+macros_out=("m_libpaw_tools")
+
 function adddep
 {
  file=$1
  uses=`grep -e "^ *use " $file | sed "s/^ *use *\([a-zA-Z0-9_]*\).*/\1/g" | sort | uniq`
+ for ((i=0 ; ${n_macros} - $i ; i++));do
+  madd=`grep -e "^ *"${macros_in[$i]} ${file} | sed "s/${macros_in[$i]}/${macros_out[$i]}/g"`
+  if test -n "${madd}";then uses=`echo -e ${uses}" \n"${madd}`;fi
+ done
  includes=`grep -e "^ *include " $file | sed "s/^ *include [\"']*\([a-zA-Z0-9_.]*\)[\"'].*/\1/g" | sort | uniq`
  if test -n "$uses" -o -n "$includes" ; then
 	file=${file##./}

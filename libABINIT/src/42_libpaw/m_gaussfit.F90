@@ -106,7 +106,7 @@ CONTAINS
 !Do not modify the following lines by hand.
 #undef ABI_FUNC
 #define ABI_FUNC 'gaussfit_main'
- use interfaces_14_hidewrite
+ !use interfaces_14_hidewrite
 !End of the abilint section
 
  implicit none
@@ -643,6 +643,7 @@ end subroutine gaussfit_main
  subroutine gaussfit_mpi_assign(iterm,nproc,nterm_bounds,&
 & proc_dist,proc_load)
 
+
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
 #undef ABI_FUNC
@@ -715,7 +716,7 @@ end subroutine gaussfit_main
 !Do not modify the following lines by hand.
 #undef ABI_FUNC
 #define ABI_FUNC 'gaussfit_mpi_main'
- use interfaces_14_hidewrite
+ !use interfaces_14_hidewrite
 !End of the abilint section
 
  implicit none
@@ -1562,7 +1563,7 @@ subroutine gaussfit_rlsf(&
 !Do not modify the following lines by hand.
 #undef ABI_FUNC
 #define ABI_FUNC 'gaussfit_rlsf'
- use interfaces_14_hidewrite
+ !use interfaces_14_hidewrite
 !End of the abilint section
 
  implicit none
@@ -1949,14 +1950,15 @@ subroutine gaussfit_set_param2(nterm,nparam,nx,param,rpaw,x,y)
 
  subroutine gaussfit_param2_findsign()
 
+!Arguments -------------------------------
+!Local variables-------------------------------
+
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
 #undef ABI_FUNC
 #define ABI_FUNC 'gaussfit_param2_findsign'
 !End of the abilint section
 
-!Arguments -------------------------------
-!Local variables-------------------------------
  integer::ix,minx
  real(dp)::dist,mindist,xx,yy
 
@@ -2294,7 +2296,7 @@ subroutine gaussfit_projector(basis_size,mparam,nparam_array,nterm_bounds,orbita
 !Do not modify the following lines by hand.
 #undef ABI_FUNC
 #define ABI_FUNC 'gaussfit_projector'
- use interfaces_14_hidewrite
+ !use interfaces_14_hidewrite
 !End of the abilint section
 
  implicit none

@@ -1551,7 +1551,7 @@ subroutine mat_mlms2jmj(lcor,mat_mlms,mat_jmj,ndij,option,optspin,prtvol,unitfi,
 !Do not modify the following lines by hand.
 #undef ABI_FUNC
 #define ABI_FUNC 'mat_mlms2jmj'
- use interfaces_14_hidewrite
+ !use interfaces_14_hidewrite
 !End of the abilint section
 
  implicit none
@@ -1821,7 +1821,7 @@ subroutine mat_slm2ylm(lcor,mat_inp_c,mat_out_c,ndij,option,optspin,prtvol,unitf
 !Do not modify the following lines by hand.
 #undef ABI_FUNC
 #define ABI_FUNC 'mat_slm2ylm'
- use interfaces_14_hidewrite
+ !use interfaces_14_hidewrite
 !End of the abilint section
 
  implicit none

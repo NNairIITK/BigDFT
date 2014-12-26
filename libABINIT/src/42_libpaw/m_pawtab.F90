@@ -1079,7 +1079,7 @@ subroutine pawtab_print(Pawtab,header,unit,prtvol,mode_paral)
 !Do not modify the following lines by hand.
 #undef ABI_FUNC
 #define ABI_FUNC 'pawtab_print'
- use interfaces_14_hidewrite
+ !use interfaces_14_hidewrite
 !End of the abilint section
 
  implicit none

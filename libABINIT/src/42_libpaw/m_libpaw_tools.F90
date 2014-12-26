@@ -77,7 +77,6 @@ subroutine libpaw_wrtout(unit,msg,mode_paral)
 !Do not modify the following lines by hand.
 #undef ABI_FUNC
 #define ABI_FUNC 'libpaw_wrtout'
- use interfaces_14_hidewrite
 !End of the abilint section
 
  implicit none
@@ -154,7 +153,6 @@ subroutine libpaw_wrtout_myproc(unit,msg,mpicomm)
 !Do not modify the following lines by hand.
 #undef ABI_FUNC
 #define ABI_FUNC 'libpaw_wrtout_myproc'
- use interfaces_14_hidewrite
 !End of the abilint section
 
  implicit none
