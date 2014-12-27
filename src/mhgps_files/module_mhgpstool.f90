@@ -159,7 +159,7 @@ subroutine count_saddle_points(nfolder,folders,nsad)
     do ifolder = 1, nfolder
         isadfolder=0
         do
-            call construct_filenames(folders,ifolder,isad+1,fsaddle,&
+            call construct_filenames(folders,ifolder,isadfolder+1,fsaddle,&
                  fminL,fminR)
             call check_struct_file_exists(fsaddle,fsaddleEx)
             call check_struct_file_exists(fminL,fminLex)
@@ -200,7 +200,7 @@ subroutine read_and_merge_data(folders,nsad,mdat)
     integer  :: kid
     integer  :: k_epot
     integer  :: id_minleft, id_minright, id_saddle
-    integer :: isadcount
+    integer :: isadfolder
 integer :: i
     nfolder = size(folders,1)
 
@@ -214,11 +214,11 @@ integer :: i
     call yaml_map('en_delta_sad',en_delta_sad)
     call yaml_map('fp_delta_sad',fp_delta_sad)
     call yaml_comment('Merging ....',hfill='-')
-    isadcount=0
     do ifolder =1, nfolder
+        isadfolder=0
         do isad =1, nsad(ifolder)
-            isadcount=isadcount+1
-            call construct_filenames(folders,ifolder,isadcount,fsaddle,&
+            isadfolder=isadfolder+1
+            call construct_filenames(folders,ifolder,isadfolder,fsaddle,&
                  fminL,fminR)
             call deallocate_atomic_structure(mdat%astruct)
             !insert left minimum
