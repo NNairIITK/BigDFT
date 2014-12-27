@@ -259,7 +259,7 @@ program wvl
   pkernel=pkernel_init(.true.,iproc,nproc,0,&
        atoms%astruct%geocode,(/Lzd%Glr%d%n1i,Lzd%Glr%d%n2i,Lzd%Glr%d%n3i/),&
        (/inputs%hx / 2._gp,inputs%hy / 2._gp,inputs%hz / 2._gp/),16)
-  call pkernel_set(pkernel,.false.)
+  call pkernel_set(pkernel,verbose=.false.)
   !call createKernel(iproc,nproc,atoms%astruct%geocode,&
   !     (/Lzd%Glr%d%n1i,Lzd%Glr%d%n2i,Lzd%Glr%d%n3i/), &
   !     (/inputs%hx / 2._gp,inputs%hy / 2._gp,inputs%hz / 2._gp/)&

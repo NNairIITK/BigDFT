@@ -405,7 +405,7 @@ subroutine print_dft_parameters(in,atoms)
       end if
     call yaml_mapping_close()
 
-    if (in%ncharge > 0) call yaml_map('Net Charge (Ions-Electrons)',in%ncharge,fmt='(i8)')
+    if (in%qcharge /= 0.0_gp) call yaml_map('Net Charge (Ions-Electrons)',in%qcharge,fmt='(f8.5)')!'(i8)')
     if (sqrt(sum(in%elecfield(:)**2)) > 0.0_gp) &
       call yaml_map('External Electric Field (Ha/a0)',in%elecfield(:),fmt='(1pe8.1)')
   call yaml_mapping_close()

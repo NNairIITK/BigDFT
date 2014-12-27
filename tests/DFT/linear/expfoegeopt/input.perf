@@ -1,0 +1,11 @@
+ef_interpol_det 0.10E-19
+mixing_after_inputguess 2
+check_sumrho 1
+experimental_mode Yes
+kappa_conv 0.7
+evbounds_nsatur 100
+method_updatekernel 2
+purification_quickreturn Yes
+calculate_gap Yes
+correction_co_contra Yes
+FOE_restart 1

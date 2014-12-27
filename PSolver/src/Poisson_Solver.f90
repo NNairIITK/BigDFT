@@ -55,10 +55,12 @@
 !!
 !! @ingroup PSOLVER
 module Poisson_Solver
+   use dictionaries, only: f_err_throw
    use wrapper_linalg
    use wrapper_MPI
    use dynamic_memory
-   use time_profiling, only: TIMING_UNINITIALIZED
+   use time_profiling, only: TIMING_UNINITIALIZED, f_timing
+   use yaml_output, only: yaml_map, yaml_toa, yaml_mapping_open, yaml_mapping_close
    !use m_profiling
    ! TO BE REMOVED with f_malloc
    
@@ -118,10 +120,26 @@ module Poisson_Solver
        !!                which has to be compatible with the FFT.
        !!          - 'H' Helmholtz Equation Solver
       character(len=1) :: geocode
+      !> method of embedding in the environment
+       !!          - 'VAC' Poisson Equation in vacuum. Default case.
+       !!          - 'PCG' Generalized Poisson Equation, Preconditioned Conjugate Gradient
+       !!          - 'PI'  Generalized Poisson Equation, Polarization Iteration method
+      character(len=3) :: method 
       integer, dimension(3) :: ndims   !< dimension of the box of the density
       real(gp), dimension(3) :: hgrids !<grid spacings in each direction
       real(gp), dimension(3) :: angrad !< angles in radiants between each of the axis
       real(dp), dimension(:), pointer :: kernel !< kernel of the Poisson Solver
+      !> logaritmic derivative of the dielectric function,
+      !! to be used in the case of Polarization Iteration method
+      real(dp), dimension(:,:,:,:), pointer :: dlogeps
+      !> inverse of the dielectric function
+      !! in the case of Polarization Iteration method
+      !! inverse of the square root of epsilon
+      !! in the case of the Preconditioned Conjugate Gradient
+      real(dp), dimension(:,:,:), pointer :: oneoeps
+      !> correction term, given in terms of the multiplicative factor of nabla*eps*nabla
+      !! to be used for Preconditioned Conjugate Gradient 
+      real(dp), dimension(:,:,:), pointer :: corr
       real(dp) :: work1_GPU,work2_GPU,k_GPU !<addresses for the GPU memory 
       integer, dimension(5) :: plan
       integer, dimension(3) :: geo
@@ -191,11 +209,15 @@ contains
     type(coulomb_operator) :: k
     k%itype_scf=0
     k%geocode='F'
+    k%method='VAC'
     k%mu=0.0_gp
     k%ndims=(/0,0,0/)
     k%hgrids=(/0.0_gp,0.0_gp,0.0_gp/)
     k%angrad=(/0.0_gp,0.0_gp,0.0_gp/)
     nullify(k%kernel)
+    nullify(k%dlogeps)
+    nullify(k%oneoeps)
+    nullify(k%corr)
     k%work1_GPU=0.d0
     k%work2_GPU=0.d0
     k%k_GPU=0.d0

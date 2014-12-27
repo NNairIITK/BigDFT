@@ -237,6 +237,8 @@ subroutine zero_local_work_arrays(n1, n2, n3, nfl1, nfu1, nfl2, nfu2, nfl3, nfu3
   integer:: i, istat
   integer,parameter :: lowfil=-14,lupfil=14
 
+  call f_routine(id='zero_local_work_arrays')
+
   call f_zero(work%xx_c)
   call f_zero(work%xy_c)
   call f_zero(work%xz_c)
@@ -311,5 +313,6 @@ subroutine zero_local_work_arrays(n1, n2, n3, nfl1, nfu1, nfl2, nfu2, nfl3, nfu3
      call f_zero(work%yze_f)
   end if
   
+  call f_release_routine()
 
 END SUBROUTINE zero_local_work_arrays

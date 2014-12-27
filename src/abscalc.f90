@@ -440,7 +440,7 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
    !allocate communications arrays (allocate it before Projectors because of the definition
    !of iskpts and nkptsp)
 
-   call orbitals_descriptors(iproc,nproc,1,1,0,in%nspin,1,in%gen_nkpt,in%gen_kpt,in%gen_wkpt,orbs,.false.)
+   call orbitals_descriptors(iproc,nproc,1,1,0,in%nspin,1,in%gen_nkpt,in%gen_kpt,in%gen_wkpt,orbs,LINEAR_PARTITION_NONE)
    call orbitals_communicators(iproc,nproc,KSwfn%Lzd%Glr,orbs,comms)  
 
    call createProjectorsArrays(KSwfn%Lzd%Glr,rxyz,atoms,orbs,&
@@ -494,7 +494,7 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
    ndegree_ip=16 !default value
    pkernel=pkernel_init(.true.,iproc,nproc,in%matacc%PSolver_igpu,&
         atoms%astruct%geocode,dpcom%ndims,dpcom%hgrids,ndegree_ip)
-   call pkernel_set(pkernel,(verbose > 1))
+   call pkernel_set(pkernel,verbose=(verbose > 1))
    !call createKernel(iproc,nproc,atoms%astruct%geocode,dpcom%ndims,dpcom%hgrids,ndegree_ip,pkernel,&
    !     (verbose > 1))
 

@@ -7,6 +7,9 @@
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS
+
+
+!> Manage low-level operations (external files and basic memory operations)
 module f_utils
   use dictionaries, only: f_err_throw,f_err_define, &
        & dictionary, dict_len, dict_iter, dict_next, dict_value, max_field_length
@@ -15,7 +18,7 @@ module f_utils
 
   private
 
-  integer, save, private :: INPUT_OUTPUT_ERROR
+  integer, private, save :: INPUT_OUTPUT_ERROR
 
   integer, public, save :: TCAT_INIT_TO_ZERO
 
@@ -27,11 +30,13 @@ module f_utils
      integer :: iunit = 0
      type(dictionary), pointer :: lstring => null()
   end type io_stream
+
   !> enumerator type, useful to define different modes
   type, public :: f_enumerator
      character(len=64) :: name
      integer :: id
   end type f_enumerator
+
   integer, parameter, private :: NULL_INT=-1024
   character(len=*), parameter, private :: null_name='nullified enumerator'
 
@@ -59,6 +64,13 @@ module f_utils
      module procedure put_to_zero_integer3
   end interface f_zero
 
+  !to be verified if clock_gettime is without side-effect, otherwise the routine cannot be pure
+  interface
+     pure subroutine nanosec(itime)
+       implicit none
+       integer(kind=8), intent(out) :: itime
+     end subroutine nanosec
+  end interface
 
   interface operator(==)
      module procedure enum_is_int,enum_is_enum
@@ -76,7 +88,7 @@ module f_utils
   public :: f_utils_errors,f_utils_recl,f_file_exists,f_close,f_zero
   public :: f_get_free_unit,f_delete_file,f_getpid,f_rewind
   public :: f_iostream_from_file,f_iostream_from_lstring
-  public :: f_iostream_get_line,f_iostream_release,f_pause
+  public :: f_iostream_get_line,f_iostream_release,f_time,f_pause
 
 contains
 
@@ -132,6 +144,42 @@ contains
          err_action='Check if you have correct file system permission in i/o library or check the fortan runtime library')
 
   end subroutine f_utils_errors
+
+  pure function f_time()
+    integer(kind=8) :: f_time
+    !local variables
+    integer(kind=8) :: itime
+    call nanosec(itime)
+    f_time=itime
+  end function f_time
+
+  !>enter in a infinite loop for sec seconds. Use cpu_time as granularity is enough
+  subroutine f_pause(sec,verbose)
+    implicit none
+    integer, intent(in) :: sec !< seconds to be waited
+    logical, intent(in), optional :: verbose !<for debugging purposes, do not eliminate
+    !local variables
+    logical :: verb
+    integer(kind=8) :: t0,t1
+    integer :: count
+
+    verb=.false.
+    if (present(verbose)) verb=verbose
+
+    if (sec <=0) return
+    t0=f_time()
+    t1=t0
+    !this loop has to be modified to avoid the compiler to perform too agressive optimisations
+    count=0
+    do while(real(t1-t0,kind=8)*1.d-9 < real(sec,kind=8))
+       count=count+1
+       t1=f_time()
+    end do
+    !this output is needed to avoid the compiler to perform too agressive optimizations
+    !therefore having a infinie loop
+    if (verb) print *,'Paused for '//trim(yaml_toa(sec))//' seconds, counting:'//&
+         trim(yaml_toa(count))
+  end subroutine f_pause
 
   !> gives the maximum record length allowed for a given unit
   subroutine f_utils_recl(unt,recl_max,recl)
@@ -364,21 +412,6 @@ contains
     ios%iunit = 0
     nullify(ios%lstring)
   end subroutine f_iostream_release
-
-  !>enter in a infinite loop for sec seconds. Use cpu_time as granularity is enough
-  subroutine f_pause(sec)
-    implicit none
-    integer, intent(in) :: sec !< seconds to be waited
-    !local variables
-    real :: t0,t1
-
-    call cpu_time(t0)
-    t1=t0
-    if (t0 < 0.e0) return ! no-clock case, according to specification
-    do while(nint(t1-t0) < sec)
-       call cpu_time(t1)
-    end do
-  end subroutine f_pause
 
   !>perform a difference of two objects (of similar kind)
   subroutine f_diff_i(n,a_add,b_add,diff)
@@ -668,7 +701,6 @@ contains
   subroutine put_to_zero_double_7(da)
     implicit none
     double precision, dimension(:,:,:,:,:,:,:), intent(out) :: da
-    logical :: within_openmp
     call f_timer_interrupt(TCAT_INIT_TO_ZERO) 
     call razero(size(da),da)
     call f_timer_resume() 

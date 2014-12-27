@@ -1176,6 +1176,8 @@ contains
           end if
        end if
 !       if (streams(strm)%flowrite) call yaml_newline(unit=unt)
+       !first, if the cursor is already gone, carriage return
+       if (streams(strm)%icursor >= streams(strm)%max_record_length) call dump(streams(strm),' ',advance='yes',event=SCALAR)
        icut=len_trim(mapvalue)
        istr=1
        cut=.true.
@@ -1183,8 +1185,9 @@ contains
        idbg=0
        cut_line: do while(cut)
           idbg=idbg+1
-          !print *,'hereOUTPU',cut,icut,idbg
+          !print *,'hereOUTPU',cut,icut,idbg,streams(strm)%icursor,streams(strm)%max_record_length
        !verify where the message can be cut
+          !print *,'test2',index(trim((mapvalue(istr:istr+icut-1))),' ',back=.true.)
           cut=.false.
           cut_message :do while(icut > streams(strm)%max_record_length - &
                max(streams(strm)%icursor,streams(strm)%indent))

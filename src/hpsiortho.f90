@@ -3283,7 +3283,7 @@ subroutine integral_equation(iproc,nproc,atoms,wfn,ngatherarr,local_potential,GP
           (/wfn%Lzd%Llr(ilr)%d%n1i,wfn%Lzd%Llr(ilr)%d%n2i,wfn%Lzd%Llr(ilr)%d%n3i/),&
           0.5_gp*wfn%Lzd%hgrids,16,mu0_screening=sqrt(2.0_gp*abs(eks)))
 
-     call pkernel_set(G_Helmholtz,.true.)
+     call pkernel_set(G_Helmholtz,verbose=.true.)
 
      !apply it to the gradient to smooth it
      call H_potential('D',G_Helmholtz,vpsir(1),vpsir(1),eh_fake,0.d0,.false.)

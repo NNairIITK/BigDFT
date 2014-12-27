@@ -874,7 +874,7 @@ subroutine writeLinearCoefficients(unitwf,useFormattedOutput,nat,rxyz,&
            exit
         end if
      end do
-     if (j==ntmb+1) stop 'Error finding significant coefficient!'
+     if (j==ntmb+1)print*,'Error finding significant coefficient, coefficients not scaled to have +ve first element'
 
      do j = 1, ntmb
           tt = coeff(j,i)
@@ -897,7 +897,7 @@ subroutine write_linear_matrices(iproc,nproc,imethod_overlap,filename,iformat,tm
   use yaml_output
   use module_interfaces, except_this_one => writeonewave
   use sparsematrix_base, only: sparsematrix_malloc_ptr, DENSE_FULL, assignment(=)
-  use sparsematrix, only: uncompress_matrix
+  use sparsematrix, only: uncompress_matrix, uncompress_matrix2
   implicit none
   integer, intent(in) :: iproc,nproc,imethod_overlap,iformat
   character(len=*), intent(in) :: filename 
@@ -909,18 +909,21 @@ subroutine write_linear_matrices(iproc,nproc,imethod_overlap,filename,iformat,tm
   !!integer :: i_stat, i_all
   character(len=*),parameter :: subname='write_linear_matrices'
 
+
+
+  tmb%linmat%ham_%matrix = sparsematrix_malloc_ptr(tmb%linmat%m, &
+                           iaction=DENSE_FULL, id='tmb%linmat%ham_%matrix')
+
+  call uncompress_matrix2(iproc, nproc, tmb%linmat%m, &
+       tmb%linmat%ham_%matrix_compr, tmb%linmat%ham_%matrix)
+
   if (iproc==0) then
+
      if(iformat == WF_FORMAT_PLAIN) then
         open(99, file=filename//'hamiltonian.bin', status='unknown',form='formatted')
      else
         open(99, file=filename//'hamiltonian.bin', status='unknown',form='unformatted')
      end if
-
-     tmb%linmat%ham_%matrix = sparsematrix_malloc_ptr(tmb%linmat%m, &
-                              iaction=DENSE_FULL, id='tmb%linmat%ham_%matrix')
-
-     call uncompress_matrix(iproc, tmb%linmat%m, &
-          inmat=tmb%linmat%ham_%matrix_compr, outmat=tmb%linmat%ham_%matrix)
 
      do ispin=1,tmb%linmat%m%nspin
         do iorb=1,tmb%linmat%m%nfvctr
@@ -936,23 +939,26 @@ subroutine write_linear_matrices(iproc,nproc,imethod_overlap,filename,iformat,tm
         end do
      end do
 
-     call f_free_ptr(tmb%linmat%ham_%matrix)
-
      close(99)
+
+  end if
+
+  call f_free_ptr(tmb%linmat%ham_%matrix)
+
+
+  tmb%linmat%ovrlp_%matrix = sparsematrix_malloc_ptr(tmb%linmat%s, iaction=DENSE_FULL, &
+                             id='tmb%linmat%ovrlp_%matrix')
+
+  call uncompress_matrix2(iproc, nproc, tmb%linmat%s, &
+          tmb%linmat%ovrlp_%matrix_compr, tmb%linmat%ovrlp_%matrix)
+
+  if (iproc==0) then
 
      if(iformat == WF_FORMAT_PLAIN) then
         open(99, file=filename//'overlap.bin', status='unknown',form='formatted')
      else
         open(99, file=filename//'overlap.bin', status='unknown',form='unformatted')
      end if
-
-     !!allocate(tmb%linmat%ovrlp%matrix(tmb%linmat%ovrlp%nfvctr,tmb%linmat%ovrlp%nfvctr), stat=i_stat)
-     !!call memocc(i_stat, tmb%linmat%ovrlp%matrix, 'tmb%linmat%ovrlp%matrix', subname)
-     tmb%linmat%ovrlp_%matrix = sparsematrix_malloc_ptr(tmb%linmat%s, iaction=DENSE_FULL, &
-                                id='tmb%linmat%ovrlp_%matrix')
-
-     call uncompress_matrix(iproc, tmb%linmat%s, &
-          inmat=tmb%linmat%ovrlp_%matrix_compr, outmat=tmb%linmat%ovrlp_%matrix)
 
      do ispin=1,tmb%linmat%s%nspin
         do iorb=1,tmb%linmat%s%nfvctr
@@ -968,25 +974,24 @@ subroutine write_linear_matrices(iproc,nproc,imethod_overlap,filename,iformat,tm
         end do
      end do
 
-     !!i_all = -product(shape(tmb%linmat%ovrlp%matrix))*kind(tmb%linmat%ovrlp%matrix)
-     !!deallocate(tmb%linmat%ovrlp%matrix,stat=i_stat)
-     !!call memocc(i_stat,i_all,'tmb%linmat%ovrlp%matrix',subname)
-     call f_free_ptr(tmb%linmat%ovrlp_%matrix)
-
-
      close(99)
 
+  end if
+
+  call f_free_ptr(tmb%linmat%ovrlp_%matrix)
+
+
+  tmb%linmat%kernel_%matrix = sparsematrix_malloc_ptr(tmb%linmat%l,iaction=DENSE_FULL,id='tmb%linmat%kernel_%matrix')
+
+  call uncompress_matrix2(iproc, nproc, tmb%linmat%l, &
+       tmb%linmat%kernel_%matrix_compr, tmb%linmat%kernel_%matrix)
+
+  if (iproc==0) then
      if(iformat == WF_FORMAT_PLAIN) then
         open(99, file=filename//'density_kernel.bin', status='unknown',form='formatted')
      else
         open(99, file=filename//'density_kernel.bin', status='unknown',form='unformatted')
      end if
-
-     tmb%linmat%kernel_%matrix = sparsematrix_malloc_ptr(tmb%linmat%l,iaction=DENSE_FULL,id='tmb%linmat%kernel_%matrix')
-
-
-     call uncompress_matrix(iproc,tmb%linmat%l, &
-          inmat=tmb%linmat%kernel_%matrix_compr, outmat=tmb%linmat%kernel_%matrix)
 
      do ispin=1,tmb%linmat%l%nspin
         do iorb=1,tmb%linmat%l%nfvctr
@@ -1002,11 +1007,11 @@ subroutine write_linear_matrices(iproc,nproc,imethod_overlap,filename,iformat,tm
         end do
      end do
 
-     call f_free_ptr(tmb%linmat%kernel_%matrix)
-
      close(99)
 
-  end if
+ end if
+
+  call f_free_ptr(tmb%linmat%kernel_%matrix)
 
   ! calculate 'onsite' overlap matrix as well - needs double checking
 
@@ -1645,6 +1650,160 @@ subroutine writemywaves_linear(iproc,filename,iformat,npsidim,Lzd,orbs,nelec,at,
 
 END SUBROUTINE writemywaves_linear
 
+
+
+!> Write all my wavefunctions in files by calling writeonewave
+subroutine writemywaves_linear_fragments(iproc,filename,iformat,npsidim,Lzd,orbs,nelec,at,rxyz,psi,coeff,&
+     dir_output,input_frag,ref_frags)
+  use module_types
+  use module_base
+  use module_fragments
+  use yaml_output
+  use module_interfaces
+  implicit none
+  integer, intent(in) :: iproc,iformat,npsidim,nelec
+  !integer, intent(in) :: norb   !< number of orbitals, not basis functions
+  type(atoms_data), intent(in) :: at
+  type(orbitals_data), intent(in) :: orbs         !< orbs describing the basis functions
+  type(local_zone_descriptors), intent(in) :: Lzd
+  real(gp), dimension(3,at%astruct%nat), intent(in) :: rxyz
+  real(wp), dimension(npsidim), intent(in) :: psi  ! Should be the real linear dimension and not the global
+  real(wp), dimension(orbs%norb,orbs%norb), intent(in) :: coeff
+  character(len=*), intent(in) :: dir_output, filename
+  type(fragmentInputParameters), intent(in) :: input_frag
+  type(system_fragment), dimension(input_frag%nfrag_ref), intent(inout) :: ref_frags
+  !Local variables
+  integer :: ncount1,ncount_rate,ncount_max,iorb,ncount2,iorb_out,ispinor,ilr,shift,ii,iat
+  integer :: jorb,jlr,isforb,isfat,ifrag,ifrag_ref,iforb,iiorb,iorbp,iiat,unitwf
+  real(kind=4) :: tr0,tr1
+  real(kind=8) :: tel
+  character(len=256) :: full_filename
+  logical, allocatable, dimension(:) :: fragment_written
+
+  if (iproc == 0) call yaml_map('Write wavefunctions to file', trim(filename)//'.*')
+  !if (iproc == 0) write(*,"(1x,A,A,a)") "Write wavefunctions to file: ", trim(filename),'.*'
+
+  if (iformat == WF_FORMAT_ETSF) then
+      stop 'Linear scaling with ETSF writing not implemented yet'
+!     call write_waves_etsf(iproc,filename,orbs,n1,n2,n3,hx,hy,hz,at,rxyz,wfd,psi)
+  else
+     call cpu_time(tr0)
+     call system_clock(ncount1,ncount_rate,ncount_max)
+
+     ! Write the TMBs in the Plain BigDFT files.
+     ! For now only output one (first) set per reference fragment
+    
+     ! array to check if we already outputted tmbs for this fragment type
+     fragment_written=f_malloc((/input_frag%nfrag_ref/),id='fragment_written')
+     fragment_written=.false.
+
+     unitwf=99
+     isforb=0
+     isfat=0
+     loop_ifrag: do ifrag=1,input_frag%nfrag
+        ! find reference fragment this corresponds to and check if we already outputted tmbs for this reference fragment
+        ifrag_ref=input_frag%frag_index(ifrag)
+        if (fragment_written(ifrag_ref)) then
+           isforb=isforb+ref_frags(ifrag_ref)%fbasis%forbs%norb
+           isfat=isfat+ref_frags(ifrag_ref)%astruct_frg%nat   
+           cycle
+        end if
+        fragment_written(ifrag_ref)=.true.
+
+        ! loop over orbitals of this fragment
+        loop_iforb: do iforb=1,ref_frags(ifrag_ref)%fbasis%forbs%norb
+           loop_iorb: do iorbp=1,orbs%norbp
+              iiorb=iorbp+orbs%isorb
+
+              ! check if this ref frag orbital corresponds to the orbital we want
+              if (iiorb/=iforb+isforb) cycle
+
+              ilr=orbs%inwhichlocreg(iiorb)
+              iiat=orbs%onwhichatom(iiorb)
+
+              shift = 1
+              do jorb = 1, iorbp-1 
+                 jlr = orbs%inwhichlocreg(jorb+orbs%isorb)
+                 shift = shift + Lzd%Llr(jlr)%wfd%nvctr_c+7*Lzd%Llr(jlr)%wfd%nvctr_f
+              end do
+
+              loop_ispinor: do ispinor=1,orbs%nspinor
+                 ! as this is a fragment calculation frag%dirname should contain fragment directory (otherwise it would be empty - should add check)
+                 ! bit of a hack to use orbs here not forbs, but different structures so this is necessary - to clean somehow
+                 full_filename=trim(dir_output)//trim(input_frag%dirname(ifrag_ref))//trim(filename)
+
+                 call open_filename_of_iorb(unitwf,(iformat == WF_FORMAT_BINARY),full_filename, &
+                      & orbs,iorbp,ispinor,iorb_out,iforb)
+
+                 !also what to do with eval? - at the moment completely arbitrary
+                 call writeonewave_linear(99,(iformat == WF_FORMAT_PLAIN),iorb_out,&
+                    & Lzd%Llr(ilr)%d%n1,Lzd%Llr(ilr)%d%n2,Lzd%Llr(ilr)%d%n3,&
+                    & Lzd%Llr(ilr)%ns1,Lzd%Llr(ilr)%ns2,Lzd%Llr(ilr)%ns3,& 
+                    & Lzd%hgrids(1),Lzd%hgrids(2),Lzd%hgrids(3), &
+                    & Lzd%Llr(ilr)%locregCenter,Lzd%Llr(ilr)%locrad, 4, 0.0d0, &  !put here the real potentialPrefac and Order
+                    & ref_frags(ifrag_ref)%astruct_frg%nat,rxyz(:,isfat+1:isfat+ref_frags(ifrag_ref)%astruct_frg%nat),&
+                    & Lzd%Llr(ilr)%wfd%nseg_c,Lzd%Llr(ilr)%wfd%nvctr_c,&
+                    & Lzd%Llr(ilr)%wfd%keygloc,Lzd%Llr(ilr)%wfd%keyvloc, &
+                    & Lzd%Llr(ilr)%wfd%nseg_f,Lzd%Llr(ilr)%wfd%nvctr_f,&
+                    & Lzd%Llr(ilr)%wfd%keygloc(1,Lzd%Llr(ilr)%wfd%nseg_c+1), &
+                    & Lzd%Llr(ilr)%wfd%keyvloc(Lzd%Llr(ilr)%wfd%nseg_c+1), &
+                    & psi(shift),psi(Lzd%Llr(ilr)%wfd%nvctr_c+shift),-0.5d0, & !orbs%eval(iiorb),&
+                    & orbs%onwhichatom(iiorb)-isfat)
+
+                 close(unitwf)
+
+              end do loop_ispinor
+           end do loop_iorb
+        end do loop_iforb
+
+
+        ! NEED to think about this - just make it diagonal for now? or random?  or truncate so they're not normalized?  or normalize after truncating?
+        ! Or maybe don't write coeffs at all but assume we're always doing frag to frag and can use isolated frag coeffs?
+
+        ! Now write the coefficients to file
+        ! Must be careful, the orbs%norb is the number of basis functions
+        ! while the norb is the number of orbitals.
+        if(iproc == 0) then
+           full_filename=trim(dir_output)//trim(input_frag%dirname(ifrag_ref))//trim(filename)
+ 
+           if(iformat == WF_FORMAT_PLAIN) then
+              open(unitwf, file=trim(full_filename)//'_coeff.bin', status='unknown',form='formatted')
+           else
+              open(unitwf, file=trim(full_filename)//'_coeff.bin', status='unknown',form='unformatted')
+           end if
+           call writeLinearCoefficients(unitwf,(iformat == WF_FORMAT_PLAIN),ref_frags(ifrag_ref)%astruct_frg%nat,&
+                rxyz(:,isfat+1:isfat+ref_frags(ifrag_ref)%astruct_frg%nat),ref_frags(ifrag_ref)%fbasis%forbs%norb,&
+                ref_frags(ifrag_ref)%nelec,&
+                coeff(isforb+1:isforb+ref_frags(ifrag_ref)%fbasis%forbs%norb,&
+                isforb+1:isforb+ref_frags(ifrag_ref)%fbasis%forbs%norb),&
+                orbs%eval(isforb+1:isforb+ref_frags(ifrag_ref)%fbasis%forbs%norb)) !-0.5d0
+           close(unitwf)
+        end if
+        call cpu_time(tr1)
+        call system_clock(ncount2,ncount_rate,ncount_max)
+        tel=dble(ncount2-ncount1)/dble(ncount_rate)
+        if (iproc == 0) then
+           call yaml_sequence_open('Write Waves Time')
+           call yaml_sequence(advance='no')
+           call yaml_mapping_open(flow=.true.)
+           call yaml_map('Process',iproc)
+           call yaml_map('Timing',(/ real(tr1-tr0,kind=8),tel /),fmt='(1pe10.3)')
+           call yaml_mapping_close()
+           call yaml_sequence_close()
+        end if
+
+        isforb=isforb+ref_frags(ifrag_ref)%fbasis%forbs%norb
+        isfat=isfat+ref_frags(ifrag_ref)%astruct_frg%nat    
+     end do loop_ifrag
+  end if
+
+  call f_free(fragment_written)
+
+
+END SUBROUTINE writemywaves_linear_fragments
+
+
+
 !possibly broken
 subroutine readonewave_linear(unitwf,useFormattedInput,iorb,iproc,n,ns,&
      & hgrids,at,llr,rxyz_old,rxyz,locrad,locregCenter,confPotOrder,&
@@ -2026,7 +2185,7 @@ subroutine read_coeff_minbasis(unitwf,useFormattedInput,iproc,ntmb,norb_old,coef
            exit
         end if
      end do
-     if (j==ntmb+1) stop 'Error finding significant coefficient!'
+     if (j==ntmb+1) print*,'Error finding significant coefficient, coefficients not scaled to have +ve first element'
   end do
 
 END SUBROUTINE read_coeff_minbasis
@@ -2075,6 +2234,7 @@ subroutine readmywaves_linear_new(iproc,nproc,dir_output,filename,iformat,at,tmb
   real(gp), dimension(:), allocatable :: dist
   integer, dimension(:), allocatable :: ipiv
   real(gp), dimension(:,:), allocatable :: rxyz_old !<this is read from the disk and not needed
+  real(gp) :: max_shift
 
   logical :: skip
 !!$ integer :: ierr
@@ -2405,7 +2565,7 @@ subroutine readmywaves_linear_new(iproc,nproc,dir_output,filename,iformat,at,tmb
   call timing(iproc,'tmbrestart','OF')
   call reformat_supportfunctions(iproc,nproc,&
        at,rxyz_old,rxyz,.false.,tmb,ndim_old,lzd_old,frag_trans_orb,&
-       psi_old,trim(dir_output),input_frag,ref_frags,phi_array_old)
+       psi_old,trim(dir_output),input_frag,ref_frags,max_shift,phi_array_old)
   call timing(iproc,'tmbrestart','ON')
 
   deallocate(frag_trans_orb)
@@ -2819,11 +2979,12 @@ END SUBROUTINE copy_old_inwhichlocreg
 !> Reformat wavefunctions if the mesh have changed (in a restart)
 !! NB add_derivatives must be false if we are using phi_array_old instead of psi_old and don't have the keys
 subroutine reformat_supportfunctions(iproc,nproc,at,rxyz_old,rxyz,add_derivatives,tmb,ndim_old,lzd_old,&
-       frag_trans,psi_old,input_dir,input_frag,ref_frags,phi_array_old)
+       frag_trans,psi_old,input_dir,input_frag,ref_frags,max_shift,phi_array_old)
   use module_base
   use module_types
   use module_fragments
   use module_interfaces, except_this_one=>reformat_supportfunctions
+  use yaml_output
   implicit none
   integer, intent(in) :: iproc,nproc
   integer, intent(in) :: ndim_old
@@ -2838,6 +2999,7 @@ subroutine reformat_supportfunctions(iproc,nproc,at,rxyz_old,rxyz,add_derivative
   character(len=*), intent(in) :: input_dir
   type(fragmentInputParameters), intent(in) :: input_frag
   type(system_fragment), dimension(:), intent(in) :: ref_frags
+  real(gp),intent(out) :: max_shift
   !Local variables
   character(len=*), parameter :: subname='reformatmywaves'
   logical :: reformat
@@ -2864,6 +3026,7 @@ subroutine reformat_supportfunctions(iproc,nproc,at,rxyz_old,rxyz,add_derivative
 
   reformat_reason=0
   tol=1.d-3
+  max_shift = 0.d0
 
   ! Get the derivatives of the support functions
   if (add_derivatives) then
@@ -2904,6 +3067,7 @@ subroutine reformat_supportfunctions(iproc,nproc,at,rxyz_old,rxyz,add_derivative
            lzd_old%llr(ilr_old)%wfd%nvctr_c,lzd_old%llr(ilr_old)%wfd%nvctr_f,&
            tmb%lzd%llr(ilr)%wfd%nvctr_c,tmb%lzd%llr(ilr)%wfd%nvctr_f,&
            n_old,n,ns_old,ns,frag_trans(iorb),centre_old_box,centre_new_box,da)  
+      max_shift = max(max_shift,sqrt(da(1)**2+da(2)**2+da(3)**2))
 !reformat=.true. !!!!temporary hack
       ! just copy psi from old to new as reformat not necessary
       if (.not. reformat) then 
@@ -3087,6 +3251,19 @@ subroutine reformat_supportfunctions(iproc,nproc,at,rxyz_old,rxyz,add_derivative
       end if
 
   end do
+
+  ! Get the maximal shift among all tasks
+  if (nproc>1) then
+      call mpiallred(max_shift, 1, mpi_max, bigdft_mpi%mpi_comm)
+  end if
+  if (iproc==0) call yaml_map('max shift of a locreg center',max_shift,fmt='(es9.2)')
+
+  ! Determine the dumping factor for the confinement. In the limit where the atoms 
+  ! have not moved, it goes to zero; in the limit where they have moved a lot, it goes to one.
+  tt = exp(max_shift*3.465735903d0) - 1.d0 !exponential which is 0 at 0.0 and 1 at 0.2
+  tt = min(tt,1.d0) !make sure that the value is not larger than 1.0
+  tmb%damping_factor_confinement = tt
+
 
   if (add_derivatives) then
      call f_free(phi_old_der)

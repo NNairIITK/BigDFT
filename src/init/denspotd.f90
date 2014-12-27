@@ -612,7 +612,7 @@ subroutine density_descriptors(iproc,nproc,xc,nspin,crmult,frmult,atoms,dpbox,&
 !!$     rhodsc%icomm=1
 !!$  end if
 
-  !in the case of taskgroups the RSC scheme should be overrided
+  !in the case of taskgroups the RSC scheme should be overridden
   if (rhodsc%icomm==1 .and. size(dpbox%nscatterarr,1) < nproc) then
      if (atoms%astruct%geocode.eq.'F') then
         rhodsc%icomm=2

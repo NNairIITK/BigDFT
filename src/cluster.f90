@@ -31,8 +31,11 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,energs,fxyz,strten,fnoise,press
 !  use vdwcorrection
   use yaml_output
   use psp_projectors
-  use sparsematrix_base, only: sparse_matrix_null, matrices_null, allocate_matrices
-  use sparsematrix_init, only: init_sparse_matrix, check_kernel_cutoff, init_matrix_taskgroups
+  use sparsematrix_base, only: sparse_matrix_null, matrices_null, allocate_matrices, &
+                               SPARSE_TASKGROUP, sparsematrix_malloc_ptr, assignment(=), &
+                               DENSE_PARALLEL, DENSE_MATMUL, SPARSE_FULL
+  use sparsematrix_init, only: init_sparse_matrix, check_kernel_cutoff, init_matrix_taskgroups, &
+                               check_local_matrix_extents
   use sparsematrix, only: check_matrix_compression
   use communications_base, only: comms_linear_null
   implicit none
@@ -104,6 +107,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,energs,fxyz,strten,fnoise,press
   ! testing
   real(kind=8),dimension(:,:),pointer :: locregcenters
   integer :: ilr, nlr, ioffset, linear_iscf
+  integer,dimension(2) :: irow, icol, iirow, iicol
   character(len=20) :: comment
 
   integer :: ishift
@@ -238,16 +242,23 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,energs,fxyz,strten,fnoise,press
   if(inputpsi == INPUT_PSI_MEMORY_LINEAR) then
     call system_initialization(iproc,nproc,.true.,inputpsi,input_wf_format,.false.,in,atoms,rxyz,GPU%OCLconv,&
          KSwfn%orbs,tmb%npsidim_orbs,tmb%npsidim_comp,tmb%orbs,KSwfn%Lzd,tmb%Lzd,nlpsp,&
-         KSwfn%comms,shift,ref_frags,denspot,locregcenters,tmb_old%orbs%inwhichlocreg,tmb_old%orbs%onwhichatom)
+         KSwfn%comms,shift,ref_frags,denspot=denspot,locregcenters=locregcenters,&
+         inwhichlocreg_old=tmb_old%orbs%inwhichlocreg,onwhichatom_old=tmb_old%orbs%onwhichatom,&
+         norb_par_ref=tmb_old%orbs%norb_par, norbu_par_ref=tmb_old%orbs%norbu_par, norbd_par_ref=tmb_old%orbs%norbd_par)
+  !else if(inputpsi == INPUT_PSI_DISK_LINEAR) then
+  !  call system_initialization(iproc,nproc,.true.,inputpsi,input_wf_format,.false.,in,atoms,rxyz,GPU%OCLconv,&
+  !       KSwfn%orbs,tmb%npsidim_orbs,tmb%npsidim_comp,tmb%orbs,KSwfn%Lzd,tmb%Lzd,nlpsp,&
+  !       KSwfn%comms,shift,ref_frags,denspot=denspot,locregcenters=locregcenters, &
+  !       norb_par_ref=tmb_old%orbs%norb_par, norbu_par_ref=tmb_old%orbs%norbu_par, norbd_par_ref=tmb_old%orbs%norbd_par)
   else if(inputpsi == INPUT_PSI_LINEAR_AO .or. inputpsi == INPUT_PSI_DISK_LINEAR) then
     call system_initialization(iproc,nproc,.true.,inputpsi,input_wf_format,.false.,in,atoms,rxyz,GPU%OCLconv,&
          KSwfn%orbs,tmb%npsidim_orbs,tmb%npsidim_comp,tmb%orbs,KSwfn%Lzd,tmb%Lzd,nlpsp,&
-         KSwfn%comms,shift,ref_frags,denspot,locregcenters)
+         KSwfn%comms,shift,ref_frags,denspot=denspot,locregcenters=locregcenters)
   else
     call system_initialization(iproc,nproc,.true.,inputpsi,input_wf_format,&
          & .false.,in,atoms,rxyz,GPU%OCLconv,&
          KSwfn%orbs,tmb%npsidim_orbs,tmb%npsidim_comp,tmb%orbs,KSwfn%Lzd,tmb%Lzd,nlpsp,&
-         KSwfn%comms,shift,ref_frags,denspot)
+         KSwfn%comms,shift,ref_frags,denspot=denspot)
   end if
 
   !memory estimation, to be rebuilt in a more modular way
@@ -286,9 +297,6 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,energs,fxyz,strten,fnoise,press
 
      call init_sparse_matrix_wrapper(iproc, nproc, in%nspin, tmb%orbs, tmb%ham_descr%lzd, atoms%astruct, &
           in%store_index, imode=1, smat=tmb%linmat%m)
-     tmb%linmat%ham_ = matrices_null()
-     call allocate_matrices(tmb%linmat%m, allocate_full=.false., &
-          matname='tmb%linmat%ham_', mat=tmb%linmat%ham_)
 
 
      !!call init_matrixindex_in_compressed_fortransposed(iproc, nproc, tmb%orbs, &
@@ -299,9 +307,6 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,energs,fxyz,strten,fnoise,press
 
      call init_sparse_matrix_wrapper(iproc, nproc, in%nspin, tmb%orbs, tmb%lzd, atoms%astruct, &
           in%store_index, imode=1, smat=tmb%linmat%s)
-     tmb%linmat%ovrlp_ = matrices_null()
-     call allocate_matrices(tmb%linmat%s, allocate_full=.false., &
-          matname='tmb%linmat%ovrlp_', mat=tmb%linmat%ovrlp_)
 
      !!call init_matrixindex_in_compressed_fortransposed(iproc, nproc, tmb%orbs, &
      !!     tmb%collcom, tmb%ham_descr%collcom, tmb%collcom_sr, tmb%linmat%ovrlp)
@@ -309,6 +314,70 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,energs,fxyz,strten,fnoise,press
           tmb%collcom, tmb%ham_descr%collcom, tmb%collcom_sr, tmb%linmat%s)
 
 
+
+
+
+
+     ! check the extent of the kernel cutoff (must be at least shamop radius)
+     call check_kernel_cutoff(iproc, tmb%orbs, atoms, in%hamapp_radius_incr, tmb%lzd)
+
+     call init_sparse_matrix_wrapper(iproc, nproc, in%nspin, tmb%orbs, tmb%lzd, atoms%astruct, &
+          in%store_index, imode=2, smat=tmb%linmat%l)
+
+     !!call init_matrixindex_in_compressed_fortransposed(iproc, nproc, tmb%orbs, &
+     !!     tmb%collcom, tmb%ham_descr%collcom, tmb%collcom_sr, tmb%linmat%denskern_large)
+     call init_matrixindex_in_compressed_fortransposed(iproc, nproc, tmb%orbs, &
+          tmb%collcom, tmb%ham_descr%collcom, tmb%collcom_sr, tmb%linmat%l)
+
+     iirow(1) = tmb%linmat%s%nfvctr
+     iirow(2) = 1
+     iicol(1) = tmb%linmat%s%nfvctr
+     iicol(2) = 1
+     call check_local_matrix_extents(iproc, nproc, tmb%collcom, tmb%collcom_sr, tmb%linmat%s, irow, icol)
+     iirow(1) = min(irow(1),iirow(1))
+     iirow(2) = max(irow(2),iirow(2))
+     iicol(1) = min(icol(1),iicol(1))
+     iicol(2) = max(icol(2),iicol(2))
+     call check_local_matrix_extents(iproc, nproc, tmb%ham_descr%collcom, tmb%collcom_sr, tmb%linmat%m, irow, icol)
+     iirow(1) = min(irow(1),iirow(1))
+     iirow(2) = max(irow(2),iirow(2))
+     iicol(1) = min(icol(1),iicol(1))
+     iicol(2) = max(icol(2),iicol(2))
+     call check_local_matrix_extents(iproc, nproc, tmb%ham_descr%collcom, tmb%collcom_sr, tmb%linmat%l, irow, icol)
+     iirow(1) = min(irow(1),iirow(1))
+     iirow(2) = max(irow(2),iirow(2))
+     iicol(1) = min(icol(1),iicol(1))
+     iicol(2) = max(icol(2),iicol(2))
+
+     call init_matrix_taskgroups(iproc, nproc, in%enable_matrix_taskgroups, &
+          tmb%collcom, tmb%collcom_sr, tmb%linmat%s, iirow, iicol)
+     call init_matrix_taskgroups(iproc, nproc, in%enable_matrix_taskgroups, &
+          tmb%ham_descr%collcom, tmb%collcom_sr, tmb%linmat%m, iirow, iicol)
+     call init_matrix_taskgroups(iproc, nproc, in%enable_matrix_taskgroups, &
+          tmb%ham_descr%collcom, tmb%collcom_sr, tmb%linmat%l, iirow, iicol)
+
+     tmb%linmat%kernel_ = matrices_null()
+     tmb%linmat%ham_ = matrices_null()
+     tmb%linmat%ovrlp_ = matrices_null()
+     !!call allocate_matrices(tmb%linmat%l, allocate_full=.false., &
+     !!     matname='tmb%linmat%kernel_', mat=tmb%linmat%kernel_)
+     !!call allocate_matrices(tmb%linmat%m, allocate_full=.false., &
+     !!     matname='tmb%linmat%ham_', mat=tmb%linmat%ham_)
+     !!call allocate_matrices(tmb%linmat%s, allocate_full=.false., &
+     !!     matname='tmb%linmat%ovrlp_', mat=tmb%linmat%ovrlp_)
+     tmb%linmat%kernel_%matrix_compr = sparsematrix_malloc_ptr(tmb%linmat%l, &
+         iaction=SPARSE_TASKGROUP,id='tmb%linmat%kernel_%matrix_compr')
+     if (tmb%linmat%l%smmm%nfvctrp>tmb%linmat%l%nfvctrp) then
+         tmb%linmat%kernel_%matrixp = sparsematrix_malloc_ptr(tmb%linmat%l, &
+             iaction=DENSE_MATMUL,id='tmb%linmat%kernel_%matrixp')
+     else
+         tmb%linmat%kernel_%matrixp = sparsematrix_malloc_ptr(tmb%linmat%l, &
+             iaction=DENSE_PARALLEL,id='tmb%linmat%kernel_%matrixp')
+     end if
+     tmb%linmat%ham_%matrix_compr = sparsematrix_malloc_ptr(tmb%linmat%m, &
+         iaction=SPARSE_TASKGROUP,id='tmb%linmat%ham_%matrix_compr')
+     tmb%linmat%ovrlp_%matrix_compr = sparsematrix_malloc_ptr(tmb%linmat%s, &
+         iaction=SPARSE_TASKGROUP,id='tmb%linmat%ovrlp_%matrix_compr')
 
      if (in%check_matrix_compression) then
          if (iproc==0) call yaml_mapping_open('Checking Compression/Uncompression of small sparse matrices')
@@ -319,33 +388,13 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,energs,fxyz,strten,fnoise,press
          if (iproc ==0) call yaml_mapping_close()
      end if
 
-
-
-     ! check the extent of the kernel cutoff (must be at least shamop radius)
-     call check_kernel_cutoff(iproc, tmb%orbs, atoms, tmb%lzd)
-
-     call init_sparse_matrix_wrapper(iproc, nproc, in%nspin, tmb%orbs, tmb%lzd, atoms%astruct, &
-          in%store_index, imode=2, smat=tmb%linmat%l)
-     tmb%linmat%kernel_ = matrices_null()
-     call allocate_matrices(tmb%linmat%l, allocate_full=.false., &
-          matname='tmb%linmat%kernel_', mat=tmb%linmat%kernel_)
      do i=1,size(tmb%linmat%ovrlppowers_)
          tmb%linmat%ovrlppowers_(i) = matrices_null()
-         call allocate_matrices(tmb%linmat%l, allocate_full=.false., &
-              matname='tmb%linmat%ovrlppowers_(i)', mat=tmb%linmat%ovrlppowers_(i))
+         !call allocate_matrices(tmb%linmat%l, allocate_full=.false., &
+         !     matname='tmb%linmat%ovrlppowers_(i)', mat=tmb%linmat%ovrlppowers_(i))
+         tmb%linmat%ovrlppowers_(i)%matrix_compr = &
+             sparsematrix_malloc_ptr(tmb%linmat%l, iaction=SPARSE_TASKGROUP, id='tmb%linmat%ovrlppowers_(i)%matrix_comp')
      end do
-
-     !!call init_matrixindex_in_compressed_fortransposed(iproc, nproc, tmb%orbs, &
-     !!     tmb%collcom, tmb%ham_descr%collcom, tmb%collcom_sr, tmb%linmat%denskern_large)
-     call init_matrixindex_in_compressed_fortransposed(iproc, nproc, tmb%orbs, &
-          tmb%collcom, tmb%ham_descr%collcom, tmb%collcom_sr, tmb%linmat%l)
-
-     call init_matrix_taskgroups(iproc, nproc, in%enable_matrix_taskgroups, &
-          tmb%collcom, tmb%collcom_sr, tmb%linmat%s)
-     call init_matrix_taskgroups(iproc, nproc, in%enable_matrix_taskgroups, &
-          tmb%ham_descr%collcom, tmb%collcom_sr, tmb%linmat%m)
-     call init_matrix_taskgroups(iproc, nproc, in%enable_matrix_taskgroups, &
-          tmb%ham_descr%collcom, tmb%collcom_sr, tmb%linmat%l)
 
      !call nullify_sparse_matrix(tmb%linmat%inv_ovrlp_large)
      !tmb%linmat%inv_ovrlp_large=sparse_matrix_null()
@@ -503,6 +552,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,energs,fxyz,strten,fnoise,press
      end select
      call denspot_set_history(denspot,linear_iscf,in%nspin, &
           KSwfn%Lzd%Glr%d%n1i,KSwfn%Lzd%Glr%d%n2i,npulayit=in%lin%mixHist_lowaccuracy)
+     tmb%damping_factor_confinement = 1.d0 !will be modified in case of a restart
      call input_wf(iproc,nproc,in,GPU,atoms,rxyz,denspot,denspot0,nlpsp,KSwfn,tmb,energs,&
           inputpsi,input_wf_format,norbv,lzd_old,psi_old,rxyz_old,tmb_old,ref_frags,cdft,&
           locregcenters)
@@ -636,9 +686,9 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,energs,fxyz,strten,fnoise,press
         deallocate(ref_frags)
       else if (inputpsi == INPUT_PSI_DISK_LINEAR) then! we haven't actually allocated anything, so can just nullify - should make this more robust/general
          do ifrag=1,in%frag%nfrag_ref
+            call fragment_free(ref_frags(ifrag))
             ref_frags(ifrag)%astruct_frg%nat=-1
             ref_frags(ifrag)%fbasis%forbs=minimal_orbitals_data_null()
-            call fragment_free(ref_frags(ifrag))
             !ref_frags(ifrag)=fragment_null()
          end do
         deallocate(ref_frags)
@@ -877,7 +927,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,energs,fxyz,strten,fnoise,press
            call orbitals_descriptors(iproc,nproc,nvirtu+nvirtd,nvirtu,nvirtd, &
                 KSwfn%orbs%nspin,KSwfn%orbs%nspinor,nkptv, &
                 in%kptv(:,sum(in%nkptsv_group(1:igroup - 1)) + 1:sum(in%nkptsv_group(1:igroup))), &
-                wkptv,VTwfn%orbs,.false.)
+                wkptv,VTwfn%orbs,LINEAR_PARTITION_NONE)
            !allocate communications arrays for virtual orbitals
            call orbitals_communicators(iproc,nproc,KSwfn%Lzd%Glr,VTwfn%orbs,VTwfn%comms)  
 
@@ -899,7 +949,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,energs,fxyz,strten,fnoise,press
            !the virtual orbitals should be in agreement with the traditional k-points
            call orbitals_descriptors(iproc,nproc,nvirtu+nvirtd,nvirtu,nvirtd, &
                 KSwfn%orbs%nspin,KSwfn%orbs%nspinor,KSwfn%orbs%nkpts,&
-                KSwfn%orbs%kpts,KSwfn%orbs%kwgts,VTwfn%orbs,.false.,&
+                KSwfn%orbs%kpts,KSwfn%orbs%kwgts,VTwfn%orbs,LINEAR_PARTITION_NONE,&
                 basedist=KSwfn%orbs%norb_par(0:,1:),basedistu=KSwfn%orbs%norbu_par(0:,1:),&
                 basedistd=KSwfn%orbs%norbd_par(0:,1:))
            !allocate communications arrays for virtual orbitals
@@ -1874,30 +1924,30 @@ subroutine kswfn_post_treatments(iproc, nproc, KSwfn, tmb, linear, &
      imode = 1
      nsize_psi=1
      ! This is just to save memory, since calculate_forces will require quite a lot
-     call deallocate_comms_linear(tmb%collcom)
-     call deallocate_comms_linear(tmb%ham_descr%collcom)
-     call deallocate_comms_linear(tmb%collcom_sr)
-     call deallocate_p2pcomms(tmb%comgp)
-     call deallocate_p2pcomms(tmb%ham_descr%comgp)
-     do i=1,size(tmb%linmat%ovrlppowers_)
-         call deallocate_matrices(tmb%linmat%ovrlppowers_(i))
-     end do
-     call deallocate_matrices(tmb%linmat%ham_)
-     call deallocate_matrices(tmb%linmat%ovrlp_)
-     call deallocate_sparse_matrix(tmb%linmat%s)
-     call deallocate_sparse_matrix(tmb%linmat%m)
-     if (associated(tmb%linmat%ks)) then
-         do ispin=1,tmb%linmat%l%nspin
-             call deallocate_sparse_matrix(tmb%linmat%ks(ispin))
-         end do
-         deallocate(tmb%linmat%ks)
-     end if
-     if (associated(tmb%linmat%ks_e)) then
-         do ispin=1,tmb%linmat%l%nspin
-             call deallocate_sparse_matrix(tmb%linmat%ks_e(ispin))
-         end do
-         deallocate(tmb%linmat%ks_e)
-     end if
+!     call deallocate_comms_linear(tmb%collcom)
+!     call deallocate_comms_linear(tmb%ham_descr%collcom)
+!     call deallocate_comms_linear(tmb%collcom_sr)
+!     call deallocate_p2pcomms(tmb%comgp)
+!     call deallocate_p2pcomms(tmb%ham_descr%comgp)
+!     do i=1,size(tmb%linmat%ovrlppowers_)
+!         call deallocate_matrices(tmb%linmat%ovrlppowers_(i))
+!     end do
+!     call deallocate_matrices(tmb%linmat%ham_)
+!     call deallocate_matrices(tmb%linmat%ovrlp_)
+!     call deallocate_sparse_matrix(tmb%linmat%s)
+!     call deallocate_sparse_matrix(tmb%linmat%m)
+!     if (associated(tmb%linmat%ks)) then
+!         do ispin=1,tmb%linmat%l%nspin
+!             call deallocate_sparse_matrix(tmb%linmat%ks(ispin))
+!         end do
+!         deallocate(tmb%linmat%ks)
+!     end if
+!     if (associated(tmb%linmat%ks_e)) then
+!         do ispin=1,tmb%linmat%l%nspin
+!             call deallocate_sparse_matrix(tmb%linmat%ks_e(ispin))
+!         end do
+!         deallocate(tmb%linmat%ks_e)
+!     end if
   else
      imode = 0
      nsize_psi = (KSwfn%Lzd%Glr%wfd%nvctr_c+7*KSwfn%Lzd%Glr%wfd%nvctr_f)*KSwfn%orbs%nspinor*KSwfn%orbs%norbp
@@ -1916,11 +1966,11 @@ subroutine kswfn_post_treatments(iproc, nproc, KSwfn, tmb, linear, &
 
   if (linear) then
      ! to eventually be better sorted
-     call synchronize_onesided_communication(iproc, nproc, tmb%ham_descr%comgp)
-     call deallocate_p2pComms(tmb%ham_descr%comgp)
-     call deallocate_local_zone_descriptors(tmb%ham_descr%lzd)
-     call deallocate_comms_linear(tmb%ham_descr%collcom)
-     call deallocate_auxiliary_basis_function(subname, tmb%ham_descr%psi, tmb%hpsi)
+!     call synchronize_onesided_communication(iproc, nproc, tmb%ham_descr%comgp)
+!     call deallocate_p2pComms(tmb%ham_descr%comgp)
+!     call deallocate_local_zone_descriptors(tmb%ham_descr%lzd)
+!     call deallocate_comms_linear(tmb%ham_descr%collcom)
+!     call deallocate_auxiliary_basis_function(subname, tmb%ham_descr%psi, tmb%hpsi)
 
 !!!! TEST ##################
      !!fxyz=0.d0

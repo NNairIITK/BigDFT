@@ -746,7 +746,18 @@ contains
          implicit none
          type(dictionary), pointer, intent(in) :: dict1,dict2
          logical :: yess
-         
+!!$         !this new version should use less stack
+!!$         type(dictionary), pointer :: iter1,iter2
+!!$         iter1 => dict1
+!!$         iter2 => dict2
+!!$         yess=nodes_are_equal(iter1,iter2)
+!!$         !if we are not at the last point
+!!$         do while(yess .and. associated(iter1))
+!!$            iter1 => iter1%next
+!!$            iter2 => iter2%next
+!!$            yess= nodes_are_equal(iter1,iter2)
+!!$         end do
+
          yess= nodes_are_equal(dict1,dict2)
          if (.not. yess .or. .not. associated(dict1) ) return
 

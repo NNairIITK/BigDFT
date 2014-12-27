@@ -676,19 +676,20 @@ program MINHOP
       nlmin=nlmin+1
       call insert(bigdft_mpi%iproc,nlminx,nlmin,nid,bigdft_nat(run_opt),k_e,outs%energy,wfp,&
            rxyz_opt,en_arr,ct_arr,fp_arr,pl_arr)
-! write intermediate results
-      if (bigdft_mpi%iproc == 0) call yaml_comment('(MH) WINTER')
-      if (bigdft_mpi%iproc == 0) call winter(naming_id,natoms,bigdft_get_astruct_ptr(run_opt),&
+      ! write intermediate results
+
+      if (bigdft_mpi%iproc == 0) then
+         call yaml_comment('(MH) WINTER')
+         call winter(naming_id,natoms,bigdft_get_astruct_ptr(run_opt),&
                                  nid,nlminx,nlmin,singlestep,en_delta,fp_delta,en_arr,ct_arr,&
                                  fp_arr,pl_arr,ediff,ekinetic,dt,nsoften)
-      if (bigdft_mpi%iproc == 0) then
-         !call yaml_stream_attributes()
+        !call yaml_stream_attributes()
         call yaml_mapping_open('(MH) New minimum',flow=.true.)
         call yaml_map('(MH) has energy',outs%energy,fmt='(e14.7)')
         !if (dmin < 1.e100_gp) 
            call yaml_map('(MH) distance',dmin,fmt='(e11.4)')
         call yaml_mapping_close(advance='yes')
-      endif
+      end if
       nvisit=1
    else
       escape_old=escape_old+1.d0

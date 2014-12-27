@@ -1631,7 +1631,6 @@ contains
     integer :: dummy_int, blocks(2)
     double precision :: dummy_real
     character(len = 7) :: dummy_str
-    character(len = max_field_length) :: dummy_path
 
     call input_set_file(iproc, (iproc == 0), filename, exists, PERF_VARIABLES)
     !if (exists) in%files = in%files + INPUTS_PERF
@@ -1797,7 +1796,13 @@ contains
     call set(dict // IMETHOD_OVERLAP, dummy_int)
 
     call input_var("enable_matrix_taskgroups", .true., "enable matrix taskgroups", dummy_bool)
-    call set(dict // IMETHOD_OVERLAP, dummy_int)
+    call set(dict // ENABLE_MATRIX_TASKGROUPS, dummy_bool)
+
+    call input_var("hamapp_radius_incr", 8, "radius enlargement for Ham application", dummy_int)
+    call set(dict // HAMAPP_RADIUS_INCR, dummy_int)
+
+    call input_var("adjust_kernel_iterations", .true., "addaptive ajustment of the number of kernel iterations", dummy_bool)
+    call set(dict // ADJUST_KERNEL_ITERATIONS, dummy_bool)
 
     call input_free(.false.)
 

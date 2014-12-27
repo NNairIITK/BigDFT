@@ -1509,7 +1509,7 @@ contains
 
 
   subroutine occupation_set_from_dict(dict, key, norbu, norbd, occup, &
-       & nkpts, nspin, norbsempty, nelec_up, nelec_down, norb_max)
+       & nkpts, nspin, norbsempty, qelec_up, qelec_down, norb_max)
     use module_defs, only: gp
     use dynamic_memory
     use yaml_output
@@ -1517,33 +1517,46 @@ contains
     type(dictionary), pointer :: dict
     character(len = *), intent(in) :: key
     real(gp), dimension(:), pointer :: occup
-    integer, intent(in) :: nkpts, nspin, norbsempty, nelec_up, nelec_down, norb_max
+    integer, intent(in) :: nkpts, nspin, norbsempty, norb_max
+    real(gp), intent(in) :: qelec_up, qelec_down
     integer, intent(out) :: norbu, norbd
 
     integer :: norb
-    integer :: ikpt
+    integer :: ikpt,ne_up,ne_dwn
     type(dictionary), pointer :: occup_src
     character(len = 12) :: kpt_key
-
     call f_routine(id='occupation_set_from_dict')
-
     ! Default case.
+    !integer approximation of the number of electrons
+    ne_up=int_elec(qelec_up)
+    !the same for down case
+    ne_dwn=int_elec(qelec_down)
+
     if (nspin == 1) then
-       norb  = min((nelec_up + 1) / 2, norb_max)
+       !norb  = min((nelec_up + 1) / 2, norb_max)
+       norb  = min((ne_up + 1) / 2, norb_max)
        norbu = norb
     else
-       norb = min(nelec_up + nelec_down, 2 * norb_max)
+       !norb = min(nelec_up + nelec_down, 2 * norb_max)
+       norb = min(ne_up + ne_dwn, 2 * norb_max)
        if (nspin == 2) then
-          norbu = min(nelec_up, norb_max)
+          !norbu = min(nelec_up, norb_max)
+          norbu = min(ne_up, norb_max)
        else
-          norbu = min(nelec_up, 2 * norb_max)
+          !norbu = min(nelec_up, 2 * norb_max)
+          norbu = min(ne_up, 2 * norb_max)
        end if
     end if
     norbd = norb - norbu
+!!$    write(*,*) nelec_up, nelec_down, norbsempty, norb_max
+!!$    write(*,*) norbu, norbd, norb
+!!$    stop
     ! Modify the default with occupation
-    nullify(occup_src)
-    if (has_key(dict, key)) then
-       occup_src => dict //key
+    occup_src = dict .get. key
+    !nullify(occup_src)
+    !if (has_key(dict, key)) then
+    if (associated(occup_src)) then
+       !occup_src => dict //key
        ! Occupation is provided.
        if (has_key(occup_src, "K point 1")) then
           call count_for_kpt(occup_src // "K point 1")
@@ -1579,7 +1592,7 @@ contains
     ! Setup occupation
     if (nspin==1) then
        do ikpt = 1, nkpts, 1
-          call fill_default((ikpt - 1) * norb, 2, nelec_up, norb)
+          call fill_default((ikpt - 1) * norb, 2, qelec_up, norb)
           if (associated(occup_src)) then
              write(kpt_key, "(A)") "K point" // trim(yaml_toa(ikpt, fmt = "(I0)"))
              if (ikpt == 0 .and. .not. has_key(occup_src, kpt_key)) then
@@ -1591,8 +1604,8 @@ contains
        end do
     else
        do ikpt = 0, nkpts - 1, 1
-          call fill_default(ikpt * norb, 1, nelec_up, norbu)
-          call fill_default(ikpt * norb + norbu, 1, nelec_down, norbd)
+          call fill_default(ikpt * norb, 1, qelec_up, norbu)
+          call fill_default(ikpt * norb + norbu, 1, qelec_down, norbd)
           if (associated(occup_src)) then
              write(kpt_key, "(A)") "K point" // trim(yaml_toa(ikpt, fmt = "(I0)"))
              if (ikpt == 0 .and. .not. has_key(occup_src, kpt_key)) then
@@ -1607,16 +1620,26 @@ contains
     end if
 
     !Check if sum(occup)=nelec
-    if (abs(sum(occup) / nkpts - real(nelec_up + nelec_down,gp))>1.e-6_gp) then
+    if (abs(sum(occup) / nkpts - (qelec_up + qelec_down))>1.e-6_gp) then
        call yaml_warning('the total number of electrons ' &
             & // trim(yaml_toa(sum(occup) / nkpts,fmt='(f13.6)')) &
-            & // ' is not equal to' // trim(yaml_toa(nelec_up + nelec_down)))
+            & // ' is not equal to' // trim(yaml_toa(qelec_up + qelec_down)))
        stop
     end if
 
     call f_release_routine()
 
   contains
+
+    pure function int_elec(qelec) result(ne)
+      implicit none
+      real(gp), intent(in) :: qelec
+      integer :: ne
+      
+      ne=nint(qelec)
+      !if we have an excess of electrons, add one orbital
+      if (qelec - real(ne,gp) > 1.e-12_gp) ne=ne+1
+    end function int_elec
 
     subroutine count_for_kpt(occ)
       implicit none
@@ -1650,18 +1673,21 @@ contains
       end do
     end subroutine count_orbs
 
-    subroutine fill_default(isorb, nfill, nelec, norb)
+    subroutine fill_default(isorb, nfill, qelec, norb)
       implicit none
-      integer, intent(in) :: isorb, nfill, nelec, norb
+      integer, intent(in) :: isorb, nfill, norb
+      real(gp), intent(in) :: qelec
+      !local variables
+      integer :: iorb, ne
+      real(gp) :: rit,rnt
 
-      integer :: nt, it, iorb, ne
-
-      nt=0
-      ne = (nelec + 1) / nfill
+      rnt=0.0_gp
+      !ne = (nelec + 1) / nfill
+      ne = (int_elec(qelec) + 1) / nfill
       do iorb=isorb + 1, isorb + min(ne, norb)
-         it=min(nfill,nelec-nt)
-         occup(iorb)=real(it,gp)
-         nt=nt+it
+         rit=min(real(nfill,gp),qelec-rnt)
+         occup(iorb)=rit
+         rnt=rnt+rit
       enddo
       do iorb=isorb+min(ne, norb)+1,isorb+norb
          occup(iorb)=0._gp
@@ -1686,7 +1712,7 @@ contains
       end do
     end subroutine fill_for_kpt
   end subroutine occupation_set_from_dict
-!!$
+
 
   subroutine occupation_data_file_merge_to_dict(dict, key, filename)
     use module_defs, only: gp, UNINITIALIZED

@@ -149,14 +149,14 @@ yaml_output.o : dictionaries.o f_utils.o $(YAML_INCLUDES)
 yaml_parse.o : dictionaries.o yaml_output.o
 #error_handling.o: dictionaries.o callbacks.o yaml_output.o $(ERR_INCLUDES)
 f_malloc.o: dictionaries.o $(F_MALLOC_INCLUDES)
-dynamic_memory.o: getadd.o yaml_strings.o yaml_output.o yaml_parse.o mem_profiling.o f_malloc.o $(DYN_INCLUDES)
+dynamic_memory.o: getadd.o yaml_strings.o yaml_output.o yaml_parse.o mem_profiling.o f_malloc.o f_utils.o $(DYN_INCLUDES)
 mem_profiling.o: yaml_output.o $(mpi_include) yaml_parse.o yaml_strings.o
 f_lib_highlev.o: dictionaries.o yaml_output.o dynamic_memory.o yaml_parse.o time.o f_utils.o
 f_utils.o: dictionaries.o yaml_strings.o
 getadd.o: yaml_strings.o $(GETADD_INCLUDES)
 $(flush_object): yaml_output.o dictionaries.o
 
-time.o: $(NOOMP_INCLUDES) dynamic_memory.o $(mpi_include) #this is temporary, mpif.h should only be in wrappers
+time.o: $(NOOMP_INCLUDES) dynamic_memory.o f_utils.o $(mpi_include) #this is temporary, mpif.h should only be in wrappers
 
 #Fake mpif.h for serial compilation
 mpif.h:

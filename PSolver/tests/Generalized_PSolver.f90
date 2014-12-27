@@ -94,10 +94,7 @@ program GPS_3D
    ndims=(/n01,n02,n03/)
    hgrids=(/hx,hy,hz/)
 
-   pkernel=pkernel_init(.true.,iproc,nproc,0,geocode,ndims,hgrids,itype_scf)
-
-   call pkernel_set(pkernel,.true.)
-   !call F_FFT_dimensions(n01,n02,n03,m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd3,nproc,0,.false.)
+   pkernel=pkernel_init(.true.,iproc,nproc,0,geocode,ndims,hgrids,itype_scf,method=PSol)
 
 !------------------------------------------------------------------------
 
@@ -140,6 +137,9 @@ program GPS_3D
 !!$   write(*,'(3(1x,I4),2(1x,e14.7))')i1_max,i2_max,i3_max,max_diffpot,abs(density(n01/2,n02/2,n03/2,1)-rvApp(n01/2,n02/2,n03/2,1))
 
   rhopot(:,:,:,:) = density(:,:,:,:)
+
+  !set the coulomb operator of this system
+  call pkernel_set(pkernel,verbose=.true.,eps=eps)
 
   if ( trim(PSol)=='PCG') then
 
@@ -275,11 +275,11 @@ subroutine PolarizationIteration(n01,n02,n03,nspden,b,acell,eps,nord,pkernel,pot
     do i1=1,n01
      rhopol(i1,i2,i3,isp) = 0.d0
      rhosol(i1,i2,i3,isp) = b(i1,i2,i3,isp)
-
-     !switch and create the logarithmic derivative of epsilon
-     dlv(1,i1,i2,i3)=deps(i1,i2,i3,1)/eps(i1,i2,i3)
-     dlv(2,i1,i2,i3)=deps(i1,i2,i3,2)/eps(i1,i2,i3)
-     dlv(3,i1,i2,i3)=deps(i1,i2,i3,3)/eps(i1,i2,i3)
+!!$
+!!$     !switch and create the logarithmic derivative of epsilon
+!!$     dlv(1,i1,i2,i3)=deps(i1,i2,i3,1)/eps(i1,i2,i3)
+!!$     dlv(2,i1,i2,i3)=deps(i1,i2,i3,2)/eps(i1,i2,i3)
+!!$     dlv(3,i1,i2,i3)=deps(i1,i2,i3,3)/eps(i1,i2,i3)
 
     end do
    end do
@@ -300,8 +300,9 @@ subroutine PolarizationIteration(n01,n02,n03,nspden,b,acell,eps,nord,pkernel,pot
      do i3=1,n03
       do i2=1,n02
        do i1=1,n01
-        rhotot(i1,i2,i3,isp)=(1/eps(i1,i2,i3))*rhosol(i1,i2,i3,isp)+rhopol(i1,i2,i3,isp)
-        lv(i1,i2,i3,isp) = rhotot(i1,i2,i3,isp)
+          !rhotot(i1,i2,i3,isp)=(1/eps(i1,i2,i3))*rhosol(i1,i2,i3,isp)+rhopol(i1,i2,i3,isp)
+          rhotot(i1,i2,i3,isp)=pkernel%oneoeps(i1,i2,i3)*rhosol(i1,i2,i3,isp)+rhopol(i1,i2,i3,isp)
+          lv(i1,i2,i3,isp) = rhotot(i1,i2,i3,isp)
        end do
       end do
      end do
@@ -311,7 +312,7 @@ subroutine PolarizationIteration(n01,n02,n03,nspden,b,acell,eps,nord,pkernel,pot
 
      call writeroutinePot(n01,n02,n03,nspden,lv,ip,potential)
 
-     call fssnord3DmatNabla_LG(n01,n02,n03,lv,nord,acell,eta,dlv,rhopol,rhores2)
+     call fssnord3DmatNabla_LG(n01,n02,n03,lv,nord,acell,eta,pkernel%dlogeps,rhopol,rhores2)
      !!!call fssnord3DmatNabla(n01,n02,n03,nspden,lv,dlv,nord,acell)
      !!!
      !!!isp=1
@@ -526,7 +527,8 @@ subroutine Prec_conjugate_gradient(n01,n02,n03,nspden,b,acell,eps,nord,pkernel,p
   do i3=1,n03
      do i2=1,n02
         do i1=1,n01
-           lv(i1,i2,i3,isp) = r(i1,i2,i3,isp)/dsqrt(eps(i1,i2,i3))
+           !lv(i1,i2,i3,isp) = r(i1,i2,i3,isp)/dsqrt(eps(i1,i2,i3))
+           lv(i1,i2,i3,isp) = pkernel%oneoeps(i1,i2,i3)*r(i1,i2,i3,isp)
         end do
      end do
   end do
@@ -551,7 +553,8 @@ subroutine Prec_conjugate_gradient(n01,n02,n03,nspden,b,acell,eps,nord,pkernel,p
    do i3=1,n03
     do i2=1,n02
      do i1=1,n01
-      z(i1,i2,i3,isp) = lv(i1,i2,i3,isp)/dsqrt(eps(i1,i2,i3))
+        !z(i1,i2,i3,isp) = lv(i1,i2,i3,isp)/dsqrt(eps(i1,i2,i3))
+        z(i1,i2,i3,isp) = lv(i1,i2,i3,isp)*pkernel%oneoeps(i1,i2,i3)
       beta=beta+r(i1,i2,i3,isp)*z(i1,i2,i3,isp)
 ! Apply the Generalized Laplace operator nabla(eps*nabla) to the potential correction
       !q(i1,i2,i3,isp)=r(i1,i2,i3,isp)+z(i1,i2,i3,isp)*corr(i1,i2,i3,isp)
@@ -567,7 +570,8 @@ subroutine Prec_conjugate_gradient(n01,n02,n03,nspden,b,acell,eps,nord,pkernel,p
     do i2=1,n02
      do i1=1,n01
         zeta=z(i1,i2,i3,isp)
-        epsc=corr(i1,i2,i3,isp)
+        !epsc=corr(i1,i2,i3,isp)
+        epsc=pkernel%corr(i1,i2,i3)
         pval=p(i1,i2,i3,isp)
         qval=q(i1,i2,i3,isp)
         rval=r(i1,i2,i3,isp)
@@ -595,7 +599,8 @@ subroutine Prec_conjugate_gradient(n01,n02,n03,nspden,b,acell,eps,nord,pkernel,p
       x(i1,i2,i3,isp) = x(i1,i2,i3,isp) + alpha*p(i1,i2,i3,isp)
       r(i1,i2,i3,isp) = r(i1,i2,i3,isp) - alpha*q(i1,i2,i3,isp)
       normr=normr+r(i1,i2,i3,isp)*r(i1,i2,i3,isp)
-      lv(i1,i2,i3,isp) = r(i1,i2,i3,isp)/dsqrt(eps(i1,i2,i3))
+      !lv(i1,i2,i3,isp) = r(i1,i2,i3,isp)/dsqrt(eps(i1,i2,i3))
+      lv(i1,i2,i3,isp) = r(i1,i2,i3,isp)*pkernel%oneoeps(i1,i2,i3)
      end do
     end do
    end do

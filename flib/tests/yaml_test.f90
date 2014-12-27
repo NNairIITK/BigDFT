@@ -35,7 +35,7 @@ program yaml_test
    
    type(dictionary), pointer :: dict_tmp,run
    type(yaml_cl_parse) :: parser
-   !logical :: fl
+   double precision :: t0
 
    call f_lib_initialize()
    !test output level
@@ -179,6 +179,13 @@ program yaml_test
 
 
    call dict_free(run)
+   
+   !wait one second
+   t0=dble(f_time())*1.d-9
+   call yaml_map('Time before pause',t0)
+   call f_pause(1)
+   call yaml_map('Time spent after pause',dble(f_time())*1.d-9-t0)
+
    !prepare the finalization of the library
    call f_lib_finalize()
 

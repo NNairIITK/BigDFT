@@ -151,7 +151,8 @@ subroutine inputs_from_dict(in, atoms, dict)
   !Local variables
   !type(dictionary), pointer :: profs, dict_frag
   logical :: found, userdef
-  integer :: ierr, nelec_up, nelec_down, norb_max, jtype, jxc
+  integer :: ierr, norb_max, jtype, jxc
+  real(gp) :: qelec_up, qelec_down
   character(len = max_field_length) :: msg,filename,run_id,input_id,posinp_id,outdir
 !  type(f_dict) :: dict
   type(dictionary), pointer :: dict_minimal, var, lvl, types
@@ -294,12 +295,11 @@ subroutine inputs_from_dict(in, atoms, dict)
   atoms%mp_isf = in%mp_isf
 
   ! Generate orbital occupation
-  call read_n_orbitals(bigdft_mpi%iproc, nelec_up, nelec_down, norb_max, atoms, &
-       & in%ncharge, in%nspin, in%mpol, in%norbsempty)
-  if (norb_max == 0) norb_max = nelec_up + nelec_down ! electron gas case
+  call read_n_orbitals(bigdft_mpi%iproc, qelec_up, qelec_down, norb_max, atoms, &
+       in%qcharge, in%nspin, in%mpol, in%norbsempty)
   call occupation_set_from_dict(dict, OCCUPATION, &
-       & in%gen_norbu, in%gen_norbd, in%gen_occup, &
-       & in%gen_nkpt, in%nspin, in%norbsempty, nelec_up, nelec_down, norb_max)
+       in%gen_norbu, in%gen_norbd, in%gen_occup, &
+       in%gen_nkpt, in%nspin, in%norbsempty, qelec_up, qelec_down, norb_max)
   in%gen_norb = in%gen_norbu + in%gen_norbd
 
   ! Complement PAW initialisation.

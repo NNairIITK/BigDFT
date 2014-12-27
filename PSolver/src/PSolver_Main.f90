@@ -27,9 +27,6 @@
 !!    Wire boundary condition is missing
 subroutine H_potential(datacode,kernel,rhopot,pot_ion,eh,offset,sumpion,&
       quiet,stress_tensor) !optional argument
-   use yaml_output
-   use time_profiling, only: f_timing
-   use dynamic_memory
    implicit none
 
    !> kernel of the Poisson equation. It is provided in distributed case, with
@@ -74,15 +71,14 @@ subroutine H_potential(datacode,kernel,rhopot,pot_ion,eh,offset,sumpion,&
    character(len=*), parameter :: subname='H_potential'
    logical :: wrtmsg,cudasolver
    integer :: m1,m2,m3,md1,md2,md3,n1,n2,n3,nd1,nd2,nd3
-   integer :: i_stat,ierr,ind,ind2,ind3,indp,ind2p,ind3p,i
+   integer :: ierr,ind,ind2,ind3,indp,ind2p,ind3p,i
    integer :: i1,i2,i3,j2,istart,iend,i3start,jend,jproc,i3xcsh
    integer :: nxc,istden,istglo
-   real(dp) :: scal,ehartreeLOC,pot
+   real(dp) :: ehartreeLOC,pot
+   !real(dp) :: scal
    real(dp), dimension(6) :: strten
    real(dp), dimension(:,:,:), allocatable :: zf
    integer, dimension(:,:), allocatable :: gather_arr
-   integer, dimension(3) :: n
-   integer :: size1,size2,switch_alg
 
    call f_routine(id='H_potential')
    
@@ -95,9 +91,8 @@ subroutine H_potential(datacode,kernel,rhopot,pot_ion,eh,offset,sumpion,&
       else if(trim(quiet) == 'no' .or. trim(quiet) == 'NO') then
          wrtmsg=.true.
       else
-         call yaml_warning('ERROR: Unrecognised value for "quiet" option: ' // trim(quiet))
+         call f_err_throw('ERROR: Unrecognised value for "quiet" option: ' // trim(quiet))
          !write(*,*)'ERROR: Unrecognised value for "quiet" option:',quiet
-         stop
       end if
    else
       wrtmsg=.true.
@@ -109,31 +104,33 @@ subroutine H_potential(datacode,kernel,rhopot,pot_ion,eh,offset,sumpion,&
    !call timing(kernel%mpi_env%iproc,'PSolv_comput  ','ON')
    call f_timing(TCAT_PSOLV_COMPUT,'ON')
    !calculate the dimensions wrt the geocode
-   if (kernel%geocode == 'P') then
+   select case(kernel%geocode)
+   case('P')
       if (wrtmsg) &
            call yaml_map('BC','Periodic')
       call P_FFT_dimensions(kernel%ndims(1),kernel%ndims(2),kernel%ndims(3),m1,m2,m3,n1,n2,n3,&
            md1,md2,md3,nd1,nd2,nd3,kernel%mpi_env%nproc,.false.)
-   else if (kernel%geocode == 'S') then
+   case('S')
       if (wrtmsg) &
            call yaml_map('BC','Surface')
       call S_FFT_dimensions(kernel%ndims(1),kernel%ndims(2),kernel%ndims(3),m1,m2,m3,n1,n2,n3,&
            md1,md2,md3,nd1,nd2,nd3,&
            kernel%mpi_env%nproc,kernel%igpu,.false.)
-   else if (kernel%geocode == 'F') then
+   case('F')
       if (wrtmsg) &
            call yaml_map('BC','Free')
       call F_FFT_dimensions(kernel%ndims(1),kernel%ndims(2),kernel%ndims(3),m1,m2,m3,n1,n2,n3,&
            md1,md2,md3,nd1,nd2,nd3,&
            kernel%mpi_env%nproc,kernel%igpu,.false.)
-   else if (kernel%geocode == 'W') then
+   case('W')
       if (wrtmsg) &
            call yaml_map('BC','Wires')
       call W_FFT_dimensions(kernel%ndims(1),kernel%ndims(2),kernel%ndims(3),m1,m2,m3,n1,n2,n3,&
            md1,md2,md3,nd1,nd2,nd3,kernel%mpi_env%nproc,kernel%igpu,.false.)
-   else
-      stop 'PSolver: geometry code not admitted'
-   end if
+   case default
+      call f_err_throw('geometry code ("'//kernel%geocode//'" not admitted in PSolver')
+      !stop 'PSolver: geometry code not admitted'
+   end select
    
    cudasolver= (kernel%igpu==1 .and. .not. present(stress_tensor))
    
@@ -175,15 +172,16 @@ subroutine H_potential(datacode,kernel,rhopot,pot_ion,eh,offset,sumpion,&
       nxc=0
    end if
    
-   if (datacode=='G') then
+   select case(datacode)
+   case('G')
       !starting address of rhopot in the case of global i/o
       i3start=istart+1
-   else if (datacode == 'D') then
+   case('D')
       !distributed i/o
       i3start=1
-   else
-      stop 'PSolver: datacode not admitted'
-   end if
+   case default
+      call f_err_throw('datacode ("'//datacode//'" not admitted in PSolver')
+   end select
    
    !this routine builds the values for each process of the potential (zf), multiplying by scal 
    
@@ -497,7 +495,8 @@ subroutine PS_dim4allocation(geocode,datacode,iproc,nproc,n01,n02,n03,use_gradie
    
    
    !calculate the dimensions wrt the geocode
-   if (geocode == 'P') then
+   select case(geocode)
+   case('P')
       call P_FFT_dimensions(n01,n02,n03,m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd3,nproc,.false.)
        if (nproc>2*(n3/2+1)-1 .and. .false.) then
         n3pr1=nproc/(n3/2+1)
@@ -506,7 +505,7 @@ subroutine PS_dim4allocation(geocode,datacode,iproc,nproc,n01,n02,n03,use_gradie
            md2=(md2/nproc+1)*nproc
         endif
       endif
-   else if (geocode == 'S') then
+   case('S')
       call S_FFT_dimensions(n01,n02,n03,m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd3,nproc,0,.false.)
       if (nproc>2*(n3/2+1)-1 .and. .false.) then
         n3pr1=nproc/(n3/2+1)
@@ -515,7 +514,7 @@ subroutine PS_dim4allocation(geocode,datacode,iproc,nproc,n01,n02,n03,use_gradie
            md2=(md2/nproc+1)*nproc
         endif
       endif
-   else if (geocode == 'F' .or. geocode == 'H') then
+   case('F','H')
       call F_FFT_dimensions(n01,n02,n03,m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd3,nproc,0,.false.)
       if (nproc>2*(n3/2+1)-1 .and. .false.) then
         n3pr1=nproc/(n3/2+1)
@@ -524,7 +523,7 @@ subroutine PS_dim4allocation(geocode,datacode,iproc,nproc,n01,n02,n03,use_gradie
            md2=(md2/nproc+1)*nproc 
         endif
       endif
-   else if (geocode == 'W') then
+   case('W')
       call W_FFT_dimensions(n01,n02,n03,m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd3,nproc,0,.false.)
       if (nproc>2*(n3/2+1)-1 .and. .false.) then
         n3pr1=nproc/(n3/2+1)
@@ -533,16 +532,18 @@ subroutine PS_dim4allocation(geocode,datacode,iproc,nproc,n01,n02,n03,use_gradie
            md2=(md2/nproc+1)*nproc
         endif
       endif
-   else
-      write(*,*) geocode
-      stop 'PS_dim4allocation: geometry code not admitted'
-   end if
+   case default
+      !write(*,*) geocode
+      !stop 'PS_dim4allocation: geometry code not admitted'
+      call f_err_throw('Geometry code "'//geocode//'" not admitted in PS_dim4allocation')
+   end select
    
    !formal start and end of the slice
    istart=iproc*(md2/nproc)
    iend=min((iproc+1)*md2/nproc,m2)
    
-   if (datacode == 'D') then
+   select case(datacode)
+   case('D')
       call xc_dimensions(geocode,use_gradient,use_wb_corr,istart,iend,m2,nxc,nxcl,nxcr,nwbl,nwbr,i3s,i3xcsh)
    
       nwb=nxcl+nxc+nxcr-2
@@ -551,16 +552,17 @@ subroutine PS_dim4allocation(geocode,datacode,iproc,nproc,n01,n02,n03,use_gradie
       n3p=nxc
       n3d=nxt
       n3pi=n3p
-   else if (datacode == 'G') then
+   case('G')
       n3d=n03
       n3p=n03
       i3xcsh=0
       i3s=min(istart,m2-1)+1
       n3pi=max(iend-istart,0)
-   else
-      print *,datacode
-      stop 'PS_dim4allocation: data code not admitted'
-   end if
+   case default
+      !print *,datacode
+      !stop 'PS_dim4allocation: data code not admitted'
+      call f_err_throw('data code "'//datacode//'" not admitted in PS_dim4allocation')
+   end select
 
 !!  print *,'P4,iproc',iproc,'nxc,ncxl,ncxr,nwbl,nwbr',nxc,nxcl,nxcr,nwbl,nwbr,&
 !!       'ixc,n3d,n3p,i3xcsh,i3s',ixc,n3d,n3p,i3xcsh,i3s
@@ -657,19 +659,6 @@ END SUBROUTINE xc_dimensions
 !> Calculate four sets of dimension needed for the calculation of the
 !! convolution for the periodic system
 !!
-!!    @param n01,n02,n03 original real dimensions (input)
-!!
-!!    @param m1,m2,m3 original real dimension, with m2 and m3 exchanged
-!!
-!!    @param n1,n2,n3 the first FFT dimensions (even for the moment - the medium point being n/2+1)
-!!
-!!    @param md1,md2,md3 the n1,n2,n3 dimensions. They contain the real unpadded space.
-!!           !!           md2 is further enlarged to be a multiple of nproc
-!!
-!!    @param nd1,nd2,nd3 fourier dimensions for which the kernel is injective,
-!!                formally 1/8 of the fourier grid. Here the dimension nd3 is
-!!                enlarged to be a multiple of nproc
-!!
 !! @warning
 !!    This four sets of dimensions are actually redundant (mi=n0i), 
 !!    due to the backward-compatibility
@@ -678,11 +667,19 @@ END SUBROUTINE xc_dimensions
 !! @author Luigi Genovese
 !! @date October 2006
 subroutine P_FFT_dimensions(n01,n02,n03,m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd3,nproc,enlarge_md2)
-  !use module_defs, only: md2plus
  implicit none
+ !Arguments
  logical, intent(in) :: enlarge_md2
- integer, intent(in) :: n01,n02,n03,nproc
- integer, intent(out) :: m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd3
+ integer, intent(in) :: n01,n02,n03   !< original real dimensions (input)
+ integer, intent(in) :: nproc
+ integer, intent(out) :: m1,m2,m3     !< original real dimension, with m2 and m3 exchanged
+ integer, intent(out) :: n1,n2,n3     !< the first FFT dimensions (even for the moment - the medium point being n/2+1)
+ integer, intent(out) :: md1,md2,md3  !< the n1,n2,n3 dimensions. They contain the real unpadded space.
+                                      !! md2 is further enlarged to be a multiple of nproc
+ integer, intent(out) :: nd1,nd2,nd3  !< Fourier dimensions for which the kernel is injective,
+                                      !! formally 1/8 of the fourier grid. Here the dimension nd3 is
+                                      !! enlarged to be a multiple of nproc
+ !Local variables
  integer :: l1,l2,l3
  
  !dimensions of the density in the real space
@@ -702,23 +699,26 @@ subroutine P_FFT_dimensions(n01,n02,n03,m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd
 
  call fourier_dim(l1,n1)
  if (n1 /= m1) then
-    print *,'the FFT in the x direction is not allowed'
-    print *,'n01 dimension',n01
-    stop
+    !print *,'the FFT in the x direction is not allowed'
+    !print *,'n01 dimension',n01
+    !stop
+    call f_err_throw('The FFT in the x direction is not allowed, n01 dimension '//trim(yaml_toa(n01)))
  end if
 
  call fourier_dim(l2,n2)
  if (n2 /= m2) then
-    print *,'the FFT in the z direction is not allowed'
-    print *,'n03 dimension',n03
-    stop
+    !print *,'the FFT in the z direction is not allowed'
+    !print *,'n03 dimension',n03
+    !stop
+    call f_err_throw('The FFT in the z direction is not allowed, n03 dimension '//trim(yaml_toa(n03)))
  end if
  
  call fourier_dim(l3,n3)
  if (n3 /= m3) then
-    print *,'the FFT in the y direction is not allowed'
-    print *,'n02 dimension',n02
-    stop
+    !print *,'the FFT in the y direction is not allowed'
+    !print *,'n02 dimension',n02
+    !stop
+    call f_err_throw('The FFT in the y direction is not allowed, n02 dimension '//trim(yaml_toa(n02)))
  end if
 
  !dimensions that contain the unpadded real space,
@@ -994,7 +994,6 @@ END SUBROUTINE W_FFT_dimensions
 !! @author Luigi Genovese
 !! @date February 2006
 subroutine F_FFT_dimensions(n01,n02,n03,m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd3,nproc,gpu,enlarge_md2)
-  !use module_defs, only: md2plus
  implicit none
  logical, intent(in) :: enlarge_md2
  integer, intent(in) :: n01,n02,n03,nproc,gpu

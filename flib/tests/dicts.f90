@@ -792,7 +792,7 @@ end subroutine test_dictionary_for_atoms
 !! and compares it to the usage of an array for doing similar things
 subroutine profile_dictionary_usage()
   use dictionaries
-  use dynamic_memory, only : f_time
+  use f_utils, only : f_time
   use yaml_output
   implicit none
   !local variables

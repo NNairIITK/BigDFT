@@ -341,7 +341,7 @@ contains
     implicit none
     type(dictionary), pointer :: dict
     !local variables
-    integer :: nres
+    !integer :: nres
 
     if (nfolder_size == 0) then
        !this is normal allocation, let the system do the allocation
@@ -370,7 +370,7 @@ contains
     implicit none
     type(dictionary), intent(in) :: dict !to copy the target
     !local variables
-    integer :: nres
+    !integer :: nres
     integer(kind=8), external :: f_loc
     !free a space in the library and let the allocation live
     call deallocate_file(f_loc(dict))

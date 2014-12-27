@@ -19,11 +19,13 @@ module sparsematrix_init
   !> Public routines
   public :: init_sparse_matrix
   !!public :: compressed_index
-  public :: matrixindex_in_compressed
+  public :: matrixindex_in_compressed, matrixindex_in_compressed2
   public :: check_kernel_cutoff
   public :: init_matrix_taskgroups
+  public :: check_local_matrix_extents
 
 contains
+
 
 
     integer function matrixindex_in_compressed(sparsemat, iorb, jorb, init_, n_)
@@ -75,6 +77,7 @@ contains
       end if
       iiorb=mod(iorb-1,sparsemat%nfvctr)+1 !orbital number regardless of the spin
       jjorb=mod(jorb-1,sparsemat%nfvctr)+1 !orbital number regardless of the spin
+      
     
       if (sparsemat%store_index) then
           ! Take the value from the array
@@ -86,7 +89,9 @@ contains
 
       ! Add the spin shift (i.e. the index is in the spin polarized matrix which is at the end)
       if (ispin==2) then
-          matrixindex_in_compressed = matrixindex_in_compressed + sparsemat%nvctr
+          if (matrixindex_in_compressed/=0) then
+              matrixindex_in_compressed = matrixindex_in_compressed + sparsemat%nvctr
+          end if
       end if
     
     contains
@@ -133,13 +138,121 @@ contains
 
 
 
-    subroutine check_kernel_cutoff(iproc, orbs, atoms, lzd)
+    integer function matrixindex_in_compressed2(sparsemat, iorb, jorb, init_, n_)
+      use sparsematrix_base, only: sparse_matrix
+      implicit none
+    
+      ! Calling arguments
+      type(sparse_matrix),intent(in) :: sparsemat
+      integer,intent(in) :: iorb, jorb
+      !> The optional arguments should only be used for initialization purposes
+      !! if one is sure what one is doing. Might be removed later.
+      logical,intent(in),optional :: init_
+      integer,intent(in),optional :: n_
+    
+      ! Local variables
+      integer :: ii, ispin, iiorb, jjorb
+      logical :: lispin, ljspin, init
+
+      if (present(init_)) then
+          init = init_
+      else
+          init = .false.
+      end if
+
+      ! Use the built-in function and return, without any check. Can be used for initialization purposes.
+      if (init) then
+          if (.not.present(n_)) stop 'matrixindex_in_compressed2: n_ must be present if init_ is true'
+          matrixindex_in_compressed2 = compressed_index_fn(iorb, jorb, n_, sparsemat)
+          return
+      end if
+
+      !ii=(jorb-1)*sparsemat%nfvctr+iorb
+      !ispin=(ii-1)/sparsemat%nfvctr**2+1 !integer division to get the spin (1 for spin up (or non polarized), 2 for spin down)
+
+      ! Determine in which "spin matrix" this entry is located
+      lispin = (iorb>sparsemat%nfvctr)
+      ljspin = (jorb>sparsemat%nfvctr)
+      if (any((/lispin,ljspin/))) then
+          if (all((/lispin,ljspin/))) then
+              ! both indices belong to the second spin matrix
+              ispin=2
+          else
+              ! there seems to be a mix up the spin matrices
+              stop 'matrixindex_in_compressed2: problem in determining spin'
+          end if
+      else
+          ! both indices belong to the first spin matrix
+          ispin=1
+      end if
+      iiorb=mod(iorb-1,sparsemat%nfvctr)+1 !orbital number regardless of the spin
+      jjorb=mod(jorb-1,sparsemat%nfvctr)+1 !orbital number regardless of the spin
+    
+      if (sparsemat%store_index) then
+          ! Take the value from the array
+          matrixindex_in_compressed2 = sparsemat%matrixindex_in_compressed_arr(iiorb,jjorb)
+      else
+          ! Recalculate the value
+          matrixindex_in_compressed2 = compressed_index_fn(iiorb, jjorb, sparsemat%nfvctr, sparsemat)
+      end if
+
+      ! Add the spin shift (i.e. the index is in the spin polarized matrix which is at the end)
+      if (ispin==2) then
+          matrixindex_in_compressed2 = matrixindex_in_compressed2 + sparsemat%nvctrp_tg
+      end if
+    
+    contains
+
+      ! Function that gives the index of the matrix element (jjorb,iiorb) in the compressed format.
+      integer function compressed_index_fn(irow, jcol, norb, sparsemat)
+        implicit none
+      
+        ! Calling arguments
+        integer,intent(in) :: irow, jcol, norb
+        type(sparse_matrix),intent(in) :: sparsemat
+      
+        ! Local variables
+        integer(kind=8) :: ii, istart, iend
+        integer :: iseg
+      
+        ii = int((jcol-1),kind=8)*int(norb,kind=8)+int(irow,kind=8)
+      
+        iseg=sparsemat%istsegline(jcol)
+        do
+            istart = int((sparsemat%keyg(1,2,iseg)-1),kind=8)*int(norb,kind=8) + &
+                     int(sparsemat%keyg(1,1,iseg),kind=8)
+            iend = int((sparsemat%keyg(2,2,iseg)-1),kind=8)*int(norb,kind=8) + &
+                   int(sparsemat%keyg(2,1,iseg),kind=8)
+            if (ii>=istart .and. ii<=iend) then
+                ! The matrix element is in sparsemat segment
+                 compressed_index_fn = sparsemat%keyv(iseg) + int(ii-istart,kind=4)
+                return
+            end if
+            iseg=iseg+1
+            if (iseg>sparsemat%nseg) exit
+            if (ii<istart) then
+                compressed_index_fn=0
+                return
+            end if
+        end do
+      
+        ! Not found
+        compressed_index_fn=0
+      
+      end function compressed_index_fn
+    end function matrixindex_in_compressed2
+
+
+
+
+
+    subroutine check_kernel_cutoff(iproc, orbs, atoms, hamapp_radius_incr, lzd)
       use module_types
       use yaml_output
       implicit none
     
       ! Calling arguments
-      integer,intent(in) :: iproc
+      integer,intent(in) :: iproc, hamapp_radius_incr
       type(orbitals_data),intent(in) :: orbs
       type(atoms_data),intent(in) :: atoms
       type(local_zone_descriptors),intent(inout) :: lzd
@@ -161,7 +274,7 @@ contains
           ilr=orbs%inwhichlocreg(iorb)
     
           ! cutoff radius of the support function, including shamop region
-          cutoff_sf=lzd%llr(ilr)%locrad+8.d0*lzd%hgrids(1)
+          cutoff_sf=lzd%llr(ilr)%locrad+real(hamapp_radius_incr,kind=8)*lzd%hgrids(1)
     
           ! cutoff of the density kernel
           cutoff_kernel=lzd%llr(ilr)%locrad_kernel
@@ -302,9 +415,9 @@ contains
       ! Not necessary to set the pritable flag (if nseq_min was zero before it should be zero here as well)
       if (nseq_min>0) then
           ratio_after = real(nseq_max,kind=8)/real(nseq_min,kind=8)
-          if (.not.printable) stop 'this should not happen'
+          if (.not.printable) stop 'this should not happen (sparsematrix)'
       else
-          if (printable) stop 'this should not happen'
+          if (printable) stop 'this should not happen (sparsematrix)'
       end if
       if (iproc==0) then
           if (printable) then
@@ -1093,7 +1206,7 @@ contains
     end subroutine init_matrix_parallelization
 
 
-    subroutine init_matrix_taskgroups(iproc, nproc, parallel_layout, collcom, collcom_sr, smat)
+    subroutine init_matrix_taskgroups(iproc, nproc, parallel_layout, collcom, collcom_sr, smat, iirow, iicol)
       use module_base
       use module_types
       use communications_base, only: comms_linear
@@ -1105,6 +1218,7 @@ contains
       logical,intent(in) :: parallel_layout
       type(comms_linear),intent(in) :: collcom, collcom_sr
       type(sparse_matrix),intent(inout) :: smat
+      integer,dimension(2),intent(in) :: iirow, iicol
 
       ! Local variables
       integer :: ipt, ii, i0, i0i, iiorb, j, i0j, jjorb, ind, ind_min, ind_max, iseq
@@ -1115,8 +1229,10 @@ contains
       integer :: ntaskgrp_calc, ntaskgrp_use, i, ncount, iitaskgroup, group, ierr, iitaskgroups, newgroup, iseg
       logical :: go_on
       integer,dimension(:,:),allocatable :: in_taskgroup
-      integer :: iproc_start, iproc_end, imin, imax
+      integer :: iproc_start, iproc_end, imin, imax, ii_ref, iorb
       logical :: found, found_start, found_end
+      integer :: iprocstart_current, iprocend_current, iprocend_prev, iprocstart_next
+      integer :: irow, icol, inc, ist, ind_min1, ind_max1
 
       call f_routine(id='init_matrix_taskgroups')
 
@@ -1143,6 +1259,46 @@ contains
 
       ! Now check the pseudo-exact orthonormalization during the input guess
       call check_ortho_inguess()
+
+      ind_min1 = ind_min
+      ind_max1 = ind_max
+
+
+      !@ NEW #####################################################################
+      !@ Make sure that the min and max are at least as large as the reference
+      do i=1,2
+          if (i==1) then
+              istart = 1
+              iend = smat%nfvctr
+              inc = 1
+          else
+              istart = smat%nfvctr
+              iend = 1
+              inc = -1
+          end if
+          search_out: do irow=iirow(i),iend,inc
+              if (irow==iirow(i)) then
+                  ist = iicol(i)
+              else
+                  ist = istart
+              end if
+              do icol=ist,iend,inc
+                  ii = matrixindex_in_compressed(smat, icol, irow)
+                  if (ii>0) then
+                      if (i==1) then
+                          ind_min = ii
+                      else
+                          ind_max = ii
+                      end if
+                      exit search_out
+                  end if
+              end do
+          end do search_out
+      end do
+      if (ind_min>ind_min1) stop 'ind_min>ind_min1'
+      if (ind_max<ind_max1) stop 'ind_max<ind_max1'
+      !write(*,'(a,i3,3x,2(2i6,4x))') 'iproc, ind_min, ind_max, ind_min1, ind_max1', iproc,  ind_min, ind_max,  ind_min1, ind_max1
+      !@ END NEW #################################################################
 
 
       if (.not.parallel_layout) then
@@ -1188,6 +1344,22 @@ contains
       if (nproc>1) then
           call mpiallred(iuse_startend(1,0), 2*nproc, mpi_sum, bigdft_mpi%mpi_comm)
       end if
+
+      ! Make sure that the used parts are always "monotonically increasing"
+      do jproc=nproc-2,0,-1
+          ! The start of part jproc must not be greater than the start of part jproc+1
+          iuse_startend(1,jproc) = min(iuse_startend(1,jproc),iuse_startend(1,jproc+1)) 
+      end do
+      do jproc=1,nproc-1
+          ! The end of part jproc must not be smaller than the end of part jproc-1
+          iuse_startend(2,jproc) = max(iuse_startend(2,jproc),iuse_startend(2,jproc-1)) 
+      end do
+
+      !!if (iproc==0)  then
+      !!    do jproc=0,nproc-1
+      !!        call yaml_map('iuse_startend',(/jproc,iuse_startend(1:2,jproc)/))
+      !!    end do
+      !!end if
  
       !if (iproc==0) write(*,'(a,100(2i7,4x))') 'iuse_startend',iuse_startend
  
@@ -1235,40 +1407,126 @@ contains
 !!      end do
 !!      !if (iproc==0) write(*,*) 'iproc, ntaskgroups', iproc, ntaskgroups
 
-      !@NEW ###################
-      ntaskgroups = 1
-      iproc_start = 0
-      iproc_end = 0
-      do
-          ! Search the first process whose parts does not overlap any more with
-          ! the end of the first task of the current taskgroup.
-          ! This will be the last task of the current taskgroup.
-          found = .false.
-          do jproc=iproc_start,nproc-1
-              !if (iproc==0) write(*,'(a,2i8)') 'iuse_startend(1,jproc), iuse_startend(2,iproc_start)', iuse_startend(1,jproc), iuse_startend(2,iproc_start)
-              if (iuse_startend(1,jproc)>iuse_startend(2,iproc_start)) then
-                  iproc_end = jproc
-                  found = .true.
-                  exit
-              end if
-          end do
-          if (.not.found) exit
+!!      !@NEW ###################
+!!      ntaskgroups = 1
+!!      iproc_start = 0
+!!      iproc_end = 0
+!!      do
+!!          ! Search the first process whose parts does not overlap any more with
+!!          ! the end of the first task of the current taskgroup.
+!!          ! This will be the last task of the current taskgroup.
+!!          found = .false.
+!!          do jproc=iproc_start,nproc-1
+!!              !if (iproc==0) write(*,'(a,2i8)') 'iuse_startend(1,jproc), iuse_startend(2,iproc_start)', iuse_startend(1,jproc), iuse_startend(2,iproc_start)
+!!              if (iuse_startend(1,jproc)>iuse_startend(2,iproc_start)) then
+!!                  iproc_end = jproc
+!!                  found = .true.
+!!                  exit
+!!              end if
+!!          end do
+!!          if (.not.found) exit
+!!          !iproc_end = iproc_start
+!!
+!!          !!! Search the last process whose part overlaps with the end of the current taskgroup.
+!!          !!! This will be the first task of the next taskgroup.
+!!          !!found = .false.
+!!          !!do jproc=nproc-1,0,-1
+!!          !!    !if (iproc==0) write(*,'(a,2i8)') 'iuse_startend(1,jproc), iuse_startend(2,iproc_end)', iuse_startend(1,jproc), iuse_startend(2,iproc_end)
+!!          !!    if (iuse_startend(1,jproc)<=iuse_startend(2,iproc_end)) then
+!!          !!        ntaskgroups = ntaskgroups + 1
+!!          !!        iproc_start = jproc
+!!          !!        found = .true.
+!!          !!        exit
+!!          !!    end if
+!!          !!end do
+!!          !!if (iproc==0) write(*,*) 'iproc_start, iproc_end', iproc_start, iproc_end
+!!          !!if (.not.found) exit
+!!          !!if (iproc_start==nproc-1) exit
+!!          ! Search the last process whose part overlaps with the start of the current taskgroup.
+!!          ! This will be the first task of the next taskgroup.
+!!          found = .false.
+!!          !do jproc=nproc-1,0,-1
+!!          do jproc=0,nproc-1
+!!              !if (iproc==0) write(*,'(a,2i8)') 'iuse_startend(1,jproc), iuse_startend(2,iproc_end)', iuse_startend(1,jproc), iuse_startend(2,iproc_end)
+!!              if (iuse_startend(1,jproc)>iuse_startend(1,iproc_end)) then
+!!                  ntaskgroups = ntaskgroups + 1
+!!                  iproc_start = jproc
+!!                  found = .true.
+!!                  exit
+!!              end if
+!!          end do
+!!          if (.not.found) exit
+!!      end do
+!!      !@END NEW ###############
 
-          ! Search the last process whose part overlaps with the end of the current taskgroup.
-          ! This will be the first task of the next taskgroup.
-          found = .false.
-          do jproc=nproc-1,0,-1
-              !if (iproc==0) write(*,'(a,2i8)') 'iuse_startend(1,jproc), iuse_startend(2,iproc_end)', iuse_startend(1,jproc), iuse_startend(2,iproc_end)
-              if (iuse_startend(1,jproc)<=iuse_startend(2,iproc_end)) then
-                  ntaskgroups = ntaskgroups + 1
-                  iproc_start = jproc
-                  found = .true.
-                  exit
-              end if
-          end do
-          if (.not.found) exit
-      end do
-      !@END NEW ###############
+!!      !@NEW2 ###############################################
+!!      iprocstart_next = 0
+!!      iprocstart_current = 0
+!!      iprocend_current = 0
+!!      ntaskgroups = 1
+!!      do
+!!          iprocend_prev = iprocend_current
+!!          iprocstart_current = iprocstart_next 
+!!          !itaskgroups_startend(1,itaskgroups) = iuse_startend(2,iprocstart_current)
+!!          ! Search the first process whose part starts later than then end of the part of iprocend_prev. This will be the first task of
+!!          ! the next taskgroup
+!!          do jproc=0,nproc-1
+!!             if (iuse_startend(1,jproc)>iuse_startend(2,iprocend_prev)) then
+!!                 iprocstart_next = jproc
+!!                 exit
+!!             end if
+!!          end do
+!!          ! Search the first process whose part ends later than then the start of the part of iprocstart_next. This will be the last task of
+!!          ! the current taskgroup
+!!          do jproc=0,nproc-1
+!!             if (iuse_startend(2,jproc)>iuse_startend(1,iprocstart_next)) then
+!!                 iprocend_current = jproc
+!!                 exit
+!!             end if
+!!          end do
+!!          !itaskgroups_startend(2,itaskgroups) = iuse_startend(2,iprocend_current)
+!!          if (iproc==0) write(*,'(a,4i5)') 'iprocend_prev, iprocstart_current, iprocend_current, iprocstart_next', iprocend_prev, iprocstart_current, iprocend_current, iprocstart_next
+!!          if (iprocstart_current==nproc-1) exit
+!!          ntaskgroups = ntaskgroups + 1
+!!      end do
+!!      !@END NEW2 ###########################################
+
+
+        !@NEW3 #############################################
+        ntaskgroups = 1
+        iproc_start = 0
+        iproc_end = 0
+        ii = 0
+        do
+
+            ! Search the first task whose part starts after the end of the part of the reference task
+            found = .false.
+            do jproc=0,nproc-1
+                if (iuse_startend(1,jproc)>iuse_startend(2,iproc_end)) then
+                    iproc_start = jproc
+                    found = .true.
+                    exit
+                end if
+            end do
+
+            ! If this search was successful, start a new taskgroup
+            if (found) then
+                ! Determine the reference task, which is the last task whose part starts before the end of the current taskgroup
+                ii = iuse_startend(2,iproc_start-1)
+                do jproc=nproc-1,0,-1
+                    if (iuse_startend(1,jproc)<=ii) then
+                        iproc_end = jproc
+                        exit
+                    end if
+                end do
+                ! Increase the number of taskgroups
+                ntaskgroups = ntaskgroups + 1
+            else
+                exit
+            end if
+
+        end do
+        !@END NEW3 #########################################
 
       smat%ntaskgroup = ntaskgroups
  
@@ -1327,43 +1585,142 @@ contains
 !!      itaskgroups_startend(2,itaskgroups) = iuse_startend(2,nproc-1)
 
 
-      !@NEW ###################
-      itaskgroups = 1
-      iproc_start = 0
-      iproc_end = 0
-      itaskgroups_startend(1,1) = 1
-      do
-          ! Search the first process whose parts does not overlap any more with
-          ! the end of the first task of the current taskgroup.
-          ! This will be the last task of the current taskgroup.
-          found = .false.
-          do jproc=iproc_start,nproc-1
-              if (iuse_startend(1,jproc)>iuse_startend(2,iproc_start)) then
-                  iproc_end = jproc
-                  itaskgroups_startend(2,itaskgroups) = iuse_startend(2,jproc)
-                  found = .true.
-                  exit
-              end if
-          end do
-          if (.not.found) exit
+!!      !@NEW ###################
+!!      itaskgroups = 1
+!!      iproc_start = 0
+!!      iproc_end = 0
+!!      itaskgroups_startend(1,1) = 1
+!!      do
+!!          ! Search the first process whose parts does not overlap any more with
+!!          ! the end of the first task of the current taskgroup.
+!!          ! This will be the last task of the current taskgroup.
+!!          found = .false.
+!!          do jproc=iproc_start,nproc-1
+!!              if (iuse_startend(1,jproc)>iuse_startend(2,iproc_start)) then
+!!                  iproc_end = jproc
+!!                  itaskgroups_startend(2,itaskgroups) = iuse_startend(2,jproc)
+!!                  found = .true.
+!!                  exit
+!!              end if
+!!          end do
+!!          if (.not.found) exit
+!!          !!iproc_end = iproc_start
+!!          !!itaskgroups_startend(2,itaskgroups) = iuse_startend(2,iproc_end)
+!!
+!!          ! Search the last process whose part overlaps with the end of the current taskgroup.
+!!          ! This will be the first task of the next taskgroup.
+!!          found = .false.
+!!          !do jproc=nproc-1,0,-1
+!!          do jproc=0,nproc-1
+!!              if (iuse_startend(1,jproc)>iuse_startend(1,iproc_end)) then
+!!                  itaskgroups = itaskgroups + 1
+!!                  iproc_start = jproc
+!!                  itaskgroups_startend(1,itaskgroups) = iuse_startend(1,jproc)
+!!                  found = .true.
+!!                  exit
+!!              end if
+!!          end do
+!!          if (.not.found) exit
+!!          !!!!if (iproc_start==nproc-1) exit
+!!          !!! Search the last process whose part overlaps with the end of the current taskgroup.
+!!          !!! This will be the first task of the next taskgroup.
+!!          !!found = .false.
+!!          !!!do jproc=0,nproc-1
+!!          !!do jproc=0,nproc-1
+!!          !!    if (iuse_startend(1,jproc)>iuse_startend(1,iproc_end)) then
+!!          !!        itaskgroups = itaskgroups + 1
+!!          !!        iproc_start = jproc
+!!          !!        itaskgroups_startend(1,itaskgroups) = iuse_startend(1,jproc)
+!!          !!        found = .true.
+!!          !!        exit
+!!          !!    end if
+!!          !!end do
+!!          !!if (.not.found) exit
+!!      end do
+!!      itaskgroups_startend(2,itaskgroups) = smat%nvctr
+!!      !@END NEW ###############
 
-          ! Search the last process whose part overlaps with the end of the current taskgroup.
-          ! This will be the first task of the next taskgroup.
-          found = .false.
-          do jproc=nproc-1,0,-1
-              if (iuse_startend(1,jproc)<=iuse_startend(2,iproc_end)) then
-                  itaskgroups = itaskgroups + 1
-                  iproc_start = jproc
-                  itaskgroups_startend(1,itaskgroups) = iuse_startend(1,jproc)
-                  found = .true.
-                  exit
-              end if
-          end do
-          if (.not.found) exit
-      end do
-      itaskgroups_startend(2,itaskgroups) = smat%nvctr
-      !@END NEW ###############
+!!      !@NEW2 ###############################################
+!!      iprocstart_next = 0
+!!      iprocstart_current = 0
+!!      iprocend_current = 0
+!!      itaskgroups = 1
+!!      do
+!!          iprocend_prev = iprocend_current
+!!          iprocstart_current = iprocstart_next 
+!!          itaskgroups_startend(1,itaskgroups) = iuse_startend(1,iprocstart_current)
+!!          ! Search the first process whose part starts later than then end of the part of iprocend_prev. This will be the first task of
+!!          ! the next taskgroup
+!!          do jproc=0,nproc-1
+!!             if (iuse_startend(1,jproc)>iuse_startend(2,iprocend_prev)) then
+!!                 iprocstart_next = jproc
+!!                 exit
+!!             end if
+!!          end do
+!!          ! Search the first process whose part ends later than then the start of the part of iprocstart_next. This will be the last task of
+!!          ! the current taskgroup
+!!          do jproc=0,nproc-1
+!!             if (iuse_startend(2,jproc)>iuse_startend(1,iprocstart_next)) then
+!!                 iprocend_current = jproc
+!!                 exit
+!!             end if
+!!          end do
+!!          itaskgroups_startend(2,itaskgroups) = iuse_startend(2,iprocend_current)
+!!          if (iprocstart_current==nproc-1) exit
+!!          itaskgroups = itaskgroups +1
+!!      end do
+!!      !@END NEW2 ###########################################
 
+
+        !@NEW3 #############################################
+        itaskgroups = 1
+        iproc_start = 0
+        iproc_end = 0
+        itaskgroups_startend(1,1) = 1
+        do
+
+            ! Search the first task whose part starts after the end of the part of the reference task
+            found = .false.
+            do jproc=0,nproc-1
+                if (iuse_startend(1,jproc)>iuse_startend(2,iproc_end)) then
+                    iproc_start = jproc
+                    found = .true.
+                    exit
+                end if
+            end do
+
+
+            ! If this search was successful, start a new taskgroup
+            if (found) then
+                ! Store the end of the current taskgroup
+                itaskgroups_startend(2,itaskgroups) = iuse_startend(2,iproc_start-1)
+                ! Determine the reference task, which is the last task whose part starts before the end of the current taskgroup
+                do jproc=nproc-1,0,-1
+                    if (iuse_startend(1,jproc)<=itaskgroups_startend(2,itaskgroups)) then
+                        iproc_end = jproc
+                        exit
+                    end if
+                end do
+                ! Increase the number of taskgroups
+                itaskgroups = itaskgroups + 1
+                ! Store the beginning of the new taskgroup
+                itaskgroups_startend(1,itaskgroups) = iuse_startend(1,iproc_start)
+            else
+                ! End of the taskgroup if the search was not successful
+                itaskgroups_startend(2,itaskgroups) = iuse_startend(2,nproc-1)
+                exit
+            end if
+
+        end do
+        !@END NEW3 #########################################
+
+      !!if (iproc==0)  then
+      !!    do jproc=1,smat%ntaskgroup
+      !!        call yaml_map('itaskgroups_startend',itaskgroups_startend(1:2,jproc))
+      !!    end do
+      !!end if
+      !call yaml_flash_document()
+      call mpi_barrier(bigdft_mpi%mpi_comm,jproc)
 
 
 
@@ -1376,7 +1733,7 @@ contains
       do itaskgroups=1,ntaskgroups
           if ( iuse_startend(1,iproc)<=itaskgroups_startend(2,itaskgroups) .and.  &
                iuse_startend(2,iproc)>=itaskgroups_startend(1,itaskgroups) ) then
-              !write(*,'(2(a,i0))') 'USE: task ',iproc,' is in taskgroup ',itaskgroups
+              !!write(*,'(2(a,i0))') 'USE: task ',iproc,' is in taskgroup ',itaskgroups
                ntaskgrp_use = ntaskgrp_use + 1
           end if
       end do
@@ -1561,7 +1918,15 @@ contains
               call yaml_sequence(advance='no')
               call yaml_mapping_open(flow=.true.)
               call yaml_map('number of tasks',tasks_per_taskgroup(itaskgroups))
-              call yaml_map('IDs',smat%tgranks(0:tasks_per_taskgroup(itaskgroups)-1,itaskgroups))
+              !call yaml_map('IDs',smat%tgranks(0:tasks_per_taskgroup(itaskgroups)-1,itaskgroups))
+              call yaml_mapping_open('IDs')
+              do itg=0,tasks_per_taskgroup(itaskgroups)-1
+                  call yaml_mapping_open(yaml_toa(smat%tgranks(itg,itaskgroups),fmt='(i0)'))
+                  call yaml_map('s',iuse_startend(1,smat%tgranks(itg,itaskgroups)))
+                  call yaml_map('e',iuse_startend(2,smat%tgranks(itg,itaskgroups)))
+                  call yaml_mapping_close()
+              end do
+              call yaml_mapping_close()
               call yaml_newline()
               call yaml_map('start / end',smat%taskgroup_startend(1:2,1,itaskgroups))
               call yaml_map('start / end disjoint',smat%taskgroup_startend(1:2,2,itaskgroups))
@@ -1698,7 +2063,7 @@ contains
                       do jorb=smat%keyg(1,1,iseg),smat%keyg(2,1,iseg)
                           ii=ii+1
                           ind_min = min(ii,ind_min)
-                          ind_max = min(ii,ind_max)
+                          ind_max = max(ii,ind_max)
                       end do
                   end do
               end if
@@ -1798,4 +2163,223 @@ contains
 
 
 
+    subroutine check_local_matrix_extents(iproc, nproc, collcom, collcom_sr, smat, irow, icol)
+          use module_base
+          use module_types
+          use communications_base, only: comms_linear
+          use yaml_output
+          implicit none
+    
+          ! Caling arguments
+          integer,intent(in) :: iproc, nproc
+          type(comms_linear),intent(in) :: collcom, collcom_sr
+          type(sparse_matrix),intent(in) :: smat
+          integer,dimension(2),intent(out) :: irow, icol
+    
+          ! Local variables
+          integer :: ind_min, ind_max, i, ii_ref, iorb, jorb, ii, iseg
+    
+          ind_min = smat%nvctr
+          ind_max = 0
+    
+          ! The operations done in the transposed wavefunction layout
+          call check_transposed_layout()
+    
+          ! Now check the compress_distributed layout
+          call check_compress_distributed_layout()
+    
+          ! Now check the matrix matrix multiplications layout
+          call check_matmul_layout()
+    
+          ! Now check the sumrho operations
+          call check_sumrho_layout()
+    
+          ! Now check the pseudo-exact orthonormalization during the input guess
+          call check_ortho_inguess()
+    
+
+          ! Get the global indices of ind_min and ind_max
+          do i=1,2
+              if (i==1) then
+                  ii_ref = ind_min
+              else
+                  ii_ref = ind_max
+              end if
+              ! Search the indices iorb,jorb corresponding to ii_ref
+              outloop: do iseg=1,smat%nseg
+                  iorb = smat%keyg(1,2,iseg)
+                  do jorb=smat%keyg(1,1,iseg),smat%keyg(2,1,iseg)
+                      ii = matrixindex_in_compressed(smat, jorb, iorb)
+                      !if (iproc==0) write(*,'(a,5i9)') 'i, ii_ref, ii, iorb, jorb', i, ii_ref, ii, iorb, jorb
+                      if (ii==ii_ref) then
+                          irow(i) = jorb
+                          icol(i) = iorb
+                          exit outloop
+                      end if
+                  end do
+              end do outloop
+          end do
+    
+    
+          contains
+    
+            subroutine check_transposed_layout()
+              implicit none
+              integer :: ipt, ii, i0, i, i0i, iiorb, j, i0j, jjorb, ind
+              do ipt=1,collcom%nptsp_c
+                  ii=collcom%norb_per_gridpoint_c(ipt)
+                  i0 = collcom%isptsp_c(ipt)
+                  do i=1,ii
+                      i0i=i0+i
+                      iiorb=collcom%indexrecvorbital_c(i0i)
+                      do j=1,ii
+                          i0j=i0+j
+                          jjorb=collcom%indexrecvorbital_c(i0j)
+                          ind = smat%matrixindex_in_compressed_fortransposed(jjorb,iiorb)
+                          ind_min = min(ind_min,ind)
+                          ind_max = max(ind_max,ind)
+                      end do
+                  end do
+              end do
+              do ipt=1,collcom%nptsp_f
+                  ii=collcom%norb_per_gridpoint_f(ipt)
+                  i0 = collcom%isptsp_f(ipt)
+                  do i=1,ii
+                      i0i=i0+i
+                      iiorb=collcom%indexrecvorbital_f(i0i)
+                      do j=1,ii
+                          i0j=i0+j
+                          jjorb=collcom%indexrecvorbital_f(i0j)
+                          ind = smat%matrixindex_in_compressed_fortransposed(jjorb,iiorb)
+                          ind_min = min(ind_min,ind)
+                          ind_max = max(ind_max,ind)
+                      end do
+                  end do
+              end do
+    
+            end subroutine check_transposed_layout
+    
+    
+            subroutine check_compress_distributed_layout()
+              implicit none
+              integer :: i, nfvctrp, isfvctr, isegstart, isegend, iseg, ii, jorb
+              do i=1,2
+                  if (i==1) then
+                      nfvctrp = smat%nfvctrp
+                      isfvctr = smat%isfvctr
+                  else if (i==2) then
+                      nfvctrp = smat%smmm%nfvctrp
+                      isfvctr = smat%smmm%isfvctr
+                  end if
+                  if (nfvctrp>0) then
+                      isegstart=smat%istsegline(isfvctr+1)
+                      isegend=smat%istsegline(isfvctr+nfvctrp)+smat%nsegline(isfvctr+nfvctrp)-1
+                      do iseg=isegstart,isegend
+                          ii=smat%keyv(iseg)-1
+                          ! A segment is always on one line, therefore no double loop
+                          do jorb=smat%keyg(1,1,iseg),smat%keyg(2,1,iseg)
+                              ii=ii+1
+                              ind_min = min(ii,ind_min)
+                              ind_max = max(ii,ind_max)
+                          end do
+                      end do
+                  end if
+              end do
+            end subroutine check_compress_distributed_layout
+    
+    
+            subroutine check_matmul_layout()
+              implicit none
+              integer :: iseq, ind
+              do iseq=1,smat%smmm%nseq
+                  ind=smat%smmm%indices_extract_sequential(iseq)
+                  ind_min = min(ind_min,ind)
+                  ind_max = max(ind_max,ind)
+              end do
+            end subroutine check_matmul_layout
+    
+            subroutine check_sumrho_layout()
+              implicit none
+              integer :: ipt, ii, i0, i, iiorb, ind
+              do ipt=1,collcom_sr%nptsp_c
+                  ii=collcom_sr%norb_per_gridpoint_c(ipt)
+                  i0=collcom_sr%isptsp_c(ipt)
+                  do i=1,ii
+                      iiorb=collcom_sr%indexrecvorbital_c(i0+i)
+                      ind=smat%matrixindex_in_compressed_fortransposed(iiorb,iiorb)
+                      ind_min = min(ind_min,ind)
+                      ind_max = max(ind_max,ind)
+                  end do
+              end do
+            end subroutine check_sumrho_layout
+    
+    
+          !!  function get_start_of_segment(smat, iiseg) result(ist)
+    
+          !!      do iseg=smat%nseg,1,-1
+          !!          if (iiseg>=smat%keyv(iseg)) then
+          !!              it = smat%keyv(iseg)
+          !!              exit
+          !!          end if
+          !!      end do
+    
+          !!  end function get_start_of_segment
+    
+    
+          subroutine check_ortho_inguess()
+            integer :: iorb, iiorb, isegstart, isegend, iseg, j, i, jorb, korb, ind
+            logical,dimension(:),allocatable :: in_neighborhood
+    
+            in_neighborhood = f_malloc(smat%nfvctr,id='in_neighborhood')
+            
+            do iorb=1,smat%nfvctrp
+    
+                iiorb = smat%isfvctr + iorb
+                isegstart = smat%istsegline(iiorb)
+                isegend = smat%istsegline(iiorb) + smat%nsegline(iiorb) -1
+                in_neighborhood = .false.
+                do iseg=isegstart,isegend
+                    ! A segment is always on one line, therefore no double loop
+                    j = smat%keyg(1,2,iseg)
+                    do i=smat%keyg(1,1,iseg),smat%keyg(2,1,iseg)
+                        in_neighborhood(i) = .true.
+                    end do
+                end do
+    
+                do jorb=1,smat%nfvctr
+                    if (.not.in_neighborhood(jorb)) cycle
+                    do korb=1,smat%nfvctr
+                        if (.not.in_neighborhood(korb)) cycle
+                        ind = matrixindex_in_compressed(smat,korb,jorb)
+                        if (ind>0) then
+                            ind_min = min(ind_min,ind)
+                            ind_max = max(ind_max,ind)
+                        end if
+                    end do
+                end do
+    
+            end do
+    
+            call f_free(in_neighborhood)
+    
+            !!do iorb=1,smat%nfvctrp
+            !!    iiorb = smat%isfvctr + iorb
+            !!    isegstart = smat%istsegline(iiorb)
+            !!    isegend = smat%istsegline(iiorb) + smat%nsegline(iiorb) -1
+            !!    do iseg=isegstart,isegend
+            !!        ! A segment is always on one line, therefore no double loop
+            !!        j = smat%keyg(1,2,iseg)
+            !!        do i=smat%keyg(1,1,iseg),smat%keyg(2,1,iseg)
+            !!            ind = matrixindex_in_compressed(smat,i,j)
+            !!            ind_min = min(ind_min,ind)
+            !!            ind_max = max(ind_max,ind)
+            !!        end do
+            !!    end do
+            !!end do
+    
+          end subroutine check_ortho_inguess
+    end subroutine check_local_matrix_extents
+
 end module sparsematrix_init
+
+

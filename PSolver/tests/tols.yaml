@@ -6,9 +6,13 @@ Default tolerances:
 #  Energy differences: 2.1e-10
   Exc: 1.e-8
   EVxc: 4.6e-9
-  Some values: 1.e-14
+  Some values: 1.e-12
   Maximum discrepancy: 1.e-14
-  Value: 1.e-15
+  Value: 1.e-12
+  beta: 1.2e-15
+  ratio: 6.4e-13
+  res: 5.7e-9
+  alpha: 2.e-2 #normal for CG
 #  Energies: 2.1e-10
 
 Keys to ignore:
@@ -16,11 +20,13 @@ Keys to ignore:
   - Timings for root process
   - MPI tasks*
   - OpenMP threads per task
+  - OpenMP threads per MPI task
   - Max. diff coordinates
   - Original
   - Result
   - Load Balancing of calculations
   - Timestamp of this run
+  - Max No. of dictionaries used
 Patterns to ignore:
   - llocations
   - MB

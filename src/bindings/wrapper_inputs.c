@@ -34,7 +34,7 @@ void _inputs_sync(BigDFT_Inputs *in)
 
   FC_FUNC_(inputs_get_dft, INPUTS_GET_DFT)(F_TYPE(in->data), in->h, in->h + 1, in->h + 2,
                                            &in->crmult, &in->frmult, &in->ixc,
-                                           &in->ncharge, in->elecfield, &in->nspin,
+                                           &in->qcharge, in->elecfield, &in->nspin,
                                            &in->mpol, &in->gnrm_cv, (int*)&in->itermax,
                                            (int*)&in->nrepmax, &in->ncong, (int*)&in->idsx,
                                            &in->dispersion, &in->inputPsiId,

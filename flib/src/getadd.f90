@@ -43,6 +43,19 @@ module metadata_interfaces
        integer(kind=8), intent(out) :: iadd
      end subroutine geti4
 
+     ! long integer arrays
+     subroutine getil1(array,iadd)
+       implicit none
+       integer(kind=8), dimension(:), allocatable, intent(in) :: array
+       integer(kind=8), intent(out) :: iadd
+     end subroutine getil1
+
+     subroutine getil2(array,iadd)
+       implicit none
+       integer(kind=8), dimension(:,:), allocatable, intent(in) :: array
+       integer(kind=8), intent(out) :: iadd
+     end subroutine getil2
+
      !character templates, not the length is added
      subroutine getc1(length,array,iadd)
        implicit none
@@ -225,6 +238,7 @@ module metadata_interfaces
 
 interface pad_array
   module procedure pad_i1,pad_i2,pad_i3,pad_i4
+!  module procedure pad_il1, pad_il2
   module procedure pad_c1
   module procedure pad_l1,pad_l2,pad_l3
   module procedure pad_r1,pad_r2,pad_r3
@@ -238,6 +252,7 @@ end interface
 !!not standard
 interface loc_arr
    module procedure la_i1,la_i2,la_i3,la_i4
+!   module procedure la_il1, la_il2
    module procedure la_r1,la_r2,la_r3
    module procedure la_d1,la_d2,la_d3,la_d4,la_d5,la_d6,la_d7
    module procedure la_l1,la_l2,la_l3
@@ -246,7 +261,9 @@ interface loc_arr
    module procedure la_li1,la_li2,la_li3,la_li4
 end interface
 
-public :: pad_array,geti1,geti2,geti3,geti4
+public :: pad_array
+public :: geti1,geti2,geti3,geti4
+public :: getil1, getil2
 public :: getc1
 public :: getl1,getl2,getl3
 public :: getr1,getr2,getr3
@@ -304,6 +321,28 @@ contains
     call pad_integer(array,init_to_zero,product(shp),product(shp(1:3))*(shp(4)+ndebug))
 
   end subroutine pad_i4
+
+!!$  subroutine pad_il1(array,init_to_zero,shp,ndebug)
+!!$    implicit none
+!!$    logical, intent(in) :: init_to_zero
+!!$    integer, intent(in) :: ndebug
+!!$    integer, dimension(1), intent(in) :: shp
+!!$    integer(kind=8), dimension(shp(1)+ndebug), intent(out) :: array
+!!$    
+!!$    call pad_integerlong(array,init_to_zero,shp(1),shp(1)+ndebug)
+!!$
+!!$  end subroutine pad_il1
+!!$
+!!$  subroutine pad_il2(array,init_to_zero,shp,ndebug)
+!!$    implicit none
+!!$    logical, intent(in) :: init_to_zero
+!!$    integer, intent(in) :: ndebug
+!!$    integer, dimension(2), intent(in) :: shp
+!!$    integer(kind=8), dimension(shp(1),shp(2)+ndebug), intent(out) :: array
+!!$    
+!!$    call pad_integerlong(array,init_to_zero,product(shp),product(shp(1:1))*(shp(2)+ndebug))
+!!$
+!!$  end subroutine pad_il2
 
   subroutine pad_c1(array,init_to_zero,shp,ndebug)
     implicit none
@@ -778,6 +817,18 @@ contains
     include 'getadd-c-inc.f90' 
     la=f_loc(array(1,1,1,1))
   end function la_i4
+!!$  function la_il1(array) result(la)
+!!$    implicit none
+!!$    integer(kind=8), dimension(:), intent(in) :: array
+!!$    include 'getadd-c-inc.f90' 
+!!$    la=f_loc(array(1))
+!!$  end function la_il1
+!!$  function la_il2(array) result(la)
+!!$    implicit none
+!!$    integer(kind=8), dimension(:,:), intent(in) :: array
+!!$    include 'getadd-c-inc.f90' 
+!!$    la=f_loc(array(1,1))
+!!$  end function la_il2
   function la_r1(array) result(la)
     implicit none
     real, dimension(:), intent(in) :: array
