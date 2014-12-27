@@ -642,10 +642,11 @@ subroutine Prec_conjugate_gradient(n01,n02,n03,nspden,b,acell,eps,nord,pkernel,p
 end subroutine  Prec_conjugate_gradient
 
 subroutine EPS_iter_output(iter,normb,normr,ratio,alpha,beta)
-  use module_defs, only: dp
+  !use module_defs, only: dp
   use yaml_output
   implicit none
   integer, intent(in) :: iter
+  integer, parameter :: dp=8
   real(dp), intent(in) :: normb,normr,ratio,beta,alpha
 
   call yaml_mapping_open('Iteration quality',flow=.true.)
@@ -986,7 +987,7 @@ end subroutine fssnord3DmatNabla
 !> Like fssnord3DmatNabla but corrected such that the index goes at the beginning
 !! Multiplies also times (nabla epsilon)/(4pi*epsilon)= nabla (log(epsilon))/(4*pi)
 subroutine fssnord3DmatNabla_LG(n01,n02,n03,u,nord,acell,eta,dlogeps,rhopol,rhores2)
-  use module_defs, only: pi_param
+  !use module_defs, only: pi_param
   implicit none
 
   !c..this routine computes 'nord' order accurate first derivatives 
@@ -1011,9 +1012,12 @@ subroutine fssnord3DmatNabla_LG(n01,n02,n03,u,nord,acell,eta,dlogeps,rhopol,rhor
   !c..local variables
   integer :: n,m,n_cell
   integer :: i,j,ib,i1,i2,i3,isp,i1_max,i2_max
-  real(kind=8), parameter :: oneo4pi=0.25d0/pi_param
+  !real(kind=8), parameter :: oneo4pi=0.25d0/pi_param
   real(kind=8), dimension(-nord/2:nord/2,-nord/2:nord/2) :: c1D,c1DF
   real(kind=8) :: hx,hy,hz,max_diff,fact,dx,dy,dz,res,rho
+  real(kind=8) :: oneo4pi
+
+  oneo4pi=1.0d0/(16.d0*atan(1.d0))
 
   n = nord+1
   m = nord/2

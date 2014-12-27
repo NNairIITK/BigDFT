@@ -150,6 +150,8 @@ module Poisson_Solver
       integer :: igpu !< control the usage of the GPU
       integer :: initCufftPlan
       integer :: keepGPUmemory
+      integer, dimension(:), pointer :: counts !<array needed to gather the information of the poisson solver
+      integer, dimension(:), pointer :: displs !<array needed to gather the information of the poisson solver
    end type coulomb_operator
 
    !intialization of the timings
@@ -230,6 +232,8 @@ contains
     k%igpu=0
     k%initCufftPlan=0
     k%keepGPUmemory=1
+    nullify(k%counts)
+    nullify(k%displs)
   end function pkernel_null
 
   !> switch on the timing categories for the Poisson Solver

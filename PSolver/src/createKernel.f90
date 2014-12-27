@@ -130,6 +130,8 @@ subroutine pkernel_free(kernel)
   call f_free_ptr(kernel%dlogeps)
   call f_free_ptr(kernel%oneoeps)
   call f_free_ptr(kernel%corr)
+  call f_free_ptr(kernel%counts)
+  call f_free_ptr(kernel%displs)
 
   !free GPU data
   if (kernel%igpu == 1) then
@@ -147,7 +149,6 @@ subroutine pkernel_free(kernel)
      endif
     endif
   end if
-  
 
   !cannot yet free the communicators of the poisson kernel
   !lack of garbage collector
@@ -212,7 +213,7 @@ subroutine pkernel_set(kernel,eps,dlogeps,oneoeps,oneosqrteps,corr,verbose) !opt
   real(dp), dimension(:,:,:), allocatable :: de2,ddeps
   real(dp), dimension(:,:,:,:), allocatable :: deps
   integer :: i1,i2,i3,j1,j2,j3,ind,indt,switch_alg,size2,sizek,kernelnproc
-  integer :: n3pr1,n3pr2
+  integer :: n3pr1,n3pr2,istart,jend
   integer,dimension(3) :: n
 
   !call timing(kernel%mpi_env%iproc+kernel%mpi_env%igroup*kernel%mpi_env%nproc,'PSolvKernel   ','ON')
@@ -663,7 +664,7 @@ endif
      kernel%grid%n3p=0
   end if
 
-  !add the checks that are done at the beginning of the Poisson Solover
+  !add the checks that are done at the beginning of the Poisson Solver
   if (mod(kernel%grid%n1,2) /= 0 .and. kernel%geo(1)==0) &
        call f_err_throw('Parallel convolution:ERROR:n1') !this can be avoided
   if (mod(kernel%grid%n2,2) /= 0 .and. kernel%geo(3)==0) &
@@ -681,6 +682,16 @@ endif
        call f_err_throw('Parallel convolution:ERROR:nd3')
   if (mod(kernel%grid%md2,kernel%mpi_env%nproc) /= 0) &
        call f_err_throw('Parallel convolution:ERROR:md2')
+
+  !allocate and set the distributions for the Poisson Solver
+  kernel%counts = f_malloc_ptr([0.to.kernel%mpi_env%nproc-1],id='counts')
+  kernel%displs = f_malloc_ptr([0.to.kernel%mpi_env%nproc-1],id='displs')
+  do jproc=0,kernel%mpi_env%nproc-1
+     istart=min(jproc*(md2/kernel%mpi_env%nproc),m2-1)
+     jend=max(min(md2/kernel%mpi_env%nproc,m2-md2/kernel%mpi_env%nproc*jproc),0)
+     kernel%counts(jproc)=kernel%grid%m1*kernel%grid%m3*jend
+     kernel%displs(jproc)=kernel%grid%m1*kernel%grid%m3*istart
+  end do
 
   if (present(corr)) then
      !check the dimensions (for the moment no parallelism)

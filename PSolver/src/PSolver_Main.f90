@@ -163,110 +163,127 @@ subroutine H_potential(datacode,kernel,rhopot,pot_ion,eh,offset,sumpion,&
    !initalise to zero the zf array
    zf = f_malloc0((/ md1, md3, 2*md2/kernel%mpi_env%nproc /),id='zf')
 
-  
-   istart=kernel%mpi_env%iproc*(md2/kernel%mpi_env%nproc)
-   iend=min((kernel%mpi_env%iproc+1)*md2/kernel%mpi_env%nproc,m2)
-   if (istart <= m2-1) then
-      nxc=iend-istart
-   else
-      nxc=0
-   end if
-   
+!!$  
+!!$   istart=kernel%mpi_env%iproc*(md2/kernel%mpi_env%nproc)
+!!$   iend=min((kernel%mpi_env%iproc+1)*md2/kernel%mpi_env%nproc,m2)
+!!$   if (istart <= m2-1) then
+!!$      nxc=iend-istart
+!!$   else
+!!$      nxc=0
+!!$   end if
+!!$   
+!!$   select case(datacode)
+!!$   case('G')
+!!$      !starting address of rhopot in the case of global i/o
+!!$      i3start=istart+1
+!!$   case('D')
+!!$      !distributed i/o
+!!$      i3start=1
+!!$   case default
+!!$      call f_err_throw('datacode ("'//datacode//'" not admitted in PSolver')
+!!$   end select
+!!$   
+!!$   !this routine builds the values for each process of the potential (zf), multiplying by scal   
+!!$   !fill the array with the values of the charge density
+!!$   !no more overlap between planes
+!!$   !still the complex case should be defined
+!!$   do i3 = 1, nxc
+!!$      !$omp parallel do default(shared) private(i2, i1, i)
+!!$      do i2=1,m3
+!!$         do i1=1,m1
+!!$            i=i1+(i2-1)*m1+(i3+i3start-2)*m1*m3
+!!$            zf(i1,i2,i3)=rhopot(i)
+!!$         end do
+!!$      end do
+!!$      !$omp end parallel do
+!!$   end do
+
    select case(datacode)
    case('G')
       !starting address of rhopot in the case of global i/o
-      i3start=istart+1
+      i3start=kernel%grid%istart*kernel%ndims(1)*kernel%ndims(2)+1
    case('D')
       !distributed i/o
       i3start=1
    case default
       call f_err_throw('datacode ("'//datacode//'" not admitted in PSolver')
    end select
-   
-   !this routine builds the values for each process of the potential (zf), multiplying by scal 
-   
-   !fill the array with the values of the charge density
-   !no more overlap between planes
-   !still the complex case should be defined
-   
-   do i3 = 1, nxc
-      !$omp parallel do default(shared) private(i2, i1, i)
-      do i2=1,m3
-         do i1=1,m1
-            i=i1+(i2-1)*m1+(i3+i3start-2)*m1*m3
-            zf(i1,i2,i3)=rhopot(i)
-         end do
-      end do
-      !$omp end parallel do
-   end do
 
    !core psolver routine
-   call apply_kernel(cudasolver,kernel,zf,offset,strten)
+   call apply_kernel(cudasolver,kernel,rhopot(i3start),rhopot(i3start),offset,strten,zf,ehartreeLOC,pot_ion,sumpion)
 
-   !check for the presence of the stress tensor
-   if (present(stress_tensor)) call f_memcpy(src=strten,dest=stress_tensor)
-
+!!$   !check for the presence of the stress tensor
+!!$   if (present(stress_tensor)) call f_memcpy(src=strten,dest=stress_tensor)
   
-   !the value of the shift depends on the distributed i/o or not
-   if (datacode=='G') then
-      i3xcsh=istart !beware on the fact that this is not what represents its name!!!
-      !is_step=n01*n02*n03
-   else if (datacode=='D') then
-      i3xcsh=0 !shift not needed anymore
-   end if
-   
-   !if (iproc == 0) print *,'n03,nxc,kernel%geocode,datacode',n03,nxc,kernel%geocode,datacode
-   
-   ehartreeLOC=0.0_dp
-   !recollect the final data
-   !this part can be eventually removed once the zf disappears
-   if (sumpion) then
-      do j2=1,nxc
-         i2=j2+i3xcsh 
-         ind3=(i2-1)*kernel%ndims(1)*kernel%ndims(2)
-         ind3p=(j2-1)*kernel%ndims(1)*kernel%ndims(2)
-         !$omp parallel do default(shared) private(i3, ind2, ind2p, i1, ind, indp, pot) &
-         !$omp reduction(+:ehartreeLOC)
-         do i3=1,m3
-            ind2=(i3-1)*kernel%ndims(1)+ind3
-            ind2p=(i3-1)*kernel%ndims(1)+ind3p
-            do i1=1,m1
-               ind=i1+ind2
-               indp=i1+ind2p
-               pot=zf(i1,i3,j2)
-               ehartreeLOC=ehartreeLOC+rhopot(ind)*pot
-               rhopot(ind)=real(pot,wp)+real(pot_ion(indp),wp)
-            end do
-         end do
-         !$omp end parallel do
-      end do
-   else
-      do j2=1,nxc
-         i2=j2+i3xcsh 
-         ind3=(i2-1)*kernel%ndims(1)*kernel%ndims(2)
-         !$omp parallel do default(shared) private(i3, ind2, i1, ind, pot) &
-         !$omp reduction(+:ehartreeLOC)
-         do i3=1,m3
-            ind2=(i3-1)*kernel%ndims(1)+ind3
-            do i1=1,m1
-               ind=i1+ind2
-               pot=zf(i1,i3,j2)
-               ehartreeLOC=ehartreeLOC+rhopot(ind)*pot
-               rhopot(ind)=real(pot,wp)
-            end do
-         end do
-         !$omp end parallel do
-      end do
-   end if
-   
-   ehartreeLOC=ehartreeLOC*0.5_dp*product(kernel%hgrids)!hx*hy*hz
+!!$   !the value of the shift depends on the distributed i/o or not
+!!$   if (datacode=='G') then
+!!$      i3xcsh=kernel%grid%istart !beware on the fact that this is not what represents its name!!!
+!!$      !is_step=n01*n02*n03
+!!$   else if (datacode=='D') then
+!!$      i3xcsh=0 !shift not needed anymore
+!!$   end if
+!!$   
+!!$   !if (iproc == 0) print *,'n03,nxc,kernel%geocode,datacode',n03,nxc,kernel%geocode,datacode
+!!$   
+!!$   ehartreeLOC=0.0_dp
+!!$   !recollect the final data
+!!$   !this part can be eventually removed once the zf disappears
+!!$   if (sumpion) then
+!!$      do j2=1,nxc
+!!$         i2=j2+i3xcsh 
+!!$         ind3=(i2-1)*kernel%ndims(1)*kernel%ndims(2)
+!!$         ind3p=(j2-1)*kernel%ndims(1)*kernel%ndims(2)
+!!$         !$omp parallel do default(shared) private(i3, ind2, ind2p, i1, ind, indp, pot) &
+!!$         !$omp reduction(+:ehartreeLOC)
+!!$         do i3=1,m3
+!!$            ind2=(i3-1)*kernel%ndims(1)+ind3
+!!$            ind2p=(i3-1)*kernel%ndims(1)+ind3p
+!!$            do i1=1,m1
+!!$               ind=i1+ind2
+!!$               indp=i1+ind2p
+!!$               pot=zf(i1,i3,j2)
+!!$               ehartreeLOC=ehartreeLOC+rhopot(ind)*pot
+!!$               rhopot(ind)=real(pot,wp)+real(pot_ion(indp),wp)
+!!$            end do
+!!$         end do
+!!$         !$omp end parallel do
+!!$      end do
+!!$   else
+!!$      do j2=1,nxc
+!!$         i2=j2+i3xcsh 
+!!$         ind3=(i2-1)*kernel%ndims(1)*kernel%ndims(2)
+!!$         !$omp parallel do default(shared) private(i3, ind2, i1, ind, pot) &
+!!$         !$omp reduction(+:ehartreeLOC)
+!!$         do i3=1,m3
+!!$            ind2=(i3-1)*kernel%ndims(1)+ind3
+!!$            do i1=1,m1
+!!$               ind=i1+ind2
+!!$               pot=zf(i1,i3,j2)
+!!$               ehartreeLOC=ehartreeLOC+rhopot(ind)*pot
+!!$               rhopot(ind)=real(pot,wp)
+!!$            end do
+!!$         end do
+!!$         !$omp end parallel do
+!!$      end do
+!!$   end if
+!!$   
+!!$   ehartreeLOC=ehartreeLOC*0.5_dp*product(kernel%hgrids)!hx*hy*hz
    
    call f_free(zf)
    
    !call timing(kernel%mpi_env%iproc,'PSolv_comput  ','OF')
    !call f_timing(TCAT_PSOLV_COMPUT,'OF')
 
+
    !gathering the data to obtain the distribution array
+   if (datacode == 'G' .and. kernel%mpi_env%nproc > 1) then
+      call mpiallgather(rhopot(1), recvcounts=kernel%counts,displs=kernel%displs, comm=kernel%mpi_env%mpi_comm)
+
+   end if
+
+   !check for the presence of the stress tensor
+   if (present(stress_tensor)) call f_memcpy(src=strten,dest=stress_tensor)
+
    !evaluating the total ehartree
    eh=real(ehartreeLOC,gp)
    if (kernel%mpi_env%nproc > 1) then
@@ -278,8 +295,9 @@ subroutine H_potential(datacode,kernel,rhopot,pot_ion,eh,offset,sumpion,&
       !reduce also the value of the stress tensor
    
       if (present(stress_tensor)) then
-         call mpiallred(stress_tensor(1),6,MPI_SUM,comm=kernel%mpi_env%mpi_comm)
+         call mpiallred(stress_tensor,MPI_SUM,comm=kernel%mpi_env%mpi_comm)
       end if
+   end if
    
       !call timing(kernel%mpi_env%iproc,'PSolv_commun  ','OF')
       !call f_timing(TCAT_PSOLV_COMPUT,'OF')
@@ -288,42 +306,25 @@ subroutine H_potential(datacode,kernel,rhopot,pot_ion,eh,offset,sumpion,&
          !building the array of the data to be sent from each process
          !and the array of the displacement
    
-         !call timing(kernel%mpi_env%iproc,'PSolv_comput  ','ON')
-         !call f_timing(TCAT_PSOLV_COMPUT,'ON')
-         gather_arr = f_malloc((/ 0.to.kernel%mpi_env%nproc-1, 1.to.2 /),id='gather_arr')
-         do jproc=0,kernel%mpi_env%nproc-1
-            istart=min(jproc*(md2/kernel%mpi_env%nproc),m2-1)
-            jend=max(min(md2/kernel%mpi_env%nproc,m2-md2/kernel%mpi_env%nproc*jproc),0)
-            gather_arr(jproc,1)=m1*m3*jend
-            gather_arr(jproc,2)=m1*m3*istart
-         end do
-         !gather all the results in the same rhopot array
-         istart=min(kernel%mpi_env%iproc*(md2/kernel%mpi_env%nproc),m2-1)
-   
-         !call f_timing(TCAT_PSOLV_COMPUT,'OF')
+!!$         gather_arr = f_malloc((/ 0.to.kernel%mpi_env%nproc-1, 1.to.2 /),id='gather_arr')
+!!$         do jproc=0,kernel%mpi_env%nproc-1
+!!$            istart=min(jproc*(md2/kernel%mpi_env%nproc),m2-1)
+!!$            jend=max(min(md2/kernel%mpi_env%nproc,m2-md2/kernel%mpi_env%nproc*jproc),0)
+!!$            gather_arr(jproc,1)=m1*m3*jend
+!!$            gather_arr(jproc,2)=m1*m3*istart
+!!$         end do
+!!$         !gather all the results in the same rhopot array
+!!$         istart=min(kernel%mpi_env%iproc*(md2/kernel%mpi_env%nproc),m2-1)
+!!$   
+!!$         istden=1+kernel%ndims(1)*kernel%ndims(2)*istart
+!!$         istglo=1
+!!$         !call mpiallgatherv(rhopot(istglo), gather_arr(:,1), gather_arr(:,2), &
+         !call mpiallgatherv(rhopot, kernel%counts,kernel%displs, &
+         !     kernel%mpi_env%iproc, kernel%mpi_env%mpi_comm)
+!!$         call f_free(gather_arr)
          !call timing(kernel%mpi_env%iproc,'PSolv_comput  ','OF')
-         !call timing(kernel%mpi_env%iproc,'PSolv_commun  ','ON')
-         !call f_timing(TCAT_PSOLV_COMPUT,'ON')
-
-         istden=1+kernel%ndims(1)*kernel%ndims(2)*istart
-         istglo=1
-!!$        call MPI_ALLGATHERV(rhopot(istden),gather_arr(kernel%mpi_env%iproc,1),mpidtypw,&
-!!$             rhopot(istglo),gather_arr(0,1),gather_arr(0,2),mpidtypw,&
-!!$             kernel%mpi_env%mpi_comm,ierr)
-         call mpiallgatherv(rhopot(istglo), gather_arr(:,1), gather_arr(:,2), &
-              & kernel%mpi_env%iproc, kernel%mpi_env%mpi_comm,ierr)
-!!$         call MPI_ALLGATHERV(MPI_IN_PLACE,gather_arr(kernel%mpi_env%iproc,1),mpidtypw,&
-!!$              rhopot(istglo),gather_arr(0,1),gather_arr(0,2),mpidtypw,&
-!!$              kernel%mpi_env%mpi_comm,ierr)
-         !call f_timing(TCAT_PSOLV_COMPUT,'OF')
-         !call timing(kernel%mpi_env%iproc,'PSolv_commun  ','OF')
-         !call timing(kernel%mpi_env%iproc,'PSolv_comput  ','ON')
-         !call f_timing(TCAT_PSOLV_COMPUT,'ON')
-         call f_free(gather_arr)
-         !call timing(kernel%mpi_env%iproc,'PSolv_comput  ','OF')
-     
       end if
-   end if
+!!$   end if
 
    call f_timing(TCAT_PSOLV_COMPUT,'OF')
    call f_release_routine()
@@ -332,20 +333,45 @@ END SUBROUTINE H_potential
 
 
 !regroup the psolver from here -------------
-subroutine apply_kernel(gpu,kernel,zf,offset,strten)
+subroutine apply_kernel(gpu,kernel,rho,pot,offset,strten,zf,eh,pot_ion,sumpion)
   use f_utils, only: f_zero
   use time_profiling, only: f_timing
   implicit none
+  logical, intent(in) :: sumpion !< sum pot_ion 
   logical, intent(in) :: gpu !< logical variable controlling the gpu acceleration
   type(coulomb_operator), intent(in) :: kernel 
   !> Total integral on the supercell of the final potential on output
   real(dp), intent(in) :: offset
-  real(dp), intent(inout), dimension(kernel%grid%md1,kernel%grid%md3,2*kernel%grid%md2/kernel%mpi_env%nproc) :: zf
+  !> these might be the same array
+  real(dp), dimension(kernel%grid%m1,kernel%grid%m3*kernel%grid%n3p) :: rho,pot 
+  !> ionic potential, to be added to the potential
+  real(dp), dimension(kernel%grid%m1,kernel%grid%m3*kernel%grid%n3p), intent(in) :: pot_ion
+  !>work array for the usage of the main routine
+  real(dp), dimension(kernel%grid%md1,kernel%grid%md3*2*(kernel%grid%md2/kernel%mpi_env%nproc)), intent(inout) :: zf
   real(dp), dimension(6), intent(out) :: strten !< stress tensor associated to the cell
+  !>hartree energy, being \int d^3 x \rho(x) V_H(x)
+  real(dp), intent(out) :: eh
   !local variables
   integer, dimension(3) :: n
-  integer :: size1,size2,switch_alg,i_stat,ierr
+  integer :: size1,size2,switch_alg,i_stat,ierr,i23,j23,j3,i1,n3delta
+  real(dp) :: pt,rh
   real(dp), dimension(:), allocatable :: zf1
+
+  !this routine builds the values for each process of the potential (zf), multiplying by scal   
+  !fill the array with the values of the charge density
+  !no more overlap between planes
+  !still the complex case should be defined
+  n3delta=kernel%grid%md3-kernel%grid%m3
+  !$omp parallel do default(shared) private(i1,i23,j23,j3)
+  do i23=1,kernel%grid%n3p*kernel%grid%m3
+     j3=(i23-1)/kernel%grid%m3
+     !j2=i23-kernel%grid%m3*j3
+     j23=i23+n3delta*j3!=j2+kernel%grid%md3*j3
+     do i1=1,kernel%grid%m1
+        zf(i1,j23)=rho(i1,i23)
+     end do
+  end do
+  !$omp end parallel do
 
   call f_zero(strten)
   if (.not. gpu) then !CPU case
@@ -384,11 +410,9 @@ subroutine apply_kernel(gpu,kernel,zf,offset,strten)
 
         if (kernel%mpi_env%iproc == 0) then
            !fill the GPU memory
-
            call reset_gpu_data(size1,zf1,kernel%work1_GPU)
 
            switch_alg=0
-
            if (kernel%initCufftPlan == 1) then
               call cuda_3d_psolver_general(n,kernel%plan,kernel%work1_GPU,kernel%work2_GPU, &
                    kernel%k_GPU,switch_alg,kernel%geo,kernel%grid%scal)
@@ -439,6 +463,46 @@ subroutine apply_kernel(gpu,kernel,zf,offset,strten)
      endif
 
   endif
+
+  eh=0.0_dp
+  !recollect the final data
+  !this part can be eventually removed once the zf disappears
+  if (sumpion) then
+     !$omp parallel do default(shared) private(i1,i23,j23,j3,pt,rh) &
+     !$omp reduction(+:eh)
+     do i23=1,kernel%grid%n3p*kernel%grid%m3
+        j3=(i23-1)/kernel%grid%m3
+        j23=i23+n3delta*j3
+        do i1=1,kernel%grid%m1
+           pt=zf(i1,j23)!i2,i3)
+           rh=rho(i1,i23)!,i3)
+           rh=rh*pt
+           eh=eh+rh
+           !pot(i1,i2,i3)=pt+pot_ion(i1,i2,i3)
+           pot(i1,i23)=pt+pot_ion(i1,i23)
+        end do
+     end do
+     !$omp end parallel do
+  else
+     !$omp parallel do default(shared) private(i1,i23,j23,j3,pt,rh) &
+     !$omp reduction(+:eh)
+     do i23=1,kernel%grid%n3p*kernel%grid%m3
+        j3=(i23-1)/kernel%grid%m3
+        j23=i23+n3delta*j3
+!!$        
+!!$     do i3=1,kernel%grid%n3p
+!!$        do i2=1,kernel%grid%m3
+        do i1=1,kernel%grid%m1
+           pt=zf(i1,j23)
+           rh=rho(i1,i23)
+           rh=rh*pt      
+           eh=eh+rh
+           pot(i1,i23)=pt
+        end do
+     end do
+     !$omp end parallel do
+  end if
+  eh=eh*0.5_dp*product(kernel%hgrids)
 
 end subroutine apply_kernel
 

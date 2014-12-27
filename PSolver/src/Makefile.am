@@ -73,8 +73,10 @@ EXTRA_DIST = \
 	lazy_ISF_50_2048.inc\
 	lazy_ISF_60_2048.inc\
 	lazy_ISF_100_2048.inc\
-	perfdata.inc \
-	configure.inc.in \
+	perfdata.inc\
+	configure.inc.in\
+	FiniteDiffCorff.inc\
+	FiniteDiffCorff_2der.inc\
 	$(SOURCES_MOD)
 
 # Build targets.
