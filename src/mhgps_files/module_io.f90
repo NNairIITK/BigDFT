@@ -61,15 +61,18 @@ subroutine get_first_struct_file(mhgpsst,filename)
     endif
 end subroutine
 !=====================================================================
-subroutine read_restart(mhgpsst)
+subroutine read_restart(mhgpsst,runObj)
     use module_base
+    use bigdft_run
     use module_mhgps_state
     implicit none
     !parameters
     type(mhgps_state), intent(inout) :: mhgpsst
+    type(run_objects), intent(in)     :: runObj
     !local
     integer :: u
     logical :: exists
+    integer :: iatt, iat
     u=f_get_free_unit()
     inquire(file='restart',exist=exists)
     if(exists)then
@@ -79,6 +82,19 @@ subroutine read_restart(mhgpsst)
         read(u,*)mhgpsst%ntodo
         read(u,*)mhgpsst%nrestart
         mhgpsst%nrestart=mhgpsst%nrestart+1
+        read(u,*)mhgpsst%nattempted
+        do iatt=1,mhgpsst%nattempted
+            do iat=1,runObj%atoms%astruct%nat
+            read(u,*)mhgpsst%attempted_connections(1,iat,1,iatt),&
+                     mhgpsst%attempted_connections(2,iat,1,iatt),&
+                     mhgpsst%attempted_connections(3,iat,1,iatt)
+            enddo
+            do iat=1,runObj%atoms%astruct%nat
+            read(u,*)mhgpsst%attempted_connections(1,iat,2,iatt),&
+                     mhgpsst%attempted_connections(2,iat,2,iatt),&
+                     mhgpsst%attempted_connections(3,iat,2,iatt)
+            enddo
+        enddo
         close(u)
     else
         mhgpsst%ifolder=1
@@ -86,6 +102,7 @@ subroutine read_restart(mhgpsst)
         mhgpsst%isadprob=0
         mhgpsst%ntodo=0
         mhgpsst%nrestart=0
+        mhgpsst%nattempted=0
     endif
 end subroutine read_restart
 !=====================================================================
@@ -100,12 +117,26 @@ subroutine write_restart(mhgpsst,runObj,cobj)
     type(connect_object), optional, intent(in) :: cobj
     !local
     integer :: u
+    integer :: iatt, iat
     u=f_get_free_unit()
     open(unit=u,file='restart')
     write(u,*)mhgpsst%ifolder
     write(u,*)mhgpsst%isad,mhgpsst%isadprob
     write(u,*)mhgpsst%ntodo
     write(u,*)mhgpsst%nrestart
+    write(u,*)mhgpsst%nattempted
+    do iatt=1,mhgpsst%nattempted
+        do iat=1,runObj%atoms%astruct%nat
+        write(u,'(3(1x,es24.17))')mhgpsst%attempted_connections(1,iat,1,iatt),&
+                                mhgpsst%attempted_connections(2,iat,1,iatt),&
+                                mhgpsst%attempted_connections(3,iat,1,iatt)
+        enddo
+        do iat=1,runObj%atoms%astruct%nat
+        write(u,'(3(1x,es24.17))')mhgpsst%attempted_connections(1,iat,2,iatt),&
+                                mhgpsst%attempted_connections(2,iat,2,iatt),&
+                                mhgpsst%attempted_connections(3,iat,2,iatt)
+        enddo
+    enddo
     close(u)
     
     call write_jobs(mhgpsst,runObj,cobj)

@@ -102,8 +102,6 @@ program mhgps
     !obtain first strucutre (used for initialization of
     !bigdft)
     call get_first_struct_file(mhgpsst,filename)
-    !now read state of previous mhgps run (if present)
-    call read_restart(mhgpsst)
 
     if(mhgpsst%iproc==0) call print_logo_mhgps(mhgpsst)
 
@@ -114,6 +112,9 @@ program mhgps
          posinp_id=trim(adjustl(filename))//trim(naming_id))
 
     call run_objects_init(runObj,run)
+
+    !now read state of previous mhgps run (if present)
+    call read_restart(mhgpsst,runObj)
 
     !now allocate the system dependendt variables in mhgpsst
     call init_mhgps_state(mhgpsst,runObj)
