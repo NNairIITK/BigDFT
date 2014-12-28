@@ -580,6 +580,7 @@ connectloop: do while(cobj%ntodo>=1)
         if(mhgpsst%iproc==0)call yaml_warning('(MHGPS) connect: '//&
                     'minima are identical. Will NOT attempt to find '//&
                     'an intermediate TS.')
+        connected=.true.
         cobj%ntodo=cobj%ntodo-1
         cycle
     endif
@@ -587,12 +588,13 @@ connectloop: do while(cobj%ntodo>=1)
     call superimpose(runObj%atoms%astruct%nat,cobj%rxyz1,cobj%rxyz2)
 
     !check if previously connected
-!    if(previously_connected(mhgpsst,uinp,runObj,cobj%rxyz1,cobj%rxyz2))then
-!        if(mhgpsst%iproc==0)call yaml_warning('(MHGPS) connect: '//&
-!                    'Minima previously connected. Will not connect again.')
-!        cobj%ntodo=cobj%ntodo-1
-!        cycle
-!    endif
+    if(previously_connected(mhgpsst,uinp,runObj,cobj%rxyz1,cobj%rxyz2))then
+        if(mhgpsst%iproc==0)call yaml_comment('(MHGPS) connect: '//&
+                    'Minima previously connected. Will not connect again.')
+        connected=.true.
+        cobj%ntodo=cobj%ntodo-1
+        cycle
+    endif
 
     !get input guess for transition state
     nsad=nsad+1
@@ -618,7 +620,6 @@ connectloop: do while(cobj%ntodo>=1)
         mhgpsst%isad=mhgpsst%isad-1
         write(mhgpsst%isadc,'(i5.5)')mhgpsst%isad
         connected=.false.
-!call writetodoLIST
         call yaml_warning('(MHGPS) Saddle search not converged. '//&
              'Aborting connecting attempt.')
 !        stop 'STOP saddle not converged'
@@ -1049,7 +1050,7 @@ function previously_connected(mhgpsst,uinp,runObj,rxyz1,rxyz2)
     real(gp), intent(in) :: rxyz2(3,runObj%atoms%astruct%nat)
     logical :: previously_connected
     !local
-    real(gp), parameter :: rmsdthresh=0.1_gp
+    real(gp), parameter :: rmsdthresh=0.01_gp
     integer :: iatt
     logical :: match
     real(gp) :: rmsd1, rmsd2, rmsd3
@@ -1063,9 +1064,11 @@ function previously_connected(mhgpsst,uinp,runObj,rxyz1,rxyz2)
     outer: do iatt = 1 , mhgpsst%nattempted
         rmsd1=rmsd(runObj%atoms%astruct%nat,&
               mhgpsst%attempted_connections(1,1,1,iatt),rxyz1)
+if(mhgpsst%iproc==0)write(*,*)'rmsd ',rmsd1
         if(rmsd1 <= rmsdthresh)then
             rmsd3=rmsd(runObj%atoms%astruct%nat,&
                   mhgpsst%attempted_connections(1,1,2,iatt),rxyz2)
+if(mhgpsst%iproc==0)write(*,*)'rmsd ',rmsd3
             if(rmsd3 <= rmsdthresh) then
                 previously_connected = .true.
                 exit outer
@@ -1073,9 +1076,11 @@ function previously_connected(mhgpsst,uinp,runObj,rxyz1,rxyz2)
         endif
         rmsd2=rmsd(runObj%atoms%astruct%nat,&
               mhgpsst%attempted_connections(1,1,1,iatt),rxyz2)
+if(mhgpsst%iproc==0)write(*,*)'rmsd ',rmsd2
         if(rmsd2 <= rmsdthresh)then
             rmsd3=rmsd(runObj%atoms%astruct%nat,&
                   mhgpsst%attempted_connections(1,1,2,iatt),rxyz1)
+if(mhgpsst%iproc==0)write(*,*)'rmsd ',rmsd3
             if(rmsd3 <= rmsdthresh) then
                 previously_connected = .true.
                 exit outer
@@ -1088,6 +1093,8 @@ function previously_connected(mhgpsst,uinp,runObj,rxyz1,rxyz2)
         !check if enough space, if not
         !resize array
         if(mhgpsst%nattempted > mhgpsst%nattemptedmax)then
+if(mhgpsst%iproc==0)write(*,*)'prevresize '
+
             attempted_connections_tmp = f_malloc((/3,&
                                        runObj%atoms%astruct%nat,2,&
                                        mhgpsst%nattemptedmax/),&

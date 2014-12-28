@@ -52,48 +52,41 @@ module module_mhgps_state
 
 contains
 
-subroutine init_mhgps_state(mhgpsst,runObj)
+subroutine init_mhgps_state(mhgpsst)
     use module_base
-    use bigdft_run, only: run_objects
     implicit none
     !parameters
     type(mhgps_state), intent(inout) :: mhgpsst
-    type(run_objects), optional, intent(in) :: runObj
   
-    if(.not. present(runObj))then
+    mhgpsst%dirprefix     = 'ioput'
+    mhgpsst%mhgps_version = '0.01'
 
-        mhgpsst%dirprefix     = 'ioput'
-        mhgpsst%mhgps_version = '0.01'
-    
-        mhgpsst%njobsmax      = 999
-        mhgpsst%njobs         = -1
-        mhgpsst%ifolder       = -1
-        mhgpsst%ijob          = -1
-    !   mhgpsst%joblist = f_malloc_str((/1.to.2, 1.to.999/),id='joblist') !how??
-        allocate(mhgpsst%joblist(2,mhgpsst%njobsmax))
-     
-        write(mhgpsst%currDir,'(a,i3.3)')&
-                         trim(adjustl(mhgpsst%dirprefix)),1
-        mhgpsst%ef_counter      = 0.0_gp
-        mhgpsst%isad            = 0 
-        mhgpsst%isadc           = ''
-        mhgpsst%nrestart        = 0
-        mhgpsst%ntodo           = 0
-        mhgpsst%ntodoc          = ''
-        mhgpsst%isadprob        = 0
-        mhgpsst%isadprobc       = ''
-        mhgpsst%iproc=bigdft_mpi%iproc
-        mhgpsst%nproc=bigdft_mpi%nproc
-        mhgpsst%igroup=bigdft_mpi%igroup
-        !number of groups
-        mhgpsst%ngroups=bigdft_mpi%ngroup!mpi_info(4)
-        !actual value of iproc
-        mhgpsst%iproc=mhgpsst%iproc+mhgpsst%igroup*mhgpsst%ngroups
-    else    
-        mhgpsst%nattemptedmax = 1000
-        mhgpsst%nattempted    = 0
-        mhgpsst%attempted_connections = f_malloc((/1.to.3,1.to.runObj%atoms%astruct%nat,1.to.2,1.to.mhgpsst%nattemptedmax/),id='mhgpsst%attempted_connections')
-    endif
+    mhgpsst%njobsmax      = 999
+    mhgpsst%njobs         = -1
+    mhgpsst%ifolder       = -1
+    mhgpsst%ijob          = -1
+!   mhgpsst%joblist = f_malloc_str((/1.to.2, 1.to.999/),id='joblist') !how??
+    allocate(mhgpsst%joblist(2,mhgpsst%njobsmax))
+ 
+    write(mhgpsst%currDir,'(a,i3.3)')&
+                     trim(adjustl(mhgpsst%dirprefix)),1
+    mhgpsst%ef_counter      = 0.0_gp
+    mhgpsst%isad            = 0 
+    mhgpsst%isadc           = ''
+    mhgpsst%nrestart        = 0
+    mhgpsst%ntodo           = 0
+    mhgpsst%ntodoc          = ''
+    mhgpsst%isadprob        = 0
+    mhgpsst%isadprobc       = ''
+    mhgpsst%iproc=bigdft_mpi%iproc
+    mhgpsst%nproc=bigdft_mpi%nproc
+    mhgpsst%igroup=bigdft_mpi%igroup
+    !number of groups
+    mhgpsst%ngroups=bigdft_mpi%ngroup!mpi_info(4)
+    !actual value of iproc
+    mhgpsst%iproc=mhgpsst%iproc+mhgpsst%igroup*mhgpsst%ngroups
+    mhgpsst%nattemptedmax = 0
+    mhgpsst%nattempted    = 0
 end subroutine
 subroutine finalize_mhgps_state(mhgpsst)
     use module_base

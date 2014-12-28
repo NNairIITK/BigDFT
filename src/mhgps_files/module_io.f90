@@ -82,7 +82,8 @@ subroutine read_restart(mhgpsst,runObj)
         read(u,*)mhgpsst%ntodo
         read(u,*)mhgpsst%nrestart
         mhgpsst%nrestart=mhgpsst%nrestart+1
-        read(u,*)mhgpsst%nattempted
+        read(u,*)mhgpsst%nattempted,mhgpsst%nattemptedmax
+        mhgpsst%attempted_connections = f_malloc((/1.to.3,1.to.runObj%atoms%astruct%nat,1.to.2,1.to.mhgpsst%nattemptedmax/),id='mhgpsst%attempted_connections')
         do iatt=1,mhgpsst%nattempted
             do iat=1,runObj%atoms%astruct%nat
             read(u,*)mhgpsst%attempted_connections(1,iat,1,iatt),&
@@ -103,6 +104,8 @@ subroutine read_restart(mhgpsst,runObj)
         mhgpsst%ntodo=0
         mhgpsst%nrestart=0
         mhgpsst%nattempted=0
+        mhgpsst%nattemptedmax=1000
+        mhgpsst%attempted_connections = f_malloc((/1.to.3,1.to.runObj%atoms%astruct%nat,1.to.2,1.to.mhgpsst%nattemptedmax/),id='mhgpsst%attempted_connections')
     endif
 end subroutine read_restart
 !=====================================================================
@@ -124,7 +127,7 @@ subroutine write_restart(mhgpsst,runObj,cobj)
     write(u,*)mhgpsst%isad,mhgpsst%isadprob
     write(u,*)mhgpsst%ntodo
     write(u,*)mhgpsst%nrestart
-    write(u,*)mhgpsst%nattempted
+    write(u,*)mhgpsst%nattempted, mhgpsst%nattemptedmax
     do iatt=1,mhgpsst%nattempted
         do iat=1,runObj%atoms%astruct%nat
         write(u,'(3(1x,es24.17))')mhgpsst%attempted_connections(1,iat,1,iatt),&

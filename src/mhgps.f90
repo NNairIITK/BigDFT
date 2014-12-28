@@ -116,8 +116,6 @@ program mhgps
     !now read state of previous mhgps run (if present)
     call read_restart(mhgpsst,runObj)
 
-    !now allocate the system dependendt variables in mhgpsst
-    call init_mhgps_state(mhgpsst,runObj)
 
     !options and run are not needed
     call dict_free(options)
@@ -404,8 +402,9 @@ program mhgps
               call write_restart(mhgpsst,runObj)
            endif
         enddo
+        mhgpsst%isad=0
         if(mhgpsst%iproc==0)then
-        call f_delete_file('restart')
+!        call f_delete_file('restart')
         call f_delete_file(trim(adjustl(mhgpsst%currDir))//'/job_list_restart')
         endif
      enddo
