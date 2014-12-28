@@ -586,6 +586,14 @@ connectloop: do while(cobj%ntodo>=1)
     !rmsd alignment (optional in mhgps approach)
     call superimpose(runObj%atoms%astruct%nat,cobj%rxyz1,cobj%rxyz2)
 
+    !check if previously connected
+!    if(previously_connected(mhgpsst,uinp,runObj,cobj%rxyz1,cobj%rxyz2))then
+!        if(mhgpsst%iproc==0)call yaml_warning('(MHGPS) connect: '//&
+!                    'Minima previously connected. Will not connect again.')
+!        cobj%ntodo=cobj%ntodo-1
+!        cycle
+!    endif
+
     !get input guess for transition state
     nsad=nsad+1
     mhgpsst%isad=mhgpsst%isad+1
@@ -1025,6 +1033,83 @@ endif
 
 
 end subroutine
+!=====================================================================
+function previously_connected(mhgpsst,uinp,runObj,rxyz1,rxyz2)
+    use module_base
+    use bigdft_run, only: run_objects
+    use module_mhgps_state
+    use module_userinput
+    use module_ls_rmsd
+    implicit none
+    !parameters
+    type(mhgps_state), intent(inout) :: mhgpsst
+    type(userinput), intent(in)  :: uinp
+    type(run_objects), intent(in) :: runObj
+    real(gp), intent(in) :: rxyz1(3,runObj%atoms%astruct%nat)
+    real(gp), intent(in) :: rxyz2(3,runObj%atoms%astruct%nat)
+    logical :: previously_connected
+    !local
+    real(gp), parameter :: rmsdthresh=0.1_gp
+    integer :: iatt
+    logical :: match
+    real(gp) :: rmsd1, rmsd2, rmsd3
+    real(gp),allocatable :: attempted_connections_tmp(:,:,:,:)
+!f_malloc((/1.to.3,1.to.runObj%atoms%astruct%nat,2,mhgpsst%nattemptedmax/),id='mhgpsst%attempted_connections')
+!  mhgpsst%nattemptedmax = 1000
+!  mhgpsst%nattempted    = 0
+!  mhgpsst%attempted_connections
+
+    previously_connected = .false.
+    outer: do iatt = 1 , mhgpsst%nattempted
+        rmsd1=rmsd(runObj%atoms%astruct%nat,&
+              mhgpsst%attempted_connections(1,1,1,iatt),rxyz1)
+        if(rmsd1 <= rmsdthresh)then
+            rmsd3=rmsd(runObj%atoms%astruct%nat,&
+                  mhgpsst%attempted_connections(1,1,2,iatt),rxyz2)
+            if(rmsd3 <= rmsdthresh) then
+                previously_connected = .true.
+                exit outer
+            endif
+        endif
+        rmsd2=rmsd(runObj%atoms%astruct%nat,&
+              mhgpsst%attempted_connections(1,1,1,iatt),rxyz2)
+        if(rmsd2 <= rmsdthresh)then
+            rmsd3=rmsd(runObj%atoms%astruct%nat,&
+                  mhgpsst%attempted_connections(1,1,2,iatt),rxyz1)
+            if(rmsd3 <= rmsdthresh) then
+                previously_connected = .true.
+                exit outer
+            endif
+        endif
+    enddo outer
+
+    if(.not. previously_connected)then
+        mhgpsst%nattempted = mhgpsst%nattempted + 1
+        !check if enough space, if not
+        !resize array
+        if(mhgpsst%nattempted > mhgpsst%nattemptedmax)then
+            attempted_connections_tmp = f_malloc((/3,&
+                                       runObj%atoms%astruct%nat,2,&
+                                       mhgpsst%nattemptedmax/),&
+                                       id='attempted_connections_tmp')
+            attempted_connections_tmp = mhgpsst%attempted_connections
+            call f_free(mhgpsst%attempted_connections)
+            mhgpsst%nattemptedmax = mhgpsst%nattemptedmax + 1000
+            mhgpsst%attempted_connections = f_malloc((/3,&
+                                       runObj%atoms%astruct%nat,2,&
+                                       mhgpsst%nattemptedmax/),&
+                                       id='mhgpsst%attempted_connections')
+            mhgpsst%attempted_connections = attempted_connections_tmp
+            call f_free(attempted_connections_tmp)
+        endif
+
+        !add pair to list
+        mhgpsst%attempted_connections(:,:,1,mhgpsst%nattempted) &
+                = rxyz1
+        mhgpsst%attempted_connections(:,:,2,mhgpsst%nattempted) &
+                = rxyz2
+    endif
+end function
 !=====================================================================
 subroutine pushoff(uinp,nat,saddle,minmode,left,right)
     use module_base

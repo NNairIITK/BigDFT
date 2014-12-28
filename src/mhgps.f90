@@ -95,6 +95,7 @@ program mhgps
     run => options // 'BigDFT' // 0
 
     !initalize mhgps internal state
+    !(only non-system dependent variables)
     call init_mhgps_state(mhgpsst)
     !read user input file mhgps.inp
     call read_input(uinp)
@@ -113,6 +114,9 @@ program mhgps
          posinp_id=trim(adjustl(filename))//trim(naming_id))
 
     call run_objects_init(runObj,run)
+
+    !now allocate the system dependendt variables in mhgpsst
+    call init_mhgps_state(mhgpsst,runObj)
 
     !options and run are not needed
     call dict_free(options)

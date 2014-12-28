@@ -32,6 +32,7 @@ module module_mhgpstool
         integer :: nmin
         integer :: nsadtot
         integer :: nmintot
+        integer :: nexclude
         type(atomic_structure) :: astruct
         type(userinput) :: mhgps_uinp
         real(gp), allocatable :: rcov(:)
@@ -70,6 +71,8 @@ subroutine init_mhgpstool_data(nat,nfolder,nsad,mdat)
     mdat%nsad = 0
     mdat%nmin = 0
 
+    mdat%nexclude = 0
+
     mdat%nsadtot = sum(nsad)
     mdat%nmintot = 2*mdat%nsadtot !worst case
     mdat%fp_arr     = f_malloc((/mdat%nid,mdat%nmintot/),id='fp_arr')
@@ -83,6 +86,7 @@ subroutine init_mhgpstool_data(nat,nfolder,nsad,mdat)
     mdat%sadnumber = f_malloc((/mdat%nsadtot/),id='sadnumber')
 
     mdat%exclude = f_malloc((/mdat%nsadtot/),id='exclude')
+    mdat%exclude = 0
     
     mdat%path_sad = f_malloc_str(600,(/1.to.mdat%nsadtot/),id='path_sad')
     mdat%path_min = f_malloc_str(600,(/1.to.mdat%nmintot/),id='path_min')
@@ -208,6 +212,7 @@ integer :: i
     fp_delta = mdat%mhgps_uinp%fp_delta_min
     en_delta_sad = mdat%mhgps_uinp%en_delta_sad
     fp_delta_sad = mdat%mhgps_uinp%fp_delta_sad
+    mdat%nexclude=0
     call yaml_comment('Thresholds ....',hfill='-')
     call yaml_map('en_delta',en_delta)
     call yaml_map('fp_delta',fp_delta)
@@ -310,8 +315,8 @@ integer :: i
                     call yaml_warning('following saddle point has'//&
                          ' more than two neighboring minima: '//&
                          trim(yaml_toa(id_saddle)))
-!                    nexclude=nexclude+1
-!                    exclude(nexclude) = sadnumber_merged(kid_sad)
+                    mdat%nexclude=mdat%nexclude+1
+                    mdat%exclude(mdat%nexclude) = id_saddle
                 endif
 
             endif 
@@ -326,7 +331,7 @@ subroutine write_data(mdat)
     !parameters
     type(mhgpstool_data), intent(inout) :: mdat
     !local
-    integer :: u
+    integer :: u, u2
     integer :: imin, isad
     integer, allocatable :: mn(:)
 
@@ -343,10 +348,17 @@ subroutine write_data(mdat)
     
     !write tsdat file for saddle points and connection information
     open(u,file='tsdat')
+    u2=f_get_free_unit()
+    open(u2,file='tsdat_exclude')
     do isad=1,mdat%nsad
-        write(u,'(es24.17,1x,a,2(1x,i0.0))')mdat%en_arr_sad(isad),'0   0',mn(mdat%sadneighb(1,isad)),mn(mdat%sadneighb(2,isad))
+        if(.not. any(mdat%exclude .eq. mdat%sadnumber(isad)))then
+            write(u,'(es24.17,1x,a,2(1x,i0.0))')mdat%en_arr_sad(isad),'0   0',mn(mdat%sadneighb(1,isad)),mn(mdat%sadneighb(2,isad))
+        else
+            write(u2,'(es24.17,1x,a,2(1x,i0.0))')mdat%en_arr_sad(isad),'0   0',mn(mdat%sadneighb(1,isad)),mn(mdat%sadneighb(2,isad))
+        endif
     enddo
     close(u)
+    close(u2)
     call f_free(mn)
 
 end subroutine write_data
