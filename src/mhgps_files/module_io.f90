@@ -160,8 +160,16 @@ subroutine write_jobs(mhgpsst,runObj,cobj)
     integer :: ijob, u, ntodo
     character(len=1) :: comment
     character(len=21)  :: filenameR, filenameL
+    logical :: lw
     comment = ' ' 
+    
+    lw=.false.
 
+    if(mhgpsst%ijob+1<=mhgpsst%njobs) lw=.true.
+    if(present(cobj))then
+        if(cobj%ntodo>=1) lw=.true.
+    endif
+    if(lw)then
     u=f_get_free_unit()
     open(unit=u,file=trim(adjustl(mhgpsst%currdir))//'/job_list_restart')
     if(present(cobj))then
@@ -186,6 +194,7 @@ subroutine write_jobs(mhgpsst,runObj,cobj)
                            trim(adjustl(mhgpsst%joblist(2,ijob)(10:)))
     enddo
     close(u)
+    endif
      
 end subroutine write_jobs
 !=====================================================================

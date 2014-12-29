@@ -26,6 +26,7 @@ type userinput
     !input parameters for mhgps
     integer          :: mhgps_verbosity     = 3
     logical          :: external_mini       = .false.
+    logical          :: singlestep          = .false.
 
     !input parameters for sqnm saddle_search
     character(len=20) :: operation_mode             = 'connect'
@@ -181,7 +182,7 @@ contains
              stop
         endif
         open(u,file=filename)
-            read(u,*)uinp%mhgps_verbosity
+            read(u,*)uinp%mhgps_verbosity, uinp%singlestep
             read(u,*)uinp%operation_mode, uinp%random_minmode_guess
             read(u,*)uinp%nsadmax
             read(u,*)uinp%external_mini
@@ -236,7 +237,7 @@ contains
         integer, parameter :: u=237
         character(17), parameter :: filename='mhgps.inp_default'
         open(u,file=filename)
-            write(u,'(1x,i0.0,1x,1a)')uinp%mhgps_verbosity,' #mhgps_verbosity'
+            write(u,'(1x,i0.0,1x,1L1,1x,1a)')uinp%mhgps_verbosity,uinp%singlestep,' #mhgps_verbosity,  singlestep'
             write(u,'(1x,1L1,1x,1L1,1x,1a)')trim(adjustl(uinp%operation_mode)),uinp%random_minmode_guess,&
                  ' #mode, random_minmode_guess'
             write(u,'(1x,i0.0,1x,1a)')uinp%nsadmax,' #nsadmax'

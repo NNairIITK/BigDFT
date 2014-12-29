@@ -44,16 +44,16 @@ program mhgps
     integer                   :: ijob
     integer                   :: ierr
     integer                   :: lwork
-    integer                   :: nsad
     integer, allocatable      :: iconnect(:,:)
     logical                   :: connected
+    logical                   :: premature_exit
     character(len=200)        :: filename
     character(len=60)         :: run_id,naming_id
     real(gp), allocatable     :: rcov(:)
     real(8), allocatable      :: work(:)
     real(8)                   :: wd(1)
     character(len=300)        :: comment
-    logical                   :: converged=.false.
+    logical                   :: converged
     type(connect_object)      :: cobj
     type(dictionary), pointer :: options
     type(dictionary), pointer :: run
@@ -83,6 +83,7 @@ program mhgps
     real(gp) :: dnrm2
 
     nbond=1
+    converged = .false.
 
     call f_lib_initialize()
 
@@ -207,12 +208,21 @@ program mhgps
     call allocate_finsad_workarrays(runObj,uinp,nbond,fsw)
 
     ifolderstart=mhgpsst%ifolder
-    do ifolder = ifolderstart,999
+    outer: do ifolder = ifolderstart,999
         mhgpsst%ifolder=ifolder
         write(mhgpsst%currDir,'(a,i3.3)')trim(adjustl(mhgpsst%dirprefix)),ifolder
         call read_jobs(uinp,mhgpsst)
+        if(mhgpsst%njobs==0)cycle
+        mhgpsst%ijob=0
+        if(mhgpsst%iproc==0)then
+           call write_restart(mhgpsst,runObj)
+        endif
 
-        do ijob = 1,mhgpsst%njobs
+        inner: do ijob = 1,mhgpsst%njobs
+           if(uinp%singlestep .and. (ifolder-ifolderstart)*mhgpsst%njobs+ijob > 1)then
+              premature_exit =.true.
+              exit outer
+           endif
            mhgpsst%ijob=ijob
            call bigdft_get_rxyz(filename=&
                 trim(adjustl(mhgpsst%joblist(1,ijob))),rxyz=rxyz)
@@ -271,23 +281,28 @@ program mhgps
                       hfill='-')
               endif
               isame=0
-              nsad=0
+              mhgpsst%nsad=0
               connected=.true.
               call connect(mhgpsst,fsw,uinp,runObj,outs,rcov,nbond,&
                    iconnect,rxyz,rxyz2,energy,energy2,fp,fp2,&
-                   nsad,cobj,connected)
+                   cobj,connected,premature_exit)
 !              call connect_recursively(mhgpsst,fsw,uinp,runObj,outs,rcov,&
 !                   nbond,isame,iconnect,rxyz,rxyz2,energy,energy2,fp,&
-!                   fp2,nsad,cobj,connected)
+!                   fp2,cobj,connected)
               if(connected)then
                  if(mhgpsst%iproc==0)call yaml_map('(MHGPS) '//&
                       'succesfully connected, intermediate'//&
-                      ' transition states',nsad)
+                      ' transition states',mhgpsst%nsad)
               else
+                 if(.not.uinp%singlestep)then
                  if(mhgpsst%iproc==0)call yaml_comment('(MHGPS) '//&
                       'Connection not established within '//&
-                      trim(adjustl(yaml_toa(nsad)))//&
+                      trim(adjustl(yaml_toa(mhgpsst%nsad)))//&
                       ' transition state computations')
+                 endif
+              endif
+              if(premature_exit)then
+                 exit outer
               endif
            case('simple')
               mhgpsst%isad=mhgpsst%isad+1
@@ -398,19 +413,16 @@ program mhgps
                    trim(adjustl(uinp%operation_mode))//' unknown STOP')
               stop '(MHGPS) operation mode unknown STOP'
            end select
-           if(mhgpsst%iproc==0)then
-              call write_restart(mhgpsst,runObj)
-           endif
-        enddo
+        enddo inner
         mhgpsst%isad=0
         if(mhgpsst%iproc==0)then
 !        call f_delete_file('restart')
         call f_delete_file(trim(adjustl(mhgpsst%currDir))//'/job_list_restart')
         endif
-     enddo
+     enddo outer
 
-    if(mhgpsst%iproc==0)then
-    call f_delete_file('restart')
+    if(mhgpsst%iproc==0 .and. (.not. premature_exit))then
+       call f_delete_file('restart')
     endif
 
     !finalize (dealloctaion etc...)

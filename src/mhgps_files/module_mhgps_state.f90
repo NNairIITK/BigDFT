@@ -33,6 +33,7 @@ module module_mhgps_state
         character(len=8)   :: currDir !length is length(dirprefix)+
                                       !number of digits
         real(gp)           :: ef_counter
+        integer            :: nsad
         integer            :: isad
         character(len=5)   :: isadc
         integer            :: nrestart
@@ -71,6 +72,7 @@ subroutine init_mhgps_state(mhgpsst)
     write(mhgpsst%currDir,'(a,i3.3)')&
                      trim(adjustl(mhgpsst%dirprefix)),1
     mhgpsst%ef_counter      = 0.0_gp
+    mhgpsst%nsad            = 0 
     mhgpsst%isad            = 0 
     mhgpsst%isadc           = ''
     mhgpsst%nrestart        = 0
