@@ -38,6 +38,7 @@ program mhgps
     integer                   :: info
     integer                   :: isame
     integer                   :: nbond
+    integer                   :: nsad
     integer                   :: infocode
     integer                   :: ifolder
     integer                   :: ifolderstart
@@ -281,23 +282,22 @@ program mhgps
                       hfill='-')
               endif
               isame=0
-              mhgpsst%nsad=0
               connected=.true.
               call connect(mhgpsst,fsw,uinp,runObj,outs,rcov,nbond,&
                    iconnect,rxyz,rxyz2,energy,energy2,fp,fp2,&
-                   cobj,connected,premature_exit)
+                   cobj,connected,premature_exit,nsad)
 !              call connect_recursively(mhgpsst,fsw,uinp,runObj,outs,rcov,&
 !                   nbond,isame,iconnect,rxyz,rxyz2,energy,energy2,fp,&
 !                   fp2,cobj,connected)
               if(connected)then
                  if(mhgpsst%iproc==0)call yaml_map('(MHGPS) '//&
                       'succesfully connected, intermediate'//&
-                      ' transition states',mhgpsst%nsad)
+                      ' transition states',nsad)
               else
                  if(.not.uinp%singlestep)then
                  if(mhgpsst%iproc==0)call yaml_comment('(MHGPS) '//&
                       'Connection not established within '//&
-                      trim(adjustl(yaml_toa(mhgpsst%nsad)))//&
+                      trim(adjustl(yaml_toa(nsad)))//&
                       ' transition state computations')
                  endif
               endif

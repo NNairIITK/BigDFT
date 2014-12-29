@@ -495,7 +495,7 @@ end subroutine
 !=====================================================================
 subroutine connect(mhgpsst,fsw,uinp,runObj,outs,rcov,nbond,&
                      iconnect,rxyz1,rxyz2,ener1,ener2,fp1,fp2,&
-                     cobj,connected,premature_exit)
+                     cobj,connected,premature_exit,nsad)
     use module_base
     use module_atoms, only: astruct_dump_to_file
     use module_connect_object
@@ -526,6 +526,7 @@ subroutine connect(mhgpsst,fsw,uinp,runObj,outs,rcov,nbond,&
     type(connect_object), intent(inout) :: cobj
     logical, intent(inout)    :: connected
     logical, intent(out)      :: premature_exit
+    integer, intent(out)      :: nsad
     !local
     integer  :: infocode
     real(gp) :: displ,ener_count
@@ -543,7 +544,7 @@ subroutine connect(mhgpsst,fsw,uinp,runObj,outs,rcov,nbond,&
 
     connected=.false.
     premature_exit = .false.
-    mhgpsst%nsad=0
+!    mhgpsst%nsad=0
     isame=0
 
     cobj%ntodo=1
@@ -1039,6 +1040,10 @@ cycle
                           'were successful! STOP')
     endif
 enddo connectloop
+nsad=mhgpsst%nsad
+if(.not. premature_exit)then
+    mhgpsst%nsad=0
+endif
 if(connected)then
 !if connected, the write_restart inside the connectloop
 !has not been callled a last time.

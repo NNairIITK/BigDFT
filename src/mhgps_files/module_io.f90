@@ -79,6 +79,7 @@ subroutine read_restart(mhgpsst,runObj)
         open(unit=u,file='restart')
         read(u,*)mhgpsst%ifolder
         read(u,*)mhgpsst%isad,mhgpsst%isadprob
+        read(u,*)mhgpsst%nsad
         read(u,*)mhgpsst%ntodo
         read(u,*)mhgpsst%nrestart
         mhgpsst%nrestart=mhgpsst%nrestart+1
@@ -102,6 +103,7 @@ subroutine read_restart(mhgpsst,runObj)
         mhgpsst%isad=0
         mhgpsst%isadprob=0
         mhgpsst%ntodo=0
+        mhgpsst%nsad=0
         mhgpsst%nrestart=0
         mhgpsst%nattempted=0
         mhgpsst%nattemptedmax=1000
@@ -125,6 +127,7 @@ subroutine write_restart(mhgpsst,runObj,cobj)
     open(unit=u,file='restart')
     write(u,*)mhgpsst%ifolder
     write(u,*)mhgpsst%isad,mhgpsst%isadprob
+    write(u,*)mhgpsst%nsad
     write(u,*)mhgpsst%ntodo
     write(u,*)mhgpsst%nrestart
     write(u,*)mhgpsst%nattempted, mhgpsst%nattemptedmax
