@@ -1006,6 +1006,8 @@ sparsity:
  EXC: 1.1e-10
  EvXC: 1.01e-9
  Epot: 1.1e-9
+ Enl: 1.01e-10
+ Ekin: 1.01e-9
  eF: 1.1e-9
  D eF: 1.1e-9
  ebs_check: 2.1e-10
@@ -1122,7 +1124,7 @@ O2spin_foe:
  decay length of error function: 1.1e-5
  diff: 4.8e-9
  D Tr: 2.1e-7
- relative diff: 2.7e-11
+ relative diff: 3.5e-11
  fnrm2: 4.19e-8
 
 O2spin_dirmin:
@@ -1174,7 +1176,7 @@ expfoegeopt:
  charge diff: 2.3e-8
  ebs: 2.3e-8
  ebs_check: 1.5e-9
- D Tr: 1.6e-9
+ D Tr: 1.01e-6
  Epot: 2.3e-8
  EvXC: 2.3e-8
  EXC: 2.3e-8

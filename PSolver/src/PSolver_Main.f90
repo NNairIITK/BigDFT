@@ -617,7 +617,6 @@ subroutine finalize_hartree_results(sumpion,pot_ion,m1,m2,m3p,md1,md2,md3p,&
 end subroutine finalize_hartree_results
 
 subroutine EPS_iter_output(iter,normb,normr,ratio,alpha,beta)
-  use module_defs, only: dp
   use yaml_output
   implicit none
   integer, intent(in) :: iter

@@ -69,12 +69,12 @@ function pkernel_init(verb,iproc,nproc,igpu,geocode,ndims,hgrids,itype_scf,&
         kernel%nord=16 
         !here the parameters can be specified from command line
         kernel%max_iter=50
-        kernel%minres=1.0e-20_dp
+        kernel%minres=1.0e-12_dp
         kernel%PI_eta=1.0_dp
      case('PCG')
         kernel%nord=16 
         kernel%max_iter=50
-        kernel%minres=1.0e-20_dp
+        kernel%minres=1.0e-12_dp
      case default
         call f_err_throw('Error, kernel method '//trim(method)//&
              'not valid')
