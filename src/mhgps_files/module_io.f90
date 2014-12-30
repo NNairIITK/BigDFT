@@ -173,30 +173,37 @@ subroutine write_jobs(mhgpsst,runObj,cobj)
         if(cobj%ntodo>=1) lw=.true.
     endif
     if(lw)then
-    u=f_get_free_unit()
-    open(unit=u,file=trim(adjustl(mhgpsst%currdir))//'/job_list_restart')
-    if(present(cobj))then
-        do ijob=cobj%ntodo,1,-1
-            !write files
-            write(filenameR,'(a,i5.5,a,i5.5,a)')'restart_',&
-                                        mhgpsst%nrestart,'_',ijob,'_R'
-            call astruct_dump_to_file(bigdft_get_astruct_ptr(runObj),&
-                 trim(adjustl(mhgpsst%currDir))//'/'//trim(filenameR),&
-                 comment,rxyz=cobj%todorxyz(1,1,2,ijob))
-            write(filenameL,'(a,i5.5,a,i5.5,a)')'restart_',&
-                                        mhgpsst%nrestart,'_',ijob,'_L'
-            call astruct_dump_to_file(bigdft_get_astruct_ptr(runObj),&
-                 trim(adjustl(mhgpsst%currDir))//'/'//trim(filenameL),&
-                 comment,rxyz=cobj%todorxyz(1,1,1,ijob))
-            !write job file
-            write(u,'(a,1x,a)')trim(adjustl(filenameL)),trim(adjustl(filenameR))
-        enddo
-    endif
-    do ijob=mhgpsst%ijob+1,mhgpsst%njobs
-        write(u,'(a,1x,a)')trim(adjustl(mhgpsst%joblist(1,ijob)(10:))),&
-                           trim(adjustl(mhgpsst%joblist(2,ijob)(10:)))
-    enddo
-    close(u)
+        u=f_get_free_unit()
+        open(unit=u,file=trim(adjustl(mhgpsst%currdir))//'/job_list_restart')
+            if(present(cobj))then
+                do ijob=cobj%ntodo,1,-1
+                    !write files
+                    write(filenameR,'(a,i5.5,a,i5.5,a)')'restart_',&
+                                                mhgpsst%nrestart,'_',ijob,'_R'
+                    call astruct_dump_to_file(bigdft_get_astruct_ptr(runObj),&
+                         trim(adjustl(mhgpsst%currDir))//'/'//trim(filenameR),&
+                         comment,rxyz=cobj%todorxyz(1,1,2,ijob))
+                    write(filenameL,'(a,i5.5,a,i5.5,a)')'restart_',&
+                                                mhgpsst%nrestart,'_',ijob,'_L'
+                    call astruct_dump_to_file(bigdft_get_astruct_ptr(runObj),&
+                         trim(adjustl(mhgpsst%currDir))//'/'//trim(filenameL),&
+                         comment,rxyz=cobj%todorxyz(1,1,1,ijob))
+                    !write job file
+                    write(u,'(a,1x,a)')trim(adjustl(filenameL)),trim(adjustl(filenameR))
+                enddo
+                do ijob=mhgpsst%ijob+1,mhgpsst%njobs
+                    write(u,'(a,1x,a)')trim(adjustl(mhgpsst%joblist(1,ijob)(10:))),&
+                                       trim(adjustl(mhgpsst%joblist(2,ijob)(10:)))
+                enddo
+            else
+                do ijob=mhgpsst%ijob+1,mhgpsst%njobs
+                    if(trim(adjustl(mhgpsst%joblist(1,ijob)(10:)))/='restart')then
+                    write(u,'(a,1x,a)')trim(adjustl(mhgpsst%joblist(1,ijob)(10:))),&
+                                       trim(adjustl(mhgpsst%joblist(2,ijob)(10:)))
+                    endif
+                enddo
+            endif
+        close(u)
     endif
      
 end subroutine write_jobs
