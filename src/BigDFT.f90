@@ -71,16 +71,12 @@ program BigDFT
             call bigdft_write_atomic_file(runObj,outs,filename,&
                  'FINAL CONFIGURATION',cwd_path=.true.)
 
-!!$            if (bigdft_mpi%iproc == 0) call write_atomic_file(filename,outs%energy,runObj%atoms%astruct%rxyz, &
-!!$                 & runObj%atoms%astruct%ixyz_int, runObj%atoms,'FINAL CONFIGURATION',forces=outs%fxyz)
          else
             !filename='forces_'//trim(arr_posinp(iconfig))
             call f_strcpy(src='forces_'//trim(posinp_id),dest=filename)
             call bigdft_write_atomic_file(runObj,outs,filename,&
                  'Geometry + metaData forces',cwd_path=.true.)
 
-!!$            if (bigdft_mpi%iproc == 0) call write_atomic_file(filename,outs%energy,runObj%atoms%astruct%rxyz, &
-!!$                 & runObj%atoms%astruct%ixyz_int, runObj%atoms,'Geometry + metaData forces',forces=outs%fxyz)
          end if
 
          ! Deallocations.

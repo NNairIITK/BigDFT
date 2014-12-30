@@ -61,6 +61,8 @@ program GPS_3D
    iproc=mpirank()
    nproc=mpisize()
 
+   !control memory profiling
+   call f_malloc_set_status(memory_limit=0.e0,iproc=iproc)
    if (iproc ==0) then
       call yaml_set_stream(record_length=92,tabbing=30)!unit=70,filename='log.yaml')
       call yaml_new_document()
