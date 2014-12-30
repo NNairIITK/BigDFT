@@ -2115,7 +2115,7 @@ subroutine evaltoocc(iproc,nproc,filewrite,wf0,orbs,occopt)
    real(gp), parameter :: pi=3.1415926535897932d0
    real(gp), parameter :: sqrtpi=sqrt(pi)
    real(gp), dimension(1,1,1) :: fakepsi
-   integer :: ikpt,iorb,melec,ii !,info_fermi
+   integer :: ikpt,iorb,ii !,info_fermi
    real(gp) :: charge, chargef,wf
    real(gp) :: ef,electrons,dlectrons,factor,arg,argu,argd,corr,cutoffu,cutoffd,diff,full,res,resu,resd
    real(gp) :: a, x, xu, xd, f, df, tt
@@ -2161,9 +2161,9 @@ subroutine evaltoocc(iproc,nproc,filewrite,wf0,orbs,occopt)
          charge=charge+orbs%occup(iorb+(ikpt-1)*orbs%norb) * orbs%kwgts(ikpt)
       end do
    end do
-   melec=nint(charge)
+   !melec=nint(charge)
    !if (iproc == 0) write(1000+iproc,*) 'charge,wf',charge,melec,wf0
-   call init_fermi_level(real(melec,gp)/full, 0.d0, ft, ef_interpol_det=1.d-12, verbosity=1)
+   call init_fermi_level(charge/full, 0.d0, ft, ef_interpol_det=1.d-12, verbosity=1)
 
    ! Send all eigenvalues to all procs (presumably not necessary)
    call broadcast_kpt_objects(nproc, orbs%nkpts, orbs%norb, &
@@ -2224,7 +2224,7 @@ subroutine evaltoocc(iproc,nproc,filewrite,wf0,orbs,occopt)
          !call yaml_map('electrons',electrons)
 
          dlectrons=dlectrons/(-wf)  ! df/dEf=df/darg * -1/wf
-         diff=-real(melec,gp)/full+electrons
+         diff=-charge/full+electrons
          !if (iproc.lt.1) write(1000+iproc,*) diff,full,melec,real(melec,gp)
 !         if (iproc.lt.1) flush(1000+iproc)
          !if (iproc.lt.1) write(1000+iproc,*) diff,1.d-11*sqrt(electrons),wf
@@ -2341,7 +2341,7 @@ subroutine evaltoocc(iproc,nproc,filewrite,wf0,orbs,occopt)
             chargef=chargef+orbs%kwgts(ikpt) * orbs%occup(iorb+(ikpt-1)*orbs%norb)
          end do
       end do
-      if (abs(melec - chargef) > 1e-9)  then
+      if (abs(charge - chargef) > 1e-9)  then
       !if (abs(real(melec,gp)- chargef) > 1e-6)  then
          if (orbs%nspinor /= 4) call eigensystem_info(iproc,nproc,1.e-8_gp,0,orbs,fakepsi)
          call f_err_throw('Failed to determine correctly the occupation number, expected='//yaml_toa(charge)// &
