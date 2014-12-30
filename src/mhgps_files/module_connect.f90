@@ -556,7 +556,6 @@ subroutine connect(mhgpsst,fsw,uinp,runObj,outs,rcov,nbond,&
     cobj%todoenergy(2,cobj%ntodo)=ener2
 
     iloop=0
-write(*,*)'nsad',mhgpsst%nsad
 connectloop: do while(cobj%ntodo>=1)
     iloop=iloop+1
     if(mhgpsst%iproc==0)then

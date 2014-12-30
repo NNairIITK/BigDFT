@@ -283,7 +283,6 @@ program mhgps
               endif
               isame=0
               connected=.true.
-write(*,*)'bastian',trim(adjustl(mhgpsst%joblist(1,ijob)(10:16)))
               if(trim(adjustl(mhgpsst%joblist(1,ijob)(10:16)))/='restart')then
                   mhgpsst%nsad=0
               endif
