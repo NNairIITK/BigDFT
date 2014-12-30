@@ -34,6 +34,7 @@ program mhgps
     use module_minimizers
     use bigdft_run
     implicit none
+    integer                   :: u
     integer                   :: iat
     integer                   :: info
     integer                   :: isame
@@ -426,6 +427,10 @@ program mhgps
 
     if(mhgpsst%iproc==0 .and. (.not. premature_exit))then
        call f_delete_file('restart')
+        u=f_get_free_unit()
+        open(unit=u,file='finished') 
+        write(u,*)'finished'
+        close(u)
     endif
 
     !finalize (dealloctaion etc...)
