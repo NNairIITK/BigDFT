@@ -64,12 +64,22 @@ function pkernel_init(verb,iproc,nproc,igpu,geocode,ndims,hgrids,itype_scf,&
 
   if (present(method)) then
      select case(trim(method))
-     case('VAC','PCG','PI')
-        call f_strcpy(src=trim(method),dest=kernel%method)
+     case('VAC')
+     case('PI')
+        kernel%nord=16 
+        !here the parameters can be specified from command line
+        kernel%max_iter=50
+        kernel%minres=1.0e-20_dp
+        kernel%PI_eta=1.0_dp
+     case('PCG')
+        kernel%nord=16 
+        kernel%max_iter=50
+        kernel%minres=1.0e-20_dp
      case default
         call f_err_throw('Error, kernel method '//trim(method)//&
              'not valid')
      end select
+     call f_strcpy(src=trim(method),dest=kernel%method)
   end if
   !geocode and ISF family
   kernel%geocode=geocode
@@ -202,8 +212,6 @@ subroutine pkernel_set(kernel,eps,dlogeps,oneoeps,oneosqrteps,corr,verbose) !opt
   real(dp), dimension(:,:,:), intent(in), optional :: corr
   logical, intent(in), optional :: verbose 
   !local variables
-  !> Order of accuracy for derivatives into ApplyLaplace subroutine = Total number of points at left and right of the x0 where we want to calculate the derivative.
-  integer, parameter :: nord = 16 
   logical :: dump,wrtmsg
   character(len=*), parameter :: subname='createKernel'
   integer :: m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd3,i_stat
@@ -213,7 +221,7 @@ subroutine pkernel_set(kernel,eps,dlogeps,oneoeps,oneosqrteps,corr,verbose) !opt
   real(dp), dimension(:,:,:), allocatable :: de2,ddeps
   real(dp), dimension(:,:,:,:), allocatable :: deps
   integer :: i1,i2,i3,j1,j2,j3,ind,indt,switch_alg,size2,sizek,kernelnproc
-  integer :: n3pr1,n3pr2,istart,jend
+  integer :: n3pr1,n3pr2,istart,jend,i23,i3s,n23
   integer,dimension(3) :: n
 
   !call timing(kernel%mpi_env%iproc+kernel%mpi_env%igroup*kernel%mpi_env%nproc,'PSolvKernel   ','ON')
@@ -726,30 +734,39 @@ endif
   end if
 
   !store the arrays needed for the method
+  !the stored arrays are of rank two to collapse indices for
+  !omp parallelism
+  n1=kernel%ndims(1)
+  n23=kernel%ndims(2)*kernel%grid%n3p
+  !starting point in third direction
+  i3s=kernel%grid%istart+1
+  if (kernel%grid%n3p==0) i3s=1
   select case(trim(kernel%method))
   case('PCG')
      if (present(corr)) then
-        kernel%corr=f_malloc_ptr(src=corr,id='corr')
+        kernel%corr=f_malloc_ptr([n1,n23],id='corr')
+        call f_memcpy(n=n1*n23,src=corr(1,1,i3s),dest=kernel%corr)
      else if (present(eps)) then
-
-        kernel%corr=f_malloc_ptr(kernel%ndims,id='corr')
+        kernel%corr=f_malloc_ptr([n1,n23],id='corr')
 !!$        !allocate arrays
         deps=f_malloc([kernel%ndims(1),kernel%ndims(2),kernel%ndims(3),3],id='deps')
         de2 =f_malloc(kernel%ndims,id='de2')
         ddeps=f_malloc(kernel%ndims,id='ddeps')
 
         call fssnord3DmatNabla3varde2_LG(kernel%ndims(1),kernel%ndims(2),kernel%ndims(3),&
-             eps,deps,de2,nord,kernel%hgrids)
+             eps,deps,de2,kernel%nord,kernel%hgrids)
 
         call fssnord3DmatDiv3var_LG(kernel%ndims(1),kernel%ndims(2),kernel%ndims(3),&
-             deps,ddeps,nord,kernel%hgrids)
+             deps,ddeps,kernel%nord,kernel%hgrids)
 
-        do i3=1,kernel%ndims(3)
+        i23=1
+        do i3=i3s,i3s+kernel%grid%n3p-1!kernel%ndims(3)
            do i2=1,kernel%ndims(2)
               do i1=1,kernel%ndims(1)
-                 kernel%corr(i1,i2,i3)=(-0.125d0/pi)*&
+                 kernel%corr(i1,i23)=(-0.125d0/pi)*&
                       (0.5d0*de2(i1,i2,i3)/eps(i1,i2,i3)-ddeps(i1,i2,i3))
               end do
+              i23=i23+1
            end do
         end do
         call f_free(deps)
@@ -760,14 +777,18 @@ endif
         call f_err_throw('For method "PCG" the arrays corr or epsilon should be present')   
      end if
      if (present(oneosqrteps)) then
-        kernel%oneoeps=f_malloc_ptr(src=oneosqrteps,id='oneosqrteps')
+        kernel%oneoeps=f_malloc_ptr([n1,n23],id='oneosqrteps')
+        call f_memcpy(n=n1*n23,src=oneosqrteps(1,1,i3s),&
+             dest=kernel%oneoeps)
      else if (present(eps)) then
-        kernel%oneoeps=f_malloc_ptr(kernel%ndims,id='oneosqrteps')
-        do i3=1,kernel%ndims(3)
+        kernel%oneoeps=f_malloc_ptr([n1,n23],id='oneosqrteps')
+        i23=1
+        do i3=i3s,i3s+kernel%grid%n3p-1!kernel%ndims(3)
            do i2=1,kernel%ndims(2)
               do i1=1,kernel%ndims(1)
-                 kernel%oneoeps(i1,i2,i3)=1.0_dp/sqrt(eps(i1,i2,i3))
+                 kernel%oneoeps(i1,i23)=1.0_dp/sqrt(eps(i1,i2,i3))
               end do
+              i23=i23+1
            end do
         end do
      else
@@ -782,7 +803,7 @@ endif
         !allocate arrays
         deps=f_malloc([kernel%ndims(1),kernel%ndims(2),kernel%ndims(3),3],id='deps')
         call fssnord3DmatNabla3var_LG(kernel%ndims(1),kernel%ndims(2),kernel%ndims(3),&
-             eps,deps,nord,kernel%hgrids)
+             eps,deps,kernel%nord,kernel%hgrids)
         do i3=1,kernel%ndims(3)
            do i2=1,kernel%ndims(2)
               do i1=1,kernel%ndims(1)
@@ -799,14 +820,18 @@ endif
      end if
 
      if (present(oneoeps)) then
-        kernel%oneoeps=f_malloc_ptr(src=oneoeps,id='oneoeps')
+        kernel%oneoeps=f_malloc_ptr([n1,n23],id='oneoeps')
+        call f_memcpy(n=n1*n23,src=oneoeps(1,1,i3s),&
+             dest=kernel%oneoeps)
      else if (present(eps)) then
-        kernel%oneoeps=f_malloc_ptr(kernel%ndims,id='oneoeps')
-        do i3=1,kernel%ndims(3)
+        kernel%oneoeps=f_malloc_ptr([n1,n23],id='oneoeps')
+        i23=1
+        do i3=i3s,i3s+kernel%grid%n3p-1!kernel%ndims(3)
            do i2=1,kernel%ndims(2)
               do i1=1,kernel%ndims(1)
-                 kernel%oneoeps(i1,i2,i3)=1.0_dp/eps(i1,i2,i3)
+                 kernel%oneoeps(i1,i23)=1.0_dp/eps(i1,i2,i3)
               end do
+              i23=i23+1
            end do
         end do
      else
@@ -1218,3 +1243,137 @@ subroutine fssnord3DmatNabla3var_LG(n01,n02,n03,u,du,nord,hgrids)
 
 end subroutine fssnord3DmatNabla3var_LG
 
+!> Like fssnord3DmatNabla but corrected such that the index goes at the beginning
+!! Multiplies also times (nabla epsilon)/(4pi*epsilon)= nabla (log(epsilon))/(4*pi)
+subroutine fssnord3DmatNabla_LG(n01,n02,n03,u,nord,hgrids,eta,dlogeps,rhopol,rhores2)
+  !use module_defs, only: pi_param
+  implicit none
+
+  !c..this routine computes 'nord' order accurate first derivatives 
+  !c..on a equally spaced grid with coefficients from 'Matematica' program.
+
+  !c..input:
+  !c..ngrid       = number of points in the grid, 
+  !c..u(ngrid)    = function values at the grid points
+
+  !c..output:
+  !c..du(ngrid)   = first derivative values at the grid points
+
+  !c..declare the pass
+
+  integer, intent(in) :: n01,n02,n03,nord
+  real(kind=8), intent(in) :: eta
+  real(kind=8), dimension(3), intent(in) :: hgrids
+  real(kind=8), dimension(n01,n02,n03), intent(in) :: u
+  real(kind=8), dimension(3,n01,n02,n03), intent(in) :: dlogeps
+  real(kind=8), dimension(n01,n02,n03), intent(inout) :: rhopol
+  real(kind=8), intent(out) :: rhores2
+
+  !c..local variables
+  integer :: n,m,n_cell
+  integer :: i,j,ib,i1,i2,i3,isp,i1_max,i2_max
+  !real(kind=8), parameter :: oneo4pi=0.25d0/pi_param
+  real(kind=8), dimension(-nord/2:nord/2,-nord/2:nord/2) :: c1D,c1DF
+  real(kind=8) :: hx,hy,hz,max_diff,fact,dx,dy,dz,res,rho
+  real(kind=8) :: oneo4pi
+
+  oneo4pi=1.0d0/(16.d0*atan(1.d0))
+
+  n = nord+1
+  m = nord/2
+  hx = hgrids(1)!acell/real(n01,kind=8)
+  hy = hgrids(2)!acell/real(n02,kind=8)
+  hz = hgrids(3)!acell/real(n03,kind=8)
+  n_cell = max(n01,n02,n03)
+
+  ! Beware that n_cell has to be > than n.
+  if (n_cell.lt.n) then
+     write(*,*)'ngrid in has to be setted > than n=nord + 1'
+     stop
+  end if
+
+  ! Setting of 'nord' order accurate first derivative coefficient from 'Matematica'.
+  !Only nord=2,4,6,8,16
+  if (all(nord /=[2,4,6,8,16])) then
+     write(*,*)'Only nord-order 2,4,6,8,16 accurate first derivative'
+     stop
+  end if
+
+  do i=-m,m
+     do j=-m,m
+        c1D(i,j)=0.d0
+        c1DF(i,j)=0.d0
+     end do
+  end do
+
+  include 'FiniteDiffCorff.inc'
+
+  rhores2=0.d0
+  do i3=1,n03
+     do i2=1,n02
+        do i1=1,n01
+
+           dx=0.d0
+
+           if (i1.le.m) then
+              do j=-m,m
+                 dx = dx + c1D(j,i1-m-1)*u(j+m+1,i2,i3)
+              end do
+           else if (i1.gt.n01-m) then
+              do j=-m,m
+                 dx = dx + c1D(j,i1-n01+m)*u(n01 + j - m,i2,i3)
+              end do
+           else
+              do j=-m,m
+                 dx = dx + c1D(j,0)*u(i1 + j,i2,i3)
+              end do
+           end if
+           dx=dx/hx
+
+           dy = 0.0d0
+           if (i2.le.m) then
+              do j=-m,m
+                 dy = dy + c1D(j,i2-m-1)*u(i1,j+m+1,i3)
+              end do
+           else if (i2.gt.n02-m) then
+              do j=-m,m
+                 dy = dy + c1D(j,i2-n02+m)*u(i1,n02 + j - m,i3)
+              end do
+           else
+              do j=-m,m
+                 dy = dy + c1D(j,0)*u(i1,i2 + j,i3)
+              end do
+           end if
+           dy=dy/hy
+
+           dz = 0.0d0
+           if (i3.le.m) then
+              do j=-m,m
+                 dz = dz + c1D(j,i3-m-1)*u(i1,i2,j+m+1)
+              end do
+           else if (i3.gt.n03-m) then
+              do j=-m,m
+                 dz = dz + c1D(j,i3-n03+m)*u(i1,i2,n03 + j - m)
+              end do
+           else
+              do j=-m,m
+                 dz = dz + c1D(j,0)*u(i1,i2,i3 + j)
+              end do
+           end if
+           dz=dz/hz
+
+           !retrieve the previous treatment
+           res = dlogeps(1,i1,i2,i3)*dx + &
+                dlogeps(2,i1,i2,i3)*dy + dlogeps(3,i1,i2,i3)*dz
+           res = res*oneo4pi
+           rho=rhopol(i1,i2,i3)
+           res=res-rho
+           res=eta*res
+           rhores2=rhores2+res*res
+           rhopol(i1,i2,i3)=res+rho
+
+        end do
+     end do
+  end do
+
+end subroutine fssnord3DmatNabla_LG

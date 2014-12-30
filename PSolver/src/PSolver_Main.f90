@@ -69,16 +69,19 @@ subroutine H_potential(datacode,kernel,rhopot,pot_ion,eh,offset,sumpion,&
 
    !local variables
    character(len=*), parameter :: subname='H_potential'
+   real(dp), parameter :: max_ratioex = 1.0e10_dp
    logical :: wrtmsg,cudasolver
    integer :: m1,m2,m3,md1,md2,md3,n1,n2,n3,nd1,nd2,nd3
    integer :: ierr,ind,ind2,ind3,indp,ind2p,ind3p,i
    integer :: i1,i2,i3,j2,istart,iend,i3start,jend,jproc,i3xcsh
-   integer :: nxc,istden,istglo
-   real(dp) :: ehartreeLOC,pot
+   integer :: nxc,istden,istglo,ip,irho,i3s,i23,i23s,n23
+   real(dp) :: ehartreeLOC,pot,rhores2,zeta,epsc,pval,qval,rval,beta,kappa
+   real(dp) :: beta0,alpha,ratio,normb,normr
    !real(dp) :: scal
    real(dp), dimension(6) :: strten
+   real(dp), dimension(:,:), allocatable :: rho,rhopol,x,q,p,r,z
    real(dp), dimension(:,:,:), allocatable :: zf
-   integer, dimension(:,:), allocatable :: gather_arr
+   !integer, dimension(:,:), allocatable :: gather_arr
 
    call f_routine(id='H_potential')
    
@@ -138,70 +141,17 @@ subroutine H_potential(datacode,kernel,rhopot,pot_ion,eh,offset,sumpion,&
       call yaml_map('Box',kernel%ndims,fmt='(i5)')
       call yaml_map('MPI tasks',kernel%mpi_env%nproc,fmt='(i5)')
       if (cudasolver) call yaml_map('GPU acceleration',.true.)
-      call yaml_mapping_close()
-!      call yaml_newline()
    end if
-   
-!!$   if(kernel%geocode == 'P') then
-!!$      !no powers of hgrid because they are incorporated in the plane wave treatment
-!!$      scal=1.0_dp/(real(n1,dp)*real(n2*n3,dp)) !to reduce chances of integer overflow
-!!$   else if (kernel%geocode == 'S') then
-!!$      !only one power of hgrid 
-!!$      !factor of -4*pi for the definition of the Poisson equation
-!!$      scal=-16.0_dp*atan(1.0_dp)*real(kernel%hgrids(2),dp)/real(n1*n2,dp)/real(n3,dp)
-!!$   else if (kernel%geocode == 'F' .or. kernel%geocode == 'H') then
-!!$      !hgrid=max(hx,hy,hz)
-!!$      scal=product(kernel%hgrids)/real(n1*n2,dp)/real(n3,dp)
-!!$   else if (kernel%geocode == 'W') then
-!!$      !only one power of hgrid 
-!!$      !factor of -1/(2pi) already included in the kernel definition
-!!$      scal=-2.0_dp*kernel%hgrids(1)*kernel%hgrids(2)/real(n1*n2,dp)/real(n3,dp)
-!!$   end if
-!!$   !here the case ncplx/= 1 should be added
    
    !array allocations
    !initalise to zero the zf array
-   zf = f_malloc0((/ md1, md3, 2*md2/kernel%mpi_env%nproc /),id='zf')
-
-!!$  
-!!$   istart=kernel%mpi_env%iproc*(md2/kernel%mpi_env%nproc)
-!!$   iend=min((kernel%mpi_env%iproc+1)*md2/kernel%mpi_env%nproc,m2)
-!!$   if (istart <= m2-1) then
-!!$      nxc=iend-istart
-!!$   else
-!!$      nxc=0
-!!$   end if
-!!$   
-!!$   select case(datacode)
-!!$   case('G')
-!!$      !starting address of rhopot in the case of global i/o
-!!$      i3start=istart+1
-!!$   case('D')
-!!$      !distributed i/o
-!!$      i3start=1
-!!$   case default
-!!$      call f_err_throw('datacode ("'//datacode//'" not admitted in PSolver')
-!!$   end select
-!!$   
-!!$   !this routine builds the values for each process of the potential (zf), multiplying by scal   
-!!$   !fill the array with the values of the charge density
-!!$   !no more overlap between planes
-!!$   !still the complex case should be defined
-!!$   do i3 = 1, nxc
-!!$      !$omp parallel do default(shared) private(i2, i1, i)
-!!$      do i2=1,m3
-!!$         do i1=1,m1
-!!$            i=i1+(i2-1)*m1+(i3+i3start-2)*m1*m3
-!!$            zf(i1,i2,i3)=rhopot(i)
-!!$         end do
-!!$      end do
-!!$      !$omp end parallel do
-!!$   end do
+   zf = f_malloc([md1, md3, 2*md2/kernel%mpi_env%nproc],id='zf')
 
    select case(datacode)
    case('G')
       !starting address of rhopot in the case of global i/o
       i3start=kernel%grid%istart*kernel%ndims(1)*kernel%ndims(2)+1
+      if (kernel%grid%n3p == 0) i3start=1
    case('D')
       !distributed i/o
       i3start=1
@@ -209,88 +159,225 @@ subroutine H_potential(datacode,kernel,rhopot,pot_ion,eh,offset,sumpion,&
       call f_err_throw('datacode ("'//datacode//'" not admitted in PSolver')
    end select
 
-   !core psolver routine
-   call apply_kernel(cudasolver,kernel,rhopot(i3start),rhopot(i3start),offset,strten,zf,ehartreeLOC,pot_ion,sumpion)
+   n23=kernel%grid%m3*kernel%grid%n3p
+   n1=kernel%grid%m1
 
-!!$   !check for the presence of the stress tensor
-!!$   if (present(stress_tensor)) call f_memcpy(src=strten,dest=stress_tensor)
-  
-!!$   !the value of the shift depends on the distributed i/o or not
-!!$   if (datacode=='G') then
-!!$      i3xcsh=kernel%grid%istart !beware on the fact that this is not what represents its name!!!
-!!$      !is_step=n01*n02*n03
-!!$   else if (datacode=='D') then
-!!$      i3xcsh=0 !shift not needed anymore
-!!$   end if
-!!$   
-!!$   !if (iproc == 0) print *,'n03,nxc,kernel%geocode,datacode',n03,nxc,kernel%geocode,datacode
-!!$   
-!!$   ehartreeLOC=0.0_dp
-!!$   !recollect the final data
-!!$   !this part can be eventually removed once the zf disappears
-!!$   if (sumpion) then
-!!$      do j2=1,nxc
-!!$         i2=j2+i3xcsh 
-!!$         ind3=(i2-1)*kernel%ndims(1)*kernel%ndims(2)
-!!$         ind3p=(j2-1)*kernel%ndims(1)*kernel%ndims(2)
-!!$         !$omp parallel do default(shared) private(i3, ind2, ind2p, i1, ind, indp, pot) &
-!!$         !$omp reduction(+:ehartreeLOC)
-!!$         do i3=1,m3
-!!$            ind2=(i3-1)*kernel%ndims(1)+ind3
-!!$            ind2p=(i3-1)*kernel%ndims(1)+ind3p
-!!$            do i1=1,m1
-!!$               ind=i1+ind2
-!!$               indp=i1+ind2p
-!!$               pot=zf(i1,i3,j2)
-!!$               ehartreeLOC=ehartreeLOC+rhopot(ind)*pot
-!!$               rhopot(ind)=real(pot,wp)+real(pot_ion(indp),wp)
-!!$            end do
-!!$         end do
-!!$         !$omp end parallel do
-!!$      end do
-!!$   else
-!!$      do j2=1,nxc
-!!$         i2=j2+i3xcsh 
-!!$         ind3=(i2-1)*kernel%ndims(1)*kernel%ndims(2)
-!!$         !$omp parallel do default(shared) private(i3, ind2, i1, ind, pot) &
-!!$         !$omp reduction(+:ehartreeLOC)
-!!$         do i3=1,m3
-!!$            ind2=(i3-1)*kernel%ndims(1)+ind3
-!!$            do i1=1,m1
-!!$               ind=i1+ind2
-!!$               pot=zf(i1,i3,j2)
-!!$               ehartreeLOC=ehartreeLOC+rhopot(ind)*pot
-!!$               rhopot(ind)=real(pot,wp)
-!!$            end do
-!!$         end do
-!!$         !$omp end parallel do
-!!$      end do
-!!$   end if
-!!$   
-!!$   ehartreeLOC=ehartreeLOC*0.5_dp*product(kernel%hgrids)!hx*hy*hz
-   
+   !now switch the treatment according to the method used
+   select case(trim(kernel%method))
+   case('VAC')
+      !core psolver routine
+      call apply_kernel(cudasolver,kernel,rhopot(i3start),offset,strten,zf,.false.)
+
+      call finalize_hartree_results(sumpion,pot_ion,&
+           kernel%grid%m1,kernel%grid%m3,kernel%grid%n3p,&
+           kernel%grid%md1,kernel%grid%md3,2*(kernel%grid%md2/kernel%mpi_env%nproc),&
+           rhopot(i3start),zf,rhopot(i3start),ehartreeLOC)
+      !gathering the data to obtain the distribution array
+      if (datacode == 'G' .and. kernel%mpi_env%nproc > 1) then
+         call mpiallgather(rhopot(1),recvcounts=kernel%counts,&
+              displs=kernel%displs,comm=kernel%mpi_env%mpi_comm)
+      end if
+   case('PI')
+      if (datacode /= 'G') &
+           call f_err_throw('Error in H_potential, PI method only works with datacode=G')
+      !allocate arrays
+      rhopol=f_malloc0([kernel%ndims(1),kernel%ndims(2)*kernel%ndims(3)],&
+           id='rhopol')
+      rho=f_malloc([n1,n23],id='rho')
+      call f_memcpy(n=size(rho),src=rhopot(i3start),dest=rho)
+      if (wrtmsg) &
+           call yaml_sequence_open('Embedded PSolver, Polarization Iteration Method')
+      pi_loop: do ip=1,kernel%max_iter
+
+         !update the needed part of rhopot array
+         irho=i3start
+         !i3s=kernel%grid%istart
+         i23s=kernel%grid%istart*kernel%grid%m3
+         do i23=1,n23
+            do i1=1,n1
+               rhopot(irho)=&
+                    kernel%oneoeps(i1,i23)*rho(i1,i23)+&
+                    rhopol(i1,i23+i23s)
+!!$                       kernel%oneoeps(i1,i2,i3+i3s)*rho(i1,i2,i3)+&
+!!$                       rhopol(i1,i2,i3+i3s)
+               irho=irho+1
+            end do
+         end do
+         
+         call apply_kernel(cudasolver,kernel,rhopot(i3start),offset,strten,zf,.true.)
+         !gathering the data to obtain the distribution array
+         !this method only works with datacode == 'G'
+         if (kernel%mpi_env%nproc > 1) then
+            call mpiallgather(rhopot(1),recvcounts=kernel%counts,&
+                 displs=kernel%displs,comm=kernel%mpi_env%mpi_comm)
+         end if
+         
+         !update rhopol and calculate residue
+         call fssnord3DmatNabla_LG(kernel%ndims(1),kernel%ndims(2),&
+              kernel%ndims(3),&
+              rhopot,kernel%nord,kernel%hgrids,kernel%PI_eta,kernel%dlogeps,rhopol,rhores2)
+
+         !reduction of the residue not necessary as datacode==G
+         !if (kernel%mpi_env%nproc > 1) &
+         !     call mpiallred(rhores2,1,MPI_SUM,comm=kernel%mpi_env%mpi_comm)
+
+         if (wrtmsg) then 
+            call yaml_sequence(advance='no')
+            call EPS_iter_output(ip,0.0_dp,rhores2,0.0_dp,0.0_dp,0.0_dp)
+         end if
+
+         if (rhores2 < kernel%minres) exit pi_loop
+
+      end do pi_loop
+      if (wrtmsg) call yaml_sequence_close()
+      !here the harteee energy can be calculated and the ionic potential
+      !added
+      call finalize_hartree_results(sumpion,pot_ion,&
+           kernel%grid%m1,kernel%grid%m3,kernel%grid%n3p,&
+           kernel%grid%m1,kernel%grid%m3,kernel%grid%n3p,&
+           rho,rhopot(i3start),rhopot(i3start),ehartreeLOC)
+      if (kernel%mpi_env%nproc > 1 .and. sumpion) then
+         call mpiallgather(rhopot(1),recvcounts=kernel%counts,&
+              displs=kernel%displs,comm=kernel%mpi_env%mpi_comm)
+      end if
+
+      call f_free(rho)
+      call f_free(rhopol)
+
+   case('PCG')
+
+      r=f_malloc([n1,n23],id='r')
+      x=f_malloc0([n1,n23],id='x')
+      q=f_malloc0([n1,n23],id='q')
+      p=f_malloc0([n1,n23],id='p')
+      z=f_malloc([n1,n23],id='z')
+
+      if (wrtmsg) &
+           call yaml_sequence_open('Embedded PSolver, Preconditioned Conjugate Gradient Method')
+      beta=1.d0
+      ratio=1.d0
+
+      normb=dot(n1*n23,rhopot(i3start),1,rhopot(i3start),1)
+      if (kernel%mpi_env%nproc > 1) &
+           call mpiallred(normb,1,MPI_SUM,comm=kernel%mpi_env%mpi_comm)
+      normb=sqrt(normb)
+
+      call f_memcpy(n=kernel%grid%m1*kernel%grid%m3*kernel%grid%n3p,&
+           src=rhopot(i3start),dest=r)
+
+      !$omp parallel do default(shared) private(i1,i23)
+      do i23=1,n23
+         do i1=1,n1
+            z(i1,i23)=r(i1,i23)*kernel%oneoeps(i1,i23)
+         end do
+      end do
+      !$omp end parallel do
+
+      PCG_loop: do ip=1,kernel%max_iter
+
+         if (ratio < kernel%minres .or. ratio > max_ratioex) exit PCG_loop
+
+         !  Apply the Preconditioner
+         call apply_kernel(cudasolver,kernel,z,offset,strten,zf,.true.)
+
+         beta0 = beta
+         beta=0.d0
+         !$omp parallel do default(shared) private(i1,i23,rval,zeta) &
+         !$omp reduction(+:beta)
+         do i23=1,n23
+            do i1=1,n1
+               zeta=z(i1,i23)
+               zeta=zeta*kernel%oneoeps(i1,i23)
+               rval=r(i1,i23)
+               rval=rval*zeta
+               beta=beta+rval
+               z(i1,i23)=zeta
+            end do
+         end do
+         !$omp end parallel do
+
+         if (kernel%mpi_env%nproc > 1) &
+              call mpiallred(beta,1,MPI_SUM,comm=kernel%mpi_env%mpi_comm)
+
+         kappa=0.d0
+         !$omp parallel do default(shared) private(i1,i23,epsc,zeta)&
+         !$omp private(pval,qval,rval) reduction(+:kappa)
+         do i23=1,n23
+            do i1=1,n1
+               zeta=z(i1,i23)
+               epsc=kernel%corr(i1,i23)
+               pval=p(i1,i23)
+               qval=q(i1,i23)
+               rval=r(i1,i23)
+               pval = zeta+(beta/beta0)*pval
+               qval = zeta*epsc+rval+(beta/beta0)*qval
+               p(i1,i23) = pval
+               q(i1,i23) = qval
+               rval=pval*qval
+               kappa = kappa+rval 
+            end do
+         end do
+         !$omp end parallel do
+
+         if (kernel%mpi_env%nproc > 1) &
+              call mpiallred(kappa,1,MPI_SUM,comm=kernel%mpi_env%mpi_comm)
+
+         alpha = beta/kappa
+
+         normr=0.d0
+         !$omp parallel do default(shared) private(i1,i23,rval) &
+         !$omp reduction(+:normr)
+         do i23=1,n23
+            do i1=1,n1
+               x(i1,i23) = x(i1,i23) + alpha*p(i1,i23)
+               r(i1,i23) = r(i1,i23) - alpha*q(i1,i23)
+               z(i1,i23) = r(i1,i23)*kernel%oneoeps(i1,i23)
+               rval=r(i1,i23)*r(i1,i23)
+               normr=normr+rval
+            end do
+         end do
+         !$omp end parallel do
+
+         if (kernel%mpi_env%nproc > 1) &
+              call mpiallred(normr,1,MPI_SUM,comm=kernel%mpi_env%mpi_comm)
+
+         normr=sqrt(normr)
+
+         ratio=normr/normb
+         if (wrtmsg) then
+            call yaml_sequence(advance='no')
+            call EPS_iter_output(ip,normb,normr,ratio,alpha,beta)
+         end if
+      end do PCG_loop
+      if (wrtmsg) call yaml_sequence_close()
+      !here the harteee energy can be calculated and the ionic potential
+      !added
+      call finalize_hartree_results(sumpion,pot_ion,&
+           kernel%grid%m1,kernel%grid%m3,kernel%grid%n3p,&
+           kernel%grid%m1,kernel%grid%m3,kernel%grid%n3p,&
+           rhopot(i3start),x,rhopot(i3start),ehartreeLOC)
+      if (kernel%mpi_env%nproc > 1 .and. datacode =='G') then
+         call mpiallgather(rhopot(1),recvcounts=kernel%counts,&
+              displs=kernel%displs,comm=kernel%mpi_env%mpi_comm)
+      end if
+      call f_free(x)
+      call f_free(z)
+      call f_free(p)
+      call f_free(q)
+      call f_free(r)
+
+   end select
+
    call f_free(zf)
-   
-   !call timing(kernel%mpi_env%iproc,'PSolv_comput  ','OF')
-   !call f_timing(TCAT_PSOLV_COMPUT,'OF')
 
-
-   !gathering the data to obtain the distribution array
-   if (datacode == 'G' .and. kernel%mpi_env%nproc > 1) then
-      call mpiallgather(rhopot(1), recvcounts=kernel%counts,displs=kernel%displs, comm=kernel%mpi_env%mpi_comm)
-
-   end if
 
    !check for the presence of the stress tensor
    if (present(stress_tensor)) call f_memcpy(src=strten,dest=stress_tensor)
 
    !evaluating the total ehartree
-   eh=real(ehartreeLOC,gp)
+   eh=real(ehartreeLOC,gp)*0.5_dp*product(kernel%hgrids)
    if (kernel%mpi_env%nproc > 1) then
-      !call timing(kernel%mpi_env%iproc,'PSolv_commun  ','ON')
-      !call f_timing(TCAT_PSOLV_COMPUT,'ON')
 
-      eh=ehartreeLOC
       call mpiallred(eh,1,MPI_SUM,comm=kernel%mpi_env%mpi_comm)
       !reduce also the value of the stress tensor
    
@@ -326,37 +413,34 @@ subroutine H_potential(datacode,kernel,rhopot,pot_ion,eh,offset,sumpion,&
       end if
 !!$   end if
 
+   if (wrtmsg) call yaml_mapping_close()
    call f_timing(TCAT_PSOLV_COMPUT,'OF')
    call f_release_routine()
 
 END SUBROUTINE H_potential
 
-
 !regroup the psolver from here -------------
-subroutine apply_kernel(gpu,kernel,rho,pot,offset,strten,zf,eh,pot_ion,sumpion)
+subroutine apply_kernel(gpu,kernel,rho,offset,strten,zf,updaterho)
   use f_utils, only: f_zero
   use time_profiling, only: f_timing
   implicit none
-  logical, intent(in) :: sumpion !< sum pot_ion 
+  !>when true, the density is updated with the value of zf
+  logical, intent(in) :: updaterho
   logical, intent(in) :: gpu !< logical variable controlling the gpu acceleration
   type(coulomb_operator), intent(in) :: kernel 
   !> Total integral on the supercell of the final potential on output
   real(dp), intent(in) :: offset
-  !> these might be the same array
-  real(dp), dimension(kernel%grid%m1,kernel%grid%m3*kernel%grid%n3p) :: rho,pot 
-  !> ionic potential, to be added to the potential
-  real(dp), dimension(kernel%grid%m1,kernel%grid%m3*kernel%grid%n3p), intent(in) :: pot_ion
+  real(dp), dimension(kernel%grid%m1,kernel%grid%m3*kernel%grid%n3p), intent(inout) :: rho
   !>work array for the usage of the main routine
   real(dp), dimension(kernel%grid%md1,kernel%grid%md3*2*(kernel%grid%md2/kernel%mpi_env%nproc)), intent(inout) :: zf
   real(dp), dimension(6), intent(out) :: strten !< stress tensor associated to the cell
-  !>hartree energy, being \int d^3 x \rho(x) V_H(x)
-  real(dp), intent(out) :: eh
   !local variables
   integer, dimension(3) :: n
   integer :: size1,size2,switch_alg,i_stat,ierr,i23,j23,j3,i1,n3delta
   real(dp) :: pt,rh
   real(dp), dimension(:), allocatable :: zf1
 
+  call f_zero(zf)
   !this routine builds the values for each process of the potential (zf), multiplying by scal   
   !fill the array with the values of the charge density
   !no more overlap between planes
@@ -464,21 +548,52 @@ subroutine apply_kernel(gpu,kernel,rho,pot,offset,strten,zf,eh,pot_ion,sumpion)
 
   endif
 
-  eh=0.0_dp
-  !recollect the final data
-  !this part can be eventually removed once the zf disappears
-  if (sumpion) then
-     !$omp parallel do default(shared) private(i1,i23,j23,j3,pt,rh) &
-     !$omp reduction(+:eh)
+  if (updaterho) then
+     !$omp parallel do default(shared) private(i1,i23,j23,j3)
      do i23=1,kernel%grid%n3p*kernel%grid%m3
         j3=(i23-1)/kernel%grid%m3
         j23=i23+n3delta*j3
         do i1=1,kernel%grid%m1
-           pt=zf(i1,j23)!i2,i3)
-           rh=rho(i1,i23)!,i3)
+           rho(i1,i23)=zf(i1,j23)
+        end do
+     end do
+     !$omp end parallel do
+  end if
+
+end subroutine apply_kernel
+
+subroutine finalize_hartree_results(sumpion,pot_ion,m1,m2,m3p,md1,md2,md3p,&
+     rho,zf,pot,eh)
+  implicit none
+  logical, intent(in) :: sumpion
+  integer, intent(in) :: m1,m2,m3p !< dimension of the grid
+  integer, intent(in) :: md1,md2,md3p !< dimension of the zf array
+  !> original density and final potential (can point to the same array)
+  real(dp), dimension(m1,m2*m3p) :: rho,pot 
+  !> ionic potential, to be added to the potential
+  real(dp), dimension(m1,m2*m3p), intent(in) :: pot_ion
+  !> work array for the usage of the main routine (might have the same dimension of rho)
+  real(dp), dimension(md1,md2*md3p), intent(inout) :: zf
+  !>hartree energy, being \int d^3 x \rho(x) V_H(x)
+  real(dp), intent(out) :: eh
+  !local variables
+  integer :: i1,i23,j23,j3,n3delta
+  real(dp) :: pt,rh
+
+  eh=0.0_dp
+  !recollect the final data
+  n3delta=md2-m2 !this is the y dimension
+  if (sumpion) then
+     !$omp parallel do default(shared) private(i1,i23,j23,j3,pt,rh) &
+     !$omp reduction(+:eh)
+     do i23=1,m2*m3p
+        j3=(i23-1)/m2
+        j23=i23+n3delta*j3
+        do i1=1,m1
+           pt=zf(i1,j23)
+           rh=rho(i1,i23)
            rh=rh*pt
            eh=eh+rh
-           !pot(i1,i2,i3)=pt+pot_ion(i1,i2,i3)
            pot(i1,i23)=pt+pot_ion(i1,i23)
         end do
      end do
@@ -486,13 +601,10 @@ subroutine apply_kernel(gpu,kernel,rho,pot,offset,strten,zf,eh,pot_ion,sumpion)
   else
      !$omp parallel do default(shared) private(i1,i23,j23,j3,pt,rh) &
      !$omp reduction(+:eh)
-     do i23=1,kernel%grid%n3p*kernel%grid%m3
-        j3=(i23-1)/kernel%grid%m3
+     do i23=1,m2*m3p
+        j3=(i23-1)/m2
         j23=i23+n3delta*j3
-!!$        
-!!$     do i3=1,kernel%grid%n3p
-!!$        do i2=1,kernel%grid%m3
-        do i1=1,kernel%grid%m1
+        do i1=1,m1
            pt=zf(i1,j23)
            rh=rho(i1,i23)
            rh=rh*pt      
@@ -502,9 +614,28 @@ subroutine apply_kernel(gpu,kernel,rho,pot,offset,strten,zf,eh,pot_ion,sumpion)
      end do
      !$omp end parallel do
   end if
-  eh=eh*0.5_dp*product(kernel%hgrids)
+end subroutine finalize_hartree_results
 
-end subroutine apply_kernel
+subroutine EPS_iter_output(iter,normb,normr,ratio,alpha,beta)
+  !use module_defs, only: dp
+  use yaml_output
+  implicit none
+  integer, intent(in) :: iter
+  integer, parameter :: dp=8
+  real(dp), intent(in) :: normb,normr,ratio,beta,alpha
+
+  call yaml_mapping_open('Iteration quality',flow=.true.)
+  if (beta /= 0.0_dp) call yaml_comment('Iteration '//trim(yaml_toa(iter)),hfill='_')
+  !write the PCG iteration
+  call yaml_map('iter',iter,fmt='(i4)')
+  !call yaml_map('rho_norm',normb)
+  if (normr/=0.0_dp) call yaml_map('res',normr,fmt='(1pe16.4)')
+  if (ratio /= 0.0_dp) call yaml_map('ratio',ratio,fmt='(1pe16.4)')
+  if (alpha /= 0.0_dp) call yaml_map('alpha',alpha,fmt='(1pe16.4)')
+  if (beta /= 0.0_dp) call yaml_map('beta',beta,fmt='(1pe16.4)')
+
+  call yaml_mapping_close()
+end subroutine EPS_iter_output
 
 
 !> Calculate the dimensions needed for the allocation of the arrays 

@@ -484,6 +484,31 @@ contains
 #endif
   end subroutine wmpi_init_thread
 
+  !>initialization of the mpi library
+  subroutine mpiinit(inithread)
+    use dictionaries, only: f_err_throw
+    implicit none
+    !>if present, set the initialization to the 
+    !!mpi_init_thread case (mpi_thread_funneled is supported)
+    !! default is false, traditional mpi_init
+    logical, intent(in), optional :: inithread
+    !local variables
+    logical :: thd
+    integer :: ierr
+    external :: MPI_INIT
+
+    thd=.false.
+    if (present(inithread)) thd=inithread
+    
+    if (thd) then
+       call wmpi_init_thread(ierr)
+    else
+       call MPI_INIT(ierr)
+    end if
+    if (ierr /=0) call f_err_throw('An error in calling to MPI_INIT (THREAD) occured',&
+         err_id=ERR_MPI_WRAPPERS)
+
+  end subroutine mpiinit
 
   !> Finalization of the mpi
   subroutine mpifinalize()
@@ -494,7 +519,7 @@ contains
 
     call MPI_FINALIZE(ierr)
     if (ierr /= MPI_SUCCESS) then
-       call f_err_throw('An error in calling to MPI_INIT_THREAD occured',&
+       call f_err_throw('An error in calling to MPI_FINALIZE occured',&
             err_id=ERR_MPI_WRAPPERS)
     end if
   end subroutine mpifinalize
@@ -620,12 +645,18 @@ contains
   function mpirank(comm)
     use dictionaries, only: f_err_throw
     implicit none
-    integer, intent(in) :: comm
+    integer, intent(in), optional :: comm
     integer :: mpirank
     !local variables
-    integer :: iproc,ierr
+    integer :: iproc,ierr,mpi_comm
 
-    call MPI_COMM_RANK(comm, iproc, ierr)
+    if (present(comm)) then
+       mpi_comm=comm
+    else
+       mpi_comm=MPI_COMM_WORLD
+    end if
+
+    call MPI_COMM_RANK(mpi_comm, iproc, ierr)
     if (ierr /=0) then
        iproc=-1
        mpirank=iproc
@@ -640,13 +671,19 @@ contains
   function mpisize(comm)
     use dictionaries, only: f_err_throw
     implicit none
-    integer, intent(in) :: comm
+    integer, intent(in), optional :: comm
     integer :: mpisize
     !local variables
-    integer :: nproc,ierr
+    integer :: nproc,ierr,mpi_comm
+
+    if (present(comm)) then
+       mpi_comm=comm
+    else
+       mpi_comm=MPI_COMM_WORLD
+    end if
 
     !verify the size of the receive buffer
-    call MPI_COMM_SIZE(comm,nproc,ierr)
+    call MPI_COMM_SIZE(mpi_comm,nproc,ierr)
     if (ierr /=0) then
        nproc=0
        mpisize=nproc

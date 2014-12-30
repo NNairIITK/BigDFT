@@ -17,6 +17,7 @@
   integer :: ierr,mpi_comm,me,nprc,sendsize,recvsize,ntot,jprc
   integer :: recvcnt,sendcnt,dspl,ourselves
   integer, dimension(:), pointer :: displs_
+  external :: MPI_ALLGATHERV,MPI_ALLGATHER
 
   !check of the arguments
   sendsize=kind(sendbuf)
@@ -39,9 +40,9 @@
      if (size(recvcounts) /= ourselves) &
           call f_err_throw('Size of recvcounts is not of length group size',&
           err_name='ERR_MPI_WRAPPERS')
-     recvcnt=recvcounts(1)
+     recvcnt=recvcounts(me+1)
      allv=any(recvcounts/=recvcnt)
-     if (allv .and. present(displs)) then
+     if (.not. allv .and. present(displs)) then
         nprc=size(displs)
         if (nprc /= size(recvcounts)) &
              call f_err_throw('Error in mpiallgather, sizes of displs and recvcounts do not coincide ('//&
@@ -51,7 +52,7 @@
         dspl=0
         do jprc=1,nprc
            if (dspl /= displs(jprc)) then
-              allv=.false.
+              allv=.true.
               exit
            end if
            dspl=dspl+recvcnt

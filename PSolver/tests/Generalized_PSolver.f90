@@ -57,9 +57,14 @@ program GPS_3D
    PSol=options .get. 'method'
    call dict_free(options)
 
-   call yaml_set_stream(record_length=92,tabbing=30)!unit=70,filename='log.yaml')
-   call yaml_new_document()
+   call mpiinit()
+   iproc=mpirank()
+   nproc=mpisize()
 
+   if (iproc ==0) then
+      call yaml_set_stream(record_length=92,tabbing=30)!unit=70,filename='log.yaml')
+      call yaml_new_document()
+   end if
 
 !   call MPI_INIT(ierr)
 !   call MPI_COMM_RANK(MPI_COMM_WORLD,iproc,ierr)
@@ -84,8 +89,8 @@ program GPS_3D
 
    ixc=0
    itype_scf=16
-   iproc=0
-   nproc=1
+!!$   iproc=0
+!!$   nproc=1
 !-------------------------------------------------------------------------
 
    ! Create the Kernel.
@@ -93,8 +98,6 @@ program GPS_3D
 
    ndims=(/n01,n02,n03/)
    hgrids=(/hx,hy,hz/)
-
-   pkernel=pkernel_init(.true.,iproc,nproc,0,geocode,ndims,hgrids,itype_scf,method=PSol)
 
 !------------------------------------------------------------------------
 
@@ -138,17 +141,38 @@ program GPS_3D
 
   rhopot(:,:,:,:) = density(:,:,:,:)
 
-  !set the coulomb operator of this system
-  call pkernel_set(pkernel,verbose=.true.,eps=eps)
-
   if ( trim(PSol)=='PCG') then
+     
+     !new method
+     pkernel=pkernel_init(.true.,iproc,nproc,0,geocode,ndims,hgrids,itype_scf,method=PSol)
+     !set the coulomb operator of this system
+     call pkernel_set(pkernel,verbose=.true.,eps=eps)
+     call H_potential('G',pkernel,rhopot,rhopot,ehartree,0.d0,.false.)
+     call writeroutinePot(n01,n02,n03,nspden,rhopot,pkernel%max_iter,&
+          potential)
 
-   call Prec_conjugate_gradient(n01,n02,n03,nspden,rhopot,acell,eps,nord,pkernel,potential)
+!!$     !old method, outside of PSolver
+!!$     pkernel=pkernel_init(.true.,iproc,nproc,0,geocode,ndims,hgrids,itype_scf,method='VAC')
+!!$     !set the coulomb operator of this system
+!!$     call pkernel_set(pkernel,verbose=.true.)
+!!$     call Prec_conjugate_gradient(n01,n02,n03,nspden,rhopot,acell,eps,nord,pkernel,potential)
 
   else if (trim(PSol)=='PI') then
 
-   call PolarizationIteration(n01,n02,n03,nspden,rhopot,acell,eps,nord,pkernel,potential)
+     pkernel=pkernel_init(.true.,iproc,nproc,0,geocode,ndims,hgrids,itype_scf,method=PSol)
+     !set the coulomb operator of this system
+     call pkernel_set(pkernel,verbose=.true.,eps=eps)
+     call H_potential('G',pkernel,rhopot,rhopot,ehartree,0.d0,.false.)
+     call writeroutinePot(n01,n02,n03,nspden,rhopot,pkernel%max_iter,potential)
 
+!!$     !old method, outside of PSolver
+!!$     pkernel=pkernel_init(.true.,iproc,nproc,0,geocode,ndims,hgrids,itype_scf,method='VAC')
+!!$     !set the coulomb operator of this system
+!!$     call pkernel_set(pkernel,verbose=.true.)
+!!$     call PolarizationIteration(n01,n02,n03,nspden,rhopot,acell,eps,nord,pkernel,potential)
+
+  else
+     call f_err_throw('Unrecognized method (provided "'//trim(PSol)//'")')
   end if
 
   call pkernel_free(pkernel)
@@ -159,10 +183,11 @@ program GPS_3D
   call f_free(potential)
   call f_free(pot_ion)
 
-  call yaml_release_document()
-  call yaml_close_all_streams()
-
-  
+  if (iproc ==0) then
+     call yaml_release_document()
+     call yaml_close_all_streams()
+  end if
+  call mpifinalize()
   call f_lib_finalize()
   
 contains
@@ -275,11 +300,11 @@ subroutine PolarizationIteration(n01,n02,n03,nspden,b,acell,eps,nord,pkernel,pot
     do i1=1,n01
      rhopol(i1,i2,i3,isp) = 0.d0
      rhosol(i1,i2,i3,isp) = b(i1,i2,i3,isp)
-!!$
-!!$     !switch and create the logarithmic derivative of epsilon
-!!$     dlv(1,i1,i2,i3)=deps(i1,i2,i3,1)/eps(i1,i2,i3)
-!!$     dlv(2,i1,i2,i3)=deps(i1,i2,i3,2)/eps(i1,i2,i3)
-!!$     dlv(3,i1,i2,i3)=deps(i1,i2,i3,3)/eps(i1,i2,i3)
+
+     !switch and create the logarithmic derivative of epsilon
+     dlv(1,i1,i2,i3)=deps(i1,i2,i3,1)/eps(i1,i2,i3)
+     dlv(2,i1,i2,i3)=deps(i1,i2,i3,2)/eps(i1,i2,i3)
+     dlv(3,i1,i2,i3)=deps(i1,i2,i3,3)/eps(i1,i2,i3)
 
     end do
    end do
@@ -300,8 +325,8 @@ subroutine PolarizationIteration(n01,n02,n03,nspden,b,acell,eps,nord,pkernel,pot
      do i3=1,n03
       do i2=1,n02
        do i1=1,n01
-          !rhotot(i1,i2,i3,isp)=(1/eps(i1,i2,i3))*rhosol(i1,i2,i3,isp)+rhopol(i1,i2,i3,isp)
-          rhotot(i1,i2,i3,isp)=pkernel%oneoeps(i1,i2,i3)*rhosol(i1,i2,i3,isp)+rhopol(i1,i2,i3,isp)
+          rhotot(i1,i2,i3,isp)=(1/eps(i1,i2,i3))*rhosol(i1,i2,i3,isp)+rhopol(i1,i2,i3,isp)
+          !rhotot(i1,i2,i3,isp)=pkernel%oneoeps(i1,i2,i3)*rhosol(i1,i2,i3,isp)+rhopol(i1,i2,i3,isp)
           lv(i1,i2,i3,isp) = rhotot(i1,i2,i3,isp)
        end do
       end do
@@ -312,7 +337,9 @@ subroutine PolarizationIteration(n01,n02,n03,nspden,b,acell,eps,nord,pkernel,pot
 
      call writeroutinePot(n01,n02,n03,nspden,lv,ip,potential)
 
-     call fssnord3DmatNabla_LG(n01,n02,n03,lv,nord,acell,eta,pkernel%dlogeps,rhopol,rhores2)
+     !call fssnord3DmatNabla_LG2(n01,n02,n03,lv,nord,acell,eta,pkernel%dlogeps,rhopol,rhores2)
+     call fssnord3DmatNabla_LG2(n01,n02,n03,lv,nord,acell,eta,dlv,rhopol,rhores2)
+
      !!!call fssnord3DmatNabla(n01,n02,n03,nspden,lv,dlv,nord,acell)
      !!!
      !!!isp=1
@@ -355,7 +382,7 @@ subroutine PolarizationIteration(n01,n02,n03,nspden,b,acell,eps,nord,pkernel,pot
      write(18,'(1x,I8,1x,e14.7)')ip,rhores2
      !write(*,'(1x,I8,1x,e14.7)')ip,rhores2
 
-     call EPS_iter_output(ip,0.0_dp,rhores2,0.0_dp,0.0_dp,0.0_dp)
+     call EPS_iter_output_LG(ip,0.0_dp,rhores2,0.0_dp,0.0_dp,0.0_dp)
      if (rhores2.lt.taupol) exit
 
 !     call writeroutine(n01,n02,n03,nspden,rhores,ip)
@@ -527,8 +554,8 @@ subroutine Prec_conjugate_gradient(n01,n02,n03,nspden,b,acell,eps,nord,pkernel,p
   do i3=1,n03
      do i2=1,n02
         do i1=1,n01
-           !lv(i1,i2,i3,isp) = r(i1,i2,i3,isp)/dsqrt(eps(i1,i2,i3))
-           lv(i1,i2,i3,isp) = pkernel%oneoeps(i1,i2,i3)*r(i1,i2,i3,isp)
+           lv(i1,i2,i3,isp) = r(i1,i2,i3,isp)/dsqrt(eps(i1,i2,i3))
+           !lv(i1,i2,i3,isp) = pkernel%oneoeps(i1,i2,i3)*r(i1,i2,i3,isp)
         end do
      end do
   end do
@@ -553,9 +580,9 @@ subroutine Prec_conjugate_gradient(n01,n02,n03,nspden,b,acell,eps,nord,pkernel,p
    do i3=1,n03
     do i2=1,n02
      do i1=1,n01
-        !z(i1,i2,i3,isp) = lv(i1,i2,i3,isp)/dsqrt(eps(i1,i2,i3))
-        z(i1,i2,i3,isp) = lv(i1,i2,i3,isp)*pkernel%oneoeps(i1,i2,i3)
-      beta=beta+r(i1,i2,i3,isp)*z(i1,i2,i3,isp)
+        z(i1,i2,i3,isp) = lv(i1,i2,i3,isp)/dsqrt(eps(i1,i2,i3))
+        !z(i1,i2,i3,isp) = lv(i1,i2,i3,isp)*pkernel%oneoeps(i1,i2,i3)
+        beta=beta+r(i1,i2,i3,isp)*z(i1,i2,i3,isp)
 ! Apply the Generalized Laplace operator nabla(eps*nabla) to the potential correction
       !q(i1,i2,i3,isp)=r(i1,i2,i3,isp)+z(i1,i2,i3,isp)*corr(i1,i2,i3,isp)
      end do
@@ -570,8 +597,8 @@ subroutine Prec_conjugate_gradient(n01,n02,n03,nspden,b,acell,eps,nord,pkernel,p
     do i2=1,n02
      do i1=1,n01
         zeta=z(i1,i2,i3,isp)
-        !epsc=corr(i1,i2,i3,isp)
-        epsc=pkernel%corr(i1,i2,i3)
+        epsc=corr(i1,i2,i3,isp)
+        !epsc=pkernel%corr(i1,i2,i3)
         pval=p(i1,i2,i3,isp)
         qval=q(i1,i2,i3,isp)
         rval=r(i1,i2,i3,isp)
@@ -599,8 +626,8 @@ subroutine Prec_conjugate_gradient(n01,n02,n03,nspden,b,acell,eps,nord,pkernel,p
       x(i1,i2,i3,isp) = x(i1,i2,i3,isp) + alpha*p(i1,i2,i3,isp)
       r(i1,i2,i3,isp) = r(i1,i2,i3,isp) - alpha*q(i1,i2,i3,isp)
       normr=normr+r(i1,i2,i3,isp)*r(i1,i2,i3,isp)
-      !lv(i1,i2,i3,isp) = r(i1,i2,i3,isp)/dsqrt(eps(i1,i2,i3))
-      lv(i1,i2,i3,isp) = r(i1,i2,i3,isp)*pkernel%oneoeps(i1,i2,i3)
+      lv(i1,i2,i3,isp) = r(i1,i2,i3,isp)/dsqrt(eps(i1,i2,i3))
+      !lv(i1,i2,i3,isp) = r(i1,i2,i3,isp)*pkernel%oneoeps(i1,i2,i3)
      end do
     end do
    end do
@@ -609,7 +636,7 @@ subroutine Prec_conjugate_gradient(n01,n02,n03,nspden,b,acell,eps,nord,pkernel,p
    ratio=normr/normb
    write(18,'(1x,I8,2(1x,e14.7))')i,ratio,beta
    !write(*,'(1x,I8,2(1x,e14.7))')i,ratio,beta
-   call EPS_iter_output(i,normb,normr,ratio,alpha,beta)
+   call EPS_iter_output_LG(i,normb,normr,ratio,alpha,beta)
 !   call writeroutine(n01,n02,n03,nspden,r,i)
    call writeroutinePot(n01,n02,n03,nspden,x,i,potential)
 
@@ -641,7 +668,7 @@ subroutine Prec_conjugate_gradient(n01,n02,n03,nspden,b,acell,eps,nord,pkernel,p
 
 end subroutine  Prec_conjugate_gradient
 
-subroutine EPS_iter_output(iter,normb,normr,ratio,alpha,beta)
+subroutine EPS_iter_output_LG(iter,normb,normr,ratio,alpha,beta)
   !use module_defs, only: dp
   use yaml_output
   implicit none
@@ -660,7 +687,7 @@ subroutine EPS_iter_output(iter,normb,normr,ratio,alpha,beta)
   if (beta /= 0.0_dp) call yaml_map('beta',beta,fmt='(1pe16.4)')
 
   call yaml_mapping_close()
-end subroutine EPS_iter_output
+end subroutine EPS_iter_output_LG
 
 
 subroutine writeroutine(n01,n02,n03,nspden,r,i)
@@ -986,7 +1013,7 @@ end subroutine fssnord3DmatNabla
 
 !> Like fssnord3DmatNabla but corrected such that the index goes at the beginning
 !! Multiplies also times (nabla epsilon)/(4pi*epsilon)= nabla (log(epsilon))/(4*pi)
-subroutine fssnord3DmatNabla_LG(n01,n02,n03,u,nord,acell,eta,dlogeps,rhopol,rhores2)
+subroutine fssnord3DmatNabla_LG2(n01,n02,n03,u,nord,acell,eta,dlogeps,rhopol,rhores2)
   !use module_defs, only: pi_param
   implicit none
 
@@ -1101,7 +1128,7 @@ subroutine fssnord3DmatNabla_LG(n01,n02,n03,u,nord,acell,eta,dlogeps,rhopol,rhor
               end do
            end if
            dz=dz/hz
-           
+
            !retrieve the previous treatment
            res = dlogeps(1,i1,i2,i3)*dx + &
                 dlogeps(2,i1,i2,i3)*dy + dlogeps(3,i1,i2,i3)*dz
@@ -1116,7 +1143,7 @@ subroutine fssnord3DmatNabla_LG(n01,n02,n03,u,nord,acell,eta,dlogeps,rhopol,rhor
      end do
   end do
 
-end subroutine fssnord3DmatNabla_LG
+end subroutine fssnord3DmatNabla_LG2
 
 
 subroutine fssnord3DmatNabla3var(n01,n02,n03,nspden,u,du,nord,acell)
