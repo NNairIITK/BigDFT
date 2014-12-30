@@ -617,22 +617,23 @@ subroutine finalize_hartree_results(sumpion,pot_ion,m1,m2,m3p,md1,md2,md3p,&
 end subroutine finalize_hartree_results
 
 subroutine EPS_iter_output(iter,normb,normr,ratio,alpha,beta)
-  !use module_defs, only: dp
+  use module_defs, only: dp
   use yaml_output
   implicit none
   integer, intent(in) :: iter
-  integer, parameter :: dp=8
   real(dp), intent(in) :: normb,normr,ratio,beta,alpha
+  !local variables
+  character(len=*), parameter :: vrb='(1pe25.17)'!'(1pe16.4)'
 
   call yaml_mapping_open('Iteration quality',flow=.true.)
   if (beta /= 0.0_dp) call yaml_comment('Iteration '//trim(yaml_toa(iter)),hfill='_')
   !write the PCG iteration
   call yaml_map('iter',iter,fmt='(i4)')
   !call yaml_map('rho_norm',normb)
-  if (normr/=0.0_dp) call yaml_map('res',normr,fmt='(1pe16.4)')
-  if (ratio /= 0.0_dp) call yaml_map('ratio',ratio,fmt='(1pe16.4)')
-  if (alpha /= 0.0_dp) call yaml_map('alpha',alpha,fmt='(1pe16.4)')
-  if (beta /= 0.0_dp) call yaml_map('beta',beta,fmt='(1pe16.4)')
+  if (normr/=0.0_dp) call yaml_map('res',normr,fmt=vrb)
+  if (ratio /= 0.0_dp) call yaml_map('ratio',ratio,fmt=vrb)
+  if (alpha /= 0.0_dp) call yaml_map('alpha',alpha,fmt=vrb)
+  if (beta /= 0.0_dp) call yaml_map('beta',beta,fmt=vrb)
 
   call yaml_mapping_close()
 end subroutine EPS_iter_output
