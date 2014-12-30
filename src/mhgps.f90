@@ -283,6 +283,10 @@ program mhgps
               endif
               isame=0
               connected=.true.
+write(*,*)'bastian',trim(adjustl(mhgpsst%joblist(1,ijob)(10:16)))
+              if(trim(adjustl(mhgpsst%joblist(1,ijob)(10:16)))/='restart')then
+                  mhgpsst%nsad=0
+              endif
               call connect(mhgpsst,fsw,uinp,runObj,outs,rcov,nbond,&
                    iconnect,rxyz,rxyz2,energy,energy2,fp,fp2,&
                    cobj,connected,premature_exit,nsad)
@@ -294,7 +298,7 @@ program mhgps
                       'succesfully connected, intermediate'//&
                       ' transition states',nsad)
               else
-                 if(.not.uinp%singlestep)then
+                 if(.not.premature_exit)then
                  if(mhgpsst%iproc==0)call yaml_comment('(MHGPS) '//&
                       'Connection not established within '//&
                       trim(adjustl(yaml_toa(nsad)))//&

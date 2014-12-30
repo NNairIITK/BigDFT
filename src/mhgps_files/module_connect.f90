@@ -556,6 +556,7 @@ subroutine connect(mhgpsst,fsw,uinp,runObj,outs,rcov,nbond,&
     cobj%todoenergy(2,cobj%ntodo)=ener2
 
     iloop=0
+write(*,*)'nsad',mhgpsst%nsad
 connectloop: do while(cobj%ntodo>=1)
     iloop=iloop+1
     if(mhgpsst%iproc==0)then
@@ -1041,9 +1042,9 @@ cycle
     endif
 enddo connectloop
 nsad=mhgpsst%nsad
-if(.not. premature_exit)then
-    mhgpsst%nsad=0
-endif
+!if(.not. premature_exit .and. (nsad>=uinp%nsadmax))then
+!    mhgpsst%nsad=0
+!endif
 if(connected)then
 !if connected, the write_restart inside the connectloop
 !has not been callled a last time.
@@ -1055,6 +1056,7 @@ else if(.not. premature_exit)then
 !only write if connection really failed
 !(that is, no premature exit)
     call write_todoList(mhgpsst,runObj,cobj)
+    call write_restart(mhgpsst,runObj)
 endif
 
 
