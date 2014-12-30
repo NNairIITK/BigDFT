@@ -60,7 +60,7 @@ module Poisson_Solver
    use wrapper_MPI
    use dynamic_memory
    use time_profiling, only: TIMING_UNINITIALIZED, f_timing
-   use yaml_output, only: yaml_map, yaml_toa, yaml_mapping_open, yaml_mapping_close
+   use yaml_output
    !use m_profiling
    ! TO BE REMOVED with f_malloc
    
@@ -136,10 +136,10 @@ module Poisson_Solver
       !! in the case of Polarization Iteration method
       !! inverse of the square root of epsilon
       !! in the case of the Preconditioned Conjugate Gradient
-      real(dp), dimension(:,:,:), pointer :: oneoeps
+      real(dp), dimension(:,:), pointer :: oneoeps
       !> correction term, given in terms of the multiplicative factor of nabla*eps*nabla
       !! to be used for Preconditioned Conjugate Gradient 
-      real(dp), dimension(:,:,:), pointer :: corr
+      real(dp), dimension(:,:), pointer :: corr
       real(dp) :: work1_GPU,work2_GPU,k_GPU !<addresses for the GPU memory 
       integer, dimension(5) :: plan
       integer, dimension(3) :: geo
@@ -150,6 +150,15 @@ module Poisson_Solver
       integer :: igpu !< control the usage of the GPU
       integer :: initCufftPlan
       integer :: keepGPUmemory
+      !parameters for the iterative methods
+      !> Order of accuracy for derivatives into ApplyLaplace subroutine = Total number of points at left and right of the x0 where we want to calculate the derivative.
+      integer :: nord
+      integer :: max_iter !< maximum number of convergence iterations
+      real(dp) :: minres !< convergence criterion for the iteration
+      real(dp) :: PI_eta !<parameter for the update of PI iteration
+      
+      integer, dimension(:), pointer :: counts !<array needed to gather the information of the poisson solver
+      integer, dimension(:), pointer :: displs !<array needed to gather the information of the poisson solver
    end type coulomb_operator
 
    !intialization of the timings
@@ -230,6 +239,12 @@ contains
     k%igpu=0
     k%initCufftPlan=0
     k%keepGPUmemory=1
+    k%nord=0
+    k%max_iter=0
+    k%PI_eta=0.0_dp
+    k%minres=0.0_dp
+    nullify(k%counts)
+    nullify(k%displs)
   end function pkernel_null
 
   !> switch on the timing categories for the Poisson Solver
