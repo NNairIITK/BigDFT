@@ -197,7 +197,7 @@ subroutine write_jobs(mhgpsst,runObj,cobj)
                 enddo
             else
                 do ijob=mhgpsst%ijob+1,mhgpsst%njobs
-                    if(trim(adjustl(mhgpsst%joblist(1,ijob)(10:)))/='restart')then
+                    if(trim(adjustl(mhgpsst%joblist(1,ijob)(10:16)))/='restart')then
                     write(u,'(a,1x,a)')trim(adjustl(mhgpsst%joblist(1,ijob)(10:))),&
                                        trim(adjustl(mhgpsst%joblist(2,ijob)(10:)))
                     endif

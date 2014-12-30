@@ -58,7 +58,10 @@ subroutine init_mhgps_state(mhgpsst)
     implicit none
     !parameters
     type(mhgps_state), intent(inout) :: mhgpsst
-  
+ 
+    !attention: there exists many dependecies on
+    !the exact length on direprefix in the whole code.
+    !DO NOT simply change dirprefix 
     mhgpsst%dirprefix     = 'ioput'
     mhgpsst%mhgps_version = '0.01'
 
