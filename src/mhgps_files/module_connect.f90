@@ -1054,7 +1054,7 @@ endif
 else if(.not. premature_exit)then
 !only write if connection really failed
 !(that is, no premature exit)
-    call write_todoList(mhgpsst,runObj,cobj)
+    call write_todoList(uinp,mhgpsst,runObj,cobj)
     call write_restart(mhgpsst,runObj)
 endif
 
@@ -1268,35 +1268,64 @@ subroutine write_todo(mhgpsst,runObj,outs,left,right,eleft,eright)
     endif
 end subroutine
 !=====================================================================
-subroutine write_todoList(mhgpsst,runObj,cobj)
+subroutine write_todoList(uinp,mhgpsst,runObj,cobj)
     use module_base, only: gp
-    use module_atoms, only: astruct_dump_to_file
+    use module_userinput
+    use module_atoms, only: atomic_structure,&
+                            deallocate_atomic_structure,&
+                            astruct_dump_to_file,&
+                            read_atomic_file=>set_astruct_from_file
     use bigdft_run, only: bigdft_get_astruct_ptr, run_objects,&
                           state_properties
     use module_connect_object
     use module_mhgps_state
     implicit none
     !parameters
+    type(userinput), intent(in)     :: uinp
     type(mhgps_state), intent(inout) :: mhgpsst
     type(run_objects), intent(inout) :: runObj
     type(connect_object), intent(in) :: cobj
     !local
-    integer :: itodo
+    integer :: itodo,ijob
     character(len=1) :: comment=' '
+    type(atomic_structure):: astruct !< Contains all info
    
     do itodo=cobj%ntodo,1,-1 
         mhgpsst%ntodo=mhgpsst%ntodo+1
         write(mhgpsst%ntodoc,'(i5.5)')mhgpsst%ntodo
-
         if(mhgpsst%iproc==0)then
             call astruct_dump_to_file(bigdft_get_astruct_ptr(runObj),&
-                 mhgpsst%currDir//'/todo'//trim(adjustl(mhgpsst%ntodoc))//'_L',comment,&
-                 rxyz=cobj%todorxyz(1,1,1,itodo))
+                 mhgpsst%currDir//'/todo'//trim(adjustl(mhgpsst%ntodoc))&
+                 //'_L',comment,rxyz=cobj%todorxyz(1,1,1,itodo))
             call astruct_dump_to_file(bigdft_get_astruct_ptr(runObj),&
-                 mhgpsst%currDir//'/todo'//trim(adjustl(mhgpsst%ntodoc))//'_R',comment,&
-                 rxyz=cobj%todorxyz(1,1,2,itodo))
+                 mhgpsst%currDir//'/todo'//trim(adjustl(mhgpsst%ntodoc))&
+                 //'_R',comment,rxyz=cobj%todorxyz(1,1,2,itodo))
         endif
     enddo
+    if(uinp%singlestep)then
+        do ijob=mhgpsst%ijob+1,mhgpsst%njobs
+            if(trim(adjustl(mhgpsst%joblist(1,ijob)(10:16)))=='restart')then
+                mhgpsst%ntodo=mhgpsst%ntodo+1
+                write(mhgpsst%ntodoc,'(i5.5)')mhgpsst%ntodo
+                if(mhgpsst%iproc==0)then
+                    call read_atomic_file(trim(adjustl(&
+                         mhgpsst%joblist(1,ijob))),mhgpsst%iproc,&
+                         astruct)
+                    call astruct_dump_to_file(astruct,mhgpsst%currDir//&
+                         '/todo'//trim(adjustl(mhgpsst%ntodoc))//'_L',&
+                         comment)
+                    call deallocate_atomic_structure(astruct)
+                    call read_atomic_file(trim(adjustl(&
+                         mhgpsst%joblist(2,ijob))),mhgpsst%iproc,&
+                         astruct)
+                    call astruct_dump_to_file(astruct,mhgpsst%currDir//&
+                         '/todo'//trim(adjustl(mhgpsst%ntodoc))//'_R',&
+                         comment)
+                    call deallocate_atomic_structure(astruct)
+                endif
+            endif
+        enddo
+    endif
 end subroutine
 !=====================================================================
 end module

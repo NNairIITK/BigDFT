@@ -205,7 +205,6 @@ subroutine read_and_merge_data(folders,nsad,mdat)
     integer  :: k_epot
     integer  :: id_minleft, id_minright, id_saddle
     integer :: isadfolder
-integer :: i
     nfolder = size(folders,1)
 
     en_delta = mdat%mhgps_uinp%en_delta_min
@@ -352,9 +351,11 @@ subroutine write_data(mdat)
     open(u2,file='tsdat_exclude')
     do isad=1,mdat%nsad
         if(.not. any(mdat%exclude .eq. mdat%sadnumber(isad)))then
-            write(u,'(es24.17,1x,a,2(1x,i0.0))')mdat%en_arr_sad(isad),'0   0',mn(mdat%sadneighb(1,isad)),mn(mdat%sadneighb(2,isad))
+            write(u,'(es24.17,1x,a,2(1x,i0.0))')mdat%en_arr_sad(isad),&
+                 '0   0',mn(mdat%sadneighb(1,isad)),mn(mdat%sadneighb(2,isad))
         else
-            write(u2,'(es24.17,1x,a,2(1x,i0.0))')mdat%en_arr_sad(isad),'0   0',mn(mdat%sadneighb(1,isad)),mn(mdat%sadneighb(2,isad))
+            write(u2,'(es24.17,1x,a,2(1x,i0.0))')mdat%en_arr_sad(isad),&
+                 '0   0',mn(mdat%sadneighb(1,isad)),mn(mdat%sadneighb(2,isad))
         endif
     enddo
     close(u)

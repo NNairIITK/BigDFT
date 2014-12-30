@@ -179,12 +179,12 @@ subroutine write_jobs(mhgpsst,runObj,cobj)
                 do ijob=cobj%ntodo,1,-1
                     !write files
                     write(filenameR,'(a,i5.5,a,i5.5,a)')'restart_',&
-                                                mhgpsst%nrestart,'_',ijob,'_R'
+                          mhgpsst%nrestart,'_',ijob,'_R'
                     call astruct_dump_to_file(bigdft_get_astruct_ptr(runObj),&
                          trim(adjustl(mhgpsst%currDir))//'/'//trim(filenameR),&
                          comment,rxyz=cobj%todorxyz(1,1,2,ijob))
                     write(filenameL,'(a,i5.5,a,i5.5,a)')'restart_',&
-                                                mhgpsst%nrestart,'_',ijob,'_L'
+                          mhgpsst%nrestart,'_',ijob,'_L'
                     call astruct_dump_to_file(bigdft_get_astruct_ptr(runObj),&
                          trim(adjustl(mhgpsst%currDir))//'/'//trim(filenameL),&
                          comment,rxyz=cobj%todorxyz(1,1,1,ijob))
