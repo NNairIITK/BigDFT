@@ -276,12 +276,12 @@ program mhgps
                               runObj%atoms%astruct%cell_dim,&
                               bigdft_get_geocode(runObj),rcov,&
                               rxyz2(1,1),fp2(1))
-!              if(mhgpsst%iproc==0)then
+              if(mhgpsst%iproc==0)then
                  call yaml_comment('(MHGPS) Connect '//&
                       trim(adjustl(mhgpsst%joblist(1,ijob)))//' and '//&
                       trim(adjustl(mhgpsst%joblist(2,ijob)))//' ....',&
                       hfill='-')
-!              endif
+              endif
               isame=0
               connected=.true.
               if(trim(adjustl(mhgpsst%joblist(1,ijob)(10:16)))/='restart')then
