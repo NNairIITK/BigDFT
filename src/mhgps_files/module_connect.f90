@@ -1048,14 +1048,16 @@ if(connected)then
 !if connected, the write_restart inside the connectloop
 !has not been callled a last time.
 !Therefore, it has to be done here.
-if(mhgpsst%iproc==0)then
-    call write_restart(mhgpsst,runObj,cobj)
-endif
+    if(mhgpsst%iproc==0)then
+        call write_restart(mhgpsst,runObj,cobj)
+    endif
 else if(.not. premature_exit)then
 !only write if connection really failed
 !(that is, no premature exit)
     call write_todoList(uinp,mhgpsst,runObj,cobj)
-    call write_restart(mhgpsst,runObj)
+    if(mhgpsst%iproc==0)then
+        call write_restart(mhgpsst,runObj)
+    endif
 endif
 
 

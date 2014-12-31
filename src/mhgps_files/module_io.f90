@@ -111,7 +111,7 @@ subroutine read_restart(mhgpsst,runObj)
     endif
 end subroutine read_restart
 !=====================================================================
-subroutine write_restart(mhgpsst,runObj,cobj)
+subroutine write_restart(mhgpsst,runObj,cobj,writeJobList)
     use module_base
     use bigdft_run
     use module_mhgps_state
@@ -120,9 +120,12 @@ subroutine write_restart(mhgpsst,runObj,cobj)
     type(mhgps_state), intent(inout)              :: mhgpsst
     type(run_objects), intent(in)     :: runObj
     type(connect_object), optional, intent(in) :: cobj
+    logical, optional, intent(in) :: writeJobList
     !local
     integer :: u
     integer :: iatt, iat
+    logical :: wJl
+    wJl=.true.
     u=f_get_free_unit()
     open(unit=u,file='restart')
     write(u,*)mhgpsst%ifolder
@@ -145,7 +148,10 @@ subroutine write_restart(mhgpsst,runObj,cobj)
     enddo
     close(u)
     
-    call write_jobs(mhgpsst,runObj,cobj)
+    if(present(writeJobList)) wJl=writeJobList
+    if(wJl)then
+        call write_jobs(mhgpsst,runObj,cobj)
+    endif
 end subroutine write_restart
 !=====================================================================
 subroutine write_jobs(mhgpsst,runObj,cobj)
@@ -200,6 +206,8 @@ subroutine write_jobs(mhgpsst,runObj,cobj)
                     if(trim(adjustl(mhgpsst%joblist(1,ijob)(10:16)))/='restart')then
                     write(u,'(a,1x,a)')trim(adjustl(mhgpsst%joblist(1,ijob)(10:))),&
                                        trim(adjustl(mhgpsst%joblist(2,ijob)(10:)))
+                    write(*,'(a,1x,a)')trim(adjustl(mhgpsst%joblist(1,ijob)(10:))),&
+                                       trim(adjustl(mhgpsst%joblist(2,ijob)(10:)))
                     endif
                 enddo
             endif
@@ -224,6 +232,11 @@ subroutine read_jobs(uinp,mhgpsst)
     character(len=6) :: filename
     integer :: ifile,iline,u,istat
     character(len=50) :: jobfile
+    !put a barrier for all the processes
+    !otherwise, the joblist file may be updated, before
+    !all procsesses have read the identical file
+    call mpibarrier(bigdft_mpi%mpi_comm)
+
     inquire(file=trim(adjustl(mhgpsst%currDir))//'/job_list',exist=exists)
     if(exists)jobfile=trim(adjustl(mhgpsst%currDir))//'/'//'job_list'
     inquire(file=trim(adjustl(mhgpsst%currDir))//'/job_list_restart',&
@@ -306,6 +319,10 @@ subroutine read_jobs(uinp,mhgpsst)
         endif
     endif
 
+    !put a barrier for all the processes
+    !otherwise, the joblist file may be updated, before
+    !all procsesses have read the identical file
+    call mpibarrier(bigdft_mpi%mpi_comm)
 end subroutine
 !=====================================================================
 subroutine check_struct_file_exists(filename,exists)
