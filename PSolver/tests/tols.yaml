@@ -9,10 +9,12 @@ Default tolerances:
   Some values: 1.e-12
   Maximum discrepancy: 1.e-14
   Value: 1.e-12
-  beta: 1.2e-15
-  ratio: 6.4e-13
-  res: 5.7e-9
-  alpha: 2.e-2 #normal for CG
+  beta: 1.0e-10
+  ratio: 1.4e-11
+  res: 1.9e-8
+  alpha: 5.e-1 #normal for CG
+  Total Charge: 6.5e-15
+  Potential monopole: 2.31e-13
 #  Energies: 2.1e-10
 
 Keys to ignore:

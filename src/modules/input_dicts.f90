@@ -1621,10 +1621,10 @@ contains
 
     !Check if sum(occup)=nelec
     if (abs(sum(occup) / nkpts - (qelec_up + qelec_down))>1.e-6_gp) then
-       call yaml_warning('the total number of electrons ' &
+       call f_err_throw('The total number of electrons ' &
             & // trim(yaml_toa(sum(occup) / nkpts,fmt='(f13.6)')) &
-            & // ' is not equal to' // trim(yaml_toa(qelec_up + qelec_down)))
-       stop
+            & // ' is not equal to' // trim(yaml_toa(qelec_up + qelec_down)),&
+            err_name='BIGDFT_INPUT_FILE_ERROR')
     end if
 
     call f_release_routine()

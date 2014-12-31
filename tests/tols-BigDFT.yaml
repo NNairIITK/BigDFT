@@ -249,6 +249,7 @@ TiSmear:
 
 H2O-CP2K:
  Total energy with tail correction: 1.8e-11
+ Epot: 1.01e-10
 
 test.splsad.ref.yaml:
  Epsilon: 1.1e-10
@@ -282,9 +283,6 @@ test.testforces.ref.yaml:
 H2O-bader:
  Epsilon: 3.0e-11
  EKS: 6.0e-11
-
-H2O-CP2K:
- Total energy with tail correction: 1.8e-11
 
 N2:
  Epsilon: 1.2e-10
@@ -357,6 +355,9 @@ base:
 Davidson-SiH4:
   e_virtual: 1.7e-11
   Eigenvalues and eigenstate residue: 1.8e-10
+
+SIC_PZ:
+  EH: 1.001e-10
 
 TDDFT:
   Epsilon: 1.1e-10
@@ -575,6 +576,7 @@ cdft_oh-:
 
 cdft_oh-a:
  EH: 1.1e-10
+ Epot: 1.01e-10
 
 fructose:
  Epot: 1.1e-09
@@ -602,6 +604,9 @@ fructose:
  Keys to ignore:
   - Calculating wavelets expansion of projectors, found warnings
   - found warnings
+
+GEOPT-all_lbfgs:
+ Epot: 2.01e-11
 
 geopt_foe:
  D eF: 7.1e-6
@@ -1001,6 +1006,8 @@ sparsity:
  EXC: 1.1e-10
  EvXC: 1.01e-9
  Epot: 1.1e-9
+ Enl: 1.01e-10
+ Ekin: 1.01e-9
  eF: 1.1e-9
  D eF: 1.1e-9
  ebs_check: 2.1e-10
@@ -1022,6 +1029,7 @@ PBE_densmixlin:
   - found warnings
 
 PBE_potmixlin:
+ EH: 1.0e-9
  Ekin: 1.1e-10
  Epot: 1.1e-10
  EXC: 1.1e-10
@@ -1116,7 +1124,7 @@ O2spin_foe:
  decay length of error function: 1.1e-5
  diff: 4.8e-9
  D Tr: 2.1e-7
- relative diff: 2.7e-11
+ relative diff: 3.5e-11
  fnrm2: 4.19e-8
 
 O2spin_dirmin:
@@ -1168,11 +1176,12 @@ expfoegeopt:
  charge diff: 2.3e-8
  ebs: 2.3e-8
  ebs_check: 1.5e-9
- D Tr: 1.6e-9
+ D Tr: 1.01e-6
  Epot: 2.3e-8
  EvXC: 2.3e-8
  EXC: 2.3e-8
  Tr(K): 2.3e-8
  decay length of error function: 1.1e-5
- Omega: 1.6e-11
- energy: 1.4e-11
+ Omega: 2.4e-11
+ energy: 2.2e-11
+ epred: 1.9e-11
