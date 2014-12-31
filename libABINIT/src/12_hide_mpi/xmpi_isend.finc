@@ -20,7 +20,7 @@
 !! SOURCE
 !!***
 
-!!****f* ABINIT/xmpi_isend_intid
+!!****f* ABINIT/xmpi_isend_int1d
 !! NAME
 !!  xmpi_isend_int1d
 !!
@@ -135,4 +135,3 @@ subroutine xmpi_isend_dp1d(xval,dest,tag,spaceComm,request,ierr)
 
 end subroutine xmpi_isend_dp1d
 !!***
-!

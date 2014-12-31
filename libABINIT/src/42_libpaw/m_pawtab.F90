@@ -25,8 +25,8 @@
 MODULE m_pawtab
 
  use defs_basis
- use m_xmpi
  USE_MSG_HANDLING
+ USE_MPI_WRAPPERS
  USE_MEMORY_PROFILING
 
  implicit none
@@ -1406,7 +1406,7 @@ subroutine pawtab_bcast(pawtab,comm_mpi,only_from_file)
 
 !*************************************************************************
 
- me=xcomm_rank(comm_mpi)
+ me=xpaw_mpi_comm_rank(comm_mpi)
  full_broadcast=.true.;if (present(only_from_file)) full_broadcast=(.not.only_from_file)
 
  nn_int=0 ; nn_int_arr=0 ; nn_dpr=0 ; nn_dpr_arr=0
@@ -1747,7 +1747,7 @@ subroutine pawtab_bcast(pawtab,comm_mpi,only_from_file)
    nn(1)=nn_int ; nn(2)=nn_int_arr
    nn(3)=nn_dpr ; nn(4)=nn_dpr_arr
  end if
- call xmpi_bcast(nn,0,comm_mpi,ierr)
+ call xpaw_mpi_bcast(nn,0,comm_mpi,ierr)
  if (me/=0) then
    nn_int=nn(1) ; nn_int_arr=nn(2)
    nn_dpr=nn(3) ; nn_dpr_arr=nn(4)
@@ -1906,7 +1906,7 @@ subroutine pawtab_bcast(pawtab,comm_mpi,only_from_file)
 !Perfom the communication
 !-------------------------------------------------------------------------
 
- call xmpi_bcast(list_int,0,comm_mpi,ierr)
+ call xpaw_mpi_bcast(list_int,0,comm_mpi,ierr)
 
 !Fill the receiver from the buffer
 !-------------------------------------------------------------------------
@@ -2296,7 +2296,7 @@ subroutine pawtab_bcast(pawtab,comm_mpi,only_from_file)
 !Perfom the communication
 !-------------------------------------------------------------------------
 
- call xmpi_bcast(list_dpr,0,comm_mpi,ierr)
+ call xpaw_mpi_bcast(list_dpr,0,comm_mpi,ierr)
 
 !Fill the receiver from the buffer
 !-------------------------------------------------------------------------

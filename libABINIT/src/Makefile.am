@@ -71,6 +71,7 @@ PPFCCOMPILE = $(FC) $(DEFS_FORTRAN) $(DEFAULT_INCLUDES) $(INCLUDES) \
 
 if BUILD_LIBPAW
 libpaw_files = \
+	42_libpaw/m_libpaw_mpi.F90 \
 	42_libpaw/m_libpaw_tools.F90 \
 	42_libpaw/m_atompaw.F90 \
 	42_libpaw/m_gaussfit.F90 \

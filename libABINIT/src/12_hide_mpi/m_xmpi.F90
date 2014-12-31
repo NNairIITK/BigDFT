@@ -36,7 +36,6 @@
 MODULE m_xmpi
 
  use defs_basis
-
 #ifdef HAVE_MPI2
  use mpi
 #endif
@@ -56,7 +55,7 @@ MODULE m_xmpi
 #ifdef HAVE_MPI
  ! MPI constants used in abinit. Make sure that a corresponding fake value is provided for the sequential version.
  integer,public,parameter :: xmpi_world          = MPI_COMM_WORLD
- integer,public,parameter :: xmpi_self           = MPI_COMM_SELF
+ integer,public,parameter :: xmpi_comm_self      = MPI_COMM_SELF
  integer,public,parameter :: xmpi_undefined      = MPI_UNDEFINED
  integer,public,parameter :: xmpi_undefined_rank = MPI_UNDEFINED  ! MPI_UNDEFINED_RANK is not portable.
  integer,public,parameter :: xmpi_comm_null      = MPI_COMM_NULL
@@ -64,19 +63,19 @@ MODULE m_xmpi
  integer,public,parameter :: xmpi_any_source     = MPI_ANY_SOURCE
  integer,public,parameter :: xmpi_request_null   = MPI_REQUEST_NULL
  integer,public,parameter :: xmpi_msg_len        = MPI_MAX_ERROR_STRING ! Length of fortran string used to store MPI error strings.
- integer,public,parameter :: xmpi_paral=1
+ integer,public,parameter :: xmpi_paral          = 1
 #else
  ! Fake replacements for the sequential version.
  integer,public,parameter :: xmpi_world          = 0
- integer,public,parameter :: xmpi_self           = 0
+ integer,public,parameter :: xmpi_comm_self      = 0
  integer,public,parameter :: xmpi_undefined      =-32765
  integer,public,parameter :: xmpi_undefined_rank =-32766
  integer,public,parameter :: xmpi_comm_null      = 0
  integer,public,parameter :: xmpi_group_null     = 0
  integer,public,parameter :: xmpi_any_source     = 0
- integer,public,parameter :: xmpi_request_null   =738197504
- integer,public,parameter :: xmpi_msg_len        =1000
- integer,public,parameter :: xmpi_paral          =0
+ integer,public,parameter :: xmpi_request_null   = 738197504
+ integer,public,parameter :: xmpi_msg_len        = 1000
+ integer,public,parameter :: xmpi_paral          = 0
 #endif
 
  integer,save,private  :: xmpi_tag_ub=32767
@@ -122,21 +121,21 @@ MODULE m_xmpi
 ! Public procedures.
  public :: xmpi_init                  ! Initialize the MPI environment.
  public :: xmpi_end                   ! Terminate the MPI environment.
- public :: xmpi_abort                 ! Abort all tasks in a group.
+ public :: xmpi_abort                 ! Hides MPI_ABORT from MPI library.
  public :: xmpi_show_info             ! Printout of the basic variables stored in this module (useful for debugging).
- public :: xgroup_free                ! Hides MPI_GROUP_FREE from MPI library.
- public :: xgroup_incl                ! Hides MPI_GROUP_INCL from MPI library.
+ public :: xmpi_group_free            ! Hides MPI_GROUP_FREE from MPI library.
+ public :: xmpi_group_incl            ! Hides MPI_GROUP_INCL from MPI library.
  public :: xmpi_group_translate_ranks ! Hides MPI_GROUP_TRANSLATE_RANKS from MPI library.
- public :: xcomm_create               ! Hides MPI_COMM_CREATE from MPI library.
- public :: xcomm_rank                 ! The rank of the node inside the communicator.
- public :: xcomm_size                 ! The number of processors inside the communicator.
- public :: xcomm_free                 ! Hides MPI_COMM_FREE from MPI library.
- public :: xcomm_group                ! Return the group associated to the communicator.
- public :: xmpi_comm_translate_ranks  ! Wraps MPI_GROUP_TRANSLATE_RANKS with an easier API.
+ public :: xmpi_comm_create           ! Hides MPI_COMM_CREATE from MPI library.
+ public :: xmpi_comm_rank             ! Hides MPI_COMM_RANK from MPI library.
+ public :: xmpi_comm_size             ! Hides MPI_COMM_SIZE from MPI library.
+ public :: xmpi_comm_free             ! Hides MPI_COMM_FREE from MPI library.
+ public :: xmpi_comm_group            ! Hides MPI_COMM_GROUP from MPI library.
+ public :: xmpi_comm_translate_ranks  ! Hides MPI_GROUP_TRANSLATE_RANKS from MPI library.
  public :: xmpi_comm_split            ! Hides MPI_COMM_SPLIT from MPI library.
  public :: xmpi_subcomm               ! Creates a sub-communicator from an input communicator.
  public :: xmpi_barrier               ! Hides MPI_BARRIER from MPI library.
- public :: xmpi_name                  ! Return the name of this processor (usually the hostname).
+ public :: xmpi_name                  ! Hides MPI_NAME from MPI library.
  public :: xmpi_iprobe                ! Hides MPI_IPROBE from MPI library.
  public :: xmpi_wait                  ! Hides MPI_WAIT from MPI library.
  public :: xmpi_waitall               ! Hides MPI_WAITALL from MPI library.
@@ -147,12 +146,12 @@ MODULE m_xmpi
  public :: xmpi_distab
  public :: xmpi_distrib_with_replicas !
 
- interface xcomm_free
-   module procedure xcomm_free_0D
-   module procedure xcomm_free_1D
-   module procedure xcomm_free_2D
-   module procedure xcomm_free_3D
- end interface xcomm_free
+ interface xmpi_comm_free
+   module procedure xmpi_comm_free_0D
+   module procedure xmpi_comm_free_1D
+   module procedure xmpi_comm_free_2D
+   module procedure xmpi_comm_free_3D
+ end interface xmpi_comm_free
 
  interface xmpi_split_work
    module procedure xmpi_split_work_i4b
@@ -656,7 +655,7 @@ end subroutine xmpi_end
 !!  [exit_status]=optional, shell return code, default 1
 !!
 !! PARENTS
-!!      initmpi_grid,abi_leave_new,m_initcuda,m_xmpi
+!!      initmpi_grid,leave_new,m_initcuda,m_xmpi
 !!
 !! CHILDREN
 !!      mpi_type_commit,mpi_type_size,xmpi_abort,xmpio_type_struct
@@ -793,7 +792,7 @@ end subroutine sys_exit
 !!  unt=Unit number for formatted output.
 !!
 !! PARENTS
-!!      abinit,abi_leave_new,m_errors
+!!      abinit,leave_new,m_errors
 !!
 !! CHILDREN
 !!      mpi_type_commit,mpi_type_size,xmpi_abort,xmpio_type_struct
@@ -854,9 +853,9 @@ end subroutine xmpi_show_info
 
 !----------------------------------------------------------------------
 
-!!****f* m_xmpi/xcomm_rank
+!!****f* m_xmpi/xmpi_comm_rank
 !! NAME
-!!  xcomm_rank
+!!  xmpi_comm_rank
 !!
 !! FUNCTION
 !!  Hides MPI_COMM_RANK from MPI library.
@@ -865,26 +864,26 @@ end subroutine xmpi_show_info
 !!  comm=MPI communicator.
 !!
 !! OUTPUT
-!!  xcomm_rank=The rank of the node inside comm
+!!  xmpi_comm_rank=The rank of the node inside comm
 !!
 !! PARENTS
 !!
 !! SOURCE
 
-function xcomm_rank(comm)
+function xmpi_comm_rank(comm)
 
 
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
 #undef ABI_FUNC
-#define ABI_FUNC 'xcomm_rank'
+#define ABI_FUNC 'xmpi_comm_rank'
 !End of the abilint section
 
  implicit none
 
 !Arguments-------------------------
  integer,intent(in) :: comm
- integer :: xcomm_rank
+ integer :: xmpi_comm_rank
 
 !Local variables-------------------
  integer :: mpierr
@@ -893,22 +892,22 @@ function xcomm_rank(comm)
 
  mpierr=0
 #ifdef HAVE_MPI
- xcomm_rank=-1  ! Return non-sense value if the proc does not belong to the comm
+ xmpi_comm_rank=-1  ! Return non-sense value if the proc does not belong to the comm
  if (comm/=xmpi_comm_null) then
-   call MPI_COMM_RANK(comm,xcomm_rank,mpierr)
+   call MPI_COMM_RANK(comm,xmpi_comm_rank,mpierr)
  end if
 #else
- xcomm_rank=0
+ xmpi_comm_rank=0
 #endif
 
-end function xcomm_rank
+end function xmpi_comm_rank
 !!***
 
 !----------------------------------------------------------------------
 
-!!****f* m_xmpi/xcomm_size
+!!****f* m_xmpi/xmpi_comm_size
 !! NAME
-!!  xcomm_size
+!!  xmpi_comm_size
 !!
 !! FUNCTION
 !!  Hides MPI_COMM_SIZE from MPI library.
@@ -917,26 +916,26 @@ end function xcomm_rank
 !!  comm=MPI communicator.
 !!
 !! OUTPUT
-!!  xcomm_size=The number of processors inside comm.
+!!  xmpi_comm_size=The number of processors inside comm.
 !!
 !! PARENTS
 !!
 !! SOURCE
 
-function xcomm_size(comm)
+function xmpi_comm_size(comm)
 
 
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
 #undef ABI_FUNC
-#define ABI_FUNC 'xcomm_size'
+#define ABI_FUNC 'xmpi_comm_size'
 !End of the abilint section
 
  implicit none
 
 !Arguments-------------------------
  integer,intent(in) :: comm
- integer :: xcomm_size
+ integer :: xmpi_comm_size
 
 !Local variables-------------------------------
 !scalars
@@ -944,21 +943,21 @@ function xcomm_size(comm)
 
 ! *************************************************************************
 
- mpierr=0; xcomm_size=1
+ mpierr=0; xmpi_comm_size=1
 #ifdef HAVE_MPI
  if (comm/=xmpi_comm_null) then
-   call MPI_COMM_SIZE(comm,xcomm_size,mpierr)
+   call MPI_COMM_SIZE(comm,xmpi_comm_size,mpierr)
  end if
 #endif
 
-end function xcomm_size
+end function xmpi_comm_size
 !!***
 
 !----------------------------------------------------------------------
 
-!!****f* m_xmpi/xcomm_free_0D
+!!****f* m_xmpi/xmpi_comm_free_0D
 !! NAME
-!!  xcomm_free_0D
+!!  xmpi_comm_free_0D
 !!
 !! FUNCTION
 !!  Hides MPI_COMM_FREE from MPI library.
@@ -974,13 +973,13 @@ end function xcomm_size
 !!
 !! SOURCE
 
-subroutine xcomm_free_0D(comm)
+subroutine xmpi_comm_free_0D(comm)
 
 
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
 #undef ABI_FUNC
-#define ABI_FUNC 'xcomm_free_0D'
+#define ABI_FUNC 'xmpi_comm_free_0D'
 !End of the abilint section
 
  implicit none
@@ -995,7 +994,7 @@ subroutine xcomm_free_0D(comm)
 
 ! *************************************************************************
 
- if (comm/=xmpi_comm_null.and.comm/=xmpi_world.and.comm/=xmpi_self) then
+ if (comm/=xmpi_comm_null.and.comm/=xmpi_world.and.comm/=xmpi_comm_self) then
 
    comm_world=xmpi_world ! Needed to bypass a bug in some OMPI implementations (intent(inout))
    call xmpi_comm_set_errhandler(comm_world,MPI_ERRORS_RETURN,err_handler_sav,ierr)
@@ -1015,14 +1014,14 @@ subroutine xcomm_free_0D(comm)
  if (.false.) write(std_out,*) comm
 #endif
 
-end subroutine xcomm_free_0D
+end subroutine xmpi_comm_free_0D
 !!***
 
 !----------------------------------------------------------------------
 
-!!****f* m_xmpi/xcomm_free_1D
+!!****f* m_xmpi/xmpi_comm_free_1D
 !! NAME
-!!  xcomm_free_1D
+!!  xmpi_comm_free_1D
 !!
 !! FUNCTION
 !!  Hides MPI_COMM_FREE from MPI library. Target 1D arrays
@@ -1038,13 +1037,13 @@ end subroutine xcomm_free_0D
 !!
 !! SOURCE
 
-subroutine xcomm_free_1D(comms)
+subroutine xmpi_comm_free_1D(comms)
 
 
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
 #undef ABI_FUNC
-#define ABI_FUNC 'xcomm_free_1D'
+#define ABI_FUNC 'xmpi_comm_free_1D'
 !End of the abilint section
 
  implicit none
@@ -1063,7 +1062,7 @@ subroutine xcomm_free_1D(comms)
  call xmpi_comm_set_errhandler(comm_world,MPI_ERRORS_RETURN,err_handler_sav,mpierr)
 
  do ii=LBOUND(comms,DIM=1),UBOUND(comms,DIM=1)
-   if (comms(ii)/=xmpi_comm_null.and.comms(ii)/=xmpi_world.and.comms(ii)/=xmpi_self) then
+   if (comms(ii)/=xmpi_comm_null.and.comms(ii)/=xmpi_world.and.comms(ii)/=xmpi_comm_self) then
      call MPI_COMM_FREE(comms(ii),mpierr)
    end if
  end do
@@ -1074,14 +1073,14 @@ subroutine xcomm_free_1D(comms)
  if (.false.) write(std_out,*) comms(1)
 #endif
 
-end subroutine xcomm_free_1D
+end subroutine xmpi_comm_free_1D
 !!***
 
 !----------------------------------------------------------------------
 
-!!****f* m_xmpi/xcomm_free_2D
+!!****f* m_xmpi/xmpi_comm_free_2D
 !! NAME
-!!  xcomm_free_2D
+!!  xmpi_comm_free_2D
 !!
 !! FUNCTION
 !!  Hides MPI_COMM_FREE from MPI library. Target 2D arrays
@@ -1097,13 +1096,13 @@ end subroutine xcomm_free_1D
 !!
 !! SOURCE
 
-subroutine xcomm_free_2D(comms)
+subroutine xmpi_comm_free_2D(comms)
 
 
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
 #undef ABI_FUNC
-#define ABI_FUNC 'xcomm_free_2D'
+#define ABI_FUNC 'xmpi_comm_free_2D'
 !End of the abilint section
 
  implicit none
@@ -1124,7 +1123,7 @@ subroutine xcomm_free_2D(comms)
  do jj=LBOUND(comms,DIM=2),UBOUND(comms,DIM=2)
    do ii=LBOUND(comms,DIM=1),UBOUND(comms,DIM=1)
      if (comms(ii,jj)/=xmpi_comm_null.and.comms(ii,jj)/=xmpi_world.and. &
-&        comms(ii,jj)/=xmpi_self) then
+&        comms(ii,jj)/=xmpi_comm_self) then
        call MPI_COMM_FREE(comms(ii,jj),mpierr)
      end if
    end do
@@ -1136,14 +1135,14 @@ subroutine xcomm_free_2D(comms)
  if (.false.) write(std_out,*) comms(1,1)
 #endif
 
-end subroutine xcomm_free_2D
+end subroutine xmpi_comm_free_2D
 !!***
 
 !----------------------------------------------------------------------
 
-!!****f* m_xmpi/xcomm_free_3D
+!!****f* m_xmpi/xmpi_comm_free_3D
 !! NAME
-!!  xcomm_free_3D
+!!  xmpi_comm_free_3D
 !!
 !! FUNCTION
 !!  Hides MPI_COMM_FREE from MPI library. Target 3D arrays
@@ -1159,13 +1158,13 @@ end subroutine xcomm_free_2D
 !!
 !! SOURCE
 
-subroutine xcomm_free_3D(comms)
+subroutine xmpi_comm_free_3D(comms)
 
 
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
 #undef ABI_FUNC
-#define ABI_FUNC 'xcomm_free_3D'
+#define ABI_FUNC 'xmpi_comm_free_3D'
 !End of the abilint section
 
  implicit none
@@ -1187,7 +1186,7 @@ subroutine xcomm_free_3D(comms)
    do jj=LBOUND(comms,DIM=2),UBOUND(comms,DIM=2)
      do ii=LBOUND(comms,DIM=1),UBOUND(comms,DIM=1)
        if (comms(ii,jj,kk)/=xmpi_comm_null.and.comms(ii,jj,kk)/=xmpi_world.and. &
-&          comms(ii,jj,kk)/=xmpi_self) then
+&          comms(ii,jj,kk)/=xmpi_comm_self) then
          call MPI_COMM_FREE(comms(ii,jj,kk),mpierr)
        end if
      end do
@@ -1200,14 +1199,14 @@ subroutine xcomm_free_3D(comms)
  if (.false.) write(std_out,*) comms(1,1,1)
 #endif
 
-end subroutine xcomm_free_3D
+end subroutine xmpi_comm_free_3D
 !!***
 
 !----------------------------------------------------------------------
 
-!!****f* m_xmpi/xgroup_free
+!!****f* m_xmpi/xmpi_group_free
 !! NAME
-!!  xgroup_free
+!!  xmpi_group_free
 !!
 !! FUNCTION
 !!  Hides MPI_GROUP_FREE from MPI library.
@@ -1224,13 +1223,13 @@ end subroutine xcomm_free_3D
 !!
 !! SOURCE
 
-subroutine xgroup_free(spaceGroup)
+subroutine xmpi_group_free(spaceGroup)
 
 
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
 #undef ABI_FUNC
-#define ABI_FUNC 'xgroup_free'
+#define ABI_FUNC 'xmpi_group_free'
 !End of the abilint section
 
  implicit none
@@ -1265,14 +1264,14 @@ subroutine xgroup_free(spaceGroup)
  if (.false.) write(std_out,*) spaceGroup
 #endif
 
-end subroutine xgroup_free
+end subroutine xmpi_group_free
 !!***
 
 !----------------------------------------------------------------------
 
-!!****f* m_xmpi/xgroup_incl
+!!****f* m_xmpi/xmpi_group_incl
 !! NAME
-!!  xgroup_incl
+!!  xmpi_group_incl
 !!
 !! FUNCTION
 !!  Hides MPI_GROUP_INCL from MPI library.
@@ -1293,13 +1292,13 @@ end subroutine xgroup_free
 !!
 !! SOURCE
 
-subroutine xgroup_incl(group,nranks,ranks,newgroup,mpierr)
+subroutine xmpi_group_incl(group,nranks,ranks,newgroup,mpierr)
 
 
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
 #undef ABI_FUNC
-#define ABI_FUNC 'xgroup_incl'
+#define ABI_FUNC 'xmpi_group_incl'
 !End of the abilint section
 
  implicit none
@@ -1321,14 +1320,14 @@ subroutine xgroup_incl(group,nranks,ranks,newgroup,mpierr)
  end if
 #endif
 
-end subroutine xgroup_incl
+end subroutine xmpi_group_incl
 !!***
 
 !----------------------------------------------------------------------
 
-!!****f* m_xmpi/xcomm_create
+!!****f* m_xmpi/xmpi_comm_create
 !! NAME
-!!  xcomm_create
+!!  xmpi_comm_create
 !!
 !! FUNCTION
 !!  Hides MPI_COMM_CREATE from MPI library.
@@ -1348,13 +1347,13 @@ end subroutine xgroup_incl
 !!
 !! SOURCE
 
-subroutine xcomm_create(comm,group,newcomm,mpierr)
+subroutine xmpi_comm_create(comm,group,newcomm,mpierr)
 
 
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
 #undef ABI_FUNC
-#define ABI_FUNC 'xcomm_create'
+#define ABI_FUNC 'xmpi_comm_create'
 !End of the abilint section
 
  implicit none
@@ -1375,10 +1374,10 @@ subroutine xcomm_create(comm,group,newcomm,mpierr)
    newcomm=xmpi_comm_null
  end if
 #else
-  newcomm=xmpi_self
+  newcomm=xmpi_comm_self
 #endif
 
-end subroutine xcomm_create
+end subroutine xmpi_comm_create
 !!***
 
 !----------------------------------------------------------------------
@@ -1438,7 +1437,7 @@ function xmpi_subcomm(comm,nranks,ranks,my_rank_in_group)
    call MPI_COMM_GROUP(comm,group,ierr)
    call MPI_GROUP_INCL(group,nranks,ranks,subgroup,ierr)
    call MPI_COMM_CREATE(comm,subgroup,xmpi_subcomm,ierr)
-   if ( nranks == 0 )xmpi_subcomm=xmpi_self
+   if ( nranks == 0 )xmpi_subcomm=xmpi_comm_self
    if (present(my_rank_in_group)) then
      call MPI_Group_rank(subgroup,my_rank_in_group,ierr)
    end if
@@ -1448,7 +1447,7 @@ function xmpi_subcomm(comm,nranks,ranks,my_rank_in_group)
 #else
  if (nranks>0) then
    if (ranks(1)==0) then
-     xmpi_subcomm=xmpi_self
+     xmpi_subcomm=xmpi_comm_self
      if (present(my_rank_in_group)) my_rank_in_group=0
    end if
  end if
@@ -1459,9 +1458,9 @@ end function xmpi_subcomm
 
 !----------------------------------------------------------------------
 
-!!****f* m_xmpi/xcomm_group
+!!****f* m_xmpi/xmpi_comm_group
 !! NAME
-!!  xcomm_group
+!!  xmpi_comm_group
 !!
 !! FUNCTION
 !!  Hides MPI_COMM_GROUP from MPI library.
@@ -1481,13 +1480,13 @@ end function xmpi_subcomm
 !!
 !! SOURCE
 
-subroutine xcomm_group(comm,spaceGroup,mpierr)
+subroutine xmpi_comm_group(comm,spaceGroup,mpierr)
 
 
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
 #undef ABI_FUNC
-#define ABI_FUNC 'xcomm_group'
+#define ABI_FUNC 'xmpi_comm_group'
 !End of the abilint section
 
  implicit none
@@ -1505,7 +1504,7 @@ subroutine xcomm_group(comm,spaceGroup,mpierr)
  end if
 #endif
 
-end subroutine xcomm_group
+end subroutine xmpi_comm_group
 !!***
 
 !----------------------------------------------------------------------
@@ -1554,7 +1553,7 @@ subroutine xmpi_comm_split(input_comm,color,key,output_comm,mpierr)
 
  mpierr=0; output_comm=input_comm
 #ifdef HAVE_MPI
- if (input_comm/=xmpi_comm_null.and.input_comm/=xmpi_self) then
+ if (input_comm/=xmpi_comm_null.and.input_comm/=xmpi_comm_self) then
    call MPI_COMM_SPLIT(input_comm,color,key,output_comm,mpierr)
  end if
 #endif
@@ -1677,14 +1676,14 @@ subroutine xmpi_comm_translate_ranks(from_comm,nrank,from_ranks,to_comm,to_ranks
 ! *************************************************************************
 
  ! Get the groups
- call xcomm_group(from_comm,from_group,ierr)
- call xcomm_group(to_comm,to_group,ierr)
+ call xmpi_comm_group(from_comm,from_group,ierr)
+ call xmpi_comm_group(to_comm,to_group,ierr)
 
  call xmpi_group_translate_ranks(from_group,nrank,from_ranks,to_group,to_ranks,ierr)
 
  ! Release the groups
- call xgroup_free(from_group)
- call xgroup_free(to_group)
+ call xmpi_group_free(from_group)
+ call xmpi_group_free(to_group)
 
 end subroutine xmpi_comm_translate_ranks
 !!***
@@ -2211,8 +2210,8 @@ subroutine xmpi_split_work_i4b(ntasks,comm,my_start,my_stop,warn_msg,ierr)
 
 ! *************************************************************************
 
- nprocs  = xcomm_size(comm)
- my_rank = xcomm_rank(comm)
+ nprocs  = xmpi_comm_size(comm)
+ my_rank = xmpi_comm_rank(comm)
 
  block   = ntasks/nprocs
  res     = MOD(ntasks,nprocs)
@@ -2760,7 +2759,7 @@ subroutine xmpio_get_info_frm(bsize_frm,mpi_type_frm,comm)
 
  bsize_frm=0; mpi_type_frm=0
 
- my_rank = xcomm_rank(comm)
+ my_rank = xmpi_comm_rank(comm)
  !RETURN
 
 #ifdef HAVE_MPI_IO
@@ -2800,7 +2799,7 @@ subroutine xmpio_get_info_frm(bsize_frm,mpi_type_frm,comm)
    write(f90_unt) ivals
    close(f90_unt)
 
-   call MPI_FILE_OPEN(xmpi_self, trim(fname), MPI_MODE_RDONLY, MPI_INFO_NULL, mpio_fh,mpierr)
+   call MPI_FILE_OPEN(xmpi_comm_self, trim(fname), MPI_MODE_RDONLY, MPI_INFO_NULL, mpio_fh,mpierr)
 
    iimax=3 ! Define number of INTEGER types to be tested
 #ifdef HAVE_FC_INT_QUAD

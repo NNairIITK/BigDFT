@@ -19,8 +19,8 @@
 module m_gaussfit
 
  use defs_basis
- use m_xmpi
  USE_MSG_HANDLING
+ USE_MPI_WRAPPERS
  USE_MEMORY_PROFILING
 
  use m_paw_numeric, only : paw_splint, paw_spline
@@ -149,8 +149,8 @@ CONTAINS
 !initialize mpi quantities:
  master=0; me=0; nproc=1; proc_dist=1;
  if(present(comm_mpi)) then
-   me=xcomm_rank(comm_mpi)
-   nproc=xcomm_size(comm_mpi)
+   me=xpaw_mpi_comm_rank(comm_mpi)
+   nproc=xpaw_mpi_comm_size(comm_mpi)
  end if
  if(nproc>1) then
 !  Find distribution (master)
@@ -158,7 +158,7 @@ CONTAINS
      call gaussfit_mpi_main(nproc,nterm_bounds,proc_dist)
    end if
 !  send distribution to all processors
-   call xmpi_bcast(proc_dist(nterm_bounds(1):nterm_bounds(2)),&
+   call xpaw_mpi_bcast(proc_dist(nterm_bounds(1):nterm_bounds(2)),&
 &    master,comm_mpi,ierr)
  end if
 !Set size of chisq treated by each proc
@@ -264,7 +264,7 @@ CONTAINS
      disp(ii)=disp(ii-1)+counts(ii-1)
    end do
 !  communicate all info to master
-   call xmpi_gatherv(send_buf,counts(me+1),recv_buf,&
+   call xpaw_mpi_gatherv(send_buf,counts(me+1),recv_buf,&
 &    counts,disp,master,comm_mpi,ierr)
 !  fill in chisq_array with all received info:
    if(master==me) then
@@ -353,15 +353,14 @@ CONTAINS
 
 !communicate
  if(nproc>1) then
-   call xmpi_bcast(nparam_out,master,comm_mpi,ierr)
-   !
-   call xmpi_bcast(param_tmp(1:nparam_out),master,comm_mpi,ierr)
+   call xpaw_mpi_bcast(nparam_out,master,comm_mpi,ierr)
+   call xpaw_mpi_bcast(param_tmp(1:nparam_out),master,comm_mpi,ierr)
  end if !nproc>1
 
  param_out(:)=param_tmp
 
  if(modify_y) then 
-!   call xmpi_scatterv(y_out,nr,mpi_displ,y_out,nr,0,comm_mpi,ierr)
+!   call xpaw_mpi_scatterv(y_out,nr,mpi_displ,y_out,nr,0,comm_mpi,ierr)
    y=y_out !at output modify y for the fitted y
  end if
  

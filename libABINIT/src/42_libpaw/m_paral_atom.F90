@@ -27,8 +27,8 @@
 MODULE m_paral_atom
 
  use defs_basis
- use m_xmpi
  USE_MSG_HANDLING
+ USE_MPI_WRAPPERS
  USE_MEMORY_PROFILING
 
  implicit none
@@ -95,13 +95,11 @@ subroutine get_my_natom(comm_atom,my_natom,natom)
 ! *************************************************************************
 
  my_natom=natom
- if (xmpi_paral==1) then
-   if (comm_atom/=xmpi_self.and.comm_atom/=xmpi_comm_null)  then
-     nproc=xcomm_size(comm_atom)
-     me=xcomm_rank(comm_atom)
-     my_natom=natom/nproc
-     if (me<=(mod(natom,nproc)-1)) my_natom=natom/nproc + 1
-   endif
+ if (comm_atom/=xpaw_mpi_comm_self.and.comm_atom/=xpaw_mpi_comm_null)  then
+   nproc=xpaw_mpi_comm_size(comm_atom)
+   me=xpaw_mpi_comm_rank(comm_atom)
+   my_natom=natom/nproc
+   if (me<=(mod(natom,nproc)-1)) my_natom=natom/nproc + 1
  endif
 
 end subroutine get_my_natom
@@ -175,14 +173,14 @@ subroutine get_my_atmtab(comm_atom,my_atmtab,my_atmtab_allocated,paral_atom,nato
  my_atmtab_allocated=.false.
  if (.not.paral_atom) return
 
- if (comm_atom==xmpi_self.or.comm_atom==xmpi_comm_null) paral_atom=.false.
+ if (comm_atom==xpaw_mpi_comm_self.or.comm_atom==xpaw_mpi_comm_null) paral_atom=.false.
  if (paral_atom)  then
-   nproc=xcomm_size(comm_atom)
+   nproc=xpaw_mpi_comm_size(comm_atom)
    paral_atom=(nproc>1)
    if (paral_atom) then
      if (.not.associated(my_atmtab)) then
 !      Get local number of atoms
-       me=xcomm_rank(comm_atom)
+       me=xpaw_mpi_comm_rank(comm_atom)
        my_natom=natom/nproc
        if (me<=(mod(natom,nproc)-1)) my_natom=natom/nproc + 1
 !      Get table of atoms

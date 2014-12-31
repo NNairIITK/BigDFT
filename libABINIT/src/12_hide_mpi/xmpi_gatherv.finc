@@ -154,7 +154,7 @@ subroutine xmpi_gatherv_int1_dp1(buf_int,buf_int_size,buf_dp,buf_dp_size, &
 #if defined HAVE_MPI
  if (spaceComm/=MPI_COMM_SELF.and.spaceComm/=MPI_COMM_NULL) then
 
-   nproc=xcomm_size(spaceComm)
+   nproc=xmpi_comm_size(spaceComm)
 
 !First version: using 2 allgather (one for ints, another for reals)
 !------------------------------------------------------------------
@@ -197,7 +197,7 @@ subroutine xmpi_gatherv_int1_dp1(buf_int,buf_int_size,buf_dp,buf_dp_size, &
 !-----------------------------------------------------------------
    else
 
-     me=xcomm_rank(spaceComm)
+     me=xmpi_comm_rank(spaceComm)
 
 !  Compute size of message
      call MPI_PACK_SIZE(buf_int_size,MPI_INTEGER,spaceComm,lg1,ier)

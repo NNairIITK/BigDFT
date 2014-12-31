@@ -25,8 +25,8 @@
 MODULE m_pawrhoij
 
  use defs_basis
- use m_xmpi
  USE_MSG_HANDLING
+ USE_MPI_WRAPPERS
  USE_MEMORY_PROFILING
 
  use m_libpaw_tools, only : libpaw_flush, libpaw_to_upper
@@ -274,7 +274,7 @@ subroutine pawrhoij_alloc(pawrhoij,cplex,nspden,nspinor,nsppol,typat,&
 !Set up parallelism over atoms
  paral_atom=(present(comm_atom).and.(nrhoij/=natom))
  nullify(my_atmtab);if (present(mpi_atmtab)) my_atmtab => mpi_atmtab
- my_comm_atom=xmpi_self;if (present(comm_atom)) my_comm_atom=comm_atom
+ my_comm_atom=xpaw_mpi_comm_self;if (present(comm_atom)) my_comm_atom=comm_atom
  call get_my_atmtab(my_comm_atom,my_atmtab,my_atmtab_allocated,paral_atom,natom)
 
  if (nrhoij>0) then
@@ -363,7 +363,7 @@ end subroutine pawrhoij_alloc
 !! pawrhoij(:)<type(pawrhoij_type)>= rhoij datastructure
 !!
 !! PARENTS
-!!      bethe_salpeter,d2frnl,d2frnl_bec,energy,gstate,gw_tools,loper3,m_dfptdb
+!!      bethe_salpeter,d2frnl,energy,gstate,gw_tools,loper3,m_dfptdb
 !!      m_electronpositron,m_header,m_paral_pert,m_pawrhoij,m_scf_history
 !!      nstpaw3,pawgrnl,pawmkrho,pawmkrhoij,pawprt,posdoppler,respfn,rhofermi3
 !!      scfcv3,screening,setup_bse,setup_positron,setup_screening,setup_sigma
@@ -441,7 +441,7 @@ end subroutine pawrhoij_free
 !! pawrhoij(:)<type(pawrhoij_type)>= rhoij datastructure
 !!
 !! PARENTS
-!!      d2frnl,d2frnl_bec,loper3,m_pawrhoij,m_scf_history,outscfcv,pawgrnl
+!!      d2frnl,loper3,m_pawrhoij,m_scf_history,outscfcv,pawgrnl
 !!      pawmkrho,pawprt,posdoppler,respfn
 !!
 !! CHILDREN
@@ -578,9 +578,9 @@ subroutine pawrhoij_copy(pawrhoij_in,pawrhoij_cpy, &
  if (present(keep_nspden)) keep_nspden_=keep_nspden
 
 !Set up parallelism over atoms
- paral_atom=(present(comm_atom));if (paral_atom) paral_atom=(xcomm_size(comm_atom)>1)
+ paral_atom=(present(comm_atom));if (paral_atom) paral_atom=(xpaw_mpi_comm_size(comm_atom)>1)
  nullify(my_atmtab);if (present(mpi_atmtab)) my_atmtab => mpi_atmtab
- my_comm_atom=xmpi_self;if (present(comm_atom)) my_comm_atom=comm_atom
+ my_comm_atom=xpaw_mpi_comm_self;if (present(comm_atom)) my_comm_atom=comm_atom
  my_atmtab_allocated=.false.
 
 !Determine in which case we are (parallelism, ...)
@@ -1062,7 +1062,7 @@ end subroutine pawrhoij_copy
 !!  The gathered structure are ordered like in sequential mode.
 !!
 !! PARENTS
-!!      d2frnl,d2frnl_bec,m_pawrhoij,pawgrnl,pawprt,posdoppler
+!!      d2frnl,m_pawrhoij,pawgrnl,pawprt,posdoppler
 !!
 !! CHILDREN
 !!
@@ -1098,7 +1098,9 @@ end subroutine pawrhoij_copy
  logical :: with_grhoij_,with_lmnmix_,with_rhoijp_,with_rhoijres_,with_rhoij__
  character(len=500) :: msg
 !arrays
+ integer :: bufsz(2)
  integer,allocatable :: buf_int(:),buf_int_all(:)
+ integer,allocatable :: count_dp(:),count_int(:),count_tot(:),displ_dp(:),displ_int(:)
  integer, pointer :: my_atmtab(:)
  real(dp),allocatable :: buf_dp(:),buf_dp_all(:)
 
@@ -1106,8 +1108,8 @@ end subroutine pawrhoij_copy
 
  nrhoij_in=size(pawrhoij_in);nrhoij_out=size(pawrhoij_gathered)
 
- nproc_atom=xcomm_size(comm_atom)
- me_atom=xcomm_rank(comm_atom)
+ nproc_atom=xpaw_mpi_comm_size(comm_atom)
+ me_atom=xpaw_mpi_comm_rank(comm_atom)
 
  if (nproc_atom==1) then
    if (master==-1.or.me_atom==master) then
@@ -1118,7 +1120,7 @@ end subroutine pawrhoij_copy
 
 !Test on sizes
  nrhoij_in_sum=nrhoij_in
- call xmpi_sum(nrhoij_in_sum,comm_atom,ierr)
+ call xpaw_mpi_sum(nrhoij_in_sum,comm_atom,ierr)
  if (master==-1) then
    if (nrhoij_out/=nrhoij_in_sum) then
      msg='Wrong sizes sum[nrhoij_ij]/=nrhoij_out !'
@@ -1243,16 +1245,44 @@ end subroutine pawrhoij_copy
    MSG_BUG(msg)
  end if
 
-!Communicate
- if (master==-1) then
-   call xmpi_allgatherv(buf_int,buf_int_size,buf_dp,buf_dp_size, &
-&       buf_int_all,buf_int_size_all,buf_dp_all,buf_dp_size_all,&
-&       comm_atom,ierr)
+!Communicate (1 gather for integers, 1 gather for reals)
+ LIBPAW_ALLOCATE(count_int,(nproc_atom))
+ LIBPAW_ALLOCATE(displ_int,(nproc_atom))
+ LIBPAW_ALLOCATE(count_dp ,(nproc_atom))
+ LIBPAW_ALLOCATE(displ_dp ,(nproc_atom))
+ LIBPAW_ALLOCATE(count_tot,(2*nproc_atom))
+ bufsz(1)=buf_int_size; bufsz(2)=buf_dp_size
+ call xpaw_mpi_allgather(bufsz,2,count_tot,comm_atom,ierr)
+ do ii=1,nproc_atom
+   count_int(ii)=count_tot(2*ii-1)
+   count_dp (ii)=count_tot(2*ii)
+ end do
+ displ_int(1)=0;displ_dp(1)=0
+ do ii=2,nproc_atom
+   displ_int(ii)=displ_int(ii-1)+count_int(ii-1)
+   displ_dp (ii)=displ_dp (ii-1)+count_dp (ii-1)
+ end do
+ buf_int_size_all=sum(count_int)
+ buf_dp_size_all =sum(count_dp)
+ LIBPAW_DEALLOCATE(count_tot)
+ if (master==-1.or.me_atom==master) then
+   LIBPAW_ALLOCATE(buf_int_all,(buf_int_size_all))
+   LIBPAW_ALLOCATE(buf_dp_all ,(buf_dp_size_all))
  else
-   call xmpi_gatherv(buf_int,buf_int_size,buf_dp,buf_dp_size, &
-&       buf_int_all,buf_int_size_all,buf_dp_all,buf_dp_size_all,&
-&       master,comm_atom,ierr)
+   LIBPAW_ALLOCATE(buf_int_all,(0))
+   LIBPAW_ALLOCATE(buf_dp_all ,(0))
  end if
+ if (master==-1) then
+   call xpaw_mpi_allgatherv(buf_int,buf_int_size,buf_int_all,count_int,displ_int,comm_atom,ierr)
+   call xpaw_mpi_allgatherv(buf_dp ,buf_dp_size ,buf_dp_all ,count_dp ,displ_dp ,comm_atom,ierr)
+ else
+   call xpaw_mpi_gatherv(buf_int,buf_int_size,buf_int_all,count_int,displ_int,master,comm_atom,ierr)
+   call xpaw_mpi_gatherv(buf_dp ,buf_dp_size ,buf_dp_all ,count_dp ,displ_dp ,master,comm_atom,ierr)
+ end if
+ LIBPAW_DEALLOCATE(count_int)
+ LIBPAW_DEALLOCATE(displ_int)
+ LIBPAW_DEALLOCATE(count_dp)
+ LIBPAW_DEALLOCATE(displ_dp)
 
 !Retrieve data from output buffer
  if (master==-1.or.me_atom==master) then
@@ -1365,8 +1395,8 @@ end subroutine pawrhoij_gather
 !! CHILDREN
 !!  free_my_atmtab,get_my_atmtab
 !!  pawrhoij_copy,pawrhoij_free
-!!  xmpi_allgather,xmpi_gatherv,xmpi_bcast,xmpi_scatterv
-!!  xcomm_rank,xcomm_size,xmpi_sum
+!!  xpaw_mpi_allgather,xpaw_mpi_gatherv,xpaw_mpi_bcast,xpaw_mpi_scatterv
+!!  xpaw_mpi_comm_rank,xpaw_mpi_comm_size,xpaw_mpi_sum
 !!
 !! SOURCE
 
@@ -1406,10 +1436,10 @@ end subroutine pawrhoij_gather
 ! *************************************************************************
 
 !Load MPI "atom" distribution data
- my_comm_atom=xmpi_self;nproc_atom=1
+ my_comm_atom=xpaw_mpi_comm_self;nproc_atom=1
  if (present(comm_atom)) then
    my_comm_atom=comm_atom
-   nproc_atom=xcomm_size(my_comm_atom)
+   nproc_atom=xpaw_mpi_comm_size(my_comm_atom)
    paral_atom=(nproc_atom>1)
    if (my_comm_atom/=mpicomm.and.nproc_atom/=1) then
      msg='wrong comm_atom communicator !'
@@ -1418,8 +1448,8 @@ end subroutine pawrhoij_gather
  end if
 
 !Load global MPI data
- me=xcomm_rank(mpicomm)
- nproc=xcomm_size(mpicomm)
+ me=xpaw_mpi_comm_rank(mpicomm)
+ nproc=xpaw_mpi_comm_size(mpicomm)
 
 !Just copy in case of a sequential run
  if (nproc==1.and.nproc_atom==1) then
@@ -1431,7 +1461,7 @@ end subroutine pawrhoij_gather
  nrhoij_in=0;if (me==master) nrhoij_in=size(pawrhoij_in)
  nrhoij_out=size(pawrhoij_out);nrhoij_out_all=nrhoij_out
  if (paral_atom) then
-   call xmpi_sum(nrhoij_out_all,my_comm_atom,ierr)
+   call xpaw_mpi_sum(nrhoij_out_all,my_comm_atom,ierr)
  end if
  if (me==master.and.nrhoij_in/=nrhoij_out_all) then
    msg='pawrhoij_in or pawrhoij_out wrongly allocated !'
@@ -1445,13 +1475,14 @@ end subroutine pawrhoij_gather
 &                     nrhoij_out_all,my_natom_ref=nrhoij_out)
    LIBPAW_ALLOCATE(disp_int,(nproc_atom))
    LIBPAW_ALLOCATE(count_int,(nproc_atom))
-   call xmpi_allgather(nrhoij_out,count_int,my_comm_atom,ierr)
+   buf_size(1)=nrhoij_out
+   call xpaw_mpi_allgather(buf_size,1,count_int,my_comm_atom,ierr)
    disp_int(1)=0
    do ii=2,nproc_atom
      disp_int(ii)=disp_int(ii-1)+count_int(ii-1)
    end do
    LIBPAW_ALLOCATE(atmtab,(nrhoij_in))
-   call xmpi_gatherv(my_atmtab,nrhoij_out,atmtab,count_int,disp_int,&
+   call xpaw_mpi_gatherv(my_atmtab,nrhoij_out,atmtab,count_int,disp_int,&
 &                    master,my_comm_atom,ierr)
    LIBPAW_DEALLOCATE(disp_int)
    LIBPAW_DEALLOCATE(count_int)
@@ -1490,9 +1521,8 @@ end subroutine pawrhoij_gather
    LIBPAW_ALLOCATE(disp_int,(nproc_atom))
    LIBPAW_ALLOCATE(disp_dp,(nproc_atom))
    LIBPAW_ALLOCATE(count_siz,(2*nproc_atom))
-   buf_size(1)=buf_int_size
-   buf_size(2)=buf_dp_size
-   call xmpi_allgather(buf_size,2,count_siz,my_comm_atom,ierr)
+   buf_size(1)=buf_int_size ; buf_size(2)=buf_dp_size
+   call xpaw_mpi_allgather(buf_size,2,count_siz,my_comm_atom,ierr)
    do iproc=1,nproc_atom
      count_int(iproc)=count_siz(2*iproc-1)
      count_dp(iproc)=count_siz(2*iproc)
@@ -1591,12 +1621,12 @@ end subroutine pawrhoij_gather
 
 !Communicate
  if (paral_atom) then
-   call xmpi_scatterv(buf_int_all,count_int,disp_int,buf_int,buf_int_size,master,mpicomm,ierr)
-   call xmpi_scatterv(buf_dp_all ,count_dp ,disp_dp ,buf_dp ,buf_dp_size ,master,mpicomm,ierr)
+   call xpaw_mpi_scatterv(buf_int_all,count_int,disp_int,buf_int,buf_int_size,master,mpicomm,ierr)
+   call xpaw_mpi_scatterv(buf_dp_all ,count_dp ,disp_dp ,buf_dp ,buf_dp_size ,master,mpicomm,ierr)
  else
    buf_int=buf_int_all;buf_dp=buf_dp_all
-   call xmpi_bcast(buf_int,master,mpicomm,ierr)
-   call xmpi_bcast(buf_dp ,master,mpicomm,ierr)
+   call xpaw_mpi_bcast(buf_int,master,mpicomm,ierr)
+   call xpaw_mpi_bcast(buf_dp ,master,mpicomm,ierr)
  end if
 
 !Retrieve data from output buffer
@@ -1793,7 +1823,7 @@ end subroutine pawrhoij_bcast
  end if
 
 !Special sequential case
- if (mpi_comm_in==xmpi_self.and.mpi_comm_out==xmpi_self) then
+ if (mpi_comm_in==xpaw_mpi_comm_self.and.mpi_comm_out==xpaw_mpi_comm_self) then
    if ((.not.in_place).and.(my_natom_in>0)) then
      LIBPAW_DATATYPE_ALLOCATE(pawrhoij_out,(my_natom_in))
      call pawrhoij_nullify(pawrhoij_out)
@@ -1807,7 +1837,8 @@ end subroutine pawrhoij_bcast
  if (present(natom)) then
    natom_tot=natom
  else
-   call xmpi_sum(my_natom_in,natom_tot,mpi_comm_in,ierr)
+   natom_tot=my_natom_in
+   call xpaw_mpi_sum(natom_tot,mpi_comm_in,ierr)
  end if
 
 !Select input distribution
@@ -1879,11 +1910,11 @@ end subroutine pawrhoij_bcast
      pawrhoij_out1=>pawrhoij_out
    end if
 
-   nproc_in=xcomm_size(mpi_comm_in)
-   nproc_out=xcomm_size(mpi_comm_out)
+   nproc_in=xpaw_mpi_comm_size(mpi_comm_in)
+   nproc_out=xpaw_mpi_comm_size(mpi_comm_out)
    if (nproc_in<=nproc_out) mpi_comm_exch=mpi_comm_out
    if (nproc_in>nproc_out) mpi_comm_exch=mpi_comm_in
-   me_exch=xcomm_rank(mpi_comm_exch)
+   me_exch=xpaw_mpi_comm_rank(mpi_comm_exch)
 
 !  Dimension put to the maximum to send
    LIBPAW_ALLOCATE(atmtab_send,(nbsend))
@@ -1950,13 +1981,13 @@ end subroutine pawrhoij_bcast
            buf_dps=>tab_buf_dp(imsg_current)%value
            my_tag=100
            ireq=ireq+1
-           call xmpi_isend(buf_size,iproc_rcv,my_tag,mpi_comm_exch,request(ireq),ierr)
+           call xpaw_mpi_isend(buf_size,iproc_rcv,my_tag,mpi_comm_exch,request(ireq),ierr)
            my_tag=101
            ireq=ireq+1
-           call xmpi_isend(buf_ints,iproc_rcv,my_tag,mpi_comm_exch,request(ireq),ierr)
+           call xpaw_mpi_isend(buf_ints,iproc_rcv,my_tag,mpi_comm_exch,request(ireq),ierr)
            my_tag=102
            ireq=ireq+1
-           call xmpi_isend(buf_dps,iproc_rcv,my_tag,mpi_comm_exch,request(ireq),ierr)
+           call xpaw_mpi_isend(buf_dps,iproc_rcv,my_tag,mpi_comm_exch,request(ireq),ierr)
            nbsendreq=ireq
            nbsent=0
          end if
@@ -1991,21 +2022,21 @@ end subroutine pawrhoij_bcast
          iproc_send=From(i1)
          flag=.false.
          my_tag=100
-         call xmpi_iprobe(iproc_send,my_tag,mpi_comm_exch,flag,ierr)
+         call xpaw_mpi_iprobe(iproc_send,my_tag,mpi_comm_exch,flag,ierr)
          if (flag) then
            msg_pick(i1)=.true.
-           call xmpi_irecv(buf_size,iproc_send,my_tag,mpi_comm_exch,request1(1),ierr)
-           call xmpi_wait(request1(1),ierr)
+           call xpaw_mpi_irecv(buf_size,iproc_send,my_tag,mpi_comm_exch,request1(1),ierr)
+           call xpaw_mpi_wait(request1(1),ierr)
            nb_int=buf_size(1)
            nb_dp=buf_size(2)
            npawrhoij_sent=buf_size(3)
            LIBPAW_ALLOCATE(buf_int1,(nb_int))
            LIBPAW_ALLOCATE(buf_dp1,(nb_dp))
            my_tag=101
-           call xmpi_irecv(buf_int1,iproc_send,my_tag,mpi_comm_exch,request1(2),ierr)
+           call xpaw_mpi_irecv(buf_int1,iproc_send,my_tag,mpi_comm_exch,request1(2),ierr)
            my_tag=102
-           call xmpi_irecv(buf_dp1,iproc_send,my_tag,mpi_comm_exch,request1(3),ierr)
-           call xmpi_waitall(request1(2:3),ierr)
+           call xpaw_mpi_irecv(buf_dp1,iproc_send,my_tag,mpi_comm_exch,request1(3),ierr)
+           call xpaw_mpi_waitall(request1(2:3),ierr)
            call pawrhoij_isendreceive_getbuffer(pawrhoij_out1,npawrhoij_sent,atm_indx_out,buf_int1,buf_dp1)
            nbmsg_incoming=nbmsg_incoming-1
            LIBPAW_DEALLOCATE(buf_int1)
@@ -2029,7 +2060,7 @@ end subroutine pawrhoij_bcast
 
 !  Wait for deallocating arrays that all sending operations has been realized
    if (nbsendreq > 0) then
-     call xmpi_waitall(request(1:nbsendreq),ierr)
+     call xpaw_mpi_waitall(request(1:nbsendreq),ierr)
    end if
 
 !  Deallocate buffers
@@ -2595,14 +2626,14 @@ subroutine pawrhoij_mpisum_unpacked_1D(pawrhoij,comm1,comm2)
  !character(len=500) :: msg
 !arrays
  integer,allocatable :: dimlmn(:)
- real(dp),allocatable :: buffer1(:),buffer2(:)
+ real(dp),allocatable :: buffer(:)
 
 !************************************************************************
 
  natom=SIZE(pawrhoij);if (natom==0) return
 
- nproc1 = xcomm_size(comm1)
- nproc2=1; if (PRESENT(comm2)) nproc2 = xcomm_size(comm2)
+ nproc1 = xpaw_mpi_comm_size(comm1)
+ nproc2=1; if (PRESENT(comm2)) nproc2 = xpaw_mpi_comm_size(comm2)
  if (nproc1==1.and.nproc2==1) RETURN
 
 !Fill the MPI buffer from the local rhoij_
@@ -2610,33 +2641,31 @@ subroutine pawrhoij_mpisum_unpacked_1D(pawrhoij,comm1,comm2)
  dimlmn(1:natom)=pawrhoij(1:natom)%cplex*pawrhoij(1:natom)%lmn2_size
  nsp2=pawrhoij(1)%nsppol; if (pawrhoij(1)%nspden==4) nsp2=4
  bufdim=sum(dimlmn)*nsp2
- LIBPAW_ALLOCATE(buffer1,(bufdim))
- LIBPAW_ALLOCATE(buffer2,(bufdim))
+ LIBPAW_ALLOCATE(buffer,(bufdim))
  jdim=0
  do iatom=1,natom
    do isppol=1,nsp2
-     buffer1(jdim+1:jdim+dimlmn(iatom))=pawrhoij(iatom)%rhoij_(:,isppol)
+     buffer(jdim+1:jdim+dimlmn(iatom))=pawrhoij(iatom)%rhoij_(:,isppol)
      jdim=jdim+dimlmn(iatom)
    end do
  end do
 
 !Build sum of pawrhoij%rhoij_
- call xmpi_sum(buffer1,buffer2,bufdim,comm1,ierr)      ! Sum over the first communicator.
+ call xpaw_mpi_sum(buffer,comm1,ierr)   ! Sum over the first communicator.
  if (PRESENT(comm2)) then
-   call xmpi_sum(buffer2,comm2,ierr) ! Sum over the second communicator.
+   call xpaw_mpi_sum(buffer,comm2,ierr) ! Sum over the second communicator.
  end if
 
 !Unpack the MPI packet filling rhoij_
  jdim=0
  do iatom=1,natom
    do isppol=1,nsp2
-     pawrhoij(iatom)%rhoij_(:,isppol)=buffer2(jdim+1:jdim+dimlmn(iatom))
+     pawrhoij(iatom)%rhoij_(:,isppol)=buffer(jdim+1:jdim+dimlmn(iatom))
      jdim=jdim+dimlmn(iatom)
    end do
  end do
 
- LIBPAW_DEALLOCATE(buffer1)
- LIBPAW_DEALLOCATE(buffer2)
+ LIBPAW_DEALLOCATE(buffer)
  LIBPAW_DEALLOCATE(dimlmn)
 
 end subroutine pawrhoij_mpisum_unpacked_1D
@@ -2694,15 +2723,15 @@ subroutine pawrhoij_mpisum_unpacked_2D(pawrhoij,comm1,comm2)
  !character(len=500) :: msg
 !arrays
  integer,allocatable :: dimlmn(:,:)
- real(dp),allocatable :: buffer1(:),buffer2(:)
+ real(dp),allocatable :: buffer(:)
 
 !************************************************************************
 
  natom =SIZE(pawrhoij,1);if (natom ==0) return
  nrhoij=SIZE(pawrhoij,2);if (nrhoij==0) return
 
- nproc1 = xcomm_size(comm1)
- nproc2=1; if (PRESENT(comm2)) nproc2 = xcomm_size(comm2)
+ nproc1 = xpaw_mpi_comm_size(comm1)
+ nproc2=1; if (PRESENT(comm2)) nproc2 = xpaw_mpi_comm_size(comm2)
  if (nproc1==1.and.nproc2==1) RETURN
 
 !Fill the MPI buffer from the local rhoij_
@@ -2710,22 +2739,21 @@ subroutine pawrhoij_mpisum_unpacked_2D(pawrhoij,comm1,comm2)
  dimlmn(1:natom,1:nrhoij)=pawrhoij(1:natom,1:nrhoij)%cplex*pawrhoij(1:natom,1:nrhoij)%lmn2_size
  nsp2=pawrhoij(1,1)%nsppol; if (pawrhoij(1,1)%nspden==4) nsp2=4
  bufdim=sum(dimlmn)*nsp2
- LIBPAW_ALLOCATE(buffer1,(bufdim))
- LIBPAW_ALLOCATE(buffer2,(bufdim))
+ LIBPAW_ALLOCATE(buffer,(bufdim))
  jdim=0
  do irhoij=1,nrhoij
    do iatom=1,natom
      do isppol=1,nsp2
-       buffer1(jdim+1:jdim+dimlmn(iatom,irhoij))=pawrhoij(iatom,irhoij)%rhoij_(:,isppol)
+       buffer(jdim+1:jdim+dimlmn(iatom,irhoij))=pawrhoij(iatom,irhoij)%rhoij_(:,isppol)
        jdim=jdim+dimlmn(iatom,irhoij)
      end do
    end do
  end do
 
 !Build sum of pawrhoij%rhoij_
- call xmpi_sum(buffer1,buffer2,bufdim,comm1,ierr)      ! Sum over the first communicator.
+ call xpaw_mpi_sum(buffer,comm1,ierr)   ! Sum over the first communicator.
  if (PRESENT(comm2)) then
-   call xmpi_sum(buffer2,comm2,ierr) ! Sum over the second communicator.
+   call xpaw_mpi_sum(buffer,comm2,ierr) ! Sum over the second communicator.
  end if
 
 !Unpack the MPI packet filling rhoij_
@@ -2733,14 +2761,13 @@ subroutine pawrhoij_mpisum_unpacked_2D(pawrhoij,comm1,comm2)
  do irhoij=1,nrhoij
    do iatom=1,natom
      do isppol=1,nsp2
-       pawrhoij(iatom,irhoij)%rhoij_(:,isppol)=buffer2(jdim+1:jdim+dimlmn(iatom,irhoij))
+       pawrhoij(iatom,irhoij)%rhoij_(:,isppol)=buffer(jdim+1:jdim+dimlmn(iatom,irhoij))
        jdim=jdim+dimlmn(iatom,irhoij)
      end do
    end do
  end do
 
- LIBPAW_DEALLOCATE(buffer1)
- LIBPAW_DEALLOCATE(buffer2)
+ LIBPAW_DEALLOCATE(buffer)
  LIBPAW_DEALLOCATE(dimlmn)
 
 end subroutine pawrhoij_mpisum_unpacked_2D
@@ -2807,7 +2834,7 @@ end subroutine pawrhoij_mpisum_unpacked_2D
 !!  (in that case pawrhoij_unsym should not be distributed over atomic sites).
 !!
 !! PARENTS
-!!      d2frnl,d2frnl_bec,energy,paw_qpscgw,pawmkrho,posdoppler
+!!      d2frnl,energy,paw_qpscgw,pawmkrho,posdoppler
 !!
 !! CHILDREN
 !!
@@ -2878,7 +2905,7 @@ subroutine symrhoij(pawrhoij,pawrhoij_unsym,choice,gprimd,indsym,ipert,natom,nsy
  paral_atom=(present(comm_atom).and.(nrhoij/=natom))
  paral_atom_unsym=(present(comm_atom).and.(nrhoij_unsym/=natom))
  nullify(my_atmtab);if (present(mpi_atmtab)) my_atmtab => mpi_atmtab
- my_comm_atom=xmpi_self;if (present(comm_atom)) my_comm_atom=comm_atom
+ my_comm_atom=xpaw_mpi_comm_self;if (present(comm_atom)) my_comm_atom=comm_atom
  call get_my_atmtab(my_comm_atom,my_atmtab,my_atmtab_allocated,paral_atom,natom)
 
 !Symetrization occurs only when nsym>1
@@ -2888,7 +2915,10 @@ subroutine symrhoij(pawrhoij,pawrhoij_unsym,choice,gprimd,indsym,ipert,natom,nsy
    ngrhoij=0
    if (nrhoij>0) then
      ngrhoij=pawrhoij(1)%ngrhoij
-     if ((choice==1.and.ngrhoij/=0) .or.(choice==2.and.ngrhoij/=3).or. &
+     if(choice==2) ngrhoij=min(3,pawrhoij(1)%ngrhoij)
+     if(choice==3.or.choice==4)   ngrhoij=min(6,pawrhoij(1)%ngrhoij)
+     if(choice==23.or.choice==24) ngrhoij=min(9,pawrhoij(1)%ngrhoij)
+     if ((choice==1.and.ngrhoij/=0).or.(choice==2.and.ngrhoij/=3).or. &
 &     (choice==3.and.ngrhoij/=6).or.(choice==23.and.ngrhoij/=9).or. &
 &     (choice==4.and.ngrhoij/=6).or.(choice==24.and.ngrhoij/=9) ) then
        msg='Inconsistency between variables choice and ngrhoij !'

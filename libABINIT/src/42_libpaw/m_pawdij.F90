@@ -31,10 +31,10 @@ MODULE m_pawdij
 
  use defs_basis
  USE_MSG_HANDLING
+ USE_MPI_WRAPPERS
  USE_MEMORY_PROFILING
 
  use m_paral_atom,   only : get_my_atmtab, free_my_atmtab
- use m_xmpi,         only : xcomm_size, xmpi_sum, xmpi_allgatherv, xmpi_self
  use m_pawio,        only : pawio_print_ij
  use m_pawang,       only : pawang_type
  use m_pawrad,       only : pawrad_type, pawrad_deducer0, simp_gen, nderiv_gen
@@ -53,8 +53,8 @@ MODULE m_pawdij
  public :: pawdij         ! Dij total
  public :: pawdijfock     ! Dij Fock exact-exchange
  public :: pawdijhartree  ! Dij Hartree
- public :: pawdijxc       ! Dij eXchange-Correlation (using (l,m) moments)
- public :: pawdijxcm      ! Dij eXchange-Correlation (using (r,theta,phi) grid)
+ public :: pawdijxc       ! Dij eXchange-Correlation (using (r,theta,phi) grid)
+ public :: pawdijxcm      ! Dij eXchange-Correlation (using (l,m) moments)
  public :: pawdijhat      ! Dij^hat (compensation charge contribution)
  public :: pawdiju        ! Dij LDA+U
  public :: pawdijso       ! Dij spin-orbit
@@ -64,6 +64,7 @@ MODULE m_pawdij
  public :: pawxpot        ! On-site local exact-exchange potential
  public :: symdij         ! Symmetrize total Dij or one part of it
  public :: symdij_all     ! Symmetrize all contributions to Dij
+ public :: pawdij_gather  ! Perform a allgather operation on Dij
 !!***
 
 CONTAINS
@@ -167,7 +168,7 @@ subroutine pawdij(cplex,enunit,gprimd,ipert,my_natom,natom,nfft,nfftot,nspden,nt
 &          pawxcdev,qphon,spnorbscl,ucvol,charge,vtrial,vxc,xred,&
 &          electronpositron_calctype,electronpositron_pawrhoij,electronpositron_lmselect,&
 &          atvshift,fatvshift,natvshift,&
-&          mpi_atmtab,comm_atom,mpi_comm_grid)
+&          mpi_atmtab,comm_atom,mpi_comm_grid,alpha)
 
 
 !This section has been created automatically by the script Abilint (TD).
@@ -185,7 +186,7 @@ subroutine pawdij(cplex,enunit,gprimd,ipert,my_natom,natom,nfft,nfftot,nspden,nt
  integer,optional,intent(in) :: electronpositron_calctype
  integer,optional,intent(in) :: comm_atom,mpi_comm_grid,natvshift
  real(dp),intent(in) :: spnorbscl,ucvol,charge
- real(dp),intent(in),optional ::fatvshift
+ real(dp),intent(in),optional ::fatvshift,alpha
  type(pawang_type),intent(in) :: pawang
 !arrays
  integer,optional,target,intent(in) :: mpi_atmtab(:)
@@ -225,7 +226,7 @@ subroutine pawdij(cplex,enunit,gprimd,ipert,my_natom,natom,nfft,nfftot,nspden,nt
  integer,pointer :: my_atmtab(:)
  logical,allocatable :: lmselect(:)
  real(dp),allocatable :: dij0(:),dijhartree(:)
- real(dp),allocatable :: dijhat(:,:),dijexxc(:,:),dijfock(:,:),dijpawu(:,:)
+ real(dp),allocatable :: dijhat(:,:),dijexxc(:,:),dijfock(:,:),dijfock1(:,:),dijpawu(:,:)
  real(dp),allocatable :: dijso(:,:),dijxc(:,:),dij_ep(:),dijxchat(:,:),dijxcval(:,:)
  real(dp),pointer :: v_dijhat(:,:),vpawu(:,:,:,:),vpawx(:,:,:)
 
@@ -308,7 +309,7 @@ subroutine pawdij(cplex,enunit,gprimd,ipert,my_natom,natom,nfft,nfftot,nspden,nt
 !Set up parallelism over atoms
  paral_atom=(present(comm_atom).and.(my_natom/=natom))
  nullify(my_atmtab);if (present(mpi_atmtab)) my_atmtab => mpi_atmtab
- my_comm_atom=xmpi_self;if (present(comm_atom)) my_comm_atom=comm_atom
+ my_comm_atom=xpaw_mpi_comm_self;if (present(comm_atom)) my_comm_atom=comm_atom
  call get_my_atmtab(my_comm_atom,my_atmtab,my_atmtab_allocated,paral_atom,natom,my_natom_ref=my_natom)
 
 !----- Various initializations
@@ -318,7 +319,7 @@ subroutine pawdij(cplex,enunit,gprimd,ipert,my_natom,natom,nfft,nfftot,nspden,nt
    nsploop=nsppol;if (paw_ij(1)%ndij==4) nsploop=4
  end if
  usexcnhat=maxval(pawtab(1:ntypat)%usexcnhat)
- my_comm_grid=xmpi_self;if (present(mpi_comm_grid)) my_comm_grid=mpi_comm_grid
+ my_comm_grid=xpaw_mpi_comm_self;if (present(mpi_comm_grid)) my_comm_grid=mpi_comm_grid
 
 !------ Select potential for Dij^hat computation
  v_dijhat_allocated=.false.
@@ -620,27 +621,43 @@ subroutine pawdij(cplex,enunit,gprimd,ipert,my_natom,natom,nfft,nfftot,nspden,nt
 !  ------------------------------------------------------------------------
 
    if ((dijfock_need.or.dij_need).and.dijfock_available) then
+!   ======Compute Exchange part only ============================
+     LIBPAW_ALLOCATE(dijxc,(cplex_dij*lmn2_size,ndij))
+     if (pawxcdev/=0) then
+       LIBPAW_ALLOCATE(lmselect,(lm_size))
+       lmselect(:)=paw_an(iatom)%lmselect(:)
+       if (ipositron/=0) lmselect(:)=(lmselect(:).or.electronpositron_lmselect(:,iatom))
+       call pawdijxcm(cplex,cplex_dij,dijxc,lmselect,ndij,nspden,nsppol,pawang,&
+&                       pawrad(itypat),pawtab(itypat),paw_an(iatom)%vxc_fock,&
+&                       paw_an(iatom)%vxct_fock,usexcnhat)
+       LIBPAW_DEALLOCATE(lmselect)
+     end if
 
 !    ===== DijFock already computed
      if (paw_ij(iatom)%has_dijfock==2) then
-       if (dij_need) paw_ij(iatom)%dij(:,:)=paw_ij(iatom)%dij(:,:)+paw_ij(iatom)%dijfock(:,:)
+       if (dij_need) paw_ij(iatom)%dij(:,:)=paw_ij(iatom)%dij(:,:)+(paw_ij(iatom)%dijfock(:,:)-dijxc(:,:))*alpha
+
      else
 
 !    ===== Need to compute DijFock
        LIBPAW_ALLOCATE(dijfock,(cplex_dij*lmn2_size,ndij))
+       LIBPAW_ALLOCATE(dijfock1,(cplex_dij*lmn2_size,ndij))
        if (ipositron/=1) then
 ! Exact exchange is evaluated for electrons
-         call pawdijfock(cplex,cplex_dij,dijfock,ndij,nspden,nsppol, &
+         call pawdijfock(cplex,cplex_dij,dijfock,dijfock1,ndij,nspden,nsppol, &
 &         pawrhoij(iatom),pawtab(itypat))
        else
          dijfock(:,:)=zero
+         dijfock1(:,:)=zero
+         dijxc(:,:)=zero
 ! No exact-exchange for a single positron 
        end if
-       if (dijfock_need) paw_ij(iatom)%dijfock(:,:)=dijfock(:,:)
-       if (dij_need) paw_ij(iatom)%dij(:,:)=paw_ij(iatom)%dij(:,:)+dijfock(:,:)
+       if (dijfock_need) paw_ij(iatom)%dijfock(:,:)=dijfock(:,:)+dijfock1(:,:)
+       if (dij_need) paw_ij(iatom)%dij(:,:)=paw_ij(iatom)%dij(:,:)+(dijfock(:,:)+dijfock1(:,:)-dijxc(:,:))*alpha
        LIBPAW_DEALLOCATE(dijfock)
+       LIBPAW_DEALLOCATE(dijfock1)
      end if
- 
+     LIBPAW_DEALLOCATE(dijxc)
    end if
 
 
@@ -717,7 +734,7 @@ subroutine pawdij(cplex,enunit,gprimd,ipert,my_natom,natom,nfft,nfftot,nspden,nt
      end if
  
    end if
-  
+
 !  ------------------------------------------------------------------------
 !  ----------- Add Dij_hat to Dij
 !  ------------------------------------------------------------------------
@@ -773,7 +790,7 @@ subroutine pawdij(cplex,enunit,gprimd,ipert,my_natom,natom,nfft,nfftot,nspden,nt
      end if
  
    end if
-   
+ 
 !  ------------------------------------------------------------------------
 !  ----------- Add Dij_{LDA+U} to Dij
 !  ------------------------------------------------------------------------
@@ -1463,7 +1480,8 @@ end subroutine pawdijxc
 !!  pawtab <type(pawtab_type)>=paw tabulated starting data, for current atom
 !!
 !! OUTPUT
-!!  dijfock(cplex_dij*lmn2_size,ndij)=  D_ij^fock terms
+!!  dijfock(cplex_dij*lmn2_size,ndij)=  D_ij^fock terms for valence-valence interactions
+!!  dijfock1(cplex_dij*lmn2_size,ndij)=  D_ij^fock terms for core-valence interactions
 !!
 !! PARENTS
 !!      m_pawdij,pawdenpot
@@ -1473,7 +1491,7 @@ end subroutine pawdijxc
 !!
 !! SOURCE
 
-subroutine pawdijfock(cplex,cplex_dij,dijfock,ndij,nspden,nsppol,pawrhoij,pawtab)
+subroutine pawdijfock(cplex,cplex_dij,dijfock,dijfock1,ndij,nspden,nsppol,pawrhoij,pawtab)
 
 
 !This section has been created automatically by the script Abilint (TD).
@@ -1488,7 +1506,7 @@ subroutine pawdijfock(cplex,cplex_dij,dijfock,ndij,nspden,nsppol,pawrhoij,pawtab
 !scalars
  integer,intent(in) :: cplex,cplex_dij,ndij,nspden,nsppol
 !arrays
- real(dp),intent(out) :: dijfock(:,:)
+ real(dp),intent(out) :: dijfock(:,:),dijfock1(:,:)
  type(pawrhoij_type),intent(in) :: pawrhoij
  type(pawtab_type),intent(in) :: pawtab
 
@@ -1500,7 +1518,7 @@ subroutine pawdijfock(cplex,cplex_dij,dijfock,ndij,nspden,nsppol,pawrhoij,pawtab
  character(len=500) :: msg
 !arrays
  real(dp) :: ro(cplex)
- real(dp),allocatable :: dijfock_idij(:)
+ real(dp),allocatable :: dijfock_idij(:),dijfock_idij1(:)
   
 ! *************************************************************************
 
@@ -1512,15 +1530,19 @@ subroutine pawdijfock(cplex,cplex_dij,dijfock,ndij,nspden,nsppol,pawrhoij,pawtab
    msg='invalid sizes for Dijfock !'
    MSG_BUG(msg)
  end if
+ if (size(dijfock1,1)/=cplex_dij*lmn2_size.or.size(dijfock1,2)/=ndij) then
+   msg='invalid sizes for Dijfock !'
+   MSG_BUG(msg)
+ end if
  if (cplex_dij<cplex) then
    msg='cplex_dij must be >= cplex !'
    MSG_BUG(msg)
  end if
 
 !Init memory
- dijfock=zero
+ dijfock=zero ; dijfock1=zero
  LIBPAW_ALLOCATE(dijfock_idij,(cplex*lmn2_size))
-
+ LIBPAW_ALLOCATE(dijfock_idij1,(cplex*lmn2_size))
 !----------------------------------------------------------
 !Loop over spin components
 !----------------------------------------------------------
@@ -1532,7 +1554,7 @@ subroutine pawdijfock(cplex,cplex_dij,dijfock,ndij,nspden,nsppol,pawrhoij,pawtab
      do ispden=idij,idijend
 !!!! WARNING : What follows has been tested only for cases where nsppol=1 and 2, nspden=1 and 2 with nspinor=1. 
        dijfock_idij=zero
-
+       dijfock_idij1=zero
 !Real on-site quantities (ground-state calculation)
        if (cplex==1) then
 !* Loop on the non-zero elements rho_kl
@@ -1542,7 +1564,7 @@ subroutine pawdijfock(cplex,cplex_dij,dijfock,ndij,nspden,nsppol,pawrhoij,pawtab
            ilmn_k=pawtab%indklmn(7,klmn_kl)
            jlmn_l=pawtab%indklmn(8,klmn_kl)
 !* Fock contribution to the element (k,l) of dijfock 
-           dijfock_idij(klmn_kl)=dijfock_idij(klmn_kl)+ro(1)*pawtab%eijkl(klmn_kl,klmn_kl)
+           dijfock_idij(klmn_kl)=dijfock_idij(klmn_kl)-ro(1)*pawtab%eijkl(klmn_kl,klmn_kl)
 !* Fock contribution to the element (i,j) of dijfock with (i,j) < (k,l)
 !* We remind that i<j and k<l by construction
            do klmn_ij=1,klmn_kl-1
@@ -1557,7 +1579,7 @@ subroutine pawdijfock(cplex,cplex_dij,dijfock,ndij,nspden,nsppol,pawrhoij,pawtab
                klmn_kj=jlmn_j*(jlmn_j-1)/2+ilmn_k
              end if
 !* In this case, (i,l) >= (k,j)
-             dijfock_idij(klmn_ij)=dijfock_idij(klmn_ij)+ro(1)*pawtab%eijkl(klmn_il,klmn_kj)
+             dijfock_idij(klmn_ij)=dijfock_idij(klmn_ij)-ro(1)*pawtab%eijkl(klmn_il,klmn_kj)
            end do
 !* Fock contribution to the element (i,j) of dijfock with (i,j) > (k,l)
 !* We remind that i<j and k<l by construction           
@@ -1573,12 +1595,12 @@ subroutine pawdijfock(cplex,cplex_dij,dijfock,ndij,nspden,nsppol,pawrhoij,pawtab
                klmn_il=jlmn_l*(jlmn_l-1)/2+ilmn_i
              end if
 !* In this case, (k,j) >= (i,l)
-             dijfock_idij(klmn_ij)=dijfock_idij(klmn_ij)+ro(1)*pawtab%eijkl(klmn_kj,klmn_il)
+             dijfock_idij(klmn_ij)=dijfock_idij(klmn_ij)-ro(1)*pawtab%eijkl(klmn_kj,klmn_il)
            end do
          end do
 ! Add the core-valence contribution
          do klmn_ij=1,lmn2_size
-           dijfock_idij(klmn_ij)=dijfock_idij(klmn_ij)+two*pawtab%ex_cvij(klmn_ij)/nsppol
+           dijfock_idij1(klmn_ij)=dijfock_idij1(klmn_ij)+pawtab%ex_cvij(klmn_ij)
          end do  
 
 !Complex on-site quantities (response function calculation)
@@ -1592,8 +1614,8 @@ subroutine pawdijfock(cplex,cplex_dij,dijfock,ndij,nspden,nsppol,pawrhoij,pawtab
            ilmn_k=pawtab%indklmn(7,klmn_kl)
            jlmn_l=pawtab%indklmn(8,klmn_kl)
 !* Fock contribution to the element (k,l) of dijfock            
-           dijfock_idij(klmn_kl)=dijfock_idij(klmn_kl)+ro(1)*pawtab%eijkl(klmn_kl,klmn_kl)
-           dijfock_idij(klmn_kl+1)=dijfock_idij(klmn_kl)+ro(2)*pawtab%eijkl(klmn_kl,klmn_kl)
+           dijfock_idij(klmn_kl)=dijfock_idij(klmn_kl)-ro(1)*pawtab%eijkl(klmn_kl,klmn_kl)
+           dijfock_idij(klmn_kl+1)=dijfock_idij(klmn_kl)-ro(2)*pawtab%eijkl(klmn_kl,klmn_kl)
 !* Fock contribution to the element (i,j) of dijfock with (i,j) < (k,l)
 !* We remind that i<j and k<l by construction
            do klmn_ij=1,klmn_kl-1
@@ -1608,8 +1630,8 @@ subroutine pawdijfock(cplex,cplex_dij,dijfock,ndij,nspden,nsppol,pawrhoij,pawtab
                klmn_kj=jlmn_j*(jlmn_j-1)/2+ilmn_k
              end if
 !* In this case, (i,l) >= (k,j)
-             dijfock_idij(klmn_ij)=dijfock_idij(klmn_ij)+ro(1)*pawtab%eijkl(klmn_il,klmn_kj)
-             dijfock_idij(klmn_ij+1)=dijfock_idij(klmn_ij)+ro(2)*pawtab%eijkl(klmn_il,klmn_kj)
+             dijfock_idij(klmn_ij)=dijfock_idij(klmn_ij)-ro(1)*pawtab%eijkl(klmn_il,klmn_kj)
+             dijfock_idij(klmn_ij+1)=dijfock_idij(klmn_ij)-ro(2)*pawtab%eijkl(klmn_il,klmn_kj)
            end do
 !* Fock contribution to the element (i,j) of dijfock with (i,j) > (k,l)
 !* We remind that i<j and k<l by construction           
@@ -1625,15 +1647,15 @@ subroutine pawdijfock(cplex,cplex_dij,dijfock,ndij,nspden,nsppol,pawrhoij,pawtab
                klmn_kj=jlmn_l*(jlmn_l-1)/2+ilmn_i
              end if
 !* In this case, (k,j) >= (i,l)
-             dijfock_idij(klmn_ij)=dijfock_idij(klmn_ij)+ro(1)*pawtab%eijkl(klmn_kj,klmn_il)
-             dijfock_idij(klmn_ij+1)=dijfock_idij(klmn_ij)+ro(2)*pawtab%eijkl(klmn_kj,klmn_il)
+             dijfock_idij(klmn_ij)=dijfock_idij(klmn_ij)-ro(1)*pawtab%eijkl(klmn_kj,klmn_il)
+             dijfock_idij(klmn_ij+1)=dijfock_idij(klmn_ij)-ro(2)*pawtab%eijkl(klmn_kj,klmn_il)
            end do
 
            jrhoij=jrhoij+cplex
          end do 
 ! Add the core-valence contribution
          do klmn_ij=1,lmn2_size,2
-           dijfock_idij(klmn_ij)=dijfock_idij(klmn_ij)+two*pawtab%ex_cvij(klmn_ij)/nsppol
+           dijfock_idij1(klmn_ij)=dijfock_idij1(klmn_ij)+pawtab%ex_cvij(klmn_ij)
          end do  
          
        end if
@@ -1646,11 +1668,14 @@ subroutine pawdijfock(cplex,cplex_dij,dijfock,ndij,nspden,nsppol,pawrhoij,pawtab
          if (ispden<3) then
            if (cplex_dij==1) then
              dijfock(1:lmn2_size,idij)=dijfock_idij(1:lmn2_size)
+             dijfock1(1:lmn2_size,idij)=dijfock_idij1(1:lmn2_size)
            else
              klmn1=1
              do klmn=1,lmn2_size
                dijfock(klmn1  ,idij)=dijfock_idij(klmn)
+               dijfock1(klmn1  ,idij)=dijfock_idij1(klmn)
                dijfock(klmn1+1,idij)=zero
+               dijfock1(klmn1+1,idij)=zero
                klmn1=klmn1+cplex_dij
              end do
            end if
@@ -1658,17 +1683,21 @@ subroutine pawdijfock(cplex,cplex_dij,dijfock,ndij,nspden,nsppol,pawrhoij,pawtab
            klmn1=max(1,ispden-2)
            do klmn=1,lmn2_size
              dijfock(klmn1,idij)=dijfock_idij(klmn)
+             dijfock1(klmn1,idij)=dijfock_idij1(klmn)
              klmn1=klmn1+cplex_dij
            end do
          end if
        else !cplex=2
          if (ispden<=3) then
            dijfock(1:cplex*lmn2_size,idij)=dijfock_idij(1:cplex*lmn2_size)
+           dijfock1(1:cplex*lmn2_size,idij)=dijfock_idij1(1:cplex*lmn2_size)
          else     
            klmn1=1  ! Remember V(4) contains i.V^21
            do klmn=1,lmn2_size
              dijfock(klmn1  ,idij)= dijfock_idij(klmn+1)
              dijfock(klmn1+1,idij)=-dijfock_idij(klmn  )
+             dijfock1(klmn1  ,idij)= dijfock_idij1(klmn+1)
+             dijfock1(klmn1+1,idij)=-dijfock_idij1(klmn  )
              klmn1=klmn1+cplex_dij
            end do
          end if
@@ -1678,13 +1707,16 @@ subroutine pawdijfock(cplex,cplex_dij,dijfock,ndij,nspden,nsppol,pawrhoij,pawtab
 
    else if (nspden==4.and.idij==4) then ! cplex=1 here
      dijfock(:,idij)=dijfock(:,idij-1)
+     dijfock1(:,idij)=dijfock1(:,idij-1)
      klmn1=2
      do klmn=1,lmn2_size
        dijfock(klmn1,idij)=-dijfock(klmn1,idij)
+       dijfock1(klmn1,idij)=-dijfock1(klmn1,idij)
        klmn1=klmn1+cplex_dij
      end do
    else if (nsppol==1.and.idij==2) then ! cplex=1 here
      dijfock(:,idij)=dijfock(:,idij-1)
+     dijfock1(:,idij)=dijfock1(:,idij-1)
    end if
 
 !----------------------------------------------------------
@@ -2063,7 +2095,7 @@ subroutine pawdijhat(cplex,cplex_dij,dijhat,gprimd,iatom,ipert,&
  nfgd=pawfgrtab%nfgd
  has_phase=.false.
  qne0=(qphon(1)**2+qphon(2)**2+qphon(3)**2>=1.d-15)
- my_comm_grid=xmpi_self;if (present(mpi_comm_grid)) my_comm_grid=mpi_comm_grid
+ my_comm_grid=xpaw_mpi_comm_self;if (present(mpi_comm_grid)) my_comm_grid=mpi_comm_grid
 
 
 !Check data consistency
@@ -2190,8 +2222,8 @@ subroutine pawdijhat(cplex,cplex_dij,dijhat,gprimd,iatom,ipert,&
        prod=prod*ucvol/dble(ngridtot)
 
 !      Reduction in case of parallelism
-       if (xcomm_size(my_comm_grid)>1) then
-         call xmpi_sum(prod,my_comm_grid,ier)
+       if (xpaw_mpi_comm_size(my_comm_grid)>1) then
+         call xpaw_mpi_sum(prod,my_comm_grid,ier)
        end if
 
 !      ----------------------------------------------------------
@@ -3045,7 +3077,7 @@ end subroutine pawdijexxc
 !!                  =Int_R^3{vtrial*Sum_LM[Q_ij_q^LM^(1)] + Vloc^(1)*Sum_LM[Q_ij_q^LM]}
 !!
 !! PARENTS
-!!      d2frnl,d2frnl_bec,nstpaw3,rhofermi3,scfcv3
+!!      d2frnl,nstpaw3,rhofermi3,scfcv3
 !!
 !! CHILDREN
 !!      free_my_atmtab,get_my_atmtab
@@ -3106,8 +3138,8 @@ subroutine pawdijfr(cplex,gprimd,idir,ipert,my_natom,natom,nfft,ngfft,nspden,nty
 !Set up parallelism over atoms
  paral_atom=(present(comm_atom).and.(my_natom/=natom))
  nullify(my_atmtab);if (present(mpi_atmtab)) my_atmtab => mpi_atmtab
- my_comm_atom=xmpi_self;if (present(comm_atom)) my_comm_atom=comm_atom
- my_comm_grid=xmpi_self;if (present(mpi_comm_grid)) my_comm_grid=mpi_comm_grid
+ my_comm_atom=xpaw_mpi_comm_self;if (present(comm_atom)) my_comm_atom=comm_atom
+ my_comm_grid=xpaw_mpi_comm_self;if (present(mpi_comm_grid)) my_comm_grid=mpi_comm_grid
  call get_my_atmtab(my_comm_atom,my_atmtab,my_atmtab_allocated,paral_atom,natom,my_natom_ref=my_natom)
 
 !Compatibility tests
@@ -3355,7 +3387,7 @@ subroutine pawdijfr(cplex,gprimd,idir,ipert,my_natom,natom,nfft,ngfft,nspden,nty
          intv(:,:)=fact*intv(:,:)
 
 !        --- Reduction in case of parallelization ---
-         call xmpi_sum(intv,my_comm_grid,ier)
+         call xpaw_mpi_sum(intv,my_comm_grid,ier)
 
          paw_ij1(iatom)%dijfr(:,ispden)=zero
 
@@ -3553,7 +3585,7 @@ subroutine pawdijfr(cplex,gprimd,idir,ipert,my_natom,natom,nfft,ngfft,nspden,nty
        intv(:,:)=fact*intv(:,:)
 
 !      --- Reduction in case of parallelization ---
-       call xmpi_sum(intv,my_comm_grid,ier)
+       call xpaw_mpi_sum(intv,my_comm_grid,ier)
 
        paw_ij1(iatom)%dijfr(:,ispden)=zero
 
@@ -4185,7 +4217,7 @@ subroutine symdij(gprimd,indsym,ipert,my_natom,natom,nsym,ntypat,option_dij,&
 !Set up parallelism over atoms
  paral_atom=(present(comm_atom).and.(my_natom/=natom))
  nullify(my_atmtab);if (present(mpi_atmtab)) my_atmtab => mpi_atmtab
- my_comm_atom=xmpi_self;if (present(comm_atom)) my_comm_atom=comm_atom
+ my_comm_atom=xpaw_mpi_comm_self;if (present(comm_atom)) my_comm_atom=comm_atom
  call get_my_atmtab(my_comm_atom,my_atmtab,my_atmtab_allocated,paral_atom,natom,my_natom_ref=my_natom)
 
 !Symmetrization occurs only when nsym>1
@@ -4281,7 +4313,7 @@ subroutine symdij(gprimd,indsym,ipert,my_natom,natom,nsym,ntypat,option_dij,&
 !  Parallelism: gather all Dij
    if (paral_atom) then
      LIBPAW_DATATYPE_ALLOCATE(tmp_dij,(natom))
-     call xmpi_allgatherv(my_tmp_dij,tmp_dij,my_comm_atom,my_atmtab,ierr)
+     call pawdij_gather(my_tmp_dij,tmp_dij,my_comm_atom,my_atmtab)
      do iatom=1,my_natom
        LIBPAW_DEALLOCATE(my_tmp_dij(iatom)%value)
      end do
@@ -4893,7 +4925,7 @@ subroutine symdij_all(gprimd,indsym,ipert,my_natom,natom,nsym,ntypat,&
 !Set up parallelism over atoms
  paral_atom=(present(comm_atom))
  nullify(my_atmtab);if (present(mpi_atmtab)) my_atmtab => mpi_atmtab
- my_comm_atom=xmpi_self;if (present(comm_atom)) my_comm_atom=comm_atom
+ my_comm_atom=xpaw_mpi_comm_self;if (present(comm_atom)) my_comm_atom=comm_atom
  call get_my_atmtab(my_comm_atom,my_atmtab,my_atmtab_allocated,paral_atom,natom,my_natom_ref=my_natom)
 
  do ii=1,nopt
@@ -4912,6 +4944,161 @@ subroutine symdij_all(gprimd,indsym,ipert,my_natom,natom,nsym,ntypat,&
  call free_my_atmtab(my_atmtab,my_atmtab_allocated)
 
 end subroutine symdij_all
+!!***
+
+!----------------------------------------------------------------------
+
+!!****f* m_pawdij/pawdij_gather
+!! NAME
+!!  pawdij_gather
+!!
+!! FUNCTION
+!!  Performs a ALLGATHER operation (over atomic sites) on Dij data
+!!  stored as a 1D array of Dij arrays.
+!!
+!! INPUTS
+!!  dij_in = coeff2d_type array containing the input Dij
+!!  comm_atom= MPI communicator over atoms
+!!  mpi_atmtab(:)=indexes of the atoms treated by current proc
+!!
+!! OUTPUT
+!!  dij_out = coeff2d_type array containing the gathered Dij
+!!
+!! SOURCE
+
+subroutine pawdij_gather(dij_in,dij_out,comm_atom,mpi_atmtab)
+
+
+!This section has been created automatically by the script Abilint (TD).
+!Do not modify the following lines by hand.
+#undef ABI_FUNC
+#define ABI_FUNC 'pawdij_gather'
+!End of the abilint section
+
+ implicit none
+
+!Arguments ------------------------------------
+!scalars
+ integer,intent(in) :: comm_atom
+!arrays
+ integer,intent(in) :: mpi_atmtab(:)
+ type(coeff2_type),intent(in) :: dij_in(:)
+ type(coeff2_type),intent(out) :: dij_out(:)
+
+!Local variables-------------------------------
+!scalars
+ integer :: buf_dp_size,buf_dp_size_all,buf_int_size,buf_int_size_all
+ integer :: dij_size,dij_size_out,ierr,ii,i2,indx_dp,indx_int,ival,n1,n2,nproc
+!arrays
+ integer :: bufsz(2)
+ integer, allocatable :: buf_int(:),buf_int_all(:)
+ integer, allocatable :: count_dp(:),count_int(:),count_tot(:),displ_dp(:),displ_int(:)
+ integer, allocatable :: dimdij(:,:)
+ real(dp),allocatable :: buf_dp(:),buf_dp_all(:)
+
+! *************************************************************************
+
+ nproc=xpaw_mpi_comm_size(comm_atom)
+ dij_size=size(dij_in,dim=1)
+
+ buf_dp_size=0
+ LIBPAW_ALLOCATE(dimdij,(dij_size,2))
+ do ii=1,dij_size
+   dimdij(ii,1)=size(dij_in(ii)%value,dim=1)
+   dimdij(ii,2)=size(dij_in(ii)%value,dim=2)
+   buf_dp_size=buf_dp_size+dimdij(ii,1)*dimdij(ii,2)
+ end do
+
+!If only one proc, perform a single copy
+ if (nproc==1) then
+   do ii=1,dij_size
+     ival=mpi_atmtab(ii)
+     if (allocated(dij_out(ival)%value)) then
+       LIBPAW_DEALLOCATE(dij_out(ival)%value)
+     end if
+     LIBPAW_ALLOCATE(dij_out(ival)%value,(n1,n2))
+     dij_out(ii)%value=dij_in(ival)%value
+   end do
+   LIBPAW_DEALLOCATE(dimdij)
+   return
+ end if
+
+!Fill in integer buffer
+ buf_int_size=3*dij_size
+ LIBPAW_ALLOCATE(buf_int,(buf_int_size))
+ indx_int=1
+ do ii=1,dij_size
+   buf_int(indx_int  )=dimdij(ii,1)
+   buf_int(indx_int+1)=dimdij(ii,2)
+   buf_int(indx_int+2)=mpi_atmtab(ii)
+   indx_int=indx_int+3
+ end do
+
+!Fill in real buffer
+ LIBPAW_ALLOCATE(buf_dp,(buf_dp_size))
+ indx_dp=1
+ do ii=1,dij_size
+   n1=dimdij(ii,1); n2=dimdij(ii,2)
+   do i2=1,n2
+     buf_dp(indx_dp:indx_dp+n1-1)=dij_in(ii)%value(1:n1,i2)
+     indx_dp=indx_dp+n1
+   end do
+ end do
+
+!Communicate (1 gather for integers, 1 gather for reals)
+ LIBPAW_ALLOCATE(count_int,(nproc))
+ LIBPAW_ALLOCATE(displ_int,(nproc))
+ LIBPAW_ALLOCATE(count_dp ,(nproc))
+ LIBPAW_ALLOCATE(displ_dp ,(nproc))
+ LIBPAW_ALLOCATE(count_tot,(2*nproc))
+ bufsz(1)=buf_int_size; bufsz(2)=buf_dp_size
+ call xpaw_mpi_allgather(bufsz,2,count_tot,comm_atom,ierr)
+ do ii=1,nproc
+   count_int(ii)=count_tot(2*ii-1)
+   count_dp (ii)=count_tot(2*ii)
+ end do
+ displ_int(1)=0;displ_dp(1)=0
+ do ii=2,nproc
+   displ_int(ii)=displ_int(ii-1)+count_int(ii-1)
+   displ_dp (ii)=displ_dp (ii-1)+count_dp (ii-1)
+ end do
+ buf_int_size_all=sum(count_int)
+ buf_dp_size_all =sum(count_dp)
+ LIBPAW_DEALLOCATE(count_tot)
+ LIBPAW_ALLOCATE(buf_int_all,(buf_int_size_all))
+ LIBPAW_ALLOCATE(buf_dp_all ,(buf_dp_size_all))
+ call xpaw_mpi_allgatherv(buf_int,buf_int_size,buf_int_all,count_int,displ_int,comm_atom,ierr)
+ call xpaw_mpi_allgatherv(buf_dp ,buf_dp_size ,buf_dp_all ,count_dp ,displ_dp ,comm_atom,ierr)
+ LIBPAW_DEALLOCATE(count_int)
+ LIBPAW_DEALLOCATE(displ_int)
+ LIBPAW_DEALLOCATE(count_dp)
+ LIBPAW_DEALLOCATE(displ_dp)
+
+!Retrieve gathered data
+ dij_size_out=buf_int_size_all/3
+ indx_int=1;indx_dp=1
+ do ii=1,dij_size_out
+   n1=buf_int_all(indx_int)
+   n2=buf_int_all(indx_int+1)
+   ival=buf_int_all(indx_int+2)
+   indx_int=indx_int+3
+   if (allocated(dij_out(ival)%value)) then
+     LIBPAW_DEALLOCATE(dij_out(ival)%value)
+   end if
+   LIBPAW_ALLOCATE(dij_out(ival)%value,(n1,n2))
+   do i2=1,n2
+     dij_out(ival)%value(1:n1,i2)=buf_dp_all(indx_dp:indx_dp+n1-1)
+     indx_dp=indx_dp+n1
+   end do
+ end do
+
+ LIBPAW_DEALLOCATE(buf_dp_all)
+ LIBPAW_DEALLOCATE(buf_int_all)
+ LIBPAW_DEALLOCATE(buf_int)
+ LIBPAW_DEALLOCATE(buf_dp)
+ LIBPAW_DEALLOCATE(dimdij)
+
+end subroutine pawdij_gather
 !!***
 
 !----------------------------------------------------------------------

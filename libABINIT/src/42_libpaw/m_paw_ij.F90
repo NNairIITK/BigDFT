@@ -38,8 +38,8 @@
 MODULE m_paw_ij
 
  use defs_basis
- use m_xmpi
  USE_MSG_HANDLING
+ USE_MPI_WRAPPERS
  USE_MEMORY_PROFILING
 
  use m_paral_atom, only : get_my_atmtab, free_my_atmtab, get_my_natom
@@ -146,6 +146,7 @@ MODULE m_paw_ij
 
   integer :: nsppol
    ! Number of independant spin-components
+
 
 !Real (real(dp)) arrays
 
@@ -304,7 +305,7 @@ CONTAINS
 !!   according to the input variables.
 !!
 !! PARENTS
-!!      bethe_salpeter,d2frnl,d2frnl_bec,ldau_self,m_energy,nstpaw3,paw_qpscgw
+!!      bethe_salpeter,d2frnl,ldau_self,m_energy,nstpaw3,paw_qpscgw
 !!      respfn,rhofermi3,scfcv,scfcv3,screening,sigma
 !!
 !! CHILDREN
@@ -332,6 +333,7 @@ subroutine paw_ij_init(Paw_ij,cplex,nspinor,nsppol,nspden,pawspnorb,natom,ntypat
  integer,optional,intent(in) :: has_dij,has_dij0,has_dijfr,has_dijhat,has_dijxc,has_dijxc_hat,has_dijxc_val
  integer,optional,intent(in) :: has_dijso,has_dijhartree,has_dijfock,has_dijU,has_dijexxc,has_exexch_pot,has_pawu_occ
  integer,optional,intent(in) :: comm_atom
+
 !arrays
  integer,intent(in) :: typat(natom)
  integer,optional,target,intent(in) :: mpi_atmtab(:)
@@ -353,7 +355,7 @@ subroutine paw_ij_init(Paw_ij,cplex,nspinor,nsppol,nspden,pawspnorb,natom,ntypat
  my_natom=size(paw_ij);if (my_natom==0) return
  paral_atom=(present(comm_atom).and.(my_natom/=natom))
  nullify(my_atmtab);if (present(mpi_atmtab)) my_atmtab => mpi_atmtab
- my_comm_atom=xmpi_self;if (present(comm_atom)) my_comm_atom=comm_atom
+ my_comm_atom=xpaw_mpi_comm_self;if (present(comm_atom)) my_comm_atom=comm_atom
  call get_my_atmtab(my_comm_atom,my_atmtab,my_atmtab_allocated,paral_atom,natom,my_natom_ref=my_natom)
 
  do iat=1,my_natom
@@ -543,7 +545,7 @@ end subroutine paw_ij_init
 !!  paw_ij(:)<type(paw_ij_type)>=paw arrays given on (i,j) channels
 !!
 !! PARENTS
-!!      bethe_salpeter,d2frnl,d2frnl_bec,ldau_self,m_energy,m_paral_pert
+!!      bethe_salpeter,d2frnl,ldau_self,m_energy,m_paral_pert
 !!      m_paw_ij,nstpaw3,pawprt,respfn,rhofermi3,scfcv,scfcv3,screening,sigma
 !!
 !! CHILDREN
@@ -656,7 +658,7 @@ end subroutine paw_ij_free
 !!  Paw_ij(:)<type(paw_ij_type)>=PAW arrays given on (i,j) channels.
 !!
 !! PARENTS
-!!      bethe_salpeter,d2frnl,d2frnl_bec,ldau_self,m_energy,m_paw_ij,nstpaw3
+!!      bethe_salpeter,d2frnl,ldau_self,m_energy,m_paw_ij,nstpaw3
 !!      paw_qpscgw,pawprt,respfn,rhofermi3,scfcv,scfcv3,screening,sigma
 !!
 !! CHILDREN
@@ -778,9 +780,9 @@ character(len=500) :: msg
  npaw_ij_in=size(paw_ij_in);npaw_ij_out=size(paw_ij_cpy)
 
 !Set up parallelism over atoms
- paral_atom=(present(comm_atom));if (paral_atom) paral_atom=(xcomm_size(comm_atom)>1)
+ paral_atom=(present(comm_atom));if (paral_atom) paral_atom=(xpaw_mpi_comm_size(comm_atom)>1)
  nullify(my_atmtab);if (present(mpi_atmtab)) my_atmtab => mpi_atmtab
- my_comm_atom=xmpi_self;if (present(comm_atom)) my_comm_atom=comm_atom
+ my_comm_atom=xpaw_mpi_comm_self;if (present(comm_atom)) my_comm_atom=comm_atom
  my_atmtab_allocated=.false.
 
 !Determine in which case we are (parallelism, ...)
@@ -1031,7 +1033,7 @@ subroutine paw_ij_print(Paw_ij,unit,pawprtvol,pawspnorb,mode_paral,enunit,ipert,
 !Set up parallelism over atoms
  paral_atom=(present(comm_atom).and.my_natom/=size_paw_ij)
  nullify(my_atmtab);if (present(mpi_atmtab)) my_atmtab => mpi_atmtab
- my_comm_atom=xmpi_self;if (present(comm_atom)) my_comm_atom=comm_atom
+ my_comm_atom=xpaw_mpi_comm_self;if (present(comm_atom)) my_comm_atom=comm_atom
  call get_my_atmtab(my_comm_atom,my_atmtab,my_atmtab_allocated,paral_atom,my_natom,my_natom_ref=size_paw_ij)
 
  if (abs(my_prtvol)>=1) then
@@ -1407,7 +1409,7 @@ end subroutine paw_ij_print
 !!   (All)Gather paw_ij datastructures
 !!
 !! INPUTS
-!!  master=master communicator receiving data ; if -1 do a ALLGATHER
+!!  master=master receiving data ; if -1 do a ALLGATHER
 !!  comm_atom= communicator
 !!  paw_ij_in(:)<type(paw_ij_type)>= input paw_ij datastructures on every process
 !!
@@ -1449,7 +1451,9 @@ subroutine paw_ij_gather(paw_ij_in,paw_ij_gathered,master,comm_atom)
  logical :: my_atmtab_allocated,paral_atom
  character(len=500) :: msg
 !arrays
+ integer :: bufsz(2)
  integer,allocatable :: buf_int(:),buf_int_all(:)
+ integer,allocatable :: count_dp(:),count_int(:),count_tot(:),displ_dp(:),displ_int(:)
  integer,pointer :: my_atmtab(:)
  real(dp),allocatable :: buf_dp(:),buf_dp_all(:)
 
@@ -1459,8 +1463,8 @@ subroutine paw_ij_gather(paw_ij_in,paw_ij_gathered,master,comm_atom)
 
  npaw_ij_in=size(paw_ij_in);npaw_ij_out=size(paw_ij_gathered)
 
- nproc_atom=xcomm_size(comm_atom)
- me_atom=xcomm_rank(comm_atom)
+ nproc_atom=xpaw_mpi_comm_size(comm_atom)
+ me_atom=xpaw_mpi_comm_rank(comm_atom)
 
 !Special case 1 process
  if (nproc_atom==1) then
@@ -1594,7 +1598,7 @@ subroutine paw_ij_gather(paw_ij_in,paw_ij_gathered,master,comm_atom)
 
 !Test on sizes
  npaw_ij_in_sum=npaw_ij_in
- call xmpi_sum(npaw_ij_in_sum,comm_atom,ierr)
+ call xpaw_mpi_sum(npaw_ij_in_sum,comm_atom,ierr)
   if (master==-1) then
    if (npaw_ij_out/=npaw_ij_in_sum) then
      msg='Wrong sizes sum[npaw_ij_ij]/=npaw_ij_out !'
@@ -1789,14 +1793,44 @@ subroutine paw_ij_gather(paw_ij_in,paw_ij_gathered,master,comm_atom)
    MSG_BUG(msg)
  end if
 
-!Communicate
- if (master==-1) then
-   call xmpi_allgatherv(buf_int,buf_int_size,buf_dp,buf_dp_size, &
-&  buf_int_all,buf_int_size_all,buf_dp_all,buf_dp_size_all,comm_atom,ierr)
+!Communicate (1 gather for integers, 1 gather for reals)
+ LIBPAW_ALLOCATE(count_int,(nproc_atom))
+ LIBPAW_ALLOCATE(displ_int,(nproc_atom))
+ LIBPAW_ALLOCATE(count_dp ,(nproc_atom))
+ LIBPAW_ALLOCATE(displ_dp ,(nproc_atom))
+ LIBPAW_ALLOCATE(count_tot,(2*nproc_atom))
+ bufsz(1)=buf_int_size; bufsz(2)=buf_dp_size
+ call xpaw_mpi_allgather(bufsz,2,count_tot,comm_atom,ierr)
+ do ij=1,nproc_atom
+   count_int(ij)=count_tot(2*ij-1)
+   count_dp (ij)=count_tot(2*ij)
+ end do
+ displ_int(1)=0;displ_dp(1)=0
+ do ij=2,nproc_atom
+   displ_int(ij)=displ_int(ij-1)+count_int(ij-1)
+   displ_dp (ij)=displ_dp (ij-1)+count_dp (ij-1)
+ end do
+ buf_int_size_all=sum(count_int)
+ buf_dp_size_all =sum(count_dp)
+ LIBPAW_DEALLOCATE(count_tot)
+ if (master==-1.or.me_atom==master) then
+   LIBPAW_ALLOCATE(buf_int_all,(buf_int_size_all))
+   LIBPAW_ALLOCATE(buf_dp_all ,(buf_dp_size_all))
  else
-   call xmpi_gatherv(buf_int,buf_int_size,buf_dp,buf_dp_size, &
-&  buf_int_all,buf_int_size_all,buf_dp_all,buf_dp_size_all,master,comm_atom,ierr)
+   LIBPAW_ALLOCATE(buf_int_all,(0))
+   LIBPAW_ALLOCATE(buf_dp_all ,(0))
  end if
+ if (master==-1) then
+   call xpaw_mpi_allgatherv(buf_int,buf_int_size,buf_int_all,count_int,displ_int,comm_atom,ierr)
+   call xpaw_mpi_allgatherv(buf_dp ,buf_dp_size ,buf_dp_all ,count_dp ,displ_dp ,comm_atom,ierr)
+ else
+   call xpaw_mpi_gatherv(buf_int,buf_int_size,buf_int_all,count_int,displ_int,master,comm_atom,ierr)
+   call xpaw_mpi_gatherv(buf_dp ,buf_dp_size ,buf_dp_all ,count_dp ,displ_dp ,master,comm_atom,ierr)
+ end if
+ LIBPAW_DEALLOCATE(count_int)
+ LIBPAW_DEALLOCATE(displ_int)
+ LIBPAW_DEALLOCATE(count_dp)
+ LIBPAW_DEALLOCATE(displ_dp)
 
 !Retrieve data from output buffer
  if (master==-1.or.me_atom==master) then
@@ -1865,113 +1899,113 @@ subroutine paw_ij_gather(paw_ij_in,paw_ij_gathered,master,comm_atom)
        end if
      end if   
      if (paw_ij_gathered(iat)%has_dijfock >=1) then
-        LIBPAW_ALLOCATE(paw_ij_gathered(iat)%dijfock,(cplxdij_lmn2_size,ndij)) 
-        if (paw_ij_gathered(iat)%has_dijfock==2) then
-          paw_ij_gathered(iat)%dijfock(:,:)= &      
-&           reshape(buf_dp_all(indx_dp:indx_dp+cplxdij_lmn2_size*ndij-1), &
+       LIBPAW_ALLOCATE(paw_ij_gathered(iat)%dijfock,(cplxdij_lmn2_size,ndij)) 
+       if (paw_ij_gathered(iat)%has_dijfock==2) then
+           paw_ij_gathered(iat)%dijfock(:,:)= &      
+&          reshape(buf_dp_all(indx_dp:indx_dp+cplxdij_lmn2_size*ndij-1), &
 &                  (/cplxdij_lmn2_size,ndij/))
-          indx_dp=indx_dp+cplxdij_lmn2_size*ndij
-        end if
-      end if   
-      if (paw_ij_gathered(iat)%has_dijfr >=1) then
-         LIBPAW_ALLOCATE(paw_ij_gathered(iat)%dijfr,(cplxdij_lmn2_size,ndij))
-         if (paw_ij_gathered(iat)%has_dijfr==2) then
+         indx_dp=indx_dp+cplxdij_lmn2_size*ndij
+       end if
+     end if   
+     if (paw_ij_gathered(iat)%has_dijfr >=1) then
+       LIBPAW_ALLOCATE(paw_ij_gathered(iat)%dijfr,(cplxdij_lmn2_size,ndij))
+       if (paw_ij_gathered(iat)%has_dijfr==2) then
            paw_ij_gathered(iat)%dijfr(:,:)= &
-&            reshape(buf_dp_all(indx_dp:indx_dp+cplxdij_lmn2_size*ndij-1), &
-&                   (/cplxdij_lmn2_size,ndij/))
-           indx_dp=indx_dp+cplxdij_lmn2_size*ndij
-         end if
+&          reshape(buf_dp_all(indx_dp:indx_dp+cplxdij_lmn2_size*ndij-1), &
+&                  (/cplxdij_lmn2_size,ndij/))
+         indx_dp=indx_dp+cplxdij_lmn2_size*ndij
        end if
-       if (paw_ij_gathered(iat)%has_dijhartree >=1) then
-         LIBPAW_ALLOCATE(paw_ij_gathered(iat)%dijhartree,(cplx_lmn2_size))
-         if (paw_ij_gathered(iat)%has_dijhartree==2) then
+     end if
+     if (paw_ij_gathered(iat)%has_dijhartree >=1) then
+       LIBPAW_ALLOCATE(paw_ij_gathered(iat)%dijhartree,(cplx_lmn2_size))
+       if (paw_ij_gathered(iat)%has_dijhartree==2) then
            paw_ij_gathered(iat)%dijhartree(:)=buf_dp_all(indx_dp:indx_dp+cplx_lmn2_size-1)
-           indx_dp=indx_dp+cplx_lmn2_size
-         end if
+         indx_dp=indx_dp+cplx_lmn2_size
        end if
-       if (paw_ij_gathered(iat)%has_dijhat >=1) then
-         LIBPAW_ALLOCATE(paw_ij_gathered(iat)%dijhat,(cplxdij_lmn2_size,ndij))
-         if (paw_ij_gathered(iat)%has_dijhat==2) then
+     end if
+     if (paw_ij_gathered(iat)%has_dijhat >=1) then
+       LIBPAW_ALLOCATE(paw_ij_gathered(iat)%dijhat,(cplxdij_lmn2_size,ndij))
+       if (paw_ij_gathered(iat)%has_dijhat==2) then
            paw_ij_gathered(iat)%dijhat(:,:)= &
-&            reshape(buf_dp_all(indx_dp:indx_dp+cplxdij_lmn2_size*ndij-1), &
-&                   (/cplxdij_lmn2_size,ndij/))
-           indx_dp=indx_dp+cplxdij_lmn2_size*ndij
-         end if
+&          reshape(buf_dp_all(indx_dp:indx_dp+cplxdij_lmn2_size*ndij-1), &
+&                  (/cplxdij_lmn2_size,ndij/))
+         indx_dp=indx_dp+cplxdij_lmn2_size*ndij
        end if
-       if (paw_ij_gathered(iat)%has_dijU >=1) then
-         LIBPAW_ALLOCATE(paw_ij_gathered(iat)%dijU,(cplxdij_lmn2_size,ndij))
-         if (paw_ij_gathered(iat)%has_dijU==2) then
+     end if
+     if (paw_ij_gathered(iat)%has_dijU >=1) then
+       LIBPAW_ALLOCATE(paw_ij_gathered(iat)%dijU,(cplxdij_lmn2_size,ndij))
+       if (paw_ij_gathered(iat)%has_dijU==2) then
            paw_ij_gathered(iat)%dijU(:,:)= &
-&            reshape(buf_dp_all(indx_dp:indx_dp+cplxdij_lmn2_size*ndij-1), &
-&                   (/cplxdij_lmn2_size,ndij/))
-           indx_dp=indx_dp+cplxdij_lmn2_size*ndij
-         end if
+&          reshape(buf_dp_all(indx_dp:indx_dp+cplxdij_lmn2_size*ndij-1), &
+&                  (/cplxdij_lmn2_size,ndij/))
+         indx_dp=indx_dp+cplxdij_lmn2_size*ndij
        end if
-       if (paw_ij_gathered(iat)%has_dijso >=1) then
-         LIBPAW_ALLOCATE(paw_ij_gathered(iat)%dijso,(cplxdij_lmn2_size,ndij))
-         if (paw_ij_gathered(iat)%has_dijso==2) then
+     end if
+     if (paw_ij_gathered(iat)%has_dijso >=1) then
+       LIBPAW_ALLOCATE(paw_ij_gathered(iat)%dijso,(cplxdij_lmn2_size,ndij))
+       if (paw_ij_gathered(iat)%has_dijso==2) then
            paw_ij_gathered(iat)%dijso(:,:)= &
-&            reshape(buf_dp_all(indx_dp:indx_dp+cplxdij_lmn2_size*ndij-1), &
-&                   (/cplxdij_lmn2_size,ndij/))
-           indx_dp=indx_dp+cplxdij_lmn2_size*ndij
-         end if
+&          reshape(buf_dp_all(indx_dp:indx_dp+cplxdij_lmn2_size*ndij-1), &
+&                  (/cplxdij_lmn2_size,ndij/))
+         indx_dp=indx_dp+cplxdij_lmn2_size*ndij
        end if
-       if (paw_ij_gathered(iat)%has_dijxc >=1) then
-         LIBPAW_ALLOCATE(paw_ij_gathered(iat)%dijxc,(cplxdij_lmn2_size,ndij))
-         if (paw_ij_gathered(iat)%has_dijxc==2) then
+     end if
+     if (paw_ij_gathered(iat)%has_dijxc >=1) then
+       LIBPAW_ALLOCATE(paw_ij_gathered(iat)%dijxc,(cplxdij_lmn2_size,ndij))
+       if (paw_ij_gathered(iat)%has_dijxc==2) then
            paw_ij_gathered(iat)%dijxc(:,:)= &
-&            reshape(buf_dp_all(indx_dp:indx_dp+cplxdij_lmn2_size*ndij-1), &
-&                   (/cplxdij_lmn2_size,ndij/))
-           indx_dp=indx_dp+cplxdij_lmn2_size*ndij
-         end if
+&          reshape(buf_dp_all(indx_dp:indx_dp+cplxdij_lmn2_size*ndij-1), &
+&                  (/cplxdij_lmn2_size,ndij/))
+         indx_dp=indx_dp+cplxdij_lmn2_size*ndij
        end if
-       if (paw_ij_gathered(iat)%has_dijxc_hat >=1) then
-         LIBPAW_ALLOCATE(paw_ij_gathered(iat)%dijxc_hat,(cplxdij_lmn2_size,ndij))
-         if (paw_ij_gathered(iat)%has_dijxc_hat==2) then
+     end if
+     if (paw_ij_gathered(iat)%has_dijxc_hat >=1) then
+       LIBPAW_ALLOCATE(paw_ij_gathered(iat)%dijxc_hat,(cplxdij_lmn2_size,ndij))
+       if (paw_ij_gathered(iat)%has_dijxc_hat==2) then
            paw_ij_gathered(iat)%dijxc_hat(:,:)= &
-&            reshape(buf_dp_all(indx_dp:indx_dp+cplxdij_lmn2_size*ndij-1), &
-&                   (/cplxdij_lmn2_size,ndij/))
-             indx_dp=indx_dp+cplxdij_lmn2_size*ndij
-         end if
+&          reshape(buf_dp_all(indx_dp:indx_dp+cplxdij_lmn2_size*ndij-1), &
+&                  (/cplxdij_lmn2_size,ndij/))
+         indx_dp=indx_dp+cplxdij_lmn2_size*ndij
        end if
-       if (paw_ij_gathered(iat)%has_dijxc_val >=1) then
-         LIBPAW_ALLOCATE(paw_ij_gathered(iat)%dijxc_val,(cplxdij_lmn2_size,ndij))
-         if (paw_ij_gathered(iat)%has_dijxc_val==2) then
+     end if
+     if (paw_ij_gathered(iat)%has_dijxc_val >=1) then
+       LIBPAW_ALLOCATE(paw_ij_gathered(iat)%dijxc_val,(cplxdij_lmn2_size,ndij))
+       if (paw_ij_gathered(iat)%has_dijxc_val==2) then
            paw_ij_gathered(iat)%dijxc_val(:,:)= &
-&            reshape(buf_dp_all(indx_dp:indx_dp+cplxdij_lmn2_size*ndij-1), &
-&                   (/cplxdij_lmn2_size,ndij/))
-           indx_dp=indx_dp+cplxdij_lmn2_size*ndij
-         end if
+&          reshape(buf_dp_all(indx_dp:indx_dp+cplxdij_lmn2_size*ndij-1), &
+&                  (/cplxdij_lmn2_size,ndij/))
+         indx_dp=indx_dp+cplxdij_lmn2_size*ndij
        end if
-      if (paw_ij_gathered(iat)%has_pawu_occ >=1) then
-        nocc=paw_ij_gathered(iat)%ndij
-        LIBPAW_ALLOCATE(paw_ij_gathered(iat)%nocctot,(nocc))
-        paw_ij_gathered(iat)%nocctot(1:nocc)=buf_dp_all(indx_dp:indx_dp+nocc-1)
-        indx_dp=indx_dp+nocc
-        nocc=nocc1*nocc2*nocc3*nocc4
-        LIBPAW_ALLOCATE(paw_ij_gathered(iat)%noccmmp,(nocc1,nocc2,nocc3,nocc4))
-        paw_ij_gathered(iat)%noccmmp(1:nocc1,1:nocc2,1:nocc3,1:nocc4)= &
-&         reshape(buf_dp_all(indx_dp:indx_dp+nocc-1),(/nocc1,nocc2,nocc3,nocc4/))
-        indx_dp=indx_dp+nocc
-      end if
-      if (paw_ij_gathered(iat)%has_exexch_pot >=1) then
-        sz1=buf_int_all(indx_int);indx_int=indx_int+1
-        sz2=buf_int_all(indx_int);indx_int=indx_int+1
-        sz3=buf_int_all(indx_int);indx_int=indx_int+1
-        LIBPAW_ALLOCATE(paw_ij_gathered(iat)%vpawx,(sz1,sz2,sz3))
-        if (paw_ij_gathered(iat)%has_exexch_pot == 2) then
-          paw_ij_gathered(iat)%vpawx(:,:,:)=&
-&           reshape(buf_dp_all(indx_dp:indx_dp+sz1*sz2*sz3-1),(/sz1,sz2,sz3/))
-          indx_dp=indx_dp+sz1*sz2*sz3
-        end if
-      end if
-    end do
-    if ((indx_int/=1+buf_int_size_all).or.(indx_dp /=1+buf_dp_size_all)) then
-      write(msg,*) 'Wrong buffer sizes: buf_int_size_all=',buf_int_size_all, &
-&       ' indx_int=',indx_int, ' buf_dp_size_all=',buf_dp_size_all,' indx_dp=',indx_dp
-      MSG_BUG(msg)
-    end if
-  end if
+     end if
+     if (paw_ij_gathered(iat)%has_pawu_occ >=1) then
+       nocc=paw_ij_gathered(iat)%ndij
+       LIBPAW_ALLOCATE(paw_ij_gathered(iat)%nocctot,(nocc))
+       paw_ij_gathered(iat)%nocctot(1:nocc)=buf_dp_all(indx_dp:indx_dp+nocc-1)
+       indx_dp=indx_dp+nocc
+       nocc=nocc1*nocc2*nocc3*nocc4
+       LIBPAW_ALLOCATE(paw_ij_gathered(iat)%noccmmp,(nocc1,nocc2,nocc3,nocc4))
+       paw_ij_gathered(iat)%noccmmp(1:nocc1,1:nocc2,1:nocc3,1:nocc4)= &
+&        reshape(buf_dp_all(indx_dp:indx_dp+nocc-1),(/nocc1,nocc2,nocc3,nocc4/))
+       indx_dp=indx_dp+nocc
+     end if
+     if (paw_ij_gathered(iat)%has_exexch_pot >=1) then
+       sz1=buf_int_all(indx_int);indx_int=indx_int+1
+       sz2=buf_int_all(indx_int);indx_int=indx_int+1
+       sz3=buf_int_all(indx_int);indx_int=indx_int+1
+       LIBPAW_ALLOCATE(paw_ij_gathered(iat)%vpawx,(sz1,sz2,sz3))
+       if (paw_ij_gathered(iat)%has_exexch_pot == 2) then
+           paw_ij_gathered(iat)%vpawx(:,:,:)=&
+&          reshape(buf_dp_all(indx_dp:indx_dp+sz1*sz2*sz3-1),(/sz1,sz2,sz3/))
+         indx_dp=indx_dp+sz1*sz2*sz3
+       end if
+     end if
+   end do
+   if ((indx_int/=1+buf_int_size_all).or.(indx_dp /=1+buf_dp_size_all)) then
+     write(msg,*) 'Wrong buffer sizes: buf_int_size_all=',buf_int_size_all, &
+&      ' indx_int=',indx_int, ' buf_dp_size_all=',buf_dp_size_all,' indx_dp=',indx_dp
+     MSG_BUG(msg)
+   end if
+ end if
 
 !Free memory
  call free_my_atmtab(my_atmtab,my_atmtab_allocated)
@@ -2089,7 +2123,7 @@ subroutine paw_ij_redistribute(paw_ij,mpi_comm_in,mpi_comm_out,&
  end if
 
 !Special sequential case
- if (mpi_comm_in==xmpi_self.and.mpi_comm_out==xmpi_self) then
+ if (mpi_comm_in==xpaw_mpi_comm_self.and.mpi_comm_out==xpaw_mpi_comm_self) then
    if ((.not.in_place).and.(my_natom_in>0)) then
      LIBPAW_DATATYPE_ALLOCATE(paw_ij_out,(my_natom_in))
      call paw_ij_nullify(paw_ij_out)
@@ -2102,7 +2136,8 @@ subroutine paw_ij_redistribute(paw_ij,mpi_comm_in,mpi_comm_out,&
  if (present(natom)) then
    natom_tot=natom
  else
-   call xmpi_sum(my_natom_in,natom_tot,mpi_comm_in,ierr)
+   natom_tot=my_natom_in
+   call xpaw_mpi_sum(natom_tot,mpi_comm_in,ierr)
  end if
 
 !Select input distribution
@@ -2172,11 +2207,11 @@ subroutine paw_ij_redistribute(paw_ij,mpi_comm_in,mpi_comm_out,&
       paw_ij_out1=>paw_ij_out
    end if
 
-   nproc_in=xcomm_size(mpi_comm_in)
-   nproc_out=xcomm_size(mpi_comm_out)
+   nproc_in=xpaw_mpi_comm_size(mpi_comm_in)
+   nproc_out=xpaw_mpi_comm_size(mpi_comm_out)
    if (nproc_in<=nproc_out) mpi_comm_exch=mpi_comm_out
    if (nproc_in>nproc_out) mpi_comm_exch=mpi_comm_in
-   me_exch=xcomm_rank(mpi_comm_exch)
+   me_exch=xpaw_mpi_comm_rank(mpi_comm_exch)
 
 
 !  Dimension put to the maximum to send
@@ -2244,13 +2279,13 @@ subroutine paw_ij_redistribute(paw_ij,mpi_comm_in,mpi_comm_out,&
            buf_dps=>tab_buf_dp(imsg_current)%value
            my_tag=200
            ireq=ireq+1
-           call xmpi_isend(buf_size,iproc_rcv,my_tag,mpi_comm_exch,request(ireq),ierr)
+           call xpaw_mpi_isend(buf_size,iproc_rcv,my_tag,mpi_comm_exch,request(ireq),ierr)
            my_tag=201
            ireq=ireq+1
-           call xmpi_isend(buf_ints,iproc_rcv,my_tag,mpi_comm_exch,request(ireq),ierr)
+           call xpaw_mpi_isend(buf_ints,iproc_rcv,my_tag,mpi_comm_exch,request(ireq),ierr)
            my_tag=202
            ireq=ireq+1
-           call xmpi_isend(buf_dps,iproc_rcv,my_tag,mpi_comm_exch,request(ireq),ierr)
+           call xpaw_mpi_isend(buf_dps,iproc_rcv,my_tag,mpi_comm_exch,request(ireq),ierr)
            nbsendreq=ireq
            nbsent=0
          end if
@@ -2284,21 +2319,21 @@ subroutine paw_ij_redistribute(paw_ij,mpi_comm_in,mpi_comm_out,&
          iproc_send=From(i1)
          flag=.false.
          my_tag=200
-         call xmpi_iprobe(iproc_send,my_tag,mpi_comm_exch,flag,ierr)
+         call xpaw_mpi_iprobe(iproc_send,my_tag,mpi_comm_exch,flag,ierr)
          if (flag) then
            msg_pick(i1)=.true.
-           call xmpi_irecv(buf_size,iproc_send,my_tag,mpi_comm_exch,request1(1),ierr)
-           call xmpi_wait(request1(1),ierr)
+           call xpaw_mpi_irecv(buf_size,iproc_send,my_tag,mpi_comm_exch,request1(1),ierr)
+           call xpaw_mpi_wait(request1(1),ierr)
            nb_int=buf_size(1)
            nb_dp=buf_size(2)
            npaw_ij_sent=buf_size(3)
            LIBPAW_ALLOCATE(buf_int1,(nb_int))
            LIBPAW_ALLOCATE(buf_dp1,(nb_dp))
            my_tag=201
-           call xmpi_irecv(buf_int1,iproc_send,my_tag,mpi_comm_exch,request1(2),ierr)
+           call xpaw_mpi_irecv(buf_int1,iproc_send,my_tag,mpi_comm_exch,request1(2),ierr)
            my_tag=202
-           call xmpi_irecv(buf_dp1,iproc_send,my_tag,mpi_comm_exch,request1(3),ierr)
-           call xmpi_waitall(request1(2:3),ierr)
+           call xpaw_mpi_irecv(buf_dp1,iproc_send,my_tag,mpi_comm_exch,request1(3),ierr)
+           call xpaw_mpi_waitall(request1(2:3),ierr)
            call paw_ij_isendreceive_getbuffer(paw_ij_out1,npaw_ij_sent,atm_indx_out,buf_int1,buf_dp1)
            nbmsg_incoming=nbmsg_incoming-1
            LIBPAW_DEALLOCATE(buf_int1)
@@ -2320,7 +2355,7 @@ subroutine paw_ij_redistribute(paw_ij,mpi_comm_in,mpi_comm_out,&
 
 !  Wait for deallocating arrays that all sending operations has been realized
    if (nbsendreq > 0) then
-     call xmpi_waitall(request(1:nbsendreq),ierr)
+     call xpaw_mpi_waitall(request(1:nbsendreq),ierr)
    end if
 
 !  Deallocate buffers
@@ -2360,7 +2395,7 @@ end subroutine paw_ij_redistribute
 !!  Paw_ij<type(paw_ij_type)>=paw_ij structure
 !!
 !! PARENTS
-!!      d2frnl_bec,nstpaw3,scfcv,scfcv3
+!!      d2frnl,nstpaw3,scfcv,scfcv3
 !!
 !! CHILDREN
 !!

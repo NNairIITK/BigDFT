@@ -44,7 +44,7 @@ subroutine abi_wrtout(unit,msg,mode_paral)
 
  use defs_basis
 
- use m_xmpi,      only : xmpi_world, xcomm_rank, xcomm_size
+ use m_xmpi, only : xmpi_world,xmpi_comm_rank,xmpi_comm_size
 
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
@@ -81,8 +81,8 @@ subroutine abi_wrtout(unit,msg,mode_paral)
  end if
 
 !Determine who I am in COMM_WORLD
- nproc = xcomm_size(comm)
- me    = xcomm_rank(comm)
+ nproc = xmpi_comm_size(comm)
+ me    = xmpi_comm_rank(comm)
 
  if( (my_mode_paral=='COLL') .or. (nproc==1) ) then
    if (me==master) then

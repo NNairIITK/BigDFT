@@ -201,7 +201,7 @@ subroutine xmpi_allgatherv_int1_dp1(buf_int,buf_int_size,buf_dp,buf_dp_size,&
 #if defined HAVE_MPI
  if (spaceComm/=MPI_COMM_SELF.and.spaceComm/=MPI_COMM_NULL) then
 
-   nproc=xcomm_size(spaceComm)
+   nproc=xmpi_comm_size(spaceComm)
 
 !First version: using 2 allgather (one for ints, another for reals)
 !------------------------------------------------------------------
@@ -661,7 +661,7 @@ subroutine xmpi_allgatherv_coeff2d(xval_in,xval_out,spaceComm,ierr)
 #if defined HAVE_MPI
  if (spaceComm /= MPI_COMM_NULL) then
 
-   nproc=xcomm_size(spaceComm)
+   nproc=xmpi_comm_size(spaceComm)
    nb = size(xval_in,1)
 
    if (spaceComm==MPI_COMM_SELF.or.nproc==1) then
@@ -806,101 +806,88 @@ subroutine xmpi_allgatherv_coeff2d_indx(xval_in,xval_out,spaceComm,indx,ierr)
 #endif
 !arrays
 #if defined HAVE_MPI
- integer, allocatable ::  buf_int(:),buf_int_all(:)
+ integer, allocatable :: buf_int(:),buf_int_all(:)
  integer, allocatable :: dimxval(:,:)
  real(dp),allocatable :: buf_dp(:),buf_dp_all(:)
 #endif
 
 ! *************************************************************************
 
- ierr=0
+ ierr=0 ; nb = size(xval_in,1)
+
 #if defined HAVE_MPI
- if (spaceComm /= MPI_COMM_NULL) then
-
-   nproc=xcomm_size(spaceComm)
-   nb = size(xval_in,1)
-
-   if (spaceComm==MPI_COMM_SELF.or.nproc==1) then
-     do ii=1,nb
-       n1=size(xval_in(ii)%value,1)
-       n2=size(xval_in(ii)%value,2)
-       if (allocated(xval_out(ii)%value)) then
-         ABI_DEALLOCATE(xval_out(ii)%value)
-       end if
-       ABI_ALLOCATE(xval_out(ii)%value,(n1,n2))
-       xval_out(ii)%value=xval_in(ii)%value
-     end do
-     return
-   end if
-
-   buf_dp_size=0
-   ABI_ALLOCATE(dimxval,(nb,2))
+ if (spaceComm == MPI_COMM_NULL) return
+ nproc=xmpi_comm_size(spaceComm)
+ if (spaceComm==MPI_COMM_SELF.or.nproc==1) then
+#endif
    do ii=1,nb
-     dimxval(ii,1)=size(xval_in(ii)%value,dim=1)
-     dimxval(ii,2)=size(xval_in(ii)%value,dim=2)
-     buf_dp_size=buf_dp_size+dimxval(ii,1)*dimxval(ii,2)
-   end do
-
-   buf_int_size=3*nb;
-   ABI_ALLOCATE(buf_int,(buf_int_size))
-   indx_int=1
-   do ii=1,nb
-     buf_int(indx_int  )=dimxval(ii,1)
-     buf_int(indx_int+1)=dimxval(ii,2)
-     buf_int(indx_int+2)=indx(ii)
-     indx_int=indx_int+3
-   end do
-
-   ABI_ALLOCATE(buf_dp,(buf_dp_size))
-   indx_dp=1
-   do ii=1,nb
-     n1=dimxval(ii,1); n2=dimxval(ii,2)
-     do i2=1,n2
-       buf_dp(indx_dp:indx_dp+n1-1)=xval_in(ii)%value(1:n1,i2)
-       indx_dp=indx_dp+n1
-     end do
-   end do
-
-   call xmpi_allgatherv(buf_int,buf_int_size,buf_dp,buf_dp_size,buf_int_all, &
-&   buf_int_size_all,buf_dp_all,buf_dp_size_all,spaceComm,ierr)
-
-   nb_out=buf_int_size_all/3
-
-   indx_int=1;indx_dp=1
-   do ii=1,nb_out
-     n1  =buf_int_all(indx_int)
-     n2  =buf_int_all(indx_int+1)
-     ival=buf_int_all(indx_int+2)
-     indx_int=indx_int+3
+     n1=size(xval_in(ii)%value,1)
+     n2=size(xval_in(ii)%value,2)
+     ival=indx(ii)
      if (allocated(xval_out(ival)%value)) then
        ABI_DEALLOCATE(xval_out(ival)%value)
      end if
      ABI_ALLOCATE(xval_out(ival)%value,(n1,n2))
-     do i2=1,n2
-       xval_out(ival)%value(1:n1,i2)=buf_dp_all(indx_dp:indx_dp+n1-1)
-       indx_dp=indx_dp+n1
-     end do
+     xval_out(ii)%value=xval_in(ival)%value
    end do
+   return
 
-   ABI_DEALLOCATE(buf_dp_all)
-   ABI_DEALLOCATE(buf_int_all)
-   ABI_DEALLOCATE(buf_int)
-   ABI_DEALLOCATE(buf_dp)
-   ABI_DEALLOCATE(dimxval)
-
+#if defined HAVE_MPI
  end if
 
-#else
- do ii=1,size(xval_in,1)
-   n1=size(xval_in(ii)%value,1)
-   n2=size(xval_in(ii)%value,2)
-   ival=indx(ii)
+ buf_dp_size=0
+ ABI_ALLOCATE(dimxval,(nb,2))
+ do ii=1,nb
+   dimxval(ii,1)=size(xval_in(ii)%value,dim=1)
+   dimxval(ii,2)=size(xval_in(ii)%value,dim=2)
+   buf_dp_size=buf_dp_size+dimxval(ii,1)*dimxval(ii,2)
+ end do
+
+ buf_int_size=3*nb
+ ABI_ALLOCATE(buf_int,(buf_int_size))
+ indx_int=1
+ do ii=1,nb
+   buf_int(indx_int  )=dimxval(ii,1)
+   buf_int(indx_int+1)=dimxval(ii,2)
+   buf_int(indx_int+2)=indx(ii)
+   indx_int=indx_int+3
+ end do
+
+ ABI_ALLOCATE(buf_dp,(buf_dp_size))
+ indx_dp=1
+ do ii=1,nb
+   n1=dimxval(ii,1); n2=dimxval(ii,2)
+   do i2=1,n2
+     buf_dp(indx_dp:indx_dp+n1-1)=xval_in(ii)%value(1:n1,i2)
+     indx_dp=indx_dp+n1
+   end do
+ end do
+
+ call xmpi_allgatherv(buf_int,buf_int_size,buf_dp,buf_dp_size,buf_int_all, &
+&   buf_int_size_all,buf_dp_all,buf_dp_size_all,spaceComm,ierr)
+
+ nb_out=buf_int_size_all/3
+ indx_int=1;indx_dp=1
+ do ii=1,nb_out
+   n1=buf_int_all(indx_int)
+   n2=buf_int_all(indx_int+1)
+   ival=buf_int_all(indx_int+2)
+   indx_int=indx_int+3
    if (allocated(xval_out(ival)%value)) then
      ABI_DEALLOCATE(xval_out(ival)%value)
    end if
    ABI_ALLOCATE(xval_out(ival)%value,(n1,n2))
-   xval_out(ii)%value=xval_in(ival)%value
+   do i2=1,n2
+     xval_out(ival)%value(1:n1,i2)=buf_dp_all(indx_dp:indx_dp+n1-1)
+     indx_dp=indx_dp+n1
+   end do
  end do
+
+ ABI_DEALLOCATE(buf_dp_all)
+ ABI_DEALLOCATE(buf_int_all)
+ ABI_DEALLOCATE(buf_int)
+ ABI_DEALLOCATE(buf_dp)
+ ABI_DEALLOCATE(dimxval)
 #endif
 
 end subroutine xmpi_allgatherv_coeff2d_indx

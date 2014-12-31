@@ -17,10 +17,12 @@
 !!
 !! SOURCE
 
+#include "libpaw.h"
+
 module m_libpaw_tools
     
  use defs_basis
- use m_xmpi, only : xmpi_world, xcomm_rank, xcomm_size, xmpi_abort, xmpi_sum
+ USE_MPI_WRAPPERS
 
  implicit none
 
@@ -99,12 +101,12 @@ subroutine libpaw_wrtout(unit,msg,mode_paral)
 
  my_mode_paral = "COLL"; if (PRESENT(mode_paral)) my_mode_paral = mode_paral
 
-!Communicator is xmpi_world by default
- comm=xmpi_world;if (abinit_comm_output/=-1) comm=abinit_comm_output
+!Communicator is xpaw_mpi_world by default
+ comm=xpaw_mpi_world;if (abinit_comm_output/=-1) comm=abinit_comm_output
 
 !Determine who I am in COMM
- nproc = xcomm_size(comm)
- me    = xcomm_rank(comm)
+ nproc = xpaw_mpi_comm_size(comm)
+ me    = xpaw_mpi_comm_rank(comm)
 
  if ((my_mode_paral=='COLL').or.(nproc==1)) then
    if (me==master) then
@@ -178,7 +180,7 @@ subroutine libpaw_wrtout_myproc(unit,msg,mpicomm)
 !In that case, no printing is done.
  if (present(mpicomm)) then
    buf(1)=iexit;buf(2)=ncomment;buf(3)=nwarning
-   call xmpi_sum(buf,mpicomm,ierr)
+   call xpaw_mpi_sum(buf,mpicomm,ierr)
    iexit=buf(1);ncomment=buf(2);nwarning=buf(3)
    if (iexit/=0) iexit=1
    return
@@ -416,9 +418,9 @@ subroutine libpaw_leave(mode_paral,exit_status)
  end if
 
  if (present(exit_status)) then
-   call xmpi_abort(exit_status=exit_status)
+   call xpaw_mpi_abort(exit_status=exit_status)
  else
-   call xmpi_abort()
+   call xpaw_mpi_abort()
  end if
 
 end subroutine libpaw_leave
@@ -473,7 +475,7 @@ subroutine libpaw_die(message,file,line)
  if (PRESENT(line)) f90line=line
  if (PRESENT(file)) f90name= libpaw_basename(file)
 
- rank=xcomm_rank(xmpi_world) !Determine my rank inside MPI_COMM_WORLD
+ rank=xpaw_mpi_comm_rank(xpaw_mpi_world) !Determine my rank inside MPI_COMM_WORLD
 
  write(lnum,"(i0)") f90line
  write(strank,"(i0)") rank

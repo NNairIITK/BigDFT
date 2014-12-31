@@ -19,8 +19,6 @@
 !!     written once only or
 !!   'PERS' if the procs are calling the routine with different mesgs
 !!     each to be written, or if one proc is calling the routine
-!!  print_config=(optional, default=true)
-!!       if true print out several informations before leaving
 !!
 !! OUTPUT
 !!  (only writing, then stop)
@@ -37,7 +35,7 @@
 #include "abi_common.h"
 
 
-subroutine abi_leave_new(mode_paral,exit_status,print_config)
+subroutine abi_leave_new(mode_paral,exit_status)
 
  use defs_basis
  use m_xmpi
@@ -56,10 +54,8 @@ subroutine abi_leave_new(mode_paral,exit_status,print_config)
 !Arguments ------------------------------------
  character(len=4),intent(in) :: mode_paral
  integer,intent(in),optional :: exit_status
- logical,intent(in),optional :: print_config
 
 !Local variables-------------------------------
- logical :: print_config_
  !character(len=500) :: msg
 
 ! **********************************************************************
@@ -69,14 +65,6 @@ subroutine abi_leave_new(mode_paral,exit_status,print_config)
 ! Caveat: Do not use MPI collective calls!
  if (mode_paral == "COLL") then
    call abi_wrtout(std_out,"Why are you using COLL? Are you sure that ALL the processors are calling abi_leave_new?")
- end if
-
-!Dump configuration before exiting
- print_config_=.true.; if (present(print_config)) print_config_=print_config
- if (print_config_) then
-   call print_kinds()
-   call xmpi_show_info()
-   !call dump_config(std_out)
  end if
 
  if (present(exit_status)) then

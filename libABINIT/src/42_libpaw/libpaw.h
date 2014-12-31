@@ -40,6 +40,8 @@
 #define USE_MSG_HANDLING use m_errors, only : msg_hndl
 /* Other macros already defined in abi_common.h */
 
+/* MPI wrappers */
+#define USE_MPI_WRAPPERS use m_xmpi
 
 /* =============================
  * ========= BIGDFT ============
@@ -60,6 +62,9 @@
 #define MSG_ERROR(msg)   call libpaw_msg_hndl(msg,"ERROR"  ,"PERS",__FILE__,__LINE__)
 #define MSG_BUG(msg)     call libpaw_msg_hndl(msg,"BUG"    ,"PERS",__FILE__,__LINE__)
 
+/* MPI wrappers */
+#define USE_MPI_WRAPPERS use m_libpaw_mpi
+
 
 /* =============================
  * ========= DEFAULT ===========
@@ -79,6 +84,9 @@
 #define MSG_WARNING(msg) call libpaw_msg_hndl(msg,"WARNING","PERS")
 #define MSG_ERROR(msg)   call libpaw_msg_hndl(msg,"ERROR"  ,"PERS")
 #define MSG_BUG(msg)     call libpaw_msg_hndl(msg,"BUG"    ,"PERS")
+
+/* MPI wrappers */
+#define USE_MPI_WRAPPERS use m_libpaw_mpi
 
 
 /* =============================

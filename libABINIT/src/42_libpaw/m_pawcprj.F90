@@ -27,8 +27,8 @@
 module m_pawcprj
 
  use defs_basis
- use m_xmpi
  USE_MSG_HANDLING
+ USE_MPI_WRAPPERS
  USE_MEMORY_PROFILING
 
  use m_pawtab, only : pawtab_type
@@ -119,7 +119,7 @@ CONTAINS
 !! PARENTS
 !!      accrho3,berryphase_new,calc_optical_mels,calc_sigc_me,calc_sigx_me
 !!      calc_vhxc_me,calc_wf_qp,cchi0,cchi0q0,cchi0q0_intraband,cgwf,cgwf3
-!!      chebfi,classify_bands,cohsex_me,ctocprj,d2frnl,d2frnl_bec,datafordmft
+!!      chebfi,classify_bands,cohsex_me,ctocprj,d2frnl,datafordmft
 !!      debug_tools,energy,exc_build_block,exc_build_ham,exc_plot,extrapwf
 !!      fock_updatecwaveocc,getgh1c,getghc,getgsc,initberry,initorbmag
 !!      ks_ddiago,loper3,m_electronpositron,m_fock,m_invovl,m_pawcprj
@@ -131,7 +131,7 @@ CONTAINS
 !!      wvl_hpsitopsi
 !!
 !! CHILDREN
-!!      xmpi_sum
+!!      xpaw_mpi_sum
 !!
 !! SOURCE
 
@@ -204,7 +204,7 @@ end subroutine pawcprj_alloc
 !! PARENTS
 !!      accrho3,berryphase_new,calc_optical_mels,calc_sigc_me,calc_sigx_me
 !!      calc_vhxc_me,calc_wf_qp,cchi0,cchi0q0,cchi0q0_intraband,cgwf,cgwf3
-!!      chebfi,classify_bands,cohsex_me,ctocprj,d2frnl,d2frnl_bec,datafordmft
+!!      chebfi,classify_bands,cohsex_me,ctocprj,d2frnl,datafordmft
 !!      debug_tools,energy,exc_build_block,exc_build_ham,exc_plot,extrapwf
 !!      fock_updatecwaveocc,getgh1c,getghc,getgsc,ks_ddiago,loper3,m_bfield
 !!      m_efield,m_electronpositron,m_fock,m_invovl,m_pawcprj,m_plowannier
@@ -215,7 +215,7 @@ end subroutine pawcprj_alloc
 !!      update_orbmag,vtorho,vtowfk,vtowfk3,wfd_pawrhoij,wfd_vnlpsi,wfkfermi3
 !!
 !! CHILDREN
-!!      xmpi_sum
+!!      xpaw_mpi_sum
 !!
 !! SOURCE
 
@@ -274,7 +274,7 @@ end subroutine pawcprj_free
 !!      cgwf3,ctocprj,fock_updatecwaveocc
 !!
 !! CHILDREN
-!!      xmpi_sum
+!!      xpaw_mpi_sum
 !!
 !! SOURCE
 
@@ -336,13 +336,13 @@ end subroutine pawcprj_set_zero
 !!
 !! PARENTS
 !!      berryphase_new,calc_sigc_me,calc_sigx_me,cchi0q0,cchi0q0_intraband,cgwf
-!!      chebfi,classify_bands,cohsex_me,corrmetalwf1,d2frnl,d2frnl_bec,extrapwf
+!!      chebfi,classify_bands,cohsex_me,corrmetalwf1,d2frnl,extrapwf
 !!      fock_updatecwaveocc,getgh1c,getgsc,loper3,m_electronpositron,m_pawcprj
 !!      m_wfs,make_grad_berry,nstpaw3,outkss,paw_symcprj,posdoppler
 !!      prep_calc_ucrpa,setup_positron,update_orbmag,wfkfermi3
 !!
 !! CHILDREN
-!!      xmpi_sum
+!!      xpaw_mpi_sum
 !!
 !! SOURCE
 
@@ -458,7 +458,7 @@ end subroutine pawcprj_copy
 !!      cgwf3,chebfi,getdc1,m_invovl,wfkfermi3
 !!
 !! CHILDREN
-!!      xmpi_sum
+!!      xpaw_mpi_sum
 !!
 !! SOURCE
 
@@ -587,7 +587,7 @@ end subroutine pawcprj_axpby
 !!      corrmetalwf1,extrapwf
 !!
 !! CHILDREN
-!!      xmpi_sum
+!!      xpaw_mpi_sum
 !!
 !! SOURCE
 
@@ -816,7 +816,7 @@ end subroutine pawcprj_conjg
 !!      extrapwf,getdc1
 !!
 !! CHILDREN
-!!      xmpi_sum
+!!      xpaw_mpi_sum
 !!
 !! SOURCE
 
@@ -924,7 +924,7 @@ end subroutine pawcprj_lincom
 !! PARENTS
 !!
 !! CHILDREN
-!!      xmpi_sum
+!!      xpaw_mpi_sum
 !!
 !! SOURCE
 
@@ -1019,7 +1019,7 @@ end subroutine pawcprj_output
 !!      wfkfermi3
 !!
 !! CHILDREN
-!!      xmpi_sum
+!!      xpaw_mpi_sum
 !!
 !! SOURCE
 
@@ -1076,7 +1076,7 @@ end subroutine pawcprj_output
      msg='mpicomm must be present when proc_distrb is present (pawcprj_get)!'
      MSG_BUG(msg)
    end if
-   me=xcomm_rank(mpicomm)
+   me=xpaw_mpi_comm_rank(mpicomm)
  end if
 
  if (mkmem==0) then
@@ -1253,7 +1253,7 @@ end subroutine pawcprj_get
 !!      berryphase_new,cgwf,ctocprj,extrapwf,store_bfield_cprj,vtowfk,vtowfk3
 !!
 !! CHILDREN
-!!      xmpi_sum
+!!      xpaw_mpi_sum
 !!
 !! SOURCE
 
@@ -1296,14 +1296,14 @@ end subroutine pawcprj_get
  to_be_gathered_=.false.;if (present(to_be_gathered)) to_be_gathered_=to_be_gathered
 
 !MPI data
- nproc_band=1;if (present(mpi_comm_band)) nproc_band=xcomm_size(mpi_comm_band)
+ nproc_band=1;if (present(mpi_comm_band)) nproc_band=xpaw_mpi_comm_size(mpi_comm_band)
  has_distrb=present(proc_distrb)
  if (has_distrb) then
    if (.not.present(mpicomm)) then
      msg='mpicomm must be present when proc_distrb is present (pawcprj_put)!'
      MSG_BUG(msg)
    end if
-   me=xcomm_rank(mpicomm)
+   me=xpaw_mpi_comm_rank(mpicomm)
  end if
 
  if (nproc_band==1.or.(.not.to_be_gathered_)) then
@@ -1404,7 +1404,7 @@ end subroutine pawcprj_get
          end if
        end do !iatom
      end do !ispinor
-     call xmpi_allgather(buffer1,lmndim,buffer2,mpi_comm_band,ierr)
+     call xpaw_mpi_allgather(buffer1,lmndim,buffer2,mpi_comm_band,ierr)
      jj=1
      do ii=1,nproc_band
        do ispinor=1,nspinor
@@ -1464,7 +1464,7 @@ end subroutine pawcprj_put
 !!      ks_ddiago,scfcv
 !!
 !! CHILDREN
-!!      xmpi_sum
+!!      xpaw_mpi_sum
 !!
 !! SOURCE
 
@@ -1573,7 +1573,7 @@ end subroutine pawcprj_reorder
 !!      outkss
 !!
 !! CHILDREN
-!!      xmpi_sum
+!!      xpaw_mpi_sum
 !!
 !! SOURCE
 
@@ -1617,7 +1617,7 @@ subroutine pawcprj_mpi_exch(natom,n2dim,nlmn,ncpgr,Cprj_send,Cprj_recv,sender,re
    return
  end if
 
- rank = xcomm_rank(spaceComm)
+ rank = xpaw_mpi_comm_rank(spaceComm)
 
  nn=size(nlmn,dim=1)
  if (rank==sender) then
@@ -1657,9 +1657,9 @@ subroutine pawcprj_mpi_exch(natom,n2dim,nlmn,ncpgr,Cprj_send,Cprj_recv,sender,re
  end if
 
 !=== Transmit data ===
- call xmpi_exch(buffer_cp,2*ntotcp,sender,buffer_cp,receiver,spaceComm,ierr)
+ call xpaw_mpi_exch(buffer_cp,2*ntotcp,sender,buffer_cp,receiver,spaceComm,ierr)
  if (ncpgr/=0) then
-   call xmpi_exch(buffer_cpgr,2*ncpgr*ntotcp,sender,buffer_cpgr,receiver,spaceComm,ierr)
+   call xpaw_mpi_exch(buffer_cpgr,2*ncpgr*ntotcp,sender,buffer_cpgr,receiver,spaceComm,ierr)
  end if
 
 !=== UnPack buffers into Cprj_recv ===
@@ -1712,7 +1712,7 @@ end subroutine pawcprj_mpi_exch
 !!      berryphase_new,posdoppler
 !!
 !! CHILDREN
-!!      xmpi_sum
+!!      xpaw_mpi_sum
 !!
 !! SOURCE
 
@@ -1789,10 +1789,10 @@ subroutine pawcprj_mpi_send(natom,n2dim,nlmn,ncpgr,cprj_out,receiver,spaceComm,i
 
 !=== Transmit data ===
  tag = 2*ntotcp
- call xmpi_send(buffer_cp,receiver,tag,spaceComm,ierr)
+ call xpaw_mpi_send(buffer_cp,receiver,tag,spaceComm,ierr)
  if (ncpgr/=0) then
    tag=tag*ncpgr
-   call xmpi_send(buffer_cpgr,receiver,tag,spaceComm,ierr)
+   call xpaw_mpi_send(buffer_cpgr,receiver,tag,spaceComm,ierr)
  end if
 
 !=== Clean up ===
@@ -1833,7 +1833,7 @@ end subroutine pawcprj_mpi_send
 !!      berryphase_new,posdoppler
 !!
 !! CHILDREN
-!!      xmpi_sum
+!!      xpaw_mpi_sum
 !!
 !! SOURCE
 
@@ -1899,10 +1899,10 @@ subroutine pawcprj_mpi_recv(natom,n2dim,nlmn,ncpgr,cprj_in,sender,spaceComm,ierr
 
 !=== Receive data ===
  tag = 2*ntotcp
- call xmpi_recv(buffer_cp,sender,tag,spaceComm,ierr)
+ call xpaw_mpi_recv(buffer_cp,sender,tag,spaceComm,ierr)
  if (ncpgr/=0) then
    tag=tag*ncpgr
-   call xmpi_recv(buffer_cpgr,sender,tag,spaceComm,ierr)
+   call xpaw_mpi_recv(buffer_cpgr,sender,tag,spaceComm,ierr)
  end if
 
 !=== UnPack buffers into cprj_in ===
@@ -1944,7 +1944,7 @@ end subroutine pawcprj_mpi_recv
 !! PARENTS
 !!
 !! CHILDREN
-!!      xmpi_sum
+!!      xpaw_mpi_sum
 !!
 !! SOURCE
 
@@ -1974,7 +1974,7 @@ subroutine pawcprj_mpi_sum(cprj,spaceComm,ierr)
 
 ! *************************************************************************
 
- if (xcomm_size(spaceComm)<2) return
+ if (xpaw_mpi_comm_size(spaceComm)<2) return
 
  n1dim=size(cprj,1);n2dim=size(cprj,2)
  nlmn=sum(cprj(:,:)%nlmn)
@@ -1991,7 +1991,7 @@ subroutine pawcprj_mpi_sum(cprj,spaceComm,ierr)
    end do
  end do
 
- call xmpi_sum(buffer_cprj,spaceComm,ierr)
+ call xpaw_mpi_sum(buffer_cprj,spaceComm,ierr)
 
  ipck=0
  do jj=1,n2dim
@@ -2038,7 +2038,7 @@ end subroutine pawcprj_mpi_sum
 !!      suscep_stat
 !!
 !! CHILDREN
-!!      xmpi_sum
+!!      xpaw_mpi_sum
 !!
 !! SOURCE
 
@@ -2122,7 +2122,7 @@ subroutine pawcprj_mpi_allgather(cprj_loc,cprj_gat,natom,n2dim,nlmn,ncpgr,nproc,
  end do
 
 !=== allgather data ===
- call xmpi_allgather(buffer_cpgr,2*(ncpgr+1)*ntotcp,buffer_cpgr_all,spaceComm,ierr)
+ call xpaw_mpi_allgather(buffer_cpgr,2*(ncpgr+1)*ntotcp,buffer_cpgr_all,spaceComm,ierr)
 
 !=== unpack gathered data into cprj(natom,n2dim*nproc)
 !=== second dimension is rank-ordered if rank_ordered_=true
@@ -2177,7 +2177,7 @@ end subroutine pawcprj_mpi_allgather
 !!      fock_updatecwaveocc,posdoppler
 !!
 !! CHILDREN
-!!      xmpi_sum
+!!      xpaw_mpi_sum
 !!
 !! SOURCE
 
@@ -2211,10 +2211,10 @@ subroutine pawcprj_bcast(Cprj,natom,n2dim,nlmn,ncpgr,master,spaceComm,ierr)
 ! *************************************************************************
 
  ierr=0
- nprocs = xcomm_size(spaceComm)
+ nprocs = xpaw_mpi_comm_size(spaceComm)
  if (nprocs==1) return
 
- rank = xcomm_rank(spaceComm)
+ rank = xpaw_mpi_comm_rank(spaceComm)
 
  nn=size(nlmn,dim=1)
  n1dim=size(Cprj,dim=1)
@@ -2245,9 +2245,9 @@ subroutine pawcprj_bcast(Cprj,natom,n2dim,nlmn,ncpgr,master,spaceComm,ierr)
  end if
 
 !=== Transmit data ===
- call xmpi_bcast(buffer_cp,master,spaceComm,ierr)
+ call xpaw_mpi_bcast(buffer_cp,master,spaceComm,ierr)
  if (ncpgr/=0) then
-   call xmpi_bcast(buffer_cpgr,master,spaceComm,ierr)
+   call xpaw_mpi_bcast(buffer_cpgr,master,spaceComm,ierr)
  end if
 
 !=== UnPack the received buffer ===
@@ -2305,7 +2305,7 @@ end subroutine pawcprj_bcast
 !! PARENTS
 !!
 !! CHILDREN
-!!      xmpi_sum
+!!      xpaw_mpi_sum
 !!
 !! SOURCE
 
@@ -2344,8 +2344,8 @@ end subroutine pawcprj_bcast
 ! *************************************************************************
 
 !MPI data
- me = xcomm_rank(spaceComm)
- np = xcomm_size(spaceComm)
+ me = xpaw_mpi_comm_rank(spaceComm)
+ np = xpaw_mpi_comm_size(spaceComm)
 
 !Nothing to do if nprocs=1
  if (np==1) then
@@ -2385,7 +2385,7 @@ end subroutine pawcprj_bcast
      iatom=(iblock_atom-1)*np+1+me
      if (iatom<=natom) cprjsz_atom(iatom)=2*cprjin(iblock_atom,1)%nlmn*(1+cprjin(iblock_atom,1)%ncpgr)
    end do
-   call xmpi_sum(cprjsz_atom,spaceComm,ierr)
+   call xpaw_mpi_sum(cprjsz_atom,spaceComm,ierr)
  end if
  do iblock_atom=1,nba
    iashft=(iblock_atom-1)*np
@@ -2484,7 +2484,7 @@ end subroutine pawcprj_bcast
      end if
 
 !    Main call to MPI_ALLTOALL
-     call xmpi_alltoallv(sbuf,scount,sdispl,rbuf,rcount,rdispl,spaceComm,ierr)
+     call xpaw_mpi_alltoallv(sbuf,scount,sdispl,rbuf,rcount,rdispl,spaceComm,ierr)
 
 !    Retrieving of output cprj for received buffer
      buf_indx=0
@@ -2563,7 +2563,7 @@ end subroutine pawcprj_bcast
 !!      energy,pawmkrhoij
 !!
 !! CHILDREN
-!!      xmpi_sum
+!!      xpaw_mpi_sum
 !!
 !! SOURCE
  subroutine pawcprj_gather_spin(cprj,cprj_gat,natom,n2size,nspinor,nspinortot,&
@@ -2632,7 +2632,7 @@ end subroutine pawcprj_bcast
    end do
  end do
 
- call xmpi_allgather(buffer1,lmndim,buffer2,spaceComm_spin,ierr)
+ call xpaw_mpi_allgather(buffer1,lmndim,buffer2,spaceComm_spin,ierr)
 
  jj=1
  do ispinor=1,nspinortot
@@ -2691,7 +2691,7 @@ end subroutine pawcprj_bcast
 !!      mlwfovlp_qp,outkss,respfn,scfcv,smatrix_pawinit
 !!
 !! CHILDREN
-!!      xmpi_sum
+!!      xpaw_mpi_sum
 !!
 !! SOURCE
 
@@ -2766,7 +2766,7 @@ end subroutine pawcprj_getdim
 !! PARENTS
 !!
 !! CHILDREN
-!!  xmpi_sum
+!!  xpaw_mpi_sum
 !!
 !! SOURCE
 
@@ -2839,7 +2839,7 @@ function paw_overlap(cprj1,cprj2,typat,pawtab,spinor_comm) result(onsite)
  end do
 
  if (present(spinor_comm)) then
-   call xmpi_sum(onsite,spinor_comm,isp)
+   call xpaw_mpi_sum(onsite,spinor_comm,isp)
  end if
 
 end function paw_overlap
