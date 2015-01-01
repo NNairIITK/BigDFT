@@ -206,8 +206,6 @@ subroutine write_jobs(mhgpsst,runObj,cobj)
                     if(trim(adjustl(mhgpsst%joblist(1,ijob)(10:16)))/='restart')then
                     write(u,'(a,1x,a)')trim(adjustl(mhgpsst%joblist(1,ijob)(10:))),&
                                        trim(adjustl(mhgpsst%joblist(2,ijob)(10:)))
-                    write(*,'(a,1x,a)')trim(adjustl(mhgpsst%joblist(1,ijob)(10:))),&
-                                       trim(adjustl(mhgpsst%joblist(2,ijob)(10:)))
                     endif
                 enddo
             endif

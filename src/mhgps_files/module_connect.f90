@@ -565,6 +565,8 @@ connectloop: do while(cobj%ntodo>=1)
         connected=.false.
         exit connectloop
     endif
+    !following if must be AFTER check for
+    !mhgpsst%nsad>=uinp%nsadmax
     if(iloop>1 .and. uinp%singlestep)then
         premature_exit=.true.
         exit connectloop
@@ -592,7 +594,7 @@ connectloop: do while(cobj%ntodo>=1)
         if(mhgpsst%iproc==0)call yaml_warning('(MHGPS) connect: '//&
                     'minima are identical. Will NOT attempt to find '//&
                     'an intermediate TS.')
-        connected=.true.
+!        connected=.true.
         cobj%ntodo=cobj%ntodo-1
         cycle
     endif
@@ -603,7 +605,7 @@ connectloop: do while(cobj%ntodo>=1)
     if(previously_connected(mhgpsst,uinp,runObj,cobj%rxyz1,cobj%rxyz2))then
         if(mhgpsst%iproc==0)call yaml_comment('(MHGPS) connect: '//&
                     'Minima previously connected. Will not connect again.')
-        connected=.true.
+!        connected=.true.
         cobj%ntodo=cobj%ntodo-1
         cycle
     endif
@@ -669,7 +671,7 @@ connectloop: do while(cobj%ntodo>=1)
          runObj%atoms%astruct%cell_dim,bigdft_get_geocode(runObj),&
          rcov,cobj%saddle(1,1,mhgpsst%nsad),cobj%fpsad(1,mhgpsst%nsad))
 
-    if(mhgpsst%nsad>1)then
+    if(mhgpsst%nsad>1 .and. (.not. uinp%singlestep))then
         if(equal(mhgpsst%iproc,'(MHGPS)','SS',mhgpsst%nid,uinp%en_delta_sad,&
           uinp%fp_delta_sad,cobj%enersad(mhgpsst%nsad-1),cobj%enersad(mhgpsst%nsad),&
           cobj%fpsad(1,mhgpsst%nsad-1),cobj%fpsad(1,mhgpsst%nsad)))then
@@ -906,7 +908,7 @@ connectloop: do while(cobj%ntodo>=1)
 
     if((lnl .and. rnr) .or. (lnr .and. rnl))then!connection done
 if(mhgpsst%iproc==0)write(*,'(a,es24.17,1x,es24.17)')'(MHGPS) connection check connected',cobj%enerleft(mhgpsst%nsad),cobj%enerright(mhgpsst%nsad)
-        connected=.true.
+!        connected=.true.
 !        return
 cycle
     elseif(lnl .and. (.not. rnr))then
@@ -1041,23 +1043,29 @@ cycle
     endif
 enddo connectloop
 nsad=mhgpsst%nsad
-!if(.not. premature_exit .and. (nsad>=uinp%nsadmax))then
-!    mhgpsst%nsad=0
-!endif
+if(cobj%ntodo<=0)then
+    connected=.true.
+endif
+if(.not. premature_exit)then
 if(connected)then
+!only write if connection really connected
+!(that is, no premature exit)
 !if connected, the write_restart inside the connectloop
 !has not been callled a last time.
 !Therefore, it has to be done here.
+if(cobj%ntodo>=1) stop 'bastian'
     if(mhgpsst%iproc==0)then
         call write_restart(mhgpsst,runObj,cobj)
+!        call write_restart(mhgpsst,runObj)
     endif
-else if(.not. premature_exit)then
+else
 !only write if connection really failed
 !(that is, no premature exit)
     call write_todoList(uinp,mhgpsst,runObj,cobj)
     if(mhgpsst%iproc==0)then
         call write_restart(mhgpsst,runObj)
     endif
+endif
 endif
 
 
