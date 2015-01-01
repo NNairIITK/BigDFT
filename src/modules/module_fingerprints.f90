@@ -39,13 +39,15 @@ subroutine fingerprint(nat,nid,alat,geocode,rcov,rxyz,fp)
     real(gp),intent(out)         :: fp(nid)
     !internal
     integer  :: info
+    integer  :: lwork
     integer  :: i1,i2,i3, n1, n2, n3  
     integer  :: igto,jgto, iat, jat
     real(gp) :: tau(3)
     real(gp) :: cutoff, d2, r
     real(gp) :: sji, xi,yi,zi, xji, yji, zji, tt 
     real(gp), parameter :: sqrt8=sqrt(8.0_gp)
-    real(gp), allocatable, dimension(:,:) :: om,workf
+    real(gp), allocatable, dimension(:,:) :: om
+    real(gp), allocatable, dimension(:) :: workf
 
     ! WARNING! check convergence to ensure that the folloing
     !cutoff is large enough
@@ -76,7 +78,6 @@ subroutine fingerprint(nat,nid,alat,geocode,rcov,rxyz,fp)
     stop ' nid should be either nat or  4*nat '
 
     om = f_malloc((/nid,nid/),id='om')
-    workf =  f_malloc((/nid,nid/),id='workf')
     om(:,:)=0.0_gp
 
     do i1=-n1,n1
@@ -201,9 +202,17 @@ subroutine fingerprint(nat,nid,alat,geocode,rcov,rxyz,fp)
             enddo  ! i3 
         enddo  ! i2
     enddo  ! i1
-    endif  ! both s and p 
+    endif  ! both s and p
+ 
+    lwork=max(1,3*nid-1)
+    workf =  f_malloc((/lwork/),id='workf')
+    call DSYEV('N','L',nid,om,nid,fp,workf,-1,info)
+    if (info.ne.0) stop 'info query'
+    lwork=nint(workf(1))
+    call f_free(workf)
 
-    call DSYEV('N','L',nid,om,nid,fp,workf,nid**2,info)
+    workf =  f_malloc((/lwork/),id='workf')
+    call DSYEV('N','L',nid,om,nid,fp,workf,lwork,info)
     if (info.ne.0) stop 'info'
 
     call f_free(om)

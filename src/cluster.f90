@@ -1297,7 +1297,7 @@ contains
     if (in%inguess_geopt/=1) then
         call deallocate_bounds(KSwfn%Lzd%Glr%geocode,KSwfn%Lzd%Glr%hybrid_on,&
              KSwfn%Lzd%Glr%bounds)
-    end if
+     end if
     call deallocate_Lzd_except_Glr(KSwfn%Lzd)
 
 !    i_all=-product(shape(KSwfn%Lzd%Glr%projflg))*kind(KSwfn%Lzd%Glr%projflg)

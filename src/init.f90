@@ -2974,12 +2974,11 @@ subroutine input_wf_memory_new(nproc, iproc, atoms, &
               jacdet = s1d1*s2d2*s3d3 + s1d2*s2d3*s3d1 + s1d3*s2d1*s3d2 - s1d3*s2d2*s3d1-s1d2*s2d1*s3d3 - s1d1*s2d3*s3d2&
                         &  + s1d1 + s2d2 + s3d3 +s1d1*s2d2+s3d3*s1d1+s3d3*s2d2 - s1d2*s2d1 - s3d2*s2d3 - s3d1*s1d3
 
-              shift(i1+iy+iz,1) = real(s1_new,kind=4) +  shift(i1+iy+iz,1)  
-              shift(i1+iy+iz,2) = real(s2_new,kind=4) +  shift(i1+iy+iz,2)  
-              shift(i1+iy+iz,3) = real(s3_new,kind=4) +  shift(i1+iy+iz,3)  
-              shift(i1+iy+iz,4) = real(expfct,kind=4) +  shift(i1+iy+iz,4)  
-              shift(i1+iy+iz,5) = real(jacdet,kind=4) +  shift(i1+iy+iz,5)  
-
+              shift(i1+iy+iz,1) = simple(s1_new) +  shift(i1+iy+iz,1)  
+              shift(i1+iy+iz,2) = simple(s2_new) +  shift(i1+iy+iz,2)  
+              shift(i1+iy+iz,3) = simple(s3_new) +  shift(i1+iy+iz,3)  
+              shift(i1+iy+iz,4) = simple(expfct) +  shift(i1+iy+iz,4)
+              shift(i1+iy+iz,5) = simple(jacdet) +  shift(i1+iy+iz,5)  
            end do     
         end do
       end do
@@ -3096,12 +3095,29 @@ subroutine input_wf_memory_new(nproc, iproc, atoms, &
 
 contains
 
-  real(wp) function ex(x,m)
+  pure real(wp) function ex(x,m)
      implicit none
      real(wp),intent(in) :: x,m
 
      ex = (1.0 - x/m)**m
 
   end function ex
+
+  !> conversion avoiding floating-point exception
+  pure function simple(double)
+    implicit none
+    real(wp), intent(in) :: double
+    real :: simple
+
+    if (kind(double) == kind(simple)) then
+       simple=double
+    else if (double < real(tiny(1.e0),wp)) then
+       simple=0.e0
+    else if (double > real(huge(1.e0),wp)) then
+       simple=huge(1.e0)
+    else
+       simple=real(double)
+    end if
+  end function simple
 
 END SUBROUTINE input_wf_memory_new

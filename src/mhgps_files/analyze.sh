@@ -23,5 +23,5 @@ grep "(MHGPS) succesfully connected, intermediate transition states" $file  | aw
 echo "Number of successfully connected input minima pairs: "
 grep "succesfully connected" $file | wc -l
 
-echo "Number of failed connections of input minima pairs:: "
+echo "Number of failed connections of input minima pairs: "
 grep establish $file | wc -l
