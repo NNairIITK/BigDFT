@@ -67,6 +67,7 @@ program MINHOP
   !type(dictionary), pointer :: user_inputs
   type(dictionary), pointer :: options,run
   integer:: nposacc=0
+  integer:: nposaccmax
   logical:: disable_hatrans
   integer, save :: idum=0
   real(kind=4) :: builtin_rand, rtmp
@@ -187,6 +188,11 @@ program MINHOP
   if(bigdft_mpi%iproc == 0)call yaml_map('(MH) First random number',rtmp)
 
   inquire(file='disable_hatrans',exist=disable_hatrans)
+  if(disable_hatrans)then
+    open(unit=137,file='disable_hatrans')
+        read(137,*)nposaccmax
+    close(137)
+  endif
   
   ! open output files
   if (bigdft_mpi%iproc==0) then 
@@ -510,6 +516,7 @@ program MINHOP
 
   !for runs over the queing system with short run times quit after 1 accepted minimum
   if (accepted .ge. 1 .and. singlestep) exit hopping_loop
+  if (disable_hatrans .and. nposacc >= nposaccmax) exit hopping_loop
 
 5555 continue
 
