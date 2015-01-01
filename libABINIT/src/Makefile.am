@@ -15,25 +15,6 @@ EXTRA_DIST = \
 	72_geomoptim/others.F90 \
 	72_geomoptim/quenched.F90 \
 	72_geomoptim/velocity_verlet.F90 \
-	12_hide_mpi/xmpi_allgather.finc \
-	12_hide_mpi/xmpi_allgatherv.finc \
-	12_hide_mpi/xmpi_alltoall.finc \
-	12_hide_mpi/xmpi_alltoallv.finc \
-	12_hide_mpi/xmpi_ialltoallv.finc \
-	12_hide_mpi/xmpi_bcast.finc \
-	12_hide_mpi/xmpi_exch.finc \
-	12_hide_mpi/xmpi_gather.finc \
-	12_hide_mpi/xmpi_gatherv.finc \
-	12_hide_mpi/xmpi_ialltoall.finc \
-	12_hide_mpi/xmpi_irecv.finc \
-	12_hide_mpi/xmpi_isend.finc \
-	12_hide_mpi/xmpi_max.finc \
-	12_hide_mpi/xmpi_min.finc \
-	12_hide_mpi/xmpi_recv.finc \
-	12_hide_mpi/xmpi_scatterv.finc \
-	12_hide_mpi/xmpi_send.finc \
-	12_hide_mpi/xmpi_sum.finc \
-	12_hide_mpi/xmpi_sum_master.finc \
 	42_geometry/symmetry-main.c \
 	42_geometry/symmetry.h \
 	42_libpaw/libpaw.h \
@@ -102,8 +83,7 @@ libabinit_a_SOURCES = \
 	10_defs/defs_basis.F90 \
 	10_defs/defs_datatypes.F90 \
 	10_defs/defs_parameters.F90 \
-	12_hide_mpi/interfaces_12_hide_mpi.F90 \
-	12_hide_mpi/m_xmpi.F90 \
+	12_hide_mpi/m_abi_xmpi.F90 \
 	14_hidewrite/interfaces_14_hidewrite.F90 \
 	14_hidewrite/abi_wrtout.F90 \
 	16_hideleave/interfaces_16_hideleave.F90 \

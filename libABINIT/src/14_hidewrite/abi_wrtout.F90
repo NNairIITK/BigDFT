@@ -43,8 +43,7 @@
 subroutine abi_wrtout(unit,msg,mode_paral)
 
  use defs_basis
-
- use m_xmpi, only : xmpi_world,xmpi_comm_rank,xmpi_comm_size
+ use m_abi_xmpi
 
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
@@ -73,16 +72,16 @@ subroutine abi_wrtout(unit,msg,mode_paral)
 
  my_mode_paral = "COLL"; if (PRESENT(mode_paral)) my_mode_paral = mode_paral
 
-!Communicator is xmpi_world by default, except for the parallelization over images
+!Communicator is MPI_COMM_WORLD by default
  if (abinit_comm_output/=-1) then
    comm=abinit_comm_output
  else
-   comm=xmpi_world
+   comm=abi_xmpi_comm_world
  end if
 
 !Determine who I am in COMM_WORLD
- nproc = xmpi_comm_size(comm)
- me    = xmpi_comm_rank(comm)
+ nproc = abi_xmpi_comm_size(comm)
+ me    = abi_xmpi_comm_rank(comm)
 
  if( (my_mode_paral=='COLL') .or. (nproc==1) ) then
    if (me==master) then
@@ -136,8 +135,7 @@ end subroutine abi_wrtout
 subroutine abi_wrtout_myproc(unit,message,mpicomm) ! optional argument
 
  use defs_basis
-
- use m_xmpi,      only : xmpi_sum
+ use m_abi_xmpi
 
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
@@ -168,7 +166,7 @@ subroutine abi_wrtout_myproc(unit,message,mpicomm) ! optional argument
 !this can be done by passing mpicomm optional argument to the routine In that case, no printing is done.
  if (present(mpicomm)) then
    buf(1)=iexit;buf(2)=ncomment;buf(3)=nwarning
-   call xmpi_sum(buf,mpicomm,ierr)
+   call abi_xmpi_sum(buf,mpicomm,ierr)
    iexit=buf(1);ncomment=buf(2);nwarning=buf(3)
    if (iexit/=0) iexit=1
    return

@@ -37,12 +37,6 @@
 !! OUTPUT
 !!  norm2(mult)= value of the square of the norm of the different potentials
 !!
-!! PARENTS
-!!      scfcge,scfopt
-!!
-!! CHILDREN
-!!      contract_int_ge_val,contract_int_list,timab,xcomm_init,xsum_mpi
-!!
 !! SOURCE
 
 #if defined HAVE_CONFIG_H
@@ -53,7 +47,7 @@ subroutine sqnormm_v(cplex,index,mpi_comm, mpi_summarize,mult,nfft,norm2,npot,ns
 
  use defs_basis
  use defs_abitypes
- use m_xmpi
+ use m_abi_xmpi
 
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
@@ -83,18 +77,6 @@ subroutine sqnormm_v(cplex,index,mpi_comm, mpi_summarize,mult,nfft,norm2,npot,ns
 #endif
 
 ! *************************************************************************
-
-#if defined DEBUG_CONTRACT
- subrnm='sqnormm_v'
-!Real or complex inputs are coded
- call contract_int_list(subrnm,'cplex',cplex,(/1,2/),2)
- call contract_int_ge_val(subrnm,'index',index,1)
- call contract_int_ge_val(subrnm,'mult',mult,1)
- call contract_int_ge_val(subrnm,'nfft',nfft,1)
- call contract_int_ge_val(subrnm,'npot',npot,1)
- call contract_int_list(subrnm,'nspden',nspden,(/1,2,4/),3)
- call contract_int_ge_val(subrnm,'npot-index-mult',npot-index-mult,-1)
-#endif
 
  do ii=1,mult
    ar=zero
@@ -129,11 +111,9 @@ subroutine sqnormm_v(cplex,index,mpi_comm, mpi_summarize,mult,nfft,norm2,npot,ns
    end if
  end do
 
-
-!XG030513 : MPIWF reduction (addition) on norm2 is needed here
  if (mpi_summarize) then
    call timab(48,1,tsec)
-   call xmpi_sum(norm2,mpi_comm ,ierr)
+   call abi_xmpi_sum(norm2,mpi_comm ,ierr)
    call timab(48,2,tsec)
  end if
 

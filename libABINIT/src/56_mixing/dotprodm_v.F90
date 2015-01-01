@@ -57,12 +57,6 @@
 !!     opt_storage=0: V are stored as : V^11, V^22, V^12, i.V^21 (complex)
 !!     opt_storage=1: V are stored as : V, B_x, B_y, B_z         (complex)
 !!
-!! PARENTS
-!!      scfopt
-!!
-!! CHILDREN
-!!      contract_int_ge_val,contract_int_list,timab,xcomm_init,xsum_mpi
-!!
 !! SOURCE
 
 #if defined HAVE_CONFIG_H
@@ -74,7 +68,7 @@ subroutine dotprodm_v(cplex,cpldot,dot,index1,index2,mpi_comm,mpi_summarize,&
 
  use defs_basis
  use defs_abitypes
- use m_xmpi
+ use m_abi_xmpi
 
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
@@ -105,24 +99,6 @@ subroutine dotprodm_v(cplex,cpldot,dot,index1,index2,mpi_comm,mpi_summarize,&
 #endif
 
 ! *************************************************************************
-
-#if defined DEBUG_CONTRACT
- subrnm='dotprodm_v'
-!Real or complex inputs are coded
- call contract_int_list(subrnm,'cplex',cplex,(/1,2/),2)
-!Real or complex outputs are coded
- call contract_int_list(subrnm,'cpldot',cpldot,(/1,2/),2)
- call contract_int_ge_val(subrnm,'index1',index1,1)
- call contract_int_ge_val(subrnm,'index2',index2,1)
- call contract_int_ge_val(subrnm,'mult1',mult1,1)
- call contract_int_ge_val(subrnm,'mult2',mult2,1)
- call contract_int_ge_val(subrnm,'nfft',nfft,1)
- call contract_int_ge_val(subrnm,'npot1',npot1,1)
- call contract_int_ge_val(subrnm,'npot2',npot2,1)
- call contract_int_list(subrnm,'nspden',nspden,(/1,2,4/),3)
- call contract_int_ge_val(subrnm,'npot1-index1-mult1',npot1-index1-mult1,-1)
- call contract_int_ge_val(subrnm,'npot2-index2-mult2',npot2-index2-mult2,-1)
-#endif
 
  if(cplex==1 .or. cpldot==1)then
 
@@ -203,10 +179,9 @@ subroutine dotprodm_v(cplex,cpldot,dot,index1,index2,mpi_comm,mpi_summarize,&
    end do
  end if
 
-!XG030513 : MPIWF reduction (addition) on dot is needed here
  if (mpi_summarize) then
    call timab(48,1,tsec)
-   call xmpi_sum(dot,mpi_comm ,ierr)
+   call abi_xmpi_sum(dot,mpi_comm ,ierr)
    call timab(48,2,tsec)
  end if
 

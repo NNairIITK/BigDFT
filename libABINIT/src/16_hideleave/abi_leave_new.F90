@@ -38,7 +38,7 @@
 subroutine abi_leave_new(mode_paral,exit_status)
 
  use defs_basis
- use m_xmpi
+ use m_abi_xmpi
 
  !use m_build_info,      only : dump_config
 
@@ -68,9 +68,9 @@ subroutine abi_leave_new(mode_paral,exit_status)
  end if
 
  if (present(exit_status)) then
-   call xmpi_abort(exit_status=exit_status)
+   call abi_xmpi_abort(exit_status=exit_status)
  else
-   call xmpi_abort()
+   call abi_xmpi_abort()
  end if
 
 end subroutine abi_leave_new

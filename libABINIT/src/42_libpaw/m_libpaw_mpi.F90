@@ -177,7 +177,7 @@ module m_libpaw_mpi
 CONTAINS  !===========================================================
 !!***
 
-!!****f* m_xmpi/xpaw_mpi_abort
+!!****f* m_libpaw_mpi/xpaw_mpi_abort
 !! NAME
 !!  xpaw_mpi_abort
 !!
@@ -253,7 +253,7 @@ end subroutine xpaw_mpi_abort
 
 !----------------------------------------------------------------------
 
-!!****f* m_xmpi/xpaw_mpi_comm_rank
+!!****f* m_libpaw_mpi/xpaw_mpi_comm_rank
 !! NAME
 !!  xpaw_mpi_comm_rank
 !!
@@ -303,7 +303,7 @@ end function xpaw_mpi_comm_rank
 
 !----------------------------------------------------------------------
 
-!!****f* m_xmpi/xpaw_mpi_comm_size
+!!****f* m_libpaw_mpi/xpaw_mpi_comm_size
 !! NAME
 !!  xpaw_mpi_comm_size
 !!
@@ -351,7 +351,7 @@ end function xpaw_mpi_comm_size
 
 !----------------------------------------------------------------------
 
-!!****f* m_xmpi/xpaw_mpi_barrier
+!!****f* m_libpaw_mpi/xpaw_mpi_barrier
 !! NAME
 !!  xpaw_mpi_barrier
 !!
@@ -400,7 +400,7 @@ end subroutine xpaw_mpi_barrier
 
 !----------------------------------------------------------------------
 
-!!****f* m_xmpi/xpaw_mpi_wait
+!!****f* m_libpaw_mpi/xpaw_mpi_wait
 !! NAME
 !!  xpaw_mpi_wait
 !!
@@ -448,7 +448,7 @@ end subroutine xpaw_mpi_wait
 
 !----------------------------------------------------------------------
 
-!!****f* m_xmpi/xpaw_mpi_waitall
+!!****f* m_libpaw_mpi/xpaw_mpi_waitall
 !! NAME
 !!  xpaw_mpi_waitall
 !!
@@ -496,7 +496,7 @@ end subroutine xpaw_mpi_waitall
 
 !----------------------------------------------------------------------
 
-!!****f* m_xmpi/xpaw_mpi_iprobe
+!!****f* m_libpaw_mpi/xpaw_mpi_iprobe
 !! NAME
 !!  xpaw_mpi_iprobe
 !!

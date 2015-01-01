@@ -60,13 +60,6 @@
 !!     V are stored as : V^11, V^22, V^12, i.V^21 (complex)
 !!     N are stored as : n, m_x, m_y, mZ          (complex)
 !!
-!! PARENTS
-!!      aprxdr
-!!
-!! CHILDREN
-!!      contract_dp_ge_val,contract_int_ge_val,contract_int_list,
-!!      timab,xcomm_init,xsum_mpi
-!!
 !! SOURCE
 
 #if defined HAVE_CONFIG_H
@@ -78,7 +71,7 @@ subroutine dotprodm_vn(cplex,cpldot,denarr,dot,id,ip,mpi_comm, mpi_summarize,mul
 
  use defs_basis
  use defs_abitypes
- use m_xmpi
+ use m_abi_xmpi
 
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
@@ -111,26 +104,6 @@ subroutine dotprodm_vn(cplex,cpldot,denarr,dot,id,ip,mpi_comm, mpi_summarize,mul
 #endif
 
 ! *************************************************************************
-
-#if defined DEBUG_CONTRACT
- subrnm='dotprodm_vn'
-!Real or complex inputs are coded
- call contract_int_list(subrnm,'cplex',cplex,(/1,2/),2)
-!Real or complex outputs are coded
- call contract_int_list(subrnm,'cpldot',cpldot,(/1,2/),2)
- call contract_int_ge_val(subrnm,'id',id,1)
- call contract_int_ge_val(subrnm,'ip',ip,1)
- call contract_int_ge_val(subrnm,'multd',multd,1)
- call contract_int_ge_val(subrnm,'multp',multp,1)
- call contract_int_ge_val(subrnm,'nden',nden,1)
- call contract_int_ge_val(subrnm,'nfft',nfft,1)
- call contract_int_ge_val(subrnm,'nfftot',nfftot,1)
- call contract_int_ge_val(subrnm,'npot',npot,1)
- call contract_int_list(subrnm,'nspden',nspden,(/1,2,4/),3)
- call contract_dp_ge_val(subrnm,'ucvol',ucvol,zero)
- call contract_int_ge_val(subrnm,'nden-id-multd',nden-id-multd,-1)
- call contract_int_ge_val(subrnm,'npot-ip-multp',npot-ip-multp,-1)
-#endif
 
  if(nspden==1)then
 
@@ -346,10 +319,9 @@ subroutine dotprodm_vn(cplex,cpldot,denarr,dot,id,ip,mpi_comm, mpi_summarize,mul
    end if ! cplex
  end if ! nspden
 
-!XG030513 : MPIWF reduction (addition) on dot is needed here
  if (mpi_summarize) then
    call timab(48,1,tsec)
-   call xmpi_sum(dot,mpi_comm ,ierr)
+   call abi_xmpi_sum(dot,mpi_comm ,ierr)
    call timab(48,2,tsec)
  end if
 

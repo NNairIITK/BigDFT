@@ -13,18 +13,15 @@ defs_parameters.o: 10_defs/defs_parameters.F90 \
 	defs_basis.o
 	$(PPFCCOMPILE) -c -o defs_parameters.o `test -f '10_defs/defs_parameters.F90' || echo '$(srcdir)/'`10_defs/defs_parameters.F90
 
-interfaces_12_hide_mpi.o: 12_hide_mpi/interfaces_12_hide_mpi.F90
-	$(PPFCCOMPILE) -c -o interfaces_12_hide_mpi.o `test -f '12_hide_mpi/interfaces_12_hide_mpi.F90' || echo '$(srcdir)/'`12_hide_mpi/interfaces_12_hide_mpi.F90
-
-m_xmpi.o: 12_hide_mpi/m_xmpi.F90 \
+m_abi_xmpi.o: 12_hide_mpi/m_abi_xmpi.F90 \
 	defs_basis.o \
 	$(mpi_include)
-	$(PPFCCOMPILE) -c -o m_xmpi.o `test -f '12_hide_mpi/m_xmpi.F90' || echo '$(srcdir)/'`12_hide_mpi/m_xmpi.F90
+	$(PPFCCOMPILE) -c -o m_abi_xmpi.o `test -f '12_hide_mpi/m_abi_xmpi.F90' || echo '$(srcdir)/'`12_hide_mpi/m_abi_xmpi.F90
 
 abi_wrtout.o: 14_hidewrite/abi_wrtout.F90 \
 	defs_basis.o \
 	interfaces_14_hidewrite.o \
-	m_xmpi.o
+	m_abi_xmpi.o
 	$(PPFCCOMPILE) -c -o abi_wrtout.o `test -f '14_hidewrite/abi_wrtout.F90' || echo '$(srcdir)/'`14_hidewrite/abi_wrtout.F90
 
 interfaces_14_hidewrite.o: 14_hidewrite/interfaces_14_hidewrite.F90
@@ -33,7 +30,7 @@ interfaces_14_hidewrite.o: 14_hidewrite/interfaces_14_hidewrite.F90
 abi_leave_new.o: 16_hideleave/abi_leave_new.F90 \
 	defs_basis.o \
 	interfaces_14_hidewrite.o \
-	m_xmpi.o
+	m_abi_xmpi.o
 	$(PPFCCOMPILE) -c -o abi_leave_new.o `test -f '16_hideleave/abi_leave_new.F90' || echo '$(srcdir)/'`16_hideleave/abi_leave_new.F90
 
 interfaces_16_hideleave.o: 16_hideleave/interfaces_16_hideleave.F90
@@ -663,14 +660,14 @@ dotprodm_v.o: 56_mixing/dotprodm_v.F90 \
 	defs_abitypes.o \
 	defs_basis.o \
 	interfaces_18_timing.o \
-	m_xmpi.o
+	m_abi_xmpi.o
 	$(PPFCCOMPILE) -c -o dotprodm_v.o `test -f '56_mixing/dotprodm_v.F90' || echo '$(srcdir)/'`56_mixing/dotprodm_v.F90
 
 dotprodm_vn.o: 56_mixing/dotprodm_vn.F90 \
 	defs_abitypes.o \
 	defs_basis.o \
 	interfaces_18_timing.o \
-	m_xmpi.o
+	m_abi_xmpi.o
 	$(PPFCCOMPILE) -c -o dotprodm_vn.o `test -f '56_mixing/dotprodm_vn.F90' || echo '$(srcdir)/'`56_mixing/dotprodm_vn.F90
 
 findminscf.o: 56_mixing/findminscf.F90 \
@@ -714,7 +711,7 @@ sqnormm_v.o: 56_mixing/sqnormm_v.F90 \
 	defs_abitypes.o \
 	defs_basis.o \
 	interfaces_18_timing.o \
-	m_xmpi.o
+	m_abi_xmpi.o
 	$(PPFCCOMPILE) -c -o sqnormm_v.o `test -f '56_mixing/sqnormm_v.F90' || echo '$(srcdir)/'`56_mixing/sqnormm_v.F90
 
 getkgrid.o: 56_recipspace/getkgrid.F90 \
