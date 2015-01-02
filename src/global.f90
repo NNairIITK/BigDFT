@@ -1663,7 +1663,7 @@ subroutine winter(naming_id,nat,astruct,nid,nlminx,nlmin,singlestep,en_delta,fp_
 
   ! write enarr file
   open(unit=12,file='enarr'//trim(naming_id),status='unknown')
-  write(12,'(2(i10),l1,a)') nlmin,nlmin+5,singlestep, & 
+  write(12,'(2(1x,i10),1x,l1,1x,a)') nlmin,nlmin+5,singlestep, & 
       ' # of minima already found, # of minima to be found in consecutive run, singlestep mode'
   write(12,'(2(e24.17,1x),a)') en_delta,fp_delta,' en_delta,fp_delta'
   do k=1,nlmin
