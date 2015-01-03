@@ -9,7 +9,7 @@ Default tolerances:
   Some values: 1.e-12
   Maximum discrepancy: 1.e-14
   Value: 1.e-12
-  beta: 1.0e-10
+  beta: 7.0e-10
   ratio: 1.4e-11
   res: 1.9e-8
   alpha: 5.e-1 #normal for CG

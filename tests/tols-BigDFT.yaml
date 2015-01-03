@@ -289,10 +289,11 @@ N2:
 
 mixpotential:
  Epot: 1.1e-10
- energy: 7.1e-11
- Omega: 6.7e-11
+ energy: 7.5e-11
+ Omega: 7.4e-11
  Ekin: 1.1e-10
  EXC: 1.1e-10
+ EvXC: 1.1e-10
  Enl: 2.1e-11
 
 IO-wf_plain-read:
@@ -591,8 +592,8 @@ fructose:
  guess for new ef: 5.4e-5
  EH: 1.01e-9
  EvXC: 1.1e-10
- energy: 1.43e-10
- Omega: 1.41e-10
+ energy: 1.44e-10
+ Omega: 1.44e-10
  Tr(K): 5.0e-06
  tr(KS) before purification: 1.9e-6
  Total charge: 2.1e-10

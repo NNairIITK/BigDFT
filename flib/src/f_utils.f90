@@ -55,7 +55,7 @@ module f_utils
 
   !> Initialize to zero an array (should be called f_memset)
   interface f_zero
-     module procedure zero_string
+     module procedure zero_string,zero_li,zero_i,zero_r,zero_d,zero_l
      module procedure put_to_zero_simple
      module procedure put_to_zero_double, put_to_zero_double_1, put_to_zero_double_2
      module procedure put_to_zero_double_3, put_to_zero_double_4, put_to_zero_double_5
@@ -86,7 +86,7 @@ module f_utils
 
   public :: f_diff,int,char,f_enumerator_null,operator(==),f_file_unit
   public :: f_utils_errors,f_utils_recl,f_file_exists,f_close,f_zero
-  public :: f_get_free_unit,f_delete_file,f_getpid,f_rewind
+  public :: f_get_free_unit,f_delete_file,f_getpid,f_rewind,f_open_file
   public :: f_iostream_from_file,f_iostream_from_lstring
   public :: f_iostream_get_line,f_iostream_release,f_time,f_pause
 
@@ -343,6 +343,64 @@ contains
          err_id=INPUT_OUTPUT_ERROR)
     
   end subroutine f_rewind
+  
+  !> open a filename and retrieve the unteger for the unit
+  subroutine f_open_file(unit,file,status,position,binary)
+    use yaml_strings, only: f_strcpy
+    implicit none
+    !> integer of the unit. On entry, it indicates the 
+    !! suggested unit number. On exit, it indicates the free unit
+    !! which has been used for the file opening
+    integer, intent(inout) :: unit
+    !> filename
+    character(len=*), intent(in) :: file
+    !> status
+    character(len=*), intent(in), optional :: status
+    !> position
+    character(len=*), intent(in), optional :: position
+    !> if true, the file will be opened in the unformatted i/o
+    !! if false or absent, the file will be opened for formatted i/o
+    logical, intent(in), optional :: binary
+    !local variables
+    integer :: unt,ierror
+    character(len=7) :: f_status
+    character(len=11) :: f_form
+    character(len=6) :: f_position
+
+    !first, determine if the file is already opened.
+    call f_file_unit(file,unt)
+    if (unt /= -1) then
+       unit=unt
+    else
+       !find the first free unit
+       unt=f_get_free_unit(unit)
+
+       !useful open specifiers
+       call f_strcpy(src='unknown',dest=f_status)
+       if (present(status)) call f_strcpy(src=status,dest=f_status)
+
+       call f_strcpy(src='formatted',dest=f_form)
+       if (present(binary)) then
+          if (binary) call f_strcpy(src='unformatted',dest=f_form)
+       end if
+
+       call f_strcpy(src='asis',dest=f_position)
+       if (present(position)) call f_strcpy(src=position,dest=f_position)
+
+       !then open the file with the given unit
+       open(unit=unt,file=trim(file),status=f_status,form=f_form,&
+            position=f_position,iostat=ierror)
+       if (ierror /= 0) then
+          call f_err_throw('Error in opening file='//&
+               trim(file)//' iostat='//trim(yaml_toa(ierror)),&
+               err_id=INPUT_OUTPUT_ERROR)
+       else
+          !when everything succeded, assign the unit
+          unit=unt
+       end if
+    end if
+
+  end subroutine f_open_file
 
   subroutine f_iostream_from_file(ios, filename)
     implicit none
@@ -630,6 +688,36 @@ contains
     character(len=*), intent(out) :: str
     call f_strcpy(src=' ',dest=str)
   end subroutine zero_string
+
+  subroutine zero_li(val)
+    implicit none
+    integer(kind=8), intent(out) :: val
+    val=int(0,kind=8)
+  end subroutine zero_li
+
+  subroutine zero_i(val)
+    implicit none
+    integer, intent(out) :: val
+    val=0
+  end subroutine zero_i
+
+  subroutine zero_r(val)
+    implicit none
+    real, intent(out) :: val
+    val=0.e0
+  end subroutine zero_r
+
+  subroutine zero_d(val)
+    implicit none
+    double precision, intent(out) :: val
+    val=0.d0
+  end subroutine zero_d
+
+  subroutine zero_l(val)
+    implicit none
+    logical, intent(out) :: val
+    val=.false.
+  end subroutine zero_l
 
   subroutine put_to_zero_simple(n,da)
     implicit none

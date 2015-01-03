@@ -14,6 +14,9 @@
 
 !> Module implementing the freezing string technique (minima hopping)
 module module_freezingstring
+    use module_base
+    use yaml_output
+    use bigdft_run, only: run_objects, state_properties,bigdft_get_astruct_ptr
     implicit none
 
     private
@@ -25,11 +28,8 @@ contains
 
 subroutine get_ts_guess(mhgpsst,uinp,runObj,outs,rxyz1,rxyz2,tsguess,minmodeguess,&
                         tsgenergy,tsgforces)
-    use module_base
-    use yaml_output
     use module_mhgps_state
     use module_userinput
-    use bigdft_run, only: run_objects, state_properties
     implicit none
     !parameters
     type(mhgps_state), intent(inout) :: mhgpsst
@@ -68,11 +68,8 @@ subroutine get_ts_guess(mhgpsst,uinp,runObj,outs,rxyz1,rxyz2,tsguess,minmodegues
 end subroutine
 subroutine get_ts_guess_freeze(mhgpsst,uinp,runObj,outs,rxyz1,rxyz2,&
            tsguess,minmodeguess,tsgenergy,tsgforces,success)
-    use module_base
-    use yaml_output
     use module_mhgps_state
     use module_userinput
-    use bigdft_run, only: run_objects, state_properties
     use module_energyandforces
     implicit none
     !parameters
@@ -245,11 +242,8 @@ subroutine get_ts_guess_freeze(mhgpsst,uinp,runObj,outs,rxyz1,rxyz2,&
 end subroutine
 
 subroutine write_path_a(mhgpsst,runObj,outs,npath,path,energies,tangent)
-    use module_base
-    use module_interfaces
     use module_atoms, only: astruct_dump_to_file
     use module_mhgps_state
-    use bigdft_run
     implicit none
     !parameters
     type(mhgps_state), intent(in) :: mhgpsst
@@ -287,10 +281,7 @@ subroutine write_path_a(mhgpsst,runObj,outs,npath,path,energies,tangent)
 end subroutine
 !=====================================================================
 subroutine write_path_b(mhgpsst,runObj,outs,npath,path,energies,tangent)
-    use module_base
-    use module_interfaces
     use module_atoms, only: astruct_dump_to_file
-    use bigdft_run
     use module_mhgps_state
     implicit none
     !parameters
@@ -323,11 +314,8 @@ end subroutine
 
 subroutine grow_freezstring(mhgpsst,uinp,runObj,outs,gammainv,perpnrmtol,trust,&
                        nstepsmax,nstringmax,nstring,string,finished,success)
-    use module_base
-    use yaml_output
     use module_userinput
     use module_mhgps_state
-    use bigdft_run, only: run_objects, state_properties
     implicit none
     !parameters
     type(mhgps_state), intent(inout) :: mhgpsst
@@ -435,10 +423,8 @@ end subroutine
 subroutine optim_cg(mhgpsst,runObj,outs,finished,step,gammainv,&
            perpnrmtol_squared,trust_squared,nstepsmax,tangent1,&
            tangent2,rxyz1,rxyz2)
-    use module_base
     use module_energyandforces
     use module_mhgps_state
-    use bigdft_run, only: run_objects, state_properties
     implicit none
     !parameters
     type(mhgps_state), intent(inout) :: mhgpsst
@@ -585,7 +571,6 @@ subroutine optim_cg(mhgpsst,runObj,outs,finished,step,gammainv,&
 end subroutine
 !=====================================================================
 subroutine perpend(nat,tangent,fxyz,perp)
-    use module_base
     !returns a vector perp that contains
     !the perpendicular components of fyxz to
     !the tangent vector
@@ -603,7 +588,6 @@ end subroutine
 !=====================================================================
 subroutine lin_interpol(nat,left, right, step,interleft,interright,&
                        tangent, finished)
-    use module_base
     implicit none
     !parameters
     integer, intent(in)    :: nat
@@ -648,8 +632,6 @@ subroutine get_ts_guess_linsyn(mhgpsst,uinp,runObj,outs,left,right,tsguess,minmo
     !A high density path made from 'nimages' nodes using LST
     !is generated. Then this path is parametrized as a function
     !of its integrated path length using natural cubic splines.
-    use module_base
-    use bigdft_run, only: run_objects, state_properties
     use module_interpol
     use module_userinput
     use module_mhgps_state
@@ -806,7 +788,6 @@ subroutine lst_interpol_freez(nat,mhgpsst,uinp,left,right,step,interleft,interri
     !                 => freezing string search finsihed
     !                 nothing is returned, interleft and interright
     !                 are meaningless
-    use module_base
     use module_mhgps_state
     use module_interpol
     use module_userinput
@@ -1146,7 +1127,6 @@ subroutine spline_wrapper(xvec,yvec,ndim,yp1,ypn,y2vec)
     !function at points 1 and ndim
     !y2vec: second derivatives of the interpolating function at the
     !tabulated points
-    use module_base
     implicit none
     !parameters
     integer, intent(in)  :: ndim
@@ -1178,7 +1158,6 @@ subroutine splint_wrapper(xvec,yvec,y2vec,ndim,tau,yval,dy)
     !yval: cubic spline interpolation value at tau
     !dy: derivative of spline at tau (with respect to 
     !    the parametrization
-    use module_base
     implicit none
     !parameters
     integer, intent(in)  :: ndim
@@ -1204,7 +1183,6 @@ end subroutine
 !=====================================================================
 subroutine spline(xvec,yvec,ndim,yp1,ypn,y2vec)
     !translated to f90 from numerical recipes
-    use module_base
     implicit none
     !parameter
     integer, intent(in) :: ndim
@@ -1246,7 +1224,6 @@ end subroutine
 !=====================================================================
 subroutine splint(xvec,yvec,y2vec,ndim,tau,yval,dy)
     !translated to f90 from numerical recipes
-    use module_base
     use module_misc
     implicit none
     !parameters
