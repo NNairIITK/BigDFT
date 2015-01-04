@@ -1044,6 +1044,7 @@ contains
     use dynamic_memory
     use dictionaries, only: f_err_throw
     use yaml_output !for check=.true.
+    use f_utils, only: f_zero
     implicit none
     integer(kind=4), intent(inout) ::  buffer
     integer(kind=4), intent(out), optional :: maxdiff
@@ -1056,6 +1057,7 @@ contains
     use dynamic_memory
     use dictionaries, only: f_err_throw
     use yaml_output !for check=.true.
+    use f_utils, only: f_zero
     implicit none
     integer(kind=8), intent(inout) ::  buffer
     integer(kind=8), intent(out), optional :: maxdiff
@@ -1068,6 +1070,7 @@ contains
     use dynamic_memory
     use dictionaries, only: f_err_throw
     use yaml_output !for check=.true.
+    use f_utils, only: f_zero
     implicit none
     double precision, intent(inout) ::  buffer
     double precision, intent(out), optional :: maxdiff
@@ -1080,6 +1083,7 @@ contains
     use dynamic_memory
     use dictionaries, only: f_err_throw
     use yaml_output !for check=.true.
+    use f_utils, only: f_zero
     implicit none
     character, dimension(:), intent(inout) ::  buffer 
     integer, intent(out), optional :: maxdiff
@@ -1092,6 +1096,7 @@ contains
     use dynamic_memory
     use dictionaries, only: f_err_throw
     use yaml_output !for check=.true.
+    use f_utils, only: f_zero
     implicit none
     integer, dimension(:), intent(inout) ::  buffer
     integer, intent(out), optional :: maxdiff      
@@ -1104,6 +1109,7 @@ contains
     use dynamic_memory
     use dictionaries, only: f_err_throw
     use yaml_output !for check=.true.
+    use f_utils, only: f_zero
     implicit none
     double precision, dimension(:), intent(inout) ::  buffer      
     double precision, intent(out), optional :: maxdiff
@@ -1116,6 +1122,7 @@ contains
     use dynamic_memory
     use dictionaries, only: f_err_throw
     use yaml_output !for check=.true.
+    use f_utils, only: f_zero
     implicit none
     double precision, dimension(:,:), intent(inout) ::  buffer
     double precision, intent(out), optional :: maxdiff

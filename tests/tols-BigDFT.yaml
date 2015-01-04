@@ -1167,8 +1167,8 @@ verysparse:
  Clean forces norm (Ha/Bohr): 2.1e-11
  Raw forces norm (Ha/Bohr): 1.1e-10
  Keys to ignore:
-         - Calculating wavelets expansion of projectors, found warnings
-         - found warnings
+  - Calculating wavelets expansion of projectors, found warnings
+  - found warnings
 
 expfoegeopt:
  guess for new ef: 2.0e-8
@@ -1186,3 +1186,8 @@ expfoegeopt:
  Omega: 2.4e-11
  energy: 2.2e-11
  epred: 1.9e-11
+
+log_model:
+ System pseudo energy (Ha): 3.6e-11
+ Keys to ignore:
+  - Reference Paper

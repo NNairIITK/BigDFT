@@ -67,7 +67,7 @@ program wvl
    call user_dict_from_files(user_inputs, 'input', 'posinp', bigdft_mpi)
    call inputs_from_dict(inputs, atoms, user_inputs)
    if (iproc == 0) then
-      call print_general_parameters(inputs,atoms)
+      call print_general_parameters(inputs,atoms,'input','posinp')
    end if
    call dict_free(user_inputs)
    GPU%OCLconv = .false.

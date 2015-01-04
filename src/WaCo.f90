@@ -1696,6 +1696,7 @@ end subroutine read_hamiltonian
 
 subroutine write_wannier_cube(jfile,filename,atoms,Glr,input,rxyz,wannr)
   use module_defs, only: gp,dp
+  use f_utils
    use module_types
    implicit none
    character(len=*), intent(in) :: filename

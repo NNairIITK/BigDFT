@@ -135,6 +135,7 @@ subroutine inputs_from_dict(in, atoms, dict)
        & HGRIDS, RMULT, PROJRAD, IXC, PERF_VARIABLES
   use module_input_dicts
   use dynamic_memory
+  use f_utils, only: f_zero
   use module_xc
   use input_old_text_format, only: dict_from_frag
   use module_atoms, only: atoms_data,atoms_data_null,atomic_data_set_from_dict,check_atoms_positions
@@ -229,6 +230,8 @@ subroutine inputs_from_dict(in, atoms, dict)
   end do
 
   ! Generate the dir_output
+  !outdir has to be initialized
+  call f_zero(outdir)
   call bigdft_get_run_properties(dict, naming_id = run_id, posinp_id = posinp_id, input_id = input_id, outdir_id = outdir)
   call f_strcpy(dest = in%dir_output, src = trim(outdir) // "data" // trim(run_id))
 

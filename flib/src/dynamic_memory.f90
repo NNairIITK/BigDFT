@@ -1226,9 +1226,12 @@ contains
        end if
 
        if (base_time > 0.d0) then
+!!$          call f_strcpy(src=trim(yaml_toa(time(jkey)/base_time*100.d0,fmt='(f6.2)'))//'%'//extra,&
+!!$               dest=percent)
           percent(1:len(percent))=&
                trim(yaml_toa(time(jkey)/base_time*100.d0,fmt='(f6.2)'))//'%'//extra
        else
+!!$          call f_strcpy(src='~'//extra,dest=percent)
           percent(1:len(percent))='~'//extra
        end if
        call add(dict_pt,dict_new(trim(keys(jkey)) .is. &

@@ -625,6 +625,8 @@ subroutine readwavetoisf_etsf(lstat, filename, iorbp, hx, hy, hz, &
    type(etsf_io_low_error) :: error
    type(workarr_sumrho) :: w
 
+   call nullify_locreg_descriptors(lr)
+
    ! We open the ETSF file
    call etsf_io_low_open_read(ncid, filename, lstat, error_data = error)
    if (.not. lstat) then
@@ -692,28 +694,12 @@ subroutine readwavetoisf_etsf(lstat, filename, iorbp, hx, hy, hz, &
       if (.not. lstat) call etsf_warning(error)
 
       ! Final deallocations.
-      if (associated(nvctr)) then
-         call f_free_ptr(nvctr)
-      end if
-
-      if (associated(orbsd%eval)) then
-         call f_free_ptr(orbsd%eval)
-      end if
-
-      if (allocated(psi)) then
-         call f_free(psi)
-      end if
-
-      if (allocated(gcoord)) then
-         call f_free(gcoord)
-      end if
-
-      if (associated(w%x_c)) then
-         call deallocate_work_arrays_sumrho(w)
-      end if
-      if (associated(lr%bounds%kb%ibyz_f)) then
-         call deallocate_bounds(lr%geocode, lr%hybrid_on, lr%bounds)
-      end if
+      call f_free_ptr(nvctr)
+      call f_free_ptr(orbsd%eval)
+      call f_free(psi)
+      call f_free(gcoord)
+      call deallocate_work_arrays_sumrho(w)
+      call deallocate_bounds(lr%geocode, lr%hybrid_on, lr%bounds)
       call deallocate_wfd(lr%wfd)
    END SUBROUTINE deallocate_local
 
