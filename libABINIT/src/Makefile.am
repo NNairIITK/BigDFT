@@ -31,8 +31,10 @@ LIBXC_DEFS =
 endif
 
 # Special treatment for libpaw
+# Activate BigDFT sections
+LIBPAW_DEFS = -DHAVE_LIBPAW_BIGDFT
 # Deactivate temporarily some mandatory code sections
-LIBPAW_DEFS = -UHAVE_DFT_BIGDFT -UHAVE_DFT_LIBXC
+LIBPAW_DEFS += -UHAVE_DFT_BIGDFT -UHAVE_DFT_LIBXC
 
 # Force HAVE_MPI and HAVE_MPI1.
 # Don't use the HAVE_CONFIG_H
@@ -52,6 +54,7 @@ PPFCCOMPILE = $(FC) $(DEFS_FORTRAN) $(DEFAULT_INCLUDES) $(INCLUDES) \
 
 if BUILD_LIBPAW
 libpaw_files = \
+	42_libpaw/m_libpaw_defs.F90 \
 	42_libpaw/m_libpaw_mpi.F90 \
 	42_libpaw/m_libpaw_tools.F90 \
 	42_libpaw/m_atompaw.F90 \

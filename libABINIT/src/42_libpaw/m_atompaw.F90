@@ -18,7 +18,7 @@
 
 module m_atompaw
     
- use defs_basis
+ USE_DEFS
  USE_MSG_HANDLING
  USE_MEMORY_PROFILING
  

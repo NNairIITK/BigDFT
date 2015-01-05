@@ -23,7 +23,7 @@
 
 module m_libpaw_mpi
     
- use defs_basis
+ USE_DEFS
 
 #ifdef HAVE_MPI2
  use mpi

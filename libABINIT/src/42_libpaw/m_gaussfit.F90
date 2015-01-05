@@ -18,7 +18,7 @@
 
 module m_gaussfit
 
- use defs_basis
+ USE_DEFS
  USE_MSG_HANDLING
  USE_MPI_WRAPPERS
  USE_MEMORY_PROFILING
@@ -176,7 +176,7 @@ CONTAINS
  LIBPAW_ALLOCATE(y_out,(nr))
  LIBPAW_ALLOCATE(chisq_array,(my_chisq_size))
  if(master==me ) then
-   LIBPAW_ALLOCATE(map_nterm,(nterm_bounds(1):nterm_bounds(2)))
+   LIBPAW_DATATYPE_ALLOCATE(map_nterm,(nterm_bounds(1):nterm_bounds(2)))
    jj=1
    do ii=1,nproc
      do nterm=nterm_bounds(1),nterm_bounds(2)
@@ -367,7 +367,7 @@ CONTAINS
  LIBPAW_DEALLOCATE(y_out)
  LIBPAW_DEALLOCATE(chisq_array)
  if(me==master) then
-   LIBPAW_DEALLOCATE(map_nterm)
+   LIBPAW_DATATYPE_DEALLOCATE(map_nterm)
  end if
 
 end subroutine gaussfit_main

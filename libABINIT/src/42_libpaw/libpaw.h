@@ -29,31 +29,36 @@
 /* ABINIT specific macros */
 #include "abi_common.h"
 
-/* Allocation/deallocation with memory profiling */
-#define USE_MEMORY_PROFILING use m_profiling_abi
-#define LIBPAW_ALLOCATE(ARR,SIZE) ABI_ALLOCATE(ARR,SIZE)
-#define LIBPAW_DEALLOCATE(ARR)    ABI_DEALLOCATE(ARR)
-#define LIBPAW_DATATYPE_ALLOCATE(ARR,SIZE) ABI_DATATYPE_ALLOCATE(ARR,SIZE)
-#define LIBPAW_DATATYPE_DEALLOCATE(ARR)    ABI_DATATYPE_DEALLOCATE(ARR)
+/* Constants and defs */
+#define USE_DEFS use defs_basis
+
+/* MPI wrappers */
+#define USE_MPI_WRAPPERS use m_xmpi
 
 /* Messages, errors */
 #define USE_MSG_HANDLING use m_errors, only : msg_hndl
 /* Other macros already defined in abi_common.h */
 
-/* MPI wrappers */
-#define USE_MPI_WRAPPERS use m_xmpi
+/* Allocation/deallocation with memory profiling */
+#define USE_MEMORY_PROFILING use m_profiling_abi
+#define LIBPAW_ALLOCATE(ARR,SIZE) ABI_ALLOCATE(ARR,SIZE)
+#define LIBPAW_DEALLOCATE(ARR)    ABI_DEALLOCATE(ARR)
+#define LIBPAW_POINTER_ALLOCATE(ARR,SIZE) ABI_ALLOCATE(ARR,SIZE)
+#define LIBPAW_POINTER_DEALLOCATE(ARR)    ABI_DEALLOCATE(ARR)
+#define LIBPAW_DATATYPE_ALLOCATE(ARR,SIZE) ABI_DATATYPE_ALLOCATE(ARR,SIZE)
+#define LIBPAW_DATATYPE_DEALLOCATE(ARR)    ABI_DATATYPE_DEALLOCATE(ARR)
+
 
 /* =============================
  * ========= BIGDFT ============
  * ============================= */
 #elif HAVE_LIBPAW_BIGDFT
 
-/* Allocation/deallocation with memory profiling */
-#define USE_MEMORY_PROFILING
-#define LIBPAW_ALLOCATE(ARR,SIZE) ARR=f_malloc SIZE
-#define LIBPAW_DEALLOCATE(ARR)    call f_free(ARR)
-#define LIBPAW_DATATYPE_ALLOCATE(ARR,SIZE) allocate(ARR SIZE)
-#define LIBPAW_DATATYPE_DEALLOCATE(ARR)    deallocate(ARR)
+/* Constants and defs */
+#define USE_DEFS use m_libpaw_defs
+
+/* MPI wrappers */
+#define USE_MPI_WRAPPERS use m_libpaw_mpi
 
 /* Messages, errors */
 #define USE_MSG_HANDLING use m_libpaw_tools, only : wrtout => libpaw_wrtout, libpaw_msg_hndl
@@ -62,8 +67,14 @@
 #define MSG_ERROR(msg)   call libpaw_msg_hndl(msg,"ERROR"  ,"PERS",__FILE__,__LINE__)
 #define MSG_BUG(msg)     call libpaw_msg_hndl(msg,"BUG"    ,"PERS",__FILE__,__LINE__)
 
-/* MPI wrappers */
-#define USE_MPI_WRAPPERS use m_libpaw_mpi
+/* Allocation/deallocation with memory profiling */
+#define USE_MEMORY_PROFILING use dynamic_memory
+#define LIBPAW_ALLOCATE(ARR,SIZE) ARR=f_malloc(to_array SIZE ) 
+#define LIBPAW_DEALLOCATE(ARR)    call f_free(ARR)
+#define LIBPAW_POINTER_ALLOCATE(ARR,SIZE) ARR=f_malloc_ptr(to_array SIZE ) 
+#define LIBPAW_POINTER_DEALLOCATE(ARR)    call f_free_ptr(ARR)
+#define LIBPAW_DATATYPE_ALLOCATE(ARR,SIZE) allocate(ARR SIZE)
+#define LIBPAW_DATATYPE_DEALLOCATE(ARR)    deallocate(ARR)
 
 
 /* =============================
@@ -71,12 +82,11 @@
  * ============================= */
 #else
 
-/* Allocation/deallocation */
-#define USE_MEMORY_PROFILING
-#define LIBPAW_ALLOCATE(ARR,SIZE) allocate(ARR SIZE)
-#define LIBPAW_DEALLOCATE(ARR)    deallocate(ARR)
-#define LIBPAW_DATATYPE_ALLOCATE(ARR,SIZE) allocate(ARR SIZE)
-#define LIBPAW_DATATYPE_DEALLOCATE(ARR)    deallocate(ARR)
+/* Constants and defs */
+#define USE_DEFS use m_libpaw_defs
+
+/* MPI wrappers */
+#define USE_MPI_WRAPPERS use m_libpaw_mpi
 
 /* Messages, errors */
 #define USE_MSG_HANDLING use m_libpaw_tools, only : wrtout => libpaw_wrtout, libpaw_msg_hndl
@@ -85,8 +95,14 @@
 #define MSG_ERROR(msg)   call libpaw_msg_hndl(msg,"ERROR"  ,"PERS")
 #define MSG_BUG(msg)     call libpaw_msg_hndl(msg,"BUG"    ,"PERS")
 
-/* MPI wrappers */
-#define USE_MPI_WRAPPERS use m_libpaw_mpi
+/* Allocation/deallocation */
+#define USE_MEMORY_PROFILING
+#define LIBPAW_ALLOCATE(ARR,SIZE) allocate(ARR SIZE)
+#define LIBPAW_DEALLOCATE(ARR)    deallocate(ARR)
+#define LIBPAW_POINTER_ALLOCATE(ARR,SIZE) allocate(ARR SIZE)
+#define LIBPAW_POINTER_DEALLOCATE(ARR)    deallocate(ARR)
+#define LIBPAW_DATATYPE_ALLOCATE(ARR,SIZE) allocate(ARR SIZE)
+#define LIBPAW_DATATYPE_DEALLOCATE(ARR)    deallocate(ARR)
 
 
 /* =============================

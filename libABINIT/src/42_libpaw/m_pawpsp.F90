@@ -22,7 +22,7 @@
 
 module m_pawpsp
 
- use defs_basis
+ USE_DEFS
  USE_MSG_HANDLING
  USE_MPI_WRAPPERS
  USE_MEMORY_PROFILING
@@ -642,7 +642,7 @@ subroutine pawpsp_cg(dnqdq0,d2nqdq0,mqgrid,qgrid,nq,radmesh,nr,yp1,ypn)
 & +(two*arg**2*bexp**3*rm+two_pi*arg**5*qgrid(mqgrid)*rm**2 &
 & +arg**4*(bexp*rm-one)+bexp**4*(bexp*rm+one) &
 & +four_pi*arg**3*qgrid(mqgrid)*(bexp**2*rm**2+two*bexp*rm-one) &
-& +two_pi*arg*bexp**2*qgrid(mqgrid)*(bexp**2*rm**2+four*bexp*rm+six))*sin(arg*rm))
+& +two_pi*arg*bexp**2*qgrid(mqgrid)*(bexp**2*rm**2+four*bexp*rm+6._dp))*sin(arg*rm))
 
 !Some of the three parts
  ypn=two/qgrid(mqgrid)*(r0tor1+r1torm+rmtoin)
@@ -804,7 +804,7 @@ subroutine pawpsp_read(core_mesh,imainmesh,lmax,&
  real(dp) :: yp1,ypn
 !arrays
  integer,allocatable :: nprj(:)
- real(dp),allocatable::shpf(:,:),vhnzc(:)
+ real(dp),allocatable:: shpf(:,:),vhnzc(:)
  real(dp),allocatable :: work1(:),work2(:),work3(:),work4(:)
  character :: blank=' ',numb=' '
  character(len=80) :: pspline
@@ -895,7 +895,7 @@ subroutine pawpsp_read(core_mesh,imainmesh,lmax,&
    LIBPAW_DEALLOCATE(pawtab%indlmn)
  end if
  LIBPAW_ALLOCATE(pawtab%indlmn,(6,pawtab%lmn_size))
- LIBPAW_ALLOCATE(nprj,(0:maxval(pawtab%orbitals)))
+ LIBPAW_DATATYPE_ALLOCATE(nprj,(0:maxval(pawtab%orbitals)))
  pawtab%indlmn(:,:)=0
  ilmn=0;iln=0;nprj=0
  do ib=1,pawtab%basis_size
@@ -912,7 +912,7 @@ subroutine pawpsp_read(core_mesh,imainmesh,lmax,&
    end do
    ilmn=ilmn+2*il+1
  end do
- LIBPAW_DEALLOCATE(nprj)
+ LIBPAW_DATATYPE_DEALLOCATE(nprj)
 !Are ilmn (found here) and pawtab%lmn_size compatibles ?
  if (ilmn/=pawtab%lmn_size) then
    write(msg, '(a,a,a,a,a)' )&
@@ -1105,7 +1105,7 @@ subroutine pawpsp_read(core_mesh,imainmesh,lmax,&
    if (ib==1) then
      iprojmesh=iread1
      call pawrad_copy(radmesh(iprojmesh),tproj_mesh)
-     LIBPAW_ALLOCATE(tproj,(tproj_mesh%mesh_size,pawtab%basis_size))
+     LIBPAW_POINTER_ALLOCATE(tproj,(tproj_mesh%mesh_size,pawtab%basis_size))
    else if (iread1/=iprojmesh) then
      write(msg, '(a,a,a)' )&
 &     '  All tprojectors must be given on the same radial mesh !',ch10,&
@@ -1178,7 +1178,7 @@ subroutine pawpsp_read(core_mesh,imainmesh,lmax,&
 &   '  Action: check your pseudopotential file.'
    MSG_ERROR(msg)
  end if
- LIBPAW_ALLOCATE(ncore,(core_mesh%mesh_size))
+ LIBPAW_POINTER_ALLOCATE(ncore,(core_mesh%mesh_size))
  read (tmp_unit,*) (ncore(ir),ir=1,core_mesh%mesh_size)
 
 !Construct and save VH[z_NC] if requested
@@ -1215,7 +1215,7 @@ subroutine pawpsp_read(core_mesh,imainmesh,lmax,&
 &   '  Action: check your pseudopotential file.'
    MSG_ERROR(msg)
  end if
- LIBPAW_ALLOCATE(tncore,(core_mesh%mesh_size))
+ LIBPAW_POINTER_ALLOCATE(tncore,(core_mesh%mesh_size))
  read (tmp_unit,*) (tncore(ir),ir=1,core_mesh%mesh_size)
  if (maxval(abs(tncore(:)))<tol6) then
    pawtab%usetcore=0
@@ -1271,7 +1271,7 @@ subroutine pawpsp_read(core_mesh,imainmesh,lmax,&
  end if
  usexcnhat_out=0;if (vlocopt==1) usexcnhat_out=1
  call pawrad_copy(radmesh(ivlocmesh),vloc_mesh)
- LIBPAW_ALLOCATE(vlocr,(vloc_mesh%mesh_size))
+ LIBPAW_POINTER_ALLOCATE(vlocr,(vloc_mesh%mesh_size))
  read (tmp_unit,*) (vlocr(ir),ir=1,vloc_mesh%mesh_size)
  write(msg,'(a,i1)') &
 & ' Radial grid used for Vloc is grid ',ivlocmesh
@@ -1335,7 +1335,7 @@ subroutine pawpsp_read(core_mesh,imainmesh,lmax,&
    read (tmp_unit,*) iread1
    ivalemesh=iread1
    call pawrad_copy(radmesh(iread1),vale_mesh)
-   LIBPAW_ALLOCATE(tnvale,(vale_mesh%mesh_size))
+   LIBPAW_POINTER_ALLOCATE(tnvale,(vale_mesh%mesh_size))
    read (tmp_unit,*) (tnvale(ir),ir=1,vale_mesh%mesh_size)
    pawtab%has_tvale=1
    write(msg,'(a,i1)') &
@@ -1344,7 +1344,7 @@ subroutine pawpsp_read(core_mesh,imainmesh,lmax,&
    call wrtout(std_out,  msg,'COLL')
  else
    pawtab%has_tvale=0
-   LIBPAW_ALLOCATE(tnvale,(0))
+   LIBPAW_POINTER_ALLOCATE(tnvale,(0))
  end if
 
 end subroutine pawpsp_read
@@ -3053,7 +3053,7 @@ subroutine pawpsp_17in(epsatm,ffspl,ipsp,ixc,lmax,&
  end if
  LIBPAW_ALLOCATE(pawtab%indlmn,(6,pawtab%lmn_size))
  pawtab%indlmn(:,:)=0
- LIBPAW_ALLOCATE(nprj,(0:maxval(pawtab%orbitals)))
+ LIBPAW_DATATYPE_ALLOCATE(nprj,(0:maxval(pawtab%orbitals)))
  ilmn=0;iln=0;nprj=0
  do ib=1,pawtab%basis_size
    il=pawtab%orbitals(ib)
@@ -3069,7 +3069,7 @@ subroutine pawpsp_17in(epsatm,ffspl,ipsp,ixc,lmax,&
    end do
    ilmn=ilmn+2*il+1
  end do
- LIBPAW_DEALLOCATE(nprj)
+ LIBPAW_DATATYPE_DEALLOCATE(nprj)
 !Are ilmn (found here) and pawtab%lmn_size compatibles ?
  if (ilmn/=pawtab%lmn_size) then
    write(msg, '(a,a,a,a,a)' )&
@@ -3806,19 +3806,19 @@ subroutine pawpsp_7in(epsatm,ffspl,icoulomb,ixc,&
  call pawrad_free(vloc_mesh)
  LIBPAW_DATATYPE_DEALLOCATE(radmesh)
  if (associated(vlocr)) then 
-   LIBPAW_DEALLOCATE(vlocr)
+   LIBPAW_POINTER_DEALLOCATE(vlocr)
  end if
  if (associated(ncore)) then 
-   LIBPAW_DEALLOCATE(ncore)
+   LIBPAW_POINTER_DEALLOCATE(ncore)
  end if
  if (associated(tncore)) then 
-   LIBPAW_DEALLOCATE(tncore)
+   LIBPAW_POINTER_DEALLOCATE(tncore)
  end if
  if (associated(tnvale)) then 
-   LIBPAW_DEALLOCATE(tnvale)
+   LIBPAW_POINTER_DEALLOCATE(tnvale)
  end if
  if (associated(tproj)) then
-   LIBPAW_DEALLOCATE(tproj)
+   LIBPAW_POINTER_DEALLOCATE(tproj)
  end if
  if (pspversion>=4)  then
    call pawrad_free(vale_mesh)

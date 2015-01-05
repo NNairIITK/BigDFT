@@ -21,7 +21,7 @@
 
 module m_libpaw_tools
     
- use defs_basis
+ USE_DEFS
  USE_MPI_WRAPPERS
 
  implicit none
@@ -96,13 +96,12 @@ subroutine libpaw_wrtout(unit,msg,mode_paral)
 
 !******************************************************************
 
- if ((unit == std_out).and.(.not.do_write_log)) RETURN
  if (unit == dev_null) RETURN
 
  my_mode_paral = "COLL"; if (PRESENT(mode_paral)) my_mode_paral = mode_paral
 
 !Communicator is xpaw_mpi_world by default
- comm=xpaw_mpi_world;if (abinit_comm_output/=-1) comm=abinit_comm_output
+ comm=xpaw_mpi_world
 
 !Determine who I am in COMM
  nproc = xpaw_mpi_comm_size(comm)

@@ -8,8 +8,8 @@ includes_except="fexcp.h"
 
 #Some "use module" statements might be expressed as cpp macros
 n_macros=2
-macros_in=( "USE_MPI_WRAPPERS" "USE_MSG_HANDLING" )
-macros_out=( "m_libpaw_mpi" "m_libpaw_tools" )
+macros_in=( "USE_DEFS" "USE_MPI_WRAPPERS" "USE_MSG_HANDLING" )
+macros_out=( "m_libpaw_defs" "m_libpaw_mpi" "m_libpaw_tools" )
 
 function adddep
 {

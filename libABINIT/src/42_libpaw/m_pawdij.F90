@@ -29,7 +29,7 @@
 
 MODULE m_pawdij
 
- use defs_basis
+ USE_DEFS
  USE_MSG_HANDLING
  USE_MPI_WRAPPERS
  USE_MEMORY_PROFILING
@@ -331,7 +331,7 @@ subroutine pawdij(cplex,enunit,gprimd,ipert,my_natom,natom,nfft,nfftot,nspden,nt
          msg='invalid size for vxc!'
          MSG_BUG(msg)
        end if
-       LIBPAW_ALLOCATE(v_dijhat,(cplex*nfft,nspden))
+       LIBPAW_POINTER_ALLOCATE(v_dijhat,(cplex*nfft,nspden))
        v_dijhat_allocated=.true.
        v_dijhat=vtrial-vxc
      else
@@ -805,7 +805,7 @@ subroutine pawdij(cplex,enunit,gprimd,ipert,my_natom,natom,nfft,nfftot,nspden,nt
 !    ===== Need to compute DijU
        lpawu=pawtab(itypat)%lpawu
        LIBPAW_ALLOCATE(dijpawu,(cplex_dij*lmn2_size,ndij))
-       LIBPAW_ALLOCATE(vpawu,(cplex_dij,lpawu*2+1,lpawu*2+1,nspden))
+       LIBPAW_POINTER_ALLOCATE(vpawu,(cplex_dij,lpawu*2+1,lpawu*2+1,nspden))
        if (pawtab(itypat)%usepawu>=10) vpawu=zero ! if dmft, do not apply U in LDA+U
        if (pawtab(itypat)%usepawu< 10) then
          call pawpupot(cplex_dij,ndij,paw_ij(iatom)%noccmmp,paw_ij(iatom)%nocctot,&
@@ -818,7 +818,7 @@ subroutine pawdij(cplex,enunit,gprimd,ipert,my_natom,natom,nfft,nfftot,nspden,nt
 &                     natvshift=natvshift_,atvshift=atvshift(:,:,iatom_tot),&
 &                     fatvshift=fatvshift)
        end if
-       LIBPAW_DEALLOCATE(vpawu)
+       LIBPAW_POINTER_DEALLOCATE(vpawu)
        if (dijU_need) paw_ij(iatom)%dijU(:,:)=dijpawu(:,:)
        if (dij_need) paw_ij(iatom)%dij(:,:)=paw_ij(iatom)%dij(:,:)+dijpawu(:,:)
        LIBPAW_DEALLOCATE(dijpawu)
@@ -841,7 +841,7 @@ subroutine pawdij(cplex,enunit,gprimd,ipert,my_natom,natom,nfft,nfftot,nspden,nt
        LIBPAW_ALLOCATE(dijexxc,(cplex_dij*lmn2_size,ndij))
        if (pawxcdev/=0) then
          if (paw_ij(iatom)%has_exexch_pot/=2) then
-           LIBPAW_ALLOCATE(vpawx,(1,lmn2_size,nspden))
+           LIBPAW_POINTER_ALLOCATE(vpawx,(1,lmn2_size,nspden))
            call pawxpot(nspden,pawprtvol,pawrhoij(iatom),pawtab(itypat),vpawx)
          else
            vpawx=>paw_ij(iatom)%vpawx
@@ -853,7 +853,7 @@ subroutine pawdij(cplex,enunit,gprimd,ipert,my_natom,natom,nfft,nfftot,nspden,nt
 &             pawang,pawrad(itypat),pawtab(itypat),vpawx,paw_an(iatom)%vxc_ex)
          LIBPAW_DEALLOCATE(lmselect)
          if (paw_ij(iatom)%has_exexch_pot/=2) then
-            LIBPAW_DEALLOCATE(vpawx)
+            LIBPAW_POINTER_DEALLOCATE(vpawx)
          end if
          if (dijexxc_need) paw_ij(iatom)%dijexxc(:,:)=dijexxc(:,:)
          if (dij_need) paw_ij(iatom)%dij(:,:)=paw_ij(iatom)%dij(:,:)+dijexxc(:,:)
@@ -957,7 +957,7 @@ subroutine pawdij(cplex,enunit,gprimd,ipert,my_natom,natom,nfft,nfftot,nspden,nt
 
 !Free temporary storage
  if (v_dijhat_allocated) then
-   LIBPAW_DEALLOCATE(v_dijhat)
+   LIBPAW_POINTER_DEALLOCATE(v_dijhat)
  end if
  do iatom=1,my_natom
    if (paw_ij(iatom)%has_dij0==-1) then

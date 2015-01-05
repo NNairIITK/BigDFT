@@ -24,7 +24,7 @@
 
 MODULE m_pawrhoij
 
- use defs_basis
+ USE_DEFS
  USE_MSG_HANDLING
  USE_MPI_WRAPPERS
  USE_MEMORY_PROFILING
@@ -255,7 +255,7 @@ subroutine pawrhoij_alloc(pawrhoij,cplex,nspden,nspinor,nsppol,typat,&
      msg=' wrong sizes (2) !'
      MSG_BUG(msg)
    end if
-   LIBPAW_ALLOCATE(lmn_size,(nn1))
+   LIBPAW_POINTER_ALLOCATE(lmn_size,(nn1))
    do itypat=1,nn1
      lmn_size(itypat)=pawtab(itypat)%lmn_size
    end do
@@ -341,7 +341,7 @@ subroutine pawrhoij_alloc(pawrhoij,cplex,nspden,nspinor,nsppol,typat,&
  end if
 
  if (present(pawtab)) then
-   LIBPAW_DEALLOCATE(lmn_size)
+   LIBPAW_POINTER_DEALLOCATE(lmn_size)
  end if
 
 !Destroy atom table used for parallelism

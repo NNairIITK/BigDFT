@@ -23,7 +23,7 @@
 
 MODULE m_sphharm
 
- use defs_basis
+ USE_DEFS
  USE_MSG_HANDLING
  USE_MEMORY_PROFILING
 
@@ -154,7 +154,7 @@ function ylmc(il,im,kcart)
   if (ABS(im)==0) then
    ylmc = SQRT(three/(four_pi))*costh
   else if (ABS(im)==1) then
-   ylmc = -SQRT(three/(eight*pi))*sinth*CMPLX(cosphi,sinphi)
+   ylmc = -SQRT(three/(8._dp*pi))*sinth*CMPLX(cosphi,sinphi)
   else
    msg='wrong im'
    MSG_ERROR(msg)
@@ -1568,14 +1568,14 @@ subroutine mat_mlms2jmj(lcor,mat_mlms,mat_jmj,ndij,option,optspin,prtvol,unitfi,
 !scalars
  integer :: ii,im,im1,im2,ispden,jc1,jc2,jj,jm,ll,ml1,ml2,ms1,ms2
  real(dp),parameter :: invsqrt2=one/sqrt2
- real(dp) :: invsqrt2lp1,xj,xmj
+ real(dp) :: invsqrt2lp1,mat_tmp,xj,xmj
  complex(dpc) :: tmp2
  character(len=9),parameter :: dspinold(6)=(/"up       ","down     ","up-up    ","down-down","up-dn    ","dn-up    "/)
  character(len=9),parameter :: dspin(6)=(/"dn       ","up       ","dn-dn    ","up-up    ","dn-up    ","up-dn    "/)
  character(len=500) :: msg
 !arrays
  integer, allocatable :: ind_msml(:,:)
- complex(dpc),allocatable :: mat_mlms2(:,:),mat_tmp(:,:,:),mlms2jmj(:,:)
+ complex(dpc),allocatable :: mat_mlms2(:,:),mlms2jmj(:,:)
 
 !*********************************************************************
 
@@ -1609,15 +1609,21 @@ subroutine mat_mlms2jmj(lcor,mat_mlms,mat_jmj,ndij,option,optspin,prtvol,unitfi,
      if(abs(prtvol)>2.and.unitfi/=-1)&
 &     write(msg,'(3a)') ch10,"assume spin dn is the first in the array"
    else if (optspin==1) then
-     LIBPAW_ALLOCATE(mat_tmp,(2*lcor+1,2*lcor+1,ndij))
      if(abs(prtvol)>2.and.unitfi/=-1)&
 &     write(msg,'(3a)') ch10,"change array in order that spin dn is the first in the array"
-     mat_tmp(:,:,1)=mat_mlms(:,:,2)
-     mat_tmp(:,:,2)=mat_mlms(:,:,1)
-     mat_tmp(:,:,3)=mat_mlms(:,:,4)
-     mat_tmp(:,:,4)=mat_mlms(:,:,3)
-     mat_mlms(:,:,:)=mat_tmp(:,:,:)
-     LIBPAW_DEALLOCATE(mat_tmp)
+     do ii=1,2*lcor+1
+       do jj=1,2*lcor+1
+         mat_tmp=mat_mlms(ii,jj,2)
+         mat_mlms(ii,jj,2)=mat_mlms(ii,jj,1)
+         mat_mlms(ii,jj,1)=mat_tmp
+         mat_tmp=mat_mlms(ii,jj,4)
+         mat_mlms(ii,jj,4)=mat_mlms(ii,jj,3)
+         mat_mlms(ii,jj,3)=mat_tmp
+       end do
+     end do
+!    mat_tmp(:,:,1)=mat_mlms(:,:,2);mat_tmp(:,:,2)=mat_mlms(:,:,1)
+!    mat_tmp(:,:,3)=mat_mlms(:,:,4);mat_tmp(:,:,4)=mat_mlms(:,:,3)
+!    mat_mlms(:,:,:)=mat_tmp(:,:,:)
    end if
    if(abs(prtvol)>2.and.unitfi/=-1) then
      call wrtout(unitfi,msg,wrt_mode)
@@ -1641,7 +1647,7 @@ subroutine mat_mlms2jmj(lcor,mat_mlms,mat_jmj,ndij,option,optspin,prtvol,unitfi,
  ll=lcor
  LIBPAW_ALLOCATE(mlms2jmj,(2*(2*ll+1),2*(2*ll+1)))
  mlms2jmj=czero
- LIBPAW_ALLOCATE(ind_msml,(2,-ll:ll))
+ LIBPAW_DATATYPE_ALLOCATE(ind_msml,(2,-ll:ll))
  LIBPAW_ALLOCATE(mat_mlms2,(2*(2*lcor+1),2*(2*lcor+1)))
  mlms2jmj=czero
  jc1=0
@@ -1772,8 +1778,8 @@ subroutine mat_mlms2jmj(lcor,mat_mlms,mat_jmj,ndij,option,optspin,prtvol,unitfi,
    end do
  end if
  LIBPAW_DEALLOCATE(mlms2jmj)
- LIBPAW_DEALLOCATE(ind_msml)
  LIBPAW_DEALLOCATE(mat_mlms2)
+ LIBPAW_DATATYPE_DEALLOCATE(ind_msml)
 
  end subroutine mat_mlms2jmj
 !!***

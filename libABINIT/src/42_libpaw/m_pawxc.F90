@@ -18,7 +18,7 @@
 
 module m_pawxc
 
- use defs_basis
+ USE_DEFS
  USE_MSG_HANDLING
  USE_MEMORY_PROFILING
 
@@ -152,7 +152,7 @@ subroutine pawxc_xcpositron_wrapper(fnxc,grhoe2,ixcpositron,ngr,npt,posdensity0_
  real(dp),parameter :: ap_a4=-179856.2768_dp,ap_b4=186.4207_dp,ap_c4=-0.524_dp
  real(dp),parameter :: ap_psn_limit=0.7_dp
  real(dp),parameter :: ap_psn_1=0.9_dp*ap_psn_limit,ap_psn_2=1.1_dp*ap_psn_limit
- real(dp),parameter :: fpi3=third*four_pi
+ real(dp),parameter :: fpi3=four_pi/three
  real(dp),parameter :: psn_aa=69.7029_dp,psn_ba=-107.4927_dp,psn_bb=141.8458_dp
  real(dp),parameter :: psn_ca=23.7182_dp,psn_cb=-33.6472_dp ,psn_cc=5.21152_dp
  real(dp),parameter :: sk_a=-1.56_dp,sk_b=0.1324_dp,sk_c=-4.092_dp,sk_d=51.96_dp,sk_e=0.7207_dp
@@ -223,8 +223,8 @@ subroutine pawxc_xcpositron_wrapper(fnxc,grhoe2,ixcpositron,ngr,npt,posdensity0_
 
    rse=rsepts(ipt)
    invrhoe=one/rhoe
-   drse=-third*rse*invrhoe
-   if (need_dvxce) d2rse= four/nine*rse*invrhoe**2
+   drse=-rse*invrhoe/three
+   if (need_dvxce) d2rse= four/9._dp*rse*invrhoe**2
 
 !  Arponen & Pajane parametrization for electron
    if (ixcpositron/=11.and.ixcpositron/=31) then
@@ -237,7 +237,7 @@ subroutine pawxc_xcpositron_wrapper(fnxc,grhoe2,ixcpositron,ngr,npt,posdensity0_
        invrs=one/rse
        exc =ap_a2+ap_b2*invrs**2
        dexc=-drse*ap_b2*two*invrs**3
-       if (need_dvxce) d2exc=d2rse/drse*dexc+six*drse**2*ap_b2*invrs**4
+       if (need_dvxce) d2exc=d2rse/drse*dexc+6._dp*drse**2*ap_b2*invrs**4
      else if (rse>0.56_dp.and.rse<=8.0_dp) then
        invrs=one/(rse+2.5_dp)
        dinvrs=-drse*invrs**2
@@ -267,8 +267,8 @@ subroutine pawxc_xcpositron_wrapper(fnxc,grhoe2,ixcpositron,ngr,npt,posdensity0_
    if (ixcpositron==2.and.rse>=ap_psn_1) then
      rsp=rsppts(ipt)
      invrhop=one/rhop
-     drsp=-third*rsp*invrhop
-     if (need_dvxcp) d2rsp= four/nine*rsp*invrhop**2
+     drsp=-rsp*invrhop/three
+     if (need_dvxcp) d2rsp= four/9._dp*rsp*invrhop**2
      exc_p=zero;dexc_p=zero;d2exc_p=zero
      if (rsp<0.302_dp) then
        invrs=one/rsp;invsqr=sqrt(invrs);logrs=log(rsp)
@@ -279,7 +279,7 @@ subroutine pawxc_xcpositron_wrapper(fnxc,grhoe2,ixcpositron,ngr,npt,posdensity0_
        invrs=one/rsp
        exc_p =ap_a2+ap_b2*invrs**2
        dexc_p=-drsp*ap_b2*two*invrs**3
-       if (need_dvxcp) d2exc_p=d2rsp/drsp*dexc_p+six*drsp**2*ap_b2*invrs**4
+       if (need_dvxcp) d2exc_p=d2rsp/drsp*dexc_p+6._dp*drsp**2*ap_b2*invrs**4
      else if (rsp>0.56_dp.and.rsp<=8.0_dp) then
        invrs=one/(rsp+2.5_dp)
        dinvrs=-drsp*invrs**2
@@ -296,16 +296,16 @@ subroutine pawxc_xcpositron_wrapper(fnxc,grhoe2,ixcpositron,ngr,npt,posdensity0_
 
 !  GGA correction
    if (gga) then
-     kf=(three*pi*pi*rhoe)**third
+     kf=(three*pi*pi*rhoe)**(one/three)
      nqtf2=(rhoe*sqrt(four*kf/pi))**2
      eps=grhoe2(ipt)/nqtf2
      if (eps<zero) then 
        msg='pawxc_xcpositron_wrapper: problem, negative GGA espilon!'
        MSG_ERROR(msg)
      end if
-     expgga=exp(-alpha_gga*eps*third)
+     expgga=exp(-alpha_gga*eps/three)
 
-     dkf=pi*pi/(sqrt(three*pi*pi*rhoe)**third)
+     dkf=pi*pi/(sqrt(three*pi*pi*rhoe)**(one/three))
      d2kf=-two*pi*pi*pi*pi*(three*pi*pi*rhoe)**(-5.0_dp/3.0_dp)
      sqr=sqrt(four*kf/pi)
      dsqr=(four*dkf/pi)/(two*sqr)
@@ -317,13 +317,13 @@ subroutine pawxc_xcpositron_wrapper(fnxc,grhoe2,ixcpositron,ngr,npt,posdensity0_
 &     +rhoe*(sqr+rhoe*dsqr) ) 
      deps=-grhoe2(ipt)*dnqtf2/(nqtf2**two)
      d2eps=-grhoe2(ipt)/(nqtf2*nqtf2*dnqtf2)*(d2nqtf2*nqtf2*nqtf2-two*nqtf2*dnqtf2*dnqtf2)
-     dexpgga=-alpha_gga*third*deps*expgga
-     d2expgga=-alpha_gga*third*(d2eps*expgga+deps*dexpgga)
+     dexpgga=-alpha_gga*deps*expgga/three
+     d2expgga=-alpha_gga*(d2eps*expgga+deps*dexpgga)/three
      
      exc   = exc  *expgga
      dexc=(dexc*expgga+exc*dexpgga)
      if (need_dvxce) d2exc=d2exc*expgga+two*dexc*dexpgga+exc*d2expgga
-     if (abs(grhoe2(ipt))<1.e24_dp) dexcdg=-exc*alpha_gga*two_thirds/nqtf2
+     if (abs(grhoe2(ipt))<1.e24_dp) dexcdg=-exc*alpha_gga*two/three/nqtf2
    end if
 
 !  Computation of XC energy, potentials and kernels
@@ -384,7 +384,7 @@ subroutine pawxc_xcpositron_wrapper(fnxc,grhoe2,ixcpositron,ngr,npt,posdensity0_
        if (need_dvxcp) dvxcp(ipt)=tol3*(rhoe**3/3._dp+rhoe*rhop**2+rhoe**2+two*rhop*rhoe)
      end if
      if (idebug==3) then ! order 3
-       fnxc(ipt)=tol3*((rhop**3+rhoe**3)*third+rhop**2*rhoe+rhop*rhoe**2)
+       fnxc(ipt)=tol3*((rhop**3+rhoe**3)*(one/three)+rhop**2*rhoe+rhop*rhoe**2)
        vxce(ipt)=tol3*(rhop+rhoe)**2
        vxcp(ipt)=tol3*(rhop+rhoe)**2
        if (need_dvxce) dvxce(ipt)=tol3*two*rhoe
@@ -1867,7 +1867,7 @@ subroutine pawxc3_gga(corexc1,cplex_den,cplex_vxc,d2enxc,ixc,kxc,lm_size,lmselec
  end if
 
  if (option==2) then
-   LIBPAW_ALLOCATE(vxc1_,(cplex_vxc*nrad,npts,nspden))
+   LIBPAW_POINTER_ALLOCATE(vxc1_,(cplex_vxc*nrad,npts,nspden))
  else
    vxc1_ => vxc1
  end if
@@ -2515,7 +2515,7 @@ subroutine pawxc3_gga(corexc1,cplex_den,cplex_vxc,d2enxc,ixc,kxc,lm_size,lmselec
 !Free memory
  LIBPAW_DEALLOCATE(rho1arr)
  if (option==2) then
-   LIBPAW_DEALLOCATE(vxc1_)
+   LIBPAW_POINTER_DEALLOCATE(vxc1_)
  end if
  if (xclevel==2.and.option/=3) then
    LIBPAW_DEALLOCATE(gxc1)
@@ -4266,10 +4266,10 @@ end subroutine pawxcsphpositron
          dvxc4=(vxcdn1(ir,2)+vxcdn2(ir,2)-two*vxci(ir,2))*fact !d2Vxc_dn/dn_dn2
          dvxca=dvxc1+dvxc4;dvxcb=dvxc1-dvxc4 !Temporary terms
          dvxcc=dvxc2+dvxc3;dvxcd=dvxc2-dvxc3 !Temporary terms
-         d2vxc(ir,1)=eighth*(dvxca+three*dvxcc)  ! 1/2 d2(Vxc_up+Vxc_dn)/dn2
-         d2vxc(ir,2)=eighth*(dvxcb+dvxcd)        ! 1/2 d2(Vxc_up-Vxc_dn)/dn2
-         d2vxc(ir,3)=eighth*(dvxca-dvxcc)        ! 1/2 d2(Vxc_up+Vxc_dn)/dm2
-         d2vxc(ir,4)=eighth*(dvxcb-three*dvxcd)  ! 1/2 d2(Vxc_up-Vxc_dn)/dm2
+         d2vxc(ir,1)=(dvxca+three*dvxcc)/8._dp  ! 1/2 d2(Vxc_up+Vxc_dn)/dn2
+         d2vxc(ir,2)=(dvxcb+dvxcd)/8._dp        ! 1/2 d2(Vxc_up-Vxc_dn)/dn2
+         d2vxc(ir,3)=(dvxca-dvxcc)/8._dp        ! 1/2 d2(Vxc_up+Vxc_dn)/dm2
+         d2vxc(ir,4)=(dvxcb-three*dvxcd)/8._dp  ! 1/2 d2(Vxc_up-Vxc_dn)/dm2
        end do
      end if
    end if
@@ -4638,7 +4638,7 @@ end subroutine pawxcsphpositron
            gg(1:nrad)=gg(1:nrad)+v2sum(1:nrad,ilm,1)*rho_updn(1:nrad,ilm,1)
          end if
        end do
-       ff(1:nrad)=ff(1:nrad)+sixth*gg(1:nrad)*d2vxc(1:nrad,1)
+       ff(1:nrad)=ff(1:nrad)+gg(1:nrad)*d2vxc(1:nrad,1)/6._dp
 
        if (nspden_updn==2) then
          gg=zero
@@ -4655,7 +4655,7 @@ end subroutine pawxcsphpositron
              end if
            end do
          end if
-         ff(1:nrad)=ff(1:nrad)+sixth*gg(1:nrad)*d2vxc(1:nrad,4)
+         ff(1:nrad)=ff(1:nrad)+gg(1:nrad)*d2vxc(1:nrad,4)/6._dp
          gg=zero
          do ilm=2,lm_size
            if (lmselect(ilm)) then
@@ -4939,7 +4939,7 @@ end subroutine pawxcsphpositron
 !----------------------------------------------------------------------
 
  if (option==2) then
-   LIBPAW_ALLOCATE(vxc1_,(cplex_vxc*nrad,lm_size,nspden))
+   LIBPAW_POINTER_ALLOCATE(vxc1_,(cplex_vxc*nrad,lm_size,nspden))
  else
    vxc1_ => vxc1
  end if
@@ -5070,7 +5070,7 @@ end subroutine pawxcsphpositron
 
  LIBPAW_DEALLOCATE(rho1_updn)
  if (option==2) then
-   LIBPAW_DEALLOCATE(vxc1_)
+   LIBPAW_POINTER_DEALLOCATE(vxc1_)
  end if
 
  end subroutine pawxcm3
@@ -5519,7 +5519,7 @@ subroutine pawxcmpositron(calctype,corexc,enxc,enxcdc,ixcpositron,lm_size,lmsele
        do ilm=2,lm_size
          if (lmselect(ilm))    gg(:)=gg(:)+v2sum(:,ilm,1)*rhotot(:,ilm)
        end do
-       ff(:)=ff(:)+sixth*gg(:)*d2vxc(:,1)
+       ff(:)=ff(:)+gg(:)*d2vxc(:,1)/6._dp
        gg=zero
        do ilm=2,lm_size
          if (lmselect(ilm))    gg(:)=gg(:)+v2sum(:,ilm,2)*rhotot(:,ilm)
@@ -5534,7 +5534,7 @@ subroutine pawxcmpositron(calctype,corexc,enxc,enxcdc,ixcpositron,lm_size,lmsele
        do ilm=2,lm_size
          if (lmselect_ep(ilm)) gg(:)=gg(:)+v2sum(:,ilm,3)*rhotot_ep(:,ilm)
        end do
-       ff(:)=ff(:)+sixth*gg(:)*d2vxc(:,4)
+       ff(:)=ff(:)+gg(:)*d2vxc(:,4)/6._dp
        LIBPAW_DEALLOCATE(gg)
      end if ! pawxcdev>=2
 

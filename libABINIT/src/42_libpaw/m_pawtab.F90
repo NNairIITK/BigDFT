@@ -24,7 +24,7 @@
 
 MODULE m_pawtab
 
- use defs_basis
+ USE_DEFS
  USE_MSG_HANDLING
  USE_MPI_WRAPPERS
  USE_MEMORY_PROFILING
@@ -51,10 +51,10 @@ MODULE m_pawtab
   integer :: msz             
 ! mesh size 
 
-  real(dp),pointer :: d(:,:) => null() 
+  real(dp),allocatable :: d(:,:)
 ! local rho and derivatives
 
-  real(dp),pointer :: rad(:) => null()
+  real(dp),allocatable :: rad(:)
 ! radial mesh 
 
  end type wvlpaw_rholoc_type
@@ -88,16 +88,16 @@ MODULE m_pawtab
    ! total number of complex gaussians 
    ! for tproj 
 
-  integer,pointer :: pngau(:)
+  integer,allocatable :: pngau(:)
    ! number of complex gaussians per basis element
    ! for tproj 
 
 !Real pointers
 
-  real(dp),pointer :: parg(:,:) => null()
+  real(dp),allocatable :: parg(:,:)
    !argument of Gaussians
 
-  real(dp),pointer :: pfac(:,:) => null()
+  real(dp),allocatable :: pfac(:,:)
    !factors of Gaussians
 
 !Other scalars
@@ -581,7 +581,6 @@ subroutine pawtab_nullify_0D(Pawtab)
 
  !@Pawtab_type
  nullify(Pawtab%wvl)
-!call wvlpaw_nullify(Pawtab%wvl)
 
  ! === Reset all flags and sizes ===
 
@@ -680,7 +679,7 @@ end subroutine pawtab_nullify_1D
 !!
 !! SIDE EFFECTS
 !!  Pawtab<type(pawtab_type)>=PAW arrays tabulated.
-!!  All associated pointers in Pawtab are deallocated
+!!  All allocated arrays in Pawtab are deallocated
 !!
 !! PARENTS
 !!      m_pawtab
@@ -834,9 +833,7 @@ subroutine pawtab_free_0D(Pawtab)
    LIBPAW_DEALLOCATE(Pawtab%zioneff)
  end if
 
- ! MGPAW: Check this one!
  call wvlpaw_free(Pawtab%wvl)
- !Pawtab%wvl => null()
 
  ! === Reset all flags and sizes ===
 
@@ -1691,17 +1688,17 @@ subroutine pawtab_bcast(pawtab,comm_mpi,only_from_file)
      nn_int=nn_int+3
 !    wvl%npspcode_init_guess,wvl%ptotgau
      nn_int=nn_int+2
-     if (associated(pawtab%wvl%pngau)) then
+     if (allocated(pawtab%wvl%pngau)) then
        siz_wvl_pngau=size(pawtab%wvl%pngau)         !(basis_size)
        if (siz_wvl_pngau/=pawtab%basis_size) msg=trim(msg)//' wvl_pngau'
        nn_int_arr=nn_int_arr+siz_wvl_pngau
      end if
-     if (associated(pawtab%wvl%parg)) then
+     if (allocated(pawtab%wvl%parg)) then
        siz_wvl_parg=size(pawtab%wvl%parg)          !(2,ptotgau)
        if (siz_wvl_parg/=2*pawtab%wvl%ptotgau) msg=trim(msg)//' wvl_parg'
        nn_dpr_arr=nn_dpr_arr+siz_wvl_parg
      end if
-     if (associated(pawtab%wvl%pfac)) then
+     if (allocated(pawtab%wvl%pfac)) then
        siz_wvl_pfac=size(pawtab%wvl%pfac )         !(2,ptotgau)
        if (siz_wvl_pfac/=2*pawtab%wvl%ptotgau) msg=trim(msg)//' wvl_pfac'
        nn_dpr_arr=nn_dpr_arr+siz_wvl_pfac
@@ -1717,12 +1714,12 @@ subroutine pawtab_bcast(pawtab,comm_mpi,only_from_file)
 !      wvl%rholoc%msz
        nn_int=nn_int+1
        if (pawtab%wvl%rholoc%msz>0) then
-         if (associated(pawtab%wvl%rholoc%rad)) then
+         if (allocated(pawtab%wvl%rholoc%rad)) then
            siz_wvl_rholoc_rad=size(pawtab%wvl%rholoc%rad) !(msz)
            if (siz_wvl_rholoc_rad/=pawtab%wvl%rholoc%msz) msg=trim(msg)//' wvl_rholoc_rad'
            nn_dpr_arr=nn_dpr_arr+siz_wvl_rholoc_rad
          end if
-         if (associated(pawtab%wvl%rholoc%d)) then
+         if (allocated(pawtab%wvl%rholoc%d)) then
            siz_wvl_rholoc_d=size(pawtab%wvl%rholoc%d)     !(msz,4)
            if (siz_wvl_rholoc_d/=4*pawtab%wvl%rholoc%msz) msg=trim(msg)//' wvl_rholoc_d'
            nn_dpr_arr=nn_dpr_arr+siz_wvl_rholoc_d
@@ -1984,7 +1981,7 @@ subroutine pawtab_bcast(pawtab,comm_mpi,only_from_file)
      siz_wvl_pfac=list_int(ii)  ;ii=ii+1
      pawtab%wvl%npspcode_init_guess=list_int(ii)  ;ii=ii+1
      pawtab%wvl%ptotgau=list_int(ii)  ;ii=ii+1
-     if (associated(pawtab%wvl%pngau)) then
+     if (allocated(pawtab%wvl%pngau)) then
        LIBPAW_DEALLOCATE(pawtab%wvl%pngau)
      end if
      if (siz_wvl_pngau>0) then
@@ -2451,7 +2448,7 @@ subroutine pawtab_bcast(pawtab,comm_mpi,only_from_file)
    end if
 !Reals in datastructures (read from psp file)
    if (siz_wvlpaw==1) then
-     if (associated(pawtab%wvl%parg)) then
+     if (allocated(pawtab%wvl%parg)) then
        LIBPAW_DEALLOCATE(pawtab%wvl%parg)
      end if
      if (siz_wvl_parg>0) then
@@ -2459,7 +2456,7 @@ subroutine pawtab_bcast(pawtab,comm_mpi,only_from_file)
        pawtab%wvl%parg=reshape(list_dpr(ii:ii+siz_wvl_parg-1),(/2,pawtab%wvl%ptotgau/))
        ii=ii+siz_wvl_parg
      end if
-     if (associated(pawtab%wvl%pfac)) then
+     if (allocated(pawtab%wvl%pfac)) then
        LIBPAW_DEALLOCATE(pawtab%wvl%pfac)
      end if
      if (siz_wvl_pfac>0) then
@@ -2636,7 +2633,7 @@ subroutine pawtab_bcast(pawtab,comm_mpi,only_from_file)
      end if
 !Reals in datastructures
      if (siz_wvlpaw==1) then
-       if (associated(pawtab%wvl%rholoc%rad)) then
+       if (allocated(pawtab%wvl%rholoc%rad)) then
          LIBPAW_DEALLOCATE(pawtab%wvl%rholoc%rad)
        end if
        if (siz_wvl_rholoc_rad>0) then
@@ -2645,7 +2642,7 @@ subroutine pawtab_bcast(pawtab,comm_mpi,only_from_file)
          pawtab%wvl%rholoc%rad=list_dpr(ii:ii+sz1-1)
          ii=ii+siz_wvl_rholoc_rad
        end if
-       if (associated(pawtab%wvl%rholoc%d)) then
+       if (allocated(pawtab%wvl%rholoc%d)) then
          LIBPAW_DEALLOCATE(pawtab%wvl%rholoc%d)
        end if
        if (siz_wvl_rholoc_d>0) then
@@ -2681,7 +2678,6 @@ end subroutine pawtab_bcast
 !!
 !! SIDE EFFECTS
 !!  wvlpaw<type(wvlpaw_type)>=datastructure to be allocated.
-!!  All associated pointer are nullified.
 !!
 !! PARENTS
 !!      m_pawpsp,m_pawtab
@@ -2723,11 +2719,11 @@ end subroutine wvlpaw_allocate
 !!  wvlpaw_free
 !!
 !! FUNCTION
-!!  Deallocate pointers and nullify flags in a wvlpaw structure
+!!  Deallocate arrays and nullify flags in a wvlpaw structure
 !!
 !! SIDE EFFECTS
 !!  wvlpaw<type(wvlpaw_type)>=datastructure to be destroyed.
-!!  All associated pointers are deallocated.
+!!  All allocated arrays are deallocated.
 !!
 !! PARENTS
 !!      m_pawpsp,m_pawtab
@@ -2756,13 +2752,13 @@ subroutine wvlpaw_free(wvlpaw)
 
  if (.not.associated(wvlpaw)) return
 
- if(associated(wvlpaw%pngau)) then
+ if(allocated(wvlpaw%pngau)) then
    LIBPAW_DEALLOCATE(wvlpaw%pngau)
  end if
- if(associated(wvlpaw%parg)) then
+ if(allocated(wvlpaw%parg)) then
    LIBPAW_DEALLOCATE(wvlpaw%parg)
  end if
- if(associated(wvlpaw%pfac)) then
+ if(allocated(wvlpaw%pfac)) then
    LIBPAW_DEALLOCATE(wvlpaw%pfac)
  end if
 
@@ -2783,7 +2779,7 @@ end subroutine wvlpaw_free
 !!  wvlpaw_nullify
 !!
 !! FUNCTION
-!!  Nullify pointers and flags in a wvlpaw structure
+!!  Nullify flags in a wvlpaw structure
 !!
 !! SIDE EFFECTS
 !!  wvlpaw=datastructure to be nullified
@@ -2814,10 +2810,6 @@ subroutine wvlpaw_nullify(wvlpaw)
  !@wvlpaw_type
  if (.not.associated(wvlpaw)) return
 
- nullify(wvlpaw%pngau)
- nullify(wvlpaw%parg)
- nullify(wvlpaw%pfac)
- 
  wvlpaw%npspcode_init_guess=0
  wvlpaw%ptotgau=0
  
@@ -2833,11 +2825,11 @@ end subroutine wvlpaw_nullify
 !!  wvlpaw_rholoc_free
 !!
 !! FUNCTION
-!!  Deallocate pointers and nullify flags in a wvlpaw%rholoc structure
+!!  Deallocate arrays and nullify flags in a wvlpaw%rholoc structure
 !!
 !! SIDE EFFECTS
 !!  wvlpaw_rholoc<type(wvlpaw_rholoc_type)>=datastructure to be destroyed.
-!!  All associated pointers are deallocated.
+!!  All allocated arrays are deallocated.
 !!
 !! PARENTS
 !!      m_pawpsp,m_pawtab
@@ -2864,10 +2856,10 @@ subroutine wvlpaw_rholoc_free(wvlpaw_rholoc)
 
  !@wvlpaw_rholoc_type
 
- if(associated(wvlpaw_rholoc%d)) then
+ if(allocated(wvlpaw_rholoc%d)) then
    LIBPAW_DEALLOCATE(wvlpaw_rholoc%d)
  end if
- if(associated(wvlpaw_rholoc%rad)) then
+ if(allocated(wvlpaw_rholoc%rad)) then
    LIBPAW_DEALLOCATE(wvlpaw_rholoc%rad)
  end if
 
@@ -2883,7 +2875,7 @@ end subroutine wvlpaw_rholoc_free
 !!  wvlpaw_rholoc_nullify
 !!
 !! FUNCTION
-!!  Nullify pointers and flags in a wvlpaw%rholoc structure
+!!  Nullify flags in a wvlpaw%rholoc structure
 !!
 !! SIDE EFFECTS
 !!  wvlpaw_rholoc<type(wvlpaw_rholoc_type)>=datastructure to be nullified.
@@ -2912,9 +2904,6 @@ subroutine wvlpaw_rholoc_nullify(wvlpaw_rholoc)
 ! *************************************************************************
 
  !@wvlpaw_rholoc_type
-
- nullify(wvlpaw_rholoc%d)
- nullify(wvlpaw_rholoc%rad)
 
  wvlpaw_rholoc%msz=0
 

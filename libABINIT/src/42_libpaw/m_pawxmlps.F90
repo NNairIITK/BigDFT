@@ -23,7 +23,7 @@
 
 module m_pawxmlps
 
- use defs_basis
+ USE_DEFS
  USE_MSG_HANDLING
  USE_MEMORY_PROFILING
 
@@ -2206,12 +2206,12 @@ end subroutine paw_setup_copy
 !Local variables ---------------------------------------
  integer :: funit,iaewf,ii,imeshae,imsh,ir,igrid,icor,ierr,maxmeshz,mesh_size,nmesh
  logical :: endfile,found, tread
- real(dp),allocatable ::work(:),phitmp(:,:)
+ real(dp),allocatable :: work(:),phitmp(:,:)
  type(pawrad_type) :: tmpmesh
  character(len=500) :: msg,version
  character (len=XML_RECL) :: line,readline
  character (len=XML_RECL) :: strg
- character (len=30) ::strg1
+ character (len=30) :: strg1
  character (len=20), allocatable :: gridwf(:),statewf(:)
  type(state_t),allocatable   :: corestate (:)
  type(radial_grid_t),allocatable   :: grids (:)
@@ -2436,8 +2436,8 @@ end subroutine paw_setup_copy
 !Start a reading loop
  iaewf=0
  endfile=.false.
- LIBPAW_ALLOCATE(gridwf,(nphicor))
- LIBPAW_ALLOCATE(statewf,(nphicor))
+ LIBPAW_DATATYPE_ALLOCATE(gridwf,(nphicor))
+ LIBPAW_DATATYPE_ALLOCATE(statewf,(nphicor))
  maxmeshz=maxval(radmesh(:)%mesh_size)
  LIBPAW_ALLOCATE(phitmp,(nphicor, maxmeshz))
 
@@ -2476,7 +2476,7 @@ end subroutine paw_setup_copy
    do ii=1,nphicor
      ncor(ii)=corestate(ii)%nn
      lcor(ii)=corestate(ii)%ll
-! for coherence with optics_paw_core there is a factor of two for energy
+! for consistency with optics_paw_core there is a factor of two for energy
      energy_cor(ii)=two*corestate(ii)%ee
      do imsh=1,nmesh
        if(trim(gridwf(ii))==trim(grids(imsh)%id)) imeshae=imsh
@@ -2512,8 +2512,8 @@ end subroutine paw_setup_copy
  LIBPAW_DATATYPE_DEALLOCATE(grids)
  LIBPAW_DATATYPE_DEALLOCATE(corestate)
 
- LIBPAW_DEALLOCATE(gridwf)
- LIBPAW_DEALLOCATE(statewf)
+ LIBPAW_DATATYPE_DEALLOCATE(gridwf)
+ LIBPAW_DATATYPE_DEALLOCATE(statewf)
  LIBPAW_DEALLOCATE(phitmp)
 
 !Close the XML atomicdata file

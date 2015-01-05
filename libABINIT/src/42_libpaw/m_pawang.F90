@@ -37,7 +37,7 @@
 
 MODULE m_pawang
 
- use defs_basis
+ USE_DEFS
  USE_MSG_HANDLING
  USE_MPI_WRAPPERS
  USE_MEMORY_PROFILING
@@ -427,10 +427,9 @@ subroutine pawang_lsylm(pawang)
 !                                   write the matrix of L.S in different basis
 !arrays
  complex(dpc) :: tmp(2)
- complex(dpc),allocatable :: ls_cplx(:,:,:),slm2ylm(:,:),mat_inp_c(:,:,:)
- complex(dpc),allocatable :: mat_out_c(:,:,:)
- complex(dpc),allocatable :: mat_ls_ylm(:,:,:)
- complex(dpc),allocatable :: mat_jmj(:,:)
+ complex(dpc),allocatable :: ls_cplx(:,:,:),slm2ylm(:,:)
+ complex(dpc),allocatable :: mat_inp_c(:,:,:),mat_out_c(:,:,:)
+ complex(dpc),allocatable :: mat_ls_ylm(:,:,:),mat_jmj(:,:)
  character(len=9),parameter :: dspin2(2)=(/"up-up    ","up-dn    "/)
  character(len=9),parameter :: dspin6(6)=(/"dn       ","up       ","dn-dn    ","up-up    ","dn-up    ","up-dn    "/)
  character(len=9),parameter :: dspinm(6)=(/"dn       ","up       ","n        ","mx       ","my       ","mz       "/)

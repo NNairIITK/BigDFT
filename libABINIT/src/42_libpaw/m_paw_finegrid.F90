@@ -23,7 +23,7 @@
 
 MODULE m_paw_finegrid
 
- use defs_basis
+ USE_DEFS
  USE_MSG_HANDLING
  USE_MEMORY_PROFILING
 
@@ -133,11 +133,11 @@ subroutine pawgylm(gylm,gylmgr,gylmgr2,lm_size,nfgd,optgr0,optgr1,optgr2,pawtab,
 !shapefunc1 is g(x) (gaussian)
  shapefunc1(arg)=exp(-(arg/sigma)**lambda)
 !shapefunc1_0 is g(x) (gaussian) for small x
- shapefunc1_0(arg)=one-(arg/sigma)**lambda+half*(arg/sigma)**(2*lambda)-sixth*(arg/sigma)**(3*lambda)
+ shapefunc1_0(arg)=one-(arg/sigma)**lambda+half*(arg/sigma)**(2*lambda)-(arg/sigma)**(3*lambda)/6._dp
 !shapefunc2 is g(x) (sinc2)
  shapefunc2(arg)=(sin(pi_over_rshp*arg)/(pi_over_rshp*arg))**2
 !shapefunc2_0 is g(x) (sinc2) for small x
- shapefunc2_0(arg)=one-third*(pi_over_rshp*arg)**2+two*(pi_over_rshp*arg)**4/45._dp
+ shapefunc2_0(arg)=one-(pi_over_rshp*arg)**2/three+two*(pi_over_rshp*arg)**4/45._dp
 !shapefunc3 is g(x) (Bessel)
  shapefunc3(jbes1,jbes2,argl)= alpha(1,1+argl)*jbes1+alpha(2,1+argl)*jbes2
 !dshpfunc1(x) is g_prime(x) (gaussian)
@@ -150,7 +150,7 @@ subroutine pawgylm(gylm,gylmgr,gylmgr2,lm_size,nfgd,optgr0,optgr1,optgr2,pawtab,
  dshpfunc2(arg)=two*pi_over_rshp*sin(pi_over_rshp*arg)/(pi_over_rshp*arg)**3&
 &              *(pi_over_rshp*arg*cos(pi_over_rshp*arg)-sin(pi_over_rshp*arg))
 !dshpfunc2_ovr_0(x) is g_prime(x)/x (sinc2) for small x
- dshpfunc2_ovr_0(arg)=-two_thirds*pi_over_rshp**2+eight*pi_over_rshp**4*arg**2/45._dp
+ dshpfunc2_ovr_0(arg)=-two*pi_over_rshp**2/3._dp+8._dp*pi_over_rshp**4*arg**2/45._dp
 !dshpfunc3(x) is g_prime(x) (Bessel)
  dshpfunc3(jbesp1,jbesp2,argl)= alpha(1,1+argl)*qq(1,1+argl)*jbesp1 &
 &                              +alpha(2,1+argl)*qq(2,1+argl)*jbesp2
@@ -165,14 +165,14 @@ subroutine pawgylm(gylm,gylmgr,gylmgr2,lm_size,nfgd,optgr0,optgr1,optgr2,pawtab,
 !d2shpfunc1_ovr2_0_3(x) is (g_prime_prime(x)-g_prime(x)/x)/x**2 (gaussian) for small x and lambda==3
  d2shpfunc1_ovr2_0_3(arg)=-three/arg/sigma**3+12._dp*arg**2/sigma**6-half*21._dp*arg**5/sigma**9
 !d2shpfunc1_ovr2_0_4(x) is (g_prime_prime(x)-g_prime(x)/x)/x**2 (gaussian) for small x and lambda==4
- d2shpfunc1_ovr2_0_4(arg)=-eight/(sigma**4)*(one-three*(arg/sigma)**4)
+ d2shpfunc1_ovr2_0_4(arg)=-8._dp/(sigma**4)*(one-three*(arg/sigma)**4)
 !d2shpfunc2(x) is g_prime_prime(x) (sinc2)
  d2shpfunc2(arg)=two/(pi_over_rshp**2*arg**4)* &
 &               (pi_over_rshp**2*arg**2*(cos(pi_over_rshp*arg))**2 &
 &               +(three-pi_over_rshp**2*arg**2)*(sin(pi_over_rshp*arg))**2 &
 &               -four*pi_over_rshp*arg*cos(pi_over_rshp*arg)*sin(pi_over_rshp*arg))
 !d2shpfunc2_ovr2_0(x) is (g_prime_prime(x)-g_prime(x)/x)/x**2 (sinc2) for small x
- d2shpfunc2_ovr2_0(arg)=16._dp/45._dp*pi_over_rshp**4-eight/105._dp*pi_over_rshp**6*arg**2 &
+ d2shpfunc2_ovr2_0(arg)=16._dp/45._dp*pi_over_rshp**4-8._dp/105._dp*pi_over_rshp**6*arg**2 &
 &                      +41._dp/6300._dp*pi_over_rshp**8*arg**4
 !d2shpfunc3(x) is g_prime_prime(x) (Bessel)
  d2shpfunc3(jbespp1,jbespp2,argl)= alpha(1,1+argl)*(qq(1,1+argl)**2)*jbespp1 &
@@ -328,7 +328,7 @@ subroutine pawgylm(gylm,gylmgr,gylmgr2,lm_size,nfgd,optgr0,optgr1,optgr2,pawtab,
          if (lambda==2) cc(3,ll)=-two/sigma**2
          if (lambda >2) cc(3,ll)=zero
        else if (shape_type==2) then
-         cc(3,ll)=-two_thirds*pi_over_rshp**2
+         cc(3,ll)=-(two/three)*pi_over_rshp**2
        else if (shape_type==3) then
          cc(3,ll)=-(alpha(1,ll)*qq(1,ll)**(ll+1) &
 &         +alpha(2,ll)*qq(2,ll)**(ll+1))/ffact(ll+1)
@@ -360,15 +360,15 @@ subroutine pawgylm(gylm,gylmgr,gylmgr2,lm_size,nfgd,optgr0,optgr1,optgr2,pawtab,
 !==========================================================
 !Compute gl(r), gl_prime(r)/r and (gl_prime_prime(r)-gl_prime(r)/r)/r**2
  if (compute_gr0)  then
-   LIBPAW_ALLOCATE(gfact,(nfgd,0:l_size-1))
+   LIBPAW_DATATYPE_ALLOCATE(gfact,(nfgd,0:l_size-1))
    gfact(:,:)=zero
  end if
  if (compute_gr1)  then
-   LIBPAW_ALLOCATE(dgfact,(nfgd,0:l_size-1))
+   LIBPAW_DATATYPE_ALLOCATE(dgfact,(nfgd,0:l_size-1))
     dgfact(:,:)=zero
  end if
  if (compute_gr2)  then
-   LIBPAW_ALLOCATE(d2gfact,(nfgd,0:l_size-1))
+   LIBPAW_DATATYPE_ALLOCATE(d2gfact,(nfgd,0:l_size-1))
    d2gfact(:,:)=zero
  end if
  if(compute_gr1) then
@@ -538,13 +538,13 @@ subroutine pawgylm(gylm,gylmgr,gylmgr2,lm_size,nfgd,optgr0,optgr1,optgr2,pawtab,
      if (l_size>3) then
        do ic=1,nfgd
          d2gfact(ic,3)=pawtab%gnorm(4) &
-&         *(three*gfact(ic,0)*rnrm_inv(ic)+six*dgfact(ic,0)*rnrm(ic)+ d2gfact(ic,0)*rnrm(ic)**3)
+&         *(three*gfact(ic,0)*rnrm_inv(ic)+6._dp*dgfact(ic,0)*rnrm(ic)+ d2gfact(ic,0)*rnrm(ic)**3)
        end do
      end if
      if (l_size>4) then
        do ic=1,nfgd
          d2gfact(ic,4)=pawtab%gnorm(5) &
-&         *(eight*gfact(ic,0)+eight*dgfact(ic,0)*rnrm(ic)**2+d2gfact(ic,0)*rnrm(ic)**4)
+&         *(8._dp*gfact(ic,0)+8._dp*dgfact(ic,0)*rnrm(ic)**2+d2gfact(ic,0)*rnrm(ic)**4)
        end do
      end if
      if (l_size>5) then
@@ -581,7 +581,7 @@ subroutine pawgylm(gylm,gylmgr,gylmgr2,lm_size,nfgd,optgr0,optgr1,optgr2,pawtab,
          dgfact(ic,ll)=dshpfunc3(jbesp1,jbesp2,ll)*rnrm_inv(ic)
        end do
      end do
-     if (izero>0.and.l_size>=1)  dgfact(izero,0)=-third*(alpha(1,1)*qq(1,1)+alpha(2,1)*qq(2,1))
+     if (izero>0.and.l_size>=1)  dgfact(izero,0)=-(alpha(1,1)*qq(1,1)+alpha(2,1)*qq(2,1))/three
      if (izero>0.and.l_size>=3)  dgfact(izero,2)=two/15._dp*(alpha(1,1)*qq(1,1)+alpha(2,1)*qq(2,1))
 !    Note: for l=1, dgfact is diverging - d2gfact is diverging for l<4
    else if (optgr2==1) then
@@ -594,7 +594,7 @@ subroutine pawgylm(gylm,gylmgr,gylmgr2,lm_size,nfgd,optgr0,optgr1,optgr2,pawtab,
          d2gfact(ic,ll)=(d2shpfunc3(jbespp1,jbespp2,ll)-dgfact(ic,ll))*rnrm_inv(ic)**2
        end do
      end do
-     if (izero>0.and.l_size>=1)  dgfact(izero,0)=-third*(alpha(1,1)*qq(1,1)+alpha(2,1)*qq(2,1))
+     if (izero>0.and.l_size>=1)  dgfact(izero,0)=-(alpha(1,1)*qq(1,1)+alpha(2,1)*qq(2,1))/three
      if (izero>0.and.l_size>=3)  dgfact(izero,2)=two/15._dp*(alpha(1,1)*qq(1,1)+alpha(2,1)*qq(2,1))
 !    Note: for l=1, dgfact is diverging - d2gfact is diverging for l<4
    end if
@@ -725,13 +725,13 @@ subroutine pawgylm(gylm,gylmgr,gylmgr2,lm_size,nfgd,optgr0,optgr1,optgr2,pawtab,
    LIBPAW_DEALLOCATE(cc)
  end if
  if (compute_gr0)  then
-   LIBPAW_DEALLOCATE(gfact)
+   LIBPAW_DATATYPE_DEALLOCATE(gfact)
  end if
  if (compute_gr1)  then
-   LIBPAW_DEALLOCATE(dgfact)
+   LIBPAW_DATATYPE_DEALLOCATE(dgfact)
  end if
  if (compute_gr2)  then
-   LIBPAW_DEALLOCATE(d2gfact)
+   LIBPAW_DATATYPE_DEALLOCATE(d2gfact)
  end if
  if (compute_gr1)  then
    LIBPAW_DEALLOCATE(rnrm_inv)
@@ -936,8 +936,8 @@ subroutine pawrfgd_fft(ifftsph,gmet,n1,n2,n3,nfgd,rcut,rfgd,rprimd,ucvol,xred, &
    me_fft_=me_fft ; fft_distrib_ => fft_distrib ; fft_index_ => fft_index
  else
    me_fft_=0
-   LIBPAW_ALLOCATE(fft_distrib_,(n3))
-   LIBPAW_ALLOCATE(fft_index_,(n3))
+   LIBPAW_POINTER_ALLOCATE(fft_distrib_,(n3))
+   LIBPAW_POINTER_ALLOCATE(fft_index_,(n3))
    fft_distrib_=0;fft_index_=(/(i3,i3=1,n3)/)
  end if
 
@@ -1006,8 +1006,8 @@ subroutine pawrfgd_fft(ifftsph,gmet,n1,n2,n3,nfgd,rcut,rfgd,rprimd,ucvol,xred, &
  LIBPAW_DEALLOCATE(ifftsph_tmp)
  LIBPAW_DEALLOCATE(rfgd_tmp)
  if (.not.present(fft_distrib).or..not.present(fft_index)) then
-   LIBPAW_DEALLOCATE(fft_distrib_)
-   LIBPAW_DEALLOCATE(fft_index_)
+   LIBPAW_POINTER_DEALLOCATE(fft_distrib_)
+   LIBPAW_POINTER_DEALLOCATE(fft_index_)
  end if
 
 end subroutine pawrfgd_fft

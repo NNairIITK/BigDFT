@@ -26,7 +26,7 @@
 
 MODULE m_paral_atom
 
- use defs_basis
+ USE_DEFS
  USE_MSG_HANDLING
  USE_MPI_WRAPPERS
  USE_MEMORY_PROFILING
@@ -185,7 +185,7 @@ subroutine get_my_atmtab(comm_atom,my_atmtab,my_atmtab_allocated,paral_atom,nato
        if (me<=(mod(natom,nproc)-1)) my_natom=natom/nproc + 1
 !      Get table of atoms
        if (my_natom>0) then
-         LIBPAW_ALLOCATE(my_atmtab,(my_natom))
+         LIBPAW_POINTER_ALLOCATE(my_atmtab,(my_natom))
          my_atmtab_allocated=.true.
          if (my_natom==natom) then
            my_atmtab(1:my_natom)=(/(iatom,iatom=1,natom)/)
@@ -272,7 +272,7 @@ subroutine free_my_atmtab(my_atmtab,my_atmtab_allocated)
 ! *************************************************************************
 
  if (my_atmtab_allocated) then
-   LIBPAW_DEALLOCATE(my_atmtab)
+   LIBPAW_POINTER_DEALLOCATE(my_atmtab)
    nullify(my_atmtab)
    my_atmtab_allocated=.false.
  end if
