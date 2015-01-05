@@ -93,13 +93,6 @@ module module_interfaces
         type(dictionary), pointer :: dict
       end subroutine read_input_dict_from_files
 
-      subroutine create_log_file(dict, writing_directory, dir_output, run_name)
-        use dictionaries
-        implicit none
-        type(dictionary), pointer :: dict
-        character(len = max_field_length), intent(out) :: writing_directory, dir_output, run_name
-      end subroutine create_log_file
-
       subroutine inputs_from_dict(in, atoms, dict)
         use module_types
         use module_defs
@@ -2475,8 +2468,8 @@ module module_interfaces
                   energs, hpsit_c, hpsit_f, nit_precond, target_function, correction_orthoconstraint, &
                   hpsi_small, experimental_mode, calculate_inverse, correction_co_contra, hpsi_noprecond, &
                   norder_taylor, max_inversion_error, method_updatekernel, precond_convol_workarrays, precond_workarrays,&
-                  wt_philarge, wt_hpsinoprecond)!, &
-                  !cdft, input_frag, ref_frags)
+                  wt_philarge, wt_hpsinoprecond, &
+                  cdft, input_frag, ref_frags)
          use module_base
          use module_types
          use communications_base, only: work_transpose
@@ -2508,9 +2501,9 @@ module module_interfaces
          type(workarr_precond),dimension(tmb%orbs%norbp),intent(inout) :: precond_workarrays
          type(work_transpose),intent(inout) :: wt_philarge
          type(work_transpose),intent(out) :: wt_hpsinoprecond
-         !!type(cdft_data),intent(inout),optional :: cdft
-         !!type(fragmentInputParameters),optional,intent(in) :: input_frag
-         !!type(system_fragment), dimension(:), optional, intent(in) :: ref_frags
+         type(cdft_data),intent(inout),optional :: cdft
+         type(fragmentInputParameters), optional, intent(in) :: input_frag
+         type(system_fragment), dimension(:), optional, intent(in) :: ref_frags
        end subroutine calculate_energy_and_gradient_linear
 
        subroutine improveOrbitals(iproc, nproc, tmb, nspin, ldiis, alpha, gradient, experimental_mode)
@@ -4256,7 +4249,7 @@ end subroutine build_ks_orbitals_laura_tmp
           type(sparse_matrix),intent(in),optional :: smat2
           type(matrices),intent(in),optional :: mat2
           integer,intent(in),optional :: i2shift
-          real(kind=8),dimension(smatl%nvctr),intent(out) :: matscal_compr
+          real(kind=8),dimension(smatl%nvctrp_tg),intent(out) :: matscal_compr
           real(kind=8),intent(out) :: scale_factor, shift_value
         end subroutine scale_and_shift_matrix
 

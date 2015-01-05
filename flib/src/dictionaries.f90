@@ -114,7 +114,6 @@ module dictionaries
       module procedure dict_iter, dict_iter_lc
    end interface
 
-
    interface list_new
       module procedure list_new,list_new_elems
    end interface
@@ -130,7 +129,7 @@ module dictionaries
    public :: set,dict_init,dict_free,append,prepend,add
    public :: dict_copy, dict_update,dict_remove,dict_remove_last
    !> Handle exceptions
-   public :: dict_len,dict_size,dict_key,dict_item,dict_value,dict_next,find_key
+   public :: dict_len,dict_size,dict_key,dict_item,dict_value,dict_next,dict_next_build,find_key
    public :: dict_new,list_new,dict_iter,has_key,dict_keys
    !> Public elements of dictionary_base
    public :: operator(.is.),operator(.item.)
@@ -138,6 +137,9 @@ module dictionaries
    public :: operator(==),operator(/=),operator(.in.),operator(.get.)
    public :: dictionary,max_field_length,dict_get_num
 
+   interface dict_next_build
+      module procedure dict_next_build_list
+   end interface dict_next_build
 
    !> Header of error handling part
    !! Some parameters
@@ -218,7 +220,7 @@ contains
    end subroutine dictionaries_errors
 
    !> Pop a subdictionary from a mother one. Returns the subdictionary.
-   !! raise an error if the subdictionary does not exists.
+   !! raise an error if the subdictionary does not exist.
    function pop_key(dict,key) result(subd)
      implicit none
      !> As Fortran norm says, here the intent is refererred to the 
@@ -241,7 +243,7 @@ contains
      end if
      
      !if something has been found, pop
-     !!WARNING: here the usage of dict_remove is abused,
+     !!@warning here the usage of dict_remove is abused,
      !!as this routine frees dict if it is the last object
      !!therefore it changes the pointer association status of dict
      if (associated(subd)) then
@@ -257,7 +259,7 @@ contains
    end function pop_key
 
    !> Pop a subdictionary from a mother one. Returns the subdictionary.
-   !! raise an error if the subdictionary does not exists.
+   !! raise an error if the subdictionary does not exist.
    function pop_item(dict,item) result(subd)
      use yaml_strings, only: yaml_toa
      implicit none
@@ -358,7 +360,7 @@ contains
             if (associated(iter%next)) then
         !this is valid if we are not at the first element
               if (associated(iter%previous)) then
-                 call define_brother(iter%previous,iter%next) 
+                 call define_brother(iter%previous,iter%next) !iter%next%previous=>iter%previous
                  iter%previous%next => iter%next
               else
                  nullify(iter%next%previous)
@@ -417,7 +419,7 @@ contains
      if (associated(dict%next)) then
         !this is valid if we are not at the first element
         if (associated(dict%previous)) then
-           call define_brother(dict%previous,dict%next) 
+           call define_brother(dict%previous,dict%next) !dict%next%previous => dict%previous
            dict%previous%next => dict%next
         else
            nullify(dict%next%previous)
@@ -448,46 +450,53 @@ contains
    end function dict_extract
 
    !> Add to a list
-   subroutine add_char(dict,val)
+   subroutine add_char(dict,val, last_item_ptr)
      implicit none
      type(dictionary), pointer :: dict
      character(len=*), intent(in) :: val
+     type(dictionary), pointer, optional :: last_item_ptr
      include 'dict_add-inc.f90'
    end subroutine add_char
-   subroutine add_dict(dict,val)
+   subroutine add_dict(dict,val, last_item_ptr)
      implicit none
      type(dictionary), pointer :: dict
      type(dictionary), pointer :: val
+     type(dictionary), pointer, optional :: last_item_ptr
      include 'dict_add-inc.f90'
    end subroutine add_dict
-   subroutine add_integer(dict,val)
+   subroutine add_integer(dict,val, last_item_ptr)
      implicit none
      type(dictionary), pointer :: dict
-     integer, intent(in) :: val
+     integer(kind=4), intent(in) :: val
+     type(dictionary), pointer, optional :: last_item_ptr
      include 'dict_add-inc.f90'
    end subroutine add_integer
-   subroutine add_real(dict,val)
+   subroutine add_real(dict,val, last_item_ptr)
      implicit none
      type(dictionary), pointer :: dict
      real, intent(in) :: val
+     type(dictionary), pointer, optional :: last_item_ptr
      include 'dict_add-inc.f90'
    end subroutine add_real
-   subroutine add_double(dict,val)
+   subroutine add_double(dict,val, last_item_ptr)
      implicit none
      type(dictionary), pointer :: dict
      double precision, intent(in) :: val
+     type(dictionary), pointer, optional :: last_item_ptr
      include 'dict_add-inc.f90'
    end subroutine add_double
-   subroutine add_long(dict,val)
+   subroutine add_long(dict,val, last_item_ptr)
      implicit none
      type(dictionary), pointer :: dict
      integer(kind=8), intent(in) :: val
+     type(dictionary), pointer, optional :: last_item_ptr
      include 'dict_add-inc.f90'
    end subroutine add_long
-   subroutine add_log(dict,val)
+   subroutine add_log(dict,val, last_item_ptr)
      implicit none
      type(dictionary), pointer :: dict
      logical, intent(in) :: val
+     type(dictionary), pointer, optional :: last_item_ptr
      include 'dict_add-inc.f90'
    end subroutine add_log
 
@@ -612,6 +621,21 @@ contains
      include 'dict_cont_arr-inc.f90'
    end function dict_cont_new_with_int_v
 
+   function dict_next_build_list(dict)
+     implicit none
+     type(dictionary), pointer, intent(in) :: dict
+     type(dictionary), pointer :: dict_next_build_list
+
+     if (associated(dict%parent)) then
+        dict_next_build_list => dict
+        call init_next(dict_next_build_list)
+        call set_item(dict_next_build_list, dict_len(dict%parent))
+!        write(*,*) "adding sibling", dict_next_build_list%data%item, associated(dict_next_build_list%parent)
+     else
+        dict_next_build_list => dict // 0
+!        write(*,*) "adding first", dict_next_build_list%data%item, associated(dict_next_build_list%parent)
+     end if
+   end function dict_next_build_list
 
    !>initialize the iterator to be used with next
    function dict_iter(dict)
@@ -636,7 +660,6 @@ contains
      dict_iter_lc => dict_iter(list%dict)
 
    end function dict_iter_lc
-
 
    function dict_next(dict)
      implicit none
@@ -723,7 +746,18 @@ contains
          implicit none
          type(dictionary), pointer, intent(in) :: dict1,dict2
          logical :: yess
-         
+!!$         !this new version should use less stack
+!!$         type(dictionary), pointer :: iter1,iter2
+!!$         iter1 => dict1
+!!$         iter2 => dict2
+!!$         yess=nodes_are_equal(iter1,iter2)
+!!$         !if we are not at the last point
+!!$         do while(yess .and. associated(iter1))
+!!$            iter1 => iter1%next
+!!$            iter2 => iter2%next
+!!$            yess= nodes_are_equal(iter1,iter2)
+!!$         end do
+
          yess= nodes_are_equal(dict1,dict2)
          if (.not. yess .or. .not. associated(dict1) ) return
 
@@ -832,7 +866,7 @@ contains
              if (associated(iter%next)) then
                 !this is valid if we are not at the first element
                 if (associated(iter%previous)) then
-                   call define_brother(iter%previous,iter%next) 
+                   call define_brother(iter%previous,iter%next) !iter%next%previous => iter%previous 
                    iter%previous%next => iter%next
                 else
                    nullify(iter%next%previous)
@@ -874,64 +908,11 @@ contains
 
      end subroutine pop_item_
 
-!!!     !> Eliminate a key from a dictionary if it exists
-!!!     recursive subroutine pop_item_(dict,item,dst)
-!!!       use yaml_strings, only: yaml_toa
-!!!       implicit none
-!!!       type(dictionary), intent(inout), pointer :: dict 
-!!!       integer, intent(in) :: item
-!!!       logical, intent(in) :: dst
-!!!       !local variables
-!!!       type(dictionary), pointer :: dict_first !<in case of first occurrence
-!!!!!$       type(dictionary), pointer :: dict_update !<dict to update data%item field
-!!!
-!!!       if (associated(dict)) then
-!!!!          print *,dict%data%item,trim(dict%data%key)
-!!!          !follow the chain, stop at the first occurence
-!!!          if (dict%data%item == item) then
-!!!             if (associated(dict%parent)) then
-!!!                dict%parent%data%nitems=dict%parent%data%nitems-1
-!!!             end if
-!!!!!$             if (associated(dict%next)) then
-!!!!!$                call dict_free(dict%child)
-!!!!!$                dict_first => dict
-!!!!!$                !this is valid if we are not at the first element
-!!!!!$                if (associated(dict%previous)) then
-!!!!!$                   call define_brother(dict%previous,dict%next) 
-!!!!!$                   dict%previous%next => dict%next
-!!!!!$                else
-!!!!!$                   !the next should now become me
-!!!!!$                   dict => dict%next
-!!!!!$                end if
-!!!!!$                ! Update data%item for all next.
-!!!!!$                dict_update => dict_first%next
-!!!!!$                do while( associated(dict_update) )
-!!!!!$                   dict_update%data%item = dict_update%data%item - 1
-!!!!!$                   dict_update => dict_update%next
-!!!!!$                end do
-!!!!!$                call dict_destroy(dict_first)
-!!!!!$             else
-!!!!!$                call dict_free(dict)
-!!!!!$             end if
-!!!             dict_first => dict_extract(dict)
-!!!             if (dst) call dict_free(dict_first)
-!!!          else if (associated(dict%next)) then
-!!!             call pop_item_(dict%next,item,dst)
-!!!          else
-!!!             if (f_err_raise(err_msg='Item No. '//trim(yaml_toa(item)),&
-!!!                  err_id=DICT_ITEM_NOT_VALID)) return
-!!!          end if
-!!!       else
-!!!          if (f_err_raise(err_msg='Item No. '//trim(yaml_toa(item)),&
-!!!               err_id=DICT_ITEM_NOT_VALID)) return
-!!!       end if
-!!!
-!!!     end subroutine pop_item_
    end subroutine remove_item
 
 
    !> Retrieve the pointer to the dictionary which has this key.
-   !! If the key does not exists, search for it in the next chain 
+   !! If the key does not exist, search for it in the next chain 
    !! Key Must be already present, otherwise result is nullified
    recursive function find_key(dict,key) result(dict_ptr1)
      implicit none
@@ -943,21 +924,23 @@ contains
         return
      end if
 
+!!$     !eliminate recursion
+!!$     if (.not. associated(dict%parent)) then
+!!$        if (.not. associated(dict%child)) then
+!!$           nullify(dict_ptr1)
+!!$        else
+!!$           dict_ptr1 => get_dict_from_key(dict%child,key)
+!!$        end if
+!!$     else
+!!$        dict_ptr1 => get_dict_from_key(dict,key)
+!!$     end if
+
      if (.not. associated(dict%parent)) then
         dict_ptr1 => find_key(dict%child,key)
         return
      end if
 
      dict_ptr1 => get_dict_from_key(dict,key)
-!!$     !print *,'here ',trim(key),', key ',trim(dict%data%key)
-!!$     !follow the chain, stop at the first occurence
-!!$     if (trim(dict%data%key) == trim(key)) then
-!!$        dict_ptr => dict
-!!$     else if (associated(dict%next)) then
-!!$        dict_ptr => find_key(dict%next,key)
-!!$     else 
-!!$        nullify(dict_ptr)
-!!$     end if
 
    end function find_key
 
@@ -1006,7 +989,7 @@ contains
 
 
    !> Search in the dictionary if some of the child has the given
-   !! If the key does not exists, search for it in the next chain 
+   !! If the key does not exist, search for it in the next chain 
    !! Key Must be already present 
    !! the search in the linked list can be performed
    !! by using the new scheme under implementation
@@ -1082,7 +1065,8 @@ contains
      !call set_field(repeat(' ',max_field_length),dict%data%value)
      if ( .not. associated(dict%child,target=subd) .and. &
           associated(dict%child)) then
-        call dict_free(dict%child)
+        !call dict_free(dict%child)
+        call free_child(dict)
      end if
      dict%child=>subd
      if (associated(subd%parent)) then
@@ -1092,15 +1076,27 @@ contains
         dict%data%nitems=subd%parent%data%nitems
      end if
      call define_parent(dict,dict%child)
-
    end subroutine put_child
 
+
+   subroutine free_child(dict)
+     implicit none
+     type(dictionary), pointer :: dict
+     
+     call dict_free(dict%child)
+     !reset the number of items
+     dict%data%nitems=0
+     dict%data%nelems=0
+
+   end subroutine free_child
 
    !> Append another dictionary
    recursive subroutine append(dict,brother)
      implicit none
      type(dictionary), pointer :: dict
      type(dictionary), pointer :: brother
+     !local variables
+     type(dictionary), pointer :: iter
 
      if (.not. associated(dict)) then
         !this should be verifyed by passing a dictionary which is not in the beginning
@@ -1116,6 +1112,19 @@ contains
         call append(dict,brother%child)
         nullify(brother%child)
         call dict_free(brother)
+!!$     !remove recursion at the same level
+!!$     else
+!!$        !go to the last element
+!!$        iter => dict
+!!$        do while(associated(iter%next))
+!!$           iter => iter%next
+!!$        end do
+!!$        if (.not. associated(iter%parent,target=brother%parent)) &
+!!$             iter%parent%data%nelems=&
+!!$             iter%parent%data%nelems+brother%parent%data%nelems
+!!$        iter%next=>brother
+!!$        call define_parent(iter%parent,iter%next)
+!!$        call define_brother(iter,iter%next) !dict%next%previous=>dict
      else if (associated(dict%next)) then
         call append(dict%next,brother)
      else
@@ -1124,7 +1133,7 @@ contains
              dict%parent%data%nelems+brother%parent%data%nelems
         dict%next=>brother
         call define_parent(dict%parent,dict%next)
-        call define_brother(dict,dict%next)
+        call define_brother(dict,dict%next) !dict%next%previous=>dict
      end if
    end subroutine append
 
@@ -1135,7 +1144,7 @@ contains
      type(dictionary), pointer :: dict
      type(dictionary), pointer :: brother
      !local variables
-     type(dictionary), pointer :: dict_tmp
+     type(dictionary), pointer :: dict_tmp,iter
 
      if (.not. associated(brother)) return
 
@@ -1156,6 +1165,15 @@ contains
         call prepend(dict,brother%child)
         nullify(brother%child)
         call dict_free(brother)
+!!$     !eliminate last recursion level
+!!$     else
+!!$        iter => dict
+!!$        do while(associated(iter%previous))
+!!$           iter => iter%previous
+!!$        end do
+!!$        dict_tmp=>brother
+!!$        call append(brother,iter)
+!!$        iter=>dict_tmp
      else if (associated(dict%previous)) then
         call prepend(dict%previous,brother)
      else
@@ -1179,11 +1197,13 @@ contains
              trim(dict%data%key)//'"',err_id=DICT_VALUE_ABSENT)
         return
      end if
-     if (associated(dict%child)) call dict_free(dict%child)
+     if (associated(dict%child)) then
+        !call dict_free(dict%child)
+        call free_child(dict)
+     end if
 
      call f_strcpy(src=val,dest=dict%data%value)
      !call set_field(val,dict%data%value)
-
    end subroutine put_value
 
 
@@ -1351,7 +1371,7 @@ contains
    recursive subroutine get_integer(ival,dict)
      use yaml_strings, only: is_atoi
      implicit none
-     integer, intent(out) :: ival
+     integer(kind=4), intent(out) :: ival
      type(dictionary), intent(in) :: dict
      !local variables
      integer :: ierror
@@ -1415,7 +1435,7 @@ contains
    subroutine get_ivec(arr,dict)
      use yaml_strings, only: yaml_toa
      implicit none
-     integer, dimension(:), intent(out) :: arr
+     integer(kind=4), dimension(:), intent(out) :: arr
      type(dictionary), intent(in) :: dict 
      !local variables
      integer :: tmp
@@ -1561,7 +1581,7 @@ contains
      use yaml_strings, only:yaml_toa
      implicit none
      type(dictionary), pointer :: dict
-     integer, intent(in) :: ival
+     integer(kind=4), intent(in) :: ival
      character(len=*), optional, intent(in) :: fmt
 
      if (present(fmt)) then
@@ -1664,7 +1684,8 @@ contains
             ! List case
             if (dict_size(dict) > 0) then
                ! Incompatible dict and subd.
-               call f_err_throw()
+               call f_err_throw('Incompatibility in updating, putting a list in a dictionary',&
+                    err_id=DICT_INVALID_LIST)
                return
             end if
             ! Replace elements.
@@ -1677,8 +1698,8 @@ contains
             end do
          else if (dict_size(subd) > 0) then
             if (dict_len(dict) > 0) then
-               ! Incompatible dict and subd.
-               call f_err_throw()
+               call f_err_throw('Incompatibility in updating, putting a dictionary in a list',&
+                    err_id=DICT_INVALID_LIST)
                return
             end if
             ! Dict case
@@ -1713,6 +1734,8 @@ contains
          integer :: i
          character(max_field_length), dimension(:), allocatable :: keys
          character(len = max_field_length) :: val
+         !local variables
+         type(dictionary), pointer :: iter
 
          if (dict_len(ref) > 0) then
             ! List case.
@@ -1721,6 +1744,11 @@ contains
             end do
          else if (dict_size(ref) > 0) then
             ! Dictionary case
+!!$            iter => dict_iter(ref)
+!!$            do while(associated(iter))
+!!$               call copy(dict // dict_key(iter),iter)
+!!$               iter => dict_next(iter)
+!!$            end do
             allocate(keys(dict_size(ref)))
             keys = dict_keys(ref)
             do i = 1, size(keys), 1

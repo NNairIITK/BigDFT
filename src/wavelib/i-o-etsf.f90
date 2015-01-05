@@ -486,8 +486,8 @@ subroutine read_waves_from_list_etsf(iproc,filename,n1,n2,n3,hx,hy,hz,at,rxyz_ol
 
       psifscf = f_malloc((/ -nb1.to.2*n1+1+nb1, -nb2.to.2*n2+1+nb2, -nb3.to.2*n3+1+nb3 /),id='psifscf')
 
-      psigold = f_malloc((/ 0.to.n1_old, 1.to.2, 0.to.n2_old, 1.to.2, 0.to.n3_old, 1.to.2 /),id='psigold')
-      call to_zero(8*(n1_old+1)*(n2_old+1)*(n3_old+1),psigold)
+      psigold = f_malloc0((/ 0.to.n1_old, 1.to.2, 0.to.n2_old, 1.to.2, 0.to.n3_old, 1.to.2 /),id='psigold')
+      !call to_zero(8*(n1_old+1)*(n2_old+1)*(n3_old+1),psigold)
 
       do iorb = 1, norb, 1
          do ispinor = 1, nspinor, 1
@@ -625,6 +625,8 @@ subroutine readwavetoisf_etsf(lstat, filename, iorbp, hx, hy, hz, &
    type(etsf_io_low_error) :: error
    type(workarr_sumrho) :: w
 
+   call nullify_locreg_descriptors(lr)
+
    ! We open the ETSF file
    call etsf_io_low_open_read(ncid, filename, lstat, error_data = error)
    if (.not. lstat) then
@@ -692,28 +694,12 @@ subroutine readwavetoisf_etsf(lstat, filename, iorbp, hx, hy, hz, &
       if (.not. lstat) call etsf_warning(error)
 
       ! Final deallocations.
-      if (associated(nvctr)) then
-         call f_free_ptr(nvctr)
-      end if
-
-      if (associated(orbsd%eval)) then
-         call f_free_ptr(orbsd%eval)
-      end if
-
-      if (allocated(psi)) then
-         call f_free(psi)
-      end if
-
-      if (allocated(gcoord)) then
-         call f_free(gcoord)
-      end if
-
-      if (associated(w%x_c)) then
-         call deallocate_work_arrays_sumrho(w)
-      end if
-      if (associated(lr%bounds%kb%ibyz_f)) then
-         call deallocate_bounds(lr%geocode, lr%hybrid_on, lr%bounds)
-      end if
+      call f_free_ptr(nvctr)
+      call f_free_ptr(orbsd%eval)
+      call f_free(psi)
+      call f_free(gcoord)
+      call deallocate_work_arrays_sumrho(w)
+      call deallocate_bounds(lr%geocode, lr%hybrid_on, lr%bounds)
       call deallocate_wfd(lr%wfd)
    END SUBROUTINE deallocate_local
 

@@ -135,7 +135,7 @@ program PS_Check
 
    pkernel=pkernel_init(.true.,iproc,nproc,0,&
         geocode,ndims,hgrids,itype_scf,taskgroup_size=nproc/2)
-   call pkernel_set(pkernel,.true.)
+   call pkernel_set(pkernel,verbose=.true.)
 
    !Allocations, considering also spin density
    !Density
@@ -296,7 +296,7 @@ program PS_Check
       !calculate the Poisson potential in parallel
       !with the global data distribution (also for xc potential)
        pkernelseq=pkernel_init(.true.,0,1,0,geocode,ndims,hgrids,itype_scf)
-       call pkernel_set(pkernelseq,.true.)
+       call pkernel_set(pkernelseq,verbose=.true.)
 
 !!$       call createKernel(0,1,geocode,(/n01,n02,n03/),(/hx,hy,hz/),itype_scf,pkernelseq,.true.)
        call yaml_mapping_open('Comparison with a reference run')

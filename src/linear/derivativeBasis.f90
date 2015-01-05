@@ -145,7 +145,7 @@ contains
                               lzd%llr(ilr)%d%nfl3.to.lzd%llr(ilr)%d%nfu3 /),id='phix_f')
 
     phix_c = f_malloc0((/ 0.to.lzd%llr(ilr)%d%n1, 0.to.lzd%llr(ilr)%d%n2, 0.to.lzd%llr(ilr)%d%n3 /),id='phix_c')
-    call to_zero((lzd%llr(ilr)%d%n1+1)*(lzd%llr(ilr)%d%n2+1)*(lzd%llr(ilr)%d%n3+1), phix_c(0,0,0))
+    !call to_zero((lzd%llr(ilr)%d%n1+1)*(lzd%llr(ilr)%d%n2+1)*(lzd%llr(ilr)%d%n3+1), phix_c(0,0,0))
 
     phiy_f = f_malloc0((/ 1.to.7, lzd%llr(ilr)%d%nfl1.to.lzd%llr(ilr)%d%nfu1, lzd%llr(ilr)%d%nfl2.to.lzd%llr(ilr)%d%nfu2, &
                               lzd%llr(ilr)%d%nfl3.to.lzd%llr(ilr)%d%nfu3 /),id='phiy_f')
@@ -459,7 +459,7 @@ subroutine get_derivative(idir, ndim, hgrid, orbs, lzd, phi, phider)
   real(kind=8),dimension(:,:,:,:),allocatable :: w_f, phider_f
   character(len=*),parameter :: subname='get_derivative'
 
-   call to_zero(ndim,phider(1))
+   call f_zero(phider)
 
    istrt = 1
    do iorb=1, orbs%norbp

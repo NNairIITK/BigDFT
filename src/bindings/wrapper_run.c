@@ -66,7 +66,7 @@ static void bigdft_goutput_finalize(GObject *obj)
   BigDFT_Goutput *outs = BIGDFT_GOUTPUT(obj);
 
   if (F_TYPE(outs->data))
-    FC_FUNC_(global_output_free, GLOBAL_OUTPUT_FREE)(&outs->data);
+    FC_FUNC_(state_properties_free, STATE_PROPERTIES_FREE)(&outs->data);
 
 #ifdef HAVE_GLIB
   G_OBJECT_CLASS(bigdft_goutput_parent_class)->finalize(obj);
@@ -86,7 +86,7 @@ BigDFT_Goutput* bigdft_goutput_new(guint nat)
 #endif
   self = *((long*)&outs);
   F90_2D_POINTER_INIT(&fxyz);
-  FC_FUNC_(global_output_new, GLOBAL_OUTPUT_NEW)(&self, &outs->data, &outs->energs,
+  FC_FUNC_(state_properties_new, STATE_PROPERTIES_NEW)(&self, &outs->data, &outs->energs,
                                                  &fxyz, (int*)&nat);
   outs->fdim = nat;
   outs->fxyz = fxyz.data;
@@ -114,7 +114,7 @@ static void _sync_outs(BigDFT_Goutput *outs)
   f90_pointer_double_2D fxyz;
 
   F90_2D_POINTER_INIT(&fxyz);
-  FC_FUNC_(global_output_get, GLOBAL_OUTPUT_GET)(F_TYPE(outs->data), &outs->energs, &fxyz,
+  FC_FUNC_(state_properties_get, STATE_PROPERTIES_GET)(F_TYPE(outs->data), &outs->energs, &fxyz,
                                                  (int*)&outs->fdim,
                                                  &outs->fnoise, &outs->pressure,
                                                  outs->strten, &outs->etot);

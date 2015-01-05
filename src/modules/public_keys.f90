@@ -11,7 +11,10 @@ module public_keys
 
   public ! guess why?
 
-  character(len = *), parameter :: RADICAL_NAME = "radical"
+  character(len = *), parameter :: MODE_VARIABLES = "mode"
+  character(len = *), parameter :: METHOD_KEY = "method"
+  character(len = *), parameter :: RUN_NAME_KEY = "name"
+
   character(len = *), parameter :: POSINP = "posinp"
   character(len = *), parameter :: OCCUPATION = "occupation"
   character(len = *), parameter :: IG_OCCUPATION = "ig_occupation"
@@ -19,7 +22,7 @@ module public_keys
   character(len = *), parameter :: HGRIDS = "hgrids"
   character(len = *), parameter :: RMULT = "rmult"
   character(len = *), parameter :: IXC = "ixc"
-  character(len = *), parameter :: NCHARGE = "ncharge"
+  character(len = *), parameter :: NCHARGE = "qcharge"
   character(len = *), parameter :: ELECFIELD = "elecfield"
   character(len = *), parameter :: NSPIN = "nspin", MPOL = "mpol"
   character(len = *), parameter :: GNRM_CV = "gnrm_cv"
@@ -78,7 +81,7 @@ module public_keys
   character(len = *), parameter :: SPRINGS_K = "springs_k"
   character(len = *), parameter :: FIX_TOL = "fix_tol"
   character(len = *), parameter :: NIMG = "nimg"
-  !SBFGS parameters:
+  !SQNM parameters:
   character(len = *), parameter :: NHISTX = "nhistx"
   character(len = *), parameter :: BIOMODE = "biomode"
   character(len = *), parameter :: BETA_STRETCHX = "beta_stretchx"
@@ -132,7 +135,6 @@ module public_keys
   character(len = *), parameter :: INGUESS_GEOPT = "inguess_geopt"
   character(len = *), parameter :: STORE_INDEX = "store_index"
   character(len = *), parameter :: VERBOSITY = "verbosity"
-  character(len = *), parameter :: OUTDIR = "outdir"
   character(len = *), parameter :: PSP_ONFLY = "psp_onfly"
   character(len = *), parameter :: PDSYEV_BLOCKSIZE = "pdsyev_blocksize"
   character(len = *), parameter :: PDGEMM_BLOCKSIZE = "pdgemm_blocksize"
@@ -143,6 +145,7 @@ module public_keys
   character(len = *), parameter :: MIXING_AFTER_INPUTGUESS = "mixing_after_inputguess"
   character(len = *), parameter :: ITERATIVE_ORTHOGONALIZATION = "iterative_orthogonalization"
   character(len = *), parameter :: MULTIPOLE_PRESERVING = "multipole_preserving"
+  character(len = *), parameter :: MP_ISF = "mp_isf"
   character(len = *), parameter :: CHECK_SUMRHO = "check_sumrho"
   character(len = *), parameter :: CHECK_OVERLAP = "check_overlap"
   character(len = *), parameter :: EXPERIMENTAL_MODE = "experimental_mode"
@@ -217,6 +220,13 @@ module public_keys
   character(len=*), parameter :: ASTRUCT_CELL = 'cell' 
   character(len=*), parameter :: ASTRUCT_POSITIONS = 'positions' 
   character(len=*), parameter :: ASTRUCT_PROPERTIES = 'properties' 
+  character(len=*), parameter :: ASTRUCT_ATT_FROZEN = 'Frozen' 
+  character(len=*), parameter :: ASTRUCT_ATT_IGSPIN = 'IGSpin' 
+  character(len=*), parameter :: ASTRUCT_ATT_IGCHRG = 'IGChg' 
+  character(len=*), parameter :: ASTRUCT_ATT_IXYZ_1 = 'int_ref_atoms_1' 
+  character(len=*), parameter :: ASTRUCT_ATT_IXYZ_2 = 'int_ref_atoms_2' 
+  character(len=*), parameter :: ASTRUCT_ATT_IXYZ_3 = 'int_ref_atoms_3' 
+
   character(len=*), parameter :: GOUT_ENERGY = 'energy (Ha)' 
   character(len=*), parameter :: GOUT_FORCES = 'forces (Ha/Bohr)' 
   character(len=*), parameter :: FORMAT_KEY = 'format' 
@@ -233,7 +243,26 @@ module public_keys
   character(len=*), parameter :: ATOMIC_NUMBER = 'Atomic number'
   character(len=*), parameter :: ELECTRON_NUMBER = 'No. of Electrons'
   character(len=*), parameter :: POSINP_SOURCE = 'source'
-  
-
 
 end module public_keys
+
+!>module identifying constants that have to be used as enumerators
+!! they can be used to define f_enumerator types or directly as integers
+module public_enums
+  use f_utils
+  implicit none
+  
+  public
+  
+  type(f_enumerator), parameter :: LENNARD_JONES_RUN_MODE      =f_enumerator('LENNARD_JONES_RUN_MODE',-1000)
+  type(f_enumerator), parameter :: LENOSKY_SI_CLUSTERS_RUN_MODE=f_enumerator('LENOSKY_SI_CLUSTERS_RUN_MODE',-999)
+  type(f_enumerator), parameter :: LENOSKY_SI_BULK_RUN_MODE    =f_enumerator('LENOSKY_SI_BULK_RUN_MODE',-998)
+  type(f_enumerator), parameter :: AMBER_RUN_MODE              =f_enumerator('AMBER_RUN_MODE',-997)
+  type(f_enumerator), parameter :: QM_RUN_MODE                 =f_enumerator('QM_RUN_MODE',-996)
+  
+end module public_enums
+
+
+
+
+

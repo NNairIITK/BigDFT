@@ -409,3 +409,146 @@
       Peak Value (MB): 11
       for the array: cosinarr
       in the routine: G_Poisson_Solver
+---
+ Total Charge                :  1.3232935141293783E-010
+ Potential monopole          :  0.9999999999999912
+ Potential at the boundary 1 n02/2 1:  9.9999999999999992E-025
+ Density at the boundary 1 n02/2 1: -4.4055866550508074E-022
+ Inf. Norm difference with reference:
+   Value                     :  4.724660217349026E+00
+   Point                     :  [  28,  24,  31 ]
+   Some values: [ 4.724660217349026E+00,  7.049793223633216E-09,  1.395370957865605E-11]
+  #------------------------------------------------------------------- Kernel Initialization
+ Poisson Kernel Initialization:
+   MPI tasks                 :  1
+   OpenMP threads per MPI task:  2
+   Iterative method for Generalised Equation: PI
+ Poisson Kernel Creation:
+   Boundary Conditions       : Free
+   Memory Requirements per MPI task:
+     Density (MB)            :  1.44
+     Kernel (MB)             :  1.52
+     Full Grid Arrays (MB)   :  1.34
+ Poisson Solver:
+   BC                        : Free
+   Box                       :  [  57,  49,  63 ]
+   MPI tasks                 :  1
+   Embedded PSolver, Polarization Iteration Method:
+   - Iteration quality: {iter:  1, res:  9.08443923502980510E+01}
+   - Iteration quality: {iter:  2, res:  8.19705517813987257E+01}
+   - Iteration quality: {iter:  3, res:  3.65535188649467244E+01}
+   - Iteration quality: {iter:  4, res:  1.56929685523616520E+01}
+   - Iteration quality: {iter:  5, res:  2.59014405821565781E+01}
+   - Iteration quality: {iter:  6, res:  2.68141656668018307E+01}
+   - Iteration quality: {iter:  7, res:  1.57014486657589032E+01}
+   - Iteration quality: {iter:  8, res:  6.05866817094291754E+00}
+   - Iteration quality: {iter:  9, res:  1.68923924557326743E+00}
+   - Iteration quality: {iter:  10, res:  3.60317371791390839E-01}
+   - Iteration quality: {iter:  11, res:  6.11239592363969769E-02}
+   - Iteration quality: {iter:  12, res:  8.48428023075435689E-03}
+   - Iteration quality: {iter:  13, res:  9.84982220891314052E-04}
+   - Iteration quality: {iter:  14, res:  9.73065929275475345E-05}
+   - Iteration quality: {iter:  15, res:  8.28558734552798535E-06}
+   - Iteration quality: {iter:  16, res:  6.12565707801594795E-07}
+   - Iteration quality: {iter:  17, res:  3.93065031985519472E-08}
+   - Iteration quality: {iter:  18, res:  2.16553249029534628E-09}
+   - Iteration quality: {iter:  19, res:  1.00121763822264784E-10}
+   - Iteration quality: {iter:  20, res:  3.77690613161266084E-12}
+   - Iteration quality: {iter:  21, res:  1.20293578155939030E-13}
+ Inf. Norm difference with reference:
+   Value                     :  5.067859570098143E-04
+   Point                     :  [  28,  24,  31 ]
+   Some values: [-5.067859570098143E-04, -1.510425628654722E-05, -2.185647532116085E-05]
+ Memory Consumption Report:
+   Tot. No. of Allocations             :  465
+   Tot. No. of Deallocations           :  465
+   Remaining Memory (B)                :  0
+   Memory occupation:
+     Peak Value (MB)                   :  26.408
+     for the array                     : cosinarr
+     in the routine                    : G_PoissonSolver
+     Memory Peak of process            : 49.684 MB
+ Max No. of dictionaries used          :  209 #( 152 still in use)
+ Number of dictionary folders allocated:  1
+---
+ Total Charge                :  1.3232935141293783E-010
+ Potential monopole          :  0.9999999999999912
+ Potential at the boundary 1 n02/2 1:  9.9999999999999992E-025
+ Density at the boundary 1 n02/2 1: -4.4055866550508074E-022
+ Inf. Norm difference with reference:
+   Value                     :  4.724660217349026E+00
+   Point                     :  [  28,  24,  31 ]
+   Some values: [ 4.724660217349026E+00,  7.049793223633216E-09,  1.395370957865605E-11]
+  #------------------------------------------------------------------- Kernel Initialization
+ Poisson Kernel Initialization:
+   MPI tasks                 :  1
+   OpenMP threads per MPI task:  2
+   Iterative method for Generalised Equation: PCG
+ Poisson Kernel Creation:
+   Boundary Conditions       : Free
+   Memory Requirements per MPI task:
+     Density (MB)            :  1.44
+     Kernel (MB)             :  1.52
+     Full Grid Arrays (MB)   :  1.34
+ Poisson Solver:
+   BC                        : Free
+   Box                       :  [  57,  49,  63 ]
+   MPI tasks                 :  1
+   Embedded PSolver, Preconditioned Conjugate Gradient Method:
+   - Iteration quality: { #___________________________________________________ Iteration  1
+ iter:  1, res:  2.45820410512682543E+02, ratio:  1.86364377269807369E-01, 
+         alpha:  9.36438523245928356E-01, beta:  9.28769771782401585E+03}
+   - Iteration quality: { #___________________________________________________ Iteration  2
+ iter:  2, res:  4.15492851221727477E+01, ratio:  3.14998523989524423E-02, 
+         alpha:  3.78146264007670874E-01, beta:  4.06005483899734963E+03}
+   - Iteration quality: { #___________________________________________________ Iteration  3
+ iter:  3, res:  1.85466791870111862E+01, ratio:  1.40608353468350822E-02, 
+         alpha:  1.58481783712068292E+00, beta:  1.04194533961099935E+01}
+   - Iteration quality: { #___________________________________________________ Iteration  4
+ iter:  4, res:  1.82957921108012869E+01, ratio:  1.38706297669754387E-02, 
+         alpha:  1.41553789850086176E+01, beta:  4.81332824309217244E+00}
+   - Iteration quality: { #___________________________________________________ Iteration  5
+ iter:  5, res:  3.16272334304310898E-01, ratio:  2.39776251725241782E-04, 
+         alpha:  1.07448024352633209E+00, beta:  9.66934231992426518E+00}
+   - Iteration quality: { #___________________________________________________ Iteration  6
+ iter:  6, res:  1.72129258445405872E-02, ratio:  1.30496739441563853E-05, 
+         alpha:  9.77044847154404428E-01, beta:  1.54541937107617730E-03}
+   - Iteration quality: { #___________________________________________________ Iteration  7
+ iter:  7, res:  3.42307005196645009E-03, ratio:  2.59513974960489166E-06, 
+         alpha:  8.21137458288698885E-01, beta:  1.08492989696620223E-06}
+   - Iteration quality: { #___________________________________________________ Iteration  8
+ iter:  8, res:  8.86389564466408280E-05, ratio:  6.72000501730979216E-08, 
+         alpha:  6.85890656145863642E-01, beta:  1.01797500356401364E-07}
+   - Iteration quality: { #___________________________________________________ Iteration  9
+ iter:  9, res:  1.03538858880116981E-05, ratio:  7.84961465086477719E-09, 
+         alpha:  8.75646623225740939E-01, beta:  8.14578305485092254E-11}
+   - Iteration quality: { #__________________________________________________ Iteration  10
+ iter:  10, res:  4.12833645281582192E-07, ratio:  3.12982494246372637E-10, 
+          alpha:  7.88099590551494811E-01, beta:  2.64558023548834871E-12}
+   - Iteration quality: { #__________________________________________________ Iteration  11
+ iter:  11, res:  4.49753083089342733E-08, ratio:  3.40972310152402485E-11, 
+          alpha:  1.13530362646796945E+00, beta:  3.21332377005077506E-15}
+   - Iteration quality: { #__________________________________________________ Iteration  12
+ iter:  12, res:  2.72122362202105849E-08, ratio:  2.06304734693167201E-11, 
+          alpha:  4.22715460354348038E-01, beta:  6.78997453211059059E-17}
+   - Iteration quality: { #__________________________________________________ Iteration  13
+ iter:  13, res:  3.19109460412638326E-09, ratio:  2.41927168483177446E-12, 
+          alpha:  7.01581211822788542E-01, beta:  1.55668735144670617E-17}
+   - Iteration quality: { #__________________________________________________ Iteration  14
+ iter:  14, res:  7.60248659102338494E-10, ratio:  5.76369015202273280E-13, 
+          alpha:  1.01573129911927462E+00, beta:  2.62830238065316840E-19}
+ Inf. Norm difference with reference:
+   Value                     :  7.710479587208496E-04
+   Point                     :  [  28,  24,  31 ]
+   Some values: [-7.710479587208496E-04, -7.356340496389108E-06, -1.064042105400747E-05]
+ Memory Consumption Report:
+   Tot. No. of Allocations             :  414
+   Tot. No. of Deallocations           :  414
+   Remaining Memory (B)                :  0
+   Memory occupation:
+     Peak Value (MB)                   :  27.750
+     for the array                     : cosinarr
+     in the routine                    : G_PoissonSolver
+     Memory Peak of process            : 50.204 MB
+ Max No. of dictionaries used          :  212 #( 152 still in use)
+ Number of dictionary folders allocated:  1

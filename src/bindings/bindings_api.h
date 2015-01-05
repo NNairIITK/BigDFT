@@ -1600,7 +1600,7 @@ void FC_FUNC_(inputs_get_dft, INPUTS_GET_DFT)(const f90_input_variables *in,
                                               double *crmult, 
                                               double *frmult, 
                                               int *ixc, 
-                                              int *chg, 
+                                              double *qcharge, 
                                               double *efield, 
                                               int *nspin, 
                                               int *mpol, 
@@ -1683,11 +1683,7 @@ character(len = 100), intent(out) :: dir_output, run_name
 character(len = 500), intent(out) :: writing_directory
 */
 void FC_FUNC_(inputs_get_output, INPUTS_GET_OUTPUT)(const f90_input_variables *in, 
-                                                    char *run_name, 
                                                     char *dir_output, 
-                                                    char *writing_directory, 
-                                                    int str_ln_1, 
-                                                    int str_ln_2, 
                                                     int str_ln_3);
 /* inputs_get_perf src/bindings/bindingsf.f90:574 */
 /* Fortran header:

@@ -10,7 +10,7 @@
 The directory tests contains the non-regression tests concerning BigDFT.
 
 The command <tt>make check</tt> performs the series of tests:
-- @subpage TESTS_DFT;
+- @subpage TESTS_DFT         Tests the DFT capabilitied of BigDFT;
 - @subpage TESTS_OVERDFT     Tests advanced features of BigDFT;
 - @subpage TESTS_LIBS        Tests the internal libraries used by BigDFT;
 - @subpage TESTS_TUTORIALS   Tutorials of BigDFT;

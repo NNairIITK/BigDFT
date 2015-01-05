@@ -697,13 +697,13 @@ subroutine calculate_coeffMatcoeff(nproc,matrix,basis_orbs,ksorbs,coeff,mat_coef
      call dgemm('t', 'n', ksorbs%norb, ksorbs%norb, basis_orbs%norbp, 1.d0, coeff(basis_orbs%isorb+1,1), &
           basis_orbs%norb, coeff_tmp, basis_orbs%norbp, 0.d0, mat_coeff, ksorbs%norb)
   else
-     call to_zero(ksorbs%norb**2, mat_coeff(1,1))
+     call f_zero(mat_coeff)
   end if
 
   call f_free(coeff_tmp)
 
   if (nproc>1) then
-      call mpiallred(mat_coeff(1,1), ksorbs%norb**2, mpi_sum, bigdft_mpi%mpi_comm)
+      call mpiallred(mat_coeff, mpi_sum, bigdft_mpi%mpi_comm)
   end if
 
 end subroutine calculate_coeffMatcoeff
@@ -730,7 +730,7 @@ subroutine calculate_coeffMatcoeff_diag(matrix,basis_orbs,ksorbs,coeff,mat_coeff
   if (allgather) then
      mat_coeff_diagp=f_malloc((/ksorbs%norbp/), id='mat_coeff_diagp')
   else
-     call to_zero(ksorbs%norb, mat_coeff_diag(1))
+     call f_zero(mat_coeff_diag)
   end if
   if (ksorbs%norbp>0) then
      coeff_tmp=f_malloc((/basis_orbs%norb,ksorbs%norbp/), id='coeff_tmp')
@@ -1566,7 +1566,7 @@ subroutine calculate_coeff_gradient_extra(iproc,nproc,num_extra,tmb,order_taylor
   occup_tmp=f_malloc(tmb%orbs%norb,id='occup_tmp')
   call vcopy(tmb%orbs%norb,tmb%orbs%occup(1),1,occup_tmp(1),1)
 
-  call to_zero(tmb%orbs%norb,tmb%orbs%occup(1))
+  call f_zero(tmb%orbs%norb,tmb%orbs%occup(1))
   do iorb=1,KSorbs%norb+num_extra
      tmb%orbs%occup(iorb)=1.0d0
   end do

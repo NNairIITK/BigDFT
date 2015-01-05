@@ -1,11 +1,13 @@
 !> @file
 !! module implementing the fingerprints
 !!     
-!! @author Bastian Schaefer
+!! @author NAN
 !! @section LICENCE
-!!    Copyright (C) 2014 UNIBAS
-!!    This file is not freely distributed.
-!!    A licence is necessary from UNIBAS
+!!    Copyright (C) 2014 BigDFT group
+!!    This file is distributed under the terms of the
+!!    GNU General Public License, see ~/COPYING file
+!!    or http://www.gnu.org/copyleft/gpl.txt .
+!!    For the list of contributors, see ~/AUTHORS
 
 module module_fingerprints
     implicit none
@@ -15,6 +17,7 @@ module module_fingerprints
     public :: fingerprint
     public :: fpdistance
     public :: equal
+
 
     contains
 
@@ -36,13 +39,15 @@ subroutine fingerprint(nat,nid,alat,geocode,rcov,rxyz,fp)
     real(gp),intent(out)         :: fp(nid)
     !internal
     integer  :: info
+    integer  :: lwork
     integer  :: i1,i2,i3, n1, n2, n3  
     integer  :: igto,jgto, iat, jat
     real(gp) :: tau(3)
     real(gp) :: cutoff, d2, r
     real(gp) :: sji, xi,yi,zi, xji, yji, zji, tt 
     real(gp), parameter :: sqrt8=sqrt(8.0_gp)
-    real(gp), allocatable, dimension(:,:) :: om,workf
+    real(gp), allocatable, dimension(:,:) :: om
+    real(gp), allocatable, dimension(:) :: workf
 
     ! WARNING! check convergence to ensure that the folloing
     !cutoff is large enough
@@ -73,7 +78,6 @@ subroutine fingerprint(nat,nid,alat,geocode,rcov,rxyz,fp)
     stop ' nid should be either nat or  4*nat '
 
     om = f_malloc((/nid,nid/),id='om')
-    workf =  f_malloc((/nid,nid/),id='workf')
     om(:,:)=0.0_gp
 
     do i1=-n1,n1
@@ -198,9 +202,17 @@ subroutine fingerprint(nat,nid,alat,geocode,rcov,rxyz,fp)
             enddo  ! i3 
         enddo  ! i2
     enddo  ! i1
-    endif  ! both s and p 
+    endif  ! both s and p
+ 
+    lwork=max(1,3*nid-1)
+    workf =  f_malloc((/lwork/),id='workf')
+    call DSYEV('N','L',nid,om,nid,fp,workf,-1,info)
+    if (info.ne.0) stop 'info query'
+    lwork=nint(workf(1))
+    call f_free(workf)
 
-    call DSYEV('N','L',nid,om,nid,fp,workf,nid**2,info)
+    workf =  f_malloc((/lwork/),id='workf')
+    call DSYEV('N','L',nid,om,nid,fp,workf,lwork,info)
     if (info.ne.0) stop 'info'
 
     call f_free(om)
@@ -224,21 +236,23 @@ subroutine fpdistance(nid,fp1,fp2,d)
     d=sqrt(d/nid)
 end subroutine fpdistance
 !=====================================================================
-logical function equal(nid,en_delta,fp_delta,epot1,epot2,fp1,fp2)
+logical function equal(iproc,prefix,txt,nid,en_delta,fp_delta,epot1,epot2,fp1,fp2)
     use module_base
-    use module_global_variables, only: iproc
     implicit none
     !parameter
+    integer, intent(in) :: iproc
+    character(len=*), intent(in) :: prefix
     integer, intent(in) :: nid
     real(gp), intent(in) :: epot1,epot2
     real(gp), intent(in) :: en_delta, fp_delta
     real(gp), intent(in) :: fp1(nid), fp2(nid)
+    character(len=2), intent(in) :: txt
     !internal
-    real(gp) :: d=1.d100
+    real(gp) :: d
 
     equal=.false.
     call fpdistance(nid,fp1,fp2,d)
-    if(iproc==0)write(*,*)'(MHGPS) ediff, fpdist',abs(epot1-epot2),d
+    if(iproc==0)write(*,'(a,1x,a,1x,es14.7,1x,es14.7)')trim(adjustl(prefix))//'ediff, fpdist ',txt,abs(epot1-epot2),d
     if (abs(epot1-epot2).lt.en_delta) then
         call fpdistance(nid,fp1,fp2,d)
         if (d.lt.fp_delta) then ! identical
@@ -246,5 +260,4 @@ logical function equal(nid,en_delta,fp_delta,epot1,epot2,fp1,fp2)
         endif
     endif
 end function
-!=====================================================================
 end module

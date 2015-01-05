@@ -197,11 +197,11 @@ subroutine direct_minimization(iproc,nproc,in,at,nvirt,rxyz,rhopot,nlpsp, &
       !put the wxd term in the psirocc array
       !!$     call NK_SIC_potential(Lzd%Glr,orbs,in%ixc,0.5_gp,0.5_gp*hx,0.5_gp*hy,0.5_gp*hz,pkernel,&
       !!$          psi,pot,eSIC_DC,wxdsave=psirocc)
-      !put the density in the *second* part of psirocc (off diangonal term presence should be verified still)
+      !put the density in the *second* part of psirocc (off diagonal term presence should be verified still)
       call vcopy(KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*KSwfn%Lzd%Glr%d%n3i*KSwfn%orbs%nspin,&
            pot(KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*KSwfn%Lzd%Glr%d%n3i*KSwfn%orbs%nspin+1),1,&
          &   psirocc(KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*KSwfn%Lzd%Glr%d%n3i*KSwfn%orbs%nspin+1),1)
-      call to_zero(KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*KSwfn%Lzd%Glr%d%n3i*KSwfn%orbs%nspin,psirocc(1))
+      call f_zero(KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*KSwfn%Lzd%Glr%d%n3i*KSwfn%orbs%nspin,psirocc(1))
    end if
 
 
@@ -599,7 +599,7 @@ subroutine davidson(iproc,nproc,in,at,&
       call vcopy(Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*Lzd%Glr%d%n3i*orbs%nspin,&
            pot(Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*Lzd%Glr%d%n3i*orbs%nspin+1),1,&
            psirocc(Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*Lzd%Glr%d%n3i*orbs%nspin+1),1)
-      call to_zero(Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*Lzd%Glr%d%n3i*orbs%nspin,psirocc(1))
+      call f_zero(Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*Lzd%Glr%d%n3i*orbs%nspin,psirocc(1))
       !!$     call NK_SIC_potential(Lzd%Glr,orbs,in%SIC%ixc,in%SIC%fref,0.5_gp*hx,0.5_gp*hy,0.5_gp*hz,pkernel,&
       !!$          psi,pot(Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*Lzd%Glr%d%n3i*orbs%nspin+1:),eSIC_DC,wxdsave=psirocc)
    end if
@@ -619,7 +619,7 @@ subroutine davidson(iproc,nproc,in,at,&
 
    !if(iproc==0)write(*,'(1x,a)',advance="no")"done. Rayleigh quotients..."
 
-   e = f_malloc((/ orbsv%norb, orbsv%nkpts, 2 /),id='e')
+   e = f_malloc0((/ orbsv%norb, orbsv%nkpts, 2 /),id='e')
 
    !transpose  v and hv
    call transpose_v(iproc,nproc,orbsv,lzd%glr%wfd,commsv,v(1),psiw(1))
@@ -627,7 +627,7 @@ subroutine davidson(iproc,nproc,in,at,&
 
    call timing(iproc,'Davidson      ','ON')
    !Timing excludes transposition, hamilton application and preconditioning
-   call to_zero(orbsv%norb*2*orbsv%nkpts,e)
+   !call to_zero(orbsv%norb*2*orbsv%nkpts,e)
    ! Rayleigh quotients.
 
    !probably this loop can be rewritten using GEMMs
@@ -704,10 +704,10 @@ subroutine davidson(iproc,nproc,in,at,&
 
    !the dimension should be chosen with the max between k-points
    !allocate(hamovr(n2virt,n2virt,2,orbsv%nkpts),stat=i_stat)
-   hamovr = f_malloc(8*ndimovrlp(nspin, orbsv%nkpts),id='hamovr')
+   hamovr = f_malloc0(8*ndimovrlp(nspin, orbsv%nkpts),id='hamovr')
 
    !put to zero all the k-points which are not needed
-   call to_zero(8*ndimovrlp(nspin,orbsv%nkpts),hamovr)
+   !call to_zero(8*ndimovrlp(nspin,orbsv%nkpts),hamovr)
 
    if (orbsv%nspinor > 1) then
       ncplx=2
@@ -732,7 +732,7 @@ subroutine davidson(iproc,nproc,in,at,&
 
       call vcopy(max(orbsv%npsidim_orbs,orbsv%npsidim_comp),hv(1),1,g(1),1)! don't overwrite hv
 
-      call to_zero(orbsv%norb*orbsv%nkpts,e(1,1,2))
+      call f_zero(orbsv%norb*orbsv%nkpts,e(1,1,2))
       !also these operations are presumably GEMMs
       !here we should add the ncomp term for non-collinear case
       ispsi=1
@@ -814,7 +814,7 @@ subroutine davidson(iproc,nproc,in,at,&
       !if(iproc==0)write(*,'(1x,a)',advance="no")"done."
 
       if(msg) then
-         call to_zero(orbsv%norb*orbsv%nkpts,e(1,1,2))
+         call f_zero(orbsv%norb*orbsv%nkpts,e(1,1,2))
          call yaml_sequence_open('squared norm of all gradients after projection')
          !write(*,'(1x,a)')"squared norm of all gradients after projection"
          ispsi=1
@@ -930,7 +930,7 @@ subroutine davidson(iproc,nproc,in,at,&
       !if(iproc==0)write(*,'(1x,a)',advance="no")"done."
 
       if(msg) then
-         call to_zero(orbsv%norb*orbsv%nkpts,e(1,1,2))
+         call f_zero(orbsv%norb*orbsv%nkpts,e(1,1,2))
          write(*,'(1x,a)')"Norm of all preconditioned gradients"
          ispsi=1
          do ikptp=1,orbsv%nkptsp
@@ -969,7 +969,7 @@ subroutine davidson(iproc,nproc,in,at,&
       ! hamovr(i,j,1)=                               ;  hamovr(i,j,2)=  
       !                 <gi-n | hvj>  <gi-n | hgj-n>                   <gi-n | vj>  <gi-n | gj-n>
       !put to zero all the k-points which are not needed
-      call to_zero(8*ndimovrlp(nspin,orbsv%nkpts),hamovr)
+      call f_zero(hamovr)
 
 
       ! store upper triangular part of these matrices only
@@ -1485,7 +1485,7 @@ subroutine psivirt_from_gaussians(iproc,nproc,at,orbs,Lzd,comms,rxyz,hx,hy,hz,ns
    randinp =.true.!.false.!lr%geocode /= 'F'
 
    if (randinp) then
-      call to_zero(G%ncoeff*orbs%norbp*orbs%nspinor,gaucoeffs)
+      call f_zero(gaucoeffs)
       if (G%ncoeff >= orbs%norb) then
          do icoeff=1,G%ncoeff
             !choose the orbital which correspond to this coefficient
@@ -1584,7 +1584,7 @@ subroutine psivirt_from_gaussians(iproc,nproc,at,orbs,Lzd,comms,rxyz,hx,hy,hz,ns
       !!$  end if
 
       !copy the eigenvectors to the matrix
-      call to_zero(G%ncoeff*orbs%norbp*orbs%nspinor,gaucoeffs)
+      call f_zero(gaucoeffs)
       if (orbs%norb > G%ncoeff) stop 'wrong gaussian basis'
       jorb=mod(orbs%isorb,orbs%norb)
       do iorb=1,orbs%norbp
@@ -1999,7 +1999,7 @@ subroutine add_parabolic_potential(geocode,nat,n1i,n2i,n3i,hxh,hyh,hzh,rlimit,rx
    call ext_buffers(perz,nbl3,nbr3)
 
    !calculate the center of the molecule
-   call to_zero(3,cxyz)
+   call f_zero(cxyz)
    do iat=1,nat
       do i=1,3
          cxyz(i)=cxyz(i)+rxyz(i,iat)
