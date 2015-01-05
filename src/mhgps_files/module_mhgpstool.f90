@@ -248,7 +248,9 @@ subroutine read_and_merge_data(folders,nsad,mdat)
             call fingerprint(mdat%nat,mdat%nid,mdat%astruct%cell_dim,&
                  mdat%astruct%geocode,mdat%rcov,mdat%astruct%rxyz,&
                  fp(1))
-            call identical(mdat%nmintot,mdat%nmin,mdat%nid,epot,fp,&
+write(*,*)trim(adjustl(fminL))
+write(*,*)'***'
+            call identical('min',mdat,mdat%nmintot,mdat%nmin,mdat%nid,epot,fp,&
                  mdat%en_arr,mdat%fp_arr,en_delta,fp_delta,lnew,kid,&
                  k_epot)
             if(lnew)then
@@ -277,7 +279,9 @@ subroutine read_and_merge_data(folders,nsad,mdat)
                  mdat%astruct%geocode,mdat%rcov,mdat%astruct%rxyz,&
                  fp(1))
 
-            call identical(mdat%nmintot,mdat%nmin,mdat%nid,epot,fp,&
+write(*,*)trim(adjustl(fminR))
+write(*,*)'***'
+            call identical('min',mdat,mdat%nmintot,mdat%nmin,mdat%nid,epot,fp,&
                  mdat%en_arr,mdat%fp_arr,en_delta,fp_delta,lnew,kid,&
                  k_epot)
             if(lnew)then
@@ -305,7 +309,7 @@ subroutine read_and_merge_data(folders,nsad,mdat)
             call fingerprint(mdat%nat,mdat%nid,mdat%astruct%cell_dim,&
                  mdat%astruct%geocode,mdat%rcov,mdat%astruct%rxyz,&
                  fp(1))
-            call identical(mdat%nsadtot,mdat%nsad,mdat%nid,epot,fp,&
+            call identical('sad',mdat,mdat%nsadtot,mdat%nsad,mdat%nid,epot,fp,&
                  mdat%en_arr_sad,mdat%fp_arr_sad,en_delta_sad,&
                  fp_delta_sad,lnew,kid,k_epot)
             if(lnew)then
@@ -378,16 +382,17 @@ subroutine write_data(mdat)
     do isad=1,mdat%nsad
         exclude=.false.
         ipair=maxloc(mdat%paircounter(1:mdat%nneighbpairs(isad),isad),1)
-        do it = 1, mdat%nneighbpairs(isad)
-            if(it/=ipair)then
-                 if(mdat%paircounter(it,isad)>2)then
-            call yaml_comment('Saddle '//trim(adjustl(yaml_toa(mdat%sadnumber(isad))))//&
-                 'converged at least twice to another minimum pair.'//&
-                 ' Too ambigous. Will not consider this saddle point.')
-                    exclude=.true.
-                  endif
-            endif
-        enddo
+if(mdat%nneighbpairs(isad)>5)exclude=.true.
+!        do it = 1, mdat%nneighbpairs(isad)
+!            if(it/=ipair)then
+!                 if(mdat%paircounter(it,isad)>20000)then
+!            call yaml_comment('Saddle '//trim(adjustl(yaml_toa(mdat%sadnumber(isad))))//&
+!                 'converged at least twice to another minimum pair.'//&
+!                 ' Too ambigous. Will not consider this saddle point.')
+!                    exclude=.true.
+!                  endif
+!            endif
+!        enddo
 !!write(*,*)mdat%paircounter(:,isad)
 write(*,*)'imaxloc',ipair
         if(exclude)then
@@ -422,13 +427,14 @@ enddo
 
 end subroutine write_data
 !=====================================================================
-subroutine identical(ndattot,ndat,nid,epot,fp,en_arr,fp_arr,en_delta,&
+subroutine identical(cf,mdat,ndattot,ndat,nid,epot,fp,en_arr,fp_arr,en_delta,&
                     fp_delta,lnew,kid,k_epot)
     use module_base
     use yaml_output
     use module_fingerprints
     implicit none
     !parameters
+    type(mhgpstool_data), intent(in) :: mdat
     integer, intent(in) :: ndattot
     integer, intent(in) :: ndat
     integer, intent(in) :: nid
@@ -441,6 +447,7 @@ subroutine identical(ndattot,ndat,nid,epot,fp,en_arr,fp_arr,en_delta,&
     logical, intent(out) :: lnew
     integer, intent(out) :: kid
     integer, intent(out) :: k_epot
+    character(len=3), intent(in) :: cf
     !local
     integer :: k, klow, khigh, nsm
     real(gp) :: dmin, d 
@@ -468,6 +475,15 @@ subroutine identical(ndattot,ndat,nid,epot,fp,en_arr,fp_arr,en_delta,&
     dmin=huge(1.e0_gp)
     do k=max(1,klow),min(ndat,khigh)
         call fpdistance(nid,fp,fp_arr(1,k),d)
+write(*,*)'fpdist '//cf,abs(en_arr(k)-epot),d
+!if(cf=='min')then
+!if(d<3.d-3)then
+!if(abs(en_arr(k)-epot)>1.d-4)then
+!write(*,*)trim(adjustl(mdat%path_min(k)))
+!    stop
+!endif
+!endif
+!endif
         if (d.lt.fp_delta) then
             lnew=.false.
             nsm=nsm+1
