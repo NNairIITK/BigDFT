@@ -144,14 +144,14 @@ subroutine fragment_coeffs_to_kernel(iproc,input,input_frag_charge,ref_frags,tmb
   ! copy from coeff fragment to global coeffs - occupied states only
   isforb=0
   jsforb=0
-  call to_zero(tmb%orbs%norb*tmb%orbs%norb,coeff_final(1,1))
-  !*call to_zero(tmb%linmat%denskern%nvctr,kernel_final(1))
+  call f_zero(coeff_final)
+  !*call f_zero(tmb%linmat%denskern%nvctr,kernel_final(1))
   !!tmb%linmat%ovrlp%matrix=f_malloc_ptr((/tmb%orbs%norb,tmb%orbs%norb/),id='tmb%ovrlp%matrix')
   !!call uncompress_matrix(iproc,tmb%linmat%ovrlp)
   do ifrag=1,input%frag%nfrag
      ! find reference fragment this corresponds to
      ifrag_ref=input%frag%frag_index(ifrag)
-     call to_zero(tmb%orbs%norb*tmb%orbs%norb, tmb%coeff(1,1))
+     call f_zero(tmb%orbs%norb*tmb%orbs%norb, tmb%coeff(1,1))
 
      jstate_max=(ref_frags(ifrag_ref)%nelec-input_frag_charge(ifrag))/2.0_gp+num_extra_per_frag
      !jstate_max=ref_frags(ifrag_ref)%nelec/2.0_gp+num_extra_per_frag
@@ -206,7 +206,7 @@ subroutine fragment_coeffs_to_kernel(iproc,input,input_frag_charge,ref_frags,tmb
      !end do
      ! end debug
 
-     !call to_zero(tmb%linmat%denskern%nvctr,tmb%linmat%denskern%matrix_compr(1))
+     !call f_zero(tmb%linmat%denskern%nvctr,tmb%linmat%denskern%matrix_compr(1))
 
      ! should correct the occupation for kernel here, but as we replace the smaller kernel with the correct bigger kernel
      ! don't worry about this for now

@@ -185,7 +185,8 @@ module sparsematrix
       call timing(iproc,'compressd_mcpy','ON')
     
       if (sparsemat%parallel_compression==0.or.bigdft_mpi%nproc==1) then
-         call to_zero(sparsemat%nfvctr**2*sparsemat%nspin, outm(1,1,1))
+         !call to_zero(sparsemat%nfvctr**2*sparsemat%nspin, outm(1,1,1))
+         call f_zero(outm)
          do ispin=1,sparsemat%nspin
              ishift=(ispin-1)*sparsemat%nvctr
              !OpenMP broken on Vesta
@@ -282,7 +283,8 @@ module sparsematrix
     
       mat%matrix = sparsematrix_malloc_ptr(sparsemat, iaction=DENSE_FULL, id='mat%matrix')
     
-      call to_zero(sparsemat%nfvctr**2*sparsemat%nspin,mat%matrix(1,1,1))
+      !call to_zero(sparsemat%nfvctr**2*sparsemat%nspin,mat%matrix(1,1,1))
+      call f_zero(mat%matrix)
       do iseg = 1, sparsemat%nseg
          ! A segment is always on one line, therefore no double loop
          do jorb = sparsemat%keyg(1,1,iseg), sparsemat%keyg(2,1,iseg)
@@ -410,9 +412,11 @@ module sparsematrix
     
       select case (imode)
       case (SMALL_TO_LARGE)
-          call to_zero(lmat%nvctr*lmat%nspin,lmatrix_compr(1))
+         !call to_zero(lmat%nvctr*lmat%nspin,lmatrix_compr(1))
+         call f_zero(lmatrix_compr)
       case (LARGE_TO_SMALL)
-          call to_zero(smat%nvctr*lmat%nspin,smatrix_compr(1))
+         !call to_zero(smat%nvctr*lmat%nspin,smatrix_compr(1))
+         call f_zero(smatrix_compr)
       case default
           stop 'wrong imode'
       end select
@@ -795,7 +799,8 @@ module sparsematrix
          end if
      else if (data_strategy==SUBMATRIX) then
          if (layout==DENSE_PARALLEL) then
-             call to_zero(smat%nvctrp_tg, matrix_compr(1))
+                 !call to_zero(smat%nvctrp_tg, matrix_compr(1))
+                 call f_zero(matrix_compr)
              if (nfvctrp>0) then
                  isegstart=smat%istsegline(isfvctr+1)
                  isegend=smat%istsegline(isfvctr+nfvctrp)+smat%nsegline(isfvctr+nfvctrp)-1
@@ -876,7 +881,8 @@ module sparsematrix
              call timing(iproc,'compressd_comm','ON')
 
              if (nproc>1) then
-                 call to_zero(smat%nvctrp_tg, matrix_compr(1))
+                !call to_zero(smat%nvctrp_tg, matrix_compr(1))
+                call f_zero(matrix_compr)
                  !window = mpiwindow(smat%smmm%nvctrp, matrix_local(1), bigdft_mpi%mpi_comm)
 
                  ! Create a window for all taskgroups to which iproc belongs (max 2)
@@ -1013,7 +1019,8 @@ module sparsematrix
 
        if (nfvctrp>0) then
 
-           call to_zero(smat%nfvctr*nfvctrp,matrixp(1,1))
+          !call to_zero(smat%nfvctr*nfvctrp,matrixp(1,1))
+          call f_zero(matrixp) !is this safer?
 
            isegstart=smat%istsegline(isfvctr+1)
            isegend=smat%istsegline(isfvctr+nfvctrp)+smat%nsegline(isfvctr+nfvctrp)-1
@@ -1072,7 +1079,8 @@ module sparsematrix
 
        if (nfvctrp>0) then
 
-           call to_zero(smat%nfvctr*nfvctrp,matrixp(1,1))
+          !call to_zero(smat%nfvctr*nfvctrp,matrixp(1,1))
+          call f_zero(matrixp)
 
            isegstart=smat%istsegline(isfvctr+1)
            isegend=smat%istsegline(isfvctr+nfvctrp)+smat%nsegline(isfvctr+nfvctrp)-1
@@ -1259,10 +1267,10 @@ module sparsematrix
      call f_routine(id='gather_matrix_from_taskgroups')
    
      if (nproc>1) then
-         recvcounts = f_malloc(0.to.nproc-1,id='recvcounts')
-         recvdspls = f_malloc(0.to.nproc-1,id='recvdspls')
-         call to_zero(nproc, recvcounts(0))
-         call to_zero(nproc, recvdspls(0))
+         recvcounts = f_malloc0(0.to.nproc-1,id='recvcounts')
+         recvdspls = f_malloc0(0.to.nproc-1,id='recvdspls')
+         !call to_zero(nproc, recvcounts(0))
+         !call to_zero(nproc, recvdspls(0))
          ncount = smat%smmm%istartend_mm_dj(2) - smat%smmm%istartend_mm_dj(1) + 1
          recvcounts(iproc) = ncount
          call mpiallred(recvcounts(0), nproc, mpi_sum, bigdft_mpi%mpi_comm)
@@ -1307,10 +1315,10 @@ module sparsematrix
    
       mat_global = sparsematrix_malloc(smat,iaction=SPARSE_FULL,id='mat_global')
      if (nproc>1) then
-         recvcounts = f_malloc(0.to.nproc-1,id='recvcounts')
-         recvdspls = f_malloc(0.to.nproc-1,id='recvdspls')
-         call to_zero(nproc, recvcounts(0))
-         call to_zero(nproc, recvdspls(0))
+         recvcounts = f_malloc0(0.to.nproc-1,id='recvcounts')
+         recvdspls = f_malloc0(0.to.nproc-1,id='recvdspls')
+         !call to_zero(nproc, recvcounts(0))
+         !call to_zero(nproc, recvdspls(0))
          ncount = smat%smmm%istartend_mm_dj(2) - smat%smmm%istartend_mm_dj(1) + 1
          recvcounts(iproc) = ncount
          call mpiallred(recvcounts(0), nproc, mpi_sum, bigdft_mpi%mpi_comm)

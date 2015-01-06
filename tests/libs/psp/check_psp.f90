@@ -26,13 +26,16 @@ program psp_test
   !ALEX: If psp_from_file supports NLCC, it needs additional arguments:
   real(gp):: rcore, qcore
   logical:: donlcc, pawpatch
+  type(io_stream) :: ios
 
   call get_command_argument(1, value = path, status = istat)
   if (istat /= 0) stop "argument"
 
-  call psp_from_file(path, nzatom, nelpsp, npspcode, ixcpsp, psppar, &
-         donlcc, rcore, qcore, radii_cf, exists, pawpatch)
-  if (.not. exists) stop "psp file"
+  call f_iostream_from_file(ios,path)
+  call psp_from_stream(ios, nzatom, nelpsp, npspcode, ixcpsp, psppar, &
+         donlcc, rcore, qcore, radii_cf,pawpatch)
+  call f_iostream_release(ios)
+  !if (.not. exists) stop "psp file"
 
   i = index(path, "/", back = .true.)
   j = index(path, "-", back = .true.)

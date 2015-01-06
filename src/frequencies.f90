@@ -40,7 +40,7 @@ program frequencies
    character(len=60) :: run_id
    !Input variables
    type(run_objects) :: runObj
-   type(DFT_global_output) :: outs
+   type(state_properties) :: outs
    !Atomic coordinates, forces
    real(gp), dimension(:,:), allocatable :: rxyz0      !< Atomic position of the reference configuration
    real(gp), dimension(:,:), allocatable :: fpos       !< Atomic forces used for the calculation of the Hessian
@@ -57,8 +57,8 @@ program frequencies
 
    !Function used to determine if the coordinate of the given atom is frozen
 
-   character(len=len(runObj%inputs%run_name)) :: prefix
-   integer, dimension(:), allocatable :: ifrztyp0 !< To avoid to freeze the atoms for call_bigdft
+   character(len=max_field_length) :: prefix
+   integer, dimension(:), allocatable :: ifrztyp0 !< To avoid to freeze the atoms for bigdft_state
    real(gp), dimension(3) :: freq_step
    real(gp) :: zpenergy,freq_exp,freq2_exp,vibrational_entropy,vibrational_energy,total_energy,tij,tji,dsym
    integer :: k,km,ii,jj,ik,imoves,order,n_order
@@ -100,8 +100,7 @@ program frequencies
    call run_objects_init(runObj,options//'BigDFT'//0)! trim(run_id), 'posinp')
 
    ! Read all input files.
-   prefix = runObj%inputs%run_name
-   if (trim(prefix) == '') prefix = 'input'
+   call bigdft_get_run_properties(options//'BigDFT'//0, input_id = prefix)
    inquire(file=trim(prefix)//'.freq',exist=exists)
    if (.not. exists) call f_err_throw('(F) The input file "'//trim(prefix)//'.freq does not exist',&
                           err_name='FREQUENCIES_INPUT_ERROR')
@@ -127,7 +126,7 @@ program frequencies
    end if
 
    ! Allocations
-   call init_global_output(outs, runObj%atoms%astruct%nat)
+   call init_state_properties(outs, runObj%atoms%astruct%nat)
    rxyz0 = f_malloc((/ 3, runObj%atoms%astruct%nat /), id = 'rxyz0')
    ifrztyp0 = f_malloc(runObj%atoms%astruct%nat, id = 'ifrztyp0')
    moves = f_malloc((/ 1.to.n_order, 0.to.3*runObj%atoms%astruct%nat /),id='moves')
@@ -147,7 +146,7 @@ program frequencies
 
    ! Reference positions.
    call vcopy(3*runObj%atoms%astruct%nat, runObj%atoms%astruct%rxyz(1,1), 1, rxyz0(1,1), 1)
-   ! Remove frozen atoms in order to have the full atomic forces from call_bigdft
+   ! Remove frozen atoms in order to have the full atomic forces from bigdft_state
    ! If we want the Hessian and Dynamical matrices only for the freedom degrees not useful
    ! but permit to restart with more degrees of freedom (less frozen atoms)
    ifrztyp0 = runObj%atoms%astruct%ifrztyp
@@ -171,7 +170,7 @@ program frequencies
       infocode=0
    else
       if (bigdft_mpi%iproc == 0) call yaml_comment('(F) Reference state calculation',hfill='=')
-      call call_bigdft(runObj,outs,infocode)
+      call bigdft_state(runObj,outs,infocode)
       call frequencies_write_restart(0,0,0,runObj%atoms%astruct%rxyz,outs%energy,outs%fxyz, &
            & n_order=n_order,freq_step=freq_step,amu=runObj%atoms%amu)
       moves(:,0) = .true.
@@ -183,7 +182,7 @@ program frequencies
       call yaml_comment('(F) Start Frequencies calculation',hfill='=')
 
       !This file contains the Hessian for post-processing: it is regenerated each time.
-      call yaml_set_stream(unit=u_hessian,filename=trim(runObj%inputs%writing_directory)//'/hessian.yaml',&
+      call yaml_set_stream(unit=u_hessian,filename=trim(runObj%inputs%dir_output)//'hessian.yaml',&
              position='rewind',record_length=92,istat=ierr,setdefault=.false.,tabbing=0)
       call yaml_map('Step',freq_step,unit=u_hessian)
       call yaml_map('nat',runObj%atoms%astruct%nat,unit=u_hessian)
@@ -191,7 +190,7 @@ program frequencies
       call yaml_map('Forces',outs%fxyz,unit=u_hessian)
 
       !This file contains the dynamical matrix for post-processing: it is regenerated each time.
-      call yaml_set_stream(unit=u_dynamical,filename=trim(runObj%inputs%writing_directory)//'/dynamical.yaml',&
+      call yaml_set_stream(unit=u_dynamical,filename=trim(runObj%inputs%dir_output)//'dynamical.yaml',&
              position='rewind',record_length=92,istat=ierr,setdefault=.false.,tabbing=0)
       call yaml_map('Step',freq_step,unit=u_dynamical)
       call yaml_map('nat',runObj%atoms%astruct%nat,unit=u_dynamical)
@@ -254,7 +253,7 @@ program frequencies
             else
                runObj%atoms%astruct%rxyz(i,iat)=rxyz0(i,iat)+dd
             end if
-            call call_bigdft(runObj,outs,infocode)
+            call bigdft_state(runObj,outs,infocode)
             call frequencies_write_restart(km,i,iat,runObj%atoms%astruct%rxyz,outs%energy,outs%fxyz)
             call vcopy(3*outs%fdim, outs%fxyz(1,1), 1, fpos(1,km), 1)
             moves(km,ii) = .true.
@@ -393,7 +392,7 @@ program frequencies
       total_energy=energies(1,0)+vibrational_energy
       call yaml_map('(F) Zero-point energy (cm-1 and Hartree)', (/ zpenergy*Ha_cmm1, zpenergy /),fmt='(1pe20.10)')
       call yaml_map('(F) Considered Temperature (Kelvin)',      Temperature,fmt='(f5.1)')
-      call yaml_map('(F) Vibrational entropy =',                vibrational_entropy,fmt='(1pe22.10)')
+      call yaml_map('(F) Vibrational entropy',                  vibrational_entropy,fmt='(1pe22.10)')
       call yaml_map('(F) Vibrational Energy (cm-1 and Hartree)', &
            &                     (/ vibrational_energy*Ha_cmm1, vibrational_energy/),fmt='(1pe20.10)')
       call yaml_map('(F) Total Energy (Hartree)',               total_energy,fmt='(1pe22.10)')
@@ -403,7 +402,7 @@ program frequencies
    call f_free(rxyz0)
    call f_free(ifrztyp0)
 
-   call deallocate_global_output(outs)
+   call deallocate_state_properties(outs)
 
    call f_free(dynamical)
    call f_free(eigens)
@@ -518,7 +517,7 @@ contains
       inquire(file='frequencies.res', exist=exists)
       if (.not.exists) then
          !There is no restart file.
-         call to_zero(n_order*(3*nat+1),energies(1,0))
+         call f_zero(energies)
          if (bigdft_mpi%iproc == 0) call yaml_map('(F) File "frequencies.res" present',.false.)
          !Code error non zero
          ierror = -1

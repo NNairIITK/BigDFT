@@ -12,7 +12,6 @@
    disablesym: Yes
  perf:
    store_index: No
-   outdir: ./
    ef_interpol_det: 0.10E-11
    evbounds_nsatur: 100
  lin_general:

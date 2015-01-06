@@ -31,10 +31,12 @@ END SUBROUTINE atoms_write
 !> Deallocate a new atoms_data type, for bindings.
 subroutine atoms_empty(atoms)
   use module_atoms, only: atoms_data, deallocate_atoms_data
+  use dynamic_memory
   implicit none
   type(atoms_data), intent(inout) :: atoms
 
   call deallocate_atoms_data(atoms)
+  atoms%refcnt=f_ref_new('atoms')
 END SUBROUTINE atoms_empty
 
 
@@ -355,7 +357,7 @@ subroutine write_extra_info(extra,natpol,ifrztyp)
   use ao_inguess, only: charge_and_spol
   implicit none 
   integer, intent(in) :: natpol,ifrztyp
-  character(len=50), intent(out) :: extra
+  character(len=*), intent(out) :: extra
   !local variables
   character(len=4) :: frzchain
   integer :: ispol,ichg

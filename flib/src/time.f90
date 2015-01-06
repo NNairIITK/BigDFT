@@ -11,7 +11,7 @@
 !> Module containing variables used for the timing for BigDFT
 module time_profiling
   use dictionaries
-  use dynamic_memory, only: f_time
+  use f_utils, only: f_time
   implicit none
 
   private 
@@ -234,6 +234,7 @@ module time_profiling
 
     !finalize the timing by putting to zero all the chronometers
     subroutine f_timing_finalize()
+      use yaml_output
       implicit none
       !create the general category for unspecified timings
       call dict_free(times(ictrl)%dict_timing_categories)
@@ -529,7 +530,7 @@ module time_profiling
     !> The same timing routine but with system_clock (in case of a supported specs)
     subroutine f_timing(cat_id,action)
       use dictionaries, only: f_err_raise,f_err_throw
-      use dynamic_memory, only: f_time
+      use f_utils, only: f_time
       use yaml_output, only: yaml_toa
       implicit none
       !Variables
@@ -540,13 +541,6 @@ module time_profiling
       real(kind=8) :: t1
       !$ include 'remove_omp-inc.f90'
       
-      !!$ logical :: in_omp
-      !!$ logical, external :: omp_in_parallel,omp_get_nested
-      !!$ in_omp=omp_in_parallel() .or. omp_get_nested()
-      !!!disable everything if we are into a OMP section
-      !!!timing routines are not thread-safe
-      !!$ if(in_omp) return
-
       !first of all, read the time
       itns=f_time()
 

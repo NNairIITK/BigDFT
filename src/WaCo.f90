@@ -53,7 +53,7 @@ program WaCo
    real(wp), allocatable :: ham(:,:,:),hamr(:,:,:)
    real(wp), allocatable :: diag(:,:),diagT(:)
    integer, dimension(:), pointer :: buf
-   character(len=60) :: radical, filename, run_id
+   character(len=max_field_length) :: radical, filename, run_id
    logical :: notocc, bondAna,Stereo,hamilAna,WannCon,linear,outformat
    integer, dimension(:), allocatable :: ConstList
    integer, allocatable :: nfacets(:),facets(:,:,:),vertex(:,:,:), l(:), mr(:)
@@ -109,9 +109,6 @@ program WaCo
    call bigdft_init(options)!mpi_info,nconfig,run_id,ierr)
    iproc=bigdft_mpi%iproc!mpi_info(1)
    nproc=bigdft_mpi%nproc!mpi_info(2)
-   if (bigdft_nruns(options) > 1) stop 'runs-file not supported for BigDFT2Wannier executable'
-   run_id = options // 0 // 'name'
-   call dict_free(options)
 
 
 !!$   !-finds the number of taskgroup size
@@ -125,11 +122,13 @@ program WaCo
 !!$
 !!$   if (nconfig < 0) stop 'runs-file not supported for WaCo executable'
 
-   call dict_init(user_inputs)
-   call user_dict_from_files(user_inputs, trim(run_id)//trim(bigdft_run_id_toa()), &
-        & 'posinp'//trim(bigdft_run_id_toa()), bigdft_mpi)
+   if (bigdft_nruns(options) > 1) stop 'runs-file not supported for BigDFT2Wannier executable'
+   call dict_copy(user_inputs, options // 'BigDFT' // 0)
+   call bigdft_get_run_properties(user_inputs, input_id = run_id, posinp_id = filename)
+   call user_dict_from_files(user_inputs, trim(run_id), trim(filename), bigdft_mpi)
    call inputs_from_dict(input, atoms, user_inputs)
    call dict_free(user_inputs)
+   call dict_free(options)
 
 !!$   if (input%verbosity > 2) then
 !!$      nproctiming=-nproc !timing in debug mode
@@ -227,8 +226,8 @@ program WaCo
       !write(*,*)
    end if
 
-   rho = f_malloc((/ nwann, nwann /),id='rho')
-   call to_zero(nwann*nwann, rho(1,1))
+   rho = f_malloc0((/ nwann, nwann /),id='rho')
+   !call to_zero(nwann*nwann, rho(1,1))
 
    do i=1,nwann
       do j=1,nwann
@@ -257,8 +256,8 @@ program WaCo
    !##################################################################
    ! Check idempotence of density matrix
    !##################################################################
-   rhoprime = f_malloc((/ nwann, nwann /),id='rhoprime')
-   call to_zero(nwann*nwann, rhoprime(1,1))
+   rhoprime = f_malloc0((/ nwann, nwann /),id='rhoprime')
+   !call to_zero(nwann*nwann, rhoprime(1,1))
    
    idemp = .true.
    do i = 1, nwann
@@ -905,7 +904,7 @@ program WaCo
            call yaml_warning('this should not happen')
            stop
         end if
-        call to_zero(Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f, wann(1))
+        call f_zero(wann)
         do iband = 1, orbsw%norbp
            do i = 1, Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f
               wann(i) = wann(i) + umn(iwann,iband+orbsw%isorb) * psi(i,iband)
@@ -913,7 +912,7 @@ program WaCo
         end do
 
         ! Construction of the Wannier function.
-        call mpiallred(wann(1),Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f,MPI_SUM)
+        call mpiallred(wann,MPI_SUM)
 
         if(iproc == 0) then
            write(num,'(i4.4)') iwann
@@ -982,7 +981,7 @@ program WaCo
                    Glr%wfd%nseg_f,Glr%wfd%nvctr_f,Glr%wfd%keygloc(1,Glr%wfd%nseg_c+1),Glr%wfd%keyvloc(Glr%wfd%nseg_c+1), & 
                    wann(1),wann(Glr%wfd%nvctr_c+1), -0.5d0)
               end if
-              close(ifile)
+              call f_close(ifile)
            else
               stop 'ETSF not implemented yet'                
               ! should be write_wave_etsf  (only one orbital)
@@ -1013,6 +1012,7 @@ program WaCo
         else 
            open(unit=99, file='minBasis'//'_coeff.bin', status='unknown',form='unformatted')
         end if
+        stop 'THIS CALL IS WRONG'
         call writeLinearCoefficients(99,outformat,Glr%d%n1,Glr%d%n2,Glr%d%n3,&
              & input%hx,input%hy,input%hz,atoms%astruct%nat,atoms%astruct%rxyz,&
              nbandCon,nwannCon,Glr%wfd%nvctr_c,Glr%wfd%nvctr_f,umnt)
@@ -1695,12 +1695,13 @@ subroutine read_hamiltonian(iproc,nrpts,nwann,seedname,ham)
    
 end subroutine read_hamiltonian
 
-subroutine write_wannier_cube(ifile,filename,atoms,Glr,input,rxyz,wannr)
+subroutine write_wannier_cube(jfile,filename,atoms,Glr,input,rxyz,wannr)
   use module_defs, only: gp,dp
+  use f_utils
    use module_types
    implicit none
    character(len=*), intent(in) :: filename
-   integer, intent(in) :: ifile
+   integer, intent(in) :: jfile
    type(atoms_data),intent(in) :: atoms
    type(locreg_descriptors), intent(in) :: Glr
    type(input_variables),intent(in) :: input
@@ -1709,7 +1710,7 @@ subroutine write_wannier_cube(ifile,filename,atoms,Glr,input,rxyz,wannr)
    ! Local variables
    logical :: perx, pery, perz
    integer :: nbl1,nbr1,nbl2,nbr2,nbl3,nbr3,rem
-   integer :: i,j,ix,iy,iz,ind
+   integer :: i,j,ix,iy,iz,ind,ifile
    
    perx=(Glr%geocode /= 'F')
    pery=(Glr%geocode == 'P')
@@ -1722,8 +1723,10 @@ subroutine write_wannier_cube(ifile,filename,atoms,Glr,input,rxyz,wannr)
    if(nbr3 > 0) nbr3 = nbr3 + 2
    ! Volumetric data in batches of 6 values per line, 'z'-direction first.
    rem=Glr%d%n3i-floor(real(Glr%d%n3i/6))*6
+   ifile=jfile
    
-   open(unit=ifile, file=filename, status='unknown')
+   call f_open_file(unit=ifile,file=filename)
+   !open(unit=ifile, file=filename, status='unknown')
    write(ifile,*) ' CUBE file for ISF field'
    write(ifile,*) ' Case for'
    write(ifile,'(I4,1X,F12.6,2(1X,F12.6))') atoms%astruct%nat, real(0.d0), real(0.d0), real(0.d0)
@@ -1747,7 +1750,7 @@ subroutine write_wannier_cube(ifile,filename,atoms,Glr,input,rxyz,wannr)
          end do
       end do
    end do
-   close(unit=ifile)
+   call f_close(unit=ifile)
 
 end subroutine write_wannier_cube
 

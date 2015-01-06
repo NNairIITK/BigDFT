@@ -217,7 +217,7 @@ end function bigdft_error_ret
 !> Abort bigdft program
 subroutine bigdft_severe_abort()
   use module_base
-  use yaml_output, only: yaml_toa,yaml_comment
+  use yaml_output, only: yaml_toa,yaml_comment,yaml_flush_document
   implicit none
   integer :: ierr
   !local variables
@@ -226,15 +226,16 @@ subroutine bigdft_severe_abort()
   filename(1:len(filename))='bigdft-err-'//trim(adjustl(yaml_toa(bigdft_mpi%iproc)))//&
        '-'//trim(adjustl(yaml_toa(bigdft_mpi%igroup)))//'.yaml'
   call f_malloc_dump_status(filename=filename)
-  !call f_dump_last_error()
   if (bigdft_mpi%iproc ==0) then
-     call f_dump_all_errors()
+     call f_dump_all_errors(-1)
      call yaml_comment('Error raised!',hfill='^')
      call yaml_comment('Messages are above, dumping run status in file(s) '//&
           'bigdft-err-*.yaml',hfill='^')
      call yaml_comment('Exiting...',hfill='~')
+     call yaml_flush_document() !might help, sometimes..
   end if
   !call f_lib_finalize()
+  call f_pause(1) !< wait one second
   call MPI_ABORT(MPI_COMM_WORLD,816437,ierr)
   if (ierr/=0) stop 'Problem in MPI_ABORT'
 

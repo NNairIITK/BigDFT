@@ -165,6 +165,25 @@ subroutine test_dictionaries0()
 
   call dict_free(dict1)
 
+  !test the values of the len after reaffectations
+  call dict_init(dict1)
+  call set(dict1//'key','scalar0')
+  call yaml_map('Entered dict',dict1)
+  call yaml_map('Length',dict_len(dict1//'key'))
+  call set(dict1//'key',['one','two','thr'])
+  call yaml_map('Entered dict',dict1)
+  call yaml_map('Length',dict_len(dict1//'key'))
+  !reaffectation
+  call set(dict1//'key','scalar')
+  call yaml_map('Entered dict',dict1)
+  call yaml_map('Length',dict_len(dict1//'key'))
+  !reaffectation again
+  call set(dict1//'key',['One','Two','Thr'])
+  call yaml_map('Entered dict',dict1)
+  call yaml_map('Length',dict_len(dict1//'key'))
+
+  call dict_free(dict1)
+
 
 !!$
 !!$  !new test, build list on-the-fly
@@ -329,10 +348,14 @@ subroutine test_dictionaries1()
    call yaml_map('Values retrieved from the dict',tmp_arr,fmt='(1pg12.5)')
 
    dict2=>find_key(dictA,'Stack')
+   call yaml_map('Lenght zero',dict_len(dict2))
+   call yaml_map('Dict extracted',dict2)
    call dict_remove_last(dict2)
+   call yaml_map('Lenght first',dict_len(dict2))
 
 
    call dict_remove_last(dict2)
+   call yaml_map('Lenght second',dict_len(dict2))
 
    !  call push(dict2,'Element')
    !  call append(dictA,dictA2)
@@ -424,8 +447,21 @@ subroutine test_dictionaries1()
    !call yaml_dict_dump2(dictA,verbatim=.true.)
    call yaml_dict_dump(dictA)
    call yaml_mapping_close()
-   
+   !test for scratching a dict
+   !zero1=>dict_new('Test1' .is. 'scratchToto')
+   !call set(dictA//'Test1','scratchToto')
+   !test of the copy
+   !zero1=>dict_new('Test1' .is. list_new(.item. 'scratchToto',.item. 'scratchTiti'))
+   !call yaml_map('To update dict',zero1)
+   !zero2 => dict_iter(zero1)
+   !call yaml_map('Key found',zero2)
+   !call dict_copy(dictA//'Test1',zero2)
+   !zero2 => dict_next(zero2)
+   !call yaml_map('Key found next',zero2)
+   !!call dict_update(dictA,zero1)
+   !call yaml_map('Scratched dict',dictA)
    call yaml_map('Keys of prepended dict',dict_keys(dictA))
+
 
    !perform an iterator on dictA
    dict_tmp=>dict_iter(dictA)
@@ -756,7 +792,7 @@ end subroutine test_dictionary_for_atoms
 !! and compares it to the usage of an array for doing similar things
 subroutine profile_dictionary_usage()
   use dictionaries
-  use dynamic_memory, only : f_time
+  use f_utils, only : f_time
   use yaml_output
   implicit none
   !local variables

@@ -5,4 +5,3 @@ method_updatekernel 2
 purification_quickreturn T
 check_matrix_compression F
 correction_co_contra T
-outdir ./

@@ -130,7 +130,7 @@ end subroutine print_configure_options
 
 
 !> Print all general parameters
-subroutine print_general_parameters(in,atoms)
+subroutine print_general_parameters(in,atoms,input_id,posinp_id)
   use module_base
   use module_types
   use defs_basis
@@ -140,20 +140,14 @@ subroutine print_general_parameters(in,atoms)
   !Arguments
   type(input_variables), intent(in) :: in
   type(atoms_data), intent(in) :: atoms
+  character(len = *), intent(in) :: input_id, posinp_id
 
   integer :: iat, i
-  character(len=len(in%run_name)) :: prefix
   character(len = 11) :: potden
   character(len = 12) :: dos
 
   ! Output for atoms
-  if (trim(in%run_name) == '') then
-     call yaml_comment('Input Atomic System (file: posinp.'//trim(atoms%astruct%inputfile_format)//')',hfill='-')
-     prefix = 'input'
-  else
-     prefix = in%run_name
-     call yaml_comment('Input Atomic System (file: '//trim(prefix)//'.'//trim(atoms%astruct%inputfile_format)//')',hfill='-')
-  end if
+  call yaml_comment('Input Atomic System (file: '//trim(posinp_id)//'.'//trim(atoms%astruct%inputfile_format)//')',hfill='-')
 
   ! Atomic systems
   call yaml_mapping_open('Atomic System Properties')
@@ -204,7 +198,7 @@ subroutine print_general_parameters(in,atoms)
 
   !Geometry imput Parameters
   if (in%ncount_cluster_x > 0) then
-     call yaml_comment('Geometry optimization Input Parameters (file: '//trim(prefix)//'.geopt)',hfill='-')
+     call yaml_comment('Geometry optimization Input Parameters (file: '//trim(input_id)//'.geopt)',hfill='-')
      call yaml_mapping_open('Geometry Optimization Parameters')
         call yaml_map('Maximum steps',in%ncount_cluster_x)
         call yaml_map('Algorithm', in%geopt_approach)
@@ -335,7 +329,7 @@ subroutine print_general_parameters(in,atoms)
      else
         write(potden, "(A)") "density"
      end if
-     call yaml_comment('Mixing (file: '//trim(prefix)//'.mix)',hfill='-')
+     call yaml_comment('Mixing (file: '//trim(input_id)//'.mix)',hfill='-')
      call yaml_mapping_open('Mixing parameters')
         call yaml_map('Target',trim(potden))
         call yaml_map('Additional bands', in%norbsempty)
@@ -411,7 +405,7 @@ subroutine print_dft_parameters(in,atoms)
       end if
     call yaml_mapping_close()
 
-    if (in%ncharge > 0) call yaml_map('Net Charge (Ions-Electrons)',in%ncharge,fmt='(i8)')
+    if (in%qcharge /= 0.0_gp) call yaml_map('Net Charge (Ions-Electrons)',in%qcharge,fmt='(f8.5)')!'(i8)')
     if (sqrt(sum(in%elecfield(:)**2)) > 0.0_gp) &
       call yaml_map('External Electric Field (Ha/a0)',in%elecfield(:),fmt='(1pe8.1)')
   call yaml_mapping_close()
@@ -1357,7 +1351,8 @@ subroutine print_atomic_variables(atoms, hmax, ixc, dispersion)
      end if
      !control whether the grid spacing is too high
      if (hmax > 2.5_gp*minrad) then
-        call yaml_warning('Chosen Grid spacings seem too high for this atom. At you own risk!')
+        call yaml_warning('Chosen Grid spacings seem too high for the '// &
+           & trim(atoms%astruct%atomnames(ityp))//' atom type. At you own risk!')
      end if
 
      select case(atoms%npspcode(ityp))
@@ -1559,17 +1554,17 @@ subroutine print_atoms_and_grid(Glr, atoms, rxyz, shift, hx, hy, hz)
 
   if (atoms%astruct%ntypes > 0) then
      call yaml_comment('Atom Positions',hfill='-')
-     call yaml_sequence_open('Atomic positions within the cell (Atomic and Grid Units)')
-     do iat=1,atoms%astruct%nat
-        call yaml_sequence(advance='no')
-        call yaml_mapping_open(trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat))),flow=.true.)
-        call yaml_map('AU',rxyz(1:3,iat),fmt='(1pg12.5)')
-        call yaml_map('GU',(/rxyz(1,iat)/hx,rxyz(2,iat)/hy,rxyz(3,iat)/hz/),fmt='(1pg12.5)')
-        call yaml_mapping_close(advance='no')
-        call yaml_comment(trim(yaml_toa(iat,fmt='(i4.4)')))
-     enddo
-     call yaml_sequence_close()
-     call yaml_map('Rigid Shift Applied (AU)',(/-shift(1),-shift(2),-shift(3)/),fmt='(1pg12.5)')
+!!$     call yaml_sequence_open('Atomic positions within the cell (Atomic and Grid Units)')
+!!$     do iat=1,atoms%astruct%nat
+!!$        call yaml_sequence(advance='no')
+!!$        call yaml_mapping_open(trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat))),flow=.true.)
+!!$        call yaml_map('AU',rxyz(1:3,iat),fmt='(1pg12.5)')
+!!$        call yaml_map('GU',(/rxyz(1,iat)/hx,rxyz(2,iat)/hy,rxyz(3,iat)/hz/),fmt='(1pg12.5)')
+!!$        call yaml_mapping_close(advance='no')
+!!$        call yaml_comment(trim(yaml_toa(iat,fmt='(i4.4)')))
+!!$     enddo
+!!$     call yaml_sequence_close()
+!!$     call yaml_map('Rigid Shift Applied (AU)',(/-shift(1),-shift(2),-shift(3)/),fmt='(1pg12.5)')
      ! New version
      call yaml_mapping_open('Atomic structure')
      call yaml_get_default_stream(unit = iunit)
@@ -1748,7 +1743,7 @@ contains
     character(len=*), intent(in) :: atomname
     double precision, dimension(3), intent(in) :: rxyz,hgrids
     !local variables
-    character(len=*), parameter :: fmtat='(1pg18.10)',fmtg='(F6.2)',fmti='(i4.4)'
+    character(len=*), parameter :: fmtat='(1pg18.10)',fmtg='(F7.2)',fmti='(i4.4)'
     integer :: i
 
     call yaml_sequence_open(atomname,flow=.true.)

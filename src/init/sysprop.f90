@@ -370,7 +370,7 @@ subroutine system_initialization(iproc,nproc,dump,inputpsi,input_wf_format,dry_r
   !check the communication distribution
   if(inputpsi /= INPUT_PSI_LINEAR_AO .and. inputpsi /= INPUT_PSI_DISK_LINEAR &
      .and. inputpsi /= INPUT_PSI_MEMORY_LINEAR) then
-      call check_communications(iproc,nproc,orbs,Lzd,comms)
+     call check_communications(iproc,nproc,orbs,Lzd,comms)
   else
       ! Do not call check_communication, since the value of orbs%npsidim_orbs is wrong
       if(iproc==0) call yaml_warning('Do not call check_communications in the linear scaling version!')
@@ -485,7 +485,7 @@ subroutine system_initialization(iproc,nproc,dump,inputpsi,input_wf_format,dry_r
        integer,parameter :: nit=5
        real(kind=8),dimension(2*nit+1) :: times
 
-      call to_zero(lorbs%norb, times_convol(1))
+      call f_zero(times_convol)
       do iorb=1,lorbs%norbp
           iiorb=lorbs%isorb+iorb
           ilr=lorbs%inwhichlocreg(iiorb)
@@ -493,7 +493,7 @@ subroutine system_initialization(iproc,nproc,dump,inputpsi,input_wf_format,dry_r
           times_convol(iiorb) = real(ii,kind=8)
       end do
       if (nproc>1) then
-          call mpiallred(times_convol(1), lorbs%norb, mpi_sum, bigdft_mpi%mpi_comm)
+          call mpiallred(times_convol, mpi_sum, bigdft_mpi%mpi_comm)
       end if
 
       return !###############################################3
@@ -525,7 +525,7 @@ subroutine system_initialization(iproc,nproc,dump,inputpsi,input_wf_format,dry_r
       end do
 
 
-      call to_zero(lorbs%norb, times_convol(1))
+      call f_zero(times_convol)
 
       if (nproc>1) then
           call mpi_barrier(bigdft_mpi%mpi_comm, ierr)
@@ -591,7 +591,7 @@ subroutine system_initialization(iproc,nproc,dump,inputpsi,input_wf_format,dry_r
        call f_free(phi)
 
        if (nproc>1) then
-           call mpiallred(times_convol(1), lorbs%norb, mpi_sum, bigdft_mpi%mpi_comm)
+           call mpiallred(times_convol, mpi_sum, bigdft_mpi%mpi_comm)
        end if
 
      end subroutine test_preconditioning
@@ -629,7 +629,7 @@ subroutine system_initialization(iproc,nproc,dump,inputpsi,input_wf_format,dry_r
        integer :: jjorbtot, jjorb, jproc, jlr, jorb
        integer(kind=8) :: ncount
 
-       call to_zero(nproc, norb_par(0))
+       call f_zero(norb_par)
        ncount = int(0,kind=8)
        jproc = 0
        jjorb = 0
@@ -683,8 +683,7 @@ subroutine system_initialization(iproc,nproc,dump,inputpsi,input_wf_format,dry_r
        integer :: jjorbtot, jjorb, jproc, jlr, jorb
        real(kind=8) :: tcount
 
-
-       call to_zero(nproc, norb_par(0))
+       call f_zero(norb_par)
        if (norb>=nproc) then
            tcount = 0.d0
            jproc = 0
@@ -786,10 +785,10 @@ subroutine system_createKernels(denspot, verb)
   logical, intent(in) :: verb
   type(DFT_local_fields), intent(inout) :: denspot
 
-  call pkernel_set(denspot%pkernel,verb)
+  call pkernel_set(denspot%pkernel,verbose=verb)
     !create the sequential kernel if pkernelseq is not pkernel
   if (denspot%pkernelseq%mpi_env%nproc == 1 .and. denspot%pkernel%mpi_env%nproc /= 1) then
-     call pkernel_set(denspot%pkernelseq,.false.)
+     call pkernel_set(denspot%pkernelseq,verbose=.false.)
   else
      denspot%pkernelseq = denspot%pkernel
   end if
@@ -868,9 +867,7 @@ subroutine calculate_rhocore(at,d,rxyz,hxh,hyh,hzh,i3s,i3xcsh,n3d,n3p,rhocore)
 
   if (at%donlcc) then
      !allocate pointer rhocore
-     rhocore = f_malloc_ptr((/ d%n1i , d%n2i , n3d , 10 /),id='rhocore')
-     !initalise it 
-     if (n3d > 0) call to_zero(d%n1i*d%n2i*n3d*10,rhocore(1,1,1,1))
+     rhocore = f_malloc0_ptr((/ d%n1i , d%n2i , n3d , 10 /),id='rhocore')
      !perform the loop on any of the atoms which have this feature
      do iat=1,at%astruct%nat
         ityp=at%astruct%iatype(iat)
@@ -930,60 +927,71 @@ subroutine calculate_rhocore(at,d,rxyz,hxh,hyh,hzh,i3s,i3xcsh,n3d,n3p,rhocore)
 END SUBROUTINE calculate_rhocore
 
 
-subroutine psp_from_file(filename, nzatom, nelpsp, npspcode, &
-     & ixcpsp, psppar, donlcc, rcore, qcore, radii_cf, exists, pawpatch)
+subroutine psp_from_stream(ios, nzatom, nelpsp, npspcode, &
+     & ixcpsp, psppar, donlcc, rcore, qcore, radii_cf, pawpatch)
   use module_base
   use ao_inguess
   use m_pawpsp, only: pawpsp_read_header_2
+  use dictionaries
+  use f_utils
   implicit none
   
-  character(len = *), intent(in) :: filename
+  type(io_stream), intent(inout) :: ios
   integer, intent(out) :: nzatom, nelpsp, npspcode, ixcpsp
   real(gp), intent(out) :: psppar(0:4,0:6), radii_cf(3), rcore, qcore
-  logical, intent(out) :: exists, pawpatch
+  logical, intent(out) :: pawpatch
   logical, intent(inout) ::  donlcc
+  
   !ALEX: Some local variables
   real(gp):: fourpi, sqrt2pi
   character(len=2) :: symbol
-  character(len=20) :: skip
 
   integer :: ierror, ierror1, i, j, nn, nlterms, nprl, l, nzatom_, nelpsp_, npspcode_
   integer :: lmax,lloc,mmax
   integer:: pspversion,basis_size,lmn_size
   real(dp) :: nelpsp_dp,nzatom_dp,r2well
-  character(len=100) :: line
+  character(len=max_field_length) :: line
+  logical :: exists, eof
 
   radii_cf = UNINITIALIZED(1._gp)
   pawpatch = .false.
-  inquire(file=trim(filename),exist=exists)
-  if (.not. exists) return
+  !inquire(file=trim(filename),exist=exists)
+  !if (.not. exists) return
 
   ! if (iproc.eq.0) write(*,*) 'opening PSP file ',filename
-  open(unit=11,file=trim(filename),status='old',iostat=ierror)
+  !open(unit=11,file=trim(filename),status='old',iostat=ierror)
   !Check the open statement
-  if (ierror /= 0) then
-     write(*,*) ': Failed to open the file (it must be in ABINIT format!): "',&
-          trim(filename),'"'
-     stop
-  end if
-  read(11,*)
-  read(11,*) nzatom_dp, nelpsp_dp
+  !if (ierror /= 0) then
+  !   write(*,*) ': Failed to open the file (it must be in ABINIT format!): "',&
+  !        trim(filename),'"'
+  !   stop
+  !end if
+  call f_iostream_get_line(ios, line)
+  call f_iostream_get_line(ios, line)
+  read(line,*) nzatom_dp, nelpsp_dp
   nzatom=int(nzatom_dp); nelpsp=int(nelpsp_dp)
-  read(11,*) npspcode, ixcpsp, lmax, lloc, mmax, r2well
+  call f_iostream_get_line(ios, line)
+  read(line,*) npspcode, ixcpsp, lmax, lloc, mmax, r2well
 
   psppar(:,:)=0._gp
   if (npspcode == 2) then !GTH case
-     read(11,*) (psppar(0,j),j=0,4)
+     call f_iostream_get_line(ios, line)
+     read(line,*) (psppar(0,j),j=0,4)
      do i=1,2
-        read(11,*) (psppar(i,j),j=0,3-i)
+        call f_iostream_get_line(ios, line)
+        read(line,*) (psppar(i,j),j=0,3-i)
      enddo
   else if (npspcode == 3) then !HGH case
-     read(11,*) (psppar(0,j),j=0,4)
-     read(11,*) (psppar(1,j),j=0,3)
+     call f_iostream_get_line(ios, line)
+     read(line,*) (psppar(0,j),j=0,4)
+     call f_iostream_get_line(ios, line)
+     read(line,*) (psppar(1,j),j=0,3)
      do i=2,4
-        read(11,*) (psppar(i,j),j=0,3)
+        call f_iostream_get_line(ios, line)
+        read(line,*) (psppar(i,j),j=0,3)
         !ALEX: Maybe this can prevent reading errors on CRAY machines?
-        read(11,*) skip !k coefficients, not used for the moment (no spin-orbit coupling)
+        call f_iostream_get_line(ios, line)
+        !read(11,*) skip !k coefficients, not used for the moment (no spin-orbit coupling)
      enddo
   else if (npspcode == 7) then !PAW Pseudos
      ! Need NC psp for input guess.
@@ -993,42 +1001,53 @@ subroutine psp_from_file(filename, nzatom, nelpsp, npspcode, &
      if (.not.exists) stop "Implement here."
 
      ! PAW format using libPAW.
-     call pawpsp_read_header_2(11,pspversion,basis_size,lmn_size)
+     call pawpsp_read_header_2(ios%iunit,pspversion,basis_size,lmn_size)
      ! PAW data will not be saved in the input dictionary,
      ! we keep their reading for later.
      pawpatch = .true.
   else if (npspcode == 10) then !HGH-K case
-     read(11,*) psppar(0,0),nn,(psppar(0,j),j=1,nn) !local PSP parameters
-     read(11,*) nlterms !number of channels of the pseudo
+     call f_iostream_get_line(ios, line)
+     read(line,*) psppar(0,0),nn,(psppar(0,j),j=1,nn) !local PSP parameters
+     call f_iostream_get_line(ios, line)
+     read(line,*) nlterms !number of channels of the pseudo
      prjloop: do l=1,nlterms
-        read(11,*) psppar(l,0),nprl,psppar(l,1),&
+        call f_iostream_get_line(ios, line)
+        read(line,*) psppar(l,0),nprl,psppar(l,1),&
              (psppar(l,j+2),j=2,nprl) !h_ij terms
         do i=2,nprl
-           read(11,*) psppar(l,i),(psppar(l,i+j+1),j=i+1,nprl) !h_ij 
+           call f_iostream_get_line(ios, line)
+           read(line,*) psppar(l,i),(psppar(l,i+j+1),j=i+1,nprl) !h_ij 
         end do
         if (l==1) cycle
         do i=1,nprl
            !ALEX: Maybe this can prevent reading errors on CRAY machines?
-           read(11,*)skip !k coefficients, not used
+           call f_iostream_get_line(ios, line)
+           !read(11,*)skip !k coefficients, not used
         end do
      end do prjloop
   !ALEX: Add support for reading NLCC from psppar
   else if (npspcode == 12) then !HGH-NLCC: Same as HGH-K + one additional line
-     read(11,*) psppar(0,0),nn,(psppar(0,j),j=1,nn) !local PSP parameters
-     read(11,*) nlterms !number of channels of the pseudo
+     call f_iostream_get_line(ios, line)
+     read(line,*) psppar(0,0),nn,(psppar(0,j),j=1,nn) !local PSP parameters
+     call f_iostream_get_line(ios, line)
+     read(line,*) nlterms !number of channels of the pseudo
      do l=1,nlterms
-        read(11,*) psppar(l,0),nprl,psppar(l,1),&
+        call f_iostream_get_line(ios, line)
+        read(line,*) psppar(l,0),nprl,psppar(l,1),&
              (psppar(l,j+2),j=2,nprl) !h_ij terms
         do i=2,nprl
-           read(11,*) psppar(l,i),(psppar(l,i+j+1),j=i+1,nprl) !h_ij
+           call f_iostream_get_line(ios, line)
+           read(line,*) psppar(l,i),(psppar(l,i+j+1),j=i+1,nprl) !h_ij
         end do
         if (l==1) cycle
         do i=1,nprl
            !ALEX: Maybe this can prevent reading errors on CRAY machines?
-           read(11,*) skip !k coefficients, not used
+           call f_iostream_get_line(ios, line)
+           !read(11,*) skip !k coefficients, not used
         end do
      end do 
-     read(11,*) rcore, qcore
+     call f_iostream_get_line(ios, line)
+     read(line,*) rcore, qcore
      !convert the core charge fraction qcore to the amplitude of the Gaussian
      !multiplied by 4pi. This is the convention used in nlccpar(1,:).
      fourpi=4.0_gp*pi_param!8.0_gp*dacos(0.0_gp)
@@ -1037,18 +1056,15 @@ subroutine psp_from_file(filename, nzatom, nelpsp, npspcode, &
           (sqrt2pi*rcore)**3
      donlcc=.true.
   else
-     !if (iproc == 0) then
-     write(*,'(1x,a,a)') trim(filename),&
-          'unrecognized pspcode: only GTH, HGH & HGH-K pseudos (ABINIT format)'
-     !end if
-     stop
+     call f_err_throw('PSP code not recognised (' // trim(yaml_toa(npspcode)) // ')', &
+          err_id=BIGDFT_INPUT_VARIABLES_ERROR)
   end if
 
   if (npspcode /= 7) then
      
      !old way of calculating the radii, requires modification of the PSP files
-     read(11,'(a100)',iostat=ierror) line
-     if (ierror /=0) then
+     call f_iostream_get_line(ios, line, eof)
+     if (eof) then
         !if (iproc ==0) write(*,*)&
         !     ' WARNING: last line of pseudopotential missing, put an empty line'
         line=''
@@ -1062,14 +1078,12 @@ subroutine psp_from_file(filename, nzatom, nelpsp, npspcode, &
      end if
      pawpatch = (trim(line) == "PAWPATCH")
      do
-        read(11,'(a100)',iostat=ierror) line
-        if (ierror /= 0 .or. pawpatch) exit
+        call f_iostream_get_line(ios, line, eof)
+        if (eof .or. pawpatch) exit
         pawpatch = (trim(line) == "PAWPATCH")
      end do
   end if
-
-  close(11)
-END SUBROUTINE psp_from_file
+END SUBROUTINE psp_from_stream
 
 subroutine paw_from_file(pawrad, pawtab, filename, nzatom, nelpsp, ixc)
   use module_base
@@ -1172,8 +1186,8 @@ END SUBROUTINE nlcc_dim_from_file
 
 
 !> Calculate the number of electrons and check the polarisation (mpol)
-subroutine read_n_orbitals(iproc, nelec_up, nelec_down, norbe, &
-     & atoms, ncharge, nspin, mpol, norbsempty)
+subroutine read_n_orbitals(iproc, qelec_up, qelec_down, norbe, &
+     & atoms, qcharge, nspin, mpol, norbsempty)
   use module_atoms, only: atoms_data
   use ao_inguess, only: charge_and_spol
   use module_base, only: gp, f_err_throw
@@ -1183,116 +1197,106 @@ subroutine read_n_orbitals(iproc, nelec_up, nelec_down, norbe, &
   implicit none
   !Arguments
   type(atoms_data), intent(in) :: atoms
-  integer, intent(out) :: nelec_up, nelec_down, norbe
-  integer, intent(in) :: ncharge, nspin, mpol, norbsempty, iproc
+  integer, intent(out) :: norbe
+  real(gp), intent(out) :: qelec_up, qelec_down
+  real(gp), intent(in) :: qcharge
+  integer, intent(in) :: nspin, mpol, norbsempty, iproc
   !Local variables
-  integer :: nelec, iat, ityp, ispinsum, ichgsum, ichg, ispol!, nspinor
-  !integer, parameter :: nelecmax=32,lmax=4,noccmax=2
-  !integer, dimension(lmax) :: nl
-  !real(gp), dimension(noccmax,lmax) :: occup
+  integer :: nel, nel_up,nel_dwn,nchg,iat, ityp, ispinsum, ichgsum, ichg, ispol,iabspol!, nspinor
+  real(gp) :: qelec
 
   call f_routine(id='read_n_orbitals')
 
   !calculate number of electrons and orbitals
   ! Number of electrons and number of semicore atoms
-  nelec=0
+  qelec=0
   do iat=1,atoms%astruct%nat
      ityp=atoms%astruct%iatype(iat)
-     nelec=nelec+atoms%nelpsp(ityp)
+     qelec=qelec+real(atoms%nelpsp(ityp),gp)
   enddo
-  nelec=nelec-ncharge
+  qelec=qelec-qcharge
+  !roundoff of the charge
+  nel=nint(qelec)
+  if (qelec - real(nel,gp) > 1.e-12_gp) nel=nel+1
+  nchg=nint(-qcharge)
+  if (-qcharge - real(nchg,gp) > 1.e-12_gp) nchg=nchg+1
+  nchg=-nchg
 
-  if(nelec < 0.0 ) then
-    !if(iproc==0) write(*,*)'ERROR: Number of electrons is negative:',nelec,'.'
-    !if(iproc==0) write(*,*)'FIX: decrease charge of system.'
-    !call mpi_finalize(iat)
-    !stop
-    call f_err_throw('Number of electrons is negative:' // trim(yaml_toa(nelec)) // &
-      & '. FIX: decrease charge of system.', err_name='BIGDFT_RUNTIME_ERROR')
+
+  if(qelec < 0.0_gp ) then
+    call f_err_throw('Number of electrons is negative:' // trim(yaml_toa(qelec)) // &
+      & '. FIX: decrease value of qcharge.', err_name='BIGDFT_RUNTIME_ERROR')
   end if
 
   ! Number of orbitals
   if (nspin==1) then
-     nelec_up=nelec
-     nelec_down=0
+     qelec_up=qelec
+     qelec_down=0.0_gp
   else if(nspin==4) then
-     nelec_up=nelec
-     nelec_down=0
+     qelec_up=qelec
+     qelec_down=0.0_gp
   else 
-     if (mod(nelec+mpol,2) /=0) then
-          call f_err_throw('The mpol polarization should have the same parity of the number of electrons. ' // &
-            & '(mpol=' // trim(yaml_toa(mpol)) // ' and nelec=' // trim(yaml_toa(nelec)) // ')', &
+     if (mod(nel+mpol,2) /=0) then
+          call f_err_throw('The mpol polarization should have the same parity of the (rounded) number of electrons. ' // &
+            & '(mpol=' // trim(yaml_toa(mpol)) // ' and qelec=' // trim(yaml_toa(qelec)) // ')', &
             & err_name='BIGDFT_INPUT_VARIABLES_ERROR')
-        !write(*,*)'ERROR: '
-        !stop
+
      end if
-     nelec_up=min((nelec+mpol)/2,nelec)
-     nelec_down=nelec-nelec_up
+     !put the charge according to the polarization.
+     !non-integer part always goes to the upper spin shell
+     !nelec_up=min((nelec+mpol)/2,nelec) !this is the integer part (rounded)
+     nel_up=min((nel+mpol)/2,nel)
+     nel_dwn=nel-nel_up
+     qelec_down=real(nel_dwn,gp)
+     !then the elec_up part is redefined with the actual charge
+     qelec_up=qelec-qelec_down
 
      !test if the spin is compatible with the input guess polarisations
      ispinsum=0
      ichgsum=0
+     iabspol=0
      do iat=1,atoms%astruct%nat
         call charge_and_spol(atoms%astruct%input_polarization(iat),ichg,ispol)
         ispinsum=ispinsum+ispol
         ichgsum=ichgsum+ichg
+        iabspol=iabspol+abs(ispol)
      end do
 
-     if (ispinsum /= nelec_up-nelec_down) then
-        !call yaml_warning('Total input polarisation (found ' // trim(yaml_toa(ispinsum)) &
-        !     & // ') must be equal to nelec_up-nelec_down.')
-        !call yaml_comment('With nelec=' // trim(yaml_toa(nelec)) &
-        !     & // ' and mpol=' // trim(yaml_toa(mpol)) // &
-        !     & ' nelec_up-nelec_down=' // trim((yaml_toa(nelec_up-nelec_down))))
-        !stop
-        call f_err_throw('Total polarisation for the input guess (found ' // trim(yaml_toa(ispinsum)) // &
-           & ') must be equal to nelec_up-nelec_down ' // &
-           & '(nelec=' // trim(yaml_toa(nelec)) // ', mpol=' // trim(yaml_toa(mpol)) // &
-           & ', nelec_up-nelec_down=' // trim((yaml_toa(nelec_up-nelec_down))) // &
-           & ', nelec_up=' // trim((yaml_toa(nelec_up))) // &
-           & ', nelec_down=' // trim((yaml_toa(nelec_down))) // &
-           & '). Use the keyword "IGSpin" or add a spin component for the input guess per atom.', &
-           & err_name='BIGDFT_INPUT_VARIABLES_ERROR')
+     if (ispinsum /= nel_up-nel_dwn) then
+        call f_err_throw('Total polarisation for the input guess (found ' // &
+             trim(yaml_toa(ispinsum)) // &
+             ') must be equal to rounded nel_up-nel_dwn ' // &
+             '(nelec=' // trim(yaml_toa(qelec)) // ', mpol=' // trim(yaml_toa(mpol)) // &
+             ', nel_up-nel_dwn=' // trim((yaml_toa(nel_up-nel_dwn))) // &
+             ', nel_up=' // trim((yaml_toa(nel_up))) // &
+             ', nel_dwn=' // trim((yaml_toa(nel_dwn))) // &
+             '). Use the keyword "IGSpin" or add a spin component for the input guess per atom.', &
+             err_name='BIGDFT_INPUT_VARIABLES_ERROR')
      end if
 
-     if (ichgsum /= ncharge .and. ichgsum /= 0) then
-        !call yaml_warning('Total input charge (found ' // trim(yaml_toa(ichgsum)) &
-        !     & // ') cannot be different than charge.')
-        !call yaml_comment('With charge =' // trim(yaml_toa(ncharge)) &
-        !     & // ' and input charge=' // trim(yaml_toa(ichgsum)))
-        !stop
+     if (ichgsum /= nchg .and. ichgsum /= 0) then
         call f_err_throw('Total input charge (found ' // trim(yaml_toa(ichgsum)) // &
-             & ') cannot be different than charge. With charge =' // trim(yaml_toa(ncharge)) // &
+             & ') cannot be different than rounded charge. With charge =' // trim(yaml_toa(qcharge)) // &
              & ' and input charge=' // trim(yaml_toa(ichgsum)), &
              & err_name='BIGDFT_INPUT_VARIABLES_ERROR')
      end if
 
      !now warn if there is no input guess spin polarisation
-     ispinsum=0
-     do iat=1,atoms%astruct%nat
-        call charge_and_spol(atoms%astruct%input_polarization(iat),ichg,ispol)
-        ispinsum=ispinsum+abs(ispol)
-     end do
-     if (ispinsum == 0) then
-        if (iproc==0 .and. norbsempty == 0) &
-             call yaml_warning('Found no input polarisation, add it for a correct input guess')
-        !write(*,'(1x,a)')&
-        !     'WARNING: Found no input polarisation, add it for a correct input guess'
-        !stop
-     end if
+!!$     ispinsum=0
+!!$     do iat=1,atoms%astruct%nat
+!!$        call charge_and_spol(atoms%astruct%input_polarization(iat),ichg,ispol)
+!!$        ispinsum=ispinsum+abs(ispol)
+!!$     end do
+!!$     if (ispinsum == 0) then
+     if (iabspol == 0 .and. iproc==0 .and. norbsempty == 0) &
+          call yaml_warning('Found no input polarisation, add it for a correct input guess')
   end if
 
   norbe = 0
-  !if(nspin==4) then
-  !   nspinor=4
-  !else
-  !   nspinor=1
-  !end if
   do iat=1,atoms%astruct%nat
-     !ityp=atoms%astruct%iatype(iat)
-     !call count_atomic_shells(nspin,atoms%aoig(iat)%aocc,occup,nl)
-     norbe=norbe+atoms%aoig(iat)%nao!nl(1)+3*nl(2)+5*nl(3)+7*nl(4)
+     norbe=norbe+atoms%aoig(iat)%nao
   end do
+  if (norbe == 0) norbe = nel !elec_up + nelec_down ! electron gas case
 
   call f_release_routine()
 
@@ -1676,7 +1680,7 @@ END SUBROUTINE kpts_to_procs_via_obj
 
 
 subroutine components_kpt_distribution(nproc,nkpts,norb,nvctr,norb_par,nvctr_par)
-  use module_base, only: gp, f_err_throw, to_zero,BIGDFT_RUNTIME_ERROR,&
+  use module_base, only: gp, f_err_throw, f_zero,BIGDFT_RUNTIME_ERROR,&
        UNINITIALIZED
   implicit none
   !Arguments
@@ -1688,8 +1692,7 @@ subroutine components_kpt_distribution(nproc,nkpts,norb,nvctr,norb_par,nvctr_par
   real(gp) :: strprc,endprc
 
   !for any of the k-points find the processors which have such k-point associated
-  call to_zero(nproc*nkpts,nvctr_par(0,1))
-
+  call f_zero(nvctr_par)
 
   !Loop over each k point
   do ikpt=1,nkpts
@@ -2250,8 +2253,7 @@ subroutine paw_init(paw, at, nspinor, nspin, npsidim, norb)
 
   allocate(paw%cprj(at%astruct%nat, nspinor * nspin * norb))
   nlmn = f_malloc(at%astruct%nat, id = "nlmn")
-  nattyp = f_malloc(at%astruct%ntypes, id = "nattyp")
-  call to_zero(at%astruct%ntypes, nattyp(1))
+  nattyp = f_malloc0(at%astruct%ntypes, id = "nattyp")
   do i = 1, at%astruct%nat
      nattyp(at%astruct%iatype(i)) = nattyp(at%astruct%iatype(i)) + 1
   end do
@@ -2271,8 +2273,8 @@ subroutine paw_init(paw, at, nspinor, nspin, npsidim, norb)
   call f_free(l_size_atm)
 
   allocate(paw%pawrhoij(at%astruct%nat))
-  spinat = f_malloc((/3, at%astruct%nat/), id = "spinat")
-  call to_zero(3 * at%astruct%nat, spinat(1,1))
+  spinat = f_malloc0((/3, at%astruct%nat/), id = "spinat")
+
   lexexch = f_malloc(at%astruct%ntypes, id = "lexexch")
   lexexch = -1
   lpawu = f_malloc(at%astruct%ntypes, id = "lpawu")

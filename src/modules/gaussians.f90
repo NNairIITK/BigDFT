@@ -13,7 +13,7 @@
 module gaussians
 
   use module_base
-
+  implicit none
   private
 
   integer, parameter :: NSD_=2,EXPO_=1,COEFF_=2    !< Positions of exponents and coefficients in the storage space
@@ -420,11 +420,17 @@ contains
     integer :: n_range
     real(gp), dimension(:), allocatable :: x_scf !< to be removed in a future implementation
 
-    itype_scf=16
-    if (present(isf_m)) itype_scf=isf_m
+    if (present(isf_m)) then
+       itype_scf=isf_m
+    else
+       itype_scf=16
+    end if
 
-    n_scf=2*itype_scf*(2**6)
-    if (present(npoints)) n_scf=2*itype_scf*npoints
+    if (present(npoints)) then
+       n_scf=2*itype_scf*npoints
+    else
+       n_scf=2*itype_scf*(2**6)
+    end if
 
     !allocations for scaling function data array
     x_scf = f_malloc(0.to.n_scf,id='x_scf')
@@ -532,6 +538,7 @@ contains
     gint = gint*dx
 
   end function scfdotf
+
 
   !> Overlap matrix between two different basis structures
   subroutine gaussian_overlap(A,B,ovrlp)

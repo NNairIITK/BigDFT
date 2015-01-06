@@ -23,7 +23,7 @@ subroutine ConvolQuartic4(iproc, nproc, n1, n2, n3, nfl1, nfu1, nfl2, nfu2, nfl3
 !           ceff0_2, ceff1_2, ceff2_2, ceff3_2, eeff0_2, eeff1_2, eeff2_2, eeff3_2, & 
            y_c, y_f)
 
-  use module_base, only: wp,gp,to_zero
+  use module_base, only: wp,gp,f_zero
   use dynamic_memory
   implicit none
   
@@ -706,8 +706,8 @@ subroutine ConvolQuartic4(iproc, nproc, n1, n2, n3, nfl1, nfu1, nfl2, nfu2, nfl3
 
   !initialize the arrays to zero.
   !This is important since the  bounding region can be concave
-  call to_zero((n1+1)*(n2+1)*(n3+1),y_c(0,0,0))
-  call to_zero(7*(nfu1-nfl1+1)*(nfu2-nfl2+1)*(nfu3-nfl3+1),y_f(1,nfl1,nfl2,nfl3))
+  call f_zero(y_c)
+  call f_zero(y_f)
 
   !write(*,*) 'before: ddot',ddot((n1+1)*(n2+1)*(n3+1), y_c, 1, y_c, 1)
 

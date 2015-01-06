@@ -65,7 +65,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,energs,fxyz,strten,fnoise,press
   character(len=*), parameter :: subname='cluster'
   character(len=5) :: gridformat, wfformat
   logical :: refill_proj, calculate_dipole !,potential_from_disk=.false.
-  logical :: DoDavidson,DoLastRunThings=.false.
+  logical :: DoDavidson,DoLastRunThings
   integer :: nvirt,norbv
   integer :: i, input_wf_format, output_denspot
   integer :: n1,n2,n3
@@ -118,6 +118,8 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,energs,fxyz,strten,fnoise,press
   call f_routine(id=subname)
 
   energs = energy_terms_null()
+
+  DoLastRunThings=.false. !to avoid the implicit save attribute
 
   !copying the input variables for readability
   !this section is of course not needed
@@ -865,8 +867,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,energs,fxyz,strten,fnoise,press
      if (inputpsi /= INPUT_PSI_LINEAR_AO .and. &
           & inputpsi /= INPUT_PSI_MEMORY_LINEAR .and. &
           & inputpsi /= INPUT_PSI_DISK_LINEAR) then
-        fpulay = f_malloc_ptr((/ 3, atoms%astruct%nat /),id='fpulay')
-        if (atoms%astruct%nat > 0) call to_zero(3 * atoms%astruct%nat,fpulay(1, 1))
+        fpulay = f_malloc0_ptr((/ 3, atoms%astruct%nat /),id='fpulay')
      end if
 
      if (DoLastRunThings) then
@@ -1237,6 +1238,10 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,energs,fxyz,strten,fnoise,press
 
   call deallocate_before_exiting
 
+!START debug code added by bastian
+!write(*,*)"BIGDFTbastian debug exit sub. cluster, iproc",iproc
+!call f_utils_flush(6)
+!END debug code added by bastian
 contains
 
   !> Routine which deallocate the pointers and the arrays before exiting 
@@ -1259,9 +1264,6 @@ contains
           nullify(denspot%pkernelseq%kernel)
        end if
        call pkernel_free(denspot%pkernel)
-!!$       i_all=-product(shape(denspot%pkernel))*kind(denspot%pkernel)
-!!$       deallocate(denspot%pkernel,stat=i_stat)
-!!$       call memocc(i_stat,i_all,'kernel',subname)
 
        ! calc_tail false
        call f_free_ptr(denspot%rhov)
@@ -1295,7 +1297,7 @@ contains
     if (in%inguess_geopt/=1) then
         call deallocate_bounds(KSwfn%Lzd%Glr%geocode,KSwfn%Lzd%Glr%hybrid_on,&
              KSwfn%Lzd%Glr%bounds)
-    end if
+     end if
     call deallocate_Lzd_except_Glr(KSwfn%Lzd)
 
 !    i_all=-product(shape(KSwfn%Lzd%Glr%projflg))*kind(KSwfn%Lzd%Glr%projflg)
@@ -1349,6 +1351,7 @@ contains
        call yaml_map('CPU time (s)',tcpu1-tcpu0,fmt='(f12.2)')
        call yaml_map('Elapsed time (s)',tel,fmt='(f12.2)')
        call yaml_mapping_close()
+       call yaml_flush_document()
     end if
 
   END SUBROUTINE deallocate_before_exiting
@@ -1368,6 +1371,7 @@ contains
     !$ integer :: omp_get_max_threads
 
     call dict_init(dict_info)
+!bastian: comment out 4 followinf lines for debug purposes (7.12.2014)
     if (DoLastRunThings) then
        call f_malloc_dump_status(dict_summary=dict_tmp)
        call set(dict_info//'Routines timing and number of calls',dict_tmp)

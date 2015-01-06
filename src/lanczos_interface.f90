@@ -365,8 +365,8 @@ contains
     real(wp) :: ovrlp_local ( ha%orbs%nkpts  )
     real(wp) :: ovrlp_global( ha%orbs%nkpts  )
     integer :: ik, ipos, ic, iorb
-    call to_zero(ha%orbs%nkpts,ovrlp_local)
-    call to_zero(ha%orbs%nkpts,ovrlp_global)
+    call f_zero(ovrlp_local)
+    call f_zero(ovrlp_global)
     if(ha%orbs%nspinor==1) then
        ipos=1
        do ik = 1, ha%orbs%nkptsp  !! this supposes norb=1 for chebychev
@@ -492,7 +492,7 @@ contains
     if ( ha%at%paw_NofL(ha%at%astruct%iatype(ha%in_iat_absorber )).gt.0  ) then
        if (ha%iproc == 0) write(*,*) "USING PTILDES TO BUILD INITIAL WAVE"
        !!if(EP_dim_tot.gt.0) then
-       call to_zero(EP_dim_tot  ,  Qvect_tmp  )
+       call f_zero(Qvect_tmp)
        call applyPAWprojectors(ha%orbs,ha%at,&
             &   ha%hx,ha%hy,ha%hz,ha%Lzd%Glr,ha%PAWD,Qvect_tmp,Qvect_tmp, ha%at%paw_S_matrices, &
             &   .true. ,    ha%in_iat_absorber, ha%Labsorber+1, &
@@ -510,7 +510,7 @@ contains
 !!$    if(exist) then
 !!$       if(  sum( ha%at%paw_NofL ).gt.0 ) then
 !!$          if(  associated( ha%PAWD) ) then
-!!$             call to_zero(EP_dim_tot  ,  wrk  )
+!!$             call f_zero(EP_dim_tot  ,  wrk  )
 !!$             call applyPAWprojectors(ha%orbs,ha%at,&
 !!$                  ha%hx,ha%hy,ha%hz,ha%Lzd%Glr,ha%PAWD,Qvect_tmp,wrk, ha%at%paw_S_matrices, &
 !!$                  .false.)      
@@ -903,13 +903,13 @@ contains
 
     if( dopcproj) then
 
-       call to_zero(EP_dim_tot  ,  wrk1  )
+       call f_zero(wrk1)
        ha%PPD%iproj_to_factor(:) =  1.0_gp
        call applyPCprojectors(ha%orbs,ha%at,ha%hx,ha%hy,ha%hz,&
             &   ha%Lzd%Glr,ha%PPD,wrk,wrk1 )
 
 
-       call to_zero(EP_dim_tot  ,  wrk2  )
+       call f_zero(wrk2)
 !!$       do k=1, ha%PPD%mprojtot
 !!$          print *, ha%PPD%iproj_to_ene(k), ha%PPD%iproj_to_l(k)
 !!$       end do
@@ -937,7 +937,7 @@ contains
 
     if( dopcproj) then
 
-       call to_zero(EP_dim_tot  ,  wrk1  )
+       call f_zero(wrk1)
        ha%PPD%iproj_to_factor(:) =  1.0_gp
        call applyPCprojectors(ha%orbs,ha%at,ha%hx,ha%hy,ha%hz,&
             &   ha%Lzd%Glr,ha%PPD,wrk,wrk1)
@@ -1127,7 +1127,7 @@ contains
           call applyPAWprojectors(ha%orbs,ha%at,&
                &   ha%hx,ha%hy,ha%hz,ha%Lzd%Glr,ha%PAWD,Qvect_tmp,wrk,ha%at%paw_H_matrices, .false.  )
 
-!!$          call to_zero(EP_dim_tot  ,  wrk1  )
+!!$          call f_zero(EP_dim_tot  ,  wrk1  )
 !!$          call applyPAWprojectors(ha%orbs,ha%at,&
 !!$               ha%hx,ha%hy,ha%hz,ha%Lzd%Glr,ha%PAWD,wrk,wrk1, ha%at%paw_S_matrices )
 !!$          do k=1, EP_dim_tot
@@ -1204,7 +1204,7 @@ contains
           enddo
        endif
     endif
-    call to_zero(EP_dim_tot  ,  wrk  )
+    call f_zero(wrk)
     if(  sum( ha%at%paw_NofL ).gt.0 ) then
        if(  associated( ha%PAWD) ) then
           call applyPAWprojectors(ha%orbs,ha%at,&
@@ -1272,7 +1272,7 @@ contains
           enddo
        endif
     endif
-    call to_zero(EP_dim_tot  ,  wrk  )
+    call f_zero(wrk)
     if(  sum( ha%at%paw_NofL ).gt.0 ) then
        if(  associated( ha%PAWD) ) then
           call applyPAWprojectors(ha%orbs,ha%at,&
@@ -1360,11 +1360,11 @@ contains
     real(wp), dimension(:), allocatable :: tpsi
 
     if(iproc == 0 .and. verbose > 1) write(*,'(1x,a)',advance='no')'Writing wavefunctions in wavelet form '
-
+    
     tpsi = f_malloc(wfd%nvctr_c+7*wfd%nvctr_f,id='tpsi')
 
     !initialize the wavefunction
-    call to_zero((wfd%nvctr_c+7*wfd%nvctr_f)*orbs%norbp*orbs%nspinor,psi)
+    call f_zero(psi)
     !this can be changed to be passed only once to all the gaussian basis
     !eks=0.d0
     !loop over the atoms

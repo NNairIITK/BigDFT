@@ -8,20 +8,20 @@
 !!    For the list of contributors, see ~/AUTHORS
 
 
-!> Module to manipulate the internal coordinates (atomic positions)
-module vector_operations
-  implicit none
-
-  contains
-    function cross_product(a, b)
-      implicit none
-      real(kind=8),dimension(3) :: cross_product
-      real(kind=8),dimension(3),intent(in) :: a, b
-      cross_product(1) = a(2) * b(3) - a(3) * b(2)
-      cross_product(2) = a(3) * b(1) - a(1) * b(3)
-      cross_product(3) = a(1) * b(2) - a(2) * b(1)
-    end function cross_product
-end module vector_operations
+!!$!> Module to manipulate the internal coordinates (atomic positions)
+!!$module vector_operations
+!!$  implicit none
+!!$
+!!$  contains
+!!$    function cross_product(a, b)
+!!$      implicit none
+!!$      real(kind=8),dimension(3) :: cross_product
+!!$      real(kind=8),dimension(3),intent(in) :: a, b
+!!$      cross_product(1) = a(2) * b(3) - a(3) * b(2)
+!!$      cross_product(2) = a(3) * b(1) - a(1) * b(3)
+!!$      cross_product(3) = a(1) * b(2) - a(2) * b(1)
+!!$    end function cross_product
+!!$end module vector_operations
 
 
 module internal_coordinates
@@ -136,8 +136,8 @@ module internal_coordinates
       angle = acos( temp )
     end subroutine bangle
     
-    !>    dang  determines the angle between the points (a1,a2), (0,0),
-    !!          and (b1,b2).  the result is put in rcos.
+    !> dang  determines the angle between the points (a1,a2), (0,0),
+    !!       and (b1,b2).  the result is put in rcos.
     subroutine dang(a1,a2,b1,b2,rcos)
       implicit none
     
@@ -176,19 +176,19 @@ module internal_coordinates
       end if
     end subroutine dang
     
-    !>   xyzgeo converts coordinates from cartesian to internal.
+    !> xyzgeo converts coordinates from cartesian to internal.
     !!
-    !!     on input xyz  = array of cartesian coordinates
-    !!              numat= number of atoms
-    !!              na   = numbers of atom to which atoms are related
-    !!                     by distance
-    !!              nb   = numbers of atom to which atoms are related
-    !!                     by angle
-    !!              nc   = numbers of atom to which atoms are related
-    !!                     by dihedral
+    !!   on input xyz  = array of cartesian coordinates
+    !!            numat= number of atoms
+    !!            na   = numbers of atom to which atoms are related
+    !!                   by distance
+    !!            nb   = numbers of atom to which atoms are related
+    !!                   by angle
+    !!            nc   = numbers of atom to which atoms are related
+    !!                   by dihedral
     !!
-    !!    on output geo  = internal coordinates in angstroms, radians,
-    !!                     and radians
+    !!  on output geo  = internal coordinates in angstroms, radians,
+    !!                   and radians
     subroutine xyzgeo(xyz,numat,na,nb,nc,degree,geo)
       implicit none
     
@@ -237,7 +237,6 @@ module internal_coordinates
     !!        already been defined, and is the nearest atom to j
     !!        atom i makes a dihedral angle with atoms j, k, and l. l having
     !!        been defined and is the nearest atom to k
-    !!
     !!
     !!   on input xyz    = cartesian array of numat atoms
     subroutine get_neighbors(xyz,numat,na,nb,nc,atoms_ref)
@@ -438,7 +437,7 @@ module internal_coordinates
     
     
     subroutine internal_to_cartesian(nat, na, nb, nc, xyz_int, xyz_cart)
-      use vector_operations
+      !use vector_operations
       implicit none
     
       ! Calling arguments
@@ -551,5 +550,15 @@ module internal_coordinates
       end do
     
     end subroutine internal_to_cartesian
+
+    function cross_product(a, b)
+      implicit none
+      real(kind=8),dimension(3) :: cross_product
+      real(kind=8),dimension(3),intent(in) :: a, b
+      cross_product(1) = a(2) * b(3) - a(3) * b(2)
+      cross_product(2) = a(3) * b(1) - a(1) * b(3)
+      cross_product(3) = a(1) * b(2) - a(2) * b(1)
+    end function cross_product
+
 
   end module internal_coordinates

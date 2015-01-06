@@ -141,7 +141,7 @@ module communications
                psiwork_c, psiwork_f, wt, psitwork_c, psitwork_f)
       use module_base
       use communications_base, only: work_transpose, TRANSPOSE_FULL, TRANSPOSE_POST, &
-                                     TRANSPOSE_GATHER, ERR_LINEAR_TRANSPOSITION
+                                     TRANSPOSE_GATHER
       implicit none
       
       ! Calling arguments
@@ -154,7 +154,8 @@ module communications
       real(kind=8),dimension(7*collcom%ndimind_f),intent(out) :: psitwork_f
       
       ! Local variables
-      integer :: ierr, ist, ist_c, ist_f, iisend, iirecv, jproc
+      integer :: ist, ist_c, ist_f, iisend, iirecv, jproc
+      !integer :: ierr
       !!real(kind=8),dimension(:),allocatable :: psiwork, psitwork
       !!integer,dimension(:),allocatable :: nsendcounts, nsenddspls, nrecvcounts, nrecvdspls
       !!character(len=*),parameter :: subname='transpose_communicate_psi'
@@ -388,7 +389,7 @@ module communications
                psitwork_c, psitwork_f, wt, psiwork_c, psiwork_f)
       use module_base
       use communications_base, only: work_transpose, TRANSPOSE_FULL, TRANSPOSE_POST, &
-                                     TRANSPOSE_GATHER, ERR_LINEAR_TRANSPOSITION
+                                     TRANSPOSE_GATHER
       implicit none
     
       ! Calling arguments
@@ -401,8 +402,8 @@ module communications
       real(kind=8),dimension(7*collcom%ndimpsi_f),intent(out) :: psiwork_f
       
       ! Local variables
-      integer :: ierr
       integer :: ist, ist_c, ist_f, jproc, iisend, iirecv
+      !integer :: ierr
       !!real(kind=8),dimension(:),allocatable :: psiwork, psitwork
       !!integer,dimension(:),allocatable :: nsendcounts, nsenddspls, nrecvcounts, nrecvdspls
       !!character(len=*),parameter :: subname='transpose_communicate_psit'
@@ -917,8 +918,8 @@ module communications
       
       ! Local variables
       !character(len=*), parameter :: subname='start_onesided_communication'
-      integer :: jproc, joverlap, mpisource, istsource, mpidest, istdest, ierr, nit, ispin, ispin_shift
-      integer :: ioffset_send, ist, i2, i3, ist2, ist3, info, nsize, size_of_double, npot, isend_shift
+      integer :: joverlap, mpisource, istsource, mpidest, istdest, ierr, nit, ispin, ispin_shift
+      integer :: ioffset_send, ist, i2, i3, ist2, ist3, info, nsize, size_of_double, isend_shift
       integer :: islices, ilines, ist1, ish1, ish2
       integer,dimension(:),allocatable :: npotarr
 
@@ -987,6 +988,15 @@ module communications
                                !!write(*,'(7(a,i0))') 'proc ',iproc,' gets ',nsize,' elements at ',ispin_shift+istdest, &
                                !!                     ' from proc ',mpisource,' at ',isend_shift+istsource,&
                                !!                     '; size(send)=',size(sendbuf),', size(recv)=',size(recvbuf)
+                               if (ispin_shift+istdest+nsize-1>nrecvbuf) stop 'ispin_shift+istdest+nsize-1>nrecvbuf'
+                               !!write(*,*) 'val, limit', isend_shift+istsource + &
+                               !!    (nit-1)*lzd%glr%d%n1i*lzd%glr%d%n2i + &
+                               !!    (comm%ise(4)-comm%ise(3))*lzd%glr%d%n1i + &
+                               !!    comm%ise(2)-comm%ise(1) , npotarr(mpisource)*comm%nspin 
+                               if (isend_shift+istsource + &
+                                   (nit-1)*lzd%glr%d%n1i*lzd%glr%d%n2i + &
+                                   (comm%ise(4)-comm%ise(3))*lzd%glr%d%n1i + &
+                                   comm%ise(2)-comm%ise(1) > npotarr(mpisource)*comm%nspin) stop 'out of window'
                                call mpi_get(recvbuf(ispin_shift+istdest), nsize, &
                                     mpi_double_precision, mpisource, int((isend_shift+istsource-1),kind=mpi_address_kind), &
                                     1, comm%mpi_datatypes(joverlap), comm%window, ierr)
@@ -1086,15 +1096,16 @@ module communications
       type(p2pComms),intent(inout):: comm
       
       ! Local variables
-      integer:: ierr, jproc, joverlap
+      integer:: ierr, joverlap
       
       
       if(.not.comm%communication_complete) then
+          call mpi_win_fence(mpi_mode_nosucceed, comm%window, ierr)
           do joverlap=1,comm%noverlaps
               call mpi_type_free(comm%mpi_datatypes(joverlap), ierr)
           end do
           call mpibarrier(bigdft_mpi%mpi_comm)
-          call mpi_win_fence(mpi_mode_nosucceed, comm%window, ierr)
+          !call mpi_win_fence(mpi_mode_nosucceed, comm%window, ierr)
           call mpi_win_free(comm%window, ierr)
       end if
     
@@ -1309,13 +1320,14 @@ module communications
        integer,dimension(orbs%norb),intent(in) :: onwhichmpi
     
        ! Local variables
-       integer:: ierr, jorb, ilr, jlr, jtask, root, icomm, nrecv, nalloc, max_sim_comms
-       integer :: maxrecvdim, maxsenddim, ilr_old, ioffset, window, ist_dest, ist_source
+       integer :: ierr, jorb, ilr, jlr, root, max_sim_comms
+       !integer :: icomm, ilr_old, jtask, nalloc, nrecv
+       integer :: maxrecvdim, maxsenddim, ioffset, window, ist_dest, ist_source
        integer :: iorb, jjorb, ncount, iiorb, size_of_int, info
        logical :: isoverlap
-       character(len=*),parameter:: subname='communicate_locreg_descriptors_keys'
-       integer,dimension(:),allocatable :: requests
-       integer,dimension(:,:),allocatable :: worksend_int, workrecv_int
+       character(len=*), parameter:: subname='communicate_locreg_descriptors_keys'
+       !integer,dimension(:),allocatable :: requests
+       !integer,dimension(:,:),allocatable :: worksend_int, workrecv_int
        integer,dimension(:),allocatable :: worksend, workrecv
        logical,dimension(:,:),allocatable :: covered
        !integer :: total_sent, total_recv
@@ -1356,7 +1368,7 @@ module communications
        end do
 
        ! Each process makes its data available in a contiguous workarray.
-       maxsenddim=0.d0
+       maxsenddim=0
        do iorb=1,orbs%norbp
            iiorb=orbs%isorb+iorb
            ilr=orbs%inwhichlocreg(iiorb)
@@ -2030,8 +2042,8 @@ subroutine toglobal_and_transpose(iproc,nproc,orbs,Lzd,comms,psi,&
      totshift = 1
      Gdim = max((Lzd%Glr%wfd%nvctr_c+7*Lzd%Glr%wfd%nvctr_f)*orbs%norb_par(iproc,0)*orbs%nspinor,&
            sum(comms%ncntt(0:nproc-1)))
-     workarr = f_malloc_ptr(Gdim,id='workarr')
-     call to_zero(Gdim,workarr)
+     workarr = f_malloc0_ptr(Gdim,id='workarr')
+     !call to_zero(Gdim,workarr)
      do iorb=1,orbs%norbp
         ilr = orbs%inwhichlocreg(iorb+orbs%isorb)
         ldim = (Lzd%Llr(ilr)%wfd%nvctr_c+7*Lzd%Llr(ilr)%wfd%nvctr_f)*orbs%nspinor

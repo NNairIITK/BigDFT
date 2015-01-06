@@ -47,7 +47,7 @@ program BigDFT2Wannier
    real(wp), allocatable :: psi_daub_im(:),psi_daub_re(:),psi_etsf2(:) !!,pvirt(:)
    real(wp), allocatable :: mmnk_v_re(:), mmnk_v_im(:)
    real(wp), pointer :: pwork(:)!,sph_daub(:)
-   character(len=60) :: filename, run_id
+   character(len=max_field_length) :: filename, run_id
    logical :: perx, pery,perz, residentity,write_resid
    integer :: nx, ny, nz, nb, nb1, nk, inn
    real(kind=8) :: b1, b2, b3, r0x, r0y, r0z
@@ -61,7 +61,7 @@ program BigDFT2Wannier
    real, dimension(3,3) :: real_latt, recip_latt
    integer :: n_kpts, n_nnkpts, n_excb, n_at, s
    integer :: n_occ, n_virt, n_virt_tot!,nconfig
-   logical :: w_unk, w_sph, w_ang, w_rad, pre_check
+   logical :: w_unk, w_sph, w_ang, w_rad, pre_check,dict_from_files
    real, allocatable, dimension (:,:) :: kpts
    real(kind=8), allocatable, dimension (:,:) :: ctr_proj, x_proj, y_proj, z_proj
    integer, allocatable, dimension (:) :: l, mr, rvalue
@@ -99,19 +99,14 @@ program BigDFT2Wannier
 !!$   call memocc_set_memory_limit(memorylimit)
 
    if (bigdft_nruns(options) > 1) stop 'runs-file not supported for BigDFT2Wannier executable'
-   run_id = options // 'BigDFT' // 0 // 'name'
-   call dict_init(user_inputs)
-   call user_dict_from_files(user_inputs, trim(run_id)//trim(bigdft_run_id_toa()), &
-        & 'posinp'//trim(bigdft_run_id_toa()), bigdft_mpi)
+   nullify(user_inputs)
+   call dict_copy(user_inputs, options // 'BigDFT' // 0)
+   call create_log_file(user_inputs,dict_from_files)
+   call bigdft_get_run_properties(user_inputs, input_id = run_id, posinp_id = filename)
+   call user_dict_from_files(user_inputs, trim(run_id), trim(filename), bigdft_mpi)
    call inputs_from_dict(input, atoms, user_inputs)
    call dict_free(user_inputs)
    call dict_free(options)
-
-!!$   if (input%verbosity > 2) then
-!!$      nproctiming=-nproc !timing in debug mode
-!!$   else
-!!$      nproctiming=nproc
-!!$   end if
 
    !call timing(nproctiming,'b2w_time.prc','IN')
    call f_timing_reset(filename=trim(input%dir_output)//'b2w_time.yaml',&
@@ -134,10 +129,6 @@ program BigDFT2Wannier
          call yaml_comment('is smaller than number of desired states' // trim(yaml_toa(n_virt)))
          call yaml_comment('CORRECTION: Increase total number of virtual states')
          call yaml_comment('or decrease the number of desired states')
-         !write(*,'(A,1x,I4)') 'ERROR: total number of virtual states :',n_virt_tot
-         !write(*,'(A,1x,I4)') 'smaller than number of desired states:',n_virt
-         !write(*,'(A)') 'CORRECTION: Increase total number of virtual states'
-         !write(*,'(A)') 'or decrease the number of desired states'
       end if
       call mpi_finalize(ierr)
       stop
@@ -310,8 +301,7 @@ program BigDFT2Wannier
          ! - Allocations
          amnk = f_malloc((/ orbsv%norb, orbsp%norb /),id='amnk')
          amnk_guess = f_malloc(orbsv%norb,id='amnk_guess')
-         sph_daub = f_malloc(npsidim2,id='sph_daub')
-         call to_zero(npsidim2,sph_daub(1))
+         sph_daub = f_malloc0(npsidim2,id='sph_daub')
 
          ! Begining of the algorithm to compute the scalar product in order to find the best unoccupied orbitals
          ! to use to compute the actual Amnk matrix :
@@ -402,7 +392,7 @@ program BigDFT2Wannier
          !print *,'inverse overlap_proj',overlap_proj
 
          ! Scalar product of amnk=<sph_daub|psi> in parallel.
-         call to_zero(orbsp%norb*orbsv%norb,amnk)
+         call f_zero(amnk)
          nvctrp=commsv%nvctr_par(iproc,1)
          call gemm('T','N',orbsv%norb,orbsp%norb,nvctrp,1.0_wp,psi_etsfv(1),max(1,nvctrp),&
             &   sph_daub(1),max(1,nvctrp),0.0_wp,amnk(1,1),orbsv%norb)
@@ -512,8 +502,8 @@ program BigDFT2Wannier
       orbs%iokpt=1
 
       if(associated(orbs%eval)) nullify(orbs%eval)
-      orbs%eval = f_malloc_ptr(orbs%norb*orbs%nkpts,id='orbs%eval')
-      call to_zero(orbs%norb*orbs%nkpts,orbs%eval)
+      orbs%eval = f_malloc0_ptr(orbs%norb*orbs%nkpts,id='orbs%eval')
+      !call f_zero(orbs%norb*orbs%nkpts,orbs%eval)
       if(orbs%norbp > 0) then
             filename=trim(input%dir_output) // 'wavefunction'
             call readmywaves(iproc,filename,iformat,orbs,lzd%Glr%d%n1,lzd%Glr%d%n2,lzd%Glr%d%n3,&
@@ -545,8 +535,8 @@ program BigDFT2Wannier
 
          ! read unoccupied wavefunctions
       if(associated(orbsv%eval)) nullify(orbsv%eval)
-      orbsv%eval = f_malloc_ptr(orbsv%norb*orbsv%nkpts,id='orbsv%eval')
-      call to_zero(orbsv%norb*orbsv%nkpts,orbsv%eval)
+      orbsv%eval = f_malloc0_ptr(orbsv%norb*orbsv%nkpts,id='orbsv%eval')
+      !call f_zero(orbsv%norb*orbsv%nkpts,orbsv%eval)
       if(orbsv%norbp > 0 .and. .not. residentity) then
          filename=trim(input%dir_output) // 'virtuals'
             call readmywaves(iproc,filename,iformat,orbsv,lzd%Glr%d%n1,lzd%Glr%d%n2,lzd%Glr%d%n3,&
@@ -582,8 +572,8 @@ program BigDFT2Wannier
       b2=atoms%astruct%cell_dim(2)
       b3=atoms%astruct%cell_dim(3)
       ! - Allocations
-      amnk = f_malloc((/ orbsb%norb, orbsp%norb /),id='amnk')
-      call to_zero(orbsb%norb*orbsp%norb,amnk(1,1))
+      amnk = f_malloc0((/ orbsb%norb, orbsp%norb /),id='amnk')
+      !call f_zero(orbsb%norb*orbsp%norb,amnk(1,1))
       amnk_tot = f_malloc(orbsb%norb,id='amnk_tot')
 
       call timing(iproc,'CrtProjectors ','OF')
@@ -592,8 +582,8 @@ program BigDFT2Wannier
       ! It is done in the real space and then converted in the Daubechies representation.
       if(.not. pre_check .or. n_virt_tot == 0 .or. residentity) then
          call timing(iproc,'CrtProjectors ','ON')
-         sph_daub = f_malloc(npsidim2,id='sph_daub')
-         if(npsidim2 > 0) call to_zero(npsidim2,sph_daub(1))
+         sph_daub = f_malloc0(npsidim2,id='sph_daub')
+         !if(npsidim2 > 0) call f_zero(npsidim2,sph_daub(1))
          !calculate buffer shifts
          perx=(lzd%Glr%geocode /= 'F')
          pery=(lzd%Glr%geocode == 'P')
@@ -609,7 +599,7 @@ program BigDFT2Wannier
             r0x=ctr_proj(np,1)*b1+nbl1*input%hx*0.5
             r0y=ctr_proj(np,2)*b2+nbl2*input%hy*0.5
             r0z=ctr_proj(np,3)*b3+nbl3*input%hz*0.5
-            call to_zero(nz*ny*nx,sph_har_etsf(1))
+            call f_zero(sph_har_etsf)
             do k=1+nbl3,nz-nbr3
                zz=(k-1)*input%hz*0.5-r0z
                do j=1+nbl2,ny-nbr2
@@ -674,8 +664,8 @@ program BigDFT2Wannier
       if(.not. residentity)then
          ! Tranposition of the distribution of the BigDFT wavefunctions : orbitals -> components.
          npsidim=max((lzd%Glr%wfd%nvctr_c+7*lzd%Glr%wfd%nvctr_f)*orbsb%norbp*orbsb%nspinor,sum(commsb%ncntt(0:nproc-1)))
-         psi_etsf2 = f_malloc(npsidim,id='psi_etsf2')
-         call to_zero(npsidim,psi_etsf2)
+         psi_etsf2 = f_malloc0(npsidim,id='psi_etsf2')
+         !call f_zero(npsidim,psi_etsf2)
          if(nproc > 1) then
             pwork = f_malloc_ptr(npsidim,id='pwork')
             call transpose_v(iproc,nproc,orbsb,lzd%glr%wfd,commsb,psi_etsf(1,1),pwork(1),out_add=psi_etsf2(1))
@@ -686,8 +676,8 @@ program BigDFT2Wannier
       else
          ! Tranposition of the distribution of the BigDFT occupied wavefunctions : orbitals -> components.
          npsidim=max((lzd%Glr%wfd%nvctr_c+7*lzd%Glr%wfd%nvctr_f)*orbsb%norbp*orbsb%nspinor,sum(commsb%ncntt(0:nproc-1)))
-         psi_etsf2 = f_malloc(npsidim,id='psi_etsf2')
-         call to_zero(npsidim,psi_etsf2)
+         psi_etsf2 = f_malloc0(npsidim,id='psi_etsf2')
+         !call f_zero(npsidim,psi_etsf2)
          if(nproc > 1) then
             pwork = f_malloc_ptr(npsidim,id='pwork')
             call transpose_v(iproc,nproc,orbsb,lzd%glr%wfd,commsb,psi_etsf(1,1),pwork(1),out_add=psi_etsf2(1))
@@ -753,7 +743,7 @@ program BigDFT2Wannier
          call mpiallred(amnk(1,1),orbsb%norb*orbsp%norb,MPI_SUM)
       end if
 
-      call to_zero(orbsb%norb,amnk_tot(1))
+      call f_zero(amnk_tot)
       if (iproc==0) then
          ! Check normalisation (the amnk_tot value must tend to 1).
          write(*,'(A4,4x,A17)') 'Band', 'sqrt(amnk_tot)='
@@ -847,10 +837,10 @@ program BigDFT2Wannier
          ! 2- multiply psi by the cos(.) and sin(.) factor at each point of the real space to get real and imaginary parts,
          ! 3- convert back to the Daubechies representation for real and imaginary parts.
          pshft = 0
-         call to_zero(nx*ny*nz,psir_re(1))
-         call to_zero(nx*ny*nz,psir_im(1))
-         call to_zero(npsidim,psi_daub_re(1))
-         call to_zero(npsidim,psi_daub_im(1))
+         call f_zero(psir_re)
+         call f_zero(psir_im)
+         call f_zero(psi_daub_re)
+         call f_zero(psi_daub_im)
          do nb1=1,orbsb%norbp
             call daub_to_isf(lzd%Glr,w,psi_etsf(1,nb1),psir)
             do k=1,nz

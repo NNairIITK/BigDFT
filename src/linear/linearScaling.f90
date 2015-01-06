@@ -236,7 +236,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
 
   ! modify tmb%orbs%occup, as we normally use orbs%occup elsewhere
   if (input%lin%extra_states>0) then
-     call to_zero(tmb%orbs%norb,tmb%orbs%occup(1))
+     call f_zero(tmb%orbs%norb,tmb%orbs%occup(1))
      call vcopy(KSwfn%orbs%norb, KSwfn%orbs%occup(1), 1, tmb%orbs%occup(1), 1)
      ! occupy the next few states - don't need to preserve the charge as only using for support function optimization
      do iorb=1,tmb%orbs%norb
@@ -1025,7 +1025,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
             call timing(iproc,'constraineddft','ON')
             !! CHECK HERE WHETHER n3d is correct!!
             ! reset rhopotold (to zero) to ensure we don't exit immediately if V only changes a little
-            !call to_zero(max(KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3p,1)*input%nspin, rhopotOld(1)) 
+            !call f_zero(max(KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3p,1)*input%nspin, rhopotOld(1)) 
 
             ! assuming density mixing/no mixing not potential mixing
             call vcopy(max(KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3d,1)*input%nspin, &
@@ -1244,7 +1244,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
       !!    call f_free_ptr(tmb%coeff)
       !!end if
   else if (.not.input%lin%new_pulay_correction) then
-      call to_zero(3*at%astruct%nat, fpulay(1,1))
+      call f_zero(fpulay)
   end if
 
   if(tmb%ham_descr%can_use_transposed) then
@@ -1265,7 +1265,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
      enddo
      if (write_full_system) then
         call writemywaves_linear(iproc,trim(input%dir_output) // 'minBasis',input%lin%plotBasisFunctions,&
-             max(tmb%npsidim_orbs,tmb%npsidim_comp),tmb%Lzd,tmb%orbs,nelec,at,rxyz,tmb%psi,tmb%coeff)
+             max(tmb%npsidim_orbs,tmb%npsidim_comp),tmb%Lzd,tmb%orbs,nelec,at,rxyz,tmb%psi,tmb%linmat%l%nfvctr,tmb%coeff)
         call write_linear_matrices(iproc,nproc,input%imethod_overlap,trim(input%dir_output),&
              input%lin%plotBasisFunctions,tmb,at,rxyz)
      end if
@@ -1399,7 +1399,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
           if (input%lin%pulay_correction) then
              ! Check the input guess by calculation the Pulay forces.
 
-             call to_zero(tmb%ham_descr%npsidim_orbs,tmb%ham_descr%psi(1))
+             call f_zero(tmb%ham_descr%npsidim_orbs,tmb%ham_descr%psi(1))
              call small_to_large_locreg(iproc, tmb%npsidim_orbs, tmb%ham_descr%npsidim_orbs, tmb%lzd, tmb%ham_descr%lzd, &
                   tmb%orbs, tmb%psi, tmb%ham_descr%psi)
 
@@ -1459,7 +1459,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
              end if
           else
               ! Calculation of Pulay forces not possible, so always start with low accuracy
-              call to_zero(3*at%astruct%nat, fpulay(1,1))
+              call f_zero(fpulay)
               if (input%lin%scf_mode==LINEAR_FOE) then
                  nit_lowaccuracy=input%lin%nit_lowaccuracy
               else

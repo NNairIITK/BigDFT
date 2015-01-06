@@ -123,7 +123,7 @@ subroutine hit_with_kernel(x,z1,z3,kern_k1,kern_k2,kern_k3,n1,n2,n3,nd1,nd2,nd3,
   !call to_zero(2*nd1b*nd2*nd3*2,z1(1,1,1,1,1))
   !call to_zero(2*nd1*nd2*nd3f*2,z3(1,1,1,1,1))
   call FFT_for(n1,n2,n3,n1f,n3f,nd1,nd2,nd3,nd1f,nd3f,x,z1,z3,inzee)
-  call to_zero(2*nd1b*nd2*nd3*2,z1(1,1,1,1,1)) !to be included in the loop below
+  call f_zero(z1) !to be included in the loop below
 ! hit the Fourier transform of x with the kernel. At the same time, transform the array
 ! from the form z3 (where only half of values of i3 are stored)
 ! to the form z1   (where only half of values of i1 are stored)

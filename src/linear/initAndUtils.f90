@@ -941,11 +941,11 @@ subroutine allocate_auxiliary_basis_function(npsidim, subname, lphi, lhphi)
   real(kind=8),dimension(:), pointer,intent(out) :: lphi, lhphi
   character(len=*), intent(in) :: subname
 
-  lphi = f_malloc_ptr(npsidim,id='lphi')
-  lhphi = f_malloc_ptr(npsidim,id='lhphi')
+  lphi = f_malloc0_ptr(npsidim,id='lphi')
+  lhphi = f_malloc0_ptr(npsidim,id='lhphi')
 
-  call to_zero(npsidim, lphi(1))
-  call to_zero(npsidim, lhphi(1))
+  !call to_zero(npsidim, lphi(1))
+  !call to_zero(npsidim, lhphi(1))
 
 end subroutine allocate_auxiliary_basis_function
 
@@ -1430,8 +1430,8 @@ subroutine adjust_locregs_and_confinement(iproc, nproc, hx, hy, hz, at, input, &
      call f_free(locrad_mult)
 
      ! calculate psi in new locreg
-     lphilarge = f_malloc(tmb%npsidim_orbs,id='lphilarge')
-     call to_zero(tmb%npsidim_orbs, lphilarge(1))
+     lphilarge = f_malloc0(tmb%npsidim_orbs,id='lphilarge')
+     !call to_zero(tmb%npsidim_orbs, lphilarge(1))
      call small_to_large_locreg(iproc, npsidim_orbs_tmp, tmb%npsidim_orbs, lzd_tmp, tmb%lzd, &
           tmb%orbs, tmb%psi, lphilarge)
 
