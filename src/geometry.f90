@@ -594,7 +594,6 @@ subroutine fire(runObj,outs,nproc,iproc,ncount_bigdft,fail)
   real(gp):: velcur(3*runObj%atoms%astruct%nat), velpred(3*runObj%atoms%astruct%nat),poscur(3*runObj%atoms%astruct%nat),&
        & pospred(3*runObj%atoms%astruct%nat),fcur(3*runObj%atoms%astruct%nat),fpred(3*runObj%atoms%astruct%nat),&
        & mass(3*runObj%atoms%astruct%nat)
-  !real(gp),dimension(:),allocatable :: pospred_ref
   real(gp):: eprev,anoise !n(c) ecur
   integer:: Nmin,nstep,it
 
@@ -623,25 +622,11 @@ subroutine fire(runObj,outs,nproc,iproc,ncount_bigdft,fail)
   !n(c) ecur=etot
   eprev=0.0_gp
 
-  !pospred_ref = f_malloc(3*runObj%atoms%astruct%nat,id='pospred_ref')
-  !call vcopy(3*runObj%atoms%astruct%nat, poscur(1), 1, pospred(1), 1)
 
   Big_loop: do it=1,runObj%inputs%ncount_cluster_x-1
-     !call vcopy(3*runObj%atoms%astruct%nat,pospred(1), 1, pospred_ref(1), 1)
      do iat=1,3*runObj%atoms%astruct%nat
         pospred(iat)=poscur(iat)+dt*velcur(iat)+dt*dt*0.5_gp*fcur(iat)/mass(iat)
      enddo
-     !if (iproc==0) then
-     !    call yaml_map('pospred_ref before',reshape(pospred_ref,(/3,runObj%atoms%astruct%nat/)))
-     !end if
-     !if (iproc==0) then
-     !    call yaml_map('pospred before',reshape(pospred,(/3,runObj%atoms%astruct%nat/)))
-     !end if
-     !call keep_internal_coordinates_constraints(runObj%atoms%astruct%nat, pospred_ref, pospred, &
-     !     runObj%atoms%astruct%ixyz_int, runObj%atoms%astruct%ifrztyp)
-     !if (iproc==0) then
-     !    call yaml_map('pospred after',reshape(pospred,(/3,runObj%atoms%astruct%nat/)))
-     !end if
 
      runObj%inputs%inputPsiId=1
      call bigdft_set_rxyz(runObj,rxyz_add=pospred(1))
@@ -745,7 +730,6 @@ subroutine fire(runObj,outs,nproc,iproc,ncount_bigdft,fail)
      !if (iproc==0) write(10,*) epred, vnrm*0.5d0
    end do Big_loop
 
-   !call f_free(pospred_ref)
         
 ! Output the final energy, atomic positions and forces
    call vcopy(3*runObj%atoms%astruct%nat, pospred(1), 1, runObj%atoms%astruct%rxyz(1,1), 1)

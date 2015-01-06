@@ -750,9 +750,12 @@ contains
     use module_interfaces, only: atoms_new, inputs_new, inputs_from_dict
     use module_atoms, only: deallocate_atoms_data
     use module_input_dicts, only: dict_run_validate
+    use dynamic_memory
     implicit none
     type(run_objects), intent(inout) :: runObj
     character(len=*), parameter :: subname = "run_objects_parse"
+
+    call f_routine(id='set_run_objects')
 
     ! Free potential previous inputs and atoms.
     if (associated(runObj%atoms)) then
@@ -775,6 +778,9 @@ contains
 
     !associate the run_mode
     runObj%run_mode => runObj%inputs%run_mode
+
+    call f_release_routine()
+
   END SUBROUTINE set_run_objects
 
   !> Read all input files and create the objects to run BigDFT
@@ -783,6 +789,7 @@ contains
     use module_types
     use module_input_dicts, only: user_dict_from_files,create_log_file
     use yaml_output
+    use dynamic_memory
     implicit none
     !> Object for BigDFT run. Has to be initialized by this routine in order to
     !! call bigdft main routine.
@@ -804,6 +811,8 @@ contains
     !local variables
     logical :: dict_from_files
     character(len=max_field_length) :: radical, posinp_id
+
+    call f_routine(id='run_objects_init')
 
     call nullify_run_objects(runObj)
 
@@ -866,6 +875,8 @@ contains
             source%inputs,source%atoms,source%rst,source%mm_rst)
     end if
 
+    call f_release_routine()
+
   END SUBROUTINE run_objects_init
 
   subroutine bigdft_init(options, with_taskgroups)
@@ -876,6 +887,7 @@ contains
     use module_defs, only: bigdft_mpi
     use module_input_dicts, only: merge_input_file_to_dict,set_dict_run_file
     use f_utils, only: f_file_exists
+    use dynamic_memory
     implicit none
     !> dictionary of the options of the run
     !! on entry, it contains the options for initializing
@@ -893,6 +905,8 @@ contains
     integer, dimension(4) :: mpi_info
     type(dictionary), pointer :: dict_run,opts
     logical :: uset
+
+    call f_routine(id='bigdft_init')
 
     !coherence checks among the options (no disk access)
 
@@ -994,6 +1008,8 @@ contains
     end if
 
     call dict_free(dict_run)
+
+    call f_release_routine()
 
   end subroutine bigdft_init
 
@@ -1199,6 +1215,12 @@ contains
     real(gp) :: alatint(3)
     real(gp), dimension(:,:), pointer :: rxyz_ptr
 
+
+    !@NEW ####################################################
+    ! Apply the constraints expressed in internal coordinates
+    call keep_internal_coordinates_constraints(runObj%atoms%astruct%nat, runObj%atoms%astruct%rxyz_int, &
+         runObj%atoms%astruct%ixyz_int, runObj%atoms%astruct%ifrztyp, runObj%atoms%astruct%rxyz)
+    !#########################################################
 
     rxyz_ptr => bigdft_get_rxyz_ptr(runObj)
     nat=bigdft_nat(runObj)
