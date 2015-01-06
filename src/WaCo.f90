@@ -809,14 +809,14 @@ program WaCo
      call f_free_ptr(orbs%iokpt)
      orbs%iokpt = f_malloc_ptr(orbs%norbp,id='orbs%iokpt')
      orbs%iokpt=1
+     nullify(orbs%eval)
+     orbs%eval = f_malloc_ptr(orbs%norb*orbs%nkpts,id='orbs%eval')
      if(orbs%norbp > 0) then
-        nullify(orbs%eval)
-        orbs%eval = f_malloc_ptr(orbs%norb*orbs%nkpts,id='orbs%eval')
         filename=trim(input%dir_output) // 'wavefunction'
         call readmywaves(iproc,filename,iformat,orbs,Glr%d%n1,Glr%d%n2,Glr%d%n3,&
              & input%hx,input%hy,input%hz,atoms,rxyz_old,atoms%astruct%rxyz,  & 
              Glr%wfd,psi(1,1))
-        call f_free_ptr(orbs%eval)
+        !call f_free_ptr(orbs%eval)
      end if
 
      ! For the non-occupied orbitals, need to change norbp,isorb
@@ -1013,9 +1013,11 @@ program WaCo
            open(unit=99, file='minBasis'//'_coeff.bin', status='unknown',form='unformatted')
         end if
         stop 'THIS CALL IS WRONG'
-        call writeLinearCoefficients(99,outformat,Glr%d%n1,Glr%d%n2,Glr%d%n3,&
-             & input%hx,input%hy,input%hz,atoms%astruct%nat,atoms%astruct%rxyz,&
-             nbandCon,nwannCon,Glr%wfd%nvctr_c,Glr%wfd%nvctr_f,umnt)
+        !!call writeLinearCoefficients(99,outformat,Glr%d%n1,Glr%d%n2,Glr%d%n3,&
+        !!     & input%hx,input%hy,input%hz,atoms%astruct%nat,atoms%astruct%rxyz,&
+        !!     nbandCon,nwannCon,Glr%wfd%nvctr_c,Glr%wfd%nvctr_f,umnt)
+        call writeLinearCoefficients(99,outformat,atoms%astruct%nat,atoms%astruct%rxyz,&
+             nband,nbandCon,nwannCon,umnt,orbs%eval)
         close(unit=99)
      end if
 
@@ -1131,6 +1133,8 @@ program WaCo
      call f_free(wannr)
      call f_free(psi)
   end if
+
+  call f_free_ptr(orbs%eval)
 
   if(.not. WannCon) then
      call f_free(virt_list)
