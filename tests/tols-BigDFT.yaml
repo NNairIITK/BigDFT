@@ -1079,6 +1079,7 @@ geoptconstrained:
  guess for new ef: 1.1e-8
  D eF: 1.1e-8
  EH: 1.1e-10
+ Epot: 1.1e-10
  charge diff: 4.2e-11
  D Tr: 1.1e-9
  Omega: 1.2e-11
