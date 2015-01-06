@@ -2693,7 +2693,7 @@ subroutine readmywaves_linear_new(iproc,nproc,dir_output,filename,iformat,at,tmb
 
      !if (input_frag%nfrag>1) then
         call read_coeff_minbasis(unitwf,(iformat == WF_FORMAT_PLAIN),iproc,ref_frags(ifrag_ref)%fbasis%forbs%norb,&
-             ref_frags(ifrag_ref)%nelec,tmb%linmat%l%nfvctr,ref_frags(ifrag_ref)%coeff,ref_frags(ifrag_ref)%eval)
+             ref_frags(ifrag_ref)%nelec,ref_frags(ifrag_ref)%fbasis%forbs%norb,ref_frags(ifrag_ref)%coeff,ref_frags(ifrag_ref)%eval)
              !tmb%orbs%eval(isforb+1:isforb+ref_frags(ifrag_ref)%fbasis%forbs%norb))
              !tmb%orbs%eval(isforb+1)
         ! copying of coeffs from fragment to tmb%coeff now occurs after this routine
