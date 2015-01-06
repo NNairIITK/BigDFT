@@ -4265,5 +4265,17 @@ end subroutine build_ks_orbitals_laura_tmp
           real(kind=8),dimension(7*tmb%ham_descr%collcom%ndimind_f),intent(out) :: hpsittmp_f !<workarray
         end subroutine build_gradient
 
+        subroutine writeLinearCoefficients(unitwf,useFormattedOutput,nat,rxyz,&
+                   ntmb,norb,nfvctr,coeff,eval)
+          use module_base
+          use yaml_output
+          implicit none
+          logical, intent(in) :: useFormattedOutput
+          integer, intent(in) :: unitwf,nat,ntmb,norb,nfvctr
+          real(wp), dimension(nfvctr,ntmb), intent(in) :: coeff
+          real(wp), dimension(ntmb), intent(in) :: eval
+          real(gp), dimension(3,nat), intent(in) :: rxyz
+        end subroutine writeLinearCoefficients
+
   end interface
 END MODULE module_interfaces

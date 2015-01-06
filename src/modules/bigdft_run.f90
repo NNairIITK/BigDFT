@@ -1218,8 +1218,10 @@ contains
 
     !@NEW ####################################################
     ! Apply the constraints expressed in internal coordinates
-    call keep_internal_coordinates_constraints(runObj%atoms%astruct%nat, runObj%atoms%astruct%rxyz_int, &
-         runObj%atoms%astruct%ixyz_int, runObj%atoms%astruct%ifrztyp, runObj%atoms%astruct%rxyz)
+    if (runObj%atoms%astruct%inputfile_format=='int') then
+        call keep_internal_coordinates_constraints(runObj%atoms%astruct%nat, runObj%atoms%astruct%rxyz_int, &
+             runObj%atoms%astruct%ixyz_int, runObj%atoms%astruct%ifrztyp, runObj%atoms%astruct%rxyz)
+    end if
     !#########################################################
 
     rxyz_ptr => bigdft_get_rxyz_ptr(runObj)

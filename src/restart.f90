@@ -1627,19 +1627,21 @@ subroutine writemywaves_linear(iproc,filename,iformat,npsidim,Lzd,orbs,nelec,at,
   real(wp), dimension(nfvctr,orbs%norb), intent(in) :: coeff
   character(len=*), intent(in) :: filename
   !Local variables
-  logical :: binary
+  logical :: binary, is_etsf
   integer :: ncount1,ncount_rate,ncount_max,iorb,ncount2,iorb_out,ispinor,ilr,shift,ii,iat,unitwf
   integer :: jorb,jlr
   real(kind=4) :: tr0,tr1
   real(kind=8) :: tel
 
   unitwf=99
-  binary=iformat /= WF_FORMAT_ETSF
+  binary=(iformat/=WF_FORMAT_PLAIN)
+  is_etsf=(iformat==WF_FORMAT_ETSF)
 
   if (iproc == 0) call yaml_map('Write wavefunctions to file', trim(filename)//'.*')
   !if (iproc == 0) write(*,"(1x,A,A,a)") "Write wavefunctions to file: ", trim(filename),'.*'
 
-  if (binary) then
+  !if (binary) then
+  if (is_etsf) then
      call f_err_throw('Linear scaling with ETSF writing not implemented yet')
 !     call write_waves_etsf(iproc,filename,orbs,n1,n2,n3,hx,hy,hz,at,rxyz,wfd,psi)
   else
@@ -1660,7 +1662,7 @@ subroutine writemywaves_linear(iproc,filename,iformat,npsidim,Lzd,orbs,nelec,at,
               ii = ii + 1
               ilr = orbs%inwhichlocreg(iorb+orbs%isorb)
               do ispinor=1,orbs%nspinor
-                 call open_filename_of_iorb(unitwf,.not. binary,filename, &
+                 call open_filename_of_iorb(unitwf,binary,filename, &
                     & orbs,iorb,ispinor,iorb_out)
                  call writeonewave_linear(unitwf,.not. binary,iorb_out,&
                     & Lzd%Llr(ilr)%d%n1,Lzd%Llr(ilr)%d%n2,Lzd%Llr(ilr)%d%n3,&
@@ -1692,7 +1694,7 @@ subroutine writemywaves_linear(iproc,filename,iformat,npsidim,Lzd,orbs,nelec,at,
        !open(99, file=filename//'_coeff.bin', status='unknown',form='unformatted')
        !end if
       call writeLinearCoefficients(unitwf,.not. binary,at%astruct%nat,rxyz,orbs%norb,&
-           nelec,coeff,orbs%eval)
+           nelec,nfvctr,coeff,orbs%eval)
       call f_close(unitwf)
    end if
      call cpu_time(tr1)
