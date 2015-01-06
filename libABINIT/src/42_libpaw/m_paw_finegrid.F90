@@ -360,15 +360,15 @@ subroutine pawgylm(gylm,gylmgr,gylmgr2,lm_size,nfgd,optgr0,optgr1,optgr2,pawtab,
 !==========================================================
 !Compute gl(r), gl_prime(r)/r and (gl_prime_prime(r)-gl_prime(r)/r)/r**2
  if (compute_gr0)  then
-   LIBPAW_DATATYPE_ALLOCATE(gfact,(nfgd,0:l_size-1))
+   LIBPAW_BOUND2_ALLOCATE(gfact,BOUNDS(1,nfgd),BOUNDS(0,l_size-1))
    gfact(:,:)=zero
  end if
  if (compute_gr1)  then
-   LIBPAW_DATATYPE_ALLOCATE(dgfact,(nfgd,0:l_size-1))
-    dgfact(:,:)=zero
+   LIBPAW_BOUND2_ALLOCATE(dgfact,BOUNDS(1,nfgd),BOUNDS(0,l_size-1))
+   dgfact(:,:)=zero
  end if
  if (compute_gr2)  then
-   LIBPAW_DATATYPE_ALLOCATE(d2gfact,(nfgd,0:l_size-1))
+   LIBPAW_BOUND2_ALLOCATE(d2gfact,BOUNDS(1,nfgd),BOUNDS(0,l_size-1))
    d2gfact(:,:)=zero
  end if
  if(compute_gr1) then
@@ -725,13 +725,13 @@ subroutine pawgylm(gylm,gylmgr,gylmgr2,lm_size,nfgd,optgr0,optgr1,optgr2,pawtab,
    LIBPAW_DEALLOCATE(cc)
  end if
  if (compute_gr0)  then
-   LIBPAW_DATATYPE_DEALLOCATE(gfact)
+   LIBPAW_DEALLOCATE(gfact)
  end if
  if (compute_gr1)  then
-   LIBPAW_DATATYPE_DEALLOCATE(dgfact)
+   LIBPAW_DEALLOCATE(dgfact)
  end if
  if (compute_gr2)  then
-   LIBPAW_DATATYPE_DEALLOCATE(d2gfact)
+   LIBPAW_DEALLOCATE(d2gfact)
  end if
  if (compute_gr1)  then
    LIBPAW_DEALLOCATE(rnrm_inv)

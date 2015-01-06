@@ -895,7 +895,7 @@ subroutine pawpsp_read(core_mesh,imainmesh,lmax,&
    LIBPAW_DEALLOCATE(pawtab%indlmn)
  end if
  LIBPAW_ALLOCATE(pawtab%indlmn,(6,pawtab%lmn_size))
- LIBPAW_DATATYPE_ALLOCATE(nprj,(0:maxval(pawtab%orbitals)))
+ LIBPAW_BOUND1_ALLOCATE(nprj,BOUNDS(0,maxval(pawtab%orbitals)))
  pawtab%indlmn(:,:)=0
  ilmn=0;iln=0;nprj=0
  do ib=1,pawtab%basis_size
@@ -912,7 +912,7 @@ subroutine pawpsp_read(core_mesh,imainmesh,lmax,&
    end do
    ilmn=ilmn+2*il+1
  end do
- LIBPAW_DATATYPE_DEALLOCATE(nprj)
+ LIBPAW_DEALLOCATE(nprj)
 !Are ilmn (found here) and pawtab%lmn_size compatibles ?
  if (ilmn/=pawtab%lmn_size) then
    write(msg, '(a,a,a,a,a)' )&
@@ -3053,7 +3053,7 @@ subroutine pawpsp_17in(epsatm,ffspl,ipsp,ixc,lmax,&
  end if
  LIBPAW_ALLOCATE(pawtab%indlmn,(6,pawtab%lmn_size))
  pawtab%indlmn(:,:)=0
- LIBPAW_DATATYPE_ALLOCATE(nprj,(0:maxval(pawtab%orbitals)))
+ LIBPAW_BOUND1_ALLOCATE(nprj,BOUNDS(0,maxval(pawtab%orbitals)))
  ilmn=0;iln=0;nprj=0
  do ib=1,pawtab%basis_size
    il=pawtab%orbitals(ib)
@@ -3069,7 +3069,7 @@ subroutine pawpsp_17in(epsatm,ffspl,ipsp,ixc,lmax,&
    end do
    ilmn=ilmn+2*il+1
  end do
- LIBPAW_DATATYPE_DEALLOCATE(nprj)
+ LIBPAW_DEALLOCATE(nprj)
 !Are ilmn (found here) and pawtab%lmn_size compatibles ?
  if (ilmn/=pawtab%lmn_size) then
    write(msg, '(a,a,a,a,a)' )&

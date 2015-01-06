@@ -1,7 +1,7 @@
 /* libpaw.h */
 
 /*
- * This part is part of the libPAW library.
+ * This file is part of the libPAW library.
  * It has to be customized according to the host code.
  * For the time being there are 2 known host codes:
  * ABINIT (www.abinit.org) and BigDFT (bigdft.org).
@@ -9,11 +9,9 @@
 
 /*
  * Copyright (C) 2014-2014 ABINIT Group (MT)
- *
  * This file is part of the ABINIT software package. For license information,
  * please see the COPYING file in the top-level directory of the ABINIT source
  * distribution.
- *
  */
 
 /* config.h should contain all preprocessing directives */
@@ -41,12 +39,19 @@
 
 /* Allocation/deallocation with memory profiling */
 #define USE_MEMORY_PROFILING use m_profiling_abi
-#define LIBPAW_ALLOCATE(ARR,SIZE) ABI_ALLOCATE(ARR,SIZE)
-#define LIBPAW_DEALLOCATE(ARR)    ABI_DEALLOCATE(ARR)
-#define LIBPAW_POINTER_ALLOCATE(ARR,SIZE) ABI_ALLOCATE(ARR,SIZE)
-#define LIBPAW_POINTER_DEALLOCATE(ARR)    ABI_DEALLOCATE(ARR)
-#define LIBPAW_DATATYPE_ALLOCATE(ARR,SIZE) ABI_DATATYPE_ALLOCATE(ARR,SIZE)
-#define LIBPAW_DATATYPE_DEALLOCATE(ARR)    ABI_DATATYPE_DEALLOCATE(ARR)
+/* Use this to allocate/deallocate basic-type arrays with sizes */
+#  define LIBPAW_ALLOCATE(ARR,SIZE) ABI_ALLOCATE(ARR,SIZE)
+#  define LIBPAW_DEALLOCATE(ARR) ABI_DEALLOCATE(ARR)
+/* Use this to allocate/deallocate basic-type pointers with sizes */
+#  define LIBPAW_POINTER_ALLOCATE(ARR,SIZE) ABI_ALLOCATE(ARR,SIZE)
+#  define LIBPAW_POINTER_DEALLOCATE(ARR) ABI_DEALLOCATE(ARR)
+/* Use this to allocate/deallocate user-defined-type arrays with sizes */
+#  define LIBPAW_DATATYPE_ALLOCATE(ARR,SIZE) ABI_DATATYPE_ALLOCATE(ARR,SIZE)
+#  define LIBPAW_DATATYPE_DEALLOCATE(ARR) ABI_DATATYPE_DEALLOCATE(ARR)
+/* Use this to allocate basic-type arrays with explicit bounds */
+#  define LIBPAW_BOUND1_ALLOCATE(ARR,BND1) ABI_ALLOCATE(ARR,(BND1))
+#  define LIBPAW_BOUND2_ALLOCATE(ARR,BND1,BND2) ABI_ALLOCATE(ARR,(BND1,BND2))
+#  define BOUNDS(LBND,UBND) LBND : UBND 
 
 
 /* =============================
@@ -69,12 +74,19 @@
 
 /* Allocation/deallocation with memory profiling */
 #define USE_MEMORY_PROFILING use dynamic_memory
-#define LIBPAW_ALLOCATE(ARR,SIZE) ARR=f_malloc(to_array SIZE ) 
-#define LIBPAW_DEALLOCATE(ARR)    call f_free(ARR)
-#define LIBPAW_POINTER_ALLOCATE(ARR,SIZE) ARR=f_malloc_ptr(to_array SIZE ) 
-#define LIBPAW_POINTER_DEALLOCATE(ARR)    call f_free_ptr(ARR)
-#define LIBPAW_DATATYPE_ALLOCATE(ARR,SIZE) allocate(ARR SIZE)
-#define LIBPAW_DATATYPE_DEALLOCATE(ARR)    deallocate(ARR)
+/* Use this to allocate/deallocate basic-type arrays with sizes */
+#  define LIBPAW_ALLOCATE(ARR,SIZE) ARR=f_malloc(to_array SIZE ) 
+#  define LIBPAW_DEALLOCATE(ARR) call f_free(ARR)
+/* Use this to allocate/deallocate basic-type pointers with sizes */
+#  define LIBPAW_POINTER_ALLOCATE(ARR,SIZE) ARR=f_malloc_ptr(to_array SIZE ) 
+#  define LIBPAW_POINTER_DEALLOCATE(ARR) call f_free_ptr(ARR)
+/* Use this to allocate/deallocate user-defined-type arrays or pointers with sizes */
+#  define LIBPAW_DATATYPE_ALLOCATE(ARR,SIZE) allocate(ARR SIZE)
+#  define LIBPAW_DATATYPE_DEALLOCATE(ARR) deallocate(ARR)
+/* Use this to allocate user-defined-type arrays with explicit bounds */
+#  define LIBPAW_BOUND1_ALLOCATE(ARR,BND1) ARR=f_malloc((/ BND1 /))
+#  define LIBPAW_BOUND2_ALLOCATE(ARR,BND1,BND2) ARR=f_malloc((/ BND1 , BND2 /))
+#  define BOUNDS(LBND,UBND) LBND .to . UBND 
 
 
 /* =============================
@@ -97,12 +109,19 @@
 
 /* Allocation/deallocation */
 #define USE_MEMORY_PROFILING
-#define LIBPAW_ALLOCATE(ARR,SIZE) allocate(ARR SIZE)
-#define LIBPAW_DEALLOCATE(ARR)    deallocate(ARR)
-#define LIBPAW_POINTER_ALLOCATE(ARR,SIZE) allocate(ARR SIZE)
-#define LIBPAW_POINTER_DEALLOCATE(ARR)    deallocate(ARR)
-#define LIBPAW_DATATYPE_ALLOCATE(ARR,SIZE) allocate(ARR SIZE)
-#define LIBPAW_DATATYPE_DEALLOCATE(ARR)    deallocate(ARR)
+/* Use this to allocate/deallocate basic-type arrays with sizes */
+#  define LIBPAW_ALLOCATE(ARR,SIZE) allocate(ARR SIZE)
+#  define LIBPAW_DEALLOCATE(ARR) deallocate(ARR)
+/* Use this to allocate/deallocate basic-type pointers with sizes */
+#  define LIBPAW_POINTER_ALLOCATE(ARR,SIZE) allocate(ARR SIZE)
+#  define LIBPAW_POINTER_DEALLOCATE(ARR) deallocate(ARR)
+/* Use this to allocate/deallocate user-defined-type arrays with sizes */
+#  define LIBPAW_DATATYPE_ALLOCATE(ARR,SIZE) allocate(ARR SIZE)
+#  define LIBPAW_DATATYPE_DEALLOCATE(ARR) deallocate(ARR)
+/* Use this to allocate user-defined-type arrays with explicit bounds */
+#  define LIBPAW_BOUND1_ALLOCATE(ARR,BND1) allocate(ARR(BND1))
+#  define LIBPAW_BOUND2_ALLOCATE(ARR,BND1,BND2) allocate(ARR(BND1,BND2))
+#  define BOUNDS(LBND,UBND) LBND : UBND 
 
 
 /* =============================

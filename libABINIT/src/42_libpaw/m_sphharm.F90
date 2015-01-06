@@ -1647,7 +1647,7 @@ subroutine mat_mlms2jmj(lcor,mat_mlms,mat_jmj,ndij,option,optspin,prtvol,unitfi,
  ll=lcor
  LIBPAW_ALLOCATE(mlms2jmj,(2*(2*ll+1),2*(2*ll+1)))
  mlms2jmj=czero
- LIBPAW_DATATYPE_ALLOCATE(ind_msml,(2,-ll:ll))
+ LIBPAW_BOUND2_ALLOCATE(ind_msml,BOUNDS(1,2),BOUNDS(-ll,ll))
  LIBPAW_ALLOCATE(mat_mlms2,(2*(2*lcor+1),2*(2*lcor+1)))
  mlms2jmj=czero
  jc1=0
@@ -1779,7 +1779,7 @@ subroutine mat_mlms2jmj(lcor,mat_mlms,mat_jmj,ndij,option,optspin,prtvol,unitfi,
  end if
  LIBPAW_DEALLOCATE(mlms2jmj)
  LIBPAW_DEALLOCATE(mat_mlms2)
- LIBPAW_DATATYPE_DEALLOCATE(ind_msml)
+ LIBPAW_DEALLOCATE(ind_msml)
 
  end subroutine mat_mlms2jmj
 !!***
