@@ -1012,7 +1012,7 @@ program WaCo
         else 
            open(unit=99, file='minBasis'//'_coeff.bin', status='unknown',form='unformatted')
         end if
-        stop 'THIS CALL IS WRONG'
+        stop 'THE FOLLOWING CALL IS NOT TESTED!!'
         !!call writeLinearCoefficients(99,outformat,Glr%d%n1,Glr%d%n2,Glr%d%n3,&
         !!     & input%hx,input%hy,input%hz,atoms%astruct%nat,atoms%astruct%rxyz,&
         !!     nbandCon,nwannCon,Glr%wfd%nvctr_c,Glr%wfd%nvctr_f,umnt)
