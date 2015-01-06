@@ -432,7 +432,7 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
   end if
   orbs_gauss%inwhichlocreg=tmb%orbs%inwhichlocreg
   call wavefunction_dimension(tmb%lzd,orbs_gauss)
-  call to_zero(max(tmb%npsidim_orbs,tmb%npsidim_comp), tmb%psi(1))
+  call f_zero(tmb%psi)
   call gaussians_to_wavelets_new(iproc,nproc,tmb%lzd,orbs_gauss,G,&
        psigau(1,1,1),tmb%psi)
   tmb%can_use_transposed=.false.
@@ -474,7 +474,7 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
 
   !Put the Density kernel to identity for now
   !call to_zero(tmb%linmat%denskern%nvctr, tmb%linmat%denskern%matrix_compr(1))
-  call to_zero(tmb%linmat%l%nvctrp_tg*input%nspin, tmb%linmat%kernel_%matrix_compr(1))
+  call f_zero(tmb%linmat%l%nvctrp_tg*input%nspin, tmb%linmat%kernel_%matrix_compr(1))
 
 
   do iorb=1,tmb%orbs%norb

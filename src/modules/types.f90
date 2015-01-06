@@ -264,13 +264,14 @@ module module_types
 
      !>reference counter
      type(f_reference_counter) :: refcnt
+     !> enumerator for the mode of the run
+     type(f_enumerator) :: run_mode
      !> Strings of the input files
      character(len=100) :: file_occnum !< Occupation number (input)
      character(len=100) :: file_igpop
      character(len=100) :: file_lin   
      character(len=100) :: file_frag   !< Fragments
      character(len=max_field_length) :: dir_output  !< Strings of the directory which contains all data output files
-     character(len=max_field_length) :: run_name    !< Contains the prefix (by default input) used for input files as input.dft
      !integer :: files                  !< Existing files.
 
      !> Miscellaneous variables
@@ -288,10 +289,11 @@ module module_types
      real(gp) :: gnrm_startmix
      integer :: verbosity            !< Verbosity of the output file
      logical :: multipole_preserving !< Preserve multipole for ionic charge (integrated isf)
+     integer :: mp_isf               !< Interpolating scaling function order for multipole preserving
 
      !> DFT basic parameters.
      integer :: ixc         !< XC functional Id
-     integer :: ncharge     !< Total charge of the system
+     real(gp):: qcharge     !< Total charge of the system
      integer :: itermax     !< Maximal number of SCF iterations
      integer :: itermin     !< Minimum number of SCF iterations !Bastian
      integer :: nrepmax
@@ -373,7 +375,7 @@ module module_types
      real(gp) :: dtinit, dtmax           !< For FIRE
      character(len=10) :: tddft_approach !< TD-DFT variables from *.tddft
      type(SIC_data) :: SIC               !< Parameters for the SIC methods
-     !variables for SBFGS
+     !variables for SQNM
      integer  :: nhistx
      logical  :: biomode
      real(gp) :: beta_stretchx
@@ -391,7 +393,6 @@ module module_types
      logical :: signaling                    !< Expose results on DBus or Inet.
      integer :: signalTimeout                !< Timeout for inet connection.
      character(len = 64) :: domain           !< Domain to get the IP from hostname.
-     character(len=500) :: writing_directory !< Absolute path of the local directory to write the data on
      double precision :: gmainloop           !< Internal C pointer on the signaling structure.
      integer :: inguess_geopt                !< 0= Wavelet input guess, 1 = real space input guess 
 
@@ -842,33 +843,33 @@ module module_types
   type, public :: DFT_wavefunction
      !coefficients
      real(wp), dimension(:), pointer :: psi,hpsi,psit,psit_c,psit_f !< orbitals, or support functions, in wavelet basis
-     real(wp), dimension(:,:), pointer :: gaucoeffs !orbitals in gbd basis
+     real(wp), dimension(:,:), pointer :: gaucoeffs                 !< orbitals in gbd basis
      !basis sets
-     type(gaussian_basis) :: gbd !<gaussian basis description, if associated
+     type(gaussian_basis) :: gbd         !< gaussian basis description, if associated
      type(local_zone_descriptors) :: Lzd !< data on the localisation regions, if associated
      !restart objects (consider to move them in rst structure)
      type(old_wavefunction), dimension(:), pointer :: oldpsis !< previously calculated wfns
-     integer :: istep_history !< present step of wfn history
+     integer :: istep_history                                 !< present step of wfn history
      !data properties
-     logical :: can_use_transposed !< true if the transposed quantities are allocated and can be used
-     type(orbitals_data) :: orbs !<wavefunction specification in terms of orbitals
-     type(comms_cubic) :: comms !< communication objects for the cubic approach
-     type(diis_objects) :: diis
-     type(confpot_data), dimension(:), pointer :: confdatarr !<data for the confinement potential
-     type(SIC_data) :: SIC !<control the activation of SIC scheme in the wavefunction
-     type(paw_objects) :: paw !< PAW objects
-     type(orthon_data) :: orthpar !< control the application of the orthogonality scheme for cubic DFT wavefunction
-     character(len=4) :: exctxpar !< Method for exact exchange parallelisation for the wavefunctions, in case
-     type(p2pComms) :: comgp !<describing p2p communications for distributing the potential
-     type(comms_linear) :: collcom ! describes collective communication
-     type(comms_linear) :: collcom_sr ! describes collective communication for the calculation of the charge density
-     integer(kind = 8) :: c_obj !< Storage of the C wrapper object. it has to be initialized to zero
-     type(foe_data) :: foe_obj        !<describes the structure of the matrices for the linear method foe
+     logical :: can_use_transposed                           !< true if the transposed quantities are allocated and can be used
+     type(orbitals_data) :: orbs                             !< wavefunction specification in terms of orbitals
+     type(comms_cubic) :: comms                              !< communication objects for the cubic approach
+     type(diis_objects) :: diis                              !< DIIS objects
+     type(confpot_data), dimension(:), pointer :: confdatarr !< data for the confinement potential
+     type(SIC_data) :: SIC                                   !< control the activation of SIC scheme in the wavefunction
+     type(paw_objects) :: paw                                !< PAW objects
+     type(orthon_data) :: orthpar                            !< control the application of the orthogonality scheme for cubic DFT wavefunction
+     character(len=4) :: exctxpar                            !< Method for exact exchange parallelisation for the wavefunctions, in case
+     type(p2pComms) :: comgp                                 !< describing p2p communications for distributing the potential
+     type(comms_linear) :: collcom                           !< describes collective communication
+     type(comms_linear) :: collcom_sr                        !< describes collective communication for the calculation of the charge density
+     integer(kind = 8) :: c_obj                              !< Storage of the C wrapper object. it has to be initialized to zero
+     type(foe_data) :: foe_obj                               !< describes the structure of the matrices for the linear method foe
      type(linear_matrices) :: linmat
      integer :: npsidim_orbs  !< Number of elements inside psi in the orbitals distribution scheme
      integer :: npsidim_comp  !< Number of elements inside psi in the components distribution scheme
      type(hamiltonian_descriptors) :: ham_descr
-     real(kind=8), dimension(:,:), pointer :: coeff !<expansion coefficients
+     real(kind=8), dimension(:,:), pointer :: coeff          !< Expansion coefficients
      real(kind=8) :: damping_factor_confinement !< damping for the confinement after a restart
   end type DFT_wavefunction
 
@@ -894,6 +895,13 @@ module module_types
      integer :: iter    !< actual number of minimization iterations.
 
      integer :: infocode !< return value after optimization loop.
+                         !! - 0 run successfully succeded
+                         !! - 1 the run ended after the allowed number of minimization steps. gnrm_cv not reached
+                         !!     forces may be meaningless   
+                         !! - 2 (present only for inputPsiId=INPUT_PSI_MEMORY_WVL) gnrm of the first iteration > 1 AND growing in
+                         !!     the second iteration OR grnm 1st >2.
+                         !!     Input wavefunctions need to be recalculated.
+                         !! - 3 (present only for inputPsiId=INPUT_PSI_LCAO) gnrm > 4. SCF error.
 
      real(gp) :: gnrm   !< actual value of cv criterion of the minimization loop.
      real(gp) :: rpnrm  !< actual value of cv criterion of the mixing loop.
@@ -2047,6 +2055,7 @@ contains
     use module_defs, only: DistProjApply, GPUblas, gp
     use module_input_keys, only: input_keys_equal
     use public_keys
+    use public_enums
     use dynamic_memory
     use yaml_output, only: yaml_warning
     implicit none
@@ -2063,6 +2072,26 @@ contains
     if (index(dict_key(val), "_attributes") > 0) return
 
     select case(trim(level))
+    case(MODE_VARIABLES)
+       select case (trim(dict_key(val)))
+       case(METHOD_KEY)
+          str=val
+          select case(trim(str))
+          case('lj')
+             in%run_mode=LENNARD_JONES_RUN_MODE
+          case('dft')
+             in%run_mode=QM_RUN_MODE
+          case('lensic')
+             in%run_mode=LENOSKY_SI_CLUSTERS_RUN_MODE
+          case('lensib')
+             in%run_mode=LENOSKY_SI_BULK_RUN_MODE
+          case('amber')
+             in%run_mode=AMBER_RUN_MODE
+          end select
+       case DEFAULT
+          if (bigdft_mpi%iproc==0) &
+               call yaml_warning("unknown input key '" // trim(level) // "/" // trim(dict_key(val)) // "'")
+       end select
     case (DFT_VARIABLES)
        ! the DFT variables ------------------------------------------------------
        select case (trim(dict_key(val)))
@@ -2079,9 +2108,16 @@ contains
           in%frmult = dummy_gp(2)
        case (IXC)
           in%ixc = val !XC functional (ABINIT XC codes)
-       case (NCHARGE)
-          in%ncharge = val !charge and electric field
-       case (ELECFIELD)
+       case (NCHARGE) !charge 
+          str=val
+          !check if the provided value is a integer
+          if (is_atoi(str)) then
+             ipos=val
+             in%qcharge=real(ipos,gp) !exact conversion
+          else
+             in%qcharge = val 
+          end if
+       case (ELECFIELD) !electric field
           in%elecfield = val
        case (NSPIN)
           in%nspin = val !spin and polarization
@@ -2121,11 +2157,9 @@ contains
        case (DISABLE_SYM)
           in%disableSym = val ! Line to disable symmetries.
        case DEFAULT
-          call yaml_warning("unknown input key '" // trim(level) // "/" // trim(dict_key(val)) // "'")
+          if (bigdft_mpi%iproc==0) &
+               call yaml_warning("unknown input key '" // trim(level) // "/" // trim(dict_key(val)) // "'")
        end select
-       ! the KPT variables ------------------------------------------------------
-    case (KPT_VARIABLES)
-       stop "kpt set_input not implemented"
     case (PERF_VARIABLES)
        ! the PERF variables -----------------------------------------------------
        select case (trim(dict_key(val)))       
@@ -2135,8 +2169,6 @@ contains
           in%ncache_fft = val
        case (VERBOSITY)
           in%verbosity = val
-       case (OUTDIR)
-          in%writing_directory = val
        case (TOLSYM)
           in%symTol = val
        case (PROJRAD)
@@ -2187,6 +2219,8 @@ contains
           DistProjApply = val
        case (MULTIPOLE_PRESERVING)
           in%multipole_preserving = val
+       case (MP_ISF)
+          in%mp_isf = val
        case (IG_DIAG)
           in%orthpar%directDiag = val
        case (IG_NORBP)
@@ -2314,7 +2348,8 @@ contains
            ! linear scaling: enable the addaptive ajustment of the number of kernel iterations
            in%adjust_kernel_iterations = val
        case DEFAULT
-          call yaml_warning("unknown input key '" // trim(level) // "/" // trim(dict_key(val)) // "'")
+          if (bigdft_mpi%iproc==0) &
+               call yaml_warning("unknown input key '" // trim(level) // "/" // trim(dict_key(val)) // "'")
        end select
     case ("geopt")
 
@@ -2378,7 +2413,8 @@ contains
        case (TRUSTR)
           in%trustr = val
        case DEFAULT
-          call yaml_warning("unknown input key '" // trim(level) // "/" // trim(dict_key(val)) // "'")
+          if (bigdft_mpi%iproc==0) &
+               call yaml_warning("unknown input key '" // trim(level) // "/" // trim(dict_key(val)) // "'")
        end select
     case (MIX_VARIABLES)
        ! the MIX variables ------------------------------------------------------
@@ -2402,7 +2438,8 @@ contains
        case (ALPHADIIS)
           in%alphadiis = val
        case DEFAULT
-          call yaml_warning("unknown input key '" // trim(level) // "/" // trim(dict_key(val)) // "'")
+          if (bigdft_mpi%iproc==0) &
+               call yaml_warning("unknown input key '" // trim(level) // "/" // trim(dict_key(val)) // "'")
        end select
     case (SIC_VARIABLES)
        ! the SIC variables ------------------------------------------------------
@@ -2414,7 +2451,8 @@ contains
        case (SIC_FREF)
           in%SIC%fref = val
        case DEFAULT
-          call yaml_warning("unknown input key '" // trim(level) // "/" // trim(dict_key(val)) // "'")
+          if (bigdft_mpi%iproc==0) &
+               call yaml_warning("unknown input key '" // trim(level) // "/" // trim(dict_key(val)) // "'")
        end select
     case (TDDFT_VARIABLES)
        ! the TDDFT variables ----------------------------------------------------
@@ -2422,7 +2460,8 @@ contains
        case (TDDFT_APPROACH)
           in%tddft_approach = val
        case DEFAULT
-          call yaml_warning("unknown input key '" // trim(level) // "/" // trim(dict_key(val)) // "'")
+          if (bigdft_mpi%iproc==0) &
+               call yaml_warning("unknown input key '" // trim(level) // "/" // trim(dict_key(val)) // "'")
        end select      
     case (LIN_GENERAL)
        ! the variables for the linear version, general section
@@ -2462,7 +2501,8 @@ contains
            ! maximal error of the Taylor approximations to calculate the inverse of the overlap matrix
            in%lin%max_inversion_error = val
        case DEFAULT
-          call yaml_warning("unknown input key '" // trim(level) // "/" // trim(dict_key(val)) // "'")
+          if (bigdft_mpi%iproc==0) &
+               call yaml_warning("unknown input key '" // trim(level) // "/" // trim(dict_key(val)) // "'")
        end select
     case (LIN_BASIS)
        select case (trim(dict_key(val)))
@@ -2495,7 +2535,8 @@ contains
       case (correction_orthoconstraint)
           in%lin%correctionOrthoconstraint = val
        case DEFAULT
-          call yaml_warning("unknown input key '" // trim(level) // "/" // trim(dict_key(val)) // "'")
+          if (bigdft_mpi%iproc==0) &
+               call yaml_warning("unknown input key '" // trim(level) // "/" // trim(dict_key(val)) // "'")
        end select
     case (LIN_KERNEL)
        select case (trim(dict_key(val)))
@@ -2558,8 +2599,14 @@ contains
        case DEFAULT
           call yaml_warning("unknown input key '" // trim(level) // "/" // trim(dict_key(val)) // "'")
        end select
+       ! the KPT variables ------------------------------------------------------
+    case (KPT_VARIABLES)
+    case (LIN_BASIS_PARAMS)
+    case (OCCUPATION)
+    case (IG_OCCUPATION)
+    case (FRAG_VARIABLES)
+    !case (RUN_NAME_KEY)
     case DEFAULT
-       call yaml_warning("unknown level '" // trim(level) //"'")
     end select
   END SUBROUTINE input_set_dict
 

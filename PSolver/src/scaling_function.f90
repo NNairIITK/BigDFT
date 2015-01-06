@@ -1,7 +1,7 @@
 !> @file
 !!  Routines which define and use scaling functions
 !! @author
-!! Copyright (C) 2002-2007 BigDFT group 
+!! Copyright (C) 2002-2014 BigDFT group 
 !! This file is distributed under the terms of the
 !! GNU General Public License, see ~/COPYING file
 !! or http://www.gnu.org/copyleft/gpl.txt .
@@ -11,10 +11,14 @@
 !> Calculate the values of a scaling function in real uniform grid
 subroutine scaling_function(itype,nd,nrange,a,x)
 
+  use yaml_output, only: yaml_toa
+  use dictionaries, only: f_err_throw
   use Poisson_Solver, only: dp
   use memory_profiling
   use dynamic_memory
+
   implicit none
+
   !Arguments
   !Type of interpolating functions
   integer, intent(in) :: itype
@@ -32,8 +36,10 @@ subroutine scaling_function(itype,nd,nrange,a,x)
   case(8,14,16,20,24,30,40,50,60,100)
      !O.K.
   case default
-     print *,"Only interpolating functions 8, 14, 16, 20, 24, 30, 40, 50, 60, 100"
-     stop
+     !print *,"Only interpolating functions 8, 14, 16, 20, 24, 30, 40, 50, 60, 100"
+     !stop
+     call f_err_throw('"Only interpolating functions 8, 14, 16, 20, 24, 30, 40, 50, 60, 100, used:' // trim(yaml_toa(itype))//'"', & 
+          & err_name='BIGDFT_RUNTIME_ERROR')
   end select
 !!  write(unit=*,fmt="(1x,a,i0,a)") &
 !!       "Use interpolating scaling functions of ",itype," order"
@@ -98,6 +104,8 @@ END SUBROUTINE scaling_function
 !> Calculate the values of the wavelet function in a real uniform mesh.
 subroutine wavelet_function(itype,nd,a,x)
 
+  use yaml_output, only: yaml_toa
+  use dictionaries, only: f_err_throw
   use Poisson_Solver, only: dp
   use memory_profiling
   use dynamic_memory
@@ -118,8 +126,10 @@ subroutine wavelet_function(itype,nd,a,x)
   case(8,14,16,20,24,30,40,50,60,100)
      !O.K.
   case default
-     print *,"Only interpolating functions 8, 14, 16, 20, 24, 30, 40, 50, 60, 100"
-     stop
+     !print *,"Only interpolating functions 8, 14, 16, 20, 24, 30, 40, 50, 60, 100"
+     !stop
+     call f_err_throw('"Only interpolating functions 8, 14, 16, 20, 24, 30, 40, 50, 60, 100, used:' // trim(yaml_toa(itype))//'"', & 
+          & err_name='BIGDFT_RUNTIME_ERROR')
   end select
 
   !Give the range of the scaling function
@@ -182,6 +192,8 @@ END SUBROUTINE wavelet_function
 !> Do iterations to go from p0gauss to pgauss
 !! order interpolating scaling function
 subroutine scf_recursion(itype,n_iter,n_range,kernel_scf,kern_1_scf)
+  use yaml_output, only: yaml_toa
+  use dictionaries, only: f_err_throw
   implicit none
   !Arguments
   integer, intent(in) :: itype,n_iter,n_range
@@ -194,8 +206,10 @@ subroutine scf_recursion(itype,n_iter,n_range,kernel_scf,kern_1_scf)
   case(8,14,16,20,24,30,40,50,60,100)
      !O.K.
   case default
-     print *,"Only interpolating functions 8, 14, 16, 20, 24, 30, 40, 50, 60, 100"
-     stop
+     !print *,"Only interpolating functions 8, 14, 16, 20, 24, 30, 40, 50, 60, 100"
+     !stop
+     call f_err_throw('"Only interpolating functions 8, 14, 16, 20, 24, 30, 40, 50, 60, 100, used:' // trim(yaml_toa(itype))//'"', & 
+          & err_name='BIGDFT_RUNTIME_ERROR')
   end select
 
   select case(itype)

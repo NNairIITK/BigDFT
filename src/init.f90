@@ -501,7 +501,7 @@ END SUBROUTINE input_wf_empty
 !> Random initialisation of the wavefunctions
 !! The initialization of only the scaling function coefficients should be considered
 subroutine input_wf_random(psi, orbs)
-  use module_base, only: wp,to_zero
+  use module_base, only: wp,f_zero
   use module_types
   implicit none
 
@@ -512,8 +512,9 @@ subroutine input_wf_random(psi, orbs)
   integer :: idum=0
   real(kind=4) :: tt,builtin_rand
 
-  if (max(orbs%npsidim_comp,orbs%npsidim_orbs)>1) &
-       call to_zero(max(orbs%npsidim_comp,orbs%npsidim_orbs),psi(1))
+  !if (max(orbs%npsidim_comp,orbs%npsidim_orbs)>1) &
+  !     call to_zero(max(orbs%npsidim_comp,orbs%npsidim_orbs),psi(1))
+  call f_zero(psi)
 
   !Fill randomly the wavefunctions coefficients for the orbitals considered
   if (orbs%norbp > 0) then
@@ -663,7 +664,8 @@ subroutine input_wf_memory_history(iproc,orbs,atoms,wfn_history,istep_history,ol
   end if
 if (iproc==0)call yaml_map('Previous SCF wfn copied',.true.)   
   !put to zero the wavefunction
-  if (nvctr>0) call to_zero(nvctr,psi(1,1))
+  !if (nvctr>0) call to_zero(nvctr,psi(1,1))
+  call f_zero(psi)
 
   !calculate the reformat with history
   psi_tmp = f_malloc((/ Lzd%Glr%wfd%nvctr_c+7*Lzd%Glr%wfd%nvctr_f, orbs%nspinor*orbs%norbp /),id='psi_tmp')
@@ -801,7 +803,6 @@ subroutine input_memory_linear(iproc, nproc, at, KSwfn, tmb, tmb_old, denspot, i
   integer,parameter :: lwork=10000
   real(kind=8),dimension(lwork) :: work
   integer :: info
-
 
   call f_routine(id='input_memory_linear')
 
@@ -1053,7 +1054,7 @@ subroutine input_memory_linear(iproc, nproc, at, KSwfn, tmb, tmb_old, denspot, i
            in_frag_charge=f_malloc_ptr(input%frag%nfrag,id='in_frag_charge')
            call vcopy(input%frag%nfrag,input%frag%charge(1),1,in_frag_charge(1),1)
            ! assume all other fragments neutral, use total system charge to get correct charge for the other fragment
-           in_frag_charge(cdft%ifrag_charged(2))=input%ncharge - in_frag_charge(cdft%ifrag_charged(1))
+           in_frag_charge(cdft%ifrag_charged(2))=input%qcharge - in_frag_charge(cdft%ifrag_charged(1))
            ! want the difference in number of electrons here, rather than explicitly the charge
            ! actually need this to be more general - perhaps change constraint to be charge rather than number of electrons
            cdft%charge=ref_frags(input%frag%frag_index(cdft%ifrag_charged(1)))%nelec-in_frag_charge(cdft%ifrag_charged(1))&
@@ -1061,8 +1062,8 @@ subroutine input_memory_linear(iproc, nproc, at, KSwfn, tmb, tmb_old, denspot, i
            !DEBUG
            if (iproc==0) then
               print*,'???????????????????????????????????????????????????????'
-              print*,'ifrag_charged1&2,in_frag_charge1&2,ncharge,cdft%charge',cdft%ifrag_charged(1:2),&
-              in_frag_charge(cdft%ifrag_charged(1)),in_frag_charge(cdft%ifrag_charged(2)),input%ncharge,cdft%charge
+              print*,'ifrag_charged1&2,in_frag_charge1&2,qcharge,cdft%charge',cdft%ifrag_charged(1:2),&
+              in_frag_charge(cdft%ifrag_charged(1)),in_frag_charge(cdft%ifrag_charged(2)),input%qcharge,cdft%charge
               print*,'??',ref_frags(input%frag%frag_index(cdft%ifrag_charged(1)))%nelec,in_frag_charge(cdft%ifrag_charged(1)),&
                               ref_frags(input%frag%frag_index(cdft%ifrag_charged(2)))%nelec,in_frag_charge(cdft%ifrag_charged(2))
               print*,'???????????????????????????????????????????????????????'
@@ -1451,7 +1452,8 @@ subroutine input_wf_disk(iproc, nproc, input_wf_format, d, hx, hy, hz, &
 
   !restart from previously calculated wavefunctions, on disk
   !since each processor read only few eigenvalues, initialise them to zero for all
-  call to_zero(orbs%norb*orbs%nkpts,orbs%eval(1))
+  !call to_zero(orbs%norb*orbs%nkpts,orbs%eval(1))
+  call f_zero(orbs%eval)
 
   call readmywaves(iproc,trim(in%dir_output) // "wavefunction", input_wf_format, &
        & orbs,d%n1,d%n2,d%n3,hx,hy,hz,atoms,rxyz_old,rxyz,wfd,psi)
@@ -2431,7 +2433,7 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
            in_frag_charge=f_malloc_ptr(in%frag%nfrag,id='in_frag_charge')
            call vcopy(in%frag%nfrag,in%frag%charge(1),1,in_frag_charge(1),1)
            ! assume all other fragments neutral, use total system charge to get correct charge for the other fragment
-           in_frag_charge(cdft%ifrag_charged(2))=in%ncharge - in_frag_charge(cdft%ifrag_charged(1))
+           in_frag_charge(cdft%ifrag_charged(2))=in%qcharge - in_frag_charge(cdft%ifrag_charged(1))
            ! want the difference in number of electrons here, rather than explicitly the charge
            ! actually need this to be more general - perhaps change constraint to be charge rather than number of electrons
            cdft%charge=ref_frags(in%frag%frag_index(cdft%ifrag_charged(1)))%nelec-in_frag_charge(cdft%ifrag_charged(1))&
@@ -2439,8 +2441,8 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
            !DEBUG
            if (iproc==0) then
               print*,'???????????????????????????????????????????????????????'
-              print*,'ifrag_charged1&2,in_frag_charge1&2,ncharge,cdft%charge',cdft%ifrag_charged(1:2),&
-              in_frag_charge(cdft%ifrag_charged(1)),in_frag_charge(cdft%ifrag_charged(2)),in%ncharge,cdft%charge
+              print*,'ifrag_charged1&2,in_frag_charge1&2,qcharge,cdft%charge',cdft%ifrag_charged(1:2),&
+              in_frag_charge(cdft%ifrag_charged(1)),in_frag_charge(cdft%ifrag_charged(2)),in%qcharge,cdft%charge
               print*,'??',ref_frags(in%frag%frag_index(cdft%ifrag_charged(1)))%nelec,in_frag_charge(cdft%ifrag_charged(1)),&
                               ref_frags(in%frag%frag_index(cdft%ifrag_charged(2)))%nelec,in_frag_charge(cdft%ifrag_charged(2))
               print*,'???????????????????????????????????????????????????????'
@@ -2465,21 +2467,21 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
            nullify(in_frag_charge)
         end if
      else
-        call vcopy(tmb%orbs%norb**2,ref_frags(1)%coeff(1,1),1,tmb%coeff(1,1),1)
+        call vcopy(tmb%orbs%norb*tmb%linmat%l%nfvctr,ref_frags(1)%coeff(1,1),1,tmb%coeff(1,1),1)
         call vcopy(tmb%orbs%norb,ref_frags(1)%eval(1),1,tmb%orbs%eval(1),1)
-        if (associated(ref_frags(1)%coeff)) call f_free_ptr(ref_frags(1)%coeff)
-        if (associated(ref_frags(1)%eval)) call f_free_ptr(ref_frags(1)%eval)
+        call f_free_ptr(ref_frags(1)%coeff)
+        call f_free_ptr(ref_frags(1)%eval)
      end if
 
      ! hack occup to make density neutral with full occupations, then unhack after extra diagonalization (using nstates max)
      ! use nstates_max - tmb%orbs%occup set in fragment_coeffs_to_kernel
+     tmb%can_use_transposed=.false.
      if (in%lin%diag_start) then
         ! not worrying about this case as not currently used anyway
         call reconstruct_kernel(iproc, nproc, in%lin%order_taylor, tmb%orthpar%blocksize_pdsyev, &
              tmb%orthpar%blocksize_pdgemm, tmb%orbs, tmb, overlap_calculated)  
      else
         ! come back to this - reconstruct kernel too expensive with exact version, but Taylor needs to be done ~ 3 times here...
-
         call reconstruct_kernel(iproc, nproc, in%lin%order_taylor, tmb%orthpar%blocksize_pdsyev, &
              tmb%orthpar%blocksize_pdgemm, KSwfn%orbs, tmb, overlap_calculated)
      end if
@@ -2623,7 +2625,8 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
         !end if
 
         !reset occ
-        call to_zero(tmb%orbs%norb,tmb%orbs%occup(1))
+        !call to_zero(tmb%orbs%norb,tmb%orbs%occup(1))
+        call f_zero(tmb%orbs%occup)
         do iorb=1,kswfn%orbs%norb
           tmb%orbs%occup(iorb)=Kswfn%orbs%occup(iorb)
         end do
@@ -2842,9 +2845,9 @@ subroutine input_wf_memory_new(nproc, iproc, atoms, &
   psir = f_malloc0((/ lzd%Glr%d%n1i*Lzd%Glr%d%n2i*Lzd%Glr%d%n3i, npsir, orbs%norbp /),id='psir')
   shift = f_malloc0((/ lzd%glr%d%n1i*lzd%glr%d%n2i*lzd%glr%d%n3i, 5 /),id='shift')
   
-  call to_zero(max(orbs%npsidim_comp,orbs%npsidim_orbs),psi(1)) 
+  call f_zero(max(orbs%npsidim_comp,orbs%npsidim_orbs),psi(1)) 
   !call to_zero(lzd%Glr%d%n1i*Lzd%Glr%d%n2i*Lzd%Glr%d%n3i*npsir*orbs%norbp,psir(1,1,1)) 
-  call to_zero(nbox*npsir*orbs%norbp,psir_old(1,1,1)) 
+  call f_zero(nbox*npsir*orbs%norbp,psir_old(1,1,1)) 
 
   !call to_zero(lzd%glr%d%n1i*lzd%glr%d%n2i*lzd%glr%d%n3i*5, shift(1,1))
 
@@ -2970,12 +2973,11 @@ subroutine input_wf_memory_new(nproc, iproc, atoms, &
               jacdet = s1d1*s2d2*s3d3 + s1d2*s2d3*s3d1 + s1d3*s2d1*s3d2 - s1d3*s2d2*s3d1-s1d2*s2d1*s3d3 - s1d1*s2d3*s3d2&
                         &  + s1d1 + s2d2 + s3d3 +s1d1*s2d2+s3d3*s1d1+s3d3*s2d2 - s1d2*s2d1 - s3d2*s2d3 - s3d1*s1d3
 
-              shift(i1+iy+iz,1) = real(s1_new,kind=4) +  shift(i1+iy+iz,1)  
-              shift(i1+iy+iz,2) = real(s2_new,kind=4) +  shift(i1+iy+iz,2)  
-              shift(i1+iy+iz,3) = real(s3_new,kind=4) +  shift(i1+iy+iz,3)  
-              shift(i1+iy+iz,4) = real(expfct,kind=4) +  shift(i1+iy+iz,4)  
-              shift(i1+iy+iz,5) = real(jacdet,kind=4) +  shift(i1+iy+iz,5)  
-
+              shift(i1+iy+iz,1) = simple(s1_new) +  shift(i1+iy+iz,1)  
+              shift(i1+iy+iz,2) = simple(s2_new) +  shift(i1+iy+iz,2)  
+              shift(i1+iy+iz,3) = simple(s3_new) +  shift(i1+iy+iz,3)  
+              shift(i1+iy+iz,4) = simple(expfct) +  shift(i1+iy+iz,4)
+              shift(i1+iy+iz,5) = simple(jacdet) +  shift(i1+iy+iz,5)  
            end do     
         end do
       end do
@@ -3092,12 +3094,29 @@ subroutine input_wf_memory_new(nproc, iproc, atoms, &
 
 contains
 
-  real(wp) function ex(x,m)
+  pure real(wp) function ex(x,m)
      implicit none
      real(wp),intent(in) :: x,m
 
      ex = (1.0 - x/m)**m
 
   end function ex
+
+  !> conversion avoiding floating-point exception
+  pure function simple(double)
+    implicit none
+    real(wp), intent(in) :: double
+    real :: simple
+
+    if (kind(double) == kind(simple)) then
+       simple=double
+    else if (double < real(tiny(1.e0),wp)) then
+       simple=0.e0
+    else if (double > real(huge(1.e0),wp)) then
+       simple=huge(1.e0)
+    else
+       simple=real(double)
+    end if
+  end function simple
 
 END SUBROUTINE input_wf_memory_new

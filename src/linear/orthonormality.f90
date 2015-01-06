@@ -2187,7 +2187,7 @@ subroutine overlap_power_minus_one_half_parallel(iproc, nproc, meth_overlap, orb
 
   !inv_ovrlp_half_ = matrices_null()
   !call allocate_matrices(inv_ovrlp_half, allocate_full=.false., matname='inv_ovrlp_half_', mat=inv_ovrlp_half_)
-  call to_zero(inv_ovrlp_half%nvctrp_tg*inv_ovrlp_half%nspin, inv_ovrlp_half_%matrix_compr(1))
+  call f_zero(inv_ovrlp_half%nvctrp_tg*inv_ovrlp_half%nspin, inv_ovrlp_half_%matrix_compr(1))
 
   !DEBUG
   !if (iproc==0) then
@@ -2663,7 +2663,7 @@ subroutine gramschmidt_subset(iproc, nproc, methTransformOverlap, npsidim_orbs, 
       else
           iout=.false.
       end if
-      call to_zero(at%astruct%nat,jcount_norb(1))
+      call f_zero(jcount_norb)
       do jorb=1,orbs%norb
           jat=orbs%onwhichatom(jorb)
           jcount_norb(jat)=jcount_norb(jat)+1
@@ -2827,11 +2827,11 @@ subroutine gramschmidt_coeff(iproc,nproc,norb,basis_orbs,basis_overlap,basis_ove
              coeff(basis_orbs%isorb+1,corb), basis_orbs%norb, 0.d0, &
              ovrlp_coeff(1,1), corb)
      else
-        call to_zero(corb,ovrlp_coeff(1,1))
+        call f_zero(ovrlp_coeff)
      end if
 
      if (nproc>1) then
-        call mpiallred(ovrlp_coeff(1,1), corb, mpi_sum, bigdft_mpi%mpi_comm)
+        call mpiallred(ovrlp_coeff, mpi_sum, bigdft_mpi%mpi_comm)
      end if
 
      call cpu_time(tr1)
@@ -2897,19 +2897,19 @@ subroutine gramschmidt_coeff(iproc,nproc,norb,basis_orbs,basis_overlap,basis_ove
 
 end subroutine gramschmidt_coeff
 
-subroutine gramschmidt_coeff_trans(iproc,nproc,norb,basis_orbs,basis_overlap,basis_overlap_mat,coeff)
+subroutine gramschmidt_coeff_trans(iproc,nproc,norbu,norb,basis_orbs,basis_overlap,basis_overlap_mat,coeff)
   use module_base
   use module_types
   use sparsematrix_base, only: sparse_matrix, matrices
   implicit none
 
-  integer, intent(in) :: iproc, nproc, norb
+  integer, intent(in) :: iproc, nproc, norbu, norb
   type(orbitals_data), intent(in) :: basis_orbs
   type(sparse_matrix),intent(inout) :: basis_overlap
   type(matrices),intent(inout) :: basis_overlap_mat
-  real(kind=8),dimension(basis_orbs%norb,basis_orbs%norb),intent(inout) :: coeff
+  real(kind=8),dimension(basis_overlap%nfvctr,basis_orbs%norb),intent(inout) :: coeff
 
-  integer :: iorb, jtmb, corb, ierr
+  integer :: iorb, jtmb, corb, ierr, isorb, ieorb, ispin
   real(kind=8), dimension(:,:), allocatable :: ovrlp_coeff, coeff_tmp, coeff_trans, coeff_transp
 
   real(kind=4) :: tr0, tr1
@@ -2926,121 +2926,136 @@ subroutine gramschmidt_coeff_trans(iproc,nproc,norb,basis_orbs,basis_overlap,bas
 
   call cpu_time(tr0)
 
-  coeff_transp=f_malloc((/norb,basis_orbs%norbp/),id='coeff_transp')
-  !$omp parallel do default(private) shared(coeff,coeff_transp,norb,basis_orbs)
-  do iorb=1,norb
-     do jtmb=1,basis_orbs%norbp
-        coeff_transp(iorb,jtmb) = coeff(jtmb+basis_orbs%isorb,iorb)
-     end do
-  end do
-  !$omp end parallel do
+  spin_loop: do ispin=1,basis_overlap%nspin
 
-  call cpu_time(tr1)
-  time0=time0+real(tr1-tr0,kind=8)
+      if (ispin==1) then
+          isorb=1
+          ieorb=norbu
+      else if (ispin==2) then
+          isorb=norbu+1
+          ieorb=norb
+      end if
 
-  ! orthonormalizing all iorb<corb wrt corb (assume original vectors were normalized)
-  do corb=norb,1,-1
+      coeff_transp=f_malloc((/(ieorb-isorb+1),basis_overlap%nfvctrp/),id='coeff_transp')
+      !$omp parallel do default(private) shared(coeff,coeff_transp,isorb,ieorb,basis_overlap)
+      do iorb=isorb,ieorb
+         do jtmb=1,basis_overlap%nfvctrp
+            coeff_transp(iorb-isorb+1,jtmb) = coeff(jtmb+basis_overlap%isfvctr,iorb)
+         end do
+      end do
+      !$omp end parallel do
 
-     call cpu_time(tr0)
+      call cpu_time(tr1)
+      time0=time0+real(tr1-tr0,kind=8)
 
-     coeff_tmp=f_malloc((/basis_orbs%norb,1/),id='coeff_tmp')
-     ! calculate relevant part of cSc
-     if (basis_orbs%norbp>0) then
-        call dgemm('n', 't', basis_orbs%norb, 1, basis_orbs%norbp, 1.d0, &
-             basis_overlap_mat%matrix(1,basis_orbs%isorb+1,1), basis_orbs%norb, &
-             coeff_transp(corb,1), norb, 0.d0, &
-             coeff_tmp(1,1), basis_orbs%norb)
-     else
-        call to_zero(corb,coeff_tmp(1,1))
-     end if
+      ! orthonormalizing all iorb<corb wrt corb (assume original vectors were normalized)
+      do corb=ieorb-isorb+1,1,-1
 
-     if (nproc>1) then
-        call mpiallred(coeff_tmp(1,1), basis_orbs%norb, mpi_sum, bigdft_mpi%mpi_comm)
-     end if
 
-     call cpu_time(tr1)
-     time1=time1+real(tr1-tr0,kind=8)
+         call cpu_time(tr0)
 
-     ovrlp_coeff=f_malloc((/corb,1/),id='ovrlp_coeff')
-     if (basis_orbs%norbp>0) then
-        call dgemm('n', 'n', corb, 1, basis_orbs%norbp, 1.d0, &
-             coeff_transp(1,1), norb, &
-             coeff_tmp(1+basis_orbs%isorb,1), basis_orbs%norb, 0.d0, &
-             ovrlp_coeff(1,1), corb)
-     else
-        call to_zero(corb,ovrlp_coeff(1,1))
-     end if
+         coeff_tmp=f_malloc((/basis_overlap%nfvctr,1/),id='coeff_tmp')
+         ! calculate relevant part of cSc
+         if (basis_overlap%nfvctrp>0) then
+            call dgemm('n', 't', basis_overlap%nfvctr, 1, basis_overlap%nfvctrp, 1.d0, &
+                 basis_overlap_mat%matrix(1,basis_overlap%isfvctr+1,1), basis_overlap%nfvctr, &
+                 coeff_transp(corb,1), ieorb-isorb+1, 0.d0, &
+                 coeff_tmp(1,1), basis_overlap%nfvctr)
+         else
+            !!call to_zero(corb,coeff_tmp(1,1)) !!!LG: is this a typo?
+            call f_zero(coeff_tmp)
+         end if
 
-     if (nproc>1) then
-        call mpiallred(ovrlp_coeff(1,1), corb, mpi_sum, bigdft_mpi%mpi_comm)
-     end if
-     call f_free(coeff_tmp)
+         if (nproc>1) then
+            call mpiallred(coeff_tmp, mpi_sum, bigdft_mpi%mpi_comm)
+         end if
 
-     call cpu_time(tr0)
-     time2=time2+real(tr0-tr1,kind=8)
+         call cpu_time(tr1)
+         time1=time1+real(tr1-tr0,kind=8)
 
-     ! (c_corb S c_iorb) * c_corb
-     coeff_tmp=f_malloc((/corb,basis_orbs%norbp/),id='coeff_tmp')
-     if (basis_orbs%norbp>0) then
-        call dgemm('n', 'n', corb-1, basis_orbs%norbp, 1, 1.d0, &
-             ovrlp_coeff(1,1), corb, &
-             coeff_transp(corb,1), norb, 0.d0, &
-             coeff_tmp(1,1), corb)
-     end if
+         ovrlp_coeff=f_malloc((/corb,1/),id='ovrlp_coeff')
+         if (basis_overlap%nfvctrp>0) then
+            call dgemm('n', 'n', corb, 1, basis_overlap%nfvctrp, 1.d0, &
+                 coeff_transp(1,1), ieorb-isorb+1, &
+                 coeff_tmp(1+basis_overlap%isfvctr,1), basis_overlap%nfvctr, 0.d0, &
+                 ovrlp_coeff(1,1), corb)
+         else
+            call f_zero(ovrlp_coeff)
+         end if
 
-     call cpu_time(tr1)
-     time3=time3+real(tr1-tr0,kind=8)
+         if (nproc>1) then
+            call mpiallred(ovrlp_coeff, mpi_sum, bigdft_mpi%mpi_comm)
+         end if
+         call f_free(coeff_tmp)
 
-     ! sum and transpose coeff for allgatherv
-     !$omp parallel do default(private) shared(coeff_transp,coeff_tmp,corb,basis_orbs,ovrlp_coeff)
-     do iorb=1,corb-1
-        do jtmb=1,basis_orbs%norbp
-           coeff_transp(iorb,jtmb) = coeff_transp(iorb,jtmb) - coeff_tmp(iorb,jtmb)/ovrlp_coeff(corb,1)
-        end do
-     end do
-     !$omp end parallel do
+         call cpu_time(tr0)
+         time2=time2+real(tr0-tr1,kind=8)
 
-     do jtmb=1,basis_orbs%norbp
-        coeff_transp(corb,jtmb) = coeff_transp(corb,jtmb)/sqrt(ovrlp_coeff(corb,1))
-     end do
+         ! (c_corb S c_iorb) * c_corb
+         coeff_tmp=f_malloc((/corb,basis_overlap%nfvctrp/),id='coeff_tmp')
+         if (basis_overlap%nfvctrp>0) then
+            call dgemm('n', 'n', corb-1, basis_overlap%nfvctrp, 1, 1.d0, &
+                 ovrlp_coeff(1,1), corb, &
+                 coeff_transp(corb,1), ieorb-isorb+1, 0.d0, &
+                 coeff_tmp(1,1), corb)
+         end if
 
-     call cpu_time(tr0)
-     time4=time4+real(tr0-tr1,kind=8)
+         call cpu_time(tr1)
+         time3=time3+real(tr1-tr0,kind=8)
 
-     call f_free(ovrlp_coeff)
-     call f_free(coeff_tmp)
-  end do
+         ! sum and transpose coeff for allgatherv
+         !$omp parallel do default(private) shared(coeff_transp,coeff_tmp,isorb,corb,basis_overlap,ovrlp_coeff)
+         do iorb=isorb,corb-1
+            do jtmb=1,basis_overlap%nfvctrp
+               coeff_transp(iorb,jtmb) = coeff_transp(iorb,jtmb) - coeff_tmp(iorb,jtmb)/ovrlp_coeff(corb,1)
+            end do
+         end do
+         !$omp end parallel do
 
-  call cpu_time(tr0)
+         do jtmb=1,basis_overlap%nfvctrp
+            coeff_transp(corb,jtmb) = coeff_transp(corb,jtmb)/sqrt(ovrlp_coeff(corb,1))
+         end do
 
-  coeff_trans=f_malloc((/norb,basis_orbs%norb/),id='coeff_tmp')
-  if(nproc > 1) then
-     call mpi_allgatherv(coeff_transp(1,1), basis_orbs%norbp*norb, mpi_double_precision, coeff_trans(1,1), &
-        norb*basis_orbs%norb_par(:,0), norb*basis_orbs%isorb_par, mpi_double_precision, bigdft_mpi%mpi_comm, ierr)
-  else
-     call vcopy(basis_orbs%norbp*norb,coeff_transp(1,1),1,coeff_trans(1,1),1)
-  end if
-  call f_free(coeff_transp)
+         call cpu_time(tr0)
+         time4=time4+real(tr0-tr1,kind=8)
 
-  call cpu_time(tr1)
-  time5=time5+real(tr1-tr0,kind=8)
+         call f_free(ovrlp_coeff)
+         call f_free(coeff_tmp)
+      end do
 
-  ! untranspose coeff
-  !$omp parallel do default(private) shared(coeff,coeff_trans,norb,basis_orbs)
-  do jtmb=1,basis_orbs%norb
-     do iorb=1,norb
-        coeff(jtmb,iorb) = coeff_trans(iorb,jtmb)
-     end do
-  end do
-  !$omp end parallel do
+      call cpu_time(tr0)
 
-  call cpu_time(tr0)
-  time0=time0+real(tr0-tr1,kind=8)
+      coeff_trans=f_malloc((/(ieorb-isorb+1),basis_overlap%nfvctr/),id='coeff_tmp')
+      if(nproc > 1) then
+         call mpi_allgatherv(coeff_transp(1,1), basis_overlap%nfvctrp*(ieorb-isorb+1), mpi_double_precision, coeff_trans(1,1), &
+              (ieorb-isorb+1)*basis_overlap%nfvctr_par(:), (ieorb-isorb+1)*basis_overlap%isfvctr_par, &
+              mpi_double_precision, bigdft_mpi%mpi_comm, ierr)
+      else
+         call vcopy(basis_overlap%nfvctrp*(ieorb-isorb+1),coeff_transp(1,1),1,coeff_trans(1,1),1)
+      end if
+      call f_free(coeff_transp)
 
-  call f_free(coeff_trans)
+      call cpu_time(tr1)
+      time5=time5+real(tr1-tr0,kind=8)
 
-  !if (iproc==0) print*,'Time in gramschmidt_coeff',time0,time1,time2,time3,time4,time5,&
-  !     time0+time1+time2+time3+time4+time5
+      ! untranspose coeff
+      !$omp parallel do default(private) shared(coeff,coeff_trans,isorb,ieorb,basis_overlap)
+      do jtmb=1,basis_overlap%nfvctr
+         do iorb=isorb,ieorb
+            coeff(jtmb,iorb) = coeff_trans(iorb-isorb+1,jtmb)
+         end do
+      end do
+      !$omp end parallel do
+
+      call cpu_time(tr0)
+      time0=time0+real(tr0-tr1,kind=8)
+
+      call f_free(coeff_trans)
+
+      !if (iproc==0) print*,'Time in gramschmidt_coeff',time0,time1,time2,time3,time4,time5,&
+      !     time0+time1+time2+time3+time4+time5
+
+  end do spin_loop
 
   call f_release_routine()
 
@@ -3301,7 +3316,7 @@ end subroutine overlap_minus_one_half_serial
 !!
 !!  in_neighborhood = f_malloc(orbs%norb,id='in_neighborhood')
 !!
-!!  call to_zero(orbs%norb, orbs%eval(1))
+!!  call f_zero(orbs%norb, orbs%eval(1))
 !!
 !!  do iorb=1,orbs%norbp
 !!     iiorb=orbs%isorb+iorb

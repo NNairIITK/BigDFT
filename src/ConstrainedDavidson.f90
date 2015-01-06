@@ -291,7 +291,7 @@ subroutine constrained_davidson(iproc,nproc,in,at,&
   !
   ! reset e 
   !
-  call to_zero(orbsv%norb*2*orbsv%nkpts,e)
+  call f_zero(e)
   !
   ! compute rayleigh quotients.
   !
@@ -376,11 +376,11 @@ subroutine constrained_davidson(iproc,nproc,in,at,&
   !
   ! the dimension should be chosen with the max between k-points
   !
-  hamovr = f_malloc(8*ndimovrlp(nspin, orbsv%nkpts),id='hamovr')
+  hamovr = f_malloc0(8*ndimovrlp(nspin, orbsv%nkpts),id='hamovr')
   !
   ! put to zero all the k-points which are not needed
   !
-  call to_zero(8*ndimovrlp(nspin,orbsv%nkpts),hamovr)
+  !call to_zero(8*ndimovrlp(nspin,orbsv%nkpts),hamovr)
   !
   ! End interaction/overlap hamovr matrix allocation
   ! **********************************************
@@ -578,7 +578,7 @@ subroutine constrained_davidson(iproc,nproc,in,at,&
      !
      ! reset expanded hamiltonian/overlap matrices
      !
-     call to_zero(8*ndimovrlp(nspin,orbsv%nkpts),hamovr)
+     call f_zero(hamovr)
      !
      ! compute expanded hamiltonian/overlap matrices   
      ! store upper triangular part of these matrices only
@@ -832,7 +832,7 @@ subroutine constrained_davidson(iproc,nproc,in,at,&
      !
      ! compute rayleigh quotients. 
      !
-     call to_zero(orbsv%norb*2*orbsv%nkpts,e)
+     call f_zero(e)
      ! starting index
      ispsi=1
      ! number of components

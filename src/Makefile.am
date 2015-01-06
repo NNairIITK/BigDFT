@@ -63,7 +63,7 @@ else
 lib_bigdft =
 endif
 if BUILD_BINARIES
-binaries_sources = bigdft memguess splsad NEB frequencies global abscalc mhgps
+binaries_sources = bigdft memguess splsad NEB frequencies global abscalc mhgps mhgpstool
 local_binaries = test_forces
 scripts_sources = NEB_driver.sh bigdft-tool
 sub_dirs_bin = tools tools/bader
@@ -91,6 +91,18 @@ else
 etsf_files = wavelib/etsf_fake.f90
 endif
 
+if HAVE_AMBERTOOLS
+amber_ld= @LIB_AMBERTOOLS@  -lsff -lnab -lpbsa -lcifparse -lrism -lfftw3 -larpack
+ambertools_wrap= wrap.c
+###for amber supp.:
+wrap.o:     wrap.c
+	$(NAB) -c  -g $<
+else
+ambertools_wrap= wrap_fake.f90
+amber_ld =
+endif
+
+
 AM_FCFLAGS = -I. -I$(top_builddir)/includes -I$(srcdir)/wavelib \
 	@LIBABINIT_INCLUDE@ @LIBXC_INCLUDE@ \
 	@LIBETSFIO_INCLUDE@ @LIBSGPU_INCLUDE@ \
@@ -117,7 +129,7 @@ high_level = cluster.f90 \
 	pdos.f90 \
 	sdcg.f90 \
 	bfgs.f90 \
-	sbfgs.f90 \
+	sqnm.f90 \
 	scfloop_API.f90 \
 	tddft.f90 \
 	output.f90 \
@@ -136,6 +148,7 @@ low_level = \
 	init/logrid.f90 \
 	init/logrid_per.f90 \
 	init/inputguess.f90 \
+	init/rcov.f90 \
 	init/gautowav.f90 \
 	init/pspconf.f90 \
 	init/locreg_init.f90 \
@@ -197,7 +210,8 @@ low_level = \
 	linear/pulay.f90 \
 	linear/transferintegrals.f90 \
 	linear/cdft.f90 \
-	linear/frags.f90
+	linear/frags.f90\
+	$(ambertools_wrap)
 
 # C objects
 c_level = posfiles.c \
@@ -311,11 +325,12 @@ bart_FCFLAGS = -I. -Iart -I$(top_builddir)/includes @LIBABINIT_INCLUDE@ @LIBXC_I
 bart_LDADD = art/libart.a $(bigdft_library) @LINALG_LIBS@
 
 mhgps_SOURCES = mhgps.f90
-##LIB_AMBERTOOLS=/kernph/schaba00/amber_lib
 mhgps_FCFLAGS = -I. -Imhgps_files -I$(top_builddir)/includes @LIBABINIT_INCLUDE@ @LIBXC_INCLUDE@
-##mhgps_FCFLAGS = -I. -Imhgps_files -I$(top_builddir)/includes @LIBABINIT_INCLUDE@ @LIBXC_INCLUDE@ mhgps_files/wrap.o
-mhgps_LDADD = mhgps_files/libmhgps.a $(bigdft_library) @LINALG_LIBS@
-##mhgps_LDADD = -L$(LIB_AMBERTOOLS)  -lsff -lnab -lpbsa -lcifparse -lrism -lfftw3 -larpack mhgps_files/libmhgps.a $(bigdft_library) @LINALG_LIBS@
+mhgps_LDADD = mhgps_files/libmhgps.a $(amber_ld) $(bigdft_library) @LINALG_LIBS@
+
+mhgpstool_SOURCES = mhgpstool.f90
+mhgpstool_FCFLAGS = -I. -Imhgps_files -I$(top_builddir)/includes @LIBABINIT_INCLUDE@ @LIBXC_INCLUDE@
+mhgpstool_LDADD = mhgps_files/libmhgps.a $(amber_ld) $(bigdft_library)  @LINALG_LIBS@
 
 global_SOURCES = global.f90
 global_LDADD = $(bigdft_library) @LINALG_LIBS@
@@ -325,6 +340,8 @@ clean-local:
 	rm -rf tmp-libbigdft
 
 all: all-recursive
+	chmod ug+x bigdft-tool
+install: install-recursive
 	chmod ug+x bigdft-tool
 
 check:
@@ -343,7 +360,7 @@ lanczos.o : lanczos_interface.o
 
 xabsorber.o init/xabsorber.o : init/xabsorber.f90
 
-geometry.o bfgs.o sdcg.o sbfgs.o: lbfgs.o
+geometry.o bfgs.o sdcg.o sqnm.o: lbfgs.o
 
 initAndUtils.o linear/initAndUtils.o: linear/initAndUtils.f90 cleanup.o
 
@@ -374,7 +391,7 @@ endif
 $(gir_DATA): $(G_IR_SCANNER) $(bigdft_library)
 	$(G_IR_SCANNER) -v --warn-all \
 		--namespace BigDFT \
-		--symbol-prefix=bigdft --identifier-prefix=BigDFT_ \
+		--symbol-prefix=bigdft --identifier-prefix=BigDFT_ --identifier-prefix=Bigdft \
 		--symbol-prefix=f90 --identifier-prefix=f90_ \
 		--nsversion "1.7" \
 		--add-include-path=$(girdir) \

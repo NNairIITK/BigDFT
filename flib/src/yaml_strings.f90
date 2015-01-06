@@ -34,10 +34,16 @@ module yaml_strings
      module procedure fmt_i,fmt_r,fmt_d,fmt_a,fmt_li
   end interface
 
+  interface operator(.eqv.)
+     module procedure case_insensitive_equiv
+  end interface operator(.eqv.)
+
+
   !Public routines
   public ::  yaml_toa, buffer_string, align_message, shiftstr,yaml_date_toa
   public :: yaml_date_and_time_toa,yaml_time_toa,is_atoi,is_atof,is_atol,is_atoli
   public :: read_fraction_string,f_strcpy
+  public :: operator(.eqv.)
 
 contains
 
@@ -51,7 +57,7 @@ contains
 
   pure function fmt_i(data)
     implicit none
-    integer, intent(in) :: data
+    integer(kind=4), intent(in) :: data
     character(len=len(yaml_int_fmt)) :: fmt_i
     fmt_i=yaml_int_fmt
   end function fmt_i
@@ -186,7 +192,7 @@ contains
   !> Convert integer to character
   pure function yaml_itoa(data,fmt) result(str)
     implicit none
-    integer, intent(in) :: data
+    integer(kind=4), intent(in) :: data
     include 'yaml_toa-inc.f90'
   end function yaml_itoa
 
@@ -307,7 +313,7 @@ contains
   !> Convert vector of integer to character
   pure function yaml_ivtoa(vec,fmt) result(vec_toa)
     implicit none
-    integer, dimension(:), intent(in) :: vec
+    integer(kind=4), dimension(:), intent(in) :: vec
     include 'yaml_toa-arr-inc.f90'
   end function yaml_ivtoa
 
@@ -592,6 +598,28 @@ contains
     if (ierror /= 0) var = huge(1.d0) 
   END SUBROUTINE read_fraction_string
 
+  !> Compare two strings (case-insensitive). Blanks are relevant!
+  pure function case_insensitive_equiv(stra,strb)
+    implicit none
+    character(len=*), intent(in) :: stra,strb
+    logical :: case_insensitive_equiv
+    !Local variables
+    integer :: i,ica,icb,ila,ilb,ilength
+    ila=len(stra)
+    ilb=len(strb)
+    ilength=min(ila,ilb)
+    ica=ichar(stra(1:1))
+    icb=ichar(strb(1:1))
+    case_insensitive_equiv=(modulo(ica-icb,32) == 0) .and. (ila==ilb)
+    do i=2,ilength
+       ica=ichar(stra(i:i))
+       icb=ichar(strb(i:i))
+       case_insensitive_equiv=case_insensitive_equiv .and. &
+            &   (modulo(ica-icb,32) == 0)
+       if (.not. case_insensitive_equiv) exit
+    end do
+
+  end function case_insensitive_equiv
 
 
   !> Shifts characters in in the string 'str' n positions (positive values

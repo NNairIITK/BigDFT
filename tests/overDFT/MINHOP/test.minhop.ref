@@ -33,8 +33,8 @@
      |_____|_____|_____|_____|_____|______                    www.bigdft.org   "
 
    Reference Paper                     : The Journal of Chemical Physics 129, 014109 (2008)
-   Version Number                      : 1.7.0.30
-   Timestamp of this run               : 2013-06-11 23:05:25.470
+   Version Number                      : 1.7.6.5
+   Timestamp of this run               : 2015-01-04 15:19:50.562
    Root process Hostname               : athelas
    Number of MPI tasks                 :  2
    OpenMP parallelization              :  Yes
@@ -46,16 +46,11 @@
  <BigDFT> log of the run will be written in logfile: ./log.yaml
 SD FINISHED because ncount_bigdft > ncount_cluster_x     0     7     5
 SD FINISHED because ncount_bigdft > ncount_cluster_x     0     9     5
-(MH) fingerprint  0.967E+00 0.973E+00 0.106E+01
-(MH) fingerprint  0.721E+00 0.902E+00 0.138E+01
-(MH) enarr   1-0.11306270611924148E+02 0.96725066349874456E+00 0.97271146977322409E+00
-(MH) e_wpos,k_e_wpos -0.11535116051924776E+02  0
+(MH) enarr   1-0.11306270611923644E+02 0.96725066349874567E+00 0.97271146977322542E+00
+(MH) e_wpos,k_e_wpos -0.11537477756254688E+02  0
  (MH) k bounds            1           1
- (MH)  k,d           1  0.23544265813393975     
-(MH)    wfp 0.721E+00 0.902E+00 0.138E+01
-(MH) fp_arr 0.967E+00 0.973E+00 0.106E+01
  (MH)  newmin  T
   ----------------------------------------------------
    -----   INSERT -----------
-(MH) fingerprint   1 0.721E+00 0.902E+00 0.138E+01
+(MH) fingerprint   1 0.723E+00 0.892E+00 0.139E+01
 (MH) fingerprint   2 0.967E+00 0.973E+00 0.106E+01

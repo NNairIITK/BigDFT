@@ -111,8 +111,8 @@ subroutine coupling_matrix_prelim(iproc,nproc,geocode,nspin,lr,orbsocc,orbsvirt,
      ndipoles=nmulti
   end if
 
-  dipoles = f_malloc((/ 3, ndipoles /),id='dipoles')
-  call to_zero(3*ndipoles,dipoles)
+  dipoles = f_malloc0((/ 3, ndipoles /),id='dipoles')
+  !call to_zero(3*ndipoles,dipoles)
 
   !allocate coupling matrix elements
   K = f_malloc0((/ nmulti, nmulti /),id='K')

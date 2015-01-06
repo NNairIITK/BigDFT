@@ -714,12 +714,10 @@ contains
       sparsemat%nfvctr=norbu
       sparsemat%nfvctrp=norbup
       sparsemat%isfvctr=isorbu
-      sparsemat%nfvctr_par=f_malloc_ptr((/0.to.nproc-1/),id='sparsemat%nfvctr_par')
-      sparsemat%isfvctr_par=f_malloc_ptr((/0.to.nproc-1/),id='sparsemat%isfvctr_par')
+      sparsemat%nfvctr_par=f_malloc0_ptr((/0.to.nproc-1/),id='sparsemat%nfvctr_par')
+      sparsemat%isfvctr_par=f_malloc0_ptr((/0.to.nproc-1/),id='sparsemat%isfvctr_par')
 
       ! Same as isorb_par and norb_par
-      call to_zero(nproc, sparsemat%nfvctr_par(0))
-      call to_zero(nproc, sparsemat%isfvctr_par(0))
       do jproc=0,nproc-1
           if (iproc==jproc) then
               sparsemat%isfvctr_par(jproc)=isorbu

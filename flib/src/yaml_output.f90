@@ -747,8 +747,8 @@ contains
     integer, optional, intent(in) :: unit   !< @copydoc doc::unit
     !local variables
     integer :: unt,strm
-!!$    integer :: item
-!!$    type(dictionary), pointer :: dict_tmp
+    integer :: idx
+    type(dictionary), pointer :: dict_tmp
 
     unt=0
     if (present(unit)) unt=unit
@@ -769,8 +769,10 @@ contains
 !!$       end if
        if (.not. associated(streams(strm)%dict_warning)) &
             call dict_init(streams(strm)%dict_warning)
-       !add the warning as a list
-       call add(streams(strm)%dict_warning//'WARNINGS',trim(message))
+       !add the warning as a list, if the warning does not exists
+       dict_tmp = streams(strm)%dict_warning .get. 'WARNINGS'
+       idx=dict_tmp .index. trim(message)
+       if (idx < 0) call add(streams(strm)%dict_warning//'WARNINGS',trim(message))
 
     end if
     if (present(level)) then
@@ -790,7 +792,7 @@ contains
     character(len=*), intent(in) :: message           !< The given comment (without #)
     character(len=*), optional, intent(in) :: advance !< @copydoc doc::advance
     integer, optional, intent(in) :: unit             !< @copydoc doc::unit
-    character(len=1), optional, intent(in) :: hfill   !< If present fill the line with the given character
+    character(len=*), optional, intent(in) :: hfill   !< If present fill the line with the given character
     integer, optional, intent(in) :: tabbing          !< Number of space for tabbing
     !Local variables
     integer :: unt,strm,msg_lgt,tb,ipos
@@ -845,6 +847,7 @@ contains
 
        !Check if possible to hfill
        hmax = max(streams(strm)%max_record_length-ipos-len_trim(message)-3,0)
+       if (present(hfill)) hmax=hmax/len(hfill)
        !print *,'hmax',hmax,streams(strm)%max_record_length,ipos,lmsg
        if (present(hfill) .and. hmax > 0) then
           !Fill with the given character and dump
@@ -869,12 +872,12 @@ contains
   !> Write a scalar variable, takes care of indentation only
   subroutine yaml_scalar(message,advance,unit,hfill)
     implicit none
-    character(len=1), optional, intent(in) :: hfill   !< If present fill the line with the given character
+    character(len=*), optional, intent(in) :: hfill   !< If present fill the line with the given character
     character(len=*), intent(in) :: message           !< the message to be printed
     integer, optional, intent(in) :: unit             !< @copydoc doc::unit
     character(len=*), intent(in), optional :: advance !< @copydoc doc::advance
     !local variables
-    integer :: unt,strm
+    integer :: unt,strm,hmax
     character(len=3) :: adv
 
     unt=0
@@ -888,11 +891,13 @@ contains
        adv='yes'
     end if
     if (present(hfill)) then
-       call dump(streams(strm),&
-            repeat(hfill,&
-            max(streams(strm)%max_record_length-&
+       hmax = max(streams(strm)%max_record_length-&
             max(streams(strm)%icursor,streams(strm)%indent)-&
-            len_trim(message)-3,0))//' '//trim(message),&
+            len_trim(message)-3,0)
+       hmax=hmax/len(hfill)
+
+       call dump(streams(strm),&
+            repeat(hfill,hmax)//' '//trim(message),&
             advance=adv,event=COMMENT)
     else
        call dump(streams(strm),trim(message),advance=adv,event=SCALAR)
@@ -1171,6 +1176,8 @@ contains
           end if
        end if
 !       if (streams(strm)%flowrite) call yaml_newline(unit=unt)
+       !first, if the cursor is already gone, carriage return
+       if (streams(strm)%icursor >= streams(strm)%max_record_length) call dump(streams(strm),' ',advance='yes',event=SCALAR)
        icut=len_trim(mapvalue)
        istr=1
        cut=.true.
@@ -1178,8 +1185,9 @@ contains
        idbg=0
        cut_line: do while(cut)
           idbg=idbg+1
-          !print *,'hereOUTPU',cut,icut,idbg
+          !print *,'hereOUTPU',cut,icut,idbg,streams(strm)%icursor,streams(strm)%max_record_length
        !verify where the message can be cut
+          !print *,'test2',index(trim((mapvalue(istr:istr+icut-1))),' ',back=.true.)
           cut=.false.
           cut_message :do while(icut > streams(strm)%max_record_length - &
                max(streams(strm)%icursor,streams(strm)%indent))
@@ -1250,7 +1258,7 @@ contains
 
   subroutine yaml_map_i(mapname,mapvalue,label,advance,unit,fmt)
     implicit none
-    integer, intent(in) :: mapvalue
+    integer(kind=4), intent(in) :: mapvalue
     include 'yaml_map-inc.f90'
   end subroutine yaml_map_i
 
@@ -1306,7 +1314,7 @@ contains
 
   subroutine yaml_map_iv(mapname,mapvalue,label,advance,unit,fmt)
     implicit none
-    integer, dimension(:), intent(in) :: mapvalue
+    integer(kind=4), dimension(:), intent(in) :: mapvalue
     include 'yaml_map-arr-inc.f90'
   end subroutine yaml_map_iv
 

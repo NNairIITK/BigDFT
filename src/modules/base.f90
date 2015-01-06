@@ -17,6 +17,6 @@ module module_base
   use dynamic_memory
   use time_profiling
   use f_utils
-  !use memory_profiling, only: memocc,ndebug
+  use yaml_strings
   implicit none  
 end module module_base

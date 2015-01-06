@@ -5,7 +5,8 @@ module_DATA = $(modules)
 MPI_INCLUDES = allreduce-inc.f90 allreduce-arr-inc.f90 gather-inc.f90 \
 	gather-inner-inc.f90 maxdiff-arr-inc.f90 maxdiff-inc.f90 \
 	bcast-inc.f90 bcast-decl-inc.f90 bcast-decl-arr-inc.f90 \
-	maxdiff-decl-inc.f90 maxdiff-end-inc.f90 alltoallv-inc.f90
+	maxdiff-decl-inc.f90 maxdiff-end-inc.f90 alltoallv-inc.f90 \
+	allgather-inc.f90
 
 if USE_MPI
 #mpi_source =
@@ -87,6 +88,7 @@ CLEANFILES = $(modules) mpif.h
 
 # Copy modules in a common include directory.
 all: all-am insmod
+install: install-am insmod
 check: check-am insmod
 insmod: $(modules)
 	test -e "$(top_builddir)/includes" || $(INSTALL) -d -m 755 $(top_builddir)/includes

@@ -9,4 +9,3 @@ purification_quickreturn Yes
 calculate_gap Yes
 correction_co_contra Yes
 FOE_restart 1
-outdir ./

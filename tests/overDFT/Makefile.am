@@ -1,22 +1,21 @@
 # Give here the list of existing tests
 TESTDIRS = \
-	   C6H6-freq \
-	   GEOPT-all \
-	   GEOPT-BFGS \
-	   GEOPT-LBFGS \
-	   GEOPT-newIG \
-	   MINHOP \
-	   NH3 \
-	   H2O-slab \
-	   H2-freq \
-	   NEB \
-	   SPLSAD \
-	   XabsCheb \
-	   XabsLanc \
-	   Xabsb2B \
-	   BigDFT2Wannier \
-       testforces \
-	   IO-wf
+	C6H6-freq \
+	GEOPT-all \
+	GEOPT-BFGS \
+	GEOPT-LBFGS \
+	GEOPT-newIG \
+	NH3 \
+	H2O-slab \
+	H2-freq \
+	NEB \
+	SPLSAD \
+	XabsCheb \
+	XabsLanc \
+	Xabsb2B \
+	BigDFT2Wannier \
+	testforces \
+	IO-wf
 
 EXTRA_DIST = MH_taskgroups
 
@@ -24,6 +23,11 @@ if HAVE_ETSF_IO
 TESTDIRS += IO-wf-ETSF
 endif
 
+if USE_OCL
+else
+#Add MINHOP (box too small)
+  TESTDIRS += MINHOP
+endif
 
 # Give here the pseudo-potentials used by each test.
 H2-freq.psp: psppar.H
@@ -109,7 +113,7 @@ IO-wf_plain.cube:
 	if test -n "${LD_LIBRARY_PATH}" ; then export LD_LIBRARY_PATH=${LD_LIBRARY_PATH} ; fi ; \
     rm plain-read.perf ;\
 	$(run_serial) $(abs_top_builddir)/src/bigdft-tool --name plain-read -a export-wf data-plain-read/wavefunction-k002-DI.b0003 >> log-plain.yaml
-	cp check.perf plain-read.perf
+	if test -e check.perf; then cp check.perf plain-read.perf; fi
 	mv wavefunction-k002-DI.b0003.cube wf_plain.cube
 	rm -f wavefunction-k002-DI.b0003_avg_*
 
@@ -117,7 +121,7 @@ IO-wf_binary.cube:
 	if test -n "${LD_LIBRARY_PATH}" ; then export LD_LIBRARY_PATH=${LD_LIBRARY_PATH} ; fi ; \
     rm binary-read.perf ;\
 	$(run_serial) $(abs_top_builddir)/src/bigdft-tool --name binary-read -a export-wf data-binary-read/wavefunction-k002-DI.bin.b0003 >> log-binary.yaml
-	cp check.perf binary-read.perf
+	if test -e check.perf; then cp check.perf binary-read.perf; fi
 	mv wavefunction-k002-DI.b0003.cube wf_binary.cube
 	rm -f wavefunction-k002-DI.b0003_avg_*
 

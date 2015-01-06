@@ -68,7 +68,7 @@ subroutine plot_gatom_basis(filename,iat,ngx,G,Gocc,rhocoeff,rhoexpo)
         jshell=ishell
         jexpo=iexpo
         jcoeff=icoeff
-        call to_zero((ngx*(ngx+1))/2*4,rhocoeff)
+        call f_zero(rhocoeff)
         do jsat=1,G%nshell(jat)
            jshell=jshell+1
            ngj=G%ndoc(jshell)

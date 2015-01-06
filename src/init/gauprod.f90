@@ -382,13 +382,13 @@ subroutine gaussian_pswf_basis(ng,enlargerprb,iproc,nspin,at,rxyz,G,Gocc, gaenes
 
   !now we have to allocate the array of the "occupation numbers"
   !of the molecular orbitals
-  Gocc = f_malloc_ptr(G%ncoeff,id='Gocc')
-  call to_zero(G%ncoeff,Gocc)
+  Gocc = f_malloc0_ptr(G%ncoeff,id='Gocc')
+  !call to_zero(G%ncoeff,Gocc)
 
   if( present(gaenes)) then
 
-     gaenes = f_malloc_ptr(G%ncoeff,id='gaenes')
-     call to_zero(G%ncoeff,gaenes)
+     gaenes = f_malloc0_ptr(G%ncoeff,id='gaenes')
+     !call to_zero(G%ncoeff,gaenes)
 
      iorbtolr = f_malloc_ptr(G%ncoeff,id='iorbtolr')
      iorbto_l = f_malloc_ptr(G%ncoeff,id='iorbto_l')

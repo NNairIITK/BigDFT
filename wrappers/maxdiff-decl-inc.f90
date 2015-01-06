@@ -7,16 +7,25 @@
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS
 
-
+  !> if .true. all the proc will have the same maxdiff (default .false.)
+  !! if source is present, the array is overwritten with the value coming
+  !! from rank source
+  logical, intent(in), optional :: bcast 
+  !> determine the rank of the processor whose data are used for comparison.
+  !! Implies bcast=.true. as at the end all the differences are broadcasted
+  integer, intent(in), optional :: source 
   integer, intent(in), optional :: root !<rank of the process retrieving the diff
-  integer, intent(in), optional :: comm
-  logical, intent(in), optional :: bcast !< if .true. all the proc will have the same maxdiff (default .false.)
+  integer, intent(in), optional :: comm !<communicator
   !local variables
   logical :: bcst
-  integer :: ndims,nproc,mpi_comm,iroot,i,jproc
+  integer :: ndims,nproc,mpi_comm,iroot,i,jproc,srce,irank
 
   bcst=.false.
   if (present(bcast)) bcst=bcast
+  srce=-1
+  if (present(source)) then
+     srce=source
+  end if
   if (present(comm)) then
      mpi_comm=comm
   else
@@ -28,3 +37,4 @@
      iroot=0
   end if
   nproc=mpisize(mpi_comm)
+  irank=mpirank(mpi_comm)

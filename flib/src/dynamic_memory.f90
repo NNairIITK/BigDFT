@@ -16,6 +16,7 @@ module dynamic_memory
   use yaml_strings, only: yaml_toa,yaml_date_and_time_toa
   use module_f_malloc
   use yaml_parse, only: yaml_a_todict
+  use f_utils, only: f_time
   implicit none
 
   private 
@@ -54,7 +55,6 @@ module dynamic_memory
 
   !> Timing categories
   integer, public, save :: TCAT_ARRAY_ALLOCATIONS
-  integer, public, save :: TCAT_INIT_TO_ZERO
   integer, public, save :: TCAT_ROUTINE_PROFILING
 
   !> Control structure of flib library. 
@@ -96,11 +96,12 @@ module dynamic_memory
 
   interface assignment(=)
      module procedure i1_all,i2_all,i3_all,i4_all
-     module procedure il1_all, il2_all
+!     module procedure il1_all, il2_all
      module procedure l1_all,l2_all,l3_all
      module procedure d1_all,d2_all,d3_all,d4_all,d5_all,d6_all,d7_all
      module procedure r1_all,r2_all,r3_all
      module procedure z2_all
+     module procedure li1_all,li2_all,li3_all,li4_all
      module procedure d1_ptr,d2_ptr,d3_ptr,d4_ptr,d5_ptr,d6_ptr
      module procedure i1_ptr,i2_ptr,i3_ptr,i4_ptr
      module procedure l2_ptr, l3_ptr
@@ -112,12 +113,13 @@ module dynamic_memory
 
   interface f_free
      module procedure i1_all_free,i2_all_free,i3_all_free,i4_all_free
-     module procedure il1_all_free, il2_all_free
+!     module procedure il1_all_free, il2_all_free
      module procedure i1_all_free_multi
      module procedure l1_all_free,l2_all_free,l3_all_free
      module procedure d1_all_free,d2_all_free,d1_all_free_multi,d3_all_free,d4_all_free,d5_all_free,d6_all_free,d7_all_free
      module procedure r1_all_free,r2_all_free,r3_all_free
      module procedure z2_all_free
+     module procedure li1_all_free,li2_all_free,li3_all_free,li4_all_free
   end interface
 
   interface f_free_ptr
@@ -128,38 +130,34 @@ module dynamic_memory
      module procedure z1_ptr_free
   end interface
 
-  !> Initialize to zero an array (should be called f_memset)
-  interface to_zero
-     module procedure put_to_zero_simple, &
-           put_to_zero_double, put_to_zero_double_1, put_to_zero_double_2, &
-           put_to_zero_double_3, put_to_zero_double_4, put_to_zero_double_5, &
-           put_to_zero_double_6, put_to_zero_double_7, &
-           put_to_zero_integer
-  end interface
-
   interface f_memcpy
      module procedure f_memcpy_i0,f_memcpy_i1
-     module procedure f_memcpy_il0,f_memcpy_il1
+     module procedure f_memcpy_il1
+     module procedure f_memcpy_i1i2,f_memcpy_i2i1
      module procedure f_memcpy_r0
-     module procedure f_memcpy_d0,f_memcpy_d1,f_memcpy_d2
-     module procedure f_memcpy_d1d2,f_memcpy_d2d1,f_memcpy_d2d3
-     module procedure f_memcpy_l0
+     module procedure f_memcpy_d0,f_memcpy_d1,f_memcpy_d2,f_memcpy_d0d1
+     module procedure f_memcpy_d1d2,f_memcpy_d2d1,f_memcpy_d2d3,f_memcpy_d3,f_memcpy_d4,f_memcpy_d1d0
+     module procedure f_memcpy_d0d3,f_memcpy_d0d2
+     module procedure f_memcpy_l0,f_memcpy_c1i1,f_memcpy_i1c1
+     module procedure f_memcpy_li0,f_memcpy_li0li1,f_memcpy_i0i1
   end interface f_memcpy
 
-  !to be verified if clock_gettime is without side-effect, otherwise the routine cannot be pure
-  interface
-     pure subroutine nanosec(itime)
-       implicit none
-       integer(kind=8), intent(out) :: itime
-     end subroutine nanosec
-  end interface
+  interface f_maxdiff
+     module procedure f_maxdiff_i0,f_maxdiff_i1
+     module procedure f_maxdiff_i1i2,f_maxdiff_i2i1
+     module procedure f_maxdiff_r0
+     module procedure f_maxdiff_d0,f_maxdiff_d1,f_maxdiff_d2
+     module procedure f_maxdiff_d0d1,f_maxdiff_d1d2,f_maxdiff_d2d1,f_maxdiff_d2d3
+     module procedure f_maxdiff_l0,f_maxdiff_i0i1
+     module procedure f_maxdiff_c1i1,f_maxdiff_li0li1
+  end interface f_maxdiff
 
   !> Public routines
   public :: f_malloc,f_malloc0,f_malloc_ptr,f_malloc0_ptr,f_malloc_dump_status
   public :: f_malloc_str,f_malloc0_str,f_malloc_str_ptr,f_malloc0_str_ptr
   public :: f_free,f_free_ptr,f_free_str,f_free_str_ptr
   public :: f_routine,f_release_routine,f_malloc_set_status,f_malloc_initialize,f_malloc_finalize
-  public :: f_time,to_zero,f_memcpy
+  public :: f_memcpy,f_maxdiff
   !reference counters
   public :: f_ref_new,f_ref_null,f_unref,f_ref_free,f_ref_associate
   public :: nullify_f_ref,f_ref,f_ref_count,f_update_database,f_purge_database
@@ -169,14 +167,6 @@ module dynamic_memory
   public :: dynamic_memory_errors
 
 contains
-
-  pure function f_time()
-    integer(kind=8) :: f_time
-    !local variables
-    integer(kind=8) :: itime
-    call nanosec(itime)
-    f_time=itime
-  end function f_time
 
   pure function mem_ctrl_null() result(mem)
     type(mem_ctrl) :: mem
@@ -395,157 +385,6 @@ contains
     f_malloc_routine_name(1:len(f_malloc_routine_name))=name
     f_malloc_default_profiling=profile
   end subroutine set_routine_info
-
-
-  subroutine put_to_zero_simple(n,da)
-    implicit none
-    integer, intent(in) :: n
-    real(kind=4), intent(out) :: da
-    logical :: within_openmp
-    !$ logical :: omp_in_parallel, omp_get_nested
-    within_openmp=.false.
-    !$    within_openmp=omp_in_parallel() .or. omp_get_nested()
-
-    !call to custom routine
-    if (.not. within_openmp) call f_timer_interrupt(TCAT_INIT_TO_ZERO)
-    call razero_simple(n,da)
-    if (.not. within_openmp) call f_timer_resume()
-  end subroutine put_to_zero_simple
-
-  subroutine put_to_zero_double(n,da)
-    implicit none
-    integer, intent(in) :: n
-    real(kind=8), intent(out) :: da
-    logical :: within_openmp
-    !$ logical :: omp_in_parallel, omp_get_nested
-    within_openmp=.false.
-    !$    within_openmp=omp_in_parallel() .or. omp_get_nested()
-
-    !call to custom routine
-    if (.not. within_openmp) call f_timer_interrupt(TCAT_INIT_TO_ZERO)
-    call razero(n,da)
-    if (.not. within_openmp) call f_timer_resume()
-  end subroutine put_to_zero_double
-
-  subroutine put_to_zero_double_1(n,da)
-    implicit none
-    integer, intent(in) :: n
-    real(kind=8), dimension(:), intent(out) :: da
-    logical :: within_openmp
-    !$ logical :: omp_in_parallel,omp_get_nested
-    within_openmp=.false.
-    !$    within_openmp=omp_in_parallel() .or. omp_get_nested()
-
-    !call to custom routine
-    if (.not. within_openmp) call f_timer_interrupt(TCAT_INIT_TO_ZERO)
-    call razero(n,da)
-    if (.not. within_openmp) call f_timer_resume()
-  end subroutine put_to_zero_double_1
-
-  subroutine put_to_zero_double_2(n,da)
-    implicit none
-    integer, intent(in) :: n
-    real(kind=8), dimension(:,:), intent(out) :: da
-    logical :: within_openmp
-    !$ logical :: omp_in_parallel,omp_get_nested
-    within_openmp=.false.
-    !$    within_openmp=omp_in_parallel() .or. omp_get_nested()
-
-    !call to custom routine
-    if (.not. within_openmp) call f_timer_interrupt(TCAT_INIT_TO_ZERO)
-    call razero(n,da)
-    if (.not. within_openmp) call f_timer_resume()
-  end subroutine put_to_zero_double_2
-
- subroutine put_to_zero_double_3(n,da)
-    implicit none
-    integer, intent(in) :: n
-    real(kind=8), dimension(:,:,:), intent(out) :: da
-    logical :: within_openmp
-    !$ logical :: omp_in_parallel,omp_get_nested
-    within_openmp=.false.
-    !$    within_openmp=omp_in_parallel() .or. omp_get_nested()
-
-    !call to custom routine
-    if (.not. within_openmp) call f_timer_interrupt(TCAT_INIT_TO_ZERO) 
-    call razero(n,da)
-    if (.not. within_openmp) call f_timer_resume() 
-  end subroutine put_to_zero_double_3
-
-  subroutine put_to_zero_double_4(n,da)
-    implicit none
-    integer, intent(in) :: n
-    real(kind=8), dimension(:,:,:,:), intent(out) :: da
-    logical :: within_openmp
-    !$ logical :: omp_in_parallel,omp_get_nested
-    within_openmp=.false.
-    !$    within_openmp=omp_in_parallel() .or. omp_get_nested()
-
-    !call to custom routine
-    if (.not. within_openmp) call f_timer_interrupt(TCAT_INIT_TO_ZERO) 
-    call razero(n,da)
-    if (.not. within_openmp) call f_timer_resume() 
-  end subroutine put_to_zero_double_4
-
-  subroutine put_to_zero_double_5(n,da)
-    implicit none
-    integer, intent(in) :: n
-    real(kind=8), dimension(:,:,:,:,:), intent(out) :: da
-    logical :: within_openmp
-    !$ logical :: omp_in_parallel,omp_get_nested
-    within_openmp=.false.
-    !$    within_openmp=omp_in_parallel() .or. omp_get_nested()
-
-    !call to custom routine
-    if (.not. within_openmp) call f_timer_interrupt(TCAT_INIT_TO_ZERO) 
-    call razero(n,da)
-    if (.not. within_openmp) call f_timer_resume() 
-  end subroutine put_to_zero_double_5
-
-  subroutine put_to_zero_double_6(n,da)
-    implicit none
-    integer, intent(in) :: n
-    real(kind=8), dimension(:,:,:,:,:,:), intent(out) :: da
-    logical :: within_openmp
-    !$ logical :: omp_in_parallel,omp_get_nested
-    within_openmp=.false.
-    !$    within_openmp=omp_in_parallel() .or. omp_get_nested()
-
-    !call to custom routine
-    if (.not. within_openmp) call f_timer_interrupt(TCAT_INIT_TO_ZERO) 
-    call razero(n,da)
-    if (.not. within_openmp) call f_timer_resume() 
-  end subroutine put_to_zero_double_6
-
-  subroutine put_to_zero_double_7(n,da)
-    implicit none
-    integer, intent(in) :: n
-    real(kind=8), dimension(:,:,:,:,:,:,:), intent(out) :: da
-    logical :: within_openmp
-    !$ logical :: omp_in_parallel,omp_get_nested
-    within_openmp=.false.
-    !$    within_openmp=omp_in_parallel() .or. omp_get_nested()
-
-    !call to custom routine
-    if (.not. within_openmp) call f_timer_interrupt(TCAT_INIT_TO_ZERO) 
-    call razero(n,da)
-    if (.not. within_openmp) call f_timer_resume() 
-  end subroutine put_to_zero_double_7
-
-  subroutine put_to_zero_integer(n,da)
-    implicit none
-    integer, intent(in) :: n
-    integer, intent(out) :: da
-    logical :: within_openmp
-    !$ logical :: omp_in_parallel, omp_get_nested
-    within_openmp=.false.
-    !$    within_openmp=omp_in_parallel() .or. omp_get_nested()
-
-    !call to custom routine
-    if (.not. within_openmp) call f_timer_interrupt(TCAT_INIT_TO_ZERO)
-    call razero_integer(n,da)
-    if (.not. within_openmp) call f_timer_resume()
-  end subroutine put_to_zero_integer
 
   !> Copy the contents of an array into another one
   include 'f_memcpy-inc.f90'
@@ -1282,9 +1121,12 @@ contains
           call yaml_newline()
           call yaml_warning('Memory allocation status filename '//trim(filename)//&
                ' not created, dumping in default stream')
+          !in the case of a filename, we might investigate if an error is produced
        else
           iunt=iunit
+          call f_dump_all_errors(iunit)
        end if
+
     end if
 
     call yaml_newline(unit=iunt)
@@ -1384,9 +1226,12 @@ contains
        end if
 
        if (base_time > 0.d0) then
+!!$          call f_strcpy(src=trim(yaml_toa(time(jkey)/base_time*100.d0,fmt='(f6.2)'))//'%'//extra,&
+!!$               dest=percent)
           percent(1:len(percent))=&
                trim(yaml_toa(time(jkey)/base_time*100.d0,fmt='(f6.2)'))//'%'//extra
        else
+!!$          call f_strcpy(src='~'//extra,dest=percent)
           percent(1:len(percent))='~'//extra
        end if
        call add(dict_pt,dict_new(trim(keys(jkey)) .is. &

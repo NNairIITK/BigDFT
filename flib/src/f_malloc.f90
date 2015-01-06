@@ -122,6 +122,7 @@ module module_f_malloc
      !here also the procedures for the copying of arrays have to be defined
      module procedure f_malloc_i2,f_malloc_d2
      module procedure f_malloc_d1,f_malloc_i3
+     module procedure f_malloc_d3,f_malloc_d4
   end interface
 
   interface f_malloc0
@@ -134,6 +135,7 @@ module module_f_malloc
      module procedure f_malloc_ptr_bounds,f_malloc_ptr_bound
      module procedure f_malloc_ptr_i2
      module procedure f_malloc_ptr_d1,f_malloc_ptr_d2
+     module procedure f_malloc_ptr_d3,f_malloc_ptr_d4
   end interface
 
   interface f_malloc0_ptr
@@ -490,6 +492,24 @@ contains
     include 'f_malloc-inc.f90'
   end function f_malloc_d2
 
+  function f_malloc_d3(src,id,routine_id,lbounds,ubounds,profile) result(m)
+    implicit none
+    double precision, dimension(:,:,:), intent(in) :: src
+    integer, dimension(:), intent(in), optional :: lbounds,ubounds
+    type(malloc_information_all) :: m
+    include 'f_malloc-base-inc.f90'
+    include 'f_malloc-inc.f90'
+  end function f_malloc_d3
+
+  function f_malloc_d4(src,id,routine_id,lbounds,ubounds,profile) result(m)
+    implicit none
+    double precision, dimension(:,:,:,:), intent(in) :: src
+    integer, dimension(:), intent(in), optional :: lbounds,ubounds
+    type(malloc_information_all) :: m
+    include 'f_malloc-base-inc.f90'
+    include 'f_malloc-inc.f90'
+  end function f_malloc_d4
+
   function f_malloc_i2(src,id,routine_id,lbounds,ubounds,profile) result(m)
     implicit none
     integer, dimension(:,:), intent(in) :: src
@@ -534,5 +554,23 @@ contains
     include 'f_malloc-base-inc.f90'
     include 'f_malloc-inc.f90'
   end function f_malloc_ptr_d2
+
+  function f_malloc_ptr_d3(src,id,routine_id,lbounds,ubounds,profile) result(m)
+    implicit none
+    double precision, dimension(:,:,:), intent(in) :: src
+    integer, dimension(:), intent(in), optional :: lbounds,ubounds
+    type(malloc_information_ptr) :: m
+    include 'f_malloc-base-inc.f90'
+    include 'f_malloc-inc.f90'
+  end function f_malloc_ptr_d3
+
+  function f_malloc_ptr_d4(src,id,routine_id,lbounds,ubounds,profile) result(m)
+    implicit none
+    double precision, dimension(:,:,:,:), intent(in) :: src
+    integer, dimension(:), intent(in), optional :: lbounds,ubounds
+    type(malloc_information_ptr) :: m
+    include 'f_malloc-base-inc.f90'
+    include 'f_malloc-inc.f90'
+  end function f_malloc_ptr_d4
   
 end module module_f_malloc
