@@ -171,6 +171,8 @@ contains
     !local variables
     integer, dimension(nat) :: nshell
     integer :: iat, l, i, ishell, iexpo
+
+    call f_routine(id='gaussian_basis_from_psp')
     
     ! Build nshell from psppar.
     do iat = 1, nat
@@ -219,6 +221,9 @@ contains
           end do
        end do
     end do
+
+    call f_release_routine()
+
   end subroutine gaussian_basis_from_psp
 
   !> Initialise the gaussian basis from PAW datas.
@@ -464,9 +469,12 @@ contains
   !!  Optimize it!
   elemental pure function mp_exp(hgrid,x0,expo,j,pow,modified)
     implicit none
-    logical, intent(in) :: modified !< switch to scfdotf if true
-    integer, intent(in) :: j,pow
-    real(gp), intent(in) :: hgrid,x0,expo
+    real(gp), intent(in) :: hgrid   !< Hgrid 
+    real(gp), intent(in) :: x0      !< X value
+    real(gp), intent(in) :: expo    !< Exponent of the gaussian
+    logical, intent(in) :: modified !< Switch to scfdotf if true
+    integer, intent(in) :: j        !< Location of the scf from x0
+    integer, intent(in) :: pow      !< Exp(-expo*x**2)*(x**pow)
     real(gp) :: mp_exp
     !local variables
     real(gp) :: x

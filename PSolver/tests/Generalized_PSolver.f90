@@ -13,9 +13,10 @@ program GPS_3D
    use f_utils
    implicit none
    
-   integer, parameter :: n01 = 200
-   integer, parameter :: n02 = 200
-   integer, parameter :: n03 = 200
+   !now these parameters have to be specified from the command line
+!!$   integer, parameter :: n01 = 200
+!!$   integer, parameter :: n02 = 200
+!!$   integer, parameter :: n03 = 200
    integer, parameter :: nspden = 1
    character(len=40) :: PSol !, parameter :: PSol='PI'!'PCG' !    PCG = Preconditioned Conjugate Gradient Method.
                                              !    PI  = Polarization Iterative Method.
@@ -35,7 +36,7 @@ program GPS_3D
    real(8), dimension(3) :: hgrids
    real(kind=8), parameter :: a_gauss = 1.0d0,a2 = a_gauss**2
    !integer :: m1,m2,m3,md1,md2,md3,nd1,nd2,nd3,n1,n2,n3,
-   integer :: itype_scf,i_all,i_stat,n_cell,iproc,nproc,ixc
+   integer :: itype_scf,i_all,i_stat,n_cell,iproc,nproc,ixc,n01,n02,n03
    real(kind=8) :: hx,hy,hz,freq,fz,fz1,fz2,pi,curr,average,CondNum,wcurr,ave1,ave2,rhores2,En1,En2,dVnorm,hgrid
    real(kind=8) :: Adiag,ersqrt,ercurr,factor,r,r2,max_diff,max_diffpot,fact,x1,x2,x3,derf_tt,diffcurr,diffcurrS,divprod,sum
    real(kind=8) :: ehartree,offset
@@ -55,11 +56,23 @@ program GPS_3D
 
    call f_zero(PSol)
    PSol=options .get. 'method'
+   ndims=options // 'ndim'
    call dict_free(options)
 
-   call yaml_set_stream(record_length=92,tabbing=30)!unit=70,filename='log.yaml')
-   call yaml_new_document()
+   n01=ndims(1)
+   n02=ndims(2)
+   n03=ndims(3)
 
+   call mpiinit()
+   iproc=mpirank()
+   nproc=mpisize()
+
+   !control memory profiling
+   call f_malloc_set_status(memory_limit=0.e0,iproc=iproc)
+   if (iproc ==0) then
+      call yaml_set_stream(record_length=92,tabbing=30)!unit=70,filename='log.yaml')
+      call yaml_new_document()
+   end if
 
 !   call MPI_INIT(ierr)
 !   call MPI_COMM_RANK(MPI_COMM_WORLD,iproc,ierr)
@@ -84,20 +97,14 @@ program GPS_3D
 
    ixc=0
    itype_scf=16
-   iproc=0
-   nproc=1
+!!$   iproc=0
+!!$   nproc=1
 !-------------------------------------------------------------------------
 
    ! Create the Kernel.
    ! Calculate the kernel in parallel for each processor.
 
-   ndims=(/n01,n02,n03/)
    hgrids=(/hx,hy,hz/)
-
-   pkernel=pkernel_init(.true.,iproc,nproc,0,geocode,ndims,hgrids,itype_scf)
-
-   call pkernel_set(pkernel,.true.)
-   !call F_FFT_dimensions(n01,n02,n03,m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd3,nproc,0,.false.)
 
 !------------------------------------------------------------------------
 
@@ -142,13 +149,37 @@ program GPS_3D
   rhopot(:,:,:,:) = density(:,:,:,:)
 
   if ( trim(PSol)=='PCG') then
+     
+     !new method
+     pkernel=pkernel_init(.true.,iproc,nproc,0,geocode,ndims,hgrids,itype_scf,method=PSol)
+     !set the coulomb operator of this system
+     call pkernel_set(pkernel,verbose=.true.,eps=eps)
+     call H_potential('G',pkernel,rhopot,rhopot,ehartree,0.d0,.false.)
+     if (iproc==0) call writeroutinePot(n01,n02,n03,nspden,rhopot,pkernel%max_iter,&
+          potential)
 
-   call Prec_conjugate_gradient(n01,n02,n03,nspden,rhopot,acell,eps,nord,pkernel,potential)
+!!$     !old method, outside of PSolver
+!!$     pkernel=pkernel_init(.true.,iproc,nproc,0,geocode,ndims,hgrids,itype_scf,method='VAC')
+!!$     !set the coulomb operator of this system
+!!$     call pkernel_set(pkernel,verbose=.true.)
+!!$     call Prec_conjugate_gradient(n01,n02,n03,nspden,rhopot,acell,eps,nord,pkernel,potential)
 
   else if (trim(PSol)=='PI') then
 
-   call PolarizationIteration(n01,n02,n03,nspden,rhopot,acell,eps,nord,pkernel,potential)
+     pkernel=pkernel_init(.true.,iproc,nproc,0,geocode,ndims,hgrids,itype_scf,method=PSol)
+     !set the coulomb operator of this system
+     call pkernel_set(pkernel,verbose=.true.,eps=eps)
+     call H_potential('G',pkernel,rhopot,rhopot,ehartree,0.d0,.false.)
+     if (iproc==0) call writeroutinePot(n01,n02,n03,nspden,rhopot,pkernel%max_iter,potential)
 
+!!$     !old method, outside of PSolver
+!!$     pkernel=pkernel_init(.true.,iproc,nproc,0,geocode,ndims,hgrids,itype_scf,method='VAC')
+!!$     !set the coulomb operator of this system
+!!$     call pkernel_set(pkernel,verbose=.true.)
+!!$     call PolarizationIteration(n01,n02,n03,nspden,rhopot,acell,eps,nord,pkernel,potential)
+
+  else
+     call f_err_throw('Unrecognized method (provided "'//trim(PSol)//'")')
   end if
 
   call pkernel_free(pkernel)
@@ -159,10 +190,11 @@ program GPS_3D
   call f_free(potential)
   call f_free(pot_ion)
 
-  call yaml_release_document()
-  call yaml_close_all_streams()
-
-  
+  if (iproc ==0) then
+     call yaml_release_document()
+     call yaml_close_all_streams()
+  end if
+  call mpifinalize()
   call f_lib_finalize()
   
 contains
@@ -232,6 +264,7 @@ subroutine PolarizationIteration(n01,n02,n03,nspden,b,acell,eps,nord,pkernel,pot
   use yaml_output
   use Poisson_Solver
   use wrapper_linalg
+  use dynamic_memory
   implicit none
   integer, intent(in) :: n01
   integer, intent(in) :: n02
@@ -248,11 +281,20 @@ subroutine PolarizationIteration(n01,n02,n03,nspden,b,acell,eps,nord,pkernel,pot
   real(kind=8), parameter :: taupol = 1.0d-20 ! Polarization Iterative Method parameter.
   integer, parameter :: maxiterpol=50
   !real(kind=8), dimension(n01,n02,n03,nspden,3) :: dlv
-  real(kind=8), dimension(3,n01,n02,n03) :: dlv
-  real(kind=8), dimension(n01,n02,n03,3) :: deps
-  real(kind=8), dimension(n01,n02,n03,nspden) :: rhosol,rhopol,rhotot,rhopolnew,rhopolold,rhores,lv
+  real(kind=8), dimension(:,:,:,:), allocatable :: dlv,deps,rhosol,rhopol,rhotot
+  real(kind=8), dimension(:,:,:,:), allocatable :: rhopolnew,rhopolold,rhores,lv
   integer :: i1,i2,i3,i,j,ip,isp
   real(kind=8) :: divprod,rhores2,hx,hy,hz,offset,diffcurr,pi,ehartree,res,rho
+  
+  rhosol=f_malloc([n01,n02,n03,nspden],id='rhosol')
+  rhopol=f_malloc([n01,n02,n03,nspden],id='rhopol')
+  rhotot=f_malloc([n01,n02,n03,nspden],id='rhotot')
+  rhopolnew=f_malloc([n01,n02,n03,nspden],id='rhopolnew')
+  rhopolold=f_malloc([n01,n02,n03,nspden],id='rhopolold')
+  rhores=f_malloc([n01,n02,n03,nspden],id='rhores')
+  lv=f_malloc([n01,n02,n03,nspden],id='lv')
+  deps=f_malloc([n01,n02,n03,3],id='deps')
+  dlv=f_malloc([3,n01,n02,n03],id='dlv')
 
   pi = 4.d0*datan(1.d0)
   hx = acell/real(n01,kind=8)
@@ -300,8 +342,9 @@ subroutine PolarizationIteration(n01,n02,n03,nspden,b,acell,eps,nord,pkernel,pot
      do i3=1,n03
       do i2=1,n02
        do i1=1,n01
-        rhotot(i1,i2,i3,isp)=(1/eps(i1,i2,i3))*rhosol(i1,i2,i3,isp)+rhopol(i1,i2,i3,isp)
-        lv(i1,i2,i3,isp) = rhotot(i1,i2,i3,isp)
+          rhotot(i1,i2,i3,isp)=(1/eps(i1,i2,i3))*rhosol(i1,i2,i3,isp)+rhopol(i1,i2,i3,isp)
+          !rhotot(i1,i2,i3,isp)=pkernel%oneoeps(i1,i2,i3)*rhosol(i1,i2,i3,isp)+rhopol(i1,i2,i3,isp)
+          lv(i1,i2,i3,isp) = rhotot(i1,i2,i3,isp)
        end do
       end do
      end do
@@ -311,7 +354,9 @@ subroutine PolarizationIteration(n01,n02,n03,nspden,b,acell,eps,nord,pkernel,pot
 
      call writeroutinePot(n01,n02,n03,nspden,lv,ip,potential)
 
-     call fssnord3DmatNabla_LG(n01,n02,n03,lv,nord,acell,eta,dlv,rhopol,rhores2)
+     !call fssnord3DmatNabla_LG2(n01,n02,n03,lv,nord,acell,eta,pkernel%dlogeps,rhopol,rhores2)
+     call fssnord3DmatNabla_LG2(n01,n02,n03,lv,nord,acell,eta,dlv,rhopol,rhores2)
+
      !!!call fssnord3DmatNabla(n01,n02,n03,nspden,lv,dlv,nord,acell)
      !!!
      !!!isp=1
@@ -354,7 +399,7 @@ subroutine PolarizationIteration(n01,n02,n03,nspden,b,acell,eps,nord,pkernel,pot
      write(18,'(1x,I8,1x,e14.7)')ip,rhores2
      !write(*,'(1x,I8,1x,e14.7)')ip,rhores2
 
-     call EPS_iter_output(ip,0.0_dp,rhores2,0.0_dp,0.0_dp,0.0_dp)
+     call EPS_iter_output_LG(ip,0.0_dp,rhores2,0.0_dp,0.0_dp,0.0_dp)
      if (rhores2.lt.taupol) exit
 
 !     call writeroutine(n01,n02,n03,nspden,rhores,ip)
@@ -384,7 +429,15 @@ subroutine PolarizationIteration(n01,n02,n03,nspden,b,acell,eps,nord,pkernel,pot
     !write(*,'(a)')'Termination of Polarization Iteration'
     !write(*,'(a)')'--------------------------------------------------------------------------------------------'
 
-
+    call f_free(rhosol)
+    call f_free(rhopol)
+    call f_free(rhotot)
+    call f_free(rhopolnew)
+    call f_free(rhopolold)
+    call f_free(rhores)
+    call f_free(lv)
+    call f_free(deps)
+    call f_free(dlv)
 
 end subroutine PolarizationIteration
 
@@ -406,9 +459,9 @@ subroutine Prec_conjugate_gradient(n01,n02,n03,nspden,b,acell,eps,nord,pkernel,p
   real(kind=8), dimension(n01,n02,n03), intent(in) :: potential
   real(kind=8), dimension(n01,n02,n03,nspden), intent(inout) :: b
 
-  real(kind=8), dimension(n01,n02,n03,nspden) :: x,r,z,p,q,qold,lv,corr
-  real(kind=8), dimension(n01,n02,n03,3) :: deps
-  real(kind=8), dimension(n01,n02,n03) :: de2,ddeps
+  real(kind=8), dimension(:,:,:,:), allocatable :: x,r,z,p,q,qold,lv,corr,deps
+  !real(kind=8), dimension(n01,n02,n03,3) :: deps
+  real(kind=8), dimension(:,:,:), allocatable :: de2,ddeps
   integer, parameter :: max_iter = 50
   real(kind=8), parameter :: max_ratioex = 1.0d10
   real(kind=8) :: alpha,beta,beta0,betanew,normb,normr,ratio,k,epsc,zeta,pval,qval,rval
@@ -416,6 +469,20 @@ subroutine Prec_conjugate_gradient(n01,n02,n03,nspden,b,acell,eps,nord,pkernel,p
   real(kind=8), parameter :: error = 1.0d-20
   real(kind=8), dimension(n01,n02,n03) ::pot_ion
   real(kind=8) :: ehartree,offset,pi
+
+
+  !allocate heap arrays
+  x=f_malloc([n01,n02,n03,nspden],id='x')
+  r=f_malloc([n01,n02,n03,nspden],id='r')
+  z=f_malloc([n01,n02,n03,nspden],id='z')
+  p=f_malloc([n01,n02,n03,nspden],id='p')
+  q=f_malloc([n01,n02,n03,nspden],id='q')
+  qold=f_malloc([n01,n02,n03,nspden],id='qold')
+  lv=f_malloc([n01,n02,n03,nspden],id='lv')
+  corr=f_malloc([n01,n02,n03,nspden],id='corr')
+  deps=f_malloc([n01,n02,n03,3],id='deps')
+  ddeps=f_malloc([n01,n02,n03],id='ddeps')
+  de2=f_malloc([n01,n02,n03],id='de2')
 
   pi = 4.d0*datan(1.d0)   
 
@@ -527,6 +594,7 @@ subroutine Prec_conjugate_gradient(n01,n02,n03,nspden,b,acell,eps,nord,pkernel,p
      do i2=1,n02
         do i1=1,n01
            lv(i1,i2,i3,isp) = r(i1,i2,i3,isp)/dsqrt(eps(i1,i2,i3))
+           !lv(i1,i2,i3,isp) = pkernel%oneoeps(i1,i2,i3)*r(i1,i2,i3,isp)
         end do
      end do
   end do
@@ -551,8 +619,9 @@ subroutine Prec_conjugate_gradient(n01,n02,n03,nspden,b,acell,eps,nord,pkernel,p
    do i3=1,n03
     do i2=1,n02
      do i1=1,n01
-      z(i1,i2,i3,isp) = lv(i1,i2,i3,isp)/dsqrt(eps(i1,i2,i3))
-      beta=beta+r(i1,i2,i3,isp)*z(i1,i2,i3,isp)
+        z(i1,i2,i3,isp) = lv(i1,i2,i3,isp)/dsqrt(eps(i1,i2,i3))
+        !z(i1,i2,i3,isp) = lv(i1,i2,i3,isp)*pkernel%oneoeps(i1,i2,i3)
+        beta=beta+r(i1,i2,i3,isp)*z(i1,i2,i3,isp)
 ! Apply the Generalized Laplace operator nabla(eps*nabla) to the potential correction
       !q(i1,i2,i3,isp)=r(i1,i2,i3,isp)+z(i1,i2,i3,isp)*corr(i1,i2,i3,isp)
      end do
@@ -568,6 +637,7 @@ subroutine Prec_conjugate_gradient(n01,n02,n03,nspden,b,acell,eps,nord,pkernel,p
      do i1=1,n01
         zeta=z(i1,i2,i3,isp)
         epsc=corr(i1,i2,i3,isp)
+        !epsc=pkernel%corr(i1,i2,i3)
         pval=p(i1,i2,i3,isp)
         qval=q(i1,i2,i3,isp)
         rval=r(i1,i2,i3,isp)
@@ -596,6 +666,7 @@ subroutine Prec_conjugate_gradient(n01,n02,n03,nspden,b,acell,eps,nord,pkernel,p
       r(i1,i2,i3,isp) = r(i1,i2,i3,isp) - alpha*q(i1,i2,i3,isp)
       normr=normr+r(i1,i2,i3,isp)*r(i1,i2,i3,isp)
       lv(i1,i2,i3,isp) = r(i1,i2,i3,isp)/dsqrt(eps(i1,i2,i3))
+      !lv(i1,i2,i3,isp) = r(i1,i2,i3,isp)*pkernel%oneoeps(i1,i2,i3)
      end do
     end do
    end do
@@ -604,7 +675,7 @@ subroutine Prec_conjugate_gradient(n01,n02,n03,nspden,b,acell,eps,nord,pkernel,p
    ratio=normr/normb
    write(18,'(1x,I8,2(1x,e14.7))')i,ratio,beta
    !write(*,'(1x,I8,2(1x,e14.7))')i,ratio,beta
-   call EPS_iter_output(i,normb,normr,ratio,alpha,beta)
+   call EPS_iter_output_LG(i,normb,normr,ratio,alpha,beta)
 !   call writeroutine(n01,n02,n03,nspden,r,i)
    call writeroutinePot(n01,n02,n03,nspden,x,i,potential)
 
@@ -634,13 +705,27 @@ subroutine Prec_conjugate_gradient(n01,n02,n03,nspden,b,acell,eps,nord,pkernel,p
   !write(*,'(a)')'Termination of Preconditioned Conjugate Gradient'
   !write(*,'(a)')'--------------------------------------------------------------------------------------------'
 
+  call f_free(x)
+  call f_free(r)
+  call f_free(z)
+  call f_free(p)
+  call f_free(q)
+  call f_free(qold)
+  call f_free(lv)
+  call f_free(corr)
+  call f_free(deps)
+  call f_free(ddeps)
+  call f_free(de2)
+
+
 end subroutine  Prec_conjugate_gradient
 
-subroutine EPS_iter_output(iter,normb,normr,ratio,alpha,beta)
-  use module_defs, only: dp
+subroutine EPS_iter_output_LG(iter,normb,normr,ratio,alpha,beta)
+  !use module_defs, only: dp
   use yaml_output
   implicit none
   integer, intent(in) :: iter
+  integer, parameter :: dp=8
   real(dp), intent(in) :: normb,normr,ratio,beta,alpha
 
   call yaml_mapping_open('Iteration quality',flow=.true.)
@@ -654,7 +739,7 @@ subroutine EPS_iter_output(iter,normb,normr,ratio,alpha,beta)
   if (beta /= 0.0_dp) call yaml_map('beta',beta,fmt='(1pe16.4)')
 
   call yaml_mapping_close()
-end subroutine EPS_iter_output
+end subroutine EPS_iter_output_LG
 
 
 subroutine writeroutine(n01,n02,n03,nspden,r,i)
@@ -713,6 +798,7 @@ end subroutine writeroutine
 
 subroutine writeroutinePot(n01,n02,n03,nspden,ri,i,potential)
   use yaml_output
+  use dynamic_memory
   implicit none
   integer, intent(in) :: n01
   integer, intent(in) :: n02
@@ -722,10 +808,11 @@ subroutine writeroutinePot(n01,n02,n03,nspden,ri,i,potential)
   real(kind=8), dimension(n01,n02,n03,nspden), intent(in) :: ri
   real(kind=8), dimension(n01,n02,n03),intent(in) :: potential
   !automatic array, to be check is stack poses problem
-  real(kind=8), dimension(n01,n02,n03,nspden) :: re
+  real(kind=8), dimension(:,:,:,:), allocatable :: re
   integer :: i1,i2,i3,j,i1_max,i2_max,i3_max,jj
   real(kind=8) :: max_val,fact
 
+  re=f_malloc([n01,n02,n03,nspden],id='re')
       max_val = 0.d0
       i1_max = 1
       i2_max = 1
@@ -758,10 +845,11 @@ subroutine writeroutinePot(n01,n02,n03,nspden,ri,i,potential)
               fmt='(1pe22.15)')
          call yaml_mapping_close()
       end if
-
+      call f_free(re)
 end subroutine writeroutinePot
 
 subroutine FluxSurface(n01,n02,n03,nspden,x,acell,eps,nord)
+  use dynamic_memory
   implicit none
   integer, intent(in) :: n01
   integer, intent(in) :: n02
@@ -771,10 +859,13 @@ subroutine FluxSurface(n01,n02,n03,nspden,x,acell,eps,nord)
   real(kind=8), intent(in) :: acell
   real(kind=8), dimension(n01,n02,n03), intent(in) :: x
   real(kind=8), dimension(n01,n02,n03), intent(in) :: eps
-  real(kind=8), dimension(n01,n02,n03,nspden,3) :: dx
+  real(kind=8), dimension(:,:,:,:,:), allocatable :: dx
   real(kind=8) :: hx,hy,hz,pi,flux
   integer :: i1,i2,i3,isp,i
-   pi = 4.d0*datan(1.d0)
+  
+  dx=f_malloc([n01,n02,n03,nspden,3],id='dx')
+
+  pi = 4.d0*datan(1.d0)
 
   hx=acell/real(n01,kind=8)
   hy=acell/real(n02,kind=8)
@@ -815,9 +906,12 @@ subroutine FluxSurface(n01,n02,n03,nspden,x,acell,eps,nord)
 
     write(*,'(1x,a,1x,e14.7)')'Surface flux is',flux
 
+    call f_free(dx)
+
 end subroutine FluxSurface 
 
 subroutine ApplyLaplace(n01,n02,n03,nspden,x,y,acell,eps,nord)
+  use dynamic_memory
   implicit none
   integer, intent(in) :: n01
   integer, intent(in) :: n02
@@ -828,12 +922,17 @@ subroutine ApplyLaplace(n01,n02,n03,nspden,x,y,acell,eps,nord)
   real(kind=8), dimension(n01,n02,n03,nspden), intent(in) :: x
   real(kind=8), dimension(n01,n02,n03), intent(in) :: eps
   real(kind=8), dimension(n01,n02,n03,nspden), intent(out) :: y
-  real(kind=8), dimension(n01,n02,n03,nspden) :: ddx
-  real(kind=8), dimension(n01,n02,n03,nspden,3) :: dx
-  real(kind=8), dimension(n01,n02,n03,3) :: deps
+  real(kind=8), dimension(:,:,:,:), allocatable :: ddx
+  real(kind=8), dimension(:,:,:,:,:), allocatable :: dx
+  real(kind=8), dimension(:,:,:,:), allocatable :: deps
   real(kind=8) :: hx,hy,hz,pi
   integer :: i1,i2,i3,isp,i
-   pi = 4.d0*datan(1.d0)   
+  pi = 4.d0*datan(1.d0)   
+
+  ddx=f_malloc([n01,n02,n03,nspden],id='ddx')
+  dx=f_malloc([n01,n02,n03,nspden,3],id='dx')
+  deps=f_malloc([n01,n02,n03,3],id='deps')
+
 
   hx=acell/real(n01,kind=8)
   hy=acell/real(n02,kind=8)
@@ -855,6 +954,10 @@ subroutine ApplyLaplace(n01,n02,n03,nspden,x,y,acell,eps,nord)
    call fssnord3DmatDiv(n01,n02,n03,nspden,dx,y,nord,acell)
 
    y(:,:,:,:)=-y(:,:,:,:)/(4.d0*pi)
+
+   call f_free(deps)
+   call f_free(ddx)
+   call f_free(dx)
 
 end subroutine ApplyLaplace
 
@@ -980,8 +1083,8 @@ end subroutine fssnord3DmatNabla
 
 !> Like fssnord3DmatNabla but corrected such that the index goes at the beginning
 !! Multiplies also times (nabla epsilon)/(4pi*epsilon)= nabla (log(epsilon))/(4*pi)
-subroutine fssnord3DmatNabla_LG(n01,n02,n03,u,nord,acell,eta,dlogeps,rhopol,rhores2)
-  use module_defs, only: pi_param
+subroutine fssnord3DmatNabla_LG2(n01,n02,n03,u,nord,acell,eta,dlogeps,rhopol,rhores2)
+  !use module_defs, only: pi_param
   implicit none
 
   !c..this routine computes 'nord' order accurate first derivatives 
@@ -1006,9 +1109,12 @@ subroutine fssnord3DmatNabla_LG(n01,n02,n03,u,nord,acell,eta,dlogeps,rhopol,rhor
   !c..local variables
   integer :: n,m,n_cell
   integer :: i,j,ib,i1,i2,i3,isp,i1_max,i2_max
-  real(kind=8), parameter :: oneo4pi=0.25d0/pi_param
+  !real(kind=8), parameter :: oneo4pi=0.25d0/pi_param
   real(kind=8), dimension(-nord/2:nord/2,-nord/2:nord/2) :: c1D,c1DF
   real(kind=8) :: hx,hy,hz,max_diff,fact,dx,dy,dz,res,rho
+  real(kind=8) :: oneo4pi
+
+  oneo4pi=1.0d0/(16.d0*atan(1.d0))
 
   n = nord+1
   m = nord/2
@@ -1092,7 +1198,7 @@ subroutine fssnord3DmatNabla_LG(n01,n02,n03,u,nord,acell,eta,dlogeps,rhopol,rhor
               end do
            end if
            dz=dz/hz
-           
+
            !retrieve the previous treatment
            res = dlogeps(1,i1,i2,i3)*dx + &
                 dlogeps(2,i1,i2,i3)*dy + dlogeps(3,i1,i2,i3)*dz
@@ -1107,7 +1213,7 @@ subroutine fssnord3DmatNabla_LG(n01,n02,n03,u,nord,acell,eta,dlogeps,rhopol,rhor
      end do
   end do
 
-end subroutine fssnord3DmatNabla_LG
+end subroutine fssnord3DmatNabla_LG2
 
 
 subroutine fssnord3DmatNabla3var(n01,n02,n03,nspden,u,du,nord,acell)
@@ -1723,6 +1829,7 @@ subroutine fssnord3DmatDiv3var(n01,n02,n03,nspden,u,du,nord,acell)
 end subroutine fssnord3DmatDiv3var
 
 subroutine SetInitDensPot(n01,n02,n03,nspden,eps,sigmaeps,erfR,acell,a_gauss,a2,hx,hy,hz,Setrho,density,potential)
+  use dynamic_memory
   use yaml_output
   implicit none
   integer, intent(in) :: n01
@@ -1734,11 +1841,16 @@ subroutine SetInitDensPot(n01,n02,n03,nspden,eps,sigmaeps,erfR,acell,a_gauss,a2,
   real(kind=8), dimension(n01,n02,n03), intent(in) :: eps
   real(kind=8), dimension(n01,n02,n03,nspden), intent(out) :: density
   real(kind=8), dimension(n01,n02,n03), intent(out) :: potential
-  real(kind=8), dimension(n01,n02,n03,nspden) :: density1,density2
-  real(kind=8), dimension(n01,n02,n03) :: potential1,potential2
+  real(kind=8), dimension(:,:,:,:), allocatable :: density1,density2
+  real(kind=8), dimension(:,:,:), allocatable :: potential1,potential2
   integer :: i,i1,i2,i3
   real(kind=8) :: sigma,sigma1,sigma2,pi,sum,sump,tt1,tt2,x0,r12
   real(kind=8) :: x1,x2,x3,r,r2,r1,r22,derf_tt1,derf_tt2,factor,factor1,factor2
+
+  density1=f_malloc([n01,n02,n03,nspden],id='density1')
+  density2=f_malloc([n01,n02,n03,nspden],id='density2')
+  potential1=f_malloc([n01,n02,n03],id='potential1')
+  potential2=f_malloc([n01,n02,n03],id='potential2')
 
   pi = 4.d0*datan(1.d0)
 
@@ -1901,9 +2013,15 @@ subroutine SetInitDensPot(n01,n02,n03,nspden,eps,sigmaeps,erfR,acell,a_gauss,a2,
   !write(*,'(1x,a,1x,e14.7)')'Potential at the boundary 1 n02/2 1',poteantial(1,n02/2,1)
   !write(*,'(1x,a,1x,e14.7)')'Density at the boundary 1 n02/2 1',density(1,n02/2,1,1)
 
+  call f_free(density1)
+  call f_free(density2)
+  call f_free(potential1)
+  call f_free(potential2)
+
 end subroutine SetInitDensPot
 
 subroutine SetEpsilon(n01,n02,n03,eps,acell,a_gauss,hx,hy,hz,erfL,erfR,sigmaeps,SetEps)
+  use dynamic_memory
   implicit none
   integer, intent(in) :: n01
   integer, intent(in) :: n02
@@ -1911,13 +2029,14 @@ subroutine SetEpsilon(n01,n02,n03,eps,acell,a_gauss,hx,hy,hz,erfL,erfR,sigmaeps,
   real(kind=8), intent(in) :: acell,a_gauss,hx,hy,hz,erfL,erfR,sigmaeps
   integer, intent(in) :: SetEps
   real(kind=8), dimension(n01,n02,n03), intent(out) :: eps
-  real(kind=8), dimension(n01,n02,n03) :: edens
+  real(kind=8), dimension(:,:,:), allocatable :: edens
   integer :: i,i1,i2,i3
   real(kind=8), parameter :: edensmax = 1.5d0
   real(kind=8), parameter :: edensmin = 0.01d0
   real(kind=8), parameter :: eps0 = 80.0d0
   real(kind=8) :: x1,x2,x3,r,t,pi,r2,sigma,x0,factor
     
+  edens=f_malloc([n01,n02,n03],id='edens')
 !  open(unit=21,file='Epsilon.out',status='unknown')
 
   if (SetEps.eq.1) then
@@ -2014,6 +2133,8 @@ subroutine SetEpsilon(n01,n02,n03,eps,acell,a_gauss,hx,hy,hz,erfL,erfR,sigmaeps,
   end if
 
   close(unit=21)
+
+  call f_free(edens)
 
 end subroutine SetEpsilon
 

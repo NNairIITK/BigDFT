@@ -60,7 +60,7 @@ module Poisson_Solver
    use wrapper_MPI
    use dynamic_memory
    use time_profiling, only: TIMING_UNINITIALIZED, f_timing
-   use yaml_output, only: yaml_map, yaml_toa, yaml_mapping_open, yaml_mapping_close
+   use yaml_output
    !use m_profiling
    ! TO BE REMOVED with f_malloc
    
@@ -120,10 +120,26 @@ module Poisson_Solver
        !!                which has to be compatible with the FFT.
        !!          - 'H' Helmholtz Equation Solver
       character(len=1) :: geocode
+      !> method of embedding in the environment
+       !!          - 'VAC' Poisson Equation in vacuum. Default case.
+       !!          - 'PCG' Generalized Poisson Equation, Preconditioned Conjugate Gradient
+       !!          - 'PI'  Generalized Poisson Equation, Polarization Iteration method
+      character(len=3) :: method 
       integer, dimension(3) :: ndims   !< dimension of the box of the density
       real(gp), dimension(3) :: hgrids !<grid spacings in each direction
       real(gp), dimension(3) :: angrad !< angles in radiants between each of the axis
       real(dp), dimension(:), pointer :: kernel !< kernel of the Poisson Solver
+      !> logaritmic derivative of the dielectric function,
+      !! to be used in the case of Polarization Iteration method
+      real(dp), dimension(:,:,:,:), pointer :: dlogeps
+      !> inverse of the dielectric function
+      !! in the case of Polarization Iteration method
+      !! inverse of the square root of epsilon
+      !! in the case of the Preconditioned Conjugate Gradient
+      real(dp), dimension(:,:), pointer :: oneoeps
+      !> correction term, given in terms of the multiplicative factor of nabla*eps*nabla
+      !! to be used for Preconditioned Conjugate Gradient 
+      real(dp), dimension(:,:), pointer :: corr
       real(dp) :: work1_GPU,work2_GPU,k_GPU !<addresses for the GPU memory 
       integer, dimension(5) :: plan
       integer, dimension(3) :: geo
@@ -134,6 +150,15 @@ module Poisson_Solver
       integer :: igpu !< control the usage of the GPU
       integer :: initCufftPlan
       integer :: keepGPUmemory
+      !parameters for the iterative methods
+      !> Order of accuracy for derivatives into ApplyLaplace subroutine = Total number of points at left and right of the x0 where we want to calculate the derivative.
+      integer :: nord
+      integer :: max_iter !< maximum number of convergence iterations
+      real(dp) :: minres !< convergence criterion for the iteration
+      real(dp) :: PI_eta !<parameter for the update of PI iteration
+      
+      integer, dimension(:), pointer :: counts !<array needed to gather the information of the poisson solver
+      integer, dimension(:), pointer :: displs !<array needed to gather the information of the poisson solver
    end type coulomb_operator
 
    !intialization of the timings
@@ -193,11 +218,15 @@ contains
     type(coulomb_operator) :: k
     k%itype_scf=0
     k%geocode='F'
+    k%method='VAC'
     k%mu=0.0_gp
     k%ndims=(/0,0,0/)
     k%hgrids=(/0.0_gp,0.0_gp,0.0_gp/)
     k%angrad=(/0.0_gp,0.0_gp,0.0_gp/)
     nullify(k%kernel)
+    nullify(k%dlogeps)
+    nullify(k%oneoeps)
+    nullify(k%corr)
     k%work1_GPU=0.d0
     k%work2_GPU=0.d0
     k%k_GPU=0.d0
@@ -210,6 +239,12 @@ contains
     k%igpu=0
     k%initCufftPlan=0
     k%keepGPUmemory=1
+    k%nord=0
+    k%max_iter=0
+    k%PI_eta=0.0_dp
+    k%minres=0.0_dp
+    nullify(k%counts)
+    nullify(k%displs)
   end function pkernel_null
 
   !> switch on the timing categories for the Poisson Solver

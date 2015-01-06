@@ -11,7 +11,7 @@
 !> Module containing variables used for the timing for BigDFT
 module time_profiling
   use dictionaries
-  use dynamic_memory, only: f_time
+  use f_utils, only: f_time
   implicit none
 
   private 
@@ -19,7 +19,7 @@ module time_profiling
   !>maximum number of allowed categories
   integer, parameter :: ncat_max=200
   !>maximum number of partial counters active
-  integer, parameter :: nctr_max=10
+  integer, parameter :: nctr_max=20
   !>integer indicating the file unit
   integer, parameter :: timing_unit=60
   !>integer indicating the tabbing of the file unit
@@ -530,7 +530,7 @@ module time_profiling
     !> The same timing routine but with system_clock (in case of a supported specs)
     subroutine f_timing(cat_id,action)
       use dictionaries, only: f_err_raise,f_err_throw
-      use dynamic_memory, only: f_time
+      use f_utils, only: f_time
       use yaml_output, only: yaml_toa
       implicit none
       !Variables

@@ -1180,6 +1180,8 @@ subroutine uncompress_for_quartic_convolutions(n1, n2, n3, nfl1, nfu1, nfl2, nfu
   !local variables
   integer :: iseg,jj,j0,j1,ii,i1,i2,i3,i0,i
 
+  call f_routine(id='uncompress_for_quartic_convolutions')
+
   !$omp parallel default(private) &
   !$omp shared(scal) &
   !$omp shared(psi_c,psi_f,keyv_c,keyg_c,keyv_f,keyg_f,n1,n2,n3,mseg_c,mseg_f,work)
@@ -1250,5 +1252,6 @@ subroutine uncompress_for_quartic_convolutions(n1, n2, n3, nfl1, nfu1, nfl2, nfu
  !$omp enddo
  !$omp end parallel
  
+  call f_release_routine()
 
 END SUBROUTINE uncompress_for_quartic_convolutions

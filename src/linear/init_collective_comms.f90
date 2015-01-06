@@ -14,7 +14,7 @@ subroutine check_communications_locreg(iproc,nproc,orbs,nspin,Lzd,collcom,smat,m
    use communications_base, only: comms_linear, TRANSPOSE_FULL
    use communications, only: transpose_localized, untranspose_localized
    use sparsematrix_base, only : sparse_matrix, matrices, DENSE_PARALLEL
-   use sparsematrix, only : compress_matrix_distributed
+   use sparsematrix, only : compress_matrix_distributed, gather_matrix_from_taskgroups_inplace
    !use dynamic_memory
    implicit none
    integer, intent(in) :: iproc,nproc,nspin,check_overlap
@@ -197,6 +197,7 @@ subroutine check_communications_locreg(iproc,nproc,orbs,nspin,Lzd,collcom,smat,m
        if (check_overlap > 1) then
            call calculate_overlap_transposed(iproc, nproc, orbs, collcom, psit_c, &
                 psit_c, psit_f, psit_f, smat, mat)
+           !!call gather_matrix_from_taskgroups_inplace(iproc, nproc, smat, mat)
            !!do i=1,smat%nvctr*nspin
            !!    write(6000+iproc,'(a,2i8,es16.7)') 'i, mod(i-1,nvctr)+1, val', i, mod(i-1,smat%nvctr)+1, mat%matrix_compr(i)
            !!end do
@@ -271,7 +272,7 @@ subroutine check_communications_locreg(iproc,nproc,orbs,nspin,Lzd,collcom,smat,m
            call f_free(psijg)
            call f_free(matp)
            do i=1,smat%nvctrp_tg
-               maxdiff=max(abs(mat_compr(i+smat%isvctrp_tg)-mat%matrix_compr(i+smat%isvctrp_tg)),maxdiff)
+               maxdiff=max(abs(mat_compr(i+smat%isvctrp_tg)-mat%matrix_compr(i)),maxdiff)
                !write(8000+iproc,'(a,i7,2es15.5)') 'i, mat_compr(i), mat%matrix_compr(i)', &
                !    i, mat_compr(i), mat%matrix_compr(i)
            end do
@@ -443,11 +444,12 @@ subroutine calculate_overlap_transposed(iproc, nproc, orbs, collcom, &
   real(kind=8) :: tt60, tt61, tt62, tt63, tt64, tt65, tt66
   integer,dimension(:),allocatable :: n
   !$ integer  :: omp_get_thread_num,omp_get_max_threads
-  real(kind=8) :: totops
+  integer(kind=8) :: totops
   integer :: avops, ops, opsn
   integer, allocatable, dimension(:) :: numops
   logical :: ifnd, jfnd
   integer :: iorb, jorb, imat, iseg, iorb_shift, itg, iitg, ist_send, ist_recv, ncount, ishift
+  real(kind=8) :: res
   integer,dimension(:),allocatable :: request
   real(kind=8),dimension(:),allocatable :: recvbuf
   integer,dimension(2) :: irowcol
@@ -458,7 +460,7 @@ subroutine calculate_overlap_transposed(iproc, nproc, orbs, collcom, &
 
   call f_routine(id='calculate_overlap_transposed')
 
-  call f_zero(smat%nvctr*smat%nspin, ovrlp%matrix_compr(1))
+  call f_zero(smat%nvctrp_tg*smat%nspin, ovrlp%matrix_compr(1))
 
   ! WARNING: METHOD 2 NOT EXTENSIVELY TESTED
   method_if: if (collcom%imethod_overlap==2) then
@@ -552,7 +554,7 @@ subroutine calculate_overlap_transposed(iproc, nproc, orbs, collcom, &
       !only optimized for spin=1 for now
       ispin=1
       nthreads=1
-      !$  nthreads = OMP_GET_max_threads()
+      !$ nthreads = OMP_GET_max_threads()
       n = f_malloc(nthreads,id='n')
       iorb_shift=(ispin-1)*smat%nfvctr
       ! calculate number of operations for better load balancing of OpenMP
@@ -569,10 +571,11 @@ subroutine calculate_overlap_transposed(iproc, nproc, orbs, collcom, &
                numops(iiorb)=numops(iiorb)+ii
             end do
          end do
-         totops=sum(numops)
-         avops=nint(totops/dble(nthreads))
+         totops=sum(int(numops,kind=8))
+         avops=nint(dble(totops)/dble(nthreads))
          jjorb=1
          do i=1,nthreads
+            res=dble(nthreads-i)
             ops=0
             do j=jjorb,orbs%norb
                opsn=ops+numops(j)
@@ -580,22 +583,20 @@ subroutine calculate_overlap_transposed(iproc, nproc, orbs, collcom, &
                   if ((opsn-avops)<(avops-ops)) then
                      n(i)=j
                      jjorb=j+1
-                     totops=totops-opsn
+                     totops=totops-int(opsn,kind=8)
                   else
                      n(i)=j-1
                      jjorb=j
-                     totops=totops-ops
+                     totops=totops-int(ops,kind=8)
                   end if
                   exit
                end if
                ops=opsn
             end do
-            if (i/=nthreads) then
-               avops=nint(totops/dble(nthreads-i))
-            end if
+            if (res /=0.d0) avops=nint(dble(totops)/res)
          end do
          call f_free(numops)
-      end if
+      end if 
 
       n(nthreads)=orbs%norb
     
@@ -625,7 +626,7 @@ subroutine calculate_overlap_transposed(iproc, nproc, orbs, collcom, &
       !auxiliary array with shifted bounds in order to access smat%matrixindex_in_compressed_fortransposed
       spin_loop: do ispin=1,smat%nspin
     
-          ishift_mat=(ispin-1)*smat%nvctr
+          ishift_mat=(ispin-1)*smat%nvctrp_tg-smat%isvctrp_tg
           iorb_shift=(ispin-1)*smat%nfvctr
           if (collcom%nptsp_c>0) then
     
@@ -733,10 +734,11 @@ subroutine calculate_overlap_transposed(iproc, nproc, orbs, collcom, &
                numops(iiorb)=numops(iiorb)+ii  !*7
             end do
          end do
-         totops=sum(numops)
+         totops=sum(int(numops,kind=8))
          avops=nint(totops/dble(nthreads))
          jjorb=1
          do i=1,nthreads
+            res=dble(nthreads-i)
             ops=0
             do j=jjorb,orbs%norb
                opsn=ops+numops(j)
@@ -744,19 +746,17 @@ subroutine calculate_overlap_transposed(iproc, nproc, orbs, collcom, &
                   if ((opsn-avops)<(avops-ops)) then
                      n(i)=j
                      jjorb=j+1
-                     totops=totops-opsn
+                     totops=totops-int(opsn,kind=8)
                   else
                      n(i)=j-1
                      jjorb=j
-                     totops=totops-ops
+                     totops=totops-int(ops,kind=8)
                   end if
                   exit
                end if
                ops=opsn
             end do
-            if (i/=nthreads) then
-               avops=nint(totops/dble(nthreads-i))
-            end if
+            if (res /= 0.d0) avops=nint(dble(totops)/res)
          end do
          call f_free(numops)
       end if    
@@ -786,7 +786,7 @@ subroutine calculate_overlap_transposed(iproc, nproc, orbs, collcom, &
     
       spin_loopf: do ispin=1,smat%nspin
     
-          ishift_mat=(ispin-1)*smat%nvctr
+          ishift_mat=(ispin-1)*smat%nvctr-smat%isvctrp_tg
           iorb_shift=(ispin-1)*smat%nfvctr
 
           if (collcom%nptsp_f>0) then
@@ -945,47 +945,49 @@ subroutine calculate_overlap_transposed(iproc, nproc, orbs, collcom, &
 
   else if (data_strategy==SUBMATRIX) then
 
-      if (nproc>1) then
-          request = f_malloc(smat%ntaskgroupp,id='request')
-          do ispin=1,smat%nspin
-              ishift = (ispin-1)*smat%nvctr
-              ncount = 0
-              do itg=1,smat%ntaskgroupp
-                  iitg = smat%taskgroupid(itg)
-                  ncount = ncount + smat%taskgroup_startend(2,1,iitg)-smat%taskgroup_startend(1,1,iitg)+1
-              end do
-              if (ispin==1) recvbuf = f_malloc(ncount,id='recvbuf')
+      call synchronize_matrix_taskgroups(iproc, nproc, smat, ovrlp)
 
-              ncount = 0
-              do itg=1,smat%ntaskgroupp
-                  iitg = smat%taskgroupid(itg)
-                  ist_send = smat%taskgroup_startend(1,1,iitg)
-                  ist_recv = ncount + 1
-                  ncount = smat%taskgroup_startend(2,1,iitg)-smat%taskgroup_startend(1,1,iitg)+1
-                  !!call mpi_iallreduce(ovrlp%matrix_compr(ist_send), recvbuf(ist_recv), ncount, &
-                  !!     mpi_double_precision, mpi_sum, smat%mpi_groups(iitg)%mpi_comm, request(itg), ierr)
-                  if (nproc>1) then
-                      call mpiiallred(ovrlp%matrix_compr(ishift+ist_send), recvbuf(ist_recv), ncount, &
-                           mpi_double_precision, mpi_sum, smat%mpi_groups(iitg)%mpi_comm, request(itg))
-                  else
-                      call vcopy(ncount, ovrlp%matrix_compr(ishift+ist_send), 1, recvbuf(ist_recv), 1)
-                  end if
-              end do
-              if (nproc>1) then
-                  call mpiwaitall(smat%ntaskgroupp, request)
-              end if
-              ncount = 0
-              do itg=1,smat%ntaskgroupp
-                  iitg = smat%taskgroupid(itg)
-                  ist_send = smat%taskgroup_startend(1,1,iitg)
-                  ist_recv = ncount + 1
-                  ncount = smat%taskgroup_startend(2,1,iitg)-smat%taskgroup_startend(1,1,iitg)+1
-                  call vcopy(ncount, recvbuf(ist_recv), 1, ovrlp%matrix_compr(ishift+ist_send), 1)
-              end do
-          end do
-          call f_free(request)
-          call f_free(recvbuf)
-      end if
+      !!if (nproc>1) then
+      !!    request = f_malloc(smat%ntaskgroupp,id='request')
+      !!    ncount = 0
+      !!    do itg=1,smat%ntaskgroupp
+      !!        iitg = smat%taskgroupid(itg)
+      !!        ncount = ncount + smat%taskgroup_startend(2,1,iitg)-smat%taskgroup_startend(1,1,iitg)+1
+      !!    end do
+      !!    recvbuf = f_malloc(ncount,id='recvbuf')
+      !!    do ispin=1,smat%nspin
+      !!        ishift = (ispin-1)*smat%nvctr
+
+      !!        ncount = 0
+      !!        do itg=1,smat%ntaskgroupp
+      !!            iitg = smat%taskgroupid(itg)
+      !!            ist_send = smat%taskgroup_startend(1,1,iitg)
+      !!            ist_recv = ncount + 1
+      !!            ncount = smat%taskgroup_startend(2,1,iitg)-smat%taskgroup_startend(1,1,iitg)+1
+      !!            !!call mpi_iallreduce(ovrlp%matrix_compr(ist_send), recvbuf(ist_recv), ncount, &
+      !!            !!     mpi_double_precision, mpi_sum, smat%mpi_groups(iitg)%mpi_comm, request(itg), ierr)
+      !!            if (nproc>1) then
+      !!                call mpiiallred(ovrlp%matrix_compr(ishift+ist_send), recvbuf(ist_recv), ncount, &
+      !!                     mpi_sum, smat%mpi_groups(iitg)%mpi_comm, request(itg))
+      !!            else
+      !!                call vcopy(ncount, ovrlp%matrix_compr(ishift+ist_send), 1, recvbuf(ist_recv), 1)
+      !!            end if
+      !!        end do
+      !!        if (nproc>1) then
+      !!            call mpiwaitall(smat%ntaskgroupp, request)
+      !!        end if
+      !!        ncount = 0
+      !!        do itg=1,smat%ntaskgroupp
+      !!            iitg = smat%taskgroupid(itg)
+      !!            ist_send = smat%taskgroup_startend(1,1,iitg)
+      !!            ist_recv = ncount + 1
+      !!            ncount = smat%taskgroup_startend(2,1,iitg)-smat%taskgroup_startend(1,1,iitg)+1
+      !!            call vcopy(ncount, recvbuf(ist_recv), 1, ovrlp%matrix_compr(ishift+ist_send), 1)
+      !!        end do
+      !!    end do
+      !!    call f_free(request)
+      !!    call f_free(recvbuf)
+      !!end if
   else
       stop 'calculate_overlap_transposed: wrong data_strategy'
   end if
@@ -1122,7 +1124,7 @@ subroutine build_linear_combination_transposed(collcom, sparsemat, mat, psitwork
 
   spin_loop: do ispin=1,sparsemat%nspin
 
-      ishift_mat=(ispin-1)*sparsemat%nvctr
+      ishift_mat=(ispin-1)*sparsemat%nvctr-sparsemat%isvctrp_tg
       iorb_shift=(ispin-1)*sparsemat%nfvctr
 
       !$omp parallel default(private) &
@@ -1605,3 +1607,63 @@ subroutine init_matrixindex_in_compressed_fortransposed(iproc, nproc, orbs, coll
   call f_release_routine()
 
 end subroutine init_matrixindex_in_compressed_fortransposed
+
+
+subroutine synchronize_matrix_taskgroups(iproc, nproc, smat, mat)
+  use module_base
+  use sparsematrix_base, only: sparse_matrix, matrices
+  implicit none
+
+  ! Calling arguments
+  integer,intent(in) :: iproc, nproc
+  type(sparse_matrix),intent(in) :: smat
+  type(matrices),intent(in) :: mat
+
+  ! Local variables
+  integer :: ncount, itg, iitg, ispin, ishift, ist_send, ist_recv
+  integer,dimension(:),allocatable :: request
+  real(kind=8),dimension(:),allocatable :: recvbuf
+
+  if (nproc>1) then
+      request = f_malloc(smat%ntaskgroupp,id='request')
+      ncount = 0
+      do itg=1,smat%ntaskgroupp
+          iitg = smat%taskgroupid(itg)
+          ncount = ncount + smat%taskgroup_startend(2,1,iitg)-smat%taskgroup_startend(1,1,iitg)+1
+      end do
+      recvbuf = f_malloc(ncount,id='recvbuf')
+      do ispin=1,smat%nspin
+          ishift = (ispin-1)*smat%nvctrp_tg
+
+          ncount = 0
+          do itg=1,smat%ntaskgroupp
+              iitg = smat%taskgroupid(itg)
+              ist_send = smat%taskgroup_startend(1,1,iitg) - smat%isvctrp_tg
+              ist_recv = ncount + 1
+              ncount = smat%taskgroup_startend(2,1,iitg)-smat%taskgroup_startend(1,1,iitg)+1
+              !!call mpi_iallreduce(mat%matrix_compr(ist_send), recvbuf(ist_recv), ncount, &
+              !!     mpi_double_precision, mpi_sum, smat%mpi_groups(iitg)%mpi_comm, request(itg), ierr)
+              if (nproc>1) then
+                  call mpiiallred(mat%matrix_compr(ishift+ist_send), recvbuf(ist_recv), ncount, &
+                       mpi_sum, smat%mpi_groups(iitg)%mpi_comm, request(itg))
+              else
+                  call vcopy(ncount, mat%matrix_compr(ishift+ist_send), 1, recvbuf(ist_recv), 1)
+              end if
+          end do
+          if (nproc>1) then
+              call mpiwaitall(smat%ntaskgroupp, request)
+          end if
+          ncount = 0
+          do itg=1,smat%ntaskgroupp
+              iitg = smat%taskgroupid(itg)
+              ist_send = smat%taskgroup_startend(1,1,iitg) - smat%isvctrp_tg
+              ist_recv = ncount + 1
+              ncount = smat%taskgroup_startend(2,1,iitg)-smat%taskgroup_startend(1,1,iitg)+1
+              !call vcopy(ncount, recvbuf(ist_recv), 1, mat%matrix_compr(ishift+ist_send), 1)
+              call dcopy(ncount, recvbuf(ist_recv), 1, mat%matrix_compr(ishift+ist_send), 1)
+          end do
+      end do
+      call f_free(request)
+      call f_free(recvbuf)
+  end if
+end subroutine synchronize_matrix_taskgroups

@@ -31,14 +31,14 @@
      |     |     |     |     |     |         D               T    T
      |     |     |     |     |     |   DDDDDD       F         TTTT
      |_____|_____|_____|_____|_____|______                    www.bigdft.org   "
- 
+
    Reference Paper                     : The Journal of Chemical Physics 129, 014109 (2008)
-   Version Number                      : 1.7.6
-   Timestamp of this run               : 2014-11-06 09:47:52.446
-   Root process Hostname               : localhost
-   Number of MPI tasks                 :  1
+   Version Number                      : 1.7.6.5
+   Timestamp of this run               : 2015-01-04 15:19:50.562
+   Root process Hostname               : athelas
+   Number of MPI tasks                 :  2
    OpenMP parallelization              :  Yes
-   Maximal OpenMP threads per MPI task :  4
+   Maximal OpenMP threads per MPI task :  2
    ----> you can grep this file for (MH) to see Minima Hopping output
     (MH) NOTE: this version reads nspin, mpol from input.dat
  Reference Paper:
@@ -46,11 +46,11 @@
  <BigDFT> log of the run will be written in logfile: ./log.yaml
 SD FINISHED because ncount_bigdft > ncount_cluster_x     0     7     5
 SD FINISHED because ncount_bigdft > ncount_cluster_x     0     9     5
-(MH) enarr   1-0.11306270611923448E+02 0.96725066349816169E+00 0.97271146977421363E+00
-(MH) e_wpos,k_e_wpos -0.11535116051923646E+02  0
+(MH) enarr   1-0.11306270611923644E+02 0.96725066349874567E+00 0.97271146977322542E+00
+(MH) e_wpos,k_e_wpos -0.11537477756254688E+02  0
  (MH) k bounds            1           1
  (MH)  newmin  T
   ----------------------------------------------------
    -----   INSERT -----------
-(MH) fingerprint   1 0.721E+00 0.902E+00 0.138E+01
+(MH) fingerprint   1 0.723E+00 0.892E+00 0.139E+01
 (MH) fingerprint   2 0.967E+00 0.973E+00 0.106E+01

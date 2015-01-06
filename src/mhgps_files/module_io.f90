@@ -61,31 +61,55 @@ subroutine get_first_struct_file(mhgpsst,filename)
     endif
 end subroutine
 !=====================================================================
-subroutine read_restart(mhgpsst)
+subroutine read_restart(mhgpsst,runObj)
     use module_base
+    use bigdft_run
     use module_mhgps_state
     implicit none
     !parameters
     type(mhgps_state), intent(inout) :: mhgpsst
+    type(run_objects), intent(in)     :: runObj
     !local
     integer :: u
     logical :: exists
+    integer :: iatt, iat
     u=f_get_free_unit()
     inquire(file='restart',exist=exists)
     if(exists)then
         open(unit=u,file='restart')
         read(u,*)mhgpsst%ifolder
         read(u,*)mhgpsst%isad,mhgpsst%isadprob
+        read(u,*)mhgpsst%nsad
         read(u,*)mhgpsst%ntodo
         read(u,*)mhgpsst%nrestart
         mhgpsst%nrestart=mhgpsst%nrestart+1
+        read(u,*)mhgpsst%nattempted,mhgpsst%nattemptedmax
+        mhgpsst%attempted_connections =&
+             f_malloc([3,runObj%atoms%astruct%nat,2,mhgpsst%nattemptedmax],id='mhgpsst%attempted_connections')
+        do iatt=1,mhgpsst%nattempted
+            do iat=1,runObj%atoms%astruct%nat
+            read(u,*)mhgpsst%attempted_connections(1,iat,1,iatt),&
+                     mhgpsst%attempted_connections(2,iat,1,iatt),&
+                     mhgpsst%attempted_connections(3,iat,1,iatt)
+            enddo
+            do iat=1,runObj%atoms%astruct%nat
+            read(u,*)mhgpsst%attempted_connections(1,iat,2,iatt),&
+                     mhgpsst%attempted_connections(2,iat,2,iatt),&
+                     mhgpsst%attempted_connections(3,iat,2,iatt)
+            enddo
+        enddo
         close(u)
     else
         mhgpsst%ifolder=1
         mhgpsst%isad=0
         mhgpsst%isadprob=0
         mhgpsst%ntodo=0
+        mhgpsst%nsad=0
         mhgpsst%nrestart=0
+        mhgpsst%nattempted=0
+        mhgpsst%nattemptedmax=1000
+        mhgpsst%attempted_connections =&
+             f_malloc([3,runObj%atoms%astruct%nat,2,mhgpsst%nattemptedmax],id='mhgpsst%attempted_connections')
     endif
 end subroutine read_restart
 !=====================================================================
@@ -100,12 +124,27 @@ subroutine write_restart(mhgpsst,runObj,cobj)
     type(connect_object), optional, intent(in) :: cobj
     !local
     integer :: u
+    integer :: iatt, iat
     u=f_get_free_unit()
     open(unit=u,file='restart')
     write(u,*)mhgpsst%ifolder
     write(u,*)mhgpsst%isad,mhgpsst%isadprob
+    write(u,*)mhgpsst%nsad
     write(u,*)mhgpsst%ntodo
     write(u,*)mhgpsst%nrestart
+    write(u,*)mhgpsst%nattempted, mhgpsst%nattemptedmax
+    do iatt=1,mhgpsst%nattempted
+        do iat=1,runObj%atoms%astruct%nat
+        write(u,'(3(1x,es24.17))')mhgpsst%attempted_connections(1,iat,1,iatt),&
+                                mhgpsst%attempted_connections(2,iat,1,iatt),&
+                                mhgpsst%attempted_connections(3,iat,1,iatt)
+        enddo
+        do iat=1,runObj%atoms%astruct%nat
+        write(u,'(3(1x,es24.17))')mhgpsst%attempted_connections(1,iat,2,iatt),&
+                                mhgpsst%attempted_connections(2,iat,2,iatt),&
+                                mhgpsst%attempted_connections(3,iat,2,iatt)
+        enddo
+    enddo
     close(u)
     
     call write_jobs(mhgpsst,runObj,cobj)
@@ -126,32 +165,48 @@ subroutine write_jobs(mhgpsst,runObj,cobj)
     integer :: ijob, u, ntodo
     character(len=1) :: comment
     character(len=21)  :: filenameR, filenameL
+    logical :: lw
     comment = ' ' 
+    
+    lw=.false.
 
-    u=f_get_free_unit()
-    open(unit=u,file=trim(adjustl(mhgpsst%currdir))//'/job_list_restart')
+    if(mhgpsst%ijob+1<=mhgpsst%njobs) lw=.true.
     if(present(cobj))then
-        do ijob=cobj%ntodo,1,-1
-            !write files
-            write(filenameR,'(a,i5.5,a,i5.5,a)')'restart_',&
-                                        mhgpsst%nrestart,'_',ijob,'_R'
-            call astruct_dump_to_file(bigdft_get_astruct_ptr(runObj),&
-                 trim(adjustl(mhgpsst%currDir))//'/'//trim(filenameR),&
-                 comment,rxyz=cobj%todorxyz(1,1,2,ijob))
-            write(filenameL,'(a,i5.5,a,i5.5,a)')'restart_',&
-                                        mhgpsst%nrestart,'_',ijob,'_L'
-            call astruct_dump_to_file(bigdft_get_astruct_ptr(runObj),&
-                 trim(adjustl(mhgpsst%currDir))//'/'//trim(filenameL),&
-                 comment,rxyz=cobj%todorxyz(1,1,1,ijob))
-            !write job file
-            write(u,'(a,1x,a)')trim(adjustl(filenameL)),trim(adjustl(filenameR))
-        enddo
+        if(cobj%ntodo>=1) lw=.true.
     endif
-    do ijob=mhgpsst%ijob+1,mhgpsst%njobs
-        write(u,'(a,1x,a)')trim(adjustl(mhgpsst%joblist(1,ijob)(10:))),&
-                           trim(adjustl(mhgpsst%joblist(2,ijob)(10:)))
-    enddo
-    close(u)
+    if(lw)then
+        u=f_get_free_unit()
+        open(unit=u,file=trim(adjustl(mhgpsst%currdir))//'/job_list_restart')
+            if(present(cobj))then
+                do ijob=cobj%ntodo,1,-1
+                    !write files
+                    write(filenameR,'(a,i5.5,a,i5.5,a)')'restart_',&
+                          mhgpsst%nrestart,'_',ijob,'_R'
+                    call astruct_dump_to_file(bigdft_get_astruct_ptr(runObj),&
+                         trim(adjustl(mhgpsst%currDir))//'/'//trim(filenameR),&
+                         comment,rxyz=cobj%todorxyz(1,1,2,ijob))
+                    write(filenameL,'(a,i5.5,a,i5.5,a)')'restart_',&
+                          mhgpsst%nrestart,'_',ijob,'_L'
+                    call astruct_dump_to_file(bigdft_get_astruct_ptr(runObj),&
+                         trim(adjustl(mhgpsst%currDir))//'/'//trim(filenameL),&
+                         comment,rxyz=cobj%todorxyz(1,1,1,ijob))
+                    !write job file
+                    write(u,'(a,1x,a)')trim(adjustl(filenameL)),trim(adjustl(filenameR))
+                enddo
+                do ijob=mhgpsst%ijob+1,mhgpsst%njobs
+                    write(u,'(a,1x,a)')trim(adjustl(mhgpsst%joblist(1,ijob)(10:))),&
+                                       trim(adjustl(mhgpsst%joblist(2,ijob)(10:)))
+                enddo
+            else
+                do ijob=mhgpsst%ijob+1,mhgpsst%njobs
+                    if(trim(adjustl(mhgpsst%joblist(1,ijob)(10:16)))/='restart')then
+                    write(u,'(a,1x,a)')trim(adjustl(mhgpsst%joblist(1,ijob)(10:))),&
+                                       trim(adjustl(mhgpsst%joblist(2,ijob)(10:)))
+                    endif
+                enddo
+            endif
+        close(u)
+    endif
      
 end subroutine write_jobs
 !=====================================================================

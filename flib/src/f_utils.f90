@@ -55,7 +55,7 @@ module f_utils
 
   !> Initialize to zero an array (should be called f_memset)
   interface f_zero
-     module procedure zero_string
+     module procedure zero_string,zero_li,zero_i,zero_r,zero_d,zero_l
      module procedure put_to_zero_simple
      module procedure put_to_zero_double, put_to_zero_double_1, put_to_zero_double_2
      module procedure put_to_zero_double_3, put_to_zero_double_4, put_to_zero_double_5
@@ -64,6 +64,13 @@ module f_utils
      module procedure put_to_zero_integer3
   end interface f_zero
 
+  !to be verified if clock_gettime is without side-effect, otherwise the routine cannot be pure
+  interface
+     pure subroutine nanosec(itime)
+       implicit none
+       integer(kind=8), intent(out) :: itime
+     end subroutine nanosec
+  end interface
 
   interface operator(==)
      module procedure enum_is_int,enum_is_enum
@@ -79,9 +86,9 @@ module f_utils
 
   public :: f_diff,int,char,f_enumerator_null,operator(==),f_file_unit
   public :: f_utils_errors,f_utils_recl,f_file_exists,f_close,f_zero
-  public :: f_get_free_unit,f_delete_file,f_getpid,f_rewind
+  public :: f_get_free_unit,f_delete_file,f_getpid,f_rewind,f_open_file
   public :: f_iostream_from_file,f_iostream_from_lstring
-  public :: f_iostream_get_line,f_iostream_release,f_pause
+  public :: f_iostream_get_line,f_iostream_release,f_time,f_pause
 
 contains
 
@@ -137,6 +144,42 @@ contains
          err_action='Check if you have correct file system permission in i/o library or check the fortan runtime library')
 
   end subroutine f_utils_errors
+
+  pure function f_time()
+    integer(kind=8) :: f_time
+    !local variables
+    integer(kind=8) :: itime
+    call nanosec(itime)
+    f_time=itime
+  end function f_time
+
+  !>enter in a infinite loop for sec seconds. Use cpu_time as granularity is enough
+  subroutine f_pause(sec,verbose)
+    implicit none
+    integer, intent(in) :: sec !< seconds to be waited
+    logical, intent(in), optional :: verbose !<for debugging purposes, do not eliminate
+    !local variables
+    logical :: verb
+    integer(kind=8) :: t0,t1
+    integer :: count
+
+    verb=.false.
+    if (present(verbose)) verb=verbose
+
+    if (sec <=0) return
+    t0=f_time()
+    t1=t0
+    !this loop has to be modified to avoid the compiler to perform too agressive optimisations
+    count=0
+    do while(real(t1-t0,kind=8)*1.d-9 < real(sec,kind=8))
+       count=count+1
+       t1=f_time()
+    end do
+    !this output is needed to avoid the compiler to perform too agressive optimizations
+    !therefore having a infinie loop
+    if (verb) print *,'Paused for '//trim(yaml_toa(sec))//' seconds, counting:'//&
+         trim(yaml_toa(count))
+  end subroutine f_pause
 
   !> gives the maximum record length allowed for a given unit
   subroutine f_utils_recl(unt,recl_max,recl)
@@ -242,7 +285,6 @@ contains
     unt=7
     if (present(unit)) unt=unit
     do while(unit_is_open)
-       unt=unt+1
        inquire(unit=unt,opened=unit_is_open,iostat=ierr)
        if (ierr /=0) then
           call f_err_throw('Error in inquiring unit='//&
@@ -250,6 +292,7 @@ contains
                err_id=INPUT_OUTPUT_ERROR)
           exit
        end if
+       unt=unt+1
     end do
     unt2=unt
   end function f_get_free_unit
@@ -300,6 +343,64 @@ contains
          err_id=INPUT_OUTPUT_ERROR)
     
   end subroutine f_rewind
+  
+  !> open a filename and retrieve the unteger for the unit
+  subroutine f_open_file(unit,file,status,position,binary)
+    use yaml_strings, only: f_strcpy
+    implicit none
+    !> integer of the unit. On entry, it indicates the 
+    !! suggested unit number. On exit, it indicates the free unit
+    !! which has been used for the file opening
+    integer, intent(inout) :: unit
+    !> filename
+    character(len=*), intent(in) :: file
+    !> status
+    character(len=*), intent(in), optional :: status
+    !> position
+    character(len=*), intent(in), optional :: position
+    !> if true, the file will be opened in the unformatted i/o
+    !! if false or absent, the file will be opened for formatted i/o
+    logical, intent(in), optional :: binary
+    !local variables
+    integer :: unt,ierror
+    character(len=7) :: f_status
+    character(len=11) :: f_form
+    character(len=6) :: f_position
+
+    !first, determine if the file is already opened.
+    call f_file_unit(file,unt)
+    if (unt /= -1) then
+       unit=unt
+    else
+       !find the first free unit
+       unt=f_get_free_unit(unit)
+
+       !useful open specifiers
+       call f_strcpy(src='unknown',dest=f_status)
+       if (present(status)) call f_strcpy(src=status,dest=f_status)
+
+       call f_strcpy(src='formatted',dest=f_form)
+       if (present(binary)) then
+          if (binary) call f_strcpy(src='unformatted',dest=f_form)
+       end if
+
+       call f_strcpy(src='asis',dest=f_position)
+       if (present(position)) call f_strcpy(src=position,dest=f_position)
+
+       !then open the file with the given unit
+       open(unit=unt,file=trim(file),status=f_status,form=f_form,&
+            position=f_position,iostat=ierror)
+       if (ierror /= 0) then
+          call f_err_throw('Error in opening file='//&
+               trim(file)//' iostat='//trim(yaml_toa(ierror)),&
+               err_id=INPUT_OUTPUT_ERROR)
+       else
+          !when everything succeded, assign the unit
+          unit=unt
+       end if
+    end if
+
+  end subroutine f_open_file
 
   subroutine f_iostream_from_file(ios, filename)
     implicit none
@@ -369,21 +470,6 @@ contains
     ios%iunit = 0
     nullify(ios%lstring)
   end subroutine f_iostream_release
-
-  !>enter in a infinite loop for sec seconds. Use cpu_time as granularity is enough
-  subroutine f_pause(sec)
-    implicit none
-    integer, intent(in) :: sec !< seconds to be waited
-    !local variables
-    real :: t0,t1
-
-    call cpu_time(t0)
-    t1=t0
-    if (t0 < 0.e0) return ! no-clock case, according to specification
-    do while(nint(t1-t0) < sec)
-       call cpu_time(t1)
-    end do
-  end subroutine f_pause
 
   !>perform a difference of two objects (of similar kind)
   subroutine f_diff_i(n,a_add,b_add,diff)
@@ -602,6 +688,36 @@ contains
     character(len=*), intent(out) :: str
     call f_strcpy(src=' ',dest=str)
   end subroutine zero_string
+
+  subroutine zero_li(val)
+    implicit none
+    integer(kind=8), intent(out) :: val
+    val=int(0,kind=8)
+  end subroutine zero_li
+
+  subroutine zero_i(val)
+    implicit none
+    integer, intent(out) :: val
+    val=0
+  end subroutine zero_i
+
+  subroutine zero_r(val)
+    implicit none
+    real, intent(out) :: val
+    val=0.e0
+  end subroutine zero_r
+
+  subroutine zero_d(val)
+    implicit none
+    double precision, intent(out) :: val
+    val=0.d0
+  end subroutine zero_d
+
+  subroutine zero_l(val)
+    implicit none
+    logical, intent(out) :: val
+    val=.false.
+  end subroutine zero_l
 
   subroutine put_to_zero_simple(n,da)
     implicit none

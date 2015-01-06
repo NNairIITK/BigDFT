@@ -16,6 +16,7 @@ module dynamic_memory
   use yaml_strings, only: yaml_toa,yaml_date_and_time_toa
   use module_f_malloc
   use yaml_parse, only: yaml_a_todict
+  use f_utils, only: f_time
   implicit none
 
   private 
@@ -95,6 +96,7 @@ module dynamic_memory
 
   interface assignment(=)
      module procedure i1_all,i2_all,i3_all,i4_all
+!     module procedure il1_all, il2_all
      module procedure l1_all,l2_all,l3_all
      module procedure d1_all,d2_all,d3_all,d4_all,d5_all,d6_all,d7_all
      module procedure r1_all,r2_all,r3_all
@@ -111,6 +113,7 @@ module dynamic_memory
 
   interface f_free
      module procedure i1_all_free,i2_all_free,i3_all_free,i4_all_free
+!     module procedure il1_all_free, il2_all_free
      module procedure i1_all_free_multi
      module procedure l1_all_free,l2_all_free,l3_all_free
      module procedure d1_all_free,d2_all_free,d1_all_free_multi,d3_all_free,d4_all_free,d5_all_free,d6_all_free,d7_all_free
@@ -129,10 +132,12 @@ module dynamic_memory
 
   interface f_memcpy
      module procedure f_memcpy_i0,f_memcpy_i1
+     module procedure f_memcpy_il1
      module procedure f_memcpy_i1i2,f_memcpy_i2i1
      module procedure f_memcpy_r0
      module procedure f_memcpy_d0,f_memcpy_d1,f_memcpy_d2,f_memcpy_d0d1
-     module procedure f_memcpy_d1d2,f_memcpy_d2d1,f_memcpy_d2d3,f_memcpy_d3,f_memcpy_d4
+     module procedure f_memcpy_d1d2,f_memcpy_d2d1,f_memcpy_d2d3,f_memcpy_d3,f_memcpy_d4,f_memcpy_d1d0
+     module procedure f_memcpy_d0d3,f_memcpy_d0d2
      module procedure f_memcpy_l0,f_memcpy_c1i1,f_memcpy_i1c1
      module procedure f_memcpy_li0,f_memcpy_li0li1,f_memcpy_i0i1
   end interface f_memcpy
@@ -147,20 +152,12 @@ module dynamic_memory
      module procedure f_maxdiff_c1i1,f_maxdiff_li0li1
   end interface f_maxdiff
 
-  !to be verified if clock_gettime is without side-effect, otherwise the routine cannot be pure
-  interface
-     pure subroutine nanosec(itime)
-       implicit none
-       integer(kind=8), intent(out) :: itime
-     end subroutine nanosec
-  end interface
-
   !> Public routines
   public :: f_malloc,f_malloc0,f_malloc_ptr,f_malloc0_ptr,f_malloc_dump_status
   public :: f_malloc_str,f_malloc0_str,f_malloc_str_ptr,f_malloc0_str_ptr
   public :: f_free,f_free_ptr,f_free_str,f_free_str_ptr
   public :: f_routine,f_release_routine,f_malloc_set_status,f_malloc_initialize,f_malloc_finalize
-  public :: f_time,f_memcpy,f_maxdiff
+  public :: f_memcpy,f_maxdiff
   !reference counters
   public :: f_ref_new,f_ref_null,f_unref,f_ref_free,f_ref_associate
   public :: nullify_f_ref,f_ref,f_ref_count,f_update_database,f_purge_database
@@ -170,14 +167,6 @@ module dynamic_memory
   public :: dynamic_memory_errors
 
 contains
-
-  pure function f_time()
-    integer(kind=8) :: f_time
-    !local variables
-    integer(kind=8) :: itime
-    call nanosec(itime)
-    f_time=itime
-  end function f_time
 
   pure function mem_ctrl_null() result(mem)
     type(mem_ctrl) :: mem
@@ -1237,9 +1226,12 @@ contains
        end if
 
        if (base_time > 0.d0) then
+!!$          call f_strcpy(src=trim(yaml_toa(time(jkey)/base_time*100.d0,fmt='(f6.2)'))//'%'//extra,&
+!!$               dest=percent)
           percent(1:len(percent))=&
                trim(yaml_toa(time(jkey)/base_time*100.d0,fmt='(f6.2)'))//'%'//extra
        else
+!!$          call f_strcpy(src='~'//extra,dest=percent)
           percent(1:len(percent))='~'//extra
        end if
        call add(dict_pt,dict_new(trim(keys(jkey)) .is. &

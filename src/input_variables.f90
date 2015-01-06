@@ -135,6 +135,7 @@ subroutine inputs_from_dict(in, atoms, dict)
        & HGRIDS, RMULT, PROJRAD, IXC, PERF_VARIABLES
   use module_input_dicts
   use dynamic_memory
+  use f_utils, only: f_zero
   use module_xc
   use input_old_text_format, only: dict_from_frag
   use module_atoms, only: atoms_data,atoms_data_null,atomic_data_set_from_dict,check_atoms_positions
@@ -151,7 +152,8 @@ subroutine inputs_from_dict(in, atoms, dict)
   !Local variables
   !type(dictionary), pointer :: profs, dict_frag
   logical :: found, userdef
-  integer :: ierr, nelec_up, nelec_down, norb_max, jtype, jxc
+  integer :: ierr, norb_max, jtype, jxc
+  real(gp) :: qelec_up, qelec_down
   character(len = max_field_length) :: msg,filename,run_id,input_id,posinp_id,outdir
 !  type(f_dict) :: dict
   type(dictionary), pointer :: dict_minimal, var, lvl, types
@@ -228,6 +230,8 @@ subroutine inputs_from_dict(in, atoms, dict)
   end do
 
   ! Generate the dir_output
+  !outdir has to be initialized
+  call f_zero(outdir)
   call bigdft_get_run_properties(dict, naming_id = run_id, posinp_id = posinp_id, input_id = input_id, outdir_id = outdir)
   call f_strcpy(dest = in%dir_output, src = trim(outdir) // "data" // trim(run_id))
 
@@ -294,12 +298,11 @@ subroutine inputs_from_dict(in, atoms, dict)
   atoms%mp_isf = in%mp_isf
 
   ! Generate orbital occupation
-  call read_n_orbitals(bigdft_mpi%iproc, nelec_up, nelec_down, norb_max, atoms, &
-       & in%ncharge, in%nspin, in%mpol, in%norbsempty)
-  if (norb_max == 0) norb_max = nelec_up + nelec_down ! electron gas case
+  call read_n_orbitals(bigdft_mpi%iproc, qelec_up, qelec_down, norb_max, atoms, &
+       in%qcharge, in%nspin, in%mpol, in%norbsempty)
   call occupation_set_from_dict(dict, OCCUPATION, &
-       & in%gen_norbu, in%gen_norbd, in%gen_occup, &
-       & in%gen_nkpt, in%nspin, in%norbsempty, nelec_up, nelec_down, norb_max)
+       in%gen_norbu, in%gen_norbd, in%gen_occup, &
+       in%gen_nkpt, in%nspin, in%norbsempty, qelec_up, qelec_down, norb_max)
   in%gen_norb = in%gen_norbu + in%gen_norbd
 
   ! Complement PAW initialisation.

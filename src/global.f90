@@ -68,6 +68,8 @@ program MINHOP
   type(dictionary), pointer :: options,run
   integer:: nposacc=0
   logical:: disable_hatrans
+  integer, save :: idum=0
+  real(kind=4) :: builtin_rand, rtmp
 
   call f_lib_initialize()
 
@@ -177,9 +179,12 @@ program MINHOP
   read(11,*) nrandoff
   !        write(*,*) 'nrandoff ',nrandoff
   close(11)
+  idum=nrandoff
   do i=1,nrandoff
      call random_number(ts)
+     rtmp = builtin_rand(idum)
   enddo
+  if(bigdft_mpi%iproc == 0)call yaml_map('(MH) First random number',rtmp)
 
   inquire(file='disable_hatrans',exist=disable_hatrans)
   
@@ -535,7 +540,7 @@ program MINHOP
   !call run_objects_associate(runObj, inputs_md, atoms, rst, pos(1,1))
   call bigdft_set_rxyz(run_md,rxyz=pos) !one could write here also rxyz=bigdft_get_rxyz_ptr(run_opt)
   escape=escape+1.d0
-  call mdescape(nsoften,mdmin,ekinetic,gg,vxyz,dt,count_md, run_md, outs, &
+  call mdescape(idum,nsoften,mdmin,ekinetic,gg,vxyz,dt,count_md, run_md, outs, &
                 ngeopt,bigdft_mpi%iproc)
   if (bigdft_mpi%iproc == 0) then 
      tt=dnrm2(3*outs%fdim,outs%fxyz,1)
@@ -864,7 +869,7 @@ end do hopping_loop
 !!$  call free_input_variables(inputs_md)
 !!$  call free_input_variables(inputs_opt)
 
-!  if (iproc==0) write(*,*) 'quit 5'
+!  if (iproc==0)idum, write(*,*) 'quit 5'
   call bigdft_finalize(ierr)
 
 !  if (iproc==0) write(*,*) 'quit 6'
@@ -875,7 +880,7 @@ contains
 
 
   !> Does a MD run with the atomic positions rxyz
-  subroutine mdescape(nsoften,mdmin,ekinetic,gg,vxyz,dt,count_md, &
+  subroutine mdescape(idum,nsoften,mdmin,ekinetic,gg,vxyz,dt,count_md, &
        runObj,outs,ngeopt,iproc)!  &
     use module_base
     use module_types
@@ -883,6 +888,7 @@ contains
     use m_ab6_symmetry
     implicit none !real*8 (a-h,o-z)
     integer :: nsoften,mdmin,ngeopt,iproc
+    integer, intent(inout) :: idum
     real(kind=8) :: ekinetic,dt,count_md
     type(run_objects), intent(inout) :: runObj
     type(state_properties), intent(inout) :: outs
@@ -908,7 +914,7 @@ contains
   !        call expdist(nat,rxyz,vxyz)
   !! or localized velocities
   !        call localdist(nat,rxyz,vxyz)
-    call randdist(natoms,bigdft_get_geocode(runObj),rxyz_run,vxyz)
+    call randdist(idum,natoms,bigdft_get_geocode(runObj),rxyz_run,vxyz)
 
     !!! Put to zero the velocities for all boron atoms
     !!do iat=1,natoms
@@ -1333,16 +1339,17 @@ END SUBROUTINE velnorm
 
 
 !> create a random displacement vector without translational and angular moment
-subroutine randdist(nat,geocode,rxyz,vxyz)
+subroutine randdist(idum,nat,geocode,rxyz,vxyz)
   use BigDFT_API !,only: gp !module_base
   use yaml_output
   implicit none
   integer, intent(in) :: nat
+  integer, intent(inout) :: idum
   real(gp), dimension(3*nat), intent(in) :: rxyz
   real(gp), dimension(3*nat), intent(out) :: vxyz
   character(len=1) :: geocode
   !local variables
-  integer :: i,idum=0
+  integer :: i
   real(kind=4) :: tt,builtin_rand
   do i=1,3*nat
      !call random_number(tt)

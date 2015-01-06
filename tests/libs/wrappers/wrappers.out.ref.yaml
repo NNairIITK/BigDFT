@@ -54,7 +54,7 @@
    itermax                             : 4 #      Max. iterations of wfn. opt. steps
    disablesym                          : No #     Disable the symmetry detection
    rmult: [5., 8.] #                              c(f)rmult*radii_cf(:,1(2))=coarse(fine) atom-based radius
-   ncharge                             : 0 #      Charge of the system
+   qcharge                             : 0 #      Charge of the system
    elecfield: [0., 0., 0.] #                      Electric field (Ex,Ey,Ez)
    mpol                                : 0 #      Total magnetic moment
    gnrm_cv                             : 1.e-4 #  convergence criterion gradient

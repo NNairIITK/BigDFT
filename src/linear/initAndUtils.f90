@@ -590,7 +590,8 @@ end subroutine create_LzdLIG
 
 
 
-subroutine init_orbitals_data_for_linear(iproc, nproc, nspinor, input, astruct, rxyz, lorbs)
+subroutine init_orbitals_data_for_linear(iproc, nproc, nspinor, input, astruct, rxyz, lorbs, &
+           norb_par_ref, norbu_par_ref, norbd_par_ref)
   use module_base
   use module_types
   use module_interfaces, except_this_one => init_orbitals_data_for_linear
@@ -602,18 +603,37 @@ subroutine init_orbitals_data_for_linear(iproc, nproc, nspinor, input, astruct, 
   type(atomic_structure), intent(in) :: astruct
   real(kind=8),dimension(3,astruct%nat), intent(in) :: rxyz
   type(orbitals_data), intent(out) :: lorbs
+  integer,dimension(0:nproc-1),intent(in),optional :: norb_par_ref, norbu_par_ref, norbd_par_ref
   
   ! Local variables
   integer :: norb, norbu, norbd, ityp, iat, ilr, iorb, nlr, iiat, ispin
   integer, dimension(:), allocatable :: norbsPerLocreg, norbsPerAtom
   real(kind=8),dimension(:,:), allocatable :: locregCenter
   character(len=*), parameter :: subname='init_orbitals_data_for_linear'
+  logical :: with_optional
+  logical,dimension(3) :: optional_present
 
   call timing(iproc,'init_orbs_lin ','ON')
 
   call f_routine(id='init_orbitals_data_for_linear')
+
+  ! Check the arguments
+  optional_present(1) = present(norb_par_ref)
+  optional_present(2) = present(norbu_par_ref)
+  optional_present(3) = present(norbd_par_ref)
+  if (any(optional_present)) then
+      if (all(optional_present)) then
+          with_optional = .true.
+      else
+          stop 'init_orbitals_data_for_linear: not all optional arguments present'
+      end if
+  else
+          with_optional = .false.
+  end if
+
   
   call nullify_orbitals_data(lorbs)
+
  
   ! Count the number of basis functions.
   norbsPerAtom = f_malloc(astruct%nat*input%nspin,id='norbsPerAtom')
@@ -644,8 +664,14 @@ subroutine init_orbitals_data_for_linear(iproc, nproc, nspinor, input, astruct, 
 
  
   ! Distribute the basis functions among the processors.
-  call orbitals_descriptors(iproc, nproc, norb, norbu, norbd, input%nspin, nspinor,&
-       input%gen_nkpt, input%gen_kpt, input%gen_wkpt, lorbs,.true.) !simple repartition
+  if (with_optional) then
+      call orbitals_descriptors(iproc, nproc, norb, norbu, norbd, input%nspin, nspinor,&
+           input%gen_nkpt, input%gen_kpt, input%gen_wkpt, lorbs,LINEAR_PARTITION_OPTIMAL,&
+           norb_par_ref, norbu_par_ref, norbd_par_ref)
+  else
+      call orbitals_descriptors(iproc, nproc, norb, norbu, norbd, input%nspin, nspinor,&
+           input%gen_nkpt, input%gen_kpt, input%gen_wkpt, lorbs,LINEAR_PARTITION_SIMPLE) !simple repartition
+   end if
 
   locregCenter = f_malloc((/ 3, nlr /),id='locregCenter')
 
@@ -985,10 +1011,16 @@ subroutine destroy_DFT_wavefunction(wfn)
 !  call f_routine(id=subname)
 
   call f_free_ptr(wfn%psi)
+  call f_free_ptr(wfn%hpsi)
+  call f_free_ptr(wfn%psit)
   call f_free_ptr(wfn%psit_c)
   call f_free_ptr(wfn%psit_f)
+  call f_free_ptr(wfn%ham_descr%psi)
+  call f_free_ptr(wfn%ham_descr%psit_c)
+  call f_free_ptr(wfn%ham_descr%psit_f)
 
   call deallocate_p2pComms(wfn%comgp)
+  call deallocate_p2pComms(wfn%ham_descr%comgp)
   if (associated(wfn%linmat%ks)) then
       do ispin=1,wfn%linmat%l%nspin
           call deallocate_sparse_matrix(wfn%linmat%ks(ispin))
@@ -1012,8 +1044,10 @@ subroutine destroy_DFT_wavefunction(wfn)
   end do
   call deallocate_orbitals_data(wfn%orbs)
   call deallocate_comms_linear(wfn%collcom)
+  call deallocate_comms_linear(wfn%ham_descr%collcom)
   call deallocate_comms_linear(wfn%collcom_sr)
   call deallocate_local_zone_descriptors(wfn%lzd)
+  call deallocate_local_zone_descriptors(wfn%ham_descr%lzd)
   call foe_data_deallocate(wfn%foe_obj)
 
   call f_free_ptr(wfn%coeff)
@@ -1116,7 +1150,7 @@ subroutine create_large_tmbs(iproc, nproc, KSwfn, tmb, denspot,nlpsp,input, at, 
       locregCenter(:,ilr)=tmb%lzd%llr(ilr)%locregCenter
   end do
   do ilr=1,tmb%lzd%nlr
-      locrad_tmp(ilr,1)=tmb%lzd%llr(ilr)%locrad+8.d0*tmb%lzd%hgrids(1)
+      locrad_tmp(ilr,1)=tmb%lzd%llr(ilr)%locrad+real(input%hamapp_radius_incr,kind=8)*tmb%lzd%hgrids(1)
       locrad_tmp(ilr,2)=tmb%lzd%llr(ilr)%locrad_kernel
       locrad_tmp(ilr,3)=tmb%lzd%llr(ilr)%locrad_mult
   end do
@@ -1281,7 +1315,8 @@ subroutine adjust_locregs_and_confinement(iproc, nproc, hx, hy, hz, at, input, &
   use communications_base, only: deallocate_comms_linear, deallocate_p2pComms
   use communications, only: synchronize_onesided_communication
   use sparsematrix_base, only: sparse_matrix_null, deallocate_sparse_matrix, allocate_matrices, deallocate_matrices
-  use sparsematrix_init, only: init_sparse_matrix, check_kernel_cutoff, init_matrix_taskgroups
+  use sparsematrix_init, only: init_sparse_matrix, check_kernel_cutoff, init_matrix_taskgroups, &
+                               check_local_matrix_extents
   use foe_base, only: foe_data_deallocate
   implicit none
   
@@ -1305,6 +1340,7 @@ subroutine adjust_locregs_and_confinement(iproc, nproc, hx, hy, hz, at, input, &
   real(kind=8),dimension(:), allocatable :: lphilarge, locrad_kernel, locrad_mult
   type(local_zone_descriptors) :: lzd_tmp
   character(len=*), parameter :: subname='adjust_locregs_and_confinement'
+  integer,dimension(2) :: irow, icol, iirow, iicol
 
   call f_routine(id='adjust_locregs_and_confinement')
 
@@ -1442,7 +1478,7 @@ subroutine adjust_locregs_and_confinement(iproc, nproc, hx, hy, hz, at, input, &
      tmb%ham_descr%psit_f = f_malloc_ptr(7*tmb%ham_descr%collcom%ndimind_f,id='tmb%ham_descr%psit_f')
 
      ! check the extent of the kernel cutoff (must be at least shamop radius)
-     call check_kernel_cutoff(iproc, tmb%orbs, at, tmb%lzd)
+     call check_kernel_cutoff(iproc, tmb%orbs, at, input%hamapp_radius_incr, tmb%lzd)
 
      ! Update sparse matrices
      call init_sparse_matrix_wrapper(iproc, nproc, input%nspin, tmb%orbs, tmb%ham_descr%lzd, at%astruct, &
@@ -1463,7 +1499,7 @@ subroutine adjust_locregs_and_confinement(iproc, nproc, hx, hy, hz, at, input, &
      call init_matrixindex_in_compressed_fortransposed(iproc, nproc, tmb%orbs, &
           tmb%collcom, tmb%ham_descr%collcom, tmb%collcom_sr, tmb%linmat%s)
 
-     call check_kernel_cutoff(iproc, tmb%orbs, at, tmb%lzd)
+     call check_kernel_cutoff(iproc, tmb%orbs, at, input%hamapp_radius_incr, tmb%lzd)
      call init_sparse_matrix_wrapper(iproc, nproc, input%nspin, tmb%orbs, tmb%lzd, at%astruct, &
           input%store_index, imode=2, smat=tmb%linmat%l)
      call allocate_matrices(tmb%linmat%l, allocate_full=.false., &
@@ -1480,12 +1516,32 @@ subroutine adjust_locregs_and_confinement(iproc, nproc, hx, hy, hz, at, input, &
      !tmb%linmat%inv_ovrlp_large=sparse_matrix_null()
      !call sparse_copy_pattern(tmb%linmat%l, tmb%linmat%inv_ovrlp_large, iproc, subname)
 
+     iirow(1) = tmb%linmat%s%nfvctr
+     iirow(2) = 1
+     iicol(1) = tmb%linmat%s%nfvctr
+     iicol(2) = 1
+     call check_local_matrix_extents(iproc, nproc, tmb%collcom, tmb%collcom_sr, tmb%linmat%s, irow, icol)
+     iirow(1) = min(irow(1),iirow(1))
+     iirow(2) = max(irow(2),iirow(2))
+     iicol(1) = min(icol(1),iicol(1))
+     iicol(2) = max(icol(2),iicol(2))
+     call check_local_matrix_extents(iproc, nproc, tmb%ham_descr%collcom, tmb%collcom_sr, tmb%linmat%m, irow, icol)
+     iirow(1) = min(irow(1),iirow(1))
+     iirow(2) = max(irow(2),iirow(2))
+     iicol(1) = min(icol(1),iicol(1))
+     iicol(2) = max(icol(2),iicol(2))
+     call check_local_matrix_extents(iproc, nproc, tmb%ham_descr%collcom, tmb%collcom_sr, tmb%linmat%l, irow, icol)
+     iirow(1) = min(irow(1),iirow(1))
+     iirow(2) = max(irow(2),iirow(2))
+     iicol(1) = min(icol(1),iicol(1))
+     iicol(2) = max(icol(2),iicol(2))
+
      call init_matrix_taskgroups(iproc, nproc, input%enable_matrix_taskgroups, &
-          tmb%collcom, tmb%collcom_sr, tmb%linmat%s)
+          tmb%collcom, tmb%collcom_sr, tmb%linmat%s, iirow, iicol)
      call init_matrix_taskgroups(iproc, nproc, input%enable_matrix_taskgroups, &
-          tmb%ham_descr%collcom, tmb%collcom_sr, tmb%linmat%m)
+          tmb%ham_descr%collcom, tmb%collcom_sr, tmb%linmat%m, iirow, iicol)
      call init_matrix_taskgroups(iproc, nproc, input%enable_matrix_taskgroups, &
-          tmb%ham_descr%collcom, tmb%collcom_sr, tmb%linmat%l)
+          tmb%ham_descr%collcom, tmb%collcom_sr, tmb%linmat%l, iirow, iicol)
 
 
      nullify(tmb%linmat%ks)
@@ -1567,19 +1623,21 @@ end subroutine check_whether_lowaccuracy_converged
 
 
 
-subroutine set_variables_for_hybrid(nlr, input, at, orbs, lowaccur_converged, confdatarr, &
+subroutine set_variables_for_hybrid(iproc, nlr, input, at, orbs, lowaccur_converged, damping_factor, confdatarr, &
            target_function, nit_basis, nit_scc, mix_hist, locrad, alpha_mix, convCritMix, &
            conv_crit_TMB)
   use module_base
   use module_types
+  use yaml_output
   implicit none
 
   ! Calling arguments
-  integer, intent(in) :: nlr
+  integer, intent(in) :: iproc, nlr
   type(input_variables), intent(in) :: input
   type(atoms_data), intent(in) :: at
   type(orbitals_data), intent(in) :: orbs
   logical,intent(out) :: lowaccur_converged
+  real(kind=8),intent(in) :: damping_factor
   type(confpot_data),dimension(orbs%norbp), intent(inout) :: confdatarr
   integer, intent(out) :: target_function, nit_basis, nit_scc, mix_hist
   real(kind=8),dimension(nlr), intent(out) :: locrad
@@ -1588,11 +1646,12 @@ subroutine set_variables_for_hybrid(nlr, input, at, orbs, lowaccur_converged, co
   ! Local variables
   integer :: iorb, ilr, iiat
 
+  !if (iproc==0) call yaml_map('damping factor for the confinement',damping_factor,fmt='(es9.2)')
   lowaccur_converged=.false.
   do iorb=1,orbs%norbp
       ilr=orbs%inwhichlocreg(orbs%isorb+iorb)
       iiat=orbs%onwhichatom(orbs%isorb+iorb)
-      confdatarr(iorb)%prefac=input%lin%potentialPrefac_lowaccuracy(at%astruct%iatype(iiat))
+      confdatarr(iorb)%prefac=input%lin%potentialPrefac_lowaccuracy(at%astruct%iatype(iiat))*damping_factor
   end do
   target_function=TARGET_FUNCTION_IS_HYBRID
   nit_basis=input%lin%nItBasis_lowaccuracy
@@ -1784,7 +1843,7 @@ subroutine determine_sparsity_pattern(iproc, nproc, orbs, lzd, nnonzero, nonzero
             call check_overlap_cubic_periodic(lzd%Glr,lzd%llr(ilr),lzd%llr(jlr),isoverlap)
             if(isoverlap) then
                ! From the viewpoint of the box boundaries, an overlap between ilr and jlr is possible.
-               ! Now explicitely check whether there is an overlap by using the descriptors.
+               ! Now explicitly check whether there is an overlap by using the descriptors.
                call check_overlap_from_descriptors_periodic(lzd%llr(ilr)%wfd%nseg_c, lzd%llr(jlr)%wfd%nseg_c,&
                     lzd%llr(ilr)%wfd%keyglob, lzd%llr(jlr)%wfd%keyglob, &
                     isoverlap, onseg)
@@ -2035,7 +2094,7 @@ subroutine init_sparse_matrix_for_KSorbs(iproc, nproc, orbs, input, nextra, smat
       ! first to calculate a corresponding orbs type.
       call nullify_orbitals_data(orbs_aux)
       call orbitals_descriptors(iproc, nproc, norb+nextra, norb+nextra, 0, input%nspin, orbs%nspinor,&
-           input%gen_nkpt, input%gen_kpt, input%gen_wkpt, orbs_aux, .false.)
+           input%gen_nkpt, input%gen_kpt, input%gen_wkpt, orbs_aux, LINEAR_PARTITION_NONE)
       nonzero = f_malloc((/2,orbs_aux%norbu*orbs_aux%norbup/), id='nonzero')
       !write(*,*) 'iproc, norb, norbp, norbu, norbup', iproc, orbs_aux%norb, orbs_aux%norbp, orbs_aux%norbu, orbs_aux%norbup
       i=0

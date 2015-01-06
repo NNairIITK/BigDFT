@@ -1796,7 +1796,13 @@ contains
     call set(dict // IMETHOD_OVERLAP, dummy_int)
 
     call input_var("enable_matrix_taskgroups", .true., "enable matrix taskgroups", dummy_bool)
-    call set(dict // IMETHOD_OVERLAP, dummy_int)
+    call set(dict // ENABLE_MATRIX_TASKGROUPS, dummy_bool)
+
+    call input_var("hamapp_radius_incr", 8, "radius enlargement for Ham application", dummy_int)
+    call set(dict // HAMAPP_RADIUS_INCR, dummy_int)
+
+    call input_var("adjust_kernel_iterations", .true., "addaptive ajustment of the number of kernel iterations", dummy_bool)
+    call set(dict // ADJUST_KERNEL_ITERATIONS, dummy_bool)
 
     call input_free(.false.)
 

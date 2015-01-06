@@ -37,7 +37,7 @@ subroutine f_dump_all_errors(unit)
   !> if positive, write also the errors in the corresponding stream
   integer, intent(in) :: unit 
   !local variables
-  integer :: ierr,iunit_def
+  integer :: ierr,iunit_def,err_past
   character(len=max_field_length) :: add_msg
 
   !retrieve current unit
@@ -55,9 +55,8 @@ subroutine f_dump_all_errors(unit)
 !!$
 !!$  if (unit > 0 .and. unit /= iunit_def) then
      do ierr=0,f_get_no_of_errors()-1
-        call yaml_dict_dump(&
-             f_get_error_dict(f_get_past_error(ierr,add_msg)),&
-             unit=iunit_def)
+        err_past=f_get_past_error(ierr,add_msg)
+        call yaml_dict_dump(f_get_error_dict(err_past),unit=iunit_def)
         if (trim(add_msg)/= 'UNKNOWN') &
              call yaml_map('Additional Info',add_msg,unit=iunit_def)
      end do
@@ -162,7 +161,6 @@ subroutine f_lib_err_severe_external(message)
   write(0,*)trim(message)
   call f_err_severe()
 end subroutine f_lib_err_severe_external
-
 
 !> Routine which finalize f_lib and dummp the finalization information
 subroutine f_lib_finalize()

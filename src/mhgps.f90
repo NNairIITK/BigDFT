@@ -34,26 +34,28 @@ program mhgps
     use module_minimizers
     use bigdft_run
     implicit none
+    integer                   :: u
     integer                   :: iat
     integer                   :: info
     integer                   :: isame
     integer                   :: nbond
+    integer                   :: nsad
     integer                   :: infocode
     integer                   :: ifolder
     integer                   :: ifolderstart
     integer                   :: ijob
     integer                   :: ierr
     integer                   :: lwork
-    integer                   :: nsad
     integer, allocatable      :: iconnect(:,:)
     logical                   :: connected
+    logical                   :: premature_exit
     character(len=200)        :: filename
     character(len=60)         :: run_id,naming_id
     real(gp), allocatable     :: rcov(:)
     real(8), allocatable      :: work(:)
     real(8)                   :: wd(1)
     character(len=300)        :: comment
-    logical                   :: converged=.false.
+    logical                   :: converged
     type(connect_object)      :: cobj
     type(dictionary), pointer :: options
     type(dictionary), pointer :: run
@@ -83,6 +85,7 @@ program mhgps
     real(gp) :: dnrm2
 
     nbond=1
+    converged = .false.
 
     call f_lib_initialize()
 
@@ -95,14 +98,13 @@ program mhgps
     run => options // 'BigDFT' // 0
 
     !initalize mhgps internal state
+    !(only non-system dependent variables)
     call init_mhgps_state(mhgpsst)
     !read user input file mhgps.inp
     call read_input(uinp)
     !obtain first strucutre (used for initialization of
     !bigdft)
     call get_first_struct_file(mhgpsst,filename)
-    !now read state of previous mhgps run (if present)
-    call read_restart(mhgpsst)
 
     if(mhgpsst%iproc==0) call print_logo_mhgps(mhgpsst)
 
@@ -113,6 +115,10 @@ program mhgps
          posinp_id=trim(adjustl(filename))//trim(naming_id))
 
     call run_objects_init(runObj,run)
+
+    !now read state of previous mhgps run (if present)
+    call read_restart(mhgpsst,runObj)
+
 
     !options and run are not needed
     call dict_free(options)
@@ -193,7 +199,7 @@ program mhgps
     call allocate_connect_object(bigdft_nat(runObj),mhgpsst%nid,uinp%nsadmax,cobj)
 
     iconnect = 0
-    call give_rcov(mhgpsst,bigdft_get_astruct_ptr(runObj),bigdft_nat(runObj),rcov)
+    call give_rcov(mhgpsst%iproc,bigdft_get_astruct_ptr(runObj),bigdft_nat(runObj),rcov)
     !if in biomode, determine bonds betweens atoms once and for all
     !(it isassuemed that all conifugrations over which will be
     !iterated have the same bonds)
@@ -204,12 +210,21 @@ program mhgps
     call allocate_finsad_workarrays(runObj,uinp,nbond,fsw)
 
     ifolderstart=mhgpsst%ifolder
-    do ifolder = ifolderstart,999
+    outer: do ifolder = ifolderstart,999
         mhgpsst%ifolder=ifolder
         write(mhgpsst%currDir,'(a,i3.3)')trim(adjustl(mhgpsst%dirprefix)),ifolder
         call read_jobs(uinp,mhgpsst)
+        if(mhgpsst%njobs==0)cycle
+        mhgpsst%ijob=0
+        if(mhgpsst%iproc==0)then
+           call write_restart(mhgpsst,runObj)
+        endif
 
-        do ijob = 1,mhgpsst%njobs
+        inner: do ijob = 1,mhgpsst%njobs
+           if(uinp%singlestep .and. (ifolder-ifolderstart)*mhgpsst%njobs+ijob > 1)then
+              premature_exit =.true.
+              exit outer
+           endif
            mhgpsst%ijob=ijob
            call bigdft_get_rxyz(filename=&
                 trim(adjustl(mhgpsst%joblist(1,ijob))),rxyz=rxyz)
@@ -253,10 +268,14 @@ program mhgps
               runObj%inputs%inputPsiId=0
               call mhgpsenergyandforces(mhgpsst,runObj,outs,rxyz2,&
                                         fat,fnoise,energy2,infocode)
-              call fingerprint(bigdft_nat(runObj),mhgpsst%nid,runObj%atoms%astruct%cell_dim,&
-                   bigdft_get_geocode(runObj),rcov,rxyz(1,1),fp(1))
-              call fingerprint(bigdft_nat(runObj),mhgpsst%nid,runObj%atoms%astruct%cell_dim,&
-                   bigdft_get_geocode(runObj),rcov,rxyz2(1,1),fp2(1))
+              call fingerprint(bigdft_nat(runObj),mhgpsst%nid,&
+                              runObj%atoms%astruct%cell_dim,&
+                              bigdft_get_geocode(runObj),rcov,&
+                              rxyz(1,1),fp(1))
+              call fingerprint(bigdft_nat(runObj),mhgpsst%nid,&
+                              runObj%atoms%astruct%cell_dim,&
+                              bigdft_get_geocode(runObj),rcov,&
+                              rxyz2(1,1),fp2(1))
               if(mhgpsst%iproc==0)then
                  call yaml_comment('(MHGPS) Connect '//&
                       trim(adjustl(mhgpsst%joblist(1,ijob)))//' and '//&
@@ -264,23 +283,30 @@ program mhgps
                       hfill='-')
               endif
               isame=0
-              nsad=0
               connected=.true.
+              if(trim(adjustl(mhgpsst%joblist(1,ijob)(10:16)))/='restart')then
+                  mhgpsst%nsad=0
+              endif
               call connect(mhgpsst,fsw,uinp,runObj,outs,rcov,nbond,&
                    iconnect,rxyz,rxyz2,energy,energy2,fp,fp2,&
-                   nsad,cobj,connected)
+                   cobj,connected,premature_exit,nsad)
 !              call connect_recursively(mhgpsst,fsw,uinp,runObj,outs,rcov,&
 !                   nbond,isame,iconnect,rxyz,rxyz2,energy,energy2,fp,&
-!                   fp2,nsad,cobj,connected)
+!                   fp2,cobj,connected)
               if(connected)then
                  if(mhgpsst%iproc==0)call yaml_map('(MHGPS) '//&
                       'succesfully connected, intermediate'//&
                       ' transition states',nsad)
               else
+                 if(.not.premature_exit)then
                  if(mhgpsst%iproc==0)call yaml_comment('(MHGPS) '//&
                       'Connection not established within '//&
                       trim(adjustl(yaml_toa(nsad)))//&
                       ' transition state computations')
+                 endif
+              endif
+              if(premature_exit)then
+                 exit outer
               endif
            case('simple')
               mhgpsst%isad=mhgpsst%isad+1
@@ -391,15 +417,21 @@ program mhgps
                    trim(adjustl(uinp%operation_mode))//' unknown STOP')
               stop '(MHGPS) operation mode unknown STOP'
            end select
-           if(mhgpsst%iproc==0)then
-              call write_restart(mhgpsst,runObj)
-           endif
-        enddo
-        call f_delete_file('restart')
+        enddo inner
+        mhgpsst%isad=0
+        if(mhgpsst%iproc==0)then
+!        call f_delete_file('restart')
         call f_delete_file(trim(adjustl(mhgpsst%currDir))//'/job_list_restart')
-     enddo
+        endif
+     enddo outer
 
-    call f_delete_file('restart')
+    if(mhgpsst%iproc==0 .and. (.not. premature_exit))then
+       call f_delete_file('restart')
+        u=f_get_free_unit()
+        open(unit=u,file='finished') 
+        write(u,*)'finished'
+        close(u)
+    endif
 
     !finalize (dealloctaion etc...)
     call free_run_objects(runObj)

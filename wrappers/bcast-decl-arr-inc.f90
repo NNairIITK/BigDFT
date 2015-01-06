@@ -19,6 +19,7 @@
   chk=.false.
   n=size(buffer)
   if (present(maxdiff)) then
+     call f_zero(maxdiff)
      array_diff=f_malloc(n,id='array_diff')
      call f_memcpy(src=buffer,dest=array_diff)
   end if

@@ -33,6 +33,7 @@ module module_mhgps_state
         character(len=8)   :: currDir !length is length(dirprefix)+
                                       !number of digits
         real(gp)           :: ef_counter
+        integer            :: nsad
         integer            :: isad
         character(len=5)   :: isadc
         integer            :: nrestart
@@ -44,6 +45,10 @@ module module_mhgps_state
         integer            :: nproc
         integer            :: igroup
         integer            :: ngroups
+
+        real(gp), allocatable :: attempted_connections(:,:,:,:)
+        integer            :: nattemptedmax
+        integer            :: nattempted
     end type
 
 contains
@@ -53,8 +58,10 @@ subroutine init_mhgps_state(mhgpsst)
     implicit none
     !parameters
     type(mhgps_state), intent(inout) :: mhgpsst
-  
-
+ 
+    !attention: there exists many dependecies on
+    !the exact length on direprefix in the whole code.
+    !DO NOT simply change dirprefix 
     mhgpsst%dirprefix     = 'ioput'
     mhgpsst%mhgps_version = '0.01'
 
@@ -68,6 +75,7 @@ subroutine init_mhgps_state(mhgpsst)
     write(mhgpsst%currDir,'(a,i3.3)')&
                      trim(adjustl(mhgpsst%dirprefix)),1
     mhgpsst%ef_counter      = 0.0_gp
+    mhgpsst%nsad            = 0 
     mhgpsst%isad            = 0 
     mhgpsst%isadc           = ''
     mhgpsst%nrestart        = 0
@@ -82,7 +90,8 @@ subroutine init_mhgps_state(mhgpsst)
     mhgpsst%ngroups=bigdft_mpi%ngroup!mpi_info(4)
     !actual value of iproc
     mhgpsst%iproc=mhgpsst%iproc+mhgpsst%igroup*mhgpsst%ngroups
-
+    mhgpsst%nattemptedmax = 0
+    mhgpsst%nattempted    = 0
 end subroutine
 subroutine finalize_mhgps_state(mhgpsst)
     use module_base
@@ -91,6 +100,7 @@ subroutine finalize_mhgps_state(mhgpsst)
     type(mhgps_state), intent(inout) :: mhgpsst
 
     deallocate(mhgpsst%joblist)
+    call f_free(mhgpsst%attempted_connections)
 end subroutine
 
 end module

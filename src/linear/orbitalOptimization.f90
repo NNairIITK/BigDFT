@@ -240,7 +240,7 @@ subroutine optimizeDIIS(iproc, nproc, npsidim, orbs, nspin, lzd, hphi, phi, ldii
         ilr=orbs%inwhichlocreg(orbs%isorb+iorb)
         ncount=lzd%llr(ilr)%wfd%nvctr_c+7*lzd%llr(ilr)%wfd%nvctr_f
         if (iispin==ispin) then
-           if (f_err_raise(ist+ncount > npsidim,&
+           if (f_err_raise(ist+ncount-1 > npsidim,&
                 'The number of components in psi is insufficient! ('//&
                 trim(yaml_toa([ist,ncount,npsidim]))//')',&
                 err_name='BIGDFT_RUNTIME_ERROR')) return

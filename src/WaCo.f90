@@ -715,14 +715,14 @@ program WaCo
      nvirtd = 0
      if (input%nspin==2) nvirtd=0!nvirtu
      call orbitals_descriptors(iproc,nproc,nvirtu+nvirtd,nvirtu,nvirtd, &
-         & orbs%nspin,orbs%nspinor,orbs%nkpts,orbs%kpts,orbs%kwgts,orbsw,.false.)
+         & orbs%nspin,orbs%nspinor,orbs%nkpts,orbs%kpts,orbs%kwgts,orbsw,LINEAR_PARTITION_NONE)
      call orbitals_communicators(iproc,nproc,Glr,orbsw,commsw)
 
      nvirtu = n_virt
      nvirtd = 0
      if (input%nspin==2) nvirtd=0!nvirtu
      call orbitals_descriptors(iproc,nproc,nvirtu+nvirtd,nvirtu,nvirtd, &
-         & orbs%nspin,orbs%nspinor,orbs%nkpts,orbs%kpts,orbs%kwgts,orbsv,.false.)
+         & orbs%nspin,orbs%nspinor,orbs%nkpts,orbs%kpts,orbs%kwgts,orbsv,LINEAR_PARTITION_NONE)
 
      if(linear)then
        cxyz = f_malloc_ptr((/ 3, nwannCon /),id='cxyz')
@@ -981,7 +981,7 @@ program WaCo
                    Glr%wfd%nseg_f,Glr%wfd%nvctr_f,Glr%wfd%keygloc(1,Glr%wfd%nseg_c+1),Glr%wfd%keyvloc(Glr%wfd%nseg_c+1), & 
                    wann(1),wann(Glr%wfd%nvctr_c+1), -0.5d0)
               end if
-              close(ifile)
+              call f_close(ifile)
            else
               stop 'ETSF not implemented yet'                
               ! should be write_wave_etsf  (only one orbital)
@@ -1694,12 +1694,13 @@ subroutine read_hamiltonian(iproc,nrpts,nwann,seedname,ham)
    
 end subroutine read_hamiltonian
 
-subroutine write_wannier_cube(ifile,filename,atoms,Glr,input,rxyz,wannr)
+subroutine write_wannier_cube(jfile,filename,atoms,Glr,input,rxyz,wannr)
   use module_defs, only: gp,dp
+  use f_utils
    use module_types
    implicit none
    character(len=*), intent(in) :: filename
-   integer, intent(in) :: ifile
+   integer, intent(in) :: jfile
    type(atoms_data),intent(in) :: atoms
    type(locreg_descriptors), intent(in) :: Glr
    type(input_variables),intent(in) :: input
@@ -1708,7 +1709,7 @@ subroutine write_wannier_cube(ifile,filename,atoms,Glr,input,rxyz,wannr)
    ! Local variables
    logical :: perx, pery, perz
    integer :: nbl1,nbr1,nbl2,nbr2,nbl3,nbr3,rem
-   integer :: i,j,ix,iy,iz,ind
+   integer :: i,j,ix,iy,iz,ind,ifile
    
    perx=(Glr%geocode /= 'F')
    pery=(Glr%geocode == 'P')
@@ -1721,8 +1722,10 @@ subroutine write_wannier_cube(ifile,filename,atoms,Glr,input,rxyz,wannr)
    if(nbr3 > 0) nbr3 = nbr3 + 2
    ! Volumetric data in batches of 6 values per line, 'z'-direction first.
    rem=Glr%d%n3i-floor(real(Glr%d%n3i/6))*6
+   ifile=jfile
    
-   open(unit=ifile, file=filename, status='unknown')
+   call f_open_file(unit=ifile,file=filename)
+   !open(unit=ifile, file=filename, status='unknown')
    write(ifile,*) ' CUBE file for ISF field'
    write(ifile,*) ' Case for'
    write(ifile,'(I4,1X,F12.6,2(1X,F12.6))') atoms%astruct%nat, real(0.d0), real(0.d0), real(0.d0)
@@ -1746,7 +1749,7 @@ subroutine write_wannier_cube(ifile,filename,atoms,Glr,input,rxyz,wannr)
          end do
       end do
    end do
-   close(unit=ifile)
+   call f_close(unit=ifile)
 
 end subroutine write_wannier_cube
 

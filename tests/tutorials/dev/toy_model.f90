@@ -67,7 +67,7 @@ program wvl
    call user_dict_from_files(user_inputs, 'input', 'posinp', bigdft_mpi)
    call inputs_from_dict(inputs, atoms, user_inputs)
    if (iproc == 0) then
-      call print_general_parameters(inputs,atoms)
+      call print_general_parameters(inputs,atoms,'input','posinp')
    end if
    call dict_free(user_inputs)
    GPU%OCLconv = .false.
@@ -259,7 +259,7 @@ program wvl
   pkernel=pkernel_init(.true.,iproc,nproc,0,&
        atoms%astruct%geocode,(/Lzd%Glr%d%n1i,Lzd%Glr%d%n2i,Lzd%Glr%d%n3i/),&
        (/inputs%hx / 2._gp,inputs%hy / 2._gp,inputs%hz / 2._gp/),16)
-  call pkernel_set(pkernel,.false.)
+  call pkernel_set(pkernel,verbose=.false.)
   !call createKernel(iproc,nproc,atoms%astruct%geocode,&
   !     (/Lzd%Glr%d%n1i,Lzd%Glr%d%n2i,Lzd%Glr%d%n3i/), &
   !     (/inputs%hx / 2._gp,inputs%hy / 2._gp,inputs%hz / 2._gp/)&
