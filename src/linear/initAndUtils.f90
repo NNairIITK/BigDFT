@@ -1716,6 +1716,7 @@ subroutine set_variables_for_hybrid(iproc, nlr, input, at, orbs, lowaccur_conver
   !if (iproc==0) call yaml_map('damping factor for the confinement',damping_factor,fmt='(es9.2)')
   if (iproc==0) call yaml_comment('Set the confinement prefactors',hfill='~')
   lowaccur_converged=.false.
+  if (iproc==0) call yaml_sequence(advance='no')
   if (iproc==0) call yaml_sequence_open('Confinement prefactor for hybrid mode')
   do iorb=1,orbs%norbp
       iiat=orbs%onwhichatom(orbs%isorb+iorb)
@@ -1753,6 +1754,8 @@ subroutine set_variables_for_hybrid(iproc, nlr, input, at, orbs, lowaccur_conver
   alpha_mix=input%lin%alpha_mix_lowaccuracy
   convCritMix=input%lin%convCritMix_lowaccuracy
   conv_crit_TMB=input%lin%convCrit_lowaccuracy
+
+  call f_free(written)
 
 end subroutine set_variables_for_hybrid
 
