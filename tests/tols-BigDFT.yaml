@@ -257,7 +257,7 @@ test.splsad.ref.yaml:
 
 test.minhop.ref.yaml:
  Energies: &etol1 6.0e-9
- Eion: &eion1 4.1e-11
+ Eion: &eion1 5.1e-11
  EH: *etol1
  EXC: *etol1
  Ekin: *etol1
@@ -268,10 +268,11 @@ test.minhop.ref.yaml:
  Ion-Ion interaction energy: *eion1
  fluct: 1.2e-9
  maxval: 7.1e-11
- Atomic Forces (Ha/Bohr): 2.0e-11
- Average noise forces: 1.0e-10
+ Atomic Forces (Ha/Bohr): 5.1e-11
+ Average noise forces: 1.1e-10
  etot: 1.85e-11
  Orbitals: 6.1e-9
+ Positions: 1.1e-9
  Keys to ignore:
    - (MH) cpu(hrs)
    - WARNINGS
