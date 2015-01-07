@@ -9,7 +9,7 @@
 !> MINHOP
 !!  Main program for the minima hopping
 program MINHOP
-  use module_base, int_num => int
+  use module_base, int_iter => int
   use bigdft_run
 !  use module_types, only: input_variables,bigdft_run_id_toa,BIGDFT_SUCCESS
 !  use module_interfaces
