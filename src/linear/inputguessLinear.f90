@@ -70,7 +70,8 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
   logical :: ortho_on, reduce_conf, rho_negative
   type(localizedDIISParameters) :: ldiis
   real(wp), dimension(:,:,:), pointer :: mom_vec_fake
-  real(kind=8),dimension(:),allocatable :: tmparr
+  real(kind=8),dimension(:),allocatable :: tmparr, prefactor_inguess
+  real(kind=8) :: prefac
 
   call f_routine(id=subname)
 
@@ -407,8 +408,24 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
 !!
 !!  ! #######################################################################
 
+  prefactor_inguess = f_malloc(at%astruct%ntypes,id='prefactor_inguess')
+  do itype=1,at%astruct%ntypes
+      tt = input%lin%potentialPrefac_ao(itype)
+      if (tt<0.d0) then
+          ! Take the default value, based on the cutoff radius
+          prefac = 20.d0/input%lin%locrad_type(itype,1)**4
+      else
+          ! Take the specified value
+          prefac = tt
+      end if
+      prefactor_inguess(itype)=prefac
+  end do
+
+  !call inputguess_gaussian_orbitals(iproc,nproc,at,rxyz,nvirt,nspin_ig,&
+  !     tmb%orbs,orbs_gauss,norbsc_arr,locrad,G,psigau,eks,2,mapping,input%lin%potentialPrefac_ao)
   call inputguess_gaussian_orbitals(iproc,nproc,at,rxyz,nvirt,nspin_ig,&
-       tmb%orbs,orbs_gauss,norbsc_arr,locrad,G,psigau,eks,2,mapping,input%lin%potentialPrefac_ao)
+       tmb%orbs,orbs_gauss,norbsc_arr,locrad,G,psigau,eks,2,mapping,prefactor_inguess)
+  call f_free(prefactor_inguess)
 
   !!call inputguess_gaussian_orbitals_forLinear(iproc,nproc,tmb%orbs%norb,at,rxyz,nvirt,nspin_ig,&
   !!     tmb%lzd%nlr,norbsPerAt,mapping, &

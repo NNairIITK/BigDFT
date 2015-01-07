@@ -1245,12 +1245,22 @@ subroutine set_optimization_variables(input, at, lorbs, nlr, onwhichatom, confda
 
   ! Local variables
   integer :: iorb, ilr, iiat, iilr
+  real(kind=8) :: tt, prefac
 
 
   if(lowaccur_converged) then
       do iorb=1,lorbs%norbp
           iiat=onwhichatom(lorbs%isorb+iorb)
-          confdatarr(iorb)%prefac=input%lin%potentialPrefac_highaccuracy(at%astruct%iatype(iiat))
+          tt = input%lin%potentialPrefac_highaccuracy(at%astruct%iatype(iiat))
+          if (tt<0.d0) then
+              ! Take the default value, based on the cutoff radius
+              ilr = lorbs%inwhichlocreg(lorbs%isorb+iorb)
+              prefac = 20.d0/input%lin%locrad_highaccuracy(ilr)**4
+          else
+              ! Take the specified value
+              prefac = tt
+          end if
+          confdatarr(iorb)%prefac=prefac
       end do
       target_function=TARGET_FUNCTION_IS_ENERGY
       nit_basis=input%lin%nItBasis_highaccuracy
@@ -1268,7 +1278,16 @@ subroutine set_optimization_variables(input, at, lorbs, nlr, onwhichatom, confda
   else
       do iorb=1,lorbs%norbp
           iiat=onwhichatom(lorbs%isorb+iorb)
-          confdatarr(iorb)%prefac=input%lin%potentialPrefac_lowaccuracy(at%astruct%iatype(iiat))
+          tt = input%lin%potentialPrefac_lowaccuracy(at%astruct%iatype(iiat))
+          if (tt<0.d0) then
+              ! Take the default value, based on the cutoff radius
+              ilr = lorbs%inwhichlocreg(lorbs%isorb+iorb)
+              prefac = 20.d0/input%lin%locrad_lowaccuracy(ilr)**4
+          else
+              ! Take the specified value
+              prefac = tt
+          end if
+          confdatarr(iorb)%prefac=prefac
       end do
       target_function=TARGET_FUNCTION_IS_TRACE
       nit_basis=input%lin%nItBasis_lowaccuracy
@@ -1645,13 +1664,22 @@ subroutine set_variables_for_hybrid(iproc, nlr, input, at, orbs, lowaccur_conver
 
   ! Local variables
   integer :: iorb, ilr, iiat
+  real(kind=8) :: tt, prefac
 
   !if (iproc==0) call yaml_map('damping factor for the confinement',damping_factor,fmt='(es9.2)')
   lowaccur_converged=.false.
   do iorb=1,orbs%norbp
-      ilr=orbs%inwhichlocreg(orbs%isorb+iorb)
       iiat=orbs%onwhichatom(orbs%isorb+iorb)
-      confdatarr(iorb)%prefac=input%lin%potentialPrefac_lowaccuracy(at%astruct%iatype(iiat))*damping_factor
+      tt = input%lin%potentialPrefac_lowaccuracy(at%astruct%iatype(iiat))
+      if (tt<0.d0) then
+          ! Take the default value, based on the cutoff radius
+          ilr = orbs%inwhichlocreg(orbs%isorb+iorb)
+          prefac = 20.d0/input%lin%locrad_lowaccuracy(ilr)**4
+      else
+          ! Take the specified value
+          prefac = tt
+      end if
+      confdatarr(iorb)%prefac=prefac*damping_factor
   end do
   target_function=TARGET_FUNCTION_IS_HYBRID
   nit_basis=input%lin%nItBasis_lowaccuracy
