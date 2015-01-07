@@ -25,26 +25,32 @@
    |     |     |     |     |     |         D               T    T
    |     |     |     |     |     |   DDDDDD       F         TTTT
    |_____|_____|_____|_____|_____|______                    www.bigdft.org   "
-
+ 
  Reference Paper                       : The Journal of Chemical Physics 129, 014109 (2008)
- Version Number                        : 1.7.6.4
- Timestamp of this run                 : 2014-12-23 15:23:30.443
- Root process Hostname                 : athelas
+ Version Number                        : 1.7.6.5
+ Timestamp of this run                 : 2015-01-07 16:35:22.985
+ Root process Hostname                 : phys-comp-03
  Number of MPI tasks                   :  4
- OpenMP parallelization                :  No
+ OpenMP parallelization                :  Yes
+ Maximal OpenMP threads per MPI task   :  2
  MPI tasks of root process node        :  4
   #------------------------------------------------------------------ Code compiling options
  Compilation options:
    Configure arguments:
-     " 'FCFLAGS=-O2' '--with-ext-linalg=-L/opt/intel/composer_xe_2013.1.117/mkl/lib/intel64 
-     -L/opt/intel/composer_xe_2013.1.117/compiler/lib/intel64 -lmkl_rt -liomp5 -lm' 
-     '--with-blas=no' '--with-lapack=no' 'CFLAGS=-O2' 'CC=mpicc.openmpi' 
-     'CXX=mpicxx.openmpi' 'FC=mpif90.openmpi' 'F77=mpif77.openmpi'"
-
-   Compilers (CC, FC, CXX)             :  [ mpicc.openmpi, mpif90.openmpi, mpicxx.openmpi ]
+     " 'FC=/opt/openmpi-1.6.4/bin/mpif90' 'CC=icc' 'FCFLAGS=-O2 -i_dynamic -msse4.2 
+     -heap-arrays 1024 -openmp' 
+     '--with-ext-linalg=/opt/intel/composer_xe_2011_sp1.11.339/mkl/lib/intel64/libmkl_scalapa
+     ck_lp64.a  -Wl,--start-group  
+     /opt/intel/composer_xe_2011_sp1.11.339/mkl/lib/intel64/libmkl_cdft_core.a 
+     /opt/intel/composer_xe_2011_sp1.11.339/mkl/lib/intel64/libmkl_intel_lp64.a 
+     /opt/intel/composer_xe_2011_sp1.11.339/mkl/lib/intel64/libmkl_intel_thread.a 
+     /opt/intel/composer_xe_2011_sp1.11.339/mkl/lib/intel64/libmkl_core.a 
+     /opt/intel/composer_xe_2011_sp1.11.339/mkl/lib/intel64/libmkl_blacs_openmpi_lp64.a 
+     -Wl,--end-group -openmp -lpthread -lm'"
+   Compilers (CC, FC, CXX)             :  [ icc, /opt/openmpi-1.6.4/bin/mpif90, g++ ]
    Compiler flags:
-     CFLAGS                            : -O2
-     FCFLAGS                           : -O2
+     CFLAGS                            : -g -O2
+     FCFLAGS                           : -O2 -i_dynamic -msse4.2 -heap-arrays 1024 -openmp
      CXXFLAGS                          : -g -O2
   #------------------------------------------------------------------------ Input parameters
  radical                               : null
@@ -436,6 +442,7 @@
   #------------------------------------------------------------------- Kernel Initialization
  Poisson Kernel Initialization:
    MPI tasks                           :  4
+   OpenMP threads per MPI task         :  2
  Poisson Kernel Creation:
    Boundary Conditions                 : Free
    Memory Requirements per MPI task:
@@ -557,30 +564,34 @@
    transposition check, mean error     :  0.000000000000000000E+00
    transposition check, max error      :  0.000000000000000000E+00
    Tolerance for the following test    :  9.999999999999999799E-13
-   calculation check, error sum        :  0.000000000000000000E+00
+   calculation check, error sum        :  5.505252019726341333E-14
    Tolerance for the following test    :  1.000000000000000036E-10
-   calculation check, error max        :  0.000000000000000000E+00
+   calculation check, error max        :  2.728484105318784714E-12
  Checking Communications of Minimal Basis:
    Number of coarse and fine DoF (MasterMPI task):  [  26461,  622 ]
    Tolerances for this check: [ 7.32771438354976412E-07,  1.24344978758017533E-14]
    Maxdiff for transpose (checksum)    :  1.74622982740402222E-10
-   Maxdiff for overlap calculation     :  8.94069671630859375E-08
+   Maxdiff for overlap calculation     :  8.19563865661621094E-08
    Maxdiff for untranspose             :  0.00000000000000000E+00
  Checking Communications of Enlarged Minimal Basis:
    Number of coarse and fine DoF (MasterMPI task):  [  28332,  687 ]
    Tolerances for this check: [ 2.94284289643402326E-06,  1.24344978758017533E-14]
    Maxdiff for transpose (checksum)    :  1.16415321826934814E-09
-   Maxdiff for overlap calculation     :  7.30156898498535156E-07
+   Maxdiff for overlap calculation     :  7.15255737304687500E-07
    Maxdiff for untranspose             :  0.00000000000000000E+00
  Ion-Ion interaction energy            :  2.59945481996031E+02
   #---------------------------------------------------------------- Ionic Potential Creation
- Total ionic charge                    : -56.000000076224
+ Total ionic charge                    : -56.000000076225
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  105,  109,  199 ]
    MPI tasks                           :  4
   #------------------------------------------------------------ Input Wavefunctions Creation
  Input Hamiltonian:
+    #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Set the confinement prefactors
+   Confinement prefactor for atomic orbitals:
+   -  {atom type: C, value:  1.00E-02, origin: file}
+   -  {atom type: H, value:  1.00E-02, origin: file}
    Total No. of Atomic Input Orbitals  :  56
    Inputguess Orbitals Repartition:
      MPI tasks  0- 3                   :  14
@@ -621,64 +632,64 @@
  bisec/eval bounds:  [ -0.10,  0.10, -1.60,  1.80 ], pol deg:  204, eF:  1.000000000E-01, 
        polynomials: from memory, 
  Search new eF: {method: bisection / secant method, guess for new ef:  4.98316158E-02}, 
- iter:  2, Tr(K):  5.600002746E+01, charge diff:  2.745527760E-05}
+ iter:  2, Tr(K):  5.600002746E+01, charge diff:  2.745527750E-05}
      -  { #---------------------------------------------------------------------- it FOE: 3
  bisec/eval bounds:  [ -0.10,  0.10, -1.60,  1.80 ], pol deg:  204, eF:  4.983161580E-02, 
        polynomials: from memory,    eval/bisection bounds ok:  [  Yes,  Yes,  Yes,  Yes ], 
- interpol check: {D eF: -5.016838E-02, D Tr:  4.920931E-07, interpol possible:  No}, 
+ interpol check: {D eF: -5.016838E-02, D Tr:  4.920932E-07, interpol possible:  No}, 
  Search new eF: {method: bisection / secant method, guess for new ef:  1.22453084E-02}, 
- iter:  3, Tr(K):  5.600002795E+01, charge diff:  2.794737073E-05}
+ iter:  3, Tr(K):  5.600002795E+01, charge diff:  2.794737065E-05}
      -  { #---------------------------------------------------------------------- it FOE: 4
  bisec/eval bounds:  [ -0.10,  0.05, -1.60,  1.80 ], pol deg:  204, eF:  1.224530836E-02, 
        polynomials: from memory,    eval/bisection bounds ok:  [  Yes,  Yes,  Yes,  Yes ], 
  Search new eF: {method: bisection / secant method, guess for new ef: -1.58197475E-02}, 
- iter:  4, Tr(K):  5.600000108E+01, charge diff:  1.081567220E-06}
+ iter:  4, Tr(K):  5.600000108E+01, charge diff:  1.081567135E-06}
      -  { #---------------------------------------------------------------------- it FOE: 5
  bisec/eval bounds:  [ -0.10,  0.01, -1.60,  1.80 ], pol deg:  204, eF: -1.581974754E-02, 
        polynomials: from memory,    eval/bisection bounds ok:  [  Yes,  Yes,  Yes,  Yes ], 
  interpol check: {D eF: -2.806506E-02, D Tr: -1.266897E-05, interpol possible:  Yes}, 
- Search new eF: {method: bisection / secant method, guess for new ef:  4.03106836E-03}, 
- iter:  5, Tr(K):  5.599998841E+01, charge diff: -1.158740266E-05}
+ Search new eF: {method: bisection / secant method, guess for new ef:  4.03106846E-03}, 
+ iter:  5, Tr(K):  5.599998841E+01, charge diff: -1.158740278E-05}
      -  { #---------------------------------------------------------------------- it FOE: 6
- bisec/eval bounds:  [ -0.02,  0.01, -1.60,  1.80 ], pol deg:  204, eF:  4.031068356E-03, 
+ bisec/eval bounds:  [ -0.02,  0.01, -1.60,  1.80 ], pol deg:  204, eF:  4.031068455E-03, 
        polynomials: from memory,    eval/bisection bounds ok:  [  Yes,  Yes,  Yes,  Yes ], 
  interpol check: {D eF:  1.985082E-02, D Tr:  3.833442E-05, interpol possible:  Yes}, 
- Search new eF: {method: bisection / secant method, guess for new ef: -7.85687585E-03}, 
- iter:  6, Tr(K):  5.600002675E+01, charge diff:  2.674702037E-05}
+ Search new eF: {method: bisection / secant method, guess for new ef: -7.85687576E-03}, 
+ iter:  6, Tr(K):  5.600002675E+01, charge diff:  2.674702009E-05}
      -  { #---------------------------------------------------------------------- it FOE: 7
- bisec/eval bounds:  [ -0.02,  0.00, -1.60,  1.80 ], pol deg:  204, eF: -7.856875847E-03, 
+ bisec/eval bounds:  [ -0.02,  0.00, -1.60,  1.80 ], pol deg:  204, eF: -7.856875763E-03, 
        polynomials: from memory,    eval/bisection bounds ok:  [  Yes,  Yes,  Yes,  Yes ], 
  interpol check: {D eF: -1.188794E-02, D Tr: -7.810631E-06, interpol possible:  Yes}, 
  Search new eF: {det:  8.708E-12, limit:  1.000E-12, method: cubic interpolation, 
     guess for new ef: -1.33065424E-02}, 
- iter:  7, Tr(K):  5.600001894E+01, charge diff:  1.893638894E-05}
+ iter:  7, Tr(K):  5.600001894E+01, charge diff:  1.893638911E-05}
      -  { #---------------------------------------------------------------------- it FOE: 8
- bisec/eval bounds:  [ -0.02, -0.01, -1.60,  1.80 ], pol deg:  204, eF: -1.330654237E-02, 
+ bisec/eval bounds:  [ -0.02, -0.01, -1.60,  1.80 ], pol deg:  204, eF: -1.330654235E-02, 
        polynomials: from memory,    eval/bisection bounds ok:  [  Yes,  Yes,  Yes,  Yes ], 
  interpol check: {D eF: -5.449667E-03, D Tr: -2.031313E-05, interpol possible:  Yes}, 
- Search new eF: {det: -4.462E-13, limit:  1.000E-12, guess for new ef: -1.29371873E-02}, 
- iter:  8, Tr(K):  5.599999862E+01, charge diff: -1.376736854E-06}
+ Search new eF: {det: -4.462E-13, limit:  1.000E-12, guess for new ef: -1.29371872E-02}, 
+ iter:  8, Tr(K):  5.599999862E+01, charge diff: -1.376736883E-06}
      -  { #---------------------------------------------------------------------- it FOE: 9
- bisec/eval bounds:  [ -0.01, -0.01, -1.60,  1.80 ], pol deg:  204, eF: -1.293718727E-02, 
+ bisec/eval bounds:  [ -0.01, -0.01, -1.60,  1.80 ], pol deg:  204, eF: -1.293718724E-02, 
        polynomials: from memory,    eval/bisection bounds ok:  [  Yes,  Yes,  Yes,  Yes ], 
  interpol check: {D eF:  3.693551E-04, D Tr:  1.504172E-06, interpol possible:  Yes}, 
  Search new eF: {det: -3.576E-14, limit:  1.000E-12, guess for new ef: -1.29684795E-02}, 
- iter:  9, Tr(K):  5.600000013E+01, charge diff:  1.274354560E-07}
+ iter:  9, Tr(K):  5.600000013E+01, charge diff:  1.274354773E-07}
      diff from reference kernel        :  8.594E-05
-     ebs                               : -20.2954450326967
-     ebs_check                         : -20.29542818352601
-     diff                              :  1.6849170684452019E-005
-     relative diff                     :  8.3019468936539182E-007
+     ebs                               : -20.29544503269703
+     ebs_check                         : -20.29542818352646
+     diff                              :  1.6849170570765182E-005
+     relative diff                     :  8.3019468376378442E-007
      modify fscale                     : increase
      fscale reached upper limit; reset to:  5.0000000000000003E-002
      Final kernel purification:
-       tr(KS) before purification      :  56.00280870921954
+       tr(KS) before purification      :  56.00280870921956
        shift of eigenvalues            :  0.000E+00
        purification process:
        -  {iter:  1, diff from idempotency:  3.772E-03, charge diff:  2.809E-03}
        -  {iter:  2, diff from idempotency:  1.630E-05, charge diff: -1.802E-06}
-       -  {iter:  3, diff from idempotency:  3.125E-10, charge diff: -7.334E-11}
-       -  {iter:  4, diff from idempotency:  2.518E-15, charge diff: -1.421E-14}
+       -  {iter:  3, diff from idempotency:  3.125E-10, charge diff: -7.335E-11}
+       -  {iter:  4, diff from idempotency:  2.418E-15, charge diff: -1.421E-14}
        tr(KS) after purification       :  55.99999999999999
      trace(KS)                         :  55.99999999999999
      need to repeat with sharper decay (new):  No
@@ -688,11 +699,15 @@
    Hamiltonian update: {
  Energies: {Ekin:  7.92807092677E+01, Epot: -8.62360432794E+01, Enl:  7.21578870972E+00, 
               EH:  3.07957408229E+02,  EXC: -2.28202008727E+01, EvXC: -2.98460692051E+01}, 
-    Total charge:  5.599999904086E+01, 
+    Total charge:  5.599999904087E+01, 
  Poisson Solver: {BC: Free, Box:  [  105,  109,  199 ], MPI tasks:  4}}
     #================================================================= Input guess generated
   #------------------------------------------------------------------- Self-Consistent Cycle
  Ground State Optimization:
+    #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Set the confinement prefactors
+ - Confinement prefactor for low accuracy:
+   -  {atom type: H, value:  1.00E-02, origin: from file}
+   -  {atom type: C, value:  1.00E-02, origin: from file}
     #========================================================= support function optimization
  - support function optimization: &it_supfun001
    -  { #-------------------------------------------------------------------------- iter: 1
@@ -703,7 +718,7 @@
  error estimation: [
  max / mean error:  [  7.6E-05,  1.78E-05 ]]}, 
  Preconditioning:  Yes, 
- iter:  1, fnrm:  6.36E-01, Omega: -3.253328467109657E+01, D: -3.25E+01, D best: -3.25E+01, 
+ iter:  1, fnrm:  6.36E-01, Omega: -3.253328467112556E+01, D: -3.25E+01, D best: -3.25E+01, 
  Optimization: {algorithm: DIIS, history length:  5, consecutive failures:  0, 
            total failures:  0}, 
  calculate S^x: {mode: sparse, powers: {x: -1/2}, order:  7, 
@@ -718,7 +733,7 @@
  error estimation: [
  max / mean error:  [  5.6E-09,  4.29E-10 ]]}, 
  Preconditioning:  Yes, 
- iter:  2, fnrm:  2.11E-01, Omega: -3.581495005030428E+01, D: -3.28E+00, D best: -3.28E+00, 
+ iter:  2, fnrm:  2.11E-01, Omega: -3.581495005033491E+01, D: -3.28E+00, D best: -3.28E+00, 
  Optimization: {algorithm: DIIS, history length:  5, consecutive failures:  0, 
            total failures:  0}, 
  calculate S^x: {mode: sparse, powers: {x: -1/2}, order:  12, 
@@ -733,12 +748,12 @@
  error estimation: [
  max / mean error:  [  5.21E-09,  4.09E-10 ]]}, 
  Preconditioning:  Yes, 
- iter:  3, fnrm:  1.19E-01, Omega: -3.653192996992220E+01, D: -7.17E-01, D best: -7.17E-01, 
+ iter:  3, fnrm:  1.19E-01, Omega: -3.653192996995301E+01, D: -7.17E-01, D best: -7.17E-01, 
  exit criterion: net number of iterations}
    -  &final_supfun001  { #-------------------------------------------------------- iter: 3
  target function: TRACE, 
  Energies: {Ekin:  8.47628522737E+01, Epot: -8.89065328425E+01, Enl:  5.32280573312E+00}, 
- iter:  3, fnrm:  1.19E-01, Omega: -3.653192996992220E+01, D: -7.17E-01, D best: -7.17E-01}
+ iter:  3, fnrm:  1.19E-01, Omega: -3.653192996995301E+01, D: -7.17E-01, D best: -7.17E-01}
       #Support functions created
     #=================================================================== kernel optimization
  - kernel optimization: &it_kernel001
@@ -763,60 +778,60 @@
        polynomial degree multiplicator :  3.000E+00
        FOE to determine density kernel: &it_foe001-001-01-01
        -  { #-------------------------------------------------------------------- it FOE: 1
- bisec/eval bounds:  [ -0.09,  0.07, -1.60,  1.80 ], pol deg:  204, eF: -9.396847952E-02, 
+ bisec/eval bounds:  [ -0.09,  0.07, -1.60,  1.80 ], pol deg:  204, eF: -9.396847949E-02, 
        polynomials: recalculated,   eval/bisection bounds ok:  [  Yes,  Yes,  Yes,  No ]}
        -  { #-------------------------------------------------------------------- it FOE: 2
- bisec/eval bounds:  [ -0.09,  0.07, -1.60,  1.80 ], pol deg:  204, eF:  6.803152048E-02, 
+ bisec/eval bounds:  [ -0.09,  0.07, -1.60,  1.80 ], pol deg:  204, eF:  6.803152051E-02, 
        polynomials: from memory, 
- Search new eF: {method: bisection / secant method, guess for new ef: -3.98714898E-02}, 
+ Search new eF: {method: bisection / secant method, guess for new ef: -3.98714896E-02}, 
  iter:  2, Tr(K):  5.600010277E+01, charge diff:  1.027670223E-04}
        -  { #-------------------------------------------------------------------- it FOE: 3
- bisec/eval bounds:  [ -0.09,  0.07, -1.60,  1.80 ], pol deg:  204, eF: -3.987148976E-02, 
+ bisec/eval bounds:  [ -0.09,  0.07, -1.60,  1.80 ], pol deg:  204, eF: -3.987148962E-02, 
        polynomials: from memory,    eval/bisection bounds ok:  [  Yes,  Yes,  Yes,  Yes ], 
  interpol check: {D eF: -1.079030E-01, D Tr: -9.953188E-05, interpol possible:  Yes}, 
- Search new eF: {method: bisection / secant method, guess for new ef: -5.70469859E-02}, 
- iter:  3, Tr(K):  5.600000324E+01, charge diff:  3.235146309E-06}
+ Search new eF: {method: bisection / secant method, guess for new ef: -5.70469855E-02}, 
+ iter:  3, Tr(K):  5.600000324E+01, charge diff:  3.235146032E-06}
        -  { #-------------------------------------------------------------------- it FOE: 4
- bisec/eval bounds:  [ -0.09, -0.04, -1.60,  1.80 ], pol deg:  204, eF: -5.704698594E-02, 
+ bisec/eval bounds:  [ -0.09, -0.04, -1.60,  1.80 ], pol deg:  204, eF: -5.704698553E-02, 
        polynomials: from memory,    eval/bisection bounds ok:  [  Yes,  Yes,  Yes,  Yes ], 
  interpol check: {D eF: -1.717550E-02, D Tr: -5.373813E-06, interpol possible:  Yes}, 
- Search new eF: {method: bisection / secant method, guess for new ef: -4.93353656E-02}, 
- iter:  4, Tr(K):  5.599999786E+01, charge diff: -2.138666417E-06}
+ Search new eF: {method: bisection / secant method, guess for new ef: -4.93353650E-02}, 
+ iter:  4, Tr(K):  5.599999786E+01, charge diff: -2.138666623E-06}
        -  { #-------------------------------------------------------------------- it FOE: 5
- bisec/eval bounds:  [ -0.06, -0.04, -1.60,  1.80 ], pol deg:  204, eF: -4.933536562E-02, 
+ bisec/eval bounds:  [ -0.06, -0.04, -1.60,  1.80 ], pol deg:  204, eF: -4.933536495E-02, 
        polynomials: from memory,    eval/bisection bounds ok:  [  Yes,  Yes,  Yes,  Yes ], 
- interpol check: {D eF:  7.711620E-03, D Tr:  2.443956E-06, interpol possible:  Yes}, 
+ interpol check: {D eF:  7.711621E-03, D Tr:  2.443956E-06, interpol possible:  Yes}, 
  Search new eF: {det: -1.986E-09, limit:  1.000E-12, method: cubic interpolation, 
-    guess for new ef: -5.03174147E-02}, 
- iter:  5, Tr(K):  5.600000031E+01, charge diff:  3.052894542E-07}
+    guess for new ef: -5.03174139E-02}, 
+ iter:  5, Tr(K):  5.600000031E+01, charge diff:  3.052894115E-07}
        diff from reference kernel      :  2.215E-05
-       ebs                             : -23.09717577053231
-       ebs_check                       : -23.09716965235406
-       diff                            :  6.1181782449182265E-006
-       relative diff                   :  2.6488858662641701E-007
+       ebs                             : -23.09717577053517
+       ebs_check                       : -23.09716965235787
+       diff                            :  6.1181772998963879E-006
+       relative diff                   :  2.6488854571134547E-007
        modify fscale                   : increase
        fscale reached upper limit; reset to:  5.0000000000000003E-002
        Final kernel purification:
-         tr(KS) before purification    :  56.00000030526687
+         tr(KS) before purification    :  56.00000030526685
          shift of eigenvalues          :  0.000E+00
          purification process:
          -  {iter:  1, diff from idempotency:  4.903E-03, charge diff:  3.053E-07}
          -  {iter:  2, diff from idempotency:  2.670E-05, charge diff:  1.091E-05}
-         -  {iter:  3, diff from idempotency:  8.330E-10, charge diff:  1.438E-10}
-         -  {iter:  4, diff from idempotency:  2.606E-15, charge diff:  1.421E-14}
-         tr(KS) after purification     :  56.00000000000001
-       trace(KS)                       :  56.00000000000001
+         -  {iter:  3, diff from idempotency:  8.331E-10, charge diff:  1.438E-10}
+         -  {iter:  4, diff from idempotency:  2.602E-15, charge diff:  0.000E+00}
+         tr(KS) after purification     :  56.0
+       trace(KS)                       :  56.0
        need to repeat with sharper decay (new):  No
         #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ FOE calculation of kernel finished
        Kohn-Sham residue               :  2.477E-01
        Coefficients available          :  No
      Hamiltonian update: {
- Energies: {Ekin:  8.47628522737E+01, Epot: -9.25106089276E+01, Enl:  5.32280573312E+00, 
+ Energies: {Ekin:  8.47628522737E+01, Epot: -9.25106089277E+01, Enl:  5.32280573312E+00, 
               EH:  3.05787759815E+02,  EXC: -2.25894482649E+01, EvXC: -2.95415457852E+01}, 
     Total charge:  5.599999941995E+01, 
  Poisson Solver: {BC: Free, Box:  [  105,  109,  199 ], MPI tasks:  4}}
      summary: [ {kernel method: FOE, mix entity: DENS, mix hist:  0, conv crit:  1.19E-10, 
- iter:  1, delta:  1.33E-06, energy: -6.19873319055173511E+01, D: -6.199E+01}]
+ iter:  1, delta:  1.33E-06, energy: -6.19873319055446359E+01, D: -6.199E+01}]
    -  #--------------------------------------------------------------------- kernel iter: 2
      Kernel update:
        Hamiltonian application required:  Yes
@@ -830,67 +845,67 @@
        polynomial degree multiplicator :  3.000E+00
        FOE to determine density kernel: &it_foe001-002-01-01
        -  { #-------------------------------------------------------------------- it FOE: 1
- bisec/eval bounds:  [ -0.12,  0.02, -1.60,  1.80 ], pol deg:  204, eF: -1.159274147E-01, 
+ bisec/eval bounds:  [ -0.12,  0.02, -1.60,  1.80 ], pol deg:  204, eF: -1.159274139E-01, 
        polynomials: recalculated,   eval/bisection bounds ok:  [  Yes,  Yes,  Yes,  No ]}
        -  { #-------------------------------------------------------------------- it FOE: 2
- bisec/eval bounds:  [ -0.12,  0.02, -1.60,  1.80 ], pol deg:  204, eF:  1.529258529E-02, 
+ bisec/eval bounds:  [ -0.12,  0.02, -1.60,  1.80 ], pol deg:  204, eF:  1.529258610E-02, 
        polynomials: from memory, 
- Search new eF: {method: bisection / secant method, guess for new ef: -1.75570145E-02}, 
- iter:  2, Tr(K):  5.600000494E+01, charge diff:  4.938382645E-06}
+ Search new eF: {method: bisection / secant method, guess for new ef: -1.75570137E-02}, 
+ iter:  2, Tr(K):  5.600000494E+01, charge diff:  4.938383583E-06}
        -  { #-------------------------------------------------------------------- it FOE: 3
- bisec/eval bounds:  [ -0.12,  0.02, -1.60,  1.80 ], pol deg:  204, eF: -1.755701453E-02, 
+ bisec/eval bounds:  [ -0.12,  0.02, -1.60,  1.80 ], pol deg:  204, eF: -1.755701373E-02, 
        polynomials: from memory,    eval/bisection bounds ok:  [  Yes,  Yes,  Yes,  Yes ], 
- interpol check: {D eF: -3.284960E-02, D Tr: -1.320479E-06, interpol possible:  Yes}, 
- Search new eF: {method: bisection / secant method, guess for new ef: -4.21741136E-02}, 
- iter:  3, Tr(K):  5.600000362E+01, charge diff:  3.617903630E-06}
+ interpol check: {D eF: -3.284960E-02, D Tr: -1.320481E-06, interpol possible:  Yes}, 
+ Search new eF: {method: bisection / secant method, guess for new ef: -4.21741128E-02}, 
+ iter:  3, Tr(K):  5.600000362E+01, charge diff:  3.617902621E-06}
        -  { #-------------------------------------------------------------------- it FOE: 4
- bisec/eval bounds:  [ -0.12, -0.02, -1.60,  1.80 ], pol deg:  204, eF: -4.217411359E-02, 
+ bisec/eval bounds:  [ -0.12, -0.02, -1.60,  1.80 ], pol deg:  204, eF: -4.217411278E-02, 
        polynomials: from memory,    eval/bisection bounds ok:  [  Yes,  Yes,  Yes,  Yes ], 
- interpol check: {D eF: -2.461710E-02, D Tr: -6.821090E-06, interpol possible:  Yes}, 
- Search new eF: {method: bisection / secant method, guess for new ef: -3.02397391E-02}, 
- iter:  4, Tr(K):  5.599999680E+01, charge diff: -3.203186722E-06}
+ interpol check: {D eF: -2.461710E-02, D Tr: -6.821088E-06, interpol possible:  Yes}, 
+ Search new eF: {method: bisection / secant method, guess for new ef: -3.02397387E-02}, 
+ iter:  4, Tr(K):  5.599999680E+01, charge diff: -3.203185400E-06}
        -  { #-------------------------------------------------------------------- it FOE: 5
- bisec/eval bounds:  [ -0.04, -0.02, -1.60,  1.80 ], pol deg:  204, eF: -3.023973911E-02, 
+ bisec/eval bounds:  [ -0.04, -0.02, -1.60,  1.80 ], pol deg:  204, eF: -3.023973871E-02, 
        polynomials: from memory,    eval/bisection bounds ok:  [  Yes,  Yes,  Yes,  Yes ], 
  interpol check: {D eF:  1.193437E-02, D Tr:  1.398808E-05, interpol possible:  Yes}, 
  Search new eF: {det: -3.203E-10, limit:  1.000E-12, method: cubic interpolation, 
-    guess for new ef: -4.07637301E-02}, 
- iter:  5, Tr(K):  5.600001078E+01, charge diff:  1.078489740E-05}
+    guess for new ef: -4.07637298E-02}, 
+ iter:  5, Tr(K):  5.600001078E+01, charge diff:  1.078489760E-05}
        -  { #-------------------------------------------------------------------- it FOE: 6
- bisec/eval bounds:  [ -0.04, -0.03, -1.60,  1.80 ], pol deg:  204, eF: -4.076373006E-02, 
+ bisec/eval bounds:  [ -0.04, -0.03, -1.60,  1.80 ], pol deg:  204, eF: -4.076372984E-02, 
        polynomials: from memory,    eval/bisection bounds ok:  [  Yes,  Yes,  Yes,  Yes ], 
  interpol check: {D eF: -1.052399E-02, D Tr: -1.175532E-05, interpol possible:  Yes}, 
  Search new eF: {det:  1.283E-12, limit:  1.000E-12, method: cubic interpolation, 
-    guess for new ef: -4.01297551E-02}, 
- iter:  6, Tr(K):  5.599999903E+01, charge diff: -9.704273651E-07}
+    guess for new ef: -4.01297552E-02}, 
+ iter:  6, Tr(K):  5.599999903E+01, charge diff: -9.704269743E-07}
        diff from reference kernel      :  8.586E-05
-       ebs                             : -21.6860626348414
-       ebs_check                       : -21.68603068638107
-       diff                            :  3.1948460328834472E-005
-       relative diff                   :  1.473225493571398E-006
+       ebs                             : -21.68606263484209
+       ebs_check                       : -21.68603068638216
+       diff                            :  3.1948459923825112E-005
+       relative diff                   :  1.4732254748953304E-006
        modify fscale                   : increase
        fscale reached upper limit; reset to:  5.0000000000000003E-002
        Final kernel purification:
-         tr(KS) before purification    :  55.99999902955021
+         tr(KS) before purification    :  55.99999902955059
          shift of eigenvalues          :  0.000E+00
          purification process:
          -  {iter:  1, diff from idempotency:  5.168E-03, charge diff: -9.704E-07}
          -  {iter:  2, diff from idempotency:  2.965E-05, charge diff:  1.150E-05}
          -  {iter:  3, diff from idempotency:  1.028E-09, charge diff:  2.308E-10}
-         -  {iter:  4, diff from idempotency:  2.652E-15, charge diff:  2.842E-14}
-         tr(KS) after purification     :  56.00000000000001
-       trace(KS)                       :  56.00000000000001
+         -  {iter:  4, diff from idempotency:  2.584E-15, charge diff:  0.000E+00}
+         tr(KS) after purification     :  56.0
+       trace(KS)                       :  56.0
        need to repeat with sharper decay (new):  No
         #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ FOE calculation of kernel finished
        Kohn-Sham residue               :  2.469E-01
        Coefficients available          :  No
      Hamiltonian update: {
- Energies: {Ekin:  8.47628522737E+01, Epot: -9.10535944907E+01, Enl:  5.32280573312E+00, 
+ Energies: {Ekin:  8.47628522737E+01, Epot: -9.10535944908E+01, Enl:  5.32280573312E+00, 
               EH:  3.07261002005E+02,  EXC: -2.28978401720E+01, EvXC: -2.99488346981E+01}, 
     Total charge:  5.599999942398E+01, 
  Poisson Solver: {BC: Free, Box:  [  105,  109,  199 ], MPI tasks:  4}}
      summary: [ {kernel method: FOE, mix entity: DENS, mix hist:  0, conv crit:  1.19E-10, 
- iter:  2, delta:  5.87E-07, energy: -6.19505641977927439E+01, D:  3.677E-02}]
+ iter:  2, delta:  5.87E-07, energy: -6.19505641978233825E+01, D:  3.677E-02}]
    -  #--------------------------------------------------------------------- kernel iter: 3
      Kernel update:
        Hamiltonian application required:  Yes
@@ -904,36 +919,36 @@
        polynomial degree multiplicator :  3.000E+00
        FOE to determine density kernel: &it_foe001-003-01-01
        -  { #-------------------------------------------------------------------- it FOE: 1
- bisec/eval bounds:  [ -0.09,  0.01, -1.60,  1.80 ], pol deg:  204, eF: -9.327385513E-02, 
+ bisec/eval bounds:  [ -0.09,  0.01, -1.60,  1.80 ], pol deg:  204, eF: -9.327385516E-02, 
        polynomials: recalculated,   eval/bisection bounds ok:  [  Yes,  Yes,  Yes,  No ]}
        -  { #-------------------------------------------------------------------- it FOE: 2
- bisec/eval bounds:  [ -0.09,  0.01, -1.60,  1.80 ], pol deg:  204, eF:  1.301434487E-02, 
+ bisec/eval bounds:  [ -0.09,  0.01, -1.60,  1.80 ], pol deg:  204, eF:  1.301434484E-02, 
        polynomials: from memory, 
  Search new eF: {method: bisection / secant method, guess for new ef: -1.37145456E-02}, 
- iter:  2, Tr(K):  5.600000136E+01, charge diff:  1.359350748E-06}
+ iter:  2, Tr(K):  5.600000136E+01, charge diff:  1.359350833E-06}
        -  { #-------------------------------------------------------------------- it FOE: 3
- bisec/eval bounds:  [ -0.09,  0.01, -1.60,  1.80 ], pol deg:  204, eF: -1.371454558E-02, 
+ bisec/eval bounds:  [ -0.09,  0.01, -1.60,  1.80 ], pol deg:  204, eF: -1.371454563E-02, 
        polynomials: from memory,    eval/bisection bounds ok:  [  Yes,  Yes,  Yes,  Yes ], 
  interpol check: {D eF: -2.672889E-02, D Tr: -2.043489E-06, interpol possible:  Yes}, 
- Search new eF: {method: bisection / secant method, guess for new ef: -2.55804764E-03}, 
- iter:  3, Tr(K):  5.599999932E+01, charge diff: -6.841387261E-07}
+ Search new eF: {method: bisection / secant method, guess for new ef: -2.55804855E-03}, 
+ iter:  3, Tr(K):  5.599999932E+01, charge diff: -6.841385698E-07}
        diff from reference kernel      :  2.138E-05
-       ebs                             : -21.87186212357172
-       ebs_check                       : -21.87186889493658
-       diff                            : -6.7713648590483899E-006
-       relative diff                   :  3.0959251758224831E-007
+       ebs                             : -21.87186212357268
+       ebs_check                       : -21.87186889493752
+       diff                            : -6.7713648377321078E-006
+       relative diff                   :  3.0959251660763637E-007
        modify fscale                   : increase
        fscale reached upper limit; reset to:  5.0000000000000003E-002
        Final kernel purification:
-         tr(KS) before purification    :  55.99999931583862
+         tr(KS) before purification    :  55.99999931583878
          shift of eigenvalues          :  0.000E+00
          purification process:
          -  {iter:  1, diff from idempotency:  5.250E-03, charge diff: -6.842E-07}
          -  {iter:  2, diff from idempotency:  3.064E-05, charge diff:  1.172E-05}
          -  {iter:  3, diff from idempotency:  1.100E-09, charge diff:  2.215E-10}
-         -  {iter:  4, diff from idempotency:  2.774E-15, charge diff:  1.421E-14}
-         tr(KS) after purification     :  56.00000000000001
-       trace(KS)                       :  56.00000000000001
+         -  {iter:  4, diff from idempotency:  2.836E-15, charge diff:  0.000E+00}
+         tr(KS) after purification     :  56.0
+       trace(KS)                       :  56.0
        need to repeat with sharper decay (new):  No
         #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ FOE calculation of kernel finished
        Kohn-Sham residue               :  2.472E-01
@@ -944,15 +959,19 @@
     Total charge:  5.599999942347E+01, 
  Poisson Solver: {BC: Free, Box:  [  105,  109,  199 ], MPI tasks:  4}}
      summary: [ {kernel method: FOE, mix entity: DENS, mix hist:  0, conv crit:  1.19E-10, 
- iter:  3, delta:  2.90E-07, energy: -6.19451289271911492E+01, D:  5.435E-03}]
+ iter:  3, delta:  2.90E-07, energy: -6.19451289272177519E+01, D:  5.435E-03}]
    -  &final_kernel001  { #-------------------------------------------------------- iter: 4
  summary: [ {kernel method: FOE, mix entity: DENS, mix hist:  0, conv crit:  1.19E-10, 
- iter:  4, delta:  2.90E-07, energy: -6.19451289271911492E+01, D:  5.435E-03}]}
+ iter:  4, delta:  2.90E-07, energy: -6.19451289272177519E+01, D:  5.435E-03}]}
     #================================================================= Summary of both steps
    self consistency summary: &it_sc001
    -  {iter:  1, Omega: TRACE,  #WARNING: support function optimization not converged
  kernel optimization: FOE,  #WARNING: density optimization not converged
- iter low:  1, delta out:  1.057E-06, energy: -6.19451289271911492E+01, D: -6.195E+01}
+ iter low:  1, delta out:  1.057E-06, energy: -6.19451289272177519E+01, D: -6.195E+01}
+    #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Set the confinement prefactors
+ - Confinement prefactor for low accuracy:
+   -  {atom type: H, value:  1.00E-02, origin: from file}
+   -  {atom type: C, value:  1.00E-02, origin: from file}
     #========================================================= support function optimization
  - support function optimization: &it_supfun002
    -  { #-------------------------------------------------------------------------- iter: 1
@@ -963,7 +982,7 @@
  error estimation: [
  max / mean error:  [  5.21E-09,  4.09E-10 ]]}, 
  Preconditioning:  Yes, 
- iter:  1, fnrm:  1.21E-01, Omega: -3.509222226108847E+01, D:  7.23E-01, D best:  7.23E-01, 
+ iter:  1, fnrm:  1.21E-01, Omega: -3.509222226112001E+01, D:  7.23E-01, D best:  7.23E-01, 
  Optimization: {algorithm: DIIS, history length:  5, consecutive failures:  0, 
            total failures:  0}, 
  calculate S^x: {mode: sparse, powers: {x: -1/2}, order:  12, 
@@ -978,7 +997,7 @@
  error estimation: [
  max / mean error:  [  6.34E-09,  4.98E-10 ]]}, 
  Preconditioning:  Yes, 
- iter:  2, fnrm:  1.05E-01, Omega: -3.533974758926678E+01, D: -2.48E-01, D best: -2.48E-01, 
+ iter:  2, fnrm:  1.05E-01, Omega: -3.533974758929827E+01, D: -2.48E-01, D best: -2.48E-01, 
  Optimization: {algorithm: DIIS, history length:  5, consecutive failures:  0, 
            total failures:  0}, 
  calculate S^x: {mode: sparse, powers: {x: -1/2}, order:  12, 
@@ -993,12 +1012,12 @@
  error estimation: [
  max / mean error:  [  9.53E-09,  7.39E-10 ]]}, 
  Preconditioning:  Yes, 
- iter:  3, fnrm:  9.99E-02, Omega: -3.558224490662712E+01, D: -2.42E-01, D best: -2.42E-01, 
+ iter:  3, fnrm:  9.99E-02, Omega: -3.558224490665862E+01, D: -2.42E-01, D best: -2.42E-01, 
  exit criterion: net number of iterations}
    -  &final_supfun002  { #-------------------------------------------------------- iter: 3
  target function: TRACE, 
  Energies: {Ekin:  8.20125083321E+01, Epot: -8.46511848942E+01, Enl:  4.90293856980E+00}, 
- iter:  3, fnrm:  9.99E-02, Omega: -3.558224490662712E+01, D: -2.42E-01, D best: -2.42E-01}
+ iter:  3, fnrm:  9.99E-02, Omega: -3.558224490665862E+01, D: -2.42E-01, D best: -2.42E-01}
       #Support functions created
     #=================================================================== kernel optimization
  - kernel optimization: &it_kernel002
@@ -1023,59 +1042,59 @@
        polynomial degree multiplicator :  3.000E+00
        FOE to determine density kernel: &it_foe002-001-01-01
        -  { #-------------------------------------------------------------------- it FOE: 1
- bisec/eval bounds:  [ -0.05,  0.04, -1.60,  1.80 ], pol deg:  204, eF: -4.560476864E-02, 
+ bisec/eval bounds:  [ -0.05,  0.04, -1.60,  1.80 ], pol deg:  204, eF: -4.560476955E-02, 
        polynomials: recalculated,   eval/bisection bounds ok:  [  Yes,  Yes,  Yes,  No ]}
        -  { #-------------------------------------------------------------------- it FOE: 2
- bisec/eval bounds:  [ -0.05,  0.04, -1.60,  1.80 ], pol deg:  204, eF:  4.048867336E-02, 
+ bisec/eval bounds:  [ -0.05,  0.04, -1.60,  1.80 ], pol deg:  204, eF:  4.048867245E-02, 
        polynomials: from memory,    eval/bisection bounds ok:  [  Yes,  Yes,  Yes,  No ]}
        -  { #-------------------------------------------------------------------- it FOE: 3
- bisec/eval bounds:  [ -0.05,  0.08, -1.60,  1.80 ], pol deg:  204, eF:  7.923072226E-02, 
+ bisec/eval bounds:  [ -0.05,  0.08, -1.60,  1.80 ], pol deg:  204, eF:  7.923072135E-02, 
        polynomials: from memory, 
- Search new eF: {method: bisection / secant method, guess for new ef: -1.41086359E-02}, 
- iter:  3, Tr(K):  5.600028346E+01, charge diff:  2.834565166E-04}
+ Search new eF: {method: bisection / secant method, guess for new ef: -1.41086366E-02}, 
+ iter:  3, Tr(K):  5.600028346E+01, charge diff:  2.834564884E-04}
        -  { #-------------------------------------------------------------------- it FOE: 4
- bisec/eval bounds:  [ -0.05,  0.08, -1.60,  1.80 ], pol deg:  204, eF: -1.410863589E-02, 
+ bisec/eval bounds:  [ -0.05,  0.08, -1.60,  1.80 ], pol deg:  204, eF: -1.410863663E-02, 
        polynomials: from memory,    eval/bisection bounds ok:  [  Yes,  Yes,  Yes,  Yes ], 
  interpol check: {D eF: -9.333936E-02, D Tr: -2.864171E-04, interpol possible:  Yes}, 
- Search new eF: {method: bisection / secant method, guess for new ef:  9.70861610E-03}, 
- iter:  4, Tr(K):  5.599999704E+01, charge diff: -2.960620172E-06}
+ Search new eF: {method: bisection / secant method, guess for new ef:  9.70861531E-03}, 
+ iter:  4, Tr(K):  5.599999704E+01, charge diff: -2.960619831E-06}
        -  { #-------------------------------------------------------------------- it FOE: 5
- bisec/eval bounds:  [ -0.01,  0.08, -1.60,  1.80 ], pol deg:  204, eF:  9.708616099E-03, 
+ bisec/eval bounds:  [ -0.01,  0.08, -1.60,  1.80 ], pol deg:  204, eF:  9.708615311E-03, 
        polynomials: from memory,    eval/bisection bounds ok:  [  Yes,  Yes,  Yes,  Yes ], 
- interpol check: {D eF:  2.381725E-02, D Tr:  4.907540E-06, interpol possible:  Yes}, 
- Search new eF: {method: bisection / secant method, guess for new ef: -9.70087688E-04}, 
- iter:  5, Tr(K):  5.600000195E+01, charge diff:  1.946919369E-06}
+ interpol check: {D eF:  2.381725E-02, D Tr:  4.907539E-06, interpol possible:  Yes}, 
+ Search new eF: {method: bisection / secant method, guess for new ef: -9.70088386E-04}, 
+ iter:  5, Tr(K):  5.600000195E+01, charge diff:  1.946919099E-06}
        -  { #-------------------------------------------------------------------- it FOE: 6
- bisec/eval bounds:  [ -0.01,  0.01, -1.60,  1.80 ], pol deg:  204, eF: -9.700876878E-04, 
+ bisec/eval bounds:  [ -0.01,  0.01, -1.60,  1.80 ], pol deg:  204, eF: -9.700883859E-04, 
        polynomials: from memory,    eval/bisection bounds ok:  [  Yes,  Yes,  Yes,  Yes ], 
- interpol check: {D eF: -1.067870E-02, D Tr: -5.096113E-06, interpol possible:  Yes}, 
+ interpol check: {D eF: -1.067870E-02, D Tr: -5.096112E-06, interpol possible:  Yes}, 
  Search new eF: {det:  1.739E-09, limit:  1.000E-12, method: cubic interpolation, 
-    guess for new ef:  6.84770616E-03}, 
- iter:  6, Tr(K):  5.599999685E+01, charge diff: -3.149193141E-06}
+    guess for new ef:  6.84770577E-03}, 
+ iter:  6, Tr(K):  5.599999685E+01, charge diff: -3.149193290E-06}
        -  { #-------------------------------------------------------------------- it FOE: 7
- bisec/eval bounds:  [ -0.00,  0.01, -1.60,  1.80 ], pol deg:  204, eF:  6.847706155E-03, 
+ bisec/eval bounds:  [  0.00,  0.01, -1.60,  1.80 ], pol deg:  204, eF:  6.847705770E-03, 
        polynomials: from memory,    eval/bisection bounds ok:  [  Yes,  Yes,  Yes,  Yes ], 
  interpol check: {D eF:  7.817794E-03, D Tr:  3.667450E-06, interpol possible:  Yes}, 
  Search new eF: {det:  1.566E-12, limit:  1.000E-12, method: cubic interpolation, 
-    guess for new ef:  5.83309731E-03}, 
- iter:  7, Tr(K):  5.600000052E+01, charge diff:  5.182567335E-07}
+    guess for new ef:  5.83309715E-03}, 
+ iter:  7, Tr(K):  5.600000052E+01, charge diff:  5.182566198E-07}
        diff from reference kernel      :  1.688E-05
-       ebs                             : -21.7868848027993
-       ebs_check                       : -21.78688731946321
-       diff                            : -2.5166639154861059E-006
-       relative diff                   :  1.1551279305257773E-007
+       ebs                             : -21.78688480280027
+       ebs_check                       : -21.78688731946435
+       diff                            : -2.5166640789109351E-006
+       relative diff                   :  1.1551280055363712E-007
        modify fscale                   : increase
        fscale reached upper limit; reset to:  5.0000000000000003E-002
        Final kernel purification:
-         tr(KS) before purification    :  56.00000051822885
+         tr(KS) before purification    :  56.00000051822872
          shift of eigenvalues          :  0.000E+00
          purification process:
          -  {iter:  1, diff from idempotency:  6.434E-03, charge diff:  5.182E-07}
          -  {iter:  2, diff from idempotency:  4.650E-05, charge diff:  2.732E-05}
          -  {iter:  3, diff from idempotency:  2.539E-09, charge diff:  9.524E-10}
-         -  {iter:  4, diff from idempotency:  2.651E-15, charge diff:  2.842E-14}
-         tr(KS) after purification     :  56.00000000000001
-       trace(KS)                       :  56.00000000000001
+         -  {iter:  4, diff from idempotency:  2.737E-15, charge diff:  0.000E+00}
+         tr(KS) after purification     :  55.99999999999999
+       trace(KS)                       :  55.99999999999999
        need to repeat with sharper decay (new):  No
         #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ FOE calculation of kernel finished
        Kohn-Sham residue               :  2.446E-01
@@ -1086,7 +1105,7 @@
     Total charge:  5.599999939012E+01, 
  Poisson Solver: {BC: Free, Box:  [  105,  109,  199 ], MPI tasks:  4}}
      summary: [ {kernel method: FOE, mix entity: DENS, mix hist:  0, conv crit:  9.99E-11, 
- iter:  1, delta:  2.82E-07, energy: -6.18976206696858640E+01, D:  4.751E-02}]
+ iter:  1, delta:  2.82E-07, energy: -6.18976206697163320E+01, D:  4.751E-02}]
    -  #--------------------------------------------------------------------- kernel iter: 2
      Kernel update:
        Hamiltonian application required:  Yes
@@ -1100,49 +1119,49 @@
        polynomial degree multiplicator :  3.000E+00
        FOE to determine density kernel: &it_foe002-002-01-01
        -  { #-------------------------------------------------------------------- it FOE: 1
- bisec/eval bounds:  [ -0.03,  0.04, -1.60,  1.80 ], pol deg:  204, eF: -3.252153110E-02, 
+ bisec/eval bounds:  [ -0.03,  0.04, -1.60,  1.80 ], pol deg:  204, eF: -3.252153126E-02, 
        polynomials: recalculated,   eval/bisection bounds ok:  [  Yes,  Yes,  Yes,  No ]}
        -  { #-------------------------------------------------------------------- it FOE: 2
- bisec/eval bounds:  [ -0.03,  0.04, -1.60,  1.80 ], pol deg:  204, eF:  4.418772572E-02, 
+ bisec/eval bounds:  [ -0.03,  0.04, -1.60,  1.80 ], pol deg:  204, eF:  4.418772556E-02, 
        polynomials: from memory, 
- Search new eF: {method: bisection / secant method, guess for new ef: -4.21852663E-03}, 
- iter:  2, Tr(K):  5.600000768E+01, charge diff:  7.684371113E-06}
+ Search new eF: {method: bisection / secant method, guess for new ef: -4.21852679E-03}, 
+ iter:  2, Tr(K):  5.600000768E+01, charge diff:  7.684370956E-06}
        -  { #-------------------------------------------------------------------- it FOE: 3
- bisec/eval bounds:  [ -0.03,  0.04, -1.60,  1.80 ], pol deg:  204, eF: -4.218526626E-03, 
+ bisec/eval bounds:  [ -0.03,  0.04, -1.60,  1.80 ], pol deg:  204, eF: -4.218526787E-03, 
        polynomials: from memory,    eval/bisection bounds ok:  [  Yes,  Yes,  Yes,  Yes ], 
  interpol check: {D eF: -4.840625E-02, D Tr: -5.050996E-06, interpol possible:  Yes}, 
- Search new eF: {method: bisection / secant method, guess for new ef: -1.86993214E-02}, 
- iter:  3, Tr(K):  5.600000263E+01, charge diff:  2.633375416E-06}
+ Search new eF: {method: bisection / secant method, guess for new ef: -1.86993216E-02}, 
+ iter:  3, Tr(K):  5.600000263E+01, charge diff:  2.633375402E-06}
        -  { #-------------------------------------------------------------------- it FOE: 4
- bisec/eval bounds:  [ -0.03, -0.00, -1.60,  1.80 ], pol deg:  204, eF: -1.869932136E-02, 
+ bisec/eval bounds:  [ -0.03,  0.00, -1.60,  1.80 ], pol deg:  204, eF: -1.869932157E-02, 
        polynomials: from memory,    eval/bisection bounds ok:  [  Yes,  Yes,  Yes,  Yes ], 
  interpol check: {D eF: -1.448079E-02, D Tr: -5.008503E-06, interpol possible:  Yes}, 
- Search new eF: {method: bisection / secant method, guess for new ef: -1.16455886E-02}, 
- iter:  4, Tr(K):  5.599999762E+01, charge diff: -2.375127124E-06}
+ Search new eF: {method: bisection / secant method, guess for new ef: -1.16455888E-02}, 
+ iter:  4, Tr(K):  5.599999762E+01, charge diff: -2.375127153E-06}
        -  { #-------------------------------------------------------------------- it FOE: 5
- bisec/eval bounds:  [ -0.02, -0.00, -1.60,  1.80 ], pol deg:  204, eF: -1.164558859E-02, 
+ bisec/eval bounds:  [ -0.02,  0.00, -1.60,  1.80 ], pol deg:  204, eF: -1.164558875E-02, 
        polynomials: from memory,    eval/bisection bounds ok:  [  Yes,  Yes,  Yes,  Yes ], 
  interpol check: {D eF:  7.053733E-03, D Tr:  2.585120E-06, interpol possible:  Yes}, 
  Search new eF: {det: -1.289E-10, limit:  1.000E-12, method: cubic interpolation, 
     guess for new ef: -1.22463177E-02}, 
- iter:  5, Tr(K):  5.600000021E+01, charge diff:  2.099931677E-07}
+ iter:  5, Tr(K):  5.600000021E+01, charge diff:  2.099931180E-07}
        diff from reference kernel      :  2.039E-05
-       ebs                             : -22.09727033931913
-       ebs_check                       : -22.09726869827707
-       diff                            :  1.641042064903786E-006
-       relative diff                   :  7.4264469760492163E-008
+       ebs                             : -22.09727033931952
+       ebs_check                       : -22.09726869827745
+       diff                            :  1.6410420684564997E-006
+       relative diff                   :  7.4264469921266984E-008
        modify fscale                   : increase
        fscale reached upper limit; reset to:  5.0000000000000003E-002
        Final kernel purification:
-         tr(KS) before purification    :  56.00000020996535
+         tr(KS) before purification    :  56.00000020996528
          shift of eigenvalues          :  0.000E+00
          purification process:
          -  {iter:  1, diff from idempotency:  6.462E-03, charge diff:  2.100E-07}
          -  {iter:  2, diff from idempotency:  4.692E-05, charge diff:  2.711E-05}
          -  {iter:  3, diff from idempotency:  2.586E-09, charge diff:  8.918E-10}
-         -  {iter:  4, diff from idempotency:  2.912E-15, charge diff:  2.842E-14}
-         tr(KS) after purification     :  56.00000000000003
-       trace(KS)                       :  56.00000000000003
+         -  {iter:  4, diff from idempotency:  3.103E-15, charge diff:  1.421E-14}
+         tr(KS) after purification     :  56.00000000000001
+       trace(KS)                       :  56.00000000000001
        need to repeat with sharper decay (new):  No
         #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ FOE calculation of kernel finished
        Kohn-Sham residue               :  2.449E-01
@@ -1153,7 +1172,7 @@
     Total charge:  5.599999938986E+01, 
  Poisson Solver: {BC: Free, Box:  [  105,  109,  199 ], MPI tasks:  4}}
      summary: [ {kernel method: FOE, mix entity: DENS, mix hist:  0, conv crit:  9.99E-11, 
- iter:  2, delta:  1.51E-07, energy: -6.18963228360965445E+01, D:  1.298E-03}]
+ iter:  2, delta:  1.51E-07, energy: -6.18963228361307074E+01, D:  1.298E-03}]
    -  #--------------------------------------------------------------------- kernel iter: 3
      Kernel update:
        Hamiltonian application required:  Yes
@@ -1167,55 +1186,55 @@
        polynomial degree multiplicator :  3.000E+00
        FOE to determine density kernel: &it_foe002-003-01-01
        -  { #-------------------------------------------------------------------- it FOE: 1
- bisec/eval bounds:  [ -0.04,  0.02, -1.60,  1.80 ], pol deg:  204, eF: -4.331356667E-02, 
+ bisec/eval bounds:  [ -0.04,  0.02, -1.60,  1.80 ], pol deg:  204, eF: -4.331356669E-02, 
        polynomials: recalculated,   eval/bisection bounds ok:  [  Yes,  Yes,  No,  No ]}
        -  { #-------------------------------------------------------------------- it FOE: 2
- bisec/eval bounds:  [ -0.07,  0.02, -1.60,  1.80 ], pol deg:  204, eF: -7.438081569E-02, 
+ bisec/eval bounds:  [ -0.07,  0.02, -1.60,  1.80 ], pol deg:  204, eF: -7.438081570E-02, 
        polynomials: from memory,    eval/bisection bounds ok:  [  Yes,  Yes,  Yes,  No ]}
        -  { #-------------------------------------------------------------------- it FOE: 3
- bisec/eval bounds:  [ -0.07,  0.02, -1.60,  1.80 ], pol deg:  204, eF:  1.882093135E-02, 
+ bisec/eval bounds:  [ -0.07,  0.02, -1.60,  1.80 ], pol deg:  204, eF:  1.882093133E-02, 
        polynomials: from memory,    eval/bisection bounds ok:  [  Yes,  Yes,  Yes,  No ]}
        -  { #-------------------------------------------------------------------- it FOE: 4
- bisec/eval bounds:  [ -0.07,  0.05, -1.60,  1.80 ], pol deg:  204, eF:  4.957750787E-02, 
+ bisec/eval bounds:  [ -0.07,  0.05, -1.60,  1.80 ], pol deg:  204, eF:  4.957750786E-02, 
        polynomials: from memory, 
- Search new eF: {method: bisection / secant method, guess for new ef: -4.47923551E-03}, 
- iter:  4, Tr(K):  5.600002145E+01, charge diff:  2.145272691E-05}
+ Search new eF: {method: bisection / secant method, guess for new ef: -4.47923548E-03}, 
+ iter:  4, Tr(K):  5.600002145E+01, charge diff:  2.145272688E-05}
        -  { #-------------------------------------------------------------------- it FOE: 5
- bisec/eval bounds:  [ -0.07,  0.05, -1.60,  1.80 ], pol deg:  204, eF: -4.479235511E-03, 
+ bisec/eval bounds:  [ -0.07,  0.05, -1.60,  1.80 ], pol deg:  204, eF: -4.479235477E-03, 
        polynomials: from memory,    eval/bisection bounds ok:  [  Yes,  Yes,  Yes,  Yes ], 
  interpol check: {D eF: -5.405674E-02, D Tr: -1.634713E-05, interpol possible:  Yes}, 
  Search new eF: {method: bisection / secant method, guess for new ef: -2.62759338E-02}, 
- iter:  5, Tr(K):  5.600000511E+01, charge diff:  5.105601282E-06}
+ iter:  5, Tr(K):  5.600000511E+01, charge diff:  5.105601289E-06}
        -  { #-------------------------------------------------------------------- it FOE: 6
- bisec/eval bounds:  [ -0.07, -0.00, -1.60,  1.80 ], pol deg:  204, eF: -2.627593379E-02, 
+ bisec/eval bounds:  [ -0.07,  0.00, -1.60,  1.80 ], pol deg:  204, eF: -2.627593376E-02, 
        polynomials: from memory,    eval/bisection bounds ok:  [  Yes,  Yes,  Yes,  Yes ], 
  interpol check: {D eF: -2.179670E-02, D Tr: -1.073900E-05, interpol possible:  Yes}, 
  Search new eF: {method: bisection / secant method, guess for new ef: -1.51097693E-02}, 
- iter:  6, Tr(K):  5.599999437E+01, charge diff: -5.633400413E-06}
+ iter:  6, Tr(K):  5.599999437E+01, charge diff: -5.633400420E-06}
        -  { #-------------------------------------------------------------------- it FOE: 7
- bisec/eval bounds:  [ -0.03, -0.00, -1.60,  1.80 ], pol deg:  204, eF: -1.510976929E-02, 
+ bisec/eval bounds:  [ -0.03,  0.00, -1.60,  1.80 ], pol deg:  204, eF: -1.510976926E-02, 
        polynomials: from memory,    eval/bisection bounds ok:  [  Yes,  Yes,  Yes,  Yes ], 
  interpol check: {D eF:  1.116616E-02, D Tr:  5.300645E-06, interpol possible:  Yes}, 
  Search new eF: {det: -6.863E-10, limit:  1.000E-12, method: cubic interpolation, 
     guess for new ef: -1.44474012E-02}, 
- iter:  7, Tr(K):  5.599999967E+01, charge diff: -3.327551781E-07}
+ iter:  7, Tr(K):  5.599999967E+01, charge diff: -3.327551710E-07}
        diff from reference kernel      :  1.980E-05
-       ebs                             : -22.20061796897179
-       ebs_check                       : -22.20061621520217
-       diff                            :  1.7537696201941344E-006
-       relative diff                   :  7.8996432560807657E-008
+       ebs                             : -22.20061796897206
+       ebs_check                       : -22.20061621520245
+       diff                            :  1.753769613088707E-006
+       relative diff                   :  7.8996432240751281E-008
        modify fscale                   : increase
        fscale reached upper limit; reset to:  5.0000000000000003E-002
        Final kernel purification:
-         tr(KS) before purification    :  55.99999966721698
+         tr(KS) before purification    :  55.99999966721695
          shift of eigenvalues          :  0.000E+00
          purification process:
          -  {iter:  1, diff from idempotency:  6.477E-03, charge diff: -3.328E-07}
          -  {iter:  2, diff from idempotency:  4.715E-05, charge diff:  2.722E-05}
-         -  {iter:  3, diff from idempotency:  2.612E-09, charge diff:  9.024E-10}
-         -  {iter:  4, diff from idempotency:  2.794E-15, charge diff: -2.132E-14}
-         tr(KS) after purification     :  55.99999999999997
-       trace(KS)                       :  55.99999999999997
+         -  {iter:  3, diff from idempotency:  2.612E-09, charge diff:  9.023E-10}
+         -  {iter:  4, diff from idempotency:  2.823E-15, charge diff:  0.000E+00}
+         tr(KS) after purification     :  55.99999999999999
+       trace(KS)                       :  55.99999999999999
        need to repeat with sharper decay (new):  No
         #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ FOE calculation of kernel finished
        Kohn-Sham residue               :  2.451E-01
@@ -1223,21 +1242,29 @@
      Hamiltonian update: {
  Energies: {Ekin:  8.20125083321E+01, Epot: -8.89538860849E+01, Enl:  4.90293856980E+00, 
               EH:  3.06730309000E+02,  EXC: -2.30163923009E+01, EvXC: -3.01057962458E+01}, 
-    Total charge:  5.599999938990E+01, 
+    Total charge:  5.599999938991E+01, 
  Poisson Solver: {BC: Free, Box:  [  105,  109,  199 ], MPI tasks:  4}}
      summary: [ {kernel method: FOE, mix entity: DENS, mix hist:  0, conv crit:  9.99E-11, 
- iter:  3, delta:  7.38E-08, energy: -6.18960056797816947E+01, D:  3.172E-04}]
+ iter:  3, delta:  7.38E-08, energy: -6.18960056798106848E+01, D:  3.172E-04}]
    -  &final_kernel002  { #-------------------------------------------------------- iter: 4
  summary: [ {kernel method: FOE, mix entity: DENS, mix hist:  0, conv crit:  9.99E-11, 
- iter:  4, delta:  7.38E-08, energy: -6.18960056797816947E+01, D:  3.172E-04}]}
+ iter:  4, delta:  7.38E-08, energy: -6.18960056798106848E+01, D:  3.172E-04}]}
     #================================================================= Summary of both steps
    self consistency summary: &it_sc002
    -  {iter:  2, Omega: TRACE,  #WARNING: support function optimization not converged
  kernel optimization: FOE,  #WARNING: density optimization not converged
- iter low:  2, delta out:  2.530E-07, energy: -6.18960056797816947E+01, D:  4.912E-02}
+ iter low:  2, delta out:  2.530E-07, energy: -6.18960056798106848E+01, D:  4.912E-02}
     #WARNING: oscillation of the energy, increase counter
    energy_scillation_counter           :  1
+    #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Set the confinement prefactors
+ - Confinement prefactor for high accuracy:
+   -  {atom type: H, value:  0.00E+00, origin: from file}
+   -  {atom type: C, value:  0.00E+00, origin: from file}
     #========================================================= Adjustments for high accuracy
+    #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Set the confinement prefactors
+ - Confinement prefactor for high accuracy:
+   -  {atom type: H, value:  0.00E+00, origin: from file}
+   -  {atom type: C, value:  0.00E+00, origin: from file}
    Locreg increased                    :  No
    Kernel update:
      Hamiltonian application required  :  Yes
@@ -1259,68 +1286,68 @@
      polynomial degree multiplicator   :  3.000E+00
      FOE to determine density kernel: &it_foe003-000-01-01
      -  { #---------------------------------------------------------------------- it FOE: 1
- bisec/eval bounds:  [ -0.04,  0.02, -1.60,  1.80 ], pol deg:  204, eF: -4.489641192E-02, 
+ bisec/eval bounds:  [ -0.04,  0.02, -1.60,  1.80 ], pol deg:  204, eF: -4.489641191E-02, 
        polynomials: recalculated,   eval/bisection bounds ok:  [  Yes,  Yes,  No,  No ]}
      -  { #---------------------------------------------------------------------- it FOE: 2
- bisec/eval bounds:  [ -0.08,  0.02, -1.60,  1.80 ], pol deg:  204, eF: -7.534542268E-02, 
+ bisec/eval bounds:  [ -0.08,  0.02, -1.60,  1.80 ], pol deg:  204, eF: -7.534542267E-02, 
        polynomials: from memory,    eval/bisection bounds ok:  [  Yes,  Yes,  Yes,  No ]}
      -  { #---------------------------------------------------------------------- it FOE: 3
- bisec/eval bounds:  [ -0.08,  0.02, -1.60,  1.80 ], pol deg:  204, eF:  1.600160959E-02, 
+ bisec/eval bounds:  [ -0.08,  0.02, -1.60,  1.80 ], pol deg:  204, eF:  1.600160961E-02, 
        polynomials: from memory,    eval/bisection bounds ok:  [  Yes,  Yes,  Yes,  No ]}
      -  { #---------------------------------------------------------------------- it FOE: 4
- bisec/eval bounds:  [ -0.08,  0.05, -1.60,  1.80 ], pol deg:  204, eF:  4.614613024E-02, 
+ bisec/eval bounds:  [ -0.08,  0.05, -1.60,  1.80 ], pol deg:  204, eF:  4.614613026E-02, 
        polynomials: from memory, 
- Search new eF: {method: bisection / secant method, guess for new ef: -3.57346619E-03}, 
- iter:  4, Tr(K):  5.600001725E+01, charge diff:  1.725004962E-05}
+ Search new eF: {method: bisection / secant method, guess for new ef: -3.57346620E-03}, 
+ iter:  4, Tr(K):  5.600001725E+01, charge diff:  1.725004964E-05}
      -  { #---------------------------------------------------------------------- it FOE: 5
- bisec/eval bounds:  [ -0.08,  0.05, -1.60,  1.80 ], pol deg:  204, eF: -3.573466192E-03, 
+ bisec/eval bounds:  [ -0.08,  0.05, -1.60,  1.80 ], pol deg:  204, eF: -3.573466200E-03, 
        polynomials: from memory,    eval/bisection bounds ok:  [  Yes,  Yes,  Yes,  Yes ], 
  interpol check: {D eF: -4.971960E-02, D Tr: -1.073463E-05, interpol possible:  Yes}, 
  Search new eF: {method: bisection / secant method, guess for new ef: -2.69003634E-02}, 
- iter:  5, Tr(K):  5.600000652E+01, charge diff:  6.515416146E-06}
+ iter:  5, Tr(K):  5.600000652E+01, charge diff:  6.515416118E-06}
      -  { #---------------------------------------------------------------------- it FOE: 6
- bisec/eval bounds:  [ -0.08, -0.00, -1.60,  1.80 ], pol deg:  204, eF: -2.690036345E-02, 
+ bisec/eval bounds:  [ -0.08,  0.00, -1.60,  1.80 ], pol deg:  204, eF: -2.690036343E-02, 
        polynomials: from memory,    eval/bisection bounds ok:  [  Yes,  Yes,  Yes,  Yes ], 
  interpol check: {D eF: -2.332690E-02, D Tr: -1.335590E-05, interpol possible:  Yes}, 
  Search new eF: {method: bisection / secant method, guess for new ef: -1.50949787E-02}, 
  iter:  6, Tr(K):  5.599999316E+01, charge diff: -6.840480232E-06}
      -  { #---------------------------------------------------------------------- it FOE: 7
- bisec/eval bounds:  [ -0.03, -0.00, -1.60,  1.80 ], pol deg:  204, eF: -1.509497870E-02, 
+ bisec/eval bounds:  [ -0.03,  0.00, -1.60,  1.80 ], pol deg:  204, eF: -1.509497868E-02, 
        polynomials: from memory,    eval/bisection bounds ok:  [  Yes,  Yes,  Yes,  Yes ], 
  interpol check: {D eF:  1.180538E-02, D Tr:  6.888507E-06, interpol possible:  Yes}, 
  Search new eF: {det: -7.057E-10, limit:  1.000E-12, method: cubic interpolation, 
     guess for new ef: -1.51776272E-02}, 
  iter:  7, Tr(K):  5.600000005E+01, charge diff:  4.802674880E-08}
      diff from reference kernel        :  1.971E-05
-     ebs                               : -22.2603614798492
-     ebs_check                         : -22.26035967719818
-     diff                              :  1.8026510133495321E-006
-     relative diff                     :  8.0980311796883903E-008
+     ebs                               : -22.2603614798494
+     ebs_check                         : -22.2603596771984
+     diff                              :  1.8026509955859638E-006
+     relative diff                     :  8.0980310998892178E-008
      modify fscale                     : increase
      fscale reached upper limit; reset to:  5.0000000000000003E-002
      Final kernel purification:
-       tr(KS) before purification      :  56.00000004799888
+       tr(KS) before purification      :  56.00000004799887
        shift of eigenvalues            :  0.000E+00
        purification process:
        -  {iter:  1, diff from idempotency:  6.484E-03, charge diff:  4.800E-08}
        -  {iter:  2, diff from idempotency:  4.725E-05, charge diff:  2.723E-05}
        -  {iter:  3, diff from idempotency:  2.623E-09, charge diff:  8.994E-10}
-       -  {iter:  4, diff from idempotency:  2.719E-15, charge diff:  0.000E+00}
-       tr(KS) after purification       :  56.0
-     trace(KS)                         :  56.0
+       -  {iter:  4, diff from idempotency:  2.691E-15, charge diff:  1.421E-14}
+       tr(KS) after purification       :  56.00000000000001
+     trace(KS)                         :  56.00000000000001
      need to repeat with sharper decay (new):  No
       #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ FOE calculation of kernel finished
      Kohn-Sham residue                 :  2.452E-01
      Coefficients available            :  No
     #========================================================= support function optimization
  - support function optimization: &it_supfun003
-   -  {Initial kernel purification:  Yes, tr(KS) before purification:  56.0, 
+   -  {Initial kernel purification:  Yes, tr(KS) before purification:  56.00000000000001, 
  shift of eigenvalues:  0.000E+00, purification process: [
- {iter:  1, diff from idempotency:  3.261E-03, charge diff:  0.000E+00}, 
+ {iter:  1, diff from idempotency:  3.261E-03, charge diff:  1.421E-14}, 
  {iter:  2, diff from idempotency:  1.199E-05, charge diff:  4.982E-06}, 
- {iter:  3, diff from idempotency:  1.651E-10, charge diff: -1.288E-11}, 
- {iter:  4, diff from idempotency:  2.377E-15, charge diff:  0.000E+00}], 
- tr(KS) after purification:  56.0}
+ {iter:  3, diff from idempotency:  1.651E-10, charge diff: -1.285E-11}, 
+ {iter:  4, diff from idempotency:  2.743E-15, charge diff:  0.000E+00}], 
+ tr(KS) after purification:  56.00000000000001}
    -  { #-------------------------------------------------------------------------- iter: 1
  target function: ENERGY, Hamiltonian Applied:  Yes, 
  Energies: {Ekin:  8.20125083321E+01, Epot: -8.90083564035E+01, Enl:  4.90293856980E+00}, 
@@ -1329,7 +1356,7 @@
  error estimation: [
  max / mean error:  [  9.53E-09,  7.39E-10 ]]}, 
  Preconditioning:  Yes, 
- iter:  1, fnrm:  2.43E-01, Omega: -6.189588335638911E+01, D: -2.66E+01, D best: -2.66E+01, 
+ iter:  1, fnrm:  2.43E-01, Omega: -6.189588335641707E+01, D: -2.66E+01, D best: -2.66E+01, 
  Optimization: {algorithm: SD, mean alpha:  1.000E+00, max alpha:  1.000E+00, 
     consecutive successes:  1}, 
  calculate S^x: {mode: sparse, powers: {x: -1/2}, order:  12, 
@@ -1344,7 +1371,7 @@
  error estimation: [
  max / mean error:  [  4.64E-08,  3.74E-09 ]]}, 
  Preconditioning:  Yes, 
- iter:  2, fnrm:  1.70E-01, Omega: -6.256156703270995E+01, D: -6.66E-01, D best: -6.66E-01, 
+ iter:  2, fnrm:  1.70E-01, Omega: -6.256156703273791E+01, D: -6.66E-01, D best: -6.66E-01, 
  Optimization: {algorithm: SD, mean alpha:  6.000E-01, max alpha:  6.000E-01, 
     consecutive successes:  2}, 
  calculate S^x: {mode: sparse, powers: {x: -1/2}, order:  12, 
@@ -1359,12 +1386,12 @@
  error estimation: [
  max / mean error:  [  3.85E-08,  2.92E-09 ]]}, 
  Preconditioning:  Yes, 
- iter:  3, fnrm:  1.04E-01, Omega: -6.263167509484231E+01, D: -7.01E-02, D best: -7.01E-02, 
+ iter:  3, fnrm:  1.04E-01, Omega: -6.263167509487022E+01, D: -7.01E-02, D best: -7.01E-02, 
  exit criterion: net number of iterations}
    -  &final_supfun003  { #-------------------------------------------------------- iter: 3
  target function: ENERGY, 
  Energies: {Ekin:  8.14632237902E+01, Epot: -8.82702318707E+01, Enl:  4.81251520681E+00}, 
- iter:  3, fnrm:  1.04E-01, Omega: -6.263167509484231E+01, D: -7.01E-02, D best: -7.01E-02}
+ iter:  3, fnrm:  1.04E-01, Omega: -6.263167509487022E+01, D: -7.01E-02, D best: -7.01E-02}
       #Support functions created
     #=================================================================== kernel optimization
  - kernel optimization: &it_kernel003
@@ -1389,59 +1416,59 @@
        polynomial degree multiplicator :  3.000E+00
        FOE to determine density kernel: &it_foe003-001-01-01
        -  { #-------------------------------------------------------------------- it FOE: 1
- bisec/eval bounds:  [ -0.05,  0.01, -1.60,  1.80 ], pol deg:  204, eF: -4.502070269E-02, 
+ bisec/eval bounds:  [ -0.05,  0.01, -1.60,  1.80 ], pol deg:  204, eF: -4.502070268E-02, 
        polynomials: recalculated,   eval/bisection bounds ok:  [  Yes,  Yes,  No,  No ]}
        -  { #-------------------------------------------------------------------- it FOE: 2
- bisec/eval bounds:  [ -0.07,  0.01, -1.60,  1.80 ], pol deg:  204, eF: -7.486377814E-02, 
+ bisec/eval bounds:  [ -0.07,  0.01, -1.60,  1.80 ], pol deg:  204, eF: -7.486377812E-02, 
        polynomials: from memory,    eval/bisection bounds ok:  [  Yes,  Yes,  Yes,  No ]}
        -  { #-------------------------------------------------------------------- it FOE: 3
- bisec/eval bounds:  [ -0.07,  0.01, -1.60,  1.80 ], pol deg:  204, eF:  1.466544819E-02, 
+ bisec/eval bounds:  [ -0.07,  0.01, -1.60,  1.80 ], pol deg:  204, eF:  1.466544821E-02, 
        polynomials: from memory,    eval/bisection bounds ok:  [  Yes,  Yes,  Yes,  No ]}
        -  { #-------------------------------------------------------------------- it FOE: 4
- bisec/eval bounds:  [ -0.07,  0.04, -1.60,  1.80 ], pol deg:  204, eF:  4.421009288E-02, 
+ bisec/eval bounds:  [ -0.07,  0.04, -1.60,  1.80 ], pol deg:  204, eF:  4.421009290E-02, 
        polynomials: from memory, 
- Search new eF: {method: bisection / secant method, guess for new ef: -7.39747110E-03}, 
- iter:  4, Tr(K):  5.600000334E+01, charge diff:  3.337801509E-06}
+ Search new eF: {method: bisection / secant method, guess for new ef: -7.39747019E-03}, 
+ iter:  4, Tr(K):  5.600000334E+01, charge diff:  3.337801388E-06}
        -  { #-------------------------------------------------------------------- it FOE: 5
- bisec/eval bounds:  [ -0.07,  0.04, -1.60,  1.80 ], pol deg:  204, eF: -7.397471098E-03, 
+ bisec/eval bounds:  [ -0.07,  0.04, -1.60,  1.80 ], pol deg:  204, eF: -7.397470189E-03, 
        polynomials: from memory,    eval/bisection bounds ok:  [  Yes,  Yes,  Yes,  Yes ], 
- interpol check: {D eF: -5.160756E-02, D Tr: -9.066193E-08, interpol possible:  Yes}, 
- Search new eF: {method: bisection / secant method, guess for new ef: -3.64229505E-02}, 
- iter:  5, Tr(K):  5.600000325E+01, charge diff:  3.247139581E-06}
+ interpol check: {D eF: -5.160756E-02, D Tr: -9.066166E-08, interpol possible:  Yes}, 
+ Search new eF: {method: bisection / secant method, guess for new ef: -3.64229501E-02}, 
+ iter:  5, Tr(K):  5.600000325E+01, charge diff:  3.247139730E-06}
        -  { #-------------------------------------------------------------------- it FOE: 6
- bisec/eval bounds:  [ -0.07, -0.01, -1.60,  1.80 ], pol deg:  204, eF: -3.642295046E-02, 
+ bisec/eval bounds:  [ -0.07, -0.01, -1.60,  1.80 ], pol deg:  204, eF: -3.642295007E-02, 
        polynomials: from memory,    eval/bisection bounds ok:  [  Yes,  Yes,  Yes,  Yes ], 
- interpol check: {D eF: -2.902548E-02, D Tr: -5.828137E-06, interpol possible:  Yes}, 
- Search new eF: {method: bisection / secant method, guess for new ef: -2.27395962E-02}, 
- iter:  6, Tr(K):  5.599999742E+01, charge diff: -2.580997702E-06}
+ interpol check: {D eF: -2.902548E-02, D Tr: -5.828138E-06, interpol possible:  Yes}, 
+ Search new eF: {method: bisection / secant method, guess for new ef: -2.27395952E-02}, 
+ iter:  6, Tr(K):  5.599999742E+01, charge diff: -2.580998050E-06}
        -  { #-------------------------------------------------------------------- it FOE: 7
- bisec/eval bounds:  [ -0.04, -0.01, -1.60,  1.80 ], pol deg:  204, eF: -2.273959616E-02, 
+ bisec/eval bounds:  [ -0.04, -0.01, -1.60,  1.80 ], pol deg:  204, eF: -2.273959521E-02, 
        polynomials: from memory,    eval/bisection bounds ok:  [  Yes,  Yes,  Yes,  Yes ], 
- interpol check: {D eF:  1.368335E-02, D Tr: -1.058687E-06, interpol possible:  No}, 
- Search new eF: {method: bisection / secant method, guess for new ef: -1.48499107E-02}, 
- iter:  7, Tr(K):  5.599999636E+01, charge diff: -3.639684344E-06}
+ interpol check: {D eF:  1.368335E-02, D Tr: -1.058686E-06, interpol possible:  No}, 
+ Search new eF: {method: bisection / secant method, guess for new ef: -1.48499099E-02}, 
+ iter:  7, Tr(K):  5.599999636E+01, charge diff: -3.639684230E-06}
        -  { #-------------------------------------------------------------------- it FOE: 8
- bisec/eval bounds:  [ -0.02, -0.01, -1.60,  1.80 ], pol deg:  204, eF: -1.484991069E-02, 
+ bisec/eval bounds:  [ -0.02, -0.01, -1.60,  1.80 ], pol deg:  204, eF: -1.484990990E-02, 
        polynomials: from memory,    eval/bisection bounds ok:  [  Yes,  Yes,  Yes,  Yes ], 
- Search new eF: {method: bisection / secant method, guess for new ef: -1.27984390E-02}, 
- iter:  8, Tr(K):  5.599999983E+01, charge diff: -1.728833823E-07}
+ Search new eF: {method: bisection / secant method, guess for new ef: -1.27984385E-02}, 
+ iter:  8, Tr(K):  5.599999983E+01, charge diff: -1.728831478E-07}
        diff from reference kernel      :  1.770E-05
-       ebs                             : -23.00411624330713
-       ebs_check                       : -23.00411452586623
-       diff                            :  1.7174409059350637E-006
-       relative diff                   :  7.4657982413679529E-008
+       ebs                             : -23.00411624330756
+       ebs_check                       : -23.00411452586631
+       diff                            :  1.7174412469955769E-006
+       relative diff                   :  7.4657997239742731E-008
        modify fscale                   : increase
        fscale reached upper limit; reset to:  5.0000000000000003E-002
        Final kernel purification:
-         tr(KS) before purification    :  55.99999982702327
+         tr(KS) before purification    :  55.99999982702349
          shift of eigenvalues          :  0.000E+00
          purification process:
          -  {iter:  1, diff from idempotency:  5.761E-03, charge diff: -1.730E-07}
          -  {iter:  2, diff from idempotency:  3.658E-05, charge diff:  2.136E-05}
          -  {iter:  3, diff from idempotency:  1.549E-09, charge diff:  5.193E-10}
-         -  {iter:  4, diff from idempotency:  2.744E-15, charge diff: -1.421E-14}
-         tr(KS) after purification     :  55.99999999999999
-       trace(KS)                       :  55.99999999999999
+         -  {iter:  4, diff from idempotency:  2.684E-15, charge diff:  7.105E-15}
+         tr(KS) after purification     :  56.00000000000001
+       trace(KS)                       :  56.00000000000001
        need to repeat with sharper decay (new):  No
         #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ FOE calculation of kernel finished
        Coefficients available          :  No
@@ -1451,7 +1478,7 @@
     Total charge:  5.599999941113E+01, 
  Poisson Solver: {BC: Free, Box:  [  105,  109,  199 ], MPI tasks:  4}}
      summary: [ {kernel method: FOE, mix entity: DENS, mix hist:  0, conv crit:  1.04E-10, 
- iter:  1, delta:  9.71E-07, energy: -6.26396873679333908E+01, D: -7.437E-01}]
+ iter:  1, delta:  9.71E-07, energy: -6.26396873679613577E+01, D: -7.437E-01}]
    -  #--------------------------------------------------------------------- kernel iter: 2
      Kernel update:
        Hamiltonian application required:  Yes
@@ -1465,45 +1492,45 @@
        polynomial degree multiplicator :  3.000E+00
        FOE to determine density kernel: &it_foe003-002-01-01
        -  { #-------------------------------------------------------------------- it FOE: 1
- bisec/eval bounds:  [ -0.04,  0.02, -1.60,  1.80 ], pol deg:  204, eF: -4.204763729E-02, 
+ bisec/eval bounds:  [ -0.04,  0.02, -1.60,  1.80 ], pol deg:  204, eF: -4.204763672E-02, 
        polynomials: recalculated,   eval/bisection bounds ok:  [  Yes,  Yes,  No,  No ]}
        -  { #-------------------------------------------------------------------- it FOE: 2
- bisec/eval bounds:  [ -0.07,  0.02, -1.60,  1.80 ], pol deg:  204, eF: -7.129683553E-02, 
+ bisec/eval bounds:  [ -0.07,  0.02, -1.60,  1.80 ], pol deg:  204, eF: -7.129683496E-02, 
        polynomials: from memory,    eval/bisection bounds ok:  [  Yes,  Yes,  Yes,  No ]}
        -  { #-------------------------------------------------------------------- it FOE: 3
- bisec/eval bounds:  [ -0.07,  0.02, -1.60,  1.80 ], pol deg:  204, eF:  1.645075920E-02, 
+ bisec/eval bounds:  [ -0.07,  0.02, -1.60,  1.80 ], pol deg:  204, eF:  1.645075976E-02, 
        polynomials: from memory, 
- Search new eF: {method: bisection / secant method, guess for new ef: -3.70233865E-02}, 
- iter:  3, Tr(K):  5.600000335E+01, charge diff:  3.352268479E-06}
+ Search new eF: {method: bisection / secant method, guess for new ef: -3.70233839E-02}, 
+ iter:  3, Tr(K):  5.600000335E+01, charge diff:  3.352268202E-06}
        -  { #-------------------------------------------------------------------- it FOE: 4
- bisec/eval bounds:  [ -0.07,  0.02, -1.60,  1.80 ], pol deg:  204, eF: -3.702338653E-02, 
+ bisec/eval bounds:  [ -0.07,  0.02, -1.60,  1.80 ], pol deg:  204, eF: -3.702338393E-02, 
        polynomials: from memory,    eval/bisection bounds ok:  [  Yes,  Yes,  Yes,  Yes ], 
- interpol check: {D eF: -5.347415E-02, D Tr: -1.496589E-06, interpol possible:  Yes}, 
- Search new eF: {method: bisection / secant method, guess for new ef: -5.56328827E-02}, 
- iter:  4, Tr(K):  5.600000186E+01, charge diff:  1.855679457E-06}
+ interpol check: {D eF: -5.347414E-02, D Tr: -1.496589E-06, interpol possible:  Yes}, 
+ Search new eF: {method: bisection / secant method, guess for new ef: -5.56328801E-02}, 
+ iter:  4, Tr(K):  5.600000186E+01, charge diff:  1.855679244E-06}
        -  { #-------------------------------------------------------------------- it FOE: 5
- bisec/eval bounds:  [ -0.07, -0.04, -1.60,  1.80 ], pol deg:  204, eF: -5.563288271E-02, 
+ bisec/eval bounds:  [ -0.07, -0.04, -1.60,  1.80 ], pol deg:  204, eF: -5.563288013E-02, 
        polynomials: from memory,    eval/bisection bounds ok:  [  Yes,  Yes,  Yes,  Yes ], 
  interpol check: {D eF: -1.860950E-02, D Tr: -2.664925E-06, interpol possible:  Yes}, 
- Search new eF: {method: bisection / secant method, guess for new ef: -4.81549775E-02}, 
- iter:  5, Tr(K):  5.599999919E+01, charge diff: -8.092459467E-07}
+ Search new eF: {method: bisection / secant method, guess for new ef: -4.81549750E-02}, 
+ iter:  5, Tr(K):  5.599999919E+01, charge diff: -8.092458472E-07}
        diff from reference kernel      :  2.388E-05
-       ebs                             : -23.04982145384042
-       ebs_check                       : -23.04980959922839
-       diff                            :  1.1854612022688116E-005
-       relative diff                   :  5.1430385464929384E-007
+       ebs                             : -23.0498214538402
+       ebs_check                       : -23.04980959923082
+       diff                            :  1.1854609379469139E-005
+       relative diff                   :  5.1430373997513588E-007
        modify fscale                   : increase
        fscale reached upper limit; reset to:  5.0000000000000003E-002
        Final kernel purification:
-         tr(KS) before purification    :  55.99999919065946
+         tr(KS) before purification    :  55.99999919065955
          shift of eigenvalues          :  0.000E+00
          purification process:
          -  {iter:  1, diff from idempotency:  5.628E-03, charge diff: -8.093E-07}
          -  {iter:  2, diff from idempotency:  3.488E-05, charge diff:  2.082E-05}
-         -  {iter:  3, diff from idempotency:  1.405E-09, charge diff:  4.803E-10}
-         -  {iter:  4, diff from idempotency:  2.738E-15, charge diff:  0.000E+00}
-         tr(KS) after purification     :  56.0
-       trace(KS)                       :  56.0
+         -  {iter:  3, diff from idempotency:  1.405E-09, charge diff:  4.802E-10}
+         -  {iter:  4, diff from idempotency:  2.990E-15, charge diff:  7.105E-15}
+         tr(KS) after purification     :  56.00000000000001
+       trace(KS)                       :  56.00000000000001
        need to repeat with sharper decay (new):  No
         #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ FOE calculation of kernel finished
        Kohn-Sham residue               :  2.037E-01
@@ -1511,10 +1538,10 @@
      Hamiltonian update: {
  Energies: {Ekin:  8.14632237902E+01, Epot: -8.83845046415E+01, Enl:  4.81251520681E+00, 
               EH:  3.06564196679E+02,  EXC: -2.28641748203E+01, EvXC: -2.99049503805E+01}, 
-    Total charge:  5.599999940989E+01, 
+    Total charge:  5.599999940990E+01, 
  Poisson Solver: {BC: Free, Box:  [  105,  109,  199 ], MPI tasks:  4}}
      summary: [ {kernel method: FOE, mix entity: DENS, mix hist:  0, conv crit:  1.04E-10, 
- iter:  2, delta:  4.40E-07, energy: -6.26277295941035845E+01, D:  1.196E-02}]
+ iter:  2, delta:  4.40E-07, energy: -6.26277295941326315E+01, D:  1.196E-02}]
    -  #--------------------------------------------------------------------- kernel iter: 3
      Kernel update:
        Hamiltonian application required:  Yes
@@ -1528,59 +1555,59 @@
        polynomial degree multiplicator :  3.000E+00
        FOE to determine density kernel: &it_foe003-003-01-01
        -  { #-------------------------------------------------------------------- it FOE: 1
- bisec/eval bounds:  [ -0.07, -0.02, -1.60,  1.80 ], pol deg:  204, eF: -7.421601317E-02, 
+ bisec/eval bounds:  [ -0.07, -0.02, -1.60,  1.80 ], pol deg:  204, eF: -7.421601060E-02, 
        polynomials: recalculated,   eval/bisection bounds ok:  [  Yes,  Yes,  Yes,  No ]}
        -  { #-------------------------------------------------------------------- it FOE: 2
- bisec/eval bounds:  [ -0.07, -0.02, -1.60,  1.80 ], pol deg:  204, eF: -2.209394190E-02, 
+ bisec/eval bounds:  [ -0.07, -0.02, -1.60,  1.80 ], pol deg:  204, eF: -2.209393933E-02, 
        polynomials: from memory,    eval/bisection bounds ok:  [  Yes,  Yes,  Yes,  No ]}
        -  { #-------------------------------------------------------------------- it FOE: 3
- bisec/eval bounds:  [ -0.07,  0.00, -1.60,  1.80 ], pol deg:  204, eF:  1.360990167E-03, 
+ bisec/eval bounds:  [ -0.07,  0.00, -1.60,  1.80 ], pol deg:  204, eF:  1.360992738E-03, 
        polynomials: from memory, 
- Search new eF: {method: bisection / secant method, guess for new ef: -3.52956574E-02}, 
- iter:  3, Tr(K):  5.600000796E+01, charge diff:  7.955580791E-06}
+ Search new eF: {method: bisection / secant method, guess for new ef: -3.52956569E-02}, 
+ iter:  3, Tr(K):  5.600000796E+01, charge diff:  7.955579932E-06}
        -  { #-------------------------------------------------------------------- it FOE: 4
- bisec/eval bounds:  [ -0.07,  0.00, -1.60,  1.80 ], pol deg:  204, eF: -3.529565744E-02, 
+ bisec/eval bounds:  [ -0.07,  0.00, -1.60,  1.80 ], pol deg:  204, eF: -3.529565685E-02, 
        polynomials: from memory,    eval/bisection bounds ok:  [  Yes,  Yes,  Yes,  Yes ], 
  interpol check: {D eF: -3.665665E-02, D Tr: -1.341295E-05, interpol possible:  Yes}, 
- Search new eF: {method: bisection / secant method, guess for new ef: -1.86741945E-02}, 
- iter:  4, Tr(K):  5.599999454E+01, charge diff: -5.457366953E-06}
+ Search new eF: {method: bisection / secant method, guess for new ef: -1.86741921E-02}, 
+ iter:  4, Tr(K):  5.599999454E+01, charge diff: -5.457367550E-06}
        -  { #-------------------------------------------------------------------- it FOE: 5
- bisec/eval bounds:  [ -0.04,  0.00, -1.60,  1.80 ], pol deg:  204, eF: -1.867419454E-02, 
+ bisec/eval bounds:  [ -0.04,  0.00, -1.60,  1.80 ], pol deg:  204, eF: -1.867419209E-02, 
        polynomials: from memory,    eval/bisection bounds ok:  [  Yes,  Yes,  Yes,  Yes ], 
- interpol check: {D eF:  1.662146E-02, D Tr:  1.486052E-06, interpol possible:  Yes}, 
- Search new eF: {method: bisection / secant method, guess for new ef: -1.03298268E-02}, 
- iter:  5, Tr(K):  5.599999603E+01, charge diff: -3.971314946E-06}
+ interpol check: {D eF:  1.662146E-02, D Tr:  1.486055E-06, interpol possible:  Yes}, 
+ Search new eF: {method: bisection / secant method, guess for new ef: -1.03298252E-02}, 
+ iter:  5, Tr(K):  5.599999603E+01, charge diff: -3.971312907E-06}
        -  { #-------------------------------------------------------------------- it FOE: 6
- bisec/eval bounds:  [ -0.02,  0.00, -1.60,  1.80 ], pol deg:  204, eF: -1.032982680E-02, 
+ bisec/eval bounds:  [ -0.02,  0.00, -1.60,  1.80 ], pol deg:  204, eF: -1.032982520E-02, 
        polynomials: from memory,    eval/bisection bounds ok:  [  Yes,  Yes,  Yes,  Yes ], 
- interpol check: {D eF:  8.344368E-03, D Tr:  7.938680E-06, interpol possible:  Yes}, 
+ interpol check: {D eF:  8.344367E-03, D Tr:  7.938680E-06, interpol possible:  Yes}, 
  Search new eF: {det: -2.973E-11, limit:  1.000E-12, method: cubic interpolation, 
-    guess for new ef: -1.45414059E-02}, 
- iter:  6, Tr(K):  5.600000397E+01, charge diff:  3.967365402E-06}
+    guess for new ef: -1.45414057E-02}, 
+ iter:  6, Tr(K):  5.600000397E+01, charge diff:  3.967366666E-06}
        -  { #-------------------------------------------------------------------- it FOE: 7
- bisec/eval bounds:  [ -0.02, -0.01, -1.60,  1.80 ], pol deg:  204, eF: -1.454140590E-02, 
+ bisec/eval bounds:  [ -0.02, -0.01, -1.60,  1.80 ], pol deg:  204, eF: -1.454140572E-02, 
        polynomials: from memory,    eval/bisection bounds ok:  [  Yes,  Yes,  Yes,  Yes ], 
- interpol check: {D eF: -4.211579E-03, D Tr: -3.989885E-06, interpol possible:  Yes}, 
+ interpol check: {D eF: -4.211581E-03, D Tr: -3.989886E-06, interpol possible:  Yes}, 
  Search new eF: {det: -1.251E-12, limit:  1.000E-12, method: cubic interpolation, 
-    guess for new ef: -1.45184552E-02}, 
- iter:  7, Tr(K):  5.599999998E+01, charge diff: -2.251945119E-08}
+    guess for new ef: -1.45184551E-02}, 
+ iter:  7, Tr(K):  5.599999998E+01, charge diff: -2.251941567E-08}
        diff from reference kernel      :  1.739E-05
-       ebs                             : -22.79915337003944
-       ebs_check                       : -22.79915330747957
-       diff                            :  6.2559866620404136E-008
-       relative diff                   :  2.743955690153591E-009
+       ebs                             : -22.79915337003975
+       ebs_check                       : -22.79915330747991
+       diff                            :  6.2559834645981027E-008
+       relative diff                   :  2.7439542877144988E-009
        modify fscale                   : increase
        fscale reached upper limit; reset to:  5.0000000000000003E-002
        Final kernel purification:
-         tr(KS) before purification    :  55.99999997738684
+         tr(KS) before purification    :  55.99999997738688
          shift of eigenvalues          :  0.000E+00
          purification process:
          -  {iter:  1, diff from idempotency:  5.583E-03, charge diff: -2.261E-08}
          -  {iter:  2, diff from idempotency:  3.427E-05, charge diff:  2.053E-05}
          -  {iter:  3, diff from idempotency:  1.354E-09, charge diff:  4.780E-10}
-         -  {iter:  4, diff from idempotency:  2.653E-15, charge diff:  1.421E-14}
-         tr(KS) after purification     :  56.00000000000002
-       trace(KS)                       :  56.00000000000002
+         -  {iter:  4, diff from idempotency:  3.300E-15, charge diff: -7.105E-15}
+         tr(KS) after purification     :  56.0
+       trace(KS)                       :  56.0
        need to repeat with sharper decay (new):  No
         #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ FOE calculation of kernel finished
        Kohn-Sham residue               :  2.039E-01
@@ -1591,7 +1618,7 @@
     Total charge:  5.599999940994E+01, 
  Poisson Solver: {BC: Free, Box:  [  105,  109,  199 ], MPI tasks:  4}}
      summary: [ {kernel method: FOE, mix entity: DENS, mix hist:  0, conv crit:  1.04E-10, 
- iter:  3, delta:  2.22E-07, energy: -6.26252143454894394E+01, D:  2.515E-03}]
+ iter:  3, delta:  2.22E-07, energy: -6.26252143455186570E+01, D:  2.515E-03}]
    -  #--------------------------------------------------------------------- kernel iter: 4
      Kernel update:
        Hamiltonian application required:  Yes
@@ -1605,64 +1632,64 @@
        polynomial degree multiplicator :  3.000E+00
        FOE to determine density kernel: &it_foe003-004-01-01
        -  { #-------------------------------------------------------------------- it FOE: 1
- bisec/eval bounds:  [ -0.04,  0.01, -1.60,  1.80 ], pol deg:  204, eF: -3.773883795E-02, 
+ bisec/eval bounds:  [ -0.04,  0.01, -1.60,  1.80 ], pol deg:  204, eF: -3.773883781E-02, 
        polynomials: recalculated,   eval/bisection bounds ok:  [  Yes,  Yes,  Yes,  No ]}
        -  { #-------------------------------------------------------------------- it FOE: 2
- bisec/eval bounds:  [ -0.04,  0.01, -1.60,  1.80 ], pol deg:  204, eF:  8.701927548E-03, 
+ bisec/eval bounds:  [ -0.04,  0.01, -1.60,  1.80 ], pol deg:  204, eF:  8.701927692E-03, 
        polynomials: from memory, 
- Search new eF: {method: bisection / secant method, guess for new ef: -1.19730228E-02}, 
- iter:  2, Tr(K):  5.600000331E+01, charge diff:  3.312491792E-06}
+ Search new eF: {method: bisection / secant method, guess for new ef: -1.19730220E-02}, 
+ iter:  2, Tr(K):  5.600000331E+01, charge diff:  3.312491543E-06}
        -  { #-------------------------------------------------------------------- it FOE: 3
- bisec/eval bounds:  [ -0.04,  0.01, -1.60,  1.80 ], pol deg:  204, eF: -1.197302283E-02, 
+ bisec/eval bounds:  [ -0.04,  0.01, -1.60,  1.80 ], pol deg:  204, eF: -1.197302199E-02, 
        polynomials: from memory,    eval/bisection bounds ok:  [  Yes,  Yes,  Yes,  Yes ], 
- interpol check: {D eF: -2.067495E-02, D Tr:  1.025269E-06, interpol possible:  No}, 
+ interpol check: {D eF: -2.067495E-02, D Tr:  1.025270E-06, interpol possible:  No}, 
  Search new eF: {method: bisection / secant method, guess for new ef: -2.42903487E-02}, 
- iter:  3, Tr(K):  5.600000434E+01, charge diff:  4.337760565E-06}
+ iter:  3, Tr(K):  5.600000434E+01, charge diff:  4.337761524E-06}
        -  { #-------------------------------------------------------------------- it FOE: 4
- bisec/eval bounds:  [ -0.04, -0.01, -1.60,  1.80 ], pol deg:  204, eF: -2.429034870E-02, 
+ bisec/eval bounds:  [ -0.04, -0.01, -1.60,  1.80 ], pol deg:  204, eF: -2.429034874E-02, 
        polynomials: from memory,    eval/bisection bounds ok:  [  Yes,  Yes,  Yes,  Yes ], 
- Search new eF: {method: bisection / secant method, guess for new ef: -1.68808093E-02}, 
- iter:  4, Tr(K):  5.599998973E+01, charge diff: -1.027282870E-05}
+ Search new eF: {method: bisection / secant method, guess for new ef: -1.68808091E-02}, 
+ iter:  4, Tr(K):  5.599998973E+01, charge diff: -1.027282882E-05}
        -  { #-------------------------------------------------------------------- it FOE: 5
- bisec/eval bounds:  [ -0.02, -0.01, -1.60,  1.80 ], pol deg:  204, eF: -1.688080931E-02, 
+ bisec/eval bounds:  [ -0.02, -0.01, -1.60,  1.80 ], pol deg:  204, eF: -1.688080910E-02, 
        polynomials: from memory,    eval/bisection bounds ok:  [  Yes,  Yes,  Yes,  Yes ], 
- interpol check: {D eF:  7.409539E-03, D Tr:  7.987868E-06, interpol possible:  Yes}, 
- Search new eF: {method: bisection / secant method, guess for new ef: -1.48072245E-02}, 
- iter:  5, Tr(K):  5.599999772E+01, charge diff: -2.284960289E-06}
+ interpol check: {D eF:  7.409540E-03, D Tr:  7.987869E-06, interpol possible:  Yes}, 
+ Search new eF: {method: bisection / secant method, guess for new ef: -1.48072242E-02}, 
+ iter:  5, Tr(K):  5.599999772E+01, charge diff: -2.284960061E-06}
        -  { #-------------------------------------------------------------------- it FOE: 6
- bisec/eval bounds:  [ -0.02, -0.01, -1.60,  1.80 ], pol deg:  204, eF: -1.480722447E-02, 
+ bisec/eval bounds:  [ -0.02, -0.01, -1.60,  1.80 ], pol deg:  204, eF: -1.480722417E-02, 
        polynomials: from memory,    eval/bisection bounds ok:  [  Yes,  Yes,  Yes,  Yes ], 
  interpol check: {D eF:  2.073585E-03, D Tr:  2.844701E-06, interpol possible:  Yes}, 
- Search new eF: {method: bisection / secant method, guess for new ef: -1.55296263E-02}, 
- iter:  6, Tr(K):  5.600000056E+01, charge diff:  5.597407622E-07}
+ Search new eF: {method: bisection / secant method, guess for new ef: -1.55296261E-02}, 
+ iter:  6, Tr(K):  5.600000056E+01, charge diff:  5.597410961E-07}
        diff from reference kernel      :  1.799E-05
-       ebs                             : -22.69105714273718
-       ebs_check                       : -22.69105825975233
-       diff                            : -1.1170151523742788E-006
-       relative diff                   :  4.9227109400313091E-008
+       ebs                             : -22.69105714273764
+       ebs_check                       : -22.69105825975274
+       diff                            : -1.11701509553086E-006
+       relative diff                   :  4.9227106895209814E-008
        modify fscale                   : increase
        fscale reached upper limit; reset to:  5.0000000000000003E-002
        Final kernel purification:
-         tr(KS) before purification    :  56.00000055964749
+         tr(KS) before purification    :  56.0000005596478
          shift of eigenvalues          :  0.000E+00
          purification process:
          -  {iter:  1, diff from idempotency:  5.560E-03, charge diff:  5.596E-07}
          -  {iter:  2, diff from idempotency:  3.396E-05, charge diff:  2.040E-05}
-         -  {iter:  3, diff from idempotency:  1.330E-09, charge diff:  4.758E-10}
-         -  {iter:  4, diff from idempotency:  2.902E-15, charge diff:  1.421E-14}
-         tr(KS) after purification     :  56.00000000000001
-       trace(KS)                       :  56.00000000000001
+         -  {iter:  3, diff from idempotency:  1.330E-09, charge diff:  4.759E-10}
+         -  {iter:  4, diff from idempotency:  3.028E-15, charge diff: -1.421E-14}
+         tr(KS) after purification     :  55.99999999999999
+       trace(KS)                       :  55.99999999999999
        need to repeat with sharper decay (new):  No
         #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ FOE calculation of kernel finished
        Kohn-Sham residue               :  2.040E-01
        Coefficients available          :  No
      Hamiltonian update: {
  Energies: {Ekin:  8.14632237902E+01, Epot: -8.80737007267E+01, Enl:  4.81251520681E+00, 
-              EH:  3.06899832578E+02,  EXC: -2.28019109732E+01, EvXC: -2.98226751818E+01}, 
+              EH:  3.06899832579E+02,  EXC: -2.28019109732E+01, EvXC: -2.98226751818E+01}, 
     Total charge:  5.599999940991E+01, 
  Poisson Solver: {BC: Free, Box:  [  105,  109,  199 ], MPI tasks:  4}}
      summary: [ {kernel method: FOE, mix entity: DENS, mix hist:  0, conv crit:  1.04E-10, 
- iter:  4, delta:  1.11E-07, energy: -6.26246164673003136E+01, D:  5.979E-04}]
+ iter:  4, delta:  1.11E-07, energy: -6.26246164673262342E+01, D:  5.979E-04}]
    -  #--------------------------------------------------------------------- kernel iter: 5
      Kernel update:
        Hamiltonian application required:  Yes
@@ -1676,36 +1703,36 @@
        polynomial degree multiplicator :  3.000E+00
        FOE to determine density kernel: &it_foe003-005-01-01
        -  { #-------------------------------------------------------------------- it FOE: 1
- bisec/eval bounds:  [ -0.03,  0.00, -1.60,  1.80 ], pol deg:  204, eF: -3.433813632E-02, 
+ bisec/eval bounds:  [ -0.03,  0.00, -1.60,  1.80 ], pol deg:  204, eF: -3.433813616E-02, 
        polynomials: recalculated,   eval/bisection bounds ok:  [  Yes,  Yes,  Yes,  No ]}
        -  { #-------------------------------------------------------------------- it FOE: 2
- bisec/eval bounds:  [ -0.03,  0.00, -1.60,  1.80 ], pol deg:  204, eF:  3.278883738E-03, 
+ bisec/eval bounds:  [ -0.03,  0.00, -1.60,  1.80 ], pol deg:  204, eF:  3.278883892E-03, 
        polynomials: from memory, 
- Search new eF: {method: bisection / secant method, guess for new ef: -1.55066804E-02}, 
- iter:  2, Tr(K):  5.600001006E+01, charge diff:  1.005742894E-05}
+ Search new eF: {method: bisection / secant method, guess for new ef: -1.55066801E-02}, 
+ iter:  2, Tr(K):  5.600001006E+01, charge diff:  1.005742875E-05}
        -  { #-------------------------------------------------------------------- it FOE: 3
- bisec/eval bounds:  [ -0.03,  0.00, -1.60,  1.80 ], pol deg:  204, eF: -1.550668045E-02, 
+ bisec/eval bounds:  [ -0.03,  0.00, -1.60,  1.80 ], pol deg:  204, eF: -1.550668011E-02, 
        polynomials: from memory,    eval/bisection bounds ok:  [  Yes,  Yes,  Yes,  Yes ], 
- interpol check: {D eF: -1.878556E-02, D Tr: -1.015478E-05, interpol possible:  Yes}, 
- Search new eF: {method: bisection / secant method, guess for new ef: -1.07202479E-02}, 
- iter:  3, Tr(K):  5.599999990E+01, charge diff: -9.734610984E-08}
+ interpol check: {D eF: -1.878556E-02, D Tr: -1.015477E-05, interpol possible:  Yes}, 
+ Search new eF: {method: bisection / secant method, guess for new ef: -1.07202481E-02}, 
+ iter:  3, Tr(K):  5.599999990E+01, charge diff: -9.734564799E-08}
        diff from reference kernel      :  1.810E-05
-       ebs                             : -22.63441098173074
-       ebs_check                       : -22.63441305828127
-       diff                            : -2.0765505297504205E-006
-       relative diff                   :  9.1743077892616625E-008
+       ebs                             : -22.63441098173127
+       ebs_check                       : -22.6344130582817
+       diff                            : -2.0765504338271512E-006
+       relative diff                   :  9.1743073654674772E-008
        modify fscale                   : increase
        fscale reached upper limit; reset to:  5.0000000000000003E-002
        Final kernel purification:
-         tr(KS) before purification    :  55.99999990256093
+         tr(KS) before purification    :  55.99999990256136
          shift of eigenvalues          :  0.000E+00
          purification process:
          -  {iter:  1, diff from idempotency:  5.549E-03, charge diff: -9.744E-08}
          -  {iter:  2, diff from idempotency:  3.382E-05, charge diff:  2.033E-05}
          -  {iter:  3, diff from idempotency:  1.318E-09, charge diff:  4.742E-10}
-         -  {iter:  4, diff from idempotency:  2.790E-15, charge diff:  1.421E-14}
-         tr(KS) after purification     :  56.00000000000001
-       trace(KS)                       :  56.00000000000001
+         -  {iter:  4, diff from idempotency:  2.742E-15, charge diff:  1.421E-14}
+         tr(KS) after purification     :  56.0
+       trace(KS)                       :  56.0
        need to repeat with sharper decay (new):  No
         #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ FOE calculation of kernel finished
        Kohn-Sham residue               :  2.040E-01
@@ -1716,26 +1743,30 @@
     Total charge:  5.599999940990E+01, 
  Poisson Solver: {BC: Free, Box:  [  105,  109,  199 ], MPI tasks:  4}}
      summary: [ {kernel method: FOE, mix entity: DENS, mix hist:  0, conv crit:  1.04E-10, 
- iter:  5, delta:  5.52E-08, energy: -6.26244726377077541E+01, D:  1.438E-04}]
+ iter:  5, delta:  5.52E-08, energy: -6.26244726377334473E+01, D:  1.438E-04}]
    -  &final_kernel003  { #-------------------------------------------------------- iter: 6
  summary: [ {kernel method: FOE, mix entity: DENS, mix hist:  0, conv crit:  1.04E-10, 
- iter:  6, delta:  5.52E-08, energy: -6.26244726377077541E+01, D:  1.438E-04}]}
+ iter:  6, delta:  5.52E-08, energy: -6.26244726377334473E+01, D:  1.438E-04}]}
     #================================================================= Summary of both steps
    self consistency summary: &it_sc003
    -  {iter:  3, Omega: ENERGY,  #WARNING: support function optimization not converged
  kernel optimization: FOE,  #WARNING: density optimization not converged
- iter high:  3, delta out:  8.934E-07, energy: -6.26244726377077541E+01, D: -7.285E-01}
+ iter high:  3, delta out:  8.934E-07, energy: -6.26244726377334473E+01, D: -7.285E-01}
     #WARNING: oscillation of the energy, increase counter
    energy_scillation_counter           :  2
    new nit_scc                         :  6
+    #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Set the confinement prefactors
+ - Confinement prefactor for high accuracy:
+   -  {atom type: H, value:  0.00E+00, origin: from file}
+   -  {atom type: C, value:  0.00E+00, origin: from file}
     #========================================================= support function optimization
  - support function optimization: &it_supfun004
-   -  {Initial kernel purification:  Yes, tr(KS) before purification:  56.00000000000001, 
+   -  {Initial kernel purification:  Yes, tr(KS) before purification:  56.0, 
  shift of eigenvalues:  0.000E+00, purification process: [
- {iter:  1, diff from idempotency:  2.791E-03, charge diff:  1.421E-14}, 
+ {iter:  1, diff from idempotency:  2.791E-03, charge diff:  0.000E+00}, 
  {iter:  2, diff from idempotency:  8.603E-06, charge diff:  3.931E-06}, 
  {iter:  3, diff from idempotency:  8.323E-11, charge diff: -5.770E-12}], 
- tr(KS) after purification:  55.99999999999998}
+ tr(KS) after purification:  55.99999999999999}
    -  { #-------------------------------------------------------------------------- iter: 1
  target function: ENERGY, Hamiltonian Applied:  Yes, 
  Energies: {Ekin:  8.14632237902E+01, Epot: -8.80002947877E+01, Enl:  4.81251520681E+00}, 
@@ -1744,7 +1775,7 @@
  error estimation: [
  max / mean error:  [  3.85E-08,  2.92E-09 ]]}, 
  Preconditioning:  Yes, 
- iter:  1, fnrm:  1.07E-01, Omega: -6.262440522336931E+01, D: -6.28E-02, D best: -6.28E-02, 
+ iter:  1, fnrm:  1.07E-01, Omega: -6.262440522339665E+01, D: -6.28E-02, D best: -6.28E-02, 
  Optimization: {algorithm: SD, mean alpha:  4.725E-01, max alpha:  4.725E-01, 
     consecutive successes:  1}, 
  calculate S^x: {mode: sparse, powers: {x: -1/2}, order:  12, 
@@ -1753,13 +1784,13 @@
  Orthogonalization:  Yes}
    -  { #-------------------------------------------------------------------------- iter: 2
  target function: ENERGY, Hamiltonian Applied:  Yes, 
- Energies: {Ekin:  8.18650397824E+01, Epot: -8.83129608859E+01, Enl:  4.80961548883E+00}, 
+ Energies: {Ekin:  8.18650397824E+01, Epot: -8.83129608860E+01, Enl:  4.80961548883E+00}, 
  Orthoconstraint:  Yes, calculation of S^-1: direct calculation, 
  calculate S^x: {mode: sparse, powers: {x: -1}, order:  12, 
  error estimation: [
  max / mean error:  [  3.18E-08,  2.38E-09 ]]}, 
  Preconditioning:  Yes, 
- iter:  2, fnrm:  1.03E-01, Omega: -6.263086292371992E+01, D: -6.46E-03, D best: -6.46E-03, 
+ iter:  2, fnrm:  1.03E-01, Omega: -6.263086292374732E+01, D: -6.46E-03, D best: -6.46E-03, 
  Optimization: {algorithm: SD, mean alpha:  5.198E-01, max alpha:  5.198E-01, 
     consecutive successes:  2}, 
  calculate S^x: {mode: sparse, powers: {x: -1/2}, order:  12, 
@@ -1774,12 +1805,12 @@
  error estimation: [
  max / mean error:  [  3.05E-08,  2.26E-09 ]]}, 
  Preconditioning:  Yes, 
- iter:  3, fnrm:  9.60E-02, Omega: -6.263817946536733E+01, D: -7.32E-03, D best: -7.32E-03, 
+ iter:  3, fnrm:  9.60E-02, Omega: -6.263817946539473E+01, D: -7.32E-03, D best: -7.32E-03, 
  exit criterion: net number of iterations}
    -  &final_supfun004  { #-------------------------------------------------------- iter: 3
  target function: ENERGY, 
  Energies: {Ekin:  8.21482826539E+01, Epot: -8.85423620747E+01, Enl:  4.82814215527E+00}, 
- iter:  3, fnrm:  9.60E-02, Omega: -6.263817946536733E+01, D: -7.32E-03, D best: -7.32E-03}
+ iter:  3, fnrm:  9.60E-02, Omega: -6.263817946539473E+01, D: -7.32E-03, D best: -7.32E-03}
       #Support functions created
     #=================================================================== kernel optimization
  - kernel optimization: &it_kernel004
@@ -1804,39 +1835,39 @@
        polynomial degree multiplicator :  3.000E+00
        FOE to determine density kernel: &it_foe004-001-01-01
        -  { #-------------------------------------------------------------------- it FOE: 1
- bisec/eval bounds:  [ -0.03,  0.00, -1.60,  1.80 ], pol deg:  204, eF: -2.595514106E-02, 
+ bisec/eval bounds:  [ -0.03,  0.00, -1.60,  1.80 ], pol deg:  204, eF: -2.595514119E-02, 
        polynomials: recalculated,   eval/bisection bounds ok:  [  Yes,  Yes,  Yes,  No ]}
        -  { #-------------------------------------------------------------------- it FOE: 2
- bisec/eval bounds:  [ -0.03,  0.00, -1.60,  1.80 ], pol deg:  204, eF:  4.514645183E-03, 
+ bisec/eval bounds:  [ -0.03,  0.00, -1.60,  1.80 ], pol deg:  204, eF:  4.514645056E-03, 
        polynomials: from memory, 
- Search new eF: {method: bisection / secant method, guess for new ef: -8.45828642E-03}, 
- iter:  2, Tr(K):  5.600000859E+01, charge diff:  8.594711502E-06}
+ Search new eF: {method: bisection / secant method, guess for new ef: -8.45828660E-03}, 
+ iter:  2, Tr(K):  5.600000859E+01, charge diff:  8.594711737E-06}
        -  { #-------------------------------------------------------------------- it FOE: 3
- bisec/eval bounds:  [ -0.03,  0.00, -1.60,  1.80 ], pol deg:  204, eF: -8.458286421E-03, 
+ bisec/eval bounds:  [ -0.03,  0.00, -1.60,  1.80 ], pol deg:  204, eF: -8.458286604E-03, 
        polynomials: from memory,    eval/bisection bounds ok:  [  Yes,  Yes,  Yes,  Yes ], 
- interpol check: {D eF: -1.297293E-02, D Tr:  8.218006E-06, interpol possible:  No}, 
- Search new eF: {method: bisection / secant method, guess for new ef: -1.73349665E-02}, 
- iter:  3, Tr(K):  5.600001681E+01, charge diff:  1.681271709E-05}
+ interpol check: {D eF: -1.297293E-02, D Tr:  8.218005E-06, interpol possible:  No}, 
+ Search new eF: {method: bisection / secant method, guess for new ef: -1.73349666E-02}, 
+ iter:  3, Tr(K):  5.600001681E+01, charge diff:  1.681271687E-05}
        -  { #-------------------------------------------------------------------- it FOE: 4
- bisec/eval bounds:  [ -0.03, -0.01, -1.60,  1.80 ], pol deg:  204, eF: -1.733496648E-02, 
+ bisec/eval bounds:  [ -0.03, -0.01, -1.60,  1.80 ], pol deg:  204, eF: -1.733496658E-02, 
        polynomials: from memory,    eval/bisection bounds ok:  [  Yes,  Yes,  Yes,  Yes ], 
- Search new eF: {method: bisection / secant method, guess for new ef: -1.96467049E-02}, 
- iter:  4, Tr(K):  5.600000060E+01, charge diff:  5.981567384E-07}
+ Search new eF: {method: bisection / secant method, guess for new ef: -1.96467050E-02}, 
+ iter:  4, Tr(K):  5.600000060E+01, charge diff:  5.981564755E-07}
        diff from reference kernel      :  1.901E-05
-       ebs                             : -22.62874968792445
-       ebs_check                       : -22.62875440076329
-       diff                            : -4.7128388374062524E-006
-       relative diff                   :  2.0826775241237473E-007
+       ebs                             : -22.62874968792456
+       ebs_check                       : -22.6287544007636
+       diff                            : -4.7128390434636458E-006
+       relative diff                   :  2.0826776151837374E-007
        modify fscale                   : increase
        fscale reached upper limit; reset to:  5.0000000000000003E-002
        Final kernel purification:
-         tr(KS) before purification    :  56.00000059807601
+         tr(KS) before purification    :  56.00000059807574
          shift of eigenvalues          :  0.000E+00
          purification process:
          -  {iter:  1, diff from idempotency:  5.357E-03, charge diff:  5.981E-07}
          -  {iter:  2, diff from idempotency:  3.152E-05, charge diff:  1.952E-05}
          -  {iter:  3, diff from idempotency:  1.144E-09, charge diff:  4.326E-10}
-         -  {iter:  4, diff from idempotency:  2.706E-15, charge diff:  0.000E+00}
+         -  {iter:  4, diff from idempotency:  2.517E-15, charge diff: -7.105E-15}
          tr(KS) after purification     :  55.99999999999999
        trace(KS)                       :  55.99999999999999
        need to repeat with sharper decay (new):  No
@@ -1845,10 +1876,10 @@
      Hamiltonian update: {
  Energies: {Ekin:  8.14632237902E+01, Epot: -8.80248157791E+01, Enl:  4.81251520681E+00, 
               EH:  3.06980297148E+02,  EXC: -2.27883628265E+01, EvXC: -2.98047573634E+01}, 
-    Total charge:  5.599999939636E+01, 
+    Total charge:  5.599999939637E+01, 
  Poisson Solver: {BC: Free, Box:  [  105,  109,  199 ], MPI tasks:  4}}
      summary: [ {kernel method: FOE, mix entity: DENS, mix hist:  0, conv crit:  9.60E-11, 
- iter:  1, delta:  1.71E-07, energy: -6.26471484473426017E+01, D: -2.268E-02}]
+ iter:  1, delta:  1.71E-07, energy: -6.26471484473699434E+01, D: -2.268E-02}]
    -  #--------------------------------------------------------------------- kernel iter: 2
      Kernel update:
        Hamiltonian application required:  Yes
@@ -1862,48 +1893,48 @@
        polynomial degree multiplicator :  3.000E+00
        FOE to determine density kernel: &it_foe004-002-01-01
        -  { #-------------------------------------------------------------------- it FOE: 1
- bisec/eval bounds:  [ -0.03, -0.01, -1.60,  1.80 ], pol deg:  204, eF: -3.198696834E-02, 
+ bisec/eval bounds:  [ -0.03, -0.01, -1.60,  1.80 ], pol deg:  204, eF: -3.198696838E-02, 
        polynomials: recalculated,   eval/bisection bounds ok:  [  Yes,  Yes,  Yes,  No ]}
        -  { #-------------------------------------------------------------------- it FOE: 2
- bisec/eval bounds:  [ -0.03, -0.01, -1.60,  1.80 ], pol deg:  204, eF: -7.306441486E-03, 
+ bisec/eval bounds:  [ -0.03, -0.01, -1.60,  1.80 ], pol deg:  204, eF: -7.306441527E-03, 
        polynomials: from memory, 
  Search new eF: {method: bisection / secant method, guess for new ef: -1.95982918E-02}, 
  iter:  2, Tr(K):  5.600001583E+01, charge diff:  1.582555385E-05}
        -  { #-------------------------------------------------------------------- it FOE: 3
- bisec/eval bounds:  [ -0.03, -0.01, -1.60,  1.80 ], pol deg:  204, eF: -1.959829179E-02, 
+ bisec/eval bounds:  [ -0.03, -0.01, -1.60,  1.80 ], pol deg:  204, eF: -1.959829184E-02, 
        polynomials: from memory,    eval/bisection bounds ok:  [  Yes,  Yes,  Yes,  Yes ], 
  interpol check: {D eF: -1.229185E-02, D Tr: -1.945709E-05, interpol possible:  Yes}, 
  Search new eF: {method: bisection / secant method, guess for new ef: -1.53782326E-02}, 
- iter:  3, Tr(K):  5.599999637E+01, charge diff: -3.631538718E-06}
+ iter:  3, Tr(K):  5.599999637E+01, charge diff: -3.631538775E-06}
        -  { #-------------------------------------------------------------------- it FOE: 4
- bisec/eval bounds:  [ -0.02, -0.01, -1.60,  1.80 ], pol deg:  204, eF: -1.537823259E-02, 
+ bisec/eval bounds:  [ -0.02, -0.01, -1.60,  1.80 ], pol deg:  204, eF: -1.537823262E-02, 
        polynomials: from memory,    eval/bisection bounds ok:  [  Yes,  Yes,  Yes,  Yes ], 
  interpol check: {D eF:  4.220059E-03, D Tr:  8.370715E-06, interpol possible:  Yes}, 
  Search new eF: {method: bisection / secant method, guess for new ef: -1.76278648E-02}, 
- iter:  4, Tr(K):  5.600000474E+01, charge diff:  4.739175978E-06}
+ iter:  4, Tr(K):  5.600000474E+01, charge diff:  4.739175964E-06}
        -  { #-------------------------------------------------------------------- it FOE: 5
- bisec/eval bounds:  [ -0.02, -0.02, -1.60,  1.80 ], pol deg:  204, eF: -1.762786481E-02, 
+ bisec/eval bounds:  [ -0.02, -0.02, -1.60,  1.80 ], pol deg:  204, eF: -1.762786484E-02, 
        polynomials: from memory,    eval/bisection bounds ok:  [  Yes,  Yes,  Yes,  Yes ], 
  interpol check: {D eF: -2.249632E-03, D Tr: -4.456991E-06, interpol possible:  Yes}, 
  Search new eF: {det:  1.916E-14, limit:  1.000E-12, guess for new ef: -1.77702957E-02}, 
- iter:  5, Tr(K):  5.600000028E+01, charge diff:  2.821852121E-07}
+ iter:  5, Tr(K):  5.600000028E+01, charge diff:  2.821851766E-07}
        diff from reference kernel      :  1.925E-05
-       ebs                             : -22.2713777070587
-       ebs_check                       : -22.27138286707227
-       diff                            : -5.1600135719809259E-006
-       relative diff                   :  2.3168811736085414E-007
+       ebs                             : -22.27137770705894
+       ebs_check                       : -22.27138286707259
+       diff                            : -5.1600136536933405E-006
+       relative diff                   :  2.3168812102979464E-007
        modify fscale                   : increase
        fscale reached upper limit; reset to:  5.0000000000000003E-002
        Final kernel purification:
-         tr(KS) before purification    :  56.00000028210449
+         tr(KS) before purification    :  56.00000028210447
          shift of eigenvalues          :  0.000E+00
          purification process:
          -  {iter:  1, diff from idempotency:  5.382E-03, charge diff:  2.821E-07}
          -  {iter:  2, diff from idempotency:  3.180E-05, charge diff:  1.971E-05}
          -  {iter:  3, diff from idempotency:  1.164E-09, charge diff:  4.612E-10}
-         -  {iter:  4, diff from idempotency:  2.899E-15, charge diff:  0.000E+00}
-         tr(KS) after purification     :  55.99999999999999
-       trace(KS)                       :  55.99999999999999
+         -  {iter:  4, diff from idempotency:  3.120E-15, charge diff:  2.842E-14}
+         tr(KS) after purification     :  56.00000000000001
+       trace(KS)                       :  56.00000000000001
        need to repeat with sharper decay (new):  No
         #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ FOE calculation of kernel finished
        Kohn-Sham residue               :  2.043E-01
@@ -1914,7 +1945,7 @@
     Total charge:  5.599999939693E+01, 
  Poisson Solver: {BC: Free, Box:  [  105,  109,  199 ], MPI tasks:  4}}
      summary: [ {kernel method: FOE, mix entity: DENS, mix hist:  0, conv crit:  9.60E-11, 
- iter:  2, delta:  9.31E-08, energy: -6.26463646016995312E+01, D:  7.838E-04}]
+ iter:  2, delta:  9.31E-08, energy: -6.26463646017259634E+01, D:  7.838E-04}]
    -  #--------------------------------------------------------------------- kernel iter: 3
      Kernel update:
        Hamiltonian application required:  Yes
@@ -1928,24 +1959,24 @@
        polynomial degree multiplicator :  3.000E+00
        FOE to determine density kernel: &it_foe004-003-01-01
        -  { #-------------------------------------------------------------------- it FOE: 1
- bisec/eval bounds:  [ -0.03, -0.01, -1.60,  1.80 ], pol deg:  204, eF: -2.776590903E-02, 
+ bisec/eval bounds:  [ -0.03, -0.01, -1.60,  1.80 ], pol deg:  204, eF: -2.776590904E-02, 
        polynomials: recalculated,   eval/bisection bounds ok:  [  Yes,  Yes,  Yes,  No ]}
        -  { #-------------------------------------------------------------------- it FOE: 2
- bisec/eval bounds:  [ -0.03, -0.01, -1.60,  1.80 ], pol deg:  204, eF: -7.774682274E-03, 
+ bisec/eval bounds:  [ -0.03, -0.01, -1.60,  1.80 ], pol deg:  204, eF: -7.774682285E-03, 
        polynomials: from memory, 
  Search new eF: {method: bisection / secant method, guess for new ef: -1.77883732E-02}, 
- iter:  2, Tr(K):  5.600001526E+01, charge diff:  1.526283158E-05}
+ iter:  2, Tr(K):  5.600001526E+01, charge diff:  1.526283162E-05}
        -  { #-------------------------------------------------------------------- it FOE: 3
- bisec/eval bounds:  [ -0.03, -0.01, -1.60,  1.80 ], pol deg:  204, eF: -1.778837321E-02, 
+ bisec/eval bounds:  [ -0.03, -0.01, -1.60,  1.80 ], pol deg:  204, eF: -1.778837324E-02, 
        polynomials: from memory,    eval/bisection bounds ok:  [  Yes,  Yes,  Yes,  Yes ], 
  interpol check: {D eF: -1.001369E-02, D Tr: -1.542683E-05, interpol possible:  Yes}, 
  Search new eF: {method: bisection / secant method, guess for new ef: -1.52317249E-02}, 
- iter:  3, Tr(K):  5.599999984E+01, charge diff: -1.639959919E-07}
+ iter:  3, Tr(K):  5.599999984E+01, charge diff: -1.639960203E-07}
        diff from reference kernel      :  1.911E-05
-       ebs                             : -22.23212169109671
-       ebs_check                       : -22.23212673710412
-       diff                            : -5.0460074128011456E-006
-       relative diff                   :  2.2696922421137696E-007
+       ebs                             : -22.23212169109697
+       ebs_check                       : -22.23212673710444
+       diff                            : -5.0460074696445645E-006
+       relative diff                   :  2.2696922676818911E-007
        modify fscale                   : increase
        fscale reached upper limit; reset to:  5.0000000000000003E-002
        Final kernel purification:
@@ -1955,7 +1986,7 @@
          -  {iter:  1, diff from idempotency:  5.385E-03, charge diff: -1.641E-07}
          -  {iter:  2, diff from idempotency:  3.184E-05, charge diff:  1.973E-05}
          -  {iter:  3, diff from idempotency:  1.167E-09, charge diff:  4.595E-10}
-         -  {iter:  4, diff from idempotency:  2.772E-15, charge diff:  1.421E-14}
+         -  {iter:  4, diff from idempotency:  2.639E-15, charge diff:  0.000E+00}
          tr(KS) after purification     :  56.0
        trace(KS)                       :  56.0
        need to repeat with sharper decay (new):  No
@@ -1968,7 +1999,7 @@
     Total charge:  5.599999939690E+01, 
  Poisson Solver: {BC: Free, Box:  [  105,  109,  199 ], MPI tasks:  4}}
      summary: [ {kernel method: FOE, mix entity: DENS, mix hist:  0, conv crit:  9.60E-11, 
- iter:  3, delta:  4.47E-08, energy: -6.26462949751102087E+01, D:  6.963E-05}]
+ iter:  3, delta:  4.47E-08, energy: -6.26462949751415294E+01, D:  6.963E-05}]
    -  #--------------------------------------------------------------------- kernel iter: 4
      Kernel update:
        Hamiltonian application required:  Yes
@@ -1982,36 +2013,36 @@
        polynomial degree multiplicator :  3.000E+00
        FOE to determine density kernel: &it_foe004-004-01-01
        -  { #-------------------------------------------------------------------- it FOE: 1
- bisec/eval bounds:  [ -0.02, -0.01, -1.60,  1.80 ], pol deg:  204, eF: -2.332817169E-02, 
+ bisec/eval bounds:  [ -0.02, -0.01, -1.60,  1.80 ], pol deg:  204, eF: -2.332817170E-02, 
        polynomials: recalculated,   eval/bisection bounds ok:  [  Yes,  Yes,  Yes,  No ]}
        -  { #-------------------------------------------------------------------- it FOE: 2
- bisec/eval bounds:  [ -0.02, -0.01, -1.60,  1.80 ], pol deg:  204, eF: -7.135278015E-03, 
+ bisec/eval bounds:  [ -0.02, -0.01, -1.60,  1.80 ], pol deg:  204, eF: -7.135278026E-03, 
        polynomials: from memory, 
  Search new eF: {method: bisection / secant method, guess for new ef: -1.60806096E-02}, 
- iter:  2, Tr(K):  5.600001516E+01, charge diff:  1.515965727E-05}
+ iter:  2, Tr(K):  5.600001516E+01, charge diff:  1.515965730E-05}
        -  { #-------------------------------------------------------------------- it FOE: 3
- bisec/eval bounds:  [ -0.02, -0.01, -1.60,  1.80 ], pol deg:  204, eF: -1.608060960E-02, 
+ bisec/eval bounds:  [ -0.02, -0.01, -1.60,  1.80 ], pol deg:  204, eF: -1.608060962E-02, 
        polynomials: from memory,    eval/bisection bounds ok:  [  Yes,  Yes,  Yes,  Yes ], 
  interpol check: {D eF: -8.945332E-03, D Tr: -1.207727E-05, interpol possible:  Yes}, 
  Search new eF: {method: bisection / secant method, guess for new ef: -1.87526251E-02}, 
- iter:  3, Tr(K):  5.600000308E+01, charge diff:  3.082388993E-06}
+ iter:  3, Tr(K):  5.600000308E+01, charge diff:  3.082388986E-06}
        -  { #-------------------------------------------------------------------- it FOE: 4
- bisec/eval bounds:  [ -0.02, -0.02, -1.60,  1.80 ], pol deg:  204, eF: -1.875262507E-02, 
+ bisec/eval bounds:  [ -0.02, -0.02, -1.60,  1.80 ], pol deg:  204, eF: -1.875262508E-02, 
        polynomials: from memory,    eval/bisection bounds ok:  [  Yes,  Yes,  Yes,  Yes ], 
  interpol check: {D eF: -2.672015E-03, D Tr: -5.101356E-06, interpol possible:  Yes}, 
  Search new eF: {method: bisection / secant method, guess for new ef: -1.75558686E-02}, 
  iter:  4, Tr(K):  5.599999798E+01, charge diff: -2.018966953E-06}
        -  { #-------------------------------------------------------------------- it FOE: 5
- bisec/eval bounds:  [ -0.02, -0.02, -1.60,  1.80 ], pol deg:  204, eF: -1.755586856E-02, 
+ bisec/eval bounds:  [ -0.02, -0.02, -1.60,  1.80 ], pol deg:  204, eF: -1.755586857E-02, 
        polynomials: from memory,    eval/bisection bounds ok:  [  Yes,  Yes,  Yes,  Yes ], 
  interpol check: {D eF:  1.196757E-03, D Tr:  2.284023E-06, interpol possible:  Yes}, 
  Search new eF: {det: -5.109E-15, limit:  1.000E-12, guess for new ef: -1.76947495E-02}, 
- iter:  5, Tr(K):  5.600000027E+01, charge diff:  2.650556894E-07}
+ iter:  5, Tr(K):  5.600000027E+01, charge diff:  2.650557036E-07}
        diff from reference kernel      :  1.908E-05
-       ebs                             : -22.2020612791199
-       ebs_check                       : -22.20206623882267
-       diff                            : -4.9597027675929439E-006
-       relative diff                   :  2.2338929278865357E-007
+       ebs                             : -22.20206127912021
+       ebs_check                       : -22.20206623882302
+       diff                            : -4.9597028137782218E-006
+       relative diff                   :  2.2338929486887525E-007
        modify fscale                   : increase
        fscale reached upper limit; reset to:  5.0000000000000003E-002
        Final kernel purification:
@@ -2021,9 +2052,9 @@
          -  {iter:  1, diff from idempotency:  5.387E-03, charge diff:  2.650E-07}
          -  {iter:  2, diff from idempotency:  3.187E-05, charge diff:  1.974E-05}
          -  {iter:  3, diff from idempotency:  1.169E-09, charge diff:  4.597E-10}
-         -  {iter:  4, diff from idempotency:  2.574E-15, charge diff:  2.842E-14}
-         tr(KS) after purification     :  56.00000000000003
-       trace(KS)                       :  56.00000000000003
+         -  {iter:  4, diff from idempotency:  2.522E-15, charge diff: -7.105E-15}
+         tr(KS) after purification     :  55.99999999999999
+       trace(KS)                       :  55.99999999999999
        need to repeat with sharper decay (new):  No
         #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ FOE calculation of kernel finished
        Kohn-Sham residue               :  2.043E-01
@@ -2034,7 +2065,7 @@
     Total charge:  5.599999939690E+01, 
  Poisson Solver: {BC: Free, Box:  [  105,  109,  199 ], MPI tasks:  4}}
      summary: [ {kernel method: FOE, mix entity: DENS, mix hist:  0, conv crit:  9.60E-11, 
- iter:  4, delta:  2.25E-08, energy: -6.26462787105172652E+01, D:  1.626E-05}]
+ iter:  4, delta:  2.25E-08, energy: -6.26462787105431858E+01, D:  1.626E-05}]
    -  #--------------------------------------------------------------------- kernel iter: 5
      Kernel update:
        Hamiltonian application required:  Yes
@@ -2048,34 +2079,34 @@
        polynomial degree multiplicator :  3.000E+00
        FOE to determine density kernel: &it_foe004-005-01-01
        -  { #-------------------------------------------------------------------- it FOE: 1
- bisec/eval bounds:  [ -0.02, -0.01, -1.60,  1.80 ], pol deg:  204, eF: -2.425287139E-02, 
+ bisec/eval bounds:  [ -0.02, -0.01, -1.60,  1.80 ], pol deg:  204, eF: -2.425287142E-02, 
        polynomials: recalculated,   eval/bisection bounds ok:  [  Yes,  Yes,  Yes,  No ]}
        -  { #-------------------------------------------------------------------- it FOE: 2
- bisec/eval bounds:  [ -0.02, -0.01, -1.60,  1.80 ], pol deg:  204, eF: -1.113662752E-02, 
+ bisec/eval bounds:  [ -0.02, -0.01, -1.60,  1.80 ], pol deg:  204, eF: -1.113662754E-02, 
        polynomials: from memory, 
  Search new eF: {method: bisection / secant method, guess for new ef: -1.77081871E-02}, 
- iter:  2, Tr(K):  5.600001110E+01, charge diff:  1.110321846E-05}
+ iter:  2, Tr(K):  5.600001110E+01, charge diff:  1.110321848E-05}
        -  { #-------------------------------------------------------------------- it FOE: 3
- bisec/eval bounds:  [ -0.02, -0.01, -1.60,  1.80 ], pol deg:  204, eF: -1.770818711E-02, 
+ bisec/eval bounds:  [ -0.02, -0.01, -1.60,  1.80 ], pol deg:  204, eF: -1.770818714E-02, 
        polynomials: from memory,    eval/bisection bounds ok:  [  Yes,  Yes,  Yes,  Yes ], 
  interpol check: {D eF: -6.571560E-03, D Tr: -1.114412E-05, interpol possible:  Yes}, 
  Search new eF: {method: bisection / secant method, guess for new ef: -1.60532383E-02}, 
- iter:  3, Tr(K):  5.599999996E+01, charge diff: -4.089916672E-08}
+ iter:  3, Tr(K):  5.599999996E+01, charge diff: -4.089918804E-08}
        diff from reference kernel      :  1.897E-05
-       ebs                             : -22.1876472440639
-       ebs_check                       : -22.18765210747129
-       diff                            : -4.8634073834818992E-006
-       relative diff                   :  2.1919437108335396E-007
+       ebs                             : -22.18764724406421
+       ebs_check                       : -22.18765210747164
+       diff                            : -4.863407429667177E-006
+       relative diff                   :  2.1919437316492708E-007
        modify fscale                   : increase
        fscale reached upper limit; reset to:  5.0000000000000003E-002
        Final kernel purification:
-         tr(KS) before purification    :  55.99999995901963
+         tr(KS) before purification    :  55.99999995901959
          shift of eigenvalues          :  0.000E+00
          purification process:
          -  {iter:  1, diff from idempotency:  5.388E-03, charge diff: -4.098E-08}
          -  {iter:  2, diff from idempotency:  3.188E-05, charge diff:  1.975E-05}
          -  {iter:  3, diff from idempotency:  1.170E-09, charge diff:  4.598E-10}
-         -  {iter:  4, diff from idempotency:  2.887E-15, charge diff:  0.000E+00}
+         -  {iter:  4, diff from idempotency:  3.053E-15, charge diff:  0.000E+00}
          tr(KS) after purification     :  55.99999999999999
        trace(KS)                       :  55.99999999999999
        need to repeat with sharper decay (new):  No
@@ -2088,7 +2119,7 @@
     Total charge:  5.599999939690E+01, 
  Poisson Solver: {BC: Free, Box:  [  105,  109,  199 ], MPI tasks:  4}}
      summary: [ {kernel method: FOE, mix entity: DENS, mix hist:  0, conv crit:  9.60E-11, 
- iter:  5, delta:  1.12E-08, energy: -6.26462747292914059E+01, D:  3.981E-06}]
+ iter:  5, delta:  1.12E-08, energy: -6.26462747293167013E+01, D:  3.981E-06}]
    -  #--------------------------------------------------------------------- kernel iter: 6
      Kernel update:
        Hamiltonian application required:  Yes
@@ -2102,46 +2133,46 @@
        polynomial degree multiplicator :  3.000E+00
        FOE to determine density kernel: &it_foe004-006-01-01
        -  { #-------------------------------------------------------------------- it FOE: 1
- bisec/eval bounds:  [ -0.02, -0.01, -1.60,  1.80 ], pol deg:  204, eF: -2.136531710E-02, 
+ bisec/eval bounds:  [ -0.02, -0.01, -1.60,  1.80 ], pol deg:  204, eF: -2.136531711E-02, 
        polynomials: recalculated,   eval/bisection bounds ok:  [  Yes,  Yes,  Yes,  No ]}
        -  { #-------------------------------------------------------------------- it FOE: 2
- bisec/eval bounds:  [ -0.02, -0.01, -1.60,  1.80 ], pol deg:  204, eF: -1.074115956E-02, 
+ bisec/eval bounds:  [ -0.02, -0.01, -1.60,  1.80 ], pol deg:  204, eF: -1.074115958E-02, 
        polynomials: from memory, 
  Search new eF: {method: bisection / secant method, guess for new ef: -1.67693953E-02}, 
- iter:  2, Tr(K):  5.600001151E+01, charge diff:  1.150673305E-05}
+ iter:  2, Tr(K):  5.600001151E+01, charge diff:  1.150673307E-05}
        -  { #-------------------------------------------------------------------- it FOE: 3
- bisec/eval bounds:  [ -0.02, -0.01, -1.60,  1.80 ], pol deg:  204, eF: -1.676939525E-02, 
+ bisec/eval bounds:  [ -0.02, -0.01, -1.60,  1.80 ], pol deg:  204, eF: -1.676939527E-02, 
        polynomials: from memory,    eval/bisection bounds ok:  [  Yes,  Yes,  Yes,  Yes ], 
  interpol check: {D eF: -6.028236E-03, D Tr: -9.793702E-06, interpol possible:  Yes}, 
  Search new eF: {method: bisection / secant method, guess for new ef: -1.83908077E-02}, 
- iter:  3, Tr(K):  5.600000171E+01, charge diff:  1.713030734E-06}
+ iter:  3, Tr(K):  5.600000171E+01, charge diff:  1.713030727E-06}
        -  { #-------------------------------------------------------------------- it FOE: 4
- bisec/eval bounds:  [ -0.02, -0.02, -1.60,  1.80 ], pol deg:  204, eF: -1.839080768E-02, 
+ bisec/eval bounds:  [ -0.02, -0.02, -1.60,  1.80 ], pol deg:  204, eF: -1.839080769E-02, 
        polynomials: from memory,    eval/bisection bounds ok:  [  Yes,  Yes,  Yes,  Yes ], 
  interpol check: {D eF: -1.621412E-03, D Tr: -3.026687E-06, interpol possible:  Yes}, 
  Search new eF: {method: bisection / secant method, guess for new ef: -1.76335883E-02}, 
- iter:  4, Tr(K):  5.599999869E+01, charge diff: -1.313656028E-06}
+ iter:  4, Tr(K):  5.599999869E+01, charge diff: -1.313656036E-06}
        -  { #-------------------------------------------------------------------- it FOE: 5
- bisec/eval bounds:  [ -0.02, -0.02, -1.60,  1.80 ], pol deg:  204, eF: -1.763358826E-02, 
+ bisec/eval bounds:  [ -0.02, -0.02, -1.60,  1.80 ], pol deg:  204, eF: -1.763358828E-02, 
        polynomials: from memory,    eval/bisection bounds ok:  [  Yes,  Yes,  Yes,  Yes ], 
  interpol check: {D eF:  7.572194E-04, D Tr:  1.407540E-06, interpol possible:  Yes}, 
  Search new eF: {det: -3.372E-16, limit:  1.000E-12, guess for new ef: -1.76840956E-02}, 
  iter:  5, Tr(K):  5.600000009E+01, charge diff:  9.388438116E-08}
        diff from reference kernel      :  1.897E-05
-       ebs                             : -22.18034983048449
-       ebs_check                       : -22.1803546736992
-       diff                            : -4.8432147075061494E-006
-       relative diff                   :  2.1835610098672453E-007
+       ebs                             : -22.18034983048484
+       ebs_check                       : -22.1803546736996
+       diff                            : -4.8432147643495682E-006
+       relative diff                   :  2.1835610354950387E-007
        modify fscale                   : increase
        fscale reached upper limit; reset to:  5.0000000000000003E-002
        Final kernel purification:
-         tr(KS) before purification    :  56.00000009380312
+         tr(KS) before purification    :  56.00000009380314
          shift of eigenvalues          :  0.000E+00
          purification process:
          -  {iter:  1, diff from idempotency:  5.388E-03, charge diff:  9.380E-08}
          -  {iter:  2, diff from idempotency:  3.188E-05, charge diff:  1.975E-05}
-         -  {iter:  3, diff from idempotency:  1.171E-09, charge diff:  4.600E-10}
-         -  {iter:  4, diff from idempotency:  2.445E-15, charge diff:  1.421E-14}
+         -  {iter:  3, diff from idempotency:  1.171E-09, charge diff:  4.599E-10}
+         -  {iter:  4, diff from idempotency:  2.663E-15, charge diff:  7.105E-15}
          tr(KS) after purification     :  56.00000000000001
        trace(KS)                       :  56.00000000000001
        need to repeat with sharper decay (new):  No
@@ -2151,26 +2182,30 @@
      Hamiltonian update: {
  Energies: {Ekin:  8.21482826539E+01, Epot: -8.80954081547E+01, Enl:  4.82814215527E+00, 
               EH:  3.07455931500E+02,  EXC: -2.28764606075E+01, EvXC: -2.99209639068E+01}, 
-    Total charge:  5.599999939690E+01, 
+    Total charge:  5.599999939691E+01, 
  Poisson Solver: {BC: Free, Box:  [  105,  109,  199 ], MPI tasks:  4}}
      summary: [ {kernel method: FOE, mix entity: DENS, mix hist:  0, conv crit:  9.60E-11, 
- iter:  6, delta:  5.60E-09, energy: -6.26462737491744406E+01, D:  9.801E-07}]
+ iter:  6, delta:  5.60E-09, energy: -6.26462737492022370E+01, D:  9.801E-07}]
    -  &final_kernel004  { #-------------------------------------------------------- iter: 7
  summary: [ {kernel method: FOE, mix entity: DENS, mix hist:  0, conv crit:  9.60E-11, 
- iter:  7, delta:  5.60E-09, energy: -6.26462737491744406E+01, D:  9.801E-07}]}
+ iter:  7, delta:  5.60E-09, energy: -6.26462737492022370E+01, D:  9.801E-07}]}
     #================================================================= Summary of both steps
    self consistency summary: &it_sc004
    -  {iter:  4, Omega: ENERGY,  #WARNING: support function optimization not converged
  kernel optimization: FOE,  #WARNING: density optimization not converged
- iter high:  4, delta out:  1.649E-07, energy: -6.26462737491744406E+01, D: -2.180E-02}
+ iter high:  4, delta out:  1.649E-07, energy: -6.26462737492022370E+01, D: -2.180E-02}
+    #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Set the confinement prefactors
+ - Confinement prefactor for high accuracy:
+   -  {atom type: H, value:  0.00E+00, origin: from file}
+   -  {atom type: C, value:  0.00E+00, origin: from file}
     #========================================================= support function optimization
  - support function optimization: &it_supfun005
    -  {Initial kernel purification:  Yes, tr(KS) before purification:  56.00000000000001, 
  shift of eigenvalues:  0.000E+00, purification process: [
  {iter:  1, diff from idempotency:  2.710E-03, charge diff:  7.105E-15}, 
  {iter:  2, diff from idempotency:  8.110E-06, charge diff:  3.967E-06}, 
- {iter:  3, diff from idempotency:  7.376E-11, charge diff: -8.455E-13}], 
- tr(KS) after purification:  56.00000000000002}
+ {iter:  3, diff from idempotency:  7.376E-11, charge diff: -8.527E-13}], 
+ tr(KS) after purification:  56.00000000000001}
    -  { #-------------------------------------------------------------------------- iter: 1
  target function: ENERGY, Hamiltonian Applied:  Yes, 
  Energies: {Ekin:  8.21482826539E+01, Epot: -8.80917900218E+01, Enl:  4.82814215527E+00}, 
@@ -2179,7 +2214,7 @@
  error estimation: [
  max / mean error:  [  3.05E-08,  2.26E-09 ]]}, 
  Preconditioning:  Yes, 
- iter:  1, fnrm:  9.57E-02, Omega: -6.264624276900895E+01, D: -1.54E-02, D best: -1.54E-02, 
+ iter:  1, fnrm:  9.57E-02, Omega: -6.264624276903800E+01, D: -1.54E-02, D best: -1.54E-02, 
  Optimization: {algorithm: SD, mean alpha:  5.717E-01, max alpha:  5.717E-01, 
     consecutive successes:  1}, 
  calculate S^x: {mode: sparse, powers: {x: -1/2}, order:  12, 
@@ -2194,7 +2229,7 @@
  error estimation: [
  max / mean error:  [  3.15E-08,  2.31E-09 ]]}, 
  Preconditioning:  Yes, 
- iter:  2, fnrm:  8.89E-02, Omega: -6.265227426296434E+01, D: -6.03E-03, D best: -6.03E-03, 
+ iter:  2, fnrm:  8.89E-02, Omega: -6.265227426299333E+01, D: -6.03E-03, D best: -6.03E-03, 
  Optimization: {algorithm: SD, mean alpha:  6.289E-01, max alpha:  6.289E-01, 
     consecutive successes:  2}, 
  calculate S^x: {mode: sparse, powers: {x: -1/2}, order:  12, 
@@ -2209,12 +2244,12 @@
  error estimation: [
  max / mean error:  [  3.36E-08,  2.45E-09 ]]}, 
  Preconditioning:  Yes, 
- iter:  3, fnrm:  8.24E-02, Omega: -6.265755510786295E+01, D: -5.28E-03, D best: -5.28E-03, 
+ iter:  3, fnrm:  8.24E-02, Omega: -6.265755510789199E+01, D: -5.28E-03, D best: -5.28E-03, 
  exit criterion: net number of iterations}
    -  &final_supfun005  { #-------------------------------------------------------- iter: 3
  target function: ENERGY, 
  Energies: {Ekin:  8.24756497948E+01, Epot: -8.83258738728E+01, Enl:  4.84180642063E+00}, 
- iter:  3, fnrm:  8.24E-02, Omega: -6.265755510786295E+01, D: -5.28E-03, D best: -5.28E-03}
+ iter:  3, fnrm:  8.24E-02, Omega: -6.265755510789199E+01, D: -5.28E-03, D best: -5.28E-03}
       #Support functions created
     #=================================================================== kernel optimization
  - kernel optimization: &it_kernel005
@@ -2239,34 +2274,34 @@
        polynomial degree multiplicator :  3.000E+00
        FOE to determine density kernel: &it_foe005-001-01-01
        -  { #-------------------------------------------------------------------- it FOE: 1
- bisec/eval bounds:  [ -0.02, -0.01, -1.60,  1.80 ], pol deg:  204, eF: -2.198687937E-02, 
+ bisec/eval bounds:  [ -0.02, -0.01, -1.60,  1.80 ], pol deg:  204, eF: -2.198687939E-02, 
        polynomials: recalculated,   eval/bisection bounds ok:  [  Yes,  Yes,  Yes,  No ]}
        -  { #-------------------------------------------------------------------- it FOE: 2
- bisec/eval bounds:  [ -0.02, -0.01, -1.60,  1.80 ], pol deg:  204, eF: -1.338131177E-02, 
+ bisec/eval bounds:  [ -0.02, -0.01, -1.60,  1.80 ], pol deg:  204, eF: -1.338131178E-02, 
        polynomials: from memory, 
  Search new eF: {method: bisection / secant method, guess for new ef: -1.75197486E-02}, 
- iter:  2, Tr(K):  5.600000649E+01, charge diff:  6.492178983E-06}
+ iter:  2, Tr(K):  5.600000649E+01, charge diff:  6.492178940E-06}
        -  { #-------------------------------------------------------------------- it FOE: 3
  bisec/eval bounds:  [ -0.02, -0.01, -1.60,  1.80 ], pol deg:  204, eF: -1.751974859E-02, 
        polynomials: from memory,    eval/bisection bounds ok:  [  Yes,  Yes,  Yes,  Yes ], 
  interpol check: {D eF: -4.138437E-03, D Tr: -6.846601E-06, interpol possible:  Yes}, 
  Search new eF: {method: bisection / secant method, guess for new ef: -1.63780241E-02}, 
- iter:  3, Tr(K):  5.599999965E+01, charge diff: -3.544215446E-07}
+ iter:  3, Tr(K):  5.599999965E+01, charge diff: -3.544215730E-07}
        diff from reference kernel      :  1.817E-05
-       ebs                             : -22.18949174636878
-       ebs_check                       : -22.18949560121698
-       diff                            : -3.8548481988698313E-006
-       relative diff                   :  1.7372404212460892E-007
+       ebs                             : -22.18949174636911
+       ebs_check                       : -22.18949560121734
+       diff                            : -3.8548482272915408E-006
+       relative diff                   :  1.7372404340546975E-007
        modify fscale                   : increase
        fscale reached upper limit; reset to:  5.0000000000000003E-002
        Final kernel purification:
-         tr(KS) before purification    :  55.99999964547512
+         tr(KS) before purification    :  55.9999996454751
          shift of eigenvalues          :  0.000E+00
          purification process:
          -  {iter:  1, diff from idempotency:  5.368E-03, charge diff: -3.545E-07}
          -  {iter:  2, diff from idempotency:  3.170E-05, charge diff:  1.942E-05}
          -  {iter:  3, diff from idempotency:  1.159E-09, charge diff:  4.249E-10}
-         -  {iter:  4, diff from idempotency:  2.647E-15, charge diff: -1.421E-14}
+         -  {iter:  4, diff from idempotency:  2.976E-15, charge diff:  0.000E+00}
          tr(KS) after purification     :  56.0
        trace(KS)                       :  56.0
        need to repeat with sharper decay (new):  No
@@ -2275,10 +2310,10 @@
      Hamiltonian update: {
  Energies: {Ekin:  8.21482826539E+01, Epot: -8.80954081547E+01, Enl:  4.82814215527E+00, 
               EH:  3.07459948150E+02,  EXC: -2.28775886053E+01, EvXC: -2.99224516966E+01}, 
-    Total charge:  5.599999939257E+01, 
+    Total charge:  5.599999939258E+01, 
  Poisson Solver: {BC: Free, Box:  [  105,  109,  199 ], MPI tasks:  4}}
      summary: [ {kernel method: FOE, mix entity: DENS, mix hist:  0, conv crit:  8.24E-11, 
- iter:  1, delta:  4.94E-08, energy: -6.26590722883697140E+01, D: -1.280E-02}]
+ iter:  1, delta:  4.94E-08, energy: -6.26590722883987041E+01, D: -1.280E-02}]
    -  #--------------------------------------------------------------------- kernel iter: 2
      Kernel update:
        Hamiltonian application required:  Yes
@@ -2292,24 +2327,24 @@
        polynomial degree multiplicator :  3.000E+00
        FOE to determine density kernel: &it_foe005-002-01-01
        -  { #-------------------------------------------------------------------- it FOE: 1
- bisec/eval bounds:  [ -0.02, -0.01, -1.60,  1.80 ], pol deg:  204, eF: -1.986327898E-02, 
+ bisec/eval bounds:  [ -0.02, -0.01, -1.60,  1.80 ], pol deg:  204, eF: -1.986327897E-02, 
        polynomials: recalculated,   eval/bisection bounds ok:  [  Yes,  Yes,  Yes,  No ]}
        -  { #-------------------------------------------------------------------- it FOE: 2
- bisec/eval bounds:  [ -0.02, -0.01, -1.60,  1.80 ], pol deg:  204, eF: -1.289276922E-02, 
+ bisec/eval bounds:  [ -0.02, -0.01, -1.60,  1.80 ], pol deg:  204, eF: -1.289276921E-02, 
        polynomials: from memory, 
  Search new eF: {method: bisection / secant method, guess for new ef: -1.67264855E-02}, 
- iter:  2, Tr(K):  5.600000419E+01, charge diff:  4.191267983E-06}
+ iter:  2, Tr(K):  5.600000419E+01, charge diff:  4.191267948E-06}
        -  { #-------------------------------------------------------------------- it FOE: 3
- bisec/eval bounds:  [ -0.02, -0.01, -1.60,  1.80 ], pol deg:  204, eF: -1.672648553E-02, 
+ bisec/eval bounds:  [ -0.02, -0.01, -1.60,  1.80 ], pol deg:  204, eF: -1.672648550E-02, 
        polynomials: from memory,    eval/bisection bounds ok:  [  Yes,  Yes,  Yes,  Yes ], 
  interpol check: {D eF: -3.833716E-03, D Tr: -3.782725E-06, interpol possible:  Yes}, 
  Search new eF: {method: bisection / secant method, guess for new ef: -1.77107371E-02}, 
  iter:  3, Tr(K):  5.600000041E+01, charge diff:  4.085430021E-07}
        diff from reference kernel      :  1.743E-05
-       ebs                             : -22.04604014495149
-       ebs_check                       : -22.04604287266903
-       diff                            : -2.7277175433937373E-006
-       relative diff                   :  1.2372823080513083E-007
+       ebs                             : -22.04604014495184
+       ebs_check                       : -22.0460428726694
+       diff                            : -2.7277175611573057E-006
+       relative diff                   :  1.2372823161087754E-007
        modify fscale                   : increase
        fscale reached upper limit; reset to:  5.0000000000000003E-002
        Final kernel purification:
@@ -2319,7 +2354,7 @@
          -  {iter:  1, diff from idempotency:  5.372E-03, charge diff:  4.084E-07}
          -  {iter:  2, diff from idempotency:  3.174E-05, charge diff:  1.946E-05}
          -  {iter:  3, diff from idempotency:  1.161E-09, charge diff:  4.348E-10}
-         -  {iter:  4, diff from idempotency:  2.541E-15, charge diff:  2.132E-14}
+         -  {iter:  4, diff from idempotency:  2.992E-15, charge diff:  1.421E-14}
          tr(KS) after purification     :  56.00000000000001
        trace(KS)                       :  56.00000000000001
        need to repeat with sharper decay (new):  No
@@ -2332,7 +2367,7 @@
     Total charge:  5.599999939276E+01, 
  Poisson Solver: {BC: Free, Box:  [  105,  109,  199 ], MPI tasks:  4}}
      summary: [ {kernel method: FOE, mix entity: DENS, mix hist:  0, conv crit:  8.24E-11, 
- iter:  2, delta:  3.02E-08, energy: -6.26590079462938547E+01, D:  6.434E-05}]
+ iter:  2, delta:  3.02E-08, energy: -6.26590079463195480E+01, D:  6.434E-05}]
    -  #--------------------------------------------------------------------- kernel iter: 3
      Kernel update:
        Hamiltonian application required:  Yes
@@ -2346,36 +2381,36 @@
        polynomial degree multiplicator :  3.000E+00
        FOE to determine density kernel: &it_foe005-003-01-01
        -  { #-------------------------------------------------------------------- it FOE: 1
- bisec/eval bounds:  [ -0.02, -0.01, -1.60,  1.80 ], pol deg:  204, eF: -2.053379354E-02, 
+ bisec/eval bounds:  [ -0.02, -0.01, -1.60,  1.80 ], pol deg:  204, eF: -2.053379351E-02, 
        polynomials: recalculated,   eval/bisection bounds ok:  [  Yes,  Yes,  Yes,  No ]}
        -  { #-------------------------------------------------------------------- it FOE: 2
- bisec/eval bounds:  [ -0.02, -0.01, -1.60,  1.80 ], pol deg:  204, eF: -1.488768063E-02, 
+ bisec/eval bounds:  [ -0.02, -0.01, -1.60,  1.80 ], pol deg:  204, eF: -1.488768060E-02, 
        polynomials: from memory, 
  Search new eF: {method: bisection / secant method, guess for new ef: -1.73495340E-02}, 
- iter:  2, Tr(K):  5.600000198E+01, charge diff:  1.975306816E-06}
+ iter:  2, Tr(K):  5.600000198E+01, charge diff:  1.975306787E-06}
        -  { #-------------------------------------------------------------------- it FOE: 3
- bisec/eval bounds:  [ -0.02, -0.01, -1.60,  1.80 ], pol deg:  204, eF: -1.734953402E-02, 
+ bisec/eval bounds:  [ -0.02, -0.01, -1.60,  1.80 ], pol deg:  204, eF: -1.734953398E-02, 
        polynomials: from memory,    eval/bisection bounds ok:  [  Yes,  Yes,  Yes,  Yes ], 
  interpol check: {D eF: -2.461853E-03, D Tr: -2.354721E-06, interpol possible:  Yes}, 
  Search new eF: {method: bisection / secant method, guess for new ef: -1.65357325E-02}, 
  iter:  3, Tr(K):  5.599999962E+01, charge diff: -3.794140895E-07}
        diff from reference kernel      :  1.729E-05
-       ebs                             : -22.02320137079489
-       ebs_check                       : -22.02320371307697
-       diff                            : -2.3422820802920796E-006
-       relative diff                   :  1.063552042619106E-007
+       ebs                             : -22.0232013707952
+       ebs_check                       : -22.02320371307728
+       diff                            : -2.3422820838447933E-006
+       relative diff                   :  1.0635520442322597E-007
        modify fscale                   : increase
        fscale reached upper limit; reset to:  5.0000000000000003E-002
        Final kernel purification:
-         tr(KS) before purification    :  55.9999996204824
+         tr(KS) before purification    :  55.99999962048241
          shift of eigenvalues          :  0.000E+00
          purification process:
          -  {iter:  1, diff from idempotency:  5.371E-03, charge diff: -3.795E-07}
          -  {iter:  2, diff from idempotency:  3.173E-05, charge diff:  1.946E-05}
          -  {iter:  3, diff from idempotency:  1.160E-09, charge diff:  4.344E-10}
-         -  {iter:  4, diff from idempotency:  2.832E-15, charge diff:  2.132E-14}
-         tr(KS) after purification     :  56.00000000000001
-       trace(KS)                       :  56.00000000000001
+         -  {iter:  4, diff from idempotency:  2.753E-15, charge diff: -1.421E-14}
+         tr(KS) after purification     :  55.99999999999999
+       trace(KS)                       :  55.99999999999999
        need to repeat with sharper decay (new):  No
         #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ FOE calculation of kernel finished
        Kohn-Sham residue               :  1.993E-01
@@ -2386,7 +2421,7 @@
     Total charge:  5.599999939275E+01, 
  Poisson Solver: {BC: Free, Box:  [  105,  109,  199 ], MPI tasks:  4}}
      summary: [ {kernel method: FOE, mix entity: DENS, mix hist:  0, conv crit:  8.24E-11, 
- iter:  3, delta:  1.43E-08, energy: -6.26590077271719110E+01, D:  2.191E-07}]
+ iter:  3, delta:  1.43E-08, energy: -6.26590077271937389E+01, D:  2.191E-07}]
    -  #--------------------------------------------------------------------- kernel iter: 4
      Kernel update:
        Hamiltonian application required:  Yes
@@ -2400,36 +2435,36 @@
        polynomial degree multiplicator :  3.000E+00
        FOE to determine density kernel: &it_foe005-004-01-01
        -  { #-------------------------------------------------------------------- it FOE: 1
- bisec/eval bounds:  [ -0.02, -0.01, -1.60,  1.80 ], pol deg:  204, eF: -1.882240827E-02, 
+ bisec/eval bounds:  [ -0.02, -0.01, -1.60,  1.80 ], pol deg:  204, eF: -1.882240824E-02, 
        polynomials: recalculated,   eval/bisection bounds ok:  [  Yes,  Yes,  Yes,  No ]}
        -  { #-------------------------------------------------------------------- it FOE: 2
- bisec/eval bounds:  [ -0.02, -0.01, -1.60,  1.80 ], pol deg:  204, eF: -1.424905682E-02, 
+ bisec/eval bounds:  [ -0.02, -0.01, -1.60,  1.80 ], pol deg:  204, eF: -1.424905678E-02, 
        polynomials: from memory, 
  Search new eF: {method: bisection / secant method, guess for new ef: -1.66969629E-02}, 
- iter:  2, Tr(K):  5.600000233E+01, charge diff:  2.333426309E-06}
+ iter:  2, Tr(K):  5.600000233E+01, charge diff:  2.333426316E-06}
        -  { #-------------------------------------------------------------------- it FOE: 3
- bisec/eval bounds:  [ -0.02, -0.01, -1.60,  1.80 ], pol deg:  204, eF: -1.669696293E-02, 
+ bisec/eval bounds:  [ -0.02, -0.01, -1.60,  1.80 ], pol deg:  204, eF: -1.669696289E-02, 
        polynomials: from memory,    eval/bisection bounds ok:  [  Yes,  Yes,  Yes,  Yes ], 
  interpol check: {D eF: -2.447906E-03, D Tr: -2.177123E-06, interpol possible:  Yes}, 
  Search new eF: {method: bisection / secant method, guess for new ef: -1.73151570E-02}, 
- iter:  3, Tr(K):  5.600000016E+01, charge diff:  1.563036349E-07}
+ iter:  3, Tr(K):  5.600000016E+01, charge diff:  1.563036207E-07}
        diff from reference kernel      :  1.730E-05
-       ebs                             : -22.00850950727574
-       ebs_check                       : -22.00851194380896
-       diff                            : -2.4365332258469152E-006
-       relative diff                   :  1.1070868861162216E-007
+       ebs                             : -22.00850950727611
+       ebs_check                       : -22.00851194380935
+       diff                            : -2.4365332365050563E-006
+       relative diff                   :  1.1070868909589392E-007
        modify fscale                   : increase
        fscale reached upper limit; reset to:  5.0000000000000003E-002
        Final kernel purification:
-         tr(KS) before purification    :  56.00000015620008
+         tr(KS) before purification    :  56.00000015620007
          shift of eigenvalues          :  0.000E+00
          purification process:
          -  {iter:  1, diff from idempotency:  5.370E-03, charge diff:  1.562E-07}
          -  {iter:  2, diff from idempotency:  3.173E-05, charge diff:  1.946E-05}
          -  {iter:  3, diff from idempotency:  1.160E-09, charge diff:  4.345E-10}
-         -  {iter:  4, diff from idempotency:  2.770E-15, charge diff:  0.000E+00}
-         tr(KS) after purification     :  56.0
-       trace(KS)                       :  56.0
+         -  {iter:  4, diff from idempotency:  2.763E-15, charge diff:  0.000E+00}
+         tr(KS) after purification     :  55.99999999999999
+       trace(KS)                       :  55.99999999999999
        need to repeat with sharper decay (new):  No
         #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ FOE calculation of kernel finished
        Kohn-Sham residue               :  1.993E-01
@@ -2440,7 +2475,7 @@
     Total charge:  5.599999939275E+01, 
  Poisson Solver: {BC: Free, Box:  [  105,  109,  199 ], MPI tasks:  4}}
      summary: [ {kernel method: FOE, mix entity: DENS, mix hist:  0, conv crit:  8.24E-11, 
- iter:  4, delta:  7.18E-09, energy: -6.26590078090183624E+01, D: -8.185E-08}]
+ iter:  4, delta:  7.18E-09, energy: -6.26590078090487737E+01, D: -8.186E-08}]
    -  #--------------------------------------------------------------------- kernel iter: 5
      Kernel update:
        Hamiltonian application required:  Yes
@@ -2454,34 +2489,34 @@
        polynomial degree multiplicator :  3.000E+00
        FOE to determine density kernel: &it_foe005-005-01-01
        -  { #-------------------------------------------------------------------- it FOE: 1
- bisec/eval bounds:  [ -0.02, -0.02, -1.60,  1.80 ], pol deg:  204, eF: -1.916736437E-02, 
+ bisec/eval bounds:  [ -0.02, -0.02, -1.60,  1.80 ], pol deg:  204, eF: -1.916736432E-02, 
        polynomials: recalculated,   eval/bisection bounds ok:  [  Yes,  Yes,  Yes,  No ]}
        -  { #-------------------------------------------------------------------- it FOE: 2
- bisec/eval bounds:  [ -0.02, -0.02, -1.60,  1.80 ], pol deg:  204, eF: -1.546294969E-02, 
+ bisec/eval bounds:  [ -0.02, -0.02, -1.60,  1.80 ], pol deg:  204, eF: -1.546294964E-02, 
        polynomials: from memory, 
- Search new eF: {method: bisection / secant method, guess for new ef: -1.70712236E-02}, 
- iter:  2, Tr(K):  5.600000119E+01, charge diff:  1.187921526E-06}
+ Search new eF: {method: bisection / secant method, guess for new ef: -1.70712235E-02}, 
+ iter:  2, Tr(K):  5.600000119E+01, charge diff:  1.187921541E-06}
        -  { #-------------------------------------------------------------------- it FOE: 3
- bisec/eval bounds:  [ -0.02, -0.02, -1.60,  1.80 ], pol deg:  204, eF: -1.707122357E-02, 
+ bisec/eval bounds:  [ -0.02, -0.02, -1.60,  1.80 ], pol deg:  204, eF: -1.707122353E-02, 
        polynomials: from memory,    eval/bisection bounds ok:  [  Yes,  Yes,  Yes,  Yes ], 
  interpol check: {D eF: -1.608274E-03, D Tr: -1.410021E-06, interpol possible:  Yes}, 
  Search new eF: {method: bisection / secant method, guess for new ef: -1.65424915E-02}, 
- iter:  3, Tr(K):  5.599999978E+01, charge diff: -2.220993309E-07}
+ iter:  3, Tr(K):  5.599999978E+01, charge diff: -2.220993593E-07}
        diff from reference kernel      :  1.725E-05
-       ebs                             : -22.00139476000365
-       ebs_check                       : -22.00139700285803
+       ebs                             : -22.001394760004
+       ebs_check                       : -22.00139700285838
        diff                            : -2.2428543751118468E-006
-       relative diff                   :  1.0194146323800948E-007
+       relative diff                   :  1.0194146323800787E-007
        modify fscale                   : increase
        fscale reached upper limit; reset to:  5.0000000000000003E-002
        Final kernel purification:
-         tr(KS) before purification    :  55.99999977779707
+         tr(KS) before purification    :  55.99999977779705
          shift of eigenvalues          :  0.000E+00
          purification process:
          -  {iter:  1, diff from idempotency:  5.370E-03, charge diff: -2.222E-07}
          -  {iter:  2, diff from idempotency:  3.173E-05, charge diff:  1.945E-05}
          -  {iter:  3, diff from idempotency:  1.160E-09, charge diff:  4.345E-10}
-         -  {iter:  4, diff from idempotency:  2.482E-15, charge diff:  7.105E-15}
+         -  {iter:  4, diff from idempotency:  2.685E-15, charge diff:  7.105E-15}
          tr(KS) after purification     :  56.00000000000001
        trace(KS)                       :  56.00000000000001
        need to repeat with sharper decay (new):  No
@@ -2494,7 +2529,7 @@
     Total charge:  5.599999939275E+01, 
  Poisson Solver: {BC: Free, Box:  [  105,  109,  199 ], MPI tasks:  4}}
      summary: [ {kernel method: FOE, mix entity: DENS, mix hist:  0, conv crit:  8.24E-11, 
- iter:  5, delta:  3.58E-09, energy: -6.26590078399051436E+01, D: -3.089E-08}]
+ iter:  5, delta:  3.58E-09, energy: -6.26590078399324284E+01, D: -3.088E-08}]
    -  #--------------------------------------------------------------------- kernel iter: 6
      Kernel update:
        Hamiltonian application required:  Yes
@@ -2508,36 +2543,36 @@
        polynomial degree multiplicator :  3.000E+00
        FOE to determine density kernel: &it_foe005-006-01-01
        -  { #-------------------------------------------------------------------- it FOE: 1
- bisec/eval bounds:  [ -0.02, -0.02, -1.60,  1.80 ], pol deg:  204, eF: -1.804277948E-02, 
+ bisec/eval bounds:  [ -0.02, -0.02, -1.60,  1.80 ], pol deg:  204, eF: -1.804277942E-02, 
        polynomials: recalculated,   eval/bisection bounds ok:  [  Yes,  Yes,  Yes,  No ]}
        -  { #-------------------------------------------------------------------- it FOE: 2
- bisec/eval bounds:  [ -0.02, -0.02, -1.60,  1.80 ], pol deg:  204, eF: -1.504220359E-02, 
+ bisec/eval bounds:  [ -0.02, -0.02, -1.60,  1.80 ], pol deg:  204, eF: -1.504220353E-02, 
        polynomials: from memory, 
  Search new eF: {method: bisection / secant method, guess for new ef: -1.66668088E-02}, 
- iter:  2, Tr(K):  5.600000150E+01, charge diff:  1.503745395E-06}
+ iter:  2, Tr(K):  5.600000150E+01, charge diff:  1.503745402E-06}
        -  { #-------------------------------------------------------------------- it FOE: 3
- bisec/eval bounds:  [ -0.02, -0.02, -1.60,  1.80 ], pol deg:  204, eF: -1.666680881E-02, 
+ bisec/eval bounds:  [ -0.02, -0.02, -1.60,  1.80 ], pol deg:  204, eF: -1.666680876E-02, 
        polynomials: from memory,    eval/bisection bounds ok:  [  Yes,  Yes,  Yes,  Yes ], 
  interpol check: {D eF: -1.624605E-03, D Tr: -1.393490E-06, interpol possible:  Yes}, 
  Search new eF: {method: bisection / secant method, guess for new ef: -1.70747357E-02}, 
- iter:  3, Tr(K):  5.600000011E+01, charge diff:  1.102557263E-07}
+ iter:  3, Tr(K):  5.600000011E+01, charge diff:  1.102557334E-07}
        diff from reference kernel      :  1.727E-05
-       ebs                             : -21.99782682099496
-       ebs_check                       : -21.99782917681557
-       diff                            : -2.3558206088125644E-006
-       relative diff                   :  1.0709333371804454E-007
+       ebs                             : -21.99782682099528
+       ebs_check                       : -21.99782917681589
+       diff                            : -2.3558206123652781E-006
+       relative diff                   :  1.0709333387954594E-007
        modify fscale                   : increase
        fscale reached upper limit; reset to:  5.0000000000000003E-002
        Final kernel purification:
-         tr(KS) before purification    :  56.00000011015212
+         tr(KS) before purification    :  56.00000011015214
          shift of eigenvalues          :  0.000E+00
          purification process:
          -  {iter:  1, diff from idempotency:  5.370E-03, charge diff:  1.102E-07}
          -  {iter:  2, diff from idempotency:  3.173E-05, charge diff:  1.945E-05}
          -  {iter:  3, diff from idempotency:  1.160E-09, charge diff:  4.345E-10}
-         -  {iter:  4, diff from idempotency:  2.448E-15, charge diff: -7.105E-15}
-         tr(KS) after purification     :  55.99999999999999
-       trace(KS)                       :  55.99999999999999
+         -  {iter:  4, diff from idempotency:  2.716E-15, charge diff:  0.000E+00}
+         tr(KS) after purification     :  56.0
+       trace(KS)                       :  56.0
        need to repeat with sharper decay (new):  No
         #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ FOE calculation of kernel finished
        Kohn-Sham residue               :  1.993E-01
@@ -2548,15 +2583,15 @@
     Total charge:  5.599999939275E+01, 
  Poisson Solver: {BC: Free, Box:  [  105,  109,  199 ], MPI tasks:  4}}
      summary: [ {kernel method: FOE, mix entity: DENS, mix hist:  0, conv crit:  8.24E-11, 
- iter:  6, delta:  1.79E-09, energy: -6.26590078492152429E+01, D: -9.310E-09}]
+ iter:  6, delta:  1.79E-09, energy: -6.26590078492423004E+01, D: -9.310E-09}]
    -  &final_kernel005  { #-------------------------------------------------------- iter: 7
  summary: [ {kernel method: FOE, mix entity: DENS, mix hist:  0, conv crit:  8.24E-11, 
- iter:  7, delta:  1.79E-09, energy: -6.26590078492152429E+01, D: -9.310E-09}]}
+ iter:  7, delta:  1.79E-09, energy: -6.26590078492423004E+01, D: -9.310E-09}]}
     #================================================================= Summary of both steps
    self consistency summary: &it_sc005
    -  {iter:  5, Omega: ENERGY,  #WARNING: support function optimization not converged
  kernel optimization: FOE,  #WARNING: density optimization not converged
- iter high:  5, delta out:  4.966E-08, energy: -6.26590078492152429E+01, D: -1.273E-02}
+ iter high:  5, delta out:  4.966E-08, energy: -6.26590078492423004E+01, D: -1.273E-02}
    Kernel update:
      Hamiltonian application required  :  Yes
      max dev from unity                :  2.18E-02
@@ -2596,7 +2631,7 @@
  {e: -2.409719424316E-01, f:  1.0000},  # 00026
  {e: -2.400489318728E-01, f:  1.0000},  # 00027
  {e: -2.281194321059E-01, f:  1.0000},  # 00028
- {e:  2.443238290060E-01, f:  1.0000},  # 00029
+ {e:  2.443238290059E-01, f:  1.0000},  # 00029
  {e:  2.589440744788E-01, f:  1.0000},  # 00030
  {e:  2.621947296092E-01, f:  1.0000},  # 00031
  {e:  2.887028504160E-01, f:  1.0000},  # 00032
@@ -2607,14 +2642,14 @@
  {e:  3.284013431267E-01, f:  1.0000},  # 00037
  {e:  3.348203147680E-01, f:  1.0000},  # 00038
  {e:  3.381523306424E-01, f:  1.0000},  # 00039
- {e:  3.480755392308E-01, f:  1.0000},  # 00040
+ {e:  3.480755392307E-01, f:  1.0000},  # 00040
  {e:  3.515589391353E-01, f:  1.0000},  # 00041
  {e:  3.635239658765E-01, f:  1.0000},  # 00042
  {e:  3.642936371037E-01, f:  1.0000},  # 00043
  {e:  3.718975957914E-01, f:  1.0000},  # 00044
  {e:  3.725954160632E-01, f:  1.0000},  # 00045
  {e:  3.840243131148E-01, f:  1.0000},  # 00046
- {e:  3.951881180640E-01, f:  1.0000},  # 00047
+ {e:  3.951881180639E-01, f:  1.0000},  # 00047
  {e:  3.974408299819E-01, f:  1.0000},  # 00048
  {e:  4.154057120707E-01, f:  1.0000},  # 00049
  {e:  4.164502898647E-01, f:  1.0000},  # 00050
@@ -2630,40 +2665,40 @@
  Energies: {Ekin:  8.24756497948E+01, Epot: -8.81358005597E+01, Enl:  4.84180642063E+00, 
               EH:  3.07662356399E+02,  EXC: -2.29060249403E+01, EvXC: -2.99599142264E+01}, 
        iter high:  5,            delta out:  4.966E-08, 
-          energy: -6.26590078492152429E+01,                       D:  0.000E+00,  #FINAL
+          energy: -6.26590078492423004E+01,                       D:  0.000E+00,  #FINAL
  }
   #WARNING: commented correction_locrad
   #------------------------------------------------------------------------ Pulay Correction
  Pulay Forces (Ha/Bohr):
- -  {C: [-7.964364210951E-04,  7.504738911080E-03,  8.218175801546E-03]} # 0001
- -  {C: [-1.012120922354E-03, -1.300001310667E-02,  5.832856527171E-04]} # 0002
- -  {C: [-9.700553932632E-04,  1.407816214842E-02, -3.376922319572E-04]} # 0003
- -  {C: [-1.030463124019E-03, -1.456166790604E-02, -5.171167383141E-04]} # 0004
- -  {C: [-9.943308892976E-04,  1.383863598634E-02, -9.756610594203E-04]} # 0005
- -  {C: [-1.025614762656E-03, -1.451191686304E-02, -6.127989892307E-04]} # 0006
- -  {C: [-9.793579176648E-04,  1.393481863136E-02, -8.596663568592E-04]} # 0007
- -  {C: [-1.021331621949E-03, -1.309079004442E-02, -1.351251046759E-03]} # 0008
- -  {C: [-8.388083079593E-04,  7.240827786082E-03, -9.424873528471E-03]} # 0009
- -  {H: [-3.064683444263E-04, -2.346512060608E-03,  1.259067767885E-03]} # 0010
- -  {H: [ 2.135469705692E-03,  6.483056925150E-04, -1.061528030488E-03]} # 0011
- -  {H: [-2.105445580321E-03,  4.815004390509E-04, -9.298635213522E-04]} # 0012
- -  {H: [ 3.457968672148E-03, -1.387604082790E-03,  2.616009573780E-04]} # 0013
- -  {H: [-3.307550787847E-03, -1.205943125761E-03,  3.222958376346E-04]} # 0014
- -  {H: [ 3.730128901433E-03,  8.787494536517E-04, -2.235231313939E-04]} # 0015
- -  {H: [-3.611641513881E-03,  7.974938097663E-04, -1.951271250626E-04]} # 0016
- -  {H: [ 3.620614741847E-03, -1.208021975400E-03, -2.985427000567E-04]} # 0017
- -  {H: [-3.405598426280E-03, -1.044073815721E-03, -2.893785371395E-04]} # 0018
- -  {H: [ 4.014849707291E-03,  1.087014433911E-03, -2.547940124973E-04]} # 0019
- -  {H: [-3.837813421704E-03,  9.643676950231E-04, -2.245590683499E-04]} # 0020
- -  {H: [ 3.623509059967E-03, -1.187193536758E-03, -3.552163518295E-04]} # 0021
- -  {H: [-3.398389135743E-03, -1.018726601382E-03, -3.040693046198E-04]} # 0022
- -  {H: [ 3.772587755887E-03,  8.675205407916E-04, -4.290704977394E-04]} # 0023
- -  {H: [-3.642212129424E-03,  7.862067314510E-04, -3.981544290895E-04]} # 0024
- -  {H: [ 3.477708765540E-03, -1.371772751483E-03, -8.009869621848E-04]} # 0025
- -  {H: [-3.314961448652E-03, -1.190337551348E-03, -8.203180791341E-04]} # 0026
- -  {H: [ 2.065985396032E-03,  5.758876820026E-04,  4.698795363686E-04]} # 0027
- -  {H: [-2.019660076898E-03,  4.049696211621E-04,  3.886796579894E-04]} # 0028
- -  {H: [-2.861179294975E-04, -1.999583017748E-03, -1.014591068860E-03]} # 0029
+ -  {C: [-7.964364210959E-04,  7.504738911077E-03,  8.218175801545E-03]} # 0001
+ -  {C: [-1.012120922356E-03, -1.300001310667E-02,  5.832856527164E-04]} # 0002
+ -  {C: [-9.700553932609E-04,  1.407816214842E-02, -3.376922319544E-04]} # 0003
+ -  {C: [-1.030463124018E-03, -1.456166790604E-02, -5.171167383156E-04]} # 0004
+ -  {C: [-9.943308892961E-04,  1.383863598634E-02, -9.756610594209E-04]} # 0005
+ -  {C: [-1.025614762654E-03, -1.451191686303E-02, -6.127989892320E-04]} # 0006
+ -  {C: [-9.793579176633E-04,  1.393481863136E-02, -8.596663568534E-04]} # 0007
+ -  {C: [-1.021331621950E-03, -1.309079004442E-02, -1.351251046761E-03]} # 0008
+ -  {C: [-8.388083079567E-04,  7.240827786085E-03, -9.424873528461E-03]} # 0009
+ -  {H: [-3.064683444262E-04, -2.346512060609E-03,  1.259067767886E-03]} # 0010
+ -  {H: [ 2.135469705693E-03,  6.483056925153E-04, -1.061528030487E-03]} # 0011
+ -  {H: [-2.105445580320E-03,  4.815004390508E-04, -9.298635213521E-04]} # 0012
+ -  {H: [ 3.457968672149E-03, -1.387604082790E-03,  2.616009573777E-04]} # 0013
+ -  {H: [-3.307550787846E-03, -1.205943125761E-03,  3.222958376345E-04]} # 0014
+ -  {H: [ 3.730128901434E-03,  8.787494536524E-04, -2.235231313935E-04]} # 0015
+ -  {H: [-3.611641513883E-03,  7.974938097678E-04, -1.951271250625E-04]} # 0016
+ -  {H: [ 3.620614741847E-03, -1.208021975401E-03, -2.985427000565E-04]} # 0017
+ -  {H: [-3.405598426281E-03, -1.044073815721E-03, -2.893785371396E-04]} # 0018
+ -  {H: [ 4.014849707290E-03,  1.087014433911E-03, -2.547940124975E-04]} # 0019
+ -  {H: [-3.837813421703E-03,  9.643676950228E-04, -2.245590683499E-04]} # 0020
+ -  {H: [ 3.623509059968E-03, -1.187193536759E-03, -3.552163518296E-04]} # 0021
+ -  {H: [-3.398389135743E-03, -1.018726601383E-03, -3.040693046194E-04]} # 0022
+ -  {H: [ 3.772587755887E-03,  8.675205407910E-04, -4.290704977394E-04]} # 0023
+ -  {H: [-3.642212129424E-03,  7.862067314512E-04, -3.981544290896E-04]} # 0024
+ -  {H: [ 3.477708765541E-03, -1.371772751484E-03, -8.009869621849E-04]} # 0025
+ -  {H: [-3.314961448652E-03, -1.190337551349E-03, -8.203180791341E-04]} # 0026
+ -  {H: [ 2.065985396032E-03,  5.758876820023E-04,  4.698795363684E-04]} # 0027
+ -  {H: [-2.019660076898E-03,  4.049696211627E-04,  3.886796579895E-04]} # 0028
+ -  {H: [-2.861179294979E-04, -1.999583017749E-03, -1.014591068861E-03]} # 0029
  Total charge                          :  5.599999939288E+01
   #---------------------------------------------------------------------- Forces Calculation
  Poisson Solver:
@@ -2680,39 +2715,39 @@
  Calculate Non Local forces            :  Yes
  Average noise forces: {x:  4.01554335E-03, y:  3.23215109E-03, z:  5.07042221E-03, 
                     total:  7.23053044E-03}
- Clean forces norm (Ha/Bohr): {maxval:  1.238914410494E-02, fnrm2:  6.972710121278E-04}
- Raw forces norm (Ha/Bohr): {maxval:  1.185014073608E-02, fnrm2:  7.495549555015E-04}
+ Clean forces norm (Ha/Bohr): {maxval:  1.238914410494E-02, fnrm2:  6.972710121273E-04}
+ Raw forces norm (Ha/Bohr): {maxval:  1.185014073608E-02, fnrm2:  7.495549555008E-04}
   #--------------------------------------------------------------------------- Atomic Forces
  Atomic Forces (Ha/Bohr):
- -  {C: [ 1.358753882635E-03, -7.554682368027E-04,  5.792696377703E-03]} # 0001
- -  {C: [ 1.108773161012E-03,  2.612978058232E-03, -2.818720367283E-03]} # 0002
- -  {C: [ 9.126830757377E-04,  5.421248227441E-04,  1.546459272033E-04]} # 0003
- -  {C: [ 1.030838713551E-03,  1.640588647540E-03,  8.332168432568E-04]} # 0004
- -  {C: [ 9.609082695269E-04,  2.924796450262E-04,  1.376261294780E-03]} # 0005
- -  {C: [ 1.039196187728E-03,  1.341003172440E-03,  2.013830804676E-03]} # 0006
- -  {C: [ 9.617240148179E-04,  7.956869115401E-04,  1.837354829233E-03]} # 0007
- -  {C: [ 1.255594220715E-03,  3.256324892922E-03,  4.785381397288E-03]} # 0008
- -  {C: [ 1.332374796429E-03, -1.399217009534E-03, -2.866575522629E-03]} # 0009
- -  {H: [-4.868237355080E-04, -8.524910536080E-03,  7.856716247537E-03]} # 0010
- -  {H: [ 1.505629981284E-03,  4.687963763839E-03, -3.193812132999E-03]} # 0011
- -  {H: [-2.500852632962E-03,  4.894150403320E-03, -3.006043477046E-03]} # 0012
- -  {H: [ 1.098991746742E-03, -2.762147058675E-03,  5.086850536049E-04]} # 0013
- -  {H: [-2.069284322866E-03, -2.892596110593E-03,  6.298682405788E-04]} # 0014
- -  {H: [ 1.192153109139E-03,  2.282068274057E-03, -9.696419062559E-04]} # 0015
- -  {H: [-2.146342213123E-03,  2.478633227918E-03, -8.421705995828E-04]} # 0016
- -  {H: [ 7.343091855647E-04, -3.280582224612E-03, -7.564753737997E-04]} # 0017
- -  {H: [-1.716521681073E-03, -3.400305456024E-03, -6.540734288987E-04]} # 0018
- -  {H: [ 6.966246033969E-04,  2.205913663176E-03, -6.763756466379E-04]} # 0019
- -  {H: [-1.707850460211E-03,  2.358294828843E-03, -6.696688994251E-04]} # 0020
- -  {H: [ 6.974325743077E-04, -3.305120012515E-03, -1.389220494812E-04]} # 0021
- -  {H: [-1.693754590204E-03, -3.420966189391E-03, -2.046532659614E-04]} # 0022
- -  {H: [ 1.122426887051E-03,  2.308234903889E-03,  1.259813867326E-04]} # 0023
- -  {H: [-2.119845031009E-03,  2.500552395965E-03, -5.244991143396E-05]} # 0024
- -  {H: [ 1.147584150401E-03, -2.823821809371E-03, -1.629398376090E-03]} # 0025
- -  {H: [-2.182103090763E-03, -2.984471370620E-03, -1.819745798900E-03]} # 0026
- -  {H: [ 1.538071993127E-03,  4.641962079479E-03,  1.953661311325E-03]} # 0027
- -  {H: [-2.549992157352E-03,  4.880057868865E-03,  1.729915065915E-03]} # 0028
- -  {H: [-5.207006380945E-04, -8.169411545579E-03, -9.299488023409E-03]} # 0029
+ -  {C: [ 1.358753882640E-03, -7.554682367867E-04,  5.792696377685E-03]} # 0001
+ -  {C: [ 1.108773161013E-03,  2.612978058216E-03, -2.818720367276E-03]} # 0002
+ -  {C: [ 9.126830757337E-04,  5.421248227460E-04,  1.546459272207E-04]} # 0003
+ -  {C: [ 1.030838713547E-03,  1.640588647541E-03,  8.332168432462E-04]} # 0004
+ -  {C: [ 9.609082695212E-04,  2.924796450313E-04,  1.376261294804E-03]} # 0005
+ -  {C: [ 1.039196187726E-03,  1.341003172420E-03,  2.013830804706E-03]} # 0006
+ -  {C: [ 9.617240148159E-04,  7.956869115387E-04,  1.837354829175E-03]} # 0007
+ -  {C: [ 1.255594220718E-03,  3.256324892917E-03,  4.785381397254E-03]} # 0008
+ -  {C: [ 1.332374796430E-03, -1.399217009533E-03, -2.866575522646E-03]} # 0009
+ -  {H: [-4.868237355091E-04, -8.524910536081E-03,  7.856716247540E-03]} # 0010
+ -  {H: [ 1.505629981287E-03,  4.687963763839E-03, -3.193812132991E-03]} # 0011
+ -  {H: [-2.500852632965E-03,  4.894150403324E-03, -3.006043477045E-03]} # 0012
+ -  {H: [ 1.098991746745E-03, -2.762147058683E-03,  5.086850536100E-04]} # 0013
+ -  {H: [-2.069284322864E-03, -2.892596110590E-03,  6.298682405715E-04]} # 0014
+ -  {H: [ 1.192153109140E-03,  2.282068274058E-03, -9.696419062492E-04]} # 0015
+ -  {H: [-2.146342213121E-03,  2.478633227917E-03, -8.421705995774E-04]} # 0016
+ -  {H: [ 7.343091855647E-04, -3.280582224611E-03, -7.564753737966E-04]} # 0017
+ -  {H: [-1.716521681073E-03, -3.400305456027E-03, -6.540734288944E-04]} # 0018
+ -  {H: [ 6.966246033962E-04,  2.205913663183E-03, -6.763756466379E-04]} # 0019
+ -  {H: [-1.707850460210E-03,  2.358294828845E-03, -6.696688994279E-04]} # 0020
+ -  {H: [ 6.974325743118E-04, -3.305120012517E-03, -1.389220494773E-04]} # 0021
+ -  {H: [-1.693754590208E-03, -3.420966189392E-03, -2.046532659656E-04]} # 0022
+ -  {H: [ 1.122426887052E-03,  2.308234903894E-03,  1.259813867352E-04]} # 0023
+ -  {H: [-2.119845031013E-03,  2.500552395970E-03, -5.244991142116E-05]} # 0024
+ -  {H: [ 1.147584150402E-03, -2.823821809372E-03, -1.629398376089E-03]} # 0025
+ -  {H: [-2.182103090762E-03, -2.984471370620E-03, -1.819745798898E-03]} # 0026
+ -  {H: [ 1.538071993128E-03,  4.641962079480E-03,  1.953661311328E-03]} # 0027
+ -  {H: [-2.549992157353E-03,  4.880057868870E-03,  1.729915065919E-03]} # 0028
+ -  {H: [-5.207006380936E-04, -8.169411545579E-03, -9.299488023404E-03]} # 0029
   #-------------------------------- Warnings obtained during the run, check their relevance!
  WARNINGS:
  - Do not call check_communications in the linear scaling version!
@@ -2731,17 +2766,17 @@
  - commented correction_locrad
   #-------------------------------------------------------------------- Timing for root process
  Timings for root process:
-   CPU time (s)                        :  165.33
-   Elapsed time (s)                    :  178.75
+   CPU time (s)                        :  87.33
+   Elapsed time (s)                    :  46.04
  BigDFT infocode                       :  0
  Memory Consumption Report:
-   Tot. No. of Allocations             :  36744
-   Tot. No. of Deallocations           :  36744
+   Tot. No. of Allocations             :  36976
+   Tot. No. of Deallocations           :  36976
    Remaining Memory (B)                :  0
    Memory occupation:
      Peak Value (MB)                   :  437.802
      for the array                     : wt%nrecvdspls
      in the routine                    : untranspose_localized
-     Memory Peak of process            : 472.336 MB
- Max No. of dictionaries used          :  4918 #( 838 still in use)
+     Memory Peak of process            : 569.500 MB
+ Max No. of dictionaries used          :  4974 #( 842 still in use)
  Number of dictionary folders allocated:  1
