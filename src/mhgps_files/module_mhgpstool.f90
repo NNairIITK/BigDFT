@@ -620,7 +620,7 @@ subroutine construct_filenames(folders,ifolder,isad,fsaddle,fminL,fminR)
     !local
     
     write(fsaddle,'(a,i5.5,a)')trim(adjustl(folders(ifolder)))//&
-                       '/sad',isad,'_finalF'
+                       '/sad',isad,'_finalM'
     write(fminL,'(a,i5.5,a)')trim(adjustl(folders(ifolder)))//&
           '/sad',isad,'_minFinalL'
     write(fminR,'(a,i5.5,a)')trim(adjustl(folders(ifolder)))//&

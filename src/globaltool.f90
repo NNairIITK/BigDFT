@@ -25,8 +25,8 @@ program globaltool
     call write_globaltool_uinp(gdat)
 
     call init_gt_data(gdat)
-!
-!    call read_mh_data(gdat)
+
+    call read_and_merge_data(gdat)
 !
 !    call write_merged_data(gdat)
 !
