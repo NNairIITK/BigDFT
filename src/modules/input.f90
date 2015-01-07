@@ -1991,11 +1991,11 @@ contains
      dict_basis=>dict//LIN_BASIS_PARAMS//trim(dummy_char)
      call input_var(dummy_int,'1',dict_basis//NBASIS,ranges=(/1,100/))
      call input_var(dummy_real,'1.2d-2',dict_basis//AO_CONFINEMENT,&
-          ranges=(/0.0_gp,1.0_gp/))
+          ranges=(/-1.0_gp,1.0_gp/))
      call input_var(dummy_real,'1.2d-2',dict_basis//CONFINEMENT//0,&
-          ranges=(/0.0_gp,1.0_gp/))
+          ranges=(/-1.0_gp,1.0_gp/))
      call input_var(dummy_real,'5.d-5',dict_basis//CONFINEMENT//1,&
-          ranges=(/0.0_gp,1.0_gp/))
+          ranges=(/-1.0_gp,1.0_gp/))
      call input_var(dummy_real,'10.d0',dict_basis//RLOC//0,&
           ranges=(/1.0_gp,10000.0_gp/))
      call input_var(dummy_real,'10.d0',dict_basis//RLOC//1,&
