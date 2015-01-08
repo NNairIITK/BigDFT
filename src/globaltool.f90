@@ -13,7 +13,6 @@ program globaltool
     use yaml_output
     use bigdft_run
     use module_globaltool
-!    use module_userinput, read_mhgps_input => read_input
     implicit none
     type(gt_data) :: gdat
 
@@ -27,9 +26,9 @@ program globaltool
     call init_gt_data(gdat)
 
     call read_and_merge_data(gdat)
-!
-!    call write_merged_data(gdat)
-!
+
+    call write_merged(gdat)
+
     call finalize_gt_data(gdat)
 
     call yaml_release_document()

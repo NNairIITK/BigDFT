@@ -23,7 +23,7 @@ module module_globaltool
 !!    public :: count_saddle_points
     public :: init_gt_data
     public :: finalize_gt_data
-!!    public :: write_data
+    public :: write_merged
     public :: getPairId
     public :: unpair
 
@@ -298,11 +298,27 @@ subroutine read_poslocs(gdat,idict)
         call fingerprint(gdat%nat,gdat%nid,gdat%astruct%cell_dim,&
              gdat%astruct%geocode,gdat%rcov,gdat%astruct%rxyz,&
              gdat%fp_arr_currDir(1,iposloc))
-        gdat%path_min_currDir(iposloc)=filename
+        gdat%path_min_currDir(iposloc)=trim(adjustl(filename))//'.'//&
+                          trim(adjustl(gdat%astruct%inputfile_format))
     enddo
     gdat%nposlocs=iposloc
      
 end subroutine read_poslocs
+!=====================================================================
+subroutine write_merged(gdat)
+    use module_base
+    use yaml_output
+    implicit none
+    !parameters
+    type(gt_data), intent(in) :: gdat
+    !local
+    integer :: imin
+    call yaml_comment('Merged minima ....',hfill='-')
+    do imin=1,gdat%nmin
+        write(*,'(i6.6,1x,es24.17,1x,a)')imin,gdat%en_arr(imin),&
+                                trim(adjustl(gdat%path_min(imin)))
+    enddo
+end subroutine write_merged
 !=====================================================================
 subroutine read_and_merge_data(gdat)
     use module_base
@@ -323,6 +339,23 @@ subroutine read_and_merge_data(gdat)
     enddo
     
 end subroutine read_and_merge_data
+!=====================================================================
+subroutine read_globalmon(gdat,idict)
+    implicit none
+    !parameters
+    type(gt_data), intent(in) :: gdat
+    integer, intent(in) :: idict
+    !local
+    integer :: u
+
+ 
+    u=f_get_free_unit()
+    open(u,file=trim(adjustl(gdat%uinp%directories(idict)))//&
+                '/global.mon')
+
+    close(u)
+     
+end subroutine
 !=====================================================================
 subroutine add_poslocs_to_database(gdat)
     use module_base
@@ -627,22 +660,6 @@ write(*,*)'insert at',k_epot+1
         gdat%fp_arr(i,k_epot+1)=fp(i)
     enddo
 end subroutine insert_min
-!=====================================================================
-!!!subroutine construct_filenames(folders,ifolder,isad,fsaddle,fminL,fminR)
-!!!    implicit none
-!!!    !parameters
-!!!    character(len=500), intent(in) :: folders(:)
-!!!    integer, intent(in)  ::  ifolder, isad
-!!!    character(len=600), intent(out) :: fsaddle, fminR, fminL
-!!!    !local
-!!!    
-!!!    write(fsaddle,'(a,i5.5,a)')trim(adjustl(folders(ifolder)))//&
-!!!                       '/sad',isad,'_finalF'
-!!!    write(fminL,'(a,i5.5,a)')trim(adjustl(folders(ifolder)))//&
-!!!          '/sad',isad,'_minFinalL'
-!!!    write(fminR,'(a,i5.5,a)')trim(adjustl(folders(ifolder)))//&
-!!!          '/sad',isad,'_minFinalR'
-!!!end subroutine
 !!!!=====================================================================
 !!!!> C x is in interval [xx(jlo),xx(jlow+1)
 !!!![ ; xx(0)=-Infinity ; xx(n+1) = Infinity
