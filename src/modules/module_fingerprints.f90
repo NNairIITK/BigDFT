@@ -49,7 +49,7 @@ subroutine fingerprint(nat,nid,alat,geocode,rcov,rxyz,fp)
     real(gp), allocatable, dimension(:,:) :: om
     real(gp), allocatable, dimension(:) :: workf
 
-    ! WARNING! check convergence to ensure that the folloing
+    ! WARNING! check convergence to ensure that the following
     !cutoff is large enough
     !! exp(-0.5*cutoff^2/rcov^2) = 1E-16  ==>
     !! cutoff^2 = 2*16*log(10)*rcov^2 ==> cutoff ~=8.5 rcov 

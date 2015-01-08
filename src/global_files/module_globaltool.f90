@@ -140,12 +140,12 @@ subroutine construct_filename(gdat,idict,ifile,filename)
     character(len=600), intent(out) :: filename
 
     !for bigdft >= 1.7.6
-    write(filename,'(a,i4.4)')trim(adjustl(&
-         gdat%uinp%directories(idict)))//'/poslocm_',ifile
+!!    write(filename,'(a,i4.4)')trim(adjustl(&
+!!         gdat%uinp%directories(idict)))//'/poslocm_',ifile
     !for bigdft < 1.7.6
-!    write(filename,'(a,i4.4,a)')trim(adjustl(&
-!         gdat%uinp%directories(idict)))//'/poslocm_',&
-!         ifile,'_'
+    write(filename,'(a,i4.4,a)')trim(adjustl(&
+         gdat%uinp%directories(idict)))//'/poslocm_',&
+         ifile,'_'
 end subroutine construct_filename
 !=====================================================================
 subroutine init_nat_rcov(gdat)
@@ -358,9 +358,56 @@ subroutine read_and_merge_data(gdat)
         call read_poslocs(gdat,idict)
         call add_poslocs_to_database(gdat)
         call read_globalmon(gdat,idict)
+!        call add_transpairs_to_database(gdat)
     enddo
     
 end subroutine read_and_merge_data
+!=====================================================================
+subroutine add_transpairs_to_database(gdat)
+    use module_base
+    use yaml_output
+    implicit none
+    !parameters
+    type(gt_data), intent(inout) :: gdat
+    !local
+    real(gp) :: ecurr
+    real(gp) :: fpcurr(gdat%nid)
+    character(len=1) :: statcurr
+    integer :: idcurr, idnext
+    integer :: kid, k_epot
+    logical :: lnew
+    integer :: transpairid
+    integer :: iposloc
+
+    if(gdat%gmon_stat(1)/='P')then
+        call f_err_throw('Error in global.mon: Does not start with'//&
+             ' P line',err_name='BIGDFT_RUNTIME_ERROR')
+    endif
+    ecurr = gdat%gmon_ener(1)
+    fpcurr(:) = gdat%gmon_fp(:,1)
+    statcurr = gdat%gmon_stat(1)
+    call identical('min',gdat,gdat%nminmax,gdat%nmin,gdat%nid,ecurr,&
+         fpcurr(1),gdat%en_arr,gdat%fp_arr,gdat%uinp%en_delta,&
+         gdat%uinp%fp_delta,lnew,kid,k_epot)
+    if(lnew)then
+        call f_err_throw('Structure does not exist',&
+             err_name='BIGDFT_RUNTIME_ERROR')
+    endif
+    idcurr = kid
+    do iposloc = 2, gdat%nposlocs
+        !get ID of minimum
+        call identical('min',gdat,gdat%nminmax,gdat%nmin,gdat%nid,&
+             gdat%gmon_ener(iposloc),gdat%gmon_fp(1,iposloc),&
+             gdat%en_arr,gdat%fp_arr,gdat%uinp%en_delta,&
+             gdat%uinp%fp_delta,lnew,kid,k_epot)
+        if(lnew)then
+            call f_err_throw('Structure does not exist',&
+                 err_name='BIGDFT_RUNTIME_ERROR')
+        endif
+HIER WEITER
+!        if(
+    enddo
+end subroutine
 !=====================================================================
 subroutine read_globalmon(gdat,idict)
     use module_base
@@ -413,14 +460,14 @@ subroutine read_globalmon(gdat,idict)
         if(istat/=0)then
             call f_err_throw('Error while parsing '//&
                  trim(adjustl(filename))//', istep='//&
-                 trim(yaml_toa(istep)))
+                 trim(yaml_toa(istep)),err_name='BIGDFT_RUNTIME_ERROR')
         endif
         if(stat/="I")then
             if(icount/=istep+restartoffset)then
                 call f_err_throw('Error while parsing '//&
                      trim(adjustl(filename))//', istep+restartoffset='//&
                      trim(yaml_toa(istep+restartoffset))//' icount='//&
-                     trim(yaml_toa(icount)))
+                     trim(yaml_toa(icount)),err_name='BIGDFT_RUNTIME_ERROR')
             endif
             icount=icount+1
             gdat%gmon_ener(icount)=energy
@@ -429,10 +476,14 @@ subroutine read_globalmon(gdat,idict)
             if(.not. found)then
                 call f_err_throw('Could not find istep= '//&
                      trim(yaml_toa(istep))//'of '//trim(adjustl(filename))//&
-                     ' among the poslocm files.')
+                     ' among the poslocm files.',err_name='BIGDFT_RUNTIME_ERROR')
             endif    
         endif
-    enddo    
+    enddo   
+    if(icount/=gdat%nposlocs)then
+        call f_err_throw('Number of poslocm files is not identical '//&
+             'to number of steps in global.mon',err_name='BIGDFT_RUNTIME_ERROR')
+    endif
     close(u)
      
 end subroutine read_globalmon
@@ -578,85 +629,6 @@ write(*,*)'dmin',dmin
     endif
 end subroutine identical
 !=====================================================================
-!!!subroutine add_neighbors(gdat,kid,neighb1,neighb2)
-!!!    use module_base
-!!!    implicit none
-!!!    !parameters
-!!!    type(gt_data), intent(inout) :: gdat
-!!!    integer, intent(in) :: kid
-!!!    integer, intent(in) :: neighb1, neighb2
-!!!    !local
-!!!    integer :: ipair
-!!!    logical :: found
-!!!
-!!!    !first check, if neihgbor pair is already
-!!!    !in list
-!!!    found=.false.
-!!!write(*,*)
-!!!write(*,*)neighb1,neighb2
-!!!write(*,*)'---'
-!!!    neighbloop: do ipair=1,gdat%nneighbpairs(kid)
-!!!        if( ((gdat%sadneighb(1,ipair,kid)==neighb1)&
-!!!               .and.(gdat%sadneighb(2,ipair,kid)==neighb2))&
-!!!           &.or.((gdat%sadneighb(2,ipair,kid)==neighb1) &
-!!!               .and.(gdat%sadneighb(1,ipair,kid)==neighb2)) )then
-!!!            gdat%paircounter(ipair,kid) = gdat%paircounter(ipair,kid)+1
-!!!            found=.true.
-!!!            exit neighbloop
-!!!        endif
-!!!    enddo neighbloop
-!!!
-!!!    if(.not. found) then !pair is new, add it to list
-!!!        gdat%nneighbpairs(kid) = gdat%nneighbpairs(kid) + 1
-!!!        gdat%paircounter(gdat%nneighbpairs(kid),kid)  = 1
-!!!        gdat%sadneighb(1,gdat%nneighbpairs(kid),kid) = neighb1
-!!!        gdat%sadneighb(2,gdat%nneighbpairs(kid),kid) = neighb2
-!!!    endif
-!!!do ipair=1,gdat%nneighbpairs(kid)
-!!!write(*,*)gdat%sadneighb(1,ipair,kid),gdat%sadneighb(2,ipair,kid),gdat%paircounter(ipair,kid)
-!!!enddo
-!!!end subroutine add_neighbors
-!=====================================================================
-!!subroutine insert_sad(gdat,k_epot,epot,fp,neighb1,neighb2,path)
-!!    !insert at k_epot+1
-!!    use module_base
-!!    implicit none
-!!    !parameters
-!!    type(gt_data), intent(inout) :: gdat
-!!    integer, intent(in) :: k_epot
-!!    real(gp), intent(in) :: epot
-!!    real(gp), intent(in) :: fp(gdat%nid)
-!!    integer, intent(in) :: neighb1, neighb2
-!!    character(len=600)   :: path
-!!    !local
-!!    integer :: i,k
-!!    if(gdat%nsad+1>gdat%nsadtot)stop 'nsad+1>=nsadtot, out of bounds'
-!!
-!!    gdat%nsad=gdat%nsad+1
-!!    do k=gdat%nsad-1,k_epot+1,-1
-!!        gdat%en_arr_sad(k+1)=gdat%en_arr_sad(k)
-!!        gdat%sadnumber(k+1)=gdat%sadnumber(k)
-!!        gdat%path_sad(k+1)=gdat%path_sad(k)
-!!        gdat%nneighbpairs(k+1) = gdat%nneighbpairs(k)
-!!        gdat%paircounter(:,k+1) = gdat%paircounter(:,k)
-!!        gdat%sadneighb(1,:,k+1)=gdat%sadneighb(1,:,k)
-!!        gdat%sadneighb(2,:,k+1)=gdat%sadneighb(2,:,k)
-!!        do i=1,gdat%nid
-!!            gdat%fp_arr_sad(i,k+1)=gdat%fp_arr_sad(i,k)
-!!         enddo
-!!    enddo
-!!    gdat%en_arr_sad(k_epot+1)=epot
-!!    gdat%sadnumber(k_epot+1)=gdat%nsad
-!!    gdat%path_sad(k_epot+1)=path
-!!    gdat%nneighbpairs(k_epot+1) = 1
-!!    gdat%paircounter(1,k_epot+1) = 1
-!!    gdat%sadneighb(1,1,k_epot+1)=neighb1
-!!    gdat%sadneighb(2,1,k_epot+1)=neighb2
-!!    do i=1,gdat%nid
-!!        gdat%fp_arr_sad(i,k+1)=fp(i)
-!!    enddo
-!!end subroutine insert_sad
-!=====================================================================
 subroutine insert_min(gdat,k_epot,epot,fp,path)
     !insert at k_epot+1
     use module_base
@@ -700,58 +672,19 @@ subroutine hunt_gt(xx,n,x,jlo)
   !Local variables
   integer :: inc,jhi,jm
   logical :: ascnd
-  if (n.le.0) stop 'hunt_gt'
-  if (n == 1) then
-     if (x.ge.xx(1)) then
-        jlo=1
-     else
-        jlo=0
-     endif
-     return
-  endif
-  ascnd=xx(n).ge.xx(1)
-  if(jlo.le.0.or.jlo.gt.n)then
-     jlo=0
-     jhi=n+1
-     goto 3
-  endif
-  inc=1
-  if(x.ge.xx(jlo).eqv.ascnd)then
-1    continue
-     jhi=jlo+inc
-     if(jhi.gt.n)then
-        jhi=n+1
-     else if(x.ge.xx(jhi).eqv.ascnd)then
-        jlo=jhi
-        inc=inc+inc
-        goto 1
-     endif
-  else
-     jhi=jlo
-2    continue
-     jlo=jhi-inc
-     if(jlo.lt.1)then
-        jlo=0
-     else if(x.lt.xx(jlo).eqv.ascnd)then
-        jhi=jlo
-        inc=inc+inc
-        goto 2
-     endif
-  endif
-3 continue
-  if(jhi-jlo == 1)then
-     if(x == xx(n))jlo=n
-     if(x == xx(1))jlo=1
-     return
-  endif
-  jm=(jhi+jlo)/2
-  if(x.ge.xx(jm).eqv.ascnd)then
-     jlo=jm
-  else
-     jhi=jm
-  endif
-  goto 3
+  include 'hunt-inc.f90'
 END SUBROUTINE hunt_gt
+subroutine inthunt_gt(xx,n,x,jlo)
+  use module_base
+  implicit none
+  !Arguments
+  integer :: jlo,n
+  integer :: x,xx(n)
+  !Local variables
+  integer :: inc,jhi,jm
+  logical :: ascnd
+  include 'hunt-inc.f90'
+END SUBROUTINE inthunt_gt
 subroutine check_struct_file_exists(filename,exists)
     use module_base
     implicit none
@@ -784,7 +717,7 @@ subroutine check_struct_file_exists(filename,exists)
             exists=.false.
         else
             call f_err_throw('File '//trim(adjustl(filename))//&
-                             ' does not exist.')
+                 ' does not exist.',err_name='BIGDFT_RUNTIME_ERROR')
         endif
     endif
 end subroutine
