@@ -956,7 +956,6 @@ subroutine chebft2(a,b,n,cc)
 
 end subroutine chebft2
 
-
 ! Calculates chebychev expansion of the derivative of Fermi distribution.
 subroutine chder(a,b,c,cder,n)
   use dynamic_memory

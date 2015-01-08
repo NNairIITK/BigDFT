@@ -248,7 +248,7 @@ contains
 
     call deallocate_wfd(lr%wfd)
     call deallocate_convolutions_bounds(lr%bounds)
-
+    
   end subroutine deallocate_locreg_descriptors
 
 
@@ -260,43 +260,43 @@ contains
     logical, intent(in) :: hybrid_on 
     type(convolutions_bounds) :: bounds
 
-    if ((geocode == 'P' .and. hybrid_on) .or. geocode == 'F') then
-       ! Just test the first one...
-       if (associated(bounds%kb%ibyz_f)) then
-          call f_free_ptr(bounds%kb%ibyz_f)
-          call f_free_ptr(bounds%kb%ibxz_f)
-          call f_free_ptr(bounds%kb%ibxy_f)
+    !if ((geocode == 'P' .and. hybrid_on) .or. geocode == 'F') then
+    !   ! Just test the first one...
+    !   if (associated(bounds%kb%ibyz_f)) then
+    call f_free_ptr(bounds%kb%ibyz_f)
+    call f_free_ptr(bounds%kb%ibxz_f)
+    call f_free_ptr(bounds%kb%ibxy_f)
 
-          call f_free_ptr(bounds%sb%ibxy_ff)
-          call f_free_ptr(bounds%sb%ibzzx_f)
-          call f_free_ptr(bounds%sb%ibyyzz_f)
+    call f_free_ptr(bounds%sb%ibxy_ff)
+    call f_free_ptr(bounds%sb%ibzzx_f)
+    call f_free_ptr(bounds%sb%ibyyzz_f)
 
-          call f_free_ptr(bounds%gb%ibyz_ff)
+    call f_free_ptr(bounds%gb%ibyz_ff)
 
-          call f_free_ptr(bounds%gb%ibzxx_f)
-          call f_free_ptr(bounds%gb%ibxxyy_f)
-       end if
-    end if
+    call f_free_ptr(bounds%gb%ibzxx_f)
+    call f_free_ptr(bounds%gb%ibxxyy_f)
+    !   end if
+    !end if
 
     !the arrays which are needed only for free BC
-    if (geocode == 'F') then
-       ! Just test the first one...
-       if (associated(bounds%kb%ibyz_c)) then
-          call f_free_ptr(bounds%kb%ibyz_c)
-          call f_free_ptr(bounds%kb%ibxz_c)
-          call f_free_ptr(bounds%kb%ibxy_c)
+    !if (geocode == 'F') then
+    ! Just test the first one...
+    !   if (associated(bounds%kb%ibyz_c)) then
+    call f_free_ptr(bounds%kb%ibyz_c)
+    call f_free_ptr(bounds%kb%ibxz_c)
+    call f_free_ptr(bounds%kb%ibxy_c)
 
 
-          call f_free_ptr(bounds%sb%ibzzx_c)
-          call f_free_ptr(bounds%sb%ibyyzz_c)
+    call f_free_ptr(bounds%sb%ibzzx_c)
+    call f_free_ptr(bounds%sb%ibyyzz_c)
 
-          call f_free_ptr(bounds%gb%ibzxx_c)
-          call f_free_ptr(bounds%gb%ibxxyy_c)
+    call f_free_ptr(bounds%gb%ibzxx_c)
+    call f_free_ptr(bounds%gb%ibxxyy_c)
 
-          call f_free_ptr(bounds%ibyyzz_r)
+    call f_free_ptr(bounds%ibyyzz_r)
 
-       end if
-    end if
+    !  end if
+    !end if
 
   END SUBROUTINE deallocate_bounds
 

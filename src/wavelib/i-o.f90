@@ -426,6 +426,8 @@ contains
 
     call f_routine(id=subname)
 
+    call nullify_locreg_descriptors(lr)
+
     lr%geocode = "P"
     lr%hybrid_on = .false.
 
@@ -615,6 +617,8 @@ contains
   END SUBROUTINE read_psig
 
   subroutine io_open(unitwf, filename, formatted)
+    use f_utils, only: f_open_file
+    implicit none
     character(len = *), intent(in) :: filename
     logical, intent(in) :: formatted
     integer, intent(out) :: unitwf
@@ -623,16 +627,17 @@ contains
 
     ! We open the Fortran file
     unitwf = 99
-    if (.not. formatted) then
-       open(unit=unitwf,file=trim(filename),status='unknown',form="unformatted", iostat=i_stat)
-    else
-       open(unit=unitwf,file=trim(filename),status='unknown', iostat=i_stat)
-    end if
-    if (i_stat /= 0) then
-       call io_warning("Cannot open file '" // trim(filename) // "'.")
-       unitwf = -1
-       return
-    end if
+    call f_open_file(unitwf,file=trim(filename),binary=.not. formatted)
+!!$    if (.not. formatted) then
+!!$       open(unit=unitwf,file=trim(filename),status='unknown',form="unformatted", iostat=i_stat)
+!!$    else
+!!$       open(unit=unitwf,file=trim(filename),status='unknown', iostat=i_stat)
+!!$    end if
+!!$    if (i_stat /= 0) then
+!!$       call io_warning("Cannot open file '" // trim(filename) // "'.")
+!!$       unitwf = -1
+!!$       return
+!!$    end if
   END SUBROUTINE io_open
 
 END MODULE internal_io
@@ -780,6 +785,7 @@ subroutine readwavetoisf(lstat, filename, formatted, hx, hy, hz, &
 
   call f_routine(id=subname)
 
+
   ! We open the Fortran file
   call io_open(unitwf, filename, formatted)
   if (unitwf < 0) then
@@ -789,7 +795,7 @@ subroutine readwavetoisf(lstat, filename, formatted, hx, hy, hz, &
 
   ! We read the basis set description and the atomic definition.
   call io_read_descr(unitwf, formatted, iorb, eval, n1, n2, n3, &
-       & hx, hy, hz, lstat, error, lr%wfd%nvctr_c, lr%wfd%nvctr_f)
+       & hx, hy, hz, lstat, error,  nvctr_c_old, nvctr_f_old)
   if (.not. lstat) then
      call io_warning(trim(error))
      call f_release_routine()
@@ -804,18 +810,17 @@ subroutine readwavetoisf(lstat, filename, formatted, hx, hy, hz, &
   end if
 
   ! Initial allocations.
-  gcoord_c = f_malloc((/ 3, lr%wfd%nvctr_c  /),id='gcoord_c')
-  gcoord_f = f_malloc((/ 3, lr%wfd%nvctr_f  /),id='gcoord_f')
-  psi = f_malloc(lr%wfd%nvctr_c + 7 * lr%wfd%nvctr_f ,id='psi')
-
+  gcoord_c = f_malloc((/ 3, nvctr_c_old  /),id='gcoord_c')
+  gcoord_f = f_malloc((/ 3, nvctr_f_old  /),id='gcoord_f')
+  psi = f_malloc( nvctr_c_old + 7 * nvctr_f_old ,id='psi')
   ! Read psi and the basis-set
-  call read_psi_compress(unitwf, formatted, lr%wfd%nvctr_c, lr%wfd%nvctr_f, psi, lstat, error, gcoord_c, gcoord_f)
+  call read_psi_compress(unitwf, formatted, nvctr_c_old, nvctr_f_old, psi, lstat, error, gcoord_c, gcoord_f)
   if (.not. lstat) then
      call io_warning(trim(error))
      call deallocate_local()
      return
   end if
-  call io_gcoordToLocreg(n1, n2, n3, lr%wfd%nvctr_c, lr%wfd%nvctr_f, &
+  call io_gcoordToLocreg(n1, n2, n3, nvctr_c_old, nvctr_f_old, &
        & gcoord_c, gcoord_f, lr)
 
   psiscf = f_malloc_ptr((/ lr%d%n1i, lr%d%n2i, lr%d%n3i, nspinor  /),id='psiscf')
@@ -852,6 +857,7 @@ subroutine readwavetoisf(lstat, filename, formatted, hx, hy, hz, &
         call deallocate_local()
         return
      end if
+
      ! Check consistency of the basis-set.
      if (n1_old == n1 .and. n2_old == n2 .and. n3_old == n3 .and. &
           & hx_old == hx .and. hy_old == hy .and. hz_old == hz .and. &
@@ -901,9 +907,9 @@ contains
     if (associated(w%x_c)) then
        call deallocate_work_arrays_sumrho(w)
     end if
-    if (associated(lr%bounds%kb%ibyz_f)) then
+    !if (associated(lr%bounds%kb%ibyz_f)) then
        call deallocate_bounds(lr%geocode, lr%hybrid_on, lr%bounds)
-    end if
+    !end if
     call deallocate_wfd(lr%wfd)
     
     call f_release_routine()

@@ -311,7 +311,7 @@ subroutine readmywaves(iproc,filename,iformat,orbs,n1,n2,n3,hx,hy,hz,at,rxyz_old
   !Local variables
   character(len=*), parameter :: subname='readmywaves'
   logical :: perx,pery,perz
-  integer :: ncount1,ncount_rate,ncount_max,iorb,ncount2,nb1,nb2,nb3,iorb_out,ispinor
+  integer :: ncount1,ncount_rate,ncount_max,iorb,ncount2,nb1,nb2,nb3,iorb_out,ispinor,unitwf
   real(kind=4) :: tr0,tr1
   real(kind=8) :: tel
   real(wp), dimension(:,:,:), allocatable :: psifscf
@@ -319,6 +319,8 @@ subroutine readmywaves(iproc,filename,iformat,orbs,n1,n2,n3,hx,hy,hz,at,rxyz_old
 
   call cpu_time(tr0)
   call system_clock(ncount1,ncount_rate,ncount_max)
+
+  unitwf=99
 
   if (iformat == WF_FORMAT_ETSF) then
      !construct the orblist or use the one in argument
@@ -347,16 +349,16 @@ subroutine readmywaves(iproc,filename,iformat,orbs,n1,n2,n3,hx,hy,hz,at,rxyz_old
 
         do ispinor=1,orbs%nspinor
            if(present(orblist)) then
-              call open_filename_of_iorb(99,(iformat == WF_FORMAT_BINARY),filename, &
+              call open_filename_of_iorb(unitwf,(iformat == WF_FORMAT_BINARY),filename, &
                    & orbs,iorb,ispinor,iorb_out, orblist(iorb+orbs%isorb))
            else
-              call open_filename_of_iorb(99,(iformat == WF_FORMAT_BINARY),filename, &
+              call open_filename_of_iorb(unitwf,(iformat == WF_FORMAT_BINARY),filename, &
                    & orbs,iorb,ispinor,iorb_out)
            end if           
-           call readonewave(99, (iformat == WF_FORMAT_PLAIN),iorb_out,iproc,n1,n2,n3, &
+           call readonewave(unitwf, (iformat == WF_FORMAT_PLAIN),iorb_out,iproc,n1,n2,n3, &
                 & hx,hy,hz,at,wfd,rxyz_old,rxyz,&
                 psi(1,ispinor,iorb),orbs%eval(orbs%isorb+iorb),psifscf)
-           close(99)
+           call f_close(unitwf)
         end do
 !!$        do i_all=1,wfd%nvctr_c+7*wfd%nvctr_f
 !!$            write(700+iorb,*) i_all, psi(i_all,1,iorb)
@@ -549,8 +551,10 @@ subroutine open_filename_of_iorb(unitfile,lbin,filename,orbs,iorb,ispinor,iorb_o
   implicit none
   character(len=*), intent(in) :: filename
   logical, intent(in) :: lbin
-  integer, intent(in) :: iorb,ispinor,unitfile
+  integer, intent(in) :: iorb,ispinor
   type(orbitals_data), intent(in) :: orbs
+  !>on entry, it suggests the opening unit. On exit, returns the first valid value to which the unit can be associated
+  integer, intent(inout) :: unitfile 
   integer, intent(out) :: iorb_out
   integer, intent(in), optional :: iiorb
   !local variables
@@ -563,11 +567,12 @@ subroutine open_filename_of_iorb(unitfile,lbin,filename,orbs,iorb,ispinor,iorb_o
   else
      call filename_of_iorb(lbin,filename,orbs,iorb,ispinor,filename_out,iorb_out)
   end if
-  if (lbin) then
-     open(unit=unitfile,file=trim(filename_out),status='unknown',form="unformatted")
-  else
-     open(unit=unitfile,file=trim(filename_out),status='unknown')
-  end if
+  call f_open_file(unitfile,file=filename_out,binary=lbin)
+!!$  if (lbin) then
+!!$     open(unit=unitfile,file=trim(filename_out),status='unknown',form="unformatted")
+!!$  else
+!!$     open(unit=unitfile,file=trim(filename_out),status='unknown')
+!!$  end if
 
 end subroutine open_filename_of_iorb
 
@@ -588,9 +593,11 @@ subroutine writemywaves(iproc,filename,iformat,orbs,n1,n2,n3,hx,hy,hz,at,rxyz,wf
   real(wp), dimension(wfd%nvctr_c+7*wfd%nvctr_f,orbs%nspinor,orbs%norbp), intent(in) :: psi
   character(len=*), intent(in) :: filename
   !Local variables
-  integer :: ncount1,ncount_rate,ncount_max,iorb,ncount2,iorb_out,ispinor
+  integer :: ncount1,ncount_rate,ncount_max,iorb,ncount2,iorb_out,ispinor,unitwf
   real(kind=4) :: tr0,tr1
   real(kind=8) :: tel
+
+  unitwf=99
 
   if (iproc == 0) call yaml_map('Write wavefunctions to file', trim(filename) // '.*')
   !if (iproc == 0) write(*,"(1x,A,A,a)") "Write wavefunctions to file: ", trim(filename),'.*'
@@ -603,14 +610,14 @@ subroutine writemywaves(iproc,filename,iformat,orbs,n1,n2,n3,hx,hy,hz,at,rxyz,wf
      ! Plain BigDFT files.
      do iorb=1,orbs%norbp
         do ispinor=1,orbs%nspinor
-           call open_filename_of_iorb(99,(iformat == WF_FORMAT_BINARY),filename, &
+           call open_filename_of_iorb(unitwf,(iformat == WF_FORMAT_BINARY),filename, &
                 & orbs,iorb,ispinor,iorb_out)           
-           call writeonewave(99,(iformat == WF_FORMAT_PLAIN),iorb_out,n1,n2,n3,hx,hy,hz, &
+           call writeonewave(unitwf,(iformat == WF_FORMAT_PLAIN),iorb_out,n1,n2,n3,hx,hy,hz, &
                 at%astruct%nat,rxyz,wfd%nseg_c,wfd%nvctr_c,wfd%keygloc(1,1),wfd%keyvloc(1),  & 
                 wfd%nseg_f,wfd%nvctr_f,wfd%keygloc(1,wfd%nseg_c+1),wfd%keyvloc(wfd%nseg_c+1), & 
                 psi(1,ispinor,iorb),psi(wfd%nvctr_c+1,ispinor,iorb), &
                 orbs%eval(iorb+orbs%isorb))
-           close(99)
+           call f_close(unitwf)
         end do
      enddo
 
@@ -904,12 +911,15 @@ subroutine write_linear_matrices(iproc,nproc,imethod_overlap,filename,iformat,tm
   type(DFT_wavefunction), intent(inout) :: tmb
   type(atoms_data), intent(in) :: at
   real(gp),dimension(3,at%astruct%nat),intent(in) :: rxyz
-
-  integer :: ispin, iorb, jorb, iat, jat
+  !local variables
+  logical :: binary
+  integer :: ispin, iorb, jorb, iat, jat,unitm
   !!integer :: i_stat, i_all
   character(len=*),parameter :: subname='write_linear_matrices'
 
 
+  unitm=99
+  binary=(iformat /= WF_FORMAT_PLAIN)
 
   tmb%linmat%ham_%matrix = sparsematrix_malloc_ptr(tmb%linmat%m, &
                            iaction=DENSE_FULL, id='tmb%linmat%ham_%matrix')
@@ -919,27 +929,28 @@ subroutine write_linear_matrices(iproc,nproc,imethod_overlap,filename,iformat,tm
 
   if (iproc==0) then
 
-     if(iformat == WF_FORMAT_PLAIN) then
-        open(99, file=filename//'hamiltonian.bin', status='unknown',form='formatted')
-     else
-        open(99, file=filename//'hamiltonian.bin', status='unknown',form='unformatted')
-     end if
+     !if(iformat == WF_FORMAT_PLAIN) then
+     call f_open_file(unitm, file=filename//'hamiltonian.bin',&
+          binary=binary)
+     !else
+     !open(99, file=filename//'hamiltonian.bin', status='unknown',form='unformatted')
+     !end if
 
      do ispin=1,tmb%linmat%m%nspin
         do iorb=1,tmb%linmat%m%nfvctr
            iat=tmb%orbs%onwhichatom(iorb)
            do jorb=1,tmb%linmat%m%nfvctr
               jat=tmb%orbs%onwhichatom(jorb)
-              if (iformat == WF_FORMAT_PLAIN) then
-                 write(99,'(2(i6,1x),e19.12,2(1x,i6))') iorb,jorb,tmb%linmat%ham_%matrix(iorb,jorb,ispin),iat,jat
+              if (.not. binary) then
+                 write(unitm,'(2(i6,1x),e19.12,2(1x,i6))') iorb,jorb,tmb%linmat%ham_%matrix(iorb,jorb,ispin),iat,jat
               else
-                 write(99) iorb,jorb,tmb%linmat%ham_%matrix(iorb,jorb,ispin),iat,jat
+                 write(unitm) iorb,jorb,tmb%linmat%ham_%matrix(iorb,jorb,ispin),iat,jat
               end if
            end do
         end do
      end do
 
-     close(99)
+     call f_close(unitm)
 
   end if
 
@@ -954,27 +965,28 @@ subroutine write_linear_matrices(iproc,nproc,imethod_overlap,filename,iformat,tm
 
   if (iproc==0) then
 
-     if(iformat == WF_FORMAT_PLAIN) then
-        open(99, file=filename//'overlap.bin', status='unknown',form='formatted')
-     else
-        open(99, file=filename//'overlap.bin', status='unknown',form='unformatted')
-     end if
+     !if(iformat == WF_FORMAT_PLAIN) then
+     call f_open_file(unitm, file=filename//'overlap.bin',&
+          binary=binary)
+     !else
+     !open(99, file=filename//'overlap.bin', status='unknown',form='unformatted')
+     !end if
 
      do ispin=1,tmb%linmat%s%nspin
         do iorb=1,tmb%linmat%s%nfvctr
            iat=tmb%orbs%onwhichatom(iorb)
            do jorb=1,tmb%linmat%s%nfvctr
               jat=tmb%orbs%onwhichatom(jorb)
-              if (iformat == WF_FORMAT_PLAIN) then
-                 write(99,'(2(i6,1x),e19.12,2(1x,i6))') iorb,jorb,tmb%linmat%ovrlp_%matrix(iorb,jorb,ispin),iat,jat
+              if (.not. binary) then
+                 write(unitm,'(2(i6,1x),e19.12,2(1x,i6))') iorb,jorb,tmb%linmat%ovrlp_%matrix(iorb,jorb,ispin),iat,jat
               else
-                 write(99) iorb,jorb,tmb%linmat%ovrlp_%matrix(iorb,jorb,ispin),iat,jat
+                 write(unitm) iorb,jorb,tmb%linmat%ovrlp_%matrix(iorb,jorb,ispin),iat,jat
               end if
            end do
         end do
      end do
 
-     close(99)
+     call f_close(unitm)
 
   end if
 
@@ -987,27 +999,28 @@ subroutine write_linear_matrices(iproc,nproc,imethod_overlap,filename,iformat,tm
        tmb%linmat%kernel_%matrix_compr, tmb%linmat%kernel_%matrix)
 
   if (iproc==0) then
-     if(iformat == WF_FORMAT_PLAIN) then
-        open(99, file=filename//'density_kernel.bin', status='unknown',form='formatted')
-     else
-        open(99, file=filename//'density_kernel.bin', status='unknown',form='unformatted')
-     end if
+     !if(iformat == WF_FORMAT_PLAIN) then
+     call f_open_file(unitm,file=filename//'density_kernel.bin',&
+          binary=binary)
+     !else
+     !open(99, file=filename//'density_kernel.bin', status='unknown',form='unformatted')
+     !end if
 
      do ispin=1,tmb%linmat%l%nspin
         do iorb=1,tmb%linmat%l%nfvctr
            iat=tmb%orbs%onwhichatom(iorb)
            do jorb=1,tmb%linmat%l%nfvctr
               jat=tmb%orbs%onwhichatom(jorb)
-              if (iformat == WF_FORMAT_PLAIN) then
-                 write(99,'(2(i6,1x),e19.12,2(1x,i6))') iorb,jorb,tmb%linmat%kernel_%matrix(iorb,jorb,ispin),iat,jat
+              if (.not. binary) then
+                 write(unitm,'(2(i6,1x),e19.12,2(1x,i6))') iorb,jorb,tmb%linmat%kernel_%matrix(iorb,jorb,ispin),iat,jat
               else
-                 write(99) iorb,jorb,tmb%linmat%kernel_%matrix(iorb,jorb,ispin),iat,jat
+                 write(unitm) iorb,jorb,tmb%linmat%kernel_%matrix(iorb,jorb,ispin),iat,jat
               end if
            end do
         end do
      end do
 
-     close(99)
+     call f_close(unitm)
 
  end if
 
@@ -1024,29 +1037,29 @@ subroutine write_linear_matrices(iproc,nproc,imethod_overlap,filename,iformat,tm
   !call tmb_overlap_onsite_rotate(iproc, nproc, at, tmb, rxyz)
 
   if (iproc==0) then
-     if(iformat == WF_FORMAT_PLAIN) then
-        open(99, file=filename//'overlap_onsite.bin', status='unknown',form='formatted')
-     else
-        open(99, file=filename//'overlap_onsite.bin', status='unknown',form='unformatted')
-     end if
+     !if(iformat == WF_FORMAT_PLAIN) then
+     call f_open_file(unitm,file=filename//'overlap_onsite.bin',&
+          binary=binary)
+     !else
+     !open(99, file=filename//'overlap_onsite.bin', status='unknown',form='unformatted')
+     !end if
 
      do ispin=1,tmb%linmat%l%nspin
         do iorb=1,tmb%linmat%l%nfvctr
            iat=tmb%orbs%onwhichatom(iorb)
            do jorb=1,tmb%linmat%l%nfvctr
               jat=tmb%orbs%onwhichatom(jorb)
-              if (iformat == WF_FORMAT_PLAIN) then
-                 write(99,'(2(i6,1x),e19.12,2(1x,i6))') iorb,jorb,tmb%linmat%ovrlp_%matrix(iorb,jorb,ispin),iat,jat
+              if (.not. binary) then
+                 write(unitm,'(2(i6,1x),e19.12,2(1x,i6))') iorb,jorb,tmb%linmat%ovrlp_%matrix(iorb,jorb,ispin),iat,jat
               else
-                 write(99) iorb,jorb,tmb%linmat%ovrlp_%matrix(iorb,jorb,ispin),iat,jat
+                 write(unitm) iorb,jorb,tmb%linmat%ovrlp_%matrix(iorb,jorb,ispin),iat,jat
               end if
            end do
         end do
      end do
 
+     call f_close(unitm)
   end if
-
-  close(99)
 
   !!i_all = -product(shape(tmb%linmat%ovrlp%matrix))*kind(tmb%linmat%ovrlp%matrix)
   !!deallocate(tmb%linmat%ovrlp%matrix,stat=i_stat)
@@ -1570,16 +1583,20 @@ subroutine writemywaves_linear(iproc,filename,iformat,npsidim,Lzd,orbs,nelec,at,
   real(wp), dimension(orbs%norb,orbs%norb), intent(in) :: coeff
   character(len=*), intent(in) :: filename
   !Local variables
-  integer :: ncount1,ncount_rate,ncount_max,iorb,ncount2,iorb_out,ispinor,ilr,shift,ii,iat
+  logical :: binary
+  integer :: ncount1,ncount_rate,ncount_max,iorb,ncount2,iorb_out,ispinor,ilr,shift,ii,iat,unitwf
   integer :: jorb,jlr
   real(kind=4) :: tr0,tr1
   real(kind=8) :: tel
 
+  unitwf=99
+  binary=iformat /= WF_FORMAT_ETSF
+
   if (iproc == 0) call yaml_map('Write wavefunctions to file', trim(filename)//'.*')
   !if (iproc == 0) write(*,"(1x,A,A,a)") "Write wavefunctions to file: ", trim(filename),'.*'
 
-  if (iformat == WF_FORMAT_ETSF) then
-      stop 'Linear scaling with ETSF writing not implemented yet'
+  if (binary) then
+     call f_err_throw('Linear scaling with ETSF writing not implemented yet')
 !     call write_waves_etsf(iproc,filename,orbs,n1,n2,n3,hx,hy,hz,at,rxyz,wfd,psi)
   else
      call cpu_time(tr0)
@@ -1599,9 +1616,9 @@ subroutine writemywaves_linear(iproc,filename,iformat,npsidim,Lzd,orbs,nelec,at,
               ii = ii + 1
               ilr = orbs%inwhichlocreg(iorb+orbs%isorb)
               do ispinor=1,orbs%nspinor
-                 call open_filename_of_iorb(99,(iformat == WF_FORMAT_BINARY),filename, &
+                 call open_filename_of_iorb(unitwf,.not. binary,filename, &
                     & orbs,iorb,ispinor,iorb_out)
-                 call writeonewave_linear(99,(iformat == WF_FORMAT_PLAIN),iorb_out,&
+                 call writeonewave_linear(unitwf,.not. binary,iorb_out,&
                     & Lzd%Llr(ilr)%d%n1,Lzd%Llr(ilr)%d%n2,Lzd%Llr(ilr)%d%n3,&
                     & Lzd%Llr(ilr)%ns1,Lzd%Llr(ilr)%ns2,Lzd%Llr(ilr)%ns3,& 
                     & Lzd%hgrids(1),Lzd%hgrids(2),Lzd%hgrids(3), &
@@ -1613,7 +1630,7 @@ subroutine writemywaves_linear(iproc,filename,iformat,npsidim,Lzd,orbs,nelec,at,
                     & Lzd%Llr(ilr)%wfd%keyvloc(Lzd%Llr(ilr)%wfd%nseg_c+1), &
                     & psi(shift),psi(Lzd%Llr(ilr)%wfd%nvctr_c+shift),orbs%eval(iorb+orbs%isorb),&
                     & orbs%onwhichatom(iorb+orbs%isorb))
-                 close(99)
+                 call f_close(unitwf)
               end do
            end if
         enddo
@@ -1623,15 +1640,17 @@ subroutine writemywaves_linear(iproc,filename,iformat,npsidim,Lzd,orbs,nelec,at,
     ! Must be careful, the orbs%norb is the number of basis functions
     ! while the norb is the number of orbitals.
     if(iproc == 0) then
-      if(iformat == WF_FORMAT_PLAIN) then
-         open(99, file=filename//'_coeff.bin', status='unknown',form='formatted')
-      else
-         open(99, file=filename//'_coeff.bin', status='unknown',form='unformatted')
-      end if
-      call writeLinearCoefficients(99,(iformat == WF_FORMAT_PLAIN),at%astruct%nat,rxyz,orbs%norb,&
+       call f_open_file(unitwf,file=filename//'_coeff.bin',&
+            binary=binary)
+       !if(iformat == WF_FORMAT_PLAIN) then
+       !  open(99, file=filename//'_coeff.bin', status='unknown',form='formatted')
+       !else
+       !open(99, file=filename//'_coeff.bin', status='unknown',form='unformatted')
+       !end if
+      call writeLinearCoefficients(unitwf,.not. binary,at%astruct%nat,rxyz,orbs%norb,&
            nelec,coeff,orbs%eval)
-      close(99)
-    end if
+      call f_close(unitwf)
+   end if
      call cpu_time(tr1)
      call system_clock(ncount2,ncount_rate,ncount_max)
      tel=dble(ncount2-ncount1)/dble(ncount_rate)
@@ -1736,7 +1755,7 @@ subroutine writemywaves_linear_fragments(iproc,filename,iformat,npsidim,Lzd,orbs
                       & orbs,iorbp,ispinor,iorb_out,iforb)
 
                  !also what to do with eval? - at the moment completely arbitrary
-                 call writeonewave_linear(99,(iformat == WF_FORMAT_PLAIN),iorb_out,&
+                 call writeonewave_linear(unitwf,(iformat == WF_FORMAT_PLAIN),iorb_out,&
                     & Lzd%Llr(ilr)%d%n1,Lzd%Llr(ilr)%d%n2,Lzd%Llr(ilr)%d%n3,&
                     & Lzd%Llr(ilr)%ns1,Lzd%Llr(ilr)%ns2,Lzd%Llr(ilr)%ns3,& 
                     & Lzd%hgrids(1),Lzd%hgrids(2),Lzd%hgrids(3), &
@@ -1766,18 +1785,20 @@ subroutine writemywaves_linear_fragments(iproc,filename,iformat,npsidim,Lzd,orbs
         if(iproc == 0) then
            full_filename=trim(dir_output)//trim(input_frag%dirname(ifrag_ref))//trim(filename)
  
-           if(iformat == WF_FORMAT_PLAIN) then
-              open(unitwf, file=trim(full_filename)//'_coeff.bin', status='unknown',form='formatted')
-           else
-              open(unitwf, file=trim(full_filename)//'_coeff.bin', status='unknown',form='unformatted')
-           end if
+           call f_open_file(unitwf,file=trim(full_filename)//'_coeff.bin',&
+                binary=(iformat /= WF_FORMAT_PLAIN))
+           !if(iformat == WF_FORMAT_PLAIN) then
+           !   open(unitwf, file=trim(full_filename)//'_coeff.bin', status='unknown',form='formatted')
+           !else
+           !   open(unitwf, file=trim(full_filename)//'_coeff.bin', status='unknown',form='unformatted')
+           !end if
            call writeLinearCoefficients(unitwf,(iformat == WF_FORMAT_PLAIN),ref_frags(ifrag_ref)%astruct_frg%nat,&
                 rxyz(:,isfat+1:isfat+ref_frags(ifrag_ref)%astruct_frg%nat),ref_frags(ifrag_ref)%fbasis%forbs%norb,&
                 ref_frags(ifrag_ref)%nelec,&
                 coeff(isforb+1:isforb+ref_frags(ifrag_ref)%fbasis%forbs%norb,&
                 isforb+1:isforb+ref_frags(ifrag_ref)%fbasis%forbs%norb),&
                 orbs%eval(isforb+1:isforb+ref_frags(ifrag_ref)%fbasis%forbs%norb)) !-0.5d0
-           close(unitwf)
+           call f_close(unitwf)
         end if
         call cpu_time(tr1)
         call system_clock(ncount2,ncount_rate,ncount_max)
@@ -2612,13 +2633,14 @@ subroutine readmywaves_linear_new(iproc,nproc,dir_output,filename,iformat,at,tmb
 
      full_filename=trim(dir_output)//trim(input_frag%dirname(ifrag_ref))//trim(filename)//'_coeff.bin'
 
-     if(iformat == WF_FORMAT_PLAIN) then
-        open(unitwf,file=trim(full_filename),status='unknown',form='formatted')
-     else if(iformat == WF_FORMAT_BINARY) then
-        open(unitwf,file=trim(full_filename),status='unknown',form='unformatted')
-     else
-        stop 'Coefficient format not implemented'
-     end if
+     call f_open_file(unitwf,file=trim(full_filename),binary=iformat == WF_FORMAT_BINARY)
+     !if(iformat == WF_FORMAT_PLAIN) then
+     !   open(unitwf,file=trim(full_filename),status='unknown',form='formatted')
+     !else if(iformat == WF_FORMAT_BINARY) then
+     !   open(unitwf,file=trim(full_filename),status='unknown',form='unformatted')
+     !else
+     !   stop 'Coefficient format not implemented'
+     !end if
 
      !if (input_frag%nfrag>1) then
         call read_coeff_minbasis(unitwf,(iformat == WF_FORMAT_PLAIN),iproc,ref_frags(ifrag_ref)%fbasis%forbs%norb,&
@@ -2630,7 +2652,7 @@ subroutine readmywaves_linear_new(iproc,nproc,dir_output,filename,iformat,at,tmb
      !   call read_coeff_minbasis(unitwf,(iformat == WF_FORMAT_PLAIN),iproc,ref_frags(ifrag_ref)%fbasis%forbs%norb,&
      !        ref_frags(ifrag_ref)%nelec,tmb%coeff,tmb%orbs%eval)
      !end if
-     close(unitwf)
+     call f_close(unitwf)
 
      isforb=isforb+ref_frags(ifrag_ref)%fbasis%forbs%norb
   end do
@@ -2682,7 +2704,7 @@ subroutine initialize_linear_from_file(iproc,nproc,input_frag,astruct,rxyz,orbs,
   logical :: lstat
   integer :: ilr, iorb_old, iorb, ispinor, iorb_out, iforb, isforb, isfat, iiorb, iorbp, ifrag, ifrag_ref
   integer, dimension(3) :: n_old, ns_old
-  integer :: confPotOrder, iat
+  integer :: confPotOrder, iat,unitwf
   real(gp), dimension(3) :: hgrids_old
   real(kind=8) :: eval, confPotprefac
   real(gp), dimension(orbs%norb):: locrad
@@ -2691,6 +2713,8 @@ subroutine initialize_linear_from_file(iproc,nproc,input_frag,astruct,rxyz,orbs,
   real(gp), dimension(:,:), allocatable :: cxyz
   character(len=256) :: full_filename
 
+
+  unitwf=99
   ! to be fixed
   if (present(orblist)) then
      stop 'orblist no longer functional in initialize_linear_from_file due to addition of fragment calculation'
@@ -2725,13 +2749,13 @@ subroutine initialize_linear_from_file(iproc,nproc,input_frag,astruct,rxyz,orbs,
                  ! bit of a hack to use orbs here not forbs, but different structures so this is necessary - to clean somehow
                  full_filename=trim(dir_output)//trim(input_frag%dirname(ifrag_ref))//trim(filename)
 
-                 call open_filename_of_iorb(99,(iformat == WF_FORMAT_BINARY),full_filename, &
+                 call open_filename_of_iorb(unitwf,(iformat == WF_FORMAT_BINARY),full_filename, &
                       & orbs,iorbp,ispinor,iorb_out,iforb)
                       !& ref_frags(ifrag_ref)%fbasis%forbs,iforb,ispinor,iorb_out)
 
                  !print *,'before crash',iorbp,trim(full_filename),iiorb,iforb
   
-                 call io_read_descr_linear(99,(iformat == WF_FORMAT_PLAIN), iorb_old, eval, n_old(1), n_old(2), n_old(3), &
+                 call io_read_descr_linear(unitwf,(iformat == WF_FORMAT_PLAIN), iorb_old, eval, n_old(1), n_old(2), n_old(3), &
                       ns_old(1), ns_old(2), ns_old(3), hgrids_old, lstat, error, orbs%onwhichatom(iiorb), &
                       locrad(iiorb), locregCenter, confPotOrder, confPotprefac)
 
@@ -2745,7 +2769,7 @@ subroutine initialize_linear_from_file(iproc,nproc,input_frag,astruct,rxyz,orbs,
                     call yaml_warning('Initialize_linear_from_file')
                     stop
                  end if
-                 close(99)
+                 call f_close(unitwf)
               
               end do
            end do loop_iorb

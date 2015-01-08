@@ -885,8 +885,9 @@ subroutine orbs_open_file(orbs, unitwf, name, ln, iformat, iorbp, ispinor)
   use module_interfaces, only: open_filename_of_iorb
   implicit none
   type(orbitals_data), intent(in) :: orbs
-  integer, intent(in) :: unitwf, ln, iformat, iorbp, ispinor
+  integer, intent(in) :: ln, iformat, iorbp, ispinor
   character(len = 1), dimension(ln), intent(in) :: name
+  integer, intent(inout) :: unitwf
 
   character(len = ln) :: filename
   integer :: i, iorb_out

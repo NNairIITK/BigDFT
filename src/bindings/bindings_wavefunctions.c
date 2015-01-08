@@ -921,9 +921,10 @@ void bigdft_wf_write_psi_compress(const BigDFT_Wf *wf, const gchar *filename,
                                   BigDFT_WfFileFormats format, const double *psic,
                                   guint ikpt, guint iorb, BigDFT_Spin ispin, guint psiSize)
 {
-  guint unitwf = 99, ln, ispinor;
+  guint unitwf, ln, ispinor;
   int iorbp, isorb, jproc;
 
+  unitwf = 99;
   ln = strlen(filename);
   for (ispinor = 1; ispinor <= wf->parent.nspinor; ispinor++)
     {

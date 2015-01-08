@@ -444,11 +444,12 @@ subroutine calculate_overlap_transposed(iproc, nproc, orbs, collcom, &
   real(kind=8) :: tt60, tt61, tt62, tt63, tt64, tt65, tt66
   integer,dimension(:),allocatable :: n
   !$ integer  :: omp_get_thread_num,omp_get_max_threads
-  real(kind=8) :: totops
+  integer(kind=8) :: totops
   integer :: avops, ops, opsn
   integer, allocatable, dimension(:) :: numops
   logical :: ifnd, jfnd
   integer :: iorb, jorb, imat, iseg, iorb_shift, itg, iitg, ist_send, ist_recv, ncount, ishift
+  real(kind=8) :: res
   integer,dimension(:),allocatable :: request
   real(kind=8),dimension(:),allocatable :: recvbuf
   integer,dimension(2) :: irowcol
@@ -553,7 +554,7 @@ subroutine calculate_overlap_transposed(iproc, nproc, orbs, collcom, &
       !only optimized for spin=1 for now
       ispin=1
       nthreads=1
-      !$  nthreads = OMP_GET_max_threads()
+      !$ nthreads = OMP_GET_max_threads()
       n = f_malloc(nthreads,id='n')
       iorb_shift=(ispin-1)*smat%nfvctr
       ! calculate number of operations for better load balancing of OpenMP
@@ -570,10 +571,11 @@ subroutine calculate_overlap_transposed(iproc, nproc, orbs, collcom, &
                numops(iiorb)=numops(iiorb)+ii
             end do
          end do
-         totops=sum(numops)
-         avops=nint(totops/dble(nthreads))
+         totops=sum(int(numops,kind=8))
+         avops=nint(dble(totops)/dble(nthreads))
          jjorb=1
          do i=1,nthreads
+            res=dble(nthreads-i)
             ops=0
             do j=jjorb,orbs%norb
                opsn=ops+numops(j)
@@ -581,22 +583,20 @@ subroutine calculate_overlap_transposed(iproc, nproc, orbs, collcom, &
                   if ((opsn-avops)<(avops-ops)) then
                      n(i)=j
                      jjorb=j+1
-                     totops=totops-opsn
+                     totops=totops-int(opsn,kind=8)
                   else
                      n(i)=j-1
                      jjorb=j
-                     totops=totops-ops
+                     totops=totops-int(ops,kind=8)
                   end if
                   exit
                end if
                ops=opsn
             end do
-            if (i/=nthreads) then
-               avops=nint(totops/dble(nthreads-i))
-            end if
+            if (res /=0.d0) avops=nint(dble(totops)/res)
          end do
          call f_free(numops)
-      end if
+      end if 
 
       n(nthreads)=orbs%norb
     
@@ -734,10 +734,11 @@ subroutine calculate_overlap_transposed(iproc, nproc, orbs, collcom, &
                numops(iiorb)=numops(iiorb)+ii  !*7
             end do
          end do
-         totops=sum(numops)
+         totops=sum(int(numops,kind=8))
          avops=nint(totops/dble(nthreads))
          jjorb=1
          do i=1,nthreads
+            res=dble(nthreads-i)
             ops=0
             do j=jjorb,orbs%norb
                opsn=ops+numops(j)
@@ -745,19 +746,17 @@ subroutine calculate_overlap_transposed(iproc, nproc, orbs, collcom, &
                   if ((opsn-avops)<(avops-ops)) then
                      n(i)=j
                      jjorb=j+1
-                     totops=totops-opsn
+                     totops=totops-int(opsn,kind=8)
                   else
                      n(i)=j-1
                      jjorb=j
-                     totops=totops-ops
+                     totops=totops-int(ops,kind=8)
                   end if
                   exit
                end if
                ops=opsn
             end do
-            if (i/=nthreads) then
-               avops=nint(totops/dble(nthreads-i))
-            end if
+            if (res /= 0.d0) avops=nint(dble(totops)/res)
          end do
          call f_free(numops)
       end if    
