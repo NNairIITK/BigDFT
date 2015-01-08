@@ -42,4 +42,4 @@ libconvolutions_a_SOURCES = $(CUDA_CONV) $(OCL_CONV) $(CONV_SOURCES) \
 # convolut_ib_sse.c \ #to be verified, not working yet
 EXTRA_DIST = v.inc v_long.inc v_17.inc scalar_product-inc.f90 wpdot-inc.f90
 
-AM_FCFLAGS = -I$(srcdir) @LIBABINIT_INCLUDE@ -I$(top_builddir)/includes
+AM_FCFLAGS = -I$(srcdir) -I$(top_builddir)/includes @LIBABINIT_INCLUDE@
