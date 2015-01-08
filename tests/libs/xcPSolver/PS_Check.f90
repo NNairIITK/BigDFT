@@ -2,11 +2,12 @@
 !!  Performs a check of the Poisson Solver suite by running with different regimes
 !!  and for different choices of the XC functionals
 !! @author
-!!    Copyright (C) 2002-2013 BigDFT group 
+!!    Copyright (C) 2002-2014 BigDFT group 
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
+
 
 !> Check the Psolver components of BigDFT
 program PS_Check
@@ -22,8 +23,6 @@ program PS_Check
    implicit none
    !Parameters
    real(kind=8), parameter :: a_gauss = 1.0d0
-   real(kind=8), parameter :: acell = 10.d0    !< Length of the box
-   integer, parameter :: itype_scf=16          !< Order of the scaling functions chosen
    !!$character(len=50) :: chain
    character(len=1) :: geocode
    character(len=MPI_MAX_PROCESSOR_NAME) :: nodename_local
@@ -33,12 +32,14 @@ program PS_Check
    real(kind=8) :: hx,hy,hz,offset
    real(kind=8) :: ehartree,eexcu,vexcu
    real(kind=8) :: tel
+   real(kind=8) :: acell,shift
    real :: tcpu0,tcpu1
    logical :: mp
+   integer :: itype_scf
    integer :: ncount0,ncount1,ncount_rate,ncount_max
    integer :: n01,n02,n03
    integer :: iproc,nproc,namelen,ierr,ispden
-   integer :: n_cell,ixc
+   integer :: n_cell,ixc,npoints
    integer, dimension(3) :: nxyz
    integer, dimension(3) :: ndims
    real(wp), dimension(:,:,:,:), pointer :: rhocore
@@ -49,8 +50,8 @@ program PS_Check
 
    call f_lib_initialize()
 
-  !read command line
-  call PS_Check_command_line_options(options)
+   !read command line
+   call PS_Check_command_line_options(options)
 
    call MPI_INIT(ierr)
    call MPI_COMM_RANK(MPI_COMM_WORLD,iproc,ierr)
@@ -88,34 +89,21 @@ program PS_Check
    call cpu_time(tcpu0)
    call system_clock(ncount0,ncount_rate,ncount_max)
 
-   !!$!the first proc read the data and then send them to the others
-   !!$if (iproc==0) then
-   !!$   !Use arguments
-   !!$   call get_command_argument(1,value=chain)
-   !!$   read(unit=chain,fmt=*) nxyz(1)
-   !!$   call get_command_argument(2,value=chain)
-   !!$   read(unit=chain,fmt=*) nxyz(2)
-   !!$   call get_command_argument(3,value=chain)
-   !!$   read(unit=chain,fmt=*) nxyz(3)
-   !!$   call get_command_argument(4,value=chain)
-   !!$   read(unit=chain,fmt=*) nxyz(4)
-   !!$   call get_command_argument(5,value=chain)
-   !!$   read(unit=chain,fmt=*) geocode
-   !!$end if
-
-  !!$call MPI_BCAST(nxyz,4,MPI_INTEGER,0,MPI_COMM_WORLD,ierr)
-  !!$call MPI_BCAST(geocode,1,MPI_CHARACTER,0,MPI_COMM_WORLD,ierr)
-
-  nxyz=options//'ndim'
-  geocode=options//'geocode'
-  ixc=options//'ixc'
-  mp=options//'mp'
-
-  call dict_free(options)
-  n01=nxyz(1)
-  n02=nxyz(2)
-  n03=nxyz(3)
-  !ixc=nxyz(4)
+   !Use options from command line
+   nxyz=options//'ndim'
+   geocode=options//'geocode'
+   ixc=options//'ixc'
+   mp=options//'mp'
+   npoints=options//'npoints'
+   itype_scf=options//'iscf'
+   acell=options//'acell'
+   shift=options//'shift'
+   
+   call dict_free(options)
+   n01=nxyz(1)
+   n02=nxyz(2)
+   n03=nxyz(3)
+   !ixc=nxyz(4)
 
    !print *,iproc,n01,n02,n03
 
@@ -125,7 +113,7 @@ program PS_Check
    hy=acell/real(n02,kind=8)
    hz=acell/real(n03,kind=8)
 
-   if (mp) call initialize_real_space_conversion(isf_m=itype_scf)
+   if (mp) call initialize_real_space_conversion(isf_m=itype_scf,npoints=npoints)
 
    !calculate the kernel in parallel for each processor
    ndims=(/n01,n02,n03/)
@@ -142,7 +130,12 @@ program PS_Check
       case('P')
          call yaml_map('Boundary Conditions','Periodic')
       end select
+      call yaml_map('acell',acell)
+      call yaml_map('shift',shift)
       call yaml_map('hgrids',hgrids)
+      call yaml_map('mp',mp)
+      call yaml_map('npoints',npoints)
+      call yaml_map('iscf',itype_scf)
       if (ixc /=0) call yaml_map('Exchange and Correlation approximation tested',ixc)
       call yaml_mapping_open('Multiprocessor run',label='MPIrun')
    end if
@@ -200,8 +193,9 @@ program PS_Check
 !!$      allocate(rhopot(n01*n02*n03*2+ndebug),stat=i_stat)
 !!$      call memocc(i_stat,rhopot,'rhopot',subname)
 
-      call test_functions(geocode,ixc,n01,n02,n03,ispden,acell,a_gauss,hx,hy,hz,mp, &
+      call test_functions(geocode,ixc,n01,n02,n03,ispden,acell,a_gauss,shift,hx,hy,hz,mp, &
       density,potential,rhopot,pot_ion,offset)
+
       !calculate the Poisson potential in parallel
       !with the global data distribution (also for xc potential)
 !print *,'xc',iproc,pkernel%iproc,pkernel%mpi_env%nproc,pkernel%mpi_comm,MPI_COMM_WORLD
@@ -304,7 +298,7 @@ program PS_Check
      
        call yaml_map('Number of Spins',ispden)
 
-       call test_functions(geocode,ixc,n01,n02,n03,ispden,acell,a_gauss,hx,hy,hz,mp,&
+       call test_functions(geocode,ixc,n01,n02,n03,ispden,acell,a_gauss,shift,hx,hy,hz,mp,&
             density,potential,rhopot,pot_ion,offset)
        potential=extra_ref !use the previoulsy defined reference
       !calculate the Poisson potential in parallel
@@ -394,7 +388,7 @@ program PS_Check
 
    contains
 
-  !>identify the options from command line
+  !> Identify the options from command line
   !! and write the result in options dict
   subroutine PS_Check_command_line_options(options)
     use yaml_parse
@@ -457,8 +451,36 @@ program PS_Check
          'Allowed values' .is. &
          'Yes or No'))
 
-  end subroutine PS_Check_options
+    call yaml_cl_parse_option(parser,'iscf','16',&
+    'Interpolating scaling function order','i',&
+         dict_new('Usage' .is. &
+         'Specify the order of the scaling interpolating function',&
+         'Allowed values' .is. &
+         list_new(.item. 8, .item. 14, .item. 16, .item. 20, .item. 24, &
+         .item. 30, .item. 40, .item. 50, .item. 60, .item. 100)))
 
+    call yaml_cl_parse_option(parser,'acell','10.d0',&
+    'Dimension of the cell','a',&
+         dict_new('Usage' .is. &
+         'Set the dimension of the cubic cell',&
+         'Allowed values' .is. &
+         'Any strictly positive real number.'))
+
+    call yaml_cl_parse_option(parser,'shift','0.d0',&
+    'Shift of the grid center (s,s,s) from the origin','s',&
+         dict_new('Usage' .is. &
+         'Shift the grid to (s,s,s) from the origin of the function',&
+         'Allowed values' .is. &
+         'Any real number.'))
+
+    call yaml_cl_parse_option(parser,'npoints','64',&
+    'Number of points for the integration per grid step','p',&
+         dict_new('Usage' .is. &
+         'Number of points for the integration per grid step',&
+         'Allowed values' .is. &
+         'Any positive integer'))
+
+  end subroutine PS_Check_options
 
 
    subroutine compare_cplx_calculations(iproc,nproc,geocode,distcode,n01,n02,n03,ehref,offset,&
@@ -896,12 +918,13 @@ program PS_Check
   !! The parameters of the functions must be adjusted in order to have a sufficiently localized
   !! function in the isolated direction and an explicitly periodic function in the periodic ones.
   !! Beware of the high-frequency components that may false the results when hgrid is too high.
-   subroutine test_functions(geocode,ixc,n01,n02,n03,nspden,acell,a_gauss,hx,hy,hz,mp, &
+   subroutine test_functions(geocode,ixc,n01,n02,n03,nspden,acell,a_gauss,shift,hx,hy,hz,mp, &
       density,potential,rhopot,pot_ion,offset)
       implicit none
       character(len=1), intent(in) :: geocode
       integer, intent(in) :: n01,n02,n03,ixc,nspden
       real(kind=8), intent(in) :: acell,a_gauss,hx,hy,hz
+      real(kind=8), intent(in) :: shift
       real(kind=8), intent(out) :: offset
       logical, intent(in) :: mp  !< use exp (collocation method) or scf
       real(kind=8), dimension(n01,n02,n03), intent(out) :: pot_ion,potential
@@ -941,13 +964,13 @@ program PS_Check
          !Initialization of density and potential
          denval=0.d0 !value for keeping the density positive
          do i3=1,n03
-            x3 = hz*real(i3-n03/2-1,kind=8)
+            x3 = hz*real(i3-n03/2-1,kind=8) + shift
             call functions(x3,az,bz,fz,fz2,ifz,hz,mp)
             do i2=1,n02
-               x2 = hy*real(i2-n02/2-1,kind=8)
+               x2 = hy*real(i2-n02/2-1,kind=8) + shift
                call functions(x2,ay,by,fy,fy2,ify,hy,mp)
                do i1=1,n01
-                  x1 = hx*real(i1-n01/2-1,kind=8)
+                  x1 = hx*real(i1-n01/2-1,kind=8) + shift
                   call functions(x1,ax,bx,fx,fx2,ifx,hx,mp)
                   do i=1,nspden
                      density(i1,i2,i3,i) = nspden_inv*(fx2*fy*fz+fx*fy2*fz+fx*fy*fz2)
@@ -981,13 +1004,13 @@ program PS_Check
          !Initialisation of density and potential
          denval=0.d0 !value for keeping the density positive
          do i3=1,n03
-            x3 = hz*real(i3-n03/2-1,kind=8)
+            x3 = hz*real(i3-n03/2-1,kind=8) + shift
             call functions(x3,az,bz,fz,fz2,ifz,hz,mp)
             do i2=1,n02
-               x2 = hy*real(i2-n02/2-1,kind=8)
+               x2 = hy*real(i2-n02/2-1,kind=8) + shift
                call functions(x2,ay,by,fy,fy2,ify,hy,mp)
                do i1=1,n01
-                  x1 = hx*real(i1-n02/2-1,kind=8)
+                  x1 = hx*real(i1-n02/2-1,kind=8) + shift
                   call functions(x1,ax,bx,fx,fx2,ifx,hx,mp)
                   do i=1,nspden
                      density(i1,i2,i3,i) = &
@@ -1017,18 +1040,18 @@ program PS_Check
          ifz = 2
          !gaussian function
          do i3=1,n03
-            x3 = hz*real(i3-n03/2,kind=8)
+            x3 = hz*real(i3-n03/2,kind=8) + shift
             call functions(x3,a2_inv,0.d0,fz,fz2,ifz,hz,mp)
             do i2=1,n02
-               x2 = hy*real(i2-n02/2,kind=8)
+               x2 = hy*real(i2-n02/2,kind=8) + shift
                call functions(x2,a2_inv,0.d0,fy,fy2,ify,hy,mp)
                do i1=1,n01
-                  x1 = hx*real(i1-n01/2,kind=8)
+                  x1 = hx*real(i1-n01/2,kind=8) + shift
                   call functions(x1,a2_inv,0.d0,fx,fx2,ifx,hx,mp)
                   r2 = x1*x1+x2*x2+x3*x3
                   do i=1,nspden
                      density(i1,i2,i3,i) = nspden_inv*max(factor*fx*fy*fz,1d-24)
-                     density(i1,i2,i3,i) = nspden_inv*max(factor*exp(-a2_inv*r2),1d-24)
+                     !density(i1,i2,i3,i) = nspden_inv*max(factor*exp(-a2_inv*r2),1d-24)
                   end do
                   r = sqrt(r2)
                   !Potential from a gaussian
@@ -1119,6 +1142,7 @@ program PS_Check
          r2=a*x**2
          !f=dexp(-r2)
          f=mp_exp(hgrid,x,a,0,0,mp)
+         !print *,x,f-dexp(-r2)
          f2=(-2.d0*a+4.d0*a*r2)*f
       case(3)
          !gaussian "shrinked" with a=length of the system
