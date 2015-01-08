@@ -617,6 +617,20 @@ amu=63.546d0
      neleconf(4,0)=1
      amu=63.546d0
 
+  case(30*1000+20)
+     ! -----------------------          45
+     ! Zn          30          20     Symbol, Z, Zion
+     symbol = "Zn"
+     rcov=2.30d0
+     rprb=4.60d0
+     ehomo=-0.222725d0
+     neleconf(3,0)=2
+     neleconf(3,1)=6
+     neleconf(3,2)=10
+     neleconf(4,0)=2
+     nsccode=123
+     amu=65.39d0
+
   case(30*1000+12)
      ! -----------------------          45
      ! Zn          30          12     Symbol, Z, Zion
@@ -962,6 +976,20 @@ neleconf(5,0)=1.d-18
      neleconf(4,2)=10
      nsccode=12
      amu=106.42d0
+
+  case(47*1000+19)
+     ! -----------------------          74
+     ! Ag          47          19     Symbol, Z, Zion
+     symbol = "Ag"
+     rcov=2.50d0
+     rprb=5.00d0
+     ehomo=-0.157407d0
+     neleconf(4,0)=2
+     neleconf(4,1)=6
+     neleconf(4,2)=10
+     neleconf(5,0)=1
+     nsccode=123
+     amu=107.8682d0
 
   case(47*1000+11)
      ! -----------------------          74
@@ -1597,6 +1625,20 @@ amu=196.96654d0
      neleconf(6,1)=1
      amu=204.3833d0
 
+  case(82*1000+14)
+     ! -----------------------         124
+     ! Pb          82          14     Symbol, Z, Zion
+     symbol = "Pb"
+     rcov=3.30d0
+     rprb=6.60d0
+     ehomo=-0.141831d0
+     neleconf(5,2)=10
+     neleconf(6,0)=2
+neleconf(7,0)=1.d-18
+     neleconf(6,1)=2
+     nsccode=13
+     amu=207.2d0
+
   case(82*1000+4)
      ! -----------------------         124
      ! Pb          82           4     Symbol, Z, Zion
@@ -1608,6 +1650,19 @@ amu=196.96654d0
 neleconf(7,0)=1.d-18
      neleconf(6,1)=2
      amu=207.2d0
+
+  case(83*1000+15)
+     ! -----------------------         125
+     ! Bi          83          15     Symbol, Z, Zion
+     symbol = "Bi"
+     rcov=2.90d0
+     rprb=5.80d0
+     ehomo=-0.180198d0
+     neleconf(5,2)=10
+     neleconf(6,0)=2
+     neleconf(6,1)=3
+     nsccode=13
+     amu=208.98037d0
 
   case(83*1000+5)
      ! -----------------------         125
