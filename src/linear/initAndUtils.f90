@@ -1259,8 +1259,8 @@ subroutine set_optimization_variables(input, at, lorbs, nlr, onwhichatom, confda
   if(lowaccur_converged) then
       if (bigdft_mpi%iproc==0) call yaml_sequence(advance='no')
       if (bigdft_mpi%iproc==0) call yaml_sequence_open('Confinement prefactor for high accuracy')
-      do iorb=1,lorbs%norbp
-          iiat=onwhichatom(lorbs%isorb+iorb)
+      do iorb=1,lorbs%norb
+          iiat=onwhichatom(iorb)
           itype=at%astruct%iatype(iiat)
           tt = input%lin%potentialPrefac_highaccuracy(itype)
           do_write = .not.written(itype)
@@ -1271,7 +1271,7 @@ subroutine set_optimization_variables(input, at, lorbs, nlr, onwhichatom, confda
           if(do_write .and. bigdft_mpi%iproc==0) call yaml_map('atom type',atomname)
           if (tt<0.d0) then
               ! Take the default value, based on the cutoff radius
-              ilr = lorbs%inwhichlocreg(lorbs%isorb+iorb)
+              ilr = lorbs%inwhichlocreg(iorb)
               prefac = 20.d0/input%lin%locrad_highaccuracy(ilr)**4
               if(do_write .and. bigdft_mpi%iproc==0) call yaml_map('value',prefac,fmt='(es8.2)')
               if(do_write .and. bigdft_mpi%iproc==0) call yaml_map('origin','automatic')
@@ -1282,7 +1282,9 @@ subroutine set_optimization_variables(input, at, lorbs, nlr, onwhichatom, confda
               if(do_write .and. bigdft_mpi%iproc==0) call yaml_map('value',prefac,fmt='(es8.2)')
               if(do_write .and. bigdft_mpi%iproc==0) call yaml_map('origin','from file')
           end if
-          confdatarr(iorb)%prefac=prefac
+          if (iorb>lorbs%isorb .and. iorb<=lorbs%isorb+lorbs%norbp) then
+              confdatarr(iorb-lorbs%isorb)%prefac=prefac
+          end if
           if(do_write .and. bigdft_mpi%iproc==0) call yaml_mapping_close()
       end do
       if(bigdft_mpi%iproc==0) call yaml_sequence_close()
@@ -1302,8 +1304,8 @@ subroutine set_optimization_variables(input, at, lorbs, nlr, onwhichatom, confda
   else
       if (bigdft_mpi%iproc==0) call yaml_sequence(advance='no')
       if (bigdft_mpi%iproc==0) call yaml_sequence_open('Confinement prefactor for low accuracy')
-      do iorb=1,lorbs%norbp
-          iiat=onwhichatom(lorbs%isorb+iorb)
+      do iorb=1,lorbs%norb
+          iiat=onwhichatom(iorb)
           itype=at%astruct%iatype(iiat)
           tt = input%lin%potentialPrefac_lowaccuracy(itype)
           do_write = .not.written(itype)
@@ -1314,7 +1316,7 @@ subroutine set_optimization_variables(input, at, lorbs, nlr, onwhichatom, confda
           if(do_write .and. bigdft_mpi%iproc==0) call yaml_map('atom type',atomname)
           if (tt<0.d0) then
               ! Take the default value, based on the cutoff radius
-              ilr = lorbs%inwhichlocreg(lorbs%isorb+iorb)
+              ilr = lorbs%inwhichlocreg(iorb)
               prefac = 20.d0/input%lin%locrad_lowaccuracy(ilr)**4
               if(do_write .and. bigdft_mpi%iproc==0) call yaml_map('value',prefac,fmt='(es8.2)')
               if(do_write .and. bigdft_mpi%iproc==0) call yaml_map('origin','automatic')
@@ -1324,7 +1326,9 @@ subroutine set_optimization_variables(input, at, lorbs, nlr, onwhichatom, confda
               if(do_write .and. bigdft_mpi%iproc==0) call yaml_map('value',prefac,fmt='(es8.2)')
               if(do_write .and. bigdft_mpi%iproc==0) call yaml_map('origin','from file')
           end if
-          confdatarr(iorb)%prefac=prefac
+          if (iorb>lorbs%isorb .and. iorb<=lorbs%isorb+lorbs%norbp) then
+              confdatarr(iorb-lorbs%isorb)%prefac=prefac
+          end if
           if(do_write .and. bigdft_mpi%iproc==0) call yaml_mapping_close()
       end do
       if(bigdft_mpi%iproc==0) call yaml_sequence_close()
@@ -1718,8 +1722,8 @@ subroutine set_variables_for_hybrid(iproc, nlr, input, at, orbs, lowaccur_conver
   lowaccur_converged=.false.
   if (iproc==0) call yaml_sequence(advance='no')
   if (iproc==0) call yaml_sequence_open('Confinement prefactor for hybrid mode')
-  do iorb=1,orbs%norbp
-      iiat=orbs%onwhichatom(orbs%isorb+iorb)
+  do iorb=1,orbs%norb
+      iiat=orbs%onwhichatom(iorb)
       itype=at%astruct%iatype(iiat)
       tt = input%lin%potentialPrefac_lowaccuracy(itype)
       do_write = .not.written(itype)
@@ -1730,7 +1734,7 @@ subroutine set_variables_for_hybrid(iproc, nlr, input, at, orbs, lowaccur_conver
       if(do_write .and. iproc==0) call yaml_map('atom type',atomname)
       if (tt<0.d0) then
           ! Take the default value, based on the cutoff radius
-          ilr = orbs%inwhichlocreg(orbs%isorb+iorb)
+          ilr = orbs%inwhichlocreg(iorb)
           prefac = 20.d0/input%lin%locrad_lowaccuracy(ilr)**4
           if(do_write .and. iproc==0) call yaml_map('value',prefac,fmt='(es8.2)')
           if(do_write .and. iproc==0) call yaml_map('origin','automatic')
@@ -1740,7 +1744,9 @@ subroutine set_variables_for_hybrid(iproc, nlr, input, at, orbs, lowaccur_conver
           if(do_write .and. iproc==0) call yaml_map('value',prefac,fmt='(es8.2)')
           if(do_write .and. iproc==0) call yaml_map('origin','from file')
       end if
-      confdatarr(iorb)%prefac=prefac*damping_factor
+      if (iorb>orbs%isorb .and. iorb<=orbs%isorb+orbs%norbp) then
+          confdatarr(iorb-orbs%isorb)%prefac=prefac*damping_factor
+      end if
       if(do_write .and. iproc==0) call yaml_mapping_close()
   end do
   if(iproc==0) call yaml_sequence_close()

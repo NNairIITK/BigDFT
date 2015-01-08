@@ -28,7 +28,7 @@
  
  Reference Paper                       : The Journal of Chemical Physics 129, 014109 (2008)
  Version Number                        : 1.7.6.5
- Timestamp of this run                 : 2015-01-07 16:34:32.825
+ Timestamp of this run                 : 2015-01-08 08:16:43.575
  Root process Hostname                 : phys-comp-03
  Number of MPI tasks                   :  4
  OpenMP parallelization                :  Yes
@@ -591,6 +591,7 @@
     #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Set the confinement prefactors
  - Confinement prefactor for low accuracy:
    -  {atom type: H, value:  4.00E-02, origin: from file}
+   -  {atom type: O, value:  4.00E-02, origin: from file}
     #========================================================= support function optimization
  - support function optimization: &it_supfun001
    -  { #-------------------------------------------------------------------------- iter: 1
@@ -714,10 +715,12 @@
     #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Set the confinement prefactors
  - Confinement prefactor for high accuracy:
    -  {atom type: H, value:  0.00E+00, origin: from file}
+   -  {atom type: O, value:  0.00E+00, origin: from file}
     #========================================================= Adjustments for high accuracy
     #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Set the confinement prefactors
  - Confinement prefactor for high accuracy:
    -  {atom type: H, value:  0.00E+00, origin: from file}
+   -  {atom type: O, value:  0.00E+00, origin: from file}
    Increasing the localization radius for the high accuracy part:  Yes
    Locreg increased                    :  Yes
    NonLocal PSP Projectors Descriptors:
@@ -982,6 +985,7 @@
     #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Set the confinement prefactors
  - Confinement prefactor for high accuracy:
    -  {atom type: H, value:  0.00E+00, origin: from file}
+   -  {atom type: O, value:  0.00E+00, origin: from file}
     #========================================================= support function optimization
  - support function optimization: &it_supfun003
    -  { #-------------------------------------------------------------------------- iter: 1
@@ -1188,6 +1192,7 @@
     #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Set the confinement prefactors
  - Confinement prefactor for high accuracy:
    -  {atom type: H, value:  0.00E+00, origin: from file}
+   -  {atom type: O, value:  0.00E+00, origin: from file}
     #========================================================= support function optimization
  - support function optimization: &it_supfun004
    -  { #-------------------------------------------------------------------------- iter: 1
@@ -1394,6 +1399,7 @@
     #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Set the confinement prefactors
  - Confinement prefactor for high accuracy:
    -  {atom type: H, value:  0.00E+00, origin: from file}
+   -  {atom type: O, value:  0.00E+00, origin: from file}
     #========================================================= support function optimization
  - support function optimization: &it_supfun005
    -  { #-------------------------------------------------------------------------- iter: 1
@@ -1600,6 +1606,7 @@
     #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Set the confinement prefactors
  - Confinement prefactor for high accuracy:
    -  {atom type: H, value:  0.00E+00, origin: from file}
+   -  {atom type: O, value:  0.00E+00, origin: from file}
     #========================================================= support function optimization
  - support function optimization: &it_supfun006
    -  { #-------------------------------------------------------------------------- iter: 1
@@ -1829,7 +1836,7 @@
  Wavefunction written No.              :  1
  Wavefunction coefficients written     :  Yes
  Write Waves Time:
- -  {Process:  0, Timing:  [  1.8E-01,  9.040E-02 ]}
+ -  {Process:  0, Timing:  [  1.0E-01,  8.550E-02 ]}
  Overview of the reformatting (several categories may apply):
    No reformatting required            :  4
    Grid spacing has changed            :  0
@@ -1890,8 +1897,8 @@
  - commented correction_locrad
   #-------------------------------------------------------------------- Timing for root process
  Timings for root process:
-   CPU time (s)                        :  19.86
-   Elapsed time (s)                    :  10.05
+   CPU time (s)                        :  20.33
+   Elapsed time (s)                    :  10.57
  BigDFT infocode                       :  0
  Memory Consumption Report:
    Tot. No. of Allocations             :  10367
@@ -1901,6 +1908,6 @@
      Peak Value (MB)                   :  101.813
      for the array                     : wz
      in the routine                    : inputguessConfinement
-     Memory Peak of process            : 158.480 MB
+     Memory Peak of process            : 158.500 MB
  Max No. of dictionaries used          :  4272 #( 842 still in use)
  Number of dictionary folders allocated:  1
