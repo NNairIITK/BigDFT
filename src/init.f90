@@ -2831,6 +2831,8 @@ subroutine input_wf_memory_new(nproc, iproc, atoms, &
   real(wp) :: rcov
   !character(len=2) :: symbol
 
+  call f_routine(id='input_wf_memory_new')
+
   if (lzd_old%Glr%geocode .ne. 'F') then
      write(*,*) 'Not implemented for boundary conditions other than free'
      stop
@@ -3091,6 +3093,8 @@ subroutine input_wf_memory_new(nproc, iproc, atoms, &
   call f_free(shift)
 
   call f_free_ptr(psi_old)
+
+  call f_release_routine()
 
 contains
 
