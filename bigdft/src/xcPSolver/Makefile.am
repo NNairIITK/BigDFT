@@ -12,4 +12,4 @@ PS_SOURCES =
 endif
 libxcPSolver_a_SOURCES = $(PS_SOURCES)
 
-AM_FCFLAGS = @LIBABINIT_INCLUDE@ @LIB_XC_CFLAGS@ @MPI_INCLUDE@ -I$(top_builddir)/includes
+AM_FCFLAGS = -I$(top_builddir)/includes @LIBABINIT_INCLUDE@ @LIB_XC_CFLAGS@ @MPI_INCLUDE@
