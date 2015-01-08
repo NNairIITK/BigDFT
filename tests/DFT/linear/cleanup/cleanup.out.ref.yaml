@@ -28,7 +28,7 @@
  
  Reference Paper                       : The Journal of Chemical Physics 129, 014109 (2008)
  Version Number                        : 1.7.6.5
- Timestamp of this run                 : 2015-01-07 16:34:08.646
+ Timestamp of this run                 : 2015-01-08 08:16:18.975
  Root process Hostname                 : phys-comp-03
  Number of MPI tasks                   :  4
  OpenMP parallelization                :  Yes
@@ -589,6 +589,7 @@
     #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Set the confinement prefactors
  - Confinement prefactor for low accuracy:
    -  {atom type: H, value:  1.00E-04, origin: from file}
+   -  {atom type: O, value:  1.00E-04, origin: from file}
     #========================================================= support function optimization
  - support function optimization: &it_supfun001
    -  { #-------------------------------------------------------------------------- iter: 1
@@ -704,10 +705,12 @@
     #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Set the confinement prefactors
  - Confinement prefactor for high accuracy:
    -  {atom type: H, value:  0.00E+00, origin: from file}
+   -  {atom type: O, value:  0.00E+00, origin: from file}
     #========================================================= Adjustments for high accuracy
     #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Set the confinement prefactors
  - Confinement prefactor for high accuracy:
    -  {atom type: H, value:  0.00E+00, origin: from file}
+   -  {atom type: O, value:  0.00E+00, origin: from file}
    Locreg increased                    :  No
    Kernel update:
      Hamiltonian application required  :  Yes
@@ -862,6 +865,7 @@
     #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Set the confinement prefactors
  - Confinement prefactor for high accuracy:
    -  {atom type: H, value:  0.00E+00, origin: from file}
+   -  {atom type: O, value:  0.00E+00, origin: from file}
     #========================================================= support function optimization
  - support function optimization: &it_supfun003
    -  { #-------------------------------------------------------------------------- iter: 1
@@ -1062,8 +1066,8 @@
  - commented correction_locrad
   #-------------------------------------------------------------------- Timing for root process
  Timings for root process:
-   CPU time (s)                        :  4.81
-   Elapsed time (s)                    :  2.47
+   CPU time (s)                        :  4.82
+   Elapsed time (s)                    :  2.46
  BigDFT infocode                       :  0
  Memory Consumption Report:
    Tot. No. of Allocations             :  4717
@@ -1073,6 +1077,6 @@
      Peak Value (MB)                   :  79.785
      for the array                     : wz
      in the routine                    : inputguessConfinement
-     Memory Peak of process            : 91.132 MB
+     Memory Peak of process            : 85.936 MB
  Max No. of dictionaries used          :  3679 #( 842 still in use)
  Number of dictionary folders allocated:  1
