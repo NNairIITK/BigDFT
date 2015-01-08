@@ -30,7 +30,7 @@ module module_globaltool
     type gt_uinp
         real(gp) :: en_delta
         real(gp) :: fp_delta
-        integer  :: ndict
+        integer  :: ndir
         character(len=500), allocatable :: directories(:)
     end type
 
@@ -40,7 +40,9 @@ module module_globaltool
         integer :: ntrans
         integer :: nmin
         integer :: ntransax
-        integer :: nminmax
+        integer :: nminmax   !number of poslocs over all directories
+        integer, allocatable :: nminpd(:) !number of minima per directory
+        integer :: nminmaxpd !maximum entry of nminpd
         type(atomic_structure) :: astruct
         type(gt_uinp) :: uinp
         real(gp), allocatable :: rcov(:)
@@ -58,6 +60,10 @@ module module_globaltool
                                                !to identify pairs
         integer, allocatable  :: minnumber(:)
         integer, allocatable  :: sadnumber(:)
+    
+        real(gp), allocatable :: gmon_ener(:)
+        real(gp), allocatable :: gmon_fp(:,:)
+        character(len=1), allocatable :: gmon_stat(:)
     end type
     contains
 !=====================================================================
@@ -109,7 +115,7 @@ subroutine count_poslocm(gdat)
 
     call yaml_comment('Counting poslocms ....',hfill='-')
     gdat%nminmax=0
-    do idict=1,gdat%uinp%ndict
+    do idict=1,gdat%uinp%ndir
         ifile=0
         do
             call construct_filename(gdat,idict,ifile+1,filename)
@@ -119,6 +125,7 @@ subroutine count_poslocm(gdat)
         enddo
         call yaml_map('Number of poslocms in '//trim(adjustl(&
              gdat%uinp%directories(idict))),ifile)
+        gdat%nminpd(idict)=ifile
         gdat%nminmax=gdat%nminmax+ifile
     enddo
     call yaml_map('Total poslocms found',gdat%nminmax)
@@ -132,9 +139,13 @@ subroutine construct_filename(gdat,idict,ifile,filename)
     integer, intent(in) :: ifile
     character(len=600), intent(out) :: filename
 
-    write(filename,'(a,i4.4,a)')trim(adjustl(&
-         gdat%uinp%directories(idict)))//'/poslocm_',&
-        ifile,'_'
+    !for bigdft >= 1.7.6
+    write(filename,'(a,i4.4)')trim(adjustl(&
+         gdat%uinp%directories(idict)))//'/poslocm_',ifile
+    !for bigdft < 1.7.6
+!    write(filename,'(a,i4.4,a)')trim(adjustl(&
+!         gdat%uinp%directories(idict)))//'/poslocm_',&
+!         ifile,'_'
 end subroutine construct_filename
 !=====================================================================
 subroutine init_nat_rcov(gdat)
@@ -163,8 +174,11 @@ subroutine init_gt_data(gdat)
     !local
 
     call nullify_atomic_structure(gdat%astruct)
+
+    gdat%nminpd = f_malloc((/gdat%uinp%ndir/),id='nminpd')
      
     call count_poslocm(gdat)
+    gdat%nminmaxpd = maxval(gdat%nminpd)
 
     call init_nat_rcov(gdat)
     gdat%nid = gdat%nat !s-overlap
@@ -174,14 +188,17 @@ subroutine init_gt_data(gdat)
     gdat%fp_arr = f_malloc((/gdat%nid,gdat%nminmax/),id='fp_arr')
     gdat%en_arr = f_malloc((/gdat%nminmax/),id='en_arr')
     gdat%path_min =f_malloc_str(600,(/1.to.gdat%nminmax/),id='path_min')
-    gdat%fp_arr_currDir = f_malloc((/gdat%nid,gdat%nminmax/),&
+    gdat%fp_arr_currDir = f_malloc((/gdat%nid,gdat%nminmaxpd/),&
                           id='fp_arr_currDir')
-    gdat%en_arr_currDir = f_malloc((/gdat%nminmax/),id='en_arr_currDir')
-    gdat%path_min_currDir = f_malloc_str(600,(/1.to.gdat%nminmax/),&
+    gdat%en_arr_currDir = f_malloc((/gdat%nminmaxpd/),id='en_arr_currDir')
+    gdat%path_min_currDir = f_malloc_str(600,(/1.to.gdat%nminmaxpd/),&
                             id='path_min_currDir')
     gdat%transpairs = f_malloc((/gdat%nminmax/),id='transpairs')
     gdat%minnumber = f_malloc((/gdat%nminmax/),id='minnumber')
     gdat%sadnumber = f_malloc((/gdat%nminmax/),id='sadnumber')
+    gdat%gmon_ener = f_malloc((/gdat%nminmaxpd/),id='gmon_ener')
+    gdat%gmon_fp = f_malloc((/gdat%nid,gdat%nminmaxpd/),id='gmon_fp')
+    gdat%gmon_stat = f_malloc_str(100,(/gdat%nminmaxpd/),id='gmon_stat')
 end subroutine init_gt_data
 !=====================================================================
 subroutine finalize_gt_data(gdat)
@@ -191,6 +208,7 @@ subroutine finalize_gt_data(gdat)
     type(gt_data), intent(inout) :: gdat
 
     call deallocate_atomic_structure(gdat%astruct)
+    call f_free(gdat%nminpd)
     call f_free_str(500,gdat%uinp%directories)
     call f_free(gdat%fp_arr)
     call f_free(gdat%en_arr)
@@ -202,6 +220,9 @@ subroutine finalize_gt_data(gdat)
     call f_free(gdat%transpairs)
     call f_free(gdat%minnumber)
     call f_free(gdat%sadnumber)
+    call f_free(gdat%gmon_ener)
+    call f_free(gdat%gmon_fp)
+    call f_free_str(600,gdat%gmon_stat)
 end subroutine finalize_gt_data
 !=====================================================================
 subroutine read_globaltool_uinp(gdat)
@@ -215,7 +236,7 @@ subroutine read_globaltool_uinp(gdat)
     real(gp) :: rdmy
     u=f_get_free_unit()
     open(u,file='globaltool.inp')
-    gdat%uinp%ndict=0
+    gdat%uinp%ndir=0
     read(u,*,iostat=istat)gdat%uinp%en_delta,gdat%uinp%fp_delta
     if(istat/=0)then
         call f_err_throw('Error in first line of globaltool.inp',&
@@ -224,13 +245,13 @@ subroutine read_globaltool_uinp(gdat)
     do
         read(u,'(a)',iostat=istat)line
         if(istat/=0)exit
-        gdat%uinp%ndict=gdat%uinp%ndict+1
+        gdat%uinp%ndir=gdat%uinp%ndir+1
     enddo
-    gdat%uinp%directories = f_malloc_str(500,(/1.to.gdat%uinp%ndict/),&
+    gdat%uinp%directories = f_malloc_str(500,(/1.to.gdat%uinp%ndir/),&
                             id='gdat%uinp%directories')
     rewind(u)
     read(u,*,iostat=istat)gdat%uinp%en_delta,gdat%uinp%fp_delta
-    do idict=1,gdat%uinp%ndict
+    do idict=1,gdat%uinp%ndir
         read(u,'(a)')gdat%uinp%directories(idict)
     enddo
     close(u)
@@ -250,9 +271,9 @@ subroutine write_globaltool_uinp(gdat)
     call yaml_map('en_delta',gdat%uinp%en_delta)
     call yaml_map('fp_delta',gdat%uinp%fp_delta)
     call yaml_mapping_close()
-    call yaml_map('Number of directories',gdat%uinp%ndict)
+    call yaml_map('Number of directories',gdat%uinp%ndir)
     call yaml_mapping_open('directories')
-    do idict=1,gdat%uinp%ndict
+    do idict=1,gdat%uinp%ndir
     call yaml_scalar(trim(adjustl(gdat%uinp%directories(idict))))
     enddo
     call yaml_mapping_close()
@@ -333,29 +354,123 @@ subroutine read_and_merge_data(gdat)
     integer :: idict
 
     call yaml_comment('Merging ....',hfill='-')
-    do idict =1, gdat%uinp%ndict
+    do idict =1, gdat%uinp%ndir
         call read_poslocs(gdat,idict)
         call add_poslocs_to_database(gdat)
+        call read_globalmon(gdat,idict)
     enddo
     
 end subroutine read_and_merge_data
 !=====================================================================
 subroutine read_globalmon(gdat,idict)
+    use module_base
+    use yaml_output
+    !reads the global.mon file and
+    !associates each line with the 
+    !corresponding structure from the
+    !polocm files
     implicit none
     !parameters
-    type(gt_data), intent(in) :: gdat
+    type(gt_data), intent(inout) :: gdat
     integer, intent(in) :: idict
     !local
+    character(len=600) :: filename
+    character(len=1)   :: stat
     integer :: u
+    integer :: icount
+    integer :: iline
+    integer :: istat
+    integer :: restartoffset
+    real(gp) :: ristep
+    integer :: istep
+    character(len=200) :: line
+    real(gp) :: energy
+    real(gp) :: rdmy
+    real(gp) :: fp(gdat%nid)
+    logical :: found
 
  
     u=f_get_free_unit()
-    open(u,file=trim(adjustl(gdat%uinp%directories(idict)))//&
-                '/global.mon')
-
+    filename=trim(adjustl(gdat%uinp%directories(idict)))//'/data/global.mon'
+    call yaml_comment('Parsing '//trim(adjustl(filename))//' ....',&
+         hfill='-')
+    open(u,file=trim(adjustl(filename)))
+    icount=0
+    iline=0
+    restartoffset=0
+    do
+        read(u,'(a)',iostat=istat)line
+        if(istat/=0)exit
+        iline=iline+1
+        read(line,*)ristep
+        istep=nint(ristep)
+        if(istep/=0)then
+            read(line,*,iostat=istat)istep,energy,rdmy,rdmy,rdmy,rdmy,rdmy,stat
+        else
+            read(line,*,iostat=istat)istep,energy,rdmy,rdmy,stat
+            if(icount/=0)restartoffset=icount
+        endif
+        if(istat/=0)then
+            call f_err_throw('Error while parsing '//&
+                 trim(adjustl(filename))//', istep='//&
+                 trim(yaml_toa(istep)))
+        endif
+        if(stat/="I")then
+            if(icount/=istep+restartoffset)then
+                call f_err_throw('Error while parsing '//&
+                     trim(adjustl(filename))//', istep+restartoffset='//&
+                     trim(yaml_toa(istep+restartoffset))//' icount='//&
+                     trim(yaml_toa(icount)))
+            endif
+            icount=icount+1
+            gdat%gmon_ener(icount)=energy
+            gdat%gmon_stat(icount)=stat
+            call gmon_line_to_fp(gdat,icount,iline,found)
+            if(.not. found)then
+                call f_err_throw('Could not find istep= '//&
+                     trim(yaml_toa(istep))//'of '//trim(adjustl(filename))//&
+                     ' among the poslocm files.')
+            endif    
+        endif
+    enddo    
     close(u)
      
-end subroutine
+end subroutine read_globalmon
+!=====================================================================
+subroutine gmon_line_to_fp(gdat,icount,iline,found)
+    use module_base
+    use yaml_output
+    use module_fingerprints
+    implicit none
+    !parameters
+    type(gt_data), intent(inout) :: gdat
+    integer, intent(in) :: icount
+    integer, intent(in) :: iline
+    logical, intent(out) :: found
+    !local
+    integer :: iposloc
+    integer :: istep
+    !ethresh can be small, since identical energy value should be in
+    !global.mon and in the corresponding poslocm file
+    real(gp), parameter :: ethresh = 1.d-13
+
+    istep=icount-1
+    found=.false.
+    !the corresponding poslocm file should always
+    !be one of the last files. Therefore, read from behind
+    do iposloc = icount , 1 , -1
+        if(abs(gdat%en_arr_currDir(iposloc)-&
+           gdat%gmon_ener(icount))<ethresh)then
+            found=.true.
+            call yaml_scalar('Line '//trim(yaml_toa(iline))//&
+                 ' corresponds to '//&
+                 trim(adjustl(gdat%path_min_currDir(iposloc))))
+            gdat%gmon_fp(:,icount) = gdat%fp_arr(:,iposloc)
+            exit
+        endif
+    enddo
+
+end subroutine gmon_line_to_fp
 !=====================================================================
 subroutine add_poslocs_to_database(gdat)
     use module_base
@@ -389,93 +504,6 @@ subroutine add_poslocs_to_database(gdat)
 
     enddo
 end subroutine add_poslocs_to_database
-!=====================================================================
-!!!subroutine write_data(gdat)
-!!!    use yaml_output
-!!!    use module_base
-!!!    implicit none
-!!!    !parameters
-!!!    type(gt_data), intent(inout) :: gdat
-!!!    !local
-!!!    integer :: u, u2, u3
-!!!    integer :: imin, isad
-!!!    integer, allocatable :: mn(:)
-!!!    integer :: ipair, it
-!!!    logical :: exclude
-!!!    character(len=5) :: ci
-!!!    integer :: isadc, iminc
-!!!
-!!!    mn = f_malloc((/gdat%nmin/),id='mn')
-!!!
-!!!    !write gdat file for minima
-!!!    u3=f_get_free_unit()
-!!!    open(u3,file='copy_configurations.sh')
-!!!    write(u3,*)'#!/bin/bash'
-!!!    write(u3,*)'mkdir minima'
-!!!    write(u3,*)'mkdir saddlepoints'
-!!!    u=f_get_free_unit()
-!!!    open(u,file='mindat')
-!!!    do imin = 1,gdat%nmin
-!!!        mn(gdat%minnumber(imin)) = imin
-!!!        write(u,*)gdat%en_arr(imin)
-!!!        write(ci,'(i5.5)')imin
-!!!        write(u3,*)'cp '//trim(adjustl(gdat%path_min(imin)))//&
-!!!                   '.EXT minima/min'//ci//'.EXT'
-!!!    enddo 
-!!!    close(u)
-!!!    
-!!!    !write tsdat file for saddle points and connection information
-!!!    open(u,file='tsdat')
-!!!    u2=f_get_free_unit()
-!!!    open(u2,file='tsdat_exclude')
-!!!    isadc=0
-!!!    do isad=1,gdat%nsad
-!!!        exclude=.false.
-!!!        ipair=maxloc(gdat%paircounter(1:gdat%nneighbpairs(isad),isad),1)
-!!!if(gdat%nneighbpairs(isad)>5)exclude=.true.
-!!!!        do it = 1, gdat%nneighbpairs(isad)
-!!!!            if(it/=ipair)then
-!!!!                 if(gdat%paircounter(it,isad)>20000)then
-!!!!            call yaml_comment('Saddle '//trim(adjustl(yaml_toa(gdat%sadnumber(isad))))//&
-!!!!                 'converged at least twice to another minimum pair.'//&
-!!!!                 ' Too ambigous. Will not consider this saddle point.')
-!!!!                    exclude=.true.
-!!!!                  endif
-!!!!            endif
-!!!!        enddo
-!!!!!write(*,*)gdat%paircounter(:,isad)
-!!!write(*,*)'imaxloc',ipair
-!!!        if(exclude)then
-!!!            write(u2,'(es24.17,1x,a,2(1x,i0.0))')gdat%en_arr_sad(isad),&
-!!!                 '0   0',mn(gdat%sadneighb(1,ipair,isad)),&
-!!!                  mn(gdat%sadneighb(2,ipair,isad))
-!!!        else
-!!!            isadc=isadc+1
-!!!            write(u,'(es24.17,1x,a,2(1x,i0.0))')gdat%en_arr_sad(isad),&
-!!!                 '0   0',mn(gdat%sadneighb(1,ipair,isad)),&
-!!!                  mn(gdat%sadneighb(2,ipair,isad))
-!!!            write(ci,'(i5.5)')isadc
-!!!            write(u3,*)'cp '//trim(adjustl(gdat%path_sad(isad)))//&
-!!!                       '.EXT saddlepoints/sad'//ci//'.EXT'
-!!!        endif
-!!!do ipair=1,gdat%nneighbpairs(isad)
-!!!write(*,*)ipair,gdat%paircounter(ipair,isad)
-!!!enddo
-!!!    
-!!!!        if(.not. any(gdat%exclude .eq. gdat%sadnumber(isad)))then
-!!!!            write(u,'(es24.17,1x,a,2(1x,i0.0))')gdat%en_arr_sad(isad),&
-!!!!                 '0   0',mn(gdat%sadneighb(1,isad)),mn(gdat%sadneighb(2,isad))
-!!!!        else
-!!!!            write(u2,'(es24.17,1x,a,2(1x,i0.0))')gdat%en_arr_sad(isad),&
-!!!!                 '0   0',mn(gdat%sadneighb(1,isad)),mn(gdat%sadneighb(2,isad))
-!!!!        endif
-!!!    enddo
-!!!    close(u)
-!!!    close(u2)
-!!!    close(u3)
-!!!    call f_free(mn)
-!!!
-!!!end subroutine write_data
 !=====================================================================
 subroutine identical(cf,gdat,ndattot,ndat,nid,epot,fp,en_arr,fp_arr,en_delta,&
                     fp_delta,lnew,kid,k_epot)
