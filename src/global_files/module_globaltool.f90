@@ -361,7 +361,7 @@ subroutine write_transitionpairs(gdat)
     integer :: IDmin1, IDmin2
     real(gp) :: fpd
     call yaml_comment('Transition pairs unified ....',hfill='-')
-    write(*,'(a)')'   Trans IDmin1 IDmin2  Ener1                '//&
+    write(*,'(a)')'  #Trans IDmin1 IDmin2  Ener1                '//&
          '    Ener2                    |DeltaEner|         '//&
          '     FPdist'
     do itrans=1,gdat%ntrans
@@ -417,7 +417,7 @@ subroutine add_transpairs_to_database(gdat)
     real(gp) :: fpd
 
     call yaml_comment('Reconstructing transition pairs ....',hfill='-')
-    write(*,'(a)')'   trans IDmin1 IDmin2  Ener1                '//&
+    write(*,'(a)')'  #trans IDmin1 IDmin2  Ener1                '//&
          '    Ener2                    |DeltaEner|         '//&
          '     FPdist'
     if(gdat%gmon_stat(1)/='P')then
