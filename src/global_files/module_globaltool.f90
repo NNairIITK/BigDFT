@@ -138,12 +138,12 @@ subroutine construct_filename(gdat,idict,ifile,filename)
     character(len=600), intent(out) :: filename
 
     !for bigdft >= 1.7.6
-    write(filename,'(a,i4.4)')trim(adjustl(&
-         gdat%uinp%directories(idict)))//'/poslocm_',ifile
+!!    write(filename,'(a,i4.4)')trim(adjustl(&
+!!         gdat%uinp%directories(idict)))//'/poslocm_',ifile
     !for bigdft < 1.7.6
-!!    write(filename,'(a,i4.4,a)')trim(adjustl(&
-!!         gdat%uinp%directories(idict)))//'/poslocm_',&
-!!         ifile,'_'
+    write(filename,'(a,i4.4,a)')trim(adjustl(&
+         gdat%uinp%directories(idict)))//'/poslocm_',&
+         ifile,'_'
 end subroutine construct_filename
 !=====================================================================
 subroutine init_nat_rcov(gdat)
@@ -352,16 +352,25 @@ end subroutine write_merged
 subroutine write_transitionpairs(gdat)
     use module_base
     use yaml_output
+    use module_fingerprints
     implicit none
     !parameters
     type(gt_data), intent(in) :: gdat
     !local
     integer :: itrans
     integer :: IDmin1, IDmin2
+    real(gp) :: fpd
     call yaml_comment('Transition pairs unified ....',hfill='-')
+    write(*,'(a)')'   Trans IDmin1 IDmin2  Ener1                '//&
+         '    Ener2                    |DeltaEner|         '//&
+         '     FPdist'
     do itrans=1,gdat%ntrans
         call unpair(gdat%transpairs(itrans),IDmin1,IDmin2)
-        write(*,'(a,2(1x,i4.4))')"Trans",IDmin1,IDmin2 
+        call fpdistance(gdat%nid,gdat%fp_arr(1,IDmin1),&
+             gdat%fp_arr(1,IDmin2),fpd)
+        write(*,'(a,1x,i4.4,3x,i4.4,2x,4(1x,es24.17))')'   Trans',&
+             IDmin1,IDmin2,gdat%en_arr(IDmin1),gdat%en_arr(IDmin2),&
+             abs(gdat%en_arr(IDmin1)-gdat%en_arr(IDmin2)),fpd
     enddo
 end subroutine write_transitionpairs
 !=====================================================================
@@ -390,6 +399,7 @@ end subroutine read_and_merge_data
 subroutine add_transpairs_to_database(gdat)
     use module_base
     use yaml_output
+    use module_fingerprints
     implicit none
     !parameters
     type(gt_data), intent(inout) :: gdat
@@ -404,8 +414,12 @@ subroutine add_transpairs_to_database(gdat)
     integer :: iposloc
     integer :: loc_id_transpair
     integer :: i
+    real(gp) :: fpd
 
     call yaml_comment('Reconstructing transition pairs ....',hfill='-')
+    write(*,'(a)')'   trans IDmin1 IDmin2  Ener1                '//&
+         '    Ener2                    |DeltaEner|         '//&
+         '     FPdist'
     if(gdat%gmon_stat(1)/='P')then
         call f_err_throw('Error in global.mon: Does not start with'//&
              ' P line',err_name='BIGDFT_RUNTIME_ERROR')
@@ -432,7 +446,11 @@ subroutine add_transpairs_to_database(gdat)
             cycle
         endif
         id_transpair = getPairId(idcurr,idnext)
-        write(*,'(a,2(1x,i4.4))')'trans',idcurr,idnext 
+        call fpdistance(gdat%nid,gdat%fp_arr(1,idcurr),&
+             gdat%fp_arr(1,idnext),fpd)
+        write(*,'(a,1x,i4.4,3x,i4.4,2x,4(1x,es24.17))')'   trans',idcurr,&
+             idnext,gdat%en_arr(idcurr),gdat%en_arr(idnext),&
+             abs(gdat%en_arr(idcurr)-gdat%en_arr(idnext)),fpd
         call inthunt_gt(gdat%transpairs,&
              max(1,min(gdat%ntrans,gdat%ntransmax)),id_transpair,&
              loc_id_transpair)
@@ -446,7 +464,7 @@ subroutine add_transpairs_to_database(gdat)
             enddo
             gdat%transpairs(loc_id_transpair+1) = id_transpair
         endif
-        !check if accpepted
+        !check if accepted
         if(gdat%gmon_stat(iposloc)=='A')then
             idcurr = idnext
             ecurr = gdat%gmon_ener(iposloc)
