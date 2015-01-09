@@ -20,8 +20,9 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
   use constrained_dft
   use diis_sd_optimization
   use Poisson_Solver, except_dp => dp, except_gp => gp, except_wp => wp
-  use communications_base, only: allocate_p2pComms_buffer, &
-                                 deallocate_p2pComms_buffer
+  use communications_base, only: work_transpose, allocate_p2pComms_buffer, &
+                                 deallocate_p2pComms_buffer, &
+                                 work_transpose_null, allocate_work_transpose, deallocate_work_transpose
   use communications, only: synchronize_onesided_communication, transpose_localized, untranspose_localized
   !use communications_init, only: orbitals_communicators
   use sparsematrix_base, only: sparse_matrix, sparse_matrix_null, deallocate_sparse_matrix, &
@@ -71,6 +72,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
   logical :: keep_value
   type(workarrays_quartic_convolutions),dimension(:),pointer :: precond_convol_workarrays
   type(workarr_precond),dimension(:),pointer :: precond_workarrays
+  type(work_transpose) :: wt_philarge, wt_hpsinoprecond, wt_hphi, wt_phi
 
   
   real(kind=gp) :: ebs, vgrad_old, vgrad, valpha, vold, vgrad2, vold_tmp, conv_crit_TMB, best_charge_diff, cdft_charge_thresh
@@ -310,6 +312,14 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
                convcrit_dmin, nitdmin, conv_crit_TMB)
           if (itout==1) then
               call allocate_precond_arrays(tmb%orbs, tmb%lzd, tmb%confdatarr, precond_convol_workarrays, precond_workarrays)
+              wt_philarge = work_transpose_null()
+              wt_hpsinoprecond = work_transpose_null()
+              wt_hphi = work_transpose_null()
+              wt_phi = work_transpose_null()
+              call allocate_work_transpose(nproc, tmb%ham_descr%collcom, wt_philarge)
+              call allocate_work_transpose(nproc, tmb%ham_descr%collcom, wt_hpsinoprecond)
+              call allocate_work_transpose(nproc, tmb%ham_descr%collcom, wt_hphi)
+              call allocate_work_transpose(nproc, tmb%collcom, wt_phi)
           end if
           !!if (iproc==0) write(*,*) 'AFTER: lowaccur_converged,associated(precond_workarrays)',lowaccur_converged,associated(precond_workarrays)
           if (keep_value) then
@@ -322,6 +332,14 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
                convcrit_dmin=input%lin%convCritDmin_highaccuracy
                nitdmin=input%lin%nItdmin_highaccuracy
           call allocate_precond_arrays(tmb%orbs, tmb%lzd, tmb%confdatarr, precond_convol_workarrays, precond_workarrays)
+          wt_philarge = work_transpose_null()
+          wt_hpsinoprecond = work_transpose_null()
+          wt_hphi = work_transpose_null()
+          wt_phi = work_transpose_null()
+          call allocate_work_transpose(nproc, tmb%ham_descr%collcom, wt_philarge)
+          call allocate_work_transpose(nproc, tmb%ham_descr%collcom, wt_hpsinoprecond)
+          call allocate_work_transpose(nproc, tmb%ham_descr%collcom, wt_hphi)
+          call allocate_work_transpose(nproc, tmb%collcom, wt_phi)
       end if
 
       ! Do one fake iteration if no low accuracy is desired.
@@ -350,7 +368,20 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
           orthonormalization_on=.true.
 
           call deallocate_precond_arrays(tmb%orbs, tmb%lzd, precond_convol_workarrays, precond_workarrays)
+          call deallocate_work_transpose(wt_philarge)
+          call deallocate_work_transpose(wt_hpsinoprecond)
+          call deallocate_work_transpose(wt_hphi)
+          call deallocate_work_transpose(wt_phi)
+
           call allocate_precond_arrays(tmb%orbs, tmb%lzd, tmb%confdatarr, precond_convol_workarrays, precond_workarrays)
+          wt_philarge = work_transpose_null()
+          wt_hpsinoprecond = work_transpose_null()
+          wt_hphi = work_transpose_null()
+          wt_phi = work_transpose_null()
+          call allocate_work_transpose(nproc, tmb%ham_descr%collcom, wt_philarge)
+          call allocate_work_transpose(nproc, tmb%ham_descr%collcom, wt_hpsinoprecond)
+          call allocate_work_transpose(nproc, tmb%ham_descr%collcom, wt_hphi)
+          call allocate_work_transpose(nproc, tmb%collcom, wt_phi)
 
           ! is this really necessary if the locrads haven't changed?  we should check this!
           ! for now for CDFT don't do the extra get_coeffs, as don't want to add extra CDFT loop here
@@ -522,7 +553,9 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
                   can_use_ham, norder_taylor, input%lin%max_inversion_error, input%kappa_conv,&
                   input%method_updatekernel,input%purification_quickreturn, &
                   input%correction_co_contra, &
-                  precond_convol_workarrays, precond_workarrays, cdft, input%frag, ref_frags)
+                  precond_convol_workarrays, precond_workarrays, &
+                  wt_philarge, wt_hpsinoprecond, wt_hphi, wt_phi, &
+                  cdft, input%frag, ref_frags)
            else
               call getLocalizedBasis(iproc,nproc,at,KSwfn%orbs,rxyz,denspot,GPU,trace,trace_old,fnrm_tmb,&
                   info_basis_functions,nlpsp,input%lin%scf_mode,ldiis,input%SIC,tmb,energs, &
@@ -532,7 +565,8 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
                   input%lin%early_stop, input%lin%gnrm_dynamic, input%lin%min_gnrm_for_dynamic, &
                   can_use_ham, norder_taylor, input%lin%max_inversion_error, input%kappa_conv,&
                   input%method_updatekernel,input%purification_quickreturn, &
-                  input%correction_co_contra, precond_convol_workarrays, precond_workarrays)
+                  input%correction_co_contra, precond_convol_workarrays, precond_workarrays, &
+                  wt_philarge, wt_hpsinoprecond, wt_hphi, wt_phi)
            end if
            !!call gather_matrix_from_taskgroups_inplace(iproc, nproc, tmb%linmat%l, tmb%linmat%kernel_)
            reduce_conf=.true.
@@ -1133,6 +1167,10 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
 
   
   call deallocate_precond_arrays(tmb%orbs, tmb%lzd, precond_convol_workarrays, precond_workarrays)
+  call deallocate_work_transpose(wt_philarge)
+  call deallocate_work_transpose(wt_hpsinoprecond)
+  call deallocate_work_transpose(wt_hphi)
+  call deallocate_work_transpose(wt_phi)
 
 
 
