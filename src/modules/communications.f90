@@ -644,37 +644,61 @@ module communications
           end if
       end if
 
-      ! Point to the provided work arrays
+      ! Point to the provided work arrays, otherwise allocate
       if (present(wt_)) then
           wt => wt_
+          if (.not.associated(wt%psiwork_c) .or. &
+              .not.associated(wt%psiwork_c) .or. &
+              .not.associated(wt%psiwork_f) .or. &
+              .not.associated(wt%psitwork_c) .or. &
+              .not.associated(wt%psitwork_f) .or. &
+              .not.associated(wt%psiwork) .or. &
+              .not.associated(wt%psitwork) .or. &
+              .not.associated(wt%nsendcounts) .or. &
+              .not.associated(wt%nsenddspls) .or. &
+              .not.associated(wt%nrecvcounts) .or. &
+              .not.associated(wt%nrecvdspls)) then
+              write(*,*) sqrt(-1.d0)
+              call f_err_throw('not all workarrays are associated', err_id=ERR_LINEAR_TRANSPOSITION)
+          end if
       else
-          allocate(wt)
+          if (transpose_action == TRANSPOSE_FULL .or. &
+              transpose_action == TRANSPOSE_POST) then
+              allocate(wt)
+              wt = work_transpose_null()
+              wt%psiwork_c = f_malloc_ptr(collcom%ndimpsi_c,id='psiwork_c')
+              wt%psiwork_f = f_malloc_ptr(7*collcom%ndimpsi_f,id='psiwork_f')
+              wt%psitwork_c = f_malloc_ptr(collcom%ndimind_c,id='psitwork_c')
+              wt%psitwork_f = f_malloc_ptr(7*collcom%ndimind_f,id='psitwork_f')
+              wt%psiwork = f_malloc_ptr(max(collcom%ndimpsi_c+7*collcom%ndimpsi_f,1),id='wt%psiwork')
+              wt%psitwork = f_malloc_ptr(max(sum(collcom%nrecvcounts_c)+7*sum(collcom%nrecvcounts_f),1),id='wt%psitwork')
+              wt%nsendcounts = f_malloc_ptr(0.to.nproc-1,id='wt%nsendcounts')
+              wt%nsenddspls = f_malloc_ptr(0.to.nproc-1,id='wt%nsenddspls')
+              wt%nrecvcounts = f_malloc_ptr(0.to.nproc-1,id='wt%nrecvcounts')
+              wt%nrecvdspls = f_malloc_ptr(0.to.nproc-1,id='wt%nrecvdspls')
+          end if
       end if
 
-      if (transpose_action == TRANSPOSE_FULL .or. &
-          transpose_action == TRANSPOSE_POST) then
-          wt = work_transpose_null()
-      end if
 
       
       !!psiwork_c = f_malloc(collcom%ndimpsi_c,id='psiwork_c')
       !!psiwork_f = f_malloc(7*collcom%ndimpsi_f,id='psiwork_f')
       !!psitwork_c = f_malloc(collcom%ndimind_c,id='psitwork_c')
       !!psitwork_f = f_malloc(7*collcom%ndimind_f,id='psitwork_f')
-      wt%psiwork_c = f_malloc_ptr(collcom%ndimpsi_c,id='psiwork_c')
-      wt%psiwork_f = f_malloc_ptr(7*collcom%ndimpsi_f,id='psiwork_f')
-      wt%psitwork_c = f_malloc_ptr(collcom%ndimind_c,id='psitwork_c')
-      wt%psitwork_f = f_malloc_ptr(7*collcom%ndimind_f,id='psitwork_f')
+      !##wt%psiwork_c = f_malloc_ptr(collcom%ndimpsi_c,id='psiwork_c')
+      !##wt%psiwork_f = f_malloc_ptr(7*collcom%ndimpsi_f,id='psiwork_f')
+      !##wt%psitwork_c = f_malloc_ptr(collcom%ndimind_c,id='psitwork_c')
+      !##wt%psitwork_f = f_malloc_ptr(7*collcom%ndimind_f,id='psitwork_f')
 
       if (transpose_action == TRANSPOSE_FULL .or. &
           transpose_action == TRANSPOSE_POST) then
           call transpose_switch_psi(npsidim_orbs, orbs, collcom, psi, wt%psiwork_c, wt%psiwork_f, lzd)
-          wt%psiwork = f_malloc_ptr(max(collcom%ndimpsi_c+7*collcom%ndimpsi_f,1),id='wt%psiwork')
-          wt%psitwork = f_malloc_ptr(max(sum(collcom%nrecvcounts_c)+7*sum(collcom%nrecvcounts_f),1),id='wt%psitwork')
-          wt%nsendcounts = f_malloc_ptr(0.to.nproc-1,id='wt%nsendcounts')
-          wt%nsenddspls = f_malloc_ptr(0.to.nproc-1,id='wt%nsenddspls')
-          wt%nrecvcounts = f_malloc_ptr(0.to.nproc-1,id='wt%nrecvcounts')
-          wt%nrecvdspls = f_malloc_ptr(0.to.nproc-1,id='wt%nrecvdspls')
+          !#wt%psiwork = f_malloc_ptr(max(collcom%ndimpsi_c+7*collcom%ndimpsi_f,1),id='wt%psiwork')
+          !#wt%psitwork = f_malloc_ptr(max(sum(collcom%nrecvcounts_c)+7*sum(collcom%nrecvcounts_f),1),id='wt%psitwork')
+          !#wt%nsendcounts = f_malloc_ptr(0.to.nproc-1,id='wt%nsendcounts')
+          !#wt%nsenddspls = f_malloc_ptr(0.to.nproc-1,id='wt%nsenddspls')
+          !#wt%nrecvcounts = f_malloc_ptr(0.to.nproc-1,id='wt%nrecvcounts')
+          !#wt%nrecvdspls = f_malloc_ptr(0.to.nproc-1,id='wt%nrecvdspls')
       end if
       call timing(iproc,'Un-TransSwitch','OF')
     
@@ -686,12 +710,12 @@ module communications
       call timing(iproc,'Un-TransSwitch','ON')
       if (transpose_action == TRANSPOSE_FULL .or. &
           transpose_action == TRANSPOSE_GATHER) then
-          call f_free_ptr(wt%psiwork)
-          call f_free_ptr(wt%psitwork)
-          call f_free_ptr(wt%nsendcounts)
-          call f_free_ptr(wt%nsenddspls)
-          call f_free_ptr(wt%nrecvcounts)
-          call f_free_ptr(wt%nrecvdspls)
+          !##call f_free_ptr(wt%psiwork)
+          !##call f_free_ptr(wt%psitwork)
+          !##call f_free_ptr(wt%nsendcounts)
+          !##call f_free_ptr(wt%nsenddspls)
+          !##call f_free_ptr(wt%nrecvcounts)
+          !##call f_free_ptr(wt%nrecvdspls)
           call transpose_unswitch_psit(collcom, wt%psitwork_c, wt%psitwork_f, psit_c, psit_f)
       end if
 
@@ -700,14 +724,24 @@ module communications
       !!call f_free(psiwork_f)
       !!call f_free(psitwork_c)
       !!call f_free(psitwork_f)
-      call f_free_ptr(wt%psiwork_c)
-      call f_free_ptr(wt%psiwork_f)
-      call f_free_ptr(wt%psitwork_c)
-      call f_free_ptr(wt%psitwork_f)
+      !##call f_free_ptr(wt%psiwork_c)
+      !##call f_free_ptr(wt%psiwork_f)
+      !##call f_free_ptr(wt%psitwork_c)
+      !##call f_free_ptr(wt%psitwork_f)
 
       if (transpose_action == TRANSPOSE_FULL .or. &
           transpose_action == TRANSPOSE_GATHER) then
           if (.not.present(wt_)) then
+              call f_free_ptr(wt%psiwork)
+              call f_free_ptr(wt%psitwork)
+              call f_free_ptr(wt%nsendcounts)
+              call f_free_ptr(wt%nsenddspls)
+              call f_free_ptr(wt%nrecvcounts)
+              call f_free_ptr(wt%nrecvdspls)
+              call f_free_ptr(wt%psiwork_c)
+              call f_free_ptr(wt%psiwork_f)
+              call f_free_ptr(wt%psitwork_c)
+              call f_free_ptr(wt%psitwork_f)
               deallocate(wt)
               nullify(wt)
           end if
@@ -762,33 +796,61 @@ module communications
           end if
       end if
 
-      ! Point to the provided work arrays
+      ! Point to the provided work arrays, otherwise allocate
       if (present(wt_)) then
           wt => wt_
+          if (.not.associated(wt%psiwork_c) .or. &
+              .not.associated(wt%psiwork_c) .or. &
+              .not.associated(wt%psiwork_f) .or. &
+              .not.associated(wt%psitwork_c) .or. &
+              .not.associated(wt%psitwork_f) .or. &
+              .not.associated(wt%psiwork) .or. &
+              .not.associated(wt%psitwork) .or. &
+              .not.associated(wt%nsendcounts) .or. &
+              .not.associated(wt%nsenddspls) .or. &
+              .not.associated(wt%nrecvcounts) .or. &
+              .not.associated(wt%nrecvdspls)) then
+              write(*,*) sqrt(-1.d0)
+              call f_err_throw('not all workarrays are associated', err_id=ERR_LINEAR_TRANSPOSITION)
+          end if
       else
-          allocate(wt)
+          if (transpose_action == TRANSPOSE_FULL .or. &
+              transpose_action == TRANSPOSE_POST) then
+              allocate(wt)
+              wt = work_transpose_null()
+              wt%psiwork_c = f_malloc_ptr(collcom%ndimpsi_c,id='psiwork_c')
+              wt%psiwork_f = f_malloc_ptr(7*collcom%ndimpsi_f,id='psiwork_f')
+              wt%psitwork_c = f_malloc_ptr(collcom%ndimind_c,id='psitwork_c')
+              wt%psitwork_f = f_malloc_ptr(7*collcom%ndimind_f,id='psitwork_f')
+              wt%psiwork = f_malloc_ptr(max(collcom%ndimpsi_c+7*collcom%ndimpsi_f,1),id='wt%psiwork')
+              wt%psitwork = f_malloc_ptr(max(sum(collcom%nrecvcounts_c)+7*sum(collcom%nrecvcounts_f),1),id='wt%psitwork')
+              wt%nsendcounts = f_malloc_ptr(0.to.nproc-1,id='wt%nsendcounts')
+              wt%nsenddspls = f_malloc_ptr(0.to.nproc-1,id='wt%nsenddspls')
+              wt%nrecvcounts = f_malloc_ptr(0.to.nproc-1,id='wt%nrecvcounts')
+              wt%nrecvdspls = f_malloc_ptr(0.to.nproc-1,id='wt%nrecvdspls')
+          end if
       end if
 
-      if (transpose_action == TRANSPOSE_FULL .or. &
-          transpose_action == TRANSPOSE_POST) then
-          wt = work_transpose_null()
-      end if
+      !##if (transpose_action == TRANSPOSE_FULL .or. &
+      !##    transpose_action == TRANSPOSE_POST) then
+      !##    wt = work_transpose_null()
+      !##end if
       
-      wt%psiwork_c = f_malloc_ptr(collcom%ndimpsi_c,id='psiwork_c')
-      wt%psiwork_f = f_malloc_ptr(7*collcom%ndimpsi_f,id='psiwork_f')
-      wt%psitwork_c = f_malloc_ptr(collcom%ndimind_c,id='psitwork_c')
-      wt%psitwork_f = f_malloc_ptr(7*collcom%ndimind_f,id='psitwork_f')
+      !##wt%psiwork_c = f_malloc_ptr(collcom%ndimpsi_c,id='psiwork_c')
+      !##wt%psiwork_f = f_malloc_ptr(7*collcom%ndimpsi_f,id='psiwork_f')
+      !##wt%psitwork_c = f_malloc_ptr(collcom%ndimind_c,id='psitwork_c')
+      !##wt%psitwork_f = f_malloc_ptr(7*collcom%ndimind_f,id='psitwork_f')
     
       call timing(iproc,'Un-TransSwitch','ON')
       if (transpose_action == TRANSPOSE_FULL .or. &
           transpose_action == TRANSPOSE_POST) then
           call transpose_switch_psit(collcom, psit_c, psit_f, wt%psitwork_c, wt%psitwork_f)
-          wt%psiwork = f_malloc_ptr(max(collcom%ndimpsi_c+7*collcom%ndimpsi_f,1),id='wt%psiwork')
-          wt%psitwork = f_malloc_ptr(max(sum(collcom%nrecvcounts_c)+7*sum(collcom%nrecvcounts_f),1),id='wt%psitwork')
-          wt%nsendcounts = f_malloc_ptr(0.to.nproc-1,id='wt%nsendcounts')
-          wt%nsenddspls = f_malloc_ptr(0.to.nproc-1,id='wt%nsenddspls')
-          wt%nrecvcounts = f_malloc_ptr(0.to.nproc-1,id='wt%nrecvcounts')
-          wt%nrecvdspls = f_malloc_ptr(0.to.nproc-1,id='wt%nrecvdspls')
+          !##wt%psiwork = f_malloc_ptr(max(collcom%ndimpsi_c+7*collcom%ndimpsi_f,1),id='wt%psiwork')
+          !##wt%psitwork = f_malloc_ptr(max(sum(collcom%nrecvcounts_c)+7*sum(collcom%nrecvcounts_f),1),id='wt%psitwork')
+          !##wt%nsendcounts = f_malloc_ptr(0.to.nproc-1,id='wt%nsendcounts')
+          !##wt%nsenddspls = f_malloc_ptr(0.to.nproc-1,id='wt%nsenddspls')
+          !##wt%nrecvcounts = f_malloc_ptr(0.to.nproc-1,id='wt%nrecvcounts')
+          !##wt%nrecvdspls = f_malloc_ptr(0.to.nproc-1,id='wt%nrecvdspls')
       end if
       call timing(iproc,'Un-TransSwitch','OF')
     
@@ -800,24 +862,34 @@ module communications
       call timing(iproc,'Un-TransSwitch','ON')
       if (transpose_action == TRANSPOSE_FULL .or. &
           transpose_action == TRANSPOSE_GATHER) then
-          call f_free_ptr(wt%psiwork)
-          call f_free_ptr(wt%psitwork)
-          call f_free_ptr(wt%nsendcounts)
-          call f_free_ptr(wt%nsenddspls)
-          call f_free_ptr(wt%nrecvcounts)
-          call f_free_ptr(wt%nrecvdspls)
+          !##call f_free_ptr(wt%psiwork)
+          !##call f_free_ptr(wt%psitwork)
+          !##call f_free_ptr(wt%nsendcounts)
+          !##call f_free_ptr(wt%nsenddspls)
+          !##call f_free_ptr(wt%nrecvcounts)
+          !##call f_free_ptr(wt%nrecvdspls)
           call transpose_unswitch_psi(npsidim_orbs, orbs, collcom, wt%psiwork_c, wt%psiwork_f, psi, lzd)
       end if
       call timing(iproc,'Un-TransSwitch','OF')
       
-      call f_free_ptr(wt%psiwork_c)
-      call f_free_ptr(wt%psiwork_f)
-      call f_free_ptr(wt%psitwork_c)
-      call f_free_ptr(wt%psitwork_f)
+      !##call f_free_ptr(wt%psiwork_c)
+      !##call f_free_ptr(wt%psiwork_f)
+      !##call f_free_ptr(wt%psitwork_c)
+      !##call f_free_ptr(wt%psitwork_f)
 
       if (transpose_action == TRANSPOSE_FULL .or. &
           transpose_action == TRANSPOSE_GATHER) then
           if (.not.present(wt_)) then
+              call f_free_ptr(wt%psiwork)
+              call f_free_ptr(wt%psitwork)
+              call f_free_ptr(wt%nsendcounts)
+              call f_free_ptr(wt%nsenddspls)
+              call f_free_ptr(wt%nrecvcounts)
+              call f_free_ptr(wt%nrecvdspls)
+              call f_free_ptr(wt%psiwork_c)
+              call f_free_ptr(wt%psiwork_f)
+              call f_free_ptr(wt%psitwork_c)
+              call f_free_ptr(wt%psitwork_f)
               deallocate(wt)
               nullify(wt)
           end if

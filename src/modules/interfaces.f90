@@ -1431,11 +1431,14 @@ module module_interfaces
           ratio_deltas,ortho_on,extra_states,itout,conv_crit,experimental_mode,early_stop,&
           gnrm_dynamic, min_gnrm_for_dynamic, can_use_ham, order_taylor, max_inversion_error, kappa_conv, method_updatekernel,&
           purification_quickreturn, correction_co_contra, &
-          precond_convol_workarrays, precond_workarrays, cdft, input_frag, ref_frags)
+          precond_convol_workarrays, precond_workarrays, &
+          wt_philarge, wt_hpsinoprecond, wt_hphi, wt_phi, &
+          cdft, input_frag, ref_frags)
         use module_base
         use module_types
         use module_fragments, only: system_fragment
         use constrained_dft, only: cdft_data
+        use communications_base, only: work_transpose
         implicit none
 
         ! Calling arguments
@@ -1468,6 +1471,7 @@ module module_interfaces
         logical,intent(in) :: correction_co_contra
         type(workarrays_quartic_convolutions),dimension(tmb%orbs%norbp),intent(inout) :: precond_convol_workarrays
         type(workarr_precond),dimension(tmb%orbs%norbp),intent(inout) :: precond_workarrays
+        type(work_transpose),intent(inout) :: wt_philarge, wt_hpsinoprecond, wt_hphi, wt_phi
         !these must all be present together
         type(cdft_data),intent(inout),optional :: cdft
         type(fragmentInputParameters),optional,intent(in) :: input_frag
@@ -2471,7 +2475,7 @@ module module_interfaces
                   energs, hpsit_c, hpsit_f, nit_precond, target_function, correction_orthoconstraint, &
                   hpsi_small, experimental_mode, calculate_inverse, correction_co_contra, hpsi_noprecond, &
                   norder_taylor, max_inversion_error, method_updatekernel, precond_convol_workarrays, precond_workarrays,&
-                  wt_philarge, wt_hpsinoprecond, &
+                  wt_hphi, wt_philarge, wt_hpsinoprecond, &
                   cdft, input_frag, ref_frags)
          use module_base
          use module_types
@@ -2502,6 +2506,7 @@ module module_interfaces
          real(kind=8), dimension(tmb%npsidim_orbs),intent(out) :: hpsi_noprecond
          type(workarrays_quartic_convolutions),dimension(tmb%orbs%norbp),intent(inout) :: precond_convol_workarrays
          type(workarr_precond),dimension(tmb%orbs%norbp),intent(inout) :: precond_workarrays
+         type(work_transpose),intent(inout) :: wt_hphi
          type(work_transpose),intent(inout) :: wt_philarge
          type(work_transpose),intent(out) :: wt_hpsinoprecond
          type(cdft_data),intent(inout),optional :: cdft

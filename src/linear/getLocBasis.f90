@@ -526,7 +526,9 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
     ratio_deltas,ortho_on,extra_states,itout,conv_crit,experimental_mode,early_stop,&
     gnrm_dynamic, min_gnrm_for_dynamic, can_use_ham, order_taylor, max_inversion_error, kappa_conv, method_updatekernel,&
     purification_quickreturn, correction_co_contra, &
-    precond_convol_workarrays, precond_workarrays, cdft, input_frag, ref_frags)
+    precond_convol_workarrays, precond_workarrays, &
+    wt_philarge, wt_hpsinoprecond, wt_hphi, wt_phi, &
+    cdft, input_frag, ref_frags)
   !
   ! Purpose:
   ! ========
@@ -579,6 +581,7 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
   logical,intent(in) :: correction_co_contra
   type(workarrays_quartic_convolutions),dimension(tmb%orbs%norbp),intent(inout) :: precond_convol_workarrays
   type(workarr_precond),dimension(tmb%orbs%norbp),intent(inout) :: precond_workarrays
+  type(work_transpose),intent(inout) :: wt_philarge, wt_hpsinoprecond, wt_hphi, wt_phi
   !these must all be present together
   type(cdft_data),intent(inout),optional :: cdft
   type(fragmentInputParameters),optional,intent(in) :: input_frag
@@ -606,7 +609,6 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
   type(matrices) :: ovrlp_old
   integer :: iiorb, ilr, i, ist
   real(kind=8) :: max_error, mean_error
-  type(work_transpose) :: wt_philarge, wt_hpsinoprecond, wt_hphi, wt_phi
 
   call f_routine(id='getLocalizedBasis')
 
@@ -898,7 +900,7 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
            correction_co_contra, hpsi_noprecond=hpsi_tmp, norder_taylor=order_taylor, &
            max_inversion_error=max_inversion_error, method_updatekernel=method_updatekernel, &
            precond_convol_workarrays=precond_convol_workarrays, precond_workarrays=precond_workarrays, &
-           wt_philarge=wt_philarge, wt_hpsinoprecond=wt_hpsinoprecond,&
+           wt_hphi=wt_hphi, wt_philarge=wt_philarge, wt_hpsinoprecond=wt_hpsinoprecond,&
            cdft=cdft, input_frag=input_frag, ref_frags=ref_frags)
       !!call gather_matrix_from_taskgroups_inplace(iproc, nproc, tmb%linmat%l, tmb%linmat%kernel_)
       !fnrm_old=fnrm
