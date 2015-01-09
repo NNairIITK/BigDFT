@@ -1430,7 +1430,8 @@ module module_interfaces
           correction_orthoconstraint,nit_basis,&
           ratio_deltas,ortho_on,extra_states,itout,conv_crit,experimental_mode,early_stop,&
           gnrm_dynamic, min_gnrm_for_dynamic, can_use_ham, order_taylor, max_inversion_error, kappa_conv, method_updatekernel,&
-          purification_quickreturn, correction_co_contra, cdft, input_frag, ref_frags)
+          purification_quickreturn, correction_co_contra, &
+          precond_convol_workarrays, precond_workarrays, cdft, input_frag, ref_frags)
         use module_base
         use module_types
         use module_fragments, only: system_fragment
@@ -1465,6 +1466,8 @@ module module_interfaces
         logical,intent(out) :: can_use_ham
         integer,intent(in) :: method_updatekernel
         logical,intent(in) :: correction_co_contra
+        type(workarrays_quartic_convolutions),dimension(tmb%orbs%norbp),intent(inout) :: precond_convol_workarrays
+        type(workarr_precond),dimension(tmb%orbs%norbp),intent(inout) :: precond_workarrays
         !these must all be present together
         type(cdft_data),intent(inout),optional :: cdft
         type(fragmentInputParameters),optional,intent(in) :: input_frag
@@ -4276,6 +4279,27 @@ end subroutine build_ks_orbitals_laura_tmp
           real(wp), dimension(ntmb), intent(in) :: eval
           real(gp), dimension(3,nat), intent(in) :: rxyz
         end subroutine writeLinearCoefficients
+
+        subroutine allocate_precond_arrays(orbs, lzd, confdatarr, precond_convol_workarrays, precond_workarrays)
+          use module_base, only: gp
+          use module_types
+          implicit none
+          type(orbitals_data),intent(in) :: orbs
+          type(local_zone_descriptors),intent(in) :: lzd
+          type(confpot_data),dimension(orbs%norbp),intent(in) ::  confdatarr
+          type(workarrays_quartic_convolutions),dimension(:),pointer,intent(inout) :: precond_convol_workarrays
+          type(workarr_precond),dimension(:),pointer,intent(inout) :: precond_workarrays
+        end subroutine allocate_precond_arrays
+
+        subroutine deallocate_precond_arrays(orbs, lzd, precond_convol_workarrays, precond_workarrays)
+          use module_base, only: gp
+          use module_types
+          implicit none
+          type(orbitals_data),intent(in) :: orbs
+          type(local_zone_descriptors),intent(in) :: lzd
+          type(workarrays_quartic_convolutions),dimension(:),pointer,intent(inout) :: precond_convol_workarrays
+          type(workarr_precond),dimension(:),pointer,intent(inout) :: precond_workarrays
+        end subroutine deallocate_precond_arrays
 
   end interface
 END MODULE module_interfaces

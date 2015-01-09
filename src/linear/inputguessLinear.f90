@@ -73,6 +73,9 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
   real(kind=8),dimension(:),allocatable :: tmparr, prefactor_inguess
   real(kind=8) :: prefac
   character(len=20) :: atomname
+  type(workarrays_quartic_convolutions),dimension(:),pointer :: precond_convol_workarrays
+  type(workarr_precond),dimension(:),pointer :: precond_workarrays
+
 
   call f_routine(id=subname)
 
@@ -798,6 +801,7 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
      end if
      order_taylor=input%lin%order_taylor ! since this is intent(inout)
      !!call extract_taskgroup_inplace(tmb%linmat%l, tmb%linmat%kernel_)
+     call allocate_precond_arrays(tmb%orbs, tmb%lzd, tmb%confdatarr, precond_convol_workarrays, precond_workarrays)
      call getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trace,trace_old,fnrm_tmb,&
          info_basis_functions,nlpsp,input%lin%scf_mode,ldiis,input%SIC,tmb,energs, &
          input%lin%nItPrecond,TARGET_FUNCTION_IS_TRACE,input%lin%correctionOrthoconstraint,&
@@ -805,7 +809,9 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
          ratio_deltas,ortho_on,input%lin%extra_states,0,1.d-3,input%experimental_mode,input%lin%early_stop,&
          input%lin%gnrm_dynamic, input%lin%min_gnrm_for_dynamic, &
          can_use_ham, order_taylor, input%lin%max_inversion_error, input%kappa_conv, input%method_updatekernel,&
-         input%purification_quickreturn, input%correction_co_contra)
+         input%purification_quickreturn, input%correction_co_contra, &
+         precond_convol_workarrays, precond_workarrays)
+     call deallocate_precond_arrays(tmb%orbs, tmb%lzd, precond_convol_workarrays, precond_workarrays)
      !!call gather_matrix_from_taskgroups_inplace(iproc, nproc, tmb%linmat%l, tmb%linmat%kernel_)
      reduce_conf=.true.
      call yaml_sequence_close()
