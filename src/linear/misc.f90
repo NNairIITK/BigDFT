@@ -886,9 +886,13 @@ subroutine build_ks_orbitals(iproc, nproc, tmb, KSwfn, at, rxyz, denspot, GPU, &
   real(kind=8),dimension(:),allocatable :: tmparr
   character(len=*),parameter :: subname='build_ks_orbitals'
   real(wp), dimension(:,:,:), pointer :: mom_vec_fake
+  type(workarrays_projectors) :: wpr
 
 
   nullify(mom_vec_fake)
+
+  wpr = workarrays_projectors_null()
+  call allocate_workarrays_projectors(tmb%lzd%glr%d%n1, tmb%lzd%glr%d%n2, tmb%lzd%glr%d%n3, wpr)
 
   !debug
   !integer :: iorb, jorb, ist, jst, ierr, i
@@ -923,7 +927,7 @@ subroutine build_ks_orbitals(iproc, nproc, tmb, KSwfn, at, rxyz, denspot, GPU, &
   call get_coeff(iproc, nproc, LINEAR_MIXDENS_SIMPLE, KSwfn%orbs, at, rxyz, denspot, GPU, infoCoeff, &
        energs, nlpsp, input%SIC, tmb, fnrm, .true., .true., .false., .true., 0, 0, 0, 0, &
        order_taylor,input%lin%max_inversion_error,input%purification_quickreturn,&
-       input%calculate_KS_residue,input%calculate_gap)
+       input%calculate_KS_residue,input%calculate_gap, wpr)
   !!call gather_matrix_from_taskgroups_inplace(iproc, nproc, tmb%linmat%l, tmb%linmat%kernel_)
 
   if (bigdft_mpi%iproc ==0) then
@@ -1036,11 +1040,13 @@ subroutine build_ks_orbitals(iproc, nproc, tmb, KSwfn, at, rxyz, denspot, GPU, &
   call get_coeff(iproc, nproc, LINEAR_MIXDENS_SIMPLE, KSwfn%orbs, at, rxyz, denspot, GPU, infoCoeff, &
        energs, nlpsp, input%SIC, tmb, fnrm, .true., .true., .false., .true., 0, 0, 0, 0, &
        order_taylor, input%lin%max_inversion_error, input%purification_quickreturn, &
-       input%calculate_KS_residue, input%calculate_gap, updatekernel=.false.)
+       input%calculate_KS_residue, input%calculate_gap, wpr, updatekernel=.false.)
   !!call gather_matrix_from_taskgroups_inplace(iproc, nproc, tmb%linmat%l, tmb%linmat%kernel_)
   energy=energs%ebs-energs%eh+energs%exc-energs%evxc-energs%eexctX+energs%eion+energs%edisp
   energyDiff=energy-energyold
   energyold=energy
+
+  call deallocate_workarrays_projectors(wpr)
 
   !!if(tmb%can_use_transposed) then
   !!    call f_free_ptr(tmb%psit_c)
@@ -1090,8 +1096,11 @@ real(kind=8),dimension(:),pointer :: phiwork_global
   character(len=*),parameter :: subname='build_ks_orbitals'
   real(wp), dimension(:,:,:), pointer :: mom_vec_fake
   integer :: iorb, itmb
+  type(workarrays_projectors) :: wpr
 
   nullify(mom_vec_fake)
+  wpr = workarrays_projectors_null()
+  call allocate_workarrays_projectors(tmb%lzd%glr%d%n1, tmb%lzd%glr%d%n2, tmb%lzd%glr%d%n3, wpr)
 
   !debug
   !integer :: iorb, jorb, ist, jst, ierr, i
@@ -1118,7 +1127,7 @@ real(kind=8),dimension(:),pointer :: phiwork_global
   call get_coeff(iproc, nproc, LINEAR_MIXDENS_SIMPLE, KSwfn%orbs, at, rxyz, denspot, GPU, infoCoeff, &
        energs, nlpsp, input%SIC, tmb, fnrm, .true., .true., .false., .true., 0, 0, 0, 0, &
        order_taylor,input%lin%max_inversion_error,input%purification_quickreturn,&
-       input%calculate_KS_residue,input%calculate_gap)
+       input%calculate_KS_residue,input%calculate_gap, wpr)
 
   if (bigdft_mpi%iproc ==0) then
      call write_eigenvalues_data(0.1d0,KSwfn%orbs,mom_vec_fake)
@@ -1239,7 +1248,7 @@ if (.false.) then
   call get_coeff(iproc, nproc, LINEAR_MIXDENS_SIMPLE, KSwfn%orbs, at, rxyz, denspot, GPU, infoCoeff, &
        energs, nlpsp, input%SIC, tmb, fnrm, .true., .true., .false., .true., 0, 0, 0, 0, &
        order_taylor, input%lin%max_inversion_error, input%purification_quickreturn, &
-       input%calculate_KS_residue, input%calculate_gap, updatekernel=.false.)
+       input%calculate_KS_residue, input%calculate_gap, wpr, updatekernel=.false.)
   energy=energs%ebs-energs%eh+energs%exc-energs%evxc-energs%eexctX+energs%eion+energs%edisp
   energyDiff=energy-energyold
   energyold=energy
@@ -1249,6 +1258,8 @@ if (.false.) then
   !!    call f_free_ptr(tmb%psit_f)
   !!end if
 end if
+
+  call deallocate_workarrays_projectors(wpr)
 end subroutine build_ks_orbitals_laura_tmp
 
 subroutine cut_at_boundaries(cut, tmb)

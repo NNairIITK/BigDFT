@@ -78,6 +78,7 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
   type(workarrays_quartic_convolutions),dimension(:),pointer :: precond_convol_workarrays
   type(workarr_precond),dimension(:),pointer :: precond_workarrays
   type(work_transpose) :: wt_philarge, wt_hpsinoprecond, wt_hphi, wt_phi
+  type(workarrays_projectors) :: wpr
 
 
   call f_routine(id=subname)
@@ -93,6 +94,9 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
   mapping = f_malloc(tmb%orbs%norb,id='mapping')
   covered = f_malloc(tmb%orbs%norb,id='covered')
   inversemapping = f_malloc(tmb%orbs%norb,id='inversemapping')
+
+  wpr = workarrays_projectors_null()
+  call allocate_workarrays_projectors(tmb%lzd%glr%d%n1, tmb%lzd%glr%d%n2, tmb%lzd%glr%d%n3, wpr)
 
 
   GPUe = GPU
@@ -822,7 +826,7 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
           can_use_ham, order_taylor, input%lin%max_inversion_error, input%kappa_conv, input%method_updatekernel,&
           input%purification_quickreturn, input%correction_co_contra, &
           precond_convol_workarrays, precond_workarrays, &
-          wt_philarge, wt_hpsinoprecond, wt_hphi, wt_phi)
+          wt_philarge, wt_hpsinoprecond, wt_hphi, wt_phi, wpr)
      call deallocate_precond_arrays(tmb%orbs, tmb%lzd, precond_convol_workarrays, precond_workarrays)
      call deallocate_work_transpose(wt_philarge)
      call deallocate_work_transpose(wt_hpsinoprecond)
@@ -878,12 +882,12 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
       call get_coeff(iproc,nproc,LINEAR_FOE,orbs,at,rxyz,denspot,GPU,infoCoeff,energs,nlpsp,&
            input%SIC,tmb,fnrm,.true.,.true.,.false.,.true.,0,0,0,0,order_taylor,input%lin%max_inversion_error,&
            input%purification_quickreturn,&
-           input%calculate_KS_residue,input%calculate_gap)
+           input%calculate_KS_residue,input%calculate_gap,wpr)
   else
       call get_coeff(iproc,nproc,LINEAR_MIXDENS_SIMPLE,orbs,at,rxyz,denspot,GPU,infoCoeff,energs,nlpsp,&
            input%SIC,tmb,fnrm,.true.,.true.,.false.,.true.,0,0,0,0,order_taylor,input%lin%max_inversion_error,&
            input%purification_quickreturn,&
-           input%calculate_KS_residue,input%calculate_gap)
+           input%calculate_KS_residue,input%calculate_gap,wpr)
 
       !call vcopy(kswfn%orbs%norb,tmb%orbs%eval(1),1,kswfn%orbs%eval(1),1)
       ! Keep the ocupations for the moment.. maybe to be activated later (with a better if statement)
@@ -1038,6 +1042,8 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
   call f_free(mapping)
   call f_free(covered)
   call f_free(inversemapping)
+
+  call deallocate_workarrays_projectors(wpr)
 
   call f_release_routine()
 

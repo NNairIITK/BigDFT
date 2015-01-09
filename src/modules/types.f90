@@ -712,6 +712,12 @@ module module_types
   end type workarrays_quartic_convolutions
 
 
+  type,public :: workarrays_projectors
+    real(wp),pointer,dimension(:,:,:,:) :: wprojx,wprojy,wprojz
+    real(wp),pointer,dimension(:,:,:) :: work
+  end type workarrays_projectors
+
+
   type, public :: localizedDIISParameters
     integer :: is, isx, mis, DIISHistMax, DIISHistMin
     integer :: icountSDSatur, icountDIISFailureCons, icountSwitch, icountDIISFailureTot, itBest
@@ -1107,6 +1113,7 @@ module module_types
  public :: cprj_to_array,deallocate_gwf_c
  public :: SIC_data_null,local_zone_descriptors_null,output_wf_format_help
  public :: energy_terms_null
+ public :: workarrays_projectors_null, allocate_workarrays_projectors, deallocate_workarrays_projectors
 
 contains
 
@@ -1706,6 +1713,43 @@ contains
       end do
     end if
   end subroutine cprj_to_array
+
+  pure function workarrays_projectors_null() result(wp)
+    implicit none
+    type(workarrays_projectors) :: wp
+    call nullify_workarrays_projectors(wp)
+  end function workarrays_projectors_null
+
+  pure subroutine nullify_workarrays_projectors(wp)
+    implicit none
+    type(workarrays_projectors),intent(out) :: wp
+    nullify(wp%wprojx)
+    nullify(wp%wprojy)
+    nullify(wp%wprojz)
+    nullify(wp%work)
+  end subroutine nullify_workarrays_projectors
+
+  subroutine allocate_workarrays_projectors(n1, n2, n3, wp)
+    implicit none
+    integer,intent(in) :: n1, n2, n3
+    type(workarrays_projectors),intent(inout) :: wp
+    integer,parameter :: ncplx_max=2
+    integer,parameter :: nterm_max=20
+    integer,parameter :: nw=65536
+    wp%wprojx = f_malloc_ptr((/ 1.to.ncplx_max, 0.to.n1, 1.to.2, 1.to.nterm_max /),id='wprojx')
+    wp%wprojy = f_malloc_ptr((/ 1.to.ncplx_max, 0.to.n2, 1.to.2, 1.to.nterm_max /),id='wprojy')
+    wp%wprojz = f_malloc_ptr((/ 1.to.ncplx_max, 0.to.n3, 1.to.2, 1.to.nterm_max /),id='wprojz')
+    wp%work = f_malloc_ptr((/ 0.to.nw, 1.to.2, 1.to.2 /),id='work')
+  end subroutine allocate_workarrays_projectors
+
+  subroutine deallocate_workarrays_projectors(wp)
+    implicit none
+    type(workarrays_projectors),intent(inout) :: wp
+    call f_free_ptr(wp%wprojx)
+    call f_free_ptr(wp%wprojy)
+    call f_free_ptr(wp%wprojz)
+    call f_free_ptr(wp%work)
+  end subroutine deallocate_workarrays_projectors
 
 
   !> create a null Lzd. Note: this is the correct way of defining 
