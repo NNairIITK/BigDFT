@@ -330,6 +330,8 @@ subroutine atom_projector(nl, ityp, iat, atomname, &
   logical :: use_tmp
   real(wp),allocatable::proj_tmp(:)
 
+  call f_routine(id='atom_projector')
+
   call plr_segs_and_vctrs(nl%pspd(iat)%plr,mbseg_c,mbseg_f,mbvctr_c,mbvctr_f)
 
   if (kx**2 + ky**2 + kz**2 == 0.0_gp) then
@@ -407,6 +409,9 @@ subroutine atom_projector(nl, ityp, iat, atomname, &
   end do
 
   if (use_tmp) call f_free(proj_tmp)
+
+  call f_release_routine()
+
 end subroutine atom_projector
 
 subroutine projector(geocode,iat,idir,l,i,factor,gau_a,rpaw,rxyz,&
@@ -440,7 +445,8 @@ subroutine projector(geocode,iat,idir,l,i,factor,gau_a,rpaw,rxyz,&
   real(gp), dimension(nterm_max,3) :: fac_arr
   real(gp), dimension(ncplx_g) :: gau_c
 
-  !call f_routine(id='projector')
+
+  call f_routine(id='projector')
 
   !this value can also be inserted as a parameter
   if (ncplx_g == 1) then
@@ -542,6 +548,9 @@ if (idir == 6 .or. idir == 8) lz(iterm)=lz(iterm)+1
 
      istart_c=istart_c+(mbvctr_c+7*mbvctr_f)*ncplx_k
   enddo
+
+  call f_release_routine()
+
 END SUBROUTINE projector
 
 !> Returns the compressed form of a Gaussian projector 
@@ -587,9 +596,10 @@ subroutine crtproj(geocode,nterm,ns1,ns2,ns3,n1,n2,n3, &
 
 !!  integer :: ncount0,ncount_rate,ncount_max,ncount1,ncount2
 
+
   !call initialize_real_space_conversion() !initialize the work arrays needed to integrate with isf
 
-  !call f_routine(id='crtproj')
+  call f_routine(id='crtproj')
 
   ! rename region boundaries
   n1p1=n1+1
@@ -1074,7 +1084,7 @@ subroutine crtproj(geocode,nterm,ns1,ns2,ns3,n1,n2,n3, &
 !  call memocc(i_stat,i_all,'work',subname)
   !call finalize_real_space_conversion()
 
-  !call f_release_routine()
+  call f_release_routine()
 
 contains
 
