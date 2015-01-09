@@ -24,8 +24,6 @@ module module_globaltool
     public :: finalize_gt_data
     public :: write_merged
     public :: write_transitionpairs
-    public :: getPairId
-    public :: unpair
 
     type gt_uinp
         real(gp) :: en_delta
@@ -57,7 +55,7 @@ module module_globaltool
         character(len=600), allocatable :: path_min_currDir(:)
 
         integer, allocatable  :: transpairs(:)!Use Cantors pairing function
-                                               !to identify pairs
+                                              !to identify pairs
         integer, allocatable  :: minnumber(:)
         integer, allocatable  :: sadnumber(:)
     
@@ -129,7 +127,7 @@ subroutine count_poslocm(gdat)
         gdat%nminmax=gdat%nminmax+ifile
     enddo
     call yaml_map('Total poslocms found',gdat%nminmax)
-end subroutine
+end subroutine count_poslocm
 !=====================================================================
 subroutine construct_filename(gdat,idict,ifile,filename)
     implicit none
@@ -140,12 +138,12 @@ subroutine construct_filename(gdat,idict,ifile,filename)
     character(len=600), intent(out) :: filename
 
     !for bigdft >= 1.7.6
-!!    write(filename,'(a,i4.4)')trim(adjustl(&
-!!         gdat%uinp%directories(idict)))//'/poslocm_',ifile
+    write(filename,'(a,i4.4)')trim(adjustl(&
+         gdat%uinp%directories(idict)))//'/poslocm_',ifile
     !for bigdft < 1.7.6
-    write(filename,'(a,i4.4,a)')trim(adjustl(&
-         gdat%uinp%directories(idict)))//'/poslocm_',&
-         ifile,'_'
+!!    write(filename,'(a,i4.4,a)')trim(adjustl(&
+!!         gdat%uinp%directories(idict)))//'/poslocm_',&
+!!         ifile,'_'
 end subroutine construct_filename
 !=====================================================================
 subroutine init_nat_rcov(gdat)
@@ -163,7 +161,7 @@ subroutine init_nat_rcov(gdat)
     gdat%nat=gdat%astruct%nat
     gdat%rcov = f_malloc((/gdat%nat/),id='rcov')
     call give_rcov(0,gdat%astruct,gdat%rcov)
-end subroutine
+end subroutine init_nat_rcov
 !=====================================================================
 subroutine init_gt_data(gdat)
     use module_base
@@ -360,12 +358,11 @@ subroutine write_transitionpairs(gdat)
     !local
     integer :: itrans
     integer :: IDmin1, IDmin2
-    call yaml_comment('Transitions pais ....',hfill='-')
+    call yaml_comment('Transition pairs unified ....',hfill='-')
     do itrans=1,gdat%ntrans
         call unpair(gdat%transpairs(itrans),IDmin1,IDmin2)
-        write(*,*)IDmin1,IDmin2 
+        write(*,'(a,2(1x,i4.4))')"Trans",IDmin1,IDmin2 
     enddo
-    
 end subroutine write_transitionpairs
 !=====================================================================
 subroutine read_and_merge_data(gdat)
@@ -380,7 +377,7 @@ subroutine read_and_merge_data(gdat)
     !local
     integer :: idict
 
-    call yaml_comment('Merging ....',hfill='-')
+    call yaml_comment('Merging poslocms ....',hfill='-')
     do idict =1, gdat%uinp%ndir
         call read_poslocs(gdat,idict)
         call add_poslocs_to_database(gdat)
@@ -413,18 +410,7 @@ subroutine add_transpairs_to_database(gdat)
         call f_err_throw('Error in global.mon: Does not start with'//&
              ' P line',err_name='BIGDFT_RUNTIME_ERROR')
     endif
-    ecurr = gdat%gmon_ener(1)
-    fpcurr(:) = gdat%gmon_fp(:,1)
-    statcurr = gdat%gmon_stat(1)
-    call identical('min',gdat,gdat%nminmax,gdat%nmin,gdat%nid,ecurr,&
-         fpcurr(1),gdat%en_arr,gdat%fp_arr,gdat%uinp%en_delta,&
-         gdat%uinp%fp_delta,lnew,kid,k_epot)
-    if(lnew)then
-        call f_err_throw('Structure does not exist',&
-             err_name='BIGDFT_RUNTIME_ERROR')
-    endif
-    idcurr = kid
-    do iposloc = 2, gdat%nposlocs
+    do iposloc = 1, gdat%nposlocs
         !check if escaped
         if(gdat%gmon_stat(iposloc)=='S')cycle
         !get ID of minimum
@@ -437,13 +423,21 @@ subroutine add_transpairs_to_database(gdat)
                  err_name='BIGDFT_RUNTIME_ERROR')
         endif
         idnext=kid
+        !check if restart happened
+        if(gdat%gmon_stat(iposloc)=='P')then
+            idcurr = idnext
+            ecurr = gdat%gmon_ener(iposloc)
+            fpcurr(:) = gdat%gmon_fp(:,iposloc)
+            statcurr = gdat%gmon_stat(iposloc)
+            cycle
+        endif
         id_transpair = getPairId(idcurr,idnext)
-write(*,*)'steps',idcurr,idnext 
+        write(*,'(a,2(1x,i4.4))')'trans',idcurr,idnext 
         call inthunt_gt(gdat%transpairs,&
              max(1,min(gdat%ntrans,gdat%ntransmax)),id_transpair,&
              loc_id_transpair)
-        !uncomment the if query if evrey pair should be added to database,
-        !even if it is already in the database
+        !uncomment the if query if everey pair should be added to the
+        !database, even if it is already in the database
         if(gdat%transpairs(loc_id_transpair)/=id_transpair)then!add to database
             !shift
             gdat%ntrans=gdat%ntrans+1
@@ -475,19 +469,19 @@ subroutine read_globalmon(gdat,idict)
     integer, intent(in) :: idict
     !local
     character(len=600) :: filename
+    character(len=200) :: line
     character(len=1)   :: stat
+    logical :: found
     integer :: u
     integer :: icount
     integer :: iline
     integer :: istat
     integer :: restartoffset
-    real(gp) :: ristep
     integer :: istep
-    character(len=200) :: line
+    real(gp) :: ristep
     real(gp) :: energy
     real(gp) :: rdmy
     real(gp) :: fp(gdat%nid)
-    logical :: found
 
  
     u=f_get_free_unit()
@@ -735,6 +729,7 @@ subroutine hunt_gt(xx,n,x,jlo)
   logical :: ascnd
   include 'hunt-inc.f90'
 END SUBROUTINE hunt_gt
+!=====================================================================
 subroutine inthunt_gt(xx,n,x,jlo)
   use module_base
   implicit none
@@ -746,6 +741,7 @@ subroutine inthunt_gt(xx,n,x,jlo)
   logical :: ascnd
   include 'hunt-inc.f90'
 END SUBROUTINE inthunt_gt
+!=====================================================================
 subroutine check_struct_file_exists(filename,exists)
     use module_base
     implicit none
@@ -781,10 +777,10 @@ subroutine check_struct_file_exists(filename,exists)
                  ' does not exist.',err_name='BIGDFT_RUNTIME_ERROR')
         endif
     endif
-end subroutine
+end subroutine check_struct_file_exists
+!=====================================================================
 subroutine give_rcov(iproc,astruct,rcov)
   use module_base
-!  use module_types
   use yaml_output
   use module_atoms
   implicit none
@@ -793,12 +789,14 @@ subroutine give_rcov(iproc,astruct,rcov)
   type(atomic_structure), intent(in) :: astruct
   real(kind=gp), dimension(astruct%nat), intent(out) :: rcov
   !Local variables
-!  type(atoms_iterator) :: it
   integer :: iat
 
   do iat=1,astruct%nat
-    call covalent_radius(astruct%atomnames(astruct%iatype(iat)),rcov(iat))
-    if (iproc == 0) call yaml_map('(MH) RCOV '//trim(astruct%atomnames(astruct%iatype(iat))),rcov(iat))
+    call covalent_radius(astruct%atomnames(astruct%iatype(iat)),&
+         rcov(iat))
+    if (iproc == 0) call yaml_map('(MH) RCOV '//&
+                         trim(astruct%atomnames(astruct%iatype(iat))),&
+                         rcov(iat))
   end do
   !python metod
 !  it=atoms_iter(astruct)
@@ -807,8 +805,4 @@ subroutine give_rcov(iproc,astruct,rcov)
 !  end do
 
 end subroutine give_rcov
-
-
-
-
 end module

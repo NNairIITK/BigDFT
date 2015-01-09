@@ -1137,6 +1137,11 @@ endif
 end subroutine
 !=====================================================================
 function previously_connected(mhgpsst,uinp,runObj,rxyz1,rxyz2)
+    !this function compares rxyz1 an rxyz2 with a non-permutational
+    !invariant rmsd if the have been tried to be connected previously.
+    !a non-permutationally invariant rmsd is used such that
+    !transition states between different premuational variants of the 
+    !same structures are computed
     use module_base
     use bigdft_run, only: run_objects
     use module_mhgps_state
