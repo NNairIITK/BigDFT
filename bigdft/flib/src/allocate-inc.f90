@@ -11,7 +11,9 @@
      !$ if(not_omp) then
      call f_timer_resume()!TCAT_ARRAY_ALLOCATIONS
      !$ end if
-     call f_err_throw('Allocation problem, error code '//trim(yaml_toa(ierror)),ERR_ALLOCATE)
+     call f_err_throw('array ' // trim(m%array_id) // &
+          & '(' // trim(yaml_toa(product(m%shape))) // &
+          & '), error code '//trim(yaml_toa(ierror)),ERR_ALLOCATE)
      return
   end if
   if (size(shape(array))==m%rank) then
