@@ -29,6 +29,8 @@ program globaltool
 
     call write_merged(gdat)
 
+    call write_transitionpairs(gdat)
+
     call finalize_gt_data(gdat)
 
     call yaml_release_document()

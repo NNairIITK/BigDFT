@@ -23,6 +23,7 @@ module module_globaltool
     public :: init_gt_data
     public :: finalize_gt_data
     public :: write_merged
+    public :: write_transitionpairs
     public :: getPairId
     public :: unpair
 
@@ -350,6 +351,23 @@ subroutine write_merged(gdat)
     enddo
 end subroutine write_merged
 !=====================================================================
+subroutine write_transitionpairs(gdat)
+    use module_base
+    use yaml_output
+    implicit none
+    !parameters
+    type(gt_data), intent(in) :: gdat
+    !local
+    integer :: itrans
+    integer :: IDmin1, IDmin2
+    call yaml_comment('Transitions pais ....',hfill='-')
+    do itrans=1,gdat%ntrans
+        call unpair(gdat%transpairs(itrans),IDmin1,IDmin2)
+        write(*,*)IDmin1,IDmin2 
+    enddo
+    
+end subroutine write_transitionpairs
+!=====================================================================
 subroutine read_and_merge_data(gdat)
     use module_base
     use yaml_output
@@ -389,7 +407,6 @@ subroutine add_transpairs_to_database(gdat)
     integer :: iposloc
     integer :: loc_id_transpair
     integer :: i
-integer :: idbg
 
     call yaml_comment('Reconstructing transition pairs ....',hfill='-')
     if(gdat%gmon_stat(1)/='P')then
@@ -420,7 +437,8 @@ integer :: idbg
                  err_name='BIGDFT_RUNTIME_ERROR')
         endif
         idnext=kid
-        id_transpair = getPairId(idcurr,idnext) 
+        id_transpair = getPairId(idcurr,idnext)
+write(*,*)'steps',idcurr,idnext 
         call inthunt_gt(gdat%transpairs,&
              max(1,min(gdat%ntrans,gdat%ntransmax)),id_transpair,&
              loc_id_transpair)
@@ -436,6 +454,7 @@ integer :: idbg
         endif
         !check if accpepted
         if(gdat%gmon_stat(iposloc)=='A')then
+            idcurr = idnext
             ecurr = gdat%gmon_ener(iposloc)
             fpcurr(:) = gdat%gmon_fp(:,iposloc)
             statcurr = gdat%gmon_stat(iposloc)
