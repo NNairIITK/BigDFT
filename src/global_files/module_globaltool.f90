@@ -192,13 +192,16 @@ subroutine init_gt_data(gdat)
 
     gdat%fp_arr = f_malloc((/gdat%nid,gdat%nminmax/),id='fp_arr')
     gdat%en_arr = f_malloc((/gdat%nminmax/),id='en_arr')
+    gdat%en_arr=huge(1.0_gp)
     gdat%path_min =f_malloc_str(600,(/1.to.gdat%nminmax/),id='path_min')
     gdat%fp_arr_currDir = f_malloc((/gdat%nid,gdat%nminmaxpd/),&
                           id='fp_arr_currDir')
     gdat%en_arr_currDir = f_malloc((/gdat%nminmaxpd/),id='en_arr_currDir')
+    gdat%en_arr_currDir=huge(1.0_gp)
     gdat%path_min_currDir = f_malloc_str(600,(/1.to.gdat%nminmaxpd/),&
                             id='path_min_currDir')
     gdat%transpairs = f_malloc((/gdat%nminmax/),id='transpairs')
+    gdat%transpairs=huge(1)
     gdat%minnumber = f_malloc((/gdat%nminmax/),id='minnumber')
     gdat%sadnumber = f_malloc((/gdat%nminmax/),id='sadnumber')
     gdat%gmon_ener = f_malloc((/gdat%nminmaxpd/),id='gmon_ener')
@@ -364,7 +367,7 @@ subroutine read_and_merge_data(gdat)
         call read_poslocs(gdat,idict)
         call add_poslocs_to_database(gdat)
         call read_globalmon(gdat,idict)
-!        call add_transpairs_to_database(gdat)
+        call add_transpairs_to_database(gdat)
     enddo
     
 end subroutine read_and_merge_data
@@ -388,6 +391,7 @@ subroutine add_transpairs_to_database(gdat)
     integer :: i
 integer :: idbg
 
+    call yaml_comment('Reconstructing transition pairs ....',hfill='-')
     if(gdat%gmon_stat(1)/='P')then
         call f_err_throw('Error in global.mon: Does not start with'//&
              ' P line',err_name='BIGDFT_RUNTIME_ERROR')
@@ -417,18 +421,18 @@ integer :: idbg
         endif
         idnext=kid
         id_transpair = getPairId(idcurr,idnext) 
-do idbg=1,gdat%ntrans
-write(*,*)idbg,gdat%transpairs(idbg)
-enddo
         call inthunt_gt(gdat%transpairs,&
              max(1,min(gdat%ntrans,gdat%ntransmax)),id_transpair,&
              loc_id_transpair)
-        if(gdat%transpairs(kid+1)/=id_transpair)then!add to database
+        !uncomment the if query if evrey pair should be added to database,
+        !even if it is already in the database
+        if(gdat%transpairs(loc_id_transpair)/=id_transpair)then!add to database
             !shift
-            gdat%nmin=gdat%nmin+1
-            do i=gdat%ntrans,loc_id_transpair+1,-1
+            gdat%ntrans=gdat%ntrans+1
+            do i=gdat%ntrans-1,loc_id_transpair+1,-1
                 gdat%transpairs(i+1)=gdat%transpairs(i)
             enddo
+            gdat%transpairs(loc_id_transpair+1) = id_transpair
         endif
         !check if accpepted
         if(gdat%gmon_stat(iposloc)=='A')then
@@ -554,7 +558,7 @@ subroutine gmon_line_to_fp(gdat,icount,iline,found)
             call yaml_scalar('Line '//trim(yaml_toa(iline))//&
                  ' corresponds to '//&
                  trim(adjustl(gdat%path_min_currDir(iposloc))))
-            gdat%gmon_fp(:,icount) = gdat%fp_arr(:,iposloc)
+            gdat%gmon_fp(:,icount) = gdat%fp_arr_CurrDir(:,iposloc)
             exit
         endif
     enddo
