@@ -20,7 +20,6 @@ module module_globaltool
     public :: read_globaltool_uinp
     public :: write_globaltool_uinp
     public :: read_and_merge_data
-!!    public :: count_saddle_points
     public :: init_gt_data
     public :: finalize_gt_data
     public :: write_merged
@@ -39,7 +38,7 @@ module module_globaltool
         integer :: nat
         integer :: ntrans
         integer :: nmin
-        integer :: ntransax
+        integer :: ntransmax
         integer :: nminmax   !number of poslocs over all directories
         integer, allocatable :: nminpd(:) !number of minima per directory
         integer :: nminmaxpd !maximum entry of nminpd
@@ -172,6 +171,12 @@ subroutine init_gt_data(gdat)
     !parameters
     type(gt_data), intent(inout) :: gdat
     !local
+
+    gdat%ntrans=0
+    gdat%nmin=0
+    gdat%ntransmax=0
+    gdat%nminmax=0
+    gdat%nminmaxpd=0
 
     call nullify_atomic_structure(gdat%astruct)
 
@@ -323,6 +328,7 @@ subroutine read_poslocs(gdat,idict)
                           trim(adjustl(gdat%astruct%inputfile_format))
     enddo
     gdat%nposlocs=iposloc
+    gdat%ntransmax=gdat%nposlocs
      
 end subroutine read_poslocs
 !=====================================================================
@@ -376,8 +382,11 @@ subroutine add_transpairs_to_database(gdat)
     integer :: idcurr, idnext
     integer :: kid, k_epot
     logical :: lnew
-    integer :: transpairid
+    integer :: id_transpair
     integer :: iposloc
+    integer :: loc_id_transpair
+    integer :: i
+integer :: idbg
 
     if(gdat%gmon_stat(1)/='P')then
         call f_err_throw('Error in global.mon: Does not start with'//&
@@ -395,6 +404,8 @@ subroutine add_transpairs_to_database(gdat)
     endif
     idcurr = kid
     do iposloc = 2, gdat%nposlocs
+        !check if escaped
+        if(gdat%gmon_stat(iposloc)=='S')cycle
         !get ID of minimum
         call identical('min',gdat,gdat%nminmax,gdat%nmin,gdat%nid,&
              gdat%gmon_ener(iposloc),gdat%gmon_fp(1,iposloc),&
@@ -404,10 +415,29 @@ subroutine add_transpairs_to_database(gdat)
             call f_err_throw('Structure does not exist',&
                  err_name='BIGDFT_RUNTIME_ERROR')
         endif
-HIER WEITER
-!        if(
+        idnext=kid
+        id_transpair = getPairId(idcurr,idnext) 
+do idbg=1,gdat%ntrans
+write(*,*)idbg,gdat%transpairs(idbg)
+enddo
+        call inthunt_gt(gdat%transpairs,&
+             max(1,min(gdat%ntrans,gdat%ntransmax)),id_transpair,&
+             loc_id_transpair)
+        if(gdat%transpairs(kid+1)/=id_transpair)then!add to database
+            !shift
+            gdat%nmin=gdat%nmin+1
+            do i=gdat%ntrans,loc_id_transpair+1,-1
+                gdat%transpairs(i+1)=gdat%transpairs(i)
+            enddo
+        endif
+        !check if accpepted
+        if(gdat%gmon_stat(iposloc)=='A')then
+            ecurr = gdat%gmon_ener(iposloc)
+            fpcurr(:) = gdat%gmon_fp(:,iposloc)
+            statcurr = gdat%gmon_stat(iposloc)
+        endif
     enddo
-end subroutine
+end subroutine add_transpairs_to_database
 !=====================================================================
 subroutine read_globalmon(gdat,idict)
     use module_base
@@ -461,6 +491,14 @@ subroutine read_globalmon(gdat,idict)
             call f_err_throw('Error while parsing '//&
                  trim(adjustl(filename))//', istep='//&
                  trim(yaml_toa(istep)),err_name='BIGDFT_RUNTIME_ERROR')
+        endif
+        !check possible states
+        if(stat/="P" .and. stat/="I" .and. stat/="S" .and.&
+           stat/="A" .and. stat/="R")then
+            call f_err_throw('Status "'//trim(adjustl(stat))//&
+                 '" is unknown. Has format of global.mon been changed?'//&
+                 ' If so, update parsing routine',&
+                 err_name='BIGDFT_RUNTIME_ERROR')
         endif
         if(stat/="I")then
             if(icount/=istep+restartoffset)then
