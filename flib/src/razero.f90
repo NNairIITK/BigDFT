@@ -16,17 +16,17 @@ subroutine razero(n,x)
   double precision, dimension(n), intent(out) :: x
   !Local variables
   integer :: i
-!$ logical :: within_openmp,omp_in_parallel,omp_get_nested
+  !$ logical :: large,omp_in_parallel,omp_get_nested,do_omp
 
-!$    within_openmp=omp_in_parallel() .or. omp_get_nested()
-
-!$omp parallel if (.not. within_openmp .and. n > 128) shared(x,n) private(i)
-!$omp do
-      do i=1,n
+  !$ large = n > 1024
+  !$ do_omp = large .and. .not.(omp_in_parallel() .or. omp_get_nested())
+  !$omp parallel if (do_omp) shared(x,n) private(i)
+  !$omp do
+  do i=1,n
       x(i)=0.d0
-      end do
-!$omp enddo
-!$omp end parallel
+  end do
+  !$omp enddo
+  !$omp end parallel
 
 end subroutine razero
 
@@ -38,26 +38,38 @@ subroutine razero_simple(n,x)
   real(kind=4), intent(out) :: x(n)
   !Local variables
   integer :: i,m
+  !$ logical :: large,omp_in_parallel,omp_get_nested,do_omp
+
+  !$ large = n > 1024
+  !$ do_omp = large .and. .not.(omp_in_parallel() .or. omp_get_nested())
+  !$omp parallel if (do_omp) shared(x,n) private(i)
+  !$omp do
+  do i=1,n
+      x(i)=0.e0
+  end do
+  !$omp enddo
+  !$omp end parallel
+
   !!do i=1,n
   !!   x(i)=0.e0
   !!end do
-  m=mod(n,7)
-  if (m/=0) then
-      do i=1,m
-          x(i)=0.e0
-      end do
-      if (n<7) return
-  end if
-  m=m+1
-  do i=m,n,7
-      x(i+0)=0.e0
-      x(i+1)=0.e0
-      x(i+2)=0.e0
-      x(i+3)=0.e0
-      x(i+4)=0.e0
-      x(i+5)=0.e0
-      x(i+6)=0.e0
-  end do
+  !m=mod(n,7)
+  !if (m/=0) then
+  !    do i=1,m
+  !        x(i)=0.e0
+  !    end do
+  !    if (n<7) return
+  !end if
+  !m=m+1
+  !do i=m,n,7
+  !    x(i+0)=0.e0
+  !    x(i+1)=0.e0
+  !    x(i+2)=0.e0
+  !    x(i+3)=0.e0
+  !    x(i+4)=0.e0
+  !    x(i+5)=0.e0
+  !    x(i+6)=0.e0
+  !end do
 END SUBROUTINE razero_simple
 
 !>   Set to zero an array x(n)
@@ -68,26 +80,38 @@ subroutine razero_integer(n,x)
   integer, dimension(n), intent(out) :: x
   !Local variables
   integer :: i,m
-  !!do i=1,n
-  !!   x(i)=0
-  !!end do
-  m=mod(n,7)
-  if (m/=0) then
-      do i=1,m
-          x(i)=0
-      end do
-      if (n<7) return
-  end if
-  m=m+1
-  do i=m,n,7
-      x(i+0)=0
-      x(i+1)=0
-      x(i+2)=0
-      x(i+3)=0
-      x(i+4)=0
-      x(i+5)=0
-      x(i+6)=0
+  !$ logical :: large,omp_in_parallel,omp_get_nested,do_omp
+
+  !$ large = n > 1024
+  !$ do_omp = large .and. .not.(omp_in_parallel() .or. omp_get_nested())
+  !$omp parallel if (do_omp) shared(x,n) private(i)
+  !$omp do
+  do i=1,n
+      x(i)=0
   end do
+  !$omp enddo
+  !$omp end parallel
+
+  !!!!do i=1,n
+  !!!!   x(i)=0
+  !!!!end do
+  !!m=mod(n,7)
+  !!if (m/=0) then
+  !!    do i=1,m
+  !!        x(i)=0
+  !!    end do
+  !!    if (n<7) return
+  !!end if
+  !!m=m+1
+  !!do i=m,n,7
+  !!    x(i+0)=0
+  !!    x(i+1)=0
+  !!    x(i+2)=0
+  !!    x(i+3)=0
+  !!    x(i+4)=0
+  !!    x(i+5)=0
+  !!    x(i+6)=0
+  !!end do
 END SUBROUTINE razero_integer
 
 !>   Set to zero an array x(n)
@@ -98,26 +122,39 @@ subroutine razero_integerlong(n,x)
   integer(kind=8), dimension(n), intent(out) :: x
   !Local variables
   integer :: i,m
-  !!do i=1,n
-  !!   x(i)=0
-  !!end do
-  m=mod(n,7)
-  if (m/=0) then
-      do i=1,m
-          x(i)=int(0,kind=8)
-      end do
-      if (n<7) return
-  end if
-  m=m+1
-  do i=m,n,7
-      x(i+0)=int(0,kind=8)
-      x(i+1)=int(0,kind=8)
-      x(i+2)=int(0,kind=8)
-      x(i+3)=int(0,kind=8)
-      x(i+4)=int(0,kind=8)
-      x(i+5)=int(0,kind=8)
-      x(i+6)=int(0,kind=8)
+  !$ logical :: large,omp_in_parallel,omp_get_nested,do_omp
+
+  !$ large = n > 1024
+  !$ do_omp = large .and. .not.(omp_in_parallel() .or. omp_get_nested())
+  !$omp parallel if (do_omp) shared(x,n) private(i)
+  !$omp do
+  do i=1,n
+      x(i)=int(0,kind=8)
   end do
+  !$omp enddo
+  !$omp end parallel
+
+
+  !!!!do i=1,n
+  !!!!   x(i)=0
+  !!!!end do
+  !!m=mod(n,7)
+  !!if (m/=0) then
+  !!    do i=1,m
+  !!        x(i)=int(0,kind=8)
+  !!    end do
+  !!    if (n<7) return
+  !!end if
+  !!m=m+1
+  !!do i=m,n,7
+  !!    x(i+0)=int(0,kind=8)
+  !!    x(i+1)=int(0,kind=8)
+  !!    x(i+2)=int(0,kind=8)
+  !!    x(i+3)=int(0,kind=8)
+  !!    x(i+4)=int(0,kind=8)
+  !!    x(i+5)=int(0,kind=8)
+  !!    x(i+6)=int(0,kind=8)
+  !!end do
 END SUBROUTINE razero_integerlong
 
 !!!>   Set to zero an array x(n): omp version of razero
