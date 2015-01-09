@@ -66,6 +66,7 @@ module communications_base
 
   type, public :: work_transpose
     real(kind=8),dimension(:),pointer :: psiwork, psitwork
+    real(kind=8),dimension(:),pointer :: psiwork_c, psiwork_f, psitwork_c, psitwork_f
     integer,dimension(:),pointer :: nsendcounts, nsenddspls, nrecvcounts, nrecvdspls
     integer :: request
   end type work_transpose
@@ -201,6 +202,10 @@ contains
     type(work_transpose),intent(out):: wt
     nullify(wt%psiwork)
     nullify(wt%psitwork)
+    nullify(wt%psiwork_c)
+    nullify(wt%psiwork_f)
+    nullify(wt%psitwork_c)
+    nullify(wt%psitwork_f)
     nullify(wt%nsendcounts)
     nullify(wt%nsenddspls)
     nullify(wt%nrecvcounts)
