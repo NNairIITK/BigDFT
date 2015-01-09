@@ -73,7 +73,6 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
   type(workarrays_quartic_convolutions),dimension(:),pointer :: precond_convol_workarrays
   type(workarr_precond),dimension(:),pointer :: precond_workarrays
   type(work_transpose) :: wt_philarge, wt_hpsinoprecond, wt_hphi, wt_phi
-  type(workarrays_projectors) :: wpr
 
   
   real(kind=gp) :: ebs, vgrad_old, vgrad, valpha, vold, vgrad2, vold_tmp, conv_crit_TMB, best_charge_diff, cdft_charge_thresh
@@ -410,7 +409,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
                      infoCoeff,energs,nlpsp,input%SIC,tmb,pnrm,calculate_overlap,invert_overlap_matrix,update_phi,&
                      .true.,input%lin%extra_states,itout,0,0,norder_taylor,input%lin%max_inversion_error,&
                      input%purification_quickreturn,&
-                     input%calculate_KS_residue,input%calculate_gap,wpr,&
+                     input%calculate_KS_residue,input%calculate_gap,&
                      convcrit_dmin,nitdmin,input%lin%curvefit_dmin,ldiis_coeff)
                 !!call gather_matrix_from_taskgroups_inplace(iproc, nproc, tmb%linmat%l, tmb%linmat%kernel_)
              end if
@@ -555,7 +554,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
                   input%method_updatekernel,input%purification_quickreturn, &
                   input%correction_co_contra, &
                   precond_convol_workarrays, precond_workarrays, &
-                  wt_philarge, wt_hpsinoprecond, wt_hphi, wt_phi, wpr, &
+                  wt_philarge, wt_hpsinoprecond, wt_hphi, wt_phi, &
                   cdft, input%frag, ref_frags)
            else
               call getLocalizedBasis(iproc,nproc,at,KSwfn%orbs,rxyz,denspot,GPU,trace,trace_old,fnrm_tmb,&
@@ -567,7 +566,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
                   can_use_ham, norder_taylor, input%lin%max_inversion_error, input%kappa_conv,&
                   input%method_updatekernel,input%purification_quickreturn, &
                   input%correction_co_contra, precond_convol_workarrays, precond_workarrays, &
-                  wt_philarge, wt_hpsinoprecond, wt_hphi, wt_phi, wpr)
+                  wt_philarge, wt_hpsinoprecond, wt_hphi, wt_phi)
            end if
            !!call gather_matrix_from_taskgroups_inplace(iproc, nproc, tmb%linmat%l, tmb%linmat%kernel_)
            reduce_conf=.true.
@@ -707,14 +706,14 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
                         infoCoeff,energs,nlpsp,input%SIC,tmb,pnrm,calculate_overlap,invert_overlap_matrix,update_phi,&
                         .false.,input%lin%extra_states,itout,it_scc,cdft_it,norder_taylor,input%lin%max_inversion_error,&
                         input%purification_quickreturn,&
-                        input%calculate_KS_residue,input%calculate_gap,wpr,&
+                        input%calculate_KS_residue,input%calculate_gap,&
                         convcrit_dmin,nitdmin,input%lin%curvefit_dmin,ldiis_coeff,reorder,cdft)
                 else
                    call get_coeff(iproc,nproc,input%lin%scf_mode,KSwfn%orbs,at,rxyz,denspot,GPU,&
                         infoCoeff,energs,nlpsp,input%SIC,tmb,pnrm,calculate_overlap,invert_overlap_matrix,update_phi,&
                         .false.,input%lin%extra_states,itout,it_scc,cdft_it,norder_taylor,input%lin%max_inversion_error,&
                         input%purification_quickreturn,&
-                        input%calculate_KS_residue,input%calculate_gap,wpr,&
+                        input%calculate_KS_residue,input%calculate_gap,&
                         convcrit_dmin,nitdmin,input%lin%curvefit_dmin,ldiis_coeff,reorder)
                 end if
              else
@@ -723,14 +722,14 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
                         infoCoeff,energs,nlpsp,input%SIC,tmb,pnrm,calculate_overlap,invert_overlap_matrix,update_phi,&
                         .true.,input%lin%extra_states,itout,it_scc,cdft_it,norder_taylor,input%lin%max_inversion_error,&
                         input%purification_quickreturn,&
-                        input%calculate_KS_residue,input%calculate_gap,wpr,&
+                        input%calculate_KS_residue,input%calculate_gap,&
                         convcrit_dmin,nitdmin,input%lin%curvefit_dmin,ldiis_coeff,reorder,cdft)
                 else
                    call get_coeff(iproc,nproc,input%lin%scf_mode,KSwfn%orbs,at,rxyz,denspot,GPU,&
                         infoCoeff,energs,nlpsp,input%SIC,tmb,pnrm,calculate_overlap,invert_overlap_matrix,update_phi,&
                         .true.,input%lin%extra_states,itout,it_scc,cdft_it,norder_taylor,input%lin%max_inversion_error,&
                         input%purification_quickreturn,&
-                        input%calculate_KS_residue,input%calculate_gap,wpr,&
+                        input%calculate_KS_residue,input%calculate_gap,&
                         convcrit_dmin,nitdmin,input%lin%curvefit_dmin,ldiis_coeff,reorder)
                 end if
              end if
@@ -1213,7 +1212,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
            infoCoeff,energs,nlpsp,input%SIC,tmb,pnrm,update_phi,.true.,.false.,&
            .true.,input%lin%extra_states,itout,0,0,norder_taylor,input%lin%max_inversion_error,&
            input%purification_quickreturn,&
-           input%calculate_KS_residue,input%calculate_gap,wpr)
+           input%calculate_KS_residue,input%calculate_gap)
        !!call gather_matrix_from_taskgroups_inplace(iproc, nproc, tmb%linmat%l, tmb%linmat%kernel_)
 
        !!if (input%lin%scf_mode==LINEAR_FOE) then
@@ -1243,7 +1242,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
            infoCoeff,energs,nlpsp,input%SIC,tmb,pnrm,update_phi,.true.,.false.,&
            .true.,input%lin%extra_states,itout,0,0,norder_taylor,input%lin%max_inversion_error,&
            input%purification_quickreturn,&
-           input%calculate_KS_residue,input%calculate_gap,wpr)
+           input%calculate_KS_residue,input%calculate_gap)
       !!call gather_matrix_from_taskgroups_inplace(iproc, nproc, tmb%linmat%l, tmb%linmat%kernel_)
       !!call scalprod_on_boundary(iproc, nproc, tmb, kswfn%orbs, at, fpulay)
       call pulay_correction_new(iproc, nproc, tmb, kswfn%orbs, at, fpulay)
@@ -1437,8 +1436,6 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
       locrad = f_malloc(tmb%lzd%nlr,id='locrad')
       ! Allocate the old charge density (used to calculate the variation in the charge density)
       rhopotold_out = f_malloc(max(denspot%dpbox%ndimrhopot,denspot%dpbox%nrhodim),id='rhopotold_out')
-      wpr = workarrays_projectors_null()
-      call allocate_workarrays_projectors(tmb%lzd%glr%d%n1, tmb%lzd%glr%d%n2, tmb%lzd%glr%d%n3, wpr)
 
     end subroutine allocate_local_arrays
 
@@ -1447,7 +1444,6 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
 
       call f_free(locrad)
       call f_free(rhopotold_out)
-      call deallocate_workarrays_projectors(wpr)
 
     end subroutine deallocate_local_arrays
 

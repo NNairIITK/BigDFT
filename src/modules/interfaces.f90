@@ -1432,7 +1432,7 @@ module module_interfaces
           gnrm_dynamic, min_gnrm_for_dynamic, can_use_ham, order_taylor, max_inversion_error, kappa_conv, method_updatekernel,&
           purification_quickreturn, correction_co_contra, &
           precond_convol_workarrays, precond_workarrays, &
-          wt_philarge, wt_hpsinoprecond, wt_hphi, wt_phi, wpr, &
+          wt_philarge, wt_hpsinoprecond, wt_hphi, wt_phi, &
           cdft, input_frag, ref_frags)
         use module_base
         use module_types
@@ -1472,7 +1472,6 @@ module module_interfaces
         type(workarrays_quartic_convolutions),dimension(tmb%orbs%norbp),intent(inout) :: precond_convol_workarrays
         type(workarr_precond),dimension(tmb%orbs%norbp),intent(inout) :: precond_workarrays
         type(work_transpose),intent(inout) :: wt_philarge, wt_hpsinoprecond, wt_hphi, wt_phi
-        type(workarrays_projectors) :: wpr
         !these must all be present together
         type(cdft_data),intent(inout),optional :: cdft
         type(fragmentInputParameters),optional,intent(in) :: input_frag
@@ -1494,7 +1493,7 @@ module module_interfaces
     subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
         energs,nlpsp,SIC,tmb,fnrm,calculate_overlap_matrix,invert_overlap_matrix,communicate_phi_for_lsumrho,&
         calculate_ham,extra_states,itout,it_scc,it_cdft,order_taylor,max_inversion_error,purification_quickreturn,&
-        calculate_KS_residue,calculate_gap,wpr,&
+        calculate_KS_residue,calculate_gap,&
         convcrit_dmin,nitdmin,curvefit_dmin,ldiis_coeff,reorder,cdft, updatekernel)
       use module_base
       use module_types
@@ -1521,7 +1520,6 @@ module module_interfaces
       logical,intent(in):: calculate_overlap_matrix, invert_overlap_matrix
       logical,intent(in):: communicate_phi_for_lsumrho, purification_quickreturn
       logical,intent(in) :: calculate_ham, calculate_KS_residue, calculate_gap
-      type(workarrays_projectors) :: wpr
       type(DIIS_obj),intent(inout),optional :: ldiis_coeff ! for dmin only
       integer, intent(in), optional :: nitdmin ! for dmin only
       real(kind=gp), intent(in), optional :: convcrit_dmin ! for dmin only

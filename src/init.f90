@@ -296,6 +296,9 @@ subroutine createProjectorsArrays(lr,rxyz,at,orbs,&
   nl%cproj=f_malloc_ptr(4*mproj_max,id='cproj')
   nl%hcproj=f_malloc_ptr(4*mproj_max,id='hcproj')
 
+  ! Workarrays for the projector creation
+  call allocate_workarrays_projectors(lr%d%n1, lr%d%n2, lr%d%n3, nl%wpr)
+
   !allocate the work arrays for building tolr array of structures
   nbsegs_cf=f_malloc(nbseg_dim,id='nbsegs_cf')
   keyg_lin=f_malloc(lr%wfd%nseg_c+lr%wfd%nseg_f,id='keyg_lin')
@@ -2110,7 +2113,6 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
   real(gp), dimension(:), pointer :: in_frag_charge
   integer :: infoCoeff, iorb, nstates_max, order_taylor, npspcode
   real(kind=8) :: pnrm
-  type(workarrays_projectors) :: wpr
   !!real(gp), dimension(:,:), allocatable :: ks, ksk
   !!real(gp) :: nonidem
 
@@ -2607,14 +2609,10 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
         !end if
         order_taylor=in%lin%order_taylor ! since this is intent(inout)
         !!call extract_taskgroup_inplace(tmb%linmat%l, tmb%linmat%kernel_)
-        wpr = workarrays_projectors_null()
-        call allocate_workarrays_projectors(tmb%lzd%glr%d%n1, tmb%lzd%glr%d%n2, tmb%lzd%glr%d%n3, wpr)
         call get_coeff(iproc,nproc,LINEAR_MIXDENS_SIMPLE,KSwfn%orbs,atoms,rxyz,denspot,GPU,&
              infoCoeff,energs,nlpsp,in%SIC,tmb,pnrm,.false.,.true.,.false.,&
              .true.,0,0,0,0,order_taylor,in%lin%max_inversion_error,&
-             in%purification_quickreturn,in%calculate_KS_residue,in%calculate_gap, &
-             wpr) !in%lin%extra_states) - assume no extra states as haven't set occs for this yet
-        call deallocate_workarrays_projectors(wpr)
+             in%purification_quickreturn,in%calculate_KS_residue,in%calculate_gap) !in%lin%extra_states) - assume no extra states as haven't set occs for this yet
         !!call gather_matrix_from_taskgroups_inplace(iproc, nproc, tmb%linmat%l, tmb%linmat%kernel_)
 
         !if (iproc==0) then
