@@ -525,7 +525,8 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
     correction_orthoconstraint,nit_basis,&
     ratio_deltas,ortho_on,extra_states,itout,conv_crit,experimental_mode,early_stop,&
     gnrm_dynamic, min_gnrm_for_dynamic, can_use_ham, order_taylor, max_inversion_error, kappa_conv, method_updatekernel,&
-    purification_quickreturn, correction_co_contra, cdft, input_frag, ref_frags)
+    purification_quickreturn, correction_co_contra, &
+    precond_convol_workarrays, precond_workarrays, cdft, input_frag, ref_frags)
   !
   ! Purpose:
   ! ========
@@ -576,6 +577,8 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
   logical,intent(out) :: can_use_ham
   integer,intent(in) :: method_updatekernel
   logical,intent(in) :: correction_co_contra
+  type(workarrays_quartic_convolutions),dimension(tmb%orbs%norbp),intent(inout) :: precond_convol_workarrays
+  type(workarr_precond),dimension(tmb%orbs%norbp),intent(inout) :: precond_workarrays
   !these must all be present together
   type(cdft_data),intent(inout),optional :: cdft
   type(fragmentInputParameters),optional,intent(in) :: input_frag
@@ -601,8 +604,6 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
   logical,save :: has_already_converged
   logical,dimension(7) :: exit_loop
   type(matrices) :: ovrlp_old
-  type(workarrays_quartic_convolutions),dimension(:),allocatable :: precond_convol_workarrays
-  type(workarr_precond),dimension(:),allocatable :: precond_workarrays
   integer :: iiorb, ilr, i, ist
   real(kind=8) :: max_error, mean_error
   type(work_transpose) :: wt_philarge, wt_hpsinoprecond, wt_hphi, wt_phi
@@ -1270,28 +1271,28 @@ contains
       !hpsi_noprecond = f_malloc(tmb%npsidim_orbs,id='hpsi_noprecond')
 
 
-      allocate(precond_convol_workarrays(tmb%orbs%norbp))
-      allocate(precond_workarrays(tmb%orbs%norbp))
-      do iorb=1,tmb%orbs%norbp
-          iiorb=tmb%orbs%isorb+iorb
-          ilr=tmb%orbs%inwhichlocreg(iiorb)
-          with_confpot = (tmb%confdatarr(iorb)%prefac/=0.d0)
-          call init_local_work_arrays(tmb%lzd%llr(ilr)%d%n1, tmb%lzd%llr(ilr)%d%n2, tmb%lzd%llr(ilr)%d%n3, &
-               tmb%lzd%llr(ilr)%d%nfl1, tmb%lzd%llr(ilr)%d%nfu1, &
-               tmb%lzd%llr(ilr)%d%nfl2, tmb%lzd%llr(ilr)%d%nfu2, &
-               tmb%lzd%llr(ilr)%d%nfl3, tmb%lzd%llr(ilr)%d%nfu3, &
-               with_confpot, precond_convol_workarrays(iorb))
-          kx=tmb%orbs%kpts(1,tmb%orbs%iokpt(iorb))
-          ky=tmb%orbs%kpts(2,tmb%orbs%iokpt(iorb))
-          kz=tmb%orbs%kpts(3,tmb%orbs%iokpt(iorb))
-          if (kx**2+ky**2+kz**2 > 0.0_gp .or. tmb%orbs%nspinor==2 ) then
-             ncplx=2
-          else
-             ncplx=1
-          end if
-          call allocate_work_arrays(tmb%lzd%llr(ilr)%geocode, tmb%lzd%llr(ilr)%hybrid_on, &
-               ncplx, tmb%lzd%llr(ilr)%d, precond_workarrays(iorb))
-      end do
+      !!allocate(precond_convol_workarrays(tmb%orbs%norbp))
+      !!allocate(precond_workarrays(tmb%orbs%norbp))
+      !!do iorb=1,tmb%orbs%norbp
+      !!    iiorb=tmb%orbs%isorb+iorb
+      !!    ilr=tmb%orbs%inwhichlocreg(iiorb)
+      !!    with_confpot = (tmb%confdatarr(iorb)%prefac/=0.d0)
+      !!    call init_local_work_arrays(tmb%lzd%llr(ilr)%d%n1, tmb%lzd%llr(ilr)%d%n2, tmb%lzd%llr(ilr)%d%n3, &
+      !!         tmb%lzd%llr(ilr)%d%nfl1, tmb%lzd%llr(ilr)%d%nfu1, &
+      !!         tmb%lzd%llr(ilr)%d%nfl2, tmb%lzd%llr(ilr)%d%nfu2, &
+      !!         tmb%lzd%llr(ilr)%d%nfl3, tmb%lzd%llr(ilr)%d%nfu3, &
+      !!         with_confpot, precond_convol_workarrays(iorb))
+      !!    kx=tmb%orbs%kpts(1,tmb%orbs%iokpt(iorb))
+      !!    ky=tmb%orbs%kpts(2,tmb%orbs%iokpt(iorb))
+      !!    kz=tmb%orbs%kpts(3,tmb%orbs%iokpt(iorb))
+      !!    if (kx**2+ky**2+kz**2 > 0.0_gp .or. tmb%orbs%nspinor==2 ) then
+      !!       ncplx=2
+      !!    else
+      !!       ncplx=1
+      !!    end if
+      !!    call allocate_work_arrays(tmb%lzd%llr(ilr)%geocode, tmb%lzd%llr(ilr)%hybrid_on, &
+      !!         ncplx, tmb%lzd%llr(ilr)%d, precond_workarrays(iorb))
+      !!end do
 
 
     end subroutine allocateLocalArrays
@@ -1319,23 +1320,23 @@ contains
     call f_free(hpsi_tmp)
     call f_free(psidiff)
     !call f_free(hpsi_noprecond)
-    do iorb=1,tmb%orbs%norbp
-        iiorb=tmb%orbs%isorb+iorb
-        ilr=tmb%orbs%inwhichlocreg(iiorb)
-        call deallocate_workarrays_quartic_convolutions(precond_convol_workarrays(iorb))
-        kx=tmb%orbs%kpts(1,tmb%orbs%iokpt(iorb))
-        ky=tmb%orbs%kpts(2,tmb%orbs%iokpt(iorb))
-        kz=tmb%orbs%kpts(3,tmb%orbs%iokpt(iorb))
-        if (kx**2+ky**2+kz**2 > 0.0_gp .or. tmb%orbs%nspinor==2 ) then
-           ncplx=2
-        else
-           ncplx=1
-        end if
-        call deallocate_work_arrays(tmb%lzd%llr(ilr)%geocode, tmb%lzd%llr(ilr)%hybrid_on, &
-             ncplx, precond_workarrays(iorb))
-    end do
-    deallocate(precond_convol_workarrays)
-    deallocate(precond_workarrays)
+    !!do iorb=1,tmb%orbs%norbp
+    !!    iiorb=tmb%orbs%isorb+iorb
+    !!    ilr=tmb%orbs%inwhichlocreg(iiorb)
+    !!    call deallocate_workarrays_quartic_convolutions(precond_convol_workarrays(iorb))
+    !!    kx=tmb%orbs%kpts(1,tmb%orbs%iokpt(iorb))
+    !!    ky=tmb%orbs%kpts(2,tmb%orbs%iokpt(iorb))
+    !!    kz=tmb%orbs%kpts(3,tmb%orbs%iokpt(iorb))
+    !!    if (kx**2+ky**2+kz**2 > 0.0_gp .or. tmb%orbs%nspinor==2 ) then
+    !!       ncplx=2
+    !!    else
+    !!       ncplx=1
+    !!    end if
+    !!    call deallocate_work_arrays(tmb%lzd%llr(ilr)%geocode, tmb%lzd%llr(ilr)%hybrid_on, &
+    !!         ncplx, precond_workarrays(iorb))
+    !!end do
+    !!deallocate(precond_convol_workarrays)
+    !!deallocate(precond_workarrays)
 
     end subroutine deallocateLocalArrays
 
@@ -3174,3 +3175,80 @@ subroutine renormalize_kernel(iproc, nproc, order_taylor, max_inversion_error, t
       end subroutine retransform_local
 
 end subroutine renormalize_kernel
+
+
+subroutine allocate_precond_arrays(orbs, lzd, confdatarr, precond_convol_workarrays, precond_workarrays)
+  use module_base, only: gp
+  use module_types
+  implicit none
+  ! Calling arguments
+  type(orbitals_data),intent(in) :: orbs
+  type(local_zone_descriptors),intent(in) :: lzd
+  type(confpot_data),dimension(orbs%norbp),intent(in) ::  confdatarr
+  type(workarrays_quartic_convolutions),dimension(:),pointer,intent(inout) :: precond_convol_workarrays
+  type(workarr_precond),dimension(:),pointer,intent(inout) :: precond_workarrays
+
+  ! Local variables
+  integer :: iorb, iiorb, ilr, ncplx
+  real(kind=8) :: kx, ky, kz
+  logical :: with_confpot
+
+  allocate(precond_convol_workarrays(orbs%norbp))
+  allocate(precond_workarrays(orbs%norbp))
+  do iorb=1,orbs%norbp
+      iiorb=orbs%isorb+iorb
+      ilr=orbs%inwhichlocreg(iiorb)
+      with_confpot = (confdatarr(iorb)%prefac/=0.d0)
+      call init_local_work_arrays(lzd%llr(ilr)%d%n1, lzd%llr(ilr)%d%n2, lzd%llr(ilr)%d%n3, &
+           lzd%llr(ilr)%d%nfl1, lzd%llr(ilr)%d%nfu1, &
+           lzd%llr(ilr)%d%nfl2, lzd%llr(ilr)%d%nfu2, &
+           lzd%llr(ilr)%d%nfl3, lzd%llr(ilr)%d%nfu3, &
+           with_confpot, precond_convol_workarrays(iorb))
+      kx=orbs%kpts(1,orbs%iokpt(iorb))
+      ky=orbs%kpts(2,orbs%iokpt(iorb))
+      kz=orbs%kpts(3,orbs%iokpt(iorb))
+      if (kx**2+ky**2+kz**2 > 0.0_gp .or. orbs%nspinor==2 ) then
+         ncplx=2
+      else
+         ncplx=1
+      end if
+      call allocate_work_arrays(lzd%llr(ilr)%geocode, lzd%llr(ilr)%hybrid_on, &
+           ncplx, lzd%llr(ilr)%d, precond_workarrays(iorb))
+  end do
+
+end subroutine allocate_precond_arrays
+
+
+subroutine deallocate_precond_arrays(orbs, lzd, precond_convol_workarrays, precond_workarrays)
+  use module_base, only: gp
+  use module_types
+  implicit none
+  ! Calling arguments
+  type(orbitals_data),intent(in) :: orbs
+  type(local_zone_descriptors),intent(in) :: lzd
+  type(workarrays_quartic_convolutions),dimension(:),pointer,intent(inout) :: precond_convol_workarrays
+  type(workarr_precond),dimension(:),pointer,intent(inout) :: precond_workarrays
+
+  ! Local variables
+  integer :: iorb, iiorb, ilr, ncplx
+  real(kind=8) :: kx, ky, kz
+
+  do iorb=1,orbs%norbp
+      iiorb=orbs%isorb+iorb
+      ilr=orbs%inwhichlocreg(iiorb)
+      call deallocate_workarrays_quartic_convolutions(precond_convol_workarrays(iorb))
+      kx=orbs%kpts(1,orbs%iokpt(iorb))
+      ky=orbs%kpts(2,orbs%iokpt(iorb))
+      kz=orbs%kpts(3,orbs%iokpt(iorb))
+      if (kx**2+ky**2+kz**2 > 0.0_gp .or. orbs%nspinor==2 ) then
+         ncplx=2
+      else
+         ncplx=1
+      end if
+      call deallocate_work_arrays(lzd%llr(ilr)%geocode, lzd%llr(ilr)%hybrid_on, &
+           ncplx, precond_workarrays(iorb))
+  end do
+  deallocate(precond_convol_workarrays)
+  deallocate(precond_workarrays)
+
+end subroutine deallocate_precond_arrays
