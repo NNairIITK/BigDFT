@@ -39,7 +39,7 @@
 subroutine isotemp(amass,dtion,ekin,iatfix,ktemp,mttk_vars,natom,nnos,qmass,vel)
 
  use defs_basis
- use defs_datatypes
+ use m_abimover
 
  implicit none
 
@@ -174,8 +174,7 @@ subroutine isopress(amass,dtion,ekin,iatfix,ktemp,natom,nnos,qmass,strten,strtar
 &                   ucvol,mttk_vars,vel,vlogv,vmass)
 
  use defs_basis
- use defs_datatypes
- use defs_abitypes
+ use m_abimover
 
  implicit none
 
@@ -331,8 +330,7 @@ subroutine isostress(amass,bmass,dtion,ekin,iatfix,ktemp,natom,nnos,qmass,strten
 &                    strtarget,ucvol,vel,mttk_vars)
 
  use defs_basis
- use defs_datatypes
- use defs_abitypes
+ use m_abimover
 
  implicit none
 

@@ -76,7 +76,7 @@ end interface
 interface
  subroutine hartre(cplex,gmet,gsqcut,izero,mpi_enreg,nfft,ngfft,paral_kgb,qphon,rhog,vhartr)
   use defs_basis
-  use defs_abitypes
+  use defs_datatypes
   implicit none
   integer,intent(in) :: cplex
   integer,intent(in) :: izero
@@ -106,7 +106,7 @@ interface
  subroutine mkcore(corstr,dyfrx2,grxc,mpi_enreg,natom,nfft,nspden,ntypat,n1,n1xccc,&  
   &  n2,n3,option,rprimd,typat,ucvol,vxc,xcccrc,xccc1d,xccc3d,xred)
   use defs_basis
-  use defs_abitypes
+  use defs_datatypes
   implicit none
   integer,intent(in) :: n1
   integer,intent(in) :: n1xccc
@@ -148,7 +148,7 @@ interface
  subroutine mkvxc3(cplex,kxc,mpi_enreg,nfft,ngfft,nkxc,nspden,n3xccc,option,&  
   &  paral_kgb,qphon,rhor1,rprimd,vxc1,xccc3d1)
   use defs_basis
-  use defs_abitypes
+  use defs_datatypes
   implicit none
   integer,intent(in) :: cplex
   integer,intent(in) :: n3xccc
@@ -172,7 +172,7 @@ interface
  subroutine mkvxcgga3(cplex,gprimd,kxc,mpi_enreg,nfft,ngfft,nkxc,&  
   &  nspden,paral_kgb,qphon,rhor1tmp,vxc1)
   use defs_basis
-  use defs_abitypes
+  use defs_datatypes
   implicit none
   integer,intent(in) :: cplex
   integer,intent(in) :: nfft
@@ -204,7 +204,7 @@ end interface
 !!$  &  strsxc,usexcnhat,vhartr,vxc,vxcavg,xccc3d,k3xc,&  
 !!$  &  electronpositron,taug,taur) ! optional argument
 !!$  use defs_basis
-!!$  use defs_abitypes
+!!$  use defs_datatypes
 !!$  use m_electronpositron
 !!$  implicit none
 !!$  integer,intent(in) :: izero
@@ -244,7 +244,7 @@ end interface
 !!$ subroutine rhohxcpositron(electronpositron,gprimd,kxcapn,mpi_enreg,nfft,ngfft,nkxc,nspden,n3xccc,&  
 !!$  &  paral_kgb,rhor,strsxc,ucvol,vhartr,vxcapn,vxcavg,xccc3d)
 !!$  use defs_basis
-!!$  use defs_abitypes
+!!$  use defs_datatypes
 !!$  use m_electronpositron
 !!$  implicit none
 !!$  integer,intent(in) :: n3xccc
@@ -283,7 +283,7 @@ end interface
 interface
  subroutine xc_kernel(Dtset,ixc,MPI_enreg,ngfft,nfft,nsppol,rhor,rprimd,npw,dim_kxcg,kxcg,gvec)
   use defs_basis
-  use defs_abitypes
+  use defs_datatypes
   implicit none
   integer,intent(in) :: dim_kxcg
   integer,intent(in) :: ixc
@@ -304,7 +304,7 @@ interface
  subroutine xcden (cplex,gprimd,ishift,mpi_enreg,nfft,ngfft,ngrad,nspden,paral_kgb,qphon,rhor,rhonow,&  !Mandatory arguments
   lrhonow)              !Optional arguments
   use defs_basis
-  use defs_abitypes
+  use defs_datatypes
   implicit none
   integer,intent(in) :: cplex
   integer,intent(in) :: ishift
@@ -425,7 +425,7 @@ interface
  subroutine xcpot (cplex,dnexcdn,gprimd,ishift,mpi_enreg,nfft,ngfft,ngrad,nspden,&  
   &  nspgrad,paral_kgb,qphon,rhonow,vxc)
   use defs_basis
-  use defs_abitypes
+  use defs_datatypes
   implicit none
   integer,intent(in) :: cplex
   integer,intent(in) :: ishift

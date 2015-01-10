@@ -99,9 +99,8 @@ subroutine scfcge(cplex,dbl_nnsclo,dtn_pc,etotal,f_atm,&
 & fnrm,fdot,user_data,errid,errmess)
 
  use defs_basis
- use abi_interfaces_lowlevel
  use defs_datatypes
- use defs_abitypes
+ use abi_interfaces_lowlevel
  use interfaces_56_mixing, except_this_one => scfcge
 
  implicit none

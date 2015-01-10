@@ -17,7 +17,6 @@
 !!  atindx(natom)=index table for atoms (see scfcv.f)
 !!  atindx1(natom)=index table for atoms, inverse of atindx (see scfcv.f)
 !!  cpus= cpu time limit in seconds
-!!  dtfil <type(datafiles_type)>=variables related to files
 !!  dtset <type(dataset_type)>=all input variables for this dataset
 !!   | mband=maximum number of bands
 !!   | mgfft=maximum size of 1D FFTs
@@ -55,8 +54,6 @@
 !!  ylmgr(mpw*mkmem,3,mpsang*mpsang*useylm)= gradients of real spherical harmonics
 !!
 !! OUTPUT
-!!  results_gs <type(results_gs_type)>=results (energy and its components,
-!!   forces and its components, the stress tensor) of a ground-state computation
 !!  eigen(mband*nkpt*nsppol)=array for holding eigenvalues (hartree)
 !!  resid(mband*nkpt*nsppol)=residuals for each band over all k points.
 !!
@@ -65,9 +62,6 @@
 !!  cg(2,mpw*nspinor*mband*mkmem*nsppol)=planewave coefficients of wavefunctions.
 !!  densymop_gs <type(dens_sym_operator_type)>=the density symmetrization
 !!   operator (ground-state symmetries)
-!!  dtefield <type(efield_type)> = variables related to Berry phase
-!!      calculations (see initberry.f)
-!!  hdr <type(hdr_type)>=the header of wf, den and pot files
 !!  indsym(4,nsym,natom)=indirect indexing array for atom labels
 !!  initialized= if 0 the initialization of the gstate run is not yet finished
 !!  irrzon(nfft**(1-1/nsym),2,(nspden/nsppol)-3*(nspden/4))=irreducible zone data
@@ -78,7 +72,6 @@
 !!  rhog(2,nfftf)=array for Fourier transform of electron density
 !!  rhor(nfftf,nspden)=array for electron density in electrons/bohr**3.
 !!  rprim(3,3)=dimensionless real space primitive translations
-!!  scf_history <type(scf_history_type)>=arrays obtained from previous SCF cycles
 !!  symrec(3,3,nsym)=symmetry operations in reciprocal space
 !!  vel(3,natom)=cartesian velocities at the initialisation; updated on output
 !!  wffnew,wffnow=struct info for wf disk files.
@@ -159,7 +152,7 @@ subroutine moldyn(acell,amass,me,&
 
  use defs_basis
  use abi_interfaces_lowlevel
- use defs_datatypes
+ use m_abimover
 
  implicit none
 
@@ -387,18 +380,7 @@ subroutine moldyn(acell,amass,me,&
         call xredxcart(natom,1,rprimd,fcart,fred)
      end if
      call xredxcart(natom,1,rprimd,xcart,xred)
-!!$   iapp=-1
-!!$   if(itime>0)iapp=itime
-!!$   call scfcv(acell,atindx,atindx1,cg,cpus,densymop_gs,dtefield,dtfil,&
-!!$&   dtset,ecore,eigen,hdr,iapp,indsym,initialized,&
-!!$&   irrzon,kg,mpi_enreg,&
-!!$&   nattyp,nfftf,npwarr,nspinor,occ,&
-!!$&   pawang,pawfgr,pawrad,pawrhoij,pawtab,phnons,psps,&
-!!$&   pwind,pwind_alloc,pwnsfac,rec_set,resid,results_gs,rhog,rhor,rprimd,&
-!!$&   scf_history,symrec,wffnew,wffnow,wvl,xred,xred_old,ylm,ylmgr)
   end if
-
-  !!$ call status(itime,dtfil%filstat,iexit,level,'call prtxvf   ')
 
 ! Output of acell and/or rprim ( and angles ! - should become a routine later)
   if(optcell/=0)then

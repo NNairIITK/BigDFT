@@ -4,8 +4,8 @@ subroutine md_isothermal(acell, acell_next, amass, bmass, dtion, etotal, etotal0
      & ucvol_next, vel, vel_nexthalf, vmass, xcart, xcart_next, xred_next)
 
   use defs_basis
-  use defs_datatypes
   use abi_interfaces_lowlevel
+  use m_abimover
 
   implicit none
 

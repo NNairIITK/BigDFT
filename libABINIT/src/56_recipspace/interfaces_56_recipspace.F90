@@ -178,7 +178,7 @@ end interface
 interface
  subroutine getmpw(ecut,exchn2n3d,gmet,istwfk,kptns,mpi_enreg,mpw,nkpt)
   use defs_basis
-  use defs_abitypes
+  use defs_datatypes
   implicit none
   integer,intent(in) :: exchn2n3d
   integer,intent(out) :: mpw
@@ -240,7 +240,7 @@ interface
  subroutine initylmg(gprimd,kg,kptns,mkmem,mpi_enreg,mpsang,mpw,nband,nkpt,&  
   &  npwarr,nsppol,optder,rprimd,unkg,unylm,ylm,ylm_gr)
   use defs_basis
-  use defs_abitypes
+  use defs_datatypes
   implicit none
   integer,intent(in) :: mkmem
   integer,intent(in) :: mpsang
@@ -285,7 +285,7 @@ interface
  subroutine kpgio(ecut,exchn2n3d,gmet,istwfk,kg,kgnam,kptns,mkmem,nband,nkpt,&  
   &  mode_paral,mpi_enreg,mpw,npwarr,npwtot,nsppol,unkg)
   use defs_basis
-  use defs_abitypes
+  use defs_datatypes
   implicit none
   integer,intent(in) :: exchn2n3d
   integer,intent(in) :: mkmem
@@ -310,7 +310,7 @@ end interface
 interface
  subroutine kpgsph(ecut,exchn2n3d,gmet,ikg,ikpt,istwf_k,kg,kpt,mkmem,mpi_enreg,mpw,npw)
   use defs_basis
-  use defs_abitypes
+  use defs_datatypes
   implicit none
   integer,intent(in) :: exchn2n3d
   integer,intent(in) :: ikg
@@ -331,7 +331,7 @@ interface
  subroutine laplacian(gprimd,mpi_enreg,nfft,nfunc,ngfft,paral_kgb,rdfuncr,&  
   &  laplacerdfuncr,rdfuncg_out,laplacerdfuncg_out,g2cart_out,rdfuncg_in,g2cart_in)
   use defs_basis
-  use defs_abitypes
+  use defs_datatypes
   implicit none
   integer,intent(in) :: nfft
   integer,intent(in) :: nfunc

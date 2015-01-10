@@ -144,23 +144,6 @@ interface
 end interface
 
 interface
- subroutine energies_init(energies)
-  use defs_datatypes
-  implicit none
-  type(energies_type),intent(out) :: energies
- end subroutine energies_init
-end interface
-
-interface
- subroutine energies_copy(energies_in,energies_out)
-  use defs_datatypes
-  implicit none
-  type(energies_type),intent(in) :: energies_in
-  type(energies_type),intent(out) :: energies_out
- end subroutine energies_copy
-end interface
-
-interface
  function gaunt(ll,mm,l1,m1,l2,m2)
   use defs_basis
   implicit none

@@ -80,8 +80,7 @@ endif
 
 libabinit_a_SOURCES = \
 	10_defs/defs_basis.F90 \
-	10_defs/defs_datatypes.F90 \
-	10_defs/defs_parameters.F90 \
+	abi_lowlevel/defs_datatypes.F90 \
 	abi_lowlevel/abi_interfaces_lowlevel.F90 \
 	abi_lowlevel/abi_interfaces_linalg.F90 \
 	abi_lowlevel/abi_m_xmpi.F90 \
@@ -166,7 +165,6 @@ libabinit_a_SOURCES = \
 	42_geometry/symzat.F90 \
 	42_geometry/xredxcart.F90 \
 	42_geometry/interfaces_42_geometry.F90 \
-	50_abitypes_defs/defs_abitypes.F90 \
 	56_mixing/aprxdr.F90 \
 	56_mixing/dotprodm_v.F90 \
 	56_mixing/dotprodm_vn.F90 \
@@ -188,6 +186,7 @@ libabinit_a_SOURCES = \
 	67_common/ewald2.F90 \
 	67_common/fconv.F90 \
 	67_common/prtxvf.F90 \
+	72_geomoptim/m_abimover.F90 \
 	72_geomoptim/ab6_moldyn.F90 \
 	72_geomoptim/xfpack.F90 \
 	42_geometry/symmetry.c \

@@ -1,31 +1,18 @@
-
-!!****m* ABINIT/defs_abitypes
+!{\src2tex{textfont=tt}}
+!!****m* ABINIT/defs_datatypes
 !! NAME
-!! defs_abitypes
+!! defs_datatypes
 !!
 !! FUNCTION
-!! This module contains definitions of high-level structured datatypes for the
+!! This module contains definitions of all structured datatypes for the
 !! ABINIT package.
 !!
-!! If you are sure a new high-level structured datatype is needed,
-!! write it here, and DOCUMENT it properly (not all datastructure here are
-!! well documented, it is a shame ...).
-!! Do not forget : you will likely be the major winner if you document
-!! properly.
-!! Proper documentation of a structured datatype means :
-!!  (1) Mention it in the list just below
-!!  (2) Describe it in the NOTES section
-!!  (3) Put it in alphabetical order in the the main section of this module
-!!  (4) Document each of its records, except if they are described elsewhere
-!!      (this exception is typically the case of the dataset associated with
-!!      input variables, for which there is a help file)
-!!  (5) Declare variables on separated lines in order to reduce the occurence of bzr conflicts.
-!!
 !! List of datatypes :
-!! * aim_dataset_type : the "dataset" for aim
-!! * anaddb_dataset_type : the "dataset" for anaddb
+!! * pseudopotential_gth_type : part of pseudopotential_type
+!! * pseudopotential_type : datas for norm-conserving pseudopotential
+!! * pspheader_paw_type : part of pspheader_type
+!! * pspheader_type : data for the header of files
 !! * dataset_type : the "dataset" for the main abinit code
-!! * bandfft_kpt_type : the "dataset" for triple band-fft-kpt parallelization
 !! * MPI_type : the data related to MPI parallelization
 !!
 !! COPYRIGHT
@@ -40,224 +27,374 @@
 #include "config.h"
 #endif
 
-module defs_abitypes
+module defs_datatypes
 
  use defs_basis
- use defs_datatypes
-
-#if defined HAVE_BIGDFT
- use BigDFT_API, only : atoms_data
-#endif
 
  implicit none
-
-!Structures
-!!***
-
-!!****t* defs_abitypes/aim_dataset_type
-!! NAME
-!! aim_dataset_type
-!!
-!! FUNCTION
-!! The aim_dataset_type structured datatype
-!! gathers all the input variables for the aim code
-!!
-!! SOURCE
-
- type aim_dataset_type
-
-! WARNING : if you modify this datatype, please check whether there might be creation/destruction/copy routines,
-! declared in another part of ABINIT, that might need to take into account your modification.
-
-! Variables should be declared on separated lines in order to reduce the occurence of bzr conflicts.
-
-! Since all these input variables are described in the aim_help.html
-! file, they are not described in length here ...
-
-! Integer
-  integer :: crit
-  integer :: denout
-  integer :: dltyp
-  integer :: gpsurf
-  integer :: irho
-  integer :: ivol
-  integer :: lapout
-  integer :: nsa
-  integer :: nsb
-  integer :: nsc
-
-  integer :: batom  !! Warning : corresponds to the input variable atom
-  integer :: foll   !! Warning : corresponds to the input variable follow
-  integer :: isurf  !! Warning : corresponds to the input variable surf
-  integer :: irsur  !! Warning : corresponds to the input variable rsurf
-  integer :: nph    !! Warning : corresponds to the input variable nphi
-  integer :: npt    !! Warning : corresponds to the input variable inpt
-  integer :: nth    !! Warning : corresponds to the input variable ntheta
-  integer :: plden  !! Warning : not documented in help file ?!
-
-  integer :: ngrid(3)
-
-! Real
-  real(dp) :: atrad
-  real(dp) :: coff1 
-  real(dp) :: coff2
-  real(dp) :: dpclim
-  real(dp) :: folstp
-  real(dp) :: lgrad
-  real(dp) :: lgrad2
-  real(dp) :: lstep
-  real(dp) :: lstep2
-  real(dp) :: maxatd 
-  real(dp) :: maxcpd
-  real(dp) :: phimax 
-  real(dp) :: phimin
-  
-  real(dp) :: dr0    !! Warning : correspond to the input variable radstp
-  real(dp) :: phi0   !! Warning : correspond to the input variable rsurdir(2)
-  real(dp) :: rmin   !! Warning : correspond to the input variable ratmin
-  real(dp) :: th0    !! Warning : correspond to the input variable rsurdir(1)
-  real(dp) :: themax !! Warning : correspond to the input variable thetamax
-  real(dp) :: themin !! Warning : correspond to the input variable thetamin
-
-  real(dp) :: foldep(3)
-  real(dp) :: scal(3)
-  real(dp) :: vpts(3,4)
-
- end type aim_dataset_type
 !!***
 
 !----------------------------------------------------------------------
 
-!!****t* defs_abitypes/anaddb_dataset_type
+!!****t* defs_datatypes/pseudopotential_gth_type
 !! NAME
-!! anaddb_dataset_type
+!! pseudopotential_gth_type
 !!
 !! FUNCTION
-!! The anaddb_dataset_type structured datatype
-!! gather all the input variables for the anaddb code.
+!! This structure is a sub-structure of pseudopotential_type used to
+!! store parameters from the GTH pseudo-potentials. All arrays have
+!! indices running on 1:npsp for each read pseudo-file. The 'set' array
+!! is a check array, since several different pseudo can be used in a simulation
+!! it set a flag for each npsp if params have been set or not. This is
+!! redundant with psps%pspcod in the way that when psps%pspcod(i) is 2,
+!! then gth_params%set(i) is .true.. GTH pseudo previous to wavelets introduction
+!! doesn't have geometric informations. These have been added on the last line.
+!! It is three radius informations, the %hasGeometry flag is there to know
+!! which kind of pseudo has been read.
 !!
 !! SOURCE
 
- type anaddb_dataset_type
+ type pseudopotential_gth_type
 
 ! WARNING : if you modify this datatype, please check whether there might be creation/destruction/copy routines,
 ! declared in another part of ABINIT, that might need to take into account your modification.
 
-! Variables should be declared on separated lines in order to reduce the occurence of bzr conflicts.
+  real(dp), pointer :: psppar(:, :, :)
+   ! These are {rloc, C(1...4)} coefficients for psppar(0, :, :) indices,
+   ! Followed by the h coefficients for psppar(1:2, :, :) indices.
+   !  size (0:2, 0:4, npsp)
+
+  real(dp), pointer :: radii_cov(:)
+   ! The covalence radii for each pseudo (?) size (npsp)
+
+  real(dp), pointer :: radii_cf(:, :)
+   ! Cut-off radii for core part and long-range part.
+   ! radii_cf(:, 1) is for the long-range cut-off and
+   ! radii_cf(:, 2) is for the core cut-off. size (npsp, 2)
+
+  integer, pointer :: semicore(:)
+   ! The semicore code, indicated as an integer.
+   ! The integer is the n_s + 4*n_p + 16* n_d + 64* n_f
+   ! where n_l are the number of semicore orbitals for a given angular momentum
+   ! starting from the lower level of course
+
+  real(dp), pointer :: psp_k_par(:, :, :)
+   ! Spin orbit coefficients in HGH/GTH formats: k11p etc... see psp3ini.F90
+   !   dimension = num l channels, 3 coeffs, num psp = (1:lmax+1,1:3,npsp)
+
+  logical, pointer :: hasGeometry(:)
+   ! Flag for geometric informations in the pseudo. size (npsp)
+
+  logical, pointer :: set(:)
+   ! Consistency array, used for checking size (npsp)
+
+ end type pseudopotential_gth_type
+!!***
+
+!----------------------------------------------------------------------
+
+!!****t* defs_datatypes/pseudopotential_type
+!! NAME
+!! pseudopotential_type
+!!
+!! FUNCTION
+!! This structured datatype contains all the information about one
+!! norm-conserving pseudopotential, including the description of the local
+!! and non-local parts, the different projectors, the non-linear core
+!! correction ...
+!!
+!! SOURCE
+
+ type pseudopotential_type
+
+! WARNING : if you modify this datatype, please check whether there might be creation/destruction/copy routines,
+! declared in another part of ABINIT, that might need to take into account your modification.
 
 
-! Since all these input variables are described in the anaddb_help.html
-! file, they are not described in length here ...
-! Integer
-  integer :: alphon
-  integer :: asr
-  integer :: brav
-  integer :: chneut
-  integer :: dieflag
-  integer :: dipdip
-  integer :: ep_scalprod
-  integer :: eivec
-  integer :: elaflag
-  integer :: elphflag
-  integer :: enunit
-  integer :: gkk2write 
-  integer :: gkk_rptwrite
-  integer :: gkqwrite
-  integer :: iavfrq
-  integer :: ifcana
-  integer :: ifcflag
-  integer :: ifcout
-  integer :: ifltransport
-  integer :: instrflag
-  integer :: natfix
-  integer :: natifc
-  integer :: natom
-  integer :: nchan
-  integer :: nfreq
-  integer :: ngrids
-  integer :: nlflag
-  integer :: nph1l
-  integer :: nph2l
-  integer :: nqpath
-  integer :: nqshft
-  integer :: nsphere
-  integer :: nstrfix
-  integer :: ntemper
-  integer :: nwchan
-  integer :: piezoflag
-  integer :: polflag
-  integer :: prtdos
-  integer :: prtmbm
-  integer :: prtfsurf
-  integer :: prtnest
-  integer :: ramansr
-  integer :: relaxat
-  integer :: relaxstr
-  integer :: rfmeth
-  integer :: selectz
-  integer :: symdynmat
-  integer :: telphint
-  integer :: thmflag
-  integer :: qgrid_type
-  integer :: ep_b_min
-  integer :: ep_b_max
-  integer :: ep_keepbands
-  integer :: ep_nqpt
-  integer :: ep_prt_yambo
-  integer :: symgkq
+! Integer scalars
 
-  integer :: ngqpt(9)             ! ngqpt(9) instead of ngqpt(3) is needed in wght9.f
-  integer :: istrfix(6)
-  integer :: ng2qpt(3)
-  integer :: kptrlatt(3,3)
+  integer :: dimekb
+   ! Dimension of Ekb
+   ! ->Norm conserving : Max. number of Kleinman-Bylander energies
+   !                     for each atom type
+   !                     dimekb=lnmax (lnmax: see this file)
+   ! ->PAW : Max. number of Dij coefficients connecting projectors
+   !                     for each atom type
+   !                     dimekb=lmnmax*(lmnmax+1)/2 (lmnmax: see this file)
 
-! Real(dp)
-  real(dp) :: a2fsmear
-  real(dp) :: dosdeltae
-  real(dp) :: dossmear
-  real(dp) :: dostol 
-  real(dp) :: elphsmear
-  real(dp) :: elph_fermie
-  real(dp) :: frmax
-  real(dp) :: frmin
-  real(dp) :: temperinc
-  real(dp) :: tempermin
-  real(dp) :: thmtol
-  real(dp) :: mustar
-  real(dp) :: rifcsph
+  integer :: lmnmax
+   !  If useylm=0, max number of (l,m,n) comp. over all type of psps (lnproj)
+   !  If useylm=1, max number of (l,n)   comp. over all type of psps (lmnproj)
+   !  If mpspso is 2, lmnmax takes into account the spin-orbit projectors,
+   !  so, it is equal to the max of lmnprojso or lnprojso, see pspheader_type
 
-  real(dp) :: q1shft(3,4)
-  real(dp) :: q2shft(3)
-  real(dp) :: targetpol(3)
+  integer :: lnmax
+   !  Max. number of (l,n) components over all type of psps
+   !  If mpspso is 2, lmnmax takes into account the spin-orbit projectors,
+   !  so, it is equal to the max of lnprojso, see pspheader_type
 
-! Integer pointers
-  integer, pointer :: atifc(:)    
-   ! atifc(natom) WARNING : there is a transformation of this input variable, in chkin9
-   ! This should be changed ...
+  integer :: mproj    ! TO BE SUPPRESSED
+   ! Maximum number of non-local projectors over all angular momenta
+   !  and type of psps
+   ! 0 only if all psps are local
 
-  integer, pointer :: iatfix(:)   
-  ! iatfix(natom)
+  integer :: mpsang
+   ! Highest angular momentum of non-local projectors over all type of psps.
+   ! shifted by 1 : for all local psps, mpsang=0; for largest s, mpsang=1,
+   ! for largest p, mpsang=2; for largest d, mpsang=3; for largest f, mpsang=4
+   ! This gives also the number of non-local "channels"
 
-! Real pointers
-  real(dp), pointer :: qnrml1(:)  
-  ! qnrml1(nph1l)
+  integer :: mpspso
+   ! mpspso is set to 1 if none of the psps is used with a spin-orbit part (that
+   !  is, if the user input variable so_psp is not equal
+   !  to 1 in at least one case
+   ! otherwise, it is set to 2
 
-  real(dp), pointer :: qnrml2(:)  
-  ! qnrml2(nph2l)
+  integer :: mpssoang
+   ! Maximum number of channels, including those for treating the spin-orbit coupling
+   ! when mpspso=1, mpssoang=mpsang
+   ! when mpspso=2, mpssoang=2*mpsang-1
 
-  real(dp), pointer :: qpath(:,:) 
-  ! qpath(3,nqpath)
+  integer :: mqgrid_ff
+   ! Number of points in the reciprocal space grid on which
+   ! the radial functions ffspl are specified
 
-  real(dp), pointer :: qph1l(:,:) 
-  ! qph1l(3,nph1l)
+  integer :: mqgrid_vl
+   ! Number of points in the reciprocal space grid on which
+   ! the radial functions vlspl are specified
 
-  real(dp), pointer :: qph2l(:,:) 
-  ! qph2l(3,nph2l)
+  integer :: mtypalch
+   ! Maximum number of alchemical pseudo atoms. If non-zero,
+   ! the mechanism to generate mixing of pseudopotentials is activated
 
-  real(dp), pointer :: ep_qptlist(:,:) 
-  ! qph2l(3,ep_nqpt)
+  integer :: npsp
+   ! Number of types of pseudopotentials
 
- end type anaddb_dataset_type
+  integer :: npspalch
+   ! Number of types of pseudopotentials use for alchemical purposes
+
+  integer :: ntypat
+   ! Number of types of atoms (might be alchemy wrt pseudopotentials)
+
+  integer :: ntypalch
+   ! Number of types of alchemical pseudoatoms
+
+  integer :: ntyppure
+   ! Number of types of pure pseudoatoms
+
+  integer :: n1xccc
+   ! Number of radial points for the description of the pseudo-core charge
+   ! (in the framework of the non-linear XC core correction)
+
+  integer :: optnlxccc
+   ! Option for the choice of non-linear XC core correction treatment (see the input variable)
+
+  integer :: positron
+   ! Option for the choice of type of GS calculation (electron or positron)
+
+  integer :: usepaw
+   ! if usepaw=0 , use norm-conserving psps part of the code
+   ! is usepaw=1 , use paw part of the code
+
+  integer :: useylm
+   ! governs the way the nonlocal operator is to be applied:
+   !   1=using Ylm, 0=using Legendre polynomials
+
+! Logical scalars
+
+  logical :: vlspl_recipSpace
+   ! governs if vlspl is compute in reciprocal space or in real
+   ! space (when available).
+
+! Integer arrays
+
+  integer, pointer :: algalch(:)   
+   ! algalch(ntypalch)
+   ! For each type of pseudo atom, the algorithm to mix the pseudopotentials
+
+  integer, pointer :: indlmn(:,:,:)  
+   ! indlmn(6,lmnmax,ntypat)
+   ! For each type of psp,
+   ! array giving l,m,n,lm,ln,spin for i=ln  (if useylm=0)
+   !                                or i=lmn (if useylm=1)
+
+  integer, pointer :: pspdat(:)  
+   ! pspdat(ntypat)
+   ! For each type of psp, the date of psp generation, as given by the psp file
+
+  integer, pointer :: pspcod(:)  
+   ! pspcod(npsp)
+   ! For each type of psp, the format -or code- of psp generation,
+   !  as given by the psp file
+
+  integer, pointer :: pspso(:)  
+   ! pspso(ntypat)
+   ! For each type of psp, 1 if no spin-orbit component is taken
+   ! into account, 2 if a spin-orbit component is used
+
+  integer, pointer :: pspxc(:)   
+   ! pspxc(ntypat)
+   ! For each type of psp, the XC functional that was used to generate it,
+   ! as given by the psp file
+
+! Real (real(dp)) arrays
+
+  real(dp), pointer :: ekb(:,:)  
+   ! ekb(dimekb,ntypat*(1-usepaw))
+   !  ->NORM-CONSERVING PSPS ONLY:
+   !    (Real) Kleinman-Bylander energies (hartree)
+   !           for number of basis functions (l,n) (lnmax)
+   !           and number of atom types (ntypat)
+   ! NOTE (MT) : ekb (norm-conserving) is now diagonal (one dimension
+   !             lnmax); it would be easy to give it a second
+   !             (symmetric) dimension by putting
+   !             dimekb=lnmax*(lnmax+1)/2
+   !             in the place of dimekb=lmnmax.
+
+  real(dp), pointer :: ffspl(:,:,:,:)  
+   ! ffspl(mqgrid_ff,2,lnmax,ntypat)
+   ! Gives, on the radial grid, the different non-local projectors,
+   ! in both the norm-conserving case, and the PAW case
+
+  real(dp), pointer :: mixalch(:,:)  
+   ! mixalch(npspalch,ntypalch)
+   ! Mixing coefficients to generate alchemical pseudo atoms
+
+  real(dp), pointer :: qgrid_ff(:)  
+   ! qgrid_ff(mqgrid_ff)
+   ! The coordinates of all the points of the radial grid for the nl form factors
+
+  real(dp), pointer :: qgrid_vl(:)  
+   ! qgrid_vl(mqgrid_vl)
+   ! The coordinates of all the points of the radial grid for the local part of psp
+
+  real(dp), pointer :: vlspl(:,:,:)  
+   ! vlspl(mqgrid_vl,2,ntypat)
+   ! Gives, on the radial grid, the local part of each type of psp.
+
+  real(dp), pointer :: dvlspl(:,:,:)  
+   ! dvlspl(mqgrid_vl,2,ntypat)
+   ! Gives, on the radial grid, the first derivative of the local
+   ! part of each type of psp (computed when the flag 'vlspl_recipSpace' is true).
+
+  real(dp), pointer :: xcccrc(:)  
+   ! xcccrc(ntypat)
+   ! Gives the maximum radius of the pseudo-core charge, for each type of psp.
+
+  real(dp), pointer :: xccc1d(:,:,:)  
+   ! xccc1d(n1xccc*(1-usepaw),6,ntypat)
+   ! Norm-conserving psps only
+   ! The component xccc1d(n1xccc,1,ntypat) is the pseudo-core charge
+   ! for each type of atom, on the radial grid. The components
+   ! xccc1d(n1xccc,ideriv,ntypat) give the ideriv-th derivative of the
+   ! pseudo-core charge with respect to the radial distance.
+
+  real(dp), pointer :: zionpsp(:)  
+   ! zionpsp(npsp)
+   ! For each pseudopotential, the ionic pseudo-charge
+   ! (giving raise to a long-range coulomb potential)
+
+  real(dp), pointer :: ziontypat(:)  
+   ! ziontypat(ntypat)
+   !  For each type of atom (might be alchemy wrt psps), the ionic pseudo-charge
+   ! (giving raise to a long-range coulomb potential)
+
+  real(dp), pointer :: znuclpsp(:)  
+   ! znuclpsp(npsp)
+   ! The atomic number of each pseudopotential
+
+  real(dp), pointer :: znucltypat(:)  
+   ! znucltypat(ntypat)
+   ! The atomic number of each type of atom (might be alchemy wrt psps)
+
+! Character arrays
+
+  character(len=fnlen), pointer :: filpsp(:)  
+   ! filpsp(ntypat)
+   ! The filename of the pseudopotential
+
+  character(len=fnlen), pointer :: title(:)   
+   ! title(ntypat)
+   ! The content of first line read from the psp file
+
+  type(pseudopotential_gth_type) :: gth_params
+   ! Types for pseudo-potentials that are based on parameters. Currently, only
+   ! GTH are supported (see pseudopotential_gth_type). To add one, one should
+   ! create an initialisation method and a destruction method in 02psp (see
+   ! psp2params.F90). These methods are called in driver().
+
+ end type pseudopotential_type
+!!***
+
+!----------------------------------------------------------------------
+
+!!****t* defs_datatypes/pspheader_paw_type
+!! NAME
+!! pspheader_paw_type
+!!
+!! FUNCTION
+!! The pspheader_paw_type structured datatype gather additional information
+!! about a PAW pseudopotential file, from its header.
+!!
+!! SOURCE
+
+ type pspheader_paw_type
+
+! WARNING : if you modify this datatype, please check whether there might be creation/destruction/copy routines,
+! declared in another part of ABINIT, that might need to take into account your modification.
+
+  integer :: basis_size    ! Number of elements of the wf basis ((l,n) quantum numbers)
+  integer :: l_size        ! Maximum value of l+1 leading to a non zero Gaunt coefficient
+  integer :: lmn_size      ! Number of elements of the paw basis
+  integer :: mesh_size     ! Dimension of (main) radial mesh
+  integer :: pawver        ! Version number of paw psp format
+  integer :: shape_type    ! Type of shape function
+  real(dp) :: rpaw         ! Radius for paw spheres
+  real(dp) :: rshp         ! Cut-off radius of shape function
+
+ end type pspheader_paw_type
+!!***
+
+!----------------------------------------------------------------------
+
+!!****t* defs_datatypes/pspheader_type
+!! NAME
+!! pspheader_type
+!!
+!! FUNCTION
+!! The pspheader_type structured datatype gather different information
+!! about a pseudopotential file, from its header.
+!!
+!! SOURCE
+
+ type pspheader_type
+
+! WARNING : if you modify this datatype, please check whether there might be creation/destruction/copy routines,
+! declared in another part of ABINIT, that might need to take into account your modification.
+
+  integer :: nproj(0:3) ! number of scalar projectors for each angular momentum
+  integer :: nprojso(3) ! number of spin-orbit projectors for each angular momentum
+  integer :: lmax       ! maximum l quantum number (-1 if only local)
+                        ! Example : s only       -> lmax=0
+                        !           s and p      -> lmax=1
+                        !           d only       -> lmax=2
+  integer :: pspcod     ! code number of the pseudopotential
+  integer :: pspdat     ! date of generation of the pseudopotential
+  integer :: pspxc      ! exchange-correlation functional
+  integer :: pspso      ! spin-orbit characteristics
+  integer :: xccc       ! =0 if no XC core correction, non-zero if XC core correction
+
+  real(dp) :: zionpsp       ! charge of the ion made of core electrons only
+  real(dp) :: znuclpsp      ! atomic number of the nuclei
+
+  real(dp) :: GTHradii(0:4) ! Radii values for GTH (and HGH) family potentials
+
+  character(len=fnlen) :: filpsp   ! name of the psp file
+  character(len=fnlen) :: title    ! content of first line read from the psp file
+
+  type(pspheader_paw_type) :: pawheader ! only for PAW psps. See above
+
+ end type pspheader_type
 !!***
 
 !----------------------------------------------------------------------
@@ -768,76 +905,7 @@ type dataset_type
  real(dp) :: bs_freq_mesh(3)
 !END VARIABLES FOR @Bethe-Salpeter.
 
- ! Types
- type(wvl_internalVars_type) :: wvl
-
  end type dataset_type
-!!***
-
-!----------------------------------------------------------------------
-
-!!****t* defs_abitypes/bandfft_kpt_type
-!! NAME
-!! bandfft_kpt_type
-!!
-!! FUNCTION
-!! The bandfft_kpt_type structured datatype gather different information
-!! about the triple band-fft-kpt parallelisation :
-!! tabs which are distributed over all the three dimensions and stored during
-!! the calculation, dimensions of messages exchange during the calculations...
-!! i.e.: all the informations which were spread over the entire code before and
-!! recomputed at each iline, istep or itime STEP with a large probability to
-!! make a mistake.
-!!
-!! SOURCE
-
- type bandfft_kpt_type
-
-! WARNING : if you modify this datatype, please check whether there might be creation/destruction/copy routines,
-! declared in another part of ABINIT, that might need to take into account your modification.
-
-  integer :: flag1_is_allocated             ! determine if the following data are allocated or not
-  integer :: npw_tot                        ! array holding the total number of plane waves for each k point
-  integer :: ndatarecv                      ! total number of values received by the processor and sent
-                                            ! by the other processors band
-  integer, pointer :: kg_k_gather(:,:)      ! planewave coordinates
-                                            ! (of the processor + sent by other processors band)
-  integer, pointer :: recvcounts(:)         ! number of values received by the  processor from each processor band
-  integer, pointer :: sendcounts(:)         ! number of values sent   by the  processor to   each processor band
-  integer, pointer :: rdispls   (:)         ! positions of values received by the processor from each processor band
-  integer, pointer :: sdispls   (:)         ! postions of values sent by the processor to each processor band
-  integer, pointer :: gbound(:,:)           ! sphere boundary info: gbound(2*mgfft+8,2)
-
-  integer, pointer :: ind_kg_mpi_to_seq(:)  ! ind_kg_mpi_to_seq(nkpt)
-                                            ! in case of //band and //fft, for each processor,
-                                            ! index of kg in the numerotation of the sequentiel mode
-
-
-  integer :: flag2_is_allocated             ! determine if the following data are allocated or not
-  real(dp), pointer :: ffnl_gather(:,:,:,:) ! ffnl tab (of the processor + sent by other processors band)
-  real(dp), pointer :: kinpw_gather(:)      ! kinpw tab (of the processor + sent by other processors band)
-  real(dp), pointer :: ph3d_gather(:,:,:)   ! ph3d tab (of the processor + sent by other processors band)
-  real(dp), pointer :: kpg_k_gather(:,:)    ! kpg_k tab (of the processor + sent by other processors band)
-
-
-  integer :: flag3_is_allocated             ! determine if the following data are allocated or not
-  integer :: istwf_k                        ! input option parameter that describes the storage of wfs
-  integer :: idatarecv0                     ! position of the planewave coordinates (0,0,0)
-  integer :: ndatarecv_tot                  ! total number of received values by the processor
-                                            ! (ndatarecv   + number of received opposited planewave coordinates)
-  integer :: ndatasend_sym                  ! number of sent values to the processors fft to create opposited
-                                            ! planewave coordinates
-  integer, pointer :: kg_k_gather_sym(:,:)  ! planewave coordinates
-                                            ! (kg_k_gather + opposited planewave coordinates sent by the processors fft)
-  integer, pointer :: rdispls_sym(:)        ! positions of values received by the processor from each processor fft
-  integer, pointer :: recvcounts_sym(:)     ! number of values received by the  processor from each processor fft
-  integer, pointer :: recvcounts_sym_tot(:) ! number of values received by each processor from the  other processors fft
-  integer, pointer :: sdispls_sym(:)        ! postions of values sent by the processor to each processor fft
-  integer, pointer :: sendcounts_sym(:)     ! number of values sent   by the  processor to each processor fft
-  integer, pointer :: sendcounts_sym_all(:) ! number of values sent   by each processor to the other processors fft
-  integer, pointer :: tab_proc(:)           ! positions of opposited planewave coordinates in the list of the processors fft
-
- end type bandfft_kpt_type
 !!***
 
 !----------------------------------------------------------------------
@@ -988,11 +1056,6 @@ type dataset_type
   integer :: flag_ind_kg_mpi_to_seq
    ! flag to activate the building of bandfft_kpt(:)%ind_kg_mpi_to_seq
 
-  type(bandfft_kpt_type), pointer :: bandfft_kpt(:)
-   ! bandfft_kpt(mkmem)
-   ! Contains all the informations related to the band/FFT parallelism which depends on kpt
-   ! exists only if mpi_enreg%paral_kgb==1
-
   integer, pointer :: tab_kpt_distrib(:)
    ! tab_kpt_distrib(nkpt)
    ! Indicates the correspondence between the ikpt and ikpt_this_proc
@@ -1093,271 +1156,5 @@ type dataset_type
 
 !----------------------------------------------------------------------
 
-!!****t* defs_datatypes/datafiles_type
-!! NAME
-!! datafiles_type
-!!
-!! FUNCTION
-!! The datafiles_type structures datatype gather all the variables related
-!! to files, such as filename, and file units.
-!! For one dataset, it is initialized in driver.F90, and will not change
-!! at all during the treatment of the dataset.
-!!
-!! SOURCE
-
- type datafiles_type
-
-! WARNING : if you modify this datatype, please check whether there might be creation/destruction/copy routines,
-! declared in another part of ABINIT, that might need to take into account your modification.
-
-
-  integer :: ireadden
-   ! ireadden non-zero  if the den file must be read
-
-  integer :: ireadkden
-   ! ireadkden non-zero  if the kden file must be read
-
-  integer :: ireadwf
-   ! if(optdriver/=1), that is, no response-function computation,
-   !   ireadwf non-zero  if the wffk file must be read
-   !   (if irdwfk non-zero or getwfk non-zero)
-   ! if(optdriver==1), that is, response-function computation,
-   !   ireadwf non-zero  if the wff1 file must be read
-   !   (if ird1wf non-zero or get1wf non-zero)
-
-  integer :: unchi0  ! unit number for chi0 files
-  integer :: unddb   ! unit number for Derivative DataBase
-  integer :: unddk   ! unit number for ddk 1WF file
-  integer :: unem1ggp! unit number for Epsilon minus one (G,Gp) file
-  integer :: unkg    ! unit number for k+G data
-  integer :: unkgq   ! unit number for k+G+q data
-  integer :: unkg1   ! unit number for first-order k+G+q data
-  integer :: unkss   ! unit number for KSS file
-  integer :: unqps   ! unit number for QPS file
-  integer :: unscr   ! unit number for SCR file
-  integer :: unwff1  ! unit number for wavefunctions, number one
-  integer :: unwff2  ! unit number for wavefunctions, number two
-  integer :: unwffgs ! unit number for ground-state wavefunctions
-  integer :: unwffkq ! unit number for k+q ground-state wavefunctions
-  integer :: unwft1  ! unit number for wavefunctions, temporary one
-  integer :: unwft2  ! unit number for wavefunctions, temporary two
-  integer :: unwftgs ! unit number for ground-state wavefunctions, temporary
-  integer :: unwftkq ! unit number for k+q ground-state wavefunctions, temporary
-  integer :: unylm   ! unit number for Ylm(k) data
-  integer :: unylm1  ! unit number for first-order Ylm(k+q) data
-  integer :: unpaw   ! unit number for temporary PAW data (for ex. rhoij_nk) (Paw only)
-  integer :: unpaw1  ! unit number for temporary PAW first-order cprj1=<c1_k,q|p>(1) data
-  integer :: unpawq  ! unit number for temporary PAW cprjq=<c+_k+q|p> at k+qdata
-  integer :: unpos   ! unit number for restart molecular dynamics
-
-  character(len=fnlen) :: filnam_ds(5)
-   ! if no dataset mode, the five names from the standard input :
-   !   ab_in, ab_out, abi, abo, tmp
-   ! if dataset mode, the same 5 filenames, appended with //'_DS'//trim(jdtset)
-
-  character(len=fnlen) :: filchi0
-   ! The name of the KS independent-particle polarizability to be read (see driver.F90) 
-   ! if no dataset mode             : abi//'SUS'
-   ! if dataset mode, and getsuscep==0 : abi//'_DS'//trim(jdtset)//'SUS'
-   ! if dataset mode, and getsuscep/=0 : abo//'_DS'//trim(jgetsuscep)//'SUS'
-
-  character(len=fnlen) :: fildensin
-   ! if no dataset mode             : abi//'DEN'
-   ! if dataset mode, and getden==0 : abi//'_DS'//trim(jdtset)//'DEN'
-   ! if dataset mode, and getden/=0 : abo//'_DS'//trim(jgetden)//'DEN'
-
-  character(len=fnlen) :: filkdensin
-   ! if no dataset mode             : abi//'KDEN'
-   ! if dataset mode, and getden==0 : abi//'_DS'//trim(jdtset)//'KDEN'
-   ! if dataset mode, and getden/=0 : abo//'_DS'//trim(jgetden)//'KDEN'
-
-  character(len=fnlen) :: filvhain
-   ! if no dataset mode             : abi//'VHA'
-   ! if dataset mode, and getden==0 : abi//'_DS'//trim(jdtset)//'VHA'
-   ! if dataset mode, and getden/=0 : abo//'_DS'//trim(jgetden)//'VHA'
-
-  character(len=fnlen) :: filkss
-   ! The name of the Kohn-Sham structure file to be read (see driver.F90) 
-   ! if no dataset mode             : abi//'KSS'
-   ! if dataset mode, and getkss==0 : abi//'_DS'//trim(jdtset)//'KSS'
-   ! if dataset mode, and getkss/=0 : abo//'_DS'//trim(jgetkss)//'KSS'
-
-  character(len=fnlen) :: filqps
-   ! The name of the Quasi-Particle structure file to be read (see driver.F90) 
-   ! if no dataset mode             : abi//'QPS'
-   ! if dataset mode, and getqps==0 : abi//'_DS'//trim(jdtset)//'QPS'
-   ! if dataset mode, and getqps/=0 : abo//'_DS'//trim(jgetqps)//'QPS'
-
-  character(len=fnlen) :: filscr
-   ! The name of the SCReening file (symmetrized inverse dielectric matrix) to be read (see driver.F90) 
-   ! if no dataset mode             : abi//'SCR'
-   ! if dataset mode, and getscr==0 : abi//'_DS'//trim(jdtset)//'SCR'
-   ! if dataset mode, and getscr/=0 : abo//'_DS'//trim(jgetscr)//'SCR'
-
-! character(len=fnlen) :: filpsp(ntypat)
-   ! the filenames of the pseudopotential files, from the standard input.
-
-  character(len=fnlen) :: filstat
-   ! tmp//'_STATUS'
-
-  character(len=fnlen) :: fnamewffk
-   ! the name of the ground-state wavefunction file to be read (see driver.F90)
-
-  character(len=fnlen) :: fnamewffq
-   ! the name of the k+q ground-state wavefunction file to be read (see driver.F90)
-   ! only useful in the response-function case
-
-  character(len=fnlen) :: fnamewffddk
-   ! the generic name of the ddk response wavefunction file(s) to be read (see driver.F90)
-   ! (the final name is formed by appending the number of the perturbation)
-   ! only useful in the response-function case
-
-  character(len=fnlen) :: fnamewff1
-   ! the generic name of the first-order wavefunction file(s) to be read (see driver.F90)
-   ! (the final name is formed by appending the number of the perturbation)
-   ! only useful in the response-function case
-
-  character(len=fnlen) :: fildens1in   ! to be described by MVeithen
-
-  character(len=fnlen) :: fname_tdwf   
-
-  character(len=fnlen) :: fname_w90
-
-  character(len=fnlen) :: fnameabi_hes
-  character(len=fnlen) :: fnameabi_phfrq
-  character(len=fnlen) :: fnameabi_phvec
-
-  character(len=fnlen) :: fnametmp_wf1
-  character(len=fnlen) :: fnametmp_wf2
-  character(len=fnlen) :: fnametmp_1wf1
-  character(len=fnlen) :: fnametmp_1wf2
-  character(len=fnlen) :: fnametmp_wfgs
-  character(len=fnlen) :: fnametmp_wfkq
-   ! Set of filemanes formed from trim(dtfil%filnam_ds(5))//APPEN where APPEN is _WF1, _WF2 ... 
-   ! See dtfil_init
-
-  character(len=fnlen) :: fnametmp_kg
-  character(len=fnlen) :: fnametmp_kgq
-  character(len=fnlen) :: fnametmp_kg1
-  character(len=fnlen) :: fnametmp_dum
-  character(len=fnlen) :: fnametmp_ylm
-  character(len=fnlen) :: fnametmp_ylm1
-  character(len=fnlen) :: fnametmp_paw
-  character(len=fnlen) :: fnametmp_paw1
-  character(len=fnlen) :: fnametmp_pawq
-   ! Set of filemanes formed from trim(dtfil%filnam_ds(5))//APPEN where APPEN is _KG, _DUM, followed
-   ! by the index of the processor. 
-   ! See dtfil_init
-
-  character(len=fnlen) :: fnametmp_cg
-  character(len=fnlen) :: fnametmp_cprj
-  character(len=fnlen) :: fnametmp_eig
-  character(len=fnlen) :: fnametmp_1wf1_eig
-  character(len=fnlen) :: fnametmp_fft
-  character(len=fnlen) :: fnametmp_kgs
-  character(len=fnlen) :: fnametmp_sustr
-  character(len=fnlen) :: fnametmp_tdexcit
-  character(len=fnlen) :: fnametmp_tdwf
-
-!@Bethe-Salpeter 
-! New files introduced for the Bethe-Salpeter part.
-
-!  character(len=fnlen) :: filresobsham
-!   ! if no dataset mode             : abi//'RESONANT_BS_HAM'
-!   ! if dataset mode, and get_reso_bsham==0 : abi//'_DS'//trim(jdtset)//'RESONANT_BS_HAM'
-!   ! if dataset mode, and get_reso_bsham/=0 : abo//'_DS'//trim(jget_reso_bsham)//'RESONANT_BS_HAM'
-
-!  character(len=fnlen) :: filcoupbsham
-!   ! if no dataset mode             : abi//'COUPLING_BS_HAM'
-!   ! if dataset mode, and get_coup_bsham==0 : abi//'_DS'//trim(jdtset)//'COUPLING_BS_HAM'
-!   ! if dataset mode, and get_coup_bsham/=0 : abo//'_DS'//trim(jget_coup_bsham)//'COUPLING_BS_HAM'
-!
-  character(len=fnlen) :: filbseig
-   ! The name of the file containing the eigenstates and eigenvalues of the Bethe-Salpeter Hamiltonian 
-   ! or the iterative subspace generated by the Haydock method. (see driver.F90) 
-   ! if no dataset mode             : abi//'BS_EIG'
-   ! if dataset mode, and getbseig==0 : abi//'_DS'//trim(jdtset)//'BS_EIG'
-   ! if dataset mode, and getbseig/=0 : abo//'_DS'//trim(jget_bseig)//'BS_EIG'
-
-!END @BEthe-Salpeter
-
-!The following filenames do not depend on itimimage, iimage and itime loops.
-
-  character(len=fnlen) :: fnameabo_ae_wfk
-  character(len=fnlen) :: fnameabo_ddb
-  character(len=fnlen) :: fnameabo_den
-  character(len=fnlen) :: fnameabo_dos
-  character(len=fnlen) :: fnameabo_eelf
-  character(len=fnlen) :: fnameabo_eig
-  character(len=fnlen) :: fnameabo_eigi2d
-  character(len=fnlen) :: fnameabo_eigr2d
-  character(len=fnlen) :: fnameabo_em1
-  character(len=fnlen) :: fnameabo_em1_lf
-  character(len=fnlen) :: fnameabo_em1_nlf
-  character(len=fnlen) :: fnameabo_exc_mdf
-  character(len=fnlen) :: fnameabo_gkk
-  character(len=fnlen) :: fnameabo_gw
-  character(len=fnlen) :: fnameabo_gw_nlf_mdf
-  character(len=fnlen) :: fnameabo_kss
-  character(len=fnlen) :: fnameabo_moldyn
-  character(len=fnlen) :: fnameabo_pot
-  character(len=fnlen) :: fnameabo_qps
-  character(len=fnlen) :: fnameabo_qps_ks
-  character(len=fnlen) :: fnameabo_qp_den
-  character(len=fnlen) :: fnameabo_qp_dos
-  character(len=fnlen) :: fnameabo_qp_eig
-  character(len=fnlen) :: fnameabo_rpa
-  character(len=fnlen) :: fnameabo_rpa_nlf_mdf
-  character(len=fnlen) :: fnameabo_scr
-  character(len=fnlen) :: fnameabo_sgm
-  character(len=fnlen) :: fnameabo_sgr
-  character(len=fnlen) :: fnameabo_sig
-  character(len=fnlen) :: fnameabo_spcur
-  character(len=fnlen) :: fnameabo_sus
-  character(len=fnlen) :: fnameabo_vso
-  character(len=fnlen) :: fnameabo_wan
-  character(len=fnlen) :: fnameabo_wfk
-  character(len=fnlen) :: fnameabo_wfq
-  character(len=fnlen) :: fnameabo_w90
-  character(len=fnlen) :: fnameabo_1wf
-
-!The following filenames are initialized only iniside itimimage, iimage and itime loops,
-!and are appended with the adequate specifier 'app'.
-
-  character(len=fnlen) :: fnameabo_app
-  character(len=fnlen) :: fnameabo_app_atmden_core
-  character(len=fnlen) :: fnameabo_app_atmden_full
-  character(len=fnlen) :: fnameabo_app_atmden_val
-  character(len=fnlen) :: fnameabo_app_bxsf
-  character(len=fnlen) :: fnameabo_app_cml_xml
-  character(len=fnlen) :: fnameabo_app_den
-  character(len=fnlen) :: fnameabo_app_dos
-  character(len=fnlen) :: fnameabo_app_elf
-  character(len=fnlen) :: fnameabo_app_elf_down
-  character(len=fnlen) :: fnameabo_app_elf_up
-  character(len=fnlen) :: fnameabo_app_eig
-  character(len=fnlen) :: fnameabo_app_fatbands
-  character(len=fnlen) :: fnameabo_app_gden1
-  character(len=fnlen) :: fnameabo_app_gden2
-  character(len=fnlen) :: fnameabo_app_gden3
-  character(len=fnlen) :: fnameabo_app_geo
-  character(len=fnlen) :: fnameabo_app_kden
-  character(len=fnlen) :: fnameabo_app_lden
-  character(len=fnlen) :: fnameabo_app_pawden
-  character(len=fnlen) :: fnameabo_app_pot
-  character(len=fnlen) :: fnameabo_app_opt
-  character(len=fnlen) :: fnameabo_app_opt2
-  character(len=fnlen) :: fnameabo_app_stm
-  character(len=fnlen) :: fnameabo_app_vha
-  character(len=fnlen) :: fnameabo_app_vhxc
-  character(len=fnlen) :: fnameabo_app_vxc
-  character(len=fnlen) :: fnameabo_app_wfk
-  character(len=fnlen) :: fnameabo_app_1dm
-
-  character(len=fnlen) :: fnametmp_app_den
-  character(len=fnlen) :: fnametmp_app_kden
-
- end type datafiles_type
-
-end module defs_abitypes
+end module defs_datatypes
 !!***

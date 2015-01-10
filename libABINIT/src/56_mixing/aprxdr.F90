@@ -59,7 +59,6 @@ subroutine aprxdr(cplex,choice,dedv_mix,dedv_new,dedv_old,&
 &  natom,nfft,nfftot,nspden,n_fftgr,rhor,ucvol,xred,fdot,user_data)
 
  use defs_basis
- use defs_abitypes
  use defs_datatypes
  use interfaces_56_mixing, except_this_one => aprxdr
 

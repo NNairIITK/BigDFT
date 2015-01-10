@@ -66,7 +66,6 @@ subroutine dotprodm_v(cplex,cpldot,dot,index1,index2,mpi_comm,mpi_summarize,&
      & mult1,mult2,nfft,npot1,npot2,nspden,opt_storage,potarr1,potarr2)
 
  use defs_basis
- use defs_abitypes
  use abi_m_xmpi
 
  implicit none
