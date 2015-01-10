@@ -31,41 +31,17 @@
 !!  rmet(3,3)=real space metric ($\textrm{bohr}^{2}$).
 !!  ucvol=unit cell volume ($\textrm{bohr}^{3}$).
 !!
-!! SIDE EFFECTS
-!!
-!! NOTES
-!!
-!! PARENTS
-!!      afterscfloop,brdmin,chkinp,conducti_nc,conducti_paw,delocint,dyfnl3
-!!      eltfrhar3,eltfrkin3,eltfrnl3,eltfrxc3,energy,forces,forstrnps,getkgrid
-!!      gw_tools,hirsh,ingeo,initaim,inkpts,invacuum,invars2m,ladielmt,lavnl
-!!      linear_optics_paw,localorb_S,loper3,m_bz_mesh,m_coulombian,m_crystal
-!!      m_gwannier,m_screening,m_wannier2abinit,make_epsm1_driver,mlwfovlp_qp
-!!      moddiel,moldyn,mrgscr,newrho,newsp,newvtr,newvtr3,nres2vres,optic
-!!      overlap_wf,partial_dos_fractions,pawgrnl,prcref,prcref_PMA,prctfvw1
-!!      prctfvw2,prctfw3,rdddb9,rdm,rhohxc,scfcv,scfcv3,screening,setup1
-!!      setup_screening,setup_sigma,sigma,stress,suscep,testkgrid,tetrahedron
-!!      wannier,wffile,wfread,xfpack
-!!
-!! CHILDREN
-!!      abi_leave_new,matr3inv,abi_wrtout
-!!
 !! SOURCE
 
 #if defined HAVE_CONFIG_H
-#include "config.inc"
+#include "config.h"
 #endif
 
 subroutine metric(gmet,gprimd,iout,rmet,rprimd,ucvol)
 
  use defs_basis
-
-!This section has been created automatically by the script Abilint (TD).
-!Do not modify the following lines by hand.
- use interfaces_14_hidewrite
- use interfaces_16_hideleave
+ use abi_interfaces_lowlevel
  use interfaces_32_util
-!End of the abilint section
 
  implicit none
 
@@ -85,10 +61,6 @@ subroutine metric(gmet,gprimd,iout,rmet,rprimd,ucvol)
  real(dp) :: angle(3)
 
 ! *************************************************************************
-
-!DEBUG
-!write(6,*)' metric : enter '
-!ENDDEBUG
 
 !Compute unit cell volume
  ucvol=rprimd(1,1)*(rprimd(2,2)*rprimd(3,3)-rprimd(3,2)*rprimd(2,3))+&

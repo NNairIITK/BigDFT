@@ -6,12 +6,6 @@
 !! FUNCTION
 !!  Routine for clean exit of f90 code, taking into account possible parallelization.
 !!
-!!  Note the this routine is private and should never be called explicitly. 
-!!  Please, use the macros:
-!!    MSG_ERROR, MSG_BUG 
-!!  defined in abi_common.h to abort the execution.
-!!  XG : this is not true, in very rare cases, ABINIT has to exit without giving an error (e.g. for non-zero prtkpt )
-!!
 !! INPUTS
 !!  exit_status=(optional, default=1 or -1, see below) the return code of the routine
 !!  mode_paral=
@@ -32,22 +26,14 @@
 #include "config.h"
 #endif
 
-#include "abi_common.h"
-
-
 subroutine abi_leave_new(mode_paral,exit_status)
 
  use defs_basis
- use m_abi_xmpi
+ use abi_interfaces_lowlevel, except_this_one => abi_leave_new
+ use abi_m_xmpi
 
- !use m_build_info,      only : dump_config
-
-!This section has been created automatically by the script Abilint (TD).
-!Do not modify the following lines by hand.
 #undef ABI_FUNC
 #define ABI_FUNC 'abi_leave_new'
- use interfaces_14_hidewrite
-!End of the abilint section
 
  implicit none
 

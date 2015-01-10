@@ -54,29 +54,17 @@
 !! For the detailed description of the labelling of the axes,
 !! see symaxes.f and symplanes.f
 !!
-!! PARENTS
-!!      ingeo
-!!
-!! CHILDREN
-!!      abi_leave_new,spgdata,symaxes,symdet,symlist_bcc,symlist_fcc,symlist_others
-!!      symlist_prim,symplanes,symrelrot,abi_wrtout,xredxcart
-!!
 !! SOURCE
 
 #if defined HAVE_CONFIG_H
-#include "config.inc"
+#include "config.h"
 #endif
 
 subroutine symspgr(bravais,nsym,spgroup,symrel,tnons,tolsym)
 
  use defs_basis
-
-!This section has been created automatically by the script Abilint (TD).
-!Do not modify the following lines by hand.
- use interfaces_14_hidewrite
- use interfaces_16_hideleave
+ use abi_interfaces_lowlevel
  use interfaces_42_geometry, except_this_one => symspgr
-!End of the abilint section
 
  implicit none
 
@@ -107,13 +95,6 @@ subroutine symspgr(bravais,nsym,spgroup,symrel,tnons,tolsym)
 
 !**************************************************************************
 
-!DEBUG
-!write(6,*)' symspgr : enter, nsym=',nsym
-!write(6,*)' symspgr : iholohedry, bravais(1)=',bravais(1)
-!write(6,*)' symspgr : center,     bravais(2)=',bravais(2)
-!stop
-!ENDDEBUG
-
 !Initialize brvltt, from bravais(2) and bravais(1)
  center=bravais(2)
  iholohedry=bravais(1)
@@ -139,13 +120,6 @@ subroutine symspgr(bravais,nsym,spgroup,symrel,tnons,tolsym)
  rprimdconv(:,3)=bravais(9:11)
 
  if(center/=0)rprimdconv(:,:)=rprimdconv(:,:)*half
-
-!DEBUG
-!write(6, '(a,3es16.6)' )' symspgr : rprimdconv(:,1)',rprimdconv(:,1)
-!write(6, '(a,3es16.6)' )' symspgr : rprimdconv(:,2)',rprimdconv(:,2)
-!write(6, '(a,3es16.6)' )' symspgr : rprimdconv(:,3)',rprimdconv(:,3)
-!write(6,*)' symspgr : before the translation'
-!ENDDEBUG
 
  axes(:,:)=zero
  axes(1,1)=one ; axes(2,2)=one ; axes(3,3)=one
@@ -198,11 +172,6 @@ subroutine symspgr(bravais,nsym,spgroup,symrel,tnons,tolsym)
 !Get the determinant
  call symdet(determinant,nsymconv,symrelconv)
 
-!DEBUG
-!write(6,*)' symspgr : before loop isym'
-!stop
-!ENDDEBUG
-
 !Get the order of each the symmetry operation, as well as the maximal order
 !Also, examine whether each symmetry operation is the inversion, or a root
 !of the inversion (like -3)
@@ -236,17 +205,6 @@ subroutine symspgr(bravais,nsym,spgroup,symrel,tnons,tolsym)
      call abi_wrtout(std_out,message,'COLL')
      call abi_leave_new('COLL')
    end if
-
-!  DEBUG
-!  if(order(isym)==2)then
-!  write(6,*)' isym =',isym
-!  write(6,*)'symrelconv=',symrelconv(:,1,isym)
-!  write(6,*)'symrelconv=',symrelconv(:,2,isym)
-!  write(6,*)'symrelconv=',symrelconv(:,3,isym)
-!  write(6, '(a,3es16.6)' )'tnonsconv =',tnonsconv(:,isym)
-!  write(6, '(a,3es16.6)' )'trialt =',trialt(:)
-!  end if
-!  ENDDEBUG
 
 !  Determination of the characteristics of proper symmetries (rotations)
    if(determinant(isym)==1)then
@@ -370,9 +328,6 @@ subroutine symspgr(bravais,nsym,spgroup,symrel,tnons,tolsym)
    end if ! determinant==1 or -1
 
    t_axes(isym)=type_axis
-!  DEBUG
-!  write(6,*)' isym, t_axis=',isym,t_axes(isym)
-!  ENDDEBUG
    n_axes(type_axis)=n_axes(type_axis)+1
 
  end do ! isym=1,nsymconv
@@ -386,13 +341,6 @@ subroutine symspgr(bravais,nsym,spgroup,symrel,tnons,tolsym)
    '  Please contact the ABINIT group.'
    call abi_wrtout(6,message,'COLL')
  end if
-
-!DEBUG
-!write(6,*)' symspgr : brvltt,nsymconv=',brvltt,nsymconv
-!write(6,*)' n_axes(1:10)=',n_axes(1:10)
-!write(6,*)' n_axes(11:20)=',n_axes(11:20)
-!write(6,*)' n_axes(21:31)=',n_axes(21:31)
-!ENDDEBUG
 
 !Treat cases in which the space group cannot be identified on the
 !basis of n_axes one need additional informations
@@ -545,11 +493,6 @@ subroutine symspgr(bravais,nsym,spgroup,symrel,tnons,tolsym)
 
  deallocate(determinant,order)
  deallocate(shift,symrelconv,tnonsconv,t_axes)
-
-!DEBUG
-!write(6,*)' symspgr : exit'
-!stop
-!ENDDEBUG
 
 end subroutine symspgr
 !!***

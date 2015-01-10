@@ -34,15 +34,10 @@
 !!   cell translation ("equivalent atom")
 !! transl(3)=primitive cell translation to make iatom same as tratom (integers)
 !!
-!! PARENTS
-!!      symatm
-!!
-!! CHILDREN
-!!
 !! SOURCE
 
 #if defined HAVE_CONFIG_H
-#include "config.inc"
+#include "config.h"
 #endif
 
 subroutine symchk(difmin,eatom,natom,tratom,transl,trtypat,typat,xred)

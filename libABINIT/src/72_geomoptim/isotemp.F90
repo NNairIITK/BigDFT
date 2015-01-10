@@ -34,12 +34,6 @@
 !! Glenn J Martyna et al.
 !! Mol. Phys., 1996, Vol. 87, pp. 1117-1157
 !!
-!! PARENTS
-!!      moldyn
-!!
-!! CHILDREN
-!!      dsyev
-!!
 !! SOURCE
 
 subroutine isotemp(amass,dtion,ekin,iatfix,ktemp,mttk_vars,natom,nnos,qmass,vel)
@@ -135,10 +129,6 @@ subroutine isotemp(amass,dtion,ekin,iatfix,ktemp,mttk_vars,natom,nnos,qmass,vel)
  mttk_vars%vlogs(:)=vlogs(:)
  mttk_vars%xlogs(:)=xlogs(:)
  deallocate(glogs,vlogs,xlogs)
-!DEBUG
-!write(6,*)'ekin added',half*qmass(1)*vlogs(1)**2,xlogs(1)*(nfree)*ktemp
-!ENDEBUG
-
 
 end subroutine isotemp
 
@@ -177,17 +167,13 @@ end subroutine isotemp
 !! Explicit integrators for extended systems dynamics
 !! Glenn J Martyna et al.
 !! Mol. Phys., 1996, Vol. 87, pp. 1117-1157
-!! PARENTS
-!!      moldyn
-!!
-!! CHILDREN
-!!      dsyev
 !!
 !! SOURCE
-subroutine isopress(amass,dtion,ekin,iatfix,ktemp,natom,nnos,qmass,strten,strtarget,ucvol,mttk_vars,vel,vlogv,vmass)
+
+subroutine isopress(amass,dtion,ekin,iatfix,ktemp,natom,nnos,qmass,strten,strtarget, &
+&                   ucvol,mttk_vars,vel,vlogv,vmass)
 
  use defs_basis
-!,isotemp_data)
  use defs_datatypes
  use defs_abitypes
 
@@ -297,11 +283,7 @@ subroutine isopress(amass,dtion,ekin,iatfix,ktemp,natom,nnos,qmass,strten,strtar
  ekin=ekin+half*vmass*vlogv**2+prtarget*ucvol
  
  deallocate(glogs,vlogs,xlogs)
-!DEBUG
-!write(6,*)'ekin added T',half*qmass(:)*vlogs(:)**2,xlogs(:)*(nfree)*ktemp
-!write(6,*)'ekin added P',half*vmass*vlogv**2,prtarget*ucvol
-!write(6,*)'ekin last',ekin
-!ENDDEBUG
+
 end subroutine isopress
 
 !!***
@@ -329,27 +311,26 @@ end subroutine isopress
 !!  prtarget= target pressure
 !!  ucvol= unit cell volume
 !!  vel= current velocity
+!!
 !! OUTPUT
 !!  Only updates variables
+!!
 !! SIDE EFFECTS
 !!  isotemp_data: updates the thermostat parameters (saved variables: bouh !)
 !!  vel=update the velocities
+!!
 !! NOTES
 !! This program is decribed in the following paper 
 !! Explicit integrators for extended systems dynamics
 !! Glenn J Martyna et al.
 !! Mol. Phys., 1996, Vol. 87, pp. 1117-1157
-!! PARENTS
-!!      moldyn
-!!
-!! CHILDREN
-!!      dsyev
 !!
 !! SOURCE
-subroutine isostress(amass,bmass,dtion,ekin,iatfix,ktemp,natom,nnos,qmass,strten,strtarget,ucvol,vel,mttk_vars)
+
+subroutine isostress(amass,bmass,dtion,ekin,iatfix,ktemp,natom,nnos,qmass,strten, &
+&                    strtarget,ucvol,vel,mttk_vars)
 
  use defs_basis
-!,isotemp_data)
  use defs_datatypes
  use defs_abitypes
 
@@ -380,12 +361,6 @@ subroutine isostress(amass,bmass,dtion,ekin,iatfix,ktemp,natom,nnos,qmass,strten
 !***************************************************************************
 !Beginning of executable session
 !***************************************************************************
-
-!DEBUG
-!write(6,*)' isostress : enter '
-!write(6,*)' strtarget=',strtarget
-!write(6,*)' strten=',strten
-!ENDDEBUG
 
  allocate(glogs(nnos),vlogs(nnos),xlogs(nnos))
  glogs(:)=mttk_vars%glogs(:)
@@ -450,12 +425,6 @@ subroutine isostress(amass,bmass,dtion,ekin,iatfix,ktemp,natom,nnos,qmass,strten
  end do
 !Update box velocity
  alocal=exp(-dtion/eight*vlogs(1))
-!DEBUG
-!write(6,*)' gboxg(:,:)=',gboxg(:,:)
-!write(6,*)' vboxg(:,:)=',vboxg(:,:)
-!write(6,*)' alocal=',alocal
-!ENDDEBUG
-
  vboxg(:,:)=vboxg(:,:)*alocal**2+dtion/four*gboxg(:,:)*alocal
 !Update the thermostat positions
  do inos=1,nnos
@@ -467,11 +436,6 @@ subroutine isostress(amass,bmass,dtion,ekin,iatfix,ktemp,natom,nnos,qmass,strten
  call dsyev('V','U',3,vtemp,3,veig,work,lwork,info)
 !On exit, we have vtemp=U such that tU vtemp U = veig
  tvtemp(:,:)=transpose(vtemp)
-!DEBUG
-!write(6,*)' vboxg(:,:)=',vboxg(:,:)
-!write(6,*)' vtemp(:,:)=',vtemp(:,:)
-!write(6,*)' veig(:)=',veig(:)
-!ENDDEBUG
  expdiag(1)=exp(-veig(1)*dtion/two)
  expdiag(2)=exp(-veig(2)*dtion/two)
  expdiag(3)=exp(-veig(3)*dtion/two)
@@ -561,11 +525,6 @@ subroutine isostress(amass,bmass,dtion,ekin,iatfix,ktemp,natom,nnos,qmass,strten
  mttk_vars%vlogs(:)=vlogs(:)
  mttk_vars%xlogs(:)=xlogs(:)
  deallocate(glogs,vlogs,xlogs)
-!DEBUG
-!write(6,*)'ekin added T',half*qmass(:)*vlogs(:)**2,xlogs(:)*(nfree)*ktemp
-!write(6,*)'ekin added P',akinb,prtarget*ucvol
-!write(6,*)'ekin last',ekin
-!ENDDEBUG
-end subroutine isostress
 
+end subroutine isostress
 !!***

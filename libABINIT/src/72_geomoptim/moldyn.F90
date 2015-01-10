@@ -147,14 +147,6 @@
 !!      For compatibility reasons, (nfftf,ngfftf,mgfftf)
 !!      are set equal to (nfft,ngfft,mgfft) in that case.
 !!
-!! PARENTS
-!!      gstate
-!!
-!! CHILDREN
-!!      chkexi,fconv,initylmg,abi_leave_new,metric,mkrdim,prtxvf,scfcv,status
-!!      write_header_moldynnetcdf,write_moldynvaluenetcdf,abi_wrtout,xfpack
-!!      xredxcart
-!!
 !! SOURCE
 
 subroutine moldyn(acell,amass,me,&
@@ -165,9 +157,8 @@ subroutine moldyn(acell,amass,me,&
 & nsym, symrel, &
 & vel,xfhist,fred,xred)
 
-  use interfaces_14_hidewrite
-
  use defs_basis
+ use abi_interfaces_lowlevel
  use defs_datatypes
 
  implicit none
@@ -527,11 +518,6 @@ subroutine moldyn(acell,amass,me,&
      call md_quenched_stop_atoms(amass, dtion, ekin_corr, fcart, iatfix, itime, &
           & natom, nstopped, rprimd, vel, vel_prevhalf, vel_nexthalf, &
           & xcart, xcart_next, xred_next)
-     !   Store xred_next, and eventual acell_next and rprim_next in vin
-!!$     option=1
-!!$     call xfpack(acell_next,acell0,fred_corrected,&
-!!$          &    natom,ndim,nsym,optcell,option,rprim_next,rprimd0,&
-!!$          &    strtarget,strten,symrel,ucvol_next,ucvol0,vin_next,vout,xred_next)
   end if
 
   if (ionmov==8) then
@@ -570,39 +556,6 @@ subroutine moldyn(acell,amass,me,&
   end if
 
   call scfloop_output(acell, etotal, ekin, fred, itime, me, natom, rprimd, vel, xred)
-
-! Writing outpout netcdf
-! the output is being done every nctime time
-!!$  if ( iproc == 0) then
-!!$   nb1 = size(strten)
-!!$   nbdir = size(xcart,1)
-!!$   if (dtset%nctime > 0)then
-!!$    if (itime == 0)then
-!!$     call  write_header_moldynnetcdf(dtfil, dtset, natom, nbdir, nb1 )
-!!$    end if
-!!$    if ( mod (itime, dtset%nctime ) == 0)then
-!!$     ipos = ipos +1
-!!$     call write_moldynvaluenetcdf(amass, ipos, dtfil, dtset, etotal, ekin, &
-!!$&     natom, nbdir, nb1, xcart, vel, strten, rprimd, ucvol )
-!!$     open(dtfil%unpos,file='POSABIN',status='replace',form='formatted')
-!!$     do iatom=1,natom
-!!$      if(iatom==1) then
-!!$       write(dtfil%unpos,'(a7,3d18.5)') 'xred  ',(xred_next(idim,iatom),idim=1,3)
-!!$      else
-!!$       write(dtfil%unpos,'(3d18.5)') (xred_next(idim,iatom),idim=1,3)
-!!$      end if
-!!$     end do
-!!$     do iatom=1,natom
-!!$      if(iatom==1) then
-!!$       write(dtfil%unpos,'(a7,3d18.5)') 'vel  ',(vel(idim,iatom),idim=1,3)
-!!$      else
-!!$       write(dtfil%unpos,'(3d18.5)') (vel(idim,iatom),idim=1,3)
-!!$      end if
-!!$     end do
-!!$     close(dtfil%unpos)
-!!$    end if
-!!$   end if
-!!$  end if
 
 ! Check whether forces and stresses are below tolerance; if so, exit
 ! from the itime loop
@@ -647,15 +600,6 @@ subroutine moldyn(acell,amass,me,&
  if(ionmov==13) then
   deallocate(mttk_vars%glogs,mttk_vars%vlogs,mttk_vars%xlogs)
  end if
-!Structured debugging : if prtvol=-level, stop here.
-!!$ if(prtvol==-level)then
-!!$  write(message,'(a1,a,a1,a,i1,a)') ch10,' moldyn : exit ',&
-!!$&  ch10,'  prtvol=-',level,', debugging mode => stop '
-!!$  call abi_wrtout(std_out,message,'COLL')
-!!$  call abi_leave_new('COLL')
-!!$ end if
-
- !!$ call status(0,dtfil%filstat,iexit,level,'exit          ')
 
 end subroutine moldyn
 !!***

@@ -3,7 +3,6 @@
 !! NAME
 !! dotprodm_vn
 !!
-!!
 !! FUNCTION
 !! For a set of densities and a set of potentials,
 !! compute the dot product (integral over FFT grid) of each pair, to obtain
@@ -71,12 +70,7 @@ subroutine dotprodm_vn(cplex,cpldot,denarr,dot,id,ip,mpi_comm, mpi_summarize,mul
 
  use defs_basis
  use defs_abitypes
- use m_abi_xmpi
-
-!This section has been created automatically by the script Abilint (TD).
-!Do not modify the following lines by hand.
- use interfaces_18_timing
-!End of the abilint section
+ use abi_m_xmpi
 
  implicit none
 
@@ -320,9 +314,7 @@ subroutine dotprodm_vn(cplex,cpldot,denarr,dot,id,ip,mpi_comm, mpi_summarize,mul
  end if ! nspden
 
  if (mpi_summarize) then
-   call timab(48,1,tsec)
    call abi_xmpi_sum(dot,mpi_comm ,ierr)
-   call timab(48,2,tsec)
  end if
 
  if(cpldot==2 .and. cplex==1)dot(2,:,:)=zero

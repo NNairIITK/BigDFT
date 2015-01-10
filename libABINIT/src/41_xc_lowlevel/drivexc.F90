@@ -10,7 +10,6 @@
 !! Optionally, deliver the XC kernel, or even the derivative
 !! of the XC kernel (the third derivative of the XC energy)
 !!
-!!
 !! COPYRIGHT
 !! Copyright (C) 2002-2010 ABINIT group (XG)
 !! This file is distributed under the terms of the
@@ -97,33 +96,22 @@
 !!    if nspden=1 d2vxc(npts,1)=second derivative of the XC potential=3rd order derivative of energy
 !!    if nspden=2 d2vxc(npts,1), d2vxc(npts,2), d2vxc(npts,3), d2vxc(npts,4) (3rd derivative of energy)
 !!
-!! PARENTS
-!!      pawxc,pawxcsph,rhohxc
-!!
-!! CHILDREN
-!!      invcb,abi_leave_new,libxc_functionals_getvxc,abi_wrtout,xchcth,xchelu,xclb
-!!      xcpbe,xcpzca,xcspol,xctetr,xcwign,xcxalp
-!!
 !! SOURCE
 
 #if defined HAVE_CONFIG_H
-#include "config.inc"
+#include "config.h"
 #endif
 
 subroutine drivexc(exc,ixc,npts,nspden,order,rho_updn,vxc,ndvxc,ngr2,nd2vxc,nvxcdgr,   & !Mandatory arguments
 &                  dvxc,d2vxc,grho2_updn,vxcgr,exexch,lrho_updn,vxclrho,tau_updn,vxctau)    !Optional arguments
 
  use defs_basis
+ use abi_interfaces_lowlevel
+ use interfaces_41_xc_lowlevel, except_this_one => drivexc
+
 #if defined HAVE_LIBXC
  use libxc_functionals
 #endif
-
-!This section has been created automatically by the script Abilint (TD).
-!Do not modify the following lines by hand.
- use interfaces_14_hidewrite
- use interfaces_16_hideleave
- use interfaces_41_xc_lowlevel, except_this_one => drivexc
-!End of the abilint section
 
  implicit none
 
@@ -152,10 +140,6 @@ subroutine drivexc(exc,ixc,npts,nspden,order,rho_updn,vxc,ndvxc,ngr2,nd2vxc,nvxc
 !real(dp),allocatable :: d2vxci(:,:),dvxci(:,:),grho2_updn_fake(:,:)
 
 !  *************************************************************************
-
-!DEBUG
-!write(6,*)' drivexc : enter '
-!ENDDEBUG
 
 !Checks the values of order
  if( (order<1 .and. order/=-2) .or. order>4)then
@@ -439,18 +423,6 @@ subroutine drivexc(exc,ixc,npts,nspden,order,rho_updn,vxc,ndvxc,ngr2,nd2vxc,nvxc
      end if
    end if
 
-!  !$
-!  !$
-!  !$  if(present(grho2_updn))then
-!  !$   call xcpbe(vxcgr,dvxci,exc,grho2_updn,npts,nspden,optpbe,&
-!  !$&   order,rho_updn,vxc,d2vxci)
-!  !$  else
-!  !$   allocate(grho2_updn_fake(npts,2*nspden-1))
-!  !$   call xcpbe(vxcgr,dvxci,exc,grho2_updn_fake,npts,nspden,optpbe,&
-!  !$&   order,rho_updn,vxc,d2vxci)
-!  !$   deallocate(grho2_updn_fake)
-!  !$  end if
-
  else if (ixc==10) then
 !  RPA correlation from Perdew-Wang
    if (order**2 <= 1) then
@@ -603,27 +575,10 @@ subroutine drivexc(exc,ixc,npts,nspden,order,rho_updn,vxc,ndvxc,ngr2,nd2vxc,nvxc
 #endif
  end if
 
-!!$ !Pass the output to the optional arrays
-!!$ if(abs(order)>1)then
-!!$  if(present(dvxc))then
-!!$   dvxc(:,:)=dvxci(:,1:size(dvxc,2))
-!!$  end if
-!!$ end if
-!!$
-!!$ if(abs(order)>2)then
-!!$  if(present(d2vxc))then
-!!$   d2vxc(:)=d2vxci(:)
-!!$  end if
-!!$ end if
-
 !Deallocate arrays
  if(allocated(rhotot))deallocate(rhotot)
  if(allocated(rspts))deallocate(rspts)
  if(allocated(zeta))deallocate(zeta)
-
-!DEBUG
-!write(6,*)' drivexc : exit '
-!ENDDEBUG
 
 end subroutine drivexc
 !!***

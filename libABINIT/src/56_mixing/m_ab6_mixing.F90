@@ -305,12 +305,6 @@
 
     subroutine ab7_mixing_eval_allocate(mix, istep)
 
-
-!This section has been created automatically by the script Abilint (TD).
-!Do not modify the following lines by hand.
- use interfaces_18_timing
-!End of the abilint section
-
       implicit none
 
       type(ab7_mixing_object), intent(inout) :: mix
@@ -329,12 +323,10 @@
          call memocc(i_stat, mix%f_fftgr, 'mix%f_fftgr', subname)
          mix%f_fftgr(:,:,:)=zero
          if (mix%mffmem == 0 .and. istep_ > 1) then
-            call timab(83,1,tsec)
             open(unit=tmp_unit,file=mix%diskCache,form='unformatted',status='old')
             rewind(tmp_unit)
             read(tmp_unit) mix%f_fftgr
             if (mix%n_pawmix == 0) close(unit=tmp_unit)
-            call timab(83,2,tsec)
          end if
       end if
       ! Allocate PAW work array.
@@ -349,7 +341,6 @@
             if (mix%mffmem == 0 .and. istep_ > 1) then
                read(tmp_unit) mix%f_paw
                close(unit=tmp_unit)
-               call timab(83,2,tsec)
             end if
          end if
       end if
@@ -362,12 +353,6 @@
 
     subroutine ab7_mixing_eval_deallocate(mix)
 
-
-!This section has been created automatically by the script Abilint (TD).
-!Do not modify the following lines by hand.
- use interfaces_18_timing
-!End of the abilint section
-
       implicit none
 
       type(ab7_mixing_object), intent(inout) :: mix
@@ -378,7 +363,6 @@
 
       ! Save on disk and deallocate work array in case on disk cache only.
       if (mix%mffmem == 0) then
-         call timab(83,1,tsec)
          open(unit=tmp_unit,file=mix%diskCache,form='unformatted',status='unknown')
          rewind(tmp_unit)
          ! VALGRIND complains not all of f_fftgr_disk is initialized
@@ -387,7 +371,6 @@
             write(tmp_unit) mix%f_paw
          end if
          close(unit=tmp_unit)
-         call timab(83,2,tsec)
          i_all = -product(shape(mix%f_fftgr))*kind(mix%f_fftgr)
          deallocate(mix%f_fftgr, stat = i_stat)
          call memocc(i_stat, i_all, 'mix%f_atm', subname)
@@ -406,11 +389,7 @@
          & reset, isecur, pawarr, pawopt, response, etotal, potden, &
          & resnrm, fnrm, fdot, user_data)
 
-
-!This section has been created automatically by the script Abilint (TD).
-!Do not modify the following lines by hand.
- use interfaces_56_mixing
-!End of the abilint section
+      use interfaces_56_mixing
 
       implicit none
 

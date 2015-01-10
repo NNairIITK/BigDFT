@@ -29,28 +29,17 @@
 !!
 !! NOTES
 !!
-!! PARENTS
-!!      invars2m
-!!
-!! CHILDREN
-!!      abi_leave_new,ptgmadata,spgdata,abi_wrtout,xredxcart
-!!
 !! SOURCE
 
 #if defined HAVE_CONFIG_H
-#include "config.inc"
+#include "config.h"
 #endif
 
 subroutine prtspgroup(bravais,genafm,iout,jdtset,ptgroupma,spgroup)
 
  use defs_basis
-
-!This section has been created automatically by the script Abilint (TD).
-!Do not modify the following lines by hand.
- use interfaces_14_hidewrite
- use interfaces_16_hideleave
+ use abi_interfaces_lowlevel
  use interfaces_42_geometry, except_this_one => prtspgroup
-!End of the abilint section
 
  implicit none
 
@@ -75,12 +64,6 @@ subroutine prtspgroup(bravais,genafm,iout,jdtset,ptgroupma,spgroup)
  real(dp) :: genafmconv(3),rprimdconv(3,3)
 
 !*************************************************************************
-
-!DEBUG
-!write(6,*)' prtspgroup : enter '
-!write(6,*)' ptgroupma=',ptgroupma
-!write(6,*)' genafm(:)=',genafm(:)
-!ENDDEBUG
 
  center=bravais(2)
  iholohedry=bravais(1)
@@ -323,10 +306,6 @@ subroutine prtspgroup(bravais,genafm,iout,jdtset,ptgroupma,spgroup)
 
    end if
  end if
-
-!DEBUG
-!write(6,*)' prtspgroup : exit '
-!ENDDEBUG
 
 end subroutine prtspgroup
 !!***

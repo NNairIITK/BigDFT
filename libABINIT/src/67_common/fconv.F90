@@ -49,27 +49,17 @@
 !!  at input  : iexit=  0 if not the last itime,  1 if the last itime
 !!  at output : iexit=  0 if not below tolerance, 1 if below tolerance
 !!
-!! PARENTS
-!!      brdmin,delocint,diisrelax,gstate,gstateimg,moldyn
-!!
-!! CHILDREN
-!!      abi_wrtout
-!!
 !! SOURCE
 
 #if defined HAVE_CONFIG_H
-#include "config.inc"
+#include "config.h"
 #endif
 
 subroutine fconv(fcart,iatfix,iexit,itime,natom,ntime,&
 & optcell,strfact,strtarget,strten,tolmxf)
 
  use defs_basis
-
-!This section has been created automatically by the script Abilint (TD).
-!Do not modify the following lines by hand.
- use interfaces_14_hidewrite
-!End of the abilint section
+ use abi_interfaces_lowlevel
 
  implicit none
 

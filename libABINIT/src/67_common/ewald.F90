@@ -29,27 +29,17 @@
 !! eew=final ewald energy in hartrees
 !! grewtn(3,natom)=grads of eew wrt xred(3,natom), hartrees.
 !!
-!! PARENTS
-!!      setvtr
-!!
-!! CHILDREN
-!!      derfc,abi_wrtout
-!!
 !! SOURCE
 
 #if defined HAVE_CONFIG_H
-#include "config.inc"
+#include "config.h"
 #endif
 
 subroutine ewald(eew,gmet,grewtn,natom,ntypat,rmet,typat,ucvol,xred,zion)
 
  use defs_basis
-
-!This section has been created automatically by the script Abilint (TD).
-!Do not modify the following lines by hand.
- use interfaces_14_hidewrite
+ use abi_interfaces_lowlevel
  use interfaces_32_util
-!End of the abilint section
 
  implicit none
 
@@ -73,11 +63,6 @@ subroutine ewald(eew,gmet,grewtn,natom,ntypat,rmet,typat,ucvol,xred,zion)
  character(len=500) :: message
 
 ! *************************************************************************
-
-!DEBUG
-!write(6,*)' ewald : enter '
-!stop
-!ENDDEBUG
 
 !Add up total charge and sum of $charge^2$ in cell
  chsq=0._dp
@@ -297,11 +282,6 @@ subroutine ewald(eew,gmet,grewtn,natom,ntypat,rmet,typat,ucvol,xred,zion)
 
 !Finally assemble Ewald energy, eew
  eew=sumg+sumr-chsq*reta/sqrt(pi)-fac
-
-!DEBUG
-!write(6,*)'eew=sumg+sumr-chsq*reta/sqrt(pi)-fac'
-!write(6,*)eew,sumg,sumr,chsq*reta/sqrt(pi),fac
-!ENDDEBUG
 
 !Length scale grads handled with stress tensor, ewald2
 

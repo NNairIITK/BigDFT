@@ -82,26 +82,16 @@
 !!  while n, a and c are to be classified as "n" -> 18. There is no need
 !!  to distinguish between primary, secondary or tertiary axes.
 !!
-!!
-!! PARENTS
-!!      symspgr
-!!
-!! CHILDREN
-!!
 !! SOURCE
 
 #if defined HAVE_CONFIG_H
-#include "config.inc"
+#include "config.h"
 #endif
 
 subroutine symplanes(center,iholohedry,isym,isymrelconv,itnonsconv,type_axis)
 
  use defs_basis
-
-!This section has been created automatically by the script Abilint (TD).
-!Do not modify the following lines by hand.
- use interfaces_14_hidewrite
-!End of the abilint section
+ use abi_interfaces_lowlevel
 
  implicit none
 
@@ -127,15 +117,8 @@ subroutine symplanes(center,iholohedry,isym,isymrelconv,itnonsconv,type_axis)
 
 !**************************************************************************
 
-!DEBUG
-!write(6,*)' symplanes : enter'
-!write(6,*)' center,iholohedry,isym,isymrelconv,itnonsconv=',center,iholohedry,isym,isymrelconv,itnonsconv
-!stop
-!ENDDEBUG
-
  identity(:,:)=0
  identity(1,1)=1 ; identity(2,2)=1 ; identity(3,3)=1
-
 
 !Will be a mirror plane, but one must characterize
 !(1) the type of plane (primary, secondary or tertiary)
@@ -217,11 +200,6 @@ subroutine symplanes(center,iholohedry,isym,isymrelconv,itnonsconv,type_axis)
 !endif
 !enddo
 !endif
-
-!DEBUG
-!write(6,*)' directiontype, trialt=',directiontype, trialt
-!stop
-!ENDDEBUG
 
  write(message,'(a)') ' symplanes...'
 
@@ -415,11 +393,6 @@ subroutine symplanes(center,iholohedry,isym,isymrelconv,itnonsconv,type_axis)
  call abi_wrtout(6,message,'COLL')
 
 !call symlist(brvltt,nsymconv,n_axes,problem)
-
-!DEBUG
-!write(6,*)' symplanes : exit'
-!stop
-!ENDDEBUG
 
 end subroutine symplanes
 !!***

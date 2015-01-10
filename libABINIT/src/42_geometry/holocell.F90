@@ -30,15 +30,10 @@
 !! OUTPUT
 !!  foundc=1 if the basis vectors supports the required holohedry ; =0 otherwise
 !!
-!! PARENTS
-!!      symbrav
-!!
-!! CHILDREN
-!!
 !! SOURCE
 
 #if defined HAVE_CONFIG_H
-#include "config.inc"
+#include "config.h"
 #endif
 
 subroutine holocell(cell_base,foundc,iholohedry)

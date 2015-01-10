@@ -44,12 +44,6 @@
 !!         1 if negative second derivative
 !!         2 if some other problem
 !!
-!! PARENTS
-!!      scfcge
-!!
-!! CHILDREN
-!!      abi_wrtout
-!!
 !! SOURCE
 
 #if defined HAVE_CONFIG_H
@@ -62,11 +56,7 @@ subroutine findminscf(choice,dedv_1,dedv_2,dedv_predict,&
 & lambda_1,lambda_2,lambda_predict,errid,errmess)
 
  use defs_basis
-
-!This section has been created automatically by the script Abilint (TD).
-!Do not modify the following lines by hand.
- use interfaces_14_hidewrite
-!End of the abilint section
+ use abi_interfaces_lowlevel
 
  implicit none
 
@@ -86,11 +76,6 @@ subroutine findminscf(choice,dedv_1,dedv_2,dedv_predict,&
  character(len=500) :: message
 
 ! *************************************************************************
-
-!DEBUG
-!write(6,*)' findmin : enter'
-!write(6,*)' choice,lambda_1,lambda_2=',choice,lambda_1,lambda_2
-!ENDDEBUG
 
  errid = AB7_NO_ERROR
  d_lambda=lambda_1-lambda_2

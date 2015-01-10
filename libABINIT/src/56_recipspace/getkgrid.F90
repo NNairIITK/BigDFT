@@ -5,7 +5,6 @@
 !!
 !! FUNCTION
 !! Compute the grid of k points in the irreducible Brillouin zone.
-!!
 !! Note that nkpt can be computed by calling this routine with nkpt=0, provided that kptopt/=0.
 !!
 !! COPYRIGHT
@@ -49,16 +48,10 @@
 !!   In input: NULL pointer.
 !!   In output: allocated array with the list of k-points in the BZ.
 !!
-!! PARENTS
-!!      elphon,getshell,inkpts,nonlinear,testkgrid
-!!
-!! CHILDREN
-!!      abi_leave_new,mati3inv,matr3inv,metric,smallprim,smpbz,symkpt,abi_wrtout
-!!
 !! SOURCE
 
 #if defined HAVE_CONFIG_H
-#include "config.inc"
+#include "config.h"
 #endif
 
 subroutine getkgrid(iout,iscf,kpt,kptopt,kptrlatt,kptrlen,&
@@ -66,15 +59,10 @@ subroutine getkgrid(iout,iscf,kpt,kptopt,kptrlatt,kptrlen,&
 & symrel,vacuum,wtk,kbz_p)
 
  use defs_basis
-
-!This section has been created automatically by the script Abilint (TD).
-!Do not modify the following lines by hand.
- use interfaces_14_hidewrite
- use interfaces_16_hideleave
+ use abi_interfaces_lowlevel
  use interfaces_32_util
  use interfaces_42_geometry
  use interfaces_56_recipspace, except_this_one => getkgrid
-!End of the abilint section
 
  implicit none
 
@@ -102,7 +90,6 @@ subroutine getkgrid(iout,iscf,kpt,kptopt,kptrlatt,kptrlen,&
 !arrays
  integer :: kptrlatt2(3,3),shiftk_pair(8)
  integer,allocatable :: indkpt(:),symrec(:,:,:)
-! real(dp) :: cart(3,3)
  real(dp) :: deltak(3,8),dijk(3),dmult(3),fact_vacuum(3),gmet(3,3)
  real(dp) :: gmet_super(3,3),gprimd(3,3),gprimd_super(3,3),klatt2(3,3)
  real(dp) :: klatt3(3,3),kptrlattr(3,3),ktransf(3,3),ktransf_invt(3,3)
@@ -112,20 +99,6 @@ subroutine getkgrid(iout,iscf,kpt,kptopt,kptrlatt,kptrlen,&
  real(dp),allocatable :: wtk_fullbz(:)
 
 ! *************************************************************************
-
-!DEBUG
-!write(6,*)' getkgrid : enter '
-!stop
-!write(6,*)' kptrlen=',kptrlen
-!write(6, '(a,9i4)' )' kptrlatt=',kptrlatt(:,:)
-!write(6, '(a,i4)' )' nshiftk=',nshiftk
-!do ii=1,nshiftk
-!write(6,*)' ii, shiftk=',ii,shiftk(:,ii)
-!end do
-!write(6, '(3es16.6)' )rprimd(:,1)
-!write(6, '(3es16.6)' )rprimd(:,2)
-!write(6, '(3es16.6)' )rprimd(:,3)
-!ENDDEBUG
 
  call metric(gmet,gprimd,-1,rmet,rprimd,ucvol)
 
@@ -207,11 +180,6 @@ subroutine getkgrid(iout,iscf,kpt,kptopt,kptrlatt,kptrlen,&
            cycle
          end if
 
-!        DEBUG
-!        write(6,*)' getkgrid : nshiftk2=',nshiftk2
-!        write(6,*)' shiftk_pair(1:nshiftk2)',shiftk_pair(1:nshiftk2)
-!        ENDDEBUG
-
          if(ok_all==1)then
 
            ktransf(:,:)=0.0_dp
@@ -241,22 +209,7 @@ subroutine getkgrid(iout,iscf,kpt,kptopt,kptrlatt,kptrlen,&
 &             ktransf(2,ii)*klatt2(:,2)+&
 &             ktransf(3,ii)*klatt2(:,3)
            end do
-!          DEBUG
-!          write(6,*)' klatt2 in cartesian coordinates :'
-!          do ii=1,3
-!          cart(:,ii)=klatt2(1,ii)*gprimd(:,1)+&
-!          &                 klatt2(2,ii)*gprimd(:,2)+&
-!          &                 klatt2(3,ii)*gprimd(:,3)
-!          write(6,'(a,3es16.6)' ) 'cart2(:,ii)=',cart(:,ii)
-!          end do
-!          write(6,*)' klatt3 in cartesian coordinates :'
-!          do ii=1,3
-!          cart(:,ii)=klatt3(1,ii)*gprimd(:,1)+&
-!          &                 klatt3(2,ii)*gprimd(:,2)+&
-!          &                 klatt3(3,ii)*gprimd(:,3)
-!          write(6,'(a,3es16.6)' ) 'cart3(:,ii)=',cart(:,ii)
-!          end do
-!          ENDDEBUG
+
 !          Back to real space
            call matr3inv(klatt3,kptrlattr)
 !          real(dp) to integer
@@ -314,16 +267,6 @@ subroutine getkgrid(iout,iscf,kpt,kptopt,kptrlatt,kptrlen,&
    end do
  end do
 
-!DEBUG
-!write(6,*)' getkgrid : afer nkshift reduction '
-!write(6, '(a,9i4)' )' kptrlatt2=',kptrlatt2(:,:)
-!write(6, '(a,i4)' )' nshiftk2=',nshiftk2
-!do ii=1,nshiftk2
-!write(6,*)' ii, shiftk2=',ii,shiftk2(:,ii)
-!end do
-!stop
-!ENDDEBUG
-
 !Compute the number of k points in the G-space unit cell
  nkptlatt=kptrlatt2(1,1)*kptrlatt2(2,2)*kptrlatt2(3,3) &
 & +kptrlatt2(1,2)*kptrlatt2(2,3)*kptrlatt2(3,1) &
@@ -335,9 +278,6 @@ subroutine getkgrid(iout,iscf,kpt,kptopt,kptrlatt,kptrlen,&
 !Check whether the number of k points is positive,
 !otherwise, change the handedness of kptrlatt2
  if(nkptlatt<=0)then
-!  DEBUG
-!  write(6,*)' getkgrid : nkptlatt is negative !'
-!  ENDDEBUG
    kptrlatt2(:,3)=-kptrlatt2(:,3)
    nkptlatt=-nkptlatt
    do ishiftk=1,nshiftk2
@@ -358,10 +298,6 @@ subroutine getkgrid(iout,iscf,kpt,kptopt,kptrlatt,kptrlen,&
 &   fact_vacuum(3)*rprimd(:,3)*kptrlatt2(3,ii)
  end do
 !Warning : here compute quantities connect to the supercell lattice
-!DEBUG
-!write(6,*)' getkgrid : will enter metric with rprimd_super'
-!write(6,*)' getkgrid : nkptlatt=',nkptlatt
-!ENDDEBUG
  call metric(gmet_super,gprimd_super,-1,rmet_super,rprimd_super,ucvol_super)
  call smallprim(metmin,minim,rprimd_super)
  length2=min(metmin(1,1),metmin(2,2),metmin(3,3))
@@ -403,11 +339,6 @@ subroutine getkgrid(iout,iscf,kpt,kptopt,kptrlatt,kptrlen,&
    end do
  end if
 
-!DEBUG
-!write(6,*)' getkgrid : before smpbz '
-!stop
-!ENDDEBUG
-
 !brav=1 is able to treat all bravais lattices.
  brav=1
  mkpt=nkptlatt*nshiftk2
@@ -420,13 +351,6 @@ subroutine getkgrid(iout,iscf,kpt,kptopt,kptrlatt,kptrlen,&
    allocate(kbz_p(3,nkpt_fullbz))
    kbz_p(:,:) = spkpt(:,1:nkpt_fullbz)
  end if
-
-!DEBUG
-!write(6,*)' getkgrid : after smpbz, write spkpt, kptopt= ',kptopt
-!do ikpt=1,nkpt_fullbz
-!write(6, '(i4,3es15.5)' )ikpt,spkpt(:,ikpt)
-!end do
-!ENDDEBUG
 
  if(kptopt==1 .or. kptopt==2 .or. kptopt==4)then
 
@@ -463,7 +387,6 @@ subroutine getkgrid(iout,iscf,kpt,kptopt,kptrlatt,kptrlen,&
    call abi_leave_new('COLL')
  end if
 
-
  if(kptopt==1 .or. kptopt==2 .or. kptopt==4)then
 
    if(nkpt/=0)then
@@ -488,11 +411,6 @@ subroutine getkgrid(iout,iscf,kpt,kptopt,kptrlatt,kptrlen,&
  kptrlatt(:,:)=kptrlatt2(:,:)
  nshiftk=nshiftk2
  shiftk(:,:)=shiftk2(:,:)
-
-!DEBUG
-!write(6,*)' getkgrid : exit, nkpt_computed= ',nkpt_computed
-!write(6,*)' getkgrid : exit, kptrlatt= ',kptrlatt
-!ENDDEBUG
 
 end subroutine getkgrid
 !!***

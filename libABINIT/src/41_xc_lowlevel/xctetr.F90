@@ -53,28 +53,17 @@
 !!   with $N4=d(N3)/d(rs), D4=d(D3)/d(rs)$.
 !!  $d^2(Vxc)/d(\rho)^2= rs/(3*\rho)^2)*(4*d(Vxc)/d(rs)+rs*d^2(Vxc)/d(rs)^2)$.
 !!
-!! PARENTS
-!!      drivexc
-!!
-!! CHILDREN
-!!      abi_leave_new,abi_wrtout
-!!
 !! SOURCE
 
 #if defined HAVE_CONFIG_H
-#include "config.inc"
+#include "config.h"
 #endif
 
 subroutine xctetr(exc,npt,order,rhor,rspts,vxc,& !Mandatory arguments
 &                 d2vxc,dvxc)                    !Optional arguments
 
  use defs_basis
-
-!This section has been created automatically by the script Abilint (TD).
-!Do not modify the following lines by hand.
- use interfaces_14_hidewrite
- use interfaces_16_hideleave
-!End of the abilint section
+ use abi_interfaces_lowlevel
 
  implicit none
 
@@ -105,7 +94,7 @@ subroutine xctetr(exc,npt,order,rhor,rspts,vxc,& !Mandatory arguments
  character(len=500) :: message
 
 ! *************************************************************************
-!
+
 !Checks the values of order
  if(order<0 .or. order>3)then
    write(message, '(a,a,a,a,a,a,i6,a)' )ch10,&

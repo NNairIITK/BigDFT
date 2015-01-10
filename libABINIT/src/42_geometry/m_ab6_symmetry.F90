@@ -12,7 +12,6 @@
 module m_ab6_symmetry
 
   use defs_basis
-!  use iso_c_binding
 
   implicit none
 
@@ -102,7 +101,6 @@ module m_ab6_symmetry
   public :: symmetry_get_equivalent_atom
 
 contains
-
 
   subroutine new_item(token)
 
@@ -309,11 +307,7 @@ contains
 
   subroutine symmetry_set_lattice(id, rprimd, errno)
 
-
-!This section has been created automatically by the script Abilint (TD).
-!Do not modify the following lines by hand.
-  use interfaces_42_geometry
-!End of the abilint section
+    use interfaces_42_geometry
 
     integer, intent(in) :: id
     real(dp), intent(in) :: rprimd(3,3)
@@ -596,10 +590,7 @@ contains
 
   subroutine compute_bravais(sym)
 
-!This section has been created automatically by the script Abilint (TD).
-!Do not modify the following lines by hand.
-  use interfaces_42_geometry
-!End of the abilint section
+    use interfaces_42_geometry
 
     type(symmetry_type), intent(inout) :: sym
 
@@ -670,10 +661,7 @@ contains
   !> Determine the symmetries
   subroutine compute_matrices(sym, errno)
 
-!This section has been created automatically by the script Abilint (TD).
-!Do not modify the following lines by hand.
-  use interfaces_42_geometry
-!End of the abilint section
+    use interfaces_42_geometry
 
     type(symmetry_type), intent(inout) :: sym
     integer, intent(out) :: errno
@@ -870,11 +858,6 @@ contains
 
   subroutine symmetry_get_matrices_p(id, nSym, sym, transNon, symAfm, errno)
 
-
-!This section has been created automatically by the script Abilint (TD).
-!Do not modify the following lines by hand.
-!End of the abilint section
-
     integer, intent(in) :: id
     integer, intent(out) :: errno
     integer, intent(out) :: nSym
@@ -906,11 +889,6 @@ contains
 
   subroutine symmetry_get_multiplicity(id, multiplicity, errno)
 
-
-!This section has been created automatically by the script Abilint (TD).
-!Do not modify the following lines by hand.
-!End of the abilint section
-
     integer, intent(in) :: id
     integer, intent(out) :: multiplicity, errno
 
@@ -935,11 +913,7 @@ contains
   subroutine symmetry_get_group(id, spaceGroup, spaceGroupId, &
        & pointGroupMagn, genAfm, errno)
 
-
-!This section has been created automatically by the script Abilint (TD).
-!Do not modify the following lines by hand.
-  use interfaces_42_geometry
-!End of the abilint section
+    use interfaces_42_geometry
 
     integer, intent(in)            :: id
     integer, intent(out)           :: errno
@@ -984,11 +958,8 @@ contains
 
   subroutine compute_equivalent_atoms(sym)
 
-!This section has been created automatically by the script Abilint (TD).
-!Do not modify the following lines by hand.
-  use interfaces_32_util
-  use interfaces_42_geometry
-!End of the abilint section
+    use interfaces_32_util
+    use interfaces_42_geometry
 
     type(symmetry_type), intent(inout) :: sym
 
@@ -1013,10 +984,6 @@ contains
 
 
   subroutine symmetry_get_equivalent_atom(id, equiv, iAtom, errno)
-
-!This section has been created automatically by the script Abilint (TD).
-!Do not modify the following lines by hand.
-!End of the abilint section
 
     integer, intent(in)  :: id
     integer, intent(in)  :: iAtom

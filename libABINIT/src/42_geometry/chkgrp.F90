@@ -23,34 +23,16 @@
 !!
 !! SIDE EFFECTS
 !!
-!!
-!! NOTES
-!!
-!! TODO
-!! List input and output
-!! SHOULD ALSO CHECK THE tnons !
-!!
-!! PARENTS
-!!      chkinp,gensymspgr,m_bands_sym,m_bz_mesh,setsym
-!!
-!! CHILDREN
-!!      abi_leave_new,abi_wrtout
-!!
 !! SOURCE
 
 #if defined HAVE_CONFIG_H
-#include "config.inc"
+#include "config.h"
 #endif
 
 subroutine chkgrp(nsym,symafm,symrel)
 
  use defs_basis
-
-!This section has been created automatically by the script Abilint (TD).
-!Do not modify the following lines by hand.
- use interfaces_14_hidewrite
- use interfaces_16_hideleave
-!End of the abilint section
+ use abi_interfaces_lowlevel
 
  implicit none
 
@@ -68,14 +50,6 @@ subroutine chkgrp(nsym,symafm,symrel)
  integer :: chk(3,3)
 
 ! *************************************************************************
-
-!DEBUG
-!write(6,*)' chkgrp : enter'
-!write(6,*)'     isym         symrel            symafm '
-!do isym=1,nsym
-!write(6, '(i3,a,9i3,a,i3)' )isym,'   ',symrel(:,:,isym),'   ',symafm(isym)
-!end do
-!ENDDEBUG
 
  do isym=1,nsym
    do jsym=1,nsym

@@ -33,27 +33,17 @@
 !! Only the proper part of the symmetry operation is taken into account :
 !! pure rotations, while the inversion part is taken away, if present.
 !!
-!! PARENTS
-!!      m_crystal,wfconv,symdij
-!!
-!! CHILDREN
-!!      matr3inv,abi_wrtout
-!!
 !! SOURCE
 
 #if defined HAVE_CONFIG_H
-#include "config.inc"
+#include "config.h"
 #endif
 
 subroutine getspinrot(rprimd,spinrot,symrel_conv)
 
  use defs_basis
-
-!This section has been created automatically by the script Abilint (TD).
-!Do not modify the following lines by hand.
- use interfaces_14_hidewrite
+ use abi_interfaces_lowlevel
  use interfaces_32_util
-!End of the abilint section
 
  implicit none
 
@@ -203,19 +193,6 @@ subroutine getspinrot(rprimd,spinrot,symrel_conv)
    spinrot(4)=zero
 
  end if ! the case of the identity matrix
-
-!DEBUG
-!write(6,*)' getspinrot :'
-!write(6,*)' symrel_conv =',symrel_conv(:,:)
-!write(6,*)' symrel =',symrel(:,:)
-!write(6,*)' rprimd =',rprimd(:,:)
-!write(6,*)' matr2 =',matr2(:,:)
-!write(6,*)' matr1 =',matr1(:,:)
-!write(6,*)' phi (degree)=',phi*180._dp/pi
-!write(6, '(a,3d16.6)' )' axis=',axis(:)
-!write(6,*)' vecta=',vecta(:)
-!stop
-!ENDDEBUG
 
 end subroutine getspinrot
 !!***

@@ -24,17 +24,10 @@
 !! OUTPUT
 !! ptgrpmasb= symbol
 !!
-!! NOTES
-!!
-!! PARENTS
-!!      prtspgroup
-!!
-!! CHILDREN
-!!
 !! SOURCE
 
 #if defined HAVE_CONFIG_H
-#include "config.inc"
+#include "config.h"
 #endif
 
 subroutine ptgmadata(ptgroupma,ptgrpmasb)
@@ -49,7 +42,6 @@ subroutine ptgmadata(ptgroupma,ptgrpmasb)
  character(len=10),intent(out) :: ptgrpmasb
 
 !Local variables-------------------------------
-!character(len=500) :: message
 
 ! *************************************************************************
 

@@ -20,22 +20,10 @@
 !! OUTPUT
 !! derfc_yy=complementary error function of yy
 !!
-!! SIDE EFFECTS
-!!
-!!
-!! NOTES
-!!
-!! TODO
-!!
-!! PARENTS
-!!      ewald,ewald2,ewald3,ewald4,ewald9,make_efg_ion,psp2lo
-!!
-!! CHILDREN
-!!
 !! SOURCE
 
 #if defined HAVE_CONFIG_H
-#include "config.inc"
+#include "config.h"
 #endif
 
 subroutine derfcf(derfc_yy,yy)
@@ -86,12 +74,6 @@ subroutine derfcf(derfc_yy,yy)
   real(dp) ::  res,xden,xi,xnum,xsq,xx
 
 !******************************************************************
-  !BEGIN EXECUTABLE SECTION
-
-  !DEBUG
-  !write(6,*)' imsl derfc routine '
-  !stop
-  !ENDDEBUG
 
   xx = yy
   isw = 1

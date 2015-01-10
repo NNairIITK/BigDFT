@@ -30,12 +30,6 @@
 !!  vrespc(nfft,nspden)=the input preconditioned residual potential
 !!  work(nfft,nspden,2)=work space
 !!
-!! PARENTS
-!!      newrho,newvtr
-!!
-!! CHILDREN
-!!      abi_wrtout
-!!
 !! SOURCE
 
 #if defined HAVE_CONFIG_H
@@ -45,11 +39,7 @@
 subroutine scfeig(istep,nfft,nspden,vrespc,vtrial,vtrial0,work,errid,errmess)
 
  use defs_basis
-
-!This section has been created automatically by the script Abilint (TD).
-!Do not modify the following lines by hand.
- use interfaces_14_hidewrite
-!End of the abilint section
+ use abi_interfaces_lowlevel
 
  implicit none
 

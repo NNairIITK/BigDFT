@@ -1,7 +1,7 @@
 subroutine md_nose_init(amass, natom, temp, vel)
   
   use defs_basis
-  use interfaces_14_hidewrite
+  use abi_interfaces_lowlevel
 
   implicit none
 
@@ -78,7 +78,7 @@ subroutine md_nose(amass, dtion, fcart, fcart_mold, gnose, itime, ktemp, mditemp
      & xi_nose, xred_next)
   
   use defs_basis
-  use interfaces_14_hidewrite
+  use abi_interfaces_lowlevel
 
   implicit none
 
@@ -174,15 +174,6 @@ subroutine md_nose(amass, dtion, fcart, fcart_mold, gnose, itime, ktemp, mditemp
      delxi=delxi-dnose*((-v2nose+gnose*ktemp)*dtion/2.0_dp/ &
           &    noseinert-(xi_nose-xio))
      delxi=delxi/(-dtion*dtion/2.0_dp*v2nose/noseinert+dnose)
-
-     !   hzeronose=-(xio-xi_nose-(v2nose-gnose*ktemp)*dtion/(2.0_dp*noseinert) )
-     !   cibinose=-v2nose*dtion*dtion/(2.0_dp*noseinert)
-     !   delxi=(delxi+hzeronose*dnose)/(dnose+cibinose)
-     !   DEBUG
-     !   write(message, '(a,es22.14)' )' after delxi',delxi
-     !   call abi_wrtout(ab_out,message,'COLL')
-     !   call abi_wrtout(std_out,message,'COLL')
-     !   ENDDEBUG
      v2nose=0.0_dp
 
      vel_temp(:,:)=vel_temp(:,:)+(hnose+dtion/2.0_dp*vonose(:,:)*delxi)/dnose
@@ -193,13 +184,6 @@ subroutine md_nose(amass, dtion, fcart, fcart_mold, gnose, itime, ktemp, mditemp
      end do
      !   New guess for xi
      xin_nose=xio+delxi
-
-
-     !   DEBUG
-     !   write(message, '(a,es22.14)' )' v2nose=',v2nose
-     !   call abi_wrtout(ab_out,message,'COLL')
-     !   call abi_wrtout(std_out,message,'COLL')
-     !   ENDDEBUG
 
      ready=.true.
      !   Test for convergence
@@ -252,7 +236,7 @@ subroutine md_nose_finalise(etotal, gnose, itime, ktemp, noseinert, snose, &
      & v2nose, xi_nose)
   
   use defs_basis
-  use interfaces_14_hidewrite
+  use abi_interfaces_lowlevel
 
   implicit none
 

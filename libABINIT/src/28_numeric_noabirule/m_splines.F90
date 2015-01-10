@@ -1,9 +1,3 @@
-
-#if defined HAVE_CONFIG_H
-#include "config.inc"
-#endif
-
-
 !!****f* m_splines/splfit
 !! NAME
 !!  splfit
@@ -38,6 +32,10 @@
 !!
 !! SOURCE
 
+#if defined HAVE_CONFIG_H
+#include "config.h"
+#endif
+
 subroutine splfit(arg,derfun,fun,ider,newarg,newfun,numarg,numnew)
 
  use defs_basis
@@ -46,8 +44,7 @@ subroutine splfit(arg,derfun,fun,ider,newarg,newfun,numarg,numnew)
  integer, intent(in) :: ider,numarg,numnew
  double precision, intent(in) :: arg(numarg),fun(numarg,2),newarg(numnew)
  double precision, intent(out) :: derfun(numnew),newfun(numnew)
-
-
+ 
  integer :: i,jspl
  double precision :: argmin,delarg,d,aa,bb,cc,dd
  character(len=500) :: msg
@@ -178,17 +175,6 @@ end subroutine splfit
 !!    Output, double precision YPP(N), the second derivatives of the cubic spline.
 !!    Work space, double precision DIAG(N) - should be removed ...
 !!
-!! PARENTS
-!!      atomden,calc_sigc_cd,cc_derivatives,denfgr,hirsh,init_bess_spl
-!!      init_occ_ent,integrho,m_atom,m_paw_pwij,m_paw_slater,m_paw_toolbox
-!!      m_splines,optics_paw_core,pawdij0,pawinit,pawkij,predict_string,psp10in
-!!      psp10nl,psp11nl,psp1cc,psp1in,psp1nl,psp2in,psp2nl,psp3in,psp3nl,psp4cc
-!!      psp5in,psp5nl,psp6cc,psp6in,psp7cc,psp7in,psp7nl,psp8in,psp8lo,psp8nl
-!!      psp9in,spline_paw_fncs,upf2abinit,vso_realspace_local
-!!
-!! CHILDREN
-!!      splint
-!!
 !! SOURCE
 
 subroutine spline( t, y, n, ybcbeg, ybcend, ypp )
@@ -309,6 +295,7 @@ subroutine spline( t, y, n, ybcbeg, ybcend, ypp )
 !      2: the second derivative at the right endpoint should be YBCEND.
 
   use defs_basis
+  use abi_interfaces_lowlevel
   implicit none
 
   integer, intent(in) :: n
@@ -421,11 +408,6 @@ end subroutine spline
 !! NOTES
 !!  Adapted from Numerical Recipes and libbci.
 !!
-!! PARENTS
-!!
-!! CHILDREN
-!!      splint
-!!
 !! SOURCE
 
 subroutine spline_bicubic(n1,n2,x1,x2,y,der1_x1,der1_x2,der2_x1x2,spl_c)
@@ -504,12 +486,6 @@ end subroutine spline_bicubic
 !! OUTPUT
 !!  splined_lo  = spline  (on the 2nd grid)
 !!
-!! PARENTS
-!!      m_green
-!!
-!! CHILDREN
-!!      splint
-!!
 !! SOURCE
 
 subroutine spline_c( nomega_lo, nomega_li, omega_lo, omega_li, splined_li, tospline_lo)
@@ -566,12 +542,6 @@ end subroutine spline_c
 !!
 !! OUTPUT
 !!    Output, complex YPP(N), the second derivatives of the cubic spline.
-!!
-!! PARENTS
-!!      m_paw_dmft,m_splines
-!!
-!! CHILDREN
-!!      splint
 !!
 !! SOURCE
 
@@ -636,21 +606,13 @@ end subroutine spline_complex
 !!  [ierr]=A non-zero value is used to signal that some points in xfit exceed xspline(nspline).
 !!    The input value is incremented by the number of such points.
 !!
-!! PARENTS
-!!      atomden,calc_sigc_cd,cc_derivatives,denfgr,m_atom,m_paw_slater
-!!      m_paw_toolbox,m_splines,optics_paw_core,partial_dos_fractions,pawdij0
-!!      pawgylm,pawkij,predict_string,psp6cc,psp7cc,psp7in,psp9in
-!!      spline_paw_fncs,vso_realspace_local,wffile
-!!
-!! CHILDREN
-!!      splint
-!!
 !! SOURCE
 
 subroutine splint(nspline,xspline,yspline,ysplin2,nfit,xfit,yfit,ierr)
 
 
  use defs_basis
+ use abi_interfaces_lowlevel
  implicit none
 
  integer, intent(in) :: nfit, nspline
@@ -734,12 +696,6 @@ end subroutine splint
 !!
 !! TODO
 !! change double precision by real(dp) ( the same in splint.F90)
-!!
-!! PARENTS
-!!      m_paw_dmft,m_splines
-!!
-!! CHILDREN
-!!      splint
 !!
 !! SOURCE
 

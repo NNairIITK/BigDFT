@@ -7,7 +7,7 @@
 !! FUNCTION
 !! Print the values of xcart, vel, and fcart to unit iout.
 !! Also compute and print max and rms forces.
-
+!!
 !! COPYRIGHT
 !! Copyright (C) 1998-2010 ABINIT group (DCA, XG, GMR)
 !! This file is distributed under the terms of the
@@ -27,26 +27,16 @@
 !! OUTPUT
 !!  (only writing)
 !!
-!! PARENTS
-!!      brdmin,constrf,delocint,moldyn,move
-!!
-!! CHILDREN
-!!      abi_wrtout
-!!
 !! SOURCE
 
 #if defined HAVE_CONFIG_H
-#include "config.inc"
+#include "config.h"
 #endif
 
 subroutine prtxvf(fcart,iatfix,iout,natom,prtvel,vel,xcart)
 
  use defs_basis
-
-!This section has been created automatically by the script Abilint (TD).
-!Do not modify the following lines by hand.
- use interfaces_14_hidewrite
-!End of the abilint section
+ use abi_interfaces_lowlevel
 
  implicit none
 
@@ -64,11 +54,6 @@ subroutine prtxvf(fcart,iatfix,iout,natom,prtvel,vel,xcart)
  character(len=500) :: message
 
 ! *************************************************************************
-
-!DEBUG
-!write(6,*)' prtxvf : enter '
-!stop
-!ENDDEBUG
 
  write(message, '(a)' ) ' Cartesian coordinates (bohr)'
  call abi_wrtout(iout,message,'COLL')
@@ -113,11 +98,6 @@ subroutine prtxvf(fcart,iatfix,iout,natom,prtvel,vel,xcart)
 
  write(message, '(a)' ) ' '
  call abi_wrtout(iout,message,'COLL')
-
-!DEBUG
-!write(6,*)' prtxvf : exit '
-!stop
-!ENDDEBUG
 
 end subroutine prtxvf
 !!***

@@ -49,31 +49,20 @@
 !! input value of nkpt=0
 !! Note that kptopt is always =1 in this routine.
 !!
-!! PARENTS
-!!      inkpts
-!!
-!! CHILDREN
-!!      getkgrid,abi_leave_new,matr3inv,metric,smallprim,abi_wrtout
-!!
 !! SOURCE
 
 #if defined HAVE_CONFIG_H
-#include "config.inc"
+#include "config.h"
 #endif
 
 subroutine testkgrid(bravais,iout,kptrlatt,kptrlen,&
 & msym,nshiftk,nsym,prtkpt,rprimd,shiftk,symafm,symrel,vacuum)
 
  use defs_basis
-
-!This section has been created automatically by the script Abilint (TD).
-!Do not modify the following lines by hand.
- use interfaces_14_hidewrite
- use interfaces_16_hideleave
+ use abi_interfaces_lowlevel
  use interfaces_32_util
  use interfaces_42_geometry
  use interfaces_56_recipspace, except_this_one => testkgrid
-!End of the abilint section
 
  implicit none
 
@@ -107,11 +96,6 @@ subroutine testkgrid(bravais,iout,kptrlatt,kptrlen,&
  real(dp),allocatable :: kpt(:,:),kptrlen_list(:),wtk(:)
 
 ! *************************************************************************
-
-!DEBUG
-!write(6,*)' testkgrid : enter '
-!write(6,*)' testkgrid : vacuum(:)=',vacuum(:)
-!ENDDEBUG
 
  kptrlen_target=kptrlen
 
@@ -157,14 +141,8 @@ subroutine testkgrid(bravais,iout,kptrlatt,kptrlen,&
    end if
    surface=sqrt(sum(r2d(:,3)**2))
 !  Identify the 2-D Bravais lattice
-!  DEBUG
-!  write(6,*)' r2d=',r2d(:,:)
-!  ENDDEBUG
    call metric(gmet,gprimd,-1,rmet,r2d,ucvol)
    call smallprim(metmin,minim,r2d)
-!  DEBUG
-!  write(6,*)' minim=',minim(:,:)
-!  ENDDEBUG
    ang90=0 ; equal=0 ; center=0
    axes(:,:)=minim(:,:)
    if(abs(metmin(1,2))<tol8)ang90=1
@@ -237,23 +215,11 @@ subroutine testkgrid(bravais,iout,kptrlatt,kptrlen,&
    length_axis1=sqrt(axes(1,1)**2+axes(2,1)**2+axes(3,1)**2)
    length_axis2=sqrt(axes(1,2)**2+axes(2,2)**2+axes(3,2)**2)
 
-!  DEBUG
-!  write(6,*)' testkgrid : iholohedry, center =',iholohedry,center
-!  write(6,*)' testkgrid : axis 1=',axes(:,1)
-!  write(6,*)' testkgrid : axis 2=',axes(:,2)
-!  write(6,*)' testkgrid : axis 3=',axes(:,3)
-!  write(6,*)' testkgrid : length_axis=',length_axis1,length_axis2
-!  ENDDEBUG
-
 !  End special treatment of 2-D case
  end if
 
 !3-dimensional system
  if(sum(vacuum(:))==0)then
-!  DEBUG
-!  write(6,*)' testkgrid: bravais=',bravais(:)
-!  write(6,*)' testkgrid: rprimd=',rprimd(:,:)
-!  ENDDEBUG
    iholohedry=bravais(1)
    center=bravais(2)
    fact=1.0_dp
@@ -270,10 +236,6 @@ subroutine testkgrid(bravais,iout,kptrlatt,kptrlen,&
    length_axis1=sqrt(axes(1,1)**2+axes(2,1)**2+axes(3,1)**2)
    length_axis2=sqrt(axes(1,2)**2+axes(2,2)**2+axes(3,2)**2)
    length_axis3=sqrt(axes(1,3)**2+axes(2,3)**2+axes(3,3)**2)
-!  DEBUG
-!  write(6,*)' testkgrid : axes=',axes(:,:)
-!  write(6,*)' length_axis=',length_axis1,length_axis2,length_axis3
-!  ENDDEBUG
 
  end if
 
@@ -318,11 +280,6 @@ subroutine testkgrid(bravais,iout,kptrlatt,kptrlen,&
 
  else
 
-!  DEBUG
-!  write(6,*)' testkgrid : before metric'
-!  write(6,*)' testkgrid : rprimd=',rprimd(:,:)
-!  ENDDEBUG
-
    nkpt=0 ; nkpt_current=0 ; iscf=1 ; iset=1
    kptrlen_current=0.0_dp
    mult1=0 ; mult2=0 ; mult3=0
@@ -355,10 +312,6 @@ subroutine testkgrid(bravais,iout,kptrlatt,kptrlen,&
 !      Treat hexagonal holohedries separately
        if(iholohedry==3)then
 
-!        DEBUG
-!        write(6,*)' testkgrid : 2D, hexagonal'
-!        ENDDEBUG
-
          mult1=mult1+1
          nset=4
          if(iset==1)then
@@ -385,9 +338,6 @@ subroutine testkgrid(bravais,iout,kptrlatt,kptrlen,&
 !        Now treat all other holohedries
          length1=length_axis1*mult1
          length2=length_axis2*mult2
-!        DEBUG
-!        write(6,*)' testkgrid : (2d) length=',length1,length2
-!        ENDDEBUG
          if(abs(length1-length2)<tol8)then
            mult1=mult1+1
            mult2=mult2+1
@@ -455,9 +405,6 @@ subroutine testkgrid(bravais,iout,kptrlatt,kptrlen,&
        if(iholohedry==6)then
          length1=length_axis1*mult1
          length3=length_axis3*mult3
-!        DEBUG
-!        write(6,*)' testkgrid : (hex) lengths=',length1,length2
-!        ENDDEBUG
          if(abs(length1-length3)<tol8)then
            mult1=mult1+1
            mult3=mult3+1
@@ -498,9 +445,6 @@ subroutine testkgrid(bravais,iout,kptrlatt,kptrlen,&
          length1=length_axis1*mult1
          length2=length_axis2*mult2
          length3=length_axis3*mult3
-!        DEBUG
-!        write(6,*)' testkgrid : length=',length1,length2,length3
-!        ENDDEBUG
          if(length2>length1+tol8 .and. length3>length1+tol8)then
            mult1=mult1+1
          else if(length1>length2+tol8 .and. length3>length2+tol8)then
@@ -568,13 +512,6 @@ subroutine testkgrid(bravais,iout,kptrlatt,kptrlen,&
          end if
        end if
 
-!      DEBUG
-!      write(6,*)' testkgrid : gprimd=',gprimd(:,:)
-!      write(6,*)' testkgrid : rsuper=',rsuper(:,:)
-!      write(6,*)' testkgrid : iset  =',iset
-!      ENDDEBUG
-
-
 !      The supercell and the corresponding shift have been generated !
 !      Convert cartesian coordinates into kptrlatt_trial
        do ii=1,3
@@ -586,20 +523,10 @@ subroutine testkgrid(bravais,iout,kptrlatt,kptrlen,&
 !      End of 3-dimensional system
      end if
 
-!    DEBUG
-!    write(6,*)' testkgrid : before getkgrid'
-!    write(6,*)' testkgrid : rprimd=',rprimd(:,:)
-!    write(6,*)' testkgrid : kptrlatt_trial=',kptrlatt_trial(:,:)
-!    ENDDEBUG
-
      call getkgrid(iout,iscf,kpt,&
 &     kptopt,kptrlatt_trial,kptrlen_trial,&
 &     msym,nkpt,nkpt_trial,nshiftk,nsym,rprimd,&
 &     shiftk_trial,symafm,symrel,vacuum,wtk)
-
-!    DEBUG
-!    write(6,*)' testkgrid : after getkgrid'
-!    ENDDEBUG
 
      if( (kptrlen_trial+tol8>kptrlen*(1.0_dp+tol8) .and. nkpt_current==0) .or. &
 &     (kptrlen_trial+tol8>kptrlen*(1.0_dp+tol8) .and. nkpt_trial<nkpt_current) .or. &
@@ -715,8 +642,6 @@ subroutine testkgrid(bravais,iout,kptrlatt,kptrlen,&
    call abi_wrtout(std_out,message,'COLL')
    call abi_wrtout(iout,message,'COLL')
 
-!  call leave_test
-
    write(message,'(a,a,a,a)' )ch10,&
 &   ' testkgrid : stop after analysis of a series of k-grids.',ch10,&
 &   '  For usual production runs, set prtkpt back to 0 (the default).'
@@ -724,10 +649,6 @@ subroutine testkgrid(bravais,iout,kptrlatt,kptrlen,&
    call abi_wrtout(iout,message,'COLL')
    call abi_leave_new('COLL')
  end if
-
-!DEBUG
-!write(6,*)' testkgrid : exit '
-!ENDDEBUG
 
 end subroutine testkgrid
 !!***

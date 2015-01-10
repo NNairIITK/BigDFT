@@ -27,15 +27,10 @@
 !! When aprim=rprimd and bprim=gprimd, the routine operates in real space (on a real space symmetry)
 !! When aprim=gprimd and bprim=rprimd, the routine operates in reciprocal space (on a real space symmetry)
 !!
-!! PARENTS
-!!      symdij,symrhg,symrhoij
-!!
-!! CHILDREN
-!!
 !! SOURCE
 
 #if defined HAVE_CONFIG_H
-#include "config.inc"
+#include "config.h"
 #endif
 
 subroutine symredcart(aprim,bprim,symcart,symred)

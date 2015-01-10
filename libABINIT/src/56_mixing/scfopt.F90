@@ -56,12 +56,6 @@
 !!                               the input preconditioned residual potential
 !!                           at output, it is the new aug. occupancies.
 !!
-!! PARENTS
-!!      newrho,newvtr,newvtr3
-!!
-!! CHILDREN
-!!      dgetrf,dgetri,dotprodm_v,sqnormm_v,abi_wrtout
-!!
 !! SOURCE
 
 #if defined HAVE_CONFIG_H
@@ -74,15 +68,11 @@ subroutine scfopt(cplex,f_fftgr,f_paw,iscf,istep,i_vrespc,i_vtrial,&
      & fnrm,fdot,user_data,errid,errmess)
 
  use defs_basis
+ use abi_interfaces_lowlevel
+ use abi_interfaces_linalg
  use defs_datatypes
  use defs_abitypes
-
-!This section has been created automatically by the script Abilint (TD).
-!Do not modify the following lines by hand.
- use interfaces_14_hidewrite
  use interfaces_56_mixing, except_this_one => scfopt
- use interfaces_linalg
-!End of the abilint section
 
  implicit none
 
@@ -133,9 +123,6 @@ subroutine scfopt(cplex,f_fftgr,f_paw,iscf,istep,i_vrespc,i_vtrial,&
 
 ! *************************************************************************
 
-!DEBUG
-!write(6,*)' scfopt : enter ; istep,iscf ',istep,iscf
-!ENDDEBUG
  errid = AB7_NO_ERROR
 
  i_vstore=i_vtrial(1)

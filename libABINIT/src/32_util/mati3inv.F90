@@ -18,8 +18,6 @@
 !! OUTPUT
 !! mit = inverse of mm input matrix
 !!
-!! SIDE EFFECTS
-!!
 !! NOTES
 !! Used for symmetry operations.
 !! This routine applies to ORTHOGONAL matrices only.
@@ -29,31 +27,16 @@
 !! Also: has been designed so that mit can be same storage space as m, in
 !! which case m is overwritten by resulting mit.
 !!
-!! TODO
-!!
-!! PARENTS
-!!      ab6_symmetry_f90,debug_tools,get_full_kgrid,getkgrid,ingeo,invars2m
-!!      m_bands_sym,m_crystal,m_fft_mesh,m_io_kss,nstdy3,optic,outscfcv,rdddb9
-!!      read_gkk,setsym,strainsym,symdij,symdyma,wfconv
-!!
-!! CHILDREN
-!!      abi_leave_new,abi_wrtout
-!!
 !! SOURCE
 
 #if defined HAVE_CONFIG_H
-#include "config.inc"
+#include "config.h"
 #endif
 
 subroutine mati3inv(mm,mit)
 
  use defs_basis
-
-!This section has been created automatically by the script Abilint (TD).
-!Do not modify the following lines by hand.
- use interfaces_14_hidewrite
- use interfaces_16_hideleave
-!End of the abilint section
+ use abi_interfaces_lowlevel
 
  implicit none
 

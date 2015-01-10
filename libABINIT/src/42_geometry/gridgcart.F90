@@ -21,9 +21,6 @@
 !! OUTPUT
 !!  real(dp) :: gcart(ngfft(1),ngfft(2),ngfft(3),3) ! cartesian components of G vectors on grid
 !!
-!! PARENTS        ! This paragraph will be produced automatically
-!!      calc_efg,respfn
-!!
 !! NOTES
 !! this subroutine returns a three component G vector at index ijk given
 !! information about the real space grid contained in ngfft(1,2,3)
@@ -58,12 +55,10 @@
 !! ngfft(i)/2 + 2, while for even ngfft(i), only the positive Nyquist G component (not
 !! the negative!).
 !!
-!! CHILDREN
-!!
 !! SOURCE
 
 #if defined HAVE_CONFIG_H
-#include "config.inc"
+#include "config.h"
 #endif
 
 subroutine gridgcart(gcart,gprimd,ngfft)
@@ -116,5 +111,6 @@ subroutine gridgcart(gcart,gprimd,ngfft)
      end do ! end loop over ngfft(3)
    end do ! end loop over ngfft(2)
  end do ! end loop over ngfft(1)
+
 end subroutine gridgcart
 !!***

@@ -1,10 +1,9 @@
-!!****m* ABINIT/interfaces_linalg
+!!****m* ABINIT/abi_interfaces_linalg
 !! NAME
-!! interfaces_linalg
+!! abi_interfaces_linalg
 !!
 !! FUNCTION
-!! This module contains the interfaces of the routines
-!! in the directory prereqs/linalg
+!! This module contains the interfaces of the BLAS/LAPACK routines
 !!
 !! COPYRIGHT
 !! Copyright (C) 2010 ABINIT group
@@ -12,14 +11,9 @@
 !! GNU General Public License, see ~abinit/COPYING
 !! or http://www.gnu.org/copyleft/gpl.txt .
 !!
-!! NOTES
-!! THIS FILE IS GENERATED AUTOMATICALLY BY abilint.
-!! To do that: config/scripts/abilint . .
-!! 
-!!
 !! SOURCE
 
-module interfaces_linalg
+module abi_interfaces_linalg
 
  implicit none
 
@@ -3834,5 +3828,5 @@ interface
  end subroutine ZUNGQR
 end interface
 
-end module interfaces_linalg
+end module abi_interfaces_linalg
 !!***

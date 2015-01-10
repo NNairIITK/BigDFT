@@ -1,6 +1,7 @@
 !{\src2tex{textfont=tt}}
 !!****f* ABINIT/bldgrpaf
-!! NAME bldgrpaf
+!!
+!! NAME
 !! bldgrpaf
 !!
 !! FUNCTION
@@ -28,21 +29,10 @@
 !! symrel = 3D matrix containg symmetry operations
 !! tnons = 2D matrix containing translations associated
 !!
-!! SIDE EFFECTS
-!!
-!!
-!! NOTES
-!!
-!!
-!! PARENTS
-!! None
-!!
-!! CHILDREN
-!!
 !! SOURCE
 
 #if defined HAVE_CONFIG_H
-#include "config.inc"
+#include "config.h"
 #endif
 
 subroutine bldgrpaf(msym,nogenaf,nsym,symafm,symrel,symrel_magn,tnons)
@@ -70,12 +60,6 @@ subroutine bldgrpaf(msym,nogenaf,nsym,symafm,symrel,symrel_magn,tnons)
 ! *************************************************************************
 
  nastyzero=0.1
-
-!DEBUG
-!write(6,*)' bldgrpaf : enter, builds the space group symmetry '
-!write(6,*)' bldgrpaf : number of generators : ',nogenaf
-!ENDDEBUG
-
 
 !Find the magnetic generators within the nonmagnetic group operations
  do ii=1,nogenaf
@@ -109,8 +93,6 @@ subroutine bldgrpaf(msym,nogenaf,nsym,symafm,symrel,symrel_magn,tnons)
      end if
    end do
  end do
-
-
 
 end subroutine bldgrpaf
 !!***

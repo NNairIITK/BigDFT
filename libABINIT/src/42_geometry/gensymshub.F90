@@ -30,27 +30,16 @@
 !!  anti-ferromagnetic symmetry operations
 !! shubnikov = type of the shubnikov group
 !!
-!! PARENTS
-!!      ingeo
-!!
-!! CHILDREN
-!!      abi_leave_new,abi_wrtout
-!!
 !! SOURCE
 
 #if defined HAVE_CONFIG_H
-#include "config.inc"
+#include "config.h"
 #endif
 
 subroutine gensymshub(genafm,spgroup,spgroupma,shubnikov)
 
  use defs_basis
-
-!This section has been created automatically by the script Abilint (TD).
-!Do not modify the following lines by hand.
- use interfaces_14_hidewrite
- use interfaces_16_hideleave
-!End of the abilint section
+ use abi_interfaces_lowlevel
 
  implicit none
 
@@ -67,15 +56,6 @@ subroutine gensymshub(genafm,spgroup,spgroupma,shubnikov)
  character(len=500) :: message
 
 ! *************************************************************************
-
-!List of the input parameters
-!DEBUG
-!write(6,*)
-!write(6,*)' gensymshub : enter with:'
-!write(6,*)' brvlttbw  = ',brvlttbw
-!write(6,*)' spgroup = ',spgroup
-!write(6,*)' spgroupma = ',spgroupma
-!ENDDEBUG
 
 !Test for consistency the magnetic and non-magnetic space group
  select case (spgroup)
@@ -561,10 +541,6 @@ subroutine gensymshub(genafm,spgroup,spgroupma,shubnikov)
    call abi_leave_new('COLL')
  end if
 
-!DEBUG
-!write(6,*) ' gensymshub, after check the spgroup ... '
-!ENDDEBUG
-
 !Assign the magnetic Bravais lattice type from the magnetic space group number
 !As the magnetic space group number begins with 1 for EACH crystal system
 !we must first make our choice as a function of spgroup
@@ -719,11 +695,5 @@ subroutine gensymshub(genafm,spgroup,spgroupma,shubnikov)
    end if
  end if
 
-!DEBUG
-!write(6,*) 'gensymshub : end '
-!write(6,*) 'gensymshub, shubnikov =',shubnikov
-!ENDDEBUG
 end subroutine gensymshub
-
-
 !!***

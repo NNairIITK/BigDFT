@@ -48,28 +48,17 @@
 !! tnons(3,1:msym)=nonsymmorphic translations for each symmetry (would
 !!  be 0 0 0 each for a symmorphic space group)
 !!
-!! PARENTS
-!!      ingeo,ab6_symmetry_f90
-!!
-!! CHILDREN
-!!      abi_leave_new,abi_wrtout
-!!
 !! SOURCE
 
 #if defined HAVE_CONFIG_H
-#include "config.inc"
+#include "config.h"
 #endif
 
  subroutine symfind(berryopt,efield,gprimd,jellslab,msym,natom,noncoll,nptsym,nsym,&
 &           ptsymrel,spinat,symafm,symrel,tnons,tolsym,typat,use_inversion,xred)
 
  use defs_basis
-
-!This section has been created automatically by the script Abilint (TD).
-!Do not modify the following lines by hand.
- use interfaces_14_hidewrite
- use interfaces_16_hideleave
-!End of the abilint section
+ use abi_interfaces_lowlevel
 
  implicit none
 
@@ -101,22 +90,6 @@
 
 !**************************************************************************
 
-!DEBUG
-!write(6,*)' symfind : enter'
-!write(6,*)' symfind : jellslab = ',jellslab
-!write(6,*)'   ptsymrel matrices are :'
-!do isym=1,nptsym
-!write(6, '(i4,4x,9i4)' )isym,ptsymrel(:,:,isym)
-!end do
-!write(6,*)' symfind : natom=',natom
-!do iatom=1,natom
-!write(6,*)'  atom number',iatom
-!write(6,*)'   typat   =',typat(iatom)
-!write(6,*)'   spinat  =',spinat(:,iatom)
-!write(6,*)'   xred    =',xred(:,iatom)
-!end do
-!ENDDEBUG
-
 !Find the number of classes of atoms (type and spinat must be identical,
 !spinat might differ by a sign, if aligned with the z direction)
 !natomcl(iclass) will contain the number of atoms in the class
@@ -134,9 +107,6 @@
  class(1,1)=1
  if(natom>1)then
    do iatom=2,natom
-!    DEBUG
-!    write(6,*)' symfind : examine iatom=',iatom
-!    ENDDEBUG
      foundcl=0
      do iclass=1,nclass
 !      Compare the typat and spinat of atom iatom with existing ones.
@@ -158,13 +128,6 @@
 &         abs(spinat(2,iatom)+spinatcl(2,iclass))<tolsym .and. &
 &         abs(spinat(3,iatom)+spinatcl(3,iclass))<tolsym
          if( test_samespin .or. test_sameabscollin .or. test_sameabsnoncoll) then
-!          DEBUG
-!          write(6,*)' symfind : find it belongs to class iclass=',iclass
-!          write(6,*)' symfind : spinat(:,iatom)=',spinat(:,iatom)
-!          write(6,*)' symfind : spinatcl(:,iclass)=',spinatcl(:,iclass)
-!          write(6,*)' symfind : test_samespin,test_sameabscollin,test_sameabsnoncoll=',&
-!          &      test_samespin,test_sameabscollin,test_sameabsnoncoll
-!          ENDDEBUG
            natomcl(iclass)=natomcl(iclass)+1
            class(natomcl(iclass),iclass)=iatom
            foundcl=1
@@ -182,17 +145,6 @@
      end if
    end do
  end if
-
-!DEBUG
-!write(6,*)' symfind : found ',nclass,' nclass of atoms'
-!do iclass=1,nclass
-!write(6,*)'  class number',iclass
-!write(6,*)'   natomcl =',natomcl(iclass)
-!write(6,*)'   typecl  =',typecl(iclass)
-!write(6,*)'   spinatcl=',spinatcl(:,iclass)
-!write(6,*)'   class   =',(class(iatom,iclass),iatom=1,natom)
-!end do
-!ENDDEBUG
 
 !Select the class with the least number of atoms, and non-zero spinat if any
 !It is important to select a magnetic class of atom, if any, otherwise
@@ -214,15 +166,6 @@
  end if
 
  printed=0
-
-!DEBUG
-!write(6,*)' symfind : has selected iclass0=',iclass0
-!write(6,*)' #    iatom     xred             spinat '
-!do iatom0=1,natomcl(iclass0)
-!iatom=class(iatom0,iclass0)
-!write(6, '(2i4,6f10.4)' )iatom0,iatom,xred(:,iatom),spinat(:,iatom)
-!end do
-!ENDDEBUG
 
 !If non-collinear spinat have to be used, transfer them in reduced coordinates
  if (noncoll==1) then
@@ -300,10 +243,6 @@
      if( jellslab/=0 .and. abs(trialnons(3)) > tolsym ) cycle
      trialok=1
 
-!    DEBUG
-!    write(6,*)' isym,trialnons(:),trialafm =',isym,trialnons(:),trialafm
-!    ENDDEBUG
-
 !    Loop over all classes, then all atoms in the class,
 !    to find whether they have a symmetric
      do iclass=1,nclass
@@ -322,10 +261,6 @@
 &           ptsymrel(:,2,isym)*spinatred(2,iatom2)+ &
 &           ptsymrel(:,3,isym)*spinatred(3,iatom2))
          end if
-
-!        DEBUG
-!        write(6, '(a,3f12.4,a,3f12.4)') ' Send atom at xred=',xred(:,iatom2),' to ',symxred2(:)
-!        ENDDEBUG
 
 !        Check whether there exists an atom of the same class at the
 !        same location, with the correct spinat
@@ -388,15 +323,6 @@
 
  deallocate(class,natomcl,spinatcl,typecl)
  if (noncoll==1)  deallocate(spinatred)
-
-!DEBUG
-!write(6,*)' symfind : exit, nsym=',nsym
-!write(6,*)'   symrel matrices, symafm and tnons are :'
-!do isym=1,nsym
-!write(6, '(i4,4x,3i4,2x,3i4,2x,3i4,4x,i4,4x,3f8.4)' )isym,symrel(:,:,isym),symafm(isym),tnons(:,isym)
-!end do
-!stop
-!ENDDEBUG
 
 end subroutine symfind
 !!***

@@ -19,18 +19,17 @@
 !!
 !! OUTPUT
 !!
-!! PARENTS
-!!
-!! CHILDREN
-!!
 !! SOURCE
+
 #if defined HAVE_CONFIG_H
-#include "config.inc"
+#include "config.h"
 #endif
 
 module libxc_functionals
 
-  use defs_basis
+ use defs_basis
+ use abi_interfaces_lowlevel
+
 #if defined HAVE_LIBXC
   use xc_f90_types_m
   use libxc_funcs_m
@@ -76,23 +75,9 @@ contains
 !!
 !! OUTPUT
 !! 
-!! PARENTS
-!!      driver
-!!
-!! CHILDREN
-!!      xc_f90_gga_exc_vxc,xc_f90_gga_vxc,xc_f90_lda_exc_vxc,xc_f90_lda_vxc
-!!      xc_f90_mgga_exc_vxc,xc_f90_mgga_vxc
-!!
 !! SOURCE
 
   subroutine libxc_functionals_init(ixc,nspden)
-
-
-!This section has been created automatically by the script Abilint (TD).
-!Do not modify the following lines by hand.
- use interfaces_14_hidewrite
- use interfaces_16_hideleave
-!End of the abilint section
 
     implicit none
 
@@ -176,14 +161,8 @@ contains
 !!
 !! OUTPUT
 !!
-!! PARENTS
-!!      driver
-!!
-!! CHILDREN
-!!      xc_f90_gga_exc_vxc,xc_f90_gga_vxc,xc_f90_lda_exc_vxc,xc_f90_lda_vxc
-!!      xc_f90_mgga_exc_vxc,xc_f90_mgga_vxc
-!!
 !! SOURCE
+
   subroutine libxc_functionals_end()
 
 
@@ -221,13 +200,9 @@ contains
 !!
 !! OUTPUT
 !! 
-!! PARENTS
-!!
-!! CHILDREN
-!!
 !! SOURCE
-  function libxc_functionals_isgga()
 
+  function libxc_functionals_isgga()
 
     implicit none
 
@@ -236,7 +211,6 @@ contains
 !Local variables-------------------------------
 
     logical :: libxc_functionals_isgga
-!   character(len=500) :: message
 
 ! *************************************************************************
 
@@ -260,10 +234,6 @@ contains
 !!
 !! OUTPUT
 !! 
-!! PARENTS
-!!
-!! CHILDREN
-!!
 !! SOURCE
 
   real(kind=8) function libxc_functionals_exctXfac()
@@ -274,9 +244,6 @@ contains
 !Arguments ------------------------------------
 
 !Local variables-------------------------------
-
-!   logical :: libxc_functionals_needexctX
-!   character(len=500) :: message
 
 ! *************************************************************************
 
@@ -304,14 +271,10 @@ contains
 !! INPUTS
 !!
 !! OUTPUT
-!! 
-!! PARENTS
-!!
-!! CHILDREN
 !!
 !! SOURCE
-  function libxc_functionals_ismgga()
 
+  function libxc_functionals_ismgga()
 
     implicit none
 
@@ -344,18 +307,10 @@ contains
 !! INPUTS
 !!
 !! OUTPUT
-!! 
-!! PARENTS
-!!      drivexc
-!!
-!! CHILDREN
-!!      xc_f90_gga_exc_vxc,xc_f90_gga_vxc,xc_f90_lda_exc_vxc,xc_f90_lda_vxc
-!!      xc_f90_mgga_exc_vxc,xc_f90_mgga_vxc
 !!
 !! SOURCE
 
   subroutine libxc_functionals_getvxc(npts,exc,nspden,rho,vxc,grho2,vxcgr,lrho,vxclrho,tau,vxctau)
-
 
     implicit none
 
@@ -442,12 +397,6 @@ contains
           case (XC_FAMILY_MGGA)
             call xc_f90_mgga_exc_vxc(funcs(i)%conf,1,rhotmp(1),sigma(1),lrhotmp(1),&
                         tautmp(1),exctmp,vxctmp(1),vsigma(1),vxclrhotmp(1),vxctautmp(1))
-!            write(message, '(7a)' )ch10,&
-!                 &    ' libxc_functionals_init : ERROR -',ch10,&
-!                 &    '  MGGA that provide Exc are currently',ch10,&
-!                 &    '  unsupported by ABINIT',ch10
-!            call abi_wrtout(std_out,message,'COLL')
-!            call abi_leave_new('COLL')          
           end select
 
         else

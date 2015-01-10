@@ -4,12 +4,10 @@
 ! Parameters are chosen from integer overflow=2**23 (conservative).
 ! For some documentation, see Numerical Recipes, 1986, p196.
 
-!This section has been created automatically by the script Abilint (TD).
-!Do not modify the following lines by hand.
- use interfaces_16_hideleave
-!End of the abilint section
+ use abi_interfaces_lowlevel
 
  implicit none
+
 !Input/Output
  double precision :: uniformrandom
  integer :: seed

@@ -1,7 +1,7 @@
 !{\src2tex{textfont=tt}}
-!!****m* ABINIT/m_abi_xmpi
+!!****m* ABINIT/abi_m_xmpi
 !! NAME
-!!  m_abi_xmpi
+!!  abi_m_xmpi
 !!
 !! FUNCTION
 !!  This module provides a few MPI named constants and generic interfaces
@@ -19,7 +19,7 @@
 #include "config.h"
 #endif
 
-MODULE m_abi_xmpi
+MODULE abi_m_xmpi
 
  use defs_basis
 #ifdef HAVE_MPI2
@@ -66,7 +66,7 @@ end interface abi_xmpi_sum
 CONTAINS  !===========================================================
 !!***
 
-!!****f* m_abi_xmpi/abi_xmpi_abort
+!!****f* abi_m_xmpi/abi_xmpi_abort
 !! NAME
 !!  abi_xmpi_abort
 !!
@@ -83,12 +83,8 @@ CONTAINS  !===========================================================
 
 subroutine abi_xmpi_abort(comm,mpierr,msg,exit_status)
 
-
-!This section has been created automatically by the script Abilint (TD).
-!Do not modify the following lines by hand.
 #undef ABI_FUNC
 #define ABI_FUNC 'abi_xmpi_abort'
-!End of the abilint section
 
  implicit none
 
@@ -141,7 +137,7 @@ end subroutine abi_xmpi_abort
 
 !----------------------------------------------------------------------
 
-!!****f* m_abi_xmpi/abi_xmpi_comm_rank
+!!****f* abi_m_xmpi/abi_xmpi_comm_rank
 !! NAME
 !!  abi_xmpi_comm_rank
 !!
@@ -154,18 +150,12 @@ end subroutine abi_xmpi_abort
 !! OUTPUT
 !!  abi_xmpi_comm_rank=The rank of the node inside comm
 !!
-!! PARENTS
-!!
 !! SOURCE
 
 function abi_xmpi_comm_rank(comm)
 
-
-!This section has been created automatically by the script Abilint (TD).
-!Do not modify the following lines by hand.
 #undef ABI_FUNC
 #define ABI_FUNC 'abi_xmpi_comm_rank'
-!End of the abilint section
 
  implicit none
 
@@ -193,7 +183,7 @@ end function abi_xmpi_comm_rank
 
 !----------------------------------------------------------------------
 
-!!****f* m_abi_xmpi/abi_xmpi_comm_size
+!!****f* abi_m_xmpi/abi_xmpi_comm_size
 !! NAME
 !!  abi_xmpi_comm_size
 !!
@@ -206,18 +196,12 @@ end function abi_xmpi_comm_rank
 !! OUTPUT
 !!  abi_xmpi_comm_size=The number of processors inside comm.
 !!
-!! PARENTS
-!!
 !! SOURCE
 
 function abi_xmpi_comm_size(comm)
 
-
-!This section has been created automatically by the script Abilint (TD).
-!Do not modify the following lines by hand.
 #undef ABI_FUNC
 #define ABI_FUNC 'abi_xmpi_comm_size'
-!End of the abilint section
 
  implicit none
 
@@ -243,7 +227,7 @@ end function abi_xmpi_comm_size
 
 !----------------------------------------------------------------------
 
-!!****f* m_abi_xmpi/abi_xmpi_sum_int1d
+!!****f* abi_m_xmpi/abi_xmpi_sum_int1d
 !! NAME
 !!  abi_xmpi_sum_int1d
 !!
@@ -255,12 +239,8 @@ end function abi_xmpi_comm_size
 
 subroutine abi_xmpi_sum_int1d(xval,comm,mpierr)
 
-
-!This section has been created automatically by the script Abilint (TD).
-!Do not modify the following lines by hand.
 #undef ABI_FUNC
 #define ABI_FUNC 'abi_xmpi_sum_int1d'
-!End of the abilint section
 
  implicit none
 
@@ -285,7 +265,7 @@ subroutine abi_xmpi_sum_int1d(xval,comm,mpierr)
 end subroutine abi_xmpi_sum_int1d
 !!***
 
-!!****f* m_abi_xmpi/abi_xmpi_sum_dp1d
+!!****f* abi_m_xmpi/abi_xmpi_sum_dp1d
 !! NAME
 !!  abi_xmpi_sum_dp1d
 !!
@@ -297,12 +277,8 @@ end subroutine abi_xmpi_sum_int1d
 
 subroutine abi_xmpi_sum_dp1d(xval,comm,mpierr)
 
-
-!This section has been created automatically by the script Abilint (TD).
-!Do not modify the following lines by hand.
 #undef ABI_FUNC
 #define ABI_FUNC 'abi_xmpi_sum_dp1d'
-!End of the abilint section
 
  implicit none
 
@@ -327,7 +303,7 @@ subroutine abi_xmpi_sum_dp1d(xval,comm,mpierr)
 end subroutine abi_xmpi_sum_dp1d
 !!***
 
-!!****f* m_abi_xmpi/abi_xmpi_sum_dp3d
+!!****f* abi_m_xmpi/abi_xmpi_sum_dp3d
 !! NAME
 !!  abi_xmpi_sum_dp3d
 !!
@@ -339,12 +315,8 @@ end subroutine abi_xmpi_sum_dp1d
 
 subroutine abi_xmpi_sum_dp3d(xval,comm,mpierr)
 
-
-!This section has been created automatically by the script Abilint (TD).
-!Do not modify the following lines by hand.
 #undef ABI_FUNC
 #define ABI_FUNC 'abi_xmpi_sum_dp3d'
-!End of the abilint section
 
  implicit none
 
@@ -371,5 +343,5 @@ end subroutine abi_xmpi_sum_dp3d
 
 !----------------------------------------------------------------------
 
-END MODULE m_abi_xmpi
+END MODULE abi_m_xmpi
 !!***

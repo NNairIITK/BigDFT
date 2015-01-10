@@ -31,29 +31,18 @@
 !!              of the conventional bravais lattice (*2 if center/=0)
 !! ptgroup=symmetry point group
 !!
-!! PARENTS
-!!      symanal
-!!
-!! CHILDREN
-!!      abi_leave_new,symdet,abi_wrtout
-!!
 !! SOURCE
 
 #if defined HAVE_CONFIG_H
-#include "config.inc"
+#include "config.h"
 #endif
 
 subroutine symbrav(bravais,msym,nsym,ptgroup,rprimd,symrel,tolsym)
 
  use defs_basis
-
-!This section has been created automatically by the script Abilint (TD).
-!Do not modify the following lines by hand.
- use interfaces_14_hidewrite
- use interfaces_16_hideleave
+ use abi_interfaces_lowlevel
  use interfaces_32_util
  use interfaces_42_geometry, except_this_one => symbrav
-!End of the abilint section
 
  implicit none
 
@@ -81,13 +70,6 @@ subroutine symbrav(bravais,msym,nsym,ptgroup,rprimd,symrel,tolsym)
  real(dp) :: rprimdconv_invt(3,3)
 
 !**************************************************************************
-
-!DEBUG
-!write(6,*)' symbrav : enter'
-!do isym=1,nsym
-!write(6, '(i3,2x,9i3)' )isym,symrel(:,:,isym)
-!end do
-!ENDDEBUG
 
  identity(:,:)=0
  identity(1,1)=1 ; identity(2,2)=1 ; identity(3,3)=1
@@ -170,12 +152,7 @@ subroutine symbrav(bravais,msym,nsym,ptgroup,rprimd,symrel,tolsym)
 !  as the lattice+atoms (+electric field + ...)
    if(problem==0)exit
 
-!  DEBUG
-!  write(6,*)' Start real testing : problem=',problem
-!  stop
-!  ENDDEBUG
-
-   if(problem==2)then
+  if(problem==2)then
      if(iaxis==0)then
        write(message, '(6a,i3,3a,i3,7a)' )ch10,&
 &       ' symbrav : BUG -',ch10,&
@@ -260,10 +237,6 @@ subroutine symbrav(bravais,msym,nsym,ptgroup,rprimd,symrel,tolsym)
      else
        axis_trial(:)=hexa_axes(:,jaxis)
      end if
-!    DEBUG
-!    write(6,*)' symbrav : try jaxis=',jaxis
-!    write(6,*)' axis_trial=',axis_trial
-!    ENDDEBUG
      invariant=1
 !    Examine whether all symmetry operations leave the axis invariant (might be reversed, though)
      do isym=1,nsym
@@ -281,11 +254,6 @@ subroutine symbrav(bravais,msym,nsym,ptgroup,rprimd,symrel,tolsym)
 
    if(invariant==0)then
 !    Not a single axis was invariant with respect to all operations ?!
-!    DEBUG
-!    do isym=1,nsym
-!    write(6, '(a,10i4)' )' isym,symrelconv=',isym,symrelconv(:,:,isym)
-!    enddo 
-!    ENDDEBUG
      write(message, '(6a,3i3,2a,i3,2a,i3)' )ch10,&
 &     ' symbrav : BUG -',ch10,&
 &     '  Could not succeed to determine the bravais lattice (not a single invariant)',ch10,&

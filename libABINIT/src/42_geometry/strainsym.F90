@@ -23,29 +23,17 @@
 !! OUTPUT
 !! rprimd_symm(3,3)= symmetrized primitive vectors
 !!
-!! SIDE EFFECTS
-!!
-!! PARENTS
-!!      xfpack
-!!
-!! CHILDREN
-!!      dgemm,mati3inv,matrginv
-!!
 !! SOURCE
 
 #if defined HAVE_CONFIG_H
-#include "config.inc"
+#include "config.h"
 #endif
 
 subroutine strainsym(nsym,rprimd0,rprimd,rprimd_symm,symrel)
 
  use defs_basis
-
-!This section has been created automatically by the script Abilint (TD).
-!Do not modify the following lines by hand.
+ use abi_interfaces_linalg
  use interfaces_32_util
- use interfaces_linalg
-!End of the abilint section
 
  implicit none
 
@@ -65,11 +53,6 @@ subroutine strainsym(nsym,rprimd0,rprimd,rprimd_symm,symrel)
  real(dp) :: rprimd0_inv(3,3),strain(3,3),strain_symm(3,3),tmp_mat(3,3)
 
 !**************************************************************************
-
-!DEBUG
-!write(6,*)' strainsym : enter '
-!enddo
-!ENDDEBUG
 
 !copy initial rprimd input and construct inverse
  rprimd0_inv = rprimd0
@@ -102,14 +85,6 @@ subroutine strainsym(nsym,rprimd0,rprimd,rprimd_symm,symrel)
 !to get the r_new primitive vectors
 
  call dgemm('N','N',3,3,3,one,rprimd0,3,strain_symm,3,zero,rprimd_symm,3)
-
-!DEBUG
-!rprimd_symm(:,:)=rprimd(:,:)
-!ENDDEBUG
-
-!DEBUG
-!write(6,*)' strainsym : exit '
-!ENDDEBUG
 
 end subroutine strainsym
 !!***

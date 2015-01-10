@@ -60,28 +60,17 @@
 !!                      translations which must be subtracted after the
 !!                      transformation to get back to the original unit cell.
 !!
-!! PARENTS
-!!      m_crystal,rdddb9,setsym
-!!
-!! CHILDREN
-!!      abi_leave_new,symchk,abi_wrtout
-!!
 !! SOURCE
 
 #if defined HAVE_CONFIG_H
-#include "config.inc"
+#include "config.h"
 #endif
 
 subroutine symatm(indsym,natom,nsym,symrec,tnons,tolsym,typat,xred)
 
  use defs_basis
-
-!This section has been created automatically by the script Abilint (TD).
-!Do not modify the following lines by hand.
- use interfaces_14_hidewrite
- use interfaces_16_hideleave
+ use abi_interfaces_lowlevel
  use interfaces_42_geometry, except_this_one => symatm
-!End of the abilint section
 
  implicit none
 
@@ -187,11 +176,6 @@ subroutine symatm(indsym,natom,nsym,symrec,tnons,tolsym,typat,xred)
    end do
  end do
 
-!DEBUG
-!write(6,*)' symatm : close to exit '
-!stop
-!ENDDEBUG
-
  if (err>tolsym) then
    write(message, '(1x,a,1p,e14.5,a,e12.4)' ) &
 &   'symatm: maximum (delta t)=',err,' is larger than tol=',tolsym
@@ -209,6 +193,6 @@ subroutine symatm(indsym,natom,nsym,symrec,tnons,tolsym,typat,xred)
    call abi_wrtout(std_out,message,'COLL')
    call abi_leave_new('COLL')
  end if
-!
+
 end subroutine symatm
 !!***

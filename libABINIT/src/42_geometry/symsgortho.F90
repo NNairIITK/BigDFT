@@ -30,27 +30,17 @@
 !! symrel(3,3,nsym) = 3D matrix containg symmetry operations
 !! tnons(3,nsym) = 2D matrix containing translations associated
 !!
-!! PARENTS
-!!      gensymspgr
-!!
-!! CHILDREN
-!!      bldgrp,spgdata
-!!
 !! SOURCE
 
 #if defined HAVE_CONFIG_H
-#include "config.inc"
+#include "config.h"
 #endif
 
 subroutine symsgortho(msym,nsym,shubnikov,spgaxor,spgorig,spgroup,&
 &   spgroupma,symafm,symrel,tnons)
 
  use defs_basis
-
-!This section has been created automatically by the script Abilint (TD).
-!Do not modify the following lines by hand.
  use interfaces_42_geometry, except_this_one => symsgortho
-!End of the abilint section
 
  implicit none
 
@@ -74,10 +64,6 @@ subroutine symsgortho(msym,nsym,shubnikov,spgaxor,spgorig,spgroup,&
  integer :: genpmp(3,3),genppm(3,3)
 
 ! *************************************************************************
-
-!DEBUG
-!write(6,*)'symsgortho ( orthorhombic groups) : enter with space group ',spgroup
-!ENDDEBUG
 
 !The orientation of the space group:
 !first we will permute the input coordinates of the atoms, xred
@@ -107,10 +93,6 @@ subroutine symsgortho(msym,nsym,shubnikov,spgaxor,spgorig,spgroup,&
 
 !Default non-magnetic behaviour
  symafm(1:nsym)=1
-
-!DEBUG
-!write(6,*) 'symsgortho:',spgroup,shubnikov,spgroupma
-!ENDDEBUG
 
 !assigns the generators to each space group
  select case (spgroup)
@@ -449,18 +431,10 @@ subroutine symsgortho(msym,nsym,shubnikov,spgaxor,spgorig,spgroup,&
        tnons(:,2)=(/0.75d0,0.75d0,0.d0/)
        tnons(:,3)=(/0.75d0,0.d0,0.75d0/)
        tnons(:,4)=(/0.d0,0.75d0,0.75d0/)
-!      JWZ DEBUGGING BEGIN
-!      the following lines were present in 5.7 as of Dec 10 2008 but
-!      gave wrong results in a spgroup 70 spgorig 2 case (Na2SO4)
-!      tnons(:,5)=(/0.25d0,0.25d0,0.d0/) ! original code
-!      tnons(:,6)=(/0.25d0,0.d0,0.25d0/) ! original code
-!      tnons(:,7)=(/0.d0,0.25d0,0.25d0/) ! original code
-!      here are the corrected values of tnons for this case
        tnons(:,5)=(/0.0d0,0.0d0,0.0d0/)
        tnons(:,6)=(/0.25d0,0.25d0,0.0d0/)
        tnons(:,7)=(/0.25d0,0.0d0,0.25d0/)
        tnons(:,8)=(/0.0d0,0.25d0,0.25d0/)
-!      JWZ DEBUGGING END
      end if
      if(shubnikov==3)then
        if(spgroupma==529)then
@@ -508,10 +482,6 @@ subroutine symsgortho(msym,nsym,shubnikov,spgaxor,spgorig,spgroup,&
 
  call spgdata(brvsb,intsb,intsbl,ptintsb,&
 & ptschsb,schsb,spgaxor,spgroup,sporder,spgorig)
-
-!DEBUG
-!write(6,*)'symsgortho : end of symmetry assignement'
-!ENDDEBUG
 
 end subroutine symsgortho
 !!***

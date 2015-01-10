@@ -5,7 +5,7 @@ subroutine md_isothermal(acell, acell_next, amass, bmass, dtion, etotal, etotal0
 
   use defs_basis
   use defs_datatypes
-  use interfaces_14_hidewrite
+  use abi_interfaces_lowlevel
 
   implicit none
 
@@ -67,12 +67,6 @@ subroutine md_isothermal(acell, acell_next, amass, bmass, dtion, etotal, etotal0
      xcart_next(:,:)=xcart(:,:)+vel_nexthalf(:,:)*dtion
      !   Convert back to xred (reduced coordinates)
      call xredxcart(natom,-1,rprimd,xcart_next,xred_next)
-     !   DEBUG
-     !   write(6,*)' xcart:'
-     !   do iatom=1,natom
-     !   write(6,*)' atom , position=',iatom,xcart_next(:,iatom)
-     !   enddo
-     !   ENDDEBUG
      !   Computation of the forces for the new positions
      !   Compute LDA forces (big loop), fcart_m is used as dummy argument for fred
      call scfloop_main(acell, etotal, fcart, fcart_m, itime, me, natom, rprimd, xred_next)
@@ -122,12 +116,6 @@ subroutine md_isothermal(acell, acell_next, amass, bmass, dtion, etotal, etotal0
 !!$     call initylmg(gprimd,kg,dtset%kptns,dtset%mkmem,mpi_enreg,psps%mpsang,dtset%mpw,dtset%nband,dtset%nkpt,&
 !!$&     npwarr,dtset%nsppol,option,rprimd_next,dtfil%unkg,dtfil%unylm,ylm,ylmgr)
 !!$    end if
-     !   DEBUG
-     !   write(6,*)' xcart:   (2)'
-     !   do iatom=1,natom
-     !   write(6,*)' atom , position=',iatom,xcart_next(:,iatom)
-     !   enddo
-     !   ENDDEBUG
      !   Compute LDA forces (big loop), fcart_m is used as dummy argument for fred
      call scfloop_main(acell_next, etotal, fcart, fcart_m, itime, me, natom, &
           & rprimd_next, xred_next)
@@ -189,13 +177,6 @@ subroutine md_isothermal(acell, acell_next, amass, bmass, dtion, etotal, etotal0
 !!$     call initylmg(gprimd,kg,dtset%kptns,dtset%mkmem,mpi_enreg,psps%mpsang,dtset%mpw,dtset%nband,dtset%nkpt,&
 !!$&     npwarr,dtset%nsppol,option,rprimd_next,dtfil%unkg,dtfil%unylm,ylm,ylmgr)
 !!$    end if
-
-     !   DEBUG
-     !   write(6,*)' xcart: (3)'
-     !   do iatom=1,natom
-     !   write(6,*)' atom , position=',iatom,xcart_next(:,iatom)
-     !   enddo
-     !   ENDDEBUG
 
      !   Compute LDA forces (big loop), fcart_m is used as dummy argument for fred
      call scfloop_main(acell_next, etotal, fcart, fcart_m, itime, me, natom, &

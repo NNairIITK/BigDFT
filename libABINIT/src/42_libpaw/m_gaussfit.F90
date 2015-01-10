@@ -106,7 +106,7 @@ CONTAINS
 !Do not modify the following lines by hand.
 #undef ABI_FUNC
 #define ABI_FUNC 'gaussfit_main'
- !use interfaces_14_hidewrite
+ !use abi_interfaces_lowlevel
 !End of the abilint section
 
  implicit none
@@ -715,7 +715,7 @@ end subroutine gaussfit_main
 !Do not modify the following lines by hand.
 #undef ABI_FUNC
 #define ABI_FUNC 'gaussfit_mpi_main'
- !use interfaces_14_hidewrite
+ !use abi_interfaces_lowlevel
 !End of the abilint section
 
  implicit none
@@ -1562,7 +1562,7 @@ subroutine gaussfit_rlsf(&
 !Do not modify the following lines by hand.
 #undef ABI_FUNC
 #define ABI_FUNC 'gaussfit_rlsf'
- !use interfaces_14_hidewrite
+ !use abi_interfaces_lowlevel
 !End of the abilint section
 
  implicit none
@@ -2295,7 +2295,7 @@ subroutine gaussfit_projector(basis_size,mparam,nparam_array,nterm_bounds,orbita
 !Do not modify the following lines by hand.
 #undef ABI_FUNC
 #define ABI_FUNC 'gaussfit_projector'
- !use interfaces_14_hidewrite
+ !use abi_interfaces_lowlevel
 !End of the abilint section
 
  implicit none

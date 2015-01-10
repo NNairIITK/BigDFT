@@ -22,35 +22,17 @@
 !!
 !! OUTPUT
 !!
-!!
-!! SIDE EFFECTS
-!!
-!!
-!! NOTES
-!!
-!!
-!! PARENTS
-!!      driver,scfcv
-!!
-!! CHILDREN
-!!      abi_leave_new,matr3eigval,matr3inv,abi_wrtout
-!!
 !! SOURCE
 
 #if defined HAVE_CONFIG_H
-#include "config.inc"
+#include "config.h"
 #endif
 
 subroutine chkdilatmx(dilatmx,rprimd,rprimd_orig)
 
  use defs_basis
-
-!This section has been created automatically by the script Abilint (TD).
-!Do not modify the following lines by hand.
- use interfaces_14_hidewrite
- use interfaces_16_hideleave
+ use abi_interfaces_lowlevel
  use interfaces_32_util
-!End of the abilint section
 
  implicit none
 
@@ -69,12 +51,6 @@ subroutine chkdilatmx(dilatmx,rprimd,rprimd_orig)
  real(dp) :: eigval(3),gprimd_orig(3,3),met(3,3),old_to_new(3,3)
 
 ! *************************************************************************
-
-!DEBUG
-!write(6,*)' chkdilatmx : enter '
-!write(6,*)' rprimd_orig=',rprimd_orig
-!write(6,*)' rprimd=',rprimd
-!ENDDEBUG
 
 !Generates gprimd
  call matr3inv(rprimd_orig,gprimd_orig)
@@ -97,9 +73,6 @@ subroutine chkdilatmx(dilatmx,rprimd,rprimd_orig)
 &     old_to_new(3,ii)*old_to_new(3,jj)
    end do
  end do
-!DEBUG
-!write(6,*)' met=',met
-!ENDDEBUG
  call matr3eigval(eigval,met)
 
  dilatmx_new=sqrt(maxval(eigval(:)))
@@ -115,12 +88,6 @@ subroutine chkdilatmx(dilatmx,rprimd,rprimd_orig)
    call abi_wrtout(std_out,message,'COLL')
    call abi_leave_new('COLL')
  end if
-
-!DEBUG
-!write(6,*)' chkdilatmx : exit'
-!write(6,*)' eigval=',eigval
-!stop
-!ENDDEBUG
 
 end subroutine chkdilatmx
 !!***

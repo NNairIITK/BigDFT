@@ -32,30 +32,16 @@
 !! nogen = number of generators, number of operations to be applied onto
 !!  themselves
 !!
-!! NOTES
-!!
-!!
-!! PARENTS
-!!      symsgcube,symsghexa,symsgortho,symsgtetra
-!!
-!! CHILDREN
-!!      abi_leave_new,abi_wrtout
-!!
 !! SOURCE
 
 #if defined HAVE_CONFIG_H
-#include "config.inc"
+#include "config.h"
 #endif
 
 subroutine bldgrp(msym,nogen,nsym,symafm,symrel,tnons)
 
  use defs_basis
-
-!This section has been created automatically by the script Abilint (TD).
-!Do not modify the following lines by hand.
- use interfaces_14_hidewrite
- use interfaces_16_hideleave
-!End of the abilint section
+ use abi_interfaces_lowlevel
 
  implicit none
 
@@ -85,12 +71,6 @@ subroutine bldgrp(msym,nogen,nsym,symafm,symrel,tnons)
 
  nastyzero=0.1
 
-!DEBUG
-!write(6,*)' bldgrp : enter, builds the space group symmetry '
-!write(6,*)' bldgrp : number of generators : ',nogen
-!write(6,*)' bldgrp : nsym,msym=',nsym,msym
-!ENDDEBUG
-
  if (nogen<1) then
    write(message, '(a,a,a,a,i4,a,a,a,a,a)' ) ch10,&
 &   ' abinit : BUG -',ch10,&
@@ -108,19 +88,9 @@ subroutine bldgrp(msym,nogen,nsym,symafm,symrel,tnons)
    bcktnons(:,ii)=tnons(:,ii)
    bcksymafm(ii)=symafm(ii)
  end do
-!DEBUG
-!write(6,*)' Describe the different generators (index,symrel,tnons,symafm)'
-!do ii=1,nogen
-!write(6,'(i3,2x,9i3,3es12.2,i3)')ii,symrel(:,:,ii),tnons(:,ii),symafm(ii)
-!end do
-!ENDDEBUG
 
 !Simply iterate until the group is complete
  do ijkl=1,nsym
-
-!  DEBUG
-!  write(6,*)' bldgrp : in loop, ijkl,nogen=',ijkl,nogen
-!  ENDDEBUG
 
    nogen_new=nogen
 
@@ -167,9 +137,6 @@ subroutine bldgrp(msym,nogen,nsym,symafm,symrel,tnons)
 !      Add the new determined symmetry if it is unique
        if (flagtr+flagop<2) then
          nogen_new=nogen_new+1
-!        DEBUG
-!        write(6,*)' added one more symmetry : nogen_new=',nogen_new
-!        ENDDEBUG
          bcksymrel(:,:,nogen_new)=matrintoper(:,:)
          bcktnons(:,nogen_new)=matrinttransl(:)
          bcksymafm(nogen_new)=matrintsymafm
@@ -198,10 +165,6 @@ subroutine bldgrp(msym,nogen,nsym,symafm,symrel,tnons)
    call abi_wrtout(std_out,  message,'COLL')
    call abi_leave_new('COLL')
  end if
-
-!DEBUG
-!write(6,*)' bldgrp : exit with  ',nogen,' operation symmetries'
-!ENDDEBUG
 
 end subroutine bldgrp
 !!***

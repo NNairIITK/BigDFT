@@ -34,29 +34,16 @@
 !!  without magnetic operations at input,
 !!  and with magnetic operations at output
 !!
-!! NOTES
-!!
-!! PARENTS
-!!      ingeo
-!!
-!! CHILDREN
-!!      abi_leave_new,abi_wrtout
-!!
 !! SOURCE
 
 #if defined HAVE_CONFIG_H
-#include "config.inc"
+#include "config.h"
 #endif
 
 subroutine gensymshub4(genafm,msym,nsym,symafm,symrel,tnons)
 
  use defs_basis
-
-!This section has been created automatically by the script Abilint (TD).
-!Do not modify the following lines by hand.
- use interfaces_14_hidewrite
- use interfaces_16_hideleave
-!End of the abilint section
+ use abi_interfaces_lowlevel
 
  implicit none
 
@@ -76,10 +63,6 @@ subroutine gensymshub4(genafm,msym,nsym,symafm,symrel,tnons)
 
 ! *************************************************************************
 
-!DEBUG
-!write(6,*)' gensymshub4 : enter '
-!ENDDEBUG
-
  if(msym<2*nsym)then
    write(message, '(6a)' ) ch10,&
 &   ' gensymshub4 : BUG -',ch10,&
@@ -98,5 +81,4 @@ subroutine gensymshub4(genafm,msym,nsym,symafm,symrel,tnons)
  nsym=nsym*2
 
 end subroutine gensymshub4
-
 !!***

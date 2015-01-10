@@ -29,8 +29,6 @@
 !!
 !! NOTES
 !!   The routine uses optional arguments, therefore the interface must be explicit.
-!!   Be careful when writing CPP macros that use abi_wrtout since abilint won't see the call
-!!   and no interface will be added to the source file.
 !!
 !! SOURCE
 
@@ -38,19 +36,14 @@
 #include "config.h"
 #endif
 
-#include "abi_common.h"
-
 subroutine abi_wrtout(unit,msg,mode_paral)
 
  use defs_basis
- use m_abi_xmpi
+ use abi_interfaces_lowlevel, except_this_one => abi_wrtout
+ use abi_m_xmpi
 
-!This section has been created automatically by the script Abilint (TD).
-!Do not modify the following lines by hand.
 #undef ABI_FUNC
 #define ABI_FUNC 'abi_wrtout'
- use interfaces_14_hidewrite, except_this_one => abi_wrtout
-!End of the abilint section
 
  implicit none
 
@@ -126,23 +119,14 @@ end subroutine abi_wrtout
 !!
 !! SOURCE
 
-#if defined HAVE_CONFIG_H
-#include "config.h"
-#endif
-
-#include "abi_common.h"
-
 subroutine abi_wrtout_myproc(unit,message,mpicomm) ! optional argument
 
  use defs_basis
- use m_abi_xmpi
+ use abi_interfaces_lowlevel, except_this_one => abi_wrtout_myproc
+ use abi_m_xmpi
 
-!This section has been created automatically by the script Abilint (TD).
-!Do not modify the following lines by hand.
 #undef ABI_FUNC
 #define ABI_FUNC 'abi_wrtout_myproc'
- use interfaces_14_hidewrite, except_this_one => abi_wrtout_myproc
-!End of the abilint section
 
  implicit none
 
@@ -234,11 +218,8 @@ subroutine abi_write_lines(unit,message)
 
  use defs_basis
 
-!This section has been created automatically by the script Abilint (TD).
-!Do not modify the following lines by hand.
 #undef ABI_FUNC
 #define ABI_FUNC 'abi_write_lines'
-!End of the abilint section
 
  implicit none
 

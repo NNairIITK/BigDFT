@@ -47,22 +47,16 @@
 !!  oscillations; could avoid this by recomputing the model core
 !!  charge at the new real space grid points (future work).
 !!
-!! PARENTS
-!!      pawxc,pawxcm,pawxcmpositron,pawxcpositron,poslifetime,psolver_rhohxc
-!!      rhohxc,rhohxcpositron
-!!
-!! CHILDREN
-!!      abi_wrtout
-!!
 !! SOURCE
 
 #if defined HAVE_CONFIG_H
-#include "config.inc"
+#include "config.h"
 #endif
 
 subroutine mkdenpos(iwarn,nfft,nspden,option,rhonow,xc_denpos)
 
  use defs_basis
+ use abi_interfaces_lowlevel
 
  implicit none
 

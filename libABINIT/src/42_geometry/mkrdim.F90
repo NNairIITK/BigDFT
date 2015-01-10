@@ -22,21 +22,10 @@
 !!  rprimd(3,3)=dimensional real space primitive translations (bohr)
 !!              where: rprimd(i,j)=rprim(i,j)*acell(j)
 !!
-!! SIDE EFFECTS
-!!
-!! NOTES
-!!
-!! PARENTS
-!!      anaddb,brdmin,delocint,driver,elphon,ingeo,invars1,invars2m,loper3
-!!      mkifc9,mkphdos,moldyn,rdddb9,rdm,screening,setup1,setup_screening
-!!      setup_sigma,sigma,suscep,symph3,thm9,thmeig,wvl_setboxgeometry,xfpack
-!!
-!! CHILDREN
-!!
 !! SOURCE
 
 #if defined HAVE_CONFIG_H
-#include "config.inc"
+#include "config.h"
 #endif
 
 subroutine mkrdim(acell,rprim,rprimd)

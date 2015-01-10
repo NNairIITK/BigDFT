@@ -1,10 +1,10 @@
-!!****m* ABINIT/interfaces_14_hidewrite
+!!****m* ABINIT/abi_interfaces_lowlevel
 !! NAME
-!! interfaces_14_hidewrite
+!! abi_interfaces_lowlevel
 !!
 !! FUNCTION
 !! This module contains the interfaces of the routines
-!! in the directory src/14_hidewrite
+!! in the directory abi_interfaces_lowlevel
 !!
 !! COPYRIGHT
 !! Copyright (C) 2010-2014 ABINIT group
@@ -12,18 +12,13 @@
 !! GNU General Public License, see ~abinit/COPYING
 !! or http://www.gnu.org/copyleft/gpl.txt .
 !!
-!! NOTES
-!! THIS FILE IS GENERATED AUTOMATICALLY BY abilint.
-!! To do that: config/scripts/abilint . .
-!!
-!!
 !! SOURCE
 
 #if defined HAVE_CONFIG_H
 #include "config.h"
 #endif
 
-module interfaces_14_hidewrite
+module abi_interfaces_lowlevel
 
  implicit none
 
@@ -53,5 +48,14 @@ interface
  end subroutine abi_write_lines
 end interface
 
-end module interfaces_14_hidewrite
+interface
+ subroutine abi_leave_new(mode_paral,exit_status,print_config)
+  implicit none
+  integer,intent(in),optional :: exit_status
+  character(len=4),intent(in) :: mode_paral
+  logical,intent(in),optional :: print_config
+ end subroutine abi_leave_new
+end interface
+
+end module abi_interfaces_lowlevel
 !!***

@@ -47,12 +47,7 @@ subroutine sqnormm_v(cplex,index,mpi_comm, mpi_summarize,mult,nfft,norm2,npot,ns
 
  use defs_basis
  use defs_abitypes
- use m_abi_xmpi
-
-!This section has been created automatically by the script Abilint (TD).
-!Do not modify the following lines by hand.
- use interfaces_18_timing
-!End of the abilint section
+ use abi_m_xmpi
 
  implicit none
 
@@ -112,9 +107,7 @@ subroutine sqnormm_v(cplex,index,mpi_comm, mpi_summarize,mult,nfft,norm2,npot,ns
  end do
 
  if (mpi_summarize) then
-   call timab(48,1,tsec)
    call abi_xmpi_sum(norm2,mpi_comm ,ierr)
-   call timab(48,2,tsec)
  end if
 
 end subroutine sqnormm_v

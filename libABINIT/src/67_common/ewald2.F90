@@ -30,32 +30,22 @@
 !! zion(ntypat)=charge on each type of atom (real number)
 !!
 !! OUTPUT
-!! $stress(6)=(1/ucvol)*gradient$ of Ewald energy with respect to strain,
+!! stress(6)=(1/ucvol)*gradient$ of Ewald energy with respect to strain,
 !!      in hartrees/bohr^3
 !! Cartesian components of stress are provided for this symmetric
 !! tensor in the order 11 22 33 32 31 21.
 !!
-!! PARENTS
-!!      stress
-!!
-!! CHILDREN
-!!      derfc,matr3inv
-!!
 !! SOURCE
 
 #if defined HAVE_CONFIG_H
-#include "config.inc"
+#include "config.h"
 #endif
 
 subroutine ewald2(gmet,natom,ntypat,rmet,rprimd,stress,&
 &  typat,ucvol,xred,zion)
 
  use defs_basis
-
-!This section has been created automatically by the script Abilint (TD).
-!Do not modify the following lines by hand.
  use interfaces_32_util
-!End of the abilint section
 
  implicit none
 
@@ -182,7 +172,6 @@ subroutine ewald2(gmet,natom,ntypat,rmet,rprimd,stress,&
 
 !  End loop on new shell. Note that there is an "exit" instruction within the loop
  end do
-
 
 !Conduct real space summations
  reta=sqrt(eta)

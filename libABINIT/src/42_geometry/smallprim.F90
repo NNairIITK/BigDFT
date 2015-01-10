@@ -30,28 +30,17 @@
 !! The routine might as well be defined without
 !! metmin as argument, but it is more convenient to have it
 !!
-!! PARENTS
-!!      getkgrid,symlatt,testkgrid
-!!
-!! CHILDREN
-!!      abi_leave_new,abi_wrtout
-!!
 !! SOURCE
 
 #if defined HAVE_CONFIG_H
-#include "config.inc"
+#include "config.h"
 #endif
 
 subroutine smallprim(metmin,minim,rprimd)
 
  use defs_basis
-
-!This section has been created automatically by the script Abilint (TD).
-!Do not modify the following lines by hand.
- use interfaces_14_hidewrite
- use interfaces_16_hideleave
+ use abi_interfaces_lowlevel
  use interfaces_42_geometry, except_this_one => smallprim
-!End of the abilint section
 
  implicit none
 
@@ -79,17 +68,6 @@ subroutine smallprim(metmin,minim,rprimd)
 
  minim(:,:)=rprimd(:,:)
  metmin(:,:)=rmet(:,:)
-
-!DEBUG
-!write(6,*)' smallprim : starting values, rprim '
-!write(6, '(3f16.8)' )rprimd(:,1)
-!write(6, '(3f16.8)' )rprimd(:,2)
-!write(6, '(3f16.8)' )rprimd(:,3)
-!write(6,*)' smallprim : starting values, rmet '
-!write(6, '(3f16.8)' )rmet(:,1)
-!write(6, '(3f16.8)' )rmet(:,2)
-!write(6, '(3f16.8)' )rmet(:,3)
-!ENDDEBUG
 
 !Note this loop without index
  do
@@ -162,21 +140,6 @@ subroutine smallprim(metmin,minim,rprimd)
    
  end do
 
-!DEBUG
-!write(6, '(a,3es14.6,a,3es14.6,a,3es14.6)')' rprimd=',&
-!&  rprimd(:,1),ch10,rprimd(:,2),ch10,rprimd(:,3)
-!write(6, '(a,3es14.6,a,3es14.6,a,3es14.6)')' minim =',&
-!&  minim(:,1),ch10,minim(:,2),ch10,minim(:,3)
-!ENDDEBUG
-
-!DEBUG
-!Change sign of the third vector if not right-handed basis
-!determinant=minim(1,1)*(minim(2,2)*minim(3,3)-minim(3,2)*minim(2,3))+&
-!&            minim(2,1)*(minim(3,2)*minim(1,3)-minim(1,2)*minim(3,3))+&
-!&            minim(3,1)*(minim(1,2)*minim(2,3)-minim(2,2)*minim(1,3))
-!write(6,*)' smallprim: determinant=',determinant
-!ENDDEBUG
-
 !Choose the first vector
 !Compute the scalar product of the three minimal vectors
 !with the first original vector
@@ -196,14 +159,6 @@ subroutine smallprim(metmin,minim,rprimd)
  end if
 !Choose the sign
  if(scprod(itrial)<tol8)minim(:,1)=-minim(:,1)
-
-!DEBUG
-!Change sign of the third vector if not right-handed basis
-!determinant=minim(1,1)*(minim(2,2)*minim(3,3)-minim(3,2)*minim(2,3))+&
-!&            minim(2,1)*(minim(3,2)*minim(1,3)-minim(1,2)*minim(3,3))+&
-!&            minim(3,1)*(minim(1,2)*minim(2,3)-minim(2,2)*minim(1,3))
-!write(6,*)' smallprim: determinant=',determinant
-!ENDDEBUG
 
 !Choose the second vector
 !Compute the scalar product of the second and third minimal vectors
@@ -243,15 +198,6 @@ subroutine smallprim(metmin,minim,rprimd)
 &   minim(2,ii)*minim(2,:)+&
 &   minim(3,ii)*minim(3,:)
  end do
-
-!DEBUG
-!write(6, '(a,3es14.6,a,3es14.6,a,3es14.6)')' rprimd=',&
-!&  rprimd(:,1),ch10,rprimd(:,2),ch10,rprimd(:,3)
-!write(6, '(a,3es16.8,a,3es16.8,a,3es16.8)')' minim =',&
-!&  minim(:,1),ch10,minim(:,2),ch10,minim(:,3)
-!write(6, '(a,3es16.8,a,3es16.8,a,3es16.8)')' metmin =',&
-!&  metmin(:,1),ch10,metmin(:,2),ch10,metmin(:,3)
-!ENDDEBUG
 
 end subroutine smallprim
 !!***

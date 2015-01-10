@@ -14,8 +14,6 @@
 !!
 !! NOTES
 !! THIS FILE IS GENERATED AUTOMATICALLY BY abilint.
-!! To do that: config/scripts/abilint . .
-!! 
 !!
 !! SOURCE
 

@@ -26,28 +26,16 @@
 !! symrel(3,3,nsym) = 3D matrix containg symmetry operations
 !! tnons(3,nsym) = 2D matrix containing translations associated
 !!
-!! NOTES
-!!
-!!
-!! PARENTS
-!!
-!! CHILDREN
-!!      abi_wrtout
-!!
 !! SOURCE
 
 #if defined HAVE_CONFIG_H
-#include "config.inc"
+#include "config.h"
 #endif
 
 subroutine symmultsg(nsym,symafm,symrel,tnons)
 
  use defs_basis
-
-!This section has been created automatically by the script Abilint (TD).
-!Do not modify the following lines by hand.
- use interfaces_14_hidewrite
-!End of the abilint section
+ use abi_interfaces_lowlevel
 
  implicit none
 
@@ -77,19 +65,13 @@ subroutine symmultsg(nsym,symafm,symrel,tnons)
 
  nastyzero=0.1
 
-!DEBUG
-!write(6,*)' symmultsg : enter, builds the space group symmetry '
-!ENDDEBUG
-
 !Transfer the generators to bcksymrel
  do ii=1,nsym
    bcksymrel(:,:,ii)=symrel(:,:,ii)
    bcktnons(:,ii)=tnons(:,ii)
    bcksymafm(ii)=symafm(ii)
  end do
-!DEBUG
-!write(6,*)' Describe the different generators (index,symrel,tnons,symafm)'
-!ENDDEBUG
+
  symequiv(:,:)=0
 
 !Simply iterate until the group is complete

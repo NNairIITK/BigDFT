@@ -29,30 +29,17 @@
 !! symrel(3,3,nsym) = 3D matrix containg symmetry operations
 !! tnons(3,nsym) = 2D matrix containing translations associated
 !!
-!! TODO
-!!
-!! PARENTS
-!!      gensymspgr
-!!
-!! CHILDREN
-!!      bldgrp,spgdata,timab
-!!
 !! SOURCE
 
 #if defined HAVE_CONFIG_H
-#include "config.inc"
+#include "config.h"
 #endif
 
 subroutine symsgcube(msym,nsym,shubnikov,spgaxor,spgorig,spgroup,&
 &   spgroupma,symafm,symrel,tnons)
 
  use defs_basis
-
-!This section has been created automatically by the script Abilint (TD).
-!Do not modify the following lines by hand.
- use interfaces_18_timing
  use interfaces_42_geometry, except_this_one => symsgcube
-!End of the abilint section
 
  implicit none
 
@@ -78,12 +65,6 @@ subroutine symsgcube(msym,nsym,shubnikov,spgaxor,spgorig,spgroup,&
  real(dp) :: tsec(2)
 
 !*************************************************************************
-
-!DEBUG
-!write(6,*) ' symsgcube : enter with spgroup ',spgroup,' and ',' origin choice ',spgorig
-!write(6,*) ' msym,nsym=',msym,nsym
-!ENDDEBUG
-
 
 !The identity operation belongs to all space groups
  symrel(:,:,1)=0 ; symrel(1,1,1)=1 ; symrel(2,2,1)=1 ; symrel(3,3,1)=1
@@ -493,17 +474,12 @@ subroutine symsgcube(msym,nsym,shubnikov,spgaxor,spgorig,spgroup,&
 
 !***************************************************************************
 
- call timab(47,1,tsec)
-
  if (nogen>0) then
    call bldgrp(msym,nogen,nsym,symafm,symrel,tnons)
  end if
-
- call timab(47,2,tsec)
 
  call spgdata(brvsb,intsb,intsbl,ptintsb,&
 & ptschsb,schsb,spgaxor,spgroup,sporder,spgorig)
 
 end subroutine symsgcube
-
 !!***

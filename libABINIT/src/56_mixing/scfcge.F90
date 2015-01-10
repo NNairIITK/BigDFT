@@ -86,15 +86,6 @@
 !!                  (present, past and previous past) in the array f_fftgr ;
 !!   also similar index for the preconditioned change of atomic position (dtn_pc).
 !!
-!! TODO
-!! This routine is much too difficult to read ! Should be rewritten ...
-!! Maybe make separate subroutines for line search and CG step ?!
-!!
-!! PARENTS
-!!      newrho,newvtr,newvtr3
-!!
-!! CHILDREN
-!!      aprxdr,findminscf,sqnormm_v,abi_wrtout
 !!
 !! SOURCE
 
@@ -108,14 +99,10 @@ subroutine scfcge(cplex,dbl_nnsclo,dtn_pc,etotal,f_atm,&
 & fnrm,fdot,user_data,errid,errmess)
 
  use defs_basis
+ use abi_interfaces_lowlevel
  use defs_datatypes
  use defs_abitypes
-
-!This section has been created automatically by the script Abilint (TD).
-!Do not modify the following lines by hand.
- use interfaces_14_hidewrite
  use interfaces_56_mixing, except_this_one => scfcge
-!End of the abilint section
 
  implicit none
 
@@ -179,9 +166,7 @@ subroutine scfcge(cplex,dbl_nnsclo,dtn_pc,etotal,f_atm,&
  real(dp) :: resid_new(1)
 
 ! *************************************************************************
-!DEBUG
-!write(6,*)' scfcge : enter '
-!ENDDEBUG
+
  errid = AB7_NO_ERROR
  dbl_nnsclo = 0
 
@@ -229,17 +214,12 @@ subroutine scfcge(cplex,dbl_nnsclo,dtn_pc,etotal,f_atm,&
    f_atm(:,:,i_vrespc(1))=dtn_pc(:,:)
  end if
 
-!DEBUG
-!write(6,*)' scfcge: before three mutually exclusive parts'
-!ENDDEBUG
-
 !=======================================================================
 !Now the routine is decomposed in three mutually exclusive parts :
 !if(istep==1)then initialize the algorithm
 !else if(ilinmin>0)then perform the line minimisation
 !else if(ilinmin==0)then determine the new search direction (CG step)
 !=======================================================================
-
 
 !--------------------------------------
 !Here initialize the algorithm
@@ -299,11 +279,6 @@ subroutine scfcge(cplex,dbl_nnsclo,dtn_pc,etotal,f_atm,&
    dedv_old=dedv_old/d_lambda
    dedv_new=dedv_new/d_lambda
 
-!  DEBUG
-!  write(6, '(a,4es12.4,i3)' )' scfcge:lold,lnew,dold,dnew,status',  &
-!  &  lambda_old,lambda_new,dedv_old,dedv_new,status
-!  ENDDEBUG
-
    if(status==0 .or. status==3)then
 !    
 !    Then, compute a predicted point along the line
@@ -324,17 +299,6 @@ subroutine scfcge(cplex,dbl_nnsclo,dtn_pc,etotal,f_atm,&
 
 !    Suppress the next line for debugging  (there is another such line)
      status=0
-
-!    DEBUG
-!    Keep this debugging feature : it gives access to the investigation of lines
-!    in a different approach
-!    if(response==1 .and. istep>8)then
-!    lambda_predict=1.2d-2
-!    if(istep>=15)lambda_predict=lambda_predict-0.002
-!    if(istep>=14)stop
-!    status=3
-!    end if
-!    ENDDEBUG
 
    else
      if(status/=-1)then
@@ -380,9 +344,6 @@ subroutine scfcge(cplex,dbl_nnsclo,dtn_pc,etotal,f_atm,&
 
 !  Here restart the algorithm with the best vtrial.
 !  Also make reduction in lambda_adapt
-!  DEBUG
-!  write(6,*)' scfcge : status=',status
-!  ENDDEBUG
    if( end_linmin==0 .and. status==0 .and.                               &
 &   (  (lambda_predict<0.005_dp*lambda_adapt .and. iscf==5)     .or.  &
 &   (abs(lambda_predict)<0.005_dp*lambda_adapt .and. iscf==6).or.  &
@@ -486,16 +447,6 @@ subroutine scfcge(cplex,dbl_nnsclo,dtn_pc,etotal,f_atm,&
 !  continue the search
    if(end_linmin==0)then
      lambda_new=lambda_predict
-
-!    DEBUG
-!    write(6, '(a,2es16.6)' )&
-!    &   ' scfcge : continue search, lambda_old,lambda_new=',lambda_old,lambda_new
-!    write(6, '(a,2es16.6)' )&
-!    &   ' scfcge : f_fftgr(3:4,1,1)=',f_fftgr(3:4,1,1)
-!    write(6, '(a,2es16.6)' )&
-!    &   ' scfcge : f_fftgr(3:4,1,6)=',f_fftgr(3:4,1,6)
-!    ENDDEBUG
-
      vtrial(:,:)=f_fftgr(:,:,1)+(lambda_new-lambda_old)*f_fftgr(:,:,6)
      if(moved_atm_inside==1)then
        xred(:,:)=f_atm(:,:,1)+(lambda_new-lambda_old)*f_atm(:,:,6)
@@ -549,16 +500,6 @@ subroutine scfcge(cplex,dbl_nnsclo,dtn_pc,etotal,f_atm,&
    dedv_new=dedv_new/lambda_new
    dedv_old=dedv_old/lambda_new
 
-!  DEBUG
-!  write(message, '(a,3es12.4)' )' scfcge: lambda_adapt',&
-!  &     lambda_adapt
-!  call abi_wrtout(std_out,message,'COLL')
-
-!  write(message, '(a,3es12.4)' )' scfcge: dedv_old,dedv_new,dedv_mix',&
-!  &     dedv_old,dedv_new,dedv_mix
-!  call abi_wrtout(std_out,message,'COLL')
-!  ENDDEBUG
-
 !  Then, compute a predicted point, either along the line,
 !  or in a 2D plane
    testcg=1
@@ -596,20 +537,6 @@ subroutine scfcge(cplex,dbl_nnsclo,dtn_pc,etotal,f_atm,&
      d2edv2_new=d2e11 ;  d2edv2_old=d2e11
    end if
 
-!  DEBUG
-!  write(message, '(a,5es11.3)' )' scfcge: de1,de2,d2e11,d2e22,d2e12',&
-!  &               de1,de2,d2e11,d2e22,d2e12
-!  call abi_wrtout(std_out,message,'COLL')
-!  write(06, '(a,2es12.4)' )' scfcge: la_predict,la_predict2',&
-!  &               lambda_predict,lambda_predict2
-!  -----
-!  write(06,*)'residues ',
-!  $       de1+lambda_predict*d2e11+lambda_predict2*d2e12,
-!  $       de2+lambda_predict*d2e12+lambda_predict2*d2e22
-!  if(.true.)stop
-!  ENDDEBUG
-!  
-
 !  Determine the region of the 2D search space
 !  in which the predicted point is located,
 !  or use linear indicator to decide interpolation
@@ -645,13 +572,6 @@ subroutine scfcge(cplex,dbl_nnsclo,dtn_pc,etotal,f_atm,&
 !    If everything fails, then region II.
      end_linmin=2
    end if
-
-!  DEBUG
-!  write(message, '(a,2es12.4,i2)' )&
-!  &     ' scfcge : la_predict, la_predict2, region',&
-!  &       lambda_predict,lambda_predict2,end_linmin
-!  call abi_wrtout(std_out,message,'COLL')
-!  ENDDEBUG
 
 !  Treat region I, in the same way as region III
    if(end_linmin==1 .or. end_linmin==3)then
@@ -921,17 +841,6 @@ subroutine scfcge(cplex,dbl_nnsclo,dtn_pc,etotal,f_atm,&
    end if
 
  end if
-
-!DEBUG
-!if(moved_atm_inside==1)then
-!write(6, '(a,3es18.8)' )' scfcge : xred1out',xred(:,1)
-!write(6, '(a,3es18.8)' )' scfcge : xred2out',xred(:,2)
-!end if
-!ENDDEBUG
-
-!DEBUG
-!write(6,*)' scfcge : exit '
-!ENDDEBUG
 
 end subroutine scfcge
 !!***

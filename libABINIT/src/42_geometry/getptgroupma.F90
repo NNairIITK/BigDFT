@@ -31,15 +31,10 @@
 !!
 !! NOTES
 !!
-!! PARENTS
-!!      ingeo
-!!
-!! CHILDREN
-!!
 !! SOURCE
 
 #if defined HAVE_CONFIG_H
-#include "config.inc"
+#include "config.h"
 #endif
 
 subroutine getptgroupma(ptgroup,ptgroupha,ptgroupma)
@@ -56,12 +51,6 @@ subroutine getptgroupma(ptgroup,ptgroupha,ptgroupma)
 !Local variables-------------------------------
 
 ! *************************************************************************
-
-!DEBUG
-!write(6,*)' getptgroupma : enter '
-!write(6,*)' ptgroup="',ptgroup,'"'
-!write(6,*)' ptgroupha="',ptgroupha,'"'
-!ENDDEBUG
 
  ptgroupma=0
  select case (ptgroup)
@@ -153,11 +142,6 @@ subroutine getptgroupma(ptgroup,ptgroupha,ptgroupma)
      if(ptgroupha==" -43m")ptgroupma=57
      if(ptgroupha=="  m-3")ptgroupma=58
  end select
-
-!DEBUG
-!write(6,*)' getptgroupma : exit '
-!write(6,*)' ptgroupma="',ptgroupma,'"'
-!ENDDEBUG
 
 end subroutine getptgroupma
 !!***

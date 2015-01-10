@@ -43,30 +43,20 @@
 !!   grid points and the repetition number for each symmetry class.
 !!  phnons(2,n1*n2*n3,(nspden/nsppol)-3*(nspden/4))=phases associated with nonsymmorphic translations
 !!
-!! PARENTS
-!!      calc_density,crho,setsym
-!!
-!! CHILDREN
-!!      abi_leave_new,sort_int,abi_wrtout
 !!
 !! SOURCE
 
 #if defined HAVE_CONFIG_H
-#include "config.inc"
+#include "config.h"
 #endif
 
 subroutine irrzg(irrzon,nspden,nsppol,nsym,n1,n2,n3,phnons,&
 & symafm,symrel,tnons)
 
  use defs_basis
+ use abi_interfaces_lowlevel
  use defs_datatypes
-
-!This section has been created automatically by the script Abilint (TD).
-!Do not modify the following lines by hand.
- use interfaces_14_hidewrite
- use interfaces_16_hideleave
  use interfaces_28_numeric_noabirule
-!End of the abilint section
 
  implicit none
 
@@ -99,17 +89,6 @@ subroutine irrzg(irrzon,nspden,nsppol,nsym,n1,n2,n3,phnons,&
  map(i1,n1)=mod(n1+mod(i1,n1),n1)
 
 ! *************************************************************************
-
-!DEBUG
-!write(6,*)' irrzg : enter '
-!write(6,*)' nsym, n1,n2,n3 ',nsym, n1,n2,n3
-!write(6,*)' nspden,nsppol ',nspden,nsppol
-!write(6,*)' symrel ',symrel
-!write(6,*)' tnons ',tnons
-!count=count+1
-!write(6,*)' count=',count
-!if(count==3)stop
-!ENDDEBUG
 
  allocate(class(nsym))
  allocate(iperm(nsym))
@@ -144,21 +123,7 @@ subroutine irrzg(irrzon,nspden,nsppol,nsym,n1,n2,n3,phnons,&
      call abi_leave_new('COLL')
    end if
 
-!  DEBUG
-!  write(6,*)' irrzg : before allocate, count=',count
-!  write(6,*)' nsym_used,nsym,imagn,sppoldbl=',nsym_used,nsym,imagn,sppoldbl
-!  write(6,*)' allocated symrel_used,tnons_used',allocated(symrel_used),allocated(tnons_used)
-!  if(count==3)stop
-!  ENDDEBUG
-
-
    allocate(symafm_used(nsym_used),symrel_used(3,3,nsym_used),tnons_used(3,nsym_used))
-
-!  DEBUG
-!  write(6,*)' irrzg : after allocate, count=',count
-!  write(6,*)' nsym_used,nsym,imagn,sppoldbl=',nsym_used,nsym,imagn,sppoldbl
-!  if(count/=1 .and. count/=2)stop
-!  ENDDEBUG
 
    nsym_used=0
    do isym=1,nsym
@@ -171,11 +136,6 @@ subroutine irrzg(irrzon,nspden,nsppol,nsym,n1,n2,n3,phnons,&
      end if
    end do
    if ((nspden/=4).or.(.not.afm_noncoll)) symafm_used=1
-
-!  DEBUG
-!  write(6,*)' irrzg : before zero work array'
-!  if(count==3)stop
-!  ENDDEBUG
 
 !  Zero out work array--later on, a zero entry will mean that
 !  a given grid point has not yet been assigned to an ibz point
@@ -195,12 +155,6 @@ subroutine irrzg(irrzon,nspden,nsppol,nsym,n1,n2,n3,phnons,&
    work1(1)=1
 
    ind1=0
-
-!  DEBUG
-!  write(6,*)' irrzg : before loop over reciprocal vectors, isym= ',isym
-!  if(count==3 .and. isym==1)stop
-!  ENDDEBUG
-
 
 !  Loop over reciprocal space grid points:
    do i3=1,n3
@@ -373,11 +327,6 @@ subroutine irrzg(irrzon,nspden,nsppol,nsym,n1,n2,n3,phnons,&
 !          Put repetition number into irrzon array:
            irrzon(1+nzone,2,imagn)=irep
 
-!          DEBUG
-!          write(6, '(a,6i7)' )' irrzg : izone,i1,i2,i3,imagn,irrzon(859,2,1)=',&
-!          &      1+nzone,i1,i2,i3,imagn,irrzon(859,2,1)
-!          ENDDEBUG
-
 !          Put phases (or 0) in phnons array:
            phnons(:,1+npt:ipt+npt,imagn)=work2(:,1:ipt)
 
@@ -400,11 +349,6 @@ subroutine irrzg(irrzon,nspden,nsppol,nsym,n1,n2,n3,phnons,&
    if (allocated(tnons_used)) deallocate(tnons_used)
 
  end do ! imagn
-
-!DEBUG
-!write(6,*)' irrzg : close to exit '
-!if(count==3)stop
-!ENDDEBUG
 
 !Make sure number of real space points accounted for equals
 !actual number of grid points

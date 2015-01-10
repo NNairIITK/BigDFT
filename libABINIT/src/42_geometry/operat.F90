@@ -37,26 +37,16 @@
 !!
 !! NOTES
 !!
-!! PARENTS
-!!      ingeo
-!!
-!! CHILDREN
-!!      abi_leave_new,abi_wrtout
-!!
 !! SOURCE
 
 #if defined HAVE_CONFIG_H
-#include "config.inc"
+#include "config.h"
 #endif
 
 subroutine operat(natom,natrd,nsym,spinat,symafm,symrel,tnons,typat,xred)
 
  use defs_basis
-
-!This section has been created automatically by the script Abilint (TD).
-!Do not modify the following lines by hand.
- !use interfaces_01manage_mpi
-!End of the abilint section
+ use abi_interfaces_lowlevel
 
  implicit none
 
@@ -79,18 +69,6 @@ subroutine operat(natom,natrd,nsym,spinat,symafm,symrel,tnons,typat,xred)
  real(dp) :: bckat(3),bckspinat(3,nsym*natrd),bckxred(3,nsym*natrd)
 
 ! *************************************************************************
-
-!DEBUG
-!write(6,*)' operat : enter with nsym, natrd= ',nsym,natrd
-!write(6,*)' Describe the different symmetry operations (index,symrel,tnons,symafm)'
-!do ii=1,nsym
-!write(6,'(i3,2x,9i3,3es12.2,i3)')ii,symrel(:,:,ii),tnons(:,ii),symafm(ii)
-!end do
-!write(6,*)' Describe the input atoms (index,typat,xred,spinat)'
-!do jj=1,natrd
-!write(6,'(i3,2x,i3,6es12.2)')jj,typat(jj),xred(:,jj),spinat(:,jj)
-!end do
-!ENDDEBUG
 
  curat=0
 
@@ -135,13 +113,6 @@ subroutine operat(natom,natrd,nsym,spinat,symafm,symrel,tnons,typat,xred)
 
  end do
 
-!DEBUG
-!write(6,*)' operat : Proposed coordinates ='
-!do ii=1,curat
-!write(6, '(i4,3es16.6)' )ii,bckxred(:,ii)
-!end do
-!ENDDEBUG
-
  if (curat>natom) then
   write(message, '(a,a,a,a,i3,a,a,i7,a,a,a,a)' ) ch10,&
 &  ' operat : ERROR -',ch10,&
@@ -168,14 +139,6 @@ subroutine operat(natom,natrd,nsym,spinat,symafm,symrel,tnons,typat,xred)
  xred(:,1:natom)=bckxred(:,1:natom)
  typat(1:natom)=bcktypat(1:natom)
  spinat(1:3,1:natom)=bckspinat(1:3,1:natom)
-
-!DEBUG
-!write(6,*)' operat : exit with natom=',natom
-!write(6,*)' Describe the output atoms (index,typat,xred,spinat)'
-!do jj=1,natom
-!write(6,'(i3,2x,i3,6es12.2)')jj,typat(jj),xred(:,jj),spinat(:,jj)
-!end do
-!ENDDEBUG
 
 end subroutine operat
 !!***

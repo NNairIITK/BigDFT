@@ -987,7 +987,7 @@ subroutine paw_ij_print(Paw_ij,unit,pawprtvol,pawspnorb,mode_paral,enunit,ipert,
 !Do not modify the following lines by hand.
 #undef ABI_FUNC
 #define ABI_FUNC 'paw_ij_print'
- !use interfaces_14_hidewrite
+ !use abi_interfaces_lowlevel
 !End of the abilint section
 
  implicit none

@@ -30,15 +30,10 @@
 !! If rprimd transpose is input instead of gprimd, then convert tensor
 !! in cartesian coordinates to reduced coordinates
 !!
-!! PARENTS
-!!      mkcore,nonlop_pl,nonlop_ylm,stresssym
-!!
-!! CHILDREN
-!!
 !! SOURCE
 
 #if defined HAVE_CONFIG_H
-#include "config.inc"
+#include "config.h"
 #endif
 
 subroutine strconv(frac,gprimd,cart)

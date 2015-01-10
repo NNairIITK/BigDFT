@@ -29,15 +29,10 @@
 !! For the time being there are several groups where uncertainties still exist
 !! This will be solved in the very next ABINIT version
 !!
-!! PARENTS
-!!      symspgr
-!!
-!! CHILDREN
-!!
 !! SOURCE
 
 #if defined HAVE_CONFIG_H
-#include "config.inc"
+#include "config.h"
 #endif
 
 subroutine symlist_fcc(nsym,n_axes,spgroup)
@@ -59,14 +54,6 @@ subroutine symlist_fcc(nsym,n_axes,spgroup)
  integer :: n_axest(31)
 
 !**************************************************************************
-
-!DEBUG
-!write(6,*) ' symlist_fcc : enter '
-!write(6,*) ' nsym = ', nsym
-!write(6, '(a,10i3)' ) ' n_axes(1:10) =',n_axes(1:10)
-!write(6, '(a,10i3)' ) ' n_axes(11:20)=',n_axes(11:20)
-!write(6, '(a,11i3)' ) ' n_axes(21:31)=',n_axes(21:31)
-!ENDDEBUG
 
  spgroup=0
 
@@ -108,7 +95,6 @@ subroutine symlist_fcc(nsym,n_axes,spgroup)
      if(sum((n_axes-n_axest)**2)==0) spgroup=216
      n_axest=(/0,24,0,0,0,0,3,1,6,32,  0,0,0,0,0,0,0,24,0,6,   0,0,0,0,0,0,0,0,0,0,0/)
      if(sum((n_axes-n_axest)**2)==0) spgroup=219
-
 
    case(192)
 

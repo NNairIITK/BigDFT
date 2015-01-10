@@ -40,33 +40,18 @@
 !! SIDE EFFECTS
 !! brvltt = input variable giving Bravais lattice
 !!
-!! NOTES
-!!
-!!
-!! PARENTS
-!!      ingeo
-!!
-!! CHILDREN
-!!      chkgrp,abi_leave_new,symsgcube,symsghexa,symsgmono,symsgortho,symsgtetra
-!!      abi_wrtout
-!!
 !! SOURCE
 
 #if defined HAVE_CONFIG_H
-#include "config.inc"
+#include "config.h"
 #endif
 
 subroutine gensymspgr(brvltt,msym,nsym,shubnikov,spgaxor,spgorig,&
 & spgroup,spgroupma,symafm,symrel,tnons)
 
  use defs_basis
-
-!This section has been created automatically by the script Abilint (TD).
-!Do not modify the following lines by hand.
- use interfaces_14_hidewrite
- use interfaces_16_hideleave
+ use abi_interfaces_lowlevel
  use interfaces_42_geometry, except_this_one => gensymspgr
-!End of the abilint section
 
  implicit none
 
@@ -90,15 +75,6 @@ subroutine gensymspgr(brvltt,msym,nsym,shubnikov,spgaxor,spgorig,&
  character(len=500) :: message
 
 ! *************************************************************************
-
-!List of the input parameters
-!DEBUG
-!write(6,*)' gensymspgr : enter with:'
-!write(6,*)' spgroup = ',spgroup
-!write(6,*)' spgaxor = ',spgaxor
-!write(6,*)' spgorig = ',spgorig
-!write(6,*)' brvltt  = ',brvltt
-!ENDDEBUG
 
 !Assume that the value of spgroupma is consistent with the one of spgroup
 !(this has been checked earlier)
@@ -211,16 +187,10 @@ subroutine gensymspgr(brvltt,msym,nsym,shubnikov,spgaxor,spgorig,&
      nsym=192
  end select
 
-!DEBUG
-!write(6,*)'gensymspgr :  assigns nsym = ',nsym
-!ENDDEBUG
-
 !Makes a backup to the brvltt for further comparison with the assigned value
  bckbrvltt=brvltt
 !Default brvltt
  brvltt=1
-
-!call timab(47,1,tsec)
 
 !Assigns the first part of the symmetry operations:
 !Rotation axis and mirror planes with or without translations,
@@ -246,8 +216,6 @@ subroutine gensymspgr(brvltt,msym,nsym,shubnikov,spgaxor,spgorig,&
      call symsgcube(msym,nsym,shubnikov,spgaxor,spgorig,spgroup,&
 &     spgroupma,symafm,symrel,tnons)
  end select
-
-!call timab(47,2,tsec)
 
 !Assign the inversion center (if necessary).
 !Note that for monoclinic space groups, the inversion was already
@@ -298,14 +266,6 @@ subroutine gensymspgr(brvltt,msym,nsym,shubnikov,spgaxor,spgorig,&
      end if
  end select
 
-!DEBUG
-!write(6,*)' gensymspgr : before inversion'
-!write(6,*)' Describe the different symmetry operations (index,symrel,tnons,symafm)'
-!do ii=1,nsym
-!write(6,'(i3,2x,9i3,3es12.2,i3)')ii,symrel(:,:,ii),tnons(:,ii),symafm(ii)
-!end do
-!ENDDEBUG
-
  if(inversion/=0)then
    do ii=1,nsym        ! visit all the symmetries assigned before
      do jj=1,3        ! visit the 3x3 matrix corresponding to the symmetry i
@@ -318,14 +278,6 @@ subroutine gensymspgr(brvltt,msym,nsym,shubnikov,spgaxor,spgorig,&
    end do
    nsym=nsym*2
  end if
-
-!DEBUG
-!write(6,*)' gensymspgr : after inversion'
-!write(6,*)' Describe the different symmetry operations (index,symrel,tnons,symafm)'
-!do ii=1,nsym
-!write(6,'(i3,2x,9i3,3es12.2,i3)')ii,symrel(:,:,ii),tnons(:,ii),symafm(ii)
-!end do
-!ENDDEBUG
 
 !Assign the Bravais lattice to each space group to which it has not yet
 !been assigned
@@ -543,17 +495,7 @@ subroutine gensymspgr(brvltt,msym,nsym,shubnikov,spgaxor,spgorig,&
    end select
  end if
 
-!DEBUG
-!write(6,*)' gensymspgr  : out of the Bravais lattice, nsym is',nsym
-!ENDDEBUG
-
  call chkgrp(nsym,symafm,symrel)
 
-!DEBUG
-!write(6,*)' gensymspgr : end of symmetry assignement'
-!ENDDEBUG
-
 end subroutine gensymspgr
-
-
 !!***

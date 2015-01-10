@@ -41,29 +41,18 @@
 !! The decomposition of the symmetry group in its primitives might speed up the execution.
 !! The output variables are stored only in the range 1:nkpt
 !!
-!! PARENTS
-!!      elphon,getkgrid,loper3,mkphdos,setup_little_group,thm9
-!!
-!! CHILDREN
-!!      abi_leave_new,sort_dp,abi_wrtout
-!!
 !! SOURCE
 
 #if defined HAVE_CONFIG_H
-#include "config.inc"
+#include "config.h"
 #endif
 
 subroutine symkpt(gmet,indkpt1,kptns,nkpt,nkpt1,nsym1,option,&
 & symrc1,timrev,wtk,wtk_folded)
 
  use defs_basis
-
-!This section has been created automatically by the script Abilint (TD).
-!Do not modify the following lines by hand.
- use interfaces_14_hidewrite
- use interfaces_16_hideleave
+ use abi_interfaces_lowlevel
  use interfaces_28_numeric_noabirule
-!End of the abilint section
 
  implicit none
 
@@ -88,14 +77,6 @@ subroutine symkpt(gmet,indkpt1,kptns,nkpt,nkpt1,nsym1,option,&
  real(dp),allocatable :: length2(:)
 
 ! *********************************************************************
-
-!DEBUG
-!write(6,*)' enter symkpt '
-!write(6,*)' nkpt,nsym1',nkpt,nsym1
-!write(6,*)' wtk',wtk
-!write(6,*)' timrev',timrev
-!if(option==1)stop
-!ENDDEBUG
 
  if(timrev/=1 .and. timrev/=0)then
    write(message, '(a,a,a,a,a,i4,a)' )&
@@ -151,18 +132,6 @@ subroutine symkpt(gmet,indkpt1,kptns,nkpt,nkpt1,nsym1,option,&
 !  processes by selecting the smallest length of all symmetric vectors
    allocate(length2(nkpt))
 
-!  DEBUG
-!  write(6,*)' gmet ',gmet(3,3)
-!  write(6,*)' kpt '
-!  do ikpt=1,nkpt
-!  write(6,*)ikpt,kptns(:,ikpt)
-!  end do
-!  write(6,*)' symrc1 '
-!  do isym=1,nsym1
-!  write(6,*)isym,symrc1(:,:,isym)
-!  end do
-!  ENDDEBUG
-
    do ikpt=1,nkpt
      do isym=1,nsym1
        do itim=1,(1-2*timrev),-2
@@ -189,12 +158,6 @@ subroutine symkpt(gmet,indkpt1,kptns,nkpt,nkpt1,nsym1,option,&
    allocate(list(nkpt))
    list(:)=(/ (ikpt,ikpt=1,nkpt) /)
    call sort_dp(nkpt,length2,list,tol14)
-
-!  DEBUG
-!  do ikpt=1,nkpt
-!  write(6,*)ikpt,length2(ikpt),list(ikpt)
-!  end do
-!  ENDDEBUG
 
    do ikpt=1,nkpt-1
 
@@ -289,14 +252,6 @@ subroutine symkpt(gmet,indkpt1,kptns,nkpt,nkpt1,nsym1,option,&
 &     ' is reduced to',nkpt1,' .'
      call abi_wrtout(std_out,message,'COLL')
      call abi_wrtout(ab_out,message,'COLL')
-!    DEBUG
-!    write(message, '(a)' )'   Here are the new weights :'
-!    call abi_wrtout(std_out,message,'COLL')
-!    do ikpt=1,nkpt,6
-!    write(message, '(6f12.6)' ) wtk_folded(ikpt:min(nkpt,ikpt+5))
-!    call abi_wrtout(std_out,message,'COLL')
-!    end do
-!    ENDDEBUG
    else
      write(message, '(a)' )&
 &     ' symkpt : not enough symmetry to change the number of k points.'
@@ -304,15 +259,6 @@ subroutine symkpt(gmet,indkpt1,kptns,nkpt,nkpt1,nsym1,option,&
      call abi_wrtout(ab_out,message,'COLL')
    end if
  end if
-
-!DEBUG
-!write(6,*)' exit symkpt '
-!write(6,*)' nkpt,nsym1',nkpt,nsym1
-!write(6,*)' wtk',wtk
-!write(6,*)' timrev',timrev
-!if(timrev==0)stop
-!if(option==1)stop
-!ENDDEBUG
 
 end subroutine symkpt
 !!***

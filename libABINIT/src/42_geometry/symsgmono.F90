@@ -32,27 +32,17 @@
 !! symrel(3,3,nsym) = 3D matrix containg symmetry operations
 !! tnons(3,nsym) = 2D matrix containing translations associated
 !!
-!! PARENTS
-!!      gensymspgr
-!!
-!! CHILDREN
-!!      spgdata
-!!
 !! SOURCE
 
 #if defined HAVE_CONFIG_H
-#include "config.inc"
+#include "config.h"
 #endif
 
 subroutine symsgmono(brvltt,msym,nsym,shubnikov,spgaxor,spgorig,spgroup,&
 &   spgroupma,symafm,symrel,tnons)
 
  use defs_basis
-
-!This section has been created automatically by the script Abilint (TD).
-!Do not modify the following lines by hand.
  use interfaces_42_geometry, except_this_one => symsgmono
-!End of the abilint section
 
  implicit none
 
@@ -75,6 +65,7 @@ subroutine symsgmono(brvltt,msym,nsym,shubnikov,spgaxor,spgorig,spgroup,&
  integer :: genpmp(3,3),genppm(3,3)
 
 ! *************************************************************************
+
 !the identity operation belonging to all space groups
  symrel(:,:,1)=0 ; symrel(1,1,1)=1 ; symrel(2,2,1)=1 ; symrel(3,3,1)=1
 
@@ -564,6 +555,4 @@ subroutine symsgmono(brvltt,msym,nsym,shubnikov,spgaxor,spgorig,spgroup,&
 & ptschsb,schsb,spgaxor,spgroup,sporder,spgorig)
 
 end subroutine symsgmono
-
-
 !!***

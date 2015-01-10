@@ -37,15 +37,10 @@
 !! brvsb, intsb, and schsb have been extensively checked, while
 !! more checking should be done for the others
 !!
-!! PARENTS
-!!      prtspgroup,symsgcube,symsghexa,symsgmono,symsgortho,symsgtetra,symspgr
-!!
-!! CHILDREN
-!!
 !! SOURCE
 
 #if defined HAVE_CONFIG_H
-#include "config.inc"
+#include "config.h"
 #endif
 
 subroutine spgdata(brvsb,intsb,intsbl,ptintsb,ptschsb,&
@@ -64,7 +59,6 @@ subroutine spgdata(brvsb,intsb,intsbl,ptintsb,ptschsb,&
  character(len=35),intent(out) :: intsbl
 
 !Local variables-------------------------------
-!character(len=500) :: message
 
 ! *************************************************************************
 

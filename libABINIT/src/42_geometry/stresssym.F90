@@ -26,29 +26,17 @@
 !! OUTPUT
 !! stress(6)=stress tensor, in cartesian coordinates, in symmetric storage mode
 !!
-!! SIDE EFFECTS
-!!
-!! PARENTS
-!!      forstrnps,insy3,nselt3,pawgrnl,stress
-!!
-!! CHILDREN
-!!      matr3inv,strconv
-!!
 !! SOURCE
 
 #if defined HAVE_CONFIG_H
-#include "config.inc"
+#include "config.h"
 #endif
 
 subroutine stresssym(gprimd,nsym,stress,sym)
 
  use defs_basis
-
-!This section has been created automatically by the script Abilint (TD).
-!Do not modify the following lines by hand.
  use interfaces_32_util
  use interfaces_42_geometry, except_this_one => stresssym
-!End of the abilint section
 
  implicit none
 

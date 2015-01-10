@@ -74,10 +74,8 @@
 !! SOURCE
 
 #if defined HAVE_CONFIG_H
-#include "config.inc"
+#include "config.h"
 #endif
-
-!#include "abi_common.h"
 
 module defs_datatypes
 

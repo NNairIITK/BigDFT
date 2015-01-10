@@ -28,15 +28,10 @@
 !!  nd2vxc size of the array d2vxc(npts,nd2vxc) for allocation
 !!  nvxcdgr size of the array dvxcdgr(npts,nvxcdgr) for allocation
 !!
-!! PARENTS
-!!      pawxc,pawxcm,rhohxc
-!!
-!! CHILDREN
-!!
 !! SOURCE
 
 #if defined HAVE_CONFIG_H
-#include "config.inc"
+#include "config.h"
 #endif
 
 subroutine size_dvxc(ixc,ndvxc,ngr2,nd2vxc,nspden,nvxcdgr,order)
@@ -101,11 +96,6 @@ subroutine size_dvxc(ixc,ndvxc,ngr2,nd2vxc,nspden,nvxcdgr,order)
    if  ((ixc>=7 .and. ixc<=10) .or.(ixc==13)) then
      nd2vxc=3*nspden-2   !second dimension for the array of third order derivative
    end if
-
-!  DEBUG
-!  write(*,*) 'mysize_dvxc2 nd2vxc ixc',nd2vxc,ixc
-!  write(6,*)' size_dvxc : exit '
-!  ENDDEBUG
 
  end if
 

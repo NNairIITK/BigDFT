@@ -25,34 +25,16 @@
 !!
 !! OUTPUT
 !!
-!!
-!! SIDE EFFECTS
-!
-!!
-!! NOTES
-!
-!!
-!! PARENTS
-!!      chkinp,ingeo
-!!
-!! CHILDREN
-!!      abi_leave_new,abi_wrtout
-!!
 !! SOURCE
 
 #if defined HAVE_CONFIG_H
-#include "config.inc"
+#include "config.h"
 #endif
 
 subroutine chkorthsy(gprimd,iout,nsym,rmet,rprimd,symrel)
 
  use defs_basis
-
-!This section has been created automatically by the script Abilint (TD).
-!Do not modify the following lines by hand.
- use interfaces_14_hidewrite
- use interfaces_16_hideleave
-!End of the abilint section
+ use abi_interfaces_lowlevel
 
  implicit none
 
@@ -85,16 +67,6 @@ subroutine chkorthsy(gprimd,iout,nsym,rmet,rprimd,symrel)
 &     symrel(3,ii,isym)*rprimd(:,3)
    end do
 
-!  DEBUG
-!  write(6,*)' chkorthsy : isym=',isym
-!  write(6,*)rprimd(1:3,1)
-!  write(6,*)rprimd(1:3,2)
-!  write(6,*)rprimd(1:3,3)
-!  write(6,*)rprimd_sym(1:3,1)
-!  write(6,*)rprimd_sym(1:3,2)
-!  write(6,*)rprimd_sym(1:3,3)
-!  ENDDEBUG
-
 !  If the new lattice is the same as the original one,
 !  the lengths and angles are preserved
    do ii=1,3
@@ -102,16 +74,6 @@ subroutine chkorthsy(gprimd,iout,nsym,rmet,rprimd,symrel)
 &     rprimd_sym(2,ii)*rprimd_sym(2,:)+&
 &     rprimd_sym(3,ii)*rprimd_sym(3,:)
    end do
-
-!  DEBUG
-!  write(6,*)' rmet :'
-!  write(6,*)rmet(1:3,1)
-!  write(6,*)rmet(1:3,2)
-!  write(6,*)rmet(1:3,3)
-!  write(6,*)rmet_sym(1:3,1)
-!  write(6,*)rmet_sym(1:3,2)
-!  write(6,*)rmet_sym(1:3,3)
-!  ENDDEBUG
 
    residual=0.0d0
    do ii=1,3
@@ -140,13 +102,6 @@ subroutine chkorthsy(gprimd,iout,nsym,rmet,rprimd,symrel)
 &     rprimd_sym(2,ii)*gprimd(2,:)+ &
 &     rprimd_sym(3,ii)*gprimd(3,:)
    end do
-
-!  DEBUG
-!  write(6,*)' scalar products :'
-!  write(6,*)prods(1:3,1)
-!  write(6,*)prods(1:3,2)
-!  write(6,*)prods(1:3,3)
-!  ENDDEBUG
 
    do ii=1,3
      do jj=1,3

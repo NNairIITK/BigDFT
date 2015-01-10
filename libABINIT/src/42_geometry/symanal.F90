@@ -35,30 +35,17 @@
 !! ptgroupma = magnetic point group number
 !! spgroup=symmetry space group
 !!
-!! SIDE EFFECTS
-!!
-!! NOTES
-!!
-!! PARENTS
-!!      ingeo
-!!
-!! CHILDREN
-!!
 !! SOURCE
 
 #if defined HAVE_CONFIG_H
-#include "config.inc"
+#include "config.h"
 #endif
 
 subroutine symanal(bravais,chkprim,genafm,msym,nsym,ptgroupma,rprimd,spgroup,symafm,symrel,tnons,tolsym)
 
  use defs_basis
-
-!This section has been created automatically by the script Abilint (TD).
-!Do not modify the following lines by hand.
- use interfaces_14_hidewrite
+ use abi_interfaces_lowlevel
  use interfaces_42_geometry, except_this_one => symanal
-!End of the abilint section
 
  implicit none
 
@@ -87,12 +74,6 @@ subroutine symanal(bravais,chkprim,genafm,msym,nsym,ptgroupma,rprimd,spgroup,sym
 
 ! *************************************************************************
 
-!DEBUG
-!write(6,*)' symanal : enter '
-!call flush(6)
-!stop
-!ENDDEBUG
-
 !This routine finds the Bravais characteristics, without actually
 !looking at the symmetry operations.
  allocate(ptsymrel(3,3,msym))
@@ -120,12 +101,6 @@ subroutine symanal(bravais,chkprim,genafm,msym,nsym,ptgroupma,rprimd,spgroup,sym
        if(sum(abs(symrel(:,:,isym)-identity(:,:)))==0)then
          shubnikov=4
          genafm(:)=tnons(:,isym)
-!        DEBUG
-!        write(6,*)' isym=',isym
-!        write(6,*)' symrel(:,:,isym)',symrel(:,:,isym)
-!        write(6,*)' tnons(:,isym)',tnons(:,isym)
-!        write(6,*)' symafm(isym)',symafm(isym)
-!        ENDDEBUG
          exit
        end if
      end if
@@ -161,14 +136,6 @@ subroutine symanal(bravais,chkprim,genafm,msym,nsym,ptgroupma,rprimd,spgroup,sym
 
      if(shubnikov==3)then
 
-!      DEBUG
-!      write(6,*)' symanal : will enter symbrav with halved symmetry set'
-!      write(6,*)' Describe the different symmetry operations (index,symrel,tnons,symafm)'
-!      do isym=1,nsym_nomagn
-!      write(6,'(i3,2x,9i3,3es12.2,i3)')isym,symrel_nomagn(:,:,isym),tnons_nomagn(:,isym)
-!      end do
-!      ENDDEBUG
-
 !      Find the point group of the halved symmetry set
        call symptgroup(iholohedry_nomagn,nsym_nomagn,ptgroupha,symrel_nomagn)
 
@@ -181,11 +148,6 @@ subroutine symanal(bravais,chkprim,genafm,msym,nsym,ptgroupma,rprimd,spgroup,sym
        call symspgr(bravais,nsym_nomagn,spgroup,symrel_nomagn,tnons_nomagn,tolsym)
 
 !      The magnetic translation generator genafm has already been determined
-
-!      DEBUG
-!      write(6,*)' genafm =',genafm
-!      write(6,*)' spgroup=',spgroup
-!      ENDDEBUG
 
      end if
 

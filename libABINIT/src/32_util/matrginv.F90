@@ -22,30 +22,17 @@
 !! SIDE EFFECTS
 !! a(lda,n)= array of complex elements, input, inverted at output
 !!
-!!
-!! PARENTS
-!!      assemblychi0q0_sym,assemblychi0sfq0,cchi0q0,elast9,linear_optics_paw
-!!      mlwfovlp_ylmfar,piezo9,q0fit,setup_bethe_salpeter,spectra,strainsym
-!!
-!! CHILDREN
-!!      dbgmdi,dbgmlu,dgeicd,dgetrf,dgetri,abi_leave_new,sgetrf,sgetri,abi_wrtout
-!!
 !! SOURCE
 
 #if defined HAVE_CONFIG_H
-#include "config.inc"
+#include "config.h"
 #endif
 
 subroutine matrginv(a,lda,n)
 
  use defs_basis
-
-!This section has been created automatically by the script Abilint (TD).
-!Do not modify the following lines by hand.
- use interfaces_14_hidewrite
- use interfaces_16_hideleave
- use interfaces_linalg
-!End of the abilint section
+ use abi_interfaces_lowlevel
+ use abi_interfaces_linalg
 
  implicit none
 
@@ -73,11 +60,6 @@ subroutine matrginv(a,lda,n)
 
 ! *************************************************************************
 
-#ifdef VMS
-!DEC$ ATTRIBUTES ALIAS:'DGETRF' :: dgetrf
-!DEC$ ATTRIBUTES ALIAS:'DGETRI' :: dgetri
-#endif
-
 #if defined HAVE_IBM_ESSL
  nwork=200*n
 #else
@@ -86,7 +68,6 @@ subroutine matrginv(a,lda,n)
 
  allocate(work(nwork))
  allocate(ipvt(n))
-
 
 #if defined HAVE_IBM_ESSL
 

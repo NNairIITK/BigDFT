@@ -329,12 +329,8 @@ CONTAINS  !=====================================================================
 
  subroutine abi_log_status_state(new_do_write_log,new_do_write_status)
 
-
-!This section has been created automatically by the script Abilint (TD).
-!Do not modify the following lines by hand.
 #undef ABI_FUNC
 #define ABI_FUNC 'abi_log_status_state'
-!End of the abilint section
 
  implicit none
 
@@ -371,12 +367,8 @@ CONTAINS  !=====================================================================
 
  subroutine abi_io_redirect(new_ab_out,new_std_out,new_io_comm,new_leave_comm)
 
-
-!This section has been created automatically by the script Abilint (TD).
-!Do not modify the following lines by hand.
 #undef ABI_FUNC
 #define ABI_FUNC 'abi_io_redirect'
-!End of the abilint section
 
  implicit none
 
@@ -415,12 +407,8 @@ CONTAINS  !=====================================================================
 
  subroutine abi_io_restore()
 
-
-!This section has been created automatically by the script Abilint (TD).
-!Do not modify the following lines by hand.
 #undef ABI_FUNC
 #define ABI_FUNC 'abi_io_restore'
-!End of the abilint section
 
  implicit none
 
@@ -456,15 +444,11 @@ CONTAINS  !=====================================================================
 
  subroutine print_kinds(unit)
 
-!Arguments-------------------------------------
-!scalars
-
-!This section has been created automatically by the script Abilint (TD).
-!Do not modify the following lines by hand.
 #undef ABI_FUNC
 #define ABI_FUNC 'print_kinds'
-!End of the abilint section
 
+!Arguments-------------------------------------
+!scalars
  integer,optional,intent(in) :: unit
 
 !Local variables-------------------------------

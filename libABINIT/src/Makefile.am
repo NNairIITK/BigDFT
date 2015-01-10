@@ -1,9 +1,4 @@
 ## Process this file with automake to produce Makefile.in
-if USE_MPI
-mpi_include =
-else
-mpi_include = mpif.h
-endif
 
 EXTRA_DIST = \
 	72_geomoptim/isokinetic.F90 \
@@ -17,8 +12,7 @@ EXTRA_DIST = \
 	72_geomoptim/velocity_verlet.F90 \
 	42_geometry/symmetry-main.c \
 	42_geometry/symmetry.h \
-	42_libpaw/libpaw.h \
-	incs/abi_common.h
+	42_libpaw/libpaw.h
 
 lib_LIBRARIES = libabinit.a
 
@@ -38,15 +32,18 @@ LIBPAW_DEFS += -UHAVE_DFT_BIGDFT -UHAVE_DFT_LIBXC
 
 # Force HAVE_MPI and HAVE_MPI1.
 # Don't use the HAVE_CONFIG_H
-MPI_DEFS = -DHAVE_MPI -DHAVE_MPI1
-
+if USE_MPI
+ mpi_include =
+else
+ mpi_include = mpif.h
+endif
 DEFS = $(MPI_DEFS) $(LIBXC_DEFS) $(LIBPAW_DEFS)
 
 DEFS_1 = $(DEFS:-D%=@FCDEFS@-D%)
 DEFS_FORTRAN = $(DEFS_1:-U%=@FCDEFS@-U%)
 
 AM_FCFLAGS = @MPI_INCLUDE@ @LIBXC_INCLUDE@ -I$(srcdir)/72_geomoptim \
-	-I$(srcdir)/incs -I$(top_builddir)/includes
+	        -I$(top_builddir)/includes
 
 # Hack for XLF strange DEFS option.
 PPFCCOMPILE = $(FC) $(DEFS_FORTRAN) $(DEFAULT_INCLUDES) $(INCLUDES) \
@@ -82,17 +79,14 @@ libpaw_files =
 endif
 
 libabinit_a_SOURCES = \
-	01_interfaces_ext/interfaces_linalg.F90 \
-	10_defs/defs_basis.F90 \
+	abi_lowlevel/abi_interfaces_lowlevel.F90 \
+	abi_lowlevel/abi_interfaces_linalg.F90 \
+	abi_lowlevel/defs_basis.F90 \
+	abi_lowlevel/abi_m_xmpi.F90 \
+	abi_lowlevel/abi_wrtout.F90 \
+	abi_lowlevel/abi_leave_new.F90 \
 	10_defs/defs_datatypes.F90 \
 	10_defs/defs_parameters.F90 \
-	12_hide_mpi/m_abi_xmpi.F90 \
-	14_hidewrite/interfaces_14_hidewrite.F90 \
-	14_hidewrite/abi_wrtout.F90 \
-	16_hideleave/interfaces_16_hideleave.F90 \
-	16_hideleave/abi_leave_new.F90 \
-	18_timing/interfaces_18_timing.F90 \
-	18_timing/timab.F90 \
 	28_numeric_noabirule/interfaces_28_numeric_noabirule.F90 \
 	28_numeric_noabirule/m_splines.F90 \
 	28_numeric_noabirule/sort_dp.F90 \

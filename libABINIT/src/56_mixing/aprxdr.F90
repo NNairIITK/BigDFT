@@ -48,15 +48,6 @@
 !! dedv_new=approximate derivative from new residual
 !! dedv_old=approximate derivative from old residual (output only when choice==3)
 !!
-!! NOTES
-!! Should be OpenMP parallelized
-!!
-!! PARENTS
-!!      scfcge
-!!
-!! CHILDREN
-!!      dotprodm_vn
-!!
 !! SOURCE
 
 #if defined HAVE_CONFIG_H
@@ -70,11 +61,7 @@ subroutine aprxdr(cplex,choice,dedv_mix,dedv_new,dedv_old,&
  use defs_basis
  use defs_abitypes
  use defs_datatypes
-
-!This section has been created automatically by the script Abilint (TD).
-!Do not modify the following lines by hand.
  use interfaces_56_mixing, except_this_one => aprxdr
-!End of the abilint section
 
  implicit none
 

@@ -21,27 +21,16 @@
 !! OUTPUT
 !!  rspts(npts)=inverse cubic root of rhoarr
 !!
-!! PARENTS
-!!      drivexc,gammapositron,xchcth,xcpbe,xcpositron
-!!
-!! CHILDREN
-!!      abi_leave_new,abi_wrtout
-!!
 !! SOURCE
 
 #if defined HAVE_CONFIG_H
-#include "config.inc"
+#include "config.h"
 #endif
 
  subroutine invcb(rhoarr,rspts,npts)
 
  use defs_basis
-
-!This section has been created automatically by the script Abilint (TD).
-!Do not modify the following lines by hand.
- use interfaces_14_hidewrite
- use interfaces_16_hideleave
-!End of the abilint section
+ use abi_interfaces_lowlevel
 
  implicit none
 
@@ -67,16 +56,11 @@
 !do ipts=1,npts
 !rspts(ipts)=sign( (abs(rhoarr(ipts)))**m1thrd,rhoarr(ipts))
 !end do
-!
-
-!write(6,*)' invcb : rhoarr, rspts'
 
  rhomtrd=sign( (abs(rhoarr(1)))**m1thrd, rhoarr(1) )
  rhom1=one/rhoarr(1)
  rspts(1)=rhomtrd
  do ipts=2,npts
-!  write(6,*)
-!  write(6,*)rhoarr(ipts),rspts(ipts)
    rho=rhoarr(ipts)
    prod=rho*rhom1
 !  If the previous point is too far ...

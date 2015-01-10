@@ -48,30 +48,19 @@
 !!   strten, depending on the value of optcell, and taking care ot strtarget
 !! xred(3,natom)=reduced dimensionless atomic coordinates
 !!
-!! PARENTS
-!!      brdmin,delocint,moldyn
-!!
-!! CHILDREN
-!!      abi_leave_new,matr3inv,metric,mkrdim,strainsym,abi_wrtout
-!!
 !! SOURCE
 
 #if defined HAVE_CONFIG_H
-#include "config.inc"
+#include "config.h"
 #endif
 
 subroutine xfpack(acell,acell0,fred,natom,ndim,nsym,optcell,option,rprim,rprimd0,&
 & strtarget,strten,symrel,ucvol,ucvol0,vin,vout,xred)
 
  use defs_basis
-
-!This section has been created automatically by the script Abilint (TD).
-!Do not modify the following lines by hand.
- use interfaces_14_hidewrite
- use interfaces_16_hideleave
+ use abi_interfaces_lowlevel
  use interfaces_32_util
  use interfaces_42_geometry
-!End of the abilint section
 
  implicit none
 

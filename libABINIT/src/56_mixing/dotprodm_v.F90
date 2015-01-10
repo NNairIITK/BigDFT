@@ -3,7 +3,6 @@
 !! NAME
 !! dotprodm_v
 !!
-!!
 !! FUNCTION
 !! For two sets of potentials,
 !! compute dot product of each pair of two potentials (integral over FFT grid), to obtain
@@ -68,12 +67,7 @@ subroutine dotprodm_v(cplex,cpldot,dot,index1,index2,mpi_comm,mpi_summarize,&
 
  use defs_basis
  use defs_abitypes
- use m_abi_xmpi
-
-!This section has been created automatically by the script Abilint (TD).
-!Do not modify the following lines by hand.
- use interfaces_18_timing
-!End of the abilint section
+ use abi_m_xmpi
 
  implicit none
 
@@ -180,9 +174,7 @@ subroutine dotprodm_v(cplex,cpldot,dot,index1,index2,mpi_comm,mpi_summarize,&
  end if
 
  if (mpi_summarize) then
-   call timab(48,1,tsec)
    call abi_xmpi_sum(dot,mpi_comm ,ierr)
-   call timab(48,2,tsec)
  end if
 
  if(cpldot==2 .and. cplex==1)dot(2,:,:)=zero

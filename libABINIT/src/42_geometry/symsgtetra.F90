@@ -27,27 +27,17 @@
 !! symrel(3,3,nsym) = 3D matrix containg symmetry operations
 !! tnons(3,nsym) = 2D matrix containing translations associated
 !!
-!! PARENTS
-!!      gensymspgr
-!!
-!! CHILDREN
-!!      bldgrp,spgdata
-!!
 !! SOURCE
 
 #if defined HAVE_CONFIG_H
-#include "config.inc"
+#include "config.h"
 #endif
 
 subroutine symsgtetra(msym,nsym,shubnikov,spgaxor,spgorig,spgroup,&
 &   spgroupma,symafm,symrel,tnons)
 
  use defs_basis
-
-!This section has been created automatically by the script Abilint (TD).
-!Do not modify the following lines by hand.
  use interfaces_42_geometry, except_this_one => symsgtetra
-!End of the abilint section
 
  implicit none
 
@@ -71,9 +61,7 @@ subroutine symsgtetra(msym,nsym,shubnikov,spgaxor,spgorig,spgroup,&
  integer :: genpmm(3,3),genpmp(3,3),genppm(3,3)
 
 ! *************************************************************************
-!DEBUG
-!write(*,*) ' symsgtetra: ',spgroup,shubnikov,spgroupma
-!ENDDEBUG
+
  nogen=0
 
  tnons(:,:)=zero
@@ -95,7 +83,6 @@ subroutine symsgtetra(msym,nsym,shubnikov,spgaxor,spgorig,spgroup,&
 
 !Default non-magnetic behaviour
  symafm(1:nsym)=1
-
 
 !assigns the generators to each space group
  select case (spgroup)
@@ -446,23 +433,12 @@ subroutine symsgtetra(msym,nsym,shubnikov,spgaxor,spgorig,spgroup,&
    end select
  end if
 
-!DEBUG
-!write(6,*)' symsgtetra : symrel(:,:,6)=',symrel(:,:,6)
-!ENDDEBUG
-
  if (nogen>1) then
    call bldgrp(msym,nogen,nsym,symafm,symrel,tnons)
  end if
 
  call spgdata(brvsb,intsb,intsbl,ptintsb,&
 & ptschsb,schsb,spgaxor,spgroup,sporder,spgorig)
-
-!DEBUG
-!write(6,*)' symsgtetra : exit'
-!do isym=1,nsym
-!write(6, '(i3,2x,9i3,3es13.3,i3)') isym,symrel(:,:,isym),tnons(:,isym),symafm(isym)
-!end do
-!ENDDEBUG
 
 end subroutine symsgtetra
 !!***

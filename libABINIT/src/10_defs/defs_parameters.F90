@@ -22,14 +22,10 @@
 !! or http://www.gnu.org/copyleft/gpl.txt .
 !! For the initials of contributors, see ~abinit/doc/developers/contributors.txt .
 !!
-!! PARENTS
-!!
-!! CHILDREN
-!!
 !! SOURCE
 
 #if defined HAVE_CONFIG_H
-#include "config.inc"
+#include "config.h"
 #endif
 
 module defs_parameters
@@ -93,5 +89,4 @@ module defs_parameters
 &                                                "self-consistent problem"/)
 
 end module defs_parameters
-
 !!***

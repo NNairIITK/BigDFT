@@ -31,15 +31,10 @@
 !! For the time being there are several groups where uncertainties still exist
 !! This will be solved in the very next ABINIT version
 !!
-!! PARENTS
-!!      symspgr
-!!
-!! CHILDREN
-!!
 !! SOURCE
 
 #if defined HAVE_CONFIG_H
-#include "config.inc"
+#include "config.h"
 #endif
 
 subroutine symlist_bcc(additional_info,nsym,n_axes,spgroup)
@@ -56,21 +51,12 @@ subroutine symlist_bcc(additional_info,nsym,n_axes,spgroup)
  integer,intent(in) :: n_axes(31)
 
 !Local variables-------------------------------
-!character(len=500) :: message
 !scalars
  integer :: ii
 !arrays
  integer :: n_axest(31)
 
 !**************************************************************************
-
-!DEBUG
-!write(6,*) ' symlist_bcc : enter '
-!write(6,*) ' nsym = ', nsym
-!write(6, '(a,10i3)' ) ' n_axes(1:10) =',n_axes(1:10)
-!write(6, '(a,10i3)' ) ' n_axes(11:20)=',n_axes(11:20)
-!write(6, '(a,11i3)' ) ' n_axes(21:31)=',n_axes(21:31)
-!ENDDEBUG
 
  spgroup=0
 

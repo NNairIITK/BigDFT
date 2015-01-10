@@ -30,27 +30,17 @@
 !! symrel(3,3,nsym) = 3D matrix containg symmetry operations
 !! tnons(3,nsym) = 2D matrix containing translations associated
 !!
-!! PARENTS
-!!      gensymspgr
-!!
-!! CHILDREN
-!!      bldgrp,spgdata
-!!
 !! SOURCE
 
 #if defined HAVE_CONFIG_H
-#include "config.inc"
+#include "config.h"
 #endif
 
 subroutine symsghexa(brvltt,msym,nsym,shubnikov,spgaxor,spgorig,spgroup,&
 &   spgroupma,symafm,symrel,tnons)
 
  use defs_basis
-
-!This section has been created automatically by the script Abilint (TD).
-!Do not modify the following lines by hand.
  use interfaces_42_geometry, except_this_one => symsghexa
-!End of the abilint section
 
  implicit none
 
@@ -74,10 +64,6 @@ subroutine symsghexa(brvltt,msym,nsym,shubnikov,spgaxor,spgorig,spgroup,&
  integer :: genswp(3,3)
 
 !*************************************************************************
-
-!DEBUG
-!write(6,*) 'symsghexa',spgroup,shubnikov,spgroupma
-!ENDDEBUG
 
 !The identity operation belongs to all space groups
  symrel(:,:,1)=0 ; symrel(1,1,1)=1 ; symrel(2,2,1)=1 ; symrel(3,3,1)=1
@@ -339,22 +325,9 @@ subroutine symsghexa(brvltt,msym,nsym,shubnikov,spgaxor,spgorig,spgroup,&
 !  End HEXAGONAL groups
  end if
 
-!***************************************************************************
-
-!DEBUG
-!write(6,*) 'symsghexa : out with nogen = ',nogen
-!ENDDEBUG
-
-
  if (nogen>0) then
    call bldgrp(msym,nogen,nsym,symafm,symrel,tnons)
  end if
 
-!DEBUG
-!write(6,*)'symrel:'
-!write(6,*) symrel(:,:,1:nsym)
-!ENDDEBUG
-
 end subroutine symsghexa
-
 !!***

@@ -24,28 +24,17 @@
 !! iholohedry=holohedry number
 !! ptgroup=symmetry point group
 !!
-!! SIDE EFFECTS
-!!
-!! PARENTS
-!!
-!! CHILDREN
-!!
 !! SOURCE
 
 #if defined HAVE_CONFIG_H
-#include "config.inc"
+#include "config.h"
 #endif
 
 subroutine symptgroup(iholohedry,nsym,ptgroup,symrel)
 
  use defs_basis
-
-!This section has been created automatically by the script Abilint (TD).
-!Do not modify the following lines by hand.
- use interfaces_14_hidewrite
- use interfaces_16_hideleave
+ use abi_interfaces_lowlevel
  use interfaces_42_geometry, except_this_one => symptgroup
-!End of the abilint section
 
  implicit none
 
@@ -67,13 +56,6 @@ subroutine symptgroup(iholohedry,nsym,ptgroup,symrel)
  character(len=2),allocatable :: ptsym(:)
 
 !**************************************************************************
-
-!DEBUG
-!write(6,*)' symptgroup : enter'
-!do isym=1,nsym
-!write(6, '(i3,2x,9i3)' )isym,symrel(:,:,isym)
-!end do
-!ENDDEBUG
 
  identity(:,:)=0
  identity(1,1)=1 ; identity(2,2)=1 ; identity(3,3)=1
@@ -240,18 +222,6 @@ subroutine symptgroup(iholohedry,nsym,ptgroup,symrel)
    call abi_wrtout(std_out,message,'COLL')
    call abi_leave_new('COLL')
  end if
-
-!DEBUG
-!do isym=1,nsym
-!write(6, '(a,3i5)' )&
-!&  ' symptgroup : isym,determinant,order=',isym,determinant(isym),order(isym)
-!end do
-!ENDDEBUG
-
-!DEBUG
-!write(6, '(a,13i3)' )' symptgroup : n_axes(-6:6)=',n_axes(-6:6)
-!write(6,*)' iholohedry, ptgroup=',iholohedry,',',ptgroup
-!ENDDEBUG
 
  deallocate(determinant,order,ptsym,root_invers)
 

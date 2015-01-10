@@ -3695,7 +3695,7 @@ end subroutine pawdijfr
 !Do not modify the following lines by hand.
 #undef ABI_FUNC
 #define ABI_FUNC 'pawpupot'
- !use interfaces_14_hidewrite
+ !use abi_interfaces_lowlevel
 !End of the abilint section
 
  implicit none
@@ -3983,7 +3983,7 @@ end subroutine pawdijfr
 !Do not modify the following lines by hand.
 #undef ABI_FUNC
 #define ABI_FUNC 'pawxpot'
- !use interfaces_14_hidewrite
+ !use abi_interfaces_lowlevel
 !End of the abilint section
 
  implicit none
@@ -4143,7 +4143,7 @@ subroutine symdij(gprimd,indsym,ipert,my_natom,natom,nsym,ntypat,option_dij,&
 !Do not modify the following lines by hand.
 #undef ABI_FUNC
 #define ABI_FUNC 'symdij'
- !use interfaces_14_hidewrite
+ !use abi_interfaces_lowlevel
 !End of the abilint section
 
  implicit none

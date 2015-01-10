@@ -25,33 +25,16 @@
 !! OUTPUT
 !!  multi=multiplicity of the unit cell
 !!
-!! SIDE EFFECTS
-!
-!!
-!! NOTES
-!
-!!
-!! PARENTS
-!!      ingeo,ab6_symmetry_f90
-!!
-!! CHILDREN
-!!      abi_leave_new,abi_wrtout
-!!
 !! SOURCE
 
 #if defined HAVE_CONFIG_H
-#include "config.inc"
+#include "config.h"
 #endif
 
 subroutine chkprimit(chkprim,multi,nsym,symafm,symrel)
 
  use defs_basis
-
-!This section has been created automatically by the script Abilint (TD).
-!Do not modify the following lines by hand.
- use interfaces_14_hidewrite
- use interfaces_16_hideleave
-!End of the abilint section
+ use abi_interfaces_lowlevel
 
  implicit none
 

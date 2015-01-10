@@ -27,28 +27,17 @@
 !! symrel(3,3,nsym)=symmetry operations in real space in terms
 !! of primitive translations rprimd at input and rprimd_new at output
 !!
-!! PARENTS
-!!      ingeo,symbrav,symspgr
-!!
-!! CHILDREN
-!!      abi_leave_new,matr3inv,abi_wrtout
-!!
 !! SOURCE
 
 #if defined HAVE_CONFIG_H
-#include "config.inc"
+#include "config.h"
 #endif
 
 subroutine symrelrot(nsym,rprimd,rprimd_new,symrel,tolsym)
 
  use defs_basis
-
-!This section has been created automatically by the script Abilint (TD).
-!Do not modify the following lines by hand.
- use interfaces_14_hidewrite
- use interfaces_16_hideleave
+ use abi_interfaces_lowlevel
  use interfaces_32_util
-!End of the abilint section
 
  implicit none
 

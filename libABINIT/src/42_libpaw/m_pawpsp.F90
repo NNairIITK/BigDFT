@@ -776,7 +776,7 @@ subroutine pawpsp_read(core_mesh,imainmesh,lmax,&
 !Do not modify the following lines by hand.
 #undef ABI_FUNC
 #define ABI_FUNC 'pawpsp_read'
- !use interfaces_14_hidewrite
+ !use abi_interfaces_lowlevel
 !End of the abilint section
 
  implicit none
@@ -1744,7 +1744,7 @@ subroutine pawpsp_calc(core_mesh,epsatm,ffspl,imainmesh,ixc,lnmax,&
 !Do not modify the following lines by hand.
 #undef ABI_FUNC
 #define ABI_FUNC 'pawpsp_calc'
- !use interfaces_14_hidewrite
+ !use abi_interfaces_lowlevel
 !End of the abilint section
 
  implicit none
@@ -2977,7 +2977,7 @@ subroutine pawpsp_17in(epsatm,ffspl,ipsp,ixc,lmax,&
 !Do not modify the following lines by hand.
 #undef ABI_FUNC
 #define ABI_FUNC 'pawpsp_17in'
- !use interfaces_14_hidewrite
+ !use abi_interfaces_lowlevel
 !End of the abilint section
 
  implicit none
@@ -4018,7 +4018,7 @@ subroutine pawpsp_read_header(lloc,lmax,mmax,pspcod,pspxc,r2well,zion,znucl)
 !Do not modify the following lines by hand.
 #undef ABI_FUNC
 #define ABI_FUNC 'pawpsp_read_header'
- !use interfaces_14_hidewrite
+ !use abi_interfaces_lowlevel
 !End of the abilint section
 
 implicit none
@@ -4167,7 +4167,7 @@ subroutine pawpsp_wvl(filpsp,pawrad, pawtab,usewvl, wvl_ngauss, comm_mpi)
 !Do not modify the following lines by hand.
 #undef ABI_FUNC
 #define ABI_FUNC 'pawpsp_wvl'
- !use interfaces_14_hidewrite
+ !use abi_interfaces_lowlevel
 !End of the abilint section
 
 implicit none
@@ -4721,7 +4721,7 @@ subroutine pawpsp_main( &
 !Do not modify the following lines by hand.
 #undef ABI_FUNC
 #define ABI_FUNC 'pawpsp_main'
- !use interfaces_14_hidewrite
+ !use abi_interfaces_lowlevel
 !End of the abilint section
 
  implicit none
@@ -4975,7 +4975,7 @@ subroutine pawpsp_consistency()
 !Do not modify the following lines by hand.
 #undef ABI_FUNC
 #define ABI_FUNC 'pawpsp_consistency'
- !use interfaces_14_hidewrite
+ !use abi_interfaces_lowlevel
 !End of the abilint section
 
 implicit none

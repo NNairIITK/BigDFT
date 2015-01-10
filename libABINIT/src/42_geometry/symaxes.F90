@@ -107,26 +107,17 @@
 !!  tertiary 2 axis to the "tertiary 2-axis" set (there are always 6),
 !!  and attribute 2 and 2_1 primary axes to the corresponding sets.
 !!
-!! PARENTS
-!!      symspgr
-!!
-!! CHILDREN
-!!
 !! SOURCE
 
 #if defined HAVE_CONFIG_H
-#include "config.inc"
+#include "config.h"
 #endif
 
 subroutine symaxes(center,iholohedry,&
 &isym,isymrelconv,ordersym,tnons_order,trialt,type_axis)
 
  use defs_basis
-
-!This section has been created automatically by the script Abilint (TD).
-!Do not modify the following lines by hand.
- use interfaces_14_hidewrite
-!End of the abilint section
+ use abi_interfaces_lowlevel
 
  implicit none
 
@@ -146,13 +137,6 @@ subroutine symaxes(center,iholohedry,&
 
 !**************************************************************************
 
-!DEBUG
-!write(6,*)' symaxes : enter, isym=',isym
-!write(6,*)' symaxes : iholohedry, ',iholohedry
-!write(6,*)' symaxes : center, ',center
-!stop
-!ENDDEBUG
-
  select case(ordersym)
 
    case(2)                       ! point symmetry 2
@@ -170,14 +154,6 @@ subroutine symaxes(center,iholohedry,&
 !      directiontype=2 corresponds to a tertiary axis
 !      directiontype=3 corresponds to a secondary axis
      end if
-
-!    DEBUG
-!    write(6,*)' directiontype=',directiontype
-!    write(6, '(a,3i6)' )' isymrelconv(1:3)=',isymrelconv(:,1)
-!    write(6, '(a,3i6)' )' isymrelconv(4:6)=',isymrelconv(:,2)
-!    write(6, '(a,3i6)' )' isymrelconv(7:9)=',isymrelconv(:,3)
-!    write(6, '(a,i)' )' tnons_order=',tnons_order
-!    ENDDEBUG
 
 !    Now, classify the 2 axes
      if(directiontype==2)then
@@ -219,10 +195,6 @@ subroutine symaxes(center,iholohedry,&
        write(message,'(a,i3,a)') &
 &       ' symaxes : the symmetry operation no. ',isym,' is a 3, 3_1 or 3_2 axis '
      else
-!      DEBUG
-!      write(6,*)'isymrelconv=',isymrelconv(:,:)
-!      write(6,*)'trialt=',trialt(:)
-!      ENDDEBUG
 !      Must recognize 3_1 or 3_2
        if(isymrelconv(1,1)==0)then  ! 3+
          if(abs(trialt(3)-third)<nzero)type_axis=22   ! 3_1
@@ -250,10 +222,6 @@ subroutine symaxes(center,iholohedry,&
        write(message,'(a,i3,a)') &
 &       ' symaxes : the symmetry operation no. ',isym,' is a 4_1 or 4_3-axis '
      else
-!      DEBUG
-!      write(6,*)'isymrelconv=',isymrelconv(:,:)
-!      write(6,*)'trialt=',trialt(:)
-!      ENDDEBUG
 !      Must recognize 4_1 or 4_3, along the three primary directions
        do direction=1,3
          if(isymrelconv(direction,direction)==1)then  !
@@ -285,10 +253,6 @@ subroutine symaxes(center,iholohedry,&
        write(message,'(a,i3,a)') &
 &       ' symaxes : the symmetry operation no. ',isym,' is a 6_3-axis '
      else if(tnons_order==3)then
-!      DEBUG
-!      write(6,*)'isymrelconv=',isymrelconv(:,:)
-!      write(6,*)'trialt=',trialt(:)
-!      ENDDEBUG
 !      Must recognize 6_2 or 6_4
        if(isymrelconv(1,1)==1)then  ! 6+
          if(abs(trialt(3)-third)<nzero)type_axis=28   ! 6_2
@@ -300,10 +264,6 @@ subroutine symaxes(center,iholohedry,&
        write(message,'(a,i3,a)') &
 &       ' symaxes : the symmetry operation no. ',isym,' is a 6_2 or 6_4-axis '
      else
-!      DEBUG
-!      write(6,*)'isymrelconv=',isymrelconv(:,:)
-!      write(6,*)'trialt=',trialt(:)
-!      ENDDEBUG
 !      Must recognize 6_1 or 6_5
        if(isymrelconv(1,1)==1)then  ! 6+
          if(abs(trialt(3)-sixth)<nzero)type_axis=27   ! 6_1
@@ -318,11 +278,6 @@ subroutine symaxes(center,iholohedry,&
      call abi_wrtout(6,message,'COLL')
 
  end select
-
-!DEBUG
-!write(6,*)' symaxes : exit'
-!stop
-!ENDDEBUG
 
 end subroutine symaxes
 !!***

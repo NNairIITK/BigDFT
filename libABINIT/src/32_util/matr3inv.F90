@@ -23,19 +23,10 @@
 !! NOTES
 !! Returned array is TRANSPOSE of inverse, as needed to get g from r.
 !!
-!! PARENTS
-!!      berryphase,chkdilatmx,conducti_nc,electrooptic,elphon,ewald2,ewald9
-!!      get_fsurf_1band,getkgrid,getspinrot,hybrid9,inwffil,metric,mkvxc3
-!!      mkvxcstr3,mrgscr,newsp,optic,outwant,planeint,prtxf,rdddb9,recip,reduce
-!!      relaxpol,rsiaf9,shellin,smpbz,strsym,symbrav,symdyma,symph3,symrelrot
-!!      tddft,testkgrid,tetrahedron,thm9,uderiv,volumeint,xfpack,xredxcart
-!!
-!! CHILDREN
-!!
 !! SOURCE
 
 #if defined HAVE_CONFIG_H
-#include "config.inc"
+#include "config.h"
 #endif
 
 subroutine matr3inv(aa,ait)

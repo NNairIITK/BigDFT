@@ -38,35 +38,17 @@
 !!  xcart(3,natom)=cartesian coordinates of atoms (bohr)
 !!  xred(3,natom)=dimensionless reduced coordinates of atoms
 !!
-!! PARENTS
-!!      afterscfloop,berryphase,berryphase_new,bonds_lgth_angles,brdmin,constrf
-!!      delocint,diisrelax,driver,hirsh,ingeo,ionion_realspace,jvec_to_B
-!!      localorb_S,m_crystal,make_efg_el,make_efg_ion,mklocl,mklocl_realspace
-!!      moldyn,move,out1dm,out_geometry_xml,outqmc,outvars
-!!      partial_dos_fractions,prcref,prcref_PMA,prtspgroup,rdddb9,relaxpol
-!!      scphon,spin_current,symspgr,vtorho,wffile,wvl_init_type_proj
-!!      wvl_init_type_wfs,wvl_memory,wvl_rwwf,wvl_setboxgeometry,wvl_vtorho
-!!      wvl_wfsinp_reformat,wvl_wfsinp_scratch
-!!
-!! CHILDREN
-!!      abi_leave_new,matr3inv,abi_wrtout
-!!
 !! SOURCE
 
 #if defined HAVE_CONFIG_H
-#include "config.inc"
+#include "config.h"
 #endif
 
 subroutine xredxcart(natom,option,rprimd,xcart,xred)
 
  use defs_basis
-
-!This section has been created automatically by the script Abilint (TD).
-!Do not modify the following lines by hand.
- use interfaces_14_hidewrite
- use interfaces_16_hideleave
+ use abi_interfaces_lowlevel
  use interfaces_32_util
-!End of the abilint section
 
  implicit none
 

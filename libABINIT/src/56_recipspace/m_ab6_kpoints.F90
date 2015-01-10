@@ -10,7 +10,7 @@
 !*
 
 #if defined HAVE_CONFIG_H
-#include "config.inc"
+#include "config.h"
 #endif
 
 module m_ab6_kpoints
@@ -39,11 +39,7 @@ contains
   subroutine kpoints_get_irreductible_zone(irrzon, phnons, &
        & n1, n2, n3, nsppol, nspden, symid, errno)
 
-
-!This section has been created automatically by the script Abilint (TD).
-!Do not modify the following lines by hand.
  use interfaces_56_recipspace
-!End of the abilint section
 
     integer, intent(in)   :: symid
     integer, intent(in)   :: n1, n2, n3, nsppol, nspden
@@ -73,11 +69,7 @@ contains
   subroutine kpoints_binding_mp_k_1(symid, nkpt, ngkpt, &
        & kptrlatt, kptrlen, nshiftk, shiftk, errno)
 
-
-!This section has been created automatically by the script Abilint (TD).
-!Do not modify the following lines by hand.
  use interfaces_56_recipspace
-!End of the abilint section
 
     integer, intent(in)  :: symid
     integer, intent(out) :: errno
@@ -113,11 +105,7 @@ contains
   subroutine kpoints_binding_mp_k_2(symid, nkpt, kpt, wkpt, &
        & kptrlatt, kptrlen, nshiftk, shiftk, errno)
 
-
-!This section has been created automatically by the script Abilint (TD).
-!Do not modify the following lines by hand.
  use interfaces_56_recipspace
-!End of the abilint section
 
     integer, intent(in)  :: symid
     integer, intent(out) :: errno
@@ -180,11 +168,7 @@ contains
   subroutine kpoints_binding_auto_k_1(symid, nkpt, kptrlatt, kptrlen, &
        & nshiftk, shiftk, errno)
 
-
-!This section has been created automatically by the script Abilint (TD).
-!Do not modify the following lines by hand.
  use interfaces_56_recipspace
-!End of the abilint section
 
     integer, intent(in)  :: symid
     integer, intent(out) :: errno
@@ -221,11 +205,7 @@ contains
   subroutine kpoints_binding_auto_k_2(symid, nkpt, kpt, wkpt, kptrlatt, kptrlen, &
        & nshiftk, shiftk, errno)
 
-
-!This section has been created automatically by the script Abilint (TD).
-!Do not modify the following lines by hand.
  use interfaces_56_recipspace
-!End of the abilint section
 
     integer, intent(in)  :: symid
     integer, intent(out) :: errno

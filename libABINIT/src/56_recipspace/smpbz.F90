@@ -49,28 +49,17 @@
 !!  A.H. MacDonald, Phys. Rev. B 18, 5897 (1978)
 !!  R.A. Evarestov and V.P. Smirnov, Phys. Stat. Sol. (b) 119, 9 (1983)
 !!
-!! PARENTS
-!!      elphon,getkgrid,initberry,mkifc9,thm9
-!!
-!! CHILDREN
-!!      wrap2_pmhalf,abi_leave_new,matr3inv,abi_wrtout
-!!
 !! SOURCE
 
 #if defined HAVE_CONFIG_H
-#include "config.inc"
+#include "config.h"
 #endif
 
 subroutine smpbz(brav,iout,kptrlatt,mkpt,nkpt,nshiftk,option,shiftk,spkpt)
 
  use defs_basis
-
-!This section has been created automatically by the script Abilint (TD).
-!Do not modify the following lines by hand.
- use interfaces_14_hidewrite
- use interfaces_16_hideleave
+ use abi_interfaces_lowlevel
  use interfaces_32_util
-!End of the abilint section
 
  implicit none
 
@@ -93,10 +82,6 @@ subroutine smpbz(brav,iout,kptrlatt,mkpt,nkpt,nshiftk,option,shiftk,spkpt)
  real(dp) :: k1(3),k2(3),kcar(3),klatt(3,3),ktest(3),rlatt(3,3)
 
 ! *********************************************************************
-
-!DEBUG
-!write(6,*)' smpbz : kptrlatt(:)=',kptrlatt(1,1),kptrlatt(2,2)
-!ENDDEBUG
 
  if(option/=0)then
    write(message,'(a)' )'       Homogeneous q point set in the B.Z.  '
@@ -140,11 +125,6 @@ subroutine smpbz(brav,iout,kptrlatt,mkpt,nkpt,nshiftk,option,shiftk,spkpt)
 
  end if
 
-!DEBUG
-!write(6,*)' smpbz : ngkpt(:)=',ngkpt(:)
-!ENDDEBUG
-
-
 !*********************************************************************
 
  if(brav==1)then
@@ -176,15 +156,6 @@ subroutine smpbz(brav,iout,kptrlatt,mkpt,nkpt,nshiftk,option,shiftk,spkpt)
    rlatt(:,:)=kptrlatt(:,:)
    call matr3inv(rlatt,klatt)
 
-!  DEBUG
-!  write(6, '(a,3es16.6)' )' smpbz : rlatt(:,1)=',rlatt(:,1)
-!  write(6, '(a,3es16.6)' )' smpbz : rlatt(:,2)=',rlatt(:,2)
-!  write(6, '(a,3es16.6)' )' smpbz : rlatt(:,3)=',rlatt(:,3)
-!  write(6, '(a,3es16.6)' )' smpbz : klatt(:,1)=',klatt(:,1)
-!  write(6, '(a,3es16.6)' )' smpbz : klatt(:,2)=',klatt(:,2)
-!  write(6, '(a,3es16.6)' )' smpbz : klatt(:,3)=',klatt(:,3)
-!  ENDDEBUG
-
 !  Now, klatt contains the three primitive vectors of the k lattice,
 !  in reduced coordinates. One builds all k vectors that
 !  are contained in the first Brillouin zone, with coordinates
@@ -201,15 +172,6 @@ subroutine smpbz(brav,iout,kptrlatt,mkpt,nkpt,nshiftk,option,shiftk,spkpt)
      end do
    end do
 
-!  DEBUG
-!  write(6,*)' smpbz : nshiftk=',nshiftk
-!  write(6, '(a,3es14.4)' )' shiftk(:)=',shiftk(:,1)
-!  write(6, '(a,3i6)' )' boundmin(:)=',boundmin(:)
-!  write(6, '(a,3i6)' )' boundmax(:)=',boundmax(:)
-!  write(6, '(a,9i4)' )' kptrlatt(:,:)=',kptrlatt(:,:)
-!  write(6, '(a,9es14.4)' )' klatt(:,:)=',klatt(:,:)
-!  ENDDEBUG
-
    nn=1
    do kk=boundmin(3),boundmax(3)
      do jj=boundmin(2),boundmax(2)
@@ -221,9 +183,6 @@ subroutine smpbz(brav,iout,kptrlatt,mkpt,nkpt,nshiftk,option,shiftk,spkpt)
            k1(3)=kk+shiftk(3,ikshft)
 !          Reduced coordinates of the trial k point
            k2(:)=k1(1)*klatt(:,1)+k1(2)*klatt(:,2)+k1(3)*klatt(:,3)
-!          DEBUG
-!          write(6,*)' k2(:)',k2(:)
-!          ENDDEBUG
 !          Eliminate the point if outside [0,1[
            if(k2(1)<-tol10)cycle ; if(k2(1)>one-tol10)cycle
            if(k2(2)<-tol10)cycle ; if(k2(2)>one-tol10)cycle

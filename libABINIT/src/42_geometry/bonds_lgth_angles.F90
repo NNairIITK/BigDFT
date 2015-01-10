@@ -34,30 +34,19 @@
 !!  The tolerance tol8 aims at giving a machine-independent ordering.
 !!  (this trick is used in bonds.f, listkk.f, prtrhomxmn.f and rsiaf9.f)
 !!
-!! PARENTS
-!!      outscfcv
-!!
-!! CHILDREN
-!!      atmdata,abi_leave_new,abi_wrtout,xredxcart
-!!
 !! SOURCE
 
 #if defined HAVE_CONFIG_H
-#include "config.inc"
+#include "config.h"
 #endif
 
 subroutine bonds_lgth_angles(coordn,fnameabo_app_geo,natom,ntypat,&
 &  rprimd,typat,xred,znucl)
 
  use defs_basis
-
-!This section has been created automatically by the script Abilint (TD).
-!Do not modify the following lines by hand.
- use interfaces_14_hidewrite
- use interfaces_16_hideleave
+ use abi_interfaces_lowlevel
  use interfaces_32_util
  use interfaces_42_geometry, except_this_one => bonds_lgth_angles
-!End of the abilint section
 
  implicit none
 
@@ -236,14 +225,6 @@ subroutine bonds_lgth_angles(coordn,fnameabo_app_geo,natom,ntypat,&
                  list_neighb(ineighb+1,2,1)=t1
                  list_neighb(ineighb+1,3,1)=t2
                  list_neighb(ineighb+1,4,1)=t3
-!                DEBUG
-!                if(ineighb/=mneighb)then
-!                write(6,*)' '
-!                do ii=1,mneighb
-!                write(6,*)ii,sqrlength(ii)
-!                end do
-!                end if
-!                ENDDEBUG
                  exit
                else
                  sqrlength(ineighb+1)=sqrlength(ineighb)
@@ -264,11 +245,6 @@ subroutine bonds_lgth_angles(coordn,fnameabo_app_geo,natom,ntypat,&
      if(tmax>0)then
        done=1
        do ineighb=1,mneighb
-!        DEBUG
-!        write(6, '(5i5,f12.5)' )ineighb,list_neighb(ineighb,1:4,1),&
-!        &                                    sqrlength(ineighb)
-!        write(6, '(5i5)' )ineighb,list_neighb(ineighb,1:4,2)
-!        ENDDEBUG
          if( list_neighb(ineighb,1,1)/=list_neighb(ineighb,1,2) .or. &
 &         list_neighb(ineighb,2,1)/=list_neighb(ineighb,2,2) .or. &
 &         list_neighb(ineighb,3,1)/=list_neighb(ineighb,3,2) .or. &

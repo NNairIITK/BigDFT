@@ -57,29 +57,18 @@
 !! center=2        B-face centered
 !! center=3        C-face centered
 !!
-!! PARENTS
-!!      elphon,ingeo
-!!
-!! CHILDREN
-!!      holocell,abi_leave_new,matr3inv,smallprim,symrelrot,abi_wrtout
-!!
 !! SOURCE
 
 #if defined HAVE_CONFIG_H
-#include "config.inc"
+#include "config.h"
 #endif
 
 subroutine symlatt(bravais,msym,nptsym,ptsymrel,rprimd,tolsym)
 
  use defs_basis
-
-!This section has been created automatically by the script Abilint (TD).
-!Do not modify the following lines by hand.
- use interfaces_14_hidewrite
- use interfaces_16_hideleave
+ use abi_interfaces_lowlevel
  use interfaces_32_util
  use interfaces_42_geometry, except_this_one => symlatt
-!End of the abilint section
 
  implicit none
 
@@ -110,8 +99,6 @@ subroutine symlatt(bravais,msym,nptsym,ptsymrel,rprimd,tolsym)
 
 !**************************************************************************
 
-!write(6,*)' symlatt : enter'
-
  identity(:,:)=0 ; identity(1,1)=1 ; identity(2,2)=1 ; identity(3,3)=1
  nvecta(1)=2 ; nvectb(1)=3
  nvecta(2)=1 ; nvectb(2)=3
@@ -132,11 +119,6 @@ subroutine symlatt(bravais,msym,nptsym,ptsymrel,rprimd,tolsym)
  if(abs(metmin(1,1)-metmin(3,3))<tolsym)equal(2)=1
  if(abs(metmin(2,2)-metmin(3,3))<tolsym)equal(1)=1
 
-!DEBUG
-!write(6,*)' ang90=',ang90(:)
-!write(6,*)' equal=',equal(:)
-!ENDDEBUG
-
 !-----------------------------------------------------------------------
 !Identification of the centering
 
@@ -155,10 +137,6 @@ subroutine symlatt(bravais,msym,nptsym,ptsymrel,rprimd,tolsym)
 !  Initialize the target holohedry
    iholohedry=list_holo(index)
 
-!  DEBUG
-!  write(6,*)' symlatt : trial holohedry',iholohedry
-!  ENDDEBUG
-
    orthogonal=0
    if(iholohedry==7 .or. iholohedry==4 .or. iholohedry==3)orthogonal=1
 
@@ -173,19 +151,11 @@ subroutine symlatt(bravais,msym,nptsym,ptsymrel,rprimd,tolsym)
      call holocell(cell_base,foundc,iholohedry)
    end if
 
-!  DEBUG
-!  write(6,*)' after test_orth, foundc=',foundc
-!  ENDDEBUG
-
 !  Select one trial direction
    do itrial=1,3
 
 !    If the holohedry is already found, exit
      if(foundc==1)exit
-
-!    DEBUG
-!    write(6,*)' symlatt : iholohedry,itrial=',iholohedry,itrial
-!    ENDDEBUG
 
      ia=nvecta(itrial) ; ib=nvectb(itrial)
 
@@ -208,10 +178,6 @@ subroutine symlatt(bravais,msym,nptsym,ptsymrel,rprimd,tolsym)
          call holocell(cell_base,foundc,iholohedry)
        end if
      end if
-
-!    DEBUG
-!    write(6,*)' after test_6, foundc=',foundc
-!    ENDDEBUG
 
 !    Working hypothesis : the conventional cell is orthogonal,
 !    and the two other vectors are axes of the conventional cell
@@ -240,10 +206,6 @@ subroutine symlatt(bravais,msym,nptsym,ptsymrel,rprimd,tolsym)
        end if
      end if
 
-!    DEBUG
-!    write(6,*)' after test_a, foundc=',foundc
-!    ENDDEBUG
-
 !    Working hypothesis : the conventional cell is orthorhombic, and
 !    the trial vector is one of the future axes,
 !    and the face perpendicular to it is centered
@@ -256,10 +218,6 @@ subroutine symlatt(bravais,msym,nptsym,ptsymrel,rprimd,tolsym)
 !      Checks that the basis vectors are OK for the target holohedry
        call holocell(cell_base,foundc,iholohedry)
      end if
-
-!    DEBUG
-!    write(6,*)' after test_b, foundc=',foundc
-!    ENDDEBUG
 
 !    Working hypothesis : the conventional cell is orthogonal, and
 !    the trial vector is one of the future axes
@@ -294,10 +252,6 @@ subroutine symlatt(bravais,msym,nptsym,ptsymrel,rprimd,tolsym)
          end if
        end if
      end if
-
-!    DEBUG
-!    write(6,*)' after test_c, foundc=',foundc
-!    ENDDEBUG
 
 !    Working hypothesis : the conventional cell is orthogonal,
 !    and body centered with no basis vector being an axis,
@@ -337,10 +291,6 @@ subroutine symlatt(bravais,msym,nptsym,ptsymrel,rprimd,tolsym)
        end if
      end if
 
-!    DEBUG
-!    write(6,*)' after test_d, foundc=',foundc
-!    ENDDEBUG
-
 !    Working hypothesis : the conventional cell is orthogonal,
 !    and face centered, in the case where
 !    two minimal vectors are equal
@@ -367,10 +317,6 @@ subroutine symlatt(bravais,msym,nptsym,ptsymrel,rprimd,tolsym)
          call holocell(cell_base,foundc,iholohedry)
        end if
      end if
-
-!    DEBUG
-!    write(6,*)' after test_e, foundc=',foundc
-!    ENDDEBUG
 
 !    Working hypothesis : the conventional cell is orthogonal,
 !    face centered, but no two vectors are on the same "square"
@@ -420,10 +366,6 @@ subroutine symlatt(bravais,msym,nptsym,ptsymrel,rprimd,tolsym)
        end if
      end if
 
-!    DEBUG
-!    write(6,*)' after test_f, foundc=',foundc
-!    ENDDEBUG
-
 !    Working hypothesis : the cell is rhombohedral, and
 !    the three minimal vectors have same length and same absolute
 !    scalar product
@@ -451,10 +393,6 @@ subroutine symlatt(bravais,msym,nptsym,ptsymrel,rprimd,tolsym)
          call holocell(cell_base,foundc,iholohedry)
        end if
      end if
-
-!    DEBUG
-!    write(6,*)' after test_3a, foundc=',foundc
-!    ENDDEBUG
 
 !    Working hypothesis : the cell is rhombohedral, one vector
 !    is parallel to the trigonal axis
@@ -487,10 +425,6 @@ subroutine symlatt(bravais,msym,nptsym,ptsymrel,rprimd,tolsym)
        end if
      end if
 
-!    DEBUG
-!    write(6,*)' after test_3b, foundc=',foundc
-!    ENDDEBUG
-
 !    Working hypothesis : the cell is rhombohedral, one vector
 !    is in the plane perpendicular to the trigonal axis
      if(foundc==0 .and. iholohedry==5 .and. equal(itrial)==1 ) then
@@ -521,10 +455,6 @@ subroutine symlatt(bravais,msym,nptsym,ptsymrel,rprimd,tolsym)
          call holocell(cell_base,foundc,iholohedry)
        end if
      end if
-
-!    DEBUG
-!    write(6,*)' after test_3c, foundc=',foundc
-!    ENDDEBUG
 
 !    Working hypothesis : the cell is rhombohedral, two vectors
 !    are in the plane perpendicular to the trigonal axis
@@ -572,10 +502,6 @@ subroutine symlatt(bravais,msym,nptsym,ptsymrel,rprimd,tolsym)
        end if
      end if
 
-!    DEBUG
-!    write(6,*)' after test_3d, foundc=',foundc
-!    ENDDEBUG
-
 !    Working hypothesis : monoclinic holohedry, primitive. Then, two angles are 90 degrees
      if(foundc==0 .and. iholohedry==2 .and. &
 &     ang90(ia)==1 .and. ang90(ib)==1 ) then
@@ -609,9 +535,6 @@ subroutine symlatt(bravais,msym,nptsym,ptsymrel,rprimd,tolsym)
          scb=vectc(1)*vectb(1)+&
 &         vectc(2)*vectb(2)+&
 &         vectc(3)*vectb(3)
-!        DEBUG
-!        write(6,*)' symlatt : test iholohedry=2, sca,scb=',sca,scb
-!        ENDDEBUG
          if(abs(sca)<tolsym .or. abs(scb)<tolsym)then
            fact=2 ; center=3
 !          The itrial direction is centered
@@ -733,10 +656,6 @@ subroutine symlatt(bravais,msym,nptsym,ptsymrel,rprimd,tolsym)
        end if
      end if
 
-!    DEBUG
-!    write(6,*)' after direction, foundc=',foundc
-!    ENDDEBUG
-
 !    Do-loop on three different directions
    end do
 
@@ -747,12 +666,6 @@ subroutine symlatt(bravais,msym,nptsym,ptsymrel,rprimd,tolsym)
    iholohedry=1 ; fact=1 ; center=0
    cell_base(:,:)=minim(:,:)
  end if
-
-!DEBUG
-!write(6,*)' symlatt : done with centering tests, foundc=',foundc
-!write(6,*)'  center=',center
-!write(6,*)'  iholohedry=',iholohedry
-!ENDDEBUG
 
 !--------------------------------------------------------------------------
 !Final check on the Bravais lattice, using the basis vectors
@@ -775,17 +688,6 @@ subroutine symlatt(bravais,msym,nptsym,ptsymrel,rprimd,tolsym)
  if(abs(metmin(1,1)-metmin(2,2))<tolsym)equal(3)=1
  if(abs(metmin(1,1)-metmin(3,3))<tolsym)equal(2)=1
  if(abs(metmin(2,2)-metmin(3,3))<tolsym)equal(1)=1
-
-!DEBUG
-!write(6, '(a,3es14.6,a,3es14.6,a,3es14.6)')' rprimd=',&
-!&  rprimd(:,1),ch10,rprimd(:,2),ch10,rprimd(:,3)
-!write(6, '(a,3es14.6,a,3es14.6,a,3es14.6)')' basis =',&
-!&  cell_base(:,1),ch10,cell_base(:,2),ch10,cell_base(:,3)
-!write(6, '(a,3es14.6,a,3es14.6,a,3es14.6)')' metmin =',&
-!&  metmin(:,1),ch10,metmin(:,2),ch10,metmin(:,3)
-!write(6,*)' ang90=',ang90(:)
-!write(6,*)' equal=',equal(:)
-!ENDDEBUG
 
 !The axes will be aligned with the previously determined
 !basis vectors, EXCEPT for the tetragonal cell, see later
@@ -973,13 +875,6 @@ subroutine symlatt(bravais,msym,nptsym,ptsymrel,rprimd,tolsym)
 
 !--------------------------------------------------------------------------
 
-!DEBUG
-!write(6, '(a,3es14.6,a,3es14.6,a,3es14.6)')' rprimd=',&
-!&  rprimd(:,1),ch10,rprimd(:,2),ch10,rprimd(:,3)
-!write(6, '(a,3es14.6,a,3es14.6,a,3es14.6)')' axes  =',&
-!&  axes(:,1),ch10,axes(:,2),ch10,axes(:,3)
-!ENDDEBUG
-
 !Compute the coordinates of rprimd in the system defined by axes(:,:)
  call matr3inv(axes,axesinvt)
  do ii=1,3
@@ -1082,10 +977,6 @@ subroutine symlatt(bravais,msym,nptsym,ptsymrel,rprimd,tolsym)
 
 !Transform symmetry matrices in the system defined by rprimd
  call symrelrot(nptsym,axes,rprimd,ptsymrel,tolsym)
-
-!DEBUG
-!write(6,*)' symlatt : exit'
-!ENDDEBUG
 
 end subroutine symlatt
 !!***

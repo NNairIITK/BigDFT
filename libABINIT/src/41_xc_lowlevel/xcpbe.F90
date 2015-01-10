@@ -92,37 +92,18 @@
 !!    with respect to the spin-down (vxci(:,1)) and spin-up (vxci(:,2) densities
 !! Normalization: Exc=$\int (exc(r)*\rho (r) d^3 r)$ for $\rho$(r)=electron density.
 !!
-!! TODO
-!!  WARNING: option=4 not yet implemented.
-!!
-!! NOTES
-!!
-!! PARENTS
-!!      drivexc
-!!
-!! CHILDREN
-!!      invcb,abi_leave_new,abi_wrtout
-!!
 !! SOURCE
-!!$#if defined HAVE_CONFIG_H
-!!$#include "config.inc"
-!!$#endif
 
 #if defined HAVE_CONFIG_H
-#include "config.inc"
+#include "config.h"
 #endif
 
 subroutine xcpbe(exci,npts,nspden,option,order,rho_updn,vxci,ndvxci,ngr2,nd2vxci, & !Mandatory Arguments
 &                d2vxci,dvxcdgr,dvxci,exexch,grho2_updn)                          !Optional Arguments
 
  use defs_basis
-
-!This section has been created automatically by the script Abilint (TD).
-!Do not modify the following lines by hand.
- use interfaces_14_hidewrite
- use interfaces_16_hideleave
+ use abi_interfaces_lowlevel
  use interfaces_41_xc_lowlevel, except_this_one => xcpbe
-!End of the abilint section
 
  implicit none
 
@@ -204,18 +185,12 @@ subroutine xcpbe(exci,npts,nspden,option,order,rho_updn,vxci,ndvxci,ngr2,nd2vxci
 
 ! *************************************************************************
 
-!DEBUG
-!write(6,*)' xcpbe : enter'
-!ENDDEBUG
-
  d_wc=mu-b_wc
 
  if (option<=-3 .or. option==0 .or. option==4 .or. option>=8 ) then
    write(message, '(a,a,a,a,i12,a)' ) ch10,&
 &   ' xcpbe : BUG -',ch10,&
 &   '  Option must be 1, 2, 3, 5, 6, 7, -1 or -2 ; argument was ',option,'.'
-!  call abi_wrtout(std_out,message,'COLL')
-!  call abi_leave_new('COLL')
  end if
 !Checks the compatibility between the presence of dvxci and ndvxci
  if(ndvxci /=0 .neqv. present(dvxci))then
@@ -323,65 +298,9 @@ subroutine xcpbe(exci,npts,nspden,option,order,rho_updn,vxci,ndvxci,ngr2,nd2vxci
    mu_divkappa=mu_divkappa_revpbe
  end if
 
-
-
-!DEBUG
-!Finite-difference debugging, do not take away
-!Note : here work with collinear gradients. Might be generalized ...
-!debug=2  ! Choose 1 (rho grads) or 2 (grho grads)
-!factor=1.0_dp
-!zeta_mean=0.98_dp
-!zeta_mean=zero
-!delta=0.000025*factor
-!delta=0.0000125*factor
-!if(debug/=0)then
-!do ipts=1,npts,5
-!rho=ipts*0.01_dp*factor
-!rho_up=rho*(1.0_dp+zeta_mean)*0.5_dp
-!rho_dn=rho*(1.0_dp-zeta_mean)*0.5_dp
-!rho_upp=rho_up+delta
-!rho_upm=rho_up-delta
-!rho_dnp=rho_dn+delta
-!rho_dnm=rho_dn-delta
-!! Here, vary rho
-!if(debug==1)then
-!rho_updn(ipts  ,1)=rho_up ; rho_updn(ipts  ,2)=rho_dn
-!rho_updn(ipts+1,1)=rho_upp; rho_updn(ipts+1,2)=rho_dn
-!rho_updn(ipts+2,1)=rho_upm; rho_updn(ipts+2,2)=rho_dn
-!rho_updn(ipts+3,1)=rho_up ; rho_updn(ipts+3,2)=rho_dnp
-!rho_updn(ipts+4,1)=rho_up ; rho_updn(ipts+4,2)=rho_dnm
-!grho2_updn(ipts:ipts+4,1)=(0.2_dp*factor)**2     ! grad2 of spin up density
-!grho2_updn(ipts:ipts+4,2)=(0.2_dp*factor)**2     ! grad2 of spin down density
-!grho2_updn(ipts:ipts+4,3)=(0.3_dp*factor)**2     ! grad2 of total density
-!else
-!!  Here, vary grho (interchange rho and grho)
-!grho2_updn(ipts  ,1)=rho_up**2 ; grho2_updn(ipts  ,2)=rho_dn**2
-!grho2_updn(ipts+1,1)=rho_upp**2; grho2_updn(ipts+1,2)=rho_dn**2
-!grho2_updn(ipts+2,1)=rho_upm**2; grho2_updn(ipts+2,2)=rho_dn**2
-!grho2_updn(ipts+3,1)=rho_up**2 ; grho2_updn(ipts+3,2)=rho_dnp**2
-!grho2_updn(ipts+4,1)=rho_up**2 ; grho2_updn(ipts+4,2)=rho_dnm**2
-!grho2_updn(ipts  ,3)=(ipts*0.01_dp*factor)**2
-!grho2_updn(ipts+1,3)=(ipts*0.01_dp*factor+delta)**2
-!grho2_updn(ipts+2,3)=(ipts*0.01_dp*factor-delta)**2
-!grho2_updn(ipts+3,3)=(ipts*0.01_dp*factor+delta)**2   ! identical to ipts+1
-!grho2_updn(ipts+4,3)=(ipts*0.01_dp*factor-delta)**2   ! identical to ipts+2
-!rho_updn(ipts:ipts+4,1)=0.2_dp*factor*(1.0_dp+zeta_mean)*0.5_dp    ! spin up density
-!rho_updn(ipts:ipts+4,2)=0.2_dp*factor*(1.0_dp-zeta_mean)*0.5_dp    ! spin down density
-!end if
-!end do
-!end if
-!Usual option :
-!nspden=2 ; order=2
-!GGA
-!nspden=2 ; order=1
-!Might take also, although finite difference later is meaningless
-!nspden=1 ; order=-2
-!ENDDEBUG
-
  if(order**2 >1)then
    factfpp_zeta= third * factfp_zeta * alpha_zeta2
  end if
-
 
  allocate(rhoarr(npts),rhom1_3(npts),rho_updnm1_3(npts,2))
  allocate(zetm(npts),zetmm1_3(npts),zetp(npts),zetpm1_3(npts))
@@ -389,7 +308,6 @@ subroutine xcpbe(exci,npts,nspden,option,order,rho_updn,vxci,ndvxci,ngr2,nd2vxci
  do ispden=1,nspden
    call invcb(rho_updn(:,ispden),rho_updnm1_3(:,ispden),npts)
  end do
-
 
  if(nspden==1)then
    rhoarr(:)=two*rho_updn(:,1)
@@ -409,12 +327,8 @@ subroutine xcpbe(exci,npts,nspden,option,order,rho_updn,vxci,ndvxci,ngr2,nd2vxci
    call invcb(zetm,zetmm1_3,npts)
  end if
 
-
 !fab: eliminate the following restriction
-
 !if (order==3 .and. nspden == 1) d2vxci(:,:)=0._dp
-
-
  if (order==3) d2vxci(:,:)=0._dp
 
 !!!Loop unrolling summary
@@ -459,7 +373,6 @@ subroutine xcpbe(exci,npts,nspden,option,order,rho_updn,vxci,ndvxci,ngr2,nd2vxci
 skip_the_rest=present(exexch)
 if (skip_the_rest) skip_the_rest=exexch==1
         
-
 !we separate different cases, depending on nspden
  if (nspden==1) then
 !  we separate different cases, depending on order
@@ -4613,72 +4526,8 @@ if (skip_the_rest) skip_the_rest=exexch==1
    call abi_leave_new('COLL')
  end if
 
-!DEBUG
-!Finite-difference debugging, do not take away
-!if(debug/=0)then
-!do ipts=1,npts,5
-
-!rho=rho_updn(ipts,1)+rho_updn(ipts,2)
-!write(6, '(a,i5,a,es16.8)' ) ' Point number',ipts,' with rho=',rho
-
-!! For rho
-!if(debug==1)then
-!write(6, '(3es16.8)' )exci(ipts)*rho,vxci(ipts,1),vxci(ipts,2)
-!else
-!!  For grho2
-!write(6, '(4es16.8)' )exci(ipts)*rho,dvxcdgr(ipts,1),&
-!&  dvxcdgr(ipts,2),dvxcdgr(ipts,3)
-!end if
-
-!write(6, '(4es16.8)' )dvxci(ipts,1:4)  ! For exchange
-!write(6, '(4es16.8)' )dvxci(ipts,5:8)  ! For exchange
-!write(6, '(4es16.8)' )dvxci(ipts,9:12) ! For correlation
-!write(6, '(4es16.8)' )dvxci(ipts,13:15) ! For correlation
-
-!if(debug==1)then
-!!  For rho
-!write(6, '(3es16.8)' )exci(ipts)*rho,&
-!&      ( exci(ipts+1)*(rho+delta) - exci(ipts+2)*(rho-delta) )/2._dp/delta,&
-!&      ( exci(ipts+3)*(rho+delta) - exci(ipts+4)*(rho-delta) )/2._dp/delta
-!write(6, '(3es16.8)' )&
-!&    ( vxci(ipts+1,1) - vxci(ipts+2,1) )/2._dp/delta,&
-!&    ( vxci(ipts+3,1) - vxci(ipts+4,1) )/2._dp/delta,&
-!&    ( vxci(ipts+3,2) - vxci(ipts+4,2) )/2._dp/delta
-!write(6, '(4es16.8)' )&
-!&    ( dvxcdgr(ipts+1,1) - dvxcdgr(ipts+2,1) )/2._dp/delta,&
-!&    ( dvxcdgr(ipts+3,2) - dvxcdgr(ipts+4,2) )/2._dp/delta,&
-!&    ( dvxcdgr(ipts+1,3) - dvxcdgr(ipts+2,3) )/2._dp/delta,&
-!&    ( dvxcdgr(ipts+3,3) - dvxcdgr(ipts+4,3) )/2._dp/delta
-!else
-!!  For grho2  (should distinguish exchange and correlation ...)
-!grr=sqrt(grho2_updn(ipts,1)) ! Analysis of exchange
-!grr=sqrt(grho2_updn(ipts,3)) ! Analysis of correlation
-!write(6, '(3es16.8)' )exci(ipts)*rho,&
-!&      ( exci(ipts+1)*rho - exci(ipts+2)*rho )/2._dp/delta/grr,&
-!&      ( exci(ipts+3)*rho - exci(ipts+4)*rho )/2._dp/delta/grr
-!write(6, '(3es16.8)' )&
-!&    ( vxci(ipts+1,1) - vxci(ipts+2,1) )/2._dp/delta/grr,&
-!&    ( vxci(ipts+3,1) - vxci(ipts+4,1) )/2._dp/delta/grr,&
-!&    ( vxci(ipts+3,2) - vxci(ipts+4,2) )/2._dp/delta/grr
-!write(6, '(4es16.8)' )&
-!&    ( dvxcdgr(ipts+1,1) - dvxcdgr(ipts+2,1) )/2._dp/delta/grr,&
-!&    ( dvxcdgr(ipts+3,2) - dvxcdgr(ipts+4,2) )/2._dp/delta/grr,&
-!&    ( dvxcdgr(ipts+1,3) - dvxcdgr(ipts+2,3) )/2._dp/delta/grr,&
-!&    ( dvxcdgr(ipts+3,3) - dvxcdgr(ipts+4,3) )/2._dp/delta/grr
-!end if
-!end do
-!stop
-!end if
-!ENDDEBUG
-
  deallocate(rhoarr,rhom1_3,rho_updnm1_3)
  deallocate(zetm,zetmm1_3,zetp,zetpm1_3)
-
-!DEBUG
-!write(6,*)' xcpbe : exit'
-!write(6,*)' nspden=',nspden
-!if(order==2)stop
-!ENDDEBUG
 
 end subroutine xcpbe
 !!***

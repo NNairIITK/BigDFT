@@ -23,17 +23,10 @@
 !! red=reduced number of num in the interval ]-1/2,1/2] where -1/2 is not included
 !! shift=num-red
 !!
-!! PARENTS
-!!      bfactor,canat9,elphon,get_full_kgrid,get_tetra,getwtk,interpolate_gkk
-!!      mkfskgrid,mkfsqgrid,mkkptrank,mkph_linwid,mkqptequiv,order_fs_kpts
-!!      printbxsf,read_gkk,smpbz,symq3
-!!
-!! CHILDREN
-!!
 !! SOURCE
 
 #if defined HAVE_CONFIG_H
-#include "config.inc"
+#include "config.h"
 #endif
 
 subroutine wrap2_pmhalf(num,red,shift)

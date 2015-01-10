@@ -38,18 +38,10 @@
 !!  vxci(npts,nspden)=input xc potential to which Leeuwen-Baerends correction
 !!   is added at output.
 !!
-!! PARENTS
-!!      drivexc
-!!
-!! CHILDREN
-!!
 !! SOURCE
-!!$#if defined HAVE_CONFIG_H
-!!$#include "config.inc"
-!!$#endif
 
 #if defined HAVE_CONFIG_H
-#include "config.inc"
+#include "config.h"
 #endif
 
 subroutine xclb(grho2_updn,npts,nspden,rho_updn,vxci)
@@ -73,10 +65,6 @@ subroutine xclb(grho2_updn,npts,nspden,rho_updn,vxci)
  real(dp) :: scaling_factor,vx_lb
 
 ! *************************************************************************
-
-!DEBUG
-!write(6,*) ' %xclb: enter'
-!ENDDEBUG
 
 !scale the spin densities for evaluating spin up or down exchange
  scaling_factor=one

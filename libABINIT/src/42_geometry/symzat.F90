@@ -39,15 +39,10 @@
 !!  (output) symmetrized atomic coordinates in terms
 !!    of real space translations
 !!
-!! PARENTS
-!!      nonlinear,respfn,scfcv
-!!
-!! CHILDREN
-!!
 !! SOURCE
 
 #if defined HAVE_CONFIG_H
-#include "config.inc"
+#include "config.h"
 #endif
 
 subroutine symzat(indsym,natom,nsym,symrel,tnons,xred)
