@@ -109,7 +109,7 @@ module module_atoms
      type(atomic_structure), pointer :: astruct_ptr
   end type atoms_iterator
 
-  public :: atoms_data_null,deallocate_atoms_data
+  public :: atoms_data_null,nullify_atoms_data,deallocate_atoms_data
   public :: atomic_structure_null,nullify_atomic_structure,deallocate_atomic_structure
   public :: astruct_merge_to_dict, astruct_at_from_dict
   public :: deallocate_symmetry_data,set_symmetry_data
@@ -1303,15 +1303,14 @@ END SUBROUTINE allocate_atoms_ntypes
 
 !> Allocate a new atoms_data type, for bindings.
 subroutine atoms_new(atoms)
-  use module_atoms, only: atoms_data,atoms_data_null
+  use module_atoms, only: atoms_data,nullify_atoms_data
   use dynamic_memory
   implicit none
   type(atoms_data), pointer :: atoms
-
-  type(atoms_data), pointer :: intern
+  type(atoms_data), pointer, save :: intern
   
   allocate(intern)
-  intern = atoms_data_null()
+  call nullify_atoms_data(intern)! = atoms_data_null()
   atoms => intern
 END SUBROUTINE atoms_new
 

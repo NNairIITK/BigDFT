@@ -3111,9 +3111,9 @@ contains
 
     if (kind(double) == kind(simple)) then
        simple=double
-    else if (double < real(tiny(1.e0),wp)) then
+    else if (abs(double) < real(tiny(1.e0),wp)) then
        simple=0.e0
-    else if (double > real(huge(1.e0),wp)) then
+    else if (abs(double) > real(huge(1.e0),wp)) then
        simple=huge(1.e0)
     else
        simple=real(double)
