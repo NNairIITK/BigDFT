@@ -79,14 +79,14 @@ libpaw_files =
 endif
 
 libabinit_a_SOURCES = \
+	10_defs/defs_basis.F90 \
+	10_defs/defs_datatypes.F90 \
+	10_defs/defs_parameters.F90 \
 	abi_lowlevel/abi_interfaces_lowlevel.F90 \
 	abi_lowlevel/abi_interfaces_linalg.F90 \
-	abi_lowlevel/defs_basis.F90 \
 	abi_lowlevel/abi_m_xmpi.F90 \
 	abi_lowlevel/abi_wrtout.F90 \
 	abi_lowlevel/abi_leave_new.F90 \
-	10_defs/defs_datatypes.F90 \
-	10_defs/defs_parameters.F90 \
 	28_numeric_noabirule/interfaces_28_numeric_noabirule.F90 \
 	28_numeric_noabirule/m_splines.F90 \
 	28_numeric_noabirule/sort_dp.F90 \
