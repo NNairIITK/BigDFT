@@ -14,9 +14,9 @@
 !! GNU General Public License, see ~abinit/COPYING
 !! or http://www.gnu.org/copyleft/gpl.txt .
 !!
-!! PARENTS
-!!
-!! CHILDREN
+!! NOTES
+!!  FOR DEVELOPPERS: in order to preserve the portability of libPAW library,
+!!  please consult ~abinit/src/42_??libpaw/libpaw-coding-rules.txt
 !!
 !! SOURCE
 
@@ -1076,7 +1076,7 @@ subroutine pawtab_print(Pawtab,header,unit,prtvol,mode_paral)
 !Do not modify the following lines by hand.
 #undef ABI_FUNC
 #define ABI_FUNC 'pawtab_print'
- !use abi_interfaces_lowlevel
+ !use interfaces_14_hidewrite
 !End of the abilint section
 
  implicit none

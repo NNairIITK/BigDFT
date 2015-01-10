@@ -1,7 +1,7 @@
 !{\src2tex{textfont=tt}}
-!!****m* ABINIT/m_gaussfit
+!!****m* ABINIT/m_paw_gaussfit
 !! NAME
-!!  m_gaussfit
+!!  m_paw_gaussfit
 !!
 !! FUNCTION
 !!  Module to fit PAW related data to sums of gaussians
@@ -12,11 +12,15 @@
 !!  GNU General Public License, see ~abinit/COPYING
 !!  or http://www.gnu.org/copyleft/gpl.txt .
 !!
+!! NOTES
+!!  FOR DEVELOPPERS: in order to preserve the portability of libPAW library,
+!!  please consult ~abinit/src/42_??libpaw/libpaw-coding-rules.txt
+!!
 !! SOURCE
 
 #include "libpaw.h"
 
-module m_gaussfit
+module m_paw_gaussfit
 
  USE_DEFS
  USE_MSG_HANDLING
@@ -65,7 +69,7 @@ CONTAINS
 !!***
 
 !{\src2tex{textfont=tt}}
-!!****f* m_gaussfit/gaussfit_main
+!!****f* m_paw_gaussfit/gaussfit_main
 !! NAME
 !!  gaussfit_main
 !!
@@ -106,7 +110,7 @@ CONTAINS
 !Do not modify the following lines by hand.
 #undef ABI_FUNC
 #define ABI_FUNC 'gaussfit_main'
- !use abi_interfaces_lowlevel
+ !use interfaces_14_hidewrite
 !End of the abilint section
 
  implicit none
@@ -375,7 +379,7 @@ end subroutine gaussfit_main
 
 !----------------------------------------------------------------------
 
-!!****f* m_gaussfit/gaussfit_mpi_set_weight
+!!****f* m_paw_gaussfit/gaussfit_mpi_set_weight
 !! NAME
 !!  gaussfit_mpi_set_weight
 !!
@@ -430,7 +434,7 @@ end subroutine gaussfit_main
 
 !----------------------------------------------------------------------
 
-!!****f* m_gaussfit/gaussfit_mpi_remove_item
+!!****f* m_paw_gaussfit/gaussfit_mpi_remove_item
 !! NAME
 !!  gaussfit_mpi_remove_item
 !!
@@ -470,7 +474,7 @@ end subroutine gaussfit_main
 
 !----------------------------------------------------------------------
 
-!!****f* m_gaussfit/gaussfit_mpi_add_item
+!!****f* m_paw_gaussfit/gaussfit_mpi_add_item
 !! NAME
 !!  gaussfit_mpi_add_item
 !!
@@ -510,7 +514,7 @@ end subroutine gaussfit_main
 
 !----------------------------------------------------------------------
 
-!!****f* m_gaussfit/gaussfit_mpi_calc_deviation
+!!****f* m_paw_gaussfit/gaussfit_mpi_calc_deviation
 !! NAME
 !!  gaussfit_mpi_calc_deviation
 !!
@@ -562,7 +566,7 @@ end subroutine gaussfit_main
 
 !----------------------------------------------------------------------
 
-!!****f* m_gaussfit/gaussfit_mpi_swap
+!!****f* m_paw_gaussfit/gaussfit_mpi_swap
 !! NAME
 !!  gaussfit_mpi_swap
 !!
@@ -626,7 +630,7 @@ end subroutine gaussfit_main
 
 !----------------------------------------------------------------------
 
-!!****f* m_gaussfit/gaussfit_mpi_assign
+!!****f* m_paw_gaussfit/gaussfit_mpi_assign
 !! NAME
 !!  gaussfit_mpi_assign
 !!
@@ -695,7 +699,7 @@ end subroutine gaussfit_main
 
 !----------------------------------------------------------------------
 
-!!****f* m_gaussfit/gaussfit_mpi_main
+!!****f* m_paw_gaussfit/gaussfit_mpi_main
 !! NAME
 !!  gaussfit_mpi_main
 !!
@@ -715,7 +719,7 @@ end subroutine gaussfit_main
 !Do not modify the following lines by hand.
 #undef ABI_FUNC
 #define ABI_FUNC 'gaussfit_mpi_main'
- !use abi_interfaces_lowlevel
+ !use interfaces_14_hidewrite
 !End of the abilint section
 
  implicit none
@@ -786,7 +790,7 @@ end subroutine gaussfit_main
 
 !----------------------------------------------------------------------
 
-!!****f* m_gaussfit/gaussfit_fit
+!!****f* m_paw_gaussfit/gaussfit_fit
 !! NAME
 !!  gaussfit_fit
 !!
@@ -896,7 +900,7 @@ end subroutine gaussfit_fit
 
 !----------------------------------------------------------------------
 
-!!****f* m_gaussfit/gaussfit_calc_deriv_r
+!!****f* m_paw_gaussfit/gaussfit_calc_deriv_r
 !! NAME
 !!  gaussfit_calc_deriv_r
 !!
@@ -1011,7 +1015,7 @@ end subroutine gaussfit_calc_deriv_r
 
 !----------------------------------------------------------------------
 
-!!****f* m_gaussfit/gaussfit_calc_deriv_c3
+!!****f* m_paw_gaussfit/gaussfit_calc_deriv_c3
 !! NAME
 !!  gaussfit_calc_deriv_c3
 !!
@@ -1114,7 +1118,7 @@ end subroutine gaussfit_calc_deriv_c3
 
 !----------------------------------------------------------------------
 
-!!****f* m_gaussfit/gaussfit_calc_deriv_c2
+!!****f* m_paw_gaussfit/gaussfit_calc_deriv_c2
 !! NAME
 !!  gaussfit_calc_deriv_c2
 !!
@@ -1237,7 +1241,7 @@ end subroutine gaussfit_calc_deriv_c2
 
 !----------------------------------------------------------------------
 
-!!****f* m_gaussfit/gaussfit_calc_deriv_c
+!!****f* m_paw_gaussfit/gaussfit_calc_deriv_c
 !! NAME
 !!  gaussfit_calc_deriv_c
 !!
@@ -1388,7 +1392,7 @@ end subroutine gaussfit_calc_deriv_c
 
 !----------------------------------------------------------------------
 
-!!****f* m_gaussfit/gaussfit_calc_deriv_c4
+!!****f* m_paw_gaussfit/gaussfit_calc_deriv_c4
 !! NAME
 !!  gaussfit_calc_deriv_c4
 !!
@@ -1521,7 +1525,7 @@ end subroutine gaussfit_calc_deriv_c4
 
 !----------------------------------------------------------------------
 
-!!****f* m_gaussfit/gaussfit_rlsf
+!!****f* m_paw_gaussfit/gaussfit_rlsf
 !! NAME
 !!  gaussfit_rlsf
 !!
@@ -1562,7 +1566,7 @@ subroutine gaussfit_rlsf(&
 !Do not modify the following lines by hand.
 #undef ABI_FUNC
 #define ABI_FUNC 'gaussfit_rlsf'
- !use abi_interfaces_lowlevel
+ !use interfaces_14_hidewrite
 !End of the abilint section
 
  implicit none
@@ -1707,7 +1711,7 @@ end subroutine gaussfit_rlsf
 
 !----------------------------------------------------------------------
 
-!!****f* m_gaussfit/gaussfit_chisq_alpha_beta
+!!****f* m_paw_gaussfit/gaussfit_chisq_alpha_beta
 !! NAME
 !!  gaussfit_chisq_alpha_beta
 !!
@@ -1800,7 +1804,7 @@ end subroutine gaussfit_chisq_alpha_beta
 
 !----------------------------------------------------------------------
 
-!!****f* m_gaussfit/gaussfit_set_param1
+!!****f* m_paw_gaussfit/gaussfit_set_param1
 !! NAME
 !!  gaussfit_set_param1
 !!
@@ -1874,7 +1878,7 @@ end subroutine gaussfit_set_param1
 
 !----------------------------------------------------------------------
 
-!!****f* m_gaussfit/gaussfit_set_param2
+!!****f* m_paw_gaussfit/gaussfit_set_param2
 !! NAME
 !!  gaussfit_set_param2
 !!
@@ -1982,7 +1986,7 @@ end subroutine gaussfit_set_param2
 
 !----------------------------------------------------------------------
 
-!!****f* m_gaussfit/gaussfit_set_param3
+!!****f* m_paw_gaussfit/gaussfit_set_param3
 !! NAME
 !!  gaussfit_set_param3
 !!
@@ -2036,7 +2040,7 @@ end subroutine gaussfit_set_param3
 
 !----------------------------------------------------------------------
 
-!!****f* m_gaussfit/gaussfit_set_param4
+!!****f* m_paw_gaussfit/gaussfit_set_param4
 !! NAME
 !!  gaussfit_set_param4
 !!
@@ -2075,7 +2079,7 @@ end subroutine gaussfit_set_param4
 
 !----------------------------------------------------------------------
 
-!!****f* m_gaussfit/gaussfit_set_param5
+!!****f* m_paw_gaussfit/gaussfit_set_param5
 !! NAME
 !!  gaussfit_set_param5
 !!
@@ -2135,7 +2139,7 @@ end subroutine gaussfit_set_param5
 
 !----------------------------------------------------------------------
 
-!!****f* m_gaussfit/gaussfit_constrains_init
+!!****f* m_paw_gaussfit/gaussfit_constrains_init
 !! NAME
 !!  gaussfit_constrains_init
 !!
@@ -2211,7 +2215,7 @@ end subroutine gaussfit_constrains_init
 
 !----------------------------------------------------------------------
 
-!!****f* m_gaussfit/gaussfit_apply_constrains
+!!****f* m_paw_gaussfit/gaussfit_apply_constrains
 !! NAME
 !!  gaussfit_apply_constrains
 !!
@@ -2261,7 +2265,7 @@ end subroutine gaussfit_apply_constrains
 
 !----------------------------------------------------------------------
 
-!!****f* m_gaussfit/gaussfit_projector
+!!****f* m_paw_gaussfit/gaussfit_projector
 !! NAME
 !!  gaussfit_projector
 !!
@@ -2295,7 +2299,7 @@ subroutine gaussfit_projector(basis_size,mparam,nparam_array,nterm_bounds,orbita
 !Do not modify the following lines by hand.
 #undef ABI_FUNC
 #define ABI_FUNC 'gaussfit_projector'
- !use abi_interfaces_lowlevel
+ !use interfaces_14_hidewrite
 !End of the abilint section
 
  implicit none
@@ -2430,5 +2434,5 @@ end subroutine gaussfit_projector
 
 !----------------------------------------------------------------------
 
-end module m_gaussfit
+end module m_paw_gaussfit
 !!***

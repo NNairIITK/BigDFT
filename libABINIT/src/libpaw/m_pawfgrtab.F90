@@ -16,16 +16,8 @@
 !! or http://www.gnu.org/copyleft/gpl.txt .
 !!
 !! NOTES
-!!  * Routines tagged with "@type_name" are strongly connected to the definition of the data type.
-!!    Strongly connected means that the proper functioning of the implementation relies on the
-!!    assumption that the tagged procedure is consistent with the type declaration.
-!!    Every time a developer changes the structure "type_name" adding new entries, he/she has to make sure
-!!    that all the strongly connected routines are changed accordingly to accommodate the modification of the data type
-!!    Typical examples of strongly connected routines are creation, destruction or reset methods.
-!!
-!! PARENTS
-!!
-!! CHILDREN
+!!  FOR DEVELOPPERS: in order to preserve the portability of libPAW library,
+!!  please consult ~abinit/src/42_??libpaw/libpaw-coding-rules.txt
 !!
 !! SOURCE
 
@@ -610,7 +602,7 @@ subroutine pawfgrtab_print(Pawfgrtab,natom,unit,prtvol,mode_paral,mpi_atmtab,com
 !Do not modify the following lines by hand.
 #undef ABI_FUNC
 #define ABI_FUNC 'pawfgrtab_print'
- !use abi_interfaces_lowlevel
+ !use interfaces_14_hidewrite
 !End of the abilint section
 
  implicit none

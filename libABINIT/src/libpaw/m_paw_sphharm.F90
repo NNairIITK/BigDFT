@@ -1,7 +1,7 @@
 !{\src2tex{textfont=tt}}
-!!****m* ABINIT/m_sphharm
+!!****m* ABINIT/m_paw_sphharm
 !! NAME
-!!  m_sphharm
+!!  m_paw_sphharm
 !!
 !! FUNCTION
 !!  This module contains a set of routines to compute the complex (resp. real)
@@ -13,15 +13,15 @@
 !! GNU General Public License, see ~abinit/COPYING
 !! or http://www.gnu.org/copyleft/gpl.txt .
 !!
-!! PARENTS
-!!
-!! CHILDREN
+!! NOTES
+!!  FOR DEVELOPPERS: in order to preserve the portability of libPAW library,
+!!  please consult ~abinit/src/42_??libpaw/libpaw-coding-rules.txt
 !!
 !! SOURCE
 
 #include "libpaw.h"
 
-MODULE m_sphharm
+MODULE m_paw_sphharm
 
  USE_DEFS
  USE_MSG_HANDLING
@@ -54,7 +54,7 @@ CONTAINS
 !===========================================================
 !!***
 
-!!****f* m_sphharm/ylmc
+!!****f* m_paw_sphharm/ylmc
 !! NAME
 !! ylmc
 !!
@@ -219,7 +219,7 @@ end function ylmc
 
 !----------------------------------------------------------------------
 
-!!****f* m_sphharm/ylmcd
+!!****f* m_paw_sphharm/ylmcd
 !! NAME
 !! ylmcd
 !!
@@ -370,7 +370,7 @@ end subroutine ylmcd
 
 !----------------------------------------------------------------------
 
-!!****f* m_sphharm/ylm_cmplx
+!!****f* m_paw_sphharm/ylm_cmplx
 !! NAME
 !! ylm_cmplx
 !!
@@ -513,7 +513,7 @@ end subroutine ylm_cmplx
 
 !----------------------------------------------------------------------
 
-!!****f* m_sphharm/initylmr
+!!****f* m_paw_sphharm/initylmr
 !! NAME
 !! initylmr
 !!
@@ -751,7 +751,7 @@ end subroutine initylmr
 
 !----------------------------------------------------------------------
 
-!!****f* m_sphharm/ys
+!!****f* m_paw_sphharm/ys
 !! NAME
 !! ys
 !!
@@ -769,7 +769,7 @@ end subroutine initylmr
 !! used througout abinit. <Yl'm'|Slm> is their overlap.
 !!
 !! PARENTS
-!!      m_sphharm
+!!      m_paw_sphharm
 !!
 !! CHILDREN
 !!      wrtout
@@ -819,7 +819,7 @@ end subroutine ys
 
 !----------------------------------------------------------------------
 
-!!****f* m_sphharm/lxyz.F90
+!!****f* m_paw_sphharm/lxyz.F90
 !! NAME
 !! lxyz
 !!
@@ -837,7 +837,7 @@ end subroutine ys
 !!  idir is the direction in space of L
 !!
 !! PARENTS
-!!      m_sphharm
+!!      m_paw_sphharm
 !!
 !! CHILDREN
 !!      wrtout
@@ -882,7 +882,7 @@ end subroutine lxyz
 
 !----------------------------------------------------------------------
 
-!!****f* m_sphharm/slxyzs
+!!****f* m_paw_sphharm/slxyzs
 !! NAME
 !! slxyzs
 !!
@@ -951,7 +951,7 @@ end subroutine slxyzs
 
 !----------------------------------------------------------------------
 
-!!****f* m_sphharm/plm_coeff
+!!****f* m_paw_sphharm/plm_coeff
 !! NAME
 !! plm_coeff
 !!
@@ -967,7 +967,7 @@ end subroutine slxyzs
 !!  blm(5,mpsang*mpsang)=coefficients depending on Plm and its derivatives where P_lm is a legendre polynome
 !!
 !! PARENTS
-!!      initylmg,m_sphharm
+!!      initylmg,m_paw_sphharm
 !!
 !! CHILDREN
 !!      wrtout
@@ -1066,7 +1066,7 @@ end subroutine plm_coeff
 
 !----------------------------------------------------------------------
 
-!!****f* m_sphharm/ass_leg_pol
+!!****f* m_paw_sphharm/ass_leg_pol
 !! NAME
 !! ass_leg_pol
 !!
@@ -1151,7 +1151,7 @@ end function ass_leg_pol
 
 !----------------------------------------------------------------------
 
-!!****f* m_sphharm/plm_d2theta
+!!****f* m_paw_sphharm/plm_d2theta
 !! NAME
 !! plm_d2theta
 !!
@@ -1166,7 +1166,7 @@ end function ass_leg_pol
 !!  plm_d2t(mpsang*mpsang)
 !!
 !! PARENTS
-!!      m_sphharm
+!!      m_paw_sphharm
 !!
 !! CHILDREN
 !!      wrtout
@@ -1240,7 +1240,7 @@ end subroutine plm_d2theta
 
 !----------------------------------------------------------------------
 
-!!****f* m_sphharm/plm_dphi
+!!****f* m_paw_sphharm/plm_dphi
 !! NAME
 !! plm_dphi
 !!
@@ -1335,7 +1335,7 @@ end function plm_dphi
 
 !----------------------------------------------------------------------
 
-!!****f* m_sphharm/plm_dtheta
+!!****f* m_paw_sphharm/plm_dtheta
 !! NAME
 !! plm_dtheta
 !!
@@ -1436,7 +1436,7 @@ end function plm_dtheta
 
 !----------------------------------------------------------------------
 
-!!****f* m_sphharm/pl_deriv
+!!****f* m_paw_sphharm/pl_deriv
 !! NAME
 !! pl_deriv
 !!
@@ -1451,7 +1451,7 @@ end function plm_dtheta
 !!  pl_d2(mpsang*mpsang)
 !!
 !! PARENTS
-!!      m_sphharm
+!!      m_paw_sphharm
 !!
 !! CHILDREN
 !!      wrtout
@@ -1510,7 +1510,7 @@ end subroutine pl_deriv
 
 !----------------------------------------------------------------------
 
-!!****f* m_sphharm/mat_mlms2jmj
+!!****f* m_paw_sphharm/mat_mlms2jmj
 !! NAME
 !! mat_mlms2jmj
 !!
@@ -1551,7 +1551,7 @@ subroutine mat_mlms2jmj(lcor,mat_mlms,mat_jmj,ndij,option,optspin,prtvol,unitfi,
 !Do not modify the following lines by hand.
 #undef ABI_FUNC
 #define ABI_FUNC 'mat_mlms2jmj'
- !use abi_interfaces_lowlevel
+ !use interfaces_14_hidewrite
 !End of the abilint section
 
  implicit none
@@ -1786,7 +1786,7 @@ subroutine mat_mlms2jmj(lcor,mat_mlms,mat_jmj,ndij,option,optspin,prtvol,unitfi,
 
 !----------------------------------------------------------------------
 
-!!****f* m_sphharm/mat_slm2ylm
+!!****f* m_paw_sphharm/mat_slm2ylm
 !! NAME
 !! mat_slm2ylm
 !!
@@ -1827,7 +1827,7 @@ subroutine mat_slm2ylm(lcor,mat_inp_c,mat_out_c,ndij,option,optspin,prtvol,unitf
 !Do not modify the following lines by hand.
 #undef ABI_FUNC
 #define ABI_FUNC 'mat_slm2ylm'
- !use abi_interfaces_lowlevel
+ !use interfaces_14_hidewrite
 !End of the abilint section
 
  implicit none
@@ -1963,7 +1963,7 @@ end subroutine mat_slm2ylm
 
 !----------------------------------------------------------------------
 
-END MODULE m_sphharm
+END MODULE m_paw_sphharm
 !!***
 
 

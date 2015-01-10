@@ -15,6 +15,9 @@
 !! NOTES
 !!  This module comes directly from hide_write & hide_leave src files delivered with ABINIT.
 !!
+!!  FOR DEVELOPPERS: in order to preserve the portability of libPAW library,
+!!  please consult ~abinit/src/42_??libpaw/libpaw-coding-rules.txt
+!!
 !! SOURCE
 
 #include "libpaw.h"

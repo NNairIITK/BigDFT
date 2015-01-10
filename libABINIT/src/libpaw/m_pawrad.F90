@@ -20,9 +20,9 @@
 !!    that all the strongly connected routines are changed accordingly to accommodate the modification of the data type
 !!    Typical examples of strongly connected routines are creation, destruction or reset methods.
 !!
-!! PARENTS
-!!
-!! CHILDREN
+!! NOTES
+!!  FOR DEVELOPPERS: in order to preserve the portability of libPAW library,
+!!  please consult ~abinit/src/42_??libpaw/libpaw-coding-rules.txt
 !!
 !! SOURCE
 
@@ -177,7 +177,7 @@ CONTAINS
 !!    %rmax = Max. value of r = rad(mesh_size)
 !!
 !! PARENTS
-!!      eltfrxc3,m_atom,m_gaussfit,m_paw_pwij,m_pawpsp,m_pawxmlps,mkcore_paw
+!!      eltfrxc3,m_atom,m_paw_gaussfit,m_paw_pwij,m_pawpsp,m_pawxmlps,mkcore_paw
 !!      mkcore_wvl,wvl_initro
 !!
 !! CHILDREN
@@ -448,7 +448,7 @@ subroutine pawrad_print(Rmesh,header,unit,prtvol,mode_paral)
 !Do not modify the following lines by hand.
 #undef ABI_FUNC
 #define ABI_FUNC 'pawrad_print'
- !use abi_interfaces_lowlevel
+ !use interfaces_14_hidewrite
 !End of the abilint section
 
  implicit none
@@ -697,7 +697,7 @@ end subroutine pawrad_copy
 !!  func(funcsz)=array containing values of function to extrapolate
 !!
 !! PARENTS
-!!      Lij,denfgr,m_atompaw,m_gaussfit,m_paw_pwaves_lmn,m_paw_slater,m_pawdij
+!!      Lij,denfgr,m_paw_atom,m_paw_gaussfit,m_paw_pwaves_lmn,m_paw_slater,m_pawdij
 !!      m_pawpsp,m_pawrad,m_pawxc,make_efg_onsite,optics_paw,optics_paw_core
 !!      pawdenpot,pawdensities,pawnabla_init,pawtwdij,pawtwdij_2a,pawtwdij_2c
 !!      pawtwdij_2d
@@ -926,7 +926,7 @@ end subroutine pawrad_bcast
 !!  intg=resulting integral by Simpson rule
 !!
 !! PARENTS
-!!      Lij,m_atom,m_atompaw,m_paw_commutator,m_paw_pwij,m_paw_slater,m_pawdij
+!!      Lij,m_atom,m_paw_atom,m_paw_commutator,m_paw_pwij,m_paw_slater,m_pawdij
 !!      m_pawpsp,m_pawrad,m_pawxc,m_plowannier,make_efg_onsite,mlwfovlp_projpaw
 !!      optics_paw,optics_paw_core,partial_dos_fractions_paw,pawdensities
 !!      pawinit,pawnabla_init,pawpuxinit,pawtwdij,pawtwdij_1,pawtwdij_2a
@@ -1272,7 +1272,7 @@ end subroutine nderiv_lin
 !!  yp1,ypn= derivatives of func at r(1) and r(n)
 !!
 !! PARENTS
-!!      m_atompaw,m_pawpsp,m_pawxmlps
+!!      m_paw_atom,m_pawpsp,m_pawxmlps
 !!
 !! CHILDREN
 !!      poisson,simp_gen
@@ -1335,7 +1335,7 @@ end subroutine bound_deriv
 !!                                   +(r^l) int[r''^(1-l)g(r'')dr''])
 !!
 !! PARENTS
-!!      m_atompaw,m_pawpsp,m_pawrad,pawdenpot,pawinit,pawpuxinit,pawtwdij_2a
+!!      m_paw_atom,m_pawpsp,m_pawrad,pawdenpot,pawinit,pawpuxinit,pawtwdij_2a
 !!      pawtwdij_2c,pawtwdij_2d,pawtwdij_2f
 !!
 !! CHILDREN

@@ -13,9 +13,9 @@
 !! GNU General Public License, see ~abinit/COPYING
 !! or http://www.gnu.org/copyleft/gpl.txt .
 !!
-!! PARENTS
-!!
-!! CHILDREN
+!! NOTES
+!!  FOR DEVELOPPERS: in order to preserve the portability of libPAW library,
+!!  please consult ~abinit/src/42_??libpaw/libpaw-coding-rules.txt
 !!
 !! SOURCE
 
@@ -28,7 +28,7 @@ MODULE m_paw_finegrid
  USE_MEMORY_PROFILING
 
  use m_pawtab,      only : pawtab_type
- use m_sphharm,     only : initylmr
+ use m_paw_sphharm, only : initylmr
  use m_paw_numeric, only : jbessel, paw_splint, paw_sort_dp
 
  implicit none

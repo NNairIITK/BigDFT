@@ -12,6 +12,10 @@
 !!  GNU General Public License, see ~abinit/COPYING
 !!  or http://www.gnu.org/copyleft/gpl.txt .
 !!
+!! NOTES
+!!  FOR DEVELOPPERS: in order to preserve the portability of libPAW library,
+!!  please consult ~abinit/src/42_??libpaw/libpaw-coding-rules.txt
+!!
 !! SOURCE
 
 #include "libpaw.h"
@@ -64,7 +68,7 @@ CONTAINS
 !!    Work space, real(dp) DIAG(N) - should be removed ...
 !!
 !! PARENTS
-!!      eltfrxc3,m_atompaw,m_gaussfit,m_paw_pwaves_lmn,m_paw_pwij,m_pawpsp
+!!      eltfrxc3,m_paw_atom,m_paw_gaussfit,m_paw_pwaves_lmn,m_paw_pwij,m_pawpsp
 !!      m_pawxmlps
 !!
 !! CHILDREN
@@ -240,7 +244,7 @@ end subroutine paw_spline
 !!    The input value is incremented by the number of such points.
 !!
 !! PARENTS
-!!      m_atompaw,m_gaussfit,m_paw_finegrid,m_paw_pwaves_lmn,m_pawpsp
+!!      m_paw_atom,m_paw_gaussfit,m_paw_finegrid,m_paw_pwaves_lmn,m_pawpsp
 !!      m_pawxmlps
 !!
 !! CHILDREN
@@ -522,7 +526,7 @@ end subroutine paw_sort_dp
 !!  bespp= second derivative of j_l at xx (only if order=2)
 !!
 !! PARENTS
-!!      m_atompaw,m_paw_finegrid,m_paw_numeric,m_vcoul,pawtwdij_1,pawtwdij_2b
+!!      m_paw_atom,m_paw_finegrid,m_paw_numeric,m_vcoul,pawtwdij_1,pawtwdij_2b
 !!      pawtwdij_2e,psp11nl
 !!
 !! CHILDREN
@@ -661,7 +665,7 @@ end subroutine jbessel
 !!  root(nq)= roots of instrinsic equation
 !!
 !! PARENTS
-!!      m_atompaw
+!!      m_paw_atom
 !!
 !! CHILDREN
 !!      jbessel

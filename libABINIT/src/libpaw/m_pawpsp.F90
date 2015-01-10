@@ -12,9 +12,9 @@
 !!  GNU General Public License, see ~abinit/COPYING
 !!  or http://www.gnu.org/copyleft/gpl.txt .
 !!
-!! PARENTS
-!!
-!! CHILDREN
+!! NOTES
+!!  FOR DEVELOPPERS: in order to preserve the portability of libPAW library,
+!!  please consult ~abinit/src/42_??libpaw/libpaw-coding-rules.txt
 !!
 !! SOURCE
 
@@ -45,10 +45,10 @@ module m_pawpsp
  use m_pawrad, only: pawrad_type, pawrad_init, pawrad_free, pawrad_copy, &
 &      pawrad_bcast, pawrad_ifromr, simp_gen, nderiv_gen, bound_deriv, pawrad_deducer0, poisson
  use m_paw_numeric, only: paw_splint, paw_spline, paw_smooth, jbessel_4spline
- use m_atompaw, only: atompaw_shapebes, atompaw_vhnzc, atompaw_shpfun, &
+ use m_paw_atom, only: atompaw_shapebes, atompaw_vhnzc, atompaw_shpfun, &
 &                     atompaw_dij0, atompaw_kij
  use m_pawxc, only: pawxc, pawxcm
- use m_gaussfit, only: gaussfit_projector
+ use m_paw_gaussfit, only: gaussfit_projector
 
  implicit none
 
@@ -776,7 +776,7 @@ subroutine pawpsp_read(core_mesh,imainmesh,lmax,&
 !Do not modify the following lines by hand.
 #undef ABI_FUNC
 #define ABI_FUNC 'pawpsp_read'
- !use abi_interfaces_lowlevel
+ !use interfaces_14_hidewrite
 !End of the abilint section
 
  implicit none
@@ -1744,7 +1744,7 @@ subroutine pawpsp_calc(core_mesh,epsatm,ffspl,imainmesh,ixc,lnmax,&
 !Do not modify the following lines by hand.
 #undef ABI_FUNC
 #define ABI_FUNC 'pawpsp_calc'
- !use abi_interfaces_lowlevel
+ !use interfaces_14_hidewrite
 !End of the abilint section
 
  implicit none
@@ -2977,7 +2977,7 @@ subroutine pawpsp_17in(epsatm,ffspl,ipsp,ixc,lmax,&
 !Do not modify the following lines by hand.
 #undef ABI_FUNC
 #define ABI_FUNC 'pawpsp_17in'
- !use abi_interfaces_lowlevel
+ !use interfaces_14_hidewrite
 !End of the abilint section
 
  implicit none
@@ -4018,7 +4018,7 @@ subroutine pawpsp_read_header(lloc,lmax,mmax,pspcod,pspxc,r2well,zion,znucl)
 !Do not modify the following lines by hand.
 #undef ABI_FUNC
 #define ABI_FUNC 'pawpsp_read_header'
- !use abi_interfaces_lowlevel
+ !use interfaces_14_hidewrite
 !End of the abilint section
 
 implicit none
@@ -4167,7 +4167,7 @@ subroutine pawpsp_wvl(filpsp,pawrad, pawtab,usewvl, wvl_ngauss, comm_mpi)
 !Do not modify the following lines by hand.
 #undef ABI_FUNC
 #define ABI_FUNC 'pawpsp_wvl'
- !use abi_interfaces_lowlevel
+ !use interfaces_14_hidewrite
 !End of the abilint section
 
 implicit none
@@ -4721,7 +4721,7 @@ subroutine pawpsp_main( &
 !Do not modify the following lines by hand.
 #undef ABI_FUNC
 #define ABI_FUNC 'pawpsp_main'
- !use abi_interfaces_lowlevel
+ !use interfaces_14_hidewrite
 !End of the abilint section
 
  implicit none
@@ -4975,7 +4975,7 @@ subroutine pawpsp_consistency()
 !Do not modify the following lines by hand.
 #undef ABI_FUNC
 #define ABI_FUNC 'pawpsp_consistency'
- !use abi_interfaces_lowlevel
+ !use interfaces_14_hidewrite
 !End of the abilint section
 
 implicit none

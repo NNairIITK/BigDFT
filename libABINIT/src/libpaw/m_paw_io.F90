@@ -1,7 +1,7 @@
 !{\src2tex{textfont=tt}}
-!!****m* ABINIT/m_pawio
+!!****m* ABINIT/m_paw_io
 !! NAME
-!!  m_pawio
+!!  m_paw_io
 !!
 !! FUNCTION
 !!  PAW I/O related operations
@@ -12,11 +12,15 @@
 !!  GNU General Public License, see ~abinit/COPYING
 !!  or http://www.gnu.org/copyleft/gpl.txt .
 !!
+!! NOTES
+!!  FOR DEVELOPPERS: in order to preserve the portability of libPAW library,
+!!  please consult ~abinit/src/42_??libpaw/libpaw-coding-rules.txt
+!!
 !! SOURCE
 
 #include "libpaw.h"
 
-module m_pawio
+module m_paw_io
     
  USE_DEFS
  USE_MSG_HANDLING
@@ -31,7 +35,7 @@ module m_pawio
 
 CONTAINS !===========================================================
 
-!!****f* m_pawio/pawio_print_ij
+!!****f* m_paw_io/pawio_print_ij
 !! NAME
 !! pawio_print_ij
 !!
@@ -96,7 +100,7 @@ subroutine pawio_print_ij(unit,a_ij,adim,cplex,ndim,opt_l,opt_l_index,opt_pack,o
 !Do not modify the following lines by hand.
 #undef ABI_FUNC
 #define ABI_FUNC 'pawio_print_ij'
- !use abi_interfaces_lowlevel
+ !use interfaces_14_hidewrite
 !End of the abilint section
 
  implicit none
@@ -336,5 +340,5 @@ subroutine pawio_print_ij(unit,a_ij,adim,cplex,ndim,opt_l,opt_l_index,opt_pack,o
 end subroutine pawio_print_ij
 !!***
 
-end module m_pawio
+end module m_paw_io
 !!***

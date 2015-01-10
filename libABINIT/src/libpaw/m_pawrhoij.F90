@@ -14,9 +14,9 @@
 !! GNU General Public License, see ~abinit/COPYING
 !! or http://www.gnu.org/copyleft/gpl.txt .
 !!
-!! PARENTS
-!!
-!! CHILDREN
+!! NOTES
+!!  FOR DEVELOPPERS: in order to preserve the portability of libPAW library,
+!!  please consult ~abinit/src/42_??libpaw/libpaw-coding-rules.txt
 !!
 !! SOURCE
 
@@ -31,7 +31,7 @@ MODULE m_pawrhoij
 
  use m_libpaw_tools, only : libpaw_flush, libpaw_to_upper
 
- use m_pawio,      only : pawio_print_ij
+ use m_paw_io,     only : pawio_print_ij
  use m_pawang,     only : pawang_type
  use m_pawtab,     only : pawtab_type
  use m_paral_atom, only : get_my_atmtab, free_my_atmtab, get_my_natom
@@ -2849,7 +2849,7 @@ subroutine symrhoij(pawrhoij,pawrhoij_unsym,choice,gprimd,indsym,ipert,natom,nsy
 !Do not modify the following lines by hand.
 #undef ABI_FUNC
 #define ABI_FUNC 'symrhoij'
- !use abi_interfaces_lowlevel
+ !use interfaces_14_hidewrite
 !End of the abilint section
 
  implicit none

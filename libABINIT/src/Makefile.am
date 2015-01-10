@@ -12,7 +12,7 @@ EXTRA_DIST = \
 	72_geomoptim/velocity_verlet.F90 \
 	42_geometry/symmetry-main.c \
 	42_geometry/symmetry.h \
-	42_libpaw/libpaw.h
+	libpaw/libpaw.h
 
 lib_LIBRARIES = libabinit.a
 
@@ -51,29 +51,29 @@ PPFCCOMPILE = $(FC) $(DEFS_FORTRAN) $(DEFAULT_INCLUDES) $(INCLUDES) \
 
 if BUILD_LIBPAW
 libpaw_files = \
-	42_libpaw/m_libpaw_defs.F90 \
-	42_libpaw/m_libpaw_mpi.F90 \
-	42_libpaw/m_libpaw_tools.F90 \
-	42_libpaw/m_atompaw.F90 \
-	42_libpaw/m_gaussfit.F90 \
-	42_libpaw/m_paral_atom.F90 \
-	42_libpaw/m_paw_an.F90 \
-	42_libpaw/m_pawang.F90 \
-	42_libpaw/m_pawcprj.F90 \
-	42_libpaw/m_pawdij.F90 \
-	42_libpaw/m_pawfgrtab.F90 \
-	42_libpaw/m_paw_finegrid.F90 \
-	42_libpaw/m_paw_ij.F90 \
-	42_libpaw/m_pawio.F90 \
-	42_libpaw/m_paw_numeric.F90 \
-	42_libpaw/m_pawpsp.F90 \
-	42_libpaw/m_pawrad.F90 \
-	42_libpaw/m_pawrhoij.F90 \
-	42_libpaw/m_pawtab.F90 \
-	42_libpaw/m_pawxc.F90 \
-	42_libpaw/m_pawxmlps.F90 \
-	42_libpaw/m_sphharm.F90 \
-	42_libpaw/libpaw.h
+	libpaw/m_libpaw_defs.F90 \
+	libpaw/m_libpaw_mpi.F90 \
+	libpaw/m_libpaw_tools.F90 \
+	libpaw/m_paral_atom.F90 \
+	libpaw/m_paw_atom.F90 \
+	libpaw/m_paw_gaussfit.F90 \
+	libpaw/m_paw_an.F90 \
+	libpaw/m_pawang.F90 \
+	libpaw/m_pawcprj.F90 \
+	libpaw/m_pawdij.F90 \
+	libpaw/m_pawfgrtab.F90 \
+	libpaw/m_paw_finegrid.F90 \
+	libpaw/m_paw_ij.F90 \
+	libpaw/m_paw_io.F90 \
+	libpaw/m_paw_numeric.F90 \
+	libpaw/m_pawpsp.F90 \
+	libpaw/m_pawrad.F90 \
+	libpaw/m_pawrhoij.F90 \
+	libpaw/m_paw_sphharm.F90 \
+	libpaw/m_pawtab.F90 \
+	libpaw/m_pawxc.F90 \
+	libpaw/m_pawxmlps.F90 \
+	libpaw/libpaw.h
 else
 libpaw_files =
 endif

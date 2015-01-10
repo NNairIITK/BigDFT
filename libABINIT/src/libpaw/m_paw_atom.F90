@@ -1,7 +1,7 @@
 !{\src2tex{textfont=tt}}
-!!****m* ABINIT/m_atompaw
+!!****m* ABINIT/m_paw_atom
 !! NAME
-!!  m_atompaw
+!!  m_paw_atom
 !!
 !! FUNCTION
 !!  atompaw related operations
@@ -12,11 +12,15 @@
 !!  GNU General Public License, see ~abinit/COPYING
 !!  or http://www.gnu.org/copyleft/gpl.txt .
 !!
+!! NOTES
+!!  FOR DEVELOPPERS: in order to preserve the portability of libPAW library,
+!!  please consult ~abinit/src/42_??libpaw/libpaw-coding-rules.txt
+!!
 !! SOURCE
 
 #include "libpaw.h"
 
-module m_atompaw
+module m_paw_atom
     
  USE_DEFS
  USE_MSG_HANDLING
@@ -40,7 +44,7 @@ module m_atompaw
 CONTAINS !===========================================================
 !!***
 
-!!****f* m_atompaw/atompaw_shpfun
+!!****f* m_paw_atom/atompaw_shpfun
 !! NAME
 !! atompaw_shpfun
 !!
@@ -69,7 +73,7 @@ CONTAINS !===========================================================
 !!   type  3: g(r)=alpha1.jl(q1.r)+alpha2.jl(q2.r)
 !!
 !! PARENTS
-!!      m_atompaw,m_pawpsp,pawinit
+!!      m_paw_atom,m_pawpsp,pawinit
 !!
 !! CHILDREN
 !!      atompaw_shpfun,atompaw_vhnzc,bound_deriv,paw_spline,paw_splint,simp_gen
@@ -176,7 +180,7 @@ end subroutine atompaw_shpfun
 
 !----------------------------------------------------------------------
 
-!!****f* m_atompaw/atompaw_atompaw_shapebes
+!!****f* m_paw_atom/atompaw_atompaw_shapebes
 !! NAME
 !! atompaw_shapebes
 !!
@@ -252,7 +256,7 @@ end subroutine atompaw_shapebes
 
 !----------------------------------------------------------------------
 
-!!****f* m_atompaw/atompaw_vhnzc
+!!****f* m_paw_atom/atompaw_vhnzc
 !! NAME
 !! atompaw_vhnzc
 !!
@@ -268,7 +272,7 @@ end subroutine atompaw_shapebes
 !!  vhnzc(radmesh_core%mesh_size)=Hartree potential due to Z_nc
 !!
 !! PARENTS
-!!      m_atompaw,m_pawpsp
+!!      m_paw_atom,m_pawpsp
 !!
 !! CHILDREN
 !!      atompaw_shpfun,atompaw_vhnzc,bound_deriv,paw_spline,paw_splint,simp_gen
@@ -314,7 +318,7 @@ end subroutine atompaw_shapebes
 
 !----------------------------------------------------------------------
 
-!!****f* m_atompaw/atompaw_dij0
+!!****f* m_paw_atom/atompaw_dij0
 !! NAME
 !! atompaw_dij0
 !!
@@ -496,7 +500,7 @@ end subroutine atompaw_shapebes
 
 !----------------------------------------------------------------------
 
-!!****f* m_atompaw/atompaw_kij
+!!****f* m_paw_atom/atompaw_kij
 !! NAME
 !! atompaw_kij
 !!
@@ -669,5 +673,5 @@ end subroutine atompaw_shapebes
 
 !----------------------------------------------------------------------
 
-end module m_atompaw
+end module m_paw_atom
 !!***
