@@ -1,5 +1,7 @@
 ## Process this file with automake to produce Makefile.in
 
+lib_LIBRARIES = libabinit.a
+
 EXTRA_DIST = \
 	72_geomoptim/isokinetic.F90 \
 	72_geomoptim/isotemp.F90 \
@@ -14,70 +16,49 @@ EXTRA_DIST = \
 	42_geometry/symmetry.h \
 	libpaw/libpaw.h
 
-lib_LIBRARIES = libabinit.a
-
+## === libXC section ===
+LIBXC_DEFS =
 if USE_LIBXC
 if BUILD_LIB_BIGDFT
-LIBXC_DEFS = -DHAVE_LIBXC
+LIBXC_DEFS += -DHAVE_DFT_LIBXC
 endif
-else
+endif
+
+## === libPAW section ===
+LIBPAW_DEFS =
+##Define libPAW src files
+include $(srcdir)/libpaw/libpaw.src
+libpaw_files_1 = $(LIBPAW_SRC_FILES:%.h=libpaw/%.h)
+libpaw_files = $(libpaw_files_1:%.F90=libpaw/%.F90)
+##Activate libPAW BigDFT sections
+LIBPAW_DEFS += -DHAVE_LIBPAW_BIGDFT
+##Deactivate temporarily some mandatory libPAW code sections
+##(should be activated later)
+LIBPAW_DEFS += -UHAVE_DFT_LIBXC
 LIBXC_DEFS =
-endif
 
-# Special treatment for libpaw
-# Activate BigDFT sections
-LIBPAW_DEFS = -DHAVE_LIBPAW_BIGDFT
-# Deactivate temporarily some mandatory code sections
-LIBPAW_DEFS += -UHAVE_DFT_BIGDFT -UHAVE_DFT_LIBXC
-
-# Force HAVE_MPI and HAVE_MPI1.
-# Don't use the HAVE_CONFIG_H
+## === MPI section ===
+mpi_include =
+MPI_DEFS =
 if USE_MPI
- mpi_include =
-else
- mpi_include = mpif.h
+##Force MPI level 1
+mpi_include += mpif.h
+MPI_DEFS += -DHAVE_MPI -DHAVE_MPI1
 endif
-DEFS = $(MPI_DEFS) $(LIBXC_DEFS) $(LIBPAW_DEFS)
 
+## === Fortran compiler directives ===
+DEFS = $(LIBXC_DEFS) $(LIBPAW_DEFS) $(MPI_DEFS)
 DEFS_1 = $(DEFS:-D%=@FCDEFS@-D%)
 DEFS_FORTRAN = $(DEFS_1:-U%=@FCDEFS@-U%)
 
 AM_FCFLAGS = @MPI_INCLUDE@ @LIBXC_INCLUDE@ -I$(srcdir)/72_geomoptim \
 	        -I$(top_builddir)/includes
 
-# Hack for XLF strange DEFS option.
+## Hack for XLF strange DEFS option
 PPFCCOMPILE = $(FC) $(DEFS_FORTRAN) $(DEFAULT_INCLUDES) $(INCLUDES) \
 	$(AM_CPPFLAGS) $(CPPFLAGS) $(AM_FCFLAGS) $(FCFLAGS)
 
-if BUILD_LIBPAW
-libpaw_files = \
-	libpaw/m_libpaw_defs.F90 \
-	libpaw/m_libpaw_mpi.F90 \
-	libpaw/m_libpaw_tools.F90 \
-	libpaw/m_paral_atom.F90 \
-	libpaw/m_paw_atom.F90 \
-	libpaw/m_paw_gaussfit.F90 \
-	libpaw/m_paw_an.F90 \
-	libpaw/m_pawang.F90 \
-	libpaw/m_pawcprj.F90 \
-	libpaw/m_pawdij.F90 \
-	libpaw/m_pawfgrtab.F90 \
-	libpaw/m_paw_finegrid.F90 \
-	libpaw/m_paw_ij.F90 \
-	libpaw/m_paw_io.F90 \
-	libpaw/m_paw_numeric.F90 \
-	libpaw/m_pawpsp.F90 \
-	libpaw/m_pawrad.F90 \
-	libpaw/m_pawrhoij.F90 \
-	libpaw/m_paw_sphharm.F90 \
-	libpaw/m_pawtab.F90 \
-	libpaw/m_pawxc.F90 \
-	libpaw/m_pawxmlps.F90 \
-	libpaw/libpaw.h
-else
-libpaw_files =
-endif
-
+## === Source files ===
 libabinit_a_SOURCES = \
 	10_defs/defs_basis.F90 \
 	abi_lowlevel/defs_datatypes.F90 \
@@ -194,9 +175,10 @@ libabinit_a_SOURCES = \
 
 CLEANFILES = mpif.h *.@MODULE_EXT@
 
-#dependencies
+## === Dependencies ===
+## MPI
 mpif.h:
-	touch mpif.h &&\
+	@touch mpif.h &&\
 	 echo "integer, parameter :: MPI_SUM=1, MPI_COMM_WORLD=1" >> mpif.h &&\
 	 echo "integer, parameter :: MPI_COMM_NULL=1, MPI_COMM_SELF=1" >> mpif.h &&\
 	 echo "integer, parameter :: MPI_LOR=1, MPI_COMPLEX=1" >> mpif.h &&\
@@ -211,6 +193,5 @@ mpif.h:
 	 echo "integer, parameter :: MPI_REQUEST_NULL=1, MPI_PACKED=1, MPI_ERRORS_RETURN=1" >> mpif.h
 	 echo "integer, parameter :: MPI_ERR_COMM=1, MPI_ERR_GROUP=1" >> mpif.h
 	 echo "real(kind=8), external :: MPI_WTICK" >> mpif.h
-
-# Automatic ones...
+## Automatic ones...
 include $(srcdir)/deps
