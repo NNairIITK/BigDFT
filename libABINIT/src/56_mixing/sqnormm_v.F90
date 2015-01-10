@@ -46,7 +46,6 @@
 subroutine sqnormm_v(cplex,index,mpi_comm, mpi_summarize,mult,nfft,norm2,npot,nspden,opt_storage,potarr)
 
  use defs_basis
- use defs_datatypes
  use abi_m_xmpi
 
  implicit none
@@ -65,11 +64,6 @@ subroutine sqnormm_v(cplex,index,mpi_comm, mpi_summarize,mult,nfft,norm2,npot,ns
  real(dp) :: ar
 !arrays
  real(dp) :: tsec(2)
-!no_abirules
-#if defined DEBUG_CONTRACT
- integer :: imult
- character(len=9) :: subrnm
-#endif
 
 ! *************************************************************************
 

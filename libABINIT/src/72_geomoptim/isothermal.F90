@@ -5,7 +5,6 @@ subroutine md_isothermal(acell, acell_next, amass, bmass, dtion, etotal, etotal0
 
   use defs_basis
   use abi_interfaces_lowlevel
-  use m_abimover
 
   implicit none
 

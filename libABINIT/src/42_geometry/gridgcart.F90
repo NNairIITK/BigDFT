@@ -64,7 +64,6 @@
 subroutine gridgcart(gcart,gprimd,ngfft)
 
  use defs_basis
- use defs_datatypes
 
  implicit none
 

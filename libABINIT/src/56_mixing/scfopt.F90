@@ -68,7 +68,6 @@ subroutine scfopt(cplex,f_fftgr,f_paw,iscf,istep,i_vrespc,i_vtrial,&
      & fnrm,fdot,user_data,errid,errmess)
 
  use defs_basis
- use defs_datatypes
  use abi_interfaces_lowlevel
  use abi_interfaces_linalg
  use interfaces_56_mixing, except_this_one => scfopt
@@ -183,8 +182,6 @@ subroutine scfopt(cplex,f_fftgr,f_paw,iscf,istep,i_vrespc,i_vtrial,&
    call abi_wrtout(std_out,message,'COLL')
 
 !  Compute prod_resid from f_fftgr/f_paw(:,:,i_vrespc(1)) and f_fftgr/f_paw(:,:,i_vrespc(2))
-!!$   call dotprodm_v(cplex,1,prod_resid,i_vrespc(1),i_vrespc(2),mpi_comm,mpi_summarize,1,1,&
-!!$&   nfft,n_fftgr,n_fftgr,nspden,opt_denpot,f_fftgr,f_fftgr)
    prod_resid(1) = fdot(f_fftgr(1,1,i_vrespc(1)), f_fftgr(1,1,i_vrespc(2)),cplex,nfft,nspden,opt_denpot,user_data)
    if (usepaw==1.and.pawoptmix==1) then
      do index=1,npawmix
@@ -240,8 +237,6 @@ subroutine scfopt(cplex,f_fftgr,f_paw,iscf,istep,i_vrespc,i_vtrial,&
    call abi_wrtout(std_out,message,'COLL')
 
 !  Compute prod_resid from f_fftgr/f_paw(:,:,i_vrespc(1)) and f_fftgr/f_paw(:,:,i_vrespc(2))
-!!$   call dotprodm_v(cplex,1,prod_resid,i_vrespc(1),i_vrespc(2),mpi_comm,mpi_summarize,1,1,&
-!!$&   nfft,n_fftgr,n_fftgr,nspden,opt_denpot,f_fftgr,f_fftgr)
    prod_resid(1) = fdot(f_fftgr(1,1,i_vrespc(1)), f_fftgr(1,1,i_vrespc(2)),cplex,nfft,nspden,opt_denpot,user_data)
    if (usepaw==1.and.pawoptmix==1) then
      do index=1,npawmix
@@ -250,8 +245,6 @@ subroutine scfopt(cplex,f_fftgr,f_paw,iscf,istep,i_vrespc,i_vtrial,&
    end if
 
 !  Compute prod_resid2 from f_fftgr/f_paw(:,:,i_vrespc(1)) and f_fftgr/f_paw(:,:,i_vrespc(3))
-!!$   call dotprodm_v(cplex,1,prod_resid2,i_vrespc(1),i_vrespc(3),mpi_comm,mpi_summarize,1,1,&
-!!$&   nfft,n_fftgr,n_fftgr,nspden,opt_denpot,f_fftgr,f_fftgr)
    prod_resid2(1) = fdot(f_fftgr(1,1,i_vrespc(1)), f_fftgr(1,1,i_vrespc(3)),cplex,nfft,nspden,opt_denpot,user_data)
    if (usepaw==1.and.pawoptmix==1) then
      do index=1,npawmix
@@ -324,8 +317,6 @@ subroutine scfopt(cplex,f_fftgr,f_paw,iscf,istep,i_vrespc,i_vtrial,&
      end do
    end if
    do ii=1,niter
-!!$     call dotprodm_v(cplex,1,amat(ii,niter),i_vrespc(1),i_vrespc(1+niter-ii),mpi_comm,mpi_summarize,1,1,&
-!!$&     nfft,n_fftgr,n_fftgr,nspden,opt_denpot,f_fftgr,f_fftgr)
      amat(ii,niter) = fdot(f_fftgr(1,1,i_vrespc(1)), f_fftgr(1,1,i_vrespc(1+niter-ii)),&
           & cplex,nfft,nspden,opt_denpot,user_data)
      if (usepaw==1.and.pawoptmix==1) then

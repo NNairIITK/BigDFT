@@ -15,8 +15,6 @@
 !! INPUTS
 !!  amass(natom)=mass of each atom, in unit of electronic mass (=amu*1822...)
 !!  dtion=
-!!  dtset <type(dataset_type)>=all input variables for this dataset
-!!   | natom=number of atoms in unit cell
 !!  isotemp_data
 !!  ktemp
 !!  vel
@@ -39,7 +37,6 @@
 subroutine isotemp(amass,dtion,ekin,iatfix,ktemp,mttk_vars,natom,nnos,qmass,vel)
 
  use defs_basis
- use m_abimover
 
  implicit none
 
@@ -149,8 +146,6 @@ end subroutine isotemp
 !! INPUTS
 !!  amass(natom)=mass of each atom, in unit of electronic mass (=amu*1822...)
 !!  dtion= ionic time step
-!!  dtset <type(dataset_type)>=all input variables for this dataset
-!!   | natom=number of atoms in unit cell
 !!  isotemp_data
 !!  ktemp
 !!  press= current pressure of the system
@@ -174,7 +169,6 @@ subroutine isopress(amass,dtion,ekin,iatfix,ktemp,natom,nnos,qmass,strten,strtar
 &                   ucvol,mttk_vars,vel,vlogv,vmass)
 
  use defs_basis
- use m_abimover
 
  implicit none
 
@@ -302,8 +296,6 @@ end subroutine isopress
 !! INPUTS
 !!  amass(natom)=mass of each atom, in unit of electronic mass (=amu*1822...)
 !!  dtion= ionic time step
-!!  dtset <type(dataset_type)>=all input variables for this dataset
-!!   | natom=number of atoms in unit cell
 !!  isotemp_data
 !!  ktemp
 !!  press= current pressure of the system
@@ -330,7 +322,6 @@ subroutine isostress(amass,bmass,dtion,ekin,iatfix,ktemp,natom,nnos,qmass,strten
 &                    strtarget,ucvol,vel,mttk_vars)
 
  use defs_basis
- use m_abimover
 
  implicit none
 

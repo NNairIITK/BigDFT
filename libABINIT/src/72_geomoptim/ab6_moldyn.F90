@@ -26,6 +26,19 @@ module ab6_moldyn
      end subroutine scfloop_output
   end interface
 
+! mttk_type: dataype used in Martyna et al. (TTK) reversible MD integration scheme
+  type mttk_type
+   !Real (double precision) scalars
+    real(dp) :: glogv              !Logarithm of the volume
+    real(dp) :: vlogv              !Derivative of logv
+   !Real (double precision) arrays
+    real(dp) :: gboxg(3,3)         !Imbalance in pressure (see paper)
+    real(dp) :: vboxg(3,3)         !Velocity of log rprimd (see paper)
+    real(dp), pointer :: glogs(:)  ! Imbalance of kinetic energy
+    real(dp), pointer :: vlogs(:)  ! Velocities of thermostat variables
+    real(dp), pointer :: xlogs(:)  ! Positions of thermostat variables
+  end type mttk_type
+
 contains
 
   include "velocity_verlet.F90"

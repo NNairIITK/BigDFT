@@ -176,22 +176,6 @@ interface
 end interface
 
 interface
- subroutine getmpw(ecut,exchn2n3d,gmet,istwfk,kptns,mpi_enreg,mpw,nkpt)
-  use defs_basis
-  use defs_datatypes
-  implicit none
-  integer,intent(in) :: exchn2n3d
-  integer,intent(out) :: mpw
-  integer,intent(in) :: nkpt
-  real(dp),intent(in) :: ecut
-  type(mpi_type),intent(inout) :: mpi_enreg
-  real(dp),intent(in) :: gmet(3,3)
-  integer,intent(in) :: istwfk(nkpt)
-  real(dp),intent(in) :: kptns(3,nkpt)
- end subroutine getmpw
-end interface
-
-interface
  subroutine getng(boxcutmin,ecut,gmet,me_fft,mgfft,nfft,ngfft,nproc_fft,nsym,option_lob,paral_fft,symrel)
   use defs_basis
   implicit none
@@ -237,32 +221,6 @@ interface
 end interface
 
 interface
- subroutine initylmg(gprimd,kg,kptns,mkmem,mpi_enreg,mpsang,mpw,nband,nkpt,&  
-  &  npwarr,nsppol,optder,rprimd,unkg,unylm,ylm,ylm_gr)
-  use defs_basis
-  use defs_datatypes
-  implicit none
-  integer,intent(in) :: mkmem
-  integer,intent(in) :: mpsang
-  integer,intent(in) :: mpw
-  integer,intent(in) :: nkpt
-  integer,intent(in) :: nsppol
-  integer,intent(in) :: optder
-  integer,intent(in) :: unkg
-  integer,intent(in) :: unylm
-  type(mpi_type),intent(inout) :: mpi_enreg
-  real(dp),intent(in) :: gprimd(3,3)
-  integer,intent(in) :: kg(3,mpw*mkmem)
-  real(dp),intent(in) :: kptns(3,nkpt)
-  integer,intent(in) :: nband(nkpt*nsppol)
-  integer,intent(in) :: npwarr(nkpt)
-  real(dp),intent(in) :: rprimd(3,3)
-  real(dp),intent(out) :: ylm(mpw*mkmem,mpsang*mpsang)
-  real(dp),intent(out) :: ylm_gr(mpw*mkmem,3+6*(optder/2),mpsang*mpsang)
- end subroutine initylmg
-end interface
-
-interface
  subroutine irrzg(irrzon,nspden,nsppol,nsym,n1,n2,n3,phnons,&  
   &  symafm,symrel,tnons)
   use defs_basis
@@ -279,74 +237,6 @@ interface
   integer,intent(in) :: symrel(3,3,nsym)
   real(dp),intent(in) :: tnons(3,nsym)
  end subroutine irrzg
-end interface
-
-interface
- subroutine kpgio(ecut,exchn2n3d,gmet,istwfk,kg,kgnam,kptns,mkmem,nband,nkpt,&  
-  &  mode_paral,mpi_enreg,mpw,npwarr,npwtot,nsppol,unkg)
-  use defs_basis
-  use defs_datatypes
-  implicit none
-  integer,intent(in) :: exchn2n3d
-  integer,intent(in) :: mkmem
-  integer,intent(in) :: mpw
-  integer,intent(in) :: nkpt
-  integer,intent(in) :: nsppol
-  integer,intent(in) :: unkg
-  real(dp),intent(in) :: ecut
-  character(len=fnlen),intent(in) :: kgnam
-  character(len=4),intent(in) :: mode_paral
-  type(mpi_type),intent(inout) :: mpi_enreg
-  real(dp),intent(in) :: gmet(3,3)
-  integer,intent(in) :: istwfk(nkpt)
-  integer,intent(out) :: kg(3,mpw*mkmem)
-  real(dp),intent(in) :: kptns(3,nkpt)
-  integer,intent(in) :: nband(nkpt*nsppol)
-  integer,intent(out) :: npwarr(nkpt)
-  integer,intent(out) :: npwtot(nkpt)
- end subroutine kpgio
-end interface
-
-interface
- subroutine kpgsph(ecut,exchn2n3d,gmet,ikg,ikpt,istwf_k,kg,kpt,mkmem,mpi_enreg,mpw,npw)
-  use defs_basis
-  use defs_datatypes
-  implicit none
-  integer,intent(in) :: exchn2n3d
-  integer,intent(in) :: ikg
-  integer,intent(in) :: ikpt
-  integer,intent(in) :: istwf_k
-  integer,intent(in) :: mkmem
-  integer,intent(in) :: mpw
-  integer,intent(out) :: npw
-  real(dp),intent(in) :: ecut
-  type(mpi_type),intent(inout) :: mpi_enreg
-  real(dp),intent(in) :: gmet(3,3)
-  integer,intent(out) :: kg(3,mpw*mkmem)
-  real(dp),intent(in) :: kpt(3)
- end subroutine kpgsph
-end interface
-
-interface
- subroutine laplacian(gprimd,mpi_enreg,nfft,nfunc,ngfft,paral_kgb,rdfuncr,&  
-  &  laplacerdfuncr,rdfuncg_out,laplacerdfuncg_out,g2cart_out,rdfuncg_in,g2cart_in)
-  use defs_basis
-  use defs_datatypes
-  implicit none
-  integer,intent(in) :: nfft
-  integer,intent(in) :: nfunc
-  integer,intent(in) :: paral_kgb
-  type(mpi_type),intent(inout) :: mpi_enreg
-  integer,intent(in) :: ngfft(18)
-  real(dp),intent(out),optional,target :: g2cart_in(nfft)
-  real(dp),intent(out),optional,target :: g2cart_out(nfft)
-  real(dp),intent(in) :: gprimd(3,3)
-  real(dp),intent(out),optional,target :: laplacerdfuncg_out(2,nfft,nfunc)
-  real(dp),intent(inout),optional :: laplacerdfuncr(nfft,nfunc)
-  real(dp),intent(out),optional,target :: rdfuncg_in(2,nfft,nfunc)
-  real(dp),intent(out),optional,target :: rdfuncg_out(2,nfft,nfunc)
-  real(dp),intent(inout),optional,target :: rdfuncr(nfft,nfunc)
- end subroutine laplacian
 end interface
 
 interface

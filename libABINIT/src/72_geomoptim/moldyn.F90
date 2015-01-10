@@ -17,18 +17,6 @@
 !!  atindx(natom)=index table for atoms (see scfcv.f)
 !!  atindx1(natom)=index table for atoms, inverse of atindx (see scfcv.f)
 !!  cpus= cpu time limit in seconds
-!!  dtset <type(dataset_type)>=all input variables for this dataset
-!!   | mband=maximum number of bands
-!!   | mgfft=maximum size of 1D FFTs
-!!   | mkmem =number of k points which can fit in memory; set to 0 if use disk
-!!   | mpw=maximum dimensioned size of npw.
-!!   | natom=number of atoms in unit cell
-!!   | nfft=(effective) number of FFT grid points (for this processor)
-!!   |      for the "coarse" grid (see NOTES below)
-!!   | nkpt=number ofidum k points.
-!!   | nspden=number of spin-density components
-!!   | nsppol=1 for unpolarized, 2 for spin-polarized
-!!   | nsym=number of symmetry elements in space group
 !!  ecore=core psp energy (part of total energy) (hartree)
 !!  kg(3,mpw*mkmem)=reduced planewave coordinates.
 !!  mpi_enreg=informations about MPI parallelization
@@ -48,8 +36,6 @@
 !!  pwind_alloc = first dimension of pwind
 !!  pwnsfac(2,pwind_alloc) = phase factors for non-symmorphic translations
 !!                           (see initberry.f)
-!!  psps <type(pseudopotential_type)>=variables related to pseudopotentials
-!!   | mpsang= 1+maximum angular momentum for nonlocal pseudopotentials
 !!  ylm(mpw*mkmem,mpsang*mpsang*useylm)= real spherical harmonics for each G and k point
 !!  ylmgr(mpw*mkmem,3,mpsang*mpsang*useylm)= gradients of real spherical harmonics
 !!
@@ -91,15 +77,15 @@
 !! stress : fred or fcart and stress) as calculated by the routine scfcv.
 !! Some atoms can be kept fixed, while the propagation of unit cell
 !! parameters is only performed if optcell/=0.
-!! No more than dtset%ntime steps are performed.
-!! The time step is governed by dtion (contained in dtset)
+!! No more than ntime steps are performed.
+!! The time step is governed by dtion.
 !! Returned quantities are xred, and eventually acell and rprim (new ones!).
 !!
 !! For ionmov=7 :
 !! Block every atom for which the scalar product of velocity and
 !! forces is negative, in order to reach the minimum.
 !! The convergence requirement on
-!! the atomic forces, dtset%tolmxf,  allows an early exit.
+!! the atomic forces, tolmxf,  allows an early exit.
 !!
 !! For  ionmov=8
 !! See ionmov=6, but with a nose-hoover thermostat
@@ -152,7 +138,6 @@ subroutine moldyn(acell,amass,me,&
 
  use defs_basis
  use abi_interfaces_lowlevel
- use m_abimover
 
  implicit none
 
@@ -200,11 +185,6 @@ subroutine moldyn(acell,amass,me,&
 !************************************************************************
 !Beginning of executable session
 !***************************************************************************
-
-!XG020711 : this line, tentatively added when setting up v3.4, is incorrect
-!nxfh is initialized in the calling routine
-!nxfh=0
- !!$ call status(0,dtfil%filstat,iexit,level,'enter         ')
 
 !Structured debugging if prtvol==-level
  prtvol=0
@@ -296,16 +276,6 @@ subroutine moldyn(acell,amass,me,&
 !
  do itime=0,ntime
 
-!!$  if(itime/=0)then
-!!$   call status(itime,dtfil%filstat,iexit,level,'loop itime    ')
-!!$  end if
-
-! Check whether exiting was required by the user.
-! If found then beat a hasty exit from loop on itime
-!!$  openexit=1 ; if(dtset%chkexit==0) openexit=0
-!!$  call chkexi(cpus,dtfil%filnam_ds(1),iexit,ab_out,mpi_enreg,openexit)
-!!$  if (iexit/=0) exit
-
   write(message, '(a,a,i4,a)' ) ch10,' MOLDYN STEP NUMBER ',itime,&
 &  '  ------------------------------------------------------'
   call abi_wrtout(ab_out,message,'COLL')
@@ -362,14 +332,6 @@ subroutine moldyn(acell,amass,me,&
 
   end if
 
-! If metric has changed since the initialization, update the Ylm's
-!!$  if (optcell/=0.and.psps%useylm==1.and.itime>0)then
-!!$   !!$ call status(0,dtfil%filstat,iexit,level,'call initylmg ')
-!!$   option=0;if (dtset%iscf>0) option=1
-!!$   call initylmg(gprimd,kg,dtset%kptns,dtset%mkmem,mpi_enreg,psps%mpsang,dtset%mpw,dtset%nband,dtset%nkpt,&
-!!$&   npwarr,dtset%nsppol,option,rprimd,dtfil%unkg,dtfil%unylm,ylm,ylmgr)
-!!$  end if
-
   if((ionmov/=12.and.ionmov/=13.and.ionmov/=14).or.&
 &  (ionmov==12.and.itime==0).or.(ionmov==13.and.itime==0)&
 &  ) then
@@ -407,7 +369,6 @@ subroutine moldyn(acell,amass,me,&
   do idir=1,3
    favg=sum(fred(idir,:))/dble(natom)
    fred_corrected(idir,:)=fred(idir,:)-favg
-!!$   if(dtset%jellslab/=0.and.idir==3) fred_corrected(idir,:)=fred(idir,:)
   end do
 
 ! Update xfhist

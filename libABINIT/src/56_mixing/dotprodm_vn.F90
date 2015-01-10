@@ -69,7 +69,6 @@ subroutine dotprodm_vn(cplex,cpldot,denarr,dot,id,ip,mpi_comm, mpi_summarize,mul
 & nden,nfft,npot,nspden,potarr)
 
  use defs_basis
- use defs_datatypes
  use abi_m_xmpi
 
  implicit none
@@ -92,10 +91,6 @@ subroutine dotprodm_vn(cplex,cpldot,denarr,dot,id,ip,mpi_comm, mpi_summarize,mul
  real(dp) :: pre11,pre12,pre21,pre22,pre_dn,pre_up
 !arrays
  real(dp) :: tsec(2)
-!no_abirules
-#if defined DEBUG_CONTRACT
- character(len=11) :: subrnm
-#endif
 
 ! *************************************************************************
 
