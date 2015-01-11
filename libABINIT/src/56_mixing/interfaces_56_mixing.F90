@@ -29,7 +29,7 @@ interface
  subroutine aprxdr(cplex,choice,dedv_mix,dedv_new,dedv_old,&  
   &  f_atm,f_fftgr,i_rhor2,i_vresid,moved_atm_inside,&  
   &  natom,nfft,nfftot,nspden,n_fftgr,rhor,ucvol,xred,fdot,user_data)
-  use defs_basis
+  use abi_defs_basis
   implicit none
   integer,intent(in) :: choice
   integer,intent(in) :: cplex
@@ -66,7 +66,7 @@ end interface
 interface
  subroutine dotprodm_v(cplex,cpldot,dot,index1,index2,mpi_comm,mpi_summarize,&  
   &  mult1,mult2,nfft,npot1,npot2,nspden,opt_storage,potarr1,potarr2)
-  use defs_basis
+  use abi_defs_basis
   implicit none
   integer,intent(in) :: cpldot
   integer,intent(in) :: cplex
@@ -90,7 +90,7 @@ end interface
 interface
  subroutine dotprodm_vn(cplex,cpldot,denarr,dot,id,ip,mpi_comm, mpi_summarize,multd,multp,&  
   &  nden,nfft,npot,nspden,potarr)
-  use defs_basis
+  use abi_defs_basis
   implicit none
   integer,intent(in) :: cpldot
   integer,intent(in) :: cplex
@@ -115,7 +115,7 @@ interface
   &  d2edv2_1,d2edv2_2,d2edv2_predict,&  
   &  etotal_1,etotal_2,etotal_predict,&  
   &  lambda_1,lambda_2,lambda_predict,errid,errmess)
-  use defs_basis
+  use abi_defs_basis
   implicit none
   integer,intent(in) :: choice
   integer,intent(out) :: errid
@@ -141,7 +141,7 @@ interface
   &  i_rhor,i_vresid,i_vrespc,moved_atm_inside,&  
   &  natom,nfft,nfftot,nspden,n_fftgr,n_index,opt_denpot,response,rhor,ucvol,vtrial,xred,&
   & fnrm,fdot,user_data,errid,errmess)
-  use defs_basis
+  use abi_defs_basis
   implicit none
   integer,intent(in) :: cplex
   integer,intent(out) :: dbl_nnsclo
@@ -195,7 +195,7 @@ end interface
 
 interface
  subroutine scfeig(istep,nfft,nspden,vrespc,vtrial,vtrial0,work,errid,errmess)
-  use defs_basis
+  use abi_defs_basis
   implicit none
   integer,intent(out) :: errid
   integer,intent(in) :: istep
@@ -213,7 +213,7 @@ interface
  subroutine scfopt(cplex,f_fftgr,f_paw,iscf,istep,i_vrespc,i_vtrial,&  
   &  nfft,npawmix,nspden,n_fftgr,&  
   &  n_index,opt_denpot,pawoptmix,usepaw,vpaw,vresid,vtrial,fnrm,fdot,user_data,errid,errmess)
-  use defs_basis
+  use abi_defs_basis
   implicit none
   integer,intent(in) :: cplex
   integer,intent(out) :: errid
@@ -258,7 +258,7 @@ end interface
 
 interface
  subroutine sqnormm_v(cplex,index,mpi_comm, mpi_summarize,mult,nfft,norm2,npot,nspden,opt_storage,potarr)
-  use defs_basis
+  use abi_defs_basis
   implicit none
   integer,intent(in) :: cplex
   integer,intent(in) :: index

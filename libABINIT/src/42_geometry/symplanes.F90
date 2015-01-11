@@ -90,7 +90,7 @@
 
 subroutine symplanes(center,iholohedry,isym,isymrelconv,itnonsconv,type_axis)
 
- use defs_basis
+ use abi_defs_basis
  use abi_interfaces_lowlevel
 
  implicit none

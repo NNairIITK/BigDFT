@@ -3901,7 +3901,7 @@ module module_interfaces
         subroutine astruct_set_symmetries(astruct, disableSym, tol, elecfield, nspin)
           use module_base
           use module_atoms, only: atomic_structure,deallocate_symmetry_data
-          use defs_basis
+          use abi_defs_basis
           use m_ab6_symmetry
           implicit none
           type(atomic_structure), intent(inout) :: astruct

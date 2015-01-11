@@ -39,7 +39,7 @@
 subroutine symsghexa(brvltt,msym,nsym,shubnikov,spgaxor,spgorig,spgroup,&
 &   spgroupma,symafm,symrel,tnons)
 
- use defs_basis
+ use abi_defs_basis
  use interfaces_42_geometry, except_this_one => symsghexa
 
  implicit none

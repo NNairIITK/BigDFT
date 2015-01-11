@@ -68,7 +68,7 @@
 
 subroutine symatm(indsym,natom,nsym,symrec,tnons,tolsym,typat,xred)
 
- use defs_basis
+ use abi_defs_basis
  use abi_interfaces_lowlevel
  use interfaces_42_geometry, except_this_one => symatm
 

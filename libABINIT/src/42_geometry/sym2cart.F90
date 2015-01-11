@@ -31,7 +31,7 @@
 
 subroutine sym2cart(gprimd,nsym,rprimd,symrel,symcart)
 
- use defs_basis
+ use abi_defs_basis
  use abi_interfaces_linalg
 
  implicit none

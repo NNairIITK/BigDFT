@@ -30,7 +30,7 @@
 
 subroutine matrginv(a,lda,n)
 
- use defs_basis
+ use abi_defs_basis
  use abi_interfaces_lowlevel
  use abi_interfaces_linalg
 

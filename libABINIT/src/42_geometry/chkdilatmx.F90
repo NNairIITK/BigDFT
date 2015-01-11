@@ -30,7 +30,7 @@
 
 subroutine chkdilatmx(dilatmx,rprimd,rprimd_orig)
 
- use defs_basis
+ use abi_defs_basis
  use abi_interfaces_lowlevel
  use interfaces_32_util
 

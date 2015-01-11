@@ -21,7 +21,7 @@
 
 MODULE abi_m_xmpi
 
- use defs_basis
+ use abi_defs_basis
 #ifdef HAVE_MPI2
  use mpi
 #endif

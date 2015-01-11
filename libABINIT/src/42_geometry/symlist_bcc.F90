@@ -39,7 +39,7 @@
 
 subroutine symlist_bcc(additional_info,nsym,n_axes,spgroup)
 
- use defs_basis
+ use abi_defs_basis
 
  implicit none
 

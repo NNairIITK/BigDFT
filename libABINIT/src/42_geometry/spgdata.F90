@@ -46,7 +46,7 @@
 subroutine spgdata(brvsb,intsb,intsbl,ptintsb,ptschsb,&
 & schsb,spgaxor,spgroup,sporder,spgorig)
 
- use defs_basis
+ use abi_defs_basis
 
  implicit none
 

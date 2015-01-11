@@ -2,7 +2,7 @@ subroutine md_quenched_stop_atoms(amass, dtion, ekin, fcart, iatfix, itime, &
      & natom, nstopped, rprimd, vel, vel_prevhalf, vel_nexthalf, &
      & xcart, xcart_next, xred_next)
 
-  use defs_basis
+  use abi_defs_basis
   use abi_interfaces_lowlevel
 
   implicit none

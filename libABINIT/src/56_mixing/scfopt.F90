@@ -67,7 +67,7 @@ subroutine scfopt(cplex,f_fftgr,f_paw,iscf,istep,i_vrespc,i_vtrial,&
      & n_index,opt_denpot,pawoptmix,usepaw,vpaw,vresid,vtrial,&
      & fnrm,fdot,user_data,errid,errmess)
 
- use defs_basis
+ use abi_defs_basis
  use abi_interfaces_lowlevel
  use abi_interfaces_linalg
  use interfaces_56_mixing, except_this_one => scfopt

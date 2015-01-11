@@ -55,7 +55,7 @@
 
 subroutine mkdenpos(iwarn,nfft,nspden,option,rhonow,xc_denpos)
 
- use defs_basis
+ use abi_defs_basis
  use abi_interfaces_lowlevel
 
  implicit none

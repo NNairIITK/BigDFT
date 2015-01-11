@@ -35,7 +35,7 @@
 
 subroutine prtxvf(fcart,iatfix,iout,natom,prtvel,vel,xcart)
 
- use defs_basis
+ use abi_defs_basis
  use abi_interfaces_lowlevel
 
  implicit none

@@ -23,7 +23,7 @@ module interfaces_67_common
 
 interface
  subroutine ewald(eew,gmet,grewtn,natom,ntypat,rmet,typat,ucvol,xred,zion)
-  use defs_basis
+  use abi_defs_basis
   use abi_interfaces_lowlevel
   implicit none
   integer,intent(in) :: natom
@@ -42,7 +42,7 @@ end interface
 interface
  subroutine ewald2(gmet,natom,ntypat,rmet,rprimd,stress,&
 &                  typat,ucvol,xred,zion)
-  use defs_basis
+  use abi_defs_basis
   implicit none
   integer,intent(in) :: natom
   integer,intent(in) :: ntypat
@@ -60,7 +60,7 @@ end interface
 interface
  subroutine fconv(fcart,iatfix,iexit,itime,natom,ntime,&
 &                 optcell,strfact,strtarget,strten,tolmxf)
-  use defs_basis
+  use abi_defs_basis
   implicit none
   integer,intent(in) :: itime
   integer,intent(in) :: natom
@@ -78,7 +78,7 @@ end interface
 
 interface
  subroutine prtxvf(fcart,iatfix,iout,natom,prtvel,vel,xcart)
-  use defs_basis
+  use abi_defs_basis
   implicit none
   integer,intent(in) :: iout
   integer,intent(in) :: natom

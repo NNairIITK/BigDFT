@@ -34,7 +34,7 @@
 
 subroutine stresssym(gprimd,nsym,stress,sym)
 
- use defs_basis
+ use abi_defs_basis
  use interfaces_32_util
  use interfaces_42_geometry, except_this_one => stresssym
 

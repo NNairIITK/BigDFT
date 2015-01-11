@@ -38,7 +38,7 @@
 
 subroutine scfeig(istep,nfft,nspden,vrespc,vtrial,vtrial0,work,errid,errmess)
 
- use defs_basis
+ use abi_defs_basis
  use abi_interfaces_lowlevel
 
  implicit none

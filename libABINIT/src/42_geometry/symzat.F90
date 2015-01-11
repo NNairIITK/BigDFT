@@ -47,7 +47,7 @@
 
 subroutine symzat(indsym,natom,nsym,symrel,tnons,xred)
 
- use defs_basis
+ use abi_defs_basis
 
  implicit none
 

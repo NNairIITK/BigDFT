@@ -35,7 +35,7 @@
 
 subroutine mati3inv(mm,mit)
 
- use defs_basis
+ use abi_defs_basis
  use abi_interfaces_lowlevel
 
  implicit none

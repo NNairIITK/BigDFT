@@ -1,12 +1,12 @@
 module ab6_moldyn
 
-  use defs_basis
+  use abi_defs_basis
 
   implicit none
 
   interface
      subroutine scfloop_main(acell, epot, fcart, grad, itime, me, natom, rprimd, xred)
-       use defs_basis
+       use abi_defs_basis
        integer, intent(in) :: natom, itime, me
        real(dp), intent(out) :: epot
        real(dp), intent(in) :: acell(3)
@@ -17,7 +17,7 @@ module ab6_moldyn
 
   interface
      subroutine scfloop_output(acell, epot, ekin, fred, itime, me, natom, rprimd, vel, xred)
-       use defs_basis
+       use abi_defs_basis
        integer, intent(in) :: natom, itime, me
        real(dp), intent(in) :: epot, ekin
        real(dp), intent(in) :: acell(3)

@@ -55,7 +55,7 @@ subroutine findminscf(choice,dedv_1,dedv_2,dedv_predict,&
 & etotal_1,etotal_2,etotal_predict,&
 & lambda_1,lambda_2,lambda_predict,errid,errmess)
 
- use defs_basis
+ use abi_defs_basis
  use abi_interfaces_lowlevel
 
  implicit none

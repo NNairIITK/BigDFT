@@ -27,7 +27,7 @@
 
 module libxc_functionals
 
- use defs_basis
+ use abi_defs_basis
  use abi_interfaces_lowlevel
 
 #if defined HAVE_LIBXC

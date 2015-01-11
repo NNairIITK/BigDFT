@@ -52,7 +52,7 @@
 subroutine irrzg(irrzon,nspden,nsppol,nsym,n1,n2,n3,phnons,&
 & symafm,symrel,tnons)
 
- use defs_basis
+ use abi_defs_basis
  use abi_interfaces_lowlevel
  use interfaces_28_numeric_noabirule
 

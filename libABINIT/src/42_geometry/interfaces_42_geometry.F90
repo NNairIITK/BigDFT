@@ -23,7 +23,7 @@ module interfaces_42_geometry
 
 interface
  subroutine bldgrp(msym,nogen,nsym,symafm,symrel,tnons)
-  use defs_basis
+  use abi_defs_basis
   implicit none
   integer,intent(in) :: msym
   integer,intent(inout) :: nogen
@@ -36,7 +36,7 @@ end interface
 
 interface
  subroutine bldgrpaf(msym,nogenaf,nsym,symafm,symrel,symrel_magn,tnons)
-  use defs_basis
+  use abi_defs_basis
   implicit none
   integer,intent(in) :: msym
   integer,intent(in) :: nogenaf
@@ -51,7 +51,7 @@ end interface
 interface
  subroutine bonds_lgth_angles(coordn,fnameabo_app_geo,natom,ntypat,&  
   &  rprimd,typat,xred,znucl)
-  use defs_basis
+  use abi_defs_basis
   implicit none
   integer,intent(in) :: coordn
   integer,intent(in) :: natom
@@ -66,7 +66,7 @@ end interface
 
 interface
  subroutine chkdilatmx(dilatmx,rprimd,rprimd_orig)
-  use defs_basis
+  use abi_defs_basis
   implicit none
   real(dp),intent(in) :: dilatmx
   real(dp),intent(in) :: rprimd(3,3)
@@ -85,7 +85,7 @@ end interface
 
 interface
  subroutine chkorthsy(gprimd,iout,nsym,rmet,rprimd,symrel)
-  use defs_basis
+  use abi_defs_basis
   implicit none
   integer,intent(in) :: iout
   integer,intent(in) :: nsym
@@ -109,7 +109,7 @@ end interface
 
 interface
  subroutine gensymshub(genafm,spgroup,spgroupma,shubnikov)
-  use defs_basis
+  use abi_defs_basis
   implicit none
   integer,intent(out) :: shubnikov
   integer,intent(in) :: spgroup
@@ -120,7 +120,7 @@ end interface
 
 interface
  subroutine gensymshub4(genafm,msym,nsym,symafm,symrel,tnons)
-  use defs_basis
+  use abi_defs_basis
   implicit none
   integer,intent(in) :: msym
   integer,intent(inout) :: nsym
@@ -134,7 +134,7 @@ end interface
 interface
  subroutine gensymspgr(brvltt,msym,nsym,shubnikov,spgaxor,spgorig,&  
   &  spgroup,spgroupma,symafm,symrel,tnons)
-  use defs_basis
+  use abi_defs_basis
   implicit none
   integer,intent(inout) :: brvltt
   integer,intent(in) :: msym
@@ -161,7 +161,7 @@ end interface
 
 interface
  subroutine getspinrot(rprimd,spinrot,symrel_conv)
-  use defs_basis
+  use abi_defs_basis
   implicit none
   integer,intent(in) :: symrel_conv(3,3)
   real(dp),intent(in) :: rprimd(3,3)
@@ -171,7 +171,7 @@ end interface
 
 interface
  subroutine gridgcart(gcart,gprimd,ngfft)
-  use defs_basis
+  use abi_defs_basis
   implicit none
   integer,intent(in) :: ngfft(18)
   real(dp),intent(out) :: gcart(ngfft(1),ngfft(2),ngfft(3),3)
@@ -181,7 +181,7 @@ end interface
 
 interface
  subroutine holocell(cell_base,foundc,iholohedry)
-  use defs_basis
+  use abi_defs_basis
   implicit none
   integer,intent(out) :: foundc
   integer,intent(in) :: iholohedry
@@ -191,7 +191,7 @@ end interface
 
 interface
  subroutine metric(gmet,gprimd,iout,rmet,rprimd,ucvol)
-  use defs_basis
+  use abi_defs_basis
   implicit none
   integer,intent(in) :: iout
   real(dp),intent(out) :: ucvol
@@ -204,7 +204,7 @@ end interface
 
 interface
  subroutine mkrdim(acell,rprim,rprimd)
-  use defs_basis
+  use abi_defs_basis
   implicit none
   real(dp),intent(in) :: acell(3)
   real(dp),intent(in) :: rprim(3,3)
@@ -214,7 +214,7 @@ end interface
 
 interface
  subroutine operat(natom,natrd,nsym,spinat,symafm,symrel,tnons,typat,xred)
-  use defs_basis
+  use abi_defs_basis
   use abi_interfaces_lowlevel
   implicit none
   integer,intent(in) :: natom
@@ -231,7 +231,7 @@ end interface
 
 interface
  subroutine prtspgroup(bravais,genafm,iout,jdtset,ptgroupma,spgroup)
-  use defs_basis
+  use abi_defs_basis
   implicit none
   integer,intent(in) :: iout
   integer,intent(in) :: jdtset
@@ -252,7 +252,7 @@ end interface
 
 interface
  subroutine smallprim(metmin,minim,rprimd)
-  use defs_basis
+  use abi_defs_basis
   implicit none
   real(dp),intent(out) :: metmin(3,3)
   real(dp),intent(out) :: minim(3,3)
@@ -279,7 +279,7 @@ end interface
 
 interface
  subroutine strainsym(nsym,rprimd0,rprimd,rprimd_symm,symrel)
-  use defs_basis
+  use abi_defs_basis
   implicit none
   integer,intent(in) :: nsym
   real(dp),intent(in) :: rprimd(3,3)
@@ -291,7 +291,7 @@ end interface
 
 interface
  subroutine strconv(frac,gprimd,cart)
-  use defs_basis
+  use abi_defs_basis
   implicit none
   real(dp),intent(out) :: cart(6)
   real(dp),intent(in) :: frac(6)
@@ -301,7 +301,7 @@ end interface
 
 interface
  subroutine stresssym(gprimd,nsym,stress,sym)
-  use defs_basis
+  use abi_defs_basis
   implicit none
   integer,intent(in) :: nsym
   real(dp),intent(in) :: gprimd(3,3)
@@ -312,7 +312,7 @@ end interface
 
 interface
  subroutine sym2cart(gprimd,nsym,rprimd,symrel,symcart)
-  use defs_basis
+  use abi_defs_basis
   implicit none
   integer,intent(in) :: nsym
   real(dp),intent(in) :: gprimd(3,3)
@@ -324,7 +324,7 @@ end interface
 
 interface
  subroutine symanal(bravais,chkprim,genafm,msym,nsym,ptgroupma,rprimd,spgroup,symafm,symrel,tnons,tolsym)
-  use defs_basis
+  use abi_defs_basis
   implicit none
   integer,intent(in) :: chkprim
   integer,intent(in) :: msym
@@ -343,7 +343,7 @@ end interface
 
 interface
  subroutine symatm(indsym,natom,nsym,symrec,tnons,tolsym,typat,xred)
-  use defs_basis
+  use abi_defs_basis
   implicit none
   integer,intent(in) :: natom
   integer,intent(in) :: nsym
@@ -359,7 +359,7 @@ end interface
 interface
  subroutine symaxes(center,iholohedry,&  
   &  isym,isymrelconv,ordersym,tnons_order,trialt,type_axis)
-  use defs_basis
+  use abi_defs_basis
   implicit none
   integer,intent(in) :: center
   integer,intent(in) :: iholohedry
@@ -374,7 +374,7 @@ end interface
 
 interface
  subroutine symbrav(bravais,msym,nsym,ptgroup,rprimd,symrel,tolsym)
-  use defs_basis
+  use abi_defs_basis
   implicit none
   integer,intent(in) :: msym
   integer,intent(in) :: nsym
@@ -388,7 +388,7 @@ end interface
 
 interface
  subroutine symchk(difmin,eatom,natom,tratom,transl,trtypat,typat,xred)
-  use defs_basis
+  use abi_defs_basis
   implicit none
   integer,intent(out) :: eatom
   integer,intent(in) :: natom
@@ -413,7 +413,7 @@ end interface
 interface
  subroutine symfind(berryopt,efield,gprimd,jellslab,msym,natom,noncoll,nptsym,nsym,&  
   &  ptsymrel,spinat,symafm,symrel,tnons,tolsym,typat,use_inversion,xred)
-  use defs_basis
+  use abi_defs_basis
   implicit none
   integer,intent(in) :: berryopt
   integer,intent(in) :: jellslab
@@ -438,7 +438,7 @@ end interface
 
 interface
  subroutine symlatt(bravais,msym,nptsym,ptsymrel,rprimd,tolsym)
-  use defs_basis
+  use abi_defs_basis
   implicit none
   integer,intent(in) :: msym
   integer,intent(out) :: nptsym
@@ -490,7 +490,7 @@ end interface
 
 interface
  subroutine symmultsg(nsym,symafm,symrel,tnons)
-  use defs_basis
+  use abi_defs_basis
   implicit none
   integer,intent(in) :: nsym
   integer :: symafm(nsym)
@@ -501,7 +501,7 @@ end interface
 
 interface
  subroutine symplanes(center,iholohedry,isym,isymrelconv,itnonsconv,type_axis)
-  use defs_basis
+  use abi_defs_basis
   implicit none
   integer,intent(in) :: center
   integer,intent(in) :: iholohedry
@@ -524,7 +524,7 @@ end interface
 
 interface
  subroutine symredcart(aprim,bprim,symcart,symred)
-  use defs_basis
+  use abi_defs_basis
   implicit none
   integer,intent(in) :: symred(3,3)
   real(dp),intent(in) :: aprim(3,3)
@@ -535,7 +535,7 @@ end interface
 
 interface
  subroutine symrelrot(nsym,rprimd,rprimd_new,symrel,tolsym)
-  use defs_basis
+  use abi_defs_basis
   implicit none
   integer,intent(in) :: nsym
   real(dp),intent(in) :: tolsym
@@ -548,7 +548,7 @@ end interface
 interface
  subroutine symsgcube(msym,nsym,shubnikov,spgaxor,spgorig,spgroup,&  
   &  spgroupma,symafm,symrel,tnons)
-  use defs_basis
+  use abi_defs_basis
   implicit none
   integer,intent(in) :: msym
   integer,intent(out) :: nsym
@@ -566,7 +566,7 @@ end interface
 interface
  subroutine symsghexa(brvltt,msym,nsym,shubnikov,spgaxor,spgorig,spgroup,&  
   &  spgroupma,symafm,symrel,tnons)
-  use defs_basis
+  use abi_defs_basis
   implicit none
   integer,intent(out) :: brvltt
   integer,intent(in) :: msym
@@ -585,7 +585,7 @@ end interface
 interface
  subroutine symsgmono(brvltt,msym,nsym,shubnikov,spgaxor,spgorig,spgroup,&  
   &  spgroupma,symafm,symrel,tnons)
-  use defs_basis
+  use abi_defs_basis
   implicit none
   integer,intent(out) :: brvltt
   integer,intent(in) :: msym
@@ -604,7 +604,7 @@ end interface
 interface
  subroutine symsgortho(msym,nsym,shubnikov,spgaxor,spgorig,spgroup,&  
   &  spgroupma,symafm,symrel,tnons)
-  use defs_basis
+  use abi_defs_basis
   implicit none
   integer,intent(in) :: msym
   integer,intent(in) :: nsym
@@ -622,7 +622,7 @@ end interface
 interface
  subroutine symsgtetra(msym,nsym,shubnikov,spgaxor,spgorig,spgroup,&  
   &  spgroupma,symafm,symrel,tnons)
-  use defs_basis
+  use abi_defs_basis
   implicit none
   integer,intent(in) :: msym
   integer,intent(in) :: nsym
@@ -639,7 +639,7 @@ end interface
 
 interface
  subroutine symspgr(bravais,nsym,spgroup,symrel,tnons,tolsym)
-  use defs_basis
+  use abi_defs_basis
   implicit none
   integer,intent(in) :: nsym
   integer,intent(out) :: spgroup
@@ -652,7 +652,7 @@ end interface
 
 interface
  subroutine symzat(indsym,natom,nsym,symrel,tnons,xred)
-  use defs_basis
+  use abi_defs_basis
   implicit none
   integer,intent(in) :: natom
   integer,intent(in) :: nsym
@@ -665,7 +665,7 @@ end interface
 
 interface
  subroutine xredxcart(natom,option,rprimd,xcart,xred)
-  use defs_basis
+  use abi_defs_basis
   implicit none
   integer,intent(in) :: natom
   integer,intent(in) :: option

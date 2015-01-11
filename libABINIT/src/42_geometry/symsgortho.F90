@@ -39,7 +39,7 @@
 subroutine symsgortho(msym,nsym,shubnikov,spgaxor,spgorig,spgroup,&
 &   spgroupma,symafm,symrel,tnons)
 
- use defs_basis
+ use abi_defs_basis
  use interfaces_42_geometry, except_this_one => symsgortho
 
  implicit none

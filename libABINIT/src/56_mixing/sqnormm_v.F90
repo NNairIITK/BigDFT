@@ -45,7 +45,7 @@
 
 subroutine sqnormm_v(cplex,index,mpi_comm, mpi_summarize,mult,nfft,norm2,npot,nspden,opt_storage,potarr)
 
- use defs_basis
+ use abi_defs_basis
  use abi_m_xmpi
 
  implicit none

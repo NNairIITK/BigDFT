@@ -39,7 +39,7 @@
 
 subroutine getptgroupma(ptgroup,ptgroupha,ptgroupma)
 
- use defs_basis
+ use abi_defs_basis
 
  implicit none
 

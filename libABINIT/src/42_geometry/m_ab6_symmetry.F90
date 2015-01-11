@@ -11,7 +11,7 @@
 
 module m_ab6_symmetry
 
-  use defs_basis
+  use abi_defs_basis
 
   implicit none
 

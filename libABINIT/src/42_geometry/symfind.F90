@@ -57,7 +57,7 @@
  subroutine symfind(berryopt,efield,gprimd,jellslab,msym,natom,noncoll,nptsym,nsym,&
 &           ptsymrel,spinat,symafm,symrel,tnons,tolsym,typat,use_inversion,xred)
 
- use defs_basis
+ use abi_defs_basis
  use abi_interfaces_lowlevel
 
  implicit none

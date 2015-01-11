@@ -39,7 +39,7 @@
 
 subroutine metric(gmet,gprimd,iout,rmet,rprimd,ucvol)
 
- use defs_basis
+ use abi_defs_basis
  use abi_interfaces_lowlevel
  use interfaces_32_util
 

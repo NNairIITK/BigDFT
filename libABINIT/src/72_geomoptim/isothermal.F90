@@ -3,7 +3,7 @@ subroutine md_isothermal(acell, acell_next, amass, bmass, dtion, etotal, etotal0
      & qmass, rprim, rprimd, rprim_next, rprimd_next, strten, strtarget, ucvol, &
      & ucvol_next, vel, vel_nexthalf, vmass, xcart, xcart_next, xred_next)
 
-  use defs_basis
+  use abi_defs_basis
   use abi_interfaces_lowlevel
 
   implicit none

@@ -46,7 +46,7 @@
 
 subroutine xclb(grho2_updn,npts,nspden,rho_updn,vxci)
 
- use defs_basis
+ use abi_defs_basis
 
  implicit none
 

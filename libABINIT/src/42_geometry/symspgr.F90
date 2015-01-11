@@ -62,7 +62,7 @@
 
 subroutine symspgr(bravais,nsym,spgroup,symrel,tnons,tolsym)
 
- use defs_basis
+ use abi_defs_basis
  use abi_interfaces_lowlevel
  use interfaces_42_geometry, except_this_one => symspgr
 

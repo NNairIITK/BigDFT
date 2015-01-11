@@ -31,7 +31,7 @@
 
 subroutine matr3inv(aa,ait)
 
- use defs_basis
+ use abi_defs_basis
 
  implicit none
 

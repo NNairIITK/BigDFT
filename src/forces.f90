@@ -3854,7 +3854,7 @@ END SUBROUTINE clean_forces
 
 !> Symmetrize stress (important with special k points)
 subroutine symm_stress(tens,symobj)
-  use defs_basis
+  use abi_defs_basis
   use module_base, only: verbose,gp
   use m_ab6_symmetry
   use module_types
@@ -3913,7 +3913,7 @@ end subroutine symm_stress
 
 !> Symmetrise the atomic forces (needed with special k points)
 subroutine symmetrise_forces(fxyz, at)
-  use defs_basis
+  use abi_defs_basis
   use m_ab6_symmetry
   use module_types
   use yaml_output

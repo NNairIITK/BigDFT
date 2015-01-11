@@ -50,7 +50,7 @@
 subroutine symkpt(gmet,indkpt1,kptns,nkpt,nkpt1,nsym1,option,&
 & symrc1,timrev,wtk,wtk_folded)
 
- use defs_basis
+ use abi_defs_basis
  use abi_interfaces_lowlevel
  use interfaces_28_numeric_noabirule
 

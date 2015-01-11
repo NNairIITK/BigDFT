@@ -932,7 +932,7 @@ subroutine kpt_input_analyse(iproc, in, dict, sym, geocode, alat)
   use module_base
   use module_types
   use module_atoms, only: symmetry_data
-  use defs_basis
+  use abi_defs_basis
   use m_ab6_kpoints
   use yaml_output
   use module_input_keys

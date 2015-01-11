@@ -28,7 +28,7 @@
 
 subroutine derfcf(derfc_yy,yy)
 
- use defs_basis
+ use abi_defs_basis
 
  implicit none
 
@@ -159,7 +159,7 @@ end subroutine derfcf
 !!
 subroutine derf_ab(derf_yy,yy)
 
- use defs_basis
+ use abi_defs_basis
  implicit none
  real(dp),intent(in) :: yy
  real(dp),intent(out) :: derf_yy

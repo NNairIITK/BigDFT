@@ -136,7 +136,7 @@ subroutine moldyn(acell,amass,me,&
 & nsym, symrel, &
 & vel,xfhist,fred,xred)
 
- use defs_basis
+ use abi_defs_basis
  use abi_interfaces_lowlevel
  use interfaces_67_common
 

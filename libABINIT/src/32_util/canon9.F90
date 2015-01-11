@@ -30,7 +30,7 @@
 
 subroutine canon9(num,red,shift)
 
- use defs_basis
+ use abi_defs_basis
 
  implicit none
 

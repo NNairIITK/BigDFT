@@ -31,7 +31,7 @@
 
 subroutine strainsym(nsym,rprimd0,rprimd,rprimd_symm,symrel)
 
- use defs_basis
+ use abi_defs_basis
  use abi_interfaces_linalg
  use interfaces_32_util
 

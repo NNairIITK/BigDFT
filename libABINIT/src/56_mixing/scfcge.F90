@@ -98,7 +98,7 @@ subroutine scfcge(cplex,dbl_nnsclo,dtn_pc,etotal,f_atm,&
 & natom,nfft,nfftot,nspden,n_fftgr,n_index,opt_denpot,response,rhor,ucvol,vtrial,xred,&
 & fnrm,fdot,user_data,errid,errmess)
 
- use defs_basis
+ use abi_defs_basis
  use abi_interfaces_lowlevel
  use interfaces_56_mixing, except_this_one => scfcge
 

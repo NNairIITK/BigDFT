@@ -4,7 +4,7 @@ subroutine md_velocity_verlet(acell, acell_next, amass, dtion, fred, &
      & ucvol, ucvol_next, vel, vel_nexthalf, vel_prevhalf, &
      & xcart, xcart_next, xred_next, xred_prev)
   
-  use defs_basis
+  use abi_defs_basis
 
   implicit none
 

@@ -38,7 +38,7 @@
 
 subroutine splfit(arg,derfun,fun,ider,newarg,newfun,numarg,numnew)
 
- use defs_basis
+ use abi_defs_basis
  implicit none
 
  integer, intent(in) :: ider,numarg,numnew
@@ -294,7 +294,7 @@ subroutine spline( t, y, n, ybcbeg, ybcend, ypp )
 !      1: the first derivative at the right endpoint should be YBCEND;
 !      2: the second derivative at the right endpoint should be YBCEND.
 
-  use defs_basis
+  use abi_defs_basis
   use abi_interfaces_lowlevel
   implicit none
 
@@ -412,7 +412,7 @@ end subroutine spline
 
 subroutine spline_bicubic(n1,n2,x1,x2,y,der1_x1,der1_x2,der2_x1x2,spl_c)
 
-  use defs_basis
+  use abi_defs_basis
 
   implicit none
 
@@ -490,7 +490,7 @@ end subroutine spline_bicubic
 
 subroutine spline_c( nomega_lo, nomega_li, omega_lo, omega_li, splined_li, tospline_lo)
 
- use defs_basis
+ use abi_defs_basis
  implicit none
 
 !Arguments --------------------------------------------
@@ -547,7 +547,7 @@ end subroutine spline_c
 
 subroutine spline_complex( t, y, n, ybcbeg, ybcend, ypp )
 
- use defs_basis
+ use abi_defs_basis
  implicit none
 
  integer, intent(in) :: n
@@ -611,7 +611,7 @@ end subroutine spline_complex
 subroutine splint(nspline,xspline,yspline,ysplin2,nfit,xfit,yfit,ierr)
 
 
- use defs_basis
+ use abi_defs_basis
  use abi_interfaces_lowlevel
  implicit none
 
@@ -701,7 +701,7 @@ end subroutine splint
 
 subroutine splint_complex (nspline,xspline,yspline,ysplin2,nfit,xfit,yfit)
 
- use defs_basis
+ use abi_defs_basis
  implicit none
 
  integer, intent(in) :: nfit, nspline

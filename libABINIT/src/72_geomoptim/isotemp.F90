@@ -36,7 +36,7 @@
 
 subroutine isotemp(amass,dtion,ekin,iatfix,ktemp,mttk_vars,natom,nnos,qmass,vel)
 
- use defs_basis
+ use abi_defs_basis
 
  implicit none
 
@@ -168,7 +168,7 @@ end subroutine isotemp
 subroutine isopress(amass,dtion,ekin,iatfix,ktemp,natom,nnos,qmass,strten,strtarget, &
 &                   ucvol,mttk_vars,vel,vlogv,vmass)
 
- use defs_basis
+ use abi_defs_basis
 
  implicit none
 
@@ -321,7 +321,7 @@ end subroutine isopress
 subroutine isostress(amass,bmass,dtion,ekin,iatfix,ktemp,natom,nnos,qmass,strten, &
 &                    strtarget,ucvol,vel,mttk_vars)
 
- use defs_basis
+ use abi_defs_basis
 
  implicit none
 

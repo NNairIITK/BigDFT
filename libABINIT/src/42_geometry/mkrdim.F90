@@ -30,7 +30,7 @@
 
 subroutine mkrdim(acell,rprim,rprimd)
 
- use defs_basis
+ use abi_defs_basis
 
  implicit none
 

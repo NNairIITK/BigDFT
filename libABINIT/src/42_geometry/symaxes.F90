@@ -116,7 +116,7 @@
 subroutine symaxes(center,iholohedry,&
 &isym,isymrelconv,ordersym,tnons_order,trialt,type_axis)
 
- use defs_basis
+ use abi_defs_basis
  use abi_interfaces_lowlevel
 
  implicit none

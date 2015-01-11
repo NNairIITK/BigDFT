@@ -37,7 +37,7 @@
 
 subroutine bldgrpaf(msym,nogenaf,nsym,symafm,symrel,symrel_magn,tnons)
 
- use defs_basis
+ use abi_defs_basis
 
  implicit none
 

@@ -24,7 +24,7 @@ module interfaces_41_xc_lowlevel
 interface
  subroutine drivexc(exc,ixc,npts,nspden,order,rho_updn,vxc,ndvxc,ngr2,nd2vxc,nvxcdgr,&  !Mandatory arguments
   &  dvxc,d2vxc,grho2_updn,vxcgr,exexch,lrho_updn,vxclrho,tau_updn,vxctau)    !Optional arguments
-  use defs_basis
+  use abi_defs_basis
   implicit none
   integer,intent(in),optional :: exexch
   integer,intent(in) :: ixc
@@ -51,7 +51,7 @@ end interface
 
 interface
  subroutine invcb(rhoarr,rspts,npts)
-  use defs_basis
+  use abi_defs_basis
   implicit none
   integer,intent(in) :: npts
   real(dp),intent(in) :: rhoarr(npts)
@@ -61,7 +61,7 @@ end interface
 
 interface
    subroutine mkdenpos(iwarn,nfft,nspden,option,rhonow,xc_denpos)
-     use defs_basis
+     use abi_defs_basis
      implicit none
      integer,intent(in) :: nfft,nspden,option
      integer,intent(inout) :: iwarn
@@ -87,7 +87,7 @@ end interface
 interface
  subroutine xchcth(dvxcdgr,exci,grho2_updn,ixc,npts,nspden,&  
   &  order,rho_updn,vxci)
-  use defs_basis
+  use abi_defs_basis
   implicit none
   integer,intent(in) :: ixc
   integer,intent(in) :: npts
@@ -103,7 +103,7 @@ end interface
 
 interface
  subroutine xchelu(exc,npt,order,rspts,vxc,dvxc)  ! dvxc is optional
-  use defs_basis
+  use abi_defs_basis
   implicit none
   integer,intent(in) :: npt
   integer,intent(in) :: order
@@ -116,7 +116,7 @@ end interface
 
 interface
  subroutine xclb(grho2_updn,npts,nspden,rho_updn,vxci)
-  use defs_basis
+  use abi_defs_basis
   implicit none
   integer,intent(in) :: npts
   integer,intent(in) :: nspden
@@ -129,7 +129,7 @@ end interface
 interface
  subroutine xcpbe(exci,npts,nspden,option,order,rho_updn,vxci,ndvxci,ngr2,nd2vxci,&  !Mandatory Arguments
   &  d2vxci,dvxcdgr,dvxci,exexch,grho2_updn)                          !Optional Arguments
-  use defs_basis
+  use abi_defs_basis
   implicit none
   integer,intent(in),optional :: exexch
   integer,intent(in) :: nd2vxci
@@ -152,7 +152,7 @@ end interface
 interface
  subroutine xcpzca(exc,npt,order,rhor,rspts,vxc,&  !Mandatory arguments
   &  dvxc)                            !Optional arguments
-  use defs_basis
+  use abi_defs_basis
   implicit none
   integer,intent(in) :: npt
   integer,intent(in) :: order
@@ -167,7 +167,7 @@ end interface
 interface
  subroutine xcspol(exc,npts,nspden,order,rspts,vxc,zeta,ndvxc,&  !Mandatory arguments
   &  dvxc)                            !Optional arguments
-  use defs_basis
+  use abi_defs_basis
   implicit none
   integer,intent(in) :: ndvxc
   integer,intent(in) :: npts
@@ -184,7 +184,7 @@ end interface
 interface
  subroutine xctetr(exc,npt,order,rhor,rspts,vxc,&  !Mandatory arguments
   &  d2vxc,dvxc)                    !Optional arguments
-  use defs_basis
+  use abi_defs_basis
   implicit none
   integer,intent(in) :: npt
   integer,intent(in) :: order
@@ -200,7 +200,7 @@ end interface
 interface
  subroutine xcwign(exc,npt,order,rspts,vxc,&  !Mandatory arguments
   &  dvxc)                           !Optional arguments
-  use defs_basis
+  use abi_defs_basis
   implicit none
   integer,intent(in) :: npt
   integer,intent(in) :: order
@@ -213,7 +213,7 @@ end interface
 
 interface
  subroutine xcxalp(exc,npt,order,rspts,vxc, dvxc)  ! dvxc is optional
-  use defs_basis
+  use abi_defs_basis
   implicit none
   integer,intent(in) :: npt
   integer,intent(in) :: order

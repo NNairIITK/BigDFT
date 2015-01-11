@@ -36,7 +36,7 @@
 
 subroutine size_dvxc(ixc,ndvxc,ngr2,nd2vxc,nspden,nvxcdgr,order)
 
- use defs_basis
+ use abi_defs_basis
 
  implicit none
 

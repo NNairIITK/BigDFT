@@ -49,7 +49,7 @@
 subroutine gensymspgr(brvltt,msym,nsym,shubnikov,spgaxor,spgorig,&
 & spgroup,spgroupma,symafm,symrel,tnons)
 
- use defs_basis
+ use abi_defs_basis
  use abi_interfaces_lowlevel
  use interfaces_42_geometry, except_this_one => gensymspgr
 

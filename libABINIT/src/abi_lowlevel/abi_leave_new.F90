@@ -28,7 +28,7 @@
 
 subroutine abi_leave_new(mode_paral,exit_status)
 
- use defs_basis
+ use abi_defs_basis
  use abi_interfaces_lowlevel, except_this_one => abi_leave_new
  use abi_m_xmpi
 

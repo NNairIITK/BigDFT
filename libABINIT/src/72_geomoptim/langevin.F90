@@ -1,7 +1,7 @@
 subroutine md_langevin(amass, dtion, fcart, fcart_mold, friction, itime, ktemp, &
      & mditemp, mdwall, natom, rprimd, vel, xcart, xcart_next, xred_next)
   
-  use defs_basis
+  use abi_defs_basis
 
   implicit none
 

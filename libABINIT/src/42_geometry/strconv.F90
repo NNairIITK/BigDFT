@@ -38,7 +38,7 @@
 
 subroutine strconv(frac,gprimd,cart)
 
- use defs_basis
+ use abi_defs_basis
 
  implicit none
 

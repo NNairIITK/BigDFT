@@ -23,7 +23,7 @@ module interfaces_32_util
 
 interface
  subroutine canon9(num,red,shift)
-  use defs_basis
+  use abi_defs_basis
   implicit none
   real(dp),intent(in) :: num
   real(dp),intent(out) :: red
@@ -33,7 +33,7 @@ end interface
 
 interface
  subroutine derfc(derfc_yy,yy)
-  use defs_basis
+  use abi_defs_basis
   implicit none
   real(dp),intent(out) :: derfc_yy
   real(dp),intent(in) :: yy
@@ -42,7 +42,7 @@ end interface
 
 interface
  subroutine derf_ab(derf_yy,yy)
-  use defs_basis
+  use abi_defs_basis
   implicit none
   real(dp),intent(in) :: yy
   real(dp),intent(out) :: derf_yy
@@ -59,7 +59,7 @@ end interface
 
 interface
  subroutine matr3inv(aa,ait)
-  use defs_basis
+  use abi_defs_basis
   implicit none
   real(dp),intent(in) :: aa(3,3)
   real(dp),intent(out) :: ait(3,3)
@@ -68,7 +68,7 @@ end interface
 
 interface
  subroutine matrginv(a,lda,n)
-  use defs_basis
+  use abi_defs_basis
   implicit none
   integer,intent(in) :: lda
   integer,intent(in) :: n
@@ -78,7 +78,7 @@ end interface
 
 interface
  subroutine wrap2_pmhalf(num,red,shift)
-  use defs_basis
+  use abi_defs_basis
   implicit none
   real(dp),intent(in) :: num
   real(dp),intent(out) :: red

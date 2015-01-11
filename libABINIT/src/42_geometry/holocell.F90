@@ -38,7 +38,7 @@
 
 subroutine holocell(cell_base,foundc,iholohedry)
 
- use defs_basis
+ use abi_defs_basis
 
  implicit none
 

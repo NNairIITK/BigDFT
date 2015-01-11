@@ -1,6 +1,6 @@
 subroutine md_nose_init(amass, natom, temp, vel)
   
-  use defs_basis
+  use abi_defs_basis
   use abi_interfaces_lowlevel
 
   implicit none
@@ -77,7 +77,7 @@ subroutine md_nose(amass, dtion, fcart, fcart_mold, gnose, itime, ktemp, mditemp
      & natom, noseinert, rprimd, snose, v2nose, vel, xcart, xcart_next, &
      & xi_nose, xred_next)
   
-  use defs_basis
+  use abi_defs_basis
   use abi_interfaces_lowlevel
 
   implicit none
@@ -235,7 +235,7 @@ end subroutine md_nose
 subroutine md_nose_finalise(etotal, gnose, itime, ktemp, noseinert, snose, &
      & v2nose, xi_nose)
   
-  use defs_basis
+  use abi_defs_basis
   use abi_interfaces_lowlevel
 
   implicit none

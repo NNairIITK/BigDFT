@@ -644,8 +644,8 @@ contains
 
    subroutine psp_from_file_paw()
      use module_base
+     use abi_defs_basis, only: tol14, fnlen
      use m_pawpsp, only: pawpsp_main, pawpsp_read_header, pawpsp_read_header_2
-     use defs_basis, only: tol14, fnlen
      use m_pawrad, only: pawrad_type, pawrad_free
      use m_pawtab, only: pawtab_type, pawtab_nullify, pawtab_free
      implicit none
@@ -670,7 +670,6 @@ contains
     real(dp),allocatable:: ffspl(:,:,:)
     real(dp),allocatable:: vlspl(:,:)
     integer:: mesh_size
-
 
      !These should be passed as arguments:
      !Defines the number of Gaussian functions for projectors

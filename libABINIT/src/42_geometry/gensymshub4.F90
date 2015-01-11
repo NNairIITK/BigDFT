@@ -42,7 +42,7 @@
 
 subroutine gensymshub4(genafm,msym,nsym,symafm,symrel,tnons)
 
- use defs_basis
+ use abi_defs_basis
  use abi_interfaces_lowlevel
 
  implicit none

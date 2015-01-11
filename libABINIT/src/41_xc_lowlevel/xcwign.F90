@@ -36,7 +36,7 @@
 subroutine xcwign(exc,npt,order,rspts,vxc,& !Mandatory arguments
 &                dvxc)                           !Optional arguments
 
- use defs_basis
+ use abi_defs_basis
  use abi_interfaces_lowlevel
 
  implicit none

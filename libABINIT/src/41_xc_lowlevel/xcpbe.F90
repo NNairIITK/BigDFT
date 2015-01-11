@@ -101,7 +101,7 @@
 subroutine xcpbe(exci,npts,nspden,option,order,rho_updn,vxci,ndvxci,ngr2,nd2vxci, & !Mandatory Arguments
 &                d2vxci,dvxcdgr,dvxci,exexch,grho2_updn)                          !Optional Arguments
 
- use defs_basis
+ use abi_defs_basis
  use abi_interfaces_lowlevel
  use interfaces_41_xc_lowlevel, except_this_one => xcpbe
 

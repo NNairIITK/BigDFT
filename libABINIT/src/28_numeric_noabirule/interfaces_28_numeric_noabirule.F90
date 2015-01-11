@@ -68,7 +68,7 @@ end interface
 
 interface
  subroutine spline_c( nomega_lo, nomega_li, omega_lo, omega_li, splined_li, tospline_lo)
-  use defs_basis
+  use abi_defs_basis
   implicit none
   integer, intent(in) :: nomega_li
   integer, intent(in) :: nomega_lo
@@ -81,7 +81,7 @@ end interface
 
 interface
  subroutine spline_complex( t, y, n, ybcbeg, ybcend, ypp )
-  use defs_basis
+  use abi_defs_basis
   implicit none
   integer, intent(in) :: n
   complex(dpc), intent(in) :: ybcbeg
@@ -109,7 +109,7 @@ end interface
 interface
  subroutine splint_complex (nspline,xspline,yspline,ysplin2,&  
   &  nfit,xfit,yfit)
-  use defs_basis
+  use abi_defs_basis
   implicit none
   integer, intent(in) :: nfit
   integer, intent(in) :: nspline

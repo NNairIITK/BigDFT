@@ -37,7 +37,7 @@
 
 subroutine prtspgroup(bravais,genafm,iout,jdtset,ptgroupma,spgroup)
 
- use defs_basis
+ use abi_defs_basis
  use abi_interfaces_lowlevel
  use interfaces_42_geometry, except_this_one => prtspgroup
 

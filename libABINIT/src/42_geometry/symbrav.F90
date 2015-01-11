@@ -39,7 +39,7 @@
 
 subroutine symbrav(bravais,msym,nsym,ptgroup,rprimd,symrel,tolsym)
 
- use defs_basis
+ use abi_defs_basis
  use abi_interfaces_lowlevel
  use interfaces_32_util
  use interfaces_42_geometry, except_this_one => symbrav

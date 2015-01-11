@@ -45,7 +45,7 @@
 
 subroutine operat(natom,natrd,nsym,spinat,symafm,symrel,tnons,typat,xred)
 
- use defs_basis
+ use abi_defs_basis
  use abi_interfaces_lowlevel
 
  implicit none

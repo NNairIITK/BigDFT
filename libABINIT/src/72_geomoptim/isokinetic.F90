@@ -1,6 +1,6 @@
 subroutine md_isokinetic_init(amass, mditemp, natom, vel)
 
-  use defs_basis
+  use abi_defs_basis
   use abi_interfaces_lowlevel
 
   implicit none
@@ -91,7 +91,7 @@ end subroutine md_isokinetic_init
 subroutine md_isokinetic(acell, amass, dtion, epot, fcart, itime, natom, &
      & mditemp, me, rprimd, vel, vel_nexthalf, xcart, xcart_next, xred_next)
 
-  use defs_basis
+  use abi_defs_basis
 
   implicit none
 

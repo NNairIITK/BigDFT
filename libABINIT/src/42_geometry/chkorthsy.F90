@@ -33,7 +33,7 @@
 
 subroutine chkorthsy(gprimd,iout,nsym,rmet,rprimd,symrel)
 
- use defs_basis
+ use abi_defs_basis
  use abi_interfaces_lowlevel
 
  implicit none

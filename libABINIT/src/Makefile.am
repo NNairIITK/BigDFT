@@ -61,7 +61,7 @@ PPFCCOMPILE = $(FC) $(DEFS_FORTRAN) $(DEFAULT_INCLUDES) $(INCLUDES) \
 
 ## === Source files ===
 libabinit_a_SOURCES = \
-	10_defs/defs_basis.F90 \
+	abi_lowlevel/abi_defs_basis.F90 \
 	abi_lowlevel/abi_interfaces_lowlevel.F90 \
 	abi_lowlevel/abi_interfaces_linalg.F90 \
 	abi_lowlevel/abi_m_xmpi.F90 \

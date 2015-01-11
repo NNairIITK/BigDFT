@@ -50,7 +50,7 @@
 subroutine xchcth(dvxcdgr,exci,grho2_updn,ixc,npts,nspden,&
 & order,rho_updn,vxci)
 
- use defs_basis
+ use abi_defs_basis
  use abi_interfaces_lowlevel
  use interfaces_41_xc_lowlevel, except_this_one => xchcth
 

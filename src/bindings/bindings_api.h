@@ -447,7 +447,7 @@ void FC_FUNC_(astruct_set_n_types, ASTRUCT_SET_N_TYPES)(f90_atomic_structure *as
 subroutine astruct_set_symmetries(astruct, disableSym, tol, elecfield, nspin)
 use module_base
 use module_atoms, only: atomic_structure,deallocate_symmetry_data
-use defs_basis
+use abi_defs_basis
 use m_ab6_symmetry
 implicit none
 type(atomic_structure), intent(inout) :: astruct

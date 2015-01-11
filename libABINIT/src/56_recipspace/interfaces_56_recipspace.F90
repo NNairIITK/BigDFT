@@ -25,7 +25,7 @@ interface
  subroutine getkgrid(iout,iscf,kpt,kptopt,kptrlatt,kptrlen,&  
   &  msym,nkpt,nkpt_computed,nshiftk,nsym,rprimd,shiftk,symafm,&  
   &  symrel,vacuum,wtk,kbz_p)
-  use defs_basis
+  use abi_defs_basis
   implicit none
   integer,intent(in) :: iout
   integer,intent(in) :: iscf
@@ -51,7 +51,7 @@ end interface
 interface
  subroutine irrzg(irrzon,nspden,nsppol,nsym,n1,n2,n3,phnons,&  
   &  symafm,symrel,tnons)
-  use defs_basis
+  use abi_defs_basis
   implicit none
   integer,intent(in) :: n1
   integer,intent(in) :: n2
@@ -69,7 +69,7 @@ end interface
 
 interface
  subroutine smpbz(brav,iout,kptrlatt,mkpt,nkpt,nshiftk,option,shiftk,spkpt)
-  use defs_basis
+  use abi_defs_basis
   implicit none
   integer,intent(in) :: brav
   integer,intent(in) :: iout
@@ -86,7 +86,7 @@ end interface
 interface
  subroutine symkpt(gmet,indkpt1,kptns,nkpt,nkpt1,nsym1,option,&  
   &  symrc1,timrev,wtk,wtk_folded)
-  use defs_basis
+  use abi_defs_basis
   implicit none
   integer,intent(in) :: nkpt
   integer,intent(out) :: nkpt1
@@ -105,7 +105,7 @@ end interface
 interface
  subroutine testkgrid(bravais,iout,kptrlatt,kptrlen,&  
   &  msym,nshiftk,nsym,prtkpt,rprimd,shiftk,symafm,symrel,vacuum)
-  use defs_basis
+  use abi_defs_basis
   implicit none
   integer,intent(in) :: iout
   integer,intent(in) :: msym

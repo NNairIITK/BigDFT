@@ -44,7 +44,7 @@
 subroutine ewald2(gmet,natom,ntypat,rmet,rprimd,stress,&
 &  typat,ucvol,xred,zion)
 
- use defs_basis
+ use abi_defs_basis
  use interfaces_32_util
 
  implicit none

@@ -63,7 +63,7 @@
 
 subroutine gridgcart(gcart,gprimd,ngfft)
 
- use defs_basis
+ use abi_defs_basis
 
  implicit none
 
