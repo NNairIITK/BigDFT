@@ -50,30 +50,6 @@ interface
 end interface
 
 interface
- subroutine echo_xc_name (ixc)
-  implicit none
-  integer, intent(in) :: ixc
- end subroutine echo_xc_name
-end interface
-
-interface
- subroutine gammapositron(gamma,grhocore2,grhoe2,igamma,ngr,npt,rhocore,rhoer,rhopr,usecore)
-  use defs_basis
-  implicit none
-  integer,intent(in) :: igamma
-  integer,intent(in) :: ngr
-  integer,intent(in) :: npt
-  integer,intent(in) :: usecore
-  real(dp),intent(out) :: gamma(npt,2)
-  real(dp),intent(in) :: grhocore2(ngr*usecore)
-  real(dp),intent(in) :: grhoe2(ngr)
-  real(dp),intent(in) :: rhocore(npt*usecore)
-  real(dp),intent(in) :: rhoer(npt)
-  real(dp),intent(in) :: rhopr(npt)
- end subroutine gammapositron
-end interface
-
-interface
  subroutine invcb(rhoarr,rspts,npts)
   use defs_basis
   implicit none
@@ -93,15 +69,6 @@ interface
      !arrays
      real(dp),intent(inout) :: rhonow(nfft,nspden)
    end subroutine mkdenpos
-end interface
-
-interface
- subroutine phase(ngfft,ph)
-  use defs_basis
-  implicit none
-  integer,intent(in) :: ngfft
-  real(dp),intent(out) :: ph(2*ngfft)
- end subroutine phase
 end interface
 
 interface
@@ -160,19 +127,6 @@ interface
 end interface
 
 interface
- subroutine xcmult (dnexcdn,nfft,ngrad,nspden,nspgrad,rhonow)
-  use defs_basis
-  implicit none
-  integer,intent(in) :: nfft
-  integer,intent(in) :: ngrad
-  integer,intent(in) :: nspden
-  integer,intent(in) :: nspgrad
-  real(dp),intent(in) :: dnexcdn(nfft,nspgrad)
-  real(dp),intent(inout) :: rhonow(nfft,nspden,ngrad*ngrad)
- end subroutine xcmult
-end interface
-
-interface
  subroutine xcpbe(exci,npts,nspden,option,order,rho_updn,vxci,ndvxci,ngr2,nd2vxci,&  !Mandatory Arguments
   &  d2vxci,dvxcdgr,dvxci,exexch,grho2_updn)                          !Optional Arguments
   use defs_basis
@@ -193,27 +147,6 @@ interface
   real(dp),intent(in) :: rho_updn(npts,nspden)
   real(dp),intent(out) :: vxci(npts,nspden)
  end subroutine xcpbe
-end interface
-
-interface
- subroutine xcpositron(fnxc,grhoe2,ixcpositron,ngr,npt,posdensity0_limit,rhoer,rhopr,vxce,vxcegr,vxcp,&  
-  &  dvxce,dvxcp) ! optional arguments
-  use defs_basis
-  implicit none
-  integer,intent(in) :: ixcpositron
-  integer,intent(in) :: ngr
-  integer,intent(in) :: npt
-  logical,intent(in) :: posdensity0_limit
-  real(dp),intent(out),optional :: dvxce(npt)
-  real(dp),intent(out),optional :: dvxcp(npt)
-  real(dp),intent(out) :: fnxc(npt)
-  real(dp),intent(in) :: grhoe2(ngr)
-  real(dp),intent(in) :: rhoer(npt)
-  real(dp),intent(in) :: rhopr(npt)
-  real(dp),intent(out) :: vxce(npt)
-  real(dp),intent(out) :: vxcegr(ngr)
-  real(dp),intent(out) :: vxcp(npt)
- end subroutine xcpositron
 end interface
 
 interface

@@ -203,6 +203,7 @@ holocell.o: 42_geometry/holocell.F90 \
 	$(PPFCCOMPILE) -c -o holocell.o `test -f '42_geometry/holocell.F90' || echo '$(srcdir)/'`42_geometry/holocell.F90
 
 interfaces_42_geometry.o: 42_geometry/interfaces_42_geometry.F90 \
+	abi_interfaces_lowlevel.o \
 	defs_basis.o
 	$(PPFCCOMPILE) -c -o interfaces_42_geometry.o `test -f '42_geometry/interfaces_42_geometry.F90' || echo '$(srcdir)/'`42_geometry/interfaces_42_geometry.F90
 
@@ -508,6 +509,11 @@ fconv.o: 67_common/fconv.F90 \
 	defs_basis.o
 	$(PPFCCOMPILE) -c -o fconv.o `test -f '67_common/fconv.F90' || echo '$(srcdir)/'`67_common/fconv.F90
 
+interfaces_67_common.o: 67_common/interfaces_67_common.F90 \
+	abi_interfaces_lowlevel.o \
+	defs_basis.o
+	$(PPFCCOMPILE) -c -o interfaces_67_common.o `test -f '67_common/interfaces_67_common.F90' || echo '$(srcdir)/'`67_common/interfaces_67_common.F90
+
 prtxvf.o: 67_common/prtxvf.F90 \
 	abi_interfaces_lowlevel.o \
 	defs_basis.o
@@ -527,6 +533,7 @@ ab6_moldyn.o: 72_geomoptim/ab6_moldyn.F90 \
 	72_geomoptim/langevin.F90 \
 	abi_interfaces_lowlevel.o \
 	defs_basis.o \
+	interfaces_67_common.o \
 	72_geomoptim/moldyn.F90 \
 	abi_interfaces_lowlevel.o \
 	defs_basis.o \
@@ -535,7 +542,12 @@ ab6_moldyn.o: 72_geomoptim/ab6_moldyn.F90 \
 	defs_basis.o \
 	72_geomoptim/quenched.F90 \
 	defs_basis.o \
-	72_geomoptim/velocity_verlet.F90
+	72_geomoptim/velocity_verlet.F90 \
+	abi_interfaces_lowlevel.o \
+	defs_basis.o \
+	interfaces_32_util.o \
+	interfaces_42_geometry.o \
+	72_geomoptim/xfpack.F90
 	$(PPFCCOMPILE) -c -o ab6_moldyn.o `test -f '72_geomoptim/ab6_moldyn.F90' || echo '$(srcdir)/'`72_geomoptim/ab6_moldyn.F90
 
 isokinetic.o: 72_geomoptim/isokinetic.F90 \
@@ -558,7 +570,8 @@ langevin.o: 72_geomoptim/langevin.F90 \
 
 moldyn.o: 72_geomoptim/moldyn.F90 \
 	abi_interfaces_lowlevel.o \
-	defs_basis.o
+	defs_basis.o \
+	interfaces_67_common.o
 	$(PPFCCOMPILE) -c -o moldyn.o `test -f '72_geomoptim/moldyn.F90' || echo '$(srcdir)/'`72_geomoptim/moldyn.F90
 
 nose.o: 72_geomoptim/nose.F90 \

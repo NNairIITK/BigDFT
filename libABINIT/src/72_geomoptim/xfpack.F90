@@ -50,10 +50,6 @@
 !!
 !! SOURCE
 
-#if defined HAVE_CONFIG_H
-#include "config.h"
-#endif
-
 subroutine xfpack(acell,acell0,fred,natom,ndim,nsym,optcell,option,rprim,rprimd0,&
 & strtarget,strten,symrel,ucvol,ucvol0,vin,vout,xred)
 

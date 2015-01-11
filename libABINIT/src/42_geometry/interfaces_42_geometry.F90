@@ -65,27 +65,6 @@ interface
 end interface
 
 interface
- subroutine chiscwrt(chi_org,disv_org,nat_org,sdisv_org,smult_org,nsh_org,chi_sc,&  
-  &  disv_sc,nat_sc,smult_sc,nsh_sc,opt,prtvol) 
-  use defs_basis
-  implicit none
-  integer,intent(in) :: nat_org
-  integer,intent(in) :: nat_sc
-  integer,intent(in) :: nsh_org
-  integer,intent(in) :: nsh_sc
-  integer,intent(in),optional :: opt
-  integer,intent(in),optional :: prtvol
-  real(dp),intent(in) :: chi_org(nat_org)
-  real(dp),intent(out) :: chi_sc(nat_sc)
-  real(dp),intent(in) :: disv_org(nat_org)
-  real(dp),intent(in) :: disv_sc(nat_sc)
-  real(dp),intent(in) :: sdisv_org(nsh_org)
-  integer,intent(in) :: smult_org(nsh_org)
-  integer,intent(in) :: smult_sc(nsh_sc)
- end subroutine chiscwrt
-end interface
-
-interface
  subroutine chkdilatmx(dilatmx,rprimd,rprimd_orig)
   use defs_basis
   implicit none
@@ -126,47 +105,6 @@ interface
   integer,intent(in) :: symafm(nsym)
   integer,intent(in) :: symrel(3,3,nsym)
  end subroutine chkprimit
-end interface
-
-interface
- function dbeta(cosbeta,ll,mp,mm)
-  use defs_basis
-  implicit none
-  integer,intent(in) :: ll
-  integer,intent(in) :: mm
-  integer,intent(in) :: mp
-  real(dp),intent(in) :: cosbeta
-  real(dp) :: dbeta
- end function dbeta
-end interface
-
-interface
- function dist2(v1,v2,rprimd,option)
-  use defs_basis
-  implicit none
-  integer,intent(in),optional :: option
-  real(dp) :: dist2
-  real(dp),intent(in),dimension(3,3),optional :: rprimd
-  real(dp),intent(in),dimension(3) :: v1
-  real(dp),intent(in),dimension(3) :: v2
- end function dist2
-end interface
-
-interface
- subroutine fillcell(natom,natrd,nsym,spinat,symafm,symrel,tnons,tolsym,typat,xred)
-  use defs_basis
-  implicit none
-  integer,intent(in) :: natom
-  integer,intent(in) :: natrd
-  integer,intent(in) :: nsym
-  real(dp),intent(in) :: tolsym
-  real(dp),intent(inout) :: spinat(3,natom)
-  integer,intent(in) :: symafm(nsym)
-  integer,intent(in) :: symrel(3,3,nsym)
-  real(dp),intent(in) :: tnons(3,nsym)
-  integer,intent(inout) :: typat(natom)
-  real(dp),intent(inout) :: xred(3,natom)
- end subroutine fillcell
 end interface
 
 interface
@@ -252,22 +190,6 @@ interface
 end interface
 
 interface
- subroutine ioniondist(natom,rprimd,xred,inm,option,varlist,magv,atp,prtvol)
-  use defs_basis
-  implicit none
-  integer,intent(in),optional :: atp
-  integer,intent(in) :: natom
-  integer,intent(in) :: option
-  integer,intent(in),optional :: prtvol
-  real(dp),intent(out) :: inm(natom,natom)
-  integer,intent(in),optional :: magv(natom)
-  real(dp),intent(in) :: rprimd(3,3)
-  real(dp),intent(in),optional :: varlist(natom)
-  real(dp),intent(in) :: xred(3,natom)
- end subroutine ioniondist
-end interface
-
-interface
  subroutine metric(gmet,gprimd,iout,rmet,rprimd,ucvol)
   use defs_basis
   implicit none
@@ -281,20 +203,6 @@ interface
 end interface
 
 interface
- subroutine mkeuler(rot,cosbeta,cosalp,sinalp,cosgam,singam,isn)
-  use defs_basis
-  implicit none
-  integer,intent(out) :: isn
-  real(dp),intent(out) :: cosalp
-  real(dp),intent(out) :: cosbeta
-  real(dp),intent(out) :: cosgam
-  real(dp),intent(out) :: sinalp
-  real(dp),intent(out) :: singam
-  real(dp),intent(in) :: rot(3,3)
- end subroutine mkeuler
-end interface
-
-interface
  subroutine mkrdim(acell,rprim,rprimd)
   use defs_basis
   implicit none
@@ -305,20 +213,20 @@ interface
 end interface
 
 interface
- subroutine mksupercell(xred_org,magv_org,rprimd_org,nat_org,nat_sc,xred_sc,magv_sc,rprimd_sc,ext,prtvol) 
+ subroutine operat(natom,natrd,nsym,spinat,symafm,symrel,tnons,typat,xred)
   use defs_basis
+  use abi_interfaces_lowlevel
   implicit none
-  integer,intent(in) :: nat_org
-  integer,intent(in) :: nat_sc
-  integer,intent(in),optional :: prtvol
-  integer,intent(in) :: ext(3)
-  integer,intent(in),optional :: magv_org(nat_org)
-  real(dp),intent(out) :: magv_sc(nat_sc)
-  real(dp),intent(in) :: rprimd_org(3,3)
-  real(dp),intent(out) :: rprimd_sc(3,3)
-  real(dp),intent(in) :: xred_org(3,nat_org)
-  real(dp),intent(out) :: xred_sc(3,nat_sc)
- end subroutine mksupercell
+  integer,intent(in) :: natom
+  integer,intent(in) :: natrd
+  integer,intent(in) :: nsym
+  integer,intent(in) :: symafm(nsym)
+  integer,intent(in) :: symrel(3,3,nsym)
+  integer,intent(inout) :: typat(natom)
+  real(dp),intent(in) :: tnons(3,nsym)
+  real(dp),intent(inout) :: spinat(3,natom)
+  real(dp),intent(inout) :: xred(3,natom)
+ end subroutine operat
 end interface
 
 interface
@@ -340,37 +248,6 @@ interface
   integer,intent(in) :: ptgroupma
   character(len=10),intent(out) :: ptgrpmasb
  end subroutine ptgmadata
-end interface
-
-interface
- subroutine remove_inversion(nsym,symrel,tnons,nsym_out,symrel_out,tnons_out,pinv)
-  use defs_basis
-  implicit none
-  integer,intent(in) :: nsym
-  integer,intent(out) :: nsym_out
-  integer,intent(out) :: pinv
-  integer,pointer :: symrel_out(:,:,:)
-  integer,intent(in) :: symrel(3,3,nsym)
-  real(dp),intent(in) :: tnons(3,nsym)
-  real(dp),pointer :: tnons_out(:,:)
- end subroutine remove_inversion
-end interface
-
-interface
- subroutine shellstruct(xred,rprimd,natom,magv,distv,smult,sdisv,nsh,atp,prtvol) 
-  use defs_basis
-  implicit none
-  integer,intent(in),optional :: atp
-  integer,intent(in) :: natom
-  integer,intent(out) :: nsh
-  integer,intent(in),optional :: prtvol
-  real(dp),intent(out) :: distv(natom)
-  integer,intent(in),optional :: magv(natom)
-  real(dp),intent(in) :: rprimd(3,3)
-  real(dp),intent(out) :: sdisv(natom)
-  integer,intent(out) :: smult(natom)
-  real(dp),intent(in) :: xred(3,natom)
- end subroutine shellstruct
 end interface
 
 interface

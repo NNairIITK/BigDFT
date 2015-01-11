@@ -194,7 +194,7 @@ subroutine ab6md(runObj,outs,nproc,iproc,ncount_bigdft,fail)
   real(gp), allocatable, dimension(:) :: amass
   real(gp), dimension(3) :: acell
   real(gp), dimension(3,3) :: rprim
-  real(gp), dimension(3,3,1) :: symrel
+  integer, dimension(3,3,1) :: symrel
   integer :: nxfh, iat, idim, iexit, i_stat,i_all
 
   ! We save pointers on data used to call bigdft() routine.
@@ -219,10 +219,10 @@ subroutine ab6md(runObj,outs,nproc,iproc,ncount_bigdft,fail)
   rprim(1,1) = real(1, gp)
   rprim(2,2) = real(1, gp)
   rprim(3,3) = real(1, gp)
-  symrel(:,:,1) = 0.0_gp
-  symrel(1,1,1) = real(1, gp)
-  symrel(2,2,1) = real(1, gp)
-  symrel(3,3,1) = real(1, gp)
+  symrel(:,:,1) = 0
+  symrel(1,1,1) = 1
+  symrel(2,2,1) = 1
+  symrel(3,3,1) = 1
   do iat = 1, runObj%atoms%astruct%nat
      amass(iat) = amu2emass * runObj%atoms%amu(runObj%atoms%astruct%iatype(iat))
      do idim = 1, 3

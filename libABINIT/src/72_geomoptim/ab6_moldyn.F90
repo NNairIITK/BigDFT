@@ -41,6 +41,7 @@ module ab6_moldyn
 
 contains
 
+  include "xfpack.F90"
   include "velocity_verlet.F90"
   include "quenched.F90"
   include "langevin.F90"

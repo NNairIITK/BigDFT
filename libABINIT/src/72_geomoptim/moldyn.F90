@@ -138,6 +138,7 @@ subroutine moldyn(acell,amass,me,&
 
  use defs_basis
  use abi_interfaces_lowlevel
+ use interfaces_67_common
 
  implicit none
 
@@ -153,9 +154,9 @@ subroutine moldyn(acell,amass,me,&
  real(dp), intent(inout) :: etotal
 !arrays
  integer, intent(in) :: iatfix(3, natom)
+ integer,intent(in) :: symrel(3,3,nsym)
  real(dp),intent(in) :: amass(natom), qmass(nnos), strtarget(6)
  real(dp),intent(inout) :: acell(3)
- real(dp),intent(in) :: symrel(3,3,nsym)
  real(dp),intent(inout) :: rprim(3,3),vel(3,natom)
  real(dp),intent(inout) :: xfhist(3,natom+4,2,mxfh),xred(3,natom),fred(3,natom)
 !Local variables ------------------------------
