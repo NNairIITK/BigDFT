@@ -54,7 +54,7 @@ subroutine irrzg(irrzon,nspden,nsppol,nsym,n1,n2,n3,phnons,&
 
  use abi_defs_basis
  use abi_interfaces_lowlevel
- use interfaces_28_numeric_noabirule
+ use abi_interfaces_numeric
 
  implicit none
 
@@ -209,7 +209,7 @@ subroutine irrzg(irrzon,nspden,nsppol,nsym,n1,n2,n3,phnons,&
 !          Sort integers into ascending order in each class
 !          (this lumps together G vectors with the same linear index, i.e.
 !          groups together symmetries which land on the same Gj)
-           call sort_int(nsym_used,class,iperm)
+           call abi_sort_int(nsym_used,class,iperm)
 
 !          Check repetition factor (how many identical copies of Gj occur
 !          from all symmetries applied to G)

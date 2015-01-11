@@ -11,11 +11,11 @@ subroutine md_nose_init(amass, natom, temp, vel)
   real(dp),intent(inout) :: vel(3,natom)
 
   interface
-     function uniformrandom(seed) 
+     function abi_uniformrandom(seed) 
        implicit none
        integer :: seed
-       double precision :: uniformrandom
-     end function uniformrandom
+       double precision :: abi_uniformrandom
+     end function abi_uniformrandom
   end interface
 
 
@@ -37,10 +37,10 @@ subroutine md_nose_init(amass, natom, temp, vel)
      v2nose=0.0_dp
      do iatom=1,natom
         do idim=1,3
-           !      uniformrandom returns a uniform random deviate between 0.0 and 1.0
+           !      abi_uniformrandom returns a uniform random deviate between 0.0 and 1.0
            !      if it were always 0 or 1, then the following expression
            !      would give the requested temperature
-           vel(idim,iatom)=(1.0_dp-2.0_dp*uniformrandom(idum))*&
+           vel(idim,iatom)=(1.0_dp-2.0_dp*abi_uniformrandom(idum))*&
                 &       sqrt( temp*kb_HaK / amass(iatom) )
            !      Recompute v2nose
            v2nose=v2nose+vel(idim,iatom)*vel(idim,iatom)*amass(iatom)

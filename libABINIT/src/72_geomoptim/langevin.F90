@@ -15,11 +15,11 @@ subroutine md_langevin(amass, dtion, fcart, fcart_mold, friction, itime, ktemp, 
   real(dp), intent(inout) :: fcart_mold(3, natom)
   
   interface
-     function uniformrandom(seed) 
+     function abi_uniformrandom(seed) 
        implicit none
        integer :: seed
-       double precision :: uniformrandom
-     end function uniformrandom
+       double precision :: abi_uniformrandom
+     end function abi_uniformrandom
   end interface
 
 
@@ -50,8 +50,8 @@ subroutine md_langevin(amass, dtion, fcart, fcart_mold, friction, itime, ktemp, 
         do idim=1,3
            delxi=2.0_dp
            do while (delxi >= 1.0_dp)
-              ran_num1=2.0_dp*uniformrandom(idum)-1.0_dp
-              ran_num2=2.0_dp*uniformrandom(idum)-1.0_dp
+              ran_num1=2.0_dp*abi_uniformrandom(idum)-1.0_dp
+              ran_num2=2.0_dp*abi_uniformrandom(idum)-1.0_dp
               delxi=ran_num1*ran_num1+ran_num2*ran_num2
            end do
            ran_force(idim,iatom)=ran_num1*sqrt(-2.0_dp*log(delxi)/delxi)&

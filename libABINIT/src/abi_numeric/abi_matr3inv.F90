@@ -1,7 +1,7 @@
 !{\src2tex{textfont=tt}}
-!!****f* ABINIT/matr3inv
+!!****f* ABINIT/abi_matr3inv
 !! NAME
-!! matr3inv
+!! abi_matr3inv
 !!
 !! FUNCTION
 !! Invert and transpose general 3x3 matrix of real*8 elements.
@@ -29,7 +29,7 @@
 #include "config.h"
 #endif
 
-subroutine matr3inv(aa,ait)
+subroutine abi_matr3inv(aa,ait)
 
  use abi_defs_basis
 
@@ -60,5 +60,5 @@ subroutine matr3inv(aa,ait)
  ait(2,3) = (aa(3,1)*aa(1,2)-aa(1,1)*aa(3,2)) * dd
  ait(3,3) = (aa(1,1)*aa(2,2)-aa(2,1)*aa(1,2)) * dd
 
-end subroutine matr3inv
+end subroutine abi_matr3inv
 !!***

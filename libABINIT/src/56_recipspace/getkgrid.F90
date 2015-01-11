@@ -60,7 +60,7 @@ subroutine getkgrid(iout,iscf,kpt,kptopt,kptrlatt,kptrlen,&
 
  use abi_defs_basis
  use abi_interfaces_lowlevel
- use interfaces_32_util
+ use abi_interfaces_numeric
  use interfaces_42_geometry
  use interfaces_56_recipspace, except_this_one => getkgrid
 
@@ -115,7 +115,7 @@ subroutine getkgrid(iout,iscf,kpt,kptopt,kptrlatt,kptrlen,&
    do isym=1,nsym
      if(symafm(isym)==1)then
        nsym_used=nsym_used+1
-       call mati3inv(symrel(:,:,isym),symrec(:,:,nsym_used))
+       call abi_mati3inv(symrel(:,:,isym),symrec(:,:,nsym_used))
      end if
    end do
  else if(kptopt==2)then
@@ -202,7 +202,7 @@ subroutine getkgrid(iout,iscf,kpt,kptopt,kptrlatt,kptrlen,&
 !          Copy the integers to real(dp)
            kptrlattr(:,:)=kptrlatt2(:,:)
 !          Go to reciprocal space
-           call matr3inv(kptrlattr,klatt2)
+           call abi_matr3inv(kptrlattr,klatt2)
 !          Make the transformation
            do ii=1,3
              klatt3(:,ii)=ktransf(1,ii)*klatt2(:,1)+&
@@ -211,11 +211,11 @@ subroutine getkgrid(iout,iscf,kpt,kptopt,kptrlatt,kptrlen,&
            end do
 
 !          Back to real space
-           call matr3inv(klatt3,kptrlattr)
+           call abi_matr3inv(klatt3,kptrlattr)
 !          real(dp) to integer
            kptrlatt2(:,:)=nint(kptrlattr(:,:))
 !          Prepare the transformation of the shifts
-           call matr3inv(ktransf,ktransf_invt)
+           call abi_matr3inv(ktransf,ktransf_invt)
            decreased=1
            kshiftk=0
            do jshiftk=1,nshiftk2

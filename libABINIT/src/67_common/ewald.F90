@@ -39,7 +39,7 @@ subroutine ewald(eew,gmet,grewtn,natom,ntypat,rmet,typat,ucvol,xred,zion)
 
  use abi_defs_basis
  use abi_interfaces_lowlevel
- use interfaces_32_util
+ use abi_interfaces_numeric
 
  implicit none
 
@@ -237,7 +237,7 @@ subroutine ewald(eew,gmet,grewtn,natom,ntypat,rmet,typat,ucvol,xred,zion)
                    rmagn=sqrt(rsq)
                    arg=reta*rmagn
 !                  derfc is the real(dp) complementary error function
-                   call derfcf(derfc_arg,arg)
+                   call abi_derfcf(derfc_arg,arg)
                    term=derfc_arg/rmagn
                    sumr=sumr+zion(typat(ia))*zion(typat(ib))*term
                    term=zion(typat(ia))*zion(typat(ib))*&

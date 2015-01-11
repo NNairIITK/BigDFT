@@ -41,7 +41,7 @@ subroutine symbrav(bravais,msym,nsym,ptgroup,rprimd,symrel,tolsym)
 
  use abi_defs_basis
  use abi_interfaces_lowlevel
- use interfaces_32_util
+ use abi_interfaces_numeric
  use interfaces_42_geometry, except_this_one => symbrav
 
  implicit none
@@ -264,7 +264,7 @@ subroutine symbrav(bravais,msym,nsym,ptgroup,rprimd,symrel,tolsym)
      call abi_leave_new('COLL')
    end if
 
-   call matr3inv(rprimdconv,rprimdconv_invt)
+   call abi_matr3inv(rprimdconv,rprimdconv_invt)
    axis_red(:)=axis_trial(1)*rprimdconv_invt(1,:)+ &
 &   axis_trial(2)*rprimdconv_invt(2,:)+ &
 &   axis_trial(3)*rprimdconv_invt(3,:)

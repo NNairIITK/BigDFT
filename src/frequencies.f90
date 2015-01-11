@@ -24,6 +24,7 @@ program frequencies
    use m_ab6_symmetry
    use yaml_output
    use dictionaries, only: f_err_throw
+   use abi_interfaces_numeric, only: abi_sort_dp
 
    implicit none
 
@@ -337,7 +338,7 @@ program frequencies
    do i=1,3*runObj%atoms%astruct%nat
       iperm(i)=i
    end do
-   call sort_dp(3*runObj%atoms%astruct%nat,sort_work,iperm,tol_freq)
+   call abi_sort_dp(3*runObj%atoms%astruct%nat,sort_work,iperm,tol_freq)
 
    if (bigdft_mpi%iproc == 0) then
       call yaml_comment('(F) Frequencies results',hfill='=')

@@ -1,4 +1,4 @@
- function uniformrandom(seed) 
+ function abi_uniformrandom(seed) 
 ! Returns a uniform random deviate between 0.0 and 1.0.
 ! Set seed to any value < 0 to initialize or reinitialize sequence.
 ! Parameters are chosen from integer overflow=2**23 (conservative).
@@ -9,7 +9,7 @@
  implicit none
 
 !Input/Output
- double precision :: uniformrandom
+ double precision :: abi_uniformrandom
  integer :: seed
 !Local variables
  integer, parameter :: im1=11979,ia1= 430,ic1=2531
@@ -50,10 +50,10 @@
  ii3=mod(ia3*ii3+ic3,im3) 
  kk=1+(97*ii3)/im3
  if (kk<1.or.kk>97) then
-   write(06, '(a,2i10,a)' ) ' trouble in uniformrandom; ii3,kk=',ii3,kk,' =>stop'
+   write(06, '(a,2i10,a)' ) ' trouble in abi_uniformrandom; ii3,kk=',ii3,kk,' =>stop'
    call abi_leave_new('COLL')
  end if 
- uniformrandom=table(kk) 
+ abi_uniformrandom=table(kk) 
 
 !Replace old value, based on generators 1 and 2
  ii1=mod(ia1*ii1+ic1,im1)

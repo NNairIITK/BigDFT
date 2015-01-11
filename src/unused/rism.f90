@@ -674,6 +674,7 @@ END SUBROUTINE calculate_rho_longrange
 !> erf(r/(sqrt(2)rl)/r
 function erfor(r,rl)
   use module_base
+  use abi_interfaces_numeric, only: abi_derf_ab
   implicit none
   real(gp), intent(in) :: r,rl
   real(gp) :: erfor
@@ -687,7 +688,7 @@ function erfor(r,rl)
   if (r == 0.0_gp) then
      erfor=2.0_gp/(sqrt(pi)*sq2rl)
   else
-     call derf_ab(derf_val,r/sq2rl)
+     call abi_derf_ab(derf_val,r/sq2rl)
      erfor=derf_val/r
   end if
 

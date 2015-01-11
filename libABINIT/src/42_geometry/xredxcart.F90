@@ -48,7 +48,7 @@ subroutine xredxcart(natom,option,rprimd,xcart,xred)
 
  use abi_defs_basis
  use abi_interfaces_lowlevel
- use interfaces_32_util
+ use abi_interfaces_numeric
 
  implicit none
 
@@ -76,7 +76,7 @@ subroutine xredxcart(natom,option,rprimd,xcart,xred)
      end do
    end do
  else if(option==-1)then
-   call matr3inv(rprimd,gprimd)
+   call abi_matr3inv(rprimd,gprimd)
    do iatom=1,natom
      do mu=1,3
        xred(mu,iatom)= gprimd(1,mu)*xcart(1,iatom)+gprimd(2,mu)*xcart(2,iatom)+&

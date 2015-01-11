@@ -1,10 +1,10 @@
-!!****m* ABINIT/interfaces_32_util
+!!****m* ABINIT/abi_interfaces_numeric
 !! NAME
-!! interfaces_32_util
+!! abi_interfaces_numeric
 !!
 !! FUNCTION
 !! This module contains the interfaces of the routines
-!! in the directory src/32_util
+!! in the directory src/abi_numeric
 !!
 !! COPYRIGHT
 !! Copyright (C) 2010 ABINIT group
@@ -17,63 +17,80 @@
 !!
 !! SOURCE
 
-module interfaces_32_util
+module abi_interfaces_numeric
 
  implicit none
 
 interface
- subroutine canon9(num,red,shift)
-  use abi_defs_basis
-  implicit none
-  real(dp),intent(in) :: num
-  real(dp),intent(out) :: red
-  real(dp),intent(out) :: shift
- end subroutine canon9
-end interface
-
-interface
- subroutine derfc(derfc_yy,yy)
+ subroutine abi_derfcf(derfc_yy,yy)
   use abi_defs_basis
   implicit none
   real(dp),intent(out) :: derfc_yy
   real(dp),intent(in) :: yy
- end subroutine derfc
+ end subroutine abi_derfcf
 end interface
 
 interface
- subroutine derf_ab(derf_yy,yy)
+ subroutine abi_derf_ab(derf_yy,yy)
   use abi_defs_basis
   implicit none
   real(dp),intent(in) :: yy
   real(dp),intent(out) :: derf_yy
- end subroutine derf_ab
+ end subroutine abi_derf_ab
 end interface
 
 interface
- subroutine mati3inv(mm,mit)
+ subroutine abi_sort_dp(n,list,iperm,tol)
+  implicit none
+  integer :: n
+  double precision :: tol
+  integer :: iperm(n)
+  double precision :: list(n)
+ end subroutine abi_sort_dp
+end interface
+
+interface
+ subroutine abi_sort_int(n,list,iperm)
+  implicit none
+  integer :: n
+  integer :: iperm(n)
+  integer :: list(n)
+ end subroutine abi_sort_int
+end interface
+
+interface
+ subroutine abi_mati3inv(mm,mit)
   implicit none
   integer,intent(out) :: mit(3,3)
   integer,intent(in) :: mm(3,3)
- end subroutine mati3inv
+ end subroutine abi_mati3inv
 end interface
 
 interface
- subroutine matr3inv(aa,ait)
+ subroutine abi_matr3inv(aa,ait)
   use abi_defs_basis
   implicit none
   real(dp),intent(in) :: aa(3,3)
   real(dp),intent(out) :: ait(3,3)
- end subroutine matr3inv
+ end subroutine abi_matr3inv
 end interface
 
 interface
- subroutine matrginv(a,lda,n)
+ subroutine abi_matrginv(a,lda,n)
   use abi_defs_basis
   implicit none
   integer,intent(in) :: lda
   integer,intent(in) :: n
   real(dp),intent(inout) :: a(lda,n)
- end subroutine matrginv
+ end subroutine abi_matrginv
+end interface
+
+interface
+ function abi_uniformrandom(seed) 
+  implicit none
+  integer :: seed
+  double precision :: abi_uniformrandom
+ end function abi_uniformrandom
 end interface
 
 interface
@@ -86,5 +103,5 @@ interface
  end subroutine wrap2_pmhalf
 end interface
 
-end module interfaces_32_util
+end module abi_interfaces_numeric
 !!***

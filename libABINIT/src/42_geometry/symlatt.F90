@@ -67,7 +67,7 @@ subroutine symlatt(bravais,msym,nptsym,ptsymrel,rprimd,tolsym)
 
  use abi_defs_basis
  use abi_interfaces_lowlevel
- use interfaces_32_util
+ use abi_interfaces_numeric
  use interfaces_42_geometry, except_this_one => symlatt
 
  implicit none
@@ -876,7 +876,7 @@ subroutine symlatt(bravais,msym,nptsym,ptsymrel,rprimd,tolsym)
 !--------------------------------------------------------------------------
 
 !Compute the coordinates of rprimd in the system defined by axes(:,:)
- call matr3inv(axes,axesinvt)
+ call abi_matr3inv(axes,axesinvt)
  do ii=1,3
    coord(:,ii)=rprimd(1,ii)*axesinvt(1,:)+ &
 &   rprimd(2,ii)*axesinvt(2,:)+ &

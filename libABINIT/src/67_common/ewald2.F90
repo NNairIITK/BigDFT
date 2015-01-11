@@ -45,7 +45,7 @@ subroutine ewald2(gmet,natom,ntypat,rmet,rprimd,stress,&
 &  typat,ucvol,xred,zion)
 
  use abi_defs_basis
- use interfaces_32_util
+ use abi_interfaces_numeric
 
  implicit none
 
@@ -73,7 +73,7 @@ subroutine ewald2(gmet,natom,ntypat,rmet,rprimd,stress,&
 
 !Define dimensional reciprocal space primitive translations gprimd
 !(inverse transpose of rprimd)
- call matr3inv(rprimd,gprimd)
+ call abi_matr3inv(rprimd,gprimd)
 
 !Add up total charge and sum of charge^2 in cell
  ch=0._dp
@@ -222,7 +222,7 @@ subroutine ewald2(gmet,natom,ntypat,rmet,rprimd,stress,&
 !                  derfc computes the complementary error function
 !                  dderfc is the derivative of the complementary error function
                    dderfc=(-2/sqrt(pi))*exp(-eta*rsq)
-                   call derfcf(derfc_arg,arg3)
+                   call abi_derfcf(derfc_arg,arg3)
                    term3=dderfc-derfc_arg/arg3
                    term4=zion(typat(ia))*zion(typat(ib))*term3
                    strr(1)=strr(1)+term4*r1c*r1c/rsq

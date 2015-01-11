@@ -37,7 +37,7 @@ subroutine symrelrot(nsym,rprimd,rprimd_new,symrel,tolsym)
 
  use abi_defs_basis
  use abi_interfaces_lowlevel
- use interfaces_32_util
+ use abi_interfaces_numeric
 
  implicit none
 
@@ -60,7 +60,7 @@ subroutine symrelrot(nsym,rprimd,rprimd_new,symrel,tolsym)
 !**************************************************************************
 
 !Compute the coordinates of rprimd_new in the system defined by rprim(:,:)
- call matr3inv(rprimd,rprimd_invt)
+ call abi_matr3inv(rprimd,rprimd_invt)
  do ii=1,3
    coord(:,ii)=rprimd_new(1,ii)*rprimd_invt(1,:)+ &
 &   rprimd_new(2,ii)*rprimd_invt(2,:)+ &
@@ -68,7 +68,7 @@ subroutine symrelrot(nsym,rprimd,rprimd_new,symrel,tolsym)
  end do
 
 !Transform symmetry matrices in the system defined by rprimd_new
- call matr3inv(coord,coordinvt)
+ call abi_matr3inv(coord,coordinvt)
  do isym=1,nsym
    do ii=1,3
      matr1(:,ii)=symrel(:,1,isym)*coord(1,ii)+&

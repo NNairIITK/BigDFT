@@ -1,4 +1,4 @@
- subroutine sort_int(n,list,iperm)
+ subroutine abi_sort_int(n,list,iperm)
 
 ! Sort integer array list(n) into ascending numerical order using Heapsort
 ! algorithm, while making corresponding rearrangement of the integer
@@ -17,7 +17,7 @@
 
 ! Should not call with n<1
   write(06,1000) n
-  1000  format(/,' sort_int has been called with array length n=',i12,/, &
+  1000  format(/,' abi_sort_int has been called with array length n=',i12,/, &
 &  ' having a value less than 1.  This is not allowed.')
   stop
 

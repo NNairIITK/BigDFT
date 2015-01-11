@@ -1,7 +1,7 @@
 !{\src2tex{textfont=tt}}
-!!****f* ABINIT/mati3inv
+!!****f* ABINIT/abi_mati3inv
 !! NAME
-!! mati3inv
+!! abi_mati3inv
 !!
 !! FUNCTION
 !! Invert and transpose orthogonal 3x3 matrix of INTEGER elements.
@@ -33,7 +33,7 @@
 #include "config.h"
 #endif
 
-subroutine mati3inv(mm,mit)
+subroutine abi_mati3inv(mm,mit)
 
  use abi_defs_basis
  use abi_interfaces_lowlevel
@@ -69,12 +69,12 @@ subroutine mati3inv(mm,mit)
    mit(:,:)=tt(:,:)/dd
  else
    write(message, '(5a,2x,9i5,a)' ) ch10,&
-&   ' mati3inv : BUG -',ch10,&
+&   ' abi_mati3inv : BUG -',ch10,&
 &   '  Attempting to invert integer array',ch10,&
 &   mm(:,:),'   ==> determinant is zero.'
    call abi_wrtout(std_out,message,'COLL')
    call abi_leave_new('COLL')
  end if
 
-end subroutine mati3inv
+end subroutine abi_mati3inv
 !!***

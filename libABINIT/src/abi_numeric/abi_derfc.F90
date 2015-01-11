@@ -1,7 +1,7 @@
 !{\src2tex{textfont=tt}}
-!!****f* ABINIT/derfc
+!!****f* ABINIT/abi_derfc
 !! NAME 
-!! derfc
+!! abi_derfc
 !!
 !! FUNCTION
 !! Evaluates the complementary error function in real(dp).
@@ -26,7 +26,7 @@
 #include "config.h"
 #endif
 
-subroutine derfcf(derfc_yy,yy)
+subroutine abi_derfcf(derfc_yy,yy)
 
  use abi_defs_basis
 
@@ -148,16 +148,16 @@ subroutine derfcf(derfc_yy,yy)
   !All cases have been investigated
   derfc_yy = res
 
-end subroutine derfcf
+end subroutine abi_derfcf
 !!***
 
-!!****f* BigDFT/derf_ab
+!!****f* BigDFT/abi_derf_ab
 !! FUNCTION
 !!   Error function in double precision
 !!
 !! SOURCE
 !!
-subroutine derf_ab(derf_yy,yy)
+subroutine abi_derf_ab(derf_yy,yy)
 
  use abi_defs_basis
  implicit none
@@ -277,5 +277,5 @@ subroutine derf_ab(derf_yy,yy)
 !All cases have been investigated
  derf_yy = res
 
-end subroutine derf_ab
+end subroutine abi_derf_ab
 !!***

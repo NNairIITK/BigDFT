@@ -4,7 +4,7 @@
 !!
 !! FUNCTION
 !! This module contains the interfaces of the routines
-!! in the directory abi_interfaces_lowlevel
+!! in the directory src/abi_lowlevel
 !!
 !! COPYRIGHT
 !! Copyright (C) 2010-2014 ABINIT group

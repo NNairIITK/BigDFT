@@ -1,7 +1,7 @@
 !{\src2tex{textfont=tt}}
-!!****f* ABINIT/matrginv
+!!****f* ABINIT/abi_matrginv
 !! NAME
-!! matrginv
+!! abi_matrginv
 !!
 !! FUNCTION
 !! Invert a general matrix of real*8 elements.
@@ -28,7 +28,7 @@
 #include "config.h"
 #endif
 
-subroutine matrginv(a,lda,n)
+subroutine abi_matrginv(a,lda,n)
 
  use abi_defs_basis
  use abi_interfaces_lowlevel
@@ -74,7 +74,7 @@ subroutine matrginv(a,lda,n)
  call dgeicd(a,lda,n,0,rcond,det,work,nwork)
  if(abs(rcond)==zero) then
    write(message, '(10a)' ) ch10,&
-&   ' matrginv : BUG -',ch10,&
+&   ' abi_matrginv : BUG -',ch10,&
 &   '  The matrix that has been passed in argument of this subroutine',ch10,&
 &   '  is probably either singular or nearly singular.',ch10,&
 &   '  The ESSL routine dgeicd failed.',ch10,&
@@ -88,7 +88,7 @@ subroutine matrginv(a,lda,n)
  call dbgmlu(a,lda,n,ipvt,ierr)
  if(ierr /= 0) then
    write(message, '(10a)' ) ch10,&
-&   ' matrginv : BUG -',ch10,&
+&   ' abi_matrginv : BUG -',ch10,&
 &   '  The matrix that has been passed in argument of this subroutine',ch10,&
 &   '  is probably either singular or nearly singular.',ch10,&
 &   '  The ASL routine dbgmlu failed.',ch10,&
@@ -99,7 +99,7 @@ subroutine matrginv(a,lda,n)
  call dbgmdi(a,lda,n,ipvt,det,-1,work,ierr)
  if(ierr /= 0) then
    write(message, '(10a)' ) ch10,&
-&   ' matrginv : BUG -',ch10,&
+&   ' abi_matrginv : BUG -',ch10,&
 &   '  The matrix that has been passed in argument of this subroutine',ch10,&
 &   '  is probably either singular or nearly singular.',ch10,&
 &   '  The ASL routine dbgmdi failed.',ch10,&
@@ -113,7 +113,7 @@ subroutine matrginv(a,lda,n)
  call sgetrf(n,n,a,lda,ipvt,ierr)
  if(ierr /= 0) then
    write(message, '(10a)' ) ch10,&
-&   ' matrginv : BUG -',ch10,&
+&   ' abi_matrginv : BUG -',ch10,&
 &   '  The matrix that has been passed in argument of this subroutine',ch10,&
 &   '  is probably either singular or nearly singular.',ch10,&
 &   '  The LAPACK routine sgetrf failed.',ch10,&
@@ -124,7 +124,7 @@ subroutine matrginv(a,lda,n)
  call sgetri(n,a,lda,ipvt,work,n,ierr)
  if(ierr /= 0) then
    write(message, '(10a)' ) ch10,&
-&   ' matrginv : BUG -',ch10,&
+&   ' abi_matrginv : BUG -',ch10,&
 &   '  The matrix that has been passed in argument of this subroutine',ch10,&
 &   '  is probably either singular or nearly singular.',ch10,&
 &   '  The LAPACK routine sgetri failed.',ch10,&
@@ -138,7 +138,7 @@ subroutine matrginv(a,lda,n)
  call dgetrf(n,n,a,lda,ipvt,ierr)
  if(ierr /= 0) then
    write(message, '(10a)' ) ch10,&
-&   ' matrginv : BUG -',ch10,&
+&   ' abi_matrginv : BUG -',ch10,&
 &   '  The matrix that has been passed in argument of this subroutine',ch10,&
 &   '  is probably either singular or nearly singular.',ch10,&
 &   '  The LAPACK routine dgetrf failed.',ch10,&
@@ -149,7 +149,7 @@ subroutine matrginv(a,lda,n)
  call dgetri(n,a,lda,ipvt,work,n,ierr)
  if(ierr /= 0) then
    write(message, '(10a)' ) ch10,&
-&   ' matrginv : BUG -',ch10,&
+&   ' abi_matrginv : BUG -',ch10,&
 &   '  The matrix that has been passed in argument of this subroutine',ch10,&
 &   '  is probably either singular or nearly singular.',ch10,&
 &   '  The LAPACK routine dgetri failed.',ch10,&
@@ -163,5 +163,5 @@ subroutine matrginv(a,lda,n)
  deallocate(work)
  deallocate(ipvt)         ! added by MM on Nov. 26
 
-end subroutine matrginv
+end subroutine abi_matrginv
 !!***

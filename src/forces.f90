@@ -3859,6 +3859,7 @@ subroutine symm_stress(tens,symobj)
   use m_ab6_symmetry
   use module_types
   use yaml_output
+  use abi_interfaces_numeric, only: abi_mati3inv
   implicit none
   !Arguments
   integer, intent(in) :: symobj
@@ -3878,7 +3879,7 @@ subroutine symm_stress(tens,symobj)
   !Get the symmetry matrices in terms of reciprocal basis
   allocate(symrec(3, 3, nsym))
   do isym = 1, nsym, 1
-     call mati3inv(sym(:,:,isym), symrec(:,:,isym))
+     call abi_mati3inv(sym(:,:,isym), symrec(:,:,isym))
   end do
 
   symtens=0.0_gp
@@ -3917,6 +3918,7 @@ subroutine symmetrise_forces(fxyz, at)
   use m_ab6_symmetry
   use module_types
   use yaml_output
+  use abi_interfaces_numeric, only: abi_mati3inv
 
   implicit none
 
@@ -3943,7 +3945,7 @@ subroutine symmetrise_forces(fxyz, at)
   !Get the symmetry matrices in terms of reciprocal basis
   allocate(symrec(3, 3, nsym))
   do isym = 1, nsym, 1
-     call mati3inv(sym(:,:,isym), symrec(:,:,isym))
+     call abi_mati3inv(sym(:,:,isym), symrec(:,:,isym))
   end do
 
   alat = (/ at%astruct%cell_dim(1), at%astruct%cell_dim(2), at%astruct%cell_dim(3) /)

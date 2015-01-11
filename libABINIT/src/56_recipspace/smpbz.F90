@@ -59,7 +59,7 @@ subroutine smpbz(brav,iout,kptrlatt,mkpt,nkpt,nshiftk,option,shiftk,spkpt)
 
  use abi_defs_basis
  use abi_interfaces_lowlevel
- use interfaces_32_util
+ use abi_interfaces_numeric
 
  implicit none
 
@@ -154,7 +154,7 @@ subroutine smpbz(brav,iout,kptrlatt,mkpt,nkpt,nshiftk,option,shiftk,spkpt)
 
 !  Build primitive vectors of the k lattice
    rlatt(:,:)=kptrlatt(:,:)
-   call matr3inv(rlatt,klatt)
+   call abi_matr3inv(rlatt,klatt)
 
 !  Now, klatt contains the three primitive vectors of the k lattice,
 !  in reduced coordinates. One builds all k vectors that
@@ -188,9 +188,9 @@ subroutine smpbz(brav,iout,kptrlatt,mkpt,nkpt,nshiftk,option,shiftk,spkpt)
            if(k2(2)<-tol10)cycle ; if(k2(2)>one-tol10)cycle
            if(k2(3)<-tol10)cycle ; if(k2(3)>one-tol10)cycle
 !          Wrap the trial values in the interval ]-1/2,1/2] .
-           call wrap2_pmhalf(k2(1),k1(1),shift)
-           call wrap2_pmhalf(k2(2),k1(2),shift)
-           call wrap2_pmhalf(k2(3),k1(3),shift)
+           call abi_wrap2_pmhalf(k2(1),k1(1),shift)
+           call abi_wrap2_pmhalf(k2(2),k1(2),shift)
+           call abi_wrap2_pmhalf(k2(3),k1(3),shift)
            spkpt(:,nn)=k1(:)
            nn=nn+1
          end do
@@ -261,9 +261,9 @@ subroutine smpbz(brav,iout,kptrlatt,mkpt,nkpt,nshiftk,option,shiftk,spkpt)
              k1(2)=(jj-1+shiftk(2,ikshft))/ngkpt(2)
              k1(3)=(kk-1+shiftk(3,ikshft))/ngkpt(3)
 !            Wrap the trial values in the interval ]-1/2,1/2] .
-             call wrap2_pmhalf(k1(1),k2(1),shift)
-             call wrap2_pmhalf(k1(2),k2(2),shift)
-             call wrap2_pmhalf(k1(3),k2(3),shift)
+             call abi_wrap2_pmhalf(k1(1),k2(1),shift)
+             call abi_wrap2_pmhalf(k1(2),k2(2),shift)
+             call abi_wrap2_pmhalf(k1(3),k2(3),shift)
 !            Test whether it is inside the FCC BZ.
              ktest(1)=2*k2(1)-1.0d-10
              ktest(2)=2*k2(2)-2.0d-10
@@ -338,9 +338,9 @@ subroutine smpbz(brav,iout,kptrlatt,mkpt,nkpt,nshiftk,option,shiftk,spkpt)
              k1(2)=(jj-1+shiftk(2,ikshft))/ngkpt(2)
              k1(3)=(kk-1+shiftk(3,ikshft))/ngkpt(3)
 !            Wrap the trial values in the interval ]-1/2,1/2] .
-             call wrap2_pmhalf(k1(1),k2(1),shift)
-             call wrap2_pmhalf(k1(2),k2(2),shift)
-             call wrap2_pmhalf(k1(3),k2(3),shift)
+             call abi_wrap2_pmhalf(k1(1),k2(1),shift)
+             call abi_wrap2_pmhalf(k1(2),k2(2),shift)
+             call abi_wrap2_pmhalf(k1(3),k2(3),shift)
 !            Test whether it is inside the BCC BZ.
              ktest(1)=2*k2(1)-1.0d-10
              ktest(2)=2*k2(2)-2.0d-10
@@ -426,9 +426,9 @@ subroutine smpbz(brav,iout,kptrlatt,mkpt,nkpt,nshiftk,option,shiftk,spkpt)
              k1(2)=(jj-1+shiftk(2,ikshft))/ngkpt(2)
              k1(3)=(kk-1+shiftk(3,ikshft))/ngkpt(3)
 !            Wrap the trial values in the interval ]-1/2,1/2] .
-             call wrap2_pmhalf(k1(1),k2(1),shift)
-             call wrap2_pmhalf(k1(2),k2(2),shift)
-             call wrap2_pmhalf(k1(3),k2(3),shift)
+             call abi_wrap2_pmhalf(k1(1),k2(1),shift)
+             call abi_wrap2_pmhalf(k1(2),k2(2),shift)
+             call abi_wrap2_pmhalf(k1(3),k2(3),shift)
              spkpt(:,nn)=k2(:)
              nn=nn+1
            end do

@@ -67,18 +67,15 @@ libabinit_a_SOURCES = \
 	abi_lowlevel/abi_m_xmpi.F90 \
 	abi_lowlevel/abi_wrtout.F90 \
 	abi_lowlevel/abi_leave_new.F90 \
-	28_numeric_noabirule/interfaces_28_numeric_noabirule.F90 \
-	28_numeric_noabirule/m_splines.F90 \
-	28_numeric_noabirule/sort_dp.F90 \
-	28_numeric_noabirule/sort_int.F90 \
-	28_numeric_noabirule/uniformrandom.F90 \
-	32_util/interfaces_32_util.F90 \
-	32_util/canon9.F90 \
-	32_util/derfc.F90 \
-	32_util/mati3inv.F90 \
-	32_util/matr3inv.F90 \
-	32_util/matrginv.F90 \
-	32_util/wrap2_pmhalf.F90 \
+	abi_numeric/abi_interfaces_numeric.F90 \
+	abi_numeric/abi_derfc.F90 \
+	abi_numeric/abi_sort_dp.F90 \
+	abi_numeric/abi_sort_int.F90 \
+	abi_numeric/abi_mati3inv.F90 \
+	abi_numeric/abi_matr3inv.F90 \
+	abi_numeric/abi_matrginv.F90 \
+	abi_numeric/abi_uniformrandom.F90 \
+	abi_numeric/abi_wrap2_pmhalf.F90 \
 	41_xc_lowlevel/interfaces_41_xc_lowlevel.F90 \
 	41_xc_lowlevel/drivexc.F90 \
 	41_xc_lowlevel/invcb.F90 \

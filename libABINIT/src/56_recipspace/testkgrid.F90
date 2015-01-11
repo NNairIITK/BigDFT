@@ -60,7 +60,7 @@ subroutine testkgrid(bravais,iout,kptrlatt,kptrlen,&
 
  use abi_defs_basis
  use abi_interfaces_lowlevel
- use interfaces_32_util
+ use abi_interfaces_numeric
  use interfaces_42_geometry
  use interfaces_56_recipspace, except_this_one => testkgrid
 
@@ -227,7 +227,7 @@ subroutine testkgrid(bravais,iout,kptrlatt,kptrlen,&
    matrix1(:,1)=bravais(3:5)*fact
    matrix1(:,2)=bravais(6:8)*fact
    matrix1(:,3)=bravais(9:11)*fact
-   call matr3inv(matrix1,matrix2)
+   call abi_matr3inv(matrix1,matrix2)
    do ii=1,3
      axes(:,ii)=rprimd(:,1)*matrix2(ii,1)+&
 &     rprimd(:,2)*matrix2(ii,2)+&

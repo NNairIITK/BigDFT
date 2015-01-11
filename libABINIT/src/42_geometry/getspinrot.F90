@@ -43,7 +43,7 @@ subroutine getspinrot(rprimd,spinrot,symrel_conv)
 
  use abi_defs_basis
  use abi_interfaces_lowlevel
- use interfaces_32_util
+ use abi_interfaces_numeric
 
  implicit none
 
@@ -85,11 +85,11 @@ subroutine getspinrot(rprimd,spinrot,symrel_conv)
  if( sum((symrel(:,:)-identity(:,:))**2)/=0)then
 
 !  Transform symmetry matrix in the system defined by rprimd
-   call matr3inv(rprimd,rprimd_invt)
+   call abi_matr3inv(rprimd,rprimd_invt)
    do ii=1,3
      coord(:,ii)=rprimd_invt(ii,:)
    end do
-   call matr3inv(coord,coordinvt)
+   call abi_matr3inv(coord,coordinvt)
    do ii=1,3
      matr1(:,ii)=symrel(:,1)*coord(1,ii)+&
 &     symrel(:,2)*coord(2,ii)+&

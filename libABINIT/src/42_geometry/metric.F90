@@ -41,7 +41,7 @@ subroutine metric(gmet,gprimd,iout,rmet,rprimd,ucvol)
 
  use abi_defs_basis
  use abi_interfaces_lowlevel
- use interfaces_32_util
+ use abi_interfaces_numeric
 
  implicit none
 
@@ -96,7 +96,7 @@ subroutine metric(gmet,gprimd,iout,rmet,rprimd,ucvol)
  end if
 
 !Generates gprimd
- call matr3inv(rprimd,gprimd)
+ call abi_matr3inv(rprimd,gprimd)
 
 !Write out rprimd, gprimd and ucvol
  if (iout>=0) then

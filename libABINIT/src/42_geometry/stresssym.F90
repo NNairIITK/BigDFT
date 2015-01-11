@@ -35,7 +35,7 @@
 subroutine stresssym(gprimd,nsym,stress,sym)
 
  use abi_defs_basis
- use interfaces_32_util
+ use abi_interfaces_numeric
  use interfaces_42_geometry, except_this_one => stresssym
 
  implicit none
@@ -59,7 +59,7 @@ subroutine stresssym(gprimd,nsym,stress,sym)
 
 !Obtain matrix of real space dimensional primitive translations
 !(inverse tranpose of gprimd), and its transpose
- call matr3inv(gprimd,rprimd)
+ call abi_matr3inv(gprimd,rprimd)
  rprimdt=transpose(rprimd)
 
 !Compute stress tensor in reduced coordinates

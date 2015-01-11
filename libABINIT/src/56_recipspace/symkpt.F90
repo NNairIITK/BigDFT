@@ -52,7 +52,7 @@ subroutine symkpt(gmet,indkpt1,kptns,nkpt,nkpt1,nsym1,option,&
 
  use abi_defs_basis
  use abi_interfaces_lowlevel
- use interfaces_28_numeric_noabirule
+ use abi_interfaces_numeric
 
  implicit none
 
@@ -157,7 +157,7 @@ subroutine symkpt(gmet,indkpt1,kptns,nkpt,nkpt1,nsym1,option,&
 !  Sort the lengths
    allocate(list(nkpt))
    list(:)=(/ (ikpt,ikpt=1,nkpt) /)
-   call sort_dp(nkpt,length2,list,tol14)
+   call abi_sort_dp(nkpt,length2,list,tol14)
 
    do ikpt=1,nkpt-1
 

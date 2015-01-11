@@ -33,7 +33,7 @@ subroutine strainsym(nsym,rprimd0,rprimd,rprimd_symm,symrel)
 
  use abi_defs_basis
  use abi_interfaces_linalg
- use interfaces_32_util
+ use abi_interfaces_numeric
 
  implicit none
 
@@ -56,7 +56,7 @@ subroutine strainsym(nsym,rprimd0,rprimd,rprimd_symm,symrel)
 
 !copy initial rprimd input and construct inverse
  rprimd0_inv = rprimd0
- call matrginv(rprimd0_inv,3,3)
+ call abi_matrginv(rprimd0_inv,3,3)
 
 !define strain as rprimd = strain * rprimd0 (in cartesian frame)
 !so strain = rprimd * rprimd0^{-1}
@@ -70,8 +70,8 @@ subroutine strainsym(nsym,rprimd0,rprimd,rprimd_symm,symrel)
 
 !  this loop accumulates symrel^{-1}*strain*symrel into strain_symm
 
-!  mati3inv gives the inverse transpose of symrel
-   call mati3inv(symrel(:,:,isym),symrel_it)
+!  abi_mati3inv gives the inverse transpose of symrel
+   call abi_mati3inv(symrel(:,:,isym),symrel_it)
    call dgemm('N','N',3,3,3,one,strain,3,dble(symrel(:,:,isym)),3,zero,tmp_mat,3)
    call dgemm('T','N',3,3,3,one,dble(symrel_it),3,tmp_mat,3,one,strain_symm,3)
 

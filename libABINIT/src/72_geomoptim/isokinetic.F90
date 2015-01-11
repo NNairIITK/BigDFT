@@ -11,11 +11,11 @@ subroutine md_isokinetic_init(amass, mditemp, natom, vel)
   real(dp),intent(inout) :: vel(3,natom)
 
   interface
-     function uniformrandom(seed) 
+     function abi_uniformrandom(seed) 
        implicit none
        integer :: seed
-       double precision :: uniformrandom
-     end function uniformrandom
+       double precision :: abi_uniformrandom
+     end function abi_uniformrandom
   end interface
 
   real(dp),parameter :: v2tol=tol8
@@ -38,8 +38,8 @@ subroutine md_isokinetic_init(amass, mditemp, natom, vel)
      vtest=zero
      do iatom=1,natom
         do idim=1,3
-           vel(idim,iatom)=sqrt(kb_HaK*mditemp/amass(iatom))*cos(two_pi*uniformrandom(idum))
-           vel(idim,iatom)=vel(idim,iatom)*sqrt(-2._dp*log(uniformrandom(idum)))
+           vel(idim,iatom)=sqrt(kb_HaK*mditemp/amass(iatom))*cos(two_pi*abi_uniformrandom(idum))
+           vel(idim,iatom)=vel(idim,iatom)*sqrt(-2._dp*log(abi_uniformrandom(idum)))
         end do
      end do
 

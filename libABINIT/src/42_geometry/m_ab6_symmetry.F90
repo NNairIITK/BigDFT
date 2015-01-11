@@ -958,7 +958,7 @@ contains
 
   subroutine compute_equivalent_atoms(sym)
 
-    use interfaces_32_util
+    use abi_interfaces_numeric
     use interfaces_42_geometry
 
     type(symmetry_type), intent(inout) :: sym
@@ -972,7 +972,7 @@ contains
     !Get the symmetry matrices in terms of reciprocal basis
     allocate(symrec(3, 3, sym%nSym))
     do isym = 1, sym%nSym, 1
-       call mati3inv(sym%sym(:,:,isym), symrec(:,:,isym))
+       call abi_mati3inv(sym%sym(:,:,isym), symrec(:,:,isym))
     end do
     
     !Obtain a list of rotated atom labels:

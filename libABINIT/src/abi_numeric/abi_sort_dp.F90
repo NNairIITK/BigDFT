@@ -1,7 +1,7 @@
 !{\src2tex{textfont=tt}}
-!!****f* ABINIT/sort_dp
+!!****f* ABINIT/abi_sort_dp
 !! NAME
-!!  sort_dp
+!!  abi_sort_dp
 !!
 !! FUNCTION 
 !!  Sort double precision array list(n) into ascending numerical order using Heapsort
@@ -25,7 +25,7 @@
 #include "config.h"
 #endif
 
-subroutine sort_dp(n,list,iperm,tol)
+subroutine abi_sort_dp(n,list,iperm,tol)
 
 
  implicit none
@@ -47,7 +47,7 @@ subroutine sort_dp(n,list,iperm,tol)
 
 ! Should not call with n<1
   write(06,1000) n
-  1000  format(/,' sort_dp has been called with array length n=',i12,/, &
+  1000  format(/,' abi_sort_dp has been called with array length n=',i12,/, &
 &  ' having a value less than 1.  This is not allowed.')
   stop
 
@@ -107,5 +107,5 @@ subroutine sort_dp(n,list,iperm,tol)
 
  end if ! n>1
 
-end subroutine sort_dp
+end subroutine abi_sort_dp
 !!***

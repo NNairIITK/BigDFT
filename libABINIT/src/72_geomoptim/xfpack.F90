@@ -55,7 +55,7 @@ subroutine xfpack(acell,acell0,fred,natom,ndim,nsym,optcell,option,rprim,rprimd0
 
  use abi_defs_basis
  use abi_interfaces_lowlevel
- use interfaces_32_util
+ use abi_interfaces_numeric
  use interfaces_42_geometry
 
  implicit none
@@ -137,7 +137,7 @@ subroutine xfpack(acell,acell0,fred,natom,ndim,nsym,optcell,option,rprim,rprimd0
      else if(optcell==2 .or. optcell==3 .or. optcell>=7)then
 
 !      Generates gprimd0
-       call matr3inv(rprimd0,gprimd0)
+       call abi_matr3inv(rprimd0,gprimd0)
        do ii=1,3
          do jj=1,3
            scaling(ii,jj)=0.0_dp

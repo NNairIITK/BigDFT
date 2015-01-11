@@ -521,9 +521,11 @@ subroutine createIonicPotential(geocode,iproc,nproc,verb,at,rxyz,&
   use module_base
   use module_types
   use yaml_output
+  use m_paw_numeric, only: paw_splint
   use gaussians, only: initialize_real_space_conversion, finalize_real_space_conversion,mp_exp
 !  use module_interfaces, except_this_one => createIonicPotential
   use Poisson_Solver, except_dp => dp, except_gp => gp, except_wp => wp
+  use abi_interfaces_numeric, only: abi_derf_ab
   implicit none
   character(len=1), intent(in) :: geocode !< @copydoc poisson_solver::doc::geocode
   integer, intent(in) :: iproc,nproc,n1,n2,n3,n3pi,i3s,n1i,n2i,n3i
@@ -546,6 +548,7 @@ subroutine createIonicPotential(geocode,iproc,nproc,verb,at,rxyz,&
   real(kind=8) :: rholeaked,rloc,charge,cutoff,x,y,z,r2,arg,xp,tt,rx,ry,rz
   real(kind=8) :: tt_tot,rholeaked_tot,potxyz
   real(kind=8) :: raux,raux2,rr,r2paw
+  real(kind=8) :: raux1(1),rr1(1)
   real(wp) :: maxdiff
   real(gp) :: ehart
   real(dp), dimension(2) :: charges_mpi
@@ -645,11 +648,12 @@ subroutine createIonicPotential(geocode,iproc,nproc,verb,at,rxyz,&
                     call ind_positions(perx,i1,n1,j1,gox)
                     r2=x**2+y**2+z**2
                     !if(r2>r2paw) cycle
-                    rr=sqrt(r2)
                     if(1==2) then
                       !This converges very slow                
-                      call splint(rholoc%msz(ityp),rholoc%rad(1:rholoc%msz(ityp),ityp),&
-&                      rholoc%d(1:rholoc%msz(ityp),1,ityp),rholoc%d(1:rholoc%msz(ityp),2,ityp),1,rr,raux,ierr)
+                      rr1(1)=sqrt(r2)
+                      call paw_splint(rholoc%msz(ityp),rholoc%rad(1:rholoc%msz(ityp),ityp),&
+&                      rholoc%d(1:rholoc%msz(ityp),1,ityp),rholoc%d(1:rholoc%msz(ityp),2,ityp),1,rr1,raux1,ierr)
+                      raux=raux1(1)
                     else
                       !Take the HGH form for rho_L (long range)
                       arg=r2/rloc**2
@@ -889,7 +893,7 @@ subroutine createIonicPotential(geocode,iproc,nproc,verb,at,rxyz,&
                              !1) V_L^HGH
                              if(rr>0.01d0) then
                                arg=rr/(sqrt(2.0)*rloc)
-                               call derf_ab(tt,arg)
+                               call abi_derf_ab(tt,arg)
                                raux2=-charge/rr*tt  
                              else
                                !In this case we deduce the values
@@ -897,9 +901,10 @@ subroutine createIonicPotential(geocode,iproc,nproc,verb,at,rxyz,&
                                call interpol_vloc(rr,rloc,charge,raux2)
                              end if
                              !2) V^PAW from splines
-                             call splint(rholoc%msz(ityp),rholoc%rad(1:rholoc%msz(ityp),ityp),&
-&                              rholoc%d(1:rholoc%msz(ityp),3,ityp),rholoc%d(1:rholoc%msz(ityp),4,ityp),1,rr,raux,ierr)
-                             
+                             rr1(1)=rr
+                             call paw_splint(rholoc%msz(ityp),rholoc%rad(1:rholoc%msz(ityp),ityp),&
+&                              rholoc%d(1:rholoc%msz(ityp),3,ityp),rholoc%d(1:rholoc%msz(ityp),4,ityp),1,rr1,raux1,ierr)
+                             raux=raux1(1)
                              ind=j1+1+nbl1+(j2+nbl2)*n1i+(j3-i3s+1-1)*n1i*n2i
                              pot_ion(ind)=pot_ion(ind)+raux-raux2
                           end if
@@ -1044,6 +1049,7 @@ contains
   END SUBROUTINE interpol_vloc
 
   subroutine calcVloc(yy,xx,rloc,Z)
+   use abi_interfaces_numeric, only: abi_derf_ab
    implicit none
    INTEGER, PARAMETER   :: DP = KIND(1.0D0)          ! double precision
    real(dp),intent(in)  :: xx,rloc,Z
@@ -1051,7 +1057,7 @@ contains
    real(dp):: arg,tt
   
    arg=xx/(sqrt(2.0)*rloc)
-   call derf_ab(tt,arg)
+   call abi_derf_ab(tt,arg)
    yy=-Z/xx*tt
   
   
@@ -1110,6 +1116,7 @@ END SUBROUTINE ind_positions_new
 
 subroutine sum_erfcr(nat,ntypes,x,y,z,iatype,nelpsp,psppar,rxyz,potxyz)
   use module_base
+  use abi_interfaces_numeric, only: abi_derf_ab
   implicit none
   integer, intent(in) :: nat,ntypes
   real(gp) :: x,y,z
@@ -1141,7 +1148,7 @@ subroutine sum_erfcr(nat,ntypes,x,y,z,iatype,nelpsp,psppar,rxyz,potxyz)
      if (r == 0.0_gp) then
         potxyz = potxyz - charge*2.0_wp/(sqrt(pi)*real(sq2rl,wp))
      else
-        call derf_ab(derf_val,r/sq2rl)
+        call abi_derf_ab(derf_val,r/sq2rl)
         potxyz = potxyz - charge*real(derf_val/r,wp)
      end if
 

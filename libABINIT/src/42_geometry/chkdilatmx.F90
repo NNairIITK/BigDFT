@@ -32,7 +32,7 @@ subroutine chkdilatmx(dilatmx,rprimd,rprimd_orig)
 
  use abi_defs_basis
  use abi_interfaces_lowlevel
- use interfaces_32_util
+ use abi_interfaces_numeric
 
  implicit none
 
@@ -53,7 +53,7 @@ subroutine chkdilatmx(dilatmx,rprimd,rprimd_orig)
 ! *************************************************************************
 
 !Generates gprimd
- call matr3inv(rprimd_orig,gprimd_orig)
+ call abi_matr3inv(rprimd_orig,gprimd_orig)
 
 !Find the matrix that transform an original xcart to xred, then
 !to the new xcart
