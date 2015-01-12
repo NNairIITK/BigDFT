@@ -809,7 +809,6 @@ module communications
               .not.associated(wt%nsenddspls) .or. &
               .not.associated(wt%nrecvcounts) .or. &
               .not.associated(wt%nrecvdspls)) then
-              write(*,*) sqrt(-1.d0)
               call f_err_throw('not all workarrays are associated', err_id=ERR_LINEAR_TRANSPOSITION)
           end if
       else
