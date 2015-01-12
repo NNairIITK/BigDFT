@@ -18,6 +18,7 @@ subroutine CalculateTailCorrection(iproc,nproc,at,rbuf,orbs,&
   use yaml_output
   use module_interfaces, except_this_one => CalculateTailCorrection
   use gaussians, only: gaussian_basis
+  use psp_projectors, only: deallocate_workarrays_projectors, allocate_workarrays_projectors
   implicit none
   type(atoms_data), intent(in) :: at
   type(orbitals_data), intent(in) :: orbs
@@ -68,6 +69,8 @@ subroutine CalculateTailCorrection(iproc,nproc,at,rbuf,orbs,&
   real(kind=8), dimension(:), allocatable :: w1,w2
   real(kind=8), dimension(:,:,:), allocatable::y_c!output 
   real(kind=8), dimension(:,:,:,:), allocatable :: y_f! output
+
+  call f_routine(id='CalculateTailCorrection')
 
   n1=Glr%d%n1
   n2=Glr%d%n2
@@ -346,6 +349,10 @@ subroutine CalculateTailCorrection(iproc,nproc,at,rbuf,orbs,&
   !change positions in gaussian projectors
   nlpsp%proj_G%rxyz => txyz
 
+  ! Workarrays for the projector creation
+  call deallocate_workarrays_projectors(nlpsp%wpr)
+  call allocate_workarrays_projectors(nb1, nb2, nb3, nlpsp%wpr)
+
   do iorb=1,orbs%norbp
 
      !build the compressed wavefunction in the enlarged box
@@ -525,6 +532,8 @@ subroutine CalculateTailCorrection(iproc,nproc,at,rbuf,orbs,&
      eproj_sum=wrkallred(3,1)
      call f_free(wrkallred)
   endif
+
+  call f_release_routine()
 
 END SUBROUTINE CalculateTailCorrection
 
