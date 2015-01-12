@@ -50,6 +50,8 @@ subroutine local_hamiltonian(iproc,nproc,npsidim_orbs,orbs,Lzd,hx,hy,hz,&
   real(wp), dimension(:,:), allocatable :: psir
   !!write(*,*) 'condition',(present(dpbox) .and. present(potential) .and. present(comgp))
 
+  call f_routine(id='local_hamiltonian')
+
   epot=0.d0
   ekin=0.d0
 
@@ -195,6 +197,8 @@ subroutine local_hamiltonian(iproc,nproc,npsidim_orbs,orbs,Lzd,hx,hy,hz,&
   end do loop_lr
 !!$end if
 !!$end do
+
+  call f_release_routine()
 
 END SUBROUTINE local_hamiltonian
 
