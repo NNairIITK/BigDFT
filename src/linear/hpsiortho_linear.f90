@@ -30,6 +30,7 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
                           transform_sparse_matrix_local
   use constrained_dft, only: cdft_data
   use module_fragments, only: system_fragment
+  use transposed_operations, only: calculate_overlap_transposed, build_linear_combination_transposed
   implicit none
 
   ! Calling arguments
@@ -662,6 +663,7 @@ subroutine calculate_residue_ks(iproc, nproc, num_extra, ksorbs, tmb, hpsit_c, h
                                matrices_null, allocate_matrices, deallocate_matrices
   use sparsematrix, only: uncompress_matrix, gather_matrix_from_taskgroups_inplace, &
                           extract_taskgroup_inplace, uncompress_matrix2
+  use transposed_operations, only: calculate_overlap_transposed
   implicit none
 
   ! Calling arguments
@@ -911,6 +913,7 @@ subroutine build_gradient(iproc, nproc, tmb, target_function, hpsit_c, hpsit_f, 
   use sparsematrix, only: orb_from_index, gather_matrix_from_taskgroups_inplace
   use communications_base, only: TRANSPOSE_FULL
   use communications, only: transpose_localized
+  use transposed_operations, only: build_linear_combination_transposed
   implicit none
 
   ! Calling arguments
