@@ -24,6 +24,7 @@ module psp_projectors
   integer, parameter, public :: PSPCODE_PAW = 7
   integer, parameter, public :: PSPCODE_HGH_K = 10
   integer, parameter, public :: PSPCODE_HGH_K_NLCC = 12
+  integer,parameter,public :: NCPLX_MAX = 2
 
 
   !> Parameters identifying the different strategy for the application of a projector 
@@ -61,6 +62,7 @@ module psp_projectors
 
   type,public :: workarrays_projectors
     real(wp),pointer,dimension(:,:,:,:) :: wprojx,wprojy,wprojz
+    real(wp),pointer,dimension(:) :: wproj
     real(wp),pointer,dimension(:,:,:) :: work
   end type workarrays_projectors
 
@@ -884,6 +886,7 @@ contains
     nullify(wp%wprojx)
     nullify(wp%wprojy)
     nullify(wp%wprojz)
+    nullify(wp%wproj)
     nullify(wp%work)
   end subroutine nullify_workarrays_projectors
 
@@ -891,12 +894,12 @@ contains
     implicit none
     integer,intent(in) :: n1, n2, n3
     type(workarrays_projectors),intent(inout) :: wp
-    integer,parameter :: ncplx_max=2
     integer,parameter :: nterm_max=20
     integer,parameter :: nw=65536
-    wp%wprojx = f_malloc_ptr((/ 1.to.ncplx_max, 0.to.n1, 1.to.2, 1.to.nterm_max /),id='wprojx')
-    wp%wprojy = f_malloc_ptr((/ 1.to.ncplx_max, 0.to.n2, 1.to.2, 1.to.nterm_max /),id='wprojy')
-    wp%wprojz = f_malloc_ptr((/ 1.to.ncplx_max, 0.to.n3, 1.to.2, 1.to.nterm_max /),id='wprojz')
+    wp%wprojx = f_malloc_ptr((/ 1.to.NCPLX_MAX, 0.to.n1, 1.to.2, 1.to.nterm_max /),id='wprojx')
+    wp%wprojy = f_malloc_ptr((/ 1.to.NCPLX_MAX, 0.to.n2, 1.to.2, 1.to.nterm_max /),id='wprojy')
+    wp%wprojz = f_malloc_ptr((/ 1.to.NCPLX_MAX, 0.to.n3, 1.to.2, 1.to.nterm_max /),id='wprojz')
+    wp%wproj = f_malloc_ptr(NCPLX_MAX*(max(n1,n2,n3)+1)*2,id='wprojz')
     wp%work = f_malloc_ptr((/ 0.to.nw, 1.to.2, 1.to.2 /),id='work')
   end subroutine allocate_workarrays_projectors
 
@@ -906,6 +909,7 @@ contains
     call f_free_ptr(wp%wprojx)
     call f_free_ptr(wp%wprojy)
     call f_free_ptr(wp%wprojz)
+    call f_free_ptr(wp%wproj)
     call f_free_ptr(wp%work)
   end subroutine deallocate_workarrays_projectors
 

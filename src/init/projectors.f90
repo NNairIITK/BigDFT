@@ -564,7 +564,7 @@ subroutine crtproj(geocode,nterm,ns1,ns2,ns3,n1,n2,n3, &
      mvctr_c,mvctr_f,mseg_c,mseg_f,keyv_p,keyg_p,proj,wpr,gau_cut)
   use module_base
   use module_types
-  use psp_projectors, only: workarrays_projectors
+  use psp_projectors, only: workarrays_projectors, NCPLX_MAX
   !use gaussians
   implicit none
   character(len=1), intent(in) :: geocode !< @copydoc poisson_solver::doc::geocode
@@ -640,9 +640,15 @@ subroutine crtproj(geocode,nterm,ns1,ns2,ns3,n1,n2,n3, &
   end if
 
   !REALLY SLOW ON VESTA, TEMPORARY CHANGE ONLY
-  !#wprojx = f_malloc((/ 1.to.ncplx_w, 0.to.n1, 1.to.2, 1.to.nterm /),id='wprojx')
-  !#wprojy = f_malloc((/ 1.to.ncplx_w, 0.to.n2, 1.to.2, 1.to.nterm /),id='wprojy')
-  !#wprojz = f_malloc((/ 1.to.ncplx_w, 0.to.n3, 1.to.2, 1.to.nterm /),id='wprojz')
+  !!wprojx = f_malloc((/ 1.to.ncplx_w, 0.to.n1, 1.to.2, 1.to.nterm /),id='wprojx')
+  !!wprojy = f_malloc((/ 1.to.ncplx_w, 0.to.n2, 1.to.2, 1.to.nterm /),id='wprojy')
+  !!wprojz = f_malloc((/ 1.to.ncplx_w, 0.to.n3, 1.to.2, 1.to.nterm /),id='wprojz')
+
+  !!if (size(wpr%wprojx)<size(wprojx)) stop 'size x'
+  !!if (size(wpr%wprojy)<size(wprojy)) stop 'size y'
+  !!if (size(wpr%wprojz)<size(wprojz)) stop 'size z'
+  !!if (size(wpr%wprojx,1)/=size(wprojx,1)) stop 'ncplx not equal'
+  !!if (size(wpr%wprojx,2)/=size(wprojx,2)) stop 'n1 not equal'
   !allocate(wprojx(1:ncplx_w,0:n1,1:2,1:nterm))
   !allocate(wprojy(1:ncplx_w,0:n2,1:2,1:nterm))
   !allocate(wprojz(1:ncplx_w,0:n3,1:2,1:nterm))
@@ -666,6 +672,9 @@ subroutine crtproj(geocode,nterm,ns1,ns2,ns3,n1,n2,n3, &
   !allocate(work(0:nw,1:2,1:2))
   !!$omp end critical
 
+  !!wprojx=0.d0
+  !!wpr%wprojx=0.d0
+
   !!$ ithread=omp_get_thread_num()
   !!$ nthread=omp_get_num_threads() 
   !!$ ichunk=0
@@ -674,29 +683,49 @@ subroutine crtproj(geocode,nterm,ns1,ns2,ns3,n1,n2,n3, &
      !!$ if (mod(ichunk,nthread).eq.ithread) then
      factor(:)=fac_arr(:,iterm)
      n_gau=lx(iterm) 
+     !!call gauss_to_daub_k(hx,kx*hx,ncplx_w,ncplx_g,ncplx_k,factor,rx,gau_a,n_gau,ns1,n1,ml1,mu1,&
+     !!     wprojx(1,0,1,iterm),wpr%work,nw,perx,gau_cut) 
      call gauss_to_daub_k(hx,kx*hx,ncplx_w,ncplx_g,ncplx_k,factor,rx,gau_a,n_gau,ns1,n1,ml1,mu1,&
-          wpr%wprojx(1,0,1,iterm),wpr%work,nw,perx,gau_cut) 
+          wpr%wproj(1),wpr%work,nw,perx,gau_cut) 
      !!$ endif
+     call vcopy(ncplx_w*(n1+1), wpr%wproj(1), 1, wpr%wprojx(1,0,1,iterm), NCPLX_MAX)
+     call vcopy(ncplx_w*(n1+1), wpr%wproj(ncplx_w*(n1+1)+1), 1, wpr%wprojx(1,0,2,iterm), NCPLX_MAX)
 
      !!$ ichunk=ichunk+1
      !!$ if (mod(ichunk,nthread).eq.ithread) then
      n_gau=ly(iterm) 
+     !!call gauss_to_daub_k(hy,ky*hy,ncplx_w,1,ncplx_k,1.d0,ry,gau_a,n_gau,ns2,n2,ml2,mu2,&
+     !!     wprojy(1,0,1,iterm),wpr%work,nw,pery,gau_cut) 
      call gauss_to_daub_k(hy,ky*hy,ncplx_w,1,ncplx_k,1.d0,ry,gau_a,n_gau,ns2,n2,ml2,mu2,&
-          wpr%wprojy(1,0,1,iterm),wpr%work,nw,pery,gau_cut) 
+          wpr%wproj(1),wpr%work,nw,pery,gau_cut) 
      !!$ endif
+     call vcopy(ncplx_w*(n2+1), wpr%wproj(1), 1, wpr%wprojy(1,0,1,iterm), NCPLX_MAX)
+     call vcopy(ncplx_w*(n2+1), wpr%wproj(ncplx_w*(n2+1)+1), 1, wpr%wprojy(1,0,2,iterm), NCPLX_MAX)
 
      !!$ ichunk=ichunk+1
      !!$ if (mod(ichunk,nthread).eq.ithread) then
      n_gau=lz(iterm) 
+     !!call gauss_to_daub_k(hz,kz*hz,ncplx_w,1,ncplx_k,1.d0,rz,gau_a,n_gau,ns3,n3,ml3,mu3,&
+     !!     wprojz(1,0,1,iterm),wpr%work,nw,perz,gau_cut)
      call gauss_to_daub_k(hz,kz*hz,ncplx_w,1,ncplx_k,1.d0,rz,gau_a,n_gau,ns3,n3,ml3,mu3,&
-          wpr%wprojz(1,0,1,iterm),wpr%work,nw,perz,gau_cut)
+          wpr%wproj(1),wpr%work,nw,perz,gau_cut)
      !!$ endif
+     call vcopy(ncplx_w*(n3+1), wpr%wproj(1), 1, wpr%wprojz(1,0,1,iterm), NCPLX_MAX)
+     call vcopy(ncplx_w*(n3+1), wpr%wproj(ncplx_w*(n3+1)+1), 1, wpr%wprojz(1,0,2,iterm), NCPLX_MAX)
   end do
+
   !!$omp critical
     !#call f_free(work) 
   !deallocate(work)
   !!$omp end critical
   !!$omp end parallel
+
+  !write(10000+bigdft_mpi%iproc*10,*) wpr%wprojx
+  !!write(10000+bigdft_mpi%iproc*10+1,*) wprojx
+
+!wprojx=wpr%wprojx
+!wprojy=wpr%wprojy
+!wprojz=wpr%wprojz
 
   !the filling of the projector should be different if ncplx==1 or 2
   !split such as to avoid intensive call to if statements
@@ -725,6 +754,8 @@ subroutine crtproj(geocode,nterm,ns1,ns2,ns3,n1,n2,n3, &
            ind_c=i+i0jj
            proj(ind_c)=&
                 wpr%wprojx(1,i,1,1)*wprojyz
+  !!write(20000+bigdft_mpi%iproc*10,*) wpr%wprojx(1,i,1,1)
+  !!write(20000+bigdft_mpi%iproc*10+1,*) wpr%wpr%wprojx(1,i,1,1)
         enddo
      enddo
      !$omp enddo
@@ -756,6 +787,8 @@ subroutine crtproj(geocode,nterm,ns1,ns2,ns3,n1,n2,n3, &
            proj(ind_f+5)=wpr%wprojx(1,i,2,1)*wprojyz12
            proj(ind_f+6)=wpr%wprojx(1,i,1,1)*wprojyz22
            proj(ind_f+7)=wpr%wprojx(1,i,2,1)*wprojyz22
+  !!write(30000+bigdft_mpi%iproc*10,*) wpr%wprojx(1,i,2,1)
+  !!write(30000+bigdft_mpi%iproc*10+1,*) wpr%wpr%wprojx(1,i,2,1)
         enddo
      enddo
      !$omp enddo
@@ -780,6 +813,8 @@ subroutine crtproj(geocode,nterm,ns1,ns2,ns3,n1,n2,n3, &
               do iterm=2,nterm
                  proj(ind_c)=proj(ind_c)+&
                       wpr%wprojx(1,i,1,iterm)*wpr%wprojy(1,i2,1,iterm)*wpr%wprojz(1,i3,1,iterm)
+  !!write(40000+bigdft_mpi%iproc*10,*) wpr%wprojx(1,i,1,iterm)
+  !!write(40000+bigdft_mpi%iproc*10+1,*) wpr%wpr%wprojx(1,i,1,iterm)
               end do
            end do
         end do
@@ -815,20 +850,22 @@ subroutine crtproj(geocode,nterm,ns1,ns2,ns3,n1,n2,n3, &
                       wpr%wprojx(1,i,1,iterm)*wpr%wprojy(1,i2,2,iterm)*wpr%wprojz(1,i3,2,iterm)
                  proj(ind_f+7)=proj(ind_f+7)+&
                       wpr%wprojx(1,i,2,iterm)*wpr%wprojy(1,i2,2,iterm)*wpr%wprojz(1,i3,2,iterm)
+  !!write(50000+bigdft_mpi%iproc*10,*) wpr%wprojx(1,i,2,iterm)
+  !!write(50000+bigdft_mpi%iproc*10+1,*) wpr%wpr%wprojx(1,i,2,iterm)
                  !! proj_f(1,i-i0+jj)=proj_f(1,i-i0+jj)+&
-                 !!      wprojx(i,2,iterm)*wprojy(i2,1,iterm)*wprojz(i3,1,iterm)
+                 !!      wpr%wprojx(i,2,iterm)*wpr%wprojy(i2,1,iterm)*wpr%wprojz(i3,1,iterm)
                  !! proj_f(2,i-i0+jj)=proj_f(2,i-i0+jj)+&
-                 !!      wprojx(i,1,iterm)*wprojy(i2,2,iterm)*wprojz(i3,1,iterm)
+                 !!      wpr%wprojx(i,1,iterm)*wpr%wprojy(i2,2,iterm)*wpr%wprojz(i3,1,iterm)
                  !! proj_f(3,i-i0+jj)=proj_f(3,i-i0+jj)+&
-                 !!      wprojx(i,2,iterm)*wprojy(i2,2,iterm)*wprojz(i3,1,iterm)
+                 !!      wpr%wprojx(i,2,iterm)*wpr%wprojy(i2,2,iterm)*wpr%wprojz(i3,1,iterm)
                  !! proj_f(4,i-i0+jj)=proj_f(4,i-i0+jj)+&
-                 !!      wprojx(i,1,iterm)*wprojy(i2,1,iterm)*wprojz(i3,2,iterm)
+                 !!      wpr%wprojx(i,1,iterm)*wpr%wprojy(i2,1,iterm)*wpr%wprojz(i3,2,iterm)
                  !! proj_f(5,i-i0+jj)=proj_f(5,i-i0+jj)+&
-                 !!      wprojx(i,2,iterm)*wprojy(i2,1,iterm)*wprojz(i3,2,iterm)
+                 !!      wpr%wprojx(i,2,iterm)*wpr%wprojy(i2,1,iterm)*wpr%wprojz(i3,2,iterm)
                  !! proj_f(6,i-i0+jj)=proj_f(6,i-i0+jj)+&
-                 !!      wprojx(i,1,iterm)*wprojy(i2,2,iterm)*wprojz(i3,2,iterm)
+                 !!      wpr%wprojx(i,1,iterm)*wpr%wprojy(i2,2,iterm)*wpr%wprojz(i3,2,iterm)
                  !! proj_f(7,i-i0+jj)=proj_f(7,i-i0+jj)+&
-                 !!      wprojx(i,2,iterm)*wprojy(i2,2,iterm)*wprojz(i3,2,iterm)
+                 !!      wpr%wprojx(i,2,iterm)*wpr%wprojy(i2,2,iterm)*wpr%wprojz(i3,2,iterm)
               end do
            end do
         end do
@@ -837,6 +874,7 @@ subroutine crtproj(geocode,nterm,ns1,ns2,ns3,n1,n2,n3, &
      !$omp end parallel
 
   else if (ncplx_w==2) then
+      write(*,*) 'in second branch'
      !$omp parallel default(private) shared(mseg_c,keyv_p,keyg_p,n3,n2,ncplx_k) &
      !$omp shared(n1,proj,wpr,wprojx,wprojy,wprojz,mvctr_c) &
      !$omp shared(nterm,mvctr_f,mseg_f,n1p1,np,mvctr_cf,mvctr_cf2)
@@ -1063,7 +1101,7 @@ subroutine crtproj(geocode,nterm,ns1,ns2,ns3,n1,n2,n3, &
                  proj(ind_f+6)=proj(ind_f+6)+im_cmplx_prod(&
                       wpr%wprojx(1:2,i,1,iterm),wpr%wprojy(1:2,i2,2,iterm),wpr%wprojz(1:2,i3,2,iterm))
                  proj(ind_f+7)=proj(ind_f+7)+im_cmplx_prod(&
-                      wpr%wprojx(1:2,i,2,iterm),wprojy(1:2,i2,2,iterm),wpr%wprojz(1:2,i3,2,iterm))
+                      wpr%wprojx(1:2,i,2,iterm),wpr%wprojy(1:2,i2,2,iterm),wpr%wprojz(1:2,i3,2,iterm))
               end do
            end do
         end do
@@ -1076,9 +1114,9 @@ subroutine crtproj(geocode,nterm,ns1,ns2,ns3,n1,n2,n3, &
 !!  call system_clock(ncount2,ncount_rate,ncount_max)
 !!  write(20,*) 'TIMING2:', dble(ncount2-ncount1)/dble(ncount_rate)
 
-  !#call f_free(wprojx)
-  !#call f_free(wprojy)
-  !#call f_free(wprojz)
+  !!call f_free(wprojx)
+  !!call f_free(wprojy)
+  !!call f_free(wprojz)
   !deallocate(wprojx)
   !deallocate(wprojy)
   !deallocate(wprojz)
