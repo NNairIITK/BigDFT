@@ -30,6 +30,7 @@ module module_globaltool
         real(gp) :: fp_delta
         integer  :: ndir
         character(len=500), allocatable :: directories(:)
+        character(len=3) :: fptype
     end type
 
     type gt_data
@@ -62,6 +63,8 @@ module module_globaltool
         real(gp), allocatable :: gmon_ener(:)
         real(gp), allocatable :: gmon_fp(:,:)
         character(len=1), allocatable :: gmon_stat(:)
+
+        integer, allocatable :: mn(:)
     end type
     contains
 !=====================================================================
@@ -185,9 +188,15 @@ subroutine init_gt_data(gdat)
     gdat%nminmaxpd = maxval(gdat%nminpd)
 
     call init_nat_rcov(gdat)
-    gdat%nid = gdat%nat !s-overlap
-!    nid = 4*nat !sp-overlap
-
+    if(trim(adjustl(gdat%uinp%fptype))=='SO')then
+        gdat%nid = gdat%nat !s-overlap
+    elseif(trim(adjustl(gdat%uinp%fptype))=='SPO')then
+        gdat%nid = 4*gdat%nat !sp-overlap
+    else
+        call f_err_throw('Fingerprint type "'//&
+             trim(adjustl(gdat%uinp%fptype))//'" unknown.',&
+             err_name='BIGDFT_RUNTIME_ERROR')
+    endif
 
     gdat%fp_arr = f_malloc((/gdat%nid,gdat%nminmax/),id='fp_arr')
     gdat%en_arr = f_malloc((/gdat%nminmax/),id='en_arr')
@@ -229,6 +238,7 @@ subroutine finalize_gt_data(gdat)
     call f_free(gdat%sadnumber)
     call f_free(gdat%gmon_ener)
     call f_free(gdat%gmon_fp)
+    call f_free(gdat%mn)
     call f_free_str(600,gdat%gmon_stat)
 end subroutine finalize_gt_data
 !=====================================================================
@@ -244,7 +254,7 @@ subroutine read_globaltool_uinp(gdat)
     u=f_get_free_unit()
     open(u,file='globaltool.inp')
     gdat%uinp%ndir=0
-    read(u,*,iostat=istat)gdat%uinp%en_delta,gdat%uinp%fp_delta
+    read(u,*,iostat=istat)gdat%uinp%en_delta,gdat%uinp%fp_delta,gdat%uinp%fptype
     if(istat/=0)then
         call f_err_throw('Error in first line of globaltool.inp',&
              err_name='BIGDFT_RUNTIME_ERROR')
@@ -339,12 +349,14 @@ subroutine write_merged(gdat)
     use yaml_output
     implicit none
     !parameters
-    type(gt_data), intent(in) :: gdat
+    type(gt_data), intent(inout) :: gdat
     !local
     integer :: imin
     call yaml_comment('Merged minima ....',hfill='-')
+    gdat%mn = f_malloc((/1.to.gdat%nmin/),id='gdat%mn')
     do imin=1,gdat%nmin
-        write(*,'(i6.6,1x,es24.17,1x,a)')imin,gdat%en_arr(imin),&
+        gdat%mn(gdat%minnumber(imin)) = imin
+        write(*,'(i6.6,1x,es24.17,1x,a)')gdat%minnumber(imin),gdat%en_arr(imin),&
                                 trim(adjustl(gdat%path_min(imin)))
     enddo
 end subroutine write_merged
@@ -359,6 +371,7 @@ subroutine write_transitionpairs(gdat)
     !local
     integer :: itrans
     integer :: IDmin1, IDmin2
+    integer :: kIDmin1, kIDmin2
     real(gp) :: fpd
     call yaml_comment('Transition pairs unified ....',hfill='-')
     write(*,'(a)')'  #Trans IDmin1 IDmin2  Ener1                '//&
@@ -366,11 +379,13 @@ subroutine write_transitionpairs(gdat)
          '     FPdist'
     do itrans=1,gdat%ntrans
         call unpair(gdat%transpairs(itrans),IDmin1,IDmin2)
-        call fpdistance(gdat%nid,gdat%fp_arr(1,IDmin1),&
-             gdat%fp_arr(1,IDmin2),fpd)
+        kIDmin1=gdat%mn(IDmin1)
+        kIDmin2=gdat%mn(IDmin2)
+        call fpdistance(gdat%nid,gdat%fp_arr(1,kIDmin1),&
+             gdat%fp_arr(1,kIDmin2),fpd)
         write(*,'(a,1x,i4.4,3x,i4.4,2x,4(1x,es24.17))')'   Trans',&
-             IDmin1,IDmin2,gdat%en_arr(IDmin1),gdat%en_arr(IDmin2),&
-             abs(gdat%en_arr(IDmin1)-gdat%en_arr(IDmin2)),fpd
+             IDmin1,IDmin2,gdat%en_arr(kIDmin1),gdat%en_arr(kIDmin2),&
+             abs(gdat%en_arr(kIDmin1)-gdat%en_arr(kIDmin2)),fpd
     enddo
 end subroutine write_transitionpairs
 !=====================================================================
@@ -408,6 +423,7 @@ subroutine add_transpairs_to_database(gdat)
     real(gp) :: fpcurr(gdat%nid)
     character(len=1) :: statcurr
     integer :: idcurr, idnext
+    integer :: kidcurr, kidnext
     integer :: kid, k_epot
     logical :: lnew
     integer :: id_transpair
@@ -436,21 +452,24 @@ subroutine add_transpairs_to_database(gdat)
             call f_err_throw('Structure does not exist',&
                  err_name='BIGDFT_RUNTIME_ERROR')
         endif
-        idnext=kid
+        kidnext=kid
+        idnext = gdat%minnumber(kid)
         !check if restart happened
         if(gdat%gmon_stat(iposloc)=='P')then
-            idcurr = idnext
+            kidcurr = kidnext
+            idcurr  = idnext
             ecurr = gdat%gmon_ener(iposloc)
             fpcurr(:) = gdat%gmon_fp(:,iposloc)
             statcurr = gdat%gmon_stat(iposloc)
             cycle
         endif
         id_transpair = getPairId(idcurr,idnext)
-        call fpdistance(gdat%nid,gdat%fp_arr(1,idcurr),&
-             gdat%fp_arr(1,idnext),fpd)
+        call fpdistance(gdat%nid,gdat%fp_arr(1,kidcurr),&
+             gdat%fp_arr(1,kidnext),fpd)
+write(*,*)gdat%gmon_ener(iposloc)
         write(*,'(a,1x,i4.4,3x,i4.4,2x,4(1x,es24.17))')'   trans',idcurr,&
-             idnext,gdat%en_arr(idcurr),gdat%en_arr(idnext),&
-             abs(gdat%en_arr(idcurr)-gdat%en_arr(idnext)),fpd
+             idnext,gdat%en_arr(kidcurr),gdat%en_arr(kidnext),&
+             abs(gdat%en_arr(kidcurr)-gdat%en_arr(kidnext)),fpd
         call inthunt_gt(gdat%transpairs,&
              max(1,min(gdat%ntrans,gdat%ntransmax)),id_transpair,&
              loc_id_transpair)
@@ -466,6 +485,7 @@ subroutine add_transpairs_to_database(gdat)
         endif
         !check if accepted
         if(gdat%gmon_stat(iposloc)=='A')then
+            kidcurr = kidnext
             idcurr = idnext
             ecurr = gdat%gmon_ener(iposloc)
             fpcurr(:) = gdat%gmon_fp(:,iposloc)

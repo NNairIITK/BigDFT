@@ -377,6 +377,7 @@ subroutine write_data(mdat)
     close(u)
     
     !write tsdat file for saddle points and connection information
+    u=f_get_free_unit()
     open(u,file='tsdat')
     u2=f_get_free_unit()
     open(u2,file='tsdat_exclude')

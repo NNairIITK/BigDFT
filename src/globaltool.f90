@@ -27,9 +27,9 @@ program globaltool
 
     call read_and_merge_data(gdat)
 
-    call write_transitionpairs(gdat)
-
     call write_merged(gdat)
+
+    call write_transitionpairs(gdat)
 
     call finalize_gt_data(gdat)
 
