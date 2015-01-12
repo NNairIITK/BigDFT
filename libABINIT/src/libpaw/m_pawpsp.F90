@@ -27,9 +27,7 @@ module m_pawpsp
  USE_MPI_WRAPPERS
  USE_MEMORY_PROFILING
 
-#if defined HAVE_DFT_LIBXC
- use libxc_functionals
-#endif
+ use m_libpaw_libxc
 #if defined HAVE_TRIO_FOX
  use fox_sax
 #endif

@@ -45,7 +45,6 @@ subroutine bonds_lgth_angles(coordn,fnameabo_app_geo,natom,ntypat,&
 
  use abi_defs_basis
  use abi_interfaces_lowlevel
- use interfaces_32_util
  use interfaces_42_geometry, except_this_one => bonds_lgth_angles
 
  implicit none

@@ -86,7 +86,6 @@ bldgrpaf.o: 42_geometry/bldgrpaf.F90 \
 bonds_lgth_angles.o: 42_geometry/bonds_lgth_angles.F90 \
 	abi_defs_basis.o \
 	abi_interfaces_lowlevel.o \
-	interfaces_32_util.o \
 	interfaces_42_geometry.o
 	$(PPFCCOMPILE) -c -o bonds_lgth_angles.o `test -f '42_geometry/bonds_lgth_angles.F90' || echo '$(srcdir)/'`42_geometry/bonds_lgth_angles.F90
 
@@ -611,6 +610,11 @@ abi_wrap2_pmhalf.o: abi_numeric/abi_wrap2_pmhalf.F90 \
 m_libpaw_defs.o: libpaw/m_libpaw_defs.F90
 	$(PPFCCOMPILE) -c -o m_libpaw_defs.o `test -f 'libpaw/m_libpaw_defs.F90' || echo '$(srcdir)/'`libpaw/m_libpaw_defs.F90
 
+m_libpaw_libxc.o: libpaw/m_libpaw_libxc.F90 \
+	m_libxc_functionals.o \
+	m_libpaw_defs.o
+	$(PPFCCOMPILE) -c -o m_libpaw_libxc.o `test -f 'libpaw/m_libpaw_libxc.F90' || echo '$(srcdir)/'`libpaw/m_libpaw_libxc.F90
+
 m_libpaw_mpi.o: libpaw/m_libpaw_mpi.F90 \
 	m_libpaw_defs.o \
 	$(mpi_include)
@@ -709,7 +713,7 @@ m_pawfgrtab.o: libpaw/m_pawfgrtab.F90 \
 	$(PPFCCOMPILE) -c -o m_pawfgrtab.o `test -f 'libpaw/m_pawfgrtab.F90' || echo '$(srcdir)/'`libpaw/m_pawfgrtab.F90
 
 m_pawpsp.o: libpaw/m_pawpsp.F90 \
-	m_libxc_functionals.o \
+	m_libpaw_libxc.o \
 	m_libpaw_tools.o \
 	m_paw_atom.o \
 	m_paw_gaussfit.o \
@@ -744,7 +748,7 @@ m_pawtab.o: libpaw/m_pawtab.F90 \
 	$(PPFCCOMPILE) -c -o m_pawtab.o `test -f 'libpaw/m_pawtab.F90' || echo '$(srcdir)/'`libpaw/m_pawtab.F90
 
 m_pawxc.o: libpaw/m_pawxc.F90 \
-	m_libxc_functionals.o \
+	m_libpaw_libxc.o \
 	m_pawang.o \
 	m_pawrad.o \
 	m_libpaw_defs.o

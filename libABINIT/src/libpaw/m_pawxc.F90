@@ -26,10 +26,8 @@ module m_pawxc
  USE_MSG_HANDLING
  USE_MEMORY_PROFILING
 
-#if defined HAVE_DFT_LIBXC
- use libxc_functionals
-#endif
-
+ use m_libpaw_libxc
+ 
  use m_pawang, only : pawang_type
  use m_pawrad, only : pawrad_type, nderiv_gen, pawrad_deducer0, simp_gen
 
@@ -5612,15 +5610,15 @@ end subroutine pawxcmpositron
 !!
 !! SOURCE
 
- subroutine pawxc_drivexc_main_wrapper(exc,ixc,mgga,ndvxc,nd2vxc,ngr2,npts,nspden,nvxcgrho,order,rho,vxcrho,xclevel, &
-&  dvxc,d2vxc,exexch,grho2,lrho,tau,vxcgrho,vxclrho,vxctau,xc_tb09_c) ! Optional arguments
+ subroutine pawxc_drivexc_main_wrapper(exc,ixc,mgga,ndvxc,nd2vxc,ngr2,npts,nspden,nvxcgrho,&
+&           order,rho,vxcrho,xclevel, &
+&           dvxc,d2vxc,exexch,grho2,lrho,tau,vxcgrho,vxclrho,vxctau,xc_tb09_c) ! Optional arguments
 
 
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
 #undef ABI_FUNC
 #define ABI_FUNC 'pawxc_drivexc_main_wrapper'
- !use interfaces_41_xc_lowlevel
 !End of the abilint section
 
  implicit none
@@ -5642,13 +5640,65 @@ end subroutine pawxcmpositron
  
 ! *************************************************************************
 
+! =========================================================================
+! === FIRST CASE 
+! =========================================================================
+
 #if defined HAVE_LIBPAW_ABINIT
-if(.not. present(dvxc) .or. .not. present(grho2) .or. .not. present(vxcgrho)) then
+ call pawxc_abinit()
+#elif defined HAVE_DFT_LIBXC
+ call pawxc_libxc()
+#else
+ write(msg,'(5a)') 'libPAW XC driving routine only implemented in the following cases:',ch10, &
+&                  ' - ABINIT',ch10,' - libXC'
+ MSG_BUG(msg)
+#endif
+!!***
+
+contains
+!!***
+
+!!****f* pawxc_drivexc_main_wrapper/pawxc_abinit
+!! NAME
+!!  pawxc_abinit
+!!
+!! FUNCTION
+!!  ABINIT version of XC driving routine
+!!
+!! INPUTS
+!!
+!! OUTPUT
+!!
+!! PARENTS
+!!  m_pawxc
+!!
+!! CHILDREN
+!!  drivexc
+!!
+!! SOURCE
+
+subroutine pawxc_abinit()
+
+
+!This section has been created automatically by the script Abilint (TD).
+!Do not modify the following lines by hand.
+#undef ABI_FUNC
+#define ABI_FUNC 'pawxc_abinit'
+ !use interfaces_41_xc_lowlevel
+!End of the abilint section
+
+ implicit none
+
+! *************************************************************************
+
+#if defined HAVE_LIBPAW_ABINIT
+
+ if ((.not.present(dvxc)).or.(.not.present(grho2)).or.(.not.present(vxcgrho))) then
   msg='dvxc, grho2 and vxcgrho should be present in pawxc_drivexc_main_wrapper'
   MSG_BUG(msg)
 end if
 if(mgga==1) then
-  msg='MGGA is not yet coded in pawxc_drivexc_main_wrapper'
+  msg='MGGA is not yet coded in pawxc_drivexc_main_wrapper/ABINIT'
   MSG_ERROR(msg)
 end if
 
@@ -5656,20 +5706,18 @@ end if
 !PENDING: we cannot handle all optional-variable combinations.
 !Hence, only two posibilities are considered here:
 !1) Pass dvxc, exexch, grho2 and vxcgrho
- if(present(exexch)) then
-   call drivexc_main(exc,ixc,mgga,ndvxc,nd2vxc,ngr2,npts,nspden,nvxcgrho,order,rho,vxcrho,xclevel, &
-&   dvxc=dvxc,exexch=exexch,grho2=grho2,vxcgrho=vxcgrho) ! Optional arguments
+ if (present(exexch)) then
+   call drivexc_main(exc,ixc,mgga,ndvxc,nd2vxc,ngr2,npts,nspden,nvxcgrho,order,rho,vxcrho,xclevel,&
+&   dvxc=dvxc,exexch=exexch,grho2=grho2,vxcgrho=vxcgrho)
  else
 !2) Pass only dvxc, grho2 and vxcgrho
-   call drivexc_main(exc,ixc,mgga,ndvxc,nd2vxc,ngr2,npts,nspden,nvxcgrho,order,rho,vxcrho,xclevel, &
-&   dvxc=dvxc,grho2=grho2,vxcgrho=vxcgrho) ! Optional arguments
+   call drivexc_main(exc,ixc,mgga,ndvxc,nd2vxc,ngr2,npts,nspden,nvxcgrho,order,rho,vxcrho,xclevel,&
+&   dvxc=dvxc,grho2=grho2,vxcgrho=vxcgrho)
  end if
-#elif defined HAVE_DFT_LIBXC
- call pawxc_libxc()
-#endif
-!!***
 
-contains
+#endif
+
+end subroutine pawxc_abinit
 !!***
 
 !!****f* pawxc_drivexc_main_wrapper/pawxc_libxc
@@ -5677,24 +5725,18 @@ contains
 !!  pawxc_libxc
 !!
 !! FUNCTION
+!!  LibXC version of XC driving routine
 !!
 !! INPUTS
 !!
 !! OUTPUT
 !!
-!! SIDE EFFECTS
-!!
-!! NOTES
-!! This was copied from drivexc_main (In ABINIT):
-!!
 !! PARENTS
 !!      m_pawxc
 !!
 !! CHILDREN
-!!      drivexc
 !!
 !! SOURCE
-
 
 subroutine pawxc_libxc()
 
@@ -5703,130 +5745,88 @@ subroutine pawxc_libxc()
 !Do not modify the following lines by hand.
 #undef ABI_FUNC
 #define ABI_FUNC 'pawxc_libxc'
- !use interfaces_41_xc_lowlevel
 !End of the abilint section
 
  implicit none
 
-!Arguments ------------------------------------
-!Local variables-------------------------------
-!scalars
- real(dp) :: xc_tb09_c_
- character(len=500) :: msg
-
 ! *************************************************************************
 
-!Checks input parameters
- if (mgga==1) then
-   if (.not.present(lrho)) then
-     msg=' lrho argument must be present in case of metaGGA !'
-     MSG_BUG(msg)
-   end if
-   if (.not.present(tau)) then
-     msg=' tau argument must be present in case of metaGGA !'
-     MSG_BUG(msg)
-   end if
-   if (.not.present(vxclrho)) then
-     msg=' vxclrho argument must be present in case of metaGGA !'
-     MSG_BUG(msg)
-   end if
-   if (.not.present(vxctau)) then
-     msg=' vxctau argument must be present in case of metaGGA !'
-     MSG_BUG(msg)
-   end if
- end if
-
- xc_tb09_c_=99.99_dp;if (present(xc_tb09_c)) xc_tb09_c_=xc_tb09_c
-
-
 #if defined HAVE_DFT_LIBXC
- if (ixc<0) then
-   if (mgga==1) then
-     if (xc_tb09_c_/=99.99_dp) then
-       if (present(exexch)) then
-         call drivexc(exc,ixc,npts,nspden,order,rho,vxcrho,ndvxc,ngr2,nd2vxc,nvxcgrho, &
-&         grho2_updn=grho2,vxcgrho=vxcgrho, &
-&         lrho_updn=lrho,vxclrho=vxclrho,tau_updn=tau,vxctau=vxctau, &
-&         exexch=exexch,xc_tb09_c=xc_tb09_c_)
-       else
-         call drivexc(exc,ixc,npts,nspden,order,rho,vxcrho,ndvxc,ngr2,nd2vxc,nvxcgrho, &
-&         grho2_updn=grho2,vxcgrho=vxcgrho, &
-&         lrho_updn=lrho,vxclrho=vxclrho,tau_updn=tau,vxctau=vxctau, &
-&         xc_tb09_c=xc_tb09_c_)
-       end if
-     else
-       if (present(exexch)) then
-         call drivexc(exc,ixc,npts,nspden,order,rho,vxcrho,ndvxc,ngr2,nd2vxc,nvxcgrho, &
-&         grho2_updn=grho2,vxcgrho=vxcgrho, &
-&         lrho_updn=lrho,vxclrho=vxclrho,tau_updn=tau,vxctau=vxctau, &
-&         exexch=exexch)
-       else
-         call drivexc(exc,ixc,npts,nspden,order,rho,vxcrho,ndvxc,ngr2,nd2vxc,nvxcgrho, &
-&         grho2_updn=grho2,vxcgrho=vxcgrho, &
-&         lrho_updn=lrho,vxclrho=vxclrho,tau_updn=tau,vxctau=vxctau)
-       end if
-     end if
-   else if (libxc_functionals_isgga()) then
-     if (order**2<=1) then
-       if (present(exexch)) then
-         call drivexc(exc,ixc,npts,nspden,order,rho,vxcrho,ndvxc,ngr2,nd2vxc,nvxcgrho, &
-&         grho2_updn=grho2,vxcgrho=vxcgrho, &
-         exexch=exexch)
-       else
-         call drivexc(exc,ixc,npts,nspden,order,rho,vxcrho,ndvxc,ngr2,nd2vxc,nvxcgrho, &
-&         grho2_updn=grho2,vxcgrho=vxcgrho)
-       end if
-     else
-       if (present(exexch)) then
-         call drivexc(exc,ixc,npts,nspden,order,rho,vxcrho,ndvxc,ngr2,nd2vxc,nvxcgrho, &
-&         grho2_updn=grho2,vxcgrho=vxcgrho,dvxc=dvxc, &
-         exexch=exexch)
-       else
-         call drivexc(exc,ixc,npts,nspden,order,rho,vxcrho,ndvxc,ngr2,nd2vxc,nvxcgrho, &
-&         grho2_updn=grho2,vxcgrho=vxcgrho,dvxc=dvxc)
-       end if
-     end if
-   else
-     if (order**2<=1) then
-       if (present(exexch)) then
-         call drivexc(exc,ixc,npts,nspden,order,rho,vxcrho,ndvxc,ngr2,nd2vxc,nvxcgrho, &
-         exexch=exexch)
-       else
-         call drivexc(exc,ixc,npts,nspden,order,rho,vxcrho,ndvxc,ngr2,nd2vxc,nvxcgrho)
-       end if
-     else if (order**2<=4) then
-       if (present(exexch)) then
-         call drivexc(exc,ixc,npts,nspden,order,rho,vxcrho,ndvxc,ngr2,nd2vxc,nvxcgrho, &
-&         dvxc=dvxc, &
-         exexch=exexch)
-       else
-         call drivexc(exc,ixc,npts,nspden,order,rho,vxcrho,ndvxc,ngr2,nd2vxc,nvxcgrho, &
-&         dvxc=dvxc)
-       end if
-     else
-       if (present(exexch)) then
-         call drivexc(exc,ixc,npts,nspden,order,rho,vxcrho,ndvxc,ngr2,nd2vxc,nvxcgrho, &
-&         dvxc=dvxc,d2vxc=d2vxc, &
-         exexch=exexch)
-       else
-         call drivexc(exc,ixc,npts,nspden,order,rho,vxcrho,ndvxc,ngr2,nd2vxc,nvxcgrho, &
-&         dvxc=dvxc,d2vxc=d2vxc)
-       end if
-     end if
-   end if
- else
-   msg='IXC should be < 0 to use libxc'
+
+!Check the compatibility of input arguments
+ if (libxc_functionals_ismgga()) then
+   msg='MGGA is not yet coded in pawxc_drivexc_main_wrapper/LIBXC'
    MSG_ERROR(msg)
  end if
+ if (ixc>=0) then
+   msg='ixc argument should be negative!'
+   MSG_BUG(msg)
+ end if
+ if (ixc/=libxc_functionals_global_ixc()) then
+   msg='The value of ixc differs from the one used to initialize the functional!'
+   MSG_BUG(msg)
+ end if
+ if ((order<1.and.order/=-2).or.order>4) then
+   msg='The only allowed values for order are 1, 2, -2, or 3!'
+   MSG_BUG(msg)
+ end if
+ if (present(dvxc).and.(order**2<=1))then
+   msg='The value of order is not compatible with the presence of the array dvxc!'
+   MSG_BUG(msg)
+ end if
+ if (present(d2vxc).and.(order/=3)) then
+   msg='The value of order is not compatible with the presence of the array d2vxc!'
+   MSG_BUG(msg)
+ end if
+ if (present(vxcgrho).and.(nvxcgrho==0)) then
+   msg='The value of nvxcgrho is not compatible with the presence of the array vxcgrho!'
+   MSG_BUG(msg)
+ end if
+ if (libxc_functionals_isgga()) then
+   if ((.not.present(grho2)).or.(.not.present(vxcgrho)))  then
+     write(msg,'(3a)') 'At least one of the functionals is a GGA,',ch10, &
+&      'but not all the necessary optional arguments are present.'
+     MSG_BUG(msg)
+   end if
+   if (ngr2==0.or.nvxcgrho/=3) then
+     msg='The values of nvxcgrho or ngr2 are not compatible with GGA!'
+     MSG_BUG(msg)
+   end if
+ end if
+
+!Call LibXC routines
+ if (libxc_functionals_isgga()) then
+   if (order**2<=1) then
+     call libxc_functionals_getvxc(ndvxc,nd2vxc,npts,nspden,order,rho,exc,vxcrho,&
+&               grho2=grho2,vxcgr=vxcgrho)
+   else
+     call libxc_functionals_getvxc(ndvxc,nd2vxc,npts,nspden,order,rho,exc,vxcrho,&
+&               grho2=grho2,vxcgr=vxcgrho,dvxc=dvxc)
+   end if
+ else
+   if (order**2<=1) then
+     call libxc_functionals_getvxc(ndvxc,nd2vxc,npts,nspden,order,rho,exc,vxcrho)
+   else if (order**2<=4) then
+     call libxc_functionals_getvxc(ndvxc,nd2vxc,npts,nspden,order,rho,exc,vxcrho,&
+&                                  dvxc=dvxc)
+   else
+     call libxc_functionals_getvxc(ndvxc,nd2vxc,npts,nspden,order,rho,exc,vxcrho,&
+&                                  dvxc=dvxc,d2vxc=d2vxc)
+   end if
+ end if
+
+#else
+ msg='ABINIT was not compiled with LibXC support'
+ MSG_ERROR(msg)
 #endif
 
 end subroutine pawxc_libxc
 !!***
 
-!----------------------------------------------------------------------
-
 end subroutine pawxc_drivexc_main_wrapper
 !!***
+
+!----------------------------------------------------------------------
 
 end module m_pawxc
 !!***

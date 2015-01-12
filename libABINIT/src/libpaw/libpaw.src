@@ -3,6 +3,7 @@ LIBPAW_SRC_FILES= \
  m_libpaw_defs.F90 \
  m_libpaw_mpi.F90 \
  m_libpaw_tools.F90 \
+ m_libpaw_libxc.F90 \
  m_paral_atom.F90 \
  m_paw_numeric.F90 \
  m_paw_sphharm.F90 \

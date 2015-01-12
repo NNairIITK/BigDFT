@@ -33,10 +33,9 @@ libpaw_files_1 = $(LIBPAW_SRC_FILES:%.h=libpaw/%.h)
 libpaw_files = $(libpaw_files_1:%.F90=libpaw/%.F90)
 ##Activate libPAW BigDFT sections
 LIBPAW_DEFS += -DHAVE_LIBPAW_BIGDFT
-##Deactivate temporarily some mandatory libPAW code sections
-##(should be activated later)
-LIBPAW_DEFS += -UHAVE_DFT_LIBXC
-LIBXC_DEFS =
+##  Deactivate libXC libPAW code sections (for testing purpose)
+##  LIBPAW_DEFS += -UHAVE_DFT_LIBXC
+##  LIBXC_DEFS =
 
 ## === MPI section ===
 mpi_include =
