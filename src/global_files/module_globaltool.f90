@@ -596,7 +596,7 @@ subroutine gmon_line_to_fp(gdat,icount,iline,found)
     integer :: istep
     !ethresh can be small, since identical energy value should be in
     !global.mon and in the corresponding poslocm file
-    real(gp), parameter :: ethresh = 1.d-13
+    real(gp), parameter :: ethresh = 1.d-12
 
     istep=icount-1
     found=.false.

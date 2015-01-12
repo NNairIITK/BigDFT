@@ -371,7 +371,7 @@ subroutine write_data(mdat)
         mn(mdat%minnumber(imin)) = imin
         write(u,*)mdat%en_arr(imin)
         write(ci,'(i5.5)')imin
-        write(u3,*)'cp '//trim(adjustl(mdat%path_min(imin)))//&
+        write(u3,'(a)')'cp '//trim(adjustl(mdat%path_min(imin)))//&
                    '.EXT minima/min'//ci//'.EXT'
     enddo 
     close(u)
@@ -408,7 +408,7 @@ write(*,*)'imaxloc',ipair
                  '0   0',mn(mdat%sadneighb(1,ipair,isad)),&
                   mn(mdat%sadneighb(2,ipair,isad))
             write(ci,'(i5.5)')isadc
-            write(u3,*)'cp '//trim(adjustl(mdat%path_sad(isad)))//&
+            write(u3,'(a)')'cp '//trim(adjustl(mdat%path_sad(isad)))//&
                        '.EXT saddlepoints/sad'//ci//'.EXT'
         endif
 do ipair=1,mdat%nneighbpairs(isad)
