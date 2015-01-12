@@ -3188,18 +3188,6 @@ module module_interfaces
           real(kind=8),dimension(3*lorbs%npsidim_orbs),intent(inout) :: phid  !< Derivative basis functions
         end subroutine get_derivative_supportfunctions
 
-        subroutine normalize_transposed(iproc, nproc, orbs, nspin, collcom, psit_c, psit_f, norm)
-          use module_base
-          use module_types
-          implicit none
-          integer,intent(in):: iproc, nproc, nspin
-          type(orbitals_data),intent(in):: orbs
-          type(comms_linear),intent(in):: collcom
-          real(8),dimension(collcom%ndimind_c),intent(inout):: psit_c
-          real(8),dimension(7*collcom%ndimind_f),intent(inout):: psit_f
-          real(8),dimension(orbs%norb),intent(out):: norm
-        end subroutine normalize_transposed
-
 
         subroutine determine_locregSphere_parallel(iproc,nproc,nlr,hx,hy,hz,astruct,orbs,Glr,Llr,calculateBounds)!,outofzone)
           use module_base
@@ -3293,39 +3281,6 @@ module module_interfaces
           real(gp), dimension(6), intent(out) :: strten
         end subroutine nonlocal_forces_linear
 
-        subroutine calculate_overlap_transposed(iproc, nproc, orbs, collcom, &
-                   psit_c1, psit_c2, psit_f1, psit_f2, smat, ovrlp)
-          use module_base
-          use module_types
-          use sparsematrix_base, only: sparse_matrix
-          implicit none
-          integer,intent(in) :: iproc, nproc
-          type(orbitals_data),intent(in) :: orbs
-          type(comms_linear),intent(in) :: collcom
-          real(kind=8),dimension(collcom%ndimind_c),intent(in) :: psit_c1, psit_c2
-          real(kind=8),dimension(7*collcom%ndimind_f),intent(in) :: psit_f1, psit_f2
-          type(sparse_matrix),intent(inout) :: smat
-          type(matrices),intent(inout) :: ovrlp
-        end subroutine calculate_overlap_transposed
-
-        subroutine build_linear_combination_transposed(collcom, sparsemat, mat, psitwork_c, psitwork_f, &
-             reset, psit_c, psit_f, iproc)
-          use module_base
-          use module_types
-          use sparsematrix_base, only: sparse_matrix
-          implicit none
-
-          ! Calling arguments
-          type(sparse_matrix),intent(in) :: sparsemat
-          type(matrices),intent(in) :: mat
-          type(comms_linear),intent(in) :: collcom
-          real(kind=8),dimension(collcom%ndimind_c),intent(in) :: psitwork_c
-          real(kind=8),dimension(7*collcom%ndimind_f),intent(in) :: psitwork_f
-          logical,intent(in) :: reset
-          real(kind=8),dimension(collcom%ndimind_c),intent(inout) :: psit_c
-          real(kind=8),dimension(7*collcom%ndimind_f),intent(inout) :: psit_f
-          integer, intent(in) :: iproc
-        end subroutine build_linear_combination_transposed
 
         subroutine axpy_kernel_vectors(norbp, norb, nout, onedimindices, a, x, y)
           use module_base
