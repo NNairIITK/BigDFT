@@ -1792,19 +1792,6 @@ module module_interfaces
        integer,intent(inout):: tag
      end subroutine initializeCommunicationPotential
 
-     subroutine initializeRepartitionOrbitals(iproc, nproc, tag, lorbs, llborbs, lzd, comrp)
-       use module_base
-       use module_types
-       use communications_base, only: p2pComms
-       implicit none
-       integer,intent(in):: iproc, nproc
-       integer,intent(inout):: tag
-       type(orbitals_data),intent(in):: lorbs, llborbs
-       type(local_zone_descriptors),intent(in):: lzd
-       !type(p2pCommsRepartition),intent(out):: comrp
-       type(p2pComms),intent(out):: comrp
-     end subroutine initializeRepartitionOrbitals
-
      subroutine mixrhopotDIIS(iproc, nproc, n3d, n3p, glr, input, rhopot, rhopotold, mixdiis, alphaMix, ioffset, mixMeth, pnrm, xc)
        use module_base
        use module_types
@@ -1922,25 +1909,6 @@ module module_interfaces
       type(foe_data),intent(inout):: foe_obj
       character(len=*),intent(in):: subname
     end subroutine deallocate_foe
-
-     subroutine initInputguessConfinement(iproc, nproc, at, lzd, orbs, collcom_reference, &
-                Glr, input, hx, hy, hz, lin, tmb, rxyz, nscatterarr)
-       use module_base
-       use module_types
-       implicit none
-       integer,intent(in):: iproc,nproc
-       real(gp), intent(in) :: hx, hy, hz
-       type(atoms_data),intent(inout) :: at
-       type(local_zone_descriptors),intent(in):: lzd
-       type(orbitals_data),intent(in):: orbs
-       type(comms_linear),intent(in):: collcom_reference
-       type(locreg_descriptors),intent(in) :: Glr
-       type(input_variables), intent(in) ::input
-       type(linearInputParameters),intent(in):: lin
-       type(DFT_wavefunction),intent(in) :: tmb
-       integer,dimension(0:nproc-1,4),intent(in):: nscatterarr !n3d,n3p,i3s+i3xcsh-1,i3xcsh
-       real(gp),dimension(3,at%astruct%nat),intent(in):: rxyz
-     end subroutine initInputguessConfinement
 
       subroutine orthoconstraintNonorthogonal(iproc, nproc, lzd, npsidim_orbs, npsidim_comp, orbs, collcom, orthpar, &
                  correction_orthoconstraint, linmat, lphi, lhphi, lagmat, lagmat_, psit_c, psit_f, &
