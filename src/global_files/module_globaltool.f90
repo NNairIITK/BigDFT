@@ -34,6 +34,7 @@ module module_globaltool
     end type
 
     type gt_data
+        logical :: oldfilename
         integer :: nid
         integer :: nat
         integer :: ntrans
@@ -118,6 +119,7 @@ subroutine count_poslocm(gdat)
     gdat%nminmax=0
     do idict=1,gdat%uinp%ndir
         ifile=0
+        call check_filename(gdat,idict)
         do
             call construct_filename(gdat,idict,ifile+1,filename)
             call check_struct_file_exists(filename,exists=exists)
@@ -140,13 +142,16 @@ subroutine construct_filename(gdat,idict,ifile,filename)
     integer, intent(in) :: ifile
     character(len=600), intent(out) :: filename
 
-    !for bigdft >= 1.7.6
-!!    write(filename,'(a,i4.4)')trim(adjustl(&
-!!         gdat%uinp%directories(idict)))//'/poslocm_',ifile
-    !for bigdft < 1.7.6
-    write(filename,'(a,i4.4,a)')trim(adjustl(&
-         gdat%uinp%directories(idict)))//'/poslocm_',&
-         ifile,'_'
+    if(.not.gdat%oldfilename)then
+        !for bigdft >= 1.7.6
+        write(filename,'(a,i4.4)')trim(adjustl(&
+             gdat%uinp%directories(idict)))//'/poslocm_',ifile
+    else
+        !for bigdft < 1.7.6
+        write(filename,'(a,i4.4,a)')trim(adjustl(&
+             gdat%uinp%directories(idict)))//'/poslocm_',&
+             ifile,'_'
+    endif
 end subroutine construct_filename
 !=====================================================================
 subroutine init_nat_rcov(gdat)
@@ -158,6 +163,7 @@ subroutine init_nat_rcov(gdat)
     type(gt_data), intent(inout) :: gdat
     !local
     character(len=600) :: filename
+    call check_filename(gdat,1)
     call construct_filename(gdat,1,1,filename)
     call deallocate_atomic_structure(gdat%astruct)
     call set_astruct_from_file(trim(adjustl(filename)),0,gdat%astruct)
@@ -179,6 +185,7 @@ subroutine init_gt_data(gdat)
     gdat%ntransmax=0
     gdat%nminmax=0
     gdat%nminmaxpd=0
+    gdat%oldfilename=.false.
 
     call nullify_atomic_structure(gdat%astruct)
 
@@ -403,6 +410,7 @@ subroutine read_and_merge_data(gdat)
 
     call yaml_comment('Merging poslocms ....',hfill='-')
     do idict =1, gdat%uinp%ndir
+        call check_filename(gdat,idict)
         call read_poslocs(gdat,idict)
         call add_poslocs_to_database(gdat)
         call read_globalmon(gdat,idict)
@@ -410,6 +418,39 @@ subroutine read_and_merge_data(gdat)
     enddo
     
 end subroutine read_and_merge_data
+!=====================================================================
+subroutine check_filename(gdat,idict)
+    use module_base
+    implicit none
+    !parameters
+    type(gt_data), intent(inout) :: gdat
+    integer, intent(in) :: idict
+    !local
+    character(len=600) :: filename
+    logical :: exists
+    !for bigdft >= 1.7.6
+    write(filename,'(a,i4.4)')trim(adjustl(&
+         gdat%uinp%directories(idict)))//'/poslocm_',1
+    call check_struct_file_exists(trim(adjustl(filename)),exists)
+    if(exists)then
+        gdat%oldfilename=.false.
+        return
+    endif
+    !for bigdft < 1.7.6
+    write(filename,'(a,i4.4,a)')trim(adjustl(&
+         gdat%uinp%directories(idict)))//'/poslocm_',&
+         1,'_'
+    call check_struct_file_exists(trim(adjustl(filename)),exists)
+    if(exists)then
+        gdat%oldfilename=.true.
+        return
+    endif
+
+    if(.not. exists)then
+        call f_err_throw(trim(adjustl(filename))//' does not exist.',&
+             err_name='BIGDFT_RUNTIME_ERROR')
+    endif
+end subroutine check_filename
 !=====================================================================
 subroutine add_transpairs_to_database(gdat)
     use module_base
@@ -520,6 +561,7 @@ subroutine read_globalmon(gdat,idict)
     real(gp) :: energy
     real(gp) :: rdmy
     real(gp) :: fp(gdat%nid)
+integer :: itmp
 
  
     u=f_get_free_unit()
@@ -567,6 +609,11 @@ subroutine read_globalmon(gdat,idict)
             gdat%gmon_stat(icount)=stat
             call gmon_line_to_fp(gdat,icount,iline,found)
             if(.not. found)then
+write(*,*)'to be found:',energy
+    do itmp = icount , 1 , -1
+write(*,*)itmp,gdat%en_arr_currDir(itmp)
+    enddo
+
                 call f_err_throw('Could not find istep= '//&
                      trim(yaml_toa(istep))//'of '//trim(adjustl(filename))//&
                      ' among the poslocm files.',err_name='BIGDFT_RUNTIME_ERROR')
@@ -596,7 +643,7 @@ subroutine gmon_line_to_fp(gdat,icount,iline,found)
     integer :: istep
     !ethresh can be small, since identical energy value should be in
     !global.mon and in the corresponding poslocm file
-    real(gp), parameter :: ethresh = 1.d-12
+    real(gp), parameter :: ethresh = 1.d-11
 
     istep=icount-1
     found=.false.
