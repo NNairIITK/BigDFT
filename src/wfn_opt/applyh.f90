@@ -779,6 +779,8 @@ subroutine applyprojectorsonthefly(iproc,orbs,at,lr,&
   integer :: iat,nwarnings,iproj,iorb
   integer :: iatype
   integer :: istart_c,idir,isorb,ieorb,ikpt,nspinor,ispsi_k,ispsi
+
+  call f_routine(id='applyprojectorsonthefly')
   
   !put idir=0, no derivative
   idir=0
@@ -847,6 +849,8 @@ subroutine applyprojectorsonthefly(iproc,orbs,at,lr,&
         !write(*,'(1x,a,f6.3)') 'Consider the possibility of modifying hgrid and/or the localisation radii.'
      end if
   end if
+
+  call f_release_routine()
 
 END SUBROUTINE applyprojectorsonthefly
 

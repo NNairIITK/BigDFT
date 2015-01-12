@@ -624,6 +624,11 @@ subroutine crtproj(geocode,nterm,ns1,ns2,ns3,n1,n2,n3, &
       iskip = 2
   end if
 
+  ! Check the dimensions
+  if (size(wpr%wprojx,2)<n1) call f_err_throw('workarray wpr%wprojx too small',err_name='BIGDFT_RUNTIME_ERROR')
+  if (size(wpr%wprojy,2)<n2) call f_err_throw('workarray wpr%wprojy too small',err_name='BIGDFT_RUNTIME_ERROR')
+  if (size(wpr%wprojz,2)<n3) call f_err_throw('workarray wpr%wprojz too small',err_name='BIGDFT_RUNTIME_ERROR')
+
   !if(ncplx_wproj==2 .or. nterm>1) proj=0.d0 !initialize to zero in this cases
 
 !  allocate(work(0:nw,2,2+ndebug),stat=i_stat)  !always use complex value
