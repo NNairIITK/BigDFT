@@ -1090,6 +1090,8 @@ subroutine prec_diag(n1,n2,n3,hgrid,nseg_c,nvctr_c,nvctr_f,&
   real(wp) :: h0,h1,h2,h3,fac_h
   real(wp), dimension(:,:,:), allocatable :: hpsip
 
+  call f_routine(id='prec_diag')
+
   !      number of sweeps in wavelet transformation
   !      the biggest scaling function step: atomic_length*fac_len
   !      (not just atomic_length, because so it is better in practice) 
@@ -1195,6 +1197,8 @@ subroutine prec_diag(n1,n2,n3,hgrid,nseg_c,nvctr_c,nvctr_f,&
   !$omp end parallel
 
   call f_free(hpsip)
+
+  call f_release_routine()
 
 END SUBROUTINE prec_diag
 

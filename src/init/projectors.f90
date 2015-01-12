@@ -586,13 +586,12 @@ subroutine crtproj(geocode,nterm,ns1,ns2,ns3,n1,n2,n3, &
   integer :: iterm,n_gau,ml1,ml2,ml3,mu1,mu2,mu3,i1,i2,i3
   integer :: ncplx_w,n1p1,np,i0jj
   integer :: j1,i0,j0,jj,ii,i,iseg,ind_f,ind_c
-  integer :: mvctr1, mvctr2, mvctr_cf, mvctr_cf2
+  integer :: mvctr1, mvctr2, mvctr_cf, mvctr_cf2, iskip
   !integer :: counter !test
   !real(wp) :: re_cmplx_prod,im_cmplx_prod
   real(gp), dimension(ncplx_g) :: factor
   !real(gp) :: err_norm
   real(wp), allocatable, dimension(:,:,:) :: work
-  real(wp), allocatable, dimension(:,:,:,:) :: wprojx,wprojy,wprojz
   real(wp) :: wprojyz, wprojyz11, wprojyz12, wprojyz21, wprojyz22
   !Variables for OpenMP
   !!$ integer :: ithread,nthread,ichunk
@@ -613,6 +612,17 @@ subroutine crtproj(geocode,nterm,ns1,ns2,ns3,n1,n2,n3, &
 
   !wproj is complex for PAW and kpoints.
   ncplx_w=max(ncplx_g,ncplx_k,1)
+
+  ! The workarrays wpr%wprojx, wpr%wprojy, wpr%wprojz are allocated with the
+  ! first dimension equala to NCPLX_MAX (which is 2). However the routine gauss_to_daub_k always
+  ! assumes the correct value for ncplx_w and thus fills the arrays
+  ! contiguously. Therefore in the non-complex case one has to fill the holes in
+  ! thw workarrays.
+  if (ncplx_w==NCPLX_MAX) then
+      iskip = 1
+  else
+      iskip = 2
+  end if
 
   !if(ncplx_wproj==2 .or. nterm>1) proj=0.d0 !initialize to zero in this cases
 
@@ -688,8 +698,8 @@ subroutine crtproj(geocode,nterm,ns1,ns2,ns3,n1,n2,n3, &
      call gauss_to_daub_k(hx,kx*hx,ncplx_w,ncplx_g,ncplx_k,factor,rx,gau_a,n_gau,ns1,n1,ml1,mu1,&
           wpr%wproj(1),wpr%work,nw,perx,gau_cut) 
      !!$ endif
-     call vcopy(ncplx_w*(n1+1), wpr%wproj(1), 1, wpr%wprojx(1,0,1,iterm), NCPLX_MAX)
-     call vcopy(ncplx_w*(n1+1), wpr%wproj(ncplx_w*(n1+1)+1), 1, wpr%wprojx(1,0,2,iterm), NCPLX_MAX)
+     call vcopy(ncplx_w*(n1+1), wpr%wproj(1), 1, wpr%wprojx(1,0,1,iterm), iskip)
+     call vcopy(ncplx_w*(n1+1), wpr%wproj(ncplx_w*(n1+1)+1), 1, wpr%wprojx(1,0,2,iterm), iskip)
 
      !!$ ichunk=ichunk+1
      !!$ if (mod(ichunk,nthread).eq.ithread) then
@@ -699,8 +709,8 @@ subroutine crtproj(geocode,nterm,ns1,ns2,ns3,n1,n2,n3, &
      call gauss_to_daub_k(hy,ky*hy,ncplx_w,1,ncplx_k,1.d0,ry,gau_a,n_gau,ns2,n2,ml2,mu2,&
           wpr%wproj(1),wpr%work,nw,pery,gau_cut) 
      !!$ endif
-     call vcopy(ncplx_w*(n2+1), wpr%wproj(1), 1, wpr%wprojy(1,0,1,iterm), NCPLX_MAX)
-     call vcopy(ncplx_w*(n2+1), wpr%wproj(ncplx_w*(n2+1)+1), 1, wpr%wprojy(1,0,2,iterm), NCPLX_MAX)
+     call vcopy(ncplx_w*(n2+1), wpr%wproj(1), 1, wpr%wprojy(1,0,1,iterm), iskip)
+     call vcopy(ncplx_w*(n2+1), wpr%wproj(ncplx_w*(n2+1)+1), 1, wpr%wprojy(1,0,2,iterm), iskip)
 
      !!$ ichunk=ichunk+1
      !!$ if (mod(ichunk,nthread).eq.ithread) then
@@ -710,8 +720,8 @@ subroutine crtproj(geocode,nterm,ns1,ns2,ns3,n1,n2,n3, &
      call gauss_to_daub_k(hz,kz*hz,ncplx_w,1,ncplx_k,1.d0,rz,gau_a,n_gau,ns3,n3,ml3,mu3,&
           wpr%wproj(1),wpr%work,nw,perz,gau_cut)
      !!$ endif
-     call vcopy(ncplx_w*(n3+1), wpr%wproj(1), 1, wpr%wprojz(1,0,1,iterm), NCPLX_MAX)
-     call vcopy(ncplx_w*(n3+1), wpr%wproj(ncplx_w*(n3+1)+1), 1, wpr%wprojz(1,0,2,iterm), NCPLX_MAX)
+     call vcopy(ncplx_w*(n3+1), wpr%wproj(1), 1, wpr%wprojz(1,0,1,iterm), iskip)
+     call vcopy(ncplx_w*(n3+1), wpr%wproj(ncplx_w*(n3+1)+1), 1, wpr%wprojz(1,0,2,iterm), iskip)
   end do
 
   !!$omp critical
@@ -734,7 +744,7 @@ subroutine crtproj(geocode,nterm,ns1,ns2,ns3,n1,n2,n3, &
 
   if (ncplx_w==1) then
      !$omp parallel default(private) shared(mseg_c,keyv_p,keyg_p,n3,n2) &
-     !$omp shared(n1,proj,wpr,wprojx,wprojy,wprojz,mvctr_c) &
+     !$omp shared(n1,proj,wpr,mvctr_c) &
      !$omp shared(mvctr_f,mseg_f,nterm,n1p1,np)
      ! coarse part
      !$omp do 
@@ -874,9 +884,8 @@ subroutine crtproj(geocode,nterm,ns1,ns2,ns3,n1,n2,n3, &
      !$omp end parallel
 
   else if (ncplx_w==2) then
-      write(*,*) 'in second branch'
      !$omp parallel default(private) shared(mseg_c,keyv_p,keyg_p,n3,n2,ncplx_k) &
-     !$omp shared(n1,proj,wpr,wprojx,wprojy,wprojz,mvctr_c) &
+     !$omp shared(n1,proj,wpr,mvctr_c) &
      !$omp shared(nterm,mvctr_f,mseg_f,n1p1,np,mvctr_cf,mvctr_cf2)
      !part with real and imaginary part
      !modify the openMP statements such as to benefit from parallelisation
