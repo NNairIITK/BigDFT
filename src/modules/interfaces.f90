@@ -3281,59 +3281,6 @@ module module_interfaces
           real(gp), dimension(6), intent(out) :: strten
         end subroutine nonlocal_forces_linear
 
-
-        subroutine axpy_kernel_vectors(norbp, norb, nout, onedimindices, a, x, y)
-          use module_base
-          use module_types
-          implicit none
-          integer,intent(in) :: norbp, norb, nout
-          integer,dimension(4,nout),intent(in) :: onedimindices
-          real(kind=8),intent(in) :: a
-          real(kind=8),dimension(norb,norbp),intent(in) :: x
-          real(kind=8),dimension(norb,norbp),intent(inout) :: y
-        end subroutine axpy_kernel_vectors
-
-        subroutine axbyz_kernel_vectors(norbp, norb, nout, onedimindices, a, x, b, y, z)
-          use module_base
-          use module_types
-          implicit none
-          integer,intent(in) :: norbp, norb, nout
-          integer,dimension(4,nout),intent(in) :: onedimindices
-          real(8),intent(in) :: a, b
-          real(kind=8),dimension(norb,norbp),intent(in) :: x, y
-          real(kind=8),dimension(norb,norbp),intent(out) :: z
-        end subroutine axbyz_kernel_vectors
-
-        subroutine copy_kernel_vectors(norbp, norb, nout, onedimindices, a, b)
-          use module_base
-          use module_types
-          implicit none
-          integer,intent(in) :: norbp, norb, nout
-          integer,dimension(4,nout),intent(in) :: onedimindices
-          real(kind=8),dimension(norb,norbp),intent(in) :: a
-          real(kind=8),dimension(norb,norbp),intent(out) :: b
-        end subroutine copy_kernel_vectors
-
-        subroutine chebyshev_clean(iproc, nproc, npl, cc, kernel, ham_compr, &
-                   invovrlp_compr, calculate_SHS, nsize_polynomial, ncalc, fermi, penalty_ev, chebyshev_polynomials, &
-                   emergency_stop)
-          use module_base
-          use module_types
-          use sparsematrix_base, only: sparse_matrix
-          implicit none
-          integer,intent(in) :: iproc, nproc, npl, nsize_polynomial, ncalc
-          real(8),dimension(npl,3,ncalc),intent(in) :: cc
-          type(sparse_matrix), intent(in) :: kernel
-          real(kind=8),dimension(kernel%nvctrp_tg),intent(in) :: ham_compr
-          real(kind=8),dimension(kernel%nvctrp_tg),intent(in) :: invovrlp_compr
-          logical,intent(in) :: calculate_SHS
-          real(kind=8),dimension(kernel%nfvctr,kernel%smmm%nfvctrp,ncalc),intent(out) :: fermi
-          real(kind=8),dimension(kernel%nfvctr,kernel%smmm%nfvctrp,2),intent(out) :: penalty_ev
-          real(kind=8),dimension(nsize_polynomial,npl),intent(out) :: chebyshev_polynomials
-          logical,intent(out) :: emergency_stop
-        end subroutine chebyshev_clean
-
-
         subroutine set_variables_for_hybrid(iproc, nlr, input, at, orbs, lowaccur_converged, damping_factor, confdatarr, &
                    target_function, nit_basis, nit_scc, mix_hist, locrad, alpha_mix, convCritMix, &
                    conv_crit_TMB)
@@ -4161,21 +4108,6 @@ end subroutine build_ks_orbitals_laura_tmp
           real(kind=8),dimension(npsidim_orbs),intent(in) :: psidiff, hpsi_noprecond
           real(kind=8),intent(out) :: delta_energy
         end subroutine estimate_energy_change
-
-        subroutine chebyshev_fast(iproc, nproc, nsize_polynomial, npl, &
-                   norb, norbp, isorb, fermi, chebyshev_polynomials, ncalc, cc, kernelp)
-          use module_base
-          use module_types
-          use sparsematrix_base, only: sparse_matrix
-          implicit none
-        
-          ! Calling arguments
-          integer,intent(in) :: iproc, nproc, nsize_polynomial, npl, norb, norbp, isorb, ncalc
-          type(sparse_matrix),intent(in) :: fermi
-          real(kind=8),dimension(nsize_polynomial,npl),intent(in) :: chebyshev_polynomials
-          real(kind=8),dimension(npl,ncalc),intent(in) :: cc
-          real(kind=8),dimension(norb,norbp,ncalc),intent(out) :: kernelp
-        end subroutine chebyshev_fast
 
         subroutine init_sparse_matrix_for_KSorbs(iproc, nproc, orbs, input, nextra, smat, smat_extra)
           use module_base
