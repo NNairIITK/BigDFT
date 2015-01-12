@@ -712,6 +712,7 @@ module module_types
   end type workarrays_quartic_convolutions
 
 
+
   type, public :: localizedDIISParameters
     integer :: is, isx, mis, DIISHistMax, DIISHistMin
     integer :: icountSDSatur, icountDIISFailureCons, icountSwitch, icountDIISFailureTot, itBest
