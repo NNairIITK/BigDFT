@@ -288,6 +288,9 @@ subroutine read_jobs(uinp,mhgpsst)
                      trim(adjustl(mhgpsst%joblist(1,iline))))
                 mhgpsst%njobs=mhgpsst%njobs+1
             enddo
+        else
+            call f_err_throw('Operationmode '//&
+                 trim(adjustl(uinp%operation_mode))//' unknown.')
         endif
         close(u)
     else
@@ -318,6 +321,9 @@ subroutine read_jobs(uinp,mhgpsst)
                 if(.not.fexists)exit
                 mhgpsst%njobs=mhgpsst%njobs+1
             enddo
+        else
+            call f_err_throw('Operationmode '//&
+                 trim(adjustl(uinp%operation_mode))//' unknown.')
         endif
     endif
 
