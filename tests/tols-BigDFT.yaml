@@ -1075,6 +1075,15 @@ PBE_densmixdiis:
 test-bigdft-tool:
  positions: 5.1e-8
 
+geoptconstrained_BFGS:
+ eF: 2.8e-8
+ guess for new ef: 2.8e-8
+ Epot: 1.1e-10
+ EH: 1.1e-10
+ D eF: 2.0e-8
+ charge diff: 2.9e-11
+ D Tr: 2.1e-11
+
 geoptconstrained_SDCG:
  eF: 1.1e-8
  guess for new ef: 1.1e-8
