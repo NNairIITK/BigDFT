@@ -415,7 +415,8 @@ module transposed_operations
                                   tt01 = psit_f1(i07i-1)*psit_f2(i07j-1)
                                   tt00 = psit_f1(i07i-0)*psit_f2(i07j-0)
         
-                                  ovrlp%matrix_compr(ind0) = ovrlp%matrix_compr(ind0) + tt06 + tt05 + tt04 + tt03 + tt02 + tt01 + tt00
+                                  ovrlp%matrix_compr(ind0) = ovrlp%matrix_compr(ind0) &
+                                      + tt06 + tt05 + tt04 + tt03 + tt02 + tt01 + tt00
                               end do
                           end if
                           do j=m+1,ii,7
