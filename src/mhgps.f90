@@ -56,6 +56,7 @@ program mhgps
     real(8)                   :: wd(1)
     character(len=300)        :: comment
     logical                   :: converged
+    logical                   :: ltmp
     type(connect_object)      :: cobj
     type(dictionary), pointer :: options
     type(dictionary), pointer :: run
@@ -217,7 +218,7 @@ program mhgps
         if(mhgpsst%njobs==0)cycle
         mhgpsst%ijob=0
         if(mhgpsst%iproc==0)then
-           call write_restart(mhgpsst,runObj)
+           call write_restart(mhgpsst,runObj,writeJobList=.false.)
         endif
 
         inner: do ijob = 1,mhgpsst%njobs
@@ -294,7 +295,18 @@ program mhgps
 !                   nbond,isame,iconnect,rxyz,rxyz2,energy,energy2,fp,&
 !                   fp2,cobj,connected)
               if(connected)then
-                 if(mhgpsst%iproc==0)call yaml_map('(MHGPS) '//&
+                ltmp=.true.
+                if(ijob+1<=mhgpsst%njobs)then
+                    !If connected==.true. then in subroutine connect, NO
+                    !new connection jobs for a restart have been added.
+                    !This meand, the job in mhgpsst%joblist(1,ijob+1) is identical
+                    !to the job that will be read an after a restart.
+                    if(trim(adjustl(mhgpsst%joblist(1,ijob+1)(10:16)))=='restart')then
+                      ltmp=.false.
+                    endif
+                endif
+                
+                if(mhgpsst%iproc==0 .and. ltmp)call yaml_map('(MHGPS) '//&
                       'succesfully connected, intermediate'//&
                       ' transition states',nsad)
               else

@@ -67,6 +67,7 @@ program MINHOP
   !type(dictionary), pointer :: user_inputs
   type(dictionary), pointer :: options,run
   integer:: nposacc=0
+  integer:: nposaccmax
   logical:: disable_hatrans
   integer, save :: idum=0
   real(kind=4) :: builtin_rand, rtmp
@@ -187,6 +188,11 @@ program MINHOP
   if(bigdft_mpi%iproc == 0)call yaml_map('(MH) First random number',rtmp)
 
   inquire(file='disable_hatrans',exist=disable_hatrans)
+  if(disable_hatrans)then
+    open(unit=137,file='disable_hatrans')
+        read(137,*)nposaccmax
+    close(137)
+  endif
   
   ! open output files
   if (bigdft_mpi%iproc==0) then 
@@ -510,6 +516,7 @@ program MINHOP
 
   !for runs over the queing system with short run times quit after 1 accepted minimum
   if (accepted .ge. 1 .and. singlestep) exit hopping_loop
+  if (disable_hatrans .and. nposacc >= nposaccmax) exit hopping_loop
 
 5555 continue
 
@@ -1656,7 +1663,7 @@ subroutine winter(naming_id,nat,astruct,nid,nlminx,nlmin,singlestep,en_delta,fp_
 
   ! write enarr file
   open(unit=12,file='enarr'//trim(naming_id),status='unknown')
-  write(12,'(2(i10),l1,a)') nlmin,nlmin+5,singlestep, & 
+  write(12,'(2(1x,i10),1x,l1,1x,a)') nlmin,nlmin+5,singlestep, & 
       ' # of minima already found, # of minima to be found in consecutive run, singlestep mode'
   write(12,'(2(e24.17,1x),a)') en_delta,fp_delta,' en_delta,fp_delta'
   do k=1,nlmin
