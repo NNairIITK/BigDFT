@@ -1,7 +1,7 @@
 !> @file
 !!  Routines which define and use scaling functions
 !! @author
-!! Copyright (C) 2002-2014 BigDFT group 
+!! Copyright (C) 2002-2015 BigDFT group 
 !! This file is distributed under the terms of the
 !! GNU General Public License, see ~/COPYING file
 !! or http://www.gnu.org/copyleft/gpl.txt .
@@ -31,15 +31,13 @@ subroutine scaling_function(itype,nd,nrange,a,x)
   real(kind=8), dimension(:), allocatable :: y
   integer :: i,nt,ni
   
-  !Only itype=8,14,16,20,24,30,40,50,60,100
+  !Only itype=2,8,14,16,20,24,30,40,50,60,100
   select case(itype)
-  case(8,14,16,20,24,30,40,50,60,100)
+  case(2,4,6,8,14,16,20,24,30,40,50,60,100)
      !O.K.
   case default
-     !print *,"Only interpolating functions 8, 14, 16, 20, 24, 30, 40, 50, 60, 100"
-     !stop
-     call f_err_throw('"Only interpolating functions 8, 14, 16, 20, 24, 30, 40, 50, 60, 100, used:' // trim(yaml_toa(itype))//'"', & 
-          & err_name='BIGDFT_RUNTIME_ERROR')
+     call f_err_throw('"Only interpolating functions 2, 4, 6, 8, 14, 16, 20, 24, 30, 40, 50, 60, 100, used:' &
+          & // trim(yaml_toa(itype))//'"', err_name='BIGDFT_RUNTIME_ERROR')
   end select
 !!  write(unit=*,fmt="(1x,a,i0,a)") &
 !!       "Use interpolating scaling functions of ",itype," order"
@@ -60,6 +58,12 @@ subroutine scaling_function(itype,nd,nrange,a,x)
      nt=2*nt
      ! write(6,*) 'nd,nt',nd,nt
      select case(itype)
+     case(2)
+        call back_trans_2(nd,nt,x,y)
+     case(4)
+        call back_trans_4(nd,nt,x,y)
+     case(6)
+        call back_trans_6(nd,nt,x,y)
      case(8)
         call back_trans_8(nd,nt,x,y)
      case(14)
@@ -121,15 +125,13 @@ subroutine wavelet_function(itype,nd,a,x)
   real(kind=8), dimension(:), allocatable :: y
   integer :: i,nt,ni
 
-  !Only itype=8,14,16,20,24,30,40,50,60,100
+  !Only itype=2,4,6,8,14,16,20,24,30,40,50,60,100
   Select case(itype)
-  case(8,14,16,20,24,30,40,50,60,100)
+  case(2,4,6,8,14,16,20,24,30,40,50,60,100)
      !O.K.
   case default
-     !print *,"Only interpolating functions 8, 14, 16, 20, 24, 30, 40, 50, 60, 100"
-     !stop
-     call f_err_throw('"Only interpolating functions 8, 14, 16, 20, 24, 30, 40, 50, 60, 100, used:' // trim(yaml_toa(itype))//'"', & 
-          & err_name='BIGDFT_RUNTIME_ERROR')
+     call f_err_throw('"Only interpolating functions 2, 4, 6, 8, 14, 16, 20, 24, 30, 40, 50, 60, 100, used:' &
+          & // trim(yaml_toa(itype))//'"', err_name='BIGDFT_RUNTIME_ERROR')
   end select
 
   !Give the range of the scaling function
@@ -147,6 +149,12 @@ subroutine wavelet_function(itype,nd,a,x)
      nt=2*nt
      !write(6,*) 'nd,nt',nd,nt
      select case(itype)
+     case(2)
+        call back_trans_2(nd,nt,x,y)
+     case(4)
+        call back_trans_4(nd,nt,x,y)
+     case(6)
+        call back_trans_6(nd,nt,x,y)
      case(8)
         call back_trans_8(nd,nt,x,y)
      case(14)
@@ -201,18 +209,22 @@ subroutine scf_recursion(itype,n_iter,n_range,kernel_scf,kern_1_scf)
   real(kind=8), intent(out) :: kern_1_scf(-n_range:n_range)
   !Local variables
 
-  !Only itype=8,14,16,20,24,30,40,50,60,100
+  !Only itype=2,4,6,8,14,16,20,24,30,40,50,60,100
   select case(itype)
-  case(8,14,16,20,24,30,40,50,60,100)
+  case(2,4,6,8,14,16,20,24,30,40,50,60,100)
      !O.K.
   case default
-     !print *,"Only interpolating functions 8, 14, 16, 20, 24, 30, 40, 50, 60, 100"
-     !stop
-     call f_err_throw('"Only interpolating functions 8, 14, 16, 20, 24, 30, 40, 50, 60, 100, used:' // trim(yaml_toa(itype))//'"', & 
-          & err_name='BIGDFT_RUNTIME_ERROR')
+     call f_err_throw('"Only interpolating functions 2, 4, 6, 8, 14, 16, 20, 24, 30, 40, 50, 60, 100, used:' &
+          & // trim(yaml_toa(itype))//'"', err_name='BIGDFT_RUNTIME_ERROR')
   end select
 
   select case(itype)
+  case(2)
+     call scf_recursion_2(n_iter,n_range,kernel_scf,kern_1_scf)
+  case(4)
+     call scf_recursion_4(n_iter,n_range,kernel_scf,kern_1_scf)
+  case(6)
+     call scf_recursion_6(n_iter,n_range,kernel_scf,kern_1_scf)
   case(8)
      call scf_recursion_8(n_iter,n_range,kernel_scf,kern_1_scf)
   case(14)
@@ -252,7 +264,544 @@ END SUBROUTINE zero
 
 
 !> Forward wavelet transform
-!!   m filter length (m has to be even!)
+!! m filter length (m has to be even!)
+subroutine for_trans_2(nd,nt,x,y)
+  implicit none
+  !Arguments
+  integer, intent(in) :: nd !< Length of data set
+  integer, intent(in) :: nt !< Length of data in data set to be transformed
+  real(kind=8), intent(in) :: x(0:nd-1)  !< Input data
+  real(kind=8), intent(out) :: y(0:nd-1) !< Output data
+  !Local variables
+  integer :: i,j,ind
+
+  include 'lazy_2.inc'
+
+  do i=0,nt/2-1
+     y(     i)=0.d0
+     y(nt/2+i)=0.d0
+     
+     do j=-m+1,m
+        
+        ! periodically wrap index if necessary
+        ind=j+2*i
+        loop99: do
+           if (ind.lt.0) then 
+              ind=ind+nt
+              cycle loop99
+           end if
+           if (ind.ge.nt) then 
+              ind=ind-nt
+              cycle loop99
+           end if
+           exit loop99
+        end do loop99
+
+        y(     i)=y(     i)+cht(j)*x(ind)
+        y(nt/2+i)=y(nt/2+i)+cgt(j)*x(ind)
+     end do
+     
+  end do
+
+END SUBROUTINE for_trans_2
+
+
+!> Backward wavelet transform
+subroutine back_trans_2(nd,nt,x,y)
+  implicit none
+  !Arguments
+  integer, intent(in) :: nd !< Length of data set
+  integer, intent(in) :: nt !< Length of data in data set to be transformed
+  real(kind=8), intent(in) :: x(0:nd-1)  !< Input data
+  real(kind=8), intent(out) :: y(0:nd-1) !< Output data
+  !Local variables
+  integer :: i,j,ind
+
+  include 'lazy_2.inc'
+  
+  do i=0,nt/2-1
+     y(2*i+0)=0.d0
+     y(2*i+1)=0.d0
+     
+     do j=-m/2,m/2-1
+        
+        ! periodically wrap index if necessary
+        ind=i-j
+        loop99: do
+           if (ind.lt.0) then 
+              ind=ind+nt/2
+              cycle loop99
+           end if
+           if (ind.ge.nt/2) then 
+              ind=ind-nt/2
+              cycle loop99
+           end if
+           exit loop99
+        end do loop99
+
+        y(2*i+0)=y(2*i+0) + ch(2*j-0)*x(ind)+cg(2*j-0)*x(ind+nt/2)
+        y(2*i+1)=y(2*i+1) + ch(2*j+1)*x(ind)+cg(2*j+1)*x(ind+nt/2)
+     end do
+        
+  end do
+        
+END SUBROUTINE back_trans_2
+
+
+!> Tests the 4 orthogonality relations of the filters
+subroutine ftest_2
+  implicit none
+  !Arguments
+  !Local variables
+  character(len=*), parameter :: fmt22 = "(a,i3,i4,4(e17.10))"
+  integer :: i,j,l
+  real(kind=8) :: t1,t2,t3,t4,eps
+
+  include 'lazy_2.inc'
+  
+  ! do i=-m,m
+  ! write(6,*) i,ch(i),cg(i)
+  ! end do
+  
+  do i=-m,m
+     do j=-m,m
+        t1=0.d0
+        t2=0.d0
+        t3=0.d0
+        t4=0.d0
+        do l=-3*m,3*m
+           if ( l-2*i.ge.-m .and. l-2*i.le.m  .and. &
+                l-2*j.ge.-m .and. l-2*j.le.m ) then
+              t1=t1+ch(l-2*i)*cht(l-2*j)
+              t2=t2+cg(l-2*i)*cgt(l-2*j)
+              t3=t3+ch(l-2*i)*cgt(l-2*j)
+              t4=t4+cht(l-2*i)*cg(l-2*j)
+           end if
+        end do
+        eps=1.d-10
+        if (i.eq.j) then
+           if (abs(t1-1.d0).gt.eps .or. abs(t2-1.d0).gt.eps .or. &
+             & abs(t3).gt.eps  .or. abs(t4).gt.eps ) then 
+              write(6,fmt22) 'Orthogonality ERROR', i,j,t1,t2,t3,t4
+           end if
+        else
+           if (abs(t1).gt.eps .or. abs(t2).gt.eps .or. &
+             & abs(t3).gt.eps  .or. abs(t4).gt.eps ) then
+              write(6,fmt22) 'Orthogonality ERROR', i,j,t1,t2,t3,t4
+           end if
+        end if
+     end do
+  end do
+  
+  write(6,*) 'FILTER TEST PASSED'
+  
+END SUBROUTINE ftest_2
+
+
+!> Do iterations to go from p0gauss to pgauss
+!! 2th-order interpolating scaling function
+subroutine scf_recursion_2(n_iter,n_range,kernel_scf,kern_1_scf)
+  implicit none
+  !Arguments
+  integer, intent(in) :: n_iter,n_range
+  real(kind=8), intent(inout) :: kernel_scf(-n_range:n_range)
+  real(kind=8), intent(out) :: kern_1_scf(-n_range:n_range)
+  !Local variables
+  real(kind=8) :: kern,kern_tot
+  integer :: i_iter,i,j,ind
+
+  include "lazy_2.inc"
+
+  !Start the iteration to go from p0gauss to pgauss
+  loop_iter_scf: do i_iter=1,n_iter
+     !kern_1_scf(:) = kernel_scf(:)
+     !kernel_scf(:) = 0.d0
+     call dcopy(2*n_range+1,kernel_scf(-n_range),1,kern_1_scf(-n_range),1)
+     call dscal(2*n_range+1,0.0d0,kernel_scf(-n_range),1)
+     loop_iter_i: do i=0,n_range
+        kern_tot = 0.d0
+        do j=-m,m
+           ind = 2*i-j
+           !if (abs(ind) > n_range) then
+           if (ind > n_range .or. ind < -n_range ) then
+              kern = 0.d0
+           else
+              kern = kern_1_scf(ind)
+           end if
+           kern_tot = kern_tot + ch(j)*kern
+        end do
+        if (kern_tot == 0.d0) then
+           !zero after (be sure because strictly == 0.d0)
+           exit loop_iter_i
+        else
+           kernel_scf( i) = 0.5d0*kern_tot
+           kernel_scf(-i) = 0.5d0*kern_tot
+        end if
+     end do loop_iter_i
+  end do loop_iter_scf
+END SUBROUTINE scf_recursion_2
+
+
+!> Forward wavelet transform
+!! m filter length (m has to be even!)
+subroutine for_trans_4(nd,nt,x,y)
+  implicit none
+  !Arguments
+  integer, intent(in) :: nd !< Length of data set
+  integer, intent(in) :: nt !< Length of data in data set to be transformed
+  real(kind=8), intent(in) :: x(0:nd-1)  !< Input data
+  real(kind=8), intent(out) :: y(0:nd-1) !< Output data
+  !Local variables
+  integer :: i,j,ind
+
+  include 'lazy_4.inc'
+
+  do i=0,nt/2-1
+     y(     i)=0.d0
+     y(nt/2+i)=0.d0
+     
+     do j=-m+1,m
+        
+        ! periodically wrap index if necessary
+        ind=j+2*i
+        loop99: do
+           if (ind.lt.0) then 
+              ind=ind+nt
+              cycle loop99
+           end if
+           if (ind.ge.nt) then 
+              ind=ind-nt
+              cycle loop99
+           end if
+           exit loop99
+        end do loop99
+
+        y(     i)=y(     i)+cht(j)*x(ind)
+        y(nt/2+i)=y(nt/2+i)+cgt(j)*x(ind)
+     end do
+     
+  end do
+
+END SUBROUTINE for_trans_4
+
+
+!> Backward wavelet transform
+subroutine back_trans_4(nd,nt,x,y)
+  implicit none
+  !Arguments
+  integer, intent(in) :: nd !< Length of data set
+  integer, intent(in) :: nt !< Length of data in data set to be transformed
+  real(kind=8), intent(in) :: x(0:nd-1)  !< Input data
+  real(kind=8), intent(out) :: y(0:nd-1) !< Output data
+  !Local variables
+  integer :: i,j,ind
+
+  include 'lazy_4.inc'
+  
+  do i=0,nt/2-1
+     y(2*i+0)=0.d0
+     y(2*i+1)=0.d0
+     
+     do j=-m/2,m/2-1
+        
+        ! periodically wrap index if necessary
+        ind=i-j
+        loop99: do
+           if (ind.lt.0) then 
+              ind=ind+nt/2
+              cycle loop99
+           end if
+           if (ind.ge.nt/2) then 
+              ind=ind-nt/2
+              cycle loop99
+           end if
+           exit loop99
+        end do loop99
+
+        y(2*i+0)=y(2*i+0) + ch(2*j-0)*x(ind)+cg(2*j-0)*x(ind+nt/2)
+        y(2*i+1)=y(2*i+1) + ch(2*j+1)*x(ind)+cg(2*j+1)*x(ind+nt/2)
+     end do
+        
+  end do
+        
+END SUBROUTINE back_trans_4
+
+
+!> Tests the 4 orthogonality relations of the filters
+subroutine ftest_4
+  implicit none
+  !Arguments
+  !Local variables
+  character(len=*), parameter :: fmt22 = "(a,i3,i4,4(e17.10))"
+  integer :: i,j,l
+  real(kind=8) :: t1,t2,t3,t4,eps
+
+  include 'lazy_4.inc'
+  
+  ! do i=-m,m
+  ! write(6,*) i,ch(i),cg(i)
+  ! end do
+  
+  do i=-m,m
+     do j=-m,m
+        t1=0.d0
+        t2=0.d0
+        t3=0.d0
+        t4=0.d0
+        do l=-3*m,3*m
+           if ( l-2*i.ge.-m .and. l-2*i.le.m  .and. &
+                l-2*j.ge.-m .and. l-2*j.le.m ) then
+              t1=t1+ch(l-2*i)*cht(l-2*j)
+              t2=t2+cg(l-2*i)*cgt(l-2*j)
+              t3=t3+ch(l-2*i)*cgt(l-2*j)
+              t4=t4+cht(l-2*i)*cg(l-2*j)
+           end if
+        end do
+        eps=1.d-10
+        if (i.eq.j) then
+           if (abs(t1-1.d0).gt.eps .or. abs(t2-1.d0).gt.eps .or. &
+             & abs(t3).gt.eps  .or. abs(t4).gt.eps ) then 
+              write(6,fmt22) 'Orthogonality ERROR', i,j,t1,t2,t3,t4
+           end if
+        else
+           if (abs(t1).gt.eps .or. abs(t2).gt.eps .or. &
+             & abs(t3).gt.eps  .or. abs(t4).gt.eps ) then
+              write(6,fmt22) 'Orthogonality ERROR', i,j,t1,t2,t3,t4
+           end if
+        end if
+     end do
+  end do
+  
+  write(6,*) 'FILTER TEST PASSED'
+  
+END SUBROUTINE ftest_4
+
+
+!> Do iterations to go from p0gauss to pgauss
+!! 2th-order interpolating scaling function
+subroutine scf_recursion_4(n_iter,n_range,kernel_scf,kern_1_scf)
+  implicit none
+  !Arguments
+  integer, intent(in) :: n_iter,n_range
+  real(kind=8), intent(inout) :: kernel_scf(-n_range:n_range)
+  real(kind=8), intent(out) :: kern_1_scf(-n_range:n_range)
+  !Local variables
+  real(kind=8) :: kern,kern_tot
+  integer :: i_iter,i,j,ind
+
+  include "lazy_4.inc"
+
+  !Start the iteration to go from p0gauss to pgauss
+  loop_iter_scf: do i_iter=1,n_iter
+     !kern_1_scf(:) = kernel_scf(:)
+     !kernel_scf(:) = 0.d0
+     call dcopy(2*n_range+1,kernel_scf(-n_range),1,kern_1_scf(-n_range),1)
+     call dscal(2*n_range+1,0.0d0,kernel_scf(-n_range),1)
+     loop_iter_i: do i=0,n_range
+        kern_tot = 0.d0
+        do j=-m,m
+           ind = 2*i-j
+           !if (abs(ind) > n_range) then
+           if (ind > n_range .or. ind < -n_range ) then
+              kern = 0.d0
+           else
+              kern = kern_1_scf(ind)
+           end if
+           kern_tot = kern_tot + ch(j)*kern
+        end do
+        if (kern_tot == 0.d0) then
+           !zero after (be sure because strictly == 0.d0)
+           exit loop_iter_i
+        else
+           kernel_scf( i) = 0.5d0*kern_tot
+           kernel_scf(-i) = 0.5d0*kern_tot
+        end if
+     end do loop_iter_i
+  end do loop_iter_scf
+END SUBROUTINE scf_recursion_4
+
+
+!> Forward wavelet transform
+!! m filter length (m has to be even!)
+subroutine for_trans_6(nd,nt,x,y)
+  implicit none
+  !Arguments
+  integer, intent(in) :: nd !< Length of data set
+  integer, intent(in) :: nt !< Length of data in data set to be transformed
+  real(kind=8), intent(in) :: x(0:nd-1)  !< Input data
+  real(kind=8), intent(out) :: y(0:nd-1) !< Output data
+  !Local variables
+  integer :: i,j,ind
+
+  include 'lazy_6.inc'
+
+  do i=0,nt/2-1
+     y(     i)=0.d0
+     y(nt/2+i)=0.d0
+     
+     do j=-m+1,m
+        
+        ! periodically wrap index if necessary
+        ind=j+2*i
+        loop99: do
+           if (ind.lt.0) then 
+              ind=ind+nt
+              cycle loop99
+           end if
+           if (ind.ge.nt) then 
+              ind=ind-nt
+              cycle loop99
+           end if
+           exit loop99
+        end do loop99
+
+        y(     i)=y(     i)+cht(j)*x(ind)
+        y(nt/2+i)=y(nt/2+i)+cgt(j)*x(ind)
+     end do
+     
+  end do
+
+END SUBROUTINE for_trans_6
+
+
+!> Backward wavelet transform
+subroutine back_trans_6(nd,nt,x,y)
+  implicit none
+  !Arguments
+  integer, intent(in) :: nd !< Length of data set
+  integer, intent(in) :: nt !< Length of data in data set to be transformed
+  real(kind=8), intent(in) :: x(0:nd-1)  !< Input data
+  real(kind=8), intent(out) :: y(0:nd-1) !< Output data
+  !Local variables
+  integer :: i,j,ind
+
+  include 'lazy_6.inc'
+  
+  do i=0,nt/2-1
+     y(2*i+0)=0.d0
+     y(2*i+1)=0.d0
+     
+     do j=-m/2,m/2-1
+        
+        ! periodically wrap index if necessary
+        ind=i-j
+        loop99: do
+           if (ind.lt.0) then 
+              ind=ind+nt/2
+              cycle loop99
+           end if
+           if (ind.ge.nt/2) then 
+              ind=ind-nt/2
+              cycle loop99
+           end if
+           exit loop99
+        end do loop99
+
+        y(2*i+0)=y(2*i+0) + ch(2*j-0)*x(ind)+cg(2*j-0)*x(ind+nt/2)
+        y(2*i+1)=y(2*i+1) + ch(2*j+1)*x(ind)+cg(2*j+1)*x(ind+nt/2)
+     end do
+        
+  end do
+        
+END SUBROUTINE back_trans_6
+
+
+!> Tests the 4 orthogonality relations of the filters
+subroutine ftest_6
+  implicit none
+  !Arguments
+  !Local variables
+  character(len=*), parameter :: fmt22 = "(a,i3,i4,4(e17.10))"
+  integer :: i,j,l
+  real(kind=8) :: t1,t2,t3,t4,eps
+
+  include 'lazy_6.inc'
+  
+  ! do i=-m,m
+  ! write(6,*) i,ch(i),cg(i)
+  ! end do
+  
+  do i=-m,m
+     do j=-m,m
+        t1=0.d0
+        t2=0.d0
+        t3=0.d0
+        t4=0.d0
+        do l=-3*m,3*m
+           if ( l-2*i.ge.-m .and. l-2*i.le.m  .and. &
+                l-2*j.ge.-m .and. l-2*j.le.m ) then
+              t1=t1+ch(l-2*i)*cht(l-2*j)
+              t2=t2+cg(l-2*i)*cgt(l-2*j)
+              t3=t3+ch(l-2*i)*cgt(l-2*j)
+              t4=t4+cht(l-2*i)*cg(l-2*j)
+           end if
+        end do
+        eps=1.d-10
+        if (i.eq.j) then
+           if (abs(t1-1.d0).gt.eps .or. abs(t2-1.d0).gt.eps .or. &
+             & abs(t3).gt.eps  .or. abs(t4).gt.eps ) then 
+              write(6,fmt22) 'Orthogonality ERROR', i,j,t1,t2,t3,t4
+           end if
+        else
+           if (abs(t1).gt.eps .or. abs(t2).gt.eps .or. &
+             & abs(t3).gt.eps  .or. abs(t4).gt.eps ) then
+              write(6,fmt22) 'Orthogonality ERROR', i,j,t1,t2,t3,t4
+           end if
+        end if
+     end do
+  end do
+  
+  write(6,*) 'FILTER TEST PASSED'
+  
+END SUBROUTINE ftest_6
+
+
+!> Do iterations to go from p0gauss to pgauss
+!! 2th-order interpolating scaling function
+subroutine scf_recursion_6(n_iter,n_range,kernel_scf,kern_1_scf)
+  implicit none
+  !Arguments
+  integer, intent(in) :: n_iter,n_range
+  real(kind=8), intent(inout) :: kernel_scf(-n_range:n_range)
+  real(kind=8), intent(out) :: kern_1_scf(-n_range:n_range)
+  !Local variables
+  real(kind=8) :: kern,kern_tot
+  integer :: i_iter,i,j,ind
+
+  include "lazy_6.inc"
+
+  !Start the iteration to go from p0gauss to pgauss
+  loop_iter_scf: do i_iter=1,n_iter
+     !kern_1_scf(:) = kernel_scf(:)
+     !kernel_scf(:) = 0.d0
+     call dcopy(2*n_range+1,kernel_scf(-n_range),1,kern_1_scf(-n_range),1)
+     call dscal(2*n_range+1,0.0d0,kernel_scf(-n_range),1)
+     loop_iter_i: do i=0,n_range
+        kern_tot = 0.d0
+        do j=-m,m
+           ind = 2*i-j
+           !if (abs(ind) > n_range) then
+           if (ind > n_range .or. ind < -n_range ) then
+              kern = 0.d0
+           else
+              kern = kern_1_scf(ind)
+           end if
+           kern_tot = kern_tot + ch(j)*kern
+        end do
+        if (kern_tot == 0.d0) then
+           !zero after (be sure because strictly == 0.d0)
+           exit loop_iter_i
+        else
+           kernel_scf( i) = 0.5d0*kern_tot
+           kernel_scf(-i) = 0.5d0*kern_tot
+        end if
+     end do loop_iter_i
+  end do loop_iter_scf
+END SUBROUTINE scf_recursion_6
+
+
+!> Forward wavelet transform
+!! m filter length (m has to be even!)
 subroutine for_trans_8(nd,nt,x,y)
   implicit none
   !Arguments
@@ -334,6 +883,7 @@ subroutine back_trans_8(nd,nt,x,y)
   end do
         
 END SUBROUTINE back_trans_8
+
 
 !> Tests the 4 orthogonality relations of the filters
 subroutine ftest_8

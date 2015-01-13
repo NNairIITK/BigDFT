@@ -35,7 +35,8 @@ program PS_Check
    real(kind=8) :: acell,shift
    real :: tcpu0,tcpu1
    logical :: mp
-   integer :: itype_scf
+   integer :: itype_scf !< Interpolating scaling function used by PS
+   integer :: dual_scf  !< Dual functions used
    integer :: ncount0,ncount1,ncount_rate,ncount_max
    integer :: n01,n02,n03
    integer :: iproc,nproc,namelen,ierr,ispden
@@ -96,6 +97,7 @@ program PS_Check
    mp=options//'mp'
    npoints=options//'npoints'
    itype_scf=options//'iscf'
+   dual_scf=options//'dual'
    acell=options//'acell'
    shift=options//'shift'
    
@@ -113,7 +115,7 @@ program PS_Check
    hy=acell/real(n02,kind=8)
    hz=acell/real(n03,kind=8)
 
-   if (mp) call initialize_real_space_conversion(isf_m=itype_scf,npoints=npoints)
+   if (mp) call initialize_real_space_conversion(isf_m=dual_scf,npoints=npoints)
 
    !calculate the kernel in parallel for each processor
    ndims=(/n01,n02,n03/)
@@ -136,6 +138,7 @@ program PS_Check
       call yaml_map('mp',mp)
       call yaml_map('npoints',npoints)
       call yaml_map('iscf',itype_scf)
+      call yaml_map('dual',dual_scf)
       if (ixc /=0) call yaml_map('Exchange and Correlation approximation tested',ixc)
       call yaml_mapping_open('Multiprocessor run',label='MPIrun')
    end if
@@ -456,8 +459,16 @@ program PS_Check
          dict_new('Usage' .is. &
          'Specify the order of the scaling interpolating function',&
          'Allowed values' .is. &
-         list_new(.item. 8, .item. 14, .item. 16, .item. 20, .item. 24, &
-         .item. 30, .item. 40, .item. 50, .item. 60, .item. 100)))
+         list_new( (/ .item. 2, .item. 8, .item. 14, .item. 16, .item. 20, .item. 24, &
+         .item. 30, .item. 40, .item. 50, .item. 60, .item. 100 /) )))
+
+    call yaml_cl_parse_option(parser,'dual','0',&
+    'Dual function used','d',&
+         dict_new('Usage' .is. &
+         'Specify the dual function used to express the coefficient',&
+         'Allowed values' .is. &
+         list_new( (/ .item. 2, .item. 8, .item. 14, .item. 16, .item. 20, .item. 24, &
+         .item. 30, .item. 40, .item. 50, .item. 60, .item. 100 /) )))
 
     call yaml_cl_parse_option(parser,'acell','10.d0',&
     'Dimension of the cell','a',&
