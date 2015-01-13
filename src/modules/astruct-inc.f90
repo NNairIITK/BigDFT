@@ -1450,7 +1450,6 @@ subroutine wtint(iunit,energy,rxyz,astruct,comment,na,nb,nc)
      factor_angle=1.0_gp
      angle='radian'
   end if
-  write(*,*) '(trim(astruct%angle)), angle',(trim(astruct%angle)), angle
 
   if (energy /= 0.0_gp .and. energy /= UNINITIALIZED(energy)) then
      write(iunit,'(i6,2x,a,2x,a,2x,1pe24.17,2x,a)') astruct%nat,trim(units),&

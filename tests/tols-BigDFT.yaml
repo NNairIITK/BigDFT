@@ -1075,7 +1075,7 @@ PBE_densmixdiis:
 test-bigdft-tool:
  positions: 5.1e-8
 
-geoptconstrained:
+geoptconstrained_SDCG:
  eF: 1.1e-8
  guess for new ef: 1.1e-8
  D eF: 1.1e-8

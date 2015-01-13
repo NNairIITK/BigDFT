@@ -206,7 +206,6 @@ low_level = \
 	linear/init_collective_comms.f90 \
 	linear/optimize_coeffs.f90 \
 	linear/foe.f90 \
-	linear/chebyshev.f90 \
 	linear/pulay.f90 \
 	linear/transferintegrals.f90 \
 	linear/cdft.f90 \
