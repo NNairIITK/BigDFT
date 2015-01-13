@@ -75,21 +75,20 @@ libabinit_a_SOURCES = \
 	abi_numeric/abi_matrginv.F90 \
 	abi_numeric/abi_uniformrandom.F90 \
 	abi_numeric/abi_wrap2_pmhalf.F90 \
-	41_xc_lowlevel/interfaces_41_xc_lowlevel.F90 \
-	41_xc_lowlevel/drivexc.F90 \
-	41_xc_lowlevel/invcb.F90 \
-	41_xc_lowlevel/mkdenpos.F90 \
-	41_xc_lowlevel/m_libxc_functionals.F90 \
-	41_xc_lowlevel/size_dvxc.F90 \
-	41_xc_lowlevel/xchcth.F90 \
-	41_xc_lowlevel/xchelu.F90 \
-	41_xc_lowlevel/xclb.F90 \
-	41_xc_lowlevel/xcpbe.F90 \
-	41_xc_lowlevel/xcpzca.F90 \
-	41_xc_lowlevel/xcspol.F90 \
-	41_xc_lowlevel/xctetr.F90 \
-	41_xc_lowlevel/xcwign.F90 \
-	41_xc_lowlevel/xcxalp.F90 \
+	abi_xc_lowlevel/abi_interfaces_xc_lowlevel.F90 \
+	abi_xc_lowlevel/abi_drivexc.F90 \
+	abi_xc_lowlevel/abi_invcb.F90 \
+	abi_xc_lowlevel/abi_mkdenpos.F90 \
+	abi_xc_lowlevel/abi_size_dvxc.F90 \
+	abi_xc_lowlevel/abi_xchcth.F90 \
+	abi_xc_lowlevel/abi_xchelu.F90 \
+	abi_xc_lowlevel/abi_xclb.F90 \
+	abi_xc_lowlevel/abi_xcpbe.F90 \
+	abi_xc_lowlevel/abi_xcpzca.F90 \
+	abi_xc_lowlevel/abi_xcspol.F90 \
+	abi_xc_lowlevel/abi_xctetr.F90 \
+	abi_xc_lowlevel/abi_xcwign.F90 \
+	abi_xc_lowlevel/abi_xcxalp.F90 \
 	42_geometry/bldgrpaf.F90 \
 	42_geometry/bldgrp.F90 \
 	42_geometry/bonds_lgth_angles.F90 \

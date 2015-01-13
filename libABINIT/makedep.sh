@@ -2,7 +2,7 @@
 
 #These modules/includes do not have to be processed
 uses_except="BigDFT_API xc_f90_types_m libxc_funcs_m xc_f90_lib_m \
-             m_libpaw_libxc_funcs \
+             m_libpaw_libxc_funcs libxc_functionals \
              mpi omp_lib ifcore f90_unix_proc \
              fox_sax ieee_exceptions memory_profiling \
              netcdf etsf_io etsf_io_low_level "

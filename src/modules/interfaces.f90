@@ -1128,7 +1128,7 @@ module module_interfaces
            nxcl,nxcr,xc,hx,hy,hz,rhopot,pot_ion,sumpion,zf,zfionxc,exc,vxc,nproc,nspden)
         use module_base
         use module_xc
-        use interfaces_41_xc_lowlevel
+        use abi_interfaces_xc_lowlevel, only: abi_drivexc,abi_size_dvxc
         implicit none
         character(len=1), intent(in) :: geocode !< @copydoc poisson_solver::doc::geocode
         logical, intent(in) :: sumpion

@@ -1,10 +1,10 @@
-!!****f* ABINIT/size_dvxc
+!!****f* ABINIT/abi_size_dvxc
 !! NAME
-!! size_dvxc
+!! abi_size_dvxc
 !!
 !! FUNCTION
 !! Give the size of the array dvxc(npts,ndvxc) and the second dimension of the d2vxc(npts,nd2vxc)
-!! needed for the allocations depending on the routine which is called from the drivexc routine
+!! needed for the allocations depending on the routine which is called from the abi_drivexc routine
 !!
 !! COPYRIGHT
 !! Copyright (C) 1998-2010 ABINIT group (TD)
@@ -34,7 +34,7 @@
 #include "config.h"
 #endif
 
-subroutine size_dvxc(ixc,ndvxc,ngr2,nd2vxc,nspden,nvxcdgr,order)
+subroutine abi_size_dvxc(ixc,ndvxc,ngr2,nd2vxc,nspden,nvxcdgr,order)
 
  use abi_defs_basis
 
@@ -60,24 +60,24 @@ subroutine size_dvxc(ixc,ndvxc,ngr2,nd2vxc,nspden,nvxcdgr,order)
    if (ixc<0) nvxcdgr=3
  else
    if (ixc==1 .or. ixc==21 .or. ixc==22 .or. (ixc>=7 .and. ixc<=10) .or. ixc==13) then
-!    new Teter fit (4/93) to Ceperley-Alder data, with spin-pol option    !routine xcspol
-!    routine xcpbe, with different options (optpbe) and orders (order)
+!    new Teter fit (4/93) to Ceperley-Alder data, with spin-pol option    !routine abi_xcspol
+!    routine abi_xcpbe, with different options (optpbe) and orders (order)
      ndvxc=min(nspden,2)+1
 !    if (ixc>=7 .and. ixc<=10) nvxcdgr=3
    else if (ixc>=2 .and. ixc<=6) then
-!    Perdew-Zunger fit to Ceperly-Alder data (no spin-pol)                !routine xcpzca
-!    Teter fit (4/91) to Ceperley-Alder values (no spin-pol)              !routine xctetr
-!    Wigner xc (no spin-pol)           !routine xcwign
-!    Hedin-Lundqvist xc (no spin-pol)           !routine xchelu
-!    X-alpha (no spin-pol)           !routine xcxalp
+!    Perdew-Zunger fit to Ceperly-Alder data (no spin-pol)                !routine abi_xcpzca
+!    Teter fit (4/91) to Ceperley-Alder values (no spin-pol)              !routine abi_xctetr
+!    Wigner xc (no spin-pol)           !routine abi_xcwign
+!    Hedin-Lundqvist xc (no spin-pol)           !routine abi_xchelu
+!    X-alpha (no spin-pol)           !routine abi_xcxalp
      ndvxc=1
 
    else if (ixc==12) then
-!    routine xcpbe, with optpbe=-2 and different orders (order)
+!    routine abi_xcpbe, with optpbe=-2 and different orders (order)
      ndvxc=8
      nvxcdgr=3
    else if ((ixc>=11 .and. ixc<=15 .and. ixc/=13) .or. (ixc==23)) then
-!    routine xcpbe, with different options (optpbe) and orders (order)
+!    routine abi_xcpbe, with different options (optpbe) and orders (order)
      ndvxc=15
      nvxcdgr=3
      nd2vxc=1  !to be corrected when the calculation of d2vxcar will be implemented for these functionals
@@ -99,5 +99,5 @@ subroutine size_dvxc(ixc,ndvxc,ngr2,nd2vxc,nspden,nvxcdgr,order)
 
  end if
 
-end subroutine size_dvxc
+end subroutine abi_size_dvxc
 !!***

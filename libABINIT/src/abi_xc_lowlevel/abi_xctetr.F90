@@ -1,7 +1,7 @@
 !{\src2tex{textfont=tt}}
-!!****f* ABINIT/xctetr
+!!****f* ABINIT/abi_xctetr
 !! NAME
-!! xctetr
+!! abi_xctetr
 !!
 !! FUNCTION
 !! Returns exc, vxc, and d(vxc)/d($\rho$) from input $\rho$.
@@ -42,7 +42,7 @@
 !! Note that d(vxc)/d($\rho$) gets a little wild at small rho.
 !! d$^2$(Vxc)/d$(\rho)^2$ is probably wilder.
 !!
-!! Some notation:  (XG 990224, sign convention should be changed, see xcspol.f)
+!! Some notation:  (XG 990224, sign convention should be changed, see abi_xcspol.f)
 !!  $Exc = N1/D1$ with $N1=-(a0+a1*rs+...)$ given above and
 !!              $D1= (b1*rs+b2*rs^2+...)$ also given above.
 !!  $Vxc = N2/D1^2$ with $N2=d(N1)/d(rs)$.
@@ -59,7 +59,7 @@
 #include "config.h"
 #endif
 
-subroutine xctetr(exc,npt,order,rhor,rspts,vxc,& !Mandatory arguments
+subroutine abi_xctetr(exc,npt,order,rhor,rspts,vxc,& !Mandatory arguments
 &                 d2vxc,dvxc)                    !Optional arguments
 
  use abi_defs_basis
@@ -98,7 +98,7 @@ subroutine xctetr(exc,npt,order,rhor,rspts,vxc,& !Mandatory arguments
 !Checks the values of order
  if(order<0 .or. order>3)then
    write(message, '(a,a,a,a,a,a,i6,a)' )ch10,&
-&   ' xcpzca : BUG -',ch10,&
+&   ' abi_xcpzca : BUG -',ch10,&
 &   '  With Teter 91 Ceperley-Alder xc functional, the only',ch10,&
 &   '  allowed values for order are 0, 1, 2 or 3, while it is found to be',&
 &   order,'.'
@@ -108,7 +108,7 @@ subroutine xctetr(exc,npt,order,rhor,rspts,vxc,& !Mandatory arguments
 !Checks the compatibility between the order and the presence of the optional arguments
  if(order /=3 .and. present(d2vxc))then
    write(message, '(a,a,a,a,a,a,i6,a)' )ch10,&
-&   ' xcpzca : BUG -',ch10,&
+&   ' abi_xcpzca : BUG -',ch10,&
 &   '  The order chosen does not need the presence',ch10,&
 &   '  of the vector d2vxc, that is needed only with order=3, while we have',&
 &   order,'.'
@@ -117,7 +117,7 @@ subroutine xctetr(exc,npt,order,rhor,rspts,vxc,& !Mandatory arguments
  end if
  if(order <= 1 .and. present(dvxc))then
    write(message, '(a,a,a,a,a,a,i6,a)' )ch10,&
-&   ' xcpzca : BUG -',ch10,&
+&   ' abi_xcpzca : BUG -',ch10,&
 &   '  The order chosen does not need the presence',ch10,&
 &   '  of the vector dvxc, that is needed with order > 1, while we have',&
 &   order,'.'
@@ -203,5 +203,5 @@ subroutine xctetr(exc,npt,order,rhor,rspts,vxc,& !Mandatory arguments
 !    
    end do
  end if
-end subroutine xctetr
+end subroutine abi_xctetr
 !!***

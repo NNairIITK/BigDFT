@@ -1,79 +1,3 @@
-drivexc.o: 41_xc_lowlevel/drivexc.F90 \
-	abi_defs_basis.o \
-	abi_interfaces_lowlevel.o \
-	interfaces_41_xc_lowlevel.o \
-	m_libxc_functionals.o
-	$(PPFCCOMPILE) -c -o drivexc.o `test -f '41_xc_lowlevel/drivexc.F90' || echo '$(srcdir)/'`41_xc_lowlevel/drivexc.F90
-
-interfaces_41_xc_lowlevel.o: 41_xc_lowlevel/interfaces_41_xc_lowlevel.F90 \
-	abi_defs_basis.o
-	$(PPFCCOMPILE) -c -o interfaces_41_xc_lowlevel.o `test -f '41_xc_lowlevel/interfaces_41_xc_lowlevel.F90' || echo '$(srcdir)/'`41_xc_lowlevel/interfaces_41_xc_lowlevel.F90
-
-invcb.o: 41_xc_lowlevel/invcb.F90 \
-	abi_defs_basis.o \
-	abi_interfaces_lowlevel.o
-	$(PPFCCOMPILE) -c -o invcb.o `test -f '41_xc_lowlevel/invcb.F90' || echo '$(srcdir)/'`41_xc_lowlevel/invcb.F90
-
-m_libxc_functionals.o: 41_xc_lowlevel/m_libxc_functionals.F90 \
-	abi_defs_basis.o \
-	abi_interfaces_lowlevel.o
-	$(PPFCCOMPILE) -c -o m_libxc_functionals.o `test -f '41_xc_lowlevel/m_libxc_functionals.F90' || echo '$(srcdir)/'`41_xc_lowlevel/m_libxc_functionals.F90
-
-mkdenpos.o: 41_xc_lowlevel/mkdenpos.F90 \
-	abi_defs_basis.o \
-	abi_interfaces_lowlevel.o
-	$(PPFCCOMPILE) -c -o mkdenpos.o `test -f '41_xc_lowlevel/mkdenpos.F90' || echo '$(srcdir)/'`41_xc_lowlevel/mkdenpos.F90
-
-size_dvxc.o: 41_xc_lowlevel/size_dvxc.F90 \
-	abi_defs_basis.o
-	$(PPFCCOMPILE) -c -o size_dvxc.o `test -f '41_xc_lowlevel/size_dvxc.F90' || echo '$(srcdir)/'`41_xc_lowlevel/size_dvxc.F90
-
-xchcth.o: 41_xc_lowlevel/xchcth.F90 \
-	abi_defs_basis.o \
-	abi_interfaces_lowlevel.o \
-	interfaces_41_xc_lowlevel.o
-	$(PPFCCOMPILE) -c -o xchcth.o `test -f '41_xc_lowlevel/xchcth.F90' || echo '$(srcdir)/'`41_xc_lowlevel/xchcth.F90
-
-xchelu.o: 41_xc_lowlevel/xchelu.F90 \
-	abi_defs_basis.o \
-	abi_interfaces_lowlevel.o
-	$(PPFCCOMPILE) -c -o xchelu.o `test -f '41_xc_lowlevel/xchelu.F90' || echo '$(srcdir)/'`41_xc_lowlevel/xchelu.F90
-
-xclb.o: 41_xc_lowlevel/xclb.F90 \
-	abi_defs_basis.o
-	$(PPFCCOMPILE) -c -o xclb.o `test -f '41_xc_lowlevel/xclb.F90' || echo '$(srcdir)/'`41_xc_lowlevel/xclb.F90
-
-xcpbe.o: 41_xc_lowlevel/xcpbe.F90 \
-	abi_defs_basis.o \
-	abi_interfaces_lowlevel.o \
-	interfaces_41_xc_lowlevel.o
-	$(PPFCCOMPILE) -c -o xcpbe.o `test -f '41_xc_lowlevel/xcpbe.F90' || echo '$(srcdir)/'`41_xc_lowlevel/xcpbe.F90
-
-xcpzca.o: 41_xc_lowlevel/xcpzca.F90 \
-	abi_defs_basis.o \
-	abi_interfaces_lowlevel.o
-	$(PPFCCOMPILE) -c -o xcpzca.o `test -f '41_xc_lowlevel/xcpzca.F90' || echo '$(srcdir)/'`41_xc_lowlevel/xcpzca.F90
-
-xcspol.o: 41_xc_lowlevel/xcspol.F90 \
-	abi_defs_basis.o \
-	abi_interfaces_lowlevel.o
-	$(PPFCCOMPILE) -c -o xcspol.o `test -f '41_xc_lowlevel/xcspol.F90' || echo '$(srcdir)/'`41_xc_lowlevel/xcspol.F90
-
-xctetr.o: 41_xc_lowlevel/xctetr.F90 \
-	abi_defs_basis.o \
-	abi_interfaces_lowlevel.o
-	$(PPFCCOMPILE) -c -o xctetr.o `test -f '41_xc_lowlevel/xctetr.F90' || echo '$(srcdir)/'`41_xc_lowlevel/xctetr.F90
-
-xcwign.o: 41_xc_lowlevel/xcwign.F90 \
-	abi_defs_basis.o \
-	abi_interfaces_lowlevel.o
-	$(PPFCCOMPILE) -c -o xcwign.o `test -f '41_xc_lowlevel/xcwign.F90' || echo '$(srcdir)/'`41_xc_lowlevel/xcwign.F90
-
-xcxalp.o: 41_xc_lowlevel/xcxalp.F90 \
-	abi_defs_basis.o \
-	abi_interfaces_lowlevel.o
-	$(PPFCCOMPILE) -c -o xcxalp.o `test -f '41_xc_lowlevel/xcxalp.F90' || echo '$(srcdir)/'`41_xc_lowlevel/xcxalp.F90
-
 bldgrp.o: 42_geometry/bldgrp.F90 \
 	abi_defs_basis.o \
 	abi_interfaces_lowlevel.o
@@ -607,11 +531,80 @@ abi_wrap2_pmhalf.o: abi_numeric/abi_wrap2_pmhalf.F90 \
 	abi_defs_basis.o
 	$(PPFCCOMPILE) -c -o abi_wrap2_pmhalf.o `test -f 'abi_numeric/abi_wrap2_pmhalf.F90' || echo '$(srcdir)/'`abi_numeric/abi_wrap2_pmhalf.F90
 
+abi_drivexc.o: abi_xc_lowlevel/abi_drivexc.F90 \
+	abi_defs_basis.o \
+	abi_interfaces_lowlevel.o \
+	abi_interfaces_xc_lowlevel.o
+	$(PPFCCOMPILE) -c -o abi_drivexc.o `test -f 'abi_xc_lowlevel/abi_drivexc.F90' || echo '$(srcdir)/'`abi_xc_lowlevel/abi_drivexc.F90
+
+abi_interfaces_xc_lowlevel.o: abi_xc_lowlevel/abi_interfaces_xc_lowlevel.F90 \
+	abi_defs_basis.o
+	$(PPFCCOMPILE) -c -o abi_interfaces_xc_lowlevel.o `test -f 'abi_xc_lowlevel/abi_interfaces_xc_lowlevel.F90' || echo '$(srcdir)/'`abi_xc_lowlevel/abi_interfaces_xc_lowlevel.F90
+
+abi_invcb.o: abi_xc_lowlevel/abi_invcb.F90 \
+	abi_defs_basis.o \
+	abi_interfaces_lowlevel.o
+	$(PPFCCOMPILE) -c -o abi_invcb.o `test -f 'abi_xc_lowlevel/abi_invcb.F90' || echo '$(srcdir)/'`abi_xc_lowlevel/abi_invcb.F90
+
+abi_mkdenpos.o: abi_xc_lowlevel/abi_mkdenpos.F90 \
+	abi_defs_basis.o \
+	abi_interfaces_lowlevel.o
+	$(PPFCCOMPILE) -c -o abi_mkdenpos.o `test -f 'abi_xc_lowlevel/abi_mkdenpos.F90' || echo '$(srcdir)/'`abi_xc_lowlevel/abi_mkdenpos.F90
+
+abi_size_dvxc.o: abi_xc_lowlevel/abi_size_dvxc.F90 \
+	abi_defs_basis.o
+	$(PPFCCOMPILE) -c -o abi_size_dvxc.o `test -f 'abi_xc_lowlevel/abi_size_dvxc.F90' || echo '$(srcdir)/'`abi_xc_lowlevel/abi_size_dvxc.F90
+
+abi_xchcth.o: abi_xc_lowlevel/abi_xchcth.F90 \
+	abi_defs_basis.o \
+	abi_interfaces_lowlevel.o \
+	abi_interfaces_xc_lowlevel.o
+	$(PPFCCOMPILE) -c -o abi_xchcth.o `test -f 'abi_xc_lowlevel/abi_xchcth.F90' || echo '$(srcdir)/'`abi_xc_lowlevel/abi_xchcth.F90
+
+abi_xchelu.o: abi_xc_lowlevel/abi_xchelu.F90 \
+	abi_defs_basis.o \
+	abi_interfaces_lowlevel.o
+	$(PPFCCOMPILE) -c -o abi_xchelu.o `test -f 'abi_xc_lowlevel/abi_xchelu.F90' || echo '$(srcdir)/'`abi_xc_lowlevel/abi_xchelu.F90
+
+abi_xclb.o: abi_xc_lowlevel/abi_xclb.F90 \
+	abi_defs_basis.o
+	$(PPFCCOMPILE) -c -o abi_xclb.o `test -f 'abi_xc_lowlevel/abi_xclb.F90' || echo '$(srcdir)/'`abi_xc_lowlevel/abi_xclb.F90
+
+abi_xcpbe.o: abi_xc_lowlevel/abi_xcpbe.F90 \
+	abi_defs_basis.o \
+	abi_interfaces_lowlevel.o \
+	abi_interfaces_xc_lowlevel.o
+	$(PPFCCOMPILE) -c -o abi_xcpbe.o `test -f 'abi_xc_lowlevel/abi_xcpbe.F90' || echo '$(srcdir)/'`abi_xc_lowlevel/abi_xcpbe.F90
+
+abi_xcpzca.o: abi_xc_lowlevel/abi_xcpzca.F90 \
+	abi_defs_basis.o \
+	abi_interfaces_lowlevel.o
+	$(PPFCCOMPILE) -c -o abi_xcpzca.o `test -f 'abi_xc_lowlevel/abi_xcpzca.F90' || echo '$(srcdir)/'`abi_xc_lowlevel/abi_xcpzca.F90
+
+abi_xcspol.o: abi_xc_lowlevel/abi_xcspol.F90 \
+	abi_defs_basis.o \
+	abi_interfaces_lowlevel.o
+	$(PPFCCOMPILE) -c -o abi_xcspol.o `test -f 'abi_xc_lowlevel/abi_xcspol.F90' || echo '$(srcdir)/'`abi_xc_lowlevel/abi_xcspol.F90
+
+abi_xctetr.o: abi_xc_lowlevel/abi_xctetr.F90 \
+	abi_defs_basis.o \
+	abi_interfaces_lowlevel.o
+	$(PPFCCOMPILE) -c -o abi_xctetr.o `test -f 'abi_xc_lowlevel/abi_xctetr.F90' || echo '$(srcdir)/'`abi_xc_lowlevel/abi_xctetr.F90
+
+abi_xcwign.o: abi_xc_lowlevel/abi_xcwign.F90 \
+	abi_defs_basis.o \
+	abi_interfaces_lowlevel.o
+	$(PPFCCOMPILE) -c -o abi_xcwign.o `test -f 'abi_xc_lowlevel/abi_xcwign.F90' || echo '$(srcdir)/'`abi_xc_lowlevel/abi_xcwign.F90
+
+abi_xcxalp.o: abi_xc_lowlevel/abi_xcxalp.F90 \
+	abi_defs_basis.o \
+	abi_interfaces_lowlevel.o
+	$(PPFCCOMPILE) -c -o abi_xcxalp.o `test -f 'abi_xc_lowlevel/abi_xcxalp.F90' || echo '$(srcdir)/'`abi_xc_lowlevel/abi_xcxalp.F90
+
 m_libpaw_defs.o: libpaw/m_libpaw_defs.F90
 	$(PPFCCOMPILE) -c -o m_libpaw_defs.o `test -f 'libpaw/m_libpaw_defs.F90' || echo '$(srcdir)/'`libpaw/m_libpaw_defs.F90
 
 m_libpaw_libxc.o: libpaw/m_libpaw_libxc.F90 \
-	m_libxc_functionals.o \
 	m_libpaw_defs.o
 	$(PPFCCOMPILE) -c -o m_libpaw_libxc.o `test -f 'libpaw/m_libpaw_libxc.F90' || echo '$(srcdir)/'`libpaw/m_libpaw_libxc.F90
 

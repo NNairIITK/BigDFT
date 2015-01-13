@@ -1,10 +1,10 @@
-!!****m* ABINIT/interfaces_41_xc_lowlevel
+!!****m* ABINIT/abi_interfaces_xc_lowlevel
 !! NAME
-!! interfaces_41_xc_lowlevel
+!! abi_interfaces_xc_lowlevel
 !!
 !! FUNCTION
 !! This module contains the interfaces of the routines
-!! in the directory src/41_xc_lowlevel
+!! in the directory src/abi_xc_lowlevel
 !!
 !! COPYRIGHT
 !! Copyright (C) 2010 ABINIT group
@@ -17,13 +17,14 @@
 !!
 !! SOURCE
 
-module interfaces_41_xc_lowlevel
+module abi_interfaces_xc_lowlevel
 
  implicit none
 
 interface
- subroutine drivexc(exc,ixc,npts,nspden,order,rho_updn,vxc,ndvxc,ngr2,nd2vxc,nvxcdgr,&  !Mandatory arguments
-  &  dvxc,d2vxc,grho2_updn,vxcgr,exexch,lrho_updn,vxclrho,tau_updn,vxctau)    !Optional arguments
+ subroutine abi_drivexc(exc,ixc,npts,nspden,order,rho_updn,vxc,ndvxc,ngr2,&
+&                       nd2vxc,nvxcdgr,dvxc,d2vxc,grho2_updn,vxcgr,exexch,&
+&                       lrho_updn,vxclrho,tau_updn,vxctau)
   use abi_defs_basis
   implicit none
   integer,intent(in),optional :: exexch
@@ -46,21 +47,21 @@ interface
   real(dp),intent(out),optional :: vxcgr(npts,nvxcdgr)
   real(dp),intent(out),optional :: vxclrho(npts,nspden)
   real(dp),intent(out),optional :: vxctau(npts,nspden)
- end subroutine drivexc
+ end subroutine abi_drivexc
 end interface
 
 interface
- subroutine invcb(rhoarr,rspts,npts)
+ subroutine abi_invcb(rhoarr,rspts,npts)
   use abi_defs_basis
   implicit none
   integer,intent(in) :: npts
   real(dp),intent(in) :: rhoarr(npts)
   real(dp),intent(out) :: rspts(npts)
- end subroutine invcb
+ end subroutine abi_invcb
 end interface
 
 interface
-   subroutine mkdenpos(iwarn,nfft,nspden,option,rhonow,xc_denpos)
+   subroutine abi_mkdenpos(iwarn,nfft,nspden,option,rhonow,xc_denpos)
      use abi_defs_basis
      implicit none
      integer,intent(in) :: nfft,nspden,option
@@ -68,11 +69,11 @@ interface
      real(dp),intent(in) :: xc_denpos
      !arrays
      real(dp),intent(inout) :: rhonow(nfft,nspden)
-   end subroutine mkdenpos
+   end subroutine abi_mkdenpos
 end interface
 
 interface
- subroutine size_dvxc(ixc,ndvxc,ngr2,nd2vxc,nspden,nvxcdgr,order)
+ subroutine abi_size_dvxc(ixc,ndvxc,ngr2,nd2vxc,nspden,nvxcdgr,order)
   implicit none
   integer, intent(in) :: ixc
   integer, intent(out) :: nd2vxc
@@ -81,12 +82,11 @@ interface
   integer, intent(in) :: nspden
   integer, intent(out) :: nvxcdgr
   integer, intent(in) :: order
- end subroutine size_dvxc
+ end subroutine abi_size_dvxc
 end interface
 
 interface
- subroutine xchcth(dvxcdgr,exci,grho2_updn,ixc,npts,nspden,&  
-  &  order,rho_updn,vxci)
+ subroutine abi_xchcth(dvxcdgr,exci,grho2_updn,ixc,npts,nspden,order,rho_updn,vxci)
   use abi_defs_basis
   implicit none
   integer,intent(in) :: ixc
@@ -98,11 +98,11 @@ interface
   real(dp),intent(in) :: grho2_updn(npts,2*nspden-1)
   real(dp),intent(in) :: rho_updn(npts,nspden)
   real(dp),intent(out) :: vxci(npts,nspden)
- end subroutine xchcth
+ end subroutine abi_xchcth
 end interface
 
 interface
- subroutine xchelu(exc,npt,order,rspts,vxc,dvxc)  ! dvxc is optional
+ subroutine abi_xchelu(exc,npt,order,rspts,vxc,dvxc)
   use abi_defs_basis
   implicit none
   integer,intent(in) :: npt
@@ -111,11 +111,11 @@ interface
   real(dp),intent(out) :: exc(npt)
   real(dp),intent(in) :: rspts(npt)
   real(dp),intent(out) :: vxc(npt)
- end subroutine xchelu
+ end subroutine abi_xchelu
 end interface
 
 interface
- subroutine xclb(grho2_updn,npts,nspden,rho_updn,vxci)
+ subroutine abi_xclb(grho2_updn,npts,nspden,rho_updn,vxci)
   use abi_defs_basis
   implicit none
   integer,intent(in) :: npts
@@ -123,12 +123,12 @@ interface
   real(dp),intent(in) :: grho2_updn(npts,2*nspden-1)
   real(dp),intent(in) :: rho_updn(npts,nspden)
   real(dp),intent(inout) :: vxci(npts,nspden)
- end subroutine xclb
+ end subroutine abi_xclb
 end interface
 
 interface
- subroutine xcpbe(exci,npts,nspden,option,order,rho_updn,vxci,ndvxci,ngr2,nd2vxci,&  !Mandatory Arguments
-  &  d2vxci,dvxcdgr,dvxci,exexch,grho2_updn)                          !Optional Arguments
+ subroutine abi_xcpbe(exci,npts,nspden,option,order,rho_updn,vxci,ndvxci,&
+&                     ngr2,nd2vxci,d2vxci,dvxcdgr,dvxci,exexch,grho2_updn)
   use abi_defs_basis
   implicit none
   integer,intent(in),optional :: exexch
@@ -146,12 +146,11 @@ interface
   real(dp),intent(in),optional :: grho2_updn(npts,ngr2)
   real(dp),intent(in) :: rho_updn(npts,nspden)
   real(dp),intent(out) :: vxci(npts,nspden)
- end subroutine xcpbe
+ end subroutine abi_xcpbe
 end interface
 
 interface
- subroutine xcpzca(exc,npt,order,rhor,rspts,vxc,&  !Mandatory arguments
-  &  dvxc)                            !Optional arguments
+ subroutine abi_xcpzca(exc,npt,order,rhor,rspts,vxc,dvxc)
   use abi_defs_basis
   implicit none
   integer,intent(in) :: npt
@@ -161,12 +160,11 @@ interface
   real(dp),intent(in) :: rhor(npt)
   real(dp),intent(in) :: rspts(npt)
   real(dp),intent(out) :: vxc(npt)
- end subroutine xcpzca
+ end subroutine abi_xcpzca
 end interface
 
 interface
- subroutine xcspol(exc,npts,nspden,order,rspts,vxc,zeta,ndvxc,&  !Mandatory arguments
-  &  dvxc)                            !Optional arguments
+ subroutine abi_xcspol(exc,npts,nspden,order,rspts,vxc,zeta,ndvxc,dvxc)
   use abi_defs_basis
   implicit none
   integer,intent(in) :: ndvxc
@@ -178,12 +176,11 @@ interface
   real(dp),intent(in) :: rspts(npts)
   real(dp),intent(out) :: vxc(npts,nspden)
   real(dp),intent(in) :: zeta(npts)
- end subroutine xcspol
+ end subroutine abi_xcspol
 end interface
 
 interface
- subroutine xctetr(exc,npt,order,rhor,rspts,vxc,&  !Mandatory arguments
-  &  d2vxc,dvxc)                    !Optional arguments
+ subroutine abi_xctetr(exc,npt,order,rhor,rspts,vxc,d2vxc,dvxc)
   use abi_defs_basis
   implicit none
   integer,intent(in) :: npt
@@ -194,12 +191,11 @@ interface
   real(dp),intent(in) :: rhor(npt)
   real(dp),intent(in) :: rspts(npt)
   real(dp),intent(out) :: vxc(npt)
- end subroutine xctetr
+ end subroutine abi_xctetr
 end interface
 
 interface
- subroutine xcwign(exc,npt,order,rspts,vxc,&  !Mandatory arguments
-  &  dvxc)                           !Optional arguments
+ subroutine abi_xcwign(exc,npt,order,rspts,vxc,dvxc)
   use abi_defs_basis
   implicit none
   integer,intent(in) :: npt
@@ -208,11 +204,11 @@ interface
   real(dp),intent(out) :: exc(npt)
   real(dp),intent(in) :: rspts(npt)
   real(dp),intent(out) :: vxc(npt)
- end subroutine xcwign
+ end subroutine abi_xcwign
 end interface
 
 interface
- subroutine xcxalp(exc,npt,order,rspts,vxc, dvxc)  ! dvxc is optional
+ subroutine abi_xcxalp(exc,npt,order,rspts,vxc,dvxc)
   use abi_defs_basis
   implicit none
   integer,intent(in) :: npt
@@ -221,8 +217,8 @@ interface
   real(dp),intent(out) :: exc(npt)
   real(dp),intent(in) :: rspts(npt)
   real(dp),intent(out) :: vxc(npt)
- end subroutine xcxalp
+ end subroutine abi_xcxalp
 end interface
 
-end module interfaces_41_xc_lowlevel
+end module abi_interfaces_xc_lowlevel
 !!***

@@ -264,6 +264,7 @@ subroutine XC_potential(geocode,datacode,iproc,nproc,mpi_comm,n01,n02,n03,xcObj,
   use module_interfaces, only: calc_gradient
   use module_xc
   use module_types, only: TCAT_EXCHANGECORR
+  use abi_interfaces_xc_lowlevel, only: abi_mkdenpos
   implicit none
   character(len=1), intent(in) :: geocode !< @copydoc poisson_solver::doc::geocode
   character(len=1), intent(in) :: datacode !< @copydoc poisson_solver::doc::datacode
@@ -386,7 +387,7 @@ subroutine XC_potential(geocode,datacode,iproc,nproc,mpi_comm,n01,n02,n03,xcObj,
   !if rhohat is present, substract it from charge density
   if (present(rhohat)) then
         call axpy(m1*m3*nxt*nspin,-1.0_wp,rhohat(1,1,1,1),1,rho(1),1)
-        call mkdenpos(iwarn,m1*m3*nxt,nspin,0,rho,tol20)
+        call abi_mkdenpos(iwarn,m1*m3*nxt,nspin,0,rho,tol20)
   end if
 
   if (datacode=='G') then
@@ -1013,7 +1014,7 @@ subroutine xc_energy(geocode,m1,m3,md1,md2,md3,nxc,nwb,nxt,nwbl,nwbr,&
 
   use module_base
   use module_xc
-  use interfaces_41_xc_lowlevel
+  use abi_interfaces_xc_lowlevel, only: abi_drivexc,abi_size_dvxc
   use module_interfaces, only: calc_gradient
 
   implicit none
@@ -1082,7 +1083,7 @@ subroutine xc_energy(geocode,m1,m3,md1,md2,md3,nxc,nwb,nxt,nwbl,nwbr,&
 
      !Allocations of the exchange-correlation terms, depending on the ixc value
      nd2vxc=1
-     call size_dvxc(xc%ixc,ndvxc,ngr2,nd2vxc,nspden,nvxcdgr,order)
+     call abi_size_dvxc(xc%ixc,ndvxc,ngr2,nd2vxc,nspden,nvxcdgr,order)
 
      if (use_gradient) then
         !computation of the gradient
@@ -1130,26 +1131,26 @@ subroutine xc_energy(geocode,m1,m3,md1,md2,md3,nxc,nwb,nxt,nwbl,nwbr,&
      if (xc%ixc >= 11 .and. xc%ixc <= 16) then
         if (order**2 <= 1 .or. xc%ixc == 16) then
            if (xc%ixc /= 13) then             
-              call drivexc(exci,xc%ixc,npts,nspden,order,rhopot(1,1,offset,1),vxci,ndvxc,ngr2,nd2vxc,nvxcdgr,&
+              call abi_drivexc(exci,xc%ixc,npts,nspden,order,rhopot(1,1,offset,1),vxci,ndvxc,ngr2,nd2vxc,nvxcdgr,&
                    &grho2_updn=gradient,vxcgr=dvxcdgr) 
            else
-              call drivexc(exci,xc%ixc,npts,nspden,order,rhopot(1,1,offset,1),vxci,ndvxc,ngr2,nd2vxc,nvxcdgr,&
+              call abi_drivexc(exci,xc%ixc,npts,nspden,order,rhopot(1,1,offset,1),vxci,ndvxc,ngr2,nd2vxc,nvxcdgr,&
                    &grho2_updn=gradient) 
            end if
         else if (order /= 3) then
            if (xc%ixc /= 13) then             
-              call drivexc(exci,xc%ixc,npts,nspden,order,rhopot(1,1,offset,1),vxci,ndvxc,ngr2,nd2vxc,nvxcdgr,&
+              call abi_drivexc(exci,xc%ixc,npts,nspden,order,rhopot(1,1,offset,1),vxci,ndvxc,ngr2,nd2vxc,nvxcdgr,&
                    &dvxc=dvxci,grho2_updn=gradient,vxcgr=dvxcdgr) 
            else
-              call drivexc(exci,xc%ixc,npts,nspden,order,rhopot(1,1,offset,1),vxci,ndvxc,ngr2,nd2vxc,nvxcdgr,&
+              call abi_drivexc(exci,xc%ixc,npts,nspden,order,rhopot(1,1,offset,1),vxci,ndvxc,ngr2,nd2vxc,nvxcdgr,&
                    &dvxc=dvxci,grho2_updn=gradient) 
            end if
         else if (order == 3) then
            if (xc%ixc /= 13) then             
-              call drivexc(exci,xc%ixc,npts,nspden,order,rhopot(1,1,offset,1),vxci,ndvxc,ngr2,nd2vxc,nvxcdgr,&
+              call abi_drivexc(exci,xc%ixc,npts,nspden,order,rhopot(1,1,offset,1),vxci,ndvxc,ngr2,nd2vxc,nvxcdgr,&
                    &dvxc=dvxci,d2vxc=d2vxci,grho2_updn=gradient,vxcgr=dvxcdgr) 
            else
-              call drivexc(exci,xc%ixc,npts,nspden,order,rhopot(1,1,offset,1),vxci,ndvxc,ngr2,nd2vxc,nvxcdgr,&
+              call abi_drivexc(exci,xc%ixc,npts,nspden,order,rhopot(1,1,offset,1),vxci,ndvxc,ngr2,nd2vxc,nvxcdgr,&
                    &dvxc=dvxci,d2vxc=d2vxci,grho2_updn=gradient) 
            end if
         end if
@@ -1157,17 +1158,17 @@ subroutine xc_energy(geocode,m1,m3,md1,md2,md3,nxc,nwb,nxt,nwbl,nwbr,&
         !cases without gradient
      else if (xc%ixc >= 0) then
         if (order**2 <=1 .or. xc%ixc >= 31 .and. xc%ixc<=34) then
-           call drivexc(exci,xc%ixc,npts,nspden,order,rhopot(1,1,offset,1),vxci,ndvxc,ngr2,nd2vxc,nvxcdgr)
+           call abi_drivexc(exci,xc%ixc,npts,nspden,order,rhopot(1,1,offset,1),vxci,ndvxc,ngr2,nd2vxc,nvxcdgr)
         else if (order==3 .and. (xc%ixc==3 .or. xc%ixc>=7 .and. xc%ixc<=10)) then
-           call drivexc(exci,xc%ixc,npts,nspden,order,rhopot(1,1,offset,1),vxci,ndvxc,ngr2,nd2vxc,nvxcdgr,&
+           call abi_drivexc(exci,xc%ixc,npts,nspden,order,rhopot(1,1,offset,1),vxci,ndvxc,ngr2,nd2vxc,nvxcdgr,&
                 &dvxc=dvxci,d2vxc=d2vxci)
         else
-           call drivexc(exci,xc%ixc,npts,nspden,order,rhopot(1,1,offset,1),vxci,ndvxc,ngr2,nd2vxc,nvxcdgr,&
+           call abi_drivexc(exci,xc%ixc,npts,nspden,order,rhopot(1,1,offset,1),vxci,ndvxc,ngr2,nd2vxc,nvxcdgr,&
                 &dvxc=dvxci)
         end if
         !case with libXC, with and without gradient
      else if (xc%ixc < 0) then
-        call drivexc(exci,xc%ixc,npts,nspden,order,rhopot(1,1,offset,1),vxci,ndvxc,ngr2,nd2vxc,nvxcdgr,     &
+        call abi_drivexc(exci,xc%ixc,npts,nspden,order,rhopot(1,1,offset,1),vxci,ndvxc,ngr2,nd2vxc,nvxcdgr,     &
              &      grho2_updn=gradient,vxcgr=dvxcdgr)
      end if
 

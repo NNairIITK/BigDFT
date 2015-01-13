@@ -1,7 +1,7 @@
 !{\src2tex{textfont=tt}}
-!!****f* ABINIT/xcpzca
+!!****f* ABINIT/abi_xcpzca
 !! NAME
-!! xcpzca
+!! abi_xcpzca
 !!
 !! FUNCTION
 !! Returns exc, vxc, and d(vxc)/d($\rho$) from input rho.
@@ -36,7 +36,7 @@
 #include "config.h"
 #endif
 
-subroutine xcpzca(exc,npt,order,rhor,rspts,vxc,&  !Mandatory arguments
+subroutine abi_xcpzca(exc,npt,order,rhor,rspts,vxc,&  !Mandatory arguments
 &                dvxc)                            !Optional arguments
 
  use abi_defs_basis
@@ -74,7 +74,7 @@ subroutine xcpzca(exc,npt,order,rhor,rspts,vxc,&  !Mandatory arguments
 !Checks the values of order
  if(order<0 .or. order>2)then
    write(message, '(a,a,a,a,a,a,i6,a)' )ch10,&
-&   ' xcpzca : BUG -',ch10,&
+&   ' abi_xcpzca : BUG -',ch10,&
 &   '  With Perdew-Zunger Ceperley-Alder xc functional, the only',ch10,&
 &   '  allowed values for order are 0, 1 or 2, while it is found to be',&
 &   order,'.'
@@ -84,7 +84,7 @@ subroutine xcpzca(exc,npt,order,rhor,rspts,vxc,&  !Mandatory arguments
 !Checks the compatibility between the order and the presence of the optional arguments
  if(order <= 1 .and. present(dvxc))then
    write(message, '(a,a,a,a,a,a,i6,a)' )ch10,&
-&   ' xcpzca : BUG -',ch10,&
+&   ' abi_xcpzca : BUG -',ch10,&
 &   '  The order chosen does not need the presence',ch10,&
 &   '  of the vector dvxc, that is needed only with order=2 , while we have',&
 &   order,'.'
@@ -151,5 +151,5 @@ subroutine xcpzca(exc,npt,order,rhor,rspts,vxc,&  !Mandatory arguments
    end do
  end if
 !
-end subroutine xcpzca
+end subroutine abi_xcpzca
 !!***

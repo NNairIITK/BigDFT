@@ -1,7 +1,7 @@
 !{\src2tex{textfont=tt}}
-!!****f* ABINIT/xchcth
+!!****f* ABINIT/abi_xchcth
 !! NAME
-!! xchcth
+!! abi_xchcth
 !!
 !! FUNCTION
 !! Treat XC GGA functional of HCTH type.
@@ -47,12 +47,12 @@
 #include "config.h"
 #endif
 
-subroutine xchcth(dvxcdgr,exci,grho2_updn,ixc,npts,nspden,&
+subroutine abi_xchcth(dvxcdgr,exci,grho2_updn,ixc,npts,nspden,&
 & order,rho_updn,vxci)
 
  use abi_defs_basis
  use abi_interfaces_lowlevel
- use interfaces_41_xc_lowlevel, except_this_one => xchcth
+ use abi_interfaces_xc_lowlevel, except_this_one => abi_xchcth
 
  implicit none
 
@@ -103,7 +103,7 @@ subroutine xchcth(dvxcdgr,exci,grho2_updn,ixc,npts,nspden,&
 
  if (order/=1) then
    write(message, '(a,a,a,a,i12,a)' ) ch10,&
-&   ' xchcth : BUG -',ch10,&
+&   ' abi_xchcth : BUG -',ch10,&
 &   '  Order must be 1 ; argument was ',order,'.'
    call abi_wrtout(std_out,message,'COLL')
    call abi_leave_new('COLL')
@@ -159,7 +159,7 @@ subroutine xchcth(dvxcdgr,exci,grho2_updn,ixc,npts,nspden,&
    ccab0=0.589076_dp ; ccab1=4.42374_dp  ; ccab2=-19.2218_dp; ccab3=42.5721_dp  ; ccab4=-42.0052_dp
  else
    write(message, '(a,a,a,a,i12,a)' ) ch10,&
-&   ' xchcth : BUG -',ch10,&
+&   ' abi_xchcth : BUG -',ch10,&
 &   '  ixc must be 16, 17, 26, or 27 ; argument was ',ixc,'.'
    call abi_wrtout(std_out,message,'COLL')
    call abi_leave_new('COLL')
@@ -180,7 +180,7 @@ subroutine xchcth(dvxcdgr,exci,grho2_updn,ixc,npts,nspden,&
 
  allocate(rhoarr(npts),rhom1_3(npts),rho_updnm1_3(npts,2))
  do ispden=1,nspden
-   call invcb(rho_updn(:,ispden),rho_updnm1_3(:,ispden),npts)
+   call abi_invcb(rho_updn(:,ispden),rho_updnm1_3(:,ispden),npts)
  end do
  if(nspden==1)then
    rhoarr(:)=two*rho_updn(:,1)
@@ -188,7 +188,7 @@ subroutine xchcth(dvxcdgr,exci,grho2_updn,ixc,npts,nspden,&
    rho_updnm1_3(:,2)=rho_updnm1_3(:,1)
  else
    rhoarr(:)=rho_updn(:,1)+rho_updn(:,2)
-   call invcb(rhoarr,rhom1_3,npts)
+   call abi_invcb(rhoarr,rhom1_3,npts)
    allocate(zetm(npts),zetmm1_3(npts),zetp(npts),zetpm1_3(npts))
    do ipts=1,npts
      rhotmot=rhom1_3(ipts)
@@ -197,8 +197,8 @@ subroutine xchcth(dvxcdgr,exci,grho2_updn,ixc,npts,nspden,&
      zetp(ipts)=one+zeta*alpha_zeta
      zetm(ipts)=one-zeta*alpha_zeta
    end do
-   call invcb(zetp,zetpm1_3,npts)
-   call invcb(zetm,zetmm1_3,npts)
+   call abi_invcb(zetp,zetpm1_3,npts)
+   call abi_invcb(zetm,zetmm1_3,npts)
  end if
  
  if (nspden==1) then
@@ -290,7 +290,7 @@ subroutine xchcth(dvxcdgr,exci,grho2_updn,ixc,npts,nspden,&
        rhotmo6=sqrt(rhotmot)
        rhoto6=rhotot*rhotmot*rhotmot*rhotmo6
 
-!      From now, the coding of the PW92 functional start. It is identical in xcpbe.f
+!      From now, the coding of the PW92 functional start. It is identical in abi_xcpbe.f
        rs=rsfac*rhotmot
        sqr_rs=sq_rsfac*rhotmo6
        rsm1_2=sq_rsfac_inv*rhoto6
@@ -450,7 +450,7 @@ subroutine xchcth(dvxcdgr,exci,grho2_updn,ixc,npts,nspden,&
        rhotmo6=sqrt(rhotmot)
        rhoto6=rhotot*rhotmot*rhotmot*rhotmo6
 
-!      From now, the coding of the PW92 functional start. It is identical in xcpbe.f
+!      From now, the coding of the PW92 functional start. It is identical in abi_xcpbe.f
        rs=rsfac*rhotmot
        sqr_rs=sq_rsfac*rhotmo6
        rsm1_2=sq_rsfac_inv*rhoto6
@@ -594,7 +594,7 @@ subroutine xchcth(dvxcdgr,exci,grho2_updn,ixc,npts,nspden,&
        rhotmo6=sqrt(rhotmot)
        rhoto6=rhotot*rhotmot*rhotmot*rhotmo6
 
-!      From now, the coding of the PW92 functional start. It is identical in xcpbe.f
+!      From now, the coding of the PW92 functional start. It is identical in abi_xcpbe.f
        rs=rsfac*rhotmot
        sqr_rs=sq_rsfac*rhotmo6
        rsm1_2=sq_rsfac_inv*rhoto6
@@ -739,7 +739,7 @@ subroutine xchcth(dvxcdgr,exci,grho2_updn,ixc,npts,nspden,&
        rhotmo6=sqrt(rhotmot)
        rhoto6=rhotot*rhotmot*rhotmot*rhotmo6
 
-!      From now, the coding of the PW92 functional start. It is identical in xcpbe.f
+!      From now, the coding of the PW92 functional start. It is identical in abi_xcpbe.f
        rs=rsfac*rhotmot
        sqr_rs=sq_rsfac*rhotmo6
        rsm1_2=sq_rsfac_inv*rhoto6
@@ -939,7 +939,7 @@ subroutine xchcth(dvxcdgr,exci,grho2_updn,ixc,npts,nspden,&
        rhotmo6=sqrt(rhotmot)
        rhoto6=rhotot*rhotmot*rhotmot*rhotmo6
 
-!      From now, the coding of the PW92 functional start. It is identical in xcpbe.f
+!      From now, the coding of the PW92 functional start. It is identical in abi_xcpbe.f
        rs=rsfac*rhotmot
        sqr_rs=sq_rsfac*rhotmo6
        rsm1_2=sq_rsfac_inv*rhoto6
@@ -1028,7 +1028,7 @@ subroutine xchcth(dvxcdgr,exci,grho2_updn,ixc,npts,nspden,&
  else
 !  Disallowed value for nspden
    write(message, '(a,a,a,a,a,a,i12,a)' ) ch10,&
-&   ' xchcth: BUG -',ch10,&
+&   ' abi_xchcth: BUG -',ch10,&
 &   '  Argument nspden must be 1 or 2; ',ch10,&
 &   '  Value provided as argument was ',nspden,'.'
    call abi_wrtout(std_out,message,'COLL')
@@ -1039,5 +1039,5 @@ subroutine xchcth(dvxcdgr,exci,grho2_updn,ixc,npts,nspden,&
  deallocate(rhoarr,rhom1_3,rho_updnm1_3)
  if(nspden==2)deallocate(zetm,zetmm1_3,zetp,zetpm1_3)
 
-end subroutine xchcth
+end subroutine abi_xchcth
 !!***

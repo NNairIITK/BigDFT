@@ -1,7 +1,7 @@
 !{\src2tex{textfont=tt}}
-!!****f* ABINIT/xclb
+!!****f* ABINIT/abi_xclb
 !! NAME
-!! xclb
+!! abi_xclb
 !!
 !! FUNCTION
 !! Computes the GGA like part (vx_lb) of the Leeuwen-Baerends
@@ -44,7 +44,7 @@
 #include "config.h"
 #endif
 
-subroutine xclb(grho2_updn,npts,nspden,rho_updn,vxci)
+subroutine abi_xclb(grho2_updn,npts,nspden,rho_updn,vxci)
 
  use abi_defs_basis
 
@@ -90,5 +90,5 @@ subroutine xclb(grho2_updn,npts,nspden,rho_updn,vxci)
 
  end do
 
-end subroutine xclb
+end subroutine abi_xclb
 !!***

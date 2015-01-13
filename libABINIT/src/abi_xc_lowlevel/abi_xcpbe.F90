@@ -1,7 +1,7 @@
 !{\src2tex{textfont=tt}}
-!!****f* ABINIT/xcpbe
+!!****f* ABINIT/abi_xcpbe
 !! NAME
-!! xcpbe
+!! abi_xcpbe
 !!
 !! FUNCTION
 !! Treat XC functionals closely linked with the Perdew-Wang 92 LSD
@@ -98,12 +98,12 @@
 #include "config.h"
 #endif
 
-subroutine xcpbe(exci,npts,nspden,option,order,rho_updn,vxci,ndvxci,ngr2,nd2vxci, & !Mandatory Arguments
+subroutine abi_xcpbe(exci,npts,nspden,option,order,rho_updn,vxci,ndvxci,ngr2,nd2vxci, & !Mandatory Arguments
 &                d2vxci,dvxcdgr,dvxci,exexch,grho2_updn)                          !Optional Arguments
 
  use abi_defs_basis
  use abi_interfaces_lowlevel
- use interfaces_41_xc_lowlevel, except_this_one => xcpbe
+ use abi_interfaces_xc_lowlevel, except_this_one => abi_xcpbe
 
  implicit none
 
@@ -189,13 +189,13 @@ subroutine xcpbe(exci,npts,nspden,option,order,rho_updn,vxci,ndvxci,ngr2,nd2vxci
 
  if (option<=-3 .or. option==0 .or. option==4 .or. option>=8 ) then
    write(message, '(a,a,a,a,i12,a)' ) ch10,&
-&   ' xcpbe : BUG -',ch10,&
+&   ' abi_xcpbe : BUG -',ch10,&
 &   '  Option must be 1, 2, 3, 5, 6, 7, -1 or -2 ; argument was ',option,'.'
  end if
 !Checks the compatibility between the presence of dvxci and ndvxci
  if(ndvxci /=0 .neqv. present(dvxci))then
    write(message, '(4a)' )ch10,&
-&   ' xcpbe : BUG -',ch10,&
+&   ' abi_xcpbe : BUG -',ch10,&
 &   '  If ndvxci/=0 there must the optional arguments dvxci'
    call abi_wrtout(std_out,message,'COLL')
    call abi_leave_new('COLL')
@@ -203,7 +203,7 @@ subroutine xcpbe(exci,npts,nspden,option,order,rho_updn,vxci,ndvxci,ngr2,nd2vxci
 !Checks the compatibility between the inputs and the presence of the optional arguments
  if(ndvxci /= 0 .and. abs(order) <= 1)then
    write(message, '(6a,i8,a)' )ch10,&
-&   ' xcpbe : BUG -',ch10,&
+&   ' abi_xcpbe : BUG -',ch10,&
 &   '  The order does not require the presence of dvxci',ch10,&
 &   '  that is allowed when |order|>1, while we have',&
 &   order,'.'
@@ -216,7 +216,7 @@ subroutine xcpbe(exci,npts,nspden,option,order,rho_updn,vxci,ndvxci,ngr2,nd2vxci
 & .or. ((option == 2 .or. option == 5 .or. option == 6 .or. option == 7) .and. ndvxci /= 15)&
 & ))then
    write(message, '(16a,i8,a,i8,a,i8)' )ch10,&
-&   ' xcpbe : BUG -',ch10,&
+&   ' abi_xcpbe : BUG -',ch10,&
 &   '  The option is not consistent with the value of ndvxci',ch10,&
 &   '  Allowed values are:',ch10,&
 &   '  ndvxci     option',ch10,&
@@ -230,7 +230,7 @@ subroutine xcpbe(exci,npts,nspden,option,order,rho_updn,vxci,ndvxci,ngr2,nd2vxci
  if (present(grho2_updn)) then
    if (ngr2/=2*nspden-1 ) then
      write(message, '(4a)' ) ch10,&
-&     ' xcpbe : BUG -',ch10,&
+&     ' abi_xcpbe : BUG -',ch10,&
 &     '  ngr2 must be 2*nspden-1 !'
      call abi_wrtout(std_out,message,'COLL')
      call abi_leave_new('COLL')
@@ -239,7 +239,7 @@ subroutine xcpbe(exci,npts,nspden,option,order,rho_updn,vxci,ndvxci,ngr2,nd2vxci
 
  if ((option == 1 .or. option == -1 .or. option ==3) .and.  (present(grho2_updn) .or. present(dvxcdgr))) then
    write(message, '(a,a,a,a,a,a,i6,a)' )ch10,&
-&   ' xcpbe : BUG -',ch10,&
+&   ' abi_xcpbe : BUG -',ch10,&
 &   '  The option chosen does not need the presence',ch10,&
 &   '  of the gradient, or of the array dvxcdgr in the input, needed if option/=1,-1,3 , while we have',&
 &   option,'.'
@@ -248,7 +248,7 @@ subroutine xcpbe(exci,npts,nspden,option,order,rho_updn,vxci,ndvxci,ngr2,nd2vxci
  end if
  if (order /= 3 .and. present(d2vxci)) then
    write(message, '(a,a,a,a,a,a,i6,a)' )ch10,&
-&   ' xcpbe : BUG -',ch10,&
+&   ' abi_xcpbe : BUG -',ch10,&
 &   '  The order chosen does not need the presence',ch10,&
 &   '  of the array d2vxci, needed if order=3 , while we have',&
 &   order,'.'
@@ -306,7 +306,7 @@ subroutine xcpbe(exci,npts,nspden,option,order,rho_updn,vxci,ndvxci,ngr2,nd2vxci
  allocate(zetm(npts),zetmm1_3(npts),zetp(npts),zetpm1_3(npts))
 
  do ispden=1,nspden
-   call invcb(rho_updn(:,ispden),rho_updnm1_3(:,ispden),npts)
+   call abi_invcb(rho_updn(:,ispden),rho_updnm1_3(:,ispden),npts)
  end do
 
  if(nspden==1)then
@@ -315,7 +315,7 @@ subroutine xcpbe(exci,npts,nspden,option,order,rho_updn,vxci,ndvxci,ngr2,nd2vxci
    rho_updnm1_3(:,2)=rho_updnm1_3(:,1)
  else
    rhoarr(:)=rho_updn(:,1)+rho_updn(:,2)
-   call invcb(rhoarr,rhom1_3,npts)
+   call abi_invcb(rhoarr,rhom1_3,npts)
    do ipts=1,npts
      rhotmot=rhom1_3(ipts)
      rhotot_inv=rhotmot*rhotmot*rhotmot
@@ -323,8 +323,8 @@ subroutine xcpbe(exci,npts,nspden,option,order,rho_updn,vxci,ndvxci,ngr2,nd2vxci
      zetp(ipts)=1.0_dp+zeta*alpha_zeta
      zetm(ipts)=1.0_dp-zeta*alpha_zeta
    end do
-   call invcb(zetp,zetpm1_3,npts)
-   call invcb(zetm,zetmm1_3,npts)
+   call abi_invcb(zetp,zetpm1_3,npts)
+   call abi_invcb(zetm,zetmm1_3,npts)
  end if
 
 !fab: eliminate the following restriction
@@ -4519,7 +4519,7 @@ if (skip_the_rest) skip_the_rest=exexch==1
  else
 !  Disallowed value for nspden
    write(message, '(a,a,a,a,a,a,i12,a)' ) ch10,&
-&   ' xcpbe: BUG -',ch10,&
+&   ' abi_xcpbe: BUG -',ch10,&
 &   '  Argument nspden must be 1 or 2; ',ch10,&
 &   '  Value provided as argument was ',nspden,'.'
    call abi_wrtout(std_out,message,'COLL')
@@ -4529,5 +4529,5 @@ if (skip_the_rest) skip_the_rest=exexch==1
  deallocate(rhoarr,rhom1_3,rho_updnm1_3)
  deallocate(zetm,zetmm1_3,zetp,zetpm1_3)
 
-end subroutine xcpbe
+end subroutine abi_xcpbe
 !!***

@@ -27,14 +27,12 @@ module m_pawxc
  USE_MEMORY_PROFILING
 
  use m_libpaw_libxc
- 
+
  use m_pawang, only : pawang_type
  use m_pawrad, only : pawrad_type, nderiv_gen, pawrad_deducer0, simp_gen
 
  implicit none
-
  private
-
 
  public:: pawxc           ! Compute xc correlation potential and energies inside a paw sphere. USE (r,theta,phi)
  public:: pawxcpositron   ! Compute electron-positron correlation potential and energies inside a PAW sphere USE (r,theta,phi)
@@ -45,18 +43,19 @@ module m_pawxc
  public:: pawxcmpositron  ! Compute electron-positron correlation potential and energies inside a PAW sphere. USE (L,M) MOMENTS
  public:: pawxcm3         ! Compute first-order change of XC potential and contribution to 2nd-order change of XC energy inside a PAW sphere. USE (L,M) MOMENTS
 
+!Private procedures
+ private:: pawxc3_gga               ! Compute first-order change of XC potential and contribution to
+                                    ! 2nd-order change of XC energy inside a PAW sphere.
+ private:: pawxcsph                 ! Compute XC energy and potential for a spherical density rho(r) given as (up,dn)
+ private:: pawxcsphpositron         ! Compute electron-positron XC energy and potential for spherical densities rho_el(r) rho_pos(r)
+ private:: pawxcsph3                ! Compute XC 1st-order potential for a 1st-order spherical density rho1(r)
 
-! Private procedures
- private:: pawxc3_gga                 ! Compute first-order change of XC potential and contribution to
-                                      ! 2nd-order change of XC energy inside a PAW sphere.
- private:: pawxcsph                   ! Compute XC energy and potential for a spherical density rho(r) given as (up,dn)
- private:: pawxcsphpositron           ! Compute electron-positron XC energy and potential for spherical densities rho_el(r) rho_pos(r)
- private:: pawxcsph3                  ! Compute XC 1st-order potential for a 1st-order spherical density rho1(r)
- private:: pawxc_drivexc_main_wrapper ! wrapper for drivexc_main
- private:: pawxc_mkdenpos_wrapper     ! wrapper for mkdenpos
- private:: pawxc_xcmult_wrapper       ! wrapper for xcmult
- private:: pawxc_size_dvxc_wrapper    ! wrapper for size_dvxc
- private:: pawxc_xcpositron_wrapper   ! wrapper for xcpositron
+!Wrappers
+ private:: pawxc_drivexc_wrapper    ! wrapper for drivexc_main
+ private:: pawxc_mkdenpos_wrapper   ! wrapper for mkdenpos
+ private:: pawxc_xcmult_wrapper     ! wrapper for xcmult
+ private:: pawxc_size_dvxc_wrapper  ! wrapper for size_dvxc
+ private:: pawxc_xcpositron_wrapper ! wrapper for xcpositron
 !!***
 
 CONTAINS !===========================================================
@@ -114,20 +113,19 @@ CONTAINS !===========================================================
 !!      m_pawxc
 !!
 !! CHILDREN
-!!      drivexc
+!!      xcpositron
 !!
 !! SOURCE
 
-
-subroutine pawxc_xcpositron_wrapper(fnxc,grhoe2,ixcpositron,ngr,npt,posdensity0_limit,rhoer,rhopr,vxce,vxcegr,vxcp,&
-&                     dvxce,dvxcp) ! optional arguments
+subroutine pawxc_xcpositron_wrapper(fnxc,grhoe2,ixcpositron,ngr,npt,posdensity0_limit,&
+&                                   rhoer,rhopr,vxce,vxcegr,vxcp,&
+&                                   dvxce,dvxcp) ! optional arguments
 
 
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
 #undef ABI_FUNC
 #define ABI_FUNC 'pawxc_xcpositron_wrapper'
- !use interfaces_41_xc_lowlevel
 !End of the abilint section
 
  implicit none
@@ -141,37 +139,43 @@ subroutine pawxc_xcpositron_wrapper(fnxc,grhoe2,ixcpositron,ngr,npt,posdensity0_
  real(dp),intent(out) :: fnxc(npt),vxce(npt),vxcegr(ngr),vxcp(npt)
  real(dp),intent(out),optional :: dvxce(npt),dvxcp(npt)
 
-#ifndef HAVE_LIBPAW_ABINIT
 !Local variables-------------------------------
-!scalars
- integer,parameter :: idebug=0
- integer :: ipt
- logical :: gga,need_dvxce,need_dvxcp
- real(dp),parameter :: alpha_gga=0.22_dp
- real(dp),parameter :: ap_a1=-1.56_dp,ap_b1=0.051_dp,ap_c1=-0.081_dp,ap_d1=1.14_dp
- real(dp),parameter :: ap_a2=-0.92305_dp,ap_b2=-0.05459_dp
- real(dp),parameter :: ap_a3=-0.6298_dp,ap_b3=-13.15111_dp,ap_c3=2.8655_dp
- real(dp),parameter :: ap_a4=-179856.2768_dp,ap_b4=186.4207_dp,ap_c4=-0.524_dp
- real(dp),parameter :: ap_psn_limit=0.7_dp
- real(dp),parameter :: ap_psn_1=0.9_dp*ap_psn_limit,ap_psn_2=1.1_dp*ap_psn_limit
- real(dp),parameter :: fpi3=four_pi/three
- real(dp),parameter :: psn_aa=69.7029_dp,psn_ba=-107.4927_dp,psn_bb=141.8458_dp
- real(dp),parameter :: psn_ca=23.7182_dp,psn_cb=-33.6472_dp ,psn_cc=5.21152_dp
- real(dp),parameter :: sk_a=-1.56_dp,sk_b=0.1324_dp,sk_c=-4.092_dp,sk_d=51.96_dp,sk_e=0.7207_dp
- real(dp),parameter :: rsfac=0.6203504908994000_dp
- real(dp) :: arse,brse,crse,darse,dbrse,dcrse,d2arse,d2brse,d2crse
- real(dp) :: d2eps,deps,dexc,dexcdg,dexc_p,d2expgga,dexpgga,d2invrs,dinvrs,d2kf,dkf,d2nqtf2,dnqtf2
- real(dp) :: drse,drsp,d2exc,d2exc_p,d2rse,d2rsp,d2sqr,dsqr
- real(dp) :: eexp,eps,exc,exc_p,expgga,invf,dinvf,d2invf,invrhoe,invrhop,invrs,invsqr
- real(dp) :: kf,logrs,nqtf2,opr2,ratio_ap,ratio_psn,rhoe,rhop,rse,rsp,sqr
- character(len=500) :: msg
-!arrays
- real(dp),allocatable :: rsepts(:),rsppts(:)
-#endif
-
+ 
 ! *************************************************************************
 
 #if defined HAVE_LIBPAW_ABINIT
+ call pawxc_xcpositron_abinit()
+#else
+ call pawxc_xcpositron_local()
+#endif
+!!***
+
+contains
+!!***
+
+#if defined HAVE_LIBPAW_ABINIT
+!!****f* pawxc_xcpositron_wrapper/pawxc_xcpositron_abinit
+!! NAME
+!!  pawxc_xcpositron_abinit
+!!
+!! FUNCTION
+!!  ABINIT version of electron-positron correlation
+!!
+!! SOURCE
+
+subroutine pawxc_xcpositron_abinit()
+
+
+!This section has been created automatically by the script Abilint (TD).
+!Do not modify the following lines by hand.
+#undef ABI_FUNC
+#define ABI_FUNC 'pawxc_xcpositron_abinit'
+ !use interfaces_41_xc_lowlevel
+!End of the abilint section
+
+ implicit none
+
+! *************************************************************************
 
  if(present(dvxce) .and. present(dvxcp)) then
   call xcpositron(fnxc,grhoe2,ixcpositron,ngr,npt,posdensity0_limit,rhoer,rhopr,vxce,vxcegr,vxcp,&
@@ -186,243 +190,37 @@ subroutine pawxc_xcpositron_wrapper(fnxc,grhoe2,ixcpositron,ngr,npt,posdensity0_
   call xcpositron(fnxc,grhoe2,ixcpositron,ngr,npt,posdensity0_limit,rhoer,rhopr,vxce,vxcegr,vxcp)
  end if
 
+end subroutine pawxc_xcpositron_abinit
+!!***
+
 #else
-!This is a local copy of xcpositron (to use outside ABINIT)
- gga=(ngr==npt)
- need_dvxce=present(dvxce)
- need_dvxcp=present(dvxcp)
+!!****f* pawxc_xcpositron_wrapper/pawxc_xcpositron_local
+!! NAME
+!!  pawxc_xcpositron_local
+!!
+!! FUNCTION
+!!  Local version of electron-positron correlation (to use outside ABINIT)
+!!  NOT AVAILABLE
+!!
+!! SOURCE
 
- if (gga.and.ixcpositron==2) then 
-   msg = 'xcpositron: GGA not yet implemented for ixcpositron=2 !'
-   MSG_ERROR(msg)
- end if
- if (posdensity0_limit.and.ixcpositron==2) then
-   msg = 'xcpositron: ixcpositron=2 cannot be treated in the zero positron density limit !'
-   MSG_ERROR(msg)
- end if
- if (abs(ixcpositron)/=1.and.ixcpositron/=11.and.ixcpositron/=2.and.ixcpositron/=3.and.ixcpositron/=31) then
-   msg = 'xcpositron: unknown electron-positron correlation !'
-   MSG_ERROR(msg)
- end if
+subroutine pawxc_xcpositron_local()
 
-!Compute density radii for rhor_el, rhor_pos
- LIBPAW_ALLOCATE(rsepts,(npt))
- call invcb(rhoer(:),rsepts,npt)
- rsepts(:)=rsfac*rsepts(:)
- if (ixcpositron==2) then
-   LIBPAW_ALLOCATE(rsppts,(npt))
-   call invcb(rhopr(:),rsppts,npt)
-   rsppts(:)=rsfac*rsppts(:)
- end if
 
-!Loop over grid points
-!----------------------------------------------------
- do ipt=1,npt
+!This section has been created automatically by the script Abilint (TD).
+!Do not modify the following lines by hand.
+#undef ABI_FUNC
+#define ABI_FUNC 'pawxc_xcpositron_local'
+!End of the abilint section
 
-   rhoe=rhoer(ipt)
-   rhop=rhopr(ipt)
-   exc=zero;dexc=zero;d2exc=zero;dexcdg=zero
+ implicit none
 
-   rse=rsepts(ipt)
-   invrhoe=one/rhoe
-   drse=-rse*invrhoe/three
-   if (need_dvxce) d2rse= four/9._dp*rse*invrhoe**2
+! *************************************************************************
 
-!  Arponen & Pajane parametrization for electron
-   if (ixcpositron/=11.and.ixcpositron/=31) then
-     if (rse<0.302_dp) then
-       invrs=one/rse;invsqr=sqrt(invrs);logrs=log(rse)
-       exc =ap_a1*invsqr+(ap_b1*logrs+ap_c1)*logrs+ap_d1
-       dexc=drse*invrs*(-half*ap_a1*invsqr+two*ap_b1*logrs+ap_c1)
-       if (need_dvxce) d2exc=(d2rse/drse-drse*invrs)*dexc+drse**2*invrs**2*(quarter*ap_a1*invsqr+two*ap_b1)
-     else if (rse>=0.302_dp.and.rse<=0.56_dp) then
-       invrs=one/rse
-       exc =ap_a2+ap_b2*invrs**2
-       dexc=-drse*ap_b2*two*invrs**3
-       if (need_dvxce) d2exc=d2rse/drse*dexc+6._dp*drse**2*ap_b2*invrs**4
-     else if (rse>0.56_dp.and.rse<=8.0_dp) then
-       invrs=one/(rse+2.5_dp)
-       dinvrs=-drse*invrs**2
-       d2invrs=-d2rse*invrs**2-two*invrs*drse**2
-       exc =ap_a3+ap_b3*invrs**2+ap_c3*invrs
-       dexc=two*ap_b3*invrs*dinvrs+ap_c3*dinvrs
-       if (need_dvxce) d2exc=two*ap_b3*dinvrs**2+(two*ap_b3*invrs+ap_c3)*d2invrs
-     else
-       exc  =ap_a4*rhoe**2+ap_b4*rhoe+ap_c4
-       dexc =two*ap_a4*rhoe+ap_b4
-       if (need_dvxce) d2exc=two*ap_a4
-     end if
+ MSG_BUG('xcpositron only available in ABINIT!')
 
-!    Sterne & Kaiser parametrization for electron
-   else
-     eexp=exp(-(rse+sk_c)**2/sk_d)
-     opr2=(one+rse**2)
-     arse=atan(rse)
-     exc = sk_a/sqrt(arse)+sk_b*eexp+sk_e
-     dexc= -(two*sk_b*eexp*(sk_c+rse)/sk_d + sk_a/(two*opr2*sqrt(arse)**3))*drse
-     if (need_dvxce) d2exc=-(two*sk_b*eexp*(sk_c+rse)/sk_d + sk_a/(two*opr2*arse**1.5_dp))*d2rse &
-&     +(two*sk_b*eexp*(two*sk_c**2-sk_d+four*sk_c*rse+two*rse**2)/sk_d**2 &
-&     +sk_a*(three+four*rse*arse)/(four*opr2**2*sqrt(arse)**5))*drse**2
-   end if
-
-!  Puska, Seitsonen and Nieminen parametrization for positron
-   if (ixcpositron==2.and.rse>=ap_psn_1) then
-     rsp=rsppts(ipt)
-     invrhop=one/rhop
-     drsp=-rsp*invrhop/three
-     if (need_dvxcp) d2rsp= four/9._dp*rsp*invrhop**2
-     exc_p=zero;dexc_p=zero;d2exc_p=zero
-     if (rsp<0.302_dp) then
-       invrs=one/rsp;invsqr=sqrt(invrs);logrs=log(rsp)
-       exc_p =ap_a1*invsqr+(ap_b1*logrs+ap_c1)*logrs+ap_d1
-       dexc_p=drsp*invrs*(-half*ap_a1*invsqr+two*ap_b1*logrs+ap_c1)
-       if (need_dvxcp) d2exc_p=(d2rsp/drsp-drsp*invrs)*dexc_p+drsp**2*invrs**2*(quarter*ap_a1*invsqr+two*ap_b1)
-     else if (rsp>=0.302_dp.and.rsp<=0.56_dp) then
-       invrs=one/rsp
-       exc_p =ap_a2+ap_b2*invrs**2
-       dexc_p=-drsp*ap_b2*two*invrs**3
-       if (need_dvxcp) d2exc_p=d2rsp/drsp*dexc_p+6._dp*drsp**2*ap_b2*invrs**4
-     else if (rsp>0.56_dp.and.rsp<=8.0_dp) then
-       invrs=one/(rsp+2.5_dp)
-       dinvrs=-drsp*invrs**2
-       d2invrs=-d2rsp*invrs**2-two*invrs*drsp**2
-       exc_p =ap_a3+ap_b3*invrs**2+ap_c3*invrs
-       dexc_p=two*ap_b3*invrs*dinvrs+ap_c3*dinvrs
-       if (need_dvxcp) d2exc_p=two*ap_b3*dinvrs**2+(two*ap_b3*invrs+ap_c3)*d2invrs
-     else
-       exc_p  =ap_a4*rhop**2+ap_b4*rhop+ap_c4
-       dexc_p =two*ap_a4*rhop+ap_b4
-       if (need_dvxcp) d2exc_p=two*ap_a4
-     end if
-   end if
-
-!  GGA correction
-   if (gga) then
-     kf=(three*pi*pi*rhoe)**(one/three)
-     nqtf2=(rhoe*sqrt(four*kf/pi))**2
-     eps=grhoe2(ipt)/nqtf2
-     if (eps<zero) then 
-       msg='pawxc_xcpositron_wrapper: problem, negative GGA espilon!'
-       MSG_ERROR(msg)
-     end if
-     expgga=exp(-alpha_gga*eps/three)
-
-     dkf=pi*pi/(sqrt(three*pi*pi*rhoe)**(one/three))
-     d2kf=-two*pi*pi*pi*pi*(three*pi*pi*rhoe)**(-5.0_dp/3.0_dp)
-     sqr=sqrt(four*kf/pi)
-     dsqr=(four*dkf/pi)/(two*sqr)
-     d2sqr=two/(pi*sqr*dkf)*(d2kf*sqr-dsqr*dkf)
-     nqtf2=(rhoe*sqr)**two
-     dnqtf2=two*(sqr+rhoe*dsqr)*rhoe*sqr
-     d2nqtf2=two*(rhoe*sqr*(two*dsqr+rhoe*d2sqr) &
-&     +sqr*(sqr+rhoe*dsqr) &
-&     +rhoe*(sqr+rhoe*dsqr) ) 
-     deps=-grhoe2(ipt)*dnqtf2/(nqtf2**two)
-     d2eps=-grhoe2(ipt)/(nqtf2*nqtf2*dnqtf2)*(d2nqtf2*nqtf2*nqtf2-two*nqtf2*dnqtf2*dnqtf2)
-     dexpgga=-alpha_gga*deps*expgga/three
-     d2expgga=-alpha_gga*(d2eps*expgga+deps*dexpgga)/three
-     
-     exc   = exc  *expgga
-     dexc=(dexc*expgga+exc*dexpgga)
-     if (need_dvxce) d2exc=d2exc*expgga+two*dexc*dexpgga+exc*d2expgga
-     if (abs(grhoe2(ipt))<1.e24_dp) dexcdg=-exc*alpha_gga*two/three/nqtf2
-   end if
-
-!  Computation of XC energy, potentials and kernels
-!  Zero positron density limit
-   if (ixcpositron/=2.or.rse<ap_psn_1) then
-     fnxc(ipt)=rhop*exc
-     vxce(ipt)=rhop*dexc
-     vxcp(ipt)=exc
-     if (need_dvxce) dvxce(ipt)=rhop*d2exc
-     if (need_dvxcp) dvxcp(ipt)=zero
-     if (gga)       vxcegr(ipt)=rhop*dexcdg
-   else
-!    Puska, Seitsonen and Nieminen functional
-     arse=psn_aa+psn_ba*rse+psn_ca*rse**2
-     brse=psn_ba+psn_bb*rse+psn_cb*rse**2
-     crse=psn_ca+psn_cb*rse+psn_cc*rse**2
-     darse=(psn_ba+two*psn_ca*rse)*drse
-     dbrse=(psn_bb+two*psn_cb*rse)*drse
-     dcrse=(psn_cb+two*psn_cc*rse)*drse
-     invf=arse+brse*rsp+crse*rsp**2+invrhop/exc+invrhoe/exc_p
-     fnxc(ipt)=one/invf
-     dinvf=darse+dbrse*rsp+dcrse*rsp**2-invrhop*dexc/exc**2-invrhoe**2/exc_p
-     vxce(ipt)=-dinvf/invf**2
-     if (need_dvxce) then
-       d2arse=darse*d2rse/drse+two*psn_ca*drse**2
-       d2brse=dbrse*d2rse/drse+two*psn_cb*drse**2
-       d2crse=dcrse*d2rse/drse+two*psn_cc*drse**2
-       d2invf=d2arse+d2brse*rsp+d2crse*rsp**2 &
-&       +invrhop*(two*dexc**2/exc-d2exc)/exc**2+two*invrhoe**3/exc_p
-       dvxce(ipt)=(two*dinvf**2/invf-d2invf)/invf**2
-     end if
-     dinvf=(brse+two*crse*rsp)*drsp-invrhop**2/exc-invrhoe*dexc_p/exc_p**2
-     vxcp(ipt)=-dinvf/invf**2
-     if (need_dvxcp) then
-       d2invf=two*crse*drsp+(brse+two*crse*rsp)*d2rsp &
-&       +two*invrhop**3/exc+invrhoe*(two*dexc_p**2/exc_p-d2exc_p)/exc_p**2
-       dvxcp(ipt)=(two*dinvf**2/invf-d2invf)/invf**2
-     end if
-!    For small rse, use pure Arponen/Pajanne functional
-!    Around the limit (rse=0.7, see PSN paper), switch smoothly from PSN to AP
-     if (rse>=ap_psn_1.and.rse<=ap_psn_2) then
-       ratio_psn=(rse-ap_psn_1)/(ap_psn_2-ap_psn_1);ratio_ap=one-ratio_psn
-       fnxc(ipt)=ratio_psn*fnxc(ipt)+ratio_ap*rhop*exc
-       vxce(ipt)=ratio_psn*vxce(ipt)+ratio_ap*rhop*dexc
-       vxcp(ipt)=ratio_psn*vxcp(ipt)+ratio_ap*exc
-       if (need_dvxce) dvxce(ipt)=ratio_psn*dvxce(ipt)+ratio_ap*rhop*d2exc
-       if (need_dvxcp) dvxcp(ipt)=ratio_psn*dvxcp(ipt)
-     end if
-   end if
-
-!  Debug statements: use polynomial functionals
-   if (idebug>0) then
-     if (idebug==4) then ! order 4
-       fnxc(ipt)=tol3*((rhop**4+rhoe**4)/12._dp+(rhop**3*rhoe+rhop*rhoe**3)/3._dp+rhop**2*rhoe**2)
-       vxce(ipt)=tol3*((rhop**3*rhoe+rhop*rhoe**3)/3._dp+rhop**2*rhoe+rhop*rhoe**2)
-       vxcp(ipt)=tol3*((rhop**3*rhoe+rhop*rhoe**3)/3._dp+rhop**2*rhoe+rhop*rhoe**2)
-       if (need_dvxce) dvxce(ipt)=tol3*(rhop**3/3._dp+rhop*rhoe**2+rhop**2+two*rhop*rhoe)
-       if (need_dvxcp) dvxcp(ipt)=tol3*(rhoe**3/3._dp+rhoe*rhop**2+rhoe**2+two*rhop*rhoe)
-     end if
-     if (idebug==3) then ! order 3
-       fnxc(ipt)=tol3*((rhop**3+rhoe**3)*(one/three)+rhop**2*rhoe+rhop*rhoe**2)
-       vxce(ipt)=tol3*(rhop+rhoe)**2
-       vxcp(ipt)=tol3*(rhop+rhoe)**2
-       if (need_dvxce) dvxce(ipt)=tol3*two*rhoe
-       if (need_dvxcp) dvxcp(ipt)=tol3*two*rhop
-     end if
-     if (idebug==2) then ! order 2
-       fnxc(ipt)=tol3*(rhop+rhoe)**2
-       vxce(ipt)=tol3*two*(rhop+rhoe)
-       vxcp(ipt)=tol3*two*(rhop+rhoe)
-       if (need_dvxce) dvxce(ipt)=tol3*two
-       if (need_dvxcp) dvxcp(ipt)=tol3*two
-     end if
-     if (idebug==1) then ! order 1
-       fnxc(ipt)=tol3*(rhop+rhoe)
-       vxce(ipt)=tol3
-       vxcp(ipt)=tol3
-       if (need_dvxce) dvxce(ipt)=zero
-       if (need_dvxcp) dvxcp(ipt)=zero
-     end if
-   end if
-
- end do ! ipt
-
- LIBPAW_DEALLOCATE(rsepts)
- if (ixcpositron==2) then
-   LIBPAW_DEALLOCATE(rsppts)
- end if
-
-!Convert everything in Hartree units
- fnxc(:)=half*fnxc(:)
- vxce(:)=half*vxce(:)
- vxcp(:)=half*vxcp(:)
- if (need_dvxce) dvxce(:)=half*dvxce(:)
- if (need_dvxcp) dvxcp(:)=half*dvxcp(:)
- if (gga)       vxcegr(:)=half*vxcegr(:)
-
+end subroutine pawxc_xcpositron_local
+!!***
 #endif
 
 end subroutine pawxc_xcpositron_wrapper
@@ -456,7 +254,7 @@ end subroutine pawxc_xcpositron_wrapper
 !!      m_pawxc
 !!
 !! CHILDREN
-!!      drivexc
+!!      size_dvxc
 !!
 !! SOURCE
 
@@ -481,10 +279,37 @@ subroutine pawxc_size_dvxc_wrapper(ixc,ndvxc,ngr2,nd2vxc,nspden,nvxcdgr,order)
 #if defined HAVE_LIBPAW_ABINIT
  call size_dvxc(ixc,ndvxc,ngr2,nd2vxc,nspden,nvxcdgr,order)
 #else
- ngr2=0
- nvxcdgr=0
- ndvxc=0
- nd2vxc=0
+ call pawxc_size_dvxc_local()
+#endif
+!!***
+
+contains
+!!***
+
+#if ! defined HAVE_LIBPAW_ABINIT
+!!****f* pawxc_size_dvxc_wrapper/pawxc_size_dvxc_local
+!! NAME
+!!  pawxc_size_dvxc_local
+!!
+!! FUNCTION
+!!  Local version of size_dvxc routine (to use outside ABINIT)
+!!
+!! SOURCE
+
+subroutine pawxc_size_dvxc_local()
+
+
+!This section has been created automatically by the script Abilint (TD).
+!Do not modify the following lines by hand.
+#undef ABI_FUNC
+#define ABI_FUNC 'pawxc_size_dvxc_local'
+!End of the abilint section
+
+ implicit none
+
+! *************************************************************************
+
+ ngr2=0;nvxcdgr=0;ndvxc=0;nd2vxc=0
 
 !Dimension for the gradient of the density (only allocated for GGA or mGGA)
  if ((ixc>=11.and.ixc<=17).or.(ixc>=23.and.ixc<=24).or.ixc==26.or.ixc==27.or. &
@@ -494,19 +319,15 @@ subroutine pawxc_size_dvxc_wrapper(ixc,ndvxc,ngr2,nd2vxc,nspden,nvxcdgr,order)
 #endif
 
 !A-Only Exc and Vxc
-!=======================================================================================
  if (order**2 <= 1) then
    if (((ixc>=11 .and. ixc<=15) .or. (ixc>=23 .and. ixc<=24)) .and. ixc/=13) nvxcdgr=3
    if (ixc==16.or.ixc==17.or.ixc==26.or.ixc==27) nvxcdgr=2
    if (ixc<0) nvxcdgr=3
    if (ixc>=31 .and. ixc<=34) nvxcdgr=3 !Native fake metaGGA functionals (for testing purpose only)
-
-!  B- Exc+Vxc and other derivatives
-!  =======================================================================================
  else
 
+!B- Exc+Vxc and other derivatives
 !  Definition of ndvxc and nvxcdgr, 2nd dimension of the arrays of 2nd-order derivatives
-!  -------------------------------------------------------------------------------------
    if (ixc==1 .or. ixc==21 .or. ixc==22 .or. (ixc>=7 .and. ixc<=10) .or. ixc==13) then
 !    Routine xcspol: new Teter fit (4/93) to Ceperley-Alder data, with spin-pol option routine xcspol
 !    Routine xcpbe, with different options (optpbe) and orders (order)
@@ -541,7 +362,6 @@ subroutine pawxc_size_dvxc_wrapper(ixc,ndvxc,ngr2,nd2vxc,nspden,nvxcdgr,order)
    end if
 
 !  Definition of nd2vxc, 2nd dimension of the array of 3rd-order derivatives
-!  -------------------------------------------------------------------------------------
    if (order==3) then
      if (ixc==3) nd2vxc=1 ! Non spin polarized LDA case
      if ((ixc>=7 .and. ixc<=10) .or. (ixc==13)) nd2vxc=3*min(nspden,2)-2
@@ -553,6 +373,9 @@ subroutine pawxc_size_dvxc_wrapper(ixc,ndvxc,ngr2,nd2vxc,nspden,nvxcdgr,order)
    end if
 
  end if
+
+end subroutine pawxc_size_dvxc_local
+!!***
 #endif
 
 end subroutine pawxc_size_dvxc_wrapper
@@ -608,11 +431,11 @@ end subroutine pawxc_size_dvxc_wrapper
 !!      m_pawxc
 !!
 !! CHILDREN
-!!      drivexc
+!!      xcmult
 !!
 !! SOURCE
 
-subroutine pawxc_xcmult_wrapper (depsxc,nfft,ngrad,nspden,nspgrad,rhonow)
+subroutine pawxc_xcmult_wrapper(depsxc,nfft,ngrad,nspden,nspgrad,rhonow)
 
 
 !This section has been created automatically by the script Abilint (TD).
@@ -631,18 +454,47 @@ subroutine pawxc_xcmult_wrapper (depsxc,nfft,ngrad,nspden,nspgrad,rhonow)
  real(dp),intent(in) :: depsxc(nfft,nspgrad)
  real(dp),intent(inout) :: rhonow(nfft,nspden,ngrad*ngrad)
 
-!Local variables-------------------------------
-!scalars
-#ifndef HAVE_LIBPAW_ABINIT
- integer :: idir,ifft
- real(dp) :: rho_tot,rho_up
-#endif
-
 ! *************************************************************************
 
 #if defined HAVE_LIBPAW_ABINIT
  call xcmult(depsxc,nfft,ngrad,nspden,nspgrad,rhonow)
 #else
+ call pawxc_xcmult_local()
+#endif
+
+!!***
+
+contains
+!!***
+
+#if ! defined HAVE_LIBPAW_ABINIT
+!!****f* pawxc_xcmult_wrapper/pawxc_xcmult_local
+!! NAME
+!!  pawxc_xcmult_local
+!!
+!! FUNCTION
+!!  Local version of xcmult routine (to use outside ABINIT)
+!!
+!! SOURCE
+
+subroutine pawxc_xcmult_local()
+
+
+!This section has been created automatically by the script Abilint (TD).
+!Do not modify the following lines by hand.
+#undef ABI_FUNC
+#define ABI_FUNC 'pawxc_xcmult_local'
+!End of the abilint section
+
+ implicit none
+
+!Local variables-------------------------------
+!scalars
+ integer :: idir,ifft
+ real(dp) :: rho_tot,rho_up
+
+! *************************************************************************
+
  do idir=1,3
 
    if(nspden==1)then
@@ -650,9 +502,7 @@ subroutine pawxc_xcmult_wrapper (depsxc,nfft,ngrad,nspden,nspgrad,rhonow)
      do ifft=1,nfft
        rhonow(ifft,1,1+idir)=rhonow(ifft,1,1+idir)*depsxc(ifft,2)
      end do
-
    else
-
 !    In the spin-polarized case, there are more factors to take into account
 !$OMP PARALLEL DO PRIVATE(ifft,rho_tot,rho_up) SHARED(depsxc,idir,nfft,rhonow)
      do ifft=1,nfft
@@ -661,10 +511,11 @@ subroutine pawxc_xcmult_wrapper (depsxc,nfft,ngrad,nspden,nspgrad,rhonow)
        rhonow(ifft,1,1+idir)=rho_up *depsxc(ifft,3)         + rho_tot*depsxc(ifft,5)
        rhonow(ifft,2,1+idir)=(rho_tot-rho_up)*depsxc(ifft,4)+ rho_tot*depsxc(ifft,5)
      end do
-
    end if ! nspden==1
-
  end do ! End loop on directions
+
+end subroutine pawxc_xcmult_local
+!!***
 #endif
 
 end subroutine pawxc_xcmult_wrapper
@@ -677,7 +528,6 @@ end subroutine pawxc_xcmult_wrapper
 !! pawxc_mkdenpos_wrapper
 !!
 !! FUNCTION
-!! wrapper for mkdenpos
 !! Make a ground-state density positive everywhere :
 !! when the density (or spin-density) is smaller than xc_denpos,
 !! set it to the value of xc_denpos
@@ -701,23 +551,11 @@ end subroutine pawxc_xcmult_wrapper
 !!     either on the unshifted grid (if ishift==0,
 !!     then equal to rhor),or on the shifted grid
 !!
-!! NOTES
-!!  At this stage, rhonow(:,1:nspden) contains the density in real space,
-!!  on the unshifted or shifted grid. Now test for negative densities
-!!  Note that, ignoring model core charge, as long as boxcut>=2
-!!  the shifted density is derivable from the square of a Fourier
-!!  interpolated charge density => CANNOT go < 0.
-!!  However, actually can go < 0 to within machine precision;
-!!  do not print useless warnings in this case, just fix it.
-!!  Fourier interpolated core charge can go < 0 due to Gibbs
-!!  oscillations; could avoid this by recomputing the model core
-!!  charge at the new real space grid points (future work).
-!!
 !! PARENTS
 !!      m_pawxc
 !!
 !! CHILDREN
-!!      drivexc
+!!      mkdenpos
 !!
 !! SOURCE
 
@@ -741,26 +579,53 @@ subroutine pawxc_mkdenpos_wrapper(iwarn,nfft,nspden,option,rhonow,xc_denpos)
 !arrays
  real(dp),intent(inout) :: rhonow(nfft,nspden)
 
-!Local variables-------------------------------
-!scalars
-#ifndef HAVE_LIBPAW_ABINIT
- integer :: ifft,ispden,numneg
- real(dp) :: rhotmp,worst
- character(len=500) :: msg
-!arrays
- real(dp) :: rho(2)
-#endif
-
 ! *************************************************************************
 
 #if defined HAVE_LIBPAW_ABINIT
  call mkdenpos(iwarn,nfft,nspden,option,rhonow,xc_denpos)
 #else
- numneg=0
- worst=zero
+ call pawxc_mkdenpos_local()
+#endif
+
+!!***
+
+contains
+!!***
+
+#if ! defined HAVE_LIBPAW_ABINIT
+!!****f* pawxc_mkdenpos_wrapper/pawxc_mkdenpos_local
+!! NAME
+!!  pawxc_mkdenpos_local
+!!
+!! FUNCTION
+!!  Local version of mkdenpos routine (to use outside ABINIT)
+!!
+!! SOURCE
+
+subroutine pawxc_mkdenpos_local()
+
+
+!This section has been created automatically by the script Abilint (TD).
+!Do not modify the following lines by hand.
+#undef ABI_FUNC
+#define ABI_FUNC 'pawxc_mkdenpos_local'
+!End of the abilint section
+
+ implicit none
+
+!Local variables-------------------------------
+!scalars
+ integer :: ifft,ispden,numneg
+ real(dp) :: rhotmp,worst
+ character(len=500) :: msg
+!arrays
+ real(dp) :: rho(2)
+
+! *************************************************************************
+
+ numneg=0;worst=zero
 
  if(nspden==1)then
-
 !  Non spin-polarized
 !$OMP PARALLEL DO PRIVATE(ifft,rhotmp) REDUCTION(MIN:worst) REDUCTION(+:numneg) SHARED(nfft,rhonow)
    do ifft=1,nfft
@@ -774,13 +639,12 @@ subroutine pawxc_mkdenpos_wrapper(iwarn,nfft,nspden,option,rhonow,xc_denpos)
        rhonow(ifft,1)=xc_denpos
      end if
    end do
- else if (nspden==2) then
 
+ else if (nspden==2) then
 !  Spin-polarized
 
 !  rhonow is stored as (up,dn)
    if (option==0) then
-
 !$OMP PARALLEL DO PRIVATE(ifft,ispden,rho,rhotmp) REDUCTION(MIN:worst) REDUCTION(+:numneg) &
 !$OMP&SHARED(nfft,nspden,rhonow)
      do ifft=1,nfft
@@ -799,9 +663,8 @@ subroutine pawxc_mkdenpos_wrapper(iwarn,nfft,nspden,option,rhonow,xc_denpos)
        end do
      end do
 
-!    rhonow is stored as (up+dn,up)
+!  rhonow is stored as (up+dn,up)
    else if (option==1) then
-
 !$OMP PARALLEL DO PRIVATE(ifft,ispden,rho,rhotmp) &
 !$OMP&REDUCTION(MIN:worst) REDUCTION(+:numneg) &
 !$OMP&SHARED(nfft,nspden,rhonow)
@@ -824,7 +687,6 @@ subroutine pawxc_mkdenpos_wrapper(iwarn,nfft,nspden,option,rhonow,xc_denpos)
      end do
 
    end if  ! option
-
  else
    msg='nspden>2 not allowed !'
    MSG_BUG(msg)
@@ -840,6 +702,9 @@ subroutine pawxc_mkdenpos_wrapper(iwarn,nfft,nspden,option,rhonow,xc_denpos)
    end if
    iwarn=iwarn+1
  end if
+
+end subroutine pawxc_mkdenpos_local
+!!***
 #endif
 
 end subroutine pawxc_mkdenpos_wrapper
@@ -1149,7 +1014,7 @@ subroutine pawxc(corexc,enxc,enxcdc,ixc,kxc,lm_size,lmselect,nhat,nkxc,nspden,op
      call pawxc_mkdenpos_wrapper(iwarn,nrad,nspden_updn,0,rho_updn,xc_denpos)
 
 !    Call to main XC driver
-     call pawxc_drivexc_main_wrapper(exci,ixc,mgga,ndvxc,nd2vxc,ngr2,nrad,nspden_updn,nvxcdgr,order,rho_updn,vxci,xclevel, &
+     call pawxc_drivexc_wrapper(exci,ixc,mgga,ndvxc,nd2vxc,ngr2,nrad,nspden_updn,nvxcdgr,order,rho_updn,vxci,xclevel, &
 &     dvxc=dvxci,grho2=grho2_updn,vxcgrho=dvxcdgr)
 
 
@@ -3083,7 +2948,7 @@ end subroutine pawxc3
  LIBPAW_ALLOCATE(dvxcdgr,(nrad,nvxcdgr))
 
 !Call to main XC driver
- call pawxc_drivexc_main_wrapper(exc,ixc,mgga,ndvxc,nd2vxc,ngr2,nrad,nspden,nvxcdgr,order,rho_updn,vxc,xclevel, &
+ call pawxc_drivexc_wrapper(exc,ixc,mgga,ndvxc,nd2vxc,ngr2,nrad,nspden,nvxcdgr,order,rho_updn,vxc,xclevel, &
 & dvxc=dvxci,exexch=exexch,grho2=grho2,vxcgrho=dvxcdgr)
 
 !Transfer the XC kernel
@@ -3357,7 +3222,7 @@ subroutine pawxcsph3(cplex_den,cplex_vxc,ixc,nrad,nspden,pawrad,rho_updn,rho1_up
  LIBPAW_ALLOCATE(dvxcdgr,(nrad,nvxcdgr))
 
 !Call to main XC driver
- call pawxc_drivexc_main_wrapper(exc,ixc,mgga,ndvxc,nd2vxc,ngr2,nrad,nspden,nvxcdgr,order,rho_updn,vxc,xclevel, &
+ call pawxc_drivexc_wrapper(exc,ixc,mgga,ndvxc,nd2vxc,ngr2,nrad,nspden,nvxcdgr,order,rho_updn,vxc,xclevel, &
 & dvxc=dvxc,grho2=grho2,vxcgrho=dvxcdgr)
 
 
@@ -5586,31 +5451,29 @@ end subroutine pawxcmpositron
 
 !----------------------------------------------------------------------
 
-!!****f* m_pawxc/pawxc_drivexc_main_wrapper
+!!****f* m_pawxc/pawxc_drivexc_wrapper
 !! NAME
-!! pawxc_drivexc_main_wrapper
+!! pawxc_drivexc_wrapper
 !!
 !! FUNCTION
 !! PAW only
 !! Wrapper for drivexc routines
 !!
-!! OUTPUT
+!! NOTES
+!! PENDING. Need to manage properly optional arguments:
+!! Check that these are present before calling drivexc
+!! Probably use better interfaces of fortran 2003 to avoid 
+!! numerous if/then sentences.
 !!
 !! PARENTS
 !!      m_pawxc
 !!
-!! NOTES
-!! PENDING. Need to manage properly optional arguments:
-!! Check that these are present before calling drivexc_main
-!! Probably use better interfaces of fortran 2003 to avoid 
-!! numerous if/then sentences.
-!!
 !! CHILDREN
-!!      drivexc
+!!  drivexc_main
 !!
 !! SOURCE
 
- subroutine pawxc_drivexc_main_wrapper(exc,ixc,mgga,ndvxc,nd2vxc,ngr2,npts,nspden,nvxcgrho,&
+ subroutine pawxc_drivexc_wrapper(exc,ixc,mgga,ndvxc,nd2vxc,ngr2,npts,nspden,nvxcgrho,&
 &           order,rho,vxcrho,xclevel, &
 &           dvxc,d2vxc,exexch,grho2,lrho,tau,vxcgrho,vxclrho,vxctau,xc_tb09_c) ! Optional arguments
 
@@ -5618,7 +5481,7 @@ end subroutine pawxcmpositron
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
 #undef ABI_FUNC
-#define ABI_FUNC 'pawxc_drivexc_main_wrapper'
+#define ABI_FUNC 'pawxc_drivexc_wrapper'
 !End of the abilint section
 
  implicit none
@@ -5637,17 +5500,14 @@ end subroutine pawxcmpositron
 
 !Local variables-------------------------------
  character(len=100) :: msg
- 
+
 ! *************************************************************************
 
-! =========================================================================
-! === FIRST CASE 
-! =========================================================================
-
+!One could add here a section for other codes (i.e. BigDFT, ...)
 #if defined HAVE_LIBPAW_ABINIT
- call pawxc_abinit()
+ call pawxc_drivexc_abinit()
 #elif defined HAVE_DFT_LIBXC
- call pawxc_libxc()
+ call pawxc_drivexc_libxc()
 #else
  write(msg,'(5a)') 'libPAW XC driving routine only implemented in the following cases:',ch10, &
 &                  ' - ABINIT',ch10,' - libXC'
@@ -5658,32 +5518,23 @@ end subroutine pawxcmpositron
 contains
 !!***
 
-!!****f* pawxc_drivexc_main_wrapper/pawxc_abinit
+#if defined HAVE_LIBPAW_ABINIT
+!!****f* pawxc_drivexc_wrapper/pawxc_drivexc_abinit
 !! NAME
-!!  pawxc_abinit
+!!  pawxc_drivexc_abinit
 !!
 !! FUNCTION
 !!  ABINIT version of XC driving routine
 !!
-!! INPUTS
-!!
-!! OUTPUT
-!!
-!! PARENTS
-!!  m_pawxc
-!!
-!! CHILDREN
-!!  drivexc
-!!
 !! SOURCE
 
-subroutine pawxc_abinit()
+subroutine pawxc_drivexc_abinit()
 
 
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
 #undef ABI_FUNC
-#define ABI_FUNC 'pawxc_abinit'
+#define ABI_FUNC 'pawxc_drivexc_abinit'
  !use interfaces_41_xc_lowlevel
 !End of the abilint section
 
@@ -5691,14 +5542,12 @@ subroutine pawxc_abinit()
 
 ! *************************************************************************
 
-#if defined HAVE_LIBPAW_ABINIT
-
  if ((.not.present(dvxc)).or.(.not.present(grho2)).or.(.not.present(vxcgrho))) then
-  msg='dvxc, grho2 and vxcgrho should be present in pawxc_drivexc_main_wrapper'
+  msg='dvxc, grho2 and vxcgrho should be present in pawxc_drivexc_wrapper'
   MSG_BUG(msg)
 end if
 if(mgga==1) then
-  msg='MGGA is not yet coded in pawxc_drivexc_main_wrapper/ABINIT'
+  msg='MGGA is not yet coded in pawxc_drivexc_wrapper/ABINIT'
   MSG_ERROR(msg)
 end if
 
@@ -5715,47 +5564,36 @@ end if
 &   dvxc=dvxc,grho2=grho2,vxcgrho=vxcgrho)
  end if
 
+end subroutine pawxc_drivexc_abinit
+!!***
 #endif
 
-end subroutine pawxc_abinit
-!!***
-
-!!****f* pawxc_drivexc_main_wrapper/pawxc_libxc
+#if defined HAVE_DFT_LIBXC
+!!****f* pawxc_drivexc_wrapper/pawxc_drivexc_libxc
 !! NAME
-!!  pawxc_libxc
+!!  pawxc_drivexc_libxc
 !!
 !! FUNCTION
 !!  LibXC version of XC driving routine
 !!
-!! INPUTS
-!!
-!! OUTPUT
-!!
-!! PARENTS
-!!      m_pawxc
-!!
-!! CHILDREN
-!!
 !! SOURCE
 
-subroutine pawxc_libxc()
+subroutine pawxc_drivexc_libxc()
 
 
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
 #undef ABI_FUNC
-#define ABI_FUNC 'pawxc_libxc'
+#define ABI_FUNC 'pawxc_drivexc_libxc'
 !End of the abilint section
 
  implicit none
 
 ! *************************************************************************
 
-#if defined HAVE_DFT_LIBXC
-
 !Check the compatibility of input arguments
  if (libxc_functionals_ismgga()) then
-   msg='MGGA is not yet coded in pawxc_drivexc_main_wrapper/LIBXC'
+   msg='MGGA is not yet coded in pawxc_drivexc_wrapper/LIBXC'
    MSG_ERROR(msg)
  end if
  if (ixc>=0) then
@@ -5815,15 +5653,11 @@ subroutine pawxc_libxc()
    end if
  end if
 
-#else
- msg='ABINIT was not compiled with LibXC support'
- MSG_ERROR(msg)
+end subroutine pawxc_drivexc_libxc
+!!***
 #endif
 
-end subroutine pawxc_libxc
-!!***
-
-end subroutine pawxc_drivexc_main_wrapper
+end subroutine pawxc_drivexc_wrapper
 !!***
 
 !----------------------------------------------------------------------

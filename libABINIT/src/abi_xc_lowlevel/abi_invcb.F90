@@ -1,7 +1,7 @@
 !{\src2tex{textfont=tt}}
-!!****f* ABINIT/invcb
+!!****f* ABINIT/abi_invcb
 !! NAME
-!! invcb
+!! abi_invcb
 !!
 !! FUNCTION
 !! Compute a set of inverse cubic roots as fast as possible :
@@ -27,7 +27,7 @@
 #include "config.h"
 #endif
 
- subroutine invcb(rhoarr,rspts,npts)
+ subroutine abi_invcb(rhoarr,rspts,npts)
 
  use abi_defs_basis
  use abi_interfaces_lowlevel
@@ -81,7 +81,7 @@
      end do
      if( .not. test) then
        write(message,'(a,a,a,a)' ) ch10,&
-&       ' invcb : BUG -',ch10,&
+&       ' abi_invcb : BUG -',ch10,&
 &       '  Fast computation of inverse cubic root failed. '
        call abi_wrtout(std_out,message,'COLL')
        call abi_leave_new('COLL')
@@ -90,5 +90,5 @@
    rspts(ipts)=rhomtrd
  end do
 
- end subroutine invcb
+ end subroutine abi_invcb
 !!***

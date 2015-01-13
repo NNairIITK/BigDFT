@@ -1,7 +1,7 @@
 !{\src2tex{textfont=tt}}
-!!****f* ABINIT/mkdenpos
+!!****f* ABINIT/abi_mkdenpos
 !! NAME
-!! mkdenpos
+!! abi_mkdenpos
 !!
 !! FUNCTION
 !! Make a ground-state density positive everywhere :
@@ -53,7 +53,7 @@
 #include "config.h"
 #endif
 
-subroutine mkdenpos(iwarn,nfft,nspden,option,rhonow,xc_denpos)
+subroutine abi_mkdenpos(iwarn,nfft,nspden,option,rhonow,xc_denpos)
 
  use abi_defs_basis
  use abi_interfaces_lowlevel
@@ -155,7 +155,7 @@ subroutine mkdenpos(iwarn,nfft,nspden,option,rhonow,xc_denpos)
  if (numneg>0) then
    if (iwarn==0) then
      write(message, '(a,a,a,a,i10,a,a,a,es10.2,a,e10.2,a,a,a,a)' ) ch10,&
-&     ' mkdenpos : WARNING -',ch10,&
+&     ' abi_mkdenpos : WARNING -',ch10,&
 &     '  Density went too small (lower than xc_denpos) at',numneg,' points',ch10,&
 &     '  and was set to xc_denpos=',xc_denpos,'.  Lowest was ',worst,'.',ch10,&
 &     '  Likely due to too low boxcut or too low ecut for',&
@@ -165,5 +165,5 @@ subroutine mkdenpos(iwarn,nfft,nspden,option,rhonow,xc_denpos)
    iwarn=iwarn+1
  end if
 
-end subroutine mkdenpos
+end subroutine abi_mkdenpos
 !!***

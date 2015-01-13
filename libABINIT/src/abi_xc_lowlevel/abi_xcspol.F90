@@ -1,8 +1,8 @@
 !{\src2tex{textfont=tt}}
-!!****f* ABINIT/xcspol
+!!****f* ABINIT/abi_xcspol
 !!
 !! NAME
-!! xcspol
+!! abi_xcspol
 !!
 !! FUNCTION
 !! Spin-polarized exchange and correlation, parameterized by Mike Teter
@@ -67,7 +67,7 @@
 #include "config.h"
 #endif
 
-subroutine xcspol(exc,npts,nspden,order,rspts,vxc,zeta,ndvxc,& !Mandatory arguments
+subroutine abi_xcspol(exc,npts,nspden,order,rspts,vxc,zeta,ndvxc,& !Mandatory arguments
 &                 dvxc)                            !Optional arguments
 
  use abi_defs_basis
@@ -120,7 +120,7 @@ subroutine xcspol(exc,npts,nspden,order,rspts,vxc,zeta,ndvxc,& !Mandatory argume
 !Checks the compatibility between the presence of dvxc and ndvxc
  if(ndvxc /=0 .neqv. present(dvxc))then
    write(message, '(4a)' )ch10,&
-&   ' xcspol : BUG -',ch10,&
+&   ' abi_xcspol : BUG -',ch10,&
 &   '  If ndvxc/=0 there must be the optional argument dvxc'
    call abi_wrtout(std_out,message,'COLL')
    call abi_leave_new('COLL')
@@ -128,7 +128,7 @@ subroutine xcspol(exc,npts,nspden,order,rspts,vxc,zeta,ndvxc,& !Mandatory argume
 !Checks the compatibility between the inputs and the presence of the optional arguments
  if(abs(order) <= 1 .and. ndvxc /= 0)then
    write(message, '(a,a,a,a,a,a,i6,a)' )ch10,&
-&   ' xcspol : BUG -',ch10,&
+&   ' abi_xcspol : BUG -',ch10,&
 &   '  The order chosen does not need the presence',ch10,&
 &   '  of the vector dvxc, that is needed only with |order|>1 , while we have',&
 &   order,'.'
@@ -137,7 +137,7 @@ subroutine xcspol(exc,npts,nspden,order,rspts,vxc,zeta,ndvxc,& !Mandatory argume
  end if
  if(nspden == 1 .and. ndvxc /=0 .and. ndvxc /= 2)then
    write(message, '(a,a,a,a,i6,a)' )ch10,&
-&   ' xcspol : BUG -',ch10,&
+&   ' abi_xcspol : BUG -',ch10,&
 &   '  Once nspden=1 we must have ndvxc=2, while we have',&
 &   ndvxc,'.'
    call abi_wrtout(std_out,message,'COLL')
@@ -145,7 +145,7 @@ subroutine xcspol(exc,npts,nspden,order,rspts,vxc,zeta,ndvxc,& !Mandatory argume
  end if
  if(nspden == 2 .and. ndvxc /=0 .and. ndvxc /= 3)then
    write(message, '(a,a,a,a,i6,a)' )ch10,&
-&   ' xcspol : BUG -',ch10,&
+&   ' abi_xcspol : BUG -',ch10,&
 &   '  Once nspden=2 we must have ndvxc=3, while we have',&
 &   ndvxc,'.'
    call abi_wrtout(std_out,message,'COLL')
@@ -422,12 +422,12 @@ else
 
 !  Disallowed value for nspden
    write(message, '(a,a,a,a,a,a,i12,a)' ) ch10,&
-&   ' xcspol: BUG -',ch10,&
+&   ' abi_xcspol: BUG -',ch10,&
 &   '  Argument nspden must be 1 or 2; ',ch10,&
 &   '  Value provided as argument was ',nspden,'.'
    call abi_wrtout(std_out,message,'COLL')
    call abi_leave_new('COLL')
  end if
 
-end subroutine xcspol
+end subroutine abi_xcspol
 !!***
