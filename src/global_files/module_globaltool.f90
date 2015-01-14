@@ -676,7 +676,7 @@ subroutine add_poslocs_to_database(gdat)
     logical :: lnew
 
     do iposloc=1,gdat%nposlocs
-       call identical('min',gdat,gdat%nminmax,gdat%nmin,gdat%nid,&
+       call identical('minIns',gdat,gdat%nminmax,gdat%nmin,gdat%nid,&
             gdat%en_arr_currDir(iposloc),gdat%fp_arr_currDir(1,iposloc),&
             gdat%en_arr,gdat%fp_arr,gdat%uinp%en_delta,&
             gdat%uinp%fp_delta,lnew,kid,k_epot)
@@ -716,7 +716,7 @@ subroutine identical(cf,gdat,ndattot,ndat,nid,epot,fp,en_arr,fp_arr,en_delta,&
     logical, intent(out) :: lnew
     integer, intent(out) :: kid
     integer, intent(out) :: k_epot
-    character(len=3), intent(in) :: cf
+    character(len=20), intent(in) :: cf
     !local
     integer :: k, klow, khigh, nsm
     real(gp) :: dmin, d 
@@ -744,7 +744,7 @@ subroutine identical(cf,gdat,ndattot,ndat,nid,epot,fp,en_arr,fp_arr,en_delta,&
     dmin=huge(1.e0_gp)
     do k=max(1,klow),min(ndat,khigh)
         call fpdistance(nid,fp,fp_arr(1,k),d)
-write(*,*)'fpdist '//cf,abs(en_arr(k)-epot),d
+write(*,*)'fpdist '//trim(adjustl(cf)),abs(en_arr(k)-epot),d
 !if(cf=='min')then
 !if(d<3.d-3)then
 !if(abs(en_arr(k)-epot)>1.d-4)then
