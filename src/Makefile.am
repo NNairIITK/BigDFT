@@ -55,7 +55,7 @@ AM_LDFLAGS = -Wl,-rpath=$(DESTDIR)$(dynlibdir)
 else
 bigdft_dynamic_library =
 bigdft_soname_library =
-bigdft_library = libbigdft-1.a $(out_static_library) @LIBS_SHORT_DEPS@
+bigdft_library = libbigdft-1.a $(out_static_library) @LIBS_SHORT_DEPS@ $(amber_ld)
 endif
 if BUILD_LIB_BIGDFT
 lib_bigdft = libbigdft-1.a
@@ -252,7 +252,7 @@ libbigdft-1.a: $(libmain_a_OBJECTS) tmp-libbigdft/extract.stamp
 	$(RANLIB) $@
 
 $(bigdft_dynamic_library): $(libmain_a_OBJECTS) tmp-libbigdft/extract.stamp
-	$(FC) $(FCFLAGS) -shared $(LDFLAGS) -Wl,-soname=$(bigdft_library) -o $@ $(libmain_a_OBJECTS) tmp-libbigdft/*.o @LIBS_SHORT_DEPS@
+	$(FC) $(FCFLAGS) -shared $(LDFLAGS) -Wl,-soname=$(bigdft_library) -o $@ $(libmain_a_OBJECTS) tmp-libbigdft/*.o @LIBS_SHORT_DEPS@ $(amber_ld)
 	@chmod a+x $@
 
 libbigdft-1.so.7: $(bigdft_dynamic_library)
@@ -273,13 +273,13 @@ install-data-hook:
 #abscalc_additional= 
 
 bigdft_SOURCES = BigDFT.f90
-bigdft_LDADD = $(bigdft_library) $(amber_ld)
+bigdft_LDADD = $(bigdft_library)
 
 NEB_images_SOURCES = BigDFT.f90
-NEB_images_LDADD = $(bigdft_library) $(amber_ld)
+NEB_images_LDADD = $(bigdft_library)
 
 splsad_SOURCES = splinedsaddle.f90
-splsad_LDADD = $(bigdft_library) @LINALG_LIBS@ $(amber_ld)
+splsad_LDADD = $(bigdft_library) @LINALG_LIBS@
 
 #rism_SOURCES = rism.f90 rismlowlevel.f90
 #rism_LDADD = $(bigdft_library)
@@ -291,48 +291,48 @@ splsad_LDADD = $(bigdft_library) @LINALG_LIBS@ $(amber_ld)
 #oneatom_LDADD = $(bigdft_library)
 
 BigDFT2Wannier_SOURCES = BigDFT2Wannier.f90
-BigDFT2Wannier_LDADD = $(bigdft_library) @LINALG_LIBS@ $(amber_ld)
+BigDFT2Wannier_LDADD = $(bigdft_library) @LINALG_LIBS@
 
 WaCo_SOURCES = WaCo.f90
-WaCo_LDADD = $(bigdft_library) @LINALG_LIBS@ $(amber_ld)
+WaCo_LDADD = $(bigdft_library) @LINALG_LIBS@
 
 MDanalysis_SOURCES = distances.f90
-MDanalysis_LDADD = $(bigdft_library) $(amber_ld)
+MDanalysis_LDADD = $(bigdft_library)
 
 abscalc_SOURCES = abscalc.f90 
 abscalc_FCFLAGS = -I. -I$(top_builddir)/includes -I$(srcdir)/wavelib -I$(top_srcdir)/PSolver/src \
 	@LIBABINIT_INCLUDE@ @LIBXC_INCLUDE@ \
 	@LIBETSFIO_INCLUDE@ @LIBSGPU_INCLUDE@ \
 	@MPI_INCLUDE@
-abscalc_LDADD = libabscalc.a $(bigdft_library) @LINALG_LIBS@ $(amber_ld)
+abscalc_LDADD = libabscalc.a $(bigdft_library) @LINALG_LIBS@
 
 test_forces_SOURCES = test_forces.f90
-test_forces_LDADD = $(bigdft_library) $(amber_ld)
+test_forces_LDADD = $(bigdft_library)
 
 NEB_SOURCES = NEB.f90
-NEB_LDADD = $(bigdft_library) @LINALG_LIBS@ $(amber_ld)
+NEB_LDADD = $(bigdft_library) @LINALG_LIBS@
 
 #to be adjusted: when the compiler has MPI built-in libraries the linker finds multiple definitions
 memguess_SOURCES = memguess.f90 $(top_srcdir)/flib/src/MPIfake.f90
-memguess_LDADD = $(bigdft_library) @LINALG_LIBS@ $(amber_ld)
+memguess_LDADD = $(bigdft_library) @LINALG_LIBS@
 
 frequencies_SOURCES = frequencies.f90
-frequencies_LDADD = $(bigdft_library) @LINALG_LIBS@ $(amber_ld)
+frequencies_LDADD = $(bigdft_library) @LINALG_LIBS@
 
 bart_SOURCES = art.f90
 bart_FCFLAGS = -I. -Iart -I$(top_builddir)/includes @LIBABINIT_INCLUDE@ @LIBXC_INCLUDE@
-bart_LDADD = art/libart.a $(bigdft_library) @LINALG_LIBS@ $(amber_ld)
+bart_LDADD = art/libart.a $(bigdft_library) @LINALG_LIBS@
 
 mhgps_SOURCES = mhgps.f90
 mhgps_FCFLAGS = -I. -Imhgps_files -I$(top_builddir)/includes @LIBABINIT_INCLUDE@ @LIBXC_INCLUDE@
-mhgps_LDADD = mhgps_files/libmhgps.a $(amber_ld) $(bigdft_library) @LINALG_LIBS@ $(amber_ld)
+mhgps_LDADD = mhgps_files/libmhgps.a $(bigdft_library) @LINALG_LIBS@
 
 mhgpstool_SOURCES = mhgpstool.f90
 mhgpstool_FCFLAGS = -I. -Imhgps_files -I$(top_builddir)/includes @LIBABINIT_INCLUDE@ @LIBXC_INCLUDE@
-mhgpstool_LDADD = mhgps_files/libmhgps.a $(amber_ld) $(bigdft_library)  @LINALG_LIBS@ $(amber_ld)
+mhgpstool_LDADD = mhgps_files/libmhgps.a $(bigdft_library)  @LINALG_LIBS@
 
 global_SOURCES = global.f90
-global_LDADD = $(bigdft_library) @LINALG_LIBS@ $(amber_ld)
+global_LDADD = $(bigdft_library) @LINALG_LIBS@
 
 CLEANFILES = *.@MODULE_EXT@ bindings_dbus.* introspect libbigdft-1.* input_variables_definition-inc.h
 clean-local:
