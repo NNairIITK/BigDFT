@@ -93,8 +93,8 @@ module public_keys
 
   !Force field parameters
   !morse_bulk
-  character(len = *), parameter :: MB_RHO = "RHO for morse_bulk"
-  character(len = *), parameter :: MB_RCUT = "cutoff radius for morse_bulk"
+  character(len = *), parameter :: MB_RHO = "mb_rho"
+  character(len = *), parameter :: MB_RCUT = "mb_rcut"
 
 
   character(len = *), parameter :: MIX_VARIABLES = "mix"
