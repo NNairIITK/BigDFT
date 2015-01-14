@@ -61,7 +61,7 @@ subroutine testkgrid(bravais,iout,kptrlatt,kptrlen,&
  use abi_defs_basis
  use abi_interfaces_lowlevel
  use abi_interfaces_numeric
- use interfaces_42_geometry
+ use abi_interfaces_geometry
  use interfaces_56_recipspace, except_this_one => testkgrid
 
  implicit none
@@ -141,8 +141,8 @@ subroutine testkgrid(bravais,iout,kptrlatt,kptrlen,&
    end if
    surface=sqrt(sum(r2d(:,3)**2))
 !  Identify the 2-D Bravais lattice
-   call metric(gmet,gprimd,-1,rmet,r2d,ucvol)
-   call smallprim(metmin,minim,r2d)
+   call abi_metric(gmet,gprimd,-1,rmet,r2d,ucvol)
+   call abi_smallprim(metmin,minim,r2d)
    ang90=0 ; equal=0 ; center=0
    axes(:,:)=minim(:,:)
    if(abs(metmin(1,2))<tol8)ang90=1
@@ -284,7 +284,7 @@ subroutine testkgrid(bravais,iout,kptrlatt,kptrlen,&
    kptrlen_current=0.0_dp
    mult1=0 ; mult2=0 ; mult3=0
    allocate(kpt(3,nkpt),wtk(nkpt))
-   call metric(gmet,gprimd,-1,rmet,rprimd,ucvol)
+   call abi_metric(gmet,gprimd,-1,rmet,rprimd,ucvol)
 
 !  Loop on different grids, the upper limit is only to avoid an infinite loop
    do igrid=1,1000

@@ -5,6 +5,7 @@ subroutine md_isothermal(acell, acell_next, amass, bmass, dtion, etotal, etotal0
 
   use abi_defs_basis
   use abi_interfaces_lowlevel
+  use abi_interfaces_geometry
 
   implicit none
 
@@ -65,7 +66,7 @@ subroutine md_isothermal(acell, acell_next, amass, bmass, dtion, etotal, etotal0
      !   New positions
      xcart_next(:,:)=xcart(:,:)+vel_nexthalf(:,:)*dtion
      !   Convert back to xred (reduced coordinates)
-     call xredxcart(natom,-1,rprimd,xcart_next,xred_next)
+     call abi_xredxcart(natom,-1,rprimd,xcart_next,xred_next)
      !   Computation of the forces for the new positions
      !   Compute LDA forces (big loop), fcart_m is used as dummy argument for fred
      call scfloop_main(acell, etotal, fcart, fcart_m, itime, me, natom, rprimd, xred_next)
@@ -103,18 +104,10 @@ subroutine md_isothermal(acell, acell_next, amass, bmass, dtion, etotal, etotal0
      !   Update the volume and related quantities
      acell_next(:)=acell(:)*exp(dtion*vlogv)
      !   ucvol=ucvol*exp(dtion*vlogv)
-     call mkrdim(acell_next,rprim,rprimd_next)
-     call metric(gmet,gprimd,-1,rmet,rprimd_next,ucvol_next)
+     call abi_mkrdim(acell_next,rprim,rprimd_next)
+     call abi_metric(gmet,gprimd,-1,rmet,rprimd_next,ucvol_next)
      !   Convert back to xred (reduced coordinates)
-     call xredxcart(natom,-1,rprimd_next,xcart_next,xred_next)
-     !   Computation of the forces for the new positions
-     !   If metric has changed since the initialization, update the Ylm's
-!!$    if (optcell/=0.and.psps%useylm==1.and.itime>0)then
-!!$     !!$ call status(0,dtfil%filstat,iexit,level,'call initylmg ')
-!!$     option=0;if (dtset%iscf>0) option=1
-!!$     call initylmg(gprimd,kg,dtset%kptns,dtset%mkmem,mpi_enreg,psps%mpsang,dtset%mpw,dtset%nband,dtset%nkpt,&
-!!$&     npwarr,dtset%nsppol,option,rprimd_next,dtfil%unkg,dtfil%unylm,ylm,ylmgr)
-!!$    end if
+     call abi_xredxcart(natom,-1,rprimd_next,xcart_next,xred_next)
      !   Compute LDA forces (big loop), fcart_m is used as dummy argument for fred
      call scfloop_main(acell_next, etotal, fcart, fcart_m, itime, me, natom, &
           & rprimd_next, xred_next)
@@ -165,17 +158,9 @@ subroutine md_isothermal(acell, acell_next, amass, bmass, dtion, etotal, etotal0
         rprim_next(idim,:)=rprimd_next(idim,:)/acell(:)
      end do
      !   Update the volume
-     call metric(gmet,gprimd,-1,rmet,rprimd_next,ucvol)
+     call abi_metric(gmet,gprimd,-1,rmet,rprimd_next,ucvol)
      !   Convert back to xred (reduced coordinates)
-     call xredxcart(natom,-1,rprimd_next,xcart_next,xred_next)
-     !   Computation of the forces for the new positions
-     !   If metric has changed since the initialization, update the Ylm's
-!!$    if (optcell/=0.and.psps%useylm==1.and.itime>0)then
-!!$     !!$ call status(0,dtfil%filstat,iexit,level,'call initylmg ')
-!!$     option=0;if (dtset%iscf>0) option=1
-!!$     call initylmg(gprimd,kg,dtset%kptns,dtset%mkmem,mpi_enreg,psps%mpsang,dtset%mpw,dtset%nband,dtset%nkpt,&
-!!$&     npwarr,dtset%nsppol,option,rprimd_next,dtfil%unkg,dtfil%unylm,ylm,ylmgr)
-!!$    end if
+     call abi_xredxcart(natom,-1,rprimd_next,xcart_next,xred_next)
 
      !   Compute LDA forces (big loop), fcart_m is used as dummy argument for fred
      call scfloop_main(acell_next, etotal, fcart, fcart_m, itime, me, natom, &

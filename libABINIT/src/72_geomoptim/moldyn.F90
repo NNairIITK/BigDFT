@@ -138,6 +138,7 @@ subroutine moldyn(acell,amass,me,&
 
  use abi_defs_basis
  use abi_interfaces_lowlevel
+ use abi_interfaces_geometry
  use interfaces_67_common
 
  implicit none
@@ -215,8 +216,8 @@ subroutine moldyn(acell,amass,me,&
  allocate(xred_next(3,natom),xred_prev(3,natom))
 
 !Compute dimensional primitive translations rprimd, then metric tensor gmet
- call mkrdim(acell,rprim,rprimd)
- call metric(gmet,gprimd,-1,rmet,rprimd,ucvol)
+ call abi_mkrdim(acell,rprim,rprimd)
+ call abi_metric(gmet,gprimd,-1,rmet,rprimd,ucvol)
 
 !Save initial values
  acell0(:)=acell(:)
@@ -314,12 +315,10 @@ subroutine moldyn(acell,amass,me,&
 !  End condition on itime
   end if
 
-  !!$ call status(itime,dtfil%filstat,iexit,level,'call scfcv    ')
-
   if(optcell/=0)then
 
-   call mkrdim(acell,rprim,rprimd)
-   call metric(gmet,gprimd,-1,rmet,rprimd,ucvol)
+   call abi_mkrdim(acell,rprim,rprimd)
+   call abi_metric(gmet,gprimd,-1,rmet,rprimd,ucvol)
 
 !  Write, but only to log file
    write(message, '(a,a,4(a,3es18.10,a),a,es18.10,a,a)' )&
@@ -340,9 +339,9 @@ subroutine moldyn(acell,amass,me,&
      if (itime /= 0 .or. maxval(fred) == zero) then
         call scfloop_main(acell, etotal, fcart, fred, itime, me, natom, rprimd, xred)
      else
-        call xredxcart(natom,1,rprimd,fcart,fred)
+        call abi_xredxcart(natom,1,rprimd,fcart,fred)
      end if
-     call xredxcart(natom,1,rprimd,xcart,xred)
+     call abi_xredxcart(natom,1,rprimd,xcart,xred)
   end if
 
 ! Output of acell and/or rprim ( and angles ! - should become a routine later)
@@ -533,7 +532,7 @@ subroutine moldyn(acell,amass,me,&
   end do
  end if
 
- call xredxcart(natom,-1,rprimd,fcart,fred)
+ call abi_xredxcart(natom,-1,rprimd,fcart,fred)
 
  deallocate(fcart)
  deallocate(fcart_mold)

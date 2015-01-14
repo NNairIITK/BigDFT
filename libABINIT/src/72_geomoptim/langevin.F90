@@ -2,6 +2,7 @@ subroutine md_langevin(amass, dtion, fcart, fcart_mold, friction, itime, ktemp, 
      & mditemp, mdwall, natom, rprimd, vel, xcart, xcart_next, xred_next)
   
   use abi_defs_basis
+  use abi_interfaces_geometry
 
   implicit none
 
@@ -94,7 +95,7 @@ subroutine md_langevin(amass, dtion, fcart, fcart_mold, friction, itime, ktemp, 
   end do
 
   !  Convert back to xred_next (reduced coordinates)
-  call xredxcart(natom,-1,rprimd,xcart_next,xred_next)
+  call abi_xredxcart(natom,-1,rprimd,xcart_next,xred_next)
 
   if (itime==0) then
      !   no old forces are available at first step

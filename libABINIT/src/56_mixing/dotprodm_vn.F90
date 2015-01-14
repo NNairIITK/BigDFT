@@ -69,7 +69,7 @@ subroutine dotprodm_vn(cplex,cpldot,denarr,dot,id,ip,mpi_comm, mpi_summarize,mul
 & nden,nfft,npot,nspden,potarr)
 
  use abi_defs_basis
- use abi_m_xmpi
+ use m_abi_xmpi
 
  implicit none
 

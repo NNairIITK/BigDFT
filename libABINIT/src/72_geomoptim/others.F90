@@ -37,10 +37,10 @@
 
 ! step 1 of 15
 !  Convert input xred (reduced coordinates) to xcart (cartesian)
-   call xredxcart(natom,1,rprimd,xcart,xred)
+   call abi_xredxcart(natom,1,rprimd,xcart,xred)
    xcart_next(:,:) = xcart(:,:) + dtion * a1 * vel(:,:);
 !   Convert back to xred (reduced coordinates)
-    call xredxcart(natom,-1,rprimd,xcart_next,xred_next)
+    call abi_xredxcart(natom,-1,rprimd,xcart_next,xred_next)
 
 !step 2 of 15
 !   Computation of the forces for the new positions
@@ -63,7 +63,7 @@
     xred(:,:) = xred_next(:,:)
     xcart_next(:,:) = xcart_next(:,:) + a2 * dtion * vel(:,:)
 !   Convert xcart_next to xred_next (reduced coordinates) for scfcv
-    call xredxcart(natom,-1,rprimd,xcart_next,xred_next)
+    call abi_xredxcart(natom,-1,rprimd,xcart_next,xred_next)
 
 !step 3 of 15
 !   Computation of the forces for the new positions
@@ -86,7 +86,7 @@
     xred(:,:) = xred_next(:,:)
     xcart_next(:,:) = xcart_next(:,:) + a3 * dtion * vel(:,:)
 !   Convert xcart_next to xred_next (reduced coordinates) for scfcv
-    call xredxcart(natom,-1,rprimd,xcart_next,xred_next)    
+    call abi_xredxcart(natom,-1,rprimd,xcart_next,xred_next)    
 
 !step 4 of 15
 !   Computation of the forces for the new positions
@@ -109,7 +109,7 @@
     xred(:,:) = xred_next(:,:)
     xcart_next(:,:) = xcart_next(:,:) + a4 * dtion * vel(:,:)
 !   Convert xcart_next to xred_next (reduced coordinates) for scfcv
-    call xredxcart(natom,-1,rprimd,xcart_next,xred_next)    
+    call abi_xredxcart(natom,-1,rprimd,xcart_next,xred_next)    
 
 !step 5 of 15
 !   Computation of the forces for the new positions
@@ -132,7 +132,7 @@
     xred(:,:) = xred_next(:,:)
     xcart_next(:,:) = xcart_next(:,:) + a5 * dtion * vel(:,:)
 !   Convert xcart_next to xred_next (reduced coordinates) for scfcv
-    call xredxcart(natom,-1,rprimd,xcart_next,xred_next)
+    call abi_xredxcart(natom,-1,rprimd,xcart_next,xred_next)
     
 !step 6 of 15
 !   Computation of the forces for the new positions
@@ -155,7 +155,7 @@
     xred(:,:) = xred_next(:,:)
     xcart_next(:,:) = xcart_next(:,:) + a6 * dtion * vel(:,:)
 !   Convert xcart_next to xred_next (reduced coordinates) for scfcv
-    call xredxcart(natom,-1,rprimd,xcart_next,xred_next)    
+    call abi_xredxcart(natom,-1,rprimd,xcart_next,xred_next)    
 
 !step 7 of 15
 !   Computation of the forces for the new positions
@@ -178,7 +178,7 @@
     xred(:,:) = xred_next(:,:)
     xcart_next(:,:) = xcart_next(:,:) + a7 * dtion * vel(:,:)
 !   Convert xcart_next to xred_next (reduced coordinates) for scfcv
-    call xredxcart(natom,-1,rprimd,xcart_next,xred_next)    
+    call abi_xredxcart(natom,-1,rprimd,xcart_next,xred_next)    
 
 !step 8 of 15
 !   Computation of the forces for the new positions
@@ -201,7 +201,7 @@
     xred(:,:) = xred_next(:,:)
     xcart_next(:,:) = xcart_next(:,:) + a8 * dtion * vel(:,:)
 !   Convert xcart_next to xred_next (reduced coordinates) for scfcv
-    call xredxcart(natom,-1,rprimd,xcart_next,xred_next)    
+    call abi_xredxcart(natom,-1,rprimd,xcart_next,xred_next)    
 
 !step 9 of 15
 !   Computation of the forces for the new positions
@@ -224,7 +224,7 @@
     xred(:,:) = xred_next(:,:)
     xcart_next(:,:) = xcart_next(:,:) + a9 * dtion * vel(:,:)
 !   Convert xcart_next to xred_next (reduced coordinates) for scfcv
-    call xredxcart(natom,-1,rprimd,xcart_next,xred_next)    
+    call abi_xredxcart(natom,-1,rprimd,xcart_next,xred_next)    
 
 !step 10 of 15
 !   Computation of the forces for the new positions
@@ -247,7 +247,7 @@
     xred(:,:) = xred_next(:,:)
     xcart_next(:,:) = xcart_next(:,:) + a10 * dtion * vel(:,:)
 !   Convert xcart_next to xred_next (reduced coordinates) for scfcv
-    call xredxcart(natom,-1,rprimd,xcart_next,xred_next)    
+    call abi_xredxcart(natom,-1,rprimd,xcart_next,xred_next)    
 
 !step 11 of 15
 !   Computation of the forces for the new positions
@@ -270,7 +270,7 @@
     xred(:,:) = xred_next(:,:)
     xcart_next(:,:) = xcart_next(:,:) + a11 * dtion * vel(:,:)
 !   Convert xcart_next to xred_next (reduced coordinates) for scfcv
-    call xredxcart(natom,-1,rprimd,xcart_next,xred_next)    
+    call abi_xredxcart(natom,-1,rprimd,xcart_next,xred_next)    
 
 !step 12 of 15
 !   Computation of the forces for the new positions
@@ -293,7 +293,7 @@
     xred(:,:) = xred_next(:,:)
     xcart_next(:,:) = xcart_next(:,:) + a12 * dtion * vel(:,:)
 !   Convert xcart_next to xred_next (reduced coordinates) for scfcv
-    call xredxcart(natom,-1,rprimd,xcart_next,xred_next)    
+    call abi_xredxcart(natom,-1,rprimd,xcart_next,xred_next)    
 
 !step 13 of 15
 !   Computation of the forces for the new positions
@@ -316,7 +316,7 @@
     xred(:,:) = xred_next(:,:)
     xcart_next(:,:) = xcart_next(:,:) + a13 * dtion * vel(:,:)
 !   Convert xcart_next to xred_next (reduced coordinates) for scfcv
-    call xredxcart(natom,-1,rprimd,xcart_next,xred_next)    
+    call abi_xredxcart(natom,-1,rprimd,xcart_next,xred_next)    
 
 !step 14 of 15
 !   Computation of the forces for the new positions
@@ -339,7 +339,7 @@
     xred(:,:) = xred_next(:,:)
     xcart_next(:,:) = xcart_next(:,:) + a14 * dtion * vel(:,:)
 !   Convert xcart_next to xred_next (reduced coordinates) for scfcv
-    call xredxcart(natom,-1,rprimd,xcart_next,xred_next)    
+    call abi_xredxcart(natom,-1,rprimd,xcart_next,xred_next)    
 
 !step 15 of 15
 !   Computation of the forces for the new positions
@@ -362,7 +362,7 @@
     xred(:,:) = xred_next(:,:)
     xcart_next(:,:) = xcart_next(:,:) + a15 * dtion * vel(:,:)
 !   Convert xcart_next to xred_next (reduced coordinates) for scfcv
-    call xredxcart(natom,-1,rprimd,xcart_next,xred_next)    
+    call abi_xredxcart(natom,-1,rprimd,xcart_next,xred_next)    
 ! end of step 15
 
 ! step 16 : add a new call to scfcv to get the total energy at the final position

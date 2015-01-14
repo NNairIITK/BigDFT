@@ -61,7 +61,7 @@ subroutine getkgrid(iout,iscf,kpt,kptopt,kptrlatt,kptrlen,&
  use abi_defs_basis
  use abi_interfaces_lowlevel
  use abi_interfaces_numeric
- use interfaces_42_geometry
+ use abi_interfaces_geometry
  use interfaces_56_recipspace, except_this_one => getkgrid
 
  implicit none
@@ -100,7 +100,7 @@ subroutine getkgrid(iout,iscf,kpt,kptopt,kptrlatt,kptrlen,&
 
 ! *************************************************************************
 
- call metric(gmet,gprimd,-1,rmet,rprimd,ucvol)
+ call abi_metric(gmet,gprimd,-1,rmet,rprimd,ucvol)
 
  if(kptopt==1.or.kptopt==4)then
    nsym_used=0
@@ -298,8 +298,8 @@ subroutine getkgrid(iout,iscf,kpt,kptopt,kptrlatt,kptrlen,&
 &   fact_vacuum(3)*rprimd(:,3)*kptrlatt2(3,ii)
  end do
 !Warning : here compute quantities connect to the supercell lattice
- call metric(gmet_super,gprimd_super,-1,rmet_super,rprimd_super,ucvol_super)
- call smallprim(metmin,minim,rprimd_super)
+ call abi_metric(gmet_super,gprimd_super,-1,rmet_super,rprimd_super,ucvol_super)
+ call abi_smallprim(metmin,minim,rprimd_super)
  length2=min(metmin(1,1),metmin(2,2),metmin(3,3))
  kptrlen=sqrt(length2)
  write(message,'(a,es16.6)' )&
@@ -316,15 +316,15 @@ subroutine getkgrid(iout,iscf,kpt,kptopt,kptrlatt,kptrlen,&
 &     rprimd(:,2)*kptrlatt2(2,ii)+&
 &     rprimd(:,3)*kptrlatt2(3,ii)
    end do
-   call metric(gmet_super,gprimd_super,-1,rmet_super,rprimd_super,ucvol_super)
+   call abi_metric(gmet_super,gprimd_super,-1,rmet_super,rprimd_super,ucvol_super)
 !  Shift vectors in cartesian coordinates (reciprocal space)
    do ishiftk=1,nshiftk2
      shiftk3(:,ishiftk)=gprimd_super(:,1)*shiftk2(1,ishiftk)+&
 &     gprimd_super(:,2)*shiftk2(2,ishiftk)+&
 &     gprimd_super(:,3)*shiftk2(3,ishiftk)
    end do
-   call smallprim(metmin,minim,rprimd_super)
-   call metric(gmet_super,gprimd_super,-1,rmet_super,minim,ucvol_super)
+   call abi_smallprim(metmin,minim,rprimd_super)
+   call abi_metric(gmet_super,gprimd_super,-1,rmet_super,minim,ucvol_super)
 !  This is the new kptrlatt2
    do ii=1,3
      kptrlatt2(:,ii)=nint(gprimd(1,:)*minim(1,ii)+&

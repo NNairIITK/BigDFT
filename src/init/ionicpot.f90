@@ -15,6 +15,7 @@ subroutine IonicEnergyandForces(iproc,nproc,dpbox,at,elecfield,&
   use module_base
   use module_types
   use Poisson_Solver, except_dp => dp, except_gp => gp, except_wp => wp
+  use abi_interfaces_geometry, only: metric
   use vdwcorrection
   use yaml_output
   implicit none
@@ -75,7 +76,7 @@ subroutine IonicEnergyandForces(iproc,nproc,dpbox,at,elecfield,&
      rprimd(3,3)=at%astruct%cell_dim(3)
 
      !calculate the metrics and the volume
-     call metric(gmet,gprimd,-1,rmet,rprimd,ucvol)
+     call abi_metric(gmet,gprimd,-1,rmet,rprimd,ucvol)
 
      !calculate reduced coordinates
      do iat=1,at%astruct%nat

@@ -30,7 +30,7 @@ subroutine abi_leave_new(mode_paral,exit_status)
 
  use abi_defs_basis
  use abi_interfaces_lowlevel, except_this_one => abi_leave_new
- use abi_m_xmpi
+ use m_abi_xmpi
 
 #undef ABI_FUNC
 #define ABI_FUNC 'abi_leave_new'

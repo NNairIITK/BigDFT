@@ -79,6 +79,7 @@ subroutine md_nose(amass, dtion, fcart, fcart_mold, gnose, itime, ktemp, mditemp
   
   use abi_defs_basis
   use abi_interfaces_lowlevel
+  use abi_interfaces_geometry
 
   implicit none
 
@@ -223,7 +224,7 @@ subroutine md_nose(amass, dtion, fcart, fcart_mold, gnose, itime, ktemp, mditemp
   !  Update thermostat
   xi_nose=xin_nose
   !  Convert back to xred_next (reduced coordinates)
-  call xredxcart(natom,-1,rprimd,xcart_next,xred_next)
+  call abi_xredxcart(natom,-1,rprimd,xcart_next,xred_next)
   !  Store 'new force' as 'old force'
   fcart_mold(:,:)=fcart_m(:,:)
   deallocate(fcart_m)

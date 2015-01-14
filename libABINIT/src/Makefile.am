@@ -13,8 +13,9 @@ EXTRA_DIST = \
 	72_geomoptim/quenched.F90 \
 	72_geomoptim/velocity_verlet.F90 \
 	72_geomoptim/xfpack.F90 \
-	42_geometry/symmetry-main.c \
-	42_geometry/symmetry.h \
+	symm/symmetry.h \
+	symm/symmetry.c \
+	symm/symmetry-main.c \
 	libpaw/libpaw.h
 
 ## === libXC section ===
@@ -63,7 +64,7 @@ libabinit_a_SOURCES = \
 	abi_lowlevel/abi_defs_basis.F90 \
 	abi_lowlevel/abi_interfaces_lowlevel.F90 \
 	abi_lowlevel/abi_interfaces_linalg.F90 \
-	abi_lowlevel/abi_m_xmpi.F90 \
+	abi_lowlevel/m_abi_xmpi.F90 \
 	abi_lowlevel/abi_wrtout.F90 \
 	abi_lowlevel/abi_leave_new.F90 \
 	abi_numeric/abi_interfaces_numeric.F90 \
@@ -89,58 +90,43 @@ libabinit_a_SOURCES = \
 	abi_xc_lowlevel/abi_xctetr.F90 \
 	abi_xc_lowlevel/abi_xcwign.F90 \
 	abi_xc_lowlevel/abi_xcxalp.F90 \
-	42_geometry/bldgrpaf.F90 \
-	42_geometry/bldgrp.F90 \
-	42_geometry/bonds_lgth_angles.F90 \
-	42_geometry/chkdilatmx.F90 \
-	42_geometry/chkgrp.F90 \
-	42_geometry/chkorthsy.F90 \
-	42_geometry/chkprimit.F90 \
-	42_geometry/gensymshub4.F90 \
-	42_geometry/gensymshub.F90 \
-	42_geometry/gensymspgr.F90 \
-	42_geometry/getptgroupma.F90 \
-	42_geometry/getspinrot.F90 \
-	42_geometry/gridgcart.F90 \
-	42_geometry/holocell.F90 \
-	42_geometry/m_ab6_symmetry.F90 \
-	42_geometry/metric.F90 \
-	42_geometry/mkrdim.F90 \
-	42_geometry/operat.F90 \
-	42_geometry/prtspgroup.F90 \
-	42_geometry/ptgmadata.F90 \
-	42_geometry/smallprim.F90 \
-	42_geometry/spgdata.F90 \
-	42_geometry/strainsym.F90 \
-	42_geometry/strconv.F90 \
-	42_geometry/stresssym.F90 \
-	42_geometry/sym2cart.F90 \
-	42_geometry/symanal.F90 \
-	42_geometry/symatm.F90 \
-	42_geometry/symaxes.F90 \
-	42_geometry/symbrav.F90 \
-	42_geometry/symchk.F90 \
-	42_geometry/symdet.F90 \
-	42_geometry/symfind.F90 \
-	42_geometry/symlatt.F90 \
-	42_geometry/symlist_bcc.F90 \
-	42_geometry/symlist_fcc.F90 \
-	42_geometry/symlist_others.F90 \
-	42_geometry/symlist_prim.F90 \
-	42_geometry/symmultsg.F90 \
-	42_geometry/symplanes.F90 \
-	42_geometry/symptgroup.F90 \
-	42_geometry/symredcart.F90 \
-	42_geometry/symrelrot.F90 \
-	42_geometry/symsgcube.F90 \
-	42_geometry/symsghexa.F90 \
-	42_geometry/symsgmono.F90 \
-	42_geometry/symsgortho.F90 \
-	42_geometry/symsgtetra.F90 \
-	42_geometry/symspgr.F90 \
-	42_geometry/symzat.F90 \
-	42_geometry/xredxcart.F90 \
-	42_geometry/interfaces_42_geometry.F90 \
+	abi_geometry/abi_interfaces_geometry.F90 \
+	abi_geometry/abi_bldgrp.F90 \
+	abi_geometry/abi_bonds_lgth_angles.F90 \
+	abi_geometry/abi_chkgrp.F90 \
+	abi_geometry/abi_chkprimit.F90 \
+	abi_geometry/abi_getptgroupma.F90 \
+	abi_geometry/abi_holocell.F90 \
+	abi_geometry/abi_metric.F90 \
+	abi_geometry/abi_mkrdim.F90 \
+	abi_geometry/abi_ptgmadata.F90 \
+	abi_geometry/abi_smallprim.F90 \
+	abi_geometry/abi_spgdata.F90 \
+	abi_geometry/abi_strainsym.F90 \
+	abi_geometry/abi_strconv.F90 \
+	abi_geometry/abi_symanal.F90 \
+	abi_geometry/abi_symatm.F90 \
+	abi_geometry/abi_symaxes.F90 \
+	abi_geometry/abi_symbrav.F90 \
+	abi_geometry/abi_symchk.F90 \
+	abi_geometry/abi_symdet.F90 \
+	abi_geometry/abi_symfind.F90 \
+	abi_geometry/abi_symlatt.F90 \
+	abi_geometry/abi_symlist_bcc.F90 \
+	abi_geometry/abi_symlist_fcc.F90 \
+	abi_geometry/abi_symlist_others.F90 \
+	abi_geometry/abi_symlist_prim.F90 \
+	abi_geometry/abi_symplanes.F90 \
+	abi_geometry/abi_symptgroup.F90 \
+	abi_geometry/abi_symrelrot.F90 \
+	abi_geometry/abi_symsgcube.F90 \
+	abi_geometry/abi_symsghexa.F90 \
+	abi_geometry/abi_symsgmono.F90 \
+	abi_geometry/abi_symsgortho.F90 \
+	abi_geometry/abi_symsgtetra.F90 \
+	abi_geometry/abi_symspgr.F90 \
+	abi_geometry/abi_xredxcart.F90 \
+	abi_geometry/m_ab6_symmetry.F90 \
 	56_mixing/aprxdr.F90 \
 	56_mixing/dotprodm_v.F90 \
 	56_mixing/dotprodm_vn.F90 \
@@ -164,7 +150,6 @@ libabinit_a_SOURCES = \
 	67_common/fconv.F90 \
 	67_common/prtxvf.F90 \
 	72_geomoptim/ab6_moldyn.F90 \
-	42_geometry/symmetry.c \
 	$(libpaw_files)
 
 CLEANFILES = mpif.h *.@MODULE_EXT@

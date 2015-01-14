@@ -56,7 +56,7 @@ subroutine xfpack(acell,acell0,fred,natom,ndim,nsym,optcell,option,rprim,rprimd0
  use abi_defs_basis
  use abi_interfaces_lowlevel
  use abi_interfaces_numeric
- use interfaces_42_geometry
+ use abi_interfaces_geometry
 
  implicit none
 
@@ -125,9 +125,9 @@ subroutine xfpack(acell,acell0,fred,natom,ndim,nsym,optcell,option,rprim,rprimd0
 !  Get vin from xred, acell, and rprim
    vin(1:3*natom)= reshape(xred(:,:), (/3*natom/) )
    if(optcell/=0)then
-     call mkrdim(acell,rprim,rprimd)
-     call strainsym(nsym,rprimd0,rprimd,rprimd_symm,symrel)
-     call metric(gmet,gprimd,-1,rmet,rprimd_symm,ucvol)
+     call abi_mkrdim(acell,rprim,rprimd)
+     call abi_strainsym(nsym,rprimd0,rprimd,rprimd_symm,symrel)
+     call abi_metric(gmet,gprimd,-1,rmet,rprimd_symm,ucvol)
 
      if(optcell==1)then
 
@@ -214,11 +214,11 @@ subroutine xfpack(acell,acell0,fred,natom,ndim,nsym,optcell,option,rprim,rprimd0
      end do
 !    Rescale if the volume must be preserved
      if(optcell==3)then
-       call metric(gmet,gprimd,-1,rmet,rprimd,ucvol)
+       call abi_metric(gmet,gprimd,-1,rmet,rprimd,ucvol)
        scale=(ucvol0/ucvol)**third
        rprimd(:,:)=scale*rprimd(:,:)
      end if
-     call strainsym(nsym,rprimd0,rprimd,rprimd_symm,symrel)
+     call abi_strainsym(nsym,rprimd0,rprimd,rprimd_symm,symrel)
 !    Use a representation based on normalised rprim vectors
      do ii=1,3
        acell(ii)=sqrt(rprimd_symm(1,ii)**2+rprimd_symm(2,ii)**2+rprimd_symm(3,ii)**2)

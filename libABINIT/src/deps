@@ -1,272 +1,3 @@
-bldgrp.o: 42_geometry/bldgrp.F90 \
-	abi_defs_basis.o \
-	abi_interfaces_lowlevel.o
-	$(PPFCCOMPILE) -c -o bldgrp.o `test -f '42_geometry/bldgrp.F90' || echo '$(srcdir)/'`42_geometry/bldgrp.F90
-
-bldgrpaf.o: 42_geometry/bldgrpaf.F90 \
-	abi_defs_basis.o
-	$(PPFCCOMPILE) -c -o bldgrpaf.o `test -f '42_geometry/bldgrpaf.F90' || echo '$(srcdir)/'`42_geometry/bldgrpaf.F90
-
-bonds_lgth_angles.o: 42_geometry/bonds_lgth_angles.F90 \
-	abi_defs_basis.o \
-	abi_interfaces_lowlevel.o \
-	interfaces_42_geometry.o
-	$(PPFCCOMPILE) -c -o bonds_lgth_angles.o `test -f '42_geometry/bonds_lgth_angles.F90' || echo '$(srcdir)/'`42_geometry/bonds_lgth_angles.F90
-
-chkdilatmx.o: 42_geometry/chkdilatmx.F90 \
-	abi_defs_basis.o \
-	abi_interfaces_lowlevel.o \
-	abi_interfaces_numeric.o
-	$(PPFCCOMPILE) -c -o chkdilatmx.o `test -f '42_geometry/chkdilatmx.F90' || echo '$(srcdir)/'`42_geometry/chkdilatmx.F90
-
-chkgrp.o: 42_geometry/chkgrp.F90 \
-	abi_defs_basis.o \
-	abi_interfaces_lowlevel.o
-	$(PPFCCOMPILE) -c -o chkgrp.o `test -f '42_geometry/chkgrp.F90' || echo '$(srcdir)/'`42_geometry/chkgrp.F90
-
-chkorthsy.o: 42_geometry/chkorthsy.F90 \
-	abi_defs_basis.o \
-	abi_interfaces_lowlevel.o
-	$(PPFCCOMPILE) -c -o chkorthsy.o `test -f '42_geometry/chkorthsy.F90' || echo '$(srcdir)/'`42_geometry/chkorthsy.F90
-
-chkprimit.o: 42_geometry/chkprimit.F90 \
-	abi_defs_basis.o \
-	abi_interfaces_lowlevel.o
-	$(PPFCCOMPILE) -c -o chkprimit.o `test -f '42_geometry/chkprimit.F90' || echo '$(srcdir)/'`42_geometry/chkprimit.F90
-
-fortran-symmetry.o: 42_geometry/fortran-symmetry.f90 \
-	iso_c_binding.o
-	$(FCCOMPILE) -c -o fortran-symmetry.o `test -f '42_geometry/fortran-symmetry.f90' || echo '$(srcdir)/'`42_geometry/fortran-symmetry.f90
-
-gensymshub.o: 42_geometry/gensymshub.F90 \
-	abi_defs_basis.o \
-	abi_interfaces_lowlevel.o
-	$(PPFCCOMPILE) -c -o gensymshub.o `test -f '42_geometry/gensymshub.F90' || echo '$(srcdir)/'`42_geometry/gensymshub.F90
-
-gensymshub4.o: 42_geometry/gensymshub4.F90 \
-	abi_defs_basis.o \
-	abi_interfaces_lowlevel.o
-	$(PPFCCOMPILE) -c -o gensymshub4.o `test -f '42_geometry/gensymshub4.F90' || echo '$(srcdir)/'`42_geometry/gensymshub4.F90
-
-gensymspgr.o: 42_geometry/gensymspgr.F90 \
-	abi_defs_basis.o \
-	abi_interfaces_lowlevel.o \
-	interfaces_42_geometry.o
-	$(PPFCCOMPILE) -c -o gensymspgr.o `test -f '42_geometry/gensymspgr.F90' || echo '$(srcdir)/'`42_geometry/gensymspgr.F90
-
-getptgroupma.o: 42_geometry/getptgroupma.F90 \
-	abi_defs_basis.o
-	$(PPFCCOMPILE) -c -o getptgroupma.o `test -f '42_geometry/getptgroupma.F90' || echo '$(srcdir)/'`42_geometry/getptgroupma.F90
-
-getspinrot.o: 42_geometry/getspinrot.F90 \
-	abi_defs_basis.o \
-	abi_interfaces_lowlevel.o \
-	abi_interfaces_numeric.o
-	$(PPFCCOMPILE) -c -o getspinrot.o `test -f '42_geometry/getspinrot.F90' || echo '$(srcdir)/'`42_geometry/getspinrot.F90
-
-gridgcart.o: 42_geometry/gridgcart.F90 \
-	abi_defs_basis.o
-	$(PPFCCOMPILE) -c -o gridgcart.o `test -f '42_geometry/gridgcart.F90' || echo '$(srcdir)/'`42_geometry/gridgcart.F90
-
-holocell.o: 42_geometry/holocell.F90 \
-	abi_defs_basis.o
-	$(PPFCCOMPILE) -c -o holocell.o `test -f '42_geometry/holocell.F90' || echo '$(srcdir)/'`42_geometry/holocell.F90
-
-interfaces_42_geometry.o: 42_geometry/interfaces_42_geometry.F90 \
-	abi_defs_basis.o \
-	abi_interfaces_lowlevel.o
-	$(PPFCCOMPILE) -c -o interfaces_42_geometry.o `test -f '42_geometry/interfaces_42_geometry.F90' || echo '$(srcdir)/'`42_geometry/interfaces_42_geometry.F90
-
-m_ab6_symmetry.o: 42_geometry/m_ab6_symmetry.F90 \
-	abi_defs_basis.o \
-	abi_interfaces_numeric.o \
-	interfaces_42_geometry.o
-	$(PPFCCOMPILE) -c -o m_ab6_symmetry.o `test -f '42_geometry/m_ab6_symmetry.F90' || echo '$(srcdir)/'`42_geometry/m_ab6_symmetry.F90
-
-metric.o: 42_geometry/metric.F90 \
-	abi_defs_basis.o \
-	abi_interfaces_lowlevel.o \
-	abi_interfaces_numeric.o
-	$(PPFCCOMPILE) -c -o metric.o `test -f '42_geometry/metric.F90' || echo '$(srcdir)/'`42_geometry/metric.F90
-
-mkrdim.o: 42_geometry/mkrdim.F90 \
-	abi_defs_basis.o
-	$(PPFCCOMPILE) -c -o mkrdim.o `test -f '42_geometry/mkrdim.F90' || echo '$(srcdir)/'`42_geometry/mkrdim.F90
-
-operat.o: 42_geometry/operat.F90 \
-	abi_defs_basis.o \
-	abi_interfaces_lowlevel.o
-	$(PPFCCOMPILE) -c -o operat.o `test -f '42_geometry/operat.F90' || echo '$(srcdir)/'`42_geometry/operat.F90
-
-prtspgroup.o: 42_geometry/prtspgroup.F90 \
-	abi_defs_basis.o \
-	abi_interfaces_lowlevel.o \
-	interfaces_42_geometry.o
-	$(PPFCCOMPILE) -c -o prtspgroup.o `test -f '42_geometry/prtspgroup.F90' || echo '$(srcdir)/'`42_geometry/prtspgroup.F90
-
-ptgmadata.o: 42_geometry/ptgmadata.F90 \
-	abi_defs_basis.o
-	$(PPFCCOMPILE) -c -o ptgmadata.o `test -f '42_geometry/ptgmadata.F90' || echo '$(srcdir)/'`42_geometry/ptgmadata.F90
-
-smallprim.o: 42_geometry/smallprim.F90 \
-	abi_defs_basis.o \
-	abi_interfaces_lowlevel.o \
-	interfaces_42_geometry.o
-	$(PPFCCOMPILE) -c -o smallprim.o `test -f '42_geometry/smallprim.F90' || echo '$(srcdir)/'`42_geometry/smallprim.F90
-
-spgdata.o: 42_geometry/spgdata.F90 \
-	abi_defs_basis.o
-	$(PPFCCOMPILE) -c -o spgdata.o `test -f '42_geometry/spgdata.F90' || echo '$(srcdir)/'`42_geometry/spgdata.F90
-
-strainsym.o: 42_geometry/strainsym.F90 \
-	abi_defs_basis.o \
-	abi_interfaces_linalg.o \
-	abi_interfaces_numeric.o
-	$(PPFCCOMPILE) -c -o strainsym.o `test -f '42_geometry/strainsym.F90' || echo '$(srcdir)/'`42_geometry/strainsym.F90
-
-strconv.o: 42_geometry/strconv.F90 \
-	abi_defs_basis.o
-	$(PPFCCOMPILE) -c -o strconv.o `test -f '42_geometry/strconv.F90' || echo '$(srcdir)/'`42_geometry/strconv.F90
-
-stresssym.o: 42_geometry/stresssym.F90 \
-	abi_defs_basis.o \
-	abi_interfaces_numeric.o \
-	interfaces_42_geometry.o
-	$(PPFCCOMPILE) -c -o stresssym.o `test -f '42_geometry/stresssym.F90' || echo '$(srcdir)/'`42_geometry/stresssym.F90
-
-sym2cart.o: 42_geometry/sym2cart.F90 \
-	abi_defs_basis.o \
-	abi_interfaces_linalg.o
-	$(PPFCCOMPILE) -c -o sym2cart.o `test -f '42_geometry/sym2cart.F90' || echo '$(srcdir)/'`42_geometry/sym2cart.F90
-
-symanal.o: 42_geometry/symanal.F90 \
-	abi_defs_basis.o \
-	abi_interfaces_lowlevel.o \
-	interfaces_42_geometry.o
-	$(PPFCCOMPILE) -c -o symanal.o `test -f '42_geometry/symanal.F90' || echo '$(srcdir)/'`42_geometry/symanal.F90
-
-symatm.o: 42_geometry/symatm.F90 \
-	abi_defs_basis.o \
-	abi_interfaces_lowlevel.o \
-	interfaces_42_geometry.o
-	$(PPFCCOMPILE) -c -o symatm.o `test -f '42_geometry/symatm.F90' || echo '$(srcdir)/'`42_geometry/symatm.F90
-
-symaxes.o: 42_geometry/symaxes.F90 \
-	abi_defs_basis.o \
-	abi_interfaces_lowlevel.o
-	$(PPFCCOMPILE) -c -o symaxes.o `test -f '42_geometry/symaxes.F90' || echo '$(srcdir)/'`42_geometry/symaxes.F90
-
-symbrav.o: 42_geometry/symbrav.F90 \
-	abi_defs_basis.o \
-	abi_interfaces_lowlevel.o \
-	abi_interfaces_numeric.o \
-	interfaces_42_geometry.o
-	$(PPFCCOMPILE) -c -o symbrav.o `test -f '42_geometry/symbrav.F90' || echo '$(srcdir)/'`42_geometry/symbrav.F90
-
-symchk.o: 42_geometry/symchk.F90 \
-	abi_defs_basis.o
-	$(PPFCCOMPILE) -c -o symchk.o `test -f '42_geometry/symchk.F90' || echo '$(srcdir)/'`42_geometry/symchk.F90
-
-symdet.o: 42_geometry/symdet.F90 \
-	abi_defs_basis.o \
-	abi_interfaces_lowlevel.o
-	$(PPFCCOMPILE) -c -o symdet.o `test -f '42_geometry/symdet.F90' || echo '$(srcdir)/'`42_geometry/symdet.F90
-
-symfind.o: 42_geometry/symfind.F90 \
-	abi_defs_basis.o \
-	abi_interfaces_lowlevel.o
-	$(PPFCCOMPILE) -c -o symfind.o `test -f '42_geometry/symfind.F90' || echo '$(srcdir)/'`42_geometry/symfind.F90
-
-symlatt.o: 42_geometry/symlatt.F90 \
-	abi_defs_basis.o \
-	abi_interfaces_lowlevel.o \
-	abi_interfaces_numeric.o \
-	interfaces_42_geometry.o
-	$(PPFCCOMPILE) -c -o symlatt.o `test -f '42_geometry/symlatt.F90' || echo '$(srcdir)/'`42_geometry/symlatt.F90
-
-symlist_bcc.o: 42_geometry/symlist_bcc.F90 \
-	abi_defs_basis.o
-	$(PPFCCOMPILE) -c -o symlist_bcc.o `test -f '42_geometry/symlist_bcc.F90' || echo '$(srcdir)/'`42_geometry/symlist_bcc.F90
-
-symlist_fcc.o: 42_geometry/symlist_fcc.F90 \
-	abi_defs_basis.o
-	$(PPFCCOMPILE) -c -o symlist_fcc.o `test -f '42_geometry/symlist_fcc.F90' || echo '$(srcdir)/'`42_geometry/symlist_fcc.F90
-
-symlist_others.o: 42_geometry/symlist_others.F90 \
-	abi_defs_basis.o
-	$(PPFCCOMPILE) -c -o symlist_others.o `test -f '42_geometry/symlist_others.F90' || echo '$(srcdir)/'`42_geometry/symlist_others.F90
-
-symlist_prim.o: 42_geometry/symlist_prim.F90 \
-	abi_defs_basis.o
-	$(PPFCCOMPILE) -c -o symlist_prim.o `test -f '42_geometry/symlist_prim.F90' || echo '$(srcdir)/'`42_geometry/symlist_prim.F90
-
-symmultsg.o: 42_geometry/symmultsg.F90 \
-	abi_defs_basis.o \
-	abi_interfaces_lowlevel.o
-	$(PPFCCOMPILE) -c -o symmultsg.o `test -f '42_geometry/symmultsg.F90' || echo '$(srcdir)/'`42_geometry/symmultsg.F90
-
-symplanes.o: 42_geometry/symplanes.F90 \
-	abi_defs_basis.o \
-	abi_interfaces_lowlevel.o
-	$(PPFCCOMPILE) -c -o symplanes.o `test -f '42_geometry/symplanes.F90' || echo '$(srcdir)/'`42_geometry/symplanes.F90
-
-symptgroup.o: 42_geometry/symptgroup.F90 \
-	abi_defs_basis.o \
-	abi_interfaces_lowlevel.o \
-	interfaces_42_geometry.o
-	$(PPFCCOMPILE) -c -o symptgroup.o `test -f '42_geometry/symptgroup.F90' || echo '$(srcdir)/'`42_geometry/symptgroup.F90
-
-symredcart.o: 42_geometry/symredcart.F90 \
-	abi_defs_basis.o
-	$(PPFCCOMPILE) -c -o symredcart.o `test -f '42_geometry/symredcart.F90' || echo '$(srcdir)/'`42_geometry/symredcart.F90
-
-symrelrot.o: 42_geometry/symrelrot.F90 \
-	abi_defs_basis.o \
-	abi_interfaces_lowlevel.o \
-	abi_interfaces_numeric.o
-	$(PPFCCOMPILE) -c -o symrelrot.o `test -f '42_geometry/symrelrot.F90' || echo '$(srcdir)/'`42_geometry/symrelrot.F90
-
-symsgcube.o: 42_geometry/symsgcube.F90 \
-	abi_defs_basis.o \
-	interfaces_42_geometry.o
-	$(PPFCCOMPILE) -c -o symsgcube.o `test -f '42_geometry/symsgcube.F90' || echo '$(srcdir)/'`42_geometry/symsgcube.F90
-
-symsghexa.o: 42_geometry/symsghexa.F90 \
-	abi_defs_basis.o \
-	interfaces_42_geometry.o
-	$(PPFCCOMPILE) -c -o symsghexa.o `test -f '42_geometry/symsghexa.F90' || echo '$(srcdir)/'`42_geometry/symsghexa.F90
-
-symsgmono.o: 42_geometry/symsgmono.F90 \
-	abi_defs_basis.o \
-	interfaces_42_geometry.o
-	$(PPFCCOMPILE) -c -o symsgmono.o `test -f '42_geometry/symsgmono.F90' || echo '$(srcdir)/'`42_geometry/symsgmono.F90
-
-symsgortho.o: 42_geometry/symsgortho.F90 \
-	abi_defs_basis.o \
-	interfaces_42_geometry.o
-	$(PPFCCOMPILE) -c -o symsgortho.o `test -f '42_geometry/symsgortho.F90' || echo '$(srcdir)/'`42_geometry/symsgortho.F90
-
-symsgtetra.o: 42_geometry/symsgtetra.F90 \
-	abi_defs_basis.o \
-	interfaces_42_geometry.o
-	$(PPFCCOMPILE) -c -o symsgtetra.o `test -f '42_geometry/symsgtetra.F90' || echo '$(srcdir)/'`42_geometry/symsgtetra.F90
-
-symspgr.o: 42_geometry/symspgr.F90 \
-	abi_defs_basis.o \
-	abi_interfaces_lowlevel.o \
-	interfaces_42_geometry.o
-	$(PPFCCOMPILE) -c -o symspgr.o `test -f '42_geometry/symspgr.F90' || echo '$(srcdir)/'`42_geometry/symspgr.F90
-
-symzat.o: 42_geometry/symzat.F90 \
-	abi_defs_basis.o
-	$(PPFCCOMPILE) -c -o symzat.o `test -f '42_geometry/symzat.F90' || echo '$(srcdir)/'`42_geometry/symzat.F90
-
-xredxcart.o: 42_geometry/xredxcart.F90 \
-	abi_defs_basis.o \
-	abi_interfaces_lowlevel.o \
-	abi_interfaces_numeric.o
-	$(PPFCCOMPILE) -c -o xredxcart.o `test -f '42_geometry/xredxcart.F90' || echo '$(srcdir)/'`42_geometry/xredxcart.F90
-
 aprxdr.o: 56_mixing/aprxdr.F90 \
 	abi_defs_basis.o \
 	interfaces_56_mixing.o
@@ -274,12 +5,12 @@ aprxdr.o: 56_mixing/aprxdr.F90 \
 
 dotprodm_v.o: 56_mixing/dotprodm_v.F90 \
 	abi_defs_basis.o \
-	abi_m_xmpi.o
+	m_abi_xmpi.o
 	$(PPFCCOMPILE) -c -o dotprodm_v.o `test -f '56_mixing/dotprodm_v.F90' || echo '$(srcdir)/'`56_mixing/dotprodm_v.F90
 
 dotprodm_vn.o: 56_mixing/dotprodm_vn.F90 \
 	abi_defs_basis.o \
-	abi_m_xmpi.o
+	m_abi_xmpi.o
 	$(PPFCCOMPILE) -c -o dotprodm_vn.o `test -f '56_mixing/dotprodm_vn.F90' || echo '$(srcdir)/'`56_mixing/dotprodm_vn.F90
 
 findminscf.o: 56_mixing/findminscf.F90 \
@@ -316,14 +47,14 @@ scfopt.o: 56_mixing/scfopt.F90 \
 
 sqnormm_v.o: 56_mixing/sqnormm_v.F90 \
 	abi_defs_basis.o \
-	abi_m_xmpi.o
+	m_abi_xmpi.o
 	$(PPFCCOMPILE) -c -o sqnormm_v.o `test -f '56_mixing/sqnormm_v.F90' || echo '$(srcdir)/'`56_mixing/sqnormm_v.F90
 
 getkgrid.o: 56_recipspace/getkgrid.F90 \
 	abi_defs_basis.o \
+	abi_interfaces_geometry.o \
 	abi_interfaces_lowlevel.o \
 	abi_interfaces_numeric.o \
-	interfaces_42_geometry.o \
 	interfaces_56_recipspace.o
 	$(PPFCCOMPILE) -c -o getkgrid.o `test -f '56_recipspace/getkgrid.F90' || echo '$(srcdir)/'`56_recipspace/getkgrid.F90
 
@@ -357,9 +88,9 @@ symkpt.o: 56_recipspace/symkpt.F90 \
 
 testkgrid.o: 56_recipspace/testkgrid.F90 \
 	abi_defs_basis.o \
+	abi_interfaces_geometry.o \
 	abi_interfaces_lowlevel.o \
 	abi_interfaces_numeric.o \
-	interfaces_42_geometry.o \
 	interfaces_56_recipspace.o
 	$(PPFCCOMPILE) -c -o testkgrid.o `test -f '56_recipspace/testkgrid.F90' || echo '$(srcdir)/'`56_recipspace/testkgrid.F90
 
@@ -392,36 +123,44 @@ prtxvf.o: 67_common/prtxvf.F90 \
 ab6_moldyn.o: 72_geomoptim/ab6_moldyn.F90 \
 	abi_defs_basis.o \
 	abi_defs_basis.o \
+	abi_interfaces_geometry.o \
 	abi_interfaces_lowlevel.o \
 	72_geomoptim/isokinetic.F90 \
 	abi_defs_basis.o \
 	72_geomoptim/isotemp.F90 \
 	abi_defs_basis.o \
+	abi_interfaces_geometry.o \
 	abi_interfaces_lowlevel.o \
 	72_geomoptim/isothermal.F90 \
 	abi_defs_basis.o \
+	abi_interfaces_geometry.o \
 	72_geomoptim/langevin.F90 \
 	abi_defs_basis.o \
+	abi_interfaces_geometry.o \
 	abi_interfaces_lowlevel.o \
 	interfaces_67_common.o \
 	72_geomoptim/moldyn.F90 \
 	abi_defs_basis.o \
+	abi_interfaces_geometry.o \
 	abi_interfaces_lowlevel.o \
 	72_geomoptim/nose.F90 \
 	abi_defs_basis.o \
+	abi_interfaces_geometry.o \
 	abi_interfaces_lowlevel.o \
 	72_geomoptim/quenched.F90 \
 	abi_defs_basis.o \
+	abi_interfaces_geometry.o \
 	72_geomoptim/velocity_verlet.F90 \
 	abi_defs_basis.o \
+	abi_interfaces_geometry.o \
 	abi_interfaces_lowlevel.o \
 	abi_interfaces_numeric.o \
-	interfaces_42_geometry.o \
 	72_geomoptim/xfpack.F90
 	$(PPFCCOMPILE) -c -o ab6_moldyn.o `test -f '72_geomoptim/ab6_moldyn.F90' || echo '$(srcdir)/'`72_geomoptim/ab6_moldyn.F90
 
 isokinetic.o: 72_geomoptim/isokinetic.F90 \
 	abi_defs_basis.o \
+	abi_interfaces_geometry.o \
 	abi_interfaces_lowlevel.o
 	$(PPFCCOMPILE) -c -o isokinetic.o `test -f '72_geomoptim/isokinetic.F90' || echo '$(srcdir)/'`72_geomoptim/isokinetic.F90
 
@@ -431,21 +170,25 @@ isotemp.o: 72_geomoptim/isotemp.F90 \
 
 isothermal.o: 72_geomoptim/isothermal.F90 \
 	abi_defs_basis.o \
+	abi_interfaces_geometry.o \
 	abi_interfaces_lowlevel.o
 	$(PPFCCOMPILE) -c -o isothermal.o `test -f '72_geomoptim/isothermal.F90' || echo '$(srcdir)/'`72_geomoptim/isothermal.F90
 
 langevin.o: 72_geomoptim/langevin.F90 \
-	abi_defs_basis.o
+	abi_defs_basis.o \
+	abi_interfaces_geometry.o
 	$(PPFCCOMPILE) -c -o langevin.o `test -f '72_geomoptim/langevin.F90' || echo '$(srcdir)/'`72_geomoptim/langevin.F90
 
 moldyn.o: 72_geomoptim/moldyn.F90 \
 	abi_defs_basis.o \
+	abi_interfaces_geometry.o \
 	abi_interfaces_lowlevel.o \
 	interfaces_67_common.o
 	$(PPFCCOMPILE) -c -o moldyn.o `test -f '72_geomoptim/moldyn.F90' || echo '$(srcdir)/'`72_geomoptim/moldyn.F90
 
 nose.o: 72_geomoptim/nose.F90 \
 	abi_defs_basis.o \
+	abi_interfaces_geometry.o \
 	abi_interfaces_lowlevel.o
 	$(PPFCCOMPILE) -c -o nose.o `test -f '72_geomoptim/nose.F90' || echo '$(srcdir)/'`72_geomoptim/nose.F90
 
@@ -454,19 +197,209 @@ others.o: 72_geomoptim/others.F90
 
 quenched.o: 72_geomoptim/quenched.F90 \
 	abi_defs_basis.o \
+	abi_interfaces_geometry.o \
 	abi_interfaces_lowlevel.o
 	$(PPFCCOMPILE) -c -o quenched.o `test -f '72_geomoptim/quenched.F90' || echo '$(srcdir)/'`72_geomoptim/quenched.F90
 
 velocity_verlet.o: 72_geomoptim/velocity_verlet.F90 \
-	abi_defs_basis.o
+	abi_defs_basis.o \
+	abi_interfaces_geometry.o
 	$(PPFCCOMPILE) -c -o velocity_verlet.o `test -f '72_geomoptim/velocity_verlet.F90' || echo '$(srcdir)/'`72_geomoptim/velocity_verlet.F90
 
 xfpack.o: 72_geomoptim/xfpack.F90 \
 	abi_defs_basis.o \
+	abi_interfaces_geometry.o \
 	abi_interfaces_lowlevel.o \
-	abi_interfaces_numeric.o \
-	interfaces_42_geometry.o
+	abi_interfaces_numeric.o
 	$(PPFCCOMPILE) -c -o xfpack.o `test -f '72_geomoptim/xfpack.F90' || echo '$(srcdir)/'`72_geomoptim/xfpack.F90
+
+abi_bldgrp.o: abi_geometry/abi_bldgrp.F90 \
+	abi_defs_basis.o \
+	abi_interfaces_lowlevel.o
+	$(PPFCCOMPILE) -c -o abi_bldgrp.o `test -f 'abi_geometry/abi_bldgrp.F90' || echo '$(srcdir)/'`abi_geometry/abi_bldgrp.F90
+
+abi_bonds_lgth_angles.o: abi_geometry/abi_bonds_lgth_angles.F90 \
+	abi_defs_basis.o \
+	abi_interfaces_geometry.o \
+	abi_interfaces_lowlevel.o
+	$(PPFCCOMPILE) -c -o abi_bonds_lgth_angles.o `test -f 'abi_geometry/abi_bonds_lgth_angles.F90' || echo '$(srcdir)/'`abi_geometry/abi_bonds_lgth_angles.F90
+
+abi_chkgrp.o: abi_geometry/abi_chkgrp.F90 \
+	abi_defs_basis.o \
+	abi_interfaces_lowlevel.o
+	$(PPFCCOMPILE) -c -o abi_chkgrp.o `test -f 'abi_geometry/abi_chkgrp.F90' || echo '$(srcdir)/'`abi_geometry/abi_chkgrp.F90
+
+abi_chkprimit.o: abi_geometry/abi_chkprimit.F90 \
+	abi_defs_basis.o \
+	abi_interfaces_lowlevel.o
+	$(PPFCCOMPILE) -c -o abi_chkprimit.o `test -f 'abi_geometry/abi_chkprimit.F90' || echo '$(srcdir)/'`abi_geometry/abi_chkprimit.F90
+
+abi_getptgroupma.o: abi_geometry/abi_getptgroupma.F90 \
+	abi_defs_basis.o
+	$(PPFCCOMPILE) -c -o abi_getptgroupma.o `test -f 'abi_geometry/abi_getptgroupma.F90' || echo '$(srcdir)/'`abi_geometry/abi_getptgroupma.F90
+
+abi_holocell.o: abi_geometry/abi_holocell.F90 \
+	abi_defs_basis.o
+	$(PPFCCOMPILE) -c -o abi_holocell.o `test -f 'abi_geometry/abi_holocell.F90' || echo '$(srcdir)/'`abi_geometry/abi_holocell.F90
+
+abi_interfaces_geometry.o: abi_geometry/abi_interfaces_geometry.F90 \
+	abi_defs_basis.o
+	$(PPFCCOMPILE) -c -o abi_interfaces_geometry.o `test -f 'abi_geometry/abi_interfaces_geometry.F90' || echo '$(srcdir)/'`abi_geometry/abi_interfaces_geometry.F90
+
+abi_metric.o: abi_geometry/abi_metric.F90 \
+	abi_defs_basis.o \
+	abi_interfaces_lowlevel.o \
+	abi_interfaces_numeric.o
+	$(PPFCCOMPILE) -c -o abi_metric.o `test -f 'abi_geometry/abi_metric.F90' || echo '$(srcdir)/'`abi_geometry/abi_metric.F90
+
+abi_mkrdim.o: abi_geometry/abi_mkrdim.F90 \
+	abi_defs_basis.o
+	$(PPFCCOMPILE) -c -o abi_mkrdim.o `test -f 'abi_geometry/abi_mkrdim.F90' || echo '$(srcdir)/'`abi_geometry/abi_mkrdim.F90
+
+abi_ptgmadata.o: abi_geometry/abi_ptgmadata.F90 \
+	abi_defs_basis.o
+	$(PPFCCOMPILE) -c -o abi_ptgmadata.o `test -f 'abi_geometry/abi_ptgmadata.F90' || echo '$(srcdir)/'`abi_geometry/abi_ptgmadata.F90
+
+abi_smallprim.o: abi_geometry/abi_smallprim.F90 \
+	abi_defs_basis.o \
+	abi_interfaces_geometry.o \
+	abi_interfaces_lowlevel.o
+	$(PPFCCOMPILE) -c -o abi_smallprim.o `test -f 'abi_geometry/abi_smallprim.F90' || echo '$(srcdir)/'`abi_geometry/abi_smallprim.F90
+
+abi_spgdata.o: abi_geometry/abi_spgdata.F90 \
+	abi_defs_basis.o
+	$(PPFCCOMPILE) -c -o abi_spgdata.o `test -f 'abi_geometry/abi_spgdata.F90' || echo '$(srcdir)/'`abi_geometry/abi_spgdata.F90
+
+abi_strainsym.o: abi_geometry/abi_strainsym.F90 \
+	abi_defs_basis.o \
+	abi_interfaces_linalg.o \
+	abi_interfaces_numeric.o
+	$(PPFCCOMPILE) -c -o abi_strainsym.o `test -f 'abi_geometry/abi_strainsym.F90' || echo '$(srcdir)/'`abi_geometry/abi_strainsym.F90
+
+abi_strconv.o: abi_geometry/abi_strconv.F90 \
+	abi_defs_basis.o
+	$(PPFCCOMPILE) -c -o abi_strconv.o `test -f 'abi_geometry/abi_strconv.F90' || echo '$(srcdir)/'`abi_geometry/abi_strconv.F90
+
+abi_symanal.o: abi_geometry/abi_symanal.F90 \
+	abi_defs_basis.o \
+	abi_interfaces_geometry.o \
+	abi_interfaces_lowlevel.o
+	$(PPFCCOMPILE) -c -o abi_symanal.o `test -f 'abi_geometry/abi_symanal.F90' || echo '$(srcdir)/'`abi_geometry/abi_symanal.F90
+
+abi_symatm.o: abi_geometry/abi_symatm.F90 \
+	abi_defs_basis.o \
+	abi_interfaces_geometry.o \
+	abi_interfaces_lowlevel.o
+	$(PPFCCOMPILE) -c -o abi_symatm.o `test -f 'abi_geometry/abi_symatm.F90' || echo '$(srcdir)/'`abi_geometry/abi_symatm.F90
+
+abi_symaxes.o: abi_geometry/abi_symaxes.F90 \
+	abi_defs_basis.o \
+	abi_interfaces_lowlevel.o
+	$(PPFCCOMPILE) -c -o abi_symaxes.o `test -f 'abi_geometry/abi_symaxes.F90' || echo '$(srcdir)/'`abi_geometry/abi_symaxes.F90
+
+abi_symbrav.o: abi_geometry/abi_symbrav.F90 \
+	abi_defs_basis.o \
+	abi_interfaces_geometry.o \
+	abi_interfaces_lowlevel.o \
+	abi_interfaces_numeric.o
+	$(PPFCCOMPILE) -c -o abi_symbrav.o `test -f 'abi_geometry/abi_symbrav.F90' || echo '$(srcdir)/'`abi_geometry/abi_symbrav.F90
+
+abi_symchk.o: abi_geometry/abi_symchk.F90 \
+	abi_defs_basis.o
+	$(PPFCCOMPILE) -c -o abi_symchk.o `test -f 'abi_geometry/abi_symchk.F90' || echo '$(srcdir)/'`abi_geometry/abi_symchk.F90
+
+abi_symdet.o: abi_geometry/abi_symdet.F90 \
+	abi_defs_basis.o \
+	abi_interfaces_lowlevel.o
+	$(PPFCCOMPILE) -c -o abi_symdet.o `test -f 'abi_geometry/abi_symdet.F90' || echo '$(srcdir)/'`abi_geometry/abi_symdet.F90
+
+abi_symfind.o: abi_geometry/abi_symfind.F90 \
+	abi_defs_basis.o \
+	abi_interfaces_lowlevel.o
+	$(PPFCCOMPILE) -c -o abi_symfind.o `test -f 'abi_geometry/abi_symfind.F90' || echo '$(srcdir)/'`abi_geometry/abi_symfind.F90
+
+abi_symlatt.o: abi_geometry/abi_symlatt.F90 \
+	abi_defs_basis.o \
+	abi_interfaces_geometry.o \
+	abi_interfaces_lowlevel.o \
+	abi_interfaces_numeric.o
+	$(PPFCCOMPILE) -c -o abi_symlatt.o `test -f 'abi_geometry/abi_symlatt.F90' || echo '$(srcdir)/'`abi_geometry/abi_symlatt.F90
+
+abi_symlist_bcc.o: abi_geometry/abi_symlist_bcc.F90 \
+	abi_defs_basis.o
+	$(PPFCCOMPILE) -c -o abi_symlist_bcc.o `test -f 'abi_geometry/abi_symlist_bcc.F90' || echo '$(srcdir)/'`abi_geometry/abi_symlist_bcc.F90
+
+abi_symlist_fcc.o: abi_geometry/abi_symlist_fcc.F90 \
+	abi_defs_basis.o
+	$(PPFCCOMPILE) -c -o abi_symlist_fcc.o `test -f 'abi_geometry/abi_symlist_fcc.F90' || echo '$(srcdir)/'`abi_geometry/abi_symlist_fcc.F90
+
+abi_symlist_others.o: abi_geometry/abi_symlist_others.F90 \
+	abi_defs_basis.o
+	$(PPFCCOMPILE) -c -o abi_symlist_others.o `test -f 'abi_geometry/abi_symlist_others.F90' || echo '$(srcdir)/'`abi_geometry/abi_symlist_others.F90
+
+abi_symlist_prim.o: abi_geometry/abi_symlist_prim.F90 \
+	abi_defs_basis.o
+	$(PPFCCOMPILE) -c -o abi_symlist_prim.o `test -f 'abi_geometry/abi_symlist_prim.F90' || echo '$(srcdir)/'`abi_geometry/abi_symlist_prim.F90
+
+abi_symplanes.o: abi_geometry/abi_symplanes.F90 \
+	abi_defs_basis.o \
+	abi_interfaces_lowlevel.o
+	$(PPFCCOMPILE) -c -o abi_symplanes.o `test -f 'abi_geometry/abi_symplanes.F90' || echo '$(srcdir)/'`abi_geometry/abi_symplanes.F90
+
+abi_symptgroup.o: abi_geometry/abi_symptgroup.F90 \
+	abi_defs_basis.o \
+	abi_interfaces_geometry.o \
+	abi_interfaces_lowlevel.o
+	$(PPFCCOMPILE) -c -o abi_symptgroup.o `test -f 'abi_geometry/abi_symptgroup.F90' || echo '$(srcdir)/'`abi_geometry/abi_symptgroup.F90
+
+abi_symrelrot.o: abi_geometry/abi_symrelrot.F90 \
+	abi_defs_basis.o \
+	abi_interfaces_lowlevel.o \
+	abi_interfaces_numeric.o
+	$(PPFCCOMPILE) -c -o abi_symrelrot.o `test -f 'abi_geometry/abi_symrelrot.F90' || echo '$(srcdir)/'`abi_geometry/abi_symrelrot.F90
+
+abi_symsgcube.o: abi_geometry/abi_symsgcube.F90 \
+	abi_defs_basis.o \
+	abi_interfaces_geometry.o
+	$(PPFCCOMPILE) -c -o abi_symsgcube.o `test -f 'abi_geometry/abi_symsgcube.F90' || echo '$(srcdir)/'`abi_geometry/abi_symsgcube.F90
+
+abi_symsghexa.o: abi_geometry/abi_symsghexa.F90 \
+	abi_defs_basis.o \
+	abi_interfaces_geometry.o
+	$(PPFCCOMPILE) -c -o abi_symsghexa.o `test -f 'abi_geometry/abi_symsghexa.F90' || echo '$(srcdir)/'`abi_geometry/abi_symsghexa.F90
+
+abi_symsgmono.o: abi_geometry/abi_symsgmono.F90 \
+	abi_defs_basis.o \
+	abi_interfaces_geometry.o
+	$(PPFCCOMPILE) -c -o abi_symsgmono.o `test -f 'abi_geometry/abi_symsgmono.F90' || echo '$(srcdir)/'`abi_geometry/abi_symsgmono.F90
+
+abi_symsgortho.o: abi_geometry/abi_symsgortho.F90 \
+	abi_defs_basis.o \
+	abi_interfaces_geometry.o
+	$(PPFCCOMPILE) -c -o abi_symsgortho.o `test -f 'abi_geometry/abi_symsgortho.F90' || echo '$(srcdir)/'`abi_geometry/abi_symsgortho.F90
+
+abi_symsgtetra.o: abi_geometry/abi_symsgtetra.F90 \
+	abi_defs_basis.o \
+	abi_interfaces_geometry.o
+	$(PPFCCOMPILE) -c -o abi_symsgtetra.o `test -f 'abi_geometry/abi_symsgtetra.F90' || echo '$(srcdir)/'`abi_geometry/abi_symsgtetra.F90
+
+abi_symspgr.o: abi_geometry/abi_symspgr.F90 \
+	abi_defs_basis.o \
+	abi_interfaces_geometry.o \
+	abi_interfaces_lowlevel.o
+	$(PPFCCOMPILE) -c -o abi_symspgr.o `test -f 'abi_geometry/abi_symspgr.F90' || echo '$(srcdir)/'`abi_geometry/abi_symspgr.F90
+
+abi_xredxcart.o: abi_geometry/abi_xredxcart.F90 \
+	abi_defs_basis.o \
+	abi_interfaces_lowlevel.o \
+	abi_interfaces_numeric.o
+	$(PPFCCOMPILE) -c -o abi_xredxcart.o `test -f 'abi_geometry/abi_xredxcart.F90' || echo '$(srcdir)/'`abi_geometry/abi_xredxcart.F90
+
+m_ab6_symmetry.o: abi_geometry/m_ab6_symmetry.F90 \
+	abi_defs_basis.o \
+	abi_interfaces_geometry.o \
+	abi_interfaces_numeric.o
+	$(PPFCCOMPILE) -c -o m_ab6_symmetry.o `test -f 'abi_geometry/m_ab6_symmetry.F90' || echo '$(srcdir)/'`abi_geometry/m_ab6_symmetry.F90
 
 abi_defs_basis.o: abi_lowlevel/abi_defs_basis.F90
 	$(PPFCCOMPILE) -c -o abi_defs_basis.o `test -f 'abi_lowlevel/abi_defs_basis.F90' || echo '$(srcdir)/'`abi_lowlevel/abi_defs_basis.F90
@@ -480,19 +413,19 @@ abi_interfaces_lowlevel.o: abi_lowlevel/abi_interfaces_lowlevel.F90
 abi_leave_new.o: abi_lowlevel/abi_leave_new.F90 \
 	abi_defs_basis.o \
 	abi_interfaces_lowlevel.o \
-	abi_m_xmpi.o
+	m_abi_xmpi.o
 	$(PPFCCOMPILE) -c -o abi_leave_new.o `test -f 'abi_lowlevel/abi_leave_new.F90' || echo '$(srcdir)/'`abi_lowlevel/abi_leave_new.F90
-
-abi_m_xmpi.o: abi_lowlevel/abi_m_xmpi.F90 \
-	abi_defs_basis.o \
-	$(mpi_include)
-	$(PPFCCOMPILE) -c -o abi_m_xmpi.o `test -f 'abi_lowlevel/abi_m_xmpi.F90' || echo '$(srcdir)/'`abi_lowlevel/abi_m_xmpi.F90
 
 abi_wrtout.o: abi_lowlevel/abi_wrtout.F90 \
 	abi_defs_basis.o \
 	abi_interfaces_lowlevel.o \
-	abi_m_xmpi.o
+	m_abi_xmpi.o
 	$(PPFCCOMPILE) -c -o abi_wrtout.o `test -f 'abi_lowlevel/abi_wrtout.F90' || echo '$(srcdir)/'`abi_lowlevel/abi_wrtout.F90
+
+m_abi_xmpi.o: abi_lowlevel/m_abi_xmpi.F90 \
+	abi_defs_basis.o \
+	$(mpi_include)
+	$(PPFCCOMPILE) -c -o m_abi_xmpi.o `test -f 'abi_lowlevel/m_abi_xmpi.F90' || echo '$(srcdir)/'`abi_lowlevel/m_abi_xmpi.F90
 
 abi_derfc.o: abi_numeric/abi_derfc.F90 \
 	abi_defs_basis.o
@@ -752,4 +685,8 @@ m_pawxmlps.o: libpaw/m_pawxmlps.F90 \
 	m_pawrad.o \
 	m_libpaw_defs.o
 	$(PPFCCOMPILE) -c -o m_pawxmlps.o `test -f 'libpaw/m_pawxmlps.F90' || echo '$(srcdir)/'`libpaw/m_pawxmlps.F90
+
+fortran-symmetry.o: symm/fortran-symmetry.f90 \
+	iso_c_binding.o
+	$(FCCOMPILE) -c -o fortran-symmetry.o `test -f 'symm/fortran-symmetry.f90' || echo '$(srcdir)/'`symm/fortran-symmetry.f90
 

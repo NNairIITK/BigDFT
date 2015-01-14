@@ -40,7 +40,7 @@ subroutine abi_wrtout(unit,msg,mode_paral)
 
  use abi_defs_basis
  use abi_interfaces_lowlevel, except_this_one => abi_wrtout
- use abi_m_xmpi
+ use m_abi_xmpi
 
 #undef ABI_FUNC
 #define ABI_FUNC 'abi_wrtout'
@@ -123,7 +123,7 @@ subroutine abi_wrtout_myproc(unit,message,mpicomm) ! optional argument
 
  use abi_defs_basis
  use abi_interfaces_lowlevel, except_this_one => abi_wrtout_myproc
- use abi_m_xmpi
+ use m_abi_xmpi
 
 #undef ABI_FUNC
 #define ABI_FUNC 'abi_wrtout_myproc'

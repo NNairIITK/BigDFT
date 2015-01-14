@@ -92,6 +92,7 @@ subroutine md_isokinetic(acell, amass, dtion, epot, fcart, itime, natom, &
      & mditemp, me, rprimd, vel, vel_nexthalf, xcart, xcart_next, xred_next)
 
   use abi_defs_basis
+  use abi_interfaces_geometry
 
   implicit none
 
@@ -115,7 +116,7 @@ subroutine md_isokinetic(acell, amass, dtion, epot, fcart, itime, natom, &
      call md_isokinetic_init(amass, mditemp, natom, vel)
      vel_nexthalf(:,:)=vel(:,:)
      xcart_next(:,:)=xcart(:,:)
-     call xredxcart(natom,-1,rprimd,xcart_next,xred_next)
+     call abi_xredxcart(natom,-1,rprimd,xcart_next,xred_next)
 
      return
   end if
@@ -154,7 +155,7 @@ subroutine md_isokinetic(acell, amass, dtion, epot, fcart, itime, natom, &
   xcart_next(:,:)=xcart(:,:)+vel_nexthalf(:,:)*dtion
 
   !   Convert back to xred (reduced coordinates)
-  call xredxcart(natom,-1,rprimd,xcart_next,xred_next)
+  call abi_xredxcart(natom,-1,rprimd,xcart_next,xred_next)
 
   !   Computation of the forces for the new positions
   !   Compute LDA forces (big loop), fcart_m is used as dummy argument for fred
@@ -192,10 +193,6 @@ subroutine md_isokinetic(acell, amass, dtion, epot, fcart, itime, natom, &
   s=a*(s1-1.)/b+s2/sqb
   scdot=a*s2/sqb+s1
   vel(:,:)=(vel_nexthalf(:,:)+fcart_m(:,:)*s)/scdot
-  !FB20090429    
-  !  Convert input xred (reduced coordinates) to xcart (cartesian)
-  !   call xredxcart(natom,1,rprimd,xcart,xred)
-  !FB20090429    
   deallocate(fcart_m)
 
   !  End of case ionmov = 12

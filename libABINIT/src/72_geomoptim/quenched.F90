@@ -4,6 +4,7 @@ subroutine md_quenched_stop_atoms(amass, dtion, ekin, fcart, iatfix, itime, &
 
   use abi_defs_basis
   use abi_interfaces_lowlevel
+  use abi_interfaces_geometry
 
   implicit none
 
@@ -78,7 +79,7 @@ subroutine md_quenched_stop_atoms(amass, dtion, ekin, fcart, iatfix, itime, &
   end do
 
   !   Generate xred_next from xcart_next
-  call xredxcart(natom,-1,rprimd,xcart_next,xred_next)
+  call abi_xredxcart(natom,-1,rprimd,xcart_next,xred_next)
 
   !  End of test ionmov==7
 end subroutine md_quenched_stop_atoms

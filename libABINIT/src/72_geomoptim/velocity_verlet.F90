@@ -5,6 +5,7 @@ subroutine md_velocity_verlet(acell, acell_next, amass, dtion, fred, &
      & xcart, xcart_next, xred_next, xred_prev)
   
   use abi_defs_basis
+  use abi_interfaces_geometry
 
   implicit none
 
@@ -15,8 +16,8 @@ subroutine md_velocity_verlet(acell, acell_next, amass, dtion, fred, &
   real(dp), intent(in) :: vel_prevhalf(3, natom), amass(natom)
   real(dp), intent(in) :: rprim(3,3), rprimd(3,3), acell(3)
   real(dp), intent(in) :: hessin(3 * natom, 3 * natom), fred(3, natom)
-  real(dp), intent(in) :: xred_prev(3, natom), xcart(3, natom)
-  real(dp), intent(inout) :: vel(3,natom)
+  real(dp), intent(in) :: xred_prev(3, natom)
+  real(dp), intent(inout) :: xcart(3, natom),vel(3,natom)
   real(dp), intent(out) :: vel_nexthalf(3, natom)
   real(dp), intent(out) :: acell_next(3), rprim_next(3,3), rprimd_next(3,3)
   real(dp), intent(out) :: xred_next(3,natom), xcart_next(3,natom)
@@ -31,7 +32,7 @@ subroutine md_velocity_verlet(acell, acell_next, amass, dtion, fred, &
   !  First propagate the position, without acceleration
   if(itime/=0)then
      ! Transfert cart into red
-     call xredxcart(natom,-1,rprimd,xcart,xred_next)
+     call abi_xredxcart(natom,-1,rprimd,xcart,xred_next)
      xred_next(:,:) = 2 * xred_next(:,:) - xred_prev(:,:)
      taylor=one
   else
@@ -40,7 +41,7 @@ subroutine md_velocity_verlet(acell, acell_next, amass, dtion, fred, &
      !   Uses the velocity
      xcart_next(:,:) = xcart(:,:) + dtion * vel(:,:)
      ! Transfert cart into red
-     call xredxcart(natom,-1,rprimd,xcart_next,xred_next)
+     call abi_xredxcart(natom,-1,rprimd,xcart_next,xred_next)
      taylor=half
   end if
 
@@ -66,13 +67,13 @@ subroutine md_velocity_verlet(acell, acell_next, amass, dtion, fred, &
      end do
   end do
   ! Transfert red into cart
-  call xredxcart(natom,1,rprimd,xcart_next,xred_next)
+  call abi_xredxcart(natom,1,rprimd,xcart_next,xred_next)
 
   !  Get xred_next, and eventually acell_next, ucvol_next, rprim_next and
   !  rprimd_next, from vin_next
   if(optcell/=0)then
-     call mkrdim(acell_next,rprim_next,rprimd_next)
-     call metric(gmet,gprimd,-1,rmet,rprimd_next,ucvol_next)
+     call abi_mkrdim(acell_next,rprim_next,rprimd_next)
+     call abi_metric(gmet,gprimd,-1,rmet,rprimd_next,ucvol_next)
   else
      !   Impose no change of acell, ucvol, rprim, and rprimd
      acell_next(:)=acell(:)
