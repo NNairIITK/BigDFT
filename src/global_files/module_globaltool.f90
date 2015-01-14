@@ -716,7 +716,7 @@ subroutine identical(cf,gdat,ndattot,ndat,nid,epot,fp,en_arr,fp_arr,en_delta,&
     logical, intent(out) :: lnew
     integer, intent(out) :: kid
     integer, intent(out) :: k_epot
-    character(len=20), intent(in) :: cf
+    character(len=*), intent(in) :: cf
     !local
     integer :: k, klow, khigh, nsm
     real(gp) :: dmin, d 
