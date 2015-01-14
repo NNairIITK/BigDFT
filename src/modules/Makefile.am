@@ -63,6 +63,7 @@ libmodules_a_SOURCES = base.f90 \
 	copy_utils.f90 \
 	module_sqn.f90 \
 	module_fingerprints.f90 \
+	module_forces.f90 \
 	bigdft_run.f90 \
 	$(bindings_headers) \
 	$(LIBXC_MODULE) \
@@ -148,6 +149,7 @@ modules = module_base.@MODULE_EXT@ \
 	fermi_level.@MODULE_EXT@ \
 	copy_utils.@MODULE_EXT@ \
 	module_sqn.@MODULE_EXT@ \
+	module_forces.@MODULE_EXT@ \
 	module_fingerprints.@MODULE_EXT@ \
 	bigdft_run.@MODULE_EXT@ \
 	module_lj.@MODULE_EXT@ \
@@ -214,11 +216,12 @@ fermi_level.o: base.o
 copy_utils.o: base.o
 gaussdaub.o: base.o
 module_sqn.o: base.o
-bigdft_run.o: types.o input_dicts.o interfaces.o module_lenosky_si.o module_lj.o
+bigdft_run.o: types.o input_dicts.o interfaces.o module_forces.o module_lenosky_si.o module_lj.o
 ab7_mixing.o: defs.o
 module_lj.o: defs.o
 module_lenosky_si.o: defs.o
 module_fingerprints.o: base.o
+module_forces.o: base.o types.o 
 
 # Copy modules in a common include directory.
 all: all-am insmod

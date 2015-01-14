@@ -1269,6 +1269,8 @@ contains
        call f_err_throw('Following method for evaluation of '//&
             'energies and forces is unknown: '//trim(yaml_toa(int(runObj%run_mode))))
     end select
+
+    call clean_forces(bigdft_mpi%iproc,runObj%atoms,outs%rxyz,outs%fxyz,outs%fnoise,runObj%run_mode)
   end subroutine bigdft_state
 
   !> Routine to use BigDFT as a blackbox
@@ -1511,6 +1513,7 @@ contains
     use module_base
     use module_types
     use module_atoms, only: move_this_coordinate
+    use module_forces
     implicit none
     integer, intent(in) :: iproc,nproc
     integer, intent(inout) :: infocode
