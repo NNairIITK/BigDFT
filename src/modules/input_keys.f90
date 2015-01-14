@@ -354,6 +354,7 @@ contains
 
     call input_keys_fill(dict, PERF_VARIABLES)
     call input_keys_fill(dict, MODE_VARIABLES)
+    call input_keys_fill(dict, FORCE_FIELD_PARAMETERS)
     call input_keys_fill(dict, DFT_VARIABLES)
     call input_keys_fill(dict, KPT_VARIABLES)
     call input_keys_fill(dict, GEOPT_VARIABLES)

@@ -41,6 +41,7 @@ libmodules_a_SOURCES = base.f90 \
 	private_api.f90 \
 	xc.f90 \
 	module_lj.f90 \
+	module_morse_bulk.f90 \
 	module_lenosky_si.f90 \
 	op2p_module.f90 \
 	BigDFT_API.f90 \
@@ -153,6 +154,7 @@ modules = module_base.@MODULE_EXT@ \
 	module_fingerprints.@MODULE_EXT@ \
 	bigdft_run.@MODULE_EXT@ \
 	module_lj.@MODULE_EXT@ \
+	module_morse_bulk.@MODULE_EXT@ \
 	module_lenosky_si.@MODULE_EXT@
 else
 
@@ -216,9 +218,10 @@ fermi_level.o: base.o
 copy_utils.o: base.o
 gaussdaub.o: base.o
 module_sqn.o: base.o
-bigdft_run.o: types.o input_dicts.o interfaces.o module_forces.o module_lenosky_si.o module_lj.o
+bigdft_run.o: types.o input_dicts.o interfaces.o module_forces.o module_lenosky_si.o module_lj.o module_morse_bulk.o
 ab7_mixing.o: defs.o
 module_lj.o: defs.o
+module_morse_bulk.o: base.o
 module_lenosky_si.o: defs.o
 module_fingerprints.o: base.o
 module_forces.o: base.o types.o 

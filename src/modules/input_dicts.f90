@@ -267,7 +267,7 @@ contains
     use public_keys, only: POSINP, PERF_VARIABLES, DFT_VARIABLES, KPT_VARIABLES, &
          & GEOPT_VARIABLES, MIX_VARIABLES, SIC_VARIABLES, TDDFT_VARIABLES, LIN_GENERAL, &
          & LIN_BASIS, LIN_KERNEL, LIN_BASIS_PARAMS, OCCUPATION, IG_OCCUPATION, FRAG_VARIABLES, &
-         & MODE_VARIABLES
+         & MODE_VARIABLES, FORCE_FIELD_PARAMETERS
     implicit none
     type(dictionary), pointer :: dict
     !local variables
@@ -285,6 +285,7 @@ contains
          .item. LOGFILE,&
          .item. POSINP,&
          .item. MODE_VARIABLES,&
+         .item. FORCE_FIELD_PARAMETERS,&
          .item. PERF_VARIABLES,&  
          .item. DFT_VARIABLES,&   
          .item. KPT_VARIABLES,&   

@@ -384,6 +384,11 @@ module module_types
      real(gp) :: steepthresh
      real(gp) :: trustr
 
+    !Force Field Parameters
+    !morse_bulk
+    real(gp) :: mb_rho
+    real(gp) :: mb_rcut
+
      ! Performance variables from input.perf
      logical :: debug      !< Debug option (used by memocc)
      integer :: ncache_fft !< Cache size for FFT
@@ -2087,7 +2092,19 @@ contains
              in%run_mode=LENOSKY_SI_BULK_RUN_MODE
           case('amber')
              in%run_mode=AMBER_RUN_MODE
+          case('morse_bulk')
+             in%run_mode=MORSE_BULK_RUN_MODE
           end select
+       case DEFAULT
+          if (bigdft_mpi%iproc==0) &
+               call yaml_warning("unknown input key '" // trim(level) // "/" // trim(dict_key(val)) // "'")
+       end select
+    case (FORCE_FIELD_PARAMETERS)
+       select case (trim(dict_key(val)))
+       case (MB_RHO)
+          in%mb_RHO = val
+       case (MB_RCUT)
+          in%mb_RCUT = val
        case DEFAULT
           if (bigdft_mpi%iproc==0) &
                call yaml_warning("unknown input key '" // trim(level) // "/" // trim(dict_key(val)) // "'")

@@ -1189,6 +1189,7 @@ contains
     use yaml_strings, only: yaml_toa
     use yaml_output
     use module_forces
+    use module_morse_bulk
     implicit none
     !parameters
     type(run_objects), intent(inout) :: runObj
@@ -1217,6 +1218,8 @@ contains
        !            call yaml_map('LJ state, energy',outs%energy,fmt='(1pe24.17)')
        !         end if
 !       if (bigdft_mpi%iproc==0) call yaml_release_document()
+    case('MORSE_BULK_RUN_MODE')
+        call morse_bulk_wrapper(nat,alatint,rxyz_ptr, outs%fxyz, outs%energy) 
     case('LENOSKY_SI_CLUSTERS_RUN_MODE')
        !else if(trim(adjustl(efmethod))=='LENSIc')then!for clusters
        call f_memcpy(src=rxyz_ptr,dest=runObj%mm_rst%rf_extra)
