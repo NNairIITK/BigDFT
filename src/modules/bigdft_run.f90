@@ -1188,6 +1188,7 @@ contains
     use dynamic_memory, only: f_memcpy
     use yaml_strings, only: yaml_toa
     use yaml_output
+    use module_forces
     implicit none
     !parameters
     type(run_objects), intent(inout) :: runObj
@@ -1270,7 +1271,7 @@ contains
             'energies and forces is unknown: '//trim(yaml_toa(int(runObj%run_mode))))
     end select
 
-    call clean_forces(bigdft_mpi%iproc,runObj%atoms,outs%rxyz,outs%fxyz,outs%fnoise,runObj%run_mode)
+    call clean_forces(bigdft_mpi%iproc,runObj%atoms,rxyz_ptr,outs%fxyz,outs%fnoise,runObj%run_mode)
   end subroutine bigdft_state
 
   !> Routine to use BigDFT as a blackbox
@@ -1286,7 +1287,7 @@ contains
     type(state_properties), intent(inout) :: outs
     integer, intent(inout) :: infocode
     !local variables
-    character(len=*), parameter :: subname='bigdft_state'
+    character(len=*), parameter :: subname='quantum_mechanical_state'
     logical :: exists
     integer :: inputPsiId_orig,istep
     !integer :: iat
