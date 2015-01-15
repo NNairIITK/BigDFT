@@ -296,11 +296,11 @@ subroutine findsad(mhgpsst,fsw,uinp,runObj,outs,rcov,nbond,iconnect,&
     !functions
     real(gp) :: ddot,dnrm2
 
-    if(bigdft_get_geocode(runObj)/='F'.and. .not.&
-            (trim(adjustl(char(runObj%run_mode)))==&
-                        'LENOSKY_SI_CLUSTERS_RUN_MODE'))then
-        stop 'STOP: saddle search only implemented for free BC'
-    endif
+!    if(bigdft_get_geocode(runObj)/='F'.and. .not.&
+!            (trim(adjustl(char(runObj%run_mode)))==&
+!                        'LENOSKY_SI_CLUSTERS_RUN_MODE'))then
+!        stop 'STOP: saddle search only implemented for free BC'
+!    endif
 
     if((uinp%saddle_minoverlap0>=-1.0_gp).and.uinp%saddle_tighten)&
     stop 'STOP: Do not use minoverlap and no tightening in combination'
@@ -340,7 +340,7 @@ subroutine findsad(mhgpsst,fsw,uinp,runObj,outs,rcov,nbond,iconnect,&
     fsw%rxyz_trans(:,:,0)=wpos
 
     if (bigdft_get_geocode(runObj) == 'F') then
-    call fixfrag_posvel(mhgpsst,runObj%atoms%astruct%nat,rcov,&
+    call fixfrag_posvel(mhgpsst,bigdft_get_geocode(runObj),runObj%atoms%astruct%nat,rcov,&
          fsw%rxyz_trans(1,1,0),tnatdmy,1,fixfragmented)
         if(fixfragmented .and. uinp%mhgps_verbosity >=0.and. &
           mhgpsst%iproc==0) call yaml_comment('fragmentation fixed')
@@ -523,8 +523,9 @@ subroutine findsad(mhgpsst,fsw,uinp,runObj,outs,rcov,nbond,iconnect,&
         !do the move
         fsw%rxyz_trans(:,:,nhist)=fsw%rxyz_trans(:,:,nhist-1)-fsw%dd_trans(:,:)
         if (bigdft_get_geocode(runObj) == 'F') then
-        call fixfrag_posvel(mhgpsst,runObj%atoms%astruct%nat,rcov,fsw%rxyz_trans(1,1,nhist),tnatdmy,1,&
-             fixfragmented)
+        call fixfrag_posvel(mhgpsst,bigdft_get_geocode(runObj),&
+             runObj%atoms%astruct%nat,rcov,fsw%rxyz_trans(1,1,nhist),&
+             tnatdmy,1,fixfragmented)
         if(fixfragmented .and. uinp%mhgps_verbosity >=2.and. mhgpsst%iproc==0)&
            call yaml_comment('fragmentation fixed')
         endif
@@ -944,6 +945,7 @@ end subroutine
 subroutine curvforce(mhgpsst,runObj,outs,diff,rxyz1,fxyz1,vec,curv,rotforce,imethod,ener_count)
     use module_base
     use yaml_output
+    use bigdft_run, only: bigdft_get_geocode
     use module_energyandforces
     use bigdft_run, only: run_objects, state_properties
     use module_mhgps_state
@@ -976,7 +978,10 @@ subroutine curvforce(mhgpsst,runObj,outs,diff,rxyz1,fxyz1,vec,curv,rotforce,imet
     drxyz = f_malloc((/ 1.to.3, 1.to.runObj%atoms%astruct%nat/),id='drxyz')
     dfxyz = f_malloc((/ 1.to.3, 1.to.runObj%atoms%astruct%nat/),id='dfxyz')
     call elim_moment_fs(runObj%atoms%astruct%nat,vec(1,1))
-    call elim_torque_bastian(runObj%atoms%astruct%nat,rxyz1(1,1),vec(1,1))
+    if (bigdft_get_geocode(runObj)=='F')&
+        call elim_torque_bastian(runObj%atoms%astruct%nat,&
+             rxyz1(1,1),vec(1,1))
+    
 
     vec = vec / dnrm2(3*runObj%atoms%astruct%nat,vec(1,1),1)
     rxyz2 = rxyz1 + diff * vec
@@ -992,7 +997,9 @@ subroutine curvforce(mhgpsst,runObj,outs,diff,rxyz1,fxyz1,vec,curv,rotforce,imet
 
         rotforce = 2.0_gp*dfxyz*diffinv + 2.0_gp * curv * drxyz
         call elim_moment_fs(runObj%atoms%astruct%nat,rotforce(1,1))
-        call elim_torque_bastian(runObj%atoms%astruct%nat,rxyz1(1,1),rotforce(1,1))
+        if (bigdft_get_geocode(runObj)=='F')&
+            call elim_torque_bastian(runObj%atoms%astruct%nat,&
+                 rxyz1(1,1),rotforce(1,1))
     else
         stop 'unknown method for curvature computation'
     endif
@@ -1004,7 +1011,7 @@ subroutine curvforce(mhgpsst,runObj,outs,diff,rxyz1,fxyz1,vec,curv,rotforce,imet
     
 end subroutine
 !=====================================================================
-subroutine fixfrag_posvel(mhgpsst,nat,rcov,pos,vel,option,occured)
+subroutine fixfrag_posvel(mhgpsst,geocode,nat,rcov,pos,vel,option,occured)
 !UNTERSCHIED ZUR MH ROUTINE:
 !pos(:,iat)=pos(:,iat)+vec(:)*((mindist-1.0_gp*bondlength)/mindist)
 !ANSTATT
@@ -1038,6 +1045,7 @@ type(mhgps_state), intent(in) :: mhgpsst
 real(gp),dimension(3,nat), INTENT(INOUT) :: pos
 real(gp),dimension(3,nat), INTENT(INOUT) :: vel
 real(gp),dimension(nat), INTENT(IN) :: rcov
+character(len=*), intent(in) :: geocode
 integer, INTENT(IN):: option
 integer :: nfrag, nfragold
 logical :: occured,niter
@@ -1272,7 +1280,8 @@ if(nfrag.ne.1) then          !"if there is fragmentation..."
       enddo
 
       call elim_moment_fs(nat,vel)
-      call elim_torque_bastian(nat,pos,vel)
+      if (trim(adjustl(geocode))=='F')&
+          call elim_torque_bastian(nat,pos,vel)
 
       ! scale velocities to regain initial ekin0
       ekin=0.0_gp

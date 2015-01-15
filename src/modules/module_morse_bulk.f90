@@ -26,7 +26,7 @@
 !
 !*************************************************************************
 !
-!  Subroutine MORSE_bulk calculates the energy and gradient analytically for 
+!  Subroutine MORSE_bulk calculates the energy and forces analytically for 
 !  the Morse potential with periodic boundary conditions. The potential has
 !  a cutoff and is shifted to make the potential continuous.  It is not smooth
 !  though.
@@ -174,8 +174,10 @@ end subroutine morse_bulk_wrapper
 
 !            if (gtest) then
                xmul2 = 2.0_gp*R*(R-1.0_gp)/DIST * A
-               V(J3-2:j3) = V(j3-2:j3) - xmul2 * dx
-               V(J4-2:j4) = V(j4-2:j4) + xmul2 * dx
+!               V(J3-2:j3) = V(j3-2:j3) - xmul2 * dx
+!               V(J4-2:j4) = V(j4-2:j4) + xmul2 * dx
+               V(J3-2:j3) = V(j3-2:j3) + xmul2 * dx
+               V(J4-2:j4) = V(j4-2:j4) - xmul2 * dx
 !            endif
          ENDDO
       ENDDO
