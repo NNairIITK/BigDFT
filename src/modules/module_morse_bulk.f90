@@ -118,14 +118,13 @@ subroutine morse_bulk_wrapper(nat,alat,rxyz, fxyz, epot)
     real(gp), intent(in) :: rxyz(3*nat)
     real(gp), intent(out) :: fxyz(3*nat), epot
     !local
-    real(gp) :: alatint(3)
     if(.not.initialized)then
         call f_err_throw('Potential "morse_bulk" not initialized',&
              err_name='BIGDFT_RUNTIME_ERROR')
     endif
     
     call morse_bulk(rxyz(1),fxyz(1),epot, nat, rho, R0, A, periodic, & 
-       alatint, use_cutoff, rcut)
+       alat, use_cutoff, rcut)
 end subroutine morse_bulk_wrapper
 
 SUBROUTINE MORSE_BULK(X,V,EMORSE, natoms, rho, R0, A, periodic, &
@@ -168,7 +167,6 @@ SUBROUTINE MORSE_BULK(X,V,EMORSE, natoms, rho, R0, A, periodic, &
             R=exp(RHO*R0-RHO*DIST)
             DUMMY=R*(R-2.0_gp)
             EMORSE=EMORSE+DUMMY - Eshift
-write(*,*)J1,J2,EMORSE*A
 !            if (gtest) then
                xmul2 = 2.0_gp*R*(R-1.0_gp)/DIST * A
 !               V(J3-2:j3) = V(j3-2:j3) - xmul2 * dx

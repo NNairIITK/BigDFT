@@ -538,6 +538,11 @@ subroutine findsad(mhgpsst,fsw,uinp,runObj,outs,rcov,nbond,iconnect,&
              fsw%rxyz_trans(1,1,nhist),fsw%rxyzraw_trans(1,1,nhist),fsw%fxyz_trans(1,1,nhist),&
              fsw%fstretch_trans(1,1,nhist),fsw%fxyzraw_trans(1,1,nhist),etotp,iconnect,&
              nbond,fsw%wold_trans,uinp%saddle_alpha_stretch0,alpha_stretch)
+write(100,*)
+do iat=1,runObj%atoms%astruct%nat
+write(100,'(3(1x,es24.17))')fsw%rxyz_trans(1,iat,nhist)*Bohr_Ang,&
+fsw%rxyz_trans(2,iat,nhist)*Bohr_Ang,fsw%rxyz_trans(3,iat,nhist)*Bohr_Ang
+enddo
         ener_count=ener_count+1.0_gp
         fsw%rxyzold_trans=fsw%rxyz_trans(:,:,nhist)
         detot=etotp-etotold
