@@ -145,6 +145,9 @@ contains
     !then check if extra workspaces have to be allocated
     select case(trim(char(run_mode)))
     case('LENNARD_JONES_RUN_MODE')
+       call nullify_MM_restart_objects(mm_rst)
+       !create reference counter
+       mm_rst%refcnt=f_ref_new('mm_rst')
         call init_lj(runObj%inputs%mm_paramset,&
              runObj%inputs%mm_paramfile,runObj%atoms%astruct%units)
     case('LENOSKY_SI_CLUSTERS_RUN_MODE','LENOSKY_SI_BULK_RUN_MODE')
@@ -162,6 +165,9 @@ contains
           mm_rst%rf_extra=f_malloc0_ptr([3,nat],id='rf_extra')
        end if
     case('MORSE_BULK_RUN_MODE')
+       call nullify_MM_restart_objects(mm_rst)
+       !create reference counter
+       mm_rst%refcnt=f_ref_new('mm_rst')
         call init_morse_bulk(runObj%inputs%mm_paramset,&
              runObj%inputs%mm_paramfile,runObj%atoms%astruct%geocode)
     case('AMBER_RUN_MODE')

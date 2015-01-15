@@ -64,6 +64,7 @@ subroutine init_morse_bulk(paramset,paramfile,geocode)
     character(len=*), intent(in) :: paramfile
     character(len=*), intent(in) :: geocode
     !local
+    call yaml_comment('Initializing Morse_Bulk',hfill='-')
 
 
     initialized=.true.
@@ -82,7 +83,7 @@ subroutine init_morse_bulk(paramset,paramfile,geocode)
     else
         select case(trim(paramset))
         case('Pt')
-            call yaml_comment('Using Pt Parameters for morse_bulk from'//&
+            call yaml_scalar('Using Pt Parameters from'//&
                  ' Bassett, D. W.; Webber, P. R. Surf. Sci. 1978, 70, 520.')
         rho = 1.0_gp
         rcut = 1.0_gp
@@ -131,6 +132,9 @@ subroutine morse_bulk_wrapper(nat,alat,rxyz, fxyz, epot)
     
     call morse_bulk(rxyz(1),fxyz(1),epot, nat, rho, R0, A, periodic, & 
        alatint, use_cutoff, rcut)
+write(*,*)nat
+write(*,*)alat
+stop
 end subroutine morse_bulk_wrapper
 
       SUBROUTINE MORSE_BULK(X,V,EMORSE, natoms, rho, R0, A, periodic, &
