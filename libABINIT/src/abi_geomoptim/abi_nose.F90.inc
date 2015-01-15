@@ -1,4 +1,4 @@
-subroutine md_nose_init(amass, natom, temp, vel)
+subroutine abi_md_nose_init(amass, natom, temp, vel)
   
   use abi_defs_basis
   use abi_interfaces_lowlevel
@@ -71,9 +71,9 @@ subroutine md_nose_init(amass, natom, temp, vel)
   call abi_wrtout(ab_out,message,'COLL')
   call abi_wrtout(std_out,message,'COLL')
 
-end subroutine md_nose_init
+end subroutine abi_md_nose_init
 
-subroutine md_nose(amass, dtion, fcart, fcart_mold, gnose, itime, ktemp, mditemp, &
+subroutine abi_md_nose(amass, dtion, fcart, fcart_mold, gnose, itime, ktemp, mditemp, &
      & natom, noseinert, rprimd, snose, v2nose, vel, xcart, xcart_next, &
      & xi_nose, xred_next)
   
@@ -105,7 +105,7 @@ subroutine md_nose(amass, dtion, fcart, fcart_mold, gnose, itime, ktemp, mditemp
      snose=0.0_dp
      xi_nose=0.0_dp
 
-     call md_nose_init(amass, natom, mditemp, vel)
+     call abi_md_nose_init(amass, natom, mditemp, vel)
   end if
 
   allocate(fcart_m(3,natom))
@@ -231,9 +231,9 @@ subroutine md_nose(amass, dtion, fcart, fcart_mold, gnose, itime, ktemp, mditemp
 
   !  End of case ionmov =8
 
-end subroutine md_nose
+end subroutine abi_md_nose
 
-subroutine md_nose_finalise(etotal, gnose, itime, ktemp, noseinert, snose, &
+subroutine abi_md_nose_finalise(etotal, gnose, itime, ktemp, noseinert, snose, &
      & v2nose, xi_nose)
   
   use abi_defs_basis
@@ -254,4 +254,4 @@ subroutine md_nose_finalise(etotal, gnose, itime, ktemp, noseinert, snose, &
        &   ' At the end of Moldyn step',itime,', ham=',hamnose,' Ha.'
   call abi_wrtout(ab_out,message,'COLL')
   call abi_wrtout(std_out,message,'COLL')
-end subroutine md_nose_finalise
+end subroutine abi_md_nose_finalise

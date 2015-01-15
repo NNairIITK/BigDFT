@@ -1,4 +1,4 @@
-subroutine md_quenched_stop_atoms(amass, dtion, ekin, fcart, iatfix, itime, &
+subroutine abi_md_quenched_stop_atoms(amass, dtion, ekin, fcart, iatfix, itime, &
      & natom, nstopped, rprimd, vel, vel_prevhalf, vel_nexthalf, &
      & xcart, xcart_next, xred_next)
 
@@ -82,4 +82,4 @@ subroutine md_quenched_stop_atoms(amass, dtion, ekin, fcart, iatfix, itime, &
   call abi_xredxcart(natom,-1,rprimd,xcart_next,xred_next)
 
   !  End of test ionmov==7
-end subroutine md_quenched_stop_atoms
+end subroutine abi_md_quenched_stop_atoms

@@ -1,4 +1,4 @@
-module ab6_moldyn
+module m_ab6_moldyn
 
   use abi_defs_basis
 
@@ -26,8 +26,8 @@ module ab6_moldyn
      end subroutine scfloop_output
   end interface
 
-! mttk_type: dataype used in Martyna et al. (TTK) reversible MD integration scheme
-  type mttk_type
+! abi_mttk_type: dataype used in Martyna et al. (TTK) reversible MD integration scheme
+  type abi_mttk_type
    !Real (double precision) scalars
     real(dp) :: glogv              !Logarithm of the volume
     real(dp) :: vlogv              !Derivative of logv
@@ -37,18 +37,18 @@ module ab6_moldyn
     real(dp), pointer :: glogs(:)  ! Imbalance of kinetic energy
     real(dp), pointer :: vlogs(:)  ! Velocities of thermostat variables
     real(dp), pointer :: xlogs(:)  ! Positions of thermostat variables
-  end type mttk_type
+  end type abi_mttk_type
 
 contains
 
-  include "xfpack.F90"
-  include "velocity_verlet.F90"
-  include "quenched.F90"
-  include "langevin.F90"
-  include "nose.F90"
-  include "isokinetic.F90"
-  include "isotemp.F90"
-  include "isothermal.F90"
-  include "moldyn.F90"
+  include "abi_xfpack.F90.inc"
+  include "abi_velocity_verlet.F90.inc"
+  include "abi_quenched.F90.inc"
+  include "abi_langevin.F90.inc"
+  include "abi_nose.F90.inc"
+  include "abi_isokinetic.F90.inc"
+  include "abi_isotemp.F90.inc"
+  include "abi_isothermal.F90.inc"
+  include "abi_moldyn.F90.inc"
 
-end module ab6_moldyn
+end module m_ab6_moldyn

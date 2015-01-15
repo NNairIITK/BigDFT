@@ -1,7 +1,7 @@
 !{\src2tex{textfont=tt}}
-!!****f* ABINIT/xfpack
+!!****f* ABINIT/abi_xfpack
 !! NAME
-!! xfpack
+!! abi_xfpack
 !!
 !! FUNCTION
 !! If option=1, transfer xred, acell, and rprim to vin
@@ -50,7 +50,7 @@
 !!
 !! SOURCE
 
-subroutine xfpack(acell,acell0,fred,natom,ndim,nsym,optcell,option,rprim,rprimd0,&
+subroutine abi_xfpack(acell,acell0,fred,natom,ndim,nsym,optcell,option,rprim,rprimd0,&
 & strtarget,strten,symrel,ucvol,ucvol0,vin,vout,xred)
 
  use abi_defs_basis
@@ -84,7 +84,7 @@ subroutine xfpack(acell,acell0,fred,natom,ndim,nsym,optcell,option,rprim,rprimd0
 
  if(optcell==0 .and. ndim/=3*natom)then
    write(message,'(a,a,a,a,a,a,i4,a,i4,a)' )ch10,&
-&   ' xfpack: BUG -',ch10,&
+&   ' abi_xfpack: BUG -',ch10,&
 &   '  When optcell=0, ndim MUST be equal to 3*natom,',ch10,&
 &   '  while ndim=',ndim,' and 3*natom=',3*natom,'.'
    call abi_wrtout(std_out,message,'COLL')
@@ -94,7 +94,7 @@ subroutine xfpack(acell,acell0,fred,natom,ndim,nsym,optcell,option,rprim,rprimd0
  if( (optcell==1 .or. optcell==4 .or. optcell==5 .or. optcell==6) &
 & .and. ndim/=3*natom+1)then
    write(message,'(a,a,a,a,a,a,i4,a,i4,a)' )ch10,&
-&   ' xfpack: BUG -',ch10,&
+&   ' abi_xfpack: BUG -',ch10,&
 &   '  When optcell=1,4,5 or 6, ndim MUST be equal to 3*natom+1,',ch10,&
 &   '  while ndim=',ndim,' and 3*natom+1=',3*natom+1,'.'
    call abi_wrtout(std_out,message,'COLL')
@@ -104,7 +104,7 @@ subroutine xfpack(acell,acell0,fred,natom,ndim,nsym,optcell,option,rprim,rprimd0
  if( (optcell==2 .or. optcell==3) &
 & .and. ndim/=3*natom+6)then
    write(message,'(a,a,a,a,a,a,i4,a,i4,a)' )ch10,&
-&   ' xfpack: BUG -',ch10,&
+&   ' abi_xfpack: BUG -',ch10,&
 &   '  When optcell=2 or 3, ndim MUST be equal to 3*natom+6,',ch10,&
 &   '  while ndim=',ndim,' and 3*natom+6=',3*natom+6,'.'
    call abi_wrtout(std_out,message,'COLL')
@@ -113,7 +113,7 @@ subroutine xfpack(acell,acell0,fred,natom,ndim,nsym,optcell,option,rprim,rprimd0
 
  if( optcell>=7 .and. ndim/=3*natom+3)then
    write(message,'(a,a,a,a,a,a,i4,a,i4,a)' )ch10,&
-&   ' xfpack: BUG -',ch10,&
+&   ' abi_xfpack: BUG -',ch10,&
 &   '  When optcell=7,8 or 9, ndim MUST be equal to 3*natom+3,',ch10,&
 &   '  while ndim=',ndim,' and 3*natom+3=',3*natom+3,'.'
    call abi_wrtout(std_out,message,'COLL')
@@ -267,7 +267,7 @@ subroutine xfpack(acell,acell0,fred,natom,ndim,nsym,optcell,option,rprim,rprimd0
  else
 
    write(message, '(a,a,a,a,a,a,i3,a)' )ch10,&
-&   ' xfpack : BUG -',ch10,&
+&   ' abi_xfpack : BUG -',ch10,&
 &   '  The only allowed values for option are 1, 2 and 3,',ch10,&
 &   '  while it is found that option=',option,'.'
    call abi_wrtout(std_out,message,'COLL')
@@ -275,5 +275,5 @@ subroutine xfpack(acell,acell0,fred,natom,ndim,nsym,optcell,option,rprim,rprimd0
 
  end if
 
-end subroutine xfpack
+end subroutine abi_xfpack
 !!***

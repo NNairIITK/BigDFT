@@ -1,7 +1,7 @@
 !{\src2tex{textfont=tt}}
-!!****f* ABINIT/isotemp
+!!****f* ABINIT/abi_isotemp
 !! NAME
-!! isotemp
+!! abi_isotemp
 !!
 !! FUNCTION
 !! performs one half step on isotemp parameters according to Martyna et al.
@@ -34,7 +34,7 @@
 !!
 !! SOURCE
 
-subroutine isotemp(amass,dtion,ekin,iatfix,ktemp,mttk_vars,natom,nnos,qmass,vel)
+subroutine abi_isotemp(amass,dtion,ekin,iatfix,ktemp,mttk_vars,natom,nnos,qmass,vel)
 
  use abi_defs_basis
 
@@ -45,7 +45,7 @@ subroutine isotemp(amass,dtion,ekin,iatfix,ktemp,mttk_vars,natom,nnos,qmass,vel)
  integer :: natom, nnos
  real(dp),intent(in) :: dtion,ktemp
  real(dp),intent(out) :: ekin
- type(mttk_type) :: mttk_vars
+ type(abi_mttk_type) :: mttk_vars
 !arrays
  integer, intent(in) :: iatfix(3, natom)
  real(dp),intent(in) :: amass(natom), qmass(nnos)
@@ -127,7 +127,7 @@ subroutine isotemp(amass,dtion,ekin,iatfix,ktemp,mttk_vars,natom,nnos,qmass,vel)
  mttk_vars%xlogs(:)=xlogs(:)
  deallocate(glogs,vlogs,xlogs)
 
-end subroutine isotemp
+end subroutine abi_isotemp
 
 !!***
 !!****f* ABINIT/isopress
@@ -178,7 +178,7 @@ subroutine isopress(amass,dtion,ekin,iatfix,ktemp,natom,nnos,qmass,strten,strtar
  real(dp),intent(in) :: dtion,ktemp,ucvol,vmass
  real(dp),intent(inout) :: vlogv
  real(dp),intent(out) :: ekin
- type(mttk_type) :: mttk_vars
+ type(abi_mttk_type) :: mttk_vars
 !arrays
  integer, intent(in) :: iatfix(3, natom)
  real(dp),intent(in) :: amass(natom), qmass(nnos),strtarget(6),strten(6)
@@ -280,9 +280,9 @@ subroutine isopress(amass,dtion,ekin,iatfix,ktemp,natom,nnos,qmass,strten,strtar
 end subroutine isopress
 
 !!***
-!!****f* ABINIT/isostress
+!!****f* ABINIT/abi_isostress
 !! NAME
-!! isostress
+!! abi_isostress
 !!
 !! FUNCTION
 !! performs one half step on isostress parameters according to Martyna et al.
@@ -318,7 +318,7 @@ end subroutine isopress
 !!
 !! SOURCE
 
-subroutine isostress(amass,bmass,dtion,ekin,iatfix,ktemp,natom,nnos,qmass,strten, &
+subroutine abi_isostress(amass,bmass,dtion,ekin,iatfix,ktemp,natom,nnos,qmass,strten, &
 &                    strtarget,ucvol,vel,mttk_vars)
 
  use abi_defs_basis
@@ -330,7 +330,7 @@ subroutine isostress(amass,bmass,dtion,ekin,iatfix,ktemp,natom,nnos,qmass,strten
  integer, intent(in) :: natom,nnos
  real(dp),intent(in) :: dtion,ktemp,ucvol,bmass
  real(dp),intent(out) :: ekin
- type(mttk_type) :: mttk_vars
+ type(abi_mttk_type) :: mttk_vars
 !arrays
  integer, intent(in) :: iatfix(3, natom)
  real(dp),intent(in) :: amass(natom),qmass(nnos),strtarget(6),strten(6)
@@ -428,7 +428,7 @@ subroutine isostress(amass,bmass,dtion,ekin,iatfix,ktemp,natom,nnos,qmass,strten
  expdiag(1)=exp(-veig(1)*dtion/two)
  expdiag(2)=exp(-veig(2)*dtion/two)
  expdiag(3)=exp(-veig(3)*dtion/two)
- write(6,*)' isostress : expdiag(:)=',expdiag(:)  ! Do not remove this line : seems to be needed for g95 compilo
+ write(6,*)' abi_isostress : expdiag(:)=',expdiag(:)  ! Do not remove this line : seems to be needed for g95 compilo
  do iatom=1,natom
   uv(:)=matmul(tvtemp,vel(:,iatom))
   uv(:)=uv(:)*expdiag(:)
@@ -515,5 +515,5 @@ subroutine isostress(amass,bmass,dtion,ekin,iatfix,ktemp,natom,nnos,qmass,strten
  mttk_vars%xlogs(:)=xlogs(:)
  deallocate(glogs,vlogs,xlogs)
 
-end subroutine isostress
+end subroutine abi_isostress
 !!***

@@ -1,4 +1,4 @@
-subroutine md_velocity_verlet(acell, acell_next, amass, dtion, fred, &
+subroutine abi_md_velocity_verlet(acell, acell_next, amass, dtion, fred, &
      & hessin, iatfix, itime, natom, optcell, rprim, &
      & rprim_next, rprimd, rprimd_next, &
      & ucvol, ucvol_next, vel, vel_nexthalf, vel_prevhalf, &
@@ -91,4 +91,4 @@ subroutine md_velocity_verlet(acell, acell_next, amass, dtion, fred, &
   end if
 
   !  End of case ionmov /=8, /=9, /=12, /=13, /=14
-end subroutine md_velocity_verlet
+end subroutine abi_md_velocity_verlet

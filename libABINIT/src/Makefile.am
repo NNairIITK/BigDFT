@@ -3,16 +3,16 @@
 lib_LIBRARIES = libabinit.a
 
 EXTRA_DIST = \
-	72_geomoptim/isokinetic.F90 \
-	72_geomoptim/isotemp.F90 \
-	72_geomoptim/isothermal.F90 \
-	72_geomoptim/langevin.F90 \
-	72_geomoptim/moldyn.F90 \
-	72_geomoptim/nose.F90 \
-	72_geomoptim/others.F90 \
-	72_geomoptim/quenched.F90 \
-	72_geomoptim/velocity_verlet.F90 \
-	72_geomoptim/xfpack.F90 \
+	abi_geomoptim/abi_isokinetic.F90.inc \
+	abi_geomoptim/abi_isotemp.F90.inc \
+	abi_geomoptim/abi_isothermal.F90.inc \
+	abi_geomoptim/abi_langevin.F90.inc \
+	abi_geomoptim/abi_moldyn.F90.inc \
+	abi_geomoptim/abi_nose.F90.inc \
+	abi_geomoptim/abi_others.F90.inc \
+	abi_geomoptim/abi_quenched.F90.inc \
+	abi_geomoptim/abi_velocity_verlet.F90.inc \
+	abi_geomoptim/abi_xfpack.F90.inc \
 	symm/symmetry.h \
 	symm/symmetry.c \
 	symm/symmetry-main.c \
@@ -52,7 +52,7 @@ DEFS = $(LIBXC_DEFS) $(LIBPAW_DEFS) $(MPI_DEFS)
 DEFS_1 = $(DEFS:-D%=@FCDEFS@-D%)
 DEFS_FORTRAN = $(DEFS_1:-U%=@FCDEFS@-U%)
 
-AM_FCFLAGS = @MPI_INCLUDE@ @LIBXC_INCLUDE@ -I$(srcdir)/72_geomoptim \
+AM_FCFLAGS = @MPI_INCLUDE@ @LIBXC_INCLUDE@ -I$(srcdir)/abi_geomoptim \
 	        -I$(top_builddir)/includes
 
 ## Hack for XLF strange DEFS option
@@ -149,7 +149,7 @@ libabinit_a_SOURCES = \
 	abi_common/abi_ewald2.F90 \
 	abi_common/abi_fconv.F90 \
 	abi_common/abi_prtxvf.F90 \
-	72_geomoptim/ab6_moldyn.F90 \
+	abi_geomoptim/m_ab6_moldyn.F90 \
 	$(libpaw_files)
 
 CLEANFILES = mpif.h *.@MODULE_EXT@

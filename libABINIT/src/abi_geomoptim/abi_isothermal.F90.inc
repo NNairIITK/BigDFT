@@ -1,4 +1,4 @@
-subroutine md_isothermal(acell, acell_next, amass, bmass, dtion, etotal, etotal0, &
+subroutine abi_md_isothermal(acell, acell_next, amass, bmass, dtion, etotal, etotal0, &
      & fcart, iatfix, itime, ktemp, mditemp, me, mttk_vars, natom, nnos, optcell, &
      & qmass, rprim, rprimd, rprim_next, rprimd_next, strten, strtarget, ucvol, &
      & ucvol_next, vel, vel_nexthalf, vmass, xcart, xcart_next, xred_next)
@@ -22,7 +22,7 @@ subroutine md_isothermal(acell, acell_next, amass, bmass, dtion, etotal, etotal0
   real(dp), intent(out) :: vel_nexthalf(3, natom)
   real(dp), intent(in) :: xcart(3, natom)
   real(dp), intent(out) :: xred_next(3,natom), xcart_next(3,natom)
-  type(mttk_type), intent(inout) :: mttk_vars
+  type(abi_mttk_type), intent(inout) :: mttk_vars
 
   integer,parameter :: lwork=8
   real(dp),parameter :: esh2=one/six,esh4=esh2/20._dp,esh6=esh4/42._dp
@@ -43,7 +43,7 @@ subroutine md_isothermal(acell, acell_next, amass, bmass, dtion, etotal, etotal0
      mttk_vars%vboxg(:,:)=zero
      vlogv=zero
 
-     call md_isokinetic_init(amass, mditemp, natom, vel)
+     call abi_md_isokinetic_init(amass, mditemp, natom, vel)
   end if
 
   allocate(fcart_m(3,natom))
@@ -57,7 +57,7 @@ subroutine md_isothermal(acell, acell_next, amass, bmass, dtion, etotal, etotal0
      rprim_next(:,:)=rprim(:,:)
      rprimd_next(:,:)=rprimd(:,:)
      !   Update Thermostat variables and scale velocitie
-     call isotemp(amass,dtion,ekin,iatfix,ktemp,mttk_vars,natom,nnos,qmass,vel)
+     call abi_isotemp(amass,dtion,ekin,iatfix,ktemp,mttk_vars,natom,nnos,qmass,vel)
      !   Half velocity step
      do idim=1,3
         fcart_m(idim,:)=fcart(idim,:)/amass(:)
@@ -76,7 +76,7 @@ subroutine md_isothermal(acell, acell_next, amass, bmass, dtion, etotal, etotal0
      end do
      vel(:,:)=vel_nexthalf(:,:)+dtion/two*fcart_m(:,:)
      !   Update Thermostat variables and velocity
-     call isotemp(amass,dtion,ekin,iatfix,ktemp,mttk_vars,natom,nnos,qmass,vel)
+     call abi_isotemp(amass,dtion,ekin,iatfix,ktemp,mttk_vars,natom,nnos,qmass,vel)
      if(itime==0) etotal0=ekin+etotal
      write(message, '(a,es18.10,a,es18.10,a,es18.10)' )&
           & ' dtotal=',(ekin+etotal)-etotal0, &
@@ -127,7 +127,7 @@ subroutine md_isothermal(acell, acell_next, amass, bmass, dtion, etotal, etotal0
      !   ##### sub  case optcell==2 Isothermal-Isenthalpic Ensemble (full cell deformation)##########
   else if (optcell==2) then
      !   Fisrt half step for extended variables
-     call isostress(amass,bmass,dtion,ekin,iatfix,ktemp, natom, nnos, qmass,strten,strtarget,ucvol,vel,mttk_vars)
+     call abi_isostress(amass,bmass,dtion,ekin,iatfix,ktemp, natom, nnos, qmass,strten,strtarget,ucvol,vel,mttk_vars)
      !   Half velocity step
      do idim=1,3
         fcart_m(idim,:)=fcart(idim,:)/amass(:)
@@ -171,7 +171,7 @@ subroutine md_isothermal(acell, acell_next, amass, bmass, dtion, etotal, etotal0
      end do
      vel(:,:)=vel_nexthalf(:,:)+dtion/two*fcart_m(:,:)
      !   Next half step for extended variables
-     call isostress(amass,bmass,dtion,ekin,iatfix,ktemp, natom, nnos, qmass,strten,strtarget,ucvol,vel,mttk_vars)
+     call abi_isostress(amass,bmass,dtion,ekin,iatfix,ktemp, natom, nnos, qmass,strten,strtarget,ucvol,vel,mttk_vars)
      if(itime==0) etotal0=ekin+etotal
      write(message, '(a,es18.10,a,es18.10,a,es18.10)' )&
           & ' dtotal=',(ekin+etotal)-etotal0, &
@@ -191,4 +191,4 @@ subroutine md_isothermal(acell, acell_next, amass, bmass, dtion, etotal, etotal0
   end if
   deallocate(fcart_m)
 
-end subroutine md_isothermal
+end subroutine abi_md_isothermal

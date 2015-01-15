@@ -1,4 +1,4 @@
-subroutine md_langevin(amass, dtion, fcart, fcart_mold, friction, itime, ktemp, &
+subroutine abi_md_langevin(amass, dtion, fcart, fcart_mold, friction, itime, ktemp, &
      & mditemp, mdwall, natom, rprimd, vel, xcart, xcart_next, xred_next)
   
   use abi_defs_basis
@@ -30,7 +30,7 @@ subroutine md_langevin(amass, dtion, fcart, fcart_mold, friction, itime, ktemp, 
   real(dp), allocatable :: ran_force(:,:), lang_force(:,:)
  
   if(itime==0)then
-     call md_nose_init(amass, natom, mditemp, vel)
+     call abi_md_nose_init(amass, natom, mditemp, vel)
   end if
 
   allocate(ran_force(3,natom))
@@ -113,4 +113,4 @@ subroutine md_langevin(amass, dtion, fcart, fcart_mold, friction, itime, ktemp, 
   deallocate(lang_force)
 
   !  End of case ionmov =9
-end subroutine md_langevin
+end subroutine abi_md_langevin

@@ -175,7 +175,7 @@ subroutine ab6md(runObj,outs,nproc,iproc,ncount_bigdft,fail)
   use module_base
   use module_types
   use scfloop_API
-  use ab6_moldyn
+  use m_ab6_moldyn, only: abi_moldyn
 !  use module_interfaces, only: memocc
   implicit none
   !Arguments
@@ -249,7 +249,7 @@ subroutine ab6md(runObj,outs,nproc,iproc,ncount_bigdft,fail)
 
   ! Call the ABINIT routine.
   ! currently, we force optcell == 0
-  call moldyn(acell, amass, iproc, runObj%inputs%ncount_cluster_x+1, nxfh, runObj%atoms%astruct%nat, &
+  call abi_moldyn(acell, amass, iproc, runObj%inputs%ncount_cluster_x+1, nxfh, runObj%atoms%astruct%nat, &
        & rprim, outs%energy, iexit, &
        & 0, runObj%inputs%ionmov, runObj%inputs%ncount_cluster_x, runObj%inputs%dtion, runObj%inputs%noseinert, &
        & runObj%inputs%mditemp, runObj%inputs%mdftemp, runObj%inputs%friction, runObj%inputs%mdwall, runObj%inputs%nnos, &

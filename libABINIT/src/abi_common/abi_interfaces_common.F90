@@ -1,10 +1,10 @@
-!!****m* ABINIT/interfaces_67_common
+!!****m* ABINIT/abi_interfaces_common
 !! NAME
-!! interfaces_67_common
+!! abi_interfaces_common
 !!
 !! FUNCTION
 !! This module contains the interfaces of the routines
-!! in the directory src/67_common
+!! in the directory src/abi_common
 !!
 !! COPYRIGHT
 !! Copyright (C) 2010 ABINIT group

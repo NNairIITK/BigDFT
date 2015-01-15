@@ -1,7 +1,7 @@
 !{\src2tex{textfont=tt}}
-!!****f* ABINIT/moldyn
+!!****f* ABINIT/abi_moldyn
 !! NAME
-!! moldyn
+!! abi_moldyn
 !!
 !! FUNCTION
 !! perform dynamics on ions according to ionmov (see help file)
@@ -128,7 +128,7 @@
 !!
 !! SOURCE
 
-subroutine moldyn(acell,amass,me,&
+subroutine abi_moldyn(acell,amass,me,&
 & mxfh,nxfh,natom,rprim,etotal,iexit,&
 & optcell, ionmov, ntime, dtion, noseinert, mditemp, mdftemp, &
 & friction, mdwall, nnos, qmass, bmass, vmass, iatfix, strtarget, &
@@ -139,7 +139,7 @@ subroutine moldyn(acell,amass,me,&
  use abi_defs_basis
  use abi_interfaces_lowlevel
  use abi_interfaces_geometry
- use interfaces_67_common
+ use abi_interfaces_common
 
  implicit none
 
@@ -170,7 +170,7 @@ subroutine moldyn(acell,amass,me,&
  real(dp) :: diag,ekin, ekin_corr,etotal_prev,favg,gnose, ktemp
  real(dp) :: massvol,snose,ucvol,ucvol0, ucvol_next,v2nose,xi_nose
  character(len=500) :: message
- type(mttk_type) :: mttk_vars
+ type(abi_mttk_type) :: mttk_vars
 !arrays
  real(dp) :: acell0(3),acell_next(3),angle(3),gmet(3,3),gprimd(3,3)
  real(dp) :: rmet(3,3)
@@ -191,7 +191,7 @@ subroutine moldyn(acell,amass,me,&
 !Structured debugging if prtvol==-level
  prtvol=0
  if(prtvol==-level)then
-  write(message,'(80a,a,a)') ('=',ii=1,80),ch10,' moldyn : enter '
+  write(message,'(80a,a,a)') ('=',ii=1,80),ch10,' abi_moldyn : enter '
   call abi_wrtout(std_out,message,'COLL')
  end if
 
@@ -226,16 +226,16 @@ subroutine moldyn(acell,amass,me,&
  strten=0_dp
 
  if (ionmov==6 .and. maxval(vel) == zero) then
-    call md_nose_init(amass, natom, mditemp, vel)
+    call abi_md_nose_init(amass, natom, mditemp, vel)
  end if
 
 !Initialize input vectors : first vin, then vout
  option=1
- call xfpack(acell,acell0,fred,natom,ndim,&
+ call abi_xfpack(acell,acell0,fred,natom,ndim,&
 & nsym,optcell,option,rprim,rprimd0,&
 & strtarget,strten,symrel,ucvol,ucvol0,vin,vout,xred)
  option=3
- call xfpack(acell,acell0,fred,natom,ndim,&
+ call abi_xfpack(acell,acell0,fred,natom,ndim,&
 & nsym,optcell,option,rprim,rprimd0,&
 & strtarget,strten,symrel,ucvol,ucvol0,vin,vout,xred)
 
@@ -308,7 +308,7 @@ subroutine moldyn(acell,amass,me,&
 
 !  Get xred, and eventually acell, rprim and rprimd, from current vin
    option=2
-   call xfpack(acell,acell0,fred,natom,ndim,&
+   call abi_xfpack(acell,acell0,fred,natom,ndim,&
 &   nsym,optcell,option,rprim,rprimd0,&
 &   strtarget,strten,symrel,ucvol,ucvol0,vin,vout,xred)
 
@@ -382,13 +382,13 @@ subroutine moldyn(acell,amass,me,&
 
 ! Store computed gradient in vout
   option=3
-  call xfpack(acell,acell0,fred_corrected,&
+  call abi_xfpack(acell,acell0,fred_corrected,&
 &  natom,ndim,nsym,optcell,option,rprim,rprimd0,&
 &  strtarget,strten,symrel,ucvol,ucvol0,vin,vout,xred)
 
 ! ####### Test case ionmov=9  Langevin dynamics  ##########
   if (ionmov==9) then
-     call md_langevin(amass, dtion, fcart, fcart_mold, friction, itime, ktemp, &
+     call abi_md_langevin(amass, dtion, fcart, fcart_mold, friction, itime, ktemp, &
           & mditemp, mdwall, natom, rprimd, vel, xcart, xcart_next, xred_next)
      !  Impose no change of acell, ucvol, rprim, and rprimd
      acell_next(:)=acell(:)
@@ -398,7 +398,7 @@ subroutine moldyn(acell,amass,me,&
 
 !  #####   case ionmov==8  Nose dynamics ###########
   else if (ionmov==8) then
-     call md_nose(amass, dtion, fcart, fcart_mold, gnose, itime, ktemp, mditemp, &
+     call abi_md_nose(amass, dtion, fcart, fcart_mold, gnose, itime, ktemp, mditemp, &
           & natom, noseinert, rprimd, snose, v2nose, vel, xcart, xcart_next, &
           & xi_nose, xred_next)
      acell_next(:)=acell(:)
@@ -408,7 +408,7 @@ subroutine moldyn(acell,amass,me,&
 
 !  #####   case ionmov==12 Isokinetic Ensemble ###########
   else if (ionmov==12) then
-     call md_isokinetic(acell, amass, dtion, etotal, fcart, itime, natom, &
+     call abi_md_isokinetic(acell, amass, dtion, etotal, fcart, itime, natom, &
           & mditemp, me, rprimd, vel, vel_nexthalf, xcart, xcart_next, xred_next)
      acell_next(:)=acell(:)
      ucvol_next=ucvol
@@ -420,7 +420,7 @@ subroutine moldyn(acell,amass,me,&
 !  optcell=0 means isothermal, optcell==1:homogeneous cell fluctuations
 !  optcell=2: full cell fluctuation in addition to temperature control.
   else if (ionmov==13) then
-     call md_isothermal(acell, acell_next, amass, bmass, dtion, etotal, massvol, &
+     call abi_md_isothermal(acell, acell_next, amass, bmass, dtion, etotal, massvol, &
           & fcart, iatfix, itime, ktemp, mditemp, me, mttk_vars, natom, nnos, &
           & optcell, qmass, rprim, rprimd, rprim_next, rprimd_next, strten, &
           & strtarget, ucvol, ucvol_next, vel, vel_nexthalf, vmass, xcart, &
@@ -431,7 +431,7 @@ subroutine moldyn(acell,amass,me,&
   
   !  ####### Begin case ionmov/=8 and ionmov/=9 and ionmov/=12 and ionmov/=13 and ionmov /= 14 ##########
   else
-     call md_velocity_verlet(acell, acell_next, amass, dtion, fred_corrected, &
+     call abi_md_velocity_verlet(acell, acell_next, amass, dtion, fred_corrected, &
      & hessin, iatfix, itime, natom, optcell, rprim, &
      & rprim_next, rprimd, rprimd_next, &
      & ucvol, ucvol_next, vel, vel_nexthalf, vel_prevhalf, &
@@ -458,13 +458,13 @@ subroutine moldyn(acell,amass,me,&
 ! Here, stop the atoms for which the scalar product of velocity
 ! and force is negative, and recompute the kinetic energy.
   if(ionmov==7)then
-     call md_quenched_stop_atoms(amass, dtion, ekin_corr, fcart, iatfix, itime, &
+     call abi_md_quenched_stop_atoms(amass, dtion, ekin_corr, fcart, iatfix, itime, &
           & natom, nstopped, rprimd, vel, vel_prevhalf, vel_nexthalf, &
           & xcart, xcart_next, xred_next)
   end if
 
   if (ionmov==8) then
-     call md_nose_finalise(etotal, gnose, itime, ktemp, noseinert, snose, &
+     call abi_md_nose_finalise(etotal, gnose, itime, ktemp, noseinert, snose, &
           & v2nose, xi_nose)
   end if
 
@@ -544,5 +544,5 @@ subroutine moldyn(acell,amass,me,&
   deallocate(mttk_vars%glogs,mttk_vars%vlogs,mttk_vars%xlogs)
  end if
 
-end subroutine moldyn
+end subroutine abi_moldyn
 !!***

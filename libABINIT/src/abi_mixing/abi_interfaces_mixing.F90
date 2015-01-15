@@ -4,7 +4,7 @@
 !!
 !! FUNCTION
 !! This module contains the interfaces of the routines
-!! in the directory src/56_mixing
+!! in the directory src/abi_mixing
 !!
 !! COPYRIGHT
 !! Copyright (C) 2010-2011 ABINIT group

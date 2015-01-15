@@ -1,4 +1,4 @@
-subroutine md_isokinetic_init(amass, mditemp, natom, vel)
+subroutine abi_md_isokinetic_init(amass, mditemp, natom, vel)
 
   use abi_defs_basis
   use abi_interfaces_lowlevel
@@ -86,9 +86,9 @@ subroutine md_isokinetic_init(amass, mditemp, natom, vel)
      call abi_wrtout(ab_out,message,'COLL')
      call abi_wrtout(std_out,message,'COLL')
   end if
-end subroutine md_isokinetic_init
+end subroutine abi_md_isokinetic_init
 
-subroutine md_isokinetic(acell, amass, dtion, epot, fcart, itime, natom, &
+subroutine abi_md_isokinetic(acell, amass, dtion, epot, fcart, itime, natom, &
      & mditemp, me, rprimd, vel, vel_nexthalf, xcart, xcart_next, xred_next)
 
   use abi_defs_basis
@@ -113,7 +113,7 @@ subroutine md_isokinetic(acell, amass, dtion, epot, fcart, itime, natom, &
 
   !  Application of Gauss' principle of least constraint according to Fei Zhang's algorithm (J. Chem. Phys. 106, 1997, p.6102)
   if (itime == 0) then
-     call md_isokinetic_init(amass, mditemp, natom, vel)
+     call abi_md_isokinetic_init(amass, mditemp, natom, vel)
      vel_nexthalf(:,:)=vel(:,:)
      xcart_next(:,:)=xcart(:,:)
      call abi_xredxcart(natom,-1,rprimd,xcart_next,xred_next)
@@ -197,4 +197,4 @@ subroutine md_isokinetic(acell, amass, dtion, epot, fcart, itime, natom, &
 
   !  End of case ionmov = 12
 
- end subroutine md_isokinetic
+ end subroutine abi_md_isokinetic

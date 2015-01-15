@@ -523,99 +523,6 @@ m_libpaw_tools.o: libpaw/m_libpaw_tools.F90 \
 	m_libpaw_mpi.o
 	$(PPFCCOMPILE) -c -o m_libpaw_tools.o `test -f 'libpaw/m_libpaw_tools.F90' || echo '$(srcdir)/'`libpaw/m_libpaw_tools.F90
 
-nose.o: 72_geomoptim/nose.F90 \
-	abi_defs_basis.o \
-	abi_interfaces_geometry.o \
-	abi_interfaces_lowlevel.o
-	$(PPFCCOMPILE) -c -o nose.o `test -f '72_geomoptim/nose.F90' || echo '$(srcdir)/'`72_geomoptim/nose.F90
-
-isotemp.o: 72_geomoptim/isotemp.F90 \
-	abi_defs_basis.o
-	$(PPFCCOMPILE) -c -o isotemp.o `test -f '72_geomoptim/isotemp.F90' || echo '$(srcdir)/'`72_geomoptim/isotemp.F90
-
-xfpack.o: 72_geomoptim/xfpack.F90 \
-	abi_defs_basis.o \
-	abi_interfaces_geometry.o \
-	abi_interfaces_lowlevel.o \
-	abi_interfaces_numeric.o
-	$(PPFCCOMPILE) -c -o xfpack.o `test -f '72_geomoptim/xfpack.F90' || echo '$(srcdir)/'`72_geomoptim/xfpack.F90
-
-velocity_verlet.o: 72_geomoptim/velocity_verlet.F90 \
-	abi_defs_basis.o \
-	abi_interfaces_geometry.o
-	$(PPFCCOMPILE) -c -o velocity_verlet.o `test -f '72_geomoptim/velocity_verlet.F90' || echo '$(srcdir)/'`72_geomoptim/velocity_verlet.F90
-
-ab6_moldyn.o: 72_geomoptim/ab6_moldyn.F90 \
-	abi_defs_basis.o \
-	abi_defs_basis.o \
-	abi_interfaces_geometry.o \
-	abi_interfaces_lowlevel.o \
-	72_geomoptim/isokinetic.F90 \
-	abi_defs_basis.o \
-	72_geomoptim/isotemp.F90 \
-	abi_defs_basis.o \
-	abi_interfaces_geometry.o \
-	abi_interfaces_lowlevel.o \
-	72_geomoptim/isothermal.F90 \
-	abi_defs_basis.o \
-	abi_interfaces_geometry.o \
-	72_geomoptim/langevin.F90 \
-	abi_defs_basis.o \
-	abi_interfaces_geometry.o \
-	abi_interfaces_lowlevel.o \
-	interfaces_67_common.o \
-	72_geomoptim/moldyn.F90 \
-	abi_defs_basis.o \
-	abi_interfaces_geometry.o \
-	abi_interfaces_lowlevel.o \
-	72_geomoptim/nose.F90 \
-	abi_defs_basis.o \
-	abi_interfaces_geometry.o \
-	abi_interfaces_lowlevel.o \
-	72_geomoptim/quenched.F90 \
-	abi_defs_basis.o \
-	abi_interfaces_geometry.o \
-	72_geomoptim/velocity_verlet.F90 \
-	abi_defs_basis.o \
-	abi_interfaces_geometry.o \
-	abi_interfaces_lowlevel.o \
-	abi_interfaces_numeric.o \
-	72_geomoptim/xfpack.F90
-	$(PPFCCOMPILE) -c -o ab6_moldyn.o `test -f '72_geomoptim/ab6_moldyn.F90' || echo '$(srcdir)/'`72_geomoptim/ab6_moldyn.F90
-
-quenched.o: 72_geomoptim/quenched.F90 \
-	abi_defs_basis.o \
-	abi_interfaces_geometry.o \
-	abi_interfaces_lowlevel.o
-	$(PPFCCOMPILE) -c -o quenched.o `test -f '72_geomoptim/quenched.F90' || echo '$(srcdir)/'`72_geomoptim/quenched.F90
-
-isokinetic.o: 72_geomoptim/isokinetic.F90 \
-	abi_defs_basis.o \
-	abi_interfaces_geometry.o \
-	abi_interfaces_lowlevel.o
-	$(PPFCCOMPILE) -c -o isokinetic.o `test -f '72_geomoptim/isokinetic.F90' || echo '$(srcdir)/'`72_geomoptim/isokinetic.F90
-
-isothermal.o: 72_geomoptim/isothermal.F90 \
-	abi_defs_basis.o \
-	abi_interfaces_geometry.o \
-	abi_interfaces_lowlevel.o
-	$(PPFCCOMPILE) -c -o isothermal.o `test -f '72_geomoptim/isothermal.F90' || echo '$(srcdir)/'`72_geomoptim/isothermal.F90
-
-moldyn.o: 72_geomoptim/moldyn.F90 \
-	abi_defs_basis.o \
-	abi_interfaces_geometry.o \
-	abi_interfaces_lowlevel.o \
-	interfaces_67_common.o
-	$(PPFCCOMPILE) -c -o moldyn.o `test -f '72_geomoptim/moldyn.F90' || echo '$(srcdir)/'`72_geomoptim/moldyn.F90
-
-langevin.o: 72_geomoptim/langevin.F90 \
-	abi_defs_basis.o \
-	abi_interfaces_geometry.o
-	$(PPFCCOMPILE) -c -o langevin.o `test -f '72_geomoptim/langevin.F90' || echo '$(srcdir)/'`72_geomoptim/langevin.F90
-
-others.o: 72_geomoptim/others.F90
-	$(PPFCCOMPILE) -c -o others.o `test -f '72_geomoptim/others.F90' || echo '$(srcdir)/'`72_geomoptim/others.F90
-
 abi_invcb.o: abi_xc_lowlevel/abi_invcb.F90 \
 	abi_defs_basis.o \
 	abi_interfaces_lowlevel.o
@@ -689,4 +596,42 @@ abi_xcwign.o: abi_xc_lowlevel/abi_xcwign.F90 \
 fortran-symmetry.o: symm/fortran-symmetry.f90 \
 	iso_c_binding.o
 	$(FCCOMPILE) -c -o fortran-symmetry.o `test -f 'symm/fortran-symmetry.f90' || echo '$(srcdir)/'`symm/fortran-symmetry.f90
+
+m_ab6_moldyn.o: abi_geomoptim/m_ab6_moldyn.F90 \
+	abi_defs_basis.o \
+	abi_defs_basis.o \
+	abi_interfaces_geometry.o \
+	abi_interfaces_lowlevel.o \
+	abi_geomoptim/abi_isokinetic.F90.inc \
+	abi_defs_basis.o \
+	abi_geomoptim/abi_isotemp.F90.inc \
+	abi_defs_basis.o \
+	abi_interfaces_geometry.o \
+	abi_interfaces_lowlevel.o \
+	abi_geomoptim/abi_isothermal.F90.inc \
+	abi_defs_basis.o \
+	abi_interfaces_geometry.o \
+	abi_geomoptim/abi_langevin.F90.inc \
+	abi_defs_basis.o \
+	abi_interfaces_common.o \
+	abi_interfaces_geometry.o \
+	abi_interfaces_lowlevel.o \
+	abi_geomoptim/abi_moldyn.F90.inc \
+	abi_defs_basis.o \
+	abi_interfaces_geometry.o \
+	abi_interfaces_lowlevel.o \
+	abi_geomoptim/abi_nose.F90.inc \
+	abi_defs_basis.o \
+	abi_interfaces_geometry.o \
+	abi_interfaces_lowlevel.o \
+	abi_geomoptim/abi_quenched.F90.inc \
+	abi_defs_basis.o \
+	abi_interfaces_geometry.o \
+	abi_geomoptim/abi_velocity_verlet.F90.inc \
+	abi_defs_basis.o \
+	abi_interfaces_geometry.o \
+	abi_interfaces_lowlevel.o \
+	abi_interfaces_numeric.o \
+	abi_geomoptim/abi_xfpack.F90.inc
+	$(PPFCCOMPILE) -c -o m_ab6_moldyn.o `test -f 'abi_geomoptim/m_ab6_moldyn.F90' || echo '$(srcdir)/'`abi_geomoptim/m_ab6_moldyn.F90
 

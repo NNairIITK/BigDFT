@@ -4,7 +4,7 @@
 !!
 !! FUNCTION
 !! This module contains the interfaces of the routines
-!! in the directory src/42_geometry
+!! in the directory src/abi_geometry
 !!
 !! COPYRIGHT
 !! Copyright (C) 2010 ABINIT group
