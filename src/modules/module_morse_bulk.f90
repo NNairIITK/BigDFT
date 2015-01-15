@@ -43,7 +43,7 @@ module module_morse_bulk
     !default private
     private
 
-    !parameter variables
+    !morse_bulk parameters
     real(gp),save :: rho
     real(gp),save :: rcut
     real(gp),save :: R0
@@ -128,12 +128,11 @@ subroutine morse_bulk_wrapper(nat,alat,rxyz, fxyz, epot)
        alatint, use_cutoff, rcut)
 end subroutine morse_bulk_wrapper
 
-      SUBROUTINE MORSE_BULK(X,V,EMORSE, natoms, rho, R0, A, periodic, &
+SUBROUTINE MORSE_BULK(X,V,EMORSE, natoms, rho, R0, A, periodic, &
          boxvec, use_cutoff, rcut)
       ! R0 is the position of the bottom of the well
       ! rho is the width of the well and has units of inverse length
       ! A is the energy scale
-!      USE commons
       implicit none 
       logical, intent(in) :: periodic, use_cutoff
       integer, intent(in) :: NATOMS
@@ -143,16 +142,14 @@ end subroutine morse_bulk_wrapper
       real(gp) :: DIST, R, DUMMY, &
                        RR(NATOMS,NATOMS), &
                        XMUL2, iboxvec(3), dx(3), eshift
-!     logical EVAP, evapreject
-!     COMMON /EV/ EVAP, evapreject
       if (periodic) iboxvec(:) = 1.0_gp / boxvec(:)
+
 
       if (use_cutoff) then
          Eshift = (1.0_gp - exp(rho * (r0 - rcut)))**2 - 1.0_gp
          !write(*,*) "Eshift", eshift, rcut
       endif
 
-!     EVAP=.FALSE.
       V(:) = 0.0_gp
       EMORSE=0.0_gp
       DO J1=1,NATOMS
@@ -171,7 +168,7 @@ end subroutine morse_bulk_wrapper
             R=exp(RHO*R0-RHO*DIST)
             DUMMY=R*(R-2.0_gp)
             EMORSE=EMORSE+DUMMY - Eshift
-
+write(*,*)J1,J2,EMORSE*A
 !            if (gtest) then
                xmul2 = 2.0_gp*R*(R-1.0_gp)/DIST * A
 !               V(J3-2:j3) = V(j3-2:j3) - xmul2 * dx
@@ -184,5 +181,5 @@ end subroutine morse_bulk_wrapper
       EMORSE = EMORSE * A
 
       RETURN
-      END subroutine morse_bulk
+END subroutine morse_bulk
 end module module_morse_bulk
