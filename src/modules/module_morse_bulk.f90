@@ -83,16 +83,17 @@ subroutine init_morse_bulk(paramset,paramfile,geocode)
     else
         select case(trim(paramset))
         case('Pt')
-            call yaml_scalar('Using Pt Parameters from'//&
+            call yaml_mapping_open('Using Pt Parameters from'//&
                  ' Bassett, D. W.; Webber, P. R. Surf. Sci. 1978, 70, 520.')
             rho = 1.6047_gp * Bohr_Ang !convert 1.6047 A^-1 to  1/Bohr
             rcut = 9.5_gp / Bohr_Ang !convert 9.5 Angstroem to Bohr
             R0 = 2.8970_gp / Bohr_Ang !convert 2.8960 Angstroem to Bohr
             A = 0.7102_gp * eV_Ha !convert 0.7102 eV to Hartree
-            call yaml_map('rho (1/Bohr)', yaml_toa(rho))
-            call yaml_map('rcut (Bohr)',yaml_toa(rcut))
-            call yaml_map('R0 (Bohr)',  yaml_toa(R0))
-            call yaml_map('A (Hartree)',   yaml_toa(A))
+            call yaml_map('rho (1/Bohr)', rho,  fmt='(1pe10.4)')
+            call yaml_map('rcut (Bohr)',  rcut, fmt='(1pe10.4)')
+            call yaml_map('R0 (Bohr)',    R0,   fmt='(1pe10.4)')
+            call yaml_map('A (Hartree)',  A,    fmt='(1pe10.4)')
+            call yaml_mapping_close()
         case('default')
             initialized=.false.
             call f_err_throw('No "default" parameter set for morse_bulk defined.')
