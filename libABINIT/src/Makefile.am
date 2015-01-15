@@ -127,16 +127,16 @@ libabinit_a_SOURCES = \
 	abi_geometry/abi_symspgr.F90 \
 	abi_geometry/abi_xredxcart.F90 \
 	abi_geometry/m_ab6_symmetry.F90 \
-	56_mixing/aprxdr.F90 \
-	56_mixing/dotprodm_v.F90 \
-	56_mixing/dotprodm_vn.F90 \
-	56_mixing/findminscf.F90 \
-	56_mixing/interfaces_56_mixing.F90 \
-	56_mixing/m_ab6_mixing.F90 \
-	56_mixing/scfcge.F90 \
-	56_mixing/scfeig.F90 \
-	56_mixing/scfopt.F90 \
-	56_mixing/sqnormm_v.F90 \
+	abi_mixing/abi_interfaces_mixing.F90 \
+	abi_mixing/abi_aprxdr.F90 \
+	abi_mixing/abi_dotprodm_v.F90 \
+	abi_mixing/abi_dotprodm_vn.F90 \
+	abi_mixing/abi_findminscf.F90 \
+	abi_mixing/abi_scfcge.F90 \
+	abi_mixing/abi_scfeig.F90 \
+	abi_mixing/abi_scfopt.F90 \
+	abi_mixing/abi_sqnormm_v.F90 \
+	abi_mixing/m_ab7_mixing.F90 \
 	56_recipspace/interfaces_56_recipspace.F90 \
 	56_recipspace/irrzg.F90 \
 	56_recipspace/m_ab6_kpoints.F90 \

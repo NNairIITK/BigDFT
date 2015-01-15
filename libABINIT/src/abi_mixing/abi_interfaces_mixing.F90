@@ -1,6 +1,6 @@
-!!****m* ABINIT/interfaces_56_mixing
+!!****m* ABINIT/abi_interfaces_mixing
 !! NAME
-!! interfaces_56_mixing
+!! abi_interfaces_mixing
 !!
 !! FUNCTION
 !! This module contains the interfaces of the routines
@@ -21,12 +21,12 @@
 #include "config.h"
 #endif
 
-module interfaces_56_mixing
+module abi_interfaces_mixing
 
  implicit none
 
 interface
- subroutine aprxdr(cplex,choice,dedv_mix,dedv_new,dedv_old,&  
+ subroutine abi_aprxdr(cplex,choice,dedv_mix,dedv_new,dedv_old,&  
   &  f_atm,f_fftgr,i_rhor2,i_vresid,moved_atm_inside,&  
   &  natom,nfft,nfftot,nspden,n_fftgr,rhor,ucvol,xred,fdot,user_data)
   use abi_defs_basis
@@ -60,11 +60,11 @@ interface
        double precision :: fdot
      end function fdot
   end interface
- end subroutine aprxdr
+ end subroutine abi_aprxdr
 end interface
 
 interface
- subroutine dotprodm_v(cplex,cpldot,dot,index1,index2,mpi_comm,mpi_summarize,&  
+ subroutine abi_dotprodm_v(cplex,cpldot,dot,index1,index2,mpi_comm,mpi_summarize,&  
   &  mult1,mult2,nfft,npot1,npot2,nspden,opt_storage,potarr1,potarr2)
   use abi_defs_basis
   implicit none
@@ -84,11 +84,11 @@ interface
   real(dp),intent(out) :: dot(cpldot,mult1,mult2)
   real(dp),intent(in) :: potarr1(cplex*nfft,nspden,npot1)
   real(dp),intent(in) :: potarr2(cplex*nfft,nspden,npot2)
- end subroutine dotprodm_v
+ end subroutine abi_dotprodm_v
 end interface
 
 interface
- subroutine dotprodm_vn(cplex,cpldot,denarr,dot,id,ip,mpi_comm, mpi_summarize,multd,multp,&  
+ subroutine abi_dotprodm_vn(cplex,cpldot,denarr,dot,id,ip,mpi_comm, mpi_summarize,multd,multp,&  
   &  nden,nfft,npot,nspden,potarr)
   use abi_defs_basis
   implicit none
@@ -107,11 +107,11 @@ interface
   real(dp),intent(in) :: denarr(cplex*nfft,nspden,nden)
   real(dp),intent(out) :: dot(cpldot,multp,multd)
   real(dp),intent(in) :: potarr(cplex*nfft,nspden,npot)
- end subroutine dotprodm_vn
+ end subroutine abi_dotprodm_vn
 end interface
 
 interface
- subroutine findminscf(choice,dedv_1,dedv_2,dedv_predict,&  
+ subroutine abi_findminscf(choice,dedv_1,dedv_2,dedv_predict,&  
   &  d2edv2_1,d2edv2_2,d2edv2_predict,&  
   &  etotal_1,etotal_2,etotal_predict,&  
   &  lambda_1,lambda_2,lambda_predict,errid,errmess)
@@ -132,11 +132,11 @@ interface
   real(dp),intent(in) :: lambda_1
   real(dp),intent(in) :: lambda_2
   real(dp),intent(out) :: lambda_predict
- end subroutine findminscf
+ end subroutine abi_findminscf
 end interface
 
 interface
- subroutine scfcge(cplex,dbl_nnsclo,dtn_pc,etotal,f_atm,&  
+ subroutine abi_scfcge(cplex,dbl_nnsclo,dtn_pc,etotal,f_atm,&  
   &  f_fftgr,initialized,iscf,isecur,istep,&  
   &  i_rhor,i_vresid,i_vrespc,moved_atm_inside,&  
   &  natom,nfft,nfftot,nspden,n_fftgr,n_index,opt_denpot,response,rhor,ucvol,vtrial,xred,&
@@ -190,11 +190,11 @@ interface
        double precision :: fnrm
      end function fnrm
   end interface
- end subroutine scfcge
+ end subroutine abi_scfcge
 end interface
 
 interface
- subroutine scfeig(istep,nfft,nspden,vrespc,vtrial,vtrial0,work,errid,errmess)
+ subroutine abi_scfeig(istep,nfft,nspden,vrespc,vtrial,vtrial0,work,errid,errmess)
   use abi_defs_basis
   implicit none
   integer,intent(out) :: errid
@@ -206,11 +206,11 @@ interface
   real(dp), intent(inout) :: vtrial(nfft,nspden)
   real(dp),intent(inout) :: vtrial0(nfft,nspden)
   real(dp),intent(inout) :: work(nfft,nspden,2)
- end subroutine scfeig
+ end subroutine abi_scfeig
 end interface
 
 interface
- subroutine scfopt(cplex,f_fftgr,f_paw,iscf,istep,i_vrespc,i_vtrial,&  
+ subroutine abi_scfopt(cplex,f_fftgr,f_paw,iscf,istep,i_vrespc,i_vtrial,&  
   &  nfft,npawmix,nspden,n_fftgr,&  
   &  n_index,opt_denpot,pawoptmix,usepaw,vpaw,vresid,vtrial,fnrm,fdot,user_data,errid,errmess)
   use abi_defs_basis
@@ -253,11 +253,11 @@ interface
        double precision :: fnrm
      end function fnrm
   end interface
- end subroutine scfopt
+ end subroutine abi_scfopt
 end interface
 
 interface
- subroutine sqnormm_v(cplex,index,mpi_comm, mpi_summarize,mult,nfft,norm2,npot,nspden,opt_storage,potarr)
+ subroutine abi_sqnormm_v(cplex,index,mpi_comm, mpi_summarize,mult,nfft,norm2,npot,nspden,opt_storage,potarr)
   use abi_defs_basis
   implicit none
   integer,intent(in) :: cplex
@@ -271,8 +271,8 @@ interface
   logical, intent(in) :: mpi_summarize
   real(dp),intent(out) :: norm2(mult)
   real(dp),intent(in) :: potarr(cplex*nfft,nspden,npot)
- end subroutine sqnormm_v
+ end subroutine abi_sqnormm_v
 end interface
 
-end module interfaces_56_mixing
+end module abi_interfaces_mixing
 !!***

@@ -1,8 +1,8 @@
 !{\src2tex{textfont=tt}}
-!!****f* ABINIT/scfcge
+!!****f* ABINIT/abi_scfcge
 !!
 !! NAME
-!! scfcge
+!! abi_scfcge
 !!
 !! FUNCTION
 !! Compute the next vtrial of the SCF cycle.
@@ -93,14 +93,14 @@
 #include "config.h"
 #endif
 
-subroutine scfcge(cplex,dbl_nnsclo,dtn_pc,etotal,f_atm,&
+subroutine abi_scfcge(cplex,dbl_nnsclo,dtn_pc,etotal,f_atm,&
 & f_fftgr,initialized,iscf,isecur,istep,i_rhor,i_vresid,i_vrespc,moved_atm_inside,&
 & natom,nfft,nfftot,nspden,n_fftgr,n_index,opt_denpot,response,rhor,ucvol,vtrial,xred,&
 & fnrm,fdot,user_data,errid,errmess)
 
  use abi_defs_basis
  use abi_interfaces_lowlevel
- use interfaces_56_mixing, except_this_one => scfcge
+ use abi_interfaces_mixing, except_this_one => abi_scfcge
 
  implicit none
 
@@ -198,7 +198,7 @@ subroutine scfcge(cplex,dbl_nnsclo,dtn_pc,etotal,f_atm,&
  end if
 
 !Compute actual residual resid_new (residual of f_fftgr(:,:,i_vrespc(1))
-!!$ call sqnormm_v(cplex,i_vrespc(1),mpi_comm,mpi_summarize,1,nfft,resid_new,n_fftgr,nspden,opt_denpot,f_fftgr)
+!!$ call abi_sqnormm_v(cplex,i_vrespc(1),mpi_comm,mpi_summarize,1,nfft,resid_new,n_fftgr,nspden,opt_denpot,f_fftgr)
  resid_new(1) = fnrm(f_fftgr(1,1,i_vrespc(1)),cplex,nfft,nspden,opt_denpot,user_data)
 
 
@@ -270,7 +270,7 @@ subroutine scfcge(cplex,dbl_nnsclo,dtn_pc,etotal,f_atm,&
 !  Compute the approximate energy derivatives dedv_new and dedv_old,
 !  from vresid and vresid_old
    choice=2
-   call aprxdr(cplex,choice,dedv_mix,dedv_new,dedv_old,&
+   call abi_aprxdr(cplex,choice,dedv_mix,dedv_new,dedv_old,&
 &   f_atm,f_fftgr,i_rhor(2),i_vresid,moved_atm_inside,&
 &   natom,nfft,nfftot,nspden,n_fftgr,rhor,ucvol,xred,fdot,user_data)
    d_lambda=lambda_new-lambda_old
@@ -287,7 +287,7 @@ subroutine scfcge(cplex,dbl_nnsclo,dtn_pc,etotal,f_atm,&
 
      choice=1
      if(iscf==6)choice=2
-     call findminscf(choice,dedv_new,dedv_old,dedv_predict,&
+     call abi_findminscf(choice,dedv_new,dedv_old,dedv_predict,&
 &     d2edv2_new,d2edv2_old,d2edv2_predict,&
 &     etotal,etotal_old,etotal_predict,&
 &     lambda_new,lambda_old,lambda_predict,errid_,message)
@@ -349,7 +349,7 @@ subroutine scfcge(cplex,dbl_nnsclo,dtn_pc,etotal,f_atm,&
      if(number_of_restart>12)then
         errid = AB7_ERROR_MIXING_CONVERGENCE
         write(errmess, '(a,a,a,a,a,i3,a,a,a,a,a)' ) ch10,&
-&       ' scfcge : ERROR -',ch10,&
+&       ' abi_scfcge : ERROR -',ch10,&
 &       '  Potential-based CG line minimization not',&
 &       ' converged after',number_of_restart,' restarts. ',ch10,&
 &       '  Action : read the eventual warnings about lack of convergence.',&
@@ -358,7 +358,7 @@ subroutine scfcge(cplex,dbl_nnsclo,dtn_pc,etotal,f_atm,&
      end if
 !    Make reduction in lambda_adapt (kind of steepest descent...)
      write(message, '(a,a,a,a,a,a)' ) ch10,&
-&     ' scfcge: WARNING -',ch10,&
+&     ' abi_scfcge: WARNING -',ch10,&
 &     '  Potential-based CG line minimization has trouble to converge.',&
 &     ch10,&
 &     '  The algorithm is restarted with more secure parameters.'
@@ -490,7 +490,7 @@ subroutine scfcge(cplex,dbl_nnsclo,dtn_pc,etotal,f_atm,&
 
 !  Compute the approximate energy derivatives dedv_mix,dedv_new,dedv_old
    choice=3
-   call aprxdr(cplex,choice,dedv_mix,dedv_new,dedv_old,&
+   call abi_aprxdr(cplex,choice,dedv_mix,dedv_new,dedv_old,&
 &   f_atm,f_fftgr,i_rhor(2),i_vresid,moved_atm_inside,&
 &   natom,nfft,nfftot,nspden,n_fftgr,rhor,ucvol,xred,fdot,user_data)
 
@@ -507,7 +507,7 @@ subroutine scfcge(cplex,dbl_nnsclo,dtn_pc,etotal,f_atm,&
 !    using different algorithms, varying with the value of choice
      choice=1
      if(iscf==6)choice=2
-     call findminscf(choice,dedv_new,dedv_old,dedv_predict,&
+     call abi_findminscf(choice,dedv_new,dedv_old,dedv_predict,&
 &     d2edv2_new,d2edv2_old,d2edv2_predict,&
 &     etotal,etotal_old,etotal_predict,&
 &     lambda_new,lambda_old,lambda_predict,errid_,message)
@@ -756,18 +756,18 @@ subroutine scfcge(cplex,dbl_nnsclo,dtn_pc,etotal,f_atm,&
  else
     errid = AB7_ERROR_MIXING_ARG
    write(errmess, '(a,a,a,a)' ) ch10,&
-&   ' scfcge : BUG ',ch10,&
+&   ' abi_scfcge : BUG ',ch10,&
 &   '  You should not be here ! '
    return
  end if
 
 !--------------------------------------
 
-!Write information : it will be easy to read by typing  grep scfcge logfile
+!Write information : it will be easy to read by typing  grep abi_scfcge logfile
 
  if(istep==1)then
-   write(message, '(a,a,a)' ) ' scfcge:',ch10,&
-&   ' scfcge:istep-iline_cge-ilinmin lambda      etot             resid '
+   write(message, '(a,a,a)' ) ' abi_scfcge:',ch10,&
+&   ' abi_scfcge:istep-iline_cge-ilinmin lambda      etot             resid '
 
    call abi_wrtout(std_out,message,'COLL')
  end if
@@ -777,11 +777,11 @@ subroutine scfcge(cplex,dbl_nnsclo,dtn_pc,etotal,f_atm,&
 
    if(iline_cge_input<10)then
      write(message, '(a,i4,a,i1,a,i1,es13.4,es20.12,es12.4)' )&
-&     ' scfcge: actual  ',istep,'-',iline_cge_input,'-',ilinmin_input,&
+&     ' abi_scfcge: actual  ',istep,'-',iline_cge_input,'-',ilinmin_input,&
 &     lambda_input,etotal_input,resid_input
    else
      write(message, '(a,i3,a,i2,a,i1,es13.4,es20.12,es12.4)' )&
-&     ' scfcge: actual  ',istep,'-',iline_cge_input,'-',ilinmin_input,&
+&     ' abi_scfcge: actual  ',istep,'-',iline_cge_input,'-',ilinmin_input,&
 &     lambda_input,etotal_input,resid_input
    end if
    call abi_wrtout(std_out,message,'COLL')
@@ -790,31 +790,31 @@ subroutine scfcge(cplex,dbl_nnsclo,dtn_pc,etotal,f_atm,&
 
      if(end_linmin==1)then
        write(message, '(a,es13.4,a,i2,a,a)' )&
-&       ' scfcge: predict         ',lambda_predict,&
+&       ' abi_scfcge: predict         ',lambda_predict,&
 &       ' suff. close => next line, ilinear=',ilinear,ch10,&
-&       ' scfcge:'
+&       ' abi_scfcge:'
      else if(end_linmin==-1)then
        write(message, '(a,es13.4,a,a,a)' )&
-&       ' scfcge: predict         ',lambda_predict,&
+&       ' abi_scfcge: predict         ',lambda_predict,&
 &       ' restart the algorithm ',ch10,&
-&       ' scfcge:'
+&       ' abi_scfcge:'
      end if
      call abi_wrtout(std_out,message,'COLL')
 
      if(iline_cge_input<9)then
        write(message, '(a,i4,a,i1,a,i1,es13.4,es20.12,es12.4)' ) &
-&       ' scfcge: start   ',istep,'-',iline_cge,'-',0,&
+&       ' abi_scfcge: start   ',istep,'-',iline_cge,'-',0,&
 &       0.0,etotal_old,resid_old
      else
        write(message, '(a,i3,a,i2,a,i1,es13.4,es20.12,es12.4)' ) &
-&       ' scfcge: start   ',istep,'-',iline_cge,'-',0,&
+&       ' abi_scfcge: start   ',istep,'-',iline_cge,'-',0,&
 &       0.0,etotal_old,resid_old
      end if
      call abi_wrtout(std_out,message,'COLL')
 
    else if(istep/=1) then
      write(message, '(a,es13.4,a)' )&
-&     ' scfcge: predict         ',lambda_predict,&
+&     ' abi_scfcge: predict         ',lambda_predict,&
 &     ' not close enough => continue minim.'
      call abi_wrtout(std_out,message,'COLL')
    end if
@@ -824,21 +824,21 @@ subroutine scfcge(cplex,dbl_nnsclo,dtn_pc,etotal,f_atm,&
 
    if(iline_cge_input<10)then
      write(message, '(a,i4,a,i1,a,es11.4,es20.12,es12.4,a,i1)' )&
-&     ' scfcge: actual  ',istep,'-',iline_cge_input,'-off',&
+&     ' abi_scfcge: actual  ',istep,'-',iline_cge_input,'-off',&
 &     lambda_adapt,etotal_input,resid_input,', end=',end_linmin
    else
      write(message, '(a,i3,a,i2,a,es11.4,es20.12,es12.4,a,i1)' )&
-&     ' scfcge: actual  ',istep,'-',iline_cge_input,'-off',&
+&     ' abi_scfcge: actual  ',istep,'-',iline_cge_input,'-off',&
 &     lambda_adapt,etotal_input,resid_input,', end=',end_linmin
    end if
    call abi_wrtout(std_out,message,'COLL')
 
    if(end_linmin==4)then
-     write(message, '(a)' ) ' scfcge:'
+     write(message, '(a)' ) ' abi_scfcge:'
      call abi_wrtout(std_out,message,'COLL')
    end if
 
  end if
 
-end subroutine scfcge
+end subroutine abi_scfcge
 !!***

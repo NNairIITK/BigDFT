@@ -1,8 +1,8 @@
 !{\src2tex{textfont=tt}}
-!!****f* ABINIT/scfeig
+!!****f* ABINIT/abi_scfeig
 !!
 !! NAME
-!! scfeig
+!! abi_scfeig
 !!
 !! FUNCTION
 !! Compute the largest eigenvalue and eigenvector of the SCF cycle.
@@ -36,7 +36,7 @@
 #include "config.h"
 #endif
 
-subroutine scfeig(istep,nfft,nspden,vrespc,vtrial,vtrial0,work,errid,errmess)
+subroutine abi_scfeig(istep,nfft,nspden,vrespc,vtrial,vtrial0,work,errid,errmess)
 
  use abi_defs_basis
  use abi_interfaces_lowlevel
@@ -65,7 +65,7 @@ subroutine scfeig(istep,nfft,nspden,vrespc,vtrial,vtrial0,work,errid,errmess)
 
  if(nspden==4)then
     errid = AB7_ERROR_MIXING_ARG
-    write(errmess, *) ' scfeig : does not work yet for nspden=4'
+    write(errmess, *) ' abi_scfeig : does not work yet for nspden=4'
     return
  end if
 
@@ -76,7 +76,7 @@ subroutine scfeig(istep,nfft,nspden,vrespc,vtrial,vtrial0,work,errid,errmess)
  if(istep==1)then
 
    write(message, '(a,es12.4,a,a,a,a,a,a,a)' )&
-&   ' scfeig : fixed PC_residual square =',fix_resid,ch10,&
+&   ' abi_scfeig : fixed PC_residual square =',fix_resid,ch10,&
 &   '    Note that fixed resid should always be much larger',ch10,&
 &   '    than initial PC resid square, still sufficiently',ch10,&
 &   '    small to reduce anharmonic effects ',ch10
@@ -90,12 +90,12 @@ subroutine scfeig(istep,nfft,nspden,vrespc,vtrial,vtrial0,work,errid,errmess)
      end do
    end do
    write(message, '(a,es12.4)' )&
-&   ' scfeig : initial PC_residual square =',resid_old
+&   ' abi_scfeig : initial PC_residual square =',resid_old
    call abi_wrtout(std_out,message,'COLL')
    if(resid_old>1.0d-8)then
       errid = AB7_ERROR_MIXING_ARG
       write(errmess,'(a,a,a,a,a,a,a,a,a,a)') ch10,&
-&     ' scfeig : ERROR -',ch10,&
+&     ' abi_scfeig : ERROR -',ch10,&
 &     '  This value is not good enough to allow',ch10,&
 &     '  the computation of the eigenvectors of the SCF cycle.',ch10,&
 &     '  It should be better than 1.0d-8 .',ch10,&
@@ -136,7 +136,7 @@ subroutine scfeig(istep,nfft,nspden,vrespc,vtrial,vtrial0,work,errid,errmess)
    end do
    eigen_scf=eigen_scf/fix_resid
    write(message, '(a,es12.4,a)' ) &
-&   ' scfeig : Operator expectation value ',eigen_scf,' (extremal eigenvalue * diemix)'
+&   ' abi_scfeig : Operator expectation value ',eigen_scf,' (extremal eigenvalue * diemix)'
    call abi_wrtout(std_out,message,'COLL')
    call abi_wrtout(ab_out,message,'COLL')
 !  
@@ -158,11 +158,11 @@ subroutine scfeig(istep,nfft,nspden,vrespc,vtrial,vtrial0,work,errid,errmess)
 !    if(factor<-one) factor=-factor ! the new vector is not opposed to the old one
    end if
    write(message, '(a,es12.4)' ) &
-&   ' scfeig : Inverse of renormalization factor ',one/factor
+&   ' abi_scfeig : Inverse of renormalization factor ',one/factor
    call abi_wrtout(std_out,message,'COLL')
    call abi_wrtout(ab_out,message,'COLL')
    write(message, '(a,es12.4)' ) &
-&   ' scfeig : Convergence criterion value (->0 at convergency) ',one/factor-eigen_scf-one
+&   ' abi_scfeig : Convergence criterion value (->0 at convergency) ',one/factor-eigen_scf-one
    call abi_wrtout(std_out,message,'COLL')
    call abi_wrtout(ab_out,message,'COLL')
    
@@ -171,5 +171,5 @@ subroutine scfeig(istep,nfft,nspden,vrespc,vtrial,vtrial0,work,errid,errmess)
 !  End the different istep cases
  end if
 
-end subroutine scfeig
+end subroutine abi_scfeig
 !!***

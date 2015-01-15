@@ -1,7 +1,7 @@
 !{\src2tex{textfont=tt}}
-!!****f* ABINIT/dotprodm_vn
+!!****f* ABINIT/abi_dotprodm_vn
 !! NAME
-!! dotprodm_vn
+!! abi_dotprodm_vn
 !!
 !! FUNCTION
 !! For a set of densities and a set of potentials,
@@ -65,7 +65,7 @@
 #include "config.h"
 #endif
 
-subroutine dotprodm_vn(cplex,cpldot,denarr,dot,id,ip,mpi_comm, mpi_summarize,multd,multp,&
+subroutine abi_dotprodm_vn(cplex,cpldot,denarr,dot,id,ip,mpi_comm, mpi_summarize,multd,multp,&
 & nden,nfft,npot,nspden,potarr)
 
  use abi_defs_basis
@@ -314,5 +314,5 @@ subroutine dotprodm_vn(cplex,cpldot,denarr,dot,id,ip,mpi_comm, mpi_summarize,mul
 
  if(cpldot==2 .and. cplex==1)dot(2,:,:)=zero
 
-end subroutine dotprodm_vn
+end subroutine abi_dotprodm_vn
 !!***

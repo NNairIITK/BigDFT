@@ -1,7 +1,7 @@
 !{\src2tex{textfont=tt}}
-!!****f* ABINIT/dotprodm_v
+!!****f* ABINIT/abi_dotprodm_v
 !! NAME
-!! dotprodm_v
+!! abi_dotprodm_v
 !!
 !! FUNCTION
 !! For two sets of potentials,
@@ -62,7 +62,7 @@
 #include "config.h"
 #endif
 
-subroutine dotprodm_v(cplex,cpldot,dot,index1,index2,mpi_comm,mpi_summarize,&
+subroutine abi_dotprodm_v(cplex,cpldot,dot,index1,index2,mpi_comm,mpi_summarize,&
      & mult1,mult2,nfft,npot1,npot2,nspden,opt_storage,potarr1,potarr2)
 
  use abi_defs_basis
@@ -178,5 +178,5 @@ subroutine dotprodm_v(cplex,cpldot,dot,index1,index2,mpi_comm,mpi_summarize,&
 
  if(cpldot==2 .and. cplex==1)dot(2,:,:)=zero
 
-end subroutine dotprodm_v
+end subroutine abi_dotprodm_v
 !!***

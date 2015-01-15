@@ -1,9 +1,8 @@
-
 !{\src2tex{textfont=tt}}
-!!****f* ABINIT/findminscf
+!!****f* ABINIT/abi_findminscf
 !!
 !! NAME
-!! findminscf
+!! abi_findminscf
 !!
 !! FUNCTION
 !! Compute the minimum of a function whose value
@@ -50,7 +49,7 @@
 #include "config.h"
 #endif
 
-subroutine findminscf(choice,dedv_1,dedv_2,dedv_predict,&
+subroutine abi_findminscf(choice,dedv_1,dedv_2,dedv_predict,&
 & d2edv2_1,d2edv2_2,d2edv2_predict,&
 & etotal_1,etotal_2,etotal_predict,&
 & lambda_1,lambda_2,lambda_predict,errid,errmess)
@@ -98,8 +97,8 @@ subroutine findminscf(choice,dedv_1,dedv_2,dedv_predict,&
    if(d2edv2_mid<0.0_dp)then
       errid = AB7_ERROR_MIXING_INTERNAL
      write(errmess, '(a,a,a,a,es18.10,a)' ) ch10,&
-&     ' findminscf : WARNING -',ch10,&
-&     '  (scfcge) The second derivative is negative, equal to',d2edv2_mid        ,'.'
+&     ' abi_findminscf : WARNING -',ch10,&
+&     '  (abi_scfcge) The second derivative is negative, equal to',d2edv2_mid        ,'.'
    end if
 
  else if(choice==2) then
@@ -116,8 +115,8 @@ subroutine findminscf(choice,dedv_1,dedv_2,dedv_predict,&
       errid = AB7_ERROR_MIXING_INTERNAL
      write(errmess, '(a,a,a,a,es18.10,a,a,a)' ) ch10,&
 &     ' findmin : WARNING -',ch10,&
-&     '  (scfcge) The second derivative is negative, equal to',d2edv2_predict,'.',&
-&     ch10,'  (scfcge) => Pivoting                     '
+&     '  (abi_scfcge) The second derivative is negative, equal to',d2edv2_predict,'.',&
+&     ch10,'  (abi_scfcge) => Pivoting                     '
      if(etotal_2 < etotal_1)then
        lambda_predict=lambda_2-0.5_dp*(lambda_1-lambda_2)
      else
@@ -135,5 +134,5 @@ subroutine findminscf(choice,dedv_1,dedv_2,dedv_predict,&
       &   ' etotal_predict ',etotal_predict
  call abi_wrtout(std_out,message,'COLL')
 
-end subroutine findminscf
+end subroutine abi_findminscf
 !!***

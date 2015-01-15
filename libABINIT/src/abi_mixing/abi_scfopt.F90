@@ -1,8 +1,8 @@
 !{\src2tex{textfont=tt}}
-!!****f* ABINIT/scfopt
+!!****f* ABINIT/abi_scfopt
 !!
 !! NAME
-!! scfopt
+!! abi_scfopt
 !!
 !! FUNCTION
 !! Compute the next vtrial of the SCF cycle.
@@ -62,7 +62,7 @@
 #include "config.h"
 #endif
 
-subroutine scfopt(cplex,f_fftgr,f_paw,iscf,istep,i_vrespc,i_vtrial,&
+subroutine abi_scfopt(cplex,f_fftgr,f_paw,iscf,istep,i_vrespc,i_vtrial,&
      & nfft,npawmix,nspden,n_fftgr,&
      & n_index,opt_denpot,pawoptmix,usepaw,vpaw,vresid,vtrial,&
      & fnrm,fdot,user_data,errid,errmess)
@@ -70,7 +70,7 @@ subroutine scfopt(cplex,f_fftgr,f_paw,iscf,istep,i_vrespc,i_vtrial,&
  use abi_defs_basis
  use abi_interfaces_lowlevel
  use abi_interfaces_linalg
- use interfaces_56_mixing, except_this_one => scfopt
+ use abi_interfaces_mixing, except_this_one => abi_scfopt
 
  implicit none
 
@@ -137,7 +137,7 @@ subroutine scfopt(cplex,f_fftgr,f_paw,iscf,istep,i_vrespc,i_vtrial,&
  end if
 
 !  Compute the new residual resid_new, from f_fftgr/f_paw(:,:,i_vrespc(1))
-!!$ call sqnormm_v(cplex,i_vrespc(1),mpi_comm,mpi_summarize,1,nfft,resid_new,n_fftgr,nspden,opt_denpot,f_fftgr)
+!!$ call abi_sqnormm_v(cplex,i_vrespc(1),mpi_comm,mpi_summarize,1,nfft,resid_new,n_fftgr,nspden,opt_denpot,f_fftgr)
  resid_new(1) = fnrm(f_fftgr(1,1,i_vrespc(1)),cplex,nfft,nspden,opt_denpot,user_data)
 
 
@@ -303,7 +303,7 @@ subroutine scfopt(cplex,f_fftgr,f_paw,iscf,istep,i_vrespc,i_vtrial,&
    if (npulay>npulaymax) then
       errid = AB7_ERROR_MIXING_CONVERGENCE
       write(errmess, '(4a)' ) ch10,&
-&     ' scfopt : ERROR - ',ch10,&
+&     ' abi_scfopt : ERROR - ',ch10,&
 &     '  Too much iterations required for Pulay algorithm (<50) !'
       return
    end if
@@ -397,5 +397,5 @@ subroutine scfopt(cplex,f_fftgr,f_paw,iscf,istep,i_vrespc,i_vtrial,&
    i_vrespc(1)=tmp
  end if
 
-end subroutine scfopt
+end subroutine abi_scfopt
 !!***

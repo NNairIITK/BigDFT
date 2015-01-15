@@ -1,7 +1,7 @@
 !{\src2tex{textfont=tt}}
-!!****f* ABINIT/aprxdr
+!!****f* ABINIT/abi_aprxdr
 !! NAME
-!! aprxdr
+!! abi_aprxdr
 !!
 !! FUNCTION
 !! Compute the approximative derivatives of the energy at different
@@ -54,12 +54,12 @@
 #include "config.h"
 #endif
 
-subroutine aprxdr(cplex,choice,dedv_mix,dedv_new,dedv_old,&
+subroutine abi_aprxdr(cplex,choice,dedv_mix,dedv_new,dedv_old,&
 &  f_atm,f_fftgr,i_rhor2,i_vresid,moved_atm_inside,&
 &  natom,nfft,nfftot,nspden,n_fftgr,rhor,ucvol,xred,fdot,user_data)
 
  use abi_defs_basis
- use interfaces_56_mixing, except_this_one => aprxdr
+ use abi_interfaces_mixing, except_this_one => abi_aprxdr
 
  implicit none
 
@@ -104,14 +104,14 @@ subroutine aprxdr(cplex,choice,dedv_mix,dedv_new,dedv_old,&
 
 !call dotprod_vn(cplex,1,ddens,dedv_old,nfft,nfftot,nspden,1,vresid,ucvol)
 !Dot product ddens(:,:,1) f_fftgr(:,:,i_vresid(2))
-!!$ call dotprodm_vn(cplex,1,ddens,dedv_temp,1,i_vresid(2),mpi_comm,mpi_summarize,1,1,1,&
+!!$ call abi_dotprodm_vn(cplex,1,ddens,dedv_temp,1,i_vresid(2),mpi_comm,mpi_summarize,1,1,1,&
 !!$& nfft,n_fftgr,nspden,f_fftgr)
  dedv_temp(1) = fdot(ddens(1,1,1), f_fftgr(1,1,i_vresid(2)), &
       & cplex, nfft, nspden, 2, user_data) * ucvol / dble(nfftot)
  dedv_old = dedv_temp(1)
 
 !Dot product ddens(:,:,1) f_fftgr(:,:,i_vresid(1))
-!!$ call dotprodm_vn(cplex,1,ddens,dedv_temp,1,i_vresid(1),mpi_comm,mpi_summarize,1,1,1,&
+!!$ call abi_dotprodm_vn(cplex,1,ddens,dedv_temp,1,i_vresid(1),mpi_comm,mpi_summarize,1,1,1,&
 !!$& nfft,nfftot,n_fftgr,nspden,f_fftgr,ucvol)
  dedv_temp(1) = fdot(ddens(1,1,1), f_fftgr(1,1,i_vresid(1)), &
       & cplex, nfft, nspden, 2, user_data) * ucvol / dble(nfftot)
@@ -119,7 +119,7 @@ subroutine aprxdr(cplex,choice,dedv_mix,dedv_new,dedv_old,&
 
  if(choice==3)then
 !  Dot product ddens(:,:,1) f_fftgr(:,:,i_vresid(3))
-!!$   call dotprodm_vn(cplex,1,ddens,dedv_temp,1,i_vresid(3),mpi_comm,mpi_summarize,1,1,1,&
+!!$   call abi_dotprodm_vn(cplex,1,ddens,dedv_temp,1,i_vresid(3),mpi_comm,mpi_summarize,1,1,1,&
 !!$&   nfft,nfftot,n_fftgr,nspden,f_fftgr,ucvol)
    dedv_temp(1) = fdot(ddens(1,1,1), f_fftgr(1,1,i_vresid(3)), &
         & cplex, nfft, nspden, 2, user_data) * ucvol / dble(nfftot)
@@ -145,5 +145,5 @@ subroutine aprxdr(cplex,choice,dedv_mix,dedv_new,dedv_old,&
    end do
  end if
 
-end subroutine aprxdr
+end subroutine abi_aprxdr
 !!***

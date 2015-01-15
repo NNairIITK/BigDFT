@@ -1,7 +1,7 @@
 !{\src2tex{textfont=tt}}
-!!****f* ABINIT/sqnormm_v
+!!****f* ABINIT/abi_sqnormm_v
 !! NAME
-!! sqnormm_v
+!! abi_sqnormm_v
 !!
 !! FUNCTION
 !! For a series of potentials,
@@ -43,7 +43,7 @@
 #include "config.h"
 #endif
 
-subroutine sqnormm_v(cplex,index,mpi_comm, mpi_summarize,mult,nfft,norm2,npot,nspden,opt_storage,potarr)
+subroutine abi_sqnormm_v(cplex,index,mpi_comm, mpi_summarize,mult,nfft,norm2,npot,nspden,opt_storage,potarr)
 
  use abi_defs_basis
  use m_abi_xmpi
@@ -104,5 +104,5 @@ subroutine sqnormm_v(cplex,index,mpi_comm, mpi_summarize,mult,nfft,norm2,npot,ns
    call abi_xmpi_sum(norm2,mpi_comm ,ierr)
  end if
 
-end subroutine sqnormm_v
+end subroutine abi_sqnormm_v
 !!***

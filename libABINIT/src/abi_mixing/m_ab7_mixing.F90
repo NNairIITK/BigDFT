@@ -389,7 +389,7 @@
          & reset, isecur, pawarr, pawopt, response, etotal, potden, &
          & resnrm, fnrm, fdot, user_data)
 
-      use interfaces_56_mixing
+      use abi_interfaces_mixing
 
       implicit none
 
@@ -501,7 +501,7 @@
       resnrm_ = 0.d0
       if (mix%iscf == AB7_MIXING_EIG) then
          !  This routine compute the eigenvalues of the SCF operator
-         call scfeig(istep, mix%space * mix%nfft, mix%nspden, &
+         call abi_scfeig(istep, mix%space * mix%nfft, mix%nspden, &
               & mix%f_fftgr(:,:,mix%i_vrespc(1)), arr, &
               & mix%f_fftgr(:,:,1), mix%f_fftgr(:,:,4:5), errid, errmess)
       else if (mix%iscf == AB7_MIXING_SIMPLE .or. &
@@ -509,12 +509,12 @@
            & mix%iscf == AB7_MIXING_ANDERSON_2 .or. &
            & mix%iscf == AB7_MIXING_PULAY) then
          if (present(user_data)) then
-            call scfopt(mix%space, mix%f_fftgr,mix%f_paw,mix%iscf,istep,&
+            call abi_scfopt(mix%space, mix%f_fftgr,mix%f_paw,mix%iscf,istep,&
                  & mix%i_vrespc,mix%i_vtrial, mix%nfft,mix%n_pawmix,mix%nspden, &
                  & mix%n_fftgr,mix%n_index,mix%kind,pawoptmix_,usepaw,pawarr_, &
                  & resnrm_, arr, fnrm, fdot, user_data, errid, errmess)
          else
-            call scfopt(mix%space, mix%f_fftgr,mix%f_paw,mix%iscf,istep,&
+            call abi_scfopt(mix%space, mix%f_fftgr,mix%f_paw,mix%iscf,istep,&
                  & mix%i_vrespc,mix%i_vtrial, mix%nfft,mix%n_pawmix,mix%nspden, &
                  & mix%n_fftgr,mix%n_index,mix%kind,pawoptmix_,usepaw,pawarr_, &
                  & resnrm_, arr, fnrm_default, fdot_default, user_data_, errid, errmess)
@@ -544,7 +544,7 @@
             call memocc(i_stat, mix%dtn_pc, 'mix%dtn_pc', subname)
          end if
          if (present(user_data)) then
-            call scfcge(mix%space,dbl_nnsclo,mix%dtn_pc,etotal,mix%f_atm,&
+            call abi_scfcge(mix%space,dbl_nnsclo,mix%dtn_pc,etotal,mix%f_atm,&
                  & mix%f_fftgr,initialized,mix%iscf,isecur_,istep,&
                  & mix%i_rhor,mix%i_vresid,mix%i_vrespc,moveAtm,&
                  & mix%n_atom,mix%nfft,nfftot,&
@@ -552,7 +552,7 @@
                  & response_,potden,ucvol,arr,mix%xred, &
                  & fnrm, fdot, user_data, errid, errmess)
          else
-            call scfcge(mix%space,dbl_nnsclo,mix%dtn_pc,etotal,mix%f_atm,&
+            call abi_scfcge(mix%space,dbl_nnsclo,mix%dtn_pc,etotal,mix%f_atm,&
                  & mix%f_fftgr,initialized,mix%iscf,isecur_,istep,&
                  & mix%i_rhor,mix%i_vresid,mix%i_vrespc,moveAtm,&
                  & mix%n_atom,mix%nfft,nfftot,&
@@ -634,7 +634,7 @@
       double precision :: fnrm_default
       real(dp) :: resid_new(1)
 
-      call sqnormm_v(cplex,1,user_data(2),(user_data(1) /= 0),1,&
+      call abi_sqnormm_v(cplex,1,user_data(2),(user_data(1) /= 0),1,&
            & nfft,resid_new,1,nspden,opt_denpot,x)
       fnrm_default = resid_new(1)
     end function fnrm_default
@@ -647,7 +647,7 @@
       double precision :: fdot_default
       real(dp) :: prod_resid(1)
 
-      call dotprodm_v(cplex,1,prod_resid,1,1,user_data(2),(user_data(1) /= 0),1,1,&
+      call abi_dotprodm_v(cplex,1,prod_resid,1,1,user_data(2),(user_data(1) /= 0),1,1,&
            & nfft,1,1,nspden,opt_denpot,x,y)
       fdot_default = prod_resid(1)
     end function fdot_default
@@ -660,7 +660,7 @@
       double precision :: fdotn_default
       real(dp) :: prod_resid(1,1,1)
 
-      call dotprodm_vn(cplex,1,x,prod_resid,1,1,user_data(2),(user_data(1) /= 0),1,1,&
+      call abi_dotprodm_vn(cplex,1,x,prod_resid,1,1,user_data(2),(user_data(1) /= 0),1,1,&
            & 1,nfft,1,nspden,y)
       fdotn_default = prod_resid(1,1,1)
     end function fdotn_default
