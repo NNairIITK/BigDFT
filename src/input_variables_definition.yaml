@@ -660,15 +660,19 @@
        lensic: Lenosky Tight-Binding for Si clusters
        lensib: Lenosky Tight-Binding for Si bulk
        amber: AMBER Force Fields Package (requires AMBERtools)
+       morse_bulk: Morse bulk
      default: dft
-#force fields parameters
- ffparams:
-   mb_rcut:
-     COMMENT: Cutoff radius for morse_bulk force field
-     default: 3.2792544011
-   mb_rho:
-     COMMENT: rho morse_bulk force field
-     default: 4.6488159
+   mm_paramset:
+     COMMENT: Name of the hard-coded parameter set. Must be compatible to the chosen force field.
+     CONDITION:
+       MASTER_KEY: method
+       WHEN:
+       - morse_bulk
+       - lj
+     default: default
+   mm_paramfile:
+     COMMENT: name of parameter file
+     default: none
      
 #Performance parameters
  perf:

@@ -220,7 +220,7 @@ gaussdaub.o: base.o
 module_sqn.o: base.o
 bigdft_run.o: types.o input_dicts.o interfaces.o module_forces.o module_lenosky_si.o module_lj.o module_morse_bulk.o
 ab7_mixing.o: defs.o
-module_lj.o: defs.o
+module_lj.o: base.o defs.o
 module_morse_bulk.o: base.o
 module_lenosky_si.o: defs.o
 module_fingerprints.o: base.o

@@ -12,7 +12,6 @@ module public_keys
   public ! guess why?
 
   character(len = *), parameter :: MODE_VARIABLES = "mode"
-  character(len = *), parameter :: FORCE_FIELD_PARAMETERS = "ffparams"
   character(len = *), parameter :: METHOD_KEY = "method"
   character(len = *), parameter :: RUN_NAME_KEY = "name"
 
@@ -91,10 +90,9 @@ module public_keys
   character(len = *), parameter :: STEEPTHRESH = "steepthresh"
   character(len = *), parameter :: TRUSTR = "trustr"
 
-  !Force field parameters
-  !morse_bulk
-  character(len = *), parameter :: MB_RHO = "mb_rho"
-  character(len = *), parameter :: MB_RCUT = "mb_rcut"
+  !Force field parameter keyword
+  character(len = *), parameter :: MM_PARAMSET = "mm_paramset" !for hard-coded parameter sets
+  character(len = *), parameter :: MM_PARAMFILE = "mm_paramfile" !for parameter sets given by file
 
 
   character(len = *), parameter :: MIX_VARIABLES = "mix"

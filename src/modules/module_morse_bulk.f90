@@ -31,18 +31,8 @@
 !  a cutoff and is shifted to make the potential continuous.  It is not smooth
 !  though.
 !
-!  subroutine morse_bulk_wrapper makes calling it from potentials.f a bit
-!  simpler.
-!
-!  use this potential by assigning the atoms the label "M" as with normal morse
-!  potential, but additionally pass the keyword BULK
-!
-!  the options for the potential are passed using the keyword 
-!
-!  PARAMS rho boxlx boxly boxlz rcut
 !  
-!  where rho is the inverse width of the well.  boxlx, boxly, boxlz are the box
-!  lengths.  And rcut is the cutoff.
+!  rho is the inverse width of the well. rcut is the cutoff.
 !
 !*************************************************************************
 !
@@ -63,21 +53,50 @@ module module_morse_bulk
     logical,save :: initialized=.false.
 
     public morse_bulk_wrapper
+    public init_morse_bulk
     contains 
-subroutine init_morse_bulk(rhoIn,rcutIn)
+subroutine init_morse_bulk(paramset,paramfile,geocode)
     use module_base
     use yaml_output
     implicit none
     !parameters
-    real(gp) :: rhoIn
-    real(gp) :: rcutIn
+    character(len=*), intent(in) :: paramset
+    character(len=*), intent(in) :: paramfile
+    character(len=*), intent(in) :: geocode
     !local
 
+
     initialized=.true.
-    rho = rhoIn
-    rcut = rcutIn
-    R0 = 1.0_gp
-    A = 1.0_gp
+
+    if(trim(geocode)/='P')then
+        initialized=.false.
+        call f_err_throw('Morse_bulk only works with periodic '//&
+             'boundary conditions. Specified boundary conditions are: '//&
+             trim(adjustl(geocode)))
+    endif
+
+    if(trim(paramfile)/='none')then
+        initialized=.false.
+        call f_err_throw('Reading Parameters from file not '//&
+             'implemented for morse_bulk')
+    else
+        select case(trim(paramset))
+        case('Pt')
+            call yaml_comment('Using Pt Parameters for morse_bulk from'//&
+                 ' Bassett, D. W.; Webber, P. R. Surf. Sci. 1978, 70, 520.')
+        rho = 1.0_gp
+        rcut = 1.0_gp
+        R0 = 1.0_gp
+        A = 1.0_gp
+        case('default')
+            initialized=.false.
+            call f_err_throw('No "default" parameter set for morse_bulk defined.')
+        case default
+            initialized=.false.
+            call f_err_throw('Following parameter set for morse_bulk force field '//&       
+                'is unknown: '//trim(paramset))
+        end select
+    endif
     periodic = .true.
     use_cutoff = .true.
     if (rcut / R0 < 1.e-1_gp .and. bigdft_mpi%iproc==0) then

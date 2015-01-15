@@ -384,10 +384,9 @@ module module_types
      real(gp) :: steepthresh
      real(gp) :: trustr
 
-    !Force Field Parameters
-    !morse_bulk
-    real(gp) :: mb_rho
-    real(gp) :: mb_rcut
+    !Force Field Parameter
+    character(len=64) :: mm_paramset
+    character(len=64) :: mm_paramfile
 
      ! Performance variables from input.perf
      logical :: debug      !< Debug option (used by memocc)
@@ -2095,16 +2094,10 @@ contains
           case('morse_bulk')
              in%run_mode=MORSE_BULK_RUN_MODE
           end select
-       case DEFAULT
-          if (bigdft_mpi%iproc==0) &
-               call yaml_warning("unknown input key '" // trim(level) // "/" // trim(dict_key(val)) // "'")
-       end select
-    case (FORCE_FIELD_PARAMETERS)
-       select case (trim(dict_key(val)))
-       case (MB_RHO)
-          in%mb_RHO = val
-       case (MB_RCUT)
-          in%mb_RCUT = val
+       case(MM_PARAMSET)
+            in%mm_paramset=val
+       case(MM_PARAMFILE)
+            in%mm_paramfile=val
        case DEFAULT
           if (bigdft_mpi%iproc==0) &
                call yaml_warning("unknown input key '" // trim(level) // "/" // trim(dict_key(val)) // "'")

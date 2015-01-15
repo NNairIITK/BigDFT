@@ -130,17 +130,23 @@ contains
   !! if the treatment requires some extra allocations, control
   !! that the arrays are present and with the good shape
   !! otherwise allocate them
-  subroutine init_MM_restart_objects(mm_rst,nat,run_mode)
+  subroutine init_MM_restart_objects(runObj,mm_rst,nat,run_mode)
     use f_utils
     use dynamic_memory
     use public_enums
+    use module_morse_bulk
+    use module_lj
     implicit none
+    type(run_objects), intent(inout) :: runObj
     type(f_enumerator), intent(in) :: run_mode
     integer, intent(in) :: nat
     type(MM_restart_objects), intent(inout) :: mm_rst
 
     !then check if extra workspaces have to be allocated
     select case(trim(char(run_mode)))
+    case('LENNARD_JONES_RUN_MODE')
+        call init_lj(runObj%inputs%mm_paramset,&
+             runObj%inputs%mm_paramfile,runObj%atoms%astruct%units)
     case('LENOSKY_SI_CLUSTERS_RUN_MODE','LENOSKY_SI_BULK_RUN_MODE')
        if (associated(mm_rst%rf_extra)) then
           if (size(mm_rst%rf_extra) == nat) then
@@ -155,6 +161,9 @@ contains
           mm_rst%refcnt=f_ref_new('mm_rst')
           mm_rst%rf_extra=f_malloc0_ptr([3,nat],id='rf_extra')
        end if
+    case('MORSE_BULK_RUN_MODE')
+        call init_morse_bulk(runObj%inputs%mm_paramset,&
+             runObj%inputs%mm_paramfile,runObj%atoms%astruct%geocode)
     case('AMBER_RUN_MODE')
        if (associated(mm_rst%rf_extra)) then
           if (size(mm_rst%rf_extra) == nat) then
@@ -852,7 +861,7 @@ contains
 
           allocate(runObj%mm_rst)
           call nullify_MM_restart_objects(runObj%mm_rst)
-          call init_MM_restart_objects(runObj%mm_rst,bigdft_nat(runObj),runObj%run_mode)
+          call init_MM_restart_objects(runObj,runObj%mm_rst,bigdft_nat(runObj),runObj%run_mode)
        end if
        ! Start the signaling loop in a thread if necessary.
        if (runObj%inputs%signaling .and. bigdft_mpi%iproc == 0) then
@@ -1788,7 +1797,7 @@ subroutine run_objects_update(runObj, dict)
   !init and update the restart objects
   call init_QM_restart_objects(bigdft_mpi%iproc,runObj%inputs,runObj%atoms,&
        runObj%rst)
-  call init_MM_restart_objects(runObj%mm_rst,bigdft_nat(runObj),runObj%run_mode)
+  call init_MM_restart_objects(runObj,runObj%mm_rst,bigdft_nat(runObj),runObj%run_mode)
 END SUBROUTINE run_objects_update
 
 !> this routine should be used in memguess executable also
