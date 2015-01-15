@@ -1,8 +1,7 @@
 !{\src2tex{textfont=tt}}
-!!****f* ABINIT/smpbz
-!!
+!!****f* ABINIT/abi_smpbz
 !! NAME
-!! smpbz
+!! abi_smpbz
 !!
 !! FUNCTION
 !! Generate a set of special k (or q) points which samples in a homogeneous way
@@ -55,7 +54,7 @@
 #include "config.h"
 #endif
 
-subroutine smpbz(brav,iout,kptrlatt,mkpt,nkpt,nshiftk,option,shiftk,spkpt)
+subroutine abi_smpbz(brav,iout,kptrlatt,mkpt,nkpt,nshiftk,option,shiftk,spkpt)
 
  use abi_defs_basis
  use abi_interfaces_lowlevel
@@ -95,7 +94,7 @@ subroutine smpbz(brav,iout,kptrlatt,mkpt,nkpt,nshiftk,option,shiftk,spkpt)
 &   kptrlatt(1,3)/=0 .or. kptrlatt(3,1)/=0 .or. &
 &   kptrlatt(2,3)/=0 .or. kptrlatt(3,2)/=0     ) then
      write(message, '(a,a,a,a,a,a,3i4,a,a,3i4,a,a,3i4)' )ch10,&
-&     ' smpbz : BUG -',ch10,&
+&     ' abi_smpbz : BUG -',ch10,&
 &     '  When brav/=1, kptrlatt must be diagonal, while it is',ch10,&
 &     '  kptrlatt(:,1)=',kptrlatt(:,1),ch10,&
 &     '  kptrlatt(:,2)=',kptrlatt(:,2),ch10,&
@@ -112,7 +111,7 @@ subroutine smpbz(brav,iout,kptrlatt,mkpt,nkpt,nshiftk,option,shiftk,spkpt)
 &   (ngkpt(1)/=0.or.ngkpt(2)/=0.or.ngkpt(3)/=0)&
 &   ) then
      write(message, '(a,a,a,a,a,a,a,a,i4,a,a,i4,a,a,i4,a,a)' )ch10,&
-&     ' smpbz : ERROR -',ch10,&
+&     ' abi_smpbz : ERROR -',ch10,&
 &     '  All ngkpt (or ngqpt) must be strictly positive',ch10,&
 &     '  or all ngk(q)pt must be zero (for Gamma sampling), but :',ch10,&
 &     ' ngk(q)pt(1) = ',ngkpt(1),ch10,&
@@ -143,7 +142,7 @@ subroutine smpbz(brav,iout,kptrlatt,mkpt,nkpt,nshiftk,option,shiftk,spkpt)
    call abi_wrtout(std_out,message,'COLL')
    if (mkpt<nkptlatt*nshiftk) then
      write(message, '(a,a,a,a,a,i8,a,a,a,a,a)' )&
-&     ' smpbz : BUG -',ch10,&
+&     ' abi_smpbz : BUG -',ch10,&
 &     '  The value of mkpt is not large enough. It should be',ch10,&
 &     '  at least',nkptlatt*nshiftk,',',ch10,&
 &     '  Action : set mkpt to that value in the main routine,',ch10,&
@@ -200,7 +199,7 @@ subroutine smpbz(brav,iout,kptrlatt,mkpt,nkpt,nshiftk,option,shiftk,spkpt)
    nkpt=nn-1
    if(nkpt/=nkptlatt*nshiftk)then
      write(message, '(a,a,a,i8,a,a,a,i8,a)' )&
-&     ' smpbz : BUG -',ch10,&
+&     ' abi_smpbz : BUG -',ch10,&
 &     '  The number of k points ',nkpt,'  is not equal to',ch10,&
 &     '  nkptlatt*nshiftk which is',nkptlatt*nshiftk,'.'
      call abi_wrtout(std_out,message,'COLL')
@@ -214,7 +213,7 @@ subroutine smpbz(brav,iout,kptrlatt,mkpt,nkpt,nshiftk,option,shiftk,spkpt)
    call abi_wrtout(std_out,message,'COLL')
    if (mkpt<ngkpt(1)*ngkpt(2)*ngkpt(3)*nshiftk/2) then
      write(message, '(a,a,a,a,a,i8,a,a,a,a,a)' )&
-&     ' smpbz : BUG -',ch10,&
+&     ' abi_smpbz : BUG -',ch10,&
 &     '  The value of mkpt is not large enough. It should be',ch10,&
 &     '  at least',(ngkpt(1)*ngkpt(2)*ngkpt(3)*nshiftk)/2,',',ch10,&
 &     '  Action : set mkpt to that value in the main routine,',ch10,&
@@ -225,7 +224,7 @@ subroutine smpbz(brav,iout,kptrlatt,mkpt,nkpt,nshiftk,option,shiftk,spkpt)
    nn=1
    if (ngkpt(1)/=ngkpt(2).or.ngkpt(1)/=ngkpt(3)) then
      write(message, '(6a,3(a,i6,a),a)' )&
-&     ' smpbz : ERROR -',ch10,&
+&     ' abi_smpbz : ERROR -',ch10,&
 &     '  For face-centered lattices, the numbers ngqpt(1:3)',ch10,&
 &     '  must be equal, while they are :',ch10,&
 &     '  ngqpt(1) = ',ngkpt(1),ch10,&
@@ -237,7 +236,7 @@ subroutine smpbz(brav,iout,kptrlatt,mkpt,nkpt,nshiftk,option,shiftk,spkpt)
    end if
    if ((ngkpt(1)*nshiftk)/=(((ngkpt(1)*nshiftk)/2)*2)) then
      write(message, '(6a,3(a,i6,a),a)' )&
-&     ' smpbz : ERROR -',ch10,&
+&     ' abi_smpbz : ERROR -',ch10,&
 &     '  For face-centered lattices, the numbers ngqpt(1:3)*nshiftk',ch10,&
 &     '  must be even, while they are :',ch10,&
 &     '  ngqpt(1)*nshiftk = ',ngkpt(1)*nshiftk,ch10,&
@@ -284,7 +283,7 @@ subroutine smpbz(brav,iout,kptrlatt,mkpt,nkpt,nshiftk,option,shiftk,spkpt)
      nkpt=nn-1
      if(nkpt/=ngkpt(1)*ngkpt(2)*ngkpt(3)*nshiftk/2)then
        write(message, '(a,a,a,i8,a,a,a,i8,a)' )&
-&       ' smpbz : BUG -',ch10,&
+&       ' abi_smpbz : BUG -',ch10,&
 &       '  The number of k points ',nkpt,'  is not equal to',ch10,&
 &       '  (ngkpt(1)*ngkpt(2)*ngkpt(3)*nshiftk)/2 which is',&
 &       (ngkpt(1)*ngkpt(2)*ngkpt(3)*nshiftk)/2,'.'
@@ -300,7 +299,7 @@ subroutine smpbz(brav,iout,kptrlatt,mkpt,nkpt,nshiftk,option,shiftk,spkpt)
    call abi_wrtout(std_out,message,'COLL')
    if (mkpt<ngkpt(1)*ngkpt(2)*ngkpt(3)*nshiftk/4) then
      write(message, '(a,a,a,a,a,i8,a,a,a,a,a)' )&
-&     ' smpbz : BUG -',ch10,&
+&     ' abi_smpbz : BUG -',ch10,&
 &     '  The value of mkpt is not large enough. It should be',ch10,&
 &     '  at least',(ngkpt(1)*ngkpt(2)*ngkpt(3)*nshiftk)/4,',',ch10,&
 &     '  Action : set mkpt to that value in the main routine,',ch10,&
@@ -314,7 +313,7 @@ subroutine smpbz(brav,iout,kptrlatt,mkpt,nkpt,nshiftk,option,shiftk,spkpt)
 &   (ngkpt(3)*nshiftk)/=(((ngkpt(3)*nshiftk)/2)*2)&
 &   ) then
      write(message, '(6a,3(a,i6,a),a)' )&
-&     ' smpbz : ERROR -',ch10,&
+&     ' abi_smpbz : ERROR -',ch10,&
 &     '  For body-centered lattices, the numbers ngqpt(1:3)',ch10,&
 &     '  must be even, while they are :',ch10,&
 &     '  ngqpt(1)*nshiftk = ',ngkpt(1)*nshiftk,ch10,&
@@ -365,7 +364,7 @@ subroutine smpbz(brav,iout,kptrlatt,mkpt,nkpt,nshiftk,option,shiftk,spkpt)
      nkpt=nn-1
      if(nkpt==0)then
        write(message, '(5a)' )&
-&       ' smpbz : ERROR -',ch10,&
+&       ' abi_smpbz : ERROR -',ch10,&
 &       '  BCC lattice, input ngqpt=0, so no kpt is generated.',ch10,&
 &       '  Action : modify ngqpt(1:3) in the input file.'
        call abi_wrtout(std_out,message,'COLL')
@@ -373,7 +372,7 @@ subroutine smpbz(brav,iout,kptrlatt,mkpt,nkpt,nshiftk,option,shiftk,spkpt)
      end if
      if(nkpt/=(ngkpt(1)*ngkpt(2)*ngkpt(3)*nshiftk)/4)then
        write(message, '(a,a,a,i8,a,a,a,i8,a)' )&
-&       ' smpbz : BUG -',ch10,&
+&       ' abi_smpbz : BUG -',ch10,&
 &       '  The number of k points ',nkpt,'  is not equal to',ch10,&
 &       '  (ngkpt(1)*ngkpt(2)*ngkpt(3)*nshiftk)/4 which is',&
 &       (ngkpt(1)*ngkpt(2)*ngkpt(3)*nshiftk)/4,'.'
@@ -390,7 +389,7 @@ subroutine smpbz(brav,iout,kptrlatt,mkpt,nkpt,nshiftk,option,shiftk,spkpt)
    call abi_wrtout(std_out,message,'COLL')
    if (mkpt<ngkpt(1)*ngkpt(2)*ngkpt(3)) then
      write(message, '(a,a,a,a,a,i8,a,a,a,a,a)' )&
-&     ' smpbz : BUG -',ch10,&
+&     ' abi_smpbz : BUG -',ch10,&
 &     '  The value of mkpt is not large enough. It should be',ch10,&
 &     '  at least',ngkpt(1)*ngkpt(2)*ngkpt(3),',',ch10,&
 &     '  Action : set mkpt to that value in the main routine,',ch10,&
@@ -401,7 +400,7 @@ subroutine smpbz(brav,iout,kptrlatt,mkpt,nkpt,nshiftk,option,shiftk,spkpt)
    nn=1
    if (ngkpt(1)/=ngkpt(2)) then
      write(message, '(6a,2(a,i6,a),a)' )&
-&     ' smpbz : ERROR -',ch10,&
+&     ' abi_smpbz : ERROR -',ch10,&
 &     '  For hexagonal lattices, the numbers ngqpt(1:2)',ch10,&
 &     '  must be equal, while they are :',ch10,&
 &     '  ngqpt(1) = ',ngkpt(1),ch10,&
@@ -412,7 +411,7 @@ subroutine smpbz(brav,iout,kptrlatt,mkpt,nkpt,nshiftk,option,shiftk,spkpt)
    end if
    if (ngkpt(1)==0.or.ngkpt(2)==0.or.ngkpt(3)==0) then
      write(message, '(5a)' )&
-&     ' smpbz : ERROR -',ch10,&
+&     ' abi_smpbz : ERROR -',ch10,&
 &     '  For hexagonal lattices, ngqpt(1:3)=0 is not permitted',ch10,&
 &     '  Action : modify ngqpt(1:3) in the input file.'
      call abi_wrtout(std_out,message,'COLL')
@@ -438,7 +437,7 @@ subroutine smpbz(brav,iout,kptrlatt,mkpt,nkpt,nshiftk,option,shiftk,spkpt)
      nkpt=nn-1
      if(nkpt/=ngkpt(1)*ngkpt(2)*ngkpt(3)*nshiftk)then
        write(message, '(a,a,a,i8,a,a,a,i8,a)' )&
-&       ' smpbz : BUG -',ch10,&
+&       ' abi_smpbz : BUG -',ch10,&
 &       '  The number of k points ',nkpt,'  is not equal to',ch10,&
 &       '  ngkpt(1)*ngkpt(2)*ngkpt(3)*nshiftk which is',&
 &       ngkpt(1)*ngkpt(2)*ngkpt(3)*nshiftk,'.'
@@ -450,7 +449,7 @@ subroutine smpbz(brav,iout,kptrlatt,mkpt,nkpt,nshiftk,option,shiftk,spkpt)
  else
 
    write(message, '(a,a,a,i6,a,a,a)' )&
-&   ' smpbz : BUG -',ch10,&
+&   ' abi_smpbz : BUG -',ch10,&
 &   '  The calling routine asks brav=',brav,'.',ch10,&
 &   '  but only brav=1,2,3 or 4 are allowed.'
    call abi_wrtout(std_out,message,'COLL')
@@ -479,5 +478,5 @@ subroutine smpbz(brav,iout,kptrlatt,mkpt,nkpt,nshiftk,option,shiftk,spkpt)
 
  end if
 
-end subroutine smpbz
+end subroutine abi_smpbz
 !!***

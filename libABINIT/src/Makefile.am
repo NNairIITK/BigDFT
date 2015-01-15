@@ -137,13 +137,13 @@ libabinit_a_SOURCES = \
 	abi_mixing/abi_scfopt.F90 \
 	abi_mixing/abi_sqnormm_v.F90 \
 	abi_mixing/m_ab7_mixing.F90 \
-	56_recipspace/interfaces_56_recipspace.F90 \
-	56_recipspace/irrzg.F90 \
-	56_recipspace/m_ab6_kpoints.F90 \
-	56_recipspace/getkgrid.F90 \
-	56_recipspace/smpbz.F90 \
-	56_recipspace/symkpt.F90 \
-	56_recipspace/testkgrid.F90 \
+	abi_recipspace/abi_interfaces_recipspace.F90 \
+	abi_recipspace/abi_irrzg.F90 \
+	abi_recipspace/abi_getkgrid.F90 \
+	abi_recipspace/abi_smpbz.F90 \
+	abi_recipspace/abi_symkpt.F90 \
+	abi_recipspace/abi_testkgrid.F90 \
+	abi_recipspace/m_ab6_kpoints.F90 \
 	67_common/interfaces_67_common.F90 \
 	67_common/ewald.F90 \
 	67_common/ewald2.F90 \

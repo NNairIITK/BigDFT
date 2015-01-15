@@ -1,7 +1,7 @@
 !{\src2tex{textfont=tt}}
-!!****f* ABINIT/symkpt
+!!****f* ABINIT/abi_symkpt
 !! NAME
-!! symkpt
+!! abi_symkpt
 !!
 !! FUNCTION
 !! Determines the weights of the k-points for sampling
@@ -47,7 +47,7 @@
 #include "config.h"
 #endif
 
-subroutine symkpt(gmet,indkpt1,kptns,nkpt,nkpt1,nsym1,option,&
+subroutine abi_symkpt(gmet,indkpt1,kptns,nkpt,nkpt1,nsym1,option,&
 & symrc1,timrev,wtk,wtk_folded)
 
  use abi_defs_basis
@@ -80,7 +80,7 @@ subroutine symkpt(gmet,indkpt1,kptns,nkpt,nkpt1,nsym1,option,&
 
  if(timrev/=1 .and. timrev/=0)then
    write(message, '(a,a,a,a,a,i4,a)' )&
-&   ' symkpt : BUG -',ch10,&
+&   ' abi_symkpt : BUG -',ch10,&
 &   '  timrev should be 0 or 1, while',ch10,&
 &   '  it is equal to ',timrev,'.'
    call abi_wrtout(std_out,message,'COLL')
@@ -103,14 +103,14 @@ subroutine symkpt(gmet,indkpt1,kptns,nkpt,nkpt1,nsym1,option,&
      end do
      if(tident==1)then
        identi=isym
-       write(message, '(a,i3)' )' symkpt : found identity, with number',identi
+       write(message, '(a,i3)' )' abi_symkpt : found identity, with number',identi
        call abi_wrtout(std_out,message,'COLL')
        exit
      end if
    end do
    if(tident==0)then
      write(message, '(a,a,a)' )&
-&     ' symkpt : BUG -',ch10,&
+&     ' abi_symkpt : BUG -',ch10,&
 &     '  Did not found the identity operation.'
      call abi_wrtout(std_out,message,'COLL')
      call abi_leave_new('COLL')
@@ -248,17 +248,17 @@ subroutine symkpt(gmet,indkpt1,kptns,nkpt,nkpt1,nsym1,option,&
  if(option/=0)then
    if(nkpt/=nkpt1)then
      write(message, '(a,a,a,i6,a)' )&
-&     ' symkpt : the number of k-points, thanks to the symmetries,',ch10,&
+&     ' abi_symkpt : the number of k-points, thanks to the symmetries,',ch10,&
 &     ' is reduced to',nkpt1,' .'
      call abi_wrtout(std_out,message,'COLL')
      call abi_wrtout(ab_out,message,'COLL')
    else
      write(message, '(a)' )&
-&     ' symkpt : not enough symmetry to change the number of k points.'
+&     ' abi_symkpt : not enough symmetry to change the number of k points.'
      call abi_wrtout(std_out,message,'COLL')
      call abi_wrtout(ab_out,message,'COLL')
    end if
  end if
 
-end subroutine symkpt
+end subroutine abi_symkpt
 !!***

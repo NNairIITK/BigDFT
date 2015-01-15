@@ -1,6 +1,7 @@
 !{\src2tex{textfont=tt}}
 !!****f* ABINIT/abi_chkprimit
-!! NAME  abi_chkprimit
+!! NAME
+!! abi_chkprimit
 !!
 !! FUNCTION
 !! Check whether the cell is primitive or not.

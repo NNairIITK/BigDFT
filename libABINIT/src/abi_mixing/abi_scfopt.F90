@@ -1,6 +1,5 @@
 !{\src2tex{textfont=tt}}
 !!****f* ABINIT/abi_scfopt
-!!
 !! NAME
 !! abi_scfopt
 !!

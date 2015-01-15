@@ -1,6 +1,6 @@
-!!****m* ABINIT/interfaces_56_recipspace
+!!****m* ABINIT/abi_interfaces_recipspace
 !! NAME
-!! interfaces_56_recipspace
+!! abi_interfaces_recipspace
 !!
 !! FUNCTION
 !! This module contains the interfaces of the routines
@@ -17,12 +17,12 @@
 !!
 !! SOURCE
 
-module interfaces_56_recipspace
+module abi_interfaces_recipspace
 
  implicit none
 
 interface
- subroutine getkgrid(iout,iscf,kpt,kptopt,kptrlatt,kptrlen,&  
+ subroutine abi_getkgrid(iout,iscf,kpt,kptopt,kptrlatt,kptrlen,&  
   &  msym,nkpt,nkpt_computed,nshiftk,nsym,rprimd,shiftk,symafm,&  
   &  symrel,vacuum,wtk,kbz_p)
   use abi_defs_basis
@@ -45,11 +45,11 @@ interface
   integer,intent(in) :: symafm(msym)
   integer,intent(in) :: symrel(3,3,msym)
   real(dp),intent(out) :: wtk(nkpt)
- end subroutine getkgrid
+ end subroutine abi_getkgrid
 end interface
 
 interface
- subroutine irrzg(irrzon,nspden,nsppol,nsym,n1,n2,n3,phnons,&  
+ subroutine abi_irrzg(irrzon,nspden,nsppol,nsym,n1,n2,n3,phnons,&  
   &  symafm,symrel,tnons)
   use abi_defs_basis
   implicit none
@@ -64,11 +64,11 @@ interface
   integer,intent(in) :: symafm(nsym)
   integer,intent(in) :: symrel(3,3,nsym)
   real(dp),intent(in) :: tnons(3,nsym)
- end subroutine irrzg
+ end subroutine abi_irrzg
 end interface
 
 interface
- subroutine smpbz(brav,iout,kptrlatt,mkpt,nkpt,nshiftk,option,shiftk,spkpt)
+ subroutine abi_smpbz(brav,iout,kptrlatt,mkpt,nkpt,nshiftk,option,shiftk,spkpt)
   use abi_defs_basis
   implicit none
   integer,intent(in) :: brav
@@ -80,11 +80,11 @@ interface
   integer,intent(in) :: kptrlatt(3,3)
   real(dp),intent(in) :: shiftk(3,nshiftk)
   real(dp),intent(out) :: spkpt(3,mkpt)
- end subroutine smpbz
+ end subroutine abi_smpbz
 end interface
 
 interface
- subroutine symkpt(gmet,indkpt1,kptns,nkpt,nkpt1,nsym1,option,&  
+ subroutine abi_symkpt(gmet,indkpt1,kptns,nkpt,nkpt1,nsym1,option,&  
   &  symrc1,timrev,wtk,wtk_folded)
   use abi_defs_basis
   implicit none
@@ -99,11 +99,11 @@ interface
   integer,intent(in) :: symrc1(3,3,nsym1)
   real(dp),intent(in) :: wtk(nkpt)
   real(dp),intent(out) :: wtk_folded(nkpt)
- end subroutine symkpt
+ end subroutine abi_symkpt
 end interface
 
 interface
- subroutine testkgrid(bravais,iout,kptrlatt,kptrlen,&  
+ subroutine abi_testkgrid(bravais,iout,kptrlatt,kptrlen,&  
   &  msym,nshiftk,nsym,prtkpt,rprimd,shiftk,symafm,symrel,vacuum)
   use abi_defs_basis
   implicit none
@@ -120,8 +120,8 @@ interface
   real(dp),intent(out) :: shiftk(3,8)
   integer,intent(in) :: symafm(msym)
   integer,intent(in) :: symrel(3,3,msym)
- end subroutine testkgrid
+ end subroutine abi_testkgrid
 end interface
 
-end module interfaces_56_recipspace
+end module abi_interfaces_recipspace
 !!***

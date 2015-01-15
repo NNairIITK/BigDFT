@@ -39,7 +39,7 @@ contains
   subroutine kpoints_get_irreductible_zone(irrzon, phnons, &
        & n1, n2, n3, nsppol, nspden, symid, errno)
 
- use interfaces_56_recipspace
+ use abi_interfaces_recipspace
 
     integer, intent(in)   :: symid
     integer, intent(in)   :: n1, n2, n3, nsppol, nspden
@@ -60,7 +60,7 @@ contains
        return
     end if
 
-    call irrzg(irrzon, nspden, nsppol, sym%nSym, n1, n2, n3, phnons, &
+    call abi_irrzg(irrzon, nspden, nsppol, sym%nSym, n1, n2, n3, phnons, &
          & sym%symAfm, sym%sym, sym%transNon)
   end subroutine kpoints_get_irreductible_zone
 
@@ -69,7 +69,7 @@ contains
   subroutine kpoints_binding_mp_k_1(symid, nkpt, ngkpt, &
        & kptrlatt, kptrlen, nshiftk, shiftk, errno)
 
- use interfaces_56_recipspace
+ use abi_interfaces_recipspace
 
     integer, intent(in)  :: symid
     integer, intent(out) :: errno
@@ -96,7 +96,7 @@ contains
     kptrlatt(3,3) = ngkpt(3)
     kptrlen = 20.
 
-    call getkgrid(6, 1, kpt, 1, kptrlatt, kptrlen, &
+    call abi_getkgrid(6, 1, kpt, 1, kptrlatt, kptrlen, &
          & AB6_MAX_SYMMETRIES, 0, nkpt, nshiftk, sym%nSym, &
          & sym%rprimd, shiftk, sym%symAfm, sym%sym, &
          & sym%vacuum, wkpt)
@@ -105,7 +105,7 @@ contains
   subroutine kpoints_binding_mp_k_2(symid, nkpt, kpt, wkpt, &
        & kptrlatt, kptrlen, nshiftk, shiftk, errno)
 
- use interfaces_56_recipspace
+ use abi_interfaces_recipspace
 
     integer, intent(in)  :: symid
     integer, intent(out) :: errno
@@ -126,7 +126,7 @@ contains
     if (errno /= AB7_NO_ERROR) return
 
     ! Then, we call it again to get the actual values for the k points.
-    call getkgrid(6, 1, kpt, 1, kptrlatt, kptrlen, &
+    call abi_getkgrid(6, 1, kpt, 1, kptrlatt, kptrlen, &
          & AB6_MAX_SYMMETRIES, nkpt, nkpt_, nshiftk, sym%nSym, &
          & sym%rprimd, shiftk, sym%symAfm, sym%sym, &
          & sym%vacuum, wkpt)
@@ -168,7 +168,7 @@ contains
   subroutine kpoints_binding_auto_k_1(symid, nkpt, kptrlatt, kptrlen, &
        & nshiftk, shiftk, errno)
 
- use interfaces_56_recipspace
+ use abi_interfaces_recipspace
 
     integer, intent(in)  :: symid
     integer, intent(out) :: errno
@@ -189,23 +189,23 @@ contains
 
     !  The parameters of the k lattice are not known, compute
     !  kptrlatt, nshiftk, shiftk.
-    call testkgrid(sym%bravais,6,kptrlatt,kptrlen,&
+    call abi_testkgrid(sym%bravais,6,kptrlatt,kptrlen,&
          & AB6_MAX_SYMMETRIES,nshiftk,sym%nSym,0,sym%rprimd,&
          & shiftk,sym%symAfm,sym%sym,sym%vacuum)
-    if (AB_DBG) write(std_err,*) "AB symmetry: testkgrid -> kptrlatt=", kptrlatt
+    if (AB_DBG) write(std_err,*) "AB symmetry: abi_testkgrid -> kptrlatt=", kptrlatt
 
-    call getkgrid(6, 1, kpt, 1, kptrlatt, kptrlen, &
+    call abi_getkgrid(6, 1, kpt, 1, kptrlatt, kptrlen, &
          & AB6_MAX_SYMMETRIES, 0, nkpt, nshiftk, sym%nSym, &
          & sym%rprimd, shiftk, sym%symAfm, sym%sym, &
          & sym%vacuum, wkpt)
-    if (AB_DBG) write(std_err,*) "AB symmetry: getkgrid -> nkpt=", nkpt
+    if (AB_DBG) write(std_err,*) "AB symmetry: abi_getkgrid -> nkpt=", nkpt
   end subroutine kpoints_binding_auto_k_1
 
 
   subroutine kpoints_binding_auto_k_2(symid, nkpt, kpt, wkpt, kptrlatt, kptrlen, &
        & nshiftk, shiftk, errno)
 
- use interfaces_56_recipspace
+ use abi_interfaces_recipspace
 
     integer, intent(in)  :: symid
     integer, intent(out) :: errno
@@ -226,7 +226,7 @@ contains
     if (errno /= AB7_NO_ERROR) return
 
     ! Then, we call it again to get the actual values for the k points.
-    call getkgrid(6, 1, kpt, 1, kptrlatt, kptrlen, &
+    call abi_getkgrid(6, 1, kpt, 1, kptrlatt, kptrlen, &
          & AB6_MAX_SYMMETRIES, nkpt, nkpt_, nshiftk, sym%nSym, &
          & sym%rprimd, shiftk, sym%symAfm, sym%sym, &
          & sym%vacuum, wkpt)

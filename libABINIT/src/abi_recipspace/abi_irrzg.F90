@@ -1,7 +1,7 @@
 !{\src2tex{textfont=tt}}
-!!****f* ABINIT/irrzg
+!!****f* ABINIT/abi_irrzg
 !! NAME
-!! irrzg
+!! abi_irrzg
 !!
 !! FUNCTION
 !! Find the irreducible zone in reciprocal space under the
@@ -49,7 +49,7 @@
 #include "config.h"
 #endif
 
-subroutine irrzg(irrzon,nspden,nsppol,nsym,n1,n2,n3,phnons,&
+subroutine abi_irrzg(irrzon,nspden,nsppol,nsym,n1,n2,n3,phnons,&
 & symafm,symrel,tnons)
 
  use abi_defs_basis
@@ -113,7 +113,7 @@ subroutine irrzg(irrzon,nspden,nsppol,nsym,n1,n2,n3,phnons,&
 
    if(imagn==2 .and. nsym_used/=nsym/2)then
      write(message, '(a,a,a,a,a,a,a,a,i4,a,i4)' ) ch10,&
-&     ' irrzg : BUG -',ch10,&
+&     ' abi_irrzg : BUG -',ch10,&
 &     '  The number of ferromagnetic symmetry operations must be',ch10,&
 &     '  half the total number of operations, while it is observed that',ch10,&
 &     '  nsym=',nsym,' and nsym_magn=',nsym_used
@@ -224,7 +224,7 @@ subroutine irrzg(irrzon,nspden,nsppol,nsym,n1,n2,n3,phnons,&
 !          Repetition factor must be divisor of nsym_used:
            if (nsym_used/=(ipt*irep)) then
              write(message, '(a,a,a,a,i5,a,i6,a,a,a,a,a,a)' ) ch10,&
-&             ' irrzg : ERROR -',ch10,&
+&             ' abi_irrzg : ERROR -',ch10,&
 &             '  irep=',irep,' not a divisor of nsym_used=',nsym_used,ch10,&
 &             ' This usually indicates that',&
 &             ' the input symmetries do not form a group.',ch10,&
@@ -352,7 +352,7 @@ subroutine irrzg(irrzon,nspden,nsppol,nsym,n1,n2,n3,phnons,&
 !actual number of grid points
  if (npt/=n1*n2*n3) then
    write(message, '(a,a,a,a,i10,a,i10,a,a,a,a,a,a,a,a,a)' ) ch10,&
-&   ' irrzg : ERROR -',ch10,&
+&   ' abi_irrzg : ERROR -',ch10,&
 &   '  npt=',npt,' and n1*n2*n3=',n1*n2*n3,' are not equal',ch10,&
 &   '  This says that the total of all points in the irreducible',&
 &   '  sector in real space',ch10,&
@@ -373,7 +373,7 @@ subroutine irrzg(irrzon,nspden,nsppol,nsym,n1,n2,n3,phnons,&
    do ifft=1,nfftot
      if (irrzon(ifft,1,imagn)<1.or.irrzon(ifft,1,imagn)>nfftot) then
        write(message, '(a,a,a,a,4i8,a,a)' ) ch10,&
-&       ' irrzg : BUG -',ch10,&
+&       ' abi_irrzg : BUG -',ch10,&
 &       '  ifft,irrzon(ifft,1,imagn),nfftot,imagn=',&
 &       ifft,irrzon(ifft,1,imagn),nfftot,imagn,ch10,&
 &       '  =>irrzon goes outside acceptable bounds.'
@@ -387,7 +387,7 @@ subroutine irrzg(irrzon,nspden,nsppol,nsym,n1,n2,n3,phnons,&
 !    Global bounds
      if (irrzon(izone,2,imagn)<0.or.irrzon(izone,2,imagn)>(nsym/imagn)) then
        write(message, '(a,a,a,a,5i7,a,a)' ) ch10,&
-&       ' irrzg : BUG -',ch10,&
+&       ' abi_irrzg : BUG -',ch10,&
 &       '  izone,nzone,irrzon(izone,2,imagn),nsym,imagn=',&
 &       izone,nzone,irrzon(izone,2,imagn),nsym,imagn,ch10,&
 &       '  =>irrzon goes outside acceptable bounds.'
@@ -401,7 +401,7 @@ subroutine irrzg(irrzon,nspden,nsppol,nsym,n1,n2,n3,phnons,&
      if(izonemax/=0)then
        if (irrzon(izone,2,imagn)/=0) then
          write(message, '(a,a,a,a)' ) ch10,&
-&         ' irrzg : BUG -',ch10,&
+&         ' abi_irrzg : BUG -',ch10,&
 &         '  beyond izonemax, irrzon(izone,2,imagn) should be zero'
          call abi_wrtout(std_out,message,'COLL')
          call abi_leave_new('COLL')
@@ -415,5 +415,5 @@ subroutine irrzg(irrzon,nspden,nsppol,nsym,n1,n2,n3,phnons,&
  deallocate(iperm)
  deallocate(work1,work2)
 
-end subroutine irrzg
+end subroutine abi_irrzg
 !!***

@@ -1,6 +1,5 @@
 !{\src2tex{textfont=tt}}
 !!****f* ABINIT/abi_findminscf
-!!
 !! NAME
 !! abi_findminscf
 !!

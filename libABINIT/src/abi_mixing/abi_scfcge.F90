@@ -1,6 +1,5 @@
 !{\src2tex{textfont=tt}}
 !!****f* ABINIT/abi_scfcge
-!!
 !! NAME
 !! abi_scfcge
 !!

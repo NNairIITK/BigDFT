@@ -1,8 +1,7 @@
 !{\src2tex{textfont=tt}}
-!!****f* ABINIT/testkgrid
-!!
+!!****f* ABINIT/abi_testkgrid
 !! NAME
-!! testkgrid
+!! abi_testkgrid
 !!
 !! FUNCTION
 !! Test different grids of k points
@@ -55,14 +54,14 @@
 #include "config.h"
 #endif
 
-subroutine testkgrid(bravais,iout,kptrlatt,kptrlen,&
+subroutine abi_testkgrid(bravais,iout,kptrlatt,kptrlen,&
 & msym,nshiftk,nsym,prtkpt,rprimd,shiftk,symafm,symrel,vacuum)
 
  use abi_defs_basis
  use abi_interfaces_lowlevel
  use abi_interfaces_numeric
  use abi_interfaces_geometry
- use interfaces_56_recipspace, except_this_one => testkgrid
+ use abi_interfaces_recipspace, except_this_one => abi_testkgrid
 
  implicit none
 
@@ -103,7 +102,7 @@ subroutine testkgrid(bravais,iout,kptrlatt,kptrlen,&
  do ii=1,3
    if(vacuum(ii)/=0 .and. vacuum(ii)/=1)then
      write(message,'(a,a,a,a,a,a,i1,a,i3,a,a)')ch10,&
-&     ' testkgrid : ERROR -',ch10,&
+&     ' abi_testkgrid : ERROR -',ch10,&
 &     '  The values of vacuum must be 0 or 1.',ch10,&
 &     '  However, the input vacuum(',ii,') is',vacuum(ii),ch10,&
 &     '  Action : correct vacuum in your input file.'
@@ -244,7 +243,7 @@ subroutine testkgrid(bravais,iout,kptrlatt,kptrlen,&
 
  if(prtkpt/=0)then
    write(message,'(a,a,a,a,a,a,a,a)' )ch10,&
-&   ' testkgrid : will perform the analysis of a series of k-grids.',ch10,&
+&   ' abi_testkgrid : will perform the analysis of a series of k-grids.',ch10,&
 &   '  Note that kptopt=1 in this analysis, irrespective of its input value.',&
    ch10,ch10,&
 &   ' Grid#    kptrlatt         shiftk         kptrlen       nkpt  iset',ch10
@@ -523,7 +522,7 @@ subroutine testkgrid(bravais,iout,kptrlatt,kptrlen,&
 !      End of 3-dimensional system
      end if
 
-     call getkgrid(iout,iscf,kpt,&
+     call abi_getkgrid(iout,iscf,kpt,&
 &     kptopt,kptrlatt_trial,kptrlen_trial,&
 &     msym,nkpt,nkpt_trial,nshiftk,nsym,rprimd,&
 &     shiftk_trial,symafm,symrel,vacuum,wtk)
@@ -643,12 +642,12 @@ subroutine testkgrid(bravais,iout,kptrlatt,kptrlen,&
    call abi_wrtout(iout,message,'COLL')
 
    write(message,'(a,a,a,a)' )ch10,&
-&   ' testkgrid : stop after analysis of a series of k-grids.',ch10,&
+&   ' abi_testkgrid : stop after analysis of a series of k-grids.',ch10,&
 &   '  For usual production runs, set prtkpt back to 0 (the default).'
    call abi_wrtout(std_out,message,'COLL')
    call abi_wrtout(iout,message,'COLL')
    call abi_leave_new('COLL')
  end if
 
-end subroutine testkgrid
+end subroutine abi_testkgrid
 !!***

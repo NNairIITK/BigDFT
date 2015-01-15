@@ -1,6 +1,7 @@
 !{\src2tex{textfont=tt}}
 !!****f* ABINIT/abi_metric
-!! NAME abi_metric
+!! NAME
+!! abi_metric
 !!
 !! FUNCTION
 !! Compute first dimensional primitive translation vectors in reciprocal space

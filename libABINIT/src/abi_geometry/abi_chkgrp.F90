@@ -1,6 +1,7 @@
 !{\src2tex{textfont=tt}}
 !!****f* ABINIT/abi_chkgrp
-!! NAME abi_chkgrp
+!! NAME
+!! abi_chkgrp
 !!
 !! FUNCTION
 !! Checks that a set of input symmetries constitutes a group.

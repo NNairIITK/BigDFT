@@ -50,6 +50,50 @@ abi_dotprodm_vn.o: abi_mixing/abi_dotprodm_vn.F90 \
 	m_abi_xmpi.o
 	$(PPFCCOMPILE) -c -o abi_dotprodm_vn.o `test -f 'abi_mixing/abi_dotprodm_vn.F90' || echo '$(srcdir)/'`abi_mixing/abi_dotprodm_vn.F90
 
+abi_getkgrid.o: abi_recipspace/abi_getkgrid.F90 \
+	abi_defs_basis.o \
+	abi_interfaces_geometry.o \
+	abi_interfaces_lowlevel.o \
+	abi_interfaces_numeric.o \
+	abi_interfaces_recipspace.o
+	$(PPFCCOMPILE) -c -o abi_getkgrid.o `test -f 'abi_recipspace/abi_getkgrid.F90' || echo '$(srcdir)/'`abi_recipspace/abi_getkgrid.F90
+
+abi_irrzg.o: abi_recipspace/abi_irrzg.F90 \
+	abi_defs_basis.o \
+	abi_interfaces_lowlevel.o \
+	abi_interfaces_numeric.o
+	$(PPFCCOMPILE) -c -o abi_irrzg.o `test -f 'abi_recipspace/abi_irrzg.F90' || echo '$(srcdir)/'`abi_recipspace/abi_irrzg.F90
+
+abi_testkgrid.o: abi_recipspace/abi_testkgrid.F90 \
+	abi_defs_basis.o \
+	abi_interfaces_geometry.o \
+	abi_interfaces_lowlevel.o \
+	abi_interfaces_numeric.o \
+	abi_interfaces_recipspace.o
+	$(PPFCCOMPILE) -c -o abi_testkgrid.o `test -f 'abi_recipspace/abi_testkgrid.F90' || echo '$(srcdir)/'`abi_recipspace/abi_testkgrid.F90
+
+abi_smpbz.o: abi_recipspace/abi_smpbz.F90 \
+	abi_defs_basis.o \
+	abi_interfaces_lowlevel.o \
+	abi_interfaces_numeric.o
+	$(PPFCCOMPILE) -c -o abi_smpbz.o `test -f 'abi_recipspace/abi_smpbz.F90' || echo '$(srcdir)/'`abi_recipspace/abi_smpbz.F90
+
+abi_interfaces_recipspace.o: abi_recipspace/abi_interfaces_recipspace.F90 \
+	abi_defs_basis.o
+	$(PPFCCOMPILE) -c -o abi_interfaces_recipspace.o `test -f 'abi_recipspace/abi_interfaces_recipspace.F90' || echo '$(srcdir)/'`abi_recipspace/abi_interfaces_recipspace.F90
+
+abi_symkpt.o: abi_recipspace/abi_symkpt.F90 \
+	abi_defs_basis.o \
+	abi_interfaces_lowlevel.o \
+	abi_interfaces_numeric.o
+	$(PPFCCOMPILE) -c -o abi_symkpt.o `test -f 'abi_recipspace/abi_symkpt.F90' || echo '$(srcdir)/'`abi_recipspace/abi_symkpt.F90
+
+m_ab6_kpoints.o: abi_recipspace/m_ab6_kpoints.F90 \
+	abi_defs_basis.o \
+	abi_interfaces_recipspace.o \
+	m_ab6_symmetry.o
+	$(PPFCCOMPILE) -c -o m_ab6_kpoints.o `test -f 'abi_recipspace/m_ab6_kpoints.F90' || echo '$(srcdir)/'`abi_recipspace/m_ab6_kpoints.F90
+
 ewald.o: 67_common/ewald.F90 \
 	abi_defs_basis.o \
 	abi_interfaces_lowlevel.o \
@@ -478,50 +522,6 @@ m_libpaw_tools.o: libpaw/m_libpaw_tools.F90 \
 	m_libpaw_defs.o \
 	m_libpaw_mpi.o
 	$(PPFCCOMPILE) -c -o m_libpaw_tools.o `test -f 'libpaw/m_libpaw_tools.F90' || echo '$(srcdir)/'`libpaw/m_libpaw_tools.F90
-
-symkpt.o: 56_recipspace/symkpt.F90 \
-	abi_defs_basis.o \
-	abi_interfaces_lowlevel.o \
-	abi_interfaces_numeric.o
-	$(PPFCCOMPILE) -c -o symkpt.o `test -f '56_recipspace/symkpt.F90' || echo '$(srcdir)/'`56_recipspace/symkpt.F90
-
-interfaces_56_recipspace.o: 56_recipspace/interfaces_56_recipspace.F90 \
-	abi_defs_basis.o
-	$(PPFCCOMPILE) -c -o interfaces_56_recipspace.o `test -f '56_recipspace/interfaces_56_recipspace.F90' || echo '$(srcdir)/'`56_recipspace/interfaces_56_recipspace.F90
-
-irrzg.o: 56_recipspace/irrzg.F90 \
-	abi_defs_basis.o \
-	abi_interfaces_lowlevel.o \
-	abi_interfaces_numeric.o
-	$(PPFCCOMPILE) -c -o irrzg.o `test -f '56_recipspace/irrzg.F90' || echo '$(srcdir)/'`56_recipspace/irrzg.F90
-
-getkgrid.o: 56_recipspace/getkgrid.F90 \
-	abi_defs_basis.o \
-	abi_interfaces_geometry.o \
-	abi_interfaces_lowlevel.o \
-	abi_interfaces_numeric.o \
-	interfaces_56_recipspace.o
-	$(PPFCCOMPILE) -c -o getkgrid.o `test -f '56_recipspace/getkgrid.F90' || echo '$(srcdir)/'`56_recipspace/getkgrid.F90
-
-smpbz.o: 56_recipspace/smpbz.F90 \
-	abi_defs_basis.o \
-	abi_interfaces_lowlevel.o \
-	abi_interfaces_numeric.o
-	$(PPFCCOMPILE) -c -o smpbz.o `test -f '56_recipspace/smpbz.F90' || echo '$(srcdir)/'`56_recipspace/smpbz.F90
-
-testkgrid.o: 56_recipspace/testkgrid.F90 \
-	abi_defs_basis.o \
-	abi_interfaces_geometry.o \
-	abi_interfaces_lowlevel.o \
-	abi_interfaces_numeric.o \
-	interfaces_56_recipspace.o
-	$(PPFCCOMPILE) -c -o testkgrid.o `test -f '56_recipspace/testkgrid.F90' || echo '$(srcdir)/'`56_recipspace/testkgrid.F90
-
-m_ab6_kpoints.o: 56_recipspace/m_ab6_kpoints.F90 \
-	abi_defs_basis.o \
-	interfaces_56_recipspace.o \
-	m_ab6_symmetry.o
-	$(PPFCCOMPILE) -c -o m_ab6_kpoints.o `test -f '56_recipspace/m_ab6_kpoints.F90' || echo '$(srcdir)/'`56_recipspace/m_ab6_kpoints.F90
 
 nose.o: 72_geomoptim/nose.F90 \
 	abi_defs_basis.o \

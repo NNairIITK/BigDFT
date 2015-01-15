@@ -1,6 +1,7 @@
 !{\src2tex{textfont=tt}}
 !!****f* ABINIT/abi_wrap2_pmhalf
-!! NAME abi_wrap2_pmhalf
+!! NAME
+!! abi_wrap2_pmhalf
 !!
 !! FUNCTION
 !! Transforms a real number (num) in its corresponding reduced number

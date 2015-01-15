@@ -1,6 +1,5 @@
 !{\src2tex{textfont=tt}}
 !!****f* ABINIT/ewald2
-!!
 !! NAME
 !! ewald2
 !!

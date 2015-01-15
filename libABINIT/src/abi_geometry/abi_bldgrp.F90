@@ -1,6 +1,7 @@
 !{\src2tex{textfont=tt}}
 !!****f* ABINIT/abi_bldgrp
-!! NAME abi_bldgrp
+!! NAME
+!! abi_bldgrp
 !!
 !! FUNCTION
 !! Yields all the symmetry operations starting from the generators.

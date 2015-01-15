@@ -1,6 +1,5 @@
 !{\src2tex{textfont=tt}}
 !!****f* ABINIT/fconv
-!!
 !! NAME
 !! fconv
 !!
