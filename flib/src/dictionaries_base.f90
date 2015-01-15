@@ -654,7 +654,6 @@ contains
        call set_elem(dict%child,key)
        subd_ptr => dict%child
     end if
-
   end function get_child_ptr
 
 
