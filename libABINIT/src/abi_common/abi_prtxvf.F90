@@ -1,7 +1,7 @@
 !{\src2tex{textfont=tt}}
-!!****f* ABINIT/prtxvf
+!!****f* ABINIT/abi_prtxvf
 !! NAME
-!! prtxvf
+!! abi_prtxvf
 !!
 !! FUNCTION
 !! Print the values of xcart, vel, and fcart to unit iout.
@@ -32,7 +32,7 @@
 #include "config.h"
 #endif
 
-subroutine prtxvf(fcart,iatfix,iout,natom,prtvel,vel,xcart)
+subroutine abi_prtxvf(fcart,iatfix,iout,natom,prtvel,vel,xcart)
 
  use abi_defs_basis
  use abi_interfaces_lowlevel
@@ -98,5 +98,5 @@ subroutine prtxvf(fcart,iatfix,iout,natom,prtvel,vel,xcart)
  write(message, '(a)' ) ' '
  call abi_wrtout(iout,message,'COLL')
 
-end subroutine prtxvf
+end subroutine abi_prtxvf
 !!***

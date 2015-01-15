@@ -94,32 +94,6 @@ m_ab6_kpoints.o: abi_recipspace/m_ab6_kpoints.F90 \
 	m_ab6_symmetry.o
 	$(PPFCCOMPILE) -c -o m_ab6_kpoints.o `test -f 'abi_recipspace/m_ab6_kpoints.F90' || echo '$(srcdir)/'`abi_recipspace/m_ab6_kpoints.F90
 
-ewald.o: 67_common/ewald.F90 \
-	abi_defs_basis.o \
-	abi_interfaces_lowlevel.o \
-	abi_interfaces_numeric.o
-	$(PPFCCOMPILE) -c -o ewald.o `test -f '67_common/ewald.F90' || echo '$(srcdir)/'`67_common/ewald.F90
-
-interfaces_67_common.o: 67_common/interfaces_67_common.F90 \
-	abi_defs_basis.o \
-	abi_interfaces_lowlevel.o
-	$(PPFCCOMPILE) -c -o interfaces_67_common.o `test -f '67_common/interfaces_67_common.F90' || echo '$(srcdir)/'`67_common/interfaces_67_common.F90
-
-fconv.o: 67_common/fconv.F90 \
-	abi_defs_basis.o \
-	abi_interfaces_lowlevel.o
-	$(PPFCCOMPILE) -c -o fconv.o `test -f '67_common/fconv.F90' || echo '$(srcdir)/'`67_common/fconv.F90
-
-prtxvf.o: 67_common/prtxvf.F90 \
-	abi_defs_basis.o \
-	abi_interfaces_lowlevel.o
-	$(PPFCCOMPILE) -c -o prtxvf.o `test -f '67_common/prtxvf.F90' || echo '$(srcdir)/'`67_common/prtxvf.F90
-
-ewald2.o: 67_common/ewald2.F90 \
-	abi_defs_basis.o \
-	abi_interfaces_numeric.o
-	$(PPFCCOMPILE) -c -o ewald2.o `test -f '67_common/ewald2.F90' || echo '$(srcdir)/'`67_common/ewald2.F90
-
 abi_smallprim.o: abi_geometry/abi_smallprim.F90 \
 	abi_defs_basis.o \
 	abi_interfaces_geometry.o \
@@ -307,6 +281,32 @@ abi_symplanes.o: abi_geometry/abi_symplanes.F90 \
 	abi_defs_basis.o \
 	abi_interfaces_lowlevel.o
 	$(PPFCCOMPILE) -c -o abi_symplanes.o `test -f 'abi_geometry/abi_symplanes.F90' || echo '$(srcdir)/'`abi_geometry/abi_symplanes.F90
+
+abi_prtxvf.o: abi_common/abi_prtxvf.F90 \
+	abi_defs_basis.o \
+	abi_interfaces_lowlevel.o
+	$(PPFCCOMPILE) -c -o abi_prtxvf.o `test -f 'abi_common/abi_prtxvf.F90' || echo '$(srcdir)/'`abi_common/abi_prtxvf.F90
+
+abi_interfaces_common.o: abi_common/abi_interfaces_common.F90 \
+	abi_defs_basis.o \
+	abi_interfaces_lowlevel.o
+	$(PPFCCOMPILE) -c -o abi_interfaces_common.o `test -f 'abi_common/abi_interfaces_common.F90' || echo '$(srcdir)/'`abi_common/abi_interfaces_common.F90
+
+abi_ewald2.o: abi_common/abi_ewald2.F90 \
+	abi_defs_basis.o \
+	abi_interfaces_numeric.o
+	$(PPFCCOMPILE) -c -o abi_ewald2.o `test -f 'abi_common/abi_ewald2.F90' || echo '$(srcdir)/'`abi_common/abi_ewald2.F90
+
+abi_ewald.o: abi_common/abi_ewald.F90 \
+	abi_defs_basis.o \
+	abi_interfaces_lowlevel.o \
+	abi_interfaces_numeric.o
+	$(PPFCCOMPILE) -c -o abi_ewald.o `test -f 'abi_common/abi_ewald.F90' || echo '$(srcdir)/'`abi_common/abi_ewald.F90
+
+abi_fconv.o: abi_common/abi_fconv.F90 \
+	abi_defs_basis.o \
+	abi_interfaces_lowlevel.o
+	$(PPFCCOMPILE) -c -o abi_fconv.o `test -f 'abi_common/abi_fconv.F90' || echo '$(srcdir)/'`abi_common/abi_fconv.F90
 
 abi_matr3inv.o: abi_numeric/abi_matr3inv.F90 \
 	abi_defs_basis.o

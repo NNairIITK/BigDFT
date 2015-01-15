@@ -1,7 +1,7 @@
 !{\src2tex{textfont=tt}}
-!!****f* ABINIT/ewald
+!!****f* ABINIT/abi_ewald
 !! NAME
-!! ewald
+!! abi_ewald
 !!
 !! FUNCTION
 !! Compute Ewald energy and derivatives with respect to dimensionless
@@ -34,7 +34,7 @@
 #include "config.h"
 #endif
 
-subroutine ewald(eew,gmet,grewtn,natom,ntypat,rmet,typat,ucvol,xred,zion)
+subroutine abi_ewald(eew,gmet,grewtn,natom,ntypat,rmet,typat,ucvol,xred,zion)
 
  use abi_defs_basis
  use abi_interfaces_lowlevel
@@ -175,7 +175,7 @@ subroutine ewald(eew,gmet,grewtn,natom,ntypat,rmet,typat,ucvol,xred,zion)
 !
  sumg=gsum/(two_pi*ucvol)
 
-!Stress tensor is now computed elsewhere (ewald2) hence do not need
+!Stress tensor is now computed elsewhere (abi_ewald2) hence do not need
 !length scale gradients (used to compute them here).
 
 !normalize coordinate gradients by unit cell volume ucvol
@@ -241,7 +241,7 @@ subroutine ewald(eew,gmet,grewtn,natom,ntypat,rmet,typat,ucvol,xred,zion)
                    sumr=sumr+zion(typat(ia))*zion(typat(ib))*term
                    term=zion(typat(ia))*zion(typat(ib))*&
 &                   (term+fac*exp(-eta*rsq))/rsq
-!                  Length scale grads now handled with stress tensor in ewald2
+!                  Length scale grads now handled with stress tensor in abi_ewald2
                    r1a1d=rmet(1,1)*r1+rmet(1,2)*r2+rmet(1,3)*r3
                    r2a2d=rmet(2,1)*r1+rmet(2,2)*r2+rmet(2,3)*r3
                    r3a3d=rmet(3,1)*r1+rmet(3,2)*r2+rmet(3,3)*r3
@@ -282,12 +282,12 @@ subroutine ewald(eew,gmet,grewtn,natom,ntypat,rmet,typat,ucvol,xred,zion)
 !Finally assemble Ewald energy, eew
  eew=sumg+sumr-chsq*reta/sqrt(pi)-fac
 
-!Length scale grads handled with stress tensor, ewald2
+!Length scale grads handled with stress tensor, abi_ewald2
 
 !Output the final values of ng and nr
  write(message, '(a,a,i4,a,i4)' )ch10,&
-& ' ewald : nr and ng are ',nr,' and ',ng
+& ' abi_ewald : nr and ng are ',nr,' and ',ng
  call abi_wrtout(std_out,message,'COLL')
 
-end subroutine ewald
+end subroutine abi_ewald
 !!***

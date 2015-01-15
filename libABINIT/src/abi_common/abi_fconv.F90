@@ -1,7 +1,7 @@
 !{\src2tex{textfont=tt}}
-!!****f* ABINIT/fconv
+!!****f* ABINIT/abi_fconv
 !! NAME
-!! fconv
+!! abi_fconv
 !!
 !! FUNCTION
 !! Check maximal absolute value of force (hartree/bohr) against
@@ -54,7 +54,7 @@
 #include "config.h"
 #endif
 
-subroutine fconv(fcart,iatfix,iexit,itime,natom,ntime,&
+subroutine abi_fconv(fcart,iatfix,iexit,itime,natom,ntime,&
 & optcell,strfact,strtarget,strten,tolmxf)
 
  use abi_defs_basis
@@ -138,7 +138,7 @@ subroutine fconv(fcart,iatfix,iexit,itime,natom,ntime,&
  else
    if(iexit==1)then
      write(message, '(a,a,a,a,i5,a,a,a,es11.4,a,es11.4,a,a)' ) ch10,&
-&     ' fconv : WARNING -',ch10,&
+&     ' abi_fconv : WARNING -',ch10,&
 &     '  ntime=',ntime,' was not enough Broyd/MD steps to converge gradients: ',&
 &     ch10,'  max grad (force/stress) =',fmax,' > tolmxf=',tolmxf,&
 &     ' ha/bohr (free atoms)',ch10
@@ -146,7 +146,7 @@ subroutine fconv(fcart,iatfix,iexit,itime,natom,ntime,&
      call abi_wrtout(ab_out,  message,'COLL')
    else
      write(message, '(a,i4,a,a,a,es11.4,a,es11.4,a,a)' ) &
-&     ' fconv : at Broyd/MD step',itime,', gradients have not converged yet. ',&
+&     ' abi_fconv : at Broyd/MD step',itime,', gradients have not converged yet. ',&
 &     ch10,'  max grad (force/stress) =',fmax,' > tolmxf=',tolmxf,&
 &     ' ha/bohr (free atoms)',ch10
      call abi_wrtout(std_out,  message,'COLL')
@@ -154,5 +154,5 @@ subroutine fconv(fcart,iatfix,iexit,itime,natom,ntime,&
    iexit=0
  end if
 
-end subroutine fconv
+end subroutine abi_fconv
 !!***

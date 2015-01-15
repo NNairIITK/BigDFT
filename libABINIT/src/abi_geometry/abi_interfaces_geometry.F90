@@ -90,7 +90,7 @@ interface
 end interface
 
 interface
- subroutine metric(gmet,gprimd,iout,rmet,rprimd,ucvol)
+ subroutine abi_metric(gmet,gprimd,iout,rmet,rprimd,ucvol)
   use abi_defs_basis
   implicit none
   integer,intent(in) :: iout
@@ -99,7 +99,7 @@ interface
   real(dp),intent(out) :: gprimd(3,3)
   real(dp),intent(out) :: rmet(3,3)
   real(dp),intent(in) :: rprimd(3,3)
- end subroutine metric
+ end subroutine abi_metric
 end interface
 
 interface

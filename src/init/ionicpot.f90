@@ -15,7 +15,8 @@ subroutine IonicEnergyandForces(iproc,nproc,dpbox,at,elecfield,&
   use module_base
   use module_types
   use Poisson_Solver, except_dp => dp, except_gp => gp, except_wp => wp
-  use abi_interfaces_geometry, only: metric
+  use abi_interfaces_geometry, only: abi_metric
+  use abi_interfaces_common, only: abi_ewald, abi_ewald2
   use vdwcorrection
   use yaml_output
   implicit none
@@ -87,10 +88,10 @@ subroutine IonicEnergyandForces(iproc,nproc,dpbox,at,elecfield,&
      end do
 
      !calculate ewald energy and forces + stress
-     call ewald(eion,gmet,fewald,at%astruct%nat,at%astruct%ntypes,rmet,at%astruct%iatype,ucvol,&
+     call abi_ewald(eion,gmet,fewald,at%astruct%nat,at%astruct%ntypes,rmet,at%astruct%iatype,ucvol,&
           xred,real(at%nelpsp,kind=8))
      ewaldstr=0.0_dp
-     call ewald2(gmet,at%astruct%nat,at%astruct%ntypes,rmet,rprimd,ewaldstr,at%astruct%iatype,&
+     call abi_ewald2(gmet,at%astruct%nat,at%astruct%ntypes,rmet,rprimd,ewaldstr,at%astruct%iatype,&
           ucvol,xred,real(at%nelpsp,kind=8))
 
 ! our sequence of strten elements : 11 22 33 12 13 23

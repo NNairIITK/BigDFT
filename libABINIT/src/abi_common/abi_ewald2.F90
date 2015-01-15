@@ -1,7 +1,7 @@
 !{\src2tex{textfont=tt}}
-!!****f* ABINIT/ewald2
+!!****f* ABINIT/abi_ewald2
 !! NAME
-!! ewald2
+!! abi_ewald2
 !!
 !! FUNCTION
 !! Compute the part of the stress tensor coming from the Ewald energy
@@ -40,7 +40,7 @@
 #include "config.h"
 #endif
 
-subroutine ewald2(gmet,natom,ntypat,rmet,rprimd,stress,&
+subroutine abi_ewald2(gmet,natom,ntypat,rmet,rprimd,stress,&
 &  typat,ucvol,xred,zion)
 
  use abi_defs_basis
@@ -266,5 +266,5 @@ subroutine ewald2(gmet,natom,ntypat,rmet,rprimd,stress,&
  stress(5)=(0.5_dp*reta*strr(5)+fac*strg(5))/ucvol
  stress(6)=(0.5_dp*reta*strr(6)+fac*strg(6))/ucvol
 
-end subroutine ewald2
+end subroutine abi_ewald2
 !!***

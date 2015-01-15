@@ -452,8 +452,8 @@ subroutine moldyn(acell,amass,me,&
 
 ! Output coordinates, forces and velocities
   prtvel=1
-  call prtxvf(fcart,iatfix,ab_out,natom,prtvel,vel,xcart)
-  call prtxvf(fcart,iatfix, 06 ,natom,prtvel,vel,xcart)
+  call abi_prtxvf(fcart,iatfix,ab_out,natom,prtvel,vel,xcart)
+  call abi_prtxvf(fcart,iatfix, 06 ,natom,prtvel,vel,xcart)
 
 ! Here, stop the atoms for which the scalar product of velocity
 ! and force is negative, and recompute the kinetic energy.
@@ -505,7 +505,7 @@ subroutine moldyn(acell,amass,me,&
   if(ionmov==7)then
    iexit=0
    if(itime==ntime)iexit=1
-   call fconv(fcart,iatfix,iexit,itime,natom,ntime,&
+   call abi_fconv(fcart,iatfix,iexit,itime,natom,ntime,&
 &   optcell,strfact,strtarget,strten,tolmxf)
    if (iexit/=0) exit
   end if

@@ -17,12 +17,12 @@
 !!
 !! SOURCE
 
-module interfaces_67_common
+module abi_interfaces_common
 
  implicit none
 
 interface
- subroutine ewald(eew,gmet,grewtn,natom,ntypat,rmet,typat,ucvol,xred,zion)
+ subroutine abi_ewald(eew,gmet,grewtn,natom,ntypat,rmet,typat,ucvol,xred,zion)
   use abi_defs_basis
   use abi_interfaces_lowlevel
   implicit none
@@ -36,11 +36,11 @@ interface
   real(dp),intent(in) :: xred(3,natom)
   real(dp),intent(in) :: zion(ntypat)
   real(dp),intent(out) :: grewtn(3,natom)
- end subroutine ewald
+ end subroutine abi_ewald
 end interface
 
 interface
- subroutine ewald2(gmet,natom,ntypat,rmet,rprimd,stress,&
+ subroutine abi_ewald2(gmet,natom,ntypat,rmet,rprimd,stress,&
 &                  typat,ucvol,xred,zion)
   use abi_defs_basis
   implicit none
@@ -54,11 +54,11 @@ interface
   real(dp),intent(in) :: xred(3,natom)
   real(dp),intent(in) :: zion(ntypat)
   real(dp),intent(out) :: stress(6)
- end subroutine ewald2
+ end subroutine abi_ewald2
 end interface
 
 interface
- subroutine fconv(fcart,iatfix,iexit,itime,natom,ntime,&
+ subroutine abi_fconv(fcart,iatfix,iexit,itime,natom,ntime,&
 &                 optcell,strfact,strtarget,strten,tolmxf)
   use abi_defs_basis
   implicit none
@@ -73,11 +73,11 @@ interface
   real(dp),intent(in) :: fcart(3,natom)
   real(dp),intent(in) :: strtarget(6)
   real(dp),intent(in) :: strten(6)
- end subroutine fconv
+ end subroutine abi_fconv
 end interface
 
 interface
- subroutine prtxvf(fcart,iatfix,iout,natom,prtvel,vel,xcart)
+ subroutine abi_prtxvf(fcart,iatfix,iout,natom,prtvel,vel,xcart)
   use abi_defs_basis
   implicit none
   integer,intent(in) :: iout
@@ -87,8 +87,8 @@ interface
   real(dp),intent(in) :: fcart(3,natom)
   real(dp),intent(in) :: vel(3,natom)
   real(dp),intent(in) :: xcart(3,natom)
- end subroutine prtxvf
+ end subroutine abi_prtxvf
 end interface
 
-end module interfaces_67_common
+end module abi_interfaces_common
 !!***

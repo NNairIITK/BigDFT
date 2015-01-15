@@ -144,11 +144,11 @@ libabinit_a_SOURCES = \
 	abi_recipspace/abi_symkpt.F90 \
 	abi_recipspace/abi_testkgrid.F90 \
 	abi_recipspace/m_ab6_kpoints.F90 \
-	67_common/interfaces_67_common.F90 \
-	67_common/ewald.F90 \
-	67_common/ewald2.F90 \
-	67_common/fconv.F90 \
-	67_common/prtxvf.F90 \
+	abi_common/abi_interfaces_common.F90 \
+	abi_common/abi_ewald.F90 \
+	abi_common/abi_ewald2.F90 \
+	abi_common/abi_fconv.F90 \
+	abi_common/abi_prtxvf.F90 \
 	72_geomoptim/ab6_moldyn.F90 \
 	$(libpaw_files)
 

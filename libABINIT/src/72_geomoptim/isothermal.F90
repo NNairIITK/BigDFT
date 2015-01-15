@@ -10,9 +10,9 @@ subroutine md_isothermal(acell, acell_next, amass, bmass, dtion, etotal, etotal0
   implicit none
 
   integer, intent(in) :: natom, itime, nnos, optcell, me
-  real(dp), intent(in) :: mditemp, dtion, ucvol, ktemp, bmass, vmass
+  real(dp), intent(in) :: mditemp, dtion, ktemp, bmass, vmass
   real(dp), intent(out) :: ucvol_next, etotal
-  real(dp), intent(inout) :: etotal0
+  real(dp), intent(inout) :: etotal0, ucvol
   integer, intent(in) :: iatfix(3, natom)
   real(dp), intent(in) :: amass(natom), qmass(nnos)
   real(dp), intent(in) :: acell(3), rprim(3,3), rprimd(3,3)
