@@ -1234,7 +1234,7 @@ contains
        !         end if
 !       if (bigdft_mpi%iproc==0) call yaml_release_document()
     case('MORSE_BULK_RUN_MODE')
-        call morse_bulk_wrapper(nat,alatint,rxyz_ptr, outs%fxyz, outs%energy) 
+        call morse_bulk_wrapper(nat,bigdft_get_cell(runObj),rxyz_ptr, outs%fxyz, outs%energy) 
     case('LENOSKY_SI_CLUSTERS_RUN_MODE')
        !else if(trim(adjustl(efmethod))=='LENSIc')then!for clusters
        call f_memcpy(src=rxyz_ptr,dest=runObj%mm_rst%rf_extra)

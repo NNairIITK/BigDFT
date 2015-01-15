@@ -85,10 +85,14 @@ subroutine init_morse_bulk(paramset,paramfile,geocode)
         case('Pt')
             call yaml_scalar('Using Pt Parameters from'//&
                  ' Bassett, D. W.; Webber, P. R. Surf. Sci. 1978, 70, 520.')
-        rho = 1.0_gp
-        rcut = 1.0_gp
-        R0 = 1.0_gp
-        A = 1.0_gp
+            rho = 1.6047_gp * Bohr_Ang !convert 1.6047 A^-1 to  1/Bohr
+            rcut = 9.5_gp / Bohr_Ang !convert 9.5 Angstroem to Bohr
+            R0 = 2.8970_gp / Bohr_Ang !convert 2.8960 Angstroem to Bohr
+            A = 0.7102_gp * eV_Ha !convert 0.7102 eV to Hartree
+            call yaml_map('rho (1/Bohr)', yaml_toa(rho))
+            call yaml_map('rcut (Bohr)',yaml_toa(rcut))
+            call yaml_map('R0 (Bohr)',  yaml_toa(R0))
+            call yaml_map('A (Hartree)',   yaml_toa(A))
         case('default')
             initialized=.false.
             call f_err_throw('No "default" parameter set for morse_bulk defined.')
@@ -119,22 +123,8 @@ subroutine morse_bulk_wrapper(nat,alat,rxyz, fxyz, epot)
              err_name='BIGDFT_RUNTIME_ERROR')
     endif
     
-!    rho = param1
-!    boxvec(1) = param2
-!    boxvec(2) = param3
-!    boxvec(3) = param4
-!    rcut = param5
-    
-!    R0 = 1.0_gp
-!    A = 1.0_gp
-!    periodic = .true.
-!    use_cutoff = .true.
-    
     call morse_bulk(rxyz(1),fxyz(1),epot, nat, rho, R0, A, periodic, & 
        alatint, use_cutoff, rcut)
-write(*,*)nat
-write(*,*)alat
-stop
 end subroutine morse_bulk_wrapper
 
       SUBROUTINE MORSE_BULK(X,V,EMORSE, natoms, rho, R0, A, periodic, &
