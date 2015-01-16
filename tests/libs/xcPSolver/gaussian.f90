@@ -430,4 +430,3 @@ end subroutine moments_1d
 !!$  end do
 !!$
 !!$END SUBROUTINE my_analytic_integral
-!!$
