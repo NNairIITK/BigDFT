@@ -35,6 +35,7 @@ program mhgps
     use bigdft_run
     implicit none
     integer                   :: u
+    integer                   :: nfree
     integer                   :: iat
     integer                   :: info
     integer                   :: isame
@@ -407,12 +408,14 @@ program mhgps
                    fxyz,fnoise,energy,infocode)
               runObj%inputs%inputPsiId=0
               call cal_hessian_fd(mhgpsst,runObj,outs,rxyz,&
-                   hess)
+                   hess,nfree)
               if(mhgpsst%iproc==0)then
                  write(*,*)'(hess) HESSIAN:'
                  write(*,*)hess
               endif
-              call DSYEV('V','L',3*bigdft_nat(runObj),hess,3*bigdft_nat(runObj),eval,WORK,LWORK,&
+!              call DSYEV('V','L',3*bigdft_nat(runObj),hess,3*bigdft_nat(runObj),eval,WORK,LWORK,&
+!                   INFO)
+              call DSYEV('V','L',nfree,hess,3*bigdft_nat(runObj),eval,WORK,LWORK,&
                    INFO)
               if (info.ne.0) stop 'DSYEV'
               if(mhgpsst%iproc==0)then
@@ -421,7 +424,7 @@ program mhgps
                  write(*,'(a,1x,es9.2,1x,es24.17)') '(hess)'//&
                       ' ---   App. eigenvalues in exact --------'//&
                       '--- fnrm:',sqrt(sum(fxyz**2)),energy
-                 do iat=1,3*bigdft_nat(runObj)
+                 do iat=1,nfree
                     write(*,*) '(hess) eval ',iat,eval(iat)
                  enddo
               endif
