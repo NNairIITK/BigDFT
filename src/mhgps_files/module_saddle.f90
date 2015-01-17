@@ -538,11 +538,6 @@ subroutine findsad(mhgpsst,fsw,uinp,runObj,outs,rcov,nbond,iconnect,&
              fsw%rxyz_trans(1,1,nhist),fsw%rxyzraw_trans(1,1,nhist),fsw%fxyz_trans(1,1,nhist),&
              fsw%fstretch_trans(1,1,nhist),fsw%fxyzraw_trans(1,1,nhist),etotp,iconnect,&
              nbond,fsw%wold_trans,uinp%saddle_alpha_stretch0,alpha_stretch)
-write(100,*)
-do iat=1,runObj%atoms%astruct%nat
-write(100,'(3(1x,es24.17))')fsw%rxyz_trans(1,iat,nhist)*Bohr_Ang,&
-fsw%rxyz_trans(2,iat,nhist)*Bohr_Ang,fsw%rxyz_trans(3,iat,nhist)*Bohr_Ang
-enddo
         ener_count=ener_count+1.0_gp
         fsw%rxyzold_trans=fsw%rxyz_trans(:,:,nhist)
         detot=etotp-etotold
@@ -954,6 +949,7 @@ subroutine curvforce(mhgpsst,runObj,outs,diff,rxyz1,fxyz1,vec,curv,rotforce,imet
     use module_energyandforces
     use bigdft_run, only: run_objects, state_properties
     use module_mhgps_state
+    use module_forces
     implicit none
     !parameters
     type(mhgps_state), intent(inout) :: mhgpsst
@@ -977,7 +973,6 @@ subroutine curvforce(mhgpsst,runObj,outs,diff,rxyz1,fxyz1,vec,curv,rotforce,imet
 !    diff=1.e-3_gp !lennard jones
 
     diffinv=1.0_gp/(diff)
-
     rxyz2 = f_malloc((/ 1.to.3, 1.to.runObj%atoms%astruct%nat/),id='rxyz2')
     fxyz2 = f_malloc((/ 1.to.3, 1.to.runObj%atoms%astruct%nat/),id='fxyz2')
     drxyz = f_malloc((/ 1.to.3, 1.to.runObj%atoms%astruct%nat/),id='drxyz')
@@ -988,6 +983,7 @@ subroutine curvforce(mhgpsst,runObj,outs,diff,rxyz1,fxyz1,vec,curv,rotforce,imet
              rxyz1(1,1),vec(1,1))
     
 
+call clean_forces_base(runObj%atoms,vec) 
     vec = vec / dnrm2(3*runObj%atoms%astruct%nat,vec(1,1),1)
     rxyz2 = rxyz1 + diff * vec
     call mhgpsenergyandforces(mhgpsst,runobj,outs,rxyz2(1,1),&

@@ -36,14 +36,19 @@ contains
       real(gp) :: h,rlarge,twelfth,twothird,etot,cmx,cmy,cmz,dm,tt
       real(gp) :: s,fnoise
       integer :: i,j,k,lworkf,infocode
+      integer, dimension(:), allocatable :: ifrztyp0 !< To avoid to freeze the atoms for bigdft_state
 
       !allocate(hess(3*runObj%atoms%astruct%nat,3*runObj%atoms%astruct%nat))
       tpos = f_malloc(3*runObj%atoms%astruct%nat,id='tpos')
       grad = f_malloc(3*runObj%atoms%astruct%nat,id='grad')
       eval = f_malloc(3*runObj%atoms%astruct%nat,id='eval')
+      ifrztyp0 = f_malloc(runObj%atoms%astruct%nat, id = 'ifrztyp0')
 
       lworkf=1000*runObj%atoms%astruct%nat
       workf = f_malloc(lworkf,id='workf')
+
+      ifrztyp0 = runObj%atoms%astruct%ifrztyp                             
+      runObj%atoms%astruct%ifrztyp = 0 
 
       !h=1.e-1_gp
       !h=7.5e-2_gp
@@ -128,10 +133,12 @@ contains
          workf(i+1)= (pos(i+0)-cmx)
          workf(i+0)=-(pos(i+1)-cmy)
       enddo
+      runObj%atoms%astruct%ifrztyp = ifrztyp0 
       call f_free(tpos)
       call f_free(grad)
       call f_free(eval)
       call f_free(workf)
+      call f_free(ifrztyp0)
    end subroutine cal_hessian_fd
 
 end module module_hessian

@@ -12,6 +12,7 @@ module module_forces
     private
 
     public :: clean_forces
+    public :: clean_forces_base
 
 contains
 subroutine clean_forces(iproc,at,rxyz,fxyz,fnoise,run_mode)
