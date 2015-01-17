@@ -9,7 +9,7 @@ uses_except="BigDFT_API xc_f90_types_m libxc_funcs_m xc_f90_lib_m \
 includes_except="fexcp.h"
 
 #Some "use module" statements might be expressed as cpp macros
-n_macros=2
+n_macros=3
 macros_in=( "USE_DEFS" "USE_MPI_WRAPPERS" "USE_MSG_HANDLING" )
 macros_out=( "m_libpaw_defs" "m_libpaw_mpi" "m_libpaw_tools" )
 
