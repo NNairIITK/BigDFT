@@ -804,7 +804,6 @@ subroutine input_memory_linear(iproc, nproc, at, KSwfn, tmb, tmb_old, denspot, i
   real(kind=8),dimension(lwork) :: work
   integer :: info
 
-
   call f_routine(id='input_memory_linear')
 
 
@@ -2468,7 +2467,7 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
            nullify(in_frag_charge)
         end if
      else
-        call vcopy(tmb%orbs%norb**2,ref_frags(1)%coeff(1,1),1,tmb%coeff(1,1),1)
+        call vcopy(tmb%orbs%norb*tmb%linmat%l%nfvctr,ref_frags(1)%coeff(1,1),1,tmb%coeff(1,1),1)
         call vcopy(tmb%orbs%norb,ref_frags(1)%eval(1),1,tmb%orbs%eval(1),1)
         call f_free_ptr(ref_frags(1)%coeff)
         call f_free_ptr(ref_frags(1)%eval)
@@ -2476,13 +2475,13 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
 
      ! hack occup to make density neutral with full occupations, then unhack after extra diagonalization (using nstates max)
      ! use nstates_max - tmb%orbs%occup set in fragment_coeffs_to_kernel
+     tmb%can_use_transposed=.false.
      if (in%lin%diag_start) then
         ! not worrying about this case as not currently used anyway
         call reconstruct_kernel(iproc, nproc, in%lin%order_taylor, tmb%orthpar%blocksize_pdsyev, &
              tmb%orthpar%blocksize_pdgemm, tmb%orbs, tmb, overlap_calculated)  
      else
         ! come back to this - reconstruct kernel too expensive with exact version, but Taylor needs to be done ~ 3 times here...
-
         call reconstruct_kernel(iproc, nproc, in%lin%order_taylor, tmb%orthpar%blocksize_pdsyev, &
              tmb%orthpar%blocksize_pdgemm, KSwfn%orbs, tmb, overlap_calculated)
      end if
@@ -2832,6 +2831,8 @@ subroutine input_wf_memory_new(nproc, iproc, atoms, &
   real(wp) :: rcov
   !character(len=2) :: symbol
 
+  call f_routine(id='input_wf_memory_new')
+
   if (lzd_old%Glr%geocode .ne. 'F') then
      write(*,*) 'Not implemented for boundary conditions other than free'
      stop
@@ -3093,6 +3094,8 @@ subroutine input_wf_memory_new(nproc, iproc, atoms, &
 
   call f_free_ptr(psi_old)
 
+  call f_release_routine()
+
 contains
 
   pure real(wp) function ex(x,m)
@@ -3104,7 +3107,8 @@ contains
   end function ex
 
   !> conversion avoiding floating-point exception
-  pure function simple(double)
+  !pure function simple(double)
+  function simple(double)
     implicit none
     real(wp), intent(in) :: double
     real :: simple

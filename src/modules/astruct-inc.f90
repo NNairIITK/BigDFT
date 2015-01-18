@@ -56,6 +56,7 @@ subroutine read_xyz_positions(ifile,filename,astruct,comment,energy,fxyz,getLine
      write(comment, "(A)") ""
      if (ierrsfx /= 0) then
         read(line,*, iostat = ierrsfx) iat,astruct%units
+        energy = UNINITIALIZED(energy)
         if (ierrsfx /= 0) then
            read(line,*, iostat = ierrsfx) iat
            write(astruct%units, "(A)") "bohr"

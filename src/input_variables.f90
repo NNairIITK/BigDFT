@@ -453,7 +453,8 @@ subroutine check_for_data_writing_directory(iproc,in)
        in%gaussian_help .or. &                         !Mulliken and local density of states
        bigdft_mpi%ngroup > 1   .or. &                  !taskgroups have been inserted
        in%lin%plotBasisFunctions > 0 .or. &            !dumping of basis functions for locreg runs
-       in%inputPsiId == 102                            !reading of basis functions
+       in%inputPsiId == 102 .or. &                     !reading of basis functions
+       in%write_orbitals                               !writing the KS orbitals in the linear case
 
   !here you can check whether the etsf format is compiled
 

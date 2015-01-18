@@ -340,7 +340,7 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
           ! To do so, ensure that the first entry is always positive.
           do iorb=1,tmb%linmat%m%nfvctr
               if (matrixElements(1,iorb,1)<0.d0) then
-                  call dscal(tmb%orbs%norb, -1.d0, matrixElements(1,iorb,1), 1)
+                  call dscal(tmb%linmat%m%nfvctr, -1.d0, matrixElements(1,iorb,1), 1)
               end if
           end do
 
@@ -831,46 +831,16 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
                            check_accur=.true., max_error=max_error, mean_error=mean_error)
                       call check_taylor_order(mean_error, max_inversion_error, order_taylor)
                   end if
-                  !!call extract_taskgroup_inplace(tmb%linmat%l, tmb%linmat%kernel_)
                   call renormalize_kernel(iproc, nproc, order_taylor, max_inversion_error, tmb, tmb%linmat%ovrlp_, ovrlp_old)
-                  !!call gather_matrix_from_taskgroups_inplace(iproc, nproc, tmb%linmat%l, tmb%linmat%kernel_)
-                  !!call gather_matrix_from_taskgroups_inplace(iproc, nproc, tmb%linmat%s, tmb%linmat%ovrlp_)
               else if (method_updatekernel==UPDATE_BY_FOE) then
-                  !call gather_matrix_from_taskgroups_inplace(iproc, nproc, tmb%linmat%s, tmb%linmat%ovrlp_)
-                  !tmparr1 = sparsematrix_malloc(tmb%linmat%s,iaction=SPARSE_FULL,id='tmparr1')
-                  !call vcopy(tmb%linmat%s%nvctr*tmb%linmat%s%nspin, tmb%linmat%ovrlp_%matrix_compr(1), 1, tmparr1(1), 1)
-                  !!call extract_taskgroup_inplace(tmb%linmat%s, tmb%linmat%ovrlp_)
-                  !!tmparr2 = sparsematrix_malloc(tmb%linmat%m,iaction=SPARSE_FULL,id='tmparr2')
-                  !!call vcopy(tmb%linmat%m%nvctr*tmb%linmat%m%nspin, tmb%linmat%ham_%matrix_compr(1), 1, tmparr2(1), 1)
-                  !!call extract_taskgroup_inplace(tmb%linmat%m, tmb%linmat%ham_)
                   call foe(iproc, nproc, 0.d0, &
                        energs%ebs, -1, -10, order_taylor, max_inversion_error, purification_quickreturn, &
                        .true., 0, &
                        FOE_FAST, tmb, tmb%foe_obj)
-                  !!call vcopy(tmb%linmat%s%nvctr*tmb%linmat%s%nspin, tmparr1(1), 1, tmb%linmat%ham_%matrix_compr(1), 1)
-                  !!call f_free(tmparr1)
-                  !!call vcopy(tmb%linmat%m%nvctr*tmb%linmat%m%nspin, tmparr2(1), 1, tmb%linmat%ham_%matrix_compr(1), 1)
-                  !!call f_free(tmparr2)
               end if
               if (iproc==0) call yaml_sequence_close()
           end if
       else
-          !!if (target_function==TARGET_FUNCTION_IS_ENERGY .and. iproc==0) then
-          !!    ist=0
-          !!    do iorb=1,tmb%orbs%norbp
-          !!        iiorb=tmb%orbs%isorb+iorb
-          !!        ilr=tmb%orbs%inwhichlocreg(iiorb)
-          !!        ncount=tmb%ham_descr%lzd%llr(ilr)%wfd%nvctr_c+7*tmb%ham_descr%lzd%llr(ilr)%wfd%nvctr_f
-          !!        do i=1,ncount
-          !!            ist=ist+1
-          !!            if (tmb%orbs%spinsgn(iiorb)>0.d0) then
-          !!                write(4101,'(a,2i10,f8.1,es16.7)') 'iiorb, ist, spin, vals', iiorb, ist, tmb%orbs%spinsgn(iiorb), tmb%hpsi(ist)
-          !!            else
-          !!                write(4102,'(a,2i10,f8.1,es16.7)') 'iiorb, ist, spin, val', iiorb, ist, tmb%orbs%spinsgn(iiorb), tmb%hpsi(ist)
-          !!            end if
-          !!        end do
-          !!    end do
-          !!end if
           call transpose_localized(iproc, nproc, tmb%ham_descr%npsidim_orbs, tmb%orbs, tmb%ham_descr%collcom, &
                TRANSPOSE_GATHER, tmb%hpsi, hpsit_c, hpsit_f, tmb%ham_descr%lzd, wt_hphi)
       end if
@@ -2246,7 +2216,7 @@ subroutine reorthonormalize_coeff(iproc, nproc, norb, blocksize_dsyev, blocksize
          ! gram-schmidt as too far from orthonormality to use iterative schemes for S^-1/2
          call f_free_ptr(ovrlp_coeff)
          call timing(iproc,'renormCoefCom2','ON')
-         call gramschmidt_coeff_trans(iproc,nproc,orbs%norb,basis_orbs,basis_overlap,basis_overlap_mat,coeff)
+         call gramschmidt_coeff_trans(iproc,nproc,orbs%norbu,orbs%norb,basis_orbs,basis_overlap,basis_overlap_mat,coeff)
          call timing(iproc,'renormCoefCom2','OF')
       else
          ! standard lowdin
