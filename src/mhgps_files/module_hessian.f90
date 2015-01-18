@@ -50,7 +50,7 @@ contains
       workf = f_malloc(lworkf,id='workf')
 
       ifrztyp0 = runObj%atoms%astruct%ifrztyp                             
-      runObj%atoms%astruct%ifrztyp = 0 
+!      runObj%atoms%astruct%ifrztyp = 0 
 
       !h=1.e-1_gp
       !h=7.5e-2_gp

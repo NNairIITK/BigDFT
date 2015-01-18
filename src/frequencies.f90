@@ -150,7 +150,9 @@ program frequencies
    ! If we want the Hessian and Dynamical matrices only for the freedom degrees not useful
    ! but permit to restart with more degrees of freedom (less frozen atoms)
    ifrztyp0 = runObj%atoms%astruct%ifrztyp
-   runObj%atoms%astruct%ifrztyp = 0
+ !following line: setting runObj%atoms%astruct%ifrztyp does not make sense:
+ !If atoms are frozen, we don't move them=> forces not needed for finite differences
+!   runObj%atoms%astruct%ifrztyp = 0
 
    !Initialize the moves using a restart file if present
    !Regenerate it if trouble and indicate if all calculations are done
