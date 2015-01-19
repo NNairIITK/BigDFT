@@ -1062,7 +1062,7 @@ subroutine write_waves_etsf(iproc,filename,orbs,n1,n2,n3,hx,hy,hz,at,rxyz,wfd,ps
       end do
       znucl = f_malloc(at%astruct%ntypes,id='znucl')
       znucl = real(at%nzatom)
-      spnames = f_malloc(at%astruct%ntypes,id='spnames')
+      spnames = f_malloc_str(at%astruct%ntypes,id='spnames')
       do iat = 1, at%astruct%ntypes, 1
          !call nzsymbol(at%nzatom(iat), spnames(iat))
          call atomic_info(at%nzatom(iat),at%nelpsp(iat),symbol=spnames(iat))
@@ -1080,7 +1080,7 @@ subroutine write_waves_etsf(iproc,filename,orbs,n1,n2,n3,hx,hy,hz,at,rxyz,wfd,ps
       if (.not. lstat) call etsf_error(error)
       call f_free(xred)
       call f_free(znucl)
-      call f_free(spnames)
+      call f_free_str(etsf_chemlen,spnames)
       ! The eigenvalues & occupation.
       if (dims%number_of_spins == 1) then
          elec%eigenvalues%data1D => orbs%eval
