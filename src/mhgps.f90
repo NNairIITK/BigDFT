@@ -86,6 +86,7 @@ program mhgps
 
     nbond=1
     converged = .false.
+    premature_exit=.false.
 
     call f_lib_initialize()
 

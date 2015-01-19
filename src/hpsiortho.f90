@@ -701,6 +701,8 @@ subroutine NonLocalHamiltonianApplication(iproc,at,npsidim_orbs,orbs,&
   !real(kind=8) :: time0, time1, time2, time3, time4, time5, ttime
   !real(kind=8), dimension(0:4) :: times
 
+  call f_routine(id='NonLocalHamiltonianApplication')
+
   newmethod=.true.
 
   eproj_sum=0.0_gp
@@ -942,6 +944,9 @@ subroutine NonLocalHamiltonianApplication(iproc,at,npsidim_orbs,orbs,&
   !call mpi_barrier(bigdft_mpi%mpi_comm,ierr)
 
   call timing(iproc,'ApplyProj     ','OF')
+
+  call f_release_routine()
+
 contains
 
 !!$  !> count the number of projectors given a set of psppar

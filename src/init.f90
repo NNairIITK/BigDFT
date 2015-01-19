@@ -296,6 +296,9 @@ subroutine createProjectorsArrays(lr,rxyz,at,orbs,&
   nl%cproj=f_malloc_ptr(4*mproj_max,id='cproj')
   nl%hcproj=f_malloc_ptr(4*mproj_max,id='hcproj')
 
+  ! Workarrays for the projector creation
+  call allocate_workarrays_projectors(lr%d%n1, lr%d%n2, lr%d%n3, nl%wpr)
+
   !allocate the work arrays for building tolr array of structures
   nbsegs_cf=f_malloc(nbseg_dim,id='nbsegs_cf')
   keyg_lin=f_malloc(lr%wfd%nseg_c+lr%wfd%nseg_f,id='keyg_lin')
@@ -756,6 +759,7 @@ subroutine input_memory_linear(iproc, nproc, at, KSwfn, tmb, tmb_old, denspot, i
   use sparsematrix, only: compress_matrix_distributed, uncompress_matrix_distributed, uncompress_matrix, &
                           gather_matrix_from_taskgroups_inplace, extract_taskgroup_inplace, &
                           uncompress_matrix_distributed2, uncompress_matrix2
+  use transposed_operations, only: calculate_overlap_transposed, normalize_transposed
   implicit none
 
   ! Calling arguments
@@ -2075,6 +2079,7 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
   use m_paw_ij, only: paw_ij_init
   use psp_projectors, only: PSPCODE_PAW, PSPCODE_HGH, free_DFT_PSP_projectors
   use sparsematrix, only: gather_matrix_from_taskgroups_inplace, extract_taskgroup_inplace
+  use transposed_operations, only: normalize_transposed
   implicit none
 
   integer, intent(in) :: iproc, nproc, inputpsi, input_wf_format
@@ -2831,6 +2836,8 @@ subroutine input_wf_memory_new(nproc, iproc, atoms, &
   real(wp) :: rcov
   !character(len=2) :: symbol
 
+  call f_routine(id='input_wf_memory_new')
+
   if (lzd_old%Glr%geocode .ne. 'F') then
      write(*,*) 'Not implemented for boundary conditions other than free'
      stop
@@ -3092,6 +3099,8 @@ subroutine input_wf_memory_new(nproc, iproc, atoms, &
 
   call f_free_ptr(psi_old)
 
+  call f_release_routine()
+
 contains
 
   pure real(wp) function ex(x,m)
@@ -3103,16 +3112,17 @@ contains
   end function ex
 
   !> conversion avoiding floating-point exception
-  pure function simple(double)
+  !pure function simple(double)
+  function simple(double)
     implicit none
     real(wp), intent(in) :: double
     real :: simple
 
     if (kind(double) == kind(simple)) then
        simple=double
-    else if (double < real(tiny(1.e0),wp)) then
+    else if (abs(double) < real(tiny(1.e0),wp)) then
        simple=0.e0
-    else if (double > real(huge(1.e0),wp)) then
+    else if (abs(double) > real(huge(1.e0),wp)) then
        simple=huge(1.e0)
     else
        simple=real(double)

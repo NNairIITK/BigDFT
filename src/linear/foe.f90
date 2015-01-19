@@ -27,6 +27,7 @@ subroutine foe(iproc, nproc, tmprtr, &
                       foe_data_get_logical
   use fermi_level, only: fermi_aux, init_fermi_level, determine_fermi_level, &
                          fermilevel_get_real, fermilevel_get_logical
+  use chebyshev, only: chebyshev_clean, chebyshev_fast
   implicit none
 
   ! Calling arguments
@@ -1523,6 +1524,7 @@ subroutine ice(iproc, nproc, norder_polynomial, ovrlp_smat, inv_ovrlp_smat, ncal
                       foe_data_set_logical, foe_data_get_logical
   use fermi_level, only: fermi_aux, init_fermi_level, determine_fermi_level, &
                          fermilevel_get_real, fermilevel_get_logical
+  use chebyshev, only: chebyshev_clean, chebyshev_fast
   implicit none
 
   ! Calling arguments

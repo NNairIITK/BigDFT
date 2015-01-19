@@ -1084,6 +1084,7 @@ subroutine tmb_overlap_onsite(iproc, nproc, imethod_overlap, at, tmb, rxyz)
                                deallocate_matrices, deallocate_sparse_matrix, &
                                assignment(=), sparsematrix_malloc_ptr, SPARSE_TASKGROUP
   use sparsematrix_init, only: init_sparse_matrix, init_matrix_taskgroups, check_local_matrix_extents
+  use transposed_operations, only: calculate_overlap_transposed, normalize_transposed
   implicit none
 
   ! Calling arguments

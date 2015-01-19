@@ -257,7 +257,7 @@ test.splsad.ref.yaml:
 
 test.minhop.ref.yaml:
  Energies: &etol1 6.0e-9
- Eion: &eion1 4.1e-11
+ Eion: &eion1 5.1e-11
  EH: *etol1
  EXC: *etol1
  Ekin: *etol1
@@ -268,10 +268,11 @@ test.minhop.ref.yaml:
  Ion-Ion interaction energy: *eion1
  fluct: 1.2e-9
  maxval: 7.1e-11
- Atomic Forces (Ha/Bohr): 2.0e-11
- Average noise forces: 1.0e-10
+ Atomic Forces (Ha/Bohr): 5.1e-11
+ Average noise forces: 1.1e-10
  etot: 1.85e-11
  Orbitals: 6.1e-9
+ Positions: 1.1e-9
  Keys to ignore:
    - (MH) cpu(hrs)
    - WARNINGS
@@ -1074,11 +1075,21 @@ PBE_densmixdiis:
 test-bigdft-tool:
  positions: 5.1e-8
 
-geoptconstrained:
+geoptconstrained_BFGS:
+ eF: 2.8e-8
+ guess for new ef: 2.8e-8
+ Epot: 1.1e-10
+ EH: 1.1e-10
+ D eF: 2.0e-8
+ charge diff: 3.5e-11
+ D Tr: 2.1e-11
+
+geoptconstrained_SDCG:
  eF: 1.1e-8
  guess for new ef: 1.1e-8
  D eF: 1.1e-8
  EH: 1.1e-10
+ Epot: 1.1e-10
  charge diff: 4.2e-11
  D Tr: 1.1e-9
  Omega: 1.2e-11
@@ -1181,6 +1192,7 @@ expfoegeopt:
  Epot: 2.3e-8
  EvXC: 2.3e-8
  EXC: 2.3e-8
+ Ekin: 1.1e-10
  Tr(K): 2.3e-8
  decay length of error function: 1.1e-5
  Omega: 2.4e-11

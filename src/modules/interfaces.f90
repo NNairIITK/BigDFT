@@ -1430,11 +1430,15 @@ module module_interfaces
           correction_orthoconstraint,nit_basis,&
           ratio_deltas,ortho_on,extra_states,itout,conv_crit,experimental_mode,early_stop,&
           gnrm_dynamic, min_gnrm_for_dynamic, can_use_ham, order_taylor, max_inversion_error, kappa_conv, method_updatekernel,&
-          purification_quickreturn, correction_co_contra, cdft, input_frag, ref_frags)
+          purification_quickreturn, correction_co_contra, &
+          precond_convol_workarrays, precond_workarrays, &
+          wt_philarge, wt_hpsinoprecond, wt_hphi, wt_phi, &
+          cdft, input_frag, ref_frags)
         use module_base
         use module_types
         use module_fragments, only: system_fragment
         use constrained_dft, only: cdft_data
+        use communications_base, only: work_transpose
         implicit none
 
         ! Calling arguments
@@ -1465,6 +1469,9 @@ module module_interfaces
         logical,intent(out) :: can_use_ham
         integer,intent(in) :: method_updatekernel
         logical,intent(in) :: correction_co_contra
+        type(workarrays_quartic_convolutions),dimension(tmb%orbs%norbp),intent(inout) :: precond_convol_workarrays
+        type(workarr_precond),dimension(tmb%orbs%norbp),intent(inout) :: precond_workarrays
+        type(work_transpose),intent(inout) :: wt_philarge, wt_hpsinoprecond, wt_hphi, wt_phi
         !these must all be present together
         type(cdft_data),intent(inout),optional :: cdft
         type(fragmentInputParameters),optional,intent(in) :: input_frag
@@ -1785,19 +1792,6 @@ module module_interfaces
        integer,intent(inout):: tag
      end subroutine initializeCommunicationPotential
 
-     subroutine initializeRepartitionOrbitals(iproc, nproc, tag, lorbs, llborbs, lzd, comrp)
-       use module_base
-       use module_types
-       use communications_base, only: p2pComms
-       implicit none
-       integer,intent(in):: iproc, nproc
-       integer,intent(inout):: tag
-       type(orbitals_data),intent(in):: lorbs, llborbs
-       type(local_zone_descriptors),intent(in):: lzd
-       !type(p2pCommsRepartition),intent(out):: comrp
-       type(p2pComms),intent(out):: comrp
-     end subroutine initializeRepartitionOrbitals
-
      subroutine mixrhopotDIIS(iproc, nproc, n3d, n3p, glr, input, rhopot, rhopotold, mixdiis, alphaMix, ioffset, mixMeth, pnrm, xc)
        use module_base
        use module_types
@@ -1915,25 +1909,6 @@ module module_interfaces
       type(foe_data),intent(inout):: foe_obj
       character(len=*),intent(in):: subname
     end subroutine deallocate_foe
-
-     subroutine initInputguessConfinement(iproc, nproc, at, lzd, orbs, collcom_reference, &
-                Glr, input, hx, hy, hz, lin, tmb, rxyz, nscatterarr)
-       use module_base
-       use module_types
-       implicit none
-       integer,intent(in):: iproc,nproc
-       real(gp), intent(in) :: hx, hy, hz
-       type(atoms_data),intent(inout) :: at
-       type(local_zone_descriptors),intent(in):: lzd
-       type(orbitals_data),intent(in):: orbs
-       type(comms_linear),intent(in):: collcom_reference
-       type(locreg_descriptors),intent(in) :: Glr
-       type(input_variables), intent(in) ::input
-       type(linearInputParameters),intent(in):: lin
-       type(DFT_wavefunction),intent(in) :: tmb
-       integer,dimension(0:nproc-1,4),intent(in):: nscatterarr !n3d,n3p,i3s+i3xcsh-1,i3xcsh
-       real(gp),dimension(3,at%astruct%nat),intent(in):: rxyz
-     end subroutine initInputguessConfinement
 
       subroutine orthoconstraintNonorthogonal(iproc, nproc, lzd, npsidim_orbs, npsidim_comp, orbs, collcom, orthpar, &
                  correction_orthoconstraint, linmat, lphi, lhphi, lagmat, lagmat_, psit_c, psit_f, &
@@ -2468,7 +2443,7 @@ module module_interfaces
                   energs, hpsit_c, hpsit_f, nit_precond, target_function, correction_orthoconstraint, &
                   hpsi_small, experimental_mode, calculate_inverse, correction_co_contra, hpsi_noprecond, &
                   norder_taylor, max_inversion_error, method_updatekernel, precond_convol_workarrays, precond_workarrays,&
-                  wt_philarge, wt_hpsinoprecond, &
+                  wt_hphi, wt_philarge, wt_hpsinoprecond, &
                   cdft, input_frag, ref_frags)
          use module_base
          use module_types
@@ -2499,6 +2474,7 @@ module module_interfaces
          real(kind=8), dimension(tmb%npsidim_orbs),intent(out) :: hpsi_noprecond
          type(workarrays_quartic_convolutions),dimension(tmb%orbs%norbp),intent(inout) :: precond_convol_workarrays
          type(workarr_precond),dimension(tmb%orbs%norbp),intent(inout) :: precond_workarrays
+         type(work_transpose),intent(inout) :: wt_hphi
          type(work_transpose),intent(inout) :: wt_philarge
          type(work_transpose),intent(out) :: wt_hpsinoprecond
          type(cdft_data),intent(inout),optional :: cdft
@@ -3180,18 +3156,6 @@ module module_interfaces
           real(kind=8),dimension(3*lorbs%npsidim_orbs),intent(inout) :: phid  !< Derivative basis functions
         end subroutine get_derivative_supportfunctions
 
-        subroutine normalize_transposed(iproc, nproc, orbs, nspin, collcom, psit_c, psit_f, norm)
-          use module_base
-          use module_types
-          implicit none
-          integer,intent(in):: iproc, nproc, nspin
-          type(orbitals_data),intent(in):: orbs
-          type(comms_linear),intent(in):: collcom
-          real(8),dimension(collcom%ndimind_c),intent(inout):: psit_c
-          real(8),dimension(7*collcom%ndimind_f),intent(inout):: psit_f
-          real(8),dimension(orbs%norb),intent(out):: norm
-        end subroutine normalize_transposed
-
 
         subroutine determine_locregSphere_parallel(iproc,nproc,nlr,hx,hy,hz,astruct,orbs,Glr,Llr,calculateBounds)!,outofzone)
           use module_base
@@ -3284,92 +3248,6 @@ module module_interfaces
           real(gp), dimension(3,at%astruct%nat), intent(inout) :: fsep
           real(gp), dimension(6), intent(out) :: strten
         end subroutine nonlocal_forces_linear
-
-        subroutine calculate_overlap_transposed(iproc, nproc, orbs, collcom, &
-                   psit_c1, psit_c2, psit_f1, psit_f2, smat, ovrlp)
-          use module_base
-          use module_types
-          use sparsematrix_base, only: sparse_matrix
-          implicit none
-          integer,intent(in) :: iproc, nproc
-          type(orbitals_data),intent(in) :: orbs
-          type(comms_linear),intent(in) :: collcom
-          real(kind=8),dimension(collcom%ndimind_c),intent(in) :: psit_c1, psit_c2
-          real(kind=8),dimension(7*collcom%ndimind_f),intent(in) :: psit_f1, psit_f2
-          type(sparse_matrix),intent(inout) :: smat
-          type(matrices),intent(inout) :: ovrlp
-        end subroutine calculate_overlap_transposed
-
-        subroutine build_linear_combination_transposed(collcom, sparsemat, mat, psitwork_c, psitwork_f, &
-             reset, psit_c, psit_f, iproc)
-          use module_base
-          use module_types
-          use sparsematrix_base, only: sparse_matrix
-          implicit none
-
-          ! Calling arguments
-          type(sparse_matrix),intent(in) :: sparsemat
-          type(matrices),intent(in) :: mat
-          type(comms_linear),intent(in) :: collcom
-          real(kind=8),dimension(collcom%ndimind_c),intent(in) :: psitwork_c
-          real(kind=8),dimension(7*collcom%ndimind_f),intent(in) :: psitwork_f
-          logical,intent(in) :: reset
-          real(kind=8),dimension(collcom%ndimind_c),intent(inout) :: psit_c
-          real(kind=8),dimension(7*collcom%ndimind_f),intent(inout) :: psit_f
-          integer, intent(in) :: iproc
-        end subroutine build_linear_combination_transposed
-
-        subroutine axpy_kernel_vectors(norbp, norb, nout, onedimindices, a, x, y)
-          use module_base
-          use module_types
-          implicit none
-          integer,intent(in) :: norbp, norb, nout
-          integer,dimension(4,nout),intent(in) :: onedimindices
-          real(kind=8),intent(in) :: a
-          real(kind=8),dimension(norb,norbp),intent(in) :: x
-          real(kind=8),dimension(norb,norbp),intent(inout) :: y
-        end subroutine axpy_kernel_vectors
-
-        subroutine axbyz_kernel_vectors(norbp, norb, nout, onedimindices, a, x, b, y, z)
-          use module_base
-          use module_types
-          implicit none
-          integer,intent(in) :: norbp, norb, nout
-          integer,dimension(4,nout),intent(in) :: onedimindices
-          real(8),intent(in) :: a, b
-          real(kind=8),dimension(norb,norbp),intent(in) :: x, y
-          real(kind=8),dimension(norb,norbp),intent(out) :: z
-        end subroutine axbyz_kernel_vectors
-
-        subroutine copy_kernel_vectors(norbp, norb, nout, onedimindices, a, b)
-          use module_base
-          use module_types
-          implicit none
-          integer,intent(in) :: norbp, norb, nout
-          integer,dimension(4,nout),intent(in) :: onedimindices
-          real(kind=8),dimension(norb,norbp),intent(in) :: a
-          real(kind=8),dimension(norb,norbp),intent(out) :: b
-        end subroutine copy_kernel_vectors
-
-        subroutine chebyshev_clean(iproc, nproc, npl, cc, kernel, ham_compr, &
-                   invovrlp_compr, calculate_SHS, nsize_polynomial, ncalc, fermi, penalty_ev, chebyshev_polynomials, &
-                   emergency_stop)
-          use module_base
-          use module_types
-          use sparsematrix_base, only: sparse_matrix
-          implicit none
-          integer,intent(in) :: iproc, nproc, npl, nsize_polynomial, ncalc
-          real(8),dimension(npl,3,ncalc),intent(in) :: cc
-          type(sparse_matrix), intent(in) :: kernel
-          real(kind=8),dimension(kernel%nvctrp_tg),intent(in) :: ham_compr
-          real(kind=8),dimension(kernel%nvctrp_tg),intent(in) :: invovrlp_compr
-          logical,intent(in) :: calculate_SHS
-          real(kind=8),dimension(kernel%nfvctr,kernel%smmm%nfvctrp,ncalc),intent(out) :: fermi
-          real(kind=8),dimension(kernel%nfvctr,kernel%smmm%nfvctrp,2),intent(out) :: penalty_ev
-          real(kind=8),dimension(nsize_polynomial,npl),intent(out) :: chebyshev_polynomials
-          logical,intent(out) :: emergency_stop
-        end subroutine chebyshev_clean
-
 
         subroutine set_variables_for_hybrid(iproc, nlr, input, at, orbs, lowaccur_converged, damping_factor, confdatarr, &
                    target_function, nit_basis, nit_scc, mix_hist, locrad, alpha_mix, convCritMix, &
@@ -4199,21 +4077,6 @@ end subroutine build_ks_orbitals_laura_tmp
           real(kind=8),intent(out) :: delta_energy
         end subroutine estimate_energy_change
 
-        subroutine chebyshev_fast(iproc, nproc, nsize_polynomial, npl, &
-                   norb, norbp, isorb, fermi, chebyshev_polynomials, ncalc, cc, kernelp)
-          use module_base
-          use module_types
-          use sparsematrix_base, only: sparse_matrix
-          implicit none
-        
-          ! Calling arguments
-          integer,intent(in) :: iproc, nproc, nsize_polynomial, npl, norb, norbp, isorb, ncalc
-          type(sparse_matrix),intent(in) :: fermi
-          real(kind=8),dimension(nsize_polynomial,npl),intent(in) :: chebyshev_polynomials
-          real(kind=8),dimension(npl,ncalc),intent(in) :: cc
-          real(kind=8),dimension(norb,norbp,ncalc),intent(out) :: kernelp
-        end subroutine chebyshev_fast
-
         subroutine init_sparse_matrix_for_KSorbs(iproc, nproc, orbs, input, nextra, smat, smat_extra)
           use module_base
           use module_types
@@ -4276,6 +4139,27 @@ end subroutine build_ks_orbitals_laura_tmp
           real(wp), dimension(ntmb), intent(in) :: eval
           real(gp), dimension(3,nat), intent(in) :: rxyz
         end subroutine writeLinearCoefficients
+
+        subroutine allocate_precond_arrays(orbs, lzd, confdatarr, precond_convol_workarrays, precond_workarrays)
+          use module_base, only: gp
+          use module_types
+          implicit none
+          type(orbitals_data),intent(in) :: orbs
+          type(local_zone_descriptors),intent(in) :: lzd
+          type(confpot_data),dimension(orbs%norbp),intent(in) ::  confdatarr
+          type(workarrays_quartic_convolutions),dimension(:),pointer,intent(inout) :: precond_convol_workarrays
+          type(workarr_precond),dimension(:),pointer,intent(inout) :: precond_workarrays
+        end subroutine allocate_precond_arrays
+
+        subroutine deallocate_precond_arrays(orbs, lzd, precond_convol_workarrays, precond_workarrays)
+          use module_base, only: gp
+          use module_types
+          implicit none
+          type(orbitals_data),intent(in) :: orbs
+          type(local_zone_descriptors),intent(in) :: lzd
+          type(workarrays_quartic_convolutions),dimension(:),pointer,intent(inout) :: precond_convol_workarrays
+          type(workarr_precond),dimension(:),pointer,intent(inout) :: precond_workarrays
+        end subroutine deallocate_precond_arrays
 
   end interface
 END MODULE module_interfaces

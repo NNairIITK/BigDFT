@@ -14,7 +14,7 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
            energs, hpsit_c, hpsit_f, nit_precond, target_function, correction_orthoconstraint, &
            hpsi_small, experimental_mode, calculate_inverse, correction_co_contra, hpsi_noprecond, &
            norder_taylor, max_inversion_error, method_updatekernel, precond_convol_workarrays, precond_workarrays,&
-           wt_philarge, wt_hpsinoprecond, &
+           wt_hphi, wt_philarge, wt_hpsinoprecond, &
            cdft, input_frag, ref_frags)
   use module_base
   use module_types
@@ -30,6 +30,7 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
                           transform_sparse_matrix_local
   use constrained_dft, only: cdft_data
   use module_fragments, only: system_fragment
+  use transposed_operations, only: calculate_overlap_transposed, build_linear_combination_transposed
   implicit none
 
   ! Calling arguments
@@ -55,6 +56,7 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
   real(kind=8), dimension(tmb%npsidim_orbs),intent(out) :: hpsi_noprecond
   type(workarrays_quartic_convolutions),dimension(tmb%orbs%norbp),intent(inout) :: precond_convol_workarrays
   type(workarr_precond),dimension(tmb%orbs%norbp),intent(inout) :: precond_workarrays
+  type(work_transpose),intent(inout) :: wt_hphi
   type(work_transpose),intent(inout) :: wt_philarge
   type(work_transpose),intent(out) :: wt_hpsinoprecond
   !!!these must all be present together
@@ -77,7 +79,7 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
   real(dp) :: gnrm,gnrm_zero,gnrmMax,gnrm_old ! for preconditional2, replace with fnrm eventually, but keep separate for now
   type(matrices) :: matrixm
   real(kind=8),dimension(:),pointer :: cdft_gradt_c, cdft_gradt_f, cdft_grad, cdft_grad_small
-  type(work_transpose) :: wt_hphi
+  !type(work_transpose) :: wt_hphi
 
   call f_routine(id='calculate_energy_and_gradient_linear')
 
@@ -661,6 +663,7 @@ subroutine calculate_residue_ks(iproc, nproc, num_extra, ksorbs, tmb, hpsit_c, h
                                matrices_null, allocate_matrices, deallocate_matrices
   use sparsematrix, only: uncompress_matrix, gather_matrix_from_taskgroups_inplace, &
                           extract_taskgroup_inplace, uncompress_matrix2
+  use transposed_operations, only: calculate_overlap_transposed
   implicit none
 
   ! Calling arguments
@@ -910,6 +913,7 @@ subroutine build_gradient(iproc, nproc, tmb, target_function, hpsit_c, hpsit_f, 
   use sparsematrix, only: orb_from_index, gather_matrix_from_taskgroups_inplace
   use communications_base, only: TRANSPOSE_FULL
   use communications, only: transpose_localized
+  use transposed_operations, only: build_linear_combination_transposed
   implicit none
 
   ! Calling arguments
