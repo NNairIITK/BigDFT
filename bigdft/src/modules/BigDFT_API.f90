@@ -20,5 +20,8 @@ module BigDFT_API
   use ao_inguess
   use communications_base
   use communications_init
+  use public_keys
+  use public_enums
+  use bigdft_run
   implicit none
 end module BigDFT_API
