@@ -224,6 +224,7 @@ module public_keys
   character(len=*), parameter :: ASTRUCT_ATT_IXYZ_1 = 'int_ref_atoms_1' 
   character(len=*), parameter :: ASTRUCT_ATT_IXYZ_2 = 'int_ref_atoms_2' 
   character(len=*), parameter :: ASTRUCT_ATT_IXYZ_3 = 'int_ref_atoms_3' 
+  character(len=*), parameter :: ASTRUCT_ATT_QMMM = 'mode' 
 
   character(len=*), parameter :: GOUT_ENERGY = 'energy (Ha)' 
   character(len=*), parameter :: GOUT_FORCES = 'forces (Ha/Bohr)' 
@@ -257,7 +258,9 @@ module public_enums
   type(f_enumerator), parameter :: LENOSKY_SI_BULK_RUN_MODE    =f_enumerator('LENOSKY_SI_BULK_RUN_MODE',-998)
   type(f_enumerator), parameter :: AMBER_RUN_MODE              =f_enumerator('AMBER_RUN_MODE',-997)
   type(f_enumerator), parameter :: QM_RUN_MODE                 =f_enumerator('QM_RUN_MODE',-996)
-  
+
+  type(f_enumerator), parameter :: ATOM_MODE_QM      = f_enumerator('QM', 0)
+  type(f_enumerator), parameter :: ATOM_MODE_MM      = f_enumerator('MM', 1)
 end module public_enums
 
 

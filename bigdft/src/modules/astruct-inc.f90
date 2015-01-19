@@ -12,8 +12,9 @@
 !> Read atomic positions from xyz file and create astruct structure from it
 subroutine read_xyz_positions(ifile,filename,astruct,comment,energy,fxyz,getLine)
   use module_defs, only: gp,UNINITIALIZED,Bohr_Ang, BIGDFT_INPUT_VARIABLES_ERROR
-  use dictionaries, only: f_err_raise, f_err_throw
+  use dictionaries, only: f_err_raise, f_err_throw, max_field_length
   use dynamic_memory
+  use yaml_strings, only: yaml_toa
   implicit none
   !Arguments
   integer, intent(in) :: ifile
@@ -36,12 +37,13 @@ subroutine read_xyz_positions(ifile,filename,astruct,comment,energy,fxyz,getLine
   character(len=120) :: extra
   character(len=150) :: line
   logical :: lpsdbl, eof
-  integer :: iat,ityp,ntyp,i,ierrsfx
+  integer :: iat,ityp,ntyp,i,ierrsfx,nspol,nchrg
   ! To read the file posinp (avoid differences between compilers)
   real(kind=4) :: rx,ry,rz,alat1,alat2,alat3
   ! case for which the atomic positions are given whithin general precision
   real(gp) :: rxd0,ryd0,rzd0,alat1d0,alat2d0,alat3d0
   character(len=20), dimension(100) :: atomnames
+  character(len = max_field_length) :: errmess
 
   call getLine(line, ifile, eof)
   if (f_err_raise(eof,"Unexpected end of file '"//trim(filename)//"'.",err_id=BIGDFT_INPUT_VARIABLES_ERROR)) return
@@ -174,7 +176,16 @@ subroutine read_xyz_positions(ifile,filename,astruct,comment,energy,fxyz,getLine
      !print *,'extra',iat,extra
      call find_extra_info(line,extra,8)
      !print *,'then',iat,extra
-     call parse_extra_info(iat,extra,astruct)
+     call parse_extra_info(astruct%attributes(iat),extra,errmess)
+     if (len_trim(errmess) > 0) then
+        call f_err_throw('At atom ' // trim(yaml_toa(iat)) // ': ' // trim(errmess),&
+             & err_id=BIGDFT_INPUT_VARIABLES_ERROR)
+     else
+        call astruct_at_from_dict(astruct%attributes(iat)%impl, &
+             & ifrztyp = astruct%ifrztyp(iat), igspin = nspol, igchrg = nchrg)
+        !now assign the array, following the rule
+        astruct%input_polarization(iat)=1000*nchrg+sign(1, nchrg)*100+nspol
+     end if
 
      tatonam=trim(symbol)
 !!!     end if
@@ -295,12 +306,13 @@ subroutine read_ascii_positions(ifile,filename,astruct,comment,energy,fxyz,getli
   character(len=120) :: extra
   character(len=150) :: line
   logical :: lpsdbl, reduced, eof, forces
-  integer :: iat,ntyp,ityp,i,i_stat,nlines,istart,istop,count
+  integer :: iat,ntyp,ityp,i,i_stat,nlines,istart,istop,count,nspol,nchrg
 ! To read the file posinp (avoid differences between compilers)
   real(kind=4) :: rx,ry,rz,alat1,alat2,alat3,alat4,alat5,alat6
 ! case for which the atomic positions are given whithin general precision
   real(gp) :: rxd0,ryd0,rzd0,alat1d0,alat2d0,alat3d0,alat4d0,alat5d0,alat6d0
   character(len=20), dimension(100) :: atomnames
+  character(max_field_length) :: errmess
   ! Store the file.
   character(len = 150), dimension(5000) :: lines
 
@@ -423,7 +435,16 @@ subroutine read_ascii_positions(ifile,filename,astruct,comment,energy,fxyz,getli
            if (i_stat /= 0) read(line,*) rx,ry,rz,symbol
         end if
         call find_extra_info(line,extra,8)
-        call parse_extra_info(iat,extra,astruct)
+        call parse_extra_info(astruct%attributes(iat),extra,errmess)
+        if (len_trim(errmess) > 0) then
+           call f_err_throw('At atom ' // trim(yaml_toa(iat)) // ': ' // trim(errmess),&
+                & err_id=BIGDFT_INPUT_VARIABLES_ERROR)
+        else
+           call astruct_at_from_dict(astruct%attributes(iat)%impl, &
+                & ifrztyp = astruct%ifrztyp(iat), igspin = nspol, igchrg = nchrg)
+           !now assign the array, following the rule
+           astruct%input_polarization(iat)=1000*nchrg+sign(1, nchrg)*100+nspol
+        end if
 
         tatonam=trim(symbol)
 
@@ -522,9 +543,10 @@ END SUBROUTINE read_ascii_positions
 
 !> Read atomic positions from int file and create astruct structure from it
 subroutine read_int_positions(iproc,ifile,astruct,comment,energy,fxyz,getLine)
-  use module_defs, only: gp,UNINITIALIZED,Bohr_Ang, Radian_Degree
-  use dictionaries, only: f_err_raise
+  use module_defs, only: gp,UNINITIALIZED,Bohr_Ang, Radian_Degree,BIGDFT_INPUT_VARIABLES_ERROR
+  use dictionaries, only: f_err_raise, max_field_length, f_err_throw
   use dynamic_memory
+  use yaml_strings, only: yaml_toa
   implicit none
   integer, intent(in) :: iproc,ifile
   type(atomic_structure), intent(inout) :: astruct
@@ -545,13 +567,14 @@ subroutine read_int_positions(iproc,ifile,astruct,comment,energy,fxyz,getLine)
   character(len=120) :: extra
   character(len=150) :: line
   logical :: lpsdbl, eof
-  integer :: iat,ityp,ntyp,i,ierrsfx
+  integer :: iat,ityp,ntyp,i,ierrsfx,nchrg, nspol
   ! To read the file posinp (avoid differences between compilers)
   real(kind=4) :: rx,ry,rz,alat1,alat2,alat3
   ! case for which the atomic positions are given whithin general precision
   real(gp) :: rxd0,ryd0,rzd0,alat1d0,alat2d0,alat3d0
   integer :: na, nb, nc
   character(len=20), dimension(100) :: atomnames
+  character(len = max_field_length) :: errmess
 
   call getLine(line, ifile, eof)
   if (eof) then
@@ -678,7 +701,16 @@ subroutine read_int_positions(iproc,ifile,astruct,comment,energy,fxyz,getLine)
      !print *,'extra',iat,extra
      call find_extra_info(line,extra,14)
      !print *,'then',iat,extra
-     call parse_extra_info(iat,extra,astruct)
+     call parse_extra_info(astruct%attributes(iat),extra,errmess)
+     if (len_trim(errmess) > 0) then
+        call f_err_throw('At atom ' // trim(yaml_toa(iat)) // ': ' // trim(errmess),&
+             & err_id=BIGDFT_INPUT_VARIABLES_ERROR)
+     else
+        call astruct_at_from_dict(astruct%attributes(iat)%impl, &
+             & ifrztyp = astruct%ifrztyp(iat), igspin = nspol, igchrg = nchrg)
+        !now assign the array, following the rule
+        astruct%input_polarization(iat)=1000*nchrg+sign(1, nchrg)*100+nspol
+     end if
 
      tatonam=trim(symbol)
 !!!     end if
@@ -912,14 +944,14 @@ END SUBROUTINE find_extra_info
 
 
 !> Parse extra information
-subroutine parse_extra_info(iat,extra,astruct)
+subroutine parse_extra_info(att, extra, errmess)
   use yaml_parse
   use dictionaries
   implicit none
   !Arguments
-  integer, intent(in) :: iat
+  type(f_tree), intent(out) :: att
   character(len=*), intent(in) :: extra
-  type(atomic_structure), intent(inout) :: astruct
+  character(len=max_field_length), intent(out) :: errmess
   !Local variables
   character(len=4) :: suffix
   logical :: go
@@ -928,15 +960,12 @@ subroutine parse_extra_info(iat,extra,astruct)
   !case with all the information
   !print *,iat,'ex'//trim(extra)//'ex'
 
+  write(errmess, "(A)") " "
+  nullify(att%impl)
   if (index(extra, ":") > 0) then
      ! YAML case.
      call yaml_parse_from_string(dict, extra)
-     if (dict_len(dict) > 0) then
-        call astruct_at_from_dict(dict // 0, ifrztyp = astruct%ifrztyp(iat), igspin = nspol, igchrg = nchrg)
-     else
-        nspol = 0
-        nchrg = 0
-     end if
+     if (dict_len(dict) > 0) att%impl => dict .pop. 0
      call dict_free(dict)
   else
      ! Old case.
@@ -952,11 +981,11 @@ subroutine parse_extra_info(iat,extra,astruct)
            nchrg=0
            call valid_frzchain(trim(suffix),go)
            if (.not. go) then
+              suffix='    '
               read(suffix,*,iostat=ierr2) nchrg
               if (ierr2 /= 0) then
+                 nchrg = 0
                  call error
-              else
-                 suffix='    '
               end if
            end if
         else
@@ -968,39 +997,31 @@ subroutine parse_extra_info(iat,extra,astruct)
               nchrg=0
            else
               read(extra,*,iostat=ierr2) nspol
-              if (ierr2 /=0) then
-                 call error
-              end if
+              if (ierr2 /=0) call error
               suffix='    '
               nchrg=0
+              nspol=0
            end if
         end if
      end if
 
-     !convert the suffix into ifrztyp
-     call frozen_ftoi(suffix,astruct%ifrztyp(iat),ierr)
-     if (ierr /= 0) call error
+     ! convert everything into a dict.
+     call dict_init(att%impl)
+     if (nspol /= 0) call set(att%impl // ASTRUCT_ATT_IGSPIN, nspol)
+     if (nchrg /= 0) call set(att%impl // ASTRUCT_ATT_IGCHRG, nchrg)
+     if (len_trim(suffix) > 0) call set(att%impl // ASTRUCT_ATT_FROZEN, suffix)
+     
+     if (dict_size(att%impl) == 0) then
+        call dict_free(att%impl)
+        nullify(att%impl)
+     end if
   end if
-
-  !now assign the array, following the rule
-  astruct%input_polarization(iat)=1000*nchrg+sign(1, nchrg)*100+nspol
-
-  !print *,'natpol atomic',iat,astruct%input_polarization(iat),suffix
-
-!!!  if (trim(suffix) == 'f') then
-!!!     !the atom is considered as blocked
-!!!     astruct%ifrztyp(iat)=1
-!!!  end if
 
 contains
 
   subroutine error
     implicit none
-    print *,extra
-    write(*,'(1x,a,i0,a)')&
-         'ERROR in input file for atom number ',iat,&
-         ': after 4th column you can put the input polarisation(s) or the frozen chain (f,fxz,fy or f111, fb1, ...)'
-    stop
+    write(errmess, '(a)') 'wrong additional data, read was "' // trim(extra) // '".'
   END SUBROUTINE error
 
 END SUBROUTINE parse_extra_info
@@ -1186,6 +1207,34 @@ pure function move_this_coordinate(ifrztyp,ixyz)
 END FUNCTION move_this_coordinate
 
 
+!>Write the extra info necessary for the output file
+subroutine write_extra_info(extra,natpol,ifrztyp)
+  use ao_inguess, only: charge_and_spol
+  implicit none 
+  integer, intent(in) :: natpol,ifrztyp
+  character(len=120), intent(out) :: extra
+  !local variables
+  character(len=4) :: frzchain
+  integer :: ispol,ichg
+
+  call charge_and_spol(natpol,ichg,ispol)
+
+  call frozen_itof(ifrztyp,frzchain)
+
+  !takes into account the blocked atoms and the input polarisation
+  if (ispol == 0 .and. ichg == 0 ) then
+     write(extra,'(2x,a4)')frzchain
+  else if (ispol /= 0 .and. ichg == 0) then
+     write(extra,'(i7,2x,a4)')ispol,frzchain
+  else if (ichg /= 0) then
+     write(extra,'(2(i7),2x,a4)')ispol,ichg,frzchain
+  else
+     write(extra,'(2x,a4)') ''
+  end if
+
+END SUBROUTINE write_extra_info
+
+
 !> Write xyz atomic file.
 subroutine wtxyz(iunit,energy,rxyz,astruct,comment)
   use module_defs, only: Bohr_Ang,UNINITIALIZED
@@ -1271,7 +1320,10 @@ subroutine wtxyz_forces(iunit,fxyz,astruct)
   character(len=20) :: symbol
   character(len=10) :: name
 
-  write(iunit,*)'forces (Ha/Bohr)'
+  ! Please don't change the keyword here.
+  ! It is for this stupid XYZ file format, and this keyword is
+  ! needed for force recognition in V_Sim for instance.
+  write(iunit,*)'forces'
 
   do iat=1,astruct%nat
      name=trim(astruct%atomnames(astruct%iatype(iat)))

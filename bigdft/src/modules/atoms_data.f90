@@ -20,9 +20,16 @@ module module_atoms
   use public_keys, only : ASTRUCT_CELL,ASTRUCT_POSITIONS, &
        & ASTRUCT_PROPERTIES,ASTRUCT_UNITS, ASTRUCT_ATT_FROZEN, &
        & ASTRUCT_ATT_IGSPIN, ASTRUCT_ATT_IGCHRG, ASTRUCT_ATT_IXYZ_1, &
-       & ASTRUCT_ATT_IXYZ_2, ASTRUCT_ATT_IXYZ_3
+       & ASTRUCT_ATT_IXYZ_2, ASTRUCT_ATT_IXYZ_3, ASTRUCT_ATT_QMMM
+  use public_enums, only : ATOM_MODE_QM, ATOM_MODE_MM
+  use dictionaries, only: dictionary
   implicit none
   private
+
+  !> @todo to be moved to flib.
+  type, public :: f_tree
+     type(dictionary), pointer :: impl
+  end type f_tree
 
   !> Source of the radii coefficients
   integer, parameter, public :: RADII_SOURCE_HARD_CODED = 1
@@ -42,6 +49,16 @@ module module_atoms
      integer, dimension(:,:,:), pointer :: irrzon
      real(dp), dimension(:,:,:), pointer :: phnons
   end type symmetry_data
+
+  !> Stores a list of neighbours.
+  type, public :: atomic_neighbours
+     integer :: nat
+     integer, dimension(:,:), pointer :: keynei
+     integer, dimension(:), pointer :: nei
+
+     ! Iterator part (to avoid to create yet another type.
+     integer :: iat, ind
+  end type atomic_neighbours
   
   !>Structure of the system. This derived type contains the information about the physical properties
   type, public :: atomic_structure
@@ -61,6 +78,7 @@ module module_atoms
      integer, dimension(:), pointer :: ifrztyp             !< Freeze atoms while updating structure
      integer, dimension(:), pointer :: input_polarization  !< Used in AO generation for WFN input guess
      type(symmetry_data) :: sym                            !< The symmetry operators
+     type(f_tree), dimension(:), pointer :: attributes     !< Static attributes per atom
   end type atomic_structure
 
   !> Data containing the information about the atoms in the system
@@ -117,7 +135,8 @@ module module_atoms
   public :: allocate_atoms_data,move_this_coordinate,frozen_itof
   public :: rxyz_inside_box,check_atoms_positions
   public :: atomic_data_set_from_dict
-
+  public :: nullify_atomic_neighbours, deallocate_atomic_neighbours
+  public :: astruct_neighbours_iter, astruct_neighbours_next
 
 contains
 
@@ -215,7 +234,14 @@ contains
     nullify(sym%phnons)
   end subroutine nullify_symmetry_data
 
+  pure subroutine nullify_atomic_neighbours(nei)
+    type(atomic_neighbours), intent(out) :: nei
+    nei%nat=-1
+    nullify(nei%keynei)
+    nullify(nei%nei)
+  end subroutine nullify_atomic_neighbours
 
+  !> Initialize the structure atomic_neighbours
   pure function atomic_structure_null() result(astruct)
     implicit none
     type(atomic_structure) :: astruct
@@ -240,6 +266,7 @@ contains
     nullify(astruct%iatype)
     nullify(astruct%rxyz)
     call nullify_symmetry_data(astruct%sym)
+    nullify(astruct%attributes)
   end subroutine nullify_atomic_structure
 
 
@@ -309,16 +336,27 @@ contains
     call f_free_ptr(sym%phnons)
   end subroutine deallocate_symmetry_data
 
+  !> Deallocate the structure atomic_neighbours.
+  subroutine deallocate_atomic_neighbours(nei)
+    use dynamic_memory, only: f_free_ptr
+    implicit none
+    type(atomic_neighbours), intent(inout) :: nei
+    if (nei%nat > 0) then
+       call f_free_ptr(nei%keynei)
+       call f_free_ptr(nei%nei)
+    end if
+  end subroutine deallocate_atomic_neighbours
 
   !> Deallocate the structure atoms_data.
   subroutine deallocate_atomic_structure(astruct)!,subname) 
     use dynamic_memory, only: f_free_ptr,f_free_str_ptr
+    use dictionaries, only: dict_free
     implicit none
     !character(len=*), intent(in) :: subname
     type(atomic_structure), intent(inout) :: astruct
     !local variables
     character(len=*), parameter :: subname='deallocate_atomic_structure' !remove
-
+    integer :: iat
 
     ! Deallocations for the geometry part.
     if (astruct%nat >= 0) then
@@ -328,6 +366,12 @@ contains
        call f_free_ptr(astruct%rxyz)
        call f_free_ptr(astruct%rxyz_int)
        call f_free_ptr(astruct%ixyz_int)
+       do iat = 1, astruct%nat
+          if (associated(astruct%attributes(iat)%impl)) then
+             call dict_free(astruct%attributes(iat)%impl)
+          end if
+       end do
+       deallocate(astruct%attributes)
     end if
     if (astruct%ntypes >= 0) then
        call f_free_str_ptr(len(astruct%atomnames),astruct%atomnames)
@@ -407,6 +451,35 @@ contains
     end if
     call pawang_destroy(atoms%pawang)
     END SUBROUTINE deallocate_atoms_data
+
+    !> Start the iterator of an astruct_neighbours structure.
+    !  Only one iterator is possible at a time.
+    subroutine astruct_neighbours_iter(neighb, iat)
+      implicit none
+      type(atomic_neighbours), intent(inout) :: neighb
+      integer, intent(in) :: iat
+
+      neighb%iat = iat
+      neighb%ind = 0
+    END SUBROUTINE astruct_neighbours_iter
+    !> Return the next neighbour of a given atom, as initialised by
+    !  astruct_neighbours_iter(). Return 0 if there is no next neighbours.
+    function astruct_neighbours_next(neighb, inei)
+      implicit none
+      type(atomic_neighbours), intent(inout) :: neighb
+      integer, intent(out) :: inei
+      
+      logical :: astruct_neighbours_next
+
+      astruct_neighbours_next = .false.
+      inei = 0
+
+      neighb%ind = neighb%ind + 1
+      if (neighb%ind > neighb%keynei(1, neighb%iat)) return
+      
+      inei = neighb%nei(neighb%keynei(2, neighb%iat) + neighb%ind - 1)
+      astruct_neighbours_next = .true.
+    END FUNCTION astruct_neighbours_next
 
     subroutine atomic_data_set_from_dict(dict, key, atoms, nspin)
       use module_defs, only: gp
@@ -999,10 +1072,12 @@ contains
            & call set(dict // ASTRUCT_PROPERTIES // "format", astruct%inputfile_format)
     end subroutine astruct_merge_to_dict
 
-    subroutine astruct_at_from_dict(dict, symbol, rxyz, rxyz_add, ifrztyp, igspin, igchrg, ixyz, ixyz_add)
+    subroutine astruct_at_from_dict(dict, symbol, rxyz, rxyz_add, ifrztyp, &
+         & igspin, igchrg, ixyz, ixyz_add, mode)
       use dictionaries
       use module_defs, only: UNINITIALIZED
       use dynamic_memory
+      use f_utils, only: operator(==), int, char
       implicit none
       type(dictionary), pointer :: dict
       character(len = max_field_length), intent(out), optional :: symbol !< Symbol
@@ -1013,6 +1088,7 @@ contains
       integer, intent(out), optional :: ixyz_add !< Reference atom for internal coordinates address
       real(gp), dimension(3), intent(out), optional :: rxyz !< Coordinates.
       real(gp), intent(out), optional :: rxyz_add !< Coordinates address.
+      integer, intent(out), optional :: mode !< QM/MM treatment.
 
       type(dictionary), pointer :: atData
       character(len = max_field_length) :: str
@@ -1027,6 +1103,7 @@ contains
       if (present(ifrztyp)) ifrztyp = 0
       if (present(igspin))  igspin = 0
       if (present(igchrg))  igchrg = 0
+      if (present(mode)) mode = UNINITIALIZED(mode)
       
       atData => dict_iter(dict)
       do while(associated(atData))
@@ -1059,6 +1136,15 @@ contains
                icoord(3) = atData
                call f_memcpy(ixyz_add, icoord(1), 3)
             end if
+         else if (trim(str) == ASTRUCT_ATT_QMMM) then
+            if (present(mode)) then
+               str = dict_value(atData)
+               if (ATOM_MODE_MM == trim(str)) then
+                  mode = int(ATOM_MODE_MM)
+               else if (ATOM_MODE_QM == trim(str)) then
+                  mode = int(ATOM_MODE_QM)
+               end if
+            end if
          else if (dict_len(atData) == 3) then
             if (present(symbol)) symbol = str
             if (present(rxyz)) rxyz = atData
@@ -1085,7 +1171,6 @@ contains
 
 END MODULE module_atoms
 
-
 !> Allocation of the arrays inside the structure atoms_data, considering the part which is associated to astruct%nat
 !! this routine is external to the module as it has to be called from C
 subroutine astruct_set_n_atoms(astruct, nat)
@@ -1096,7 +1181,7 @@ subroutine astruct_set_n_atoms(astruct, nat)
   integer, intent(in) :: nat
   !local variables
   character(len=*), parameter :: subname='astruct_set_n_atoms' !<remove
-
+  integer :: iat
 
   astruct%nat = nat
 
@@ -1107,6 +1192,11 @@ subroutine astruct_set_n_atoms(astruct, nat)
   astruct%rxyz = f_malloc0_ptr((/ 3,astruct%nat /),id='astruct%rxyz')
   astruct%rxyz_int = f_malloc_ptr((/ 3,astruct%nat /),id='astruct%rxyz_int')
   astruct%ixyz_int = f_malloc_ptr((/ 3,astruct%nat /),id='astruct%ixyz_int')
+
+  allocate(astruct%attributes(astruct%nat))
+  do iat = 1, astruct%nat
+     nullify(astruct%attributes(iat)%impl)
+  end do
 
   !this array is useful for frozen atoms, no atom is frozen by default
   astruct%ifrztyp(:)=0
@@ -1357,3 +1447,199 @@ subroutine astruct_set_displacement(astruct, randdis)
    call rxyz_inside_box(astruct)
    
 END SUBROUTINE astruct_set_displacement
+
+!> Compute a list of neighbours for the given structure.
+subroutine astruct_neighbours(astruct, rxyz, neighb)
+  use module_defs, only: gp
+  use module_atoms, only: atomic_structure, atomic_neighbours, nullify_atomic_neighbours
+  use dynamic_memory
+  use ao_inguess, only: atomic_z, atomic_info
+  implicit none
+  type(atomic_structure), intent(in) :: astruct
+  real(gp), dimension(3, astruct%nat), intent(in) :: rxyz
+  type(atomic_neighbours), intent(out) :: neighb
+
+  integer :: maxnei, i, j, nnei
+  integer, dimension(:,:), allocatable :: tmp_nei
+  logical, dimension(3) :: per
+  real(gp), dimension(3) :: dxyz
+  real(gp), dimension(:), allocatable :: rcuts
+
+  call nullify_atomic_neighbours(neighb)
+  
+  neighb%nat = astruct%nat
+  neighb%keynei = f_malloc0_ptr((/ 2, neighb%nat /), id = "neighb%keynei")
+  
+  maxnei = min(astruct%nat, 50)
+  tmp_nei = f_malloc((/ maxnei, astruct%nat /), id = "tmp_nei")
+
+  select case(astruct%geocode)
+  case ("P")
+     per = (/ .true., .true., .true. /)
+  case ("S")
+     per = (/ .true., .false., .true. /)
+  case ("W")
+     per = (/ .false., .true., .false. /)
+  case default
+     per = (/ .false., .false., .false. /)
+  end select
+
+  rcuts = f_malloc(astruct%ntypes, id = "rcuts")
+  do i = 1, astruct%ntypes, 1
+     call atomic_info(atomic_z(trim(astruct%atomnames(i))), rcov = rcuts(i))
+     rcuts(i) = rcuts(i) * 1.2_gp ! add 20% in case.
+  end do
+
+  nnei = 0
+  do i = 1, astruct%nat
+     do j = i + 1, astruct%nat
+
+        dxyz(:) = rxyz(:, j) - rxyz(:, i)
+        where (per) dxyz = dxyz - astruct%cell_dim * nint(dxyz / astruct%cell_dim)
+
+        if (dxyz(1) * dxyz(1) + dxyz(2) * dxyz(2) + dxyz(3) * dxyz(3) < &
+             & (rcuts(astruct%iatype(i)) + rcuts(astruct%iatype(j)))**2) then
+           neighb%keynei(1, i) = neighb%keynei(1, i) + 1
+           neighb%keynei(1, j) = neighb%keynei(1, j) + 1
+           tmp_nei(neighb%keynei(1, i), i) = j
+           tmp_nei(neighb%keynei(1, j), j) = i
+        endif
+
+     end do
+     nnei = nnei + neighb%keynei(1, i)
+  end do
+
+  call f_free(rcuts)
+
+  neighb%nei = f_malloc_ptr(nnei, id = "neighb%nei")
+
+  nnei = 1
+  do i = 1, neighb%nat
+     neighb%keynei(2, i) = nnei
+     if (neighb%keynei(1, i) > 0) &
+          & neighb%nei(nnei: nnei + neighb%keynei(1, i) - 1) = &
+          & tmp_nei(1:neighb%keynei(1, i), i)
+     nnei = nnei + neighb%keynei(1, i)
+  end do
+
+  call f_free(tmp_nei)  
+END SUBROUTINE astruct_neighbours
+
+subroutine astruct_from_subset(asub, astruct, rxyz, mask, passivate)
+  use module_defs, only: gp
+  use module_atoms, only: atomic_structure, nullify_atomic_structure, &
+       & atomic_neighbours, astruct_neighbours_iter, astruct_neighbours_next, &
+       & deallocate_atomic_neighbours
+  use dynamic_memory
+  use dictionaries
+  use ao_inguess, only: atomic_z, atomic_info
+  implicit none
+  type(atomic_structure), intent(out) :: asub
+  type(atomic_structure), intent(in) :: astruct
+  real(gp), dimension(3, astruct%nat), intent(in) :: rxyz
+  logical, dimension(astruct%nat), intent(in) :: mask !< .true. for atoms in the subset.
+  logical, intent(in) :: passivate
+
+  type(atomic_neighbours) :: nei
+  integer :: i, iat, jat, nsub
+  real(gp) :: rcutH, fact
+  type(dictionary), pointer :: hlist, s, types
+  logical, dimension(3) :: per
+  real(gp), dimension(3) :: dxyz
+  real(gp), dimension(:), allocatable :: rcuts
+  
+  call nullify_atomic_structure(asub)
+
+  call dict_init(hlist)
+  if (passivate) then 
+     ! In case of passivation, every old neighbours that are cut, are replaced
+     ! by an hydrogen.
+     call astruct_neighbours(astruct, rxyz, nei)
+
+     select case(astruct%geocode)
+     case ("P")
+        per = (/ .true., .true., .true. /)
+     case ("S")
+        per = (/ .true., .false., .true. /)
+     case ("W")
+        per = (/ .false., .true., .false. /)
+     case default
+        per = (/ .false., .false., .false. /)
+     end select
+
+     rcuts = f_malloc(astruct%ntypes, id = "rcuts")
+     do i = 1, astruct%ntypes, 1
+        call atomic_info(atomic_z(trim(astruct%atomnames(i))), rcov = rcuts(i))
+     end do
+     call atomic_info(1, rcov = rcutH)
+
+     nullify(s)
+     do iat = 1, astruct%nat
+        if (mask(iat)) then
+           call astruct_neighbours_iter(nei, iat)
+           do while(astruct_neighbours_next(nei, jat))
+              if ( .not. mask(jat)) then
+                 dxyz(:) = rxyz(:, jat) - rxyz(:, iat)
+                 where (per) dxyz = dxyz - astruct%cell_dim * nint(dxyz / astruct%cell_dim)
+                 fact = (rcuts(astruct%iatype(iat)) + rcutH) / &
+                      & sqrt(dxyz(1) * dxyz(1) + dxyz(2) * dxyz(2) + dxyz(3) * dxyz(3))
+                 dxyz(:) = rxyz(:, iat) + dxyz(:) *fact
+                 call add(hlist, list_new((/ .item. dxyz(1), .item. dxyz(2), .item. dxyz(3) /)), s)
+              endif
+           enddo
+        end if
+     enddo
+
+     call f_free(rcuts)
+     call deallocate_atomic_neighbours(nei)
+  end if
+
+  ! Start copying a subset of astruct into asub.
+  asub%units = astruct%units
+  asub%cell_dim = astruct%cell_dim
+  asub%geocode = astruct%geocode
+  asub%inputfile_format = astruct%inputfile_format
+
+  ! Count the number of types in the subset.
+  call dict_init(types)  
+  do iat = 1, astruct%nat
+     if (mask(iat) .and. .not. (trim(astruct%atomnames(astruct%iatype(iat))) .in. types)) &
+          & call set(types // trim(astruct%atomnames(astruct%iatype(iat))), dict_size(types))
+  end do
+  if (dict_len(hlist) > 0 .and. .not. ("H" .in. types)) &
+       & call set(types // "H", dict_size(types))
+  call astruct_set_n_types(asub, dict_size(types))
+  i = 1
+  s => dict_iter(types)
+  do while (associated(s))
+     asub%atomnames(i) = trim(dict_key(s))
+     i = i + 1
+     s => dict_next(s)
+  end do
+
+  ! Count the number of atoms in the subset.
+  nsub = 0
+  do iat = 1, astruct%nat
+     if (mask(iat)) nsub = nsub + 1
+  end do
+  call astruct_set_n_atoms(asub, nsub + dict_len(hlist))
+  i = 0
+  do iat = 1, astruct%nat
+     if (mask(iat)) then
+        i = i + 1
+        asub%iatype(i) = types // trim(astruct%atomnames(astruct%iatype(iat)))
+        asub%input_polarization(i) = astruct%input_polarization(iat)
+        asub%rxyz(:, i) = astruct%rxyz(:, iat)
+     end if
+  end do
+  s => dict_iter(hlist)
+  do while(associated(s))
+     i = i + 1
+     asub%iatype(i) = types // "H"
+     asub%rxyz(:, i) = s
+     s => dict_next(s)
+  end do
+
+  call dict_free(types)
+  call dict_free(hlist)
+END SUBROUTINE astruct_from_subset
