@@ -24,6 +24,7 @@ module module_globaltool
     public :: finalize_gt_data
     public :: write_merged
     public :: write_transitionpairs
+    public :: unpair 
 
     type gt_uinp
         real(gp) :: en_delta
@@ -390,9 +391,9 @@ subroutine write_transitionpairs(gdat)
         kIDmin2=gdat%mn(IDmin2)
         call fpdistance(gdat%nid,gdat%fp_arr(1,kIDmin1),&
              gdat%fp_arr(1,kIDmin2),fpd)
-        write(*,'(a,1x,i4.4,3x,i4.4,2x,4(1x,es24.17))')'   Trans',&
+        write(*,'(a,1x,i4.4,3x,i4.4,2x,4(1x,es24.17),1x,i8.8)')'   Trans',&
              IDmin1,IDmin2,gdat%en_arr(kIDmin1),gdat%en_arr(kIDmin2),&
-             abs(gdat%en_arr(kIDmin1)-gdat%en_arr(kIDmin2)),fpd
+             abs(gdat%en_arr(kIDmin1)-gdat%en_arr(kIDmin2)),fpd,gdat%transpairs(itrans)
     enddo
 end subroutine write_transitionpairs
 !=====================================================================
@@ -507,16 +508,16 @@ subroutine add_transpairs_to_database(gdat)
         id_transpair = getPairId(idcurr,idnext)
         call fpdistance(gdat%nid,gdat%fp_arr(1,kidcurr),&
              gdat%fp_arr(1,kidnext),fpd)
-write(*,*)gdat%gmon_ener(iposloc)
         write(*,'(a,1x,i4.4,3x,i4.4,2x,4(1x,es24.17))')'   trans',idcurr,&
              idnext,gdat%en_arr(kidcurr),gdat%en_arr(kidnext),&
              abs(gdat%en_arr(kidcurr)-gdat%en_arr(kidnext)),fpd
+
         call inthunt_gt(gdat%transpairs,&
-             max(1,min(gdat%ntrans,gdat%ntransmax)),id_transpair,&
+             max(1,min(gdat%ntrans,gdat%nminmax)),id_transpair,&
              loc_id_transpair)
-        !uncomment the if query if everey pair should be added to the
+        !comment the if query if everey pair should be added to the
         !database, even if it is already in the database
-        if(gdat%transpairs(loc_id_transpair)/=id_transpair)then!add to database
+        if(gdat%transpairs(max(1,loc_id_transpair))/=id_transpair)then!add to database
             !shift
             gdat%ntrans=gdat%ntrans+1
             do i=gdat%ntrans-1,loc_id_transpair+1,-1
@@ -579,9 +580,9 @@ integer :: itmp
         read(line,*)ristep
         istep=nint(ristep)
         if(istep/=0)then
-            read(line,*,iostat=istat)istep,energy,rdmy,rdmy,rdmy,rdmy,rdmy,stat
+            read(line,*,iostat=istat)ristep,energy,rdmy,rdmy,rdmy,rdmy,rdmy,stat
         else
-            read(line,*,iostat=istat)istep,energy,rdmy,rdmy,stat
+            read(line,*,iostat=istat)ristep,energy,rdmy,rdmy,stat
             if(icount/=0)restartoffset=icount
         endif
         if(istat/=0)then
