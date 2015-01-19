@@ -65,6 +65,11 @@ module module_globaltool
         real(gp), allocatable :: gmon_ener(:)
         real(gp), allocatable :: gmon_fp(:,:)
         character(len=1), allocatable :: gmon_stat(:)
+        integer :: gmon_nposlocs !nposlocs according to gmon file
+                                 !can be different to nposlocs
+                                 !above due to kills of global executable
+                                 !(new poslocm might be written, but not
+                                 !global.mon)
 
         integer, allocatable :: mn(:)
     end type
@@ -223,6 +228,7 @@ subroutine init_gt_data(gdat)
     gdat%gmon_ener = f_malloc((/gdat%nminmaxpd/),id='gmon_ener')
     gdat%gmon_fp = f_malloc((/gdat%nid,gdat%nminmaxpd/),id='gmon_fp')
     gdat%gmon_stat = f_malloc_str(100,(/gdat%nminmaxpd/),id='gmon_stat')
+    gdat%gmon_nposlocs=huge(1)
 end subroutine init_gt_data
 !=====================================================================
 subroutine finalize_gt_data(gdat)
@@ -482,7 +488,7 @@ subroutine add_transpairs_to_database(gdat)
         call f_err_throw('Error in global.mon: Does not start with'//&
              ' P line',err_name='BIGDFT_RUNTIME_ERROR')
     endif
-    do iposloc = 1, gdat%nposlocs
+    do iposloc = 1, gdat%gmon_nposlocs
         !check if escaped
         if(gdat%gmon_stat(iposloc)=='S')cycle
         !get ID of minimum
@@ -585,6 +591,7 @@ integer :: itmp
             read(line,*,iostat=istat)ristep,energy,rdmy,rdmy,stat
             if(icount/=0)restartoffset=icount
         endif
+write(*,*)stat
         if(istat/=0)then
             call f_err_throw('Error while parsing '//&
                  trim(adjustl(filename))//', istep='//&
@@ -606,14 +613,15 @@ integer :: itmp
                      trim(yaml_toa(icount)),err_name='BIGDFT_RUNTIME_ERROR')
             endif
             icount=icount+1
+write(*,*)'ins',icount,energy
             gdat%gmon_ener(icount)=energy
             gdat%gmon_stat(icount)=stat
             call gmon_line_to_fp(gdat,icount,iline,found)
             if(.not. found)then
-write(*,*)'to be found:',energy
-    do itmp = icount , 1 , -1
-write(*,*)itmp,gdat%en_arr_currDir(itmp)
-    enddo
+                write(*,*)'to be found:',energy,icount
+                do itmp = icount+10 , 1 , -1
+                    write(*,*)itmp,gdat%en_arr_currDir(itmp)
+                enddo
 
                 call f_err_throw('Could not find istep= '//&
                      trim(yaml_toa(istep))//'of '//trim(adjustl(filename))//&
@@ -622,9 +630,17 @@ write(*,*)itmp,gdat%en_arr_currDir(itmp)
         endif
     enddo   
     if(icount/=gdat%nposlocs)then
-        call f_err_throw('Number of poslocm files is not identical '//&
-             'to number of steps in global.mon',err_name='BIGDFT_RUNTIME_ERROR')
+        !might happen if global was killed after writing the first
+        ! poslocm file and before writing global.mon
+        ! -> Do not stop, but print warning
+!        call f_err_throw('Number of poslocm files is not identical '//&
+!             'to number of steps in global.mon',err_name='BIGDFT_RUNTIME_ERROR')
+        call yaml_warning('Number of poslocm files in '//&
+             trim(adjustl(gdat%uinp%directories(idict)))//&
+             ' is not identical to number of steps in '//&
+             trim(adjustl(filename)))
     endif
+    gdat%gmon_nposlocs=icount
     close(u)
      
 end subroutine read_globalmon
@@ -641,16 +657,17 @@ subroutine gmon_line_to_fp(gdat,icount,iline,found)
     logical, intent(out) :: found
     !local
     integer :: iposloc
-    integer :: istep
     !ethresh can be small, since identical energy value should be in
     !global.mon and in the corresponding poslocm file
-    real(gp), parameter :: ethresh = 1.d-11
+    real(gp), parameter :: ethresh = 1.d-12
 
-    istep=icount-1
     found=.false.
     !the corresponding poslocm file should always
     !be one of the last files. Therefore, read from behind
-    do iposloc = icount , 1 , -1
+    !We start at icount+10, because glbal might have been killed
+    !after writing the first poslocm file and before writing global.mon
+    do iposloc = min(icount+10,gdat%nminmaxpd) , 1 , -1
+write(*,'(i4.4,2(1x,es24.17))')iposloc,gdat%en_arr_currDir(iposloc),abs(gdat%en_arr_currDir(iposloc)-gdat%gmon_ener(icount))
         if(abs(gdat%en_arr_currDir(iposloc)-&
            gdat%gmon_ener(icount))<ethresh)then
             found=.true.
