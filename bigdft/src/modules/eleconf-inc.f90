@@ -1788,10 +1788,10 @@ subroutine nzsymbol(nzatom, symbol)
 END SUBROUTINE nzsymbol
 
 !> Give the atomic number from Sybmol.
-function zatom(symbol)
+function atomic_z(symbol)
   implicit none
   ! Arguments
-  integer :: zatom
+  integer :: atomic_z
   character(len=*), intent(in) :: symbol
   !local variables
   character(len=2), parameter :: symbol_(94)=(/' H','He',        &
@@ -1808,12 +1808,42 @@ function zatom(symbol)
        &   'Fr','Ra','Ac','Th','Pa',' U','Np','Pu'/)
   integer :: iat
 
-  zatom=-1
+  atomic_z=-1
   find_z: do iat=1,size(symbol_)
      if (trim(adjustl(symbol)) == trim(adjustl(symbol_(iat)))) then
-        zatom=iat
+        atomic_z=iat
         exit find_z
      end if
   end do find_z
 
-END function zatom
+END function atomic_z
+
+!> Give the experimental covalent radius,
+!  for the one arising from the pseudo, use atomic_info() instead.
+function ratom(nzatom)
+  use module_defs, only: Bohr_Ang
+  implicit none
+  ! Arguments
+  real(gp) :: ratom
+  integer :: nzatom
+  !local variables
+  real(gp), dimension(94), parameter :: rcov_ = (/ &
+  & 0.37, 0.32, & ! H, He
+  & 1.34, 0.90, 0.82, 0.77, 0.75, 0.73, 0.71, 0.69, & ! Li, Be, B, C, N, O, F, Ne
+  & 1.54, 1.30, 1.18, 1.11, 1.06, 1.02, 0.99, 0.97, & ! Na, Mg, Al, Si, P, S, Cl, Ar
+  & 1.96, 1.74, 1.44, 1.36, 1.25, 1.27, 1.39, 1.25, 1.26, & ! K, Ca, Sc, Ti, V, Cr, Mn, Fe, Co
+  & 1.21, 1.38, 1.31, 1.26, 1.22, 1.19, 1.16, 1.14, 1.10, & ! Ni, Cu, Zn, Ga, Ge, As, Se, Br, Kr
+  & 2.11, 1.92, 1.62, 1.48, 1.37, 1.45, 1.56, 1.26, 1.35, & ! Rb, Sr, Y, Zr, Nb, Mo, Tc, Ru, Rh
+  & 1.31, 1.53, 1.48, 1.44, 1.41, 1.38, 1.35, 1.33, 1.30, & ! Pd, Ag, Cd, In, Sn, Sb, Te, I, Xe
+  & 2.25, 1.98, 1.69, -1.0, -1.0, -1.0, -1.0, -1.0, -1.0, & ! Cs, Ba, La, Ce, Pr, Nd, Pm, Sm, Eu
+  & -1.0, -1.0, -1.0, -1.0, -1.0, -1.0, -1.0, 1.60, 1.50, & ! Gd, Tb, Dy, Ho, Er, Tm, Yb, Lu, Hf
+  & 1.38, 1.46, 1.59, 1.28, 1.37, 1.28, 1.44, 1.49, 1.48, & ! Ta, W, Re, Os, Ir, Pt, Au, Hg, Tl
+  & 1.47, 1.46, -1.0, -1.0, 1.45, & ! Pb, Bi, Po, At, Rn
+  & -1.0, -1.0, -1.0, -1.0, -1.0, -1.0, -1.0, -1.0 /) ! Fr, Ra, Ac, Th, Pa, U, Np, Pu
+
+  if (nzatom > 0 .and. nzatom < size(rcov_)) then
+     ratom = rcov_(nzatom) / Bohr_Ang
+  else
+     ratom = -1.0
+  end if
+end function ratom
