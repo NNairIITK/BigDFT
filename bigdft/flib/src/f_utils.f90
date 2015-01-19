@@ -59,7 +59,7 @@ module f_utils
 
 
   interface operator(==)
-     module procedure enum_is_int,enum_is_enum
+     module procedure enum_is_int,enum_is_enum,enum_is_char
   end interface operator(==)
 
   interface int
