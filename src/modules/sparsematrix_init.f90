@@ -2457,9 +2457,10 @@ contains
       type(sparse_matrix),intent(out) :: smat
 
       ! Local variables
-      integer :: icol, irow, i, ii, iseg
+      integer :: icol, irow, i, ii, iseg, ncolpx
       integer,dimension(:,:),allocatable :: nonzero
       logical,dimension(:,:),allocatable :: mat
+      real(kind=8) :: tt
       type(comms_linear) :: collcom_dummy
 
 
@@ -2487,6 +2488,27 @@ contains
       end do
 
       call f_free(mat)
+
+      !!! Determine the number of columns per process
+      !!tt = real(ncol,kind=8)/real(nproc,kind=8)
+      !!ncolpx = floor(tt)
+      !!ii = ncol - nproc*ncolpx
+      !!if (iproc<ii) then
+      !!    ncolp = ncolpx + 1
+      !!else
+      !!    ncolp = ncolpx
+      !!end if
+      !!
+      !!! Determine the first column of each process
+      !!i = 0
+      !!do jproc=0,nproc-1
+      !!    if (iproc==jproc) isorb = 1
+      !!    if (jproc<ii) then
+      !!        i = i + ncolpx + 1
+      !!    else
+      !!        i = i + ncolpx
+      !!    end if
+      !!end do
 
       call init_sparse_matrix(iproc, nproc, 1, ncol, ncolp, iscol, ncol, ncolp, iscol, .false., &
            nvctr, nonzero, nvctr, nonzero, smat)
