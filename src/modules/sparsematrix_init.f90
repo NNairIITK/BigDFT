@@ -24,7 +24,7 @@ module sparsematrix_init
   public :: init_matrix_taskgroups
   public :: check_local_matrix_extents
   public :: read_ccs_format
-  public :: ccs_to_bigdft
+  public :: ccs_to_sparsebigdft
   public :: ccs_values_to_bigdft
 
 contains
@@ -2384,8 +2384,8 @@ contains
     end subroutine check_local_matrix_extents
 
 
-    !> Converts the CCS sparsity pattern to the BigDFT sparsity pattern
-    subroutine ccs_to_bigdft(iproc, nproc, ncol, ncolp, iscol, nnonzero, row_ind, col_ptr, smat)
+    !> Uses the CCS sparsity pattern to create a BigDFT sparse_matrix type
+    subroutine ccs_to_sparsebigdft(iproc, nproc, ncol, ncolp, iscol, nnonzero, row_ind, col_ptr, smat)
       use communications_base, only: comms_linear, comms_linear_null
       implicit none
       integer,intent(in) :: iproc, nproc, ncol, ncolp, iscol, nnonzero
@@ -2393,7 +2393,6 @@ contains
       integer,dimension(nnonzero),intent(in) :: row_ind
       integer,dimension(ncol),intent(in) :: col_ptr
       type(sparse_matrix),intent(out) :: smat
-      !real(kind=8), dimension(nnonzero),intent(in),optional :: val
 
       ! Local variables
       integer :: icol, irow, i, ii
@@ -2440,12 +2439,64 @@ contains
       call init_matrix_taskgroups(iproc, nproc, .false., collcom_dummy, collcom_dummy, smat, &
            (/1,ncol/), (/1,ncol/))
 
+      call f_free(nonzero)
+
+    end subroutine ccs_to_sparsebigdft
 
 
+    !> Uses the BigDFT sparsity pattern to create a BigDFT sparse_matrix type
+    subroutine bigdft_to_sparsebigdft(iproc, nproc, ncol, ncolp, iscol, nvctr, nseg, keyg, smat)
+      use communications_base, only: comms_linear, comms_linear_null
+      implicit none
+      integer,intent(in) :: iproc, nproc, ncol, ncolp, iscol, nvctr, nseg
+      !logical,intent(in) :: store_index
+      integer,dimension(2,2,nseg),intent(in) :: keyg
+      type(sparse_matrix),intent(out) :: smat
+
+      ! Local variables
+      integer :: icol, irow, i, ii, iseg
+      integer,dimension(:,:),allocatable :: nonzero
+      logical,dimension(:,:),allocatable :: mat
+      type(comms_linear) :: collcom_dummy
+
+
+      ! Calculate the values of nonzero and nonzero_mult which are required for
+      ! the init_sparse_matrix routine.
+      ! For the moment simple and stupid using a workarray of dimension ncol x ncol
+      nonzero = f_malloc((/2,nvctr/),id='nonzero')
+      mat = f_malloc((/ncol,ncol/),id='mat')
+      mat = .false.
+
+      do iseg=1,smat%nseg
+          do i=smat%keyg(1,1,iseg),smat%keyg(2,1,iseg)
+              mat(smat%keyg(1,2,iseg),i) = .true.
+          end do
+      end do
+      ii = 0
+      do irow=1,ncol
+          do icol=1,ncol
+              if (mat(irow,icol)) then
+                  ii = ii + 1
+                  nonzero(2,ii) = irow
+                  nonzero(1,ii) = icol
+              end if
+          end do
+      end do
+
+      call f_free(mat)
+
+      call init_sparse_matrix(iproc, nproc, 1, ncol, ncolp, iscol, ncol, ncolp, iscol, .false., &
+           nvctr, nonzero, nvctr, nonzero, smat)
+
+      collcom_dummy = comms_linear_null()
+      ! since no taskgroups are used, the values of iirow and iicol are just set to
+      ! the minimum and maximum, respectively.
+      call init_matrix_taskgroups(iproc, nproc, .false., collcom_dummy, collcom_dummy, smat, &
+           (/1,ncol/), (/1,ncol/))
 
       call f_free(nonzero)
 
-    end subroutine ccs_to_bigdft
+    end subroutine bigdft_to_sparsebigdft
 
 
 

@@ -3,7 +3,7 @@ program driver_singlerun
   use module_base
   use sparsematrix_base, only: sparse_matrix, matrices, &
                                assignment(=), sparsematrix_malloc_ptr, SPARSE_FULL
-  use sparsematrix_init, only: read_ccs_format, ccs_to_bigdft, ccs_values_to_bigdft
+  use sparsematrix_init, only: read_ccs_format, ccs_to_sparsebigdft, ccs_values_to_bigdft
   use sparsematrix, only: write_matrix_compressed, check_symmetry
   use module_interfaces, only: overlapPowerGeneral
   implicit none
@@ -31,7 +31,7 @@ program driver_singlerun
   call read_ccs_format(filename, ncol, nnonzero, col_ptr, row_ind, val)
 
   ! Create the corresponding BigDFT sparsity pattern
-  call ccs_to_bigdft(iproc, nproc, ncol, ncol, 0, nnonzero, row_ind, col_ptr, smat)
+  call ccs_to_sparsebigdft(iproc, nproc, ncol, ncol, 0, nnonzero, row_ind, col_ptr, smat)
 
   ! Assign the values
   matA%matrix_compr = sparsematrix_malloc_ptr(smat, iaction=SPARSE_FULL, id='matA%matrix_compr')

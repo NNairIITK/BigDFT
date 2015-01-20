@@ -1625,4 +1625,71 @@ module sparsematrix
     end subroutine write_sparsematrix
 
 
+
+    !> Write a sparse matrix to a file, using the CCS format
+    subroutine write_sparsematrix_CCS(filename, smat, mat)
+      use yaml_output
+      implicit none
+    
+      ! Calling arguments
+      character(len=*),intent(in) :: filename
+      type(sparse_matrix),intent(in) :: smat
+      type(matrices),intent(in) :: mat
+    
+      ! Local variables
+      integer :: iseg, i, j, ii
+      integer,dimension(:),allocatable :: col_ptr, row_ind
+      logical,dimension(:,:),allocatable :: matg
+      logical :: column_started
+      integer,parameter :: iunit=234
+
+      col_ptr = f_malloc(smat%nfvctr,id='col_ptr')
+      row_ind = f_malloc(smat%nvctr,id='row_ind')
+
+      matg = f_malloc((/smat%nfvctr,smat%nfvctr/),id='matg')
+      matg = .false.
+      do iseg=1,smat%nseg
+          ! A segment is always on one line, therefore no double loop
+          ii=smat%keyv(iseg)
+          do i=smat%keyg(1,1,iseg),smat%keyg(2,1,iseg)
+              matg(smat%keyg(1,2,iseg),i) = .true.
+          end do
+      end do
+
+      ii = 0
+      do i=1,smat%nfvctr
+          column_started = .false.
+          do j=1,smat%nfvctr
+             if(matg(j,i)) then
+                 ii = ii + 1
+                 row_ind(ii) = j
+                 if (.not.column_started) then
+                     col_ptr(i) = ii
+                     column_started = .true.
+                 end if
+             end if
+          end do
+      end do
+    
+      open(unit=iunit,file=filename)
+
+      write(iunit,*) smat%nfvctr, smat%nvctr, '# number rows/columns, number of non-zero entries'
+      write(iunit,*) (col_ptr(i),i=1,smat%nfvctr), '# col_ptr'
+      write(iunit,*) (row_ind(i),i=1,smat%nvctr), '# row_ind'
+      do i=1,smat%nvctr
+          if(i==1) then
+              write(iunit,*) mat%matrix_compr(i), ' values of matrix_compr' 
+          else
+              write(iunit,*) mat%matrix_compr(i) 
+          end if
+      end do
+      close(unit=iunit)
+
+      call f_free(col_ptr)
+      call f_free(row_ind)
+      call f_free(matg)
+    
+    end subroutine write_sparsematrix_CCS
+
+
 end module sparsematrix
