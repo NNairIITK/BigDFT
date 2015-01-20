@@ -5,7 +5,7 @@
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
-!!    For the list of contributors, see ~/AUTHORS 
+!!    For the list of contributors, see ~/AUTHORS
 
 
 !> Module handling the object for the runs of bigDFT (restart, output, ...)
@@ -21,7 +21,7 @@ module bigdft_run
        bigdft_get_run_properties => dict_get_run_properties
   private
 
-  !>  Used to restart a new DFT calculation or to save information 
+  !>  Used to restart a new DFT calculation or to save information
   !!  for post-treatment
   type, public :: QM_restart_objects
      type(f_reference_counter) :: refcnt
@@ -30,14 +30,14 @@ module bigdft_run
      real(gp), dimension(:,:), pointer :: rxyz_old,rxyz_new
      type(DFT_wavefunction) :: KSwfn !< Kohn-Sham wavefunctions
      type(DFT_wavefunction) :: tmb !<support functions for linear scaling
-     type(GPU_pointers) :: GPU 
+     type(GPU_pointers) :: GPU
   end type QM_restart_objects
 
   !>supplementary type in run_objects
   type, public :: MM_restart_objects
      type(f_reference_counter) :: refcnt
      !> array for temporary copy of atomic positions and forces
-     real(gp), dimension(:,:), pointer :: rf_extra 
+     real(gp), dimension(:,:), pointer :: rf_extra
   end type MM_restart_objects
 
   !> Public container to be used with bigdft_state().
@@ -78,7 +78,7 @@ module bigdft_run
   public :: bigdft_get_astruct_ptr,bigdft_write_atomic_file,bigdft_set_run_properties
   public :: bigdft_norb,bigdft_get_eval,bigdft_run_id_toa,bigdft_get_rxyz
   public :: bigdft_dot,bigdft_nrm2
-!!$  ! interfaces of external routines 
+!!$  ! interfaces of external routines
 !!$  interface
 !!$     subroutine geopt(runObj,outs,nproc,iproc,ncount_bigdft)
 !!$       use module_base
@@ -91,7 +91,7 @@ module bigdft_run
 !!$     END SUBROUTINE geopt
 !!$
 !!$  end interface
-  
+
 contains
 
   !> All in one routine to initialise and set-up restart objects.
@@ -105,7 +105,7 @@ contains
     type(QM_restart_objects), intent(inout) :: rst
 
     !call QM_restart_objects_new(rst)
-    ! Number of atoms should not change during the calculation 
+    ! Number of atoms should not change during the calculation
     if (rst%nat > 0 .and. rst%nat /= atoms%astruct%nat) then
        call f_err_throw("The number of atoms changed!",&
             err_name='BIGDFT_RUNTIME_ERROR')
@@ -221,7 +221,7 @@ contains
     nullify(rst%rxyz_old)
 
     !nullify unallocated pointers
-    !here whe should define the nullification of the whole 
+    !here whe should define the nullification of the whole
     !DFT wavefunction structure
     rst%KSwfn%c_obj = 0
     nullify(rst%KSwfn%psi)
@@ -473,14 +473,14 @@ contains
          set_astruct_from_file,deallocate_atomic_structure
     use module_base, only: bigdft_mpi
     implicit none
-    !> run object from which the atomic positions have to be 
+    !> run object from which the atomic positions have to be
     !! retrieved
     type(run_objects), intent(inout), optional :: runObj
     !> filename from which the atomic positions have to be read
     !! alternative to runObj
     character(len=*), intent(in), optional :: filename
     !>starting position of the atomic position.
-    !! the user is responsible to guarantee that the 
+    !! the user is responsible to guarantee that the
     !! correct memory space is allocated thereafter
     real(gp), intent(inout), optional :: rxyz_add
     !> array of correct size (3,bigdft_nat(runObj)) with the atomic positions
@@ -536,7 +536,7 @@ contains
   end subroutine bigdft_get_rxyz
 
   !> returns the pointer to the atomic positions of the run.
-  !! it performas a shallwo copy therefore this routine is intended to 
+  !! it performas a shallwo copy therefore this routine is intended to
   !! provide acces to position for reading.
   !! Use at own risk to modify the value of the atomic positions.
   !! it returns nullified pointer in the case runObj is not properly
@@ -570,7 +570,7 @@ contains
     type(run_objects), intent(in) :: runObj
     type(state_properties), intent(in) :: outs
     character(len=*), intent(in) :: filename,comment
-    !> when present and true, output the file in the main 
+    !> when present and true, output the file in the main
     !! working directory (where input files are present)
     !! and not in dir_output
     logical, intent(in), optional :: cwd_path
@@ -603,7 +603,7 @@ contains
     implicit none
     type(run_objects), intent(inout) :: runObj
     !>starting position of the atomic position.
-    !! the user is responsible to guarantee that the 
+    !! the user is responsible to guarantee that the
     !! correct memory space is allocated thereafter
     real(gp), intent(inout), optional :: rxyz_add
     !> array of correct size (3,bigdft_nat(runObj)) with the atomic positions
@@ -651,7 +651,7 @@ contains
        it => dict_iter(it0)
        find_forces: do while(associated(it))
           if (dict_len(it) == 3) then
-             outs%fxyz(1:3, i) = it 
+             outs%fxyz(1:3, i) = it
              exit find_forces
           end if
           it => dict_next(it)
@@ -680,7 +680,7 @@ contains
   !>release run_objects structure as a whole
   !! if the reference counter goes to zero, do not free
   !! the structure as other atoms and inputs may live somewhere
-  !! freeing command has to be given explicitly until we are 
+  !! freeing command has to be given explicitly until we are
   !! sure that it would be illegal to have inputs and atoms living
   !! separately from run_objects
   !! should not give exception as release might be called indefinitely
@@ -712,7 +712,7 @@ contains
     if (associated(runObj%atoms)) then
        call f_unref(runObj%atoms%refcnt,count=count)
        if (count==0) then
-          call deallocate_atoms_data(runObj%atoms) 
+          call deallocate_atoms_data(runObj%atoms)
        else
           nullify(runObj%atoms)
        end if
@@ -748,7 +748,7 @@ contains
        deallocate(runObj%mm_rst)
     end if
     if (associated(runObj%atoms)) then
-       call deallocate_atoms_data(runObj%atoms) 
+       call deallocate_atoms_data(runObj%atoms)
        deallocate(runObj%atoms)
     end if
     if (associated(runObj%inputs)) then
@@ -774,7 +774,7 @@ contains
 
     ! Free potential previous inputs and atoms.
     if (associated(runObj%atoms)) then
-       call deallocate_atoms_data(runObj%atoms) 
+       call deallocate_atoms_data(runObj%atoms)
        deallocate(runObj%atoms)
     end if
     ! Allocate atoms_data structure
@@ -812,15 +812,15 @@ contains
     !> dictionary containing instructions for the run.
     !! identifies the instructions needed to initialize the run.
     !! essentially, run id, input positions id and so on.
-    !! this dictionary is an element of the list that can be found 
+    !! this dictionary is an element of the list that can be found
     !! in options // 'BigDFT' after the call to bigdft_init routine
     !! if absent, the run objects need src argument to be initialized
     !! otherwise the runObj is a empty structure
     type(dictionary), pointer, optional :: run_dict
     !> template to perform a shallow copy of the arguments already inside.
     !! if run_dict is absent
-    !! if present together with run_dict, it performs a shallow copy of the restart variables 
-    !! given by it *except* the structures inputs and atoms, 
+    !! if present together with run_dict, it performs a shallow copy of the restart variables
+    !! given by it *except* the structures inputs and atoms,
     !! which are provided by the informations given by run_dict
     type(run_objects), intent(in), optional :: source
     !local variables
@@ -856,7 +856,7 @@ contains
           runObj%rst => source%rst
           call f_ref(runObj%rst%refcnt)
           !check the restart coherence
-          ! Number of atoms should not change during the calculation 
+          ! Number of atoms should not change during the calculation
           if (runObj%rst%nat > 0 .and. &
                runObj%rst%nat /= runObj%atoms%astruct%nat) then
              call f_err_throw("The number of atoms changed!",&
@@ -906,7 +906,7 @@ contains
     implicit none
     !> dictionary of the options of the run
     !! on entry, it contains the options for initializing
-    !! on exit, it contains in the key "BigDFT", a list of the 
+    !! on exit, it contains in the key "BigDFT", a list of the
     !! dictionaries of each of the run that the local instance of BigDFT
     !! code has to execute.
     !! if this argument is not present, the code is only initialized
@@ -944,7 +944,7 @@ contains
     uset = .true.
     if (present(with_taskgroups)) uset = with_taskgroups
 
-    !identify the list of the runs which are associated to the 
+    !identify the list of the runs which are associated to the
     !present processor
     nullify(dict_run)
 
@@ -985,14 +985,14 @@ contains
           !check if the file is given by a list
           if (dict_len(dict_run) <= 0) then
              call f_err_throw('The runs-file "'//&
-                  trim(posinp_id)//'" is not a list in yaml syntax',& 
+                  trim(posinp_id)//'" is not a list in yaml syntax',&
                   err_name='BIGDFT_INPUT_VARIABLES_ERROR')
           end if
        else
           call f_err_throw('The runs-file specified ('//trim(posinp_id)//&
                ') does not exists',err_name='BIGDFT_INPUT_FILE_ERROR')
        end if
-       !here the run of the dicts has to be evaluated according to the taskgroups    
+       !here the run of the dicts has to be evaluated according to the taskgroups
     else if (.not. associated(dict_run)) then
        call dict_init(dict_run)
        if (uset) then
@@ -1012,7 +1012,7 @@ contains
 
     if (present(options)) then
        if (.not. associated(options)) call dict_init(options)
-       !here the dict_run is given, and in each of the taskgroups a list of 
+       !here the dict_run is given, and in each of the taskgroups a list of
        !runs for BigDFT instances has to be given
        do iconfig=0,dict_len(dict_run)-1
           if (modulo(iconfig,bigdft_mpi%ngroup)==bigdft_mpi%igroup .or. .not. uset) then
@@ -1037,7 +1037,7 @@ contains
     implicit none
     !> dictionary of the options of the run
     !! on entry, it contains the options for initializing
-    !! on exit, it contains in the key "BigDFT", a list of the 
+    !! on exit, it contains in the key "BigDFT", a list of the
     !! dictionaries of each of the run that the local instance of BigDFT
     !! code has to execute
     type(dictionary), pointer :: options
@@ -1058,7 +1058,7 @@ contains
   end subroutine bigdft_command_line_options
 
   !> retrieve the number of runs for a given set of options
-  !! gives 0 if the option dictionary is invalid 
+  !! gives 0 if the option dictionary is invalid
   function bigdft_nruns(options)
     implicit none
     type(dictionary), pointer :: options !< filled options dictionary. bigdft_init has to be called
@@ -1124,15 +1124,20 @@ contains
     use module_base, only: gp,f_memcpy
     implicit none
     type(run_objects), intent(in) :: runObj !< BigDFT run structure
-    !> Buffer for eigenvectors. Should have at least dimension equal to 
+    !> Buffer for eigenvectors. Should have at least dimension equal to
     !! max(bigdft_norb(runObj),1)
-    real(gp), dimension(*), intent(out) :: eval 
+    real(gp), dimension(*), intent(out) :: eval
     !local variables
     integer :: norb
 
     norb=bigdft_norb(runObj)
 
-    call f_memcpy(n=norb,src=runObj%rst%KSwfn%orbs%eval(1),dest=eval(1))
+    if(associated(runObj%rst%KSwfn%orbs%eval))then
+        call f_memcpy(n=norb,src=runObj%rst%KSwfn%orbs%eval(1),dest=eval(1))
+    else
+       call f_err_throw('KSwfn%orbs%eval uninitialized',&
+            err_name='BIGDFT_RUNTIME_ERROR')
+    endif
   end subroutine bigdft_get_eval
 
   !BS
@@ -1141,7 +1146,7 @@ contains
     type(run_objects), intent(in) :: runObj
     character(len=20) :: units
 
-    units='                    '
+    units=repeat(' ',20)
     if (associated(runObj%atoms)) then
        units=runObj%atoms%astruct%units
     else
@@ -1258,7 +1263,7 @@ contains
        !         end if
 !       if (bigdft_mpi%iproc==0) call yaml_release_document()
     case('MORSE_BULK_RUN_MODE')
-        call morse_bulk_wrapper(nat,bigdft_get_cell(runObj),rxyz_ptr, outs%fxyz, outs%energy) 
+        call morse_bulk_wrapper(nat,bigdft_get_cell(runObj),rxyz_ptr, outs%fxyz, outs%energy)
     case('LENOSKY_SI_CLUSTERS_RUN_MODE')
        !else if(trim(adjustl(efmethod))=='LENSIc')then!for clusters
        call f_memcpy(src=rxyz_ptr,dest=runObj%mm_rst%rf_extra)
@@ -1395,7 +1400,7 @@ contains
           allocate(runObj%rst%KSwfn%oldpsis(0:runObj%inputs%wfn_history+1))
           runObj%rst%KSwfn%istep_history=0
           do istep=0,runObj%inputs%wfn_history+1
-             runObj%rst%KSwfn%oldpsis(istep)=old_wavefunction_null() 
+             runObj%rst%KSwfn%oldpsis(istep)=old_wavefunction_null()
           end do
        end if
 
@@ -1476,22 +1481,22 @@ contains
 
 
   !> performs the scalar product between two
-  !! set of atomic positions 
+  !! set of atomic positions
   !! The results is considered only in non-frozen directions
   function bigdft_dot(runObj,dx,dy_add,dy,dx_add) result(scpr)
     implicit none
     !> run_object bigdft structure
     type(run_objects), intent(in) :: runObj
-    !> x vector of atomic positions. Has to be given in alternative to 
+    !> x vector of atomic positions. Has to be given in alternative to
     !! dx_add
     real(gp), dimension(3,runObj%atoms%astruct%nat), intent(in), optional :: dx
-    !> position of the first element of x vector. 
+    !> position of the first element of x vector.
     !! Has to be given in alternative to dx_add
     real(gp), optional :: dx_add
-    !> y vector of atomic positions. Has to be given in alternative to 
+    !> y vector of atomic positions. Has to be given in alternative to
     !! dy_add
     real(gp), dimension(3,runObj%atoms%astruct%nat), intent(in), optional :: dy
-    !> position of the first element of y vector. 
+    !> position of the first element of y vector.
     !! Has to be given in alternative to dy_add
     real(gp), optional :: dy_add
     !> result of the ddot procedure
@@ -1526,10 +1531,10 @@ contains
     implicit none
     !> run_object bigdft structure
     type(run_objects), intent(in) :: runObj
-    !> x vector of atomic positions. Has to be given in alternative to 
+    !> x vector of atomic positions. Has to be given in alternative to
     !! dx_add
     real(gp), dimension(3,runObj%atoms%astruct%nat), intent(in), optional :: dx
-    !> position of the first element of x vector. 
+    !> position of the first element of x vector.
     !! Has to be given in alternative to dx_add
     real(gp), optional :: dx_add
     !> result of the dnrm2 procedure
@@ -1741,7 +1746,7 @@ contains
       !chemical potential =1/2(e_HOMO+e_LUMO)= e_HOMO + 1/2 GAP (the sign is to be decided - electronegativity?)
       !definition which brings to Chemical Potential
       if (rst%KSwfn%orbs%HLgap/=UNINITIALIZED(rst%KSwfn%orbs%HLgap) .and. iorb_ref< -1) then
-         mu=-abs(rst%KSwfn%orbs%eval(-iorb_ref)+ 0.5_gp*rst%KSwfn%orbs%HLgap) 
+         mu=-abs(rst%KSwfn%orbs%eval(-iorb_ref)+ 0.5_gp*rst%KSwfn%orbs%HLgap)
       else
          mu=UNINITIALIZED(1.0_gp)
       end if
@@ -1753,13 +1758,13 @@ contains
          if (rst%KSwfn%orbs%HLgap/=UNINITIALIZED(rst%KSwfn%orbs%HLgap)) then
             functional_definition=rst%KSwfn%orbs%HLgap !here we should add the definition which brings to Fukui function
          else
-            stop ' ERROR (FDforces): gap not defined' 
+            stop ' ERROR (FDforces): gap not defined'
          end if
       else if(iorb_ref < -1) then      !definition which brings to the neutral fukui function (chemical potential)
          if (rst%KSwfn%orbs%HLgap/=UNINITIALIZED(rst%KSwfn%orbs%HLgap)) then
             functional_definition=mu!-mu*real(2*orbs%norb,gp)+energy
          else
-            stop ' ERROR (FDforces): gap not defined, chemical potential cannot be calculated' 
+            stop ' ERROR (FDforces): gap not defined, chemical potential cannot be calculated'
          end if
       else
          functional_definition=rst%KSwfn%orbs%eval(iorb_ref)

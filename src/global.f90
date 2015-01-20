@@ -328,9 +328,11 @@ program MINHOP
        rcov,pos,fp)
 
   !retrieve the eigenvalues from this run
-  nksevals=bigdft_norb(run_opt)
-  ksevals = f_malloc(nksevals,id='ksevals')
-  call bigdft_get_eval(run_opt,ksevals)
+  if((trim(adjustl(char(run_opt%run_mode)))=='QM_RUN_MODE'))then
+      nksevals=bigdft_norb(run_opt)
+      ksevals = f_malloc(nksevals,id='ksevals')
+      call bigdft_get_eval(run_opt,ksevals)
+  endif  
 
   if (bigdft_mpi%iproc == 0 .and. nposacc==0) then
      tt=dnrm2(3*outs%fdim,outs%fxyz,1)
@@ -360,11 +362,13 @@ program MINHOP
 !!$     call write_atomic_file('poslocm_'//fn4//'_'//trim(bigdft_run_id_toa()),&
 !!$          outs%energy,atoms%astruct%rxyz,atoms%astruct%ixyz_int,atoms,trim(comment),forces=outs%fxyz)
      !open(unit=864,file='kseloc_'//fn4//'_'//trim(bigdft_run_id_toa()))
+    if((trim(adjustl(char(run_opt%run_mode)))=='QM_RUN_MODE'))then
       open(unit=864,file='kseloc_'//fn4//trim(naming_id))
       do i=1,nksevals
       write(864,*) ksevals(i)
       enddo
       close(864)
+    endif
   endif
 
 ! Read previously found energies and properties
@@ -608,13 +612,15 @@ program MINHOP
   if (bigdft_mpi%iproc == 0) call yaml_map('(MH) Wvfnctn Opt. steps for accurate geo. rel of MD conf',ncount_bigdft)
   count_bfgs=count_bfgs+ncount_bigdft
   
-  call bigdft_get_eval(run_opt,ksevals)
-!!$  if (i_stat /= BIGDFT_SUCCESS) then
-!!$     write(*,*)'error(ksevals), i_stat',i_stat
-!!$     if (bigdft_mpi%iproc == 0) call yaml_map('(MH) Number of Wvfnctn Opt. steps for accurate geo. rel of MD conf.', & 
-!!$          ncount_bigdft)
-!!$     stop
-!!$  end if
+  if(trim(adjustl(char(run_opt%run_mode)))=='QM_RUN_MODE')then 
+      call bigdft_get_eval(run_opt,ksevals)
+    !!$  if (i_stat /= BIGDFT_SUCCESS) then
+    !!$     write(*,*)'error(ksevals), i_stat',i_stat
+    !!$     if (bigdft_mpi%iproc == 0) call yaml_map('(MH) Number of Wvfnctn Opt. steps for accurate geo. rel of MD conf.', & 
+    !!$          ncount_bigdft)
+    !!$     stop
+    !!$  end if
+  endif    
 
 
   if (bigdft_mpi%iproc == 0) then 
@@ -628,12 +634,14 @@ program MINHOP
 
 !!$     call write_atomic_file('poslocm_'//fn4//'_'//trim(bigdft_run_id_toa()),&
 !!$          outs%energy,atoms%astruct%rxyz,atoms%astruct%ixyz_int,atoms,trim(comment),forces=outs%fxyz)
+    if((trim(adjustl(char(run_opt%run_mode)))=='QM_RUN_MODE'))then
         !open(unit=864,file='kseloc_'//fn4//'_'//trim(bigdft_run_id_toa()))
         open(unit=864,file='kseloc_'//fn4//trim(naming_id))
         do i=1,nksevals
           write(864,*) ksevals(i)
         enddo
         close(864)
+    endif
   endif
 
   if (bigdft_mpi%iproc == 0) then 
@@ -869,7 +877,9 @@ end do hopping_loop
   call f_free(poshop)
   call f_free(fphop)
   call f_free(rcov)
-  call f_free(ksevals)
+ if((trim(adjustl(char(run_opt%run_mode)))=='QM_RUN_MODE'))then
+  call f_free(ksevals) 
+ endif
 !  if (iproc==0) write(*,*) 'quit 4'
 
   call deallocate_state_properties(outs)
