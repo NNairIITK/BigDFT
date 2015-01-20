@@ -27,12 +27,14 @@ module sparsematrix
   public :: compress_matrix_distributed
   public :: uncompress_matrix_distributed, uncompress_matrix_distributed2
   public :: sequential_acces_matrix_fast, sequential_acces_matrix_fast2
-  public :: sparsemm, sparsemm_debug
+  public :: sparsemm
   public :: orb_from_index
   public :: gather_matrix_from_taskgroups, gather_matrix_from_taskgroups_inplace
   public :: extract_taskgroup_inplace, extract_taskgroup
   public :: write_matrix_compressed
   public :: check_symmetry
+  public :: write_sparsematrix
+  public :: write_sparsematrix_CCS
 
   contains
 
@@ -1591,7 +1593,9 @@ module sparsematrix
     
       open(unit=iunit,file=filename)
 
+      write(iunit,*) smat%nfvctr, '# number of columns'
       write(iunit,*) smat%nseg, '# number of segments'
+      write(iunit,*) smat%nvctr, '# number of non-zero elements'
       do iseg=1,smat%nseg
           if(iseg==1) then
               write(iunit,*) smat%keyv(iseg), '# values of keyv'
@@ -1611,7 +1615,7 @@ module sparsematrix
           ! A segment is always on one line, therefore no double loop
           ii=smat%keyv(iseg)
           do i=smat%keyg(1,1,iseg),smat%keyg(2,1,iseg)
-              if (i==1) then
+              if (i==1 .and. iseg==1) then
                   write(iunit,*) mat%matrix_compr(ii), '# values of matrix_compr'
               else
                   write(iunit,*) mat%matrix_compr(ii)
@@ -1641,7 +1645,9 @@ module sparsematrix
       integer,dimension(:),allocatable :: col_ptr, row_ind
       logical,dimension(:,:),allocatable :: matg
       logical :: column_started
-      integer,parameter :: iunit=234
+      integer,parameter :: iunit=234, iunit2=235
+      character(len=10) :: num
+      character(len=100) :: frmt
 
       col_ptr = f_malloc(smat%nfvctr,id='col_ptr')
       row_ind = f_malloc(smat%nvctr,id='row_ind')
@@ -1671,19 +1677,48 @@ module sparsematrix
           end do
       end do
     
-      open(unit=iunit,file=filename)
+      open(unit=iunit,file=trim(filename))
+      open(unit=iunit2,file=trim(filename)//'_2')
 
-      write(iunit,*) smat%nfvctr, smat%nvctr, '# number rows/columns, number of non-zero entries'
-      write(iunit,*) (col_ptr(i),i=1,smat%nfvctr), '# col_ptr'
-      write(iunit,*) (row_ind(i),i=1,smat%nvctr), '# row_ind'
-      do i=1,smat%nvctr
-          if(i==1) then
-              write(iunit,*) mat%matrix_compr(i), ' values of matrix_compr' 
+      write(iunit,*) smat%nfvctr, smat%nvctr, '# number of rows/columns, number of non-zero entries'
+      write(iunit2,*) smat%nfvctr, smat%nfvctr, smat%nvctr
+      do i=1,smat%nfvctr
+          if (i==1) then
+              write(iunit,*) col_ptr(i), '# col_ptr'
           else
-              write(iunit,*) mat%matrix_compr(i) 
+              write(iunit,*) col_ptr(i)
           end if
       end do
+      write(num,'(i0)') smat%nfvctr
+      frmt='('//num//'(i0,1x))'
+      write(iunit2,trim(frmt)) (col_ptr(i),i=1,smat%nfvctr)
+
+      do i=1,smat%nvctr
+          if (i==1) then
+              write(iunit,*) row_ind(i), '# row_ind'
+          else
+              write(iunit,*) row_ind(i)
+          end if
+      end do
+      write(num,'(i0)') smat%nvctr
+      frmt='('//num//'(i0,1x))'
+      write(iunit2,trim(frmt)) (row_ind(i),i=1,smat%nvctr)
+      
+      do i=1,smat%nvctr
+          if(i==1) then
+              write(iunit,*) mat%matrix_compr(i), '# values of matrix_compr' 
+              write(iunit2,*) mat%matrix_compr(i)
+          else
+              write(iunit,*) mat%matrix_compr(i) 
+              write(iunit2,*) mat%matrix_compr(i) 
+          end if
+      end do
+      !write(num,'(i0)') smat%nvctr
+      !frmt='('//num//'i9)'
+      !write(iunit2,trim(frmt)) (mat%matrix_compr(i),i=1,smat%nvctr)
+
       close(unit=iunit)
+      close(unit=iunit2)
 
       call f_free(col_ptr)
       call f_free(row_ind)

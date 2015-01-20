@@ -26,6 +26,8 @@ module sparsematrix_init
   public :: read_ccs_format
   public :: ccs_to_sparsebigdft
   public :: ccs_values_to_bigdft
+  public :: read_bigdft_format
+  public :: bigdft_to_sparsebigdft
 
 contains
 
@@ -2419,6 +2421,7 @@ contains
       end do
       ii = 0
       do irow=1,ncol
+          write(333,*) col_ptr(irow)
           do icol=1,ncol
               if (mat(irow,icol)) then
                   ii = ii + 1
@@ -2467,9 +2470,9 @@ contains
       mat = f_malloc((/ncol,ncol/),id='mat')
       mat = .false.
 
-      do iseg=1,smat%nseg
-          do i=smat%keyg(1,1,iseg),smat%keyg(2,1,iseg)
-              mat(smat%keyg(1,2,iseg),i) = .true.
+      do iseg=1,nseg
+          do i=keyg(1,1,iseg),keyg(2,1,iseg)
+              mat(keyg(1,2,iseg),i) = .true.
           end do
       end do
       ii = 0
@@ -2574,6 +2577,47 @@ contains
       else
           stop 'file not present'
       end if
+      close(iunit)
     end subroutine read_ccs_format
+
+
+    subroutine read_bigdft_format(filename, nfvctr, nvctr, nseg, keyv, keyg, val)
+      implicit none
+
+      ! Calling arguments
+      character(len=*),intent(in) :: filename
+      integer,intent(out) :: nfvctr, nvctr, nseg
+      integer,dimension(:),pointer,intent(out) :: keyv
+      integer,dimension(:,:,:),pointer,intent(out) :: keyg
+      real(kind=8),dimension(:),pointer,intent(out) :: val
+
+      ! Local variables
+      integer :: i, iseg
+      logical :: file_exists
+      integer,parameter :: iunit=123
+
+      inquire(file=filename,exist=file_exists)
+      if (file_exists) then
+          open(unit=iunit,file=filename)
+          read(iunit,*) nfvctr
+          read(iunit,*) nseg
+          read(iunit,*) nvctr
+          keyv = f_malloc_ptr(nseg,id='keyv')
+          keyg = f_malloc_ptr((/2,2,nseg/),id='keyg')
+          val = f_malloc_ptr(nvctr,id='val')
+          do iseg=1,nseg
+              read(iunit,*) keyv(iseg)
+          end do
+          do iseg=1,nseg
+              read(iunit,*) keyg(1:2,1:2,iseg)
+          end do
+          do i=1,nvctr
+              read(iunit,*) val(i)
+          end do
+      else
+          stop 'file not present'
+      end if
+      close(iunit)
+    end subroutine read_bigdft_format
 
 end module sparsematrix_init

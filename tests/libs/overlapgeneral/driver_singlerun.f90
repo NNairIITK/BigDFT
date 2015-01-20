@@ -3,15 +3,18 @@ program driver_singlerun
   use module_base
   use sparsematrix_base, only: sparse_matrix, matrices, &
                                assignment(=), sparsematrix_malloc_ptr, SPARSE_FULL
-  use sparsematrix_init, only: read_ccs_format, ccs_to_sparsebigdft, ccs_values_to_bigdft
-  use sparsematrix, only: write_matrix_compressed, check_symmetry
+  use sparsematrix_init, only: read_ccs_format, ccs_to_sparsebigdft, ccs_values_to_bigdft, &
+                               read_bigdft_format, bigdft_to_sparsebigdft
+  use sparsematrix, only: write_matrix_compressed, check_symmetry, &
+                          write_sparsematrix_CCS, write_sparsematrix
   use module_interfaces, only: overlapPowerGeneral
   implicit none
 
   ! Variables
-  integer :: iproc, nproc, ncol, nnonzero
+  integer :: iproc, nproc, ncol, nnonzero, nseg
   character(len=*),parameter :: filename='matrix.dat'
-  integer,dimension(:),pointer :: col_ptr, row_ind
+  integer,dimension(:),pointer :: col_ptr, row_ind, keyv
+  integer,dimension(:,:,:),pointer :: keyg
   real(kind=8),dimension(:),pointer :: val
   type(sparse_matrix) :: smat
   type(matrices) :: matA
@@ -27,15 +30,20 @@ program driver_singlerun
   nproc=bigdft_mpi%nproc!mpi_info(2)
 
   
-  ! Read in a file in the CCS format
+  !! Read in a file in the CCS format
   call read_ccs_format(filename, ncol, nnonzero, col_ptr, row_ind, val)
+
+  ! Read in a file in the BigDFT format
+  !call read_bigdft_format(filename, ncol, nnonzero, nseg, keyv, keyg, val)
 
   ! Create the corresponding BigDFT sparsity pattern
   call ccs_to_sparsebigdft(iproc, nproc, ncol, ncol, 0, nnonzero, row_ind, col_ptr, smat)
+  !call bigdft_to_sparsebigdft(iproc, nproc, ncol, ncol, 0, nnonzero, nseg, keyg, smat)
 
   ! Assign the values
   matA%matrix_compr = sparsematrix_malloc_ptr(smat, iaction=SPARSE_FULL, id='matA%matrix_compr')
   call ccs_values_to_bigdft(ncol, nnonzero, row_ind, col_ptr, smat, val, matA)
+  !matA%matrix_compr = val
 
   ! Check the symmetry
   symmetric = check_symmetry(ncol, smat)
@@ -43,6 +51,8 @@ program driver_singlerun
   
   ! Write the original matrix
   call write_matrix_compressed('Original matrix', smat, matA)
+  call write_sparsematrix_CCS('original_css.dat', smat, matA)
+  call write_sparsematrix('original_bigdft.dat', smat, matA)
 
   ! Calculate the inverse
   matB(1)%matrix_compr = sparsematrix_malloc_ptr(smat, iaction=SPARSE_FULL, id='matB(1)%matrix_compr')
@@ -55,5 +65,8 @@ program driver_singlerun
 
   ! Write the results
   call write_matrix_compressed('Result', smat, matB(1))
+
+  call write_sparsematrix_CCS('result_css.dat', smat, matB(1))
+  call write_sparsematrix('result_bigdft.dat', smat, matB(1))
 
 end program driver_singlerun
