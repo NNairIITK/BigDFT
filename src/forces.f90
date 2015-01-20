@@ -134,7 +134,7 @@ subroutine calculate_forces(iproc,nproc,psolver_groupsize,Glr,atoms,orbs,nlpsp,r
   ! @ NEW: POSSIBLE CONSTRAINTS IN INTERNAL COORDINATES ############
   if (atoms%astruct%inputfile_format=='int') then
       if (iproc==0) call yaml_map('converting to  internal coordinates','Yes')
-      !!if (bigdft_mpi%iproc==0) call yaml_map('force start',fxyz)
+      if (bigdft_mpi%iproc==0) call yaml_map('force start',fxyz)
       call internal_forces(atoms%astruct%nat, rxyz, atoms%astruct%ixyz_int, atoms%astruct%ifrztyp, fxyz)
   end if
   ! @ ##############################################################
@@ -4668,18 +4668,22 @@ subroutine nonlocal_forces_linear(iproc,nproc,npsidim_orbs,lr,hx,hy,hz,at,rxyz,&
                      do iseg=1,denskern%nseg
                         ! Check whether this segment is within the range to be considered (check 
                         ! only the line number as one segment is always on one single line).
-                        if (denskern%keyg(1,2,iseg)<iorbminmax(iiat,1) .or. denskern%keyg(1,2,iseg)>iorbminmax(iiat,2)) cycle
+                        iorbout = denskern%keyg(1,2,iseg)
+                        if (ispin==2) then
+                            iorbout = iorbout + denskern%nfvctr
+                        end if
+                        if (iorbout<iorbminmax(iiat,1) .or. iorbout>iorbminmax(iiat,2)) cycle
+                        !if (denskern%keyg(1,2,iseg)<iorbminmax(iiat,1) .or. denskern%keyg(1,2,iseg)>iorbminmax(iiat,2)) cycle
                         ii = denskern%keyv(iseg)-1 + (ispin-1)*denskern%nvctr 
                         do jjorb=denskern%keyg(1,1,iseg),denskern%keyg(2,1,iseg)
                            ii=ii+1
                            !!iorbout = (jjorb-1)/orbs%norb + 1
                            !!jorb = jjorb - (iorbout-1)*orbs%norb
-                           iorbout = denskern%keyg(1,2,iseg)
                            jorb = jjorb
                            if (jorb<iorbminmax(iiat,1) .or. jorb>iorbminmax(iiat,2)) cycle
                            !spin shift
                            if (ispin==2) then
-                               iorbout = iorbout + denskern%nfvctr
+                               !iorbout = iorbout + denskern%nfvctr
                                jorb = jorb + denskern%nfvctr
                            end if
                         !jorb=0 !THIS WILL CREATE PROBLEMS FOR K-POINTS!!
@@ -4893,6 +4897,11 @@ subroutine internal_forces(nat, rxyz, ixyz_int, ifrozen, fxyz)
   ! Transform the atomic positions to internal coordinates 
   call xyzint(rxyz, nat, na, nb, nc, degree, geo)
   !!if (bigdft_mpi%iproc==0) call yaml_map('internal orig',geo)
+!!! TEST ######################
+!!call internal_to_cartesian(nat, na, nb, nc, geo, rxyz_tmp)
+!!if (bigdft_mpi%iproc==0) call yaml_map('rxyz start',rxyz)
+!!if (bigdft_mpi%iproc==0) call yaml_map('rxyz end',rxyz_tmp)
+!!! ###########################
 
   ! Shift the atomic positions according to the forces
   rxyz_tmp = rxyz + alpha*fxyz
@@ -4974,3 +4983,89 @@ subroutine internal_forces(nat, rxyz, ixyz_int, ifrozen, fxyz)
 end subroutine internal_forces
 
 
+
+subroutine keep_internal_coordinates_constraints(nat, rxyz_int, ixyz_int, ifrozen, rxyz)
+  use module_base
+  use dynamic_memory
+  use internal_coordinates
+  use yaml_output
+  implicit none
+
+  ! Calling arguments
+  integer,intent(in) :: nat
+  real(gp),dimension(3,nat),intent(in) :: rxyz_int
+  integer,dimension(3,nat),intent(in) :: ixyz_int
+  integer,dimension(nat),intent(in) :: ifrozen
+  real(gp),dimension(3,nat),intent(inout) :: rxyz
+
+  ! Local variables
+  integer :: iat, i, ii
+  integer,dimension(:),allocatable :: na, nb, nc
+  real(gp),parameter :: degree=57.29578d0
+  real(gp),dimension(:,:),allocatable :: geo, geo_ref
+  real(gp),parameter :: alpha=1.d0
+  real(kind=8),dimension(3) :: shift
+  logical :: fix_bond, fix_phi, fix_theta
+
+  call f_routine(id='internal_forces')
+
+  ! Using internal coordinates the first atom is by definition at (0,0,0), so
+  ! the global shift is just given by rxyz(:,1).
+  shift=rxyz(:,1)
+
+  na = f_malloc(nat,id='na')
+  nb = f_malloc(nat,id='nb')
+  nc = f_malloc(nat,id='nc')
+  geo = f_malloc((/3,nat/),id='geo')
+
+  na=ixyz_int(1,:)
+  nb=ixyz_int(2,:)
+  nc=ixyz_int(3,:)
+
+  
+  ! Transform the atomic positions to internal coordinates 
+  call xyzint(rxyz, nat, na, nb, nc, degree, geo)
+
+  ! The bond angle must be modified (take 180 degrees minus the angle)
+  geo(2:2,1:nat) = 180.d0 - geo(2:2,1:nat)
+  ! convert to rad
+  geo(2:3,1:nat) = geo(2:3,1:nat) / degree
+
+  ! Apply some constraints if required
+  do iat=1,nat
+      ii=ifrozen(iat)
+      fix_theta = (mod(ii,10)==2)
+      if (fix_theta) ii=ii-2
+      fix_phi = (mod(ii,100)==20)
+      if (fix_phi) ii=ii-20
+      fix_bond = (mod(ii,1000)==200)
+      if (fix_bond) then
+          ! keep the original value, i.e. don't let this value be modified by the forces
+          geo(1,iat)=rxyz_int(1,iat)
+          if (bigdft_mpi%iproc==0) call yaml_map('keep internal coordinate fixed',(/1,iat/))
+      end if
+      if (fix_phi) then
+          ! keep the original value, i.e. don't let this value be modified by the forces
+          geo(2,iat)=rxyz_int(2,iat)
+          if (bigdft_mpi%iproc==0) call yaml_map('keep internal coordinate fixed',(/2,iat/))
+      end if
+      if (fix_theta) then
+          ! keep the original value, i.e. don't let this value be modified by the forces
+          geo(3,iat)=rxyz_int(3,iat)
+          if (bigdft_mpi%iproc==0) call yaml_map('keep internal coordinate fixed',(/3,iat/))
+      end if
+  end do
+
+
+  ! Transform the atomic positions back to cartesian coordinates
+  call internal_to_cartesian(nat, na, nb, nc, geo, rxyz)
+
+
+  call f_free(na)
+  call f_free(nb)
+  call f_free(nc)
+  call f_free(geo)
+
+  call f_release_routine()
+
+end subroutine keep_internal_coordinates_constraints

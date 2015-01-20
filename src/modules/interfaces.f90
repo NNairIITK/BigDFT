@@ -2752,12 +2752,12 @@ module module_interfaces
          real(gp), dimension(:,:), intent(out), optional :: rxyz_old
         end subroutine io_read_descr_coeff
 
-        subroutine read_coeff_minbasis(unitwf,useFormattedInput,iproc,ntmb,norb_old,coeff,eval,nat,rxyz_old)
+        subroutine read_coeff_minbasis(unitwf,useFormattedInput,iproc,ntmb,norb_old,nfvctr,coeff,eval,nat,rxyz_old)
           use module_base
           use module_types
           implicit none
           logical, intent(in) :: useFormattedInput
-          integer, intent(in) :: unitwf,iproc,ntmb
+          integer, intent(in) :: unitwf,iproc,ntmb,nfvctr
           integer, intent(out) :: norb_old
           real(wp), dimension(ntmb,ntmb), intent(out) :: coeff
           real(wp), dimension(ntmb), intent(out) :: eval
@@ -3114,10 +3114,10 @@ module module_interfaces
           type(cdft_data), intent(inout) :: cdft
         end subroutine input_memory_linear
 
-        subroutine copy_old_coefficients(norb_tmb, coeff, coeff_old)
+        subroutine copy_old_coefficients(norb_tmb, nfvctr, coeff, coeff_old)
           use module_base
           implicit none
-          integer,intent(in):: norb_tmb
+          integer,intent(in):: norb_tmb, nfvctr
           real(8),dimension(:,:),pointer:: coeff, coeff_old
         end subroutine copy_old_coefficients
 
@@ -4264,6 +4264,18 @@ end subroutine build_ks_orbitals_laura_tmp
           real(kind=8),dimension(tmb%ham_descr%collcom%ndimind_c),intent(out) :: hpsittmp_c !<workarray
           real(kind=8),dimension(7*tmb%ham_descr%collcom%ndimind_f),intent(out) :: hpsittmp_f !<workarray
         end subroutine build_gradient
+
+        subroutine writeLinearCoefficients(unitwf,useFormattedOutput,nat,rxyz,&
+                   ntmb,norb,nfvctr,coeff,eval)
+          use module_base
+          use yaml_output
+          implicit none
+          logical, intent(in) :: useFormattedOutput
+          integer, intent(in) :: unitwf,nat,ntmb,norb,nfvctr
+          real(wp), dimension(nfvctr,ntmb), intent(in) :: coeff
+          real(wp), dimension(ntmb), intent(in) :: eval
+          real(gp), dimension(3,nat), intent(in) :: rxyz
+        end subroutine writeLinearCoefficients
 
   end interface
 END MODULE module_interfaces

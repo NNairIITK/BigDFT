@@ -16,7 +16,12 @@ module communications_base
   private
 
   ! Parameter for changing the communication of the potential on IBM BlueGene Q
-  logical,parameter,public :: bgq=.false.
+  logical,parameter,public :: bgq = .false.
+
+  ! Parameter to choose between active or passive target communication
+  integer,parameter,public :: RMA_SYNC_ACTIVE = 51
+  integer,parameter,public :: RMA_SYNC_PASSIVE = 52
+  integer,parameter,public :: rma_sync = RMA_SYNC_ACTIVE
 
   !> Contains the information needed for communicating the wavefunctions
   !! between processors for the transposition

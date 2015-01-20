@@ -81,6 +81,7 @@ yaml_test:
    - Elapsed time (ns)
    - Elapsed time (mus)
    - Test for pid
+   - loc of address and metadata
  Patterns to ignore:
    - errcode
    - Time
@@ -257,7 +258,7 @@ test.splsad.ref.yaml:
 
 test.minhop.ref.yaml:
  Energies: &etol1 6.0e-9
- Eion: &eion1 4.1e-11
+ Eion: &eion1 5.1e-11
  EH: *etol1
  EXC: *etol1
  Ekin: *etol1
@@ -268,10 +269,11 @@ test.minhop.ref.yaml:
  Ion-Ion interaction energy: *eion1
  fluct: 1.2e-9
  maxval: 7.1e-11
- Atomic Forces (Ha/Bohr): 2.0e-11
- Average noise forces: 1.0e-10
+ Atomic Forces (Ha/Bohr): 5.1e-11
+ Average noise forces: 1.1e-10
  etot: 1.85e-11
  Orbitals: 6.1e-9
+ Positions: 1.1e-9
  Keys to ignore:
    - (MH) cpu(hrs)
    - WARNINGS
@@ -1079,6 +1081,7 @@ geoptconstrained:
  guess for new ef: 1.1e-8
  D eF: 1.1e-8
  EH: 1.1e-10
+ Epot: 1.1e-10
  charge diff: 4.2e-11
  D Tr: 1.1e-9
  Omega: 1.2e-11
@@ -1138,9 +1141,9 @@ O2spin_dirmin:
  fnrm: 1.1e-5
  EH: 8.9e-6
  EXC: 5.6e-6
- Ekin: 6.8e-6
+ Ekin: 6.9e-6
  Enl: 1.9e-7
- Epot: 1.2e-5
+ Epot: 1.3e-5
  EvXC: 6.0e-6
  energydiff: 6.0e-6
  energy: 1.1e-6
@@ -1181,6 +1184,7 @@ expfoegeopt:
  Epot: 2.3e-8
  EvXC: 2.3e-8
  EXC: 2.3e-8
+ Ekin: 1.1e-10
  Tr(K): 2.3e-8
  decay length of error function: 1.1e-5
  Omega: 2.4e-11

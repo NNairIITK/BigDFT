@@ -25,6 +25,9 @@ module gaussians
   integer :: itype_scf=0                          !< Type of the interpolating SCF, 0= data unallocated
   integer :: n_scf=-1                             !< Number of points of the allocated data
   real(gp), dimension(:), allocatable :: scf_data !< Values for the interpolating scaling functions points
+  !> log of the minimum value of the scf data
+  !! to avoid floating point exceptions while multiplying with it
+  real(gp) :: mn_scf = 0.0_gp
 
   !> Structures of basis of gaussian functions
   type, public :: gaussian_basis
@@ -417,7 +420,8 @@ contains
     integer, intent(in), optional :: npoints,isf_m
     !local variables
     character(len=*), parameter :: subname='initialize_real_space_conversion'
-    integer :: n_range
+    integer :: n_range,i
+    real(gp) :: tt
     real(gp), dimension(:), allocatable :: x_scf !< to be removed in a future implementation
 
     if (present(isf_m)) then
@@ -442,6 +446,18 @@ contains
 
     call f_free(x_scf)
 
+    !define the log of the smallest nonzero value as the 
+    !cutoff for multiplying with it
+    !this means that the values which are 
+    !lower than scf_data squared will be considered as zero
+    mn_scf=epsilon(1.d0)**2 !just to put a "big" value
+    do i=0,n_scf
+       tt=scf_data(i)
+       if (tt /= 0.0_gp .and. abs(tt) > sqrt(tiny(1.0))) then
+          mn_scf=min(mn_scf,tt**2)
+       end if
+    end do
+
   end subroutine initialize_real_space_conversion
 
  
@@ -451,6 +467,7 @@ contains
 
     itype_scf=0
     n_scf=-1
+    mn_scf=0.0_gp
     call f_free(scf_data)
 
   end subroutine finalize_real_space_conversion
@@ -481,7 +498,7 @@ contains
        mp_exp=scfdotf(j,hgrid,expo,x0,pow)
     else
        x=hgrid*j-x0
-       mp_exp=exp(-expo*x**2)
+       mp_exp=safe_exp(-expo*x**2)
        if (pow /= 0) mp_exp=mp_exp*(x**pow)
     end if
   end function mp_exp
@@ -518,7 +535,7 @@ contains
           !here evaluate the function
           fabsci = absci**pow
           absci = -pgauss*absci*absci
-          fabsci = fabsci*dexp(absci)
+          fabsci = fabsci*safe_exp(absci,underflow=mn_scf)
           !calculate the integral
           gint = gint + scf_data(i)*fabsci
    !       print *,'test',i,scf_data(i),fabsci,pgauss,pow,absci
@@ -527,12 +544,14 @@ contains
        do i=0,n_scf
           x=x+dx
           absci = x*hgrid - x0
-          !here evaluate the function
+!          !here evaluate the function
           absci = -pgauss*absci*absci
-          fabsci = safe_exp(absci)
+          fabsci = safe_exp(absci,underflow=mn_scf)
           !calculate the integral
+!          fabsci= safe_gaussian(x0,x*hgrid,pgauss)
+          !print *,'test',i,scf_data(i),fabsci,pgauss,absci,log(tiny(1.d0)),tiny(1.d0)
           gint = gint + scf_data(i)*fabsci
-   !       print *,'test',i,scf_data(i),fabsci,pgauss,pow,absci
+
        end do
     end if
     gint = gint*dx

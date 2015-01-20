@@ -31,7 +31,7 @@ subroutine copy_tmbs(iproc, tmbin, tmbout, subname)
   tmbout%npsidim_orbs = tmbin%npsidim_orbs
 
   if (associated(tmbin%coeff)) then !(in%lin%scf_mode/=LINEAR_FOE) then ! should move this check to copy_old_coeffs
-      call copy_old_coefficients(tmbin%orbs%norb, tmbin%coeff, tmbout%coeff)
+      call copy_old_coefficients(tmbin%orbs%norb, tmbin%linmat%l%nfvctr, tmbin%coeff, tmbout%coeff)
   else
       nullify(tmbout%coeff)
   end if

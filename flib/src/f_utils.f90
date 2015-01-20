@@ -13,7 +13,7 @@
 module f_utils
   use dictionaries, only: f_err_throw,f_err_define, &
        & dictionary, dict_len, dict_iter, dict_next, dict_value, max_field_length
-  use yaml_strings, only: yaml_toa,operator(.eqv.)
+  use yaml_strings, only: yaml_toa, operator(.eqv.)
   implicit none
 
   private

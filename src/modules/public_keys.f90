@@ -230,6 +230,9 @@ module public_keys
   character(len=*), parameter :: ASTRUCT_ATT_IXYZ_1 = 'int_ref_atoms_1' 
   character(len=*), parameter :: ASTRUCT_ATT_IXYZ_2 = 'int_ref_atoms_2' 
   character(len=*), parameter :: ASTRUCT_ATT_IXYZ_3 = 'int_ref_atoms_3' 
+  character(len=*), parameter :: ASTRUCT_ATT_RXYZ_INT_1 = 'rxyz_int_atoms_1' 
+  character(len=*), parameter :: ASTRUCT_ATT_RXYZ_INT_2 = 'rxyz_int_atoms_2' 
+  character(len=*), parameter :: ASTRUCT_ATT_RXYZ_INT_3 = 'rxyz_int_atoms_3' 
 
   character(len=*), parameter :: GOUT_ENERGY = 'energy (Ha)' 
   character(len=*), parameter :: GOUT_FORCES = 'forces (Ha/Bohr)' 

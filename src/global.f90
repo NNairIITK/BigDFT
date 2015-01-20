@@ -9,7 +9,7 @@
 !> MINHOP
 !!  Main program for the minima hopping
 program MINHOP
-  use module_base
+  use module_base, int_enum => int
   use bigdft_run
 !  use module_types, only: input_variables,bigdft_run_id_toa,BIGDFT_SUCCESS
 !  use module_interfaces
@@ -1309,7 +1309,7 @@ END SUBROUTINE hunt_g
 
 !> Assigns initial velocities for the MD escape part
 subroutine velnorm(nat,ekinetic,vxyz)
-  use module_base
+  use module_base, int_enum => int
 !  use module_types
 !  use m_ab6_symmetry
   implicit none
@@ -1793,7 +1793,6 @@ function round(enerd,accur)
   ii=int(enerd/accur,kind=8)
   round=ii*accur
   !           write(*,'(a,1pe24.17,1x,i17,1x,1pe24.17)') 'enerd,ii,round',enerd,ii,round
-  return
 end function round
 
 
