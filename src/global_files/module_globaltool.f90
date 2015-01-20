@@ -745,7 +745,7 @@ subroutine identical(cf,gdat,ndattot,ndat,nid,epot,fp,en_arr,fp_arr,en_delta,&
     ! find lowest configuration that might be identical
     klow=k_epot
     do k=k_epot,1,-1
-        if (epot-en_arr(k).lt.0.d0) stop 'zeroA'
+        if (epot-en_arr(k).lt.0.0_gp) stop 'zeroA'
         if (epot-en_arr(k).gt.en_delta) exit
         klow=k
     enddo
@@ -753,7 +753,7 @@ subroutine identical(cf,gdat,ndattot,ndat,nid,epot,fp,en_arr,fp_arr,en_delta,&
     ! find highest  configuration that might be identical
     khigh=k_epot+1
     do k=k_epot+1,ndat
-        if (en_arr(k)-epot.lt.0.d0) stop 'zeroB'
+        if (en_arr(k)-epot.lt.0.0_gp) stop 'zeroB'
         if (en_arr(k)-epot.gt.en_delta) exit
         khigh=k
     enddo
@@ -761,26 +761,20 @@ subroutine identical(cf,gdat,ndattot,ndat,nid,epot,fp,en_arr,fp_arr,en_delta,&
     nsm=0
     dmin=huge(1.e0_gp)
     do k=max(1,klow),min(ndat,khigh)
-        call fpdistance(nid,fp,fp_arr(1,k),d)
-write(*,*)'fpdist '//trim(adjustl(cf)),abs(en_arr(k)-epot),d
-!if(cf=='min')then
-!if(d<3.d-3)then
-!if(abs(en_arr(k)-epot)>1.d-4)then
-!write(*,*)trim(adjustl(gdat%path_min(k)))
-!    stop
-!endif
-!endif
-!endif
-        if (d.lt.fp_delta) then
-            lnew=.false.
-            nsm=nsm+1
-            if (d.lt.dmin) then 
-                dmin=d
-                kid=k
+        if (abs(epot-en_arr(k)).le.en_delta) then 
+            call fpdistance(nid,fp,fp_arr(1,k),d)
+            write(*,*)'fpdist '//trim(adjustl(cf)),abs(en_arr(k)-epot),d
+            if (d.lt.fp_delta) then
+                lnew=.false.
+                nsm=nsm+1
+                if (d.lt.dmin) then 
+                    dmin=d
+                    kid=k
+                endif
             endif
+            dmin=min(dmin,d)
         endif
     enddo
-write(*,*)'dmin',dmin
     if (nsm.gt.1) then
         call yaml_warning('more than one identical configuration'//&
              ' found')

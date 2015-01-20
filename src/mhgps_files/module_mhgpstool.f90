@@ -477,23 +477,18 @@ subroutine identical(cf,mdat,ndattot,ndat,nid,epot,fp,en_arr,fp_arr,en_delta,&
     nsm=0
     dmin=huge(1.e0_gp)
     do k=max(1,klow),min(ndat,khigh)
-        call fpdistance(nid,fp,fp_arr(1,k),d)
-write(*,*)'fpdist '//cf,abs(en_arr(k)-epot),d
-!if(cf=='min')then
-!if(d<3.d-3)then
-!if(abs(en_arr(k)-epot)>1.d-4)then
-!write(*,*)trim(adjustl(mdat%path_min(k)))
-!    stop
-!endif
-!endif
-!endif
-        if (d.lt.fp_delta) then
-            lnew=.false.
-            nsm=nsm+1
-            if (d.lt.dmin) then 
-                dmin=d
-                kid=k
+        if (abs(epot-en_arr(k)).le.en_delta) then
+            call fpdistance(nid,fp,fp_arr(1,k),d)
+            write(*,*)'fpdist '//cf,abs(en_arr(k)-epot),d
+            if (d.lt.fp_delta) then
+                lnew=.false.
+                nsm=nsm+1
+                if (d.lt.dmin) then 
+                    dmin=d
+                    kid=k
+                endif
             endif
+            dmin=min(dmin,d)
         endif
     enddo
 write(*,*)'dmin',dmin
