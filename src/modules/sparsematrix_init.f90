@@ -23,6 +23,9 @@ module sparsematrix_init
   public :: check_kernel_cutoff
   public :: init_matrix_taskgroups
   public :: check_local_matrix_extents
+  public :: read_ccs_format
+  public :: ccs_to_bigdft
+  public :: ccs_values_to_bigdft
 
 contains
 
@@ -2380,6 +2383,146 @@ contains
           end subroutine check_ortho_inguess
     end subroutine check_local_matrix_extents
 
+
+    !> Converts the CCS sparsity pattern to the BigDFT sparsity pattern
+    subroutine ccs_to_bigdft(iproc, nproc, ncol, ncolp, iscol, nnonzero, row_ind, col_ptr, smat)
+      use communications_base, only: comms_linear, comms_linear_null
+      implicit none
+      integer,intent(in) :: iproc, nproc, ncol, ncolp, iscol, nnonzero
+      !logical,intent(in) :: store_index
+      integer,dimension(nnonzero),intent(in) :: row_ind
+      integer,dimension(ncol),intent(in) :: col_ptr
+      type(sparse_matrix),intent(out) :: smat
+      !real(kind=8), dimension(nnonzero),intent(in),optional :: val
+
+      ! Local variables
+      integer :: icol, irow, i, ii
+      integer,dimension(:,:),allocatable :: nonzero
+      logical,dimension(:,:),allocatable :: mat
+      type(comms_linear) :: collcom_dummy
+
+
+      ! Calculate the values of nonzero and nonzero_mult which are required for
+      ! the init_sparse_matrix routine.
+      ! For the moment simple and stupid using a workarray of dimension ncol x ncol
+      nonzero = f_malloc((/2,nnonzero/),id='nonzero')
+      mat = f_malloc((/ncol,ncol/),id='mat')
+      mat = .false.
+      icol=1
+      do i=1,nnonzero
+          irow=row_ind(i)
+          if (icol<ncol) then
+              if (i>=col_ptr(icol+1)) then
+                  icol=icol+1
+              end if
+          end if
+          mat(irow,icol) = .true.
+      end do
+      ii = 0
+      do irow=1,ncol
+          do icol=1,ncol
+              if (mat(irow,icol)) then
+                  ii = ii + 1
+                  nonzero(2,ii) = irow
+                  nonzero(1,ii) = icol
+              end if
+          end do
+      end do
+
+      call f_free(mat)
+
+      call init_sparse_matrix(iproc, nproc, 1, ncol, ncolp, iscol, ncol, ncolp, iscol, .false., &
+                 nnonzero, nonzero, nnonzero, nonzero, smat)
+
+      collcom_dummy = comms_linear_null()
+      ! since no taskgroups are used, the values of iirow and iicol are just set to
+      ! the minimum and maximum, respectively.
+      call init_matrix_taskgroups(iproc, nproc, .false., collcom_dummy, collcom_dummy, smat, &
+           (/1,ncol/), (/1,ncol/))
+
+
+
+
+      call f_free(nonzero)
+
+    end subroutine ccs_to_bigdft
+
+
+
+    !> Assign the values of a sparse matrix in CCS format to a sparse matrix in the BigDFT format
+    subroutine ccs_values_to_bigdft(ncol, nnonzero, row_ind, col_ptr, smat, val, mat)
+      implicit none
+      integer,intent(in) :: ncol, nnonzero
+      integer,dimension(nnonzero),intent(in) :: row_ind
+      integer,dimension(ncol),intent(in) :: col_ptr
+      type(sparse_matrix),intent(in) :: smat
+      real(kind=8),dimension(nnonzero),intent(in) :: val
+      type(matrices),intent(out) :: mat
+
+      ! Local variables
+      integer :: icol, irow, i, ii
+      logical,dimension(:,:),allocatable :: matg
+
+
+      ! Calculate the values of nonzero and nonzero_mult which are required for
+      ! the init_sparse_matrix routine.
+      ! For the moment simple and stupid using a workarray of dimension ncol x ncol
+      matg = f_malloc((/ncol,ncol/),id='matg')
+      matg = .false.
+      icol=1
+      do i=1,nnonzero
+          irow=row_ind(i)
+          if (icol<ncol) then
+              if (i>=col_ptr(icol+1)) then
+                  icol=icol+1
+              end if
+          end if
+          matg(irow,icol) = .true.
+      end do
+      ii = 0
+      do irow=1,ncol
+          do icol=1,ncol
+              if (matg(irow,icol)) then
+                  ii = ii + 1
+                  mat%matrix_compr(ii) = val(ii)
+              end if
+          end do
+      end do
+
+      call f_free(matg)
+
+    end subroutine ccs_values_to_bigdft
+
+
+    subroutine read_ccs_format(filename, ncol, nnonzero, col_ptr, row_ind, val)
+      implicit none
+
+      ! Calling arguments
+      character(len=*),intent(in) :: filename
+      integer,intent(out) :: ncol, nnonzero
+      integer,dimension(:),pointer,intent(out) :: col_ptr, row_ind
+      real(kind=8),dimension(:),pointer,intent(out) :: val
+
+      ! Local variables
+      integer :: i
+      logical :: file_exists
+      integer,parameter :: iunit=123
+
+      inquire(file=filename,exist=file_exists)
+      if (file_exists) then
+          open(unit=iunit,file=filename)
+          read(iunit,*) ncol, nnonzero
+          col_ptr = f_malloc_ptr(ncol,id='col_ptr')
+          row_ind = f_malloc_ptr(nnonzero,id='row_ind')
+          val = f_malloc_ptr(nnonzero,id='val')
+          read(iunit,*) (col_ptr(i), i=1,ncol)
+          read(iunit,*) (row_ind(i), i=1,nnonzero)
+          do i=1,nnonzero
+              read(iunit,*) val(i)
+          end do
+      else
+          stop 'file not present'
+      end if
+    end subroutine read_ccs_format
+
 end module sparsematrix_init
-
-

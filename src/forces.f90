@@ -4860,7 +4860,7 @@ subroutine internal_forces(nat, rxyz, ixyz_int, ifrozen, fxyz)
   integer,dimension(:),allocatable :: na, nb, nc
   real(gp),parameter :: degree=57.29578d0
   real(gp),dimension(:,:),allocatable :: geo, rxyz_tmp, geo_tmp, fxyz_int, tmp, rxyz_shifted
-  real(gp),parameter :: alpha=1.d0
+  real(gp),parameter :: alpha=1.d1
   real(kind=8),dimension(3) :: shift
   logical :: fix_bond, fix_phi, fix_theta
 

@@ -501,7 +501,7 @@ subroutine overlapPowerGeneral(iproc, nproc, iorder, ncalc, power, blocksize, im
   integer,intent(in),optional :: nspinx !< overwrite the default spin value
   
   ! Local variables
-  integer :: iorb, jorb, info, iiorb, isorb, norbp, ii, ii_inv, iii, ierr, i, its, maxits
+  integer :: iorb, jorb, info, iiorb, isorb, norbp, ii, ii_inv, iii, ierr, i, its, maxits, j
   integer :: matrixindex_in_compressed, nmaxvalk, icalc
   real(kind=8), dimension(:,:), pointer :: inv_ovrlpp, ovrlppowerp
   real(kind=8), dimension(:,:), pointer :: inv_ovrlp_half_tmp
@@ -905,6 +905,11 @@ subroutine overlapPowerGeneral(iproc, nproc, iorder, ncalc, power, blocksize, im
                   if (power(icalc)==1) then
                      if (blocksize<0) then
                         call overlap_minus_one_exact_serial(ovrlp_smat%nfvctr,inv_ovrlp_local(1,1,ispin))
+                        do i=1,ovrlp_smat%nfvctr
+                            do j=1,ovrlp_smat%nfvctr
+                                write(2010,*) i,j,inv_ovrlp_local(i,j,1)
+                            end do
+                        end do
                      else
                         stop 'check if working - upper half may not be filled'
                         call dpotrf_parallel(iproc, nproc, blocksize, bigdft_mpi%mpi_comm, 'l', &
@@ -1810,7 +1815,7 @@ subroutine check_accur_overlap_minus_one_sparse(iproc, nproc, smat, norb, norbp,
            max_error, mean_error, dmat_seq, cmatp)
   use module_base
   use sparsematrix_base, only: sparse_matrix
-  use sparsematrix, only: sparsemm
+  use sparsematrix, only: sparsemm, sparsemm_debug
   implicit none
   integer,intent(in) :: iproc, nproc, norb, norbp, isorb, nseq, nout, power
   type(sparse_matrix) :: smat
@@ -1832,7 +1837,17 @@ subroutine check_accur_overlap_minus_one_sparse(iproc, nproc, smat, norb, norbp,
   if (power==1) then
      !!call dgemm('n', 'n', norb, norbp, norb, 1.d0, inv_ovrlp(1,1), &
      !!     norb, ovrlp(1,isorb+1), norb, 0.d0, tmpp(1,1), norb)
-     call sparsemm(smat, amat_seq, bmatp, tmpp)
+     call sparsemm_debug(smat, amat_seq, bmatp, tmpp)
+     do i=1,size(amat_seq)
+         write(2000,*) i, amat_seq(i)
+     end do
+     do i=1,norbp
+       do j=1,norb
+         write(2001,*) i, j, bmatp(j,i)
+         write(2002,*) i, j, tmpp(j,i)
+       end do
+     end do
+
      call deviation_from_unity_parallel(iproc, nproc, norb, norbp, isorb, tmpp, smat, max_error, mean_error)
   else if (power==2) then
       if (.not.present(cmatp)) stop 'cmatp not present'
