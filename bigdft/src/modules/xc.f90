@@ -17,9 +17,9 @@ module module_xc
   use xc_f90_types_m
   use libxc_funcs_m
   use xc_f90_lib_m
-  use interfaces_41_xc_lowlevel
   use yaml_output
   use dictionaries, only: f_err_raise
+  use abi_interfaces_xc_lowlevel, only: abi_drivexc,abi_size_dvxc
 
   implicit none
 
@@ -419,27 +419,27 @@ contains
        if (present(dvxci) .and. nspden == 1) order = -2
        if (present(dvxci) .and. nspden == 2) order = +2
 
-       call size_dvxc(ixc,ndvxc,ngr2,nd2vxc,nspden,nvxcdgr,order)
+       call abi_size_dvxc(ixc,ndvxc,ngr2,nd2vxc,nspden,nvxcdgr,order)
 
        !let us apply ABINIT routines
        select case (xcObj%family(1))
        case (XC_FAMILY_LDA)
           if (order**2 <=1 .or. ixc >= 31 .and. ixc <= 34) then
-             call drivexc(exc,ixc,npts,nspden,order,rho,vxc,&
+             call abi_drivexc(exc,ixc,npts,nspden,order,rho,vxc,&
                   ndvxc,ngr2,nd2vxc,nvxcdgr)
           else
-             call drivexc(exc,ixc,npts,nspden,order,rho,vxc,&
+             call abi_drivexc(exc,ixc,npts,nspden,order,rho,vxc,&
                   ndvxc,ngr2,nd2vxc,nvxcdgr,&
                   dvxc=dvxci)
           end if
        case (XC_FAMILY_GGA)
           !case with gradient, no big order
           if (ixc /= 13) then             
-             call drivexc(exc,ixc,npts,nspden,order,rho,&
+             call abi_drivexc(exc,ixc,npts,nspden,order,rho,&
                   vxc,ndvxc,ngr2,nd2vxc,nvxcdgr,&
                   grho2_updn=grho2,vxcgr=vxcgr) 
           else
-             call drivexc(exc,ixc,npts,nspden,order,rho,&
+             call abi_drivexc(exc,ixc,npts,nspden,order,rho,&
                   vxc,ndvxc,ngr2,nd2vxc,nvxcdgr,&
                   grho2_updn=grho2) 
           end if

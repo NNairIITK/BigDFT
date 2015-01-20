@@ -1057,7 +1057,7 @@ module module_interfaces
            nxcl,nxcr,xc,hx,hy,hz,rhopot,pot_ion,sumpion,zf,zfionxc,exc,vxc,nproc,nspden)
         use module_base
         use module_xc
-        use interfaces_41_xc_lowlevel
+        use abi_interfaces_xc_lowlevel, only: abi_drivexc,abi_size_dvxc
         implicit none
         character(len=1), intent(in) :: geocode !< @copydoc poisson_solver::doc::geocode
         logical, intent(in) :: sumpion
@@ -3843,7 +3843,7 @@ module module_interfaces
         subroutine astruct_set_symmetries(astruct, disableSym, tol, elecfield, nspin)
           use module_base
           use module_atoms, only: atomic_structure,deallocate_symmetry_data
-          use defs_basis
+          use abi_defs_basis
           use m_ab6_symmetry
           implicit none
           type(atomic_structure), intent(inout) :: astruct

@@ -20,6 +20,7 @@ module BigDFT_API
   use ao_inguess
   use communications_base
   use communications_init
+  use gaussians
   use public_keys
   use public_enums
   use bigdft_run

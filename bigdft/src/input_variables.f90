@@ -14,8 +14,7 @@
 subroutine read_input_dict_from_files(radical,mpi_env,dict)
   use dictionaries
   use wrapper_MPI
-  !use module_input_keys
-  use public_keys
+  use module_input_keys
   use module_input_dicts, only: merge_input_file_to_dict
   use input_old_text_format
   use yaml_output
@@ -29,7 +28,6 @@ subroutine read_input_dict_from_files(radical,mpi_env,dict)
   logical :: exists_default, exists_user
   character(len = max_field_length) :: fname
   character(len = 100) :: f0
-  type(dictionary), pointer :: vals
 
   call f_routine(id='read_input_dict_from_files')
 
@@ -39,8 +37,8 @@ subroutine read_input_dict_from_files(radical,mpi_env,dict)
 !!$  nullify(dict) !this is however put in the case the dictionary comes undefined
 
 !!$  call dict_init(dict)
-!!$  if (trim(radical) /= "" .and. trim(radical) /= "input") &
-!!$       & call set(dict // RADICAL_NAME, radical)
+  if (trim(radical) /= "" .and. trim(radical) /= "input") &
+       & call set(dict // "radical", radical)
 
   ! Handle error with master proc only.
   !LG: modified, better to handle errors with all the 
@@ -65,47 +63,29 @@ subroutine read_input_dict_from_files(radical,mpi_env,dict)
   if (.not.exists_default .and. .not. exists_user) then
      ! Parse all files.
      call set_inputfile(f0, radical, PERF_VARIABLES)
-     nullify(vals)
-     call read_perf_from_text_format(mpi_env%iproc,vals, trim(f0))
-     if (associated(vals)) call set(dict//PERF_VARIABLES, vals)
-
+     call read_perf_from_text_format(mpi_env%iproc,dict//PERF_VARIABLES, trim(f0))
      call set_inputfile(f0, radical, DFT_VARIABLES)
-     nullify(vals)
-     call read_dft_from_text_format(mpi_env%iproc,vals, trim(f0))
-     if (associated(vals)) call set(dict//DFT_VARIABLES, vals)
-
+     call read_dft_from_text_format(mpi_env%iproc,dict//DFT_VARIABLES, trim(f0))
      call set_inputfile(f0, radical, KPT_VARIABLES)
-     nullify(vals)
-     call read_kpt_from_text_format(mpi_env%iproc,vals, trim(f0))
-     if (associated(vals)) call set(dict//KPT_VARIABLES, vals)
-
+     call read_kpt_from_text_format(mpi_env%iproc,dict//KPT_VARIABLES, trim(f0))
      call set_inputfile(f0, radical, GEOPT_VARIABLES)
-     nullify(vals)
-     call read_geopt_from_text_format(mpi_env%iproc,vals, trim(f0))
-     if (associated(vals)) call set(dict//GEOPT_VARIABLES, vals)
-
+     call read_geopt_from_text_format(mpi_env%iproc,dict//GEOPT_VARIABLES, trim(f0))
      call set_inputfile(f0, radical, MIX_VARIABLES)
-     nullify(vals)
-     call read_mix_from_text_format(mpi_env%iproc,vals, trim(f0))
-     if (associated(vals)) call set(dict//MIX_VARIABLES, vals)
-
+     call read_mix_from_text_format(mpi_env%iproc,dict//MIX_VARIABLES, trim(f0))
      call set_inputfile(f0, radical, SIC_VARIABLES)
-     nullify(vals)
-     call read_sic_from_text_format(mpi_env%iproc,vals, trim(f0))
-     if (associated(vals)) call set(dict//SIC_VARIABLES, vals)
-
+     call read_sic_from_text_format(mpi_env%iproc,dict//SIC_VARIABLES, trim(f0))
      call set_inputfile(f0, radical, TDDFT_VARIABLES)
-     nullify(vals)
-     call read_tddft_from_text_format(mpi_env%iproc,vals, trim(f0))
-     if (associated(vals)) call set(dict//TDDFT_VARIABLES, vals)
-
+     call read_tddft_from_text_format(mpi_env%iproc,dict//TDDFT_VARIABLES, trim(f0))
      !call set_inputfile(f0, radical, 'lin')
      call read_lin_and_frag_from_text_format(mpi_env%iproc,dict,trim(radical)) !as it also reads fragment
 
      call set_inputfile(f0, radical, 'neb')
-     nullify(vals)
-     call read_neb_from_text_format(mpi_env%iproc,vals, trim(f0))
-     if (associated(vals)) call set(dict//GEOPT_VARIABLES, vals)
+     call read_neb_from_text_format(mpi_env%iproc,dict//GEOPT_VARIABLES, trim(f0))
+  else
+     ! We add an overloading input.perf (for automatic test purposes).
+     ! This will be changed when only YAML input will be allowed.
+     call set_inputfile(f0, radical, PERF_VARIABLES)
+     call read_perf_from_text_format(mpi_env%iproc,dict//PERF_VARIABLES, trim(f0))
   end if
 
   !LG modfication of errors (see above)
@@ -130,19 +110,13 @@ subroutine inputs_from_dict(in, atoms, dict)
   use module_interfaces, except => inputs_from_dict
   use dictionaries
   use module_input_keys
-  use public_keys, only: POSINP, IG_OCCUPATION, CONSTRAINED_DFT, FRAG_VARIABLES, &
-       & KPT_VARIABLES, LIN_BASIS_PARAMS, OCCUPATION, TRANSFER_INTEGRALS, DFT_VARIABLES, &
-       & HGRIDS, RMULT, PROJRAD, IXC, PERF_VARIABLES
   use module_input_dicts
   use dynamic_memory
+  use m_profiling, only: ab7_memocc_set_state => memocc_set_state !< abinit module to be removed
   use module_xc
   use input_old_text_format, only: dict_from_frag
-  use module_atoms, only: atoms_data,atoms_data_null,atomic_data_set_from_dict,check_atoms_positions
+  use module_atoms, only: atoms_data,atoms_data_null
   use yaml_strings, only: f_strcpy
-  use psp_projectors, only: PSPCODE_PAW
-  use m_ab6_symmetry, only: symmetry_get_n_sym
-  use interfaces_42_libpaw
-  use bigdft_run, only: bigdft_get_run_properties
   implicit none
   !Arguments
   type(input_variables), intent(out) :: in
@@ -150,17 +124,11 @@ subroutine inputs_from_dict(in, atoms, dict)
   type(dictionary), pointer :: dict
   !Local variables
   !type(dictionary), pointer :: profs, dict_frag
-  logical :: found, userdef
-  integer :: ierr, nelec_up, nelec_down, norb_max, jtype, jxc
-  character(len = max_field_length) :: msg,filename,run_id,input_id,posinp_id,outdir
+  logical :: found
+  integer :: ierr, ityp, nelec_up, nelec_down, norb_max, jtype
+  character(len = max_field_length) :: writing_dir, output_dir, run_name, msg
 !  type(f_dict) :: dict
-  type(dictionary), pointer :: dict_minimal, var, lvl, types
-
-  integer, parameter :: pawlcutd = 10, pawlmix = 10, pawnphi = 13, pawntheta = 12, pawxcdev = 1
-  integer, parameter :: xclevel = 1, usepotzero = 0
-  integer :: nsym
-  real(gp) :: gsqcut_shp, rloc, projr, rlocmin
-  real(gp), dimension(2) :: cfrmults
+  type(dictionary), pointer :: dict_minimal, var
 
 !  dict => dict//key
 
@@ -168,122 +136,122 @@ subroutine inputs_from_dict(in, atoms, dict)
 
   call f_routine(id='inputs_from_dict')
 
+  ! Open log as soon as possible.
+  call create_log_file(dict, writing_dir, output_dir, run_name)
+
   ! Atoms case.
   atoms = atoms_data_null()
-
-  if (.not. has_key(dict, POSINP)) stop "missing posinp"
-  call astruct_set_from_dict(dict // POSINP, atoms%astruct)
-  ! Generate the dict of types for later use.
-  call astruct_dict_get_types(dict // POSINP, types)
+  if (.not. has_key(dict, "posinp")) stop "missing posinp"
+  call astruct_set_from_dict(dict // "posinp", atoms%astruct)
 
   ! Input variables case.
   call default_input_variables(in)
 
   !call yaml_map('Dictionary parsed',dict)
 
+  ! Analyse the input dictionary and transfer it to in.
+  call input_keys_validate(dict)
+
   ! extract also the minimal dictionary which is necessary to do this run
   call input_keys_fill_all(dict,dict_minimal)
 
-  ! Add missing pseudo information.
-  projr = dict // PERF_VARIABLES // PROJRAD
-  cfrmults = dict // DFT_VARIABLES // RMULT
-  jxc = dict // DFT_VARIABLES // IXC
-  var => dict_iter(types)
-  do while(associated(var))
-     call psp_dict_fill_all(dict, trim(dict_key(var)), jxc, projr, cfrmults(1), cfrmults(2))
-     var => dict_next(var)
-  end do
-
-  ! Update interdependant values.
-  rlocmin = 999._gp
-  var => dict_iter(types)
-  do while(associated(var))
-     call psp_set_from_dict(dict // ("psppar." // trim(dict_key(var))), rloc = rloc)
-     rlocmin = min(rloc, rlocmin)
-     var => dict_next(var)
-  end do
-  select case (trim(input_keys_get_source(dict // DFT_VARIABLES, HGRIDS, userdef)))
-     case ("accurate")
-        call set(dict // DFT_VARIABLES // HGRIDS, (/ rlocmin, rlocmin, rlocmin /) * 1.25_gp)
-     case ("normal")
-        call set(dict // DFT_VARIABLES // HGRIDS, (/ rlocmin, rlocmin, rlocmin /) * 1.75_gp)
-     case ("fast")
-        call set(dict // DFT_VARIABLES // HGRIDS, (/ rlocmin, rlocmin, rlocmin /) * 2.5_gp)
-  end select
-
   ! Transfer dict values into input_variables structure.
-  lvl => dict_iter(dict)
-  do while(associated(lvl))
-     var => dict_iter(lvl)
-     if (.not. associated(var)) then
-        ! Scalar case.
-        call input_set(in, trim(dict_key(lvl)), lvl)
-     else
-        do while(associated(var))
-           call input_set(in, trim(dict_key(lvl)), var)
-           var => dict_next(var)
-        end do
-     end if
-     lvl => dict_next(lvl)
+  var => dict_iter(dict // PERF_VARIABLES)
+  do while(associated(var))
+     call input_set(in, PERF_VARIABLES, var)
+     var => dict_next(var)
   end do
-
-  ! Generate the dir_output
-  call bigdft_get_run_properties(dict, naming_id = run_id, posinp_id = posinp_id, input_id = input_id, outdir_id = outdir)
-  call f_strcpy(dest = in%dir_output, src = trim(outdir) // "data" // trim(run_id))
-
-  call set_cache_size(in%ncache_fft)
+  var => dict_iter(dict // DFT_VARIABLES)
+  do while(associated(var))
+     call input_set(in, DFT_VARIABLES, var)
+     var => dict_next(var)
+  end do
+  var => dict_iter(dict // GEOPT_VARIABLES)
+  do while(associated(var))
+     call input_set(in, GEOPT_VARIABLES, var)
+     var => dict_next(var)
+  end do
+  var => dict_iter(dict // MIX_VARIABLES)
+  do while(associated(var))
+     call input_set(in, MIX_VARIABLES, var)
+     var => dict_next(var)
+  end do
+  var => dict_iter(dict // SIC_VARIABLES)
+  do while(associated(var))
+     call input_set(in, SIC_VARIABLES, var)
+     var => dict_next(var)
+  end do
+  var => dict_iter(dict // TDDFT_VARIABLES)
+  do while(associated(var))
+     call input_set(in, TDDFT_VARIABLES, var)
+     var => dict_next(var)
+  end do
+  var => dict_iter(dict // LIN_GENERAL)
+  do while(associated(var))
+     call input_set(in, LIN_GENERAL, var)
+     var => dict_next(var)
+  end do
+  var => dict_iter(dict // LIN_BASIS)
+  do while(associated(var))
+     call input_set(in, LIN_BASIS, var)
+     var => dict_next(var)
+  end do
+  var => dict_iter(dict // LIN_KERNEL)
+  do while(associated(var))
+     call input_set(in, LIN_KERNEL, var)
+     var => dict_next(var)
+  end do
 
   !status of the allocation verbosity and profiling
-  !filename of the memory allocation status, if needed
-  call f_strcpy(src=trim(outdir) // 'memstatus' // trim(run_id) // '.yaml',&
-          dest=filename)
   if (.not. in%debug) then
-     if (in%verbosity==3) then
-        call f_malloc_set_status(output_level=1, iproc=bigdft_mpi%iproc,logfile_name=filename)
-     else
-        call f_malloc_set_status(output_level=0, iproc=bigdft_mpi%iproc)
-     end if
-  else
-     call f_malloc_set_status(output_level=2, iproc=bigdft_mpi%iproc,logfile_name=filename)
+     call ab7_memocc_set_state(1)
+     call f_malloc_set_status(output_level=1)
+  end if
+  call set_cache_size(in%ncache_fft)
+  if (in%verbosity == 0 ) then
+     call ab7_memocc_set_state(0)
+     call f_malloc_set_status(output_level=0)
   end if
 
   call nullifyInputLinparameters(in%lin)
   call allocateBasicArraysInputLin(in%lin, atoms%astruct%ntypes)
 
   !First fill all the types by the default, then override by per-type values
-  lvl => dict_iter(types)
-  do while(associated(lvl))
-     jtype = lvl
+  do jtype=1,atoms%astruct%ntypes
      var => dict_iter(dict//LIN_BASIS_PARAMS)
      do while(associated(var))
         call basis_params_set_dict(var,in%lin,jtype)
         var => dict_next(var)
      end do
      !then check if the objects exists in separate specifications
-     if (has_key(dict//LIN_BASIS_PARAMS,trim(dict_key(lvl)))) then
+     if (has_key(dict//LIN_BASIS_PARAMS,trim(atoms%astruct%atomnames(jtype)))) then
         var => &
-             dict_iter(dict//LIN_BASIS_PARAMS//trim(dict_key(lvl)))
+             dict_iter(dict//LIN_BASIS_PARAMS//trim(atoms%astruct%atomnames(jtype)))
      end if
      do while(associated(var))
         call basis_params_set_dict(var,in%lin,jtype)
         var => dict_next(var)
      end do
-     lvl => dict_next(lvl)
   end do
 
-  call allocate_extra_lin_arrays(in%lin,in%nspin,atoms%astruct)
+  call allocate_extra_lin_arrays(in%lin,atoms%astruct)
 
   ! Cross check values of input_variables.
   call input_analyze(in,atoms%astruct)
 
   ! Shake atoms, if required.
   call astruct_set_displacement(atoms%astruct, in%randdis)
-  if (bigdft_mpi%nproc > 1) call mpibarrier(bigdft_mpi%mpi_comm)
+  if (bigdft_mpi%nproc > 1) call MPI_BARRIER(bigdft_mpi%mpi_comm, ierr)
   ! Update atoms with symmetry information
   call astruct_set_symmetries(atoms%astruct, in%disableSym, in%symTol, in%elecfield, in%nspin)
 
   call kpt_input_analyse(bigdft_mpi%iproc, in, dict//KPT_VARIABLES, &
        & atoms%astruct%sym, atoms%astruct%geocode, atoms%astruct%cell_dim)
+
+  ! Add missing pseudo information.
+  do ityp = 1, atoms%astruct%ntypes, 1
+     call psp_dict_fill_all(dict, atoms%astruct%atomnames(ityp), in%ixc)
+  end do
 
   ! Update atoms with pseudo information.
   call psp_dict_analyse(dict, atoms)
@@ -291,7 +259,6 @@ subroutine inputs_from_dict(in, atoms, dict)
 
   ! Add multipole preserving information
   atoms%multipole_preserving = in%multipole_preserving
-  atoms%mp_isf = in%mp_isf
 
   ! Generate orbital occupation
   call read_n_orbitals(bigdft_mpi%iproc, nelec_up, nelec_down, norb_max, atoms, &
@@ -301,16 +268,6 @@ subroutine inputs_from_dict(in, atoms, dict)
        & in%gen_norbu, in%gen_norbd, in%gen_occup, &
        & in%gen_nkpt, in%nspin, in%norbsempty, nelec_up, nelec_down, norb_max)
   in%gen_norb = in%gen_norbu + in%gen_norbd
-
-  ! Complement PAW initialisation.
-  if (any(atoms%npspcode == PSPCODE_PAW)) then
-     !gsqcut_shp = two*abs(dtset%diecut)*dtset%dilatmx**2/pi**2
-     gsqcut_shp = 2._gp * 2.2_gp / pi_param ** 2
-     call symmetry_get_n_sym(atoms%astruct%sym%symObj, nsym, ierr)
-     call pawinit(1, gsqcut_shp, pawlcutd, pawlmix, maxval(atoms%pawtab(:)%lmn_size) + 1, &
-          & pawnphi, nsym, pawntheta, atoms%pawang, atoms%pawrad, 0, &
-          & atoms%pawtab, pawxcdev, xclevel, usepotzero)
-  end if
   
   if (in%gen_nkpt > 1 .and. in%gaussian_help) then
      if (bigdft_mpi%iproc==0) call yaml_warning('Gaussian projection is not implemented with k-point support')
@@ -337,9 +294,6 @@ subroutine inputs_from_dict(in, atoms, dict)
      if (bigdft_mpi%iproc==0) call yaml_warning('GPU calculation not implemented with non-collinear spin')
      call MPI_ABORT(bigdft_mpi%mpi_comm,0,ierr)
   end if
-
-  !control atom positions
-  call check_atoms_positions(atoms%astruct, (bigdft_mpi%iproc == 0))
 
 !!$  ! Stop code for unproper input variables combination.
 !!$  if (in%ncount_cluster_x > 0 .and. .not. in%disableSym .and. atoms%geocode == 'S') then
@@ -368,6 +322,9 @@ subroutine inputs_from_dict(in, atoms, dict)
           err_name='BIGDFT_INPUT_VARIABLES_ERROR')
   end if
 
+  in%run_name          = run_name
+  in%writing_directory = writing_dir
+  in%dir_output        = output_dir
   ! not sure whether to actually make this an input variable or not so just set to false for now
   in%lin%diag_start=.false.
 
@@ -389,10 +346,6 @@ subroutine inputs_from_dict(in, atoms, dict)
   else
      call default_fragmentInputParameters(in%frag)
   end if
-
-  ! No use anymore of the types.
-  call dict_free(types)
-
   if (bigdft_mpi%iproc==0) then
      call input_keys_dump(dict)
   end if
@@ -400,13 +353,18 @@ subroutine inputs_from_dict(in, atoms, dict)
   !check whether a directory name should be associated for the data storage
   call check_for_data_writing_directory(bigdft_mpi%iproc,in)
 
-  if (bigdft_mpi%iproc == 0)  call print_general_parameters(in,atoms,input_id,posinp_id)
+  if (bigdft_mpi%iproc == 0)  call print_general_parameters(in,atoms)
 
   if (associated(dict_minimal) .and. bigdft_mpi%iproc == 0) then
-     call bigdft_get_run_properties(dict, input_id = run_id)
-     call f_strcpy(src=trim(run_id)//'_minimal.yaml',dest=filename)
+     !use run_name variable as it is not needed
+     if (RADICAL_NAME .notin. dict) then
+        call f_strcpy(src='input_minimal.yaml',dest=run_name)
+     else
+        msg=dict//RADICAL_NAME
+        call f_strcpy(src=trim(msg)//'_minimal.yaml',dest=run_name)
+     end if
 
-     call yaml_set_stream(unit=99971,filename=trim(outdir)//trim(filename),&
+     call yaml_set_stream(unit=99971,filename=trim(writing_dir)//'/'//trim(run_name),&
           record_length=92,istat=ierr,setdefault=.false.,tabbing=0,position='rewind')
      if (ierr==0) then
         call yaml_comment('Minimal input file',hfill='-',unit=99971)
@@ -448,6 +406,7 @@ subroutine check_for_data_writing_directory(iproc,in)
        in%inputPsiId == 2 .or. &                       !have wavefunctions to read
        in%inputPsiId == 12 .or.  &                     !read in gaussian basis
        in%gaussian_help .or. &                         !Mulliken and local density of states
+       in%writing_directory /= '.' .or. &              !have an explicit local output directory
        bigdft_mpi%ngroup > 1   .or. &                  !taskgroups have been inserted
        in%lin%plotBasisFunctions > 0 .or. &            !dumping of basis functions for locreg runs
        in%inputPsiId == 102                            !reading of basis functions
@@ -499,13 +458,10 @@ subroutine default_input_variables(in)
   implicit none
 
   type(input_variables), intent(inout) :: in
-  
-  in%refcnt=f_ref_new('inputs')
-  in%run_mode=f_enumerator_null()
+
   in%matacc=material_acceleration_null()
 
   ! Default values.
-  in%dir_output = "data"
   in%output_wf_format = WF_FORMAT_NONE
   in%output_denspot_format = output_denspot_FORMAT_CUBE
   nullify(in%gen_kpt)
@@ -624,7 +580,6 @@ END SUBROUTINE tddft_input_variables_default
 
 !> Allocate the arrays for the input related to the fragment
 subroutine allocateInputFragArrays(input_frag)
-  use module_base
   use module_types
   implicit none
 
@@ -632,16 +587,22 @@ subroutine allocateInputFragArrays(input_frag)
   type(fragmentInputParameters),intent(inout) :: input_frag
 
   ! Local variables
+  integer :: i_stat
   character(len=*),parameter :: subname='allocateInputFragArrays'
 
   input_frag%frag_index = f_malloc_ptr(input_frag%nfrag,id='input_frag%frag_index')
   input_frag%charge = f_malloc_ptr(input_frag%nfrag,id='input_frag%charge')
 
-  input_frag%label=f_malloc_str_ptr(len(input_frag%label),&
-       input_frag%nfrag_ref,id='input_frag%label')
+  !allocate(input_frag%frag_info(input_frag%nfrag_ref,2), stat=i_stat)
+  !call memocc(i_stat, input_frag%frag_info, 'input_frag%frag_info', subname)
+
+  allocate(input_frag%label(input_frag%nfrag_ref), stat=i_stat)
+  call memocc(i_stat, input_frag%label, 'input_frag%label', subname)
+
+
   !f_malloc0_str_ptr should be used here
-  input_frag%dirname=f_malloc_str_ptr(len(input_frag%dirname),&
-       input_frag%nfrag_ref,id='input_frag%label')
+  allocate(input_frag%dirname(input_frag%nfrag_ref), stat=i_stat)
+  call memocc(i_stat, input_frag%dirname, 'input_frag%dirname', subname)
 
   !set the variables to their default value
 
@@ -650,7 +611,6 @@ end subroutine allocateInputFragArrays
 
 !> Deallocate the arrays related to the input for the fragments
 subroutine deallocateInputFragArrays(input_frag)
-  use module_base
   use module_types
   implicit none
 
@@ -658,13 +618,39 @@ subroutine deallocateInputFragArrays(input_frag)
   type(fragmentInputParameters),intent(inout) :: input_frag
 
   ! Local variables
+  integer :: i_stat,i_all
   character(len=*),parameter :: subname='deallocateInputFragArrays'
 
-  call f_free_ptr(input_frag%frag_index)
-  call f_free_ptr(input_frag%charge)
-  
-  call f_free_str_ptr(len(input_frag%label),input_frag%label)
-  call f_free_str_ptr(len(input_frag%dirname),input_frag%dirname)
+  !if(associated(input_frag%frag_info)) then
+  !  i_all = -product(shape(input_frag%frag_info))*kind(input_frag%frag_info)
+  !  deallocate(input_frag%frag_info,stat=i_stat)
+  !  call memocc(i_stat,i_all,'input_frag%frag_info',subname)
+  !  nullify(input_frag%frag_info)
+  !end if 
+
+  if(associated(input_frag%frag_index)) then
+     call f_free_ptr(input_frag%frag_index)
+     nullify(input_frag%frag_index)
+  end if
+
+  if(associated(input_frag%charge)) then
+     call f_free_ptr(input_frag%charge)
+     nullify(input_frag%charge)
+  end if
+
+  if(associated(input_frag%label)) then
+     i_all = -product(shape(input_frag%label))*kind(input_frag%label)
+     deallocate(input_frag%label,stat=i_stat)
+     call memocc(i_stat,i_all,'input_frag%label',subname)
+     nullify(input_frag%label)
+  end if
+
+  if(associated(input_frag%dirname)) then
+     i_all = -product(shape(input_frag%dirname))*kind(input_frag%dirname)
+     deallocate(input_frag%dirname,stat=i_stat)
+     call memocc(i_stat,i_all,'input_frag%dirname',subname)
+     nullify(input_frag%dirname)
+  end if
 
 end subroutine deallocateInputFragArrays
 
@@ -715,11 +701,24 @@ subroutine free_kpt_variables(in)
   implicit none
   type(input_variables), intent(inout) :: in
   character(len=*), parameter :: subname='free_kpt_variables'
+  integer :: i_stat, i_all
 
-  call f_free_ptr(in%gen_kpt)
-  call f_free_ptr(in%gen_wkpt)
-  call f_free_ptr(in%kptv)
-  call f_free_ptr(in%nkptsv_group)
+  if (associated(in%gen_kpt)) then
+     i_all=-product(shape(in%gen_kpt))*kind(in%gen_kpt)
+     deallocate(in%gen_kpt,stat=i_stat)
+     call memocc(i_stat,i_all,'in%gen_kpt',subname)
+  end if
+  if (associated(in%gen_wkpt)) then
+     i_all=-product(shape(in%gen_wkpt))*kind(in%gen_wkpt)
+     deallocate(in%gen_wkpt,stat=i_stat)
+     call memocc(i_stat,i_all,'in%gen_wkpt',subname)
+  end if
+  if (associated(in%kptv)) then
+     call f_free_ptr(in%kptv)
+  end if
+  if (associated(in%nkptsv_group)) then
+     call f_free_ptr(in%nkptsv_group)
+  end if
   nullify(in%gen_kpt)
   nullify(in%gen_wkpt)
   nullify(in%kptv)
@@ -752,12 +751,12 @@ subroutine free_input_variables(in)
   type(input_variables), intent(inout) :: in
   character(len=*), parameter :: subname='free_input_variables'
 
-  !check if freeing is possible
-  call f_ref_free(in%refcnt)
+!!$  if(in%linear /= INPUT_IG_OFF .and. in%linear /= INPUT_IG_LIG) &
+!!$       & call deallocateBasicArraysInput(in%lin)
 
   call free_geopt_variables(in)
   call free_kpt_variables(in)
-  call f_free_ptr(in%gen_occup)
+  if (associated(in%gen_occup)) call f_free_ptr(in%gen_occup)
   call deallocateBasicArraysInput(in%lin)
   call deallocateInputFragArrays(in%frag)
 
@@ -814,12 +813,14 @@ END SUBROUTINE frequencies_input_variables_default
 !> Cross check values of input_variables.
 !! and change if necessary
 subroutine input_analyze(in,astruct)
-  use module_types, only: input_variables,output_denspot_FORMAT_CUBE, &
-       output_denspot_NONE, WF_FORMAT_NONE, KERNELMODE_DIRMIN,&
-       KERNELMODE_DIAG, KERNELMODE_FOE, MIXINGMODE_DENS, MIXINGMODE_POT, &
-       LINEAR_DIRECT_MINIMIZATION, LINEAR_MIXDENS_SIMPLE, &
-       LINEAR_MIXPOT_SIMPLE, LINEAR_FOE
+  use module_types, only: input_variables
+  use module_types, only: output_denspot_FORMAT_CUBE, output_denspot_NONE, WF_FORMAT_NONE
+  use module_types, only: bigdft_mpi
+  use module_types, only: KERNELMODE_DIRMIN, KERNELMODE_DIAG, KERNELMODE_FOE, &
+                          MIXINGMODE_DENS, MIXINGMODE_POT, &
+                          LINEAR_DIRECT_MINIMIZATION, LINEAR_MIXDENS_SIMPLE, LINEAR_MIXPOT_SIMPLE, LINEAR_FOE
   use module_atoms, only: atomic_structure
+  use module_defs, only: gp
   use module_base
   use module_input_keys, only: input_keys_equal
   implicit none
@@ -931,11 +932,10 @@ subroutine kpt_input_analyse(iproc, in, dict, sym, geocode, alat)
   use module_base
   use module_types
   use module_atoms, only: symmetry_data
-  use defs_basis
+  use abi_defs_basis
   use m_ab6_kpoints
   use yaml_output
-  use module_input_keys, only: input_keys_equal
-  use public_keys
+  use module_input_keys
   use dictionaries
   implicit none
   !Arguments
@@ -948,14 +948,13 @@ subroutine kpt_input_analyse(iproc, in, dict, sym, geocode, alat)
   !local variables
   logical :: lstat
   character(len=*), parameter :: subname='kpt_input_analyse'
-  integer :: ierror,i, nshiftk, ikpt, j, ncount, nseg, iseg_, ngranularity_
+  integer :: i_stat,ierror,i, nshiftk, ikpt, j, ncount, nseg, iseg_, ngranularity_
   integer, dimension(3) :: ngkpt_
   real(gp), dimension(3) :: alat_
   real(gp), dimension(3,8) :: shiftk_
   real(gp) :: kptrlen_, norm
   character(len = 6) :: method
-  real(gp), dimension(:,:), pointer :: gen_kpt   !< K points coordinates
-  real(gp), dimension(:), pointer :: gen_wkpt    !< Weights of k points
+  
   ! Set default values.
   in%gen_nkpt=1
   in%nkptv=0
@@ -970,18 +969,14 @@ subroutine kpt_input_analyse(iproc, in, dict, sym, geocode, alat)
      kptrlen_ = dict // KPTRLEN
      if (geocode == 'F') then
         in%gen_nkpt = 1
-!!$        allocate(in%gen_kpt(3, in%gen_nkpt+ndebug),stat=i_stat)
-!!$        call memocc(i_stat,in%gen_kpt,'in%gen_kpt',subname)
-!!$        in%gen_kpt = 0.
-        in%gen_kpt=f_malloc0_ptr([3, in%gen_nkpt],id='gen_kpt')
-
-!!$        allocate(in%gen_wkpt(in%gen_nkpt+ndebug),stat=i_stat)
-!!$        call memocc(i_stat,in%gen_wkpt,'in%gen_wkpt',subname)
-        in%gen_kpt=f_malloc_ptr(in%gen_nkpt,id='gen_wkpt')
-                
+        allocate(in%gen_kpt(3, in%gen_nkpt+ndebug),stat=i_stat)
+        call memocc(i_stat,in%gen_kpt,'in%gen_kpt',subname)
+        in%gen_kpt = 0.
+        allocate(in%gen_wkpt(in%gen_nkpt+ndebug),stat=i_stat)
+        call memocc(i_stat,in%gen_wkpt,'in%gen_wkpt',subname)
         in%gen_wkpt = 1.
      else
-        call kpoints_get_auto_k_grid(sym%symObj, in%gen_nkpt, gen_kpt, gen_wkpt, &
+        call kpoints_get_auto_k_grid(sym%symObj, in%gen_nkpt, in%gen_kpt, in%gen_wkpt, &
              & kptrlen_, ierror)
         if (ierror /= AB7_NO_ERROR) then
            if (iproc==0) &
@@ -990,22 +985,23 @@ subroutine kpt_input_analyse(iproc, in, dict, sym, geocode, alat)
            stop
         end if
         !assumes that the allocation went through (arrays allocated by abinit routines)
-        in%gen_kpt=f_malloc_ptr(src=gen_kpt,id='gen_kpt')
-        in%gen_wkpt=f_malloc_ptr(src=gen_wkpt,id='gen_wkpt')
-        deallocate(gen_kpt,gen_wkpt)
-!!$        call memocc(0,in%gen_kpt,'in%gen_kpt',subname)
-!!$        call memocc(0,in%gen_wkpt,'in%gen_wkpt',subname)
+        call memocc(0,in%gen_kpt,'in%gen_kpt',subname)
+        call memocc(0,in%gen_wkpt,'in%gen_wkpt',subname)
      end if
   else if (input_keys_equal(trim(method), 'mpgrid')) then
      !take the points of Monkhorst-pack grid
-     ngkpt_(1:3) = dict // NGKPT
+     ngkpt_(1) = dict // NGKPT // 0
+     ngkpt_(2) = dict // NGKPT // 1
+     ngkpt_(3) = dict // NGKPT // 2
      if (geocode == 'S') ngkpt_(2) = 1
      !shift
      nshiftk = dict_len(dict//SHIFTK)
      !read the shifts
      shiftk_=0.0_gp
      do i=1,nshiftk
-        shiftk_(1:3,i) = dict // SHIFTK // (i-1)
+        shiftk_(1,i) = dict // SHIFTK // (i-1) // 0
+        shiftk_(2,i) = dict // SHIFTK // (i-1) // 1
+        shiftk_(3,i) = dict // SHIFTK // (i-1) // 2
      end do
 
      !control whether we are giving k-points to Free BC
@@ -1013,16 +1009,14 @@ subroutine kpt_input_analyse(iproc, in, dict, sym, geocode, alat)
         if (iproc==0 .and. (maxval(ngkpt_) > 1 .or. maxval(abs(shiftk_)) > 0.)) &
              & call yaml_warning('Found input k-points with Free Boundary Conditions, reduce run to Gamma point')
         in%gen_nkpt = 1
-        in%gen_kpt=f_malloc0_ptr([3, in%gen_nkpt],id='gen_kpt')
-!!$        allocate(in%gen_kpt(3, in%gen_nkpt+ndebug),stat=i_stat)
-!!$        call memocc(i_stat,in%gen_kpt,'in%gen_kpt',subname)
-!!$        in%gen_kpt = 0.
-!!$        allocate(in%gen_wkpt(in%gen_nkpt+ndebug),stat=i_stat)
-!!$        call memocc(i_stat,in%gen_wkpt,'in%gen_wkpt',subname)
-        in%gen_kpt=f_malloc_ptr(in%gen_nkpt,id='gen_wkpt')
+        allocate(in%gen_kpt(3, in%gen_nkpt+ndebug),stat=i_stat)
+        call memocc(i_stat,in%gen_kpt,'in%gen_kpt',subname)
+        in%gen_kpt = 0.
+        allocate(in%gen_wkpt(in%gen_nkpt+ndebug),stat=i_stat)
+        call memocc(i_stat,in%gen_wkpt,'in%gen_wkpt',subname)
         in%gen_wkpt = 1.
      else
-        call kpoints_get_mp_k_grid(sym%symObj, in%gen_nkpt, gen_kpt, gen_wkpt, &
+        call kpoints_get_mp_k_grid(sym%symObj, in%gen_nkpt, in%gen_kpt, in%gen_wkpt, &
              & ngkpt_, nshiftk, shiftk_, ierror)
         if (ierror /= AB7_NO_ERROR) then
            if (iproc==0) &
@@ -1030,13 +1024,9 @@ subroutine kpt_input_analyse(iproc, in, dict, sym, geocode, alat)
                 & " Error code is " // trim(yaml_toa(ierror,fmt='(i0)')))
            stop
         end if
-        !assumes that the allocation went through 
-        !(arrays allocated by abinit routines)
-        in%gen_kpt=f_malloc_ptr(src=gen_kpt,id='gen_kpt')
-        in%gen_wkpt=f_malloc_ptr(src=gen_wkpt,id='gen_wkpt')
-        deallocate(gen_kpt,gen_wkpt)
-!!$        call memocc(0,in%gen_kpt,'in%gen_kpt',subname)
-!!$        call memocc(0,in%gen_wkpt,'in%gen_wkpt',subname)
+        !assumes that the allocation went through (arrays allocated by abinit routines)
+        call memocc(0,in%gen_kpt,'in%gen_kpt',subname)
+        call memocc(0,in%gen_wkpt,'in%gen_wkpt',subname)
      end if
   else if (input_keys_equal(trim(method), 'manual')) then
      in%gen_nkpt = max(1, dict_len(dict//KPT))
@@ -1044,16 +1034,15 @@ subroutine kpt_input_analyse(iproc, in, dict, sym, geocode, alat)
         if (iproc==0) call yaml_warning('Found input k-points with Free Boundary Conditions, reduce run to Gamma point')
         in%gen_nkpt = 1
      end if
-     in%gen_kpt=f_malloc_ptr([3, in%gen_nkpt],id='gen_kpt')
-     in%gen_wkpt=f_malloc_ptr(in%gen_nkpt,id='gen_wkpt')
-
-!!$     allocate(in%gen_kpt(3, in%gen_nkpt+ndebug),stat=i_stat)
-!!$     call memocc(i_stat,in%gen_kpt,'in%gen_kpt',subname)
-!!$     allocate(in%gen_wkpt(in%gen_nkpt+ndebug),stat=i_stat)
-!!$     call memocc(i_stat,in%gen_wkpt,'in%gen_wkpt',subname)
+     allocate(in%gen_kpt(3, in%gen_nkpt+ndebug),stat=i_stat)
+     call memocc(i_stat,in%gen_kpt,'in%gen_kpt',subname)
+     allocate(in%gen_wkpt(in%gen_nkpt+ndebug),stat=i_stat)
+     call memocc(i_stat,in%gen_wkpt,'in%gen_wkpt',subname)
      norm=0.0_gp
      do i=1,in%gen_nkpt
-        in%gen_kpt(1:3, i) = dict // KPT // (i-1)
+        in%gen_kpt(1, i) = dict // KPT // (i-1) // 0
+        in%gen_kpt(2, i) = dict // KPT // (i-1) // 1
+        in%gen_kpt(3, i) = dict // KPT // (i-1) // 2
         if (geocode == 'S' .and. in%gen_kpt(2,i) /= 0.) then
            in%gen_kpt(2,i) = 0.
            if (iproc==0) call yaml_warning('Surface conditions, suppressing k-points along y.')

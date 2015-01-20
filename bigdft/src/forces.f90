@@ -3607,11 +3607,12 @@ END SUBROUTINE clean_forces
 
 !> Symmetrize stress (important with special k points)
 subroutine symm_stress(tens,symobj)
-  use defs_basis
+  use abi_defs_basis
   use module_base, only: gp!,verbose
   use m_ab6_symmetry
   use module_types
   use yaml_output
+  use abi_interfaces_numeric, only: abi_mati3inv
   implicit none
   !Arguments
   integer, intent(in) :: symobj
@@ -3631,7 +3632,7 @@ subroutine symm_stress(tens,symobj)
   !Get the symmetry matrices in terms of reciprocal basis
   allocate(symrec(3, 3, nsym))
   do isym = 1, nsym, 1
-     call mati3inv(sym(:,:,isym), symrec(:,:,isym))
+     call abi_mati3inv(sym(:,:,isym), symrec(:,:,isym))
   end do
 
   symtens=0.0_gp
@@ -3666,11 +3667,12 @@ end subroutine symm_stress
 
 !> Symmetrise the atomic forces (needed with special k points)
 subroutine symmetrise_forces(fxyz, at)
-  use defs_basis
+  use abi_defs_basis
   use m_ab6_symmetry
   use module_defs, only: gp
   use module_types, only: atoms_data
   use yaml_output
+  use abi_interfaces_numeric, only: abi_mati3inv
 
   implicit none
 
@@ -3697,7 +3699,7 @@ subroutine symmetrise_forces(fxyz, at)
   !Get the symmetry matrices in terms of reciprocal basis
   allocate(symrec(3, 3, nsym))
   do isym = 1, nsym, 1
-     call mati3inv(sym(:,:,isym), symrec(:,:,isym))
+     call abi_mati3inv(sym(:,:,isym), symrec(:,:,isym))
   end do
 
   alat = (/ at%astruct%cell_dim(1), at%astruct%cell_dim(2), at%astruct%cell_dim(3) /)

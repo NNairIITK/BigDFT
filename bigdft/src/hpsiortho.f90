@@ -2104,6 +2104,7 @@ subroutine evaltoocc(iproc,nproc,filewrite,wf0,orbs,occopt)
    use dictionaries, only: f_err_throw
    use yaml_output
    use fermi_level, only: fermi_aux, init_fermi_level, determine_fermi_level
+   use abi_interfaces_numeric, only: abi_derf_ab
    implicit none
    logical, intent(in) :: filewrite
    integer, intent(in) :: iproc, nproc
@@ -2198,7 +2199,7 @@ subroutine evaltoocc(iproc,nproc,filewrite,wf0,orbs,occopt)
             do iorb=1,orbs%norbd+orbs%norbu
                arg=(orbs%eval((ikpt-1)*orbs%norb+iorb)-ef)/wf
                if (occopt == SMEARING_DIST_ERF) then
-                  call derf_ab(res,arg)
+                  call abi_derf_ab(res,arg)
                   f =.5d0*(1.d0-res)
                   df=-safe_exp(-arg**2)/sqrtpi 
                else if (occopt == SMEARING_DIST_FERMI) then
@@ -2207,7 +2208,7 @@ subroutine evaltoocc(iproc,nproc,filewrite,wf0,orbs,occopt)
                else if (occopt == SMEARING_DIST_COLD1 .or. occopt == SMEARING_DIST_COLD2 .or. &  
                     &  occopt == SMEARING_DIST_METPX ) then
                   x= -arg
-                  call derf_ab(res,x)
+                  call abi_derf_ab(res,x)
                   f =.5d0*(1.d0+res +safe_exp(-x**2)*(-a*x**2 + .5d0*a+x)/sqrtpi)
                   df=-safe_exp(-x**2) * (a*x**3 -x**2 -1.5d0*a*x +1.5d0) /sqrtpi   ! df:=df/darg=-df/dx
                else
@@ -2267,8 +2268,8 @@ subroutine evaltoocc(iproc,nproc,filewrite,wf0,orbs,occopt)
          argd=(orbs%eval((ikpt-1)*orbs%norb+orbs%norbu+orbs%norbd)-ef)/wf0
          if (occopt == SMEARING_DIST_ERF) then
             !error function
-            call derf_ab(resu,argu)
-            call derf_ab(resd,argd)
+            call abi_derf_ab(resu,argu)
+            call abi_derf_ab(resd,argd)
             cutoffu=.5d0*(1.d0-resu)
             cutoffd=.5d0*(1.d0-resd)
          else if (occopt == SMEARING_DIST_FERMI) then
@@ -2280,8 +2281,8 @@ subroutine evaltoocc(iproc,nproc,filewrite,wf0,orbs,occopt)
             !Marzari's relation with different a 
             xu=-argu
             xd=-argd
-            call derf_ab(resu,xu)
-            call derf_ab(resd,xd)
+            call abi_derf_ab(resu,xu)
+            call abi_derf_ab(resd,xd)
             cutoffu=.5d0*(1.d0+resu +safe_exp(-xu**2)*(-a*xu**2 + .5d0*a+xu)/sqrtpi)
             cutoffd=.5d0*(1.d0+resd +safe_exp(-xd**2)*(-a*xd**2 + .5d0*a+xd)/sqrtpi)
          end if
@@ -2301,14 +2302,14 @@ subroutine evaltoocc(iproc,nproc,filewrite,wf0,orbs,occopt)
          do iorb=1,orbs%norbu + orbs%norbd
             arg=(orbs%eval((ikpt-1)*orbs%norb+iorb)-ef)/wf0
             if (occopt == SMEARING_DIST_ERF) then
-               call derf_ab(res,arg)
+               call abi_derf_ab(res,arg)
                f=.5d0*(1.d0-res)
             else if (occopt == SMEARING_DIST_FERMI) then
                f=1.d0/(1.d0+exp(arg))
             else if (occopt == SMEARING_DIST_COLD1 .or. occopt == SMEARING_DIST_COLD2 .or. &  
                  &  occopt == SMEARING_DIST_METPX ) then
                x=-arg
-               call derf_ab(res,x)
+               call abi_derf_ab(res,x)
                f =.5d0*(1.d0+res +exp(-x**2)*(-a*x**2 + .5d0*a+x)/sqrtpi)
             end if
             orbs%occup((ikpt-1)*orbs%norb+iorb)=full* f 

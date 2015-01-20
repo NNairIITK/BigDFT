@@ -133,7 +133,7 @@ end subroutine print_configure_options
 subroutine print_general_parameters(in,atoms,input_id,posinp_id)
   use module_base
   use module_types
-  use defs_basis
+  use abi_defs_basis
   use yaml_output
   use module_input_keys, only: input_keys_equal
   implicit none

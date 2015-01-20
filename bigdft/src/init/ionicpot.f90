@@ -15,6 +15,8 @@ subroutine IonicEnergyandForces(iproc,nproc,dpbox,at,elecfield,&
   use module_base, pi => pi_param
   use module_types
   use Poisson_Solver, except_dp => dp, except_gp => gp, except_wp => wp
+  use abi_interfaces_geometry, only: abi_metric
+  use abi_interfaces_common, only: abi_ewald, abi_ewald2
   use vdwcorrection
   use yaml_output
   implicit none
@@ -74,7 +76,7 @@ subroutine IonicEnergyandForces(iproc,nproc,dpbox,at,elecfield,&
      rprimd(3,3)=at%astruct%cell_dim(3)
 
      !calculate the metrics and the volume
-     call metric(gmet,gprimd,-1,rmet,rprimd,ucvol)
+     call abi_metric(gmet,gprimd,-1,rmet,rprimd,ucvol)
 
      !calculate reduced coordinates
      do iat=1,at%astruct%nat
@@ -85,10 +87,10 @@ subroutine IonicEnergyandForces(iproc,nproc,dpbox,at,elecfield,&
      end do
 
      !calculate ewald energy and forces + stress
-     call ewald(eion,gmet,fewald,at%astruct%nat,at%astruct%ntypes,rmet,at%astruct%iatype,ucvol,&
+     call abi_ewald(eion,gmet,fewald,at%astruct%nat,at%astruct%ntypes,rmet,at%astruct%iatype,ucvol,&
           xred,real(at%nelpsp,kind=8))
      ewaldstr=0.0_dp
-     call ewald2(gmet,at%astruct%nat,at%astruct%ntypes,rmet,rprimd,ewaldstr,at%astruct%iatype,&
+     call abi_ewald2(gmet,at%astruct%nat,at%astruct%ntypes,rmet,rprimd,ewaldstr,at%astruct%iatype,&
           ucvol,xred,real(at%nelpsp,kind=8))
 
 ! our sequence of strten elements : 11 22 33 12 13 23
@@ -518,9 +520,11 @@ subroutine createIonicPotential(geocode,iproc,nproc,verb,at,rxyz,&
   use m_splines, only: splint
   use module_types
   use yaml_output
+  use m_paw_numeric, only: paw_splint
   use gaussians, only: initialize_real_space_conversion, finalize_real_space_conversion,mp_exp
 !  use module_interfaces, except_this_one => createIonicPotential
   use Poisson_Solver, except_dp => dp, except_gp => gp, except_wp => wp
+  use abi_interfaces_numeric, only: abi_derf_ab
   use psp_projectors, only: PSPCODE_PAW
   implicit none
   character(len=1), intent(in) :: geocode !< @copydoc poisson_solver::doc::geocode
@@ -542,7 +546,7 @@ subroutine createIonicPotential(geocode,iproc,nproc,verb,at,rxyz,&
   real(kind=8) :: rholeaked,rloc,charge,cutoff,x,y,z,r2,arg,xp,tt,rx,ry,rz
   real(kind=8) :: tt_tot,rholeaked_tot,potxyz
   real(kind=8) :: raux2,r2paw,rlocsq,zsq,yzsq
-  real(kind=8) :: raux(1),rr(1)
+  real(kind=8) :: raux1(1),rr1(1)
   real(wp) :: maxdiff
   real(gp) :: ehart
   real(dp), dimension(2) :: charges_mpi
@@ -658,14 +662,15 @@ subroutine createIonicPotential(geocode,iproc,nproc,verb,at,rxyz,&
                     call ind_positions(perx,i1,n1,j1,gox)
                     r2=x**2+yzsq
                     !if(r2>r2paw) cycle
-                    rr=sqrt(r2)
                     if(1==2) then
                       !This converges very slow                
-                      call splint(at%pawtab(ityp)%wvl%rholoc%msz, &
+                      rr1(1)=sqrt(r2)
+                      call paw_splint(at%pawtab(ityp)%wvl%rholoc%msz, &
                            & at%pawtab(ityp)%wvl%rholoc%rad, &
                            & at%pawtab(ityp)%wvl%rholoc%d(:,1), &
                            & at%pawtab(ityp)%wvl%rholoc%d(:,2), &
-                           & 1,rr,raux,ierr)
+                           & 1,rr1,raux1,ierr)
+                      raux=raux1(1)
                     else
                       !Take the HGH form for rho_L (long range)
                       arg=r2/rlocsq
@@ -920,7 +925,7 @@ subroutine createIonicPotential(geocode,iproc,nproc,verb,at,rxyz,&
                              !1) V_L^HGH
                              if(rr(1)>0.01d0) then
                                arg=rr(1)/(sqrt(2.0)*rloc)
-                               call derf_ab(tt,arg)
+                               call abi_derf_ab(tt,arg)
                                raux2=-charge/rr(1)*tt  
                              else
                                !In this case we deduce the values
@@ -928,12 +933,13 @@ subroutine createIonicPotential(geocode,iproc,nproc,verb,at,rxyz,&
                                call interpol_vloc(rr(1),rloc,charge,raux2)
                              end if
                              !2) V^PAW from splines
-                             call splint(at%pawtab(ityp)%wvl%rholoc%msz, &
+                             rr1(1)=rr
+                             call paw_splint(at%pawtab(ityp)%wvl%rholoc%msz, &
                                   & at%pawtab(ityp)%wvl%rholoc%rad, &
                                   & at%pawtab(ityp)%wvl%rholoc%d(:,3), &
                                   & at%pawtab(ityp)%wvl%rholoc%d(:,4), &
-                                  & 1,rr,raux,ierr)
-                             
+                                  & 1,rr1,raux1,ierr)
+                             raux=raux1(1)
                              ind=j1+indj23
                              pot_ion(ind)=pot_ion(ind)+raux(1)-raux2
                           end if
@@ -1078,6 +1084,7 @@ contains
   END SUBROUTINE interpol_vloc
 
   subroutine calcVloc(yy,xx,rloc,Z)
+   use abi_interfaces_numeric, only: abi_derf_ab
    implicit none
    INTEGER, PARAMETER   :: DP = KIND(1.0D0)          ! double precision
    real(dp),intent(in)  :: xx,rloc,Z
@@ -1085,7 +1092,7 @@ contains
    real(dp):: arg,tt
   
    arg=xx/(sqrt(2.0)*rloc)
-   call derf_ab(tt,arg)
+   call abi_derf_ab(tt,arg)
    yy=-Z/xx*tt
   
   
@@ -1144,6 +1151,7 @@ END SUBROUTINE ind_positions_new
 
 subroutine sum_erfcr(nat,ntypes,x,y,z,iatype,nelpsp,psppar,rxyz,potxyz)
   use module_base, pi => pi_param
+  use abi_interfaces_numeric, only: abi_derf_ab
   implicit none
   integer, intent(in) :: nat,ntypes
   real(gp) :: x,y,z
@@ -1174,7 +1182,7 @@ subroutine sum_erfcr(nat,ntypes,x,y,z,iatype,nelpsp,psppar,rxyz,potxyz)
      if (r == 0.0_gp) then
         potxyz = potxyz - charge*2.0_wp/(sqrt(pi)*real(sq2rl,wp))
      else
-        call derf_ab(derf_val,r/sq2rl)
+        call abi_derf_ab(derf_val,r/sq2rl)
         potxyz = potxyz - charge*real(derf_val/r,wp)
      end if
 

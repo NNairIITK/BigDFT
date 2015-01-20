@@ -1137,6 +1137,7 @@ subroutine gatom(rcov,rprb,lmax,lpx,noccmax,occup,&
       &   aeval,ng,psi,res,chrg,iorder)
    use module_base, only: gp,f_err_throw,BIGDFT_RUNTIME_ERROR,safe_exp
    use yaml_output, only: yaml_toa
+   use abi_interfaces_numeric, only: abi_derf_ab
    implicit none
    integer, parameter :: n_int=100
    !Arguments
@@ -1469,7 +1470,7 @@ subroutine gatom(rcov,rprb,lmax,lpx,noccmax,occup,&
          do i=0,ng
             d=xp(i)+xp(j)
             sd=sqrt(d)
-            call derf_ab(terf, sd*rcov) 
+            call abi_derf_ab(terf, sd*rcov) 
             texp=exp(-d*rcov**2)
 
             tt=0.4431134627263791_gp*terf/sd**3 - 0.5_gp*rcov*texp/d
@@ -1564,6 +1565,7 @@ subroutine resid(lmax,lpx,noccmax,rprb,xp,aeval,psi,rho,&
       &   ng,res,zion,alpz,alpl,gpot,pp1,pp2,pp3,alps,hsep,fact,n_int,&
       &   potgrd,xcgrd,noproj)
    use module_base, only: gp,safe_exp
+   use abi_interfaces_numeric, only: abi_derf_ab
    implicit real(gp) (a-h,o-z)
    logical :: noproj
    dimension psi(0:ng,noccmax,lmax+1),rho(0:ng,0:ng,lmax+1),&
@@ -1576,7 +1578,7 @@ subroutine resid(lmax,lpx,noccmax,rprb,xp,aeval,psi,rho,&
    dr=fact*rprb/real(n_int,gp)
    do k=1,n_int
       r=(real(k,gp)-.5_gp)*dr
-      call derf_ab(derf_val, r/(sqrt(2._gp)*alpz))
+      call abi_derf_ab(derf_val, r/(sqrt(2._gp)*alpz))
       potgrd(k)= .5_gp*(r/rprb**2)**2 - &
          &   zion*derf_val/r &
          &   + safe_exp(-.5_gp*(r/alpl)**2)*&
@@ -1588,7 +1590,7 @@ subroutine resid(lmax,lpx,noccmax,rprb,xp,aeval,psi,rho,&
             d=xp(i)+xp(j)
             sd=sqrt(d)
             tx=safe_exp(-d*r**2)
-            call derf_ab(tt, sd*r)
+            call abi_derf_ab(tt, sd*r)
             tt=spi*tt
             u_gp=tt/(4._gp*sd**3*r)
             potgrd(k)=potgrd(k)+u_gp*rho(i,j,1)

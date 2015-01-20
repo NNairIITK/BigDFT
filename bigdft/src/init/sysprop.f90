@@ -692,8 +692,9 @@ END SUBROUTINE psp_from_stream
 
 subroutine paw_from_file(pawrad, pawtab, filename, nzatom, nelpsp, ixc)
   use module_base
+  use abi_defs_basis, only: tol14, fnlen
   use m_pawpsp, only: pawpsp_main
-  use defs_basis, only: tol14, fnlen
+
   use m_pawrad, only: pawrad_type, pawrad_nullify
   use m_pawtab, only: pawtab_type, pawtab_nullify
   implicit none
@@ -719,7 +720,6 @@ subroutine paw_from_file(pawrad, pawtab, filename, nzatom, nelpsp, ixc)
 
   call pawrad_nullify(pawrad)
   call pawtab_nullify(pawtab)
-
   !These should be passed as arguments:
   !Defines the number of Gaussian functions for projectors
   !See ABINIT input files documentation

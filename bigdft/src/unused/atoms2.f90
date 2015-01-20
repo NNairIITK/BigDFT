@@ -204,7 +204,7 @@ END SUBROUTINE atomic_coordinate_axpy
 subroutine atoms_set_symmetries(atoms, rxyz, disableSym, tol, elecfield)
   use module_base
   use module_types
-  use defs_basis
+  use abi_defs_basis
   use m_ab6_symmetry
   implicit none
   type(atoms_data), intent(inout) :: atoms

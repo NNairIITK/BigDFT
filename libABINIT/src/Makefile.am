@@ -1,223 +1,162 @@
 ## Process this file with automake to produce Makefile.in
-if USE_MPI
-mpi_include =
-else
-mpi_include = mpif.h
-endif
-
-EXTRA_DIST = 72_geomoptim/isokinetic.F90 \
-	72_geomoptim/isotemp.F90 \
-	72_geomoptim/isothermal.F90 \
-	72_geomoptim/langevin.F90 \
-	72_geomoptim/moldyn.F90 \
-	72_geomoptim/nose.F90 \
-	72_geomoptim/others.F90 \
-	72_geomoptim/quenched.F90 \
-	72_geomoptim/velocity_verlet.F90 \
-	12_hide_mpi/xmpi_allgather.finc \
-	12_hide_mpi/xmpi_allgatherv.finc \
-	12_hide_mpi/xmpi_alltoall.finc \
-	12_hide_mpi/xmpi_alltoallv.finc \
-	12_hide_mpi/xmpi_bcast.finc \
-	12_hide_mpi/xmpi_exch.finc \
-	12_hide_mpi/xmpi_gather.finc \
-	12_hide_mpi/xmpi_gatherv.finc \
-	12_hide_mpi/xmpi_ialltoall.finc \
-	12_hide_mpi/xmpi_irecv.finc \
-	12_hide_mpi/xmpi_isend.finc \
-	12_hide_mpi/xmpi_max.finc \
-	12_hide_mpi/xmpi_min.finc \
-	12_hide_mpi/xmpi_recv.finc \
-	12_hide_mpi/xmpi_scatterv.finc \
-	12_hide_mpi/xmpi_send.finc \
-	12_hide_mpi/xmpi_sum.finc \
-	12_hide_mpi/xmpi_sum_master.finc \
-	42_geometry/symmetry-main.c \
-	42_geometry/symmetry.h \
-	incs/abi_common.h
 
 lib_LIBRARIES = libabinit.a
 
 module_DATA = $(modules)
 
-# Special treatment for libpaw
-# Deactivate temporarily some mandatory code sections
-LIBPAW_DEFS = -UHAVE_DFT_BIGDFT -UHAVE_DFT_LIBXC
+EXTRA_DIST = \
+	abi_geomoptim/abi_isokinetic.F90.inc \
+	abi_geomoptim/abi_isotemp.F90.inc \
+	abi_geomoptim/abi_isothermal.F90.inc \
+	abi_geomoptim/abi_langevin.F90.inc \
+	abi_geomoptim/abi_moldyn.F90.inc \
+	abi_geomoptim/abi_nose.F90.inc \
+	abi_geomoptim/abi_others.F90.inc \
+	abi_geomoptim/abi_quenched.F90.inc \
+	abi_geomoptim/abi_velocity_verlet.F90.inc \
+	abi_geomoptim/abi_xfpack.F90.inc \
+	symm/symmetry.h \
+	symm/symmetry.c \
+	symm/symmetry-main.c \
+	libpaw/libpaw.h
 
-# Force HAVE_MPI and HAVE_MPI1.
-# Don't use the HAVE_CONFIG_H
-MPI_DEFS = -DHAVE_MPI -DHAVE_MPI1
 
-DEFS = $(MPI_DEFS) $(LIBPAW_DEFS)
+## === libPAW section ===
+LIBPAW_DEFS =
+##Define libPAW src files
+include $(srcdir)/libpaw/libpaw.src
+libpaw_files_1 = $(LIBPAW_SRC_FILES:%.h=libpaw/%.h)
+libpaw_files = $(libpaw_files_1:%.F90=libpaw/%.F90)
+##Activate libPAW BigDFT sections
+LIBPAW_DEFS += -DHAVE_LIBPAW_BIGDFT
+##  Deactivate libXC libPAW code sections (for testing purpose)
+##  LIBPAW_DEFS += -UHAVE_DFT_LIBXC
+##  LIBXC_DEFS =
 
+## === MPI section ===
+mpi_include =
+MPI_DEFS =
+if USE_MPI
+##Force MPI level 1
+mpi_include += mpif.h
+MPI_DEFS += -DHAVE_MPI -DHAVE_MPI1
+endif
+
+## === Fortran compiler directives ===
+DEFS = $(LIBPAW_DEFS) $(MPI_DEFS)
 DEFS_1 = $(DEFS:-D%=@FCDEFS@-D%)
 DEFS_FORTRAN = $(DEFS_1:-U%=@FCDEFS@-U%)
 
-AM_FCFLAGS = @MPI_INCLUDE@ -I$(srcdir)/72_geomoptim -I$(srcdir)/incs
+AM_FCFLAGS = @MPI_INCLUDE@ -I$(srcdir)/abi_geomoptim -I$(srcdir)/incs
+	        -I$(top_builddir)/includes
 
-# Hack for XLF strange DEFS option.
+## Hack for XLF strange DEFS option
 PPFCCOMPILE = $(FC) $(DEFS_FORTRAN) $(DEFAULT_INCLUDES) $(INCLUDES) \
 	$(AM_CPPFLAGS) $(CPPFLAGS) $(AM_FCFLAGS) $(FCFLAGS)
 
-if BUILD_LIBPAW
-libpaw_files = \
-	42_libpaw/interfaces_42_libpaw.F90 \
-	42_libpaw/m_atompaw.F90 \
-	42_libpaw/m_gaussfit.F90 \
-	42_libpaw/m_paral_atom.F90 \
-	42_libpaw/m_paw_an.F90 \
-	42_libpaw/m_pawang.F90 \
-	42_libpaw/m_pawcprj.F90 \
-	42_libpaw/m_pawdij.F90 \
-	42_libpaw/m_pawfgrtab.F90 \
-	42_libpaw/m_paw_finegrid.F90 \
-	42_libpaw/m_paw_ij.F90 \
-	42_libpaw/m_pawio.F90 \
-	42_libpaw/m_paw_numeric.F90 \
-	42_libpaw/m_pawpsp.F90 \
-	42_libpaw/m_pawrad.F90 \
-	42_libpaw/m_pawrhoij.F90 \
-	42_libpaw/m_pawtab.F90 \
-	42_libpaw/m_pawxc.F90 \
-	42_libpaw/m_pawxmlps.F90 \
-	42_libpaw/m_sphharm.F90
-else
-libpaw_files =
-endif
-
+## === Source files ===
 libabinit_a_SOURCES = \
-	01_interfaces_ext/interfaces_linalg.F90 \
-	10_defs/defs_basis.F90 \
-	10_defs/defs_datatypes.F90 \
-	10_defs/defs_parameters.F90 \
-	12_hide_mpi/interfaces_12_hide_mpi.F90 \
-	12_hide_mpi/m_xmpi.F90 \
-	12_hide_mpi/m_xomp.F90 \
-	14_hidewrite/interfaces_14_hidewrite.F90 \
-	14_hidewrite/wrtout.F90 \
-	14_hidewrite/m_fstrings.F90 \
-	14_hidewrite/m_io_tools.F90 \
-	16_hideleave/interfaces_16_hideleave.F90 \
-	16_hideleave/leave_new.F90 \
-	16_hideleave/m_errors.F90 \
-	16_hideleave/m_xieee.F90 \
-	18_timing/interfaces_18_timing.F90 \
-	18_timing/timab.F90 \
-	18_memory/m_profiling.F90 \
-	28_numeric_noabirule/interfaces_28_numeric_noabirule.F90 \
-	28_numeric_noabirule/m_splines.F90 \
-	28_numeric_noabirule/sort_dp.F90 \
-	28_numeric_noabirule/sort_int.F90 \
-	28_numeric_noabirule/uniformrandom.F90 \
-	32_util/interfaces_32_util.F90 \
-	32_util/canon9.F90 \
-	32_util/derfc.F90 \
-	32_util/mati3inv.F90 \
-	32_util/matr3inv.F90 \
-	32_util/matrginv.F90 \
-	32_util/wrap2_pmhalf.F90 \
-	41_xc_lowlevel/interfaces_41_xc_lowlevel.F90 \
-	41_xc_lowlevel/drivexc.F90 \
-	41_xc_lowlevel/invcb.F90 \
-	41_xc_lowlevel/mkdenpos.F90 \
-	41_xc_lowlevel/m_libxc_functionals.F90 \
-	41_xc_lowlevel/size_dvxc.F90 \
-	41_xc_lowlevel/xchcth.F90 \
-	41_xc_lowlevel/xchelu.F90 \
-	41_xc_lowlevel/xclb.F90 \
-	41_xc_lowlevel/xcpbe.F90 \
-	41_xc_lowlevel/xcpzca.F90 \
-	41_xc_lowlevel/xcspol.F90 \
-	41_xc_lowlevel/xctetr.F90 \
-	41_xc_lowlevel/xcwign.F90 \
-	41_xc_lowlevel/xcxalp.F90 \
-	42_geometry/bldgrpaf.F90 \
-	42_geometry/bldgrp.F90 \
-	42_geometry/bonds_lgth_angles.F90 \
-	42_geometry/chkdilatmx.F90 \
-	42_geometry/chkgrp.F90 \
-	42_geometry/chkorthsy.F90 \
-	42_geometry/chkprimit.F90 \
-	42_geometry/gensymshub4.F90 \
-	42_geometry/gensymshub.F90 \
-	42_geometry/gensymspgr.F90 \
-	42_geometry/getptgroupma.F90 \
-	42_geometry/getspinrot.F90 \
-	42_geometry/gridgcart.F90 \
-	42_geometry/holocell.F90 \
-	42_geometry/m_ab6_symmetry.F90 \
-	42_geometry/metric.F90 \
-	42_geometry/mkrdim.F90 \
-	42_geometry/operat.F90 \
-	42_geometry/prtspgroup.F90 \
-	42_geometry/ptgmadata.F90 \
-	42_geometry/smallprim.F90 \
-	42_geometry/spgdata.F90 \
-	42_geometry/strainsym.F90 \
-	42_geometry/strconv.F90 \
-	42_geometry/stresssym.F90 \
-	42_geometry/sym2cart.F90 \
-	42_geometry/symanal.F90 \
-	42_geometry/symatm.F90 \
-	42_geometry/symaxes.F90 \
-	42_geometry/symbrav.F90 \
-	42_geometry/symchk.F90 \
-	42_geometry/symdet.F90 \
-	42_geometry/symfind.F90 \
-	42_geometry/symlatt.F90 \
-	42_geometry/symlist_bcc.F90 \
-	42_geometry/symlist_fcc.F90 \
-	42_geometry/symlist_others.F90 \
-	42_geometry/symlist_prim.F90 \
-	42_geometry/symmultsg.F90 \
-	42_geometry/symplanes.F90 \
-	42_geometry/symptgroup.F90 \
-	42_geometry/symredcart.F90 \
-	42_geometry/symrelrot.F90 \
-	42_geometry/symsgcube.F90 \
-	42_geometry/symsghexa.F90 \
-	42_geometry/symsgmono.F90 \
-	42_geometry/symsgortho.F90 \
-	42_geometry/symsgtetra.F90 \
-	42_geometry/symspgr.F90 \
-	42_geometry/symzat.F90 \
-	42_geometry/xredxcart.F90 \
-	42_geometry/interfaces_42_geometry.F90 \
+	abi_lowlevel/abi_defs_basis.F90 \
+	abi_lowlevel/abi_interfaces_lowlevel.F90 \
+	abi_lowlevel/abi_interfaces_linalg.F90 \
+	abi_lowlevel/m_abi_xmpi.F90 \
+	abi_lowlevel/abi_wrtout.F90 \
+	abi_lowlevel/abi_leave_new.F90 \
+	abi_numeric/abi_interfaces_numeric.F90 \
+	abi_numeric/abi_derfc.F90 \
+	abi_numeric/abi_sort_dp.F90 \
+	abi_numeric/abi_sort_int.F90 \
+	abi_numeric/abi_mati3inv.F90 \
+	abi_numeric/abi_matr3inv.F90 \
+	abi_numeric/abi_matrginv.F90 \
+	abi_numeric/abi_uniformrandom.F90 \
+	abi_numeric/abi_wrap2_pmhalf.F90 \
+	abi_xc_lowlevel/abi_interfaces_xc_lowlevel.F90 \
+	abi_xc_lowlevel/abi_drivexc.F90 \
+	abi_xc_lowlevel/abi_invcb.F90 \
+	abi_xc_lowlevel/abi_mkdenpos.F90 \
+	abi_xc_lowlevel/abi_size_dvxc.F90 \
+	abi_xc_lowlevel/abi_xchcth.F90 \
+	abi_xc_lowlevel/abi_xchelu.F90 \
+	abi_xc_lowlevel/abi_xclb.F90 \
+	abi_xc_lowlevel/abi_xcpbe.F90 \
+	abi_xc_lowlevel/abi_xcpzca.F90 \
+	abi_xc_lowlevel/abi_xcspol.F90 \
+	abi_xc_lowlevel/abi_xctetr.F90 \
+	abi_xc_lowlevel/abi_xcwign.F90 \
+	abi_xc_lowlevel/abi_xcxalp.F90 \
+	abi_geometry/abi_interfaces_geometry.F90 \
+	abi_geometry/abi_bldgrp.F90 \
+	abi_geometry/abi_bonds_lgth_angles.F90 \
+	abi_geometry/abi_chkgrp.F90 \
+	abi_geometry/abi_chkprimit.F90 \
+	abi_geometry/abi_getptgroupma.F90 \
+	abi_geometry/abi_holocell.F90 \
+	abi_geometry/abi_metric.F90 \
+	abi_geometry/abi_mkrdim.F90 \
+	abi_geometry/abi_ptgmadata.F90 \
+	abi_geometry/abi_smallprim.F90 \
+	abi_geometry/abi_spgdata.F90 \
+	abi_geometry/abi_strainsym.F90 \
+	abi_geometry/abi_strconv.F90 \
+	abi_geometry/abi_symanal.F90 \
+	abi_geometry/abi_symatm.F90 \
+	abi_geometry/abi_symaxes.F90 \
+	abi_geometry/abi_symbrav.F90 \
+	abi_geometry/abi_symchk.F90 \
+	abi_geometry/abi_symdet.F90 \
+	abi_geometry/abi_symfind.F90 \
+	abi_geometry/abi_symlatt.F90 \
+	abi_geometry/abi_symlist_bcc.F90 \
+	abi_geometry/abi_symlist_fcc.F90 \
+	abi_geometry/abi_symlist_others.F90 \
+	abi_geometry/abi_symlist_prim.F90 \
+	abi_geometry/abi_symplanes.F90 \
+	abi_geometry/abi_symptgroup.F90 \
+	abi_geometry/abi_symrelrot.F90 \
+	abi_geometry/abi_symsgcube.F90 \
+	abi_geometry/abi_symsghexa.F90 \
+	abi_geometry/abi_symsgmono.F90 \
+	abi_geometry/abi_symsgortho.F90 \
+	abi_geometry/abi_symsgtetra.F90 \
+	abi_geometry/abi_symspgr.F90 \
+	abi_geometry/abi_xredxcart.F90 \
+	abi_geometry/m_ab6_symmetry.F90 \
+	abi_mixing/abi_interfaces_mixing.F90 \
+	abi_mixing/abi_aprxdr.F90 \
+	abi_mixing/abi_dotprodm_v.F90 \
+	abi_mixing/abi_dotprodm_vn.F90 \
+	abi_mixing/abi_findminscf.F90 \
+	abi_mixing/abi_scfcge.F90 \
+	abi_mixing/abi_scfeig.F90 \
+	abi_mixing/abi_scfopt.F90 \
+	abi_mixing/abi_sqnormm_v.F90 \
+	abi_mixing/m_ab7_mixing.F90 \
+	abi_recipspace/abi_interfaces_recipspace.F90 \
+	abi_recipspace/abi_irrzg.F90 \
+	abi_recipspace/abi_getkgrid.F90 \
+	abi_recipspace/abi_smpbz.F90 \
+	abi_recipspace/abi_symkpt.F90 \
+	abi_recipspace/abi_testkgrid.F90 \
+	abi_recipspace/m_ab6_kpoints.F90 \
+	abi_common/abi_interfaces_common.F90 \
+	abi_common/abi_ewald.F90 \
+	abi_common/abi_ewald2.F90 \
+	abi_common/abi_fconv.F90 \
+	abi_common/abi_prtxvf.F90 \
+	abi_geomoptim/m_ab6_moldyn.F90 \
 	42_libpaw/pawinit.F90 \
 	42_libpaw/initrhoij.F90 \
-	50_abitypes_defs/defs_abitypes.F90 \
-	56_mixing/aprxdr.F90 \
-	56_mixing/dotprodm_v.F90 \
-	56_mixing/dotprodm_vn.F90 \
-	56_mixing/findminscf.F90 \
-	56_mixing/interfaces_56_mixing.F90 \
-	56_mixing/scfcge.F90 \
-	56_mixing/scfeig.F90 \
-	56_mixing/scfopt.F90 \
-	56_mixing/sqnormm_v.F90 \
-	56_recipspace/interfaces_56_recipspace.F90 \
-	56_recipspace/irrzg.F90 \
-	56_recipspace/m_ab6_kpoints.F90 \
-	56_recipspace/getkgrid.F90 \
-	56_recipspace/smpbz.F90 \
-	56_recipspace/symkpt.F90 \
-	56_recipspace/testkgrid.F90 \
-	67_common/ewald.F90 \
-	67_common/ewald2.F90 \
-	67_common/fconv.F90 \
-	67_common/prtxvf.F90 \
-	72_geomoptim/ab6_moldyn.F90 \
-	72_geomoptim/xfpack.F90 \
-	42_geometry/symmetry.c \
 	$(libpaw_files)
 
 CLEANFILES = mpif.h *.@MODULE_EXT@
 
 $(modules): $(libabinit_a_OBJECTS)
 
-#dependencies
+## === Dependencies ===
+## MPI
 mpif.h:
-	touch mpif.h &&\
+	@touch mpif.h &&\
 	 echo "integer, parameter :: MPI_SUM=1, MPI_COMM_WORLD=1" >> mpif.h &&\
 	 echo "integer, parameter :: MPI_COMM_NULL=1, MPI_COMM_SELF=1" >> mpif.h &&\
 	 echo "integer, parameter :: MPI_LOR=1, MPI_COMPLEX=1" >> mpif.h &&\

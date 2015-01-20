@@ -1661,6 +1661,7 @@ contains
     if (associated(paw%pawrhoij)) then
        call pawrhoij_destroy(paw%pawrhoij)
        deallocate(paw%pawrhoij)
+        cprj(ii,jj)%ncpgr=ncpgr
     end if
   end subroutine deallocate_paw_objects
 
