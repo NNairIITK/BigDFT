@@ -1359,6 +1359,7 @@ subroutine compress_polynomial_vector(iproc, nproc, nsize_polynomial, norb, norb
   ! Local variables
   integer :: isegstart, isegend, iseg, ii, jorb, iiorb, jjorb
 
+  call f_routine(id='compress_polynomial_vector')
 
   if (norbp>0) then
       isegstart = fermi%istsegline(fermi%smmm%isfvctr+1)
@@ -1381,6 +1382,9 @@ subroutine compress_polynomial_vector(iproc, nproc, nsize_polynomial, norb, norb
       !!$omp end do
       !!$omp end parallel
   end if
+
+  call f_release_routine()
+
 end subroutine compress_polynomial_vector
 
 
