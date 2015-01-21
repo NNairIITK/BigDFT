@@ -114,23 +114,22 @@
 !!
 !! SOURCE
 
-#if defined HAVE_CONFIG_H
-#include "config.h"
-#endif
-
-#include "abi_common.h"
+#include "../libpaw/libpaw.h"
 
 subroutine pawinit(gnt_option,gsqcut_eff,lcutdens,lmix,mpsang,nphi,nsym,ntheta,&
 &                  pawang,pawrad,pawspnorb,pawtab,pawxcdev,xclevel,usepotzero)
 
- use defs_basis
- use m_errors
- use m_profiling
- use m_splines
+ USE_DEFS
+ USE_MSG_HANDLING
+ USE_MEMORY_PROFILING
+ !use m_errors
+ !use m_profiling
+ !use m_splines
 
+ use m_paw_numeric, only: paw_spline
  use m_pawpsp, only: pawpsp_nl
- use m_atompaw, only: atompaw_shpfun
- use m_pawang, only : pawang_type, pawang_init, pawang_destroy
+ use m_paw_atom, only: atompaw_shpfun
+ use m_pawang, only : pawang_type, pawang_init, pawang_free
  use m_pawrad, only : pawrad_type, simp_gen, nderiv_gen, poisson
  use m_pawtab, only : pawtab_type
 
@@ -138,7 +137,6 @@ subroutine pawinit(gnt_option,gsqcut_eff,lcutdens,lmix,mpsang,nphi,nsym,ntheta,&
 !Do not modify the following lines by hand.
 #undef ABI_FUNC
 #define ABI_FUNC 'pawinit'
- use interfaces_18_timing
 !End of the abilint section
 
  implicit none
@@ -164,20 +162,17 @@ subroutine pawinit(gnt_option,gsqcut_eff,lcutdens,lmix,mpsang,nphi,nsym,ntheta,&
  character(len=500) :: message
 !arrays
  integer,allocatable :: indl(:,:),klm_diag(:),kmix_tmp(:)
- integer,ABI_CONTIGUOUS pointer :: indlmn(:,:)
+ integer, pointer :: indlmn(:,:)
  real(dp) :: tsec(2)
  real(dp),allocatable :: ff(:),gg(:),hh(:),indklmn_(:,:),intvhatl(:)
  real(dp),allocatable :: rad(:),rgl(:,:),vhatijl(:,:),vhatl(:),work(:)
 
 !************************************************************************
 
- DBG_ENTER("COLL")
-
- call timab(553,1,tsec)
-
  ntypat=size(pawtab)
  if (size(pawrad)/=ntypat) then
-   MSG_BUG('pawrad and pawtab should have the same size!')
+    write(message, "(A)") 'pawrad and pawtab should have the same size!'
+   MSG_BUG(message)
  end if
 
  ! Immediately set the value of usepotzero
@@ -192,7 +187,7 @@ subroutine pawinit(gnt_option,gsqcut_eff,lcutdens,lmix,mpsang,nphi,nsym,ntheta,&
 
  use_ylm=0;if (pawxcdev==0) use_ylm=1
  use_ls_ylm=0;if (pawspnorb>0) use_ls_ylm=1
- call pawang_destroy(pawang)
+ call pawang_free(pawang)
  call pawang_init(pawang,gnt_option,mpsang-1,nphi,nsym,ntheta,pawxcdev,use_ls_ylm,use_ylm,xclevel)
 
  usexcnhat=maxval(pawtab(1:ntypat)%usexcnhat)
@@ -208,12 +203,12 @@ subroutine pawinit(gnt_option,gsqcut_eff,lcutdens,lmix,mpsang,nphi,nsym,ntheta,&
    basis_size=pawtab(itypat)%basis_size
    ij_size=pawtab(itypat)%ij_size
    indlmn => pawtab(itypat)%indlmn(:,:)
-   ABI_ALLOCATE(indklmn_,(8,lmn2_size))
-   ABI_ALLOCATE(klm_diag,(lmn2_size))
-   ABI_ALLOCATE(ff,(mesh_size))
-   ABI_ALLOCATE(gg,(mesh_size))
-   ABI_ALLOCATE(hh,(mesh_size))
-   ABI_ALLOCATE(rad,(mesh_size))
+   LIBPAW_ALLOCATE(indklmn_,(8,lmn2_size))
+   LIBPAW_ALLOCATE(klm_diag,(lmn2_size))
+   LIBPAW_ALLOCATE(ff,(mesh_size))
+   LIBPAW_ALLOCATE(gg,(mesh_size))
+   LIBPAW_ALLOCATE(hh,(mesh_size))
+   LIBPAW_ALLOCATE(rad,(mesh_size))
    rad(1:mesh_size)=pawrad(itypat)%rad(1:mesh_size)
 
    if (pawtab(itypat)%usexcnhat/=usexcnhat) then
@@ -231,17 +226,17 @@ subroutine pawinit(gnt_option,gsqcut_eff,lcutdens,lmix,mpsang,nphi,nsym,ntheta,&
 !  Allocated shape function
    if (pawtab(itypat)%shape_type/=-1) then
      if (allocated(pawtab(itypat)%shapefunc))  then
-       ABI_DEALLOCATE(pawtab(itypat)%shapefunc)
+       LIBPAW_DEALLOCATE(pawtab(itypat)%shapefunc)
      end if
-     ABI_ALLOCATE(pawtab(itypat)%shapefunc,(mesh_size,l_size))
+     LIBPAW_ALLOCATE(pawtab(itypat)%shapefunc,(mesh_size,l_size))
    else if (.not.allocated(pawtab(itypat)%shapefunc))  then
      message='shapefunc should be allocated with shape_type=-1'
      MSG_ERROR(message)
    end if
    if (allocated(pawtab(itypat)%gnorm))  then
-     ABI_DEALLOCATE(pawtab(itypat)%gnorm)
+     LIBPAW_DEALLOCATE(pawtab(itypat)%gnorm)
    end if
-   ABI_ALLOCATE(pawtab(itypat)%gnorm,(l_size))
+   LIBPAW_ALLOCATE(pawtab(itypat)%gnorm,(l_size))
 
 !  Compute shape function
    do il=1,l_size
@@ -253,28 +248,28 @@ subroutine pawinit(gnt_option,gsqcut_eff,lcutdens,lmix,mpsang,nphi,nsym,ntheta,&
 !  In case of numerical shape function, compute some derivatives
    if (pawtab(itypat)%shape_type==-1) then
      if (allocated(pawtab(itypat)%dshpfunc))  then
-       ABI_DEALLOCATE(pawtab(itypat)%dshpfunc)
+       LIBPAW_DEALLOCATE(pawtab(itypat)%dshpfunc)
      end if
-     ABI_ALLOCATE(pawtab(itypat)%dshpfunc,(mesh_size,l_size,4))
-     ABI_ALLOCATE(work,(mesh_size))
+     LIBPAW_ALLOCATE(pawtab(itypat)%dshpfunc,(mesh_size,l_size,4))
+     LIBPAW_ALLOCATE(work,(mesh_size))
      do il=1,l_size
        call nderiv_gen(pawtab(itypat)%dshpfunc(:,il,1),pawtab(itypat)%shapefunc(:,il),1,pawrad(itypat))
        yp1=pawtab(itypat)%dshpfunc(1,il,1);ypn=pawtab(itypat)%dshpfunc(mesh_size,il,1)
-       call spline(rad,pawtab(itypat)%shapefunc(:,il),mesh_size,yp1,ypn,pawtab(itypat)%dshpfunc(:,il,2))
+       call paw_spline(rad,pawtab(itypat)%shapefunc(:,il),mesh_size,yp1,ypn,pawtab(itypat)%dshpfunc(:,il,2))
        yp1=pawtab(itypat)%dshpfunc(1,il,2);ypn=pawtab(itypat)%dshpfunc(mesh_size,il,2)
-       call spline(rad,pawtab(itypat)%dshpfunc(:,il,1),mesh_size,yp1,ypn,pawtab(itypat)%dshpfunc(:,il,3))
+       call paw_spline(rad,pawtab(itypat)%dshpfunc(:,il,1),mesh_size,yp1,ypn,pawtab(itypat)%dshpfunc(:,il,3))
        yp1=pawtab(itypat)%dshpfunc(1,il,3);ypn=pawtab(itypat)%dshpfunc(mesh_size,il,3)
-       call spline(rad,pawtab(itypat)%dshpfunc(:,il,2),mesh_size,yp1,ypn,pawtab(itypat)%dshpfunc(:,il,4))
+       call paw_spline(rad,pawtab(itypat)%dshpfunc(:,il,2),mesh_size,yp1,ypn,pawtab(itypat)%dshpfunc(:,il,4))
      end do
-     ABI_DEALLOCATE(work)
+     LIBPAW_DEALLOCATE(work)
    end if
 
 !  In some cases, has to store radial mesh for shape function in pawtab variable
    if (pawtab(itypat)%shape_type==-1) then
      if (allocated(pawtab(itypat)%rad_for_spline))  then
-       ABI_DEALLOCATE(pawtab(itypat)%rad_for_spline)
+       LIBPAW_DEALLOCATE(pawtab(itypat)%rad_for_spline)
      end if
-     ABI_ALLOCATE(pawtab(itypat)%rad_for_spline,(mesh_size))
+     LIBPAW_ALLOCATE(pawtab(itypat)%rad_for_spline,(mesh_size))
      pawtab(itypat)%rad_for_spline(1:mesh_size)=pawrad(itypat)%rad(1:mesh_size)
    end if
 
@@ -286,19 +281,19 @@ subroutine pawinit(gnt_option,gsqcut_eff,lcutdens,lmix,mpsang,nphi,nsym,ntheta,&
      end if
      pawtab(itypat)%mqgrid_shp=mqgrid_shp_default
      if (allocated(pawtab(itypat)%shapefncg))  then
-       ABI_DEALLOCATE(pawtab(itypat)%shapefncg)
+       LIBPAW_DEALLOCATE(pawtab(itypat)%shapefncg)
      end if
      if (allocated(pawtab(itypat)%qgrid_shp))  then
-       ABI_DEALLOCATE(pawtab(itypat)%qgrid_shp)
+       LIBPAW_DEALLOCATE(pawtab(itypat)%qgrid_shp)
      end if
-     ABI_ALLOCATE(pawtab(itypat)%shapefncg,(pawtab(itypat)%mqgrid_shp,2,l_size))
-     ABI_ALLOCATE(pawtab(itypat)%qgrid_shp,(pawtab(itypat)%mqgrid_shp))
+     LIBPAW_ALLOCATE(pawtab(itypat)%shapefncg,(pawtab(itypat)%mqgrid_shp,2,l_size))
+     LIBPAW_ALLOCATE(pawtab(itypat)%qgrid_shp,(pawtab(itypat)%mqgrid_shp))
      dq=1.1_dp*sqrt(gsqcut_eff)/dble(pawtab(itypat)%mqgrid_shp-1)
      do iq=1,pawtab(itypat)%mqgrid_shp
        pawtab(itypat)%qgrid_shp(iq)=dble(iq-1)*dq
      end do
-     ABI_ALLOCATE(indl,(6,l_size))
-     ABI_ALLOCATE(rgl,(mesh_size,il))
+     LIBPAW_ALLOCATE(indl,(6,l_size))
+     LIBPAW_ALLOCATE(rgl,(mesh_size,il))
      do il=1,l_size
        indl(:,il)=0;indl(1,il)=il-1;indl(5,il)=il
        rgl(1:mesh_size,il)=rad(1:mesh_size)*pawtab(itypat)%shapefunc(1:mesh_size,il)
@@ -306,8 +301,8 @@ subroutine pawinit(gnt_option,gsqcut_eff,lcutdens,lmix,mpsang,nphi,nsym,ntheta,&
      call pawpsp_nl(pawtab(itypat)%shapefncg,indl,l_size,l_size,&
 &     pawtab(itypat)%mqgrid_shp,pawtab(itypat)%qgrid_shp,pawrad(itypat),rgl)
      pawtab(itypat)%shapefncg=four_pi*pawtab(itypat)%shapefncg
-     ABI_DEALLOCATE(indl)
-     ABI_DEALLOCATE(rgl)
+     LIBPAW_DEALLOCATE(indl)
+     LIBPAW_DEALLOCATE(rgl)
    else
      pawtab(itypat)%mqgrid_shp=0
    end if
@@ -317,9 +312,9 @@ subroutine pawinit(gnt_option,gsqcut_eff,lcutdens,lmix,mpsang,nphi,nsym,ntheta,&
 !  for each klmn=(ilmn,jlmn)
 
    if (allocated(pawtab(itypat)%indklmn))  then
-     ABI_DEALLOCATE(pawtab(itypat)%indklmn)
+     LIBPAW_DEALLOCATE(pawtab(itypat)%indklmn)
    end if
-   ABI_ALLOCATE(pawtab(itypat)%indklmn,(8,lmn2_size))
+   LIBPAW_ALLOCATE(pawtab(itypat)%indklmn,(8,lmn2_size))
 
    klm_diag=0
    do jlmn=1,lmn_size
@@ -359,16 +354,16 @@ subroutine pawinit(gnt_option,gsqcut_eff,lcutdens,lmix,mpsang,nphi,nsym,ntheta,&
    pawtab(itypat)%lcut_size=min(l_size,lcutdens+1)
 
    if (allocated(pawtab(itypat)%dltij))  then
-     ABI_DEALLOCATE(pawtab(itypat)%dltij)
+     LIBPAW_DEALLOCATE(pawtab(itypat)%dltij)
    end if
-   ABI_ALLOCATE(pawtab(itypat)%dltij,(lmn2_size))
+   LIBPAW_ALLOCATE(pawtab(itypat)%dltij,(lmn2_size))
    pawtab(itypat)%dltij(:)=two
    do ilmn=1,lmn_size
      pawtab(itypat)%dltij(ilmn*(ilmn+1)/2)=one
    end do
 
    lmnmix=zero
-   ABI_ALLOCATE(kmix_tmp,(lmn2_size))
+   LIBPAW_ALLOCATE(kmix_tmp,(lmn2_size))
    do jlmn=1,lmn_size
      jl=indlmn(1,jlmn)
      if (jl<=lmix) then
@@ -383,25 +378,25 @@ subroutine pawinit(gnt_option,gsqcut_eff,lcutdens,lmix,mpsang,nphi,nsym,ntheta,&
      end if
    end do
    if (allocated(pawtab(itypat)%kmix))  then
-     ABI_DEALLOCATE(pawtab(itypat)%kmix)
+     LIBPAW_DEALLOCATE(pawtab(itypat)%kmix)
    end if
-   ABI_ALLOCATE(pawtab(itypat)%kmix,(lmnmix))
+   LIBPAW_ALLOCATE(pawtab(itypat)%kmix,(lmnmix))
    pawtab(itypat)%lmnmix_sz=lmnmix
    pawtab(itypat)%kmix(1:lmnmix)=kmix_tmp(1:lmnmix)
-   ABI_DEALLOCATE(kmix_tmp)
+   LIBPAW_DEALLOCATE(kmix_tmp)
 
 !  ==================================================
 !  5- COMPUTE Qijl TERMS AND Sij MATRIX
 
 !  Store some usefull quantities
    if (allocated(pawtab(itypat)%phiphj))  then
-     ABI_DEALLOCATE(pawtab(itypat)%phiphj)
+     LIBPAW_DEALLOCATE(pawtab(itypat)%phiphj)
    end if
    if (allocated(pawtab(itypat)%tphitphj))  then
-     ABI_DEALLOCATE(pawtab(itypat)%tphitphj)
+     LIBPAW_DEALLOCATE(pawtab(itypat)%tphitphj)
    end if
-   ABI_ALLOCATE(pawtab(itypat)%phiphj,(mesh_size,ij_size))
-   ABI_ALLOCATE(pawtab(itypat)%tphitphj,(mesh_size,ij_size))
+   LIBPAW_ALLOCATE(pawtab(itypat)%phiphj,(mesh_size,ij_size))
+   LIBPAW_ALLOCATE(pawtab(itypat)%tphitphj,(mesh_size,ij_size))
    do jln=1,basis_size
      j0ln=jln*(jln-1)/2
      do iln=1,jln
@@ -415,13 +410,13 @@ subroutine pawinit(gnt_option,gsqcut_eff,lcutdens,lmix,mpsang,nphi,nsym,ntheta,&
 
 !  Compute q_ijL and S_ij=q_ij0
    if (allocated(pawtab(itypat)%qijl))  then
-     ABI_DEALLOCATE(pawtab(itypat)%qijl)
+     LIBPAW_DEALLOCATE(pawtab(itypat)%qijl)
    end if
    if (allocated(pawtab(itypat)%sij))  then
-     ABI_DEALLOCATE(pawtab(itypat)%sij)
+     LIBPAW_DEALLOCATE(pawtab(itypat)%sij)
    end if
-   ABI_ALLOCATE(pawtab(itypat)%qijl,(l_size*l_size,lmn2_size))
-   ABI_ALLOCATE(pawtab(itypat)%sij,(lmn2_size))
+   LIBPAW_ALLOCATE(pawtab(itypat)%qijl,(l_size*l_size,lmn2_size))
+   LIBPAW_ALLOCATE(pawtab(itypat)%sij,(lmn2_size))
    pawtab(itypat)%qijl=zero
    pawtab(itypat)%sij=zero
    do klmn=1,lmn2_size
@@ -446,18 +441,18 @@ subroutine pawinit(gnt_option,gsqcut_eff,lcutdens,lmix,mpsang,nphi,nsym,ntheta,&
 !  6- COMPUTE Eijkl TERMS
 
    if (allocated(pawtab(itypat)%eijkl))  then
-     ABI_DEALLOCATE(pawtab(itypat)%eijkl)
+     LIBPAW_DEALLOCATE(pawtab(itypat)%eijkl)
    end if
-   ABI_ALLOCATE(pawtab(itypat)%eijkl,(lmn2_size,lmn2_size))
+   LIBPAW_ALLOCATE(pawtab(itypat)%eijkl,(lmn2_size,lmn2_size))
 
 !  Compute:
 !  vhatL(r) according to eq. (A14) in Holzwarth et al., PRB 55, 2005 (1997)
 !  intvhatL=$\int_{0}^{r_c}{vhatL(r) shapefunc_L(r) r^2\,dr}$
 !  vhatijL =$\int_{0}^{r_c}{vhatL(r) \tilde{\phi}_i \tilde{\phi}_j \,dr}$
 !  -----------------------------------------------------------------
-   ABI_ALLOCATE(vhatl,(mesh_size))
-   ABI_ALLOCATE(vhatijl,(lmn2_size,l_size))
-   ABI_ALLOCATE(intvhatl,(l_size))
+   LIBPAW_ALLOCATE(vhatl,(mesh_size))
+   LIBPAW_ALLOCATE(vhatijl,(lmn2_size,l_size))
+   LIBPAW_ALLOCATE(intvhatl,(l_size))
    intvhatl(:)=zero;vhatl(:)=zero;vhatijl(:,:)=zero
    do il=1,l_size
      vhatl(1)=zero;ff(1)=zero
@@ -472,7 +467,7 @@ subroutine pawinit(gnt_option,gsqcut_eff,lcutdens,lmix,mpsang,nphi,nsym,ntheta,&
        call simp_gen(vhatijl(klmn,il),hh,pawrad(itypat))
      end do
    end do
-   ABI_DEALLOCATE(vhatl)
+   LIBPAW_DEALLOCATE(vhatl)
 
 !  Compute:
 !  eijkl=$ vh1_ijkl - Vhatijkl - Bijkl - Cijkl$
@@ -526,19 +521,19 @@ subroutine pawinit(gnt_option,gsqcut_eff,lcutdens,lmix,mpsang,nphi,nsym,ntheta,&
        end do
      end do
    end do
-   ABI_DEALLOCATE(vhatijl)
-   ABI_DEALLOCATE(intvhatl)
+   LIBPAW_DEALLOCATE(vhatijl)
+   LIBPAW_DEALLOCATE(intvhatl)
 !  ==================================================
 !  7- COMPUTE gamma_ij TERMS
 !  corrections to get the background right
 
    if (pawtab(itypat)%usepotzero==1) then 
      if (allocated(pawtab(itypat)%gammaij))  then
-       ABI_DEALLOCATE(pawtab(itypat)%gammaij)
+       LIBPAW_DEALLOCATE(pawtab(itypat)%gammaij)
      end if
-     ABI_ALLOCATE(pawtab(itypat)%gammaij,(lmn2_size))
+     LIBPAW_ALLOCATE(pawtab(itypat)%gammaij,(lmn2_size))
 
-     ABI_ALLOCATE(work,(mesh_size))
+     LIBPAW_ALLOCATE(work,(mesh_size))
      do klmn=1,lmn2_size
        if (klm_diag(klmn)==1) then
          kln=indklmn_(2,klmn)
@@ -565,24 +560,20 @@ subroutine pawinit(gnt_option,gsqcut_eff,lcutdens,lmix,mpsang,nphi,nsym,ntheta,&
          pawtab(itypat)%gammaij(klmn)=zero
        end if
      end do
-     ABI_DEALLOCATE(work)
+     LIBPAW_DEALLOCATE(work)
    end if
 
 
 !  ***********************
 !  End Loop on atom types
 !  ***********************
-   ABI_DEALLOCATE(ff)
-   ABI_DEALLOCATE(gg)
-   ABI_DEALLOCATE(hh)
-   ABI_DEALLOCATE(indklmn_)
-   ABI_DEALLOCATE(klm_diag)
-   ABI_DEALLOCATE(rad)
+   LIBPAW_DEALLOCATE(ff)
+   LIBPAW_DEALLOCATE(gg)
+   LIBPAW_DEALLOCATE(hh)
+   LIBPAW_DEALLOCATE(indklmn_)
+   LIBPAW_DEALLOCATE(klm_diag)
+   LIBPAW_DEALLOCATE(rad)
  end do
-
- call timab(553,2,tsec)
-
- DBG_EXIT("COLL")
 
 end subroutine pawinit
 !!***

@@ -50,20 +50,16 @@
 !!
 !! SOURCE
 
-#if defined HAVE_CONFIG_H
-#include "config.h"
-#endif
-
-#include "abi_common.h"
+#include "../libpaw/libpaw.h"
 
 subroutine initrhoij(cplex,lexexch,lpawu,my_natom,natom,&
 &                    nspden,nspinor,nsppol,ntypat,pawrhoij,pawspnorb,pawtab,spinat,typat,&
 &                    ngrhoij,nlmnmix,use_rhoij_,use_rhoijres,& ! optional arguments
 &                    mpi_atmtab,mpi_comm_atom) ! optional arguments (parallelism)
 
- use defs_basis
- use m_profiling
- use m_errors
+ USE_DEFS
+ USE_MSG_HANDLING
+ USE_MEMORY_PROFILING
 
  use m_pawtab,      only : pawtab_type
  use m_pawrhoij,    only : pawrhoij_type, pawrhoij_alloc
@@ -102,8 +98,6 @@ subroutine initrhoij(cplex,lexexch,lpawu,my_natom,natom,&
 
 !************************************************************************
 
- DBG_ENTER("COLL")
-
 !PAW+U and local exact-exchange restriction
  do itypat=1,ntypat
    if (lpawu(itypat)/=lexexch(itypat).and. lpawu(itypat)/=-1.and.lexexch(itypat)/=-1) then
@@ -128,7 +122,7 @@ subroutine initrhoij(cplex,lexexch,lpawu,my_natom,natom,&
    if (paral_atom) then
      call pawrhoij_alloc(pawrhoij,cplex,nspden_rhoij,nspinor,nsppol,typat,&
 &     ngrhoij=ngrhoij0,nlmnmix=nlmnmix0,use_rhoij_=use_rhoij_0,use_rhoijres=use_rhoijres0,&
-&     pawtab=pawtab,mpi_comm_atom=mpi_comm_atom,mpi_atmtab=my_atmtab)
+&     pawtab=pawtab,comm_atom=mpi_comm_atom,mpi_atmtab=my_atmtab)
    else
      call pawrhoij_alloc(pawrhoij,cplex,nspden_rhoij,nspinor,nsppol,typat,pawtab=pawtab,&
 &     ngrhoij=ngrhoij0,nlmnmix=nlmnmix0,use_rhoij_=use_rhoij_0,use_rhoijres=use_rhoijres0)
@@ -221,8 +215,6 @@ subroutine initrhoij(cplex,lexexch,lpawu,my_natom,natom,&
 
 !Destroy atom table used for parallelism
  call free_my_atmtab(my_atmtab,my_atmtab_allocated)
-
- DBG_EXIT("COLL")
 
 end subroutine initrhoij
 !!***
