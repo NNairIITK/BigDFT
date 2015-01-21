@@ -1152,6 +1152,8 @@ subroutine copy_sparse_matrix_matrix_multiplication(smmm_in, smmm_out)
   smmm_out%istartend_mm_dj(1:2) = smmm_in%istartend_mm_dj(1:2)
 
   call allocate_and_copy(smmm_in%ivectorindex, smmm_out%ivectorindex, id='smmm_out%ivectorindex')
+  call allocate_and_copy(smmm_in%ivectorindex_contiguous, smmm_out%ivectorindex_contiguous, &
+       id='smmm_out%ivectorindex_contiguous')
   call allocate_and_copy(smmm_in%nsegline, smmm_out%nsegline, id='smmm_out%segline')
   call allocate_and_copy(smmm_in%istsegline, smmm_out%istsegline, id='smmm_out%stsegline')
   call allocate_and_copy(smmm_in%indices_extract_sequential, smmm_out%indices_extract_sequential, &

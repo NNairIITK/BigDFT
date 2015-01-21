@@ -1179,16 +1179,16 @@ module sparsematrix
    
      !Local variables
      !character(len=*), parameter :: subname='sparsemm'
-     integer :: i,jorb,jjorb,m,mp1
+     integer :: i,jorb,jjorb,m,mp1,ist,iend, icontiguous, j
      integer :: iorb, ii, ilen, jjorb0, jjorb1, jjorb2, jjorb3, jjorb4, jjorb5, jjorb6, iout
-     real(kind=8) :: tt0, tt1, tt2, tt3, tt4, tt5, tt6
+     real(kind=8) :: tt0, tt1, tt2, tt3, tt4, tt5, tt6, tt7
    
      call f_routine(id='sparsemm')
      call timing(bigdft_mpi%iproc, 'sparse_matmul ', 'IR')
 
    
-     !$omp parallel default(private) shared(smat, a_seq, b, c)
-     !$omp do
+     !!$omp parallel default(private) shared(smat, a_seq, b, c)
+     !!$omp do
      do iout=1,smat%smmm%nout
          i=smat%smmm%onedimindices(1,iout)
          iorb=smat%smmm%onedimindices(2,iout)
@@ -1201,49 +1201,143 @@ module sparsematrix
          tt4=0.d0
          tt5=0.d0
          tt6=0.d0
-   
-         m=mod(ilen,7)
-         if (m/=0) then
-             do jorb=1,m
-                jjorb=smat%smmm%ivectorindex(ii)
-                tt0 = tt0 + b(jjorb,i)*a_seq(ii)
-                ii=ii+1
-             end do
-         end if
-         mp1=m+1
-         do jorb=mp1,ilen,7
-   
-            jjorb0=smat%smmm%ivectorindex(ii+0)
-            tt0 = tt0 + b(jjorb0,i)*a_seq(ii+0)
-   
-            jjorb1=smat%smmm%ivectorindex(ii+1)
-            tt1 = tt1 + b(jjorb1,i)*a_seq(ii+1)
-   
-            jjorb2=smat%smmm%ivectorindex(ii+2)
-            tt2 = tt2 + b(jjorb2,i)*a_seq(ii+2)
-   
-            jjorb3=smat%smmm%ivectorindex(ii+3)
-            tt3 = tt3 + b(jjorb3,i)*a_seq(ii+3)
-   
-            jjorb4=smat%smmm%ivectorindex(ii+4)
-            tt4 = tt4 + b(jjorb4,i)*a_seq(ii+4)
-   
-            jjorb5=smat%smmm%ivectorindex(ii+5)
-            tt5 = tt5 + b(jjorb5,i)*a_seq(ii+5)
-   
-            jjorb6=smat%smmm%ivectorindex(ii+6)
-            tt6 = tt6 + b(jjorb6,i)*a_seq(ii+6)
-   
-            ii=ii+7
+         tt7=0.d0
+
+         iend=ii+ilen-1
+
+         !jorb=ii
+         !do while (jorb<=iend)
+         !    jjorb=smat%smmm%ivectorindex(jorb)
+         !    icontiguous = smat%smmm%ivectorindex_contiguous(jorb)
+         !    do j=0,icontiguous-1
+         !        tt0 = tt0 + b(jjorb+j,i)*a_seq(jorb+j)
+         !    end do
+         !    jorb = jorb + icontiguous
+         !end do
+
+         do jorb=ii,iend
+            jjorb=smat%smmm%ivectorindex(jorb)
+            tt0 = tt0 + b(jjorb,i)*a_seq(jorb)
          end do
-         c(iorb,i) = tt0 + tt1 + tt2 + tt3 + tt4 + tt5 + tt6
+
+         !    if (smat%smmm%ivectorindex_contiguous(jorb)>8) write(*,*) smat%smmm%ivectorindex_contiguous(jorb)
+         !    select case (smat%smmm%ivectorindex_contiguous(jorb))
+         !    case(1)
+         !       tt0 = tt0 + b(jjorb,i)*a_seq(jorb)
+         !       jorb = jorb + 1
+         !   case(2)
+         !       tt0 = tt0 + b(jjorb+0,i)*a_seq(jorb+0)
+         !       tt1 = tt1 + b(jjorb+1,i)*a_seq(jorb+1)
+         !       jorb = jorb + 2
+         !   case(3)
+         !       tt0 = tt0 + b(jjorb+0,i)*a_seq(jorb+0)
+         !       tt1 = tt1 + b(jjorb+1,i)*a_seq(jorb+1)
+         !       tt2 = tt2 + b(jjorb+2,i)*a_seq(jorb+2)
+         !       jorb = jorb + 3
+         !   case(4)
+         !       tt0 = tt0 + b(jjorb+0,i)*a_seq(jorb+0)
+         !       tt1 = tt1 + b(jjorb+1,i)*a_seq(jorb+1)
+         !       tt2 = tt2 + b(jjorb+2,i)*a_seq(jorb+2)
+         !       tt3 = tt3 + b(jjorb+3,i)*a_seq(jorb+3)
+         !       jorb = jorb + 4
+         !   case(5)
+         !       tt0 = tt0 + b(jjorb+0,i)*a_seq(jorb+0)
+         !       tt1 = tt1 + b(jjorb+1,i)*a_seq(jorb+1)
+         !       tt2 = tt2 + b(jjorb+2,i)*a_seq(jorb+2)
+         !       tt3 = tt3 + b(jjorb+3,i)*a_seq(jorb+3)
+         !       tt4 = tt4 + b(jjorb+4,i)*a_seq(jorb+4)
+         !       jorb = jorb + 5
+         !   case(6)
+         !       tt0 = tt0 + b(jjorb+0,i)*a_seq(jorb+0)
+         !       tt1 = tt1 + b(jjorb+1,i)*a_seq(jorb+1)
+         !       tt2 = tt2 + b(jjorb+2,i)*a_seq(jorb+2)
+         !       tt3 = tt3 + b(jjorb+3,i)*a_seq(jorb+3)
+         !       tt4 = tt4 + b(jjorb+4,i)*a_seq(jorb+4)
+         !       tt5 = tt5 + b(jjorb+5,i)*a_seq(jorb+5)
+         !       jorb = jorb + 6
+         !   case(7)
+         !       tt0 = tt0 + b(jjorb+0,i)*a_seq(jorb+0)
+         !       tt1 = tt1 + b(jjorb+1,i)*a_seq(jorb+1)
+         !       tt2 = tt2 + b(jjorb+2,i)*a_seq(jorb+2)
+         !       tt3 = tt3 + b(jjorb+3,i)*a_seq(jorb+3)
+         !       tt4 = tt4 + b(jjorb+4,i)*a_seq(jorb+4)
+         !       tt5 = tt5 + b(jjorb+5,i)*a_seq(jorb+5)
+         !       tt6 = tt6 + b(jjorb+6,i)*a_seq(jorb+6)
+         !       jorb = jorb + 7
+         !   case default
+         !       tt0 = tt0 + b(jjorb+0,i)*a_seq(jorb+0)
+         !       tt1 = tt1 + b(jjorb+1,i)*a_seq(jorb+1)
+         !       tt2 = tt2 + b(jjorb+2,i)*a_seq(jorb+2)
+         !       tt3 = tt3 + b(jjorb+3,i)*a_seq(jorb+3)
+         !       tt4 = tt4 + b(jjorb+4,i)*a_seq(jorb+4)
+         !       tt5 = tt5 + b(jjorb+5,i)*a_seq(jorb+5)
+         !       tt6 = tt6 + b(jjorb+6,i)*a_seq(jorb+6)
+         !       tt7 = tt7 + b(jjorb+7,i)*a_seq(jorb+7)
+         !       jorb = jorb + 8
+         !   end  select
+         !end do
+
+   
+    !     !m=mod(ilen,7)
+    !     !if (m/=0) then
+    !         !do jorb=1,m
+    !         do jorb=ii,iend
+    !            jjorb=smat%smmm%ivectorindex(jorb)
+    !     !write(*,*) 'nout, ilen, jjorb', smat%smmm%nout, ilen, jjorb
+    !            tt0 = tt0 + b(jjorb,i)*a_seq(jorb)
+    !            !ii=ii+1
+    !         end do
+         !end if
+         !mp1=m+1
+         !do jorb=mp1,ilen,7
+   
+         !   jjorb0=smat%smmm%ivectorindex(ii+0)
+         !   tt0 = tt0 + b(jjorb0,i)*a_seq(ii+0)
+   
+         !   jjorb1=smat%smmm%ivectorindex(ii+1)
+         !   tt1 = tt1 + b(jjorb1,i)*a_seq(ii+1)
+   
+         !   jjorb2=smat%smmm%ivectorindex(ii+2)
+         !   tt2 = tt2 + b(jjorb2,i)*a_seq(ii+2)
+   
+         !   jjorb3=smat%smmm%ivectorindex(ii+3)
+         !   tt3 = tt3 + b(jjorb3,i)*a_seq(ii+3)
+   
+         !   jjorb4=smat%smmm%ivectorindex(ii+4)
+         !   tt4 = tt4 + b(jjorb4,i)*a_seq(ii+4)
+   
+         !   jjorb5=smat%smmm%ivectorindex(ii+5)
+         !   tt5 = tt5 + b(jjorb5,i)*a_seq(ii+5)
+   
+         !   jjorb6=smat%smmm%ivectorindex(ii+6)
+         !   tt6 = tt6 + b(jjorb6,i)*a_seq(ii+6)
+   
+         !   ii=ii+7
+         !end do
+         c(iorb,i) = tt0 + tt1 + tt2 + tt3 + tt4 + tt5 + tt6 + tt7
      end do 
-     !$omp end do
-     !$omp end parallel
+     !!$omp end do
+     !!$omp end parallel
 
    
      call timing(bigdft_mpi%iproc, 'sparse_matmul ', 'RS')
      call f_release_routine()
+
+     contains
+       function get_contiguous(ii) result(gc)
+         integer,intent(in) :: ii
+         integer :: gc
+         gc = 1
+         if (smat%smmm%ivectorindex(min(ii+1,size(smat%smmm%ivectorindex)))==smat%smmm%ivectorindex(ii)+1) then
+             gc = gc + 1
+         end if
+         if (smat%smmm%ivectorindex(min(ii+2,size(smat%smmm%ivectorindex)))==smat%smmm%ivectorindex(ii)+2) then
+             gc = gc + 1
+         end if
+         if (smat%smmm%ivectorindex(min(ii+3,size(smat%smmm%ivectorindex)))==smat%smmm%ivectorindex(ii)+3) then
+             gc = gc + 1
+         end if
+       end function get_contiguous
        
    end subroutine sparsemm
 

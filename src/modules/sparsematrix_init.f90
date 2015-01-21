@@ -436,6 +436,8 @@ contains
       call f_free(nseq_per_line)
 
       call allocate_sparse_matrix_matrix_multiplication(nproc, norb, nseg, nsegline, istsegline, sparsemat%smmm)
+      write(*,*) 'size(sparsemat%smmm%ivectorindex)',size(sparsemat%smmm%ivectorindex)
+      write(*,*) 'size(sparsemat%smmm%ivectorindex_contiguous)',size(sparsemat%smmm%ivectorindex_contiguous)
 
 
       ! Calculate some auxiliary variables
@@ -456,9 +458,13 @@ contains
       call init_onedimindices_new(norb, norb_par_ideal(iproc), isorb_par_ideal(iproc), nseg, &
            nsegline, istsegline, keyg, &
            sparsemat, sparsemat%smmm%nout, sparsemat%smmm%onedimindices)
+       write(*,*) 'associated(sparsemat%smmm%ivectorindex_contiguous)', &
+           associated(sparsemat%smmm%ivectorindex_contiguous)
+       write(*,*) 'size(sparsemat%smmm%ivectorindex_contiguous)', &
+           size(sparsemat%smmm%ivectorindex_contiguous)
       call get_arrays_for_sequential_acces(norb, norb_par_ideal(iproc), isorb_par_ideal(iproc), nseg, &
            nsegline, istsegline, keyg, sparsemat, &
-           sparsemat%smmm%nseq, sparsemat%smmm%ivectorindex)
+           sparsemat%smmm%nseq, sparsemat%smmm%ivectorindex, sparsemat%smmm%ivectorindex_contiguous)
       call init_sequential_acces_matrix(norb, norb_par_ideal(iproc), isorb_par_ideal(iproc), nseg, &
            nsegline, istsegline, keyg, sparsemat, sparsemat%smmm%nseq, &
            sparsemat%smmm%indices_extract_sequential)
@@ -1089,7 +1095,7 @@ contains
 
     subroutine get_arrays_for_sequential_acces(norb, norbp, isorb, nseg, &
                nsegline, istsegline, keyg, sparsemat, nseq, &
-               ivectorindex)
+               ivectorindex, ivectorindex_contiguous)
       implicit none
     
       ! Calling arguments
@@ -1097,7 +1103,7 @@ contains
       integer,dimension(norb),intent(in) :: nsegline, istsegline
       integer,dimension(2,2,nseg),intent(in) :: keyg
       type(sparse_matrix),intent(in) :: sparsemat
-      integer,dimension(nseq),intent(out) :: ivectorindex
+      integer,dimension(nseq),intent(out) :: ivectorindex, ivectorindex_contiguous
     
       ! Local variables
       integer :: i,iseg,jorb,jjorb,iorb,jseg,ii,iii
@@ -1125,6 +1131,41 @@ contains
               end do
          end do
       end do 
+      if (ii/=nseq+1) stop 'ii/=nseq+1'
+
+      write(*,*) 'mnseq',nseq
+      do i=1,nseq
+          ivectorindex_contiguous(i) = get_contiguous(i)
+      end do
+
+      contains
+
+        function get_contiguous(ii) result(gc)
+          integer,intent(in) :: ii
+          integer :: gc
+          gc = 1
+          if (ivectorindex(min(ii+1,size(ivectorindex)))==ivectorindex(ii)+1) then
+              gc = gc + 1
+          end if
+          if (ivectorindex(min(ii+2,size(ivectorindex)))==ivectorindex(ii)+2) then
+              gc = gc + 1
+          end if
+          if (ivectorindex(min(ii+3,size(ivectorindex)))==ivectorindex(ii)+3) then
+              gc = gc + 1
+          end if
+          if (ivectorindex(min(ii+4,size(ivectorindex)))==ivectorindex(ii)+4) then
+              gc = gc + 1
+          end if
+          if (ivectorindex(min(ii+5,size(ivectorindex)))==ivectorindex(ii)+5) then
+              gc = gc + 1
+          end if
+          if (ivectorindex(min(ii+6,size(ivectorindex)))==ivectorindex(ii)+6) then
+              gc = gc + 1
+          end if
+          if (ivectorindex(min(ii+7,size(ivectorindex)))==ivectorindex(ii)+7) then
+              gc = gc + 1
+          end if
+        end function get_contiguous
     
     end subroutine get_arrays_for_sequential_acces
 
