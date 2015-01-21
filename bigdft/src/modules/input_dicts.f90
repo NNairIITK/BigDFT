@@ -710,7 +710,7 @@ contains
     use module_defs, only: gp
     use module_types, only: atoms_data
     use module_atoms, only: allocate_atoms_data
-    use m_pawrad, only: pawrad_type, pawrad_nullify
+    use m_pawrad, only: pawrad_type !, pawrad_nullify
     use m_pawtab, only: pawtab_type, pawtab_nullify
     use psp_projectors, only: PSPCODE_PAW
     use public_keys, only: SOURCE_KEY
@@ -756,7 +756,7 @@ contains
              allocate(atoms%pawrad(atoms%astruct%ntypes))
              allocate(atoms%pawtab(atoms%astruct%ntypes))
              do ityp2 = 1, atoms%astruct%ntypes
-                call pawrad_nullify(atoms%pawrad(ityp2))
+                !call pawrad_nullify(atoms%pawrad(ityp2))
                 call pawtab_nullify(atoms%pawtab(ityp2))
              end do
           end if

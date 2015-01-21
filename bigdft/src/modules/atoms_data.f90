@@ -279,7 +279,7 @@ contains
 
   !> Nullify atoms_data structure (routine)
   pure subroutine nullify_atoms_data(at)
-    use m_pawang, only: pawang_nullify
+    !use m_pawang, only: pawang_nullify
     implicit none
     type(atoms_data), intent(out) :: at
     call nullify_f_ref(at%refcnt)
@@ -391,9 +391,9 @@ contains
   subroutine deallocate_atoms_data(atoms) 
     use module_base
     use dynamic_memory
-    use m_pawrad, only: pawrad_destroy
-    use m_pawtab, only: pawtab_destroy
-    use m_pawang, only: pawang_destroy
+    use m_pawrad, only: pawrad_free
+    use m_pawtab, only: pawtab_free
+    use m_pawang, only: pawang_free
     implicit none
     type(atoms_data), intent(inout) :: atoms
     !local variables
@@ -439,17 +439,17 @@ contains
     ! Free PAW data.
     if (associated(atoms%pawrad)) then
        do ityp = 1, size(atoms%pawrad)
-          call pawrad_destroy(atoms%pawrad(ityp))
+          call pawrad_free(atoms%pawrad(ityp))
        end do
        deallocate(atoms%pawrad)
     end if
     if (associated(atoms%pawtab)) then
        do ityp = 1, size(atoms%pawtab)
-          call pawtab_destroy(atoms%pawtab(ityp))
+          call pawtab_free(atoms%pawtab(ityp))
        end do
        deallocate(atoms%pawtab)
     end if
-    call pawang_destroy(atoms%pawang)
+    call pawang_free(atoms%pawang)
     END SUBROUTINE deallocate_atoms_data
 
     !> Start the iterator of an astruct_neighbours structure.

@@ -1632,36 +1632,35 @@ contains
   end subroutine nullify_paw_objects
 
   subroutine deallocate_paw_objects(paw)
-    use m_paw_an, only: paw_an_destroy
-    use m_paw_ij, only: paw_ij_destroy
-    use m_pawcprj, only: pawcprj_destroy
-    use m_pawfgrtab, only: pawfgrtab_destroy
-    use m_pawrhoij, only: pawrhoij_destroy
+    use m_paw_an, only: paw_an_free
+    use m_paw_ij, only: paw_ij_free
+    use m_pawcprj, only: pawcprj_free
+    use m_pawfgrtab, only: pawfgrtab_free
+    use m_pawrhoij, only: pawrhoij_free
     implicit none
     type(paw_objects),intent(inout) :: paw
     
     call f_free_ptr(paw%spsi)
 
     if (associated(paw%paw_an)) then
-       call paw_an_destroy(paw%paw_an)
+       call paw_an_free(paw%paw_an)
        deallocate(paw%paw_an)
     end if
     if (associated(paw%paw_ij)) then
-       call paw_ij_destroy(paw%paw_ij)
+       call paw_ij_free(paw%paw_ij)
        deallocate(paw%paw_ij)
     end if
     if (associated(paw%cprj)) then
-       call pawcprj_destroy(paw%cprj)
+       call pawcprj_free(paw%cprj)
        deallocate(paw%cprj)
     end if
     if (associated(paw%pawfgrtab)) then
-       call pawfgrtab_destroy(paw%pawfgrtab)
+       call pawfgrtab_free(paw%pawfgrtab)
        deallocate(paw%pawfgrtab)
     end if
     if (associated(paw%pawrhoij)) then
-       call pawrhoij_destroy(paw%pawrhoij)
+       call pawrhoij_free(paw%pawrhoij)
        deallocate(paw%pawrhoij)
-        cprj(ii,jj)%ncpgr=ncpgr
     end if
   end subroutine deallocate_paw_objects
 

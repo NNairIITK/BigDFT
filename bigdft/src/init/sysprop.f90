@@ -695,7 +695,7 @@ subroutine paw_from_file(pawrad, pawtab, filename, nzatom, nelpsp, ixc)
   use abi_defs_basis, only: tol14, fnlen
   use m_pawpsp, only: pawpsp_main
 
-  use m_pawrad, only: pawrad_type, pawrad_nullify
+  use m_pawrad, only: pawrad_type !, pawrad_nullify
   use m_pawtab, only: pawtab_type, pawtab_nullify
   implicit none
 
@@ -718,7 +718,7 @@ subroutine paw_from_file(pawrad, pawtab, filename, nzatom, nelpsp, ixc)
   real(dp):: ffspl(mqgrid_ff,2,1)
   real(dp):: vlspl(mqgrid_vl,2)
 
-  call pawrad_nullify(pawrad)
+  !call pawrad_nullify(pawrad)
   call pawtab_nullify(pawtab)
   !These should be passed as arguments:
   !Defines the number of Gaussian functions for projectors
@@ -1834,7 +1834,7 @@ subroutine paw_init(paw, at, nspinor, nspin, npsidim, norb)
   use m_paw_ij, only: paw_ij_init
   use m_pawcprj, only: pawcprj_alloc, pawcprj_getdim
   use m_pawfgrtab, only: pawfgrtab_init
-  use interfaces_42_libpaw, only: initrhoij
+  use abi_interfaces_libpaw, only: initrhoij
   implicit none
   type(paw_objects), intent(out) :: paw
   type(atoms_data), intent(in) :: at
