@@ -30,7 +30,7 @@ module sparsematrix_base
       integer :: nvctrp !< modified number of compressed matrix elements per MPI task
       integer :: isvctr !< modified starting entry of the compressed matrix elements
       integer,dimension(:),pointer :: isvctr_par, nvctr_par !<array that contains the values of nvctrp and isvctr of all MPI tasks
-      integer,dimension(:),pointer :: ivectorindex, nsegline, istsegline, indices_extract_sequential, ivectorindex_contiguous
+      integer,dimension(:),pointer :: ivectorindex, nsegline, istsegline, indices_extract_sequential
       integer,dimension(:,:),pointer :: onedimindices
       !!integer,dimension(:,:,:),pointer :: keyg
       integer,dimension(2) :: istartendseg_mm !< starting and ending segments of the matrix subpart which is actually used for the multiplication
@@ -171,7 +171,6 @@ module sparsematrix_base
       implicit none
       type(sparse_matrix_matrix_multiplication),intent(out):: smmm
       nullify(smmm%ivectorindex)
-      nullify(smmm%ivectorindex_contiguous)
       nullify(smmm%onedimindices)
       nullify(smmm%nsegline)
       nullify(smmm%istsegline)
@@ -217,14 +216,12 @@ module sparsematrix_base
       integer,dimension(norb),intent(in) :: nsegline, istsegline
       type(sparse_matrix_matrix_multiplication),intent(inout):: smmm
       smmm%ivectorindex=f_malloc_ptr(smmm%nseq,id='smmm%ivectorindex')
-      smmm%ivectorindex_contiguous=f_malloc_ptr(smmm%nseq,id='smmm%ivectorindex_contiguous')
       smmm%onedimindices=f_malloc_ptr((/4,smmm%nout/),id='smmm%onedimindices')
       smmm%nsegline=f_malloc_ptr(norb,id='smmm%nsegline')
       smmm%istsegline=f_malloc_ptr(norb,id='smmm%istsegline')
       smmm%indices_extract_sequential=f_malloc_ptr(smmm%nseq,id='smmm%indices_extract_sequential')
       smmm%nvctr_par=f_malloc_ptr(0.to.nproc-1,id='smmm%nvctr_par')
       smmm%isvctr_par=f_malloc_ptr(0.to.nproc-1,id='smmm%isvctr_par')
-      write(*,*) 'in alloc: size(smmm%ivectorindex_contiguous)',size(smmm%ivectorindex_contiguous)
     end subroutine allocate_sparse_matrix_matrix_multiplication
 
 
@@ -321,7 +318,6 @@ module sparsematrix_base
       implicit none
       type(sparse_matrix_matrix_multiplication),intent(out):: smmm
       call f_free_ptr(smmm%ivectorindex)
-      call f_free_ptr(smmm%ivectorindex_contiguous)
       call f_free_ptr(smmm%onedimindices)
       call f_free_ptr(smmm%nsegline)
       call f_free_ptr(smmm%istsegline)
