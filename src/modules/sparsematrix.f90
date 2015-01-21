@@ -1179,9 +1179,9 @@ module sparsematrix
    
      !Local variables
      !character(len=*), parameter :: subname='sparsemm'
-     integer :: i,jorb,jjorb,m,mp1
+     integer :: i,jorb,jjorb,m,mp1,ist,iend, icontiguous, j
      integer :: iorb, ii, ilen, jjorb0, jjorb1, jjorb2, jjorb3, jjorb4, jjorb5, jjorb6, iout
-     real(kind=8) :: tt0, tt1, tt2, tt3, tt4, tt5, tt6
+     real(kind=8) :: tt0, tt1, tt2, tt3, tt4, tt5, tt6, tt7
    
      call f_routine(id='sparsemm')
      call timing(bigdft_mpi%iproc, 'sparse_matmul ', 'IR')
@@ -1195,48 +1195,15 @@ module sparsematrix
          ilen=smat%smmm%onedimindices(3,iout)
          ii=smat%smmm%onedimindices(4,iout)
          tt0=0.d0
-         tt1=0.d0
-         tt2=0.d0
-         tt3=0.d0
-         tt4=0.d0
-         tt5=0.d0
-         tt6=0.d0
-   
-         m=mod(ilen,7)
-         if (m/=0) then
-             do jorb=1,m
-                jjorb=smat%smmm%ivectorindex(ii)
-                tt0 = tt0 + b(jjorb,i)*a_seq(ii)
-                ii=ii+1
-             end do
-         end if
-         mp1=m+1
-         do jorb=mp1,ilen,7
-   
-            jjorb0=smat%smmm%ivectorindex(ii+0)
-            tt0 = tt0 + b(jjorb0,i)*a_seq(ii+0)
-   
-            jjorb1=smat%smmm%ivectorindex(ii+1)
-            tt1 = tt1 + b(jjorb1,i)*a_seq(ii+1)
-   
-            jjorb2=smat%smmm%ivectorindex(ii+2)
-            tt2 = tt2 + b(jjorb2,i)*a_seq(ii+2)
-   
-            jjorb3=smat%smmm%ivectorindex(ii+3)
-            tt3 = tt3 + b(jjorb3,i)*a_seq(ii+3)
-   
-            jjorb4=smat%smmm%ivectorindex(ii+4)
-            tt4 = tt4 + b(jjorb4,i)*a_seq(ii+4)
-   
-            jjorb5=smat%smmm%ivectorindex(ii+5)
-            tt5 = tt5 + b(jjorb5,i)*a_seq(ii+5)
-   
-            jjorb6=smat%smmm%ivectorindex(ii+6)
-            tt6 = tt6 + b(jjorb6,i)*a_seq(ii+6)
-   
-            ii=ii+7
+
+         iend=ii+ilen-1
+
+         do jorb=ii,iend
+            jjorb=smat%smmm%ivectorindex(jorb)
+            tt0 = tt0 + b(jjorb,i)*a_seq(jorb)
          end do
-         c(iorb,i) = tt0 + tt1 + tt2 + tt3 + tt4 + tt5 + tt6
+
+         c(iorb,i) = tt0
      end do 
      !$omp end do
      !$omp end parallel

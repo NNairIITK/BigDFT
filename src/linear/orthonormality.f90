@@ -511,7 +511,6 @@ subroutine overlapPowerGeneral(iproc, nproc, iorder, ncalc, power, blocksize, im
 
   ! new for sparse taylor
   integer :: nout, nseq, ispin, ishift, ishift2, isshift, ilshift, ilshift2, nspin
-  integer,dimension(:),allocatable :: ivectorindex
   integer,dimension(:,:),pointer :: onedimindices
   integer,dimension(:,:,:),allocatable :: istindexarr
   real(kind=8),dimension(:),pointer :: ovrlpminone_sparse

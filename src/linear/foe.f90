@@ -777,7 +777,6 @@ subroutine foe(iproc, nproc, tmprtr, &
           real(kind=8),dimension(:,:),pointer :: inv_ovrlpp, tempp
           integer,dimension(:,:),pointer :: onedimindices
           real(kind=8),dimension(:),allocatable :: inv_ovrlp_compr_seq, kernel_compr_seq
-          integer,dimension(:),allocatable :: ivectorindex
           integer,dimension(:,:,:),allocatable :: istindexarr
           integer :: nout, nseq
 

@@ -318,6 +318,8 @@ module chebyshev
     
       ! Local variables
       integer :: i, jorb, iorb
+
+      call f_routine(id='axbyz_kernel_vectors')
     
       !$omp parallel default(private) shared(nout, onedimindices,a, b, x, y, z)
       !$omp do
@@ -328,6 +330,8 @@ module chebyshev
       end do
       !$omp end do
       !$omp end parallel
+
+      call f_release_routine()
     
     end subroutine axbyz_kernel_vectors
     

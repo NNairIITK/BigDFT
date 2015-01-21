@@ -1125,6 +1125,7 @@ contains
               end do
          end do
       end do 
+      if (ii/=nseq+1) stop 'ii/=nseq+1'
     
     end subroutine get_arrays_for_sequential_acces
 
