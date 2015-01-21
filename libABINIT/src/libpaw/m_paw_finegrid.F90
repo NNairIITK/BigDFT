@@ -975,7 +975,7 @@ subroutine pawrfgd_fft(ifftsph,gmet,n1,n2,n3,nfgd,rcut,rfgd,rprimd,ucvol,xred, &
              nfgd=nfgd+1
              if (nfgd>ncmax) then
                msg='Number of fft points around atom exceeds max. allowed!'
-               MSG_BUG(msg)
+              MSG_BUG(msg)
              end if
              rfgd_tmp(1,nfgd)=rx
              rfgd_tmp(2,nfgd)=ry

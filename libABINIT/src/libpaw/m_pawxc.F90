@@ -215,9 +215,10 @@ subroutine pawxc_xcpositron_local()
 
  implicit none
 
+ character(len = *), parameter :: msg = 'xcpositron only available in ABINIT!'
 ! *************************************************************************
 
- MSG_BUG('xcpositron only available in ABINIT!')
+ MSG_BUG(msg)
 
 end subroutine pawxc_xcpositron_local
 !!***
