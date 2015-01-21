@@ -170,8 +170,8 @@ endif
 
 #dependencies
 $(modules): $(libmodules_a_OBJECTS)
-input_keys.o: defs.o $(top_builddir)/flib/src/dynamic_memory.o base.o public_keys.o
-base.o: defs.o $(top_builddir)/flib/src/dynamic_memory.o public_keys.o
+input_keys.o: defs.o base.o public_keys.o
+base.o: defs.o public_keys.o
 types.o: base.o gaussians.o locregs.o psp_projectors.o ao_inguess.o atoms_data.o communications_base.o \
 	sparsematrix_base.o xc.o foe_base.o ab7_mixing.o
 input.o: base.o types.o input_keys.o
@@ -184,7 +184,7 @@ private_api.o: base.o types.o interfaces.o
 diis_module.o: base.o types.o
 fragments.o: base.o types.o
 constrained_dft.o: base.o types.o sparsematrix_base.o
-input_dicts.o: $(top_builddir)/flib/src/dynamic_memory.o types.o defs.o ao_inguess.o interfaces.o atoms_data.o input_keys.o public_keys.o input.o
+input_dicts.o: types.o defs.o ao_inguess.o interfaces.o atoms_data.o input_keys.o public_keys.o input.o
 psp_projectors.o: locregs.o gaussians.o defs.o
 locregs.o: base.o
 ao_inguess.o: $(AO_INCLUDES) base.o psp_projectors.o
