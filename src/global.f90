@@ -859,6 +859,9 @@ end do hopping_loop
 !  if (iproc==0) write(*,*) 'quit 1'
   call release_run_objects(run_md)
 !  if (iproc==0) write(*,*) 'quit 2'
+  if((trim(adjustl(char(run_opt%run_mode)))=='QM_RUN_MODE'))then
+   call f_free(ksevals) 
+  endif
   call free_run_objects(run_opt)
 !!$  call deallocate_atoms_data(atoms)
 
@@ -877,9 +880,6 @@ end do hopping_loop
   call f_free(poshop)
   call f_free(fphop)
   call f_free(rcov)
- if((trim(adjustl(char(run_opt%run_mode)))=='QM_RUN_MODE'))then
-  call f_free(ksevals) 
- endif
 !  if (iproc==0) write(*,*) 'quit 4'
 
   call deallocate_state_properties(outs)

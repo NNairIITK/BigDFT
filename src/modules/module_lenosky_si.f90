@@ -36,6 +36,10 @@ subroutine init_lensic(paramset,paramfile,geocode)
     logical :: exists
     integer :: u
     call yaml_comment('Initializing lensic',hfill='-')
+    call yaml_mapping_open('Reference Papers')
+    call yaml_scalar('T. Lenosky, Modelling. Simul. Mater. Sci. Eng. 8, 825 (2000)')
+    call yaml_scalar('S. Goedecker, Comp. Phys. Commun. 148, 124 (2002)')
+    call yaml_mapping_close()
 
 
     initialized=.false.
@@ -64,6 +68,7 @@ subroutine init_lensic(paramset,paramfile,geocode)
         open(unit=u,file=trim(adjustl(paramfile)))
             read(u,*) alat_int(1), alat_int(2), alat_int(3)
         close(u)
+        call yaml_map('Read cell parameters from file',trim(adjustl(paramfile)))
         initialized=.true.
     else
         select case(trim(paramset))
