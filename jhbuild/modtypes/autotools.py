@@ -80,8 +80,8 @@ class AutogenModule(MakeModule, DownloadableModule):
 
     def get_builddir(self, buildscript):
         if buildscript.config.buildroot and self.supports_non_srcdir_builds:
-            d = buildscript.config.builddir_pattern % (
-                self.branch.checkoutdir or self.branch.get_module_basename())
+            d = buildscript.config.builddir_pattern % (self.name)
+            #self.branch.checkoutdir or self.branch.get_module_basename())
             return os.path.join(buildscript.config.buildroot, d)
         else:
             return self.get_srcdir(buildscript)
@@ -141,6 +141,9 @@ class AutogenModule(MakeModule, DownloadableModule):
         # (GNOME #580272)
         if not '--exec-prefix' in template:
             cmd = cmd.replace('${exec_prefix}', vars['prefix'])
+
+        # To be able to rerun make outside jhbuild.
+        cmd += ' LDFLAGS="%s" C_INCLUDE_PATH="%s"' % (os.environ['LDFLAGS'], os.environ['C_INCLUDE_PATH'])
 
         self.configure_cmd = cmd
         return cmd
