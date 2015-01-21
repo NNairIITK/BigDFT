@@ -517,7 +517,6 @@ END SUBROUTINE createEffectiveIonicPotential
 subroutine createIonicPotential(geocode,iproc,nproc,verb,at,rxyz,&
      hxh,hyh,hzh,elecfield,n1,n2,n3,n3pi,i3s,n1i,n2i,n3i,pkernel,pot_ion,psoffset)
   use module_base, pi => pi_param
-  use m_splines, only: splint
   use module_types
   use yaml_output
   use m_paw_numeric, only: paw_splint
@@ -670,7 +669,6 @@ subroutine createIonicPotential(geocode,iproc,nproc,verb,at,rxyz,&
                            & at%pawtab(ityp)%wvl%rholoc%d(:,1), &
                            & at%pawtab(ityp)%wvl%rholoc%d(:,2), &
                            & 1,rr1,raux1,ierr)
-                      raux=raux1(1)
                     else
                       !Take the HGH form for rho_L (long range)
                       arg=r2/rlocsq
@@ -682,15 +680,15 @@ subroutine createIonicPotential(geocode,iproc,nproc,verb,at,rxyz,&
                       else
                          xp=exp(-.5d0*arg)
                       end if
-                      raux=-xp*charge
+                      raux1(1)=-xp*charge
                     end if
                     !raux=-4.d0**(3.0d0/2.0d0)*exp(-4.d0*pi*r2)
 
                     if (j3 >= i3s .and. j3 <= i3s+n3pi-1  .and. goy  .and. gox ) then
                        ind=j1+indj23
-                       pot_ion(ind)=pot_ion(ind)+raux(1)
+                       pot_ion(ind)=pot_ion(ind)+raux1(1)
                     else if (.not. goz ) then
-                       rholeaked=rholeaked-raux(1)
+                       rholeaked=rholeaked-raux1(1)
                     endif
                  enddo
               enddo
@@ -921,27 +919,25 @@ subroutine createIonicPotential(geocode,iproc,nproc,verb,at,rxyz,&
                           call ind_positions(perx,i1,n1,j1,gox)
                           if (gox) then
                              r2=x**2+yzsq
-                             rr(1)=sqrt(r2)
+                             rr1(1)=sqrt(r2)
                              !1) V_L^HGH
-                             if(rr(1)>0.01d0) then
-                               arg=rr(1)/(sqrt(2.0)*rloc)
+                             if(rr1(1)>0.01d0) then
+                               arg=rr1(1)/(sqrt(2.0)*rloc)
                                call abi_derf_ab(tt,arg)
-                               raux2=-charge/rr(1)*tt  
+                               raux2=-charge/rr1(1)*tt  
                              else
                                !In this case we deduce the values
                                !from a quadratic interpolation (due to 1/rr factor)
-                               call interpol_vloc(rr(1),rloc,charge,raux2)
+                               call interpol_vloc(rr1(1),rloc,charge,raux2)
                              end if
                              !2) V^PAW from splines
-                             rr1(1)=rr
                              call paw_splint(at%pawtab(ityp)%wvl%rholoc%msz, &
                                   & at%pawtab(ityp)%wvl%rholoc%rad, &
                                   & at%pawtab(ityp)%wvl%rholoc%d(:,3), &
                                   & at%pawtab(ityp)%wvl%rholoc%d(:,4), &
                                   & 1,rr1,raux1,ierr)
-                             raux=raux1(1)
                              ind=j1+indj23
-                             pot_ion(ind)=pot_ion(ind)+raux(1)-raux2
+                             pot_ion(ind)=pot_ion(ind)+raux1(1)-raux2
                           end if
                        enddo
                     end if
