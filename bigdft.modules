@@ -38,7 +38,9 @@
 
   <autotools id="libABINIT" check-target="false">
     <branch repo="local" module="libABINIT-6.8+12.tar.gz" version="6.8+12" checkoutdir="libABINIT"/>
-    <dep package="flib"/>
+    <dependencies>
+      <dep package="flib"/>
+    </dependencies>
   </autotools>
 
   <autotools id="flib" autogenargs="--disable-libpsolver">
@@ -52,7 +54,7 @@
     </dependencies>
   </autotools>
 
-  <autotools id="bigdft">
+  <autotools id="bigdft" autogenargs="--without-internal-flib">
     <!--<branch repo="bigdft" module="bigdft" version="1.7.5"/>-->
     <branch repo="local" module="bigdft-1.7.6.tar.gz" version="1.7.6" checkoutdir="bigdft"/>
     <dependencies>

@@ -430,6 +430,21 @@ if test x"$ac_use_mic" = "xyes" ; then
 fi
 AM_CONDITIONAL(USE_MIC, test "$ac_use_mic" = "yes")
 
+dnl Use external FLib.
+AC_ARG_WITH(internal-flib, AS_HELP_STRING([--with-internal-flib], [Compile internal FLib (default = yes).]), internalflib=$withval, internalflib="yes")
+if test x"$internalflib" != x"yes" ; then
+  AX_FLIB()
+  if test "$ac_use_flib" = "no" ; then
+    AC_MSG_ERROR([FLib is not available, install FLib and provide paths --with-flib-libs --with-flib-incs.])
+  fi
+else
+  LIB_FLIB_CFLAGS="-I$(top_builddir)/includes"
+  AC_SUBST(LIB_FLIB_CFLAGS)
+  LIB_FLIB_LIBS=""
+  AC_SUBST(LIB_FLIB_LIBS)
+fi
+AM_CONDITIONAL(BUILD_FLIB, test "$internalflib" = "yes")
+
 dnl Use ETSF_IO
 ac_use_etsfio=no
 AC_ARG_WITH(etsf-io, AS_HELP_STRING([--with-etsf-io], [Link with ETSF_IO library (default = no).]), etsfio=$withval, etsfio="yes")
@@ -491,6 +506,10 @@ AC_CHECK_LIB(config++, config_init, withconfig=yes, withconfig=no)
 AM_CONDITIONAL(HAVE_LIBCONFIG, test "$withconfig" = "yes")
 AC_LANG_POP(C++)
 
+AC_LANG_PUSH(C)
+AC_CHECK_FUNCS([strndup])
+AC_LANG_POP(C)
+
 dnl AM_CONDITIONAL for the different libraries, set default values.
 dnl the BigDFT library.
 ac_build_lib_BigDFT="yes"
@@ -536,14 +555,13 @@ if test "$ac_build_bin_cluster" = "yes" ; then
 fi # End of the if library compilation
 
 dnl Archive input file support
-ac_use_archive="yes"
 AC_ARG_WITH([archives],
             AS_HELP_STRING([--with-archives], [add support of archives for output files.]),
             [ac_use_archive=$withval], [ac_use_archive=$ac_build_lib_BigDFT])
 AC_ARG_WITH([archives-path],
             AS_HELP_STRING([--with-archives-path], [give a path to find libarchive.]),
             [ac_path_archive=$withval])
-if test x"$ac_use_archive" != x"no" ; then
+if test x"$ac_use_archive" == x"yes" ; then
    if test x"$ac_path_archive" == x"" ; then
       PKG_CHECK_MODULES([LIB_ARCHIVE],
                         [libarchive >= 2.4],
@@ -568,9 +586,6 @@ if test x"$ac_use_archive" != x"no" ; then
       AC_MSG_WARN([libarchive is not available])
    fi
 fi
-AC_LANG_PUSH(C)
-AC_CHECK_FUNCS([strndup])
-AC_LANG_POP(C)
 AM_CONDITIONAL(HAVE_LIB_ARCHIVE, test x"$ac_use_archive" = x"yes")
 AC_SUBST(LIB_ARCHIVE_CFLAGS)
 AC_SUBST(LIB_ARCHIVE_LIBS)
@@ -608,7 +623,9 @@ dnl Python YAML support.
 AX_PYYAML()
 
 dnl Test the libXC library
-AX_LIBXC()
+if test "$ac_build_lib_BigDFT" = "yes" ; then
+  AX_LIBXC()
+fi
 
 dnl Test the ABINIT library
 AC_ARG_WITH(libabinit-incs, AS_HELP_STRING([--with-libabinit-incs],
@@ -619,6 +636,8 @@ AC_ARG_WITH(libabinit-incs, AS_HELP_STRING([--with-libabinit-incs],
             ac_libabinit_libs=$withval, ac_libabinit_libs="")
 
 dnl Test the given implementation of libabinit.
+ac_use_libabinit="no"
+if test "$ac_build_lib_BigDFT" = "yes" ; then
 AC_MSG_CHECKING([for libABINIT modules])
 FCFLAGS_SVG=$FCFLAGS
 if test -n "$ac_libabinit_incs" ; then
@@ -630,7 +649,7 @@ elif test -n "$C_INCLUDE_PATH" ; then
   FCFLAGS="$FCFLAGS $ac_libabinit_incs"
 fi
 AC_COMPILE_IFELSE([[program main
-  use ab6_moldyn
+  use m_ab6_moldyn
   use m_ab6_symmetry
   use m_ab6_kpoints
 
@@ -645,14 +664,14 @@ if test -n "$ac_libabinit_libs" ; then
 else
   ac_libabinit_libs="-labinit"
 fi
-AC_CHECK_LIB(abinit, symbrav, withlibabinit=yes, withlibabinit=no)
+AC_CHECK_LIB(abinit, abi_symbrav, withlibabinit=yes, withlibabinit=no)
 LIBS=$LIBS_SVG
 
-ac_use_libabinit="no"
 if test "$withlibabinit" = "yes" -a "$withabinitmod" = "yes"; then
   ac_use_libabinit="yes"
 else
   AC_MSG_ERROR([Missing libABINIT, consider using --with-libabinit-[incs,libs].])
+fi
 fi
 
 dnl Test the libPAW library.
@@ -728,7 +747,7 @@ LDFLAGS="$LDFLAGS $LDFLAGS_MIC"
 dnl Agregate all the optional libs.
 LIBS_EXT_DEPS="$LIBCUDA_LIBS $LIBOCL_LIBS $LIBETSFIO_LIBS $LINALG_LIBS $LIB_ARCHIVE_LIBS $LIB_YAML_LIBS $GLIB_LIBS $MPI_LDFLAGS $MPI_LIBS"
 AC_SUBST(LIBS_EXT_DEPS, [$LIBS_EXT_DEPS])
-LIBS_SHORT_DEPS="$LIB_ABINIT_LIBS $LIB_XC_LIBS $LIBSGPU_LIBS $LIBS_EXT_DEPS"
+LIBS_SHORT_DEPS="$LIB_ABINIT_LIBS $LIB_XC_LIBS $LIB_FLIB_LIBS $LIBSGPU_LIBS $LIBS_EXT_DEPS"
 AC_SUBST(LIBS_SHORT_DEPS, [$LIBS_SHORT_DEPS])
 
 dnl Test for the documentation.

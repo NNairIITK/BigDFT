@@ -152,7 +152,7 @@ EXTRA_DIST = configure.inc.in bigdft_cst.h.in \
 	$(AO_INCLUDES) $(ATOMS_INCLUDES) $(COMMS_INCLUDES) $(overrides_DATA)
 CLEANFILES = $(modules)
 
-AM_FCFLAGS = -I. -I$(srcdir) -I$(top_builddir)/includes @MPI_INCLUDE@ @LIBABINIT_INCLUDE@ @LIB_XC_CFLAGS@
+AM_FCFLAGS = -I. -I$(srcdir) -I$(top_builddir)/includes @MPI_INCLUDE@ @LIBABINIT_INCLUDE@ @LIB_XC_CFLAGS@ @LIB_FLIB_CFLAGS@
 
 # Hack for XLF strange DEFS option.
 PPFCCOMPILE = $(FC) $(DEFS:-D%=@FCDEFS@%) $(DEFAULT_INCLUDES) $(INCLUDES) \
@@ -178,13 +178,13 @@ input.o: base.o types.o input_keys.o
 interfaces.o: base.o types.o xc.o fragments.o diis_module.o constrained_dft.o sparsematrix_base.o foe_base.o communications.o
 gaussians.o: base.o
 op2p_module.o : base.o
-BigDFT_API.o: base.o types.o interfaces.o xc.o atoms_data.o input_dicts.o ao_inguess.o psp_projectors.o communications_base.o communications_init.o
+BigDFT_API.o: base.o types.o interfaces.o xc.o atoms_data.o input_dicts.o ao_inguess.o psp_projectors.o communications_base.o communications_init.o bigdft_run.o public_keys.o gaussians.o
 vdwcorrection.o: base.o types.o
 private_api.o: base.o types.o interfaces.o
 diis_module.o: base.o types.o
 fragments.o: base.o types.o
 constrained_dft.o: base.o types.o sparsematrix_base.o
-input_dicts.o: $(top_builddir)/flib/src/dynamic_memory.o types.o defs.o ao_inguess.o interfaces.o atoms_data.o input_keys.o public_keys.o
+input_dicts.o: $(top_builddir)/flib/src/dynamic_memory.o types.o defs.o ao_inguess.o interfaces.o atoms_data.o input_keys.o public_keys.o input.o
 psp_projectors.o: locregs.o gaussians.o defs.o
 locregs.o: base.o
 ao_inguess.o: $(AO_INCLUDES) base.o psp_projectors.o

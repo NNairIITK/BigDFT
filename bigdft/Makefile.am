@@ -10,7 +10,9 @@ pkgconfig_DATA = bigdft.pc
 SUBDIRS =
 
 # Low level libraries provided by BigDFT team.
+if BUILD_FLIB
 SUBDIRS += flib
+endif
 
 if BUILD_LIB_PSOLVER
 SUBDIRS += wrappers PSolver

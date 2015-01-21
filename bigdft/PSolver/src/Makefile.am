@@ -89,7 +89,7 @@ conv_check_fft_LDADD = libPSolver.a $(top_builddir)/wrappers/libwrappers.a $(top
 conv_check_fftw_SOURCES = conv_check_fftw.f90 fftw.cpp
 conv_check_fftw_LDADD = @LIBS_EXT_DEPS@ -lfftw3 -lfftw3_threads
 
-AM_FCFLAGS = -I$(top_builddir)/includes -I. -I$(srcdir) @MPI_INCLUDE@
+AM_FCFLAGS = -I. -I$(srcdir) -I$(top_builddir)/includes @LIB_FLIB_CFLAGS@ @MPI_INCLUDE@
 AM_CPPFLAGS = -I. -I$(top_builddir) -I@CUDA_PATH@/include/ 
 AM_LDFLAGS = -L$(top_builddir)/src
 if BUILD_DYNAMIC_LIBS

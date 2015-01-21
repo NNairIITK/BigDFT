@@ -67,7 +67,7 @@ interface_dgemmsy_fake.o: linalg.o
 mpi.o: $(mpi_include)
 
 
-AM_FCFLAGS = -I$(top_builddir)/includes @MPI_INCLUDE@
+AM_FCFLAGS = @LIB_FLIB_CFLAGS@ @MPI_INCLUDE@
 AM_CPPFLAGS = @DGEMMSY_CPPFLAGS@
 if USE_CUDA_GPU
 AM_CPPFLAGS += -I@CUDA_PATH@/include @LIBSGPU_INCLUDE@
