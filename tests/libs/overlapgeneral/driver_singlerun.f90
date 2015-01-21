@@ -2,6 +2,7 @@ program driver_singlerun
   use bigdft_run
   use module_base
   use sparsematrix_base, only: sparse_matrix, matrices, &
+                               matrices_null, deallocate_sparse_matrix, deallocate_matrices, &
                                assignment(=), sparsematrix_malloc_ptr, SPARSE_FULL
   use sparsematrix_init, only: read_ccs_format, ccs_to_sparsebigdft, ccs_values_to_bigdft, &
                                read_bigdft_format, bigdft_to_sparsebigdft
@@ -30,6 +31,13 @@ program driver_singlerun
   iproc=bigdft_mpi%iproc!mpi_info(1)
   nproc=bigdft_mpi%nproc!mpi_info(2)
 
+  ! Nullify all pointers
+  nullify(col_ptr)
+  nullify(row_ind)
+  nullify(keyv)
+  nullify(keyg)
+  nullify(val)
+
   
   ! Read in a file in the CCS format
   !call read_ccs_format(filename, ncol, nnonzero, col_ptr, row_ind, val)
@@ -42,6 +50,9 @@ program driver_singlerun
   call distribute_columns_on_processes(iproc, nproc, ncol, ncolp, iscol)
   write(*,'(a,4i9)') 'iproc, ncol, ncolp, iscol', iproc, ncol, ncolp, iscol
   call bigdft_to_sparsebigdft(iproc, nproc, ncol, ncolp, iscol, nnonzero, nseg, keyg, smat)
+
+  matA = matrices_null()
+  matB(1) = matrices_null()
 
   ! Assign the values
   matA%matrix_compr = sparsematrix_malloc_ptr(smat, iaction=SPARSE_FULL, id='matA%matrix_compr')
@@ -77,9 +88,19 @@ program driver_singlerun
   if (iproc==0) call write_sparsematrix_CCS('result_css.dat', smat, matB(1))
   if (iproc==0) call write_sparsematrix('result_bigdft.dat', smat, matB(1))
 
-    call bigdft_finalize(ierr)
+  ! Deallocations
+  call deallocate_sparse_matrix(smat)
+  call deallocate_matrices(matA)
+  call deallocate_matrices(matB(1))
+  call f_free_ptr(col_ptr)
+  call f_free_ptr(row_ind)
+  call f_free_ptr(keyv)
+  call f_free_ptr(keyg)
+  call f_free_ptr(val)
 
-    call f_lib_finalize()
+  call bigdft_finalize(ierr)
+
+  call f_lib_finalize()
 
 end program driver_singlerun
 
