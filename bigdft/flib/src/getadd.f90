@@ -247,7 +247,7 @@ interface loc_arr
    module procedure la_r1,la_r2,la_r3
    module procedure la_d1,la_d2,la_d3,la_d4,la_d5,la_d6,la_d7
    module procedure la_l1,la_l2,la_l3
-   module procedure la_z1,la_z2
+   module procedure la_z1,la_z2,la_z3
    module procedure la_c1
    module procedure la_li1,la_li2
 end interface
