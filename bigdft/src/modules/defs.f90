@@ -6,8 +6,6 @@
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS
-!! @warning
-!!   THIS FILE IS PROCESSED BY THE BUILD SYSTEM.
 
 !> Modules which contains the low level definitions, as well as some profiling procedures
 module module_defs
