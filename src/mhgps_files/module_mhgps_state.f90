@@ -20,7 +20,7 @@ module module_mhgps_state
     type mhgps_state
         !values that must not be changed during the execution
         character(len = 5) :: dirprefix
-        character(len = 4) :: mhgps_version
+        character(len = 20) :: mhgps_version
 
         integer :: nid
 

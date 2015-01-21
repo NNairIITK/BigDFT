@@ -136,6 +136,7 @@ contains
     use public_enums
     use module_morse_bulk
     use module_lj
+    use module_lenosky_si
     implicit none
     type(run_objects), intent(inout) :: runObj
     type(f_enumerator), intent(in) :: run_mode
@@ -150,7 +151,23 @@ contains
        mm_rst%refcnt=f_ref_new('mm_rst')
         call init_lj(runObj%inputs%mm_paramset,&
              runObj%inputs%mm_paramfile,runObj%atoms%astruct%units)
-    case('LENOSKY_SI_CLUSTERS_RUN_MODE','LENOSKY_SI_BULK_RUN_MODE')
+    case('LENOSKY_SI_CLUSTERS_RUN_MODE')
+       if (associated(mm_rst%rf_extra)) then
+          if (size(mm_rst%rf_extra) == nat) then
+             call f_zero(mm_rst%rf_extra)
+          else
+             call f_free_ptr(mm_rst%rf_extra)
+             mm_rst%rf_extra=f_malloc0_ptr([3,nat],id='rf_extra')
+          end if
+       else
+          call nullify_MM_restart_objects(mm_rst)
+          !create reference counter
+          mm_rst%refcnt=f_ref_new('mm_rst')
+          mm_rst%rf_extra=f_malloc0_ptr([3,nat],id='rf_extra')
+       end if
+       call init_lensic(runObj%inputs%mm_paramset,&               
+             runObj%inputs%mm_paramfile,runObj%atoms%astruct%geocode)
+    case('LENOSKY_SI_BULK_RUN_MODE')
        if (associated(mm_rst%rf_extra)) then
           if (size(mm_rst%rf_extra) == nat) then
              call f_zero(mm_rst%rf_extra)
@@ -1272,8 +1289,8 @@ contains
        alatint=Bohr_Ang*bigdft_get_cell(runObj)
 !BS: is new document necessary (high overhead for FF)?
 !       if (bigdft_mpi%iproc==0) call yaml_new_document()
-       call lenosky_si_shift(nat,alatint,&
-            runObj%mm_rst%rf_extra,outs%fxyz,outs%energy)
+       call lenosky_si_shift(nat,runObj%mm_rst%rf_extra,outs%fxyz,&
+            outs%energy)
 !       if (bigdft_mpi%iproc==0) call yaml_release_document()
        !convert energy from eV to Hartree
        outs%energy=ev_Ha*outs%energy

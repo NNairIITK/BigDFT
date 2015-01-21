@@ -13,12 +13,68 @@
 
 !> Module defining quantities for Lensoky Si potential
 module module_lenosky_si
-
+use module_defs, only:gp
 private
 
 public lenosky_si_shift,lenosky_si
+public init_lensic
+
+logical, save :: initialized=.false.
+real(gp), save :: alat_int(3)
 
 contains
+
+subroutine init_lensic(paramset,paramfile,geocode)
+    use module_base
+    use yaml_output
+    implicit none
+    !parameters
+    character(len=*), intent(in) :: paramset
+    character(len=*), intent(in) :: paramfile
+    character(len=*), intent(in) :: geocode
+    !local
+    logical :: exists
+    integer :: u
+    call yaml_comment('Initializing lensic',hfill='-')
+
+
+    initialized=.false.
+
+    if(trim(geocode)/='F')then
+        call f_err_throw('lensic only works with free '//&
+             'boundary conditions. Specified boundary conditions are: '//&
+             trim(adjustl(geocode)))
+    endif
+
+    if(trim(paramfile)/='none')then
+        !lensic is only an ad-hoc wrapper for the preiodic lensoky
+        !routine. We therefore need to specify cell legnths.
+        !We don't use the cell values from the structure files
+        !(xyz, ascii) because they are zeroed by the parsing routine
+        !if bc=free. Setting the bc to periodic in the structure files
+        !is also no solution, since sepcific parts of the code
+        !are not getting executed in the periodic case (like the elimination
+        !of roations).
+        inquire(file=trim(adjustl(paramfile)),exist=exists)
+        if(.not.exists)then
+            call f_err_throw('Parameter file '//trim(adjustl(paramfile))//&
+                 ' not found.')
+        endif
+        u=f_get_free_unit()
+        open(unit=u,file=trim(adjustl(paramfile)))
+            read(u,*) alat_int(1), alat_int(2), alat_int(3)
+        close(u)
+        initialized=.true.
+    else
+        select case(trim(paramset))
+        case('default')
+            call f_err_throw('No "default" parameter set for lensic defined.')
+        case default
+            call f_err_throw('Following parameter set for lensic force field '//&
+                'is unknown: '//trim(adjustl(paramset)))
+        end select
+    endif
+end subroutine init_lensic
 
 subroutine lenosky_si(nat,alat,rat,fat,epot)
     implicit none
@@ -31,15 +87,19 @@ subroutine lenosky_si(nat,alat,rat,fat,epot)
     call lenosky(nat,alat,rat,fat,epot,coord,ener_var,coord_var,count)
 end subroutine lenosky_si
 
-subroutine lenosky_si_shift(nat,alat,rat,fat,epot)
-    use module_defs, only:gp
+subroutine lenosky_si_shift(nat,rat,fat,epot)
+    use module_base
     implicit none
     integer::nat,iat
-    real(8) :: alat(3)
     real(8), intent(in)::rat(3,nat)
     real(8) :: fat(3,nat),epot
     real(8) :: coord=0.d0,ener_var=0.d0,coord_var=0.d0,count=0.d0
     real(8) :: pos(3,nat),cmx,cmy,cmz
+
+    if(.not.initialized)then
+        call f_err_throw('Potential "lensic" not initialized',&
+             err_name='BIGDFT_RUNTIME_ERROR')
+    endif
 
     pos=rat
     !shift to center of cell:
@@ -51,10 +111,10 @@ subroutine lenosky_si_shift(nat,alat,rat,fat,epot)
         cmz=cmz+pos(3,iat)
     enddo
     cmx=cmx/nat ; cmy=cmy/nat ; cmz=cmz/nat
-    pos(1,:)=pos(1,:)-cmx+0.5d0*alat(1)
-    pos(2,:)=pos(2,:)-cmy+0.5d0*alat(2)
-    pos(3,:)=pos(3,:)-cmz+0.5d0*alat(3)
-    call lenosky(nat,alat,pos,fat,epot,coord,ener_var,coord_var,count)
+    pos(1,:)=pos(1,:)-cmx+0.5d0*alat_int(1)
+    pos(2,:)=pos(2,:)-cmy+0.5d0*alat_int(2)
+    pos(3,:)=pos(3,:)-cmz+0.5d0*alat_int(3)
+    call lenosky(nat,alat_int,pos,fat,epot,coord,ener_var,coord_var,count)
 end subroutine lenosky_si_shift
 
 

@@ -1158,6 +1158,7 @@ function previously_connected(mhgpsst,uinp,runObj,rxyz1,rxyz2)
     !local
     real(gp), parameter :: rmsdthresh=0.01_gp
     integer :: iatt
+    integer :: i
     logical :: match
     real(gp) :: rmsd1, rmsd2, rmsd3
     real(gp),allocatable :: attempted_connections_tmp(:,:,:,:)
@@ -1212,7 +1213,9 @@ if(mhgpsst%iproc==0)write(*,*)'prevresize '
                                        runObj%atoms%astruct%nat,2,&
                                        mhgpsst%nattemptedmax/),&
                                        id='mhgpsst%attempted_connections')
-            mhgpsst%attempted_connections = attempted_connections_tmp
+            do i = 1, mhgpsst%nattemptedmax - 1000
+                mhgpsst%attempted_connections(:,:,:,i) = attempted_connections_tmp(:,:,:,i)
+            enddo
             call f_free(attempted_connections_tmp)
         endif
 

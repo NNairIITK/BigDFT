@@ -461,7 +461,7 @@ subroutine print_logo_mhgps(mhgpsst)
     call yaml_scalar('(MHGPS) The Journal of Chemical Physics 140, 214102 (2014)')
     call yaml_scalar('(MHGPS) The Journal of Chemical Physics 142, 034112 (2015)')
     call yaml_mapping_close()
-    call yaml_map('(MHGPS) Version Number',mhgpsst%mhgps_version)
+    call yaml_map('(MHGPS) Version Number',trim(adjustl(mhgpsst%mhgps_version)))
     call yaml_map('(MHGPS) Timestamp of this run',yaml_date_and_time_toa())
 end subroutine print_logo_mhgps
 

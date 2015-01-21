@@ -666,13 +666,10 @@
      COMMENT: Name of the hard-coded parameter set. Must be compatible to the chosen force field.
      CONDITION:
        MASTER_KEY: method
-       WHEN:
-       - morse_bulk
-       - lj
      default: default
    mm_paramfile:
      COMMENT: name of parameter file
-     default: none
+     default: default_parms
      
 #Performance parameters
  perf:

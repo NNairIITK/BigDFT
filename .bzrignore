@@ -149,3 +149,4 @@ PSolver/tests/PS_Integral.f90.moved
 doc/Manual/test.txt
 src/convolutions/.directory
 src/wavelib/scalar_product.f90
+bzr_hook.sh

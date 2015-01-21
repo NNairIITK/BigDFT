@@ -222,7 +222,7 @@ bigdft_run.o: types.o input_dicts.o interfaces.o module_forces.o module_lenosky_
 ab7_mixing.o: defs.o
 module_lj.o: base.o defs.o
 module_morse_bulk.o: base.o
-module_lenosky_si.o: defs.o
+module_lenosky_si.o: base.o defs.o
 module_fingerprints.o: base.o
 module_forces.o: base.o types.o 
 
