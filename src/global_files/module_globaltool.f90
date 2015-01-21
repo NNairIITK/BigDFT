@@ -265,14 +265,22 @@ subroutine read_globaltool_uinp(gdat)
     integer :: u, istat, idict
     character(len=500) :: line
     real(gp) :: rdmy
+    logical :: exists
+
+    inquire(file='globaltool.inp',exist=exists)
+    if(.not. exists)then
+        call f_err_throw('The input file globaltool.inp does not exist.',&
+             err_name='BIGDFT_RUNTIME_ERROR')
+    endif
+
     u=f_get_free_unit()
     open(u,file='globaltool.inp')
-    gdat%uinp%ndir=0
     read(u,*,iostat=istat)gdat%uinp%en_delta,gdat%uinp%fp_delta,gdat%uinp%fptype
     if(istat/=0)then
         call f_err_throw('Error in first line of globaltool.inp',&
              err_name='BIGDFT_RUNTIME_ERROR')
     endif
+    gdat%uinp%ndir=0
     do
         read(u,'(a)',iostat=istat)line
         if(istat/=0)exit
