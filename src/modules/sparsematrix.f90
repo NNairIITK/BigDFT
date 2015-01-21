@@ -1124,6 +1124,8 @@ module sparsematrix
    
      ! Local variables
      integer :: iseq, ii
+
+     call f_routine(id='sequential_acces_matrix_fast')
    
      !$omp parallel do default(none) private(iseq, ii) &
      !$omp shared(smat, a_seq, a)
@@ -1132,6 +1134,8 @@ module sparsematrix
          a_seq(iseq)=a(ii)
      end do
      !$omp end parallel do
+
+     call f_release_routine()
    
    end subroutine sequential_acces_matrix_fast
 
@@ -1146,6 +1150,8 @@ module sparsematrix
    
      ! Local variables
      integer :: iseq, ii
+
+     call f_routine(id='sequential_acces_matrix_fast2')
    
      !$omp parallel do default(none) private(iseq, ii) &
      !$omp shared(smat, a_seq, a)
@@ -1154,6 +1160,8 @@ module sparsematrix
          a_seq(iseq)=a(ii-smat%isvctrp_tg)
      end do
      !$omp end parallel do
+
+     call f_release_routine()
    
    end subroutine sequential_acces_matrix_fast2
 
@@ -1175,6 +1183,7 @@ module sparsematrix
      integer :: iorb, ii, ilen, jjorb0, jjorb1, jjorb2, jjorb3, jjorb4, jjorb5, jjorb6, iout
      real(kind=8) :: tt0, tt1, tt2, tt3, tt4, tt5, tt6
    
+     call f_routine(id='sparsemm')
      call timing(bigdft_mpi%iproc, 'sparse_matmul ', 'IR')
 
    
@@ -1234,6 +1243,7 @@ module sparsematrix
 
    
      call timing(bigdft_mpi%iproc, 'sparse_matmul ', 'RS')
+     call f_release_routine()
        
    end subroutine sparsemm
 
@@ -1590,6 +1600,8 @@ module sparsematrix
       ! Local variables
       integer :: iseg, i, ii
       integer,parameter :: iunit=234
+
+      call f_routine(id='write_sparsematrix')
     
       open(unit=iunit,file=filename)
 
@@ -1625,6 +1637,8 @@ module sparsematrix
       end do
 
       close(unit=iunit)
+
+      call f_release_routine()
     
     end subroutine write_sparsematrix
 
@@ -1648,6 +1662,8 @@ module sparsematrix
       integer,parameter :: iunit=234, iunit2=235
       character(len=10) :: num
       character(len=100) :: frmt
+
+      call f_routine(id='write_sparsematrix_CCS')
 
       col_ptr = f_malloc(smat%nfvctr,id='col_ptr')
       row_ind = f_malloc(smat%nvctr,id='row_ind')
@@ -1723,6 +1739,8 @@ module sparsematrix
       call f_free(col_ptr)
       call f_free(row_ind)
       call f_free(matg)
+
+      call f_release_routine()
     
     end subroutine write_sparsematrix_CCS
 

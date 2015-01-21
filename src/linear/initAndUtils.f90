@@ -2252,8 +2252,8 @@ subroutine set_confdatarr(input, at, lorbs, onwhichatom, potential_prefac, locra
   type(confpot_data),dimension(lorbs%norbp), intent(inout) :: confdatarr
 
   ! Local variables
-  integer :: iorb, ilr, iiat, itype
-  real(kind=8) :: tt, prefac
+  integer :: iorb, ilr, iiat, itype, jorb
+  real(kind=8) :: tt, prefac, damping_diff
   logical,dimension(:),allocatable :: written
   logical :: do_write
   character(len=20) :: atomname
@@ -2261,9 +2261,23 @@ subroutine set_confdatarr(input, at, lorbs, onwhichatom, potential_prefac, locra
   written = f_malloc(at%astruct%ntypes)
   written = .false.
 
+  ! Check that the damping factor is the same on all processes
+  tt = 0.d0
+  do iorb=1,lorbs%norbp
+      do jorb=1,lorbs%norbp-1
+          tt = max(tt,abs(confdatarr(iorb)%damping-confdatarr(jorb)%damping))
+      end do
+  end do
+  damping_diff = mpimaxdiff(1, tt)
+
   if (bigdft_mpi%iproc==0) call yaml_comment('Set the confinement prefactors',hfill='~')
   if (bigdft_mpi%iproc==0) call yaml_sequence(advance='no')
   if (bigdft_mpi%iproc==0) call yaml_sequence_open(trim(text))
+  if(bigdft_mpi%iproc==0) call yaml_sequence(advance='no')
+  if(bigdft_mpi%iproc==0) call yaml_mapping_open(flow=.true.)
+  if(bigdft_mpi%iproc==0) call yaml_map('max diff damping',damping_diff,fmt='(es8.2)')
+  if(bigdft_mpi%iproc==0) call yaml_map('damping value',confdatarr(1)%damping,fmt='(es8.2)')
+  if(bigdft_mpi%iproc==0) call yaml_mapping_close()
   do iorb=1,lorbs%norb
       iiat=onwhichatom(iorb)
       itype=at%astruct%iatype(iiat)
@@ -2288,7 +2302,7 @@ subroutine set_confdatarr(input, at, lorbs, onwhichatom, potential_prefac, locra
           if(do_write .and. bigdft_mpi%iproc==0) call yaml_map('origin','from file')
       end if
       if (iorb>lorbs%isorb .and. iorb<=lorbs%isorb+lorbs%norbp) then
-          confdatarr(iorb-lorbs%isorb)%prefac=prefac
+          confdatarr(iorb-lorbs%isorb)%prefac = prefac*confdatarr(iorb-lorbs%isorb)%damping
       end if
       if(do_write .and. bigdft_mpi%iproc==0) call yaml_mapping_close()
   end do

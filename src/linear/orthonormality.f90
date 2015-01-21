@@ -1535,6 +1535,8 @@ subroutine overlap_minus_one_exact_serial(norb,inv_ovrlp)
 
   integer :: info, iorb, jorb
 
+  call f_routine(id='overlap_minus_one_exact_serial')
+
   call dpotrf('u', norb, inv_ovrlp(1,1), norb, info)
   if(info/=0) then
      write(*,'(1x,a,i0)') 'ERROR in dpotrf, info=',info
@@ -1554,6 +1556,8 @@ subroutine overlap_minus_one_exact_serial(norb,inv_ovrlp)
      end do
   end do
   !$omp end parallel do 
+
+  call f_release_routine()
 
 end subroutine overlap_minus_one_exact_serial
 

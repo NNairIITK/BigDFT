@@ -759,6 +759,7 @@ module module_types
      real(gp) :: prefac                 !< Prefactor
      real(gp), dimension(3) :: hh       !< Grid spacings in ISF grid
      real(gp), dimension(3) :: rxyzConf !< Confining potential center in global coordinates
+     real(gp) :: damping                !< Damping factor to be used after the restart
   end type confpot_data
 
 

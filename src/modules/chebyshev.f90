@@ -348,6 +348,7 @@ module chebyshev
       ! Local variables
       integer :: i, jorb, iorb
     
+      call f_routine(id='copy_kernel_vectors')
     
       !$omp parallel default(private) shared(nout, onedimindices,a, b)
       !$omp do
@@ -359,6 +360,7 @@ module chebyshev
       !$omp end do
       !$omp end parallel
     
+      call f_release_routine()
     
     end subroutine copy_kernel_vectors
     
@@ -379,6 +381,8 @@ module chebyshev
     
       ! Local variables
       integer :: i, jorb, iorb
+
+      call f_routine(id='axpy_kernel_vectors')
     
       !$omp parallel default(private) shared(nout, onedimindices, y, x, a)
       !$omp do
@@ -390,6 +394,7 @@ module chebyshev
       !$omp end do
       !$omp end parallel
     
+      call f_release_routine()
     
     end subroutine axpy_kernel_vectors
     
