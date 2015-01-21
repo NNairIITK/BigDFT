@@ -44,7 +44,7 @@ end program]], withflibmod=yes, withflibmod=no)
   if test -n "$ac_flib_libdir" ; then
     LIBS="$LIBS $ac_flib_libdir"
   else
-    ac_flib_libdir="-lxcf90 -lxc"
+    ac_flib_libdir="-lflib-1"
   fi
   AC_CHECK_LIB(flib-1, f_lib_initialize, ac_use_flib=yes, ac_use_flib=no)
   LIBS=$LIBS_SVG
