@@ -130,35 +130,6 @@ program mhgps
     call init_state_properties(outs, bigdft_nat(runObj))
 
 
-!    elseif(efmethod=='AMBER')then
-!        mhgpsst%iproc=0
-!        isForceField=.true.
-!        call read_atomic_file(trim(adjustl(filename)),&
-!             mhgpsst%iproc,atom_struct)
-!        astruct_ptr=>atom_struct
-!        fdim=astruct_ptr%nat
-!        !alanine stuff ......................START!>
-!          l_sat=5
-!          allocate(atomnamesdmy(1000))
-!          rxyzdmy = f_malloc((/ 1.to.3, 1.to.astruct_ptr%nat/),&
-!                            id='rxyzdmy')
-!          fxyzdmy = f_malloc((/ 1.to.3, 1.to.astruct_ptr%nat/),&
-!                            id='fxyzdmy')
-!          fnpdb='ald_new.pdb'
-!          nfnpdb=len(trim(fnpdb));
-!          call nab_init(astruct_ptr%nat,rxyzdmy,fxyzdmy,&
-!                        trim(fnpdb),nfnpdb,l_sat,atomnamesdmy)
-!          call f_free(rxyzdmy)
-!          call f_free(fxyzdmy)
-!          deallocate(atomnamesdmy)
-!        !alanine stuff ......................END!>
-!
-!        call print_logo_mhgps()
-!    else
-!        call yaml_warning('Following method for evaluation of '//&
-!        'energies and forces is unknown: '//trim(adjustl(efmethod)))
-!        stop
-!    endif
     if(mhgpsst%iproc==0) call print_input(uinp)
 
     mhgpsst%nid = bigdft_nat(runObj) !s-overlap fingerprints
