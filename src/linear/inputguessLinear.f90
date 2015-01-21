@@ -795,6 +795,8 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
      ldiis%alphaDIIS=input%lin%alphaDIIS
      energs%eexctX=0.d0 !temporary fix
      trace_old=0.d0 !initialization
+     call set_confdatarr(input, at, tmb%orbs, tmb%orbs%onwhichatom, input%lin%potentialPrefac_lowaccuracy, &
+          input%lin%locrad_lowaccuracy, 'Confinement prefactor for extended input guess', tmb%confdatarr)
      if (iproc==0) then
          !call yaml_mapping_close()
          call yaml_comment('Extended input guess for experimental mode',hfill='-')

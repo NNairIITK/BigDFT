@@ -30,6 +30,8 @@ subroutine apply_potential_lr_conf_noconf(n1i,n2i,n3i,n1ip,n2ip,n3ip,ishift,n2,n
   real(wp) :: psir1,pot1,pot1_noconf,x,y,z
   real(gp) :: epot_p,econf_p!,ierr
 
+  call f_routine(id='apply_potential_lr_conf_noconf')
+
   if (f_err_raise(nspinor==4,'nspinor=4 not supported with noconf')) return
 
   epot=0.0_wp
@@ -163,6 +165,8 @@ subroutine apply_potential_lr_conf_noconf(n1i,n2i,n3i,n1ip,n2ip,n3ip,ishift,n2,n
   
   !$omp end parallel
 
+  call f_release_routine()
+
 END SUBROUTINE apply_potential_lr_conf_noconf
 
 !> routine for applying the local potential
@@ -184,6 +188,8 @@ subroutine apply_potential_lr_conf(n1i,n2i,n3i,n1ip,n2ip,n3ip,ishift,n2,n3,&
   real(wp) :: tt11,cp,r2,z2,y2
   real(wp) :: psir1,pot1,x,y,z
   real(gp) :: epot_p!,ierr
+
+  call f_routine(id='apply_potential_lr_conf')
 
   if (f_err_raise(nspinor==4,&
        'nspinor=4 not supported with confining potential')) return
@@ -310,6 +316,8 @@ subroutine apply_potential_lr_conf(n1i,n2i,n3i,n1ip,n2ip,n3ip,ishift,n2,n3,&
   
   !$omp end parallel
 
+  call f_release_routine()
+
 END SUBROUTINE apply_potential_lr_conf
 
 
@@ -330,6 +338,8 @@ subroutine apply_potential_lr_conf_nobounds(n1i,n2i,n3i,n1ip,n2ip,n3ip,ishift,n2
   real(wp) :: tt11,tt22,tt33,tt44,tt13,tt14,tt23,tt24,tt31,tt32,tt41,tt42,r2
   real(wp) :: psir1,psir2,psir3,psir4,pot1,pot2,pot3,pot4,x,y,z,cp,z2,y2,tt
   real(gp) :: epot_p!,ierr
+
+  call f_routine(id='apply_potential_lr_conf_nobounds')
 
   epot=0.0_wp
 
@@ -521,6 +531,8 @@ subroutine apply_potential_lr_conf_nobounds(n1i,n2i,n3i,n1ip,n2ip,n3ip,ishift,n2
   
   !$omp end parallel
 
+  call f_release_routine()
+
 END SUBROUTINE apply_potential_lr_conf_nobounds
 
 !>   routine for applying the local potential
@@ -539,6 +551,8 @@ subroutine apply_potential_lr_nobounds(n1i,n2i,n3i,n1ip,n2ip,n3ip,ishift,n2,n3,n
   real(wp) :: tt11,tt22,tt33,tt44,tt13,tt14,tt23,tt24,tt31,tt32,tt41,tt42
   real(wp) :: psir1,psir2,psir3,psir4,pot1,pot2,pot3,pot4,tt
   real(gp) :: epot_p!,ierr
+
+  call f_routine(id='apply_potential_lr_nobounds')
 
   epot=0.0_wp
 
@@ -714,6 +728,8 @@ subroutine apply_potential_lr_nobounds(n1i,n2i,n3i,n1ip,n2ip,n3ip,ishift,n2,n3,n
   
   !$omp end parallel
 
+  call f_release_routine()
+
 END SUBROUTINE apply_potential_lr_nobounds
 
 !>   routine for applying the local potential
@@ -733,6 +749,8 @@ subroutine apply_potential_lr_bounds(n1i,n2i,n3i,n1ip,n2ip,n3ip,ishift,n2,n3,nsp
   real(wp) :: tt11,tt22,tt33,tt44,tt13,tt14,tt23,tt24,tt31,tt32,tt41,tt42
   real(wp) :: psir1,psir2,psir3,psir4,pot1,pot2,pot3,pot4,eptmp
   real(gp) :: epot_p!,ierr
+
+  call f_routine(id='apply_potential_lr_bounds')
 
   epot=0.0_wp
 
@@ -909,5 +927,8 @@ subroutine apply_potential_lr_bounds(n1i,n2i,n3i,n1ip,n2ip,n3ip,ishift,n2,n3,nsp
   !!!$omp end critical
   
   !$omp end parallel
+
+
+  call f_release_routine()
 
 END SUBROUTINE apply_potential_lr_bounds

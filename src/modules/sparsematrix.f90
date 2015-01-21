@@ -31,6 +31,10 @@ module sparsematrix
   public :: orb_from_index
   public :: gather_matrix_from_taskgroups, gather_matrix_from_taskgroups_inplace
   public :: extract_taskgroup_inplace, extract_taskgroup
+  public :: write_matrix_compressed
+  public :: check_symmetry
+  public :: write_sparsematrix
+  public :: write_sparsematrix_CCS
 
   contains
 
@@ -1387,5 +1391,340 @@ module sparsematrix
      end do
 
    end subroutine extract_taskgroup
+
+    subroutine write_matrix_compressed(message, smat, mat)
+      use yaml_output
+      implicit none
+    
+      ! Calling arguments
+      character(len=*),intent(in) :: message
+      type(sparse_matrix),intent(in) :: smat
+      type(matrices),intent(in) :: mat
+    
+      ! Local variables
+      integer :: iseg, i, ii, iorb, jorb
+      integer,dimension(2) :: irowcol
+    
+      !!call yaml_sequence_open(trim(message))
+      !!do iseg=1,smat%nseg
+      !!    call yaml_sequence(advance='no')
+      !!    ilen=smat%keyg(2,iseg)-smat%keyg(1,iseg)+1
+      !!    call yaml_mapping_open(flow=.true.)
+      !!    call yaml_map('segment',iseg)
+      !!    istart=smat%keyv(iseg)
+      !!    iend=smat%keyv(iseg)+ilen
+      !!    call yaml_map('values',smat%matrix_compr(istart:iend))
+      !!    call yaml_mapping_close()
+      !!    call yaml_newline()
+      !!end do
+      !!call yaml_sequence_close()
+    
+      call yaml_sequence_open(trim(message))
+      do iseg=1,smat%nseg
+          ! A segment is always on one line, therefore no double loop
+          call yaml_sequence(advance='no')
+          !ilen=smat%keyg(2,iseg)-smat%keyg(1,iseg)+1
+          call yaml_mapping_open(flow=.true.)
+          call yaml_map('segment',iseg)
+          call yaml_sequence_open('elements')
+          !istart=smat%keyv(iseg)
+          !iend=smat%keyv(iseg)+ilen-1
+          !do i=istart,iend
+          ii=smat%keyv(iseg)
+          do i=smat%keyg(1,1,iseg),smat%keyg(2,1,iseg)
+              call yaml_newline()
+              call yaml_sequence(advance='no')
+              call yaml_mapping_open(flow=.true.)
+              !irowcol=orb_from_index(smat,i)
+              !iorb=orb_from_index(1,i)
+              !jorb=orb_from_index(2,i)
+              call yaml_map('coordinates',(/smat%keyg(1,2,iseg),i/))
+              call yaml_map('value',mat%matrix_compr(ii))
+              call yaml_mapping_close()
+              ii=ii+1
+          end do
+          call yaml_sequence_close()
+          !call yaml_map('values',smat%matrix_compr(istart:iend))
+          call yaml_mapping_close()
+          call yaml_newline()
+      end do
+      call yaml_sequence_close()
+    
+    end subroutine write_matrix_compressed
+
+
+   subroutine sparsemm_debug(smat, a_seq, b, c)
+     use module_base
+     use yaml_output
+     implicit none
+   
+     !Calling Arguments
+     type(sparse_matrix),intent(in) :: smat
+     real(kind=8), dimension(smat%nfvctr,smat%smmm%nfvctrp),intent(in) :: b
+     real(kind=8), dimension(smat%smmm%nseq),intent(in) :: a_seq
+     real(kind=8), dimension(smat%nfvctr,smat%smmm%nfvctrp), intent(out) :: c
+   
+     !Local variables
+     !character(len=*), parameter :: subname='sparsemm'
+     integer :: i,jorb,jjorb,m,mp1
+     integer :: iorb, ii, ilen, jjorb0, jjorb1, jjorb2, jjorb3, jjorb4, jjorb5, jjorb6, iout
+     real(kind=8) :: tt0, tt1, tt2, tt3, tt4, tt5, tt6
+   
+     call timing(bigdft_mpi%iproc, 'sparse_matmul ', 'IR')
+
+   
+     !!$omp parallel default(private) shared(smat, a_seq, b, c)
+     !!$omp do
+     do iout=1,smat%smmm%nout
+         i=smat%smmm%onedimindices(1,iout)
+         iorb=smat%smmm%onedimindices(2,iout)
+         ilen=smat%smmm%onedimindices(3,iout)
+         ii=smat%smmm%onedimindices(4,iout)
+         tt0=0.d0
+         tt1=0.d0
+         tt2=0.d0
+         tt3=0.d0
+         tt4=0.d0
+         tt5=0.d0
+         tt6=0.d0
+   
+         m=mod(ilen,7)
+         if (m/=0) then
+             do jorb=1,ilen
+                jjorb=smat%smmm%ivectorindex(ii)
+                tt0 = tt0 + b(jjorb,i)*a_seq(ii)
+                write(2003,'(a,2i6,3es14.5)') 'iorb, i, A, B, tt0', iorb, i, a_seq(ii), b(jjorb,i), tt0
+                ii=ii+1
+             end do
+         end if
+         !!mp1=m+1
+         !!do jorb=mp1,ilen,7
+   
+         !!   jjorb0=smat%smmm%ivectorindex(ii+0)
+         !!   tt0 = tt0 + b(jjorb0,i)*a_seq(ii+0)
+   
+         !!   jjorb1=smat%smmm%ivectorindex(ii+1)
+         !!   tt1 = tt1 + b(jjorb1,i)*a_seq(ii+1)
+   
+         !!   jjorb2=smat%smmm%ivectorindex(ii+2)
+         !!   tt2 = tt2 + b(jjorb2,i)*a_seq(ii+2)
+   
+         !!   jjorb3=smat%smmm%ivectorindex(ii+3)
+         !!   tt3 = tt3 + b(jjorb3,i)*a_seq(ii+3)
+   
+         !!   jjorb4=smat%smmm%ivectorindex(ii+4)
+         !!   tt4 = tt4 + b(jjorb4,i)*a_seq(ii+4)
+   
+         !!   jjorb5=smat%smmm%ivectorindex(ii+5)
+         !!   tt5 = tt5 + b(jjorb5,i)*a_seq(ii+5)
+   
+         !!   jjorb6=smat%smmm%ivectorindex(ii+6)
+         !!   tt6 = tt6 + b(jjorb6,i)*a_seq(ii+6)
+   
+         !!   ii=ii+7
+         !!end do
+         c(iorb,i) = tt0 + tt1 + tt2 + tt3 + tt4 + tt5 + tt6
+     end do 
+     !!$omp end do
+     !!$omp end parallel
+
+   
+     call timing(bigdft_mpi%iproc, 'sparse_matmul ', 'RS')
+       
+   end subroutine sparsemm_debug
+
+
+   function check_symmetry(norb, smat)
+     use module_base
+     implicit none
+   
+     ! Calling arguments
+     integer,intent(in) :: norb
+     type(sparse_matrix),intent(in) :: smat
+     logical :: check_symmetry
+   
+     ! Local variables
+     integer :: i, iseg, ii, jorb, iorb
+     logical,dimension(:,:),allocatable :: lgrid
+     integer,dimension(2) :: irowcol
+   
+     lgrid=f_malloc((/norb,norb/),id='lgrid')
+     lgrid=.false.
+   
+     do iseg=1,smat%nseg
+         ii=smat%keyv(iseg)
+         ! A segment is always on one line, therefore no double loop
+         do i=smat%keyg(1,1,iseg),smat%keyg(2,1,iseg)
+             !irowcol=orb_from_index(smat,i)
+             !!iorb=smat%orb_from_index(1,i)
+             !!jorb=smat%orb_from_index(2,i)
+             lgrid(smat%keyg(1,2,iseg),i)=.true.
+             ii=ii+1
+         end do
+     end do
+   
+     check_symmetry=.true.
+     do iorb=1,norb
+         do jorb=1,norb
+             if (lgrid(jorb,iorb) .and. .not.lgrid(iorb,jorb)) then
+                 check_symmetry=.false.
+             end if
+         end do
+     end do
+   
+     call f_free(lgrid)
+   
+   end function check_symmetry
+
+
+    !> Write a sparse matrix to a file
+    subroutine write_sparsematrix(filename, smat, mat)
+      use yaml_output
+      implicit none
+    
+      ! Calling arguments
+      character(len=*),intent(in) :: filename
+      type(sparse_matrix),intent(in) :: smat
+      type(matrices),intent(in) :: mat
+    
+      ! Local variables
+      integer :: iseg, i, ii
+      integer,parameter :: iunit=234
+    
+      open(unit=iunit,file=filename)
+
+      write(iunit,*) smat%nfvctr, '# number of columns'
+      write(iunit,*) smat%nseg, '# number of segments'
+      write(iunit,*) smat%nvctr, '# number of non-zero elements'
+      do iseg=1,smat%nseg
+          if(iseg==1) then
+              write(iunit,*) smat%keyv(iseg), '# values of keyv'
+          else
+              write(iunit,*) smat%keyv(iseg)
+          end if
+      end do
+      do iseg=1,smat%nseg
+          if(iseg==1) then
+              write(iunit,*) smat%keyg(1:2,1:2,iseg), '# values of keyg'
+          else
+              write(iunit,*) smat%keyg(1:2,1:2,iseg)
+          end if
+      end do
+    
+      do iseg=1,smat%nseg
+          ! A segment is always on one line, therefore no double loop
+          ii=smat%keyv(iseg)
+          do i=smat%keyg(1,1,iseg),smat%keyg(2,1,iseg)
+              if (i==1 .and. iseg==1) then
+                  write(iunit,*) mat%matrix_compr(ii), '# values of matrix_compr'
+              else
+                  write(iunit,*) mat%matrix_compr(ii)
+              end if
+              ii=ii+1
+          end do
+      end do
+
+      close(unit=iunit)
+    
+    end subroutine write_sparsematrix
+
+
+
+    !> Write a sparse matrix to a file, using the CCS format
+    subroutine write_sparsematrix_CCS(filename, smat, mat)
+      use yaml_output
+      implicit none
+    
+      ! Calling arguments
+      character(len=*),intent(in) :: filename
+      type(sparse_matrix),intent(in) :: smat
+      type(matrices),intent(in) :: mat
+    
+      ! Local variables
+      integer :: iseg, i, j, ii
+      integer,dimension(:),allocatable :: col_ptr, row_ind
+      logical,dimension(:,:),allocatable :: matg
+      logical :: column_started
+      integer,parameter :: iunit=234, iunit2=235
+      character(len=10) :: num
+      character(len=100) :: frmt
+
+      col_ptr = f_malloc(smat%nfvctr,id='col_ptr')
+      row_ind = f_malloc(smat%nvctr,id='row_ind')
+
+      matg = f_malloc((/smat%nfvctr,smat%nfvctr/),id='matg')
+      matg = .false.
+      do iseg=1,smat%nseg
+          ! A segment is always on one line, therefore no double loop
+          ii=smat%keyv(iseg)
+          do i=smat%keyg(1,1,iseg),smat%keyg(2,1,iseg)
+              matg(smat%keyg(1,2,iseg),i) = .true.
+          end do
+      end do
+
+      ii = 0
+      do i=1,smat%nfvctr
+          column_started = .false.
+          do j=1,smat%nfvctr
+             if(matg(j,i)) then
+                 ii = ii + 1
+                 row_ind(ii) = j
+                 if (.not.column_started) then
+                     col_ptr(i) = ii
+                     column_started = .true.
+                 end if
+             end if
+          end do
+      end do
+    
+      open(unit=iunit,file=trim(filename))
+      open(unit=iunit2,file=trim(filename)//'_2')
+
+      write(iunit,*) smat%nfvctr, smat%nvctr, '# number of rows/columns, number of non-zero entries'
+      write(iunit2,*) smat%nfvctr, smat%nfvctr, smat%nvctr
+      do i=1,smat%nfvctr
+          if (i==1) then
+              write(iunit,*) col_ptr(i), '# col_ptr'
+          else
+              write(iunit,*) col_ptr(i)
+          end if
+      end do
+      write(num,'(i0)') smat%nfvctr
+      frmt='('//num//'(i0,1x))'
+      write(iunit2,trim(frmt)) (col_ptr(i),i=1,smat%nfvctr)
+
+      do i=1,smat%nvctr
+          if (i==1) then
+              write(iunit,*) row_ind(i), '# row_ind'
+          else
+              write(iunit,*) row_ind(i)
+          end if
+      end do
+      write(num,'(i0)') smat%nvctr
+      frmt='('//num//'(i0,1x))'
+      write(iunit2,trim(frmt)) (row_ind(i),i=1,smat%nvctr)
+      
+      do i=1,smat%nvctr
+          if(i==1) then
+              write(iunit,*) mat%matrix_compr(i), '# values of matrix_compr' 
+              write(iunit2,*) mat%matrix_compr(i)
+          else
+              write(iunit,*) mat%matrix_compr(i) 
+              write(iunit2,*) mat%matrix_compr(i) 
+          end if
+      end do
+      !write(num,'(i0)') smat%nvctr
+      !frmt='('//num//'i9)'
+      !write(iunit2,trim(frmt)) (mat%matrix_compr(i),i=1,smat%nvctr)
+
+      close(unit=iunit)
+      close(unit=iunit2)
+
+      call f_free(col_ptr)
+      call f_free(row_ind)
+      call f_free(matg)
+    
+    end subroutine write_sparsematrix_CCS
+
 
 end module sparsematrix

@@ -1081,7 +1081,7 @@ geoptconstrained_BFGS:
  Epot: 1.1e-10
  EH: 1.1e-10
  D eF: 2.0e-8
- charge diff: 2.9e-11
+ charge diff: 3.5e-11
  D Tr: 2.1e-11
 
 geoptconstrained_SDCG:

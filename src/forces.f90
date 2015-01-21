@@ -124,19 +124,22 @@ subroutine calculate_forces(iproc,nproc,psolver_groupsize,Glr,atoms,orbs,nlpsp,r
   !!    write(4400+iproc,'(a,i8,3es15.6)') 'iat, fxyz(:,iat)', iat, fxyz(:,iat)
   !!end do
 
+  ! @ NEW: POSSIBLE CONSTRAINTS IN INTERNAL COORDINATES ############
+  if (atoms%astruct%inputfile_format=='int') then
+      if (iproc==0) call yaml_map('converting to  internal coordinates','Yes')
+      if (bigdft_mpi%iproc==0) call yaml_map('force start',fxyz)
+      if (bigdft_mpi%iproc==0) call yaml_map('BEFORE: MAX COMPONENT',maxval(fxyz))
+      call internal_forces(atoms%astruct%nat, rxyz, atoms%astruct%ixyz_int, atoms%astruct%ifrztyp, fxyz)
+      if (bigdft_mpi%iproc==0) call yaml_map('AFTER: MAX COMPONENT',maxval(fxyz))
+  end if
+  ! @ ##############################################################
+
   !clean the center mass shift and the torque in isolated directions
   call clean_forces(iproc,atoms,rxyz,fxyz,fnoise)
   !!do iat=1,atoms%astruct%nat
   !!    write(4500+iproc,'(a,i8,3es15.6)') 'iat, fxyz(:,iat)', iat, fxyz(:,iat)
   !!end do
 
-  ! @ NEW: POSSIBLE CONSTRAINTS IN INTERNAL COORDINATES ############
-  if (atoms%astruct%inputfile_format=='int') then
-      if (iproc==0) call yaml_map('converting to  internal coordinates','Yes')
-      if (bigdft_mpi%iproc==0) call yaml_map('force start',fxyz)
-      call internal_forces(atoms%astruct%nat, rxyz, atoms%astruct%ixyz_int, atoms%astruct%ifrztyp, fxyz)
-  end if
-  ! @ ##############################################################
 
   ! Apply symmetries when needed
   if (atoms%astruct%sym%symObj >= 0) call symmetrise_forces(fxyz,atoms)
@@ -4857,7 +4860,7 @@ subroutine internal_forces(nat, rxyz, ixyz_int, ifrozen, fxyz)
   integer,dimension(:),allocatable :: na, nb, nc
   real(gp),parameter :: degree=57.29578d0
   real(gp),dimension(:,:),allocatable :: geo, rxyz_tmp, geo_tmp, fxyz_int, tmp, rxyz_shifted
-  real(gp),parameter :: alpha=1.d0
+  real(gp),parameter :: alpha=1.d1
   real(kind=8),dimension(3) :: shift
   logical :: fix_bond, fix_phi, fix_theta
 
@@ -4894,7 +4897,8 @@ subroutine internal_forces(nat, rxyz, ixyz_int, ifrozen, fxyz)
   !!call get_neighbors(rxyz, nat, na, nb, nc)
   
   ! Transform the atomic positions to internal coordinates 
-  call xyzint(rxyz, nat, na, nb, nc, degree, geo)
+  !call xyzint(rxyz, nat, na, nb, nc, degree, geo)
+  call xyzint(rxyz_shifted, nat, na, nb, nc, degree, geo)
   !!if (bigdft_mpi%iproc==0) call yaml_map('internal orig',geo)
 !!! TEST ######################
 !!call internal_to_cartesian(nat, na, nb, nc, geo, rxyz_tmp)
@@ -4903,7 +4907,7 @@ subroutine internal_forces(nat, rxyz, ixyz_int, ifrozen, fxyz)
 !!! ###########################
 
   ! Shift the atomic positions according to the forces
-  rxyz_tmp = rxyz + alpha*fxyz
+  rxyz_tmp = rxyz_shifted + alpha*fxyz
 
   ! Transform these new atomic positions to internal coordinates
   call xyzint(rxyz_tmp, nat, na, nb, nc, degree, geo_tmp)
@@ -4913,6 +4917,11 @@ subroutine internal_forces(nat, rxyz, ixyz_int, ifrozen, fxyz)
 
   ! Apply some constraints if required
   do iat=1,nat
+      if (bigdft_mpi%iproc==0) then
+          write(*,'(a,i4,2es16.6)') 'iat, geo(1,iat), geo_tmp(1,iat)', iat, geo(1,iat), geo_tmp(1,iat)
+          write(*,'(a,i4,2es16.6)') 'iat, geo(2,iat), geo_tmp(2,iat)', iat, geo(2,iat), geo_tmp(2,iat)
+          write(*,'(a,i4,2es16.6)') 'iat, geo(3,iat), geo_tmp(3,iat)', iat, geo(3,iat), geo_tmp(3,iat)
+      end if
       ii=ifrozen(iat)
       fix_theta = (mod(ii,10)==2)
       if (fix_theta) ii=ii-2
@@ -4949,6 +4958,14 @@ subroutine internal_forces(nat, rxyz, ixyz_int, ifrozen, fxyz)
   call internal_to_cartesian(nat, na, nb, nc, geo_tmp, rxyz_tmp)
   call internal_to_cartesian(nat, na, nb, nc, geo, tmp)
   !call internal_to_cartesian(nat, na, nb, nc, fxyz_int, fxyz)
+
+  if (bigdft_mpi%iproc==0) then
+      do iat=1,nat
+          write(*,'(a,i4,2es16.6)') 'iat, tmp(1,iat)-rxyz(1,iat), tmp(1,iat)-rxyz_tmp(1,iat)',iat, tmp(1,iat)-rxyz(1,iat), tmp(1,iat)-rxyz_tmp(1,iat) 
+          write(*,'(a,i4,2es16.6)') 'iat, tmp(2,iat)-rxyz(2,iat), tmp(2,iat)-rxyz_tmp(2,iat)',iat, tmp(2,iat)-rxyz(2,iat), tmp(2,iat)-rxyz_tmp(2,iat) 
+          write(*,'(a,i4,2es16.6)') 'iat, tmp(3,iat)-rxyz(3,iat), tmp(3,iat)-rxyz_tmp(3,iat)',iat, tmp(3,iat)-rxyz(3,iat), tmp(3,iat)-rxyz_tmp(3,iat) 
+      end do
+  end if
 
   !if (bigdft_mpi%iproc==0) call yaml_map('rxyz_tmp end',rxyz_tmp)
   !if (bigdft_mpi%iproc==0) call yaml_map('tmp end',tmp)
