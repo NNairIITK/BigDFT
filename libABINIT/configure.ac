@@ -52,6 +52,11 @@ AC_ARG_WITH(internal-libpaw, AS_HELP_STRING([--with-internal-libpaw],
             ac_internal_libpaw=$withval, ac_internal_libpaw="yes")
 AM_CONDITIONAL(BUILD_LIBPAW, test x"$ac_internal_libpaw" = x"yes")
 
+if test x"$ac_internal_libpaw" = x"yes" ; then
+  dnl FLib detection for libPAW.
+  AX_FLIB()
+fi
+
 moduledir=${includedir}
 AC_SUBST(moduledir)
 

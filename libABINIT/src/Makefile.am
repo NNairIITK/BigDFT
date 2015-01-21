@@ -47,8 +47,7 @@ DEFS = $(LIBPAW_DEFS) $(MPI_DEFS)
 DEFS_1 = $(DEFS:-D%=@FCDEFS@-D%)
 DEFS_FORTRAN = $(DEFS_1:-U%=@FCDEFS@-U%)
 
-AM_FCFLAGS = @MPI_INCLUDE@ -I$(srcdir)/abi_geomoptim -I$(srcdir)/incs
-	        -I$(top_builddir)/includes
+AM_FCFLAGS = @MPI_INCLUDE@ -I$(srcdir)/abi_geomoptim @LIB_FLIB_CFLAGS@
 
 ## Hack for XLF strange DEFS option
 PPFCCOMPILE = $(FC) $(DEFS_FORTRAN) $(DEFAULT_INCLUDES) $(INCLUDES) \
@@ -131,7 +130,6 @@ libabinit_a_SOURCES = \
 	abi_mixing/abi_scfeig.F90 \
 	abi_mixing/abi_scfopt.F90 \
 	abi_mixing/abi_sqnormm_v.F90 \
-	abi_mixing/m_ab7_mixing.F90 \
 	abi_recipspace/abi_interfaces_recipspace.F90 \
 	abi_recipspace/abi_irrzg.F90 \
 	abi_recipspace/abi_getkgrid.F90 \
@@ -145,8 +143,8 @@ libabinit_a_SOURCES = \
 	abi_common/abi_fconv.F90 \
 	abi_common/abi_prtxvf.F90 \
 	abi_geomoptim/m_ab6_moldyn.F90 \
-	42_libpaw/pawinit.F90 \
-	42_libpaw/initrhoij.F90 \
+	add_libpaw/pawinit.F90 \
+	add_libpaw/initrhoij.F90 \
 	$(libpaw_files)
 
 CLEANFILES = mpif.h *.@MODULE_EXT@

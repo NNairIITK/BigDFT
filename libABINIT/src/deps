@@ -1,3 +1,21 @@
+pawinit.o: add_libpaw/pawinit.F90 \
+	m_pawang.o \
+	m_paw_atom.o \
+	m_pawpsp.o \
+	m_pawrad.o \
+	m_pawtab.o \
+	m_libpaw_defs.o \
+	m_libpaw_tools.o
+	$(PPFCCOMPILE) -c -o pawinit.o `test -f 'add_libpaw/pawinit.F90' || echo '$(srcdir)/'`add_libpaw/pawinit.F90
+
+initrhoij.o: add_libpaw/initrhoij.F90 \
+	m_paral_atom.o \
+	m_pawrhoij.o \
+	m_pawtab.o \
+	m_libpaw_defs.o \
+	m_libpaw_tools.o
+	$(PPFCCOMPILE) -c -o initrhoij.o `test -f 'add_libpaw/initrhoij.F90' || echo '$(srcdir)/'`add_libpaw/initrhoij.F90
+
 m_profiling.o: 18_memory/m_profiling.F90 \
 	defs_basis.o \
 	$(mpi_include)
@@ -328,11 +346,6 @@ abi_sqnormm_v.o: abi_mixing/abi_sqnormm_v.F90 \
 	m_abi_xmpi.o
 	$(PPFCCOMPILE) -c -o abi_sqnormm_v.o `test -f 'abi_mixing/abi_sqnormm_v.F90' || echo '$(srcdir)/'`abi_mixing/abi_sqnormm_v.F90
 
-m_ab7_mixing.o: abi_mixing/m_ab7_mixing.F90 \
-	abi_defs_basis.o \
-	abi_interfaces_mixing.o
-	$(PPFCCOMPILE) -c -o m_ab7_mixing.o `test -f 'abi_mixing/m_ab7_mixing.F90' || echo '$(srcdir)/'`abi_mixing/m_ab7_mixing.F90
-
 abi_derfc.o: abi_numeric/abi_derfc.F90 \
 	abi_defs_basis.o
 	$(PPFCCOMPILE) -c -o abi_derfc.o `test -f 'abi_numeric/abi_derfc.F90' || echo '$(srcdir)/'`abi_numeric/abi_derfc.F90
@@ -369,6 +382,12 @@ abi_uniformrandom.o: abi_numeric/abi_uniformrandom.F90 \
 abi_wrap2_pmhalf.o: abi_numeric/abi_wrap2_pmhalf.F90 \
 	abi_defs_basis.o
 	$(PPFCCOMPILE) -c -o abi_wrap2_pmhalf.o `test -f 'abi_numeric/abi_wrap2_pmhalf.F90' || echo '$(srcdir)/'`abi_numeric/abi_wrap2_pmhalf.F90
+
+m_splines.o: abi_numeric/m_splines.F90 \
+	defs_basis.o \
+	m_errors.o \
+	m_profiling.o
+	$(PPFCCOMPILE) -c -o m_splines.o `test -f 'abi_numeric/m_splines.F90' || echo '$(srcdir)/'`abi_numeric/m_splines.F90
 
 abi_getkgrid.o: abi_recipspace/abi_getkgrid.F90 \
 	abi_defs_basis.o \
@@ -484,15 +503,6 @@ abi_xcxalp.o: abi_xc_lowlevel/abi_xcxalp.F90 \
 	abi_interfaces_lowlevel.o
 	$(PPFCCOMPILE) -c -o abi_xcxalp.o `test -f 'abi_xc_lowlevel/abi_xcxalp.F90' || echo '$(srcdir)/'`abi_xc_lowlevel/abi_xcxalp.F90
 
-initrhoij.o: libpaw/initrhoij.F90 \
-	defs_basis.o \
-	m_errors.o \
-	m_paral_atom.o \
-	m_pawrhoij.o \
-	m_pawtab.o \
-	m_profiling.o
-	$(PPFCCOMPILE) -c -o initrhoij.o `test -f 'libpaw/initrhoij.F90' || echo '$(srcdir)/'`libpaw/initrhoij.F90
-
 m_libpaw_defs.o: libpaw/m_libpaw_defs.F90
 	$(PPFCCOMPILE) -c -o m_libpaw_defs.o `test -f 'libpaw/m_libpaw_defs.F90' || echo '$(srcdir)/'`libpaw/m_libpaw_defs.F90
 
@@ -573,19 +583,6 @@ m_paw_sphharm.o: libpaw/m_paw_sphharm.F90 \
 	m_libpaw_defs.o \
 	m_libpaw_tools.o
 	$(PPFCCOMPILE) -c -o m_paw_sphharm.o `test -f 'libpaw/m_paw_sphharm.F90' || echo '$(srcdir)/'`libpaw/m_paw_sphharm.F90
-
-pawinit.o: libpaw/pawinit.F90 \
-	defs_basis.o \
-	interfaces_18_timing.o \
-	m_atompaw.o \
-	m_errors.o \
-	m_pawang.o \
-	m_pawpsp.o \
-	m_pawrad.o \
-	m_pawtab.o \
-	m_profiling.o \
-	m_splines.o
-	$(PPFCCOMPILE) -c -o pawinit.o `test -f 'libpaw/pawinit.F90' || echo '$(srcdir)/'`libpaw/pawinit.F90
 
 m_pawang.o: libpaw/m_pawang.F90 \
 	m_paw_sphharm.o \
@@ -677,6 +674,14 @@ m_pawxmlps.o: libpaw/m_pawxmlps.F90 \
 	m_libpaw_defs.o \
 	m_libpaw_tools.o
 	$(PPFCCOMPILE) -c -o m_pawxmlps.o `test -f 'libpaw/m_pawxmlps.F90' || echo '$(srcdir)/'`libpaw/m_pawxmlps.F90
+
+interfaces_42_libpaw.o: libpaw/interfaces_42_libpaw.F90 \
+	defs_basis.o \
+	m_pawang.o \
+	m_pawrad.o \
+	m_pawrhoij.o \
+	m_pawtab.o
+	$(PPFCCOMPILE) -c -o interfaces_42_libpaw.o `test -f 'libpaw/interfaces_42_libpaw.F90' || echo '$(srcdir)/'`libpaw/interfaces_42_libpaw.F90
 
 fortran-symmetry.o: symm/fortran-symmetry.f90 \
 	iso_c_binding.o
