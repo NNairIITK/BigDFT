@@ -598,7 +598,7 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
   integer :: iorb, it, it_tot, ncount, ncharge, ii, kappa_satur, nit_exit, ispin
   !integer :: jorb, nspin
   !real(kind=8),dimension(:),allocatable :: occup_tmp
-  real(kind=8) :: fnrmMax, meanAlpha, ediff_best, alpha_max, delta_energy, delta_energy_prev, ediff
+  real(kind=8) :: meanAlpha, ediff_best, alpha_max, delta_energy, delta_energy_prev, ediff
   real(kind=8),dimension(:),allocatable :: alpha,fnrmOldArr,alphaDIIS
   real(kind=8),dimension(:),allocatable :: hpsit_c_tmp, hpsit_f_tmp, hpsi_tmp, psidiff, tmparr1, tmparr2
   real(kind=8),dimension(:),allocatable :: delta_energy_arr, hpsi_noprecond, kernel_compr_tmp, kernel_best, hphi_nococontra
@@ -701,7 +701,6 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
       it=max(it,1) !since it could become negative (2 is subtracted if the loop cycles)
       it_tot=it_tot+1
 
-      fnrmMax=0.d0
       fnrm=0.d0
   
       if (iproc==0) then
@@ -900,7 +899,7 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
       calculate_inverse = (target_function/=TARGET_FUNCTION_IS_HYBRID .or. method_updatekernel/=UPDATE_BY_RENORMALIZATION)
       !!call extract_taskgroup_inplace(tmb%linmat%l, tmb%linmat%kernel_)
       call calculate_energy_and_gradient_linear(iproc, nproc, it, ldiis, fnrmOldArr, &
-           fnrm_old, alpha, trH, trH_old, fnrm, fnrmMax, &
+           fnrm_old, alpha, trH, trH_old, fnrm, &
            meanAlpha, alpha_max, energy_increased, tmb, lhphiold, overlap_calculated, energs_base, &
            hpsit_c, hpsit_f, nit_precond, target_function, correction_orthoconstraint, hpsi_small, &
            experimental_mode, calculate_inverse, &
