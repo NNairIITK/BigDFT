@@ -1622,10 +1622,11 @@ module sparsematrix
       type(matrices),intent(in) :: mat
     
       ! Local variables
-      integer :: iseg, i, j, ii
-      integer,dimension(:),allocatable :: col_ptr, row_ind
+      integer :: iseg, i, j, ii, icol, imat
+      integer,dimension(:),allocatable :: col_ptr, row_ind, elements_per_column
       logical,dimension(:,:),allocatable :: matg
-      logical :: column_started
+      logical :: column_started, first_in_column_set
+      real(kind=8),dimension(:),allocatable :: val
       integer,parameter :: iunit=234, iunit2=235
       character(len=10) :: num
       character(len=100) :: frmt
@@ -1634,31 +1635,54 @@ module sparsematrix
 
       col_ptr = f_malloc(smat%nfvctr,id='col_ptr')
       row_ind = f_malloc(smat%nvctr,id='row_ind')
-
-      matg = f_malloc((/smat%nfvctr,smat%nfvctr/),id='matg')
-      matg = .false.
-      do iseg=1,smat%nseg
-          ! A segment is always on one line, therefore no double loop
-          ii=smat%keyv(iseg)
-          do i=smat%keyg(1,1,iseg),smat%keyg(2,1,iseg)
-              matg(smat%keyg(1,2,iseg),i) = .true.
-          end do
-      end do
+      val = f_malloc(smat%nvctr,id='val')
 
       ii = 0
-      do i=1,smat%nfvctr
-          column_started = .false.
-          do j=1,smat%nfvctr
-             if(matg(j,i)) then
-                 ii = ii + 1
-                 row_ind(ii) = j
-                 if (.not.column_started) then
-                     col_ptr(i) = ii
-                     column_started = .true.
-                 end if
-             end if
+      do icol=1,smat%nfvctr
+          imat = 0
+          first_in_column_set = .false.
+          do iseg=1,smat%nseg
+              do i=smat%keyg(1,1,iseg),smat%keyg(2,1,iseg)
+                  imat = imat + 1
+                  if (i==icol) then
+                      ! We are in column icol
+                      ii = ii + 1
+                      row_ind(ii) = smat%keyg(1,2,iseg) !row index
+                      val(ii) = mat%matrix_compr(imat)
+                      if (.not.first_in_column_set) then
+                          col_ptr(icol) = ii
+                          first_in_column_set = .true.
+                      end if
+                  end if
+              end do
           end do
       end do
+      if (ii/=smat%nvctr) stop 'ERROR in write_sparsematrix_CCS: ii/=smat%nvctr'
+
+      !!matg = f_malloc((/smat%nfvctr,smat%nfvctr/),id='matg')
+      !!matg = .false.
+      !!do iseg=1,smat%nseg
+      !!    ! A segment is always on one line, therefore no double loop
+      !!    ii=smat%keyv(iseg)
+      !!    do i=smat%keyg(1,1,iseg),smat%keyg(2,1,iseg)
+      !!        matg(smat%keyg(1,2,iseg),i) = .true.
+      !!    end do
+      !!end do
+
+      !!ii = 0
+      !!do i=1,smat%nfvctr
+      !!    column_started = .false.
+      !!    do j=1,smat%nfvctr
+      !!       if(matg(j,i)) then
+      !!           ii = ii + 1
+      !!           row_ind(ii) = j
+      !!           if (.not.column_started) then
+      !!               col_ptr(i) = ii
+      !!               column_started = .true.
+      !!           end if
+      !!       end if
+      !!    end do
+      !!end do
     
       open(unit=iunit,file=trim(filename))
       open(unit=iunit2,file=trim(filename)//'_2')
@@ -1689,11 +1713,15 @@ module sparsematrix
       
       do i=1,smat%nvctr
           if(i==1) then
-              write(iunit,*) mat%matrix_compr(i), '# values of matrix_compr' 
-              write(iunit2,*) mat%matrix_compr(i)
+              !!write(iunit,*) mat%matrix_compr(i), '# values of matrix_compr' 
+              !!write(iunit2,*) mat%matrix_compr(i)
+              write(iunit,*) val(i), '# values of matrix_compr' 
+              write(iunit2,*) val(i)
           else
-              write(iunit,*) mat%matrix_compr(i) 
-              write(iunit2,*) mat%matrix_compr(i) 
+              !write(iunit,*) mat%matrix_compr(i) 
+              !write(iunit2,*) mat%matrix_compr(i) 
+              write(iunit,*) val(i) 
+              write(iunit2,*) val(i) 
           end if
       end do
       !write(num,'(i0)') smat%nvctr
@@ -1705,7 +1733,8 @@ module sparsematrix
 
       call f_free(col_ptr)
       call f_free(row_ind)
-      call f_free(matg)
+      call f_free(val)
+      !!call f_free(matg)
 
       call f_release_routine()
     
