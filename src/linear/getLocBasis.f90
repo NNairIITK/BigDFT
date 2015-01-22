@@ -997,6 +997,18 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
 
       !!delta_energy_prev=delta_energy
 
+      ! Wait for the communication of fnrm on root
+      call mpi_fenceandfree(fnrm%window)
+      fnrm%receivebuf(1)=sqrt(fnrm%receivebuf(1)/dble(tmb%orbs%norb))
+
+      ! The other processes need to get fnrm as well. The fence will be later as
+      ! only iproc=0 has to write.
+      if (iproc==0) fnrm%sendbuf(1) = fnrm%receivebuf(1)
+      fnrm%window = mpiwindow(1, fnrm%sendbuf(1), bigdft_mpi%mpi_comm)
+      if (iproc/=0) then
+          call mpiget(fnrm%receivebuf(1), 1, 0, int(0,kind=mpi_address_kind), fnrm%window)
+      end if
+
       if (energy_increased .and. ldiis%isx==0) then
           !if (iproc==0) write(*,*) 'WARNING: ENERGY INCREASED'
           !if (iproc==0) call yaml_warning('The target function increased, D='&
@@ -1026,18 +1038,8 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
               call untranspose_localized(iproc, nproc, tmb%ham_descr%npsidim_orbs, tmb%orbs, tmb%ham_descr%collcom, &
                    TRANSPOSE_GATHER, hpsit_c, hpsit_f, hpsi_tmp, tmb%ham_descr%lzd, wt_hpsinoprecond)
 
-              ! Wait for the communication of fnrm on root
-              call mpi_fenceandfree(fnrm%window)
-              fnrm%receivebuf(1)=sqrt(fnrm%receivebuf(1)/dble(tmb%orbs%norb))
-              ! The other processes need to get fnrm as well. Check whether this is really needed...
-              if (iproc==0) fnrm%sendbuf(1) = fnrm%receivebuf(1)
-              fnrm%window = mpiwindow(1, fnrm%sendbuf(1), bigdft_mpi%mpi_comm)
-              if (iproc/=0) then
-                  call mpiget(fnrm%receivebuf(1), 1, 0, int(0,kind=mpi_address_kind), fnrm%window)
-              end if
               call mpi_fenceandfree(fnrm%window)
               fnrm_old=fnrm%receivebuf(1)
-
              cycle
           else if(it_tot<3*nit_basis) then ! stop orthonormalizing the tmbs
              if (iproc==0) call yaml_newline()
@@ -1049,17 +1051,6 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
           can_use_ham=.true.
       end if 
 
-      ! Wait for the communication of fnrm on root
-      call mpi_fenceandfree(fnrm%window)
-      fnrm%receivebuf(1)=sqrt(fnrm%receivebuf(1)/dble(tmb%orbs%norb))
-
-      ! The other processes need to get fnrm as well. The fence will be later as
-      ! only iproc=0 has to write.
-      if (iproc==0) fnrm%sendbuf(1) = fnrm%receivebuf(1)
-      fnrm%window = mpiwindow(1, fnrm%sendbuf(1), bigdft_mpi%mpi_comm)
-      if (iproc/=0) then
-          call mpiget(fnrm%receivebuf(1), 1, 0, int(0,kind=mpi_address_kind), fnrm%window)
-      end if
 
       ! information on the progress of the optimization
       if (iproc==0) then
