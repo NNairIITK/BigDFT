@@ -446,7 +446,7 @@ subroutine findsad(mhgpsst,fsw,uinp,runObj,outs,rcov,nbond,iconnect,&
             !DIFF      FMAX      FNRM      alpha    ndim')
             if(mhgpsst%iproc==0.and.uinp%mhgps_verbosity>=2)write(*,'(a)')&
             '  #(MHGPS) METHOD COUNT  IT  CURVATURE             '//&
-            'DIFF      FMAX      FNRM      alpha    ndim '//&
+            'DIFF      GMAX      GNRM      alpha    ndim '//&
             'alpha_strtch overl. displr       displp'
             runObj%inputs%inputPsiId=1
             !determine finite difference
@@ -462,8 +462,11 @@ subroutine findsad(mhgpsst,fsw,uinp,runObj,outs,rcov,nbond,iconnect,&
             enddo
             maxd=sqrt(maxd)
             curvgraddiff_tmp = uinp%saddle_curvforcediff / maxd
-            call yaml_map('  (MHGPS) Finite difference spacing for cuvature computation',&
-                 curvgraddiff_tmp,fmt='(1pe21.14)')
+            if(mhgpsst%iproc==0.and.uinp%mhgps_verbosity>=2)then
+                call yaml_map('  (MHGPS) Finite difference spacing '//&
+                     'for cuvature computation',curvgraddiff_tmp,&
+                     fmt='(1pe21.14)')
+            endif
 
              !inputPsiId=0
             call opt_curv(mhgpsst,it,uinp%imode,fsw,uinp,runObj,outs,uinp%saddle_alpha0_rot,&
