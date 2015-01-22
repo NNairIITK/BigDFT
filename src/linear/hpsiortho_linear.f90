@@ -9,7 +9,7 @@
 
 
 subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
-           ldiis, fnrmOldArr, fnrm_old, alpha, trH, trHold, fnrm, fnrmMax, alpha_mean, alpha_max, &
+           ldiis, fnrmOldArr, fnrm_old, alpha, trH, trHold, fnrm, alpha_mean, alpha_max, &
            energy_increased, tmb, lhphiold, overlap_calculated, &
            energs, hpsit_c, hpsit_f, nit_precond, target_function, correction_orthoconstraint, &
            hpsi_small, experimental_mode, calculate_inverse, correction_co_contra, hpsi_noprecond, &
@@ -42,7 +42,7 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
   real(kind=8), dimension(tmb%orbs%norbp), intent(inout) :: fnrmOldArr
   real(kind=8),intent(inout) :: fnrm_old
   real(kind=8), dimension(tmb%orbs%norbp), intent(inout) :: alpha
-  real(kind=8), intent(out):: trH, fnrm, fnrmMax, alpha_mean, alpha_max
+  real(kind=8), intent(out):: trH, fnrm, alpha_mean, alpha_max
   real(kind=8), intent(in):: trHold
   logical,intent(out) :: energy_increased
   real(kind=8), dimension(tmb%npsidim_orbs), intent(inout):: lhphiold
@@ -437,7 +437,6 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
   ! if newgradient is true, the angle criterion cannot be used and the choice whether to
   ! decrease or increase the step size is only based on the fact whether the trace decreased or increased.
   fnrm=0.d0
-  fnrmMax=0.d0
   fnrmOvrlp_tot=0.d0
   fnrmOld_tot=0.d0
   ist=1
@@ -447,7 +446,6 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
       ncount=tmb%lzd%llr(ilr)%wfd%nvctr_c+7*tmb%lzd%llr(ilr)%wfd%nvctr_f
       tt = ddot(ncount, tmb%hpsi(ist), 1, tmb%hpsi(ist), 1)
       fnrm = fnrm + tt
-      if(tt>fnrmMax) fnrmMax=tt
       if(it>1) then
           tt2=ddot(ncount, tmb%hpsi(ist), 1, lhphiold(ist), 1)
           fnrmOvrlp_tot = fnrmOvrlp_tot + tt2
@@ -492,7 +490,6 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
   fnrm_old=fnrm ! This value will be used in th next call to this routine
 
   fnrm=sqrt(fnrm/dble(tmb%orbs%norb))
-  fnrmMax=sqrt(fnrmMax)
 
 
 
@@ -635,8 +632,8 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
     call f_routine(id='communicate_fnrm')
     if (nproc > 1) then
        call mpiallred(fnrm, 1, mpi_sum, bigdft_mpi%mpi_comm)
-       call mpiallred(fnrmMax, 1, mpi_max, bigdft_mpi%mpi_comm)
     end if
+
     call f_release_routine()
   end subroutine communicate_fnrm
 

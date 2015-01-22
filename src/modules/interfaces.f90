@@ -2438,7 +2438,7 @@ module module_interfaces
        !!end subroutine calculate_energy_and_gradient_linear
 
        subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
-                  ldiis, fnrmOldArr, fnrm_old, alpha, trH, trHold, fnrm, fnrmMax, alpha_mean, alpha_max, &
+                  ldiis, fnrmOldArr, fnrm_old, alpha, trH, trHold, fnrm, alpha_mean, alpha_max, &
                   energy_increased, tmb, lhphiold, overlap_calculated, &
                   energs, hpsit_c, hpsit_f, nit_precond, target_function, correction_orthoconstraint, &
                   hpsi_small, experimental_mode, calculate_inverse, correction_co_contra, hpsi_noprecond, &
@@ -2460,7 +2460,7 @@ module module_interfaces
          real(kind=8), dimension(tmb%orbs%norbp), intent(inout) :: fnrmOldArr
          real(kind=8),intent(inout) :: fnrm_old
          real(kind=8), dimension(tmb%orbs%norbp), intent(inout) :: alpha
-         real(kind=8), intent(out):: trH, fnrm, fnrmMax, alpha_mean, alpha_max
+         real(kind=8), intent(out):: trH, fnrm, alpha_mean, alpha_max
          real(kind=8), intent(in):: trHold
          logical,intent(out) :: energy_increased
          real(kind=8), dimension(tmb%npsidim_orbs), intent(inout):: lhphiold
