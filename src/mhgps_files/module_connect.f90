@@ -137,7 +137,7 @@ recursive subroutine connect_recursively(mhgpsst,fsw,uinp,runObj,outs,&
         connected=.false.
         call write_todo(mhgpsst,runObj,outs,rxyz1,rxyz2,ener1,ener2)
         call yaml_warning('(MHGPS) Saddle search not converged. '//&
-             'Aborting connecting attempt.')
+             'Aborting connection attempt.')
 !        stop 'STOP saddle not converged'
               return
     endif
@@ -669,7 +669,7 @@ connectloop: do while(cobj%ntodo>=1)
         write(mhgpsst%isadc,'(i5.5)')mhgpsst%isad
         connected=.false.
         call yaml_warning('(MHGPS) Saddle search not converged. '//&
-             'Aborting connecting attempt.')
+             'Aborting connection attempt.')
 !        stop 'STOP saddle not converged'
         exit connectloop
     endif
