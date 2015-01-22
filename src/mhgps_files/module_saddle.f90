@@ -1,6 +1,6 @@
 !> @file
 !!    SQNS Saddle Search Method
-!!
+!! @author Bastian Schaefer
 !!    Copyright (C) 2014 BigDFT group
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
@@ -462,6 +462,8 @@ subroutine findsad(mhgpsst,fsw,uinp,runObj,outs,rcov,nbond,iconnect,&
             enddo
             maxd=sqrt(maxd)
             curvgraddiff_tmp = uinp%saddle_curvforcediff / maxd
+            call yaml_map('  (MHGPS) Finite difference spacing for cuvature computation',&
+                 curvgraddiff_tmp,fmt='(1pe21.14)')
 
              !inputPsiId=0
             call opt_curv(mhgpsst,it,uinp%imode,fsw,uinp,runObj,outs,uinp%saddle_alpha0_rot,&
