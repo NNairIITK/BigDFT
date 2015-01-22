@@ -126,11 +126,11 @@ subroutine calculate_forces(iproc,nproc,psolver_groupsize,Glr,atoms,orbs,nlpsp,r
 
   ! @ NEW: POSSIBLE CONSTRAINTS IN INTERNAL COORDINATES ############
   if (atoms%astruct%inputfile_format=='int') then
-      if (iproc==0) call yaml_map('converting to  internal coordinates','Yes')
-      if (bigdft_mpi%iproc==0) call yaml_map('force start',fxyz)
-      if (bigdft_mpi%iproc==0) call yaml_map('BEFORE: MAX COMPONENT',maxval(fxyz))
+      if (iproc==0) call yaml_map('cleaning using internal coordinates','Yes')
+      !if (bigdft_mpi%iproc==0) call yaml_map('force start',fxyz)
+      !if (bigdft_mpi%iproc==0) call yaml_map('BEFORE: MAX COMPONENT',maxval(fxyz))
       call internal_forces(atoms%astruct%nat, rxyz, atoms%astruct%ixyz_int, atoms%astruct%ifrztyp, fxyz)
-      if (bigdft_mpi%iproc==0) call yaml_map('AFTER: MAX COMPONENT',maxval(fxyz))
+      !if (bigdft_mpi%iproc==0) call yaml_map('AFTER: MAX COMPONENT',maxval(fxyz))
   end if
   ! @ ##############################################################
 
