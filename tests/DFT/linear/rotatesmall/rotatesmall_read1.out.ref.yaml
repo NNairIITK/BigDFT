@@ -28,7 +28,7 @@
  
  Reference Paper                       : The Journal of Chemical Physics 129, 014109 (2008)
  Version Number                        : 1.7.6.5
- Timestamp of this run                 : 2015-01-07 16:40:33.075
+ Timestamp of this run                 : 2015-01-22 12:29:06.086
  Root process Hostname                 : phys-comp-03
  Number of MPI tasks                   :  4
  OpenMP parallelization                :  Yes
@@ -562,7 +562,7 @@
      Molecule was shifted              :  7
      Molecule was rotated              :  7
    Reading Waves Time:
-   -  {Process:  0, Timing:  [  3.15E+00,  1.697E+00 ]}
+   -  {Process:  0, Timing:  [  3.13E+00,  1.688E+00 ]}
    Max deviation from unity in reorthonormalize_coeff:  2.40E-05
    Mean deviation from unity in reorthonormalize_coeff:  9.45E-06
    calculate S^x:
@@ -588,8 +588,8 @@
  {e: -2.696744289594E-01, f:  2.0000},  # 00002
  {e: -2.687965044051E-01, f:  2.0000},  # 00003
  {e: -9.570892836175E-02, f:  1.0000}] # 00004
-   Max deviation from unity in reorthonormalize_coeff:  8.88E-16
-   Mean deviation from unity in reorthonormalize_coeff:  4.03E-16
+   Max deviation from unity in reorthonormalize_coeff:  1.22E-15
+   Mean deviation from unity in reorthonormalize_coeff:  6.83E-16
    calculate S^x:
      mode                              : dense
      powers:
@@ -605,17 +605,20 @@
  Ground State Optimization:
     #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Set the confinement prefactors
  - Confinement prefactor for low accuracy:
+   -  {max diff damping:  0.00E+00, damping value:  1.00E+00}
    -  {atom type: H, value:  1.00E-03, origin: from file}
    -  {atom type: Si, value:  1.00E-03, origin: from file}
  - fake iteration: &it_fake000
    -  &final_fake000  {fake iteration: bridge low accuracy}
     #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Set the confinement prefactors
  - Confinement prefactor for high accuracy:
+   -  {max diff damping:  0.00E+00, damping value:  1.00E+00}
    -  {atom type: H, value:  0.00E+00, origin: from file}
    -  {atom type: Si, value:  0.00E+00, origin: from file}
     #========================================================= Adjustments for high accuracy
     #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Set the confinement prefactors
  - Confinement prefactor for high accuracy:
+   -  {max diff damping:  0.00E+00, damping value:  1.00E+00}
    -  {atom type: H, value:  0.00E+00, origin: from file}
    -  {atom type: Si, value:  0.00E+00, origin: from file}
    Locreg increased                    :  No
@@ -629,7 +632,7 @@
      -  { #-------------------------------------------------------------------- it coeff: 1
  communication strategy kernel: ALLREDUCE, 
  calculate S^x: {mode: dense, powers: {x: -1}, order:  0, 
- max / mean error:  [  4.44E-16,  1.16E-16 ]}, 
+ max / mean error:  [  4.44E-16,  1.06E-16 ]}, 
  Max deviation from unity in reorthonormalize_coeff:  4.44E-06, 
  Mean deviation from unity in reorthonormalize_coeff:  1.56E-06, 
  calculate S^x: {mode: dense, powers: {x: -1/2}, order:  0}, 
@@ -646,14 +649,14 @@
  Orthoconstraint:  Yes, calculation of S^-1: direct calculation, 
  calculate S^x: {mode: sparse, powers: {x: -1}, order:  0, 
  error estimation: [
- max / mean error:  [  4.44E-16,  1.16E-16 ]]}, 
+ max / mean error:  [  4.44E-16,  1.06E-16 ]]}, 
  Preconditioning:  Yes, 
- iter:  1, fnrm:  1.71E-01, Omega: -5.494625826572989E+00, D: -5.49E+00, D best: -5.49E+00, 
+ iter:  1, fnrm:  1.71E-01, Omega: -5.494625826572991E+00, D: -5.49E+00, D best: -5.49E+00, 
  exit criterion: net number of iterations}
    -  &final_supfun001  { #-------------------------------------------------------- iter: 1
  target function: ENERGY, 
  Energies: {Ekin:  5.01463058435E+00, Epot: -6.66645789452E+00, Enl:  1.18855204039E+00}, 
- iter:  1, fnrm:  1.71E-01, Omega: -5.494625826572989E+00, D: -5.49E+00, D best: -5.49E+00}
+ iter:  1, fnrm:  1.71E-01, Omega: -5.494625826572991E+00, D: -5.49E+00, D best: -5.49E+00}
       #Support functions created
     #=================================================================== kernel optimization
  - kernel optimization: &it_kernel001
@@ -668,12 +671,12 @@
        -  { #------------------------------------------------------------------ it coeff: 1
  communication strategy kernel: ALLREDUCE, 
  calculate S^x: {mode: dense, powers: {x: -1}, order:  0, 
- max / mean error:  [  4.44E-16,  1.16E-16 ]}, 
+ max / mean error:  [  4.44E-16,  1.06E-16 ]}, 
  Max deviation from unity in reorthonormalize_coeff:  1.46E-05, 
  Mean deviation from unity in reorthonormalize_coeff:  5.11E-06, 
  calculate S^x: {mode: dense, powers: {x: -1/2}, order:  0}, 
  communication strategy kernel: ALLREDUCE, method: DminSD, 
- iter:  1, fnrm:  2.03E-02, eBS: -2.01524540741353508E+00, D: -2.962E-04, 
+ iter:  1, fnrm:  2.03E-02, eBS: -2.01524540741353819E+00, D: -2.962E-04, 
           alpha:  2.000E-01}
        Coefficients available          :  Yes
      Hamiltonian update: {
@@ -682,22 +685,22 @@
     Total charge:  6.999999949470E+00, 
  Poisson Solver: {BC: Free, Box:  [  113,  113,  111 ], MPI tasks:  4}}
      summary: [ {kernel method: DMIN, mix entity: DENS, mix hist:  0, conv crit:  1.71E-11, 
- iter:  1, delta:  3.30E-08, energy: -5.49492204117449390E+00, D: -5.495E+00}]
+ iter:  1, delta:  3.30E-08, energy: -5.49492204117449212E+00, D: -5.495E+00}]
    -  &final_kernel001  { #-------------------------------------------------------- iter: 2
  summary: [ {kernel method: DMIN, mix entity: DENS, mix hist:  0, conv crit:  1.71E-11, 
- iter:  2, delta:  3.30E-08, energy: -5.49492204117449390E+00, D: -5.495E+00}]}
+ iter:  2, delta:  3.30E-08, energy: -5.49492204117449212E+00, D: -5.495E+00}]}
     #================================================================= Summary of both steps
    self consistency summary: &it_sc001
    -  {iter:  1, Omega: ENERGY,  #WARNING: support function optimization not converged
  kernel optimization: DIRMIN,  #WARNING: density optimization not converged
- iter high:  1, delta out:  3.302E-08, energy: -5.49492204117449390E+00, D: -5.495E+00}
+ iter high:  1, delta out:  3.302E-08, energy: -5.49492204117449212E+00, D: -5.495E+00}
     #========================================================================= final results
    self consistency summary:
    -  {iter:  1, 
  Energies: {Ekin:  5.01463058435E+00, Epot: -6.66645789452E+00, Enl:  1.18855204039E+00, 
               EH:  9.06718252159E+00,  EXC: -2.18717529496E+00, EvXC: -2.85449746753E+00}, 
        iter high:  1,            delta out:  3.302E-08, 
-          energy: -5.49492204117449390E+00,                       D:  0.000E+00,  #FINAL
+          energy: -5.49492204117449212E+00,                       D:  0.000E+00,  #FINAL
  }
  Total charge                          :  6.999999949470E+00
  Max deviation from unity in reorthonormalize_coeff:  2.40E-05
@@ -712,10 +715,10 @@
              frag eval: -2.68796504E-01, overlap:  1.000019E+00, occ:  2.00, 
  state: HOMO, energy: -7.70937380E-02, orthog energy: -7.70938506E-02, 
            frag eval: -9.57089284E-02, overlap:  9.999991E-01, occ:  1.00, 
- 2*frag sum: -2.015067879854539, 2*frag sum orthog: -2.015053866231582, 
+ 2*frag sum: -2.015067879854542, 2*frag sum orthog: -2.015053866231582, 
  2*eval sum: -2.051500040255748}, 
  ]
- 2.0_gp*frag_sum_tot                   : -2.015067879854539
+ 2.0_gp*frag_sum_tot                   : -2.015067879854542
  2.0_gp*frag_sum_tot_orthog            : -2.015053866231582
  2.0_gp*eval_sum_tot                   : -2.051500040255748
   #---------------------------------------------------------------------- Forces Calculation
@@ -731,10 +734,10 @@
  Raw forces norm (Ha/Bohr): {maxval:  3.996422199584E-02, fnrm2:  4.892186749295E-03}
   #--------------------------------------------------------------------------- Atomic Forces
  Atomic Forces (Ha/Bohr):
- -  {Si: [ 3.452395132022E-03, -3.496580418527E-03,  1.454721538139E-02]} # 0001
- -  {H: [ 3.598760818333E-02,  1.209191810232E-02, -1.154119513414E-02]} # 0002
+ -  {Si: [ 3.452395132021E-03, -3.496580418524E-03,  1.454721538140E-02]} # 0001
+ -  {H: [ 3.598760818333E-02,  1.209191810233E-02, -1.154119513414E-02]} # 0002
  -  {H: [-1.224138745177E-02, -3.527801299330E-02, -1.130971920102E-02]} # 0003
- -  {H: [-2.719861586358E-02,  2.668267530950E-02,  8.303698953762E-03]} # 0004
+ -  {H: [-2.719861586358E-02,  2.668267530950E-02,  8.303698953761E-03]} # 0004
   #-------------------------------- Warnings obtained during the run, check their relevance!
  WARNINGS:
  - Odd number of electrons, no closed shell system
@@ -743,17 +746,17 @@
  - density optimization not converged
   #-------------------------------------------------------------------- Timing for root process
  Timings for root process:
-   CPU time (s)                        :  6.56
-   Elapsed time (s)                    :  3.45
+   CPU time (s)                        :  6.64
+   Elapsed time (s)                    :  3.47
  BigDFT infocode                       :  0
  Memory Consumption Report:
-   Tot. No. of Allocations             :  2507
-   Tot. No. of Deallocations           :  2507
+   Tot. No. of Allocations             :  2540
+   Tot. No. of Deallocations           :  2540
    Remaining Memory (B)                :  0
    Memory occupation:
-     Peak Value (MB)                   :  144.399
+     Peak Value (MB)                   :  153.661
      for the array                     : psir
-     in the routine                    : LocalHamiltonianApplication
-     Memory Peak of process            : 182.244 MB
- Max No. of dictionaries used          :  3495 #( 842 still in use)
+     in the routine                    : psi_to_vlocpsi
+     Memory Peak of process            : 188.956 MB
+ Max No. of dictionaries used          :  3822 #( 842 still in use)
  Number of dictionary folders allocated:  1

@@ -1259,7 +1259,7 @@ subroutine set_optimization_variables(input, at, lorbs, nlr, onwhichatom, confda
   if(lowaccur_converged) then
       !!if (bigdft_mpi%iproc==0) call yaml_comment('Set the confinement prefactors',hfill='~')
       call set_confdatarr(input, at, lorbs, onwhichatom, input%lin%potentialPrefac_highaccuracy, &
-           input%lin%locrad_highaccuracy, 'Confinement prefactor for high accuracy', confdatarr)
+           input%lin%locrad_highaccuracy, 'Confinement prefactor for high accuracy', .true., confdatarr)
       !!if (bigdft_mpi%iproc==0) call yaml_sequence(advance='no')
       !!if (bigdft_mpi%iproc==0) call yaml_sequence_open('Confinement prefactor for high accuracy')
       !!do iorb=1,lorbs%norb
@@ -1306,7 +1306,7 @@ subroutine set_optimization_variables(input, at, lorbs, nlr, onwhichatom, confda
       conv_crit_TMB=input%lin%convCrit_lowaccuracy
   else
       call set_confdatarr(input, at, lorbs, onwhichatom, input%lin%potentialPrefac_lowaccuracy, &
-           input%lin%locrad_lowaccuracy, 'Confinement prefactor for low accuracy', confdatarr)
+           input%lin%locrad_lowaccuracy, 'Confinement prefactor for low accuracy', .true., confdatarr)
       !!if (bigdft_mpi%iproc==0) call yaml_sequence(advance='no')
       !!if (bigdft_mpi%iproc==0) call yaml_sequence_open('Confinement prefactor for low accuracy')
       !!do iorb=1,lorbs%norb
@@ -1728,7 +1728,7 @@ subroutine set_variables_for_hybrid(iproc, nlr, input, at, orbs, lowaccur_conver
   lowaccur_converged=.false.
   !if (bigdft_mpi%iproc==0) call yaml_comment('Set the confinement prefactors',hfill='~')
   call set_confdatarr(input, at, orbs, orbs%onwhichatom, input%lin%potentialPrefac_lowaccuracy, &
-       input%lin%locrad_lowaccuracy, 'Confinement prefactor for hybrid mode', confdatarr)
+       input%lin%locrad_lowaccuracy, 'Confinement prefactor for hybrid mode', .true., confdatarr)
   !!if (iproc==0) call yaml_sequence(advance='no')
   !!if (iproc==0) call yaml_sequence_open('Confinement prefactor for hybrid mode')
   !!do iorb=1,orbs%norb
@@ -2235,7 +2235,7 @@ end subroutine init_sparse_matrix_for_KSorbs
 
 
 
-subroutine set_confdatarr(input, at, lorbs, onwhichatom, potential_prefac, locrad, text, confdatarr)
+subroutine set_confdatarr(input, at, lorbs, onwhichatom, potential_prefac, locrad, text, add_sequence, confdatarr)
   use module_base
   use module_types
   use yaml_output
@@ -2249,6 +2249,7 @@ subroutine set_confdatarr(input, at, lorbs, onwhichatom, potential_prefac, locra
   real(kind=8),dimension(at%astruct%ntypes),intent(in) :: potential_prefac
   real(kind=8),dimension(lorbs%norb),intent(in) :: locrad
   character(len=*) :: text
+  logical,intent(in) :: add_sequence
   type(confpot_data),dimension(lorbs%norbp), intent(inout) :: confdatarr
 
   ! Local variables
@@ -2271,7 +2272,7 @@ subroutine set_confdatarr(input, at, lorbs, onwhichatom, potential_prefac, locra
   damping_diff = mpimaxdiff(1, tt)
 
   if (bigdft_mpi%iproc==0) call yaml_comment('Set the confinement prefactors',hfill='~')
-  if (bigdft_mpi%iproc==0) call yaml_sequence(advance='no')
+  if (bigdft_mpi%iproc==0 .and. add_sequence) call yaml_sequence(advance='no')
   if (bigdft_mpi%iproc==0) call yaml_sequence_open(trim(text))
   if(bigdft_mpi%iproc==0) call yaml_sequence(advance='no')
   if(bigdft_mpi%iproc==0) call yaml_mapping_open(flow=.true.)

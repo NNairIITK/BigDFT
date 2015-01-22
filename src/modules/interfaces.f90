@@ -4161,7 +4161,7 @@ end subroutine build_ks_orbitals_laura_tmp
           type(workarr_precond),dimension(:),pointer,intent(inout) :: precond_workarrays
         end subroutine deallocate_precond_arrays
 
-        subroutine set_confdatarr(input, at, lorbs, onwhichatom, potential_prefac, locrad, text, confdatarr)
+        subroutine set_confdatarr(input, at, lorbs, onwhichatom, potential_prefac, locrad, text, add_sequence, confdatarr)
           use module_base
           use module_types
           implicit none
@@ -4172,6 +4172,7 @@ end subroutine build_ks_orbitals_laura_tmp
           real(kind=8),dimension(at%astruct%ntypes),intent(in) :: potential_prefac
           real(kind=8),dimension(lorbs%norb),intent(in) :: locrad
           character(len=*) :: text
+          logical,intent(in) :: add_sequence
           type(confpot_data),dimension(lorbs%norbp), intent(inout) :: confdatarr
         end subroutine set_confdatarr
 
