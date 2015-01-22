@@ -526,7 +526,7 @@ end subroutine get_coeff
 
 
 subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
-    fnrm,infoBasisFunctions,nlpsp,scf_mode,ldiis,SIC,tmb,energs_base,&
+    fnrm_tmb,infoBasisFunctions,nlpsp,scf_mode,ldiis,SIC,tmb,energs_base,&
     nit_precond,target_function,&
     correction_orthoconstraint,nit_basis,&
     ratio_deltas,ortho_on,extra_states,itout,conv_crit,experimental_mode,early_stop,&
@@ -568,7 +568,7 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
   real(kind=8),dimension(3,at%astruct%nat) :: rxyz
   type(DFT_local_fields), intent(inout) :: denspot
   type(GPU_pointers), intent(inout) :: GPU
-  real(kind=8),intent(out) :: trH, fnrm
+  real(kind=8),intent(out) :: trH, fnrm_tmb
   real(kind=8),intent(inout) :: trH_old
   type(DFT_PSP_projectors),intent(inout) :: nlpsp
   integer,intent(in) :: scf_mode
@@ -616,8 +616,13 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
   type(matrices) :: ovrlp_old
   integer :: iiorb, ilr, i, ist
   real(kind=8) :: max_error, mean_error
+  type(work_mpiaccumulate) :: fnrm
 
   call f_routine(id='getLocalizedBasis')
+
+  fnrm = work_mpiaccumulate_null()
+  fnrm%ncount = 1
+  call allocate_work_mpiaccumulate(fnrm)
 
   energs = energy_terms_null()
   delta_energy_arr=f_malloc(nit_basis+6,id='delta_energy_arr')
@@ -701,7 +706,8 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
       it=max(it,1) !since it could become negative (2 is subtracted if the loop cycles)
       it_tot=it_tot+1
 
-      fnrm=0.d0
+      fnrm%sendbuf(1)=0.d0
+      fnrm%receivebuf(1)=0.d0
   
       if (iproc==0) then
           call yaml_sequence(advance='no')
@@ -998,7 +1004,7 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
           if (iproc==0) then
               call yaml_newline()
               call yaml_map('iter',it,fmt='(i5)')
-              call yaml_map('fnrm',fnrm,fmt='(es9.2)')
+              call yaml_map('fnrm',fnrm%receivebuf(1),fmt='(es9.2)')
               call yaml_map('Omega',trH,fmt='(es22.15)')
               call yaml_map('D',ediff,fmt='(es9.2)')
               call yaml_map('D best',ediff_best,fmt='(es9.2)')
@@ -1019,6 +1025,19 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
               ! This is to avoid memory leaks
               call untranspose_localized(iproc, nproc, tmb%ham_descr%npsidim_orbs, tmb%orbs, tmb%ham_descr%collcom, &
                    TRANSPOSE_GATHER, hpsit_c, hpsit_f, hpsi_tmp, tmb%ham_descr%lzd, wt_hpsinoprecond)
+
+              ! Wait for the communication of fnrm on root
+              call mpi_fenceandfree(fnrm%window)
+              fnrm%receivebuf(1)=sqrt(fnrm%receivebuf(1)/dble(tmb%orbs%norb))
+              ! The other processes need to get fnrm as well. Check whether this is really needed...
+              if (iproc==0) fnrm%sendbuf(1) = fnrm%receivebuf(1)
+              fnrm%window = mpiwindow(1, fnrm%sendbuf(1), bigdft_mpi%mpi_comm)
+              if (iproc/=0) then
+                  call mpiget(fnrm%receivebuf(1), 1, 0, int(0,kind=mpi_address_kind), fnrm%window)
+              end if
+              call mpi_fenceandfree(fnrm%window)
+              fnrm_old=fnrm%receivebuf(1)
+
              cycle
           else if(it_tot<3*nit_basis) then ! stop orthonormalizing the tmbs
              if (iproc==0) call yaml_newline()
@@ -1030,12 +1049,23 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
           can_use_ham=.true.
       end if 
 
+      ! Wait for the communication of fnrm on root
+      call mpi_fenceandfree(fnrm%window)
+      fnrm%receivebuf(1)=sqrt(fnrm%receivebuf(1)/dble(tmb%orbs%norb))
+
+      ! The other processes need to get fnrm as well. The fence will be later as
+      ! only iproc=0 has to write.
+      if (iproc==0) fnrm%sendbuf(1) = fnrm%receivebuf(1)
+      fnrm%window = mpiwindow(1, fnrm%sendbuf(1), bigdft_mpi%mpi_comm)
+      if (iproc/=0) then
+          call mpiget(fnrm%receivebuf(1), 1, 0, int(0,kind=mpi_address_kind), fnrm%window)
+      end if
 
       ! information on the progress of the optimization
       if (iproc==0) then
           call yaml_newline()
           call yaml_map('iter',it,fmt='(i5)')
-          call yaml_map('fnrm',fnrm,fmt='(es9.2)')
+          call yaml_map('fnrm',fnrm%receivebuf(1),fmt='(es9.2)')
           call yaml_map('Omega',trH,fmt='(es22.15)')
           call yaml_map('D',ediff,fmt='(es9.2)')
           call yaml_map('D best',ediff_best,fmt='(es9.2)')
@@ -1048,8 +1078,8 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
       exit_loop(1) = (it>=nit_exit)
       exit_loop(2) = (it_tot>=3*nit_basis)
       exit_loop(3) = energy_diff
-      exit_loop(4) = (fnrm<conv_crit .and. experimental_mode)
-      exit_loop(5) = (experimental_mode .and. fnrm<dynamic_convcrit .and. fnrm<min_gnrm_for_dynamic &
+      exit_loop(4) = (fnrm%receivebuf(1)<conv_crit .and. experimental_mode)
+      exit_loop(5) = (experimental_mode .and. fnrm%receivebuf(1)<dynamic_convcrit .and. fnrm%receivebuf(1)<min_gnrm_for_dynamic &
                      .and. (it>1 .or. has_already_converged)) ! first overall convergence not allowed in a first iteration
       exit_loop(6) = (itout==0 .and. it>1 .and. ratio_deltas<kappa_conv .and.  ratio_deltas>0.d0)
       if (ratio_deltas>0.d0 .and. ratio_deltas<1.d-1) then
@@ -1111,6 +1141,9 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
           call untranspose_localized(iproc, nproc, tmb%ham_descr%npsidim_orbs, tmb%orbs, tmb%ham_descr%collcom, &
                TRANSPOSE_GATHER, hpsit_c, hpsit_f, hpsi_tmp, tmb%ham_descr%lzd, wt_hpsinoprecond)
 
+          ! For completeness put the fence here
+          call mpi_fenceandfree(fnrm%window)
+          fnrm_old=fnrm%receivebuf(1)
           exit iterLoop
       end if
       trH_old=trH
@@ -1187,6 +1220,8 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
           !call bigdft_utils_flush(unit=6)
       end if
 
+      call mpi_fenceandfree(fnrm%window)
+      fnrm_old=fnrm%receivebuf(1)
 
   end do iterLoop
 
@@ -1205,7 +1240,7 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
       call write_energies(0,0,energs,0.d0,0.d0,'',.true.)
       call yaml_newline()
       call yaml_map('iter',it,fmt='(i5)')
-      call yaml_map('fnrm',fnrm,fmt='(es9.2)')
+      call yaml_map('fnrm',fnrm%receivebuf(1),fmt='(es9.2)')
       call yaml_map('Omega',trH,fmt='(es22.15)')
       call yaml_map('D',ediff,fmt='(es9.2)')
       call yaml_map('D best',ediff_best,fmt='(es9.2)')
@@ -1248,6 +1283,9 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
   call f_free(delta_energy_arr)
   call f_free(kernel_best)
   call f_free_ptr(ovrlp_old%matrix_compr)
+
+  fnrm_tmb = fnrm%receivebuf(1)
+  call deallocate_work_mpiaccumulate(fnrm)
 
   call f_release_routine()
 

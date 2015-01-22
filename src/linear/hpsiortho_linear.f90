@@ -42,7 +42,8 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
   real(kind=8), dimension(tmb%orbs%norbp), intent(inout) :: fnrmOldArr
   real(kind=8),intent(inout) :: fnrm_old
   real(kind=8), dimension(tmb%orbs%norbp), intent(inout) :: alpha
-  real(kind=8), intent(out):: trH, fnrm, alpha_mean, alpha_max
+  real(kind=8), intent(out):: trH, alpha_mean, alpha_max
+  type(work_mpiaccumulate), intent(inout):: fnrm
   real(kind=8), intent(in):: trHold
   logical,intent(out) :: energy_increased
   real(kind=8), dimension(tmb%npsidim_orbs), intent(inout):: lhphiold
@@ -436,7 +437,7 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
   ! This is of course only necessary if we are using steepest descent and not DIIS.
   ! if newgradient is true, the angle criterion cannot be used and the choice whether to
   ! decrease or increase the step size is only based on the fact whether the trace decreased or increased.
-  fnrm=0.d0
+  fnrm%sendbuf=0.d0
   fnrmOvrlp_tot=0.d0
   fnrmOld_tot=0.d0
   ist=1
@@ -445,7 +446,7 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
       ilr=tmb%orbs%inwhichlocreg(iiorb)
       ncount=tmb%lzd%llr(ilr)%wfd%nvctr_c+7*tmb%lzd%llr(ilr)%wfd%nvctr_f
       tt = ddot(ncount, tmb%hpsi(ist), 1, tmb%hpsi(ist), 1)
-      fnrm = fnrm + tt
+      fnrm%sendbuf = fnrm%sendbuf + tt
       if(it>1) then
           tt2=ddot(ncount, tmb%hpsi(ist), 1, lhphiold(ist), 1)
           fnrmOvrlp_tot = fnrmOvrlp_tot + tt2
@@ -478,7 +479,7 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
           call mpiallred(fnrmOvrlp_tot, 1, mpi_sum, bigdft_mpi%mpi_comm)
       end if
       !tt2=fnrmOvrlp_tot/sqrt(fnrm*fnrmOld_tot)
-      tt2=fnrmOvrlp_tot/sqrt(fnrm*fnrm_old)
+      tt2=fnrmOvrlp_tot/sqrt(fnrm%sendbuf(1)*fnrm_old)
       ! apply thresholds so that alpha never goes below around 1.d-2 and above around 2
       if(tt2>.6d0 .and. trH<trHold .and. alpha(1)<1.8d0) then ! take alpha(1) since the value is the same for all
           alpha(:)=alpha(:)*1.1d0
@@ -487,9 +488,9 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
       end if
   end if
 
-  fnrm_old=fnrm ! This value will be used in th next call to this routine
+  !fnrm_old=fnrm%receivebuf(1) ! This value will be used in th next call to this routine
 
-  fnrm=sqrt(fnrm/dble(tmb%orbs%norb))
+  !!fnrm%sendbuf(1)=sqrt(fnrm%sendbuf(1)/dble(tmb%orbs%norb))
 
 
 
@@ -629,10 +630,21 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
 
   subroutine communicate_fnrm()
     implicit none
+    ! Local variables
+    integer :: jproc
     call f_routine(id='communicate_fnrm')
-    if (nproc > 1) then
-       call mpiallred(fnrm, 1, mpi_sum, bigdft_mpi%mpi_comm)
-    end if
+    !!if (nproc > 1) then
+    !!   call mpiallred(fnrm, 1, mpi_sum, bigdft_mpi%mpi_comm)
+    !!end if
+
+    fnrm%receivebuf = 0.d0
+    fnrm%window = mpiwindow(1, fnrm%receivebuf(1), bigdft_mpi%mpi_comm)
+    !if(iproc==0) then
+    !    do jproc=0,nproc-1
+            call mpiaccumulate_double(fnrm%sendbuf(1), 1, 0, &
+                 int(0,kind=mpi_address_kind), 1, mpi_sum, fnrm%window)
+    !    end do
+    !end if
 
     call f_release_routine()
   end subroutine communicate_fnrm

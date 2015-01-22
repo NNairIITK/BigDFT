@@ -1425,7 +1425,7 @@ module module_interfaces
       END SUBROUTINE allocateRhoPot
 
       subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
-          fnrm,infoBasisFunctions,nlpsp,scf_mode,ldiis,SIC,tmb,energs_base,&
+          fnrm_tmb,infoBasisFunctions,nlpsp,scf_mode,ldiis,SIC,tmb,energs_base,&
           nit_precond,target_function,&
           correction_orthoconstraint,nit_basis,&
           ratio_deltas,ortho_on,extra_states,itout,conv_crit,experimental_mode,early_stop,&
@@ -1451,7 +1451,7 @@ module module_interfaces
         real(kind=8),dimension(3,at%astruct%nat) :: rxyz
         type(DFT_local_fields), intent(inout) :: denspot
         type(GPU_pointers), intent(inout) :: GPU
-        real(kind=8),intent(out) :: trH, fnrm
+        real(kind=8),intent(out) :: trH, fnrm_tmb
         real(kind=8),intent(inout) :: trH_old
         type(DFT_PSP_projectors),intent(inout) :: nlpsp
         integer,intent(in) :: scf_mode
@@ -2460,7 +2460,8 @@ module module_interfaces
          real(kind=8), dimension(tmb%orbs%norbp), intent(inout) :: fnrmOldArr
          real(kind=8),intent(inout) :: fnrm_old
          real(kind=8), dimension(tmb%orbs%norbp), intent(inout) :: alpha
-         real(kind=8), intent(out):: trH, fnrm, alpha_mean, alpha_max
+         real(kind=8), intent(out):: trH, alpha_mean, alpha_max
+         type(work_mpiaccumulate), intent(inout):: fnrm
          real(kind=8), intent(in):: trHold
          logical,intent(out) :: energy_increased
          real(kind=8), dimension(tmb%npsidim_orbs), intent(inout):: lhphiold
