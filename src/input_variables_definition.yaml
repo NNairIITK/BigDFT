@@ -664,12 +664,10 @@
      default: dft
    mm_paramset:
      COMMENT: Name of the hard-coded parameter set. Must be compatible to the chosen force field.
-     CONDITION:
-       MASTER_KEY: method
      default: default
    mm_paramfile:
      COMMENT: name of parameter file
-     default: default_parms
+     default: none
      
 #Performance parameters
  perf:

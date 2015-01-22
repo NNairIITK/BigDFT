@@ -293,6 +293,7 @@ subroutine findsad(mhgpsst,fsw,uinp,runObj,outs,rcov,nbond,iconnect,&
     logical  :: tighten
     character(len=9)   :: fn9
     character(len=300)  :: comment
+    real(gp) :: curvgraddiff_tmp
     !functions
     real(gp) :: ddot,dnrm2
 
@@ -448,9 +449,24 @@ subroutine findsad(mhgpsst,fsw,uinp,runObj,outs,rcov,nbond,iconnect,&
             'DIFF      FMAX      FNRM      alpha    ndim '//&
             'alpha_strtch overl. displr       displp'
             runObj%inputs%inputPsiId=1
+            !determine finite difference
+            call clean_minmode(runObj%atoms%astruct%nat,&
+                 bigdft_get_geocode(runObj),&
+                 fsw%rxyzraw_trans(1,1,nhist-1),minmode(1,1))
+            
+            dt=0.0_gp
+            maxd=-huge(1.0_gp)
+            do iat=1,runObj%atoms%astruct%nat
+                dt=minmode(1,iat)**2+minmode(2,iat)**2+minmode(3,iat)**2
+                maxd=max(maxd,dt)
+            enddo
+            maxd=sqrt(maxd)
+            curvgraddiff_tmp = uinp%saddle_curvforcediff / maxd
+
              !inputPsiId=0
             call opt_curv(mhgpsst,it,uinp%imode,fsw,uinp,runObj,outs,uinp%saddle_alpha0_rot,&
-                          uinp%saddle_curvforcediff,uinp%saddle_nit_rot,uinp%saddle_nhistx_rot,&
+                          curvgraddiff_tmp,uinp%saddle_nit_rot,uinp%saddle_nhistx_rot,&
+!                          uinp%saddle_curvforcediff,uinp%saddle_nit_rot,uinp%saddle_nhistx_rot,&
                           fsw%rxyzraw_trans(1,1,nhist-1),fsw%fxyzraw_trans(1,1,nhist-1),&
                           minmode(1,1),curv,rotforce(1,1),tol,&
                           ener_count,optCurvConv,iconnect,nbond,&
@@ -692,6 +708,7 @@ subroutine opt_curv(mhgpsst,itgeopt,imode,fsw,uinp,runObj,outs,alpha0,curvforced
     integer                    :: nrise, itup
     real(gp), dimension(3,runObj%atoms%astruct%nat) :: rxyzOld,delta
     real(gp)                   :: displr,displp
+real(gp) :: alpha0int
     !functions
     real(gp)                   :: ddot
     real(gp)                   :: dnrm2
@@ -704,6 +721,7 @@ subroutine opt_curv(mhgpsst,itgeopt,imode,fsw,uinp,runObj,outs,alpha0,curvforced
         fsw%nhist_rot=0
         fsw%alpha_rot=alpha0
     endif
+    alpha0int=alpha0
 
     nrise=0
     itup=nint(ener_count)
@@ -805,7 +823,7 @@ subroutine opt_curv(mhgpsst,itgeopt,imode,fsw,uinp,runObj,outs,alpha0,curvforced
                   fsw%fxyz_rot(1,1,fsw%nhist_rot),1)*&
                   dot_double(3*runObj%atoms%astruct%nat,fsw%dd_rot(1,1),1,fsw%dd_rot(1,1),1))
 
-        if (dcurv.gt.maxcurvrise .and. fsw%alpha_rot>1.e-1_gp*alpha0) then 
+        if (dcurv.gt.maxcurvrise .and. fsw%alpha_rot>1.e-1_gp*alpha0int) then 
             itup=nint(ener_count)
             nrise=nrise+1
             if(mhgpsst%iproc==0 .and. uinp%mhgps_verbosity>=3)&
@@ -820,6 +838,7 @@ subroutine opt_curv(mhgpsst,itgeopt,imode,fsw,uinp,runObj,outs,alpha0,curvforced
                       dcurv,fmax,fnrm, fsw%alpha_rot,fsw%ndim_rot,&
                       fsw%alpha_stretch_rot,overlap,displr,displp
             fsw%alpha_rot=.5_gp*fsw%alpha_rot
+            alpha0int=alpha0*0.1_gp
             if(mhgpsst%iproc==0 .and. uinp%mhgps_verbosity>=3)&
                 call yaml_comment('INFO: (MHGPS) alpha reset (opt. curv): '//&
                      trim(yaml_toa(fsw%alpha_rot)))
@@ -897,10 +916,11 @@ subroutine opt_curv(mhgpsst,itgeopt,imode,fsw,uinp,runObj,outs,alpha0,curvforced
                 fsw%fstretch_rot(:,:,fsw%nhist_rot)
         endif
 
-        if (cosangle.gt..20_gp) then
+!        if (cosangle.gt..20_gp) then
+        if (cosangle.gt..40_gp) then
             fsw%alpha_rot=fsw%alpha_rot*1.10_gp
         else
-            fsw%alpha_rot=max(fsw%alpha_rot*.85_gp,alpha0)
+            fsw%alpha_rot=max(fsw%alpha_rot*.85_gp,alpha0int)
         endif
 
 
@@ -966,6 +986,8 @@ subroutine curvforce(mhgpsst,runObj,outs,diff,rxyz1,fxyz1,vec,curv,rotforce,imet
     real(gp) :: diffinv, etot2,fnoise
     real(gp),allocatable :: rxyz2(:,:), fxyz2(:,:)
     real(gp),allocatable :: drxyz(:,:), dfxyz(:,:)
+real(gp) :: maxd(runObj%atoms%astruct%nat)
+integer :: i
     !functions
     real(gp), external :: dnrm2,ddot
 
@@ -983,9 +1005,10 @@ subroutine curvforce(mhgpsst,runObj,outs,diff,rxyz1,fxyz1,vec,curv,rotforce,imet
              rxyz1(1,1),vec(1,1))
     
 
-call clean_forces_base(runObj%atoms,vec) 
+    call clean_forces_base(runObj%atoms,vec) 
     vec = vec / dnrm2(3*runObj%atoms%astruct%nat,vec(1,1),1)
     rxyz2 = rxyz1 + diff * vec
+
     call mhgpsenergyandforces(mhgpsst,runobj,outs,rxyz2(1,1),&
          fxyz2(1,1),fnoise,etot2,infocode)
     ener_count=ener_count+1.0_gp
@@ -1565,4 +1588,20 @@ subroutine elim_moment_fs(nat,vxyz)
     enddo
 end subroutine
 !=====================================================================
+subroutine clean_minmode(nat,geocode,rxyz,minmode)
+    use module_base
+    implicit none
+    !parameters
+    integer, intent(in) :: nat
+    character(len=*), intent(in) :: geocode
+    real(gp), intent(in) :: rxyz(3,nat)
+    real(gp), intent(inout) :: minmode(3,nat)
+    !local
+    !functions
+    real(gp) :: dnrm2
+    call elim_moment_fs(nat,minmode(1,1))
+    if (trim(adjustl(geocode))=='F')call elim_torque_bastian(nat,&
+                                          rxyz(1,1),minmode(1,1))
+    minmode = minmode / dnrm2(3*nat,minmode(1,1),1)
+end subroutine clean_minmode
 end module
