@@ -227,7 +227,7 @@ subroutine init_gt_data(gdat)
     gdat%sadnumber = f_malloc((/gdat%nminmax/),id='sadnumber')
     gdat%gmon_ener = f_malloc((/gdat%nminmaxpd/),id='gmon_ener')
     gdat%gmon_fp = f_malloc((/gdat%nid,gdat%nminmaxpd/),id='gmon_fp')
-    gdat%gmon_stat = f_malloc_str(100,(/gdat%nminmaxpd/),id='gmon_stat')
+    gdat%gmon_stat = f_malloc_str(1,(/gdat%nminmaxpd/),id='gmon_stat')
     gdat%gmon_nposlocs=huge(1)
 end subroutine init_gt_data
 !=====================================================================
@@ -253,7 +253,7 @@ subroutine finalize_gt_data(gdat)
     call f_free(gdat%gmon_ener)
     call f_free(gdat%gmon_fp)
     call f_free(gdat%mn)
-    call f_free_str(600,gdat%gmon_stat)
+    call f_free_str(1,gdat%gmon_stat)
 end subroutine finalize_gt_data
 !=====================================================================
 subroutine read_globaltool_uinp(gdat)
