@@ -9,7 +9,7 @@
 
 
 module module_init
-    use module_base !bigdft base module
+    !use module_base !bigdft base module
     use module_global_variables
     implicit none
 
@@ -297,9 +297,10 @@ contains
 
 subroutine give_rcov(astruct,nat,rcov)
   use module_base, only: gp
-  use module_types
+  use module_types, only: atomic_structure
   use yaml_output
   use module_global_variables, only: iproc
+  use dictionaries, only: f_err_throw
   implicit none
   !Arguments
   integer, intent(in) :: nat

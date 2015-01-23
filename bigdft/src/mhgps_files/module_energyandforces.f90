@@ -26,15 +26,19 @@ contains
 subroutine energyandforces(nat,alat,rxyz,fxyz,fnoise,epot)
     !IMPORTANT:
     !receives distances in Bohr
-    use module_base
+    !use module_base
     !use module_lj
     !use module_lenosky_si
     !use module_types
     !use module_interfaces
-    use yaml_output
+    !use yaml_output
     use module_global_variables
     !use module_atoms, only: astruct_dump_to_file
-    use bigdft_run
+    use bigdft_run, only: bigdft_nat, bigdft_set_rxyz, bigdft_state
+    use module_defs, only: gp
+    use dynamic_memory
+    use f_utils, only: char
+    use yaml_output, only: yaml_warning
     implicit none
     !parameters
     integer, intent(in) :: nat
