@@ -464,7 +464,7 @@ subroutine findsad(mhgpsst,fsw,uinp,runObj,outs,rcov,nbond,iconnect,&
             curvgraddiff_tmp = uinp%saddle_curvforcediff / maxd
             if(mhgpsst%iproc==0.and.uinp%mhgps_verbosity>=2)then
                 call yaml_map('  (MHGPS) Finite difference spacing '//&
-                     'for cuvature computation',curvgraddiff_tmp,&
+                     'for curvature computation',curvgraddiff_tmp,&
                      fmt='(1pe21.14)')
             endif
 
