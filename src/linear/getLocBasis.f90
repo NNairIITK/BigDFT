@@ -1065,6 +1065,9 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
       ! Add some extra iterations if DIIS failed (max 6 failures are allowed before switching to SD)
       nit_exit=min(nit_basis+ldiis%icountDIISFailureTot,nit_basis+6)
 
+      call mpi_fenceandfree(fnrm%window)
+      fnrm_old=fnrm%receivebuf(1)
+
       ! Determine whether the loop should be exited
       exit_loop(1) = (it>=nit_exit)
       exit_loop(2) = (it_tot>=3*nit_basis)
@@ -1132,9 +1135,6 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
           call untranspose_localized(iproc, nproc, tmb%ham_descr%npsidim_orbs, tmb%orbs, tmb%ham_descr%collcom, &
                TRANSPOSE_GATHER, hpsit_c, hpsit_f, hpsi_tmp, tmb%ham_descr%lzd, wt_hpsinoprecond)
 
-          ! For completeness put the fence here
-          call mpi_fenceandfree(fnrm%window)
-          fnrm_old=fnrm%receivebuf(1)
           exit iterLoop
       end if
       trH_old=trH
@@ -1211,8 +1211,6 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
           !call bigdft_utils_flush(unit=6)
       end if
 
-      call mpi_fenceandfree(fnrm%window)
-      fnrm_old=fnrm%receivebuf(1)
 
   end do iterLoop
 
