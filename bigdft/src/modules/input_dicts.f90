@@ -710,6 +710,7 @@ contains
     use module_defs, only: gp
     use module_types, only: atoms_data
     use module_atoms, only: allocate_atoms_data
+    use m_libpaw_libxc, only: libxc_functionals_init, libxc_functionals_end
     use m_pawrad, only: pawrad_type !, pawrad_nullify
     use m_pawtab, only: pawtab_type, pawtab_nullify
     use psp_projectors, only: PSPCODE_PAW
@@ -763,8 +764,10 @@ contains
           ! Re-read the pseudo for PAW arrays.
           fpaw = dict // filename // SOURCE_KEY
           !write(*,*) 'Reading of PAW atomic-data, under development', trim(fpaw)
+          call libxc_functionals_init(atoms%ixcpsp(ityp), 1)
           call paw_from_file(atoms%pawrad(ityp), atoms%pawtab(ityp), trim(fpaw), &
                & atoms%nzatom(ityp), atoms%nelpsp(ityp), atoms%ixcpsp(ityp))
+          call libxc_functionals_end()
        end if
     end do
     call nlcc_set_from_dict(dict, atoms)
@@ -1159,7 +1162,8 @@ contains
          & psppar, donlcc, rcore, qcore, radii_cf, pawpatch)
     call f_iostream_release(ios)
 
-    if (has_key(dict, key)) call dict_remove(dict, key)
+    if (has_key(dict, key) .and. trim(dict_value(dict // key)) == TYPE_LIST) &
+         & call dict_remove(dict, key)
     call psp_data_merge_to_dict(dict // key, nzatom, nelpsp, npspcode, ixcpsp, &
          & psppar, radii_cf, rcore, qcore)
     call set(dict // key // "PAW patch", pawpatch)

@@ -227,9 +227,9 @@ subroutine system_initialization(iproc,nproc,dump,inputpsi,input_wf_format,dry_r
      call yaml_map('Wavefunctions memory occupation for root MPI process',&
           trim(yaml_toa(nMB,fmt='(i5)'))//' MB'//trim(yaml_toa(nKB,fmt='(i5)'))//&
           ' KB'//trim(yaml_toa(nB,fmt='(i5)'))//' B')
-!!$     write(*,'(1x,a,3(i5,a))') &
-!!$       'Wavefunctions memory occupation for root MPI process: ',&
-!!$       nMB,' MB ',nKB,' KB ',nB,' B'
+ !!$     write(*,'(1x,a,3(i5,a))') &
+ !!$       'Wavefunctions memory occupation for root MPI process: ',&
+ !!$       nMB,' MB ',nKB,' KB ',nB,' B'
   end if
   ! Done orbs
 
@@ -417,8 +417,8 @@ subroutine system_properties(iproc,nproc,in,atoms,orbs)!,radii_cf)
   integer :: nspinor
 
 !  radii_cf = atoms%radii_cf
-!!$  call read_radii_variables(atoms, radii_cf, in%crmult, in%frmult, in%projrad)
-!!$  call read_atomic_variables(atoms, trim(in%file_igpop),in%nspin)
+ !!$  call read_radii_variables(atoms, radii_cf, in%crmult, in%frmult, in%projrad)
+ !!$  call read_atomic_variables(atoms, trim(in%file_igpop),in%nspin)
   if (iproc == 0) call print_atomic_variables(atoms, max(in%hx,in%hy,in%hz), in%ixc, in%dispersion)
   if(in%nspin==4) then
      nspinor=4
@@ -459,16 +459,16 @@ subroutine calculate_rhocore(at,d,rxyz,hxh,hyh,hzh,i3s,i3xcsh,n3d,n3p,rhocore)
   
 
   !check for the need of a nonlinear core correction
-!!$  donlcc=.false.
-!!$  chk_nlcc: do ityp=1,at%astruct%ntypes
-!!$     filename = 'nlcc.'//at%astruct%atomnames(ityp)
-!!$
-!!$     inquire(file=filename,exist=exists)
-!!$     if (exists) then
-!!$        donlcc=.true.
-!!$        exit chk_nlcc
-!!$     end if
-!!$  end do chk_nlcc
+ !!$  donlcc=.false.
+ !!$  chk_nlcc: do ityp=1,at%astruct%ntypes
+ !!$     filename = 'nlcc.'//at%astruct%atomnames(ityp)
+ !!$
+ !!$     inquire(file=filename,exist=exists)
+ !!$     if (exists) then
+ !!$        donlcc=.true.
+ !!$        exit chk_nlcc
+ !!$     end if
+ !!$  end do chk_nlcc
 
   if (at%donlcc) then
      !allocate pointer rhocore
@@ -476,9 +476,9 @@ subroutine calculate_rhocore(at,d,rxyz,hxh,hyh,hzh,i3s,i3xcsh,n3d,n3p,rhocore)
      !perform the loop on any of the atoms which have this feature
      do iat=1,at%astruct%nat
         ityp=at%astruct%iatype(iat)
-!!$        filename = 'nlcc.'//at%astruct%atomnames(ityp)
-!!$        inquire(file=filename,exist=exists)
-!!$        if (exists) then
+ !!$        filename = 'nlcc.'//at%astruct%atomnames(ityp)
+ !!$        inquire(file=filename,exist=exists)
+ !!$        if (exists) then
         if (at%nlcc_ngv(ityp)/=UNINITIALIZED(1) .or.&
              at%nlcc_ngc(ityp)/=UNINITIALIZED(1) ) then
            if (bigdft_mpi%iproc == 0) call yaml_map('NLCC, Calculate core density for atom',trim(at%astruct%atomnames(ityp)))
@@ -498,18 +498,18 @@ subroutine calculate_rhocore(at,d,rxyz,hxh,hyh,hzh,i3s,i3xcsh,n3d,n3p,rhocore)
      !calculate total core charge in the grid
      !In general this should be really bad
 
-!!$     do j3=1,n3d
-!!$        tt=0.0_wp
-!!$        do i2=1,d%n2i
-!!$           do i1=1,d%n1i
-!!$              !ind=i1+(i2-1)*d%n1i+(j3+i3xcsh-1)*d%n1i*d%n2i
-!!$              tt=tt+rhocore(i1,i2,j3,1)
-!!$           enddo
-!!$        enddo
-!!$        write(17+iproc,*)j3+i3s-1,tt
-!!$     enddo
-!!$call MPI_BARRIER(bigdft_mpi%mpi_comm,ierr)
-!!$stop
+ !!$     do j3=1,n3d
+ !!$        tt=0.0_wp
+ !!$        do i2=1,d%n2i
+ !!$           do i1=1,d%n1i
+ !!$              !ind=i1+(i2-1)*d%n1i+(j3+i3xcsh-1)*d%n1i*d%n2i
+ !!$              tt=tt+rhocore(i1,i2,j3,1)
+ !!$           enddo
+ !!$        enddo
+ !!$        write(17+iproc,*)j3+i3s-1,tt
+ !!$     enddo
+ !!$call MPI_BARRIER(bigdft_mpi%mpi_comm,ierr)
+ !!$stop
      tt=0.0_wp
      do j3=1,n3p
         do i2=1,d%n2i
@@ -534,7 +534,8 @@ END SUBROUTINE calculate_rhocore
 
 subroutine psp_from_stream(ios, nzatom, nelpsp, npspcode, &
      & ixcpsp, psppar, donlcc, rcore, qcore, radii_cf, pawpatch)
-  use module_base
+  use module_defs, only: gp, dp, UNINITIALIZED, pi_param, BIGDFT_INPUT_VARIABLES_ERROR
+  use yaml_strings, only: yaml_toa
   use ao_inguess
   use m_pawpsp, only: pawpsp_read_header_2
   use dictionaries
@@ -552,7 +553,7 @@ subroutine psp_from_stream(ios, nzatom, nelpsp, npspcode, &
   character(len=2) :: symbol
 
   integer :: ierror, ierror1, i, j, nn, nlterms, nprl, l, nzatom_, nelpsp_, npspcode_
-  integer :: lmax,lloc,mmax
+  integer :: lmax,lloc,mmax, ixc_
   integer:: pspversion,basis_size,lmn_size
   real(dp) :: nelpsp_dp,nzatom_dp,r2well
   character(len=max_field_length) :: line
@@ -601,7 +602,8 @@ subroutine psp_from_stream(ios, nzatom, nelpsp, npspcode, &
   else if (npspcode == 7) then !PAW Pseudos
      ! Need NC psp for input guess.
      call atomic_info(nzatom, nelpsp, symbol = symbol)
-     call psp_from_data(symbol, nzatom_, nelpsp_, npspcode_, ixcpsp, &
+     ixc_ = ixcpsp ! Because psp_from_data() will change ixc_.
+     call psp_from_data(symbol, nzatom_, nelpsp_, npspcode_, ixc_, &
           & psppar, exists)
      if (.not.exists) stop "Implement here."
 
@@ -1490,7 +1492,7 @@ subroutine parallel_repartition_with_kpoints(nproc,nkpts,nobj,nobj_par)
   integer, dimension(0:nproc-1), intent(out) :: nobj_par
   !local variables
   integer :: n_i,n_ip,rs_i,N_a,N_b,N_c,ikpt,jproc,i,ntmp
-!!$  real(gp) :: rtmp
+ !!$  real(gp) :: rtmp
 
   ! Strategy to divide between k points.
   ! There is an nproc length to divide into orbs%nkpts segments.
@@ -1525,7 +1527,7 @@ subroutine parallel_repartition_with_kpoints(nproc,nkpts,nobj,nobj_par)
 
      rs_i=ikpt*nproc
      n_ip=rs_i/nkpts
-!!$     print *,'ikpt,ni,nip',ikpt,n_i,n_ip
+ !!$     print *,'ikpt,ni,nip',ikpt,n_i,n_ip
      ! Calculation of N_a, N_b and N_c from given n_i and n_ip.
      if (n_ip >= n_i) then
         ntmp = (n_i*nkpts-(ikpt-1)*nproc) * nobj
@@ -1534,11 +1536,11 @@ subroutine parallel_repartition_with_kpoints(nproc,nkpts,nobj,nobj_par)
         else
            N_a = (ntmp - modulo(ntmp, nproc) + nproc) / nproc
         end if
-!!$        ntmp=n_i*nkpts-(ikpt-1)*nproc
-!!$        rtmp=real(nobj,gp)/real(nproc,gp)
-!!$        rtmp=rtmp*real(ntmp,gp)
-!!$        N_a=floor(rtmp)
-!!$        if (iproc == 0) print *,'ikpts,rtmp',ikpt,rtmp
+ !!$        ntmp=n_i*nkpts-(ikpt-1)*nproc
+ !!$        rtmp=real(nobj,gp)/real(nproc,gp)
+ !!$        rtmp=rtmp*real(ntmp,gp)
+ !!$        N_a=floor(rtmp)
+ !!$        if (iproc == 0) print *,'ikpts,rtmp',ikpt,rtmp
         ntmp = (ikpt*nproc-n_ip*nkpts) * nobj
         if (modulo(ntmp, nproc) == 0) then
            N_c = ntmp / nproc
@@ -1546,11 +1548,11 @@ subroutine parallel_repartition_with_kpoints(nproc,nkpts,nobj,nobj_par)
            N_c = (ntmp - modulo(ntmp, nproc) + nproc) / nproc
         end if
 
-!!$        ntmp=ikpt*nproc-n_ip*nkpts
-!!$        rtmp=real(nobj,gp)/real(nproc,gp)
-!!$        rtmp=rtmp*real(ntmp,gp)
-!!$        N_c=ceiling(rtmp)
-!!$        if (iproc == 0) print *,'ikpts,rtmp2',ikpt,rtmp,N_a,N_c
+ !!$        ntmp=ikpt*nproc-n_ip*nkpts
+ !!$        rtmp=real(nobj,gp)/real(nproc,gp)
+ !!$        rtmp=rtmp*real(ntmp,gp)
+ !!$        N_c=ceiling(rtmp)
+ !!$        if (iproc == 0) print *,'ikpts,rtmp2',ikpt,rtmp,N_a,N_c
         !the corrections above are to avoid the 32 bit integer overflow
         !N_a=nint(real(nobj*(n_i*nkpts-(ikpt-1)*nproc),gp)/real(nproc,gp))
         !N_c=nint(real(nobj*(ikpt*nproc-n_ip*nkpts),gp)/real(nproc,gp))
@@ -1563,7 +1565,7 @@ subroutine parallel_repartition_with_kpoints(nproc,nkpts,nobj,nobj_par)
         N_c = N_c - 1
         N_b = 0
      end if
-!!$     write(*,*) ikpt, N_a, N_b, N_c
+ !!$     write(*,*) ikpt, N_a, N_b, N_c
      if (nkpts > 1 .and. N_b < n_ip - n_i) stop 'ERROR:parallel_repartion_with_kpoints'
      !assign to procs the objects.
      if (N_a>0) nobj_par(n_i-1)=nobj_par(n_i-1)+N_a
@@ -1828,8 +1830,10 @@ subroutine pawpatch_from_file( filename, atoms,ityp, paw_tot_l, &
 end subroutine pawpatch_from_file
 
 subroutine paw_init(paw, at, nspinor, nspin, npsidim, norb)
-  use module_base
-  use module_types
+  !use module_base
+  use module_defs, only: gp
+  use module_types, only: atoms_data, paw_objects, nullify_paw_objects
+  use dynamic_memory
   use m_paw_an, only: paw_an_init
   use m_paw_ij, only: paw_ij_init
   use m_pawcprj, only: pawcprj_alloc, pawcprj_getdim
