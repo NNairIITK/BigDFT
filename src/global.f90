@@ -656,7 +656,7 @@ program MINHOP
 
      if (abs(outs%energy-e_pos).lt.en_delta) then
      call fpdistance(nid,wfp,fp,d)
-       if (bigdft_mpi%iproc == 0) call yaml_map('(MH) checking fpdistance',(/outs%energy-e_pos,d/),fmt='(e11.4)')
+       if (bigdft_mpi%iproc == 0) call yaml_map('(MH) checked fpdistance',(/outs%energy-e_pos,d/),fmt='(e11.4)')
      if (d.lt.fp_delta) then ! not escaped
        escape_sam=escape_sam+1.d0
         fp_sep=max(fp_sep,d)
@@ -2567,9 +2567,9 @@ subroutine identical(iproc,nlminx,nlmin,nid,e_wpos,wfp,en_arr,fp_arr,en_delta,fp
   !C  check whether new minimum
   call hunt_g(en_arr,min(nlmin,nlminx),e_wpos,k_e_wpos)
   newmin=.true.
-  do i=1,nlmin
-     if (iproc.eq.0) write(*,'(a,i3,5(e24.17))') '(MH) enarr ',i,en_arr(i),(fp_arr(l,i),l=1,2)
-  enddo
+!  do i=1,nlmin
+!     if (iproc.eq.0) write(*,'(a,i3,5(e24.17))') '(MH) enarr ',i,en_arr(i),(fp_arr(l,i),l=1,2)
+!  enddo
   if (iproc.eq.0) write(*,'(a,e24.17,i3,5(e24.17))') '(MH) e_wpos,k_e_wpos ',e_wpos,k_e_wpos!,(wfp(l),l=1,2)
 
   ! find lowest configuration that might be identical
@@ -2592,11 +2592,13 @@ subroutine identical(iproc,nlminx,nlmin,nid,e_wpos,wfp,en_arr,fp_arr,en_delta,fp
   if (iproc.eq.0) write(*,*) '(MH) k bounds ',max(1,klow),min(nlmin,khigh)
   dmin=1.d100
   do k=max(1,klow),min(nlmin,khigh)
+  if (abs(e_wpos-en_arr(k)).le.en_delta) then
      call fpdistance(nid,wfp,fp_arr(1,k),d)
      if (iproc == 0) call yaml_map('(MH) Checking fpdistance',(/e_wpos-en_arr(k),d/),fmt='(e11.4)')
-!     if (iproc.eq.0) write(*,*) '(MH)  k,d',k,d
-!     if (iproc.eq.0) write(*,'(a,20(e10.3))') '(MH)    wfp', (wfp(i),i=1,nid)
-!     if (iproc.eq.0) write(*,'(a,20(e10.3))') '(MH) fp_arr', (fp_arr(i,k),i=1,nid)
+     if (iproc.eq.0) write(*,*) '(MH)  k,d',k,d
+     if (iproc.eq.0) write(*,*) '(MH)  e_wpos,en_arr(k)', e_wpos,en_arr(k)
+     if (iproc.eq.0) write(*,'(a,20(e10.3))') '(MH)    wfp', (wfp(i),i=1,nid)
+     if (iproc.eq.0) write(*,'(a,20(e10.3))') '(MH) fp_arr', (fp_arr(i,k),i=1,nid)
      if (d.lt.fp_delta) then
         if (iproc.eq.0) write(*,*) '(MH) identical to ',k
         newmin=.false.
@@ -2606,6 +2608,8 @@ subroutine identical(iproc,nlminx,nlmin,nid,e_wpos,wfp,en_arr,fp_arr,en_delta,fp
            kid=k
         endif
      endif
+     dmin=min(dmin,d)
+  endif
   enddo
   if (iproc.eq.0) then
      write(*,*) '(MH)  newmin ',newmin
