@@ -151,6 +151,10 @@ SUBROUTINE MORSE_BULK(X,V,EMORSE, natoms, rho, R0, A, periodic, &
 
       V(:) = 0.0_gp
       EMORSE=0.0_gp
+      !$omp parallel default(private) shared(natoms, x, V, emorse, &
+      !$omp boxvec, iboxvec, RHO, R0, periodic, use_cutoff, rcut, &
+      !$omp Eshift, A)
+      !$omp do schedule(dynamic) reduction(+:V,emorse)
       DO J1=1,NATOMS
          J3=3*J1
          RR(J1,J1)=0.0_gp
@@ -176,6 +180,8 @@ SUBROUTINE MORSE_BULK(X,V,EMORSE, natoms, rho, R0, A, periodic, &
 !            endif
          ENDDO
       ENDDO
+      !$omp end do
+      !$omp end parallel
       EMORSE = EMORSE * A
 
       RETURN
