@@ -4305,7 +4305,7 @@ implicit none
  integer,intent(out):: lloc,lmax,pspcod,pspxc
  real(dp),intent(out):: r2well,zion,znucl
 !Local variables-------------------------------
- integer :: il
+ integer :: il, ii
  character(len=100) :: xclibxc
  character(len=500) :: msg
 !arrays

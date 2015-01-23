@@ -28,18 +28,19 @@ include $(srcdir)/libpaw/libpaw.src
 libpaw_files_1 = $(LIBPAW_SRC_FILES:%.h=libpaw/%.h)
 libpaw_files = $(libpaw_files_1:%.F90=libpaw/%.F90)
 ##Activate libPAW BigDFT sections
-LIBPAW_DEFS += -DHAVE_LIBPAW_BIGDFT
+LIBPAW_DEFS += -DHAVE_LIBPAW_BIGDFT -DHAVE_DFT_LIBXC
 ##  Deactivate libXC libPAW code sections (for testing purpose)
 ##  LIBPAW_DEFS += -UHAVE_DFT_LIBXC
 ##  LIBXC_DEFS =
 
 ## === MPI section ===
-mpi_include =
+#mpi_include =
 MPI_DEFS =
 if USE_MPI
 ##Force MPI level 1
-mpi_include += mpif.h
 MPI_DEFS += -DHAVE_MPI -DHAVE_MPI1
+#else
+#mpi_include += mpif.h
 endif
 
 ## === Fortran compiler directives ===
