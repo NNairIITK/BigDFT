@@ -243,6 +243,9 @@ subroutine libpaw_write_lines(unit,msg)
 #undef ABI_FUNC
 #define ABI_FUNC 'libpaw_write_lines'
 !End of the abilint section
+#if defined HAVE_LIBPAW_BIGDFT
+  use yaml_output
+#endif
 
  implicit none
 
@@ -258,6 +261,11 @@ subroutine libpaw_write_lines(unit,msg)
 !******************************************************************
 
  msg_size=len_trim(msg)
+#if defined HAVE_LIBPAW_BIGDFT
+ if (msg_size>0 .and. unit == std_out) then
+    call yaml_comment(msg)
+ end if
+#else
  if (msg_size==0) then
    write(unit,*) ; return 
  end if
@@ -286,6 +294,7 @@ subroutine libpaw_write_lines(unit,msg)
  end do
 
  if (msg(msg_size:msg_size)==ch10) write(unit,*)
+#endif
 
 end subroutine libpaw_write_lines
 !!***
