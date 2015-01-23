@@ -5609,18 +5609,18 @@ subroutine pawxc_drivexc_libxc()
    msg='The only allowed values for order are 1, 2, -2, or 3!'
    MSG_BUG(msg)
  end if
- if (present(dvxc).and.(order**2<=1))then
-   msg='The value of order is not compatible with the presence of the array dvxc!'
-   MSG_BUG(msg)
- end if
- if (present(d2vxc).and.(order/=3)) then
-   msg='The value of order is not compatible with the presence of the array d2vxc!'
-   MSG_BUG(msg)
- end if
- if (present(vxcgrho).and.(nvxcgrho==0)) then
-   msg='The value of nvxcgrho is not compatible with the presence of the array vxcgrho!'
-   MSG_BUG(msg)
- end if
+!!$ if (present(dvxc).and.(order**2<=1))then
+!!$   msg='The value of order is not compatible with the presence of the array dvxc!'
+!!$   MSG_BUG(msg)
+!!$ end if
+!!$ if (present(d2vxc).and.(order/=3)) then
+!!$   msg='The value of order is not compatible with the presence of the array d2vxc!'
+!!$   MSG_BUG(msg)
+!!$ end if
+!!$ if (present(vxcgrho).and.(nvxcgrho==0)) then
+!!$   msg='The value of nvxcgrho is not compatible with the presence of the array vxcgrho!'
+!!$   MSG_BUG(msg)
+!!$ end if
  if (libxc_functionals_isgga()) then
    if ((.not.present(grho2)).or.(.not.present(vxcgrho)))  then
      write(msg,'(3a)') 'At least one of the functionals is a GGA,',ch10, &
