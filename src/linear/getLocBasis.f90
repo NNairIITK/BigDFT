@@ -11,7 +11,7 @@
 subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
     energs,nlpsp,SIC,tmb,fnrm,calculate_overlap_matrix,invert_overlap_matrix,communicate_phi_for_lsumrho,&
     calculate_ham,extra_states,itout,it_scc,it_cdft,order_taylor,max_inversion_error,purification_quickreturn, &
-    calculate_KS_residue,calculate_gap,&
+    calculate_KS_residue,calculate_gap,energs_work,&
     convcrit_dmin,nitdmin,curvefit_dmin,ldiis_coeff,reorder,cdft, updatekernel)
   use module_base
   use module_types
@@ -49,6 +49,7 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
   logical,intent(in):: calculate_overlap_matrix, invert_overlap_matrix
   logical,intent(in):: communicate_phi_for_lsumrho, purification_quickreturn
   logical,intent(in) :: calculate_ham, calculate_KS_residue, calculate_gap
+  type(work_mpiaccumulate),intent(inout) :: energs_work
   type(DIIS_obj),intent(inout),optional :: ldiis_coeff ! for dmin only
   integer, intent(in), optional :: nitdmin ! for dmin only
   real(kind=gp), intent(in), optional :: convcrit_dmin ! for dmin only
@@ -71,7 +72,12 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
 
   call f_routine(id='get_coeff')
 
+
   if(calculate_ham) then
+      !!energs_work = work_mpiaccumulate_null()
+      !!energs_work%ncount = 4
+      !!call allocate_work_mpiaccumulate(energs_work)
+
       call local_potential_dimensions(iproc,tmb%ham_descr%lzd,tmb%orbs,denspot%xc,denspot%dpbox%ngatherarr(0,1))
       call start_onesided_communication(iproc, nproc, denspot%dpbox%ndims(1), denspot%dpbox%ndims(2), &
            max(denspot%dpbox%nscatterarr(:,2),1), denspot%rhov, &
@@ -149,7 +155,7 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
       call timing(iproc,'glsynchham1','ON')
       call SynchronizeHamiltonianApplication(nproc,tmb%ham_descr%npsidim_orbs,&
            & tmb%orbs,tmb%ham_descr%lzd,GPU,denspot%xc,tmb%hpsi,&
-           energs%ekin,energs%epot,energs%eproj,energs%evsic,energs%eexctX)
+           energs%ekin,energs%epot,energs%eproj,energs%evsic,energs%eexctX, energs_work)
       call timing(iproc,'glsynchham1','OF')
       deallocate(confdatarrtmp)
 
@@ -516,8 +522,23 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
   end if
   if (iproc==0) call yaml_map('Coefficients available',scf_mode /= LINEAR_FOE)
 
+  if (calculate_ham) then
+      ! Wait for the communication of energs_work on root
+      call mpi_fenceandfree(energs_work%window)
+
+      ! Copy the value, only necessary on root
+      if (iproc==0) then
+          energs%ekin = energs_work%receivebuf(1)
+          energs%epot = energs_work%receivebuf(2)
+          energs%eproj = energs_work%receivebuf(3)
+          energs%evsic = energs_work%receivebuf(4)
+      end if
+
+      !!call deallocate_work_mpiaccumulate(energs_work)
+  end if
 
   if (iproc==0) call yaml_mapping_close() !close kernel update
+
 
   call f_release_routine()
 
@@ -526,14 +547,14 @@ end subroutine get_coeff
 
 
 subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
-    fnrm,infoBasisFunctions,nlpsp,scf_mode,ldiis,SIC,tmb,energs_base,&
+    fnrm_tmb,infoBasisFunctions,nlpsp,scf_mode,ldiis,SIC,tmb,energs_base,&
     nit_precond,target_function,&
     correction_orthoconstraint,nit_basis,&
     ratio_deltas,ortho_on,extra_states,itout,conv_crit,experimental_mode,early_stop,&
     gnrm_dynamic, min_gnrm_for_dynamic, can_use_ham, order_taylor, max_inversion_error, kappa_conv, method_updatekernel,&
     purification_quickreturn, correction_co_contra, &
     precond_convol_workarrays, precond_workarrays, &
-    wt_philarge, wt_hpsinoprecond, wt_hphi, wt_phi, &
+    wt_philarge, wt_hpsinoprecond, wt_hphi, wt_phi, fnrm, energs_work, &
     cdft, input_frag, ref_frags)
   !
   ! Purpose:
@@ -568,7 +589,7 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
   real(kind=8),dimension(3,at%astruct%nat) :: rxyz
   type(DFT_local_fields), intent(inout) :: denspot
   type(GPU_pointers), intent(inout) :: GPU
-  real(kind=8),intent(out) :: trH, fnrm
+  real(kind=8),intent(out) :: trH, fnrm_tmb
   real(kind=8),intent(inout) :: trH_old
   type(DFT_PSP_projectors),intent(inout) :: nlpsp
   integer,intent(in) :: scf_mode
@@ -589,6 +610,7 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
   type(workarrays_quartic_convolutions),dimension(tmb%orbs%norbp),intent(inout) :: precond_convol_workarrays
   type(workarr_precond),dimension(tmb%orbs%norbp),intent(inout) :: precond_workarrays
   type(work_transpose),intent(inout) :: wt_philarge, wt_hpsinoprecond, wt_hphi, wt_phi
+  type(work_mpiaccumulate),intent(inout) :: fnrm, energs_work
   !these must all be present together
   type(cdft_data),intent(inout),optional :: cdft
   type(fragmentInputParameters),optional,intent(in) :: input_frag
@@ -618,6 +640,14 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
   real(kind=8) :: max_error, mean_error
 
   call f_routine(id='getLocalizedBasis')
+
+  !!fnrm = work_mpiaccumulate_null()
+  !!fnrm%ncount = 1
+  !!call allocate_work_mpiaccumulate(fnrm)
+
+  !!energs_work = work_mpiaccumulate_null()
+  !!energs_work%ncount = 4
+  !!call allocate_work_mpiaccumulate(energs_work)
 
   energs = energy_terms_null()
   delta_energy_arr=f_malloc(nit_basis+6,id='delta_energy_arr')
@@ -701,7 +731,8 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
       it=max(it,1) !since it could become negative (2 is subtracted if the loop cycles)
       it_tot=it_tot+1
 
-      fnrm=0.d0
+      fnrm%sendbuf(1)=0.d0
+      fnrm%receivebuf(1)=0.d0
   
       if (iproc==0) then
           call yaml_sequence(advance='no')
@@ -773,25 +804,16 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
 
       call timing(iproc,'glsynchham2','ON')
       call SynchronizeHamiltonianApplication(nproc,tmb%ham_descr%npsidim_orbs,tmb%orbs,tmb%ham_descr%lzd,GPU,denspot%xc,tmb%hpsi,&
-           energs%ekin,energs%epot,energs%eproj,energs%evsic,energs%eexctX)
+           energs%ekin,energs%epot,energs%eproj,energs%evsic,energs%eexctX, energs_work)
       call timing(iproc,'glsynchham2','OF')
 
       if (iproc==0) then
           call yaml_map('Hamiltonian Applied',.true.)
       end if
 
-      ! Use this subroutine to write the energies, with some fake number
-      ! to prevent it from writing too much
-      if (iproc==0) then
-          call write_energies(0,0,energs,0.d0,0.d0,'',.true.)
-      end if
-
       !if (iproc==0) write(*,'(a,5es16.6)') 'ekin, eh, epot, eproj, eex', &
       !              energs%ekin, energs%eh, energs%epot, energs%eproj, energs%exc
 
-      if (iproc==0) then
-          call yaml_map('Orthoconstraint',.true.)
-      end if
 
       ! Start the communication
       if (target_function==TARGET_FUNCTION_IS_HYBRID) then
@@ -805,6 +827,26 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
       ! Gather the data
       call transpose_localized(iproc, nproc, tmb%npsidim_orbs, tmb%orbs, tmb%collcom, &
            TRANSPOSE_GATHER, tmb%psi, tmb%psit_c, tmb%psit_f, tmb%lzd, wt_phi)
+
+      ! Wait for the communication of energs_work on root
+      call mpi_fenceandfree(energs_work%window)
+
+      ! Copy the value, only necessary on root
+      if (iproc==0) then
+          energs%ekin = energs_work%receivebuf(1)
+          energs%epot = energs_work%receivebuf(2)
+          energs%eproj = energs_work%receivebuf(3)
+          energs%evsic = energs_work%receivebuf(4)
+      end if
+
+      ! Use this subroutine to write the energies, with some fake number
+      ! to prevent it from writing too much
+      if (iproc==0) then
+          call write_energies(0,0,energs,0.d0,0.d0,'',.true.)
+      end if
+      if (iproc==0) then
+          call yaml_map('Orthoconstraint',.true.)
+      end if
 
       if (target_function==TARGET_FUNCTION_IS_HYBRID) then
           if (method_updatekernel==UPDATE_BY_FOE .or. method_updatekernel==UPDATE_BY_RENORMALIZATION) then
@@ -991,6 +1033,18 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
 
       !!delta_energy_prev=delta_energy
 
+      ! Wait for the communication of fnrm on root
+      call mpi_fenceandfree(fnrm%window)
+      fnrm%receivebuf(1)=sqrt(fnrm%receivebuf(1)/dble(tmb%orbs%norb))
+
+      ! The other processes need to get fnrm as well. The fence will be later as
+      ! only iproc=0 has to write.
+      if (iproc==0) fnrm%sendbuf(1) = fnrm%receivebuf(1)
+      fnrm%window = mpiwindow(1, fnrm%sendbuf(1), bigdft_mpi%mpi_comm)
+      if (iproc/=0) then
+          call mpiget(fnrm%receivebuf(1), 1, 0, int(0,kind=mpi_address_kind), fnrm%window)
+      end if
+
       if (energy_increased .and. ldiis%isx==0) then
           !if (iproc==0) write(*,*) 'WARNING: ENERGY INCREASED'
           !if (iproc==0) call yaml_warning('The target function increased, D='&
@@ -998,7 +1052,7 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
           if (iproc==0) then
               call yaml_newline()
               call yaml_map('iter',it,fmt='(i5)')
-              call yaml_map('fnrm',fnrm,fmt='(es9.2)')
+              call yaml_map('fnrm',fnrm%receivebuf(1),fmt='(es9.2)')
               call yaml_map('Omega',trH,fmt='(es22.15)')
               call yaml_map('D',ediff,fmt='(es9.2)')
               call yaml_map('D best',ediff_best,fmt='(es9.2)')
@@ -1019,6 +1073,9 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
               ! This is to avoid memory leaks
               call untranspose_localized(iproc, nproc, tmb%ham_descr%npsidim_orbs, tmb%orbs, tmb%ham_descr%collcom, &
                    TRANSPOSE_GATHER, hpsit_c, hpsit_f, hpsi_tmp, tmb%ham_descr%lzd, wt_hpsinoprecond)
+
+              call mpi_fenceandfree(fnrm%window)
+              fnrm_old=fnrm%receivebuf(1)
              cycle
           else if(it_tot<3*nit_basis) then ! stop orthonormalizing the tmbs
              if (iproc==0) call yaml_newline()
@@ -1035,7 +1092,7 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
       if (iproc==0) then
           call yaml_newline()
           call yaml_map('iter',it,fmt='(i5)')
-          call yaml_map('fnrm',fnrm,fmt='(es9.2)')
+          call yaml_map('fnrm',fnrm%receivebuf(1),fmt='(es9.2)')
           call yaml_map('Omega',trH,fmt='(es22.15)')
           call yaml_map('D',ediff,fmt='(es9.2)')
           call yaml_map('D best',ediff_best,fmt='(es9.2)')
@@ -1044,12 +1101,15 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
       ! Add some extra iterations if DIIS failed (max 6 failures are allowed before switching to SD)
       nit_exit=min(nit_basis+ldiis%icountDIISFailureTot,nit_basis+6)
 
+      call mpi_fenceandfree(fnrm%window)
+      fnrm_old=fnrm%receivebuf(1)
+
       ! Determine whether the loop should be exited
       exit_loop(1) = (it>=nit_exit)
       exit_loop(2) = (it_tot>=3*nit_basis)
       exit_loop(3) = energy_diff
-      exit_loop(4) = (fnrm<conv_crit .and. experimental_mode)
-      exit_loop(5) = (experimental_mode .and. fnrm<dynamic_convcrit .and. fnrm<min_gnrm_for_dynamic &
+      exit_loop(4) = (fnrm%receivebuf(1)<conv_crit .and. experimental_mode)
+      exit_loop(5) = (experimental_mode .and. fnrm%receivebuf(1)<dynamic_convcrit .and. fnrm%receivebuf(1)<min_gnrm_for_dynamic &
                      .and. (it>1 .or. has_already_converged)) ! first overall convergence not allowed in a first iteration
       exit_loop(6) = (itout==0 .and. it>1 .and. ratio_deltas<kappa_conv .and.  ratio_deltas>0.d0)
       if (ratio_deltas>0.d0 .and. ratio_deltas<1.d-1) then
@@ -1205,7 +1265,7 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
       call write_energies(0,0,energs,0.d0,0.d0,'',.true.)
       call yaml_newline()
       call yaml_map('iter',it,fmt='(i5)')
-      call yaml_map('fnrm',fnrm,fmt='(es9.2)')
+      call yaml_map('fnrm',fnrm%receivebuf(1),fmt='(es9.2)')
       call yaml_map('Omega',trH,fmt='(es22.15)')
       call yaml_map('D',ediff,fmt='(es9.2)')
       call yaml_map('D best',ediff_best,fmt='(es9.2)')
@@ -1248,6 +1308,10 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
   call f_free(delta_energy_arr)
   call f_free(kernel_best)
   call f_free_ptr(ovrlp_old%matrix_compr)
+
+  fnrm_tmb = fnrm%receivebuf(1)
+  !!call deallocate_work_mpiaccumulate(fnrm)
+  !!call deallocate_work_mpiaccumulate(energs_work)
 
   call f_release_routine()
 

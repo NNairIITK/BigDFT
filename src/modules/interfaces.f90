@@ -547,7 +547,7 @@ module module_interfaces
       END SUBROUTINE NonLocalHamiltonianApplication
 
       subroutine SynchronizeHamiltonianApplication(nproc,npsidim_orbs,orbs,Lzd,GPU,xc,hpsi,&
-           ekin_sum,epot_sum,eproj_sum,eSIC_DC,eexctX)
+           ekin_sum,epot_sum,eproj_sum,eSIC_DC,eexctX,energs_work)
         use module_base
         use module_types
         use module_xc
@@ -559,6 +559,7 @@ module module_interfaces
         type(xc_info), intent(in) :: xc
         real(gp), intent(inout) :: ekin_sum,epot_sum,eproj_sum,eSIC_DC,eexctX
         real(wp), dimension(orbs%npsidim_orbs), intent(inout) :: hpsi
+        type(work_mpiaccumulate),optional,intent(inout) :: energs_work
       END SUBROUTINE SynchronizeHamiltonianApplication
 
       subroutine hpsitopsi(iproc,nproc,iter,idsx,wfn,&
@@ -1425,14 +1426,14 @@ module module_interfaces
       END SUBROUTINE allocateRhoPot
 
       subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
-          fnrm,infoBasisFunctions,nlpsp,scf_mode,ldiis,SIC,tmb,energs_base,&
+          fnrm_tmb,infoBasisFunctions,nlpsp,scf_mode,ldiis,SIC,tmb,energs_base,&
           nit_precond,target_function,&
           correction_orthoconstraint,nit_basis,&
           ratio_deltas,ortho_on,extra_states,itout,conv_crit,experimental_mode,early_stop,&
           gnrm_dynamic, min_gnrm_for_dynamic, can_use_ham, order_taylor, max_inversion_error, kappa_conv, method_updatekernel,&
           purification_quickreturn, correction_co_contra, &
           precond_convol_workarrays, precond_workarrays, &
-          wt_philarge, wt_hpsinoprecond, wt_hphi, wt_phi, &
+          wt_philarge, wt_hpsinoprecond, wt_hphi, wt_phi, fnrm, energs_work, &
           cdft, input_frag, ref_frags)
         use module_base
         use module_types
@@ -1451,7 +1452,7 @@ module module_interfaces
         real(kind=8),dimension(3,at%astruct%nat) :: rxyz
         type(DFT_local_fields), intent(inout) :: denspot
         type(GPU_pointers), intent(inout) :: GPU
-        real(kind=8),intent(out) :: trH, fnrm
+        real(kind=8),intent(out) :: trH, fnrm_tmb
         real(kind=8),intent(inout) :: trH_old
         type(DFT_PSP_projectors),intent(inout) :: nlpsp
         integer,intent(in) :: scf_mode
@@ -1472,6 +1473,7 @@ module module_interfaces
         type(workarrays_quartic_convolutions),dimension(tmb%orbs%norbp),intent(inout) :: precond_convol_workarrays
         type(workarr_precond),dimension(tmb%orbs%norbp),intent(inout) :: precond_workarrays
         type(work_transpose),intent(inout) :: wt_philarge, wt_hpsinoprecond, wt_hphi, wt_phi
+        type(work_mpiaccumulate),intent(inout) :: fnrm, energs_work
         !these must all be present together
         type(cdft_data),intent(inout),optional :: cdft
         type(fragmentInputParameters),optional,intent(in) :: input_frag
@@ -1493,7 +1495,7 @@ module module_interfaces
     subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
         energs,nlpsp,SIC,tmb,fnrm,calculate_overlap_matrix,invert_overlap_matrix,communicate_phi_for_lsumrho,&
         calculate_ham,extra_states,itout,it_scc,it_cdft,order_taylor,max_inversion_error,purification_quickreturn,&
-        calculate_KS_residue,calculate_gap,&
+        calculate_KS_residue,calculate_gap,energs_work,&
         convcrit_dmin,nitdmin,curvefit_dmin,ldiis_coeff,reorder,cdft, updatekernel)
       use module_base
       use module_types
@@ -1520,6 +1522,7 @@ module module_interfaces
       logical,intent(in):: calculate_overlap_matrix, invert_overlap_matrix
       logical,intent(in):: communicate_phi_for_lsumrho, purification_quickreturn
       logical,intent(in) :: calculate_ham, calculate_KS_residue, calculate_gap
+      type(work_mpiaccumulate),intent(inout) :: energs_work
       type(DIIS_obj),intent(inout),optional :: ldiis_coeff ! for dmin only
       integer, intent(in), optional :: nitdmin ! for dmin only
       real(kind=gp), intent(in), optional :: convcrit_dmin ! for dmin only
@@ -2460,7 +2463,8 @@ module module_interfaces
          real(kind=8), dimension(tmb%orbs%norbp), intent(inout) :: fnrmOldArr
          real(kind=8),intent(inout) :: fnrm_old
          real(kind=8), dimension(tmb%orbs%norbp), intent(inout) :: alpha
-         real(kind=8), intent(out):: trH, fnrm, alpha_mean, alpha_max
+         real(kind=8), intent(out):: trH, alpha_mean, alpha_max
+         type(work_mpiaccumulate), intent(inout):: fnrm
          real(kind=8), intent(in):: trHold
          logical,intent(out) :: energy_increased
          real(kind=8), dimension(tmb%npsidim_orbs), intent(inout):: lhphiold

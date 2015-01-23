@@ -78,6 +78,7 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
   type(workarrays_quartic_convolutions),dimension(:),pointer :: precond_convol_workarrays
   type(workarr_precond),dimension(:),pointer :: precond_workarrays
   type(work_transpose) :: wt_philarge, wt_hpsinoprecond, wt_hphi, wt_phi
+  type(work_mpiaccumulate) :: fnrm_work, energs_work
 
 
   call f_routine(id=subname)
@@ -787,6 +788,10 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
  !!call mpi_finalize(istat)
  !!stop
 
+ energs_work = work_mpiaccumulate_null()
+ energs_work%ncount = 4
+ call allocate_work_mpiaccumulate(energs_work)
+
  if (input%experimental_mode) then
      ! NEW: TRACE MINIMIZATION WITH ORTHONORMALIZATION ####################################
      ortho_on=.true.
@@ -815,6 +820,9 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
      call allocate_work_transpose(nproc, tmb%ham_descr%collcom, wt_hpsinoprecond)
      call allocate_work_transpose(nproc, tmb%ham_descr%collcom, wt_hphi)
      call allocate_work_transpose(nproc, tmb%collcom, wt_phi)
+     fnrm_work = work_mpiaccumulate_null()
+     fnrm_work%ncount = 1
+     call allocate_work_mpiaccumulate(fnrm_work)
      call getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trace,trace_old,fnrm_tmb,&
           info_basis_functions,nlpsp,input%lin%scf_mode,ldiis,input%SIC,tmb,energs, &
           input%lin%nItPrecond,TARGET_FUNCTION_IS_TRACE,input%lin%correctionOrthoconstraint,&
@@ -824,7 +832,8 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
           can_use_ham, order_taylor, input%lin%max_inversion_error, input%kappa_conv, input%method_updatekernel,&
           input%purification_quickreturn, input%correction_co_contra, &
           precond_convol_workarrays, precond_workarrays, &
-          wt_philarge, wt_hpsinoprecond, wt_hphi, wt_phi)
+          wt_philarge, wt_hpsinoprecond, wt_hphi, wt_phi, fnrm_work, energs_work)
+     call deallocate_work_mpiaccumulate(fnrm_work)
      call deallocate_precond_arrays(tmb%orbs, tmb%lzd, precond_convol_workarrays, precond_workarrays)
      call deallocate_work_transpose(wt_philarge)
      call deallocate_work_transpose(wt_hpsinoprecond)
@@ -876,16 +885,17 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
 
   order_taylor=input%lin%order_taylor ! since this is intent(inout)
   !!call extract_taskgroup_inplace(tmb%linmat%l, tmb%linmat%kernel_)
+
   if (input%lin%scf_mode==LINEAR_FOE) then
       call get_coeff(iproc,nproc,LINEAR_FOE,orbs,at,rxyz,denspot,GPU,infoCoeff,energs,nlpsp,&
            input%SIC,tmb,fnrm,.true.,.true.,.false.,.true.,0,0,0,0,order_taylor,input%lin%max_inversion_error,&
            input%purification_quickreturn,&
-           input%calculate_KS_residue,input%calculate_gap)
+           input%calculate_KS_residue,input%calculate_gap, energs_work)
   else
       call get_coeff(iproc,nproc,LINEAR_MIXDENS_SIMPLE,orbs,at,rxyz,denspot,GPU,infoCoeff,energs,nlpsp,&
            input%SIC,tmb,fnrm,.true.,.true.,.false.,.true.,0,0,0,0,order_taylor,input%lin%max_inversion_error,&
            input%purification_quickreturn,&
-           input%calculate_KS_residue,input%calculate_gap)
+           input%calculate_KS_residue,input%calculate_gap, energs_work)
 
       !call vcopy(kswfn%orbs%norb,tmb%orbs%eval(1),1,kswfn%orbs%eval(1),1)
       ! Keep the ocupations for the moment.. maybe to be activated later (with a better if statement)
@@ -897,6 +907,8 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
       end if
   end if
   !!call gather_matrix_from_taskgroups_inplace(iproc, nproc, tmb%linmat%l, tmb%linmat%kernel_)
+
+  call deallocate_work_mpiaccumulate(energs_work)
 
 
   call communicate_basis_for_density_collective(iproc, nproc, tmb%lzd, max(tmb%npsidim_orbs,tmb%npsidim_comp), &
