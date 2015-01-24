@@ -204,6 +204,7 @@ subroutine lstpthpnt(nat,mhgpsst,uinp,rxyzR,rxyzP,lambda,rxyz)
 subroutine lst_penalty(nat,rxyzR,rxyzP,rxyz,lambda,val,force)
     !computes the linear synchronous penalty function
     !and gradient
+    !openmp parallelized
     !
     !see:
     !
@@ -260,6 +261,9 @@ subroutine lst_penalty(nat,rxyzR,rxyzP,rxyz,lambda,val,force)
     oml=1.0_gp-lambda!one minus lambda
     val=0.0_gp!function value
     force=0.0_gp!negative gradient
+    !$omp parallel default(private) shared(nat, rxyzR, rxyzP, rxyz, &
+    !$omp val, force, oml, lambda)
+    !$omp do schedule(dynamic) reduction(+:force,val)
     !first sum
     do b = 1, nat-1
        rxRb = rxyzR(1,b)
@@ -307,7 +311,9 @@ subroutine lst_penalty(nat,rxyzR,rxyzP,rxyz,lambda,val,force)
           force(3,a) = force(3,a) - ttz
        enddo
     enddo
+    !$omp end do
 
+    !$omp do schedule(dynamic) reduction(+:force,val)
     !second sum
     do a = 1, nat
        waxi = oml*rxyzR(1,a) + lambda*rxyzP(1,a)
@@ -322,6 +328,8 @@ subroutine lst_penalty(nat,rxyzR,rxyzP,rxyz,lambda,val,force)
        force(2,a) = force(2,a) + 2.e-6_gp * tty
        force(3,a) = force(3,a) + 2.e-6_gp * ttz
     enddo
+    !$omp end do
+    !$omp end parallel
 end subroutine lst_penalty
 !=====================================================================
 subroutine fire(mhgpsst,uinp,nat,rxyzR,rxyzP,lambda,rxyz,fxyz,epot)
