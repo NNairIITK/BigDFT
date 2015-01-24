@@ -991,8 +991,6 @@ subroutine curvforce(mhgpsst,runObj,outs,diff,rxyz1,fxyz1,vec,curv,rotforce,imet
     real(gp) :: diffinv, etot2,fnoise
     real(gp),allocatable :: rxyz2(:,:), fxyz2(:,:)
     real(gp),allocatable :: drxyz(:,:), dfxyz(:,:)
-real(gp) :: maxd(runObj%atoms%astruct%nat)
-integer :: i
     !functions
     real(gp), external :: dnrm2,ddot
 

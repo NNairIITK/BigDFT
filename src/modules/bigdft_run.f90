@@ -165,7 +165,7 @@ contains
           mm_rst%refcnt=f_ref_new('mm_rst')
           mm_rst%rf_extra=f_malloc0_ptr([3,nat],id='rf_extra')
        end if
-       call init_lensic(runObj%inputs%mm_paramset,&               
+       call init_lensic(runObj%inputs%mm_paramset,&
              runObj%inputs%mm_paramfile,runObj%atoms%astruct%geocode)
     case('LENOSKY_SI_BULK_RUN_MODE')
        if (associated(mm_rst%rf_extra)) then
@@ -1253,6 +1253,8 @@ contains
     integer :: icc !for amber
     real(gp) :: alatint(3)
     real(gp), dimension(:,:), pointer :: rxyz_ptr
+!integer :: iat , l
+!real(gp) :: anoise,tt
 
 
     !@NEW ####################################################
@@ -1334,6 +1336,15 @@ contains
        call f_err_throw('Following method for evaluation of '//&
             'energies and forces is unknown: '//trim(yaml_toa(int(runObj%run_mode))))
     end select
+!         anoise=5.d-5
+!         if (anoise.ne.0.d0) then
+!         do iat=1,nat
+!         do l=1,3
+!          call random_number(tt)
+!          outs%fxyz(l,iat)=outs%fxyz(l,iat)+anoise*(tt-.5d0)
+!         enddo
+!         enddo
+!         endif
 
     call clean_forces(bigdft_mpi%iproc,runObj%atoms,rxyz_ptr,outs%fxyz,outs%fnoise,runObj%run_mode)
   end subroutine bigdft_state
