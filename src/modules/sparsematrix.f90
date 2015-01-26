@@ -1569,6 +1569,12 @@ module sparsematrix
       integer,parameter :: iunit=234
 
       call f_routine(id='write_sparsematrix')
+
+      ! First check that no taskgroups are used. Otherwise this routine does not work
+      if (smat%ntaskgroup>1) then
+          call f_err_throw('write_sparsematrix has not yet been implememted for matrix taskgroups', &
+               err_name='BIGDFT_RUNTIME_ERROR')
+      end if
     
       open(unit=iunit,file=filename)
 

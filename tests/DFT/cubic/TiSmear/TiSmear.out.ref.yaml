@@ -509,7 +509,6 @@
  - PSP generated with a different XC. Input XC is "XC: Perdew, Burke & Ernzerhof"
  - Odd number of electrons, no closed shell system
  - No convergence within the allowed number of minimization steps
- - No convergence within the allowed number of minimization steps
  - Wavefunctions not converged after cycle  1
  - Wavefunction residue is not consistent with density convergence (T_el too small?)
  - Self-consistent cycle did not meet convergence criteria

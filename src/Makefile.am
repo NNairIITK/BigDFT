@@ -22,6 +22,7 @@ SUBDIRS = \
 	bindings \
 	art \
 	mhgps_files \
+	global_files \
 	$(sub_dirs_bin)
 
 EXTRA_DIST = \
@@ -63,7 +64,7 @@ else
 lib_bigdft =
 endif
 if BUILD_BINARIES
-binaries_sources = bigdft memguess splsad NEB frequencies global abscalc mhgps mhgpstool
+binaries_sources = bigdft memguess splsad NEB frequencies global globaltool abscalc mhgps mhgpstool
 local_binaries = test_forces
 scripts_sources = NEB_driver.sh bigdft-tool
 sub_dirs_bin = tools tools/bader
@@ -333,6 +334,10 @@ mhgpstool_LDADD = mhgps_files/libmhgps.a $(bigdft_library)  @LINALG_LIBS@
 
 global_SOURCES = global.f90
 global_LDADD = $(bigdft_library) @LINALG_LIBS@
+
+globaltool_SOURCES = globaltool.f90
+globaltool_FCFLAGS = -I. -Iglobal_files -I$(top_builddir)/includes @LIBABINIT_INCLUDE@ @LIBXC_INCLUDE@
+globaltool_LDADD = global_files/libglobalf.a $(bigdft_library)  @LINALG_LIBS@
 
 CLEANFILES = *.@MODULE_EXT@ bindings_dbus.* introspect libbigdft-1.* input_variables_definition-inc.h
 clean-local:

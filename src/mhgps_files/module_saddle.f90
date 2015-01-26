@@ -296,7 +296,6 @@ subroutine findsad(mhgpsst,fsw,uinp,runObj,outs,rcov,nbond,iconnect,&
     !functions
     real(gp) :: ddot,dnrm2
 
-
     if(bigdft_get_geocode(runObj)/='F'.and. .not.&
             (trim(adjustl(char(runObj%run_mode)))==&
                         'LENOSKY_SI_CLUSTERS_RUN_MODE'))then

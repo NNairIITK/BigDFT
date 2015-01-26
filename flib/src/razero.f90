@@ -16,10 +16,9 @@ subroutine razero(n,x)
   double precision, dimension(n), intent(out) :: x
   !Local variables
   integer :: i
-  !$ logical :: large,omp_in_parallel,omp_get_nested,do_omp
-
-  !$ large = n > 1024
-  !$ do_omp = large .and. .not.(omp_in_parallel() .or. omp_get_nested())
+  !$ logical :: omp_in_parallel,do_omp
+  !$ do_omp = n > 1024
+  !$ if (do_omp) do_omp= .not. omp_in_parallel()
   !$omp parallel if (do_omp) shared(x,n) private(i)
   !$omp do
   do i=1,n
@@ -38,10 +37,9 @@ subroutine razero_simple(n,x)
   real(kind=4), intent(out) :: x(n)
   !Local variables
   integer :: i,m
-  !$ logical :: large,omp_in_parallel,omp_get_nested,do_omp
-
-  !$ large = n > 1024
-  !$ do_omp = large .and. .not.(omp_in_parallel() .or. omp_get_nested())
+  !$ logical :: omp_in_parallel,do_omp
+  !$ do_omp = n > 1024
+  !$ if (do_omp) do_omp= .not. omp_in_parallel()
   !$omp parallel if (do_omp) shared(x,n) private(i)
   !$omp do
   do i=1,n
@@ -80,10 +78,9 @@ subroutine razero_integer(n,x)
   integer, dimension(n), intent(out) :: x
   !Local variables
   integer :: i,m
-  !$ logical :: large,omp_in_parallel,omp_get_nested,do_omp
-
-  !$ large = n > 1024
-  !$ do_omp = large .and. .not.(omp_in_parallel() .or. omp_get_nested())
+  !$ logical :: omp_in_parallel,do_omp
+  !$ do_omp = n > 1024
+  !$ if (do_omp) do_omp= .not. omp_in_parallel()
   !$omp parallel if (do_omp) shared(x,n) private(i)
   !$omp do
   do i=1,n
@@ -122,10 +119,9 @@ subroutine razero_integerlong(n,x)
   integer(kind=8), dimension(n), intent(out) :: x
   !Local variables
   integer :: i,m
-  !$ logical :: large,omp_in_parallel,omp_get_nested,do_omp
-
-  !$ large = n > 1024
-  !$ do_omp = large .and. .not.(omp_in_parallel() .or. omp_get_nested())
+  !$ logical :: omp_in_parallel,do_omp
+  !$ do_omp = n > 1024
+  !$ if (do_omp) do_omp= .not. omp_in_parallel()
   !$omp parallel if (do_omp) shared(x,n) private(i)
   !$omp do
   do i=1,n

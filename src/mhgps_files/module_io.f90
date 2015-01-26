@@ -85,7 +85,8 @@ subroutine read_restart(mhgpsst,runObj)
         mhgpsst%nrestart=mhgpsst%nrestart+1
         read(u,*)mhgpsst%nattempted,mhgpsst%nattemptedmax
         mhgpsst%attempted_connections =&
-             f_malloc([3,runObj%atoms%astruct%nat,2,mhgpsst%nattemptedmax],id='mhgpsst%attempted_connections')
+             f_malloc([3,runObj%atoms%astruct%nat,2,mhgpsst%nattemptedmax]&
+             ,id='mhgpsst%attempted_connections')
         do iatt=1,mhgpsst%nattempted
             do iat=1,runObj%atoms%astruct%nat
             read(u,*)mhgpsst%attempted_connections(1,iat,1,iatt),&
@@ -109,11 +110,12 @@ subroutine read_restart(mhgpsst,runObj)
         mhgpsst%nattempted=0
         mhgpsst%nattemptedmax=1000
         mhgpsst%attempted_connections =&
-             f_malloc([3,runObj%atoms%astruct%nat,2,mhgpsst%nattemptedmax],id='mhgpsst%attempted_connections')
+             f_malloc([3,runObj%atoms%astruct%nat,2,mhgpsst%nattemptedmax]&
+             ,id='mhgpsst%attempted_connections')
     endif
 end subroutine read_restart
 !=====================================================================
-subroutine write_restart(mhgpsst,runObj,cobj)
+subroutine write_restart(mhgpsst,runObj,cobj,writeJobList)
     use module_base
     use bigdft_run
     use module_mhgps_state
@@ -122,9 +124,12 @@ subroutine write_restart(mhgpsst,runObj,cobj)
     type(mhgps_state), intent(inout)              :: mhgpsst
     type(run_objects), intent(in)     :: runObj
     type(connect_object), optional, intent(in) :: cobj
+    logical, optional, intent(in) :: writeJobList
     !local
     integer :: u
     integer :: iatt, iat
+    logical :: wJl
+    wJl=.true.
     u=f_get_free_unit()
     open(unit=u,file='restart')
     write(u,*)mhgpsst%ifolder
@@ -147,7 +152,10 @@ subroutine write_restart(mhgpsst,runObj,cobj)
     enddo
     close(u)
     
-    call write_jobs(mhgpsst,runObj,cobj)
+    if(present(writeJobList)) wJl=writeJobList
+    if(wJl)then
+        call write_jobs(mhgpsst,runObj,cobj)
+    endif
 end subroutine write_restart
 !=====================================================================
 subroutine write_jobs(mhgpsst,runObj,cobj)
@@ -226,6 +234,11 @@ subroutine read_jobs(uinp,mhgpsst)
     character(len=6) :: filename
     integer :: ifile,iline,u,istat
     character(len=50) :: jobfile
+    !put a barrier for all the processes
+    !otherwise, the joblist file may be updated, before
+    !all procsesses have read the identical file
+    call mpibarrier(bigdft_mpi%mpi_comm)
+
     inquire(file=trim(adjustl(mhgpsst%currDir))//'/job_list',exist=exists)
     if(exists)jobfile=trim(adjustl(mhgpsst%currDir))//'/'//'job_list'
     inquire(file=trim(adjustl(mhgpsst%currDir))//'/job_list_restart',&
@@ -308,6 +321,10 @@ subroutine read_jobs(uinp,mhgpsst)
         endif
     endif
 
+    !put a barrier for all the processes
+    !otherwise, the joblist file may be updated, before
+    !all procsesses have read the identical file
+    call mpibarrier(bigdft_mpi%mpi_comm)
 end subroutine
 !=====================================================================
 subroutine check_struct_file_exists(filename,exists)

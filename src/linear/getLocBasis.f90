@@ -484,23 +484,14 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
 
       if (iproc==0) call yaml_map('method','FOE')
       tmprtr=0.d0
-      !!tmparr1 = sparsematrix_malloc(tmb%linmat%s,iaction=SPARSE_FULL,id='tmparr1')
-      !!call vcopy(tmb%linmat%s%nvctr*tmb%linmat%s%nspin, tmb%linmat%ovrlp_%matrix_compr(1), 1, tmparr1(1), 1)
-      !!call extract_taskgroup_inplace(tmb%linmat%s, tmb%linmat%ovrlp_)
-      !!tmparr2 = sparsematrix_malloc(tmb%linmat%m,iaction=SPARSE_FULL,id='tmparr2')
-      !!call vcopy(tmb%linmat%m%nvctr*tmb%linmat%m%nspin, tmb%linmat%ham_%matrix_compr(1), 1, tmparr2(1), 1)
-      !!call extract_taskgroup_inplace(tmb%linmat%m, tmb%linmat%ham_)
-      if (iproc==0) then
-          call yaml_map('write overlap matrix',.true.)
-          call write_sparsematrix('overlap.dat', tmb%linmat%s, tmb%linmat%ovrlp_)
-      end if
+
+      !!if (iproc==0) then
+      !!    call yaml_map('write overlap matrix',.true.)
+      !!    call write_sparsematrix('overlap.dat', tmb%linmat%s, tmb%linmat%ovrlp_)
+      !!end if
       call foe(iproc, nproc, tmprtr, &
            energs%ebs, itout,it_scc, order_taylor, max_inversion_error, purification_quickreturn, &
            invert_overlap_matrix, 2, FOE_ACCURATE, tmb, tmb%foe_obj)
-      !!call vcopy(tmb%linmat%s%nvctr*tmb%linmat%s%nspin, tmparr1(1), 1, tmb%linmat%ovrlp_%matrix_compr(1), 1)
-      !!call f_free(tmparr1)
-      !!call vcopy(tmb%linmat%m%nvctr*tmb%linmat%m%nspin, tmparr2(1), 1, tmb%linmat%ham_%matrix_compr(1), 1)
-      !!call f_free(tmparr2)
 
       ! Eigenvalues not available, therefore take -.5d0
       tmb%orbs%eval=-.5d0
@@ -523,8 +514,10 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
   if (iproc==0) call yaml_map('Coefficients available',scf_mode /= LINEAR_FOE)
 
   if (calculate_ham) then
-      ! Wait for the communication of energs_work on root
-      call mpi_fenceandfree(energs_work%window)
+      if (nproc>1) then
+          ! Wait for the communication of energs_work on root
+          call mpi_fenceandfree(energs_work%window)
+      end if
 
       ! Copy the value, only necessary on root
       if (iproc==0) then
@@ -828,8 +821,10 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
       call transpose_localized(iproc, nproc, tmb%npsidim_orbs, tmb%orbs, tmb%collcom, &
            TRANSPOSE_GATHER, tmb%psi, tmb%psit_c, tmb%psit_f, tmb%lzd, wt_phi)
 
-      ! Wait for the communication of energs_work on root
-      call mpi_fenceandfree(energs_work%window)
+      if (nproc>1) then
+          ! Wait for the communication of energs_work on root
+          call mpi_fenceandfree(energs_work%window)
+      end if
 
       ! Copy the value, only necessary on root
       if (iproc==0) then
@@ -1034,22 +1029,27 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
       !!delta_energy_prev=delta_energy
 
       ! Wait for the communication of fnrm on root
-      call mpi_fenceandfree(fnrm%window)
+      if (nproc>1) then
+          call mpi_fenceandfree(fnrm%window)
+      end if
       fnrm%receivebuf(1)=sqrt(fnrm%receivebuf(1)/dble(tmb%orbs%norb))
 
-      ! The other processes need to get fnrm as well. The fence will be later as
-      ! only iproc=0 has to write.
-      if (iproc==0) fnrm%sendbuf(1) = fnrm%receivebuf(1)
-      fnrm%window = mpiwindow(1, fnrm%sendbuf(1), bigdft_mpi%mpi_comm)
-      if (iproc/=0) then
-          call mpiget(fnrm%receivebuf(1), 1, 0, int(0,kind=mpi_address_kind), fnrm%window)
+      ! The other processes need to get fnrm as well. The fence will be later as only iproc=0 has to write.
+      if (nproc>1) then
+          if (iproc==0) fnrm%sendbuf(1) = fnrm%receivebuf(1)
+          fnrm%window = mpiwindow(1, fnrm%sendbuf(1), bigdft_mpi%mpi_comm)
+          if (iproc/=0) then
+              call mpiget(fnrm%receivebuf(1), 1, 0, int(0,kind=mpi_address_kind), fnrm%window)
+          end if
       end if
 
       if (energy_increased .and. ldiis%isx==0) then
           !if (iproc==0) write(*,*) 'WARNING: ENERGY INCREASED'
           !if (iproc==0) call yaml_warning('The target function increased, D='&
           !              //trim(adjustl(yaml_toa(trH-ldiis%trmin,fmt='(es10.3)'))))
-          call mpi_fenceandfree(fnrm%window)
+          if (nproc>1) then
+              call mpi_fenceandfree(fnrm%window)
+          end if
           fnrm_old=fnrm%receivebuf(1)
           if (iproc==0) then
               call yaml_newline()
@@ -1103,7 +1103,9 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
 
       ! Normal case
       if (.not.energy_increased .or. ldiis%isx/=0) then
-          call mpi_fenceandfree(fnrm%window)
+          if (nproc>1) then
+              call mpi_fenceandfree(fnrm%window)
+          end if
           fnrm_old=fnrm%receivebuf(1)
       end if
 

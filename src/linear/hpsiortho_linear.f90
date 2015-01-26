@@ -640,10 +640,14 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
     !!   call mpiallred(fnrm, 1, mpi_sum, bigdft_mpi%mpi_comm)
     !!end if
 
-    fnrm%receivebuf = 0.d0
-    fnrm%window = mpiwindow(1, fnrm%receivebuf(1), bigdft_mpi%mpi_comm)
-    call mpiaccumulate_double(fnrm%sendbuf(1), 1, 0, &
-         int(0,kind=mpi_address_kind), 1, mpi_sum, fnrm%window)
+    if (nproc>1) then
+        fnrm%receivebuf = 0.d0
+        fnrm%window = mpiwindow(1, fnrm%receivebuf(1), bigdft_mpi%mpi_comm)
+        call mpiaccumulate_double(fnrm%sendbuf(1), 1, 0, &
+             int(0,kind=mpi_address_kind), 1, mpi_sum, fnrm%window)
+    else
+        fnrm%receivebuf(1) = fnrm%sendbuf(1)
+    end if
 
     call f_release_routine()
   end subroutine communicate_fnrm
