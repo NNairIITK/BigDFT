@@ -346,6 +346,7 @@ contains
       integer,dimension(:,:),allocatable :: temparr
       real(kind=8) :: rseq, rseq_ideal, tt, ratio_before, ratio_after
       logical :: printable
+      real(kind=8),dimension(:),allocatable :: rseq_per_line
 
       ! Calculate the values of sparsemat%smmm%nout and sparsemat%smmm%nseq with
       ! the default partitioning of the matrix columns.
@@ -358,30 +359,41 @@ contains
       rseq=real(sparsemat%smmm%nseq,kind=8) !real to prevent integer overflow
       if (nproc>1) call mpiallred(rseq, 1, mpi_sum, bigdft_mpi%mpi_comm)
 
+      rseq_per_line = f_malloc(norb,id='rseq_per_line')
+      do iorb=1,norb
+          rseq_per_line(iorb) = real(nseq_per_line(iorb),kind=8)
+      end do
+
 
       norb_par_ideal = f_malloc(0.to.nproc-1,id='norb_par_ideal')
       isorb_par_ideal = f_malloc(0.to.nproc-1,id='norb_par_ideal')
       ! Assign the columns of the matrix to the processes such that the load
       ! balancing is optimal
       ! First the default initializations
-      norb_par_ideal(:)=0
-      isorb_par_ideal(:)=norb
+      !!!!norb_par_ideal(:)=0
+      !!!!isorb_par_ideal(:)=norb
+      !!!!rseq_ideal = rseq/real(nproc,kind=8)
+      !!!!jjproc=0
+      !!!!tt=0.d0
+      !!!!iiorb=0
+      !!!!isorb_par_ideal(0)=0
+      !!!!do iorb=1,norb
+      !!!!    iiorb=iiorb+1
+      !!!!    tt=tt+real(nseq_per_line(iorb),kind=8)
+      !!!!    if (tt>=real(jjproc+1,kind=8)*rseq_ideal .and. jjproc/=nproc-1) then
+      !!!!        norb_par_ideal(jjproc)=iiorb
+      !!!!        isorb_par_ideal(jjproc+1)=iorb
+      !!!!        jjproc=jjproc+1
+      !!!!        iiorb=0
+      !!!!    end if
+      !!!!end do
+      !!!!norb_par_ideal(jjproc)=iiorb
       rseq_ideal = rseq/real(nproc,kind=8)
-      jjproc=0
-      tt=0.d0
-      iiorb=0
-      isorb_par_ideal(0)=0
-      do iorb=1,norb
-          iiorb=iiorb+1
-          tt=tt+real(nseq_per_line(iorb),kind=8)
-          if (tt>=real(jjproc+1,kind=8)*rseq_ideal .and. jjproc/=nproc-1) then
-              norb_par_ideal(jjproc)=iiorb
-              isorb_par_ideal(jjproc+1)=iorb
-              jjproc=jjproc+1
-              iiorb=0
-          end if
+      call redistribute(nproc, norb, rseq_per_line, rseq_ideal, norb_par_ideal)
+      isorb_par_ideal(0) = 0
+      do jproc=1,nproc-1
+          isorb_par_ideal(jproc) = isorb_par_ideal(jproc-1) + norb_par_ideal(jproc-1)
       end do
-      norb_par_ideal(jjproc)=iiorb
 
 
       ! some checks
@@ -434,6 +446,7 @@ contains
       
 
       call f_free(nseq_per_line)
+      call f_free(rseq_per_line)
 
       call allocate_sparse_matrix_matrix_multiplication(nproc, norb, nseg, nsegline, istsegline, sparsemat%smmm)
 

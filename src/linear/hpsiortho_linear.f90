@@ -450,6 +450,7 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
       if(it>1) then
           tt2=ddot(ncount, tmb%hpsi(ist), 1, lhphiold(ist), 1)
           fnrmOvrlp_tot = fnrmOvrlp_tot + tt2
+          !if (iorb==1) write(*,*) 'iproc, trH, trHold, ldiis%switchSD', iproc, trH, trHold, ldiis%switchSD
           if(ldiis%isx==0 .and. .not.ldiis%switchSD) then
               ! Adapt step size for the steepest descent minimization.
               if (.not.experimental_mode) then
@@ -476,10 +477,12 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
       !    fnrmOld_tot=fnrmOld_tot+fnrmOldArr(iorb)
       !end do
       if (nproc>1) then
-          call mpiallred(fnrmOvrlp_tot, 1, mpi_sum, bigdft_mpi%mpi_comm)
+          reducearr(1) = fnrmOvrlp_tot
+          reducearr(2) = fnrm%sendbuf(1)
+          call mpiallred(reducearr(1), 2, mpi_sum, bigdft_mpi%mpi_comm)
       end if
       !tt2=fnrmOvrlp_tot/sqrt(fnrm*fnrmOld_tot)
-      tt2=fnrmOvrlp_tot/sqrt(fnrm%sendbuf(1)*fnrm_old)
+      tt2=reducearr(1)/sqrt(reducearr(2)*fnrm_old)
       ! apply thresholds so that alpha never goes below around 1.d-2 and above around 2
       if(tt2>.6d0 .and. trH<trHold .and. alpha(1)<1.8d0) then ! take alpha(1) since the value is the same for all
           alpha(:)=alpha(:)*1.1d0

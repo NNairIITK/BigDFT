@@ -1049,6 +1049,8 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
           !if (iproc==0) write(*,*) 'WARNING: ENERGY INCREASED'
           !if (iproc==0) call yaml_warning('The target function increased, D='&
           !              //trim(adjustl(yaml_toa(trH-ldiis%trmin,fmt='(es10.3)'))))
+          call mpi_fenceandfree(fnrm%window)
+          fnrm_old=fnrm%receivebuf(1)
           if (iproc==0) then
               call yaml_newline()
               call yaml_map('iter',it,fmt='(i5)')
@@ -1074,8 +1076,6 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
               call untranspose_localized(iproc, nproc, tmb%ham_descr%npsidim_orbs, tmb%orbs, tmb%ham_descr%collcom, &
                    TRANSPOSE_GATHER, hpsit_c, hpsit_f, hpsi_tmp, tmb%ham_descr%lzd, wt_hpsinoprecond)
 
-              call mpi_fenceandfree(fnrm%window)
-              fnrm_old=fnrm%receivebuf(1)
              cycle
           else if(it_tot<3*nit_basis) then ! stop orthonormalizing the tmbs
              if (iproc==0) call yaml_newline()
@@ -1101,8 +1101,11 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
       ! Add some extra iterations if DIIS failed (max 6 failures are allowed before switching to SD)
       nit_exit=min(nit_basis+ldiis%icountDIISFailureTot,nit_basis+6)
 
-      call mpi_fenceandfree(fnrm%window)
-      fnrm_old=fnrm%receivebuf(1)
+      ! Normal case
+      if (.not.energy_increased .or. ldiis%isx/=0) then
+          call mpi_fenceandfree(fnrm%window)
+          fnrm_old=fnrm%receivebuf(1)
+      end if
 
       ! Determine whether the loop should be exited
       exit_loop(1) = (it>=nit_exit)
