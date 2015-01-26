@@ -3901,38 +3901,8 @@
  - Do not call check_communications in the linear scaling version!
  - support function optimization not converged
  - density optimization not converged
- - support function optimization not converged
- - density optimization not converged
  - multiply the gradient by 2.0, check this!
  - divide the band stucture energy by 2.0, check this!
- - multiply the gradient by 2.0, check this!
- - divide the band stucture energy by 2.0, check this!
- - multiply the gradient by 2.0, check this!
- - divide the band stucture energy by 2.0, check this!
- - multiply the gradient by 2.0, check this!
- - divide the band stucture energy by 2.0, check this!
- - support function optimization not converged
- - density optimization not converged
- - multiply the gradient by 2.0, check this!
- - divide the band stucture energy by 2.0, check this!
- - multiply the gradient by 2.0, check this!
- - divide the band stucture energy by 2.0, check this!
- - multiply the gradient by 2.0, check this!
- - divide the band stucture energy by 2.0, check this!
- - multiply the gradient by 2.0, check this!
- - divide the band stucture energy by 2.0, check this!
- - support function optimization not converged
- - density optimization not converged
- - multiply the gradient by 2.0, check this!
- - divide the band stucture energy by 2.0, check this!
- - multiply the gradient by 2.0, check this!
- - divide the band stucture energy by 2.0, check this!
- - multiply the gradient by 2.0, check this!
- - divide the band stucture energy by 2.0, check this!
- - multiply the gradient by 2.0, check this!
- - divide the band stucture energy by 2.0, check this!
- - support function optimization not converged
- - density optimization not converged
   #-------------------------------------------------------------------- Timing for root process
  Timings for root process:
    CPU time (s)                        :  41.93

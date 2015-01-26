@@ -81,6 +81,7 @@ yaml_test:
    - Elapsed time (ns)
    - Elapsed time (mus)
    - Test for pid
+   - loc of address and metadata
  Patterns to ignore:
    - errcode
    - Time

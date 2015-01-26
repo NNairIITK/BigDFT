@@ -17,7 +17,6 @@ program mhgpstool
     use module_userinput, read_mhgps_input => read_input
     implicit none
     type(atoms_data) :: atoms
-    type(userinput) :: mhgps_uinp
     type(mhgpstool_data) :: mdat
     integer :: nat
     integer          :: nfolder
