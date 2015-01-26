@@ -334,9 +334,10 @@ program MINHOP
       call bigdft_get_eval(run_opt,ksevals)
   endif  
 
-  if (bigdft_mpi%iproc == 0 .and. nposacc==0) then
+  if(nposacc==0)then
+    nposacc=nposacc+1
+  if (bigdft_mpi%iproc == 0) then
      tt=dnrm2(3*outs%fdim,outs%fxyz,1)
-     nposacc=nposacc+1
      write(fn4,'(i4.4)')nposacc
      if(disable_hatrans)then
          write(comment,'(a,1pe10.3)')'ha_trans disabled, fnrm= ',tt
@@ -349,6 +350,7 @@ program MINHOP
           trim(comment),cwd_path=.true.)
 !!$     call write_atomic_file('posacc_'//fn4//'_'//trim(bigdft_run_id_toa()),&
 !!$          outs%energy,atoms%astruct%rxyz,atoms%astruct%ixyz_int,atoms,trim(comment),forces=outs%fxyz)
+  endif
   endif
 
   if (bigdft_mpi%iproc == 0) then 
@@ -757,8 +759,8 @@ program MINHOP
      do i=1,nid
         fp(i)=fphop(i)
      enddo
+  nposacc=nposacc+1
   if (bigdft_mpi%iproc == 0) then
-     nposacc=nposacc+1
      write(fn4,'(i4.4)')nposacc
      if(disable_hatrans)then
          write(comment,'(a)')'ha_trans disabled'

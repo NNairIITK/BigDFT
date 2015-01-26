@@ -632,6 +632,7 @@ connectloop: do while(cobj%ntodo>=1)
         cobj%ntodo=cobj%ntodo-1
         cycle
     endif
+    if(bigdft_get_geocode(runObj)=='F')then
     !rmsd alignment (optional in mhgps approach)
     call superimpose(runObj%atoms%astruct%nat,cobj%rxyz1,cobj%rxyz2)
 
@@ -642,6 +643,7 @@ connectloop: do while(cobj%ntodo>=1)
 !        connected=.true.
         cobj%ntodo=cobj%ntodo-1
         cycle
+    endif
     endif
 
     !get input guess for transition state
