@@ -1082,17 +1082,17 @@ geoptconstrained_BFGS:
  EH: 1.1e-10
  D eF: 2.0e-8
  charge diff: 1.1e-10
- D Tr: 2.1e-11
+ D Tr: 3.1e-11
  D: 1.1e-10
  Positions: 1.1e-9
 
 geoptconstrained_SDCG:
- eF: 1.2e-8
- guess for new ef: 1.2e-8
- D eF: 2.0e-8
+ eF: 5.4e-8
+ guess for new ef: 5.4e-8
+ D eF: 6.0e-8
  EH: 1.1e-10
  Epot: 1.1e-10
- charge diff: 4.2e-11
+ charge diff: 4.4e-11
  D Tr: 1.1e-9
  Omega: 1.2e-11
  D: 1.1e-10
@@ -1139,7 +1139,7 @@ O2spin_foe:
  decay length of error function: 1.1e-5
  diff: 4.8e-9
  D Tr: 2.1e-7
- relative diff: 3.5e-11
+ relative diff: 3.6e-11
  fnrm2: 4.19e-8
 
 O2spin_dirmin:

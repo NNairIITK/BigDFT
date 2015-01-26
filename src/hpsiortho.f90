@@ -1092,7 +1092,13 @@ subroutine SynchronizeHamiltonianApplication(nproc,npsidim_orbs,orbs,Lzd,GPU,xc,
          eproj_sum=wrkallred(3) 
          evsic=wrkallred(4) 
       end if
-   endif
+   else if (present(energs_work)) then
+       ! Do a "fake communication"
+       energs_work%receivebuf(1) = ekin_sum
+       energs_work%receivebuf(2) = epot_sum
+       energs_work%receivebuf(3) = eproj_sum
+       energs_work%receivebuf(4) = evsic
+   end if
 
 
    call f_release_routine()
