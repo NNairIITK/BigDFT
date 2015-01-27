@@ -454,8 +454,6 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
               ! Adapt step size for the steepest descent minimization.
               if (.not.experimental_mode) then
                   tt2=tt2/sqrt(tt*fnrmOldArr(iorb))
-                  if (iorb==1) write(*,'(a,i4,3es14.6,l4)') 'iproc, trH, trHold, tt2, ldiis%switchSD', &
-                      iproc, trH, trHold, tt2, ldiis%switchSD
                   ! apply thresholds so that alpha never goes below around 1.d-2 and above around 2
                   if(tt2>.6d0 .and. trH<trHold .and. alpha(iorb)<1.8d0) then
                       alpha(iorb)=alpha(iorb)*1.1d0

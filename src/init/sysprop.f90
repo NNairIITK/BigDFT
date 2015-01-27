@@ -2356,10 +2356,10 @@ subroutine redistribute(nproc, norb, workload, workload_ideal, norb_par)
 
   wli = workload_ideal
 
-  workload_par = f_malloc(0.to.nproc-1,id='workload_par')
-  norb_par_trial = f_malloc(0.to.nproc-1,id='norbpar_par_trial')
   call f_zero(norb_par)
   if (norb>=nproc) then
+      workload_par = f_malloc(0.to.nproc-1,id='workload_par')
+      norb_par_trial = f_malloc(0.to.nproc-1,id='norbpar_par_trial')
       tcount = 0.d0
       jcount = 0.d0
       jproc = 0
