@@ -9,7 +9,7 @@ echo "Average number of energy/force calls per minimization:"
 grep "Needed energy calls" $file | awk '{sum+=$10} END { print "Average = ",sum/NR,NR}'
 
 echo "Average number of energy/force calls per saddle computation:"
-grep convergence $file | awk '{sum+=$5} END { print "Average = ",sum/NR,NR}'
+grep "convergence at" $file | awk '{sum+=$5} END { print "Average = ",sum/NR,NR}'
 
 echo "Average number of energy/force calls per saddle computation including input guess:"
 enersaddle=`grep convergence $file | awk '{sum+=$5} END { print sum}'`

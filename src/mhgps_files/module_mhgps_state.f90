@@ -20,7 +20,7 @@ module module_mhgps_state
     type mhgps_state
         !values that must not be changed during the execution
         character(len = 5) :: dirprefix
-        character(len = 4) :: mhgps_version
+        character(len = 20) :: mhgps_version
 
         integer :: nid
 
@@ -58,12 +58,12 @@ subroutine init_mhgps_state(mhgpsst)
     implicit none
     !parameters
     type(mhgps_state), intent(inout) :: mhgpsst
+    include 'mhgps_version_number-inc.f90'
  
     !attention: there exists many dependecies on
     !the exact length on direprefix in the whole code.
     !DO NOT simply change dirprefix 
     mhgpsst%dirprefix     = 'ioput'
-    mhgpsst%mhgps_version = '0.01'
 
     mhgpsst%njobsmax      = 999
     mhgpsst%njobs         = -1

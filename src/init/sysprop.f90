@@ -2427,7 +2427,7 @@ subroutine redistribute(nproc, norb, workload, workload_ideal, norb_par)
       call f_free(norb_par_trial)
   else
       ! Equal distribution
-      norb_par(0:nproc-1) = 1
+      norb_par(0:norb-1) = 1
   end if
 
   contains

@@ -29,7 +29,8 @@ AM_FCFLAGS = -I. -I$(srcdir) -I$(top_builddir)/includes @MPI_INCLUDE@\
 CLEANFILES = *.@MODULE_EXT@ 
 noinst_LIBRARIES = libmhgps.a
 EXTRA_DIST = \
-	analyze.sh
+	analyze.sh \
+	mhgps_version_number-inc.f90
 
 libmhgps_a_SOURCES = $(mhgps_SOURCES)
 #dependencies

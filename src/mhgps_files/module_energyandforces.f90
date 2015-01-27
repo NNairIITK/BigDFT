@@ -35,7 +35,8 @@ subroutine mhgpsenergyandforces(mhgpsst,runObj,outs,rxyz,fxyz,fnoise,epot,infoco
     type(mhgps_state), intent(inout) :: mhgpsst
     type(run_objects), intent(inout) :: runObj
     type(state_properties), intent(inout) :: outs
-    real(gp), intent(in) :: rxyz(3,runObj%atoms%astruct%nat)
+    !rxyz is modified if different MPI processes receive different coordinates:
+    real(gp), intent(inout) :: rxyz(3,runObj%atoms%astruct%nat)
     real(gp), intent(out) :: fxyz(3,runObj%atoms%astruct%nat)
     real(gp), intent(out) :: fnoise
     real(gp), intent(out) :: epot
@@ -51,6 +52,9 @@ subroutine mhgpsenergyandforces(mhgpsst,runObj,outs,rxyz,fxyz,fnoise,epot,infoco
 !    runObj%inputs%inputPsiId=1
 !endif
     call bigdft_state(runObj,outs,infocode)
+    if (bigdft_mpi%nproc >1) then
+        call f_memcpy(src=runObj%atoms%astruct%rxyz,dest=rxyz)
+    end if
     call f_memcpy(src=outs%fxyz,dest=fxyz)
     epot=outs%energy
     fnoise=outs%fnoise
