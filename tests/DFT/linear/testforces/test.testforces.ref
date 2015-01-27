@@ -11,7 +11,6 @@
   # 2) considering the forces over all atoms.
   #------------------------------------------------------------------------------------------- 
  <BigDFT> log of the run will be written in logfile: ./log.yaml
- <BigDFT> Logfile existing, renamed into: ./logfiles/log.15:13:33.265.yaml
  
  Check correctness of forces
  Difference of total energies =  1.841625536211922E-003

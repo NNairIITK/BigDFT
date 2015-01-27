@@ -1920,10 +1920,6 @@
  - Do not call check_communications in the linear scaling version!
  - support function optimization not converged
  - density optimization not converged
- - support function optimization not converged
- - density optimization not converged
- - support function optimization not converged
- - density optimization not converged
  - commented correction_locrad
   #-------------------------------------------------------------------- Timing for root process
  Timings for root process:

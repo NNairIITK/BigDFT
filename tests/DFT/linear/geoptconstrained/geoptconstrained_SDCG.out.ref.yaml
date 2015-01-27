@@ -629,7 +629,6 @@
      max dev from unity                :  2.26E-03
      mean dev from unity               :  4.01E-04
      method                            : FOE
-     write overlap matrix              :  Yes
       #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ FOE calculation of kernel
      S^-1/2                            : recalculate
      calculate S^x:
@@ -776,7 +775,6 @@
        max dev from unity              :  2.45E-04
        mean dev from unity             :  4.67E-05
        method                          : FOE
-       write overlap matrix            :  Yes
         #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ FOE calculation of kernel
        S^-1/2                          : recalculate
        calculate S^x:
@@ -862,7 +860,6 @@
        max dev from unity              :  2.45E-04
        mean dev from unity             :  4.67E-05
        method                          : FOE
-       write overlap matrix            :  Yes
         #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ FOE calculation of kernel
        S^-1/2                          : from memory
        decay length of error function  :  5.000E-02
@@ -983,7 +980,6 @@
        max dev from unity              :  3.78E-04
        mean dev from unity             :  6.47E-05
        method                          : FOE
-       write overlap matrix            :  Yes
         #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ FOE calculation of kernel
        S^-1/2                          : recalculate
        calculate S^x:
@@ -1066,7 +1062,6 @@
        max dev from unity              :  3.78E-04
        mean dev from unity             :  6.47E-05
        method                          : FOE
-       write overlap matrix            :  Yes
         #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ FOE calculation of kernel
        S^-1/2                          : from memory
        decay length of error function  :  5.000E-02
@@ -1159,7 +1154,6 @@
      max dev from unity                :  3.78E-04
      mean dev from unity               :  6.47E-05
      method                            : FOE
-     write overlap matrix              :  Yes
       #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ FOE calculation of kernel
      S^-1/2                            : recalculate
      calculate S^x:
@@ -1277,7 +1271,6 @@
        max dev from unity              :  2.29E-04
        mean dev from unity             :  3.33E-05
        method                          : FOE
-       write overlap matrix            :  Yes
         #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ FOE calculation of kernel
        S^-1/2                          : recalculate
        calculate S^x:
@@ -1348,7 +1341,6 @@
        max dev from unity              :  2.29E-04
        mean dev from unity             :  3.33E-05
        method                          : FOE
-       write overlap matrix            :  Yes
         #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ FOE calculation of kernel
        S^-1/2                          : from memory
        decay length of error function  :  5.000E-02
@@ -1421,7 +1413,6 @@
        max dev from unity              :  2.29E-04
        mean dev from unity             :  3.33E-05
        method                          : FOE
-       write overlap matrix            :  Yes
         #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ FOE calculation of kernel
        S^-1/2                          : from memory
        decay length of error function  :  5.000E-02
@@ -1549,7 +1540,6 @@
        max dev from unity              :  8.01E-05
        mean dev from unity             :  1.31E-05
        method                          : FOE
-       write overlap matrix            :  Yes
         #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ FOE calculation of kernel
        S^-1/2                          : recalculate
        calculate S^x:
@@ -1625,7 +1615,6 @@
        max dev from unity              :  8.01E-05
        mean dev from unity             :  1.31E-05
        method                          : FOE
-       write overlap matrix            :  Yes
         #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ FOE calculation of kernel
        S^-1/2                          : from memory
        decay length of error function  :  5.000E-02
@@ -1713,7 +1702,6 @@
        max dev from unity              :  8.01E-05
        mean dev from unity             :  1.31E-05
        method                          : FOE
-       write overlap matrix            :  Yes
         #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ FOE calculation of kernel
        S^-1/2                          : from memory
        decay length of error function  :  5.000E-02
@@ -1853,7 +1841,6 @@
        max dev from unity              :  2.48E-05
        mean dev from unity             :  3.18E-06
        method                          : FOE
-       write overlap matrix            :  Yes
         #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ FOE calculation of kernel
        S^-1/2                          : recalculate
        calculate S^x:
@@ -1947,7 +1934,6 @@
        max dev from unity              :  2.48E-05
        mean dev from unity             :  3.18E-06
        method                          : FOE
-       write overlap matrix            :  Yes
         #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ FOE calculation of kernel
        S^-1/2                          : from memory
        decay length of error function  :  5.000E-02
@@ -2035,7 +2021,6 @@
        max dev from unity              :  2.48E-05
        mean dev from unity             :  3.18E-06
        method                          : FOE
-       write overlap matrix            :  Yes
         #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ FOE calculation of kernel
        S^-1/2                          : from memory
        decay length of error function  :  5.000E-02
@@ -2163,14 +2148,6 @@
   #-------------------------------- Warnings obtained during the run, check their relevance!
  WARNINGS:
  - Do not call check_communications in the linear scaling version!
- - support function optimization not converged
- - density optimization not converged
- - support function optimization not converged
- - density optimization not converged
- - support function optimization not converged
- - density optimization not converged
- - support function optimization not converged
- - density optimization not converged
  - support function optimization not converged
  - density optimization not converged
   #-------------------------------------------------------------------- Timing for root process
@@ -2456,7 +2433,6 @@
      max dev from unity                :  2.26E-03
      mean dev from unity               :  4.01E-04
      method                            : FOE
-     write overlap matrix              :  Yes
       #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ FOE calculation of kernel
      S^-1/2                            : recalculate
      calculate S^x:
@@ -2603,7 +2579,6 @@
        max dev from unity              :  2.45E-04
        mean dev from unity             :  4.67E-05
        method                          : FOE
-       write overlap matrix            :  Yes
         #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ FOE calculation of kernel
        S^-1/2                          : recalculate
        calculate S^x:
@@ -2689,7 +2664,6 @@
        max dev from unity              :  2.45E-04
        mean dev from unity             :  4.67E-05
        method                          : FOE
-       write overlap matrix            :  Yes
         #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ FOE calculation of kernel
        S^-1/2                          : from memory
        decay length of error function  :  5.000E-02
@@ -2810,7 +2784,6 @@
        max dev from unity              :  3.78E-04
        mean dev from unity             :  6.47E-05
        method                          : FOE
-       write overlap matrix            :  Yes
         #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ FOE calculation of kernel
        S^-1/2                          : recalculate
        calculate S^x:
@@ -2893,7 +2866,6 @@
        max dev from unity              :  3.78E-04
        mean dev from unity             :  6.47E-05
        method                          : FOE
-       write overlap matrix            :  Yes
         #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ FOE calculation of kernel
        S^-1/2                          : from memory
        decay length of error function  :  5.000E-02
@@ -2986,7 +2958,6 @@
      max dev from unity                :  3.78E-04
      mean dev from unity               :  6.47E-05
      method                            : FOE
-     write overlap matrix              :  Yes
       #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ FOE calculation of kernel
      S^-1/2                            : recalculate
      calculate S^x:
@@ -3104,7 +3075,6 @@
        max dev from unity              :  2.29E-04
        mean dev from unity             :  3.33E-05
        method                          : FOE
-       write overlap matrix            :  Yes
         #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ FOE calculation of kernel
        S^-1/2                          : recalculate
        calculate S^x:
@@ -3175,7 +3145,6 @@
        max dev from unity              :  2.29E-04
        mean dev from unity             :  3.33E-05
        method                          : FOE
-       write overlap matrix            :  Yes
         #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ FOE calculation of kernel
        S^-1/2                          : from memory
        decay length of error function  :  5.000E-02
@@ -3248,7 +3217,6 @@
        max dev from unity              :  2.29E-04
        mean dev from unity             :  3.33E-05
        method                          : FOE
-       write overlap matrix            :  Yes
         #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ FOE calculation of kernel
        S^-1/2                          : from memory
        decay length of error function  :  5.000E-02
@@ -3376,7 +3344,6 @@
        max dev from unity              :  8.01E-05
        mean dev from unity             :  1.31E-05
        method                          : FOE
-       write overlap matrix            :  Yes
         #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ FOE calculation of kernel
        S^-1/2                          : recalculate
        calculate S^x:
@@ -3452,7 +3419,6 @@
        max dev from unity              :  8.01E-05
        mean dev from unity             :  1.31E-05
        method                          : FOE
-       write overlap matrix            :  Yes
         #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ FOE calculation of kernel
        S^-1/2                          : from memory
        decay length of error function  :  5.000E-02
@@ -3540,7 +3506,6 @@
        max dev from unity              :  8.01E-05
        mean dev from unity             :  1.31E-05
        method                          : FOE
-       write overlap matrix            :  Yes
         #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ FOE calculation of kernel
        S^-1/2                          : from memory
        decay length of error function  :  5.000E-02
@@ -3680,7 +3645,6 @@
        max dev from unity              :  2.48E-05
        mean dev from unity             :  3.18E-06
        method                          : FOE
-       write overlap matrix            :  Yes
         #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ FOE calculation of kernel
        S^-1/2                          : recalculate
        calculate S^x:
@@ -3774,7 +3738,6 @@
        max dev from unity              :  2.48E-05
        mean dev from unity             :  3.18E-06
        method                          : FOE
-       write overlap matrix            :  Yes
         #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ FOE calculation of kernel
        S^-1/2                          : from memory
        decay length of error function  :  5.000E-02
@@ -3862,7 +3825,6 @@
        max dev from unity              :  2.48E-05
        mean dev from unity             :  3.18E-06
        method                          : FOE
-       write overlap matrix            :  Yes
         #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ FOE calculation of kernel
        S^-1/2                          : from memory
        decay length of error function  :  5.000E-02
@@ -3990,14 +3952,6 @@
   #----------------------------------- Warnings obtained during the run, check their relevance!
  WARNINGS:
  - Do not call check_communications in the linear scaling version!
- - support function optimization not converged
- - density optimization not converged
- - support function optimization not converged
- - density optimization not converged
- - support function optimization not converged
- - density optimization not converged
- - support function optimization not converged
- - density optimization not converged
  - support function optimization not converged
  - density optimization not converged
   #-------------------------------------------------------------------- Timing for root process
@@ -4289,7 +4243,6 @@
      max dev from unity                :  2.25E-03
      mean dev from unity               :  4.01E-04
      method                            : FOE
-     write overlap matrix              :  Yes
       #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ FOE calculation of kernel
      S^-1/2                            : recalculate
      calculate S^x:
@@ -4436,7 +4389,6 @@
        max dev from unity              :  2.49E-04
        mean dev from unity             :  4.67E-05
        method                          : FOE
-       write overlap matrix            :  Yes
         #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ FOE calculation of kernel
        S^-1/2                          : recalculate
        calculate S^x:
@@ -4523,7 +4475,6 @@
        max dev from unity              :  2.49E-04
        mean dev from unity             :  4.67E-05
        method                          : FOE
-       write overlap matrix            :  Yes
         #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ FOE calculation of kernel
        S^-1/2                          : from memory
        decay length of error function  :  5.000E-02
@@ -4644,7 +4595,6 @@
        max dev from unity              :  3.78E-04
        mean dev from unity             :  6.49E-05
        method                          : FOE
-       write overlap matrix            :  Yes
         #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ FOE calculation of kernel
        S^-1/2                          : recalculate
        calculate S^x:
@@ -4730,7 +4680,6 @@
        max dev from unity              :  3.78E-04
        mean dev from unity             :  6.49E-05
        method                          : FOE
-       write overlap matrix            :  Yes
         #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ FOE calculation of kernel
        S^-1/2                          : from memory
        decay length of error function  :  5.000E-02
@@ -4826,7 +4775,6 @@
      max dev from unity                :  3.78E-04
      mean dev from unity               :  6.49E-05
      method                            : FOE
-     write overlap matrix              :  Yes
       #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ FOE calculation of kernel
      S^-1/2                            : recalculate
      calculate S^x:
@@ -4951,7 +4899,6 @@
        max dev from unity              :  2.36E-04
        mean dev from unity             :  3.41E-05
        method                          : FOE
-       write overlap matrix            :  Yes
         #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ FOE calculation of kernel
        S^-1/2                          : recalculate
        calculate S^x:
@@ -5036,7 +4983,6 @@
        max dev from unity              :  2.36E-04
        mean dev from unity             :  3.41E-05
        method                          : FOE
-       write overlap matrix            :  Yes
         #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ FOE calculation of kernel
        S^-1/2                          : from memory
        decay length of error function  :  5.000E-02
@@ -5109,7 +5055,6 @@
        max dev from unity              :  2.36E-04
        mean dev from unity             :  3.41E-05
        method                          : FOE
-       write overlap matrix            :  Yes
         #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ FOE calculation of kernel
        S^-1/2                          : from memory
        decay length of error function  :  5.000E-02
@@ -5257,7 +5202,6 @@
        max dev from unity              :  7.67E-05
        mean dev from unity             :  1.26E-05
        method                          : FOE
-       write overlap matrix            :  Yes
         #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ FOE calculation of kernel
        S^-1/2                          : recalculate
        calculate S^x:
@@ -5333,7 +5277,6 @@
        max dev from unity              :  7.67E-05
        mean dev from unity             :  1.26E-05
        method                          : FOE
-       write overlap matrix            :  Yes
         #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ FOE calculation of kernel
        S^-1/2                          : from memory
        decay length of error function  :  5.000E-02
@@ -5421,7 +5364,6 @@
        max dev from unity              :  7.67E-05
        mean dev from unity             :  1.26E-05
        method                          : FOE
-       write overlap matrix            :  Yes
         #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ FOE calculation of kernel
        S^-1/2                          : from memory
        decay length of error function  :  5.000E-02
@@ -5561,7 +5503,6 @@
        max dev from unity              :  2.22E-05
        mean dev from unity             :  2.88E-06
        method                          : FOE
-       write overlap matrix            :  Yes
         #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ FOE calculation of kernel
        S^-1/2                          : recalculate
        calculate S^x:
@@ -5655,7 +5596,6 @@
        max dev from unity              :  2.22E-05
        mean dev from unity             :  2.88E-06
        method                          : FOE
-       write overlap matrix            :  Yes
         #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ FOE calculation of kernel
        S^-1/2                          : from memory
        decay length of error function  :  5.000E-02
@@ -5743,7 +5683,6 @@
        max dev from unity              :  2.22E-05
        mean dev from unity             :  2.88E-06
        method                          : FOE
-       write overlap matrix            :  Yes
         #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ FOE calculation of kernel
        S^-1/2                          : from memory
        decay length of error function  :  5.000E-02
@@ -5871,14 +5810,6 @@
   #----------------------------------- Warnings obtained during the run, check their relevance!
  WARNINGS:
  - Do not call check_communications in the linear scaling version!
- - support function optimization not converged
- - density optimization not converged
- - support function optimization not converged
- - density optimization not converged
- - support function optimization not converged
- - density optimization not converged
- - support function optimization not converged
- - density optimization not converged
  - support function optimization not converged
  - density optimization not converged
   #-------------------------------------------------------------------- Timing for root process
@@ -6170,7 +6101,6 @@
      max dev from unity                :  2.24E-03
      mean dev from unity               :  4.02E-04
      method                            : FOE
-     write overlap matrix              :  Yes
       #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ FOE calculation of kernel
      S^-1/2                            : recalculate
      calculate S^x:
@@ -6317,7 +6247,6 @@
        max dev from unity              :  2.54E-04
        mean dev from unity             :  4.71E-05
        method                          : FOE
-       write overlap matrix            :  Yes
         #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ FOE calculation of kernel
        S^-1/2                          : recalculate
        calculate S^x:
@@ -6404,7 +6333,6 @@
        max dev from unity              :  2.54E-04
        mean dev from unity             :  4.71E-05
        method                          : FOE
-       write overlap matrix            :  Yes
         #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ FOE calculation of kernel
        S^-1/2                          : from memory
        decay length of error function  :  5.000E-02
@@ -6525,7 +6453,6 @@
        max dev from unity              :  3.74E-04
        mean dev from unity             :  6.52E-05
        method                          : FOE
-       write overlap matrix            :  Yes
         #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ FOE calculation of kernel
        S^-1/2                          : recalculate
        calculate S^x:
@@ -6618,7 +6545,6 @@
        max dev from unity              :  3.74E-04
        mean dev from unity             :  6.52E-05
        method                          : FOE
-       write overlap matrix            :  Yes
         #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ FOE calculation of kernel
        S^-1/2                          : from memory
        decay length of error function  :  5.000E-02
@@ -6700,7 +6626,6 @@
      max dev from unity                :  3.74E-04
      mean dev from unity               :  6.52E-05
      method                            : FOE
-     write overlap matrix              :  Yes
       #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ FOE calculation of kernel
      S^-1/2                            : recalculate
      calculate S^x:
@@ -6832,7 +6757,6 @@
        max dev from unity              :  2.33E-04
        mean dev from unity             :  3.45E-05
        method                          : FOE
-       write overlap matrix            :  Yes
         #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ FOE calculation of kernel
        S^-1/2                          : recalculate
        calculate S^x:
@@ -6914,7 +6838,6 @@
        max dev from unity              :  2.33E-04
        mean dev from unity             :  3.45E-05
        method                          : FOE
-       write overlap matrix            :  Yes
         #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ FOE calculation of kernel
        S^-1/2                          : from memory
        decay length of error function  :  5.000E-02
@@ -6993,7 +6916,6 @@
        max dev from unity              :  2.33E-04
        mean dev from unity             :  3.45E-05
        method                          : FOE
-       write overlap matrix            :  Yes
         #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ FOE calculation of kernel
        S^-1/2                          : from memory
        decay length of error function  :  5.000E-02
@@ -7121,7 +7043,6 @@
        max dev from unity              :  7.79E-05
        mean dev from unity             :  1.22E-05
        method                          : FOE
-       write overlap matrix            :  Yes
         #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ FOE calculation of kernel
        S^-1/2                          : recalculate
        calculate S^x:
@@ -7186,7 +7107,6 @@
        max dev from unity              :  7.79E-05
        mean dev from unity             :  1.22E-05
        method                          : FOE
-       write overlap matrix            :  Yes
         #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ FOE calculation of kernel
        S^-1/2                          : from memory
        decay length of error function  :  5.000E-02
@@ -7272,7 +7192,6 @@
        max dev from unity              :  7.79E-05
        mean dev from unity             :  1.22E-05
        method                          : FOE
-       write overlap matrix            :  Yes
         #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ FOE calculation of kernel
        S^-1/2                          : from memory
        decay length of error function  :  5.000E-02
@@ -7403,7 +7322,6 @@
        max dev from unity              :  2.03E-05
        mean dev from unity             :  2.67E-06
        method                          : FOE
-       write overlap matrix            :  Yes
         #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ FOE calculation of kernel
        S^-1/2                          : recalculate
        calculate S^x:
@@ -7488,7 +7406,6 @@
        max dev from unity              :  2.03E-05
        mean dev from unity             :  2.67E-06
        method                          : FOE
-       write overlap matrix            :  Yes
         #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ FOE calculation of kernel
        S^-1/2                          : from memory
        decay length of error function  :  5.000E-02
@@ -7567,7 +7484,6 @@
        max dev from unity              :  2.03E-05
        mean dev from unity             :  2.67E-06
        method                          : FOE
-       write overlap matrix            :  Yes
         #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ FOE calculation of kernel
        S^-1/2                          : from memory
        decay length of error function  :  5.000E-02
@@ -7686,14 +7602,6 @@
   #----------------------------------- Warnings obtained during the run, check their relevance!
  WARNINGS:
  - Do not call check_communications in the linear scaling version!
- - support function optimization not converged
- - density optimization not converged
- - support function optimization not converged
- - density optimization not converged
- - support function optimization not converged
- - density optimization not converged
- - support function optimization not converged
- - density optimization not converged
  - support function optimization not converged
  - density optimization not converged
   #-------------------------------------------------------------------- Timing for root process
@@ -7985,7 +7893,6 @@
      max dev from unity                :  2.23E-03
      mean dev from unity               :  4.01E-04
      method                            : FOE
-     write overlap matrix              :  Yes
       #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ FOE calculation of kernel
      S^-1/2                            : recalculate
      calculate S^x:
@@ -8132,7 +8039,6 @@
        max dev from unity              :  2.57E-04
        mean dev from unity             :  4.70E-05
        method                          : FOE
-       write overlap matrix            :  Yes
         #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ FOE calculation of kernel
        S^-1/2                          : recalculate
        calculate S^x:
@@ -8219,7 +8125,6 @@
        max dev from unity              :  2.57E-04
        mean dev from unity             :  4.70E-05
        method                          : FOE
-       write overlap matrix            :  Yes
         #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ FOE calculation of kernel
        S^-1/2                          : from memory
        decay length of error function  :  5.000E-02
@@ -8340,7 +8245,6 @@
        max dev from unity              :  3.72E-04
        mean dev from unity             :  6.50E-05
        method                          : FOE
-       write overlap matrix            :  Yes
         #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ FOE calculation of kernel
        S^-1/2                          : recalculate
        calculate S^x:
@@ -8420,7 +8324,6 @@
        max dev from unity              :  3.72E-04
        mean dev from unity             :  6.50E-05
        method                          : FOE
-       write overlap matrix            :  Yes
         #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ FOE calculation of kernel
        S^-1/2                          : from memory
        decay length of error function  :  5.000E-02
@@ -8513,7 +8416,6 @@
      max dev from unity                :  3.72E-04
      mean dev from unity               :  6.50E-05
      method                            : FOE
-     write overlap matrix              :  Yes
       #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ FOE calculation of kernel
      S^-1/2                            : recalculate
      calculate S^x:
@@ -8638,7 +8540,6 @@
        max dev from unity              :  2.31E-04
        mean dev from unity             :  3.42E-05
        method                          : FOE
-       write overlap matrix            :  Yes
         #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ FOE calculation of kernel
        S^-1/2                          : recalculate
        calculate S^x:
@@ -8716,7 +8617,6 @@
        max dev from unity              :  2.31E-04
        mean dev from unity             :  3.42E-05
        method                          : FOE
-       write overlap matrix            :  Yes
         #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ FOE calculation of kernel
        S^-1/2                          : from memory
        decay length of error function  :  5.000E-02
@@ -8782,7 +8682,6 @@
        max dev from unity              :  2.31E-04
        mean dev from unity             :  3.42E-05
        method                          : FOE
-       write overlap matrix            :  Yes
         #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ FOE calculation of kernel
        S^-1/2                          : from memory
        decay length of error function  :  5.000E-02
@@ -8881,7 +8780,6 @@
        max dev from unity              :  7.77E-05
        mean dev from unity             :  1.21E-05
        method                          : FOE
-       write overlap matrix            :  Yes
         #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ FOE calculation of kernel
        S^-1/2                          : recalculate
        calculate S^x:
@@ -8943,7 +8841,6 @@
        max dev from unity              :  7.77E-05
        mean dev from unity             :  1.21E-05
        method                          : FOE
-       write overlap matrix            :  Yes
         #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ FOE calculation of kernel
        S^-1/2                          : from memory
        decay length of error function  :  5.000E-02
@@ -9022,7 +8919,6 @@
        max dev from unity              :  7.77E-05
        mean dev from unity             :  1.21E-05
        method                          : FOE
-       write overlap matrix            :  Yes
         #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ FOE calculation of kernel
        S^-1/2                          : from memory
        decay length of error function  :  5.000E-02
@@ -9154,7 +9050,6 @@
        max dev from unity              :  1.87E-05
        mean dev from unity             :  2.53E-06
        method                          : FOE
-       write overlap matrix            :  Yes
         #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ FOE calculation of kernel
        S^-1/2                          : recalculate
        calculate S^x:
@@ -9213,7 +9108,6 @@
        max dev from unity              :  1.87E-05
        mean dev from unity             :  2.53E-06
        method                          : FOE
-       write overlap matrix            :  Yes
         #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ FOE calculation of kernel
        S^-1/2                          : from memory
        decay length of error function  :  5.000E-02
@@ -9286,7 +9180,6 @@
        max dev from unity              :  1.87E-05
        mean dev from unity             :  2.53E-06
        method                          : FOE
-       write overlap matrix            :  Yes
         #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ FOE calculation of kernel
        S^-1/2                          : from memory
        decay length of error function  :  5.000E-02
@@ -9379,14 +9272,6 @@
   #----------------------------------- Warnings obtained during the run, check their relevance!
  WARNINGS:
  - Do not call check_communications in the linear scaling version!
- - support function optimization not converged
- - density optimization not converged
- - support function optimization not converged
- - density optimization not converged
- - support function optimization not converged
- - density optimization not converged
- - support function optimization not converged
- - density optimization not converged
  - support function optimization not converged
  - density optimization not converged
   #-------------------------------------------------------------------- Timing for root process

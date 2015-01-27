@@ -663,7 +663,6 @@
      max dev from unity                :  2.63E-02
      mean dev from unity               :  4.42E-03
      method                            : FOE
-     write overlap matrix              :  Yes
       #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ FOE calculation of kernel
      S^-1/2                            : recalculate
      calculate S^x:
@@ -880,7 +879,6 @@
        max dev from unity              :  5.71E-03
        mean dev from unity             :  9.02E-04
        method                          : FOE
-       write overlap matrix            :  Yes
         #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ FOE calculation of kernel
        S^-1/2                          : recalculate
        calculate S^x:
@@ -982,7 +980,6 @@
        max dev from unity              :  5.71E-03
        mean dev from unity             :  9.02E-04
        method                          : FOE
-       write overlap matrix            :  Yes
         #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ FOE calculation of kernel
        S^-1/2                          : from memory
        decay length of error function  :  3.750E-02
@@ -1170,7 +1167,6 @@
        max dev from unity              :  1.17E-02
        mean dev from unity             :  2.42E-03
        method                          : FOE
-       write overlap matrix            :  Yes
         #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ FOE calculation of kernel
        S^-1/2                          : recalculate
        calculate S^x:
@@ -1249,7 +1245,6 @@
        max dev from unity              :  1.17E-02
        mean dev from unity             :  2.42E-03
        method                          : FOE
-       write overlap matrix            :  Yes
         #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ FOE calculation of kernel
        S^-1/2                          : from memory
        decay length of error function  :  5.000E-02
@@ -1428,7 +1423,6 @@
        max dev from unity              :  2.01E-02
        mean dev from unity             :  3.48E-03
        method                          : FOE
-       write overlap matrix            :  Yes
         #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ FOE calculation of kernel
        S^-1/2                          : recalculate
        calculate S^x:
@@ -1517,7 +1511,6 @@
        max dev from unity              :  2.01E-02
        mean dev from unity             :  3.48E-03
        method                          : FOE
-       write overlap matrix            :  Yes
         #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ FOE calculation of kernel
        S^-1/2                          : from memory
        decay length of error function  :  5.000E-02
@@ -1710,7 +1703,6 @@
        max dev from unity              :  2.05E-02
        mean dev from unity             :  3.54E-03
        method                          : FOE
-       write overlap matrix            :  Yes
         #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ FOE calculation of kernel
        S^-1/2                          : recalculate
        calculate S^x:
@@ -1786,7 +1778,6 @@
        max dev from unity              :  2.05E-02
        mean dev from unity             :  3.54E-03
        method                          : FOE
-       write overlap matrix            :  Yes
         #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ FOE calculation of kernel
        S^-1/2                          : from memory
        decay length of error function  :  5.000E-02
@@ -2316,36 +2307,6 @@
   #-------------------------------- Warnings obtained during the run, check their relevance!
  WARNINGS:
  - Do not call check_communications in the linear scaling version!
- - Projectors too rough: Consider modifying hgrid and/or the localisation radii.
- - Projectors too rough: Consider modifying hgrid and/or the localisation radii.
- - Projectors too rough: Consider modifying hgrid and/or the localisation radii.
- - Projectors too rough: Consider modifying hgrid and/or the localisation radii.
- - Projectors too rough: Consider modifying hgrid and/or the localisation radii.
- - Projectors too rough: Consider modifying hgrid and/or the localisation radii.
- - Projectors too rough: Consider modifying hgrid and/or the localisation radii.
- - support function optimization not converged
- - density optimization not converged
- - Projectors too rough: Consider modifying hgrid and/or the localisation radii.
- - Projectors too rough: Consider modifying hgrid and/or the localisation radii.
- - Projectors too rough: Consider modifying hgrid and/or the localisation radii.
- - Projectors too rough: Consider modifying hgrid and/or the localisation radii.
- - Projectors too rough: Consider modifying hgrid and/or the localisation radii.
- - Projectors too rough: Consider modifying hgrid and/or the localisation radii.
- - support function optimization not converged
- - density optimization not converged
- - Projectors too rough: Consider modifying hgrid and/or the localisation radii.
- - Projectors too rough: Consider modifying hgrid and/or the localisation radii.
- - Projectors too rough: Consider modifying hgrid and/or the localisation radii.
- - Projectors too rough: Consider modifying hgrid and/or the localisation radii.
- - Projectors too rough: Consider modifying hgrid and/or the localisation radii.
- - Projectors too rough: Consider modifying hgrid and/or the localisation radii.
- - support function optimization not converged
- - density optimization not converged
- - Projectors too rough: Consider modifying hgrid and/or the localisation radii.
- - Projectors too rough: Consider modifying hgrid and/or the localisation radii.
- - Projectors too rough: Consider modifying hgrid and/or the localisation radii.
- - Projectors too rough: Consider modifying hgrid and/or the localisation radii.
- - Projectors too rough: Consider modifying hgrid and/or the localisation radii.
  - Projectors too rough: Consider modifying hgrid and/or the localisation radii.
  - support function optimization not converged
  - density optimization not converged

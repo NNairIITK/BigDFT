@@ -1409,15 +1409,10 @@
  - Do not call check_communications in the linear scaling version!
  - support function optimization not converged
  - density optimization not converged
- - support function optimization not converged
- - density optimization not converged
  - oscillation of the energy, increase counter
- - target function larger than its minimal value reached so far, D= 7.158E-03
  - target function larger than its minimal value reached so far, D= 7.158E-03
  - Energy increasing, switching off orthonormalization of tmbs
  - no improvement of the orbitals, recalculate gradient
- - support function optimization not converged
- - density optimization not converged
  - commented correction_locrad
   #-------------------------------------------------------------------- Timing for root process
  Timings for root process:

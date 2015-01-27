@@ -846,7 +846,6 @@
      lowest eigenvalue                 : -0.8306196828224169
      highest eigenvalue                :  0.7608117224044869
      method                            : FOE
-     write overlap matrix              :  Yes
       #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ FOE calculation of kernel
      S^-1/2                            : recalculate
      calculate S^x:
@@ -1007,7 +1006,6 @@
        lowest eigenvalue               : -0.9163050606926776
        highest eigenvalue              :  0.8318419993627957
        method                          : FOE
-       write overlap matrix            :  Yes
         #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ FOE calculation of kernel
        S^-1/2                          : from memory
        decay length of error function  :  1.250E-02
@@ -1098,7 +1096,6 @@
        lowest eigenvalue               : -0.8597279899602762
        highest eigenvalue              :  0.7321988389959202
        method                          : FOE
-       write overlap matrix            :  Yes
         #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ FOE calculation of kernel
        S^-1/2                          : from memory
        decay length of error function  :  1.562E-02
@@ -1233,7 +1230,6 @@
        lowest eigenvalue               : -0.8742627526589
        highest eigenvalue              :  0.7450107884348124
        method                          : FOE
-       write overlap matrix            :  Yes
         #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ FOE calculation of kernel
        S^-1/2                          : from memory
        decay length of error function  :  1.953E-02
@@ -1306,7 +1302,6 @@
        lowest eigenvalue               : -0.8995627736582883
        highest eigenvalue              :  0.7255484358552798
        method                          : FOE
-       write overlap matrix            :  Yes
         #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ FOE calculation of kernel
        S^-1/2                          : from memory
        decay length of error function  :  2.441E-02
@@ -1416,9 +1411,6 @@
   #-------------------------------- Warnings obtained during the run, check their relevance!
  WARNINGS:
  - Do not call check_communications in the linear scaling version!
- - No orthogonalizing of the support functions
- - quick return in purification
- - density optimization not converged
  - No orthogonalizing of the support functions
  - quick return in purification
  - density optimization not converged
