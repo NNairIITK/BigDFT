@@ -404,6 +404,7 @@ contains
       sparsemat%smmm%nfvctrp=norb_par_ideal(iproc)
       sparsemat%smmm%isfvctr=isorb_par_ideal(iproc)
 
+
       ! Get the load balancing
       nseq_min = sparsemat%smmm%nseq
       if (nproc>1) call mpiallred(nseq_min, 1, mpi_min, bigdft_mpi%mpi_comm)
@@ -429,7 +430,8 @@ contains
       if (nproc>1) call mpiallred(nseq_min, 1, mpi_min, bigdft_mpi%mpi_comm)
       nseq_max = sparsemat%smmm%nseq
       if (nproc>1) call mpiallred(nseq_max, 1, mpi_max, bigdft_mpi%mpi_comm)
-      ! Not necessary to set the pritable flag (if nseq_min was zero before it should be zero here as well)
+      ! Not necessary to set the printable flag (if nseq_min was zero before it should be zero here as well)
+      if (iproc==0) write(*,*) 'nseq_min, nseq_max', nseq_min, nseq_max
       if (nseq_min>0) then
           ratio_after = real(nseq_max,kind=8)/real(nseq_min,kind=8)
           if (.not.printable) stop 'this should not happen (sparsematrix)'
