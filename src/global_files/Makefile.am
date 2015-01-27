@@ -13,7 +13,12 @@ globalf_SOURCES = $(globalf_objects)
 AM_FCFLAGS = -I. -I$(srcdir) -I$(top_builddir)/includes @MPI_INCLUDE@\
              @LIBABINIT_INCLUDE@ @LIBXC_INCLUDE@
 
+
 CLEANFILES = *.@MODULE_EXT@ 
+
+EXTRA_DIST = \
+	hunt-inc.f90
+
 noinst_LIBRARIES = libglobalf.a
 
 libglobalf_a_SOURCES = $(globalf_SOURCES)
