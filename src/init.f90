@@ -852,7 +852,7 @@ subroutine input_memory_linear(iproc, nproc, at, KSwfn, tmb, tmb_old, denspot, i
      call vcopy(size(psi_old), psi_old(1), 1, tmb_old%psi(1), 1)
      call f_free(psi_old)
 
-     if (max_shift>1.0d0) then
+     if (max_shift>0.5d0) then
          if (iproc==0) call yaml_map('atoms have moved too much, switch to standard input guess',.true.)
          FOE_restart = RESTART_AO
          tmb%confdatarr(:)%damping = 1.d0
@@ -866,8 +866,8 @@ subroutine input_memory_linear(iproc, nproc, at, KSwfn, tmb, tmb_old, denspot, i
          !tmb%confdatarr(:)%damping = (2.0d0*max_shift)**0.25d0
          !! x^2, being 1.0 at 0.5
          !tmb%confdatarr(:)%damping = (2.0d0*max_shift)**2
-         ! x^4, being 1.0 at 0.6
-         tmb%confdatarr(:)%damping = (1.d0/1.0d0*max_shift)**4
+         ! x^4, being 1.0 at 0.5
+         tmb%confdatarr(:)%damping = (1.d0/0.5d0*max_shift)**4
      end if
 
      deallocate(frag_trans)
