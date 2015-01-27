@@ -376,6 +376,12 @@ subroutine grow_freezstring(mhgpsst,uinp,runObj,outs,gammainv,perpnrmtol,trust,&
                  string(1,2,nstring),step,string(1,1,nstring+1),&
                  string(1,2,nstring+1),tangentleft,tangentright,&
                  finished)
+            !parts in interpol are OpenMP parallelized. It might hapenpen
+            !that finished is not identical on all processors
+            if (bigdft_mpi%nproc >1) then
+               call mpibcast(finished,1,comm=bigdft_mpi%mpi_comm)
+            end if
+        !!$      maxdiff=mpimaxdiff(runObj%atoms%astruct%rxyz,comm=bigdft_mpi%mpi_comm,bcast=.true.)
             if(finished/=0)then
 !if(i/=nstring)stop'DEBUGGING i/=nstring'
                if(perpnrmtol>0 .and. nstepsmax > 0)& 
