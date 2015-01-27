@@ -1642,4 +1642,117 @@ subroutine clean_minmode(nat,geocode,rxyz,minmode)
                                           rxyz(1,1),minmode(1,1))
     minmode = minmode / dnrm2(3*nat,minmode(1,1),1)
 end subroutine clean_minmode
+!=====================================================================
+!subroutine fixfrag_posvel_slab(iproc,nat,rcov,pos,vel)
+!!This subroutine points the velocities towards the surface if an atom
+!!is too far away from the surface with surface boundary conditions
+!    use module_base
+!    implicit none
+!    !parameters
+!    integer, intent(in) :: iproc,nat
+!    real(gp),dimension(3,nat), INTENT(INOUT) :: pos
+!    real(gp),dimension(3,nat), INTENT(INOUT) :: vel
+!    real(gp),dimension(nat), INTENT(IN) :: rcov
+!    !local variables
+!    integer :: iat,i,ic,ib,ilow,ihigh,icen,mm,mj,jat
+!    real(gp) :: ymin, ylow,yhigh,dx,dy,dz,dl,dist,distmin,d
+!
+!    integer, dimension(-100:1000):: ygrid
+!    logical ,dimension(nat) :: onsurface
+!
+!
+!! empty space = 0
+!    do i=-100,1000 
+!        ygrid(i)=0
+!    enddo
+!
+!    ymin=1.e100_gp
+!    do iat=1,nat
+!        ymin=min(ymin,pos(2,iat)) 
+!    enddo
+!
+!! occupied space= nonzero
+!    do iat=1,nat
+!        ic=nint((pos(2,iat)-ymin)*4.0_gp)  ! ygrid spacing=.25
+!        ib=nint(2.0_gp*rcov(iat)*4.0_gp)
+!        if (ic-ib < -100) stop "#MHGPS error fixfrag_slab -100"
+!        if (ic+ib > 1000) stop "#MHGPS error fixfrag_slab 1000"
+!        do i=ic-ib,ic+ib
+!            ygrid(i)=ygrid(i)+1
+!        enddo
+!    enddo
+!
+!! find center of slab
+!    mm=0
+!    do i=-100,1000
+!        if (ygrid(i) .gt. mm) then
+!            icen=i
+!            mm=ygrid(i)
+!        endif
+!    enddo
+!
+!! find border between empty and occupied space
+!    do i=icen,-100,-1
+!        if (ygrid(i).eq.0) then
+!            ilow=i
+!            exit
+!        endif
+!    enddo
+!
+!    do i=icen,1000
+!        if (ygrid(i).eq.0) then
+!            ihigh=i
+!            exit
+!        endif
+!    enddo
+!
+!
+!    ylow=ymin+ilow*.25d0
+!    yhigh=ymin+ihigh*.25d0
+!    if (iproc.eq.0) write(*,'(a,3(1x,e10.3))') &
+!       "(MHGPS) ylow,ycen,yhigh",ylow,ymin+icen*.25d0,yhigh
+!
+!1000 continue
+!    do iat=1,nat
+!         if (pos(2,iat).lt.ylow-rcov(iat) .or. pos(2,iat).gt.yhigh+rcov(iat)) then 
+!         onsurface(iat)=.false.
+!         else
+!         onsurface(iat)=.true.
+!         endif
+!    enddo
+!    do iat=1,nat
+!         if (onsurface(iat) .eqv. .false.) then 
+!             distmin=1.d100
+!            do jat=1,nat
+!            if (jat.ne.iat .and. onsurface(jat)) then
+!              dist=(pos(1,iat)-pos(1,jat))**2+(pos(2,iat)-pos(2,jat))**2+(pos(3,iat)-pos(3,jat))**2
+!              dist=sqrt(dist)-1.25d0*rcov(iat)-1.25d0*rcov(jat)
+!              if (dist.lt.distmin) then 
+!                distmin=dist
+!                mj=jat
+!              endif
+!            endif
+!            enddo
+!            if (iproc.eq.0) write(*,*) iat,mj,distmin
+!            if (distmin.gt.0.d0) then
+!                dx=pos(1,iat)-pos(1,mj)
+!                dy=pos(2,iat)-pos(2,mj)
+!                dz=pos(3,iat)-pos(3,mj)
+!                dl=sqrt(dx**2+dy**2+dz**2)
+!                d=distmin+0.1d0*(rcov(iat)+rcov(mj))
+!                dx=dx*(d/dl)
+!                dy=dy*(d/dl)
+!                dz=dz*(d/dl)
+!                if (iproc.eq.0) write(*,*) "#MH moving atom",iat,pos(:,iat)
+!                pos(1,iat)=pos(1,iat)-dx
+!                pos(2,iat)=pos(2,iat)-dy
+!                pos(3,iat)=pos(3,iat)-dz
+!                if (iproc.eq.0) write(*,*) "#MH moved atom",iat,pos(:,iat)
+!                onsurface(iat)=.true.
+!                goto 1000
+!            endif
+!         endif
+!    enddo
+!
+!end subroutine fixfrag_posvel_slab
 end module
