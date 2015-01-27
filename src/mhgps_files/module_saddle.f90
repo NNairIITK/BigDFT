@@ -294,6 +294,7 @@ subroutine findsad(mhgpsst,fsw,uinp,runObj,outs,rcov,nbond,iconnect,&
     character(len=9)   :: fn9
     character(len=300)  :: comment
     real(gp) :: curvgraddiff_tmp
+    real(gp) :: maxdiff
     !functions
     real(gp) :: ddot,dnrm2
 
@@ -333,7 +334,22 @@ subroutine findsad(mhgpsst,fsw,uinp,runObj,outs,rcov,nbond,iconnect,&
     tighten=.false.
     alpha_stretch=uinp%saddle_alpha_stretch0
 
-    ! allocate arrays
+    !Check and synchronize input minimum mode over all processors.
+    !This is important, since otherwise we get slightly different curvatures
+    !on each processor (in subroutine curvforce)
+    call mpibarrier(bigdft_mpi%mpi_comm)
+    if (bigdft_mpi%nproc >1) then
+       call mpibcast(minmode,comm=bigdft_mpi%mpi_comm,&
+            maxdiff=maxdiff)
+       if (maxdiff > epsilon(1.0_gp)) then
+          if (bigdft_mpi%iproc==0) then
+             call yaml_warning('Input minimum mode not identical! '//&
+                  '(difference:'//trim(yaml_toa(maxdiff))//&
+                  ' ), however broadcasting from master node.')
+             call yaml_flush_document()
+          end if
+       end if
+    end if
     fsw%minmode0_trans=minmode
     fsw%minmodeold_trans=minmode
     fsw%wold_trans=0.0_gp
@@ -993,7 +1009,6 @@ subroutine curvforce(mhgpsst,runObj,outs,diff,rxyz1,fxyz1,vec,curv,rotforce,imet
     real(gp),allocatable :: drxyz(:,:), dfxyz(:,:)
     !functions
     real(gp), external :: dnrm2,ddot
-
     
 !    diff=1.e-3_gp !lennard jones
 
@@ -1006,7 +1021,6 @@ subroutine curvforce(mhgpsst,runObj,outs,diff,rxyz1,fxyz1,vec,curv,rotforce,imet
     if (bigdft_get_geocode(runObj)=='F')&
         call elim_torque_bastian(runObj%atoms%astruct%nat,&
              rxyz1(1,1),vec(1,1))
-    
 
     call clean_forces_base(runObj%atoms,vec) 
     vec = vec / dnrm2(3*runObj%atoms%astruct%nat,vec(1,1),1)
@@ -1366,6 +1380,7 @@ subroutine mincurvforce(mhgpsst,imode,runObj,outs,diff,rxyz1,fxyz1,&
            vec,vecraw,rotforce,rotfstretch,rotforceraw,curv,imethod,&
            ec,iconnect,nbond_,wold,alpha_stretch0,alpha_stretch)
     use module_base, only: gp
+    use yaml_output
     use module_sqn
     use bigdft_run, only: run_objects, state_properties
     use module_mhgps_state
@@ -1394,11 +1409,31 @@ subroutine mincurvforce(mhgpsst,imode,runObj,outs,diff,rxyz1,fxyz1,&
     !internal
     integer :: infocode
     real(gp) :: rxyz2(3,runObj%atoms%astruct%nat)
+    real(gp) :: maxdiff
 
-     vecraw=vec
+    !Check and synchronize input minimum mode over all processors.
+    !This is important, since otherwise we might get slightly different curvatures
+    !on each processor (in subroutine curvforce)
+    call mpibarrier(bigdft_mpi%mpi_comm)
+    if (bigdft_mpi%nproc >1) then
+       call mpibcast(vec,comm=bigdft_mpi%mpi_comm,&
+            maxdiff=maxdiff)
+       if (maxdiff > epsilon(1.0_gp)) then
+          if (bigdft_mpi%iproc==0) then
+             call yaml_warning('Minimum mode not identical! '//&
+                  '(difference:'//trim(yaml_toa(maxdiff))//&
+                  ' ), however broadcasting from master node.')
+             call yaml_flush_document()
+          end if
+       end if
+    end if
+
 !    call mhgpsenergyandforces(nat,rat,fat,epot)
      call curvforce(mhgpsst,runObj,outs,diff,rxyz1,fxyz1,vec,curv,&
           rotforce,imethod,ec)
+    !if biomode is not working, you might
+    !must move vecraw=vec right before call curvforce, above
+     vecraw=vec
      rxyz2 =rxyz1+diff*vec
      rotforceraw=rotforce
      rotfstretch=0.0_gp

@@ -136,11 +136,6 @@ subroutine get_ts_guess_freeze(mhgpsst,uinp,runObj,outs,rxyz1,rxyz2,&
     npath=0
     do istring=1,nstring
         npath=npath+1
-        do iat=1,runObj%atoms%astruct%nat
-            path(npath,1,iat)=string(3*iat-2,1,istring)
-            path(npath,2,iat)=string(3*iat-1,1,istring)
-            path(npath,3,iat)=string(3*iat  ,1,istring)
-        enddo
         !parametrize spline such that the i-th node
         !is at parameter value i:
         arc(npath)=real(npath,gp)
@@ -156,14 +151,17 @@ subroutine get_ts_guess_freeze(mhgpsst,uinp,runObj,outs,rxyz1,rxyz2,&
             ipathmax   = npath
         endif
         endif
+        !copy string to path after call to energy and forces,
+        !because coordinates get synchronized over all processors
+        !in mhgpsenergyandforces
+        do iat=1,runObj%atoms%astruct%nat
+            path(npath,1,iat)=string(3*iat-2,1,istring)
+            path(npath,2,iat)=string(3*iat-1,1,istring)
+            path(npath,3,iat)=string(3*iat  ,1,istring)
+        enddo
     enddo
     do istring=nstring-ncorr,1,-1
         npath=npath+1
-        do iat=1,runObj%atoms%astruct%nat
-            path(npath,1,iat)=string(3*iat-2,2,istring)
-            path(npath,2,iat)=string(3*iat-1,2,istring)
-            path(npath,3,iat)=string(3*iat  ,2,istring)
-        enddo
         !parametrize spline such that the i-th node
         !is at parameter value i:
         arc(npath)=real(npath,gp)
@@ -179,6 +177,14 @@ subroutine get_ts_guess_freeze(mhgpsst,uinp,runObj,outs,rxyz1,rxyz2,&
             ipathmax   = npath
         endif
         endif
+        !copy string to path after call to energy and forces,
+        !because coordinates get synchronized over all processors
+        !in mhgpsenergyandforces
+        do iat=1,runObj%atoms%astruct%nat
+            path(npath,1,iat)=string(3*iat-2,2,istring)
+            path(npath,2,iat)=string(3*iat-1,2,istring)
+            path(npath,3,iat)=string(3*iat  ,2,istring)
+        enddo
     enddo
     energies(1)=1234.0_gp
     energies(npath)=1234.0_gp
@@ -379,7 +385,7 @@ subroutine grow_freezstring(mhgpsst,uinp,runObj,outs,gammainv,perpnrmtol,trust,&
             !parts in interpol are OpenMP parallelized. It might hapenpen
             !that finished is not identical on all processors
             if (bigdft_mpi%nproc >1) then
-               call mpibcast(finished,1,comm=bigdft_mpi%mpi_comm)
+               call mpibcast(finished,comm=bigdft_mpi%mpi_comm)
             end if
         !!$      maxdiff=mpimaxdiff(runObj%atoms%astruct%rxyz,comm=bigdft_mpi%mpi_comm,bcast=.true.)
             if(finished/=0)then
