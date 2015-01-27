@@ -21,7 +21,7 @@ module dynamic_memory
 
   private 
 
-  logical, parameter :: track_origins=.false.      !< When true keeps track of all the allocation statuses using dictionaries
+  logical, parameter :: track_origins=.true.      !< When true keeps track of all the allocation statuses using dictionaries
   integer, parameter :: namelen=f_malloc_namelen  !< Length of the character variables
   integer, parameter :: error_string_len=80       !< Length of error string
   integer, parameter :: ndebug=0                  !< Size of debug parameters
