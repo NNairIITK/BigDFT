@@ -1426,7 +1426,7 @@ subroutine minenergyandforces(mhgpsst,eeval,imode,runObj,outs,rat,&
     type(state_properties), intent(inout) :: outs
     integer, intent(in)           :: nbond_
     integer, intent(in)           :: iconnect(2,nbond_)
-    real(gp),intent(in)           :: rat(3,runObj%atoms%astruct%nat)
+    real(gp),intent(inout)           :: rat(3,runObj%atoms%astruct%nat)
     real(gp),intent(out)          :: rxyzraw(3,runObj%atoms%astruct%nat)
     real(gp),intent(out)          :: fxyzraw(3,runObj%atoms%astruct%nat)
     real(gp),intent(inout)          :: fat(3,runObj%atoms%astruct%nat)
