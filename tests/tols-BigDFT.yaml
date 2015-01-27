@@ -674,7 +674,7 @@ water_mixdens:
  EXC: 1.1e-10
  EH: 1.0e-9
  Epot: 1.1e-9
- D: 1.1e-10
+ D: 1.1e-9
  max alpha: 1.1e-4
  mean alpha: 1.1e-4
  energy: 1.8e-10

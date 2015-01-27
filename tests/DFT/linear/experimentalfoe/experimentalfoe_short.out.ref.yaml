@@ -812,7 +812,6 @@
      lowest eigenvalue                 : -0.9388309924756768
      highest eigenvalue                :  0.6238607483468933
      method                            : FOE
-     write overlap matrix              :  Yes
       #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ FOE calculation of kernel
      S^-1/2                            : recalculate
      calculate S^x:
@@ -992,7 +991,6 @@
        lowest eigenvalue               : -0.9732383773613602
        highest eigenvalue              :  0.6676000846839273
        method                          : FOE
-       write overlap matrix            :  Yes
         #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ FOE calculation of kernel
        S^-1/2                          : from memory
        decay length of error function  :  1.250E-02
@@ -1046,7 +1044,6 @@
        lowest eigenvalue               : -0.9286250525452459
        highest eigenvalue              :  0.6320696175134303
        method                          : FOE
-       write overlap matrix            :  Yes
         #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ FOE calculation of kernel
        S^-1/2                          : from memory
        decay length of error function  :  1.562E-02
@@ -1107,7 +1104,6 @@
        lowest eigenvalue               : -0.9360336537266964
        highest eigenvalue              :  0.6370010970651907
        method                          : FOE
-       write overlap matrix            :  Yes
         #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ FOE calculation of kernel
        S^-1/2                          : from memory
        decay length of error function  :  1.953E-02
@@ -1281,7 +1277,6 @@
        lowest eigenvalue               : -0.950648853902744
        highest eigenvalue              :  0.6363850851628031
        method                          : FOE
-       write overlap matrix            :  Yes
         #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ FOE calculation of kernel
        S^-1/2                          : from memory
        decay length of error function  :  2.441E-02
@@ -1346,7 +1341,6 @@
        lowest eigenvalue               : -0.9650064091902083
        highest eigenvalue              :  0.6210872951450418
        method                          : FOE
-       write overlap matrix            :  Yes
         #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ FOE calculation of kernel
        S^-1/2                          : from memory
        decay length of error function  :  3.052E-02
@@ -1422,7 +1416,6 @@
        lowest eigenvalue               : -1.001234190542487
        highest eigenvalue              :  0.579049712962329
        method                          : FOE
-       write overlap matrix            :  Yes
         #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ FOE calculation of kernel
        S^-1/2                          : from memory
        decay length of error function  :  3.815E-02
@@ -1721,7 +1714,6 @@
        lowest eigenvalue               : -1.002795975987792
        highest eigenvalue              :  0.5721139962752645
        method                          : FOE
-       write overlap matrix            :  Yes
         #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ FOE calculation of kernel
        S^-1/2                          : from memory
        decay length of error function  :  2.384E-02
@@ -1788,7 +1780,6 @@
        lowest eigenvalue               : -1.008242448281592
        highest eigenvalue              :  0.5687108319075441
        method                          : FOE
-       write overlap matrix            :  Yes
         #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ FOE calculation of kernel
        S^-1/2                          : from memory
        decay length of error function  :  2.980E-02
@@ -1864,7 +1855,6 @@
        lowest eigenvalue               : -1.021362678308742
        highest eigenvalue              :  0.5585976294476309
        method                          : FOE
-       write overlap matrix            :  Yes
         #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ FOE calculation of kernel
        S^-1/2                          : from memory
        decay length of error function  :  3.725E-02
@@ -2008,7 +1998,6 @@
        lowest eigenvalue               : -1.02480106356033
        highest eigenvalue              :  0.5521829041235273
        method                          : FOE
-       write overlap matrix            :  Yes
         #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ FOE calculation of kernel
        S^-1/2                          : from memory
        decay length of error function  :  4.657E-02
@@ -2117,7 +2106,6 @@
        lowest eigenvalue               : -1.02473439259914
        highest eigenvalue              :  0.5525213027800817
        method                          : FOE
-       write overlap matrix            :  Yes
         #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ FOE calculation of kernel
        S^-1/2                          : from memory
        decay length of error function  :  2.910E-02
@@ -2181,7 +2169,6 @@
        lowest eigenvalue               : -1.024581351781505
        highest eigenvalue              :  0.5531137020863195
        method                          : FOE
-       write overlap matrix            :  Yes
         #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ FOE calculation of kernel
        S^-1/2                          : from memory
        decay length of error function  :  3.638E-02
@@ -2361,12 +2348,6 @@
   #-------------------------------- Warnings obtained during the run, check their relevance!
  WARNINGS:
  - Do not call check_communications in the linear scaling version!
- - No orthogonalizing of the support functions
- - density optimization not converged
- - No orthogonalizing of the support functions
- - density optimization not converged
- - No orthogonalizing of the support functions
- - density optimization not converged
  - No orthogonalizing of the support functions
  - density optimization not converged
  - oscillation of the energy, increase counter

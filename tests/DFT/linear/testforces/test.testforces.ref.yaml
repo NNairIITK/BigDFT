@@ -2193,22 +2193,7 @@
  - Do not call check_communications in the linear scaling version!
  - support function optimization not converged
  - density optimization not converged
- - support function optimization not converged
- - density optimization not converged
- - support function optimization not converged
- - density optimization not converged
- - support function optimization not converged
- - density optimization not converged
  - oscillation of the energy, increase counter
- - support function optimization not converged
- - density optimization not converged
- - oscillation of the energy, increase counter
- - support function optimization not converged
- - density optimization not converged
- - support function optimization not converged
- - density optimization not converged
- - support function optimization not converged
- - density optimization not converged
  - commented correction_locrad
   #-------------------------------------------------------------------- Timing for root process
  Timings for root process:
@@ -4144,22 +4129,7 @@
  - The pulay force is too large after the restart. Start over again with an AO input guess.
  - support function optimization not converged
  - density optimization not converged
- - support function optimization not converged
- - density optimization not converged
- - support function optimization not converged
- - density optimization not converged
- - support function optimization not converged
- - density optimization not converged
  - oscillation of the energy, increase counter
- - support function optimization not converged
- - density optimization not converged
- - oscillation of the energy, increase counter
- - support function optimization not converged
- - density optimization not converged
- - support function optimization not converged
- - density optimization not converged
- - support function optimization not converged
- - density optimization not converged
  - commented correction_locrad
   #-------------------------------------------------------------------- Timing for root process
  Timings for root process:
@@ -6095,22 +6065,7 @@
  - The pulay force is too large after the restart. Start over again with an AO input guess.
  - support function optimization not converged
  - density optimization not converged
- - support function optimization not converged
- - density optimization not converged
- - support function optimization not converged
- - density optimization not converged
- - support function optimization not converged
- - density optimization not converged
  - oscillation of the energy, increase counter
- - support function optimization not converged
- - density optimization not converged
- - oscillation of the energy, increase counter
- - support function optimization not converged
- - density optimization not converged
- - support function optimization not converged
- - density optimization not converged
- - support function optimization not converged
- - density optimization not converged
  - commented correction_locrad
   #-------------------------------------------------------------------- Timing for root process
  Timings for root process:
@@ -8046,22 +8001,7 @@
  - The pulay force is too large after the restart. Start over again with an AO input guess.
  - support function optimization not converged
  - density optimization not converged
- - support function optimization not converged
- - density optimization not converged
- - support function optimization not converged
- - density optimization not converged
- - support function optimization not converged
- - density optimization not converged
  - oscillation of the energy, increase counter
- - support function optimization not converged
- - density optimization not converged
- - oscillation of the energy, increase counter
- - support function optimization not converged
- - density optimization not converged
- - support function optimization not converged
- - density optimization not converged
- - support function optimization not converged
- - density optimization not converged
  - commented correction_locrad
   #-------------------------------------------------------------------- Timing for root process
  Timings for root process:
@@ -9997,22 +9937,7 @@
  - The pulay force is too large after the restart. Start over again with an AO input guess.
  - support function optimization not converged
  - density optimization not converged
- - support function optimization not converged
- - density optimization not converged
- - support function optimization not converged
- - density optimization not converged
- - support function optimization not converged
- - density optimization not converged
  - oscillation of the energy, increase counter
- - support function optimization not converged
- - density optimization not converged
- - oscillation of the energy, increase counter
- - support function optimization not converged
- - density optimization not converged
- - support function optimization not converged
- - density optimization not converged
- - support function optimization not converged
- - density optimization not converged
  - commented correction_locrad
   #-------------------------------------------------------------------- Timing for root process
  Timings for root process:

@@ -1504,12 +1504,6 @@
  - No orthogonalizing of the support functions
  - quick return in purification
  - density optimization not converged
- - No orthogonalizing of the support functions
- - quick return in purification
- - density optimization not converged
- - No orthogonalizing of the support functions
- - quick return in purification
- - density optimization not converged
   #-------------------------------------------------------------------- Timing for root process
  Timings for root process:
    CPU time (s)                        :  25.28
