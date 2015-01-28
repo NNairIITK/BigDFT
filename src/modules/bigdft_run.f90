@@ -491,7 +491,7 @@ contains
 
   !> copy the atom position in runObject into a workspace
   !! or retrieve the positions from a file
-  subroutine bigdft_get_rxyz(runObj,filename,rxyz_add,rxyz,energy)
+  subroutine bigdft_get_rxyz(runObj,filename,rxyz_add,rxyz,energy,disableTrans)
     use dynamic_memory, only: f_memcpy
     use yaml_strings, only: yaml_toa
     use module_atoms, only: atomic_structure,nullify_atomic_structure,&
@@ -511,6 +511,7 @@ contains
     !> array of correct size (3,bigdft_nat(runObj)) with the atomic positions
     real(gp), dimension(:,:), intent(out), optional :: rxyz
     real(gp), intent(out), optional :: energy
+    logical, intent(in), optional :: disableTrans
     !local variables
     integer :: n
     type(atomic_structure) :: astruct
@@ -543,7 +544,8 @@ contains
        end if
     else if (present(filename)) then
        call nullify_atomic_structure(astruct)
-       call set_astruct_from_file(trim(filename), bigdft_mpi%iproc, astruct,energy=energy)
+       call set_astruct_from_file(trim(filename), bigdft_mpi%iproc, &
+            astruct,energy=energy,disableTrans=disableTrans)
        n=3*astruct%nat
        if (present(rxyz_add)) then
           call f_memcpy(n=n,dest=rxyz_add,src=astruct%rxyz(1,1))

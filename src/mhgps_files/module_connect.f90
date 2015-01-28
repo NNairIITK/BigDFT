@@ -173,7 +173,7 @@ recursive subroutine connect_recursively(mhgpsst,fsw,uinp,runObj,outs,&
          runObj%atoms%astruct%cell_dim,bigdft_get_geocode(runObj),&
          rcov,cobj%saddle(1,1,mhgpsst%nsad),cobj%fpsad(1,mhgpsst%nsad))
 
-    if(mhgpsst%nsad>1)then
+    if(mhgpsst%nsad>1 .and. bigdft_get_geocode(runObj)=='F')then
         if(equal(mhgpsst%iproc,'(MHGPS)','SS',mhgpsst%nid,uinp%en_delta_sad,&
           uinp%fp_delta_sad,cobj%enersad(mhgpsst%nsad-1),cobj%enersad(mhgpsst%nsad),&
           cobj%fpsad(1,mhgpsst%nsad-1),cobj%fpsad(1,mhgpsst%nsad)))then
@@ -1395,14 +1395,14 @@ subroutine write_todoList(uinp,mhgpsst,runObj,cobj)
                 if(mhgpsst%iproc==0)then
                     call read_atomic_file(trim(adjustl(&
                          mhgpsst%joblist(1,ijob))),mhgpsst%iproc,&
-                         astruct)
+                         astruct,disableTrans=.true.)
                     call astruct_dump_to_file(astruct,mhgpsst%currDir//&
                          '/todo'//trim(adjustl(mhgpsst%ntodoc))//'_L',&
                          comment)
                     call deallocate_atomic_structure(astruct)
                     call read_atomic_file(trim(adjustl(&
                          mhgpsst%joblist(2,ijob))),mhgpsst%iproc,&
-                         astruct)
+                         astruct,disableTrans=.true.)
                     call astruct_dump_to_file(astruct,mhgpsst%currDir//&
                          '/todo'//trim(adjustl(mhgpsst%ntodoc))//'_R',&
                          comment)

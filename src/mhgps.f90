@@ -16,7 +16,6 @@ program mhgps
     use module_atoms, only: deallocate_atoms_data,&
                             deallocate_atomic_structure,&
                             atomic_structure,&
-                            read_atomic_file=>set_astruct_from_file,&
                             astruct_dump_to_file
     use module_connect_object
     use module_mhgps_state
@@ -201,12 +200,12 @@ program mhgps
            endif
            mhgpsst%ijob=ijob
            call bigdft_get_rxyz(filename=&
-                trim(adjustl(mhgpsst%joblist(1,ijob))),rxyz=rxyz)
+                trim(adjustl(mhgpsst%joblist(1,ijob))),rxyz=rxyz,disableTrans=.true.)
 
            select case(trim(adjustl(uinp%operation_mode)))
            case('guessonly')
               call bigdft_get_rxyz(filename=mhgpsst%joblist(2,ijob),&
-                   rxyz=rxyz2)
+                   rxyz=rxyz2,disableTrans=.true.)
 
               mhgpsst%isad=mhgpsst%isad+1
               write(mhgpsst%isadc,'(i5.5)')mhgpsst%isad
@@ -232,7 +231,7 @@ program mhgps
               endif
            case('connect')
               call bigdft_get_rxyz(filename=mhgpsst%joblist(2,ijob),&
-                   rxyz=rxyz2)
+                   rxyz=rxyz2,disableTrans=.true.)
 
               !Evalute energies. They are needed in connect
               !for identification
