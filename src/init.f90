@@ -2278,7 +2278,7 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
         call timing(iproc,'restart_rsp   ','ON')
         call input_wf_memory_new(nproc, iproc, atoms, &
              rxyz_old, lzd_old%hgrids(1), lzd_old%hgrids(2), lzd_old%hgrids(3), &
-             & psi_old,lzd_old, &
+             psi_old,lzd_old, &
              rxyz,KSwfn%psi, KSwfn%orbs,KSwfn%lzd)
         call timing(iproc,'restart_rsp   ','OF')
      else
