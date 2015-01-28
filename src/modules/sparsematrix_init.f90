@@ -1025,6 +1025,97 @@ contains
       end do 
     
     end subroutine determine_sequential_length
+    
+
+
+    subroutine determine_sequential_length_new(npt, ispt, nseg, keyv, keyg, smat, nseq, nseq_per_pt)
+      implicit none
+    
+      ! Calling arguments
+      integer,intent(in) :: npt, ispt, nseg
+      integer,dimension(nseg),intent(in) :: keyv
+      integer,dimension(2,2,nseg),intent(in) :: keyg
+      type(sparse_matrix),intent(in) :: smat
+      integer,intent(out) :: nseq
+      integer,dimension(npt),intent(out) :: nseq_per_pt
+    
+      ! Local variables
+      integer :: ipt, iipt, iline, icolumn, nseq_pt, jseg, jorb
+
+
+      nseq = 0
+      do ipt=1,npt
+          iipt = ispt + ipt
+          call get_line_and_column(iipt, nseg, keyv, keyg, iline, icolumn)
+          nseq_pt = 0
+          ! Take the column due to the symmetry of the sparsity pattern
+          do jseg=smat%istsegline(icolumn),smat%istsegline(icolumn)+smat%nsegline(icolumn)-1
+              ! A segment is always on one line, therefore no double loop
+              do jorb = smat%keyg(1,1,jseg),smat%keyg(2,1,jseg)
+                  nseq = nseq + 1
+                  nseq_pt = nseq_pt + 1
+              end do
+          end do
+          nseq_per_pt(iipt) = nseq_pt
+      end do
+
+    
+      !!nseq=0
+      !!do i = 1,norbp
+      !!   ii=isorb+i
+      !!   isegoffset=istsegline(ii)-1
+      !!   nseqline=0
+      !!   do iseg=1,nsegline(ii)
+      !!        ! A segment is always on one line, therefore no double loop
+      !!        istart=keyg(1,1,isegoffset+iseg)
+      !!        iend=keyg(2,1,isegoffset+iseg)
+      !!        do iorb=istart,iend
+      !!            do jseg=sparsemat%istsegline(iorb),sparsemat%istsegline(iorb)+sparsemat%nsegline(iorb)-1
+      !!                ! A segment is always on one line, therefore no double loop
+      !!                do jorb = sparsemat%keyg(1,1,jseg),sparsemat%keyg(2,1,jseg)
+      !!                    nseq=nseq+1
+      !!                    nseqline=nseqline+1
+      !!                end do
+      !!            end do
+      !!        end do
+      !!   end do
+      !!   nseq_per_line(ii)=nseqline
+      !!end do 
+
+    
+    end subroutine determine_sequential_length_new
+
+
+
+    subroutine get_line_and_column(iel, nseg, keyv, keyg, iline, icolumn)
+      implicit none
+
+      ! Calling arguments
+      integer,intent(in) :: iel, nseg
+      integer,dimension(nseg),intent(in) :: keyv
+      integer,dimension(2,2,nseg),intent(in) :: keyg
+      integer,intent(out) :: iline, icolumn
+
+      ! Local variables
+      integer :: iseg, ilen_seg, ist_seg, iend_seg, i
+
+      ! Search the segment which contains iel
+      search_loop: do iseg=1,nseg
+          ilen_seg = keyg(2,1,iseg) - keyg(1,1,iseg) + 1
+          ist_seg = keyv(iseg)
+          iend_seg = ist_seg + ilen_seg
+          if (iend_seg<iel) cycle
+          ! If this point is reached, we are in the correct segment
+          iline = keyg(1,2,iseg)
+          icolumn = keyg(1,1,iseg)
+          do i=ist_seg,iend_seg
+              icolumn = icolumn + 1
+              if (i==iel) exit search_loop
+          end do
+      end do search_loop
+
+    end subroutine get_line_and_column
+
 
 
     subroutine get_nout(norb, norbp, isorb, nseg, nsegline, istsegline, keyg, nout)
@@ -1101,6 +1192,43 @@ contains
     end subroutine init_onedimindices_new
 
 
+
+    subroutine init_onedimindices_newnew(nout, ispt, nseg, keyv, keyg, smat,  onedimindices)
+      implicit none
+    
+      ! Calling arguments
+      integer,intent(in) :: nout, ispt, nseg
+      integer,dimension(nseg),intent(in) :: keyv
+      integer,dimension(2,2,nseg),intent(in) :: keyg
+      type(sparse_matrix),intent(in) :: smat
+      integer,dimension(4,nout) :: onedimindices
+    
+      ! Local variables
+      integer :: itot, ipt, iipt, iline, icolumn, ilen, jseg
+    
+    
+      itot = 1
+      do ipt=1,nout
+          iipt = ispt + ipt
+          call get_line_and_column(iipt, nseg, keyv, keyg, iline, icolumn)
+          onedimindices(1,ipt) = iline
+          onedimindices(2,ipt) = icolumn
+          ilen = 0
+          ! Take the column due to the symmetry of the sparsity pattern
+          do jseg=smat%istsegline(icolumn),smat%istsegline(icolumn)+smat%nsegline(icolumn)-1
+              ! A segment is always on one line, therefore no double loop
+              ilen = ilen + smat%keyg(2,1,jseg) - smat%keyg(1,1,jseg) + 1
+          end do
+          onedimindices(3,ipt) = ilen
+          onedimindices(4,ipt) = itot
+          itot = itot + ilen
+      end do
+    
+    end subroutine init_onedimindices_newnew
+
+
+
+
     subroutine get_arrays_for_sequential_acces(norb, norbp, isorb, nseg, &
                nsegline, istsegline, keyg, sparsemat, nseq, &
                ivectorindex)
@@ -1144,6 +1272,42 @@ contains
     end subroutine get_arrays_for_sequential_acces
 
 
+
+    subroutine get_arrays_for_sequential_acces_new(nout, ispt, nseg, nseq, keyv, keyg, smat, ivectorindex)
+      implicit none
+    
+      ! Calling arguments
+      integer,intent(in) :: nout, ispt, nseg, nseq
+      integer,dimension(nseg),intent(in) :: keyv
+      integer,dimension(2,2,nseg),intent(in) :: keyg
+      type(sparse_matrix),intent(in) :: smat
+      integer,dimension(nseq),intent(out) :: ivectorindex
+    
+      ! Local variables
+      integer :: ii, ipt, iipt, iline, icolumn, jseg, jorb, jjorb
+    
+    
+      ii=1
+      do ipt=1,nout
+          iipt = ispt + ipt
+          call get_line_and_column(iipt, nseg, keyv, keyg, iline, icolumn)
+          ! Take the column due to the symmetry of the sparsity pattern
+          do jseg=smat%istsegline(icolumn),smat%istsegline(icolumn)+smat%nsegline(icolumn)-1
+              ! A segment is always on one line, therefore no double loop
+              do jorb = smat%keyg(1,1,jseg),smat%keyg(2,1,jseg)
+                  jjorb = jorb
+                  ivectorindex(ii)=jjorb
+                  ii = ii+1
+              end do
+          end do
+      end do
+      if (ii/=nseq+1) stop 'ii/=nseq+1'
+    
+    end subroutine get_arrays_for_sequential_acces_new
+
+
+
+
     subroutine init_sequential_acces_matrix(norb, norbp, isorb, nseg, &
                nsegline, istsegline, keyg, sparsemat, nseq, &
                indices_extract_sequential)
@@ -1184,6 +1348,43 @@ contains
       end do 
     
     end subroutine init_sequential_acces_matrix
+
+
+
+
+    subroutine init_sequential_acces_matrix_new(nout, ispt, nseg, nseq, keyv, keyg, smat, &
+               indices_extract_sequential)
+      implicit none
+    
+      ! Calling arguments
+      integer,intent(in) :: nout, ispt, nseg, nseq
+      integer,dimension(nseg),intent(in) :: keyv
+      integer,dimension(2,2,nseg),intent(in) :: keyg
+      type(sparse_matrix),intent(in) :: smat
+      integer,dimension(nseq),intent(out) :: indices_extract_sequential
+    
+      ! Local variables
+      integer :: ii, ipt, iipt, iline, icolumn, jseg, jj, jorb
+    
+      ii=1
+      do ipt=1,nout
+          iipt = ispt + ipt
+          call get_line_and_column(iipt, nseg, keyv, keyg, iline, icolumn)
+          ! Take the column due to the symmetry of the sparsity pattern
+          do jseg=smat%istsegline(icolumn),smat%istsegline(icolumn)+smat%nsegline(icolumn)-1
+              ! A segment is always on one line, therefore no double loop
+              jj=1
+              do jorb = smat%keyg(1,1,jseg),smat%keyg(2,1,jseg)
+                  indices_extract_sequential(ii)=smat%keyv(jseg)+jj-1
+                  jj = jj+1
+                  ii = ii+1
+              end do
+          end do
+      end do
+    
+    end subroutine init_sequential_acces_matrix_new
+
+
 
 
     subroutine init_matrix_parallelization(iproc, nproc, nfvctr, nseg, nvctr, &
