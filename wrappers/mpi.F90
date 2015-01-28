@@ -907,7 +907,7 @@ contains
     use dictionaries, only: f_err_throw
     use dynamic_memory
     implicit none
-    double precision, intent(inout) :: sendbuf
+    double precision :: sendbuf
     double precision, intent(inout), optional :: recvbuf
     double precision, dimension(:), allocatable :: copybuf
     include 'allgather-inc.f90'

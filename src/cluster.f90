@@ -1826,7 +1826,7 @@ subroutine kswfn_post_treatments(iproc, nproc, KSwfn, tmb, linear, &
 
   !Local variables
   character(len = *), parameter :: subname = "kswfn_post_treatments"
-  integer ::  jproc, nsize_psi, imode, i, ispin
+  integer ::  jproc, nsize_psi, imode, i, ispin,i3xcsh_old
   real(dp), dimension(6) :: hstrten
   real(gp) :: ehart_fake
 
@@ -1837,6 +1837,8 @@ subroutine kswfn_post_treatments(iproc, nproc, KSwfn, tmb, linear, &
   denspot%dpbox%n3d=denspot%dpbox%n3p
   !i3xcsh=0
   denspot%dpbox%i3s=denspot%dpbox%i3s+denspot%dpbox%i3xcsh
+  !save the value for future reference for the core density
+  i3xcsh_old=denspot%dpbox%i3xcsh
   denspot%dpbox%i3xcsh=0
   do jproc=0,denspot%dpbox%mpi_env%nproc-1
      !n3d=n3p
@@ -1897,10 +1899,10 @@ subroutine kswfn_post_treatments(iproc, nproc, KSwfn, tmb, linear, &
      call plot_density(iproc,nproc,trim(dir_output)//'electronic_density' // gridformat,&
           atoms,rxyz,denspot%dpbox,denspot%dpbox%nrhodim,denspot%rho_work)
 
-     if (associated(denspot%rho_C)) then
-        if (iproc == 0) call yaml_map('Writing core density in file','grid core_density'//gridformat)
+     if (associated(denspot%rho_C) .and. denspot%dpbox%n3d>0) then
+        if (iproc == 0) call yaml_map('Writing core density in file','core_density'//gridformat)
         call plot_density(iproc,nproc,trim(dir_output)//'core_density' // gridformat,&
-             atoms,rxyz,denspot%dpbox,1,denspot%rho_C(1,1,denspot%dpbox%i3xcsh:,1))
+             atoms,rxyz,denspot%dpbox,1,denspot%rho_C(1,1,i3xcsh_old+1,1))
      end if
   end if
   !plot also the electrostatic potential
