@@ -173,7 +173,7 @@ recursive subroutine connect_recursively(mhgpsst,fsw,uinp,runObj,outs,&
          runObj%atoms%astruct%cell_dim,bigdft_get_geocode(runObj),&
          rcov,cobj%saddle(1,1,mhgpsst%nsad),cobj%fpsad(1,mhgpsst%nsad))
 
-    if(mhgpsst%nsad>1 .and. bigdft_get_geocode(runObj)=='F')then
+    if(mhgpsst%nsad>1)then
         if(equal(mhgpsst%iproc,'(MHGPS)','SS',mhgpsst%nid,uinp%en_delta_sad,&
           uinp%fp_delta_sad,cobj%enersad(mhgpsst%nsad-1),cobj%enersad(mhgpsst%nsad),&
           cobj%fpsad(1,mhgpsst%nsad-1),cobj%fpsad(1,mhgpsst%nsad)))then
