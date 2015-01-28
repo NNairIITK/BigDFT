@@ -1897,10 +1897,10 @@ subroutine kswfn_post_treatments(iproc, nproc, KSwfn, tmb, linear, &
      call plot_density(iproc,nproc,trim(dir_output)//'electronic_density' // gridformat,&
           atoms,rxyz,denspot%dpbox,denspot%dpbox%nrhodim,denspot%rho_work)
 
-     if (associated(denspot%rho_C)) then
+     if (associated(denspot%rho_C) .and. denspot%dpbox%n3d>0) then
         if (iproc == 0) call yaml_map('Writing core density in file','grid core_density'//gridformat)
         call plot_density(iproc,nproc,trim(dir_output)//'core_density' // gridformat,&
-             atoms,rxyz,denspot%dpbox,1,denspot%rho_C(1,1,denspot%dpbox%i3xcsh:,1))
+             atoms,rxyz,denspot%dpbox,1,denspot%rho_C(1,1,denspot%dpbox%i3xcsh+1:,1))
      end if
   end if
   !plot also the electrostatic potential

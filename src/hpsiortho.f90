@@ -604,10 +604,10 @@ subroutine LocalHamiltonianApplication(iproc,nproc,at,npsidim_orbs,orbs,&
    else if (GPU%OCLconv) then
 
       !pin potential
-      call timing(iproc,'ApplyLocPotKin','ON') 
+      !call timing(iproc,'ApplyLocPotKin','ON') 
       call local_hamiltonian_OCL(orbs,Lzd%Glr,Lzd%hgrids(1),Lzd%hgrids(2),Lzd%hgrids(3),&
            orbs%nspin,pot,psi,GPU%hpsi_ASYNC,energs%ekin,energs%epot,GPU)
-      call timing(iproc,'ApplyLocPotKin','OF') 
+      !call timing(iproc,'ApplyLocPotKin','OF') 
    else
 
 !!$      !temporary allocation
