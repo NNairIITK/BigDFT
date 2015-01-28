@@ -31,7 +31,7 @@ module yaml_output
   integer, parameter :: SEQUENCE_ELEM          = -1010
   integer, parameter :: NEWLINE                = -1011
   integer, parameter :: COMMA_TO_BE_PUT        =  10
-  integer, parameter :: DEFAULT_STREAM_ID      =  -11
+  integer, parameter :: DEFAULT_STREAM_ID      =  0
 
   integer, parameter :: tot_max_record_length=95   !< Max record length by default
   integer, parameter :: tot_max_flow_events=500    !< Max flow events

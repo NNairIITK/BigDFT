@@ -886,17 +886,17 @@ module module_interfaces
          real(gp), intent(out) :: epot
       END SUBROUTINE apply_potential
 
-      subroutine plot_density(iproc,nproc,filename,at,rxyz,box,nspin,rho)
-        use module_base
-        use module_types
-        implicit none
-        integer, intent(in) :: iproc,nproc,nspin
-        type(atoms_data), intent(in) :: at
-        type(denspot_distribution), intent(in) :: box
-        character(len=*), intent(in) :: filename
-        real(gp), dimension(3,at%astruct%nat), intent(in) :: rxyz
-        real(dp), dimension(max(box%ndimpot,1),nspin), target, intent(in) :: rho
-      END SUBROUTINE plot_density
+!!$      subroutine plot_density(iproc,nproc,filename,at,rxyz,box,nspin,rho)
+!!$        use module_base
+!!$        use module_types
+!!$        implicit none
+!!$        integer, intent(in) :: iproc,nproc,nspin
+!!$        type(atoms_data), intent(in) :: at
+!!$        type(denspot_distribution), intent(in) :: box
+!!$        character(len=*), intent(in) :: filename
+!!$        real(gp), dimension(3,at%astruct%nat), intent(in) :: rxyz
+!!$        real(dp), dimension(max(box%ndimpot,1),nspin), target, intent(in) :: rho
+!!$      END SUBROUTINE plot_density
 
       subroutine read_density(filename,geocode,n1i,n2i,n3i,nspin,hxh,hyh,hzh,rho,&
             &   nat,rxyz,iatypes, znucl)
