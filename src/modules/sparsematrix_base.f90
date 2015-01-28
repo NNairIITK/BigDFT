@@ -32,8 +32,8 @@ module sparsematrix_base
       integer :: isseg !< segment containing the first entry (i.e. isvctr+1)
       integer :: ieseg !< segment containing the last entry (i.e. isvctr+nvctrp)
       integer,dimension(:),pointer :: isvctr_par, nvctr_par !<array that contains the values of nvctrp and isvctr of all MPI tasks
-      integer,dimension(:),pointer :: ivectorindex, nsegline, istsegline, indices_extract_sequential
-      integer,dimension(:,:),pointer :: onedimindices
+      integer,dimension(:),pointer :: ivectorindex, ivectorindex_new, nsegline, istsegline, indices_extract_sequential
+      integer,dimension(:,:),pointer :: onedimindices, onedimindices_new
       !!integer,dimension(:,:,:),pointer :: keyg
       integer,dimension(2) :: istartendseg_mm !< starting and ending segments of the matrix subpart which is actually used for the multiplication
                                               !! WARNING: the essential bounds are given by istartend_mm, the segments are used to speed up the code
@@ -173,7 +173,9 @@ module sparsematrix_base
       implicit none
       type(sparse_matrix_matrix_multiplication),intent(out):: smmm
       nullify(smmm%ivectorindex)
+      nullify(smmm%ivectorindex_new)
       nullify(smmm%onedimindices)
+      nullify(smmm%onedimindices_new)
       nullify(smmm%nsegline)
       nullify(smmm%istsegline)
       !!nullify(smmm%keyg)
@@ -218,7 +220,9 @@ module sparsematrix_base
       integer,dimension(norb),intent(in) :: nsegline, istsegline
       type(sparse_matrix_matrix_multiplication),intent(inout):: smmm
       smmm%ivectorindex=f_malloc_ptr(smmm%nseq,id='smmm%ivectorindex')
+      smmm%ivectorindex_new=f_malloc_ptr(smmm%nseq,id='smmm%ivectorindex_new')
       smmm%onedimindices=f_malloc_ptr((/4,smmm%nout/),id='smmm%onedimindices')
+      smmm%onedimindices_new=f_malloc_ptr((/3,smmm%nout/),id='smmm%onedimindices_new')
       smmm%nsegline=f_malloc_ptr(norb,id='smmm%nsegline')
       smmm%istsegline=f_malloc_ptr(norb,id='smmm%istsegline')
       smmm%indices_extract_sequential=f_malloc_ptr(smmm%nseq,id='smmm%indices_extract_sequential')
@@ -320,7 +324,9 @@ module sparsematrix_base
       implicit none
       type(sparse_matrix_matrix_multiplication),intent(out):: smmm
       call f_free_ptr(smmm%ivectorindex)
+      call f_free_ptr(smmm%ivectorindex_new)
       call f_free_ptr(smmm%onedimindices)
+      call f_free_ptr(smmm%onedimindices_new)
       call f_free_ptr(smmm%nsegline)
       call f_free_ptr(smmm%istsegline)
       !!call f_free_ptr(smmm%keyg)

@@ -1169,6 +1169,7 @@ module sparsematrix
    subroutine sparsemm(smat, a_seq, b, c)
      use module_base
      use yaml_output
+     use sparsematrix_init, only: get_line_and_column
      implicit none
    
      !Calling Arguments
@@ -1179,40 +1180,114 @@ module sparsematrix
    
      !Local variables
      !character(len=*), parameter :: subname='sparsemm'
+     integer :: i,jorb,jjorb,m,mp1,ist,iend, icontiguous, j, iline, icolumn
+     integer :: iorb, ii, ilen, jjorb0, jjorb1, jjorb2, jjorb3, jjorb4, jjorb5, jjorb6, iout
+     real(kind=8) :: tt0, tt1, tt2, tt3, tt4, tt5, tt6, tt7
+     real(kind=8),dimension(:),allocatable :: b_compr, c_compr
+   
+     !!call f_routine(id='sparsemm')
+     !!call timing(bigdft_mpi%iproc, 'sparse_matmul ', 'IR')
+
+   
+     !!!$omp parallel default(private) shared(smat, a_seq, b, c)
+     !!!$omp do
+     !!do iout=1,smat%smmm%nout
+     !!    i=smat%smmm%onedimindices(1,iout)
+     !!    iorb=smat%smmm%onedimindices(2,iout)
+     !!    ilen=smat%smmm%onedimindices(3,iout)
+     !!    ii=smat%smmm%onedimindices(4,iout)
+     !!    tt0=0.d0
+
+     !!    iend=ii+ilen-1
+
+     !!    do jorb=ii,iend
+     !!       jjorb=smat%smmm%ivectorindex(jorb)
+     !!       tt0 = tt0 + b(jjorb,i)*a_seq(jorb)
+     !!    end do
+
+     !!    c(iorb,i) = tt0
+     !!end do 
+     !!!$omp end do
+     !!!$omp end parallel
+
+
+     ! @ WRAPPER #######################
+     b_compr = f_malloc0(smat%smmm%nvctrp,id='b_compr')
+     c_compr = f_malloc0(smat%smmm%nvctrp,id='c_compr')
+     do i=1,smat%smmm%nvctrp
+         ii = smat%smmm%isvctr + i
+         call get_line_and_column(ii, smat%nseg, smat%keyv, smat%keyg, iline, icolumn)
+         if (icolumn<1) then
+             write(*,'(a,5i8)') 'iproc, i, ii, iline, icolumn', bigdft_mpi%iproc, i, ii, iline, icolumn
+             !stop
+         end if
+         !b_compr(i) = b(icolumn,iline-smat%smmm%isfvctr)
+     end do
+     call sparsemm_new(smat, a_seq, b_compr, c_compr)
+     do i=1,smat%smmm%nvctrp
+         ii = smat%smmm%isvctr + i
+         call get_line_and_column(ii, smat%nseg, smat%keyv, smat%keyg, iline, icolumn)
+         c(icolumn,iline) = c_compr(i)
+     end do
+     call f_free(b_compr)
+     call f_free(c_compr)
+     ! @ END WRAPPER ###################
+
+   
+     !!call timing(bigdft_mpi%iproc, 'sparse_matmul ', 'RS')
+     !!call f_release_routine()
+       
+   end subroutine sparsemm
+
+
+
+   subroutine sparsemm_new(smat, a_seq, b, c)
+     use module_base
+     use yaml_output
+     implicit none
+   
+     !Calling Arguments
+     type(sparse_matrix),intent(in) :: smat
+     real(kind=8), dimension(smat%smmm%nvctrp),intent(in) :: b
+     real(kind=8), dimension(smat%smmm%nseq),intent(in) :: a_seq
+     real(kind=8), dimension(smat%smmm%nvctrp), intent(out) :: c
+   
+     !Local variables
+     !character(len=*), parameter :: subname='sparsemm'
      integer :: i,jorb,jjorb,m,mp1,ist,iend, icontiguous, j
      integer :: iorb, ii, ilen, jjorb0, jjorb1, jjorb2, jjorb3, jjorb4, jjorb5, jjorb6, iout
      real(kind=8) :: tt0, tt1, tt2, tt3, tt4, tt5, tt6, tt7
    
-     call f_routine(id='sparsemm')
-     call timing(bigdft_mpi%iproc, 'sparse_matmul ', 'IR')
+     !!call f_routine(id='sparsemm')
+     !!call timing(bigdft_mpi%iproc, 'sparse_matmul ', 'IR')
 
    
      !$omp parallel default(private) shared(smat, a_seq, b, c)
      !$omp do
      do iout=1,smat%smmm%nout
-         i=smat%smmm%onedimindices(1,iout)
-         iorb=smat%smmm%onedimindices(2,iout)
-         ilen=smat%smmm%onedimindices(3,iout)
-         ii=smat%smmm%onedimindices(4,iout)
+         i=smat%smmm%onedimindices_new(1,iout)
+         !!iorb=smat%smmm%onedimindices(2,iout)
+         ilen=smat%smmm%onedimindices_new(2,iout)
+         ii=smat%smmm%onedimindices_new(3,iout)
          tt0=0.d0
 
          iend=ii+ilen-1
 
          do jorb=ii,iend
-            jjorb=smat%smmm%ivectorindex(jorb)
-            tt0 = tt0 + b(jjorb,i)*a_seq(jorb)
+            jjorb=smat%smmm%ivectorindex_new(jorb)
+            tt0 = tt0 + b(jjorb)*a_seq(jorb)
          end do
 
-         c(iorb,i) = tt0
+         c(i) = tt0
      end do 
      !$omp end do
      !$omp end parallel
 
    
-     call timing(bigdft_mpi%iproc, 'sparse_matmul ', 'RS')
-     call f_release_routine()
+     !!call timing(bigdft_mpi%iproc, 'sparse_matmul ', 'RS')
+     !!call f_release_routine()
        
-   end subroutine sparsemm
+   end subroutine sparsemm_new
 
 
    function orb_from_index(smat, ival)

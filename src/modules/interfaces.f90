@@ -3894,7 +3894,7 @@ end subroutine build_ks_orbitals_laura_tmp
         end subroutine init_sparse_matrix_wrapper
 
         subroutine check_accur_overlap_minus_one_sparse(iproc, nproc, smat, norb, norbp, isorb, nseq, nout, &
-                   ivectorindex, onedimindices, amat_seq, bmatp, power, &
+                   ivectorindex, amat_seq, bmatp, power, &
                    max_error, mean_error, dmat_seq, cmatp)
           use module_base
           use sparsematrix_base, only: sparse_matrix
@@ -3902,7 +3902,6 @@ end subroutine build_ks_orbitals_laura_tmp
           integer,intent(in) :: iproc, nproc, norb, norbp, isorb, nseq, nout, power
           type(sparse_matrix) :: smat
           integer,dimension(nseq),intent(in) :: ivectorindex
-          integer,dimension(4,nout) :: onedimindices
           real(kind=8),dimension(nseq),intent(in) :: amat_seq
           real(kind=8),dimension(norb,norbp),intent(in) :: bmatp
           real(kind=8),intent(out) :: max_error, mean_error

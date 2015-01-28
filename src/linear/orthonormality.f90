@@ -1208,7 +1208,7 @@ subroutine overlapPowerGeneral(iproc, nproc, iorder, ncalc, power, blocksize, im
                       call check_accur_overlap_minus_one_sparse(iproc, nproc, inv_ovrlp_smat, ovrlp_smat%nfvctr, &
                            inv_ovrlp_smat%smmm%nfvctrp, inv_ovrlp_smat%smmm%isfvctr, &
                            inv_ovrlp_smat%smmm%nseq, inv_ovrlp_smat%smmm%nout, &
-                           inv_ovrlp_smat%smmm%ivectorindex, inv_ovrlp_smat%smmm%onedimindices, &
+                           inv_ovrlp_smat%smmm%ivectorindex, &
                            invovrlp_compr_seq, ovrlp_largep, power(icalc), &
                            max_error, mean_error)
                   else if (power(icalc)==2) then
@@ -1219,7 +1219,7 @@ subroutine overlapPowerGeneral(iproc, nproc, iorder, ncalc, power, blocksize, im
                       call check_accur_overlap_minus_one_sparse(iproc, nproc, inv_ovrlp_smat, ovrlp_smat%nfvctr, &
                            inv_ovrlp_smat%smmm%nfvctrp, inv_ovrlp_smat%smmm%isfvctr, &
                            inv_ovrlp_smat%smmm%nseq, inv_ovrlp_smat%smmm%nout, &
-                           inv_ovrlp_smat%smmm%ivectorindex, inv_ovrlp_smat%smmm%onedimindices, &
+                           inv_ovrlp_smat%smmm%ivectorindex, &
                            invovrlp_compr_seq, invovrlpp, power(icalc), &
                            max_error, mean_error, cmatp=ovrlp_largep)
                   else if (power(icalc)==-2) then
@@ -1232,7 +1232,7 @@ subroutine overlapPowerGeneral(iproc, nproc, iorder, ncalc, power, blocksize, im
                       call check_accur_overlap_minus_one_sparse(iproc, nproc, inv_ovrlp_smat, ovrlp_smat%nfvctr, &
                            inv_ovrlp_smat%smmm%nfvctrp, inv_ovrlp_smat%smmm%isfvctr, &
                            inv_ovrlp_smat%smmm%nseq, inv_ovrlp_smat%smmm%nout, &
-                           inv_ovrlp_smat%smmm%ivectorindex, inv_ovrlp_smat%smmm%onedimindices, &
+                           inv_ovrlp_smat%smmm%ivectorindex, &
                            invovrlp_compr_seq, invovrlpp, power(icalc), &
                            max_error, mean_error, &
                            ovrlp_compr_seq)
@@ -1810,7 +1810,7 @@ end subroutine overlap_plus_minus_one_half_exact
 
 
 subroutine check_accur_overlap_minus_one_sparse(iproc, nproc, smat, norb, norbp, isorb, nseq, nout, &
-           ivectorindex, onedimindices, amat_seq, bmatp, power, &
+           ivectorindex, amat_seq, bmatp, power, &
            max_error, mean_error, dmat_seq, cmatp)
   use module_base
   use sparsematrix_base, only: sparse_matrix
@@ -1819,7 +1819,6 @@ subroutine check_accur_overlap_minus_one_sparse(iproc, nproc, smat, norb, norbp,
   integer,intent(in) :: iproc, nproc, norb, norbp, isorb, nseq, nout, power
   type(sparse_matrix) :: smat
   integer,dimension(nseq),intent(in) :: ivectorindex
-  integer,dimension(4,nout) :: onedimindices
   real(kind=8),dimension(nseq),intent(in) :: amat_seq
   real(kind=8),dimension(norb,norbp),intent(in) :: bmatp
   real(kind=8),intent(out) :: max_error, mean_error
