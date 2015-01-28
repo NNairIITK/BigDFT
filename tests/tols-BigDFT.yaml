@@ -1089,12 +1089,12 @@ geoptconstrained_BFGS:
  Positions: 1.1e-9
 
 geoptconstrained_SDCG:
- eF: 5.6e-8
- guess for new ef: 5.6e-8
- D eF: 6.1e-8
+ eF: 5.8e-8
+ guess for new ef: 5.8e-8
+ D eF: 7.0e-8
  EH: 1.1e-10
  Epot: 1.1e-10
- charge diff: 4.6e-11
+ charge diff: 4.8e-11
  D Tr: 1.1e-9
  Omega: 1.2e-11
  D: 1.1e-10
@@ -1187,8 +1187,8 @@ verysparse:
   - found warnings
 
 expfoegeopt:
- guess for new ef: 2.0e-8
- eF: 2.0e-8
+ guess for new ef: 2.1e-8
+ eF: 2.1e-8
  D eF: 2.3e-8
  charge diff: 2.3e-8
  ebs: 2.3e-8
@@ -1203,7 +1203,8 @@ expfoegeopt:
  Omega: 2.4e-11
  energy: 2.2e-11
  epred: 1.9e-11
- trace(KS): 1.5e-11
+ trace(KS): 2.7e-11
+ Total charge: 2.1e-11
 
 log_model:
  System pseudo energy (Ha): 3.6e-11
