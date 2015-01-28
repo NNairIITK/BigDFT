@@ -284,11 +284,9 @@ subroutine findsad(mhgpsst,fsw,uinp,runObj,outs,rcov,nbond,iconnect,&
     real(gp) :: curv
     real(gp) :: overlap
     real(gp) :: minoverlap
-    real(gp) :: tnatdmy(3,runObj%atoms%astruct%nat)
     real(gp) :: tmp
     logical  :: optCurvConv
     logical  :: tooFar
-    logical  :: fixfragmented
     logical  :: subspaceSucc
     logical  :: tighten
     character(len=9)   :: fn9
@@ -318,7 +316,6 @@ subroutine findsad(mhgpsst,fsw,uinp,runObj,outs,rcov,nbond,iconnect,&
     fsw%alpha_stretch_rot=uinp%saddle_alpha_stretch0
 !    flag=.true.
     fc=0
-    fixfragmented=.false.
     converged=.false.
     subspaceSucc=.true.
     optCurvConv=.true.
@@ -356,12 +353,8 @@ subroutine findsad(mhgpsst,fsw,uinp,runObj,outs,rcov,nbond,iconnect,&
     fsw%fstretch_trans=0.0_gp
     fsw%rxyz_trans(:,:,0)=wpos
 
-    if (bigdft_get_geocode(runObj) == 'F') then
-    call fixfrag_posvel(mhgpsst,bigdft_get_geocode(runObj),runObj%atoms%astruct%nat,rcov,&
-         fsw%rxyz_trans(1,1,0),tnatdmy,1,fixfragmented)
-        if(fixfragmented .and. uinp%mhgps_verbosity >=0.and. &
-          mhgpsst%iproc==0) call yaml_comment('fragmentation fixed')
-    endif
+    call fixfrag(mhgpsst,uinp,runObj,rcov,fsw%rxyz_trans(1,1,0))
+
 
     runObj%inputs%inputPsiId=0
     call minenergyandforces(mhgpsst,.true.,uinp%imode,runObj,outs,&
@@ -559,13 +552,7 @@ subroutine findsad(mhgpsst,fsw,uinp,runObj,outs,rcov,nbond,iconnect,&
         endif
         !do the move
         fsw%rxyz_trans(:,:,nhist)=fsw%rxyz_trans(:,:,nhist-1)-fsw%dd_trans(:,:)
-        if (bigdft_get_geocode(runObj) == 'F') then
-        call fixfrag_posvel(mhgpsst,bigdft_get_geocode(runObj),&
-             runObj%atoms%astruct%nat,rcov,fsw%rxyz_trans(1,1,nhist),&
-             tnatdmy,1,fixfragmented)
-        if(fixfragmented .and. uinp%mhgps_verbosity >=2.and. mhgpsst%iproc==0)&
-           call yaml_comment('fragmentation fixed')
-        endif
+        call fixfrag(mhgpsst,uinp,runObj,rcov,fsw%rxyz_trans(1,1,nhist))
         !displ=displ+tt
  
         fsw%delta_trans=fsw%rxyz_trans(:,:,nhist)-fsw%rxyzold_trans
@@ -1052,7 +1039,7 @@ subroutine curvforce(mhgpsst,runObj,outs,diff,rxyz1,fxyz1,vec,curv,rotforce,imet
     
 end subroutine
 !=====================================================================
-subroutine fixfrag_posvel(mhgpsst,geocode,nat,rcov,pos,vel,option,occured)
+subroutine fixfrag_posvel(mhgpsst,nat,rcov,pos,vel,option,occured)
 !UNTERSCHIED ZUR MH ROUTINE:
 !pos(:,iat)=pos(:,iat)+vec(:)*((mindist-1.0_gp*bondlength)/mindist)
 !ANSTATT
@@ -1086,7 +1073,6 @@ type(mhgps_state), intent(in) :: mhgpsst
 real(gp),dimension(3,nat), INTENT(INOUT) :: pos
 real(gp),dimension(3,nat), INTENT(INOUT) :: vel
 real(gp),dimension(nat), INTENT(IN) :: rcov
-character(len=*), intent(in) :: geocode
 integer, INTENT(IN):: option
 integer :: nfrag, nfragold
 logical :: occured,niter
@@ -1321,8 +1307,7 @@ if(nfrag.ne.1) then          !"if there is fragmentation..."
       enddo
 
       call elim_moment_fs(nat,vel)
-      if (trim(adjustl(geocode))=='F')&
-          call elim_torque_bastian(nat,pos,vel)
+      call elim_torque_bastian(nat,pos,vel)
 
       ! scale velocities to regain initial ekin0
       ekin=0.0_gp
@@ -1643,116 +1628,141 @@ subroutine clean_minmode(nat,geocode,rxyz,minmode)
     minmode = minmode / dnrm2(3*nat,minmode(1,1),1)
 end subroutine clean_minmode
 !=====================================================================
-!subroutine fixfrag_posvel_slab(iproc,nat,rcov,pos,vel)
-!!This subroutine points the velocities towards the surface if an atom
-!!is too far away from the surface with surface boundary conditions
-!    use module_base
-!    implicit none
-!    !parameters
-!    integer, intent(in) :: iproc,nat
-!    real(gp),dimension(3,nat), INTENT(INOUT) :: pos
-!    real(gp),dimension(3,nat), INTENT(INOUT) :: vel
-!    real(gp),dimension(nat), INTENT(IN) :: rcov
-!    !local variables
-!    integer :: iat,i,ic,ib,ilow,ihigh,icen,mm,mj,jat
-!    real(gp) :: ymin, ylow,yhigh,dx,dy,dz,dl,dist,distmin,d
-!
-!    integer, dimension(-100:1000):: ygrid
-!    logical ,dimension(nat) :: onsurface
-!
-!
-!! empty space = 0
-!    do i=-100,1000 
-!        ygrid(i)=0
-!    enddo
-!
-!    ymin=1.e100_gp
-!    do iat=1,nat
-!        ymin=min(ymin,pos(2,iat)) 
-!    enddo
-!
-!! occupied space= nonzero
-!    do iat=1,nat
-!        ic=nint((pos(2,iat)-ymin)*4.0_gp)  ! ygrid spacing=.25
-!        ib=nint(2.0_gp*rcov(iat)*4.0_gp)
-!        if (ic-ib < -100) stop "#MHGPS error fixfrag_slab -100"
-!        if (ic+ib > 1000) stop "#MHGPS error fixfrag_slab 1000"
-!        do i=ic-ib,ic+ib
-!            ygrid(i)=ygrid(i)+1
-!        enddo
-!    enddo
-!
-!! find center of slab
-!    mm=0
-!    do i=-100,1000
-!        if (ygrid(i) .gt. mm) then
-!            icen=i
-!            mm=ygrid(i)
-!        endif
-!    enddo
-!
-!! find border between empty and occupied space
-!    do i=icen,-100,-1
-!        if (ygrid(i).eq.0) then
-!            ilow=i
-!            exit
-!        endif
-!    enddo
-!
-!    do i=icen,1000
-!        if (ygrid(i).eq.0) then
-!            ihigh=i
-!            exit
-!        endif
-!    enddo
-!
-!
-!    ylow=ymin+ilow*.25d0
-!    yhigh=ymin+ihigh*.25d0
-!    if (iproc.eq.0) write(*,'(a,3(1x,e10.3))') &
-!       "(MHGPS) ylow,ycen,yhigh",ylow,ymin+icen*.25d0,yhigh
-!
-!1000 continue
-!    do iat=1,nat
-!         if (pos(2,iat).lt.ylow-rcov(iat) .or. pos(2,iat).gt.yhigh+rcov(iat)) then 
-!         onsurface(iat)=.false.
-!         else
-!         onsurface(iat)=.true.
-!         endif
-!    enddo
-!    do iat=1,nat
-!         if (onsurface(iat) .eqv. .false.) then 
-!             distmin=1.d100
-!            do jat=1,nat
-!            if (jat.ne.iat .and. onsurface(jat)) then
-!              dist=(pos(1,iat)-pos(1,jat))**2+(pos(2,iat)-pos(2,jat))**2+(pos(3,iat)-pos(3,jat))**2
-!              dist=sqrt(dist)-1.25d0*rcov(iat)-1.25d0*rcov(jat)
-!              if (dist.lt.distmin) then 
-!                distmin=dist
-!                mj=jat
-!              endif
-!            endif
-!            enddo
-!            if (iproc.eq.0) write(*,*) iat,mj,distmin
-!            if (distmin.gt.0.d0) then
-!                dx=pos(1,iat)-pos(1,mj)
-!                dy=pos(2,iat)-pos(2,mj)
-!                dz=pos(3,iat)-pos(3,mj)
-!                dl=sqrt(dx**2+dy**2+dz**2)
-!                d=distmin+0.1d0*(rcov(iat)+rcov(mj))
-!                dx=dx*(d/dl)
-!                dy=dy*(d/dl)
-!                dz=dz*(d/dl)
-!                if (iproc.eq.0) write(*,*) "#MH moving atom",iat,pos(:,iat)
-!                pos(1,iat)=pos(1,iat)-dx
-!                pos(2,iat)=pos(2,iat)-dy
-!                pos(3,iat)=pos(3,iat)-dz
-!                if (iproc.eq.0) write(*,*) "#MH moved atom",iat,pos(:,iat)
-!                onsurface(iat)=.true.
-!                goto 1000
-!            endif
-!         endif
-!    enddo
-!
-!end subroutine fixfrag_posvel_slab
+subroutine fixfrag_pos_slab(mhgpsst,nat,rcov,pos)
+    use module_base
+    use module_mhgps_state
+    implicit none
+    !parameters
+    type(mhgps_state), intent(in) :: mhgpsst
+    integer, intent(in) :: nat
+    real(gp),dimension(3,nat), INTENT(INOUT) :: pos
+    real(gp),dimension(nat), INTENT(IN) :: rcov
+    !local variables
+    integer :: iat,i,ic,ib,ilow,ihigh,icen,mm,mj,jat
+    real(gp) :: ymin, ylow,yhigh,dx,dy,dz,dl,dist,distmin,d
+
+    integer, dimension(-100:1000):: ygrid
+    logical ,dimension(nat) :: onsurface
+
+
+! empty space = 0
+    do i=-100,1000 
+        ygrid(i)=0
+    enddo
+
+    ymin=1.e100_gp
+    do iat=1,nat
+        ymin=min(ymin,pos(2,iat)) 
+    enddo
+
+! occupied space= nonzero
+    do iat=1,nat
+        ic=nint((pos(2,iat)-ymin)*4.0_gp)  ! ygrid spacing=.25
+        ib=nint(2.0_gp*rcov(iat)*4.0_gp)
+        if (ic-ib < -100) stop "#MHGPS error fixfrag_slab -100"
+        if (ic+ib > 1000) stop "#MHGPS error fixfrag_slab 1000"
+        do i=ic-ib,ic+ib
+            ygrid(i)=ygrid(i)+1
+        enddo
+    enddo
+
+! find center of slab
+    mm=0
+    do i=-100,1000
+        if (ygrid(i) .gt. mm) then
+            icen=i
+            mm=ygrid(i)
+        endif
+    enddo
+
+! find border between empty and occupied space
+    do i=icen,-100,-1
+        if (ygrid(i).eq.0) then
+            ilow=i
+            exit
+        endif
+    enddo
+
+    do i=icen,1000
+        if (ygrid(i).eq.0) then
+            ihigh=i
+            exit
+        endif
+    enddo
+
+
+    ylow=ymin+ilow*.25d0
+    yhigh=ymin+ihigh*.25d0
+    if (mhgpsst%iproc.eq.0) write(*,'(a,3(1x,e10.3))') &
+       "(MHGPS) ylow,ycen,yhigh",ylow,ymin+icen*.25d0,yhigh
+
+1000 continue
+    do iat=1,nat
+         if (pos(2,iat).lt.ylow-rcov(iat) .or. pos(2,iat).gt.yhigh+rcov(iat)) then 
+         onsurface(iat)=.false.
+         else
+         onsurface(iat)=.true.
+         endif
+    enddo
+    do iat=1,nat
+         if (onsurface(iat) .eqv. .false.) then 
+             distmin=1.d100
+            do jat=1,nat
+            if (jat.ne.iat .and. onsurface(jat)) then
+              dist=(pos(1,iat)-pos(1,jat))**2+(pos(2,iat)-pos(2,jat))**2+(pos(3,iat)-pos(3,jat))**2
+              dist=sqrt(dist)-1.25d0*rcov(iat)-1.25d0*rcov(jat)
+              if (dist.lt.distmin) then 
+                distmin=dist
+                mj=jat
+              endif
+            endif
+            enddo
+            if (mhgpsst%iproc.eq.0) write(*,*) iat,mj,distmin
+            if (distmin.gt.0.d0) then
+                dx=pos(1,iat)-pos(1,mj)
+                dy=pos(2,iat)-pos(2,mj)
+                dz=pos(3,iat)-pos(3,mj)
+                dl=sqrt(dx**2+dy**2+dz**2)
+                d=distmin+0.1d0*(rcov(iat)+rcov(mj))
+                dx=dx*(d/dl)
+                dy=dy*(d/dl)
+                dz=dz*(d/dl)
+                if (mhgpsst%iproc.eq.0) write(*,*) "#MHGPS moving atom",iat,pos(:,iat)
+                pos(1,iat)=pos(1,iat)-dx
+                pos(2,iat)=pos(2,iat)-dy
+                pos(3,iat)=pos(3,iat)-dz
+                if (mhgpsst%iproc.eq.0) write(*,*) "#MHGPS moved atom",iat,pos(:,iat)
+                onsurface(iat)=.true.
+                goto 1000
+            endif
+         endif
+    enddo
+
+end subroutine fixfrag_pos_slab
+subroutine fixfrag(mhgpsst,uinp,runObj,rcov,pos)
+    use bigdft_run, only: run_objects, bigdft_get_geocode
+    use yaml_output
+    use module_userinput
+    use module_mhgps_state
+    implicit none
+    !parameters
+    type(mhgps_state), intent(in) :: mhgpsst
+    type(run_objects), intent(in) :: runObj
+    type(userinput), intent(in)   :: uinp
+    real(gp),intent(in)           :: rcov(runObj%atoms%astruct%nat)
+    real(gp),intent(inout)        :: pos(3,runObj%atoms%astruct%nat)
+    !local variables
+    real(gp) :: veldmy(3,runObj%atoms%astruct%nat)
+    logical :: fixfragmented
+    fixfragmented=.false.
+    if (bigdft_get_geocode(runObj) == 'F') then
+        call fixfrag_posvel(mhgpsst,runObj%atoms%astruct%nat,rcov(1),&
+             pos(1,1),veldmy,1,fixfragmented)
+    else if(bigdft_get_geocode(runObj) == 'S') then
+        call fixfrag_pos_slab(mhgpsst,runObj%atoms%astruct%nat,&
+             rcov(1),pos(1,1))
+    endif
+    if(fixfragmented .and. uinp%mhgps_verbosity >=0.and. &
+          mhgpsst%iproc==0) call yaml_comment('(MHGPS) fragmentation fixed')
+end subroutine
 end module

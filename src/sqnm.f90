@@ -219,6 +219,7 @@ subroutine sqnm(runObj,outsIO,nproc,iproc,verbosity,ncount_bigdft,fail)
        'beta=',trim(adjustl(cdmy9)),'dim=',ndim,'maxd=',&
        trim(adjustl(cdmy8)),'dsplr=',trim(adjustl(cdmy12_1)),&
        'dsplp=',trim(adjustl(cdmy12_2))
+       call f_utils_flush(16)
    endif
 
    do it=1,nit!start main loop
@@ -270,7 +271,10 @@ subroutine sqnm(runObj,outsIO,nproc,iproc,verbosity,ncount_bigdft,fail)
       !only used when in steepest decent mode
       if(maxd>trustr .and. steep)then
          if(debug.and.iproc==0)write(100,'(a,1x,es24.17,1x,i0)')'step too large',maxd,it
-         if(iproc==0)write(16,'(a,2(1x,es9.2))')'WARNING GEOPT_SQNM: step too large: maxd, trustradius ',maxd,trustr
+         if(iproc==0)then
+            write(16,'(a,2(1x,es9.2))')'WARNING GEOPT_SQNM: step too large: maxd, trustradius ',maxd,trustr
+            call f_utils_flush(16)
+         endif
          scl=0.50_gp*trustr/maxd
          dd=dd*scl
          tt=tt*scl
@@ -325,9 +329,12 @@ subroutine sqnm(runObj,outsIO,nproc,iproc,verbosity,ncount_bigdft,fail)
 
       if (detot.gt.maxrise .and. beta > 1.e-1_gp*betax) then !
          if (debug.and.iproc==0) write(100,'(a,i0,1x,e9.2)') "WARN: it,detot", it,detot
-         if (debug.and.iproc==0) write(16,'(a,i0,4(1x,e9.2))') &
+         if (debug.and.iproc==0) then
+             write(16,'(a,i0,4(1x,e9.2))') &
              "WARNING GEOPT_SQNM: Prevent energy to rise by more than maxrise: it,maxrise,detot,beta,1.e-1*betax ",&
              it,maxrise,detot,beta,1.e-1_gp*betax
+             call f_utils_flush(16)
+         endif
          if (iproc==0.and.verbosity > 0) then
             !avoid space for leading sign (numbers are positive, anyway)
             write(cdmy8,'(es8.1)')abs(maxd)
@@ -341,6 +348,7 @@ subroutine sqnm(runObj,outsIO,nproc,iproc,verbosity,ncount_bigdft,fail)
              'beta=',trim(adjustl(cdmy9)),'dim=',ndim,&
              'maxd=',trim(adjustl(cdmy8)),'dsplr=',trim(adjustl(cdmy12_1)),&
              'dsplp=',trim(adjustl(cdmy12_2))
+            call f_utils_flush(16)
             call yaml_mapping_open('Geometry')
                call yaml_map('Ncount_BigDFT',ncount_bigdft)
                call yaml_map('Geometry step',it)
@@ -406,6 +414,7 @@ subroutine sqnm(runObj,outsIO,nproc,iproc,verbosity,ncount_bigdft,fail)
           'beta=',trim(adjustl(cdmy9)),'dim=',ndim,'maxd=',&
           trim(adjustl(cdmy8)),'dsplr=',trim(adjustl(cdmy12_1)),&
           'dsplp=',trim(adjustl(cdmy12_2))
+         call f_utils_flush(16)
          call yaml_mapping_open('Geometry')
             call yaml_map('Ncount_BigDFT',ncount_bigdft)
             call yaml_map('Geometry step',it)
@@ -427,9 +436,12 @@ subroutine sqnm(runObj,outsIO,nproc,iproc,verbosity,ncount_bigdft,fail)
       call copy_state_properties(outs,outsIO)
 
       if(detot .gt. maxrise)then
-         if (iproc==0) write(16,'(a,i0,4(1x,e9.2))') &
+         if (iproc==0) then
+            write(16,'(a,i0,4(1x,e9.2))') &
              "WARNING GEOPT_SQNM: Allowed energy to rise by more than maxrise: it,maxrise,detot,beta,1.d-1*betax ",&
              it,maxrise,detot,beta,1.e-1_gp*betax
+            call f_utils_flush(16)
+         endif
       endif
 
 
@@ -464,16 +476,22 @@ subroutine sqnm(runObj,outsIO,nproc,iproc,verbosity,ncount_bigdft,fail)
 
    !if code gets here, it failed
    if(debug.and.iproc==0) write(100,*) it,etot,fnrm
-   if(iproc==0) write(16,'(a,3(1x,i0))') &
+   if(iproc==0) then
+        write(16,'(a,3(1x,i0))') &
        "WARNING GEOPT_SQNM: SQNM not converged: it,ncount_bigdft,ncount_cluster_x: ", &
        it,ncount_bigdft,runObj%inputs%ncount_cluster_x
+       call f_utils_flush(16)
+    endif
 !   stop "No convergence "
    fail=.true.
    goto 2000
 
 1000 continue!converged successfully
    
-   if(iproc==0) write(16,'(2(a,1x,i0))') "SQNM converged at iteration ",it,". Needed bigdft calls: ",ncount_bigdft
+   if(iproc==0)then
+         write(16,'(2(a,1x,i0))') "SQNM converged at iteration ",it,". Needed bigdft calls: ",ncount_bigdft
+         call f_utils_flush(16)
+   endif
    if(iproc==0)  call yaml_map('Iterations when SQNM converged',it)
    fail=.false.
    

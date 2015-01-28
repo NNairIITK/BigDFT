@@ -149,8 +149,8 @@ contains
        call nullify_MM_restart_objects(mm_rst)
        !create reference counter
        mm_rst%refcnt=f_ref_new('mm_rst')
-        call init_lj(runObj%inputs%mm_paramset,&
-             runObj%inputs%mm_paramfile,runObj%atoms%astruct%units)
+       call init_lj(runObj%inputs%mm_paramset,&
+            runObj%inputs%mm_paramfile,runObj%atoms%astruct%units)
     case('LENOSKY_SI_CLUSTERS_RUN_MODE')
        if (associated(mm_rst%rf_extra)) then
           if (size(mm_rst%rf_extra) == nat) then
@@ -166,7 +166,8 @@ contains
           mm_rst%rf_extra=f_malloc0_ptr([3,nat],id='rf_extra')
        end if
        call init_lensic(runObj%inputs%mm_paramset,&
-             runObj%inputs%mm_paramfile,runObj%atoms%astruct%geocode)
+            runObj%inputs%mm_paramfile,runObj%atoms%astruct%geocode,&
+            runObj%atoms%astruct%units)
     case('LENOSKY_SI_BULK_RUN_MODE')
        if (associated(mm_rst%rf_extra)) then
           if (size(mm_rst%rf_extra) == nat) then
@@ -181,6 +182,13 @@ contains
           mm_rst%refcnt=f_ref_new('mm_rst')
           mm_rst%rf_extra=f_malloc0_ptr([3,nat],id='rf_extra')
        end if
+    case('MORSE_SLAB_RUN_MODE')
+       call nullify_MM_restart_objects(mm_rst)
+       !create reference counter
+       mm_rst%refcnt=f_ref_new('mm_rst')
+       call init_morse_slab(runObj%inputs%mm_paramset,&
+            runObj%inputs%mm_paramfile,runObj%atoms%astruct%geocode,&
+            runObj%atoms%astruct%units)
     case('MORSE_BULK_RUN_MODE')
        call nullify_MM_restart_objects(mm_rst)
        !create reference counter
@@ -1281,6 +1289,8 @@ contains
        !            call yaml_map('LJ state, energy',outs%energy,fmt='(1pe24.17)')
        !         end if
 !       if (bigdft_mpi%iproc==0) call yaml_release_document()
+    case('MORSE_SLAB_RUN_MODE')
+        call morse_slab_wrapper(nat,bigdft_get_cell(runObj),rxyz_ptr, outs%fxyz, outs%energy)
     case('MORSE_BULK_RUN_MODE')
         call morse_bulk_wrapper(nat,bigdft_get_cell(runObj),rxyz_ptr, outs%fxyz, outs%energy)
     case('LENOSKY_SI_CLUSTERS_RUN_MODE')

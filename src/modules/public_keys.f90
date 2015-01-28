@@ -266,7 +266,8 @@ module public_enums
   type(f_enumerator), parameter :: LENOSKY_SI_BULK_RUN_MODE    =f_enumerator('LENOSKY_SI_BULK_RUN_MODE',-998)
   type(f_enumerator), parameter :: AMBER_RUN_MODE              =f_enumerator('AMBER_RUN_MODE',-997)
   type(f_enumerator), parameter :: MORSE_BULK_RUN_MODE         =f_enumerator('MORSE_BULK_RUN_MODE',-996)
-  type(f_enumerator), parameter :: QM_RUN_MODE                 =f_enumerator('QM_RUN_MODE',-995)
+  type(f_enumerator), parameter :: MORSE_SLAB_RUN_MODE         =f_enumerator('MORSE_SLAB_RUN_MODE',-995)
+  type(f_enumerator), parameter :: QM_RUN_MODE                 =f_enumerator('QM_RUN_MODE',-994)
   
 end module public_enums
 

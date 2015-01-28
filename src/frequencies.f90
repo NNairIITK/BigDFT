@@ -35,7 +35,7 @@ program frequencies
    real(gp), parameter :: Temperature=300.0_gp !< Temperature (300K)
    character(len=*), dimension(3), parameter :: cc = (/ 'x', 'y', 'z' /)
    !File unit
-   integer, parameter :: u_hessian=20, u_dynamical=21, u_freq=15
+   integer, parameter :: u_hessian=20, u_dynamical=21, u_freq=15, u_hess=35
    real(gp) :: alat,dd,rmass
    character(len=60) :: run_id
    !Input variables
@@ -330,6 +330,13 @@ program frequencies
          hessian(i,j) = hessian(j,i)
       end do
    end do
+
+    !write hessian to file
+    open(unit=u_hess,file='hessian.dat')
+    do i=1,3*runObj%atoms%astruct%nat
+        write(u_hess,'(60(1x,es24.17))')(hessian(i,j),j=1,3*runObj%atoms%astruct%nat)
+    enddo
+    close(u_hess)
 
 
    !Allocations
