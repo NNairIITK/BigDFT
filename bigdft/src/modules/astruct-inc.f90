@@ -26,7 +26,7 @@ subroutine read_xyz_positions(ifile,filename,astruct,comment,energy,fxyz,getLine
   interface
      subroutine getline(line,ifile,eof)
        integer, intent(in) :: ifile
-       character(len=150), intent(out) :: line
+       character(len=256), intent(out) :: line
        logical, intent(out) :: eof
      END SUBROUTINE getline
   end interface
@@ -34,8 +34,8 @@ subroutine read_xyz_positions(ifile,filename,astruct,comment,energy,fxyz,getLine
   character(len=*), parameter :: subname='read_atomic_positions'
   character(len=20) :: symbol
   character(len=20) :: tatonam
-  character(len=120) :: extra
-  character(len=150) :: line
+  character(len=226) :: extra
+  character(len=256) :: line
   logical :: lpsdbl, eof
   integer :: iat,ityp,ntyp,i,ierrsfx,nspol,nchrg
   ! To read the file posinp (avoid differences between compilers)
@@ -295,7 +295,7 @@ subroutine read_ascii_positions(ifile,filename,astruct,comment,energy,fxyz,getli
   interface
      subroutine getline(line,ifile,eof)
        integer, intent(in) :: ifile
-       character(len=150), intent(out) :: line
+       character(len=256), intent(out) :: line
        logical, intent(out) :: eof
      END SUBROUTINE getline
   end interface
@@ -303,8 +303,8 @@ subroutine read_ascii_positions(ifile,filename,astruct,comment,energy,fxyz,getli
   character(len=*), parameter :: subname='read_ascii_positions'
   character(len=20) :: symbol
   character(len=20) :: tatonam
-  character(len=120) :: extra
-  character(len=150) :: line
+  character(len=226) :: extra
+  character(len=256) :: line
   logical :: lpsdbl, reduced, eof, forces
   integer :: iat,ntyp,ityp,i,i_stat,nlines,istart,istop,count,nspol,nchrg
 ! To read the file posinp (avoid differences between compilers)
@@ -314,7 +314,7 @@ subroutine read_ascii_positions(ifile,filename,astruct,comment,energy,fxyz,getli
   character(len=20), dimension(100) :: atomnames
   character(max_field_length) :: errmess
   ! Store the file.
-  character(len = 150), dimension(5000) :: lines
+  character(len = 256), dimension(5000) :: lines
 
   energy = UNINITIALIZED(energy)
   ! First pass to store the file in a string buffer.
@@ -351,7 +351,7 @@ subroutine read_ascii_positions(ifile,filename,astruct,comment,energy,fxyz,getli
   astruct%geocode = 'P'
   iat     = 0
   do i = 4, nlines, 1
-     write(line, "(a150)") adjustl(lines(i))
+     write(line, "(a256)") adjustl(lines(i))
      if (line(1:1) /= '#' .and. line(1:1) /= '!' .and. len(trim(line)) /= 0) then
         iat = iat + 1
      else if (line(1:8) == "#keyword" .or. line(1:8) == "!keyword") then
@@ -424,7 +424,7 @@ subroutine read_ascii_positions(ifile,filename,astruct,comment,energy,fxyz,getli
   ntyp=0
   iat = 1
   do i = 4, nlines, 1
-     write(line, "(a150)") adjustl(lines(i))
+     write(line, "(a256)") adjustl(lines(i))
      if (line(1:1) /= '#' .and. line(1:1) /= '!' .and. len(trim(line)) /= 0) then
         write(extra, "(A)") "nothing"
         if (lpsdbl) then
@@ -517,7 +517,7 @@ subroutine read_ascii_positions(ifile,filename,astruct,comment,energy,fxyz,getli
      count = 0
      forces = .false.
      do i = 4, nlines, 1
-        write(line, "(a150)") adjustl(lines(i))
+        write(line, "(a256)") adjustl(lines(i))
         if ((line(1:9) == "#metaData" .or. line(1:9) == "!metaData") .and. index(line, 'forces') > 0) then
            forces = .true.
         end if
@@ -556,7 +556,7 @@ subroutine read_int_positions(iproc,ifile,astruct,comment,energy,fxyz,getLine)
   interface
      subroutine getline(line,ifile,eof)
        integer, intent(in) :: ifile
-       character(len=150), intent(out) :: line
+       character(len=256), intent(out) :: line
        logical, intent(out) :: eof
      END SUBROUTINE getline
   end interface
@@ -564,8 +564,8 @@ subroutine read_int_positions(iproc,ifile,astruct,comment,energy,fxyz,getLine)
   character(len=*), parameter :: subname='read_atomic_positions'
   character(len=20) :: symbol
   character(len=20) :: tatonam
-  character(len=120) :: extra
-  character(len=150) :: line
+  character(len=226) :: extra
+  character(len=256) :: line
   logical :: lpsdbl, eof
   integer :: iat,ityp,ntyp,i,ierrsfx,nchrg, nspol
   ! To read the file posinp (avoid differences between compilers)
@@ -822,13 +822,13 @@ END SUBROUTINE read_int_positions
 subroutine directGetLine(line, ifile, eof)
   !Arguments
   integer, intent(in) :: ifile
-  character(len=150), intent(out) :: line
+  character(len=256), intent(out) :: line
   logical, intent(out) :: eof
   !Local variables
   integer :: i_stat
 
   eof = .false.
-  read(ifile,'(a150)', iostat = i_stat) line
+  read(ifile,'(a256)', iostat = i_stat) line
   if (i_stat /= 0) eof = .true.
 END SUBROUTINE directGetLine
 
@@ -837,7 +837,7 @@ END SUBROUTINE directGetLine
 subroutine archiveGetLine(line, ifile, eof)
   !Arguments
   integer, intent(in) :: ifile
-  character(len=150), intent(out) :: line
+  character(len=256), intent(out) :: line
   logical, intent(out) :: eof
   !Local variables
   integer :: i_stat
@@ -912,7 +912,7 @@ end subroutine rxyz_inside_box
 subroutine find_extra_info(line,extra,nspace)
   implicit none
   character(len=*), intent(in) :: line
-  character(len=120), intent(out) :: extra
+  character(len=226), intent(out) :: extra
   integer,intent(in) :: nspace
   !local variables
   logical :: space
@@ -1212,7 +1212,7 @@ subroutine write_extra_info(extra,natpol,ifrztyp)
   use ao_inguess, only: charge_and_spol
   implicit none 
   integer, intent(in) :: natpol,ifrztyp
-  character(len=120), intent(out) :: extra
+  character(len=226), intent(out) :: extra
   !local variables
   character(len=4) :: frzchain
   integer :: ispol,ichg
@@ -1238,6 +1238,7 @@ END SUBROUTINE write_extra_info
 !> Write xyz atomic file.
 subroutine wtxyz(iunit,energy,rxyz,astruct,comment)
   use module_defs, only: Bohr_Ang,UNINITIALIZED
+  use yaml_output
   implicit none
   integer, intent(in) :: iunit
   character(len=*), intent(in) :: comment
@@ -1249,7 +1250,7 @@ subroutine wtxyz(iunit,energy,rxyz,astruct,comment)
   character(len=20) :: symbol
   character(len=10) :: name
   character(len=11) :: units
-  character(len=120) :: extra
+  !character(len=226) :: extra
   integer :: iat,j
   real(gp) :: xmax,ymax,zmax,factor
 
@@ -1291,6 +1292,7 @@ subroutine wtxyz(iunit,energy,rxyz,astruct,comment)
      write(iunit,*)'free'
   end select
 
+  call yaml_set_stream(unit = iunit, record_length = 4096, tabbing = 0, setdefault = .false.)
   do iat=1,astruct%nat
      name=trim(astruct%atomnames(astruct%iatype(iat)))
      if (name(3:3)=='_') then
@@ -1301,9 +1303,20 @@ subroutine wtxyz(iunit,energy,rxyz,astruct,comment)
         symbol=name(1:min(len(name),5))
      end if
 
-     call write_extra_info(extra,astruct%input_polarization(iat),astruct%ifrztyp(iat))
-
-     write(iunit,'(a5,1x,3(1x,1pe24.17),2x,a)')symbol,(rxyz(j,iat)*factor,j=1,3),trim(extra)
+     !call write_extra_info(extra,astruct%input_polarization(iat),astruct%ifrztyp(iat))
+     call yaml_scalar(trim(symbol), advance = "NO", unit = iunit)
+     call yaml_scalar(trim(yaml_toa(rxyz(1, iat) * factor, fmt = "(1pe24.17)")), &
+          & advance = "NO", unit = iunit)
+     call yaml_scalar(trim(yaml_toa(rxyz(2, iat) * factor, fmt = "(1pe24.17)")), &
+          & advance = "NO", unit = iunit)
+     call yaml_scalar(trim(yaml_toa(rxyz(3, iat) * factor, fmt = "(1pe24.17)")), &
+          & advance = "NO", unit = iunit)
+     if (associated(astruct%attributes(iat)%impl)) then
+        call yaml_mapping_open(flow = .true., advance = "NO", tabbing = 0, unit = iunit)
+        call yaml_dict_dump(astruct%attributes(iat)%impl, flow = .true., unit = iunit)
+        call yaml_mapping_close(unit = iunit)
+     end if
+     call yaml_newline(unit = iunit)
   enddo
 
 END SUBROUTINE wtxyz
@@ -1344,6 +1357,7 @@ end subroutine wtxyz_forces
 !> Write ascii file (atomic position). 
 subroutine wtascii(iunit,energy,rxyz,astruct,comment)
   use module_defs, only: Bohr_Ang,UNINITIALIZED
+  use yaml_output
   implicit none
   integer, intent(in) :: iunit
   character(len=*), intent(in) :: comment
@@ -1352,7 +1366,7 @@ subroutine wtascii(iunit,energy,rxyz,astruct,comment)
   real(gp), dimension(3,astruct%nat), intent(in) :: rxyz
   !local variables
   character(len=2) :: symbol
-  character(len=120) :: extra
+  !character(len=226) :: extra
   character(len=10) :: name
   integer :: iat,j
   real(gp) :: xmax,ymax,zmax,factor(3)
@@ -1417,9 +1431,20 @@ subroutine wtascii(iunit,energy,rxyz,astruct,comment)
         symbol=name(1:2)
      end if
 
-     call write_extra_info(extra,astruct%input_polarization(iat),astruct%ifrztyp(iat))     
-
-     write(iunit,'(3(1x,1pe24.17),2x,a2,2x,a)') (rxyz(j,iat)*factor(j),j=1,3),symbol,trim(extra)
+     !call write_extra_info(extra,astruct%input_polarization(iat),astruct%ifrztyp(iat))
+     call yaml_scalar(trim(symbol), advance = "NO", unit = iunit)
+     call yaml_scalar(trim(yaml_toa(rxyz(1, iat) * factor, fmt = "(1pe24.17)")), &
+          & advance = "NO", unit = iunit)
+     call yaml_scalar(trim(yaml_toa(rxyz(2, iat) * factor, fmt = "(1pe24.17)")), &
+          & advance = "NO", unit = iunit)
+     call yaml_scalar(trim(yaml_toa(rxyz(3, iat) * factor, fmt = "(1pe24.17)")), &
+          & advance = "NO", unit = iunit)
+     if (associated(astruct%attributes(iat)%impl)) then
+        call yaml_mapping_open(flow = .true., advance = "NO", tabbing = 0, unit = iunit)
+        call yaml_dict_dump(astruct%attributes(iat)%impl, flow = .true., unit = iunit)
+        call yaml_mapping_close(unit = iunit)
+     end if
+     call yaml_newline(unit = iunit)
   end do
 
 END SUBROUTINE wtascii
@@ -1459,6 +1484,7 @@ end subroutine wtascii_forces
 subroutine wtint(iunit,energy,rxyz,astruct,comment,na,nb,nc)
   use module_defs, only: Bohr_Ang,UNINITIALIZED,Radian_Degree
   use module_base, only: f_err_throw
+  use yaml_output
   implicit none
   integer, intent(in) :: iunit
   character(len=*), intent(in) :: comment
@@ -1471,7 +1497,7 @@ subroutine wtint(iunit,energy,rxyz,astruct,comment,na,nb,nc)
   character(len=20) :: symbol
   character(len=10) :: name
   character(len=11) :: units, angle
-  character(len=120) :: extra
+  !character(len=226) :: extra
   integer :: iat
   real(gp) :: xmax,ymax,zmax,factor,factor_angle
 
@@ -1535,10 +1561,23 @@ subroutine wtint(iunit,energy,rxyz,astruct,comment,na,nb,nc)
         symbol=name(1:min(len(name),5))
      end if
 
-     call write_extra_info(extra,astruct%input_polarization(iat),astruct%ifrztyp(iat))
-
-     write(iunit,'(a5,1x,3(1x,i6,2x,1pe24.17),2x,a)')symbol,na(iat),rxyz(1,iat)*factor,nb(iat),rxyz(2,iat)*factor_angle,&
-          nc(iat),rxyz(3,iat)*factor_angle,trim(extra)
+!     call write_extra_info(extra,astruct%input_polarization(iat),astruct%ifrztyp(iat))
+     call yaml_scalar(trim(symbol), advance = "NO", unit = iunit)
+     call yaml_scalar(trim(yaml_toa(na(iat))), advance = "NO", unit = iunit)
+     call yaml_scalar(trim(yaml_toa(rxyz(1, iat) * factor, fmt = "(1pe24.17)")), &
+          & advance = "NO", unit = iunit)
+     call yaml_scalar(trim(yaml_toa(nb(iat))), advance = "NO", unit = iunit)
+     call yaml_scalar(trim(yaml_toa(rxyz(2, iat) * factor_angle, fmt = "(1pe24.17)")), &
+          & advance = "NO", unit = iunit)
+     call yaml_scalar(trim(yaml_toa(nc(iat))), advance = "NO", unit = iunit)
+     call yaml_scalar(trim(yaml_toa(rxyz(3, iat) * factor_angle, fmt = "(1pe24.17)")), &
+          & advance = "NO", unit = iunit)
+     if (associated(astruct%attributes(iat)%impl)) then
+        call yaml_mapping_open(flow = .true., advance = "NO", tabbing = 0, unit = iunit)
+        call yaml_dict_dump(astruct%attributes(iat)%impl, flow = .true., unit = iunit)
+        call yaml_mapping_close(unit = iunit)
+     end if
+     call yaml_newline(unit = iunit)
   enddo
 
 END SUBROUTINE wtint

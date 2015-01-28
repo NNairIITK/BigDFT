@@ -1630,6 +1630,7 @@ subroutine astruct_from_subset(asub, astruct, rxyz, mask, passivate)
         asub%iatype(i) = types // trim(astruct%atomnames(astruct%iatype(iat)))
         asub%input_polarization(i) = astruct%input_polarization(iat)
         asub%rxyz(:, i) = astruct%rxyz(:, iat)
+        call dict_copy(asub%attributes(i)%impl, astruct%attributes(iat)%impl)
      end if
   end do
   s => dict_iter(hlist)
