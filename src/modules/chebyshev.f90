@@ -78,22 +78,15 @@ module chebyshev
               !end if
               !write(*,*) 'WARNING CHEBYSHEV: MODIFYING MATRIX MULTIPLICATION'
               if (kernel%smmm%nfvctrp>0) then
-                  isegstart = kernel%istsegline(kernel%smmm%isfvctr+1)
-                  isegend = kernel%istsegline(kernel%smmm%isfvctr+kernel%smmm%nfvctrp) + &
-                            kernel%nsegline(kernel%smmm%isfvctr+kernel%smmm%nfvctrp)-1
     
-                  !!isegstart=kernel%istsegline(kernel%isfvctr+1)
-                  !!if (kernel%isfvctr+kernel%nfvctrp<kernel%nfvctr) then
-                  !!    isegend=kernel%istsegline(kernel%isfvctr_par(iproc+1)+1)-1
-                  !!else
-                  !!    isegend=kernel%nseg
-                  !!end if
-    
-                  do iseg=isegstart,isegend
+                  !do iseg=isegstart,isegend
+                  do iseg=kernel%smmm%isseg,kernel%smmm%ieseg
                       ii=kernel%keyv(iseg)-1
                       ! A segment is always on one line, therefore no double loop
                       do jorb=kernel%keyg(1,1,iseg),kernel%keyg(2,1,iseg)
                           ii=ii+1
+                          if (ii<kernel%smmm%isvctr+1) cycle
+                          if (ii>kernel%smmm%isvctr+kernel%smmm%nvctrp) exit
                           iiorb = kernel%keyg(1,2,iseg)
                           jjorb = jorb
                           matrix(jjorb,iiorb-kernel%smmm%isfvctr)=invovrlp_compr(ii-kernel%isvctrp_tg)
@@ -135,20 +128,13 @@ module chebyshev
           !call f_zero(kernel%nvctrp_tg, SHS(1))
           
           if (kernel%smmm%nfvctrp>0) then
-              isegstart=kernel%istsegline(kernel%smmm%isfvctr+1)
-              isegend=kernel%istsegline(kernel%smmm%isfvctr+kernel%smmm%nfvctrp)+ &
-                      kernel%nsegline(kernel%smmm%isfvctr+kernel%smmm%nfvctrp)-1
-              !!isegstart=kernel%istsegline(kernel%smmm%isfvctr+1)
-              !!if (kernel%smmm%isfvctr+kernel%smmm%nfvctrp<kernel%nfvctr) then
-              !!    isegend=kernel%istsegline(kernel%smmm%isfvctr_par(iproc+1)+1)-1
-              !!else
-              !!    isegend=kernel%nseg
-              !!end if
-              do iseg=isegstart,isegend
+              do iseg=kernel%smmm%isseg,kernel%smmm%ieseg
                   ii=kernel%keyv(iseg)-1
                   ! A segment is always on one line, therefore no double loop
                   do jorb=kernel%keyg(1,1,iseg),kernel%keyg(2,1,iseg)
                       ii=ii+1
+                      if (ii<kernel%smmm%isvctr+1) cycle
+                      if (ii>kernel%smmm%isvctr+kernel%smmm%nvctrp) exit
                       iiorb = kernel%keyg(1,2,iseg)
                       jjorb = jorb
                       mat_compr(ii-kernel%isvctrp_tg)=matrix(jjorb,iiorb-kernel%smmm%isfvctr)
@@ -405,7 +391,7 @@ module chebyshev
     
     
     subroutine chebyshev_fast(iproc, nproc, nsize_polynomial, npl, &
-               norb, norbp, isorb, fermi, chebyshev_polynomials, ncalc, cc, kernelp)
+               norb, norbp, fermi, chebyshev_polynomials, ncalc, cc, kernelp)
       use module_base
       use module_types
       use sparsematrix_base, only: sparse_matrix, sparsematrix_malloc, assignment(=),&
@@ -413,7 +399,7 @@ module chebyshev
       implicit none
     
       ! Calling arguments
-      integer,intent(in) :: iproc, nproc, nsize_polynomial, npl, norb, norbp, isorb, ncalc
+      integer,intent(in) :: iproc, nproc, nsize_polynomial, npl, norb, norbp, ncalc
       type(sparse_matrix),intent(in) :: fermi
       real(kind=8),dimension(nsize_polynomial,npl),intent(in) :: chebyshev_polynomials
       real(kind=8),dimension(npl,ncalc),intent(in) :: cc
@@ -435,7 +421,7 @@ module chebyshev
                   call daxpy(nsize_polynomial, cc(ipl,icalc), chebyshev_polynomials(1,ipl), 1, kernel_compressed(1), 1)
               end do
               call uncompress_polynomial_vector(iproc, nproc, nsize_polynomial, &
-                   norb, norbp, isorb, fermi, kernel_compressed, kernelp(1,1,icalc))
+                   fermi, kernel_compressed, kernelp(1,1,icalc))
           end do
     
     

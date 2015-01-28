@@ -265,12 +265,12 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
           ishifts = (ispin-1)*tmb%linmat%s%nvctrp_tg
           ishiftm = (ispin-1)*tmb%linmat%m%nvctrp_tg
           call f_zero(tmb%linmat%m%nfvctr**2, tmb%linmat%ham_%matrix(1,1,ispin))
-          tempmat = sparsematrix_malloc(tmb%linmat%m, iaction=DENSE_MATMUL, id='tempmat')
-          call uncompress_matrix_distributed2(iproc, tmb%linmat%m, DENSE_MATMUL, &
+          tempmat = sparsematrix_malloc(tmb%linmat%m, iaction=DENSE_PARALLEL, id='tempmat')
+          call uncompress_matrix_distributed2(iproc, tmb%linmat%m, DENSE_PARALLEL, &
                tmb%linmat%ham_%matrix_compr(ishiftm+1:ishiftm+tmb%linmat%m%nvctrp_tg), tempmat)
           if (tmb%linmat%m%smmm%nfvctrp>0) then
               call vcopy(tmb%linmat%m%nfvctr*tmb%linmat%m%smmm%nfvctrp, tempmat(1,1), 1, &
-                   tmb%linmat%ham_%matrix(1,tmb%linmat%m%smmm%isfvctr+1,ispin), 1)
+                   tmb%linmat%ham_%matrix(1,tmb%linmat%m%isfvctr+1,ispin), 1)
           end if
           call f_free(tempmat)
           if (nproc>1) then
@@ -279,12 +279,12 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
           end if
 
           call f_zero(tmb%linmat%s%nfvctr**2, tmb%linmat%ovrlp_%matrix(1,1,ispin))
-          tempmat = sparsematrix_malloc(tmb%linmat%s, iaction=DENSE_MATMUL, id='tempmat')
-          call uncompress_matrix_distributed2(iproc, tmb%linmat%s, DENSE_MATMUL, &
+          tempmat = sparsematrix_malloc(tmb%linmat%s, iaction=DENSE_PARALLEL, id='tempmat')
+          call uncompress_matrix_distributed2(iproc, tmb%linmat%s, DENSE_PARALLEL, &
                tmb%linmat%ovrlp_%matrix_compr(ishifts+1:), tempmat)
           if (tmb%linmat%m%smmm%nfvctrp>0) then
               call vcopy(tmb%linmat%s%nfvctr*tmb%linmat%s%smmm%nfvctrp, tempmat(1,1), 1, &
-                   tmb%linmat%ovrlp_%matrix(1,tmb%linmat%s%smmm%isfvctr+1,ispin), 1)
+                   tmb%linmat%ovrlp_%matrix(1,tmb%linmat%s%isfvctr+1,ispin), 1)
           end if
           call f_free(tempmat)
           if (nproc>1) then

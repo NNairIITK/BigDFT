@@ -29,6 +29,8 @@ module sparsematrix_base
       integer :: isfvctr !< modified starting column of the matrix for an optimized load balancing during matmul
       integer :: nvctrp !< modified number of compressed matrix elements per MPI task
       integer :: isvctr !< modified starting entry of the compressed matrix elements
+      integer :: isseg !< segment containing the first entry (i.e. isvctr+1)
+      integer :: ieseg !< segment containing the last entry (i.e. isvctr+nvctrp)
       integer,dimension(:),pointer :: isvctr_par, nvctr_par !<array that contains the values of nvctrp and isvctr of all MPI tasks
       integer,dimension(:),pointer :: ivectorindex, nsegline, istsegline, indices_extract_sequential
       integer,dimension(:,:),pointer :: onedimindices

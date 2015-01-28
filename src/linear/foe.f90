@@ -119,22 +119,7 @@ subroutine foe(iproc, nproc, tmprtr, &
 
     
   ! Size of one Chebyshev polynomial matrix in compressed form (distributed)
-  nsize_polynomial=0
-  if (tmb%linmat%l%smmm%nfvctrp>0) then
-      isegstart = tmb%linmat%l%istsegline(tmb%linmat%l%smmm%isfvctr+1)
-      isegend = tmb%linmat%l%istsegline(tmb%linmat%l%smmm%isfvctr+tmb%linmat%l%smmm%nfvctrp) + &
-                tmb%linmat%l%nsegline(tmb%linmat%l%smmm%isfvctr+tmb%linmat%l%smmm%nfvctrp)-1
-      !$omp parallel default(private) shared(isegstart, isegend, tmb, nsize_polynomial)
-      !$omp do reduction(+:nsize_polynomial)
-      do iseg=isegstart,isegend
-          ! A segment is always on one line, therefore no double loop
-          do jorb=tmb%linmat%l%keyg(1,1,iseg),tmb%linmat%l%keyg(2,1,iseg)
-              nsize_polynomial=nsize_polynomial+1
-          end do
-      end do
-      !$omp end do
-      !$omp end parallel
-  end if
+  nsize_polynomial = tmb%linmat%l%smmm%nvctrp
   
   
   ! Fake allocation, will be modified later
@@ -383,7 +368,7 @@ subroutine foe(iproc, nproc, tmprtr, &
                       ! The Chebyshev polynomials are already available
                       if (foe_verbosity>=1 .and. iproc==0) call yaml_map('polynomials','from memory')
                       call chebyshev_fast(iproc, nproc, nsize_polynomial, npl, &
-                           tmb%linmat%l%nfvctr, tmb%linmat%l%smmm%nfvctrp, tmb%linmat%l%smmm%isfvctr, &
+                           tmb%linmat%l%nfvctr, tmb%linmat%l%smmm%nfvctrp, &
                           tmb%linmat%l, chebyshev_polynomials, 1, cc, tmb%linmat%kernel_%matrixp)
                   end if 
     
@@ -499,7 +484,7 @@ subroutine foe(iproc, nproc, tmprtr, &
                       ! experimental: calculate a second kernel with a lower
                       ! polynomial degree  and calculate the difference
                       call chebyshev_fast(iproc, nproc, nsize_polynomial, npl_check, &
-                           tmb%linmat%l%nfvctr, tmb%linmat%l%smmm%nfvctrp, tmb%linmat%l%smmm%isfvctr, &
+                           tmb%linmat%l%nfvctr, tmb%linmat%l%smmm%nfvctrp, &
                            tmb%linmat%l, chebyshev_polynomials, 1, cc_check, fermip_check)
                       call f_free(cc_check)
                       diff=0.d0
@@ -821,16 +806,15 @@ subroutine foe(iproc, nproc, tmprtr, &
 
           trace=0.d0
           if (tmb%linmat%l%smmm%nfvctrp>0) then
-              isegstart = tmb%linmat%l%istsegline(tmb%linmat%l%smmm%isfvctr+1)
-              isegend = tmb%linmat%l%istsegline(tmb%linmat%l%smmm%isfvctr+tmb%linmat%l%smmm%nfvctrp) + &
-                        tmb%linmat%l%nsegline(tmb%linmat%l%smmm%isfvctr+tmb%linmat%l%smmm%nfvctrp)-1
-              !$omp parallel default(private) shared(isegstart, isegend, matrixp, tmb, trace) 
+              !$omp parallel default(private) shared(matrixp, tmb, trace) 
               !$omp do reduction(+:trace)
-              do iseg=isegstart,isegend
+              do iseg=tmb%linmat%l%smmm%isseg,tmb%linmat%l%smmm%ieseg
                   ii=tmb%linmat%l%keyv(iseg)-1
                   ! A segment is always on one line, therefore no double loop
                   do jorb=tmb%linmat%l%keyg(1,1,iseg),tmb%linmat%l%keyg(2,1,iseg)
                       ii=ii+1
+                      if (ii<tmb%linmat%l%smmm%isvctr+1) cycle
+                      if (ii>tmb%linmat%l%smmm%isvctr+tmb%linmat%l%smmm%nvctrp) exit
                       iiorb = tmb%linmat%l%keyg(1,2,iseg)
                       jjorb = jorb
                       if (jjorb==iiorb) trace = trace + matrixp(jjorb,iiorb-tmb%linmat%l%smmm%isfvctr)
@@ -1356,30 +1340,35 @@ subroutine compress_polynomial_vector(iproc, nproc, nsize_polynomial, norb, norb
   real(kind=8),dimension(nsize_polynomial),intent(out) :: vector_compressed
 
   ! Local variables
-  integer :: isegstart, isegend, iseg, ii, jorb, iiorb, jjorb
+  integer :: isegstart, isegend, iseg, ii, jorb, iiorb, jjorb, iel
 
   call f_routine(id='compress_polynomial_vector')
 
   if (norbp>0) then
-      isegstart = fermi%istsegline(fermi%smmm%isfvctr+1)
-      isegend = fermi%istsegline(fermi%smmm%isfvctr+fermi%smmm%nfvctrp) + &
-                fermi%nsegline(fermi%smmm%isfvctr+fermi%smmm%nfvctrp)-1
       ii=0
-      !!$omp parallel default(private) shared(isegstart, isegend, orbs, fermi, vector, vector_compressed)
+      !!$omp parallel default(private) shared(fermi, vector, vector_compressed)
       !!$omp do
-      do iseg=isegstart,isegend
-          !ii=fermi%keyv(iseg)-1
+      !do iseg=isegstart,isegend
+      do iseg=fermi%smmm%isseg,fermi%smmm%ieseg
+          iel = fermi%keyv(iseg) - 1
           ! A segment is always on one line, therefore no double loop
           do jorb=fermi%keyg(1,1,iseg),fermi%keyg(2,1,iseg)
+              iel = iel + 1
+              if (iel<fermi%smmm%isvctr+1) cycle
+              if (iel>fermi%smmm%isvctr+fermi%smmm%nvctrp) exit
               ii=ii+1
               iiorb = fermi%keyg(1,2,iseg)
               jjorb = jorb
               vector_compressed(ii)=vector(jjorb,iiorb-isorb)
-              !write(300,*) 'ii, jjorb, iiorb-isorb', ii, jjorb, iiorb-isorb
           end do
       end do
       !!$omp end do
       !!$omp end parallel
+  end if
+
+  if (ii/=fermi%smmm%nvctrp) then
+      write(*,*) 'ii, fermi%nvctrp, size(vector_compressed)', ii, fermi%smmm%nvctrp, size(vector_compressed)
+      stop 'compress_polynomial_vector: ii/=fermi%nvctrp'
   end if
 
   call f_release_routine()
@@ -1389,33 +1378,35 @@ end subroutine compress_polynomial_vector
 
 
 subroutine uncompress_polynomial_vector(iproc, nproc, nsize_polynomial, &
-           norb, norbp, isorb, fermi, vector_compressed, vector)
+           fermi, vector_compressed, vector)
   use module_base
   use module_types
   use sparsematrix_base, only: sparse_matrix
   implicit none
 
   ! Calling arguments
-  integer,intent(in) :: iproc, nproc, nsize_polynomial, norb, norbp, isorb
+  integer,intent(in) :: iproc, nproc, nsize_polynomial
   type(sparse_matrix),intent(in) :: fermi
   real(kind=8),dimension(nsize_polynomial),intent(in) :: vector_compressed
   real(kind=8),dimension(fermi%nfvctr,fermi%smmm%nfvctrp),intent(out) :: vector
 
   ! Local variables
-  integer :: isegstart, isegend, iseg, ii, jorb, iiorb, jjorb
+  integer :: isegstart, isegend, iseg, ii, jorb, iiorb, jjorb, iel
 
 
   if (fermi%smmm%nfvctrp>0) then
       call f_zero(vector)
-      isegstart = fermi%istsegline(fermi%smmm%isfvctr+1)
-      isegend = fermi%istsegline(fermi%smmm%isfvctr+fermi%smmm%nfvctrp) + &
-                fermi%nsegline(fermi%smmm%isfvctr+fermi%smmm%nfvctrp)-1
-      !$omp parallel do default(private) &
-      !$omp shared(isegstart, isegend, fermi, vector, vector_compressed)
-      do iseg=isegstart,isegend
-          ii=fermi%keyv(iseg)-fermi%keyv(isegstart)
+      !!$omp parallel do default(private) &
+      !!$omp shared(isegstart, isegend, fermi, vector, vector_compressed)
+      ii = 0
+      do iseg=fermi%smmm%isseg,fermi%smmm%ieseg
+          iel = fermi%keyv(iseg) - 1
+          !ii=fermi%keyv(iseg)-fermi%keyv(isegstart)
           ! A segment is always on one line, therefore no double loop
           do jorb=fermi%keyg(1,1,iseg),fermi%keyg(2,1,iseg)
+              iel = iel + 1
+              if (iel<fermi%smmm%isvctr+1) cycle
+              if (iel>fermi%smmm%isvctr+fermi%smmm%nvctrp) exit
               ii=ii+1
               iiorb = fermi%keyg(1,2,iseg)
               jjorb = jorb
@@ -1423,8 +1414,11 @@ subroutine uncompress_polynomial_vector(iproc, nproc, nsize_polynomial, &
               !write(*,*) 'ii, iiorb-fermi%isfvctr, jjorb', ii, iiorb-fermi%isfvctr, jjorb
           end do
       end do
-      !$omp end parallel do
+      !!$omp end parallel do
   end if
+
+  if (ii/=nsize_polynomial) stop 'ERROR uncompress_polynomial_vector: ii/=nsize_polynomial'
+
 end subroutine uncompress_polynomial_vector
 
 
@@ -1447,7 +1441,7 @@ function trace_sparse(iproc, nproc, orbs, asmat, bsmat, amat, bmat, ispin)
 
   ! Local variables
   integer :: isegstart, isegend, iseg, ii, jorb, iiorb, jjorb, iilarge
-  integer :: ierr, iashift, ibshift
+  integer :: ierr, iashift, ibshift, iel
   real(kind=8) :: sumn, trace_sparse
 
 
@@ -1458,17 +1452,19 @@ function trace_sparse(iproc, nproc, orbs, asmat, bsmat, amat, bmat, ispin)
 
   sumn=0.d0
   if (asmat%smmm%nfvctrp>0) then
-      isegstart = asmat%istsegline(asmat%smmm%isfvctr+1)
-      isegend = asmat%istsegline(asmat%smmm%isfvctr+asmat%smmm%nfvctrp) + &
-                asmat%nsegline(asmat%smmm%isfvctr+asmat%smmm%nfvctrp)-1
       !$omp parallel default(none) &
-      !$omp private(iseg, ii, jorb, iiorb, jjorb, iilarge) &
-      !$omp shared(isegstart, isegend, bsmat, asmat, amat, bmat, iashift, ibshift, sumn)
+      !$omp private(iseg, ii, jorb, iiorb, jjorb, iilarge, iel) &
+      !$omp shared(bsmat, asmat, amat, bmat, iashift, ibshift, sumn)
       !$omp do reduction(+:sumn)
-      do iseg=isegstart,isegend
+      !do iseg=isegstart,isegend
+      do iseg=asmat%smmm%isseg,asmat%smmm%ieseg
+          iel = asmat%keyv(iseg) - 1
           ii=iashift+asmat%keyv(iseg)-1
           ! A segment is always on one line, therefore no double loop
           do jorb=asmat%keyg(1,1,iseg),asmat%keyg(2,1,iseg)
+              iel = iel + 1
+              if (iel<asmat%smmm%isvctr+1) cycle
+              if (iel>asmat%smmm%isvctr+asmat%smmm%nvctrp) exit
               ii=ii+1
               iiorb = asmat%keyg(1,2,iseg)
               jjorb = jorb
@@ -1646,22 +1642,7 @@ subroutine ice(iproc, nproc, norder_polynomial, ovrlp_smat, inv_ovrlp_smat, ncal
 
     
   ! Size of one Chebyshev polynomial matrix in compressed form (distributed)
-  nsize_polynomial=0
-  if (inv_ovrlp_smat%smmm%nfvctrp>0) then
-      isegstart = inv_ovrlp_smat%istsegline(inv_ovrlp_smat%smmm%isfvctr+1)
-      isegend = inv_ovrlp_smat%istsegline(inv_ovrlp_smat%smmm%isfvctr+inv_ovrlp_smat%smmm%nfvctrp) + &
-                inv_ovrlp_smat%nsegline(inv_ovrlp_smat%smmm%isfvctr+inv_ovrlp_smat%smmm%nfvctrp)-1
-      !$omp parallel default(private) shared(isegstart, isegend, inv_ovrlp_smat, nsize_polynomial)
-      !$omp do reduction(+:nsize_polynomial)
-      do iseg=isegstart,isegend
-          ! A segment is always on one line, therefore no double loop
-          do jorb=inv_ovrlp_smat%keyg(1,1,iseg),inv_ovrlp_smat%keyg(2,1,iseg)
-              nsize_polynomial=nsize_polynomial+1
-          end do
-      end do
-      !$omp end do
-      !$omp end parallel
-  end if
+  nsize_polynomial = inv_ovrlp_smat%smmm%nvctrp
   
   
   ! Fake allocation, will be modified later
@@ -1804,7 +1785,6 @@ subroutine ice(iproc, nproc, norder_polynomial, ovrlp_smat, inv_ovrlp_smat, ncal
                       !if (foe_verbosity>=1 .and. iproc==0) call yaml_map('polynomials','from memory')
                       call chebyshev_fast(iproc, nproc, nsize_polynomial, npl, &
                            inv_ovrlp_smat%nfvctr, inv_ovrlp_smat%smmm%nfvctrp, &
-                           inv_ovrlp_smat%smmm%isfvctr, &
                            inv_ovrlp_smat, chebyshev_polynomials, ncalc, cc, inv_ovrlp_matrixp)
                   end if 
     
@@ -1973,7 +1953,7 @@ subroutine check_eigenvalue_spectrum(nproc, smat_l, smat_s, mat, ispin, isshift,
   logical,dimension(2),intent(out) :: eval_bounds_ok
 
   ! Local variables
-  integer :: isegstart, isegend, iseg, ii, jorb, irow, icol, iismall
+  integer :: isegstart, isegend, iseg, ii, jorb, irow, icol, iismall, iel
   real(kind=8) :: bound_low, bound_up, tt, noise
   real(kind=8),dimension(2) :: allredarr
 
@@ -1984,18 +1964,20 @@ subroutine check_eigenvalue_spectrum(nproc, smat_l, smat_s, mat, ispin, isshift,
       bound_low=0.d0
       bound_up=0.d0
       if (smat_l%smmm%nfvctrp>0) then
-          isegstart = smat_l%istsegline(smat_l%smmm%isfvctr+1)
-          isegend = smat_l%istsegline(smat_l%smmm%isfvctr+smat_l%smmm%nfvctrp) + &
-                    smat_l%nsegline(smat_l%smmm%isfvctr+smat_l%smmm%nfvctrp)-1
           !$omp parallel default(none) &
-          !$omp private(iseg, ii, jorb, irow, icol, iismall, tt) &
+          !$omp private(iseg, ii, jorb, irow, icol, iismall, tt, iel) &
           !$omp shared(isegstart, isegend, smat_l, smat_s, mat, penalty_ev) &
           !$omp shared(bound_low, bound_up, isshift, trace_with_overlap) 
           !$omp do reduction(+:bound_low,bound_up)
-          do iseg=isegstart,isegend
+          !!do iseg=isegstart,isegend
+          do iseg=smat_l%smmm%isseg,smat_l%smmm%ieseg
+              iel = smat_l%keyv(iseg) - 1
               ii=smat_l%keyv(iseg)-1
               ! A segment is always on one line, therefore no double loop
               do jorb=smat_l%keyg(1,1,iseg),smat_l%keyg(2,1,iseg)
+                  iel = iel + 1
+                  if (iel<smat_l%smmm%isvctr+1) cycle
+                  if (iel>smat_l%smmm%isvctr+smat_l%smmm%nvctrp) exit
                   ii=ii+1
                   irow = smat_l%keyg(1,2,iseg)
                   icol = jorb

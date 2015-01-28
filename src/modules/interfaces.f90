@@ -3533,15 +3533,15 @@ module module_interfaces
         end subroutine compress_polynomial_vector
 
         subroutine uncompress_polynomial_vector(iproc, nproc, nsize_polynomial, &
-                   norb, norbp, isorb, fermi, vector_compressed, vector)
+                   fermi, vector_compressed, vector)
           use module_base
           use module_types
           use sparsematrix_base, only: sparse_matrix
           implicit none
-          integer,intent(in) :: iproc, nproc, nsize_polynomial, norb, norbp, isorb
+          integer,intent(in) :: iproc, nproc, nsize_polynomial
           type(sparse_matrix),intent(in) :: fermi
           real(kind=8),dimension(nsize_polynomial),intent(in) :: vector_compressed
-          real(kind=8),dimension(norb,norbp),intent(out) :: vector
+          real(kind=8),dimension(fermi%nfvctr,fermi%smmm%nfvctrp),intent(out) :: vector
         end subroutine uncompress_polynomial_vector
 
         subroutine check_communication_sumrho(iproc, nproc, orbs, lzd, collcom_sr, denspot, denskern, denskern_, check_sumrho)
