@@ -24,6 +24,8 @@ module sparsematrix_base
 
   !> Contains the parameters needed for the sparse matrix matrix multiplication
   type,public :: sparse_matrix_matrix_multiplication
+      integer,dimension(:),pointer :: keyv
+      integer,dimension(:,:,:),pointer :: keyg
       integer :: nout, nseq, nseg
       integer :: nfvctrp !< modified number of matrix columns per MPI task for an optimized load balancing during matmul
       integer :: isfvctr !< modified starting column of the matrix for an optimized load balancing during matmul
@@ -183,6 +185,8 @@ module sparsematrix_base
       nullify(smmm%nvctr_par)
       nullify(smmm%isvctr_par)
       nullify(smmm%luccomm_smmm)
+      nullify(smmm%keyv)
+      nullify(smmm%keyg)
     end subroutine nullify_sparse_matrix_matrix_multiplication
 
 
@@ -228,6 +232,8 @@ module sparsematrix_base
       smmm%indices_extract_sequential=f_malloc_ptr(smmm%nseq,id='smmm%indices_extract_sequential')
       smmm%nvctr_par=f_malloc_ptr(0.to.nproc-1,id='smmm%nvctr_par')
       smmm%isvctr_par=f_malloc_ptr(0.to.nproc-1,id='smmm%isvctr_par')
+      smmm%keyv=f_malloc_ptr(nseg,id='smmm%keyv')
+      smmm%keyg=f_malloc_ptr((/2,2,nseg/),id='smmm%keyg')
     end subroutine allocate_sparse_matrix_matrix_multiplication
 
 
@@ -334,6 +340,8 @@ module sparsematrix_base
       call f_free_ptr(smmm%nvctr_par)
       call f_free_ptr(smmm%isvctr_par)
       call f_free_ptr(smmm%luccomm_smmm)
+      call f_free_ptr(smmm%keyv)
+      call f_free_ptr(smmm%keyg)
     end subroutine deallocate_sparse_matrix_matrix_multiplication
 
     subroutine allocate_smat_d1_ptr(smat_ptr,smat_info_ptr)

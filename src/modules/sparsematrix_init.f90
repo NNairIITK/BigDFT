@@ -655,7 +655,9 @@ contains
 
       ! Realculate the values of sparsemat%smmm%nout and sparsemat%smmm%nseq with
       ! the optimized partitioning of the matrix columns.
-      call get_nout(norb, norb_par_ideal(iproc), isorb_par_ideal(iproc), nseg, nsegline, istsegline, keyg, sparsemat%smmm%nout)
+      !call get_nout(norb, norb_par_ideal(iproc), isorb_par_ideal(iproc), nseg, nsegline, istsegline, keyg, sparsemat%smmm%nout)
+      call get_nout(norb, norb_par_ideal(iproc), isorb_par_ideal(iproc), sparsemat%nseg, &
+           sparsemat%nsegline, sparsemat%istsegline, sparsemat%keyg, sparsemat%smmm%nout)
       !!call determine_sequential_length(norb, norb_par_ideal(iproc), isorb_par_ideal(iproc), nseg, &
       !!     nsegline, istsegline, keyg, sparsemat, &
       !!     sparsemat%smmm%nseq, nseq_per_line)
@@ -670,7 +672,8 @@ contains
           ispt = ispt + nout_par(jproc)
       end do
       nseq_per_pt = f_malloc0(sum(nout_par),id='nseq_per_pt')
-      call determine_sequential_length_new(sparsemat%smmm%nout, ispt, nseg, keyv, keyg, sparsemat, sum(nout_par), sparsemat%smmm%nseq, nseq_per_pt)
+      call determine_sequential_length_new(sparsemat%smmm%nout, ispt, sparsemat%nseg, sparsemat%keyv, sparsemat%keyg, &
+           sparsemat, sum(nout_par), sparsemat%smmm%nseq, nseq_per_pt)
       call f_free(nout_par)
       !!write(*,*) 'NEW: iproc, nseq', iproc, sparsemat%smmm%nseq
 
@@ -700,6 +703,8 @@ contains
       call f_free(rseq_per_line)
 
       call allocate_sparse_matrix_matrix_multiplication(nproc, norb, nseg, nsegline, istsegline, sparsemat%smmm)
+      call vcopy(nseg, keyv(1), 1, sparsemat%smmm%keyv(1), 1)
+      call vcopy(4*nseg, keyg(1,1,1), 1, sparsemat%smmm%keyg(1,1,1), 1)
 
 
       ! Calculate some auxiliary variables
@@ -712,6 +717,9 @@ contains
       call init_matrix_parallelization(iproc, nproc, sparsemat%nfvctr, sparsemat%nseg, sparsemat%nvctr, &
            temparr(0,1), temparr(0,2), sparsemat%istsegline, sparsemat%keyv, &
            sparsemat%smmm%isvctr, sparsemat%smmm%nvctrp, sparsemat%smmm%isvctr_par, sparsemat%smmm%nvctr_par)
+      !!call init_matrix_parallelization(iproc, nproc, sparsemat%nfvctr, nseg, keyv(nseg)+(keyg(2,1,nseg)-keyg(1,1,nseg)), &
+      !!     temparr(0,1), temparr(0,2), istsegline, keyv, &
+      !!     sparsemat%smmm%isvctr, sparsemat%smmm%nvctrp, sparsemat%smmm%isvctr_par, sparsemat%smmm%nvctr_par)
       call f_free(temparr)
 
       ! Get the segments containing the first and last element of a sparse
@@ -741,18 +749,18 @@ contains
       sparsemat%smmm%nseg=nseg
       call vcopy(norb, nsegline(1), 1, sparsemat%smmm%nsegline(1), 1)
       call vcopy(norb, istsegline(1), 1, sparsemat%smmm%istsegline(1), 1)
-      call init_onedimindices_new(norb, norb_par_ideal(iproc), isorb_par_ideal(iproc), nseg, &
-           nsegline, istsegline, keyg, &
-           sparsemat, sparsemat%smmm%nout, sparsemat%smmm%onedimindices)
+      !call init_onedimindices_new(norb, norb_par_ideal(iproc), isorb_par_ideal(iproc), nseg, &
+      !     nsegline, istsegline, keyg, &
+      !     sparsemat, sparsemat%smmm%nout, sparsemat%smmm%onedimindices)
       call init_onedimindices_newnew(sparsemat%smmm%nout, ispt, nseg, &
            keyv, keyg, sparsemat, sparsemat%smmm%onedimindices_new)
-      call get_arrays_for_sequential_acces(norb, norb_par_ideal(iproc), isorb_par_ideal(iproc), nseg, &
-           nsegline, istsegline, keyg, sparsemat, &
-           sparsemat%smmm%nseq, sparsemat%smmm%ivectorindex)
+      !call get_arrays_for_sequential_acces(norb, norb_par_ideal(iproc), isorb_par_ideal(iproc), nseg, &
+      !     nsegline, istsegline, keyg, sparsemat, &
+      !     sparsemat%smmm%nseq, sparsemat%smmm%ivectorindex)
       call get_arrays_for_sequential_acces_new(sparsemat%smmm%nout, ispt, nseg, sparsemat%smmm%nseq, &
            keyv, keyg, sparsemat, sparsemat%smmm%ivectorindex_new)
-      call init_sequential_acces_matrix(norb, norb_par_ideal(iproc), isorb_par_ideal(iproc), nseg, &
-           nsegline, istsegline, keyg, sparsemat, sparsemat%smmm%nseq, &
+      call init_sequential_acces_matrix(norb, norb_par_ideal(iproc), isorb_par_ideal(iproc), sparsemat%nseg, &
+           sparsemat%nsegline, sparsemat%istsegline, sparsemat%keyg, sparsemat, sparsemat%smmm%nseq, &
            sparsemat%smmm%indices_extract_sequential)
 
       ! This array gives the starting and ending indices of the submatrix which
@@ -1503,12 +1511,23 @@ contains
       ! Local variables
       integer :: itot, ipt, iipt, iline, icolumn, ilen, jseg
     
+      write(*,*) 'iproc, nout, ispt', bigdft_mpi%iproc, nout, ispt
     
       itot = 1
       do ipt=1,nout
           iipt = ispt + ipt
-          call get_line_and_column(iipt, nseg, keyv, keyg, iline, icolumn)
-          onedimindices(1,ipt) = matrixindex_in_compressed(smat, icolumn, iline)
+          !call get_line_and_column(iipt, nseg, keyv, keyg, iline, icolumn)
+          call get_line_and_column(iipt, smat%nseg, smat%keyv, smat%keyg, iline, icolumn)
+          !!!onedimindices(1,ipt) = matrixindex_in_compressed(smat, icolumn, iline)
+          !!onedimindices(1,ipt) = matrixindex_in_compressed_fn(icolumn, iline, smat%nfvctr, nseg, keyv, keyg)
+          !!if (onedimindices(1,ipt)>0) then
+          !!    onedimindices(1,ipt) = onedimindices(1,ipt) - smat%smmm%isvctr
+          !!else
+          !!    stop 'onedimindices(1,ipt)==0'
+          !!end if
+          !!if (onedimindices(1,ipt)/=ipt) stop 'onedimindices(1,ipt)/=ipt'
+          onedimindices(1,ipt) = ipt
+
           ilen = 0
           ! Take the column due to the symmetry of the sparsity pattern
           do jseg=smat%istsegline(icolumn),smat%istsegline(icolumn)+smat%nsegline(icolumn)-1
@@ -1519,6 +1538,47 @@ contains
           onedimindices(3,ipt) = itot
           itot = itot + ilen
       end do
+
+
+      contains
+
+        ! Function that gives the index of the matrix element (jjorb,iiorb) in the compressed format.
+        ! Cannot use the standard function since that one requires a type
+        ! sparse_matrix as argument.
+        integer function matrixindex_in_compressed_fn(irow, jcol, norb, nseg, keyv, keyg) result(micf)
+          implicit none
+
+          ! Calling arguments
+          integer,intent(in) :: irow, jcol, norb, nseg
+          integer,dimension(nseg),intent(in) :: keyv
+          integer,dimension(2,2,nseg),intent(in) :: keyg
+
+          ! Local variables
+          integer(kind=8) :: ii, istart, iend
+          integer :: iseg
+
+          ii = int((jcol-1),kind=8)*int(norb,kind=8)+int(irow,kind=8)
+
+          do iseg=1,nseg
+              istart = int((keyg(1,2,iseg)-1),kind=8)*int(norb,kind=8) + &
+                       int(keyg(1,1,iseg),kind=8)
+              iend = int((keyg(2,2,iseg)-1),kind=8)*int(norb,kind=8) + &
+                     int(keyg(2,1,iseg),kind=8)
+              if (ii>=istart .and. ii<=iend) then
+                  ! The matrix element is in this segment
+                   micf = keyv(iseg) + int(ii-istart,kind=4)
+                  return
+              end if
+              if (ii<istart) then
+                  micf=0
+                  return
+              end if
+          end do
+
+          ! Not found
+          micf=0
+
+        end function matrixindex_in_compressed_fn
     
     end subroutine init_onedimindices_newnew
 
@@ -1587,7 +1647,8 @@ contains
       ii=1
       do ipt=1,nout
           iipt = ispt + ipt
-          call get_line_and_column(iipt, nseg, keyv, keyg, iline, icolumn)
+          !call get_line_and_column(iipt, nseg, keyv, keyg, iline, icolumn)
+          call get_line_and_column(iipt, smat%nseg, smat%keyv, smat%keyg, iline, icolumn)
           !call get_line_and_column(iipt, smat%nseg, smat%keyv, smat%keyg, iline, icolumn)
           !itest = matrixindex_in_compressed(smat, icolumn, iline)
           !if (itest/=iipt) then
@@ -1595,21 +1656,27 @@ contains
           !    stop 'itest/=iipt'
           !end if
           ! Take the column due to the symmetry of the sparsity pattern
+          write(2000+bigdft_mpi%iproc,*) 'iipt, iline, icolumn', iipt, iline, icolumn
           do jseg=smat%istsegline(icolumn),smat%istsegline(icolumn)+smat%nsegline(icolumn)-1
               ! A segment is always on one line, therefore no double loop
               do jorb = smat%keyg(1,1,jseg),smat%keyg(2,1,jseg)
                   !ivectorindex(ii)=matrixindex_in_compressed_fn(jorb, iline, smat%nfvctr, nseg, keyv, keyg)
-                  !ivectorindex(ii)=matrixindex_in_compressed(smat, jorb, icolumn)-smat%smmm%isvctr
-                  ivectorindex(ii)=matrixindex_in_compressed(smat, smat%keyg(1,2,jseg), jorb)-smat%smmm%isvctr
-                  !ivectorindex(ii)=matrixindex_in_compressed(smat, jorb, iline)-smat%smmm%isvctr
-                  if (ivectorindex(ii)==0) then
-                      !write(*,'(a,5i8)') 'iproc, iipt, jorb, icolumn, val', bigdft_mpi%iproc, iipt, jorb, icolumn, matrixindex_in_compressed(smat, jorb, icolumn)
-                      write(*,'(a,5i8)') 'iproc, iipt, jorb, smat%keyg(1,2,jseg), val', &
-                              bigdft_mpi%iproc, iipt, jorb, smat%keyg(1,2,jseg), matrixindex_in_compressed(smat, smat%keyg(1,2,jseg), jorb)
-                      !write(*,'(a,5i8)') 'iproc, iipt, jorb, iline, val', &
-                      !        bigdft_mpi%iproc, iipt, jorb, iline, matrixindex_in_compressed(smat, jorb, iline)
-                      stop 'ivectorindex(ii)==0'
+                  ivectorindex(ii)=matrixindex_in_compressed(smat, jorb, iline)!-smat%smmm%isvctr
+                  if (ivectorindex(ii)>0) ivectorindex(ii) = ivectorindex(ii) - smat%smmm%isvctr
+                  if (ivectorindex(ii)<0) then
+                      write(*,'(a,5i8)') 'iproc, iipt, jorb, icolumn, val', bigdft_mpi%iproc, iipt, jorb, iline, matrixindex_in_compressed(smat, jorb, iline)
+                      stop 'ivectorindex(ii)<0'
                   end if
+                  !ivectorindex(ii)=matrixindex_in_compressed(smat, smat%keyg(1,2,jseg), jorb)-smat%smmm%isvctr
+                  !ivectorindex(ii)=matrixindex_in_compressed(smat, jorb, iline)-smat%smmm%isvctr
+                  !if (ivectorindex(ii)==0) then
+                  !    !write(*,'(a,5i8)') 'iproc, iipt, jorb, icolumn, val', bigdft_mpi%iproc, iipt, jorb, icolumn, matrixindex_in_compressed(smat, jorb, icolumn)
+                  !    write(*,'(a,5i8)') 'iproc, iipt, jorb, smat%keyg(1,2,jseg), val', &
+                  !            bigdft_mpi%iproc, iipt, jorb, smat%keyg(1,2,jseg), matrixindex_in_compressed(smat, smat%keyg(1,2,jseg), jorb)
+                  !    !write(*,'(a,5i8)') 'iproc, iipt, jorb, iline, val', &
+                  !    !        bigdft_mpi%iproc, iipt, jorb, iline, matrixindex_in_compressed(smat, jorb, iline)
+                  !    stop 'ivectorindex(ii)==0'
+                  !end if
                   ii = ii+1
               end do
           end do

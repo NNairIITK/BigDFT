@@ -218,7 +218,7 @@ communications_init.o: base.o types.o communications_base.o
 communications.o: base.o types.o communications_base.o
 sparsematrix_base.o: base.o
 sparsematrix_init.o: base.o types.o interfaces.o sparsematrix_base.o
-sparsematrix.o: base.o types.o sparsematrix_base.o
+sparsematrix.o: base.o types.o sparsematrix_base.o sparsematrix_init.o
 foe_base.o: base.o defs.o
 fermi_level.o: base.o
 copy_utils.o: base.o

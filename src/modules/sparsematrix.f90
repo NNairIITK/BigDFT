@@ -878,7 +878,7 @@ module sparsematrix
                          matrix_local(ii) = matrixp(jorb,iorb-isfvctr)
                      end do
                  end do
-                 if (ii/=smat%smmm%nvctrp) stop 'ii/=smat%smmm%nvctrp'
+                 if (ii/=smat%smmm%nvctrp) stop 'compress_matrix_distributed: ii/=smat%smmm%nvctrp'
              end if
 
              call timing(iproc,'compressd_mcpy','OF')
@@ -1221,13 +1221,13 @@ module sparsematrix
              write(*,'(a,5i8)') 'iproc, i, ii, iline, icolumn', bigdft_mpi%iproc, i, ii, iline, icolumn
              !stop
          end if
-         !b_compr(i) = b(icolumn,iline-smat%smmm%isfvctr)
+         b_compr(i) = b(icolumn,iline-smat%smmm%isfvctr)
      end do
      call sparsemm_new(smat, a_seq, b_compr, c_compr)
      do i=1,smat%smmm%nvctrp
          ii = smat%smmm%isvctr + i
          call get_line_and_column(ii, smat%nseg, smat%keyv, smat%keyg, iline, icolumn)
-         c(icolumn,iline) = c_compr(i)
+         c(icolumn,iline-smat%smmm%isfvctr) = c_compr(i)
      end do
      call f_free(b_compr)
      call f_free(c_compr)
@@ -1275,12 +1275,12 @@ module sparsematrix
 
          do jorb=ii,iend
             jjorb=smat%smmm%ivectorindex_new(jorb)
-            tt0 = tt0 + b(jjorb)*a_seq(jorb)
+            if (jjorb/=0) tt0 = tt0 + b(jjorb)*a_seq(jorb)
          end do
 
          c(i) = tt0
      end do 
-     !$omp end do
+     !!$omp end do
      !$omp end parallel
 
    
