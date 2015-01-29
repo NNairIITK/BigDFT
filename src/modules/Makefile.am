@@ -232,7 +232,7 @@ module_lenosky_si.o: base.o defs.o
 module_fingerprints.o: base.o
 transposed_operations.o: base.o types.o sparsematrix_base.o sparsematrix.o
 module_forces.o: base.o types.o 
-chebyshev.o: base.o types.o sparsematrix_base.o sparsematrix.o
+chebyshev.o: base.o types.o sparsematrix_base.o sparsematrix_init.o sparsematrix.o
 
 # Copy modules in a common include directory.
 all: all-am insmod

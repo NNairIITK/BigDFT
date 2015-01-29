@@ -1407,13 +1407,13 @@ contains
           ilen_seg = keyg(2,1,iseg) - keyg(1,1,iseg) + 1
           ist_seg = keyv(iseg)
           iend_seg = ist_seg + ilen_seg - 1
-          write(1000+bigdft_mpi%iproc,*) 'iel, iseg, iend_seg', iel, iseg, iend_seg
+          !write(1000+bigdft_mpi%iproc,*) 'iel, iseg, iend_seg', iel, iseg, iend_seg
           if (iend_seg<iel) cycle
           ! If this point is reached, we are in the correct segment
           iline = keyg(1,2,iseg)
           icolumn = keyg(1,1,iseg)
           do i=ist_seg,iend_seg
-              write(1000+bigdft_mpi%iproc,*) 'iline, icolumn', iline, icolumn
+              !write(1000+bigdft_mpi%iproc,*) 'iline, icolumn', iline, icolumn
               if (i==iel) exit search_loop
               icolumn = icolumn + 1
           end do
