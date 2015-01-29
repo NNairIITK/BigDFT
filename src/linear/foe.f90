@@ -1378,6 +1378,71 @@ end subroutine compress_polynomial_vector
 
 
 
+
+subroutine compress_polynomial_vector_new(iproc, nproc, nsize_polynomial, norb, norbp, isorb, &
+           fermi, vector_compr, vector_compressed)
+  use module_base
+  use module_types
+  use sparsematrix_base, only: sparse_matrix
+  use sparsematrix_init, only: get_line_and_column
+  implicit none
+
+  ! Calling arguments
+  integer,intent(in) :: iproc, nproc, nsize_polynomial, norb, norbp, isorb
+  type(sparse_matrix),intent(in) :: fermi
+  real(kind=8),dimension(fermi%smmm%nvctrp),intent(in) :: vector_compr
+  real(kind=8),dimension(nsize_polynomial),intent(out) :: vector_compressed
+
+  ! Local variables
+  integer :: isegstart, isegend, iseg, ii, jorb, iiorb, jjorb, iel, i, iline, icolumn
+  real(kind=8),dimension(:,:),allocatable :: vector
+
+  call f_routine(id='compress_polynomial_vector')
+
+  vector = f_malloc((/norb,norbp/),id='vector')
+
+     do i=1,fermi%smmm%nvctrp
+         ii = fermi%smmm%isvctr + i
+         call get_line_and_column(ii, fermi%smmm%nseg, fermi%smmm%keyv, fermi%smmm%keyg, iline, icolumn)
+         vector(icolumn,iline-fermi%smmm%isfvctr) = vector_compr(i)
+     end do
+
+
+  if (norbp>0) then
+      ii=0
+      !!$omp parallel default(private) shared(fermi, vector, vector_compressed)
+      !!$omp do
+      !do iseg=isegstart,isegend
+      do iseg=fermi%smmm%isseg,fermi%smmm%ieseg
+          iel = fermi%keyv(iseg) - 1
+          ! A segment is always on one line, therefore no double loop
+          do jorb=fermi%keyg(1,1,iseg),fermi%keyg(2,1,iseg)
+              iel = iel + 1
+              if (iel<fermi%smmm%isvctr_mm+1) cycle
+              if (iel>fermi%smmm%isvctr_mm+fermi%smmm%nvctrp_mm) exit
+              ii=ii+1
+              iiorb = fermi%keyg(1,2,iseg)
+              jjorb = jorb
+              vector_compressed(ii)=vector(jjorb,iiorb-isorb)
+          end do
+      end do
+      !!$omp end do
+      !!$omp end parallel
+  end if
+
+  if (ii/=fermi%smmm%nvctrp_mm) then
+      write(*,*) 'ii, fermi%nvctrp, size(vector_compressed)', ii, fermi%smmm%nvctrp_mm, size(vector_compressed)
+      stop 'compress_polynomial_vector: ii/=fermi%nvctrp'
+  end if
+
+  call f_free(vector)
+
+  call f_release_routine()
+
+end subroutine compress_polynomial_vector_new
+
+
+
 subroutine uncompress_polynomial_vector(iproc, nproc, nsize_polynomial, &
            fermi, vector_compressed, vector)
   use module_base

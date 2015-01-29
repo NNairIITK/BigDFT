@@ -27,7 +27,7 @@ module sparsematrix
   public :: compress_matrix_distributed
   public :: uncompress_matrix_distributed, uncompress_matrix_distributed2
   public :: sequential_acces_matrix_fast, sequential_acces_matrix_fast2
-  public :: sparsemm
+  public :: sparsemm, sparsemm_new
   public :: orb_from_index
   public :: gather_matrix_from_taskgroups, gather_matrix_from_taskgroups_inplace
   public :: extract_taskgroup_inplace, extract_taskgroup
@@ -1282,7 +1282,8 @@ module sparsematrix
          do jorb=ii,iend
             jjorb=smat%smmm%ivectorindex_new(jorb)
             if (jjorb/=0) tt0 = tt0 + b(jjorb)*a_seq(jorb)
-            if(i==323) write(600,'(a,3i8,2es16.8)') 'i, j, jorb, vals', icolumn, iline-smat%smmm%isfvctr, jorb, b(jjorb), a_seq(jorb)
+            !!if(i==323) write(600,'(a,3i8,2es16.8)') 'i, j, jorb, vals', &
+            !!    icolumn, iline-smat%smmm%isfvctr, jorb, b(jjorb), a_seq(jorb)
          end do
 
          c(i) = tt0

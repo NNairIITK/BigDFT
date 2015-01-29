@@ -1648,8 +1648,10 @@ contains
       ! Local variables
       integer :: ii, ipt, iipt, iline, icolumn, jseg, jorb, itest
     
-      write(*,'(a,4i8)') 'iproc, smat%smmm%isvctr_mm, smat%smmm%nvctrp_mm, smat%nfvctrp', bigdft_mpi%iproc, smat%smmm%isvctr_mm, smat%smmm%nvctrp_mm, smat%nfvctrp
-      write(*,'(a,4i8)') 'iproc, smat%smmm%isvctr, smat%smmm%nvctrp, smat%nfvctrp', bigdft_mpi%iproc, smat%smmm%isvctr, smat%smmm%nvctrp, smat%nfvctrp
+      write(*,'(a,4i8)') 'iproc, smat%smmm%isvctr_mm, smat%smmm%nvctrp_mm, smat%nfvctrp', &
+          bigdft_mpi%iproc, smat%smmm%isvctr_mm, smat%smmm%nvctrp_mm, smat%nfvctrp
+      write(*,'(a,4i8)') 'iproc, smat%smmm%isvctr, smat%smmm%nvctrp, smat%nfvctrp', &
+          bigdft_mpi%iproc, smat%smmm%isvctr, smat%smmm%nvctrp, smat%nfvctrp
     
       ii=1
       do ipt=1,nout
@@ -1672,7 +1674,9 @@ contains
                   if (ivectorindex(ii)>0) ivectorindex(ii) = ivectorindex(ii) - smat%smmm%isvctr
                   if (ivectorindex(ii)<0) then
                       !write(*,'(a,5i8)') 'iproc, iipt, jorb, icolumn, val', bigdft_mpi%iproc, iipt, jorb, iline, matrixindex_in_compressed(smat, jorb, iline)
-                      write(*,'(a,5i8)') 'iproc, iipt, jorb, icolumn, val', bigdft_mpi%iproc, iipt, jorb, iline, matrixindex_in_compressed_fn(jorb, iline, smat%nfvctr, nseg, keyv, keyg)
+                      write(*,'(a,5i8)') 'iproc, iipt, jorb, icolumn, val', &
+                          bigdft_mpi%iproc, iipt, jorb, iline, &
+                          matrixindex_in_compressed_fn(jorb, iline, smat%nfvctr, nseg, keyv, keyg)
                       stop 'ivectorindex(ii)<0'
                   end if
                   !ivectorindex(ii)=matrixindex_in_compressed(smat, smat%keyg(1,2,jseg), jorb)-smat%smmm%isvctr_mm
