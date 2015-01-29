@@ -29,11 +29,11 @@ module sparsematrix_base
       integer :: nout, nseq, nseg
       integer :: nfvctrp !< modified number of matrix columns per MPI task for an optimized load balancing during matmul
       integer :: isfvctr !< modified starting column of the matrix for an optimized load balancing during matmul
-      integer :: nvctrp !< modified number of compressed matrix elements per MPI task
-      integer :: isvctr !< modified starting entry of the compressed matrix elements
+      integer :: nvctrp_mm !< modified number of compressed matrix elements per MPI task
+      integer :: isvctr_mm !< modified starting entry of the compressed matrix elements
       integer :: isseg !< segment containing the first entry (i.e. isvctr+1)
       integer :: ieseg !< segment containing the last entry (i.e. isvctr+nvctrp)
-      integer,dimension(:),pointer :: isvctr_par, nvctr_par !<array that contains the values of nvctrp and isvctr of all MPI tasks
+      integer,dimension(:),pointer :: isvctr_mm_par, nvctr_mm_par !<array that contains the values of nvctrp_mm and isvctr_mm of all MPI tasks
       integer,dimension(:),pointer :: ivectorindex, ivectorindex_new, nsegline, istsegline, indices_extract_sequential
       integer,dimension(:,:),pointer :: onedimindices, onedimindices_new
       !!integer,dimension(:,:,:),pointer :: keyg
@@ -44,6 +44,9 @@ module sparsematrix_base
       !!integer :: ncl_smmm !< number of elements for the compress local after a sparse matrix matrix multiplication
       integer :: nccomm_smmm !<number of communications required for the compress distributed after a sparse matrix matrix multiplication
       integer,dimension(:,:),pointer :: luccomm_smmm !<lookup array for the communications required for the compress distributed after a sparse matrix matrix multiplication
+      integer :: nvctrp !< number of compressed matrix elements per MPI task
+      integer :: isvctr !< starting entry of the compressed matrix elements
+      integer,dimension(:),pointer :: isvctr_par, nvctr_par !<array that contains the values of nvctrp and isvctr of all MPI tasks
   end type sparse_matrix_matrix_multiplication
 
   type,public :: sparse_matrix
@@ -184,6 +187,8 @@ module sparsematrix_base
       nullify(smmm%indices_extract_sequential)
       nullify(smmm%nvctr_par)
       nullify(smmm%isvctr_par)
+      nullify(smmm%nvctr_mm_par)
+      nullify(smmm%isvctr_mm_par)
       nullify(smmm%luccomm_smmm)
       nullify(smmm%keyv)
       nullify(smmm%keyg)
@@ -232,6 +237,8 @@ module sparsematrix_base
       smmm%indices_extract_sequential=f_malloc_ptr(smmm%nseq,id='smmm%indices_extract_sequential')
       smmm%nvctr_par=f_malloc_ptr(0.to.nproc-1,id='smmm%nvctr_par')
       smmm%isvctr_par=f_malloc_ptr(0.to.nproc-1,id='smmm%isvctr_par')
+      smmm%nvctr_mm_par=f_malloc_ptr(0.to.nproc-1,id='smmm%nvctr_mm_par')
+      smmm%isvctr_mm_par=f_malloc_ptr(0.to.nproc-1,id='smmm%isvctr_mm_par')
       smmm%keyv=f_malloc_ptr(nseg,id='smmm%keyv')
       smmm%keyg=f_malloc_ptr((/2,2,nseg/),id='smmm%keyg')
     end subroutine allocate_sparse_matrix_matrix_multiplication
@@ -339,6 +346,8 @@ module sparsematrix_base
       call f_free_ptr(smmm%indices_extract_sequential)
       call f_free_ptr(smmm%nvctr_par)
       call f_free_ptr(smmm%isvctr_par)
+      call f_free_ptr(smmm%nvctr_mm_par)
+      call f_free_ptr(smmm%isvctr_mm_par)
       call f_free_ptr(smmm%luccomm_smmm)
       call f_free_ptr(smmm%keyv)
       call f_free_ptr(smmm%keyg)

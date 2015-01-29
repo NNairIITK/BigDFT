@@ -463,7 +463,7 @@ contains
       end if
       call init_matrix_parallelization(iproc, nproc, sparsemat%nfvctr, sparsemat%nseg, sparsemat%nvctr, &
            temparr(0,1), temparr(0,2), sparsemat%istsegline, sparsemat%keyv, &
-           sparsemat%smmm%isvctr, sparsemat%smmm%nvctrp, sparsemat%smmm%isvctr_par, sparsemat%smmm%nvctr_par)
+           sparsemat%smmm%isvctr_mm, sparsemat%smmm%nvctrp_mm, sparsemat%smmm%isvctr_mm_par, sparsemat%smmm%nvctr_mm_par)
       call f_free(temparr)
 
       sparsemat%smmm%nseg=nseg
@@ -655,9 +655,9 @@ contains
 
       ! Realculate the values of sparsemat%smmm%nout and sparsemat%smmm%nseq with
       ! the optimized partitioning of the matrix columns.
-      !call get_nout(norb, norb_par_ideal(iproc), isorb_par_ideal(iproc), nseg, nsegline, istsegline, keyg, sparsemat%smmm%nout)
-      call get_nout(norb, norb_par_ideal(iproc), isorb_par_ideal(iproc), sparsemat%nseg, &
-           sparsemat%nsegline, sparsemat%istsegline, sparsemat%keyg, sparsemat%smmm%nout)
+      call get_nout(norb, norb_par_ideal(iproc), isorb_par_ideal(iproc), nseg, nsegline, istsegline, keyg, sparsemat%smmm%nout)
+      !call get_nout(norb, norb_par_ideal(iproc), isorb_par_ideal(iproc), sparsemat%nseg, &
+      !     sparsemat%nsegline, sparsemat%istsegline, sparsemat%keyg, sparsemat%smmm%nout)
       !!call determine_sequential_length(norb, norb_par_ideal(iproc), isorb_par_ideal(iproc), nseg, &
       !!     nsegline, istsegline, keyg, sparsemat, &
       !!     sparsemat%smmm%nseq, nseq_per_line)
@@ -672,7 +672,9 @@ contains
           ispt = ispt + nout_par(jproc)
       end do
       nseq_per_pt = f_malloc0(sum(nout_par),id='nseq_per_pt')
-      call determine_sequential_length_new(sparsemat%smmm%nout, ispt, sparsemat%nseg, sparsemat%keyv, sparsemat%keyg, &
+      !!call determine_sequential_length_new(sparsemat%smmm%nout, ispt, sparsemat%nseg, sparsemat%keyv, sparsemat%keyg, &
+      !!     sparsemat, sum(nout_par), sparsemat%smmm%nseq, nseq_per_pt)
+      call determine_sequential_length_new(sparsemat%smmm%nout, ispt, nseg, keyv, keyg, &
            sparsemat, sum(nout_par), sparsemat%smmm%nseq, nseq_per_pt)
       call f_free(nout_par)
       !!write(*,*) 'NEW: iproc, nseq', iproc, sparsemat%smmm%nseq
@@ -716,19 +718,19 @@ contains
       end if
       call init_matrix_parallelization(iproc, nproc, sparsemat%nfvctr, sparsemat%nseg, sparsemat%nvctr, &
            temparr(0,1), temparr(0,2), sparsemat%istsegline, sparsemat%keyv, &
+           sparsemat%smmm%isvctr_mm, sparsemat%smmm%nvctrp_mm, sparsemat%smmm%isvctr_mm_par, sparsemat%smmm%nvctr_mm_par)
+      call init_matrix_parallelization(iproc, nproc, sparsemat%nfvctr, nseg, keyv(nseg)+(keyg(2,1,nseg)-keyg(1,1,nseg)), &
+           temparr(0,1), temparr(0,2), istsegline, keyv, &
            sparsemat%smmm%isvctr, sparsemat%smmm%nvctrp, sparsemat%smmm%isvctr_par, sparsemat%smmm%nvctr_par)
-      !!call init_matrix_parallelization(iproc, nproc, sparsemat%nfvctr, nseg, keyv(nseg)+(keyg(2,1,nseg)-keyg(1,1,nseg)), &
-      !!     temparr(0,1), temparr(0,2), istsegline, keyv, &
-      !!     sparsemat%smmm%isvctr, sparsemat%smmm%nvctrp, sparsemat%smmm%isvctr_par, sparsemat%smmm%nvctr_par)
       call f_free(temparr)
 
       ! Get the segments containing the first and last element of a sparse
       ! matrix after a multiplication
       do i=1,2
           if (i==1) then
-              iel = sparsemat%smmm%isvctr + 1
+              iel = sparsemat%smmm%isvctr_mm + 1
           else if (i==2) then
-              iel = sparsemat%smmm%isvctr + sparsemat%smmm%nvctrp
+              iel = sparsemat%smmm%isvctr_mm + sparsemat%smmm%nvctrp_mm
           end if
           iiseg = sparsemat%nseg !in case iel is the last element
           do iseg=1,sparsemat%nseg
@@ -759,9 +761,11 @@ contains
       !     sparsemat%smmm%nseq, sparsemat%smmm%ivectorindex)
       call get_arrays_for_sequential_acces_new(sparsemat%smmm%nout, ispt, nseg, sparsemat%smmm%nseq, &
            keyv, keyg, sparsemat, sparsemat%smmm%ivectorindex_new)
-      call init_sequential_acces_matrix(norb, norb_par_ideal(iproc), isorb_par_ideal(iproc), sparsemat%nseg, &
-           sparsemat%nsegline, sparsemat%istsegline, sparsemat%keyg, sparsemat, sparsemat%smmm%nseq, &
-           sparsemat%smmm%indices_extract_sequential)
+      !call init_sequential_acces_matrix(norb, norb_par_ideal(iproc), isorb_par_ideal(iproc), sparsemat%nseg, &
+      !     sparsemat%nsegline, sparsemat%istsegline, sparsemat%keyg, sparsemat, sparsemat%smmm%nseq, &
+      !     sparsemat%smmm%indices_extract_sequential)
+      call init_sequential_acces_matrix_new(sparsemat%smmm%nout, ispt, nseg, sparsemat%smmm%nseq, keyv, keyg, sparsemat, &
+               sparsemat%smmm%indices_extract_sequential)
 
       ! This array gives the starting and ending indices of the submatrix which
       ! is used by a given MPI task
@@ -1516,17 +1520,19 @@ contains
       itot = 1
       do ipt=1,nout
           iipt = ispt + ipt
-          !call get_line_and_column(iipt, nseg, keyv, keyg, iline, icolumn)
-          call get_line_and_column(iipt, smat%nseg, smat%keyv, smat%keyg, iline, icolumn)
+          call get_line_and_column(iipt, nseg, keyv, keyg, iline, icolumn)
+          !call get_line_and_column(iipt, smat%nseg, smat%keyv, smat%keyg, iline, icolumn)
           !!!onedimindices(1,ipt) = matrixindex_in_compressed(smat, icolumn, iline)
-          !!onedimindices(1,ipt) = matrixindex_in_compressed_fn(icolumn, iline, smat%nfvctr, nseg, keyv, keyg)
-          !!if (onedimindices(1,ipt)>0) then
-          !!    onedimindices(1,ipt) = onedimindices(1,ipt) - smat%smmm%isvctr
-          !!else
-          !!    stop 'onedimindices(1,ipt)==0'
-          !!end if
+          onedimindices(1,ipt) = matrixindex_in_compressed_fn(icolumn, iline, smat%nfvctr, nseg, keyv, keyg)
+          write(*,'(a,5i8)') 'ipt, iipt, iline, icolumn, odi(1,ipt)', ipt, iipt, iline, icolumn, onedimindices(1,ipt)
+          if (onedimindices(1,ipt)>0) then
+              onedimindices(1,ipt) = onedimindices(1,ipt) - smat%smmm%isvctr
+          else
+              write(*,'(a,4i8)') 'iproc, iline, icolumn, val',bigdft_mpi%iproc, iline, icolumn, onedimindices(1,ipt)
+              stop 'onedimindices(1,ipt)==0'
+          end if
           !!if (onedimindices(1,ipt)/=ipt) stop 'onedimindices(1,ipt)/=ipt'
-          onedimindices(1,ipt) = ipt
+          !onedimindices(1,ipt) = ipt
 
           ilen = 0
           ! Take the column due to the symmetry of the sparsity pattern
@@ -1642,13 +1648,14 @@ contains
       ! Local variables
       integer :: ii, ipt, iipt, iline, icolumn, jseg, jorb, itest
     
+      write(*,'(a,4i8)') 'iproc, smat%smmm%isvctr_mm, smat%smmm%nvctrp_mm, smat%nfvctrp', bigdft_mpi%iproc, smat%smmm%isvctr_mm, smat%smmm%nvctrp_mm, smat%nfvctrp
       write(*,'(a,4i8)') 'iproc, smat%smmm%isvctr, smat%smmm%nvctrp, smat%nfvctrp', bigdft_mpi%iproc, smat%smmm%isvctr, smat%smmm%nvctrp, smat%nfvctrp
     
       ii=1
       do ipt=1,nout
           iipt = ispt + ipt
-          !call get_line_and_column(iipt, nseg, keyv, keyg, iline, icolumn)
-          call get_line_and_column(iipt, smat%nseg, smat%keyv, smat%keyg, iline, icolumn)
+          call get_line_and_column(iipt, nseg, keyv, keyg, iline, icolumn)
+          !call get_line_and_column(iipt, smat%nseg, smat%keyv, smat%keyg, iline, icolumn)
           !call get_line_and_column(iipt, smat%nseg, smat%keyv, smat%keyg, iline, icolumn)
           !itest = matrixindex_in_compressed(smat, icolumn, iline)
           !if (itest/=iipt) then
@@ -1656,19 +1663,20 @@ contains
           !    stop 'itest/=iipt'
           !end if
           ! Take the column due to the symmetry of the sparsity pattern
-          write(2000+bigdft_mpi%iproc,*) 'iipt, iline, icolumn', iipt, iline, icolumn
+          !write(2000+bigdft_mpi%iproc,*) 'iipt, iline, icolumn', iipt, iline, icolumn
           do jseg=smat%istsegline(icolumn),smat%istsegline(icolumn)+smat%nsegline(icolumn)-1
               ! A segment is always on one line, therefore no double loop
               do jorb = smat%keyg(1,1,jseg),smat%keyg(2,1,jseg)
-                  !ivectorindex(ii)=matrixindex_in_compressed_fn(jorb, iline, smat%nfvctr, nseg, keyv, keyg)
-                  ivectorindex(ii)=matrixindex_in_compressed(smat, jorb, iline)!-smat%smmm%isvctr
+                  ivectorindex(ii)=matrixindex_in_compressed_fn(jorb, iline, smat%nfvctr, nseg, keyv, keyg)
+                  !ivectorindex(ii)=matrixindex_in_compressed(smat, jorb, iline)!-smat%smmm%isvctr_mm
                   if (ivectorindex(ii)>0) ivectorindex(ii) = ivectorindex(ii) - smat%smmm%isvctr
                   if (ivectorindex(ii)<0) then
-                      write(*,'(a,5i8)') 'iproc, iipt, jorb, icolumn, val', bigdft_mpi%iproc, iipt, jorb, iline, matrixindex_in_compressed(smat, jorb, iline)
+                      !write(*,'(a,5i8)') 'iproc, iipt, jorb, icolumn, val', bigdft_mpi%iproc, iipt, jorb, iline, matrixindex_in_compressed(smat, jorb, iline)
+                      write(*,'(a,5i8)') 'iproc, iipt, jorb, icolumn, val', bigdft_mpi%iproc, iipt, jorb, iline, matrixindex_in_compressed_fn(jorb, iline, smat%nfvctr, nseg, keyv, keyg)
                       stop 'ivectorindex(ii)<0'
                   end if
-                  !ivectorindex(ii)=matrixindex_in_compressed(smat, smat%keyg(1,2,jseg), jorb)-smat%smmm%isvctr
-                  !ivectorindex(ii)=matrixindex_in_compressed(smat, jorb, iline)-smat%smmm%isvctr
+                  !ivectorindex(ii)=matrixindex_in_compressed(smat, smat%keyg(1,2,jseg), jorb)-smat%smmm%isvctr_mm
+                  !ivectorindex(ii)=matrixindex_in_compressed(smat, jorb, iline)-smat%smmm%isvctr_mm
                   !if (ivectorindex(ii)==0) then
                   !    !write(*,'(a,5i8)') 'iproc, iipt, jorb, icolumn, val', bigdft_mpi%iproc, iipt, jorb, icolumn, matrixindex_in_compressed(smat, jorb, icolumn)
                   !    write(*,'(a,5i8)') 'iproc, iipt, jorb, smat%keyg(1,2,jseg), val', &
@@ -2591,18 +2599,18 @@ contains
       !!!        end do
       !!!    end do
       !!!end if
-      !!!if (smat%smmm%ncl_smmm/=smat%smmm%nvctrp) then
-      !!!    write(*,*) 'smat%smmm%ncl_smmm, smat%smmm%nvctrp', smat%smmm%ncl_smmm, smat%smmm%nvctrp
+      !!!if (smat%smmm%ncl_smmm/=smat%smmm%nvctrp_mm) then
+      !!!    write(*,*) 'smat%smmm%ncl_smmm, smat%smmm%nvctrp_mm', smat%smmm%ncl_smmm, smat%smmm%nvctrp_mm
       !!!    stop
       !!!end if
 
 
       smat%smmm%nccomm_smmm = 0
       do jproc=0,nproc-1
-          !!if (istartend_local(1) > smat%smmm%isvctr_par(jproc) + smat%smmm%nvctr_par(jproc)) cycle
-          !!if (istartend_local(2) < smat%smmm%isvctr_par(jproc)) exit
-          istart = max(smat%istartend_local(1),smat%smmm%isvctr_par(jproc)+1)
-          iend = min(smat%istartend_local(2),smat%smmm%isvctr_par(jproc)+smat%smmm%nvctr_par(jproc))
+          !!if (istartend_local(1) > smat%smmm%isvctr_mm_par(jproc) + smat%smmm%nvctr_mm_par(jproc)) cycle
+          !!if (istartend_local(2) < smat%smmm%isvctr_mm_par(jproc)) exit
+          istart = max(smat%istartend_local(1),smat%smmm%isvctr_mm_par(jproc)+1)
+          iend = min(smat%istartend_local(2),smat%smmm%isvctr_mm_par(jproc)+smat%smmm%nvctr_mm_par(jproc))
           if (istart>iend) cycle
           smat%smmm%nccomm_smmm = smat%smmm%nccomm_smmm + 1
       end do
@@ -2610,14 +2618,14 @@ contains
       smat%smmm%luccomm_smmm = f_malloc_ptr((/4,smat%smmm%nccomm_smmm/),id='smat%smmm%luccomm_smmm')
       ii = 0
       do jproc=0,nproc-1
-          !!if (istartend_local(1) > smat%smmm%isvctr_par(jproc) + smat%smmm%nvctr_par(jproc)) cycle
-          !!if (istartend_local(2) < smat%smmm%isvctr_par(jproc)) exit
-          istart = max(smat%istartend_local(1),smat%smmm%isvctr_par(jproc)+1)
-          iend = min(smat%istartend_local(2),smat%smmm%isvctr_par(jproc)+smat%smmm%nvctr_par(jproc))
+          !!if (istartend_local(1) > smat%smmm%isvctr_mm_par(jproc) + smat%smmm%nvctr_mm_par(jproc)) cycle
+          !!if (istartend_local(2) < smat%smmm%isvctr_mm_par(jproc)) exit
+          istart = max(smat%istartend_local(1),smat%smmm%isvctr_mm_par(jproc)+1)
+          iend = min(smat%istartend_local(2),smat%smmm%isvctr_mm_par(jproc)+smat%smmm%nvctr_mm_par(jproc))
           if (istart>iend) cycle
           ii = ii + 1
           smat%smmm%luccomm_smmm(1,ii) = jproc !get data from this process
-          smat%smmm%luccomm_smmm(2,ii) = istart-smat%smmm%isvctr_par(jproc) !starting address on sending process
+          smat%smmm%luccomm_smmm(2,ii) = istart-smat%smmm%isvctr_mm_par(jproc) !starting address on sending process
           smat%smmm%luccomm_smmm(3,ii) = istart-smat%isvctrp_tg !starting address on receiving process
           smat%smmm%luccomm_smmm(4,ii) = iend-istart+1 !number of elements
       end do

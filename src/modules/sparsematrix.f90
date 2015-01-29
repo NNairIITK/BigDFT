@@ -741,10 +741,10 @@ module sparsematrix
          if (size(matrixp,2)/=smat%smmm%nfvctrp) stop '(ubound(matrixp,2)/=smat%smmm%nfvctrp'
          nfvctrp = smat%smmm%nfvctrp
          isfvctr = smat%smmm%isfvctr
-         nvctrp = smat%smmm%nvctrp
-         isvctr = smat%smmm%isvctr
-         isvctr_par => smat%smmm%isvctr_par
-         nvctr_par => smat%smmm%nvctr_par
+         nvctrp = smat%smmm%nvctrp_mm
+         isvctr = smat%smmm%isvctr_mm
+         isvctr_par => smat%smmm%isvctr_mm_par
+         nvctr_par => smat%smmm%nvctr_mm_par
      end if
 
      if (data_strategy==GLOBAL_MATRIX) then
@@ -865,7 +865,7 @@ module sparsematrix
              call f_free(request)
              call f_free(recvbuf)
          else if (layout==DENSE_MATMUL) then
-             matrix_local = f_malloc_ptr(max(1,smat%smmm%nvctrp),id='matrix_local')
+             matrix_local = f_malloc_ptr(max(1,smat%smmm%nvctrp_mm),id='matrix_local')
              if (nfvctrp>0) then
                  ii = 0
                  isegstart=smat%istsegline(isfvctr+1)
@@ -878,7 +878,7 @@ module sparsematrix
                          matrix_local(ii) = matrixp(jorb,iorb-isfvctr)
                      end do
                  end do
-                 if (ii/=smat%smmm%nvctrp) stop 'compress_matrix_distributed: ii/=smat%smmm%nvctrp'
+                 if (ii/=smat%smmm%nvctrp_mm) stop 'compress_matrix_distributed: ii/=smat%smmm%nvctrp_mm'
              end if
 
              call timing(iproc,'compressd_mcpy','OF')
@@ -887,14 +887,14 @@ module sparsematrix
              if (nproc>1) then
                 !call to_zero(smat%nvctrp_tg, matrix_compr(1))
                 call f_zero(matrix_compr)
-                 !window = mpiwindow(smat%smmm%nvctrp, matrix_local(1), bigdft_mpi%mpi_comm)
+                 !window = mpiwindow(smat%smmm%nvctrp_mm, matrix_local(1), bigdft_mpi%mpi_comm)
 
                  ! Create a window for all taskgroups to which iproc belongs (max 2)
                  windows = f_malloc(smat%ntaskgroup)
                  do itg=1,smat%ntaskgroupp
                      iitg = smat%taskgroupid(itg)
                      !write(*,'(2(a,i0))') 'task ',iproc,' is on window ',iitg
-                     windows(iitg) = mpiwindow(smat%smmm%nvctrp, matrix_local(1), smat%mpi_groups(iitg)%mpi_comm)
+                     windows(iitg) = mpiwindow(smat%smmm%nvctrp_mm, matrix_local(1), smat%mpi_groups(iitg)%mpi_comm)
                  end do
                  do jproc=1,smat%smmm%nccomm_smmm
                      jproc_send = smat%smmm%luccomm_smmm(1,jproc)
@@ -1216,7 +1216,7 @@ module sparsematrix
      c_compr = f_malloc0(smat%smmm%nvctrp,id='c_compr')
      do i=1,smat%smmm%nvctrp
          ii = smat%smmm%isvctr + i
-         call get_line_and_column(ii, smat%nseg, smat%keyv, smat%keyg, iline, icolumn)
+         call get_line_and_column(ii, smat%smmm%nseg, smat%smmm%keyv, smat%smmm%keyg, iline, icolumn)
          if (icolumn<1) then
              write(*,'(a,5i8)') 'iproc, i, ii, iline, icolumn', bigdft_mpi%iproc, i, ii, iline, icolumn
              !stop
@@ -1226,8 +1226,10 @@ module sparsematrix
      call sparsemm_new(smat, a_seq, b_compr, c_compr)
      do i=1,smat%smmm%nvctrp
          ii = smat%smmm%isvctr + i
-         call get_line_and_column(ii, smat%nseg, smat%keyv, smat%keyg, iline, icolumn)
+         call get_line_and_column(ii, smat%smmm%nseg, smat%smmm%keyv, smat%smmm%keyg, iline, icolumn)
          c(icolumn,iline-smat%smmm%isfvctr) = c_compr(i)
+         write(400,*) 'i, j, val', icolumn,iline-smat%smmm%isfvctr, b(icolumn,iline-smat%smmm%isfvctr), i
+         write(500,*) 'i, j, val', icolumn,iline-smat%smmm%isfvctr, c(icolumn,iline-smat%smmm%isfvctr), i
      end do
      call f_free(b_compr)
      call f_free(c_compr)
@@ -1244,6 +1246,7 @@ module sparsematrix
    subroutine sparsemm_new(smat, a_seq, b, c)
      use module_base
      use yaml_output
+     use sparsematrix_init, only: get_line_and_column
      implicit none
    
      !Calling Arguments
@@ -1254,7 +1257,7 @@ module sparsematrix
    
      !Local variables
      !character(len=*), parameter :: subname='sparsemm'
-     integer :: i,jorb,jjorb,m,mp1,ist,iend, icontiguous, j
+     integer :: i,jorb,jjorb,m,mp1,ist,iend, icontiguous, j, iline, icolumn
      integer :: iorb, ii, ilen, jjorb0, jjorb1, jjorb2, jjorb3, jjorb4, jjorb5, jjorb6, iout
      real(kind=8) :: tt0, tt1, tt2, tt3, tt4, tt5, tt6, tt7
    
@@ -1262,26 +1265,30 @@ module sparsematrix
      !!call timing(bigdft_mpi%iproc, 'sparse_matmul ', 'IR')
 
    
-     !$omp parallel default(private) shared(smat, a_seq, b, c)
-     !$omp do
+     !!$omp parallel default(private) shared(smat, a_seq, b, c)
+     !!$omp do
      do iout=1,smat%smmm%nout
          i=smat%smmm%onedimindices_new(1,iout)
+         if (i==0) write(500,*) 'cycle'
+         if (i==0) cycle
          !!iorb=smat%smmm%onedimindices(2,iout)
          ilen=smat%smmm%onedimindices_new(2,iout)
          ii=smat%smmm%onedimindices_new(3,iout)
          tt0=0.d0
 
          iend=ii+ilen-1
+         call get_line_and_column(ii, smat%smmm%nseg, smat%smmm%keyv, smat%smmm%keyg, iline, icolumn)
 
          do jorb=ii,iend
             jjorb=smat%smmm%ivectorindex_new(jorb)
             if (jjorb/=0) tt0 = tt0 + b(jjorb)*a_seq(jorb)
+            if(i==323) write(600,'(a,3i8,2es16.8)') 'i, j, jorb, vals', icolumn, iline-smat%smmm%isfvctr, jorb, b(jjorb), a_seq(jorb)
          end do
 
          c(i) = tt0
      end do 
      !!$omp end do
-     !$omp end parallel
+     !!$omp end parallel
 
    
      !!call timing(bigdft_mpi%iproc, 'sparse_matmul ', 'RS')

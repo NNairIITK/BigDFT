@@ -1117,6 +1117,7 @@ subroutine overlapPowerGeneral(iproc, nproc, iorder, ncalc, power, blocksize, im
 
                   do i=2,iorder
                       call timing(iproc,'lovrlp^-1     ','OF')
+                      write(500,*) 'calling from Taylor'
                       call sparsemm(inv_ovrlp_smat, ovrlpminone_sparse_seq, ovrlpminoneoldp, ovrlpminonep)
                       call timing(iproc,'lovrlp^-1     ','ON')
                       do icalc=1,ncalc

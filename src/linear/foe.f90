@@ -119,7 +119,7 @@ subroutine foe(iproc, nproc, tmprtr, &
 
     
   ! Size of one Chebyshev polynomial matrix in compressed form (distributed)
-  nsize_polynomial = tmb%linmat%l%smmm%nvctrp
+  nsize_polynomial = tmb%linmat%l%smmm%nvctrp_mm
   
   
   ! Fake allocation, will be modified later
@@ -813,8 +813,8 @@ subroutine foe(iproc, nproc, tmprtr, &
                   ! A segment is always on one line, therefore no double loop
                   do jorb=tmb%linmat%l%keyg(1,1,iseg),tmb%linmat%l%keyg(2,1,iseg)
                       ii=ii+1
-                      if (ii<tmb%linmat%l%smmm%isvctr+1) cycle
-                      if (ii>tmb%linmat%l%smmm%isvctr+tmb%linmat%l%smmm%nvctrp) exit
+                      if (ii<tmb%linmat%l%smmm%isvctr_mm+1) cycle
+                      if (ii>tmb%linmat%l%smmm%isvctr_mm+tmb%linmat%l%smmm%nvctrp_mm) exit
                       iiorb = tmb%linmat%l%keyg(1,2,iseg)
                       jjorb = jorb
                       if (jjorb==iiorb) trace = trace + matrixp(jjorb,iiorb-tmb%linmat%l%smmm%isfvctr)
@@ -1354,8 +1354,8 @@ subroutine compress_polynomial_vector(iproc, nproc, nsize_polynomial, norb, norb
           ! A segment is always on one line, therefore no double loop
           do jorb=fermi%keyg(1,1,iseg),fermi%keyg(2,1,iseg)
               iel = iel + 1
-              if (iel<fermi%smmm%isvctr+1) cycle
-              if (iel>fermi%smmm%isvctr+fermi%smmm%nvctrp) exit
+              if (iel<fermi%smmm%isvctr_mm+1) cycle
+              if (iel>fermi%smmm%isvctr_mm+fermi%smmm%nvctrp_mm) exit
               ii=ii+1
               iiorb = fermi%keyg(1,2,iseg)
               jjorb = jorb
@@ -1366,8 +1366,8 @@ subroutine compress_polynomial_vector(iproc, nproc, nsize_polynomial, norb, norb
       !!$omp end parallel
   end if
 
-  if (ii/=fermi%smmm%nvctrp) then
-      write(*,*) 'ii, fermi%nvctrp, size(vector_compressed)', ii, fermi%smmm%nvctrp, size(vector_compressed)
+  if (ii/=fermi%smmm%nvctrp_mm) then
+      write(*,*) 'ii, fermi%nvctrp, size(vector_compressed)', ii, fermi%smmm%nvctrp_mm, size(vector_compressed)
       stop 'compress_polynomial_vector: ii/=fermi%nvctrp'
   end if
 
@@ -1405,8 +1405,8 @@ subroutine uncompress_polynomial_vector(iproc, nproc, nsize_polynomial, &
           ! A segment is always on one line, therefore no double loop
           do jorb=fermi%keyg(1,1,iseg),fermi%keyg(2,1,iseg)
               iel = iel + 1
-              if (iel<fermi%smmm%isvctr+1) cycle
-              if (iel>fermi%smmm%isvctr+fermi%smmm%nvctrp) exit
+              if (iel<fermi%smmm%isvctr_mm+1) cycle
+              if (iel>fermi%smmm%isvctr_mm+fermi%smmm%nvctrp_mm) exit
               ii=ii+1
               iiorb = fermi%keyg(1,2,iseg)
               jjorb = jorb
@@ -1463,8 +1463,8 @@ function trace_sparse(iproc, nproc, orbs, asmat, bsmat, amat, bmat, ispin)
           ! A segment is always on one line, therefore no double loop
           do jorb=asmat%keyg(1,1,iseg),asmat%keyg(2,1,iseg)
               iel = iel + 1
-              if (iel<asmat%smmm%isvctr+1) cycle
-              if (iel>asmat%smmm%isvctr+asmat%smmm%nvctrp) exit
+              if (iel<asmat%smmm%isvctr_mm+1) cycle
+              if (iel>asmat%smmm%isvctr_mm+asmat%smmm%nvctrp_mm) exit
               ii=ii+1
               iiorb = asmat%keyg(1,2,iseg)
               jjorb = jorb
@@ -1642,7 +1642,7 @@ subroutine ice(iproc, nproc, norder_polynomial, ovrlp_smat, inv_ovrlp_smat, ncal
 
     
   ! Size of one Chebyshev polynomial matrix in compressed form (distributed)
-  nsize_polynomial = inv_ovrlp_smat%smmm%nvctrp
+  nsize_polynomial = inv_ovrlp_smat%smmm%nvctrp_mm
   
   
   ! Fake allocation, will be modified later
@@ -1976,8 +1976,8 @@ subroutine check_eigenvalue_spectrum(nproc, smat_l, smat_s, mat, ispin, isshift,
               ! A segment is always on one line, therefore no double loop
               do jorb=smat_l%keyg(1,1,iseg),smat_l%keyg(2,1,iseg)
                   iel = iel + 1
-                  if (iel<smat_l%smmm%isvctr+1) cycle
-                  if (iel>smat_l%smmm%isvctr+smat_l%smmm%nvctrp) exit
+                  if (iel<smat_l%smmm%isvctr_mm+1) cycle
+                  if (iel>smat_l%smmm%isvctr_mm+smat_l%smmm%nvctrp_mm) exit
                   ii=ii+1
                   irow = smat_l%keyg(1,2,iseg)
                   icol = jorb

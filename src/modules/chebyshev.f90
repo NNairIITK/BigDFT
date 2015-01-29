@@ -85,8 +85,8 @@ module chebyshev
                       ! A segment is always on one line, therefore no double loop
                       do jorb=kernel%keyg(1,1,iseg),kernel%keyg(2,1,iseg)
                           ii=ii+1
-                          if (ii<kernel%smmm%isvctr+1) cycle
-                          if (ii>kernel%smmm%isvctr+kernel%smmm%nvctrp) exit
+                          if (ii<kernel%smmm%isvctr_mm+1) cycle
+                          if (ii>kernel%smmm%isvctr_mm+kernel%smmm%nvctrp_mm) exit
                           iiorb = kernel%keyg(1,2,iseg)
                           jjorb = jorb
                           matrix(jjorb,iiorb-kernel%smmm%isfvctr)=invovrlp_compr(ii-kernel%isvctrp_tg)
@@ -118,10 +118,12 @@ module chebyshev
       
           if (kernel%smmm%nfvctrp>0) then
               call sequential_acces_matrix_fast2(kernel, ham_compr, mat_seq)
+              write(500,*) 'calling from cheby1'
               call sparsemm(kernel, mat_seq, matrix(1,1), vectors(1,1,1))
               call f_zero(matrix)
               ! use mat_seq as workarray
               call sequential_acces_matrix_fast2(kernel, invovrlp_compr, mat_seq)
+              write(500,*) 'calling from cheby1'
               call sparsemm(kernel, mat_seq, vectors(1,1,1), matrix(1,1))
               !call f_zero(kernel%nvctr, SHS(1))
           end if
@@ -133,8 +135,8 @@ module chebyshev
                   ! A segment is always on one line, therefore no double loop
                   do jorb=kernel%keyg(1,1,iseg),kernel%keyg(2,1,iseg)
                       ii=ii+1
-                      if (ii<kernel%smmm%isvctr+1) cycle
-                      if (ii>kernel%smmm%isvctr+kernel%smmm%nvctrp) exit
+                      if (ii<kernel%smmm%isvctr_mm+1) cycle
+                      if (ii>kernel%smmm%isvctr_mm+kernel%smmm%nvctrp_mm) exit
                       iiorb = kernel%keyg(1,2,iseg)
                       jjorb = jorb
                       mat_compr(ii-kernel%isvctrp_tg)=matrix(jjorb,iiorb-kernel%smmm%isfvctr)
@@ -327,7 +329,7 @@ module chebyshev
       z_compr = f_malloc0(smat%smmm%nvctrp,id='z_compr')
       do i=1,smat%smmm%nvctrp
           ii = smat%smmm%isvctr + i
-          call get_line_and_column(ii, smat%nseg, smat%keyv, smat%keyg, iline, icolumn)
+          call get_line_and_column(ii, smat%smmm%nseg, smat%smmm%keyv, smat%smmm%keyg, iline, icolumn)
           if (icolumn<1) then
               write(*,'(a,5i8)') 'iproc, i, ii, iline, icolumn', bigdft_mpi%iproc, i, ii, iline, icolumn
               !stop
@@ -335,12 +337,12 @@ module chebyshev
           x_compr(i) = x(icolumn,iline-smat%smmm%isfvctr)
           y_compr(i) = y(icolumn,iline-smat%smmm%isfvctr)
       end do
-      do i=1,nout
+      do i=1,smat%smmm%nvctrp
           z_compr(i) = a*x_compr(i)+b*y_compr(i)
       end do
       do i=1,smat%smmm%nvctrp
           ii = smat%smmm%isvctr + i
-          call get_line_and_column(ii, smat%nseg, smat%keyv, smat%keyg, iline, icolumn)
+          call get_line_and_column(ii, smat%smmm%nseg, smat%smmm%keyv, smat%smmm%keyg, iline, icolumn)
           z(icolumn,iline-smat%smmm%isfvctr) = z_compr(i)
       end do
       call f_free(x_compr)
@@ -390,17 +392,17 @@ module chebyshev
       b_compr = f_malloc0(smat%smmm%nvctrp,id='b_compr')
       do i=1,smat%smmm%nvctrp
           ii = smat%smmm%isvctr + i
-          call get_line_and_column(ii, smat%nseg, smat%keyv, smat%keyg, iline, icolumn)
+          call get_line_and_column(ii, smat%smmm%nseg, smat%smmm%keyv, smat%smmm%keyg, iline, icolumn)
           if (icolumn<1) then
               write(*,'(a,5i8)') 'iproc, i, ii, iline, icolumn', bigdft_mpi%iproc, i, ii, iline, icolumn
               !stop
           end if
           a_compr(i) = a(icolumn,iline-smat%smmm%isfvctr)
       end do
-      call vcopy(smat%smmm%nout, a_compr(1), 1, b_compr(1), 1)
+      call vcopy(smat%smmm%nvctrp, a_compr(1), 1, b_compr(1), 1)
       do i=1,smat%smmm%nvctrp
           ii = smat%smmm%isvctr + i
-          call get_line_and_column(ii, smat%nseg, smat%keyv, smat%keyg, iline, icolumn)
+          call get_line_and_column(ii, smat%smmm%nseg, smat%smmm%keyv, smat%smmm%keyg, iline, icolumn)
           b(icolumn,iline-smat%smmm%isfvctr) = b_compr(i)
       end do
       call f_free(a_compr)
@@ -449,17 +451,17 @@ module chebyshev
      y_compr = f_malloc0(smat%smmm%nvctrp,id='y_compr')
      do i=1,smat%smmm%nvctrp
          ii = smat%smmm%isvctr + i
-         call get_line_and_column(ii, smat%nseg, smat%keyv, smat%keyg, iline, icolumn)
+         call get_line_and_column(ii, smat%smmm%nseg, smat%smmm%keyv, smat%smmm%keyg, iline, icolumn)
          if (icolumn<1) then
              write(*,'(a,5i8)') 'iproc, i, ii, iline, icolumn', bigdft_mpi%iproc, i, ii, iline, icolumn
              !stop
          end if
          x_compr(i) = x(icolumn,iline-smat%smmm%isfvctr)
      end do
-     call daxpy(smat%smmm%nout, a, x_compr(1), 1, y_compr(1), 1)
+     call daxpy(smat%smmm%nvctrp, a, x_compr(1), 1, y_compr(1), 1)
      do i=1,smat%smmm%nvctrp
          ii = smat%smmm%isvctr + i
-         call get_line_and_column(ii, smat%nseg, smat%keyv, smat%keyg, iline, icolumn)
+         call get_line_and_column(ii, smat%smmm%nseg, smat%smmm%keyv, smat%smmm%keyg, iline, icolumn)
          y(icolumn,iline-smat%smmm%isfvctr) = y_compr(i)
      end do
      call f_free(x_compr)
