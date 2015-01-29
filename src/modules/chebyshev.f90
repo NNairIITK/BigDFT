@@ -44,7 +44,7 @@ module chebyshev
       real(kind=8),dimension(nsize_polynomial,npl),intent(out) :: chebyshev_polynomials
       logical,intent(out) :: emergency_stop
       ! Local variables
-      integer :: iorb,iiorb, jorb, ipl, ierr, nseq, nmaxvalk
+      integer :: iorb,iiorb, jorb, ipl, ierr, nseq, nmaxvalk, i, j
       integer :: isegstart, isegend, iseg, ii, jjorb, icalc
       character(len=*),parameter :: subname='chebyshev_clean'
       real(8), dimension(:,:,:), allocatable :: vectors
@@ -204,6 +204,11 @@ module chebyshev
               do icalc=1,ncalc
                   call axpy_kernel_vectors(kernel, kernel%smmm%nfvctrp, kernel%nfvctr, kernel%smmm%nout, kernel%smmm%onedimindices, &
                        0.5d0*cc(1,1,icalc), vectors(1,1,4), fermi(:,1,icalc))
+                  do i=1,kernel%smmm%nfvctrp
+                      do j=1,kernel%nfvctr
+                          write(700,*) 'i, j, vals', vectors(j,i,4), fermi(j,i,icalc)
+                      end do
+                  end do
               end do
               call axpy_kernel_vectors(kernel, kernel%smmm%nfvctrp, kernel%nfvctr, kernel%smmm%nout, kernel%smmm%onedimindices, &
                    0.5d0*cc(1,3,1), vectors(1,1,4), penalty_ev(:,1,1))
@@ -213,8 +218,18 @@ module chebyshev
                    kernel%nfvctr, kernel%smmm%nfvctrp, kernel%smmm%isfvctr, kernel, &
                    vectors(1,1,2), chebyshev_polynomials(1,2))
               do icalc=1,ncalc
+                  do i=1,kernel%smmm%nfvctrp
+                      do j=1,kernel%nfvctr
+                          write(740,*) 'i, j, vals', vectors(j,i,2), fermi(j,i,icalc)
+                      end do
+                  end do
                   call axpy_kernel_vectors(kernel, kernel%smmm%nfvctrp, kernel%nfvctr, kernel%smmm%nout, kernel%smmm%onedimindices, &
                        cc(2,1,icalc), vectors(1,1,2), fermi(:,1,icalc))
+                  do i=1,kernel%smmm%nfvctrp
+                      do j=1,kernel%nfvctr
+                          write(750,*) 'i, j, vals', vectors(j,i,2), fermi(j,i,icalc)
+                      end do
+                  end do
               end do
               call axpy_kernel_vectors(kernel, kernel%smmm%nfvctrp, kernel%nfvctr, kernel%smmm%nout, kernel%smmm%onedimindices, &
                    cc(2,3,1), vectors(1,1,2), penalty_ev(:,1,1))
@@ -240,6 +255,11 @@ module chebyshev
                   do icalc=1,ncalc
                       call axpy_kernel_vectors(kernel, kernel%smmm%nfvctrp, kernel%nfvctr, kernel%smmm%nout, kernel%smmm%onedimindices, &
                            cc(ipl,1,icalc), vectors(1,1,3), fermi(:,1,icalc))
+                  do i=1,kernel%smmm%nfvctrp
+                      do j=1,kernel%nfvctr
+                          write(800,*) 'i, j, vals', vectors(j,i,4), fermi(j,i,icalc)
+                      end do
+                  end do
                   end do
                   call axpy_kernel_vectors(kernel, kernel%smmm%nfvctrp, kernel%nfvctr, kernel%smmm%nout, kernel%smmm%onedimindices, &
                        cc(ipl,3,1), vectors(1,1,3), penalty_ev(:,1,1))
@@ -457,6 +477,7 @@ module chebyshev
              !stop
          end if
          x_compr(i) = x(icolumn,iline-smat%smmm%isfvctr)
+         y_compr(i) = y(icolumn,iline-smat%smmm%isfvctr)
      end do
      call daxpy(smat%smmm%nvctrp, a, x_compr(1), 1, y_compr(1), 1)
      do i=1,smat%smmm%nvctrp

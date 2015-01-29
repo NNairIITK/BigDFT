@@ -431,6 +431,7 @@ subroutine foe(iproc, nproc, tmprtr, &
                   end if
                 
                   call calculate_trace_distributed(tmb%linmat%kernel_%matrixp, sumn)
+                  write(*,*) 'sumn',sumn
         
     
                   if (all(eval_bounds_ok) .and. all(bisection_bounds_ok)) then

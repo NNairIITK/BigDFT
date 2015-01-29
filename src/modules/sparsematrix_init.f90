@@ -1524,7 +1524,7 @@ contains
           !call get_line_and_column(iipt, smat%nseg, smat%keyv, smat%keyg, iline, icolumn)
           !!!onedimindices(1,ipt) = matrixindex_in_compressed(smat, icolumn, iline)
           onedimindices(1,ipt) = matrixindex_in_compressed_fn(icolumn, iline, smat%nfvctr, nseg, keyv, keyg)
-          write(*,'(a,5i8)') 'ipt, iipt, iline, icolumn, odi(1,ipt)', ipt, iipt, iline, icolumn, onedimindices(1,ipt)
+          !write(*,'(a,5i8)') 'ipt, iipt, iline, icolumn, odi(1,ipt)', ipt, iipt, iline, icolumn, onedimindices(1,ipt)
           if (onedimindices(1,ipt)>0) then
               onedimindices(1,ipt) = onedimindices(1,ipt) - smat%smmm%isvctr
           else
