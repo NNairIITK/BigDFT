@@ -809,12 +809,14 @@ subroutine foe(iproc, nproc, tmprtr, &
 
       subroutine retransform(matrix_compr)
           use sparsematrix, only: sequential_acces_matrix_fast, sequential_acces_matrix_fast2, sparsemm, &
-                                  uncompress_matrix_distributed, compress_matrix_distributed, uncompress_matrix_distributed2
+                                  uncompress_matrix_distributed, compress_matrix_distributed, uncompress_matrix_distributed2, &
+                                  transform_sparsity_pattern2, sparsemm_new, compress_matrix_distributed_new
           ! Calling arguments
           real(kind=8),dimension(tmb%linmat%l%nvctrp_tg),intent(inout) :: matrix_compr
 
           ! Local variables
           real(kind=8),dimension(:,:),pointer :: inv_ovrlpp, tempp
+          real(kind=8),dimension(:),pointer :: inv_ovrlpp_new, tempp_new
           integer,dimension(:,:),pointer :: onedimindices
           real(kind=8),dimension(:),allocatable :: inv_ovrlp_compr_seq, kernel_compr_seq
           integer,dimension(:,:,:),allocatable :: istindexarr
@@ -822,27 +824,62 @@ subroutine foe(iproc, nproc, tmprtr, &
 
           call f_routine(id='retransform')
 
-          inv_ovrlpp = sparsematrix_malloc_ptr(tmb%linmat%l, iaction=DENSE_MATMUL, id='inv_ovrlpp')
-          tempp = sparsematrix_malloc_ptr(tmb%linmat%l, iaction=DENSE_MATMUL, id='inv_ovrlpp')
+          !!inv_ovrlpp = sparsematrix_malloc_ptr(tmb%linmat%l, iaction=DENSE_MATMUL, id='inv_ovrlpp')
+          inv_ovrlpp_new = f_malloc_ptr(tmb%linmat%l%smmm%nvctrp, id='inv_ovrlpp_new')
+          !!tempp = sparsematrix_malloc_ptr(tmb%linmat%l, iaction=DENSE_MATMUL, id='tmpp')
+          tempp_new = f_malloc_ptr(tmb%linmat%l%smmm%nvctrp, id='tempp_new')
           inv_ovrlp_compr_seq = sparsematrix_malloc(tmb%linmat%l, iaction=SPARSEMM_SEQ, id='inv_ovrlp_compr_seq')
           kernel_compr_seq = sparsematrix_malloc(tmb%linmat%l, iaction=SPARSEMM_SEQ, id='inv_ovrlp_compr_seq')
           call sequential_acces_matrix_fast2(tmb%linmat%l, matrix_compr, kernel_compr_seq)
           call sequential_acces_matrix_fast2(tmb%linmat%l, &
                tmb%linmat%ovrlppowers_(2)%matrix_compr(ilshift2+1:), inv_ovrlp_compr_seq)
-          call uncompress_matrix_distributed2(iproc, tmb%linmat%l, DENSE_MATMUL, &
-               tmb%linmat%ovrlppowers_(2)%matrix_compr(ilshift2+1:), inv_ovrlpp)
+          !!call uncompress_matrix_distributed2(iproc, tmb%linmat%l, DENSE_MATMUL, &
+          !!     tmb%linmat%ovrlppowers_(2)%matrix_compr(ilshift2+1:), inv_ovrlpp)
+          !! write(*,*) 'sum(matrix_compr) 0', iproc, sum(tmb%linmat%ovrlppowers_(2)%matrix_compr(ilshift2+1:))
+          !!  write(*,*) 'tmb%linmat%l%nvctrp, tmb%linmat%l%smmm%nvctrp_mm', tmb%linmat%l%nvctrp, tmb%linmat%l%smmm%nvctrp_mm
+          !!  write(*,*) 'tmb%linmat%l%isvctr, tmb%linmat%l%smmm%isvctr_mm', tmb%linmat%l%isvctr, tmb%linmat%l%smmm%isvctr_mm
+          call transform_sparsity_pattern2(tmb%linmat%l%nfvctr, tmb%linmat%l%smmm%nvctrp_mm, tmb%linmat%l%smmm%isvctr_mm, &
+               tmb%linmat%l%nseg, tmb%linmat%l%keyv, tmb%linmat%l%keyg, &
+               tmb%linmat%l%smmm%nvctrp, tmb%linmat%l%smmm%isvctr, &
+               tmb%linmat%l%smmm%nseg, tmb%linmat%l%smmm%keyv, tmb%linmat%l%smmm%keyg, &
+               tmb%linmat%ovrlppowers_(2)%matrix_compr(ilshift2+tmb%linmat%l%smmm%isvctr_mm+1:), inv_ovrlpp_new)
+          !!  write(*,*) 'sum(matrix_compr) 1', iproc, sum(tmb%linmat%ovrlppowers_(2)%matrix_compr(ilshift2+1:))
+          !!  write(*,*) 'sum(inv_ovrlpp_new) 1', iproc, sum(inv_ovrlpp_new)
+          !!  write(*,*) 'sum(inv_ovrlpp) 1', iproc, sum(inv_ovrlpp)
 
-           tempp=0.d0
-          call sparsemm(tmb%linmat%l, kernel_compr_seq, inv_ovrlpp, tempp)
-          inv_ovrlpp=0.d0
-          call sparsemm(tmb%linmat%l, inv_ovrlp_compr_seq, tempp, inv_ovrlpp)
 
+            !!!!          call transform_sparsity_pattern(tmb%linmat%l%nfvctr, tmb%linmat%l%smmm%nvctrp_mm, tmb%linmat%l%smmm%isvctr_mm, &
+            !!!!               tmb%linmat%l%nseg, tmb%linmat%l%keyv, tmb%linmat%l%keyg, &
+            !!!!               tmb%linmat%l%smmm%nvctrp, tmb%linmat%l%smmm%isvctr, &
+            !!!!               tmb%linmat%l%smmm%nseg, tmb%linmat%l%smmm%keyv, tmb%linmat%l%smmm%keyg, &
+            !!!!               fermi_new, fermi_small_new)
+
+
+
+          !!call f_zero(tempp)
+          !!call sparsemm(tmb%linmat%l, kernel_compr_seq, inv_ovrlpp, tempp)
+          !!write(*,*) 'sum(tempp) 2',iproc, sum(tempp)
+          call sparsemm_new(tmb%linmat%l, kernel_compr_seq, inv_ovrlpp_new, tempp_new)
+          !!write(*,*) 'sum(tempp_new) 2',iproc, sum(tempp_new)
+          !!inv_ovrlpp=0.d0
+          !!call sparsemm(tmb%linmat%l, inv_ovrlp_compr_seq, tempp, inv_ovrlpp)
+          call sparsemm_new(tmb%linmat%l, inv_ovrlp_compr_seq, tempp_new, inv_ovrlpp_new)
+           !!write(*,*) 'sum(inv_ovrlpp) 3', iproc, sum(inv_ovrlpp)
+           !!write(*,*) 'sum(inv_ovrlpp_new) 3', iproc, sum(inv_ovrlpp_new)
+
+          !!call f_zero(matrix_compr)
+          !!call compress_matrix_distributed(iproc, nproc, tmb%linmat%l, DENSE_MATMUL, &
+          !!     inv_ovrlpp, matrix_compr)
+          !!  write(*,*) 'sum(matrix_compr) old', iproc, sum(matrix_compr)
           call f_zero(matrix_compr)
-          call compress_matrix_distributed(iproc, nproc, tmb%linmat%l, DENSE_MATMUL, &
-               inv_ovrlpp, matrix_compr)
+          call compress_matrix_distributed_new(iproc, nproc, tmb%linmat%l, DENSE_MATMUL, &
+               inv_ovrlpp_new, matrix_compr)
+            write(*,*) 'sum(matrix_compr) new', iproc, sum(matrix_compr)
 
-          call f_free_ptr(inv_ovrlpp)
-          call f_free_ptr(tempp)
+          !!call f_free_ptr(inv_ovrlpp)
+          !!call f_free_ptr(tempp)
+          call f_free_ptr(inv_ovrlpp_new)
+          call f_free_ptr(tempp_new)
           call f_free(inv_ovrlp_compr_seq)
           call f_free(kernel_compr_seq)
 
@@ -1553,49 +1590,49 @@ end subroutine compress_polynomial_vector_new
 
 
 
-subroutine uncompress_polynomial_vector(iproc, nproc, nsize_polynomial, &
-           fermi, vector_compressed, vector)
-  use module_base
-  use module_types
-  use sparsematrix_base, only: sparse_matrix
-  implicit none
-
-  ! Calling arguments
-  integer,intent(in) :: iproc, nproc, nsize_polynomial
-  type(sparse_matrix),intent(in) :: fermi
-  real(kind=8),dimension(nsize_polynomial),intent(in) :: vector_compressed
-  real(kind=8),dimension(fermi%nfvctr,fermi%smmm%nfvctrp),intent(out) :: vector
-
-  ! Local variables
-  integer :: isegstart, isegend, iseg, ii, jorb, iiorb, jjorb, iel
-
-
-  if (fermi%smmm%nfvctrp>0) then
-      call f_zero(vector)
-      !!$omp parallel do default(private) &
-      !!$omp shared(isegstart, isegend, fermi, vector, vector_compressed)
-      ii = 0
-      do iseg=fermi%smmm%isseg,fermi%smmm%ieseg
-          iel = fermi%keyv(iseg) - 1
-          !ii=fermi%keyv(iseg)-fermi%keyv(isegstart)
-          ! A segment is always on one line, therefore no double loop
-          do jorb=fermi%keyg(1,1,iseg),fermi%keyg(2,1,iseg)
-              iel = iel + 1
-              if (iel<fermi%smmm%isvctr_mm+1) cycle
-              if (iel>fermi%smmm%isvctr_mm+fermi%smmm%nvctrp_mm) exit
-              ii=ii+1
-              iiorb = fermi%keyg(1,2,iseg)
-              jjorb = jorb
-              vector(jjorb,iiorb-fermi%smmm%isfvctr)=vector_compressed(ii)
-              !write(*,*) 'ii, iiorb-fermi%isfvctr, jjorb', ii, iiorb-fermi%isfvctr, jjorb
-          end do
-      end do
-      !!$omp end parallel do
-  end if
-
-  if (ii/=nsize_polynomial) stop 'ERROR uncompress_polynomial_vector: ii/=nsize_polynomial'
-
-end subroutine uncompress_polynomial_vector
+!!subroutine uncompress_polynomial_vector(iproc, nproc, nsize_polynomial, &
+!!           fermi, vector_compressed, vector)
+!!  use module_base
+!!  use module_types
+!!  use sparsematrix_base, only: sparse_matrix
+!!  implicit none
+!!
+!!  ! Calling arguments
+!!  integer,intent(in) :: iproc, nproc, nsize_polynomial
+!!  type(sparse_matrix),intent(in) :: fermi
+!!  real(kind=8),dimension(nsize_polynomial),intent(in) :: vector_compressed
+!!  real(kind=8),dimension(fermi%nfvctr,fermi%smmm%nfvctrp),intent(out) :: vector
+!!
+!!  ! Local variables
+!!  integer :: isegstart, isegend, iseg, ii, jorb, iiorb, jjorb, iel
+!!
+!!
+!!  if (fermi%smmm%nfvctrp>0) then
+!!      call f_zero(vector)
+!!      !!$omp parallel do default(private) &
+!!      !!$omp shared(isegstart, isegend, fermi, vector, vector_compressed)
+!!      ii = 0
+!!      do iseg=fermi%smmm%isseg,fermi%smmm%ieseg
+!!          iel = fermi%keyv(iseg) - 1
+!!          !ii=fermi%keyv(iseg)-fermi%keyv(isegstart)
+!!          ! A segment is always on one line, therefore no double loop
+!!          do jorb=fermi%keyg(1,1,iseg),fermi%keyg(2,1,iseg)
+!!              iel = iel + 1
+!!              if (iel<fermi%smmm%isvctr_mm+1) cycle
+!!              if (iel>fermi%smmm%isvctr_mm+fermi%smmm%nvctrp_mm) exit
+!!              ii=ii+1
+!!              iiorb = fermi%keyg(1,2,iseg)
+!!              jjorb = jorb
+!!              vector(jjorb,iiorb-fermi%smmm%isfvctr)=vector_compressed(ii)
+!!              !write(*,*) 'ii, iiorb-fermi%isfvctr, jjorb', ii, iiorb-fermi%isfvctr, jjorb
+!!          end do
+!!      end do
+!!      !!$omp end parallel do
+!!  end if
+!!
+!!  if (ii/=nsize_polynomial) stop 'ERROR uncompress_polynomial_vector: ii/=nsize_polynomial'
+!!
+!!end subroutine uncompress_polynomial_vector
 
 
 !< Calculates the trace of the matrix product amat*bmat.
@@ -2062,7 +2099,7 @@ subroutine ice(iproc, nproc, norder_polynomial, ovrlp_smat, inv_ovrlp_smat, ncal
 
       end do spin_loop
 
-  call f_free_ptr(inv_ovrlp_matrixp)
+  !call f_free_ptr(inv_ovrlp_matrixp)
   call f_free(inv_ovrlp_matrixp_small_new)
   call f_free(inv_ovrlp_matrixp_new)
   call f_free(chebyshev_polynomials)
@@ -2358,7 +2395,7 @@ subroutine check_eigenvalue_spectrum_new(nproc, smat_l, smat_s, mat, ispin, issh
                   tt=mat%matrix_compr(isshift+iismall-smat_s%isvctrp_tg)
               else
                   ! Take the trace of the matrix alone, i.e. set the second matrix to the identity
-                  if (irow==icol) then
+                  if (iline==icolumn) then
                       tt=1.d0
                   else
                       tt=0.d0

@@ -311,7 +311,7 @@ module chebyshev
                   !!     kernel%smmm%nout, kernel%smmm%onedimindices, &
                   !!     cc(2,1,icalc), vectors(1,1,2), fermi(:,1,icalc))
                   call daxpy(kernel%smmm%nvctrp, cc(2,1,icalc), vectors_new(1,2), 1, fermi_new(1,icalc), 1)
-                  write(*,*) 'sum(fermi_new(:,icalc)) 2',sum(fermi_new(:,icalc))
+                  !!write(*,*) 'sum(fermi_new(:,icalc)) 2',sum(fermi_new(:,icalc))
                   !!do i=1,kernel%smmm%nfvctrp
                   !!    do j=1,kernel%nfvctr
                   !!        write(750,*) 'i, j, vals', vectors(j,i,2), fermi(j,i,icalc)
