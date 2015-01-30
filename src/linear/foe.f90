@@ -574,7 +574,6 @@ subroutine foe(iproc, nproc, tmprtr, &
           ! Calculate S^-1/2 * K * S^-1/2^T
           ! Since S^-1/2 is symmetric, don't use the transpose
           !call retransform(tmb%linmat%kernel_%matrix_compr(ilshift+1:))
-          write(*,*) 'ilshift2',ilshift2
           call retransform_ext(iproc, nproc, tmb%linmat%l, &
                tmb%linmat%ovrlppowers_(2)%matrix_compr(ilshift2+1), tmb%linmat%kernel_%matrix_compr(ilshift+1))
 
@@ -2432,9 +2431,9 @@ subroutine check_eigenvalue_spectrum_new(nproc, smat_l, smat_s, mat, ispin, issh
   allredarr=abs(allredarr) !for some crazy situations this may be negative
   noise=1000.d0*anoise
 
-  if (bigdft_mpi%iproc==0) then
-      call yaml_map('errors, noise',(/allredarr(1),allredarr(2),noise/),fmt='(es12.4)')
-  end if
+  !if (bigdft_mpi%iproc==0) then
+  !    call yaml_map('errors, noise',(/allredarr(1),allredarr(2),noise/),fmt='(es12.4)')
+  !end if
   !write(*,*) 'allredarr, anoise', allredarr, anoise
   if (allredarr(1)>noise) then
       eval_bounds_ok(1)=.false.

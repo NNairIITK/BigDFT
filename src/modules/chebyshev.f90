@@ -175,7 +175,7 @@ module chebyshev
               call get_line_and_column(ii, kernel%smmm%nseg, kernel%smmm%keyv, kernel%smmm%keyg, iline, icolumn)
               matrix(icolumn,iline-kernel%smmm%isfvctr) = matrix_new(i)
           end do
-      write(*,*) 'sum(matrix)', sum(matrix)
+      !!write(*,*) 'sum(matrix)', sum(matrix)
       !!do i=1,size(matrix,2)
       !!  do j=1,size(matrix,1)
       !!    write(800,*) 'i, j, val', i, j, matrix(j,i)
