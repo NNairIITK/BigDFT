@@ -749,58 +749,58 @@ module sparsematrix
 
      if (data_strategy==GLOBAL_MATRIX) then
          stop 'compress_matrix_distributed: option GLOBAL_MATRIX is deprecated'
-         !call to_zero(smat%nvctr, matrix_compr(1))
-         if (nproc>1) then
-             matrix_local = f_malloc0_ptr(max(1,nvctrp),id='matrix_local')
-         else
-             matrix_local => matrix_compr
-         end if
+         !!!call to_zero(smat%nvctr, matrix_compr(1))
+         !!if (nproc>1) then
+         !!    matrix_local = f_malloc0_ptr(max(1,nvctrp),id='matrix_local')
+         !!else
+         !!    matrix_local => matrix_compr
+         !!end if
 
-         if (nfvctrp>0) then
-             isegstart=smat%istsegline(isfvctr+1)
-             isegend=smat%istsegline(isfvctr+nfvctrp)+smat%nsegline(isfvctr+nfvctrp)-1
-             !!if (isfvctr+nfvctrp<smat%nfvctr) then
-             !!    isegend=smat%istsegline(smat%isfvctr_par(iproc+1)+1)-1
-             !!else
-             !!    isegend=smat%nseg
-             !!end if
-             !$omp parallel default(none) &
-             !$omp shared(isegstart, isegend, matrixp, smat, matrix_local, isvctr, isfvctr) &
-             !$omp private(iseg, ii, jorb, iiorb, jjorb)
-             !$omp do
-             do iseg=isegstart,isegend
-                 ii=smat%keyv(iseg)-1
-                 ! A segment is always on one line, therefore no double loop
-                 do jorb=smat%keyg(1,1,iseg),smat%keyg(2,1,iseg)
-                     ii=ii+1
-                     iiorb = smat%keyg(1,2,iseg)
-                     jjorb = jorb
-                     matrix_local(ii-isvctr)=matrixp(jjorb,iiorb-isfvctr)
-                 end do
-             end do
-             !$omp end do
-             !$omp end parallel
-         end if
+         !!if (nfvctrp>0) then
+         !!    isegstart=smat%istsegline(isfvctr+1)
+         !!    isegend=smat%istsegline(isfvctr+nfvctrp)+smat%nsegline(isfvctr+nfvctrp)-1
+         !!    !!if (isfvctr+nfvctrp<smat%nfvctr) then
+         !!    !!    isegend=smat%istsegline(smat%isfvctr_par(iproc+1)+1)-1
+         !!    !!else
+         !!    !!    isegend=smat%nseg
+         !!    !!end if
+         !!    !$omp parallel default(none) &
+         !!    !$omp shared(isegstart, isegend, matrixp, smat, matrix_local, isvctr, isfvctr) &
+         !!    !$omp private(iseg, ii, jorb, iiorb, jjorb)
+         !!    !$omp do
+         !!    do iseg=isegstart,isegend
+         !!        ii=smat%keyv(iseg)-1
+         !!        ! A segment is always on one line, therefore no double loop
+         !!        do jorb=smat%keyg(1,1,iseg),smat%keyg(2,1,iseg)
+         !!            ii=ii+1
+         !!            iiorb = smat%keyg(1,2,iseg)
+         !!            jjorb = jorb
+         !!            matrix_local(ii-isvctr)=matrixp(jjorb,iiorb-isfvctr)
+         !!        end do
+         !!    end do
+         !!    !$omp end do
+         !!    !$omp end parallel
+         !!end if
 
-         call timing(iproc,'compressd_mcpy','OF')
-         call timing(iproc,'compressd_comm','ON')
-         if (bigdft_mpi%nproc>1) then
-             if (comm_strategy==ALLGATHERV) then
-                 !call mpiallred(matrix_compr(1), smat%nvctr, mpi_sum, bigdft_mpi%mpi_comm)
-                 call mpi_allgatherv(matrix_local(1), nvctrp, mpi_double_precision, &
-                      matrix_compr(1), nvctr_par, isvctr_par, mpi_double_precision, &
-                      bigdft_mpi%mpi_comm, ierr)
-                 call f_free_ptr(matrix_local)
-             else if (comm_strategy==GET) then
-                 !!call mpiget(iproc, nproc, bigdft_mpi%mpi_comm, nvctrp, matrix_local, &
-                 !!     nvctr_par, isvctr_par, smat%nvctr, matrix_compr)
-                 call mpi_get_to_allgatherv(matrix_local(1), nvctrp, matrix_compr(1), &
-                      nvctr_par, isvctr_par, bigdft_mpi%mpi_comm)
-             else
-                 stop 'compress_matrix_distributed: wrong communication strategy'
-             end if
-             call f_free_ptr(matrix_local)
-         end if
+         !!call timing(iproc,'compressd_mcpy','OF')
+         !!call timing(iproc,'compressd_comm','ON')
+         !!if (bigdft_mpi%nproc>1) then
+         !!    if (comm_strategy==ALLGATHERV) then
+         !!        !call mpiallred(matrix_compr(1), smat%nvctr, mpi_sum, bigdft_mpi%mpi_comm)
+         !!        call mpi_allgatherv(matrix_local(1), nvctrp, mpi_double_precision, &
+         !!             matrix_compr(1), nvctr_par, isvctr_par, mpi_double_precision, &
+         !!             bigdft_mpi%mpi_comm, ierr)
+         !!        call f_free_ptr(matrix_local)
+         !!    else if (comm_strategy==GET) then
+         !!        !!call mpiget(iproc, nproc, bigdft_mpi%mpi_comm, nvctrp, matrix_local, &
+         !!        !!     nvctr_par, isvctr_par, smat%nvctr, matrix_compr)
+         !!        call mpi_get_to_allgatherv(matrix_local(1), nvctrp, matrix_compr(1), &
+         !!             nvctr_par, isvctr_par, bigdft_mpi%mpi_comm)
+         !!    else
+         !!        stop 'compress_matrix_distributed: wrong communication strategy'
+         !!    end if
+         !!    call f_free_ptr(matrix_local)
+         !!end if
      else if (data_strategy==SUBMATRIX) then
          if (layout==DENSE_PARALLEL) then
                  !call to_zero(smat%nvctrp_tg, matrix_compr(1))
@@ -1180,14 +1180,19 @@ module sparsematrix
              !!    end do
              !!    if (ii/=smat%smmm%nvctrp_mm) stop 'compress_matrix_distributed: ii/=smat%smmm%nvctrp_mm'
              !!end if
-             do i=1,smat%smmm%nvctrp_mm
-                 ii = smat%smmm%isvctr_mm + i
-                 call get_line_and_column(ii, smat%nseg, smat%keyv, smat%keyg, iline, icolumn)
-                 ind = matrixindex_in_compressed_fn(icolumn, iline, smat%nfvctr, &
-                       smat%smmm%nseg, smat%smmm%keyv, smat%smmm%keyg)
-                 ind = ind - smat%smmm%isvctr
-                 matrix_local(i) = matrixp(ind)
-             end do
+             !!#do i=1,smat%smmm%nvctrp_mm
+             !!#    ii = smat%smmm%isvctr_mm + i
+             !!#    call get_line_and_column(ii, smat%nseg, smat%keyv, smat%keyg, iline, icolumn)
+             !!#    ind = matrixindex_in_compressed_fn(icolumn, iline, smat%nfvctr, &
+             !!#          smat%smmm%nseg, smat%smmm%keyv, smat%smmm%keyg)
+             !!#    ind = ind - smat%smmm%isvctr
+             !!#    matrix_local(i) = matrixp(ind)
+             !!#end do
+             call transform_sparsity_pattern(smat%nfvctr, smat%smmm%nvctrp_mm, smat%smmm%isvctr_mm, &
+                  smat%nseg, smat%keyv, smat%keyg, &
+                  smat%smmm%nvctrp, smat%smmm%isvctr, &
+                  smat%smmm%nseg, smat%smmm%keyv, smat%smmm%keyg, &
+                  matrixp, matrix_local)
 
              call timing(iproc,'compressd_mcpy','OF')
              call timing(iproc,'compressd_comm','ON')
@@ -1253,43 +1258,43 @@ module sparsematrix
      contains
 
 
-        ! Function that gives the index of the matrix element (jjorb,iiorb) in the compressed format.
-        ! Cannot use the standard function since that one requires a type
-        ! sparse_matrix as argument.
-        integer function matrixindex_in_compressed_fn(irow, jcol, norb, nseg, keyv, keyg) result(micf)
-          implicit none
+        !!@! Function that gives the index of the matrix element (jjorb,iiorb) in the compressed format.
+        !!@! Cannot use the standard function since that one requires a type
+        !!@! sparse_matrix as argument.
+        !!@integer function matrixindex_in_compressed_fn(irow, jcol, norb, nseg, keyv, keyg) result(micf)
+        !!@  implicit none
 
-          ! Calling arguments
-          integer,intent(in) :: irow, jcol, norb, nseg
-          integer,dimension(nseg),intent(in) :: keyv
-          integer,dimension(2,2,nseg),intent(in) :: keyg
+        !!@  ! Calling arguments
+        !!@  integer,intent(in) :: irow, jcol, norb, nseg
+        !!@  integer,dimension(nseg),intent(in) :: keyv
+        !!@  integer,dimension(2,2,nseg),intent(in) :: keyg
 
-          ! Local variables
-          integer(kind=8) :: ii, istart, iend
-          integer :: iseg
+        !!@  ! Local variables
+        !!@  integer(kind=8) :: ii, istart, iend
+        !!@  integer :: iseg
 
-          ii = int((jcol-1),kind=8)*int(norb,kind=8)+int(irow,kind=8)
+        !!@  ii = int((jcol-1),kind=8)*int(norb,kind=8)+int(irow,kind=8)
 
-          do iseg=1,nseg
-              istart = int((keyg(1,2,iseg)-1),kind=8)*int(norb,kind=8) + &
-                       int(keyg(1,1,iseg),kind=8)
-              iend = int((keyg(2,2,iseg)-1),kind=8)*int(norb,kind=8) + &
-                     int(keyg(2,1,iseg),kind=8)
-              if (ii>=istart .and. ii<=iend) then
-                  ! The matrix element is in this segment
-                   micf = keyv(iseg) + int(ii-istart,kind=4)
-                  return
-              end if
-              if (ii<istart) then
-                  micf=0
-                  return
-              end if
-          end do
+        !!@  do iseg=1,nseg
+        !!@      istart = int((keyg(1,2,iseg)-1),kind=8)*int(norb,kind=8) + &
+        !!@               int(keyg(1,1,iseg),kind=8)
+        !!@      iend = int((keyg(2,2,iseg)-1),kind=8)*int(norb,kind=8) + &
+        !!@             int(keyg(2,1,iseg),kind=8)
+        !!@      if (ii>=istart .and. ii<=iend) then
+        !!@          ! The matrix element is in this segment
+        !!@           micf = keyv(iseg) + int(ii-istart,kind=4)
+        !!@          return
+        !!@      end if
+        !!@      if (ii<istart) then
+        !!@          micf=0
+        !!@          return
+        !!@      end if
+        !!@  end do
 
-          ! Not found
-          micf=0
+        !!@  ! Not found
+        !!@  micf=0
 
-        end function matrixindex_in_compressed_fn
+        !!@end function matrixindex_in_compressed_fn
 
 
        !> Get the taskgroup which should be used for the communication, i.e. the
@@ -2190,5 +2195,73 @@ module sparsematrix
     
     end subroutine write_sparsematrix_CCS
 
+
+    !> Transform a matrix from a large parsity pattern *_l to a small sparsity pattern *_s.
+    !! The small pattern must be contained within the large one.
+    subroutine transform_sparsity_pattern(nfvctr, nvctrp_s, isvctr_s, nseg_s, keyv_s, keyg_s, &
+               nvctrp_l, isvctr_l, nseg_l, keyv_l, keyg_l, matrix_l, matrix_s)
+      use sparsematrix_init, only: get_line_and_column
+      implicit none
+      ! Calling arguments
+      integer,intent(in) :: nfvctr, nvctrp_s, isvctr_s, nseg_s, nvctrp_l, isvctr_l, nseg_l
+      integer,dimension(nseg_s),intent(in) :: keyv_s
+      integer,dimension(2,2,nseg_s),intent(in) :: keyg_s
+      integer,dimension(nseg_l),intent(in) :: keyv_l
+      integer,dimension(2,2,nseg_l),intent(in) :: keyg_l
+      real(kind=8),dimension(nvctrp_l),intent(in) :: matrix_l
+      real(kind=8),dimension(nvctrp_s),intent(out) :: matrix_s
+      ! Local variables
+      integer :: i, ii, ind, iline, icolumn
+
+        do i=1,nvctrp_s
+            ii = isvctr_s + i
+            call get_line_and_column(ii, nseg_s, keyv_s, keyg_s, iline, icolumn)
+            ind = matrixindex_in_compressed_fn(icolumn, iline, nfvctr, &
+                  nseg_l, keyv_l, keyg_l)
+            ind = ind - isvctr_l
+            matrix_s(i) = matrix_l(ind)
+        end do
+
+        contains
+
+        ! Function that gives the index of the matrix element (jjorb,iiorb) in the compressed format.
+        ! Cannot use the standard function since that one requires a type
+        ! sparse_matrix as argument.
+        integer function matrixindex_in_compressed_fn(irow, jcol, norb, nseg, keyv, keyg) result(micf)
+          implicit none
+
+          ! Calling arguments
+          integer,intent(in) :: irow, jcol, norb, nseg
+          integer,dimension(nseg),intent(in) :: keyv
+          integer,dimension(2,2,nseg),intent(in) :: keyg
+
+          ! Local variables
+          integer(kind=8) :: ii, istart, iend
+          integer :: iseg
+
+          ii = int((jcol-1),kind=8)*int(norb,kind=8)+int(irow,kind=8)
+
+          do iseg=1,nseg
+              istart = int((keyg(1,2,iseg)-1),kind=8)*int(norb,kind=8) + &
+                       int(keyg(1,1,iseg),kind=8)
+              iend = int((keyg(2,2,iseg)-1),kind=8)*int(norb,kind=8) + &
+                     int(keyg(2,1,iseg),kind=8)
+              if (ii>=istart .and. ii<=iend) then
+                  ! The matrix element is in this segment
+                   micf = keyv(iseg) + int(ii-istart,kind=4)
+                  return
+              end if
+              if (ii<istart) then
+                  micf=0
+                  return
+              end if
+          end do
+
+          ! Not found
+          micf=0
+
+        end function matrixindex_in_compressed_fn
+
+    end subroutine transform_sparsity_pattern
 
 end module sparsematrix
