@@ -1687,7 +1687,8 @@ subroutine ice(iproc, nproc, norder_polynomial, ovrlp_smat, inv_ovrlp_smat, ncal
                                SPARSE_FULL, DENSE_FULL, DENSE_MATMUL, SPARSEMM_SEQ, SPARSE_TASKGROUP, &
                                matrices
   use sparsematrix_init, only: matrixindex_in_compressed, get_line_and_column
-  use sparsematrix, only: compress_matrix, uncompress_matrix, compress_matrix_distributed, orb_from_index
+  use sparsematrix, only: compress_matrix, uncompress_matrix, compress_matrix_distributed, orb_from_index, &
+                          compress_matrix_distributed_new2, transform_sparsity_pattern
   use foe_base, only: foe_data, foe_data_set_int, foe_data_get_int, foe_data_set_real, foe_data_get_real, &
                       foe_data_set_logical, foe_data_get_logical
   use fermi_level, only: fermi_aux, init_fermi_level, determine_fermi_level, &
@@ -1730,7 +1731,9 @@ subroutine ice(iproc, nproc, norder_polynomial, ovrlp_smat, inv_ovrlp_smat, ncal
   real(kind=8),dimension(:),allocatable :: eval, work
   real(kind=8),dimension(:,:),allocatable :: tempmat
   integer :: lwork, info, j, icalc, iline, icolumn
-  real(kind=8),dimension(:,:),allocatable :: inv_ovrlp_matrixp_new, penalty_ev_new
+  real(kind=8),dimension(:,:),allocatable :: inv_ovrlp_matrixp_new
+  real(kind=8),dimension(:,:),allocatable :: penalty_ev_new
+  real(kind=8),dimension(:,:),allocatable :: inv_ovrlp_matrixp_small_new
 
   !!real(kind=8),dimension(ovrlp_smat%nfvctr,ovrlp_smat%nfvctr) :: overlap
   !!real(kind=8),dimension(ovrlp_smat%nfvctr) :: eval
@@ -1742,7 +1745,8 @@ subroutine ice(iproc, nproc, norder_polynomial, ovrlp_smat, inv_ovrlp_smat, ncal
 
 
   penalty_ev_new = f_malloc((/inv_ovrlp_smat%smmm%nvctrp,2/),id='penalty_ev_new')
-  inv_ovrlp_matrixp_new = f_malloc((/inv_ovrlp_smat%smmm%nvctrp/),id='inv_ovrlp_matrixp_new')
+  inv_ovrlp_matrixp_new = f_malloc((/inv_ovrlp_smat%smmm%nvctrp,ncalc/),id='inv_ovrlp_matrixp_new')
+  inv_ovrlp_matrixp_small_new = f_malloc((/inv_ovrlp_smat%smmm%nvctrp_mm,ncalc/),id='inv_ovrlp_matrixp_small_new')
 
 
 !@ JUST FOR THE MOMENT.... ########################
@@ -1808,7 +1812,7 @@ subroutine ice(iproc, nproc, norder_polynomial, ovrlp_smat, inv_ovrlp_smat, ncal
 
 
 
-  penalty_ev = f_malloc((/inv_ovrlp_smat%nfvctr,inv_ovrlp_smat%smmm%nfvctrp,2/),id='penalty_ev')
+  !!penalty_ev = f_malloc((/inv_ovrlp_smat%nfvctr,inv_ovrlp_smat%smmm%nfvctrp,2/),id='penalty_ev')
 
 
   hamscal_compr = sparsematrix_malloc(inv_ovrlp_smat, iaction=SPARSE_TASKGROUP, id='hamscal_compr')
@@ -1824,8 +1828,8 @@ subroutine ice(iproc, nproc, norder_polynomial, ovrlp_smat, inv_ovrlp_smat, ncal
 
   !inv_ovrlp_matrixp = sparsematrix_malloc0_ptr(inv_ovrlp_smat, &
   !                         iaction=DENSE_MATMUL, id='inv_ovrlp_matrixp')
-  inv_ovrlp_matrixp = f_malloc_ptr((/inv_ovrlp_smat%nfvctr,inv_ovrlp_smat%smmm%nfvctrp,ncalc/),&
-                                    id='inv_ovrlp_matrixp')
+  !!inv_ovrlp_matrixp = f_malloc_ptr((/inv_ovrlp_smat%nfvctr,inv_ovrlp_smat%smmm%nfvctrp,ncalc/),&
+  !!                                  id='inv_ovrlp_matrixp')
 
 
       spin_loop: do ispin=1,ovrlp_smat%nspin
@@ -1848,7 +1852,7 @@ subroutine ice(iproc, nproc, norder_polynomial, ovrlp_smat, inv_ovrlp_smat, ncal
           !if (inv_ovrlp_smat%smmm%nfvctrp>0) then !LG: this conditional seems decorrelated
           !call f_zero(inv_ovrlp_smat%nfvctr*inv_ovrlp_smat%smmm%nfvctrp*ncalc, inv_ovrlp_matrixp(1,1,1))
           !end if
-              call f_zero(inv_ovrlp_matrixp)
+          !!    call f_zero(inv_ovrlp_matrixp)
               
         
               it=0
@@ -1952,26 +1956,32 @@ subroutine ice(iproc, nproc, norder_polynomial, ovrlp_smat, inv_ovrlp_smat, ncal
                            inv_ovrlp(1)%matrix_compr(ilshift2+1:), .false., &
                            nsize_polynomial, ncalc, inv_ovrlp_matrixp_new, penalty_ev_new, chebyshev_polynomials, &
                            emergency_stop)
+                      call transform_sparsity_pattern(inv_ovrlp_smat%nfvctr, inv_ovrlp_smat%smmm%nvctrp_mm, inv_ovrlp_smat%smmm%isvctr_mm, &
+                           inv_ovrlp_smat%nseg, inv_ovrlp_smat%keyv, inv_ovrlp_smat%keyg, &
+                           inv_ovrlp_smat%smmm%nvctrp, inv_ovrlp_smat%smmm%isvctr, &
+                           inv_ovrlp_smat%smmm%nseg, inv_ovrlp_smat%smmm%keyv, inv_ovrlp_smat%smmm%keyg, &
+                           inv_ovrlp_matrixp_new, inv_ovrlp_matrixp_small_new)
+
                        !write(*,'(a,i5,2es24.8)') 'iproc, sum(inv_ovrlp_matrixp(:,:,1:2)', (sum(inv_ovrlp_matrixp(:,:,icalc)),icalc=1,ncalc)
-                      do i=1,inv_ovrlp_smat%smmm%nvctrp
-                          ii = inv_ovrlp_smat%smmm%isvctr + i
-                          call get_line_and_column(ii, inv_ovrlp_smat%smmm%nseg, inv_ovrlp_smat%smmm%keyv, inv_ovrlp_smat%smmm%keyg, iline, icolumn)
-                          do icalc=1,ncalc
-                              inv_ovrlp_matrixp(icolumn,iline-inv_ovrlp_smat%smmm%isfvctr,icalc) = inv_ovrlp_matrixp_new(i,icalc)
-                          end do
-                          penalty_ev(icolumn,iline-inv_ovrlp_smat%smmm%isfvctr,1) = penalty_ev_new(i,1)
-                          penalty_ev(icolumn,iline-inv_ovrlp_smat%smmm%isfvctr,2) = penalty_ev_new(i,2)
-                      end do
+                      !!do i=1,inv_ovrlp_smat%smmm%nvctrp
+                      !!    ii = inv_ovrlp_smat%smmm%isvctr + i
+                      !!    call get_line_and_column(ii, inv_ovrlp_smat%smmm%nseg, inv_ovrlp_smat%smmm%keyv, inv_ovrlp_smat%smmm%keyg, iline, icolumn)
+                      !!    do icalc=1,ncalc
+                      !!        inv_ovrlp_matrixp(icolumn,iline-inv_ovrlp_smat%smmm%isfvctr,icalc) = inv_ovrlp_matrixp_new(i,icalc)
+                      !!    end do
+                      !!    !!penalty_ev(icolumn,iline-inv_ovrlp_smat%smmm%isfvctr,1) = penalty_ev_new(i,1)
+                      !!    !!penalty_ev(icolumn,iline-inv_ovrlp_smat%smmm%isfvctr,2) = penalty_ev_new(i,2)
+                      !!end do
                   else
                       ! The Chebyshev polynomials are already available
                       !if (foe_verbosity>=1 .and. iproc==0) call yaml_map('polynomials','from memory')
                       call chebyshev_fast(iproc, nproc, nsize_polynomial, npl, &
                            inv_ovrlp_smat%nfvctr, inv_ovrlp_smat%smmm%nfvctrp, &
                            inv_ovrlp_smat, chebyshev_polynomials, ncalc, cc, inv_ovrlp_matrixp_new)
-                      do icalc=1,ncalc
-                          call uncompress_polynomial_vector(iproc, nproc, nsize_polynomial, &
-                               inv_ovrlp_smat, inv_ovrlp_matrixp_new, inv_ovrlp_matrixp(:,:,icalc))
-                      end do
+                      !!do icalc=1,ncalc
+                      !!    call uncompress_polynomial_vector(iproc, nproc, nsize_polynomial, &
+                      !!         inv_ovrlp_smat, inv_ovrlp_matrixp_new, inv_ovrlp_matrixp(:,:,icalc))
+                      !!end do
                   end if 
     
     
@@ -1998,8 +2008,11 @@ subroutine ice(iproc, nproc, norder_polynomial, ovrlp_smat, inv_ovrlp_smat, ncal
                   ! (otherwise this has already been checked in the previous iteration).
                   if (calculate_SHS) then
                       !call check_eigenvalue_spectrum()
-                      call check_eigenvalue_spectrum(nproc, inv_ovrlp_smat, ovrlp_smat, ovrlp_mat, 1, &
-                           0, 1.2d0, 1.d0/1.2d0, penalty_ev, anoise, .false., emergency_stop, &
+                      !!call check_eigenvalue_spectrum(nproc, inv_ovrlp_smat, ovrlp_smat, ovrlp_mat, 1, &
+                      !!     0, 1.2d0, 1.d0/1.2d0, penalty_ev, anoise, .false., emergency_stop, &
+                      !!     foe_obj, restart, eval_bounds_ok)
+                      call check_eigenvalue_spectrum_new(nproc, inv_ovrlp_smat, ovrlp_smat, ovrlp_mat, 1, &
+                           0, 1.2d0, 1.d0/1.2d0, penalty_ev_new, anoise, .false., emergency_stop, &
                            foe_obj, restart, eval_bounds_ok)
                   end if
         
@@ -2028,7 +2041,9 @@ subroutine ice(iproc, nproc, norder_polynomial, ovrlp_smat, inv_ovrlp_smat, ncal
         
     
           do icalc=1,ncalc
-              call compress_matrix_distributed(iproc, nproc, inv_ovrlp_smat, DENSE_MATMUL, inv_ovrlp_matrixp(1:,1:,icalc), &
+              !!call compress_matrix_distributed(iproc, nproc, inv_ovrlp_smat, DENSE_MATMUL, inv_ovrlp_matrixp(1:,1:,icalc), &
+              !!     inv_ovrlp(icalc)%matrix_compr(ilshift2+1:))
+              call compress_matrix_distributed_new2(iproc, nproc, inv_ovrlp_smat, DENSE_MATMUL, inv_ovrlp_matrixp_small_new(:,icalc), &
                    inv_ovrlp(icalc)%matrix_compr(ilshift2+1:))
           end do
     
@@ -2036,8 +2051,10 @@ subroutine ice(iproc, nproc, norder_polynomial, ovrlp_smat, inv_ovrlp_smat, ncal
       end do spin_loop
 
   call f_free_ptr(inv_ovrlp_matrixp)
+  call f_free(inv_ovrlp_matrixp_small_new)
+  call f_free(inv_ovrlp_matrixp_new)
   call f_free(chebyshev_polynomials)
-  call f_free(penalty_ev)
+  !!call f_free(penalty_ev)
   call f_free(hamscal_compr)
 
   call f_free_ptr(foe_obj%ef)
