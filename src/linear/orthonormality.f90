@@ -490,7 +490,7 @@ subroutine overlapPowerGeneral(iproc, nproc, iorder, ncalc, power, blocksize, im
                           uncompress_matrix_distributed, uncompress_matrix_distributed2, &
                           sequential_acces_matrix_fast2, sequential_acces_matrix_fast, &
                           sparsemm, gather_matrix_from_taskgroups, gather_matrix_from_taskgroups_inplace, &
-                          uncompress_matrix2
+                          uncompress_matrix2, transform_sparsity_pattern2
   use yaml_output
   implicit none
   
@@ -531,6 +531,7 @@ subroutine overlapPowerGeneral(iproc, nproc, iorder, ncalc, power, blocksize, im
   integer,parameter :: DENSE=2
   real(kind=8) :: ex, max_error_p, mean_error_p
   real(kind=8),dimension(:),allocatable :: factor_arr
+  real(kind=8),dimension(:),allocatable :: ovrlp_largep_new, invovrlpp_new
 
 
   !!write(*,*) 'iorder',iorder
@@ -1184,6 +1185,7 @@ subroutine overlapPowerGeneral(iproc, nproc, iorder, ncalc, power, blocksize, im
       if (check_accur) then
           ! HERE STARTS LINEAR CHECK ##########################
           invovrlpp = sparsematrix_malloc(inv_ovrlp_smat, iaction=DENSE_MATMUL, id='invovrlpp')
+          invovrlpp_new = f_malloc(inv_ovrlp_smat%smmm%nvctrp, id='invovrlpp_new')
           !!if (iorder<1 .or. iorder>=1000) then
               ovrlp_large_compr = sparsematrix_malloc(inv_ovrlp_smat, iaction=SPARSE_TASKGROUP, id='ovrlp_large_compr')
               call transform_sparse_matrix_local(ovrlp_smat, inv_ovrlp_smat, &
@@ -1191,6 +1193,7 @@ subroutine overlapPowerGeneral(iproc, nproc, iorder, ncalc, power, blocksize, im
           !!end if
           invovrlp_compr_seq = sparsematrix_malloc(inv_ovrlp_smat, iaction=SPARSEMM_SEQ, id='ovrlp_large_compr_seq')
           ovrlp_largep = sparsematrix_malloc(inv_ovrlp_smat, iaction=DENSE_MATMUL, id='ovrlp_largep')
+          ovrlp_largep_new = f_malloc(inv_ovrlp_smat%smmm%nvctrp,id='ovrlp_largep')
 
           if (iproc==0) then
               call yaml_newline()
@@ -1204,41 +1207,57 @@ subroutine overlapPowerGeneral(iproc, nproc, iorder, ncalc, power, blocksize, im
                   call timing(iproc,'lovrlp^-1     ','OF')
                   call uncompress_matrix_distributed2(iproc, inv_ovrlp_smat, &
                        DENSE_MATMUL, ovrlp_large_compr(ilshift+1), ovrlp_largep)
+                  call transform_sparsity_pattern2(inv_ovrlp_smat%nfvctr, inv_ovrlp_smat%smmm%nvctrp_mm, inv_ovrlp_smat%smmm%isvctr_mm, &
+                           inv_ovrlp_smat%nseg, inv_ovrlp_smat%keyv, inv_ovrlp_smat%keyg, &
+                           inv_ovrlp_smat%smmm%nvctrp, inv_ovrlp_smat%smmm%isvctr, &
+                           inv_ovrlp_smat%smmm%nseg, inv_ovrlp_smat%smmm%keyv, inv_ovrlp_smat%smmm%keyg, &
+                           ovrlp_large_compr(ilshift+inv_ovrlp_smat%smmm%isvctr_mm+1), ovrlp_largep_new)
+
                   call timing(iproc,'lovrlp^-1     ','ON')
                   call sequential_acces_matrix_fast2(inv_ovrlp_smat, &
                        inv_ovrlp_mat(icalc)%matrix_compr(ilshift2+1:), invovrlp_compr_seq)
                   !!write(*,*) 'sum(inv_ovrlp_mat(1)%matrix_compr(ilshift+1:ilshift+inv_ovrlp_smat%nvctr)', sum(inv_ovrlp_mat(1)%matrix_compr(ilshift+1:ilshift+inv_ovrlp_smat%nvctr))
 
                   if (power(icalc)==1) then
-                      call check_accur_overlap_minus_one_sparse(iproc, nproc, inv_ovrlp_smat, ovrlp_smat%nfvctr, &
+                      call check_accur_overlap_minus_one_sparse_new(iproc, nproc, inv_ovrlp_smat, ovrlp_smat%nfvctr, &
                            inv_ovrlp_smat%smmm%nfvctrp, inv_ovrlp_smat%smmm%isfvctr, &
                            inv_ovrlp_smat%smmm%nseq, inv_ovrlp_smat%smmm%nout, &
                            inv_ovrlp_smat%smmm%ivectorindex, &
-                           invovrlp_compr_seq, ovrlp_largep, power(icalc), &
+                           invovrlp_compr_seq, ovrlp_largep_new, power(icalc), &
                            max_error, mean_error)
                   else if (power(icalc)==2) then
                       call timing(iproc,'lovrlp^-1     ','OF')
                       call uncompress_matrix_distributed2(iproc, inv_ovrlp_smat, DENSE_MATMUL, &
                            inv_ovrlp_mat(icalc)%matrix_compr(ilshift2+1:), invovrlpp)
+                      call transform_sparsity_pattern2(inv_ovrlp_smat%nfvctr, inv_ovrlp_smat%smmm%nvctrp_mm, inv_ovrlp_smat%smmm%isvctr_mm, &
+                           inv_ovrlp_smat%nseg, inv_ovrlp_smat%keyv, inv_ovrlp_smat%keyg, &
+                           inv_ovrlp_smat%smmm%nvctrp, inv_ovrlp_smat%smmm%isvctr, &
+                           inv_ovrlp_smat%smmm%nseg, inv_ovrlp_smat%smmm%keyv, inv_ovrlp_smat%smmm%keyg, &
+                           inv_ovrlp_mat(icalc)%matrix_compr(ilshift2+inv_ovrlp_smat%smmm%isvctr_mm+1:), invovrlpp_new)
                       call timing(iproc,'lovrlp^-1     ','ON')
-                      call check_accur_overlap_minus_one_sparse(iproc, nproc, inv_ovrlp_smat, ovrlp_smat%nfvctr, &
+                      call check_accur_overlap_minus_one_sparse_new(iproc, nproc, inv_ovrlp_smat, ovrlp_smat%nfvctr, &
                            inv_ovrlp_smat%smmm%nfvctrp, inv_ovrlp_smat%smmm%isfvctr, &
                            inv_ovrlp_smat%smmm%nseq, inv_ovrlp_smat%smmm%nout, &
                            inv_ovrlp_smat%smmm%ivectorindex, &
-                           invovrlp_compr_seq, invovrlpp, power(icalc), &
-                           max_error, mean_error, cmatp=ovrlp_largep)
+                           invovrlp_compr_seq, invovrlpp_new, power(icalc), &
+                           max_error, mean_error, cmatp=ovrlp_largep_new)
                   else if (power(icalc)==-2) then
                       ovrlp_compr_seq = sparsematrix_malloc(inv_ovrlp_smat, iaction=SPARSEMM_SEQ, id='ovrlp_compr_seq') 
                       call sequential_acces_matrix_fast2(inv_ovrlp_smat, ovrlp_large_compr(ilshift+1), ovrlp_compr_seq)
                       call timing(iproc,'lovrlp^-1     ','OF')
                       call uncompress_matrix_distributed2(iproc, inv_ovrlp_smat, DENSE_MATMUL, &
                            inv_ovrlp_mat(icalc)%matrix_compr(ilshift2+1:), invovrlpp)
+                      call transform_sparsity_pattern2(inv_ovrlp_smat%nfvctr, inv_ovrlp_smat%smmm%nvctrp_mm, inv_ovrlp_smat%smmm%isvctr_mm, &
+                           inv_ovrlp_smat%nseg, inv_ovrlp_smat%keyv, inv_ovrlp_smat%keyg, &
+                           inv_ovrlp_smat%smmm%nvctrp, inv_ovrlp_smat%smmm%isvctr, &
+                           inv_ovrlp_smat%smmm%nseg, inv_ovrlp_smat%smmm%keyv, inv_ovrlp_smat%smmm%keyg, &
+                           inv_ovrlp_mat(icalc)%matrix_compr(ilshift2+inv_ovrlp_smat%smmm%isvctr_mm+1:), invovrlpp_new)
                       call timing(iproc,'lovrlp^-1     ','ON')
-                      call check_accur_overlap_minus_one_sparse(iproc, nproc, inv_ovrlp_smat, ovrlp_smat%nfvctr, &
+                      call check_accur_overlap_minus_one_sparse_new(iproc, nproc, inv_ovrlp_smat, ovrlp_smat%nfvctr, &
                            inv_ovrlp_smat%smmm%nfvctrp, inv_ovrlp_smat%smmm%isfvctr, &
                            inv_ovrlp_smat%smmm%nseq, inv_ovrlp_smat%smmm%nout, &
                            inv_ovrlp_smat%smmm%ivectorindex, &
-                           invovrlp_compr_seq, invovrlpp, power(icalc), &
+                           invovrlp_compr_seq, invovrlpp_new, power(icalc), &
                            max_error, mean_error, &
                            ovrlp_compr_seq)
                       call f_free(ovrlp_compr_seq)
@@ -1262,7 +1281,9 @@ subroutine overlapPowerGeneral(iproc, nproc, iorder, ncalc, power, blocksize, im
           call yaml_sequence_close()
           call f_free(invovrlp_compr_seq)
           call f_free(ovrlp_largep)
+          call f_free(ovrlp_largep_new)
           call f_free(invovrlpp)
+          call f_free(invovrlpp_new)
           call f_free(ovrlp_large_compr)
           !HERE ENDS LINEAR CHECK #############################
       end if
@@ -1874,6 +1895,71 @@ subroutine check_accur_overlap_minus_one_sparse(iproc, nproc, smat, norb, norbp,
 end subroutine check_accur_overlap_minus_one_sparse
 
 
+
+
+subroutine check_accur_overlap_minus_one_sparse_new(iproc, nproc, smat, norb, norbp, isorb, nseq, nout, &
+           ivectorindex, amat_seq, bmatp, power, &
+           max_error, mean_error, dmat_seq, cmatp)
+  use module_base
+  use sparsematrix_base, only: sparse_matrix
+  use sparsematrix, only: sparsemm_new
+  implicit none
+  integer,intent(in) :: iproc, nproc, norb, norbp, isorb, nseq, nout, power
+  type(sparse_matrix) :: smat
+  integer,dimension(nseq),intent(in) :: ivectorindex
+  real(kind=8),dimension(nseq),intent(in) :: amat_seq
+  real(kind=8),dimension(smat%smmm%nvctrp),intent(in) :: bmatp
+  real(kind=8),intent(out) :: max_error, mean_error
+  real(kind=8),dimension(nseq),intent(in),optional :: dmat_seq
+  real(kind=8),dimension(smat%smmm%nvctrp),intent(in),optional :: cmatp
+
+  real(kind=8), allocatable, dimension(:,:) :: tmp, tmp2
+  real(kind=8), allocatable, dimension(:) :: tmpp, tmp2p
+  integer :: ierr, i,j
+
+  call f_routine(id='check_accur_overlap_minus_one_sparse_new')
+
+  tmpp=f_malloc0((smat%smmm%nvctrp),id='tmpp')
+  if (power==1) then
+     !!call dgemm('n', 'n', norb, norbp, norb, 1.d0, inv_ovrlp(1,1), &
+     !!     norb, ovrlp(1,isorb+1), norb, 0.d0, tmpp(1,1), norb)
+     call sparsemm_new(smat, amat_seq, bmatp, tmpp)
+     call deviation_from_unity_parallel_new(iproc, nproc, norb, norbp, isorb, tmpp, smat, max_error, mean_error)
+  else if (power==2) then
+      if (.not.present(cmatp)) stop 'cmatp not present'
+     !!call dgemm('n', 'n', norb, norbp, norb, 1.d0, inv_ovrlp(1,1), &
+     !!     norb, inv_ovrlp(1,isorb+1), norb, 0.d0, tmpp(1,1), norb)
+     !write(*,*) 'iproc, sum(amat_seq), sum(bmatp)', iproc, sum(amat_seq), sum(bmatp)
+     call sparsemm_new(smat, amat_seq, bmatp, tmpp)
+     call max_matrix_diff_parallel_new(iproc, norb, norbp, isorb, tmpp, cmatp, smat, max_error, mean_error)
+     !max_error=0.5d0*max_error
+     !mean_error=0.5d0*mean_error
+  else if (power==-2) then
+     if (.not.present(dmat_seq)) stop 'dmat_seq not present'
+     !!call dgemm('n', 'n', norb, norbp, norb, 1.d0, inv_ovrlp(1,1), &
+     !!     norb, inv_ovrlp(1,isorb+1), norb, 0.d0, tmpp(1,1), norb)
+     call sparsemm_new(smat, amat_seq, bmatp, tmpp)
+     tmp2p=f_malloc0(smat%smmm%nvctrp,id='tmp2p')
+     !!call dgemm('n', 'n', norb, norbp, norb, 1.d0, ovrlp(1,1), &
+     !!     norb, tmpp(1,1), norb, 0.d0, tmp2p(1,1), norb)
+     call sparsemm_new(smat, dmat_seq, tmpp, tmp2p)
+     call deviation_from_unity_parallel_new(iproc, nproc, norb, norbp, isorb, tmp2p, smat, max_error, mean_error)
+     !max_error=0.5d0*max_error
+     !mean_error=0.5d0*mean_error
+     call f_free(tmp2p)
+  else
+     stop 'Error in check_accur_overlap_minus_one_sparse_new'
+  end if
+  call f_free(tmpp)
+
+  call f_release_routine()
+
+end subroutine check_accur_overlap_minus_one_sparse_new
+
+
+
+
+
 subroutine check_accur_overlap_minus_one(iproc,nproc,norb,norbp,isorb,power,ovrlp,inv_ovrlp,&
            smat,max_error,mean_error)
   use module_base
@@ -2031,6 +2117,75 @@ subroutine max_matrix_diff_parallel(iproc, norb, norbp, isorb, mat1, mat2, &
 end subroutine max_matrix_diff_parallel
 
 
+
+subroutine max_matrix_diff_parallel_new(iproc, norb, norbp, isorb, mat1, mat2, &
+           smat, max_deviation, mean_deviation)
+  use module_base
+  use module_types
+  use sparsematrix_base, only: sparse_matrix
+  use sparsematrix_init, only: matrixindex_in_compressed, get_line_and_column
+  implicit none
+
+  ! Calling arguments
+  integer,intent(in):: iproc, norb, norbp, isorb
+  type(sparse_matrix),intent(in) :: smat
+  real(8),dimension(smat%smmm%nvctrp),intent(in):: mat1, mat2
+  real(8),intent(out):: max_deviation, mean_deviation
+
+  ! Local variables
+  integer:: iorb, iiorb, jorb, ierr, ind, iline, icolumn, i, ii
+  real(8):: error, num
+  real(kind=8),dimension(2) :: reducearr
+
+  call timing(iproc,'dev_from_unity','ON') 
+  max_deviation=0.d0
+  mean_deviation=0.d0
+  num=0.d0
+  !!do iorb=1,norbp
+  !!   iiorb=iorb+isorb
+  !!   !$omp parallel default(private) shared(iorb, iiorb, norb, mat1, mat2, max_deviation, mean_deviation, num, smat)
+  !!   !$omp do reduction(max:max_deviation) reduction(+:mean_deviation,num)
+  !!   do jorb=1,norb
+  !!      ind=matrixindex_in_compressed(smat,jorb,iiorb)
+  !!      if (ind>0) then
+  !!          ! This entry is within the sparsity pattern, i.e. it matters for the error.
+  !!          error=(mat1(jorb,iorb)-mat2(jorb,iorb))**2
+  !!          max_deviation=max(error,max_deviation)
+  !!          mean_deviation=mean_deviation+error
+  !!          num=num+1.d0
+  !!      end if
+  !!   end do
+  !!   !$omp end do
+  !!   !$omp end parallel
+  !!end do
+
+  do i=1,smat%smmm%nvctrp
+      ii = smat%smmm%isvctr + i
+      call get_line_and_column(ii, smat%smmm%nseg, smat%smmm%keyv, smat%smmm%keyg, iline, icolumn)
+      error=(mat1(i)-mat2(i))**2
+      max_deviation=max(error,max_deviation)
+      mean_deviation=mean_deviation+error
+      num=num+1.d0
+  end do
+
+  if (bigdft_mpi%nproc>1) then
+      reducearr(1)=mean_deviation
+      reducearr(2)=num
+      call mpiallred(max_deviation, 1, mpi_max, bigdft_mpi%mpi_comm)
+      call mpiallred(reducearr(1), 2, mpi_sum, bigdft_mpi%mpi_comm)
+      mean_deviation=reducearr(1)
+      num=reducearr(2)
+  end if
+
+  mean_deviation=mean_deviation/num
+  mean_deviation=sqrt(mean_deviation)
+  max_deviation=sqrt(max_deviation)
+
+  call timing(iproc,'dev_from_unity','OF') 
+
+end subroutine max_matrix_diff_parallel_new
+
+
 !!subroutine deviation_from_unity(iproc, norb, ovrlp, deviation)
 !!  use module_base
 !!  use module_types
@@ -2125,6 +2280,92 @@ subroutine deviation_from_unity_parallel(iproc, nproc, norb, norbp, isorb, ovrlp
   call f_release_routine()
 
 end subroutine deviation_from_unity_parallel
+
+
+
+
+subroutine deviation_from_unity_parallel_new(iproc, nproc, norb, norbp, isorb, ovrlp, smat, max_deviation, mean_deviation)
+  use module_base
+  use module_types
+  use sparsematrix_base, only: sparse_matrix
+  use sparsematrix_init, only: matrixindex_in_compressed, get_line_and_column
+  implicit none
+
+  ! Calling arguments
+  integer,intent(in):: iproc, nproc, norb, norbp, isorb
+  type(sparse_matrix),intent(in) :: smat
+  real(8),dimension(smat%smmm%nvctrp),intent(in):: ovrlp
+  real(8),intent(out):: max_deviation, mean_deviation
+
+  ! Local variables
+  integer:: iorb, iiorb, jorb, ierr, ind, iline, icolumn, i, ii
+  real(8):: error, num
+  real(kind=8),dimension(2) :: reducearr
+
+  call f_routine(id='deviation_from_unity_parallel')
+
+  call timing(iproc,'dev_from_unity','ON') 
+  max_deviation=0.d0
+  mean_deviation=0.d0
+  num=0.d0
+  !!do iorb=1,norbp
+  !!   iiorb=iorb+isorb
+  !!   !$omp parallel default(private) shared(norb, iiorb, ovrlp, iorb, max_deviation, mean_deviation, num, smat)
+  !!   !$omp do reduction(max:max_deviation) reduction(+:mean_deviation,num)
+  !!   do jorb=1,norb
+  !!      ind=matrixindex_in_compressed(smat,jorb,iiorb)
+  !!      if (ind>0) then
+  !!          ! This entry is within the sparsity pattern, i.e. it matters for the error.
+  !!          if(iiorb==jorb) then
+  !!             error=(ovrlp(jorb,iorb)-1.d0)**2
+  !!          else
+  !!             error=ovrlp(jorb,iorb)**2
+  !!          end if
+  !!          max_deviation=max(error,max_deviation)
+  !!          mean_deviation=mean_deviation+error
+  !!          num=num+1.d0
+  !!      end if
+  !!   end do
+  !!   !$omp end do
+  !!   !$omp end parallel
+  !!end do
+
+
+  do i=1,smat%smmm%nvctrp
+      ii = smat%smmm%isvctr + i
+      call get_line_and_column(ii, smat%smmm%nseg, smat%smmm%keyv, smat%smmm%keyg, iline, icolumn)
+      if(icolumn==iline) then
+         error=(ovrlp(i)-1.d0)**2
+      else
+         error=ovrlp(i)**2
+      end if
+      max_deviation=max(error,max_deviation)
+      mean_deviation=mean_deviation+error
+      num=num+1.d0
+  end do
+
+
+
+  if (nproc>1) then
+      reducearr(1)=mean_deviation
+      reducearr(2)=num
+      call mpiallred(max_deviation, 1, mpi_max, bigdft_mpi%mpi_comm)
+      call mpiallred(reducearr(1), 2, mpi_sum, bigdft_mpi%mpi_comm)
+      mean_deviation=reducearr(1)
+      num=reducearr(2)
+  end if
+
+  mean_deviation=mean_deviation/num
+  mean_deviation=sqrt(mean_deviation)
+  max_deviation=sqrt(max_deviation)
+
+  call timing(iproc,'dev_from_unity','OF') 
+
+  call f_release_routine()
+
+end subroutine deviation_from_unity_parallel_new
+
+
 
 
 subroutine deviation_from_symmetry(iproc, norb, ovrlp, deviation)

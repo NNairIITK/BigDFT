@@ -4179,5 +4179,21 @@ end subroutine build_ks_orbitals_laura_tmp
           type(confpot_data),dimension(lorbs%norbp), intent(inout) :: confdatarr
         end subroutine set_confdatarr
 
+        subroutine check_accur_overlap_minus_one_sparse_new(iproc, nproc, smat, norb, norbp, isorb, nseq, nout, &
+                   ivectorindex, amat_seq, bmatp, power, &
+                   max_error, mean_error, dmat_seq, cmatp)
+          use module_base
+          use sparsematrix_base, only: sparse_matrix
+          implicit none
+          integer,intent(in) :: iproc, nproc, norb, norbp, isorb, nseq, nout, power
+          type(sparse_matrix) :: smat
+          integer,dimension(nseq),intent(in) :: ivectorindex
+          real(kind=8),dimension(nseq),intent(in) :: amat_seq
+          real(kind=8),dimension(smat%smmm%nvctrp),intent(in) :: bmatp
+          real(kind=8),intent(out) :: max_error, mean_error
+          real(kind=8),dimension(nseq),intent(in),optional :: dmat_seq
+          real(kind=8),dimension(smat%smmm%nvctrp),intent(in),optional :: cmatp
+        end subroutine check_accur_overlap_minus_one_sparse_new
+
   end interface
 END MODULE module_interfaces
