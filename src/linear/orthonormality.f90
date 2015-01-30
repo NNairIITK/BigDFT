@@ -165,7 +165,8 @@ subroutine orthoconstraintNonorthogonal(iproc, nproc, lzd, npsidim_orbs, npsidim
   use sparsematrix, only: uncompress_matrix, uncompress_matrix_distributed, compress_matrix_distributed, &
                           sequential_acces_matrix_fast2, sparsemm, transform_sparse_matrix, orb_from_index, &
                           gather_matrix_from_taskgroups_inplace, extract_taskgroup_inplace, &
-                          transform_sparse_matrix_local, uncompress_matrix_distributed2
+                          transform_sparse_matrix_local, uncompress_matrix_distributed2, &
+                          matrix_matrix_mult_wrapper
   use transposed_operations, only: calculate_overlap_transposed, build_linear_combination_transposed
   implicit none
 
@@ -260,6 +261,8 @@ subroutine orthoconstraintNonorthogonal(iproc, nproc, lzd, npsidim_orbs, npsidim
       call sparsemm(linmat%l, inv_ovrlp_seq, lagmatp, inv_lagmatp)
       call compress_matrix_distributed(iproc, nproc, linmat%l, DENSE_MATMUL, &
            inv_lagmatp, lagmat_large)
+      !!call matrix_matrix_mult_wrapper(iproc, nproc, linmat%l, &
+      !!     linmat%ovrlppowers_(3)%matrix_compr, lagmat_large, lagmat_large)
   end if
   if (data_strategy_main==SUBMATRIX) then
       call transform_sparse_matrix_local(linmat%m, linmat%l, lagmat_%matrix_compr, lagmat_large, 'large_to_small')

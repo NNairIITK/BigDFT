@@ -36,6 +36,7 @@ module sparsematrix
   public :: write_sparsematrix
   public :: write_sparsematrix_CCS
   public :: transform_sparsity_pattern, transform_sparsity_pattern2
+  public :: matrix_matrix_mult_wrapper
 
   contains
 
@@ -2750,5 +2751,40 @@ module sparsematrix
         end function matrixindex_in_compressed_fn
 
     end subroutine transform_sparsity_pattern2
+
+
+    !> Calculates c = a*b for matrices a,b,c
+    subroutine matrix_matrix_mult_wrapper(iproc, nproc, smat, a, b, c)
+      implicit none
+
+      ! Calling arguments
+      integer,intent(in) :: iproc, nproc
+      type(sparse_matrix),intent(in) :: smat
+      real(kind=8),dimension(smat%nvctrp_tg),intent(inout) :: a, b, c
+
+      ! Local variables
+      real(kind=8),dimension(:),allocatable :: b_exp, c_exp, a_seq
+
+      b_exp = f_malloc(smat%smmm%nvctrp, id='b_exp')
+      c_exp = f_malloc(smat%smmm%nvctrp, id='c_exp')
+      a_seq = sparsematrix_malloc(smat, iaction=SPARSEMM_SEQ, id='a_seq')
+
+
+      call sequential_acces_matrix_fast2(smat, a, a_seq)
+      call transform_sparsity_pattern2(smat%nfvctr, smat%smmm%nvctrp_mm, smat%smmm%isvctr_mm, &
+           smat%nseg, smat%keyv, smat%keyg, &
+           smat%smmm%nvctrp, smat%smmm%isvctr, &
+           smat%smmm%nseg, smat%smmm%keyv, smat%smmm%keyg, &
+           b, b_exp)
+      call sparsemm_new(smat, a_seq, b_exp, c_exp)
+      call compress_matrix_distributed_new(iproc, nproc, smat, DENSE_MATMUL, &
+           c_exp, c)
+
+      call f_free(b_exp)
+      call f_free(c_exp)
+      call f_free(a_seq)
+
+
+    end subroutine matrix_matrix_mult_wrapper
 
 end module sparsematrix
