@@ -22,7 +22,8 @@ subroutine foe(iproc, nproc, tmprtr, &
                                matrices
   use sparsematrix_init, only: matrixindex_in_compressed, get_line_and_column
   use sparsematrix, only: compress_matrix, uncompress_matrix, compress_matrix_distributed, &
-                          uncompress_matrix_distributed, orb_from_index
+                          uncompress_matrix_distributed, orb_from_index, &
+                          transform_sparsity_pattern, compress_matrix_distributed_new2
   use foe_base, only: foe_data, foe_data_set_int, foe_data_get_int, foe_data_set_real, foe_data_get_real, &
                       foe_data_get_logical
   use fermi_level, only: fermi_aux, init_fermi_level, determine_fermi_level, &
@@ -82,7 +83,7 @@ subroutine foe(iproc, nproc, tmprtr, &
   type(fermi_aux) :: f
   real(kind=8),dimension(2) :: temparr
   real(kind=8),dimension(:,:),allocatable :: penalty_ev_new
-  real(kind=8),dimension(:),allocatable :: fermi_new, fermi_check_new
+  real(kind=8),dimension(:),allocatable :: fermi_new, fermi_check_new, fermi_small_new
   integer :: iline, icolumn, icalc
   
 
@@ -108,8 +109,9 @@ subroutine foe(iproc, nproc, tmprtr, &
   fermi_check_compr = sparsematrix_malloc(tmb%linmat%l, iaction=SPARSE_TASKGROUP, id='fermi_check_compr')
 
   penalty_ev_new = f_malloc((/tmb%linmat%l%smmm%nvctrp,2/),id='penalty_ev_new')
-  fermi_check_new = f_malloc((/tmb%linmat%l%smmm%nvctrp/),id='fermip_check_new')
-  fermi_new = f_malloc((/tmb%linmat%l%smmm%nvctrp/),id='fermip_new')
+  fermi_check_new = f_malloc((/tmb%linmat%l%smmm%nvctrp_mm/),id='fermip_check_new')
+  fermi_new = f_malloc((/tmb%linmat%l%smmm%nvctrp/),id='fermi_new')
+  fermi_small_new = f_malloc((/tmb%linmat%l%smmm%nvctrp_mm/),id='fermi_small_new')
 
 
   call timing(iproc, 'FOE_auxiliary ', 'OF')
@@ -371,6 +373,12 @@ subroutine foe(iproc, nproc, tmprtr, &
                            tmb%linmat%ovrlppowers_(2)%matrix_compr(ilshift2+1:), calculate_SHS, &
                            nsize_polynomial, 1, fermi_new, penalty_ev_new, chebyshev_polynomials, &
                            emergency_stop)
+                      call transform_sparsity_pattern(tmb%linmat%l%nfvctr, tmb%linmat%l%smmm%nvctrp_mm, tmb%linmat%l%smmm%isvctr_mm, &
+                           tmb%linmat%l%nseg, tmb%linmat%l%keyv, tmb%linmat%l%keyg, &
+                           tmb%linmat%l%smmm%nvctrp, tmb%linmat%l%smmm%isvctr, &
+                           tmb%linmat%l%smmm%nseg, tmb%linmat%l%smmm%keyv, tmb%linmat%l%smmm%keyg, &
+                           fermi_new, fermi_small_new)
+
 
                       do i=1,tmb%linmat%l%smmm%nvctrp
                           ii = tmb%linmat%l%smmm%isvctr + i
@@ -385,14 +393,14 @@ subroutine foe(iproc, nproc, tmprtr, &
                       if (foe_verbosity>=1 .and. iproc==0) call yaml_map('polynomials','from memory')
                       call chebyshev_fast(iproc, nproc, nsize_polynomial, npl, &
                            tmb%linmat%l%nfvctr, tmb%linmat%l%smmm%nfvctrp, &
-                          tmb%linmat%l, chebyshev_polynomials, 1, cc, fermi_new)
-                      call calculate_trace_distributed_new(fermi_new, sumn)
-                      write(*,*) 'trace debug', sumn
+                          tmb%linmat%l, chebyshev_polynomials, 1, cc, fermi_small_new)
+                      !!call calculate_trace_distributed_new(fermi_new, sumn)
+                      !!write(*,*) 'trace debug', sumn
 
                       call uncompress_polynomial_vector(iproc, nproc, nsize_polynomial, &
-                           tmb%linmat%l, fermi_new, tmb%linmat%kernel_%matrixp(:,:,1))
-                      call calculate_trace_distributed(tmb%linmat%kernel_%matrixp, sumn)
-                      write(*,'(a,3es16.8)') 'trace debug 2, sums', sumn, sum(fermi_new), sum(tmb%linmat%kernel_%matrixp)
+                           tmb%linmat%l, fermi_small_new, tmb%linmat%kernel_%matrixp(:,:,1))
+                      !!call calculate_trace_distributed(tmb%linmat%kernel_%matrixp, sumn)
+                      write(*,'(a,2es16.8)') 'sum(fermi_new), sum(tmb%linmat%kernel_%matrix(:,:,1)', sum(abs(fermi_new)), sum(abs(tmb%linmat%kernel_%matrixp(:,:,1)))
                   end if 
     
     
@@ -454,7 +462,7 @@ subroutine foe(iproc, nproc, tmprtr, &
                   end if
                 
                   !call calculate_trace_distributed(tmb%linmat%kernel_%matrixp, sumn)
-                  call calculate_trace_distributed_new(fermi_new, sumn)
+                  call calculate_trace_distributed_new(fermi_small_new, sumn)
                   write(*,*) 'sumn',sumn
         
     
@@ -511,15 +519,18 @@ subroutine foe(iproc, nproc, tmprtr, &
                       call chebyshev_fast(iproc, nproc, nsize_polynomial, npl_check, &
                            tmb%linmat%l%nfvctr, tmb%linmat%l%smmm%nfvctrp, &
                            tmb%linmat%l, chebyshev_polynomials, 1, cc_check, fermi_check_new)
-                      call uncompress_polynomial_vector(iproc, nproc, nsize_polynomial, &
-                           tmb%linmat%l, fermi_check_new, fermip_check)
+                      !!call uncompress_polynomial_vector(iproc, nproc, nsize_polynomial, &
+                      !!     tmb%linmat%l, fermi_check_new, fermip_check)
                       call f_free(cc_check)
                       diff=0.d0
-                      do iorb=1,tmb%linmat%l%smmm%nfvctrp
-                          do jorb=1,tmb%linmat%l%nfvctr
-                              !SM: need to fix the spin here
-                              diff = diff + (tmb%linmat%kernel_%matrixp(jorb,iorb,1)-fermip_check(jorb,iorb))**2
-                          end do
+                      !do iorb=1,tmb%linmat%l%smmm%nfvctrp
+                      !    do jorb=1,tmb%linmat%l%nfvctr
+                      !        !SM: need to fix the spin here
+                      !        diff = diff + (tmb%linmat%kernel_%matrixp(jorb,iorb,1)-fermip_check(jorb,iorb))**2
+                      !    end do
+                      !end do
+                      do i=1,tmb%linmat%l%smmm%nvctrp_mm
+                          diff = diff + (fermi_small_new(i)-fermi_check_new(i))**2
                       end do
     
                       if (nproc > 1) then
@@ -539,12 +550,20 @@ subroutine foe(iproc, nproc, tmprtr, &
         
         
     
-         call compress_matrix_distributed(iproc, nproc, tmb%linmat%l, DENSE_MATMUL, &
-              tmb%linmat%kernel_%matrixp(:,1:tmb%linmat%l%smmm%nfvctrp,1), &
+         !!call compress_matrix_distributed(iproc, nproc, tmb%linmat%l, DENSE_MATMUL, &
+         !!     tmb%linmat%kernel_%matrixp(:,1:tmb%linmat%l%smmm%nfvctrp,1), &
+         !!     tmb%linmat%kernel_%matrix_compr(ilshift+1:))
+         call compress_matrix_distributed_new2(iproc, nproc, tmb%linmat%l, DENSE_MATMUL, &
+              fermi_small_new, &
               tmb%linmat%kernel_%matrix_compr(ilshift+1:))
+         write(*,*) 'sum(tmb%linmat%kernel_%matrix_compr(ilshift+1:))',sum(tmb%linmat%kernel_%matrix_compr(ilshift+1:))
+         !!tmb%linmat%kernel_%matrix_compr(ilshift+1:) = fermi_small_new
     
-         call compress_matrix_distributed(iproc, nproc, tmb%linmat%l, DENSE_MATMUL, &
-              fermip_check, fermi_check_compr(1))
+         !!call compress_matrix_distributed(iproc, nproc, tmb%linmat%l, DENSE_MATMUL, &
+         !!     fermip_check, fermi_check_compr(1))
+         call compress_matrix_distributed_new2(iproc, nproc, tmb%linmat%l, DENSE_MATMUL, &
+              fermi_check_new, fermi_check_compr(1))
+         !!fermi_check_compr = fermi_check_new
     
     
         
@@ -731,6 +750,7 @@ subroutine foe(iproc, nproc, tmprtr, &
   call f_free(penalty_ev_new)
   call f_free(fermi_check_new)
   call f_free(fermi_new)
+  call f_free(fermi_small_new)
 
   call timing(iproc, 'FOE_auxiliary ', 'OF')
 
@@ -836,7 +856,6 @@ subroutine foe(iproc, nproc, tmprtr, &
 
           call f_routine(id='calculate_trace_distributed')
 
-          write(*,'(a,es16.8)') 'in calculate_trace_distributed: sum(matrixp)', sum(matrixp)
 
           trace=0.d0
           if (tmb%linmat%l%smmm%nfvctrp>0) then
@@ -870,7 +889,7 @@ subroutine foe(iproc, nproc, tmprtr, &
 
 
       subroutine calculate_trace_distributed_new(matrixp, trace)
-          real(kind=8),dimension(tmb%linmat%l%smmm%nvctrp),intent(in) :: matrixp
+          real(kind=8),dimension(tmb%linmat%l%smmm%nvctrp_mm),intent(in) :: matrixp
           real(kind=8),intent(out) :: trace
           integer :: i, ii
 

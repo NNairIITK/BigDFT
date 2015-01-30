@@ -24,7 +24,7 @@ module sparsematrix
   public :: uncompress_matrix, uncompress_matrix2
   public :: check_matrix_compression
   public :: transform_sparse_matrix, transform_sparse_matrix_local
-  public :: compress_matrix_distributed, compress_matrix_distributed_new
+  public :: compress_matrix_distributed, compress_matrix_distributed_new, compress_matrix_distributed_new2
   public :: uncompress_matrix_distributed, uncompress_matrix_distributed2
   public :: sequential_acces_matrix_fast, sequential_acces_matrix_fast2
   public :: sparsemm, sparsemm_new
@@ -35,6 +35,7 @@ module sparsematrix
   public :: check_symmetry
   public :: write_sparsematrix
   public :: write_sparsematrix_CCS
+  public :: transform_sparsity_pattern
 
   contains
 
@@ -1351,6 +1352,353 @@ module sparsematrix
 
 
 
+   subroutine compress_matrix_distributed_new2(iproc, nproc, smat, layout, matrixp, matrix_compr)
+     use module_base
+     use sparsematrix_init, only: get_line_and_column
+     implicit none
+
+     ! Calling arguments
+     integer,intent(in) :: iproc, nproc, layout
+     type(sparse_matrix),intent(in) :: smat
+     real(kind=8),dimension(smat%smmm%nvctrp_mm),intent(in) :: matrixp
+     real(kind=8),dimension(smat%nvctrp_tg),target,intent(out) :: matrix_compr
+
+     ! Local variables
+     integer :: isegstart, isegend, iseg, ii, jorb, iiorb, jjorb, nfvctrp, isfvctr, nvctrp, ierr, isvctr
+     integer :: ncount, itg, iitg, ist_send, ist_recv, i, iline, icolumn, ind
+     integer :: window, sizeof, jproc_send, iorb, jproc, info
+     integer,dimension(:),pointer :: isvctr_par, nvctr_par
+     integer,dimension(:),allocatable :: request, windows
+     real(kind=8),dimension(:),pointer :: matrix_local
+     real(kind=8),dimension(:),allocatable :: recvbuf
+     integer,parameter :: ALLGATHERV=51, GET=52, GLOBAL_MATRIX=101, SUBMATRIX=102
+     integer,parameter :: comm_strategy=GET
+     integer,parameter :: data_strategy=SUBMATRIX!GLOBAL_MATRIX
+
+     call f_routine(id='compress_matrix_distributed')
+
+     call timing(iproc,'compressd_mcpy','ON')
+
+     !! Check the dimensions of the input array and assign some values
+     !if (size(matrixp,1)/=smat%nfvctr) stop 'size(matrixp,1)/=smat%nfvctr'
+     !if (layout==DENSE_PARALLEL) then
+     !    if (size(matrixp,2)/=smat%nfvctrp) stop '(ubound(matrixp,2)/=smat%nfvctrp'
+     !    nfvctrp = smat%nfvctrp
+     !    isfvctr = smat%isfvctr
+     !    nvctrp = smat%nvctrp
+     !    isvctr = smat%isvctr
+     !    isvctr_par => smat%isvctr_par
+     !    nvctr_par => smat%nvctr_par
+     !else if (layout==DENSE_MATMUL) then
+     !    if (size(matrixp,2)/=smat%smmm%nfvctrp) stop '(ubound(matrixp,2)/=smat%smmm%nfvctrp'
+     !    nfvctrp = smat%smmm%nfvctrp
+     !    isfvctr = smat%smmm%isfvctr
+     !    nvctrp = smat%smmm%nvctrp_mm
+     !    isvctr = smat%smmm%isvctr_mm
+     !    isvctr_par => smat%smmm%isvctr_mm_par
+     !    nvctr_par => smat%smmm%nvctr_mm_par
+     !end if
+
+     if (data_strategy==GLOBAL_MATRIX) then
+         stop 'compress_matrix_distributed: option GLOBAL_MATRIX is deprecated'
+         !!!call to_zero(smat%nvctr, matrix_compr(1))
+         !!if (nproc>1) then
+         !!    matrix_local = f_malloc0_ptr(max(1,nvctrp),id='matrix_local')
+         !!else
+         !!    matrix_local => matrix_compr
+         !!end if
+
+         !!if (nfvctrp>0) then
+         !!    isegstart=smat%istsegline(isfvctr+1)
+         !!    isegend=smat%istsegline(isfvctr+nfvctrp)+smat%nsegline(isfvctr+nfvctrp)-1
+         !!    !!if (isfvctr+nfvctrp<smat%nfvctr) then
+         !!    !!    isegend=smat%istsegline(smat%isfvctr_par(iproc+1)+1)-1
+         !!    !!else
+         !!    !!    isegend=smat%nseg
+         !!    !!end if
+         !!    !$omp parallel default(none) &
+         !!    !$omp shared(isegstart, isegend, matrixp, smat, matrix_local, isvctr, isfvctr) &
+         !!    !$omp private(iseg, ii, jorb, iiorb, jjorb)
+         !!    !$omp do
+         !!    do iseg=isegstart,isegend
+         !!        ii=smat%keyv(iseg)-1
+         !!        ! A segment is always on one line, therefore no double loop
+         !!        do jorb=smat%keyg(1,1,iseg),smat%keyg(2,1,iseg)
+         !!            ii=ii+1
+         !!            iiorb = smat%keyg(1,2,iseg)
+         !!            jjorb = jorb
+         !!            matrix_local(ii-isvctr)=matrixp(jjorb,iiorb-isfvctr)
+         !!        end do
+         !!    end do
+         !!    !$omp end do
+         !!    !$omp end parallel
+         !!end if
+
+         !!call timing(iproc,'compressd_mcpy','OF')
+         !!call timing(iproc,'compressd_comm','ON')
+         !!if (bigdft_mpi%nproc>1) then
+         !!    if (comm_strategy==ALLGATHERV) then
+         !!        !call mpiallred(matrix_compr(1), smat%nvctr, mpi_sum, bigdft_mpi%mpi_comm)
+         !!        call mpi_allgatherv(matrix_local(1), nvctrp, mpi_double_precision, &
+         !!             matrix_compr(1), nvctr_par, isvctr_par, mpi_double_precision, &
+         !!             bigdft_mpi%mpi_comm, ierr)
+         !!        call f_free_ptr(matrix_local)
+         !!    else if (comm_strategy==GET) then
+         !!        !!call mpiget(iproc, nproc, bigdft_mpi%mpi_comm, nvctrp, matrix_local, &
+         !!        !!     nvctr_par, isvctr_par, smat%nvctr, matrix_compr)
+         !!        call mpi_get_to_allgatherv(matrix_local(1), nvctrp, matrix_compr(1), &
+         !!             nvctr_par, isvctr_par, bigdft_mpi%mpi_comm)
+         !!    else
+         !!        stop 'compress_matrix_distributed: wrong communication strategy'
+         !!    end if
+         !!    call f_free_ptr(matrix_local)
+         !!end if
+     else if (data_strategy==SUBMATRIX) then
+         if (layout==DENSE_PARALLEL) then
+             stop 'layout==DENSE_PARALLEL not yet implemented'
+             !!    !call to_zero(smat%nvctrp_tg, matrix_compr(1))
+             !!    call f_zero(matrix_compr)
+             !!if (nfvctrp>0) then
+             !!    isegstart=smat%istsegline(isfvctr+1)
+             !!    isegend=smat%istsegline(isfvctr+nfvctrp)+smat%nsegline(isfvctr+nfvctrp)-1
+             !!    !$omp parallel default(none) &
+             !!    !$omp shared(isegstart, isegend, matrixp, smat, matrix_compr, isfvctr) &
+             !!    !$omp private(iseg, ii, jorb, iiorb, jjorb)
+             !!    !$omp do
+             !!    do iseg=isegstart,isegend
+             !!        ii=smat%keyv(iseg)-1
+             !!        ! A segment is always on one line, therefore no double loop
+             !!        do jorb=smat%keyg(1,1,iseg),smat%keyg(2,1,iseg)
+             !!            ii=ii+1
+             !!            iiorb = smat%keyg(1,2,iseg)
+             !!            jjorb = jorb
+             !!            matrix_compr(ii-smat%isvctrp_tg)=matrixp(jjorb,iiorb-isfvctr)
+             !!        end do
+             !!    end do
+             !!    !$omp end do
+             !!    !$omp end parallel
+             !!end if
+
+             !!call timing(iproc,'compressd_mcpy','OF')
+             !!call timing(iproc,'compressd_comm','ON')
+             !!ncount = 0
+             !!do itg=1,smat%ntaskgroupp
+             !!    iitg = smat%taskgroupid(itg)
+             !!    ncount = ncount + smat%taskgroup_startend(2,1,iitg)-smat%taskgroup_startend(1,1,iitg)+1
+             !!end do
+             !!recvbuf = f_malloc(ncount,id='recvbuf')
+
+             !!ncount = 0
+             !!request = f_malloc(smat%ntaskgroupp,id='request')
+             !!do itg=1,smat%ntaskgroupp
+             !!    iitg = smat%taskgroupid(itg)
+             !!    ist_send = smat%taskgroup_startend(1,1,iitg) - smat%isvctrp_tg
+             !!    ist_recv = ncount + 1
+             !!    ncount = smat%taskgroup_startend(2,1,iitg)-smat%taskgroup_startend(1,1,iitg)+1
+             !!    !!call mpi_iallreduce(matrix_compr(ist_send), recvbuf(ist_recv), ncount, &
+             !!    !!     mpi_double_precision, mpi_sum, smat%mpi_groups(iitg)%mpi_comm, request(itg), ierr)
+             !!    if (nproc>1) then
+             !!        call mpiiallred(matrix_compr(ist_send), recvbuf(ist_recv), ncount, &
+             !!             mpi_sum, smat%mpi_groups(iitg)%mpi_comm, request(itg))
+             !!    else
+             !!        call vcopy(ncount, matrix_compr(ist_send), 1,  recvbuf(ist_recv), 1)
+             !!    end if
+             !!end do
+             !!if (nproc>1) then
+             !!    call mpiwaitall(smat%ntaskgroupp, request)
+             !!end if
+             !!ncount = 0
+             !!do itg=1,smat%ntaskgroupp
+             !!    iitg = smat%taskgroupid(itg)
+             !!    ist_send = smat%taskgroup_startend(1,1,iitg) - smat%isvctrp_tg
+             !!    ist_recv = ncount + 1
+             !!    ncount = smat%taskgroup_startend(2,1,iitg)-smat%taskgroup_startend(1,1,iitg)+1
+             !!    call vcopy(ncount, recvbuf(ist_recv), 1, matrix_compr(ist_send), 1)
+             !!end do
+             !!call f_free(request)
+             !!call f_free(recvbuf)
+         else if (layout==DENSE_MATMUL) then
+             matrix_local = f_malloc_ptr(max(1,smat%smmm%nvctrp_mm),id='matrix_local')
+             !!if (nfvctrp>0) then
+             !!    ii = 0
+             !!    isegstart=smat%istsegline(isfvctr+1)
+             !!    isegend=smat%istsegline(isfvctr+nfvctrp)+smat%nsegline(isfvctr+nfvctrp)-1
+             !!    do iseg=isegstart,isegend
+             !!        ! A segment is always on one line, therefore no double loop
+             !!        do jorb=smat%keyg(1,1,iseg),smat%keyg(2,1,iseg)
+             !!            iorb = smat%keyg(1,2,iseg)
+             !!            ii = ii + 1
+             !!            matrix_local(ii) = matrixp(jorb,iorb-isfvctr)
+             !!        end do
+             !!    end do
+             !!    if (ii/=smat%smmm%nvctrp_mm) stop 'compress_matrix_distributed: ii/=smat%smmm%nvctrp_mm'
+             !!end if
+             !!#do i=1,smat%smmm%nvctrp_mm
+             !!#    ii = smat%smmm%isvctr_mm + i
+             !!#    call get_line_and_column(ii, smat%nseg, smat%keyv, smat%keyg, iline, icolumn)
+             !!#    ind = matrixindex_in_compressed_fn(icolumn, iline, smat%nfvctr, &
+             !!#          smat%smmm%nseg, smat%smmm%keyv, smat%smmm%keyg)
+             !!#    ind = ind - smat%smmm%isvctr
+             !!#    matrix_local(i) = matrixp(ind)
+             !!#end do
+             !!@@call transform_sparsity_pattern(smat%nfvctr, smat%smmm%nvctrp_mm, smat%smmm%isvctr_mm, &
+             !!@@     smat%nseg, smat%keyv, smat%keyg, &
+             !!@@     smat%smmm%nvctrp, smat%smmm%isvctr, &
+             !!@@     smat%smmm%nseg, smat%smmm%keyv, smat%smmm%keyg, &
+             !!@@     matrixp, matrix_local)
+             call vcopy(smat%smmm%nvctrp_mm, matrixp(1), 1, matrix_local(1), 1)
+
+             call timing(iproc,'compressd_mcpy','OF')
+             call timing(iproc,'compressd_comm','ON')
+
+             if (nproc>1) then
+                !call to_zero(smat%nvctrp_tg, matrix_compr(1))
+                call f_zero(matrix_compr)
+                 !window = mpiwindow(smat%smmm%nvctrp_mm, matrix_local(1), bigdft_mpi%mpi_comm)
+
+                 ! Create a window for all taskgroups to which iproc belongs (max 2)
+                 windows = f_malloc(smat%ntaskgroup)
+                 do itg=1,smat%ntaskgroupp
+                     iitg = smat%taskgroupid(itg)
+                     !write(*,'(2(a,i0))') 'task ',iproc,' is on window ',iitg
+                     windows(iitg) = mpiwindow(smat%smmm%nvctrp_mm, matrix_local(1), smat%mpi_groups(iitg)%mpi_comm)
+                 end do
+                 do jproc=1,smat%smmm%nccomm_smmm
+                     jproc_send = smat%smmm%luccomm_smmm(1,jproc)
+                     ist_send = smat%smmm%luccomm_smmm(2,jproc)
+                     ist_recv = smat%smmm%luccomm_smmm(3,jproc)
+                     ncount = smat%smmm%luccomm_smmm(4,jproc)
+                     !write(*,'(5(a,i0))') 'task ',iproc,' gets ',ncount,' elements at position ',ist_recv,' from position ',ist_send,' on task ',jproc_send
+                     iitg = get_taskgroup_id(iproc,jproc_send)
+                     ! Now get the task ID on the taskgroup (subtract the ID of the first task)
+                     !jproc_send = jproc_send - smat%isrank(iitg)
+                     ii = jproc_send
+                     jproc_send = get_rank_on_taskgroup(ii,iitg)
+                     !call mpiget(matrix_compr(ist_recv), ncount, jproc_send, int(ist_send-1,kind=mpi_address_kind), window)
+                     !write(*,'(3(a,i0))') 'task ',iproc,' gets data from task ',jproc_send,' on window ',iitg
+                     call mpiget(matrix_compr(ist_recv), ncount, jproc_send, int(ist_send-1,kind=mpi_address_kind), windows(iitg))
+                 end do
+             else
+                 ist_send = smat%smmm%luccomm_smmm(2,1)
+                 ist_recv = smat%smmm%luccomm_smmm(3,1)
+                 ncount = smat%smmm%luccomm_smmm(4,1)
+                 call vcopy(ncount, matrix_local(ist_send), 1, matrix_compr(ist_recv), 1)
+             end if
+
+             if (nproc>1) then
+                 ! Synchronize the communication
+                 do itg=1,smat%ntaskgroupp
+                     iitg = smat%taskgroupid(itg)
+                     call mpi_fenceandfree(windows(iitg))
+                 end do
+                 call f_free(windows)
+                 !call mpi_fenceandfree(window)
+             end if
+
+             call f_free_ptr(matrix_local)
+
+         end if
+
+         call timing(iproc,'compressd_comm','OF')
+     else
+         stop 'compress_matrix_distributed: wrong data_strategy'
+     end if
+
+     call timing(iproc,'compressd_comm','OF')
+
+     call f_release_routine()
+
+
+     contains
+
+
+        !!@! Function that gives the index of the matrix element (jjorb,iiorb) in the compressed format.
+        !!@! Cannot use the standard function since that one requires a type
+        !!@! sparse_matrix as argument.
+        !!@integer function matrixindex_in_compressed_fn(irow, jcol, norb, nseg, keyv, keyg) result(micf)
+        !!@  implicit none
+
+        !!@  ! Calling arguments
+        !!@  integer,intent(in) :: irow, jcol, norb, nseg
+        !!@  integer,dimension(nseg),intent(in) :: keyv
+        !!@  integer,dimension(2,2,nseg),intent(in) :: keyg
+
+        !!@  ! Local variables
+        !!@  integer(kind=8) :: ii, istart, iend
+        !!@  integer :: iseg
+
+        !!@  ii = int((jcol-1),kind=8)*int(norb,kind=8)+int(irow,kind=8)
+
+        !!@  do iseg=1,nseg
+        !!@      istart = int((keyg(1,2,iseg)-1),kind=8)*int(norb,kind=8) + &
+        !!@               int(keyg(1,1,iseg),kind=8)
+        !!@      iend = int((keyg(2,2,iseg)-1),kind=8)*int(norb,kind=8) + &
+        !!@             int(keyg(2,1,iseg),kind=8)
+        !!@      if (ii>=istart .and. ii<=iend) then
+        !!@          ! The matrix element is in this segment
+        !!@           micf = keyv(iseg) + int(ii-istart,kind=4)
+        !!@          return
+        !!@      end if
+        !!@      if (ii<istart) then
+        !!@          micf=0
+        !!@          return
+        !!@      end if
+        !!@  end do
+
+        !!@  ! Not found
+        !!@  micf=0
+
+        !!@end function matrixindex_in_compressed_fn
+
+
+       !> Get the taskgroup which should be used for the communication, i.e. the
+       !! one to which both iproc and jproc belong
+       integer function get_taskgroup_id(iproc,jproc)
+         implicit none
+         integer,intent(in) :: iproc, jproc
+
+         ! Local variables
+         integer :: itg, iitg, jtg, jjtg
+         logical :: found
+
+         ! A task never belongs to more than 2 taskgroups 
+         found = .false.
+         iloop: do itg=1,2
+             iitg = smat%inwhichtaskgroup(itg,iproc)
+             jloop: do jtg=1,2
+                 jjtg = smat%inwhichtaskgroup(jtg,jproc)
+                 if (iitg==jjtg) then
+                     get_taskgroup_id = iitg
+                     found = .true.
+                     exit iloop
+                 end if
+             end do jloop
+         end do iloop
+         if (.not.found) stop 'get_taskgroup_id did not suceed'
+       end function get_taskgroup_id
+
+
+       ! Get the ID of task iiproc on taskgroup iitg
+       integer function get_rank_on_taskgroup(iiproc,iitg)
+         implicit none
+         ! Calling arguments
+         integer,intent(in) :: iiproc, iitg
+         ! Local variables
+         integer :: jproc
+         logical :: found
+
+         found = .false.
+         do jproc=0,smat%nranks(iitg)-1
+             if (smat%tgranks(jproc,iitg) == iiproc) then
+                 get_rank_on_taskgroup = jproc
+                 found = .true.
+                 exit
+             end if
+         end do
+         if (.not.found) stop 'get_rank_on_taskgroup did not suceed'
+       end function get_rank_on_taskgroup
+
+  end subroutine compress_matrix_distributed_new2
 
 
 
