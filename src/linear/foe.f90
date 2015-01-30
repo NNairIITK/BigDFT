@@ -386,9 +386,13 @@ subroutine foe(iproc, nproc, tmprtr, &
                       call chebyshev_fast(iproc, nproc, nsize_polynomial, npl, &
                            tmb%linmat%l%nfvctr, tmb%linmat%l%smmm%nfvctrp, &
                           tmb%linmat%l, chebyshev_polynomials, 1, cc, fermi_new)
+                      call calculate_trace_distributed_new(fermi_new, sumn)
+                      write(*,*) 'trace debug', sumn
+
                       call uncompress_polynomial_vector(iproc, nproc, nsize_polynomial, &
                            tmb%linmat%l, fermi_new, tmb%linmat%kernel_%matrixp(:,:,1))
-
+                      call calculate_trace_distributed(tmb%linmat%kernel_%matrixp, sumn)
+                      write(*,'(a,3es16.8)') 'trace debug 2, sums', sumn, sum(fermi_new), sum(tmb%linmat%kernel_%matrixp)
                   end if 
     
     
@@ -449,7 +453,8 @@ subroutine foe(iproc, nproc, tmprtr, &
                       call foe_data_set_int(foe_obj,"evbounds_isatur",foe_data_get_int(foe_obj,"evbounds_isatur")+1)
                   end if
                 
-                  call calculate_trace_distributed(tmb%linmat%kernel_%matrixp, sumn)
+                  !call calculate_trace_distributed(tmb%linmat%kernel_%matrixp, sumn)
+                  call calculate_trace_distributed_new(fermi_new, sumn)
                   write(*,*) 'sumn',sumn
         
     
@@ -554,7 +559,8 @@ subroutine foe(iproc, nproc, tmprtr, &
     
           call retransform(fermi_check_compr)
     
-          call calculate_trace_distributed(fermip_check, sumn_check)
+          !call calculate_trace_distributed(fermip_check, sumn_check)
+          call calculate_trace_distributed_new(fermi_check_new, sumn_check)
 
           !@NEW ##########################
           sumn = trace_sparse(iproc, nproc, tmb%orbs, tmb%linmat%s, tmb%linmat%l, &
@@ -830,6 +836,8 @@ subroutine foe(iproc, nproc, tmprtr, &
 
           call f_routine(id='calculate_trace_distributed')
 
+          write(*,'(a,es16.8)') 'in calculate_trace_distributed: sum(matrixp)', sum(matrixp)
+
           trace=0.d0
           if (tmb%linmat%l%smmm%nfvctrp>0) then
               !$omp parallel default(private) shared(matrixp, tmb, trace) 
@@ -843,7 +851,10 @@ subroutine foe(iproc, nproc, tmprtr, &
                       if (ii>tmb%linmat%l%smmm%isvctr_mm+tmb%linmat%l%smmm%nvctrp_mm) exit
                       iiorb = tmb%linmat%l%keyg(1,2,iseg)
                       jjorb = jorb
-                      if (jjorb==iiorb) trace = trace + matrixp(jjorb,iiorb-tmb%linmat%l%smmm%isfvctr)
+                      if (jjorb==iiorb) then
+                          !write(900,*) iiorb, matrixp(jjorb,iiorb-tmb%linmat%l%smmm%isfvctr)
+                          trace = trace + matrixp(jjorb,iiorb-tmb%linmat%l%smmm%isfvctr)
+                      end if
                   end do  
               end do
               !$omp end do
@@ -856,6 +867,51 @@ subroutine foe(iproc, nproc, tmprtr, &
 
           call f_release_routine()
       end subroutine calculate_trace_distributed
+
+
+      subroutine calculate_trace_distributed_new(matrixp, trace)
+          real(kind=8),dimension(tmb%linmat%l%smmm%nvctrp),intent(in) :: matrixp
+          real(kind=8),intent(out) :: trace
+          integer :: i, ii
+
+          call f_routine(id='calculate_trace_distributed_new')
+
+          !!trace=0.d0
+          !!if (tmb%linmat%l%smmm%nfvctrp>0) then
+          !!    !$omp parallel default(private) shared(matrixp, tmb, trace) 
+          !!    !$omp do reduction(+:trace)
+          !!    do iseg=tmb%linmat%l%smmm%isseg,tmb%linmat%l%smmm%ieseg
+          !!        ii=tmb%linmat%l%keyv(iseg)-1
+          !!        ! A segment is always on one line, therefore no double loop
+          !!        do jorb=tmb%linmat%l%keyg(1,1,iseg),tmb%linmat%l%keyg(2,1,iseg)
+          !!            ii=ii+1
+          !!            if (ii<tmb%linmat%l%smmm%isvctr_mm+1) cycle
+          !!            if (ii>tmb%linmat%l%smmm%isvctr_mm+tmb%linmat%l%smmm%nvctrp_mm) exit
+          !!            iiorb = tmb%linmat%l%keyg(1,2,iseg)
+          !!            jjorb = jorb
+          !!            if (jjorb==iiorb) trace = trace + matrixp(jjorb,iiorb-tmb%linmat%l%smmm%isfvctr)
+          !!        end do  
+          !!    end do
+          !!    !$omp end do
+          !!    !$omp end parallel
+          !!end if
+
+          trace = 0.d0
+          do i=1,tmb%linmat%l%smmm%nvctrp_mm
+              ii = tmb%linmat%l%smmm%isvctr_mm + i
+              call get_line_and_column(ii, tmb%linmat%l%nseg, tmb%linmat%l%keyv, tmb%linmat%l%keyg, iline, icolumn)
+              if (iline==icolumn) then
+                  !write(901,*) iiorb, matrixp(i)
+                  trace = trace + matrixp(i)
+              end if
+          end do
+
+          if (nproc > 1) then
+              call mpiallred(trace, 1, mpi_sum, bigdft_mpi%mpi_comm)
+          end if
+
+          call f_release_routine()
+      end subroutine calculate_trace_distributed_new
 
 
 end subroutine foe
