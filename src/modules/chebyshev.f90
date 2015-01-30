@@ -30,7 +30,8 @@ module chebyshev
                                    DENSE_MATMUL, SPARSEMM_SEQ,sparsematrix_malloc0
       use sparsematrix_init, only: matrixindex_in_compressed, get_line_and_column
       use sparsematrix, only: sequential_acces_matrix_fast, sequential_acces_matrix_fast2, &
-                              sparsemm, compress_matrix_distributed, sparsemm_new
+                              sparsemm, compress_matrix_distributed, sparsemm_new, &
+                              compress_matrix_distributed_new
       implicit none
     
       ! Calling arguments
@@ -183,8 +184,10 @@ module chebyshev
           !if (nproc > 1) then
              !call mpiallred(SHS(1), kernel%nvctr, mpi_sum, bigdft_mpi%mpi_comm)
              mat_compr = 0.d0
-             call compress_matrix_distributed(iproc, nproc, kernel, DENSE_MATMUL, &
-                  matrix, mat_compr)
+             !!call compress_matrix_distributed(iproc, nproc, kernel, DENSE_MATMUL, &
+             !!     matrix, mat_compr)
+             call compress_matrix_distributed_new(iproc, nproc, kernel, DENSE_MATMUL, &
+                  matrix_new, mat_compr)
           !end if
       !do i=1,size(mat_compr,1)
       !    write(801,*) 'i, val', i, j, mat_compr(i)
