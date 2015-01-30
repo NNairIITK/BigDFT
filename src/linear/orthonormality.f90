@@ -249,7 +249,7 @@ subroutine orthoconstraintNonorthogonal(iproc, nproc, lzd, npsidim_orbs, npsidim
 
 
   ! Apply S^-1
-  call sequential_acces_matrix_fast2(linmat%l, linmat%ovrlppowers_(3)%matrix_compr, inv_ovrlp_seq)
+  !!call sequential_acces_matrix_fast2(linmat%l, linmat%ovrlppowers_(3)%matrix_compr, inv_ovrlp_seq)
   ! Transform the matrix to the large sparsity pattern (necessary for the following uncompress_matrix_distributed)
   if (correction_orthoconstraint==0) then
       if (data_strategy_main==GLOBAL_MATRIX) then
@@ -257,12 +257,13 @@ subroutine orthoconstraintNonorthogonal(iproc, nproc, lzd, npsidim_orbs, npsidim
           call transform_sparse_matrix(linmat%m, linmat%l, lagmat_%matrix_compr, lagmat_large, 'small_to_large')
       end if
       if (iproc==0) call yaml_map('correction orthoconstraint',.true.)
-      call uncompress_matrix_distributed2(iproc, linmat%l, DENSE_MATMUL, lagmat_large, lagmatp)
-      call sparsemm(linmat%l, inv_ovrlp_seq, lagmatp, inv_lagmatp)
-      call compress_matrix_distributed(iproc, nproc, linmat%l, DENSE_MATMUL, &
-           inv_lagmatp, lagmat_large)
-      !!call matrix_matrix_mult_wrapper(iproc, nproc, linmat%l, &
-      !!     linmat%ovrlppowers_(3)%matrix_compr, lagmat_large, lagmat_large)
+      !!call uncompress_matrix_distributed2(iproc, linmat%l, DENSE_MATMUL, lagmat_large, lagmatp)
+      !!call sparsemm(linmat%l, inv_ovrlp_seq, lagmatp, inv_lagmatp)
+      !!write(*,*) 'iproc, sum(inv_lagmatp)', iproc, sum(inv_lagmatp)
+      !!call compress_matrix_distributed(iproc, nproc, linmat%l, DENSE_MATMUL, &
+      !!     inv_lagmatp, lagmat_large)
+      call matrix_matrix_mult_wrapper(iproc, nproc, linmat%l, &
+           linmat%ovrlppowers_(3)%matrix_compr, lagmat_large, lagmat_large)
   end if
   if (data_strategy_main==SUBMATRIX) then
       call transform_sparse_matrix_local(linmat%m, linmat%l, lagmat_%matrix_compr, lagmat_large, 'large_to_small')

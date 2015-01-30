@@ -2775,7 +2775,7 @@ module sparsematrix
            smat%nseg, smat%keyv, smat%keyg, &
            smat%smmm%nvctrp, smat%smmm%isvctr, &
            smat%smmm%nseg, smat%smmm%keyv, smat%smmm%keyg, &
-           b, b_exp)
+           b(smat%smmm%isvctr_mm+1), b_exp)
       call sparsemm_new(smat, a_seq, b_exp, c_exp)
       call compress_matrix_distributed_new(iproc, nproc, smat, DENSE_MATMUL, &
            c_exp, c)
