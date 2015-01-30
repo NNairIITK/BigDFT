@@ -109,7 +109,7 @@ module chebyshev
                       call get_line_and_column(ii, kernel%smmm%nseg, kernel%smmm%keyv, kernel%smmm%keyg, iline, icolumn)
                       jj=matrixindex_in_compressed(kernel, icolumn, iline)
                       if (jj>0) then
-                          matrix_new(i) = invovrlp_compr(jj)
+                          matrix_new(i) = invovrlp_compr(jj-kernel%isvctrp_tg)
                       else
                           matrix_new(i) = 0.d0
                       end if
