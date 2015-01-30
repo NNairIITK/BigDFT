@@ -104,8 +104,8 @@ subroutine foe(iproc, nproc, tmprtr, &
   evbounds_shrinked=.false.
 
 
-  penalty_ev = f_malloc((/tmb%linmat%l%nfvctr,tmb%linmat%l%smmm%nfvctrp,2/),id='penalty_ev')
-  fermip_check = f_malloc((/tmb%linmat%l%nfvctr,tmb%linmat%l%smmm%nfvctrp/),id='fermip_check')
+  !!penalty_ev = f_malloc((/tmb%linmat%l%nfvctr,tmb%linmat%l%smmm%nfvctrp,2/),id='penalty_ev')
+  !!fermip_check = f_malloc((/tmb%linmat%l%nfvctr,tmb%linmat%l%smmm%nfvctrp/),id='fermip_check')
   fermi_check_compr = sparsematrix_malloc(tmb%linmat%l, iaction=SPARSE_TASKGROUP, id='fermi_check_compr')
 
   penalty_ev_new = f_malloc((/tmb%linmat%l%smmm%nvctrp,2/),id='penalty_ev_new')
@@ -380,13 +380,13 @@ subroutine foe(iproc, nproc, tmprtr, &
                            fermi_new, fermi_small_new)
 
 
-                      do i=1,tmb%linmat%l%smmm%nvctrp
-                          ii = tmb%linmat%l%smmm%isvctr + i
-                          call get_line_and_column(ii, tmb%linmat%l%smmm%nseg, tmb%linmat%l%smmm%keyv, tmb%linmat%l%smmm%keyg, iline, icolumn)
-                          tmb%linmat%kernel_%matrixp(icolumn,iline-tmb%linmat%l%smmm%isfvctr,1) = fermi_new(i)
-                          penalty_ev(icolumn,iline-tmb%linmat%l%smmm%isfvctr,1) = penalty_ev_new(i,1)
-                          penalty_ev(icolumn,iline-tmb%linmat%l%smmm%isfvctr,2) = penalty_ev_new(i,2)
-                      end do
+                      !!do i=1,tmb%linmat%l%smmm%nvctrp
+                      !!    ii = tmb%linmat%l%smmm%isvctr + i
+                      !!    call get_line_and_column(ii, tmb%linmat%l%smmm%nseg, tmb%linmat%l%smmm%keyv, tmb%linmat%l%smmm%keyg, iline, icolumn)
+                      !!!!    tmb%linmat%kernel_%matrixp(icolumn,iline-tmb%linmat%l%smmm%isfvctr,1) = fermi_new(i)
+                      !!    penalty_ev(icolumn,iline-tmb%linmat%l%smmm%isfvctr,1) = penalty_ev_new(i,1)
+                      !!    penalty_ev(icolumn,iline-tmb%linmat%l%smmm%isfvctr,2) = penalty_ev_new(i,2)
+                      !!end do
 
                   else
                       ! The Chebyshev polynomials are already available
@@ -397,10 +397,10 @@ subroutine foe(iproc, nproc, tmprtr, &
                       !!call calculate_trace_distributed_new(fermi_new, sumn)
                       !!write(*,*) 'trace debug', sumn
 
-                      call uncompress_polynomial_vector(iproc, nproc, nsize_polynomial, &
-                           tmb%linmat%l, fermi_small_new, tmb%linmat%kernel_%matrixp(:,:,1))
-                      !!call calculate_trace_distributed(tmb%linmat%kernel_%matrixp, sumn)
-                      write(*,'(a,2es16.8)') 'sum(fermi_new), sum(tmb%linmat%kernel_%matrix(:,:,1)', sum(abs(fermi_new)), sum(abs(tmb%linmat%kernel_%matrixp(:,:,1)))
+                      !!call uncompress_polynomial_vector(iproc, nproc, nsize_polynomial, &
+                      !!     tmb%linmat%l, fermi_small_new, tmb%linmat%kernel_%matrixp(:,:,1))
+                      !!!!call calculate_trace_distributed(tmb%linmat%kernel_%matrixp, sumn)
+                      !!write(*,'(a,2es16.8)') 'sum(fermi_new), sum(tmb%linmat%kernel_%matrix(:,:,1)', sum(abs(fermi_new)), sum(abs(tmb%linmat%kernel_%matrixp(:,:,1)))
                   end if 
     
     
@@ -433,8 +433,11 @@ subroutine foe(iproc, nproc, tmprtr, &
                   ! (otherwise this has already been checked in the previous iteration).
                   if (calculate_SHS) then
                       !!call check_eigenvalue_spectrum()
-                      call check_eigenvalue_spectrum(nproc, tmb%linmat%l, tmb%linmat%s, tmb%linmat%ovrlp_, ispin, &
-                            isshift, 1.2d0, 1.2d0, penalty_ev, anoise, .true., emergency_stop, &
+                      !!call check_eigenvalue_spectrum(nproc, tmb%linmat%l, tmb%linmat%s, tmb%linmat%ovrlp_, ispin, &
+                      !!      isshift, 1.2d0, 1.2d0, penalty_ev, anoise, .true., emergency_stop, &
+                      !!      foe_obj, restart, eval_bounds_ok)
+                      call check_eigenvalue_spectrum_new(nproc, tmb%linmat%l, tmb%linmat%s, tmb%linmat%ovrlp_, ispin, &
+                            isshift, 1.2d0, 1.2d0, penalty_ev_new, anoise, .true., emergency_stop, &
                             foe_obj, restart, eval_bounds_ok)
                   end if
         
@@ -742,9 +745,9 @@ subroutine foe(iproc, nproc, tmprtr, &
 
 
   call f_free(chebyshev_polynomials)
-  call f_free(penalty_ev)
+  !!call f_free(penalty_ev)
   call f_free(hamscal_compr)
-  call f_free(fermip_check)
+  !!call f_free(fermip_check)
   call f_free(fermi_check_compr)
 
   call f_free(penalty_ev_new)
@@ -850,42 +853,42 @@ subroutine foe(iproc, nproc, tmprtr, &
 
 
 
-      subroutine calculate_trace_distributed(matrixp, trace)
-          real(kind=8),dimension(tmb%linmat%l%nfvctr,tmb%linmat%l%smmm%nfvctrp),intent(in) :: matrixp
-          real(kind=8),intent(out) :: trace
+      !!subroutine calculate_trace_distributed(matrixp, trace)
+      !!    real(kind=8),dimension(tmb%linmat%l%nfvctr,tmb%linmat%l%smmm%nfvctrp),intent(in) :: matrixp
+      !!    real(kind=8),intent(out) :: trace
 
-          call f_routine(id='calculate_trace_distributed')
+      !!    call f_routine(id='calculate_trace_distributed')
 
 
-          trace=0.d0
-          if (tmb%linmat%l%smmm%nfvctrp>0) then
-              !$omp parallel default(private) shared(matrixp, tmb, trace) 
-              !$omp do reduction(+:trace)
-              do iseg=tmb%linmat%l%smmm%isseg,tmb%linmat%l%smmm%ieseg
-                  ii=tmb%linmat%l%keyv(iseg)-1
-                  ! A segment is always on one line, therefore no double loop
-                  do jorb=tmb%linmat%l%keyg(1,1,iseg),tmb%linmat%l%keyg(2,1,iseg)
-                      ii=ii+1
-                      if (ii<tmb%linmat%l%smmm%isvctr_mm+1) cycle
-                      if (ii>tmb%linmat%l%smmm%isvctr_mm+tmb%linmat%l%smmm%nvctrp_mm) exit
-                      iiorb = tmb%linmat%l%keyg(1,2,iseg)
-                      jjorb = jorb
-                      if (jjorb==iiorb) then
-                          !write(900,*) iiorb, matrixp(jjorb,iiorb-tmb%linmat%l%smmm%isfvctr)
-                          trace = trace + matrixp(jjorb,iiorb-tmb%linmat%l%smmm%isfvctr)
-                      end if
-                  end do  
-              end do
-              !$omp end do
-              !$omp end parallel
-          end if
+      !!    trace=0.d0
+      !!    if (tmb%linmat%l%smmm%nfvctrp>0) then
+      !!        !$omp parallel default(private) shared(matrixp, tmb, trace) 
+      !!        !$omp do reduction(+:trace)
+      !!        do iseg=tmb%linmat%l%smmm%isseg,tmb%linmat%l%smmm%ieseg
+      !!            ii=tmb%linmat%l%keyv(iseg)-1
+      !!            ! A segment is always on one line, therefore no double loop
+      !!            do jorb=tmb%linmat%l%keyg(1,1,iseg),tmb%linmat%l%keyg(2,1,iseg)
+      !!                ii=ii+1
+      !!                if (ii<tmb%linmat%l%smmm%isvctr_mm+1) cycle
+      !!                if (ii>tmb%linmat%l%smmm%isvctr_mm+tmb%linmat%l%smmm%nvctrp_mm) exit
+      !!                iiorb = tmb%linmat%l%keyg(1,2,iseg)
+      !!                jjorb = jorb
+      !!                if (jjorb==iiorb) then
+      !!                    !write(900,*) iiorb, matrixp(jjorb,iiorb-tmb%linmat%l%smmm%isfvctr)
+      !!                    trace = trace + matrixp(jjorb,iiorb-tmb%linmat%l%smmm%isfvctr)
+      !!                end if
+      !!            end do  
+      !!        end do
+      !!        !$omp end do
+      !!        !$omp end parallel
+      !!    end if
 
-          if (nproc > 1) then
-              call mpiallred(trace, 1, mpi_sum, bigdft_mpi%mpi_comm)
-          end if
+      !!    if (nproc > 1) then
+      !!        call mpiallred(trace, 1, mpi_sum, bigdft_mpi%mpi_comm)
+      !!    end if
 
-          call f_release_routine()
-      end subroutine calculate_trace_distributed
+      !!    call f_release_routine()
+      !!end subroutine calculate_trace_distributed
 
 
       subroutine calculate_trace_distributed_new(matrixp, trace)
@@ -2121,7 +2124,7 @@ subroutine check_eigenvalue_spectrum(nproc, smat_l, smat_s, mat, ispin, isshift,
   use sparsematrix_base, only: sparse_matrix, matrices
   use sparsematrix_init, only: matrixindex_in_compressed
   use foe_base, only: foe_data, foe_data_set_real, foe_data_get_real
-  !!use yaml_output
+  use yaml_output
   implicit none
 
   ! Calling arguments
@@ -2205,9 +2208,9 @@ subroutine check_eigenvalue_spectrum(nproc, smat_l, smat_s, mat, ispin, isshift,
   allredarr=abs(allredarr) !for some crazy situations this may be negative
   noise=1000.d0*anoise
 
-  !!if (bigdft_mpi%iproc==0) then
-  !!    call yaml_map('errors, noise',(/allredarr(1),allredarr(2),noise/),fmt='(es12.4)')
-  !!end if
+  if (bigdft_mpi%iproc==0) then
+      call yaml_map('errors, noise',(/allredarr(1),allredarr(2),noise/),fmt='(es12.4)')
+  end if
   !write(*,*) 'allredarr, anoise', allredarr, anoise
   if (allredarr(1)>noise) then
       eval_bounds_ok(1)=.false.
@@ -2233,6 +2236,161 @@ subroutine check_eigenvalue_spectrum(nproc, smat_l, smat_s, mat, ispin, isshift,
   call f_release_routine()
 
 end subroutine check_eigenvalue_spectrum
+
+
+
+
+subroutine check_eigenvalue_spectrum_new(nproc, smat_l, smat_s, mat, ispin, isshift, &
+           factor_high, factor_low, penalty_ev, anoise, trace_with_overlap, &
+           emergency_stop, foe_obj, restart, eval_bounds_ok)
+  use module_base
+  use sparsematrix_base, only: sparse_matrix, matrices
+  use sparsematrix_init, only: matrixindex_in_compressed, get_line_and_column
+  use foe_base, only: foe_data, foe_data_set_real, foe_data_get_real
+  use yaml_output
+  implicit none
+
+  ! Calling arguments
+  type(sparse_matrix),intent(in) :: smat_l, smat_s
+  type(matrices),intent(in) :: mat
+  integer,intent(in) :: nproc, ispin, isshift
+  real(kind=8),intent(in) :: factor_high, factor_low, anoise
+  !real(kind=8),dimension(smat_l%nfvctr,smat_l%smmm%nfvctrp,2),intent(in) :: penalty_ev
+  real(kind=8),dimension(smat_l%smmm%nvctrp,2),intent(in) :: penalty_ev
+  logical,intent(in) :: trace_with_overlap, emergency_stop
+  type(foe_data),intent(inout) :: foe_obj
+  logical,intent(out) :: restart
+  logical,dimension(2),intent(out) :: eval_bounds_ok
+
+  ! Local variables
+  integer :: isegstart, isegend, iseg, ii, jorb, irow, icol, iismall, iel, i, iline, icolumn
+  real(kind=8) :: bound_low, bound_up, tt, noise
+  real(kind=8),dimension(2) :: allredarr
+
+  call f_routine(id='check_eigenvalue_spectrum_new')
+
+  if (.not.emergency_stop) then
+      ! The penalty function must be smaller than the noise.
+      bound_low=0.d0
+      bound_up=0.d0
+      !!if (smat_l%smmm%nfvctrp>0) then
+      !!    !$omp parallel default(none) &
+      !!    !$omp private(iseg, ii, jorb, irow, icol, iismall, tt, iel) &
+      !!    !$omp shared(isegstart, isegend, smat_l, smat_s, mat, penalty_ev) &
+      !!    !$omp shared(bound_low, bound_up, isshift, trace_with_overlap) 
+      !!    !$omp do reduction(+:bound_low,bound_up)
+      !!    !!do iseg=isegstart,isegend
+      !!    do iseg=smat_l%smmm%isseg,smat_l%smmm%ieseg
+      !!        iel = smat_l%keyv(iseg) - 1
+      !!        ii=smat_l%keyv(iseg)-1
+      !!        ! A segment is always on one line, therefore no double loop
+      !!        do jorb=smat_l%keyg(1,1,iseg),smat_l%keyg(2,1,iseg)
+      !!            iel = iel + 1
+      !!            if (iel<smat_l%smmm%isvctr_mm+1) cycle
+      !!            if (iel>smat_l%smmm%isvctr_mm+smat_l%smmm%nvctrp_mm) exit
+      !!            ii=ii+1
+      !!            irow = smat_l%keyg(1,2,iseg)
+      !!            icol = jorb
+      !!            iismall = matrixindex_in_compressed(smat_s, irow, icol)
+      !!            if (iismall>0) then
+      !!                if (trace_with_overlap) then
+      !!                    ! Take the trace of the product matrix times overlap
+      !!                    tt=mat%matrix_compr(isshift+iismall-smat_s%isvctrp_tg)
+      !!                else
+      !!                    ! Take the trace of the matrix alone, i.e. set the second matrix to the identity
+      !!                    if (irow==icol) then
+      !!                        tt=1.d0
+      !!                    else
+      !!                        tt=0.d0
+      !!                    end if
+      !!                end if
+      !!            else
+      !!                tt=0.d0
+      !!            end if
+      !!            bound_low = bound_low + penalty_ev(icol,irow-smat_l%smmm%isfvctr,2)*tt
+      !!            bound_up = bound_up +penalty_ev(icol,irow-smat_l%smmm%isfvctr,1)*tt
+      !!        end do  
+      !!    end do
+      !!    !$omp end do
+      !!    !$omp end parallel
+      !!end if
+
+
+      do i=1,smat_l%smmm%nvctrp
+          ii = smat_l%smmm%isvctr + i
+          call get_line_and_column(ii, smat_l%smmm%nseg, smat_l%smmm%keyv, smat_l%smmm%keyg, iline, icolumn)
+          !!iismall = matrixindex_in_compressed_fn(icolumn, iline, &
+          !!          smat_s%nfvctr, smat_l%smmm%nseg_mm, smat_l%smmm%keyv_mm, smat_l%smmm%keyg_mm)
+          iismall = matrixindex_in_compressed(smat_s, icolumn, iline)
+          if (iismall>0) then
+              if (trace_with_overlap) then
+                  ! Take the trace of the product matrix times overlap
+                  tt=mat%matrix_compr(isshift+iismall-smat_s%isvctrp_tg)
+              else
+                  ! Take the trace of the matrix alone, i.e. set the second matrix to the identity
+                  if (irow==icol) then
+                      tt=1.d0
+                  else
+                      tt=0.d0
+                  end if
+              end if
+          else
+              tt=0.d0
+          end if
+          !!bound_low = bound_low + penalty_ev(icol,irow-smat_l%smmm%isfvctr,2)*tt
+          !!bound_up = bound_up +penalty_ev(icol,irow-smat_l%smmm%isfvctr,1)*tt
+          bound_low = bound_low + penalty_ev(i,2)*tt
+          bound_up = bound_up +penalty_ev(i,1)*tt
+      end do
+  else
+      ! This means that the Chebyshev expansion exploded, so take a very large
+      ! value for the error function such that eigenvalue bounds will be enlarged
+      bound_low = 1.d10
+      bound_up = 1.d10
+  end if
+
+  allredarr(1)=bound_low
+  allredarr(2)=bound_up
+
+  if (nproc > 1) then
+      call mpiallred(allredarr(1), 2, mpi_sum, bigdft_mpi%mpi_comm)
+  end if
+
+
+  allredarr=abs(allredarr) !for some crazy situations this may be negative
+  noise=1000.d0*anoise
+
+  if (bigdft_mpi%iproc==0) then
+      call yaml_map('errors, noise',(/allredarr(1),allredarr(2),noise/),fmt='(es12.4)')
+  end if
+  !write(*,*) 'allredarr, anoise', allredarr, anoise
+  if (allredarr(1)>noise) then
+      eval_bounds_ok(1)=.false.
+      call foe_data_set_real(foe_obj,"evlow",foe_data_get_real(foe_obj,"evlow",ispin)*factor_low,ispin)
+      restart=.true.
+      !!if (bigdft_mpi%iproc==0) then
+      !!    call yaml_map('adjust lower bound',.true.)
+      !!end if
+  else
+      eval_bounds_ok(1)=.true.
+  end if
+  if (allredarr(2)>noise) then
+      eval_bounds_ok(2)=.false.
+      call foe_data_set_real(foe_obj,"evhigh",foe_data_get_real(foe_obj,"evhigh",ispin)*factor_high,ispin)
+      restart=.true.
+      !!if (bigdft_mpi%iproc==0) then
+      !!    call yaml_map('adjust upper bound',.true.)
+      !!end if
+  else
+      eval_bounds_ok(2)=.true.
+  end if
+
+  call f_release_routine()
+
+end subroutine check_eigenvalue_spectrum_new
+
+
+
 
 
 subroutine check_emergency_stop(nproc,emergency_stop)
