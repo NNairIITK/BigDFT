@@ -385,7 +385,10 @@ subroutine foe(iproc, nproc, tmprtr, &
                       if (foe_verbosity>=1 .and. iproc==0) call yaml_map('polynomials','from memory')
                       call chebyshev_fast(iproc, nproc, nsize_polynomial, npl, &
                            tmb%linmat%l%nfvctr, tmb%linmat%l%smmm%nfvctrp, &
-                          tmb%linmat%l, chebyshev_polynomials, 1, cc, tmb%linmat%kernel_%matrixp)
+                          tmb%linmat%l, chebyshev_polynomials, 1, cc, fermi_new)
+                      call uncompress_polynomial_vector(iproc, nproc, nsize_polynomial, &
+                           tmb%linmat%l, fermi_new, tmb%linmat%kernel_%matrixp(:,:,1))
+
                   end if 
     
     
@@ -502,7 +505,9 @@ subroutine foe(iproc, nproc, tmprtr, &
                       ! polynomial degree  and calculate the difference
                       call chebyshev_fast(iproc, nproc, nsize_polynomial, npl_check, &
                            tmb%linmat%l%nfvctr, tmb%linmat%l%smmm%nfvctrp, &
-                           tmb%linmat%l, chebyshev_polynomials, 1, cc_check, fermip_check)
+                           tmb%linmat%l, chebyshev_polynomials, 1, cc_check, fermi_check_new)
+                      call uncompress_polynomial_vector(iproc, nproc, nsize_polynomial, &
+                           tmb%linmat%l, fermi_check_new, fermip_check)
                       call f_free(cc_check)
                       diff=0.d0
                       do iorb=1,tmb%linmat%l%smmm%nfvctrp
@@ -1884,7 +1889,11 @@ subroutine ice(iproc, nproc, norder_polynomial, ovrlp_smat, inv_ovrlp_smat, ncal
                       !if (foe_verbosity>=1 .and. iproc==0) call yaml_map('polynomials','from memory')
                       call chebyshev_fast(iproc, nproc, nsize_polynomial, npl, &
                            inv_ovrlp_smat%nfvctr, inv_ovrlp_smat%smmm%nfvctrp, &
-                           inv_ovrlp_smat, chebyshev_polynomials, ncalc, cc, inv_ovrlp_matrixp)
+                           inv_ovrlp_smat, chebyshev_polynomials, ncalc, cc, inv_ovrlp_matrixp_new)
+                      do icalc=1,ncalc
+                          call uncompress_polynomial_vector(iproc, nproc, nsize_polynomial, &
+                               inv_ovrlp_smat, inv_ovrlp_matrixp_new, inv_ovrlp_matrixp(:,:,icalc))
+                      end do
                   end if 
     
     

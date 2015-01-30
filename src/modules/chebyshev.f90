@@ -654,7 +654,7 @@ module chebyshev
     
     
     subroutine chebyshev_fast(iproc, nproc, nsize_polynomial, npl, &
-               norb, norbp, fermi, chebyshev_polynomials, ncalc, cc, kernelp)
+               norb, norbp, fermi, chebyshev_polynomials, ncalc, cc, kernel_compressed)
       use module_base
       use module_types
       use sparsematrix_base, only: sparse_matrix, sparsematrix_malloc, assignment(=),&
@@ -666,29 +666,30 @@ module chebyshev
       type(sparse_matrix),intent(in) :: fermi
       real(kind=8),dimension(nsize_polynomial,npl),intent(in) :: chebyshev_polynomials
       real(kind=8),dimension(npl,ncalc),intent(in) :: cc
-      real(kind=8),dimension(norb,norbp,ncalc),intent(out) :: kernelp
+      real(kind=8),dimension(nsize_polynomial,ncalc),intent(out) :: kernel_compressed
     
       ! Local variables
       integer :: ipl, icalc
-      real(kind=8),dimension(:),allocatable :: kernel_compressed
+      !real(kind=8),dimension(:),allocatable :: kernel_compressed
     
       call f_routine(id='chebyshev_fast')
     
       if (nsize_polynomial>0) then
-          kernel_compressed = sparsematrix_malloc0(fermi, iaction=SPARSE_FULL, id='kernel_compressed')
+          !!kernel_compressed = sparsematrix_malloc0(fermi, iaction=SPARSE_FULL, id='kernel_compressed')
+          call f_zero(kernel_compressed)
     
           !call f_zero(nsize_polynomial,kernel_compressed(1))
           do icalc=1,ncalc
-              call daxpy(nsize_polynomial, 0.5d0*cc(1,icalc), chebyshev_polynomials(1,1), 1, kernel_compressed(1), 1)
+              call daxpy(nsize_polynomial, 0.5d0*cc(1,icalc), chebyshev_polynomials(1,1), 1, kernel_compressed(1,icalc), 1)
               do ipl=2,npl
-                  call daxpy(nsize_polynomial, cc(ipl,icalc), chebyshev_polynomials(1,ipl), 1, kernel_compressed(1), 1)
+                  call daxpy(nsize_polynomial, cc(ipl,icalc), chebyshev_polynomials(1,ipl), 1, kernel_compressed(1,icalc), 1)
               end do
-              call uncompress_polynomial_vector(iproc, nproc, nsize_polynomial, &
-                   fermi, kernel_compressed, kernelp(1,1,icalc))
+              !!call uncompress_polynomial_vector(iproc, nproc, nsize_polynomial, &
+              !!     fermi, kernel_compressed, kernelp(1,1,icalc))
           end do
     
     
-          call f_free(kernel_compressed)
+          !!call f_free(kernel_compressed)
       end if
     
       call f_release_routine()
