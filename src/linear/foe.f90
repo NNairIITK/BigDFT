@@ -20,7 +20,7 @@ subroutine foe(iproc, nproc, tmprtr, &
   use sparsematrix_base, only: sparsematrix_malloc_ptr, sparsematrix_malloc, assignment(=), &
                                SPARSE_FULL, DENSE_FULL, DENSE_MATMUL, SPARSEMM_SEQ, SPARSE_TASKGROUP, &
                                matrices
-  use sparsematrix_init, only: matrixindex_in_compressed
+  use sparsematrix_init, only: matrixindex_in_compressed, get_line_and_column
   use sparsematrix, only: compress_matrix, uncompress_matrix, compress_matrix_distributed, &
                           uncompress_matrix_distributed, orb_from_index
   use foe_base, only: foe_data, foe_data_set_int, foe_data_get_int, foe_data_set_real, foe_data_get_real, &
@@ -81,6 +81,9 @@ subroutine foe(iproc, nproc, tmprtr, &
   integer,parameter :: imode=SPARSE
   type(fermi_aux) :: f
   real(kind=8),dimension(2) :: temparr
+  real(kind=8),dimension(:,:),allocatable :: penalty_ev_new
+  real(kind=8),dimension(:),allocatable :: fermi_new, fermi_check_new
+  integer :: iline, icolumn, icalc
   
 
 
@@ -103,6 +106,10 @@ subroutine foe(iproc, nproc, tmprtr, &
   penalty_ev = f_malloc((/tmb%linmat%l%nfvctr,tmb%linmat%l%smmm%nfvctrp,2/),id='penalty_ev')
   fermip_check = f_malloc((/tmb%linmat%l%nfvctr,tmb%linmat%l%smmm%nfvctrp/),id='fermip_check')
   fermi_check_compr = sparsematrix_malloc(tmb%linmat%l, iaction=SPARSE_TASKGROUP, id='fermi_check_compr')
+
+  penalty_ev_new = f_malloc((/tmb%linmat%l%smmm%nvctrp,2/),id='penalty_ev_new')
+  fermi_check_new = f_malloc((/tmb%linmat%l%smmm%nvctrp/),id='fermip_check_new')
+  fermi_new = f_malloc((/tmb%linmat%l%smmm%nvctrp/),id='fermip_new')
 
 
   call timing(iproc, 'FOE_auxiliary ', 'OF')
@@ -202,9 +209,9 @@ subroutine foe(iproc, nproc, tmprtr, &
         
               calculate_SHS=.true.
         
-              if (tmb%linmat%l%smmm%nfvctrp>0) then
-                  call f_zero(tmb%linmat%l%nfvctr*tmb%linmat%l%smmm%nfvctrp*tmb%linmat%l%nspin,tmb%linmat%kernel_%matrixp(1,1,1))
-              end if
+              !if (tmb%linmat%l%smmm%nfvctrp>0) then
+              !    call f_zero(tmb%linmat%l%nfvctr*tmb%linmat%l%smmm%nfvctrp*tmb%linmat%l%nspin,tmb%linmat%kernel_%matrixp(1,1,1))
+              !end if
         
               if (iproc==0) then
                   !call yaml_sequence(advance='no')
@@ -362,8 +369,17 @@ subroutine foe(iproc, nproc, tmprtr, &
                       call chebyshev_clean(iproc, nproc, npl, cc, &
                            tmb%linmat%l, hamscal_compr, &
                            tmb%linmat%ovrlppowers_(2)%matrix_compr(ilshift2+1:), calculate_SHS, &
-                           nsize_polynomial, 1, tmb%linmat%kernel_%matrixp, penalty_ev, chebyshev_polynomials, &
+                           nsize_polynomial, 1, fermi_new, penalty_ev_new, chebyshev_polynomials, &
                            emergency_stop)
+
+                      do i=1,tmb%linmat%l%smmm%nvctrp
+                          ii = tmb%linmat%l%smmm%isvctr + i
+                          call get_line_and_column(ii, tmb%linmat%l%smmm%nseg, tmb%linmat%l%smmm%keyv, tmb%linmat%l%smmm%keyg, iline, icolumn)
+                          tmb%linmat%kernel_%matrixp(icolumn,iline-tmb%linmat%l%smmm%isfvctr,1) = fermi_new(i)
+                          penalty_ev(icolumn,iline-tmb%linmat%l%smmm%isfvctr,1) = penalty_ev_new(i,1)
+                          penalty_ev(icolumn,iline-tmb%linmat%l%smmm%isfvctr,2) = penalty_ev_new(i,2)
+                      end do
+
                   else
                       ! The Chebyshev polynomials are already available
                       if (foe_verbosity>=1 .and. iproc==0) call yaml_map('polynomials','from memory')
@@ -700,6 +716,10 @@ subroutine foe(iproc, nproc, tmprtr, &
   call f_free(hamscal_compr)
   call f_free(fermip_check)
   call f_free(fermi_check_compr)
+
+  call f_free(penalty_ev_new)
+  call f_free(fermi_check_new)
+  call f_free(fermi_new)
 
   call timing(iproc, 'FOE_auxiliary ', 'OF')
 
@@ -1583,7 +1603,7 @@ subroutine ice(iproc, nproc, norder_polynomial, ovrlp_smat, inv_ovrlp_smat, ncal
                                sparsematrix_malloc0_ptr, assignment(=), &
                                SPARSE_FULL, DENSE_FULL, DENSE_MATMUL, SPARSEMM_SEQ, SPARSE_TASKGROUP, &
                                matrices
-  use sparsematrix_init, only: matrixindex_in_compressed
+  use sparsematrix_init, only: matrixindex_in_compressed, get_line_and_column
   use sparsematrix, only: compress_matrix, uncompress_matrix, compress_matrix_distributed, orb_from_index
   use foe_base, only: foe_data, foe_data_set_int, foe_data_get_int, foe_data_set_real, foe_data_get_real, &
                       foe_data_set_logical, foe_data_get_logical
@@ -1626,7 +1646,8 @@ subroutine ice(iproc, nproc, norder_polynomial, ovrlp_smat, inv_ovrlp_smat, ncal
   type(foe_data) :: foe_obj
   real(kind=8),dimension(:),allocatable :: eval, work
   real(kind=8),dimension(:,:),allocatable :: tempmat
-  integer :: lwork, info, j, icalc
+  integer :: lwork, info, j, icalc, iline, icolumn
+  real(kind=8),dimension(:,:),allocatable :: inv_ovrlp_matrixp_new, penalty_ev_new
 
   !!real(kind=8),dimension(ovrlp_smat%nfvctr,ovrlp_smat%nfvctr) :: overlap
   !!real(kind=8),dimension(ovrlp_smat%nfvctr) :: eval
@@ -1636,6 +1657,9 @@ subroutine ice(iproc, nproc, norder_polynomial, ovrlp_smat, inv_ovrlp_smat, ncal
 
   call f_routine(id='ice')
 
+
+  penalty_ev_new = f_malloc((/inv_ovrlp_smat%smmm%nvctrp,2/),id='penalty_ev_new')
+  inv_ovrlp_matrixp_new = f_malloc((/inv_ovrlp_smat%smmm%nvctrp/),id='inv_ovrlp_matrixp_new')
 
 
 !@ JUST FOR THE MOMENT.... ########################
@@ -1843,9 +1867,18 @@ subroutine ice(iproc, nproc, norder_polynomial, ovrlp_smat, inv_ovrlp_smat, ncal
                       call chebyshev_clean(iproc, nproc, npl, cc, &
                            inv_ovrlp_smat, hamscal_compr, &
                            inv_ovrlp(1)%matrix_compr(ilshift2+1:), .false., &
-                           nsize_polynomial, ncalc, inv_ovrlp_matrixp, penalty_ev, chebyshev_polynomials, &
+                           nsize_polynomial, ncalc, inv_ovrlp_matrixp_new, penalty_ev_new, chebyshev_polynomials, &
                            emergency_stop)
                        !write(*,'(a,i5,2es24.8)') 'iproc, sum(inv_ovrlp_matrixp(:,:,1:2)', (sum(inv_ovrlp_matrixp(:,:,icalc)),icalc=1,ncalc)
+                      do i=1,inv_ovrlp_smat%smmm%nvctrp
+                          ii = inv_ovrlp_smat%smmm%isvctr + i
+                          call get_line_and_column(ii, inv_ovrlp_smat%smmm%nseg, inv_ovrlp_smat%smmm%keyv, inv_ovrlp_smat%smmm%keyg, iline, icolumn)
+                          do icalc=1,ncalc
+                              inv_ovrlp_matrixp(icolumn,iline-inv_ovrlp_smat%smmm%isfvctr,icalc) = inv_ovrlp_matrixp_new(i,icalc)
+                          end do
+                          penalty_ev(icolumn,iline-inv_ovrlp_smat%smmm%isfvctr,1) = penalty_ev_new(i,1)
+                          penalty_ev(icolumn,iline-inv_ovrlp_smat%smmm%isfvctr,2) = penalty_ev_new(i,2)
+                      end do
                   else
                       ! The Chebyshev polynomials are already available
                       !if (foe_verbosity>=1 .and. iproc==0) call yaml_map('polynomials','from memory')

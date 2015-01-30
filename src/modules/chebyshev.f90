@@ -22,7 +22,7 @@ module chebyshev
  
     !> Again assuming all matrices have same sparsity, still some tidying to be done
     subroutine chebyshev_clean(iproc, nproc, npl, cc, kernel, ham_compr, &
-               invovrlp_compr, calculate_SHS, nsize_polynomial, ncalc, fermi, penalty_ev, chebyshev_polynomials, &
+               invovrlp_compr, calculate_SHS, nsize_polynomial, ncalc, fermi_new, penalty_ev_new, chebyshev_polynomials, &
                emergency_stop)
       use module_base
       use module_types
@@ -41,8 +41,10 @@ module chebyshev
       real(kind=8),dimension(kernel%nvctrp_tg),intent(in) :: ham_compr
       real(kind=8),dimension(kernel%nvctrp_tg),intent(in) :: invovrlp_compr
       logical,intent(in) :: calculate_SHS
-      real(kind=8),dimension(kernel%nfvctr,kernel%smmm%nfvctrp,ncalc),intent(out) :: fermi
-      real(kind=8),dimension(kernel%nfvctr,kernel%smmm%nfvctrp,2),intent(out) :: penalty_ev
+      !!real(kind=8),dimension(kernel%nfvctr,kernel%smmm%nfvctrp,ncalc),intent(out) :: fermi
+      !!real(kind=8),dimension(kernel%nfvctr,kernel%smmm%nfvctrp,2),intent(out) :: penalty_ev
+      real(kind=8),dimension(kernel%smmm%nvctrp,ncalc),intent(out) :: fermi_new
+      real(kind=8),dimension(kernel%smmm%nvctrp,2),intent(out) :: penalty_ev_new
       real(kind=8),dimension(nsize_polynomial,npl),intent(out) :: chebyshev_polynomials
       logical,intent(out) :: emergency_stop
       ! Local variables
@@ -52,7 +54,7 @@ module chebyshev
       real(8), dimension(:,:,:), allocatable :: vectors
       real(8), dimension(:,:), allocatable :: vectors_new
       real(kind=8),dimension(:),allocatable :: mat_seq, mat_compr
-      real(kind=8),dimension(:,:),allocatable :: matrix, fermi_new, penalty_ev_new
+      real(kind=8),dimension(:,:),allocatable :: matrix!, fermi_new, penalty_ev_new
       real(kind=8),dimension(:),allocatable :: matrix_new
       real(kind=8) :: tt, ddot
     
@@ -253,11 +255,13 @@ module chebyshev
               call vcopy(kernel%smmm%nvctrp, vectors_new(1,1), 1, vectors_new(1,2), 1)
     
               !initialize fermi
-              call f_zero(fermi)
-              call f_zero(penalty_ev)
+              !!call f_zero(fermi)
+              !!call f_zero(penalty_ev)
 
-              fermi_new = f_malloc0((/kernel%smmm%nvctrp,ncalc/),id='fermi_new')
-              penalty_ev_new = f_malloc0((/kernel%smmm%nvctrp,2/),id='penalty_ev_new')
+              !fermi_new = f_malloc0((/kernel%smmm%nvctrp,ncalc/),id='fermi_new')
+              !penalty_ev_new = f_malloc0((/kernel%smmm%nvctrp,2/),id='penalty_ev_new')
+              call f_zero(fermi_new)
+              call f_zero(penalty_ev_new)
 
 
 
@@ -353,7 +357,9 @@ module chebyshev
                       !!     kernel%smmm%nout, kernel%smmm%onedimindices, &
                       !!     cc(ipl,1,icalc), vectors(1,1,3), fermi(:,1,icalc))
                       call daxpy(kernel%smmm%nvctrp, cc(ipl,1,icalc), vectors_new(1,3), 1, fermi_new(1,icalc), 1)
-                      write(*,*) 'sum(fermi_new(:,icalc)) 3',sum(fermi_new(:,icalc))
+                      tt = sum(fermi_new(:,icalc))
+                      call mpiallred(tt, 1, mpi_sum, bigdft_mpi%mpi_comm)
+                      if (iproc==0) write(*,*) 'sum(fermi_new(:,icalc)) 3',tt
                   !!do i=1,kernel%smmm%nfvctrp
                   !!    do j=1,kernel%nfvctr
                   !!        write(800,*) 'i, j, vals', vectors(j,i,4), fermi(j,i,icalc)
@@ -403,18 +409,18 @@ module chebyshev
           end if
     
      
-          do i=1,kernel%smmm%nvctrp
-              ii = kernel%smmm%isvctr + i
-              call get_line_and_column(ii, kernel%smmm%nseg, kernel%smmm%keyv, kernel%smmm%keyg, iline, icolumn)
-              do icalc=1,ncalc
-                  fermi(icolumn,iline-kernel%smmm%isfvctr,icalc) = fermi_new(i,icalc)
-              end do
-              penalty_ev(icolumn,iline-kernel%smmm%isfvctr,1) = penalty_ev_new(i,1)
-              penalty_ev(icolumn,iline-kernel%smmm%isfvctr,2) = penalty_ev_new(i,2)
-          end do
+          !do i=1,kernel%smmm%nvctrp
+          !    ii = kernel%smmm%isvctr + i
+          !    call get_line_and_column(ii, kernel%smmm%nseg, kernel%smmm%keyv, kernel%smmm%keyg, iline, icolumn)
+          !    do icalc=1,ncalc
+          !        fermi(icolumn,iline-kernel%smmm%isfvctr,icalc) = fermi_new(i,icalc)
+          !    end do
+          !    penalty_ev(icolumn,iline-kernel%smmm%isfvctr,1) = penalty_ev_new(i,1)
+          !    penalty_ev(icolumn,iline-kernel%smmm%isfvctr,2) = penalty_ev_new(i,2)
+          !end do
 
-          call f_free(fermi_new)
-          call f_free(penalty_ev_new)
+          !call f_free(fermi_new)
+          !call f_free(penalty_ev_new)
         
           if (calculate_SHS .and. kernel%smmm%nfvctrp>0) then
               call f_free(matrix)

@@ -1185,6 +1185,7 @@ module sparsematrix
                  call get_line_and_column(ii, smat%nseg, smat%keyv, smat%keyg, iline, icolumn)
                  ind = matrixindex_in_compressed_fn(icolumn, iline, smat%nfvctr, &
                        smat%smmm%nseg, smat%smmm%keyv, smat%smmm%keyg)
+                 ind = ind - smat%smmm%isvctr
                  matrix_local(i) = matrixp(ind)
              end do
 
