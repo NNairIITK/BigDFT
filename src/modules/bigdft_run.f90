@@ -1263,8 +1263,8 @@ contains
     integer :: icc !for amber
     real(gp) :: alatint(3)
     real(gp), dimension(:,:), pointer :: rxyz_ptr
-!integer :: iat , l
-!real(gp) :: anoise,tt
+!!integer :: iat , l
+!!real(gp) :: anoise,tt
 
 
     !@NEW ####################################################
@@ -1348,15 +1348,15 @@ contains
        call f_err_throw('Following method for evaluation of '//&
             'energies and forces is unknown: '//trim(yaml_toa(int(runObj%run_mode))))
     end select
-!         anoise=5.d-5
-!         if (anoise.ne.0.d0) then
-!         do iat=1,nat
-!         do l=1,3
-!          call random_number(tt)
-!          outs%fxyz(l,iat)=outs%fxyz(l,iat)+anoise*(tt-.5d0)
-!         enddo
-!         enddo
-!         endif
+!!         anoise=2.d-5
+!!         if (anoise.ne.0.d0) then
+!!         do iat=1,nat
+!!         do l=1,3
+!!          call random_number(tt)
+!!          outs%fxyz(l,iat)=outs%fxyz(l,iat)+anoise*(tt-.5d0)
+!!         enddo
+!!         enddo
+!!         endif
 
     call clean_forces(bigdft_mpi%iproc,runObj%atoms,rxyz_ptr,outs%fxyz,outs%fnoise,runObj%run_mode)
   end subroutine bigdft_state

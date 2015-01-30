@@ -257,10 +257,11 @@ SUBROUTINE MORSE_BULK(X,V,EMORSE, natoms, rho, R0, A, periodic, &
                        XMUL2, iboxvec(3), dx(3), eshift
       if (periodic) iboxvec(:) = 1.0_gp / boxvec(:)
 
-
       if (use_cutoff) then
          Eshift = (1.0_gp - exp(rho * (r0 - rcut)))**2 - 1.0_gp
          !write(*,*) "Eshift", eshift, rcut
+      else
+        Eshift=0.0_gp
       endif
 
       V(:) = 0.0_gp
