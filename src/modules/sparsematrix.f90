@@ -1194,7 +1194,7 @@ module sparsematrix
                   smat%smmm%nvctrp, smat%smmm%isvctr, &
                   smat%smmm%nseg, smat%smmm%keyv, smat%smmm%keyg, &
                   matrixp, matrix_local)
-             if (bigdft_mpi%iproc==0) write(*,*) 'sum(matrix_local)',sum(matrix_local)
+             !!if (bigdft_mpi%iproc==0) write(*,*) 'sum(matrix_local)',sum(matrix_local)
 
              call timing(iproc,'compressd_mcpy','OF')
              call timing(iproc,'compressd_comm','ON')

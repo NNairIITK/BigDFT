@@ -466,7 +466,7 @@ subroutine foe(iproc, nproc, tmprtr, &
                 
                   !call calculate_trace_distributed(tmb%linmat%kernel_%matrixp, sumn)
                   call calculate_trace_distributed_new(fermi_small_new, sumn)
-                  write(*,*) 'sumn',sumn
+                  !!write(*,*) 'sumn',sumn
         
     
                   if (all(eval_bounds_ok) .and. all(bisection_bounds_ok)) then
@@ -573,13 +573,18 @@ subroutine foe(iproc, nproc, tmprtr, &
         
           ! Calculate S^-1/2 * K * S^-1/2^T
           ! Since S^-1/2 is symmetric, don't use the transpose
-          call retransform(tmb%linmat%kernel_%matrix_compr(ilshift+1:))
+          !call retransform(tmb%linmat%kernel_%matrix_compr(ilshift+1:))
+          write(*,*) 'ilshift2',ilshift2
+          call retransform_ext(iproc, nproc, tmb%linmat%l, &
+               tmb%linmat%ovrlppowers_(2)%matrix_compr(ilshift2+1), tmb%linmat%kernel_%matrix_compr(ilshift+1))
 
           !!do i=ilshift+1,ilshift+tmb%linmat%l%nvctr
           !!    write(3000+iproc,'(a,2i8,es16.6)') 'ispin, i, val', ispin, i, tmb%linmat%kernel_%matrix_compr(i)
           !!end do
     
-          call retransform(fermi_check_compr)
+          !call retransform(fermi_check_compr)
+          call retransform_ext(iproc, nproc, tmb%linmat%l, &
+               tmb%linmat%ovrlppowers_(2)%matrix_compr(ilshift2+1), fermi_check_compr)
     
           !call calculate_trace_distributed(fermip_check, sumn_check)
           call calculate_trace_distributed_new(fermi_check_new, sumn_check)
@@ -874,7 +879,7 @@ subroutine foe(iproc, nproc, tmprtr, &
           call f_zero(matrix_compr)
           call compress_matrix_distributed_new(iproc, nproc, tmb%linmat%l, DENSE_MATMUL, &
                inv_ovrlpp_new, matrix_compr)
-            write(*,*) 'sum(matrix_compr) new', iproc, sum(matrix_compr)
+            !!write(*,*) 'sum(matrix_compr) new', iproc, sum(matrix_compr)
 
           !!call f_free_ptr(inv_ovrlpp)
           !!call f_free_ptr(tempp)
@@ -2663,3 +2668,53 @@ subroutine scale_and_shift_matrix(iproc, nproc, ispin, foe_obj, smatl, &
   call f_release_routine()
 
 end subroutine scale_and_shift_matrix
+
+
+
+
+      subroutine retransform_ext(iproc, nproc, smat, inv_ovrlp, kernel)
+          use module_base
+          use sparsematrix_base, only: sparse_matrix, sparsematrix_malloc, assignment(=), &
+                                       SPARSEMM_SEQ, DENSE_MATMUL
+          use sparsematrix, only: sequential_acces_matrix_fast, sequential_acces_matrix_fast2, sparsemm, &
+                                  uncompress_matrix_distributed, compress_matrix_distributed, uncompress_matrix_distributed2, &
+                                  transform_sparsity_pattern2, sparsemm_new, compress_matrix_distributed_new
+          implicit none
+          ! Calling arguments
+          integer,intent(in) :: iproc, nproc
+          type(sparse_matrix),intent(in) :: smat
+          real(kind=8),dimension(smat%nvctrp_tg),intent(in) :: inv_ovrlp
+          real(kind=8),dimension(smat%nvctrp_tg),intent(inout) :: kernel
+          
+
+          ! Local variables
+          real(kind=8),dimension(:),pointer :: inv_ovrlpp_new, tempp_new
+          real(kind=8),dimension(:),allocatable :: inv_ovrlp_compr_seq, kernel_compr_seq
+
+          call f_routine(id='retransform_ext')
+
+          inv_ovrlpp_new = f_malloc_ptr(smat%smmm%nvctrp, id='inv_ovrlpp_new')
+          tempp_new = f_malloc_ptr(smat%smmm%nvctrp, id='tempp_new')
+          inv_ovrlp_compr_seq = sparsematrix_malloc(smat, iaction=SPARSEMM_SEQ, id='inv_ovrlp_compr_seq')
+          kernel_compr_seq = sparsematrix_malloc(smat, iaction=SPARSEMM_SEQ, id='inv_ovrlp_compr_seq')
+          call sequential_acces_matrix_fast2(smat, kernel, kernel_compr_seq)
+          call sequential_acces_matrix_fast2(smat, &
+               inv_ovrlp, inv_ovrlp_compr_seq)
+          call transform_sparsity_pattern2(smat%nfvctr, smat%smmm%nvctrp_mm, smat%smmm%isvctr_mm, &
+               smat%nseg, smat%keyv, smat%keyg, &
+               smat%smmm%nvctrp, smat%smmm%isvctr, &
+               smat%smmm%nseg, smat%smmm%keyv, smat%smmm%keyg, &
+               inv_ovrlp(smat%smmm%isvctr_mm+1), inv_ovrlpp_new)
+          call sparsemm_new(smat, kernel_compr_seq, inv_ovrlpp_new, tempp_new)
+          call sparsemm_new(smat, inv_ovrlp_compr_seq, tempp_new, inv_ovrlpp_new)
+          call f_zero(kernel)
+          call compress_matrix_distributed_new(iproc, nproc, smat, DENSE_MATMUL, &
+               inv_ovrlpp_new, kernel)
+          call f_free_ptr(inv_ovrlpp_new)
+          call f_free_ptr(tempp_new)
+          call f_free(inv_ovrlp_compr_seq)
+          call f_free(kernel_compr_seq)
+
+          call f_release_routine()
+
+      end subroutine retransform_ext
