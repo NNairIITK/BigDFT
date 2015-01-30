@@ -559,7 +559,7 @@ subroutine foe(iproc, nproc, tmprtr, &
          call compress_matrix_distributed_new2(iproc, nproc, tmb%linmat%l, DENSE_MATMUL, &
               fermi_small_new, &
               tmb%linmat%kernel_%matrix_compr(ilshift+1:))
-         write(*,*) 'sum(tmb%linmat%kernel_%matrix_compr(ilshift+1:))',sum(tmb%linmat%kernel_%matrix_compr(ilshift+1:))
+         !!write(*,*) 'sum(tmb%linmat%kernel_%matrix_compr(ilshift+1:))',sum(tmb%linmat%kernel_%matrix_compr(ilshift+1:))
          !!tmb%linmat%kernel_%matrix_compr(ilshift+1:) = fermi_small_new
     
          !!call compress_matrix_distributed(iproc, nproc, tmb%linmat%l, DENSE_MATMUL, &
@@ -1488,6 +1488,7 @@ subroutine compress_polynomial_vector_new(iproc, nproc, nsize_polynomial, norb, 
   use module_types
   use sparsematrix_base, only: sparse_matrix
   use sparsematrix_init, only: get_line_and_column
+  use sparsematrix, only: transform_sparsity_pattern
   implicit none
 
   ! Calling arguments
@@ -1502,43 +1503,49 @@ subroutine compress_polynomial_vector_new(iproc, nproc, nsize_polynomial, norb, 
 
   call f_routine(id='compress_polynomial_vector')
 
-  vector = f_malloc((/norb,norbp/),id='vector')
-
-     do i=1,fermi%smmm%nvctrp
-         ii = fermi%smmm%isvctr + i
-         call get_line_and_column(ii, fermi%smmm%nseg, fermi%smmm%keyv, fermi%smmm%keyg, iline, icolumn)
-         vector(icolumn,iline-fermi%smmm%isfvctr) = vector_compr(i)
-     end do
+  call transform_sparsity_pattern(fermi%nfvctr, fermi%smmm%nvctrp_mm, fermi%smmm%isvctr_mm, &
+       fermi%nseg, fermi%keyv, fermi%keyg, &
+       fermi%smmm%nvctrp, fermi%smmm%isvctr, fermi%smmm%nseg, fermi%smmm%keyv, fermi%smmm%keyg, &
+       vector_compr, vector_compressed)
 
 
-  if (norbp>0) then
-      ii=0
-      !!$omp parallel default(private) shared(fermi, vector, vector_compressed)
-      !!$omp do
-      !do iseg=isegstart,isegend
-      do iseg=fermi%smmm%isseg,fermi%smmm%ieseg
-          iel = fermi%keyv(iseg) - 1
-          ! A segment is always on one line, therefore no double loop
-          do jorb=fermi%keyg(1,1,iseg),fermi%keyg(2,1,iseg)
-              iel = iel + 1
-              if (iel<fermi%smmm%isvctr_mm+1) cycle
-              if (iel>fermi%smmm%isvctr_mm+fermi%smmm%nvctrp_mm) exit
-              ii=ii+1
-              iiorb = fermi%keyg(1,2,iseg)
-              jjorb = jorb
-              vector_compressed(ii)=vector(jjorb,iiorb-isorb)
-          end do
-      end do
-      !!$omp end do
-      !!$omp end parallel
-  end if
+  !!vector = f_malloc((/norb,norbp/),id='vector')
 
-  if (ii/=fermi%smmm%nvctrp_mm) then
-      write(*,*) 'ii, fermi%nvctrp, size(vector_compressed)', ii, fermi%smmm%nvctrp_mm, size(vector_compressed)
-      stop 'compress_polynomial_vector: ii/=fermi%nvctrp'
-  end if
+  !!   do i=1,fermi%smmm%nvctrp
+  !!       ii = fermi%smmm%isvctr + i
+  !!       call get_line_and_column(ii, fermi%smmm%nseg, fermi%smmm%keyv, fermi%smmm%keyg, iline, icolumn)
+  !!       vector(icolumn,iline-fermi%smmm%isfvctr) = vector_compr(i)
+  !!   end do
 
-  call f_free(vector)
+
+  !!if (norbp>0) then
+  !!    ii=0
+  !!    !!$omp parallel default(private) shared(fermi, vector, vector_compressed)
+  !!    !!$omp do
+  !!    !do iseg=isegstart,isegend
+  !!    do iseg=fermi%smmm%isseg,fermi%smmm%ieseg
+  !!        iel = fermi%keyv(iseg) - 1
+  !!        ! A segment is always on one line, therefore no double loop
+  !!        do jorb=fermi%keyg(1,1,iseg),fermi%keyg(2,1,iseg)
+  !!            iel = iel + 1
+  !!            if (iel<fermi%smmm%isvctr_mm+1) cycle
+  !!            if (iel>fermi%smmm%isvctr_mm+fermi%smmm%nvctrp_mm) exit
+  !!            ii=ii+1
+  !!            iiorb = fermi%keyg(1,2,iseg)
+  !!            jjorb = jorb
+  !!            vector_compressed(ii)=vector(jjorb,iiorb-isorb)
+  !!        end do
+  !!    end do
+  !!    !!$omp end do
+  !!    !!$omp end parallel
+  !!end if
+
+  !!if (ii/=fermi%smmm%nvctrp_mm) then
+  !!    write(*,*) 'ii, fermi%nvctrp, size(vector_compressed)', ii, fermi%smmm%nvctrp_mm, size(vector_compressed)
+  !!    stop 'compress_polynomial_vector: ii/=fermi%nvctrp'
+  !!end if
+
+  !!call f_free(vector)
 
   call f_release_routine()
 
@@ -1956,11 +1963,13 @@ subroutine ice(iproc, nproc, norder_polynomial, ovrlp_smat, inv_ovrlp_smat, ncal
                            inv_ovrlp(1)%matrix_compr(ilshift2+1:), .false., &
                            nsize_polynomial, ncalc, inv_ovrlp_matrixp_new, penalty_ev_new, chebyshev_polynomials, &
                            emergency_stop)
-                      call transform_sparsity_pattern(inv_ovrlp_smat%nfvctr, inv_ovrlp_smat%smmm%nvctrp_mm, inv_ovrlp_smat%smmm%isvctr_mm, &
-                           inv_ovrlp_smat%nseg, inv_ovrlp_smat%keyv, inv_ovrlp_smat%keyg, &
-                           inv_ovrlp_smat%smmm%nvctrp, inv_ovrlp_smat%smmm%isvctr, &
-                           inv_ovrlp_smat%smmm%nseg, inv_ovrlp_smat%smmm%keyv, inv_ovrlp_smat%smmm%keyg, &
-                           inv_ovrlp_matrixp_new, inv_ovrlp_matrixp_small_new)
+                      do icalc=1,ncalc
+                          call transform_sparsity_pattern(inv_ovrlp_smat%nfvctr, inv_ovrlp_smat%smmm%nvctrp_mm, inv_ovrlp_smat%smmm%isvctr_mm, &
+                               inv_ovrlp_smat%nseg, inv_ovrlp_smat%keyv, inv_ovrlp_smat%keyg, &
+                               inv_ovrlp_smat%smmm%nvctrp, inv_ovrlp_smat%smmm%isvctr, &
+                               inv_ovrlp_smat%smmm%nseg, inv_ovrlp_smat%smmm%keyv, inv_ovrlp_smat%smmm%keyg, &
+                               inv_ovrlp_matrixp_new(1,icalc), inv_ovrlp_matrixp_small_new(1,icalc))
+                      end do
 
                        !write(*,'(a,i5,2es24.8)') 'iproc, sum(inv_ovrlp_matrixp(:,:,1:2)', (sum(inv_ovrlp_matrixp(:,:,icalc)),icalc=1,ncalc)
                       !!do i=1,inv_ovrlp_smat%smmm%nvctrp
@@ -1978,6 +1987,9 @@ subroutine ice(iproc, nproc, norder_polynomial, ovrlp_smat, inv_ovrlp_smat, ncal
                       call chebyshev_fast(iproc, nproc, nsize_polynomial, npl, &
                            inv_ovrlp_smat%nfvctr, inv_ovrlp_smat%smmm%nfvctrp, &
                            inv_ovrlp_smat, chebyshev_polynomials, ncalc, cc, inv_ovrlp_matrixp_new)
+                      do icalc=1,ncalc
+                          write(*,*) 'sum(inv_ovrlp_matrixp_new(:,icalc))',sum(inv_ovrlp_matrixp_new(:,icalc))
+                      end do
                       !!do icalc=1,ncalc
                       !!    call uncompress_polynomial_vector(iproc, nproc, nsize_polynomial, &
                       !!         inv_ovrlp_smat, inv_ovrlp_matrixp_new, inv_ovrlp_matrixp(:,:,icalc))

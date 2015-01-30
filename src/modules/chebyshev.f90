@@ -137,18 +137,18 @@ module chebyshev
       
           if (kernel%smmm%nfvctrp>0) then
               call sequential_acces_matrix_fast2(kernel, ham_compr, mat_seq)
-              write(500,*) 'calling from cheby1'
+              !!write(500,*) 'calling from cheby1'
               !!call sparsemm(kernel, mat_seq, matrix(1,1), vectors(1,1,1))
               call sparsemm_new(kernel, mat_seq, matrix_new(1), vectors_new(1,1))
-              write(*,*) 'after sparsemm_new first'
+              !!write(*,*) 'after sparsemm_new first'
               mat_compr = 0.d0
               call f_zero(matrix)
-              write(*,*) 'after zero matrix'
+              !!write(*,*) 'after zero matrix'
               call f_zero(matrix_new)
-              write(*,*) 'after zero matrix_new'
+              !!write(*,*) 'after zero matrix_new'
               ! use mat_seq as workarray
               call sequential_acces_matrix_fast2(kernel, invovrlp_compr, mat_seq)
-              write(500,*) 'calling from cheby1'
+              !!write(500,*) 'calling from cheby1'
               !!call sparsemm(kernel, mat_seq, vectors(1,1,1), matrix(1,1))
               call sparsemm_new(kernel, mat_seq, vectors_new(1,1), matrix_new(1))
               !call f_zero(kernel%nvctr, SHS(1))
@@ -200,7 +200,7 @@ module chebyshev
       
       end if
       
-      write(*,*) 'sum(mat_compr)', sum(mat_compr)
+      !!write(*,*) 'sum(mat_compr)', sum(mat_compr)
       if (kernel%smmm%nfvctrp>0) then
           call sequential_acces_matrix_fast2(kernel, mat_compr, mat_seq)
       end if
@@ -245,9 +245,9 @@ module chebyshev
               !!else if (number_of_matmuls==one) then
                   !!call sparsemm(kernel, mat_seq, vectors(1,1,3), vectors(1,1,1))
                   call sparsemm_new(kernel, mat_seq, vectors_new(1,3), vectors_new(1,1))
-              write(*,*) 'sum(mat_seq)',sum(mat_seq)
-              write(*,*) 'sum(vectors_new(:,3))', sum(vectors_new(:,3))
-              write(*,*) 'sum(vectors_new(:,1))', sum(vectors_new(:,1))
+              !!write(*,*) 'sum(mat_seq)',sum(mat_seq)
+              !!write(*,*) 'sum(vectors_new(:,3))', sum(vectors_new(:,3))
+              !!write(*,*) 'sum(vectors_new(:,1))', sum(vectors_new(:,1))
               !!end if
             
             
