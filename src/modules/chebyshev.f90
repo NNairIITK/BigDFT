@@ -271,6 +271,7 @@ module chebyshev
                   !!     0.5d0*cc(1,1,icalc), vectors(1,1,4), fermi(:,1,icalc))
                   call daxpy(kernel%smmm%nvctrp, 0.5d0*cc(1,1,icalc), vectors_new(1,4), 1, fermi_new(1,icalc), 1)
                   write(*,*) 'sum(fermi_new(:,icalc)) 1',sum(fermi_new(:,icalc))
+                  write(*,*) 'sum(vectors_new(:,1))',sum(vectors_new(:,1))
                   !!do i=1,kernel%smmm%nfvctrp
                   !!    do j=1,kernel%nfvctr
                   !!        write(700,*) 'i, j, vals', vectors(j,i,4), fermi(j,i,icalc)
@@ -281,10 +282,12 @@ module chebyshev
               !!     kernel%smmm%nout, kernel%smmm%onedimindices, &
               !!     0.5d0*cc(1,3,1), vectors(1,1,4), penalty_ev(:,1,1))
               call daxpy(kernel%smmm%nvctrp, 0.5d0*cc(1,3,1), vectors_new(1,4), 1, penalty_ev_new(1,1), 1)
+              write(*,*) 'sum(penalty_ev_new(:,1))',sum(penalty_ev_new(:,1))
               !!call axpy_kernel_vectors(kernel, kernel%smmm%nfvctrp, kernel%nfvctr, &
               !!     kernel%smmm%nout, kernel%smmm%onedimindices, &
               !!     0.5d0*cc(1,3,1), vectors(1,1,4), penalty_ev(:,1,2))
               call daxpy(kernel%smmm%nvctrp, 0.5d0*cc(1,3,1), vectors_new(1,4), 1, penalty_ev_new(1,2), 1)
+              write(*,*) 'sum(penalty_ev_new(:,2))',sum(penalty_ev_new(:,2))
               !!call compress_polynomial_vector(iproc, nproc, nsize_polynomial, &
               !!     kernel%nfvctr, kernel%smmm%nfvctrp, kernel%smmm%isfvctr, kernel, &
               !!     vectors(1,1,2), chebyshev_polynomials(1,2))
@@ -312,10 +315,12 @@ module chebyshev
               !!     kernel%smmm%nout, kernel%smmm%onedimindices, &
               !!     cc(2,3,1), vectors(1,1,2), penalty_ev(:,1,1))
               call daxpy(kernel%smmm%nvctrp, cc(2,3,1), vectors_new(1,2), 1, penalty_ev_new(1,1), 1)
+              write(*,*) 'sum(penalty_ev_new(:,1))',sum(penalty_ev_new(:,1))
               !!call axpy_kernel_vectors(kernel, kernel%smmm%nfvctrp, kernel%nfvctr, &
               !!     kernel%smmm%nout, kernel%smmm%onedimindices, &
               !!     -cc(2,3,1), vectors(1,1,2), penalty_ev(:,1,2))
-              call daxpy(kernel%smmm%nvctrp, -cc(2,3,1), vectors_new(1,2), 1, penalty_ev_new(1,1), 1)
+              call daxpy(kernel%smmm%nvctrp, -cc(2,3,1), vectors_new(1,2), 1, penalty_ev_new(1,2), 1)
+              write(*,*) 'sum(penalty_ev_new(:,2))',sum(penalty_ev_new(:,2))
             
             
               emergency_stop=.false.
@@ -356,6 +361,7 @@ module chebyshev
                   !!     kernel%smmm%nout, kernel%smmm%onedimindices, &
                   !!     cc(ipl,3,1), vectors(1,1,3), penalty_ev(:,1,1))
                   call daxpy(kernel%smmm%nvctrp, cc(ipl,3,1), vectors_new(1,3), 1, penalty_ev_new(1,1), 1)
+                  write(*,*) 'sum(penalty_ev_new(:,1))',sum(penalty_ev_new(:,1))
              
                   if (mod(ipl,2)==1) then
                       tt=cc(ipl,3,1)
@@ -366,6 +372,7 @@ module chebyshev
                   !!     kernel%smmm%nout, kernel%smmm%onedimindices, &
                   !!     tt, vectors(1,1,3), penalty_ev(:,1,2))
                   call daxpy(kernel%smmm%nvctrp, tt, vectors_new(1,3), 1, penalty_ev_new(1,2), 1)
+                  write(*,*) 'sum(penalty_ev_new(:,2))',sum(penalty_ev_new(:,2))
              
                   !!call copy_kernel_vectors(kernel, kernel%smmm%nfvctrp, kernel%nfvctr, &
                   !!     kernel%smmm%nout, kernel%smmm%onedimindices, &
