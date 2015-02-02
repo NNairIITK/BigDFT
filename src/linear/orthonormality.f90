@@ -1110,6 +1110,7 @@ subroutine overlapPowerGeneral(iproc, nproc, iorder, ncalc, power, blocksize, im
           call f_free(Amat21p_new)
           call f_free_ptr(Amat11p_new)
 
+
       else
           if (iorder<1000) then
               ovrlp_large_compr = sparsematrix_malloc(inv_ovrlp_smat, iaction=SPARSE_FULL, id='ovrlp_large_compr')
@@ -1200,7 +1201,6 @@ subroutine overlapPowerGeneral(iproc, nproc, iorder, ncalc, power, blocksize, im
 
                   do i=2,iorder
                       call timing(iproc,'lovrlp^-1     ','OF')
-                      write(500,*) 'calling from Taylor'
                       !!call sparsemm(inv_ovrlp_smat, ovrlpminone_sparse_seq, ovrlpminoneoldp, ovrlpminonep)
                       call sparsemm_new(inv_ovrlp_smat, ovrlpminone_sparse_seq, ovrlpminoneoldp_new, ovrlpminonep_new)
                       call timing(iproc,'lovrlp^-1     ','ON')
@@ -2521,14 +2521,18 @@ subroutine deviation_from_unity_parallel_new(iproc, nproc, norb, norbp, isorb, o
   do i=1,smat%smmm%nvctrp
       ii = smat%smmm%isvctr + i
       call get_line_and_column(ii, smat%smmm%nseg, smat%smmm%keyv, smat%smmm%keyg, iline, icolumn)
-      if(icolumn==iline) then
-         error=(ovrlp(i)-1.d0)**2
-      else
-         error=ovrlp(i)**2
+      ind=matrixindex_in_compressed(smat,icolumn,iline)
+      if (ind>0) then
+          ! This entry is within the sparsity pattern, i.e. it matters for the error.
+          if(icolumn==iline) then
+             error=(ovrlp(i)-1.d0)**2
+          else
+             error=ovrlp(i)**2
+          end if
+          max_deviation=max(error,max_deviation)
+          mean_deviation=mean_deviation+error
+          num=num+1.d0
       end if
-      max_deviation=max(error,max_deviation)
-      mean_deviation=mean_deviation+error
-      num=num+1.d0
   end do
 
 
