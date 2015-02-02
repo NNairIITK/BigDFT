@@ -1,7 +1,8 @@
 !> @file
+
 !!  Use integral form for Poisson solver
 !! @author
-!!    Copyright (c) 2013-2014 BigDFT group
+!!    Copyright (c) 2013-2015 BigDFT group
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
@@ -14,18 +15,22 @@ program MP_gaussian
   use gaussians
   use yaml_output
   implicit none
-  integer, parameter :: iunit=16        !< File unit for the plot
-  integer, parameter :: nmoms=16        !< Number of calculated moments
-  integer, parameter :: nstep=10        !> Number of resolution to calculate the moments
-  integer, parameter :: nsigma=1        !< Number of different gaussian functions
-  integer, parameter :: npts=1000       !< Arrays from -npts to npts
-  real(gp), parameter :: hgrid = 1.0_gp !< Step grid
-  integer :: j,imoms,pow,istep,isigma
-  real(gp) :: pgauss,x0,reference,max1
-  real(gp), dimension(0:nmoms,2) :: moments
-  real(gp), dimension(3,2,0:nmoms) :: avgmaxmin
-  real(gp), dimension(:), allocatable :: fj_phi,fj_coll
-  
+  integer, parameter :: iplot=14,iunit=16  !< File unit for the plots
+  integer, parameter :: nmoms=16           !< Number of calculated moments
+  integer, parameter :: nstep=10           !< Number of resolution to calculate the moments
+  integer, parameter :: nsigma=1           !< Number of different gaussian functions
+  integer, parameter :: npts=16          !< Arrays from -npts to npts
+  real(gp), parameter :: hgrid = 1.0_gp    !< Step grid
+  integer :: i,j,imoms,pow,istep,isigma,n_range
+  integer, parameter :: itype_scf = 16
+  integer :: n_scf
+  integer :: istart, iend, i0
+  real(gp) :: pgauss,x,x0,reference,max_phi,max_lag,dx,scalar
+  real(gp), dimension(0:nmoms,3) :: moments
+  real(gp), dimension(3,3,0:nmoms) :: avgmaxmin
+  real(gp), dimension(:), allocatable :: fj_phi,fj_coll,fj_lag
+  real(gp), dimension(:), allocatable :: scf_dat,lag_dat
+  real(gp), dimension(:), allocatable :: x_scf
 
   call f_lib_initialize()
 
@@ -34,8 +39,65 @@ program MP_gaussian
   !pgauss=0.5_gp/((0.1_gp*hgrid)**2)!8.0e-3_dp*1.25_dp**(6*(8-1))
   !array where we have to write the value of the discretization
   fj_phi=f_malloc(-npts .to. npts,id='fj_phi')
+  fj_lag=f_malloc(-npts .to. npts,id='fj_lag')
   fj_coll=f_malloc(-npts .to. npts,id='fj_coll')
-  call initialize_real_space_conversion() !initialize the work arrays needed to integrate with isf
+
+  !Initialize the work arrays needed to integrate with isf
+  call initialize_real_space_conversion()
+
+  !Initialize the work array needed to integrate with the Lagrange polynomial
+  n_scf = 2*itype_scf*(2**10)
+
+  !Allocations for lagrange polynomial data array
+  x_scf = f_malloc(0.to.n_scf)
+  lag_dat = f_malloc(0.to.n_scf,id='lag_dat')
+  scf_dat = f_malloc(0.to.n_scf,id='scf_dat')
+
+  !Build the scaling function external routine coming from Poisson Solver. To be customized accordingly
+  call scaling_function(itype_scf,n_scf,n_range,x_scf,scf_dat)
+
+  !call yaml_set_stream(record_length=150)
+  call yaml_map('itype_scf',itype_scf)
+  call yaml_map('range', n_range)
+  call yaml_map('number of points',n_scf)
+  call yaml_map('step',x_scf(1)-x_scf(0))
+  call yaml_map('dx',real(2*itype_scf,gp)/real(n_scf,gp))
+
+  !Step grid for the integration
+  !dx = real(2*itype_scf,gp)/real(n_scf,gp)
+  !starting point for the x coordinate for integration
+  !x  = real(-itype_scf,gp)-dx
+  write(iplot,'(a)') '#Abscissae   Interpolating_scaling_function   Lagrange_polynomial' 
+  do i=0,n_scf
+     !x=x+dx
+     lag_dat(i) = lag_sym(x_scf(i),itype_scf,0)
+     write(iplot,'(f19.13,1x,3(1pe23.15,1x))') x_scf(i),scf_dat(i),lag_dat(i)
+  end do
+
+  !Do scalar product
+  scalar = 0.d0
+  do i=0,n_scf
+     scalar = scalar + scf_dat(i)*lag_dat(i)
+  end do
+  scalar = scalar*(x_scf(1)-x_scf(0))
+  call yaml_map('<lag_dat|scf-dat>',scalar)
+
+  call yaml_sequence_open('<lag|iscf>')
+  istart=-(itype_scf/2-1)
+  iend=itype_scf/2-1
+  do i0=-itype_scf/2+1,itype_scf/2-1
+    scalar = 0.d0
+    do i=0,n_scf
+      scalar = scalar + scf_dat(i)*lagrange(x_scf(i),istart,iend,i0)
+      !scalar = scalar + scf_dat(i)*lag_sym(x_scf(i),itype_scf,i0)
+      !scalar = scalar + scf_dat(i)*x_scf(i)**i0
+    end do
+    scalar = scalar*(x_scf(1)-x_scf(0))
+    !call yaml_map(trim(yaml_toa(istart))//trim(yaml_toa(iend))//trim(yaml_toa(i0)), scalar)
+    !call yaml_map(trim(yaml_toa(i0)), (/ scalar,lag_sym(real(i0,gp),itype_scf,i0) /))
+    call yaml_map(trim(yaml_toa(i0)), (/ scalar,lagrange(real(i0,gp),istart,iend,i0) /))
+  end do
+  call yaml_sequence_close()
 
   ! Calculate for different nsigma sigma
   do isigma=1,nsigma
@@ -44,21 +106,23 @@ program MP_gaussian
      !plot raw function (fort.iunit)
      do j=-npts,npts
         if (pow /= 0) then
-           write(iunit,*) j,exp(-pgauss*(j*hgrid-x0)**2)*((j*hgrid-x0)**pow)
+           write(iunit,*) j,x_scf(j),exp(-pgauss*(j*hgrid-x0)**2)*((j*hgrid-x0)**pow)
         else
-           write(iunit,*) j,exp(-pgauss*(j*hgrid-x0)**2)
+           write(iunit,'(i6,4(1pe22.10))') j,x_scf(j),j*hgrid,exp(-pgauss*(j*hgrid-x0)**2),exp(-pgauss*(x_scf(j)-x0)**2)
         end if
      end do
 
      avgmaxmin=0.d0
      avgmaxmin(3,:,:)=1.d100
-     max1=0.0_gp
+     max_phi=0.0_gp
+     max_lag=0.0_gp
      do istep=1,nstep
         x0=(-0.5_gp+real(istep-1,gp)/real(nstep,gp))*hgrid
         !call yaml_map('x0',x0,advance='no')
         !call yaml_comment('Step No.'//trim(yaml_toa(istep)),tabbing=70)
-        call evaluate_moments(nmoms,npts,hgrid,pgauss,pow,x0,fj_phi,fj_coll,moments)
-        max1=max(max1,maxval(abs(fj_coll-fj_phi)))
+        call evaluate_moments(nmoms,npts,hgrid,pgauss,pow,x0,fj_phi,fj_coll,fj_lag,moments)
+        max_phi=max(max_phi,maxval(abs(fj_coll-fj_phi)))
+        max_lag=max(max_lag,maxval(abs(fj_coll-fj_lag)))
 !!$  !print moments value
 !!$  do imoms=0,nmoms
 !!$     reference=gauint0(pgauss,imoms+pow)
@@ -74,11 +138,12 @@ program MP_gaussian
 
         !calculate the average, maximum and minimum of each moment in function of the reference
         !j=1 use the elemental property of the mp_exp function with fj_phi
-        !j=2 collocation array with fj_coll
-        do j=1,2
+        !j=2 Lagrange polynomial
+        !j=3 collocation array with fj_coll
+        do j=1,3
            do imoms=0,nmoms
               reference=gauint0(pgauss,imoms+pow)
-              print *,j,imoms,reference,moments(imoms,j),abs((moments(imoms,j)-reference))
+              !print *,j,imoms,reference,moments(imoms,j),abs((moments(imoms,j)-reference))
               if (reference /= 0.0_gp) then
                  !x^even
                  moments(imoms,j) = abs((moments(imoms,j)-reference)/reference)
@@ -95,79 +160,204 @@ program MP_gaussian
 
      !Plot fort.(iunit+1)
      write(iunit+1,'(104(1pe14.5))') sqrt(0.5_gp/pgauss)/hgrid,avgmaxmin
-     call yaml_map('maxdiff' // trim(yaml_toa(isigma)), (/ sqrt(0.5_gp/pgauss)/hgrid, max1 /) )
-     !print *,'maxdiff',sqrt(0.5_gp/pgauss)/hgrid,max1
+     call yaml_map('maxdiff' // trim(yaml_toa(isigma)), (/ sqrt(0.5_gp/pgauss)/hgrid, max_phi, max_lag /) )
   end do
-  call yaml_map('Results',reshape(avgmaxmin,(/6,nmoms+1/)),fmt='(1pe14.5)')
+  call yaml_map('Results (phi)',reshape(avgmaxmin(1:3,1:3:2,:),(/6,nmoms+1/)),fmt='(1pe14.5)')
+  call yaml_map('Results (lag)',reshape(avgmaxmin(1:3,2:3,:),(/6,nmoms+1/)),fmt='(1pe14.5)')
+
 
   call finalize_real_space_conversion()
   
-  call f_free(fj_phi,fj_coll)
+  call f_free(fj_phi,fj_coll,fj_lag)
+  call f_free(scf_dat,lag_dat,x_scf)
   call f_lib_finalize()
+
+
+contains
+
+
+  !> Classify the quality of a multipole extraction in both cases
+  subroutine evaluate_moments(nmoms,npts,hgrid,pgauss,pow,x0,fj_phi,fj_coll,fj_lag,moments)
+    use module_base, only: gp
+    use gaussians, only: mp_exp, scfdotf
+    implicit none
+    !Arguments
+    integer, intent(in) :: npts,pow,nmoms
+    real(gp), intent(in) :: hgrid,pgauss,x0
+    real(gp), dimension(0:nmoms,3), intent(out) :: moments
+    real(gp), dimension(-npts:npts), intent(out) :: fj_phi,fj_coll,fj_lag
+    integer, parameter :: iunit = 100
+    !local variables
+    integer :: j
+    integer :: istep = 0
+
+    !use the elemental property of the mp_exp function
+    !fj_phi=mp_exp(hgrid,x0,pgauss,(/(j,j=-npts,npts)/),pow,.true.)
+    fj_phi=scfdotf((/(j,j=-npts,npts)/),hgrid,pgauss,x0,pow)
+    !scfdotf((/(j,j=-npts,npts)/),hgrid,pgauss,x0,pow)
+    call moments_1d(2*npts+1,fj_phi,x0+hgrid*(npts+1),hgrid,nmoms,moments(0,1))
+
+    !Lagrange polynomial array
+    fj_lag=lagdotf((/(j,j=-npts,npts)/),hgrid,pgauss,x0,pow)
+    call moments_1d(2*npts+1,fj_lag,x0+hgrid*(npts+1),hgrid,nmoms,moments(0,2))
+
+    !collocation array
+    fj_coll=mp_exp(hgrid,x0,pgauss,(/(j,j=-npts,npts)/),pow,.false.)
+    !if (pow /=0) then
+    !   fj_coll=(/(exp(-pgauss*(j*hgrid-x0)**2)*(j*hgrid-x0)**pow,j=-npts,npts)/)
+    !else
+    !   fj_coll=(/(exp(-pgauss*(j*hgrid-x0)**2),j=-npts,npts)/)
+    !end if
+    call moments_1d(2*npts+1,fj_coll,x0+hgrid*(npts+1),hgrid,nmoms,moments(0,3))
+
+    write(iunit+istep,'(a)') '#Projection of a gaussian with iscf, collocation and lagrange polynomials method'
+    write(iunit+istep,'(a)') '#j,fj_phi(j),fj_coll(j),fj_lag(j)'
+    do j=-npts,npts
+       write(iunit+istep,'(i0,3(1pe24.16))') j,fj_phi(j),fj_coll(j),fj_lag(j)
+    end do
+    istep = istep + 1
+
+  end subroutine evaluate_moments
+
+
+  !> Calculate the moments of an array with respect to a reference point 
+  subroutine moments_1d(n,array,x0,h,nmoms,moments)
+    use module_base, only:gp
+    implicit none
+    !Arguments
+    integer, intent(in) :: nmoms,n
+    real(gp), intent(in) :: x0 !< Reference point
+    real(gp), intent(in) :: h  !< Grid spacing
+    real(gp), dimension(n), intent(in) :: array
+    real(gp), dimension(0:nmoms), intent(out) :: moments
+    !local variables
+    integer :: j,k
+    real(gp) :: x
+
+    do j=0,nmoms
+       moments(j)=0.0_gp
+       do k=1,n
+          x=real(k,gp)*h-x0
+          moments(j)=moments(j)+x**j*array(k)
+       end do
+       moments(j)=moments(j)*h
+    end do
+
+  end subroutine moments_1d
+
+
+  !> This function calculates the scalar product between a Lagrange polynomial and a 
+  !! input function, which is a gaussian times a power centered
+  !! @f$g(x) = (x-x_0)^{pow} e^{-pgauss (x-x_0)}@f$
+  !! here pure specifier is redundant
+  !! we should add here the threshold from which the 
+  !! normal function can be evaluated
+  elemental pure function lagdotf(j,hgrid,pgauss,x0,pow) result(gint)
+    implicit none
+    !Arguments
+    integer, intent(in) :: j !<value of the input result in the hgrid reference
+    integer, intent(in) :: pow
+    real(gp), intent(in) :: hgrid,pgauss,x0
+    real(gp) :: gint
+    !local variables
+    integer :: i
+    real(gp) :: x,absci,fabsci,dx
+    gint=0.0_gp
+
+    !Step grid for the integration
+    dx = real(2*itype_scf,gp)/real(n_scf,gp)
+    !starting point for the x coordinate for integration
+    x  = real(j-itype_scf+1,gp)-dx
+
+    !the loop can be unrolled to maximize performances
+    if (pow /= 0) then
+       do i=0,n_scf
+          x=x+dx
+          absci = x*hgrid - x0
+          !here evaluate the function
+          fabsci = absci**pow
+          absci = -pgauss*absci*absci
+          fabsci = fabsci*dexp(absci)
+          !calculate the integral
+          gint = gint + lag_dat(i)*fabsci
+   !       print *,'test',i,scf_dat(i),fabsci,pgauss,pow,absci
+       end do
+    else
+       do i=0,n_scf
+          x=x+dx
+          absci = x*hgrid - x0
+          !here evaluate the function
+          absci = -pgauss*absci*absci
+          fabsci = safe_exp(absci)
+          !calculate the integral
+          gint = gint + lag_dat(i)*fabsci
+   !       print *,'test',i,scf_dat(i),fabsci,pgauss,pow,absci
+       end do
+    end if
+    gint = gint*dx
+
+  end function lagdotf
+
+
+  !> Calculate the Lagrange polynomial
+  !! @f$ l_{i_0}(x) = \prod_{i=istart, i \neq i_0}^{iend} \frac{x-i}{i0-i}$
+  elemental function lagrange(x,istart,iend,i0) result(y)
+    implicit none
+    !Arguments
+    real(gp), intent(in) :: x
+    integer, intent(in) :: istart !< First point
+    integer, intent(in) :: iend   !< Last point
+    integer, intent(in) :: i0     !< Center (i which removes)
+    real(gp) :: y
+    !Local variables
+    integer :: i
+    !if (x >= real(istart,kind=gp) .and. x<= real(iend,kind=gp)) then
+      y = 1.d0
+      do i=istart,iend
+        if (i /= i0) then
+          y = y *(x-real(i,gp))/real(i0-i,gp)
+        end if
+      end do
+    !else
+    !  y = 0.d0
+    !end if
+  end function lagrange
+
+
+  !> Calculate the Lagrange polynomial
+  !! @f$ l_{i_0}(x) = \prod_{i=istart, i \neq i_0}^{iend} \frac{x-i}{i0-i}$
+  elemental function lag_sym(x,itypescf,i0) result(y)
+    implicit none
+    !Arguments
+    real(gp), intent(in) :: x
+    integer, intent(in) :: itypescf !< order of scf (should be even)
+    integer, intent(in) :: i0     !< Center (i which removes)
+    real(gp) :: y
+    !Local variables
+    integer :: i,ii
+    !if (abs(x-real(i0,gp)) < 1d-4) then
+    !  y = 1.d0/0.0009765625
+    !else
+    !  y = 0.d0
+    !end if
+    !return
+    ii = itypescf/2-1
+    if (abs(x) <= real(ii,gp)) then
+      y = 1.d0
+      do i=-ii,ii
+        !if (i /= i0) then
+        if (i /= 0) then
+          y = y *(x-real(i0+i,gp))/real(-i,gp)
+        end if
+      end do
+    else
+      y = 0.d0
+    end if
+  end function lag_sym
+
+
 end program MP_gaussian
 
-
-!> Classify the quality of a multipole extraction in both cases
-subroutine evaluate_moments(nmoms,npts,hgrid,pgauss,pow,x0,fj_phi,fj_coll,moments)
-  use module_base, only: gp
-  use gaussians, only: mp_exp, scfdotf
-  implicit none
-  !Arguments
-  integer, intent(in) :: npts,pow,nmoms
-  real(gp), intent(in) :: hgrid,pgauss,x0
-  real(gp), dimension(0:nmoms,2), intent(out) :: moments
-  real(gp), dimension(-npts:npts), intent(out) :: fj_phi,fj_coll
-  integer, parameter :: iunit = 100
-  !local variables
-  integer :: j
-  integer :: istep = 0
-
-  !use the elemental property of the mp_exp function
-  !fj_phi=mp_exp(hgrid,x0,pgauss,(/(j,j=-npts,npts)/),pow,.true.)
-  fj_phi=scfdotf((/(j,j=-npts,npts)/),hgrid,pgauss,x0,pow)
-  !scfdotf((/(j,j=-npts,npts)/),hgrid,pgauss,x0,pow)
-  call moments_1d(2*npts+1,fj_phi,x0+hgrid*(npts+1),hgrid,nmoms,moments(0,1))
-
-  !collocation array
-  fj_coll=mp_exp(hgrid,x0,pgauss,(/(j,j=-npts,npts)/),pow,.false.)
-  !if (pow /=0) then
-  !   fj_coll=(/(exp(-pgauss*(j*hgrid-x0)**2)*(j*hgrid-x0)**pow,j=-npts,npts)/)
-  !else
-  !   fj_coll=(/(exp(-pgauss*(j*hgrid-x0)**2),j=-npts,npts)/)
-  !end if
-  call moments_1d(2*npts+1,fj_coll,x0+hgrid*(npts+1),hgrid,nmoms,moments(0,2))
-
-  do j=-npts,npts
-     write(iunit+istep,*) j,fj_phi(j),fj_coll(j)
-  end do
-  istep = istep + 1
-
-end subroutine evaluate_moments
-
-
-!> Calculate the moments of an array with respect to a reference point 
-subroutine moments_1d(n,array,x0,h,nmoms,moments)
-  use module_base, only:gp
-  implicit none
-  !Arguments
-  integer, intent(in) :: nmoms,n
-  real(gp), intent(in) :: x0,h !<grid spacing
-  real(gp), dimension(n), intent(in) :: array
-  real(gp), dimension(0:nmoms), intent(out) :: moments
-  !local variables
-  integer :: j,k
-  real(gp) :: x
-
-  do j=0,nmoms
-     moments(j)=0.0_gp
-     do k=1,n
-        x=real(k,gp)*h-x0
-        moments(j)=moments(j)+x**j*array(k)
-     end do
-     moments(j)=moments(j)*h
-  end do
-
-end subroutine moments_1d
 
 !!$
 !!$!> takes a Gaussian of exponent pgauss an center x0 and discretize it on a grid of size 1 in units of sqrt(0.5*[pgauss])
