@@ -54,7 +54,7 @@ module chebyshev
       real(8), dimension(:,:,:), allocatable :: vectors
       real(8), dimension(:,:), allocatable :: vectors_new
       real(kind=8),dimension(:),allocatable :: mat_seq, mat_compr
-      real(kind=8),dimension(:,:),allocatable :: matrix!, fermi_new, penalty_ev_new
+      !!real(kind=8),dimension(:,:),allocatable :: matrix!, fermi_new, penalty_ev_new
       real(kind=8),dimension(:),allocatable :: matrix_new
       real(kind=8) :: tt, ddot
     
@@ -68,7 +68,7 @@ module chebyshev
       mat_compr = f_malloc(kernel%nvctrp_tg,id='mat_compr')
     
       if (calculate_SHS) then
-          matrix = sparsematrix_malloc0(kernel, iaction=DENSE_MATMUL, id='matrix')
+          !!matrix = sparsematrix_malloc0(kernel, iaction=DENSE_MATMUL, id='matrix')
           matrix_new = f_malloc0(kernel%smmm%nvctrp,id='matrix')
       end if
       if (kernel%nfvctrp>0) then
@@ -86,24 +86,24 @@ module chebyshev
               !write(*,*) 'WARNING CHEBYSHEV: MODIFYING MATRIX MULTIPLICATION'
               if (kernel%smmm%nfvctrp>0) then
     
-                  !do iseg=isegstart,isegend
-                  do iseg=kernel%smmm%isseg,kernel%smmm%ieseg
-                      ii=kernel%keyv(iseg)-1
-                      ! A segment is always on one line, therefore no double loop
-                      do jorb=kernel%keyg(1,1,iseg),kernel%keyg(2,1,iseg)
-                          ii=ii+1
-                          if (ii<kernel%smmm%isvctr_mm+1) cycle
-                          if (ii>kernel%smmm%isvctr_mm+kernel%smmm%nvctrp_mm) exit
-                          iiorb = kernel%keyg(1,2,iseg)
-                          jjorb = jorb
-                          matrix(jjorb,iiorb-kernel%smmm%isfvctr)=invovrlp_compr(ii-kernel%isvctrp_tg)
-                          !if (jjorb==iiorb) then
-                          !    matrix(jjorb,iiorb-kernel%isfvctr)=1.d0
-                          !else
-                          !    matrix(jjorb,iiorb-kernel%isfvctr)=0.d0
-                          !end if
-                      end do
-                  end do
+                  !!!do iseg=isegstart,isegend
+                  !!do iseg=kernel%smmm%isseg,kernel%smmm%ieseg
+                  !!    ii=kernel%keyv(iseg)-1
+                  !!    ! A segment is always on one line, therefore no double loop
+                  !!    do jorb=kernel%keyg(1,1,iseg),kernel%keyg(2,1,iseg)
+                  !!        ii=ii+1
+                  !!        if (ii<kernel%smmm%isvctr_mm+1) cycle
+                  !!        if (ii>kernel%smmm%isvctr_mm+kernel%smmm%nvctrp_mm) exit
+                  !!        iiorb = kernel%keyg(1,2,iseg)
+                  !!        jjorb = jorb
+                  !!        matrix(jjorb,iiorb-kernel%smmm%isfvctr)=invovrlp_compr(ii-kernel%isvctrp_tg)
+                  !!        !if (jjorb==iiorb) then
+                  !!        !    matrix(jjorb,iiorb-kernel%isfvctr)=1.d0
+                  !!        !else
+                  !!        !    matrix(jjorb,iiorb-kernel%isfvctr)=0.d0
+                  !!        !end if
+                  !!    end do
+                  !!end do
                   do i=1,kernel%smmm%nvctrp
                       ii = kernel%smmm%isvctr + i
                       call get_line_and_column(ii, kernel%smmm%nseg, kernel%smmm%keyv, kernel%smmm%keyg, iline, icolumn)
@@ -142,7 +142,7 @@ module chebyshev
               call sparsemm_new(kernel, mat_seq, matrix_new(1), vectors_new(1,1))
               !!write(*,*) 'after sparsemm_new first'
               mat_compr = 0.d0
-              call f_zero(matrix)
+              !!call f_zero(matrix)
               !!write(*,*) 'after zero matrix'
               call f_zero(matrix_new)
               !!write(*,*) 'after zero matrix_new'
@@ -170,11 +170,11 @@ module chebyshev
           !!!@@    end do
           !!!@@end if
 
-          do i=1,kernel%smmm%nvctrp
-              ii = kernel%smmm%isvctr + i
-              call get_line_and_column(ii, kernel%smmm%nseg, kernel%smmm%keyv, kernel%smmm%keyg, iline, icolumn)
-              matrix(icolumn,iline-kernel%smmm%isfvctr) = matrix_new(i)
-          end do
+          !!do i=1,kernel%smmm%nvctrp
+          !!    ii = kernel%smmm%isvctr + i
+          !!    call get_line_and_column(ii, kernel%smmm%nseg, kernel%smmm%keyv, kernel%smmm%keyg, iline, icolumn)
+          !!    matrix(icolumn,iline-kernel%smmm%isfvctr) = matrix_new(i)
+          !!end do
       !!write(*,*) 'sum(matrix)', sum(matrix)
       !!do i=1,size(matrix,2)
       !!  do j=1,size(matrix,1)
@@ -269,7 +269,7 @@ module chebyshev
               !!     kernel%nfvctr, kernel%smmm%nfvctrp, kernel%smmm%isfvctr, kernel, &
               !!     vectors(1,1,4), chebyshev_polynomials(1,1))
               call compress_polynomial_vector_new(iproc, nproc, nsize_polynomial, &
-                   kernel%nfvctr, kernel%smmm%nfvctrp, kernel%smmm%isfvctr, kernel, &
+                   kernel%nfvctr, kernel%smmm%nfvctrp, kernel, &
                    vectors_new(1,4), chebyshev_polynomials(1,1))
               !!write(*,*) 'after compress_polynomial_vector_new'
               do icalc=1,ncalc
@@ -299,7 +299,7 @@ module chebyshev
               !!     kernel%nfvctr, kernel%smmm%nfvctrp, kernel%smmm%isfvctr, kernel, &
               !!     vectors(1,1,2), chebyshev_polynomials(1,2))
               call compress_polynomial_vector_new(iproc, nproc, nsize_polynomial, &
-                   kernel%nfvctr, kernel%smmm%nfvctrp, kernel%smmm%isfvctr, kernel, &
+                   kernel%nfvctr, kernel%smmm%nfvctrp, kernel, &
                    vectors_new(1,2), chebyshev_polynomials(1,2))
               do icalc=1,ncalc
                   !!do i=1,kernel%smmm%nfvctrp
@@ -350,7 +350,7 @@ module chebyshev
                   !!     kernel%nfvctr, kernel%smmm%nfvctrp, kernel%smmm%isfvctr, kernel, vectors(1,1,3), &
                   !!     chebyshev_polynomials(1,ipl))
                   call compress_polynomial_vector_new(iproc, nproc, nsize_polynomial, &
-                       kernel%nfvctr, kernel%smmm%nfvctrp, kernel%smmm%isfvctr, kernel, &
+                       kernel%nfvctr, kernel%smmm%nfvctrp, kernel, &
                        vectors_new(1,3), chebyshev_polynomials(1,ipl))
                   do icalc=1,ncalc
                       !!call axpy_kernel_vectors(kernel, kernel%smmm%nfvctrp, kernel%nfvctr, &
@@ -423,7 +423,7 @@ module chebyshev
           !call f_free(penalty_ev_new)
         
           if (calculate_SHS .and. kernel%smmm%nfvctrp>0) then
-              call f_free(matrix)
+              !!call f_free(matrix)
               call f_free(matrix_new)
           end if
           if (kernel%smmm%nfvctrp>0) then
@@ -442,68 +442,68 @@ module chebyshev
     
     
     
-    ! Performs z = a*x + b*y
-    subroutine axbyz_kernel_vectors(smat, norbp, norb, nout, onedimindices, a, x, b, y, z)
-      use module_base
-      use module_types
-      use sparsematrix_init, only: get_line_and_column
-      implicit none
-    
-      ! Calling arguments
-      type(sparse_matrix),intent(in) :: smat
-      integer,intent(in) :: norbp, norb, nout
-      integer,dimension(4,nout),intent(in) :: onedimindices
-      real(8),intent(in) :: a, b
-      real(kind=8),dimension(norb,norbp),intent(in) :: x, y
-      real(kind=8),dimension(norb,norbp),intent(out) :: z
-    
-      ! Local variables
-      integer :: i, jorb, iorb, ii, iline, icolumn
-      real(kind=8),dimension(:),allocatable :: x_compr, y_compr, z_compr
+    !!! Performs z = a*x + b*y
+    !!subroutine axbyz_kernel_vectors(smat, norbp, norb, nout, onedimindices, a, x, b, y, z)
+    !!  use module_base
+    !!  use module_types
+    !!  use sparsematrix_init, only: get_line_and_column
+    !!  implicit none
+    !!
+    !!  ! Calling arguments
+    !!  type(sparse_matrix),intent(in) :: smat
+    !!  integer,intent(in) :: norbp, norb, nout
+    !!  integer,dimension(4,nout),intent(in) :: onedimindices
+    !!  real(8),intent(in) :: a, b
+    !!  real(kind=8),dimension(norb,norbp),intent(in) :: x, y
+    !!  real(kind=8),dimension(norb,norbp),intent(out) :: z
+    !!
+    !!  ! Local variables
+    !!  integer :: i, jorb, iorb, ii, iline, icolumn
+    !!  real(kind=8),dimension(:),allocatable :: x_compr, y_compr, z_compr
 
-      call f_routine(id='axbyz_kernel_vectors')
-    
-      !!!$omp parallel default(private) shared(nout, onedimindices,a, b, x, y, z)
-      !!!$omp do
-      !!do i=1,nout
-      !!    iorb=onedimindices(1,i)
-      !!    jorb=onedimindices(2,i)
-      !!    z(jorb,iorb)=a*x(jorb,iorb)+b*y(jorb,iorb)
-      !!end do
-      !!!$omp end do
-      !!!$omp end parallel
+    !!  call f_routine(id='axbyz_kernel_vectors')
+    !!
+    !!  !!!$omp parallel default(private) shared(nout, onedimindices,a, b, x, y, z)
+    !!  !!!$omp do
+    !!  !!do i=1,nout
+    !!  !!    iorb=onedimindices(1,i)
+    !!  !!    jorb=onedimindices(2,i)
+    !!  !!    z(jorb,iorb)=a*x(jorb,iorb)+b*y(jorb,iorb)
+    !!  !!end do
+    !!  !!!$omp end do
+    !!  !!!$omp end parallel
 
 
-      ! @ WRAPPER #######################
-      x_compr = f_malloc0(smat%smmm%nvctrp,id='x_compr')
-      y_compr = f_malloc0(smat%smmm%nvctrp,id='y_compr')
-      z_compr = f_malloc0(smat%smmm%nvctrp,id='z_compr')
-      do i=1,smat%smmm%nvctrp
-          ii = smat%smmm%isvctr + i
-          call get_line_and_column(ii, smat%smmm%nseg, smat%smmm%keyv, smat%smmm%keyg, iline, icolumn)
-          if (icolumn<1) then
-              write(*,'(a,5i8)') 'iproc, i, ii, iline, icolumn', bigdft_mpi%iproc, i, ii, iline, icolumn
-              !stop
-          end if
-          x_compr(i) = x(icolumn,iline-smat%smmm%isfvctr)
-          y_compr(i) = y(icolumn,iline-smat%smmm%isfvctr)
-      end do
-      do i=1,smat%smmm%nvctrp
-          z_compr(i) = a*x_compr(i)+b*y_compr(i)
-      end do
-      do i=1,smat%smmm%nvctrp
-          ii = smat%smmm%isvctr + i
-          call get_line_and_column(ii, smat%smmm%nseg, smat%smmm%keyv, smat%smmm%keyg, iline, icolumn)
-          z(icolumn,iline-smat%smmm%isfvctr) = z_compr(i)
-      end do
-      call f_free(x_compr)
-      call f_free(y_compr)
-      call f_free(z_compr)
-      ! @ END WRAPPER ###################
+    !!  ! @ WRAPPER #######################
+    !!  x_compr = f_malloc0(smat%smmm%nvctrp,id='x_compr')
+    !!  y_compr = f_malloc0(smat%smmm%nvctrp,id='y_compr')
+    !!  z_compr = f_malloc0(smat%smmm%nvctrp,id='z_compr')
+    !!  do i=1,smat%smmm%nvctrp
+    !!      ii = smat%smmm%isvctr + i
+    !!      call get_line_and_column(ii, smat%smmm%nseg, smat%smmm%keyv, smat%smmm%keyg, iline, icolumn)
+    !!      if (icolumn<1) then
+    !!          write(*,'(a,5i8)') 'iproc, i, ii, iline, icolumn', bigdft_mpi%iproc, i, ii, iline, icolumn
+    !!          !stop
+    !!      end if
+    !!      x_compr(i) = x(icolumn,iline-smat%smmm%isfvctr)
+    !!      y_compr(i) = y(icolumn,iline-smat%smmm%isfvctr)
+    !!  end do
+    !!  do i=1,smat%smmm%nvctrp
+    !!      z_compr(i) = a*x_compr(i)+b*y_compr(i)
+    !!  end do
+    !!  do i=1,smat%smmm%nvctrp
+    !!      ii = smat%smmm%isvctr + i
+    !!      call get_line_and_column(ii, smat%smmm%nseg, smat%smmm%keyv, smat%smmm%keyg, iline, icolumn)
+    !!      z(icolumn,iline-smat%smmm%isfvctr) = z_compr(i)
+    !!  end do
+    !!  call f_free(x_compr)
+    !!  call f_free(y_compr)
+    !!  call f_free(z_compr)
+    !!  ! @ END WRAPPER ###################
 
-      call f_release_routine()
-    
-    end subroutine axbyz_kernel_vectors
+    !!  call f_release_routine()
+    !!
+    !!end subroutine axbyz_kernel_vectors
     
 
     ! Performs z = a*x + b*y
@@ -534,122 +534,122 @@ module chebyshev
     
     
     
-    subroutine copy_kernel_vectors(smat, norbp, norb, nout, onedimindices, a, b)
-      use module_base
-      use module_types
-      use sparsematrix_init, only: get_line_and_column
-      implicit none
-    
-      ! Calling arguments
-      type(sparse_matrix),intent(in) :: smat
-      integer,intent(in) :: norbp, norb, nout
-      integer,dimension(4,nout),intent(in) :: onedimindices
-      real(kind=8),dimension(norb,norbp),intent(in) :: a
-      real(kind=8),dimension(norb,norbp),intent(out) :: b
-    
-      ! Local variables
-      integer :: i, jorb, iorb, iline, icolumn, ii
-      real(kind=8),dimension(:),allocatable :: a_compr, b_compr
-    
-      call f_routine(id='copy_kernel_vectors')
-    
-      !!!$omp parallel default(private) shared(nout, onedimindices,a, b)
-      !!!$omp do
-      !!do i=1,nout
-      !!    iorb=onedimindices(1,i)
-      !!    jorb=onedimindices(2,i)
-      !!    b(jorb,iorb)=a(jorb,iorb)
-      !!end do
-      !!!$omp end do
-      !!!$omp end parallel
+    !!subroutine copy_kernel_vectors(smat, norbp, norb, nout, onedimindices, a, b)
+    !!  use module_base
+    !!  use module_types
+    !!  use sparsematrix_init, only: get_line_and_column
+    !!  implicit none
+    !!
+    !!  ! Calling arguments
+    !!  type(sparse_matrix),intent(in) :: smat
+    !!  integer,intent(in) :: norbp, norb, nout
+    !!  integer,dimension(4,nout),intent(in) :: onedimindices
+    !!  real(kind=8),dimension(norb,norbp),intent(in) :: a
+    !!  real(kind=8),dimension(norb,norbp),intent(out) :: b
+    !!
+    !!  ! Local variables
+    !!  integer :: i, jorb, iorb, iline, icolumn, ii
+    !!  real(kind=8),dimension(:),allocatable :: a_compr, b_compr
+    !!
+    !!  call f_routine(id='copy_kernel_vectors')
+    !!
+    !!  !!!$omp parallel default(private) shared(nout, onedimindices,a, b)
+    !!  !!!$omp do
+    !!  !!do i=1,nout
+    !!  !!    iorb=onedimindices(1,i)
+    !!  !!    jorb=onedimindices(2,i)
+    !!  !!    b(jorb,iorb)=a(jorb,iorb)
+    !!  !!end do
+    !!  !!!$omp end do
+    !!  !!!$omp end parallel
 
 
-      ! @ WRAPPER #######################
-      a_compr = f_malloc0(smat%smmm%nvctrp,id='b_compr')
-      b_compr = f_malloc0(smat%smmm%nvctrp,id='b_compr')
-      do i=1,smat%smmm%nvctrp
-          ii = smat%smmm%isvctr + i
-          call get_line_and_column(ii, smat%smmm%nseg, smat%smmm%keyv, smat%smmm%keyg, iline, icolumn)
-          if (icolumn<1) then
-              write(*,'(a,5i8)') 'iproc, i, ii, iline, icolumn', bigdft_mpi%iproc, i, ii, iline, icolumn
-              !stop
-          end if
-          a_compr(i) = a(icolumn,iline-smat%smmm%isfvctr)
-      end do
-      call vcopy(smat%smmm%nvctrp, a_compr(1), 1, b_compr(1), 1)
-      do i=1,smat%smmm%nvctrp
-          ii = smat%smmm%isvctr + i
-          call get_line_and_column(ii, smat%smmm%nseg, smat%smmm%keyv, smat%smmm%keyg, iline, icolumn)
-          b(icolumn,iline-smat%smmm%isfvctr) = b_compr(i)
-      end do
-      call f_free(a_compr)
-      call f_free(b_compr)
-      ! @ END WRAPPER ###################
-    
-      call f_release_routine()
-    
-    end subroutine copy_kernel_vectors
-    
-    
+    !!  ! @ WRAPPER #######################
+    !!  a_compr = f_malloc0(smat%smmm%nvctrp,id='b_compr')
+    !!  b_compr = f_malloc0(smat%smmm%nvctrp,id='b_compr')
+    !!  do i=1,smat%smmm%nvctrp
+    !!      ii = smat%smmm%isvctr + i
+    !!      call get_line_and_column(ii, smat%smmm%nseg, smat%smmm%keyv, smat%smmm%keyg, iline, icolumn)
+    !!      if (icolumn<1) then
+    !!          write(*,'(a,5i8)') 'iproc, i, ii, iline, icolumn', bigdft_mpi%iproc, i, ii, iline, icolumn
+    !!          !stop
+    !!      end if
+    !!      a_compr(i) = a(icolumn,iline-smat%smmm%isfvctr)
+    !!  end do
+    !!  call vcopy(smat%smmm%nvctrp, a_compr(1), 1, b_compr(1), 1)
+    !!  do i=1,smat%smmm%nvctrp
+    !!      ii = smat%smmm%isvctr + i
+    !!      call get_line_and_column(ii, smat%smmm%nseg, smat%smmm%keyv, smat%smmm%keyg, iline, icolumn)
+    !!      b(icolumn,iline-smat%smmm%isfvctr) = b_compr(i)
+    !!  end do
+    !!  call f_free(a_compr)
+    !!  call f_free(b_compr)
+    !!  ! @ END WRAPPER ###################
+    !!
+    !!  call f_release_routine()
+    !!
+    !!end subroutine copy_kernel_vectors
     
     
-    subroutine axpy_kernel_vectors(smat, norbp, norb, nout, onedimindices, a, x, y)
-      use module_base
-      use module_types
-      use sparsematrix_init, only: get_line_and_column
-      implicit none
     
-      ! Calling arguments
-      type(sparse_matrix),intent(in) :: smat
-      integer,intent(in) :: norbp, norb, nout
-      integer,dimension(4,nout),intent(in) :: onedimindices
-      real(kind=8),intent(in) :: a
-      real(kind=8),dimension(norb,norbp),intent(in) :: x
-      real(kind=8),dimension(norb,norbp),intent(inout) :: y
     
-      ! Local variables
-      integer :: i, jorb, iorb, ii, iline, icolumn
-      real(kind=8),dimension(:),allocatable :: x_compr, y_compr
+    !!subroutine axpy_kernel_vectors(smat, norbp, norb, nout, onedimindices, a, x, y)
+    !!  use module_base
+    !!  use module_types
+    !!  use sparsematrix_init, only: get_line_and_column
+    !!  implicit none
+    !!
+    !!  ! Calling arguments
+    !!  type(sparse_matrix),intent(in) :: smat
+    !!  integer,intent(in) :: norbp, norb, nout
+    !!  integer,dimension(4,nout),intent(in) :: onedimindices
+    !!  real(kind=8),intent(in) :: a
+    !!  real(kind=8),dimension(norb,norbp),intent(in) :: x
+    !!  real(kind=8),dimension(norb,norbp),intent(inout) :: y
+    !!
+    !!  ! Local variables
+    !!  integer :: i, jorb, iorb, ii, iline, icolumn
+    !!  real(kind=8),dimension(:),allocatable :: x_compr, y_compr
 
-      call f_routine(id='axpy_kernel_vectors')
-    
-      !!!$omp parallel default(private) shared(nout, onedimindices, y, x, a)
-      !!!$omp do
-      !!do i=1,nout
-      !!    iorb=onedimindices(1,i)
-      !!    jorb=onedimindices(2,i)
-      !!    y(jorb,iorb)=y(jorb,iorb)+a*x(jorb,iorb)
-      !!end do
-      !!!$omp end do
-      !!!$omp end parallel
+    !!  call f_routine(id='axpy_kernel_vectors')
+    !!
+    !!  !!!$omp parallel default(private) shared(nout, onedimindices, y, x, a)
+    !!  !!!$omp do
+    !!  !!do i=1,nout
+    !!  !!    iorb=onedimindices(1,i)
+    !!  !!    jorb=onedimindices(2,i)
+    !!  !!    y(jorb,iorb)=y(jorb,iorb)+a*x(jorb,iorb)
+    !!  !!end do
+    !!  !!!$omp end do
+    !!  !!!$omp end parallel
 
-     ! @ WRAPPER #######################
-     x_compr = f_malloc0(smat%smmm%nvctrp,id='x_compr')
-     y_compr = f_malloc0(smat%smmm%nvctrp,id='y_compr')
-     do i=1,smat%smmm%nvctrp
-         ii = smat%smmm%isvctr + i
-         call get_line_and_column(ii, smat%smmm%nseg, smat%smmm%keyv, smat%smmm%keyg, iline, icolumn)
-         if (icolumn<1) then
-             write(*,'(a,5i8)') 'iproc, i, ii, iline, icolumn', bigdft_mpi%iproc, i, ii, iline, icolumn
-             !stop
-         end if
-         x_compr(i) = x(icolumn,iline-smat%smmm%isfvctr)
-         y_compr(i) = y(icolumn,iline-smat%smmm%isfvctr)
-     end do
-     call daxpy(smat%smmm%nvctrp, a, x_compr(1), 1, y_compr(1), 1)
-     do i=1,smat%smmm%nvctrp
-         ii = smat%smmm%isvctr + i
-         call get_line_and_column(ii, smat%smmm%nseg, smat%smmm%keyv, smat%smmm%keyg, iline, icolumn)
-         y(icolumn,iline-smat%smmm%isfvctr) = y_compr(i)
-     end do
-     call f_free(x_compr)
-     call f_free(y_compr)
-     ! @ END WRAPPER ###################
+    !! ! @ WRAPPER #######################
+    !! x_compr = f_malloc0(smat%smmm%nvctrp,id='x_compr')
+    !! y_compr = f_malloc0(smat%smmm%nvctrp,id='y_compr')
+    !! do i=1,smat%smmm%nvctrp
+    !!     ii = smat%smmm%isvctr + i
+    !!     call get_line_and_column(ii, smat%smmm%nseg, smat%smmm%keyv, smat%smmm%keyg, iline, icolumn)
+    !!     if (icolumn<1) then
+    !!         write(*,'(a,5i8)') 'iproc, i, ii, iline, icolumn', bigdft_mpi%iproc, i, ii, iline, icolumn
+    !!         !stop
+    !!     end if
+    !!     x_compr(i) = x(icolumn,iline-smat%smmm%isfvctr)
+    !!     y_compr(i) = y(icolumn,iline-smat%smmm%isfvctr)
+    !! end do
+    !! call daxpy(smat%smmm%nvctrp, a, x_compr(1), 1, y_compr(1), 1)
+    !! do i=1,smat%smmm%nvctrp
+    !!     ii = smat%smmm%isvctr + i
+    !!     call get_line_and_column(ii, smat%smmm%nseg, smat%smmm%keyv, smat%smmm%keyg, iline, icolumn)
+    !!     y(icolumn,iline-smat%smmm%isfvctr) = y_compr(i)
+    !! end do
+    !! call f_free(x_compr)
+    !! call f_free(y_compr)
+    !! ! @ END WRAPPER ###################
 
-    
-      call f_release_routine()
-    
-    end subroutine axpy_kernel_vectors
+    !!
+    !!  call f_release_routine()
+    !!
+    !!end subroutine axpy_kernel_vectors
     
     
     

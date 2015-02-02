@@ -1524,7 +1524,7 @@ end subroutine compress_polynomial_vector
 
 
 
-subroutine compress_polynomial_vector_new(iproc, nproc, nsize_polynomial, norb, norbp, isorb, &
+subroutine compress_polynomial_vector_new(iproc, nproc, nsize_polynomial, norb, norbp, &
            fermi, vector_compr, vector_compressed)
   use module_base
   use module_types
@@ -1534,7 +1534,7 @@ subroutine compress_polynomial_vector_new(iproc, nproc, nsize_polynomial, norb, 
   implicit none
 
   ! Calling arguments
-  integer,intent(in) :: iproc, nproc, nsize_polynomial, norb, norbp, isorb
+  integer,intent(in) :: iproc, nproc, nsize_polynomial, norb, norbp
   type(sparse_matrix),intent(in) :: fermi
   real(kind=8),dimension(fermi%smmm%nvctrp),intent(in) :: vector_compr
   real(kind=8),dimension(nsize_polynomial),intent(out) :: vector_compressed
