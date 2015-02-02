@@ -949,20 +949,20 @@ subroutine overlapPowerGeneral(iproc, nproc, iorder, ncalc, power, blocksize, im
           ! #############################################################################
       else if (iorder<0) then ! could improve timing for checking, but for now just making sure it works
           ! use 4 submatrices
-          if (nproc>0) then
-              Amat12p = sparsematrix_malloc(inv_ovrlp_smat, iaction=DENSE_MATMUL, id='Amat12p')
-              Amat21p = sparsematrix_malloc0(inv_ovrlp_smat, iaction=DENSE_MATMUL, id='Amat21p')
-              Amat11p = sparsematrix_malloc0_ptr(inv_ovrlp_smat, iaction=DENSE_MATMUL, id='Amat11p')
-          else
-              Amat12p = sparsematrix_malloc(inv_ovrlp_smat, iaction=DENSE_FULL, id='Amat12p')
-              Amat21p = sparsematrix_malloc0(inv_ovrlp_smat, iaction=DENSE_FULL, id='Amat21p')
-              Amat11p = sparsematrix_malloc0_ptr(inv_ovrlp_smat, iaction=DENSE_FULL, id='Amat11p')
-          end if
+          !!if (nproc>0) then
+          !!    Amat12p = sparsematrix_malloc(inv_ovrlp_smat, iaction=DENSE_MATMUL, id='Amat12p')
+          !!    Amat21p = sparsematrix_malloc0(inv_ovrlp_smat, iaction=DENSE_MATMUL, id='Amat21p')
+          !!    Amat11p = sparsematrix_malloc0_ptr(inv_ovrlp_smat, iaction=DENSE_MATMUL, id='Amat11p')
+          !!else
+          !!    Amat12p = sparsematrix_malloc(inv_ovrlp_smat, iaction=DENSE_FULL, id='Amat12p')
+          !!    Amat21p = sparsematrix_malloc0(inv_ovrlp_smat, iaction=DENSE_FULL, id='Amat21p')
+          !!    Amat11p = sparsematrix_malloc0_ptr(inv_ovrlp_smat, iaction=DENSE_FULL, id='Amat11p')
+          !!end if
           Amat12p_new = f_malloc(inv_ovrlp_smat%smmm%nvctrp,id='Amat12p_new')
           Amat21p_new = f_malloc0(inv_ovrlp_smat%smmm%nvctrp,id='Amat21p_new')
           Amat11p_new = f_malloc0_ptr(inv_ovrlp_smat%smmm%nvctrp,id='Amat11p_new')
           ! save some memory but keep code clear - Amat22 and Amat11 should be identical as only combining S and I
-          Amat22p=>Amat11p
+          !!Amat22p=>Amat11p
           Amat22p_new=>Amat11p_new
           Amat12_compr=>inv_ovrlp_mat(1)%matrix_compr(1:)
 
@@ -980,8 +980,8 @@ subroutine overlapPowerGeneral(iproc, nproc, iorder, ncalc, power, blocksize, im
               call sequential_acces_matrix_fast2(inv_ovrlp_smat, &
                    Amat12_compr(ishift2+1:), Amat12_seq)
               call timing(iproc,'lovrlp^-1     ','OF')
-              call uncompress_matrix_distributed2(iproc, inv_ovrlp_smat, DENSE_MATMUL, &
-                   Amat12_compr(ishift2+1:), Amat12p)
+              !!call uncompress_matrix_distributed2(iproc, inv_ovrlp_smat, DENSE_MATMUL, &
+              !!     Amat12_compr(ishift2+1:), Amat12p)
 
               !SM: This will not work with taskgroups
               if (inv_ovrlp_smat%ntaskgroup/=1) stop 'overlapPowerGeneral: inv_ovrlp_smat%ntaskgroup/=1'
@@ -993,9 +993,9 @@ subroutine overlapPowerGeneral(iproc, nproc, iorder, ncalc, power, blocksize, im
                    Amat12_compr(ishift2+inv_ovrlp_smat%smmm%isvctr_mm+1:), Amat12p_new)
               call timing(iproc,'lovrlp^-1     ','ON')
 
-              do iorb=1,inv_ovrlp_smat%smmm%nfvctrp
-                  Amat21p(iorb+inv_ovrlp_smat%smmm%isfvctr,iorb)=1.0d0
-              end do
+              !!do iorb=1,inv_ovrlp_smat%smmm%nfvctrp
+              !!    Amat21p(iorb+inv_ovrlp_smat%smmm%isfvctr,iorb)=1.0d0
+              !!end do
               do iorb=1,inv_ovrlp_smat%smmm%nvctrp
                   ii = inv_ovrlp_smat%smmm%isvctr + iorb
                   call get_line_and_column(ii, inv_ovrlp_smat%smmm%nseg, inv_ovrlp_smat%smmm%keyv, &
@@ -1011,7 +1011,7 @@ subroutine overlapPowerGeneral(iproc, nproc, iorder, ncalc, power, blocksize, im
               !     Amat21p, Amat21_compr(inv_ovrlp_smat%isvctrp_tg+1:))
               call compress_matrix_distributed_new(iproc, nproc, inv_ovrlp_smat, DENSE_MATMUL, &
                    Amat21p_new, Amat21_compr(inv_ovrlp_smat%isvctrp_tg+1:))
-              write(*,*) 'after compr, sum(Amat21_compr)', sum(Amat21_compr)
+              !!write(*,*) 'after compr, sum(Amat21_compr)', sum(Amat21_compr)
               call timing(iproc,'lovrlp^-1     ','ON')
               call sequential_acces_matrix_fast(inv_ovrlp_smat, Amat21_compr, Amat21_seq)
 
@@ -1019,16 +1019,16 @@ subroutine overlapPowerGeneral(iproc, nproc, iorder, ncalc, power, blocksize, im
               do its=1,abs(iorder)
                   call timing(iproc,'lovrlp^-1     ','OF')
                   !call sparsemm(inv_ovrlp_smat, Amat12_seq, Amat21p, Amat11p)
-                  write(*,*) 'sum(Amat21p_new)', sum(Amat21p_new)
+                  !!write(*,*) 'sum(Amat21p_new)', sum(Amat21p_new)
                   call sparsemm_new(inv_ovrlp_smat, Amat12_seq, Amat21p_new, Amat11p_new)
                   call timing(iproc,'lovrlp^-1     ','ON')
-                  write(*,*) 'after matmul: sum(Amat11p_new)', sum(Amat11p_new)
+                  !!write(*,*) 'after matmul: sum(Amat11p_new)', sum(Amat11p_new)
 
                   if (inv_ovrlp_smat%smmm%nvctrp>0) then
                       !call vscal(inv_ovrlp_smat%nfvctr*inv_ovrlp_smat%smmm%nfvctrp,-0.5d0,Amat11p(1,1),1)
                       call vscal(inv_ovrlp_smat%smmm%nvctrp,-0.5d0,Amat11p_new(1),1)
                   end if
-                  write(*,*) 'after scal: sum(Amat11p_new)', sum(Amat11p_new)
+                  !!write(*,*) 'after scal: sum(Amat11p_new)', sum(Amat11p_new)
                   !call vscal(ovrlp_smat%nfvctr*norbp,-0.5d0,Amat22p(1,1),1)
                   !!do iorb=1,inv_ovrlp_smat%smmm%nfvctrp
                   !!    Amat11p(iorb+inv_ovrlp_smat%smmm%isfvctr,iorb)=Amat11p(iorb+inv_ovrlp_smat%smmm%isfvctr,iorb)+1.5d0
@@ -1047,7 +1047,7 @@ subroutine overlapPowerGeneral(iproc, nproc, iorder, ncalc, power, blocksize, im
                   call timing(iproc,'lovrlp^-1     ','OF')
                   !!call sparsemm(inv_ovrlp_smat, Amat12_seq, Amat22p, Amat12p)
                   !!call sparsemm(inv_ovrlp_smat, Amat21_seq, Amat11p, Amat21p)
-                  write(*,*) 'sum(Amat11p_new)',sum(Amat11p_new)
+                  !!write(*,*) 'sum(Amat11p_new)',sum(Amat11p_new)
                   call sparsemm_new(inv_ovrlp_smat, Amat12_seq, Amat22p_new, Amat12p_new)
                   call sparsemm_new(inv_ovrlp_smat, Amat21_seq, Amat11p_new, Amat21p_new)
                   call timing(iproc,'lovrlp^-1     ','ON')
@@ -1056,7 +1056,7 @@ subroutine overlapPowerGeneral(iproc, nproc, iorder, ncalc, power, blocksize, im
                       call timing(iproc,'lovrlp^-1     ','OF')
                       !!call compress_matrix_distributed(iproc, nproc, inv_ovrlp_smat, DENSE_MATMUL, &
                       !!     Amat21p, Amat21_compr(inv_ovrlp_smat%isvctrp_tg+1:))
-                      write(*,*) 'sum(Amat21p_new)',sum(Amat21p_new)
+                      !!write(*,*) 'sum(Amat21p_new)',sum(Amat21p_new)
                       call compress_matrix_distributed_new(iproc, nproc, inv_ovrlp_smat, DENSE_MATMUL, &
                            Amat21p_new, Amat21_compr(inv_ovrlp_smat%isvctrp_tg+1:))
                       call timing(iproc,'lovrlp^-1     ','ON')
@@ -1092,20 +1092,23 @@ subroutine overlapPowerGeneral(iproc, nproc, iorder, ncalc, power, blocksize, im
               else if (power(1)==-2) then
                   call vcopy(inv_ovrlp_smat%nvctrp_tg,Amat21_compr(inv_ovrlp_smat%isvctrp_tg+1),1,&
                        inv_ovrlp_mat(1)%matrix_compr(ishift2+1),1)
-                  write(*,*) 'sum(inv_ovrlp_mat(1)%matrix_compr)',sum(inv_ovrlp_mat(1)%matrix_compr)
+                  !!write(*,*) 'sum(inv_ovrlp_mat(1)%matrix_compr)',sum(inv_ovrlp_mat(1)%matrix_compr)
               end if
 
           end do
 
           call f_free(Amat12_seq)
           nullify(Amat22p)
-          call f_free_ptr(Amat11p)
+          !!call f_free_ptr(Amat11p)
 
           nullify(Amat12_compr)
           call f_free(Amat21_compr)
-          call f_free(Amat12p)
-          call f_free(Amat21p)
+          !!call f_free(Amat12p)
+          !!call f_free(Amat21p)
           call f_free(Amat21_seq)
+          call f_free(Amat12p_new)
+          call f_free(Amat21p_new)
+          call f_free_ptr(Amat11p_new)
 
       else
           if (iorder<1000) then
