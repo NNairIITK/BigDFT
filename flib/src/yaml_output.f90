@@ -735,7 +735,7 @@ contains
     integer :: idx
     type(dictionary), pointer :: dict_tmp
 
-    unt=DEFAULT_STREAM
+    unt=DEFAULT_STREAM_ID
     if (present(unit)) unt=unit
     call get_stream(unt,strm)
 
