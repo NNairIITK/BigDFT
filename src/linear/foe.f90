@@ -373,7 +373,8 @@ subroutine foe(iproc, nproc, tmprtr, &
                            tmb%linmat%ovrlppowers_(2)%matrix_compr(ilshift2+1:), calculate_SHS, &
                            nsize_polynomial, 1, fermi_new, penalty_ev_new, chebyshev_polynomials, &
                            emergency_stop)
-                      call transform_sparsity_pattern(tmb%linmat%l%nfvctr, tmb%linmat%l%smmm%nvctrp_mm, tmb%linmat%l%smmm%isvctr_mm, &
+                      call transform_sparsity_pattern(tmb%linmat%l%nfvctr, &
+                           tmb%linmat%l%smmm%nvctrp_mm, tmb%linmat%l%smmm%isvctr_mm, &
                            tmb%linmat%l%nseg, tmb%linmat%l%keyv, tmb%linmat%l%keyg, &
                            tmb%linmat%l%smmm%nvctrp, tmb%linmat%l%smmm%isvctr, &
                            tmb%linmat%l%smmm%nseg, tmb%linmat%l%smmm%keyv, tmb%linmat%l%smmm%keyg, &
@@ -2005,7 +2006,8 @@ subroutine ice(iproc, nproc, norder_polynomial, ovrlp_smat, inv_ovrlp_smat, ncal
                            nsize_polynomial, ncalc, inv_ovrlp_matrixp_new, penalty_ev_new, chebyshev_polynomials, &
                            emergency_stop)
                       do icalc=1,ncalc
-                          call transform_sparsity_pattern(inv_ovrlp_smat%nfvctr, inv_ovrlp_smat%smmm%nvctrp_mm, inv_ovrlp_smat%smmm%isvctr_mm, &
+                          call transform_sparsity_pattern(inv_ovrlp_smat%nfvctr, &
+                               inv_ovrlp_smat%smmm%nvctrp_mm, inv_ovrlp_smat%smmm%isvctr_mm, &
                                inv_ovrlp_smat%nseg, inv_ovrlp_smat%keyv, inv_ovrlp_smat%keyg, &
                                inv_ovrlp_smat%smmm%nvctrp, inv_ovrlp_smat%smmm%isvctr, &
                                inv_ovrlp_smat%smmm%nseg, inv_ovrlp_smat%smmm%keyv, inv_ovrlp_smat%smmm%keyg, &
@@ -2074,7 +2076,8 @@ subroutine ice(iproc, nproc, norder_polynomial, ovrlp_smat, inv_ovrlp_smat, ncal
                   if (restart) then
                       if(evbounds_shrinked) then
                           ! this shrink was not good, increase the saturation counter
-                          call foe_data_set_int(foe_obj,"evboundsshrink_isatur",foe_data_get_int(foe_obj,"evboundsshrink_isatur")+1)
+                          call foe_data_set_int(foe_obj,"evboundsshrink_isatur", &
+                               foe_data_get_int(foe_obj,"evboundsshrink_isatur")+1)
                       end if
                       call foe_data_set_int(foe_obj,"evbounds_isatur",0)
                       cycle
@@ -2096,7 +2099,8 @@ subroutine ice(iproc, nproc, norder_polynomial, ovrlp_smat, inv_ovrlp_smat, ncal
           do icalc=1,ncalc
               !!call compress_matrix_distributed(iproc, nproc, inv_ovrlp_smat, DENSE_MATMUL, inv_ovrlp_matrixp(1:,1:,icalc), &
               !!     inv_ovrlp(icalc)%matrix_compr(ilshift2+1:))
-              call compress_matrix_distributed_new2(iproc, nproc, inv_ovrlp_smat, DENSE_MATMUL, inv_ovrlp_matrixp_small_new(:,icalc), &
+              call compress_matrix_distributed_new2(iproc, nproc, inv_ovrlp_smat, &
+                   DENSE_MATMUL, inv_ovrlp_matrixp_small_new(:,icalc), &
                    inv_ovrlp(icalc)%matrix_compr(ilshift2+1:))
           end do
     
