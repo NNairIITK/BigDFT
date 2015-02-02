@@ -31,7 +31,7 @@ contains
 !! Before using recursive routine, again, it has to be updated to
 !! the full functionality of the non-recursive function
 recursive subroutine connect_recursively(mhgpsst,fsw,uinp,runObj,outs,&
-                     rcov,nbond,isame,iconnect,rxyz1,rxyz2,ener1,&
+                     rcov,isame,rxyz1,rxyz2,ener1,&
                      ener2,fp1,fp2,cobj,connected)
     !if called from outside recursion, connected has to be set 
     !to .true. and nsad=0
@@ -56,9 +56,7 @@ recursive subroutine connect_recursively(mhgpsst,fsw,uinp,runObj,outs,&
     type(run_objects), intent(inout)      :: runObj
     type(state_properties), intent(inout) :: outs
     type(connect_object), intent(inout)   :: cobj
-    integer, intent(in)    :: nbond
     real(gp), intent(in)   :: rcov(runObj%atoms%astruct%nat)
-    integer, intent(in)    :: iconnect(2,nbond)
     real(gp), intent(in)   :: rxyz1(3,runObj%atoms%astruct%nat)
     real(gp), intent(in)   :: rxyz2(3,runObj%atoms%astruct%nat)
     real(gp), intent(in)   :: fp1(mhgpsst%nid), fp2(mhgpsst%nid)
@@ -68,7 +66,7 @@ recursive subroutine connect_recursively(mhgpsst,fsw,uinp,runObj,outs,&
     !local
     integer  :: nsad_loc,ipush,infocode
     real(gp) :: displ,ener_count
-    real(gp) :: fnoise,fnrm,fmax
+    real(gp) :: fnrm,fmax
     logical  :: converged
     logical  :: lnl, rnr, lnr, rnl 
     character(len=200) :: comment
@@ -125,7 +123,7 @@ recursive subroutine connect_recursively(mhgpsst,fsw,uinp,runObj,outs,&
     ener_count=0.0_gp
     displ=0.0_gp
     converged=.false.
-    call findsad(mhgpsst,fsw,uinp,runObj,outs,rcov,nbond,iconnect,&
+    call findsad(mhgpsst,fsw,uinp,runObj,outs,rcov,&
          cobj%saddle(1,1,mhgpsst%nsad),cobj%enersad(mhgpsst%nsad),&
          cobj%fsad(1,1,mhgpsst%nsad),cobj%minmode(1,1,mhgpsst%nsad),displ,ener_count,&
          cobj%rotforce(1,1,mhgpsst%nsad),converged)
@@ -214,8 +212,9 @@ recursive subroutine connect_recursively(mhgpsst,fsw,uinp,runObj,outs,&
 
         ener_count=0.0_gp
         call mhgpsenergyandforces(mhgpsst,runObj,outs,&
-             cobj%leftmin(1,1,mhgpsst%nsad),cobj%fleft(1,1,mhgpsst%nsad),fnoise,&
+             cobj%leftmin(1,1,mhgpsst%nsad),cobj%fleft(1,1,mhgpsst%nsad),&
              cobj%enerleft(mhgpsst%nsad),infocode)
+        if(infocode/=0)outs%fnoise=0.0_gp
 
         if(mhgpsst%iproc==0 .and. uinp%mhgps_verbosity >= 3)&
              call astruct_dump_to_file(&
@@ -224,8 +223,8 @@ recursive subroutine connect_recursively(mhgpsst,fsw,uinp,runObj,outs,&
                   comment,cobj%enerleft(mhgpsst%nsad),cobj%leftmin(:,:,mhgpsst%nsad),&
                   cobj%fleft(:,:,mhgpsst%nsad))
 
-        call minimize(mhgpsst,uinp,runObj,outs,nbond,iconnect,&
-             cobj%leftmin(1,1,mhgpsst%nsad),cobj%fleft(1,1,mhgpsst%nsad),fnoise,&
+        call minimize(mhgpsst,uinp,runObj,outs,rcov,&
+             cobj%leftmin(1,1,mhgpsst%nsad),cobj%fleft(1,1,mhgpsst%nsad),&
              cobj%enerleft(mhgpsst%nsad),ener_count,converged,'L')
         call fnrmandforcemax(cobj%fleft(1,1,mhgpsst%nsad),fnrm,fmax,&
              runObj%atoms%astruct%nat)
@@ -301,8 +300,10 @@ recursive subroutine connect_recursively(mhgpsst,fsw,uinp,runObj,outs,&
         cobj%minmode(1,1,mhgpsst%nsad),scl,cobj%rightmin(1,1,mhgpsst%nsad))
 
         ener_count=0.0_gp
-        call mhgpsenergyandforces(mhgpsst,runObj,outs,cobj%rightmin(1,1,mhgpsst%nsad),&
-        cobj%fright(1,1,mhgpsst%nsad),fnoise,cobj%enerright(mhgpsst%nsad),infocode)
+        call mhgpsenergyandforces(mhgpsst,runObj,outs,&
+             cobj%rightmin(1,1,mhgpsst%nsad),cobj%fright(1,1,mhgpsst%nsad),&
+             cobj%enerright(mhgpsst%nsad),infocode)
+        if(infocode/=0)outs%fnoise=0.0_gp
 
         if(mhgpsst%iproc==0 .and. uinp%mhgps_verbosity >= 3)&
              call astruct_dump_to_file(bigdft_get_astruct_ptr(runObj),&
@@ -311,9 +312,9 @@ recursive subroutine connect_recursively(mhgpsst,fsw,uinp,runObj,outs,&
              cobj%enerright(mhgpsst%nsad),cobj%rightmin(1,1,mhgpsst%nsad),&
              cobj%fright(1,1,mhgpsst%nsad))
 
-        call minimize(mhgpsst,uinp,runObj,outs,nbond,iconnect,&
+        call minimize(mhgpsst,uinp,runObj,outs,rcov,&
                             cobj%rightmin(1,1,mhgpsst%nsad),&
-                            cobj%fright(1,1,mhgpsst%nsad),fnoise,&
+                            cobj%fright(1,1,mhgpsst%nsad),&
                             cobj%enerright(mhgpsst%nsad),ener_count,&
                             converged,'R')
         call fnrmandforcemax(cobj%fright(1,1,mhgpsst%nsad),fnrm,fmax,runObj%atoms%astruct%nat)
@@ -419,8 +420,8 @@ recursive subroutine connect_recursively(mhgpsst,fsw,uinp,runObj,outs,&
                             '(MHGPS) connection check connected',&
                             cobj%enerleft(mhgpsst%nsad),&
                             cobj%enerright(mhgpsst%nsad)
-        call connect_recursively(mhgpsst,fsw,uinp,runObj,outs,rcov,nbond,isame,&
-                     iconnect,cobj%rightmin(1,1,nsad_loc),rxyz2,&
+        call connect_recursively(mhgpsst,fsw,uinp,runObj,outs,rcov,isame,&
+                     cobj%rightmin(1,1,nsad_loc),rxyz2,&
                      cobj%enerright(nsad_loc),ener2,&
                      cobj%fpright(1,nsad_loc),fp2,cobj,connected)
         return
@@ -454,8 +455,8 @@ recursive subroutine connect_recursively(mhgpsst,fsw,uinp,runObj,outs,&
 !    stop
 !endif
         !connect left relaxed bar end with left input min
-        call connect_recursively(mhgpsst,fsw,uinp,runObj,outs,rcov,nbond,isame,&
-                     iconnect,rxyz1,cobj%leftmin(1,1,nsad_loc),&
+        call connect_recursively(mhgpsst,fsw,uinp,runObj,outs,rcov,isame,&
+                     rxyz1,cobj%leftmin(1,1,nsad_loc),&
                      ener1,cobj%enerleft(nsad_loc),&
                      fp1,cobj%fpleft(1,nsad_loc),cobj,connected)
         return
@@ -470,8 +471,8 @@ recursive subroutine connect_recursively(mhgpsst,fsw,uinp,runObj,outs,&
                              cobj%enerleft(mhgpsst%nsad),&
                              cobj%enerright(mhgpsst%nsad)
         !connect right relaxed bar end with left input min
-        call connect_recursively(mhgpsst,fsw,uinp,runObj,outs,rcov,nbond,isame,&
-                     iconnect,rxyz1,cobj%rightmin(1,1,nsad_loc),&
+        call connect_recursively(mhgpsst,fsw,uinp,runObj,outs,rcov,isame,&
+                     rxyz1,cobj%rightmin(1,1,nsad_loc),&
                      ener1,cobj%enerright(nsad_loc),&
                      fp1,cobj%fpright(1,nsad_loc),cobj,connected)
         return
@@ -485,8 +486,8 @@ recursive subroutine connect_recursively(mhgpsst,fsw,uinp,runObj,outs,&
                         ' connection check connected',&
                         cobj%enerleft(mhgpsst%nsad),cobj%enerright(mhgpsst%nsad)
         !connect left relaxed bar end with right input min
-        call connect_recursively(mhgpsst,fsw,uinp,runObj,outs,rcov,nbond,isame,&
-                     iconnect,rxyz2,cobj%leftmin(1,1,nsad_loc),&
+        call connect_recursively(mhgpsst,fsw,uinp,runObj,outs,rcov,isame,&
+                     rxyz2,cobj%leftmin(1,1,nsad_loc),&
                      ener2,cobj%enerleft(nsad_loc),&
                      fp2,cobj%fpleft(1,nsad_loc),cobj,connected)
         return
@@ -505,12 +506,12 @@ recursive subroutine connect_recursively(mhgpsst,fsw,uinp,runObj,outs,&
                         cobj%enerright(mhgpsst%nsad)
         !connect left input min with left relaxed bar end  and right
         !input min with right relaxed bar end
-        call connect_recursively(mhgpsst,fsw,uinp,runObj,outs,rcov,nbond,isame,&
-                     iconnect,rxyz1,cobj%leftmin(1,1,nsad_loc),&
+        call connect_recursively(mhgpsst,fsw,uinp,runObj,outs,rcov,isame,&
+                     rxyz1,cobj%leftmin(1,1,nsad_loc),&
                      ener1,cobj%enerleft(nsad_loc),&
                      fp1,cobj%fpleft(1,nsad_loc),cobj,connected)
-        call connect_recursively(mhgpsst,fsw,uinp,runObj,outs,rcov,nbond,isame,&
-                     iconnect,cobj%rightmin(1,1,nsad_loc),rxyz2,&
+        call connect_recursively(mhgpsst,fsw,uinp,runObj,outs,rcov,isame,&
+                     cobj%rightmin(1,1,nsad_loc),rxyz2,&
                      cobj%enerright(nsad_loc),ener2,&
                      cobj%fpright(1,nsad_loc),fp2,cobj,connected)
         return
@@ -527,8 +528,8 @@ recursive subroutine connect_recursively(mhgpsst,fsw,uinp,runObj,outs,&
 
 end subroutine
 !=====================================================================
-subroutine connect(mhgpsst,fsw,uinp,runObj,outs,rcov,nbond,&
-                     iconnect,rxyz1,rxyz2,ener1,ener2,fp1,fp2,&
+subroutine connect(mhgpsst,fsw,uinp,runObj,outs,rcov,&
+                     rxyz1,rxyz2,ener1,ener2,fp1,fp2,&
                      cobj,connected,premature_exit,nsad)
     use module_base
     use module_atoms, only: astruct_dump_to_file
@@ -551,9 +552,7 @@ subroutine connect(mhgpsst,fsw,uinp,runObj,outs,rcov,nbond,&
     type(userinput), intent(in) :: uinp
     type(run_objects), intent(inout) :: runObj
     type(state_properties), intent(inout) :: outs
-    integer, intent(in)     :: nbond
     real(gp), intent(in)    :: rcov(runObj%atoms%astruct%nat)
-    integer, intent(in)     :: iconnect(2,nbond)
     real(gp), intent(in)    :: rxyz1(3,runObj%atoms%astruct%nat), rxyz2(3,runObj%atoms%astruct%nat)
     real(gp), intent(in)    :: fp1(mhgpsst%nid), fp2(mhgpsst%nid)
     real(gp), intent(in)    :: ener1,ener2
@@ -564,7 +563,7 @@ subroutine connect(mhgpsst,fsw,uinp,runObj,outs,rcov,nbond,&
     !local
     integer  :: infocode
     real(gp) :: displ,ener_count
-    real(gp) :: fnoise,fnrm,fmax
+    real(gp) :: fnrm,fmax
     logical  :: converged
     logical  :: lnl, rnr, lnr, rnl 
     character(len=200) :: comment
@@ -660,7 +659,7 @@ connectloop: do while(cobj%ntodo>=1)
     ener_count=0.0_gp
     displ=0.0_gp
     converged=.false.
-    call findsad(mhgpsst,fsw,uinp,runObj,outs,rcov,nbond,iconnect,&
+    call findsad(mhgpsst,fsw,uinp,runObj,outs,rcov,&
          cobj%saddle(1,1,mhgpsst%nsad),cobj%enersad(mhgpsst%nsad),&
          cobj%fsad(1,1,mhgpsst%nsad),cobj%minmode(1,1,mhgpsst%nsad),displ,ener_count,&
          cobj%rotforce(1,1,mhgpsst%nsad),converged)
@@ -755,8 +754,9 @@ connectloop: do while(cobj%ntodo>=1)
 
         ener_count=0.0_gp
         call mhgpsenergyandforces(mhgpsst,runObj,outs,&
-             cobj%leftmin(1,1,mhgpsst%nsad),cobj%fleft(1,1,mhgpsst%nsad),fnoise,&
+             cobj%leftmin(1,1,mhgpsst%nsad),cobj%fleft(1,1,mhgpsst%nsad),&
              cobj%enerleft(mhgpsst%nsad),infocode)
+        if(infocode/=0)outs%fnoise=0.0_gp
 
         if(mhgpsst%iproc==0 .and. uinp%mhgps_verbosity >= 3)&
              call astruct_dump_to_file(&
@@ -765,8 +765,8 @@ connectloop: do while(cobj%ntodo>=1)
                   comment,cobj%enerleft(mhgpsst%nsad),cobj%leftmin(:,:,mhgpsst%nsad),&
                   cobj%fleft(:,:,mhgpsst%nsad))
 
-        call minimize(mhgpsst,uinp,runObj,outs,nbond,iconnect,&
-             cobj%leftmin(1,1,mhgpsst%nsad),cobj%fleft(1,1,mhgpsst%nsad),fnoise,&
+        call minimize(mhgpsst,uinp,runObj,outs,rcov,&
+             cobj%leftmin(1,1,mhgpsst%nsad),cobj%fleft(1,1,mhgpsst%nsad),&
              cobj%enerleft(mhgpsst%nsad),ener_count,converged,'L')
         call fnrmandforcemax(cobj%fleft(1,1,mhgpsst%nsad),fnrm,fmax,&
              runObj%atoms%astruct%nat)
@@ -843,8 +843,10 @@ connectloop: do while(cobj%ntodo>=1)
         cobj%minmode(1,1,mhgpsst%nsad),scl,cobj%rightmin(1,1,mhgpsst%nsad))
 
         ener_count=0.0_gp
-        call mhgpsenergyandforces(mhgpsst,runObj,outs,cobj%rightmin(1,1,mhgpsst%nsad),&
-        cobj%fright(1,1,mhgpsst%nsad),fnoise,cobj%enerright(mhgpsst%nsad),infocode)
+        call mhgpsenergyandforces(mhgpsst,runObj,outs,&
+             cobj%rightmin(1,1,mhgpsst%nsad),cobj%fright(1,1,mhgpsst%nsad),&
+             cobj%enerright(mhgpsst%nsad),infocode)
+        if(infocode/=0)outs%fnoise=0.0_gp
 
         if(mhgpsst%iproc==0 .and. uinp%mhgps_verbosity >= 3)&
              call astruct_dump_to_file(bigdft_get_astruct_ptr(runObj),&
@@ -853,9 +855,9 @@ connectloop: do while(cobj%ntodo>=1)
              cobj%enerright(mhgpsst%nsad),cobj%rightmin(1,1,mhgpsst%nsad),&
              cobj%fright(1,1,mhgpsst%nsad))
 
-        call minimize(mhgpsst,uinp,runObj,outs,nbond,iconnect,&
+        call minimize(mhgpsst,uinp,runObj,outs,rcov,&
                             cobj%rightmin(1,1,mhgpsst%nsad),&
-                            cobj%fright(1,1,mhgpsst%nsad),fnoise,&
+                            cobj%fright(1,1,mhgpsst%nsad),&
                             cobj%enerright(mhgpsst%nsad),ener_count,&
                             converged,'R')
         call fnrmandforcemax(cobj%fright(1,1,mhgpsst%nsad),fnrm,fmax,runObj%atoms%astruct%nat)

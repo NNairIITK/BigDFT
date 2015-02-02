@@ -100,6 +100,7 @@ subroutine sqnm(runObj,outsIO,nproc,iproc,verbosity,ncount_bigdft,fail)
    character(len=12)                        :: cdmy12_2
    character(len=9)                        :: cdmy9
    character(len=8)                        :: cdmy8
+   integer :: ifail
     !functions
     real(gp) :: ddot,dnrm2
 
@@ -114,6 +115,7 @@ subroutine sqnm(runObj,outsIO,nproc,iproc,verbosity,ncount_bigdft,fail)
    steepthresh=runObj%inputs%steepthresh
    trustr=runObj%inputs%trustr
    nbond=1
+   ifail=0
    if(runObj%inputs%biomode)imode=2
 
    if (iproc==0.and.verbosity > 0) then
@@ -196,7 +198,7 @@ subroutine sqnm(runObj,outsIO,nproc,iproc,verbosity,ncount_bigdft,fail)
 
    call minenergyandforces(iproc,nproc,.false.,imode,runObj,outs,nat,rxyz(1,1,0),&
        rxyzraw(1,1,0),fxyz(1,1,0),fstretch(1,1,0),fxyzraw(1,1,0),&
-       etot,iconnect,nbond,wold,beta_stretchx,beta_stretch)
+       etot,iconnect,nbond,wold,beta_stretchx,beta_stretch,infocode)
    if(imode==2)rxyz(:,:,0)=rxyz(:,:,0)+beta_stretch*fstretch(:,:,0)
 
    call fnrmandforcemax(fxyzraw(1,1,0),fnrm,fmax,nat)
@@ -303,7 +305,7 @@ subroutine sqnm(runObj,outsIO,nproc,iproc,verbosity,ncount_bigdft,fail)
       runObj%inputs%inputPsiId=1
       call minenergyandforces(iproc,nproc,.true.,imode,runObj,outs,nat,rxyz(1,1,nhist),rxyzraw(1,1,nhist),&
                              fxyz(1,1,nhist),fstretch(1,1,nhist),fxyzraw(1,1,nhist),&
-                             etotp,iconnect,nbond,wold,beta_stretchx,beta_stretch)
+                             etotp,iconnect,nbond,wold,beta_stretchx,beta_stretch,infocode)
       detot=etotp-etotold
       ncount_bigdft=ncount_bigdft+1
 
@@ -321,8 +323,12 @@ subroutine sqnm(runObj,outsIO,nproc,iproc,verbosity,ncount_bigdft,fail)
 !!$              outs%energy,runObj%atoms%astruct%rxyz,runObj%atoms%astruct%ixyz_int,&
 !!$              runObj%atoms,trim(comment),forces=outs%fxyz)
       endif
-
-      if (fmax < 3.e-1_gp) call updatefluctsum(outs%fnoise,fluct)
+      if(infocode==0)then
+        ifail=0
+      else
+        ifail=ifail+1
+      endif
+      if ((infocode==0 .or. ifail>20).and.(fmax < 3.e-1_gp)) call updatefluctsum(outs%fnoise,fluct)
       cosangle=-dot_double(3*nat,fxyz(1,1,nhist),1,dd(1,1),1)/&
               sqrt(dot_double(3*nat,fxyz(1,1,nhist),1,fxyz(1,1,nhist),1)*&
               dot_double(3*nat,dd(1,1),1,dd(1,1),1))
@@ -528,7 +534,7 @@ subroutine sqnm(runObj,outsIO,nproc,iproc,verbosity,ncount_bigdft,fail)
    call deallocate_state_properties(outs)
 end subroutine
 subroutine minenergyandforces(iproc,nproc,eeval,imode,runObj,outs,nat,rat,rxyzraw,fat,fstretch,&
-           fxyzraw,epot,iconnect,nbond_,wold,alpha_stretch0,alpha_stretch)
+           fxyzraw,epot,iconnect,nbond_,wold,alpha_stretch0,alpha_stretch,infocode)
     use module_base
     use bigdft_run!module_types
     use module_sqn
@@ -551,14 +557,14 @@ subroutine minenergyandforces(iproc,nproc,eeval,imode,runObj,outs,nat,rat,rxyzra
     real(gp), intent(inout)       :: alpha_stretch
     real(gp), intent(inout)       :: epot
     logical, intent(in)           :: eeval
+    integer,intent(out) :: infocode
     !internal
-    integer :: infocode
 
 !    rxyzraw=rat
 !    if(eeval)call energyandforces(nat,alat,rat,fat,fnoise,epot)
 !    fxyzraw=fat
 !    fstretch=0.0_gp
-
+    infocode=0
     call vcopy(3 * runObj%atoms%astruct%nat, rat(1,1), 1,rxyzraw(1,1), 1)
     if(eeval)then
         call vcopy(3 * runObj%atoms%astruct%nat, rat(1,1), 1,runObj%atoms%astruct%rxyz(1,1), 1)

@@ -95,7 +95,6 @@ subroutine get_ts_guess_freeze(mhgpsst,uinp,runObj,outs,rxyz1,rxyz2,&
     real(gp), allocatable :: arc(:)
     real(gp), allocatable :: y2vec(:,:,:)
     real(gp), allocatable :: tangent(:,:,:)
-    real(gp) :: fnoise
     real(gp) :: emax
     real(gp) :: tau,rdmy
     real(gp) :: yp1=huge(1._gp), ypn=huge(1._gp)!natural splines
@@ -143,7 +142,7 @@ subroutine get_ts_guess_freeze(mhgpsst,uinp,runObj,outs,rxyz1,rxyz2,&
         !due to column major order,
         !pass string() to energy and forces, not path():
         call mhgpsenergyandforces(mhgpsst,runObj,outs,string(1,1,istring),&
-             forces(1,1,npath),fnoise,energies(npath),infocode)
+             forces(1,1,npath),energies(npath),infocode)
         if(energies(npath)>emax)then
             emax       = energies(npath)
             istringmax = istring
@@ -169,7 +168,7 @@ subroutine get_ts_guess_freeze(mhgpsst,uinp,runObj,outs,rxyz1,rxyz2,&
         !due to column major order,
         !pass string() to energy and forces, not path():
         call mhgpsenergyandforces(mhgpsst,runObj,outs,string(1,2,istring),&
-             forces(1,1,npath),fnoise,energies(npath),infocode)
+             forces(1,1,npath),energies(npath),infocode)
         if(energies(npath)>emax)then
             emax       = energies(npath)
             istringmax = istring
@@ -467,7 +466,6 @@ subroutine optim_cg(mhgpsst,runObj,outs,finished,step,gammainv,&
     real(gp) :: dispnrm_squared
     integer :: istep
     integer :: infocode
-    real(gp) :: fnoise
     !functions
     real(gp) :: dnrm2, ddot
 
@@ -481,7 +479,7 @@ subroutine optim_cg(mhgpsst,runObj,outs,finished,step,gammainv,&
 
     !first steps: steepest descent
     !left
-    call mhgpsenergyandforces(mhgpsst,runObj,outs,rxyz1,fxyz1,fnoise,epot1,infocode)
+    call mhgpsenergyandforces(mhgpsst,runObj,outs,rxyz1,fxyz1,epot1,infocode)
     call perpend(runObj%atoms%astruct%nat,tangent1,fxyz1,perp1)
     perpnrmPrev1_squared = ddot(3*runObj%atoms%astruct%nat,perp1(1),1,perp1(1),1)
     perpnrm1_squared=perpnrmPrev1_squared
@@ -493,7 +491,7 @@ subroutine optim_cg(mhgpsst,runObj,outs,finished,step,gammainv,&
     rxyz1=rxyz1+dispPrev1
     !right
     if(finished==2)then
-        call mhgpsenergyandforces(mhgpsst,runObj,outs,rxyz2,fxyz2,fnoise,epot2,infocode)
+        call mhgpsenergyandforces(mhgpsst,runObj,outs,rxyz2,fxyz2,epot2,infocode)
         call perpend(runObj%atoms%astruct%nat,tangent2,fxyz2,perp2)
         perpnrmPrev2_squared = ddot(3*runObj%atoms%astruct%nat,perp2(1),1,perp2(1),1)
         perpnrm2_squared=perpnrmPrev2_squared
@@ -518,7 +516,7 @@ subroutine optim_cg(mhgpsst,runObj,outs,finished,step,gammainv,&
     do istep=2,nstepsmax
 
         !move left node
-        call mhgpsenergyandforces(mhgpsst,runObj,outs,rxyz1,fxyz1,fnoise,epot1,infocode)
+        call mhgpsenergyandforces(mhgpsst,runObj,outs,rxyz1,fxyz1,epot1,infocode)
         call perpend(runObj%atoms%astruct%nat,tangent1,fxyz1,perp1)
         perpnrm1_squared = ddot(3*runObj%atoms%astruct%nat,perp1(1),1,perp1(1),1)
         if(perpnrm1_squared>perpnrmPrev1_squared)then
@@ -537,7 +535,7 @@ subroutine optim_cg(mhgpsst,runObj,outs,finished,step,gammainv,&
         
         if(finished==2)then 
             !move right node
-            call mhgpsenergyandforces(mhgpsst,runObj,outs,rxyz2,fxyz2,fnoise,epot2,infocode)
+            call mhgpsenergyandforces(mhgpsst,runObj,outs,rxyz2,fxyz2,epot2,infocode)
             call perpend(runObj%atoms%astruct%nat,tangent2,fxyz2,perp2)
             perpnrm2_squared = ddot(3*runObj%atoms%astruct%nat,perp2(1),1,perp2(1),1)
             if(mhgpsst%iproc==0)write(*,'(a,i3.3,4(1x,es10.3))')&
@@ -684,7 +682,6 @@ subroutine get_ts_guess_linsyn(mhgpsst,uinp,runObj,outs,left,right,tsguess,minmo
     real(gp) :: tau
     real(gp) :: lambda
     real(gp) :: emax
-    real(gp) :: fnoise
     real(gp) :: step
     !functions
     real(gp) :: dnrm2
@@ -755,7 +752,7 @@ subroutine get_ts_guess_linsyn(mhgpsst,uinp,runObj,outs,left,right,tsguess,minmo
     emax=-huge(1._gp)
     do j=2,nimagespath-1
         call mhgpsenergyandforces(mhgpsst,runObj,outs,lstpathC(1,1,j),&
-             forces(1,1,j),fnoise,energies(j),infocode)
+             forces(1,1,j),energies(j),infocode)
         if(energies(j)>emax)then
             emax       = energies(j)
             ipathmax   = j

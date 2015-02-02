@@ -22,8 +22,8 @@ module module_minimizers
 
 contains
 
-subroutine minimize(mhgpsst,uinp,runObj,outs,nbond,iconnect,&
-           rxyzio,fxyzio,fnoiseio,energyio,energycounter,converged,&
+subroutine minimize(mhgpsst,uinp,runObj,outs,rcov,&
+           rxyzio,fxyzio,energyio,energycounter,converged,&
            writePostfix)
     use module_base
     use module_userinput
@@ -32,22 +32,21 @@ subroutine minimize(mhgpsst,uinp,runObj,outs,nbond,iconnect,&
     implicit none
     !parameter
     type(mhgps_state), intent(inout)       :: mhgpsst
-    integer, intent(in)                    :: nbond
     type(userinput), intent(in)            :: uinp
     type(run_objects), intent(inout) :: runObj
     type(state_properties), intent(inout) :: outs
+    real(gp), intent(in)                :: rcov(runObj%atoms%astruct%nat)
     real(gp), intent(inout)                :: energycounter
     logical, intent(out)                   :: converged
     real(gp), intent(inout)                :: rxyzio(3,runObj%atoms%astruct%nat)
     real(gp), intent(inout)                :: fxyzio(3,runObj%atoms%astruct%nat)
-    real(gp), intent(inout)                :: energyio,fnoiseio
-    integer, intent(in)                    :: iconnect(2,nbond)
+    real(gp), intent(inout)                :: energyio
     character(len=*), intent(in)           :: writePostfix
     !internal
 
     if(.not.  uinp%external_mini)then
-        call minimizer_sqnm(mhgpsst,uinp,runObj,outs,nbond,&
-             iconnect,rxyzio,fxyzio,fnoiseio,energyio,energycounter,&
+        call minimizer_sqnm(mhgpsst,uinp,runObj,outs,rcov,&
+             rxyzio,fxyzio,energyio,energycounter,&
              converged,writePostfix)
     else
         stop 'interface to external minimizers not implemented yet'
@@ -60,8 +59,8 @@ end subroutine
 !before calling this routine.
 ! minimizer+sqnm will return to caller the energies and coordinates
 !used/obtained from the last accepted iteration step
-subroutine minimizer_sqnm(mhgpsst,uinp,runObj,outs,nbond,iconnect,&
-           rxyzio,fxyzio,fnoiseio,energyio,energycounter,converged,&
+subroutine minimizer_sqnm(mhgpsst,uinp,runObj,outs,rcov,&
+           rxyzio,fxyzio,energyio,energycounter,converged,&
            writePostfix)
 
    use module_base, except_this_one=> int
@@ -77,16 +76,15 @@ subroutine minimizer_sqnm(mhgpsst,uinp,runObj,outs,nbond,iconnect,&
    implicit none
    !parameter
    type(mhgps_state)                  :: mhgpsst
-   integer, intent(in)                    :: nbond
    type(userinput), intent(in)            :: uinp
    type(run_objects), intent(inout) :: runObj
    type(state_properties), intent(inout) :: outs
+   real(gp), intent(in)                :: rcov(runObj%atoms%astruct%nat)
    real(gp), intent(inout)                :: energycounter
    logical, intent(out)                   :: converged
    real(gp), intent(inout)                :: rxyzio(3,runObj%atoms%astruct%nat)
    real(gp), intent(inout)                :: fxyzio(3,runObj%atoms%astruct%nat)
-   real(gp), intent(inout)                :: energyio,fnoiseio
-   integer, intent(in)                    :: iconnect(2,nbond)
+   real(gp), intent(inout)                :: energyio
    character(len=*), intent(in)           :: writePostfix
    !local variables
    character(len=*), parameter :: subname='sqnm'
@@ -98,6 +96,7 @@ subroutine minimizer_sqnm(mhgpsst,uinp,runObj,outs,nbond,iconnect,&
    integer :: lworkf
    integer :: it,iat,l,ihist,icheck !<counter variables
    integer :: itswitch
+   integer :: nbond
    logical :: debug !< set .true. for debug output to fort.100
    logical :: steep !< steepest descent flag
    logical :: success
@@ -111,7 +110,6 @@ subroutine minimizer_sqnm(mhgpsst,uinp,runObj,outs,nbond,iconnect,&
    real(gp) :: fnrm
    real(gp) :: fmax
    real(gp) :: fluct
-   real(gp) :: fnoise
    real(gp) :: betax !< initial step size (gets not changed)
    real(gp) :: beta_stretchx
    real(gp) :: beta  !< current step size
@@ -133,6 +131,7 @@ subroutine minimizer_sqnm(mhgpsst,uinp,runObj,outs,nbond,iconnect,&
    real(gp) :: maxrise !< energy ist not allowed to rise more than maxrise in single step
    real(gp) :: steepthresh !< if fnrm is larger that steepthresh, steepest descent is used
    real(gp) :: trustr !< a single atoms is not allowed to be dsiplaced more than by trustr
+   integer,  allocatable, dimension(:,:)   :: iconnect
    real(gp), allocatable, dimension(:,:,:) :: rxyz
    real(gp), allocatable, dimension(:,:,:) :: rxyzraw
    real(gp), allocatable, dimension(:,:,:) :: fxyz
@@ -158,6 +157,8 @@ subroutine minimizer_sqnm(mhgpsst,uinp,runObj,outs,nbond,iconnect,&
    character(len=12)                        :: cdmy12_2
    character(len=9)                        :: cdmy9
    character(len=8)                        :: cdmy8
+   integer :: ifail
+   integer :: infocode
     !functions
     real(gp) :: dnrm2
     intrinsic :: int
@@ -184,6 +185,8 @@ subroutine minimizer_sqnm(mhgpsst,uinp,runObj,outs,nbond,iconnect,&
    cutoffRatio   =uinp%mini_cutoffratio
    steepthresh   =uinp%mini_steepthresh
    trustr        =uinp%mini_trustr
+   nbond=1
+   ifail=0
 
 !   if (mhgpsst%iproc==0.and.mhgps_verbosity > 0) then
 !      call yaml_mapping_open('Geometry parameters')
@@ -234,6 +237,11 @@ subroutine minimizer_sqnm(mhgpsst,uinp,runObj,outs,nbond,iconnect,&
    fff = f_malloc((/ 1.to.3, 1.to.runObj%atoms%astruct%nat, 0.to.nhistx /),id='fff')
    rrr = f_malloc((/ 1.to.3, 1.to.runObj%atoms%astruct%nat, 0.to.nhistx /),id='rrr')
    scpr = f_malloc(nhistx,id='scpr')
+   iconnect = f_malloc((/ 1.to.2, 1.to.1000/),id='iconnect')
+   if(uinp%saddle_biomode)then
+       call findbonds('(MHGPS)',mhgpsst%iproc,uinp%mhgps_verbosity,bigdft_nat(runObj),rcov,&
+       bigdft_get_rxyz_ptr(runObj),nbond,iconnect)
+   endif
    wold = f_malloc((/ 1.to.nbond/),id='wold')
    wold =0.0_gp
 
@@ -250,13 +258,12 @@ subroutine minimizer_sqnm(mhgpsst,uinp,runObj,outs,nbond,iconnect,&
    call vcopy(3*outs%fdim, fxyzio(1,1), 1, fxyz(1,1,0), 1)
 
    etot=energyio
-   fnoise=fnoiseio
    call minenergyandforces(mhgpsst,.false.,uinp%imode,runObj,outs,rxyz(1,1,0),&
-       rxyzraw(1,1,0),fxyz(1,1,0),fstretch(1,1,0),fxyzraw(1,1,0),fnoise,&
+       rxyzraw(1,1,0),fxyz(1,1,0),fstretch(1,1,0),fxyzraw(1,1,0),&
        etot,iconnect,nbond,wold,beta_stretchx,beta_stretch)
    call fnrmandforcemax(fxyzraw(1,1,0),fnrm,fmax,runObj%atoms%astruct%nat)
    fnrm=sqrt(fnrm)
-   if (fmax < 3.e-1_gp) call updatefluctsum(fnoise,fluct)
+   if (fmax < 3.e-1_gp) call updatefluctsum(outs%fnoise,fluct)
 if (mhgpsst%iproc == 0 .and. uinp%mhgps_verbosity >=4) then
    write(fn4,'(i4.4)') 0
    write(comment,'(a,1pe10.3)')'SQNM:fnrm= ',fnrm
@@ -363,7 +370,7 @@ endif
       displr=displr+dnrm2(3*runObj%atoms%astruct%nat,delta(1,1),1)
       runObj%inputs%inputPsiId=1
       call minenergyandforces(mhgpsst,.true.,uinp%imode,runObj,outs,rxyz(1,1,nhist),rxyzraw(1,1,nhist),&
-                             fxyz(1,1,nhist),fstretch(1,1,nhist),fxyzraw(1,1,nhist),fnoise,&
+                             fxyz(1,1,nhist),fstretch(1,1,nhist),fxyzraw(1,1,nhist),&
                              etotp,iconnect,nbond,wold,beta_stretchx,beta_stretch)
       detot=etotp-etotold
       energycounter=energycounter+1.0_gp
@@ -383,11 +390,14 @@ endif
 !!$
 !!$         call write_atomic_file(mhgpsst%currDir//'/sad'//trim(adjustl(mhgpsst%isadc))&
 !!$              //'_posmini'//trim(adjustl(writePostfix))//'_'//fn4, &
-!!$              etotp,rxyz(1,1,nhist),ixyz_int,atoms,trim(comment),&
-!!$              forces=fxyz(1,1,nhist))
+!!$              etotp,rxyz(1,1,nhist),ixyz_int,atoms,trim(comment), forces=fxyz(1,1,nhist))
       endif
-
-      if (fmax < 3.e-1_gp) call updatefluctsum(fnoise,fluct)
+      if(infocode==0)then
+        ifail=0
+      else
+        ifail=ifail+1
+      endif
+      if ((infocode==0 .or. ifail>20).and.(fmax < 3.e-1_gp)) call updatefluctsum(outs%fnoise,fluct)
       cosangle=-dot_double(3*runObj%atoms%astruct%nat,fxyz(1,1,nhist),1,dd(1,1),1)/&
               sqrt(dot_double(3*runObj%atoms%astruct%nat,fxyz(1,1,nhist),1,fxyz(1,1,nhist),1)*&
               dot_double(3*runObj%atoms%astruct%nat,dd(1,1),1,dd(1,1),1))
@@ -587,11 +597,12 @@ endif
    call f_free(rrr)
    call f_free(scpr)
    call f_free(wold)
+   call f_free(iconnect)
  end subroutine minimizer_sqnm
 
 
 subroutine minenergyandforces(mhgpsst,eeval,imode,runObj,outs,rat,rxyzraw,fat,fstretch,&
-           fxyzraw,fnoise,epot,iconnect,nbond_,wold,alpha_stretch0,alpha_stretch)
+           fxyzraw,epot,iconnect,nbond_,wold,alpha_stretch0,alpha_stretch)
     use module_base, only: gp
     use module_energyandforces
     use module_sqn
@@ -614,12 +625,11 @@ subroutine minenergyandforces(mhgpsst,eeval,imode,runObj,outs,rat,rxyzraw,fat,fs
     real(gp), intent(in)          :: alpha_stretch0
     real(gp), intent(inout)       :: alpha_stretch
     real(gp), intent(inout)       :: epot
-    real(gp), intent(out)         :: fnoise
     logical, intent(in)           :: eeval
     !internal
     integer :: infocode
 
-    if(eeval)call mhgpsenergyandforces(mhgpsst,runObj,outs,rat,fat,fnoise,epot,infocode)
+    if(eeval)call mhgpsenergyandforces(mhgpsst,runObj,outs,rat,fat,epot,infocode)
     rxyzraw=rat
     fxyzraw=fat
     fstretch=0.0_gp

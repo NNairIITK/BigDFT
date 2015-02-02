@@ -35,7 +35,7 @@ contains
       !real(gp), allocatable, dimension(:,:) :: hess
       real(gp), allocatable, dimension(:) :: tpos,grad,eval,workf
       real(gp) :: h,twelfth,twothird,etot,cmx,cmy,cmz,dm,tt
-      real(gp) :: s,fnoise
+      real(gp) :: s
       integer :: i,j,k,lworkf,infocode,idir,jat,jdir
       integer, dimension(:), allocatable :: ifrztyp0 !< To avoid to freeze the atoms for bigdft_state
       integer :: ifree, jfree,nfree
@@ -80,7 +80,7 @@ contains
          enddo
          !-----------------------------------------
          tpos(i)=tpos(i)-2*h
-         call mhgpsenergyandforces(mhgpsst,runObj,outs,tpos,grad,fnoise,etot,infocode)
+         call mhgpsenergyandforces(mhgpsst,runObj,outs,tpos,grad,etot,infocode)
          jfree=0
          do j=1,3*runObj%atoms%astruct%nat
          jat=(j-1)/3+1
@@ -95,7 +95,7 @@ contains
          !if(mhgpsst%iproc==0) write(*,*) 'ALIREZA-6',i,iat
          !-----------------------------------------
          tpos(i)=tpos(i)+h
-         call mhgpsenergyandforces(mhgpsst,runObj,outs,tpos,grad,fnoise,etot,infocode)
+         call mhgpsenergyandforces(mhgpsst,runObj,outs,tpos,grad,etot,infocode)
          jfree=0
          do j=1,3*runObj%atoms%astruct%nat
          jat=(j-1)/3+1
@@ -109,7 +109,7 @@ contains
          enddo
          !-----------------------------------------
          tpos(i)=tpos(i)+2*h
-         call mhgpsenergyandforces(mhgpsst,runObj,outs,tpos,grad,fnoise,etot,infocode)
+         call mhgpsenergyandforces(mhgpsst,runObj,outs,tpos,grad,etot,infocode)
          jfree=0
          do j=1,3*runObj%atoms%astruct%nat
          jat=(j-1)/3+1
@@ -123,7 +123,7 @@ contains
          enddo
          !-----------------------------------------
          tpos(i)=tpos(i)+h
-         call mhgpsenergyandforces(mhgpsst,runObj,outs,tpos,grad,fnoise,etot,infocode)
+         call mhgpsenergyandforces(mhgpsst,runObj,outs,tpos,grad,etot,infocode)
          jfree=0
          do j=1,3*runObj%atoms%astruct%nat
          jat=(j-1)/3+1

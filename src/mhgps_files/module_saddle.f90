@@ -25,6 +25,10 @@ public :: allocate_finsad_workarrays
 public :: deallocate_finsad_workarrays
 
 type findsad_work
+
+    
+   integer,  allocatable   :: iconnect(:,:)
+
     !translation
     real(gp), allocatable :: rxyz_trans(:,:,:)
     real(gp), allocatable :: fxyz_trans(:,:,:)
@@ -78,7 +82,7 @@ end type
 
 contains
 !=====================================================================
-subroutine allocate_finsad_workarrays(runObj,uinp,nbond,fsw)
+subroutine allocate_finsad_workarrays(runObj,uinp,fsw)
     use module_base
     use dynamic_memory
     use bigdft_run
@@ -88,11 +92,12 @@ subroutine allocate_finsad_workarrays(runObj,uinp,nbond,fsw)
     type(run_objects), intent(in)          :: runObj
     type(findsad_work), intent(out) :: fsw
     type(userinput), intent(in)            :: uinp
-    integer, intent(in)            :: nbond
     !internal
     integer :: nat, info
     real(gp) :: wd(1)
     nat = bigdft_nat(runObj)
+   
+    fsw%iconnect = f_malloc((/ 1.to.2, 1.to.1000/),id='iconnect')
 
     fsw%rxyz_rot = f_malloc((/ 1.to.3, 1.to.nat,&
                 0.to.uinp%saddle_nhistx_rot/),id='rxyz_rot')
@@ -152,8 +157,6 @@ subroutine allocate_finsad_workarrays(runObj,uinp,nbond,fsw)
     fsw%ftmp_trans = f_malloc((/ 1.to.3, 1.to.nat/),id='ftmp_trans')
     fsw%minmodeold_trans = f_malloc((/ 1.to.3, 1.to.nat/),id='minmodeold_trans')
     fsw%minmode0_trans = f_malloc((/ 1.to.3, 1.to.nat/),id='minmode0_trans')
-    fsw%wold_trans = f_malloc((/ 1.to.nbond/),id='wold_trans')
-    fsw%wold_rot = f_malloc((/ 1.to.nbond/),id='wold_rot')
 
     call DSYEV('N','L',uinp%saddle_nhistx_trans,fsw%aa_trans,&
          uinp%saddle_nhistx_trans,fsw%eval_trans,wd,-1,info)
@@ -174,6 +177,7 @@ subroutine deallocate_finsad_workarrays(fsw)
     implicit none
     !parameters
     type(findsad_work), intent(inout) :: fsw
+    call f_free(fsw%iconnect)
     call f_free(fsw%rxyz_rot)
     call f_free(fsw%fxyz_rot)
     call f_free(fsw%fxyzraw_rot)
@@ -209,14 +213,12 @@ subroutine deallocate_finsad_workarrays(fsw)
     call f_free(fsw%ftmp_trans)
     call f_free(fsw%minmodeold_trans)
     call f_free(fsw%minmode0_trans)
-    call f_free(fsw%wold_trans)
-    call f_free(fsw%wold_rot)
     call f_free(fsw%work_trans)
     call f_free(fsw%work_rot)
 
 end subroutine
 !=====================================================================
-subroutine findsad(mhgpsst,fsw,uinp,runObj,outs,rcov,nbond,iconnect,&
+subroutine findsad(mhgpsst,fsw,uinp,runObj,outs,rcov,&
                   wpos,etot,fout,minmode,displ,ener_count,&
                   rotforce,converged)
     !imode=1 for clusters
@@ -244,8 +246,6 @@ subroutine findsad(mhgpsst,fsw,uinp,runObj,outs,rcov,nbond,iconnect,&
     real(gp), intent(out)   :: displ
     real(gp), intent(inout)   :: ener_count
     logical, intent(out)      :: converged
-    integer, intent(in)       :: nbond
-    integer, intent(in)       :: iconnect(2,nbond)
     real(gp), intent(in)      :: rotforce(3,runObj%atoms%astruct%nat)
     !internal
 !    real(gp), allocatable, dimension(:,:)   :: rxyzold
@@ -268,6 +268,7 @@ subroutine findsad(mhgpsst,fsw,uinp,runObj,outs,rcov,nbond,iconnect,&
     real(gp) :: scl
     real(gp) :: tt
     real(gp) :: dt
+    integer  :: nbond
     integer  :: iat
     integer  :: itswitch
     integer  :: nhist
@@ -310,6 +311,7 @@ subroutine findsad(mhgpsst,fsw,uinp,runObj,outs,rcov,nbond,iconnect,&
                           hfill='-')
     endif
 
+    nbond=1
     fsw%ndim_rot=0
     fsw%nhist_rot=0
     fsw%alpha_rot=uinp%saddle_alpha0_rot
@@ -347,6 +349,12 @@ subroutine findsad(mhgpsst,fsw,uinp,runObj,outs,rcov,nbond,iconnect,&
           end if
        end if
     end if
+    if(uinp%saddle_biomode)then
+       call findbonds('(MHGPS)',mhgpsst%iproc,uinp%mhgps_verbosity,bigdft_nat(runObj),rcov,&
+       bigdft_get_rxyz_ptr(runObj),nbond,fsw%iconnect)
+    endif
+    fsw%wold_trans = f_malloc((/ 1.to.nbond/),id='wold_trans')
+    fsw%wold_rot = f_malloc((/ 1.to.nbond/),id='wold_rot')
     fsw%minmode0_trans=minmode
     fsw%minmodeold_trans=minmode
     fsw%wold_trans=0.0_gp
@@ -360,7 +368,7 @@ subroutine findsad(mhgpsst,fsw,uinp,runObj,outs,rcov,nbond,iconnect,&
     call minenergyandforces(mhgpsst,.true.,uinp%imode,runObj,outs,&
          fsw%rxyz_trans(1,1,0),fsw%rxyzraw_trans(1,1,0),&
          fsw%fxyz_trans(1,1,0),fsw%fstretch_trans(1,1,0),&
-         fsw%fxyzraw_trans(1,1,0),etot,iconnect,nbond,fsw%wold_trans,&
+         fsw%fxyzraw_trans(1,1,0),etot,fsw%iconnect,nbond,fsw%wold_trans,&
          uinp%saddle_alpha_stretch0,alpha_stretch)
     fsw%rxyzold_trans=fsw%rxyz_trans(:,:,0)
     ener_count=ener_count+1.0_gp
@@ -483,7 +491,7 @@ subroutine findsad(mhgpsst,fsw,uinp,runObj,outs,rcov,nbond,iconnect,&
 !                          uinp%saddle_curvforcediff,uinp%saddle_nit_rot,uinp%saddle_nhistx_rot,&
                           fsw%rxyzraw_trans(1,1,nhist-1),fsw%fxyzraw_trans(1,1,nhist-1),&
                           minmode(1,1),curv,rotforce(1,1),tol,&
-                          ener_count,optCurvConv,iconnect,nbond,&
+                          ener_count,optCurvConv,fsw%iconnect,nbond,&
                           uinp%saddle_alpha_rot_stretch0,uinp%saddle_maxcurvrise,uinp%saddle_cutoffratio,&
                           minoverlap)
 
@@ -560,7 +568,7 @@ subroutine findsad(mhgpsst,fsw,uinp,runObj,outs,rcov,nbond,iconnect,&
         runObj%inputs%inputPsiId=1
         call minenergyandforces(mhgpsst,.true.,uinp%imode,runObj,outs,&
              fsw%rxyz_trans(1,1,nhist),fsw%rxyzraw_trans(1,1,nhist),fsw%fxyz_trans(1,1,nhist),&
-             fsw%fstretch_trans(1,1,nhist),fsw%fxyzraw_trans(1,1,nhist),etotp,iconnect,&
+             fsw%fstretch_trans(1,1,nhist),fsw%fxyzraw_trans(1,1,nhist),etotp,fsw%iconnect,&
              nbond,fsw%wold_trans,uinp%saddle_alpha_stretch0,alpha_stretch)
         ener_count=ener_count+1.0_gp
         fsw%rxyzold_trans=fsw%rxyz_trans(:,:,nhist)
@@ -659,6 +667,8 @@ subroutine findsad(mhgpsst,fsw,uinp,runObj,outs,rcov,nbond,iconnect,&
 
   if(mhgpsst%iproc==0)call yaml_warning('(MHGPS) No convergence in findsad')
 !stop 'no convergence in findsad'
+    call f_free(fsw%wold_trans)
+    call f_free(fsw%wold_rot)
     return
 
 1000 continue
@@ -672,6 +682,8 @@ subroutine findsad(mhgpsst,fsw,uinp,runObj,outs,rcov,nbond,iconnect,&
             fout(i,iat)= fsw%fxyzraw_trans(i,iat,nhist)
         enddo
     enddo
+    call f_free(fsw%wold_trans)
+    call f_free(fsw%wold_rot)
 
 end subroutine
 !=====================================================================
@@ -991,7 +1003,7 @@ subroutine curvforce(mhgpsst,runObj,outs,diff,rxyz1,fxyz1,vec,curv,rotforce,imet
     real(gp), intent(inout) :: ener_count
     !internal
     integer :: infocode
-    real(gp) :: diffinv, etot2,fnoise
+    real(gp) :: diffinv, etot2
     real(gp),allocatable :: rxyz2(:,:), fxyz2(:,:)
     real(gp),allocatable :: drxyz(:,:), dfxyz(:,:)
     !functions
@@ -1014,7 +1026,7 @@ subroutine curvforce(mhgpsst,runObj,outs,diff,rxyz1,fxyz1,vec,curv,rotforce,imet
     rxyz2 = rxyz1 + diff * vec
 
     call mhgpsenergyandforces(mhgpsst,runobj,outs,rxyz2(1,1),&
-         fxyz2(1,1),fnoise,etot2,infocode)
+         fxyz2(1,1),etot2,infocode)
     ener_count=ener_count+1.0_gp
 
     if(imethod==1)then
@@ -1458,10 +1470,9 @@ subroutine minenergyandforces(mhgpsst,eeval,imode,runObj,outs,rat,&
     logical, intent(in)           :: eeval
     !internal
     integer :: infocode
-    real(gp) :: fnoise
 
     if(eeval)call mhgpsenergyandforces(mhgpsst,runObj,outs,rat,fat,&
-                  fnoise,epot,infocode)
+                  epot,infocode)
     rxyzraw=rat
     fxyzraw=fat
     fstretch=0.0_gp

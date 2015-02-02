@@ -23,7 +23,7 @@ contains
 !> Returns energies in hartree and
 !! forces in hartree/bohr
 !! (except for LJ)
-subroutine mhgpsenergyandforces(mhgpsst,runObj,outs,rxyz,fxyz,fnoise,epot,infocode)
+subroutine mhgpsenergyandforces(mhgpsst,runObj,outs,rxyz,fxyz,epot,infocode)
     !IMPORTANT:
     !receives distances in Bohr
     use module_base
@@ -38,7 +38,6 @@ subroutine mhgpsenergyandforces(mhgpsst,runObj,outs,rxyz,fxyz,fnoise,epot,infoco
     !rxyz is modified if different MPI processes receive different coordinates:
     real(gp), intent(inout) :: rxyz(3,runObj%atoms%astruct%nat)
     real(gp), intent(out) :: fxyz(3,runObj%atoms%astruct%nat)
-    real(gp), intent(out) :: fnoise
     real(gp), intent(out) :: epot
     integer, intent(out)  :: infocode
     !internal
@@ -57,7 +56,6 @@ subroutine mhgpsenergyandforces(mhgpsst,runObj,outs,rxyz,fxyz,fnoise,epot,infoco
     end if
     call f_memcpy(src=outs%fxyz,dest=fxyz)
     epot=outs%energy
-    fnoise=outs%fnoise
 end subroutine
 
 end module
