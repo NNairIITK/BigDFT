@@ -24,6 +24,7 @@ module gaussians
 
   integer :: itype_scf=0                          !< Type of the interpolating SCF, 0= data unallocated
   integer :: n_scf=-1                             !< Number of points of the allocated data
+  integer :: nrange_scf=0                         !< range of the integration
   real(gp), dimension(:), allocatable :: scf_data !< Values for the interpolating scaling functions points
   !> log of the minimum value of the scf data
   !! to avoid floating point exceptions while multiplying with it
@@ -443,9 +444,11 @@ contains
 
     !Build the scaling function external routine coming from Poisson Solver. To be customized accordingly
     call scaling_function(itype_scf,n_scf,n_range,x_scf,scf_data)
-
+    !call wavelet_function(itype_scf,n_scf,x_scf,scf_data)
+    !stop 
     call f_free(x_scf)
 
+    nrange_scf=n_range
     !define the log of the smallest nonzero value as the 
     !cutoff for multiplying with it
     !this means that the values which are 
@@ -468,6 +471,7 @@ contains
     itype_scf=0
     n_scf=-1
     mn_scf=0.0_gp
+    nrange_scf=0
     call f_free(scf_data)
 
   end subroutine finalize_real_space_conversion
@@ -523,9 +527,11 @@ contains
     gint=0.0_gp
 
     !Step grid for the integration
-    dx = real(2*itype_scf,gp)/real(n_scf,gp)
+    !dx = real(2*itype_scf,gp)/real(n_scf,gp)
+    dx = real(nrange_scf,gp)/real(n_scf,gp)
     !starting point for the x coordinate for integration
-    x  = real(j-itype_scf+1,gp)-dx
+    !x  = real(j-itype_scf+1,gp)-dx
+    x  = real(j-nrange_scf/2+1,gp)-dx
 
     !the loop can be unrolled to maximize performances
     if (pow /= 0) then

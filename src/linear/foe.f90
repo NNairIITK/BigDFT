@@ -27,6 +27,7 @@ subroutine foe(iproc, nproc, tmprtr, &
                       foe_data_get_logical
   use fermi_level, only: fermi_aux, init_fermi_level, determine_fermi_level, &
                          fermilevel_get_real, fermilevel_get_logical
+  use chebyshev, only: chebyshev_clean, chebyshev_fast
   implicit none
 
   ! Calling arguments
@@ -776,7 +777,6 @@ subroutine foe(iproc, nproc, tmprtr, &
           real(kind=8),dimension(:,:),pointer :: inv_ovrlpp, tempp
           integer,dimension(:,:),pointer :: onedimindices
           real(kind=8),dimension(:),allocatable :: inv_ovrlp_compr_seq, kernel_compr_seq
-          integer,dimension(:),allocatable :: ivectorindex
           integer,dimension(:,:,:),allocatable :: istindexarr
           integer :: nout, nseq
 
@@ -1358,6 +1358,7 @@ subroutine compress_polynomial_vector(iproc, nproc, nsize_polynomial, norb, norb
   ! Local variables
   integer :: isegstart, isegend, iseg, ii, jorb, iiorb, jjorb
 
+  call f_routine(id='compress_polynomial_vector')
 
   if (norbp>0) then
       isegstart = fermi%istsegline(fermi%smmm%isfvctr+1)
@@ -1380,6 +1381,9 @@ subroutine compress_polynomial_vector(iproc, nproc, nsize_polynomial, norb, norb
       !!$omp end do
       !!$omp end parallel
   end if
+
+  call f_release_routine()
+
 end subroutine compress_polynomial_vector
 
 
@@ -1523,6 +1527,7 @@ subroutine ice(iproc, nproc, norder_polynomial, ovrlp_smat, inv_ovrlp_smat, ncal
                       foe_data_set_logical, foe_data_get_logical
   use fermi_level, only: fermi_aux, init_fermi_level, determine_fermi_level, &
                          fermilevel_get_real, fermilevel_get_logical
+  use chebyshev, only: chebyshev_clean, chebyshev_fast
   implicit none
 
   ! Calling arguments

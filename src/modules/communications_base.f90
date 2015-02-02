@@ -66,6 +66,7 @@ module communications_base
 
   type, public :: work_transpose
     real(kind=8),dimension(:),pointer :: psiwork, psitwork
+    real(kind=8),dimension(:),pointer :: psiwork_c, psiwork_f, psitwork_c, psitwork_f
     integer,dimension(:),pointer :: nsendcounts, nsenddspls, nrecvcounts, nrecvdspls
     integer :: request
   end type work_transpose
@@ -94,6 +95,8 @@ module communications_base
   public :: allocate_p2pComms_buffer
   public :: deallocate_p2pComms_buffer
   public :: work_transpose_null
+  public :: allocate_work_transpose
+  public :: deallocate_work_transpose
 
   !public :: check_array_consistency
 
@@ -201,6 +204,10 @@ contains
     type(work_transpose),intent(out):: wt
     nullify(wt%psiwork)
     nullify(wt%psitwork)
+    nullify(wt%psiwork_c)
+    nullify(wt%psiwork_f)
+    nullify(wt%psitwork_c)
+    nullify(wt%psitwork_f)
     nullify(wt%nsendcounts)
     nullify(wt%nsenddspls)
     nullify(wt%nrecvcounts)
@@ -277,6 +284,24 @@ contains
     integer,dimension(:,:),pointer,intent(inout) :: commarr_repartitionrho
     commarr_repartitionrho=f_malloc_ptr((/4,ncommunications/),id='commarr_repartitionrho')
   end subroutine allocate_MPI_comms_cubic_repartitionp2p
+
+
+  subroutine allocate_work_transpose(nproc, comm, wt)
+    implicit none
+    integer,intent(in) :: nproc
+    type(comms_linear),intent(in) :: comm
+    type(work_transpose),intent(inout) :: wt
+    wt%psiwork_c = f_malloc_ptr(comm%ndimpsi_c,id='psiwork_c')
+    wt%psiwork_f = f_malloc_ptr(7*comm%ndimpsi_f,id='psiwork_f')
+    wt%psitwork_c = f_malloc_ptr(comm%ndimind_c,id='psitwork_c')
+    wt%psitwork_f = f_malloc_ptr(7*comm%ndimind_f,id='psitwork_f')
+    wt%psiwork = f_malloc_ptr(max(comm%ndimpsi_c+7*comm%ndimpsi_f,1),id='wt%psiwork')
+    wt%psitwork = f_malloc_ptr(max(sum(comm%nrecvcounts_c)+7*sum(comm%nrecvcounts_f),1),id='wt%psitwork')
+    wt%nsendcounts = f_malloc_ptr(0.to.nproc-1,id='wt%nsendcounts')
+    wt%nsenddspls = f_malloc_ptr(0.to.nproc-1,id='wt%nsenddspls')
+    wt%nrecvcounts = f_malloc_ptr(0.to.nproc-1,id='wt%nrecvcounts')
+    wt%nrecvdspls = f_malloc_ptr(0.to.nproc-1,id='wt%nrecvdspls')
+  end subroutine allocate_work_transpose
 
 
   subroutine deallocate_comms_linear(comms)
@@ -367,6 +392,21 @@ contains
     call f_free_ptr(comgp%recvBuf)
   end subroutine deallocate_p2pComms_buffer
 
+
+  subroutine deallocate_work_transpose(wt)
+    implicit none
+    type(work_transpose),intent(inout) :: wt
+    call f_free_ptr(wt%psiwork_c)
+    call f_free_ptr(wt%psiwork_f)
+    call f_free_ptr(wt%psitwork_c)
+    call f_free_ptr(wt%psitwork_f)
+    call f_free_ptr(wt%psiwork)
+    call f_free_ptr(wt%psitwork)
+    call f_free_ptr(wt%nsendcounts)
+    call f_free_ptr(wt%nsenddspls)
+    call f_free_ptr(wt%nrecvcounts)
+    call f_free_ptr(wt%nrecvdspls)
+  end subroutine deallocate_work_transpose
 
 !!$    !> Check the consistency of arrays after a gather (example: atomic coordinates)
 !!$    subroutine check_array_consistency0(maxdiff, nproc, array, ndims, mpi_comm)

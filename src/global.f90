@@ -328,13 +328,16 @@ program MINHOP
        rcov,pos,fp)
 
   !retrieve the eigenvalues from this run
-  nksevals=bigdft_norb(run_opt)
-  ksevals = f_malloc(nksevals,id='ksevals')
-  call bigdft_get_eval(run_opt,ksevals)
+  if((trim(adjustl(char(run_opt%run_mode)))=='QM_RUN_MODE'))then
+      nksevals=bigdft_norb(run_opt)
+      ksevals = f_malloc(nksevals,id='ksevals')
+      call bigdft_get_eval(run_opt,ksevals)
+  endif  
 
-  if (bigdft_mpi%iproc == 0 .and. nposacc==0) then
+  if(nposacc==0)then
+    nposacc=nposacc+1
+  if (bigdft_mpi%iproc == 0) then
      tt=dnrm2(3*outs%fdim,outs%fxyz,1)
-     nposacc=nposacc+1
      write(fn4,'(i4.4)')nposacc
      if(disable_hatrans)then
          write(comment,'(a,1pe10.3)')'ha_trans disabled, fnrm= ',tt
@@ -348,6 +351,7 @@ program MINHOP
 !!$     call write_atomic_file('posacc_'//fn4//'_'//trim(bigdft_run_id_toa()),&
 !!$          outs%energy,atoms%astruct%rxyz,atoms%astruct%ixyz_int,atoms,trim(comment),forces=outs%fxyz)
   endif
+  endif
 
   if (bigdft_mpi%iproc == 0) then 
      tt=dnrm2(3*outs%fdim,outs%fxyz,1)
@@ -360,11 +364,13 @@ program MINHOP
 !!$     call write_atomic_file('poslocm_'//fn4//'_'//trim(bigdft_run_id_toa()),&
 !!$          outs%energy,atoms%astruct%rxyz,atoms%astruct%ixyz_int,atoms,trim(comment),forces=outs%fxyz)
      !open(unit=864,file='kseloc_'//fn4//'_'//trim(bigdft_run_id_toa()))
+    if((trim(adjustl(char(run_opt%run_mode)))=='QM_RUN_MODE'))then
       open(unit=864,file='kseloc_'//fn4//trim(naming_id))
       do i=1,nksevals
       write(864,*) ksevals(i)
       enddo
       close(864)
+    endif
   endif
 
 ! Read previously found energies and properties
@@ -608,13 +614,15 @@ program MINHOP
   if (bigdft_mpi%iproc == 0) call yaml_map('(MH) Wvfnctn Opt. steps for accurate geo. rel of MD conf',ncount_bigdft)
   count_bfgs=count_bfgs+ncount_bigdft
   
-  call bigdft_get_eval(run_opt,ksevals)
-!!$  if (i_stat /= BIGDFT_SUCCESS) then
-!!$     write(*,*)'error(ksevals), i_stat',i_stat
-!!$     if (bigdft_mpi%iproc == 0) call yaml_map('(MH) Number of Wvfnctn Opt. steps for accurate geo. rel of MD conf.', & 
-!!$          ncount_bigdft)
-!!$     stop
-!!$  end if
+  if(trim(adjustl(char(run_opt%run_mode)))=='QM_RUN_MODE')then 
+      call bigdft_get_eval(run_opt,ksevals)
+    !!$  if (i_stat /= BIGDFT_SUCCESS) then
+    !!$     write(*,*)'error(ksevals), i_stat',i_stat
+    !!$     if (bigdft_mpi%iproc == 0) call yaml_map('(MH) Number of Wvfnctn Opt. steps for accurate geo. rel of MD conf.', & 
+    !!$          ncount_bigdft)
+    !!$     stop
+    !!$  end if
+  endif    
 
 
   if (bigdft_mpi%iproc == 0) then 
@@ -628,12 +636,14 @@ program MINHOP
 
 !!$     call write_atomic_file('poslocm_'//fn4//'_'//trim(bigdft_run_id_toa()),&
 !!$          outs%energy,atoms%astruct%rxyz,atoms%astruct%ixyz_int,atoms,trim(comment),forces=outs%fxyz)
+    if((trim(adjustl(char(run_opt%run_mode)))=='QM_RUN_MODE'))then
         !open(unit=864,file='kseloc_'//fn4//'_'//trim(bigdft_run_id_toa()))
         open(unit=864,file='kseloc_'//fn4//trim(naming_id))
         do i=1,nksevals
           write(864,*) ksevals(i)
         enddo
         close(864)
+    endif
   endif
 
   if (bigdft_mpi%iproc == 0) then 
@@ -648,7 +658,7 @@ program MINHOP
 
      if (abs(outs%energy-e_pos).lt.en_delta) then
      call fpdistance(nid,wfp,fp,d)
-       if (bigdft_mpi%iproc == 0) call yaml_map('(MH) checking fpdistance',(/outs%energy-e_pos,d/),fmt='(e11.4)')
+       if (bigdft_mpi%iproc == 0) call yaml_map('(MH) checked fpdistance',(/outs%energy-e_pos,d/),fmt='(e11.4)')
      if (d.lt.fp_delta) then ! not escaped
        escape_sam=escape_sam+1.d0
         fp_sep=max(fp_sep,d)
@@ -749,8 +759,8 @@ program MINHOP
      do i=1,nid
         fp(i)=fphop(i)
      enddo
+  nposacc=nposacc+1
   if (bigdft_mpi%iproc == 0) then
-     nposacc=nposacc+1
      write(fn4,'(i4.4)')nposacc
      if(disable_hatrans)then
          write(comment,'(a)')'ha_trans disabled'
@@ -851,6 +861,9 @@ end do hopping_loop
 !  if (iproc==0) write(*,*) 'quit 1'
   call release_run_objects(run_md)
 !  if (iproc==0) write(*,*) 'quit 2'
+  if((trim(adjustl(char(run_opt%run_mode)))=='QM_RUN_MODE'))then
+   call f_free(ksevals) 
+  endif
   call free_run_objects(run_opt)
 !!$  call deallocate_atoms_data(atoms)
 
@@ -869,7 +882,6 @@ end do hopping_loop
   call f_free(poshop)
   call f_free(fphop)
   call f_free(rcov)
-  call f_free(ksevals)
 !  if (iproc==0) write(*,*) 'quit 4'
 
   call deallocate_state_properties(outs)
@@ -2557,9 +2569,9 @@ subroutine identical(iproc,nlminx,nlmin,nid,e_wpos,wfp,en_arr,fp_arr,en_delta,fp
   !C  check whether new minimum
   call hunt_g(en_arr,min(nlmin,nlminx),e_wpos,k_e_wpos)
   newmin=.true.
-  do i=1,nlmin
-     if (iproc.eq.0) write(*,'(a,i3,5(e24.17))') '(MH) enarr ',i,en_arr(i),(fp_arr(l,i),l=1,2)
-  enddo
+!  do i=1,nlmin
+!     if (iproc.eq.0) write(*,'(a,i3,5(e24.17))') '(MH) enarr ',i,en_arr(i),(fp_arr(l,i),l=1,2)
+!  enddo
   if (iproc.eq.0) write(*,'(a,e24.17,i3,5(e24.17))') '(MH) e_wpos,k_e_wpos ',e_wpos,k_e_wpos!,(wfp(l),l=1,2)
 
   ! find lowest configuration that might be identical
@@ -2582,11 +2594,13 @@ subroutine identical(iproc,nlminx,nlmin,nid,e_wpos,wfp,en_arr,fp_arr,en_delta,fp
   if (iproc.eq.0) write(*,*) '(MH) k bounds ',max(1,klow),min(nlmin,khigh)
   dmin=1.d100
   do k=max(1,klow),min(nlmin,khigh)
+  if (abs(e_wpos-en_arr(k)).le.en_delta) then
      call fpdistance(nid,wfp,fp_arr(1,k),d)
      if (iproc == 0) call yaml_map('(MH) Checking fpdistance',(/e_wpos-en_arr(k),d/),fmt='(e11.4)')
-!     if (iproc.eq.0) write(*,*) '(MH)  k,d',k,d
-!     if (iproc.eq.0) write(*,'(a,20(e10.3))') '(MH)    wfp', (wfp(i),i=1,nid)
-!     if (iproc.eq.0) write(*,'(a,20(e10.3))') '(MH) fp_arr', (fp_arr(i,k),i=1,nid)
+     if (iproc.eq.0) write(*,*) '(MH)  k,d',k,d
+     if (iproc.eq.0) write(*,*) '(MH)  e_wpos,en_arr(k)', e_wpos,en_arr(k)
+     if (iproc.eq.0) write(*,'(a,20(e10.3))') '(MH)    wfp', (wfp(i),i=1,nid)
+     if (iproc.eq.0) write(*,'(a,20(e10.3))') '(MH) fp_arr', (fp_arr(i,k),i=1,nid)
      if (d.lt.fp_delta) then
         if (iproc.eq.0) write(*,*) '(MH) identical to ',k
         newmin=.false.
@@ -2596,6 +2610,8 @@ subroutine identical(iproc,nlminx,nlmin,nid,e_wpos,wfp,en_arr,fp_arr,en_delta,fp
            kid=k
         endif
      endif
+     dmin=min(dmin,d)
+  endif
   enddo
   if (iproc.eq.0) then
      write(*,*) '(MH)  newmin ',newmin

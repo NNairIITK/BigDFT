@@ -1113,6 +1113,7 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
    !routine which deallocate the pointers and the arrays before exiting 
    subroutine deallocate_before_exiting
      use communications_base, only: deallocate_comms
+     use locregs, only: deallocate_convolutions_bounds
      implicit none
      external :: gather_timings
       !when this condition is verified we are in the middle of the SCF cycle
@@ -1194,8 +1195,7 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
       end if
 
       !De-allocations
-      call deallocate_bounds(atoms%astruct%geocode,KSwfn%Lzd%Glr%hybrid_on,&
-           KSwfn%Lzd%Glr%bounds)
+      call deallocate_convolutions_bounds(KSwfn%Lzd%Glr%bounds)
       call deallocate_Lzd_except_Glr(KSwfn%Lzd)
 !      i_all=-product(shape(Lzd%Glr%projflg))*kind(Lzd%Glr%projflg)
 !      deallocate(Lzd%Glr%projflg,stat=i_stat)

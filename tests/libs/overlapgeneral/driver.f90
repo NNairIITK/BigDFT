@@ -16,7 +16,8 @@ program driver
   use module_interfaces
   use sparsematrix_base, only: deallocate_sparse_matrix, matrices_null, allocate_matrices, deallocate_matrices, &
                                SPARSE_FULL, sparsematrix_malloc, assignment(=)
-  use sparsematrix, only: compress_matrix, uncompress_matrix, extract_taskgroup_inplace
+  use sparsematrix, only: compress_matrix, uncompress_matrix, extract_taskgroup_inplace, &
+                          write_matrix_compressed, check_symmetry
   use yaml_output
   implicit none
 
@@ -30,7 +31,7 @@ program driver
   real(kind=8),dimension(:,:),allocatable :: ovrlp, ovrlp2
   integer :: norb, nseg, nvctr, iorb, jorb, iorder, power, blocksize, icheck, imode
 
-  logical :: file_exists, symmetric, check_symmetry, perform_check, optional_parameters
+  logical :: file_exists, symmetric, perform_check, optional_parameters
   type(orbitals_data) :: orbs
   type(sparse_matrix) :: smat_A, smat_B
   type(matrices) :: mat_A
@@ -789,110 +790,110 @@ subroutine sparse_matrix_init_fake(iproc,nproc,norb, norbp, isorb, nseg, nvctr, 
 end subroutine sparse_matrix_init_fake
 
 
-subroutine write_matrix_compressed(message, smat, mat)
-  use yaml_output
-  use sparsematrix_base, only: sparse_matrix, matrices
-  use sparsematrix, only: orb_from_index
-  implicit none
+!!subroutine write_matrix_compressed(message, smat, mat)
+!!  use yaml_output
+!!  use sparsematrix_base, only: sparse_matrix, matrices
+!!  use sparsematrix, only: orb_from_index
+!!  implicit none
+!!
+!!  ! Calling arguments
+!!  character(len=*),intent(in) :: message
+!!  type(sparse_matrix),intent(in) :: smat
+!!  type(matrices),intent(in) :: mat
+!!
+!!  ! Local variables
+!!  integer :: iseg, i, ii, iorb, jorb
+!!  integer,dimension(2) :: irowcol
+!!
+!!  !!call yaml_sequence_open(trim(message))
+!!  !!do iseg=1,smat%nseg
+!!  !!    call yaml_sequence(advance='no')
+!!  !!    ilen=smat%keyg(2,iseg)-smat%keyg(1,iseg)+1
+!!  !!    call yaml_mapping_open(flow=.true.)
+!!  !!    call yaml_map('segment',iseg)
+!!  !!    istart=smat%keyv(iseg)
+!!  !!    iend=smat%keyv(iseg)+ilen
+!!  !!    call yaml_map('values',smat%matrix_compr(istart:iend))
+!!  !!    call yaml_mapping_close()
+!!  !!    call yaml_newline()
+!!  !!end do
+!!  !!call yaml_sequence_close()
+!!
+!!  call yaml_sequence_open(trim(message))
+!!  do iseg=1,smat%nseg
+!!      ! A segment is always on one line, therefore no double loop
+!!      call yaml_sequence(advance='no')
+!!      !ilen=smat%keyg(2,iseg)-smat%keyg(1,iseg)+1
+!!      call yaml_mapping_open(flow=.true.)
+!!      call yaml_map('segment',iseg)
+!!      call yaml_sequence_open('elements')
+!!      !istart=smat%keyv(iseg)
+!!      !iend=smat%keyv(iseg)+ilen-1
+!!      !do i=istart,iend
+!!      ii=smat%keyv(iseg)
+!!      do i=smat%keyg(1,1,iseg),smat%keyg(2,1,iseg)
+!!          call yaml_newline()
+!!          call yaml_sequence(advance='no')
+!!          call yaml_mapping_open(flow=.true.)
+!!          !irowcol=orb_from_index(smat,i)
+!!          !iorb=orb_from_index(1,i)
+!!          !jorb=orb_from_index(2,i)
+!!          call yaml_map('coordinates',(/smat%keyg(1,2,iseg),i/))
+!!          call yaml_map('value',mat%matrix_compr(ii))
+!!          call yaml_mapping_close()
+!!          ii=ii+1
+!!      end do
+!!      call yaml_sequence_close()
+!!      !call yaml_map('values',smat%matrix_compr(istart:iend))
+!!      call yaml_mapping_close()
+!!      call yaml_newline()
+!!  end do
+!!  call yaml_sequence_close()
+!!
+!!end subroutine write_matrix_compressed
 
-  ! Calling arguments
-  character(len=*),intent(in) :: message
-  type(sparse_matrix),intent(in) :: smat
-  type(matrices),intent(in) :: mat
 
-  ! Local variables
-  integer :: iseg, i, ii, iorb, jorb
-  integer,dimension(2) :: irowcol
-
-  !!call yaml_sequence_open(trim(message))
-  !!do iseg=1,smat%nseg
-  !!    call yaml_sequence(advance='no')
-  !!    ilen=smat%keyg(2,iseg)-smat%keyg(1,iseg)+1
-  !!    call yaml_mapping_open(flow=.true.)
-  !!    call yaml_map('segment',iseg)
-  !!    istart=smat%keyv(iseg)
-  !!    iend=smat%keyv(iseg)+ilen
-  !!    call yaml_map('values',smat%matrix_compr(istart:iend))
-  !!    call yaml_mapping_close()
-  !!    call yaml_newline()
-  !!end do
-  !!call yaml_sequence_close()
-
-  call yaml_sequence_open(trim(message))
-  do iseg=1,smat%nseg
-      ! A segment is always on one line, therefore no double loop
-      call yaml_sequence(advance='no')
-      !ilen=smat%keyg(2,iseg)-smat%keyg(1,iseg)+1
-      call yaml_mapping_open(flow=.true.)
-      call yaml_map('segment',iseg)
-      call yaml_sequence_open('elements')
-      !istart=smat%keyv(iseg)
-      !iend=smat%keyv(iseg)+ilen-1
-      !do i=istart,iend
-      ii=smat%keyv(iseg)
-      do i=smat%keyg(1,1,iseg),smat%keyg(2,1,iseg)
-          call yaml_newline()
-          call yaml_sequence(advance='no')
-          call yaml_mapping_open(flow=.true.)
-          !irowcol=orb_from_index(smat,i)
-          !iorb=orb_from_index(1,i)
-          !jorb=orb_from_index(2,i)
-          call yaml_map('coordinates',(/smat%keyg(1,2,iseg),i/))
-          call yaml_map('value',mat%matrix_compr(ii))
-          call yaml_mapping_close()
-          ii=ii+1
-      end do
-      call yaml_sequence_close()
-      !call yaml_map('values',smat%matrix_compr(istart:iend))
-      call yaml_mapping_close()
-      call yaml_newline()
-  end do
-  call yaml_sequence_close()
-
-end subroutine write_matrix_compressed
-
-
-function check_symmetry(norb, smat)
-  use module_base
-  use sparsematrix_base, only: sparse_matrix
-  use sparsematrix, only: orb_from_index
-  implicit none
-
-  ! Calling arguments
-  integer,intent(in) :: norb
-  type(sparse_matrix),intent(in) :: smat
-  logical :: check_symmetry
-
-  ! Local variables
-  integer :: i, iseg, ii, jorb, iorb
-  logical,dimension(:,:),allocatable :: lgrid
-  integer,dimension(2) :: irowcol
-
-  lgrid=f_malloc((/norb,norb/),id='lgrid')
-  lgrid=.false.
-
-  do iseg=1,smat%nseg
-      ii=smat%keyv(iseg)
-      ! A segment is always on one line, therefore no double loop
-      do i=smat%keyg(1,1,iseg),smat%keyg(2,1,iseg)
-          !irowcol=orb_from_index(smat,i)
-          !!iorb=smat%orb_from_index(1,i)
-          !!jorb=smat%orb_from_index(2,i)
-          lgrid(smat%keyg(1,2,iseg),i)=.true.
-          ii=ii+1
-      end do
-  end do
-
-  check_symmetry=.true.
-  do iorb=1,norb
-      do jorb=1,norb
-          if (lgrid(jorb,iorb) .and. .not.lgrid(iorb,jorb)) then
-              check_symmetry=.false.
-          end if
-      end do
-  end do
-
-  call f_free(lgrid)
-
-end function check_symmetry
+!!function check_symmetry(norb, smat)
+!!  use module_base
+!!  use sparsematrix_base, only: sparse_matrix
+!!  use sparsematrix, only: orb_from_index
+!!  implicit none
+!!
+!!  ! Calling arguments
+!!  integer,intent(in) :: norb
+!!  type(sparse_matrix),intent(in) :: smat
+!!  logical :: check_symmetry
+!!
+!!  ! Local variables
+!!  integer :: i, iseg, ii, jorb, iorb
+!!  logical,dimension(:,:),allocatable :: lgrid
+!!  integer,dimension(2) :: irowcol
+!!
+!!  lgrid=f_malloc((/norb,norb/),id='lgrid')
+!!  lgrid=.false.
+!!
+!!  do iseg=1,smat%nseg
+!!      ii=smat%keyv(iseg)
+!!      ! A segment is always on one line, therefore no double loop
+!!      do i=smat%keyg(1,1,iseg),smat%keyg(2,1,iseg)
+!!          !irowcol=orb_from_index(smat,i)
+!!          !!iorb=smat%orb_from_index(1,i)
+!!          !!jorb=smat%orb_from_index(2,i)
+!!          lgrid(smat%keyg(1,2,iseg),i)=.true.
+!!          ii=ii+1
+!!      end do
+!!  end do
+!!
+!!  check_symmetry=.true.
+!!  do iorb=1,norb
+!!      do jorb=1,norb
+!!          if (lgrid(jorb,iorb) .and. .not.lgrid(iorb,jorb)) then
+!!              check_symmetry=.false.
+!!          end if
+!!      end do
+!!  end do
+!!
+!!  call f_free(lgrid)
+!!
+!!end function check_symmetry
 

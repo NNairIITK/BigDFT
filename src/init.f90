@@ -296,6 +296,9 @@ subroutine createProjectorsArrays(lr,rxyz,at,orbs,&
   nl%cproj=f_malloc_ptr(4*mproj_max,id='cproj')
   nl%hcproj=f_malloc_ptr(4*mproj_max,id='hcproj')
 
+  ! Workarrays for the projector creation
+  call allocate_workarrays_projectors(lr%d%n1, lr%d%n2, lr%d%n3, nl%wpr)
+
   !allocate the work arrays for building tolr array of structures
   nbsegs_cf=f_malloc(nbseg_dim,id='nbsegs_cf')
   keyg_lin=f_malloc(lr%wfd%nseg_c+lr%wfd%nseg_f,id='keyg_lin')
@@ -756,6 +759,7 @@ subroutine input_memory_linear(iproc, nproc, at, KSwfn, tmb, tmb_old, denspot, i
   use sparsematrix, only: compress_matrix_distributed, uncompress_matrix_distributed, uncompress_matrix, &
                           gather_matrix_from_taskgroups_inplace, extract_taskgroup_inplace, &
                           uncompress_matrix_distributed2, uncompress_matrix2
+  use transposed_operations, only: calculate_overlap_transposed, normalize_transposed
   implicit none
 
   ! Calling arguments
@@ -848,9 +852,22 @@ subroutine input_memory_linear(iproc, nproc, at, KSwfn, tmb, tmb_old, denspot, i
      call vcopy(size(psi_old), psi_old(1), 1, tmb_old%psi(1), 1)
      call f_free(psi_old)
 
-     if (max_shift>0.2d0) then
+     if (max_shift>0.5d0) then
          if (iproc==0) call yaml_map('atoms have moved too much, switch to standard input guess',.true.)
          FOE_restart = RESTART_AO
+         tmb%confdatarr(:)%damping = 1.d0
+     else if (input%lin%nlevel_accuracy==1) then
+         ! Damp the confinement for the hybrid mode
+         !! Linear function, being 1.0 at 0.5
+         !tmb%confdatarr(:)%damping = 2.0d0*max_shift
+         !! Square root, being 1.0 at 0.5
+         !tmb%confdatarr(:)%damping = sqrt(2.0d0*max_shift)
+         !! x^1/4, being 1.0 at 0.5
+         !tmb%confdatarr(:)%damping = (2.0d0*max_shift)**0.25d0
+         !! x^2, being 1.0 at 0.5
+         !tmb%confdatarr(:)%damping = (2.0d0*max_shift)**2
+         ! x^4, being 1.0 at 0.5
+         tmb%confdatarr(:)%damping = (1.d0/0.5d0*max_shift)**4
      end if
 
      deallocate(frag_trans)
@@ -2075,6 +2092,7 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
   use m_paw_ij, only: paw_ij_init
   use psp_projectors, only: PSPCODE_PAW, PSPCODE_HGH, free_DFT_PSP_projectors
   use sparsematrix, only: gather_matrix_from_taskgroups_inplace, extract_taskgroup_inplace
+  use transposed_operations, only: normalize_transposed
   implicit none
 
   integer, intent(in) :: iproc, nproc, inputpsi, input_wf_format
@@ -2110,6 +2128,7 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
   real(gp), dimension(:), pointer :: in_frag_charge
   integer :: infoCoeff, iorb, nstates_max, order_taylor, npspcode
   real(kind=8) :: pnrm
+  type(work_mpiaccumulate) :: energs_work
   !!real(gp), dimension(:,:), allocatable :: ks, ksk
   !!real(gp) :: nonidem
 
@@ -2606,10 +2625,19 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
         !end if
         order_taylor=in%lin%order_taylor ! since this is intent(inout)
         !!call extract_taskgroup_inplace(tmb%linmat%l, tmb%linmat%kernel_)
+
+        energs_work = work_mpiaccumulate_null()
+        energs_work%ncount = 4
+        call allocate_work_mpiaccumulate(energs_work)
+
         call get_coeff(iproc,nproc,LINEAR_MIXDENS_SIMPLE,KSwfn%orbs,atoms,rxyz,denspot,GPU,&
              infoCoeff,energs,nlpsp,in%SIC,tmb,pnrm,.false.,.true.,.false.,&
              .true.,0,0,0,0,order_taylor,in%lin%max_inversion_error,&
-             in%purification_quickreturn,in%calculate_KS_residue,in%calculate_gap) !in%lin%extra_states) - assume no extra states as haven't set occs for this yet
+             in%purification_quickreturn,in%calculate_KS_residue,in%calculate_gap, &
+             energs_work) !in%lin%extra_states) - assume no extra states as haven't set occs for this yet
+
+        call deallocate_work_mpiaccumulate(energs_work)
+
         !!call gather_matrix_from_taskgroups_inplace(iproc, nproc, tmb%linmat%l, tmb%linmat%kernel_)
 
         !if (iproc==0) then

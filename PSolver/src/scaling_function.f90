@@ -10,7 +10,7 @@
 
 !> Calculate the values of a scaling function in real uniform grid
 subroutine scaling_function(itype,nd,nrange,a,x)
-
+  use f_utils, only: f_open_file,f_close
   use yaml_output, only: yaml_toa
   use dictionaries, only: f_err_throw
   use Poisson_Solver, only: dp
@@ -29,7 +29,8 @@ subroutine scaling_function(itype,nd,nrange,a,x)
   !Local variables
   character(len=*), parameter :: subname='scaling_function'
   real(kind=8), dimension(:), allocatable :: y
-  integer :: i,nt,ni
+  integer :: i,nt,ni,unt,j
+  real(kind=8) :: mom
   
   !Only itype=8,14,16,20,24,30,40,50,60,100
   select case(itype)
@@ -45,8 +46,8 @@ subroutine scaling_function(itype,nd,nrange,a,x)
 !!       "Use interpolating scaling functions of ",itype," order"
 
   !Give the range of the scaling function
-  !from -itype to itype
-  ni=2*itype
+  !from -itype to itype for the direct case, more general for the dual
+  ni=2*(itype)
   nrange = ni
   
   y = f_malloc(0.to.nd,id='y')
@@ -90,12 +91,26 @@ subroutine scaling_function(itype,nd,nrange,a,x)
      end if
   end do loop1
 
-!  open (unit=1,file='scfunction',status='unknown')
+  unt=1
+  call f_open_file(unt,file='scfunction')
+  !open (unit=1,file='scfunction',status='unknown')
   do i=0,nd
      a(i) = real(i*ni,kind=8)/real(nd,kind=8)-(.5d0*real(ni,kind=8)-1.d0)
-!  write(1,*) a(i),x(i)
+  write(unt,*) a(i),x(i)
   end do
-!  close(1)
+  call f_close(unt)
+  !now calculate the moments
+  call f_open_file(unt,file='scf_moments')
+  do j=0,itype
+     mom=0.d0
+     do i=0,nd
+        a(i) = real(i*ni,kind=8)/real(nd,kind=8)-(.5d0*real(ni,kind=8)-1.d0)
+        mom=mom+a(i)**j/real(ni,kind=8)*x(i)
+     end do
+     write(unt,*)j,mom!*real(nd,kind=8)
+  end do
+  call f_close(unt)
+
 
   call f_free(y)
 END SUBROUTINE scaling_function
@@ -103,7 +118,7 @@ END SUBROUTINE scaling_function
 
 !> Calculate the values of the wavelet function in a real uniform mesh.
 subroutine wavelet_function(itype,nd,a,x)
-
+  use f_utils, only: f_open_file,f_close
   use yaml_output, only: yaml_toa
   use dictionaries, only: f_err_throw
   use Poisson_Solver, only: dp
@@ -119,7 +134,8 @@ subroutine wavelet_function(itype,nd,a,x)
   !Local variables
   character(len=*), parameter :: subname='wavelet_function'
   real(kind=8), dimension(:), allocatable :: y
-  integer :: i,nt,ni
+  integer :: i,nt,ni,unt,j
+  real(kind=8) :: mom
 
   !Only itype=8,14,16,20,24,30,40,50,60,100
   Select case(itype)
@@ -177,12 +193,31 @@ subroutine wavelet_function(itype,nd,a,x)
      end if
   end do loop3
 
-  !open (unit=1,file='wavelet',status='unknown')
-  do i=0,nd-1
-     a(i) = real(i*ni,kind=8)/real(nd,kind=8)-(.5d0*real(ni,kind=8)-.5d0)
-     !write(1,*) a(i),x(i)
+  unt=1
+  call f_open_file(unt,file='wavelet')
+  do i=0,nd
+     a(i) = real(i*ni,kind=8)/real(nd,kind=8)-(.5d0*real(ni,kind=8)-1.d0)
+  write(unt,*) a(i),x(i)
   end do
-  !close(1)
+  call f_close(unt)
+  !now calculate the moments
+  call f_open_file(unt,file='wvl_moments')
+  do j=0,itype
+     mom=0.d0
+     do i=0,nd
+        a(i) = real(i*ni,kind=8)/real(nd,kind=8)-(.5d0*real(ni,kind=8)-1.d0)
+        mom=mom+a(i)**j/real(ni,kind=8)*x(i)
+     end do
+     write(unt,*)j,mom!*real(nd,kind=8)
+  end do
+  call f_close(unt)
+
+!!$  open (unit=1,file='wavelet',status='unknown')
+!!$  do i=0,nd-1
+!!$     a(i) = real(i*ni,kind=8)/real(nd,kind=8)-(.5d0*real(ni,kind=8)-.5d0)
+!!$     write(1,*) a(i),x(i)
+!!$  end do
+!!$  close(1)
 
   call f_free(y)
  
@@ -293,6 +328,46 @@ subroutine for_trans_8(nd,nt,x,y)
 
 END SUBROUTINE for_trans_8
 
+!> generic routine for the wavelet transformation
+subroutine back_trans(m,ch,cg,nd,nt,x,y)
+  implicit none
+  !Arguments
+  integer, intent(in) :: m !<size of the filters
+  integer, intent(in) :: nd !< Length of data set
+  integer, intent(in) :: nt !< Length of data in data set to be transformed
+  !> wavelet filters, low-pass and high-pass
+  real(kind=8), dimension(-m:m) ::  ch,cg
+  real(kind=8), intent(in) :: x(0:nd-1)  !< Input data
+  real(kind=8), intent(out) :: y(0:nd-1) !< Output data
+  !Local variables
+  integer :: i,j,ind
+
+  do i=0,nt/2-1
+     y(2*i+0)=0.d0
+     y(2*i+1)=0.d0
+
+     do j=-m/2,m/2-1
+
+        ! periodically wrap index if necessary
+        ind=i-j
+        loop99: do
+           if (ind.lt.0) then 
+              ind=ind+nt/2
+              cycle loop99
+           end if
+           if (ind.ge.nt/2) then 
+              ind=ind-nt/2
+              cycle loop99
+           end if
+           exit loop99
+        end do loop99
+
+        y(2*i+0)=y(2*i+0) + ch(2*j-0)*x(ind)+cg(2*j-0)*x(ind+nt/2)
+        y(2*i+1)=y(2*i+1) + ch(2*j+1)*x(ind)+cg(2*j+1)*x(ind+nt/2)
+     end do
+
+  end do
+end subroutine back_trans
 
 !> Backward wavelet transform
 subroutine back_trans_8(nd,nt,x,y)
@@ -305,7 +380,9 @@ subroutine back_trans_8(nd,nt,x,y)
   !Local variables
   integer :: i,j,ind
 
-  include 'lazy_8.inc'
+  !include 'lazy_8.inc'
+  !include 'lazy_8_lift.inc'
+  include 'lazy_8_lift_dual.inc'
   
   do i=0,nt/2-1
      y(2*i+0)=0.d0

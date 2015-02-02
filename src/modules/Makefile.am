@@ -41,6 +41,7 @@ libmodules_a_SOURCES = base.f90 \
 	private_api.f90 \
 	xc.f90 \
 	module_lj.f90 \
+	module_morse_bulk.f90 \
 	module_lenosky_si.f90 \
 	op2p_module.f90 \
 	BigDFT_API.f90 \
@@ -63,6 +64,9 @@ libmodules_a_SOURCES = base.f90 \
 	copy_utils.f90 \
 	module_sqn.f90 \
 	module_fingerprints.f90 \
+	transposed_operations.f90 \
+	module_forces.f90 \
+	chebyshev.f90 \
 	bigdft_run.f90 \
 	$(bindings_headers) \
 	$(LIBXC_MODULE) \
@@ -108,6 +112,8 @@ modules = MODULE_BASE.@MODULE_EXT@ \
 	COPY_UTILS.@MODULE_EXT@ \
 	MODULE_SQN.@MODULE_EXT@ \
 	MODULE_FINGERPRINTS.@MODULE_EXT@ \
+	TRANSPOSED_OPERATIONS.@MODULE_EXT@ \
+	CHEBYSHEV.@MODULE_EXT@ \
 	BIGDFT_RUN.@MODULE_EXT@ \
 	MODULE_LJ.@MODULE_EXT@ \
 	MODULE_LENOSKY_SI.@MODULE_EXT@
@@ -148,9 +154,13 @@ modules = module_base.@MODULE_EXT@ \
 	fermi_level.@MODULE_EXT@ \
 	copy_utils.@MODULE_EXT@ \
 	module_sqn.@MODULE_EXT@ \
+	module_forces.@MODULE_EXT@ \
 	module_fingerprints.@MODULE_EXT@ \
+	transposed_operations.@MODULE_EXT@ \
+	chebyshev.@MODULE_EXT@ \
 	bigdft_run.@MODULE_EXT@ \
 	module_lj.@MODULE_EXT@ \
+	module_morse_bulk.@MODULE_EXT@ \
 	module_lenosky_si.@MODULE_EXT@
 else
 
@@ -214,11 +224,15 @@ fermi_level.o: base.o
 copy_utils.o: base.o
 gaussdaub.o: base.o
 module_sqn.o: base.o
-bigdft_run.o: types.o input_dicts.o interfaces.o module_lenosky_si.o module_lj.o
+bigdft_run.o: types.o input_dicts.o interfaces.o module_forces.o module_lenosky_si.o module_lj.o module_morse_bulk.o
 ab7_mixing.o: defs.o
-module_lj.o: defs.o
-module_lenosky_si.o: defs.o
+module_lj.o: base.o defs.o
+module_morse_bulk.o: base.o
+module_lenosky_si.o: base.o defs.o
 module_fingerprints.o: base.o
+transposed_operations.o: base.o types.o sparsematrix_base.o sparsematrix.o
+module_forces.o: base.o types.o 
+chebyshev.o: base.o types.o sparsematrix_base.o sparsematrix.o
 
 # Copy modules in a common include directory.
 all: all-am insmod

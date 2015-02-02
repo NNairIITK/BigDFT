@@ -35,7 +35,7 @@ program MP_gaussian
   !array where we have to write the value of the discretization
   fj_phi=f_malloc(-npts .to. npts,id='fj_phi')
   fj_coll=f_malloc(-npts .to. npts,id='fj_coll')
-  call initialize_real_space_conversion() !initialize the work arrays needed to integrate with isf
+  call initialize_real_space_conversion(npoints=2**8,isf_m=8) !initialize the work arrays needed to integrate with isf
 
   call f_open_file(unit,file='MultipolesError.dat')
 

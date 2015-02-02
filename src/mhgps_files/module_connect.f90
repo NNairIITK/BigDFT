@@ -137,7 +137,7 @@ recursive subroutine connect_recursively(mhgpsst,fsw,uinp,runObj,outs,&
         connected=.false.
         call write_todo(mhgpsst,runObj,outs,rxyz1,rxyz2,ener1,ener2)
         call yaml_warning('(MHGPS) Saddle search not converged. '//&
-             'Aborting connecting attempt.')
+             'Aborting connection attempt.')
 !        stop 'STOP saddle not converged'
               return
     endif
@@ -632,6 +632,7 @@ connectloop: do while(cobj%ntodo>=1)
         cobj%ntodo=cobj%ntodo-1
         cycle
     endif
+    if(bigdft_get_geocode(runObj)=='F')then
     !rmsd alignment (optional in mhgps approach)
     call superimpose(runObj%atoms%astruct%nat,cobj%rxyz1,cobj%rxyz2)
 
@@ -642,6 +643,7 @@ connectloop: do while(cobj%ntodo>=1)
 !        connected=.true.
         cobj%ntodo=cobj%ntodo-1
         cycle
+    endif
     endif
 
     !get input guess for transition state
@@ -669,7 +671,7 @@ connectloop: do while(cobj%ntodo>=1)
         write(mhgpsst%isadc,'(i5.5)')mhgpsst%isad
         connected=.false.
         call yaml_warning('(MHGPS) Saddle search not converged. '//&
-             'Aborting connecting attempt.')
+             'Aborting connection attempt.')
 !        stop 'STOP saddle not converged'
         exit connectloop
     endif
@@ -1158,6 +1160,7 @@ function previously_connected(mhgpsst,uinp,runObj,rxyz1,rxyz2)
     !local
     real(gp), parameter :: rmsdthresh=0.01_gp
     integer :: iatt
+    integer :: i
     logical :: match
     real(gp) :: rmsd1, rmsd2, rmsd3
     real(gp),allocatable :: attempted_connections_tmp(:,:,:,:)
@@ -1212,7 +1215,9 @@ if(mhgpsst%iproc==0)write(*,*)'prevresize '
                                        runObj%atoms%astruct%nat,2,&
                                        mhgpsst%nattemptedmax/),&
                                        id='mhgpsst%attempted_connections')
-            mhgpsst%attempted_connections = attempted_connections_tmp
+            do i = 1, mhgpsst%nattemptedmax - 1000
+                mhgpsst%attempted_connections(:,:,:,i) = attempted_connections_tmp(:,:,:,i)
+            enddo
             call f_free(attempted_connections_tmp)
         endif
 

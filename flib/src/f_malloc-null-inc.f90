@@ -13,7 +13,7 @@
   m%pin=.false.
   m%profile=f_malloc_default_profiling !mems(ictrl)%profile_routine !< here omp can be used to know whether to profile or not
   m%put_to_zero=.false.
-  m%srcdata_add=0
+  m%srcdata_add=int(0,kind=8)
   m%rank=1
   m%shape=0
   m%lbounds=1

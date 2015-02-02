@@ -284,7 +284,7 @@ contains
     unit_is_open=.true.
     unt=7
     if (present(unit)) unt=unit
-    do while(unit_is_open)
+    do while(unit_is_open)      
        inquire(unit=unt,opened=unit_is_open,iostat=ierr)
        if (ierr /=0) then
           call f_err_throw('Error in inquiring unit='//&

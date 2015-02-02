@@ -701,6 +701,8 @@ subroutine NonLocalHamiltonianApplication(iproc,at,npsidim_orbs,orbs,&
   !real(kind=8) :: time0, time1, time2, time3, time4, time5, ttime
   !real(kind=8), dimension(0:4) :: times
 
+  call f_routine(id='NonLocalHamiltonianApplication')
+
   newmethod=.true.
 
   eproj_sum=0.0_gp
@@ -942,6 +944,9 @@ subroutine NonLocalHamiltonianApplication(iproc,at,npsidim_orbs,orbs,&
   !call mpi_barrier(bigdft_mpi%mpi_comm,ierr)
 
   call timing(iproc,'ApplyProj     ','OF')
+
+  call f_release_routine()
+
 contains
 
 !!$  !> count the number of projectors given a set of psppar
@@ -1019,7 +1024,7 @@ END SUBROUTINE NonLocalHamiltonianApplication
 !> routine which puts a barrier to ensure that both local and nonlocal hamiltonians have been applied
 !! in the GPU case puts a barrier to end the overlapped Local and nonlocal applications
 subroutine SynchronizeHamiltonianApplication(nproc,npsidim_orbs,orbs,Lzd,GPU,xc,&
-     & hpsi,ekin_sum,epot_sum,eproj_sum,evsic,eexctX)
+     & hpsi,ekin_sum,epot_sum,eproj_sum,evsic,eexctX, energs_work)
    use module_base
    use module_types
    use module_xc
@@ -1031,6 +1036,7 @@ subroutine SynchronizeHamiltonianApplication(nproc,npsidim_orbs,orbs,Lzd,GPU,xc,
    type(xc_info), intent(in) :: xc
    real(gp), intent(inout) :: ekin_sum,epot_sum,eproj_sum,evsic,eexctX
    real(wp), dimension(npsidim_orbs), intent(inout) :: hpsi
+   type(work_mpiaccumulate),optional,intent(inout) :: energs_work
    !local variables
    character(len=*), parameter :: subname='SynchronizeHamiltonianApplication'
    logical :: exctX
@@ -1054,27 +1060,46 @@ subroutine SynchronizeHamiltonianApplication(nproc,npsidim_orbs,orbs,Lzd,GPU,xc,
 
    exctX = xc_exctXfac(xc) /= 0.0_gp
 
-   !energies reduction
-   if (nproc > 1) then
-      wrkallred(1)=ekin_sum 
-      wrkallred(2)=epot_sum 
-      wrkallred(3)=eproj_sum
-      wrkallred(4)=evsic
-
-      call mpiallred(wrkallred(1),4,MPI_SUM,bigdft_mpi%mpi_comm)
-
-      ekin_sum=wrkallred(1)
-      epot_sum=wrkallred(2)
-      eproj_sum=wrkallred(3) 
-      evsic=wrkallred(4) 
-   endif
-
    !up to this point, the value of the potential energy is 
    !only taking into account the local potential part
    !whereas it should consider also the value coming from the 
    !exact exchange operator (twice the exact exchange energy)
    !this operation should be done only here since the exctX energy is already reduced
-   if (exctX) epot_sum=epot_sum+2.0_gp*eexctX
+   !SM: Divide by nproc due to the reduction later on
+   if (exctX) epot_sum=epot_sum+2.0_gp*eexctX/real(nproc,kind=8)
+
+   !energies reduction
+   if (nproc > 1) then
+      if (present(energs_work)) then
+         energs_work%sendbuf(1) = ekin_sum
+         energs_work%sendbuf(2) = epot_sum
+         energs_work%sendbuf(3) = eproj_sum
+         energs_work%sendbuf(4) = evsic
+         energs_work%receivebuf(:) = 0.d0
+         energs_work%window = mpiwindow(1, energs_work%receivebuf(1), bigdft_mpi%mpi_comm)
+         call mpiaccumulate_double(energs_work%sendbuf(1), 4, 0, & 
+              int(0,kind=mpi_address_kind), 4, mpi_sum, energs_work%window)
+      else
+         wrkallred(1)=ekin_sum 
+         wrkallred(2)=epot_sum 
+         wrkallred(3)=eproj_sum
+         wrkallred(4)=evsic
+
+         call mpiallred(wrkallred(1),4,MPI_SUM,bigdft_mpi%mpi_comm)
+
+         ekin_sum=wrkallred(1)
+         epot_sum=wrkallred(2)
+         eproj_sum=wrkallred(3) 
+         evsic=wrkallred(4) 
+      end if
+   else if (present(energs_work)) then
+       ! Do a "fake communication"
+       energs_work%receivebuf(1) = ekin_sum
+       energs_work%receivebuf(2) = epot_sum
+       energs_work%receivebuf(3) = eproj_sum
+       energs_work%receivebuf(4) = evsic
+   end if
+
 
    call f_release_routine()
 
