@@ -734,8 +734,8 @@ contains
           end if
           iiseg = sparsemat%nseg !in case iel is the last element
           do iseg=1,sparsemat%nseg
-              ilen_seg = sparsemat%keyg(2,1,iseg) - sparsemat%keyg(1,1,iseg) + 1
               ist_seg = sparsemat%keyv(iseg)
+              ilen_seg = sparsemat%keyg(2,1,iseg) - sparsemat%keyg(1,1,iseg)
               iend_seg = ist_seg + ilen_seg
               if (iend_seg<iel) cycle
               ! If this point is reached, we are in the correct segment

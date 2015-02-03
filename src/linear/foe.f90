@@ -597,6 +597,8 @@ subroutine foe(iproc, nproc, tmprtr, &
                        tmb%linmat%ovrlp_%matrix_compr(isshift+1:), &
                        fermi_check_compr, ispin)
           !@ENDNEW #######################
+          !!write(*,'(a,i6,2es16.8)') 'iproc, sum(s), sum(k)', iproc, &
+          !!    sum(tmb%linmat%ovrlp_%matrix_compr(isshift+1:)), sum(tmb%linmat%kernel_%matrix_compr(ilshift+1:))
         
     
           ! Calculate trace(KH). Since they have the same sparsity pattern and K is
@@ -604,6 +606,8 @@ subroutine foe(iproc, nproc, tmprtr, &
           ncount = tmb%linmat%l%smmm%istartend_mm_dj(2) - tmb%linmat%l%smmm%istartend_mm_dj(1) + 1
           istl = tmb%linmat%l%smmm%istartend_mm_dj(1)-tmb%linmat%l%isvctrp_tg
           ebsp = ddot(ncount, tmb%linmat%kernel_%matrix_compr(ilshift+istl), 1, hamscal_compr(istl), 1)
+          !!write(*,'(a,3i8,3es16.8)') 'iproc, ncount, istl, sum(k), sum(h), ebsp', &
+          !!    iproc, ncount, istl, sum(tmb%linmat%kernel_%matrix_compr(ilshift+istl:)), sum(hamscal_compr(istl:)), ebsp
 
           ncount = tmb%linmat%l%smmm%istartend_mm_dj(2) - tmb%linmat%l%smmm%istartend_mm_dj(1) + 1
           istl = tmb%linmat%l%smmm%istartend_mm_dj(1)
@@ -618,7 +622,7 @@ subroutine foe(iproc, nproc, tmprtr, &
           ebsp = temparr(1)
           ebs_check = temparr(2)
 
-
+          !!write(*,'(a,i6,4es16.8)') 'iproc, ebsp, scale_factor, shift_value, sumn', iproc, ebsp, scale_factor, shift_value, sumn
           ebsp=ebsp/scale_factor+shift_value*sumn
           ebs_check=ebs_check/scale_factor+shift_value*sumn_check
           diff=abs(ebs_check-ebsp)
@@ -1668,8 +1672,9 @@ function trace_sparse(iproc, nproc, orbs, asmat, bsmat, amat, bmat, ispin)
   iashift = 0!(ispin-1)*asmat%nvctr
   ibshift = 0!(ispin-1)*bsmat%nvctr
 
+
   sumn=0.d0
-  if (asmat%smmm%nfvctrp>0) then
+  !if (asmat%smmm%nfvctrp>0) then
       !$omp parallel default(none) &
       !$omp private(iseg, ii, jorb, iiorb, jjorb, iilarge, iel) &
       !$omp shared(bsmat, asmat, amat, bmat, iashift, ibshift, sumn)
@@ -1682,17 +1687,22 @@ function trace_sparse(iproc, nproc, orbs, asmat, bsmat, amat, bmat, ispin)
           do jorb=asmat%keyg(1,1,iseg),asmat%keyg(2,1,iseg)
               iel = iel + 1
               if (iel<asmat%smmm%isvctr_mm+1) cycle
-              if (iel>asmat%smmm%isvctr_mm+asmat%smmm%nvctrp_mm) exit
+              if (iel>asmat%smmm%isvctr_mm+asmat%smmm%nvctrp_mm) then
+                  !write(*,*) 'exit with iel',iel
+                  exit
+              end if
               ii=ii+1
               iiorb = asmat%keyg(1,2,iseg)
               jjorb = jorb
               iilarge = ibshift + matrixindex_in_compressed(bsmat, iiorb, jjorb)
+              !write(*,'(a,4i8,3es16.8)') 'iproc, ii, iilarge, iend, vals, sumn', &
+              !    iproc, ii, iilarge, asmat%smmm%isvctr_mm+asmat%smmm%nvctrp_mm, amat(ii-asmat%isvctrp_tg), bmat(iilarge-bsmat%isvctrp_tg), sumn
               sumn = sumn + amat(ii-asmat%isvctrp_tg)*bmat(iilarge-bsmat%isvctrp_tg)
           end do  
       end do
       !$omp end do
       !$omp end parallel
-  end if
+  !end if
 
   if (nproc > 1) then
       call mpiallred(sumn, 1, mpi_sum, bigdft_mpi%mpi_comm)
