@@ -1090,12 +1090,12 @@ cycle
     if(bigdft_get_geocode(runObj)=='F')then
         if(lnl .and. rnl)then
             if(.not. rmsd_equal(mhgpsst%iproc,runObj%atoms%astruct%nat,&
-                   cobj%rxyz1(1,1),cobj%rightmin(1,1,mhgpsst%nsad))then
+                   cobj%rxyz1(1,1),cobj%rightmin(1,1,mhgpsst%nsad)))then
                 !relaxed right side is not identical to left input side
                 !=> connect relaxed right side with right input side
                 if(mhgpsst%iproc==0)write(*,*)'(MHGPS) connection check'//&
-                            ' lnl and not rnr (rmsd)',sqrt(sum((rxyz2-&
-                            cobj%rightmin(:,:,mhgpsst%nsad))**2))
+                            ' lnl and not rnr (rmsd)',sqrt(sum((rxyz1-&
+                            cobj%leftmin(:,:,mhgpsst%nsad))**2))
                 if(mhgpsst%iproc==0)write(*,'(a,es24.17,1x,es24.17)')&
                            '(MHGPS) connection check connected ',&
                            cobj%enerleft(mhgpsst%nsad),&
@@ -1115,7 +1115,7 @@ cycle
                 !relaxed left side is not identical to left input side
                 !=> connect relaxed left side and right input side
                 if(mhgpsst%iproc==0)write(*,*)'(MHGPS) connection check'//&
-                            ' not lnl and rnl (rmsd)',sqrt(sum((rxyz2-&
+                            ' not lnl and rnl (rmsd)',sqrt(sum((rxyz1-&
                             cobj%rightmin(:,:,mhgpsst%nsad))**2))
                 if(mhgpsst%iproc==0)write(*,'(a,es24.17,1x,es24.17)')&
                            '(MHGPS) connection check connected ',&
@@ -1123,7 +1123,7 @@ cycle
                            cobj%enerright(mhgpsst%nsad)
                 cobj%ntodo=cobj%ntodo+1
                 if(cobj%ntodo>uinp%nsadmax)stop 'error: cobj%ntodo>uinp%nsadmax'
-                cobj%todorxyz(:,:,1,cobj%ntodo)=cobj%lefttmin(:,:,mhgpsst%nsad)
+                cobj%todorxyz(:,:,1,cobj%ntodo)=cobj%leftmin(:,:,mhgpsst%nsad)
                 cobj%todorxyz(:,:,2,cobj%ntodo)=cobj%rxyz2
                 cobj%todofp(:,1,cobj%ntodo)=cobj%fpleft(:,mhgpsst%nsad)
                 cobj%todofp(:,2,cobj%ntodo)=fp2cur
@@ -1158,11 +1158,11 @@ cycle
             endif
         else if (lnr .and. rnr) then
             if(.not. rmsd_equal(mhgpsst%iproc,runObj%atoms%astruct%nat,&
-                   cobj%rxyz1(1,1),cobj%rightmin(1,1,mhgpsst%nsad))then
-                !relaxed right side is not identical to left input side
-                !=> connect relaxed right side with right input side
+                   cobj%rxyz2(1,1),cobj%leftmin(1,1,mhgpsst%nsad)))then
+                !relaxed left side is not identical to right input side
+                !=> connect relaxed left side with left input side
                 if(mhgpsst%iproc==0)write(*,*)'(MHGPS) connection check'//&
-                            ' lnl and not rnr (rmsd)',sqrt(sum((rxyz2-&
+                            ' rnr and not lnl (rmsd)',sqrt(sum((rxyz2-&
                             cobj%rightmin(:,:,mhgpsst%nsad))**2))
                 if(mhgpsst%iproc==0)write(*,'(a,es24.17,1x,es24.17)')&
                            '(MHGPS) connection check connected ',&
@@ -1170,33 +1170,33 @@ cycle
                            cobj%enerright(mhgpsst%nsad)
                 cobj%ntodo=cobj%ntodo+1
                 if(cobj%ntodo>uinp%nsadmax)stop 'error: cobj%ntodo>uinp%nsadmax'
-                cobj%todorxyz(:,:,1,cobj%ntodo)=cobj%rightmin(:,:,mhgpsst%nsad)
-                cobj%todorxyz(:,:,2,cobj%ntodo)=cobj%rxyz2
-                cobj%todofp(:,1,cobj%ntodo)=cobj%fpright(:,mhgpsst%nsad)
-                cobj%todofp(:,2,cobj%ntodo)=fp2cur
-                cobj%todoenergy(1,cobj%ntodo)=cobj%enerright(mhgpsst%nsad)
-                cobj%todoenergy(2,cobj%ntodo)=ener2cur
+                cobj%todorxyz(:,:,1,cobj%ntodo)=cobj%rxyz1
+                cobj%todorxyz(:,:,2,cobj%ntodo)=cobj%leftmin(:,:,mhgpsst%nsad)
+                cobj%todofp(:,1,cobj%ntodo)=fp1cur
+                cobj%todofp(:,2,cobj%ntodo)=cobj%fpleft(:,mhgpsst%nsad)
+                cobj%todoenergy(1,cobj%ntodo)=ener1cur
+                cobj%todoenergy(2,cobj%ntodo)=cobj%enerleft(mhgpsst%nsad)
 cycle
             elseif(.not. rmsd_equal(mhgpsst%iproc,runObj%atoms%astruct%nat,&
-                    cobj%rxyz1(1,1),cobj%leftmin(1,1,mhgpsst%nsad)))then
-                !relaxed right side is identical to left input side, but
-                !relaxed left side is not identical to left input side
-                !=> connect relaxed left side and right input side
+                    cobj%rxyz2(1,1),cobj%rightmin(1,1,mhgpsst%nsad)))then
+                !relaxed left side is identical to right input side, but
+                !relaxed right side is not identical to right input side
+                !=> connect relaxed right side and left input side
                 if(mhgpsst%iproc==0)write(*,*)'(MHGPS) connection check'//&
-                            ' not lnl and rnl (rmsd)',sqrt(sum((rxyz2-&
-                            cobj%rightmin(:,:,mhgpsst%nsad))**2))
+                            ' not rnr and lnr (rmsd)',sqrt(sum((rxyz2-&
+                            cobj%leftmin(:,:,mhgpsst%nsad))**2))
                 if(mhgpsst%iproc==0)write(*,'(a,es24.17,1x,es24.17)')&
                            '(MHGPS) connection check connected ',&
                            cobj%enerleft(mhgpsst%nsad),&
                            cobj%enerright(mhgpsst%nsad)
                 cobj%ntodo=cobj%ntodo+1
                 if(cobj%ntodo>uinp%nsadmax)stop 'error: cobj%ntodo>uinp%nsadmax'
-                cobj%todorxyz(:,:,1,cobj%ntodo)=cobj%lefttmin(:,:,mhgpsst%nsad)
-                cobj%todorxyz(:,:,2,cobj%ntodo)=cobj%rxyz2
-                cobj%todofp(:,1,cobj%ntodo)=cobj%fpleft(:,mhgpsst%nsad)
-                cobj%todofp(:,2,cobj%ntodo)=fp2cur
-                cobj%todoenergy(1,cobj%ntodo)=cobj%enerleft(mhgpsst%nsad)
-                cobj%todoenergy(2,cobj%ntodo)=ener2cur
+                cobj%todorxyz(:,:,1,cobj%ntodo)=cobj%rxyz1
+                cobj%todorxyz(:,:,2,cobj%ntodo)=cobj%rightmin(:,:,mhgpsst%nsad)
+                cobj%todofp(:,1,cobj%ntodo)=fp1cur
+                cobj%todofp(:,2,cobj%ntodo)=cobj%fpright(:,mhgpsst%nsad)
+                cobj%todoenergy(1,cobj%ntodo)=ener1cur
+                cobj%todoenergy(2,cobj%ntodo)=cobj%enerright(mhgpsst%nsad)
 cycle
             else
                 !After pushoff, both sides relaxed to permutationally
