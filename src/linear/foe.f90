@@ -2027,7 +2027,8 @@ subroutine ice(iproc, nproc, norder_polynomial, ovrlp_smat, inv_ovrlp_smat, ncal
                       do icalc=1,ncalc
                           call transform_sparsity_pattern(inv_ovrlp_smat%nfvctr, &
                                inv_ovrlp_smat%smmm%nvctrp_mm, inv_ovrlp_smat%smmm%isvctr_mm, &
-                               inv_ovrlp_smat%nseg, inv_ovrlp_smat%keyv, inv_ovrlp_smat%keyg, inv_ovrlp_smat%smmm%line_and_column_mm, &
+                               inv_ovrlp_smat%nseg, inv_ovrlp_smat%keyv, inv_ovrlp_smat%keyg, &
+                               inv_ovrlp_smat%smmm%line_and_column_mm, &
                                inv_ovrlp_smat%smmm%nvctrp, inv_ovrlp_smat%smmm%isvctr, &
                                inv_ovrlp_smat%smmm%nseg, inv_ovrlp_smat%smmm%keyv, inv_ovrlp_smat%smmm%keyg, &
                                inv_ovrlp_matrixp_new(1,icalc), inv_ovrlp_matrixp_small_new(1,icalc))
