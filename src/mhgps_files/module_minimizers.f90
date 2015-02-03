@@ -260,7 +260,7 @@ subroutine minimizer_sqnm(mhgpsst,uinp,runObj,outs,rcov,&
    etot=energyio
    call minenergyandforces(mhgpsst,.false.,uinp%imode,runObj,outs,rxyz(1,1,0),&
        rxyzraw(1,1,0),fxyz(1,1,0),fstretch(1,1,0),fxyzraw(1,1,0),&
-       etot,iconnect,nbond,wold,beta_stretchx,beta_stretch)
+       etot,iconnect,nbond,wold,beta_stretchx,beta_stretch,infocode)
    call fnrmandforcemax(fxyzraw(1,1,0),fnrm,fmax,runObj%atoms%astruct%nat)
    fnrm=sqrt(fnrm)
    if (fmax < 3.e-1_gp) call updatefluctsum(outs%fnoise,fluct)
@@ -371,7 +371,7 @@ endif
       runObj%inputs%inputPsiId=1
       call minenergyandforces(mhgpsst,.true.,uinp%imode,runObj,outs,rxyz(1,1,nhist),rxyzraw(1,1,nhist),&
                              fxyz(1,1,nhist),fstretch(1,1,nhist),fxyzraw(1,1,nhist),&
-                             etotp,iconnect,nbond,wold,beta_stretchx,beta_stretch)
+                             etotp,iconnect,nbond,wold,beta_stretchx,beta_stretch,infocode)
       detot=etotp-etotold
       energycounter=energycounter+1.0_gp
 
@@ -602,7 +602,7 @@ endif
 
 
 subroutine minenergyandforces(mhgpsst,eeval,imode,runObj,outs,rat,rxyzraw,fat,fstretch,&
-           fxyzraw,epot,iconnect,nbond_,wold,alpha_stretch0,alpha_stretch)
+           fxyzraw,epot,iconnect,nbond_,wold,alpha_stretch0,alpha_stretch,infocode)
     use module_base, only: gp
     use module_energyandforces
     use module_sqn
@@ -626,8 +626,8 @@ subroutine minenergyandforces(mhgpsst,eeval,imode,runObj,outs,rat,rxyzraw,fat,fs
     real(gp), intent(inout)       :: alpha_stretch
     real(gp), intent(inout)       :: epot
     logical, intent(in)           :: eeval
+    integer, intent(out)          :: infocode
     !internal
-    integer :: infocode
 
     if(eeval)call mhgpsenergyandforces(mhgpsst,runObj,outs,rat,fat,epot,infocode)
     rxyzraw=rat
