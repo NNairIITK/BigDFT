@@ -1639,7 +1639,7 @@ subroutine clean_minmode(nat,geocode,rxyz,minmode)
     minmode = minmode / dnrm2(3*nat,minmode(1,1),1)
 end subroutine clean_minmode
 !=====================================================================
-subroutine fixfrag_pos_slab(mhgpsst,nat,rcov,pos)
+subroutine fixfrag_pos_slab(mhgpsst,nat,rcov,pos,fixfragmented)
     use module_base
     use module_mhgps_state
     implicit none
@@ -1648,6 +1648,7 @@ subroutine fixfrag_pos_slab(mhgpsst,nat,rcov,pos)
     integer, intent(in) :: nat
     real(gp),dimension(3,nat), INTENT(INOUT) :: pos
     real(gp),dimension(nat), INTENT(IN) :: rcov
+    logical, intent(out) :: fixfragmented
     !local variables
     integer :: iat,i,ic,ib,ilow,ihigh,icen,mm,mj,jat
     real(gp) :: ymin, ylow,yhigh,dx,dy,dz,dl,dist,distmin,d
@@ -1655,6 +1656,7 @@ subroutine fixfrag_pos_slab(mhgpsst,nat,rcov,pos)
     integer, dimension(-100:1000):: ygrid
     logical ,dimension(nat) :: onsurface
 
+    fixfragmented=.false.
 
 ! empty space = 0
     do i=-100,1000 
@@ -1704,8 +1706,8 @@ subroutine fixfrag_pos_slab(mhgpsst,nat,rcov,pos)
 
     ylow=ymin+ilow*.25d0
     yhigh=ymin+ihigh*.25d0
-    if (mhgpsst%iproc.eq.0) write(*,'(a,3(1x,e10.3))') &
-       "(MHGPS) ylow,ycen,yhigh",ylow,ymin+icen*.25d0,yhigh
+!    if (mhgpsst%iproc.eq.0) write(*,'(a,3(1x,e10.3))') &
+!       "(MHGPS) ylow,ycen,yhigh",ylow,ymin+icen*.25d0,yhigh
 
 1000 continue
     do iat=1,nat
@@ -1730,6 +1732,7 @@ subroutine fixfrag_pos_slab(mhgpsst,nat,rcov,pos)
             enddo
             if (mhgpsst%iproc.eq.0) write(*,*) iat,mj,distmin
             if (distmin.gt.0.d0) then
+                fixfragmented=.true.
                 dx=pos(1,iat)-pos(1,mj)
                 dy=pos(2,iat)-pos(2,mj)
                 dz=pos(3,iat)-pos(3,mj)
@@ -1738,11 +1741,11 @@ subroutine fixfrag_pos_slab(mhgpsst,nat,rcov,pos)
                 dx=dx*(d/dl)
                 dy=dy*(d/dl)
                 dz=dz*(d/dl)
-                if (mhgpsst%iproc.eq.0) write(*,*) "#MHGPS moving atom",iat,pos(:,iat)
+                if (mhgpsst%iproc.eq.0) write(*,*) "(MHGPS) moving atom",iat,pos(:,iat)
                 pos(1,iat)=pos(1,iat)-dx
                 pos(2,iat)=pos(2,iat)-dy
                 pos(3,iat)=pos(3,iat)-dz
-                if (mhgpsst%iproc.eq.0) write(*,*) "#MHGPS moved atom",iat,pos(:,iat)
+                if (mhgpsst%iproc.eq.0) write(*,*) "(MHGPS) moved atom",iat,pos(:,iat)
                 onsurface(iat)=.true.
                 goto 1000
             endif
@@ -1771,7 +1774,7 @@ subroutine fixfrag(mhgpsst,uinp,runObj,rcov,pos)
              pos(1,1),veldmy,1,fixfragmented)
     else if(bigdft_get_geocode(runObj) == 'S') then
         call fixfrag_pos_slab(mhgpsst,runObj%atoms%astruct%nat,&
-             rcov(1),pos(1,1))
+             rcov(1),pos(1,1),fixfragmented)
     endif
     if(fixfragmented .and. uinp%mhgps_verbosity >=0.and. &
           mhgpsst%iproc==0) call yaml_comment('(MHGPS) fragmentation fixed')
