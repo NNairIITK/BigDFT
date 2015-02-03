@@ -2534,7 +2534,6 @@ subroutine deviation_from_unity_parallel_new(iproc, nproc, norb, norbp, isorb, o
   !!end do
 
 
-  write(*,*) 'sum(ovrlp)',sum(ovrlp)
   do i=1,smat%smmm%nvctrp
       ii = smat%smmm%isvctr + i
       !!call get_line_and_column(ii, smat%smmm%nseg, smat%smmm%keyv, smat%smmm%keyg, iline, icolumn)

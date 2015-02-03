@@ -1191,7 +1191,7 @@ module sparsematrix
              !!#    matrix_local(i) = matrixp(ind)
              !!#end do
              call transform_sparsity_pattern(smat%nfvctr, smat%smmm%nvctrp_mm, smat%smmm%isvctr_mm, &
-                  smat%nseg, smat%keyv, smat%keyg, smat%smmm%line_and_column, &
+                  smat%nseg, smat%keyv, smat%keyg, smat%smmm%line_and_column_mm, &
                   smat%smmm%nvctrp, smat%smmm%isvctr, &
                   smat%smmm%nseg, smat%smmm%keyv, smat%smmm%keyg, &
                   matrixp, matrix_local)
