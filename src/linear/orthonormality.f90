@@ -1000,8 +1000,8 @@ subroutine overlapPowerGeneral(iproc, nproc, iorder, ncalc, power, blocksize, im
                   ii = inv_ovrlp_smat%smmm%isvctr + iorb
                   !!call get_line_and_column(ii, inv_ovrlp_smat%smmm%nseg, inv_ovrlp_smat%smmm%keyv, &
                   !!     inv_ovrlp_smat%smmm%keyg, iline, icolumn)
-                  iline = inv_ovrlp_smat%smmm%line_and_column(1,i)
-                  icolumn = inv_ovrlp_smat%smmm%line_and_column(2,i)
+                  iline = inv_ovrlp_smat%smmm%line_and_column(1,iorb)
+                  icolumn = inv_ovrlp_smat%smmm%line_and_column(2,iorb)
                   if (iline==icolumn) then
                       !write(*,*) 'iorb, ii, iline, icolumn', iorb, ii, iline, icolumn
                       Amat21p_new(iorb)=1.0d0
@@ -1040,8 +1040,8 @@ subroutine overlapPowerGeneral(iproc, nproc, iorder, ncalc, power, blocksize, im
                       ii = inv_ovrlp_smat%smmm%isvctr + iorb
                       !!call get_line_and_column(ii, inv_ovrlp_smat%smmm%nseg, &
                       !!     inv_ovrlp_smat%smmm%keyv, inv_ovrlp_smat%smmm%keyg, iline, icolumn)
-                      iline = inv_ovrlp_smat%smmm%line_and_column(1,i)
-                      icolumn = inv_ovrlp_smat%smmm%line_and_column(2,i)
+                      iline = inv_ovrlp_smat%smmm%line_and_column(1,iorb)
+                      icolumn = inv_ovrlp_smat%smmm%line_and_column(2,iorb)
                       if (iline==icolumn) then
                           Amat11p_new(iorb)=Amat11p_new(iorb)+1.5d0
                       end if
@@ -2534,6 +2534,7 @@ subroutine deviation_from_unity_parallel_new(iproc, nproc, norb, norbp, isorb, o
   !!end do
 
 
+  write(*,*) 'sum(ovrlp)',sum(ovrlp)
   do i=1,smat%smmm%nvctrp
       ii = smat%smmm%isvctr + i
       !!call get_line_and_column(ii, smat%smmm%nseg, smat%smmm%keyv, smat%smmm%keyg, iline, icolumn)
