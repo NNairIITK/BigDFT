@@ -106,7 +106,9 @@ module chebyshev
                   !!end do
                   do i=1,kernel%smmm%nvctrp
                       ii = kernel%smmm%isvctr + i
-                      call get_line_and_column(ii, kernel%smmm%nseg, kernel%smmm%keyv, kernel%smmm%keyg, iline, icolumn)
+                      !!call get_line_and_column(ii, kernel%smmm%nseg, kernel%smmm%keyv, kernel%smmm%keyg, iline, icolumn)
+                      iline = kernel%smmm%line_and_column(1,i)
+                      icolumn = kernel%smmm%line_and_column(2,i)
                       jj=matrixindex_in_compressed(kernel, icolumn, iline)
                       if (jj>0) then
                           matrix_new(i) = invovrlp_compr(jj-kernel%isvctrp_tg)
@@ -228,7 +230,9 @@ module chebyshev
           !!end do
           do i=1,kernel%smmm%nvctrp
               ii = kernel%smmm%isvctr + i
-              call get_line_and_column(ii, kernel%smmm%nseg, kernel%smmm%keyv, kernel%smmm%keyg, iline, icolumn)
+              !!call get_line_and_column(ii, kernel%smmm%nseg, kernel%smmm%keyv, kernel%smmm%keyg, iline, icolumn)
+              iline = kernel%smmm%line_and_column(1,i)
+              icolumn = kernel%smmm%line_and_column(2,i)
               if (iline==icolumn) vectors_new(i,1) = 1.d0
           end do
         
