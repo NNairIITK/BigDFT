@@ -854,7 +854,7 @@ subroutine foe(iproc, nproc, tmprtr, &
           !!  write(*,*) 'tmb%linmat%l%nvctrp, tmb%linmat%l%smmm%nvctrp_mm', tmb%linmat%l%nvctrp, tmb%linmat%l%smmm%nvctrp_mm
           !!  write(*,*) 'tmb%linmat%l%isvctr, tmb%linmat%l%smmm%isvctr_mm', tmb%linmat%l%isvctr, tmb%linmat%l%smmm%isvctr_mm
           call transform_sparsity_pattern2(tmb%linmat%l%nfvctr, tmb%linmat%l%smmm%nvctrp_mm, tmb%linmat%l%smmm%isvctr_mm, &
-               tmb%linmat%l%nseg, tmb%linmat%l%keyv, tmb%linmat%l%keyg, &
+               tmb%linmat%l%nseg, tmb%linmat%l%keyv, tmb%linmat%l%keyg, tmb%linmat%l%smmm%line_and_column_mm, &
                tmb%linmat%l%smmm%nvctrp, tmb%linmat%l%smmm%isvctr, &
                tmb%linmat%l%smmm%nseg, tmb%linmat%l%smmm%keyv, tmb%linmat%l%smmm%keyg, &
                tmb%linmat%ovrlppowers_(2)%matrix_compr(ilshift2+tmb%linmat%l%smmm%isvctr_mm+1:), inv_ovrlpp_new)
@@ -974,7 +974,6 @@ subroutine foe(iproc, nproc, tmprtr, &
           do i=1,tmb%linmat%l%smmm%nvctrp_mm
               !!ii = tmb%linmat%l%smmm%isvctr_mm + i
               !!call get_line_and_column(ii, tmb%linmat%l%nseg, tmb%linmat%l%keyv, tmb%linmat%l%keyg, iline, icolumn)
-              !if (iline==icolumn) then
               iline = tmb%linmat%l%smmm%line_and_column_mm(1,i)
               icolumn = tmb%linmat%l%smmm%line_and_column_mm(2,i)
               if (iline==icolumn) then
@@ -2414,8 +2413,8 @@ subroutine check_eigenvalue_spectrum_new(nproc, smat_l, smat_s, mat, ispin, issh
       do i=1,smat_l%smmm%nvctrp
           ii = smat_l%smmm%isvctr + i
           !call get_line_and_column(ii, smat_l%smmm%nseg, smat_l%smmm%keyv, smat_l%smmm%keyg, iline, icolumn)
-          iline = smat_l%smmm%line_and_column_mm(1,i)
-          icolumn = smat_l%smmm%line_and_column_mm(2,i)
+          iline = smat_l%smmm%line_and_column(1,i)
+          icolumn = smat_l%smmm%line_and_column(2,i)
           !!iismall = matrixindex_in_compressed_fn(icolumn, iline, &
           !!          smat_s%nfvctr, smat_l%smmm%nseg_mm, smat_l%smmm%keyv_mm, smat_l%smmm%keyg_mm)
           iismall = matrixindex_in_compressed(smat_s, icolumn, iline)
@@ -2726,7 +2725,7 @@ end subroutine scale_and_shift_matrix
           call sequential_acces_matrix_fast2(smat, &
                inv_ovrlp, inv_ovrlp_compr_seq)
           call transform_sparsity_pattern2(smat%nfvctr, smat%smmm%nvctrp_mm, smat%smmm%isvctr_mm, &
-               smat%nseg, smat%keyv, smat%keyg, &
+               smat%nseg, smat%keyv, smat%keyg, smat%smmm%line_and_column_mm, &
                smat%smmm%nvctrp, smat%smmm%isvctr, &
                smat%smmm%nseg, smat%smmm%keyv, smat%smmm%keyg, &
                inv_ovrlp(smat%smmm%isvctr_mm+1), inv_ovrlpp_new)
