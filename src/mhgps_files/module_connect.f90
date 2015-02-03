@@ -30,6 +30,8 @@ contains
 !! (subroutine is depracted, use non-recursive version, instead.
 !! Before using recursive routine, again, it has to be updated to
 !! the full functionality of the non-recursive function
+!! ATTENTION: RECURSIVE ROUTINE IS DEPRECATED AND SHOULD NOT BE USED
+!! BEFORE THOROUGH TESTING
 recursive subroutine connect_recursively(mhgpsst,fsw,uinp,runObj,outs,&
                      rcov,isame,rxyz1,rxyz2,ener1,&
                      ener2,fp1,fp2,cobj,connected)
@@ -281,7 +283,7 @@ recursive subroutine connect_recursively(mhgpsst,fsw,uinp,runObj,outs,&
                               'proceed with next connection attempt.')
             return
         endif
-        scl=uinp%saddle_scale_stepoff*scl
+        scl=abs(uinp%saddle_scale_stepoff)*scl
         if(mhgpsst%iproc==0)&
         call yaml_comment('INFO: (MHGPS) After pushoff, left side '//&
                        'converged back to saddle. Will retry with '//&
@@ -369,7 +371,7 @@ recursive subroutine connect_recursively(mhgpsst,fsw,uinp,runObj,outs,&
                               'proceed with next connection attempt.')
             return
         endif
-        scl=uinp%saddle_scale_stepoff*scl
+        scl=abs(uinp%saddle_scale_stepoff)*scl
         if(mhgpsst%iproc==0)&
         call yaml_comment('INFO: (MHGPS) After pushoff, right side'//&
                        ' converged back to saddle. Will retry with'//&
@@ -561,6 +563,7 @@ subroutine connect(mhgpsst,fsw,uinp,runObj,outs,rcov,&
     logical, intent(out)      :: premature_exit
     integer, intent(out)      :: nsad
     !local
+    integer, parameter :: npushmax=3
     integer  :: infocode
     real(gp) :: displ,ener_count
     real(gp) :: fnrm,fmax
@@ -756,7 +759,51 @@ connectloop: do while(cobj%ntodo>=1)
         call mhgpsenergyandforces(mhgpsst,runObj,outs,&
              cobj%leftmin(1,1,mhgpsst%nsad),cobj%fleft(1,1,mhgpsst%nsad),&
              cobj%enerleft(mhgpsst%nsad),infocode)
-        if(infocode/=0)outs%fnoise=0.0_gp
+        if(infocode/=0)then
+            if(ipush>=npushmax)then
+                mhgpsst%isadprob=mhgpsst%isadprob+1
+                write(mhgpsst%isadprobc,'(i5.5)')mhgpsst%isadprob
+                if(mhgpsst%iproc==0)then
+                    write(comment,'(a)')'Prob: Neighbors '//&
+                    'unknown. Error in energy evaluation during pushoff.'
+                    call astruct_dump_to_file(&
+                         bigdft_get_astruct_ptr(runObj),mhgpsst%currDir//&
+                         '/sadProb'//trim(adjustl(mhgpsst%isadprobc))//&
+                         '_finalM',comment,cobj%enersad(mhgpsst%nsad),&
+                         rxyz=cobj%saddle(:,:,mhgpsst%nsad),&
+                         forces=cobj%minmode(:,:,mhgpsst%nsad))
+                    call astruct_dump_to_file(&
+                         bigdft_get_astruct_ptr(runObj),mhgpsst%currDir//&
+                         '/sadProb'//trim(adjustl(mhgpsst%isadprobc))//&
+                         '_Reactant',comment,0.0_gp,rxyz=cobj%rxyz1)
+                    call astruct_dump_to_file(&
+                         bigdft_get_astruct_ptr(runObj),mhgpsst%currDir//&
+                         '/sadProb'//trim(adjustl(mhgpsst%isadprobc))//&
+                         '_Product',comment,0.0_gp,rxyz=cobj%rxyz2)
+                endif
+    
+                connected=.false.
+                mhgpsst%nsad=mhgpsst%nsad-1
+                mhgpsst%isad=mhgpsst%isad-1
+                write(mhgpsst%isadc,'(i5.5)')mhgpsst%isad
+    
+                if(mhgpsst%iproc==0)&
+                call yaml_warning('(MHGPS) Cannot determine forces after '//&
+                                  'pushoff from saddle. '//&
+                                  'Connection attempt stopped. Will '//&
+                                  'proceed with next connection attempt.')
+                
+                exit connectloop !stop connection
+            endif
+            scl=abs(uinp%saddle_scale_stepoff)*scl
+            if(mhgpsst%iproc==0)&
+            call yaml_comment('INFO: (MHGPS) After pushoff, error'//&
+                 ' while computing forces for left side. Will retry'//&
+                 ' with increased pushoff:  '//yaml_toa(scl))
+            ipush=ipush+1
+            runObj%inputs%inputPsiId=0
+            cycle loopL
+        endif
 
         if(mhgpsst%iproc==0 .and. uinp%mhgps_verbosity >= 3)&
              call astruct_dump_to_file(&
@@ -788,7 +835,7 @@ connectloop: do while(cobj%ntodo>=1)
            uinp%fp_delta_sad,cobj%enersad(mhgpsst%nsad),cobj%enerleft(mhgpsst%nsad),&
            cobj%fpsad(1,mhgpsst%nsad),cobj%fpleft(1,mhgpsst%nsad)))then
            exit loopL
-        elseif(ipush>=3)then
+        elseif(ipush>=npushmax)then
             mhgpsst%isadprob=mhgpsst%isadprob+1
             write(mhgpsst%isadprobc,'(i5.5)')mhgpsst%isadprob
             if(mhgpsst%iproc==0)then
@@ -824,7 +871,7 @@ connectloop: do while(cobj%ntodo>=1)
             
             exit connectloop !stop connection
         endif
-        scl=uinp%saddle_scale_stepoff*scl
+        scl=abs(uinp%saddle_scale_stepoff)*scl
         if(mhgpsst%iproc==0)&
         call yaml_comment('INFO: (MHGPS) After pushoff, left side '//&
                        'converged back to saddle. Will retry with '//&
@@ -842,11 +889,58 @@ connectloop: do while(cobj%ntodo>=1)
         call pushoffsingle(uinp,runObj%atoms%astruct%nat,cobj%saddle(1,1,mhgpsst%nsad),&
         cobj%minmode(1,1,mhgpsst%nsad),scl,cobj%rightmin(1,1,mhgpsst%nsad))
 
+        !use inputPsiId=0 here, because wavefct. in memory corresponds
+        !to left minimum. However, we are close to saddle, again.
+        runObj%inputs%inputPsiId=0
         ener_count=0.0_gp
         call mhgpsenergyandforces(mhgpsst,runObj,outs,&
              cobj%rightmin(1,1,mhgpsst%nsad),cobj%fright(1,1,mhgpsst%nsad),&
              cobj%enerright(mhgpsst%nsad),infocode)
-        if(infocode/=0)outs%fnoise=0.0_gp
+        if(infocode/=0)then
+            if(ipush>=npushmax)then
+                mhgpsst%isadprob=mhgpsst%isadprob+1
+                write(mhgpsst%isadprobc,'(i5.5)')mhgpsst%isadprob
+                if(mhgpsst%iproc==0)then
+                    write(comment,'(a)')'Prob: Neighbors '//&
+                    'unknown. Error in energy evaluation during pushoff.'
+                    call astruct_dump_to_file(&
+                         bigdft_get_astruct_ptr(runObj),mhgpsst%currDir//&
+                         '/sadProb'//trim(adjustl(mhgpsst%isadprobc))//&
+                         '_finalM',comment,cobj%enersad(mhgpsst%nsad),&
+                         rxyz=cobj%saddle(:,:,mhgpsst%nsad),&
+                         forces=cobj%minmode(:,:,mhgpsst%nsad))
+                    call astruct_dump_to_file(&
+                         bigdft_get_astruct_ptr(runObj),mhgpsst%currDir//&
+                         '/sadProb'//trim(adjustl(mhgpsst%isadprobc))//&
+                         '_Reactant',comment,0.0_gp,rxyz=cobj%rxyz1)
+                    call astruct_dump_to_file(&
+                         bigdft_get_astruct_ptr(runObj),mhgpsst%currDir//&
+                         '/sadProb'//trim(adjustl(mhgpsst%isadprobc))//&
+                         '_Product',comment,0.0_gp,rxyz=cobj%rxyz2)
+                endif
+    
+                connected=.false.
+                mhgpsst%nsad=mhgpsst%nsad-1
+                mhgpsst%isad=mhgpsst%isad-1
+                write(mhgpsst%isadc,'(i5.5)')mhgpsst%isad
+    
+                if(mhgpsst%iproc==0)&
+                call yaml_warning('(MHGPS) Cannot determine forces after '//&
+                                  'pushoff from saddle. '//&
+                                  'Connection attempt stopped. Will '//&
+                                  'proceed with next connection attempt.')
+                
+                exit connectloop !stop connection
+            endif
+            scl=abs(uinp%saddle_scale_stepoff)*scl
+            if(mhgpsst%iproc==0)&
+            call yaml_comment('INFO: (MHGPS) After pushoff, error'//&
+                 ' while computing forces for left side. Will retry'//&
+                 ' with increased pushoff:  '//yaml_toa(scl))
+            ipush=ipush+1
+            runObj%inputs%inputPsiId=0
+            cycle loopR
+        endif
 
         if(mhgpsst%iproc==0 .and. uinp%mhgps_verbosity >= 3)&
              call astruct_dump_to_file(bigdft_get_astruct_ptr(runObj),&
@@ -876,7 +970,7 @@ connectloop: do while(cobj%ntodo>=1)
            cobj%enersad(mhgpsst%nsad),cobj%enerright(mhgpsst%nsad),&
            cobj%fpsad(1,mhgpsst%nsad),cobj%fpright(1,mhgpsst%nsad)))then
            exit loopR
-        elseif(ipush>=3)then
+        elseif(ipush>=npushmax)then
             mhgpsst%isadprob=mhgpsst%isadprob+1
             write(mhgpsst%isadprobc,'(i5.5)')mhgpsst%isadprob
             if(mhgpsst%iproc==0)then
@@ -912,7 +1006,7 @@ connectloop: do while(cobj%ntodo>=1)
                               'proceed with next connection attempt.')
             exit connectloop !stop connection
         endif
-        scl=uinp%saddle_scale_stepoff*scl
+        scl=abs(uinp%saddle_scale_stepoff)*scl
         if(mhgpsst%iproc==0)&
         call yaml_comment('INFO: (MHGPS) After pushoff, right side'//&
                        ' converged back to saddle. Will retry with'//&
