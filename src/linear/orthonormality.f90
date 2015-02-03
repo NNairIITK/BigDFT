@@ -1682,9 +1682,9 @@ use sparsematrix_init, only: get_line_and_column
 
      do i=1,smat%smmm%nvctrp
          ii = smat%smmm%isvctr + i
-         call get_line_and_column(ii, smat%smmm%nseg, smat%smmm%keyv, smat%smmm%keyg, iline, icolumn)
-         !!iline = smat%smmm%line_and_column(1,i)
-         !!icolumn = smat%smmm%line_and_column(2,i)
+         !!call get_line_and_column(ii, smat%smmm%nseg, smat%smmm%keyv, smat%smmm%keyg, iline, icolumn)
+         iline = smat%smmm%line_and_column(1,i)
+         icolumn = smat%smmm%line_and_column(2,i)
          if (iline==icolumn) then
              inv_ovrlpp(i) = 2.d0 - ovrlpp(i)
          else
@@ -1707,9 +1707,9 @@ use sparsematrix_init, only: get_line_and_column
 
      do i=1,smat%smmm%nvctrp
          ii = smat%smmm%isvctr + i
-         call get_line_and_column(ii, smat%smmm%nseg, smat%smmm%keyv, smat%smmm%keyg, iline, icolumn)
-         !!iline = smat%smmm%line_and_column(1,i)
-         !!icolumn = smat%smmm%line_and_column(2,i)
+         !!call get_line_and_column(ii, smat%smmm%nseg, smat%smmm%keyv, smat%smmm%keyg, iline, icolumn)
+         iline = smat%smmm%line_and_column(1,i)
+         icolumn = smat%smmm%line_and_column(2,i)
          if (iline==icolumn) then
              inv_ovrlpp(i) = 0.5d0 + 0.5d0*ovrlpp(i)
          else
@@ -1732,9 +1732,9 @@ use sparsematrix_init, only: get_line_and_column
 
      do i=1,smat%smmm%nvctrp
          ii = smat%smmm%isvctr + i
-         call get_line_and_column(ii, smat%smmm%nseg, smat%smmm%keyv, smat%smmm%keyg, iline, icolumn)
-         !!iline = smat%smmm%line_and_column(1,i)
-         !!icolumn = smat%smmm%line_and_column(2,i)
+         !!call get_line_and_column(ii, smat%smmm%nseg, smat%smmm%keyv, smat%smmm%keyg, iline, icolumn)
+         iline = smat%smmm%line_and_column(1,i)
+         icolumn = smat%smmm%line_and_column(2,i)
          if (iline==icolumn) then
              inv_ovrlpp(i) = 1.5d0 - 0.5d0*ovrlpp(i)
          else

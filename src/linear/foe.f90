@@ -380,7 +380,7 @@ subroutine foe(iproc, nproc, tmprtr, &
                       !!write(*,*) 'after chebyshev_clean, iproc', iproc
                       call transform_sparsity_pattern(tmb%linmat%l%nfvctr, &
                            tmb%linmat%l%smmm%nvctrp_mm, tmb%linmat%l%smmm%isvctr_mm, &
-                           tmb%linmat%l%nseg, tmb%linmat%l%keyv, tmb%linmat%l%keyg, &
+                           tmb%linmat%l%nseg, tmb%linmat%l%keyv, tmb%linmat%l%keyg, tmb%linmat%l%smmm%line_and_column_mm, &
                            tmb%linmat%l%smmm%nvctrp, tmb%linmat%l%smmm%isvctr, &
                            tmb%linmat%l%smmm%nseg, tmb%linmat%l%smmm%keyv, tmb%linmat%l%smmm%keyg, &
                            fermi_new, fermi_small_new)
@@ -975,8 +975,8 @@ subroutine foe(iproc, nproc, tmprtr, &
               !!ii = tmb%linmat%l%smmm%isvctr_mm + i
               !!call get_line_and_column(ii, tmb%linmat%l%nseg, tmb%linmat%l%keyv, tmb%linmat%l%keyg, iline, icolumn)
               !if (iline==icolumn) then
-              iline = tmb%linmat%l%smmm%line_and_column(1,i)
-              icolumn = tmb%linmat%l%smmm%line_and_column(2,i)
+              iline = tmb%linmat%l%smmm%line_and_column_mm(1,i)
+              icolumn = tmb%linmat%l%smmm%line_and_column_mm(2,i)
               if (iline==icolumn) then
                   !write(901,*) iiorb, matrixp(i)
                   trace = trace + matrixp(i)
@@ -1559,7 +1559,7 @@ subroutine compress_polynomial_vector_new(iproc, nproc, nsize_polynomial, norb, 
   call f_routine(id='compress_polynomial_vector')
 
   call transform_sparsity_pattern(fermi%nfvctr, fermi%smmm%nvctrp_mm, fermi%smmm%isvctr_mm, &
-       fermi%nseg, fermi%keyv, fermi%keyg, &
+       fermi%nseg, fermi%keyv, fermi%keyg, fermi%smmm%line_and_column_mm, &
        fermi%smmm%nvctrp, fermi%smmm%isvctr, fermi%smmm%nseg, fermi%smmm%keyv, fermi%smmm%keyg, &
        vector_compr, vector_compressed)
 
@@ -2027,7 +2027,7 @@ subroutine ice(iproc, nproc, norder_polynomial, ovrlp_smat, inv_ovrlp_smat, ncal
                       do icalc=1,ncalc
                           call transform_sparsity_pattern(inv_ovrlp_smat%nfvctr, &
                                inv_ovrlp_smat%smmm%nvctrp_mm, inv_ovrlp_smat%smmm%isvctr_mm, &
-                               inv_ovrlp_smat%nseg, inv_ovrlp_smat%keyv, inv_ovrlp_smat%keyg, &
+                               inv_ovrlp_smat%nseg, inv_ovrlp_smat%keyv, inv_ovrlp_smat%keyg, inv_ovrlp_smat%smmm%line_and_column_mm, &
                                inv_ovrlp_smat%smmm%nvctrp, inv_ovrlp_smat%smmm%isvctr, &
                                inv_ovrlp_smat%smmm%nseg, inv_ovrlp_smat%smmm%keyv, inv_ovrlp_smat%smmm%keyg, &
                                inv_ovrlp_matrixp_new(1,icalc), inv_ovrlp_matrixp_small_new(1,icalc))
@@ -2413,8 +2413,8 @@ subroutine check_eigenvalue_spectrum_new(nproc, smat_l, smat_s, mat, ispin, issh
       do i=1,smat_l%smmm%nvctrp
           ii = smat_l%smmm%isvctr + i
           !call get_line_and_column(ii, smat_l%smmm%nseg, smat_l%smmm%keyv, smat_l%smmm%keyg, iline, icolumn)
-          iline = smat_l%smmm%line_and_column(1,i)
-          icolumn = smat_l%smmm%line_and_column(2,i)
+          iline = smat_l%smmm%line_and_column_mm(1,i)
+          icolumn = smat_l%smmm%line_and_column_mm(2,i)
           !!iismall = matrixindex_in_compressed_fn(icolumn, iline, &
           !!          smat_s%nfvctr, smat_l%smmm%nseg_mm, smat_l%smmm%keyv_mm, smat_l%smmm%keyg_mm)
           iismall = matrixindex_in_compressed(smat_s, icolumn, iline)

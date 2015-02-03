@@ -721,18 +721,26 @@ contains
            sparsemat%smmm%isvctr_mm, sparsemat%smmm%nvctrp_mm, sparsemat%smmm%isvctr_mm_par, sparsemat%smmm%nvctr_mm_par)
 
       ! Would be better if this were in the wrapper above...
-      sparsemat%smmm%line_and_column=f_malloc_ptr((/2,sparsemat%smmm%nvctrp_mm/),id='smmm%line_and_column')
+      sparsemat%smmm%line_and_column_mm = f_malloc_ptr((/2,sparsemat%smmm%nvctrp_mm/),id='smmm%line_and_column_mm')
 
       call init_matrix_parallelization(iproc, nproc, sparsemat%nfvctr, nseg, keyv(nseg)+(keyg(2,1,nseg)-keyg(1,1,nseg)), &
            temparr(0,1), temparr(0,2), istsegline, keyv, &
            sparsemat%smmm%isvctr, sparsemat%smmm%nvctrp, sparsemat%smmm%isvctr_par, sparsemat%smmm%nvctr_par)
       call f_free(temparr)
 
+      ! Would be better if this were in the wrapper above...
+      sparsemat%smmm%line_and_column = f_malloc_ptr((/2,sparsemat%smmm%nvctrp/),id='smmm%line_and_column')
 
       ! Init line_and_column
       do i=1,sparsemat%smmm%nvctrp_mm
           ii = sparsemat%smmm%isvctr_mm + i
           call get_line_and_column(ii, sparsemat%nseg, sparsemat%keyv, sparsemat%keyg, iline, icolumn)
+          sparsemat%smmm%line_and_column_mm(1,i) = iline
+          sparsemat%smmm%line_and_column_mm(2,i) = icolumn
+      end do
+      do i=1,sparsemat%smmm%nvctrp
+          ii = sparsemat%smmm%isvctr + i
+          call get_line_and_column(ii, nseg, keyv, keyg, iline, icolumn)
           sparsemat%smmm%line_and_column(1,i) = iline
           sparsemat%smmm%line_and_column(2,i) = icolumn
       end do
