@@ -1015,8 +1015,6 @@
  - Do not call check_communications in the linear scaling version!
  - support function optimization not converged
  - density optimization not converged
- - support function optimization not converged
- - density optimization not converged
   #-------------------------------------------------------------------- Timing for root process
  Timings for root process:
    CPU time (s)                        :  45.69

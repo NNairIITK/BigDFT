@@ -1074,6 +1074,7 @@ contains
           ntot = int(norbu,kind=8)*int(norbu,kind=8)
           call yaml_map('total elements',ntot)
           call yaml_map('non-zero elements',sparsemat%nvctr)
+          call yaml_comment('segments: '//yaml_toa(sparsemat%nseg))
           call yaml_map('sparsity in %',1.d2*real(ntot-int(sparsemat%nvctr,kind=8),kind=8)/real(ntot,kind=8),fmt='(f5.2)')
       end if
     
