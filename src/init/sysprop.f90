@@ -2389,9 +2389,9 @@ subroutine redistribute(nproc, norb, workload, workload_ideal, norb_par)
       end do
       norb_par(nproc-1) = jjorb + (norb - jjorbtot) !take the rest
       workload_par(nproc-1) = sum(workload) - tcount
-      !do jproc=0,nproc-1
-      !    if (iproc==0) write(*,*) 'jproc, norb_par(jproc)', jproc, norb_par(jproc)
-      !end do
+      do jproc=0,nproc-1
+          if (bigdft_mpi%iproc==0) write(*,*) 'jproc, norb_par(jproc)', jproc, norb_par(jproc)
+      end do
       !if (bigdft_mpi%iproc==0) write(*,'(a,2i6,2es14.6)') 'jproc, jjorb, tcount/(jproc+1), workload_ideal', &
       !        jproc, jjorb+(norb-jjorbtot), sum(workload)-tcount, workload_ideal
 
