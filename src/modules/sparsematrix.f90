@@ -2628,7 +2628,7 @@ module sparsematrix
       implicit none
       ! Calling arguments
       integer,intent(in) :: nfvctr, nvctrp_s, isvctr_s, nseg_s, nvctrp_l, isvctr_l, nseg_l
-      integer,dimension(nvctrp_s),intent(in) :: line_and_column_s
+      integer,dimension(2,nvctrp_s),intent(in) :: line_and_column_s
       integer,dimension(nseg_s),intent(in) :: keyv_s
       integer,dimension(2,2,nseg_s),intent(in) :: keyg_s
       integer,dimension(nseg_l),intent(in) :: keyv_l
