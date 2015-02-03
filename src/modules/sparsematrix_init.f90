@@ -576,51 +576,26 @@ contains
       integer :: ierr, jproc, iorb, jjproc, iiorb, nseq_min, nseq_max, iseq, ind, ii, iseg, ncount
       integer :: iiseg, i, iel, ilen_seg, ist_seg, iend_seg, ispt
       integer,dimension(:),allocatable :: nseq_per_line, norb_par_ideal, isorb_par_ideal, nout_par, nseq_per_pt
-      integer,dimension(:),allocatable :: nvctrp_per_task, isvctr_per_task
       integer,dimension(:,:),allocatable :: istartend_dj, istartend_mm
       integer,dimension(:,:),allocatable :: temparr
       real(kind=8) :: rseq, rseq_ideal, tt, ratio_before, ratio_after
       logical :: printable
-      real(kind=8),dimension(:),allocatable :: rseq_per_line, rseq_per_pt
+      real(kind=8),dimension(:),allocatable :: rseq_per_line
 
       ! Calculate the values of sparsemat%smmm%nout and sparsemat%smmm%nseq with
       ! the default partitioning of the matrix columns.
       call get_nout(norb, norbp, isorb, nseg, nsegline, istsegline, keyg, sparsemat%smmm%nout)
-      !!nseq_per_line = f_malloc0(norb,id='nseq_per_line')
-      !!call determine_sequential_length(norb, norbp, isorb, nseg, &
-      !!     nsegline, istsegline, keyg, sparsemat, &
-      !!     sparsemat%smmm%nseq, nseq_per_line)
-
-
-      ! Determine ispt
-      nout_par = f_malloc0(0.to.nproc-1,id='ist_par')
-      nout_par(iproc) = sparsemat%smmm%nout
-      call mpiallred(nout_par(0), nproc, mpi_sum, bigdft_mpi%mpi_comm)
-      ispt = 0
-      do jproc=0,iproc-1
-          ispt = ispt + nout_par(jproc)
-      end do
-      nseq_per_pt = f_malloc0(sum(nout_par),id='nseq_per_pt')
-      call determine_sequential_length_new(sparsemat%smmm%nout, ispt, nseg, keyv, keyg, &
-           sparsemat, sum(nout_par), sparsemat%smmm%nseq, nseq_per_pt)
-      if (nproc>1) call mpiallred(nseq_per_pt(1), sum(nout_par), mpi_sum, bigdft_mpi%mpi_comm)
-      !if (iproc==0) then
-      !    do i=1,sum(nout_par)
-      !        write(*,*) 'i, nseq_per_pt(i)', i, nseq_per_pt(i)
-      !    end do
-      !end if
-
-      !!if (nproc>1) call mpiallred(nseq_per_line(1), norb, mpi_sum, bigdft_mpi%mpi_comm)
+      nseq_per_line = f_malloc0(norb,id='nseq_per_line')
+      call determine_sequential_length(norb, norbp, isorb, nseg, &
+           nsegline, istsegline, keyg, sparsemat, &
+           sparsemat%smmm%nseq, nseq_per_line)
+      if (nproc>1) call mpiallred(nseq_per_line(1), norb, mpi_sum, bigdft_mpi%mpi_comm)
       rseq=real(sparsemat%smmm%nseq,kind=8) !real to prevent integer overflow
       if (nproc>1) call mpiallred(rseq, 1, mpi_sum, bigdft_mpi%mpi_comm)
 
-      !!rseq_per_line = f_malloc(norb,id='rseq_per_line')
-      rseq_per_pt = f_malloc(sum(nout_par),id='rseq_per_pt')
-      !!do iorb=1,norb
-      !!    rseq_per_line(iorb) = real(nseq_per_line(iorb),kind=8)
-      !!end do
-      do i=1,sum(nout_par)
-          rseq_per_pt(i) = real(nseq_per_pt(i),kind=8)
+      rseq_per_line = f_malloc(norb,id='rseq_per_line')
+      do iorb=1,norb
+          rseq_per_line(iorb) = real(nseq_per_line(iorb),kind=8)
       end do
 
 
@@ -648,32 +623,21 @@ contains
       !!!!end do
       !!!!norb_par_ideal(jjproc)=iiorb
       rseq_ideal = rseq/real(nproc,kind=8)
-      !!call redistribute(nproc, norb, rseq_per_line, rseq_ideal, norb_par_ideal)
-
-      nvctrp_per_task = f_malloc(0.to.nproc-1,id='nvctrp_per_task')
-      isvctr_per_task = f_malloc(0.to.nproc-1,id='isvctr_per_task')
-      !call redistribute(nproc, norb, rseq_per_pt, rseq_ideal, norb_par_ideal)
-      call redistribute(nproc, sum(nout_par), rseq_per_pt, rseq_ideal, nvctrp_per_task)
-      !!isorb_par_ideal(0) = 0
-      !!do jproc=1,nproc-1
-      !!    isorb_par_ideal(jproc) = isorb_par_ideal(jproc-1) + norb_par_ideal(jproc-1)
-      !!end do
-      isvctr_per_task(0) = 0
+      call redistribute(nproc, norb, rseq_per_line, rseq_ideal, norb_par_ideal)
+      isorb_par_ideal(0) = 0
       do jproc=1,nproc-1
-          isvctr_per_task(jproc) = isvctr_per_task(jproc-1) + nvctrp_per_task(jproc-1)
+          isorb_par_ideal(jproc) = isorb_par_ideal(jproc-1) + norb_par_ideal(jproc-1)
       end do
 
 
-      !!! some checks
-      !!if (sum(norb_par_ideal)/=norb) stop 'sum(norb_par_ideal)/=norb'
-      !!if (isorb_par_ideal(nproc-1)+norb_par_ideal(nproc-1)/=norb) stop 'isorb_par_ideal(nproc-1)+norb_par_ideal(nproc-1)/=norb'
-      if (sum(nvctrp_per_task)/=sum(nout_par)) stop 'sum(nvctrp_per_task)/=sum(nout_par)'
-      if (isvctr_per_task(nproc-1)+nvctrp_per_task(nproc-1)/=sum(nout_par)) stop 'isvctr_per_task(nproc-1)+nvctrp_per_task(nproc-1)/=sum(nout_par)'
+      ! some checks
+      if (sum(norb_par_ideal)/=norb) stop 'sum(norb_par_ideal)/=norb'
+      if (isorb_par_ideal(nproc-1)+norb_par_ideal(nproc-1)/=norb) stop 'isorb_par_ideal(nproc-1)+norb_par_ideal(nproc-1)/=norb'
 
+      ! Copy the values
+      sparsemat%smmm%nfvctrp=norb_par_ideal(iproc)
+      sparsemat%smmm%isfvctr=isorb_par_ideal(iproc)
 
-      ! Assign the values
-      sparsemat%smmm%isvctr = isvctr_per_task(iproc)
-      sparsemat%smmm%nvctrp = nvctrp_per_task(iproc)
 
 
       ! Get the load balancing
@@ -688,15 +652,10 @@ contains
           printable=.false.
       end if
 
-      write(*,*) 'ratio_before', ratio_before
 
       ! Realculate the values of sparsemat%smmm%nout and sparsemat%smmm%nseq with
       ! the optimized partitioning of the matrix columns.
-      !!call get_nout(norb, norb_par_ideal(iproc), isorb_par_ideal(iproc), nseg, nsegline, istsegline, keyg, sparsemat%smmm%nout)
-      sparsemat%smmm%nout = sparsemat%smmm%nvctrp
-
-      write(*,'(a,2i8)') 'after assigning iproc, nout', iproc, sparsemat%smmm%nout
-
+      call get_nout(norb, norb_par_ideal(iproc), isorb_par_ideal(iproc), nseg, nsegline, istsegline, keyg, sparsemat%smmm%nout)
       !call get_nout(norb, norb_par_ideal(iproc), isorb_par_ideal(iproc), sparsemat%nseg, &
       !     sparsemat%nsegline, sparsemat%istsegline, sparsemat%keyg, sparsemat%smmm%nout)
       !!call determine_sequential_length(norb, norb_par_ideal(iproc), isorb_par_ideal(iproc), nseg, &
@@ -705,28 +664,20 @@ contains
       !!write(*,*) 'OLD: iproc, nseq', iproc, sparsemat%smmm%nseq
 
       ! Determine ispt
-      !nout_par = f_malloc0(0.to.nproc-1,id='ist_par')
-      call f_zero(nout_par)
+      nout_par = f_malloc0(0.to.nproc-1,id='ist_par')
       nout_par(iproc) = sparsemat%smmm%nout
       call mpiallred(nout_par(0), nproc, mpi_sum, bigdft_mpi%mpi_comm)
       ispt = 0
       do jproc=0,iproc-1
           ispt = ispt + nout_par(jproc)
       end do
-      call f_zero(nseq_per_pt)
+      nseq_per_pt = f_malloc0(sum(nout_par),id='nseq_per_pt')
       !!call determine_sequential_length_new(sparsemat%smmm%nout, ispt, sparsemat%nseg, sparsemat%keyv, sparsemat%keyg, &
       !!     sparsemat, sum(nout_par), sparsemat%smmm%nseq, nseq_per_pt)
       call determine_sequential_length_new(sparsemat%smmm%nout, ispt, nseg, keyv, keyg, &
            sparsemat, sum(nout_par), sparsemat%smmm%nseq, nseq_per_pt)
-      !!write(*,*) 'NEW: iproc, nseq', iproc, sparsemat%smmm%nseq
-
-      write(*,*) 'ispt, sparsemat%smmm%isvctr', ispt, sparsemat%smmm%isvctr 
-
-      if (sum(nout_par)/=keyv(nseg)+keyg(2,1,nseg)-keyg(1,1,nseg)) stop 'sum(nout_par)/=keyv(nseg)+keyg(2,1,nseg)-keyg(1,1,nseg)'
-
       call f_free(nout_par)
-
-      write(*,'(a,2i8)') 'after determine_sequential_length_new: iproc, nout', iproc, sparsemat%smmm%nout
+      !!write(*,*) 'NEW: iproc, nseq', iproc, sparsemat%smmm%nseq
 
       ! Get the load balancing
       nseq_min = sparsemat%smmm%nseq
@@ -749,45 +700,28 @@ contains
       end if
       
 
-      !call f_free(nseq_per_line)
+      call f_free(nseq_per_line)
       call f_free(nseq_per_pt)
-      !call f_free(rseq_per_line)
+      call f_free(rseq_per_line)
 
       call allocate_sparse_matrix_matrix_multiplication(nproc, norb, nseg, nsegline, istsegline, sparsemat%smmm)
-
-      ! Copy the values
-      !!sparsemat%smmm%nfvctrp=norb_par_ideal(iproc)
-      !!sparsemat%smmm%isfvctr=isorb_par_ideal(iproc)
-      sparsemat%smmm%nfvctrp=norb_par_ideal(iproc)
-      sparsemat%smmm%isfvctr=isorb_par_ideal(iproc)
-
-
-      call vcopy(nproc, isvctr_per_task(0), 1, sparsemat%smmm%isvctr_par(0), 1)
-      call vcopy(nproc, nvctrp_per_task(0), 1, sparsemat%smmm%nvctr_par(0), 1)
-
-
       call vcopy(nseg, keyv(1), 1, sparsemat%smmm%keyv(1), 1)
       call vcopy(4*nseg, keyg(1,1,1), 1, sparsemat%smmm%keyg(1,1,1), 1)
 
 
       ! Calculate some auxiliary variables
-      temparr = f_malloc0((/0.to.nproc-1,1.to.2/),id='temparr')
+      temparr = f_malloc0((/0.to.nproc-1,1.to.2/),id='isfvctr_par')
       temparr(iproc,1) = sparsemat%smmm%isfvctr
       temparr(iproc,2) = sparsemat%smmm%nfvctrp
       if (nproc>1) then
           call mpiallred(temparr(0,1), 2*nproc,  mpi_sum, bigdft_mpi%mpi_comm)
       end if
-      !!call init_matrix_parallelization(iproc, nproc, sparsemat%nfvctr, sparsemat%nseg, sparsemat%nvctr, &
-      !!     temparr(0,1), temparr(0,2), sparsemat%istsegline, sparsemat%keyv, &
-      !!     sparsemat%smmm%isvctr_mm, sparsemat%smmm%nvctrp_mm, sparsemat%smmm%isvctr_mm_par, sparsemat%smmm%nvctr_mm_par)
-      !!call init_matrix_parallelization(iproc, nproc, sparsemat%nfvctr, nseg, keyv(nseg)+(keyg(2,1,nseg)-keyg(1,1,nseg)), &
-      !!     temparr(0,1), temparr(0,2), istsegline, keyv, &
-      !!     sparsemat%smmm%isvctr, sparsemat%smmm%nvctrp, sparsemat%smmm%isvctr_par, sparsemat%smmm%nvctr_par)
-      write(*,*) 'iproc, nvctrp', iproc, sparsemat%smmm%nvctrp
-      call transfer_matrix_parallelization(iproc, nproc, sparsemat%nvctr, &
-           nseg, sparsemat%nseg, sparsemat%smmm%isvctr, sparsemat%smmm%nvctrp, keyv, sparsemat%keyv, keyg, sparsemat%keyg, &
+      call init_matrix_parallelization(iproc, nproc, sparsemat%nfvctr, sparsemat%nseg, sparsemat%nvctr, &
+           temparr(0,1), temparr(0,2), sparsemat%istsegline, sparsemat%keyv, &
            sparsemat%smmm%isvctr_mm, sparsemat%smmm%nvctrp_mm, sparsemat%smmm%isvctr_mm_par, sparsemat%smmm%nvctr_mm_par)
-
+      call init_matrix_parallelization(iproc, nproc, sparsemat%nfvctr, nseg, keyv(nseg)+(keyg(2,1,nseg)-keyg(1,1,nseg)), &
+           temparr(0,1), temparr(0,2), istsegline, keyv, &
+           sparsemat%smmm%isvctr, sparsemat%smmm%nvctrp, sparsemat%smmm%isvctr_par, sparsemat%smmm%nvctr_par)
       call f_free(temparr)
 
       ! Get the segments containing the first and last element of a sparse
@@ -814,7 +748,6 @@ contains
           end if
       end do
 
-
       sparsemat%smmm%nseg=nseg
       call vcopy(norb, nsegline(1), 1, sparsemat%smmm%nsegline(1), 1)
       call vcopy(norb, istsegline(1), 1, sparsemat%smmm%istsegline(1), 1)
@@ -826,7 +759,6 @@ contains
       !call get_arrays_for_sequential_acces(norb, norb_par_ideal(iproc), isorb_par_ideal(iproc), nseg, &
       !     nsegline, istsegline, keyg, sparsemat, &
       !     sparsemat%smmm%nseq, sparsemat%smmm%ivectorindex)
-      write(*,'(a,2i8)') 'before get_arrays_for_sequential_acces_new: iproc, nout', iproc, sparsemat%smmm%nout
       call get_arrays_for_sequential_acces_new(sparsemat%smmm%nout, ispt, nseg, sparsemat%smmm%nseq, &
            keyv, keyg, sparsemat, sparsemat%smmm%ivectorindex_new)
       !call init_sequential_acces_matrix(norb, norb_par_ideal(iproc), isorb_par_ideal(iproc), sparsemat%nseg, &
@@ -1742,8 +1674,8 @@ contains
                   if (ivectorindex(ii)>0) ivectorindex(ii) = ivectorindex(ii) - smat%smmm%isvctr
                   if (ivectorindex(ii)<0) then
                       !write(*,'(a,5i8)') 'iproc, iipt, jorb, icolumn, val', bigdft_mpi%iproc, iipt, jorb, iline, matrixindex_in_compressed(smat, jorb, iline)
-                      write(*,'(a,7i8)') 'iproc, iipt, ipt, ispt, jorb, icolumn, val', &
-                          bigdft_mpi%iproc, iipt, ipt, ispt, jorb, iline, &
+                      write(*,'(a,5i8)') 'iproc, iipt, jorb, icolumn, val', &
+                          bigdft_mpi%iproc, iipt, jorb, iline, &
                           matrixindex_in_compressed_fn(jorb, iline, smat%nfvctr, nseg, keyv, keyg)
                       stop 'ivectorindex(ii)<0'
                   end if
@@ -1926,91 +1858,6 @@ contains
       end do
 
     end subroutine init_matrix_parallelization
-
-
-
-    subroutine transfer_matrix_parallelization(iproc, nproc, nfvctr, &
-               nseg_l, nseg_s, isvctr_l, nvctrp_l, keyv_l, keyv_s, keyg_l, keyg_s, &
-               isvctr_s, nvctrp_s, isvctr_par_s, nvctr_par_s)
-      implicit none
-
-      ! Calling arguments
-      integer,intent(in) :: iproc, nproc, nfvctr, nseg_l, nseg_s, isvctr_l, nvctrp_l
-      integer,dimension(nseg_l),intent(in) :: keyv_l
-      integer,dimension(nseg_s),intent(in) :: keyv_s
-      integer,dimension(2,2,nseg_l),intent(in) :: keyg_l
-      integer,dimension(2,2,nseg_s),intent(in) :: keyg_s
-      integer,intent(out) :: isvctr_s, nvctrp_s
-      integer,dimension(0:nproc-1),intent(out) :: isvctr_par_s, nvctr_par_s
-      
-      ! Local variables
-      integer :: iel, i, ii, ind, jproc, iline, icolumn
-
-
-      iel = 0
-      do i=1,nvctrp_l
-        ii = isvctr_l + i
-        call get_line_and_column(ii, nseg_l, keyv_l, keyg_l, iline, icolumn)
-        ind = matrixindex_in_compressed_fn(icolumn, iline, nfvctr, nseg_s, keyv_s, keyg_s)
-        if (ind>0) then
-            ! This entry is also present in the small sparsity pattern
-            iel = iel + 1
-        end if
-      end do
-
-      nvctrp_s = iel
-      call f_zero(nvctr_par_s)
-      nvctr_par_s(iproc) = nvctrp_s
-      call mpiallred(nvctr_par_s(0), nproc, mpi_sum, bigdft_mpi%mpi_comm)
-
-      isvctr_par_s(0) = 0
-      do jproc=1,nproc-1
-          isvctr_par_s(jproc) = isvctr_par_s(jproc-1) + nvctr_par_s(jproc-1)
-      end do
-      isvctr_s = isvctr_par_s(iproc)
-
-        contains
-
-        ! Function that gives the index of the matrix element (jjorb,iiorb) in the compressed format.
-        ! Cannot use the standard function since that one requires a type
-        ! sparse_matrix as argument.
-        integer function matrixindex_in_compressed_fn(irow, jcol, norb, nseg, keyv, keyg) result(micf)
-          implicit none
-
-          ! Calling arguments
-          integer,intent(in) :: irow, jcol, norb, nseg
-          integer,dimension(nseg),intent(in) :: keyv
-          integer,dimension(2,2,nseg),intent(in) :: keyg
-
-          ! Local variables
-          integer(kind=8) :: ii, istart, iend
-          integer :: iseg
-
-          ii = int((jcol-1),kind=8)*int(norb,kind=8)+int(irow,kind=8)
-
-          do iseg=1,nseg
-              istart = int((keyg(1,2,iseg)-1),kind=8)*int(norb,kind=8) + &
-                       int(keyg(1,1,iseg),kind=8)
-              iend = int((keyg(2,2,iseg)-1),kind=8)*int(norb,kind=8) + &
-                     int(keyg(2,1,iseg),kind=8)
-              if (ii>=istart .and. ii<=iend) then
-                  ! The matrix element is in this segment
-                   micf = keyv(iseg) + int(ii-istart,kind=4)
-                  return
-              end if
-              if (ii<istart) then
-                  micf=0
-                  return
-              end if
-          end do
-
-          ! Not found
-          micf=0
-
-        end function matrixindex_in_compressed_fn
-
-
-    end subroutine transfer_matrix_parallelization
 
 
     subroutine init_matrix_taskgroups(iproc, nproc, parallel_layout, collcom, collcom_sr, smat, iirow, iicol)
