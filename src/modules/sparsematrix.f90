@@ -2000,7 +2000,9 @@ module sparsematrix
      c_compr = f_malloc0(smat%smmm%nvctrp,id='c_compr')
      do i=1,smat%smmm%nvctrp
          ii = smat%smmm%isvctr + i
-         call get_line_and_column(ii, smat%smmm%nseg, smat%smmm%keyv, smat%smmm%keyg, iline, icolumn)
+         !!call get_line_and_column(ii, smat%smmm%nseg, smat%smmm%keyv, smat%smmm%keyg, iline, icolumn)
+         iline = smat%smmm%line_and_column(1,i)
+         icolumn = smat%smmm%line_and_column(2,i)
          if (icolumn<1) then
              write(*,'(a,5i8)') 'iproc, i, ii, iline, icolumn', bigdft_mpi%iproc, i, ii, iline, icolumn
              !stop
@@ -2010,7 +2012,9 @@ module sparsematrix
      call sparsemm_new(smat, a_seq, b_compr, c_compr)
      do i=1,smat%smmm%nvctrp
          ii = smat%smmm%isvctr + i
-         call get_line_and_column(ii, smat%smmm%nseg, smat%smmm%keyv, smat%smmm%keyg, iline, icolumn)
+         !!call get_line_and_column(ii, smat%smmm%nseg, smat%smmm%keyv, smat%smmm%keyg, iline, icolumn)
+         iline = smat%smmm%line_and_column(1,i)
+         icolumn = smat%smmm%line_and_column(2,i)
          c(icolumn,iline-smat%smmm%isfvctr) = c_compr(i)
          write(400,*) 'i, j, val', icolumn,iline-smat%smmm%isfvctr, b(icolumn,iline-smat%smmm%isfvctr), i
          write(500,*) 'i, j, val', icolumn,iline-smat%smmm%isfvctr, c(icolumn,iline-smat%smmm%isfvctr), i
@@ -2061,7 +2065,9 @@ module sparsematrix
          tt0=0.d0
 
          iend=ii+ilen-1
-         call get_line_and_column(ii, smat%smmm%nseg, smat%smmm%keyv, smat%smmm%keyg, iline, icolumn)
+         !!!!call get_line_and_column(ii, smat%smmm%nseg, smat%smmm%keyv, smat%smmm%keyg, iline, icolumn)
+         !!iline = smat%smmm%line_and_column(1,i)
+         !!icolumn = smat%smmm%line_and_column(2,i)
 
          do jorb=ii,iend
             jjorb=smat%smmm%ivectorindex_new(jorb)

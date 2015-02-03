@@ -972,8 +972,11 @@ subroutine foe(iproc, nproc, tmprtr, &
 
           trace = 0.d0
           do i=1,tmb%linmat%l%smmm%nvctrp_mm
-              ii = tmb%linmat%l%smmm%isvctr_mm + i
-              call get_line_and_column(ii, tmb%linmat%l%nseg, tmb%linmat%l%keyv, tmb%linmat%l%keyg, iline, icolumn)
+              !!ii = tmb%linmat%l%smmm%isvctr_mm + i
+              !!call get_line_and_column(ii, tmb%linmat%l%nseg, tmb%linmat%l%keyv, tmb%linmat%l%keyg, iline, icolumn)
+              !if (iline==icolumn) then
+              iline = tmb%linmat%l%smmm%line_and_column(1,i)
+              icolumn = tmb%linmat%l%smmm%line_and_column(2,i)
               if (iline==icolumn) then
                   !write(901,*) iiorb, matrixp(i)
                   trace = trace + matrixp(i)
@@ -2409,7 +2412,9 @@ subroutine check_eigenvalue_spectrum_new(nproc, smat_l, smat_s, mat, ispin, issh
 
       do i=1,smat_l%smmm%nvctrp
           ii = smat_l%smmm%isvctr + i
-          call get_line_and_column(ii, smat_l%smmm%nseg, smat_l%smmm%keyv, smat_l%smmm%keyg, iline, icolumn)
+          !call get_line_and_column(ii, smat_l%smmm%nseg, smat_l%smmm%keyv, smat_l%smmm%keyg, iline, icolumn)
+          iline = smat_l%smmm%line_and_column(1,i)
+          icolumn = smat_l%smmm%line_and_column(2,i)
           !!iismall = matrixindex_in_compressed_fn(icolumn, iline, &
           !!          smat_s%nfvctr, smat_l%smmm%nseg_mm, smat_l%smmm%keyv_mm, smat_l%smmm%keyg_mm)
           iismall = matrixindex_in_compressed(smat_s, icolumn, iline)

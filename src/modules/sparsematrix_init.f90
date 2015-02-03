@@ -574,7 +574,7 @@ contains
       type(sparse_matrix),intent(inout) :: sparsemat
 
       integer :: ierr, jproc, iorb, jjproc, iiorb, nseq_min, nseq_max, iseq, ind, ii, iseg, ncount
-      integer :: iiseg, i, iel, ilen_seg, ist_seg, iend_seg, ispt
+      integer :: iiseg, i, iel, ilen_seg, ist_seg, iend_seg, ispt, iline, icolumn
       integer,dimension(:),allocatable :: nseq_per_line, norb_par_ideal, isorb_par_ideal, nout_par, nseq_per_pt
       integer,dimension(:,:),allocatable :: istartend_dj, istartend_mm
       integer,dimension(:,:),allocatable :: temparr
@@ -704,10 +704,10 @@ contains
       call f_free(nseq_per_pt)
       call f_free(rseq_per_line)
 
+
       call allocate_sparse_matrix_matrix_multiplication(nproc, norb, nseg, nsegline, istsegline, sparsemat%smmm)
       call vcopy(nseg, keyv(1), 1, sparsemat%smmm%keyv(1), 1)
       call vcopy(4*nseg, keyg(1,1,1), 1, sparsemat%smmm%keyg(1,1,1), 1)
-
 
       ! Calculate some auxiliary variables
       temparr = f_malloc0((/0.to.nproc-1,1.to.2/),id='isfvctr_par')
@@ -719,10 +719,25 @@ contains
       call init_matrix_parallelization(iproc, nproc, sparsemat%nfvctr, sparsemat%nseg, sparsemat%nvctr, &
            temparr(0,1), temparr(0,2), sparsemat%istsegline, sparsemat%keyv, &
            sparsemat%smmm%isvctr_mm, sparsemat%smmm%nvctrp_mm, sparsemat%smmm%isvctr_mm_par, sparsemat%smmm%nvctr_mm_par)
+
+      ! Would be better if this were in the wrapper above...
+      sparsemat%smmm%line_and_column=f_malloc_ptr((/2,sparsemat%smmm%nvctrp_mm/),id='smmm%line_and_column')
+
       call init_matrix_parallelization(iproc, nproc, sparsemat%nfvctr, nseg, keyv(nseg)+(keyg(2,1,nseg)-keyg(1,1,nseg)), &
            temparr(0,1), temparr(0,2), istsegline, keyv, &
            sparsemat%smmm%isvctr, sparsemat%smmm%nvctrp, sparsemat%smmm%isvctr_par, sparsemat%smmm%nvctr_par)
       call f_free(temparr)
+
+
+      ! Init line_and_column
+      do i=1,sparsemat%smmm%nvctrp_mm
+          ii = sparsemat%smmm%isvctr_mm + i
+          call get_line_and_column(ii, sparsemat%nseg, sparsemat%keyv, sparsemat%keyg, iline, icolumn)
+          sparsemat%smmm%line_and_column(1,i) = iline
+          sparsemat%smmm%line_and_column(2,i) = icolumn
+      end do
+
+
 
       ! Get the segments containing the first and last element of a sparse
       ! matrix after a multiplication

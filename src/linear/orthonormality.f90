@@ -998,8 +998,10 @@ subroutine overlapPowerGeneral(iproc, nproc, iorder, ncalc, power, blocksize, im
               !!end do
               do iorb=1,inv_ovrlp_smat%smmm%nvctrp
                   ii = inv_ovrlp_smat%smmm%isvctr + iorb
-                  call get_line_and_column(ii, inv_ovrlp_smat%smmm%nseg, inv_ovrlp_smat%smmm%keyv, &
-                       inv_ovrlp_smat%smmm%keyg, iline, icolumn)
+                  !!call get_line_and_column(ii, inv_ovrlp_smat%smmm%nseg, inv_ovrlp_smat%smmm%keyv, &
+                  !!     inv_ovrlp_smat%smmm%keyg, iline, icolumn)
+                  iline = inv_ovrlp_smat%smmm%line_and_column(1,i)
+                  icolumn = inv_ovrlp_smat%smmm%line_and_column(2,i)
                   if (iline==icolumn) then
                       !write(*,*) 'iorb, ii, iline, icolumn', iorb, ii, iline, icolumn
                       Amat21p_new(iorb)=1.0d0
@@ -1036,8 +1038,10 @@ subroutine overlapPowerGeneral(iproc, nproc, iorder, ncalc, power, blocksize, im
                   !!end do
                   do iorb=1,inv_ovrlp_smat%smmm%nvctrp
                       ii = inv_ovrlp_smat%smmm%isvctr + iorb
-                      call get_line_and_column(ii, inv_ovrlp_smat%smmm%nseg, &
-                           inv_ovrlp_smat%smmm%keyv, inv_ovrlp_smat%smmm%keyg, iline, icolumn)
+                      !!call get_line_and_column(ii, inv_ovrlp_smat%smmm%nseg, &
+                      !!     inv_ovrlp_smat%smmm%keyv, inv_ovrlp_smat%smmm%keyg, iline, icolumn)
+                      iline = inv_ovrlp_smat%smmm%line_and_column(1,i)
+                      icolumn = inv_ovrlp_smat%smmm%line_and_column(2,i)
                       if (iline==icolumn) then
                           Amat11p_new(iorb)=Amat11p_new(iorb)+1.5d0
                       end if
@@ -1679,6 +1683,8 @@ use sparsematrix_init, only: get_line_and_column
      do i=1,smat%smmm%nvctrp
          ii = smat%smmm%isvctr + i
          call get_line_and_column(ii, smat%smmm%nseg, smat%smmm%keyv, smat%smmm%keyg, iline, icolumn)
+         !!iline = smat%smmm%line_and_column(1,i)
+         !!icolumn = smat%smmm%line_and_column(2,i)
          if (iline==icolumn) then
              inv_ovrlpp(i) = 2.d0 - ovrlpp(i)
          else
@@ -1702,6 +1708,8 @@ use sparsematrix_init, only: get_line_and_column
      do i=1,smat%smmm%nvctrp
          ii = smat%smmm%isvctr + i
          call get_line_and_column(ii, smat%smmm%nseg, smat%smmm%keyv, smat%smmm%keyg, iline, icolumn)
+         !!iline = smat%smmm%line_and_column(1,i)
+         !!icolumn = smat%smmm%line_and_column(2,i)
          if (iline==icolumn) then
              inv_ovrlpp(i) = 0.5d0 + 0.5d0*ovrlpp(i)
          else
@@ -1725,6 +1733,8 @@ use sparsematrix_init, only: get_line_and_column
      do i=1,smat%smmm%nvctrp
          ii = smat%smmm%isvctr + i
          call get_line_and_column(ii, smat%smmm%nseg, smat%smmm%keyv, smat%smmm%keyg, iline, icolumn)
+         !!iline = smat%smmm%line_and_column(1,i)
+         !!icolumn = smat%smmm%line_and_column(2,i)
          if (iline==icolumn) then
              inv_ovrlpp(i) = 1.5d0 - 0.5d0*ovrlpp(i)
          else
@@ -2348,7 +2358,9 @@ subroutine max_matrix_diff_parallel_new(iproc, norb, norbp, isorb, mat1, mat2, &
 
   do i=1,smat%smmm%nvctrp
       ii = smat%smmm%isvctr + i
-      call get_line_and_column(ii, smat%smmm%nseg, smat%smmm%keyv, smat%smmm%keyg, iline, icolumn)
+      !!call get_line_and_column(ii, smat%smmm%nseg, smat%smmm%keyv, smat%smmm%keyg, iline, icolumn)
+      iline = smat%smmm%line_and_column(1,i)
+      icolumn = smat%smmm%line_and_column(2,i)
       ind=matrixindex_in_compressed(smat,icolumn,iline)
       if (ind>0) then
           ! This entry is within the sparsity pattern, i.e. it matters for the error.
@@ -2524,7 +2536,9 @@ subroutine deviation_from_unity_parallel_new(iproc, nproc, norb, norbp, isorb, o
 
   do i=1,smat%smmm%nvctrp
       ii = smat%smmm%isvctr + i
-      call get_line_and_column(ii, smat%smmm%nseg, smat%smmm%keyv, smat%smmm%keyg, iline, icolumn)
+      !!call get_line_and_column(ii, smat%smmm%nseg, smat%smmm%keyv, smat%smmm%keyg, iline, icolumn)
+      iline = smat%smmm%line_and_column(1,i)
+      icolumn = smat%smmm%line_and_column(2,i)
       ind=matrixindex_in_compressed(smat,icolumn,iline)
       if (ind>0) then
           ! This entry is within the sparsity pattern, i.e. it matters for the error.
