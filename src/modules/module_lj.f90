@@ -11,8 +11,40 @@ module module_lj
     private
 
     public lenjon
+    public init_lj
 
 contains
+!=====================================================================
+subroutine init_lj(paramset,paramfile,units)
+    use module_base
+    use yaml_output
+    implicit none
+    !parameters
+    character(len=*), intent(in) :: paramset
+    character(len=*), intent(in) :: paramfile
+    character(len=*), intent(in) :: units
+    !local
+    call yaml_comment('Initializing LJ',hfill='-')
+    if(units/= 'atomicd0' .and. &
+        units/= 'atomic' .and. &
+        units/= 'bohrd0' .and. &
+        units/= 'bohr')then
+        call f_err_throw('For LJ, units must be atomic(d0) or bohr(d0)')
+    endif
+    call yaml_scalar('Unit checks passed.')
+    if(trim(paramfile)/='none')then
+        call f_err_throw('Reading Parameters from file not '//&
+             'implemented for LJ')
+    else
+        select case(trim(paramset))
+        case('default')
+            call yaml_scalar('Using normalized Units for LJ (sigma=1, epsilon=1)')
+        case default
+            call f_err_throw('Following parameter set for LJ force field '//&
+                'is unknown: '//trim(paramset))
+        end select
+    endif
+end subroutine
 !=====================================================================
 subroutine lenjon(nat,rxyz,fxyz,epot)
     use module_defs, only: gp

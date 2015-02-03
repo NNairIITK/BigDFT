@@ -265,12 +265,12 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
           ishifts = (ispin-1)*tmb%linmat%s%nvctrp_tg
           ishiftm = (ispin-1)*tmb%linmat%m%nvctrp_tg
           call f_zero(tmb%linmat%m%nfvctr**2, tmb%linmat%ham_%matrix(1,1,ispin))
-          tempmat = sparsematrix_malloc(tmb%linmat%m, iaction=DENSE_MATMUL, id='tempmat')
-          call uncompress_matrix_distributed2(iproc, tmb%linmat%m, DENSE_MATMUL, &
+          tempmat = sparsematrix_malloc(tmb%linmat%m, iaction=DENSE_PARALLEL, id='tempmat')
+          call uncompress_matrix_distributed2(iproc, tmb%linmat%m, DENSE_PARALLEL, &
                tmb%linmat%ham_%matrix_compr(ishiftm+1:ishiftm+tmb%linmat%m%nvctrp_tg), tempmat)
-          if (tmb%linmat%m%smmm%nfvctrp>0) then
-              call vcopy(tmb%linmat%m%nfvctr*tmb%linmat%m%smmm%nfvctrp, tempmat(1,1), 1, &
-                   tmb%linmat%ham_%matrix(1,tmb%linmat%m%smmm%isfvctr+1,ispin), 1)
+          if (tmb%linmat%m%nfvctrp>0) then
+              call vcopy(tmb%linmat%m%nfvctr*tmb%linmat%m%nfvctrp, tempmat(1,1), 1, &
+                   tmb%linmat%ham_%matrix(1,tmb%linmat%m%isfvctr+1,ispin), 1)
           end if
           call f_free(tempmat)
           if (nproc>1) then
@@ -279,12 +279,12 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
           end if
 
           call f_zero(tmb%linmat%s%nfvctr**2, tmb%linmat%ovrlp_%matrix(1,1,ispin))
-          tempmat = sparsematrix_malloc(tmb%linmat%s, iaction=DENSE_MATMUL, id='tempmat')
-          call uncompress_matrix_distributed2(iproc, tmb%linmat%s, DENSE_MATMUL, &
+          tempmat = sparsematrix_malloc(tmb%linmat%s, iaction=DENSE_PARALLEL, id='tempmat')
+          call uncompress_matrix_distributed2(iproc, tmb%linmat%s, DENSE_PARALLEL, &
                tmb%linmat%ovrlp_%matrix_compr(ishifts+1:), tempmat)
-          if (tmb%linmat%m%smmm%nfvctrp>0) then
-              call vcopy(tmb%linmat%s%nfvctr*tmb%linmat%s%smmm%nfvctrp, tempmat(1,1), 1, &
-                   tmb%linmat%ovrlp_%matrix(1,tmb%linmat%s%smmm%isfvctr+1,ispin), 1)
+          if (tmb%linmat%m%nfvctrp>0) then
+              call vcopy(tmb%linmat%s%nfvctr*tmb%linmat%s%nfvctrp, tempmat(1,1), 1, &
+                   tmb%linmat%ovrlp_%matrix(1,tmb%linmat%s%isfvctr+1,ispin), 1)
           end if
           call f_free(tempmat)
           if (nproc>1) then
@@ -3168,6 +3168,7 @@ subroutine renormalize_kernel(iproc, nproc, order_taylor, max_inversion_error, t
   !!real(8) :: tr
   !!integer :: ind, iorb
 
+
   call f_routine(id='renormalize_kernel')
 
   !!inv_ovrlp%matrix_compr = sparsematrix_malloc_ptr(tmb%linmat%l, &
@@ -3183,7 +3184,12 @@ subroutine renormalize_kernel(iproc, nproc, order_taylor, max_inversion_error, t
   ! Calculate S^1/2 * K * S^1/2. Take the value of S^1/2 from memory (was
   ! calculated in the last call to this routine or (it it is the first call)
   ! just before the call.
-  call retransform_local(tmb%linmat%ovrlppowers_(1))
+  !!call retransform_local(tmb%linmat%ovrlppowers_(1))
+  !!call retransform_ext(iproc, nproc, tmb%linmat%l, &
+  !!     tmb%linmat%kernel_%matrix_compr, tmb%linmat%ovrlppowers_(1)%matrix_compr)
+  call retransform_ext(iproc, nproc, tmb%linmat%l, &
+       tmb%linmat%ovrlppowers_(1)%matrix_compr, tmb%linmat%kernel_%matrix_compr)
+
 
   ! Calculate S^1/2 for the overlap matrix
   call overlapPowerGeneral(iproc, nproc, order_taylor, 3, (/2,-2,1/), -1, &
@@ -3208,7 +3214,11 @@ subroutine renormalize_kernel(iproc, nproc, order_taylor, max_inversion_error, t
   !!call check_taylor_order(mean_error, max_inversion_error, order_taylor)
 
   ! Calculate S^-1/2 * K * S^-1/2
-  call retransform_local(tmb%linmat%ovrlppowers_(2))
+  !!call retransform_local(tmb%linmat%ovrlppowers_(2))
+  !!call retransform_ext(iproc, nproc, tmb%linmat%l, &
+  !!     tmb%linmat%kernel_%matrix_compr, tmb%linmat%ovrlppowers_(2)%matrix_compr)
+  call retransform_ext(iproc, nproc, tmb%linmat%l, &
+       tmb%linmat%ovrlppowers_(2)%matrix_compr, tmb%linmat%kernel_%matrix_compr)
 
 
   call f_free_ptr(inv_ovrlpp)
@@ -3219,40 +3229,40 @@ subroutine renormalize_kernel(iproc, nproc, order_taylor, max_inversion_error, t
 
   call f_release_routine()
 
-  contains
+  !!contains
 
-      subroutine retransform_local(mat)
-          use sparsematrix, only: sequential_acces_matrix_fast2, sparsemm, &
-               uncompress_matrix_distributed2, compress_matrix_distributed, &
-               sequential_acces_matrix_fast
-          type(matrices),intent(in) :: mat
-          integer :: ncount
+  !!    subroutine retransform_local(mat)
+  !!        use sparsematrix, only: sequential_acces_matrix_fast2, sparsemm, &
+  !!             uncompress_matrix_distributed2, compress_matrix_distributed, &
+  !!             sequential_acces_matrix_fast
+  !!        type(matrices),intent(in) :: mat
+  !!        integer :: ncount
 
-          call f_routine(id='retransform_local')
+  !!        call f_routine(id='retransform_local')
 
-          call sequential_acces_matrix_fast2(tmb%linmat%l, tmb%linmat%kernel_%matrix_compr, kernel_compr_seq)
-          call sequential_acces_matrix_fast2(tmb%linmat%l, &
-               mat%matrix_compr, inv_ovrlp_compr_seq)
-          call uncompress_matrix_distributed2(iproc, tmb%linmat%l, DENSE_MATMUL, &
-               mat%matrix_compr, inv_ovrlpp)
+  !!        call sequential_acces_matrix_fast2(tmb%linmat%l, tmb%linmat%kernel_%matrix_compr, kernel_compr_seq)
+  !!        call sequential_acces_matrix_fast2(tmb%linmat%l, &
+  !!             mat%matrix_compr, inv_ovrlp_compr_seq)
+  !!        call uncompress_matrix_distributed2(iproc, tmb%linmat%l, DENSE_MATMUL, &
+  !!             mat%matrix_compr, inv_ovrlpp)
 
-          ncount=tmb%linmat%l%nfvctr*tmb%linmat%l%smmm%nfvctrp
-          if (ncount>0) then
-              call f_zero(ncount, tempp(1,1))
-          end if
-          call sparsemm(tmb%linmat%l, kernel_compr_seq, inv_ovrlpp, tempp)
-          if (ncount>0) then
-              call f_zero(ncount, inv_ovrlpp(1,1))
-          end if
-          call sparsemm(tmb%linmat%l, inv_ovrlp_compr_seq, tempp, inv_ovrlpp)
+  !!        ncount=tmb%linmat%l%nfvctr*tmb%linmat%l%smmm%nfvctrp
+  !!        if (ncount>0) then
+  !!            call f_zero(ncount, tempp(1,1))
+  !!        end if
+  !!        call sparsemm(tmb%linmat%l, kernel_compr_seq, inv_ovrlpp, tempp)
+  !!        if (ncount>0) then
+  !!            call f_zero(ncount, inv_ovrlpp(1,1))
+  !!        end if
+  !!        call sparsemm(tmb%linmat%l, inv_ovrlp_compr_seq, tempp, inv_ovrlpp)
 
-          !call f_zero(tmb%linmat%l%nvctr, tmb%linmat%kernel_%matrix_compr(1))
-          call compress_matrix_distributed(iproc, nproc, tmb%linmat%l, DENSE_MATMUL, &
-               inv_ovrlpp, tmb%linmat%kernel_%matrix_compr)
+  !!        !call f_zero(tmb%linmat%l%nvctr, tmb%linmat%kernel_%matrix_compr(1))
+  !!        call compress_matrix_distributed(iproc, nproc, tmb%linmat%l, DENSE_MATMUL, &
+  !!             inv_ovrlpp, tmb%linmat%kernel_%matrix_compr)
 
-          call f_release_routine()
+  !!        call f_release_routine()
 
-      end subroutine retransform_local
+  !!    end subroutine retransform_local
 
 end subroutine renormalize_kernel
 

@@ -288,6 +288,9 @@ subroutine read_jobs(uinp,mhgpsst)
                      trim(adjustl(mhgpsst%joblist(1,iline))))
                 mhgpsst%njobs=mhgpsst%njobs+1
             enddo
+        else
+            call f_err_throw('Operationmode '//&
+                 trim(adjustl(uinp%operation_mode))//' unknown.')
         endif
         close(u)
     else
@@ -318,6 +321,9 @@ subroutine read_jobs(uinp,mhgpsst)
                 if(.not.fexists)exit
                 mhgpsst%njobs=mhgpsst%njobs+1
             enddo
+        else
+            call f_err_throw('Operationmode '//&
+                 trim(adjustl(uinp%operation_mode))//' unknown.')
         endif
     endif
 
@@ -451,10 +457,11 @@ subroutine print_logo_mhgps(mhgpsst)
     call yaml_scalar('(MHGPS)')
     !call print_logo()
     call yaml_mapping_close()
-    call yaml_mapping_open('(MHGPS) Reference Paper')
-    call yaml_scalar('(MHGPS) The Journal of Chemical Physics 140 (21):214102 (2014)')
+    call yaml_mapping_open('(MHGPS) Reference Papers')
+    call yaml_scalar('(MHGPS) The Journal of Chemical Physics 140, 214102 (2014)')
+    call yaml_scalar('(MHGPS) The Journal of Chemical Physics 142, 034112 (2015)')
     call yaml_mapping_close()
-    call yaml_map('(MHGPS) Version Number',mhgpsst%mhgps_version)
+    call yaml_map('(MHGPS) Version Number',trim(adjustl(mhgpsst%mhgps_version)))
     call yaml_map('(MHGPS) Timestamp of this run',yaml_date_and_time_toa())
 end subroutine print_logo_mhgps
 

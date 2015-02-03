@@ -437,7 +437,7 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
   ! This is of course only necessary if we are using steepest descent and not DIIS.
   ! if newgradient is true, the angle criterion cannot be used and the choice whether to
   ! decrease or increase the step size is only based on the fact whether the trace decreased or increased.
-  fnrm%sendbuf=0.d0
+  fnrm%sendbuf(1)=0.d0
   fnrmOvrlp_tot=0.d0
   fnrmOld_tot=0.d0
   ist=1
@@ -446,11 +446,10 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
       ilr=tmb%orbs%inwhichlocreg(iiorb)
       ncount=tmb%lzd%llr(ilr)%wfd%nvctr_c+7*tmb%lzd%llr(ilr)%wfd%nvctr_f
       tt = ddot(ncount, tmb%hpsi(ist), 1, tmb%hpsi(ist), 1)
-      fnrm%sendbuf = fnrm%sendbuf + tt
+      fnrm%sendbuf(1) = fnrm%sendbuf(1) + tt
       if(it>1) then
           tt2=ddot(ncount, tmb%hpsi(ist), 1, lhphiold(ist), 1)
           fnrmOvrlp_tot = fnrmOvrlp_tot + tt2
-          !if (iorb==1) write(*,*) 'iproc, trH, trHold, ldiis%switchSD', iproc, trH, trHold, ldiis%switchSD
           if(ldiis%isx==0 .and. .not.ldiis%switchSD) then
               ! Adapt step size for the steepest descent minimization.
               if (.not.experimental_mode) then
@@ -476,9 +475,9 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
       !do iorb=1,tmb%orbs%norbp
       !    fnrmOld_tot=fnrmOld_tot+fnrmOldArr(iorb)
       !end do
+      reducearr(1) = fnrmOvrlp_tot
+      reducearr(2) = fnrm%sendbuf(1)
       if (nproc>1) then
-          reducearr(1) = fnrmOvrlp_tot
-          reducearr(2) = fnrm%sendbuf(1)
           call mpiallred(reducearr(1), 2, mpi_sum, bigdft_mpi%mpi_comm)
       end if
       !tt2=fnrmOvrlp_tot/sqrt(fnrm*fnrmOld_tot)

@@ -90,24 +90,26 @@ module module_interpol
 
 contains
 !=====================================================================
-subroutine lstpthpnt(nat,mhgpsst,uinp,rxyzR,rxyzP,lambda,rxyz)
+subroutine lstpthpnt(runObj,mhgpsst,uinp,rxyzR,rxyzP,lambda,rxyz)
 !returns rxyz which is a point on the
 !linear synchronous transit path
 !corresponding to the interpolation parameter
 !lambda
     use module_base
+    use bigdft_run
+    use module_forces
     use module_mhgps_state
     use module_userinput
 !!    use lst_penalty_wrapper
     implicit none
     !parameters
+    type(run_objects), intent(in) :: runObj
     type(mhgps_state), intent(in) :: mhgpsst
-    integer, intent(in) :: nat
     type(userinput), intent(in) :: uinp
-    real(gp), intent(in) :: rxyzR(3,nat) !reactant
-    real(gp), intent(in) :: rxyzP(3,nat) !product
+    real(gp), intent(in) :: rxyzR(3,runObj%atoms%astruct%nat) !reactant
+    real(gp), intent(in) :: rxyzP(3,runObj%atoms%astruct%nat) !product
     real(gp), intent(in) :: lambda       !interpol. parameter
-    real(gp), intent(out) :: rxyz(3,nat)  !the positon on the
+    real(gp), intent(out) :: rxyz(3,runObj%atoms%astruct%nat)  !the positon on the
                                           !linear synchr. transit
                                           !path that corresponds
                                           !to lambda
@@ -115,7 +117,8 @@ subroutine lstpthpnt(nat,mhgpsst,uinp,rxyzR,rxyzP,lambda,rxyz)
     real(gp) :: oml
 !    real(gp), parameter :: fmax_tol=1.e-4_gp
 !    real(gp), parameter :: fmax_tol=5.e-3_gp
-    real(gp) :: fxyz(3,nat), epot
+    real(gp) :: fxyz(3,runObj%atoms%astruct%nat), epot
+    real(gp) :: drxyz(3,runObj%atoms%astruct%nat)
 
 !<-DEBUG START------------------------------------------------------>
 !character(len=5) :: fc5
@@ -126,7 +129,7 @@ subroutine lstpthpnt(nat,mhgpsst,uinp,rxyzR,rxyzP,lambda,rxyz)
 !character(len=5):: xat(22)
 !<-DEBUG END-------------------------------------------------------->
 
-    oml = 1._gp-lambda
+!    oml = 1._gp-lambda
 
 !<-DEBUG START------------------------------------------------------>
 !ic=ic+1
@@ -146,7 +149,16 @@ subroutine lstpthpnt(nat,mhgpsst,uinp,rxyzR,rxyzP,lambda,rxyz)
 
 
     !input guess
-    rxyz = oml*rxyzR+lambda*rxyzP
+!    rxyz = oml*rxyzR+lambda*rxyzP
+
+    drxyz = rxyzP-rxyzR
+    !clean forces is just a precaution. In principle
+    !the coressponding frozen coordinates should already be
+    !identical in rxyzP and rxyzR
+    call clean_forces_base(runObj%atoms,drxyz)
+
+    rxyz = rxyzR + lambda * drxyz
+
 !<-DEBUG START------------------------------------------------------>
 !if(mod(ic,10)==0)then
 !write(fc5,'(i5.5)')ic
@@ -163,7 +175,7 @@ subroutine lstpthpnt(nat,mhgpsst,uinp,rxyzR,rxyzP,lambda,rxyz)
 !endif
 !<-DEBUG END-------------------------------------------------------->
 !    call init_lst_wrapper(nat,rxyzR,rxyzP,lambda)
-    call fire(mhgpsst,uinp,nat,rxyzR,rxyzP,lambda,rxyz,fxyz,epot)
+    call fire(mhgpsst,uinp,runObj,rxyzR,rxyzP,lambda,rxyz,fxyz,epot)
 !    call finalize_lst_wrapper()
 !<-DEBUG START------------------------------------------------------>
 !if(mod(ic,10)==0)then
@@ -201,9 +213,10 @@ subroutine lstpthpnt(nat,mhgpsst,uinp,rxyzR,rxyzP,lambda,rxyz)
 
 
 !=====================================================================
-subroutine lst_penalty(nat,rxyzR,rxyzP,rxyz,lambda,val,force)
+subroutine lst_penalty(runObj,rxyzR,rxyzP,rxyz,lambda,val,force)
     !computes the linear synchronous penalty function
     !and gradient
+    !openmp parallelized
     !
     !see:
     !
@@ -226,18 +239,20 @@ subroutine lst_penalty(nat,rxyzR,rxyzP,rxyz,lambda,val,force)
     !notebook (paper version) from June 18th, 2014
     !
     use module_base
+    use bigdft_run
+    use module_forces
     implicit none
     !parameters
-    integer, intent(in)  :: nat
-    real(gp), intent(in) :: rxyzR(3,nat) !reactant
-    real(gp), intent(in) :: rxyzP(3,nat) !product
-    real(gp), intent(in) :: rxyz(3,nat)  !the positon at which
+    type(run_objects), intent(in) :: runObj
+    real(gp), intent(in) :: rxyzR(3,runObj%atoms%astruct%nat) !reactant
+    real(gp), intent(in) :: rxyzP(3,runObj%atoms%astruct%nat) !product
+    real(gp), intent(in) :: rxyz(3,runObj%atoms%astruct%nat)  !the positon at which
     !the penalty fct. is to
     !be evaluated
     real(gp), intent(in)  :: lambda !interpolation parameter
     !(0<=lambda<=1)
     real(gp), intent(out) :: val  !the value of the penalty function
-    real(gp), intent(out) :: force(3,nat) !the negative gradient of
+    real(gp), intent(out) :: force(3,runObj%atoms%astruct%nat) !the negative gradient of
     !the penal. fct. at
     !rxyz
     !internal
@@ -260,8 +275,11 @@ subroutine lst_penalty(nat,rxyzR,rxyzP,rxyz,lambda,val,force)
     oml=1.0_gp-lambda!one minus lambda
     val=0.0_gp!function value
     force=0.0_gp!negative gradient
+    !$omp parallel default(private) shared(runObj, rxyzR, rxyzP, rxyz, &
+    !$omp val, force, oml, lambda)
+    !$omp do schedule(dynamic) reduction(+:force,val)
     !first sum
-    do b = 1, nat-1
+    do b = 1, runObj%atoms%astruct%nat-1
        rxRb = rxyzR(1,b)
        ryRb = rxyzR(2,b)
        rzRb = rxyzR(3,b)
@@ -271,7 +289,7 @@ subroutine lst_penalty(nat,rxyzR,rxyzP,rxyz,lambda,val,force)
        rxb = rxyz(1,b)
        ryb = rxyz(2,b)
        rzb = rxyz(3,b)
-       do a = b+1, nat
+       do a = b+1, runObj%atoms%astruct%nat
           !compute interatomic distances of reactant
           rabR = (rxyzR(1,a)-rxRb)**2+&
                (rxyzR(2,a)-ryRb)**2+&
@@ -307,9 +325,11 @@ subroutine lst_penalty(nat,rxyzR,rxyzP,rxyz,lambda,val,force)
           force(3,a) = force(3,a) - ttz
        enddo
     enddo
+    !$omp end do
 
+    !$omp do schedule(dynamic) reduction(+:force,val)
     !second sum
-    do a = 1, nat
+    do a = 1, runObj%atoms%astruct%nat
        waxi = oml*rxyzR(1,a) + lambda*rxyzP(1,a)
        wayi = oml*rxyzR(2,a) + lambda*rxyzP(2,a)
        wazi = oml*rxyzR(3,a) + lambda*rxyzP(3,a)
@@ -322,10 +342,15 @@ subroutine lst_penalty(nat,rxyzR,rxyzP,rxyz,lambda,val,force)
        force(2,a) = force(2,a) + 2.e-6_gp * tty
        force(3,a) = force(3,a) + 2.e-6_gp * ttz
     enddo
+    !$omp end do
+    !$omp end parallel
+
+    call clean_forces_base(runObj%atoms,force)
 end subroutine lst_penalty
 !=====================================================================
-subroutine fire(mhgpsst,uinp,nat,rxyzR,rxyzP,lambda,rxyz,fxyz,epot)
+subroutine fire(mhgpsst,uinp,runObj,rxyzR,rxyzP,lambda,rxyz,fxyz,epot)
     use module_base
+    use bigdft_run
     use module_userinput
     use yaml_output
     use module_mhgps_state
@@ -333,29 +358,29 @@ subroutine fire(mhgpsst,uinp,nat,rxyzR,rxyzP,lambda,rxyz,fxyz,epot)
     !parameters
     type(mhgps_state), intent(in) :: mhgpsst
     type(userinput), intent(in) :: uinp
-    real(gp), intent(in) :: rxyzR(3,nat) !reactant
-    real(gp), intent(in) :: rxyzP(3,nat) !product
+    type(run_objects), intent(in) :: runObj
+    real(gp), intent(in) :: rxyzR(3,runObj%atoms%astruct%nat) !reactant
+    real(gp), intent(in) :: rxyzP(3,runObj%atoms%astruct%nat) !product
     real(gp), intent(in) :: lambda !interpolation parameter
-    integer, intent(in) :: nat
-    real(gp), intent(inout) :: rxyz(3,nat),fxyz(3,nat)
+    real(gp), intent(inout) :: rxyz(3,runObj%atoms%astruct%nat),fxyz(3,runObj%atoms%astruct%nat)
     real(gp)  :: epot,fmax
     logical :: success
     !external :: valforce
 !    interface
-!       subroutine valforce(nat,rat,fat,epot)
+!       subroutine valforce(runObj%atoms%astruct%nat,rat,fat,epot)
 !         use module_defs, only: gp
 !         implicit none
 !         !parameters
-!         integer, intent(in) :: nat
-!         real(gp), intent(in) :: rat(3,nat)
-!         real(gp), intent(out) :: fat(3,nat)
+!         integer, intent(in) :: runObj%atoms%astruct%nat
+!         real(gp), intent(in) :: rat(3,runObj%atoms%astruct%nat)
+!         real(gp), intent(out) :: fat(3,runObj%atoms%astruct%nat)
 !         real(gp), intent(out) :: epot
 !       end subroutine valforce
 !    end interface
     !internal
     integer :: maxit
     real(gp) :: count_fr,fnrm
-    real(gp) :: vxyz(3,nat),ff(3,nat),power,dt_max
+    real(gp) :: vxyz(3,runObj%atoms%astruct%nat),ff(3,runObj%atoms%astruct%nat),power,dt_max
     real(gp) :: at1,at2,at3,vxyz_norm,fxyz_norm,alpha
     integer :: iat,iter,check,cut
     integer, parameter :: n_min=5
@@ -384,13 +409,13 @@ subroutine fire(mhgpsst,uinp,nat,rxyzR,rxyzP,lambda,rxyz,fxyz,epot)
     check=0
     cut=1
 !    call valforce(nat,rxyz,ff,epot)
-    call lst_penalty(nat,rxyzR,rxyzP,rxyz,lambda,epot,ff)
+    call lst_penalty(runObj,rxyzR,rxyzP,rxyz,lambda,epot,ff)
     epotold=epot
     count_fr=count_fr+1.0_gp
     do iter=1,maxit
 !!!! 1000   continue !!!to be avoided 
-        call daxpy(3*nat,dt,vxyz(1,1),1,rxyz(1,1),1)
-        call daxpy(3*nat,0.5_gp*dt*dt,ff(1,1),1,rxyz(1,1),1)
+        call daxpy(3*runObj%atoms%astruct%nat,dt,vxyz(1,1),1,rxyz(1,1),1)
+        call daxpy(3*runObj%atoms%astruct%nat,0.5_gp*dt*dt,ff(1,1),1,rxyz(1,1),1)
 !!<-DEBUG START------------------------------------------------------>
 !write(fc5,'(i5.5)')iter
 !write(filename,*)'pos_'//fc5//'.ascii'
@@ -407,9 +432,9 @@ subroutine fire(mhgpsst,uinp,nat,rxyzR,rxyzP,lambda,rxyz,fxyz,epot)
 
 
 !        call valforce(nat,rxyz,fxyz,epot)
-        call lst_penalty(nat,rxyzR,rxyzP,rxyz,lambda,epot,fxyz)
+        call lst_penalty(runObj,rxyzR,rxyzP,rxyz,lambda,epot,fxyz)
         count_fr=count_fr+1.0_gp
-        do iat=1,nat
+        do iat=1,runObj%atoms%astruct%nat
            at1=fxyz(1,iat)
            at2=fxyz(2,iat)
            at3=fxyz(3,iat)
@@ -422,7 +447,7 @@ subroutine fire(mhgpsst,uinp,nat,rxyzR,rxyzP,lambda,rxyz,fxyz,epot)
            ff(2,iat) = at2
            ff(3,iat) = at3
         end do
-        call fnrmandforcemax(fxyz,fnrm,fmax,nat)
+        call fnrmandforcemax(fxyz,fnrm,fmax,runObj%atoms%astruct%nat)
         fnrm=sqrt(fnrm) 
         call convcheck(fmax,uinp%lst_fmax_tol,check)
         if(check > 5)then
@@ -442,9 +467,9 @@ subroutine fire(mhgpsst,uinp,nat,rxyzR,rxyzP,lambda,rxyz,fxyz,epot)
 !            int(count_fr),epot,fmax,sqrt(fnrm),dt,alpha
 !!<-DEBUG END-------------------------------------------------------->
         endif
-        power = ddot(3*nat,fxyz,1,vxyz,1)
-        vxyz_norm = dnrm2(3*nat,vxyz,1)
-        fxyz_norm = dnrm2(3*nat,fxyz,1)
+        power = ddot(3*runObj%atoms%astruct%nat,fxyz,1,vxyz,1)
+        vxyz_norm = dnrm2(3*runObj%atoms%astruct%nat,vxyz,1)
+        fxyz_norm = dnrm2(3*runObj%atoms%astruct%nat,fxyz,1)
         if(abs(fxyz_norm)>1.e-14_gp)then
             vxyz = (1.0_gp-alpha)*vxyz + &
                    alpha * fxyz * vxyz_norm / fxyz_norm

@@ -24,15 +24,18 @@ module module_globaltool
     public :: finalize_gt_data
     public :: write_merged
     public :: write_transitionpairs
+    public :: unpair 
 
     type gt_uinp
         real(gp) :: en_delta
         real(gp) :: fp_delta
         integer  :: ndir
         character(len=500), allocatable :: directories(:)
+        character(len=3) :: fptype
     end type
 
     type gt_data
+        logical :: oldfilename
         integer :: nid
         integer :: nat
         integer :: ntrans
@@ -62,6 +65,13 @@ module module_globaltool
         real(gp), allocatable :: gmon_ener(:)
         real(gp), allocatable :: gmon_fp(:,:)
         character(len=1), allocatable :: gmon_stat(:)
+        integer :: gmon_nposlocs !nposlocs according to gmon file
+                                 !can be different to nposlocs
+                                 !above due to kills of global executable
+                                 !(new poslocm might be written, but not
+                                 !global.mon)
+
+        integer, allocatable :: mn(:)
     end type
     contains
 !=====================================================================
@@ -115,6 +125,7 @@ subroutine count_poslocm(gdat)
     gdat%nminmax=0
     do idict=1,gdat%uinp%ndir
         ifile=0
+        call check_filename(gdat,idict)
         do
             call construct_filename(gdat,idict,ifile+1,filename)
             call check_struct_file_exists(filename,exists=exists)
@@ -137,13 +148,16 @@ subroutine construct_filename(gdat,idict,ifile,filename)
     integer, intent(in) :: ifile
     character(len=600), intent(out) :: filename
 
-    !for bigdft >= 1.7.6
-!!    write(filename,'(a,i4.4)')trim(adjustl(&
-!!         gdat%uinp%directories(idict)))//'/poslocm_',ifile
-    !for bigdft < 1.7.6
-    write(filename,'(a,i4.4,a)')trim(adjustl(&
-         gdat%uinp%directories(idict)))//'/poslocm_',&
-         ifile,'_'
+    if(.not.gdat%oldfilename)then
+        !for bigdft >= 1.7.6
+        write(filename,'(a,i4.4)')trim(adjustl(&
+             gdat%uinp%directories(idict)))//'/poslocm_',ifile
+    else
+        !for bigdft < 1.7.6
+        write(filename,'(a,i4.4,a)')trim(adjustl(&
+             gdat%uinp%directories(idict)))//'/poslocm_',&
+             ifile,'_'
+    endif
 end subroutine construct_filename
 !=====================================================================
 subroutine init_nat_rcov(gdat)
@@ -155,6 +169,7 @@ subroutine init_nat_rcov(gdat)
     type(gt_data), intent(inout) :: gdat
     !local
     character(len=600) :: filename
+    call check_filename(gdat,1)
     call construct_filename(gdat,1,1,filename)
     call deallocate_atomic_structure(gdat%astruct)
     call set_astruct_from_file(trim(adjustl(filename)),0,gdat%astruct)
@@ -176,6 +191,7 @@ subroutine init_gt_data(gdat)
     gdat%ntransmax=0
     gdat%nminmax=0
     gdat%nminmaxpd=0
+    gdat%oldfilename=.false.
 
     call nullify_atomic_structure(gdat%astruct)
 
@@ -185,9 +201,15 @@ subroutine init_gt_data(gdat)
     gdat%nminmaxpd = maxval(gdat%nminpd)
 
     call init_nat_rcov(gdat)
-    gdat%nid = gdat%nat !s-overlap
-!    nid = 4*nat !sp-overlap
-
+    if(trim(adjustl(gdat%uinp%fptype))=='SO')then
+        gdat%nid = gdat%nat !s-overlap
+    elseif(trim(adjustl(gdat%uinp%fptype))=='SPO')then
+        gdat%nid = 4*gdat%nat !sp-overlap
+    else
+        call f_err_throw('Fingerprint type "'//&
+             trim(adjustl(gdat%uinp%fptype))//'" unknown.',&
+             err_name='BIGDFT_RUNTIME_ERROR')
+    endif
 
     gdat%fp_arr = f_malloc((/gdat%nid,gdat%nminmax/),id='fp_arr')
     gdat%en_arr = f_malloc((/gdat%nminmax/),id='en_arr')
@@ -205,7 +227,8 @@ subroutine init_gt_data(gdat)
     gdat%sadnumber = f_malloc((/gdat%nminmax/),id='sadnumber')
     gdat%gmon_ener = f_malloc((/gdat%nminmaxpd/),id='gmon_ener')
     gdat%gmon_fp = f_malloc((/gdat%nid,gdat%nminmaxpd/),id='gmon_fp')
-    gdat%gmon_stat = f_malloc_str(100,(/gdat%nminmaxpd/),id='gmon_stat')
+    gdat%gmon_stat = f_malloc_str(1,(/gdat%nminmaxpd/),id='gmon_stat')
+    gdat%gmon_nposlocs=huge(1)
 end subroutine init_gt_data
 !=====================================================================
 subroutine finalize_gt_data(gdat)
@@ -229,7 +252,8 @@ subroutine finalize_gt_data(gdat)
     call f_free(gdat%sadnumber)
     call f_free(gdat%gmon_ener)
     call f_free(gdat%gmon_fp)
-    call f_free_str(600,gdat%gmon_stat)
+    call f_free(gdat%mn)
+    call f_free_str(1,gdat%gmon_stat)
 end subroutine finalize_gt_data
 !=====================================================================
 subroutine read_globaltool_uinp(gdat)
@@ -241,14 +265,22 @@ subroutine read_globaltool_uinp(gdat)
     integer :: u, istat, idict
     character(len=500) :: line
     real(gp) :: rdmy
+    logical :: exists
+
+    inquire(file='globaltool.inp',exist=exists)
+    if(.not. exists)then
+        call f_err_throw('The input file globaltool.inp does not exist.',&
+             err_name='BIGDFT_RUNTIME_ERROR')
+    endif
+
     u=f_get_free_unit()
     open(u,file='globaltool.inp')
-    gdat%uinp%ndir=0
-    read(u,*,iostat=istat)gdat%uinp%en_delta,gdat%uinp%fp_delta
+    read(u,*,iostat=istat)gdat%uinp%en_delta,gdat%uinp%fp_delta,gdat%uinp%fptype
     if(istat/=0)then
         call f_err_throw('Error in first line of globaltool.inp',&
              err_name='BIGDFT_RUNTIME_ERROR')
     endif
+    gdat%uinp%ndir=0
     do
         read(u,'(a)',iostat=istat)line
         if(istat/=0)exit
@@ -339,12 +371,14 @@ subroutine write_merged(gdat)
     use yaml_output
     implicit none
     !parameters
-    type(gt_data), intent(in) :: gdat
+    type(gt_data), intent(inout) :: gdat
     !local
     integer :: imin
     call yaml_comment('Merged minima ....',hfill='-')
+    gdat%mn = f_malloc((/1.to.gdat%nmin/),id='gdat%mn')
     do imin=1,gdat%nmin
-        write(*,'(i6.6,1x,es24.17,1x,a)')imin,gdat%en_arr(imin),&
+        gdat%mn(gdat%minnumber(imin)) = imin
+        write(*,'(i6.6,1x,es24.17,1x,a)')gdat%minnumber(imin),gdat%en_arr(imin),&
                                 trim(adjustl(gdat%path_min(imin)))
     enddo
 end subroutine write_merged
@@ -359,6 +393,7 @@ subroutine write_transitionpairs(gdat)
     !local
     integer :: itrans
     integer :: IDmin1, IDmin2
+    integer :: kIDmin1, kIDmin2
     real(gp) :: fpd
     call yaml_comment('Transition pairs unified ....',hfill='-')
     write(*,'(a)')'  #Trans IDmin1 IDmin2  Ener1                '//&
@@ -366,11 +401,13 @@ subroutine write_transitionpairs(gdat)
          '     FPdist'
     do itrans=1,gdat%ntrans
         call unpair(gdat%transpairs(itrans),IDmin1,IDmin2)
-        call fpdistance(gdat%nid,gdat%fp_arr(1,IDmin1),&
-             gdat%fp_arr(1,IDmin2),fpd)
-        write(*,'(a,1x,i4.4,3x,i4.4,2x,4(1x,es24.17))')'   Trans',&
-             IDmin1,IDmin2,gdat%en_arr(IDmin1),gdat%en_arr(IDmin2),&
-             abs(gdat%en_arr(IDmin1)-gdat%en_arr(IDmin2)),fpd
+        kIDmin1=gdat%mn(IDmin1)
+        kIDmin2=gdat%mn(IDmin2)
+        call fpdistance(gdat%nid,gdat%fp_arr(1,kIDmin1),&
+             gdat%fp_arr(1,kIDmin2),fpd)
+        write(*,'(a,1x,i4.4,3x,i4.4,2x,4(1x,es24.17),1x,i8.8)')'   Trans',&
+             IDmin1,IDmin2,gdat%en_arr(kIDmin1),gdat%en_arr(kIDmin2),&
+             abs(gdat%en_arr(kIDmin1)-gdat%en_arr(kIDmin2)),fpd,gdat%transpairs(itrans)
     enddo
 end subroutine write_transitionpairs
 !=====================================================================
@@ -388,6 +425,7 @@ subroutine read_and_merge_data(gdat)
 
     call yaml_comment('Merging poslocms ....',hfill='-')
     do idict =1, gdat%uinp%ndir
+        call check_filename(gdat,idict)
         call read_poslocs(gdat,idict)
         call add_poslocs_to_database(gdat)
         call read_globalmon(gdat,idict)
@@ -395,6 +433,39 @@ subroutine read_and_merge_data(gdat)
     enddo
     
 end subroutine read_and_merge_data
+!=====================================================================
+subroutine check_filename(gdat,idict)
+    use module_base
+    implicit none
+    !parameters
+    type(gt_data), intent(inout) :: gdat
+    integer, intent(in) :: idict
+    !local
+    character(len=600) :: filename
+    logical :: exists
+    !for bigdft >= 1.7.6
+    write(filename,'(a,i4.4)')trim(adjustl(&
+         gdat%uinp%directories(idict)))//'/poslocm_',1
+    call check_struct_file_exists(trim(adjustl(filename)),exists)
+    if(exists)then
+        gdat%oldfilename=.false.
+        return
+    endif
+    !for bigdft < 1.7.6
+    write(filename,'(a,i4.4,a)')trim(adjustl(&
+         gdat%uinp%directories(idict)))//'/poslocm_',&
+         1,'_'
+    call check_struct_file_exists(trim(adjustl(filename)),exists)
+    if(exists)then
+        gdat%oldfilename=.true.
+        return
+    endif
+
+    if(.not. exists)then
+        call f_err_throw(trim(adjustl(filename))//' does not exist.',&
+             err_name='BIGDFT_RUNTIME_ERROR')
+    endif
+end subroutine check_filename
 !=====================================================================
 subroutine add_transpairs_to_database(gdat)
     use module_base
@@ -408,6 +479,7 @@ subroutine add_transpairs_to_database(gdat)
     real(gp) :: fpcurr(gdat%nid)
     character(len=1) :: statcurr
     integer :: idcurr, idnext
+    integer :: kidcurr, kidnext
     integer :: kid, k_epot
     logical :: lnew
     integer :: id_transpair
@@ -424,7 +496,7 @@ subroutine add_transpairs_to_database(gdat)
         call f_err_throw('Error in global.mon: Does not start with'//&
              ' P line',err_name='BIGDFT_RUNTIME_ERROR')
     endif
-    do iposloc = 1, gdat%nposlocs
+    do iposloc = 1, gdat%gmon_nposlocs
         !check if escaped
         if(gdat%gmon_stat(iposloc)=='S')cycle
         !get ID of minimum
@@ -436,27 +508,30 @@ subroutine add_transpairs_to_database(gdat)
             call f_err_throw('Structure does not exist',&
                  err_name='BIGDFT_RUNTIME_ERROR')
         endif
-        idnext=kid
+        kidnext=kid
+        idnext = gdat%minnumber(kid)
         !check if restart happened
         if(gdat%gmon_stat(iposloc)=='P')then
-            idcurr = idnext
+            kidcurr = kidnext
+            idcurr  = idnext
             ecurr = gdat%gmon_ener(iposloc)
             fpcurr(:) = gdat%gmon_fp(:,iposloc)
             statcurr = gdat%gmon_stat(iposloc)
             cycle
         endif
         id_transpair = getPairId(idcurr,idnext)
-        call fpdistance(gdat%nid,gdat%fp_arr(1,idcurr),&
-             gdat%fp_arr(1,idnext),fpd)
+        call fpdistance(gdat%nid,gdat%fp_arr(1,kidcurr),&
+             gdat%fp_arr(1,kidnext),fpd)
         write(*,'(a,1x,i4.4,3x,i4.4,2x,4(1x,es24.17))')'   trans',idcurr,&
-             idnext,gdat%en_arr(idcurr),gdat%en_arr(idnext),&
-             abs(gdat%en_arr(idcurr)-gdat%en_arr(idnext)),fpd
+             idnext,gdat%en_arr(kidcurr),gdat%en_arr(kidnext),&
+             abs(gdat%en_arr(kidcurr)-gdat%en_arr(kidnext)),fpd
+
         call inthunt_gt(gdat%transpairs,&
-             max(1,min(gdat%ntrans,gdat%ntransmax)),id_transpair,&
+             max(1,min(gdat%ntrans,gdat%nminmax)),id_transpair,&
              loc_id_transpair)
-        !uncomment the if query if everey pair should be added to the
+        !comment the if query if everey pair should be added to the
         !database, even if it is already in the database
-        if(gdat%transpairs(loc_id_transpair)/=id_transpair)then!add to database
+        if(gdat%transpairs(max(1,loc_id_transpair))/=id_transpair)then!add to database
             !shift
             gdat%ntrans=gdat%ntrans+1
             do i=gdat%ntrans-1,loc_id_transpair+1,-1
@@ -466,6 +541,7 @@ subroutine add_transpairs_to_database(gdat)
         endif
         !check if accepted
         if(gdat%gmon_stat(iposloc)=='A')then
+            kidcurr = kidnext
             idcurr = idnext
             ecurr = gdat%gmon_ener(iposloc)
             fpcurr(:) = gdat%gmon_fp(:,iposloc)
@@ -500,6 +576,7 @@ subroutine read_globalmon(gdat,idict)
     real(gp) :: energy
     real(gp) :: rdmy
     real(gp) :: fp(gdat%nid)
+integer :: itmp
 
  
     u=f_get_free_unit()
@@ -517,11 +594,12 @@ subroutine read_globalmon(gdat,idict)
         read(line,*)ristep
         istep=nint(ristep)
         if(istep/=0)then
-            read(line,*,iostat=istat)istep,energy,rdmy,rdmy,rdmy,rdmy,rdmy,stat
+            read(line,*,iostat=istat)ristep,energy,rdmy,rdmy,rdmy,rdmy,rdmy,stat
         else
-            read(line,*,iostat=istat)istep,energy,rdmy,rdmy,stat
+            read(line,*,iostat=istat)ristep,energy,rdmy,rdmy,stat
             if(icount/=0)restartoffset=icount
         endif
+write(*,*)stat
         if(istat/=0)then
             call f_err_throw('Error while parsing '//&
                  trim(adjustl(filename))//', istep='//&
@@ -543,10 +621,16 @@ subroutine read_globalmon(gdat,idict)
                      trim(yaml_toa(icount)),err_name='BIGDFT_RUNTIME_ERROR')
             endif
             icount=icount+1
+write(*,*)'ins',icount,energy
             gdat%gmon_ener(icount)=energy
             gdat%gmon_stat(icount)=stat
             call gmon_line_to_fp(gdat,icount,iline,found)
             if(.not. found)then
+                write(*,*)'to be found:',energy,icount
+                do itmp = icount+10 , 1 , -1
+                    write(*,*)itmp,gdat%en_arr_currDir(itmp)
+                enddo
+
                 call f_err_throw('Could not find istep= '//&
                      trim(yaml_toa(istep))//'of '//trim(adjustl(filename))//&
                      ' among the poslocm files.',err_name='BIGDFT_RUNTIME_ERROR')
@@ -554,9 +638,17 @@ subroutine read_globalmon(gdat,idict)
         endif
     enddo   
     if(icount/=gdat%nposlocs)then
-        call f_err_throw('Number of poslocm files is not identical '//&
-             'to number of steps in global.mon',err_name='BIGDFT_RUNTIME_ERROR')
+        !might happen if global was killed after writing the first
+        ! poslocm file and before writing global.mon
+        ! -> Do not stop, but print warning
+!        call f_err_throw('Number of poslocm files is not identical '//&
+!             'to number of steps in global.mon',err_name='BIGDFT_RUNTIME_ERROR')
+        call yaml_warning('Number of poslocm files in '//&
+             trim(adjustl(gdat%uinp%directories(idict)))//&
+             ' is not identical to number of steps in '//&
+             trim(adjustl(filename)))
     endif
+    gdat%gmon_nposlocs=icount
     close(u)
      
 end subroutine read_globalmon
@@ -573,16 +665,17 @@ subroutine gmon_line_to_fp(gdat,icount,iline,found)
     logical, intent(out) :: found
     !local
     integer :: iposloc
-    integer :: istep
     !ethresh can be small, since identical energy value should be in
     !global.mon and in the corresponding poslocm file
-    real(gp), parameter :: ethresh = 1.d-13
+    real(gp), parameter :: ethresh = 1.d-12
 
-    istep=icount-1
     found=.false.
     !the corresponding poslocm file should always
     !be one of the last files. Therefore, read from behind
-    do iposloc = icount , 1 , -1
+    !We start at icount+10, because glbal might have been killed
+    !after writing the first poslocm file and before writing global.mon
+    do iposloc = min(icount+10,gdat%nminmaxpd) , 1 , -1
+write(*,'(i4.4,2(1x,es24.17))')iposloc,gdat%en_arr_currDir(iposloc),abs(gdat%en_arr_currDir(iposloc)-gdat%gmon_ener(icount))
         if(abs(gdat%en_arr_currDir(iposloc)-&
            gdat%gmon_ener(icount))<ethresh)then
             found=.true.
@@ -609,7 +702,7 @@ subroutine add_poslocs_to_database(gdat)
     logical :: lnew
 
     do iposloc=1,gdat%nposlocs
-       call identical('min',gdat,gdat%nminmax,gdat%nmin,gdat%nid,&
+       call identical('minIns',gdat,gdat%nminmax,gdat%nmin,gdat%nid,&
             gdat%en_arr_currDir(iposloc),gdat%fp_arr_currDir(1,iposloc),&
             gdat%en_arr,gdat%fp_arr,gdat%uinp%en_delta,&
             gdat%uinp%fp_delta,lnew,kid,k_epot)
@@ -649,7 +742,7 @@ subroutine identical(cf,gdat,ndattot,ndat,nid,epot,fp,en_arr,fp_arr,en_delta,&
     logical, intent(out) :: lnew
     integer, intent(out) :: kid
     integer, intent(out) :: k_epot
-    character(len=3), intent(in) :: cf
+    character(len=*), intent(in) :: cf
     !local
     integer :: k, klow, khigh, nsm
     real(gp) :: dmin, d 
@@ -660,7 +753,7 @@ subroutine identical(cf,gdat,ndattot,ndat,nid,epot,fp,en_arr,fp_arr,en_delta,&
     ! find lowest configuration that might be identical
     klow=k_epot
     do k=k_epot,1,-1
-        if (epot-en_arr(k).lt.0.d0) stop 'zeroA'
+        if (epot-en_arr(k).lt.0.0_gp) stop 'zeroA'
         if (epot-en_arr(k).gt.en_delta) exit
         klow=k
     enddo
@@ -668,7 +761,7 @@ subroutine identical(cf,gdat,ndattot,ndat,nid,epot,fp,en_arr,fp_arr,en_delta,&
     ! find highest  configuration that might be identical
     khigh=k_epot+1
     do k=k_epot+1,ndat
-        if (en_arr(k)-epot.lt.0.d0) stop 'zeroB'
+        if (en_arr(k)-epot.lt.0.0_gp) stop 'zeroB'
         if (en_arr(k)-epot.gt.en_delta) exit
         khigh=k
     enddo
@@ -676,26 +769,20 @@ subroutine identical(cf,gdat,ndattot,ndat,nid,epot,fp,en_arr,fp_arr,en_delta,&
     nsm=0
     dmin=huge(1.e0_gp)
     do k=max(1,klow),min(ndat,khigh)
-        call fpdistance(nid,fp,fp_arr(1,k),d)
-write(*,*)'fpdist '//cf,abs(en_arr(k)-epot),d
-!if(cf=='min')then
-!if(d<3.d-3)then
-!if(abs(en_arr(k)-epot)>1.d-4)then
-!write(*,*)trim(adjustl(gdat%path_min(k)))
-!    stop
-!endif
-!endif
-!endif
-        if (d.lt.fp_delta) then
-            lnew=.false.
-            nsm=nsm+1
-            if (d.lt.dmin) then 
-                dmin=d
-                kid=k
+        if (abs(epot-en_arr(k)).le.en_delta) then 
+            call fpdistance(nid,fp,fp_arr(1,k),d)
+            write(*,*)'fpdist '//trim(adjustl(cf)),abs(en_arr(k)-epot),d
+            if (d.lt.fp_delta) then
+                lnew=.false.
+                nsm=nsm+1
+                if (d.lt.dmin) then 
+                    dmin=d
+                    kid=k
+                endif
             endif
+            dmin=min(dmin,d)
         endif
     enddo
-write(*,*)'dmin',dmin
     if (nsm.gt.1) then
         call yaml_warning('more than one identical configuration'//&
              ' found')

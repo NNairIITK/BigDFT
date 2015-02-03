@@ -3533,15 +3533,15 @@ module module_interfaces
         end subroutine compress_polynomial_vector
 
         subroutine uncompress_polynomial_vector(iproc, nproc, nsize_polynomial, &
-                   norb, norbp, isorb, fermi, vector_compressed, vector)
+                   fermi, vector_compressed, vector)
           use module_base
           use module_types
           use sparsematrix_base, only: sparse_matrix
           implicit none
-          integer,intent(in) :: iproc, nproc, nsize_polynomial, norb, norbp, isorb
+          integer,intent(in) :: iproc, nproc, nsize_polynomial
           type(sparse_matrix),intent(in) :: fermi
           real(kind=8),dimension(nsize_polynomial),intent(in) :: vector_compressed
-          real(kind=8),dimension(norb,norbp),intent(out) :: vector
+          real(kind=8),dimension(fermi%nfvctr,fermi%smmm%nfvctrp),intent(out) :: vector
         end subroutine uncompress_polynomial_vector
 
         subroutine check_communication_sumrho(iproc, nproc, orbs, lzd, collcom_sr, denspot, denskern, denskern_, check_sumrho)
@@ -3894,7 +3894,7 @@ end subroutine build_ks_orbitals_laura_tmp
         end subroutine init_sparse_matrix_wrapper
 
         subroutine check_accur_overlap_minus_one_sparse(iproc, nproc, smat, norb, norbp, isorb, nseq, nout, &
-                   ivectorindex, onedimindices, amat_seq, bmatp, power, &
+                   ivectorindex, amat_seq, bmatp, power, &
                    max_error, mean_error, dmat_seq, cmatp)
           use module_base
           use sparsematrix_base, only: sparse_matrix
@@ -3902,7 +3902,6 @@ end subroutine build_ks_orbitals_laura_tmp
           integer,intent(in) :: iproc, nproc, norb, norbp, isorb, nseq, nout, power
           type(sparse_matrix) :: smat
           integer,dimension(nseq),intent(in) :: ivectorindex
-          integer,dimension(4,nout) :: onedimindices
           real(kind=8),dimension(nseq),intent(in) :: amat_seq
           real(kind=8),dimension(norb,norbp),intent(in) :: bmatp
           real(kind=8),intent(out) :: max_error, mean_error
@@ -4179,6 +4178,22 @@ end subroutine build_ks_orbitals_laura_tmp
           logical,intent(in) :: add_sequence
           type(confpot_data),dimension(lorbs%norbp), intent(inout) :: confdatarr
         end subroutine set_confdatarr
+
+        subroutine check_accur_overlap_minus_one_sparse_new(iproc, nproc, smat, norb, norbp, isorb, nseq, nout, &
+                   ivectorindex, amat_seq, bmatp, power, &
+                   max_error, mean_error, dmat_seq, cmatp)
+          use module_base
+          use sparsematrix_base, only: sparse_matrix
+          implicit none
+          integer,intent(in) :: iproc, nproc, norb, norbp, isorb, nseq, nout, power
+          type(sparse_matrix) :: smat
+          integer,dimension(nseq),intent(in) :: ivectorindex
+          real(kind=8),dimension(nseq),intent(in) :: amat_seq
+          real(kind=8),dimension(smat%smmm%nvctrp),intent(in) :: bmatp
+          real(kind=8),intent(out) :: max_error, mean_error
+          real(kind=8),dimension(nseq),intent(in),optional :: dmat_seq
+          real(kind=8),dimension(smat%smmm%nvctrp),intent(in),optional :: cmatp
+        end subroutine check_accur_overlap_minus_one_sparse_new
 
   end interface
 END MODULE module_interfaces

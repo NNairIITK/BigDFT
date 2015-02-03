@@ -2121,6 +2121,17 @@ subroutine init_sparse_matrix_wrapper(iproc, nproc, nspin, orbs, lzd, astruct, s
   else
       stop 'wrong imode'
   end if
+
+  ! Make sure that the cutoff for the multiplications is larger than the kernel cutoff
+  do ilr=1,lzd%nlr
+      !write(*,*) 'lzd%llr(ilr)%locrad_mult, lzd%llr(ilr)%locrad_kernel', lzd%llr(ilr)%locrad_mult, lzd%llr(ilr)%locrad_kernel
+      if (lzd%llr(ilr)%locrad_mult<lzd%llr(ilr)%locrad_kernel) then
+          call f_err_throw('locrad_mult ('//yaml_toa(lzd%llr(ilr)%locrad_mult,fmt='(f5.2)')//&
+               &') too small, must be at least as big as locrad_kernel('&
+               &//yaml_toa(lzd%llr(ilr)%locrad_kernel,fmt='(f5.2)')//')', err_id=BIGDFT_RUNTIME_ERROR)
+      end if
+  end do
+
   call determine_sparsity_pattern_distance(orbs, lzd, astruct, lzd%llr(:)%locrad_mult, nnonzero_mult, nonzero_mult)
   call init_sparse_matrix(iproc, nproc, nspin, orbs%norb, orbs%norbp, orbs%isorb, &
        orbs%norbu, orbs%norbup, orbs%isorbu, store_index, &
