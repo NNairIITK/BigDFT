@@ -988,6 +988,7 @@ subroutine overlapPowerGeneral(iproc, nproc, iorder, ncalc, power, blocksize, im
               call transform_sparsity_pattern2(inv_ovrlp_smat%nfvctr, &
                    inv_ovrlp_smat%smmm%nvctrp_mm, inv_ovrlp_smat%smmm%isvctr_mm, &
                    inv_ovrlp_smat%nseg, inv_ovrlp_smat%keyv, inv_ovrlp_smat%keyg, &
+                   inv_ovrlp_smat%smmm%line_and_column_mm, &
                    inv_ovrlp_smat%smmm%nvctrp, inv_ovrlp_smat%smmm%isvctr, &
                    inv_ovrlp_smat%smmm%nseg, inv_ovrlp_smat%smmm%keyv, inv_ovrlp_smat%smmm%keyg, &
                    Amat12_compr(ishift2+inv_ovrlp_smat%smmm%isvctr_mm+1:), Amat12p_new)
@@ -1162,6 +1163,7 @@ subroutine overlapPowerGeneral(iproc, nproc, iorder, ncalc, power, blocksize, im
                       call transform_sparsity_pattern2(inv_ovrlp_smat%nfvctr, &
                            inv_ovrlp_smat%smmm%nvctrp_mm, inv_ovrlp_smat%smmm%isvctr_mm, &
                            inv_ovrlp_smat%nseg, inv_ovrlp_smat%keyv, inv_ovrlp_smat%keyg, &
+                           inv_ovrlp_smat%smmm%line_and_column_mm, &
                            inv_ovrlp_smat%smmm%nvctrp, inv_ovrlp_smat%smmm%isvctr, &
                            inv_ovrlp_smat%smmm%nseg, inv_ovrlp_smat%smmm%keyv, inv_ovrlp_smat%smmm%keyg, &
                            ovrlpminone_sparse(ilshift2+inv_ovrlp_smat%smmm%isvctr_mm+1:), ovrlpminoneoldp_new)
@@ -1189,6 +1191,7 @@ subroutine overlapPowerGeneral(iproc, nproc, iorder, ncalc, power, blocksize, im
                       call transform_sparsity_pattern2(inv_ovrlp_smat%nfvctr, &
                            inv_ovrlp_smat%smmm%nvctrp_mm, inv_ovrlp_smat%smmm%isvctr_mm, &
                            inv_ovrlp_smat%nseg, inv_ovrlp_smat%keyv, inv_ovrlp_smat%keyg, &
+                           inv_ovrlp_smat%smmm%line_and_column_mm, &
                            inv_ovrlp_smat%smmm%nvctrp, inv_ovrlp_smat%smmm%isvctr, &
                            inv_ovrlp_smat%smmm%nseg, inv_ovrlp_smat%smmm%keyv, inv_ovrlp_smat%smmm%keyg, &
                            ovrlp_large_compr(ilshift2+inv_ovrlp_smat%smmm%isvctr_mm+1), ovrlpminonep_new)
@@ -1303,6 +1306,7 @@ subroutine overlapPowerGeneral(iproc, nproc, iorder, ncalc, power, blocksize, im
                   call transform_sparsity_pattern2(inv_ovrlp_smat%nfvctr, &
                        inv_ovrlp_smat%smmm%nvctrp_mm, inv_ovrlp_smat%smmm%isvctr_mm, &
                        inv_ovrlp_smat%nseg, inv_ovrlp_smat%keyv, inv_ovrlp_smat%keyg, &
+                       inv_ovrlp_smat%smmm%line_and_column_mm, &
                        inv_ovrlp_smat%smmm%nvctrp, inv_ovrlp_smat%smmm%isvctr, &
                        inv_ovrlp_smat%smmm%nseg, inv_ovrlp_smat%smmm%keyv, inv_ovrlp_smat%smmm%keyg, &
                        ovrlp_large_compr(ilshift+inv_ovrlp_smat%smmm%isvctr_mm+1), ovrlp_largep_new)
@@ -1326,6 +1330,7 @@ subroutine overlapPowerGeneral(iproc, nproc, iorder, ncalc, power, blocksize, im
                       call transform_sparsity_pattern2(inv_ovrlp_smat%nfvctr, &
                            inv_ovrlp_smat%smmm%nvctrp_mm, inv_ovrlp_smat%smmm%isvctr_mm, &
                            inv_ovrlp_smat%nseg, inv_ovrlp_smat%keyv, inv_ovrlp_smat%keyg, &
+                           inv_ovrlp_smat%smmm%line_and_column_mm, &
                            inv_ovrlp_smat%smmm%nvctrp, inv_ovrlp_smat%smmm%isvctr, &
                            inv_ovrlp_smat%smmm%nseg, inv_ovrlp_smat%smmm%keyv, inv_ovrlp_smat%smmm%keyg, &
                            inv_ovrlp_mat(icalc)%matrix_compr(ilshift2+inv_ovrlp_smat%smmm%isvctr_mm+1:), invovrlpp_new)
@@ -1345,6 +1350,7 @@ subroutine overlapPowerGeneral(iproc, nproc, iorder, ncalc, power, blocksize, im
                       call transform_sparsity_pattern2(inv_ovrlp_smat%nfvctr, &
                            inv_ovrlp_smat%smmm%nvctrp_mm, inv_ovrlp_smat%smmm%isvctr_mm, &
                            inv_ovrlp_smat%nseg, inv_ovrlp_smat%keyv, inv_ovrlp_smat%keyg, &
+                           inv_ovrlp_smat%smmm%line_and_column_mm, &
                            inv_ovrlp_smat%smmm%nvctrp, inv_ovrlp_smat%smmm%isvctr, &
                            inv_ovrlp_smat%smmm%nseg, inv_ovrlp_smat%smmm%keyv, inv_ovrlp_smat%smmm%keyg, &
                            inv_ovrlp_mat(icalc)%matrix_compr(ilshift2+inv_ovrlp_smat%smmm%isvctr_mm+1:), invovrlpp_new)

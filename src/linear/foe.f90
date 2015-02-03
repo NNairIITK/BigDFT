@@ -854,7 +854,7 @@ subroutine foe(iproc, nproc, tmprtr, &
           !!  write(*,*) 'tmb%linmat%l%nvctrp, tmb%linmat%l%smmm%nvctrp_mm', tmb%linmat%l%nvctrp, tmb%linmat%l%smmm%nvctrp_mm
           !!  write(*,*) 'tmb%linmat%l%isvctr, tmb%linmat%l%smmm%isvctr_mm', tmb%linmat%l%isvctr, tmb%linmat%l%smmm%isvctr_mm
           call transform_sparsity_pattern2(tmb%linmat%l%nfvctr, tmb%linmat%l%smmm%nvctrp_mm, tmb%linmat%l%smmm%isvctr_mm, &
-               tmb%linmat%l%nseg, tmb%linmat%l%keyv, tmb%linmat%l%keyg, &
+               tmb%linmat%l%nseg, tmb%linmat%l%keyv, tmb%linmat%l%keyg, tmb%linmat%l%smmm%line_and_column_mm, &
                tmb%linmat%l%smmm%nvctrp, tmb%linmat%l%smmm%isvctr, &
                tmb%linmat%l%smmm%nseg, tmb%linmat%l%smmm%keyv, tmb%linmat%l%smmm%keyg, &
                tmb%linmat%ovrlppowers_(2)%matrix_compr(ilshift2+tmb%linmat%l%smmm%isvctr_mm+1:), inv_ovrlpp_new)
@@ -2725,7 +2725,7 @@ end subroutine scale_and_shift_matrix
           call sequential_acces_matrix_fast2(smat, &
                inv_ovrlp, inv_ovrlp_compr_seq)
           call transform_sparsity_pattern2(smat%nfvctr, smat%smmm%nvctrp_mm, smat%smmm%isvctr_mm, &
-               smat%nseg, smat%keyv, smat%keyg, &
+               smat%nseg, smat%keyv, smat%keyg, smat%smmm%line_and_column_mm, &
                smat%smmm%nvctrp, smat%smmm%isvctr, &
                smat%smmm%nseg, smat%smmm%keyv, smat%smmm%keyg, &
                inv_ovrlp(smat%smmm%isvctr_mm+1), inv_ovrlpp_new)

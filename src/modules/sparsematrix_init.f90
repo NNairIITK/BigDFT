@@ -1539,7 +1539,7 @@ contains
       ! Local variables
       integer :: itot, ipt, iipt, iline, icolumn, ilen, jseg
     
-      write(*,*) 'iproc, nout, ispt', bigdft_mpi%iproc, nout, ispt
+      !!write(*,*) 'iproc, nout, ispt', bigdft_mpi%iproc, nout, ispt
     
       itot = 1
       do ipt=1,nout
@@ -1672,10 +1672,10 @@ contains
       ! Local variables
       integer :: ii, ipt, iipt, iline, icolumn, jseg, jorb, itest
     
-      write(*,'(a,4i8)') 'iproc, smat%smmm%isvctr_mm, smat%smmm%nvctrp_mm, smat%nfvctrp', &
-          bigdft_mpi%iproc, smat%smmm%isvctr_mm, smat%smmm%nvctrp_mm, smat%nfvctrp
-      write(*,'(a,4i8)') 'iproc, smat%smmm%isvctr, smat%smmm%nvctrp, smat%nfvctrp', &
-          bigdft_mpi%iproc, smat%smmm%isvctr, smat%smmm%nvctrp, smat%nfvctrp
+      !write(*,'(a,4i8)') 'iproc, smat%smmm%isvctr_mm, smat%smmm%nvctrp_mm, smat%nfvctrp', &
+      !    bigdft_mpi%iproc, smat%smmm%isvctr_mm, smat%smmm%nvctrp_mm, smat%nfvctrp
+      !write(*,'(a,4i8)') 'iproc, smat%smmm%isvctr, smat%smmm%nvctrp, smat%nfvctrp', &
+      !    bigdft_mpi%iproc, smat%smmm%isvctr, smat%smmm%nvctrp, smat%nfvctrp
     
       ii=1
       do ipt=1,nout
