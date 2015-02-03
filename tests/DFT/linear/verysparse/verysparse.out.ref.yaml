@@ -28,29 +28,26 @@
  
  Reference Paper                       : The Journal of Chemical Physics 129, 014109 (2008)
  Version Number                        : 1.7.6.5
- Timestamp of this run                 : 2015-01-22 12:45:28.136
- Root process Hostname                 : phys-comp-03
- Number of MPI tasks                   :  4
+ Timestamp of this run                 : 2015-02-03 09:41:15.179
+ Root process Hostname                 : girofle
+ Number of MPI tasks                   :  1
  OpenMP parallelization                :  Yes
  Maximal OpenMP threads per MPI task   :  2
- MPI tasks of root process node        :  4
   #------------------------------------------------------------------ Code compiling options
  Compilation options:
    Configure arguments:
-     " 'FC=/opt/openmpi-1.6.4/bin/mpif90' 'CC=icc' 'FCFLAGS=-O2 -i_dynamic -msse4.2 
-     -heap-arrays 1024 -openmp' 
-     '--with-ext-linalg=/opt/intel/composer_xe_2011_sp1.11.339/mkl/lib/intel64/libmkl_scalapa
-     ck_lp64.a  -Wl,--start-group  
-     /opt/intel/composer_xe_2011_sp1.11.339/mkl/lib/intel64/libmkl_cdft_core.a 
-     /opt/intel/composer_xe_2011_sp1.11.339/mkl/lib/intel64/libmkl_intel_lp64.a 
-     /opt/intel/composer_xe_2011_sp1.11.339/mkl/lib/intel64/libmkl_intel_thread.a 
-     /opt/intel/composer_xe_2011_sp1.11.339/mkl/lib/intel64/libmkl_core.a 
-     /opt/intel/composer_xe_2011_sp1.11.339/mkl/lib/intel64/libmkl_blacs_openmpi_lp64.a 
-     -Wl,--end-group -openmp -lpthread -lm'"
-   Compilers (CC, FC, CXX)             :  [ icc, /opt/openmpi-1.6.4/bin/mpif90, g++ ]
+     " 'FC=/local/stephanm/openmpi-1.6.5_intel/bin/mpif90' 'CC=icc' 'FCFLAGS=-O2 -xSSE4.2 
+     -openmp' 
+     '--with-ext-linalg=/opt/intel/composer_xe_2013_sp1.0.080/mkl/lib/intel64/libmkl_blas95_l
+     p64 /opt/intel/composer_xe_2013_sp1.0.080/mkl/lib/intel64/libmkl_lapack95_lp64 
+     -L/opt/intel/composer_xe_2013_sp1.0.080/mkl/lib/intel64 -lmkl_scalapack_lp64 
+     -lmkl_cdft_core -lmkl_intel_lp64 -lmkl_core -lmkl_intel_thread 
+     -lmkl_blacs_intelmpi_lp64 -lpthread -lm' '' '--enable-minima-hopping' 'build_alias=' 
+     'host_alias=' 'target_alias='"
+   Compilers (CC, FC, CXX): [icc, /local/stephanm/openmpi-1.6.5_intel/bin/mpif90, g++]
    Compiler flags:
      CFLAGS                            : -g -O2
-     FCFLAGS                           : -O2 -i_dynamic -msse4.2 -heap-arrays 1024 -openmp
+     FCFLAGS                           : -O2 -xSSE4.2 -openmp
      CXXFLAGS                          : -g -O2
   #------------------------------------------------------------------------ Input parameters
  radical                               : null
@@ -194,14 +191,14 @@
      confinement                       : 3.9E-002
      rloc                              : 2.5
      rloc_kernel                       : 4.5
-     rloc_kernel_foe                   : 6.0
+     rloc_kernel_foe                   : 6.5
    H:
      nbasis                            : 1
      ao_confinement                    : 3.9E-002
      confinement                       : 3.9E-002
      rloc                              : 2.5
      rloc_kernel                       : 4.5
-     rloc_kernel_foe                   : 6.0
+     rloc_kernel_foe                   : 6.5
    nbasis                              : 4 #      number of support functions per atom
    ao_confinement                      : 8.3e-3 # prefactor for the input guess confining potential
    confinement: [8.3e-3, 0.0] #                   prefactor for the confining potential (low/high accuracy)
@@ -413,6 +410,8 @@
    - H: [0.0, 0.6235299706459045, 81.54895782470703]
  mode:
    method                              : dft #    Run method of BigDFT call
+   mm_paramset                         : default # Name of the hard-coded parameter set. Must be compatible to the chosen force field.
+   mm_paramfile                        : none #   name of parameter file
  kpt:
    method                              : manual # K-point sampling method
    kpt: #                                         Kpt coordinates
@@ -775,21 +774,14 @@
  High Res. box is treated separately   :  No
   #------------------------------------------------------------------- Kernel Initialization
  Poisson Kernel Initialization:
-   MPI tasks                           :  4
+   MPI tasks                           :  1
    OpenMP threads per MPI task         :  2
  Poisson Kernel Creation:
    Boundary Conditions                 : Free
    Memory Requirements per MPI task:
-     Density (MB)                      :  6.54
-     Kernel (MB)                       :  6.83
+     Density (MB)                      :  26.17
+     Kernel (MB)                       :  26.96
      Full Grid Arrays (MB)             :  23.88
-     Load Balancing of calculations:
-       Density:
-         MPI tasks 0- 3                : 100%
-       Kernel:
-         MPI tasks 0- 2                : 100%
-         MPI task 3                    :  94%
-       Complete LB per task            : 1/3 LB_density + 2/3 LB_kernel
  Wavefunctions Descriptors, full simulation domain:
    Coarse resolution grid:
      No. of segments                   :  6648
@@ -801,16 +793,16 @@
  Total Number of Electrons             :  392
  Spin treatment                        : Averaged
  Orbitals Repartition:
-   MPI tasks  0- 3                     :  49
+   MPI tasks  0- 0                     :  196
  Total Number of Orbitals              :  196
  Input Occupation Numbers:
  - Occupation Numbers: {Orbitals No. 1-196:  2.0000}
- preconditioning load balancing min/max before:  [  9.1E+04,  9.13E+04 ]
- preconditioning load balancing min/max after:  [  9.1E+04,  9.13E+04 ]
- task with max load                    :  [  2 ]
+ preconditioning load balancing min/max before:  [  3.65E+05,  3.65E+05 ]
+ preconditioning load balancing min/max after:  [  3.65E+05,  3.65E+05 ]
+ task with max load                    :  [  0 ]
  Support function repartition:
-   MPI tasks  0- 3                     :  98
- Wavefunctions memory occupation for root MPI process:  33 MB 244 KB 640 B
+   MPI tasks  0- 0                     :  392
+ Wavefunctions memory occupation for root MPI process:  132 MB 978 KB 512 B
  NonLocal PSP Projectors Descriptors:
    Creation strategy                   : On-the-fly
    Total number of projectors          :  65
@@ -822,18 +814,18 @@
  Memory requirements for principal quantities (MiB.KiB):
    Subspace Matrix                     : 0.38 #   (Number of Orbitals: 196)
    Single orbital                      : 0.695 #  (Number of Components: 88912)
-   All (distributed) orbitals          : 99.734 # (Number of Orbitals per MPI task: 49)
-   Wavefunction storage size           : 764.507 # (DIIS/SD workspaces included)
+   All (distributed) orbitals          : 265.933 # (Number of Orbitals per MPI task: 196)
+   Wavefunction storage size           : 2925.23 # (DIIS/SD workspaces included)
    Nonlocal Pseudopotential Arrays     : 0.9
    Full Uncompressed (ISF) grid        : 23.900
    Workspaces storage size             : 2.701
  Accumulated memory requirements during principal run stages (MiB.KiB):
-   Kernel calculation                  : 129.886
-   Density Construction                : 857.104
-   Poisson Solver                      : 849.865
-   Hamiltonian application             : 860.202
-   Orbitals Orthonormalization         : 860.239
- Estimated Memory Peak (MB)            :  860
+   Kernel calculation                  : 296.577
+   Density Construction                : 3072.775
+   Poisson Solver                      : 3161.350
+   Hamiltonian application             : 3075.872
+   Orbitals Orthonormalization         : 3075.910
+ Estimated Memory Peak (MB)            :  3161
  NonLocal PSP Projectors Descriptors:
    Creation strategy                   : On-the-fly
    Total number of projectors          :  65
@@ -841,49 +833,37 @@
    Percent of zero components          :  0
    Size of workspaces                  :  4376
    Maximum size of masking arrays for a projector:  12102
-   Cumulative size of masking arrays   :  184587
+   Cumulative size of masking arrays   :  755904
  total elements                        :  153664
  non-zero elements                     :  24542
  sparsity in %                         :  84.03
- sparse matmul load balancing naive / optimized:  [  1.14,  1.02 ]
+ sparse matmul load balancing naive / optimized:  [  1.00,  1.00 ]
  total elements                        :  153664
  non-zero elements                     :  7798
  sparsity in %                         :  94.93
- sparse matmul load balancing naive / optimized:  [  1.10,  1.02 ]
+ sparse matmul load balancing naive / optimized:  [  1.00,  1.00 ]
  check of kernel cutoff radius:
  -  {atom type: H, adjustment required:  Yes, new value:  6.50}
  -  {atom type: C, adjustment required:  Yes, new value:  6.50}
  total elements                        :  153664
  non-zero elements                     :  24542
  sparsity in %                         :  84.03
- sparse matmul load balancing naive / optimized:  [  1.14,  1.02 ]
+ sparse matmul load balancing naive / optimized:  [  1.00,  1.00 ]
  taskgroup summary:
-   number of taskgroups                :  2
+   number of taskgroups                :  1
    taskgroups overview:
-   -  {number of tasks:  3, IDs: { 0: {s:  1, e:  3224},  1: {s:  1312, e:  4555},  2: {
- s:  3246, e:  6486}}, 
- start / end:  [  1,  4555 ], start / end disjoint:  [  1,  3899 ]}
-   -  {number of tasks:  3, IDs: { 1: {s:  1312, e:  4555},  2: {s:  3246, e:  6486},  3: {
- s:  4580, e:  7798}}, 
- start / end:  [  3246,  7798 ], start / end disjoint:  [  3900,  7798 ]}
+   -  {number of tasks:  1, IDs: { 0: {s:  1, e:  7798}}, 
+ start / end:  [  1,  7798 ], start / end disjoint:  [  1,  7798 ]}
  taskgroup summary:
-   number of taskgroups                :  2
+   number of taskgroups                :  1
    taskgroups overview:
-   -  {number of tasks:  3, IDs: { 0: {s:  1, e:  10114},  1: {s:  3844, e:  14426},  2: {
- s:  10116, e:  20698}}, 
- start / end:  [  1,  14426 ], start / end disjoint:  [  1,  12270 ]}
-   -  {number of tasks:  3, IDs: { 1: {s:  3844, e:  14426},  2: {s:  10116, e:  20698},  3: {
- s:  14428, e:  24542}}, 
- start / end:  [  10116,  24542 ], start / end disjoint:  [  12271,  24542 ]}
+   -  {number of tasks:  1, IDs: { 0: {s:  1, e:  24542}}, 
+ start / end:  [  1,  24542 ], start / end disjoint:  [  1,  24542 ]}
  taskgroup summary:
-   number of taskgroups                :  2
+   number of taskgroups                :  1
    taskgroups overview:
-   -  {number of tasks:  3, IDs: { 0: {s:  1, e:  10114},  1: {s:  3844, e:  14426},  2: {
- s:  10116, e:  20698}}, 
- start / end:  [  1,  14426 ], start / end disjoint:  [  1,  12270 ]}
-   -  {number of tasks:  3, IDs: { 1: {s:  3844, e:  14426},  2: {s:  10116, e:  20698},  3: {
- s:  14428, e:  24542}}, 
- start / end:  [  10116,  24542 ], start / end disjoint:  [  12271,  24542 ]}
+   -  {number of tasks:  1, IDs: { 0: {s:  1, e:  24542}}, 
+ start / end:  [  1,  24542 ], start / end disjoint:  [  1,  24542 ]}
  Checking Compression/Uncompression of small sparse matrices:
    Tolerances for this check           :  1.00000001335143196E-10
    Maxdiff for compress                :  0.00000000000000000E+00
@@ -907,24 +887,24 @@
    transposition check, mean error     :  0.000000000000000000E+00
    transposition check, max error      :  0.000000000000000000E+00
  Checking Communications of Minimal Basis:
-   Number of coarse and fine DoF (MasterMPI task):  [  21819,  100 ]
-   Tolerances for this check: [ 5.55816333951556134E-08,  8.70414851306122728E-14]
+   Number of coarse and fine DoF (MasterMPI task):  [  86112,  400 ]
+   Tolerances for this check: [ 5.55265313536035960E-08,  8.70414851306122728E-14]
    Maxdiff for transpose (checksum)    :  5.82076609134674072E-11
-   Maxdiff for overlap calculation     :  2.08616256713867188E-07
+   Maxdiff for overlap calculation     :  1.78813934326171875E-07
    Maxdiff for untranspose             :  0.00000000000000000E+00
  Checking Communications of Enlarged Minimal Basis:
-   Number of coarse and fine DoF (MasterMPI task):  [  22323,  103 ]
-   Tolerances for this check: [ 5.72656130094758884E-07,  8.70414851306122728E-14]
+   Number of coarse and fine DoF (MasterMPI task):  [  86112,  400 ]
+   Tolerances for this check: [ 5.80286742441536415E-07,  8.70414851306122728E-14]
    Maxdiff for transpose (checksum)    :  1.86264514923095703E-09
-   Maxdiff for overlap calculation     :  9.77516174316406250E-06
+   Maxdiff for overlap calculation     :  8.70227813720703125E-06
    Maxdiff for untranspose             :  0.00000000000000000E+00
  Ion-Ion interaction energy            :  3.62627493127984E+03
   #---------------------------------------------------------------- Ionic Potential Creation
- Total ionic charge                    : -392.000157708121
+ Total ionic charge                    : -392.000157708125
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  67,  69,  677 ]
-   MPI tasks                           :  4
+   MPI tasks                           :  1
   #------------------------------------------------------------ Input Wavefunctions Creation
  Input Hamiltonian:
     #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Set the confinement prefactors
@@ -932,22 +912,20 @@
    -  {atom type: C, value:  3.90E-02, origin: file}
    -  {atom type: H, value:  3.90E-02, origin: file}
    Total No. of Atomic Input Orbitals  :  392
-   Inputguess Orbitals Repartition:
-     MPI tasks  0- 3                   :  98
    Atomic Input Orbital Generation:
    -  {Atom Type: C, Electronic configuration: {s: [ 2.00], p: [ 2/3,  2/3,  2/3]}}
    -  {Atom Type: H, Electronic configuration: {s: [ 1.00]}}
    Wavelet conversion succeeded        :  Yes
    Deviation from normalization        :  1.90E-02
-   Total charge                        :  3.919996093701E+02
+   Total charge                        :  3.919996093699E+02
    Poisson Solver:
      BC                                : Free
      Box                               :  [  67,  69,  677 ]
-     MPI tasks                         :  4
+     MPI tasks                         :  1
    orthonormalization of input guess   : standard
    Kernel update:
      Hamiltonian application required  :  Yes
-     Calculating wavelets expansion of projectors, found warnings:  259
+     Calculating wavelets expansion of projectors, found warnings:  1196
       #WARNING: Projectors too rough: Consider modifying hgrid and/or the localisation radii.
      calculate overlap matrix          :  Yes
      max dev from unity                :  1.17E-01
@@ -961,7 +939,7 @@
          x                             : -1/2
        order                           :  6
        error estimation:
-         max / mean error              :  [  4.32E-06,  6.05E-07 ]
+         max / mean error              :  [  4.32E-06,  6.04E-07 ]
      decay length of error function    :  1.000E-02
      decay length multiplicator        :  1.000E+00
      polynomial degree multiplicator   :  3.000E+00
@@ -984,71 +962,64 @@
      -  { #---------------------------------------------------------------------- it FOE: 6
  bisec/eval bounds:  [ -0.10,  0.52, -1.00,  1.00 ], pol deg:  600, eF:  5.176900000E-01, 
        polynomials: from memory, 
- Search new eF: {method: bisection / secant method, guess for new ef:  3.63151085E-01}, 
- iter:  6, Tr(K):  3.920893421E+02, charge diff:  8.934210809E-02}
+ Search new eF: {method: bisection / secant method, guess for new ef:  3.63248561E-01}, 
+ iter:  6, Tr(K):  3.920145455E+02, charge diff:  1.454548662E-02}
      -  { #---------------------------------------------------------------------- it FOE: 7
- bisec/eval bounds:  [ -0.10,  0.52, -1.00,  1.00 ], pol deg:  600, eF:  3.631510848E-01, 
+ bisec/eval bounds:  [ -0.10,  0.52, -1.00,  1.00 ], pol deg:  600, eF:  3.632485612E-01, 
        polynomials: from memory,    eval/bisection bounds ok:  [  Yes,  Yes,  Yes,  Yes ], 
- interpol check: {D eF: -1.545389E-01, D Tr: -1.812723E-01, interpol possible:  Yes}, 
- Search new eF: {method: bisection / secant method, guess for new ef:  4.40972153E-01}, 
- iter:  7, Tr(K):  3.919080698E+02, charge diff: -9.193023764E-02}
+ interpol check: {D eF: -1.544414E-01, D Tr: -2.966189E-02, interpol possible:  Yes}, 
+ Search new eF: {method: bisection / secant method, guess for new ef:  4.41212432E-01}, 
+ iter:  7, Tr(K):  3.919848836E+02, charge diff: -1.511640277E-02}
      -  { #---------------------------------------------------------------------- it FOE: 8
- bisec/eval bounds:  [  0.36,  0.52, -1.00,  1.00 ], pol deg:  600, eF:  4.409721527E-01, 
+ bisec/eval bounds:  [  0.36,  0.52, -1.00,  1.00 ], pol deg:  600, eF:  4.412124321E-01, 
        polynomials: from memory,    eval/bisection bounds ok:  [  Yes,  Yes,  Yes,  Yes ], 
- interpol check: {D eF:  7.782107E-02, D Tr:  1.673896E-01, interpol possible:  Yes}, 
- Search new eF: {method: bisection / secant method, guess for new ef:  4.03975984E-01}, 
- iter:  8, Tr(K):  3.920754594E+02, charge diff:  7.545938589E-02}
+ interpol check: {D eF:  7.796387E-02, D Tr:  2.629872E-02, interpol possible:  Yes}, 
+ Search new eF: {method: bisection / secant method, guess for new ef:  4.05146195E-01}, 
+ iter:  8, Tr(K):  3.920111823E+02, charge diff:  1.118231681E-02}
      -  { #---------------------------------------------------------------------- it FOE: 9
- bisec/eval bounds:  [  0.36,  0.44, -1.00,  1.00 ], pol deg:  600, eF:  4.039759836E-01, 
+ bisec/eval bounds:  [  0.36,  0.44, -1.00,  1.00 ], pol deg:  600, eF:  4.051461954E-01, 
        polynomials: from memory,    eval/bisection bounds ok:  [  Yes,  Yes,  Yes,  Yes ], 
- interpol check: {D eF: -3.699617E-02, D Tr: -1.623010E-01, interpol possible:  Yes}, 
- Search new eF: {det:  1.585E-07, limit:  1.000E-20, method: cubic interpolation, 
-    guess for new ef:  4.25143235E-01}, 
- iter:  9, Tr(K):  3.919131584E+02, charge diff: -8.684158229E-02}
+ interpol check: {D eF: -3.606624E-02, D Tr: -2.510860E-02, interpol possible:  Yes}, 
+ Search new eF: {det:  1.566E-07, limit:  1.000E-20, method: cubic interpolation, 
+    guess for new ef:  4.26369959E-01}, 
+ iter:  9, Tr(K):  3.919860737E+02, charge diff: -1.392628259E-02}
      -  { #--------------------------------------------------------------------- it FOE: 10
- bisec/eval bounds:  [  0.40,  0.44, -1.00,  1.00 ], pol deg:  600, eF:  4.251432348E-01, 
+ bisec/eval bounds:  [  0.41,  0.44, -1.00,  1.00 ], pol deg:  600, eF:  4.263699594E-01, 
        polynomials: from memory,    eval/bisection bounds ok:  [  Yes,  Yes,  Yes,  Yes ], 
- interpol check: {D eF:  2.116725E-02, D Tr:  9.121760E-02, interpol possible:  Yes}, 
- Search new eF: {det:  2.441E-09, limit:  1.000E-20, method: cubic interpolation, 
-    guess for new ef:  4.24208467E-01}, 
- iter:  10, Tr(K):  3.920043760E+02, charge diff:  4.376018544E-03}
+ interpol check: {D eF:  2.122376E-02, D Tr:  1.456850E-02, interpol possible:  Yes}, 
+ Search new eF: {det:  2.343E-09, limit:  1.000E-20, method: cubic interpolation, 
+    guess for new ef:  4.25501940E-01}, 
+ iter:  10, Tr(K):  3.920006422E+02, charge diff:  6.422199531E-04}
      -  { #--------------------------------------------------------------------- it FOE: 11
- bisec/eval bounds:  [  0.40,  0.43, -1.00,  1.00 ], pol deg:  600, eF:  4.242084667E-01, 
+ bisec/eval bounds:  [  0.41,  0.43, -1.00,  1.00 ], pol deg:  600, eF:  4.255019404E-01, 
        polynomials: from memory,    eval/bisection bounds ok:  [  Yes,  Yes,  Yes,  Yes ], 
- interpol check: {D eF: -9.347681E-04, D Tr: -5.498722E-03, interpol possible:  Yes}, 
- Search new eF: {det:  3.930E-12, limit:  1.000E-20, method: cubic interpolation, 
-    guess for new ef:  4.24399058E-01}, 
- iter:  11, Tr(K):  3.919988773E+02, charge diff: -1.122703355E-03}
+ interpol check: {D eF: -8.680189E-04, D Tr: -7.946772E-04, interpol possible:  Yes}, 
+ Search new eF: {det:  3.154E-12, limit:  1.000E-20, method: cubic interpolation, 
+    guess for new ef:  4.25668138E-01}, 
+ iter:  11, Tr(K):  3.919998475E+02, charge diff: -1.524572384E-04}
      -  { #--------------------------------------------------------------------- it FOE: 12
- bisec/eval bounds:  [  0.42,  0.43, -1.00,  1.00 ], pol deg:  600, eF:  4.243990581E-01, 
+ bisec/eval bounds:  [  0.43,  0.43, -1.00,  1.00 ], pol deg:  600, eF:  4.256681384E-01, 
        polynomials: from memory,    eval/bisection bounds ok:  [  Yes,  Yes,  Yes,  Yes ], 
- interpol check: {D eF:  1.905914E-04, D Tr:  1.124383E-03, interpol possible:  Yes}, 
- Search new eF: {det:  1.160E-15, limit:  1.000E-20, method: cubic interpolation, 
-    guess for new ef:  4.24398773E-01}, 
- iter:  12, Tr(K):  3.920000017E+02, charge diff:  1.679534307E-06}
-     -  { #--------------------------------------------------------------------- it FOE: 13
- bisec/eval bounds:  [  0.42,  0.42, -1.00,  1.00 ], pol deg:  600, eF:  4.243987732E-01, 
-       polynomials: from memory,    eval/bisection bounds ok:  [  Yes,  Yes,  Yes,  Yes ], 
- interpol check: {D eF: -2.848699E-07, D Tr: -1.679498E-06, interpol possible:  Yes}, 
- Search new eF: {det:  5.350E-24, limit:  1.000E-20, method: linear interpolation, 
-    guess for new ef:  4.24398773E-01}, 
- iter:  13, Tr(K):  3.920000000E+02, charge diff:  3.672084858E-11}
-     diff from reference kernel        :  2.522E-02
-     ebs                               : -36.14793445870593
-     ebs_check                         : -36.14807035391163
-     diff                              : -1.3589520570178593E-004
-     relative diff                     :  3.7594182831394584E-006
+ interpol check: {D eF:  1.661980E-04, D Tr:  1.524703E-04, interpol possible:  Yes}, 
+ Search new eF: {det:  8.977E-16, limit:  1.000E-20, method: cubic interpolation, 
+    guess for new ef:  4.25668124E-01}, 
+ iter:  12, Tr(K):  3.920000000E+02, charge diff:  1.310718289E-08}
+     diff from reference kernel        :  9.734E-03
+     ebs                               : -36.15497221526739
+     ebs_check                         : -36.15499048080811
+     diff                              : -1.8265540717266049E-005
+     relative diff                     :  5.0520134847601797E-007
      modify fscale                     : increase
      Final kernel purification:
-       tr(KS) before purification      :  392.0013155955766
+       tr(KS) before purification      :  392.0013156695466
        shift of eigenvalues            :  0.000E+00
        purification process:
-       -  {iter:  1, diff from idempotency:  8.424E-02, charge diff:  1.316E-03}
-       -  {iter:  2, diff from idempotency:  1.187E-03, charge diff:  2.853E-03}
-       -  {iter:  3, diff from idempotency:  7.378E-07, charge diff: -2.083E-06}
-       -  {iter:  4, diff from idempotency:  4.306E-13, charge diff: -1.364E-12}
-       tr(KS) after purification       :  392.0
-     trace(KS)                         :  392.0
+       -  {iter:  1, diff from idempotency:  2.485E-02, charge diff:  1.316E-03}
+       -  {iter:  2, diff from idempotency:  2.450E-04, charge diff: -6.333E-04}
+       -  {iter:  3, diff from idempotency:  4.040E-08, charge diff: -1.826E-07}
+       -  {iter:  4, diff from idempotency:  3.640E-15, charge diff:  7.958E-13}
+       tr(KS) after purification       :  392.0000000000009
+     trace(KS)                         :  392.0000000000009
      need to repeat with sharper decay (new):  No
       #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ FOE calculation of kernel finished
      Kohn-Sham residue                 :  1.266E+00
@@ -1056,8 +1027,8 @@
    Hamiltonian update: {
  Energies: {Ekin:  5.96598940581E+02, Epot: -5.73945047418E+02, Enl:  6.68186018134E+01, 
               EH:  4.03663752377E+03,  EXC: -1.73119433915E+02, EvXC: -2.26560602327E+02}, 
-    Total charge:  3.919997044986E+02, 
- Poisson Solver: {BC: Free, Box:  [  67,  69,  677 ], MPI tasks:  4}}
+    Total charge:  3.919997340273E+02, 
+ Poisson Solver: {BC: Free, Box:  [  67,  69,  677 ], MPI tasks:  1}}
     #================================================================= Input guess generated
   #------------------------------------------------------------------- Self-Consistent Cycle
  Ground State Optimization:
@@ -1068,37 +1039,37 @@
    -  {atom type: C, value:  3.90E-02, origin: from file}
     #========================================================= support function optimization
  - support function optimization: &it_supfun001
-   -  {Initial kernel purification:  Yes, tr(KS) before purification:  392.0, 
+   -  {Initial kernel purification:  Yes, tr(KS) before purification:  392.0000000000009, 
  shift of eigenvalues:  0.000E+00, purification process: [
- {iter:  1, diff from idempotency:  1.369E-02, charge diff:  0.000E+00}, 
- {iter:  2, diff from idempotency:  6.452E-05, charge diff: -4.556E-04}, 
- {iter:  3, diff from idempotency:  2.479E-09, charge diff: -2.502E-08}, 
- {iter:  4, diff from idempotency:  8.740E-15, charge diff:  1.137E-13}], 
+ {iter:  1, diff from idempotency:  8.086E-03, charge diff:  8.527E-13}, 
+ {iter:  2, diff from idempotency:  3.233E-05, charge diff: -1.184E-04}, 
+ {iter:  3, diff from idempotency:  7.192E-10, charge diff: -4.428E-09}, 
+ {iter:  4, diff from idempotency:  2.360E-15, charge diff:  1.137E-13}], 
  tr(KS) after purification:  392.0000000000001}
    -  { #-------------------------------------------------------------------------- iter: 1
  target function: HYBRID, 
- Calculating wavelets expansion of projectors, found warnings:  259, 
+ Calculating wavelets expansion of projectors, found warnings:  1196, 
   #WARNING: Projectors too rough: Consider modifying hgrid and/or the localisation radii.
  Hamiltonian Applied:  Yes, 
- Energies: {Ekin:  6.75431693632E+02, Epot: -6.29991176876E+02, Enl:  3.35214108307E+01}, 
+ Energies: {Ekin:  6.75431693632E+02, Epot: -6.29987432327E+02, Enl:  3.35214108307E+01}, 
  Orthoconstraint:  Yes, calculation of S^-1: direct calculation, 
  calculate S^x: {mode: sparse, powers: {x: -1}, order:  6, 
  error estimation: [
  max / mean error:  [  1.05E-05,  1.46E-06 ]]}, 
  Preconditioning:  Yes, 
- iter:  1, fnrm:  1.16E+00, Omega: -3.600713443253699E+02, D: -3.60E+02, D best: -3.60E+02, 
+ iter:  1, fnrm:  1.16E+00, Omega: -3.600762451148730E+02, D: -3.60E+02, D best: -3.60E+02, 
  Optimization: {algorithm: DIIS, history length:  2, consecutive failures:  0, 
            total failures:  0}, 
  calculate S^x: {mode: sparse, powers: {x: -1/2}, order:  6, 
  error estimation: [
- max / mean error:  [  2.33E-05,  2.76E-06 ]]}, 
+ max / mean error:  [  2.32E-05,  2.76E-06 ]]}, 
  Orthogonalization:  Yes}
    -  { #-------------------------------------------------------------------------- iter: 2
  target function: HYBRID, 
- Calculating wavelets expansion of projectors, found warnings:  259, 
+ Calculating wavelets expansion of projectors, found warnings:  1196, 
   #WARNING: Projectors too rough: Consider modifying hgrid and/or the localisation radii.
  Hamiltonian Applied:  Yes, 
- Energies: {Ekin:  7.35962192025E+02, Epot: -6.74357747856E+02, Enl:  3.55283446074E+01}, 
+ Energies: {Ekin:  7.35960049109E+02, Epot: -6.74352537147E+02, Enl:  3.55290128709E+01}, 
  Orthoconstraint:  Yes, calculation of S^-1: direct calculation, 
  calculate S^x: {mode: sparse, powers: {x: -1}, order:  6, 
  error estimation: [
@@ -1106,12 +1077,12 @@
   #WARNING: target function larger than its minimal value reached so far, D= 1.127E+01
  Preconditioning:  Yes,  #WARNING: use a fake value for kappa
  kappa:  5.000E-01, kappa to history:  No, 
- iter:  2, fnrm:  7.94E-01, Omega: -3.487977324960921E+02, D:  1.13E+01, D best:  1.13E+01, 
+ iter:  2, fnrm:  7.94E-01, Omega: -3.488027097519052E+02, D:  1.13E+01, D best:  1.13E+01, 
  exit criterion: net number of iterations}
    -  &final_supfun001  { #-------------------------------------------------------- iter: 2
  target function: HYBRID, 
- Energies: {Ekin:  7.35962192025E+02, Epot: -6.74357747856E+02, Enl:  3.55283446074E+01}, 
- iter:  2, fnrm:  7.94E-01, Omega: -3.487977324960921E+02, D:  1.13E+01, D best:  1.13E+01}
+ Energies: {Ekin:  7.35960049109E+02, Epot: -6.74352537147E+02, Enl:  3.55290128709E+01}, 
+ iter:  2, fnrm:  7.94E-01, Omega: -3.488027097519052E+02, D:  1.13E+01, D best:  1.13E+01}
       #Support functions created
     #=================================================================== kernel optimization
  - kernel optimization: &it_kernel001
@@ -1129,102 +1100,94 @@
            x                           : -1/2
          order                         :  6
          error estimation:
-           max / mean error            :  [  4.56E-08,  5.32E-09 ]
+           max / mean error            :  [  4.56E-08,  5.22E-09 ]
        decay length of error function  :  1.250E-02
        decay length multiplicator      :  1.000E+00
        polynomial degree multiplicator :  3.000E+00
        FOE to determine density kernel: &it_foe001-001-01-01
        -  { #-------------------------------------------------------------------- it FOE: 1
- bisec/eval bounds:  [  0.31,  0.54, -1.00,  1.00 ], pol deg:  480, eF:  3.058066732E-01, 
+ bisec/eval bounds:  [  0.31,  0.54, -1.00,  1.00 ], pol deg:  480, eF:  3.070760241E-01, 
        polynomials: recalculated,   eval/bisection bounds ok:  [  Yes,  Yes,  No,  No ]}
        -  { #-------------------------------------------------------------------- it FOE: 2
- bisec/eval bounds:  [  0.19,  0.54, -1.00,  1.00 ], pol deg:  480, eF:  1.872145732E-01, 
+ bisec/eval bounds:  [  0.19,  0.54, -1.00,  1.00 ], pol deg:  480, eF:  1.884839241E-01, 
        polynomials: from memory,    eval/bisection bounds ok:  [  Yes,  Yes,  No,  No ]}
        -  { #-------------------------------------------------------------------- it FOE: 3
- bisec/eval bounds:  [  0.06,  0.54, -1.00,  1.00 ], pol deg:  480, eF:  5.676326320E-02, 
+ bisec/eval bounds:  [  0.06,  0.54, -1.00,  1.00 ], pol deg:  480, eF:  5.803261413E-02, 
        polynomials: from memory,    eval/bisection bounds ok:  [  Yes,  Yes,  Yes,  No ]}
        -  { #-------------------------------------------------------------------- it FOE: 4
- bisec/eval bounds:  [  0.06,  0.54, -1.00,  1.00 ], pol deg:  480, eF:  5.429908732E-01, 
+ bisec/eval bounds:  [  0.06,  0.54, -1.00,  1.00 ], pol deg:  480, eF:  5.442602241E-01, 
        polynomials: from memory, 
- Search new eF: {method: bisection / secant method, guess for new ef:  1.78533127E-01}, 
- iter:  4, Tr(K):  4.773650693E+02, charge diff:  8.536506933E+01}
+ Search new eF: {method: bisection / secant method, guess for new ef:  1.79609115E-01}, 
+ iter:  4, Tr(K):  4.719756062E+02, charge diff:  7.997560618E+01}
        -  { #-------------------------------------------------------------------- it FOE: 5
- bisec/eval bounds:  [  0.06,  0.54, -1.00,  1.00 ], pol deg:  480, eF:  1.785331271E-01, 
+ bisec/eval bounds:  [  0.06,  0.54, -1.00,  1.00 ], pol deg:  480, eF:  1.796091148E-01, 
        polynomials: from memory,    eval/bisection bounds ok:  [  Yes,  Yes,  Yes,  Yes ], 
- interpol check: {D eF: -3.644577E-01, D Tr: -8.529600E+01, interpol possible:  Yes}, 
- Search new eF: {method: bisection / secant method, guess for new ef:  1.18870634E-01}, 
- iter:  5, Tr(K):  3.920690644E+02, charge diff:  6.906442895E-02}
+ interpol check: {D eF: -3.646511E-01, D Tr: -7.996922E+01, interpol possible:  Yes}, 
+ Search new eF: {method: bisection / secant method, guess for new ef:  1.18956196E-01}, 
+ iter:  5, Tr(K):  3.920063904E+02, charge diff:  6.390434100E-03}
        -  { #-------------------------------------------------------------------- it FOE: 6
- bisec/eval bounds:  [  0.06,  0.18, -1.00,  1.00 ], pol deg:  480, eF:  1.188706340E-01, 
+ bisec/eval bounds:  [  0.06,  0.18, -1.00,  1.00 ], pol deg:  480, eF:  1.189561964E-01, 
        polynomials: from memory,    eval/bisection bounds ok:  [  Yes,  Yes,  Yes,  Yes ], 
- interpol check: {D eF: -5.966249E-02, D Tr: -1.011254E-01, interpol possible:  Yes}, 
- Search new eF: {method: bisection / secant method, guess for new ef:  1.43244013E-01}, 
- iter:  6, Tr(K):  3.919679390E+02, charge diff: -3.206100158E-02}
+ interpol check: {D eF: -6.065292E-02, D Tr: -9.055280E-03, interpol possible:  Yes}, 
+ Search new eF: {method: bisection / secant method, guess for new ef:  1.43044090E-01}, 
+ iter:  6, Tr(K):  3.919973352E+02, charge diff: -2.664845506E-03}
        -  { #-------------------------------------------------------------------- it FOE: 7
- bisec/eval bounds:  [  0.12,  0.18, -1.00,  1.00 ], pol deg:  480, eF:  1.432440132E-01, 
+ bisec/eval bounds:  [  0.12,  0.18, -1.00,  1.00 ], pol deg:  480, eF:  1.430440901E-01, 
        polynomials: from memory,    eval/bisection bounds ok:  [  Yes,  Yes,  Yes,  Yes ], 
- interpol check: {D eF:  2.437338E-02, D Tr:  8.369202E-02, interpol possible:  Yes}, 
- Search new eF: {det: -3.171E-06, limit:  1.000E-20, method: cubic interpolation, 
-    guess for new ef:  1.24303613E-01}, 
- iter:  7, Tr(K):  3.920516310E+02, charge diff:  5.163101488E-02}
+ interpol check: {D eF:  2.408789E-02, D Tr:  7.180165E-03, interpol possible:  Yes}, 
+ Search new eF: {method: bisection / secant method, guess for new ef:  1.29448158E-01}, 
+ iter:  7, Tr(K):  3.920045153E+02, charge diff:  4.515319862E-03}
        -  { #-------------------------------------------------------------------- it FOE: 8
- bisec/eval bounds:  [  0.12,  0.14, -1.00,  1.00 ], pol deg:  480, eF:  1.243036131E-01, 
+ bisec/eval bounds:  [  0.12,  0.14, -1.00,  1.00 ], pol deg:  480, eF:  1.294481585E-01, 
        polynomials: from memory,    eval/bisection bounds ok:  [  Yes,  Yes,  Yes,  Yes ], 
- interpol check: {D eF: -1.894040E-02, D Tr: -6.419663E-02, interpol possible:  Yes}, 
- Search new eF: {det:  2.864E-10, limit:  1.000E-20, method: cubic interpolation, 
-    guess for new ef:  1.27774696E-01}, 
- iter:  8, Tr(K):  3.919874344E+02, charge diff: -1.256561044E-02}
+ interpol check: {D eF: -1.359593E-02, D Tr: -3.854281E-03, interpol possible:  Yes}, 
+ Search new eF: {det:  3.823E-10, limit:  1.000E-20, method: cubic interpolation, 
+    guess for new ef:  1.27331949E-01}, 
+ iter:  8, Tr(K):  3.920006610E+02, charge diff:  6.610385989E-04}
        -  { #-------------------------------------------------------------------- it FOE: 9
- bisec/eval bounds:  [  0.12,  0.14, -1.00,  1.00 ], pol deg:  480, eF:  1.277746958E-01, 
+ bisec/eval bounds:  [  0.12,  0.13, -1.00,  1.00 ], pol deg:  480, eF:  1.273319492E-01, 
        polynomials: from memory,    eval/bisection bounds ok:  [  Yes,  Yes,  Yes,  Yes ], 
- interpol check: {D eF:  3.471083E-03, D Tr:  1.352743E-02, interpol possible:  Yes}, 
- Search new eF: {det:  1.199E-12, limit:  1.000E-20, method: cubic interpolation, 
-    guess for new ef:  1.27530063E-01}, 
- iter:  9, Tr(K):  3.920009618E+02, charge diff:  9.618225157E-04}
+ interpol check: {D eF: -2.116209E-03, D Tr: -7.318312E-04, interpol possible:  Yes}, 
+ Search new eF: {det: -9.569E-13, limit:  1.000E-20, method: cubic interpolation, 
+    guess for new ef:  1.27537569E-01}, 
+ iter:  9, Tr(K):  3.919999292E+02, charge diff: -7.079264589E-05}
        -  { #------------------------------------------------------------------- it FOE: 10
- bisec/eval bounds:  [  0.12,  0.13, -1.00,  1.00 ], pol deg:  480, eF:  1.275300632E-01, 
+ bisec/eval bounds:  [  0.13,  0.13, -1.00,  1.00 ], pol deg:  480, eF:  1.275375692E-01, 
        polynomials: from memory,    eval/bisection bounds ok:  [  Yes,  Yes,  Yes,  Yes ], 
- interpol check: {D eF: -2.446326E-04, D Tr: -9.628656E-04, interpol possible:  Yes}, 
- Search new eF: {det:  1.261E-14, limit:  1.000E-20, method: cubic interpolation, 
-    guess for new ef:  1.27530328E-01}, 
- iter:  10, Tr(K):  3.919999990E+02, charge diff: -1.043120164E-06}
-       -  { #------------------------------------------------------------------- it FOE: 11
- bisec/eval bounds:  [  0.13,  0.13, -1.00,  1.00 ], pol deg:  480, eF:  1.275303283E-01, 
-       polynomials: from memory,    eval/bisection bounds ok:  [  Yes,  Yes,  Yes,  Yes ], 
- interpol check: {D eF:  2.650689E-07, D Tr:  1.043191E-06, interpol possible:  Yes}, 
- Search new eF: {det:  5.726E-22, limit:  1.000E-20, method: linear interpolation, 
-    guess for new ef:  1.27530328E-01}, 
- iter:  11, Tr(K):  3.920000000E+02, charge diff:  7.071321306E-11}
-       diff from reference kernel      :  2.061E-02
-       ebs                             : -122.6404177407403
-       ebs_check                       : -122.6403699964663
-       diff                            :  4.7744273999228426E-005
-       relative diff                   :  3.8930293029626657E-007
+ interpol check: {D eF:  2.056199E-04, D Tr:  7.143925E-05, interpol possible:  Yes}, 
+ Search new eF: {det: -2.754E-15, limit:  1.000E-20, method: cubic interpolation, 
+    guess for new ef:  1.27535708E-01}, 
+ iter:  10, Tr(K):  3.920000006E+02, charge diff:  6.466051445E-07}
+       diff from reference kernel      :  6.105E-03
+       ebs                             : -122.6427502330529
+       ebs_check                       : -122.642746607973
+       diff                            :  3.6250799126946731E-006
+       relative diff                   :  2.9558044856349717E-008
        modify fscale                   : increase
        Final kernel purification:
-         tr(KS) before purification    :  392.0000080498903
+         tr(KS) before purification    :  392.0000086960127
          shift of eigenvalues          :  0.000E+00
          purification process:
-         -  {iter:  1, diff from idempotency:  6.973E-02, charge diff:  8.050E-06}
-         -  {iter:  2, diff from idempotency:  1.038E-03, charge diff:  8.414E-04}
-         -  {iter:  3, diff from idempotency:  6.966E-07, charge diff: -1.117E-06}
-         -  {iter:  4, diff from idempotency:  5.640E-13, charge diff: -1.364E-12}
-         tr(KS) after purification     :  392.0
-       trace(KS)                       :  392.0
+         -  {iter:  1, diff from idempotency:  1.636E-02, charge diff:  8.696E-06}
+         -  {iter:  2, diff from idempotency:  1.284E-04, charge diff: -1.914E-04}
+         -  {iter:  3, diff from idempotency:  8.191E-09, charge diff: -1.265E-08}
+         -  {iter:  4, diff from idempotency:  2.356E-15, charge diff: -5.116E-13}
+         tr(KS) after purification     :  391.9999999999995
+       trace(KS)                       :  391.9999999999995
        need to repeat with sharper decay (new):  No
         #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ FOE calculation of kernel finished
        Coefficients available          :  No
      Hamiltonian update: {
  Energies: {Ekin:  5.96598940581E+02, Epot: -5.73945047418E+02, Enl:  6.68186018134E+01, 
-              EH:  3.95275319031E+03,  EXC: -1.66370190871E+02, EvXC: -2.17648841063E+02}, 
-    Total charge:  3.919999140225E+02, 
- Poisson Solver: {BC: Free, Box:  [  67,  69,  677 ], MPI tasks:  4}}
+              EH:  3.95275614078E+03,  EXC: -1.66369757522E+02, EvXC: -2.17648267529E+02}, 
+    Total charge:  3.919997737297E+02, 
+ Poisson Solver: {BC: Free, Box:  [  67,  69,  677 ], MPI tasks:  1}}
      summary: [ {kernel method: FOE, mix entity: DENS, mix hist:  2, conv crit:  7.94E-09, 
- iter:  1, delta:  4.03E-06, energy: -3.97845070605977526E+02, D: -3.978E+02}]
+ iter:  1, delta:  4.03E-06, energy: -3.97846064241979548E+02, D: -3.978E+02}]
    -  #--------------------------------------------------------------------- kernel iter: 2
      Kernel update:
        Hamiltonian application required:  Yes
-       Calculating wavelets expansion of projectors, found warnings:  259
+       Calculating wavelets expansion of projectors, found warnings:  1196
         #WARNING: Projectors too rough: Consider modifying hgrid and/or the localisation radii.
        max dev from unity              :  5.51E-02
        mean dev from unity             :  1.68E-02
@@ -1236,91 +1199,91 @@
        polynomial degree multiplicator :  3.000E+00
        FOE to determine density kernel: &it_foe001-002-01-01
        -  { #-------------------------------------------------------------------- it FOE: 1
- bisec/eval bounds:  [  0.01,  0.24, -1.00,  1.00 ], pol deg:  384, eF:  1.129821107E-02, 
+ bisec/eval bounds:  [  0.01,  0.24, -1.00,  1.00 ], pol deg:  384, eF:  1.130359035E-02, 
        polynomials: recalculated,   eval/bisection bounds ok:  [  Yes,  Yes,  Yes,  No ]}
        -  { #-------------------------------------------------------------------- it FOE: 2
- bisec/eval bounds:  [  0.01,  0.24, -1.00,  1.00 ], pol deg:  384, eF:  2.437624455E-01, 
+ bisec/eval bounds:  [  0.01,  0.24, -1.00,  1.00 ], pol deg:  384, eF:  2.437678248E-01, 
        polynomials: from memory, 
- Search new eF: {method: bisection / secant method, guess for new ef:  1.29561515E-01}, 
- iter:  2, Tr(K):  3.920675773E+02, charge diff:  6.757730847E-02}
+ Search new eF: {method: bisection / secant method, guess for new ef:  1.27599243E-01}, 
+ iter:  2, Tr(K):  3.920066447E+02, charge diff:  6.644706713E-03}
        -  { #-------------------------------------------------------------------- it FOE: 3
- bisec/eval bounds:  [  0.01,  0.24, -1.00,  1.00 ], pol deg:  384, eF:  1.295615146E-01, 
+ bisec/eval bounds:  [  0.01,  0.24, -1.00,  1.00 ], pol deg:  384, eF:  1.275992432E-01, 
        polynomials: from memory,    eval/bisection bounds ok:  [  Yes,  Yes,  Yes,  Yes ], 
- interpol check: {D eF: -1.142009E-01, D Tr: -1.378876E-01, interpol possible:  Yes}, 
- Search new eF: {method: bisection / secant method, guess for new ef:  1.87227858E-01}, 
- iter:  3, Tr(K):  3.919296897E+02, charge diff: -7.031030235E-02}
+ interpol check: {D eF: -1.161686E-01, D Tr: -1.313021E-02, interpol possible:  Yes}, 
+ Search new eF: {method: bisection / secant method, guess for new ef:  1.85331407E-01}, 
+ iter:  3, Tr(K):  3.919935145E+02, charge diff: -6.485506786E-03}
        -  { #-------------------------------------------------------------------- it FOE: 4
- bisec/eval bounds:  [  0.13,  0.24, -1.00,  1.00 ], pol deg:  384, eF:  1.872278584E-01, 
+ bisec/eval bounds:  [  0.13,  0.24, -1.00,  1.00 ], pol deg:  384, eF:  1.853314066E-01, 
        polynomials: from memory,    eval/bisection bounds ok:  [  Yes,  Yes,  Yes,  Yes ], 
- interpol check: {D eF:  5.766634E-02, D Tr:  1.332558E-01, interpol possible:  Yes}, 
- Search new eF: {method: bisection / secant method, guess for new ef:  1.59191462E-01}, 
- iter:  4, Tr(K):  3.920629455E+02, charge diff:  6.294552540E-02}
+ interpol check: {D eF:  5.773216E-02, D Tr:  1.214198E-02, interpol possible:  Yes}, 
+ Search new eF: {method: bisection / secant method, guess for new ef:  1.57450792E-01}, 
+ iter:  4, Tr(K):  3.920056565E+02, charge diff:  5.656470387E-03}
        -  { #-------------------------------------------------------------------- it FOE: 5
- bisec/eval bounds:  [  0.13,  0.19, -1.00,  1.00 ], pol deg:  384, eF:  1.591914617E-01, 
+ bisec/eval bounds:  [  0.13,  0.19, -1.00,  1.00 ], pol deg:  384, eF:  1.574507917E-01, 
        polynomials: from memory,    eval/bisection bounds ok:  [  Yes,  Yes,  Yes,  Yes ], 
- interpol check: {D eF: -2.803640E-02, D Tr: -7.158666E-02, interpol possible:  Yes}, 
- Search new eF: {det:  2.616E-08, limit:  1.000E-20, method: cubic interpolation, 
-    guess for new ef:  1.62492507E-01}, 
- iter:  5, Tr(K):  3.919913589E+02, charge diff: -8.641138083E-03}
+ interpol check: {D eF: -2.788061E-02, D Tr: -7.117898E-03, interpol possible:  Yes}, 
+ Search new eF: {det:  2.816E-08, limit:  1.000E-20, method: cubic interpolation, 
+    guess for new ef:  1.63273786E-01}, 
+ iter:  5, Tr(K):  3.919985386E+02, charge diff: -1.461427649E-03}
        -  { #-------------------------------------------------------------------- it FOE: 6
- bisec/eval bounds:  [  0.16,  0.19, -1.00,  1.00 ], pol deg:  384, eF:  1.624925074E-01, 
+ bisec/eval bounds:  [  0.16,  0.19, -1.00,  1.00 ], pol deg:  384, eF:  1.632737860E-01, 
        polynomials: from memory,    eval/bisection bounds ok:  [  Yes,  Yes,  Yes,  Yes ], 
- interpol check: {D eF:  3.301046E-03, D Tr:  1.257930E-02, interpol possible:  Yes}, 
- Search new eF: {det:  1.288E-10, limit:  1.000E-20, method: cubic interpolation, 
-    guess for new ef:  1.61456199E-01}, 
- iter:  6, Tr(K):  3.920039382E+02, charge diff:  3.938158477E-03}
+ interpol check: {D eF:  5.822994E-03, D Tr:  1.983952E-03, interpol possible:  Yes}, 
+ Search new eF: {det:  2.202E-10, limit:  1.000E-20, method: cubic interpolation, 
+    guess for new ef:  1.61734071E-01}, 
+ iter:  6, Tr(K):  3.920005225E+02, charge diff:  5.225248251E-04}
        -  { #-------------------------------------------------------------------- it FOE: 7
- bisec/eval bounds:  [  0.16,  0.16, -1.00,  1.00 ], pol deg:  384, eF:  1.614561991E-01, 
+ bisec/eval bounds:  [  0.16,  0.16, -1.00,  1.00 ], pol deg:  384, eF:  1.617340707E-01, 
        polynomials: from memory,    eval/bisection bounds ok:  [  Yes,  Yes,  Yes,  Yes ], 
- interpol check: {D eF: -1.036308E-03, D Tr: -3.949913E-03, interpol possible:  Yes}, 
- Search new eF: {det:  1.385E-13, limit:  1.000E-20, method: cubic interpolation, 
-    guess for new ef:  1.61459280E-01}, 
- iter:  7, Tr(K):  3.919999882E+02, charge diff: -1.175492417E-05}
+ interpol check: {D eF: -1.539715E-03, D Tr: -5.299119E-04, interpol possible:  Yes}, 
+ Search new eF: {det:  5.573E-13, limit:  1.000E-20, method: cubic interpolation, 
+    guess for new ef:  1.61755530E-01}, 
+ iter:  7, Tr(K):  3.919999926E+02, charge diff: -7.387073765E-06}
        -  { #-------------------------------------------------------------------- it FOE: 8
- bisec/eval bounds:  [  0.16,  0.16, -1.00,  1.00 ], pol deg:  384, eF:  1.614592797E-01, 
+ bisec/eval bounds:  [  0.16,  0.16, -1.00,  1.00 ], pol deg:  384, eF:  1.617555301E-01, 
        polynomials: from memory,    eval/bisection bounds ok:  [  Yes,  Yes,  Yes,  Yes ], 
- interpol check: {D eF:  3.080590E-06, D Tr:  1.176103E-05, interpol possible:  Yes}, 
- Search new eF: {det:  5.592E-20, limit:  1.000E-20, method: cubic interpolation, 
-    guess for new ef:  1.61459278E-01}, 
- iter:  8, Tr(K):  3.920000000E+02, charge diff:  6.102368388E-09}
-       diff from reference kernel      :  2.031E-02
-       ebs                             : -113.3111574362785
-       ebs_check                       : -113.3111407377964
-       diff                            :  1.6698482085075739E-005
-       relative diff                   :  1.4736838333388547E-007
+ interpol check: {D eF:  2.145944E-05, D Tr:  7.388943E-06, interpol possible:  Yes}, 
+ Search new eF: {det:  5.386E-18, limit:  1.000E-20, method: cubic interpolation, 
+    guess for new ef:  1.61755525E-01}, 
+ iter:  8, Tr(K):  3.920000000E+02, charge diff:  1.869238986E-09}
+       diff from reference kernel      :  6.163E-03
+       ebs                             : -113.3142350499757
+       ebs_check                       : -113.3142266989838
+       diff                            :  8.3509919477364747E-006
+       relative diff                   :  7.3697642172260019E-008
        modify fscale                   : increase
        Final kernel purification:
-         tr(KS) before purification    :  392.0000080471892
+         tr(KS) before purification    :  392.0000080425085
          shift of eigenvalues          :  0.000E+00
          purification process:
-         -  {iter:  1, diff from idempotency:  5.988E-02, charge diff:  8.047E-06}
-         -  {iter:  2, diff from idempotency:  7.769E-04, charge diff:  5.453E-04}
-         -  {iter:  3, diff from idempotency:  4.381E-07, charge diff: -5.853E-07}
-         -  {iter:  4, diff from idempotency:  2.501E-13, charge diff: -3.979E-13}
-         tr(KS) after purification     :  392.0
-       trace(KS)                       :  392.0
+         -  {iter:  1, diff from idempotency:  1.468E-02, charge diff:  8.043E-06}
+         -  {iter:  2, diff from idempotency:  1.009E-04, charge diff: -1.408E-04}
+         -  {iter:  3, diff from idempotency:  5.416E-09, charge diff: -7.240E-09}
+         -  {iter:  4, diff from idempotency:  2.318E-15, charge diff:  9.663E-13}
+         tr(KS) after purification     :  392.0000000000009
+       trace(KS)                       :  392.0000000000009
        need to repeat with sharper decay (new):  No
         #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ FOE calculation of kernel finished
        Kohn-Sham residue               :  1.029E+00
        Coefficients available          :  No
      Hamiltonian update: {
- Energies: {Ekin:  7.35962192025E+02, Epot: -7.12704238607E+02, Enl:  3.55283446074E+01, 
-              EH:  3.96140746247E+03,  EXC: -1.67081244882E+02, EvXC: -2.18587247191E+02}, 
-    Total charge:  3.919999070221E+02, 
- Poisson Solver: {BC: Free, Box:  [  67,  69,  677 ], MPI tasks:  4}}
+ Energies: {Ekin:  7.35960049109E+02, Epot: -7.12699820245E+02, Enl:  3.55290128709E+01, 
+              EH:  3.96141006467E+03,  EXC: -1.67080856937E+02, EvXC: -2.18586733887E+02}, 
+    Total charge:  3.919997827380E+02, 
+ Poisson Solver: {BC: Free, Box:  [  67,  69,  677 ], MPI tasks:  1}}
      summary: [ {kernel method: FOE, mix entity: DENS, mix hist:  2, conv crit:  7.94E-09, 
- iter:  2, delta:  3.21E-06, energy: -3.96943066295237713E+02, D:  9.020E-01}]
+ iter:  2, delta:  3.21E-06, energy: -3.96944058125642186E+02, D:  9.020E-01}]
    -  &final_kernel001  { #-------------------------------------------------------- iter: 3
  summary: [ {kernel method: FOE, mix entity: DENS, mix hist:  2, conv crit:  7.94E-09, 
- iter:  3, delta:  3.21E-06, energy: -3.96943066295237713E+02, D:  9.020E-01}]}
+ iter:  3, delta:  3.21E-06, energy: -3.96944058125642186E+02, D:  9.020E-01}]}
     #================================================================= Summary of both steps
    self consistency summary: &it_sc001
    -  {iter:  1, Omega: HYBRID, mean conf prefac:  3.90E-02, damping:  1.00E+00,  #WARNING: support function optimization not converged
  kernel optimization: FOE,  #WARNING: density optimization not converged
- iter low:  1, delta out:  1.914E-06, energy: -3.96943066295237713E+02, D: -3.969E+02}
+ iter low:  1, delta out:  1.914E-06, energy: -3.96944058125642186E+02, D: -3.969E+02}
    Kernel update:
      Hamiltonian application required  :  Yes
-     Calculating wavelets expansion of projectors, found warnings:  259
+     Calculating wavelets expansion of projectors, found warnings:  1196
       #WARNING: Projectors too rough: Consider modifying hgrid and/or the localisation radii.
      max dev from unity                :  5.51E-02
      mean dev from unity               :  1.68E-02
@@ -1331,617 +1294,617 @@
      Coefficients available            :  Yes
     #Eigenvalues and New Occupation Numbers
    Orbitals: [
- {e: -5.109355022491E-01, f:  1.0000},  # 00001
- {e: -5.103836027458E-01, f:  1.0000},  # 00002
- {e: -5.097503607259E-01, f:  1.0000},  # 00003
- {e: -5.087954074567E-01, f:  1.0000},  # 00004
- {e: -5.076020371563E-01, f:  1.0000},  # 00005
- {e: -5.063916344401E-01, f:  1.0000},  # 00006
- {e: -5.042741200366E-01, f:  1.0000},  # 00007
- {e: -5.024276103610E-01, f:  1.0000},  # 00008
- {e: -5.003954996823E-01, f:  1.0000},  # 00009
- {e: -4.981318819257E-01, f:  1.0000},  # 00010
- {e: -4.952067000194E-01, f:  1.0000},  # 00011
- {e: -4.925740751356E-01, f:  1.0000},  # 00012
- {e: -4.888110005122E-01, f:  1.0000},  # 00013
- {e: -4.861471402601E-01, f:  1.0000},  # 00014
- {e: -4.831261981863E-01, f:  1.0000},  # 00015
- {e: -4.751182004285E-01, f:  1.0000},  # 00016
- {e: -4.720158918524E-01, f:  1.0000},  # 00017
- {e: -4.683871345813E-01, f:  1.0000},  # 00018
- {e: -4.635070359206E-01, f:  1.0000},  # 00019
- {e: -4.595137147588E-01, f:  1.0000},  # 00020
- {e: -4.543519423292E-01, f:  1.0000},  # 00021
- {e: -4.488932888924E-01, f:  1.0000},  # 00022
- {e: -4.436389490863E-01, f:  1.0000},  # 00023
- {e: -4.381779713646E-01, f:  1.0000},  # 00024
- {e: -4.323469005423E-01, f:  1.0000},  # 00025
- {e: -4.263743541443E-01, f:  1.0000},  # 00026
- {e: -4.203862230874E-01, f:  1.0000},  # 00027
- {e: -4.142581725390E-01, f:  1.0000},  # 00028
- {e: -4.075803690273E-01, f:  1.0000},  # 00029
- {e: -4.012075372039E-01, f:  1.0000},  # 00030
- {e: -3.950233973453E-01, f:  1.0000},  # 00031
- {e: -3.887631782160E-01, f:  1.0000},  # 00032
- {e: -3.846915311658E-01, f:  1.0000},  # 00033
- {e: -3.724007191090E-01, f:  1.0000},  # 00034
- {e: -3.665863702693E-01, f:  1.0000},  # 00035
- {e: -3.602016151367E-01, f:  1.0000},  # 00036
- {e: -3.541153687110E-01, f:  1.0000},  # 00037
- {e: -3.478324396212E-01, f:  1.0000},  # 00038
- {e: -3.421072359467E-01, f:  1.0000},  # 00039
- {e: -3.361196669047E-01, f:  1.0000},  # 00040
- {e: -3.310691772985E-01, f:  1.0000},  # 00041
- {e: -3.258029065257E-01, f:  1.0000},  # 00042
- {e: -3.212149569401E-01, f:  1.0000},  # 00043
- {e: -3.167390646555E-01, f:  1.0000},  # 00044
- {e: -3.130437228991E-01, f:  1.0000},  # 00045
- {e: -3.097593242563E-01, f:  1.0000},  # 00046
- {e: -3.068608602784E-01, f:  1.0000},  # 00047
- {e: -3.041925566202E-01, f:  1.0000},  # 00048
- {e: -3.023057297863E-01, f:  1.0000},  # 00049
- {e: -3.007156974763E-01, f:  1.0000},  # 00050
- {e: -2.987713098203E-01, f:  1.0000},  # 00051
- {e: -2.978870273944E-01, f:  1.0000},  # 00052
- {e: -2.969885383457E-01, f:  1.0000},  # 00053
- {e: -2.963161217688E-01, f:  1.0000},  # 00054
- {e: -2.962429573218E-01, f:  1.0000},  # 00055
- {e: -2.959330195260E-01, f:  1.0000},  # 00056
- {e: -2.957109894539E-01, f:  1.0000},  # 00057
- {e: -2.954195899913E-01, f:  1.0000},  # 00058
- {e: -2.954159979249E-01, f:  1.0000},  # 00059
- {e: -2.952971159969E-01, f:  1.0000},  # 00060
- {e: -2.951535772606E-01, f:  1.0000},  # 00061
- {e: -2.949673842799E-01, f:  1.0000},  # 00062
- {e: -2.947399307506E-01, f:  1.0000},  # 00063
- {e: -2.944793292921E-01, f:  1.0000},  # 00064
- {e: -2.942801430549E-01, f:  1.0000},  # 00065
- {e: -2.045965825735E-01, f:  1.0000},  # 00066
- {e: -2.041579551913E-01, f:  1.0000},  # 00067
- {e: -2.034617490253E-01, f:  1.0000},  # 00068
- {e: -2.027379347652E-01, f:  1.0000},  # 00069
- {e: -2.020206698663E-01, f:  1.0000},  # 00070
- {e: -2.012953216013E-01, f:  1.0000},  # 00071
- {e: -1.994860343773E-01, f:  1.0000},  # 00072
- {e: -1.979803546644E-01, f:  1.0000},  # 00073
- {e: -1.967154739554E-01, f:  1.0000},  # 00074
- {e: -1.947686346146E-01, f:  1.0000},  # 00075
- {e: -1.927955647772E-01, f:  1.0000},  # 00076
- {e: -1.908024029422E-01, f:  1.0000},  # 00077
- {e: -1.886297219138E-01, f:  1.0000},  # 00078
- {e: -1.866107590375E-01, f:  1.0000},  # 00079
- {e: -1.838234060502E-01, f:  1.0000},  # 00080
- {e: -1.821571422030E-01, f:  1.0000},  # 00081
- {e: -1.779847879861E-01, f:  1.0000},  # 00082
- {e: -1.755046924664E-01, f:  1.0000},  # 00083
- {e: -1.728310397917E-01, f:  1.0000},  # 00084
- {e: -1.698981245921E-01, f:  1.0000},  # 00085
- {e: -1.667987946133E-01, f:  1.0000},  # 00086
- {e: -1.640554449231E-01, f:  1.0000},  # 00087
- {e: -1.605540529945E-01, f:  1.0000},  # 00088
- {e: -1.574098688575E-01, f:  1.0000},  # 00089
- {e: -1.566355020174E-01, f:  1.0000},  # 00090
- {e: -1.540005227323E-01, f:  1.0000},  # 00091
- {e: -1.509952226692E-01, f:  1.0000},  # 00092
- {e: -1.488412838066E-01, f:  1.0000},  # 00093
- {e: -1.476940332340E-01, f:  1.0000},  # 00094
- {e: -1.447624618190E-01, f:  1.0000},  # 00095
- {e: -1.420921524600E-01, f:  1.0000},  # 00096
- {e: -1.393781938242E-01, f:  1.0000},  # 00097
- {e: -1.380640176785E-01, f:  1.0000},  # 00098
- {e: -1.362387080996E-01, f:  1.0000},  # 00099
- {e: -1.350484472570E-01, f:  1.0000},  # 00100
- {e: -1.341764662675E-01, f:  1.0000},  # 00101
- {e: -1.341087524694E-01, f:  1.0000},  # 00102
- {e: -1.331795940557E-01, f:  1.0000},  # 00103
- {e: -1.331412456042E-01, f:  1.0000},  # 00104
- {e: -1.317238376565E-01, f:  1.0000},  # 00105
- {e: -1.312558186849E-01, f:  1.0000},  # 00106
- {e: -1.299557747414E-01, f:  1.0000},  # 00107
- {e: -1.291239534830E-01, f:  1.0000},  # 00108
- {e: -1.272436872386E-01, f:  1.0000},  # 00109
- {e: -1.261339517421E-01, f:  1.0000},  # 00110
- {e: -1.245825827742E-01, f:  1.0000},  # 00111
- {e: -1.233476790949E-01, f:  1.0000},  # 00112
- {e: -1.211212790271E-01, f:  1.0000},  # 00113
- {e: -1.206770475273E-01, f:  1.0000},  # 00114
- {e: -1.179579377186E-01, f:  1.0000},  # 00115
- {e: -1.169764711833E-01, f:  1.0000},  # 00116
- {e: -1.166425668692E-01, f:  1.0000},  # 00117
- {e: -1.163612318457E-01, f:  1.0000},  # 00118
- {e: -1.144155582662E-01, f:  1.0000},  # 00119
- {e: -1.138276195262E-01, f:  1.0000},  # 00120
- {e: -1.126792764635E-01, f:  1.0000},  # 00121
- {e: -1.119519210618E-01, f:  1.0000},  # 00122
- {e: -1.110300082114E-01, f:  1.0000},  # 00123
- {e: -1.092239215029E-01, f:  1.0000},  # 00124
- {e: -1.091121318538E-01, f:  1.0000},  # 00125
- {e: -1.071405974418E-01, f:  1.0000},  # 00126
- {e: -1.061315844529E-01, f:  1.0000},  # 00127
- {e: -1.058590960110E-01, f:  1.0000},  # 00128
- {e: -1.037610332393E-01, f:  1.0000},  # 00129
- {e: -1.030023896178E-01, f:  1.0000},  # 00130
- {e: -1.019674675938E-01, f:  1.0000},  # 00131
- {e: -1.008282499829E-01, f:  1.0000},  # 00132
- {e: -1.004360646231E-01, f:  1.0000},  # 00133
- {e: -9.849989052218E-02, f:  1.0000},  # 00134
- {e: -9.805473634404E-02, f:  1.0000},  # 00135
- {e: -9.652164467160E-02, f:  1.0000},  # 00136
- {e: -9.617464044706E-02, f:  1.0000},  # 00137
- {e: -9.415266535365E-02, f:  1.0000},  # 00138
- {e: -9.322458308259E-02, f:  1.0000},  # 00139
- {e: -9.228600016897E-02, f:  1.0000},  # 00140
- {e: -9.097369624677E-02, f:  1.0000},  # 00141
- {e: -8.920157736701E-02, f:  1.0000},  # 00142
- {e: -8.837260595275E-02, f:  1.0000},  # 00143
- {e: -8.816198694038E-02, f:  1.0000},  # 00144
- {e: -8.766305438152E-02, f:  1.0000},  # 00145
- {e: -8.560038200011E-02, f:  1.0000},  # 00146
- {e: -8.484274295045E-02, f:  1.0000},  # 00147
- {e: -8.320206644300E-02, f:  1.0000},  # 00148
- {e: -8.209897327034E-02, f:  1.0000},  # 00149
- {e: -8.170884286754E-02, f:  1.0000},  # 00150
- {e: -8.092137848504E-02, f:  1.0000},  # 00151
- {e: -8.016945132513E-02, f:  1.0000},  # 00152
- {e: -7.942294011203E-02, f:  1.0000},  # 00153
- {e: -7.875480026632E-02, f:  1.0000},  # 00154
- {e: -7.803262563047E-02, f:  1.0000},  # 00155
- {e: -7.723463951648E-02, f:  1.0000},  # 00156
- {e: -7.721871636527E-02, f:  1.0000},  # 00157
- {e: -7.650860178211E-02, f:  1.0000},  # 00158
- {e: -7.601411246702E-02, f:  1.0000},  # 00159
- {e: -7.529581869428E-02, f:  1.0000},  # 00160
- {e: -7.486889866653E-02, f:  1.0000},  # 00161
- {e: -7.455414808962E-02, f:  1.0000},  # 00162
- {e: -7.422138864651E-02, f:  1.0000},  # 00163
- {e: -7.408337324481E-02, f:  1.0000},  # 00164
- {e: -7.399335951092E-02, f:  1.0000},  # 00165
- {e: -7.367912853387E-02, f:  1.0000},  # 00166
- {e: -7.345981463987E-02, f:  1.0000},  # 00167
- {e: -6.995103583131E-02, f:  1.0000},  # 00168
- {e: -6.827328024774E-02, f:  1.0000},  # 00169
- {e: -6.662430129639E-02, f:  1.0000},  # 00170
- {e: -6.204947362306E-02, f:  1.0000},  # 00171
- {e: -6.178703575295E-02, f:  1.0000},  # 00172
- {e: -5.814633553588E-02, f:  1.0000},  # 00173
- {e: -5.609682129558E-02, f:  1.0000},  # 00174
- {e: -5.470575231317E-02, f:  1.0000},  # 00175
- {e: -5.184168676101E-02, f:  1.0000},  # 00176
- {e: -5.015880529192E-02, f:  1.0000},  # 00177
- {e: -4.864183387688E-02, f:  1.0000},  # 00178
- {e: -4.559480999054E-02, f:  1.0000},  # 00179
- {e: -4.528745074617E-02, f:  1.0000},  # 00180
- {e: -4.253515254714E-02, f:  1.0000},  # 00181
- {e: -4.113292019411E-02, f:  1.0000},  # 00182
- {e: -3.987507011553E-02, f:  1.0000},  # 00183
- {e: -3.833478382973E-02, f:  1.0000},  # 00184
- {e: -3.642946088046E-02, f:  1.0000},  # 00185
- {e: -3.577589340819E-02, f:  1.0000},  # 00186
- {e: -3.410959715212E-02, f:  1.0000},  # 00187
- {e: -3.366726203906E-02, f:  1.0000},  # 00188
- {e: -3.230758994077E-02, f:  1.0000},  # 00189
- {e: -3.153192624930E-02, f:  1.0000},  # 00190
- {e: -3.115657557714E-02, f:  1.0000},  # 00191
- {e: -3.099197478223E-02, f:  1.0000},  # 00192
- {e: -2.815159335123E-02, f:  1.0000},  # 00193
- {e: -2.506700599344E-02, f:  1.0000},  # 00194
- {e: -2.362436075079E-02, f:  1.0000},  # 00195
- {e: -2.247785638389E-02, f:  1.0000},  # 00196
- {e:  6.123603939556E-01, f:  1.0000},  # 00197
- {e:  6.132122316290E-01, f:  1.0000},  # 00198
- {e:  6.159419357418E-01, f:  1.0000},  # 00199
- {e:  6.182864004715E-01, f:  1.0000},  # 00200
- {e:  6.192312742143E-01, f:  1.0000},  # 00201
- {e:  6.194609974279E-01, f:  1.0000},  # 00202
- {e:  6.203628399759E-01, f:  1.0000},  # 00203
- {e:  6.208699858373E-01, f:  1.0000},  # 00204
- {e:  6.213647182269E-01, f:  1.0000},  # 00205
- {e:  6.225636638142E-01, f:  1.0000},  # 00206
- {e:  6.228158218229E-01, f:  1.0000},  # 00207
- {e:  6.245431973404E-01, f:  1.0000},  # 00208
- {e:  6.260457944663E-01, f:  1.0000},  # 00209
- {e:  6.272164874650E-01, f:  1.0000},  # 00210
- {e:  6.280250253670E-01, f:  1.0000},  # 00211
- {e:  6.299088915327E-01, f:  1.0000},  # 00212
- {e:  6.311799667719E-01, f:  1.0000},  # 00213
- {e:  6.322635638568E-01, f:  1.0000},  # 00214
- {e:  6.345923151251E-01, f:  1.0000},  # 00215
- {e:  6.369607794216E-01, f:  1.0000},  # 00216
- {e:  6.372916103926E-01, f:  1.0000},  # 00217
- {e:  6.398044923297E-01, f:  1.0000},  # 00218
- {e:  6.423301986561E-01, f:  1.0000},  # 00219
- {e:  6.431003567107E-01, f:  1.0000},  # 00220
- {e:  6.472592773009E-01, f:  1.0000},  # 00221
- {e:  6.498611558124E-01, f:  1.0000},  # 00222
- {e:  6.502792583109E-01, f:  1.0000},  # 00223
- {e:  6.530668445563E-01, f:  1.0000},  # 00224
- {e:  6.554062060100E-01, f:  1.0000},  # 00225
- {e:  6.563226138295E-01, f:  1.0000},  # 00226
- {e:  6.605455285576E-01, f:  1.0000},  # 00227
- {e:  6.632555393440E-01, f:  1.0000},  # 00228
- {e:  6.643931424876E-01, f:  1.0000},  # 00229
- {e:  6.684254749005E-01, f:  1.0000},  # 00230
- {e:  6.720346646053E-01, f:  1.0000},  # 00231
- {e:  6.724362522225E-01, f:  1.0000},  # 00232
- {e:  6.743211643904E-01, f:  1.0000},  # 00233
- {e:  6.750383902310E-01, f:  1.0000},  # 00234
- {e:  6.757205467791E-01, f:  1.0000},  # 00235
- {e:  6.766058201221E-01, f:  1.0000},  # 00236
- {e:  6.772987146716E-01, f:  1.0000},  # 00237
- {e:  6.780276117383E-01, f:  1.0000},  # 00238
- {e:  6.799060527287E-01, f:  1.0000},  # 00239
- {e:  6.809032400728E-01, f:  1.0000},  # 00240
- {e:  6.812973301391E-01, f:  1.0000},  # 00241
- {e:  6.838754319778E-01, f:  1.0000},  # 00242
- {e:  6.856341195241E-01, f:  1.0000},  # 00243
- {e:  6.858633128868E-01, f:  1.0000},  # 00244
- {e:  6.869757091112E-01, f:  1.0000},  # 00245
- {e:  6.899962185668E-01, f:  1.0000},  # 00246
- {e:  6.902025753520E-01, f:  1.0000},  # 00247
- {e:  6.911645639195E-01, f:  1.0000},  # 00248
- {e:  6.933629420266E-01, f:  1.0000},  # 00249
- {e:  6.945565136271E-01, f:  1.0000},  # 00250
- {e:  6.963291978857E-01, f:  1.0000},  # 00251
- {e:  6.978446763739E-01, f:  1.0000},  # 00252
- {e:  6.993141105569E-01, f:  1.0000},  # 00253
- {e:  7.011765222178E-01, f:  1.0000},  # 00254
- {e:  7.038270310152E-01, f:  1.0000},  # 00255
- {e:  7.046904703423E-01, f:  1.0000},  # 00256
- {e:  7.056945878293E-01, f:  1.0000},  # 00257
- {e:  7.073875606687E-01, f:  1.0000},  # 00258
- {e:  7.077479034330E-01, f:  1.0000},  # 00259
- {e:  7.115496444521E-01, f:  1.0000},  # 00260
- {e:  7.133663388649E-01, f:  1.0000},  # 00261
- {e:  7.149709824400E-01, f:  1.0000},  # 00262
- {e:  7.161749834951E-01, f:  1.0000},  # 00263
- {e:  7.242964885114E-01, f:  1.0000},  # 00264
- {e:  7.273803411167E-01, f:  1.0000},  # 00265
- {e:  7.281412721933E-01, f:  1.0000},  # 00266
- {e:  7.301511782227E-01, f:  1.0000},  # 00267
- {e:  7.318335210784E-01, f:  1.0000},  # 00268
- {e:  7.339377099277E-01, f:  1.0000},  # 00269
- {e:  7.364390134149E-01, f:  1.0000},  # 00270
- {e:  7.369000420296E-01, f:  1.0000},  # 00271
- {e:  7.375008953311E-01, f:  1.0000},  # 00272
- {e:  7.409409843736E-01, f:  1.0000},  # 00273
- {e:  7.409918705502E-01, f:  1.0000},  # 00274
- {e:  7.429878327394E-01, f:  1.0000},  # 00275
- {e:  7.455509861043E-01, f:  1.0000},  # 00276
- {e:  7.461406229737E-01, f:  1.0000},  # 00277
- {e:  7.474097409073E-01, f:  1.0000},  # 00278
- {e:  7.500272287355E-01, f:  1.0000},  # 00279
- {e:  7.505808764446E-01, f:  1.0000},  # 00280
- {e:  7.509616467098E-01, f:  1.0000},  # 00281
- {e:  7.540091058588E-01, f:  1.0000},  # 00282
- {e:  7.543957372161E-01, f:  1.0000},  # 00283
- {e:  7.563360137556E-01, f:  1.0000},  # 00284
- {e:  7.585226372907E-01, f:  1.0000},  # 00285
- {e:  7.598648723924E-01, f:  1.0000},  # 00286
- {e:  7.614024814632E-01, f:  1.0000},  # 00287
- {e:  7.632225867755E-01, f:  1.0000},  # 00288
- {e:  7.642853409047E-01, f:  1.0000},  # 00289
- {e:  7.661695384727E-01, f:  1.0000},  # 00290
- {e:  7.704265916118E-01, f:  1.0000},  # 00291
- {e:  7.711335164616E-01, f:  1.0000},  # 00292
- {e:  7.727664693412E-01, f:  1.0000},  # 00293
- {e:  7.729962643555E-01, f:  1.0000},  # 00294
- {e:  7.733652090971E-01, f:  1.0000},  # 00295
- {e:  7.750082443246E-01, f:  1.0000},  # 00296
- {e:  7.757644077797E-01, f:  1.0000},  # 00297
- {e:  7.767553991208E-01, f:  1.0000},  # 00298
- {e:  7.776098518395E-01, f:  1.0000},  # 00299
- {e:  7.794761241733E-01, f:  1.0000},  # 00300
- {e:  7.800377803524E-01, f:  1.0000},  # 00301
- {e:  7.806047712621E-01, f:  1.0000},  # 00302
- {e:  7.815190069281E-01, f:  1.0000},  # 00303
- {e:  7.824396168052E-01, f:  1.0000},  # 00304
- {e:  7.829756074415E-01, f:  1.0000},  # 00305
- {e:  7.831222139409E-01, f:  1.0000},  # 00306
- {e:  7.847939017956E-01, f:  1.0000},  # 00307
- {e:  7.858664466207E-01, f:  1.0000},  # 00308
- {e:  7.862155356429E-01, f:  1.0000},  # 00309
- {e:  7.866444192161E-01, f:  1.0000},  # 00310
- {e:  7.871492188455E-01, f:  1.0000},  # 00311
- {e:  7.877226997082E-01, f:  1.0000},  # 00312
- {e:  7.877847052459E-01, f:  1.0000},  # 00313
- {e:  7.882267200217E-01, f:  1.0000},  # 00314
- {e:  7.889084846568E-01, f:  1.0000},  # 00315
- {e:  7.891002825837E-01, f:  1.0000},  # 00316
- {e:  7.892596609641E-01, f:  1.0000},  # 00317
- {e:  7.895121362025E-01, f:  1.0000},  # 00318
- {e:  7.896333322175E-01, f:  1.0000},  # 00319
- {e:  7.902246388632E-01, f:  1.0000},  # 00320
- {e:  7.906550466201E-01, f:  1.0000},  # 00321
- {e:  7.907887146090E-01, f:  1.0000},  # 00322
- {e:  7.911387883900E-01, f:  1.0000},  # 00323
- {e:  7.914979873533E-01, f:  1.0000},  # 00324
- {e:  7.918775824463E-01, f:  1.0000},  # 00325
- {e:  7.921796533052E-01, f:  1.0000},  # 00326
- {e:  7.925808939890E-01, f:  1.0000},  # 00327
- {e:  7.932301495512E-01, f:  1.0000},  # 00328
- {e:  7.936045094055E-01, f:  1.0000},  # 00329
- {e:  7.937186918858E-01, f:  1.0000},  # 00330
- {e:  7.947399791521E-01, f:  1.0000},  # 00331
- {e:  7.949725634297E-01, f:  1.0000},  # 00332
- {e:  7.959856374417E-01, f:  1.0000},  # 00333
- {e:  7.960654396574E-01, f:  1.0000},  # 00334
- {e:  7.964617346414E-01, f:  1.0000},  # 00335
- {e:  7.973058320689E-01, f:  1.0000},  # 00336
- {e:  7.977788401001E-01, f:  1.0000},  # 00337
- {e:  7.989870344572E-01, f:  1.0000},  # 00338
- {e:  7.999814249559E-01, f:  1.0000},  # 00339
- {e:  8.015186348400E-01, f:  1.0000},  # 00340
- {e:  8.034708309247E-01, f:  1.0000},  # 00341
- {e:  8.048200597770E-01, f:  1.0000},  # 00342
- {e:  8.064551605351E-01, f:  1.0000},  # 00343
- {e:  8.077579882479E-01, f:  1.0000},  # 00344
- {e:  8.104141579902E-01, f:  1.0000},  # 00345
- {e:  8.117197851779E-01, f:  1.0000},  # 00346
- {e:  8.121253173488E-01, f:  1.0000},  # 00347
- {e:  8.135981935009E-01, f:  1.0000},  # 00348
- {e:  8.143225341071E-01, f:  1.0000},  # 00349
- {e:  8.174141216694E-01, f:  1.0000},  # 00350
- {e:  8.198955242503E-01, f:  1.0000},  # 00351
- {e:  8.211566877934E-01, f:  1.0000},  # 00352
- {e:  8.220402572704E-01, f:  1.0000},  # 00353
- {e:  8.229209142984E-01, f:  1.0000},  # 00354
- {e:  8.229755907589E-01, f:  1.0000},  # 00355
- {e:  8.241011498024E-01, f:  1.0000},  # 00356
- {e:  8.249504360112E-01, f:  1.0000},  # 00357
- {e:  8.251478235425E-01, f:  1.0000},  # 00358
- {e:  8.256186362551E-01, f:  1.0000},  # 00359
- {e:  8.270847191494E-01, f:  1.0000},  # 00360
- {e:  8.273198704384E-01, f:  1.0000},  # 00361
- {e:  8.276720807202E-01, f:  1.0000},  # 00362
- {e:  8.278935778863E-01, f:  1.0000},  # 00363
- {e:  8.281959408747E-01, f:  1.0000},  # 00364
- {e:  8.284114939075E-01, f:  1.0000},  # 00365
- {e:  8.295473835118E-01, f:  1.0000},  # 00366
- {e:  8.303047217745E-01, f:  1.0000},  # 00367
- {e:  8.304738127905E-01, f:  1.0000},  # 00368
- {e:  8.310995758067E-01, f:  1.0000},  # 00369
- {e:  8.312121288119E-01, f:  1.0000},  # 00370
- {e:  8.315959431661E-01, f:  1.0000},  # 00371
- {e:  8.317964155035E-01, f:  1.0000},  # 00372
- {e:  8.325097846669E-01, f:  1.0000},  # 00373
- {e:  8.327292869456E-01, f:  1.0000},  # 00374
- {e:  8.329016655946E-01, f:  1.0000},  # 00375
- {e:  8.331628955308E-01, f:  1.0000},  # 00376
- {e:  8.336722331651E-01, f:  1.0000},  # 00377
- {e:  8.337066298909E-01, f:  1.0000},  # 00378
- {e:  8.340672019343E-01, f:  1.0000},  # 00379
- {e:  8.341850496127E-01, f:  1.0000},  # 00380
- {e:  8.351979273626E-01, f:  1.0000},  # 00381
- {e:  8.354628458416E-01, f:  1.0000},  # 00382
- {e:  8.356533637198E-01, f:  1.0000},  # 00383
- {e:  8.359169641042E-01, f:  1.0000},  # 00384
- {e:  8.363166213433E-01, f:  1.0000},  # 00385
- {e:  8.365903464359E-01, f:  1.0000},  # 00386
- {e:  8.372955657284E-01, f:  1.0000},  # 00387
- {e:  8.375698945803E-01, f:  1.0000},  # 00388
- {e:  8.378584516083E-01, f:  1.0000},  # 00389
- {e:  8.387076600088E-01, f:  1.0000},  # 00390
- {e:  8.391385676965E-01, f:  1.0000},  # 00391
- {e:  8.403494728485E-01, f:  1.0000}] # 00392
+ {e: -5.109039163886E-01, f:  1.0000},  # 00001
+ {e: -5.103495012747E-01, f:  1.0000},  # 00002
+ {e: -5.097153615486E-01, f:  1.0000},  # 00003
+ {e: -5.087691625162E-01, f:  1.0000},  # 00004
+ {e: -5.075727283945E-01, f:  1.0000},  # 00005
+ {e: -5.063622754062E-01, f:  1.0000},  # 00006
+ {e: -5.042451822530E-01, f:  1.0000},  # 00007
+ {e: -5.023987124775E-01, f:  1.0000},  # 00008
+ {e: -5.003709060788E-01, f:  1.0000},  # 00009
+ {e: -4.981005781131E-01, f:  1.0000},  # 00010
+ {e: -4.951760305820E-01, f:  1.0000},  # 00011
+ {e: -4.925440063157E-01, f:  1.0000},  # 00012
+ {e: -4.887776725993E-01, f:  1.0000},  # 00013
+ {e: -4.861163043241E-01, f:  1.0000},  # 00014
+ {e: -4.830929491462E-01, f:  1.0000},  # 00015
+ {e: -4.750961730513E-01, f:  1.0000},  # 00016
+ {e: -4.719946494464E-01, f:  1.0000},  # 00017
+ {e: -4.683622432071E-01, f:  1.0000},  # 00018
+ {e: -4.634832341607E-01, f:  1.0000},  # 00019
+ {e: -4.594880927640E-01, f:  1.0000},  # 00020
+ {e: -4.543267546966E-01, f:  1.0000},  # 00021
+ {e: -4.488697776084E-01, f:  1.0000},  # 00022
+ {e: -4.436129833017E-01, f:  1.0000},  # 00023
+ {e: -4.381527336656E-01, f:  1.0000},  # 00024
+ {e: -4.323219516742E-01, f:  1.0000},  # 00025
+ {e: -4.263498775879E-01, f:  1.0000},  # 00026
+ {e: -4.203617411814E-01, f:  1.0000},  # 00027
+ {e: -4.142324017327E-01, f:  1.0000},  # 00028
+ {e: -4.075565163305E-01, f:  1.0000},  # 00029
+ {e: -4.011810530919E-01, f:  1.0000},  # 00030
+ {e: -3.949983532951E-01, f:  1.0000},  # 00031
+ {e: -3.887251482196E-01, f:  1.0000},  # 00032
+ {e: -3.846466197582E-01, f:  1.0000},  # 00033
+ {e: -3.723974047715E-01, f:  1.0000},  # 00034
+ {e: -3.665826868563E-01, f:  1.0000},  # 00035
+ {e: -3.601924305477E-01, f:  1.0000},  # 00036
+ {e: -3.541053090043E-01, f:  1.0000},  # 00037
+ {e: -3.478169604916E-01, f:  1.0000},  # 00038
+ {e: -3.420940383268E-01, f:  1.0000},  # 00039
+ {e: -3.361065594673E-01, f:  1.0000},  # 00040
+ {e: -3.310563344920E-01, f:  1.0000},  # 00041
+ {e: -3.257901715088E-01, f:  1.0000},  # 00042
+ {e: -3.212024165932E-01, f:  1.0000},  # 00043
+ {e: -3.167279650166E-01, f:  1.0000},  # 00044
+ {e: -3.130321147896E-01, f:  1.0000},  # 00045
+ {e: -3.097487252944E-01, f:  1.0000},  # 00046
+ {e: -3.068532431146E-01, f:  1.0000},  # 00047
+ {e: -3.041809548430E-01, f:  1.0000},  # 00048
+ {e: -3.022947991937E-01, f:  1.0000},  # 00049
+ {e: -3.007047955878E-01, f:  1.0000},  # 00050
+ {e: -2.987623592523E-01, f:  1.0000},  # 00051
+ {e: -2.978784367835E-01, f:  1.0000},  # 00052
+ {e: -2.969691195052E-01, f:  1.0000},  # 00053
+ {e: -2.963019685416E-01, f:  1.0000},  # 00054
+ {e: -2.962257633599E-01, f:  1.0000},  # 00055
+ {e: -2.959186874309E-01, f:  1.0000},  # 00056
+ {e: -2.957018213728E-01, f:  1.0000},  # 00057
+ {e: -2.954173012369E-01, f:  1.0000},  # 00058
+ {e: -2.953975326100E-01, f:  1.0000},  # 00059
+ {e: -2.952910985123E-01, f:  1.0000},  # 00060
+ {e: -2.951455199455E-01, f:  1.0000},  # 00061
+ {e: -2.949569502824E-01, f:  1.0000},  # 00062
+ {e: -2.947451539317E-01, f:  1.0000},  # 00063
+ {e: -2.944870868619E-01, f:  1.0000},  # 00064
+ {e: -2.942799781211E-01, f:  1.0000},  # 00065
+ {e: -2.045788044001E-01, f:  1.0000},  # 00066
+ {e: -2.041372110305E-01, f:  1.0000},  # 00067
+ {e: -2.034376767776E-01, f:  1.0000},  # 00068
+ {e: -2.027233145528E-01, f:  1.0000},  # 00069
+ {e: -2.020097306423E-01, f:  1.0000},  # 00070
+ {e: -2.012826002915E-01, f:  1.0000},  # 00071
+ {e: -1.994702681632E-01, f:  1.0000},  # 00072
+ {e: -1.979625939985E-01, f:  1.0000},  # 00073
+ {e: -1.967040506395E-01, f:  1.0000},  # 00074
+ {e: -1.947506252701E-01, f:  1.0000},  # 00075
+ {e: -1.927761073744E-01, f:  1.0000},  # 00076
+ {e: -1.907863264008E-01, f:  1.0000},  # 00077
+ {e: -1.886075961509E-01, f:  1.0000},  # 00078
+ {e: -1.865917813666E-01, f:  1.0000},  # 00079
+ {e: -1.838011905759E-01, f:  1.0000},  # 00080
+ {e: -1.821426614146E-01, f:  1.0000},  # 00081
+ {e: -1.779718050054E-01, f:  1.0000},  # 00082
+ {e: -1.754849414480E-01, f:  1.0000},  # 00083
+ {e: -1.728176235775E-01, f:  1.0000},  # 00084
+ {e: -1.698810590976E-01, f:  1.0000},  # 00085
+ {e: -1.667817466512E-01, f:  1.0000},  # 00086
+ {e: -1.640391260304E-01, f:  1.0000},  # 00087
+ {e: -1.605360420355E-01, f:  1.0000},  # 00088
+ {e: -1.573887584379E-01, f:  1.0000},  # 00089
+ {e: -1.566016468064E-01, f:  1.0000},  # 00090
+ {e: -1.539822158556E-01, f:  1.0000},  # 00091
+ {e: -1.509750341156E-01, f:  1.0000},  # 00092
+ {e: -1.488186681423E-01, f:  1.0000},  # 00093
+ {e: -1.476746907395E-01, f:  1.0000},  # 00094
+ {e: -1.447373357649E-01, f:  1.0000},  # 00095
+ {e: -1.420695130454E-01, f:  1.0000},  # 00096
+ {e: -1.393470371724E-01, f:  1.0000},  # 00097
+ {e: -1.380324936550E-01, f:  1.0000},  # 00098
+ {e: -1.361941022786E-01, f:  1.0000},  # 00099
+ {e: -1.350189915043E-01, f:  1.0000},  # 00100
+ {e: -1.341511779724E-01, f:  1.0000},  # 00101
+ {e: -1.340838356177E-01, f:  1.0000},  # 00102
+ {e: -1.331522417903E-01, f:  1.0000},  # 00103
+ {e: -1.331139661181E-01, f:  1.0000},  # 00104
+ {e: -1.316978735378E-01, f:  1.0000},  # 00105
+ {e: -1.312368427084E-01, f:  1.0000},  # 00106
+ {e: -1.299325214629E-01, f:  1.0000},  # 00107
+ {e: -1.291066945806E-01, f:  1.0000},  # 00108
+ {e: -1.272216253129E-01, f:  1.0000},  # 00109
+ {e: -1.260998982625E-01, f:  1.0000},  # 00110
+ {e: -1.245538170378E-01, f:  1.0000},  # 00111
+ {e: -1.233206544351E-01, f:  1.0000},  # 00112
+ {e: -1.211011099539E-01, f:  1.0000},  # 00113
+ {e: -1.206502371759E-01, f:  1.0000},  # 00114
+ {e: -1.179423222796E-01, f:  1.0000},  # 00115
+ {e: -1.169761317489E-01, f:  1.0000},  # 00116
+ {e: -1.166156456509E-01, f:  1.0000},  # 00117
+ {e: -1.163591355207E-01, f:  1.0000},  # 00118
+ {e: -1.143963537924E-01, f:  1.0000},  # 00119
+ {e: -1.138294490025E-01, f:  1.0000},  # 00120
+ {e: -1.126560354653E-01, f:  1.0000},  # 00121
+ {e: -1.119518983162E-01, f:  1.0000},  # 00122
+ {e: -1.110037809103E-01, f:  1.0000},  # 00123
+ {e: -1.092163677073E-01, f:  1.0000},  # 00124
+ {e: -1.090925705416E-01, f:  1.0000},  # 00125
+ {e: -1.071305111151E-01, f:  1.0000},  # 00126
+ {e: -1.061043397669E-01, f:  1.0000},  # 00127
+ {e: -1.058451360087E-01, f:  1.0000},  # 00128
+ {e: -1.037481391198E-01, f:  1.0000},  # 00129
+ {e: -1.029908330884E-01, f:  1.0000},  # 00130
+ {e: -1.019381867711E-01, f:  1.0000},  # 00131
+ {e: -1.008117798545E-01, f:  1.0000},  # 00132
+ {e: -1.004261302685E-01, f:  1.0000},  # 00133
+ {e: -9.848292828351E-02, f:  1.0000},  # 00134
+ {e: -9.803370850100E-02, f:  1.0000},  # 00135
+ {e: -9.650246185413E-02, f:  1.0000},  # 00136
+ {e: -9.616486176887E-02, f:  1.0000},  # 00137
+ {e: -9.414520451764E-02, f:  1.0000},  # 00138
+ {e: -9.320238933241E-02, f:  1.0000},  # 00139
+ {e: -9.227842879377E-02, f:  1.0000},  # 00140
+ {e: -9.097011269645E-02, f:  1.0000},  # 00141
+ {e: -8.917900713317E-02, f:  1.0000},  # 00142
+ {e: -8.834866680776E-02, f:  1.0000},  # 00143
+ {e: -8.814475485068E-02, f:  1.0000},  # 00144
+ {e: -8.765206525981E-02, f:  1.0000},  # 00145
+ {e: -8.557592110538E-02, f:  1.0000},  # 00146
+ {e: -8.482571867021E-02, f:  1.0000},  # 00147
+ {e: -8.319712413653E-02, f:  1.0000},  # 00148
+ {e: -8.208749368018E-02, f:  1.0000},  # 00149
+ {e: -8.170124578821E-02, f:  1.0000},  # 00150
+ {e: -8.090013205624E-02, f:  1.0000},  # 00151
+ {e: -8.016260521209E-02, f:  1.0000},  # 00152
+ {e: -7.940834925976E-02, f:  1.0000},  # 00153
+ {e: -7.873946212750E-02, f:  1.0000},  # 00154
+ {e: -7.802472671793E-02, f:  1.0000},  # 00155
+ {e: -7.722768344888E-02, f:  1.0000},  # 00156
+ {e: -7.719705143206E-02, f:  1.0000},  # 00157
+ {e: -7.649918869205E-02, f:  1.0000},  # 00158
+ {e: -7.600286527873E-02, f:  1.0000},  # 00159
+ {e: -7.529201425771E-02, f:  1.0000},  # 00160
+ {e: -7.486656140498E-02, f:  1.0000},  # 00161
+ {e: -7.455233839596E-02, f:  1.0000},  # 00162
+ {e: -7.421811080060E-02, f:  1.0000},  # 00163
+ {e: -7.407966004779E-02, f:  1.0000},  # 00164
+ {e: -7.396668342653E-02, f:  1.0000},  # 00165
+ {e: -7.367501870162E-02, f:  1.0000},  # 00166
+ {e: -7.343396614379E-02, f:  1.0000},  # 00167
+ {e: -6.992828786123E-02, f:  1.0000},  # 00168
+ {e: -6.823941421626E-02, f:  1.0000},  # 00169
+ {e: -6.659960445491E-02, f:  1.0000},  # 00170
+ {e: -6.201308464161E-02, f:  1.0000},  # 00171
+ {e: -6.176145711299E-02, f:  1.0000},  # 00172
+ {e: -5.812151009735E-02, f:  1.0000},  # 00173
+ {e: -5.605729894204E-02, f:  1.0000},  # 00174
+ {e: -5.467643191285E-02, f:  1.0000},  # 00175
+ {e: -5.181415596736E-02, f:  1.0000},  # 00176
+ {e: -5.012314097025E-02, f:  1.0000},  # 00177
+ {e: -4.861300894717E-02, f:  1.0000},  # 00178
+ {e: -4.556531360397E-02, f:  1.0000},  # 00179
+ {e: -4.525179215071E-02, f:  1.0000},  # 00180
+ {e: -4.250837571113E-02, f:  1.0000},  # 00181
+ {e: -4.109882396841E-02, f:  1.0000},  # 00182
+ {e: -3.984438967165E-02, f:  1.0000},  # 00183
+ {e: -3.830262076686E-02, f:  1.0000},  # 00184
+ {e: -3.640218032772E-02, f:  1.0000},  # 00185
+ {e: -3.574233431773E-02, f:  1.0000},  # 00186
+ {e: -3.407661134347E-02, f:  1.0000},  # 00187
+ {e: -3.363642124380E-02, f:  1.0000},  # 00188
+ {e: -3.227995250900E-02, f:  1.0000},  # 00189
+ {e: -3.150145554734E-02, f:  1.0000},  # 00190
+ {e: -3.112549542536E-02, f:  1.0000},  # 00191
+ {e: -3.095691134701E-02, f:  1.0000},  # 00192
+ {e: -2.811186159928E-02, f:  1.0000},  # 00193
+ {e: -2.503069558044E-02, f:  1.0000},  # 00194
+ {e: -2.358273925633E-02, f:  1.0000},  # 00195
+ {e: -2.243844117236E-02, f:  1.0000},  # 00196
+ {e:  6.123748113500E-01, f:  1.0000},  # 00197
+ {e:  6.132296774318E-01, f:  1.0000},  # 00198
+ {e:  6.159561918904E-01, f:  1.0000},  # 00199
+ {e:  6.182987878616E-01, f:  1.0000},  # 00200
+ {e:  6.192532620228E-01, f:  1.0000},  # 00201
+ {e:  6.194845791893E-01, f:  1.0000},  # 00202
+ {e:  6.203841254846E-01, f:  1.0000},  # 00203
+ {e:  6.208883394387E-01, f:  1.0000},  # 00204
+ {e:  6.213809873520E-01, f:  1.0000},  # 00205
+ {e:  6.225796711157E-01, f:  1.0000},  # 00206
+ {e:  6.228361902811E-01, f:  1.0000},  # 00207
+ {e:  6.245627036768E-01, f:  1.0000},  # 00208
+ {e:  6.260660366368E-01, f:  1.0000},  # 00209
+ {e:  6.272334564335E-01, f:  1.0000},  # 00210
+ {e:  6.280421929308E-01, f:  1.0000},  # 00211
+ {e:  6.299309258482E-01, f:  1.0000},  # 00212
+ {e:  6.311969748627E-01, f:  1.0000},  # 00213
+ {e:  6.322847456772E-01, f:  1.0000},  # 00214
+ {e:  6.346136421010E-01, f:  1.0000},  # 00215
+ {e:  6.369846820914E-01, f:  1.0000},  # 00216
+ {e:  6.373087788022E-01, f:  1.0000},  # 00217
+ {e:  6.398260144484E-01, f:  1.0000},  # 00218
+ {e:  6.423522055583E-01, f:  1.0000},  # 00219
+ {e:  6.431166957761E-01, f:  1.0000},  # 00220
+ {e:  6.472807731978E-01, f:  1.0000},  # 00221
+ {e:  6.498841713817E-01, f:  1.0000},  # 00222
+ {e:  6.502977412932E-01, f:  1.0000},  # 00223
+ {e:  6.530882047769E-01, f:  1.0000},  # 00224
+ {e:  6.554259907731E-01, f:  1.0000},  # 00225
+ {e:  6.563448625120E-01, f:  1.0000},  # 00226
+ {e:  6.605697266938E-01, f:  1.0000},  # 00227
+ {e:  6.632758279125E-01, f:  1.0000},  # 00228
+ {e:  6.644172428677E-01, f:  1.0000},  # 00229
+ {e:  6.684479583653E-01, f:  1.0000},  # 00230
+ {e:  6.720613107919E-01, f:  1.0000},  # 00231
+ {e:  6.724608434796E-01, f:  1.0000},  # 00232
+ {e:  6.743438826056E-01, f:  1.0000},  # 00233
+ {e:  6.750585982270E-01, f:  1.0000},  # 00234
+ {e:  6.757401249220E-01, f:  1.0000},  # 00235
+ {e:  6.766308630411E-01, f:  1.0000},  # 00236
+ {e:  6.773194384658E-01, f:  1.0000},  # 00237
+ {e:  6.780494218228E-01, f:  1.0000},  # 00238
+ {e:  6.799303788796E-01, f:  1.0000},  # 00239
+ {e:  6.809273299081E-01, f:  1.0000},  # 00240
+ {e:  6.813188010872E-01, f:  1.0000},  # 00241
+ {e:  6.838952112997E-01, f:  1.0000},  # 00242
+ {e:  6.856605176389E-01, f:  1.0000},  # 00243
+ {e:  6.858949611347E-01, f:  1.0000},  # 00244
+ {e:  6.869975758270E-01, f:  1.0000},  # 00245
+ {e:  6.900214786269E-01, f:  1.0000},  # 00246
+ {e:  6.902216519601E-01, f:  1.0000},  # 00247
+ {e:  6.912001763168E-01, f:  1.0000},  # 00248
+ {e:  6.933855843300E-01, f:  1.0000},  # 00249
+ {e:  6.945865288098E-01, f:  1.0000},  # 00250
+ {e:  6.963502457384E-01, f:  1.0000},  # 00251
+ {e:  6.978630112773E-01, f:  1.0000},  # 00252
+ {e:  6.993404525108E-01, f:  1.0000},  # 00253
+ {e:  7.012028573479E-01, f:  1.0000},  # 00254
+ {e:  7.038573222184E-01, f:  1.0000},  # 00255
+ {e:  7.047380032546E-01, f:  1.0000},  # 00256
+ {e:  7.057343115192E-01, f:  1.0000},  # 00257
+ {e:  7.074173555191E-01, f:  1.0000},  # 00258
+ {e:  7.077828184641E-01, f:  1.0000},  # 00259
+ {e:  7.115770624830E-01, f:  1.0000},  # 00260
+ {e:  7.134223065309E-01, f:  1.0000},  # 00261
+ {e:  7.150287470104E-01, f:  1.0000},  # 00262
+ {e:  7.161963032060E-01, f:  1.0000},  # 00263
+ {e:  7.242950154417E-01, f:  1.0000},  # 00264
+ {e:  7.273769025922E-01, f:  1.0000},  # 00265
+ {e:  7.281517042739E-01, f:  1.0000},  # 00266
+ {e:  7.301774443300E-01, f:  1.0000},  # 00267
+ {e:  7.318351700039E-01, f:  1.0000},  # 00268
+ {e:  7.339676184114E-01, f:  1.0000},  # 00269
+ {e:  7.364462986961E-01, f:  1.0000},  # 00270
+ {e:  7.369229937482E-01, f:  1.0000},  # 00271
+ {e:  7.375247503299E-01, f:  1.0000},  # 00272
+ {e:  7.409629972493E-01, f:  1.0000},  # 00273
+ {e:  7.410071459209E-01, f:  1.0000},  # 00274
+ {e:  7.430027541267E-01, f:  1.0000},  # 00275
+ {e:  7.455665420519E-01, f:  1.0000},  # 00276
+ {e:  7.461494750880E-01, f:  1.0000},  # 00277
+ {e:  7.474506993929E-01, f:  1.0000},  # 00278
+ {e:  7.500439698114E-01, f:  1.0000},  # 00279
+ {e:  7.506187640827E-01, f:  1.0000},  # 00280
+ {e:  7.509751671989E-01, f:  1.0000},  # 00281
+ {e:  7.540269216229E-01, f:  1.0000},  # 00282
+ {e:  7.544097883854E-01, f:  1.0000},  # 00283
+ {e:  7.563705653681E-01, f:  1.0000},  # 00284
+ {e:  7.585541130968E-01, f:  1.0000},  # 00285
+ {e:  7.598895688309E-01, f:  1.0000},  # 00286
+ {e:  7.614282665762E-01, f:  1.0000},  # 00287
+ {e:  7.632472646881E-01, f:  1.0000},  # 00288
+ {e:  7.642997649649E-01, f:  1.0000},  # 00289
+ {e:  7.661805696068E-01, f:  1.0000},  # 00290
+ {e:  7.704461041289E-01, f:  1.0000},  # 00291
+ {e:  7.711538274779E-01, f:  1.0000},  # 00292
+ {e:  7.727915666301E-01, f:  1.0000},  # 00293
+ {e:  7.730141341751E-01, f:  1.0000},  # 00294
+ {e:  7.733834772832E-01, f:  1.0000},  # 00295
+ {e:  7.750309247962E-01, f:  1.0000},  # 00296
+ {e:  7.757793221211E-01, f:  1.0000},  # 00297
+ {e:  7.767709789504E-01, f:  1.0000},  # 00298
+ {e:  7.776319274636E-01, f:  1.0000},  # 00299
+ {e:  7.794889090850E-01, f:  1.0000},  # 00300
+ {e:  7.800516883519E-01, f:  1.0000},  # 00301
+ {e:  7.806163505698E-01, f:  1.0000},  # 00302
+ {e:  7.815300431183E-01, f:  1.0000},  # 00303
+ {e:  7.824573149601E-01, f:  1.0000},  # 00304
+ {e:  7.829814484979E-01, f:  1.0000},  # 00305
+ {e:  7.831326420579E-01, f:  1.0000},  # 00306
+ {e:  7.847976852005E-01, f:  1.0000},  # 00307
+ {e:  7.858764227553E-01, f:  1.0000},  # 00308
+ {e:  7.862250115520E-01, f:  1.0000},  # 00309
+ {e:  7.866583381029E-01, f:  1.0000},  # 00310
+ {e:  7.871702623042E-01, f:  1.0000},  # 00311
+ {e:  7.877504415411E-01, f:  1.0000},  # 00312
+ {e:  7.877917589780E-01, f:  1.0000},  # 00313
+ {e:  7.882443383761E-01, f:  1.0000},  # 00314
+ {e:  7.889152330709E-01, f:  1.0000},  # 00315
+ {e:  7.891055810018E-01, f:  1.0000},  # 00316
+ {e:  7.892707762926E-01, f:  1.0000},  # 00317
+ {e:  7.895186393019E-01, f:  1.0000},  # 00318
+ {e:  7.896469799482E-01, f:  1.0000},  # 00319
+ {e:  7.902368492620E-01, f:  1.0000},  # 00320
+ {e:  7.906480552856E-01, f:  1.0000},  # 00321
+ {e:  7.907955022658E-01, f:  1.0000},  # 00322
+ {e:  7.911459694920E-01, f:  1.0000},  # 00323
+ {e:  7.915146358934E-01, f:  1.0000},  # 00324
+ {e:  7.918836706049E-01, f:  1.0000},  # 00325
+ {e:  7.921906061717E-01, f:  1.0000},  # 00326
+ {e:  7.925937818766E-01, f:  1.0000},  # 00327
+ {e:  7.932406443862E-01, f:  1.0000},  # 00328
+ {e:  7.936056072052E-01, f:  1.0000},  # 00329
+ {e:  7.937349218133E-01, f:  1.0000},  # 00330
+ {e:  7.947541585818E-01, f:  1.0000},  # 00331
+ {e:  7.949858120104E-01, f:  1.0000},  # 00332
+ {e:  7.960025202503E-01, f:  1.0000},  # 00333
+ {e:  7.960805308078E-01, f:  1.0000},  # 00334
+ {e:  7.964735721015E-01, f:  1.0000},  # 00335
+ {e:  7.973246201880E-01, f:  1.0000},  # 00336
+ {e:  7.977991852244E-01, f:  1.0000},  # 00337
+ {e:  7.990078100401E-01, f:  1.0000},  # 00338
+ {e:  7.999997606665E-01, f:  1.0000},  # 00339
+ {e:  8.015481369426E-01, f:  1.0000},  # 00340
+ {e:  8.034909559132E-01, f:  1.0000},  # 00341
+ {e:  8.048470143703E-01, f:  1.0000},  # 00342
+ {e:  8.064879829123E-01, f:  1.0000},  # 00343
+ {e:  8.077801502503E-01, f:  1.0000},  # 00344
+ {e:  8.104338441685E-01, f:  1.0000},  # 00345
+ {e:  8.117588777379E-01, f:  1.0000},  # 00346
+ {e:  8.121511430777E-01, f:  1.0000},  # 00347
+ {e:  8.136272878340E-01, f:  1.0000},  # 00348
+ {e:  8.143566313757E-01, f:  1.0000},  # 00349
+ {e:  8.174379348426E-01, f:  1.0000},  # 00350
+ {e:  8.199170982059E-01, f:  1.0000},  # 00351
+ {e:  8.211900682229E-01, f:  1.0000},  # 00352
+ {e:  8.220787759060E-01, f:  1.0000},  # 00353
+ {e:  8.229429966404E-01, f:  1.0000},  # 00354
+ {e:  8.230112215415E-01, f:  1.0000},  # 00355
+ {e:  8.241258163968E-01, f:  1.0000},  # 00356
+ {e:  8.249596612112E-01, f:  1.0000},  # 00357
+ {e:  8.251671758908E-01, f:  1.0000},  # 00358
+ {e:  8.256402998965E-01, f:  1.0000},  # 00359
+ {e:  8.271201421913E-01, f:  1.0000},  # 00360
+ {e:  8.273493654511E-01, f:  1.0000},  # 00361
+ {e:  8.276958316110E-01, f:  1.0000},  # 00362
+ {e:  8.279302380305E-01, f:  1.0000},  # 00363
+ {e:  8.282253657059E-01, f:  1.0000},  # 00364
+ {e:  8.284422838368E-01, f:  1.0000},  # 00365
+ {e:  8.295793436396E-01, f:  1.0000},  # 00366
+ {e:  8.303309148145E-01, f:  1.0000},  # 00367
+ {e:  8.304980893489E-01, f:  1.0000},  # 00368
+ {e:  8.311245635638E-01, f:  1.0000},  # 00369
+ {e:  8.312371302860E-01, f:  1.0000},  # 00370
+ {e:  8.316145486587E-01, f:  1.0000},  # 00371
+ {e:  8.318180905160E-01, f:  1.0000},  # 00372
+ {e:  8.325330706695E-01, f:  1.0000},  # 00373
+ {e:  8.327516568536E-01, f:  1.0000},  # 00374
+ {e:  8.329249177391E-01, f:  1.0000},  # 00375
+ {e:  8.331953820503E-01, f:  1.0000},  # 00376
+ {e:  8.337181222077E-01, f:  1.0000},  # 00377
+ {e:  8.337335394458E-01, f:  1.0000},  # 00378
+ {e:  8.340835470973E-01, f:  1.0000},  # 00379
+ {e:  8.342121549446E-01, f:  1.0000},  # 00380
+ {e:  8.352283715479E-01, f:  1.0000},  # 00381
+ {e:  8.354975763070E-01, f:  1.0000},  # 00382
+ {e:  8.356874438502E-01, f:  1.0000},  # 00383
+ {e:  8.359384712608E-01, f:  1.0000},  # 00384
+ {e:  8.363471183613E-01, f:  1.0000},  # 00385
+ {e:  8.366113587918E-01, f:  1.0000},  # 00386
+ {e:  8.373107337951E-01, f:  1.0000},  # 00387
+ {e:  8.375871701582E-01, f:  1.0000},  # 00388
+ {e:  8.378796859378E-01, f:  1.0000},  # 00389
+ {e:  8.387264023744E-01, f:  1.0000},  # 00390
+ {e:  8.391601644124E-01, f:  1.0000},  # 00391
+ {e:  8.403673189707E-01, f:  1.0000}] # 00392
     #========================================================================= final results
    self consistency summary:
    -  {iter:  1, 
- Energies: {Ekin:  7.35962192025E+02, Epot: -6.76596837383E+02, Enl:  3.55283446074E+01, 
-              EH:  3.99532081600E+03,  EXC: -1.70139561511E+02, EvXC: -2.22623691685E+02}, 
+ Energies: {Ekin:  7.35960049109E+02, Epot: -6.76587212652E+02, Enl:  3.55290128709E+01, 
+              EH:  3.99532881799E+03,  EXC: -1.70139890832E+02, EvXC: -2.22624125856E+02}, 
         iter low:  1,            delta out:  1.914E-06, 
-          energy: -3.96943066295237713E+02,                       D:  0.000E+00,  #FINAL
+          energy: -3.96944058125642186E+02,                       D:  0.000E+00,  #FINAL
  }
- Total charge                          :  3.919997984855E+02
+ Total charge                          :  3.919997984996E+02
   #---------------------------------------------------------------------- Forces Calculation
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  67,  69,  677 ]
-   MPI tasks                           :  4
+   MPI tasks                           :  1
  Calculate local forces: {Leaked force:  0.00000E+00}
  Calculate Non Local forces            :  Yes
- Average noise forces: {x:  2.71799044E-01, y:  8.62288073E-02, z: -1.21389060E-01, 
-                    total:  3.09911973E-01}
- Clean forces norm (Ha/Bohr): {maxval:  4.058068330678E-01, fnrm2:  7.180777527460E+00}
- Raw forces norm (Ha/Bohr): {maxval:  4.151552710744E-01, fnrm2:  7.276874414868E+00}
+ Average noise forces: {x:  2.71821323E-01, y:  8.67331760E-02, z: -1.21354127E-01, 
+                    total:  3.10058542E-01}
+ Clean forces norm (Ha/Bohr): {maxval:  4.059011623199E-01, fnrm2:  7.183011152044E+00}
+ Raw forces norm (Ha/Bohr): {maxval:  4.152862206336E-01, fnrm2:  7.279198971289E+00}
   #--------------------------------------------------------------------------- Atomic Forces
  Atomic Forces (Ha/Bohr):
- -  {C: [ 3.851126632268E-02, -1.738240142185E-01, -1.001820491939E-01]} # 0001
- -  {C: [ 3.941431188609E-02,  2.731435723352E-01, -1.137535701401E-01]} # 0002
- -  {C: [ 3.710486266738E-02, -3.672743613277E-01, -5.413911720919E-02]} # 0003
- -  {C: [ 3.775201862982E-02,  3.874337537593E-01, -1.907587007010E-02]} # 0004
- -  {C: [ 3.053589259505E-02, -2.061446471640E-01,  1.282925924138E-01]} # 0005
- -  {C: [ 3.964838885316E-02,  2.687119419834E-01, -9.752991449895E-02]} # 0006
- -  {C: [ 3.703111385386E-02, -3.337114137490E-01, -5.855448596683E-02]} # 0007
- -  {C: [ 3.746217180696E-02,  3.956117904547E-01, -2.444508078848E-02]} # 0008
- -  {C: [ 3.410717083716E-02, -2.961639858541E-01,  7.326147987294E-02]} # 0009
- -  {C: [ 3.495875732198E-02,  2.236332486448E-01, -4.163221646838E-02]} # 0010
- -  {C: [ 3.692643118677E-02, -3.250071405266E-01, -6.866795904648E-02]} # 0011
- -  {C: [ 3.741918269375E-02,  3.998845428711E-01, -4.113429527256E-02]} # 0012
- -  {C: [ 3.449218614978E-02, -3.064011377636E-01,  6.501444767527E-02]} # 0013
- -  {C: [ 3.423625931402E-02,  2.377198039495E-01,  2.184413728390E-04]} # 0014
- -  {C: [ 3.667439603382E-02, -3.202831451080E-01, -6.819613048804E-02]} # 0015
- -  {C: [ 3.783253392715E-02,  4.008251329454E-01, -5.086352268999E-02]} # 0016
- -  {C: [ 3.477872480978E-02, -3.201778622083E-01,  4.620777416644E-02]} # 0017
- -  {C: [ 3.446059399321E-02,  2.530850693983E-01,  5.213556717359E-02]} # 0018
- -  {C: [ 3.561081034013E-02, -2.202896196724E-01, -1.262071188684E-01]} # 0019
- -  {C: [ 3.893974175213E-02,  3.924617211941E-01, -4.569718169482E-02]} # 0020
- -  {C: [ 3.513919695810E-02, -3.580362462171E-01,  2.658370396260E-02]} # 0021
- -  {C: [ 3.469882332650E-02,  2.646635457264E-01,  9.406633425723E-02]} # 0022
- -  {C: [ 3.548740104903E-02, -2.250774247413E-01, -1.021811929690E-01]} # 0023
- -  {C: [ 3.944929372130E-02,  3.828627865670E-01, -5.114078356401E-02]} # 0024
- -  {C: [ 3.636090572348E-02, -3.731922283527E-01,  3.412711559338E-03]} # 0025
- -  {C: [ 3.379486615056E-02,  2.598778595213E-01,  1.159137843973E-01]} # 0026
- -  {C: [ 3.704282521867E-02, -2.165264880455E-01, -7.810357719598E-02]} # 0027
- -  {C: [ 4.017308666046E-02,  3.645676140390E-01, -6.609149036676E-02]} # 0028
- -  {C: [ 3.538333208492E-02, -3.855758378363E-01, -7.429554893551E-03]} # 0029
- -  {C: [ 3.796861703024E-02,  3.376605234117E-01,  4.032473380815E-02]} # 0030
- -  {C: [ 3.072628079986E-02, -1.850552477238E-01, -2.797978870507E-02]} # 0031
- -  {C: [ 3.954078911345E-02,  3.628737756174E-01, -7.047121866724E-02]} # 0032
- -  {C: [ 3.582982789026E-02, -3.845820736672E-01, -2.712999796236E-02]} # 0033
- -  {C: [ 3.830790813551E-02,  3.447883891787E-01,  4.122799927480E-02]} # 0034
- -  {C: [ 3.002250409213E-02, -1.866877222088E-01,  2.432692285688E-02]} # 0035
- -  {C: [ 3.928575272260E-02,  3.568638652493E-01, -6.175240362335E-02]} # 0036
- -  {C: [ 3.586967691518E-02, -3.887818901661E-01, -4.490627040075E-02]} # 0037
- -  {C: [ 3.869037355223E-02,  3.532268161506E-01,  2.503529416308E-02]} # 0038
- -  {C: [ 3.164679757252E-02, -2.091507861917E-01,  7.774243211385E-02]} # 0039
- -  {C: [ 3.796516250091E-02,  2.760135369617E-01, -1.406584383964E-01]} # 0040
- -  {C: [ 3.800457855154E-02, -3.775788360656E-01, -4.479424662518E-02]} # 0041
- -  {C: [ 3.797026045910E-02,  3.744855269761E-01, -4.148316034394E-03]} # 0042
- -  {C: [ 3.026261233991E-02, -2.194977727452E-01,  1.016481125321E-01]} # 0043
- -  {C: [ 3.834453385569E-02,  2.757048883346E-01, -1.218149627057E-01]} # 0044
- -  {C: [ 3.691677697546E-02, -3.673580083976E-01, -5.600044550857E-02]} # 0045
- -  {C: [ 3.776723500200E-02,  3.880908517719E-01, -2.059599426067E-02]} # 0046
- -  {C: [ 3.043241029204E-02, -2.089420337573E-01,  1.288103308320E-01]} # 0047
- -  {C: [ 3.665504486147E-02,  2.638578070237E-01, -7.636293690645E-02]} # 0048
- -  {C: [ 3.732775310003E-02, -3.344640756208E-01, -5.850964543113E-02]} # 0049
- -  {C: [ 3.750743626491E-02,  3.973765111461E-01, -2.613303420420E-02]} # 0050
- -  {C: [ 3.423882082147E-02, -2.972770136618E-01,  7.437947109024E-02]} # 0051
- -  {C: [ 3.483708523868E-02,  2.335838128884E-01, -3.195216663506E-02]} # 0052
- -  {C: [ 3.676227014950E-02, -3.273196459507E-01, -6.779644847989E-02]} # 0053
- -  {C: [ 3.773698087987E-02,  4.001362792853E-01, -3.867712725421E-02]} # 0054
- -  {C: [ 3.444990739305E-02, -3.068799051606E-01,  6.604552227614E-02]} # 0055
- -  {C: [ 3.429685120988E-02,  2.234808656754E-01,  9.813494913608E-03]} # 0056
- -  {C: [ 3.660785621605E-02, -3.193129661919E-01, -6.607653328841E-02]} # 0057
- -  {C: [ 3.790819504336E-02,  3.994684560187E-01, -5.097642713043E-02]} # 0058
- -  {C: [ 3.460382591421E-02, -3.217873484551E-01,  4.337444581837E-02]} # 0059
- -  {C: [ 3.586047553178E-02,  2.561554099946E-01,  6.971273165201E-02]} # 0060
- -  {C: [ 3.561893797821E-02, -2.197082599826E-01, -1.239760456808E-01]} # 0061
- -  {C: [ 3.913956137311E-02,  3.920728792873E-01, -4.547760442753E-02]} # 0062
- -  {C: [ 3.537602186250E-02, -3.592340723232E-01,  2.347303108861E-02]} # 0063
- -  {C: [ 3.576132655356E-02,  2.586770224938E-01,  8.818916761885E-02]} # 0064
- -  {C: [ 4.392830561206E-02, -1.459973480633E-01,  1.547972472297E-01]} # 0065
- -  {H: [-2.312915714698E-02,  4.922928563091E-02, -4.343249305507E-02]} # 0066
- -  {H: [-4.593948952619E-02, -3.911815823682E-02, -7.258080603963E-04]} # 0067
- -  {H: [ 1.344092630359E-02, -3.903877407036E-02, -2.708950598361E-03]} # 0068
- -  {H: [-4.011110405125E-02,  3.266964363082E-02,  9.433955638935E-03]} # 0069
- -  {H: [ 5.392837766637E-03,  2.919651759782E-02,  1.191240312498E-02]} # 0070
- -  {H: [-6.115233152024E-02, -4.197970357914E-02, -5.902527955345E-03]} # 0071
- -  {H: [ 2.675206708180E-02, -3.976159771947E-02,  8.825469312360E-04]} # 0072
- -  {H: [-1.867740970246E-02,  1.069864756430E-02, -6.760692273919E-03]} # 0073
- -  {H: [-2.263874092823E-02,  9.129017481640E-03, -8.316965837308E-03]} # 0074
- -  {H: [-4.588704573720E-02, -3.843384511185E-02,  3.762753666058E-03]} # 0075
- -  {H: [ 1.309633423391E-02, -3.904836752958E-02,  1.255601518336E-03]} # 0076
- -  {H: [-4.067760025990E-02,  3.136140453109E-02,  5.341064748270E-03]} # 0077
- -  {H: [ 6.283892341882E-03,  2.825704071506E-02,  6.881196364899E-03]} # 0078
- -  {H: [-5.795250613735E-02, -3.971383288610E-02, -1.562102438431E-03]} # 0079
- -  {H: [ 2.388949831164E-02, -3.768395577265E-02,  4.430695085056E-03]} # 0080
- -  {H: [-1.702810199601E-02,  1.210783833389E-02, -1.825006183571E-04]} # 0081
- -  {H: [-2.307250652976E-02,  1.132250469178E-02, -7.078456555914E-04]} # 0082
- -  {H: [-4.532443226598E-02, -3.957092172898E-02,  9.843845127391E-03]} # 0083
- -  {H: [ 1.241246744401E-02, -3.984738225288E-02,  6.495806258583E-03]} # 0084
- -  {H: [-4.103665886934E-02,  3.140903348826E-02,  5.892920644632E-03]} # 0085
- -  {H: [ 7.114101994380E-03,  2.865553711688E-02,  6.306422426763E-03]} # 0086
- -  {H: [-5.060815454077E-02, -4.399042219779E-02, -7.440732302289E-04]} # 0087
- -  {H: [ 1.792973924479E-02, -4.393079111416E-02,  3.487716927117E-03]} # 0088
- -  {H: [-2.125829652557E-02,  1.755628488019E-02,  5.038116530552E-03]} # 0089
- -  {H: [-2.300744626335E-02,  1.798345004717E-02,  4.896662827710E-03]} # 0090
- -  {H: [-4.614809052860E-02, -4.050095881557E-02,  1.675639375066E-02]} # 0091
- -  {H: [ 1.326339232753E-02, -4.103241551069E-02,  1.288183448826E-02]} # 0092
- -  {H: [-3.946395402052E-02,  3.020256239804E-02,  2.491942272559E-03]} # 0093
- -  {H: [ 5.476663339080E-03,  2.746313994242E-02,  1.730932993326E-03]} # 0094
- -  {H: [-4.813177005886E-02, -4.168615124596E-02,  3.139327092146E-03]} # 0095
- -  {H: [ 1.551907448036E-02, -4.151585038897E-02,  6.766047332861E-03]} # 0096
- -  {H: [-1.867448331328E-02,  1.524953043741E-02,  1.179379940832E-02]} # 0097
- -  {H: [-2.262273015569E-02,  1.491653705252E-02,  1.281807272856E-02]} # 0098
- -  {H: [-5.128726069678E-02, -3.614751021798E-02,  1.852784791035E-02]} # 0099
- -  {H: [ 1.764767733930E-02, -3.486814593898E-02,  1.278884717866E-02]} # 0100
- -  {H: [-3.851835834237E-02,  2.925212103325E-02, -7.867590068371E-04]} # 0101
- -  {H: [ 4.485941568524E-03,  2.656646091116E-02, -2.504425286664E-03]} # 0102
- -  {H: [-4.802986178766E-02, -4.021247124610E-02,  7.137460778085E-03]} # 0103
- -  {H: [ 1.553259069605E-02, -4.029450596966E-02,  9.896912021735E-03]} # 0104
- -  {H: [-2.197586677263E-02,  1.004501528580E-02,  2.106410582481E-02]} # 0105
- -  {H: [-2.119018870109E-02,  8.406721946000E-03,  2.287093398269E-02]} # 0106
- -  {H: [-5.320587849343E-02, -3.725313627562E-02,  2.487151760973E-02]} # 0107
- -  {H: [ 1.938897079358E-02, -3.595098993036E-02,  1.836569870256E-02]} # 0108
- -  {H: [-3.835356695452E-02,  2.913414180020E-02, -1.727055732217E-03]} # 0109
- -  {H: [ 3.758215774838E-03,  2.629643135768E-02, -4.293261159490E-03]} # 0110
- -  {H: [-4.625111252006E-02, -3.946920477317E-02,  7.033647408555E-03]} # 0111
- -  {H: [ 1.391032356635E-02, -3.952174997623E-02,  9.069060073876E-03]} # 0112
- -  {H: [-5.219726075590E-02,  3.479329916134E-02, -4.116345403855E-03]} # 0113
- -  {H: [ 1.497403623339E-02,  2.947747336959E-02,  2.858137890423E-03]} # 0114
- -  {H: [-2.673214072228E-02, -2.202693346101E-02, -6.262137433651E-03]} # 0115
- -  {H: [-1.335199471586E-02, -2.241234199206E-02, -7.825880529095E-03]} # 0116
- -  {H: [-4.055826449581E-02,  2.976373020582E-02, -1.008413112923E-04]} # 0117
- -  {H: [ 5.393840582311E-03,  2.698326985244E-02, -3.286468483348E-03]} # 0118
- -  {H: [-4.683821096184E-02, -3.923088819491E-02,  4.173116000199E-03]} # 0119
- -  {H: [ 1.478473968175E-02, -3.948727029165E-02,  5.404292158446E-03]} # 0120
- -  {H: [-4.803579118516E-02,  3.263129922149E-02, -5.140491422553E-05]} # 0121
- -  {H: [ 1.143420215034E-02,  2.758895567101E-02,  6.112945958346E-03]} # 0122
- -  {H: [-2.235983532403E-02, -2.236853040809E-02,  3.174900693464E-03]} # 0123
- -  {H: [-1.601456144096E-02, -2.295433673814E-02,  2.954749166553E-03]} # 0124
- -  {H: [-4.013187821238E-02,  3.146280001636E-02,  6.126476732986E-03]} # 0125
- -  {H: [ 4.689081124547E-03,  2.817656261137E-02,  1.953074099218E-03]} # 0126
- -  {H: [-4.791637846511E-02, -3.943790344215E-02,  5.099828949652E-03]} # 0127
- -  {H: [ 1.599474054776E-02, -4.017456885389E-02,  5.337371328548E-03]} # 0128
- -  {H: [-4.463295007332E-02,  3.562968955962E-02,  4.873552151681E-03]} # 0129
- -  {H: [ 9.169491171153E-03,  3.193020732310E-02,  9.948285277203E-03]} # 0130
- -  {H: [-2.472754609246E-02, -2.690422911902E-02,  5.631724185571E-03]} # 0131
- -  {H: [-1.657104703882E-02, -2.872512924954E-02,  5.713794042749E-03]} # 0132
- -  {H: [-4.075761184490E-02,  3.229186030054E-02,  1.257507158402E-02]} # 0133
- -  {H: [ 5.311325312414E-03,  2.905302054058E-02,  7.685659969701E-03]} # 0134
- -  {H: [-4.627227693847E-02, -3.841486424356E-02,  2.758720753832E-03]} # 0135
- -  {H: [ 1.421185396387E-02, -3.912202445126E-02,  2.166991969907E-03]} # 0136
- -  {H: [-4.262318721024E-02,  3.401393703397E-02,  8.301754760888E-03]} # 0137
- -  {H: [ 7.295860631881E-03,  3.028668399137E-02,  1.255638691126E-02]} # 0138
- -  {H: [-2.397217414035E-02, -2.557638768783E-02,  8.963833799419E-03]} # 0139
- -  {H: [-1.527527518635E-02, -2.645330768806E-02,  9.690899399391E-03]} # 0140
- -  {H: [-4.272347090288E-02,  2.905147419303E-02,  1.914194346404E-02]} # 0141
- -  {H: [ 6.701961185897E-03,  2.480206770292E-02,  1.345749104669E-02]} # 0142
- -  {H: [-4.491860860628E-02, -3.768825700318E-02,  8.933672073157E-04]} # 0143
- -  {H: [ 1.299665298811E-02, -3.827300872634E-02, -5.659840442016E-04]} # 0144
- -  {H: [-4.217743491394E-02,  3.198209298222E-02,  1.091985301228E-02]} # 0145
- -  {H: [ 7.113829044527E-03,  2.872480060887E-02,  1.412002106456E-02]} # 0146
- -  {H: [-2.951465851479E-02, -2.234511824619E-02,  2.141219796426E-02]} # 0147
- -  {H: [-1.226271811694E-02, -2.246467570757E-02,  2.335371967116E-02]} # 0148
- -  {H: [-4.490776792239E-02,  3.046441417798E-02,  2.402841839082E-02]} # 0149
- -  {H: [ 8.531537567085E-03,  2.605641611382E-02,  1.737717991921E-02]} # 0150
- -  {H: [-4.451797691409E-02, -3.773560441699E-02,  7.864344101617E-04]} # 0151
- -  {H: [ 1.204941436333E-02, -3.827385463022E-02, -1.329730108502E-03]} # 0152
- -  {H: [-4.013982341352E-02,  3.108153272900E-02,  9.234693446986E-03]} # 0153
- -  {H: [ 5.374186894049E-03,  2.776210078012E-02,  1.156257238519E-02]} # 0154
- -  {H: [-6.087212773545E-02, -4.121964245056E-02, -5.795964359128E-03]} # 0155
- -  {H: [ 2.648234287719E-02, -3.912864119001E-02,  8.879673210360E-04]} # 0156
- -  {H: [-1.911005633959E-02,  1.017971234612E-02, -5.147998316382E-03]} # 0157
- -  {H: [-2.235780081069E-02,  8.609740807402E-03, -6.544771820192E-03]} # 0158
- -  {H: [-4.635299854746E-02, -3.845269173882E-02,  3.875890716593E-03]} # 0159
- -  {H: [ 1.351424557997E-02, -3.907790108703E-02,  1.268006240391E-03]} # 0160
- -  {H: [-4.046253095829E-02,  3.092866598107E-02,  5.524854632716E-03]} # 0161
- -  {H: [ 6.021522259641E-03,  2.787083133358E-02,  6.780768527732E-03]} # 0162
- -  {H: [-5.684848269301E-02, -3.917084864975E-02, -2.380551615369E-04]} # 0163
- -  {H: [ 2.284855382163E-02, -3.712067879596E-02,  5.819367930227E-03]} # 0164
- -  {H: [-1.628190234738E-02,  1.211924915303E-02,  1.217371619585E-03]} # 0165
- -  {H: [-2.391132597819E-02,  1.136771427593E-02,  5.092126811356E-04]} # 0166
- -  {H: [-4.558553093171E-02, -3.956356220678E-02,  1.149300395975E-02]} # 0167
- -  {H: [ 1.265991861239E-02, -3.991649015480E-02,  8.084653961068E-03]} # 0168
- -  {H: [-4.131175447808E-02,  3.125086189770E-02,  5.396890867379E-03]} # 0169
- -  {H: [ 7.274404083089E-03,  2.853953877106E-02,  5.650468406411E-03]} # 0170
- -  {H: [-4.974382675061E-02, -4.361590925033E-02,  3.463178315434E-04]} # 0171
- -  {H: [ 1.703431573836E-02, -4.372615654893E-02,  4.513134511263E-03]} # 0172
- -  {H: [-2.120367654918E-02,  1.761419848420E-02,  6.365200170784E-03]} # 0173
- -  {H: [-2.297012559433E-02,  1.793143735187E-02,  6.348542896380E-03]} # 0174
- -  {H: [-4.658475587470E-02, -4.113392828750E-02,  1.826315987210E-02]} # 0175
- -  {H: [ 1.366148076074E-02, -4.157746615603E-02,  1.431076016058E-02]} # 0176
- -  {H: [-3.920900944006E-02,  2.979553115672E-02,  2.205247842383E-03]} # 0177
- -  {H: [ 5.277716482933E-03,  2.710262607555E-02,  1.282571471344E-03]} # 0178
- -  {H: [-4.767276901797E-02, -4.198760262335E-02,  4.127715985777E-03]} # 0179
- -  {H: [ 1.498824985497E-02, -4.180926560320E-02,  7.700769872955E-03]} # 0180
- -  {H: [-1.901156348798E-02,  1.491317832724E-02,  1.324651476669E-02]} # 0181
- -  {H: [-2.217189242332E-02,  1.453013223983E-02,  1.407929113616E-02]} # 0182
- -  {H: [-5.178019742455E-02, -3.672787046424E-02,  2.000172740607E-02]} # 0183
- -  {H: [ 1.802843711768E-02, -3.545582709251E-02,  1.432991068241E-02]} # 0184
- -  {H: [-3.870312997789E-02,  2.945049619456E-02, -2.345330197653E-04]} # 0185
- -  {H: [ 4.627963418258E-03,  2.671668761318E-02, -2.131269269587E-03]} # 0186
- -  {H: [-4.737387781911E-02, -4.048407186279E-02,  6.746400313217E-03]} # 0187
- -  {H: [ 1.488667070046E-02, -4.057290150034E-02,  9.377010242561E-03]} # 0188
- -  {H: [-2.122243229975E-02,  9.966176455880E-03,  2.304944749671E-02]} # 0189
- -  {H: [-2.187649284903E-02,  8.278337849607E-03,  2.507119816748E-02]} # 0190
- -  {H: [-5.322932981838E-02, -3.833132703261E-02,  2.533221868573E-02]} # 0191
- -  {H: [ 1.937159299182E-02, -3.693299384827E-02,  1.871163207409E-02]} # 0192
- -  {H: [-3.825217580087E-02,  2.998873518553E-02, -1.087236858999E-03]} # 0193
- -  {H: [ 3.651731001648E-03,  2.703397908910E-02, -3.838964578086E-03]} # 0194
- -  {H: [-4.763108587780E-02, -4.100993409629E-02,  8.138569595737E-03]} # 0195
- -  {H: [ 1.524914315110E-02, -4.061133686564E-02,  9.966757686246E-03]} # 0196
- -  {H: [-2.327925589411E-02,  4.126369620002E-02,  5.988233123712E-02]} # 0197
+ -  {C: [ 3.851199241848E-02, -1.737633963088E-01, -1.001232582885E-01]} # 0001
+ -  {C: [ 3.940835471097E-02,  2.733205514362E-01, -1.138655002918E-01]} # 0002
+ -  {C: [ 3.710478932823E-02, -3.672994878296E-01, -5.418053207943E-02]} # 0003
+ -  {C: [ 3.775649235936E-02,  3.874351049451E-01, -1.904782539628E-02]} # 0004
+ -  {C: [ 3.054205533132E-02, -2.060873944927E-01,  1.283233418308E-01]} # 0005
+ -  {C: [ 3.963755158864E-02,  2.690675628265E-01, -9.754143365224E-02]} # 0006
+ -  {C: [ 3.703473186150E-02, -3.336067053501E-01, -5.863231395688E-02]} # 0007
+ -  {C: [ 3.747269143626E-02,  3.956349362796E-01, -2.442889692420E-02]} # 0008
+ -  {C: [ 3.410865072954E-02, -2.960827508356E-01,  7.337105268448E-02]} # 0009
+ -  {C: [ 3.494739403431E-02,  2.239991497787E-01, -4.161278644045E-02]} # 0010
+ -  {C: [ 3.693077079955E-02, -3.248575190800E-01, -6.876961199914E-02]} # 0011
+ -  {C: [ 3.743029642944E-02,  3.999133949869E-01, -4.118615570458E-02]} # 0012
+ -  {C: [ 3.449328613809E-02, -3.063109678133E-01,  6.508442036618E-02]} # 0013
+ -  {C: [ 3.422376570829E-02,  2.381108814086E-01,  2.542797680068E-04]} # 0014
+ -  {C: [ 3.667802315707E-02, -3.201630565582E-01, -6.822410693169E-02]} # 0015
+ -  {C: [ 3.783875193122E-02,  4.009098495998E-01, -5.094384083285E-02]} # 0016
+ -  {C: [ 3.478236696288E-02, -3.200925829308E-01,  4.627380212416E-02]} # 0017
+ -  {C: [ 3.445113221086E-02,  2.533680526243E-01,  5.224388515138E-02]} # 0018
+ -  {C: [ 3.561758136761E-02, -2.201943513693E-01, -1.262254692903E-01]} # 0019
+ -  {C: [ 3.894296208091E-02,  3.926039186688E-01, -4.580726310702E-02]} # 0020
+ -  {C: [ 3.514660357492E-02, -3.579059067444E-01,  2.661115112710E-02]} # 0021
+ -  {C: [ 3.469632962045E-02,  2.648826594613E-01,  9.419179351678E-02]} # 0022
+ -  {C: [ 3.548645510026E-02, -2.251063838378E-01, -1.022515281205E-01]} # 0023
+ -  {C: [ 3.945449869891E-02,  3.829918799141E-01, -5.119508525202E-02]} # 0024
+ -  {C: [ 3.637012188359E-02, -3.730295963838E-01,  3.473477308196E-03]} # 0025
+ -  {C: [ 3.380056830064E-02,  2.600087211576E-01,  1.160101860924E-01]} # 0026
+ -  {C: [ 3.703711243716E-02, -2.166426218962E-01, -7.817968287955E-02]} # 0027
+ -  {C: [ 4.017738800975E-02,  3.646810719229E-01, -6.614974744243E-02]} # 0028
+ -  {C: [ 3.539113332681E-02, -3.854374309500E-01, -7.414786426925E-03]} # 0029
+ -  {C: [ 3.797283746583E-02,  3.377348124134E-01,  4.046399730176E-02]} # 0030
+ -  {C: [ 3.071965666470E-02, -1.851999538620E-01, -2.797388216920E-02]} # 0031
+ -  {C: [ 3.954426147342E-02,  3.629446564164E-01, -7.059194680301E-02]} # 0032
+ -  {C: [ 3.583894544520E-02, -3.844070988969E-01, -2.717180144614E-02]} # 0033
+ -  {C: [ 3.831144560991E-02,  3.448620348989E-01,  4.136055908523E-02]} # 0034
+ -  {C: [ 3.001501784896E-02, -1.868174865487E-01,  2.438543297442E-02]} # 0035
+ -  {C: [ 3.929056204708E-02,  3.569435367767E-01, -6.184100991567E-02]} # 0036
+ -  {C: [ 3.587461685204E-02, -3.886949673394E-01, -4.495459704835E-02]} # 0037
+ -  {C: [ 3.869715824912E-02,  3.532998206191E-01,  2.513119249033E-02]} # 0038
+ -  {C: [ 3.164297743422E-02, -2.091896374082E-01,  7.787794399739E-02]} # 0039
+ -  {C: [ 3.796992185192E-02,  2.761484094141E-01, -1.407253970427E-01]} # 0040
+ -  {C: [ 3.800989993623E-02, -3.774937421972E-01, -4.491589045356E-02]} # 0041
+ -  {C: [ 3.797991697722E-02,  3.745467092405E-01, -4.104055776395E-03]} # 0042
+ -  {C: [ 3.026279899838E-02, -2.194869687068E-01,  1.017499626452E-01]} # 0043
+ -  {C: [ 3.833817704262E-02,  2.760066199433E-01, -1.218584573251E-01]} # 0044
+ -  {C: [ 3.692312225474E-02, -3.672589386171E-01, -5.604054941699E-02]} # 0045
+ -  {C: [ 3.777729846420E-02,  3.881317150028E-01, -2.055628501827E-02]} # 0046
+ -  {C: [ 3.043768640636E-02, -2.088841001795E-01,  1.288794352009E-01]} # 0047
+ -  {C: [ 3.664476026747E-02,  2.641925103581E-01, -7.638338110570E-02]} # 0048
+ -  {C: [ 3.733179538155E-02, -3.343566553833E-01, -5.858302809234E-02]} # 0049
+ -  {C: [ 3.751793115768E-02,  3.974109455308E-01, -2.614509555561E-02]} # 0050
+ -  {C: [ 3.424045192160E-02, -2.971832466716E-01,  7.447420290648E-02]} # 0051
+ -  {C: [ 3.482574444714E-02,  2.339692753387E-01, -3.192955301103E-02]} # 0052
+ -  {C: [ 3.676562680574E-02, -3.271950651695E-01, -6.788544150519E-02]} # 0053
+ -  {C: [ 3.774800628088E-02,  4.001621627248E-01, -3.872703523763E-02]} # 0054
+ -  {C: [ 3.445211667096E-02, -3.067812206872E-01,  6.612928465025E-02]} # 0055
+ -  {C: [ 3.428464670192E-02,  2.238389881513E-01,  9.860126245907E-03]} # 0056
+ -  {C: [ 3.661192999695E-02, -3.191970580147E-01, -6.612397343273E-02]} # 0057
+ -  {C: [ 3.791270532288E-02,  3.995819055949E-01, -5.104633985355E-02]} # 0058
+ -  {C: [ 3.460785262575E-02, -3.216889569568E-01,  4.346519375515E-02]} # 0059
+ -  {C: [ 3.585103546141E-02,  2.564283579442E-01,  6.983933360327E-02]} # 0060
+ -  {C: [ 3.562671148075E-02, -2.196212788624E-01, -1.240036051836E-01]} # 0061
+ -  {C: [ 3.914301994430E-02,  3.921068111257E-01, -4.552750964257E-02]} # 0062
+ -  {C: [ 3.537760435580E-02, -3.592296487609E-01,  2.344824321793E-02]} # 0063
+ -  {C: [ 3.575677917577E-02,  2.588332786615E-01,  8.829563121923E-02]} # 0064
+ -  {C: [ 4.392749483187E-02, -1.459754374593E-01,  1.548009743285E-01]} # 0065
+ -  {H: [-2.313102120527E-02,  4.922454082032E-02, -4.346183592869E-02]} # 0066
+ -  {H: [-4.597951236906E-02, -3.918126781792E-02, -7.332992302704E-04]} # 0067
+ -  {H: [ 1.347890854085E-02, -3.910222504389E-02, -2.716182563706E-03]} # 0068
+ -  {H: [-4.009342943015E-02,  3.262415349334E-02,  9.420935136978E-03]} # 0069
+ -  {H: [ 5.373786088794E-03,  2.915124474126E-02,  1.189910736897E-02]} # 0070
+ -  {H: [-6.119501369282E-02, -4.205138092496E-02, -5.899940305886E-03]} # 0071
+ -  {H: [ 2.679225667573E-02, -3.983449057073E-02,  8.857297394146E-04]} # 0072
+ -  {H: [-1.869699812665E-02,  1.067788816314E-02, -6.764436521927E-03]} # 0073
+ -  {H: [-2.261980816833E-02,  9.108169523652E-03, -8.320490778996E-03]} # 0074
+ -  {H: [-4.593488776764E-02, -3.850637417508E-02,  3.750831355064E-03]} # 0075
+ -  {H: [ 1.314247039017E-02, -3.912165980949E-02,  1.243786299015E-03]} # 0076
+ -  {H: [-4.062874567209E-02,  3.129299879223E-02,  5.342710312612E-03]} # 0077
+ -  {H: [ 6.233308272507E-03,  2.818922982915E-02,  6.882843452823E-03]} # 0078
+ -  {H: [-5.800663788030E-02, -3.978844583682E-02, -1.557206476087E-03]} # 0079
+ -  {H: [ 2.394167454680E-02, -3.775914315062E-02,  4.435681257656E-03]} # 0080
+ -  {H: [-1.703555133201E-02,  1.208309216727E-02, -1.881561683679E-04]} # 0081
+ -  {H: [-2.306586836726E-02,  1.129762239201E-02, -7.136860453552E-04]} # 0082
+ -  {H: [-4.537714497002E-02, -3.964473511035E-02,  9.837248604435E-03]} # 0083
+ -  {H: [ 1.246363869620E-02, -3.992187314212E-02,  6.489608230390E-03]} # 0084
+ -  {H: [-4.097459200329E-02,  3.133168357847E-02,  5.897186186111E-03]} # 0085
+ -  {H: [ 7.049654512197E-03,  2.857869318327E-02,  6.311148605532E-03]} # 0086
+ -  {H: [-5.066399216466E-02, -4.406184371848E-02, -7.408716931420E-04]} # 0087
+ -  {H: [ 1.798359410250E-02, -4.400236298729E-02,  3.490878132144E-03]} # 0088
+ -  {H: [-2.125124653719E-02,  1.752083288972E-02,  5.025677053378E-03]} # 0089
+ -  {H: [-2.301610886694E-02,  1.794795073937E-02,  4.883691982536E-03]} # 0090
+ -  {H: [-4.621198379910E-02, -4.058382287352E-02,  1.674494327621E-02]} # 0091
+ -  {H: [ 1.332591820923E-02, -4.111600978475E-02,  1.287061926303E-02]} # 0092
+ -  {H: [-3.941042995768E-02,  3.013406361588E-02,  2.493715680466E-03]} # 0093
+ -  {H: [ 5.421283905871E-03,  2.739532466334E-02,  1.732948835367E-03]} # 0094
+ -  {H: [-4.818943366798E-02, -4.176494799658E-02,  3.147748679966E-03]} # 0095
+ -  {H: [ 1.557510212726E-02, -4.159503434619E-02,  6.774683613727E-03]} # 0096
+ -  {H: [-1.866492189749E-02,  1.521077978730E-02,  1.178632561020E-02]} # 0097
+ -  {H: [-2.263331642577E-02,  1.487787053311E-02,  1.281010014350E-02]} # 0098
+ -  {H: [-5.135206028797E-02, -3.623489271861E-02,  1.852363773958E-02]} # 0099
+ -  {H: [ 1.771098607097E-02, -3.495656755189E-02,  1.278478337691E-02]} # 0100
+ -  {H: [-3.848387653785E-02,  2.919220791953E-02, -7.810049627306E-04]} # 0101
+ -  {H: [ 4.450209293647E-03,  2.650709457747E-02, -2.497870324860E-03]} # 0102
+ -  {H: [-4.807447757559E-02, -4.028036164761E-02,  7.138826451523E-03]} # 0103
+ -  {H: [ 1.557529092901E-02, -4.036276566361E-02,  9.898473861995E-03]} # 0104
+ -  {H: [-2.195889363755E-02,  9.998881845907E-03,  2.105482797279E-02]} # 0105
+ -  {H: [-2.120841806448E-02,  8.360610996252E-03,  2.286113982115E-02]} # 0106
+ -  {H: [-5.327709734125E-02, -3.734219124370E-02,  2.486135430784E-02]} # 0107
+ -  {H: [ 1.945857160612E-02, -3.604089765521E-02,  1.835490697677E-02]} # 0108
+ -  {H: [-3.831911152296E-02,  2.907778879032E-02, -1.730423134736E-03]} # 0109
+ -  {H: [ 3.722049009580E-03,  2.624019331609E-02, -4.295831006270E-03]} # 0110
+ -  {H: [-4.628403999610E-02, -3.952278816378E-02,  7.032659594466E-03]} # 0111
+ -  {H: [ 1.394147729094E-02, -3.957564760101E-02,  9.067806139453E-03]} # 0112
+ -  {H: [-5.219031557194E-02,  3.476338859880E-02, -4.110412247049E-03]} # 0113
+ -  {H: [ 1.496586211002E-02,  2.944745522246E-02,  2.863754477876E-03]} # 0114
+ -  {H: [-2.679434409373E-02, -2.210151299826E-02, -6.264976047789E-03]} # 0115
+ -  {H: [-1.329122273800E-02, -2.248781181409E-02, -7.828552307038E-03]} # 0116
+ -  {H: [-4.052834398814E-02,  2.971672712839E-02, -1.102318626520E-04]} # 0117
+ -  {H: [ 5.361884133047E-03,  2.693590653579E-02, -3.295179635397E-03]} # 0118
+ -  {H: [-4.686794815583E-02, -3.927877901979E-02,  4.168867078213E-03]} # 0119
+ -  {H: [ 1.481318972368E-02, -3.953539791890E-02,  5.399901987585E-03]} # 0120
+ -  {H: [-4.803955750805E-02,  3.261311044628E-02, -4.516727481856E-05]} # 0121
+ -  {H: [ 1.143691649007E-02,  2.757053893942E-02,  6.118498256320E-03]} # 0122
+ -  {H: [-2.241756841674E-02, -2.244068241705E-02,  3.171933710956E-03]} # 0123
+ -  {H: [-1.595776096954E-02, -2.302760552434E-02,  2.951661066832E-03]} # 0124
+ -  {H: [-4.012490988917E-02,  3.143542938176E-02,  6.120774841883E-03]} # 0125
+ -  {H: [ 4.680641829568E-03,  2.814911166160E-02,  1.948504816827E-03]} # 0126
+ -  {H: [-4.791844118476E-02, -3.946346268076E-02,  5.103239324751E-03]} # 0127
+ -  {H: [ 1.599440660649E-02, -4.020044815490E-02,  5.341315404750E-03]} # 0128
+ -  {H: [-4.463433824113E-02,  3.560485721956E-02,  4.880401537632E-03]} # 0129
+ -  {H: [ 9.169282883350E-03,  3.190484240806E-02,  9.954310258062E-03]} # 0130
+ -  {H: [-2.477926425098E-02, -2.697097748039E-02,  5.622508160446E-03]} # 0131
+ -  {H: [-1.652116771855E-02, -2.879333758752E-02,  5.704233114388E-03]} # 0132
+ -  {H: [-4.076328793467E-02,  3.227415021354E-02,  1.256333141572E-02]} # 0133
+ -  {H: [ 5.315631290954E-03,  2.903522849458E-02,  7.674887025909E-03]} # 0134
+ -  {H: [-4.627669268503E-02, -3.844124342824E-02,  2.757678055302E-03]} # 0135
+ -  {H: [ 1.421387264256E-02, -3.914884957505E-02,  2.166309546285E-03]} # 0136
+ -  {H: [-4.261252943640E-02,  3.398489971122E-02,  8.303000611764E-03]} # 0137
+ -  {H: [ 7.283474551462E-03,  3.025733183643E-02,  1.255684914605E-02]} # 0138
+ -  {H: [-2.401906282527E-02, -2.563795072471E-02,  8.958053888841E-03]} # 0139
+ -  {H: [-1.522958932215E-02, -2.651587148289E-02,  9.685010791218E-03]} # 0140
+ -  {H: [-4.273313186775E-02,  2.903931121644E-02,  1.913797099967E-02]} # 0141
+ -  {H: [ 6.710345166613E-03,  2.478987233679E-02,  1.345422806180E-02]} # 0142
+ -  {H: [-4.494546799759E-02, -3.772845588019E-02,  8.979181876667E-04]} # 0143
+ -  {H: [ 1.302175699616E-02, -3.831358978802E-02, -5.605194947412E-04]} # 0144
+ -  {H: [-4.214832247422E-02,  3.193567171242E-02,  1.091798161299E-02]} # 0145
+ -  {H: [ 7.082513063493E-03,  2.867788735253E-02,  1.411778878035E-02]} # 0146
+ -  {H: [-2.956491228984E-02, -2.240684150717E-02,  2.140169769147E-02]} # 0147
+ -  {H: [-1.221397297615E-02, -2.252712061150E-02,  2.334282299664E-02]} # 0148
+ -  {H: [-4.492110595781E-02,  3.045308775146E-02,  2.401486814606E-02]} # 0149
+ -  {H: [ 8.543688617142E-03,  2.604481847358E-02,  1.736337002213E-02]} # 0150
+ -  {H: [-4.455608150736E-02, -3.779073060675E-02,  7.793073581850E-04]} # 0151
+ -  {H: [ 1.208585278630E-02, -3.832949830846E-02, -1.336298742063E-03]} # 0152
+ -  {H: [-4.010071670888E-02,  3.102711743209E-02,  9.236850931880E-03]} # 0153
+ -  {H: [ 5.333495031254E-03,  2.770798354984E-02,  1.156429946060E-02]} # 0154
+ -  {H: [-6.092444360775E-02, -4.129098160529E-02, -5.787781866446E-03]} # 0155
+ -  {H: [ 2.653260152926E-02, -3.920043008346E-02,  8.966761856518E-04]} # 0156
+ -  {H: [-1.911682792904E-02,  1.015571814722E-02, -5.152655273706E-03]} # 0157
+ -  {H: [-2.235217132827E-02,  8.585361409597E-03, -6.549422449175E-03]} # 0158
+ -  {H: [-4.639384551786E-02, -3.851650465195E-02,  3.867847788172E-03]} # 0159
+ -  {H: [ 1.355328936206E-02, -3.914224686758E-02,  1.260238734260E-03]} # 0160
+ -  {H: [-4.042023590173E-02,  3.086834516756E-02,  5.526828998893E-03]} # 0161
+ -  {H: [ 5.977793216388E-03,  2.781096975610E-02,  6.782709510723E-03]} # 0162
+ -  {H: [-5.690007658914E-02, -3.924116291999E-02, -2.334271835872E-04]} # 0163
+ -  {H: [ 2.289812628690E-02, -3.719145533384E-02,  5.824034712361E-03]} # 0164
+ -  {H: [-1.628387098434E-02,  1.209279001830E-02,  1.210125201531E-03]} # 0165
+ -  {H: [-2.391034630759E-02,  1.134112417273E-02,  5.016085887612E-04]} # 0166
+ -  {H: [-4.564285536108E-02, -3.964015546250E-02,  1.148540933449E-02]} # 0167
+ -  {H: [ 1.271584311562E-02, -3.999377361186E-02,  8.077464245546E-03]} # 0168
+ -  {H: [-4.125271703048E-02,  3.117899263735E-02,  5.400786511362E-03]} # 0169
+ -  {H: [ 7.213166576297E-03,  2.846817674998E-02,  5.654853350528E-03]} # 0170
+ -  {H: [-4.980402019846E-02, -4.369088249700E-02,  3.530865168764E-04]} # 0171
+ -  {H: [ 1.709266363193E-02, -4.380131866456E-02,  4.519934226810E-03]} # 0172
+ -  {H: [-2.119815779015E-02,  1.758102569928E-02,  6.355868354453E-03]} # 0173
+ -  {H: [-2.297720436761E-02,  1.789823927734E-02,  6.338637466063E-03]} # 0174
+ -  {H: [-4.664805936548E-02, -4.121590319207E-02,  1.825347599057E-02]} # 0175
+ -  {H: [ 1.372328301249E-02, -4.166019025904E-02,  1.430123562852E-02]} # 0176
+ -  {H: [-3.915405436091E-02,  2.972525428148E-02,  2.205663154997E-03]} # 0177
+ -  {H: [ 5.220743400869E-03,  2.703302691634E-02,  1.283224182540E-03]} # 0178
+ -  {H: [-4.772863729848E-02, -4.206540438297E-02,  4.131227833371E-03]} # 0179
+ -  {H: [ 1.504237072282E-02, -4.188747333811E-02,  7.704252684973E-03]} # 0180
+ -  {H: [-1.899914766815E-02,  1.487369030144E-02,  1.323903423679E-02]} # 0181
+ -  {H: [-2.218529418459E-02,  1.449074642748E-02,  1.407130071932E-02]} # 0182
+ -  {H: [-5.184566644054E-02, -3.681572123319E-02,  2.000105998651E-02]} # 0183
+ -  {H: [ 1.809228415933E-02, -3.554472037419E-02,  1.432948144062E-02]} # 0184
+ -  {H: [-3.865722682185E-02,  2.938004864469E-02, -2.263632870118E-04]} # 0185
+ -  {H: [ 4.580038967723E-03,  2.664669341212E-02, -2.122321986837E-03]} # 0186
+ -  {H: [-4.740437652648E-02, -4.054077785749E-02,  6.747725456579E-03]} # 0187
+ -  {H: [ 1.491437538989E-02, -4.063005376328E-02,  9.378332842183E-03]} # 0188
+ -  {H: [-2.121328464759E-02,  9.923489664060E-03,  2.303942621517E-02]} # 0189
+ -  {H: [-2.188713971987E-02,  8.235232136868E-03,  2.506060717986E-02]} # 0190
+ -  {H: [-5.326914711912E-02, -3.839927745560E-02,  2.531873434695E-02]} # 0191
+ -  {H: [ 1.940896031183E-02, -3.700192706327E-02,  1.869733777389E-02]} # 0192
+ -  {H: [-3.823170969686E-02,  2.994407462055E-02, -1.083512439351E-03]} # 0193
+ -  {H: [ 3.629455210043E-03,  2.698947115146E-02, -3.834911127448E-03]} # 0194
+ -  {H: [-4.765728233529E-02, -4.106263898389E-02,  8.142674686976E-03]} # 0195
+ -  {H: [ 1.527275955564E-02, -4.066441599450E-02,  9.970906850616E-03]} # 0196
+ -  {H: [-2.328063895538E-02,  4.124652700214E-02,  5.990022006048E-02]} # 0197
   #-------------------------------- Warnings obtained during the run, check their relevance!
  WARNINGS:
  - Do not call check_communications in the linear scaling version!
@@ -1952,17 +1915,18 @@
  - density optimization not converged
   #-------------------------------------------------------------------- Timing for root process
  Timings for root process:
-   CPU time (s)                        :  59.53
-   Elapsed time (s)                    :  32.34
+   CPU time (s)                        :  217.22
+   Elapsed time (s)                    :  115.97
  BigDFT infocode                       :  0
+ Energy (Hartree)                      : -3.96944058125642186E+02
  Memory Consumption Report:
-   Tot. No. of Allocations             :  48794
-   Tot. No. of Deallocations           :  48794
+   Tot. No. of Allocations             :  186857
+   Tot. No. of Deallocations           :  186857
    Remaining Memory (B)                :  0
    Memory occupation:
-     Peak Value (MB)                   :  894.505
+     Peak Value (MB)                   :  3632.432
      for the array                     : psi_f
      in the routine                    : transpose_localized
-     Memory Peak of process            : 1510.356 MB
- Max No. of dictionaries used          :  13531 #( 842 still in use)
- Number of dictionary folders allocated:  2
+     Memory Peak of process            : 3748.112 MB
+ Max No. of dictionaries used          :  42505 #( 841 still in use)
+ Number of dictionary folders allocated:  5

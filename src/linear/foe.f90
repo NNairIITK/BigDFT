@@ -368,17 +368,23 @@ subroutine foe(iproc, nproc, tmprtr, &
                   if (calculate_SHS) then
                       ! sending it ovrlp just for sparsity pattern, still more cleaning could be done
                       if (foe_verbosity>=1 .and. iproc==0) call yaml_map('polynomials','recalculated')
+                      !!write(*,*) 'calling chebyshev_clean, iproc', iproc
                       call chebyshev_clean(iproc, nproc, npl, cc, &
                            tmb%linmat%l, hamscal_compr, &
                            tmb%linmat%ovrlppowers_(2)%matrix_compr(ilshift2+1:), calculate_SHS, &
                            nsize_polynomial, 1, fermi_new, penalty_ev_new, chebyshev_polynomials, &
                            emergency_stop)
+                       
+                      !!write(*,*) 'before mpi_barrier, iproc', iproc
+                      !!call mpi_barrier(bigdft_mpi%mpi_comm, ipl)
+                      !!write(*,*) 'after chebyshev_clean, iproc', iproc
                       call transform_sparsity_pattern(tmb%linmat%l%nfvctr, &
                            tmb%linmat%l%smmm%nvctrp_mm, tmb%linmat%l%smmm%isvctr_mm, &
                            tmb%linmat%l%nseg, tmb%linmat%l%keyv, tmb%linmat%l%keyg, &
                            tmb%linmat%l%smmm%nvctrp, tmb%linmat%l%smmm%isvctr, &
                            tmb%linmat%l%smmm%nseg, tmb%linmat%l%smmm%keyv, tmb%linmat%l%smmm%keyg, &
                            fermi_new, fermi_small_new)
+                      !!write(*,*) 'after transform_sparsity_pattern, iproc', iproc
 
 
                       !!do i=1,tmb%linmat%l%smmm%nvctrp

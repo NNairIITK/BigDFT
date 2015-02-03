@@ -188,8 +188,10 @@ module chebyshev
              mat_compr = 0.d0
              !!call compress_matrix_distributed(iproc, nproc, kernel, DENSE_MATMUL, &
              !!     matrix, mat_compr)
+             !!write(*,*) 'calling compress_matrix_distributed_new in chebyshev_clean, iproc', iproc
              call compress_matrix_distributed_new(iproc, nproc, kernel, DENSE_MATMUL, &
                   matrix_new, mat_compr)
+             !!write(*,*) 'after compress_matrix_distributed_new in chebyshev_clean, iproc', iproc
           !end if
       !do i=1,size(mat_compr,1)
       !    write(801,*) 'i, val', i, j, mat_compr(i)
@@ -330,6 +332,7 @@ module chebyshev
               !!write(*,*) 'sum(penalty_ev_new(:,2))',sum(penalty_ev_new(:,2))
             
             
+             !!write(*,*) 'before main_loop, iproc', iproc
               emergency_stop=.false.
               main_loop: do ipl=3,npl
                   !!write(*,*) 'ipl',ipl
@@ -352,13 +355,15 @@ module chebyshev
                   call compress_polynomial_vector_new(iproc, nproc, nsize_polynomial, &
                        kernel%nfvctr, kernel%smmm%nfvctrp, kernel, &
                        vectors_new(1,3), chebyshev_polynomials(1,ipl))
+             !!write(*,*) 'main loop, after first compress, iproc, ipl', iproc, ipl
+             !call mpi_barrier(bigdft_mpi%mpi_comm, icalc)
                   do icalc=1,ncalc
                       !!call axpy_kernel_vectors(kernel, kernel%smmm%nfvctrp, kernel%nfvctr, &
                       !!     kernel%smmm%nout, kernel%smmm%onedimindices, &
                       !!     cc(ipl,1,icalc), vectors(1,1,3), fermi(:,1,icalc))
                       call daxpy(kernel%smmm%nvctrp, cc(ipl,1,icalc), vectors_new(1,3), 1, fermi_new(1,icalc), 1)
-                      tt = sum(fermi_new(:,icalc))
-                      call mpiallred(tt, 1, mpi_sum, bigdft_mpi%mpi_comm)
+                      !!tt = sum(fermi_new(:,icalc))
+                      !!call mpiallred(tt, 1, mpi_sum, bigdft_mpi%mpi_comm)
                       !!if (iproc==0) write(*,*) 'sum(fermi_new(:,icalc)) 3',tt
                   !!do i=1,kernel%smmm%nfvctrp
                   !!    do j=1,kernel%nfvctr
@@ -401,10 +406,13 @@ module chebyshev
                       !!write(*,*) 'tt',tt
                       if (abs(tt)>1.d3) then
                           emergency_stop=.true.
+                          !!write(*,*) 'exit on task',iproc
                           exit main_loop
                       end if
                   end do
               end do main_loop
+
+             !!write(*,*) 'after main_loop, iproc', iproc
         
           end if
     
