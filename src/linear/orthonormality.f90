@@ -2349,10 +2349,14 @@ subroutine max_matrix_diff_parallel_new(iproc, norb, norbp, isorb, mat1, mat2, &
   do i=1,smat%smmm%nvctrp
       ii = smat%smmm%isvctr + i
       call get_line_and_column(ii, smat%smmm%nseg, smat%smmm%keyv, smat%smmm%keyg, iline, icolumn)
-      error=(mat1(i)-mat2(i))**2
-      max_deviation=max(error,max_deviation)
-      mean_deviation=mean_deviation+error
-      num=num+1.d0
+      ind=matrixindex_in_compressed(smat,icolumn,iline)
+      if (ind>0) then
+          ! This entry is within the sparsity pattern, i.e. it matters for the error.
+          error=(mat1(i)-mat2(i))**2
+          max_deviation=max(error,max_deviation)
+          mean_deviation=mean_deviation+error
+          num=num+1.d0
+      end if
   end do
 
   if (bigdft_mpi%nproc>1) then
