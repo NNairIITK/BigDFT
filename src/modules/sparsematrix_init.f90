@@ -603,7 +603,7 @@ contains
       !!     sparsemat%smmm%nseq, nseq_per_line)
       call determine_sequential_length_new2(sparsemat%smmm%nout, ispt, nseg, norb, keyv, keyg, &
            sparsemat, sparsemat%smmm%nseq, nseq_per_line)
-      write(*,'(a,i3,3x,200i10)') 'iproc, nseq_per_line', iproc, nseq_per_line
+      !write(*,'(a,i3,3x,200i10)') 'iproc, nseq_per_line', iproc, nseq_per_line
       if (nproc>1) call mpiallred(nseq_per_line(1), norb, mpi_sum, bigdft_mpi%mpi_comm)
       rseq=real(sparsemat%smmm%nseq,kind=8) !real to prevent integer overflow
       if (nproc>1) call mpiallred(rseq, 1, mpi_sum, bigdft_mpi%mpi_comm)
@@ -691,10 +691,10 @@ contains
       !!     sparsemat, sum(nout_par), sparsemat%smmm%nseq, nseq_per_pt)
       !!call determine_sequential_length_new(sparsemat%smmm%nout, ispt, nseg, keyv, keyg, &
       !!     sparsemat, sum(nout_par), sparsemat%smmm%nseq, nseq_per_pt)
-      write(*,*) 'norb, sparsemat%nfvctr', norb, sparsemat%nfvctr
+      !write(*,*) 'norb, sparsemat%nfvctr', norb, sparsemat%nfvctr
       call determine_sequential_length_new2(sparsemat%smmm%nout, ispt, nseg, norb, keyv, keyg, &
            sparsemat, sparsemat%smmm%nseq, nseq_per_line)
-      write(*,'(a,i3,3x,200i10)') 'iproc, nseq_per_line', iproc, nseq_per_line
+      !write(*,'(a,i3,3x,200i10)') 'iproc, nseq_per_line', iproc, nseq_per_line
       call f_free(nout_par)
       !!write(*,*) 'NEW: iproc, nseq', iproc, sparsemat%smmm%nseq
 
