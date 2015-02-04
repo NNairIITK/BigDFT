@@ -66,9 +66,9 @@ module chebyshev
       !!kernel%nfvctrp = kernel%nfvctrp
       !!kernel%isfvctr = kernel%isfvctr
 
-      do i=1,size(ham_compr)
-          write(800+iproc,*) ham_compr(i)
-      end do
+      !!do i=1,size(ham_compr)
+      !!    write(800+iproc,*) ham_compr(i)
+      !!end do
     
       mat_compr = f_malloc(kernel%nvctrp_tg,id='mat_compr')
     
@@ -148,7 +148,7 @@ module chebyshev
               !!call sparsemm(kernel, mat_seq, matrix(1,1), vectors(1,1,1))
               call sparsemm_new(kernel, mat_seq, matrix_new(1), vectors_new(1,1))
               !!write(*,*) 'after sparsemm_new first'
-              mat_compr = 0.d0
+              !!mat_compr = 0.d0
               !!call f_zero(matrix)
               !!write(*,*) 'after zero matrix'
               call f_zero(matrix_new)
@@ -192,7 +192,7 @@ module chebyshev
       
           !if (nproc > 1) then
              !call mpiallred(SHS(1), kernel%nvctr, mpi_sum, bigdft_mpi%mpi_comm)
-             mat_compr = 0.d0
+             !!call f_zero(mat_compr)
              !!call compress_matrix_distributed(iproc, nproc, kernel, DENSE_MATMUL, &
              !!     matrix, mat_compr)
              !!write(*,*) 'calling compress_matrix_distributed_new in chebyshev_clean, iproc', iproc
@@ -210,9 +210,9 @@ module chebyshev
       end if
       
       !!write(*,*) 'sum(mat_compr)', sum(mat_compr)
-      do i=1,size(ham_compr)
-          write(700+iproc,*) mat_compr(i)
-      end do
+      !!do i=1,size(ham_compr)
+      !!    write(700+iproc,*) mat_compr(i)
+      !!end do
       if (kernel%smmm%nvctrp>0) then
           call sequential_acces_matrix_fast2(kernel, mat_compr, mat_seq)
       end if
@@ -259,14 +259,14 @@ module chebyshev
               !!else if (number_of_matmuls==one) then
                   !!call sparsemm(kernel, mat_seq, vectors(1,1,3), vectors(1,1,1))
                   call sparsemm_new(kernel, mat_seq, vectors_new(1,3), vectors_new(1,1))
-          do jproc=0,nproc-1
-              if (iproc==jproc) then
-                  do i=1,size(vectors_new,1)
-                      write(1100+iproc,*) vectors_new(i,1)
-                  end do
-              end if
-              call mpi_barrier(mpi_comm_world, ierr)
-          end do
+          !!do jproc=0,nproc-1
+          !!    if (iproc==jproc) then
+          !!        do i=1,size(vectors_new,1)
+          !!            write(1100+iproc,*) vectors_new(i,1)
+          !!        end do
+          !!    end if
+          !!    call mpi_barrier(mpi_comm_world, ierr)
+          !!end do
               !!write(*,*) 'sum(mat_seq)',sum(mat_seq)
               !!write(*,*) 'sum(vectors_new(:,3))', sum(vectors_new(:,3))
               !!write(*,*) 'sum(vectors_new(:,1))', sum(vectors_new(:,1))
@@ -276,9 +276,9 @@ module chebyshev
               !!call vcopy(kernel%nfvctr*kernel%smmm%nfvctrp, vectors(1,1,1), 1, vectors(1,1,2), 1)
 
           !!do jproc=0,nproc-1
-              do i=1,size(vectors_new,1)
-                  write(1500+iproc,*) vectors_new(i,1)
-              end do
+          !!    do i=1,size(vectors_new,1)
+          !!        write(1500+iproc,*) vectors_new(i,1)
+          !!    end do
           !!end do
               call vcopy(kernel%smmm%nvctrp, vectors_new(1,1), 1, vectors_new(1,2), 1)
     
@@ -300,9 +300,9 @@ module chebyshev
                    kernel%nfvctr, kernel%smmm%nfvctrp, kernel, &
                    vectors_new(1,4), chebyshev_polynomials(1,1))
           !!do jproc=0,nproc-1
-              do i=1,size(vectors_new,1)
-                  write(1510+iproc,*) vectors_new(i,1)
-              end do
+          !!    do i=1,size(vectors_new,1)
+          !!        write(1510+iproc,*) vectors_new(i,1)
+          !!    end do
           !!end do
               !!write(*,*) 'after compress_polynomial_vector_new'
               do icalc=1,ncalc
@@ -319,9 +319,9 @@ module chebyshev
                   !!end do
               end do
           !!do jproc=0,nproc-1
-              do i=1,size(vectors_new,1)
-                  write(1520+iproc,*) vectors_new(i,1)
-              end do
+          !!    do i=1,size(vectors_new,1)
+          !!        write(1520+iproc,*) vectors_new(i,1)
+          !!    end do
           !!end do
               !!call axpy_kernel_vectors(kernel, kernel%smmm%nfvctrp, kernel%nfvctr, &
               !!     kernel%smmm%nout, kernel%smmm%onedimindices, &
@@ -340,9 +340,9 @@ module chebyshev
                    kernel%nfvctr, kernel%smmm%nfvctrp, kernel, &
                    vectors_new(1,2), chebyshev_polynomials(1,2))
           !!do jproc=0,nproc-1
-              do i=1,size(vectors_new,1)
-                  write(1530+iproc,*) vectors_new(i,1)
-              end do
+          !!    do i=1,size(vectors_new,1)
+          !!        write(1530+iproc,*) vectors_new(i,1)
+          !!    end do
           !!end do
               do icalc=1,ncalc
                   !!do i=1,kernel%smmm%nfvctrp
@@ -362,9 +362,9 @@ module chebyshev
                   !!end do
               end do
           !!do jproc=0,nproc-1
-              do i=1,size(vectors_new,1)
-                  write(1540+iproc,*) vectors_new(i,1)
-              end do
+          !!    do i=1,size(vectors_new,1)
+          !!        write(1540+iproc,*) vectors_new(i,1)
+          !!    end do
           !!end do
               !!call axpy_kernel_vectors(kernel, kernel%smmm%nfvctrp, kernel%nfvctr, &
               !!     kernel%smmm%nout, kernel%smmm%onedimindices, &
@@ -377,9 +377,9 @@ module chebyshev
               call daxpy(kernel%smmm%nvctrp, -cc(2,3,1), vectors_new(1,2), 1, penalty_ev_new(1,2), 1)
               !!write(*,*) 'sum(penalty_ev_new(:,2))',sum(penalty_ev_new(:,2))
           !!do jproc=0,nproc-1
-              do i=1,size(vectors_new,1)
-                  write(1550+iproc,*) vectors_new(i,1)
-              end do
+          !!    do i=1,size(vectors_new,1)
+          !!        write(1550+iproc,*) vectors_new(i,1)
+          !!    end do
           !!end do
             
             
@@ -396,21 +396,21 @@ module chebyshev
                       !!call sparsemm(kernel, mat_seq, vectors(1,1,1), vectors(1,1,2))
           !!do jproc=0,nproc-1
           !!    if (iproc==jproc) then
-                  do i=1,size(vectors_new,1)
-                      write(5000+100*ipl+iproc,*) vectors_new(i,1)
-                  end do
-                  do i=1,size(mat_seq)
-                      write(1210+iproc,*) mat_seq(i)
-                  end do
+                  !!do i=1,size(vectors_new,1)
+                  !!    write(5000+100*ipl+iproc,*) vectors_new(i,1)
+                  !!end do
+                  !!do i=1,size(mat_seq)
+                  !!    write(1210+iproc,*) mat_seq(i)
+                  !!end do
           !!    end if
           !!    call mpi_barrier(mpi_comm_world, ierr)
           !!end do
                       call sparsemm_new(kernel, mat_seq, vectors_new(1,1), vectors_new(1,2))
           !!do jproc=0,nproc-1
           !!    if (iproc==jproc) then
-                  do i=1,size(vectors_new,1)
-                      write(6000+100*ipl+iproc,*) vectors_new(i,2)
-                  end do
+                  !!do i=1,size(vectors_new,1)
+                  !!    write(6000+100*ipl+iproc,*) vectors_new(i,2)
+                  !!end do
           !!    end if
           !!    call mpi_barrier(mpi_comm_world, ierr)
           !!end do

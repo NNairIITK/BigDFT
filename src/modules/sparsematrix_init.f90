@@ -2178,7 +2178,7 @@ contains
               istart = smat%nfvctr
               iend = 1
               inc = -1
-              write(*,*) 'iproc, iirow(i)', iproc, iirow(i)
+              !!write(*,*) 'iproc, iirow(i)', iproc, iirow(i)
           end if
           search_out: do irow=iirow(i),iend,inc
               if (irow==iirow(i)) then
@@ -3101,7 +3101,7 @@ contains
           ! Now check the pseudo-exact orthonormalization during the input guess
           call check_ortho_inguess()
     
-          write(*,'(a,3i8)') 'after check_local_matrix_extents: iproc, ind_min, ind_max', iproc, ind_min, ind_max
+          !!write(*,'(a,3i8)') 'after check_local_matrix_extents: iproc, ind_min, ind_max', iproc, ind_min, ind_max
 
           ! Get the global indices of ind_min and ind_max
           do i=1,2
@@ -3201,7 +3201,7 @@ contains
                   ind_min = min(ind_min,ind)
                   ind_max = max(ind_max,ind)
               end do
-              write(*,'(a,3i8)') 'after check_matmul_layout: iproc, ind_min, ind_max', iproc, ind_min, ind_max
+              !!write(*,'(a,3i8)') 'after check_matmul_layout: iproc, ind_min, ind_max', iproc, ind_min, ind_max
             end subroutine check_matmul_layout
     
             subroutine check_sumrho_layout()

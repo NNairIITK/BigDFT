@@ -1941,12 +1941,12 @@ subroutine ice(iproc, nproc, norder_polynomial, ovrlp_smat, inv_ovrlp_smat, ncal
                   else
                       calculate_SHS=.false.
                   end if
-                  do i=1,size(ovrlp_mat%matrix_compr)
-                      write(900+iproc,*) i, ovrlp_mat%matrix_compr(i)
-                  end do
-                  do i=1,size(hamscal_compr)
-                      write(950+iproc,*) i, hamscal_compr(i)
-                  end do
+                  !!do i=1,size(ovrlp_mat%matrix_compr)
+                  !!    write(900+iproc,*) i, ovrlp_mat%matrix_compr(i)
+                  !!end do
+                  !!do i=1,size(hamscal_compr)
+                  !!    write(950+iproc,*) i, hamscal_compr(i)
+                  !!end do
                   evlow_old=foe_data_get_real(foe_obj,"evlow",ispin)
                   evhigh_old=foe_data_get_real(foe_obj,"evhigh",ispin)
     
@@ -2030,9 +2030,9 @@ subroutine ice(iproc, nproc, norder_polynomial, ovrlp_smat, inv_ovrlp_smat, ncal
                            inv_ovrlp(1)%matrix_compr(ilshift2+1:), .false., &
                            nsize_polynomial, ncalc, inv_ovrlp_matrixp_new, penalty_ev_new, chebyshev_polynomials, &
                            emergency_stop)
-                       do i=1,size(inv_ovrlp_matrixp_new,1)
-                           write(400+iproc,*) i, inv_ovrlp_matrixp_new(i,1)
-                       end do
+                       !!do i=1,size(inv_ovrlp_matrixp_new,1)
+                       !!    write(400+iproc,*) i, inv_ovrlp_matrixp_new(i,1)
+                       !!end do
                       do icalc=1,ncalc
                           call transform_sparsity_pattern(inv_ovrlp_smat%nfvctr, &
                                inv_ovrlp_smat%smmm%nvctrp_mm, inv_ovrlp_smat%smmm%isvctr_mm, &
@@ -2041,9 +2041,9 @@ subroutine ice(iproc, nproc, norder_polynomial, ovrlp_smat, inv_ovrlp_smat, ncal
                                inv_ovrlp_smat%smmm%nvctrp, inv_ovrlp_smat%smmm%isvctr, &
                                inv_ovrlp_smat%smmm%nseg, inv_ovrlp_smat%smmm%keyv, inv_ovrlp_smat%smmm%keyg, &
                                'large_to_small', inv_ovrlp_matrixp_small_new(1,icalc), inv_ovrlp_matrixp_new(1,icalc))
-                         do i=1,size(inv_ovrlp_matrixp_small_new,1)
-                             write(410+iproc,*) i, inv_ovrlp_matrixp_small_new(i,icalc)
-                         end do
+                         !!do i=1,size(inv_ovrlp_matrixp_small_new,1)
+                         !!    write(410+iproc,*) i, inv_ovrlp_matrixp_small_new(i,icalc)
+                         !!end do
                       end do
 
                        !write(*,'(a,i5,2es24.8)') 'iproc, sum(inv_ovrlp_matrixp(:,:,1:2)', (sum(inv_ovrlp_matrixp(:,:,icalc)),icalc=1,ncalc)
