@@ -35,7 +35,7 @@ module sparsematrix
   public :: check_symmetry
   public :: write_sparsematrix
   public :: write_sparsematrix_CCS
-  public :: transform_sparsity_pattern, transform_sparsity_pattern2
+  public :: transform_sparsity_pattern!, transform_sparsity_pattern2
   public :: matrix_matrix_mult_wrapper
 
   contains
@@ -1009,7 +1009,7 @@ module sparsematrix
      ! Calling arguments
      integer,intent(in) :: iproc, nproc, layout
      type(sparse_matrix),intent(in) :: smat
-     real(kind=8),dimension(smat%smmm%nvctrp),intent(in) :: matrixp
+     real(kind=8),dimension(smat%smmm%nvctrp),intent(inout) :: matrixp
      real(kind=8),dimension(smat%nvctrp_tg),target,intent(out) :: matrix_compr
 
      ! Local variables
@@ -1194,7 +1194,7 @@ module sparsematrix
                   smat%nseg, smat%keyv, smat%keyg, smat%smmm%line_and_column_mm, &
                   smat%smmm%nvctrp, smat%smmm%isvctr, &
                   smat%smmm%nseg, smat%smmm%keyv, smat%smmm%keyg, &
-                  matrixp, matrix_local)
+                  'large_to_small', matrixp, matrix_local)
              !!if (bigdft_mpi%iproc==0) write(*,*) 'sum(matrix_local)',sum(matrix_local)
 
              call timing(iproc,'compressd_mcpy','OF')
@@ -2622,11 +2622,11 @@ module sparsematrix
     end subroutine write_sparsematrix_CCS
 
 
-    !> Transform a matrix from a large parsity pattern *_l to a small sparsity pattern *_s.
+    !> Transform a matrix from a large parsity pattern *_l to a small sparsity pattern *_s or vice versa.
     !! The small pattern must be contained within the large one.
     subroutine transform_sparsity_pattern(nfvctr, nvctrp_s, isvctr_s, nseg_s, keyv_s, keyg_s, line_and_column_s, &
-               nvctrp_l, isvctr_l, nseg_l, keyv_l, keyg_l, matrix_l, matrix_s)
-      use sparsematrix_init, only: get_line_and_column
+               nvctrp_l, isvctr_l, nseg_l, keyv_l, keyg_l, direction, matrix_l, matrix_s)
+      use sparsematrix_init, only: matrixindex_in_compressed_lowlevel
       implicit none
       ! Calling arguments
       integer,intent(in) :: nfvctr, nvctrp_s, isvctr_s, nseg_s, nvctrp_l, isvctr_l, nseg_l
@@ -2635,136 +2635,117 @@ module sparsematrix
       integer,dimension(2,2,nseg_s),intent(in) :: keyg_s
       integer,dimension(nseg_l),intent(in) :: keyv_l
       integer,dimension(2,2,nseg_l),intent(in) :: keyg_l
-      real(kind=8),dimension(nvctrp_l),intent(in) :: matrix_l
-      real(kind=8),dimension(nvctrp_s),intent(out) :: matrix_s
+      character(len=*),intent(in) :: direction
+      real(kind=8),dimension(nvctrp_l),intent(inout) :: matrix_l
+      real(kind=8),dimension(nvctrp_s),intent(inout) :: matrix_s
       ! Local variables
       integer :: i, ii, ind, iline, icolumn
 
-        do i=1,nvctrp_s
-            ii = isvctr_s + i
-            !!call get_line_and_column(ii, nseg_s, keyv_s, keyg_s, iline, icolumn)
-            iline = line_and_column_s(1,i)
-            icolumn = line_and_column_s(2,i)
-            ind = matrixindex_in_compressed_fn(icolumn, iline, nfvctr, &
-                  nseg_l, keyv_l, keyg_l)
-            ind = ind - isvctr_l
-            matrix_s(i) = matrix_l(ind)
-        end do
+        if (direction=='large_to_small') then
 
-        contains
+            ! No need for f_zero since every value will be overwritten.
+            do i=1,nvctrp_s
+                ii = isvctr_s + i
+                !!call get_line_and_column(ii, nseg_s, keyv_s, keyg_s, iline, icolumn)
+                iline = line_and_column_s(1,i)
+                icolumn = line_and_column_s(2,i)
+                ind = matrixindex_in_compressed_lowlevel(icolumn, iline, nfvctr, &
+                      nseg_l, keyv_l, keyg_l)
+                ind = ind - isvctr_l
+                matrix_s(i) = matrix_l(ind)
+            end do
 
-        ! Function that gives the index of the matrix element (jjorb,iiorb) in the compressed format.
-        ! Cannot use the standard function since that one requires a type
-        ! sparse_matrix as argument.
-        integer function matrixindex_in_compressed_fn(irow, jcol, norb, nseg, keyv, keyg) result(micf)
-          implicit none
+        else if (direction=='small_to_large') then
+            call f_zero(matrix_l)
+            do i=1,nvctrp_s
+                ii = isvctr_s + i
+                !call get_line_and_column(ii, nseg_s, keyv_s, keyg_s, iline, icolumn)
+                iline = line_and_column_s(1,i)
+                icolumn = line_and_column_s(2,i)
+                ind = matrixindex_in_compressed_lowlevel(icolumn, iline, nfvctr, &
+                      nseg_l, keyv_l, keyg_l)
+                ind = ind - isvctr_l
+                matrix_l(ind) = matrix_s(i)
+            end do
+        else
+            stop 'wrong direction'
+        end if
 
-          ! Calling arguments
-          integer,intent(in) :: irow, jcol, norb, nseg
-          integer,dimension(nseg),intent(in) :: keyv
-          integer,dimension(2,2,nseg),intent(in) :: keyg
-
-          ! Local variables
-          integer(kind=8) :: ii, istart, iend
-          integer :: iseg
-
-          ii = int((jcol-1),kind=8)*int(norb,kind=8)+int(irow,kind=8)
-
-          do iseg=1,nseg
-              istart = int((keyg(1,2,iseg)-1),kind=8)*int(norb,kind=8) + &
-                       int(keyg(1,1,iseg),kind=8)
-              iend = int((keyg(2,2,iseg)-1),kind=8)*int(norb,kind=8) + &
-                     int(keyg(2,1,iseg),kind=8)
-              if (ii>=istart .and. ii<=iend) then
-                  ! The matrix element is in this segment
-                   micf = keyv(iseg) + int(ii-istart,kind=4)
-                  return
-              end if
-              if (ii<istart) then
-                  micf=0
-                  return
-              end if
-          end do
-
-          ! Not found
-          micf=0
-
-        end function matrixindex_in_compressed_fn
 
     end subroutine transform_sparsity_pattern
 
 
-    !> Transform a matrix from a small parsity pattern *_s to a large sparsity pattern *_l.
-    !! The small pattern must be contained within the large one.
-    subroutine transform_sparsity_pattern2(nfvctr, nvctrp_s, isvctr_s, nseg_s, keyv_s, keyg_s, line_and_column_s, &
-               nvctrp_l, isvctr_l, nseg_l, keyv_l, keyg_l, matrix_s, matrix_l)
-      use sparsematrix_init, only: get_line_and_column
-      implicit none
-      ! Calling arguments
-      integer,intent(in) :: nfvctr, nvctrp_s, isvctr_s, nseg_s, nvctrp_l, isvctr_l, nseg_l
-      integer,dimension(2,nvctrp_s),intent(in) :: line_and_column_s
-      integer,dimension(nseg_s),intent(in) :: keyv_s
-      integer,dimension(2,2,nseg_s),intent(in) :: keyg_s
-      integer,dimension(nseg_l),intent(in) :: keyv_l
-      integer,dimension(2,2,nseg_l),intent(in) :: keyg_l
-      real(kind=8),dimension(nvctrp_s),intent(in) :: matrix_s
-      real(kind=8),dimension(nvctrp_l),intent(out) :: matrix_l
-      ! Local variables
-      integer :: i, ii, ind, iline, icolumn
+    !!!> Transform a matrix from a small parsity pattern *_s to a large sparsity pattern *_l.
+    !!!! The small pattern must be contained within the large one.
+    !!subroutine transform_sparsity_pattern2(nfvctr, nvctrp_s, isvctr_s, nseg_s, keyv_s, keyg_s, line_and_column_s, &
+    !!           nvctrp_l, isvctr_l, nseg_l, keyv_l, keyg_l, matrix_s, matrix_l)
+    !!  use sparsematrix_init, only: matrixindex_in_compressed_lowlevel
+    !!  implicit none
+    !!  ! Calling arguments
+    !!  integer,intent(in) :: nfvctr, nvctrp_s, isvctr_s, nseg_s, nvctrp_l, isvctr_l, nseg_l
+    !!  integer,dimension(2,nvctrp_s),intent(in) :: line_and_column_s
+    !!  integer,dimension(nseg_s),intent(in) :: keyv_s
+    !!  integer,dimension(2,2,nseg_s),intent(in) :: keyg_s
+    !!  integer,dimension(nseg_l),intent(in) :: keyv_l
+    !!  integer,dimension(2,2,nseg_l),intent(in) :: keyg_l
+    !!  real(kind=8),dimension(nvctrp_s),intent(in) :: matrix_s
+    !!  real(kind=8),dimension(nvctrp_l),intent(out) :: matrix_l
+    !!  ! Local variables
+    !!  integer :: i, ii, ind, iline, icolumn
 
-        call f_zero(matrix_l)
-        do i=1,nvctrp_s
-            ii = isvctr_s + i
-            !call get_line_and_column(ii, nseg_s, keyv_s, keyg_s, iline, icolumn)
-            iline = line_and_column_s(1,i)
-            icolumn = line_and_column_s(2,i)
-            ind = matrixindex_in_compressed_fn(icolumn, iline, nfvctr, &
-                  nseg_l, keyv_l, keyg_l)
-            ind = ind - isvctr_l
-            matrix_l(ind) = matrix_s(i)
-        end do
+    !!    call f_zero(matrix_l)
+    !!    do i=1,nvctrp_s
+    !!        ii = isvctr_s + i
+    !!        !call get_line_and_column(ii, nseg_s, keyv_s, keyg_s, iline, icolumn)
+    !!        iline = line_and_column_s(1,i)
+    !!        icolumn = line_and_column_s(2,i)
+    !!        ind = matrixindex_in_compressed_lowlevel(icolumn, iline, nfvctr, &
+    !!              nseg_l, keyv_l, keyg_l)
+    !!        ind = ind - isvctr_l
+    !!        matrix_l(ind) = matrix_s(i)
+    !!    end do
 
-        contains
+    !!    !!contains
 
-        ! Function that gives the index of the matrix element (jjorb,iiorb) in the compressed format.
-        ! Cannot use the standard function since that one requires a type
-        ! sparse_matrix as argument.
-        integer function matrixindex_in_compressed_fn(irow, jcol, norb, nseg, keyv, keyg) result(micf)
-          implicit none
+    !!    !!! Function that gives the index of the matrix element (jjorb,iiorb) in the compressed format.
+    !!    !!! Cannot use the standard function since that one requires a type
+    !!    !!! sparse_matrix as argument.
+    !!    !!integer function matrixindex_in_compressed_fn(irow, jcol, norb, nseg, keyv, keyg) result(micf)
+    !!    !!  implicit none
 
-          ! Calling arguments
-          integer,intent(in) :: irow, jcol, norb, nseg
-          integer,dimension(nseg),intent(in) :: keyv
-          integer,dimension(2,2,nseg),intent(in) :: keyg
+    !!    !!  ! Calling arguments
+    !!    !!  integer,intent(in) :: irow, jcol, norb, nseg
+    !!    !!  integer,dimension(nseg),intent(in) :: keyv
+    !!    !!  integer,dimension(2,2,nseg),intent(in) :: keyg
 
-          ! Local variables
-          integer(kind=8) :: ii, istart, iend
-          integer :: iseg
+    !!    !!  ! Local variables
+    !!    !!  integer(kind=8) :: ii, istart, iend
+    !!    !!  integer :: iseg
 
-          ii = int((jcol-1),kind=8)*int(norb,kind=8)+int(irow,kind=8)
+    !!    !!  ii = int((jcol-1),kind=8)*int(norb,kind=8)+int(irow,kind=8)
 
-          do iseg=1,nseg
-              istart = int((keyg(1,2,iseg)-1),kind=8)*int(norb,kind=8) + &
-                       int(keyg(1,1,iseg),kind=8)
-              iend = int((keyg(2,2,iseg)-1),kind=8)*int(norb,kind=8) + &
-                     int(keyg(2,1,iseg),kind=8)
-              if (ii>=istart .and. ii<=iend) then
-                  ! The matrix element is in this segment
-                   micf = keyv(iseg) + int(ii-istart,kind=4)
-                  return
-              end if
-              if (ii<istart) then
-                  micf=0
-                  return
-              end if
-          end do
+    !!    !!  do iseg=1,nseg
+    !!    !!      istart = int((keyg(1,2,iseg)-1),kind=8)*int(norb,kind=8) + &
+    !!    !!               int(keyg(1,1,iseg),kind=8)
+    !!    !!      iend = int((keyg(2,2,iseg)-1),kind=8)*int(norb,kind=8) + &
+    !!    !!             int(keyg(2,1,iseg),kind=8)
+    !!    !!      if (ii>=istart .and. ii<=iend) then
+    !!    !!          ! The matrix element is in this segment
+    !!    !!           micf = keyv(iseg) + int(ii-istart,kind=4)
+    !!    !!          return
+    !!    !!      end if
+    !!    !!      if (ii<istart) then
+    !!    !!          micf=0
+    !!    !!          return
+    !!    !!      end if
+    !!    !!  end do
 
-          ! Not found
-          micf=0
+    !!    !!  ! Not found
+    !!    !!  micf=0
 
-        end function matrixindex_in_compressed_fn
+    !!    !!end function matrixindex_in_compressed_fn
 
-    end subroutine transform_sparsity_pattern2
+    !!end subroutine transform_sparsity_pattern2
 
 
     !> Calculates c = a*b for matrices a,b,c
@@ -2785,12 +2766,12 @@ module sparsematrix
 
 
       call sequential_acces_matrix_fast2(smat, a, a_seq)
-      call transform_sparsity_pattern2(smat%nfvctr, smat%smmm%nvctrp_mm, smat%smmm%isvctr_mm, &
+      call transform_sparsity_pattern(smat%nfvctr, smat%smmm%nvctrp_mm, smat%smmm%isvctr_mm, &
            smat%nseg, smat%keyv, smat%keyg, &
            smat%smmm%line_and_column_mm, &
            smat%smmm%nvctrp, smat%smmm%isvctr, &
            smat%smmm%nseg, smat%smmm%keyv, smat%smmm%keyg, &
-           b(smat%smmm%isvctr_mm+1), b_exp)
+           'small_to_large', b(smat%smmm%isvctr_mm-smat%isvctrp_tg+1), b_exp)
       call sparsemm_new(smat, a_seq, b_exp, c_exp)
       call compress_matrix_distributed_new(iproc, nproc, smat, DENSE_MATMUL, &
            c_exp, c)

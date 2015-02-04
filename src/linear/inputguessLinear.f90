@@ -23,7 +23,7 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
   use yaml_output
   use sparsematrix_base, only: sparse_matrix, sparse_matrix_null, deallocate_sparse_matrix, &
                                sparsematrix_malloc, assignment(=), SPARSE_FULL
-  use sparsematrix_init, only: matrixindex_in_compressed, matrixindex_in_compressed2
+  use sparsematrix_init, only: matrixindex_in_compressed
   use sparsematrix, only: gather_matrix_from_taskgroups_inplace, extract_taskgroup_inplace
   use communications_base, only: work_transpose, &
                                  work_transpose_null, allocate_work_transpose, deallocate_work_transpose
