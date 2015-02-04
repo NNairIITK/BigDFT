@@ -1194,7 +1194,7 @@ module sparsematrix
                   smat%nseg, smat%keyv, smat%keyg, smat%smmm%line_and_column_mm, &
                   smat%smmm%nvctrp, smat%smmm%isvctr, &
                   smat%smmm%nseg, smat%smmm%keyv, smat%smmm%keyg, &
-                  'large_to_small', matrixp, matrix_local)
+                  'large_to_small', matrix_local, matrixp)
              !!if (bigdft_mpi%iproc==0) write(*,*) 'sum(matrix_local)',sum(matrix_local)
 
              call timing(iproc,'compressd_mcpy','OF')
@@ -2073,6 +2073,8 @@ module sparsematrix
 
          do jorb=ii,iend
             jjorb=smat%smmm%ivectorindex_new(jorb)
+            !!if (bigdft_mpi%iproc==0) write(*,'(a,6i8,es16.8)') 'iout, i, ilen, ii, jorb, jjorb, val', iout, i, ilen, ii, jorb, jjorb, a_seq(jorb)
+            !!write(500+bigdft_mpi%iproc,'(a,6i8,es16.8)') 'iout, i, ilen, ii, jorb, jjorb, val', iout, i, ilen, ii, jorb, jjorb, a_seq(jorb)
             !if (jjorb==0) stop 'jjorb==0'
             !if (jjorb/=0) tt0 = tt0 + b(jjorb)*a_seq(jorb)
             tt0 = tt0 + b(jjorb)*a_seq(jorb)
@@ -2625,7 +2627,7 @@ module sparsematrix
     !> Transform a matrix from a large parsity pattern *_l to a small sparsity pattern *_s or vice versa.
     !! The small pattern must be contained within the large one.
     subroutine transform_sparsity_pattern(nfvctr, nvctrp_s, isvctr_s, nseg_s, keyv_s, keyg_s, line_and_column_s, &
-               nvctrp_l, isvctr_l, nseg_l, keyv_l, keyg_l, direction, matrix_l, matrix_s)
+               nvctrp_l, isvctr_l, nseg_l, keyv_l, keyg_l, direction, matrix_s, matrix_l)
       use sparsematrix_init, only: matrixindex_in_compressed_lowlevel
       implicit none
       ! Calling arguments

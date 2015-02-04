@@ -2019,6 +2019,9 @@ contains
           end do
       end do
 
+      !!write(*,'(a,3i8)') 'at end init_sequential_acces_matrix_new: iproc, minval(ies), maxval(ies)', &
+      !!    bigdft_mpi%iproc, minval(indices_extract_sequential), maxval(indices_extract_sequential)
+
       !!contains
 
       !!  ! Function that gives the index of the matrix element (jjorb,iiorb) in the compressed format.
@@ -2151,6 +2154,7 @@ contains
 
       ! Now check the matrix matrix multiplications layout
       call check_matmul_layout()
+      !!write(*,'(a,3i8)') 'after check_matmul: iproc, ind_min, ind_max', iproc, ind_min, ind_max
 
       ! Now check the sumrho operations
       call check_sumrho_layout()
@@ -2161,6 +2165,7 @@ contains
       ind_min1 = ind_min
       ind_max1 = ind_max
 
+      !!write(*,'(a,3i8)') 'after init: iproc, ind_min1, ind_max1', iproc, ind_min1, ind_max1
 
       !@ NEW #####################################################################
       !@ Make sure that the min and max are at least as large as the reference
@@ -2173,6 +2178,7 @@ contains
               istart = smat%nfvctr
               iend = 1
               inc = -1
+              write(*,*) 'iproc, iirow(i)', iproc, iirow(i)
           end if
           search_out: do irow=iirow(i),iend,inc
               if (irow==iirow(i)) then
@@ -2195,7 +2201,7 @@ contains
       end do
       if (ind_min>ind_min1) stop 'ind_min>ind_min1'
       if (ind_max<ind_max1) stop 'ind_max<ind_max1'
-      !write(*,'(a,i3,3x,2(2i6,4x))') 'iproc, ind_min, ind_max, ind_min1, ind_max1', iproc,  ind_min, ind_max,  ind_min1, ind_max1
+      !!write(*,'(a,i3,3x,2(2i6,4x))') 'iproc, ind_min, ind_max, ind_min1, ind_max1', iproc,  ind_min, ind_max,  ind_min1, ind_max1
       !@ END NEW #################################################################
 
 
@@ -3095,6 +3101,7 @@ contains
           ! Now check the pseudo-exact orthonormalization during the input guess
           call check_ortho_inguess()
     
+          write(*,'(a,3i8)') 'after check_local_matrix_extents: iproc, ind_min, ind_max', iproc, ind_min, ind_max
 
           ! Get the global indices of ind_min and ind_max
           do i=1,2
@@ -3194,6 +3201,7 @@ contains
                   ind_min = min(ind_min,ind)
                   ind_max = max(ind_max,ind)
               end do
+              write(*,'(a,3i8)') 'after check_matmul_layout: iproc, ind_min, ind_max', iproc, ind_min, ind_max
             end subroutine check_matmul_layout
     
             subroutine check_sumrho_layout()
