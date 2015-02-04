@@ -823,7 +823,7 @@ subroutine foe(iproc, nproc, tmprtr, &
 
 
       subroutine retransform(matrix_compr)
-          use sparsematrix, only: sequential_acces_matrix_fast, sequential_acces_matrix_fast2, sparsemm, &
+          use sparsematrix, only: sequential_acces_matrix_fast, sequential_acces_matrix_fast2, &
                                   uncompress_matrix_distributed, compress_matrix_distributed, uncompress_matrix_distributed2, &
                                   sparsemm_new, compress_matrix_distributed_new
           ! Calling arguments
@@ -2715,7 +2715,7 @@ end subroutine scale_and_shift_matrix
           use module_base
           use sparsematrix_base, only: sparse_matrix, sparsematrix_malloc, assignment(=), &
                                        SPARSEMM_SEQ, DENSE_MATMUL
-          use sparsematrix, only: sequential_acces_matrix_fast, sequential_acces_matrix_fast2, sparsemm, &
+          use sparsematrix, only: sequential_acces_matrix_fast, sequential_acces_matrix_fast2, &
                                   uncompress_matrix_distributed, compress_matrix_distributed, uncompress_matrix_distributed2, &
                                   sparsemm_new, compress_matrix_distributed_new, transform_sparsity_pattern
           implicit none

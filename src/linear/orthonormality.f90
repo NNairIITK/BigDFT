@@ -163,7 +163,7 @@ subroutine orthoconstraintNonorthogonal(iproc, nproc, lzd, npsidim_orbs, npsidim
                                assignment(=), SPARSE_TASKGROUP
   use sparsematrix_init, only: matrixindex_in_compressed
   use sparsematrix, only: uncompress_matrix, uncompress_matrix_distributed, compress_matrix_distributed, &
-                          sequential_acces_matrix_fast2, sparsemm, transform_sparse_matrix, orb_from_index, &
+                          sequential_acces_matrix_fast2, transform_sparse_matrix, orb_from_index, &
                           gather_matrix_from_taskgroups_inplace, extract_taskgroup_inplace, &
                           transform_sparse_matrix_local, uncompress_matrix_distributed2, &
                           matrix_matrix_mult_wrapper
@@ -490,7 +490,7 @@ subroutine overlapPowerGeneral(iproc, nproc, iorder, ncalc, power, blocksize, im
                           compress_matrix_distributed, &
                           uncompress_matrix_distributed, uncompress_matrix_distributed2, &
                           sequential_acces_matrix_fast2, sequential_acces_matrix_fast, &
-                          sparsemm, gather_matrix_from_taskgroups, gather_matrix_from_taskgroups_inplace, &
+                          gather_matrix_from_taskgroups, gather_matrix_from_taskgroups_inplace, &
                           uncompress_matrix2, transform_sparsity_pattern, &
                           compress_matrix_distributed_new, sparsemm_new
   use yaml_output
