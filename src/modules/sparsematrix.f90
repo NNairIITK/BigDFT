@@ -2054,9 +2054,10 @@ module sparsematrix
 
      !write(*,*) 'iproc, nout', bigdft_mpi%iproc, smat%smmm%nout
 
+     call f_zero(c)
    
-     !$omp parallel default(private) shared(smat, a_seq, b, c)
-     !$omp do
+     !!$omp parallel default(private) shared(smat, a_seq, b, c)
+     !!$omp do
      do iout=1,smat%smmm%nout
          i=smat%smmm%onedimindices_new(1,iout)
          !!if (i==0) write(500,*) 'cycle'
@@ -2074,7 +2075,10 @@ module sparsematrix
          do jorb=ii,iend
             jjorb=smat%smmm%ivectorindex_new(jorb)
             !!if (bigdft_mpi%iproc==0) write(*,'(a,6i8,es16.8)') 'iout, i, ilen, ii, jorb, jjorb, val', iout, i, ilen, ii, jorb, jjorb, a_seq(jorb)
-            !!write(500+bigdft_mpi%iproc,'(a,6i8,es16.8)') 'iout, i, ilen, ii, jorb, jjorb, val', iout, i, ilen, ii, jorb, jjorb, a_seq(jorb)
+            write(500+bigdft_mpi%iproc,'(a,6i8,2es16.8)') 'iout, i, ilen, ii, jorb, jjorb, vals', iout, i, ilen, ii, jorb, jjorb, a_seq(jorb), b(jjorb)
+            if (bigdft_mpi%iproc==2 .and. i==1) then
+                write(*,'(a,6i8,2es16.8)') 'iout, i, ilen, ii, jorb, jjorb, vals', iout, i, ilen, ii, jorb, jjorb, a_seq(jorb), b(jjorb)
+            end if
             !if (jjorb==0) stop 'jjorb==0'
             !if (jjorb/=0) tt0 = tt0 + b(jjorb)*a_seq(jorb)
             tt0 = tt0 + b(jjorb)*a_seq(jorb)
@@ -2082,8 +2086,8 @@ module sparsematrix
 
          c(i) = tt0
      end do 
-     !$omp end do
-     !$omp end parallel
+     !!$omp end do
+     !!$omp end parallel
 
    
      !!call timing(bigdft_mpi%iproc, 'sparse_matmul ', 'RS')
