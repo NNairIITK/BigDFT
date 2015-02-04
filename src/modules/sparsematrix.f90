@@ -2769,7 +2769,7 @@ module sparsematrix
       call transform_sparsity_pattern(smat%nfvctr, smat%smmm%nvctrp_mm, smat%smmm%isvctr_mm, &
            smat%nseg, smat%keyv, smat%keyg, &
            smat%smmm%line_and_column_mm, &
-           smat%smmm%nvctrp, smat%smmm%isvctr+smat%isvctrp_tg, &
+           smat%smmm%nvctrp, smat%smmm%isvctr, &
            smat%smmm%nseg, smat%smmm%keyv, smat%smmm%keyg, &
            'small_to_large', b(smat%smmm%isvctr_mm-smat%isvctrp_tg+1), b_exp)
       call sparsemm_new(smat, a_seq, b_exp, c_exp)
