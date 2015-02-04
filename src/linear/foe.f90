@@ -383,7 +383,7 @@ subroutine foe(iproc, nproc, tmprtr, &
                            tmb%linmat%l%nseg, tmb%linmat%l%keyv, tmb%linmat%l%keyg, tmb%linmat%l%smmm%line_and_column_mm, &
                            tmb%linmat%l%smmm%nvctrp, tmb%linmat%l%smmm%isvctr, &
                            tmb%linmat%l%smmm%nseg, tmb%linmat%l%smmm%keyv, tmb%linmat%l%smmm%keyg, &
-                           'large_to_small', fermi_new, fermi_small_new)
+                           'large_to_small', fermi_small_new, fermi_new)
                       !!write(*,*) 'after transform_sparsity_pattern, iproc', iproc
 
 
@@ -857,7 +857,8 @@ subroutine foe(iproc, nproc, tmprtr, &
                tmb%linmat%l%nseg, tmb%linmat%l%keyv, tmb%linmat%l%keyg, tmb%linmat%l%smmm%line_and_column_mm, &
                tmb%linmat%l%smmm%nvctrp, tmb%linmat%l%smmm%isvctr, &
                tmb%linmat%l%smmm%nseg, tmb%linmat%l%smmm%keyv, tmb%linmat%l%smmm%keyg, 'small_to_large', &
-               tmb%linmat%ovrlppowers_(2)%matrix_compr(ilshift2+tmb%linmat%l%smmm%isvctr_mm-tmb%linmat%l%isvctrp_tg+1:), inv_ovrlpp_new)
+               tmb%linmat%ovrlppowers_(2)%matrix_compr(ilshift2+tmb%linmat%l%smmm%isvctr_mm-tmb%linmat%l%isvctrp_tg+1:), &
+               inv_ovrlpp_new)
           !!  write(*,*) 'sum(matrix_compr) 1', iproc, sum(tmb%linmat%ovrlppowers_(2)%matrix_compr(ilshift2+1:))
           !!  write(*,*) 'sum(inv_ovrlpp_new) 1', iproc, sum(inv_ovrlpp_new)
           !!  write(*,*) 'sum(inv_ovrlpp) 1', iproc, sum(inv_ovrlpp)
@@ -1560,7 +1561,7 @@ subroutine compress_polynomial_vector_new(iproc, nproc, nsize_polynomial, norb, 
   call transform_sparsity_pattern(fermi%nfvctr, fermi%smmm%nvctrp_mm, fermi%smmm%isvctr_mm, &
        fermi%nseg, fermi%keyv, fermi%keyg, fermi%smmm%line_and_column_mm, &
        fermi%smmm%nvctrp, fermi%smmm%isvctr, fermi%smmm%nseg, fermi%smmm%keyv, fermi%smmm%keyg, &
-       'large_to_small', vector_compr, vector_compressed)
+       'large_to_small', vector_compressed, vector_compr)
 
 
   !!vector = f_malloc((/norb,norbp/),id='vector')
@@ -1940,6 +1941,12 @@ subroutine ice(iproc, nproc, norder_polynomial, ovrlp_smat, inv_ovrlp_smat, ncal
                   else
                       calculate_SHS=.false.
                   end if
+                  !!do i=1,size(ovrlp_mat%matrix_compr)
+                  !!    write(900+iproc,*) i, ovrlp_mat%matrix_compr(i)
+                  !!end do
+                  !!do i=1,size(hamscal_compr)
+                  !!    write(950+iproc,*) i, hamscal_compr(i)
+                  !!end do
                   evlow_old=foe_data_get_real(foe_obj,"evlow",ispin)
                   evhigh_old=foe_data_get_real(foe_obj,"evhigh",ispin)
     
@@ -2023,6 +2030,9 @@ subroutine ice(iproc, nproc, norder_polynomial, ovrlp_smat, inv_ovrlp_smat, ncal
                            inv_ovrlp(1)%matrix_compr(ilshift2+1:), .false., &
                            nsize_polynomial, ncalc, inv_ovrlp_matrixp_new, penalty_ev_new, chebyshev_polynomials, &
                            emergency_stop)
+                       !!do i=1,size(inv_ovrlp_matrixp_new,1)
+                       !!    write(400+iproc,*) i, inv_ovrlp_matrixp_new(i,1)
+                       !!end do
                       do icalc=1,ncalc
                           call transform_sparsity_pattern(inv_ovrlp_smat%nfvctr, &
                                inv_ovrlp_smat%smmm%nvctrp_mm, inv_ovrlp_smat%smmm%isvctr_mm, &
@@ -2030,7 +2040,10 @@ subroutine ice(iproc, nproc, norder_polynomial, ovrlp_smat, inv_ovrlp_smat, ncal
                                inv_ovrlp_smat%smmm%line_and_column_mm, &
                                inv_ovrlp_smat%smmm%nvctrp, inv_ovrlp_smat%smmm%isvctr, &
                                inv_ovrlp_smat%smmm%nseg, inv_ovrlp_smat%smmm%keyv, inv_ovrlp_smat%smmm%keyg, &
-                               'large_to_small', inv_ovrlp_matrixp_new(1,icalc), inv_ovrlp_matrixp_small_new(1,icalc))
+                               'large_to_small', inv_ovrlp_matrixp_small_new(1,icalc), inv_ovrlp_matrixp_new(1,icalc))
+                         !!do i=1,size(inv_ovrlp_matrixp_small_new,1)
+                         !!    write(410+iproc,*) i, inv_ovrlp_matrixp_small_new(i,icalc)
+                         !!end do
                       end do
 
                        !write(*,'(a,i5,2es24.8)') 'iproc, sum(inv_ovrlp_matrixp(:,:,1:2)', (sum(inv_ovrlp_matrixp(:,:,icalc)),icalc=1,ncalc)
@@ -2561,6 +2574,8 @@ subroutine scale_and_shift_matrix(iproc, nproc, ispin, foe_obj, smatl, &
 
   call f_routine(id='scale_and_shift_matrix')
   call timing(iproc,'foe_aux_mcpy  ','ON')
+
+  call f_zero(matscal_compr)
 
   ! smat2 and mat2 must be present at the same time
   if (all((/present(smat2),present(mat2),present(i2shift)/))) then
