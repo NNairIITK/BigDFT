@@ -2052,6 +2052,8 @@ module sparsematrix
      !!call f_routine(id='sparsemm')
      !!call timing(bigdft_mpi%iproc, 'sparse_matmul ', 'IR')
 
+     write(*,*) 'iproc, nout', bigdft_mpi%iproc, smat%smmm%nout
+
    
      !$omp parallel default(private) shared(smat, a_seq, b, c)
      !$omp do
@@ -2071,6 +2073,7 @@ module sparsematrix
 
          do jorb=ii,iend
             jjorb=smat%smmm%ivectorindex_new(jorb)
+            if (jjorb==0) stop 'jjorb==0'
             if (jjorb/=0) tt0 = tt0 + b(jjorb)*a_seq(jorb)
          end do
 
