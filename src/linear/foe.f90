@@ -383,7 +383,7 @@ subroutine foe(iproc, nproc, tmprtr, &
                            tmb%linmat%l%nseg, tmb%linmat%l%keyv, tmb%linmat%l%keyg, tmb%linmat%l%smmm%line_and_column_mm, &
                            tmb%linmat%l%smmm%nvctrp, tmb%linmat%l%smmm%isvctr, &
                            tmb%linmat%l%smmm%nseg, tmb%linmat%l%smmm%keyv, tmb%linmat%l%smmm%keyg, &
-                           fermi_new, fermi_small_new)
+                           'large_to_small', fermi_new, fermi_small_new)
                       !!write(*,*) 'after transform_sparsity_pattern, iproc', iproc
 
 
@@ -825,7 +825,7 @@ subroutine foe(iproc, nproc, tmprtr, &
       subroutine retransform(matrix_compr)
           use sparsematrix, only: sequential_acces_matrix_fast, sequential_acces_matrix_fast2, sparsemm, &
                                   uncompress_matrix_distributed, compress_matrix_distributed, uncompress_matrix_distributed2, &
-                                  transform_sparsity_pattern2, sparsemm_new, compress_matrix_distributed_new
+                                  sparsemm_new, compress_matrix_distributed_new
           ! Calling arguments
           real(kind=8),dimension(tmb%linmat%l%nvctrp_tg),intent(inout) :: matrix_compr
 
@@ -853,10 +853,10 @@ subroutine foe(iproc, nproc, tmprtr, &
           !! write(*,*) 'sum(matrix_compr) 0', iproc, sum(tmb%linmat%ovrlppowers_(2)%matrix_compr(ilshift2+1:))
           !!  write(*,*) 'tmb%linmat%l%nvctrp, tmb%linmat%l%smmm%nvctrp_mm', tmb%linmat%l%nvctrp, tmb%linmat%l%smmm%nvctrp_mm
           !!  write(*,*) 'tmb%linmat%l%isvctr, tmb%linmat%l%smmm%isvctr_mm', tmb%linmat%l%isvctr, tmb%linmat%l%smmm%isvctr_mm
-          call transform_sparsity_pattern2(tmb%linmat%l%nfvctr, tmb%linmat%l%smmm%nvctrp_mm, tmb%linmat%l%smmm%isvctr_mm, &
+          call transform_sparsity_pattern(tmb%linmat%l%nfvctr, tmb%linmat%l%smmm%nvctrp_mm, tmb%linmat%l%smmm%isvctr_mm, &
                tmb%linmat%l%nseg, tmb%linmat%l%keyv, tmb%linmat%l%keyg, tmb%linmat%l%smmm%line_and_column_mm, &
                tmb%linmat%l%smmm%nvctrp, tmb%linmat%l%smmm%isvctr, &
-               tmb%linmat%l%smmm%nseg, tmb%linmat%l%smmm%keyv, tmb%linmat%l%smmm%keyg, &
+               tmb%linmat%l%smmm%nseg, tmb%linmat%l%smmm%keyv, tmb%linmat%l%smmm%keyg, 'small_to_large', &
                tmb%linmat%ovrlppowers_(2)%matrix_compr(ilshift2+tmb%linmat%l%smmm%isvctr_mm+1:), inv_ovrlpp_new)
           !!  write(*,*) 'sum(matrix_compr) 1', iproc, sum(tmb%linmat%ovrlppowers_(2)%matrix_compr(ilshift2+1:))
           !!  write(*,*) 'sum(inv_ovrlpp_new) 1', iproc, sum(inv_ovrlpp_new)
@@ -1548,7 +1548,7 @@ subroutine compress_polynomial_vector_new(iproc, nproc, nsize_polynomial, norb, 
   ! Calling arguments
   integer,intent(in) :: iproc, nproc, nsize_polynomial, norb, norbp
   type(sparse_matrix),intent(in) :: fermi
-  real(kind=8),dimension(fermi%smmm%nvctrp),intent(in) :: vector_compr
+  real(kind=8),dimension(fermi%smmm%nvctrp),intent(inout) :: vector_compr
   real(kind=8),dimension(nsize_polynomial),intent(out) :: vector_compressed
 
   ! Local variables
@@ -1560,7 +1560,7 @@ subroutine compress_polynomial_vector_new(iproc, nproc, nsize_polynomial, norb, 
   call transform_sparsity_pattern(fermi%nfvctr, fermi%smmm%nvctrp_mm, fermi%smmm%isvctr_mm, &
        fermi%nseg, fermi%keyv, fermi%keyg, fermi%smmm%line_and_column_mm, &
        fermi%smmm%nvctrp, fermi%smmm%isvctr, fermi%smmm%nseg, fermi%smmm%keyv, fermi%smmm%keyg, &
-       vector_compr, vector_compressed)
+       'large_to_small', vector_compr, vector_compressed)
 
 
   !!vector = f_malloc((/norb,norbp/),id='vector')
@@ -2030,7 +2030,7 @@ subroutine ice(iproc, nproc, norder_polynomial, ovrlp_smat, inv_ovrlp_smat, ncal
                                inv_ovrlp_smat%smmm%line_and_column_mm, &
                                inv_ovrlp_smat%smmm%nvctrp, inv_ovrlp_smat%smmm%isvctr, &
                                inv_ovrlp_smat%smmm%nseg, inv_ovrlp_smat%smmm%keyv, inv_ovrlp_smat%smmm%keyg, &
-                               inv_ovrlp_matrixp_new(1,icalc), inv_ovrlp_matrixp_small_new(1,icalc))
+                               'large_to_small', inv_ovrlp_matrixp_new(1,icalc), inv_ovrlp_matrixp_small_new(1,icalc))
                       end do
 
                        !write(*,'(a,i5,2es24.8)') 'iproc, sum(inv_ovrlp_matrixp(:,:,1:2)', (sum(inv_ovrlp_matrixp(:,:,icalc)),icalc=1,ncalc)
@@ -2702,12 +2702,12 @@ end subroutine scale_and_shift_matrix
                                        SPARSEMM_SEQ, DENSE_MATMUL
           use sparsematrix, only: sequential_acces_matrix_fast, sequential_acces_matrix_fast2, sparsemm, &
                                   uncompress_matrix_distributed, compress_matrix_distributed, uncompress_matrix_distributed2, &
-                                  transform_sparsity_pattern2, sparsemm_new, compress_matrix_distributed_new
+                                  sparsemm_new, compress_matrix_distributed_new, transform_sparsity_pattern
           implicit none
           ! Calling arguments
           integer,intent(in) :: iproc, nproc
           type(sparse_matrix),intent(in) :: smat
-          real(kind=8),dimension(smat%nvctrp_tg),intent(in) :: inv_ovrlp
+          real(kind=8),dimension(smat%nvctrp_tg),intent(inout) :: inv_ovrlp
           real(kind=8),dimension(smat%nvctrp_tg),intent(inout) :: kernel
           
 
@@ -2724,11 +2724,11 @@ end subroutine scale_and_shift_matrix
           call sequential_acces_matrix_fast2(smat, kernel, kernel_compr_seq)
           call sequential_acces_matrix_fast2(smat, &
                inv_ovrlp, inv_ovrlp_compr_seq)
-          call transform_sparsity_pattern2(smat%nfvctr, smat%smmm%nvctrp_mm, smat%smmm%isvctr_mm, &
+          call transform_sparsity_pattern(smat%nfvctr, smat%smmm%nvctrp_mm, smat%smmm%isvctr_mm, &
                smat%nseg, smat%keyv, smat%keyg, smat%smmm%line_and_column_mm, &
                smat%smmm%nvctrp, smat%smmm%isvctr, &
                smat%smmm%nseg, smat%smmm%keyv, smat%smmm%keyg, &
-               inv_ovrlp(smat%smmm%isvctr_mm+1), inv_ovrlpp_new)
+               'small_to_large', inv_ovrlp(smat%smmm%isvctr_mm+1), inv_ovrlpp_new)
           call sparsemm_new(smat, kernel_compr_seq, inv_ovrlpp_new, tempp_new)
           call sparsemm_new(smat, inv_ovrlp_compr_seq, tempp_new, inv_ovrlpp_new)
           call f_zero(kernel)
