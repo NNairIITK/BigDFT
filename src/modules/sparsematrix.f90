@@ -2626,7 +2626,7 @@ module sparsematrix
     !! The small pattern must be contained within the large one.
     subroutine transform_sparsity_pattern(nfvctr, nvctrp_s, isvctr_s, nseg_s, keyv_s, keyg_s, line_and_column_s, &
                nvctrp_l, isvctr_l, nseg_l, keyv_l, keyg_l, matrix_l, matrix_s)
-      use sparsematrix_init, only: get_line_and_column
+      use sparsematrix_init, only: matrixindex_in_compressed_lowlevel
       implicit none
       ! Calling arguments
       integer,intent(in) :: nfvctr, nvctrp_s, isvctr_s, nseg_s, nvctrp_l, isvctr_l, nseg_l
@@ -2645,51 +2645,51 @@ module sparsematrix
             !!call get_line_and_column(ii, nseg_s, keyv_s, keyg_s, iline, icolumn)
             iline = line_and_column_s(1,i)
             icolumn = line_and_column_s(2,i)
-            ind = matrixindex_in_compressed_fn(icolumn, iline, nfvctr, &
+            ind = matrixindex_in_compressed_lowlevel(icolumn, iline, nfvctr, &
                   nseg_l, keyv_l, keyg_l)
             ind = ind - isvctr_l
             matrix_s(i) = matrix_l(ind)
         end do
 
-        contains
+        !!contains
 
-        ! Function that gives the index of the matrix element (jjorb,iiorb) in the compressed format.
-        ! Cannot use the standard function since that one requires a type
-        ! sparse_matrix as argument.
-        integer function matrixindex_in_compressed_fn(irow, jcol, norb, nseg, keyv, keyg) result(micf)
-          implicit none
+        !!! Function that gives the index of the matrix element (jjorb,iiorb) in the compressed format.
+        !!! Cannot use the standard function since that one requires a type
+        !!! sparse_matrix as argument.
+        !!integer function matrixindex_in_compressed_fn(irow, jcol, norb, nseg, keyv, keyg) result(micf)
+        !!  implicit none
 
-          ! Calling arguments
-          integer,intent(in) :: irow, jcol, norb, nseg
-          integer,dimension(nseg),intent(in) :: keyv
-          integer,dimension(2,2,nseg),intent(in) :: keyg
+        !!  ! Calling arguments
+        !!  integer,intent(in) :: irow, jcol, norb, nseg
+        !!  integer,dimension(nseg),intent(in) :: keyv
+        !!  integer,dimension(2,2,nseg),intent(in) :: keyg
 
-          ! Local variables
-          integer(kind=8) :: ii, istart, iend
-          integer :: iseg
+        !!  ! Local variables
+        !!  integer(kind=8) :: ii, istart, iend
+        !!  integer :: iseg
 
-          ii = int((jcol-1),kind=8)*int(norb,kind=8)+int(irow,kind=8)
+        !!  ii = int((jcol-1),kind=8)*int(norb,kind=8)+int(irow,kind=8)
 
-          do iseg=1,nseg
-              istart = int((keyg(1,2,iseg)-1),kind=8)*int(norb,kind=8) + &
-                       int(keyg(1,1,iseg),kind=8)
-              iend = int((keyg(2,2,iseg)-1),kind=8)*int(norb,kind=8) + &
-                     int(keyg(2,1,iseg),kind=8)
-              if (ii>=istart .and. ii<=iend) then
-                  ! The matrix element is in this segment
-                   micf = keyv(iseg) + int(ii-istart,kind=4)
-                  return
-              end if
-              if (ii<istart) then
-                  micf=0
-                  return
-              end if
-          end do
+        !!  do iseg=1,nseg
+        !!      istart = int((keyg(1,2,iseg)-1),kind=8)*int(norb,kind=8) + &
+        !!               int(keyg(1,1,iseg),kind=8)
+        !!      iend = int((keyg(2,2,iseg)-1),kind=8)*int(norb,kind=8) + &
+        !!             int(keyg(2,1,iseg),kind=8)
+        !!      if (ii>=istart .and. ii<=iend) then
+        !!          ! The matrix element is in this segment
+        !!           micf = keyv(iseg) + int(ii-istart,kind=4)
+        !!          return
+        !!      end if
+        !!      if (ii<istart) then
+        !!          micf=0
+        !!          return
+        !!      end if
+        !!  end do
 
-          ! Not found
-          micf=0
+        !!  ! Not found
+        !!  micf=0
 
-        end function matrixindex_in_compressed_fn
+        !!end function matrixindex_in_compressed_fn
 
     end subroutine transform_sparsity_pattern
 
@@ -2698,7 +2698,7 @@ module sparsematrix
     !! The small pattern must be contained within the large one.
     subroutine transform_sparsity_pattern2(nfvctr, nvctrp_s, isvctr_s, nseg_s, keyv_s, keyg_s, line_and_column_s, &
                nvctrp_l, isvctr_l, nseg_l, keyv_l, keyg_l, matrix_s, matrix_l)
-      use sparsematrix_init, only: get_line_and_column
+      use sparsematrix_init, only: matrixindex_in_compressed_lowlevel
       implicit none
       ! Calling arguments
       integer,intent(in) :: nfvctr, nvctrp_s, isvctr_s, nseg_s, nvctrp_l, isvctr_l, nseg_l
@@ -2718,51 +2718,51 @@ module sparsematrix
             !call get_line_and_column(ii, nseg_s, keyv_s, keyg_s, iline, icolumn)
             iline = line_and_column_s(1,i)
             icolumn = line_and_column_s(2,i)
-            ind = matrixindex_in_compressed_fn(icolumn, iline, nfvctr, &
+            ind = matrixindex_in_compressed_lowlevel(icolumn, iline, nfvctr, &
                   nseg_l, keyv_l, keyg_l)
             ind = ind - isvctr_l
             matrix_l(ind) = matrix_s(i)
         end do
 
-        contains
+        !!contains
 
-        ! Function that gives the index of the matrix element (jjorb,iiorb) in the compressed format.
-        ! Cannot use the standard function since that one requires a type
-        ! sparse_matrix as argument.
-        integer function matrixindex_in_compressed_fn(irow, jcol, norb, nseg, keyv, keyg) result(micf)
-          implicit none
+        !!! Function that gives the index of the matrix element (jjorb,iiorb) in the compressed format.
+        !!! Cannot use the standard function since that one requires a type
+        !!! sparse_matrix as argument.
+        !!integer function matrixindex_in_compressed_fn(irow, jcol, norb, nseg, keyv, keyg) result(micf)
+        !!  implicit none
 
-          ! Calling arguments
-          integer,intent(in) :: irow, jcol, norb, nseg
-          integer,dimension(nseg),intent(in) :: keyv
-          integer,dimension(2,2,nseg),intent(in) :: keyg
+        !!  ! Calling arguments
+        !!  integer,intent(in) :: irow, jcol, norb, nseg
+        !!  integer,dimension(nseg),intent(in) :: keyv
+        !!  integer,dimension(2,2,nseg),intent(in) :: keyg
 
-          ! Local variables
-          integer(kind=8) :: ii, istart, iend
-          integer :: iseg
+        !!  ! Local variables
+        !!  integer(kind=8) :: ii, istart, iend
+        !!  integer :: iseg
 
-          ii = int((jcol-1),kind=8)*int(norb,kind=8)+int(irow,kind=8)
+        !!  ii = int((jcol-1),kind=8)*int(norb,kind=8)+int(irow,kind=8)
 
-          do iseg=1,nseg
-              istart = int((keyg(1,2,iseg)-1),kind=8)*int(norb,kind=8) + &
-                       int(keyg(1,1,iseg),kind=8)
-              iend = int((keyg(2,2,iseg)-1),kind=8)*int(norb,kind=8) + &
-                     int(keyg(2,1,iseg),kind=8)
-              if (ii>=istart .and. ii<=iend) then
-                  ! The matrix element is in this segment
-                   micf = keyv(iseg) + int(ii-istart,kind=4)
-                  return
-              end if
-              if (ii<istart) then
-                  micf=0
-                  return
-              end if
-          end do
+        !!  do iseg=1,nseg
+        !!      istart = int((keyg(1,2,iseg)-1),kind=8)*int(norb,kind=8) + &
+        !!               int(keyg(1,1,iseg),kind=8)
+        !!      iend = int((keyg(2,2,iseg)-1),kind=8)*int(norb,kind=8) + &
+        !!             int(keyg(2,1,iseg),kind=8)
+        !!      if (ii>=istart .and. ii<=iend) then
+        !!          ! The matrix element is in this segment
+        !!           micf = keyv(iseg) + int(ii-istart,kind=4)
+        !!          return
+        !!      end if
+        !!      if (ii<istart) then
+        !!          micf=0
+        !!          return
+        !!      end if
+        !!  end do
 
-          ! Not found
-          micf=0
+        !!  ! Not found
+        !!  micf=0
 
-        end function matrixindex_in_compressed_fn
+        !!end function matrixindex_in_compressed_fn
 
     end subroutine transform_sparsity_pattern2
 

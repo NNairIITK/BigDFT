@@ -19,7 +19,8 @@ module sparsematrix_init
   !> Public routines
   public :: init_sparse_matrix
   !!public :: compressed_index
-  public :: matrixindex_in_compressed, matrixindex_in_compressed2
+  public :: matrixindex_in_compressed!, matrixindex_in_compressed2
+  public :: matrixindex_in_compressed_lowlevel
   public :: check_kernel_cutoff
   public :: init_matrix_taskgroups
   public :: check_local_matrix_extents
@@ -142,111 +143,147 @@ contains
     end function matrixindex_in_compressed
 
 
-
-
-    integer function matrixindex_in_compressed2(sparsemat, iorb, jorb, init_, n_)
-      use sparsematrix_base, only: sparse_matrix
+    !> Does the same as matrixindex_in_compressed, but has different
+    ! arguments (at lower level) and is less optimized
+    integer function matrixindex_in_compressed_lowlevel(irow, jcol, norb, nseg, keyv, keyg) result(micf)
       implicit none
-    
+
       ! Calling arguments
-      type(sparse_matrix),intent(in) :: sparsemat
-      integer,intent(in) :: iorb, jorb
-      !> The optional arguments should only be used for initialization purposes
-      !! if one is sure what one is doing. Might be removed later.
-      logical,intent(in),optional :: init_
-      integer,intent(in),optional :: n_
-    
+      integer,intent(in) :: irow, jcol, norb, nseg
+      integer,dimension(nseg),intent(in) :: keyv
+      integer,dimension(2,2,nseg),intent(in) :: keyg
+
       ! Local variables
-      integer :: ii, ispin, iiorb, jjorb
-      logical :: lispin, ljspin, init
+      integer(kind=8) :: ii, istart, iend
+      integer :: iseg
 
-      if (present(init_)) then
-          init = init_
-      else
-          init = .false.
-      end if
+      ii = int((jcol-1),kind=8)*int(norb,kind=8)+int(irow,kind=8)
 
-      ! Use the built-in function and return, without any check. Can be used for initialization purposes.
-      if (init) then
-          if (.not.present(n_)) stop 'matrixindex_in_compressed2: n_ must be present if init_ is true'
-          matrixindex_in_compressed2 = compressed_index_fn(iorb, jorb, n_, sparsemat)
-          return
-      end if
-
-      !ii=(jorb-1)*sparsemat%nfvctr+iorb
-      !ispin=(ii-1)/sparsemat%nfvctr**2+1 !integer division to get the spin (1 for spin up (or non polarized), 2 for spin down)
-
-      ! Determine in which "spin matrix" this entry is located
-      lispin = (iorb>sparsemat%nfvctr)
-      ljspin = (jorb>sparsemat%nfvctr)
-      if (any((/lispin,ljspin/))) then
-          if (all((/lispin,ljspin/))) then
-              ! both indices belong to the second spin matrix
-              ispin=2
-          else
-              ! there seems to be a mix up the spin matrices
-              stop 'matrixindex_in_compressed2: problem in determining spin'
+      do iseg=1,nseg
+          istart = int((keyg(1,2,iseg)-1),kind=8)*int(norb,kind=8) + &
+                   int(keyg(1,1,iseg),kind=8)
+          iend = int((keyg(2,2,iseg)-1),kind=8)*int(norb,kind=8) + &
+                 int(keyg(2,1,iseg),kind=8)
+          if (ii>=istart .and. ii<=iend) then
+              ! The matrix element is in this segment
+               micf = keyv(iseg) + int(ii-istart,kind=4)
+              return
           end if
-      else
-          ! both indices belong to the first spin matrix
-          ispin=1
-      end if
-      iiorb=mod(iorb-1,sparsemat%nfvctr)+1 !orbital number regardless of the spin
-      jjorb=mod(jorb-1,sparsemat%nfvctr)+1 !orbital number regardless of the spin
-    
-      if (sparsemat%store_index) then
-          ! Take the value from the array
-          matrixindex_in_compressed2 = sparsemat%matrixindex_in_compressed_arr(iiorb,jjorb)
-      else
-          ! Recalculate the value
-          matrixindex_in_compressed2 = compressed_index_fn(iiorb, jjorb, sparsemat%nfvctr, sparsemat)
-      end if
+          if (ii<istart) then
+              micf=0
+              return
+          end if
+      end do
 
-      ! Add the spin shift (i.e. the index is in the spin polarized matrix which is at the end)
-      if (ispin==2) then
-          matrixindex_in_compressed2 = matrixindex_in_compressed2 + sparsemat%nvctrp_tg
-      end if
-    
-    contains
+      ! Not found
+      micf=0
 
-      ! Function that gives the index of the matrix element (jjorb,iiorb) in the compressed format.
-      integer function compressed_index_fn(irow, jcol, norb, sparsemat)
-        implicit none
-      
-        ! Calling arguments
-        integer,intent(in) :: irow, jcol, norb
-        type(sparse_matrix),intent(in) :: sparsemat
-      
-        ! Local variables
-        integer(kind=8) :: ii, istart, iend
-        integer :: iseg
-      
-        ii = int((jcol-1),kind=8)*int(norb,kind=8)+int(irow,kind=8)
-      
-        iseg=sparsemat%istsegline(jcol)
-        do
-            istart = int((sparsemat%keyg(1,2,iseg)-1),kind=8)*int(norb,kind=8) + &
-                     int(sparsemat%keyg(1,1,iseg),kind=8)
-            iend = int((sparsemat%keyg(2,2,iseg)-1),kind=8)*int(norb,kind=8) + &
-                   int(sparsemat%keyg(2,1,iseg),kind=8)
-            if (ii>=istart .and. ii<=iend) then
-                ! The matrix element is in sparsemat segment
-                 compressed_index_fn = sparsemat%keyv(iseg) + int(ii-istart,kind=4)
-                return
-            end if
-            iseg=iseg+1
-            if (iseg>sparsemat%nseg) exit
-            if (ii<istart) then
-                compressed_index_fn=0
-                return
-            end if
-        end do
-      
-        ! Not found
-        compressed_index_fn=0
-      
-      end function compressed_index_fn
-    end function matrixindex_in_compressed2
+    end function matrixindex_in_compressed_lowlevel
+
+
+    !!!integer function matrixindex_in_compressed2(sparsemat, iorb, jorb, init_, n_)
+    !!!  use sparsematrix_base, only: sparse_matrix
+    !!!  implicit none
+    !!!
+    !!!  ! Calling arguments
+    !!!  type(sparse_matrix),intent(in) :: sparsemat
+    !!!  integer,intent(in) :: iorb, jorb
+    !!!  !> The optional arguments should only be used for initialization purposes
+    !!!  !! if one is sure what one is doing. Might be removed later.
+    !!!  logical,intent(in),optional :: init_
+    !!!  integer,intent(in),optional :: n_
+    !!!
+    !!!  ! Local variables
+    !!!  integer :: ii, ispin, iiorb, jjorb
+    !!!  logical :: lispin, ljspin, init
+
+    !!!  if (present(init_)) then
+    !!!      init = init_
+    !!!  else
+    !!!      init = .false.
+    !!!  end if
+
+    !!!  ! Use the built-in function and return, without any check. Can be used for initialization purposes.
+    !!!  if (init) then
+    !!!      if (.not.present(n_)) stop 'matrixindex_in_compressed2: n_ must be present if init_ is true'
+    !!!      matrixindex_in_compressed2 = compressed_index_fn(iorb, jorb, n_, sparsemat)
+    !!!      return
+    !!!  end if
+
+    !!!  !ii=(jorb-1)*sparsemat%nfvctr+iorb
+    !!!  !ispin=(ii-1)/sparsemat%nfvctr**2+1 !integer division to get the spin (1 for spin up (or non polarized), 2 for spin down)
+
+    !!!  ! Determine in which "spin matrix" this entry is located
+    !!!  lispin = (iorb>sparsemat%nfvctr)
+    !!!  ljspin = (jorb>sparsemat%nfvctr)
+    !!!  if (any((/lispin,ljspin/))) then
+    !!!      if (all((/lispin,ljspin/))) then
+    !!!          ! both indices belong to the second spin matrix
+    !!!          ispin=2
+    !!!      else
+    !!!          ! there seems to be a mix up the spin matrices
+    !!!          stop 'matrixindex_in_compressed2: problem in determining spin'
+    !!!      end if
+    !!!  else
+    !!!      ! both indices belong to the first spin matrix
+    !!!      ispin=1
+    !!!  end if
+    !!!  iiorb=mod(iorb-1,sparsemat%nfvctr)+1 !orbital number regardless of the spin
+    !!!  jjorb=mod(jorb-1,sparsemat%nfvctr)+1 !orbital number regardless of the spin
+    !!!
+    !!!  if (sparsemat%store_index) then
+    !!!      ! Take the value from the array
+    !!!      matrixindex_in_compressed2 = sparsemat%matrixindex_in_compressed_arr(iiorb,jjorb)
+    !!!  else
+    !!!      ! Recalculate the value
+    !!!      matrixindex_in_compressed2 = compressed_index_fn(iiorb, jjorb, sparsemat%nfvctr, sparsemat)
+    !!!  end if
+
+    !!!  ! Add the spin shift (i.e. the index is in the spin polarized matrix which is at the end)
+    !!!  if (ispin==2) then
+    !!!      matrixindex_in_compressed2 = matrixindex_in_compressed2 + sparsemat%nvctrp_tg
+    !!!  end if
+    !!!
+    !!!contains
+
+    !!!  ! Function that gives the index of the matrix element (jjorb,iiorb) in the compressed format.
+    !!!  integer function compressed_index_fn(irow, jcol, norb, sparsemat)
+    !!!    implicit none
+    !!!  
+    !!!    ! Calling arguments
+    !!!    integer,intent(in) :: irow, jcol, norb
+    !!!    type(sparse_matrix),intent(in) :: sparsemat
+    !!!  
+    !!!    ! Local variables
+    !!!    integer(kind=8) :: ii, istart, iend
+    !!!    integer :: iseg
+    !!!  
+    !!!    ii = int((jcol-1),kind=8)*int(norb,kind=8)+int(irow,kind=8)
+    !!!  
+    !!!    iseg=sparsemat%istsegline(jcol)
+    !!!    do
+    !!!        istart = int((sparsemat%keyg(1,2,iseg)-1),kind=8)*int(norb,kind=8) + &
+    !!!                 int(sparsemat%keyg(1,1,iseg),kind=8)
+    !!!        iend = int((sparsemat%keyg(2,2,iseg)-1),kind=8)*int(norb,kind=8) + &
+    !!!               int(sparsemat%keyg(2,1,iseg),kind=8)
+    !!!        if (ii>=istart .and. ii<=iend) then
+    !!!            ! The matrix element is in sparsemat segment
+    !!!             compressed_index_fn = sparsemat%keyv(iseg) + int(ii-istart,kind=4)
+    !!!            return
+    !!!        end if
+    !!!        iseg=iseg+1
+    !!!        if (iseg>sparsemat%nseg) exit
+    !!!        if (ii<istart) then
+    !!!            compressed_index_fn=0
+    !!!            return
+    !!!        end if
+    !!!    end do
+    !!!  
+    !!!    ! Not found
+    !!!    compressed_index_fn=0
+    !!!  
+    !!!  end function compressed_index_fn
+    !!!end function matrixindex_in_compressed2
 
 
 
@@ -1466,7 +1503,7 @@ contains
               ! A segment is always on one line, therefore no double loop
               do jorb = smat%keyg(1,1,jseg),smat%keyg(2,1,jseg)
                   ! Calculate the index in the large compressed format
-                  ii = matrixindex_in_compressed_fn(jorb, iline, nline, nseg, keyv, keyg)
+                  ii = matrixindex_in_compressed_lowlevel(jorb, iline, nline, nseg, keyv, keyg)
                   if (ii>0) then
                       nseq = nseq + 1
                       !nseq_pt = nseq_pt + 1
@@ -1477,45 +1514,45 @@ contains
           !nseq_per_pt(iipt) = nseq_pt
       end do
 
-      contains
+      !!contains
 
-        ! Function that gives the index of the matrix element (jjorb,iiorb) in the compressed format.
-        ! Cannot use the standard function since that one requires a type
-        ! sparse_matrix as argument.
-        integer function matrixindex_in_compressed_fn(irow, jcol, norb, nseg, keyv, keyg) result(micf)
-          implicit none
+      !!  ! Function that gives the index of the matrix element (jjorb,iiorb) in the compressed format.
+      !!  ! Cannot use the standard function since that one requires a type
+      !!  ! sparse_matrix as argument.
+      !!  integer function matrixindex_in_compressed_fn(irow, jcol, norb, nseg, keyv, keyg) result(micf)
+      !!    implicit none
 
-          ! Calling arguments
-          integer,intent(in) :: irow, jcol, norb, nseg
-          integer,dimension(nseg),intent(in) :: keyv
-          integer,dimension(2,2,nseg),intent(in) :: keyg
+      !!    ! Calling arguments
+      !!    integer,intent(in) :: irow, jcol, norb, nseg
+      !!    integer,dimension(nseg),intent(in) :: keyv
+      !!    integer,dimension(2,2,nseg),intent(in) :: keyg
 
-          ! Local variables
-          integer(kind=8) :: ii, istart, iend
-          integer :: iseg
+      !!    ! Local variables
+      !!    integer(kind=8) :: ii, istart, iend
+      !!    integer :: iseg
 
-          ii = int((jcol-1),kind=8)*int(norb,kind=8)+int(irow,kind=8)
+      !!    ii = int((jcol-1),kind=8)*int(norb,kind=8)+int(irow,kind=8)
 
-          do iseg=1,nseg
-              istart = int((keyg(1,2,iseg)-1),kind=8)*int(norb,kind=8) + &
-                       int(keyg(1,1,iseg),kind=8)
-              iend = int((keyg(2,2,iseg)-1),kind=8)*int(norb,kind=8) + &
-                     int(keyg(2,1,iseg),kind=8)
-              if (ii>=istart .and. ii<=iend) then
-                  ! The matrix element is in this segment
-                   micf = keyv(iseg) + int(ii-istart,kind=4)
-                  return
-              end if
-              if (ii<istart) then
-                  micf=0
-                  return
-              end if
-          end do
+      !!    do iseg=1,nseg
+      !!        istart = int((keyg(1,2,iseg)-1),kind=8)*int(norb,kind=8) + &
+      !!                 int(keyg(1,1,iseg),kind=8)
+      !!        iend = int((keyg(2,2,iseg)-1),kind=8)*int(norb,kind=8) + &
+      !!               int(keyg(2,1,iseg),kind=8)
+      !!        if (ii>=istart .and. ii<=iend) then
+      !!            ! The matrix element is in this segment
+      !!             micf = keyv(iseg) + int(ii-istart,kind=4)
+      !!            return
+      !!        end if
+      !!        if (ii<istart) then
+      !!            micf=0
+      !!            return
+      !!        end if
+      !!    end do
 
-          ! Not found
-          micf=0
+      !!    ! Not found
+      !!    micf=0
 
-        end function matrixindex_in_compressed_fn
+      !!  end function matrixindex_in_compressed_fn
     
       !!nseq=0
       !!do i = 1,norbp
@@ -1675,7 +1712,7 @@ contains
           call get_line_and_column(iipt, nseg, keyv, keyg, iline, icolumn)
           !call get_line_and_column(iipt, smat%nseg, smat%keyv, smat%keyg, iline, icolumn)
           !!!onedimindices(1,ipt) = matrixindex_in_compressed(smat, icolumn, iline)
-          onedimindices(1,ipt) = matrixindex_in_compressed_fn(icolumn, iline, smat%nfvctr, nseg, keyv, keyg)
+          onedimindices(1,ipt) = matrixindex_in_compressed_lowlevel(icolumn, iline, smat%nfvctr, nseg, keyv, keyg)
           !write(*,'(a,5i8)') 'ipt, iipt, iline, icolumn, odi(1,ipt)', ipt, iipt, iline, icolumn, onedimindices(1,ipt)
           if (onedimindices(1,ipt)>0) then
               onedimindices(1,ipt) = onedimindices(1,ipt) - smat%smmm%isvctr
@@ -1694,7 +1731,7 @@ contains
               ! A segment is always on one line, therefore no double loop
               do jorb = smat%keyg(1,1,jseg),smat%keyg(2,1,jseg)
                   ! Calculate the index in the large compressed format
-                  ii = matrixindex_in_compressed_fn(jorb, iline, smat%nfvctr, nseg, keyv, keyg)
+                  ii = matrixindex_in_compressed_lowlevel(jorb, iline, smat%nfvctr, nseg, keyv, keyg)
                   if (ii>0) then
                       ilen = ilen + 1
                   end if
@@ -1706,45 +1743,45 @@ contains
       end do
 
 
-      contains
+      !!contains
 
-        ! Function that gives the index of the matrix element (jjorb,iiorb) in the compressed format.
-        ! Cannot use the standard function since that one requires a type
-        ! sparse_matrix as argument.
-        integer function matrixindex_in_compressed_fn(irow, jcol, norb, nseg, keyv, keyg) result(micf)
-          implicit none
+      !!  ! Function that gives the index of the matrix element (jjorb,iiorb) in the compressed format.
+      !!  ! Cannot use the standard function since that one requires a type
+      !!  ! sparse_matrix as argument.
+      !!  integer function matrixindex_in_compressed_fn(irow, jcol, norb, nseg, keyv, keyg) result(micf)
+      !!    implicit none
 
-          ! Calling arguments
-          integer,intent(in) :: irow, jcol, norb, nseg
-          integer,dimension(nseg),intent(in) :: keyv
-          integer,dimension(2,2,nseg),intent(in) :: keyg
+      !!    ! Calling arguments
+      !!    integer,intent(in) :: irow, jcol, norb, nseg
+      !!    integer,dimension(nseg),intent(in) :: keyv
+      !!    integer,dimension(2,2,nseg),intent(in) :: keyg
 
-          ! Local variables
-          integer(kind=8) :: ii, istart, iend
-          integer :: iseg
+      !!    ! Local variables
+      !!    integer(kind=8) :: ii, istart, iend
+      !!    integer :: iseg
 
-          ii = int((jcol-1),kind=8)*int(norb,kind=8)+int(irow,kind=8)
+      !!    ii = int((jcol-1),kind=8)*int(norb,kind=8)+int(irow,kind=8)
 
-          do iseg=1,nseg
-              istart = int((keyg(1,2,iseg)-1),kind=8)*int(norb,kind=8) + &
-                       int(keyg(1,1,iseg),kind=8)
-              iend = int((keyg(2,2,iseg)-1),kind=8)*int(norb,kind=8) + &
-                     int(keyg(2,1,iseg),kind=8)
-              if (ii>=istart .and. ii<=iend) then
-                  ! The matrix element is in this segment
-                   micf = keyv(iseg) + int(ii-istart,kind=4)
-                  return
-              end if
-              if (ii<istart) then
-                  micf=0
-                  return
-              end if
-          end do
+      !!    do iseg=1,nseg
+      !!        istart = int((keyg(1,2,iseg)-1),kind=8)*int(norb,kind=8) + &
+      !!                 int(keyg(1,1,iseg),kind=8)
+      !!        iend = int((keyg(2,2,iseg)-1),kind=8)*int(norb,kind=8) + &
+      !!               int(keyg(2,1,iseg),kind=8)
+      !!        if (ii>=istart .and. ii<=iend) then
+      !!            ! The matrix element is in this segment
+      !!             micf = keyv(iseg) + int(ii-istart,kind=4)
+      !!            return
+      !!        end if
+      !!        if (ii<istart) then
+      !!            micf=0
+      !!            return
+      !!        end if
+      !!    end do
 
-          ! Not found
-          micf=0
+      !!    ! Not found
+      !!    micf=0
 
-        end function matrixindex_in_compressed_fn
+      !!  end function matrixindex_in_compressed_fn
     
     end subroutine init_onedimindices_newnew
 
@@ -1829,7 +1866,7 @@ contains
           do jseg=smat%istsegline(icolumn),smat%istsegline(icolumn)+smat%nsegline(icolumn)-1
               ! A segment is always on one line, therefore no double loop
               do jorb = smat%keyg(1,1,jseg),smat%keyg(2,1,jseg)
-                  ind = matrixindex_in_compressed_fn(jorb, iline, smat%nfvctr, nseg, keyv, keyg)
+                  ind = matrixindex_in_compressed_lowlevel(jorb, iline, smat%nfvctr, nseg, keyv, keyg)
                   !ivectorindex(ii)=matrixindex_in_compressed_fn(jorb, iline, smat%nfvctr, nseg, keyv, keyg)
                   !ivectorindex(ii)=matrixindex_in_compressed(smat, jorb, iline)!-smat%smmm%isvctr_mm
                   if (ind>0) then
@@ -1858,45 +1895,45 @@ contains
       end do
       if (ii/=nseq+1) stop 'ii/=nseq+1'
 
-      contains
+      !!contains
 
-        ! Function that gives the index of the matrix element (jjorb,iiorb) in the compressed format.
-        ! Cannot use the standard function since that one requires a type
-        ! sparse_matrix as argument.
-        integer function matrixindex_in_compressed_fn(irow, jcol, norb, nseg, keyv, keyg) result(micf)
-          implicit none
+      !!  ! Function that gives the index of the matrix element (jjorb,iiorb) in the compressed format.
+      !!  ! Cannot use the standard function since that one requires a type
+      !!  ! sparse_matrix as argument.
+      !!  integer function matrixindex_in_compressed_fn(irow, jcol, norb, nseg, keyv, keyg) result(micf)
+      !!    implicit none
 
-          ! Calling arguments
-          integer,intent(in) :: irow, jcol, norb, nseg
-          integer,dimension(nseg),intent(in) :: keyv
-          integer,dimension(2,2,nseg),intent(in) :: keyg
+      !!    ! Calling arguments
+      !!    integer,intent(in) :: irow, jcol, norb, nseg
+      !!    integer,dimension(nseg),intent(in) :: keyv
+      !!    integer,dimension(2,2,nseg),intent(in) :: keyg
 
-          ! Local variables
-          integer(kind=8) :: ii, istart, iend
-          integer :: iseg
+      !!    ! Local variables
+      !!    integer(kind=8) :: ii, istart, iend
+      !!    integer :: iseg
 
-          ii = int((jcol-1),kind=8)*int(norb,kind=8)+int(irow,kind=8)
+      !!    ii = int((jcol-1),kind=8)*int(norb,kind=8)+int(irow,kind=8)
 
-          do iseg=1,nseg
-              istart = int((keyg(1,2,iseg)-1),kind=8)*int(norb,kind=8) + &
-                       int(keyg(1,1,iseg),kind=8)
-              iend = int((keyg(2,2,iseg)-1),kind=8)*int(norb,kind=8) + &
-                     int(keyg(2,1,iseg),kind=8)
-              if (ii>=istart .and. ii<=iend) then
-                  ! The matrix element is in this segment
-                   micf = keyv(iseg) + int(ii-istart,kind=4)
-                  return
-              end if
-              if (ii<istart) then
-                  micf=0
-                  return
-              end if
-          end do
+      !!    do iseg=1,nseg
+      !!        istart = int((keyg(1,2,iseg)-1),kind=8)*int(norb,kind=8) + &
+      !!                 int(keyg(1,1,iseg),kind=8)
+      !!        iend = int((keyg(2,2,iseg)-1),kind=8)*int(norb,kind=8) + &
+      !!               int(keyg(2,1,iseg),kind=8)
+      !!        if (ii>=istart .and. ii<=iend) then
+      !!            ! The matrix element is in this segment
+      !!             micf = keyv(iseg) + int(ii-istart,kind=4)
+      !!            return
+      !!        end if
+      !!        if (ii<istart) then
+      !!            micf=0
+      !!            return
+      !!        end if
+      !!    end do
 
-          ! Not found
-          micf=0
+      !!    ! Not found
+      !!    micf=0
 
-        end function matrixindex_in_compressed_fn
+      !!  end function matrixindex_in_compressed_fn
 
     
     end subroutine get_arrays_for_sequential_acces_new
@@ -1972,7 +2009,7 @@ contains
               jj=1
               do jorb = smat%keyg(1,1,jseg),smat%keyg(2,1,jseg)
                   ! Calculate the index in the large compressed format
-                  ind = matrixindex_in_compressed_fn(jorb, iline, smat%nfvctr, nseg, keyv, keyg)
+                  ind = matrixindex_in_compressed_lowlevel(jorb, iline, smat%nfvctr, nseg, keyv, keyg)
                   if (ind>0) then
                       indices_extract_sequential(ii)=smat%keyv(jseg)+jj-1
                       ii = ii+1
@@ -1982,45 +2019,45 @@ contains
           end do
       end do
 
-      contains
+      !!contains
 
-        ! Function that gives the index of the matrix element (jjorb,iiorb) in the compressed format.
-        ! Cannot use the standard function since that one requires a type
-        ! sparse_matrix as argument.
-        integer function matrixindex_in_compressed_fn(irow, jcol, norb, nseg, keyv, keyg) result(micf)
-          implicit none
+      !!  ! Function that gives the index of the matrix element (jjorb,iiorb) in the compressed format.
+      !!  ! Cannot use the standard function since that one requires a type
+      !!  ! sparse_matrix as argument.
+      !!  integer function matrixindex_in_compressed_fn(irow, jcol, norb, nseg, keyv, keyg) result(micf)
+      !!    implicit none
 
-          ! Calling arguments
-          integer,intent(in) :: irow, jcol, norb, nseg
-          integer,dimension(nseg),intent(in) :: keyv
-          integer,dimension(2,2,nseg),intent(in) :: keyg
+      !!    ! Calling arguments
+      !!    integer,intent(in) :: irow, jcol, norb, nseg
+      !!    integer,dimension(nseg),intent(in) :: keyv
+      !!    integer,dimension(2,2,nseg),intent(in) :: keyg
 
-          ! Local variables
-          integer(kind=8) :: ii, istart, iend
-          integer :: iseg
+      !!    ! Local variables
+      !!    integer(kind=8) :: ii, istart, iend
+      !!    integer :: iseg
 
-          ii = int((jcol-1),kind=8)*int(norb,kind=8)+int(irow,kind=8)
+      !!    ii = int((jcol-1),kind=8)*int(norb,kind=8)+int(irow,kind=8)
 
-          do iseg=1,nseg
-              istart = int((keyg(1,2,iseg)-1),kind=8)*int(norb,kind=8) + &
-                       int(keyg(1,1,iseg),kind=8)
-              iend = int((keyg(2,2,iseg)-1),kind=8)*int(norb,kind=8) + &
-                     int(keyg(2,1,iseg),kind=8)
-              if (ii>=istart .and. ii<=iend) then
-                  ! The matrix element is in this segment
-                   micf = keyv(iseg) + int(ii-istart,kind=4)
-                  return
-              end if
-              if (ii<istart) then
-                  micf=0
-                  return
-              end if
-          end do
+      !!    do iseg=1,nseg
+      !!        istart = int((keyg(1,2,iseg)-1),kind=8)*int(norb,kind=8) + &
+      !!                 int(keyg(1,1,iseg),kind=8)
+      !!        iend = int((keyg(2,2,iseg)-1),kind=8)*int(norb,kind=8) + &
+      !!               int(keyg(2,1,iseg),kind=8)
+      !!        if (ii>=istart .and. ii<=iend) then
+      !!            ! The matrix element is in this segment
+      !!             micf = keyv(iseg) + int(ii-istart,kind=4)
+      !!            return
+      !!        end if
+      !!        if (ii<istart) then
+      !!            micf=0
+      !!            return
+      !!        end if
+      !!    end do
 
-          ! Not found
-          micf=0
+      !!    ! Not found
+      !!    micf=0
 
-        end function matrixindex_in_compressed_fn
+      !!  end function matrixindex_in_compressed_fn
     
     end subroutine init_sequential_acces_matrix_new
 
