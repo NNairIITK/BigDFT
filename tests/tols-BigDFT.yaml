@@ -1176,6 +1176,7 @@ verysparse:
  Epot: 1.1e-9
  ebs: 1.1e-9
  ebs_check: 1.1e-9
+ eF: 1.1e-10
  Omega: 4.4e-9
  energy: 4.4e-9
  Total ionic charge: 1.1e-10
