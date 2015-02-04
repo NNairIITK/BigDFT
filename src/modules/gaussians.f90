@@ -416,12 +416,12 @@ contains
   !> Prepare the array for the evaluation with the interpolating Scaling Functions
   !! one might add also the function to be converted and the 
   !! prescription for integrating knowing the scaling relation of the function
-  subroutine initialize_real_space_conversion(npoints,isf_m)
+  subroutine initialize_real_space_conversion(npoints,isf_m,nmoms)
     implicit none
-    integer, intent(in), optional :: npoints,isf_m
+    integer, intent(in), optional :: npoints,isf_m,nmoms
     !local variables
     character(len=*), parameter :: subname='initialize_real_space_conversion'
-    integer :: n_range,i
+    integer :: n_range,i,nmm
     real(gp) :: tt
     real(gp), dimension(:), allocatable :: x_scf !< to be removed in a future implementation
 
@@ -431,10 +431,16 @@ contains
        itype_scf=16
     end if
 
-    if (present(npoints)) then
-       n_scf=2*itype_scf*npoints
+    if (present(nmoms)) then
+       nmm=nmoms
     else
-       n_scf=2*itype_scf*(2**6)
+       nmm=0
+    end if
+
+    if (present(npoints)) then
+       n_scf=2*(itype_scf+nmm)*npoints
+    else
+       n_scf=2*(itype_scf+nmm)*(2**6)
     end if
 
     !allocations for scaling function data array
@@ -443,8 +449,9 @@ contains
     scf_data = f_malloc(0.to.n_scf,id='scf_data')
 
     !Build the scaling function external routine coming from Poisson Solver. To be customized accordingly
-    call scaling_function(itype_scf,n_scf,n_range,x_scf,scf_data)
+    !call scaling_function(itype_scf,n_scf,n_range,x_scf,scf_data)
     !call wavelet_function(itype_scf,n_scf,x_scf,scf_data)
+    call ISF_family(itype_scf,nmm,n_scf,n_range,x_scf,scf_data)
     !stop 
     call f_free(x_scf)
 
@@ -490,9 +497,12 @@ contains
   !!  Optimize it!
   elemental pure function mp_exp(hgrid,x0,expo,j,pow,modified)
     implicit none
-    logical, intent(in) :: modified !< switch to scfdotf if true
-    integer, intent(in) :: j,pow
-    real(gp), intent(in) :: hgrid,x0,expo
+    real(gp), intent(in) :: hgrid   !< Hgrid 
+    real(gp), intent(in) :: x0      !< X value
+    real(gp), intent(in) :: expo    !< Exponent of the gaussian
+    logical, intent(in) :: modified !< Switch to scfdotf if true
+    integer, intent(in) :: j        !< Location of the scf from x0
+    integer, intent(in) :: pow      !< Exp(-expo*x**2)*(x**pow)
     real(gp) :: mp_exp
     !local variables
     real(gp) :: x

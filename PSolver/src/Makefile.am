@@ -62,6 +62,7 @@ EXTRA_DIST = \
 	lazy_50.inc\
 	lazy_60.inc\
 	lazy_8.inc\
+	lazy_2.inc\
 	lazy_ISF_100_2048.inc\
 	lazy_ISF_14_2048.inc\
 	lazy_ISF_16_2048.inc\
