@@ -855,9 +855,9 @@ subroutine foe(iproc, nproc, tmprtr, &
           !!  write(*,*) 'tmb%linmat%l%isvctr, tmb%linmat%l%smmm%isvctr_mm', tmb%linmat%l%isvctr, tmb%linmat%l%smmm%isvctr_mm
           call transform_sparsity_pattern(tmb%linmat%l%nfvctr, tmb%linmat%l%smmm%nvctrp_mm, tmb%linmat%l%smmm%isvctr_mm, &
                tmb%linmat%l%nseg, tmb%linmat%l%keyv, tmb%linmat%l%keyg, tmb%linmat%l%smmm%line_and_column_mm, &
-               tmb%linmat%l%smmm%nvctrp, tmb%linmat%l%smmm%isvctr, &
+               tmb%linmat%l%smmm%nvctrp, tmb%linmat%l%smmm%isvctr+tmb%linmat%l%isvctrp_tg, &
                tmb%linmat%l%smmm%nseg, tmb%linmat%l%smmm%keyv, tmb%linmat%l%smmm%keyg, 'small_to_large', &
-               tmb%linmat%ovrlppowers_(2)%matrix_compr(ilshift2+tmb%linmat%l%smmm%isvctr_mm+1:), inv_ovrlpp_new)
+               tmb%linmat%ovrlppowers_(2)%matrix_compr(ilshift2+tmb%linmat%l%smmm%isvctr_mm-tmb%linmat%l%isvctrp_tg+1:), inv_ovrlpp_new)
           !!  write(*,*) 'sum(matrix_compr) 1', iproc, sum(tmb%linmat%ovrlppowers_(2)%matrix_compr(ilshift2+1:))
           !!  write(*,*) 'sum(inv_ovrlpp_new) 1', iproc, sum(inv_ovrlpp_new)
           !!  write(*,*) 'sum(inv_ovrlpp) 1', iproc, sum(inv_ovrlpp)
@@ -2726,9 +2726,9 @@ end subroutine scale_and_shift_matrix
                inv_ovrlp, inv_ovrlp_compr_seq)
           call transform_sparsity_pattern(smat%nfvctr, smat%smmm%nvctrp_mm, smat%smmm%isvctr_mm, &
                smat%nseg, smat%keyv, smat%keyg, smat%smmm%line_and_column_mm, &
-               smat%smmm%nvctrp, smat%smmm%isvctr, &
+               smat%smmm%nvctrp, smat%smmm%isvctr+smat%isvctrp_tg, &
                smat%smmm%nseg, smat%smmm%keyv, smat%smmm%keyg, &
-               'small_to_large', inv_ovrlp(smat%smmm%isvctr_mm+1), inv_ovrlpp_new)
+               'small_to_large', inv_ovrlp(smat%smmm%isvctr_mm-smat%isvctrp_tg+1), inv_ovrlpp_new)
           call sparsemm_new(smat, kernel_compr_seq, inv_ovrlpp_new, tempp_new)
           call sparsemm_new(smat, inv_ovrlp_compr_seq, tempp_new, inv_ovrlpp_new)
           call f_zero(kernel)

@@ -989,9 +989,10 @@ subroutine overlapPowerGeneral(iproc, nproc, iorder, ncalc, power, blocksize, im
                    inv_ovrlp_smat%smmm%nvctrp_mm, inv_ovrlp_smat%smmm%isvctr_mm, &
                    inv_ovrlp_smat%nseg, inv_ovrlp_smat%keyv, inv_ovrlp_smat%keyg, &
                    inv_ovrlp_smat%smmm%line_and_column_mm, &
-                   inv_ovrlp_smat%smmm%nvctrp, inv_ovrlp_smat%smmm%isvctr, &
+                   inv_ovrlp_smat%smmm%nvctrp, inv_ovrlp_smat%smmm%isvctr+inv_ovrlp_smat%isvctrp_tg, &
                    inv_ovrlp_smat%smmm%nseg, inv_ovrlp_smat%smmm%keyv, inv_ovrlp_smat%smmm%keyg, &
-                   'small_to_large', Amat12_compr(ishift2+inv_ovrlp_smat%smmm%isvctr_mm+1:), Amat12p_new)
+                   'small_to_large', Amat12_compr(ishift2+inv_ovrlp_smat%smmm%isvctr_mm-inv_ovrlp_smat%isvctrp_tg+1:), &
+                   Amat12p_new)
               call timing(iproc,'lovrlp^-1     ','ON')
 
               !!do iorb=1,inv_ovrlp_smat%smmm%nfvctrp
@@ -1164,9 +1165,11 @@ subroutine overlapPowerGeneral(iproc, nproc, iorder, ncalc, power, blocksize, im
                            inv_ovrlp_smat%smmm%nvctrp_mm, inv_ovrlp_smat%smmm%isvctr_mm, &
                            inv_ovrlp_smat%nseg, inv_ovrlp_smat%keyv, inv_ovrlp_smat%keyg, &
                            inv_ovrlp_smat%smmm%line_and_column_mm, &
-                           inv_ovrlp_smat%smmm%nvctrp, inv_ovrlp_smat%smmm%isvctr, &
+                           inv_ovrlp_smat%smmm%nvctrp, inv_ovrlp_smat%smmm%isvctr+inv_ovrlp_smat%isvctrp_tg, &
                            inv_ovrlp_smat%smmm%nseg, inv_ovrlp_smat%smmm%keyv, inv_ovrlp_smat%smmm%keyg, &
-                           'small_to_large', ovrlpminone_sparse(ilshift2+inv_ovrlp_smat%smmm%isvctr_mm+1:), ovrlpminoneoldp_new)
+                           'small_to_large', &
+                           ovrlpminone_sparse(ilshift2+inv_ovrlp_smat%smmm%isvctr_mm-inv_ovrlp_smat%isvctrp_tg+1:), &
+                           ovrlpminoneoldp_new)
                       call timing(iproc,'lovrlp^-1     ','ON')
 
                       !!call f_free_ptr(ovrlpminone_sparse)
@@ -1192,9 +1195,11 @@ subroutine overlapPowerGeneral(iproc, nproc, iorder, ncalc, power, blocksize, im
                            inv_ovrlp_smat%smmm%nvctrp_mm, inv_ovrlp_smat%smmm%isvctr_mm, &
                            inv_ovrlp_smat%nseg, inv_ovrlp_smat%keyv, inv_ovrlp_smat%keyg, &
                            inv_ovrlp_smat%smmm%line_and_column_mm, &
-                           inv_ovrlp_smat%smmm%nvctrp, inv_ovrlp_smat%smmm%isvctr, &
+                           inv_ovrlp_smat%smmm%nvctrp, inv_ovrlp_smat%smmm%isvctr+inv_ovrlp_smat%isvctrp_tg, &
                            inv_ovrlp_smat%smmm%nseg, inv_ovrlp_smat%smmm%keyv, inv_ovrlp_smat%smmm%keyg, &
-                           'small_to_large', ovrlp_large_compr(ilshift2+inv_ovrlp_smat%smmm%isvctr_mm+1), ovrlpminonep_new)
+                           'small_to_large', &
+                           ovrlp_large_compr(ilshift2+inv_ovrlp_smat%smmm%isvctr_mm-inv_ovrlp_smat%isvctrp_tg+1), &
+                           ovrlpminonep_new)
                       call timing(iproc,'lovrlp^-1     ','ON')
                       !!if (.not.check_accur) call f_free(ovrlp_large_compr)
                       do icalc=1,ncalc
@@ -1307,9 +1312,11 @@ subroutine overlapPowerGeneral(iproc, nproc, iorder, ncalc, power, blocksize, im
                        inv_ovrlp_smat%smmm%nvctrp_mm, inv_ovrlp_smat%smmm%isvctr_mm, &
                        inv_ovrlp_smat%nseg, inv_ovrlp_smat%keyv, inv_ovrlp_smat%keyg, &
                        inv_ovrlp_smat%smmm%line_and_column_mm, &
-                       inv_ovrlp_smat%smmm%nvctrp, inv_ovrlp_smat%smmm%isvctr, &
+                       inv_ovrlp_smat%smmm%nvctrp, inv_ovrlp_smat%smmm%isvctr+inv_ovrlp_smat%isvctrp_tg, &
                        inv_ovrlp_smat%smmm%nseg, inv_ovrlp_smat%smmm%keyv, inv_ovrlp_smat%smmm%keyg, &
-                       'small_to_large', ovrlp_large_compr(ilshift+inv_ovrlp_smat%smmm%isvctr_mm+1), ovrlp_largep_new)
+                       'small_to_large', &
+                       ovrlp_large_compr(ilshift+inv_ovrlp_smat%smmm%isvctr_mm-inv_ovrlp_smat%isvctrp_tg+1), &
+                       ovrlp_largep_new)
 
                   call timing(iproc,'lovrlp^-1     ','ON')
                   call sequential_acces_matrix_fast2(inv_ovrlp_smat, &
@@ -1331,9 +1338,11 @@ subroutine overlapPowerGeneral(iproc, nproc, iorder, ncalc, power, blocksize, im
                            inv_ovrlp_smat%smmm%nvctrp_mm, inv_ovrlp_smat%smmm%isvctr_mm, &
                            inv_ovrlp_smat%nseg, inv_ovrlp_smat%keyv, inv_ovrlp_smat%keyg, &
                            inv_ovrlp_smat%smmm%line_and_column_mm, &
-                           inv_ovrlp_smat%smmm%nvctrp, inv_ovrlp_smat%smmm%isvctr, &
+                           inv_ovrlp_smat%smmm%nvctrp, inv_ovrlp_smat%smmm%isvctr+inv_ovrlp_smat%isvctrp_tg, &
                            inv_ovrlp_smat%smmm%nseg, inv_ovrlp_smat%smmm%keyv, inv_ovrlp_smat%smmm%keyg, &
-                           'small_to_large', inv_ovrlp_mat(icalc)%matrix_compr(ilshift2+inv_ovrlp_smat%smmm%isvctr_mm+1:), invovrlpp_new)
+                           'small_to_large', &
+                           inv_ovrlp_mat(icalc)%matrix_compr(ilshift2+inv_ovrlp_smat%smmm%isvctr_mm-inv_ovrlp_smat%isvctrp_tg+1:), &
+                           invovrlpp_new)
                       call timing(iproc,'lovrlp^-1     ','ON')
                       call check_accur_overlap_minus_one_sparse_new(iproc, nproc, inv_ovrlp_smat, ovrlp_smat%nfvctr, &
                            inv_ovrlp_smat%smmm%nfvctrp, inv_ovrlp_smat%smmm%isfvctr, &
@@ -1351,9 +1360,11 @@ subroutine overlapPowerGeneral(iproc, nproc, iorder, ncalc, power, blocksize, im
                            inv_ovrlp_smat%smmm%nvctrp_mm, inv_ovrlp_smat%smmm%isvctr_mm, &
                            inv_ovrlp_smat%nseg, inv_ovrlp_smat%keyv, inv_ovrlp_smat%keyg, &
                            inv_ovrlp_smat%smmm%line_and_column_mm, &
-                           inv_ovrlp_smat%smmm%nvctrp, inv_ovrlp_smat%smmm%isvctr, &
+                           inv_ovrlp_smat%smmm%nvctrp, inv_ovrlp_smat%smmm%isvctr+inv_ovrlp_smat%isvctrp_tg, &
                            inv_ovrlp_smat%smmm%nseg, inv_ovrlp_smat%smmm%keyv, inv_ovrlp_smat%smmm%keyg, &
-                           'small_to_large', inv_ovrlp_mat(icalc)%matrix_compr(ilshift2+inv_ovrlp_smat%smmm%isvctr_mm+1:), invovrlpp_new)
+                           'small_to_large', &
+                           inv_ovrlp_mat(icalc)%matrix_compr(ilshift2+inv_ovrlp_smat%smmm%isvctr_mm-inv_ovrlp_smat%isvctrp_tg+1:), &
+                           invovrlpp_new)
                       call timing(iproc,'lovrlp^-1     ','ON')
                       call check_accur_overlap_minus_one_sparse_new(iproc, nproc, inv_ovrlp_smat, ovrlp_smat%nfvctr, &
                            inv_ovrlp_smat%smmm%nfvctrp, inv_ovrlp_smat%smmm%isfvctr, &
