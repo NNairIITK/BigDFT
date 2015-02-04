@@ -30,7 +30,7 @@ module chebyshev
                                    DENSE_MATMUL, SPARSEMM_SEQ,sparsematrix_malloc0
       use sparsematrix_init, only: matrixindex_in_compressed, get_line_and_column
       use sparsematrix, only: sequential_acces_matrix_fast, sequential_acces_matrix_fast2, &
-                              sparsemm, compress_matrix_distributed, sparsemm_new, &
+                              compress_matrix_distributed, sparsemm_new, &
                               compress_matrix_distributed_new
       implicit none
     
