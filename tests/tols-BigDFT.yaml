@@ -1098,12 +1098,13 @@ geoptconstrained_SDCG:
  D Tr: 1.1e-9
  Omega: 1.2e-11
  D: 1.1e-10
+ tr(KS) before purification: 1.2e-11
 
 O2spin_diag:
  Atomic Forces (Ha/Bohr): 2.2e-7
  Average noise forces: 7.7e-8
  Clean forces norm (Ha/Bohr): 8.0e-7
- Raw forces norm (Ha/Bohr): 7.6e-7
+ Raw forces norm (Ha/Bohr): 7.8e-7
  Orbitals: 2.7e-7
  EH: 1.7e-6
  EXC: 3.4e-7
@@ -1186,12 +1187,12 @@ verysparse:
  D Tr: 3.1e-5
  Tr(K): 2.8e-5
  charge diff: 2.8e-5
- relative diff: 2.2e-11
- diff: 8.0e-10
+ relative diff: 2.6e-11
+ diff: 9.2e-10
  Total ionic charge: 1.1e-10
  e: 1.2e-9
  decay length of error function: 1.1e-5
- Clean forces norm (Ha/Bohr): 5.8e-10
+ Clean forces norm (Ha/Bohr): 6.2e-10
  Raw forces norm (Ha/Bohr): 7.8e-10
  Atomic Forces (Ha/Bohr): 3.1e-9
  Average noise forces: 1.0e-9

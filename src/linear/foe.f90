@@ -22,7 +22,6 @@ subroutine foe(iproc, nproc, tmprtr, &
                                matrices
   use sparsematrix_init, only: matrixindex_in_compressed, get_line_and_column
   use sparsematrix, only: compress_matrix, uncompress_matrix, compress_matrix_distributed, &
-                          uncompress_matrix_distributed, orb_from_index, &
                           transform_sparsity_pattern, compress_matrix_distributed_new2
   use foe_base, only: foe_data, foe_data_set_int, foe_data_get_int, foe_data_set_real, foe_data_get_real, &
                       foe_data_get_logical
@@ -559,20 +558,11 @@ subroutine foe(iproc, nproc, tmprtr, &
         
         
     
-         !!call compress_matrix_distributed(iproc, nproc, tmb%linmat%l, DENSE_MATMUL, &
-         !!     tmb%linmat%kernel_%matrixp(:,1:tmb%linmat%l%smmm%nfvctrp,1), &
-         !!     tmb%linmat%kernel_%matrix_compr(ilshift+1:))
          call compress_matrix_distributed_new2(iproc, nproc, tmb%linmat%l, DENSE_MATMUL, &
               fermi_small_new, &
               tmb%linmat%kernel_%matrix_compr(ilshift+1:))
-         !!write(*,*) 'sum(tmb%linmat%kernel_%matrix_compr(ilshift+1:))',sum(tmb%linmat%kernel_%matrix_compr(ilshift+1:))
-         !!tmb%linmat%kernel_%matrix_compr(ilshift+1:) = fermi_small_new
-    
-         !!call compress_matrix_distributed(iproc, nproc, tmb%linmat%l, DENSE_MATMUL, &
-         !!     fermip_check, fermi_check_compr(1))
          call compress_matrix_distributed_new2(iproc, nproc, tmb%linmat%l, DENSE_MATMUL, &
               fermi_check_new, fermi_check_compr(1))
-         !!fermi_check_compr = fermi_check_new
     
     
         
@@ -583,9 +573,6 @@ subroutine foe(iproc, nproc, tmprtr, &
           call retransform_ext(iproc, nproc, tmb%linmat%l, &
                tmb%linmat%ovrlppowers_(2)%matrix_compr(ilshift2+1), tmb%linmat%kernel_%matrix_compr(ilshift+1))
 
-          !!do i=ilshift+1,ilshift+tmb%linmat%l%nvctr
-          !!    write(3000+iproc,'(a,2i8,es16.6)') 'ispin, i, val', ispin, i, tmb%linmat%kernel_%matrix_compr(i)
-          !!end do
     
           !call retransform(fermi_check_compr)
           call retransform_ext(iproc, nproc, tmb%linmat%l, &
@@ -602,8 +589,6 @@ subroutine foe(iproc, nproc, tmprtr, &
                        tmb%linmat%ovrlp_%matrix_compr(isshift+1:), &
                        fermi_check_compr, ispin)
           !@ENDNEW #######################
-          !!write(*,'(a,i6,2es16.8)') 'iproc, sum(s), sum(k)', iproc, &
-          !!    sum(tmb%linmat%ovrlp_%matrix_compr(isshift+1:)), sum(tmb%linmat%kernel_%matrix_compr(ilshift+1:))
         
     
           ! Calculate trace(KH). Since they have the same sparsity pattern and K is
@@ -823,7 +808,7 @@ subroutine foe(iproc, nproc, tmprtr, &
 
       subroutine retransform(matrix_compr)
           use sparsematrix, only: sequential_acces_matrix_fast, sequential_acces_matrix_fast2, &
-                                  uncompress_matrix_distributed, compress_matrix_distributed, uncompress_matrix_distributed2, &
+                                  compress_matrix_distributed, uncompress_matrix_distributed2, &
                                   sparsemm_new, compress_matrix_distributed_new
           ! Calling arguments
           real(kind=8),dimension(tmb%linmat%l%nvctrp_tg),intent(inout) :: matrix_compr
@@ -1485,54 +1470,54 @@ real(kind=8) function determinant(iproc, n, mat)
 end function determinant
 
 
-subroutine compress_polynomial_vector(iproc, nproc, nsize_polynomial, norb, norbp, isorb, &
-           fermi, vector, vector_compressed)
-  use module_base
-  use module_types
-  use sparsematrix_base, only: sparse_matrix
-  implicit none
-
-  ! Calling arguments
-  integer,intent(in) :: iproc, nproc, nsize_polynomial, norb, norbp, isorb
-  type(sparse_matrix),intent(in) :: fermi
-  real(kind=8),dimension(norb,norbp),intent(in) :: vector
-  real(kind=8),dimension(nsize_polynomial),intent(out) :: vector_compressed
-
-  ! Local variables
-  integer :: isegstart, isegend, iseg, ii, jorb, iiorb, jjorb, iel
-
-  call f_routine(id='compress_polynomial_vector')
-
-  if (norbp>0) then
-      ii=0
-      !!$omp parallel default(private) shared(fermi, vector, vector_compressed)
-      !!$omp do
-      !do iseg=isegstart,isegend
-      do iseg=fermi%smmm%isseg,fermi%smmm%ieseg
-          iel = fermi%keyv(iseg) - 1
-          ! A segment is always on one line, therefore no double loop
-          do jorb=fermi%keyg(1,1,iseg),fermi%keyg(2,1,iseg)
-              iel = iel + 1
-              if (iel<fermi%smmm%isvctr_mm+1) cycle
-              if (iel>fermi%smmm%isvctr_mm+fermi%smmm%nvctrp_mm) exit
-              ii=ii+1
-              iiorb = fermi%keyg(1,2,iseg)
-              jjorb = jorb
-              vector_compressed(ii)=vector(jjorb,iiorb-isorb)
-          end do
-      end do
-      !!$omp end do
-      !!$omp end parallel
-  end if
-
-  if (ii/=fermi%smmm%nvctrp_mm) then
-      write(*,*) 'ii, fermi%nvctrp, size(vector_compressed)', ii, fermi%smmm%nvctrp_mm, size(vector_compressed)
-      stop 'compress_polynomial_vector: ii/=fermi%nvctrp'
-  end if
-
-  call f_release_routine()
-
-end subroutine compress_polynomial_vector
+!!subroutine compress_polynomial_vector(iproc, nproc, nsize_polynomial, norb, norbp, isorb, &
+!!           fermi, vector, vector_compressed)
+!!  use module_base
+!!  use module_types
+!!  use sparsematrix_base, only: sparse_matrix
+!!  implicit none
+!!
+!!  ! Calling arguments
+!!  integer,intent(in) :: iproc, nproc, nsize_polynomial, norb, norbp, isorb
+!!  type(sparse_matrix),intent(in) :: fermi
+!!  real(kind=8),dimension(norb,norbp),intent(in) :: vector
+!!  real(kind=8),dimension(nsize_polynomial),intent(out) :: vector_compressed
+!!
+!!  ! Local variables
+!!  integer :: isegstart, isegend, iseg, ii, jorb, iiorb, jjorb, iel
+!!
+!!  call f_routine(id='compress_polynomial_vector')
+!!
+!!  if (norbp>0) then
+!!      ii=0
+!!      !!$omp parallel default(private) shared(fermi, vector, vector_compressed)
+!!      !!$omp do
+!!      !do iseg=isegstart,isegend
+!!      do iseg=fermi%smmm%isseg,fermi%smmm%ieseg
+!!          iel = fermi%keyv(iseg) - 1
+!!          ! A segment is always on one line, therefore no double loop
+!!          do jorb=fermi%keyg(1,1,iseg),fermi%keyg(2,1,iseg)
+!!              iel = iel + 1
+!!              if (iel<fermi%smmm%isvctr_mm+1) cycle
+!!              if (iel>fermi%smmm%isvctr_mm+fermi%smmm%nvctrp_mm) exit
+!!              ii=ii+1
+!!              iiorb = fermi%keyg(1,2,iseg)
+!!              jjorb = jorb
+!!              vector_compressed(ii)=vector(jjorb,iiorb-isorb)
+!!          end do
+!!      end do
+!!      !!$omp end do
+!!      !!$omp end parallel
+!!  end if
+!!
+!!  if (ii/=fermi%smmm%nvctrp_mm) then
+!!      write(*,*) 'ii, fermi%nvctrp, size(vector_compressed)', ii, fermi%smmm%nvctrp_mm, size(vector_compressed)
+!!      stop 'compress_polynomial_vector: ii/=fermi%nvctrp'
+!!  end if
+!!
+!!  call f_release_routine()
+!!
+!!end subroutine compress_polynomial_vector
 
 
 
@@ -1556,51 +1541,12 @@ subroutine compress_polynomial_vector_new(iproc, nproc, nsize_polynomial, norb, 
   integer :: isegstart, isegend, iseg, ii, jorb, iiorb, jjorb, iel, i, iline, icolumn
   real(kind=8),dimension(:,:),allocatable :: vector
 
-  call f_routine(id='compress_polynomial_vector')
+  call f_routine(id='compress_polynomial_vector_new')
 
   call transform_sparsity_pattern(fermi%nfvctr, fermi%smmm%nvctrp_mm, fermi%smmm%isvctr_mm, &
        fermi%nseg, fermi%keyv, fermi%keyg, fermi%smmm%line_and_column_mm, &
        fermi%smmm%nvctrp, fermi%smmm%isvctr, fermi%smmm%nseg, fermi%smmm%keyv, fermi%smmm%keyg, &
        fermi%smmm%istsegline, 'large_to_small', vector_compressed, vector_compr)
-
-
-  !!vector = f_malloc((/norb,norbp/),id='vector')
-
-  !!   do i=1,fermi%smmm%nvctrp
-  !!       ii = fermi%smmm%isvctr + i
-  !!       call get_line_and_column(ii, fermi%smmm%nseg, fermi%smmm%keyv, fermi%smmm%keyg, iline, icolumn)
-  !!       vector(icolumn,iline-fermi%smmm%isfvctr) = vector_compr(i)
-  !!   end do
-
-
-  !!if (norbp>0) then
-  !!    ii=0
-  !!    !!$omp parallel default(private) shared(fermi, vector, vector_compressed)
-  !!    !!$omp do
-  !!    !do iseg=isegstart,isegend
-  !!    do iseg=fermi%smmm%isseg,fermi%smmm%ieseg
-  !!        iel = fermi%keyv(iseg) - 1
-  !!        ! A segment is always on one line, therefore no double loop
-  !!        do jorb=fermi%keyg(1,1,iseg),fermi%keyg(2,1,iseg)
-  !!            iel = iel + 1
-  !!            if (iel<fermi%smmm%isvctr_mm+1) cycle
-  !!            if (iel>fermi%smmm%isvctr_mm+fermi%smmm%nvctrp_mm) exit
-  !!            ii=ii+1
-  !!            iiorb = fermi%keyg(1,2,iseg)
-  !!            jjorb = jorb
-  !!            vector_compressed(ii)=vector(jjorb,iiorb-isorb)
-  !!        end do
-  !!    end do
-  !!    !!$omp end do
-  !!    !!$omp end parallel
-  !!end if
-
-  !!if (ii/=fermi%smmm%nvctrp_mm) then
-  !!    write(*,*) 'ii, fermi%nvctrp, size(vector_compressed)', ii, fermi%smmm%nvctrp_mm, size(vector_compressed)
-  !!    stop 'compress_polynomial_vector: ii/=fermi%nvctrp'
-  !!end if
-
-  !!call f_free(vector)
 
   call f_release_routine()
 
@@ -1755,7 +1701,7 @@ subroutine ice(iproc, nproc, norder_polynomial, ovrlp_smat, inv_ovrlp_smat, ncal
                                SPARSE_FULL, DENSE_FULL, DENSE_MATMUL, SPARSEMM_SEQ, SPARSE_TASKGROUP, &
                                matrices
   use sparsematrix_init, only: matrixindex_in_compressed, get_line_and_column
-  use sparsematrix, only: compress_matrix, uncompress_matrix, compress_matrix_distributed, orb_from_index, &
+  use sparsematrix, only: compress_matrix, uncompress_matrix, compress_matrix_distributed, &
                           compress_matrix_distributed_new2, transform_sparsity_pattern
   use foe_base, only: foe_data, foe_data_set_int, foe_data_get_int, foe_data_set_real, foe_data_get_real, &
                       foe_data_set_logical, foe_data_get_logical
@@ -2547,7 +2493,6 @@ subroutine scale_and_shift_matrix(iproc, nproc, ispin, foe_obj, smatl, &
   use sparsematrix_base, only: sparse_matrix, matrices
   use foe_base, only: foe_data, foe_data_get_real
   use sparsematrix_init, only: matrixindex_in_compressed
-  use sparsematrix, only: orb_from_index
   implicit none
   ! Calling arguments
   integer,intent(in) :: iproc, nproc, ispin, i1shift
@@ -2593,73 +2538,6 @@ subroutine scale_and_shift_matrix(iproc, nproc, ispin, foe_obj, smatl, &
 
   if (data_strategy==GLOBAL_MATRIX) then
       stop 'scale_and_shift_matrix: data_strategy=GLOBAL_MATRIX is deprecated'
-      !!isegstart = smatl%istsegline(smatl%isfvctr+1)
-      !!isegend = smatl%istsegline(smatl%isfvctr+smatl%nfvctrp) + &
-      !!          smatl%nsegline(smatl%isfvctr+smatl%nfvctrp)-1
-      !!if (nproc>1) then
-      !!    matscal_compr_local = f_malloc_ptr(smatl%nvctrp,id='matscal_compr_local')
-      !!else
-      !!    matscal_compr_local => matscal_compr
-      !!end if
-      !!!$omp parallel default(none) private(iseg,ii,i,irowcol,ii2,ii1,tt2,tt1) &
-      !!!$omp shared(matscal_compr_local,scale_factor,shift_value,i2shift,i1shift,smatl,smat1,smat2,mat1,mat2,with_overlap) &
-      !!!$omp shared(isegstart,isegend)
-      !!!$omp do
-      !!do iseg=isegstart,isegend
-      !!    ii=smatl%keyv(iseg)
-      !!    do i=smatl%keyg(1,iseg),smatl%keyg(2,iseg)
-      !!        irowcol = orb_from_index(smatl,i)
-      !!        ii1 = matrixindex_in_compressed(smat1, irowcol(1), irowcol(2))
-      !!        if (ii1>0) then
-      !!            tt1=mat1%matrix_compr(i1shift+ii1)
-      !!        else
-      !!            tt1=0.d0
-      !!        end if
-      !!        if (with_overlap) then
-      !!            ii2 = matrixindex_in_compressed(smat2, irowcol(1), irowcol(2))
-      !!            if (ii2>0) then
-      !!                tt2=mat2%matrix_compr(i2shift+ii2)
-      !!            else
-      !!                tt2=0.d0
-      !!            end if
-      !!        else
-      !!            if (irowcol(1)==irowcol(2)) then
-      !!                tt2 = 1.d0
-      !!            else
-      !!                tt2 = 0.d0
-      !!            end if
-      !!        end if
-      !!        !write(*,*) 'ii, tt1, tt2', ii, tt1, tt2
-      !!        matscal_compr_local(ii-smatl%isvctr)=scale_factor*(tt1-shift_value*tt2)
-      !!        ii=ii+1
-      !!    end do
-      !!end do
-      !!!$omp end do
-      !!!$omp end parallel
-
-      !!call timing(iproc,'foe_aux_mcpy  ','OF')
-      !!call timing(iproc,'foe_aux_comm  ','ON')
-      !!if (nproc>1) then
-      !!    !!call mpi_allgatherv(matscal_compr_local(1), smatl%nvctrp, mpi_double_precision, &
-      !!    !!     matscal_compr(1), smatl%nvctr_par, smatl%isvctr_par, mpi_double_precision, &
-      !!    !!     bigdft_mpi%mpi_comm, ierr)
-      !!    if (comm_strategy==ALLGATHERV) then
-      !!        call mpi_allgatherv(matscal_compr_local(1), smatl%nvctrp, mpi_double_precision, &
-      !!             matscal_compr(1), smatl%nvctr_par, smatl%isvctr_par, mpi_double_precision, &
-      !!             bigdft_mpi%mpi_comm, ierr)
-      !!        call f_free_ptr(matscal_compr_local)
-      !!    else if (comm_strategy==GET) then
-      !!        !!call mpiget(iproc, nproc, bigdft_mpi%mpi_comm, smatl%nvctrp, matscal_compr_local, &
-      !!        !!     smatl%nvctr_par, smatl%isvctr_par, smatl%nvctr, matscal_compr)
-      !!        call mpi_get_to_allgatherv(matscal_compr_local(1), smatl%nvctrp, matscal_compr(1), &
-      !!             smatl%nvctr_par, smatl%isvctr_par, bigdft_mpi%mpi_comm)
-      !!    else
-      !!        stop 'scale_and_shift_matrix: wrong communication strategy'
-      !!    end if
-      !!    call f_free_ptr(matscal_compr_local)
-      !!end if
-      !!call timing(iproc,'foe_aux_comm  ','OF')
-
   else if (data_strategy==SUBMATRIX) then
       !$omp parallel default(none) private(ii,i,j,ii2,ii1,tt2,tt1,iseg) &
       !$omp shared(matscal_compr,scale_factor,shift_value,i2shift,i1shift,smatl,smat1,smat2,mat1,mat2,with_overlap)
@@ -2702,9 +2580,6 @@ subroutine scale_and_shift_matrix(iproc, nproc, ispin, foe_obj, smatl, &
       stop 'scale_and_shift_matrix: wrong data strategy'
   end if
 
-  !!do i=1,smatl%nvctr
-  !!    write(500+iproc,*) 'i, matscal_compr(i)', i, matscal_compr(i)
-  !!end do
   call f_release_routine()
 
 end subroutine scale_and_shift_matrix
@@ -2717,7 +2592,7 @@ end subroutine scale_and_shift_matrix
           use sparsematrix_base, only: sparse_matrix, sparsematrix_malloc, assignment(=), &
                                        SPARSEMM_SEQ, DENSE_MATMUL
           use sparsematrix, only: sequential_acces_matrix_fast, sequential_acces_matrix_fast2, &
-                                  uncompress_matrix_distributed, compress_matrix_distributed, uncompress_matrix_distributed2, &
+                                  compress_matrix_distributed, uncompress_matrix_distributed2, &
                                   sparsemm_new, compress_matrix_distributed_new, transform_sparsity_pattern
           implicit none
           ! Calling arguments
