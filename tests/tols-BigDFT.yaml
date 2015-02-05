@@ -1191,7 +1191,7 @@ verysparse:
  Total ionic charge: 1.1e-10
  e: 1.2e-9
  decay length of error function: 1.1e-5
- Clean forces norm (Ha/Bohr): 5.8e-10
+ Clean forces norm (Ha/Bohr): 6.1e-10
  Raw forces norm (Ha/Bohr): 7.8e-10
  Atomic Forces (Ha/Bohr): 3.1e-9
  Average noise forces: 1.0e-9

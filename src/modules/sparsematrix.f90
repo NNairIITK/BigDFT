@@ -1578,8 +1578,8 @@ module sparsematrix
      integer :: iorb, ii, ilen, jjorb0, jjorb1, jjorb2, jjorb3, jjorb4, jjorb5, jjorb6, iout
      real(kind=8) :: tt0, tt1, tt2, tt3, tt4, tt5, tt6, tt7
    
-     !call f_routine(id='sparsemm')
-     !call timing(bigdft_mpi%iproc, 'sparse_matmul ', 'IR')
+     call f_routine(id='sparsemm')
+     call timing(bigdft_mpi%iproc, 'sparse_matmul ', 'IR')
 
 
      !$omp parallel default(private) shared(smat, a_seq, b, c)
@@ -1603,8 +1603,8 @@ module sparsematrix
      !$omp end parallel
 
    
-     !call timing(bigdft_mpi%iproc, 'sparse_matmul ', 'RS')
-     !call f_release_routine()
+     call timing(bigdft_mpi%iproc, 'sparse_matmul ', 'RS')
+     call f_release_routine()
        
    end subroutine sparsemm_new
 
