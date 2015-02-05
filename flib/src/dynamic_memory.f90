@@ -937,6 +937,7 @@ end if
                   trim(yaml_toa(jctrl)),err_id=ERR_INVALID_MALLOC)
              exit
           end do
+          unt=-1 !SM: unt otherwise not defined for jproc/=0
           if (jproc == 0) then
              !eliminate the previous existing file if it has the same name
              !check if the file is opened
