@@ -22,7 +22,6 @@ subroutine foe(iproc, nproc, tmprtr, &
                                matrices
   use sparsematrix_init, only: matrixindex_in_compressed, get_line_and_column
   use sparsematrix, only: compress_matrix, uncompress_matrix, compress_matrix_distributed, &
-                          uncompress_matrix_distributed, &
                           transform_sparsity_pattern, compress_matrix_distributed_new2
   use foe_base, only: foe_data, foe_data_set_int, foe_data_get_int, foe_data_set_real, foe_data_get_real, &
                       foe_data_get_logical
@@ -559,20 +558,11 @@ subroutine foe(iproc, nproc, tmprtr, &
         
         
     
-         !!call compress_matrix_distributed(iproc, nproc, tmb%linmat%l, DENSE_MATMUL, &
-         !!     tmb%linmat%kernel_%matrixp(:,1:tmb%linmat%l%smmm%nfvctrp,1), &
-         !!     tmb%linmat%kernel_%matrix_compr(ilshift+1:))
          call compress_matrix_distributed_new2(iproc, nproc, tmb%linmat%l, DENSE_MATMUL, &
               fermi_small_new, &
               tmb%linmat%kernel_%matrix_compr(ilshift+1:))
-         !!write(*,*) 'sum(tmb%linmat%kernel_%matrix_compr(ilshift+1:))',sum(tmb%linmat%kernel_%matrix_compr(ilshift+1:))
-         !!tmb%linmat%kernel_%matrix_compr(ilshift+1:) = fermi_small_new
-    
-         !!call compress_matrix_distributed(iproc, nproc, tmb%linmat%l, DENSE_MATMUL, &
-         !!     fermip_check, fermi_check_compr(1))
          call compress_matrix_distributed_new2(iproc, nproc, tmb%linmat%l, DENSE_MATMUL, &
               fermi_check_new, fermi_check_compr(1))
-         !!fermi_check_compr = fermi_check_new
     
     
         
@@ -583,9 +573,6 @@ subroutine foe(iproc, nproc, tmprtr, &
           call retransform_ext(iproc, nproc, tmb%linmat%l, &
                tmb%linmat%ovrlppowers_(2)%matrix_compr(ilshift2+1), tmb%linmat%kernel_%matrix_compr(ilshift+1))
 
-          !!do i=ilshift+1,ilshift+tmb%linmat%l%nvctr
-          !!    write(3000+iproc,'(a,2i8,es16.6)') 'ispin, i, val', ispin, i, tmb%linmat%kernel_%matrix_compr(i)
-          !!end do
     
           !call retransform(fermi_check_compr)
           call retransform_ext(iproc, nproc, tmb%linmat%l, &
@@ -602,8 +589,6 @@ subroutine foe(iproc, nproc, tmprtr, &
                        tmb%linmat%ovrlp_%matrix_compr(isshift+1:), &
                        fermi_check_compr, ispin)
           !@ENDNEW #######################
-          !!write(*,'(a,i6,2es16.8)') 'iproc, sum(s), sum(k)', iproc, &
-          !!    sum(tmb%linmat%ovrlp_%matrix_compr(isshift+1:)), sum(tmb%linmat%kernel_%matrix_compr(ilshift+1:))
         
     
           ! Calculate trace(KH). Since they have the same sparsity pattern and K is
@@ -823,7 +808,7 @@ subroutine foe(iproc, nproc, tmprtr, &
 
       subroutine retransform(matrix_compr)
           use sparsematrix, only: sequential_acces_matrix_fast, sequential_acces_matrix_fast2, &
-                                  uncompress_matrix_distributed, compress_matrix_distributed, uncompress_matrix_distributed2, &
+                                  compress_matrix_distributed, uncompress_matrix_distributed2, &
                                   sparsemm_new, compress_matrix_distributed_new
           ! Calling arguments
           real(kind=8),dimension(tmb%linmat%l%nvctrp_tg),intent(inout) :: matrix_compr
@@ -2607,7 +2592,7 @@ end subroutine scale_and_shift_matrix
           use sparsematrix_base, only: sparse_matrix, sparsematrix_malloc, assignment(=), &
                                        SPARSEMM_SEQ, DENSE_MATMUL
           use sparsematrix, only: sequential_acces_matrix_fast, sequential_acces_matrix_fast2, &
-                                  uncompress_matrix_distributed, compress_matrix_distributed, uncompress_matrix_distributed2, &
+                                  compress_matrix_distributed, uncompress_matrix_distributed2, &
                                   sparsemm_new, compress_matrix_distributed_new, transform_sparsity_pattern
           implicit none
           ! Calling arguments

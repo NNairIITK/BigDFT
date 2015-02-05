@@ -586,12 +586,12 @@ subroutine sumrho_for_TMBs(iproc, nproc, hx, hy, hz, collcom_sr, denskern, densk
 
   ! Local variables
   integer :: ipt, ii, i0, iiorb, jjorb, istat, iall, i, j, ierr, ind, ispin, ishift, ishift_mat, iorb_shift
-  real(8) :: tt, total_charge, hxh, hyh, hzh, factor, tt1
+  real(8) :: tt, total_charge, hxh, hyh, hzh, factor, tt1, rho_neg
   integer,dimension(:),allocatable :: isend_total
   real(kind=8),dimension(:),allocatable :: rho_local
   character(len=*),parameter :: subname='sumrho_for_TMBs'
   logical :: print_local
-  integer :: size_of_double, info, mpisource, istsource, istdest, nsize, jproc, irho, ishift_dest, ishift_source
+  integer :: size_of_double, info, mpisource, istsource, istdest, nsize, jproc, ishift_dest, ishift_source
 
   call f_routine('sumrho_for_TMBs')
 
@@ -632,7 +632,7 @@ subroutine sumrho_for_TMBs(iproc, nproc, hx, hy, hz, collcom_sr, denskern, densk
   !!if (print_local .and. iproc==0) write(*,'(a)', advance='no') 'Calculating charge density... '
 
   total_charge=0.d0
-  irho=0
+  rho_neg=0.d0
 
 !ispin=1
   !SM: check if the modulo operations take a lot of time. If so, try to use an
@@ -646,8 +646,8 @@ subroutine sumrho_for_TMBs(iproc, nproc, hx, hy, hz, collcom_sr, denskern, densk
       iorb_shift=(ispin-1)*denskern%nfvctr
       ishift_mat=(ispin-1)*denskern%nvctr
       !$omp parallel default(private) &
-      !$omp shared(total_charge, collcom_sr, factor, denskern, denskern_, rho_local, irho, ispin, ishift, ishift_mat, iorb_shift)
-      !$omp do schedule(static,50) reduction(+:total_charge, irho)
+      !$omp shared(total_charge, collcom_sr, factor, denskern, denskern_, rho_local, rho_neg, ispin, ishift, ishift_mat, iorb_shift)
+      !$omp do schedule(static,200) reduction(+:total_charge, rho_neg)
       do ipt=1,collcom_sr%nptsp_c
           ii=collcom_sr%norb_per_gridpoint_c(ipt)
     
@@ -675,19 +675,12 @@ subroutine sumrho_for_TMBs(iproc, nproc, hx, hy, hz, collcom_sr, denskern, densk
           total_charge=total_charge+tt
           rho_local(ipt+(ispin-1)*collcom_sr%nptsp_c)=tt
     !rho_local(ipt,ispin)=tt(ispin)
-          if (tt<0.d0) irho=irho+1
+          if (tt<0.d0) rho_neg=rho_neg+1.d0
       end do
       !$omp end do
       !$omp end parallel
   end do
 
-  if (nproc > 1) then
-     call mpiallred(irho, 1, mpi_sum, bigdft_mpi%mpi_comm)
-  end if
-
-  if (irho>0) then
-      rho_negative=.true.
-  end if
 
   !if (print_local .and. iproc==0) write(*,'(a)') 'done.'
 
@@ -695,6 +688,15 @@ subroutine sumrho_for_TMBs(iproc, nproc, hx, hy, hz, collcom_sr, denskern, densk
 
 
   call communicate_density()
+
+
+  !!if (nproc > 1) then
+  !!   call mpiallred(irho, 1, mpi_sum, bigdft_mpi%mpi_comm)
+  !!end if
+
+  if (rho_neg>0.d0) then
+      rho_negative=.true.
+  end if
 
   call f_free(rho_local)
 
@@ -704,6 +706,7 @@ subroutine sumrho_for_TMBs(iproc, nproc, hx, hy, hz, collcom_sr, denskern, densk
 
     subroutine communicate_density()
       implicit none
+      real(kind=8),dimension(2) :: reducearr
 
       call f_routine(id='communicate_density')
       call timing(iproc,'sumrho_allred','ON')
@@ -776,7 +779,12 @@ subroutine sumrho_for_TMBs(iproc, nproc, hx, hy, hz, collcom_sr, denskern, densk
       !stop
     
       if (nproc > 1) then
-         call mpiallred(total_charge, 1, mpi_sum, bigdft_mpi%mpi_comm)
+          reducearr(1) = total_charge
+          reducearr(2) = rho_neg
+          call mpiallred(reducearr(1), 2, mpi_sum, bigdft_mpi%mpi_comm)
+          total_charge = reducearr(1)
+          rho_neg = reducearr(2)
+         !call mpiallred(total_charge, 1, mpi_sum, bigdft_mpi%mpi_comm)
       end if
     
       !!if(print_local .and. iproc==0) write(*,'(3x,a,es20.12)') 'Calculation finished. TOTAL CHARGE = ', total_charge*hxh*hyh*hzh
