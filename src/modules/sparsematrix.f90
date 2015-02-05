@@ -1038,7 +1038,7 @@ module sparsematrix
              call transform_sparsity_pattern(smat%nfvctr, smat%smmm%nvctrp_mm, smat%smmm%isvctr_mm, &
                   smat%nseg, smat%keyv, smat%keyg, smat%smmm%line_and_column_mm, &
                   smat%smmm%nvctrp, smat%smmm%isvctr, &
-                  smat%smmm%nseg, smat%smmm%keyv, smat%smmm%keyg, &
+                  smat%smmm%nseg, smat%smmm%keyv, smat%smmm%keyg, smat%smmm%istsegline, &
                   'large_to_small', matrix_local, matrixp)
              !!if (bigdft_mpi%iproc==0) write(*,*) 'sum(matrix_local)',sum(matrix_local)
 
@@ -2144,7 +2144,7 @@ module sparsematrix
     !> Transform a matrix from a large parsity pattern *_l to a small sparsity pattern *_s or vice versa.
     !! The small pattern must be contained within the large one.
     subroutine transform_sparsity_pattern(nfvctr, nvctrp_s, isvctr_s, nseg_s, keyv_s, keyg_s, line_and_column_s, &
-               nvctrp_l, isvctr_l, nseg_l, keyv_l, keyg_l, direction, matrix_s, matrix_l)
+               nvctrp_l, isvctr_l, nseg_l, keyv_l, keyg_l, istsegline_l, direction, matrix_s, matrix_l)
       use sparsematrix_init, only: matrixindex_in_compressed_lowlevel
       implicit none
       ! Calling arguments
@@ -2154,6 +2154,7 @@ module sparsematrix
       integer,dimension(2,2,nseg_s),intent(in) :: keyg_s
       integer,dimension(nseg_l),intent(in) :: keyv_l
       integer,dimension(2,2,nseg_l),intent(in) :: keyg_l
+      integer,dimension(nfvctr),intent(in) :: istsegline_l
       character(len=*),intent(in) :: direction
       real(kind=8),dimension(nvctrp_l),intent(inout) :: matrix_l
       real(kind=8),dimension(nvctrp_s),intent(inout) :: matrix_s
@@ -2165,7 +2166,7 @@ module sparsematrix
             ! No need for f_zero since every value will be overwritten.
             !$omp parallel default(none) &
             !$omp shared(nvctrp_s, isvctr_s, isvctr_l, line_and_column_s) &
-            !$omp shared(nfvctr, nseg_l, keyv_l, keyg_l, matrix_s, matrix_l) &
+            !$omp shared(nfvctr, nseg_l, keyv_l, keyg_l, istsegline_l, matrix_s, matrix_l) &
             !$omp private(i, ii, iline, icolumn, ind)
             !$omp do
             do i=1,nvctrp_s
@@ -2174,7 +2175,7 @@ module sparsematrix
                 iline = line_and_column_s(1,i)
                 icolumn = line_and_column_s(2,i)
                 ind = matrixindex_in_compressed_lowlevel(icolumn, iline, nfvctr, &
-                      nseg_l, keyv_l, keyg_l)
+                      nseg_l, keyv_l, keyg_l, istsegline_l)
                 ind = ind - isvctr_l
                 matrix_s(i) = matrix_l(ind)
             end do
@@ -2185,7 +2186,7 @@ module sparsematrix
             call f_zero(matrix_l)
             !$omp parallel default(none) &
             !$omp shared(nvctrp_s, isvctr_s, isvctr_l, line_and_column_s) &
-            !$omp shared(nfvctr, nseg_l, keyv_l, keyg_l, matrix_s, matrix_l) &
+            !$omp shared(nfvctr, nseg_l, keyv_l, keyg_l, istsegline_l, matrix_s, matrix_l) &
             !$omp private(i, ii, iline, icolumn, ind)
             !$omp do
             do i=1,nvctrp_s
@@ -2194,7 +2195,7 @@ module sparsematrix
                 iline = line_and_column_s(1,i)
                 icolumn = line_and_column_s(2,i)
                 ind = matrixindex_in_compressed_lowlevel(icolumn, iline, nfvctr, &
-                      nseg_l, keyv_l, keyg_l)
+                      nseg_l, keyv_l, keyg_l, istsegline_l)
                 ind = ind - isvctr_l
                 matrix_l(ind) = matrix_s(i)
             end do
@@ -2303,7 +2304,7 @@ module sparsematrix
            smat%nseg, smat%keyv, smat%keyg, &
            smat%smmm%line_and_column_mm, &
            smat%smmm%nvctrp, smat%smmm%isvctr, &
-           smat%smmm%nseg, smat%smmm%keyv, smat%smmm%keyg, &
+           smat%smmm%nseg, smat%smmm%keyv, smat%smmm%keyg, smat%smmm%istsegline, &
            'small_to_large', b(smat%smmm%isvctr_mm-smat%isvctrp_tg+1), b_exp)
       call sparsemm_new(smat, a_seq, b_exp, c_exp)
       call compress_matrix_distributed_new(iproc, nproc, smat, DENSE_MATMUL, &

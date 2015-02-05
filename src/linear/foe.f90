@@ -383,7 +383,7 @@ subroutine foe(iproc, nproc, tmprtr, &
                            tmb%linmat%l%nseg, tmb%linmat%l%keyv, tmb%linmat%l%keyg, tmb%linmat%l%smmm%line_and_column_mm, &
                            tmb%linmat%l%smmm%nvctrp, tmb%linmat%l%smmm%isvctr, &
                            tmb%linmat%l%smmm%nseg, tmb%linmat%l%smmm%keyv, tmb%linmat%l%smmm%keyg, &
-                           'large_to_small', fermi_small_new, fermi_new)
+                           tmb%linmat%l%smmm%istsegline, 'large_to_small', fermi_small_new, fermi_new)
                       !!write(*,*) 'after transform_sparsity_pattern, iproc', iproc
 
 
@@ -473,7 +473,6 @@ subroutine foe(iproc, nproc, tmprtr, &
                 
                   !call calculate_trace_distributed(tmb%linmat%kernel_%matrixp, sumn)
                   call calculate_trace_distributed_new(fermi_small_new, sumn)
-                  !!write(*,*) 'sumn',sumn
         
     
                   if (all(eval_bounds_ok) .and. all(bisection_bounds_ok)) then
@@ -856,7 +855,8 @@ subroutine foe(iproc, nproc, tmprtr, &
           call transform_sparsity_pattern(tmb%linmat%l%nfvctr, tmb%linmat%l%smmm%nvctrp_mm, tmb%linmat%l%smmm%isvctr_mm, &
                tmb%linmat%l%nseg, tmb%linmat%l%keyv, tmb%linmat%l%keyg, tmb%linmat%l%smmm%line_and_column_mm, &
                tmb%linmat%l%smmm%nvctrp, tmb%linmat%l%smmm%isvctr, &
-               tmb%linmat%l%smmm%nseg, tmb%linmat%l%smmm%keyv, tmb%linmat%l%smmm%keyg, 'small_to_large', &
+               tmb%linmat%l%smmm%nseg, tmb%linmat%l%smmm%keyv, tmb%linmat%l%smmm%keyg, &
+               tmb%linmat%l%smmm%istsegline, 'small_to_large', &
                tmb%linmat%ovrlppowers_(2)%matrix_compr(ilshift2+tmb%linmat%l%smmm%isvctr_mm-tmb%linmat%l%isvctrp_tg+1:), &
                inv_ovrlpp_new)
           !!  write(*,*) 'sum(matrix_compr) 1', iproc, sum(tmb%linmat%ovrlppowers_(2)%matrix_compr(ilshift2+1:))
@@ -1561,7 +1561,7 @@ subroutine compress_polynomial_vector_new(iproc, nproc, nsize_polynomial, norb, 
   call transform_sparsity_pattern(fermi%nfvctr, fermi%smmm%nvctrp_mm, fermi%smmm%isvctr_mm, &
        fermi%nseg, fermi%keyv, fermi%keyg, fermi%smmm%line_and_column_mm, &
        fermi%smmm%nvctrp, fermi%smmm%isvctr, fermi%smmm%nseg, fermi%smmm%keyv, fermi%smmm%keyg, &
-       'large_to_small', vector_compressed, vector_compr)
+       fermi%smmm%istsegline, 'large_to_small', vector_compressed, vector_compr)
 
 
   !!vector = f_malloc((/norb,norbp/),id='vector')
@@ -2040,7 +2040,8 @@ subroutine ice(iproc, nproc, norder_polynomial, ovrlp_smat, inv_ovrlp_smat, ncal
                                inv_ovrlp_smat%smmm%line_and_column_mm, &
                                inv_ovrlp_smat%smmm%nvctrp, inv_ovrlp_smat%smmm%isvctr, &
                                inv_ovrlp_smat%smmm%nseg, inv_ovrlp_smat%smmm%keyv, inv_ovrlp_smat%smmm%keyg, &
-                               'large_to_small', inv_ovrlp_matrixp_small_new(1,icalc), inv_ovrlp_matrixp_new(1,icalc))
+                               inv_ovrlp_smat%smmm%istsegline, 'large_to_small', &
+                               inv_ovrlp_matrixp_small_new(1,icalc), inv_ovrlp_matrixp_new(1,icalc))
                          !!do i=1,size(inv_ovrlp_matrixp_small_new,1)
                          !!    write(410+iproc,*) i, inv_ovrlp_matrixp_small_new(i,icalc)
                          !!end do
@@ -2742,7 +2743,7 @@ end subroutine scale_and_shift_matrix
           call transform_sparsity_pattern(smat%nfvctr, smat%smmm%nvctrp_mm, smat%smmm%isvctr_mm, &
                smat%nseg, smat%keyv, smat%keyg, smat%smmm%line_and_column_mm, &
                smat%smmm%nvctrp, smat%smmm%isvctr, &
-               smat%smmm%nseg, smat%smmm%keyv, smat%smmm%keyg, &
+               smat%smmm%nseg, smat%smmm%keyv, smat%smmm%keyg, smat%smmm%istsegline, &
                'small_to_large', inv_ovrlp(smat%smmm%isvctr_mm-smat%isvctrp_tg+1), inv_ovrlpp_new)
           call sparsemm_new(smat, kernel_compr_seq, inv_ovrlpp_new, tempp_new)
           call sparsemm_new(smat, inv_ovrlp_compr_seq, tempp_new, inv_ovrlpp_new)
