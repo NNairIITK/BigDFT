@@ -28,7 +28,7 @@ module sparsematrix
   public :: uncompress_matrix_distributed, uncompress_matrix_distributed2
   public :: sequential_acces_matrix_fast, sequential_acces_matrix_fast2
   public :: sparsemm_new
-  public :: orb_from_index
+  !!public :: orb_from_index
   public :: gather_matrix_from_taskgroups, gather_matrix_from_taskgroups_inplace
   public :: extract_taskgroup_inplace, extract_taskgroup
   public :: write_matrix_compressed
@@ -1506,19 +1506,19 @@ module sparsematrix
    end subroutine sparsemm_new
 
 
-   function orb_from_index(smat, ival)
-     use sparsematrix_base, only: sparse_matrix
-     implicit none
-     ! Calling arguments
-     type(sparse_matrix),intent(in) :: smat
-     integer,intent(in) :: ival
-     integer,dimension(2) :: orb_from_index
+   !!function orb_from_index(smat, ival)
+   !!  use sparsematrix_base, only: sparse_matrix
+   !!  implicit none
+   !!  ! Calling arguments
+   !!  type(sparse_matrix),intent(in) :: smat
+   !!  integer,intent(in) :: ival
+   !!  integer,dimension(2) :: orb_from_index
 
-     orb_from_index(2) = (ival-1)/smat%nfvctr + 1
-     !orb_from_index(1) = ival - (orb_from_index_fn(2)-1)*smat%nfvctr
-     orb_from_index(1) = mod(ival-1,smat%nfvctr) + 1
+   !!  orb_from_index(2) = (ival-1)/smat%nfvctr + 1
+   !!  !orb_from_index(1) = ival - (orb_from_index_fn(2)-1)*smat%nfvctr
+   !!  orb_from_index(1) = mod(ival-1,smat%nfvctr) + 1
 
-   end function orb_from_index
+   !!end function orb_from_index
 
 
    subroutine gather_matrix_from_taskgroups(iproc, nproc, smat, mat_tg, mat_global)

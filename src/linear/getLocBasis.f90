@@ -2063,7 +2063,6 @@ subroutine reorthonormalize_coeff(iproc, nproc, norb, blocksize_dsyev, blocksize
   use module_interfaces, except_this_one => reorthonormalize_coeff
   use sparsematrix_base, only: sparse_matrix, matrices, matrices_null, &
        allocate_matrices, deallocate_matrices
-  use sparsematrix, only: orb_from_index
   use yaml_output, only: yaml_newline, yaml_map
   implicit none
 

@@ -1039,8 +1039,8 @@ module module_types
       'ovrlptransComp','Other         ' ,'Miscellaneous ' ,  &
       'ovrlptransComm','Communications' ,'mpi_allreduce ' ,  &
       'lincombtrans  ','Other         ' ,'Miscellaneous ' ,  &
-      'glsynchham1   ','Other         ' ,'Miscellaneous ' ,  &
-      'glsynchham2   ','Other         ' ,'Miscellaneous ' ,  &
+      'glsynchham1   ','Communications' ,'load balancing' ,  &
+      'glsynchham2   ','Communications' ,'load balancing' ,  &
       'gauss_proj    ','Other         ' ,'Miscellaneous ' ,  &
       'sumrho_allred ','Communications' ,'mpiallred     ' ,  &
       'deallocprec   ','Other         ' ,'Miscellaneous ' ,  &

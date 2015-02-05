@@ -22,7 +22,7 @@ subroutine foe(iproc, nproc, tmprtr, &
                                matrices
   use sparsematrix_init, only: matrixindex_in_compressed, get_line_and_column
   use sparsematrix, only: compress_matrix, uncompress_matrix, compress_matrix_distributed, &
-                          uncompress_matrix_distributed, orb_from_index, &
+                          uncompress_matrix_distributed, &
                           transform_sparsity_pattern, compress_matrix_distributed_new2
   use foe_base, only: foe_data, foe_data_set_int, foe_data_get_int, foe_data_set_real, foe_data_get_real, &
                       foe_data_get_logical
@@ -1716,7 +1716,7 @@ subroutine ice(iproc, nproc, norder_polynomial, ovrlp_smat, inv_ovrlp_smat, ncal
                                SPARSE_FULL, DENSE_FULL, DENSE_MATMUL, SPARSEMM_SEQ, SPARSE_TASKGROUP, &
                                matrices
   use sparsematrix_init, only: matrixindex_in_compressed, get_line_and_column
-  use sparsematrix, only: compress_matrix, uncompress_matrix, compress_matrix_distributed, orb_from_index, &
+  use sparsematrix, only: compress_matrix, uncompress_matrix, compress_matrix_distributed, &
                           compress_matrix_distributed_new2, transform_sparsity_pattern
   use foe_base, only: foe_data, foe_data_set_int, foe_data_get_int, foe_data_set_real, foe_data_get_real, &
                       foe_data_set_logical, foe_data_get_logical
@@ -2508,7 +2508,6 @@ subroutine scale_and_shift_matrix(iproc, nproc, ispin, foe_obj, smatl, &
   use sparsematrix_base, only: sparse_matrix, matrices
   use foe_base, only: foe_data, foe_data_get_real
   use sparsematrix_init, only: matrixindex_in_compressed
-  use sparsematrix, only: orb_from_index
   implicit none
   ! Calling arguments
   integer,intent(in) :: iproc, nproc, ispin, i1shift

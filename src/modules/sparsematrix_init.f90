@@ -978,14 +978,22 @@ contains
       ! Gather the data on the last process
       narr = f_malloc(0.to.nproc-1,id='narr')
       isarr = f_malloc(0.to.nproc-1,id='n=isarr')
-      call mpigather(n_, narr, nproc-1)
+      if (nproc>1) then
+          call mpigather(n_, narr, nproc-1)
+      else
+          narr(0) = n_(1)
+      end if
       if (iproc==nproc-1) then
           isarr(0) = 0
           do jproc=1,nproc-1
               isarr(jproc) = isarr(jproc-1) + narr(jproc-1)
           end do
       end if
-      call mpiscatter(isarr, is_, nproc-1)
+      if (nproc>1) then
+          call mpiscatter(isarr, is_, nproc-1)
+      else
+          is_(1) = isarr(0)
+      end if
       is = is_(1)
       call f_free(narr)
       call f_free(isarr)

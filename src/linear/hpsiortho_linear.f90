@@ -26,7 +26,7 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
                                sparsematrix_malloc_ptr, assignment(=), SPARSE_FULL, &
                                sparsematrix_malloc
   use sparsematrix_init, only: matrixindex_in_compressed
-  use sparsematrix, only: transform_sparse_matrix, orb_from_index, gather_matrix_from_taskgroups_inplace, &
+  use sparsematrix, only: transform_sparse_matrix, gather_matrix_from_taskgroups_inplace, &
                           transform_sparse_matrix_local
   use constrained_dft, only: cdft_data
   use module_fragments, only: system_fragment
@@ -921,7 +921,7 @@ subroutine build_gradient(iproc, nproc, tmb, target_function, hpsit_c, hpsit_f, 
   use module_types
   use sparsematrix_base, only: sparsematrix_malloc_ptr, SPARSE_FULL, assignment(=), &
                                sparsematrix_malloc, SPARSE_TASKGROUP
-  use sparsematrix, only: orb_from_index, gather_matrix_from_taskgroups_inplace
+  use sparsematrix, only: gather_matrix_from_taskgroups_inplace
   use communications_base, only: TRANSPOSE_FULL
   use communications, only: transpose_localized
   use transposed_operations, only: build_linear_combination_transposed
