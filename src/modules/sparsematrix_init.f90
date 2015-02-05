@@ -796,20 +796,26 @@ contains
       sparsemat%smmm%line_and_column = f_malloc_ptr((/2,sparsemat%smmm%nvctrp/),id='smmm%line_and_column')
 
       ! Init line_and_column
-      iseg_start = 1
-      do i=1,sparsemat%smmm%nvctrp_mm
-          ii = sparsemat%smmm%isvctr_mm + i
-          call get_line_and_column(ii, sparsemat%nseg, sparsemat%keyv, sparsemat%keyg, iseg_start, iline, icolumn)
-          sparsemat%smmm%line_and_column_mm(1,i) = iline
-          sparsemat%smmm%line_and_column_mm(2,i) = icolumn
-      end do
-      iseg_start = 1
-      do i=1,sparsemat%smmm%nvctrp
-          ii = sparsemat%smmm%isvctr + i
-          call get_line_and_column(ii, nseg, keyv, keyg, iseg_start, iline, icolumn)
-          sparsemat%smmm%line_and_column(1,i) = iline
-          sparsemat%smmm%line_and_column(2,i) = icolumn
-      end do
+      !!call init_line_and_column()
+      call init_line_and_column(sparsemat%smmm%nvctrp_mm, sparsemat%smmm%isvctr_mm, &
+           sparsemat%nseg, sparsemat%keyv, sparsemat%keyg, &
+           sparsemat%smmm%line_and_column_mm)
+      call init_line_and_column(sparsemat%smmm%nvctrp, sparsemat%smmm%isvctr, &
+           nseg, keyv, keyg, sparsemat%smmm%line_and_column)
+      !!iseg_start = 1
+      !!do i=1,sparsemat%smmm%nvctrp_mm
+      !!    ii = sparsemat%smmm%isvctr_mm + i
+      !!    call get_line_and_column(ii, sparsemat%nseg, sparsemat%keyv, sparsemat%keyg, iseg_start, iline, icolumn)
+      !!    sparsemat%smmm%line_and_column_mm(1,i) = iline
+      !!    sparsemat%smmm%line_and_column_mm(2,i) = icolumn
+      !!end do
+      !!iseg_start = 1
+      !!do i=1,sparsemat%smmm%nvctrp
+      !!    ii = sparsemat%smmm%isvctr + i
+      !!    call get_line_and_column(ii, nseg, keyv, keyg, iseg_start, iline, icolumn)
+      !!    sparsemat%smmm%line_and_column(1,i) = iline
+      !!    sparsemat%smmm%line_and_column(2,i) = icolumn
+      !!end do
 
 
 
@@ -939,6 +945,34 @@ contains
 
     end subroutine init_sparse_matrix_matrix_multiplication_new
 
+
+
+    subroutine init_line_and_column(nvctrp, isvctr, nseg, keyv, keyg, line_and_column)
+      use module_base
+      implicit none
+
+      ! Calling arguments
+      integer,intent(in) :: nvctrp, isvctr, nseg
+      integer,dimension(nseg),intent(in) :: keyv
+      integer,dimension(2,2,nseg),intent(in) :: keyg
+      integer,dimension(2,nvctrp),intent(out) :: line_and_column
+
+      ! Local variables
+      integer :: iseg_start, i, ii, iline, icolumn
+
+      call f_routine(id='init_line_and_column')
+
+      iseg_start = 1
+      do i=1,nvctrp
+          ii = isvctr + i
+          call get_line_and_column(ii, nseg, keyv, keyg, iseg_start, iline, icolumn)
+          line_and_column(1,i) = iline
+          line_and_column(2,i) = icolumn
+      end do
+
+      call f_release_routine()
+
+    end subroutine init_line_and_column
 
 
 
@@ -1505,6 +1539,8 @@ contains
       ! Local variables
       integer :: ipt, iipt, iline, icolumn, nseq_pt, jseg, jorb, ii, iseg_start
 
+      call f_routine(id='determine_sequential_length_new2')
+
       call f_zero(nseq_per_line)
 
       nseq = 0
@@ -1531,6 +1567,8 @@ contains
           end do
           !nseq_per_pt(iipt) = nseq_pt
       end do
+
+      call f_release_routine()
     
     end subroutine determine_sequential_length_new2
 
@@ -1601,6 +1639,8 @@ contains
       ! Local variables
       integer :: i, iii, iseg, iorb
       integer :: isegoffset, istart, iend
+
+      call f_routine(id='get_nout')
     
       nout=0
       do i = 1,norbp
@@ -1615,6 +1655,8 @@ contains
               end do
           end do
       end do
+
+      call f_release_routine()
     
     end subroutine get_nout
 
@@ -1679,6 +1721,7 @@ contains
       integer :: itot, ipt, iipt, iline, icolumn, ilen, jseg, ii, jorb, iseg_start
     
       !!write(*,*) 'iproc, nout, ispt', bigdft_mpi%iproc, nout, ispt
+      call f_routine(id='init_onedimindices_newnew')
     
       itot = 1
       iseg_start = 1
@@ -1717,46 +1760,7 @@ contains
           itot = itot + ilen
       end do
 
-
-      !!contains
-
-      !!  ! Function that gives the index of the matrix element (jjorb,iiorb) in the compressed format.
-      !!  ! Cannot use the standard function since that one requires a type
-      !!  ! sparse_matrix as argument.
-      !!  integer function matrixindex_in_compressed_fn(irow, jcol, norb, nseg, keyv, keyg) result(micf)
-      !!    implicit none
-
-      !!    ! Calling arguments
-      !!    integer,intent(in) :: irow, jcol, norb, nseg
-      !!    integer,dimension(nseg),intent(in) :: keyv
-      !!    integer,dimension(2,2,nseg),intent(in) :: keyg
-
-      !!    ! Local variables
-      !!    integer(kind=8) :: ii, istart, iend
-      !!    integer :: iseg
-
-      !!    ii = int((jcol-1),kind=8)*int(norb,kind=8)+int(irow,kind=8)
-
-      !!    do iseg=1,nseg
-      !!        istart = int((keyg(1,2,iseg)-1),kind=8)*int(norb,kind=8) + &
-      !!                 int(keyg(1,1,iseg),kind=8)
-      !!        iend = int((keyg(2,2,iseg)-1),kind=8)*int(norb,kind=8) + &
-      !!               int(keyg(2,1,iseg),kind=8)
-      !!        if (ii>=istart .and. ii<=iend) then
-      !!            ! The matrix element is in this segment
-      !!             micf = keyv(iseg) + int(ii-istart,kind=4)
-      !!            return
-      !!        end if
-      !!        if (ii<istart) then
-      !!            micf=0
-      !!            return
-      !!        end if
-      !!    end do
-
-      !!    ! Not found
-      !!    micf=0
-
-      !!  end function matrixindex_in_compressed_fn
+      call f_release_routine()
     
     end subroutine init_onedimindices_newnew
 
@@ -1820,6 +1824,8 @@ contains
     
       ! Local variables
       integer :: ii, ipt, iipt, iline, icolumn, jseg, jorb, itest, ind, iseg_start
+
+      call f_routine(id='get_arrays_for_sequential_acces_new')
     
       !write(*,'(a,4i8)') 'iproc, smat%smmm%isvctr_mm, smat%smmm%nvctrp_mm, smat%nfvctrp', &
       !    bigdft_mpi%iproc, smat%smmm%isvctr_mm, smat%smmm%nvctrp_mm, smat%nfvctrp
@@ -1872,45 +1878,7 @@ contains
       end do
       if (ii/=nseq+1) stop 'ii/=nseq+1'
 
-      !!contains
-
-      !!  ! Function that gives the index of the matrix element (jjorb,iiorb) in the compressed format.
-      !!  ! Cannot use the standard function since that one requires a type
-      !!  ! sparse_matrix as argument.
-      !!  integer function matrixindex_in_compressed_fn(irow, jcol, norb, nseg, keyv, keyg) result(micf)
-      !!    implicit none
-
-      !!    ! Calling arguments
-      !!    integer,intent(in) :: irow, jcol, norb, nseg
-      !!    integer,dimension(nseg),intent(in) :: keyv
-      !!    integer,dimension(2,2,nseg),intent(in) :: keyg
-
-      !!    ! Local variables
-      !!    integer(kind=8) :: ii, istart, iend
-      !!    integer :: iseg
-
-      !!    ii = int((jcol-1),kind=8)*int(norb,kind=8)+int(irow,kind=8)
-
-      !!    do iseg=1,nseg
-      !!        istart = int((keyg(1,2,iseg)-1),kind=8)*int(norb,kind=8) + &
-      !!                 int(keyg(1,1,iseg),kind=8)
-      !!        iend = int((keyg(2,2,iseg)-1),kind=8)*int(norb,kind=8) + &
-      !!               int(keyg(2,1,iseg),kind=8)
-      !!        if (ii>=istart .and. ii<=iend) then
-      !!            ! The matrix element is in this segment
-      !!             micf = keyv(iseg) + int(ii-istart,kind=4)
-      !!            return
-      !!        end if
-      !!        if (ii<istart) then
-      !!            micf=0
-      !!            return
-      !!        end if
-      !!    end do
-
-      !!    ! Not found
-      !!    micf=0
-
-      !!  end function matrixindex_in_compressed_fn
+      call f_release_routine()
 
     
     end subroutine get_arrays_for_sequential_acces_new
@@ -1976,6 +1944,8 @@ contains
     
       ! Local variables
       integer :: ii, ipt, iipt, iline, icolumn, jseg, jj, jorb, ind, iseg_start
+
+      call f_routine(id='init_sequential_acces_matrix_new')
     
       ii=1
       iseg_start = 1
@@ -1998,48 +1968,8 @@ contains
           end do
       end do
 
-      !!write(*,'(a,3i8)') 'at end init_sequential_acces_matrix_new: iproc, minval(ies), maxval(ies)', &
-      !!    bigdft_mpi%iproc, minval(indices_extract_sequential), maxval(indices_extract_sequential)
+      call f_release_routine()
 
-      !!contains
-
-      !!  ! Function that gives the index of the matrix element (jjorb,iiorb) in the compressed format.
-      !!  ! Cannot use the standard function since that one requires a type
-      !!  ! sparse_matrix as argument.
-      !!  integer function matrixindex_in_compressed_fn(irow, jcol, norb, nseg, keyv, keyg) result(micf)
-      !!    implicit none
-
-      !!    ! Calling arguments
-      !!    integer,intent(in) :: irow, jcol, norb, nseg
-      !!    integer,dimension(nseg),intent(in) :: keyv
-      !!    integer,dimension(2,2,nseg),intent(in) :: keyg
-
-      !!    ! Local variables
-      !!    integer(kind=8) :: ii, istart, iend
-      !!    integer :: iseg
-
-      !!    ii = int((jcol-1),kind=8)*int(norb,kind=8)+int(irow,kind=8)
-
-      !!    do iseg=1,nseg
-      !!        istart = int((keyg(1,2,iseg)-1),kind=8)*int(norb,kind=8) + &
-      !!                 int(keyg(1,1,iseg),kind=8)
-      !!        iend = int((keyg(2,2,iseg)-1),kind=8)*int(norb,kind=8) + &
-      !!               int(keyg(2,1,iseg),kind=8)
-      !!        if (ii>=istart .and. ii<=iend) then
-      !!            ! The matrix element is in this segment
-      !!             micf = keyv(iseg) + int(ii-istart,kind=4)
-      !!            return
-      !!        end if
-      !!        if (ii<istart) then
-      !!            micf=0
-      !!            return
-      !!        end if
-      !!    end do
-
-      !!    ! Not found
-      !!    micf=0
-
-      !!  end function matrixindex_in_compressed_fn
     
     end subroutine init_sequential_acces_matrix_new
 

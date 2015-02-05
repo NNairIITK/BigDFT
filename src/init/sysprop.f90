@@ -2354,6 +2354,8 @@ subroutine redistribute(nproc, norb, workload, workload_ideal, norb_par)
   integer,dimension(:),allocatable :: norb_par_trial
   integer :: jproc, jjorb, jjorbtot, jorb, ii, imin, imax
 
+  call f_routine(id='redistribute')
+
   wli = workload_ideal
 
   call f_zero(norb_par)
@@ -2429,6 +2431,8 @@ subroutine redistribute(nproc, norb, workload, workload_ideal, norb_par)
       ! Equal distribution
       norb_par(0:norb-1) = 1
   end if
+
+  call f_release_routine()
 
   contains
 
