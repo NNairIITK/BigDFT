@@ -1003,7 +1003,6 @@ module sparsematrix
 
    subroutine compress_matrix_distributed_new(iproc, nproc, smat, layout, matrixp, matrix_compr)
      use module_base
-     use sparsematrix_init, only: get_line_and_column
      implicit none
 
      ! Calling arguments
@@ -1164,7 +1163,6 @@ module sparsematrix
 
    subroutine compress_matrix_distributed_new2(iproc, nproc, smat, layout, matrixp, matrix_compr)
      use module_base
-     use sparsematrix_init, only: get_line_and_column
      implicit none
 
      ! Calling arguments
@@ -1566,7 +1564,6 @@ module sparsematrix
    subroutine sparsemm_new(smat, a_seq, b, c)
      use module_base
      use yaml_output
-     use sparsematrix_init, only: get_line_and_column
      implicit none
    
      !Calling Arguments
