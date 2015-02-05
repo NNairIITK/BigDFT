@@ -946,12 +946,19 @@ contains
       call f_routine(id='init_line_and_column')
 
       iseg_start = 1
+      !$omp parallel default(none) &
+      !$omp shared(nvctrp, isvctr, nseg, keyv, keyg, line_and_column) &
+      !$omp private(i, ii, iline, icolumn) &
+      !$omp firstprivate(iseg_start)
+      !$omp do schedule(static)
       do i=1,nvctrp
           ii = isvctr + i
           call get_line_and_column(ii, nseg, keyv, keyg, iseg_start, iline, icolumn)
           line_and_column(1,i) = iline
           line_and_column(2,i) = icolumn
       end do
+      !$omp end do
+      !$omp end parallel
 
       call f_release_routine()
 
@@ -1669,8 +1676,13 @@ contains
 
       call f_routine(id='get_nout')
     
+      ! OpenMP for a norbp loop is not ideal, but better than nothing.
       nout=0
-      do i = 1,norbp
+      !$omp parallel default(none) &
+      !$omp shared(norbp, isorb, istsegline, nsegline, keyg, nout) &
+      !$omp private(i, iii, isegoffset, iseg, istart, iend, iorb)
+      !$omp do reduction(+:nout)
+      do i=1,norbp
          iii=isorb+i
          isegoffset=istsegline(iii)-1
          do iseg=1,nsegline(iii)
@@ -1682,6 +1694,8 @@ contains
               end do
           end do
       end do
+      !$omp end do
+      !$omp end parallel
 
       call f_release_routine()
     
@@ -1749,30 +1763,28 @@ contains
     
       !!write(*,*) 'iproc, nout, ispt', bigdft_mpi%iproc, nout, ispt
       call f_routine(id='init_onedimindices_newnew')
+
+      ! Handle index 3 separately to enable OpenMP
     
-      itot = 1
+      !itot = 1
       iseg_start = 1
+      !$omp parallel default(none) &
+      !$omp shared(nout, ispt, nseg, keyv, keyg, onedimindices, smat, istsegline) &
+      !$omp firstprivate(iseg_start) &
+      !$omp private(ipt, iipt, iline, icolumn, ilen, jseg, jorb, ii)
+      !$omp do
       do ipt=1,nout
           iipt = ispt + ipt
           call get_line_and_column(iipt, nseg, keyv, keyg, iseg_start, iline, icolumn)
-          !call get_line_and_column(iipt, smat%nseg, smat%keyv, smat%keyg, iline, icolumn)
-          !!!onedimindices(1,ipt) = matrixindex_in_compressed(smat, icolumn, iline)
           onedimindices(1,ipt) = matrixindex_in_compressed_lowlevel(icolumn, iline, smat%nfvctr, nseg, keyv, keyg, istsegline)
-          !write(*,'(a,5i8)') 'ipt, iipt, iline, icolumn, odi(1,ipt)', ipt, iipt, iline, icolumn, onedimindices(1,ipt)
           if (onedimindices(1,ipt)>0) then
               onedimindices(1,ipt) = onedimindices(1,ipt) - smat%smmm%isvctr
           else
-              write(*,'(a,4i8)') 'iproc, iline, icolumn, val',bigdft_mpi%iproc, iline, icolumn, onedimindices(1,ipt)
               stop 'onedimindices(1,ipt)==0'
           end if
-          !!if (onedimindices(1,ipt)/=ipt) stop 'onedimindices(1,ipt)/=ipt'
-          !onedimindices(1,ipt) = ipt
-
           ilen = 0
           ! Take the column due to the symmetry of the sparsity pattern
           do jseg=smat%istsegline(icolumn),smat%istsegline(icolumn)+smat%nsegline(icolumn)-1
-              !!!! A segment is always on one line, therefore no double loop
-              !!!ilen = ilen + smat%keyg(2,1,jseg) - smat%keyg(1,1,jseg) + 1
               ! A segment is always on one line, therefore no double loop
               do jorb = smat%keyg(1,1,jseg),smat%keyg(2,1,jseg)
                   ! Calculate the index in the large compressed format
@@ -1783,9 +1795,20 @@ contains
               end do
           end do
           onedimindices(2,ipt) = ilen
-          onedimindices(3,ipt) = itot
-          itot = itot + ilen
+          !!onedimindices(3,ipt) = itot
+          !itot = itot + ilen
       end do
+      !$omp end do
+      !$omp end parallel
+
+
+      itot = 1
+      do ipt=1,nout
+          onedimindices(3,ipt) = itot
+          itot = itot + onedimindices(2,ipt)
+      end do
+
+
 
       call f_release_routine()
     
@@ -1854,52 +1877,24 @@ contains
 
       call f_routine(id='get_arrays_for_sequential_acces_new')
     
-      !write(*,'(a,4i8)') 'iproc, smat%smmm%isvctr_mm, smat%smmm%nvctrp_mm, smat%nfvctrp', &
-      !    bigdft_mpi%iproc, smat%smmm%isvctr_mm, smat%smmm%nvctrp_mm, smat%nfvctrp
-      !write(*,'(a,4i8)') 'iproc, smat%smmm%isvctr, smat%smmm%nvctrp, smat%nfvctrp', &
-      !    bigdft_mpi%iproc, smat%smmm%isvctr, smat%smmm%nvctrp, smat%nfvctrp
     
       ii=1
       iseg_start = 1
       do ipt=1,nout
           iipt = ispt + ipt
           call get_line_and_column(iipt, nseg, keyv, keyg, iseg_start, iline, icolumn)
-          !call get_line_and_column(iipt, smat%nseg, smat%keyv, smat%keyg, iline, icolumn)
-          !call get_line_and_column(iipt, smat%nseg, smat%keyv, smat%keyg, iline, icolumn)
-          !itest = matrixindex_in_compressed(smat, icolumn, iline)
-          !if (itest/=iipt) then
-          !    write(*,'(a,5i8)') 'iproc, itest, iipt, iline, icolumn',bigdft_mpi%iproc, itest, iipt, iline, icolumn
-          !    stop 'itest/=iipt'
-          !end if
           ! Take the column due to the symmetry of the sparsity pattern
-          !write(2000+bigdft_mpi%iproc,*) 'iipt, iline, icolumn', iipt, iline, icolumn
           do jseg=smat%istsegline(icolumn),smat%istsegline(icolumn)+smat%nsegline(icolumn)-1
               ! A segment is always on one line, therefore no double loop
               do jorb = smat%keyg(1,1,jseg),smat%keyg(2,1,jseg)
                   ind = matrixindex_in_compressed_lowlevel(jorb, iline, smat%nfvctr, nseg, keyv, keyg, istsegline)
-                  !ivectorindex(ii)=matrixindex_in_compressed_fn(jorb, iline, smat%nfvctr, nseg, keyv, keyg)
-                  !ivectorindex(ii)=matrixindex_in_compressed(smat, jorb, iline)!-smat%smmm%isvctr_mm
                   if (ind>0) then
-                      !if (ivectorindex(ii)>0) ivectorindex(ii) = ivectorindex(ii) - smat%smmm%isvctr
                       ivectorindex(ii) = ind - smat%smmm%isvctr
                       if (ivectorindex(ii)<=0) then
-                          !write(*,'(a,5i8)') 'iproc, iipt, jorb, icolumn, val', bigdft_mpi%iproc, iipt, jorb, iline, matrixindex_in_compressed(smat, jorb, iline)
-                          write(*,'(a,6i8)') 'iproc, iipt, jorb, iline, val, ivectorindex(ii)', &
-                              bigdft_mpi%iproc, iipt, jorb, iline, ind, ivectorindex(ii)
                           stop 'ivectorindex(ii)<=0'
                       end if
                       ii = ii+1
                   end if
-                  !ivectorindex(ii)=matrixindex_in_compressed(smat, smat%keyg(1,2,jseg), jorb)-smat%smmm%isvctr_mm
-                  !ivectorindex(ii)=matrixindex_in_compressed(smat, jorb, iline)-smat%smmm%isvctr_mm
-                  !if (ivectorindex(ii)==0) then
-                  !    !write(*,'(a,5i8)') 'iproc, iipt, jorb, icolumn, val', bigdft_mpi%iproc, iipt, jorb, icolumn, matrixindex_in_compressed(smat, jorb, icolumn)
-                  !    write(*,'(a,5i8)') 'iproc, iipt, jorb, smat%keyg(1,2,jseg), val', &
-                  !            bigdft_mpi%iproc, iipt, jorb, smat%keyg(1,2,jseg), matrixindex_in_compressed(smat, smat%keyg(1,2,jseg), jorb)
-                  !    !write(*,'(a,5i8)') 'iproc, iipt, jorb, iline, val', &
-                  !    !        bigdft_mpi%iproc, iipt, jorb, iline, matrixindex_in_compressed(smat, jorb, iline)
-                  !    stop 'ivectorindex(ii)==0'
-                  !end if
               end do
           end do
       end do
@@ -2023,6 +2018,11 @@ contains
 
       ! parallelization of matrices, following same idea as norb/norbp/isorb
       !most equal distribution, but want corresponding to norbp for second column
+
+      !$omp parallel default(none) &
+      !$omp shared(nproc, isfvctr_par, nfvctr_par, nvctr, istsegline, keyv, isvctr_par) &
+      !$omp private(jproc, jst_line, jst_seg)
+      !$omp do
       do jproc=0,nproc-1
           jst_line = isfvctr_par(jproc)+1
           if (nfvctr_par(jproc)==0) then
@@ -2032,6 +2032,9 @@ contains
              isvctr_par(jproc) = keyv(jst_seg)-1
           end if
       end do
+      !$omp end do
+      !$omp end parallel
+
       do jproc=0,nproc-1
          if (jproc==nproc-1) then
             nvctr_par(jproc)=nvctr-isvctr_par(jproc)
