@@ -1023,9 +1023,9 @@ module sparsematrix
      integer,parameter :: comm_strategy=GET
      integer,parameter :: data_strategy=SUBMATRIX!GLOBAL_MATRIX
 
-     call f_routine(id='compress_matrix_distributed')
+     call f_routine(id='compress_matrix_distributed_new')
 
-     call timing(iproc,'compressd_mcpy','ON')
+     !call timing(iproc,'compressd_mcpy','ON')
 
 
      if (data_strategy==GLOBAL_MATRIX) then
@@ -1040,119 +1040,16 @@ module sparsematrix
                   smat%smmm%nvctrp, smat%smmm%isvctr, &
                   smat%smmm%nseg, smat%smmm%keyv, smat%smmm%keyg, smat%smmm%istsegline, &
                   'large_to_small', matrix_local, matrixp)
-             !!if (bigdft_mpi%iproc==0) write(*,*) 'sum(matrix_local)',sum(matrix_local)
-
-             call timing(iproc,'compressd_mcpy','OF')
-             call timing(iproc,'compressd_comm','ON')
-
-             if (nproc>1) then
-                !call to_zero(smat%nvctrp_tg, matrix_compr(1))
-                call f_zero(matrix_compr)
-                 !window = mpiwindow(smat%smmm%nvctrp_mm, matrix_local(1), bigdft_mpi%mpi_comm)
-
-                 ! Create a window for all taskgroups to which iproc belongs (max 2)
-                 windows = f_malloc(smat%ntaskgroup)
-                 do itg=1,smat%ntaskgroupp
-                     iitg = smat%taskgroupid(itg)
-                     !write(*,'(2(a,i0))') 'task ',iproc,' is on window ',iitg
-                     windows(iitg) = mpiwindow(smat%smmm%nvctrp_mm, matrix_local(1), smat%mpi_groups(iitg)%mpi_comm)
-                 end do
-                 do jproc=1,smat%smmm%nccomm_smmm
-                     jproc_send = smat%smmm%luccomm_smmm(1,jproc)
-                     ist_send = smat%smmm%luccomm_smmm(2,jproc)
-                     ist_recv = smat%smmm%luccomm_smmm(3,jproc)
-                     ncount = smat%smmm%luccomm_smmm(4,jproc)
-                     !write(*,'(5(a,i0))') 'task ',iproc,' gets ',ncount,' elements at position ',ist_recv,' from position ',ist_send,' on task ',jproc_send
-                     iitg = get_taskgroup_id(iproc,jproc_send)
-                     ! Now get the task ID on the taskgroup (subtract the ID of the first task)
-                     !jproc_send = jproc_send - smat%isrank(iitg)
-                     ii = jproc_send
-                     jproc_send = get_rank_on_taskgroup(ii,iitg)
-                     !call mpiget(matrix_compr(ist_recv), ncount, jproc_send, int(ist_send-1,kind=mpi_address_kind), window)
-                     !write(*,'(3(a,i0))') 'task ',iproc,' gets data from task ',jproc_send,' on window ',iitg
-                     call mpiget(matrix_compr(ist_recv), ncount, jproc_send, int(ist_send-1,kind=mpi_address_kind), windows(iitg))
-                 end do
-             else
-                 ist_send = smat%smmm%luccomm_smmm(2,1)
-                 ist_recv = smat%smmm%luccomm_smmm(3,1)
-                 ncount = smat%smmm%luccomm_smmm(4,1)
-                 call vcopy(ncount, matrix_local(ist_send), 1, matrix_compr(ist_recv), 1)
-             end if
-
-             if (nproc>1) then
-                 ! Synchronize the communication
-                 do itg=1,smat%ntaskgroupp
-                     iitg = smat%taskgroupid(itg)
-                     call mpi_fenceandfree(windows(iitg))
-                 end do
-                 call f_free(windows)
-                 !call mpi_fenceandfree(window)
-             end if
-
+             call compress_matrix_distributed_new2(iproc, nproc, smat, layout, matrix_local, matrix_compr)
              call f_free_ptr(matrix_local)
-
          end if
-
-         call timing(iproc,'compressd_comm','OF')
      else
          stop 'compress_matrix_distributed: wrong data_strategy'
      end if
 
-     call timing(iproc,'compressd_comm','OF')
+     !!call timing(iproc,'compressd_comm_new','OF')
 
      call f_release_routine()
-
-
-     contains
-
-
-
-       !> Get the taskgroup which should be used for the communication, i.e. the
-       !! one to which both iproc and jproc belong
-       integer function get_taskgroup_id(iproc,jproc)
-         implicit none
-         integer,intent(in) :: iproc, jproc
-
-         ! Local variables
-         integer :: itg, iitg, jtg, jjtg
-         logical :: found
-
-         ! A task never belongs to more than 2 taskgroups 
-         found = .false.
-         iloop: do itg=1,2
-             iitg = smat%inwhichtaskgroup(itg,iproc)
-             jloop: do jtg=1,2
-                 jjtg = smat%inwhichtaskgroup(jtg,jproc)
-                 if (iitg==jjtg) then
-                     get_taskgroup_id = iitg
-                     found = .true.
-                     exit iloop
-                 end if
-             end do jloop
-         end do iloop
-         if (.not.found) stop 'get_taskgroup_id did not suceed'
-       end function get_taskgroup_id
-
-
-       ! Get the ID of task iiproc on taskgroup iitg
-       integer function get_rank_on_taskgroup(iiproc,iitg)
-         implicit none
-         ! Calling arguments
-         integer,intent(in) :: iiproc, iitg
-         ! Local variables
-         integer :: jproc
-         logical :: found
-
-         found = .false.
-         do jproc=0,smat%nranks(iitg)-1
-             if (smat%tgranks(jproc,iitg) == iiproc) then
-                 get_rank_on_taskgroup = jproc
-                 found = .true.
-                 exit
-             end if
-         end do
-         if (.not.found) stop 'get_rank_on_taskgroup did not suceed'
-       end function get_rank_on_taskgroup
 
   end subroutine compress_matrix_distributed_new
 
@@ -1183,7 +1080,7 @@ module sparsematrix
      integer,parameter :: comm_strategy=GET
      integer,parameter :: data_strategy=SUBMATRIX!GLOBAL_MATRIX
 
-     call f_routine(id='compress_matrix_distributed')
+     call f_routine(id='compress_matrix_distributed_new2')
 
      call timing(iproc,'compressd_mcpy','ON')
 
@@ -2161,6 +2058,8 @@ module sparsematrix
       ! Local variables
       integer :: i, ii, ind, iline, icolumn
 
+      call f_routine(id='transform_sparsity_pattern')
+
         if (direction=='large_to_small') then
 
             ! No need for f_zero since every value will be overwritten.
@@ -2205,6 +2104,7 @@ module sparsematrix
             stop 'wrong direction'
         end if
 
+      call f_release_routine()
 
     end subroutine transform_sparsity_pattern
 

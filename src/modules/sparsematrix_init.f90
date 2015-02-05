@@ -632,14 +632,15 @@ contains
 
 
       ! Determine ispt
-      nout_par = f_malloc0(0.to.nproc-1,id='ist_par')
-      nout_par(iproc) = sparsemat%smmm%nout
-      call mpiallred(nout_par(0), nproc, mpi_sum, bigdft_mpi%mpi_comm)
-      ispt = 0
-      do jproc=0,iproc-1
-          ispt = ispt + nout_par(jproc)
-      end do
-      call f_free(nout_par)
+      ispt = get_offset(iproc, nproc, sparsemat%smmm%nout)
+      !!nout_par = f_malloc0(0.to.nproc-1,id='ist_par')
+      !!nout_par(iproc) = sparsemat%smmm%nout
+      !!call mpiallred(nout_par(0), nproc, mpi_sum, bigdft_mpi%mpi_comm)
+      !!ispt = 0
+      !!do jproc=0,iproc-1
+      !!    ispt = ispt + nout_par(jproc)
+      !!end do
+      !!call f_free(nout_par)
 
       nseq_per_line = f_malloc(norb,id='nseq_per_line')
       !!call determine_sequential_length(norb, norbp, isorb, nseg, &
@@ -662,25 +663,6 @@ contains
       isorb_par_ideal = f_malloc(0.to.nproc-1,id='norb_par_ideal')
       ! Assign the columns of the matrix to the processes such that the load
       ! balancing is optimal
-      ! First the default initializations
-      !!!!norb_par_ideal(:)=0
-      !!!!isorb_par_ideal(:)=norb
-      !!!!rseq_ideal = rseq/real(nproc,kind=8)
-      !!!!jjproc=0
-      !!!!tt=0.d0
-      !!!!iiorb=0
-      !!!!isorb_par_ideal(0)=0
-      !!!!do iorb=1,norb
-      !!!!    iiorb=iiorb+1
-      !!!!    tt=tt+real(nseq_per_line(iorb),kind=8)
-      !!!!    if (tt>=real(jjproc+1,kind=8)*rseq_ideal .and. jjproc/=nproc-1) then
-      !!!!        norb_par_ideal(jjproc)=iiorb
-      !!!!        isorb_par_ideal(jjproc+1)=iorb
-      !!!!        jjproc=jjproc+1
-      !!!!        iiorb=0
-      !!!!    end if
-      !!!!end do
-      !!!!norb_par_ideal(jjproc)=iiorb
       rseq_ideal = rseq/real(nproc,kind=8)
       call redistribute(nproc, norb, rseq_per_line, rseq_ideal, norb_par_ideal)
       isorb_par_ideal(0) = 0
@@ -723,14 +705,15 @@ contains
       !!write(*,*) 'OLD: iproc, nseq', iproc, sparsemat%smmm%nseq
 
       ! Determine ispt
-      nout_par = f_malloc0(0.to.nproc-1,id='ist_par')
-      nout_par(iproc) = sparsemat%smmm%nout
-      call mpiallred(nout_par(0), nproc, mpi_sum, bigdft_mpi%mpi_comm)
-      ispt = 0
-      do jproc=0,iproc-1
-          ispt = ispt + nout_par(jproc)
-      end do
-      nseq_per_pt = f_malloc0(sum(nout_par),id='nseq_per_pt')
+      ispt = get_offset(iproc, nproc, sparsemat%smmm%nout)
+      !!nout_par = f_malloc0(0.to.nproc-1,id='ist_par')
+      !!nout_par(iproc) = sparsemat%smmm%nout
+      !!call mpiallred(nout_par(0), nproc, mpi_sum, bigdft_mpi%mpi_comm)
+      !!ispt = 0
+      !!do jproc=0,iproc-1
+      !!    ispt = ispt + nout_par(jproc)
+      !!end do
+      !!nseq_per_pt = f_malloc0(sum(nout_par),id='nseq_per_pt')
       !!call determine_sequential_length_new(sparsemat%smmm%nout, ispt, sparsemat%nseg, sparsemat%keyv, sparsemat%keyg, &
       !!     sparsemat, sum(nout_par), sparsemat%smmm%nseq, nseq_per_pt)
       !!call determine_sequential_length_new(sparsemat%smmm%nout, ispt, nseg, keyv, keyg, &
@@ -739,7 +722,7 @@ contains
       call determine_sequential_length_new2(sparsemat%smmm%nout, ispt, nseg, norb, keyv, keyg, &
            sparsemat, istsegline, sparsemat%smmm%nseq, nseq_per_line)
       !write(*,'(a,i3,3x,200i10)') 'iproc, nseq_per_line', iproc, nseq_per_line
-      call f_free(nout_par)
+      !!call f_free(nout_par)
       !!write(*,*) 'NEW: iproc, nseq', iproc, sparsemat%smmm%nseq
 
       ! Get the load balancing
@@ -764,7 +747,7 @@ contains
       
 
       call f_free(nseq_per_line)
-      call f_free(nseq_per_pt)
+      !!call f_free(nseq_per_pt)
       call f_free(rseq_per_line)
 
 
@@ -975,6 +958,38 @@ contains
     end subroutine init_line_and_column
 
 
+    !> Calculates the offset of a parallel distribution for each MPI task
+    function get_offset(iproc, nproc, n) result(is)
+      implicit none
+
+      ! Calling arguments
+      integer,intent(in) :: iproc !< task ID
+      integer,intent(in) :: nproc !< total number of tasks
+      integer,intent(in) :: n !< size of the distributed quantity on each task
+      integer :: is
+
+      ! Local variables
+      integer :: jproc
+      integer,dimension(1) :: n_, is_
+      integer,dimension(:),allocatable :: narr, isarr
+
+      ! Since the wrapper wants arrays
+      n_(1) = n
+      ! Gather the data on the last process
+      narr = f_malloc(0.to.nproc-1,id='narr')
+      isarr = f_malloc(0.to.nproc-1,id='n=isarr')
+      call mpigather(n_, narr, nproc-1)
+      if (iproc==nproc-1) then
+          isarr(0) = 0
+          do jproc=1,nproc-1
+              isarr(jproc) = isarr(jproc-1) + narr(jproc-1)
+          end do
+      end if
+      call mpiscatter(isarr, is_, nproc-1)
+      is = is_(1)
+      call f_free(narr)
+      call f_free(isarr)
+    end function get_offset
 
 
     subroutine nseg_perline(norb, lut, nseg, nvctr, nsegline)
@@ -1996,6 +2011,8 @@ contains
       ! Local variables
       integer :: jproc, jst_line, jst_seg
 
+      call f_routine(id='init_matrix_parallelization')
+
       ! parallelization of matrices, following same idea as norb/norbp/isorb
       !most equal distribution, but want corresponding to norbp for second column
       do jproc=0,nproc-1
@@ -2016,6 +2033,8 @@ contains
          if (iproc==jproc) isvctr=isvctr_par(jproc)
          if (iproc==jproc) nvctrp=nvctr_par(jproc)
       end do
+
+      call f_release_routine()
 
     end subroutine init_matrix_parallelization
 

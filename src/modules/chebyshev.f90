@@ -83,35 +83,9 @@ module chebyshev
           mat_seq = sparsematrix_malloc(kernel, iaction=SPARSEMM_SEQ, id='mat_seq')
         
           if (calculate_SHS) then
-              !!matrix = sparsematrix_malloc(kernel, iaction=DENSE_MATMUL, id='matrix')
-        
-              !if (kernel%smmm%nfvctrp>0) then
-              !    call f_zero(kernel%nfvctr*kernel%smmm%nfvctrp, matrix(1,1))
-              !end if
-              !write(*,*) 'WARNING CHEBYSHEV: MODIFYING MATRIX MULTIPLICATION'
-              if (kernel%smmm%nfvctrp>0) then
-    
-                  !!!do iseg=isegstart,isegend
-                  !!do iseg=kernel%smmm%isseg,kernel%smmm%ieseg
-                  !!    ii=kernel%keyv(iseg)-1
-                  !!    ! A segment is always on one line, therefore no double loop
-                  !!    do jorb=kernel%keyg(1,1,iseg),kernel%keyg(2,1,iseg)
-                  !!        ii=ii+1
-                  !!        if (ii<kernel%smmm%isvctr_mm+1) cycle
-                  !!        if (ii>kernel%smmm%isvctr_mm+kernel%smmm%nvctrp_mm) exit
-                  !!        iiorb = kernel%keyg(1,2,iseg)
-                  !!        jjorb = jorb
-                  !!        matrix(jjorb,iiorb-kernel%smmm%isfvctr)=invovrlp_compr(ii-kernel%isvctrp_tg)
-                  !!        !if (jjorb==iiorb) then
-                  !!        !    matrix(jjorb,iiorb-kernel%isfvctr)=1.d0
-                  !!        !else
-                  !!        !    matrix(jjorb,iiorb-kernel%isfvctr)=0.d0
-                  !!        !end if
-                  !!    end do
-                  !!end do
+              if (kernel%smmm%nvctrp>0) then
                   do i=1,kernel%smmm%nvctrp
                       ii = kernel%smmm%isvctr + i
-                      !!call get_line_and_column(ii, kernel%smmm%nseg, kernel%smmm%keyv, kernel%smmm%keyg, iline, icolumn)
                       iline = kernel%smmm%line_and_column(1,i)
                       icolumn = kernel%smmm%line_and_column(2,i)
                       jj=matrixindex_in_compressed(kernel, icolumn, iline)
@@ -124,263 +98,74 @@ module chebyshev
 
               end if
           end if
-        
-        
-        
-    
-    
-        
-          !!vectors = f_malloc0((/ kernel%nfvctrp, kernel%smmm%nfvctrp, 4 /),id='vectors')
           vectors_new = f_malloc0((/kernel%smmm%nvctrp,4/),id='vectors_new')
-          !if (kernel%smmm%nfvctrp>0) then
-          !    call f_zero(kernel%nfvctr*kernel%smmm%nfvctrp, vectors(1,1,1))
-          !end if
-    
-        
       end if
         
       
       if (calculate_SHS) then
       
-          if (kernel%smmm%nfvctrp>0) then
+          if (kernel%smmm%nvctrp>0) then
               call sequential_acces_matrix_fast2(kernel, ham_compr, mat_seq)
-              !!write(500,*) 'calling from cheby1'
-              !!call sparsemm(kernel, mat_seq, matrix(1,1), vectors(1,1,1))
               call sparsemm_new(kernel, mat_seq, matrix_new(1), vectors_new(1,1))
-              !!write(*,*) 'after sparsemm_new first'
-              !!mat_compr = 0.d0
-              !!call f_zero(matrix)
-              !!write(*,*) 'after zero matrix'
               call f_zero(matrix_new)
-              !!write(*,*) 'after zero matrix_new'
-              ! use mat_seq as workarray
               call sequential_acces_matrix_fast2(kernel, invovrlp_compr, mat_seq)
-              !!write(500,*) 'calling from cheby1'
-              !!call sparsemm(kernel, mat_seq, vectors(1,1,1), matrix(1,1))
               call sparsemm_new(kernel, mat_seq, vectors_new(1,1), matrix_new(1))
-              !call f_zero(kernel%nvctr, SHS(1))
           end if
-          !call f_zero(kernel%nvctrp_tg, SHS(1))
-          
-          !!!@@if (kernel%smmm%nfvctrp>0) then
-          !!!@@    do iseg=kernel%smmm%isseg,kernel%smmm%ieseg
-          !!!@@        ii=kernel%keyv(iseg)-1
-          !!!@@        ! A segment is always on one line, therefore no double loop
-          !!!@@        do jorb=kernel%keyg(1,1,iseg),kernel%keyg(2,1,iseg)
-          !!!@@            ii=ii+1
-          !!!@@            if (ii<kernel%smmm%isvctr_mm+1) cycle
-          !!!@@            if (ii>kernel%smmm%isvctr_mm+kernel%smmm%nvctrp_mm) exit
-          !!!@@            iiorb = kernel%keyg(1,2,iseg)
-          !!!@@            jjorb = jorb
-          !!!@@            mat_compr(ii-kernel%isvctrp_tg)=matrix(jjorb,iiorb-kernel%smmm%isfvctr)
-          !!!@@        end do
-          !!!@@    end do
-          !!!@@end if
-
-          !!do i=1,kernel%smmm%nvctrp
-          !!    ii = kernel%smmm%isvctr + i
-          !!    call get_line_and_column(ii, kernel%smmm%nseg, kernel%smmm%keyv, kernel%smmm%keyg, iline, icolumn)
-          !!    matrix(icolumn,iline-kernel%smmm%isfvctr) = matrix_new(i)
-          !!end do
-      !!write(*,*) 'sum(matrix)', sum(matrix)
-      !!do i=1,size(matrix,2)
-      !!  do j=1,size(matrix,1)
-      !!    write(800,*) 'i, j, val', i, j, matrix(j,i)
-      !!  end do
-      !!end do
-
-      
-          !if (nproc > 1) then
-             !call mpiallred(SHS(1), kernel%nvctr, mpi_sum, bigdft_mpi%mpi_comm)
-             !!call f_zero(mat_compr)
-             !!call compress_matrix_distributed(iproc, nproc, kernel, DENSE_MATMUL, &
-             !!     matrix, mat_compr)
-             !!write(*,*) 'calling compress_matrix_distributed_new in chebyshev_clean, iproc', iproc
-             call compress_matrix_distributed_new(iproc, nproc, kernel, DENSE_MATMUL, &
-                  matrix_new, mat_compr)
-             !!write(*,*) 'after compress_matrix_distributed_new in chebyshev_clean, iproc', iproc
-          !end if
-      !do i=1,size(mat_compr,1)
-      !    write(801,*) 'i, val', i, j, mat_compr(i)
-      !end do
-          
+          call compress_matrix_distributed_new(iproc, nproc, kernel, DENSE_MATMUL, &
+               matrix_new, mat_compr)
       else
           call vcopy(kernel%nvctrp_tg, ham_compr(1), 1, mat_compr(1), 1)
-      
       end if
       
-      !!write(*,*) 'sum(mat_compr)', sum(mat_compr)
-      !!do i=1,size(ham_compr)
-      !!    write(700+iproc,*) mat_compr(i)
-      !!end do
       if (kernel%smmm%nvctrp>0) then
           call sequential_acces_matrix_fast2(kernel, mat_compr, mat_seq)
       end if
       
-    
-      !!if (iproc==0) then
-      !!    do istat=1,kernel%nvctr
-      !!        write(300,*) ham_compr(istat), SHS(istat)
-      !!    end do
-      !!end if
         
       if (kernel%smmm%nfvctrp>0) then
         
           ! No need to set to zero the 3rd and 4th entry since they will be overwritten
           ! by copies of the 1st entry.
           if (kernel%smmm%nfvctrp>0) then
-              !!call f_zero(2*kernel%nfvctr*kernel%smmm%nfvctrp, vectors(1,1,1))
               call f_zero(2*kernel%smmm%nvctrp, vectors_new(1,1))
           end if
-          !!do iorb=1,kernel%smmm%nfvctrp
-          !!    iiorb=kernel%smmm%isfvctr+iorb
-          !!    vectors(iiorb,iorb,1)=1.d0
-          !!end do
           do i=1,kernel%smmm%nvctrp
               ii = kernel%smmm%isvctr + i
-              !!call get_line_and_column(ii, kernel%smmm%nseg, kernel%smmm%keyv, kernel%smmm%keyg, iline, icolumn)
               iline = kernel%smmm%line_and_column(1,i)
               icolumn = kernel%smmm%line_and_column(2,i)
               if (iline==icolumn) vectors_new(i,1) = 1.d0
           end do
         
           if (kernel%smmm%nvctrp>0) then
-        
-              !!call vcopy(kernel%nfvctr*kernel%smmm%nfvctrp, vectors(1,1,1), 1, vectors(1,1,3), 1)
-              !!call vcopy(kernel%nfvctr*kernel%smmm%nfvctrp, vectors(1,1,1), 1, vectors(1,1,4), 1)
-              call vcopy(kernel%smmm%nvctrp, vectors_new(1,1), 1, vectors_new(1,3), 1)
-              call vcopy(kernel%smmm%nvctrp, vectors_new(1,1), 1, vectors_new(1,4), 1)
-            
-              ! apply(3/2 - 1/2 S) H (3/2 - 1/2 S)
-              !!if (number_of_matmuls==three) then
-              !!    call sparsemm(kernel, invovrlp_compr_seq, vectors(1,1,3), vectors(1,1,1))
-              !!    call sparsemm(kernel, ham_compr_seq, vectors(1,1,1), vectors(1,1,3))
-              !!    call sparsemm(kernel, invovrlp_compr_seq, vectors(1,1,3), vectors(1,1,1))
-              !!else if (number_of_matmuls==one) then
-                  !!call sparsemm(kernel, mat_seq, vectors(1,1,3), vectors(1,1,1))
-                  call sparsemm_new(kernel, mat_seq, vectors_new(1,3), vectors_new(1,1))
-          !!do jproc=0,nproc-1
-          !!    if (iproc==jproc) then
-          !!        do i=1,size(vectors_new,1)
-          !!            write(1100+iproc,*) vectors_new(i,1)
-          !!        end do
-          !!    end if
-          !!    call mpi_barrier(mpi_comm_world, ierr)
-          !!end do
-              !!write(*,*) 'sum(mat_seq)',sum(mat_seq)
-              !!write(*,*) 'sum(vectors_new(:,3))', sum(vectors_new(:,3))
-              !!write(*,*) 'sum(vectors_new(:,1))', sum(vectors_new(:,1))
-              !!end if
-            
-            
-              !!call vcopy(kernel%nfvctr*kernel%smmm%nfvctrp, vectors(1,1,1), 1, vectors(1,1,2), 1)
 
-          !!do jproc=0,nproc-1
-          !!    do i=1,size(vectors_new,1)
-          !!        write(1500+iproc,*) vectors_new(i,1)
-          !!    end do
-          !!end do
-              call vcopy(kernel%smmm%nvctrp, vectors_new(1,1), 1, vectors_new(1,2), 1)
-    
-              !initialize fermi
-              !!call f_zero(fermi)
-              !!call f_zero(penalty_ev)
-
-              !fermi_new = f_malloc0((/kernel%smmm%nvctrp,ncalc/),id='fermi_new')
-              !penalty_ev_new = f_malloc0((/kernel%smmm%nvctrp,2/),id='penalty_ev_new')
               call f_zero(fermi_new)
               call f_zero(penalty_ev_new)
+        
+              call vcopy(kernel%smmm%nvctrp, vectors_new(1,1), 1, vectors_new(1,3), 1)
+              call vcopy(kernel%smmm%nvctrp, vectors_new(1,1), 1, vectors_new(1,4), 1)
 
-
-
-              !!call compress_polynomial_vector(iproc, nproc, nsize_polynomial, &
-              !!     kernel%nfvctr, kernel%smmm%nfvctrp, kernel%smmm%isfvctr, kernel, &
-              !!     vectors(1,1,4), chebyshev_polynomials(1,1))
               call compress_polynomial_vector_new(iproc, nproc, nsize_polynomial, &
                    kernel%nfvctr, kernel%smmm%nfvctrp, kernel, &
                    vectors_new(1,4), chebyshev_polynomials(1,1))
-          !!do jproc=0,nproc-1
-          !!    do i=1,size(vectors_new,1)
-          !!        write(1510+iproc,*) vectors_new(i,1)
-          !!    end do
-          !!end do
-              !!write(*,*) 'after compress_polynomial_vector_new'
+
               do icalc=1,ncalc
-                  !!call axpy_kernel_vectors(kernel, kernel%smmm%nfvctrp, kernel%nfvctr, &
-                  !!     kernel%smmm%nout, kernel%smmm%onedimindices, &
-                  !!     0.5d0*cc(1,1,icalc), vectors(1,1,4), fermi(:,1,icalc))
                   call daxpy(kernel%smmm%nvctrp, 0.5d0*cc(1,1,icalc), vectors_new(1,4), 1, fermi_new(1,icalc), 1)
-                  !!write(*,*) 'sum(fermi_new(:,icalc)) 1',sum(fermi_new(:,icalc))
-                  !!write(*,*) 'sum(vectors_new(:,1))',sum(vectors_new(:,1))
-                  !!do i=1,kernel%smmm%nfvctrp
-                  !!    do j=1,kernel%nfvctr
-                  !!        write(700,*) 'i, j, vals', vectors(j,i,4), fermi(j,i,icalc)
-                  !!    end do
-                  !!end do
               end do
-          !!do jproc=0,nproc-1
-          !!    do i=1,size(vectors_new,1)
-          !!        write(1520+iproc,*) vectors_new(i,1)
-          !!    end do
-          !!end do
-              !!call axpy_kernel_vectors(kernel, kernel%smmm%nfvctrp, kernel%nfvctr, &
-              !!     kernel%smmm%nout, kernel%smmm%onedimindices, &
-              !!     0.5d0*cc(1,3,1), vectors(1,1,4), penalty_ev(:,1,1))
               call daxpy(kernel%smmm%nvctrp, 0.5d0*cc(1,3,1), vectors_new(1,4), 1, penalty_ev_new(1,1), 1)
-              !!write(*,*) 'sum(penalty_ev_new(:,1))',sum(penalty_ev_new(:,1))
-              !!call axpy_kernel_vectors(kernel, kernel%smmm%nfvctrp, kernel%nfvctr, &
-              !!     kernel%smmm%nout, kernel%smmm%onedimindices, &
-              !!     0.5d0*cc(1,3,1), vectors(1,1,4), penalty_ev(:,1,2))
               call daxpy(kernel%smmm%nvctrp, 0.5d0*cc(1,3,1), vectors_new(1,4), 1, penalty_ev_new(1,2), 1)
-              !!write(*,*) 'sum(penalty_ev_new(:,2))',sum(penalty_ev_new(:,2))
-              !!call compress_polynomial_vector(iproc, nproc, nsize_polynomial, &
-              !!     kernel%nfvctr, kernel%smmm%nfvctrp, kernel%smmm%isfvctr, kernel, &
-              !!     vectors(1,1,2), chebyshev_polynomials(1,2))
+            
+              call sparsemm_new(kernel, mat_seq, vectors_new(1,3), vectors_new(1,1))
+              call vcopy(kernel%smmm%nvctrp, vectors_new(1,1), 1, vectors_new(1,2), 1)
+    
+
               call compress_polynomial_vector_new(iproc, nproc, nsize_polynomial, &
                    kernel%nfvctr, kernel%smmm%nfvctrp, kernel, &
                    vectors_new(1,2), chebyshev_polynomials(1,2))
-          !!do jproc=0,nproc-1
-          !!    do i=1,size(vectors_new,1)
-          !!        write(1530+iproc,*) vectors_new(i,1)
-          !!    end do
-          !!end do
               do icalc=1,ncalc
-                  !!do i=1,kernel%smmm%nfvctrp
-                  !!    do j=1,kernel%nfvctr
-                  !!        write(740,*) 'i, j, vals', vectors(j,i,2), fermi(j,i,icalc)
-                  !!    end do
-                  !!end do
-                  !!call axpy_kernel_vectors(kernel, kernel%smmm%nfvctrp, kernel%nfvctr, &
-                  !!     kernel%smmm%nout, kernel%smmm%onedimindices, &
-                  !!     cc(2,1,icalc), vectors(1,1,2), fermi(:,1,icalc))
                   call daxpy(kernel%smmm%nvctrp, cc(2,1,icalc), vectors_new(1,2), 1, fermi_new(1,icalc), 1)
-                  !!write(*,*) 'sum(fermi_new(:,icalc)) 2',sum(fermi_new(:,icalc))
-                  !!do i=1,kernel%smmm%nfvctrp
-                  !!    do j=1,kernel%nfvctr
-                  !!        write(750,*) 'i, j, vals', vectors(j,i,2), fermi(j,i,icalc)
-                  !!    end do
-                  !!end do
               end do
-          !!do jproc=0,nproc-1
-          !!    do i=1,size(vectors_new,1)
-          !!        write(1540+iproc,*) vectors_new(i,1)
-          !!    end do
-          !!end do
-              !!call axpy_kernel_vectors(kernel, kernel%smmm%nfvctrp, kernel%nfvctr, &
-              !!     kernel%smmm%nout, kernel%smmm%onedimindices, &
-              !!     cc(2,3,1), vectors(1,1,2), penalty_ev(:,1,1))
               call daxpy(kernel%smmm%nvctrp, cc(2,3,1), vectors_new(1,2), 1, penalty_ev_new(1,1), 1)
-              !!write(*,*) 'sum(penalty_ev_new(:,1))',sum(penalty_ev_new(:,1))
-              !!call axpy_kernel_vectors(kernel, kernel%smmm%nfvctrp, kernel%nfvctr, &
-              !!     kernel%smmm%nout, kernel%smmm%onedimindices, &
-              !!     -cc(2,3,1), vectors(1,1,2), penalty_ev(:,1,2))
               call daxpy(kernel%smmm%nvctrp, -cc(2,3,1), vectors_new(1,2), 1, penalty_ev_new(1,2), 1)
-              !!write(*,*) 'sum(penalty_ev_new(:,2))',sum(penalty_ev_new(:,2))
-          !!do jproc=0,nproc-1
-          !!    do i=1,size(vectors_new,1)
-          !!        write(1550+iproc,*) vectors_new(i,1)
-          !!    end do
-          !!end do
             
             
              !!write(*,*) 'before main_loop, iproc', iproc
