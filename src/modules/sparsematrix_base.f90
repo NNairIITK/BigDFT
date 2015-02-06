@@ -132,13 +132,15 @@ module sparsematrix_base
   public :: matrices_null
 
   !> Public constants
-  integer,parameter,public :: SPARSE_TASKGROUP = 50
-  integer,parameter,public :: SPARSE_FULL      = 51
-  integer,parameter,public :: SPARSE_PARALLEL  = 52
-  integer,parameter,public :: DENSE_FULL       = 53
-  integer,parameter,public :: DENSE_PARALLEL   = 54
-  integer,parameter,public :: DENSE_MATMUL     = 55
-  integer,parameter,public :: SPARSEMM_SEQ     = 56
+  integer,parameter,public :: SPARSE_TASKGROUP    = 50
+  integer,parameter,public :: SPARSE_FULL         = 51
+  integer,parameter,public :: SPARSE_PARALLEL     = 52
+  integer,parameter,public :: SPARSE_MATMUL_SMALL = 53
+  integer,parameter,public :: SPARSE_MATMUL_LARGE = 54
+  integer,parameter,public :: DENSE_FULL          = 55
+  integer,parameter,public :: DENSE_PARALLEL      = 56
+  integer,parameter,public :: DENSE_MATMUL        = 57
+  integer,parameter,public :: SPARSEMM_SEQ        = 58
 
 
 
