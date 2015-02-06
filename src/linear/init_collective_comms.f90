@@ -214,6 +214,8 @@ subroutine check_communications_locreg(iproc,nproc,orbs,nspin,Lzd,collcom,smat,m
                !not possible to iterate over norbp since the distributions over the MPI tasks might be incompatible with smat%nfvctrp
                is=(ispin-1)*orbs%norbu+orbs%isorbu+1
                ie=(ispin-1)*orbs%norbu+orbs%isorbu+orbs%norbup
+               !is=(ispin-1)*smat%nfvctr+smat%isfvctr+1
+               !is=(ispin-1)*smat%nfvctr+smat%isfvctr+smat%nfvctrp
                do iiorb=is,ie
                    !iiorb=orbs%isorb+iorb
                    !if (orbs%spinsgn(iiorb)>0) then
@@ -264,7 +266,8 @@ subroutine check_communications_locreg(iproc,nproc,orbs,nspin,Lzd,collcom,smat,m
                    end do
                    call f_free(psii)
                end do
-               ist=(ispin-1)*smat%nvctr+smat%isvctrp_tg+1
+               !ist=(ispin-1)*smat%nvctr+smat%isvctrp_tg+1
+               ist=(ispin-1)*smat%nvctrp_tg+smat%isvctrp_tg+1
                call compress_matrix_distributed(iproc, nproc, smat, DENSE_PARALLEL, &
                     matp, mat_compr(ist:))
            end do
@@ -272,8 +275,12 @@ subroutine check_communications_locreg(iproc,nproc,orbs,nspin,Lzd,collcom,smat,m
            call f_free(psiig)
            call f_free(psijg)
            call f_free(matp)
-           do i=1,smat%nvctrp_tg
-               maxdiff=max(abs(mat_compr(i+smat%isvctrp_tg)-mat%matrix_compr(i)),maxdiff)
+           !write(*,'(3(a,i0))') 'task ',iproc,' checks the values from ',1+smat%isvctrp_tg,' to ',smat%nvctrp_tg+smat%isvctrp_tg
+           !write(*,'(3(a,i0))') 'task ',iproc,' checks the values from ',smat%istartend_local(1),' to ',smat%istartend_local(2)
+           !do i=1,smat%nvctrp_tg
+           do i=smat%istartend_local(1),smat%istartend_local(2)
+               !maxdiff=max(abs(mat_compr(i+smat%isvctrp_tg)-mat%matrix_compr(i)),maxdiff)
+               maxdiff=max(abs(mat_compr(i)-mat%matrix_compr(i)),maxdiff)
                !write(8000+iproc,'(a,i7,2es15.5)') 'i, mat_compr(i), mat%matrix_compr(i)', &
                !    i, mat_compr(i), mat%matrix_compr(i)
            end do

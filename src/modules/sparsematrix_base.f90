@@ -78,6 +78,8 @@ module sparsematrix_base
       integer,dimension(2) :: istartendseg_local !< first and last segment of the sparse matrix which is actually used by a given MPI task
       integer,dimension(:,:),pointer :: tgranks !< global task IDs of the tasks in each taskgroup
       integer,dimension(:),pointer :: nranks !< number of task on each taskgroup
+      integer :: nccomm !<number of communications required for the compress distributed in the dense parallel format
+      integer,dimension(:,:),pointer :: luccomm !<lookup array for the communications required for the compress distributed in the dense parallel format
   end type sparse_matrix
 
 
@@ -171,6 +173,7 @@ module sparsematrix_base
       nullify(sparsemat%inwhichtaskgroup)
       nullify(sparsemat%tgranks)
       nullify(sparsemat%nranks)
+      nullify(sparsemat%luccomm)
       call nullify_sparse_matrix_matrix_multiplication(sparsemat%smmm) 
     end subroutine nullify_sparse_matrix
 
@@ -334,6 +337,7 @@ module sparsematrix_base
       call f_free_ptr(sparseMat%inwhichtaskgroup)
       call f_free_ptr(sparseMat%tgranks)
       call f_free_ptr(sparseMat%nranks)
+      call f_free_ptr(sparseMat%luccomm)
     end subroutine deallocate_sparse_matrix
 
     subroutine deallocate_sparse_matrix_matrix_multiplication(smmm)
