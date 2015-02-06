@@ -24,7 +24,6 @@ module sparsematrix
   public :: uncompress_matrix, uncompress_matrix2
   public :: check_matrix_compression
   public :: transform_sparse_matrix, transform_sparse_matrix_local
-  !public :: compress_matrix_distributed, compress_matrix_distributed_new, compress_matrix_distributed_new2
   public :: compress_matrix_distributed_wrapper
   public :: uncompress_matrix_distributed2
   public :: sequential_acces_matrix_fast, sequential_acces_matrix_fast2
@@ -680,8 +679,7 @@ module sparsematrix
 
      call timing(iproc,'compressd_mcpy','OF')
 
-     !call compress_matrix_distributed_new2(iproc, nproc, smat, layout, matrix_local, matrix_compr)
-     call compress_matrix_distributed_new2(iproc, nproc, smat, SPARSE_PARALLEL, matrix_local, matrix_compr)
+     call compress_matrix_distributed_core(iproc, nproc, smat, SPARSE_PARALLEL, matrix_local, matrix_compr)
      call f_free_ptr(matrix_local)
      !@ END NEW #################
 
@@ -721,7 +719,6 @@ module sparsematrix
                   &' instead of '//trim(yaml_toa(smat%smmm%nvctrp_mm,fmt='(i0)')), &
                   err_name='BIGDFT_RUNTIME_ERROR')
          end if
-         !call compress_matrix_distributed_new2(iproc, nproc, smat, layout, matrix_local, matrix_compr)
          matrix_local => matrixp
      else if (layout==SPARSE_MATMUL_LARGE) then
          if (size(matrixp)/=smat%smmm%nvctrp) then
@@ -735,7 +732,6 @@ module sparsematrix
               smat%smmm%nvctrp, smat%smmm%isvctr, &
               smat%smmm%nseg, smat%smmm%keyv, smat%smmm%keyg, smat%smmm%istsegline, &
               'large_to_small', matrix_local, matrixp)
-         !call compress_matrix_distributed_new2(iproc, nproc, smat, layout, matrix_local, matrix_compr)
          !call f_free_ptr(matrix_local)
      else
              call f_err_throw('layout has the value '//trim(yaml_toa(layout,fmt='(i0)'))//&
@@ -743,7 +739,7 @@ module sparsematrix
                   &' and '//trim(yaml_toa(SPARSE_MATMUL_LARGE,fmt='(i0)')), &
                   err_name='BIGDFT_RUNTIME_ERROR')
      end if
-     call compress_matrix_distributed_new2(iproc, nproc, smat, SPARSE_MATMUL_SMALL, matrix_local, matrix_compr)
+     call compress_matrix_distributed_core(iproc, nproc, smat, SPARSE_MATMUL_SMALL, matrix_local, matrix_compr)
      if (layout==SPARSE_MATMUL_LARGE) then
          call f_free_ptr(matrix_local)
      end if
@@ -756,171 +752,10 @@ module sparsematrix
 
 
 
-   !!subroutine compress_matrix_distributed(iproc, nproc, smat, layout, matrixp, matrix_compr)
-   !!  use module_base
-   !!  implicit none
-
-   !!  ! Calling arguments
-   !!  integer,intent(in) :: iproc, nproc, layout
-   !!  type(sparse_matrix),intent(in) :: smat
-   !!  real(kind=8),dimension(:,:),intent(in) :: matrixp
-   !!  real(kind=8),dimension(smat%nvctrp_tg),target,intent(out) :: matrix_compr
-
-   !!  ! Local variables
-   !!  integer :: isegstart, isegend, iseg, ii, jorb, iiorb, jjorb, nfvctrp, isfvctr, nvctrp, ierr, isvctr
-   !!  integer :: ncount, itg, iitg, ist_send, ist_recv
-   !!  integer :: window, sizeof, jproc_send, iorb, jproc, info
-   !!  integer,dimension(:),pointer :: isvctr_par, nvctr_par
-   !!  integer,dimension(:),allocatable :: request, windows
-   !!  real(kind=8),dimension(:),pointer :: matrix_local
-   !!  real(kind=8),dimension(:),allocatable :: recvbuf
-   !!  integer,parameter :: ALLGATHERV=51, GET=52, GLOBAL_MATRIX=101, SUBMATRIX=102
-   !!  integer,parameter :: comm_strategy=GET
-   !!  integer,parameter :: data_strategy=SUBMATRIX!GLOBAL_MATRIX
-
-   !!  call f_routine(id='compress_matrix_distributed')
-
-   !!  call timing(iproc,'compressd_mcpy','ON')
-
-   !!  ! Check the dimensions of the input array and assign some values
-   !!  if (size(matrixp,1)/=smat%nfvctr) stop 'size(matrixp,1)/=smat%nfvctr'
-   !!  if (layout==DENSE_PARALLEL) then
-   !!      if (size(matrixp,2)/=smat%nfvctrp) stop '(ubound(matrixp,2)/=smat%nfvctrp'
-   !!      nfvctrp = smat%nfvctrp
-   !!      isfvctr = smat%isfvctr
-   !!      nvctrp = smat%nvctrp
-   !!      isvctr = smat%isvctr
-   !!      isvctr_par => smat%isvctr_par
-   !!      nvctr_par => smat%nvctr_par
-   !!  else if (layout==DENSE_MATMUL) then
-   !!      if (size(matrixp,2)/=smat%smmm%nfvctrp) stop '(ubound(matrixp,2)/=smat%smmm%nfvctrp'
-   !!      nfvctrp = smat%smmm%nfvctrp
-   !!      isfvctr = smat%smmm%isfvctr
-   !!      nvctrp = smat%smmm%nvctrp_mm
-   !!      isvctr = smat%smmm%isvctr_mm
-   !!      isvctr_par => smat%smmm%isvctr_mm_par
-   !!      nvctr_par => smat%smmm%nvctr_mm_par
-   !!  end if
-
-   !!  if (data_strategy==GLOBAL_MATRIX) then
-   !!      stop 'compress_matrix_distributed: option GLOBAL_MATRIX is deprecated'
-   !!  else if (data_strategy==SUBMATRIX) then
-
-
-   !!      !@ NEW #####################
-   !!      matrix_local = f_malloc_ptr(max(1,nvctrp),id='matrix_local')
-   !!      if (layout==DENSE_PARALLEL) then
-   !!          ii = 0
-   !!          if (nfvctrp>0) then
-   !!              isegstart=smat%istsegline(isfvctr+1)
-   !!              isegend=smat%istsegline(isfvctr+nfvctrp)+smat%nsegline(isfvctr+nfvctrp)-1
-   !!              do iseg=isegstart,isegend
-   !!                  ! A segment is always on one line, therefore no double loop
-   !!                  do jorb=smat%keyg(1,1,iseg),smat%keyg(2,1,iseg)
-   !!                      iorb = smat%keyg(1,2,iseg)
-   !!                      ii = ii + 1
-   !!                      matrix_local(ii) = matrixp(jorb,iorb-isfvctr)
-   !!                  end do
-   !!              end do
-   !!          end if
-   !!          if (ii/=nvctrp) stop 'compress_matrix_distributed: ii/=nvctrp'
-   !!      else if (layout==DENSE_MATMUL) then
-   !!          ii = 0
-   !!          if (nvctrp>0) then
-   !!              isegstart=smat%istsegline(isfvctr+1)
-   !!              isegend=smat%istsegline(isfvctr+nfvctrp)+smat%nsegline(isfvctr+nfvctrp)-1
-   !!              do iseg=isegstart,isegend
-   !!                  ! A segment is always on one line, therefore no double loop
-   !!                  do jorb=smat%keyg(1,1,iseg),smat%keyg(2,1,iseg)
-   !!                      iorb = smat%keyg(1,2,iseg)
-   !!                      ii = ii + 1
-   !!                      matrix_local(ii) = matrixp(jorb,iorb-isfvctr)
-   !!                  end do
-   !!              end do
-   !!          end if
-   !!          if (ii/=nvctrp) stop 'compress_matrix_distributed: ii/=nvctrp'
-   !!      else
-   !!          stop 'compress_matrix_distributed: wrong data_strategy'
-   !!      end if
-
-   !!      call timing(iproc,'compressd_mcpy','OF')
-
-   !!      call compress_matrix_distributed_new2(iproc, nproc, smat, layout, matrix_local, matrix_compr)
-   !!      call f_free_ptr(matrix_local)
-   !!      !@ END NEW #################
-   !!  end if
-
-   !!  call f_release_routine()
-
-   !!end subroutine compress_matrix_distributed
-
-
-
-
-
-
-
-  !! subroutine compress_matrix_distributed_new(iproc, nproc, smat, layout, matrixp, matrix_compr)
-  !!   use module_base
-  !!   implicit none
-
-  !!   ! Calling arguments
-  !!   integer,intent(in) :: iproc, nproc, layout
-  !!   type(sparse_matrix),intent(in) :: smat
-  !!   real(kind=8),dimension(smat%smmm%nvctrp),intent(inout) :: matrixp
-  !!   real(kind=8),dimension(smat%nvctrp_tg),target,intent(out) :: matrix_compr
-
-  !!   ! Local variables
-  !!   integer :: isegstart, isegend, iseg, ii, jorb, iiorb, jjorb, nfvctrp, isfvctr, nvctrp, ierr, isvctr
-  !!   integer :: ncount, itg, iitg, ist_send, ist_recv, i, iline, icolumn, ind
-  !!   integer :: window, sizeof, jproc_send, iorb, jproc, info
-  !!   integer,dimension(:),pointer :: isvctr_par, nvctr_par
-  !!   integer,dimension(:),allocatable :: request, windows
-  !!   real(kind=8),dimension(:),pointer :: matrix_local
-  !!   real(kind=8),dimension(:),allocatable :: recvbuf
-  !!   integer,parameter :: ALLGATHERV=51, GET=52, GLOBAL_MATRIX=101, SUBMATRIX=102
-  !!   integer,parameter :: comm_strategy=GET
-  !!   integer,parameter :: data_strategy=SUBMATRIX!GLOBAL_MATRIX
-
-  !!   call f_routine(id='compress_matrix_distributed_new')
-
-  !!   !call timing(iproc,'compressd_mcpy','ON')
-
-
-  !!   if (data_strategy==GLOBAL_MATRIX) then
-  !!       stop 'compress_matrix_distributed: option GLOBAL_MATRIX is deprecated'
-  !!   else if (data_strategy==SUBMATRIX) then
-  !!       if (layout==DENSE_PARALLEL) then
-  !!           stop 'layout==DENSE_PARALLEL not yet implemented'
-  !!       else if (layout==DENSE_MATMUL) then
-  !!           matrix_local = f_malloc_ptr(max(1,smat%smmm%nvctrp_mm),id='matrix_local')
-  !!           call transform_sparsity_pattern(smat%nfvctr, smat%smmm%nvctrp_mm, smat%smmm%isvctr_mm, &
-  !!                smat%nseg, smat%keyv, smat%keyg, smat%smmm%line_and_column_mm, &
-  !!                smat%smmm%nvctrp, smat%smmm%isvctr, &
-  !!                smat%smmm%nseg, smat%smmm%keyv, smat%smmm%keyg, smat%smmm%istsegline, &
-  !!                'large_to_small', matrix_local, matrixp)
-  !!           call compress_matrix_distributed_new2(iproc, nproc, smat, layout, matrix_local, matrix_compr)
-  !!           call f_free_ptr(matrix_local)
-  !!       end if
-  !!   else
-  !!       stop 'compress_matrix_distributed: wrong data_strategy'
-  !!   end if
-
-  !!   !!call timing(iproc,'compressd_comm_new','OF')
-
-  !!   call f_release_routine()
-
-  !!end subroutine compress_matrix_distributed_new
-
-
-
-
-
-
    !> Gathers together the matrix parts calculated by other tasks.
    !! Attention: Even if the output array has size smat%nvctrp_tg, only the
    !! relevant part (indicated by smat%istartend_local) is calculated
-   subroutine compress_matrix_distributed_new2(iproc, nproc, smat, layout, matrixp, matrix_compr)
+   subroutine compress_matrix_distributed_core(iproc, nproc, smat, layout, matrixp, matrix_compr)
      use module_base
      implicit none
 
@@ -944,7 +779,7 @@ module sparsematrix
      integer,parameter :: data_strategy=SUBMATRIX!GLOBAL_MATRIX
      integer,dimension(:,:),pointer :: luccomm
 
-     call f_routine(id='compress_matrix_distributed_new2')
+     call f_routine(id='compress_matrix_distributed_core')
 
      call timing(iproc,'compressd_mcpy','ON')
 
@@ -965,34 +800,23 @@ module sparsematrix
              nccomm = smat%nccomm
          end if
          if (size(matrixp)/=nvctrp) then
-             !!call f_err_throw('compress_matrix_distributed_new2: wrong size of matrixp', &
-             !!     err_name='BIGDFT_RUNTIME_ERROR')
              call f_err_throw('Array matrixp has size '//trim(yaml_toa(size(matrixp),fmt='(i0)'))//&
                   &' instead of '//trim(yaml_toa(nvctrp,fmt='(i0)')), &
                   err_name='BIGDFT_RUNTIME_ERROR')
          end if
-             !matrix_local = f_malloc_ptr(max(1,smat%smmm%nvctrp_mm),id='matrix_local')
-             !matrix_local = f_malloc_ptr(max(1,nvctrp),id='matrix_local')
-             !call vcopy(smat%smmm%nvctrp_mm, matrixp(1), 1, matrix_local(1), 1)
-             !call vcopy(nvctrp, matrixp(1), 1, matrix_local(1), 1)
 
              call timing(iproc,'compressd_mcpy','OF')
              call timing(iproc,'compressd_comm','ON')
 
              if (nproc>1) then
-                !call to_zero(smat%nvctrp_tg, matrix_compr(1))
                 call f_zero(matrix_compr)
-                 !window = mpiwindow(smat%smmm%nvctrp_mm, matrix_local(1), bigdft_mpi%mpi_comm)
 
                  ! Create a window for all taskgroups to which iproc belongs (max 2)
                  windows = f_malloc(smat%ntaskgroup)
                  do itg=1,smat%ntaskgroupp
                      iitg = smat%taskgroupid(itg)
-                     !write(*,'(2(a,i0))') 'task ',iproc,' is on window ',iitg
-                     !windows(iitg) = mpiwindow(smat%smmm%nvctrp_mm, matrix_local(1), smat%mpi_groups(iitg)%mpi_comm)
                      windows(iitg) = mpiwindow(nvctrp, matrixp(1), smat%mpi_groups(iitg)%mpi_comm)
                  end do
-                 !do jproc=1,smat%smmm%nccomm_smmm
                  do jproc=1,nccomm
                      jproc_send = luccomm(1,jproc)
                      ist_send = luccomm(2,jproc)
@@ -1090,74 +914,8 @@ module sparsematrix
          if (.not.found) stop 'get_rank_on_taskgroup did not suceed'
        end function get_rank_on_taskgroup
 
-  end subroutine compress_matrix_distributed_new2
+  end subroutine compress_matrix_distributed_core
 
-
-
-
-
-
-
-
-
-  !!subroutine uncompress_matrix_distributed(iproc, smat, layout, matrix_compr, matrixp)
-  !!  use module_base
-  !!  implicit none
-
-  !!  ! Calling arguments
-  !!  integer,intent(in) :: iproc, layout
-  !!  type(sparse_matrix),intent(in) :: smat
-  !!  real(kind=8),dimension(smat%nvctr),intent(in) :: matrix_compr
-  !!  real(kind=8),dimension(:,:),intent(out) :: matrixp
-
-  !!  ! Local variables
-  !!  integer :: isegstart, isegend, iseg, ii, jorb, iiorb, jjorb, nfvctrp, isfvctr
-
-  !!    call timing(iproc,'compressd_mcpy','ON')
-
-  !!   ! Check the dimensions of the output array and assign some values
-  !!   if (size(matrixp,1)/=smat%nfvctr) stop 'size(matrixp,1)/=smat%nfvctr'
-  !!   if (layout==DENSE_PARALLEL) then
-  !!       if (size(matrixp,2)/=smat%nfvctrp) stop '(ubound(matrixp,2)/=smat%nfvctrp'
-  !!       nfvctrp=smat%nfvctrp
-  !!       isfvctr=smat%isfvctr
-  !!   else if (layout==DENSE_MATMUL) then
-  !!       if (size(matrixp,2)/=smat%smmm%nfvctrp) stop '(ubound(matrixp,2)/=smat%smmm%nfvctrp'
-  !!       nfvctrp=smat%smmm%nfvctrp
-  !!       isfvctr=smat%smmm%isfvctr
-  !!   end if
-
-  !!     if (nfvctrp>0) then
-
-  !!        !call to_zero(smat%nfvctr*nfvctrp,matrixp(1,1))
-  !!        call f_zero(matrixp) !is this safer?
-
-  !!         isegstart=smat%istsegline(isfvctr+1)
-  !!         isegend=smat%istsegline(isfvctr+nfvctrp)+smat%nsegline(isfvctr+nfvctrp)-1
-  !!         !!isegstart=smat%istsegline(smat%isfvctr_par(iproc)+1)
-  !!         !!if (smat%isfvctr_par(iproc)+smat%nfvctrp<smat%nfvctr) then
-  !!         !!    isegend=smat%istsegline(smat%isfvctr_par(iproc+1)+1)-1
-  !!         !!else
-  !!         !!    isegend=smat%nseg
-  !!         !!end if
-  !!         !$omp parallel do default(private) &
-  !!         !$omp shared(isegstart, isegend, smat, matrixp, matrix_compr, isfvctr)
-  !!         do iseg=isegstart,isegend
-  !!             ii=smat%keyv(iseg)-1
-  !!             ! A segment is always on one line, therefore no double loop
-  !!             do jorb=smat%keyg(1,1,iseg),smat%keyg(2,1,iseg)
-  !!                 ii=ii+1
-  !!                 iiorb = smat%keyg(1,2,iseg)
-  !!                 jjorb = jorb
-  !!                 matrixp(jjorb,iiorb-isfvctr) = matrix_compr(ii)
-  !!             end do
-  !!         end do
-  !!         !$omp end parallel do
-  !!     end if
-
-  !!    call timing(iproc,'compressd_mcpy','OF')
-
-  !! end subroutine uncompress_matrix_distributed
 
 
   subroutine uncompress_matrix_distributed2(iproc, smat, layout, matrix_compr, matrixp)
