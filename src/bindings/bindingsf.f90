@@ -1580,7 +1580,7 @@ subroutine run_objects_dump_to_file(iostat, dict, fname, userOnly,ln)
   integer, intent(in) :: ln
   integer, intent(out) :: iostat
   type(dictionary), pointer :: dict
-  character(len = ln), intent(in) :: fname
+  character(len = *), intent(in) :: fname
   logical, intent(in) :: userOnly
 
   integer, parameter :: iunit_true = 145214 !< Hopefully being unique...
@@ -1596,7 +1596,7 @@ subroutine run_objects_dump_to_file(iostat, dict, fname, userOnly,ln)
      iostat = 1
      return
   end if
-  call f_strcpy(src=fname,dest=filetmp)
+  call f_strcpy(src=fname(1:ln),dest=filetmp)
   open(unit = iunit, file =trim(filetmp), iostat = iostat)
   if (iostat /= 0) return
   call yaml_set_stream(unit = iunit, tabbing = 40, record_length = 100, istat = iostat)

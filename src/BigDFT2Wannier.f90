@@ -11,7 +11,7 @@
 !> Program to calculate all quantities needed by Wannier90
 program BigDFT2Wannier
 
-   use BigDFT_API
+   use BigDFT_API, int_iter => int
    use bigdft_run
    use Poisson_Solver, except_dp => dp, except_gp => gp, except_wp => wp
    use module_interfaces

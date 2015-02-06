@@ -660,7 +660,14 @@
        lensic: Lenosky Tight-Binding for Si clusters
        lensib: Lenosky Tight-Binding for Si bulk
        amber: AMBER Force Fields Package (requires AMBERtools)
+       morse_bulk: Morse bulk
      default: dft
+   mm_paramset:
+     COMMENT: Name of the hard-coded parameter set. Must be compatible to the chosen force field.
+     default: default
+   mm_paramfile:
+     COMMENT: name of parameter file
+     default: none
      
 #Performance parameters
  perf:

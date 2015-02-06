@@ -596,61 +596,61 @@ subroutine system_initialization(iproc,nproc,dump,inputpsi,input_wf_format,dry_r
 
      end subroutine test_preconditioning
 
-     subroutine optimize_loadbalancing()
-       implicit none
+     !!subroutine optimize_loadbalancing()
+     !!  implicit none
 
-       ! Local variables
-       integer(kind=8) :: isize, isize_ideal
+     !!  ! Local variables
+     !!  integer(kind=8) :: isize, isize_ideal
 
-       ! Sum up the total size of all support functions
-       isize = int(lnpsidim_orbs,kind=8)
-       if (nproc>1) then
-           call mpiallred(isize, 1, mpi_sum, bigdft_mpi%mpi_comm)
-       end if
+     !!  ! Sum up the total size of all support functions
+     !!  isize = int(lnpsidim_orbs,kind=8)
+     !!  if (nproc>1) then
+     !!      call mpiallred(isize, 1, mpi_sum, bigdft_mpi%mpi_comm)
+     !!  end if
 
-       ! Ideal size per task (integer division)
-       isize_ideal = isize/int(nproc,kind=8)
+     !!  ! Ideal size per task (integer division)
+     !!  isize_ideal = isize/int(nproc,kind=8)
 
-       ! Redistribute the support functions such that the load balancing is optimal
-       call redistribute(lorbs%norb, isize_ideal, norb_par)
+     !!  ! Redistribute the support functions such that the load balancing is optimal
+     !!  call redistribute(lorbs%norb, isize_ideal, norb_par)
 
-       ! The same for the up and down orbitals
-       isize_ideal = isize_ideal/int(in%nspin,kind=8)
-       call redistribute(lorbs%norbu, isize_ideal, norbu_par)
-       call redistribute(lorbs%norbd, isize_ideal, norbd_par)
+     !!  ! The same for the up and down orbitals
+     !!  isize_ideal = isize_ideal/int(in%nspin,kind=8)
+     !!  call redistribute(lorbs%norbu, isize_ideal, norbu_par)
+     !!  call redistribute(lorbs%norbd, isize_ideal, norbd_par)
 
-     end subroutine optimize_loadbalancing
+     !!end subroutine optimize_loadbalancing
 
-     subroutine redistribute(norb, isize_ideal, norb_par)
-       implicit none
-       integer,intent(in) :: norb
-       integer(kind=8),intent(in) :: isize_ideal
-       integer,dimension(0:nproc-1),intent(out) :: norb_par
-       integer :: jjorbtot, jjorb, jproc, jlr, jorb
-       integer(kind=8) :: ncount
+     !!subroutine redistribute(norb, isize_ideal, norb_par)
+     !!  implicit none
+     !!  integer,intent(in) :: norb
+     !!  integer(kind=8),intent(in) :: isize_ideal
+     !!  integer,dimension(0:nproc-1),intent(out) :: norb_par
+     !!  integer :: jjorbtot, jjorb, jproc, jlr, jorb
+     !!  integer(kind=8) :: ncount
 
-       call f_zero(norb_par)
-       ncount = int(0,kind=8)
-       jproc = 0
-       jjorb = 0
-       jjorbtot = 0
-       do jorb=1,norb
-           jjorb = jjorb + 1
-           jlr = lorbs%inwhichlocreg(jorb)
-           ncount = ncount + int(lzd_lin%llr(jlr)%wfd%nvctr_c+7*lzd_lin%llr(jlr)%wfd%nvctr_f,kind=8)
-           if (ncount>=isize_ideal*int(jproc+1,kind=8)) then
-               norb_par(jproc) = jjorb
-               jjorbtot = jjorbtot + jjorb
-               jjorb = 0
-               jproc = jproc + 1
-           end if
-           if (jproc==nproc-1) exit
-       end do
-       norb_par(nproc-1) = (norb - jjorbtot) !+jjorb -> why was this needed?! !take the rest
-       do jproc=0,nproc-1
-           !if (iproc==0) write(*,*) 'jproc, norb_par(jproc)', jproc, norb_par(jproc)
-       end do
-     end subroutine redistribute
+     !!  call f_zero(norb_par)
+     !!  ncount = int(0,kind=8)
+     !!  jproc = 0
+     !!  jjorb = 0
+     !!  jjorbtot = 0
+     !!  do jorb=1,norb
+     !!      jjorb = jjorb + 1
+     !!      jlr = lorbs%inwhichlocreg(jorb)
+     !!      ncount = ncount + int(lzd_lin%llr(jlr)%wfd%nvctr_c+7*lzd_lin%llr(jlr)%wfd%nvctr_f,kind=8)
+     !!      if (ncount>=isize_ideal*int(jproc+1,kind=8)) then
+     !!          norb_par(jproc) = jjorb
+     !!          jjorbtot = jjorbtot + jjorb
+     !!          jjorb = 0
+     !!          jproc = jproc + 1
+     !!      end if
+     !!      if (jproc==nproc-1) exit
+     !!  end do
+     !!  norb_par(nproc-1) = (norb - jjorbtot) !+jjorb -> why was this needed?! !take the rest
+     !!  do jproc=0,nproc-1
+     !!      !if (iproc==0) write(*,*) 'jproc, norb_par(jproc)', jproc, norb_par(jproc)
+     !!  end do
+     !!end subroutine redistribute
 
 
      subroutine optimize_loadbalancing2()
@@ -666,12 +666,15 @@ subroutine system_initialization(iproc,nproc,dump,inputpsi,input_wf_format,dry_r
        time_ideal = time/int(nproc,kind=8)
 
        ! Redistribute the support functions such that the load balancing is optimal
-       call redistribute2(lorbs%norb, time_ideal, norb_par)
+       !!call redistribute2(lorbs%norb, time_ideal, norb_par)
+       call redistribute(nproc, lorbs%norb, times_convol, time_ideal, norb_par)
 
        ! The same for the up and down orbitals
        time_ideal = time_ideal/int(in%nspin,kind=8)
-       call redistribute2(lorbs%norbu, time_ideal, norbu_par)
-       call redistribute2(lorbs%norbd, time_ideal, norbd_par)
+       !!call redistribute2(lorbs%norbu, time_ideal, norbu_par)
+       !!call redistribute2(lorbs%norbd, time_ideal, norbd_par)
+       call redistribute(nproc, lorbs%norbu, times_convol, time_ideal, norbu_par)
+       call redistribute(nproc, lorbs%norbd, times_convol, time_ideal, norbd_par)
 
      end subroutine optimize_loadbalancing2
 
@@ -2330,3 +2333,121 @@ subroutine system_signaling(iproc, signaling, gmainloop, KSwfn, tmb, energs, den
      tmb%c_obj    = 0
   end if
 END SUBROUTINE system_signaling
+
+
+!> Given the array workload which indicates the workload on each MPI task for a
+!! given distribution of the orbitals (or a similar quantity), this subroutine
+!! redistributes the orbitals such that the load unbalancing is optimal
+subroutine redistribute(nproc, norb, workload, workload_ideal, norb_par)
+  use module_base
+  implicit none
+
+  ! Calling arguments
+  integer,intent(in) :: nproc, norb
+  real(kind=8),dimension(norb),intent(in) :: workload
+  real(kind=8),intent(in) :: workload_ideal
+  integer,dimension(0:nproc-1),intent(out) :: norb_par
+
+  ! Local variables
+  real(kind=8) :: tcount, jcount, wli, ratio, ratio_old
+  real(kind=8),dimension(:),allocatable :: workload_par
+  integer,dimension(:),allocatable :: norb_par_trial
+  integer :: jproc, jjorb, jjorbtot, jorb, ii, imin, imax
+
+  wli = workload_ideal
+
+  call f_zero(norb_par)
+  if (norb>=nproc) then
+      workload_par = f_malloc(0.to.nproc-1,id='workload_par')
+      norb_par_trial = f_malloc(0.to.nproc-1,id='norbpar_par_trial')
+      tcount = 0.d0
+      jcount = 0.d0
+      jproc = 0
+      jjorb = 0
+      jjorbtot = 0
+      do jorb=1,norb
+          if (jproc==nproc-1) exit
+          jjorb = jjorb + 1
+          if(jorb==norb) exit !just to besure that no out of bound happens
+          tcount = tcount + workload(jorb)
+          jcount = jcount + workload(jorb)
+          if (abs(tcount-wli*real(jproc+1,kind=8)) <= &
+                  abs(tcount+workload(jorb+1)-wli*real(jproc+1,kind=8))) then
+          !!if (abs(tcount-workload_ideal*real(jproc+1,kind=8)) <= &
+          !!        abs(tcount+workload(jorb+1)-workload_ideal*real(jproc+1,kind=8))) then
+          !!if (tcount-workload_ideal*real(jproc+1,kind=8)<0.d0 .and. &
+          !!        tcount+workload(jorb+1)-workload_ideal*real(jproc+1,kind=8)>0.d0) then
+              norb_par(jproc) = jjorb
+              workload_par(jproc) = jcount
+              jjorbtot = jjorbtot + jjorb
+              !if (bigdft_mpi%iproc==0) write(*,'(a,2i6,2es14.6)') 'jproc, jjorb, tcount/(jproc+1), wli', jproc, jjorb, tcount/(jproc+1), wli
+              jcount = 0.d0
+              jjorb = 0
+              jproc = jproc + 1
+              wli = get_dynamic_ideal_workload(jproc, tcount, workload_ideal)
+          end if
+      end do
+      norb_par(nproc-1) = jjorb + (norb - jjorbtot) !take the rest
+      workload_par(nproc-1) = sum(workload) - tcount
+      !do jproc=0,nproc-1
+      !    if (iproc==0) write(*,*) 'jproc, norb_par(jproc)', jproc, norb_par(jproc)
+      !end do
+      !if (bigdft_mpi%iproc==0) write(*,'(a,2i6,2es14.6)') 'jproc, jjorb, tcount/(jproc+1), workload_ideal', &
+      !        jproc, jjorb+(norb-jjorbtot), sum(workload)-tcount, workload_ideal
+
+      ! Now take away one element from the maximum and add it to the minimum.
+      ! Repeat this as long as the ratio max/min decreases 
+      ratio_old = maxval(workload_par)/minval(workload_par)
+      adjust_loop: do
+          imin = minloc(workload_par,1) - 1 !subtract 1 because the array starts a 0
+          imax = maxloc(workload_par,1) - 1 !subtract 1 because the array starts a 0
+          call vcopy(nproc, norb_par(0), 1, norb_par_trial(0), 1)
+          norb_par_trial(imin) = norb_par(imin) + 1
+          norb_par_trial(imax) = norb_par(imax) - 1
+
+          call f_zero(workload_par)
+          ii = 0
+          do jproc=0,nproc-1
+              do jorb=1,norb_par_trial(jproc)
+                  ii = ii + 1
+                  workload_par(jproc) = workload_par(jproc) + workload(ii)
+              end do
+          end do
+          ratio = maxval(workload_par)/minval(workload_par)
+          !if (bigdft_mpi%iproc==0) write(*,*) 'ratio, ratio_old', ratio, ratio_old
+          if (ratio<ratio_old) then
+              call vcopy(nproc, norb_par_trial(0), 1, norb_par(0), 1)
+              ratio_old = ratio
+          else
+              exit adjust_loop
+          end if
+      end do adjust_loop
+
+      call f_free(workload_par)
+      call f_free(norb_par_trial)
+  else
+      ! Equal distribution
+      norb_par(0:norb-1) = 1
+  end if
+
+  contains
+
+    ! Get dynamically a new ideal workload
+    function get_dynamic_ideal_workload(jproc, wltot, wli) result(wl)
+      implicit none
+      integer,intent(in) :: jproc !<currently handled task
+      real(kind=8),intent(in) :: wltot !<total workload assigned so far
+      real(kind=8),intent(in) :: wli !< theoretical ideal workload
+      real(kind=8) :: wl !<new ideal workload
+      real(kind=8) :: wls
+
+      ! Average workload so far
+      wls = wltot/real(jproc,kind=8)
+ 
+      ! The new ideal workload is a weighted sum of the average workload so far
+      ! and the theoretical ideal workload
+      wl = (nproc-jproc)*wls + jproc*wli
+      wl = wl/real(nproc,kind=8) 
+
+    end function get_dynamic_ideal_workload
+end subroutine redistribute

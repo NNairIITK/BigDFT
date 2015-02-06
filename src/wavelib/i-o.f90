@@ -907,10 +907,9 @@ contains
     if (associated(w%x_c)) then
        call deallocate_work_arrays_sumrho(w)
     end if
-    !if (associated(lr%bounds%kb%ibyz_f)) then
-       call deallocate_bounds(lr%geocode, lr%hybrid_on, lr%bounds)
-    !end if
-    call deallocate_wfd(lr%wfd)
+    call deallocate_locreg_descriptors(lr)
+    !call deallocate_convolutions_bounds(lr%bounds)
+    !call deallocate_wfd(lr%wfd)
     
     call f_release_routine()
   END SUBROUTINE deallocate_local

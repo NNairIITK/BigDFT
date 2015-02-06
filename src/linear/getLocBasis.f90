@@ -11,7 +11,7 @@
 subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
     energs,nlpsp,SIC,tmb,fnrm,calculate_overlap_matrix,invert_overlap_matrix,communicate_phi_for_lsumrho,&
     calculate_ham,extra_states,itout,it_scc,it_cdft,order_taylor,max_inversion_error,purification_quickreturn, &
-    calculate_KS_residue,calculate_gap,&
+    calculate_KS_residue,calculate_gap,energs_work,&
     convcrit_dmin,nitdmin,curvefit_dmin,ldiis_coeff,reorder,cdft, updatekernel)
   use module_base
   use module_types
@@ -26,7 +26,9 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
                                DENSE_FULL, DENSE_PARALLEL, DENSE_MATMUL, assignment(=), SPARSE_FULL
   use sparsematrix, only: uncompress_matrix, uncompress_matrix_distributed, gather_matrix_from_taskgroups_inplace, &
                           extract_taskgroup_inplace, uncompress_matrix_distributed2, gather_matrix_from_taskgroups, &
-                          extract_taskgroup, uncompress_matrix2
+                          extract_taskgroup, uncompress_matrix2, &
+                          write_sparsematrix
+  use transposed_operations, only: calculate_overlap_transposed
   implicit none
 
   ! Calling arguments
@@ -47,6 +49,7 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
   logical,intent(in):: calculate_overlap_matrix, invert_overlap_matrix
   logical,intent(in):: communicate_phi_for_lsumrho, purification_quickreturn
   logical,intent(in) :: calculate_ham, calculate_KS_residue, calculate_gap
+  type(work_mpiaccumulate),intent(inout) :: energs_work
   type(DIIS_obj),intent(inout),optional :: ldiis_coeff ! for dmin only
   integer, intent(in), optional :: nitdmin ! for dmin only
   real(kind=gp), intent(in), optional :: convcrit_dmin ! for dmin only
@@ -69,7 +72,12 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
 
   call f_routine(id='get_coeff')
 
+
   if(calculate_ham) then
+      !!energs_work = work_mpiaccumulate_null()
+      !!energs_work%ncount = 4
+      !!call allocate_work_mpiaccumulate(energs_work)
+
       call local_potential_dimensions(iproc,tmb%ham_descr%lzd,tmb%orbs,denspot%xc,denspot%dpbox%ngatherarr(0,1))
       call start_onesided_communication(iproc, nproc, denspot%dpbox%ndims(1), denspot%dpbox%ndims(2), &
            max(denspot%dpbox%nscatterarr(:,2),1), denspot%rhov, &
@@ -147,7 +155,7 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
       call timing(iproc,'glsynchham1','ON')
       call SynchronizeHamiltonianApplication(nproc,tmb%ham_descr%npsidim_orbs,&
            & tmb%orbs,tmb%ham_descr%lzd,GPU,denspot%xc,tmb%hpsi,&
-           energs%ekin,energs%epot,energs%eproj,energs%evsic,energs%eexctX)
+           energs%ekin,energs%epot,energs%eproj,energs%evsic,energs%eexctX, energs_work)
       call timing(iproc,'glsynchham1','OF')
       deallocate(confdatarrtmp)
 
@@ -340,7 +348,7 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
           ! To do so, ensure that the first entry is always positive.
           do iorb=1,tmb%linmat%m%nfvctr
               if (matrixElements(1,iorb,1)<0.d0) then
-                  call dscal(tmb%orbs%norb, -1.d0, matrixElements(1,iorb,1), 1)
+                  call dscal(tmb%linmat%m%nfvctr, -1.d0, matrixElements(1,iorb,1), 1)
               end if
           end do
 
@@ -476,19 +484,14 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
 
       if (iproc==0) call yaml_map('method','FOE')
       tmprtr=0.d0
-      !!tmparr1 = sparsematrix_malloc(tmb%linmat%s,iaction=SPARSE_FULL,id='tmparr1')
-      !!call vcopy(tmb%linmat%s%nvctr*tmb%linmat%s%nspin, tmb%linmat%ovrlp_%matrix_compr(1), 1, tmparr1(1), 1)
-      !!call extract_taskgroup_inplace(tmb%linmat%s, tmb%linmat%ovrlp_)
-      !!tmparr2 = sparsematrix_malloc(tmb%linmat%m,iaction=SPARSE_FULL,id='tmparr2')
-      !!call vcopy(tmb%linmat%m%nvctr*tmb%linmat%m%nspin, tmb%linmat%ham_%matrix_compr(1), 1, tmparr2(1), 1)
-      !!call extract_taskgroup_inplace(tmb%linmat%m, tmb%linmat%ham_)
+
+      !!if (iproc==0) then
+      !!    call yaml_map('write overlap matrix',.true.)
+      !!    call write_sparsematrix('overlap.dat', tmb%linmat%s, tmb%linmat%ovrlp_)
+      !!end if
       call foe(iproc, nproc, tmprtr, &
            energs%ebs, itout,it_scc, order_taylor, max_inversion_error, purification_quickreturn, &
            invert_overlap_matrix, 2, FOE_ACCURATE, tmb, tmb%foe_obj)
-      !!call vcopy(tmb%linmat%s%nvctr*tmb%linmat%s%nspin, tmparr1(1), 1, tmb%linmat%ovrlp_%matrix_compr(1), 1)
-      !!call f_free(tmparr1)
-      !!call vcopy(tmb%linmat%m%nvctr*tmb%linmat%m%nspin, tmparr2(1), 1, tmb%linmat%ham_%matrix_compr(1), 1)
-      !!call f_free(tmparr2)
 
       ! Eigenvalues not available, therefore take -.5d0
       tmb%orbs%eval=-.5d0
@@ -510,8 +513,25 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
   end if
   if (iproc==0) call yaml_map('Coefficients available',scf_mode /= LINEAR_FOE)
 
+  if (calculate_ham) then
+      if (nproc>1) then
+          ! Wait for the communication of energs_work on root
+          call mpi_fenceandfree(energs_work%window)
+      end if
+
+      ! Copy the value, only necessary on root
+      if (iproc==0) then
+          energs%ekin = energs_work%receivebuf(1)
+          energs%epot = energs_work%receivebuf(2)
+          energs%eproj = energs_work%receivebuf(3)
+          energs%evsic = energs_work%receivebuf(4)
+      end if
+
+      !!call deallocate_work_mpiaccumulate(energs_work)
+  end if
 
   if (iproc==0) call yaml_mapping_close() !close kernel update
+
 
   call f_release_routine()
 
@@ -520,12 +540,15 @@ end subroutine get_coeff
 
 
 subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
-    fnrm,infoBasisFunctions,nlpsp,scf_mode,ldiis,SIC,tmb,energs_base,&
+    fnrm_tmb,infoBasisFunctions,nlpsp,scf_mode,ldiis,SIC,tmb,energs_base,&
     nit_precond,target_function,&
     correction_orthoconstraint,nit_basis,&
     ratio_deltas,ortho_on,extra_states,itout,conv_crit,experimental_mode,early_stop,&
     gnrm_dynamic, min_gnrm_for_dynamic, can_use_ham, order_taylor, max_inversion_error, kappa_conv, method_updatekernel,&
-    purification_quickreturn, correction_co_contra, cdft, input_frag, ref_frags)
+    purification_quickreturn, correction_co_contra, &
+    precond_convol_workarrays, precond_workarrays, &
+    wt_philarge, wt_hpsinoprecond, wt_hphi, wt_phi, fnrm, energs_work, &
+    cdft, input_frag, ref_frags)
   !
   ! Purpose:
   ! ========
@@ -544,6 +567,7 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
   use constrained_dft, only: cdft_data
   use module_fragments, only: system_fragment
   use sparsematrix,only: gather_matrix_from_taskgroups_inplace, extract_taskgroup_inplace
+  use transposed_operations, only: calculate_overlap_transposed
   !  use Poisson_Solver
   !use allocModule
   implicit none
@@ -558,7 +582,7 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
   real(kind=8),dimension(3,at%astruct%nat) :: rxyz
   type(DFT_local_fields), intent(inout) :: denspot
   type(GPU_pointers), intent(inout) :: GPU
-  real(kind=8),intent(out) :: trH, fnrm
+  real(kind=8),intent(out) :: trH, fnrm_tmb
   real(kind=8),intent(inout) :: trH_old
   type(DFT_PSP_projectors),intent(inout) :: nlpsp
   integer,intent(in) :: scf_mode
@@ -576,6 +600,10 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
   logical,intent(out) :: can_use_ham
   integer,intent(in) :: method_updatekernel
   logical,intent(in) :: correction_co_contra
+  type(workarrays_quartic_convolutions),dimension(tmb%orbs%norbp),intent(inout) :: precond_convol_workarrays
+  type(workarr_precond),dimension(tmb%orbs%norbp),intent(inout) :: precond_workarrays
+  type(work_transpose),intent(inout) :: wt_philarge, wt_hpsinoprecond, wt_hphi, wt_phi
+  type(work_mpiaccumulate),intent(inout) :: fnrm, energs_work
   !these must all be present together
   type(cdft_data),intent(inout),optional :: cdft
   type(fragmentInputParameters),optional,intent(in) :: input_frag
@@ -585,7 +613,7 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
   integer :: iorb, it, it_tot, ncount, ncharge, ii, kappa_satur, nit_exit, ispin
   !integer :: jorb, nspin
   !real(kind=8),dimension(:),allocatable :: occup_tmp
-  real(kind=8) :: fnrmMax, meanAlpha, ediff_best, alpha_max, delta_energy, delta_energy_prev, ediff
+  real(kind=8) :: meanAlpha, ediff_best, alpha_max, delta_energy, delta_energy_prev, ediff
   real(kind=8),dimension(:),allocatable :: alpha,fnrmOldArr,alphaDIIS
   real(kind=8),dimension(:),allocatable :: hpsit_c_tmp, hpsit_f_tmp, hpsi_tmp, psidiff, tmparr1, tmparr2
   real(kind=8),dimension(:),allocatable :: delta_energy_arr, hpsi_noprecond, kernel_compr_tmp, kernel_best, hphi_nococontra
@@ -601,13 +629,18 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
   logical,save :: has_already_converged
   logical,dimension(7) :: exit_loop
   type(matrices) :: ovrlp_old
-  type(workarrays_quartic_convolutions),dimension(:),allocatable :: precond_convol_workarrays
-  type(workarr_precond),dimension(:),allocatable :: precond_workarrays
   integer :: iiorb, ilr, i, ist
   real(kind=8) :: max_error, mean_error
-  type(work_transpose) :: wt_philarge, wt_hpsinoprecond, wt_hphi, wt_phi
 
   call f_routine(id='getLocalizedBasis')
+
+  !!fnrm = work_mpiaccumulate_null()
+  !!fnrm%ncount = 1
+  !!call allocate_work_mpiaccumulate(fnrm)
+
+  !!energs_work = work_mpiaccumulate_null()
+  !!energs_work%ncount = 4
+  !!call allocate_work_mpiaccumulate(energs_work)
 
   energs = energy_terms_null()
   delta_energy_arr=f_malloc(nit_basis+6,id='delta_energy_arr')
@@ -691,8 +724,8 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
       it=max(it,1) !since it could become negative (2 is subtracted if the loop cycles)
       it_tot=it_tot+1
 
-      fnrmMax=0.d0
-      fnrm=0.d0
+      fnrm%sendbuf(1)=0.d0
+      fnrm%receivebuf(1)=0.d0
   
       if (iproc==0) then
           call yaml_sequence(advance='no')
@@ -764,25 +797,16 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
 
       call timing(iproc,'glsynchham2','ON')
       call SynchronizeHamiltonianApplication(nproc,tmb%ham_descr%npsidim_orbs,tmb%orbs,tmb%ham_descr%lzd,GPU,denspot%xc,tmb%hpsi,&
-           energs%ekin,energs%epot,energs%eproj,energs%evsic,energs%eexctX)
+           energs%ekin,energs%epot,energs%eproj,energs%evsic,energs%eexctX, energs_work)
       call timing(iproc,'glsynchham2','OF')
 
       if (iproc==0) then
           call yaml_map('Hamiltonian Applied',.true.)
       end if
 
-      ! Use this subroutine to write the energies, with some fake number
-      ! to prevent it from writing too much
-      if (iproc==0) then
-          call write_energies(0,0,energs,0.d0,0.d0,'',.true.)
-      end if
-
       !if (iproc==0) write(*,'(a,5es16.6)') 'ekin, eh, epot, eproj, eex', &
       !              energs%ekin, energs%eh, energs%epot, energs%eproj, energs%exc
 
-      if (iproc==0) then
-          call yaml_map('Orthoconstraint',.true.)
-      end if
 
       ! Start the communication
       if (target_function==TARGET_FUNCTION_IS_HYBRID) then
@@ -796,6 +820,28 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
       ! Gather the data
       call transpose_localized(iproc, nproc, tmb%npsidim_orbs, tmb%orbs, tmb%collcom, &
            TRANSPOSE_GATHER, tmb%psi, tmb%psit_c, tmb%psit_f, tmb%lzd, wt_phi)
+
+      if (nproc>1) then
+          ! Wait for the communication of energs_work on root
+          call mpi_fenceandfree(energs_work%window)
+      end if
+
+      ! Copy the value, only necessary on root
+      if (iproc==0) then
+          energs%ekin = energs_work%receivebuf(1)
+          energs%epot = energs_work%receivebuf(2)
+          energs%eproj = energs_work%receivebuf(3)
+          energs%evsic = energs_work%receivebuf(4)
+      end if
+
+      ! Use this subroutine to write the energies, with some fake number
+      ! to prevent it from writing too much
+      if (iproc==0) then
+          call write_energies(0,0,energs,0.d0,0.d0,'',.true.)
+      end if
+      if (iproc==0) then
+          call yaml_map('Orthoconstraint',.true.)
+      end if
 
       if (target_function==TARGET_FUNCTION_IS_HYBRID) then
           if (method_updatekernel==UPDATE_BY_FOE .or. method_updatekernel==UPDATE_BY_RENORMALIZATION) then
@@ -831,46 +877,16 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
                            check_accur=.true., max_error=max_error, mean_error=mean_error)
                       call check_taylor_order(mean_error, max_inversion_error, order_taylor)
                   end if
-                  !!call extract_taskgroup_inplace(tmb%linmat%l, tmb%linmat%kernel_)
                   call renormalize_kernel(iproc, nproc, order_taylor, max_inversion_error, tmb, tmb%linmat%ovrlp_, ovrlp_old)
-                  !!call gather_matrix_from_taskgroups_inplace(iproc, nproc, tmb%linmat%l, tmb%linmat%kernel_)
-                  !!call gather_matrix_from_taskgroups_inplace(iproc, nproc, tmb%linmat%s, tmb%linmat%ovrlp_)
               else if (method_updatekernel==UPDATE_BY_FOE) then
-                  !call gather_matrix_from_taskgroups_inplace(iproc, nproc, tmb%linmat%s, tmb%linmat%ovrlp_)
-                  !tmparr1 = sparsematrix_malloc(tmb%linmat%s,iaction=SPARSE_FULL,id='tmparr1')
-                  !call vcopy(tmb%linmat%s%nvctr*tmb%linmat%s%nspin, tmb%linmat%ovrlp_%matrix_compr(1), 1, tmparr1(1), 1)
-                  !!call extract_taskgroup_inplace(tmb%linmat%s, tmb%linmat%ovrlp_)
-                  !!tmparr2 = sparsematrix_malloc(tmb%linmat%m,iaction=SPARSE_FULL,id='tmparr2')
-                  !!call vcopy(tmb%linmat%m%nvctr*tmb%linmat%m%nspin, tmb%linmat%ham_%matrix_compr(1), 1, tmparr2(1), 1)
-                  !!call extract_taskgroup_inplace(tmb%linmat%m, tmb%linmat%ham_)
                   call foe(iproc, nproc, 0.d0, &
                        energs%ebs, -1, -10, order_taylor, max_inversion_error, purification_quickreturn, &
                        .true., 0, &
                        FOE_FAST, tmb, tmb%foe_obj)
-                  !!call vcopy(tmb%linmat%s%nvctr*tmb%linmat%s%nspin, tmparr1(1), 1, tmb%linmat%ham_%matrix_compr(1), 1)
-                  !!call f_free(tmparr1)
-                  !!call vcopy(tmb%linmat%m%nvctr*tmb%linmat%m%nspin, tmparr2(1), 1, tmb%linmat%ham_%matrix_compr(1), 1)
-                  !!call f_free(tmparr2)
               end if
               if (iproc==0) call yaml_sequence_close()
           end if
       else
-          !!if (target_function==TARGET_FUNCTION_IS_ENERGY .and. iproc==0) then
-          !!    ist=0
-          !!    do iorb=1,tmb%orbs%norbp
-          !!        iiorb=tmb%orbs%isorb+iorb
-          !!        ilr=tmb%orbs%inwhichlocreg(iiorb)
-          !!        ncount=tmb%ham_descr%lzd%llr(ilr)%wfd%nvctr_c+7*tmb%ham_descr%lzd%llr(ilr)%wfd%nvctr_f
-          !!        do i=1,ncount
-          !!            ist=ist+1
-          !!            if (tmb%orbs%spinsgn(iiorb)>0.d0) then
-          !!                write(4101,'(a,2i10,f8.1,es16.7)') 'iiorb, ist, spin, vals', iiorb, ist, tmb%orbs%spinsgn(iiorb), tmb%hpsi(ist)
-          !!            else
-          !!                write(4102,'(a,2i10,f8.1,es16.7)') 'iiorb, ist, spin, val', iiorb, ist, tmb%orbs%spinsgn(iiorb), tmb%hpsi(ist)
-          !!            end if
-          !!        end do
-          !!    end do
-          !!end if
           call transpose_localized(iproc, nproc, tmb%ham_descr%npsidim_orbs, tmb%orbs, tmb%ham_descr%collcom, &
                TRANSPOSE_GATHER, tmb%hpsi, hpsit_c, hpsit_f, tmb%ham_descr%lzd, wt_hphi)
       end if
@@ -920,14 +936,14 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
       calculate_inverse = (target_function/=TARGET_FUNCTION_IS_HYBRID .or. method_updatekernel/=UPDATE_BY_RENORMALIZATION)
       !!call extract_taskgroup_inplace(tmb%linmat%l, tmb%linmat%kernel_)
       call calculate_energy_and_gradient_linear(iproc, nproc, it, ldiis, fnrmOldArr, &
-           fnrm_old, alpha, trH, trH_old, fnrm, fnrmMax, &
+           fnrm_old, alpha, trH, trH_old, fnrm, &
            meanAlpha, alpha_max, energy_increased, tmb, lhphiold, overlap_calculated, energs_base, &
            hpsit_c, hpsit_f, nit_precond, target_function, correction_orthoconstraint, hpsi_small, &
            experimental_mode, calculate_inverse, &
            correction_co_contra, hpsi_noprecond=hpsi_tmp, norder_taylor=order_taylor, &
            max_inversion_error=max_inversion_error, method_updatekernel=method_updatekernel, &
            precond_convol_workarrays=precond_convol_workarrays, precond_workarrays=precond_workarrays, &
-           wt_philarge=wt_philarge, wt_hpsinoprecond=wt_hpsinoprecond,&
+           wt_hphi=wt_hphi, wt_philarge=wt_philarge, wt_hpsinoprecond=wt_hpsinoprecond,&
            cdft=cdft, input_frag=input_frag, ref_frags=ref_frags)
       !!call gather_matrix_from_taskgroups_inplace(iproc, nproc, tmb%linmat%l, tmb%linmat%kernel_)
       !fnrm_old=fnrm
@@ -1012,14 +1028,33 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
 
       !!delta_energy_prev=delta_energy
 
+      ! Wait for the communication of fnrm on root
+      if (nproc>1) then
+          call mpi_fenceandfree(fnrm%window)
+      end if
+      fnrm%receivebuf(1)=sqrt(fnrm%receivebuf(1)/dble(tmb%orbs%norb))
+
+      ! The other processes need to get fnrm as well. The fence will be later as only iproc=0 has to write.
+      if (nproc>1) then
+          if (iproc==0) fnrm%sendbuf(1) = fnrm%receivebuf(1)
+          fnrm%window = mpiwindow(1, fnrm%sendbuf(1), bigdft_mpi%mpi_comm)
+          if (iproc/=0) then
+              call mpiget(fnrm%receivebuf(1), 1, 0, int(0,kind=mpi_address_kind), fnrm%window)
+          end if
+      end if
+
       if (energy_increased .and. ldiis%isx==0) then
           !if (iproc==0) write(*,*) 'WARNING: ENERGY INCREASED'
           !if (iproc==0) call yaml_warning('The target function increased, D='&
           !              //trim(adjustl(yaml_toa(trH-ldiis%trmin,fmt='(es10.3)'))))
+          if (nproc>1) then
+              call mpi_fenceandfree(fnrm%window)
+          end if
+          fnrm_old=fnrm%receivebuf(1)
           if (iproc==0) then
               call yaml_newline()
               call yaml_map('iter',it,fmt='(i5)')
-              call yaml_map('fnrm',fnrm,fmt='(es9.2)')
+              call yaml_map('fnrm',fnrm%receivebuf(1),fmt='(es9.2)')
               call yaml_map('Omega',trH,fmt='(es22.15)')
               call yaml_map('D',ediff,fmt='(es9.2)')
               call yaml_map('D best',ediff_best,fmt='(es9.2)')
@@ -1040,6 +1075,7 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
               ! This is to avoid memory leaks
               call untranspose_localized(iproc, nproc, tmb%ham_descr%npsidim_orbs, tmb%orbs, tmb%ham_descr%collcom, &
                    TRANSPOSE_GATHER, hpsit_c, hpsit_f, hpsi_tmp, tmb%ham_descr%lzd, wt_hpsinoprecond)
+
              cycle
           else if(it_tot<3*nit_basis) then ! stop orthonormalizing the tmbs
              if (iproc==0) call yaml_newline()
@@ -1056,7 +1092,7 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
       if (iproc==0) then
           call yaml_newline()
           call yaml_map('iter',it,fmt='(i5)')
-          call yaml_map('fnrm',fnrm,fmt='(es9.2)')
+          call yaml_map('fnrm',fnrm%receivebuf(1),fmt='(es9.2)')
           call yaml_map('Omega',trH,fmt='(es22.15)')
           call yaml_map('D',ediff,fmt='(es9.2)')
           call yaml_map('D best',ediff_best,fmt='(es9.2)')
@@ -1065,12 +1101,20 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
       ! Add some extra iterations if DIIS failed (max 6 failures are allowed before switching to SD)
       nit_exit=min(nit_basis+ldiis%icountDIISFailureTot,nit_basis+6)
 
+      ! Normal case
+      if (.not.energy_increased .or. ldiis%isx/=0) then
+          if (nproc>1) then
+              call mpi_fenceandfree(fnrm%window)
+          end if
+          fnrm_old=fnrm%receivebuf(1)
+      end if
+
       ! Determine whether the loop should be exited
       exit_loop(1) = (it>=nit_exit)
       exit_loop(2) = (it_tot>=3*nit_basis)
       exit_loop(3) = energy_diff
-      exit_loop(4) = (fnrm<conv_crit .and. experimental_mode)
-      exit_loop(5) = (experimental_mode .and. fnrm<dynamic_convcrit .and. fnrm<min_gnrm_for_dynamic &
+      exit_loop(4) = (fnrm%receivebuf(1)<conv_crit .and. experimental_mode)
+      exit_loop(5) = (experimental_mode .and. fnrm%receivebuf(1)<dynamic_convcrit .and. fnrm%receivebuf(1)<min_gnrm_for_dynamic &
                      .and. (it>1 .or. has_already_converged)) ! first overall convergence not allowed in a first iteration
       exit_loop(6) = (itout==0 .and. it>1 .and. ratio_deltas<kappa_conv .and.  ratio_deltas>0.d0)
       if (ratio_deltas>0.d0 .and. ratio_deltas<1.d-1) then
@@ -1226,7 +1270,7 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
       call write_energies(0,0,energs,0.d0,0.d0,'',.true.)
       call yaml_newline()
       call yaml_map('iter',it,fmt='(i5)')
-      call yaml_map('fnrm',fnrm,fmt='(es9.2)')
+      call yaml_map('fnrm',fnrm%receivebuf(1),fmt='(es9.2)')
       call yaml_map('Omega',trH,fmt='(es22.15)')
       call yaml_map('D',ediff,fmt='(es9.2)')
       call yaml_map('D best',ediff_best,fmt='(es9.2)')
@@ -1270,6 +1314,10 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
   call f_free(kernel_best)
   call f_free_ptr(ovrlp_old%matrix_compr)
 
+  fnrm_tmb = fnrm%receivebuf(1)
+  !!call deallocate_work_mpiaccumulate(fnrm)
+  !!call deallocate_work_mpiaccumulate(energs_work)
+
   call f_release_routine()
 
 contains
@@ -1300,28 +1348,28 @@ contains
       !hpsi_noprecond = f_malloc(tmb%npsidim_orbs,id='hpsi_noprecond')
 
 
-      allocate(precond_convol_workarrays(tmb%orbs%norbp))
-      allocate(precond_workarrays(tmb%orbs%norbp))
-      do iorb=1,tmb%orbs%norbp
-          iiorb=tmb%orbs%isorb+iorb
-          ilr=tmb%orbs%inwhichlocreg(iiorb)
-          with_confpot = (tmb%confdatarr(iorb)%prefac/=0.d0)
-          call init_local_work_arrays(tmb%lzd%llr(ilr)%d%n1, tmb%lzd%llr(ilr)%d%n2, tmb%lzd%llr(ilr)%d%n3, &
-               tmb%lzd%llr(ilr)%d%nfl1, tmb%lzd%llr(ilr)%d%nfu1, &
-               tmb%lzd%llr(ilr)%d%nfl2, tmb%lzd%llr(ilr)%d%nfu2, &
-               tmb%lzd%llr(ilr)%d%nfl3, tmb%lzd%llr(ilr)%d%nfu3, &
-               with_confpot, precond_convol_workarrays(iorb))
-          kx=tmb%orbs%kpts(1,tmb%orbs%iokpt(iorb))
-          ky=tmb%orbs%kpts(2,tmb%orbs%iokpt(iorb))
-          kz=tmb%orbs%kpts(3,tmb%orbs%iokpt(iorb))
-          if (kx**2+ky**2+kz**2 > 0.0_gp .or. tmb%orbs%nspinor==2 ) then
-             ncplx=2
-          else
-             ncplx=1
-          end if
-          call allocate_work_arrays(tmb%lzd%llr(ilr)%geocode, tmb%lzd%llr(ilr)%hybrid_on, &
-               ncplx, tmb%lzd%llr(ilr)%d, precond_workarrays(iorb))
-      end do
+      !!allocate(precond_convol_workarrays(tmb%orbs%norbp))
+      !!allocate(precond_workarrays(tmb%orbs%norbp))
+      !!do iorb=1,tmb%orbs%norbp
+      !!    iiorb=tmb%orbs%isorb+iorb
+      !!    ilr=tmb%orbs%inwhichlocreg(iiorb)
+      !!    with_confpot = (tmb%confdatarr(iorb)%prefac/=0.d0)
+      !!    call init_local_work_arrays(tmb%lzd%llr(ilr)%d%n1, tmb%lzd%llr(ilr)%d%n2, tmb%lzd%llr(ilr)%d%n3, &
+      !!         tmb%lzd%llr(ilr)%d%nfl1, tmb%lzd%llr(ilr)%d%nfu1, &
+      !!         tmb%lzd%llr(ilr)%d%nfl2, tmb%lzd%llr(ilr)%d%nfu2, &
+      !!         tmb%lzd%llr(ilr)%d%nfl3, tmb%lzd%llr(ilr)%d%nfu3, &
+      !!         with_confpot, precond_convol_workarrays(iorb))
+      !!    kx=tmb%orbs%kpts(1,tmb%orbs%iokpt(iorb))
+      !!    ky=tmb%orbs%kpts(2,tmb%orbs%iokpt(iorb))
+      !!    kz=tmb%orbs%kpts(3,tmb%orbs%iokpt(iorb))
+      !!    if (kx**2+ky**2+kz**2 > 0.0_gp .or. tmb%orbs%nspinor==2 ) then
+      !!       ncplx=2
+      !!    else
+      !!       ncplx=1
+      !!    end if
+      !!    call allocate_work_arrays(tmb%lzd%llr(ilr)%geocode, tmb%lzd%llr(ilr)%hybrid_on, &
+      !!         ncplx, tmb%lzd%llr(ilr)%d, precond_workarrays(iorb))
+      !!end do
 
 
     end subroutine allocateLocalArrays
@@ -1349,23 +1397,23 @@ contains
     call f_free(hpsi_tmp)
     call f_free(psidiff)
     !call f_free(hpsi_noprecond)
-    do iorb=1,tmb%orbs%norbp
-        iiorb=tmb%orbs%isorb+iorb
-        ilr=tmb%orbs%inwhichlocreg(iiorb)
-        call deallocate_workarrays_quartic_convolutions(precond_convol_workarrays(iorb))
-        kx=tmb%orbs%kpts(1,tmb%orbs%iokpt(iorb))
-        ky=tmb%orbs%kpts(2,tmb%orbs%iokpt(iorb))
-        kz=tmb%orbs%kpts(3,tmb%orbs%iokpt(iorb))
-        if (kx**2+ky**2+kz**2 > 0.0_gp .or. tmb%orbs%nspinor==2 ) then
-           ncplx=2
-        else
-           ncplx=1
-        end if
-        call deallocate_work_arrays(tmb%lzd%llr(ilr)%geocode, tmb%lzd%llr(ilr)%hybrid_on, &
-             ncplx, precond_workarrays(iorb))
-    end do
-    deallocate(precond_convol_workarrays)
-    deallocate(precond_workarrays)
+    !!do iorb=1,tmb%orbs%norbp
+    !!    iiorb=tmb%orbs%isorb+iorb
+    !!    ilr=tmb%orbs%inwhichlocreg(iiorb)
+    !!    call deallocate_workarrays_quartic_convolutions(precond_convol_workarrays(iorb))
+    !!    kx=tmb%orbs%kpts(1,tmb%orbs%iokpt(iorb))
+    !!    ky=tmb%orbs%kpts(2,tmb%orbs%iokpt(iorb))
+    !!    kz=tmb%orbs%kpts(3,tmb%orbs%iokpt(iorb))
+    !!    if (kx**2+ky**2+kz**2 > 0.0_gp .or. tmb%orbs%nspinor==2 ) then
+    !!       ncplx=2
+    !!    else
+    !!       ncplx=1
+    !!    end if
+    !!    call deallocate_work_arrays(tmb%lzd%llr(ilr)%geocode, tmb%lzd%llr(ilr)%hybrid_on, &
+    !!         ncplx, precond_workarrays(iorb))
+    !!end do
+    !!deallocate(precond_convol_workarrays)
+    !!deallocate(precond_workarrays)
 
     end subroutine deallocateLocalArrays
 
@@ -1939,6 +1987,7 @@ subroutine reconstruct_kernel(iproc, nproc, inversion_method, blocksize_dsyev, b
   use communications, only: transpose_localized
   use sparsematrix_base, only: sparsematrix_malloc_ptr, DENSE_FULL, assignment(=)
   use sparsematrix, only: uncompress_matrix, gather_matrix_from_taskgroups_inplace, uncompress_matrix2
+  use transposed_operations, only: calculate_overlap_transposed
   implicit none
 
   ! Calling arguments
@@ -2246,7 +2295,7 @@ subroutine reorthonormalize_coeff(iproc, nproc, norb, blocksize_dsyev, blocksize
          ! gram-schmidt as too far from orthonormality to use iterative schemes for S^-1/2
          call f_free_ptr(ovrlp_coeff)
          call timing(iproc,'renormCoefCom2','ON')
-         call gramschmidt_coeff_trans(iproc,nproc,orbs%norb,basis_orbs,basis_overlap,basis_overlap_mat,coeff)
+         call gramschmidt_coeff_trans(iproc,nproc,orbs%norbu,orbs%norb,basis_orbs,basis_overlap,basis_overlap_mat,coeff)
          call timing(iproc,'renormCoefCom2','OF')
       else
          ! standard lowdin
@@ -2513,6 +2562,7 @@ subroutine purify_kernel(iproc, nproc, tmb, overlap_calculated, it_shift, it_opt
   use sparsematrix, only: uncompress_matrix, gather_matrix_from_taskgroups_inplace, &
                           uncompress_matrix2, compress_matrix2
   use foe_base, only: foe_data_get_real
+  use transposed_operations, only: calculate_overlap_transposed
   implicit none
 
   ! Calling arguments
@@ -2909,6 +2959,7 @@ subroutine get_KS_residue(iproc, nproc, tmb, KSorbs, hpsit_c, hpsit_f, KSres)
                                matrices_null, allocate_matrices, deallocate_matrices, &
                                sparsematrix_malloc_ptr, DENSE_FULL, assignment(=)
   use sparsematrix, only: uncompress_matrix, gather_matrix_from_taskgroups_inplace, uncompress_matrix2
+  use transposed_operations, only: calculate_overlap_transposed
   implicit none
 
   ! Calling arguments
@@ -3204,3 +3255,80 @@ subroutine renormalize_kernel(iproc, nproc, order_taylor, max_inversion_error, t
       end subroutine retransform_local
 
 end subroutine renormalize_kernel
+
+
+subroutine allocate_precond_arrays(orbs, lzd, confdatarr, precond_convol_workarrays, precond_workarrays)
+  use module_base, only: gp
+  use module_types
+  implicit none
+  ! Calling arguments
+  type(orbitals_data),intent(in) :: orbs
+  type(local_zone_descriptors),intent(in) :: lzd
+  type(confpot_data),dimension(orbs%norbp),intent(in) ::  confdatarr
+  type(workarrays_quartic_convolutions),dimension(:),pointer,intent(inout) :: precond_convol_workarrays
+  type(workarr_precond),dimension(:),pointer,intent(inout) :: precond_workarrays
+
+  ! Local variables
+  integer :: iorb, iiorb, ilr, ncplx
+  real(kind=8) :: kx, ky, kz
+  logical :: with_confpot
+
+  allocate(precond_convol_workarrays(orbs%norbp))
+  allocate(precond_workarrays(orbs%norbp))
+  do iorb=1,orbs%norbp
+      iiorb=orbs%isorb+iorb
+      ilr=orbs%inwhichlocreg(iiorb)
+      with_confpot = (confdatarr(iorb)%prefac/=0.d0)
+      call init_local_work_arrays(lzd%llr(ilr)%d%n1, lzd%llr(ilr)%d%n2, lzd%llr(ilr)%d%n3, &
+           lzd%llr(ilr)%d%nfl1, lzd%llr(ilr)%d%nfu1, &
+           lzd%llr(ilr)%d%nfl2, lzd%llr(ilr)%d%nfu2, &
+           lzd%llr(ilr)%d%nfl3, lzd%llr(ilr)%d%nfu3, &
+           with_confpot, precond_convol_workarrays(iorb))
+      kx=orbs%kpts(1,orbs%iokpt(iorb))
+      ky=orbs%kpts(2,orbs%iokpt(iorb))
+      kz=orbs%kpts(3,orbs%iokpt(iorb))
+      if (kx**2+ky**2+kz**2 > 0.0_gp .or. orbs%nspinor==2 ) then
+         ncplx=2
+      else
+         ncplx=1
+      end if
+      call allocate_work_arrays(lzd%llr(ilr)%geocode, lzd%llr(ilr)%hybrid_on, &
+           ncplx, lzd%llr(ilr)%d, precond_workarrays(iorb))
+  end do
+
+end subroutine allocate_precond_arrays
+
+
+subroutine deallocate_precond_arrays(orbs, lzd, precond_convol_workarrays, precond_workarrays)
+  use module_base, only: gp
+  use module_types
+  implicit none
+  ! Calling arguments
+  type(orbitals_data),intent(in) :: orbs
+  type(local_zone_descriptors),intent(in) :: lzd
+  type(workarrays_quartic_convolutions),dimension(:),pointer,intent(inout) :: precond_convol_workarrays
+  type(workarr_precond),dimension(:),pointer,intent(inout) :: precond_workarrays
+
+  ! Local variables
+  integer :: iorb, iiorb, ilr, ncplx
+  real(kind=8) :: kx, ky, kz
+
+  do iorb=1,orbs%norbp
+      iiorb=orbs%isorb+iorb
+      ilr=orbs%inwhichlocreg(iiorb)
+      call deallocate_workarrays_quartic_convolutions(precond_convol_workarrays(iorb))
+      kx=orbs%kpts(1,orbs%iokpt(iorb))
+      ky=orbs%kpts(2,orbs%iokpt(iorb))
+      kz=orbs%kpts(3,orbs%iokpt(iorb))
+      if (kx**2+ky**2+kz**2 > 0.0_gp .or. orbs%nspinor==2 ) then
+         ncplx=2
+      else
+         ncplx=1
+      end if
+      call deallocate_work_arrays(lzd%llr(ilr)%geocode, lzd%llr(ilr)%hybrid_on, &
+           ncplx, precond_workarrays(iorb))
+  end do
+  deallocate(precond_convol_workarrays)
+  deallocate(precond_workarrays)
+
+end subroutine deallocate_precond_arrays

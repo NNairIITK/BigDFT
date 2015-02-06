@@ -9,12 +9,12 @@
 
 
 subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
-           ldiis, fnrmOldArr, fnrm_old, alpha, trH, trHold, fnrm, fnrmMax, alpha_mean, alpha_max, &
+           ldiis, fnrmOldArr, fnrm_old, alpha, trH, trHold, fnrm, alpha_mean, alpha_max, &
            energy_increased, tmb, lhphiold, overlap_calculated, &
            energs, hpsit_c, hpsit_f, nit_precond, target_function, correction_orthoconstraint, &
            hpsi_small, experimental_mode, calculate_inverse, correction_co_contra, hpsi_noprecond, &
            norder_taylor, max_inversion_error, method_updatekernel, precond_convol_workarrays, precond_workarrays,&
-           wt_philarge, wt_hpsinoprecond, &
+           wt_hphi, wt_philarge, wt_hpsinoprecond, &
            cdft, input_frag, ref_frags)
   use module_base
   use module_types
@@ -30,6 +30,7 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
                           transform_sparse_matrix_local
   use constrained_dft, only: cdft_data
   use module_fragments, only: system_fragment
+  use transposed_operations, only: calculate_overlap_transposed, build_linear_combination_transposed
   implicit none
 
   ! Calling arguments
@@ -41,7 +42,8 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
   real(kind=8), dimension(tmb%orbs%norbp), intent(inout) :: fnrmOldArr
   real(kind=8),intent(inout) :: fnrm_old
   real(kind=8), dimension(tmb%orbs%norbp), intent(inout) :: alpha
-  real(kind=8), intent(out):: trH, fnrm, fnrmMax, alpha_mean, alpha_max
+  real(kind=8), intent(out):: trH, alpha_mean, alpha_max
+  type(work_mpiaccumulate), intent(inout):: fnrm
   real(kind=8), intent(in):: trHold
   logical,intent(out) :: energy_increased
   real(kind=8), dimension(tmb%npsidim_orbs), intent(inout):: lhphiold
@@ -55,6 +57,7 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
   real(kind=8), dimension(tmb%npsidim_orbs),intent(out) :: hpsi_noprecond
   type(workarrays_quartic_convolutions),dimension(tmb%orbs%norbp),intent(inout) :: precond_convol_workarrays
   type(workarr_precond),dimension(tmb%orbs%norbp),intent(inout) :: precond_workarrays
+  type(work_transpose),intent(inout) :: wt_hphi
   type(work_transpose),intent(inout) :: wt_philarge
   type(work_transpose),intent(out) :: wt_hpsinoprecond
   !!!these must all be present together
@@ -77,7 +80,7 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
   real(dp) :: gnrm,gnrm_zero,gnrmMax,gnrm_old ! for preconditional2, replace with fnrm eventually, but keep separate for now
   type(matrices) :: matrixm
   real(kind=8),dimension(:),pointer :: cdft_gradt_c, cdft_gradt_f, cdft_grad, cdft_grad_small
-  type(work_transpose) :: wt_hphi
+  !type(work_transpose) :: wt_hphi
 
   call f_routine(id='calculate_energy_and_gradient_linear')
 
@@ -434,8 +437,7 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
   ! This is of course only necessary if we are using steepest descent and not DIIS.
   ! if newgradient is true, the angle criterion cannot be used and the choice whether to
   ! decrease or increase the step size is only based on the fact whether the trace decreased or increased.
-  fnrm=0.d0
-  fnrmMax=0.d0
+  fnrm%sendbuf(1)=0.d0
   fnrmOvrlp_tot=0.d0
   fnrmOld_tot=0.d0
   ist=1
@@ -444,8 +446,7 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
       ilr=tmb%orbs%inwhichlocreg(iiorb)
       ncount=tmb%lzd%llr(ilr)%wfd%nvctr_c+7*tmb%lzd%llr(ilr)%wfd%nvctr_f
       tt = ddot(ncount, tmb%hpsi(ist), 1, tmb%hpsi(ist), 1)
-      fnrm = fnrm + tt
-      if(tt>fnrmMax) fnrmMax=tt
+      fnrm%sendbuf(1) = fnrm%sendbuf(1) + tt
       if(it>1) then
           tt2=ddot(ncount, tmb%hpsi(ist), 1, lhphiold(ist), 1)
           fnrmOvrlp_tot = fnrmOvrlp_tot + tt2
@@ -474,11 +475,13 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
       !do iorb=1,tmb%orbs%norbp
       !    fnrmOld_tot=fnrmOld_tot+fnrmOldArr(iorb)
       !end do
+      reducearr(1) = fnrmOvrlp_tot
+      reducearr(2) = fnrm%sendbuf(1)
       if (nproc>1) then
-          call mpiallred(fnrmOvrlp_tot, 1, mpi_sum, bigdft_mpi%mpi_comm)
+          call mpiallred(reducearr(1), 2, mpi_sum, bigdft_mpi%mpi_comm)
       end if
       !tt2=fnrmOvrlp_tot/sqrt(fnrm*fnrmOld_tot)
-      tt2=fnrmOvrlp_tot/sqrt(fnrm*fnrm_old)
+      tt2=reducearr(1)/sqrt(reducearr(2)*fnrm_old)
       ! apply thresholds so that alpha never goes below around 1.d-2 and above around 2
       if(tt2>.6d0 .and. trH<trHold .and. alpha(1)<1.8d0) then ! take alpha(1) since the value is the same for all
           alpha(:)=alpha(:)*1.1d0
@@ -487,10 +490,9 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
       end if
   end if
 
-  fnrm_old=fnrm ! This value will be used in th next call to this routine
+  !fnrm_old=fnrm%receivebuf(1) ! This value will be used in th next call to this routine
 
-  fnrm=sqrt(fnrm/dble(tmb%orbs%norb))
-  fnrmMax=sqrt(fnrmMax)
+  !!fnrm%sendbuf(1)=sqrt(fnrm%sendbuf(1)/dble(tmb%orbs%norb))
 
 
 
@@ -630,11 +632,22 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
 
   subroutine communicate_fnrm()
     implicit none
+    ! Local variables
+    integer :: jproc
     call f_routine(id='communicate_fnrm')
-    if (nproc > 1) then
-       call mpiallred(fnrm, 1, mpi_sum, bigdft_mpi%mpi_comm)
-       call mpiallred(fnrmMax, 1, mpi_max, bigdft_mpi%mpi_comm)
+    !!if (nproc > 1) then
+    !!   call mpiallred(fnrm, 1, mpi_sum, bigdft_mpi%mpi_comm)
+    !!end if
+
+    if (nproc>1) then
+        fnrm%receivebuf = 0.d0
+        fnrm%window = mpiwindow(1, fnrm%receivebuf(1), bigdft_mpi%mpi_comm)
+        call mpiaccumulate_double(fnrm%sendbuf(1), 1, 0, &
+             int(0,kind=mpi_address_kind), 1, mpi_sum, fnrm%window)
+    else
+        fnrm%receivebuf(1) = fnrm%sendbuf(1)
     end if
+
     call f_release_routine()
   end subroutine communicate_fnrm
 
@@ -661,6 +674,7 @@ subroutine calculate_residue_ks(iproc, nproc, num_extra, ksorbs, tmb, hpsit_c, h
                                matrices_null, allocate_matrices, deallocate_matrices
   use sparsematrix, only: uncompress_matrix, gather_matrix_from_taskgroups_inplace, &
                           extract_taskgroup_inplace, uncompress_matrix2
+  use transposed_operations, only: calculate_overlap_transposed
   implicit none
 
   ! Calling arguments
@@ -910,6 +924,7 @@ subroutine build_gradient(iproc, nproc, tmb, target_function, hpsit_c, hpsit_f, 
   use sparsematrix, only: orb_from_index, gather_matrix_from_taskgroups_inplace
   use communications_base, only: TRANSPOSE_FULL
   use communications, only: transpose_localized
+  use transposed_operations, only: build_linear_combination_transposed
   implicit none
 
   ! Calling arguments

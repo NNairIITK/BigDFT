@@ -19,6 +19,7 @@ subroutine pulay_correction_new(iproc, nproc, tmb, orbs, at, fpulay)
                                sparsematrix_malloc, SPARSE_FULL
   use sparsematrix, only: compress_matrix, uncompress_matrix, gather_matrix_from_taskgroups_inplace, &
                           uncompress_matrix2
+  use transposed_operations, only: calculate_overlap_transposed, build_linear_combination_transposed
   implicit none
 
   ! Calling arguments
@@ -467,6 +468,7 @@ subroutine pulay_correction(iproc, nproc, orbs, at, rxyz, nlpsp, SIC, denspot, G
                                matrices_null, allocate_matrices, deallocate_matrices, &
                                sparsematrix_malloc_ptr, SPARSE_FULL, assignment(=)
   use sparsematrix, only: gather_matrix_from_taskgroups_inplace
+  use transposed_operations, only: calculate_overlap_transposed
   implicit none
 
   ! Calling arguments

@@ -596,7 +596,6 @@
  WARNINGS:
  - No convergence within the allowed number of minimization steps
  - Wavefunctions not converged after cycle  1
- - No convergence within the allowed number of minimization steps
  - Wavefunctions not converged after cycle  2
  - Self-consistent cycle did not meet convergence criteria
   #-------------------------------------------------------------------- Timing for root process

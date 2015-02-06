@@ -622,6 +622,7 @@ subroutine fire(runObj,outs,nproc,iproc,ncount_bigdft,fail)
   !n(c) ecur=etot
   eprev=0.0_gp
 
+
   Big_loop: do it=1,runObj%inputs%ncount_cluster_x-1
      do iat=1,3*runObj%atoms%astruct%nat
         pospred(iat)=poscur(iat)+dt*velcur(iat)+dt*dt*0.5_gp*fcur(iat)/mass(iat)
@@ -728,6 +729,7 @@ subroutine fire(runObj,outs,nproc,iproc,ncount_bigdft,fail)
 
      !if (iproc==0) write(10,*) epred, vnrm*0.5d0
    end do Big_loop
+
         
 ! Output the final energy, atomic positions and forces
    call vcopy(3*runObj%atoms%astruct%nat, pospred(1), 1, runObj%atoms%astruct%rxyz(1,1), 1)

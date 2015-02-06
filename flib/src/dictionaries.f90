@@ -777,11 +777,11 @@ contains
      !local variables
      integer :: ind
      type(dictionary), pointer :: dict_tmp
-
      find_index =-1
      ind=-1
      if (associated(dict)) then
-        dict_tmp=>dict_next(dict)
+        !dict_tmp=>dict_next(dict)
+        dict_tmp=>dict_iter(dict)
         loop_find: do while(associated(dict_tmp))
            ind=ind+1
            if (name_is(dict_tmp,name)) then

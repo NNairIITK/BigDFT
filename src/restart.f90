@@ -837,13 +837,13 @@ END SUBROUTINE writeonewave_linear
 
 
 subroutine writeLinearCoefficients(unitwf,useFormattedOutput,nat,rxyz,&
-           ntmb,norb,coeff,eval)
+           ntmb,norb,nfvctr,coeff,eval)
   use module_base
   use yaml_output
   implicit none
   logical, intent(in) :: useFormattedOutput
-  integer, intent(in) :: unitwf,nat,ntmb,norb
-  real(wp), dimension(ntmb,ntmb), intent(in) :: coeff
+  integer, intent(in) :: unitwf,nat,ntmb,norb,nfvctr
+  real(wp), dimension(nfvctr,ntmb), intent(in) :: coeff
   real(wp), dimension(ntmb), intent(in) :: eval
   real(gp), dimension(3,nat), intent(in) :: rxyz
   !local variables
@@ -875,7 +875,7 @@ subroutine writeLinearCoefficients(unitwf,useFormattedOutput,nat,rxyz,&
   do i = 1, ntmb
      ! first element always positive, for consistency when using for transfer integrals
      ! unless 1st element below some threshold, in which case first significant element
-     do j=1,ntmb
+     do j=1,nfvctr
         if (abs(coeff(j,i))>1.0e-1) then
            if (coeff(j,i)<0.0_gp) call dscal(ntmb,-1.0_gp,coeff(1,i),1)
            exit
@@ -883,7 +883,7 @@ subroutine writeLinearCoefficients(unitwf,useFormattedOutput,nat,rxyz,&
      end do
      if (j==ntmb+1)print*,'Error finding significant coefficient, coefficients not scaled to have +ve first element'
 
-     do j = 1, ntmb
+     do j = 1,nfvctr
           tt = coeff(j,i)
           if (useFormattedOutput) then
              write(unitwf,'(2(i6,1x),e19.12)') i,j,tt
@@ -1078,6 +1078,13 @@ subroutine tmb_overlap_onsite(iproc, nproc, imethod_overlap, at, tmb, rxyz)
   use communications_base, only: comms_linear_null, deallocate_comms_linear, TRANSPOSE_FULL
   use communications_init, only: init_comms_linear
   use communications, only: transpose_localized
+  use sparsematrix, only: uncompress_matrix
+  use sparsematrix_base, only: matrices, sparse_matrix, &
+                               matrices_null, sparse_matrix_null, &
+                               deallocate_matrices, deallocate_sparse_matrix, &
+                               assignment(=), sparsematrix_malloc_ptr, SPARSE_TASKGROUP
+  use sparsematrix_init, only: init_sparse_matrix, init_matrix_taskgroups, check_local_matrix_extents
+  use transposed_operations, only: calculate_overlap_transposed, normalize_transposed
   implicit none
 
   ! Calling arguments
@@ -1103,6 +1110,9 @@ subroutine tmb_overlap_onsite(iproc, nproc, imethod_overlap, at, tmb, rxyz)
   type(fragment_transformation) :: frag_trans
   integer :: ierr, ncount, iroot, jproc
   integer,dimension(:),allocatable :: workarray
+  type(sparse_matrix) :: smat_tmp
+  type(matrices) :: mat_tmp
+  integer,dimension(2) :: irow, icol, iirow, iicol
 
   ! move all psi into psi_tmp all centred in the same place and calculate overlap matrix
   tol=1.d-3
@@ -1241,6 +1251,7 @@ subroutine tmb_overlap_onsite(iproc, nproc, imethod_overlap, at, tmb, rxyz)
 
   ! now that they are all in one lr, need to calculate overlap matrix
   ! make lzd_tmp contain all identical lrs
+  lzd_tmp = local_zone_descriptors_null()
   lzd_tmp%linear=tmb%lzd%linear
   lzd_tmp%nlr=tmb%lzd%nlr
   lzd_tmp%lintyp=tmb%lzd%lintyp
@@ -1259,10 +1270,32 @@ subroutine tmb_overlap_onsite(iproc, nproc, imethod_overlap, at, tmb, rxyz)
      call copy_locreg_descriptors(tmb%lzd%llr(ilr_tmp), lzd_tmp%llr(i1))
   end do
 
+
   !call nullify_comms_linear(collcom_tmp)
   collcom_tmp=comms_linear_null()
   call init_comms_linear(iproc, nproc, imethod_overlap, ndim_tmp, tmb%orbs, lzd_tmp, &
        tmb%linmat%m%nspin, collcom_tmp)
+
+  smat_tmp = sparse_matrix_null()
+  call init_sparse_matrix_wrapper(iproc, nproc, tmb%linmat%s%nspin, tmb%orbs, &
+       lzd_tmp, at%astruct, .false., imode=2, smat=smat_tmp)
+  call init_matrixindex_in_compressed_fortransposed(iproc, nproc, tmb%orbs, &
+       collcom_tmp, collcom_tmp, collcom_tmp, smat_tmp)
+  iirow(1) = smat_tmp%nfvctr
+  iirow(2) = 1
+  iicol(1) = smat_tmp%nfvctr
+  iicol(2) = 1
+  call check_local_matrix_extents(iproc, nproc, collcom_tmp, collcom_tmp, smat_tmp, irow, icol)
+  iirow(1) = min(irow(1),iirow(1))
+  iirow(2) = max(irow(2),iirow(2))
+  iicol(1) = min(icol(1),iicol(1))
+  iicol(2) = max(icol(2),iicol(2))
+
+  call init_matrix_taskgroups(iproc, nproc, .false., &
+       collcom_tmp, collcom_tmp, smat_tmp, iirow, iicol)
+
+  mat_tmp = matrices_null()
+  mat_tmp%matrix_compr = sparsematrix_malloc_ptr(smat_tmp, iaction=SPARSE_TASKGROUP,id='mat_tmp%matrix_compr')
 
   psit_c_tmp = f_malloc_ptr(sum(collcom_tmp%nrecvcounts_c),id='psit_c_tmp')
   psit_f_tmp = f_malloc_ptr(7*sum(collcom_tmp%nrecvcounts_f),id='psit_f_tmp')
@@ -1275,8 +1308,20 @@ subroutine tmb_overlap_onsite(iproc, nproc, imethod_overlap, at, tmb, rxyz)
   call normalize_transposed(iproc, nproc, tmb%orbs, tmb%linmat%s%nspin, collcom_tmp, psit_c_tmp, psit_f_tmp, norm)
   call f_free_ptr(norm)
 
-  call calculate_pulay_overlap(iproc, nproc, tmb%orbs, tmb%orbs, collcom_tmp, collcom_tmp, &
-       psit_c_tmp, psit_c_tmp, psit_f_tmp, psit_f_tmp, tmb%linmat%ovrlp_%matrix)
+  !!call calculate_pulay_overlap(iproc, nproc, tmb%orbs, tmb%orbs, collcom_tmp, collcom_tmp, &
+  !!     psit_c_tmp, psit_c_tmp, psit_f_tmp, psit_f_tmp, tmb%linmat%ovrlp_%matrix)
+  call calculate_overlap_transposed(iproc, nproc, tmb%orbs, collcom_tmp, &
+                 psit_c_tmp, psit_c_tmp, psit_f_tmp, psit_f_tmp, smat_tmp, mat_tmp)
+  call uncompress_matrix(iproc, tmb%linmat%s, mat_tmp%matrix_compr, tmb%linmat%ovrlp_%matrix)
+
+  call deallocate_matrices(mat_tmp)
+  call deallocate_sparse_matrix(smat_tmp)
+
+!!!# DEBUG #######
+!!call deallocate_local_zone_descriptors(lzd_tmp)
+!!call mpi_finalize(i1)
+!!stop
+!!!# END DEBUG ###
 
   call deallocate_comms_linear(collcom_tmp)
   call deallocate_local_zone_descriptors(lzd_tmp)
@@ -1567,35 +1612,37 @@ END SUBROUTINE tmb_overlap_onsite
 
 
 !> Write all my wavefunctions in files by calling writeonewave
-subroutine writemywaves_linear(iproc,filename,iformat,npsidim,Lzd,orbs,nelec,at,rxyz,psi,coeff)
+subroutine writemywaves_linear(iproc,filename,iformat,npsidim,Lzd,orbs,nelec,at,rxyz,psi,nfvctr,coeff)
   use module_types
   use module_base
   use yaml_output
   use module_interfaces, except_this_one => writeonewave
   implicit none
-  integer, intent(in) :: iproc,iformat,npsidim,nelec
+  integer, intent(in) :: iproc,iformat,npsidim,nelec,nfvctr
   !integer, intent(in) :: norb   !< number of orbitals, not basis functions
   type(atoms_data), intent(in) :: at
   type(orbitals_data), intent(in) :: orbs         !< orbs describing the basis functions
   type(local_zone_descriptors), intent(in) :: Lzd
   real(gp), dimension(3,at%astruct%nat), intent(in) :: rxyz
   real(wp), dimension(npsidim), intent(in) :: psi  ! Should be the real linear dimension and not the global
-  real(wp), dimension(orbs%norb,orbs%norb), intent(in) :: coeff
+  real(wp), dimension(nfvctr,orbs%norb), intent(in) :: coeff
   character(len=*), intent(in) :: filename
   !Local variables
-  logical :: binary
+  logical :: binary, is_etsf
   integer :: ncount1,ncount_rate,ncount_max,iorb,ncount2,iorb_out,ispinor,ilr,shift,ii,iat,unitwf
   integer :: jorb,jlr
   real(kind=4) :: tr0,tr1
   real(kind=8) :: tel
 
   unitwf=99
-  binary=iformat /= WF_FORMAT_ETSF
+  binary=(iformat/=WF_FORMAT_PLAIN)
+  is_etsf=(iformat==WF_FORMAT_ETSF)
 
   if (iproc == 0) call yaml_map('Write wavefunctions to file', trim(filename)//'.*')
   !if (iproc == 0) write(*,"(1x,A,A,a)") "Write wavefunctions to file: ", trim(filename),'.*'
 
-  if (binary) then
+  !if (binary) then
+  if (is_etsf) then
      call f_err_throw('Linear scaling with ETSF writing not implemented yet')
 !     call write_waves_etsf(iproc,filename,orbs,n1,n2,n3,hx,hy,hz,at,rxyz,wfd,psi)
   else
@@ -1616,7 +1663,7 @@ subroutine writemywaves_linear(iproc,filename,iformat,npsidim,Lzd,orbs,nelec,at,
               ii = ii + 1
               ilr = orbs%inwhichlocreg(iorb+orbs%isorb)
               do ispinor=1,orbs%nspinor
-                 call open_filename_of_iorb(unitwf,.not. binary,filename, &
+                 call open_filename_of_iorb(unitwf,binary,filename, &
                     & orbs,iorb,ispinor,iorb_out)
                  call writeonewave_linear(unitwf,.not. binary,iorb_out,&
                     & Lzd%Llr(ilr)%d%n1,Lzd%Llr(ilr)%d%n2,Lzd%Llr(ilr)%d%n3,&
@@ -1648,7 +1695,7 @@ subroutine writemywaves_linear(iproc,filename,iformat,npsidim,Lzd,orbs,nelec,at,
        !open(99, file=filename//'_coeff.bin', status='unknown',form='unformatted')
        !end if
       call writeLinearCoefficients(unitwf,.not. binary,at%astruct%nat,rxyz,orbs%norb,&
-           nelec,coeff,orbs%eval)
+           nelec,nfvctr,coeff,orbs%eval)
       call f_close(unitwf)
    end if
      call cpu_time(tr1)
@@ -1687,7 +1734,7 @@ subroutine writemywaves_linear_fragments(iproc,filename,iformat,npsidim,Lzd,orbs
   type(local_zone_descriptors), intent(in) :: Lzd
   real(gp), dimension(3,at%astruct%nat), intent(in) :: rxyz
   real(wp), dimension(npsidim), intent(in) :: psi  ! Should be the real linear dimension and not the global
-  real(wp), dimension(orbs%norb,orbs%norb), intent(in) :: coeff
+  real(wp), dimension(orbs%norb,orbs%norb), intent(in) :: coeff !SM: IS this correcy even with spin?
   character(len=*), intent(in) :: dir_output, filename
   type(fragmentInputParameters), intent(in) :: input_frag
   type(system_fragment), dimension(input_frag%nfrag_ref), intent(inout) :: ref_frags
@@ -1792,9 +1839,12 @@ subroutine writemywaves_linear_fragments(iproc,filename,iformat,npsidim,Lzd,orbs
            !else
            !   open(unitwf, file=trim(full_filename)//'_coeff.bin', status='unknown',form='unformatted')
            !end if
+           
+           ! Not sure whether this is correct for nspin=2...
            call writeLinearCoefficients(unitwf,(iformat == WF_FORMAT_PLAIN),ref_frags(ifrag_ref)%astruct_frg%nat,&
                 rxyz(:,isfat+1:isfat+ref_frags(ifrag_ref)%astruct_frg%nat),ref_frags(ifrag_ref)%fbasis%forbs%norb,&
                 ref_frags(ifrag_ref)%nelec,&
+                ref_frags(ifrag_ref)%fbasis%forbs%norb, &
                 coeff(isforb+1:isforb+ref_frags(ifrag_ref)%fbasis%forbs%norb,&
                 isforb+1:isforb+ref_frags(ifrag_ref)%fbasis%forbs%norb),&
                 orbs%eval(isforb+1:isforb+ref_frags(ifrag_ref)%fbasis%forbs%norb)) !-0.5d0
@@ -2138,7 +2188,7 @@ subroutine io_read_descr_coeff(unitwf, formatted, norb_old, ntmb_old, &
 END SUBROUTINE io_read_descr_coeff
 
 
-subroutine read_coeff_minbasis(unitwf,useFormattedInput,iproc,ntmb,norb_old,coeff,eval,nat,rxyz_old)
+subroutine read_coeff_minbasis(unitwf,useFormattedInput,iproc,ntmb,norb_old,nfvctr,coeff,eval,nat,rxyz_old)
   use module_base
   use module_types
   use internal_io
@@ -2146,9 +2196,9 @@ subroutine read_coeff_minbasis(unitwf,useFormattedInput,iproc,ntmb,norb_old,coef
   use yaml_output
   implicit none
   logical, intent(in) :: useFormattedInput
-  integer, intent(in) :: unitwf,iproc,ntmb
+  integer, intent(in) :: unitwf,iproc,ntmb,nfvctr
   integer, intent(out) :: norb_old
-  real(wp), dimension(ntmb,ntmb), intent(out) :: coeff
+  real(wp), dimension(nfvctr,ntmb), intent(out) :: coeff
   real(wp), dimension(ntmb), intent(out) :: eval
   integer, optional, intent(in) :: nat
   real(gp), dimension(:,:), optional, intent(out) :: rxyz_old
@@ -2187,7 +2237,7 @@ subroutine read_coeff_minbasis(unitwf,useFormattedInput,iproc,ntmb,norb_old,coef
 
   ! Now read the coefficients
   do i = 1, ntmb
-     do j = 1, ntmb
+     do j = 1,nfvctr
         if (useFormattedInput) then
            read(unitwf,*,iostat=i_stat) i1,i2,tt
         else
@@ -2200,7 +2250,7 @@ subroutine read_coeff_minbasis(unitwf,useFormattedInput,iproc,ntmb,norb_old,coef
 
   ! rescale so first significant element is +ve
   do i = 1, ntmb
-     do j = 1, ntmb
+     do j = 1,nfvctr
         if (abs(coeff(j,i))>1.0e-1) then
            if (coeff(j,i)<0.0_gp) call dscal(ntmb,-1.0_gp,coeff(1,i),1)
            exit
@@ -2644,7 +2694,7 @@ subroutine readmywaves_linear_new(iproc,nproc,dir_output,filename,iformat,at,tmb
 
      !if (input_frag%nfrag>1) then
         call read_coeff_minbasis(unitwf,(iformat == WF_FORMAT_PLAIN),iproc,ref_frags(ifrag_ref)%fbasis%forbs%norb,&
-             ref_frags(ifrag_ref)%nelec,ref_frags(ifrag_ref)%coeff,ref_frags(ifrag_ref)%eval)
+             ref_frags(ifrag_ref)%nelec,ref_frags(ifrag_ref)%fbasis%forbs%norb,ref_frags(ifrag_ref)%coeff,ref_frags(ifrag_ref)%eval)
              !tmb%orbs%eval(isforb+1:isforb+ref_frags(ifrag_ref)%fbasis%forbs%norb))
              !tmb%orbs%eval(isforb+1)
         ! copying of coeffs from fragment to tmb%coeff now occurs after this routine
@@ -2949,21 +2999,21 @@ subroutine copy_old_supportfunctions(iproc,orbs,lzd,phi,lzd_old,phi_old)
 END SUBROUTINE copy_old_supportfunctions
 
 
-subroutine copy_old_coefficients(norb_tmb, coeff, coeff_old)
+subroutine copy_old_coefficients(norb_tmb, nfvctr, coeff, coeff_old)
   use module_base
   implicit none
 
   ! Calling arguments
-  integer,intent(in):: norb_tmb
+  integer,intent(in):: norb_tmb, nfvctr
   real(8),dimension(:,:),pointer:: coeff, coeff_old
 
   ! Local variables
   character(len=*),parameter:: subname='copy_old_coefficients'
 !  integer:: istat,iall
 
-  coeff_old = f_malloc_ptr((/ norb_tmb, norb_tmb /),id='coeff_old')
+  coeff_old = f_malloc_ptr((/ nfvctr, norb_tmb /),id='coeff_old')
 
-  call vcopy(norb_tmb*norb_tmb, coeff(1,1), 1, coeff_old(1,1), 1)
+  call vcopy(nfvctr*norb_tmb, coeff(1,1), 1, coeff_old(1,1), 1)
 
   !!iall=-product(shape(coeff))*kind(coeff)
   !!deallocate(coeff,stat=istat)

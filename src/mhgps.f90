@@ -35,6 +35,7 @@ program mhgps
     use bigdft_run
     implicit none
     integer                   :: u
+    integer                   :: nfree
     integer                   :: iat
     integer                   :: info
     integer                   :: isame
@@ -56,6 +57,7 @@ program mhgps
     real(8)                   :: wd(1)
     character(len=300)        :: comment
     logical                   :: converged
+    logical                   :: ltmp
     type(connect_object)      :: cobj
     type(dictionary), pointer :: options
     type(dictionary), pointer :: run
@@ -86,6 +88,7 @@ program mhgps
 
     nbond=1
     converged = .false.
+    premature_exit=.false.
 
     call f_lib_initialize()
 
@@ -127,35 +130,6 @@ program mhgps
     call init_state_properties(outs, bigdft_nat(runObj))
 
 
-!    elseif(efmethod=='AMBER')then
-!        mhgpsst%iproc=0
-!        isForceField=.true.
-!        call read_atomic_file(trim(adjustl(filename)),&
-!             mhgpsst%iproc,atom_struct)
-!        astruct_ptr=>atom_struct
-!        fdim=astruct_ptr%nat
-!        !alanine stuff ......................START!>
-!          l_sat=5
-!          allocate(atomnamesdmy(1000))
-!          rxyzdmy = f_malloc((/ 1.to.3, 1.to.astruct_ptr%nat/),&
-!                            id='rxyzdmy')
-!          fxyzdmy = f_malloc((/ 1.to.3, 1.to.astruct_ptr%nat/),&
-!                            id='fxyzdmy')
-!          fnpdb='ald_new.pdb'
-!          nfnpdb=len(trim(fnpdb));
-!          call nab_init(astruct_ptr%nat,rxyzdmy,fxyzdmy,&
-!                        trim(fnpdb),nfnpdb,l_sat,atomnamesdmy)
-!          call f_free(rxyzdmy)
-!          call f_free(fxyzdmy)
-!          deallocate(atomnamesdmy)
-!        !alanine stuff ......................END!>
-!
-!        call print_logo_mhgps()
-!    else
-!        call yaml_warning('Following method for evaluation of '//&
-!        'energies and forces is unknown: '//trim(adjustl(efmethod)))
-!        stop
-!    endif
     if(mhgpsst%iproc==0) call print_input(uinp)
 
     mhgpsst%nid = bigdft_nat(runObj) !s-overlap fingerprints
@@ -217,7 +191,7 @@ program mhgps
         if(mhgpsst%njobs==0)cycle
         mhgpsst%ijob=0
         if(mhgpsst%iproc==0)then
-           call write_restart(mhgpsst,runObj)
+           call write_restart(mhgpsst,runObj,writeJobList=.false.)
         endif
 
         inner: do ijob = 1,mhgpsst%njobs
@@ -294,7 +268,18 @@ program mhgps
 !                   nbond,isame,iconnect,rxyz,rxyz2,energy,energy2,fp,&
 !                   fp2,cobj,connected)
               if(connected)then
-                 if(mhgpsst%iproc==0)call yaml_map('(MHGPS) '//&
+                ltmp=.true.
+                if(ijob+1<=mhgpsst%njobs)then
+                    !If connected==.true. then in subroutine connect, NO
+                    !new connection jobs for a restart have been added.
+                    !This meand, the job in mhgpsst%joblist(1,ijob+1) is identical
+                    !to the job that will be read an after a restart.
+                    if(trim(adjustl(mhgpsst%joblist(1,ijob+1)(10:16)))=='restart')then
+                      ltmp=.false.
+                    endif
+                endif
+                
+                if(mhgpsst%iproc==0 .and. ltmp)call yaml_map('(MHGPS) '//&
                       'succesfully connected, intermediate'//&
                       ' transition states',nsad)
               else
@@ -394,12 +379,14 @@ program mhgps
                    fxyz,fnoise,energy,infocode)
               runObj%inputs%inputPsiId=0
               call cal_hessian_fd(mhgpsst,runObj,outs,rxyz,&
-                   hess)
+                   hess,nfree)
               if(mhgpsst%iproc==0)then
                  write(*,*)'(hess) HESSIAN:'
                  write(*,*)hess
               endif
-              call DSYEV('V','L',3*bigdft_nat(runObj),hess,3*bigdft_nat(runObj),eval,WORK,LWORK,&
+!              call DSYEV('V','L',3*bigdft_nat(runObj),hess,3*bigdft_nat(runObj),eval,WORK,LWORK,&
+!                   INFO)
+              call DSYEV('V','L',nfree,hess,3*bigdft_nat(runObj),eval,WORK,LWORK,&
                    INFO)
               if (info.ne.0) stop 'DSYEV'
               if(mhgpsst%iproc==0)then
@@ -408,7 +395,7 @@ program mhgps
                  write(*,'(a,1x,es9.2,1x,es24.17)') '(hess)'//&
                       ' ---   App. eigenvalues in exact --------'//&
                       '--- fnrm:',sqrt(sum(fxyz**2)),energy
-                 do iat=1,3*bigdft_nat(runObj)
+                 do iat=1,nfree
                     write(*,*) '(hess) eval ',iat,eval(iat)
                  enddo
               endif

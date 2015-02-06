@@ -137,7 +137,7 @@ recursive subroutine connect_recursively(mhgpsst,fsw,uinp,runObj,outs,&
         connected=.false.
         call write_todo(mhgpsst,runObj,outs,rxyz1,rxyz2,ener1,ener2)
         call yaml_warning('(MHGPS) Saddle search not converged. '//&
-             'Aborting connecting attempt.')
+             'Aborting connection attempt.')
 !        stop 'STOP saddle not converged'
               return
     endif
@@ -379,39 +379,46 @@ recursive subroutine connect_recursively(mhgpsst,fsw,uinp,runObj,outs,&
 
     !is minimum, obtained by relaxation from left bar end identical to
     !left input minimum?
-    lnl=equal(mhgpsst%iproc,'(MHGPS)','MM',mhgpsst%nid,uinp%en_delta_min,uinp%fp_delta_min,ener1,&
+    lnl=equal(mhgpsst%iproc,'(MHGPS)','MM',mhgpsst%nid,&
+        uinp%en_delta_min,uinp%fp_delta_min,ener1,&
         cobj%enerleft(mhgpsst%nsad),fp1,cobj%fpleft(1,mhgpsst%nsad))
 
     !is minimum obtained by relaxation from right bar end identical to
     !right input minimum?
-    rnr=equal(mhgpsst%iproc,'(MHGPS)','MM',mhgpsst%nid,uinp%en_delta_min,uinp%fp_delta_min,ener2,&
+    rnr=equal(mhgpsst%iproc,'(MHGPS)','MM',mhgpsst%nid,&
+        uinp%en_delta_min,uinp%fp_delta_min,ener2,&
         cobj%enerright(mhgpsst%nsad),fp2,cobj%fpright(1,mhgpsst%nsad))
 
     !is minimum obtained by relaxation from left bar end identical to 
     !right input minimum?
-    lnr=equal(mhgpsst%iproc,'(MHGPS)','MM',mhgpsst%nid,uinp%en_delta_min,uinp%fp_delta_min,ener2,&
+    lnr=equal(mhgpsst%iproc,'(MHGPS)','MM',mhgpsst%nid,&
+        uinp%en_delta_min,uinp%fp_delta_min,ener2,&
         cobj%enerleft(mhgpsst%nsad),fp2,cobj%fpleft(1,mhgpsst%nsad))
 
     !is minimum obtained by relaxation from right bar end identical to
     !left input minimum?
-    rnl=equal(mhgpsst%iproc,'(MHGPS)','MM',mhgpsst%nid,uinp%en_delta_min,uinp%fp_delta_min,ener1,&
+    rnl=equal(mhgpsst%iproc,'(MHGPS)','MM',mhgpsst%nid,&
+        uinp%en_delta_min,uinp%fp_delta_min,ener1,&
         cobj%enerright(mhgpsst%nsad),fp1,cobj%fpright(1,mhgpsst%nsad))
 
     if((lnl .and. rnr) .or. (lnr .and. rnl))then!connection done
-       if(mhgpsst%iproc==0)&
-            write(*,'(a,es24.17,1x,es24.17)')&
-            '(MHGPS) connection check connected',&
-            cobj%enerleft(mhgpsst%nsad),cobj%enerright(mhgpsst%nsad)
+        if(mhgpsst%iproc==0)write(*,'(a,es24.17,1x,es24.17)')'(MHGPS)'//&
+                           ' connection check connected',&
+                            cobj%enerleft(mhgpsst%nsad),&
+                            cobj%enerright(mhgpsst%nsad)
         connected=.true.
         return
     endif
 
     if(lnl .and. (.not. rnr))then
         !connect right input min with right relaxed bar-end
-if(mhgpsst%iproc==0)write(*,*)'(MHGPS) connection check lnl and not rnr',sqrt(sum((rxyz2-cobj%rightmin(:,:,nsad_loc))**2))
-if(mhgpsst%iproc==0)&
-     write(*,'(a,es24.17,1x,es24.17)')&
-     '(MHGPS) connection check connected',cobj%enerleft(mhgpsst%nsad),cobj%enerright(mhgpsst%nsad)
+        if(mhgpsst%iproc==0)write(*,*)'(MHGPS) connection check lnl'//&
+                           ' and not rnr',sqrt(sum((&
+                           rxyz2-cobj%rightmin(:,:,nsad_loc))**2))
+        if(mhgpsst%iproc==0)write(*,'(a,es24.17,1x,es24.17)')&
+                            '(MHGPS) connection check connected',&
+                            cobj%enerleft(mhgpsst%nsad),&
+                            cobj%enerright(mhgpsst%nsad)
         call connect_recursively(mhgpsst,fsw,uinp,runObj,outs,rcov,nbond,isame,&
                      iconnect,cobj%rightmin(1,1,nsad_loc),rxyz2,&
                      cobj%enerright(nsad_loc),ener2,&
@@ -420,10 +427,15 @@ if(mhgpsst%iproc==0)&
     endif
 
     if(rnr .and. (.not. lnl))then
-if(mhgpsst%iproc==0)write(*,*)'(MHGPS)connection check rnr and not lnl',rnr,lnl
-if(mhgpsst%iproc==0)write(*,*)'(MHGPS)connection check rnr and not lnl',sqrt(sum((rxyz1-cobj%leftmin(:,:,nsad_loc))**2))
-if(mhgpsst%iproc==0)&
-     write(*,'(a,es24.17,1x,es24.17)')'(MHGPS) connection check connected',cobj%enerleft(mhgpsst%nsad),cobj%enerright(mhgpsst%nsad)
+    if(mhgpsst%iproc==0)write(*,*)'(MHGPS)connection check rnr and'//&
+                                  ' not lnl',rnr,lnl
+    if(mhgpsst%iproc==0)write(*,*)'(MHGPS)connection check rnr and'//&
+                                  ' not lnl',sqrt(sum((rxyz1-&
+                                  cobj%leftmin(:,:,nsad_loc))**2))
+    if(mhgpsst%iproc==0)write(*,'(a,es24.17,1x,es24.17)')'(MHGPS)'//&
+                                ' connection check connected',&
+                                cobj%enerleft(mhgpsst%nsad),&
+                                cobj%enerright(mhgpsst%nsad)
 !write(*,*)rxyz1
 !write(*,*)
 !write(*,*)cobj%leftmin(:,:,nsad_loc)
@@ -450,9 +462,13 @@ if(mhgpsst%iproc==0)&
     endif
 
     if(lnr .and. (.not. rnl))then
-if(mhgpsst%iproc==0)write(*,*)'(MHGPS)connection check lnr and not rnl',sqrt(sum((rxyz1-cobj%rightmin(:,:,nsad_loc))**2))
-if(mhgpsst%iproc==0)&
-     write(*,'(a,es24.17,1x,es24.17)')'(MHGPS) connection check connected',cobj%enerleft(mhgpsst%nsad),cobj%enerright(mhgpsst%nsad)
+    if(mhgpsst%iproc==0)write(*,*)'(MHGPS)connection check lnr and'//&
+                                  ' not rnl',sqrt(sum((rxyz1-&
+                                  cobj%rightmin(:,:,nsad_loc))**2))
+    if(mhgpsst%iproc==0)write(*,'(a,es24.17,1x,es24.17)')'(MHGPS)'//&
+                             ' connection check connected',&
+                             cobj%enerleft(mhgpsst%nsad),&
+                             cobj%enerright(mhgpsst%nsad)
         !connect right relaxed bar end with left input min
         call connect_recursively(mhgpsst,fsw,uinp,runObj,outs,rcov,nbond,isame,&
                      iconnect,rxyz1,cobj%rightmin(1,1,nsad_loc),&
@@ -462,9 +478,12 @@ if(mhgpsst%iproc==0)&
     endif
 
     if(.not. lnr .and. rnl)then
-if(mhgpsst%iproc==0)write(*,*)'(MHGPS)connection check not lnr and rnl',sqrt(sum((rxyz2-cobj%leftmin(:,:,nsad_loc))**2))
-if(mhgpsst%iproc==0)&
-     write(*,'(a,es24.17,1x,es24.17)')'(MHGPS) connection check connected',cobj%enerleft(mhgpsst%nsad),cobj%enerright(mhgpsst%nsad)
+    if(mhgpsst%iproc==0)write(*,*)'(MHGPS)connection check not lnr and'//&
+                                  ' rnl',sqrt(sum((rxyz2-&
+                                  cobj%leftmin(:,:,nsad_loc))**2))
+    if(mhgpsst%iproc==0)write(*,'(a,es24.17,1x,es24.17)')'(MHGPS)'//&
+                        ' connection check connected',&
+                        cobj%enerleft(mhgpsst%nsad),cobj%enerright(mhgpsst%nsad)
         !connect left relaxed bar end with right input min
         call connect_recursively(mhgpsst,fsw,uinp,runObj,outs,rcov,nbond,isame,&
                      iconnect,rxyz2,cobj%leftmin(1,1,nsad_loc),&
@@ -474,10 +493,16 @@ if(mhgpsst%iproc==0)&
     endif
 
     if((.not. lnl) .and. (.not. rnr))then
-if(mhgpsst%iproc==0)write(*,*)'(MHGPS)connection check not lnl and not rnr',sqrt(sum((rxyz1-cobj%leftmin(:,:,nsad_loc))**2))
-if(mhgpsst%iproc==0)write(*,*)'(MHGPS)connection check not lnl and not rnr',sqrt(sum((rxyz2-cobj%rightmin(:,:,nsad_loc))**2))
-if(mhgpsst%iproc==0)&
-     write(*,'(a,es24.17,1x,es24.17)')'(MHGPS) connection check connected',cobj%enerleft(mhgpsst%nsad),cobj%enerright(mhgpsst%nsad)
+    if(mhgpsst%iproc==0)write(*,*)'(MHGPS)connection check not lnl'//&
+                       ' and not rnr',sqrt(sum((rxyz1-&
+                       cobj%leftmin(:,:,nsad_loc))**2))
+    if(mhgpsst%iproc==0)write(*,*)'(MHGPS)connection check not lnl'//&
+                        ' and not rnr',sqrt(sum((rxyz2-&
+                        cobj%rightmin(:,:,nsad_loc))**2))
+    if(mhgpsst%iproc==0)write(*,'(a,es24.17,1x,es24.17)')'(MHGPS)'//&
+                        ' connection check connected',&
+                        cobj%enerleft(mhgpsst%nsad),&
+                        cobj%enerright(mhgpsst%nsad)
         !connect left input min with left relaxed bar end  and right
         !input min with right relaxed bar end
         call connect_recursively(mhgpsst,fsw,uinp,runObj,outs,rcov,nbond,isame,&
@@ -574,6 +599,8 @@ connectloop: do while(cobj%ntodo>=1)
         connected=.false.
         exit connectloop
     endif
+    !following if must be AFTER check for
+    !mhgpsst%nsad>=uinp%nsadmax
     if(iloop>1 .and. uinp%singlestep)then
         premature_exit=.true.
         exit connectloop
@@ -601,10 +628,11 @@ connectloop: do while(cobj%ntodo>=1)
         if(mhgpsst%iproc==0)call yaml_warning('(MHGPS) connect: '//&
                     'minima are identical. Will NOT attempt to find '//&
                     'an intermediate TS.')
-        connected=.true.
+!        connected=.true.
         cobj%ntodo=cobj%ntodo-1
         cycle
     endif
+    if(bigdft_get_geocode(runObj)=='F')then
     !rmsd alignment (optional in mhgps approach)
     call superimpose(runObj%atoms%astruct%nat,cobj%rxyz1,cobj%rxyz2)
 
@@ -612,9 +640,10 @@ connectloop: do while(cobj%ntodo>=1)
     if(previously_connected(mhgpsst,uinp,runObj,cobj%rxyz1,cobj%rxyz2))then
         if(mhgpsst%iproc==0)call yaml_comment('(MHGPS) connect: '//&
                     'Minima previously connected. Will not connect again.')
-        connected=.true.
+!        connected=.true.
         cobj%ntodo=cobj%ntodo-1
         cycle
+    endif
     endif
 
     !get input guess for transition state
@@ -642,7 +671,7 @@ connectloop: do while(cobj%ntodo>=1)
         write(mhgpsst%isadc,'(i5.5)')mhgpsst%isad
         connected=.false.
         call yaml_warning('(MHGPS) Saddle search not converged. '//&
-             'Aborting connecting attempt.')
+             'Aborting connection attempt.')
 !        stop 'STOP saddle not converged'
         exit connectloop
     endif
@@ -678,7 +707,7 @@ connectloop: do while(cobj%ntodo>=1)
          runObj%atoms%astruct%cell_dim,bigdft_get_geocode(runObj),&
          rcov,cobj%saddle(1,1,mhgpsst%nsad),cobj%fpsad(1,mhgpsst%nsad))
 
-    if(mhgpsst%nsad>1)then
+    if(mhgpsst%nsad>1 .and. (.not. uinp%singlestep))then
         if(equal(mhgpsst%iproc,'(MHGPS)','SS',mhgpsst%nid,uinp%en_delta_sad,&
           uinp%fp_delta_sad,cobj%enersad(mhgpsst%nsad-1),cobj%enersad(mhgpsst%nsad),&
           cobj%fpsad(1,mhgpsst%nsad-1),cobj%fpsad(1,mhgpsst%nsad)))then
@@ -914,16 +943,22 @@ connectloop: do while(cobj%ntodo>=1)
         cobj%enerright(mhgpsst%nsad),fp1cur,cobj%fpright(1,mhgpsst%nsad))
 
     if((lnl .and. rnr) .or. (lnr .and. rnl))then!connection done
-if(mhgpsst%iproc==0)&
-     write(*,'(a,es24.17,1x,es24.17)')'(MHGPS) connection check connected',cobj%enerleft(mhgpsst%nsad),cobj%enerright(mhgpsst%nsad)
-        connected=.true.
+        if(mhgpsst%iproc==0)write(*,'(a,es24.17,1x,es24.17)')&
+                            '(MHGPS) connection check connected',&
+                            cobj%enerleft(mhgpsst%nsad),&
+                            cobj%enerright(mhgpsst%nsad)
+!        connected=.true.
 !        return
 cycle
     elseif(lnl .and. (.not. rnr))then
         !connect right input min with right relaxed bar-end
-if(mhgpsst%iproc==0)write(*,*)'(MHGPS) connection check lnl and not rnr',sqrt(sum((rxyz2-cobj%rightmin(:,:,mhgpsst%nsad))**2))
-if(mhgpsst%iproc==0)&
-     write(*,'(a,es24.17,1x,es24.17)')'(MHGPS) connection check connected',cobj%enerleft(mhgpsst%nsad),cobj%enerright(mhgpsst%nsad)
+        if(mhgpsst%iproc==0)write(*,*)'(MHGPS) connection check'//&
+                            ' lnl and not rnr',sqrt(sum((rxyz2-&
+                            cobj%rightmin(:,:,mhgpsst%nsad))**2))
+        if(mhgpsst%iproc==0)write(*,'(a,es24.17,1x,es24.17)')&
+                           '(MHGPS) connection check connected',&
+                           cobj%enerleft(mhgpsst%nsad),&
+                           cobj%enerright(mhgpsst%nsad)
         cobj%ntodo=cobj%ntodo+1
 if(cobj%ntodo>uinp%nsadmax)stop 'error: cobj%ntodo>uinp%nsadmax'
         cobj%todorxyz(:,:,1,cobj%ntodo)=cobj%rightmin(:,:,mhgpsst%nsad)
@@ -940,10 +975,15 @@ if(cobj%ntodo>uinp%nsadmax)stop 'error: cobj%ntodo>uinp%nsadmax'
 !        return
 cycle
     elseif(rnr .and. (.not. lnl))then
-if(mhgpsst%iproc==0)write(*,*)'(MHGPS)connection check rnr and not lnl',rnr,lnl
-if(mhgpsst%iproc==0)write(*,*)'(MHGPS)connection check rnr and not lnl',sqrt(sum((cobj%rxyz1-cobj%leftmin(:,:,mhgpsst%nsad))**2))
-if(mhgpsst%iproc==0)&
-     write(*,'(a,es24.17,1x,es24.17)')'(MHGPS) connection check connected',cobj%enerleft(mhgpsst%nsad),cobj%enerright(mhgpsst%nsad)
+    if(mhgpsst%iproc==0)write(*,*)'(MHGPS)connection check rnr and'//&
+                       ' not lnl',rnr,lnl
+    if(mhgpsst%iproc==0)write(*,*)'(MHGPS)connection check rnr and'//&
+                       ' not lnl',sqrt(sum((cobj%rxyz1-&
+                       cobj%leftmin(:,:,mhgpsst%nsad))**2))
+    if(mhgpsst%iproc==0)write(*,'(a,es24.17,1x,es24.17)')'(MHGPS)'//&
+                        ' connection check connected',&
+                        cobj%enerleft(mhgpsst%nsad),&
+                        cobj%enerright(mhgpsst%nsad)
 !write(*,*)rxyz1
 !write(*,*)
 !write(*,*)cobj%leftmin(:,:,nsad_loc)
@@ -977,9 +1017,13 @@ if(cobj%ntodo>uinp%nsadmax)stop 'error: cobj%ntodo>uinp%nsadmax'
 !        return
 cycle
     elseif(lnr .and. (.not. rnl))then
-if(mhgpsst%iproc==0)write(*,*)'(MHGPS)connection check lnr and not rnl',sqrt(sum((cobj%rxyz1-cobj%rightmin(:,:,mhgpsst%nsad))**2))
-if(mhgpsst%iproc==0)&
-     write(*,'(a,es24.17,1x,es24.17)')'(MHGPS) connection check connected',cobj%enerleft(mhgpsst%nsad),cobj%enerright(mhgpsst%nsad)
+    if(mhgpsst%iproc==0)write(*,*)'(MHGPS)connection check lnr and'//&
+                        ' not rnl',sqrt(sum((cobj%rxyz1-&
+                        cobj%rightmin(:,:,mhgpsst%nsad))**2))
+    if(mhgpsst%iproc==0)write(*,'(a,es24.17,1x,es24.17)')'(MHGPS)'//&
+                        ' connection check connected',&
+                        cobj%enerleft(mhgpsst%nsad),&
+                        cobj%enerright(mhgpsst%nsad)
         !connect right relaxed bar end with left input min
         cobj%ntodo=cobj%ntodo+1
 if(cobj%ntodo>uinp%nsadmax)stop 'error: cobj%ntodo>uinp%nsadmax'
@@ -996,9 +1040,13 @@ if(cobj%ntodo>uinp%nsadmax)stop 'error: cobj%ntodo>uinp%nsadmax'
 !        return
 cycle
     elseif(.not. lnr .and. rnl)then
-if(mhgpsst%iproc==0)write(*,*)'(MHGPS)connection check not lnr and rnl',sqrt(sum((cobj%rxyz2-cobj%leftmin(:,:,mhgpsst%nsad))**2))
-if(mhgpsst%iproc==0)&
-     write(*,'(a,es24.17,1x,es24.17)')'(MHGPS) connection check connected',cobj%enerleft(mhgpsst%nsad),cobj%enerright(mhgpsst%nsad)
+    if(mhgpsst%iproc==0)write(*,*)'(MHGPS)connection check not lnr'//&
+                       ' and rnl',sqrt(sum((cobj%rxyz2-&
+                       cobj%leftmin(:,:,mhgpsst%nsad))**2))
+    if(mhgpsst%iproc==0)write(*,'(a,es24.17,1x,es24.17)')'(MHGPS) '//&
+                       'connection check connected',&
+                       cobj%enerleft(mhgpsst%nsad),&
+                       cobj%enerright(mhgpsst%nsad)
         !connect left relaxed bar end with right input min
         cobj%ntodo=cobj%ntodo+1
 if(cobj%ntodo>uinp%nsadmax)stop 'error: cobj%ntodo>uinp%nsadmax'
@@ -1015,12 +1063,16 @@ if(cobj%ntodo>uinp%nsadmax)stop 'error: cobj%ntodo>uinp%nsadmax'
 !        return
 cycle
     elseif((.not. lnl) .and. (.not. rnr))then
-if(mhgpsst%iproc==0)&
-     write(*,*)'(MHGPS)connection check not lnl and not rnr',sqrt(sum((cobj%rxyz1-cobj%leftmin(:,:,mhgpsst%nsad))**2))
-if(mhgpsst%iproc==0)&
-     write(*,*)'(MHGPS)connection check not lnl and not rnr',sqrt(sum((cobj%rxyz2-cobj%rightmin(:,:,mhgpsst%nsad))**2))
-if(mhgpsst%iproc==0)&
-     write(*,'(a,es24.17,1x,es24.17)')'(MHGPS) connection check connected',cobj%enerleft(mhgpsst%nsad),cobj%enerright(mhgpsst%nsad)
+    if(mhgpsst%iproc==0)write(*,*)'(MHGPS)connection check not lnl'//&
+                        ' and not rnr',sqrt(sum((cobj%rxyz1-&
+                        cobj%leftmin(:,:,mhgpsst%nsad))**2))
+    if(mhgpsst%iproc==0)write(*,*)'(MHGPS)connection check not lnl'//&
+                        ' and not rnr',sqrt(sum((cobj%rxyz2-&
+                        cobj%rightmin(:,:,mhgpsst%nsad))**2))
+    if(mhgpsst%iproc==0)write(*,'(a,es24.17,1x,es24.17)')'(MHGPS)'//&
+                        ' connection check connected',&
+                        cobj%enerleft(mhgpsst%nsad),&
+                        cobj%enerright(mhgpsst%nsad)
         !connect left input min with left relaxed bar end  and right
         !input min with right relaxed bar end
         cobj%ntodo=cobj%ntodo+1
@@ -1058,27 +1110,40 @@ cycle
     endif
 enddo connectloop
 nsad=mhgpsst%nsad
-!if(.not. premature_exit .and. (nsad>=uinp%nsadmax))then
-!    mhgpsst%nsad=0
-!endif
+if(cobj%ntodo<=0)then
+    connected=.true.
+endif
+if(.not. premature_exit)then
 if(connected)then
+!only write if connection really connected
+!(that is, no premature exit)
 !if connected, the write_restart inside the connectloop
 !has not been callled a last time.
 !Therefore, it has to be done here.
-if(mhgpsst%iproc==0)then
-    call write_restart(mhgpsst,runObj,cobj)
-endif
-else if(.not. premature_exit)then
+if(cobj%ntodo>=1) stop 'bastian'
+    if(mhgpsst%iproc==0)then
+        call write_restart(mhgpsst,runObj,cobj)
+!        call write_restart(mhgpsst,runObj)
+    endif
+else
 !only write if connection really failed
 !(that is, no premature exit)
     call write_todoList(uinp,mhgpsst,runObj,cobj)
-    call write_restart(mhgpsst,runObj)
+    if(mhgpsst%iproc==0)then
+        call write_restart(mhgpsst,runObj)
+    endif
+endif
 endif
 
 
 end subroutine
 !=====================================================================
 function previously_connected(mhgpsst,uinp,runObj,rxyz1,rxyz2)
+    !this function compares rxyz1 an rxyz2 with a non-permutational
+    !invariant rmsd if the have been tried to be connected previously.
+    !a non-permutationally invariant rmsd is used such that
+    !transition states between different premuational variants of the 
+    !same structures are computed
     use module_base
     use bigdft_run, only: run_objects
     use module_mhgps_state
@@ -1095,6 +1160,7 @@ function previously_connected(mhgpsst,uinp,runObj,rxyz1,rxyz2)
     !local
     real(gp), parameter :: rmsdthresh=0.01_gp
     integer :: iatt
+    integer :: i
     logical :: match
     real(gp) :: rmsd1, rmsd2, rmsd3
     real(gp),allocatable :: attempted_connections_tmp(:,:,:,:)
@@ -1149,7 +1215,9 @@ if(mhgpsst%iproc==0)write(*,*)'prevresize '
                                        runObj%atoms%astruct%nat,2,&
                                        mhgpsst%nattemptedmax/),&
                                        id='mhgpsst%attempted_connections')
-            mhgpsst%attempted_connections = attempted_connections_tmp
+            do i = 1, mhgpsst%nattemptedmax - 1000
+                mhgpsst%attempted_connections(:,:,:,i) = attempted_connections_tmp(:,:,:,i)
+            enddo
             call f_free(attempted_connections_tmp)
         endif
 

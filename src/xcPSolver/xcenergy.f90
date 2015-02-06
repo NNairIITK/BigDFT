@@ -772,6 +772,7 @@ subroutine xc_energy_new(geocode,m1,m3,nxc,nwb,nxt,nwbl,nwbr,&
   integer :: i1,i2,i3,j1,j2,j3,jp2,jppp2
   logical :: use_gradient
 
+  call f_routine(id='xc_energy_new')
 
   !check for the dimensions
   if (nwb/=nxcl+nxc+nxcr-2 .or. nxt/=nwbr+nwb+nwbl) then
@@ -926,6 +927,9 @@ subroutine xc_energy_new(geocode,m1,m3,nxc,nwb,nxt,nwbl,nwbr,&
   call f_free(exci)
 !  call MPI_BARRIER(bigdft_mpi%mpi_comm,i_stat)
 !stop
+
+  call f_release_routine()
+
 END SUBROUTINE xc_energy_new
 
 
@@ -1022,7 +1026,7 @@ subroutine xc_energy(geocode,m1,m3,md1,md2,md3,nxc,nwb,nxt,nwbl,nwbr,&
      print *,'nxc,nwb,nxt,nxcl,nxcr,nwbl,nwbr',nxc,nwb,nxt,nxcl,nxcr,nwbl,nwbr
      stop
   end if
-  
+
   nullify(rhocore_fake)
 
   !these are always the same
@@ -1414,6 +1418,8 @@ gradient,hx,hy,hz,dvxcdgr,wb_vxc,wbstr)
   real(dp) :: dnexcdgog,grad_i,rho_up,rho_down,rho_tot
   real(dp), dimension(:,:,:,:,:), allocatable :: f_i
 
+  call f_routine(id='vxcpostprocessing')
+
   !Body
 
   f_i = f_malloc((/ n01, n02, n03, 3, nspden /),id='f_i')
@@ -1494,6 +1500,8 @@ gradient,hx,hy,hz,dvxcdgr,wb_vxc,wbstr)
 
 
   call f_free(f_i)
+
+  call f_release_routine()
 
 END SUBROUTINE vxcpostprocessing
 

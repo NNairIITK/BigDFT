@@ -40,7 +40,12 @@ module module_mhgpstool
         real(gp), allocatable :: en_arr(:)
         real(gp), allocatable :: fp_arr_sad(:,:)
         real(gp), allocatable :: en_arr_sad(:)
-        integer, allocatable  :: sadneighb(:,:)
+        integer, allocatable  :: sadneighb(:,:,:)
+        !counts how many distinct neighbored minimum pairs 
+        !a saddle has:
+        integer, allocatable  :: nneighbpairs(:)
+        !counts how often a minimum pair is found:
+        integer, allocatable  :: paircounter(:,:)
         integer, allocatable  :: minnumber(:)
         integer, allocatable  :: sadnumber(:)
         integer, allocatable  :: exclude(:)
@@ -78,9 +83,15 @@ subroutine init_mhgpstool_data(nat,nfolder,nsad,mdat)
     mdat%fp_arr     = f_malloc((/mdat%nid,mdat%nmintot/),id='fp_arr')
     mdat%fp_arr_sad = f_malloc((/mdat%nid,mdat%nsadtot/),id='fp_arr_sad')
     mdat%en_arr     = f_malloc((/mdat%nmintot/),id='en_arr')
+    mdat%en_arr = huge(1.0_gp)
     mdat%en_arr_sad = f_malloc((/mdat%nsadtot/),id='en_arr_sad')
+    mdat%en_arr_sad = huge(1.0_gp)
 
-    mdat%sadneighb  = f_malloc((/2,mdat%nsadtot/),id='sadneighb')
+    mdat%sadneighb  = f_malloc((/2,mdat%nsadtot,mdat%nsadtot/),id='sadneighb')
+    mdat%nneighbpairs = f_malloc((/mdat%nsadtot/),id='nneighbpairs')
+    mdat%nneighbpairs = 0
+    mdat%paircounter   = f_malloc((/mdat%nsadtot,mdat%nsadtot/),id='paircounter')
+    mdat%paircounter  = 0
 
     mdat%minnumber = f_malloc((/mdat%nmintot/),id='minnumber')
     mdat%sadnumber = f_malloc((/mdat%nsadtot/),id='sadnumber')
@@ -108,6 +119,8 @@ subroutine finalize_mhgpstool_data(mdat)
     call f_free(mdat%en_arr_sad)
 
     call f_free(mdat%sadneighb)
+    call f_free(mdat%nneighbpairs)
+    call f_free(mdat%paircounter)
 
     call f_free(mdat%minnumber)
     call f_free(mdat%sadnumber)
@@ -237,7 +250,9 @@ subroutine read_and_merge_data(folders,nsad,mdat)
             call fingerprint(mdat%nat,mdat%nid,mdat%astruct%cell_dim,&
                  mdat%astruct%geocode,mdat%rcov,mdat%astruct%rxyz,&
                  fp(1))
-            call identical(mdat%nmintot,mdat%nmin,mdat%nid,epot,fp,&
+write(*,*)trim(adjustl(fminL))
+write(*,*)'***'
+            call identical('min',mdat,mdat%nmintot,mdat%nmin,mdat%nid,epot,fp,&
                  mdat%en_arr,mdat%fp_arr,en_delta,fp_delta,lnew,kid,&
                  k_epot)
             if(lnew)then
@@ -266,7 +281,9 @@ subroutine read_and_merge_data(folders,nsad,mdat)
                  mdat%astruct%geocode,mdat%rcov,mdat%astruct%rxyz,&
                  fp(1))
 
-            call identical(mdat%nmintot,mdat%nmin,mdat%nid,epot,fp,&
+write(*,*)trim(adjustl(fminR))
+write(*,*)'***'
+            call identical('min',mdat,mdat%nmintot,mdat%nmin,mdat%nid,epot,fp,&
                  mdat%en_arr,mdat%fp_arr,en_delta,fp_delta,lnew,kid,&
                  k_epot)
             if(lnew)then
@@ -294,7 +311,7 @@ subroutine read_and_merge_data(folders,nsad,mdat)
             call fingerprint(mdat%nat,mdat%nid,mdat%astruct%cell_dim,&
                  mdat%astruct%geocode,mdat%rcov,mdat%astruct%rxyz,&
                  fp(1))
-            call identical(mdat%nsadtot,mdat%nsad,mdat%nid,epot,fp,&
+            call identical('sad',mdat,mdat%nsadtot,mdat%nsad,mdat%nid,epot,fp,&
                  mdat%en_arr_sad,mdat%fp_arr_sad,en_delta_sad,&
                  fp_delta_sad,lnew,kid,k_epot)
             if(lnew)then
@@ -307,16 +324,17 @@ subroutine read_and_merge_data(folders,nsad,mdat)
                 id_saddle=mdat%sadnumber(kid)
                 call yaml_comment('Saddle '//trim(adjustl(fsaddle))//&
                      ' is identical to saddle '//trim(yaml_toa(id_saddle)))
-                if(.not.( ((mdat%sadneighb(1,kid)==id_minleft)&
-                         .and.(mdat%sadneighb(2,kid)==id_minright))&
-                     &.or.((mdat%sadneighb(2,kid)==id_minleft) &
-                         .and.(mdat%sadneighb(1,kid)==id_minright))))then
-                    call yaml_warning('following saddle point has'//&
-                         ' more than two neighboring minima: '//&
-                         trim(yaml_toa(id_saddle)))
-                    mdat%nexclude=mdat%nexclude+1
-                    mdat%exclude(mdat%nexclude) = id_saddle
-                endif
+                call add_neighbors(mdat,kid,id_minleft,id_minright)
+!                if(.not.( ((mdat%sadneighb(1,kid)==id_minleft)&
+!                         .and.(mdat%sadneighb(2,kid)==id_minright))&
+!                     &.or.((mdat%sadneighb(2,kid)==id_minleft) &
+!                         .and.(mdat%sadneighb(1,kid)==id_minright))))then
+!                    call yaml_warning('following saddle point has'//&
+!                         ' more than two neighboring minima: '//&
+!                         trim(yaml_toa(id_saddle)))
+!                    mdat%nexclude=mdat%nexclude+1
+!                    mdat%exclude(mdat%nexclude) = id_saddle
+!                endif
 
             endif 
         enddo
@@ -325,52 +343,101 @@ subroutine read_and_merge_data(folders,nsad,mdat)
 end subroutine read_and_merge_data
 !=====================================================================
 subroutine write_data(mdat)
+    use yaml_output
     use module_base
     implicit none
     !parameters
     type(mhgpstool_data), intent(inout) :: mdat
     !local
-    integer :: u, u2
+    integer :: u, u2, u3
     integer :: imin, isad
     integer, allocatable :: mn(:)
+    integer :: ipair, it
+    logical :: exclude
+    character(len=5) :: ci
+    integer :: isadc, iminc
 
     mn = f_malloc((/mdat%nmin/),id='mn')
 
     !write mdat file for minima
+    u3=f_get_free_unit()
+    open(u3,file='copy_configurations.sh')
+    write(u3,*)'#!/bin/bash'
+    write(u3,*)'mkdir minima'
+    write(u3,*)'mkdir saddlepoints'
     u=f_get_free_unit()
     open(u,file='mindat')
     do imin = 1,mdat%nmin
         mn(mdat%minnumber(imin)) = imin
         write(u,*)mdat%en_arr(imin)
+        write(ci,'(i5.5)')imin
+        write(u3,'(a)')'cp '//trim(adjustl(mdat%path_min(imin)))//&
+                   '.EXT minima/min'//ci//'.EXT'
     enddo 
     close(u)
     
     !write tsdat file for saddle points and connection information
+    u=f_get_free_unit()
     open(u,file='tsdat')
     u2=f_get_free_unit()
     open(u2,file='tsdat_exclude')
+    isadc=0
     do isad=1,mdat%nsad
-        if(.not. any(mdat%exclude .eq. mdat%sadnumber(isad)))then
-            write(u,'(es24.17,1x,a,2(1x,i0.0))')mdat%en_arr_sad(isad),&
-                 '0   0',mn(mdat%sadneighb(1,isad)),mn(mdat%sadneighb(2,isad))
-        else
+        exclude=.false.
+        ipair=maxloc(mdat%paircounter(1:mdat%nneighbpairs(isad),isad),1)
+if(mdat%nneighbpairs(isad)>5)exclude=.true.
+!        do it = 1, mdat%nneighbpairs(isad)
+!            if(it/=ipair)then
+!                 if(mdat%paircounter(it,isad)>20000)then
+!            call yaml_comment('Saddle '//trim(adjustl(yaml_toa(mdat%sadnumber(isad))))//&
+!                 'converged at least twice to another minimum pair.'//&
+!                 ' Too ambigous. Will not consider this saddle point.')
+!                    exclude=.true.
+!                  endif
+!            endif
+!        enddo
+!!write(*,*)mdat%paircounter(:,isad)
+write(*,*)'imaxloc',ipair
+        if(exclude)then
             write(u2,'(es24.17,1x,a,2(1x,i0.0))')mdat%en_arr_sad(isad),&
-                 '0   0',mn(mdat%sadneighb(1,isad)),mn(mdat%sadneighb(2,isad))
+                 '0   0',mn(mdat%sadneighb(1,ipair,isad)),&
+                  mn(mdat%sadneighb(2,ipair,isad))
+        else
+            isadc=isadc+1
+            write(u,'(es24.17,1x,a,2(1x,i0.0))')mdat%en_arr_sad(isad),&
+                 '0   0',mn(mdat%sadneighb(1,ipair,isad)),&
+                  mn(mdat%sadneighb(2,ipair,isad))
+            write(ci,'(i5.5)')isadc
+            write(u3,'(a)')'cp '//trim(adjustl(mdat%path_sad(isad)))//&
+                       '.EXT saddlepoints/sad'//ci//'.EXT'
         endif
+do ipair=1,mdat%nneighbpairs(isad)
+write(*,*)ipair,mdat%paircounter(ipair,isad)
+enddo
+    
+!        if(.not. any(mdat%exclude .eq. mdat%sadnumber(isad)))then
+!            write(u,'(es24.17,1x,a,2(1x,i0.0))')mdat%en_arr_sad(isad),&
+!                 '0   0',mn(mdat%sadneighb(1,isad)),mn(mdat%sadneighb(2,isad))
+!        else
+!            write(u2,'(es24.17,1x,a,2(1x,i0.0))')mdat%en_arr_sad(isad),&
+!                 '0   0',mn(mdat%sadneighb(1,isad)),mn(mdat%sadneighb(2,isad))
+!        endif
     enddo
     close(u)
     close(u2)
+    close(u3)
     call f_free(mn)
 
 end subroutine write_data
 !=====================================================================
-subroutine identical(ndattot,ndat,nid,epot,fp,en_arr,fp_arr,en_delta,&
+subroutine identical(cf,mdat,ndattot,ndat,nid,epot,fp,en_arr,fp_arr,en_delta,&
                     fp_delta,lnew,kid,k_epot)
     use module_base
     use yaml_output
     use module_fingerprints
     implicit none
     !parameters
+    type(mhgpstool_data), intent(in) :: mdat
     integer, intent(in) :: ndattot
     integer, intent(in) :: ndat
     integer, intent(in) :: nid
@@ -383,6 +450,7 @@ subroutine identical(ndattot,ndat,nid,epot,fp,en_arr,fp_arr,en_delta,&
     logical, intent(out) :: lnew
     integer, intent(out) :: kid
     integer, intent(out) :: k_epot
+    character(len=3), intent(in) :: cf
     !local
     integer :: k, klow, khigh, nsm
     real(gp) :: dmin, d 
@@ -409,14 +477,18 @@ subroutine identical(ndattot,ndat,nid,epot,fp,en_arr,fp_arr,en_delta,&
     nsm=0
     dmin=huge(1.e0_gp)
     do k=max(1,klow),min(ndat,khigh)
-        call fpdistance(nid,fp,fp_arr(1,k),d)
-        if (d.lt.fp_delta) then
-            lnew=.false.
-            nsm=nsm+1
-            if (d.lt.dmin) then 
-                dmin=d
-                kid=k
+        if (abs(epot-en_arr(k)).le.en_delta) then
+            call fpdistance(nid,fp,fp_arr(1,k),d)
+            write(*,*)'fpdist '//cf,abs(en_arr(k)-epot),d
+            if (d.lt.fp_delta) then
+                lnew=.false.
+                nsm=nsm+1
+                if (d.lt.dmin) then 
+                    dmin=d
+                    kid=k
+                endif
             endif
+            dmin=min(dmin,d)
         endif
     enddo
 write(*,*)'dmin',dmin
@@ -425,6 +497,45 @@ write(*,*)'dmin',dmin
              ' found')
     endif
 end subroutine identical
+!=====================================================================
+subroutine add_neighbors(mdat,kid,neighb1,neighb2)
+    use module_base
+    implicit none
+    !parameters
+    type(mhgpstool_data), intent(inout) :: mdat
+    integer, intent(in) :: kid
+    integer, intent(in) :: neighb1, neighb2
+    !local
+    integer :: ipair
+    logical :: found
+
+    !first check, if neihgbor pair is already
+    !in list
+    found=.false.
+write(*,*)
+write(*,*)neighb1,neighb2
+write(*,*)'---'
+    neighbloop: do ipair=1,mdat%nneighbpairs(kid)
+        if( ((mdat%sadneighb(1,ipair,kid)==neighb1)&
+               .and.(mdat%sadneighb(2,ipair,kid)==neighb2))&
+           &.or.((mdat%sadneighb(2,ipair,kid)==neighb1) &
+               .and.(mdat%sadneighb(1,ipair,kid)==neighb2)) )then
+            mdat%paircounter(ipair,kid) = mdat%paircounter(ipair,kid)+1
+            found=.true.
+            exit neighbloop
+        endif
+    enddo neighbloop
+
+    if(.not. found) then !pair is new, add it to list
+        mdat%nneighbpairs(kid) = mdat%nneighbpairs(kid) + 1
+        mdat%paircounter(mdat%nneighbpairs(kid),kid)  = 1
+        mdat%sadneighb(1,mdat%nneighbpairs(kid),kid) = neighb1
+        mdat%sadneighb(2,mdat%nneighbpairs(kid),kid) = neighb2
+    endif
+do ipair=1,mdat%nneighbpairs(kid)
+write(*,*)mdat%sadneighb(1,ipair,kid),mdat%sadneighb(2,ipair,kid),mdat%paircounter(ipair,kid)
+enddo
+end subroutine add_neighbors
 !=====================================================================
 subroutine insert_sad(mdat,k_epot,epot,fp,neighb1,neighb2,path)
     !insert at k_epot+1
@@ -439,7 +550,6 @@ subroutine insert_sad(mdat,k_epot,epot,fp,neighb1,neighb2,path)
     character(len=600)   :: path
     !local
     integer :: i,k
-write(*,*)'insert at',k_epot+1
     if(mdat%nsad+1>mdat%nsadtot)stop 'nsad+1>=nsadtot, out of bounds'
 
     mdat%nsad=mdat%nsad+1
@@ -447,8 +557,10 @@ write(*,*)'insert at',k_epot+1
         mdat%en_arr_sad(k+1)=mdat%en_arr_sad(k)
         mdat%sadnumber(k+1)=mdat%sadnumber(k)
         mdat%path_sad(k+1)=mdat%path_sad(k)
-        mdat%sadneighb(1,k+1)=mdat%sadneighb(1,k)
-        mdat%sadneighb(2,k+1)=mdat%sadneighb(2,k)
+        mdat%nneighbpairs(k+1) = mdat%nneighbpairs(k)
+        mdat%paircounter(:,k+1) = mdat%paircounter(:,k)
+        mdat%sadneighb(1,:,k+1)=mdat%sadneighb(1,:,k)
+        mdat%sadneighb(2,:,k+1)=mdat%sadneighb(2,:,k)
         do i=1,mdat%nid
             mdat%fp_arr_sad(i,k+1)=mdat%fp_arr_sad(i,k)
          enddo
@@ -456,8 +568,10 @@ write(*,*)'insert at',k_epot+1
     mdat%en_arr_sad(k_epot+1)=epot
     mdat%sadnumber(k_epot+1)=mdat%nsad
     mdat%path_sad(k_epot+1)=path
-    mdat%sadneighb(1,k_epot+1)=neighb1
-    mdat%sadneighb(2,k_epot+1)=neighb2
+    mdat%nneighbpairs(k_epot+1) = 1
+    mdat%paircounter(1,k_epot+1) = 1
+    mdat%sadneighb(1,1,k_epot+1)=neighb1
+    mdat%sadneighb(2,1,k_epot+1)=neighb2
     do i=1,mdat%nid
         mdat%fp_arr_sad(i,k+1)=fp(i)
     enddo
@@ -504,7 +618,7 @@ subroutine construct_filenames(folders,ifolder,isad,fsaddle,fminL,fminR)
     !local
     
     write(fsaddle,'(a,i5.5,a)')trim(adjustl(folders(ifolder)))//&
-                       '/sad',isad,'_finalF'
+                       '/sad',isad,'_finalM'
     write(fminL,'(a,i5.5,a)')trim(adjustl(folders(ifolder)))//&
           '/sad',isad,'_minFinalL'
     write(fminR,'(a,i5.5,a)')trim(adjustl(folders(ifolder)))//&

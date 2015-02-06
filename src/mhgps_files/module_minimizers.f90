@@ -619,8 +619,8 @@ subroutine minenergyandforces(mhgpsst,eeval,imode,runObj,outs,rat,rxyzraw,fat,fs
     !internal
     integer :: infocode
 
-    rxyzraw=rat
     if(eeval)call mhgpsenergyandforces(mhgpsst,runObj,outs,rat,fat,fnoise,epot,infocode)
+    rxyzraw=rat
     fxyzraw=fat
     fstretch=0.0_gp
 
