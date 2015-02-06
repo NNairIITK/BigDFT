@@ -171,6 +171,10 @@ module module_defs
       double precision, parameter :: crop_expo=72.0873067782343d0 ! = -2*log(epsilon(1.d0))
       double precision :: crop,mn,mx
 
+      if (x==0.d0) then
+         ex=1.d0
+         return
+      end if
       crop=crop_expo
       if (present(extra_crop_order)) crop=real(extra_crop_order,kind=8)
       mn=mn_expo+crop
@@ -185,5 +189,35 @@ module module_defs
       end if
          
     end function safe_dexp
+
+    !> give a function which takes into account overflows and underflows even in the gaussian arguments
+    pure function safe_gaussian(x0,x,alpha) result(gau)
+      implicit none
+      double precision, intent(in) :: x0 !< gaussian center
+      double precision, intent(in) :: x !< argument
+      !double precision, intent(in), optional :: sigma !<standard deviation
+      double precision, intent(in) :: alpha !< exponent
+      double precision :: gau
+      !local variables
+      !> if the sqrt is bigger than this value, the result is tiny(1.0)
+      double precision, parameter :: mn_sqrt= sqrt(tiny(1.d0))
+      !> if the sqrt is lower than this value, the result is huge(1.0)
+      double precision, parameter :: mx_sqrt= sqrt(huge(1.d0))
+
+      double precision :: gau_arg,xd
+
+      !evaluate in safe way gau_arg
+      xd=abs(x-x0) !assume that this is legal
+      if (xd > mn_sqrt .and. xd< mx_sqrt) then
+         xd=xd*xd
+         gau_arg=-alpha*xd
+         !if everything goes fine
+         gau=safe_exp(gau_arg)
+      else if (x <= mn_sqrt) then
+         gau=1.d0
+      else
+         gau=0.d0
+      end if
+    end function safe_gaussian
 
 end module module_defs

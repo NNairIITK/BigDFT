@@ -28,7 +28,7 @@
  
  Reference Paper                       : The Journal of Chemical Physics 129, 014109 (2008)
  Version Number                        : 1.7.6.5
- Timestamp of this run                 : 2015-01-08 08:43:08.235
+ Timestamp of this run                 : 2015-01-22 12:49:39.755
  Root process Hostname                 : phys-comp-03
  Number of MPI tasks                   :  4
  OpenMP parallelization                :  Yes
@@ -572,7 +572,7 @@
      Molecule was shifted              :  24
      Molecule was rotated              :  18
    Reading Waves Time:
-   -  {Process:  0, Timing:  [  2.573E+01,  1.582E+01 ]}
+   -  {Process:  0, Timing:  [  2.322E+01,  1.289E+01 ]}
    Max deviation from unity in reorthonormalize_coeff:  2.08E-07
    Mean deviation from unity in reorthonormalize_coeff:  7.69E-08
    Max deviation from unity in reorthonormalize_coeff:  1.00E-06
@@ -645,17 +645,20 @@
  Ground State Optimization:
     #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Set the confinement prefactors
  - Confinement prefactor for low accuracy:
+   -  {max diff damping:  0.00E+00, damping value:  1.00E+00}
    -  {atom type: H, value:  5.00E-04, origin: from file}
    -  {atom type: O, value:  5.00E-04, origin: from file}
  - fake iteration: &it_fake000
    -  &final_fake000  {fake iteration: bridge low accuracy}
     #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Set the confinement prefactors
  - Confinement prefactor for high accuracy:
+   -  {max diff damping:  0.00E+00, damping value:  1.00E+00}
    -  {atom type: H, value:  0.00E+00, origin: from file}
    -  {atom type: O, value:  0.00E+00, origin: from file}
     #========================================================= Adjustments for high accuracy
     #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Set the confinement prefactors
  - Confinement prefactor for high accuracy:
+   -  {max diff damping:  0.00E+00, damping value:  1.00E+00}
    -  {atom type: H, value:  0.00E+00, origin: from file}
    -  {atom type: O, value:  0.00E+00, origin: from file}
    Locreg increased                    :  No
@@ -713,7 +716,7 @@
  Mean deviation from unity in reorthonormalize_coeff:  8.56E-06, 
  calculate S^x: {mode: dense, powers: {x: -1/2}, order:  8}, 
  communication strategy kernel: ALLREDUCE, method: DminSD, 
- iter:  1, fnrm:  2.44E-02, eBS: -1.62668969655279128E+01, D: -1.744E-03, 
+ iter:  1, fnrm:  2.44E-02, eBS: -1.62668969655278239E+01, D: -1.744E-03, 
           alpha:  2.000E-01}
        Coefficients available          :  Yes
      Hamiltonian update: {
@@ -810,22 +813,22 @@
  Calculate Non Local forces            :  Yes
  Average noise forces: {x:  9.34471677E-03, y: -5.92597945E-02, z:  3.80994309E-02, 
                     total:  7.10676692E-02}
- Clean forces norm (Ha/Bohr): {maxval:  7.937918592389E-02, fnrm2:  1.198425887968E-02}
+ Clean forces norm (Ha/Bohr): {maxval:  7.937918592392E-02, fnrm2:  1.198425887969E-02}
  Raw forces norm (Ha/Bohr): {maxval:  1.138896150235E-01, fnrm2:  2.106893125188E-02}
   #--------------------------------------------------------------------------- Atomic Forces
  Atomic Forces (Ha/Bohr):
- -  {O: [ 2.230324831948E-02, -7.076262080165E-02,  2.821828785771E-02]} # 0001
- -  {H: [-3.791652640737E-03,  1.098750216055E-02, -1.301781829989E-02]} # 0002
- -  {H: [-2.538431052626E-03,  8.321902164783E-03, -6.715720618393E-03]} # 0003
- -  {O: [ 2.379590825413E-03, -3.840159080907E-02,  2.600828341893E-02]} # 0004
- -  {H: [-2.204531433411E-02,  7.811844777141E-03, -1.324841722737E-02]} # 0005
- -  {H: [-9.975661314799E-03,  5.617060451738E-03, -9.544282333893E-03]} # 0006
- -  {O: [-1.542857535678E-02,  7.806991790257E-03, -2.455834196411E-03]} # 0007
- -  {H: [ 8.835839079867E-03,  2.359508305699E-02, -6.594440957047E-03]} # 0008
- -  {H: [ 4.517460360230E-03,  2.574388290868E-02, -1.146515456173E-02]} # 0009
- -  {O: [ 1.147054142063E-02,  9.784151148596E-03,  2.894662009095E-03]} # 0010
- -  {H: [ 4.323257961157E-04,  2.062820373760E-03,  6.884654756570E-03]} # 0011
- -  {H: [ 3.840628897321E-03,  7.432972778213E-03, -9.642198475677E-04]} # 0012
+ -  {O: [ 2.230324831949E-02, -7.076262080168E-02,  2.821828785771E-02]} # 0001
+ -  {H: [-3.791652640730E-03,  1.098750216056E-02, -1.301781829987E-02]} # 0002
+ -  {H: [-2.538431052625E-03,  8.321902164791E-03, -6.715720618382E-03]} # 0003
+ -  {O: [ 2.379590825407E-03, -3.840159080906E-02,  2.600828341889E-02]} # 0004
+ -  {H: [-2.204531433411E-02,  7.811844777147E-03, -1.324841722736E-02]} # 0005
+ -  {H: [-9.975661314799E-03,  5.617060451744E-03, -9.544282333878E-03]} # 0006
+ -  {O: [-1.542857535681E-02,  7.806991790256E-03, -2.455834196463E-03]} # 0007
+ -  {H: [ 8.835839079876E-03,  2.359508305700E-02, -6.594440957035E-03]} # 0008
+ -  {H: [ 4.517460360234E-03,  2.574388290870E-02, -1.146515456172E-02]} # 0009
+ -  {O: [ 1.147054142062E-02,  9.784151148562E-03,  2.894662009087E-03]} # 0010
+ -  {H: [ 4.323257961226E-04,  2.062820373764E-03,  6.884654756577E-03]} # 0011
+ -  {H: [ 3.840628897325E-03,  7.432972778218E-03, -9.642198475555E-04]} # 0012
   #-------------------------------- Warnings obtained during the run, check their relevance!
  WARNINGS:
  - Do not call check_communications in the linear scaling version!
@@ -833,17 +836,17 @@
  - density optimization not converged
   #-------------------------------------------------------------------- Timing for root process
  Timings for root process:
-   CPU time (s)                        :  58.58
-   Elapsed time (s)                    :  34.14
+   CPU time (s)                        :  57.63
+   Elapsed time (s)                    :  31.79
  BigDFT infocode                       :  0
  Memory Consumption Report:
-   Tot. No. of Allocations             :  4264
-   Tot. No. of Deallocations           :  4264
+   Tot. No. of Allocations             :  4401
+   Tot. No. of Deallocations           :  4401
    Remaining Memory (B)                :  0
    Memory occupation:
-     Peak Value (MB)                   :  1177.651
+     Peak Value (MB)                   :  1262.914
      for the array                     : psir
-     in the routine                    : LocalHamiltonianApplication
-     Memory Peak of process            : 1072.960 MB
- Max No. of dictionaries used          :  3763 #( 842 still in use)
+     in the routine                    : psi_to_vlocpsi
+     Memory Peak of process            : 1246.620 MB
+ Max No. of dictionaries used          :  4090 #( 842 still in use)
  Number of dictionary folders allocated:  1

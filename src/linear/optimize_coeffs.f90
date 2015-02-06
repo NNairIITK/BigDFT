@@ -537,9 +537,9 @@ subroutine coeff_weight_analysis(iproc, nproc, input, ksorbs, tmb, ref_frags)
   end do
      
   !sum for each fragment
+  occsum=sum(KSorbs%occup(1:ksorbs%norb))
   if (iproc==0) then
      call yaml_mapping_open(flow=.true.)
-     occsum=sum(KSorbs%occup(1:ksorbs%norb))
      call yaml_map('sum',occsum,fmt='(f6.4)')
   end if
   do ifrag=1,input%frag%nfrag

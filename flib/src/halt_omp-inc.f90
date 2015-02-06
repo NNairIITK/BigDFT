@@ -1,5 +1,5 @@
 !> @file
-!! Include fortran file for quick return in case
+!! Include fortran file for halting program in case
 !! of omp activated
 !! This file is useful in case of non-thread safe routine
 !! that will raise a severe error if called inside a parallel region

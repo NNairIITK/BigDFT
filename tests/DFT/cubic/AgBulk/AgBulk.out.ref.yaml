@@ -1591,12 +1591,6 @@
  WARNINGS:
  - Projectors too rough: Consider modifying hgrid and/or the localisation radii.
  - No convergence within the allowed number of minimization steps
- - No convergence within the allowed number of minimization steps
- - No convergence within the allowed number of minimization steps
- - No convergence within the allowed number of minimization steps
- - No convergence within the allowed number of minimization steps
- - No convergence within the allowed number of minimization steps
- - No convergence within the allowed number of minimization steps
  - Self-consistent cycle did not meet convergence criteria
   #-------------------------------------------------------------------- Timing for root process
  Timings for root process:

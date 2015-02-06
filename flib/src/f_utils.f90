@@ -13,7 +13,7 @@
 module f_utils
   use dictionaries, only: f_err_throw,f_err_define, &
        & dictionary, dict_len, dict_iter, dict_next, dict_value, max_field_length
-  use yaml_strings, only: yaml_toa,operator(.eqv.)
+  use yaml_strings, only: yaml_toa, operator(.eqv.)
   implicit none
 
   private
@@ -285,6 +285,7 @@ contains
     unt=7
     if (present(unit)) unt=unit
     do while(unit_is_open)
+       unt=unt+1
        inquire(unit=unt,opened=unit_is_open,iostat=ierr)
        if (ierr /=0) then
           call f_err_throw('Error in inquiring unit='//&
@@ -292,7 +293,6 @@ contains
                err_id=INPUT_OUTPUT_ERROR)
           exit
        end if
-       unt=unt+1
     end do
     unt2=unt
   end function f_get_free_unit

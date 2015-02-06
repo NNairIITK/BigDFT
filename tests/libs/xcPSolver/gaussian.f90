@@ -17,19 +17,19 @@ program MP_gaussian
   integer, parameter :: iunit=16        !< File unit for the plot
   integer, parameter :: nmoms=16        !< Number of calculated moments
   integer, parameter :: nstep=10        !> Number of resolution to calculate the moments
-  integer, parameter :: nsigma=1        !< Number of different gaussian functions
+  integer, parameter :: nsigma=10        !< Number of different gaussian functions
   integer, parameter :: npts=1000       !< Arrays from -npts to npts
   real(gp), parameter :: hgrid = 1.0_gp !< Step grid
-  integer :: j,imoms,pow,istep,isigma
+  integer :: j,imoms,pow,istep,isigma,unit
   real(gp) :: pgauss,x0,reference,max1
   real(gp), dimension(0:nmoms,2) :: moments
   real(gp), dimension(3,2,0:nmoms) :: avgmaxmin
   real(gp), dimension(:), allocatable :: fj_phi,fj_coll
-  
 
   call f_lib_initialize()
 
   pow=0
+  unit=iunit+1
 
   !pgauss=0.5_gp/((0.1_gp*hgrid)**2)!8.0e-3_dp*1.25_dp**(6*(8-1))
   !array where we have to write the value of the discretization
@@ -37,24 +37,29 @@ program MP_gaussian
   fj_coll=f_malloc(-npts .to. npts,id='fj_coll')
   call initialize_real_space_conversion() !initialize the work arrays needed to integrate with isf
 
+  call f_open_file(unit,file='MultipolesError.dat')
+
   ! Calculate for different nsigma sigma
   do isigma=1,nsigma
-     pgauss=0.5_gp/((0.7_gp+0.01_gp*(isigma-1)*hgrid)**2)
+     pgauss=0.5_gp/((0.1_gp+0.1_gp*(isigma-1)*hgrid)**2)
      call yaml_map('sigma/h',sqrt(0.5_gp/pgauss)/hgrid)
-     !plot raw function (fort.iunit)
-     do j=-npts,npts
-        if (pow /= 0) then
-           write(iunit,*) j,exp(-pgauss*(j*hgrid-x0)**2)*((j*hgrid-x0)**pow)
-        else
-           write(iunit,*) j,exp(-pgauss*(j*hgrid-x0)**2)
-        end if
-     end do
 
      avgmaxmin=0.d0
      avgmaxmin(3,:,:)=1.d100
      max1=0.0_gp
+
+
      do istep=1,nstep
         x0=(-0.5_gp+real(istep-1,gp)/real(nstep,gp))*hgrid
+        !plot raw function (fort.iunit)
+!!$        do j=-npts,npts
+!!$           if (pow /= 0) then
+!!$              write(iunit,*) j,safe_exp(-pgauss*(j*hgrid-x0)**2)*((j*hgrid-x0)**pow)
+!!$           else
+!!$              write(iunit,*) j,safe_exp(-pgauss*(j*hgrid-x0)**2)
+!!$           end if
+!!$        end do
+
         !call yaml_map('x0',x0,advance='no')
         !call yaml_comment('Step No.'//trim(yaml_toa(istep)),tabbing=70)
         call evaluate_moments(nmoms,npts,hgrid,pgauss,pow,x0,fj_phi,fj_coll,moments)
@@ -78,7 +83,7 @@ program MP_gaussian
         do j=1,2
            do imoms=0,nmoms
               reference=gauint0(pgauss,imoms+pow)
-              print *,j,imoms,reference,moments(imoms,j),abs((moments(imoms,j)-reference))
+              !print *,j,imoms,reference,moments(imoms,j),abs((moments(imoms,j)-reference))
               if (reference /= 0.0_gp) then
                  !x^even
                  moments(imoms,j) = abs((moments(imoms,j)-reference)/reference)
@@ -91,14 +96,21 @@ program MP_gaussian
               avgmaxmin(3,j,imoms) = min(moments(imoms,j),avgmaxmin(3,j,imoms))
            end do
         end do
+        call yaml_mapping_open('Normalised moments')
+        call yaml_map('x0/h',x0/hgrid)
+        call yaml_map('C',moments(:,2),fmt='(1pe14.5)')
+        call yaml_map('MP',moments(:,1),fmt='(1pe14.5)')
+        call yaml_mapping_close()
      end do
-
+     call yaml_map('Results',reshape(avgmaxmin,(/6,nmoms+1/)),fmt='(1pe14.5)')
      !Plot fort.(iunit+1)
-     write(iunit+1,'(104(1pe14.5))') sqrt(0.5_gp/pgauss)/hgrid,avgmaxmin
+     avgmaxmin(2,:,:)=avgmaxmin(2,:,:)-avgmaxmin(3,:,:)
+     write(unit,'(104(1pe14.5))') sqrt(0.5_gp/pgauss)/hgrid,avgmaxmin(1:2,:,:)
      call yaml_map('maxdiff' // trim(yaml_toa(isigma)), (/ sqrt(0.5_gp/pgauss)/hgrid, max1 /) )
      !print *,'maxdiff',sqrt(0.5_gp/pgauss)/hgrid,max1
   end do
-  call yaml_map('Results',reshape(avgmaxmin,(/6,nmoms+1/)),fmt='(1pe14.5)')
+
+  call f_close(unit)
 
   call finalize_real_space_conversion()
   
@@ -109,7 +121,7 @@ end program MP_gaussian
 
 !> Classify the quality of a multipole extraction in both cases
 subroutine evaluate_moments(nmoms,npts,hgrid,pgauss,pow,x0,fj_phi,fj_coll,moments)
-  use module_base, only: gp
+  use module_base, only: gp,safe_exp,f_open_file,f_close,yaml_toa
   use gaussians, only: mp_exp, scfdotf
   implicit none
   !Arguments
@@ -119,28 +131,30 @@ subroutine evaluate_moments(nmoms,npts,hgrid,pgauss,pow,x0,fj_phi,fj_coll,moment
   real(gp), dimension(-npts:npts), intent(out) :: fj_phi,fj_coll
   integer, parameter :: iunit = 100
   !local variables
-  integer :: j
+  integer :: j,unit
   integer :: istep = 0
 
+  unit=iunit+istep
+  call f_open_file(unit,'gau'//trim(adjustl(yaml_toa(x0,fmt='(f5.2)')))//&
+       'p'//trim(adjustl(yaml_toa(pgauss,fmt='(f5.2)')))//&
+       'h'//trim(adjustl(yaml_toa(hgrid,fmt='(f5.2)'))))
+
   !use the elemental property of the mp_exp function
-  !fj_phi=mp_exp(hgrid,x0,pgauss,(/(j,j=-npts,npts)/),pow,.true.)
-  fj_phi=scfdotf((/(j,j=-npts,npts)/),hgrid,pgauss,x0,pow)
+  fj_phi=mp_exp(hgrid,x0,pgauss,(/(j,j=-npts,npts)/),pow,.true.)
+!  fj_phi=scfdotf((/(j,j=-npts,npts)/),hgrid,pgauss,x0,pow)
   !scfdotf((/(j,j=-npts,npts)/),hgrid,pgauss,x0,pow)
   call moments_1d(2*npts+1,fj_phi,x0+hgrid*(npts+1),hgrid,nmoms,moments(0,1))
-
   !collocation array
   fj_coll=mp_exp(hgrid,x0,pgauss,(/(j,j=-npts,npts)/),pow,.false.)
-  !if (pow /=0) then
-  !   fj_coll=(/(exp(-pgauss*(j*hgrid-x0)**2)*(j*hgrid-x0)**pow,j=-npts,npts)/)
-  !else
-  !   fj_coll=(/(exp(-pgauss*(j*hgrid-x0)**2),j=-npts,npts)/)
-  !end if
+
   call moments_1d(2*npts+1,fj_coll,x0+hgrid*(npts+1),hgrid,nmoms,moments(0,2))
 
   do j=-npts,npts
-     write(iunit+istep,*) j,fj_phi(j),fj_coll(j)
+     write(unit,*) j,fj_phi(j),fj_coll(j)
   end do
   istep = istep + 1
+
+  call f_close(unit)
 
 end subroutine evaluate_moments
 
@@ -158,11 +172,16 @@ subroutine moments_1d(n,array,x0,h,nmoms,moments)
   integer :: j,k
   real(gp) :: x
 
-  do j=0,nmoms
+  moments(0)=h*sum(array)
+  do j=1,nmoms
      moments(j)=0.0_gp
      do k=1,n
         x=real(k,gp)*h-x0
-        moments(j)=moments(j)+x**j*array(k)
+        !if (j==0) then
+        !   moments(j)=moments(j)+array(k)
+        !else
+           moments(j)=moments(j)+x**j*array(k)
+        !end if
      end do
      moments(j)=moments(j)*h
   end do

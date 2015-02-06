@@ -650,6 +650,7 @@ subroutine daub_to_isf_locham(nspinor,lr,w,psi,psir)
   integer :: idx,i,i_f,iseg_f
   real(wp), dimension(0:3) :: scal
 
+
   do i=0,3
      scal(i)=1.0_wp
   enddo
@@ -1243,6 +1244,8 @@ subroutine daub_to_isf(lr,w,psi,psir)
   integer :: i,i_f,iseg_f
   real(wp), dimension(0:3) :: scal
 
+  call f_routine(id='daub_to_isf')
+
   i_f=min(lr%wfd%nvctr_f,1)
   iseg_f=min(lr%wfd%nseg_f,1)
 
@@ -1307,6 +1310,8 @@ subroutine daub_to_isf(lr,w,psi,psir)
           psir) 
 
   end select
+
+  call f_release_routine()
 
 END SUBROUTINE daub_to_isf
 

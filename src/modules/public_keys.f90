@@ -90,6 +90,10 @@ module public_keys
   character(len = *), parameter :: STEEPTHRESH = "steepthresh"
   character(len = *), parameter :: TRUSTR = "trustr"
 
+  !Force field parameter keyword
+  character(len = *), parameter :: MM_PARAMSET = "mm_paramset" !for hard-coded parameter sets
+  character(len = *), parameter :: MM_PARAMFILE = "mm_paramfile" !for parameter sets given by file
+
 
   character(len = *), parameter :: MIX_VARIABLES = "mix"
   character(len = *), parameter :: ISCF = "iscf"
@@ -261,7 +265,8 @@ module public_enums
   type(f_enumerator), parameter :: LENOSKY_SI_CLUSTERS_RUN_MODE=f_enumerator('LENOSKY_SI_CLUSTERS_RUN_MODE',-999)
   type(f_enumerator), parameter :: LENOSKY_SI_BULK_RUN_MODE    =f_enumerator('LENOSKY_SI_BULK_RUN_MODE',-998)
   type(f_enumerator), parameter :: AMBER_RUN_MODE              =f_enumerator('AMBER_RUN_MODE',-997)
-  type(f_enumerator), parameter :: QM_RUN_MODE                 =f_enumerator('QM_RUN_MODE',-996)
+  type(f_enumerator), parameter :: MORSE_BULK_RUN_MODE         =f_enumerator('MORSE_BULK_RUN_MODE',-996)
+  type(f_enumerator), parameter :: QM_RUN_MODE                 =f_enumerator('QM_RUN_MODE',-995)
   
 end module public_enums
 

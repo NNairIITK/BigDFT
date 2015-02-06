@@ -24,14 +24,18 @@ module sparsematrix_base
 
   !> Contains the parameters needed for the sparse matrix matrix multiplication
   type,public :: sparse_matrix_matrix_multiplication
+      integer,dimension(:),pointer :: keyv
+      integer,dimension(:,:,:),pointer :: keyg
       integer :: nout, nseq, nseg
       integer :: nfvctrp !< modified number of matrix columns per MPI task for an optimized load balancing during matmul
       integer :: isfvctr !< modified starting column of the matrix for an optimized load balancing during matmul
-      integer :: nvctrp !< modified number of compressed matrix elements per MPI task
-      integer :: isvctr !< modified starting entry of the compressed matrix elements
-      integer,dimension(:),pointer :: isvctr_par, nvctr_par !<array that contains the values of nvctrp and isvctr of all MPI tasks
-      integer,dimension(:),pointer :: ivectorindex, nsegline, istsegline, indices_extract_sequential
-      integer,dimension(:,:),pointer :: onedimindices
+      integer :: nvctrp_mm !< modified number of compressed matrix elements per MPI task
+      integer :: isvctr_mm !< modified starting entry of the compressed matrix elements
+      integer :: isseg !< segment containing the first entry (i.e. isvctr+1)
+      integer :: ieseg !< segment containing the last entry (i.e. isvctr+nvctrp)
+      integer,dimension(:),pointer :: isvctr_mm_par, nvctr_mm_par !<array that contains the values of nvctrp_mm and isvctr_mm of all MPI tasks
+      integer,dimension(:),pointer :: ivectorindex, ivectorindex_new, nsegline, istsegline, indices_extract_sequential
+      integer,dimension(:,:),pointer :: onedimindices, onedimindices_new, line_and_column_mm, line_and_column
       !!integer,dimension(:,:,:),pointer :: keyg
       integer,dimension(2) :: istartendseg_mm !< starting and ending segments of the matrix subpart which is actually used for the multiplication
                                               !! WARNING: the essential bounds are given by istartend_mm, the segments are used to speed up the code
@@ -40,6 +44,9 @@ module sparsematrix_base
       !!integer :: ncl_smmm !< number of elements for the compress local after a sparse matrix matrix multiplication
       integer :: nccomm_smmm !<number of communications required for the compress distributed after a sparse matrix matrix multiplication
       integer,dimension(:,:),pointer :: luccomm_smmm !<lookup array for the communications required for the compress distributed after a sparse matrix matrix multiplication
+      integer :: nvctrp !< number of compressed matrix elements per MPI task
+      integer :: isvctr !< starting entry of the compressed matrix elements
+      integer,dimension(:),pointer :: isvctr_par, nvctr_par !<array that contains the values of nvctrp and isvctr of all MPI tasks
   end type sparse_matrix_matrix_multiplication
 
   type,public :: sparse_matrix
@@ -71,6 +78,8 @@ module sparsematrix_base
       integer,dimension(2) :: istartendseg_local !< first and last segment of the sparse matrix which is actually used by a given MPI task
       integer,dimension(:,:),pointer :: tgranks !< global task IDs of the tasks in each taskgroup
       integer,dimension(:),pointer :: nranks !< number of task on each taskgroup
+      integer :: nccomm !<number of communications required for the compress distributed in the dense parallel format
+      integer,dimension(:,:),pointer :: luccomm !<lookup array for the communications required for the compress distributed in the dense parallel format
   end type sparse_matrix
 
 
@@ -123,13 +132,15 @@ module sparsematrix_base
   public :: matrices_null
 
   !> Public constants
-  integer,parameter,public :: SPARSE_TASKGROUP = 50
-  integer,parameter,public :: SPARSE_FULL      = 51
-  integer,parameter,public :: SPARSE_PARALLEL  = 52
-  integer,parameter,public :: DENSE_FULL       = 53
-  integer,parameter,public :: DENSE_PARALLEL   = 54
-  integer,parameter,public :: DENSE_MATMUL     = 55
-  integer,parameter,public :: SPARSEMM_SEQ     = 56
+  integer,parameter,public :: SPARSE_TASKGROUP    = 50
+  integer,parameter,public :: SPARSE_FULL         = 51
+  integer,parameter,public :: SPARSE_PARALLEL     = 52
+  integer,parameter,public :: SPARSE_MATMUL_SMALL = 53
+  integer,parameter,public :: SPARSE_MATMUL_LARGE = 54
+  integer,parameter,public :: DENSE_FULL          = 55
+  integer,parameter,public :: DENSE_PARALLEL      = 56
+  integer,parameter,public :: DENSE_MATMUL        = 57
+  integer,parameter,public :: SPARSEMM_SEQ        = 58
 
 
 
@@ -164,6 +175,7 @@ module sparsematrix_base
       nullify(sparsemat%inwhichtaskgroup)
       nullify(sparsemat%tgranks)
       nullify(sparsemat%nranks)
+      nullify(sparsemat%luccomm)
       call nullify_sparse_matrix_matrix_multiplication(sparsemat%smmm) 
     end subroutine nullify_sparse_matrix
 
@@ -171,14 +183,22 @@ module sparsematrix_base
       implicit none
       type(sparse_matrix_matrix_multiplication),intent(out):: smmm
       nullify(smmm%ivectorindex)
+      nullify(smmm%ivectorindex_new)
       nullify(smmm%onedimindices)
+      nullify(smmm%onedimindices_new)
+      nullify(smmm%line_and_column_mm)
+      nullify(smmm%line_and_column)
       nullify(smmm%nsegline)
       nullify(smmm%istsegline)
       !!nullify(smmm%keyg)
       nullify(smmm%indices_extract_sequential)
       nullify(smmm%nvctr_par)
       nullify(smmm%isvctr_par)
+      nullify(smmm%nvctr_mm_par)
+      nullify(smmm%isvctr_mm_par)
       nullify(smmm%luccomm_smmm)
+      nullify(smmm%keyv)
+      nullify(smmm%keyg)
     end subroutine nullify_sparse_matrix_matrix_multiplication
 
 
@@ -216,12 +236,19 @@ module sparsematrix_base
       integer,dimension(norb),intent(in) :: nsegline, istsegline
       type(sparse_matrix_matrix_multiplication),intent(inout):: smmm
       smmm%ivectorindex=f_malloc_ptr(smmm%nseq,id='smmm%ivectorindex')
+      smmm%ivectorindex_new=f_malloc_ptr(smmm%nseq,id='smmm%ivectorindex_new')
       smmm%onedimindices=f_malloc_ptr((/4,smmm%nout/),id='smmm%onedimindices')
+      smmm%onedimindices_new=f_malloc_ptr((/3,smmm%nout/),id='smmm%onedimindices_new')
+      !smmm%line_and_column_mm=f_malloc_ptr((/2,smmm%nvctrp_mm/),id='smmm%line_and_column_mm')
       smmm%nsegline=f_malloc_ptr(norb,id='smmm%nsegline')
       smmm%istsegline=f_malloc_ptr(norb,id='smmm%istsegline')
       smmm%indices_extract_sequential=f_malloc_ptr(smmm%nseq,id='smmm%indices_extract_sequential')
       smmm%nvctr_par=f_malloc_ptr(0.to.nproc-1,id='smmm%nvctr_par')
       smmm%isvctr_par=f_malloc_ptr(0.to.nproc-1,id='smmm%isvctr_par')
+      smmm%nvctr_mm_par=f_malloc_ptr(0.to.nproc-1,id='smmm%nvctr_mm_par')
+      smmm%isvctr_mm_par=f_malloc_ptr(0.to.nproc-1,id='smmm%isvctr_mm_par')
+      smmm%keyv=f_malloc_ptr(nseg,id='smmm%keyv')
+      smmm%keyg=f_malloc_ptr((/2,2,nseg/),id='smmm%keyg')
     end subroutine allocate_sparse_matrix_matrix_multiplication
 
 
@@ -312,20 +339,29 @@ module sparsematrix_base
       call f_free_ptr(sparseMat%inwhichtaskgroup)
       call f_free_ptr(sparseMat%tgranks)
       call f_free_ptr(sparseMat%nranks)
+      call f_free_ptr(sparseMat%luccomm)
     end subroutine deallocate_sparse_matrix
 
     subroutine deallocate_sparse_matrix_matrix_multiplication(smmm)
       implicit none
       type(sparse_matrix_matrix_multiplication),intent(out):: smmm
       call f_free_ptr(smmm%ivectorindex)
+      call f_free_ptr(smmm%ivectorindex_new)
       call f_free_ptr(smmm%onedimindices)
+      call f_free_ptr(smmm%onedimindices_new)
+      call f_free_ptr(smmm%line_and_column_mm)
+      call f_free_ptr(smmm%line_and_column)
       call f_free_ptr(smmm%nsegline)
       call f_free_ptr(smmm%istsegline)
       !!call f_free_ptr(smmm%keyg)
       call f_free_ptr(smmm%indices_extract_sequential)
       call f_free_ptr(smmm%nvctr_par)
       call f_free_ptr(smmm%isvctr_par)
+      call f_free_ptr(smmm%nvctr_mm_par)
+      call f_free_ptr(smmm%isvctr_mm_par)
       call f_free_ptr(smmm%luccomm_smmm)
+      call f_free_ptr(smmm%keyv)
+      call f_free_ptr(smmm%keyg)
     end subroutine deallocate_sparse_matrix_matrix_multiplication
 
     subroutine allocate_smat_d1_ptr(smat_ptr,smat_info_ptr)

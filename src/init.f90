@@ -756,7 +756,7 @@ subroutine input_memory_linear(iproc, nproc, at, KSwfn, tmb, tmb_old, denspot, i
   use sparsematrix_base, only: sparsematrix_malloc, sparsematrix_malloc_ptr, DENSE_PARALLEL, SPARSE_FULL, &
                                assignment(=), deallocate_sparse_matrix, deallocate_matrices, DENSE_FULL, &
                                SPARSE_TASKGROUP
-  use sparsematrix, only: compress_matrix_distributed, uncompress_matrix_distributed, uncompress_matrix, &
+  use sparsematrix, only: compress_matrix_distributed_wrapper, uncompress_matrix, &
                           gather_matrix_from_taskgroups_inplace, extract_taskgroup_inplace, &
                           uncompress_matrix_distributed2, uncompress_matrix2
   use transposed_operations, only: calculate_overlap_transposed, normalize_transposed
@@ -852,9 +852,22 @@ subroutine input_memory_linear(iproc, nproc, at, KSwfn, tmb, tmb_old, denspot, i
      call vcopy(size(psi_old), psi_old(1), 1, tmb_old%psi(1), 1)
      call f_free(psi_old)
 
-     if (max_shift>0.2d0) then
+     if (max_shift>0.5d0) then
          if (iproc==0) call yaml_map('atoms have moved too much, switch to standard input guess',.true.)
          FOE_restart = RESTART_AO
+         tmb%confdatarr(:)%damping = 1.d0
+     else if (input%lin%nlevel_accuracy==1) then
+         ! Damp the confinement for the hybrid mode
+         !! Linear function, being 1.0 at 0.5
+         !tmb%confdatarr(:)%damping = 2.0d0*max_shift
+         !! Square root, being 1.0 at 0.5
+         !tmb%confdatarr(:)%damping = sqrt(2.0d0*max_shift)
+         !! x^1/4, being 1.0 at 0.5
+         !tmb%confdatarr(:)%damping = (2.0d0*max_shift)**0.25d0
+         !! x^2, being 1.0 at 0.5
+         !tmb%confdatarr(:)%damping = (2.0d0*max_shift)**2
+         ! x^4, being 1.0 at 0.5
+         tmb%confdatarr(:)%damping = (1.d0/0.5d0*max_shift)**4
      end if
 
      deallocate(frag_trans)
@@ -882,7 +895,7 @@ subroutine input_memory_linear(iproc, nproc, at, KSwfn, tmb, tmb_old, denspot, i
       ! Extract to a dense format, since this is independent of the sparsity pattern
       kernelp = sparsematrix_malloc(tmb%linmat%l, iaction=DENSE_PARALLEL, id='kernelp')
       call uncompress_matrix_distributed2(iproc, tmb_old%linmat%l, DENSE_PARALLEL, tmb_old%linmat%kernel_%matrix_compr, kernelp)
-      call compress_matrix_distributed(iproc, nproc, tmb%linmat%l, DENSE_PARALLEL, &
+      call compress_matrix_distributed_wrapper(iproc, nproc, tmb%linmat%l, DENSE_PARALLEL, &
            kernelp, tmb%linmat%kernel_%matrix_compr)
       call f_free(kernelp)
   end if
@@ -1185,7 +1198,7 @@ subroutine input_memory_linear(iproc, nproc, at, KSwfn, tmb, tmb_old, denspot, i
        !     ovrlpp, tmb_old%linmat%ovrlp_%matrix_compr(tmb%linmat%s%isvctrp_tg+1:))
        ovrlp_old%matrix_compr = sparsematrix_malloc_ptr(tmb%linmat%l, &
                                  iaction=SPARSE_TASKGROUP, id='ovrlp_old%matrix_compr')
-       call compress_matrix_distributed(iproc, nproc, tmb%linmat%s, DENSE_PARALLEL, &
+       call compress_matrix_distributed_wrapper(iproc, nproc, tmb%linmat%s, DENSE_PARALLEL, &
             ovrlpp, ovrlp_old%matrix_compr)
 
        call f_free(ovrlpp)
@@ -2115,6 +2128,7 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
   real(gp), dimension(:), pointer :: in_frag_charge
   integer :: infoCoeff, iorb, nstates_max, order_taylor, npspcode
   real(kind=8) :: pnrm
+  type(work_mpiaccumulate) :: energs_work
   !!real(gp), dimension(:,:), allocatable :: ks, ksk
   !!real(gp) :: nonidem
 
@@ -2611,10 +2625,19 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
         !end if
         order_taylor=in%lin%order_taylor ! since this is intent(inout)
         !!call extract_taskgroup_inplace(tmb%linmat%l, tmb%linmat%kernel_)
+
+        energs_work = work_mpiaccumulate_null()
+        energs_work%ncount = 4
+        call allocate_work_mpiaccumulate(energs_work)
+
         call get_coeff(iproc,nproc,LINEAR_MIXDENS_SIMPLE,KSwfn%orbs,atoms,rxyz,denspot,GPU,&
              infoCoeff,energs,nlpsp,in%SIC,tmb,pnrm,.false.,.true.,.false.,&
              .true.,0,0,0,0,order_taylor,in%lin%max_inversion_error,&
-             in%purification_quickreturn,in%calculate_KS_residue,in%calculate_gap) !in%lin%extra_states) - assume no extra states as haven't set occs for this yet
+             in%purification_quickreturn,in%calculate_KS_residue,in%calculate_gap, &
+             energs_work) !in%lin%extra_states) - assume no extra states as haven't set occs for this yet
+
+        call deallocate_work_mpiaccumulate(energs_work)
+
         !!call gather_matrix_from_taskgroups_inplace(iproc, nproc, tmb%linmat%l, tmb%linmat%kernel_)
 
         !if (iproc==0) then
