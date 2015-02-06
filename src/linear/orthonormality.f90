@@ -1666,7 +1666,6 @@ subroutine overlap_plus_minus_one_half_exact(nproc,norb,blocksize,plusminus,inv_
                    err_name='BIGDFT_RUNTIME_ERROR')
            end if
            call f_free_ptr(inv_ovrlp_halfp)
-           call f_free(orig_ovrlp)
         end if
      else
         if (check_lapack) then
@@ -1734,14 +1733,21 @@ subroutine overlap_plus_minus_one_half_exact(nproc,norb,blocksize,plusminus,inv_
               stop
            end if
            call f_free_ptr(inv_ovrlp_halfp)
-           call f_free(orig_ovrlp)
         end if
      end if
 
      if(info/=0) then
         write(*,'(a,i0,2x,i0)') 'ERROR in dsyev (overlap_plus_minus_one_half_exact), info, norb=', info, norb
+        open(99,file='dsyev_overlap.txt')
+        do iorb=1,norb
+           do jorb=1,norb
+              write(99,*) iorb,jorb,orig_ovrlp(iorb,jorb)
+           end do
+        end do
+        close(99)
         stop
      end if
+     call f_free(orig_ovrlp)
      call f_free(work)
   end if
 
