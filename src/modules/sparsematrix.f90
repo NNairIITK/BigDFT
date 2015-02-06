@@ -770,6 +770,7 @@ module sparsematrix
      integer :: isegstart, isegend, iseg, ii, jorb, iiorb, jjorb, nfvctrp, isfvctr, nvctrp, ierr, isvctr
      integer :: ncount, itg, iitg, ist_send, ist_recv, i, iline, icolumn, ind
      integer :: window, sizeof, jproc_send, iorb, jproc, info, nccomm
+     real(kind=8) :: window_fake
      integer,dimension(:),pointer :: isvctr_par, nvctr_par
      integer,dimension(:),allocatable :: request, windows
      real(kind=8),dimension(:),pointer :: matrix_local
@@ -799,7 +800,7 @@ module sparsematrix
              nvctrp = smat%smmm%nvctrp_mm
              nccomm = smat%nccomm
          end if
-         if (size(matrixp)/=nvctrp) then
+         if (size(matrixp)/=max(1,nvctrp)) then
              call f_err_throw('Array matrixp has size '//trim(yaml_toa(size(matrixp),fmt='(i0)'))//&
                   &' instead of '//trim(yaml_toa(nvctrp,fmt='(i0)')), &
                   err_name='BIGDFT_RUNTIME_ERROR')
@@ -815,7 +816,12 @@ module sparsematrix
                  windows = f_malloc(smat%ntaskgroup)
                  do itg=1,smat%ntaskgroupp
                      iitg = smat%taskgroupid(itg)
-                     windows(iitg) = mpiwindow(nvctrp, matrixp(1), smat%mpi_groups(iitg)%mpi_comm)
+                     ! Use a fake window if nvctrp is zero
+                     if (nvctrp>0) then
+                         windows(iitg) = mpiwindow(nvctrp, matrixp(1), smat%mpi_groups(iitg)%mpi_comm)
+                     else
+                         windows(iitg) = mpiwindow(1, window_fake, smat%mpi_groups(iitg)%mpi_comm)
+                     end if
                  end do
                  do jproc=1,nccomm
                      jproc_send = luccomm(1,jproc)

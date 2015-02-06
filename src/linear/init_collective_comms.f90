@@ -280,7 +280,7 @@ subroutine check_communications_locreg(iproc,nproc,orbs,nspin,Lzd,collcom,smat,m
            !do i=1,smat%nvctrp_tg
            do i=smat%istartend_local(1),smat%istartend_local(2)
                !maxdiff=max(abs(mat_compr(i+smat%isvctrp_tg)-mat%matrix_compr(i)),maxdiff)
-               maxdiff=max(abs(mat_compr(i)-mat%matrix_compr(i)),maxdiff)
+               maxdiff=max(abs(mat_compr(i)-mat%matrix_compr(i-smat%isvctrp_tg)),maxdiff)
                !write(8000+iproc,'(a,i7,2es15.5)') 'i, mat_compr(i), mat%matrix_compr(i)', &
                !    i, mat_compr(i), mat%matrix_compr(i)
            end do

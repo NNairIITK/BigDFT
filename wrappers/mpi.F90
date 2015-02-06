@@ -1357,6 +1357,7 @@ contains
 
     call mpi_win_create(base, int(size,kind=mpi_address_kind)*int(sizeof,kind=mpi_address_kind), &
          sizeof, info,comm, window, ierr)
+
     if (ierr/=0) then
        call f_err_throw('Error in mpi_win_create',&
             err_id=ERR_MPI_WRAPPERS)
