@@ -27,11 +27,10 @@ module chebyshev
       use module_base
       use module_types
       use sparsematrix_base, only: sparse_matrix, sparsematrix_malloc, assignment(=), &
-                                   DENSE_MATMUL, SPARSEMM_SEQ,sparsematrix_malloc0
+                                   SPARSE_MATMUL_LARGE, SPARSEMM_SEQ,sparsematrix_malloc0
       use sparsematrix_init, only: matrixindex_in_compressed, get_line_and_column
       use sparsematrix, only: sequential_acces_matrix_fast, sequential_acces_matrix_fast2, &
-                              compress_matrix_distributed, sparsemm_new, &
-                              compress_matrix_distributed_new
+                              compress_matrix_distributed_wrapper, sparsemm_new
       implicit none
     
       ! Calling arguments
@@ -111,7 +110,7 @@ module chebyshev
               call sequential_acces_matrix_fast2(kernel, invovrlp_compr, mat_seq)
               call sparsemm_new(kernel, mat_seq, vectors_new(1,1), matrix_new(1))
           end if
-          call compress_matrix_distributed_new(iproc, nproc, kernel, DENSE_MATMUL, &
+          call compress_matrix_distributed_wrapper(iproc, nproc, kernel, SPARSE_MATMUL_LARGE, &
                matrix_new, mat_compr)
       else
           call vcopy(kernel%nvctrp_tg, ham_compr(1), 1, mat_compr(1), 1)

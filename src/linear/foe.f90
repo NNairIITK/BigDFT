@@ -18,11 +18,12 @@ subroutine foe(iproc, nproc, tmprtr, &
   use module_interfaces, except_this_one => foe
   use yaml_output
   use sparsematrix_base, only: sparsematrix_malloc_ptr, sparsematrix_malloc, assignment(=), &
-                               SPARSE_FULL, DENSE_FULL, DENSE_MATMUL, SPARSEMM_SEQ, SPARSE_TASKGROUP, &
+                               SPARSE_FULL, SPARSE_MATMUL_SMALL, &
+                               SPARSE_MATMUL_LARGE, SPARSEMM_SEQ, SPARSE_TASKGROUP, &
                                matrices
   use sparsematrix_init, only: matrixindex_in_compressed, get_line_and_column
-  use sparsematrix, only: compress_matrix, uncompress_matrix, compress_matrix_distributed, &
-                          transform_sparsity_pattern, compress_matrix_distributed_new2
+  use sparsematrix, only: compress_matrix, uncompress_matrix, &
+                          transform_sparsity_pattern, compress_matrix_distributed_wrapper
   use foe_base, only: foe_data, foe_data_set_int, foe_data_get_int, foe_data_set_real, foe_data_get_real, &
                       foe_data_get_logical
   use fermi_level, only: fermi_aux, init_fermi_level, determine_fermi_level, &
@@ -556,29 +557,25 @@ subroutine foe(iproc, nproc, tmprtr, &
               end do main_loop
         
         
-        
     
-         call compress_matrix_distributed_new2(iproc, nproc, tmb%linmat%l, DENSE_MATMUL, &
+         call compress_matrix_distributed_wrapper(iproc, nproc, tmb%linmat%l, SPARSE_MATMUL_SMALL, &
               fermi_small_new, &
               tmb%linmat%kernel_%matrix_compr(ilshift+1:))
-         call compress_matrix_distributed_new2(iproc, nproc, tmb%linmat%l, DENSE_MATMUL, &
-              fermi_check_new, fermi_check_compr(1))
+         call compress_matrix_distributed_wrapper(iproc, nproc, tmb%linmat%l, SPARSE_MATMUL_SMALL, &
+              fermi_check_new, fermi_check_compr)
     
     
         
         
           ! Calculate S^-1/2 * K * S^-1/2^T
           ! Since S^-1/2 is symmetric, don't use the transpose
-          !call retransform(tmb%linmat%kernel_%matrix_compr(ilshift+1:))
           call retransform_ext(iproc, nproc, tmb%linmat%l, &
                tmb%linmat%ovrlppowers_(2)%matrix_compr(ilshift2+1), tmb%linmat%kernel_%matrix_compr(ilshift+1))
 
     
-          !call retransform(fermi_check_compr)
           call retransform_ext(iproc, nproc, tmb%linmat%l, &
                tmb%linmat%ovrlppowers_(2)%matrix_compr(ilshift2+1), fermi_check_compr)
     
-          !call calculate_trace_distributed(fermip_check, sumn_check)
           call calculate_trace_distributed_new(fermi_check_new, sumn_check)
 
           !@NEW ##########################
@@ -808,8 +805,8 @@ subroutine foe(iproc, nproc, tmprtr, &
 
       subroutine retransform(matrix_compr)
           use sparsematrix, only: sequential_acces_matrix_fast, sequential_acces_matrix_fast2, &
-                                  compress_matrix_distributed, uncompress_matrix_distributed2, &
-                                  sparsemm_new, compress_matrix_distributed_new
+                                  compress_matrix_distributed_wrapper, &
+                                  sparsemm_new
           ! Calling arguments
           real(kind=8),dimension(tmb%linmat%l%nvctrp_tg),intent(inout) :: matrix_compr
 
@@ -873,7 +870,7 @@ subroutine foe(iproc, nproc, tmprtr, &
           !!     inv_ovrlpp, matrix_compr)
           !!  write(*,*) 'sum(matrix_compr) old', iproc, sum(matrix_compr)
           call f_zero(matrix_compr)
-          call compress_matrix_distributed_new(iproc, nproc, tmb%linmat%l, DENSE_MATMUL, &
+          call compress_matrix_distributed_wrapper(iproc, nproc, tmb%linmat%l, SPARSE_MATMUL_LARGE, &
                inv_ovrlpp_new, matrix_compr)
             !!write(*,*) 'sum(matrix_compr) new', iproc, sum(matrix_compr)
 
@@ -1698,11 +1695,11 @@ subroutine ice(iproc, nproc, norder_polynomial, ovrlp_smat, inv_ovrlp_smat, ncal
   use yaml_output
   use sparsematrix_base, only: sparsematrix_malloc_ptr, sparsematrix_malloc, &
                                sparsematrix_malloc0_ptr, assignment(=), &
-                               SPARSE_FULL, DENSE_FULL, DENSE_MATMUL, SPARSEMM_SEQ, SPARSE_TASKGROUP, &
+                               SPARSE_TASKGROUP, SPARSE_MATMUL_SMALL, &
                                matrices
   use sparsematrix_init, only: matrixindex_in_compressed, get_line_and_column
-  use sparsematrix, only: compress_matrix, uncompress_matrix, compress_matrix_distributed, &
-                          compress_matrix_distributed_new2, transform_sparsity_pattern
+  use sparsematrix, only: compress_matrix, uncompress_matrix, compress_matrix_distributed_wrapper, &
+                          transform_sparsity_pattern
   use foe_base, only: foe_data, foe_data_set_int, foe_data_get_int, foe_data_set_real, foe_data_get_real, &
                       foe_data_set_logical, foe_data_get_logical
   use fermi_level, only: fermi_aux, init_fermi_level, determine_fermi_level, &
@@ -2078,8 +2075,8 @@ subroutine ice(iproc, nproc, norder_polynomial, ovrlp_smat, inv_ovrlp_smat, ncal
           do icalc=1,ncalc
               !!call compress_matrix_distributed(iproc, nproc, inv_ovrlp_smat, DENSE_MATMUL, inv_ovrlp_matrixp(1:,1:,icalc), &
               !!     inv_ovrlp(icalc)%matrix_compr(ilshift2+1:))
-              call compress_matrix_distributed_new2(iproc, nproc, inv_ovrlp_smat, &
-                   DENSE_MATMUL, inv_ovrlp_matrixp_small_new(:,icalc), &
+              call compress_matrix_distributed_wrapper(iproc, nproc, inv_ovrlp_smat, &
+                   SPARSE_MATMUL_SMALL, inv_ovrlp_matrixp_small_new(:,icalc), &
                    inv_ovrlp(icalc)%matrix_compr(ilshift2+1:))
           end do
     
@@ -2590,10 +2587,10 @@ end subroutine scale_and_shift_matrix
       subroutine retransform_ext(iproc, nproc, smat, inv_ovrlp, kernel)
           use module_base
           use sparsematrix_base, only: sparse_matrix, sparsematrix_malloc, assignment(=), &
-                                       SPARSEMM_SEQ, DENSE_MATMUL
+                                       SPARSEMM_SEQ, SPARSE_MATMUL_LARGE
           use sparsematrix, only: sequential_acces_matrix_fast, sequential_acces_matrix_fast2, &
-                                  compress_matrix_distributed, uncompress_matrix_distributed2, &
-                                  sparsemm_new, compress_matrix_distributed_new, transform_sparsity_pattern
+                                  compress_matrix_distributed_wrapper, &
+                                  sparsemm_new, transform_sparsity_pattern
           implicit none
           ! Calling arguments
           integer,intent(in) :: iproc, nproc
@@ -2623,7 +2620,7 @@ end subroutine scale_and_shift_matrix
           call sparsemm_new(smat, kernel_compr_seq, inv_ovrlpp_new, tempp_new)
           call sparsemm_new(smat, inv_ovrlp_compr_seq, tempp_new, inv_ovrlpp_new)
           call f_zero(kernel)
-          call compress_matrix_distributed_new(iproc, nproc, smat, DENSE_MATMUL, &
+          call compress_matrix_distributed_wrapper(iproc, nproc, smat, SPARSE_MATMUL_LARGE, &
                inv_ovrlpp_new, kernel)
           call f_free_ptr(inv_ovrlpp_new)
           call f_free_ptr(tempp_new)

@@ -3147,7 +3147,7 @@ subroutine renormalize_kernel(iproc, nproc, order_taylor, max_inversion_error, t
                                SPARSE_FULL, DENSE_FULL, DENSE_MATMUL, SPARSEMM_SEQ, &
                                matrices
   use sparsematrix_init, only: matrixindex_in_compressed
-  use sparsematrix, only: uncompress_matrix, compress_matrix_distributed
+  use sparsematrix, only: uncompress_matrix
 
   implicit none
 

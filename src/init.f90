@@ -756,7 +756,7 @@ subroutine input_memory_linear(iproc, nproc, at, KSwfn, tmb, tmb_old, denspot, i
   use sparsematrix_base, only: sparsematrix_malloc, sparsematrix_malloc_ptr, DENSE_PARALLEL, SPARSE_FULL, &
                                assignment(=), deallocate_sparse_matrix, deallocate_matrices, DENSE_FULL, &
                                SPARSE_TASKGROUP
-  use sparsematrix, only: compress_matrix_distributed, uncompress_matrix, &
+  use sparsematrix, only: compress_matrix_distributed_wrapper, uncompress_matrix, &
                           gather_matrix_from_taskgroups_inplace, extract_taskgroup_inplace, &
                           uncompress_matrix_distributed2, uncompress_matrix2
   use transposed_operations, only: calculate_overlap_transposed, normalize_transposed
@@ -895,7 +895,7 @@ subroutine input_memory_linear(iproc, nproc, at, KSwfn, tmb, tmb_old, denspot, i
       ! Extract to a dense format, since this is independent of the sparsity pattern
       kernelp = sparsematrix_malloc(tmb%linmat%l, iaction=DENSE_PARALLEL, id='kernelp')
       call uncompress_matrix_distributed2(iproc, tmb_old%linmat%l, DENSE_PARALLEL, tmb_old%linmat%kernel_%matrix_compr, kernelp)
-      call compress_matrix_distributed(iproc, nproc, tmb%linmat%l, DENSE_PARALLEL, &
+      call compress_matrix_distributed_wrapper(iproc, nproc, tmb%linmat%l, DENSE_PARALLEL, &
            kernelp, tmb%linmat%kernel_%matrix_compr)
       call f_free(kernelp)
   end if
@@ -1198,7 +1198,7 @@ subroutine input_memory_linear(iproc, nproc, at, KSwfn, tmb, tmb_old, denspot, i
        !     ovrlpp, tmb_old%linmat%ovrlp_%matrix_compr(tmb%linmat%s%isvctrp_tg+1:))
        ovrlp_old%matrix_compr = sparsematrix_malloc_ptr(tmb%linmat%l, &
                                  iaction=SPARSE_TASKGROUP, id='ovrlp_old%matrix_compr')
-       call compress_matrix_distributed(iproc, nproc, tmb%linmat%s, DENSE_PARALLEL, &
+       call compress_matrix_distributed_wrapper(iproc, nproc, tmb%linmat%s, DENSE_PARALLEL, &
             ovrlpp, ovrlp_old%matrix_compr)
 
        call f_free(ovrlpp)

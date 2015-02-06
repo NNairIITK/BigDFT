@@ -14,7 +14,7 @@ subroutine check_communications_locreg(iproc,nproc,orbs,nspin,Lzd,collcom,smat,m
    use communications_base, only: comms_linear, TRANSPOSE_FULL
    use communications, only: transpose_localized, untranspose_localized
    use sparsematrix_base, only : sparse_matrix, matrices, DENSE_PARALLEL
-   use sparsematrix, only : compress_matrix_distributed, gather_matrix_from_taskgroups_inplace
+   use sparsematrix, only : compress_matrix_distributed_wrapper, gather_matrix_from_taskgroups_inplace
    use transposed_operations, only: calculate_overlap_transposed
    !use dynamic_memory
    implicit none
@@ -268,7 +268,7 @@ subroutine check_communications_locreg(iproc,nproc,orbs,nspin,Lzd,collcom,smat,m
                end do
                !ist=(ispin-1)*smat%nvctr+smat%isvctrp_tg+1
                ist=(ispin-1)*smat%nvctrp_tg+smat%isvctrp_tg+1
-               call compress_matrix_distributed(iproc, nproc, smat, DENSE_PARALLEL, &
+               call compress_matrix_distributed_wrapper(iproc, nproc, smat, DENSE_PARALLEL, &
                     matp, mat_compr(ist:))
            end do
            maxdiff=0.d0

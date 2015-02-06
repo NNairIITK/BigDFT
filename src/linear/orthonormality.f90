@@ -162,7 +162,7 @@ subroutine orthoconstraintNonorthogonal(iproc, nproc, lzd, npsidim_orbs, npsidim
                                sparsematrix_malloc_ptr, DENSE_FULL, DENSE_MATMUL, SPARSE_FULL, SPARSEMM_SEQ, &
                                assignment(=), SPARSE_TASKGROUP
   use sparsematrix_init, only: matrixindex_in_compressed
-  use sparsematrix, only: uncompress_matrix, compress_matrix_distributed, &
+  use sparsematrix, only: uncompress_matrix, &
                           sequential_acces_matrix_fast2, transform_sparse_matrix, &
                           gather_matrix_from_taskgroups_inplace, extract_taskgroup_inplace, &
                           transform_sparse_matrix_local, uncompress_matrix_distributed2, &
@@ -483,16 +483,17 @@ subroutine overlapPowerGeneral(iproc, nproc, iorder, ncalc, power, blocksize, im
   use sparsematrix_base, only: sparse_matrix, &
                           sparsematrix_malloc_ptr, sparsematrix_malloc, sparsematrix_malloc0, sparsematrix_malloc0_ptr, &
                           assignment(=), &
-                          SPARSE_FULL, DENSE_PARALLEL, DENSE_MATMUL, DENSE_FULL, SPARSEMM_SEQ, SPARSE_TASKGROUP
+                          SPARSE_FULL, DENSE_PARALLEL, SPARSE_MATMUL_LARGE, &
+                          DENSE_MATMUL, DENSE_FULL, SPARSEMM_SEQ, SPARSE_TASKGROUP
   use sparsematrix_init, only: get_line_and_column
   use sparsematrix, only: compress_matrix, uncompress_matrix, &
                           transform_sparse_matrix, transform_sparse_matrix_local, &
-                          compress_matrix_distributed, &
+                          compress_matrix_distributed_wrapper, &
                           uncompress_matrix_distributed2, &
                           sequential_acces_matrix_fast2, sequential_acces_matrix_fast, &
                           gather_matrix_from_taskgroups, gather_matrix_from_taskgroups_inplace, &
                           uncompress_matrix2, transform_sparsity_pattern, &
-                          compress_matrix_distributed_new, sparsemm_new
+                          sparsemm_new
   use yaml_output
   implicit none
   
@@ -938,7 +939,7 @@ subroutine overlapPowerGeneral(iproc, nproc, iorder, ncalc, power, blocksize, im
               do ispin=1,nspin
                   ishift=(ispin-1)*inv_ovrlp_smat%nvctr
                   ishift2=(ispin-1)*inv_ovrlp_smat%nvctrp_tg
-                  call compress_matrix_distributed(iproc, nproc, inv_ovrlp_smat, layout=DENSE_PARALLEL, &
+                  call compress_matrix_distributed_wrapper(iproc, nproc, inv_ovrlp_smat, layout=DENSE_PARALLEL, &
                        matrixp=&
                          inv_ovrlp_local(1:,inv_ovrlp_smat%isfvctr+1:inv_ovrlp_smat%isfvctr+inv_ovrlp_smat%nfvctrp,ispin), &
                        matrix_compr=inv_ovrlp_mat(icalc)%matrix_compr(ishift2+1:))
@@ -1014,7 +1015,7 @@ subroutine overlapPowerGeneral(iproc, nproc, iorder, ncalc, power, blocksize, im
               call timing(iproc,'lovrlp^-1     ','OF')
               !call compress_matrix_distributed(iproc, nproc, inv_ovrlp_smat, DENSE_MATMUL, &
               !     Amat21p, Amat21_compr(inv_ovrlp_smat%isvctrp_tg+1:))
-              call compress_matrix_distributed_new(iproc, nproc, inv_ovrlp_smat, DENSE_MATMUL, &
+              call compress_matrix_distributed_wrapper(iproc, nproc, inv_ovrlp_smat, SPARSE_MATMUL_LARGE, &
                    Amat21p_new, Amat21_compr(inv_ovrlp_smat%isvctrp_tg+1:))
               !!write(*,*) 'after compr, sum(Amat21_compr)', sum(Amat21_compr)
               call timing(iproc,'lovrlp^-1     ','ON')
@@ -1064,7 +1065,7 @@ subroutine overlapPowerGeneral(iproc, nproc, iorder, ncalc, power, blocksize, im
                       !!call compress_matrix_distributed(iproc, nproc, inv_ovrlp_smat, DENSE_MATMUL, &
                       !!     Amat21p, Amat21_compr(inv_ovrlp_smat%isvctrp_tg+1:))
                       !!write(*,*) 'sum(Amat21p_new)',sum(Amat21p_new)
-                      call compress_matrix_distributed_new(iproc, nproc, inv_ovrlp_smat, DENSE_MATMUL, &
+                      call compress_matrix_distributed_wrapper(iproc, nproc, inv_ovrlp_smat, SPARSE_MATMUL_LARGE, &
                            Amat21p_new, Amat21_compr(inv_ovrlp_smat%isvctrp_tg+1:))
                       call timing(iproc,'lovrlp^-1     ','ON')
                   end if
@@ -1075,7 +1076,7 @@ subroutine overlapPowerGeneral(iproc, nproc, iorder, ncalc, power, blocksize, im
                       call timing(iproc,'lovrlp^-1     ','OF')
                       !!call compress_matrix_distributed(iproc, nproc, inv_ovrlp_smat, DENSE_MATMUL, &
                       !!     Amat12p, Amat12_compr)
-                      call compress_matrix_distributed_new(iproc, nproc, inv_ovrlp_smat, DENSE_MATMUL, &
+                      call compress_matrix_distributed_wrapper(iproc, nproc, inv_ovrlp_smat, SPARSE_MATMUL_LARGE, &
                            Amat12p_new, Amat12_compr)
                       call timing(iproc,'lovrlp^-1     ','ON')
                   end if
@@ -1091,7 +1092,7 @@ subroutine overlapPowerGeneral(iproc, nproc, iorder, ncalc, power, blocksize, im
                   call sparsemm_new(inv_ovrlp_smat, Amat21_seq, Amat21p_new, Amat12p_new)
                   !!call compress_matrix_distributed(iproc, nproc, inv_ovrlp_smat, DENSE_MATMUL, Amat12p, &
                   !!     inv_ovrlp_mat(1)%matrix_compr(ishift2+1:))
-                  call compress_matrix_distributed_new(iproc, nproc, inv_ovrlp_smat, DENSE_MATMUL, Amat12p_new, &
+                  call compress_matrix_distributed_wrapper(iproc, nproc, inv_ovrlp_smat, SPARSE_MATMUL_LARGE, Amat12p_new, &
                        inv_ovrlp_mat(1)%matrix_compr(ishift2+1:))
                   call timing(iproc,'lovrlp^-1     ','ON')
               !else if (power(1)==2) then
@@ -1249,8 +1250,8 @@ subroutine overlapPowerGeneral(iproc, nproc, iorder, ncalc, power, blocksize, im
                       !!call compress_matrix_distributed(iproc, nproc, inv_ovrlp_smat, &
                       !!     DENSE_MATMUL, invovrlpp_arr(1:,1:,icalc), &
                       !!     inv_ovrlp_mat(icalc)%matrix_compr(ilshift2+1:))
-                      call compress_matrix_distributed_new(iproc, nproc, inv_ovrlp_smat, &
-                           DENSE_MATMUL, invovrlpp_arr_new(1:,icalc), &
+                      call compress_matrix_distributed_wrapper(iproc, nproc, inv_ovrlp_smat, &
+                           SPARSE_MATMUL_LARGE, invovrlpp_arr_new(1:,icalc), &
                            inv_ovrlp_mat(icalc)%matrix_compr(ilshift2+1:))
                       !!write(500+bigdft_mpi%iproc,'(a,2es16.8)') 'inv_mat, inv_compr', invovrlpp_arr_new(1,icalc), inv_ovrlp_mat(icalc)%matrix_compr(ilshift2+1)
                   end do
