@@ -19,8 +19,8 @@ check_client_signals_SOURCES = check_client_signals.c
 check_client_signals_CPPFLAGS = -I$(top_builddir) -I$(top_srcdir)/src/modules -I$(top_srcdir)/src/lib -I$(top_builddir)/src/modules @GLIB_CFLAGS@
 check_client_signals_LDADD = -lbigdft-1 @FCLIBS@ @GLIB_LIBS@
 
-EXTRA_DIST = bindings.out.ref signals.out.ref posinp.ascii test.dft
-CLEANFILES = bindings.out bindings.report output.ascii default.* forces_test.ascii test.perf signals.out signals.report time.yaml
+EXTRA_DIST = bindings.out.ref signals.out.ref posinp.ascii test.dft test.lin
+CLEANFILES = malloc.prc bindings.out bindings.report output.ascii default.* forces_test.ascii test.perf signals.out signals.report time.yaml output.C server.log test.ascii
 
 check: bindings.report signals.report
 

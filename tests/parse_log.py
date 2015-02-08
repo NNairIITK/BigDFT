@@ -14,246 +14,519 @@ path=os.path.dirname(sys.argv[0])
 #  sys.path.insert(0,'/local/gigi/binaries/ifort-OMP-OCL-CUDA-gC/PyYAML-3.10/lib')
 
 import yaml
-#from yaml_hl import *
 
-start_fail = "<fail>" #"\033[0;31m"
-start_fail_esc = "\033[0;31m "
-start_success = "\033[0;32m "
-start_pass = "<pass>"
-end = "</end>" #"\033[m"
-end_esc = "\033[m "
-
-
-
-def ignore_key(key):
-  ret = key in keys_to_ignore
-  if (not(ret)):
-    for p in patterns_to_ignore:
-      if key.find(p) > -1:
-        ret=True
-        exit
-  return ret
-    
-
-#generic document comparison routine
-#descend recursively in the dictionary until a scalar is found
-#a tolerance value might be passed
-def compare(data, ref, tols = None, always_fails = False):
-#  if tols is not None:
-#    print 'test',data,ref,tols
-  if data is None:
-    return (True, None)
-  elif type(ref) == type({}):
-#for a floating point the reference is set for all the lower levels    
-    if type(tols) == type(1.0e-1):
-      neweps=tols
-      tols={}
-      for key in ref:
-        tols[key]=neweps
-    ret = compare_map(data, ref, tols, always_fails)
-  elif type(ref) == type([]):
-    if type(tols) == type(1.0e-1):
-      neweps=tols
-      tols=[]
-      tols.append(neweps)
-    ret = compare_seq(data, ref, tols, always_fails)
-  else:
-    ret = compare_scl(data, ref, tols, always_fails)
-  return ret
-
-#sequence comparison routine
-def compare_seq(seq, ref, tols, always_fails = False):
-  global failed_checks
-  if tols is not None:
-    for i in range(len(ref)):
-      (failed, newtols) = compare(seq[i], ref[i], tols[0], always_fails)
-# Add to the tolerance dictionary a failed result      
-      if failed:
-        if type(newtols)== type({}):
-          tols[0].update(newtols)
-        elif type(newtols) == type([]):
-          tols[0] = newtols   
-        else:
-          tols[0] = max(newtols,tols[0])
-  else:
-    tols = []
-    if len(ref) == len(seq):
-      for i in range(len(ref)):
-        if len(tols) == 0:
-          (failed, newtols) = compare(seq[i], ref[i], always_fails = always_fails)
-          #  add to the tolerance dictionary a failed result      
-          if failed:
-            tols.append(newtols)
-        else:
-          (failed, newtols) = compare(seq[i], ref[i], tols[0], always_fails = always_fails)
-          if failed:
-            tols[0] = newtols
-    else:
-      failed_checks+=1
-      if len(tols) == 0:
-        tols.append("NOT SAME LENGTH")
-      else:
-        tols[0] = "NOT SAME LENGTH"
-  return (len(tols) > 0, tols)
-
-def compare_map(map, ref, tols, always_fails = False):
-  global docmiss,docmiss_it
-  if tols is None:
-    tols = {}
-  for key in ref:
-    if not(ignore_key(key)):
-      if not(key in map):
-        docmiss+=1
-        docmiss_it.append(key)
-        print "WARNING!!",key,"not found",ref[key]
-        always_fails = True
-        value = ref[key]
-      else:
-        value = map[key]
-      if type(tols) == type({}) and key in tols:
-        (failed, newtols) = compare(value, ref[key], tols[key], always_fails)
-      elif key in def_tols: #def tols is rigorously a one-level only dictionary
-        (failed, newtols) = compare(value, ref[key], def_tols[key], always_fails)
-      else:
-        (failed, newtols) = compare(value, ref[key], always_fails = always_fails)
-# add to the tolerance dictionary a failed result              
-      if failed:
-        if key in tols:
-          if type(newtols)== type({}):
-            tols[key].update(newtols)
-          elif type(newtols) == type([]):
-            tols[key]=newtols
-          else:
-            tols[key] = max(newtols,tols[key])
-        else:
-            tols[key] = newtols
-  return (len(tols) > 0, tols)  
-  
-
-#compare the scalars.
-#return the tolerance if the results are ok
-def compare_scl(scl, ref, tols, always_fails = False):
-  global failed_checks,discrepancy,biggest_tol
-  failed = always_fails
-  ret = (failed, None)
-#  print scl,ref,tols
-#eliminate the character variables
-  if type(ref) == type(""):
-    if not(scl == ref):
-      ret = (True, scl)
-  elif not(always_fails):
-    if tols is None:
-      failed = not(math.fabs(scl - ref) <= epsilon)
-    else:
-      failed = not(math.fabs(scl - ref) <= tols) 
-    discrepancy=max(discrepancy,math.fabs(scl - ref))
-    if not(failed):
-      if tols is None:
-        ret = (always_fails, None)
-      else:
-        ret = (True, tols)
-    else:
-      ret = (True, math.fabs(scl - ref))
-      if tols is not None:
-        biggest_tol=max(biggest_tol,math.fabs(tols))
-  if failed:
-    failed_checks +=1
-  return ret
-
-def document_report(hostname,tol,biggest_disc,nchecks,leaks,nmiss,miss_it,timet):
-
-  results={}
-  failure_reason = None 
-
-#  disc=biggest_disc
-  if nchecks > 0 or leaks != 0 or nmiss > 0:
-    if leaks != 0:
-      failure_reason="Memory"
-    elif nmiss > 0:
-      failure_reason="Information"
-    elif tol==0 and biggest_disc==0 and timet==0:
-      failure_reason="Yaml Standard"
-    else:
-      failure_reason="Difference"
-  else:
-    start = start_success
-    message = "succeeded "
-  results["Platform"]=hostname  
-  results["Test succeeded"]=nchecks == 0  and nmiss==0 and leaks==0
-  if failure_reason is not None:
-    results["Failure reason"]=failure_reason
-  results["Maximum discrepancy"]=biggest_disc
-  results["Maximum tolerance applied"]=tol
-  results["Seconds needed for the test"]=timet
-  if (nmiss > 0):
-    results["Missed Reference Items"]=miss_it
-
-  return results
-
-
-#import yaml_hl
-
-class Pouet:
-  def __init__(self):
-    self.input = "report"
-    self.output = None
-    self.style = "ascii"
-    self.config = os.path.join(path,'yaml_hl.cfg')
-
-def parse_arguments():
-  parser = optparse.OptionParser("This script is used to compare two yaml outputs with respect to a tolerance file given. usage: fldiff_yaml.py <options>")
-  parser.add_option('-d', '--data', dest='data',default=None, #sys.argv[2],
-                    help="yaml stream to be compared with reference", metavar='DATA')
-  parser.add_option('-o', '--output', dest='output', default="/dev/null", #sys.argv[4],
-                    help="set the output file (default: /dev/null)", metavar='FILE')
-  #Return the parsing
-  return parser
-
-def fatal_error(args,reports):
-  "Fatal Error: exit after writing the report, assume that the report file is already open)"
-  print 'Error in reading datas, Yaml Standard violated or missing file'
-  finres=document_report('None',0.,0.,1,0,0,0,0)
-  sys.stdout.write(yaml.dump(finres,default_flow_style=False,explicit_start=True))
-  reports.write(yaml.dump(finres,default_flow_style=False,explicit_start=True))
-  #datas    = [a for a in yaml.load_all(open(args.data, "r"), Loader = yaml.CLoader)]
-  sys.exit(1)
-
+# print out a python dictionary in yaml syntax
 def dict_dump(dict):
   sys.stdout.write(yaml.dump(dict,default_flow_style=False,explicit_start=True))
 
-def document_analysis(doc):
-  #analyse the energy and the forces
-  try:
-    last=doc["Last Iteration"]
-    dict_dump(last["EKS"])
-  except:
-    last={}
-    print 'Last iteration absent'
-  try:
-    forces=doc["Geometry"]["Forces"]
-    dict_dump(forces[0])
-    #print forces["maxval"]
-  except:
-    forces={}
-    print 'forces not calculated'
-      
-    
-    
+#function which removes from a set of lines the yaml_fields contained in the to_remove list
+def clean_logfile(logfile_lines,to_remove):
+  line_rev=logfile_lines #list of the lines of the logfile
+  #loop in the reversed from (such as to parse by blocks)
+  extra_lines=20 #internal variable to be customized
+  line_rev.reverse()
+  #clean the log
+  cleaned_logfile=[]
+  removed=[]
+  #for line in line_rev: #line_iter:
+  while len(line_rev) >0:
+    line=line_rev.pop()
+    to_print=line
+    #check if the line contains interesting information
+    for remove_it in to_remove :
+      stream_list=[]
+      #line without comments
+      valid_line=line.split('#')[0]
+      spaces='nospace'
+      #control that the string between the key and the semicolon is only spaces
+      #print "here",remove_it,remove_it in valid_line and ":" in valid_line
+      if remove_it in valid_line and ":" in valid_line:
+        valid_line= valid_line[valid_line.find(remove_it)+len(remove_it):]
+        spaces= valid_line[1:valid_line.find(':')]
+        #if remove_it+':' in line.split('#')[0]:
+      if len(spaces.strip(' ')) == 0: #this means that the key has been found
+         #creates a new Yaml document starting from the line
+         #treat the rest of the line following the key to be removed
+         header=''.join(line.split(':')[1:])
+         header=header.rstrip()+'\n'
+         #eliminate the anchor
+         header=header.lstrip(' ')
+         header=header.lstrip('*') 
+         if len(header) > 0 :
+            stream_list.append(header)
+         #part to be printed, updated
+         to_print = line.split(':')[0] + ": <folded> \n"
 
+         #then check when the mapping will end:
+         while True:
+            #create a stream with extra_lines block           
+            for i in range(0,min(extra_lines,len(line_rev))):
+               stream_list.append(line_rev.pop())
+            #create a stream to be parsed
+            stream=''.join(stream_list)
+            #then parse the stream until the last valid position has been found
+            try:
+              for i in yaml.parse(stream,Loader=yaml.CLoader):
+                endpos=i.end_mark.index
+            except Exception, e:
+              #  print 'error',str(e),stream
+              #convert back the valid stream into a list
+              #if needed the stream can be loaded into a document
+              item_list=stream[:endpos].split('\n')
+              #if lengths are different there is no need to add lines
+              if len(item_list) != len(stream_list):
+                #last line might be shorter, therefore treat it separately
+                last_line=item_list.pop()
+                #purge the stream
+                for item in item_list:
+                  stream_list.remove(item+'\n')
+                #extract the remaining line which should be compared with the last one
+                strip_size=len(last_line.rstrip())
+                if strip_size > 0:
+                  first_line=stream_list.pop(0)[strip_size:]
+                  if '*' in first_line or '&' in first_line:
+                    first_line='' #eliminate anchors
+                else:
+                  first_line=''
+                #then put the rest in the line to be treated
+                to_print.rstrip('\n')
+                to_print += first_line+'\n'
+                # the item has been found
+                break
+         stream_list.reverse()
+         #put back the unused part in the document
+         line_rev.extend(stream_list)
+         # mark that the key has been removed
+         if (remove_it not in removed):
+           removed.append(remove_it)
+           print 'removed: ',remove_it
+  # then print out the line 
+    cleaned_logfile.append(to_print)
+
+  # check that everything has been removed, at least once
+  if (set(removed) != set(to_remove)):
+    print 'WARNING, not all the requested items have been removed!'
+    print 'To_remove : ',to_remove
+    print 'removed   : ',removed
+    print 'Difference: ',list(set(to_remove) - set(removed) )
+  return cleaned_logfile
+
+
+# this is a tentative function written to extract information from the runs
+def document_analysis(doc,to_extract):
+  analysis=[]
+  for quantity in to_extract:
+    #print quantity
+    #follow the levels indicated to find the quantity
+    value=doc
+    for key in quantity:
+      #as soon as there is a problem the quantity is null
+      try:
+        value=value[key]
+      except:
+        value=None
+        break
+    if value is not None:
+      analysis.append(value)
+    else:
+      #skip the document is one of the value is None
+      return None
+  return analysis    
+
+def parse_arguments():
+  parser = optparse.OptionParser("This script is used to extract some information from a logfile")
+  parser.add_option('-d', '--data', dest='data',default=None, #sys.argv[2],
+                    help="BigDFT logfile, yaml compliant (check this if only this option is given)", metavar='FILE')
+  parser.add_option('-v', '--invert-match', dest='remove',default=None, #sys.argv[2],
+                    help="File containing the keys which have to be excluded from the logfile", metavar='FILE')
+  parser.add_option('-e', '--extract', dest='extract',default=None, #sys.argv[2],
+                    help="File containing the keys which have to be extracted to build the quantities", metavar='FILE')
+  parser.add_option('-o', '--output', dest='output', default="/dev/null", #sys.argv[4],
+                    help="set the output file (default: /dev/null)", metavar='FILE')
+  parser.add_option('-t', '--timedata', dest='timedata',default=False,action="store_true",
+                    help="BigDFT time.yaml file, a quick report is dumped on screen if this option is given", metavar='FILE')
+
+  #Return the parsing
+  return parser
+
+def nopc(string):
+  pc=string.rstrip("%")
+  try:
+    fl=float(pc)
+  except:
+    fl=-1.0
+  return fl
+
+def dump_timing_level(level,ilev=0,theta=0,
+                      data={"time":[],"level":[],"theta":[],"names":[[]]}):
+  """Inspect the first level of the given dictionary and dump the profile subroutines at this level"""
+  import pylab
+  subs=data["time"]
+  tht=data["theta"]
+  lev=data["level"]
+  nms=data["names"]
+  if ilev == len(nms):
+    nms.append([])
+  #tel=0
+  tel=theta #entry point of the routine
+  for routine in level:
+    #first eliminate the subroutines from the level
+    try:
+      sublevel=routine.pop("Subroutines")
+    except:
+      sublevel=None
+    for name in routine:
+      t0=routine[name][0] #take the time
+      subs.append(t0) #take the time
+      tht.append(tel)
+      lev.append(ilev)
+      nms[ilev].append(name)
+    if sublevel is not None:
+      jlev=ilev+1
+      dump_timing_level(sublevel,ilev=jlev,theta=tel,data=data)
+    tel=tel+t0
+  return data
+
+#defines the class of the polar plot
+class polar_axis():
+  def __init__(self,data):
+    import pylab
+    self.fig = pylab.figure()
+    self.ax = pylab.axes([0.025,0.025,0.95,0.95], polar=True)
+    self.tot=data["time"][0]
+    self.times=data["time"]
+    self.N=len(self.times)
+    self.step=5
+    self.width=pylab.np.array(data["time"])/self.tot*2*pylab.np.pi
+    self.theta=pylab.np.array(data["theta"])/self.tot*2*pylab.np.pi
+    self.bot=pylab.np.array(data["level"])
+    self.radii = pylab.np.array(self.N*[self.step])
+    self.bars = pylab.bar(self.theta,self.radii,
+                          width=self.width,
+                          bottom=self.step*self.bot,picker=True)
+    self.names=data["names"]
+
+    ilev=0
+    #maxlev=max(self.bot)
+    for r,bar,ilev in zip(self.radii, self.bars,self.theta):
+       #print ilev,'hello',float(ilev)/float(N),maxlev
+       #bar.set_facecolor( pylab.cm.jet(float(ilev)/maxlev))
+       bar.set_facecolor( pylab.cm.jet(float(ilev)/(2*pylab.np.pi)))
+       bar.set_alpha(0.5)
+       ilev+=1
+
+    self.ax.set_xticklabels([])
+    self.ax.set_yticklabels([])
+    self.info=self.ax.text(0,0,'',fontsize=150)
+    # savefig('../figures/polar_ex.png',dpi=48)
+    self.fig.canvas.mpl_connect('pick_event',self.info_callback)
+
+  # to be used what it is the moment to show the plot(s)
+  def show(self):
+    import pylab
+    try:
+      pylab.show()
+    except KeyboardInterrupt:
+      raise
+
+        
+  def find_name(self,th,level):
+    import pylab
+    levth=[]
+    ipiv=[]
+    for i in range(self.N):
+      if self.bot[i]==level:
+        levth.append(self.theta[i])
+        ipiv.append(i)
+    to_find_zero=pylab.np.array(levth)-th
+    if min(abs(to_find_zero))==0.0:
+      routine=pylab.np.argmin(abs(to_find_zero))
+      return (th,self.names[level][routine],self.times[ipiv[routine]])
+    else:
+      to_find_zero[to_find_zero > 0]=-4*pylab.np.pi
+      routine=pylab.np.argmin(-to_find_zero)
+      return (self.theta[ipiv[routine]],self.names[level][routine],self.times[ipiv[routine]])
+
+    
+  def info_string(self,xdata,level):
+    #create string to be plotted in plot
+    (tt,name,time)=self.find_name(xdata,level)
+    info=name+':\n'+str(time)+" s ("
+    info+= " %6.2f %s" % (time/self.tot*100.0,"% ) \n")
+    #find lower level
+    it=range(level)
+    it.reverse()
+    parents=''
+    for i in it:
+      (tt,name,time)=self.find_name(tt,i)
+      parents+="-"+name+"("+str(time)+"s,"
+      parents+= " %6.2f %s" % (time/self.tot*100.0,"% ) \n")
+    if len(parents) > 0:
+      info+="Calling path:\n"+parents
+    return info
+        
+    
+  def info_callback(self,event):
+    thisline = event.artist
+    xdata, ydata = thisline.get_xy()
+    level = ydata/self.step
+    #once that the level has been found filter the list of theta
+    (tt,name,time)=self.find_name(xdata,level)
+    #print "======================="
+    #print "Routine Picked:",name,",",time,"s (",time/self.tot*100.0,"% of total time)"
+    #find lower level
+    #it=range(level)
+    #it.reverse()
+    #for i in it:
+    #  (tt,name,time)=self.find_name(tt,i)
+    #  print "  Called by:",name
+
+    #then plot the string
+    self.ax.texts.remove(self.info)
+    offset = 0.02
+    #print 'nowinfo',info
+    self.info= self.ax.text( offset, offset, self.info_string(xdata,level),
+                             fontsize = 15,transform = self.ax.transAxes )
+    self.fig.canvas.draw()
+      
+class BigDFTiming:
+  def __init__(self,filename):
+    #here a try-catch section should be added for multiple documents
+    self.log=yaml.load(open(filename, "r").read(), Loader = yaml.CLoader)
+
+    #cat=self.log["Dictionary of active categories"]
+    #print 'categories',cat
+    #icat=1
+    #for i in cat:
+    #  print icat,i["Category"]
+    #  icat +=1
+    #dssad
+    #shallow copies of important parts
+    self.routines=self.log["Routines timing and number of calls"]
+    self.hostnames=self.log.get("Hostnames")
+    self.scf=self.log.get("WFN_OPT")
+    self.classes=["Communications","Convolutions","BLAS-LAPACK","Linear Algebra",
+                  "Other","PS Computation","Potential",
+                  "Flib LowLevel","Initialization"]
+
+  def bars_data(self,dict):
+    """Extract the data for plotting the different categories in bar chart"""
+    import pylab
+    ind=pylab.np.arange(1)#2)
+    width=0.35
+    bot=pylab.np.array([0])#,0])
+    plts=[]
+    key_legend=[]
+    values_legend=[]
+    icol=1.0
+    print "dict",dict
+    for cat in self.classes:
+      try:
+        dat=pylab.np.array([dict[cat][0]])#,dict[cat][0]])
+        print 'data',dat
+        print 'unbalancing',dict[cat][2:]
+        plt=pylab.bar(ind,dat,width,bottom=bot,color=pylab.cm.jet(icol/len(self.classes)))
+        plts.append(plt)
+        key_legend.append(plt[0])
+        values_legend.append(cat)
+        bot+=dat
+        icol+=1.0
+      except Exception,e:
+        #print 'EXCEPTION FOUND',e
+        print "category",cat,"not present"
+  
+    pylab.ylabel('Percent')
+    pylab.title('Time bar chart')
+    pylab.xticks(ind+width/2., ('G1', 'G2', 'G3', 'G4', 'G5') )
+    pylab.yticks(pylab.np.arange(0,100,10))
+    pylab.legend(pylab.np.array(key_legend), pylab.np.array(values_legend))
+
+  def unbalanced(self,val):
+    """Criterion for unbalancing"""
+    return val > 1.5 or val < 0.5
+
+  def find_unbalanced(self,data):
+    """Determine lookup array of unbalanced categories"""
+    ipiv=[]
+    for i in range(len(data)):
+      if self.unbalanced(data[i]):
+        ipiv.append(i)
+    return ipiv
+
+  def load_unbalancing(self,dict):
+    """Extract the data for plotting the hostname balancings between different categories in bar chart"""
+    import pylab
+    width=0.50
+    plts=[]
+    key_legend=[]
+    values_legend=[]
+    icol=1.0
+    print "dict",dict
+    for cat in self.classes:
+      try:
+        dat=pylab.np.array([dict[cat][0]])
+        print 'data',dat
+        unb=pylab.np.array(dict[cat][2:])
+        print 'unbalancing',unb
+        unb2=self.find_unbalanced(unb)
+        print 'unbalanced objects',cat
+        if self.hostnames is not None:
+          print 'vals',[ [i,unb[i],self.hostnames[i]] for i in unb2]
+        ind=pylab.np.arange(len(unb))
+        plt=pylab.bar(ind,unb,width,color=pylab.cm.jet(icol/len(self.classes)))
+        plts.append(plt)
+        key_legend.append(plt[0])
+        values_legend.append(cat)
+        icol+=1.0
+        if (width > 0.05):
+          width -= 0.05
+      except Exception,e:
+        print 'EXCEPTION FOUND',e
+        print "cat",cat,"not found"
+
+    if len(ind) > 2:
+      tmp=pylab.np.array(self.hostnames)
+    else:
+      tmp=pylab.np.array(["max","min"])
+    pylab.ylabel('Load Unbalancing wrt average')
+    pylab.title('Work Load of different classes')
+    pylab.xticks(ind+width/2., tmp)
+    pylab.yticks(pylab.np.arange(0,2,0.25))
+    pylab.legend(pylab.np.array(key_legend), pylab.np.array(values_legend))
 
 
 if __name__ == "__main__":
   parser = parse_arguments()
-  (args, argtmp) = parser.parse_args()
+  (args, argcl) = parser.parse_args()
 
 
-#args=parse_arguments()
+#logfile
+#check if timedata is given
+if args.timedata:
+  print 'args of time',args.timedata,argcl
+  #load the first yaml document
+  bt=BigDFTiming(argcl[0])
+  print "hosts",bt.hostnames
+  #timing = yaml.load(open(args.timedata, "r").read(), Loader = yaml.CLoader)
+  #dict_routines = timing["Routines timing and number of calls"]
+  #sys.stdout.write(yaml.dump(timing["WFN_OPT"]["Classes"],default_flow_style=False,explicit_start=True))
+  if bt.scf is not None:
+    bt.bars_data(bt.scf["Classes"]) #timing["WFN_OPT"]["Classes"])
+  #bt.load_unbalancing(bt.scf["Classes"]) #timing["WFN_OPT"]["Classes"])
+  data=dump_timing_level(bt.routines) #dict_routines)
+  #sys.stdout.write(yaml.dump(data,default_flow_style=False,explicit_start=True))
+  #ilev=1
+  #for lev in data["names"]:
+  #  sys.stdout.write(yaml.dump({"Level "+str(ilev):lev},default_flow_style=False,explicit_start=True))
+  #  ilev+=1
+  plt=polar_axis(data)
+  print 'data initialized'
+  plt.show()
+  #print allev
+  #dump the loaded info
 
+  
+
+if args.data is None:
+  print "No input file given, exiting..."
+  exit(0)
+
+with open(args.data, "r") as fp:
+  logfile_lines = fp.readlines()
+#output file
+file_out=open(args.output, "w")
+#to_remove list
+if args.remove is not None:
+  to_remove = yaml.load(open(args.remove, "r").read(), Loader = yaml.CLoader)
+else:
+  #standard list which removes long items from the logfile
+  to_remove= ["Atomic positions within the cell (Atomic and Grid Units)",
+              "Atomic Forces (Ha/Bohr)",
+              "Orbitals",
+              "Energies",
+              "Properties of atoms in the system"]
+  #to_remove=[]
+
+    
+#obtain the cleaned document
+cleaned_logfile = clean_logfile(logfile_lines,to_remove)
+
+print 'Logfile cleaned, writing output file...'
+#dump it
+for line in cleaned_logfile:
+  file_out.write(line) 
+
+file_out.close()
+print 'Output file written'
+#sys.exit(0)
+#experimental: extract for any document of the cleaned logfile the final energy and positions
+if args.extract is not None:
+  to_extract = yaml.load(open(args.extract, "r").read(), Loader = yaml.CLoader)
+else:
+  to_extract=[ ["Geometry","FORCES norm(Ha/Bohr)","maxval"], ["Last Iteration","EKS"]]
+
+datas=yaml.load_all(''.join(cleaned_logfile), Loader = yaml.CLoader)
+extracted_result=[]
+for doc in datas:
+  doc_res=document_analysis(doc,to_extract)
+  if doc_res is not None:
+    extracted_result.append(doc_res)
+
+print "Number of valid documents:",len(extracted_result)
+for it in extracted_result:
+  print it
+
+iterations = range(len(extracted_result))
+energies = [en for [f, en] in extracted_result]
+energy_min=min(energies)
+energies = [en-energy_min for en in energies]
+forces = [f for [f, en] in extracted_result]
+
+import matplotlib.pyplot as plt
+plt.plot(iterations, energies, '.-',label='E - min(E)')
+plt.plot(iterations, forces, '.-',label='max F')
+plt.yscale('log')
+plt.legend(loc='lower left')
+plt.show()
+  
+sys.exit(0)
+
+#do some tests
+document = """---
+block sequence:
+ - BlockEntryToken
+ block mapping:
+   ? KeyToken
+   : ValueToken
+ flow sequence: [FlowEntryToken, FlowEntryToken]
+ flow mapping: {KeyToken: ValueToken}
+ anchors and tags:
+ - &A !!int '5'
+ - *A
+...
+ """
+
+#for token in yaml.scan(document):
+#     print token
+
+#ddd
 #print args.ref,args.data,args.output
+
 datas    = [a for a in yaml.load_all(open(args.data, "r").read(), Loader = yaml.CLoader)]
+#i=0
+#for doc in yaml.load_all(open(args.data, "r").read(), Loader = yaml.CLoader):
+#  i+=1
+#  print 'doc No.',i#,"Last Iteration" in doc.keys()
+  #try:
+  #  print yaml.dump(doc["Last Iteration"])
+  #except:
+  #  print "Last Iteration not found"
+
+#datas    = [a for a in yaml.safe_load_all(open(args.data, "r").read())]
 #Profile.run('datas    = [a for a in yaml.load_all(open(args.data, "r").read(), Loader = yaml.CLoader)]')
 #gyi
-runfile = open(args.data, "r").read()
+#runfile = open(args.data, "r").read()
+sss
 try:
     datas    = [a for a in yaml.load_all(runfile, Loader = yaml.Loader)]
     #Profile.run('datas    = [a for a in yaml.load_all(open(args.data, "r").read())]')
@@ -269,7 +542,7 @@ except:
 ndocs=len(datas)
 
 print 'No. of Documents:',ndocs
-ddd
+
 for run in datas:
   print 'New Document'
   document_analysis(run)

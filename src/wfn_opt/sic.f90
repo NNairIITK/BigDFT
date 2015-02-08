@@ -1,23 +1,34 @@
+!> @file
+!!  Routines to build the Self-Interaction Correction
+!! @author
+!!    Copyright (C) 2013-2013 BigDFT group
+!!    This file is distributed under the terms of the
+!!    GNU General Public License, see ~/COPYING file
+!!    or http://www.gnu.org/copyleft/gpl.txt .
+!!    For the list of contributors, see ~/AUTHORS
+
+
 !> Construct a Self-Interaction-Corrected potential based on the 
 !! Perdew-Zunger prescription (Phys. Rev. B 23, 10, 5048 (1981))
-subroutine PZ_SIC_potential(iorb,lr,orbs,ixc,hxh,hyh,hzh,pkernel,psir,vpsir,eSICi,eSIC_DCi)
+subroutine PZ_SIC_potential(iorb,lr,orbs,xc,hxh,hyh,hzh,pkernel,psir,vpsir,eSICi,eSIC_DCi)
   use module_base
   use module_types
   use module_interfaces
-  use Poisson_Solver
+  use Poisson_Solver, except_dp => dp, except_gp => gp, except_wp => wp
   use module_xc
   implicit none
-  integer, intent(in) :: iorb,ixc
+  integer, intent(in) :: iorb
   real(gp), intent(in) :: hxh,hyh,hzh
   type(locreg_descriptors), intent(in) :: lr
   type(orbitals_data), intent(in) :: orbs
   real(wp), dimension(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,orbs%nspinor), intent(in) :: psir
+  type(xc_info), intent(in) :: xc
   type(coulomb_operator), intent(in) :: pkernel
   real(gp), intent(out) :: eSICi,eSIC_DCi
   real(wp), dimension(lr%d%n1i*lr%d%n2i*lr%d%n3i,orbs%nspinor), intent(out) :: vpsir
   !local variables
   character(len=*), parameter :: subname='PZ_SIC_potential' 
-  integer :: npsir,nspinn,ncomplex,i_all,i_stat,ispin,icomplex,jproc,nproc
+  integer :: npsir,nspinn,ncomplex,ispin,icomplex,jproc,nproc
   real(gp) :: spinval,hfac,fi,vexi,eexi,ehi
   integer, dimension(:,:), allocatable :: nscarr_fake
   real(dp), dimension(:,:), allocatable :: rhopoti,vSICi
@@ -27,8 +38,7 @@ subroutine PZ_SIC_potential(iorb,lr,orbs,ixc,hxh,hyh,hzh,pkernel,psir,vpsir,eSIC
   !fake nscatterarr array for compatibility with partial_density interface
   !monoprocessor calculation
   nproc=1
-  allocate(nscarr_fake(0:nproc-1,4+ndebug),stat=i_stat)
-  call memocc(i_stat,nscarr_fake,'nscarr_fake',subname)
+  nscarr_fake = f_malloc((/ 0.to.nproc-1, 1.to.4 /),id='nscarr_fake')
   !fill it just for completeness, even if not used
   do jproc=0,nproc-1
      nscarr_fake(jproc,1)=lr%d%n3i
@@ -55,15 +65,13 @@ subroutine PZ_SIC_potential(iorb,lr,orbs,ixc,hxh,hyh,hzh,pkernel,psir,vpsir,eSIC
   !npsir is equal to npot in local_hamiltonian
 
   !wavefunction squares (spin dependent)
-  allocate(rhopoti(lr%d%n1i*lr%d%n2i*lr%d%n3i,nspinn+ndebug),stat=i_stat)
-  call memocc(i_stat,rhopoti,'rhopoti',subname)
+  rhopoti = f_malloc((/ lr%d%n1i*lr%d%n2i*lr%d%n3i, nspinn /),id='rhopoti')
   !initialize the charge density
   !initialize the rho array at 10^-20 instead of zero, due to the invcb ABINIT routine
   !otherwise use libXC routine
-  call xc_init_rho(lr%d%n1i*lr%d%n2i*lr%d%n3i*nspinn,rhopoti,nproc)
+  call xc_init_rho(xc,lr%d%n1i*lr%d%n2i*lr%d%n3i*nspinn,rhopoti,nproc)
 
-  allocate(vSICi(lr%d%n1i*lr%d%n2i*lr%d%n3i,nspinn+ndebug),stat=i_stat)
-  call memocc(i_stat,vSICi,'vSICi',subname)
+  vSICi = f_malloc((/ lr%d%n1i*lr%d%n2i*lr%d%n3i, nspinn /),id='vSICi')
 
   !occupation number and k-point weight of the given orbital
   fi=orbs%kwgts(orbs%iokpt(iorb))*orbs%occup(orbs%isorb+iorb)
@@ -114,12 +122,12 @@ subroutine PZ_SIC_potential(iorb,lr,orbs,ixc,hxh,hyh,hzh,pkernel,psir,vpsir,eSIC
      if(orbs%nspinor==4) then
         !this wrapper can be inserted inside the XC_potential routine
         call PSolverNC(lr%geocode,'D',0,1,lr%d%n1i,lr%d%n2i,lr%d%n3i,lr%d%n3i,&
-             ixc,hxh,hyh,hzh,&
+             xc,hxh,hyh,hzh,&
              rhopoti,pkernel%kernel,rhopoti,ehi,eexi,vexi,0.d0,.false.,4)
         !the potential is here ready to be applied to psir
      else
         call XC_potential(lr%geocode,'D',0,1,bigdft_mpi%mpi_comm,&
-             lr%d%n1i,lr%d%n2i,lr%d%n3i,ixc,hxh,hyh,hzh,&
+             lr%d%n1i,lr%d%n2i,lr%d%n3i,xc,hxh,hyh,hzh,&
              rhopoti,eexi,vexi,orbs%nspin,rhocore_fake,vSICi,xcstr) 
 
         call H_potential('D',pkernel,rhopoti,rhopoti,ehi,0.0_dp,.false.,&
@@ -130,7 +138,7 @@ subroutine PZ_SIC_potential(iorb,lr,orbs,ixc,hxh,hyh,hzh,pkernel,psir,vpsir,eSIC
         !sum the two potentials in the potential array
         !fill the other part, for spin polarised
         if (orbs%nspin == 2) then
-           call dcopy(lr%d%n1i*lr%d%n2i*lr%d%n3i,rhopoti(1,1),1,&
+           call vcopy(lr%d%n1i*lr%d%n2i*lr%d%n3i,rhopoti(1,1),1,&
                 rhopoti(1,2),1)
         end if
         call axpy(lr%d%n1i*lr%d%n2i*lr%d%n3i*orbs%nspin,1.0_dp,vSICi(1,1),1,&
@@ -163,22 +171,16 @@ subroutine PZ_SIC_potential(iorb,lr,orbs,ixc,hxh,hyh,hzh,pkernel,psir,vpsir,eSIC
 
   else
      !put to zero the corresponding potential
-     call to_zero(lr%d%n1i*lr%d%n2i*lr%d%n3i*orbs%nspinor,vpsir(1,1))
+     call f_zero(vpsir)
   end if
 
 
-  i_all=-product(shape(rhopoti))*kind(rhopoti)
-  deallocate(rhopoti,stat=i_stat)
-  call memocc(i_stat,i_all,'rhopoti',subname)
-  i_all=-product(shape(vSICi))*kind(vSICi)
-  deallocate(vSICi,stat=i_stat)
-  call memocc(i_stat,i_all,'vSICi',subname)
-  
-  i_all=-product(shape(nscarr_fake))*kind(nscarr_fake)
-  deallocate(nscarr_fake,stat=i_stat)
-  call memocc(i_stat,i_all,'nscarr_fake',subname)
+  call f_free(rhopoti)
+  call f_free(vSICi)
+  call f_free(nscarr_fake)
 
 end subroutine PZ_SIC_potential
+
 
 !> Construct a Self-Interaction-Corrected potential based on the 
 !! Koopmans' correction for DFT (Phys. Rev. B 82 115121 (2010))
@@ -186,18 +188,18 @@ end subroutine PZ_SIC_potential
 !! the output potential is orbital-dependent and is given by the NK Hamiltonian
 !! @ param poti the density in the input, the orbital-wise potential in the output
 !!              unless wxdsave is present. In this case poti in unchanged on exit
-subroutine NK_SIC_potential(lr,orbs,ixc,fref,hxh,hyh,hzh,pkernel,psi,poti,eSIC_DC,potandrho,wxdsave)
+subroutine NK_SIC_potential(lr,orbs,xc,fref,hxh,hyh,hzh,pkernel,psi,poti,eSIC_DC,potandrho,wxdsave)
   use module_base
   use module_types
   use module_xc
   use module_interfaces, except_this_one => NK_SIC_potential
-  use Poisson_Solver
+  use Poisson_Solver, except_dp => dp, except_gp => gp, except_wp => wp
   implicit none
-  integer, intent(in) :: ixc
   real(gp), intent(in) :: hxh,hyh,hzh,fref
   type(locreg_descriptors), intent(in) :: lr
   type(orbitals_data), intent(in) :: orbs
   type(coulomb_operator), intent(in) :: pkernel
+  type(xc_info), intent(in) :: xc
   real(wp), dimension(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,orbs%nspinor,orbs%norbp), intent(in) :: psi
   real(wp), dimension((lr%d%n1i*lr%d%n2i*lr%d%n3i*((orbs%nspinor/3)*3+1)),max(orbs%norbp,orbs%nspin)), intent(inout) :: poti
   real(gp), intent(out) :: eSIC_DC
@@ -206,7 +208,7 @@ subroutine NK_SIC_potential(lr,orbs,ixc,fref,hxh,hyh,hzh,pkernel,psi,poti,eSIC_D
   !local variables
   character(len=*), parameter :: subname='NK_SIC_potential' 
   logical :: virtual,savewxd
-  integer :: npot,i_all,i_stat,ispin,i,jspin,ierr,iorb,ispinor,i1,i2,i3,nproc
+  integer :: npot,ispin,i,jspin,ierr,iorb,ispinor,i1,i2,i3,nproc
   real(gp) :: spinval,fi,oneoh,vexi,eexi,ehi,eexu,vexu,eSIC_DCi,fac1,fac2,rnorboccp,constadd
   type(workarr_sumrho) :: w
   real(dp), dimension(:,:), allocatable :: ni,deltarho,vxci,rho,psir,wxd
@@ -225,9 +227,8 @@ subroutine NK_SIC_potential(lr,orbs,ixc,fref,hxh,hyh,hzh,pkernel,psi,poti,eSIC_D
   if (virtual .and. savewxd) stop 'NKpot: options are mutually exclusive'
 
   !XC potential and work array for the cross-derivative summation (to be used in the occupied case and for saving)
-  allocate(wxd(lr%d%n1i*lr%d%n2i*lr%d%n3i,orbs%nspin+ndebug),stat=i_stat)
-  call memocc(i_stat,wxd,'wxd',subname)
-  if (orbs%norbp==0) call to_zero(lr%d%n1i*lr%d%n2i*lr%d%n3i*orbs%nspin,wxd(1,1))
+  wxd = f_malloc0((/ lr%d%n1i*lr%d%n2i*lr%d%n3i, orbs%nspin /),id='wxd')
+  !if (orbs%norbp==0) call to_zero(lr%d%n1i*lr%d%n2i*lr%d%n3i*orbs%nspin,wxd(1,1))
 
   !quick return if norbp=0 (not possible due to the MPI_ALLREDUCE)
   if (orbs%norbp /= 0) then
@@ -240,40 +241,34 @@ subroutine NK_SIC_potential(lr,orbs,ixc,fref,hxh,hyh,hzh,pkernel,psi,poti,eSIC_D
      nullify(rhocore_fake)
 
      !reals-space wavefunction
-     allocate(psir(lr%d%n1i*lr%d%n2i*lr%d%n3i,orbs%nspinor+ndebug),stat=i_stat)
-     call memocc(i_stat,psir,'psir',subname)
+     psir = f_malloc((/ lr%d%n1i*lr%d%n2i*lr%d%n3i, orbs%nspinor /),id='psir')
 
      !total density of the system (for the virtual wfns it is already in density)
      if (.not. virtual) then
-        allocate(rho(lr%d%n1i*lr%d%n2i*lr%d%n3i,orbs%nspin+ndebug),stat=i_stat)
-        call memocc(i_stat,rho,'rho',subname)
+        rho = f_malloc((/ lr%d%n1i*lr%d%n2i*lr%d%n3i, orbs%nspin /),id='rho')
      end if
 
      !wavefunction squares (spin dependent)
-     allocate(ni(lr%d%n1i*lr%d%n2i*lr%d%n3i,orbs%nspin+ndebug),stat=i_stat)
-     call memocc(i_stat,ni,'ni',subname)
+     ni = f_malloc((/ lr%d%n1i*lr%d%n2i*lr%d%n3i, orbs%nspin /),id='ni')
      !work array deltarho
-     allocate(deltarho(lr%d%n1i*lr%d%n2i*lr%d%n3i,orbs%nspin+ndebug),stat=i_stat)
-     call memocc(i_stat,deltarho,'deltarho',subname)
+     deltarho = f_malloc((/ lr%d%n1i*lr%d%n2i*lr%d%n3i, orbs%nspin /),id='deltarho')
      !orbital-wise XC potential
-     allocate(vxci(lr%d%n1i*lr%d%n2i*lr%d%n3i,orbs%nspin+ndebug),stat=i_stat)
-     call memocc(i_stat,vxci,'vxci',subname)
-     allocate(fxci(lr%d%n1i,lr%d%n2i,lr%d%n3i,orbs%nspin+1+ndebug),stat=i_stat)
-     call memocc(i_stat,fxci,'fxci',subname)
+     vxci = f_malloc((/ lr%d%n1i*lr%d%n2i*lr%d%n3i, orbs%nspin /),id='vxci')
+     fxci = f_malloc((/ lr%d%n1i, lr%d%n2i, lr%d%n3i, orbs%nspin+1 /),id='fxci')
 
      !take total density from the first poti component or the second potand rho component
      if (virtual) then
-        call dcopy(lr%d%n1i*lr%d%n2i*lr%d%n3i*orbs%nspin,potandrho(1,orbs%nspin+1),1,&
+        call vcopy(lr%d%n1i*lr%d%n2i*lr%d%n3i*orbs%nspin,potandrho(1,orbs%nspin+1),1,&
              deltarho(1,1),1)
      else
-        call dcopy(lr%d%n1i*lr%d%n2i*lr%d%n3i*orbs%nspin,poti(1,1),1,&
+        call vcopy(lr%d%n1i*lr%d%n2i*lr%d%n3i*orbs%nspin,poti(1,1),1,&
              deltarho(1,1),1)
      end if
      !print *,'here',poti(1,1),deltarho(1,1)
 
      !put the XC potential in the wxd term, which is the same for all the orbitals
      call XC_potential(lr%geocode,'D',0,1,bigdft_mpi%mpi_comm,&
-          lr%d%n1i,lr%d%n2i,lr%d%n3i,ixc,hxh,hyh,hzh,&
+          lr%d%n1i,lr%d%n2i,lr%d%n3i,xc,hxh,hyh,hzh,&
           deltarho,eexu,vexu,orbs%nspin,rhocore_fake,wxd,xcstr)
 
      if (.not. virtual) then
@@ -291,20 +286,20 @@ subroutine NK_SIC_potential(lr,orbs,ixc,fref,hxh,hyh,hzh,pkernel,psi,poti,eSIC_D
 
      !put the density in the rho array
      if (.not. virtual) then
-        call dcopy(lr%d%n1i*lr%d%n2i*lr%d%n3i*orbs%nspin,poti(1,1),1,&
+        call vcopy(lr%d%n1i*lr%d%n2i*lr%d%n3i*orbs%nspin,poti(1,1),1,&
              rho(1,1),1)
      end if
 
      !initalize the double-counting SIC corrections
      eSIC_DC=0.0_gp
-     call initialize_work_arrays_sumrho(lr,w)
+     call initialize_work_arrays_sumrho(1,lr,.true.,w)
 
      do iorb=1,orbs%norbp
 
         !initialize the charge density
         !initialize the rho array at 10^-20 instead of zero, due to the invcb ABINIT routine
         !otherwise use libXC routine
-        call xc_init_rho(lr%d%n1i*lr%d%n2i*lr%d%n3i*orbs%nspin,ni,1)
+        call xc_init_rho(xc,lr%d%n1i*lr%d%n2i*lr%d%n3i*orbs%nspin,ni,1)
 
         !occupation number and k-point weight of the given orbital
         fi=orbs%kwgts(orbs%iokpt(iorb))*orbs%occup(orbs%isorb+iorb)
@@ -347,7 +342,7 @@ subroutine NK_SIC_potential(lr,orbs,ixc,fref,hxh,hyh,hzh,pkernel,psi,poti,eSIC_D
 
         !calculate its vXC and fXC
         call XC_potential(lr%geocode,'D',0,1,bigdft_mpi%mpi_comm,&
-             lr%d%n1i,lr%d%n2i,lr%d%n3i,ixc,hxh,hyh,hzh,&
+             lr%d%n1i,lr%d%n2i,lr%d%n3i,xc,hxh,hyh,hzh,&
              deltarho,eexi,vexi,orbs%nspin,rhocore_fake,vxci,xcstr,fxci)
 
         !copy the relevant part of Vxc[rhoref] in the potential
@@ -408,11 +403,11 @@ subroutine NK_SIC_potential(lr,orbs,ixc,fref,hxh,hyh,hzh,pkernel,psi,poti,eSIC_D
                 deltarho(1,1),1)
            call axpy(lr%d%n1i*lr%d%n2i*lr%d%n3i*orbs%nspin,-fi,ni(1,1),1,deltarho(1,1),1)
 
-           call xc_clean_rho(lr%d%n1i*lr%d%n2i*lr%d%n3i*orbs%nspin,deltarho,1)
+           call xc_clean_rho(xc,lr%d%n1i*lr%d%n2i*lr%d%n3i*orbs%nspin,deltarho,1)
 
            !calculate its XC potential
            call XC_potential(lr%geocode,'D',0,1,bigdft_mpi%mpi_comm,&
-                lr%d%n1i,lr%d%n2i,lr%d%n3i,ixc,hxh,hyh,hzh,&
+                lr%d%n1i,lr%d%n2i,lr%d%n3i,xc,hxh,hyh,hzh,&
                 deltarho,eexi,vexi,orbs%nspin,rhocore_fake,vxci,xcstr) 
            !saves the values for the double-counting term
            eSIC_DC=eSIC_DC+eexi-eexu+eSIC_DCi
@@ -470,7 +465,7 @@ subroutine NK_SIC_potential(lr,orbs,ixc,fref,hxh,hyh,hzh,pkernel,psi,poti,eSIC_D
 
   if (.not. virtual) then
      !sum up the results of the off diagonal term
-     if (nproc >1) call mpiallred(wxd(1,1),lr%d%n1i*lr%d%n2i*lr%d%n3i*orbs%nspin,MPI_SUM,bigdft_mpi%mpi_comm,ierr)
+     if (nproc >1) call mpiallred(wxd(1,1),lr%d%n1i*lr%d%n2i*lr%d%n3i*orbs%nspin,MPI_SUM,bigdft_mpi%mpi_comm)
 
      if (.not. savewxd) then
         !add to the potential orbital per orbital
@@ -494,44 +489,30 @@ subroutine NK_SIC_potential(lr,orbs,ixc,fref,hxh,hyh,hzh,pkernel,psi,poti,eSIC_D
   !copy the wxd array in the wxdsave memory space
   if (savewxd) call vcopy(lr%d%n1i*lr%d%n2i*lr%d%n3i*orbs%nspin,wxd(1,1),1,wxdsave(1,1),1)
 
-  i_all=-product(shape(ni))*kind(ni)
-  deallocate(ni,stat=i_stat)
-  call memocc(i_stat,i_all,'ni',subname)
-  i_all=-product(shape(vxci))*kind(vxci)
-  deallocate(vxci,stat=i_stat)
-  call memocc(i_stat,i_all,'vxci',subname)
-  i_all=-product(shape(wxd))*kind(wxd)
-  deallocate(wxd,stat=i_stat)
-  call memocc(i_stat,i_all,'wxd',subname)
-  i_all=-product(shape(psir))*kind(psir)
-  deallocate(psir,stat=i_stat)
-  call memocc(i_stat,i_all,'psir',subname)
-  i_all=-product(shape(fxci))*kind(fxci)
-  deallocate(fxci,stat=i_stat)
-  call memocc(i_stat,i_all,'fxci',subname)
+  call f_free(ni)
+  call f_free(vxci)
+  call f_free(wxd)
+  call f_free(psir)
+  call f_free(fxci)
   if (.not. virtual) then
-     i_all=-product(shape(rho))*kind(rho)
-     deallocate(rho,stat=i_stat)
-     call memocc(i_stat,i_all,'rho',subname)
+     call f_free(rho)
   end if
-  i_all=-product(shape(deltarho))*kind(deltarho)
-  deallocate(deltarho,stat=i_stat)
-  call memocc(i_stat,i_all,'deltarho',subname)
+  call f_free(deltarho)
 
 end subroutine NK_SIC_potential
+
 
 !> Squares the wavefunction in the real space for building the density.
 !! Accumulate the result in rhoi, which has to be previously initialized
 !! It squares complex and spinorial wavefunctions in the proper way
-!! @ param fi occupation number times k-point weigth divided by the volume unit
-!! @ param spinval value of the spin of the psir 
 subroutine psir_to_rhoi(fi,spinval,nspinrho,nspinor,lr,psir,rhoi)
   use module_base
   use module_types
   use module_interfaces
   implicit none
   integer, intent(in) :: nspinrho,nspinor
-  real(gp), intent(in) :: fi,spinval
+  real(gp), intent(in) :: fi      !< fi occupation number times k-point weigth divided by the volume unit
+  real(gp), intent(in) :: spinval !< spinval value of the spin of the psir
   type(locreg_descriptors), intent(in) :: lr
   real(wp), dimension(lr%d%n1i*lr%d%n2i*lr%d%n3i,nspinor), intent(in) :: psir
   real(wp), dimension(lr%d%n1i*lr%d%n2i*lr%d%n3i,nspinrho), intent(inout) :: rhoi
@@ -574,4 +555,3 @@ subroutine psir_to_rhoi(fi,spinval,nspinrho,nspinor,lr,psir,rhoi)
   end do
 
 end subroutine psir_to_rhoi
-

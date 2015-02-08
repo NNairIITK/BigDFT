@@ -1,3 +1,13 @@
+!> @file
+!!   These routines are not used anymore.
+!! @author
+!!    Copyright (C) 2007-2013 BigDFT group
+!!    This file is distributed under the terms of the
+!!    GNU General Public License, see ~/COPYING file
+!!    or http://www.gnu.org/copyleft/gpl.txt .
+!!    For the list of contributors, see ~/AUTHORS
+
+
 !> Routine to plot wavefunctions (old version)
 subroutine plot_wf_old(kindplot,orbname,nexpo,at,lr,hx,hy,hz,rxyz,psi,comment)
   use module_base
@@ -32,7 +42,7 @@ subroutine plot_wf_old(kindplot,orbname,nexpo,at,lr,hx,hy,hz,rxyz,psi,comment)
   call memocc(i_stat,psir,'psir',subname)
   !initialisation
   if (lr%geocode == 'F') then
-     call razero(lr%d%n1i*lr%d%n2i*lr%d%n3i,psir)
+     call to_zero(lr%d%n1i*lr%d%n2i*lr%d%n3i,psir)
   end if
  
   call daub_to_isf(lr,w,psi,psir)
@@ -152,9 +162,9 @@ subroutine plot_wf_cube(orbname,at,lr,hx,hy,hz,rxyz,psi,comment)
   call memocc(i_stat,psir,'psir',subname)
   !initialisation
   if (lr%geocode == 'F') then
-     call razero(nxc,x_c_psifscf)
-     call razero(nxf,x_f_psig)
-     call razero(n1i*n2i*n3i,psir)
+     call to_zero(nxc,x_c_psifscf)
+     call to_zero(nxf,x_f_psig)
+     call to_zero(n1i*n2i*n3i,psir)
   end if
   select case(lr%geocode)
   case('F')
@@ -320,8 +330,8 @@ subroutine plot_pot_full(nexpo,hx,hy,hz,n1,n2,n3,n1i,n2i,n3i,&
 !  close(unit=23) 
 
 END SUBROUTINE plot_pot_full
-!!$
-!!$
+
+
 subroutine plot_cube_full(nexpo,at,rxyz,hx,hy,hz,n1,n2,n3,n1i,n2i,n3i,&
      nl1,nl2,nl3,orbname,pot,comment)
   use module_base
@@ -446,7 +456,7 @@ END SUBROUTINE plot_psifscf
 subroutine read_potfile(geocode,filename,n1,n2,n3,n1i,n2i,n3i,n3d,i3s,rho)
   use module_base
   implicit none
-  character(len=1), intent(in) :: geocode
+  character(len=1), intent(in) :: geocode !< @copydoc poisson_solver::doc::geocode
   character(len=*), intent(in) :: filename
   integer, intent(in) :: n1i,n2i,n3i,n3d,n1,n2,n3,i3s
   real(dp), dimension(n1i*n2i*n3d), intent(out) :: rho
@@ -477,7 +487,7 @@ subroutine read_potfile(geocode,filename,n1,n2,n3,n1i,n2i,n3i,n3d,i3s,rho)
      nl2=15
   end if
 
-  call razero(max(n1i*n2i*n3d,1),rho)
+  call to_zero(max(n1i*n2i*n3d,1),rho)
 
   do i3=0,2*n3+1
      do i2=0,2*n2+1
@@ -493,13 +503,13 @@ subroutine read_potfile(geocode,filename,n1,n2,n3,n1i,n2i,n3i,n3d,i3s,rho)
   close(22)
 
 END SUBROUTINE read_potfile
-!!$
-!!$
+
+
 subroutine plot_density_old(geocode,filename,iproc,nproc,n1,n2,n3,n1i,n2i,n3i,n3p,&
      alat1,alat2,alat3,ngatherarr,rho)
   use module_base
   implicit none
-  character(len=1), intent(in) :: geocode
+  character(len=1), intent(in) :: geocode !< @copydoc poisson_solver::doc::geocode
   character(len=*), intent(in) :: filename
   integer, intent(in) :: iproc,n1i,n2i,n3i,n3p,n1,n2,n3,nproc
   real(gp), intent(in) :: alat1,alat2,alat3

@@ -7,12 +7,13 @@
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS
 
+
 subroutine center_of_charge(at,rxyz,cc)
   use module_base
   use module_types
   implicit none
   type(atoms_data), intent(in) :: at
-  real(gp), dimension(3,at%nat), intent(in) :: rxyz
+  real(gp), dimension(3,at%astruct%nat), intent(in) :: rxyz
   real(gp), dimension(3), intent(out) :: cc
   !local variables
   integer :: iat,ityp
@@ -22,8 +23,8 @@ subroutine center_of_charge(at,rxyz,cc)
   cc(2)=0.0_gp
   cc(3)=0.0_gp
   qtot=0.0_gp
-  do iat=1,at%nat
-     ityp=at%iatype(iat)
+  do iat=1,at%astruct%nat
+     ityp=at%astruct%iatype(iat)
      zatom=real(at%nelpsp(ityp),gp)
      qtot=qtot+zatom
      !coordinates of the center
@@ -47,10 +48,10 @@ subroutine coupling_matrix_prelim(iproc,nproc,geocode,nspin,lr,orbsocc,orbsvirt,
      hxh,hyh,hzh,chargec,pkernel,dvxcdrho,psirocc,psivirtr)
   use module_base
   use module_types
-  use Poisson_Solver
+  use Poisson_Solver, except_dp => dp, except_gp => gp, except_wp => wp
   use yaml_output
   implicit none
-  character(len=1), intent(in) :: geocode
+  character(len=1), intent(in) :: geocode !< @copydoc poisson_solver::doc::geocode
   integer, intent(in) :: iproc,nproc,n3p,nspin,i3s
   real(gp), intent(in) :: hxh,hyh,hzh
   real(gp), dimension(3) :: chargec
@@ -63,7 +64,7 @@ subroutine coupling_matrix_prelim(iproc,nproc,geocode,nspin,lr,orbsocc,orbsvirt,
   !local variables
   character(len=*), parameter :: subname='coupling_matrix_prelim'
   logical :: tda=.true.,onlyfxc=.false.,dofxc=.true.,perx,pery,perz
-  integer :: i_all,i_stat,ierr,imulti,jmulti,jorba,jorbi,index
+  integer :: imulti,jmulti,jorba,jorbi,index
   integer :: i1,i2,i3p,iorbi,iorba,indi,inda,ind2,ind3,ntda,ispin,jspin
   integer :: ik,jk,nmulti,lwork,info,nbl1,nbl2,nbl3,nbr3,nbr2,nbr1,ndipoles
   real(gp) :: ehart,hfac,x,y,z
@@ -101,10 +102,8 @@ subroutine coupling_matrix_prelim(iproc,nproc,geocode,nspin,lr,orbsocc,orbsvirt,
   end do
 
   !partial densities and potentials
-  allocate(rho_ias(lr%d%n1i,lr%d%n2i,n3p,nmulti+ndebug),stat=i_stat)
-  call memocc(i_stat,rho_ias,'rho_ias',subname)
-  allocate(v_ias(lr%d%n1i,lr%d%n2i,n3p+ndebug),stat=i_stat)
-  call memocc(i_stat,v_ias,'v_ias',subname)
+  rho_ias = f_malloc((/ lr%d%n1i, lr%d%n2i, n3p, nmulti /),id='rho_ias')
+  v_ias = f_malloc((/ lr%d%n1i, lr%d%n2i, n3p /),id='v_ias')
 
   if (nspin == 1) then
      ndipoles=2*nmulti
@@ -112,21 +111,15 @@ subroutine coupling_matrix_prelim(iproc,nproc,geocode,nspin,lr,orbsocc,orbsvirt,
      ndipoles=nmulti
   end if
 
-  allocate(dipoles(3,ndipoles+ndebug),stat=i_stat)
-  call memocc(i_stat,dipoles,'dipoles',subname)
-  call razero(3*ndipoles,dipoles)
+  dipoles = f_malloc0((/ 3, ndipoles /),id='dipoles')
+  !call to_zero(3*ndipoles,dipoles)
 
   !allocate coupling matrix elements
-  allocate(K(nmulti,nmulti+ndebug),stat=i_stat)
-  call memocc(i_stat,K,'K',subname)
-
-  call razero((nmulti)**2,K)
+  K = f_malloc0((/ nmulti, nmulti /),id='K')
 
   !for nspin==1, define an auxiliary matrix for spin-off-diagonal terms (fxc part)
   if (nspin==1) then
-     allocate(Kaux(nmulti,nmulti+ndebug),stat=i_stat)
-     call memocc(i_stat,Kaux,'Kaux',subname)
-     call razero((nmulti)**2,Kaux)
+     Kaux = f_malloc0((/ nmulti, nmulti /),id='Kaux')
   end if
 
 
@@ -181,7 +174,7 @@ subroutine coupling_matrix_prelim(iproc,nproc,geocode,nspin,lr,orbsocc,orbsvirt,
      end do
      if (.not. onlyfxc) then
         !copy the partial density onto the partial potential space to pass it to PSolver
-        call dcopy(lr%d%n1i*lr%d%n2i*n3p,rho_ias(1,1,1,ik),1,v_ias(1,1,1),1)
+        call vcopy(lr%d%n1i*lr%d%n2i*n3p,rho_ias(1,1,1,ik),1,v_ias(1,1,1),1)
         !partial potential term for each partial density
 !        if (iproc == 0 .and. verbose > 1) then
 !           write(*,*)'Poisson Solver application: orbitals (virt,occ):',iorba,iorbi
@@ -264,14 +257,14 @@ subroutine coupling_matrix_prelim(iproc,nproc,geocode,nspin,lr,orbsocc,orbsvirt,
   end do loop_i
 
   if (nproc > 1) then
-     call mpiallred(K(1,1),nmulti**2,MPI_SUM,bigdft_mpi%mpi_comm,ierr)
-     if (nspin ==1) call mpiallred(Kaux(1,1),nmulti**2,MPI_SUM,bigdft_mpi%mpi_comm,ierr)
-     call mpiallred(dipoles(1,1),3*nmulti,MPI_SUM,bigdft_mpi%mpi_comm,ierr)
+     call mpiallred(K(1,1),nmulti**2,MPI_SUM,bigdft_mpi%mpi_comm)
+     if (nspin ==1) call mpiallred(Kaux(1,1),nmulti**2,MPI_SUM,bigdft_mpi%mpi_comm)
+     call mpiallred(dipoles(1,1),3*nmulti,MPI_SUM,bigdft_mpi%mpi_comm)
   end if
 
   if (nspin==1) then
      !copy the values of the dipoles in the second part of the array
-     call dcopy(3*nmulti,dipoles(1,1),1,dipoles(1,nmulti+1),1)
+     call vcopy(3*nmulti,dipoles(1,1),1,dipoles(1,nmulti+1),1)
      call dscal(3*ndipoles,hxh*hyh*hzh,dipoles(1,1),1)
   end if
 
@@ -322,23 +315,18 @@ subroutine coupling_matrix_prelim(iproc,nproc,geocode,nspin,lr,orbsocc,orbsvirt,
 !     if (iproc == 0) write(*,*) 'iorba,iorbi,K',iorba,iorbi,K(ik,ik)
   end do loop_i3
 
-  i_all=-product(shape(v_ias))*kind(v_ias)
-  deallocate(v_ias,stat=i_stat)
-  call memocc(i_stat,i_all,'v_ias',subname)
+  call f_free(v_ias)
 
 
   if (tda) then
 
      !oscillator strength
-     allocate(fi(3,ndipoles+ndebug),stat=i_stat)
-     call memocc(i_stat,fi,'fi',subname)
+     fi = f_malloc((/ 3, ndipoles /),id='fi')
 
 
      if (nspin == 1) then
-        allocate(Kbig(2*nmulti,2*nmulti+ndebug),stat=i_stat)
-        call memocc(i_stat,Kbig,'Kbig',subname)
+        Kbig = f_malloc0((/ 2*nmulti, 2*nmulti /),id='Kbig')
 
-        call razero(4*nmulti**2,Kbig)
         do ik=1,nmulti
            do jk=1,nmulti
               Kbig(ik,jk)=K(ik,jk)
@@ -347,12 +335,10 @@ subroutine coupling_matrix_prelim(iproc,nproc,geocode,nspin,lr,orbsocc,orbsvirt,
               Kbig(ik,jk+nmulti)=Kaux(ik,jk)
            end do
         end do
-        allocate(omega(2*nmulti+ndebug),stat=i_stat)
-        call memocc(i_stat,omega,'omega',subname)
+        omega = f_malloc(2*nmulti,id='omega')
 
         lwork=6*nmulti !safe value
-        allocate(work(lwork+ndebug),stat=i_stat)
-        call memocc(i_stat,work,'work',subname)
+        work = f_malloc(lwork,id='work')
 
 
         call DSYEV('V','U',2*nmulti,Kbig,2*nmulti,omega,work,lwork,info)
@@ -378,14 +364,7 @@ subroutine coupling_matrix_prelim(iproc,nproc,geocode,nspin,lr,orbsocc,orbsvirt,
         ! summary of the results and pretty printing
         if (iproc == 0) then
            if (tda) call yaml_comment('TAMM-DANCOFF APPROXIMATION',hfill='-')
-           call yaml_open_sequence('Excitation Energy and Oscillator Strength')
-           !write(6,'(/)')
-           !if (tda) print *, 'TAMM-DANCOFF APPROXIMATION'
-           !write(6,10)
-!10         format ('~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~')
-           !write(6,20)
-!20         format(t2,4x,'Excitation Energy',3x,'Oscillator Strength')
-!           write(6,10)
+           call yaml_sequence_open('Excitation Energy and Oscillator Strength')
 
            do imulti = 1, 2*nmulti
               call yaml_sequence(trim(yaml_toa((/ Ha_eV*omega(imulti),&
@@ -395,7 +374,7 @@ subroutine coupling_matrix_prelim(iproc,nproc,geocode,nspin,lr,orbsocc,orbsvirt,
               !write(6,30) imulti, Ha_eV*omega(imulti),omega(imulti)*(2./3.)*(fi(1,imulti)**2+fi(2,imulti)**2+fi(3,imulti)**2)
 !30            format(t2,i3,2x,f9.4,12x,1pe10.3) 
            end do
-           call yaml_close_sequence()
+           call yaml_sequence_close()
 
 !          Extracting the excitation energies and Oscillator strength to plot absorption spectra
            open(unit=9, file='td_spectra.txt')
@@ -408,10 +387,10 @@ subroutine coupling_matrix_prelim(iproc,nproc,geocode,nspin,lr,orbsocc,orbsvirt,
 
            !write(6,10)
 
-           call yaml_open_sequence('Transition energies (eV)')
+           call yaml_sequence_open('Transition energies (eV)')
            do imulti = 1,2*nmulti
               call yaml_sequence(advance='no')
-              call yaml_open_sequence(advance='no',flow=.true.)
+              call yaml_sequence_open(advance='no',flow=.true.)
               call yaml_map('Energy',trim(yaml_toa(Ha_eV*omega(imulti),fmt='(f10.5)')))
               !write(6,40)
 !40            format('================================================')
@@ -426,10 +405,10 @@ subroutine coupling_matrix_prelim(iproc,nproc,geocode,nspin,lr,orbsocc,orbsvirt,
                     if (abs(Kbig(jmulti,imulti)) > 5.d-02) then
                        if (ik /= 0) call yaml_newline()
                        ik = ik + 1
-                       call yaml_open_map(flow=.true.)
+                       call yaml_mapping_open(flow=.true.)
                           call yaml_map('Transition',trim(yaml_toa((/ iorbi, iorba /))))
                           call yaml_map('Coeff',trim(yaml_toa(abs(Kbig(jmulti,imulti)),fmt='(1pe10.3)')))
-                       call yaml_close_map()   
+                       call yaml_mapping_close()   
                        !write(6,60) iorbi, iorba,  abs(Kbig(jmulti,imulti))
 !60                     format (i4,'----->',i3,2x,' Coeff =',1pe10.3) 
                     end if
@@ -445,96 +424,72 @@ subroutine coupling_matrix_prelim(iproc,nproc,geocode,nspin,lr,orbsocc,orbsvirt,
                     if (abs(Kbig(jmulti+nmulti,imulti)) > 5.d-02) then
                        if (ik /= 0) call yaml_newline()
                        ik = ik + 1
-                       call yaml_open_map(flow=.true.)
+                       call yaml_mapping_open(flow=.true.)
                           call yaml_map('Transition',trim(yaml_toa((/ iorbi, iorba /))))
                           call yaml_map('Coeff',trim(yaml_toa(abs(Kbig(jmulti+nmulti,imulti)),fmt='(1pe10.3)')))
-                       call yaml_close_map()
+                       call yaml_mapping_close()
                        !write(6,60) iorbi, iorba,  abs(Kbig(jmulti+nmulti,imulti))
                     end if
                  end do
              end do
-             call yaml_close_sequence(advance='no')
+             call yaml_sequence_close(advance='no')
              call yaml_comment(trim(yaml_toa(imulti,fmt='(i4.4)')))
 
            end do
-           call yaml_close_sequence()
+           call yaml_sequence_close()
            !write(6,40)
 
         end if
 
-        i_all=-product(shape(Kbig))*kind(Kbig)
-        deallocate(Kbig,stat=i_stat)
-        call memocc(i_stat,i_all,'Kbig',subname)
+        call f_free(Kbig)
      
-        i_all=-product(shape(omega))*kind(omega)
-        deallocate(omega,stat=i_stat)
-        call memocc(i_stat,i_all,'omega',subname)
-        allocate(omega(nmulti+ndebug),stat=i_stat)
-        call memocc(i_stat,omega,'omega',subname)
+        call f_free(omega)
+        omega = f_malloc(nmulti,id='omega')
 
-        i_all=-product(shape(work))*kind(work)
-        deallocate(work,stat=i_stat)
-        call memocc(i_stat,i_all,'work',subname)
+        call f_free(work)
         lwork=3*nmulti !safe value
-        allocate(work(lwork+ndebug),stat=i_stat)
-        call memocc(i_stat,work,'work',subname)
+        work = f_malloc(lwork,id='work')
 
 
-        call DSYEV('V','U',nmulti,K,nmulti,omega,work,lwork,info)
-        if (info /= 0) then
-           call yaml_warning('Error, DSYEV' // trim(yaml_toa(info)))
-           !write(*,*) 'error, DSYEV',info
-        end if
-
-        !transition dipoles
-        call gemm('N','N',3,ndipoles,ndipoles,1.0_wp,dipoles(1,1),3,&
-             K(1,1),ndipoles,0.0_wp,fi(1,1),3)
-
-        !print eigenvalues
-        if (iproc == 0) then
-           call yaml_open_sequence('Excitation energies (Ha, eV, dipoles)')
-           do imulti=1,nmulti
-              call yaml_sequence( trim(yaml_toa( &
-                 & (/ omega(imulti),omega(imulti)*Ha_eV,fi(1,imulti),fi(2,imulti),fi(3,imulti) /),fmt='(f10.5)')),&
-                 & advance='no')
-              call yaml_comment(trim(yaml_toa(imulti,fmt='(i4.4)')))
-              !print '(a,i6,2(f10.5),3(f10.5))','excitation energies: Ha, eV, dipoles:' , &
-              !imulti,omega(imulti),omega(imulti)*Ha_eV,fi(1,imulti),fi(2,imulti),fi(3,imulti)
-           end do
-           call yaml_close_sequence()
-        end if
+        !this second part is not needed
+!!$        call DSYEV('V','U',nmulti,K,nmulti,omega,work,lwork,info)
+!!$        if (info /= 0) then
+!!$           call yaml_warning('Error, DSYEV' // trim(yaml_toa(info)))
+!!$           !write(*,*) 'error, DSYEV',info
+!!$        end if
+!!$
+!!$        !transition dipoles
+!!$        call gemm('N','N',3,ndipoles,ndipoles,1.0_wp,dipoles(1,1),3,&
+!!$             K(1,1),ndipoles,0.0_wp,fi(1,1),3)
+!!$
+!!$        !print eigenvalues
+!!$        if (iproc == 0) then
+!!$           call yaml_sequence_open('Excitation energies (Ha, eV, dipoles)')
+!!$           do imulti=1,nmulti
+!!$              call yaml_sequence( trim(yaml_toa( &
+!!$                 & (/ omega(imulti),omega(imulti)*Ha_eV,fi(1,imulti),fi(2,imulti),fi(3,imulti) /),fmt='(f10.5)')),&
+!!$                 & advance='no')
+!!$              call yaml_comment(trim(yaml_toa(imulti,fmt='(i4.4)')))
+!!$              !print '(a,i6,2(f10.5),3(f10.5))','excitation energies: Ha, eV, dipoles:' , &
+!!$              !imulti,omega(imulti),omega(imulti)*Ha_eV,fi(1,imulti),fi(2,imulti),fi(3,imulti)
+!!$           end do
+!!$           call yaml_sequence_close()
+!!$        end if
          
      end if
      
-     i_all=-product(shape(omega))*kind(omega)
-     deallocate(omega,stat=i_stat)
-     call memocc(i_stat,i_all,'omega',subname)
-     
-     i_all=-product(shape(work))*kind(work)
-     deallocate(work,stat=i_stat)
-     call memocc(i_stat,i_all,'work',subname)
+     call f_free(omega)
+     call f_free(work)
   end if  
 
-  i_all=-product(shape(fi))*kind(fi)
-  deallocate(fi,stat=i_stat)
-  call memocc(i_stat,i_all,'fi',subname)
-
-  i_all=-product(shape(rho_ias))*kind(rho_ias)
-  deallocate(rho_ias,stat=i_stat)
-  call memocc(i_stat,i_all,'rho_ias',subname)
+  call f_free(fi)
+  call f_free(rho_ias)
 
   if (nspin ==1 ) then
-     i_all=-product(shape(Kaux))*kind(Kaux)
-     deallocate(Kaux,stat=i_stat)
-     call memocc(i_stat,i_all,'Kaux',subname)
+     call f_free(Kaux)
   end if
 
-  i_all=-product(shape(K))*kind(K)
-  deallocate(K,stat=i_stat)
-  call memocc(i_stat,i_all,'K',subname)
-
-  i_all=-product(shape(dipoles))*kind(dipoles)
-  deallocate(dipoles,stat=i_stat)
-  call memocc(i_stat,i_all,'dipoles',subname)
+  call f_free(K)
+  call f_free(dipoles)
 
 END SUBROUTINE coupling_matrix_prelim

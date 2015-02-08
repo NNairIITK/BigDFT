@@ -21,3 +21,96 @@
 !!  orthpar_out%blocksize_pdgemm=orthpar_in%blocksize_pdgemm
 !!
 !!end subroutine copy_orthon_data
+
+
+!only copying sparsity pattern here, not copying whole matrix
+subroutine sparse_copy_pattern_new(sparseMat_in, sparseMat_out, iproc, subname)
+  use module_base
+  use module_types
+  use module_interfaces, except_this_one => sparse_copy_pattern
+  implicit none
+
+  ! Calling arguments
+  type(sparse_matrix),intent(in):: sparseMat_in
+  type(sparse_matrix),intent(out):: sparseMat_out
+  integer, intent(in) :: iproc
+  character(len=*),intent(in):: subname
+
+  ! Local variables
+  integer :: i1
+  !integer:: iis1, iie1, iis2, iie2, i2, istat, iall
+
+  call timing(iproc,'sparse_copy','ON')
+
+  !assume sparsemat_out is nullified, take advantage of pointers
+
+sparsemat_out=sparsemat_in
+
+  nullify(sparsemat_out%matrix)
+  nullify(sparsemat_out%matrix_compr)
+
+return
+
+  sparsemat_out%nvctr = sparsemat_in%nvctr
+  sparsemat_out%nseg = sparsemat_in%nseg
+  sparsemat_out%full_dim1 = sparsemat_in%full_dim1
+  sparsemat_out%full_dim2 = sparsemat_in%full_dim2
+
+  nullify(sparsemat_out%matrix)
+  nullify(sparsemat_out%matrix_compr)
+
+  if(associated(sparsemat_in%keyv)) then
+     sparsemat_out%keyv = sparsemat_in%keyv
+  end if
+
+  if(associated(sparsemat_in%nsegline)) then
+     sparsemat_out%nsegline(i1) = sparsemat_in%nsegline(i1)
+  end if
+
+  if(associated(sparsemat_in%istsegline)) then
+     sparsemat_out%istsegline = sparsemat_in%istsegline
+  end if
+
+  if(associated(sparsemat_in%keyg)) then
+     sparsemat_out%keyg = sparsemat_in%keyg
+  end if
+
+  !!if(associated(sparsemat_in%matrixindex_in_compressed)) then
+  !!   sparsemat_out%matrixindex_in_compressed = sparsemat_in%matrixindex_in_compressed
+  !!end if
+  if(associated(sparsemat_in%matrixindex_in_compressed_arr)) then
+     sparsemat_out%matrixindex_in_compressed_arr = sparsemat_in%matrixindex_in_compressed_arr
+  end if
+
+  if(associated(sparsemat_in%orb_from_index)) then
+     sparsemat_out%orb_from_index = sparsemat_in%orb_from_index
+  end if
+
+  call timing(iproc,'sparse_copy','OF')
+
+end subroutine sparse_copy_pattern_new
+
+
+subroutine copy_orthon_data(odin, odout, subname)
+  use module_base
+  use module_types
+  implicit none
+  
+  ! Calling aruments
+  type(orthon_data),intent(in):: odin
+  type(orthon_data),intent(out):: odout
+  character(len=*),intent(in):: subname
+
+  odout%directDiag=odin%directDiag
+  odout%norbpInguess=odin%norbpInguess
+  odout%bsLow=odin%bsLow
+  odout%bsUp=odin%bsUp
+  odout%methOrtho=odin%methOrtho
+  odout%iguessTol=odin%iguessTol
+  odout%methTransformOverlap=odin%methTransformOverlap
+  odout%nItOrtho=odin%nItOrtho
+  odout%blocksize_pdsyev=odin%blocksize_pdsyev
+  odout%blocksize_pdgemm=odin%blocksize_pdgemm
+  odout%nproc_pdsyev=odin%nproc_pdsyev
+
+end subroutine copy_orthon_data

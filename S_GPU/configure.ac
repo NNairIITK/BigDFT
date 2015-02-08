@@ -50,7 +50,8 @@ AX_PYTHON_PATH               # Check for python
 AX_PYTHON_MODULE(os)
 AX_PYTHON_MODULE(sys)
 
-AM_INIT_AUTOMAKE
+dnl To keep the object files in the same structure as the source files
+AM_INIT_AUTOMAKE([subdir-objects])
 
 # -------------------#
 # Setup CUDA         #

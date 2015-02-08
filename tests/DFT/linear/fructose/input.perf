@@ -1,3 +1,4 @@
 ef_interpol_det  1.d-12
 ef_interpol_chargediff  1.d-3
-mixing_after_inputguess  T
+evbounds_nsatur 100
+loewdin_charge_analysis T

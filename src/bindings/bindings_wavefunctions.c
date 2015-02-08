@@ -637,13 +637,12 @@ void bigdft_wf_init_linear_comm(BigDFT_Wf *wf, const BigDFT_LocalFields *denspot
   if (!wf->parent.linear)
     return;
 
-  FC_FUNC_(kswfn_init_comm, KSWFN_INIT_COMM)(wf->data, in->data,
-                                             wf->lzd->parent.parent.data,
+  FC_FUNC_(kswfn_init_comm, KSWFN_INIT_COMM)(wf->data, 
                                              denspot->dpbox,
                                              (int*)&iproc, (int*)&nproc);
 }
 void bigdft_wf_calculate_psi0(BigDFT_Wf *wf, BigDFT_LocalFields *denspot,
-                              BigDFT_Proj *proj, BigDFT_Energs *energs,
+                              BigDFT_Proj *proj, BigDFT_Goutput *energs,
                               guint iproc, guint nproc)
 {
   int norbv;
@@ -671,7 +670,7 @@ void bigdft_wf_calculate_psi0(BigDFT_Wf *wf, BigDFT_LocalFields *denspot,
   GET_ATTR_DBL(orbs, ORBS, eval,  EVAL);
 }
 guint bigdft_wf_optimization_loop(BigDFT_Wf *wf, BigDFT_LocalFields *denspot,
-                                  BigDFT_Proj *proj, BigDFT_Energs *energs,
+                                  BigDFT_Proj *proj, BigDFT_Goutput *energs,
                                   BigDFT_OptLoop *params, guint iproc, guint nproc)
 {
   guint infocode;
@@ -725,7 +724,7 @@ guint bigdft_wf_optimization_loop(BigDFT_Wf *wf, BigDFT_LocalFields *denspot,
   return infocode;
 }
 void bigdft_wf_post_treatments(BigDFT_Wf *wf, BigDFT_LocalFields *denspot,
-                               BigDFT_Proj *proj, BigDFT_Energs *energs,
+                               BigDFT_Proj *proj, BigDFT_Goutput *energs,
                                guint iproc, guint nproc)
 {
   void *GPU;
@@ -922,9 +921,10 @@ void bigdft_wf_write_psi_compress(const BigDFT_Wf *wf, const gchar *filename,
                                   BigDFT_WfFileFormats format, const double *psic,
                                   guint ikpt, guint iorb, BigDFT_Spin ispin, guint psiSize)
 {
-  guint unitwf = 99, ln, ispinor;
+  guint unitwf, ln, ispinor;
   int iorbp, isorb, jproc;
 
+  unitwf = 99;
   ln = strlen(filename);
   for (ispinor = 1; ispinor <= wf->parent.nspinor; ispinor++)
     {
@@ -1005,7 +1005,7 @@ typedef struct bigdft_data
   BigDFT_Proj         *proj;
   BigDFT_LocalFields  *denspot;
   BigDFT_Wf           *wf;
-  BigDFT_Energs       *energs;
+  BigDFT_Goutput       *energs;
   BigDFT_OptLoop      *optloop;
 } BigDFT_Data;
 static gpointer wf_optimization_thread(gpointer data)
@@ -1016,8 +1016,7 @@ static gpointer wf_optimization_thread(gpointer data)
   bigdft_localfields_create_effective_ionic_pot(ct->denspot, ct->wf->lzd,
                                                 ct->in, ct->iproc, ct->nproc);
   if (ct->wf->parent.linear)
-    FC_FUNC_(kswfn_init_comm, KSWFN_INIT_COMM)(ct->wf->data, ct->in->data,
-                                               ct->wf->lzd->parent.parent.data,
+    FC_FUNC_(kswfn_init_comm, KSWFN_INIT_COMM)(ct->wf->data,
                                                ct->denspot->dpbox,
                                                (int*)&ct->iproc, (int*)&ct->nproc);
   bigdft_wf_calculate_psi0(ct->wf, ct->denspot, ct->proj, ct->energs, ct->iproc, ct->nproc);
@@ -1035,7 +1034,7 @@ static gpointer wf_optimization_thread(gpointer data)
   return (gpointer)0;
 }
 void bigdft_wf_optimization(BigDFT_Wf *wf, BigDFT_Proj *proj, BigDFT_LocalFields *denspot,
-                            BigDFT_Energs *energs, BigDFT_OptLoop *params, const BigDFT_Inputs *in,
+                            BigDFT_Goutput *energs, BigDFT_OptLoop *params, const BigDFT_Inputs *in,
                             gboolean threaded, guint iproc, guint nproc)
 {
   BigDFT_Data *ct;

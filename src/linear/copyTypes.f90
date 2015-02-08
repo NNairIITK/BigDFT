@@ -1,219 +1,83 @@
 !> @file
 !! Copy the different type used by linear version
 !! @author
-!!    Copyright (C) 2011-2012 BigDFT group
+!!    Copyright (C) 2011-2013 BigDFT group
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS
 
-!currently incomplete - need to add comms arrays etc
-subroutine copy_tmbs(tmbin, tmbout, subname)
+
+!> Currently incomplete - need to add comms arrays etc
+subroutine copy_tmbs(iproc, tmbin, tmbout, subname)
   use module_base
   use module_types
   use module_interfaces
+  use copy_utils, only: allocate_and_copy
   implicit none
 
+  integer,intent(in) :: iproc
   type(DFT_wavefunction), intent(in) :: tmbin
   type(DFT_wavefunction), intent(out) :: tmbout
   character(len=*),intent(in):: subname
 
+  call f_routine(id='copy_tmbs')
+
   call nullify_orbitals_data(tmbout%orbs)
   call copy_orbitals_data(tmbin%orbs, tmbout%orbs, subname)
   call nullify_local_zone_descriptors(tmbout%lzd)
-  call copy_old_supportfunctions(tmbin%orbs,tmbin%lzd,tmbin%psi,tmbout%lzd,tmbout%psi)
+  call copy_old_supportfunctions(iproc,tmbin%orbs,tmbin%lzd,tmbin%psi,tmbout%lzd,tmbout%psi)
+
+  tmbout%npsidim_orbs = tmbin%npsidim_orbs
 
   if (associated(tmbin%coeff)) then !(in%lin%scf_mode/=LINEAR_FOE) then ! should move this check to copy_old_coeffs
-      call copy_old_coefficients(tmbin%orbs%norb, tmbin%coeff, tmbout%coeff)
+      call copy_old_coefficients(tmbin%orbs%norb, tmbin%linmat%l%nfvctr, tmbin%coeff, tmbout%coeff)
   else
       nullify(tmbout%coeff)
   end if
 
+  ! Parts of tmbout%lzd have been allocated in copy_old_supportfunctions, so deallocate everything and reallocate everything
+  ! properly. Of course this is a very bad solution.
+  call deallocate_local_zone_descriptors(tmbout%lzd)
+  call copy_local_zone_descriptors(tmbin%lzd, tmbout%lzd, subname)
+
+  call copy_linear_matrices(tmbin%linmat, tmbout%linmat)
+
+  call copy_comms_linear(tmbin%collcom, tmbout%collcom)
+
   ! should technically copy these across as well but not needed for restart and will eventually be removing wfnmd as a type
-  nullify(tmbout%linmat%denskern%matrix_compr)
+  !nullify(tmbout%linmat%denskern%matrix_compr)
+  !nullify(tmbout%linmat%denskern_large%matrix_compr)
 
   ! should also copy/nullify p2pcomms etc
 
   !call copy_old_inwhichlocreg(tmbin%orbs%norb, tmbin%orbs%inwhichlocreg, tmbout%orbs%inwhichlocreg, &
   !     tmbin%orbs%onwhichatom, tmbout%orbs%onwhichatom)
+  call allocate_and_copy(tmbin%psi, tmbout%psi, id='tmbout%psi')
+
+  ! Not necessary to copy these arrays
+  !call allocate_and_copy(tmbin%hpsi, tmbout%hpsi, id='tmbout%hpsi')
+  !call allocate_and_copy(tmbin%psit, tmbout%psit, id='tmbout%psit')
+  !call allocate_and_copy(tmbin%psit_c, tmbout%psit_c, id='tmbout%psit_c')
+  !call allocate_and_copy(tmbin%psit_f, tmbout%psit_f, id='tmbout%psit_f')
+
+  call f_release_routine()
 
 end subroutine copy_tmbs
 
-subroutine copy_locreg_descriptors(glrin, glrout, subname)
-  use module_base
-  use module_types
-  use module_interfaces, exceptThisOne => copy_locreg_descriptors
-  implicit none
-  
-  ! Calling arguments
-  type(locreg_descriptors),intent(in):: glrin
-  type(locreg_descriptors),intent(inout):: glrout
-  character(len=*),intent(in):: subname
-  
-  ! Local variables
-  
-  glrout%geocode = glrin%geocode
-  glrout%hybrid_on = glrin%hybrid_on
-  glrout%ns1 = glrin%ns1
-  glrout%ns2 = glrin%ns2
-  glrout%ns3 = glrin%ns3
-  glrout%nsi1 = glrin%nsi1
-  glrout%nsi2 = glrin%nsi2
-  glrout%nsi3 = glrin%nsi3
-  glrout%Localnorb = glrin%Localnorb
-  glrout%locrad=glrin%locrad
-  glrout%locregCenter(1)=glrin%locregCenter(1)
-  glrout%locregCenter(2)=glrin%locregCenter(2)
-  glrout%locregCenter(3)=glrin%locregCenter(3)
-  
-  glrout%outofzone(1) = glrin%outofzone(1)
-  glrout%outofzone(2) = glrin%outofzone(2)
-  glrout%outofzone(3) = glrin%outofzone(3)
-  
-  call copy_grid_dimensions(glrin%d, glrout%d)
-  call copy_wavefunctions_descriptors(glrin%wfd, glrout%wfd, subname)
-  if(glrin%geocode == 'F' .or. (glrin%geocode == 'P' .and. glrin%hybrid_on)) then
-     call copy_convolutions_bounds(glrin%geocode, glrin%bounds, glrout%bounds, subname)
-  end if
-
-end subroutine copy_locreg_descriptors
-
-
-
-subroutine copy_grid_dimensions(din, dout)
-  use module_base
-  use module_types
-  implicit none
-  
-  ! Calling arguments
-  type(grid_dimensions),intent(in):: din
-  type(grid_dimensions),intent(out):: dout
-  
-  dout%n1 = din%n1
-  dout%n2 = din%n2
-  dout%n3 = din%n3
-  dout%nfl1 = din%nfl1
-  dout%nfu1 = din%nfu1
-  dout%nfl2 = din%nfl2
-  dout%nfu2 = din%nfu2
-  dout%nfl3 = din%nfl3
-  dout%nfu3 = din%nfu3
-  dout%n1i = din%n1i
-  dout%n2i = din%n2i
-  dout%n3i = din%n3i
-
-end subroutine copy_grid_dimensions
-
-
-
-subroutine copy_wavefunctions_descriptors(wfdin, wfdout, subname)
-  use module_base
-  use module_types
-  implicit none
-  
-  ! Calling arguments
-  type(wavefunctions_descriptors),intent(in):: wfdin
-  type(wavefunctions_descriptors),intent(inout):: wfdout
-  character(len=*),intent(in):: subname
-  
-  ! Local variables
-  integer:: i1, i2, iis1, iie1, iis2, iie2, istat, iall
-  
-  
-  wfdout%nvctr_c = wfdin%nvctr_c
-  wfdout%nvctr_f = wfdin%nvctr_f
-  wfdout%nseg_c = wfdin%nseg_c
-  wfdout%nseg_f = wfdin%nseg_f
-  
-  if(associated(wfdout%keygloc)) then
-      iall=-product(shape(wfdout%keygloc))*kind(wfdout%keygloc)
-      deallocate(wfdout%keygloc, stat=istat)
-      call memocc(istat, iall, 'wfdout%keygloc', subname)
-  end if
-  if(associated(wfdin%keygloc)) then
-      iis1=lbound(wfdin%keygloc,1)
-      iie1=ubound(wfdin%keygloc,1)
-      iis2=lbound(wfdin%keygloc,2)
-      iie2=ubound(wfdin%keygloc,2)
-      
-      allocate(wfdout%keygloc(iis1:iie1,iis2:iie2), stat=istat)
-      call memocc(istat, wfdout%keygloc, 'wfdout%keygloc', subname)
-      do i2=iis2,iie2
-          do i1=iis1,iie1
-              wfdout%keygloc(i1,i2) = wfdin%keygloc(i1,i2)
-          end do
-      end do
-  end if
-      
-  if(associated(wfdout%keyglob)) then
-      iall=-product(shape(wfdout%keyglob))*kind(wfdout%keygloc)
-      deallocate(wfdout%keyglob, stat=istat)
-      call memocc(istat, iall, 'wfdout%keyglob', subname)
-  end if
-  if(associated(wfdin%keyglob)) then
-      iis1=lbound(wfdin%keyglob,1)
-      iie1=ubound(wfdin%keyglob,1)
-      iis2=lbound(wfdin%keyglob,2)
-      iie2=ubound(wfdin%keyglob,2)
-      allocate(wfdout%keyglob(iis1:iie1,iis2:iie2), stat=istat)
-      call memocc(istat, wfdout%keyglob, 'wfdout%keyglob', subname)
-      do i2=iis2,iie2
-          do i1=iis1,iie1
-              wfdout%keyglob(i1,i2) = wfdin%keyglob(i1,i2)
-          end do
-      end do
-  end if
-  
-  if(associated(wfdout%keyvloc)) then
-      iall=-product(shape(wfdout%keyvloc))*kind(wfdout%keyvloc)
-      deallocate(wfdout%keyvloc, stat=istat)
-      call memocc(istat, iall, 'wfdout%keyvloc', subname)
-  end if
-  if(associated(wfdin%keyvloc)) then
-      iis1=lbound(wfdin%keyvloc,1)
-      iie1=ubound(wfdin%keyvloc,1)
-      allocate(wfdout%keyvloc(iis1:iie1), stat=istat)
-      call memocc(istat, wfdout%keyvloc, 'wfdout%keyvloc', subname)
-      do i1=iis1,iie1
-          wfdout%keyvloc(i1) = wfdin%keyvloc(i1)
-      end do
-  end if
-  
-  if(associated(wfdout%keyvglob)) then
-      iall=-product(shape(wfdout%keyvglob))*kind(wfdout%keyvglob)
-      deallocate(wfdout%keyvglob, stat=istat)
-      call memocc(istat, iall, 'wfdout%keyvglob', subname)
-  end if
-  if(associated(wfdin%keyvglob)) then
-      iis1=lbound(wfdin%keyvglob,1)
-      iie1=ubound(wfdin%keyvglob,1)
-      allocate(wfdout%keyvglob(iis1:iie1), stat=istat)
-      call memocc(istat, wfdout%keyvglob, 'wfdout%keyvglob', subname)
-      do i1=iis1,iie1
-          wfdout%keyvglob(i1) = wfdin%keyvglob(i1)
-      end do
-  end if
-
-end subroutine copy_wavefunctions_descriptors
-
-
-
-
-
 subroutine copy_convolutions_bounds(geocode,boundsin, boundsout, subname)
   use module_base
-  use module_types
-  use module_interfaces, expectThisOne => copy_convolutions_bounds
+  use locregs
   implicit none
   
   ! Calling arguments
-  character(len=1),intent(in) :: geocode
+  character(len=1),intent(in) :: geocode !< @copydoc poisson_solver::doc::geocode
   type(convolutions_bounds),intent(in):: boundsin
   type(convolutions_bounds),intent(inout):: boundsout
   character(len=*),intent(in):: subname
   
   ! Local variables
-  integer:: iis1, iie1, iis2, iie2, iis3, iie3, i1, i2, i3, istat, iall
+  integer:: iis1, iie1, iis2, iie2, iis3, iie3, i1, i2, i3
   
   call copy_kinetic_bounds(geocode, boundsin%kb, boundsout%kb, subname)
   call copy_shrink_bounds(geocode, boundsin%sb, boundsout%sb, subname)
@@ -221,9 +85,7 @@ subroutine copy_convolutions_bounds(geocode,boundsin, boundsout, subname)
   
   if(geocode == 'F') then
      if(associated(boundsout%ibyyzz_r)) then
-         iall=-product(shape(boundsout%ibyyzz_r))*kind(boundsout%ibyyzz_r)
-         deallocate(boundsout%ibyyzz_r, stat=istat)
-         call memocc(istat, iall, 'boundsout%ibyyzz_r', subname)
+         call f_free_ptr(boundsout%ibyyzz_r)
      end if
   
      if(associated(boundsin%ibyyzz_r)) then
@@ -233,8 +95,7 @@ subroutine copy_convolutions_bounds(geocode,boundsin, boundsout, subname)
          iie2=ubound(boundsin%ibyyzz_r,2)
          iis3=lbound(boundsin%ibyyzz_r,3)
          iie3=ubound(boundsin%ibyyzz_r,3)
-         allocate(boundsout%ibyyzz_r(iis1:iie1,iis2:iie2,iis3:iie3), stat=istat)
-         call memocc(istat, boundsout%ibyyzz_r, 'boundsout%ibyyzz_r', subname)
+         boundsout%ibyyzz_r = f_malloc_ptr((/ iis1.to.iie1,iis2.to.iie2,iis3.to.iie3 /),id='boundsout%ibyyzz_r')
          do i3=iis3,iie3
              do i2=iis2,iie2
                  do i1=iis1,iie1
@@ -246,27 +107,23 @@ subroutine copy_convolutions_bounds(geocode,boundsin, boundsout, subname)
   end if
 end subroutine copy_convolutions_bounds
 
-
-
 subroutine copy_kinetic_bounds(geocode,kbin, kbout, subname)
 use module_base
-use module_types
+use locregs
 implicit none
 
 ! Calling arguments
-character(len=1),intent(in) :: geocode 
+character(len=1),intent(in) :: geocode !< @copydoc poisson_solver::doc::geocode 
 type(kinetic_bounds),intent(in):: kbin
 type(kinetic_bounds),intent(inout):: kbout
 character(len=*),intent(in):: subname
 
 ! Local variables
-integer:: iis1, iie1, iis2, iie2, iis3, iie3, i1, i2, i3, istat, iall
+integer:: iis1, iie1, iis2, iie2, iis3, iie3, i1, i2, i3
 
 if(geocode == 'F') then
    if(associated(kbout%ibyz_c)) then
-       iall=-product(shape(kbout%ibyz_c))*kind(kbout%ibyz_c)
-       deallocate(kbout%ibyz_c, stat=istat)
-       call memocc(istat, iall, 'kbout%ibyz_c', subname)
+       call f_free_ptr(kbout%ibyz_c)
    end if
    if(associated(kbin%ibyz_c)) then
        iis1=lbound(kbin%ibyz_c,1)
@@ -275,8 +132,7 @@ if(geocode == 'F') then
        iie2=ubound(kbin%ibyz_c,2)
        iis3=lbound(kbin%ibyz_c,3)
        iie3=ubound(kbin%ibyz_c,3)
-       allocate(kbout%ibyz_c(iis1:iie1,iis2:iie2,iis3:iie3), stat=istat)
-       call memocc(istat, kbout%ibyz_c, 'kbout%ibyz_c', subname)
+       kbout%ibyz_c = f_malloc_ptr((/ iis1.to.iie1 , iis2.to.iie2 , iis3.to.iie3 /),id='kbout%ibyz_c')
        do i3=iis3,iie3
            do i2=iis2,iie2
                do i1=iis1,iie1
@@ -288,9 +144,7 @@ if(geocode == 'F') then
    
    
    if(associated(kbout%ibxz_c)) then
-       iall=-product(shape(kbout%ibxz_c))*kind(kbout%ibxz_c)
-       deallocate(kbout%ibxz_c, stat=istat)
-       call memocc(istat, iall, 'kbout%ibxz_c', subname)
+       call f_free_ptr(kbout%ibxz_c)
    end if
    if(associated(kbin%ibxz_c)) then
        iis1=lbound(kbin%ibxz_c,1)
@@ -299,8 +153,7 @@ if(geocode == 'F') then
        iie2=ubound(kbin%ibxz_c,2)
        iis3=lbound(kbin%ibxz_c,3)
        iie3=ubound(kbin%ibxz_c,3)
-       allocate(kbout%ibxz_c(iis1:iie1,iis2:iie2,iis3:iie3), stat=istat)
-       call memocc(istat, kbout%ibxz_c, 'kbout%ibxz_c', subname)
+       kbout%ibxz_c = f_malloc_ptr((/ iis1.to.iie1 , iis2.to.iie2 , iis3.to.iie3 /),id='kbout%ibxz_c')
        do i3=iis3,iie3
            do i2=iis2,iie2
                do i1=iis1,iie1
@@ -312,9 +165,7 @@ if(geocode == 'F') then
    
    
    if(associated(kbout%ibxy_c)) then
-       iall=-product(shape(kbout%ibxy_c))*kind(kbout%ibxy_c)
-       deallocate(kbout%ibxy_c, stat=istat)
-       call memocc(istat, iall, 'kbout%ibxy_c', subname)
+       call f_free_ptr(kbout%ibxy_c)
    end if
    if(associated(kbin%ibxy_c)) then
        iis1=lbound(kbin%ibxy_c,1)
@@ -323,8 +174,7 @@ if(geocode == 'F') then
        iie2=ubound(kbin%ibxy_c,2)
        iis3=lbound(kbin%ibxy_c,3)
        iie3=ubound(kbin%ibxy_c,3)
-       allocate(kbout%ibxy_c(iis1:iie1,iis2:iie2,iis3:iie3), stat=istat)
-       call memocc(istat, kbout%ibxy_c, 'kbout%ibxy_c', subname)
+       kbout%ibxy_c = f_malloc_ptr((/ iis1.to.iie1 , iis2.to.iie2 , iis3.to.iie3 /),id='kbout%ibxy_c')
        do i3=iis3,iie3
            do i2=iis2,iie2
                do i1=iis1,iie1
@@ -336,9 +186,7 @@ if(geocode == 'F') then
 end if
 
 if(associated(kbout%ibyz_f)) then
-    iall=-product(shape(kbout%ibyz_f))*kind(kbout%ibyz_f)
-    deallocate(kbout%ibyz_f, stat=istat)
-    call memocc(istat, iall, 'kbout%ibyz_f', subname)
+    call f_free_ptr(kbout%ibyz_f)
 end if
 if(associated(kbin%ibyz_f)) then
     iis1=lbound(kbin%ibyz_f,1)
@@ -347,8 +195,7 @@ if(associated(kbin%ibyz_f)) then
     iie2=ubound(kbin%ibyz_f,2)
     iis3=lbound(kbin%ibyz_f,3)
     iie3=ubound(kbin%ibyz_f,3)
-    allocate(kbout%ibyz_f(iis1:iie1,iis2:iie2,iis3:iie3), stat=istat)
-    call memocc(istat, kbout%ibyz_f, 'kbout%ibyz_f', subname)
+    kbout%ibyz_f = f_malloc_ptr((/ iis1.to.iie1, iis2.to.iie2, iis3.to.iie3 /),id='kbout%ibyz_f')
     do i3=iis3,iie3
         do i2=iis2,iie2
             do i1=iis1,iie1
@@ -360,9 +207,7 @@ end if
 
 
 if(associated(kbout%ibxz_f)) then
-    iall=-product(shape(kbout%ibxz_f))*kind(kbout%ibxz_f)
-    deallocate(kbout%ibxz_f, stat=istat)
-    call memocc(istat, iall, 'kbout%ibxz_f', subname)
+    call f_free_ptr(kbout%ibxz_f)
 end if
 if(associated(kbin%ibxz_f)) then
     iis1=lbound(kbin%ibxz_f,1)
@@ -371,8 +216,7 @@ if(associated(kbin%ibxz_f)) then
     iie2=ubound(kbin%ibxz_f,2)
     iis3=lbound(kbin%ibxz_f,3)
     iie3=ubound(kbin%ibxz_f,3)
-    allocate(kbout%ibxz_f(iis1:iie1,iis2:iie2,iis3:iie3), stat=istat)
-    call memocc(istat, kbout%ibxz_f, 'kbout%ibxz_f', subname)
+    kbout%ibxz_f = f_malloc_ptr((/ iis1.to.iie1, iis2.to.iie2, iis3.to.iie3 /),id='kbout%ibxz_f')
     do i3=iis3,iie3
         do i2=iis2,iie2
             do i1=iis1,iie1
@@ -384,9 +228,7 @@ end if
 
 
 if(associated(kbout%ibxy_f)) then
-    iall=-product(shape(kbout%ibxy_f))*kind(kbout%ibxy_f)
-    deallocate(kbout%ibxy_f, stat=istat)
-    call memocc(istat, iall, 'kbout%ibxy_f', subname)
+    call f_free_ptr(kbout%ibxy_f)
 end if
 if(associated(kbin%ibxy_f)) then
     iis1=lbound(kbin%ibxy_f,1)
@@ -395,8 +237,7 @@ if(associated(kbin%ibxy_f)) then
     iie2=ubound(kbin%ibxy_f,2)
     iis3=lbound(kbin%ibxy_f,3)
     iie3=ubound(kbin%ibxy_f,3)
-    allocate(kbout%ibxy_f(iis1:iie1,iis2:iie2,iis3:iie3), stat=istat)
-    call memocc(istat, kbout%ibxy_f, 'kbout%ibxy_f', subname)
+    kbout%ibxy_f = f_malloc_ptr((/ iis1.to.iie1, iis2.to.iie2, iis3.to.iie3 /),id='kbout%ibxy_f')
     do i3=iis3,iie3
         do i2=iis2,iie2
             do i1=iis1,iie1
@@ -414,23 +255,21 @@ end subroutine copy_kinetic_bounds
 
 subroutine copy_shrink_bounds(geocode, sbin, sbout, subname)
 use module_base
-use module_types
+use locregs
 implicit none
 
 ! Calling arguments
-character(len=1), intent(in) :: geocode
+character(len=1), intent(in) :: geocode !< @copydoc poisson_solver::doc::geocode
 type(shrink_bounds),intent(in):: sbin
 type(shrink_bounds),intent(inout):: sbout
 character(len=*),intent(in):: subname
 
 ! Local variables
-integer:: iis1, iie1, iis2, iie2, iis3, iie3, i1, i2, i3, istat, iall
+integer:: iis1, iie1, iis2, iie2, iis3, iie3, i1, i2, i3
 
 if(geocode == 'F') then
    if(associated(sbout%ibzzx_c)) then
-       iall=-product(shape(sbout%ibzzx_c))*kind(sbout%ibzzx_c)
-       deallocate(sbout%ibzzx_c, stat=istat)
-       call memocc(istat, iall, 'sbout%ibzzx_c', subname)
+       call f_free_ptr(sbout%ibzzx_c)
    end if
    if(associated(sbin%ibzzx_c)) then
        iis1=lbound(sbin%ibzzx_c,1)
@@ -439,8 +278,7 @@ if(geocode == 'F') then
        iie2=ubound(sbin%ibzzx_c,2)
        iis3=lbound(sbin%ibzzx_c,3)
        iie3=ubound(sbin%ibzzx_c,3)
-       allocate(sbout%ibzzx_c(iis1:iie1,iis2:iie2,iis3:iie3), stat=istat)
-       call memocc(istat, sbout%ibzzx_c, 'sbout%ibzzx_c', subname)
+       sbout%ibzzx_c = f_malloc_ptr((/ iis1.to.iie1, iis2.to.iie2, iis3.to.iie3 /),id='sbout%ibzzx_c')
        do i3=iis3,iie3
            do i2=iis2,iie2
                do i1=iis1,iie1
@@ -452,9 +290,7 @@ if(geocode == 'F') then
    
    
    if(associated(sbout%ibyyzz_c)) then
-       iall=-product(shape(sbout%ibyyzz_c))*kind(sbout%ibyyzz_c)
-       deallocate(sbout%ibyyzz_c, stat=istat)
-       call memocc(istat, iall, 'sbout%ibyyzz_c', subname)
+       call f_free_ptr(sbout%ibyyzz_c)
    end if
    if(associated(sbin%ibyyzz_c)) then
        iis1=lbound(sbin%ibyyzz_c,1)
@@ -463,8 +299,7 @@ if(geocode == 'F') then
        iie2=ubound(sbin%ibyyzz_c,2)
        iis3=lbound(sbin%ibyyzz_c,3)
        iie3=ubound(sbin%ibyyzz_c,3)
-       allocate(sbout%ibyyzz_c(iis1:iie1,iis2:iie2,iis3:iie3), stat=istat)
-       call memocc(istat, sbout%ibyyzz_c, 'sbout%ibyyzz_c', subname)
+       sbout%ibyyzz_c = f_malloc_ptr((/ iis1.to.iie1, iis2.to.iie2, iis3.to.iie3 /),id='sbout%ibyyzz_c')
        do i3=iis3,iie3
            do i2=iis2,iie2
                do i1=iis1,iie1
@@ -476,9 +311,7 @@ if(geocode == 'F') then
 end if
 
 if(associated(sbout%ibxy_ff)) then
-    iall=-product(shape(sbout%ibxy_ff))*kind(sbout%ibxy_ff)
-    deallocate(sbout%ibxy_ff, stat=istat)
-    call memocc(istat, iall, 'sbout%ibxy_ff', subname)
+    call f_free_ptr(sbout%ibxy_ff)
 end if
 if(associated(sbin%ibxy_ff)) then
     iis1=lbound(sbin%ibxy_ff,1)
@@ -487,8 +320,7 @@ if(associated(sbin%ibxy_ff)) then
     iie2=ubound(sbin%ibxy_ff,2)
     iis3=lbound(sbin%ibxy_ff,3)
     iie3=ubound(sbin%ibxy_ff,3)
-    allocate(sbout%ibxy_ff(iis1:iie1,iis2:iie2,iis3:iie3), stat=istat)
-    call memocc(istat, sbout%ibxy_ff, 'sbout%ibxy_ff', subname)
+    sbout%ibxy_ff = f_malloc_ptr((/ iis1.to.iie1, iis2.to.iie2, iis3.to.iie3 /),id='sbout%ibxy_ff')
     do i3=iis3,iie3
         do i2=iis2,iie2
             do i1=iis1,iie1
@@ -500,9 +332,7 @@ end if
 
 
 if(associated(sbout%ibzzx_f)) then
-    iall=-product(shape(sbout%ibzzx_f))*kind(sbout%ibzzx_f)
-    deallocate(sbout%ibzzx_f, stat=istat)
-    call memocc(istat, iall, 'sbout%ibzzx_f', subname)
+    call f_free_ptr(sbout%ibzzx_f)
 end if
 if(associated(sbin%ibzzx_f)) then
     iis1=lbound(sbin%ibzzx_f,1)
@@ -511,8 +341,7 @@ if(associated(sbin%ibzzx_f)) then
     iie2=ubound(sbin%ibzzx_f,2)
     iis3=lbound(sbin%ibzzx_f,3)
     iie3=ubound(sbin%ibzzx_f,3)
-    allocate(sbout%ibzzx_f(iis1:iie1,iis2:iie2,iis3:iie3), stat=istat)
-    call memocc(istat, sbout%ibzzx_f, 'sbout%ibzzx_f', subname)
+    sbout%ibzzx_f = f_malloc_ptr((/ iis1.to.iie1, iis2.to.iie2, iis3.to.iie3 /),id='sbout%ibzzx_f')
     do i3=iis3,iie3
         do i2=iis2,iie2
             do i1=iis1,iie1
@@ -524,9 +353,7 @@ end if
 
 
 if(associated(sbout%ibyyzz_f)) then
-    iall=-product(shape(sbout%ibyyzz_f))*kind(sbout%ibyyzz_f)
-    deallocate(sbout%ibyyzz_f, stat=istat)
-    call memocc(istat, iall, 'sbout%ibyyzz_f', subname)
+    call f_free_ptr(sbout%ibyyzz_f)
 end if
 if(associated(sbin%ibyyzz_f)) then
     iis1=lbound(sbin%ibyyzz_f,1)
@@ -535,8 +362,7 @@ if(associated(sbin%ibyyzz_f)) then
     iie2=ubound(sbin%ibyyzz_f,2)
     iis3=lbound(sbin%ibyyzz_f,3)
     iie3=ubound(sbin%ibyyzz_f,3)
-    allocate(sbout%ibyyzz_f(iis1:iie1,iis2:iie2,iis3:iie3), stat=istat)
-    call memocc(istat, sbout%ibyyzz_f, 'sbout%ibyyzz_f', subname)
+    sbout%ibyyzz_f = f_malloc_ptr((/ iis1.to.iie1, iis2.to.iie2, iis3.to.iie3 /),id='sbout%ibyyzz_f')
     do i3=iis3,iie3
         do i2=iis2,iie2
             do i1=iis1,iie1
@@ -555,23 +381,21 @@ end subroutine copy_shrink_bounds
 
 subroutine copy_grow_bounds(geocode, gbin, gbout, subname)
 use module_base
-use module_types
+use locregs
 implicit none
 
 ! Calling arguments
-character(len=1),intent(in) :: geocode
+character(len=1),intent(in) :: geocode !< @copydoc poisson_solver::doc::geocode
 type(grow_bounds),intent(in):: gbin
 type(grow_bounds),intent(inout):: gbout
 character(len=*),intent(in):: subname
 
 ! Local variables
-integer:: iis1, iie1, iis2, iie2, iis3, iie3, i1, i2, i3, istat, iall
+integer:: iis1, iie1, iis2, iie2, iis3, iie3, i1, i2, i3
 
 if(geocode == 'F')then
    if(associated(gbout%ibzxx_c)) then
-       iall=-product(shape(gbout%ibzxx_c))*kind(gbout%ibzxx_c)
-       deallocate(gbout%ibzxx_c, stat=istat)
-       call memocc(istat, iall, 'gbout%ibzxx_c', subname)
+       call f_free_ptr(gbout%ibzxx_c)
    end if
    if(associated(gbin%ibzxx_c)) then
        iis1=lbound(gbin%ibzxx_c,1)
@@ -580,8 +404,7 @@ if(geocode == 'F')then
        iie2=ubound(gbin%ibzxx_c,2)
        iis3=lbound(gbin%ibzxx_c,3)
        iie3=ubound(gbin%ibzxx_c,3)
-       allocate(gbout%ibzxx_c(iis1:iie1,iis2:iie2,iis3:iie3), stat=istat)
-       call memocc(istat, gbout%ibzxx_c, 'gbout%ibzxx_c', subname)
+       gbout%ibzxx_c = f_malloc_ptr((/ iis1.to.iie1, iis2.to.iie2, iis3.to.iie3 /),id='gbout%ibzxx_c')
        do i3=iis3,iie3
            do i2=iis2,iie2
                do i1=iis1,iie1
@@ -593,9 +416,7 @@ if(geocode == 'F')then
        
    
    if(associated(gbout%ibxxyy_c)) then
-       iall=-product(shape(gbout%ibxxyy_c))*kind(gbout%ibxxyy_c)
-       deallocate(gbout%ibxxyy_c, stat=istat)
-       call memocc(istat, iall, 'gbout%ibxxyy_c', subname)
+       call f_free_ptr(gbout%ibxxyy_c)
    end if
    if(associated(gbin%ibxxyy_c)) then
        iis1=lbound(gbin%ibxxyy_c,1)
@@ -604,8 +425,7 @@ if(geocode == 'F')then
        iie2=ubound(gbin%ibxxyy_c,2)
        iis3=lbound(gbin%ibxxyy_c,3)
        iie3=ubound(gbin%ibxxyy_c,3)
-       allocate(gbout%ibxxyy_c(iis1:iie1,iis2:iie2,iis3:iie3), stat=istat)
-       call memocc(istat, gbout%ibxxyy_c, 'gbout%ibxxyy_c', subname)
+       gbout%ibxxyy_c = f_malloc_ptr((/ iis1.to.iie1, iis2.to.iie2, iis3.to.iie3 /),id='gbout%ibxxyy_c')
        do i3=iis3,iie3
            do i2=iis2,iie2
                do i1=iis1,iie1
@@ -617,9 +437,7 @@ if(geocode == 'F')then
 end if
 
 if(associated(gbout%ibyz_ff)) then
-    iall=-product(shape(gbout%ibyz_ff))*kind(gbout%ibyz_ff)
-    deallocate(gbout%ibyz_ff, stat=istat)
-    call memocc(istat, iall, 'gbout%ibyz_ff', subname)
+    call f_free_ptr(gbout%ibyz_ff)
 end if
 if(associated(gbin%ibyz_ff)) then
     iis1=lbound(gbin%ibyz_ff,1)
@@ -628,8 +446,7 @@ if(associated(gbin%ibyz_ff)) then
     iie2=ubound(gbin%ibyz_ff,2)
     iis3=lbound(gbin%ibyz_ff,3)
     iie3=ubound(gbin%ibyz_ff,3)
-    allocate(gbout%ibyz_ff(iis1:iie1,iis2:iie2,iis3:iie3), stat=istat)
-    call memocc(istat, gbout%ibyz_ff, 'gbout%ibyz_ff', subname)
+    gbout%ibyz_ff = f_malloc_ptr((/ iis1.to.iie1, iis2.to.iie2, iis3.to.iie3 /),id='gbout%ibyz_ff')
     do i3=iis3,iie3
         do i2=iis2,iie2
             do i1=iis1,iie1
@@ -640,9 +457,7 @@ if(associated(gbin%ibyz_ff)) then
 end if
 
 if(associated(gbout%ibzxx_f)) then
-    iall=-product(shape(gbout%ibzxx_f))*kind(gbout%ibzxx_f)
-    deallocate(gbout%ibzxx_f, stat=istat)
-    call memocc(istat, iall, 'gbout%ibzxx_f', subname)
+    call f_free_ptr(gbout%ibzxx_f)
 end if
 if(associated(gbin%ibzxx_f)) then
     iis1=lbound(gbin%ibzxx_f,1)
@@ -651,8 +466,7 @@ if(associated(gbin%ibzxx_f)) then
     iie2=ubound(gbin%ibzxx_f,2)
     iis3=lbound(gbin%ibzxx_f,3)
     iie3=ubound(gbin%ibzxx_f,3)
-    allocate(gbout%ibzxx_f(iis1:iie1,iis2:iie2,iis3:iie3), stat=istat)
-    call memocc(istat, gbout%ibzxx_f, 'gbout%ibzxx_f', subname)
+    gbout%ibzxx_f = f_malloc_ptr((/ iis1.to.iie1, iis2.to.iie2, iis3.to.iie3 /),id='gbout%ibzxx_f')
     do i3=iis3,iie3
         do i2=iis2,iie2
             do i1=iis1,iie1
@@ -664,9 +478,7 @@ end if
 
 
 if(associated(gbout%ibxxyy_f)) then
-    iall=-product(shape(gbout%ibxxyy_f))*kind(gbout%ibxxyy_f)
-    deallocate(gbout%ibxxyy_f, stat=istat)
-    call memocc(istat, iall, 'gbout%ibxxyy_f', subname)
+    call f_free_ptr(gbout%ibxxyy_f)
 end if
 if(associated(gbin%ibxxyy_f)) then
     iis1=lbound(gbin%ibxxyy_f,1)
@@ -675,8 +487,7 @@ if(associated(gbin%ibxxyy_f)) then
     iie2=ubound(gbin%ibxxyy_f,2)
     iis3=lbound(gbin%ibxxyy_f,3)
     iie3=ubound(gbin%ibxxyy_f,3)
-    allocate(gbout%ibxxyy_f(iis1:iie1,iis2:iie2,iis3:iie3), stat=istat)
-    call memocc(istat, gbout%ibxxyy_f, 'gbout%ibxxyy_f', subname)
+    gbout%ibxxyy_f = f_malloc_ptr((/ iis1.to.iie1, iis2.to.iie2, iis3.to.iie3 /),id='gbout%ibxxyy_f')
     do i3=iis3,iie3
         do i2=iis2,iie2
             do i1=iis1,iie1
@@ -689,86 +500,10 @@ end if
 
 end subroutine copy_grow_bounds
 
-
-
-
-subroutine copy_nonlocal_psp_descriptors(nlpspin, nlpspout, subname)
-  use module_base
-  use module_types
-  implicit none
-
-  ! Calling arguments
-  type(nonlocal_psp_descriptors),intent(in):: nlpspin
-  type(nonlocal_psp_descriptors),intent(out):: nlpspout
-  character(len=*),intent(in):: subname
-
-  ! Local variables
-  integer:: istat,iat
-
-
-  nlpspout%nproj = nlpspin%nproj
-  nlpspout%nprojel = nlpspin%nprojel
-
-  nlpspout%natoms=nlpspin%natoms
-  
-  !allocate the array and copy wavefunction descriptors
-  allocate(nlpspout%plr(nlpspout%natoms),stat=istat)
-  if (istat /= 0) stop 'allocation error, nlpspout' 
-
-  do iat=1,nlpspout%natoms
-
-     !copy dimensions which are relevant for the moment
-     nlpspout%plr(iat)%ns1=nlpspin%plr(iat)%ns1
-     nlpspout%plr(iat)%ns2=nlpspin%plr(iat)%ns2
-     nlpspout%plr(iat)%ns3=nlpspin%plr(iat)%ns3
-
-     nlpspout%plr(iat)%d%n1=nlpspin%plr(iat)%d%n1
-     nlpspout%plr(iat)%d%n2=nlpspin%plr(iat)%d%n2
-     nlpspout%plr(iat)%d%n3=nlpspin%plr(iat)%d%n3
-
-     nlpspout%plr(iat)%d%nfl1=nlpspin%plr(iat)%d%nfl1
-     nlpspout%plr(iat)%d%nfl2=nlpspin%plr(iat)%d%nfl2
-     nlpspout%plr(iat)%d%nfl3=nlpspin%plr(iat)%d%nfl3
-     nlpspout%plr(iat)%d%nfu1=nlpspin%plr(iat)%d%nfu1
-     nlpspout%plr(iat)%d%nfu2=nlpspin%plr(iat)%d%nfu2
-     nlpspout%plr(iat)%d%nfu3=nlpspin%plr(iat)%d%nfu3
-
-     nlpspout%plr(iat)%wfd%nseg_c =nlpspin%plr(iat)%wfd%nseg_c 
-     nlpspout%plr(iat)%wfd%nseg_f =nlpspin%plr(iat)%wfd%nseg_f 
-     nlpspout%plr(iat)%wfd%nvctr_c=nlpspin%plr(iat)%wfd%nvctr_c
-     nlpspout%plr(iat)%wfd%nvctr_f=nlpspin%plr(iat)%wfd%nvctr_f
-
-     call allocate_wfd(nlpspout%plr(iat)%wfd,subname)
- 
-     if (nlpspout%plr(iat)%wfd%nseg_c+nlpspout%plr(iat)%wfd%nseg_f > 0) then
-        call vcopy(nlpspout%plr(iat)%wfd%nseg_c+nlpspout%plr(iat)%wfd%nseg_f,&
-             nlpspin%plr(iat)%wfd%keyvloc(1),1,&
-             nlpspout%plr(iat)%wfd%keyvloc(1),1)
-        call vcopy(nlpspout%plr(iat)%wfd%nseg_c+nlpspout%plr(iat)%wfd%nseg_f,&
-             nlpspin%plr(iat)%wfd%keyvglob(1),1,&
-             nlpspout%plr(iat)%wfd%keyvglob(1),1)
-        call vcopy(2*(nlpspout%plr(iat)%wfd%nseg_c+&
-             nlpspout%plr(iat)%wfd%nseg_f),&
-             nlpspin%plr(iat)%wfd%keygloc(1,1),1,&
-             nlpspout%plr(iat)%wfd%keygloc(1,1),1)
-        call vcopy(2*(nlpspout%plr(iat)%wfd%nseg_c+&
-             nlpspout%plr(iat)%wfd%nseg_f),&
-             nlpspin%plr(iat)%wfd%keyglob(1,1),1,&
-             nlpspout%plr(iat)%wfd%keyglob(1,1),1)
-     end if
-  end do
-  
-
-
-
-
-end subroutine copy_nonlocal_psp_descriptors
-
-
-
 subroutine copy_orbitals_data(orbsin, orbsout, subname)
 use module_base
-use module_types
+use module_types, only: orbitals_data
+
 implicit none
 
 ! Calling arguments
@@ -777,7 +512,7 @@ type(orbitals_data),intent(inout):: orbsout
 character(len=*),intent(in):: subname
 
 ! Local variables
-integer:: iis1, iie1, iis2, iie2, i1, i2, istat, iall
+integer:: iis1, iie1, iis2, iie2, i1, i2
 
 orbsout%norb = orbsin%norb
 orbsout%norbp = orbsin%norbp
@@ -793,247 +528,179 @@ orbsout%nkptsp = orbsin%nkptsp
 orbsout%iskpts = orbsin%iskpts
 orbsout%efermi = orbsin%efermi
 
-if(associated(orbsout%norb_par)) then
-    iall=-product(shape(orbsout%norb_par))*kind(orbsout%norb_par)
-    deallocate(orbsout%norb_par, stat=istat)
-    call memocc(istat, iall, 'orbsout%norb_par', subname)
-end if
+call f_free_ptr(orbsout%norb_par)
 if(associated(orbsin%norb_par)) then
-    iis1=lbound(orbsin%norb_par,1)
-    iie1=ubound(orbsin%norb_par,1)
-    iis2=lbound(orbsin%norb_par,2)
-    iie2=ubound(orbsin%norb_par,2)
-    allocate(orbsout%norb_par(iis1:iie1,iis2:iie2), stat=istat)
-    call memocc(istat, orbsout%norb_par, 'orbsout%norb_par', subname)
-    do i1=iis1,iie1
-       do i2 = iis2,iie2
-        orbsout%norb_par(i1,i2) = orbsin%norb_par(i1,i2)
-       end do
-    end do
+   orbsout%norb_par = &
+        f_malloc_ptr(src=orbsin%norb_par,lbounds=lbound(orbsin%norb_par),id='orbsout%norb_par')
+!!$
+!!$    iis1=lbound(orbsin%norb_par,1)
+!!$    iie1=ubound(orbsin%norb_par,1)
+!!$    iis2=lbound(orbsin%norb_par,2)
+!!$    iie2=ubound(orbsin%norb_par,2)
+!!$    orbsout%norb_par = f_malloc_ptr((/ iis1.to.iie1 , iis2.to.iie2 /),id='orbsout%norb_par')
+!!$    do i1=iis1,iie1
+!!$       do i2 = iis2,iie2
+!!$        orbsout%norb_par(i1,i2) = orbsin%norb_par(i1,i2)
+!!$       end do
+!!$    end do
 end if
 
-if(associated(orbsout%iokpt)) then
-    iall=-product(shape(orbsout%iokpt))*kind(orbsout%iokpt)
-    deallocate(orbsout%iokpt, stat=istat)
-    call memocc(istat, iall, 'orbsout%iokpt', subname)
+call f_free_ptr(orbsout%norbu_par)
+if(associated(orbsin%norbu_par)) then
+   orbsout%norbu_par = &
+        f_malloc_ptr(src=orbsin%norbu_par,lbounds=lbound(orbsin%norbu_par),id='orbsout%norbu_par')
 end if
+
+call f_free_ptr(orbsout%norbd_par)
+if(associated(orbsin%norbd_par)) then
+   orbsout%norbd_par = &
+        f_malloc_ptr(src=orbsin%norbd_par,lbounds=lbound(orbsin%norbd_par),id='orbsout%norbd_par')
+end if
+
+call f_free_ptr(orbsout%iokpt)
 if(associated(orbsin%iokpt)) then
-    iis1=lbound(orbsin%iokpt,1)
-    iie1=ubound(orbsin%iokpt,1)
-    allocate(orbsout%iokpt(iis1:iie1), stat=istat)
-    call memocc(istat, orbsout%iokpt, 'orbsout%iokpt', subname)
-    do i1=iis1,iie1
-        orbsout%iokpt(i1) = orbsin%iokpt(i1)
-    end do
+   orbsout%iokpt = f_malloc_ptr(src=orbsin%iokpt,lbounds=lbound(orbsin%iokpt),id='orbsout%iokpt')
+!!$    iis1=lbound(orbsin%iokpt,1)
+!!$    iie1=ubound(orbsin%iokpt,1)
+!!$    orbsout%iokpt = f_malloc_ptr(iis1.to.iie1,id='orbsout%iokpt')
+!!$    do i1=iis1,iie1
+!!$        orbsout%iokpt(i1) = orbsin%iokpt(i1)
+!!$    end do
 end if
 
-if(associated(orbsout%ikptproc)) then
-    iall=-product(shape(orbsout%ikptproc))*kind(orbsout%ikptproc)
-    deallocate(orbsout%ikptproc, stat=istat)
-    call memocc(istat, iall, 'orbsout%ikptproc', subname)
-end if
+call f_free_ptr(orbsout%ikptproc)
 if(associated(orbsin%ikptproc)) then
-    iis1=lbound(orbsin%ikptproc,1)
-    iie1=ubound(orbsin%ikptproc,1)
-    allocate(orbsout%ikptproc(iis1:iie1), stat=istat)
-    call memocc(istat, orbsout%ikptproc, 'orbsout%ikptproc', subname)
-    do i1=iis1,iie1
-        orbsout%ikptproc(i1) = orbsin%ikptproc(i1)
-    end do
+   orbsout%ikptproc = f_malloc_ptr(src=orbsin%ikptproc,&
+        lbounds=lbound(orbsin%ikptproc),id='orbsout%ikptproc')
+!!$    iis1=lbound(orbsin%ikptproc,1)
+!!$    iie1=ubound(orbsin%ikptproc,1)
+!!$    orbsout%ikptproc = f_malloc_ptr(iis1.to.iie1,id='orbsout%ikptproc')
+!!$    do i1=iis1,iie1
+!!$        orbsout%ikptproc(i1) = orbsin%ikptproc(i1)
+!!$    end do
 end if
 
-if(associated(orbsout%inwhichlocreg)) then
-    iall=-product(shape(orbsout%inwhichlocreg))*kind(orbsout%inwhichlocreg)
-    deallocate(orbsout%inwhichlocreg, stat=istat)
-    call memocc(istat, iall, 'orbsout%inwhichlocreg', subname)
-end if
+call f_free_ptr(orbsout%inwhichlocreg)
+    
 if(associated(orbsin%inwhichlocreg)) then
-    iis1=lbound(orbsin%inwhichlocreg,1)
-    iie1=ubound(orbsin%inwhichlocreg,1)
-    allocate(orbsout%inwhichlocreg(iis1:iie1), stat=istat)
-    call memocc(istat, orbsout%inwhichlocreg, 'orbsout%inwhichlocreg', subname)
-    do i1=iis1,iie1
-        orbsout%inwhichlocreg(i1) = orbsin%inwhichlocreg(i1)
-    end do
+   orbsout%inwhichlocreg = &
+        f_malloc_ptr(src=orbsin%inwhichlocreg,&
+        lbounds=lbound(orbsin%inwhichlocreg),id='orbsout%inwhichlocreg')
+       
+!!$    iis1=lbound(orbsin%inwhichlocreg,1)
+!!$    iie1=ubound(orbsin%inwhichlocreg,1)
+!!$    orbsout%inwhichlocreg = f_malloc_ptr(iis1.to.iie1,id='orbsout%inwhichlocreg')
+!!$    do i1=iis1,iie1
+!!$        orbsout%inwhichlocreg(i1) = orbsin%inwhichlocreg(i1)
+!!$    end do
 end if
 
-if(associated(orbsout%onwhichatom)) then
-    iall=-product(shape(orbsout%onwhichatom))*kind(orbsout%onwhichatom)
-    deallocate(orbsout%onwhichatom, stat=istat)
-    call memocc(istat, iall, 'orbsout%onwhichatom', subname)
-end if
+call f_free_ptr(orbsout%onwhichatom)
 if(associated(orbsin%onwhichatom)) then
-    iis1=lbound(orbsin%onwhichatom,1)
-    iie1=ubound(orbsin%onwhichatom,1)
-    allocate(orbsout%onwhichatom(iis1:iie1), stat=istat)
-    call memocc(istat, orbsout%onwhichatom, 'orbsout%onwhichatom', subname)
-    do i1=iis1,iie1
-        orbsout%onwhichatom(i1) = orbsin%onwhichatom(i1)
-    end do
+    orbsout%onwhichatom = &
+         f_malloc_ptr(src=orbsin%onwhichatom,lbounds=lbound(orbsin%onwhichatom),&
+         id='orbsout%onwhichatom')
+!!$    iis1=lbound(orbsin%onwhichatom,1)
+!!$    iie1=ubound(orbsin%onwhichatom,1)
+!!$    orbsout%onwhichatom = f_malloc_ptr(iis1.to.iie1,id='orbsout%onwhichatom')
+!!$    do i1=iis1,iie1
+!!$        orbsout%onwhichatom(i1) = orbsin%onwhichatom(i1)
+!!$    end do
 end if
 
-if(associated(orbsout%onWhichMPI)) then
-    iall=-product(shape(orbsout%onWhichMPI))*kind(orbsout%onWhichMPI)
-    deallocate(orbsout%onWhichMPI, stat=istat)
-    call memocc(istat, iall, 'orbsout%onWhichMPI', subname)
-end if
-if(associated(orbsin%onWhichMPI)) then
-    iis1=lbound(orbsin%onWhichMPI,1)
-    iie1=ubound(orbsin%onWhichMPI,1)
-    allocate(orbsout%onWhichMPI(iis1:iie1), stat=istat)
-    call memocc(istat, orbsout%onWhichMPI, 'orbsout%onWhichMPI', subname)
-    do i1=iis1,iie1
-        orbsout%onWhichMPI(i1) = orbsin%onWhichMPI(i1)
-    end do
-end if
-
-if(associated(orbsout%isorb_par)) then
-    iall=-product(shape(orbsout%isorb_par))*kind(orbsout%isorb_par)
-    deallocate(orbsout%isorb_par, stat=istat)
-    call memocc(istat, iall, 'orbsout%isorb_par', subname)
-end if
+call f_free_ptr(orbsout%isorb_par)
 if(associated(orbsin%isorb_par)) then
-    iis1=lbound(orbsin%isorb_par,1)
-    iie1=ubound(orbsin%isorb_par,1)
-    allocate(orbsout%isorb_par(iis1:iie1), stat=istat)
-    call memocc(istat, orbsout%isorb_par, 'orbsout%isorb_par', subname)
-    do i1=iis1,iie1
-        orbsout%isorb_par(i1) = orbsin%isorb_par(i1)
-    end do
+   orbsout%isorb_par = f_malloc_ptr(src=orbsin%isorb_par,id='orbsout%isorb_par')
+!!$    iis1=lbound(orbsin%isorb_par,1)
+!!$    iie1=ubound(orbsin%isorb_par,1)
+!!$    orbsout%isorb_par = f_malloc_ptr(iis1.to.iie1,id='orbsout%isorb_par')
+!!$    do i1=iis1,iie1
+!!$        orbsout%isorb_par(i1) = orbsin%isorb_par(i1)
+!!$    end do
 end if
 
-if(associated(orbsout%eval)) then
-    iall=-product(shape(orbsout%eval))*kind(orbsout%eval)
-    deallocate(orbsout%eval, stat=istat)
-    call memocc(istat, iall, 'orbsout%eval', subname)
-end if
-if(associated(orbsin%eval)) then
-    iis1=lbound(orbsin%eval,1)
-    iie1=ubound(orbsin%eval,1)
-    if(iie1 /= iis1 ) then
-       allocate(orbsout%eval(iis1:iie1), stat=istat)
-       call memocc(istat, orbsout%eval, 'orbsout%eval', subname)
-       do i1=iis1,iie1
-           orbsout%eval(i1) = orbsin%eval(i1)
-       end do
-    end if
+    call f_free_ptr(orbsout%eval)
+    if(associated(orbsin%eval)) then
+       orbsout%eval = f_malloc_ptr(src=orbsin%eval,id='orbsout%eval')
+!!$    iis1=lbound(orbsin%eval,1)
+!!$    iie1=ubound(orbsin%eval,1)
+!!$    if(iie1 /= iis1 ) then
+!!$       orbsout%eval = f_malloc_ptr(iis1.to.iie1,id='orbsout%eval')
+!!$       do i1=iis1,iie1
+!!$           orbsout%eval(i1) = orbsin%eval(i1)
+!!$       end do
+!!$    end if
 end if
 
-if(associated(orbsout%occup)) then
-    iall=-product(shape(orbsout%occup))*kind(orbsout%occup)
-    deallocate(orbsout%occup, stat=istat)
-    call memocc(istat, iall, 'orbsout%occup', subname)
-end if
+    call f_free_ptr(orbsout%occup)
 if(associated(orbsin%occup)) then
-    iis1=lbound(orbsin%occup,1)
-    iie1=ubound(orbsin%occup,1)
-    allocate(orbsout%occup(iis1:iie1), stat=istat)
-    call memocc(istat, orbsout%occup, 'orbsout%occup', subname)
-    do i1=iis1,iie1
-        orbsout%occup(i1) = orbsin%occup(i1)
-    end do
+   orbsout%occup = f_malloc_ptr(src=orbsin%occup,id='orbsout%occup')
+!!$    iis1=lbound(orbsin%occup,1)
+!!$    iie1=ubound(orbsin%occup,1)
+!!$    orbsout%occup = f_malloc_ptr(iis1.to.iie1,id='orbsout%occup')
+!!$    do i1=iis1,iie1
+!!$        orbsout%occup(i1) = orbsin%occup(i1)
+!!$    end do
 end if
 
-if(associated(orbsout%spinsgn)) then
-    iall=-product(shape(orbsout%spinsgn))*kind(orbsout%spinsgn)
-    deallocate(orbsout%spinsgn, stat=istat)
-    call memocc(istat, iall, 'orbsout%spinsgn', subname)
-end if
+
+    call f_free_ptr(orbsout%spinsgn)
+
 if(associated(orbsin%spinsgn)) then
-    iis1=lbound(orbsin%spinsgn,1)
-    iie1=ubound(orbsin%spinsgn,1)
-    allocate(orbsout%spinsgn(iis1:iie1), stat=istat)
-    call memocc(istat, orbsout%spinsgn, 'orbsout%spinsgn', subname)
-    do i1=iis1,iie1
-        orbsout%spinsgn(i1) = orbsin%spinsgn(i1)
-    end do
+   orbsout%spinsgn = f_malloc_ptr(src=orbsin%spinsgn,id='orbsout%spinsgn')
+!!$    iis1=lbound(orbsin%spinsgn,1)
+!!$    iie1=ubound(orbsin%spinsgn,1)
+!!$    orbsout%spinsgn = f_malloc_ptr(iis1.to.iie1,id='orbsout%spinsgn')
+!!$    do i1=iis1,iie1
+!!$        orbsout%spinsgn(i1) = orbsin%spinsgn(i1)
+!!$    end do
 end if
 
 
-if(associated(orbsout%kwgts)) then
-    iall=-product(shape(orbsout%kwgts))*kind(orbsout%kwgts)
-    deallocate(orbsout%kwgts, stat=istat)
-    call memocc(istat, iall, 'orbsout%kwgts', subname)
-end if
+   call f_free_ptr(orbsout%kwgts)
 if(associated(orbsin%kwgts)) then
-    iis1=lbound(orbsin%kwgts,1)
-    iie1=ubound(orbsin%kwgts,1)
-    allocate(orbsout%kwgts(iis1:iie1), stat=istat)
-    call memocc(istat, orbsout%kwgts, 'orbsout%kwgts', subname)
-    do i1=iis1,iie1
-        orbsout%kwgts(i1) = orbsin%kwgts(i1)
-    end do
+   orbsout%kwgts = f_malloc_ptr(src=orbsin%kwgts,id='orbsout%kwgts')
+!!$    iis1=lbound(orbsin%kwgts,1)
+!!$    iie1=ubound(orbsin%kwgts,1)
+!!$    orbsout%kwgts = f_malloc_ptr(iis1.to.iie1,id='orbsout%kwgts')
+!!$    do i1=iis1,iie1
+!!$        orbsout%kwgts(i1) = orbsin%kwgts(i1)
+!!$    end do
 end if
 
-
-if(associated(orbsout%kpts)) then
-    iall=-product(shape(orbsout%kpts))*kind(orbsout%kpts)
-    deallocate(orbsout%kpts, stat=istat)
-    call memocc(istat, iall, 'orbsout%kpts', subname)
-end if
+call f_free_ptr(orbsout%kpts)
 if(associated(orbsin%kpts)) then
-    iis1=lbound(orbsin%kpts,1)
-    iie1=ubound(orbsin%kpts,1)
-    iis2=lbound(orbsin%kpts,2)
-    iie2=ubound(orbsin%kpts,2)
-    allocate(orbsout%kpts(iis1:iie1,iis2:iie2), stat=istat)
-    call memocc(istat, orbsout%kpts, 'orbsout%kpts', subname)
-    do i2=iis2,iie2
-        do i1=iis1,iie1
-            orbsout%kpts(i1,i2) = orbsin%kpts(i1,i2)
-        end do
-    end do
+   orbsout%kpts = f_malloc_ptr(src=orbsin%kpts,id='orbsout%kpts')
+!!$    iis1=lbound(orbsin%kpts,1)
+!!$    iie1=ubound(orbsin%kpts,1)
+!!$    iis2=lbound(orbsin%kpts,2)
+!!$    iie2=ubound(orbsin%kpts,2)
+!!$    orbsout%kpts = f_malloc_ptr((/ iis1.to.iie1 , iis2.to.iie2 /),id='orbsout%kpts')
+!!$    do i2=iis2,iie2
+!!$        do i1=iis1,iie1
+!!$            orbsout%kpts(i1,i2) = orbsin%kpts(i1,i2)
+!!$        end do
+!!$    end do
 end if
 
-
-if(associated(orbsout%ispot)) then
-    iall=-product(shape(orbsout%ispot))*kind(orbsout%ispot)
-    deallocate(orbsout%ispot, stat=istat)
-    call memocc(istat, iall, 'orbsout%ispot', subname)
-end if
+call f_free_ptr(orbsout%ispot)
 if(associated(orbsin%ispot)) then
-    iis1=lbound(orbsin%ispot,1)
-    iie1=ubound(orbsin%ispot,1)
-    allocate(orbsout%ispot(iis1:iie1), stat=istat)
-    call memocc(istat, orbsout%ispot, 'orbsout%ispot', subname)
-    do i1=iis1,iie1
-        orbsout%ispot(i1) = orbsin%ispot(i1)
-    end do
+   orbsout%ispot = f_malloc_ptr(src=orbsin%ispot,id='orbsout%ispot')
+!!$    iis1=lbound(orbsin%ispot,1)
+!!$    iie1=ubound(orbsin%ispot,1)
+!!$    orbsout%ispot = f_malloc_ptr(iis1.to.iie1,id='orbsout%ispot')
+!!$    do i1=iis1,iie1
+!!$        orbsout%ispot(i1) = orbsin%ispot(i1)
+!!$    end do
 end if
 
 
 end subroutine copy_orbitals_data
 
 
-subroutine copy_orthon_data(odin, odout, subname)
-  use module_base
-  use module_types
-  implicit none
-  
-  ! Calling aruments
-  type(orthon_data),intent(in):: odin
-  type(orthon_data),intent(out):: odout
-  character(len=*),intent(in):: subname
-
-  odout%directDiag=odin%directDiag
-  odout%norbpInguess=odin%norbpInguess
-  odout%bsLow=odin%bsLow
-  odout%bsUp=odin%bsUp
-  odout%methOrtho=odin%methOrtho
-  odout%iguessTol=odin%iguessTol
-  odout%methTransformOverlap=odin%methTransformOverlap
-  odout%nItOrtho=odin%nItOrtho
-  odout%blocksize_pdsyev=odin%blocksize_pdsyev
-  odout%blocksize_pdgemm=odin%blocksize_pdgemm
-  odout%nproc_pdsyev=odin%nproc_pdsyev
-
-end subroutine copy_orthon_data
-
-
 subroutine copy_local_zone_descriptors(lzd_in, lzd_out, subname)
-  use module_base
-  use module_types
-  use module_interfaces, except_this_one => copy_local_zone_descriptors
+  use locregs
+  use module_types, only: local_zone_descriptors
   implicit none
 
   ! Calling arguments
@@ -1048,10 +715,10 @@ subroutine copy_local_zone_descriptors(lzd_in, lzd_out, subname)
   lzd_out%nlr=lzd_in%nlr
   lzd_out%lintyp=lzd_in%lintyp
   lzd_out%ndimpotisf=lzd_in%ndimpotisf
-  lzd_out%hgrids(:)=lzd_in%hgrids(:)
+  lzd_out%hgrids=lzd_in%hgrids
 
   call nullify_locreg_descriptors(lzd_out%glr)
-  call copy_locreg_descriptors(lzd_in%glr, lzd_out%glr, subname)
+  call copy_locreg_descriptors(lzd_in%glr, lzd_out%glr)
 
   if(associated(lzd_out%llr)) then
       deallocate(lzd_out%llr, stat=istat)
@@ -1062,205 +729,534 @@ subroutine copy_local_zone_descriptors(lzd_in, lzd_out, subname)
       allocate(lzd_out%llr(iis1:iie1), stat=istat)
       do i1=iis1,iie1
           call nullify_locreg_descriptors(lzd_out%llr(i1))
-          call copy_locreg_descriptors(lzd_in%llr(i1), lzd_out%llr(i1), subname)
+          call copy_locreg_descriptors(lzd_in%llr(i1), lzd_out%llr(i1))
       end do
   end if
 
 end subroutine copy_local_zone_descriptors
 
 
-!only copying sparsity pattern here, not copying whole matrix
-subroutine sparse_copy_pattern_new(sparseMat_in, sparseMat_out, iproc, subname)
-  use module_base
+
+
+!!!!only copying sparsity pattern here, not copying whole matrix (assuming matrices not allocated)
+!!!subroutine sparse_copy_pattern(sparseMat_in, sparseMat_out, iproc, subname)
+!!!  use module_base
+!!!  use module_types
+!!!  use sparsematrix_base, only: sparse_matrix
+!!!  implicit none
+!!!
+!!!  ! Calling arguments
+!!!  type(sparse_matrix),intent(in):: sparseMat_in
+!!!  type(sparse_matrix),intent(inout):: sparseMat_out
+!!!  integer, intent(in) :: iproc
+!!!  character(len=*),intent(in):: subname
+!!!
+!!!  ! Local variables
+!!!  integer:: iis1, iie1, iis2, iie2, i1, i2
+!!!
+!!!  call timing(iproc,'sparse_copy','ON')
+!!!
+!!!  sparsemat_out%nseg = sparsemat_in%nseg
+!!!  sparsemat_out%store_index = sparsemat_in%store_index
+!!!  sparsemat_out%nvctr = sparsemat_in%nvctr
+!!!  sparsemat_out%nvctrp = sparsemat_in%nvctrp
+!!!  sparsemat_out%isvctr = sparsemat_in%isvctr
+!!!  sparsemat_out%nfvctr = sparsemat_in%nfvctr
+!!!  sparsemat_out%nfvctrp = sparsemat_in%nfvctrp
+!!!  sparsemat_out%isfvctr = sparsemat_in%isfvctr
+!!!  sparsemat_out%nspin = sparsemat_in%nspin
+!!!  sparsemat_out%parallel_compression = sparsemat_in%parallel_compression
+!!!
+!!!  if(associated(sparsemat_out%nvctr_par)) then
+!!!     call f_free_ptr(sparsemat_out%nvctr_par)
+!!!  end if
+!!!  if(associated(sparsemat_in%nvctr_par)) then
+!!!     iis1=lbound(sparsemat_in%nvctr_par,1)
+!!!     iie1=ubound(sparsemat_in%nvctr_par,1)
+!!!     sparsemat_out%nvctr_par=f_malloc_ptr((/iis1.to.iie1/),id='sparsemat_out%nvctr_par')
+!!!     do i1=iis1,iie1
+!!!        sparsemat_out%nvctr_par(i1) = sparsemat_in%nvctr_par(i1)
+!!!     end do
+!!!  end if
+!!!  if(associated(sparsemat_out%isvctr_par)) then
+!!!     call f_free_ptr(sparsemat_out%isvctr_par)
+!!!  end if
+!!!  if(associated(sparsemat_in%isvctr_par)) then
+!!!     iis1=lbound(sparsemat_in%isvctr_par,1)
+!!!     iie1=ubound(sparsemat_in%isvctr_par,1)
+!!!     sparsemat_out%isvctr_par=f_malloc_ptr((/iis1.to.iie1/),id='sparsemat_out%isvctr_par')
+!!!     do i1=iis1,iie1
+!!!        sparsemat_out%isvctr_par(i1) = sparsemat_in%isvctr_par(i1)
+!!!     end do
+!!!  end if
+!!!  if(associated(sparsemat_out%nfvctr_par)) then
+!!!     call f_free_ptr(sparsemat_out%nfvctr_par)
+!!!  end if
+!!!  if(associated(sparsemat_in%nfvctr_par)) then
+!!!     iis1=lbound(sparsemat_in%nfvctr_par,1)
+!!!     iie1=ubound(sparsemat_in%nfvctr_par,1)
+!!!     sparsemat_out%nfvctr_par=f_malloc_ptr((/iis1.to.iie1/),id='sparsemat_out%nfvctr_par')
+!!!     do i1=iis1,iie1
+!!!        sparsemat_out%nfvctr_par(i1) = sparsemat_in%nfvctr_par(i1)
+!!!     end do
+!!!  end if
+!!!  if(associated(sparsemat_out%isfvctr_par)) then
+!!!     call f_free_ptr(sparsemat_out%isfvctr_par)
+!!!  end if
+!!!  if(associated(sparsemat_in%isfvctr_par)) then
+!!!     iis1=lbound(sparsemat_in%isfvctr_par,1)
+!!!     iie1=ubound(sparsemat_in%isfvctr_par,1)
+!!!     sparsemat_out%isfvctr_par=f_malloc_ptr((/iis1.to.iie1/),id='sparsemat_out%isfvctr_par')
+!!!     do i1=iis1,iie1
+!!!        sparsemat_out%isfvctr_par(i1) = sparsemat_in%isfvctr_par(i1)
+!!!     end do
+!!!  end if
+!!!
+!!!  !!nullify(sparsemat_out%matrix)
+!!!  !!nullify(sparsemat_out%matrix_compr)
+!!!  !!nullify(sparsemat_out%matrixp)
+!!!  !!nullify(sparsemat_out%matrix_comprp)
+!!!
+!!!  if(associated(sparsemat_out%keyv)) then
+!!!     call f_free_ptr(sparsemat_out%keyv)
+!!!  end if
+!!!  if(associated(sparsemat_in%keyv)) then
+!!!     iis1=lbound(sparsemat_in%keyv,1)
+!!!     iie1=ubound(sparsemat_in%keyv,1)
+!!!     sparsemat_out%keyv=f_malloc_ptr(iis1.to.iie1,id='sparsemat_out%keyv')
+!!!     do i1=iis1,iie1
+!!!        sparsemat_out%keyv(i1) = sparsemat_in%keyv(i1)
+!!!     end do
+!!!  end if
+!!!
+!!!  if(associated(sparsemat_out%nsegline)) then
+!!!     call f_free_ptr(sparsemat_out%nsegline)
+!!!  end if
+!!!  if(associated(sparsemat_in%nsegline)) then
+!!!     iis1=lbound(sparsemat_in%nsegline,1)
+!!!     iie1=ubound(sparsemat_in%nsegline,1)
+!!!     sparsemat_out%nsegline=f_malloc_ptr(iis1.to.iie1,id='sparsemat_out%nsegline')
+!!!     do i1=iis1,iie1
+!!!        sparsemat_out%nsegline(i1) = sparsemat_in%nsegline(i1)
+!!!     end do
+!!!  end if
+!!!
+!!!  if(associated(sparsemat_out%istsegline)) then
+!!!     call f_free_ptr(sparsemat_out%istsegline)
+!!!  end if
+!!!  if(associated(sparsemat_in%istsegline)) then
+!!!     iis1=lbound(sparsemat_in%istsegline,1)
+!!!     iie1=ubound(sparsemat_in%istsegline,1)
+!!!     sparsemat_out%istsegline=f_malloc_ptr(iis1.to.iie1,id='sparsemat_out%istsegline')
+!!!     do i1=iis1,iie1
+!!!        sparsemat_out%istsegline(i1) = sparsemat_in%istsegline(i1)
+!!!     end do
+!!!  end if
+!!!
+!!!  if(associated(sparsemat_out%keyg)) then
+!!!     call f_free_ptr(sparsemat_out%keyg)
+!!!  end if
+!!!  if(associated(sparsemat_in%keyg)) then
+!!!     iis1=lbound(sparsemat_in%keyg,1)
+!!!     iie1=ubound(sparsemat_in%keyg,1)
+!!!     iis2=lbound(sparsemat_in%keyg,2)
+!!!     iie2=ubound(sparsemat_in%keyg,2)
+!!!     sparsemat_out%keyg=f_malloc_ptr((/iis1.to.iie1,iis2.to.iie2/),id='sparsemat_out%keyg')
+!!!     do i1=iis1,iie1
+!!!        do i2 = iis2,iie2
+!!!           sparsemat_out%keyg(i1,i2) = sparsemat_in%keyg(i1,i2)
+!!!        end do
+!!!     end do
+!!!  end if
+!!!
+!!!  if(associated(sparsemat_out%matrixindex_in_compressed_arr)) then
+!!!     call f_free_ptr(sparsemat_out%matrixindex_in_compressed_arr)
+!!!  end if
+!!!  if(associated(sparsemat_in%matrixindex_in_compressed_arr)) then
+!!!     iis1=lbound(sparsemat_in%matrixindex_in_compressed_arr,1)
+!!!     iie1=ubound(sparsemat_in%matrixindex_in_compressed_arr,1)
+!!!     iis2=lbound(sparsemat_in%matrixindex_in_compressed_arr,2)
+!!!     iie2=ubound(sparsemat_in%matrixindex_in_compressed_arr,2)
+!!!     sparsemat_out%matrixindex_in_compressed_arr=f_malloc_ptr((/iis1.to.iie1,iis2.to.iie2/),&
+!!!         id='sparsemat_out%matrixindex_in_compressed_ar')
+!!!     do i1=iis1,iie1
+!!!        do i2 = iis2,iie2
+!!!           sparsemat_out%matrixindex_in_compressed_arr(i1,i2) = sparsemat_in%matrixindex_in_compressed_arr(i1,i2)
+!!!        end do
+!!!     end do
+!!!  end if
+!!!
+!!!  !!if(associated(sparsemat_out%orb_from_index)) then
+!!!  !!   call f_free_ptr(sparsemat_out%orb_from_index)
+!!!  !!end if
+!!!  !!if(associated(sparsemat_in%orb_from_index)) then
+!!!  !!   iis1=lbound(sparsemat_in%orb_from_index,1)
+!!!  !!   iie1=ubound(sparsemat_in%orb_from_index,1)
+!!!  !!   iis2=lbound(sparsemat_in%orb_from_index,2)
+!!!  !!   iie2=ubound(sparsemat_in%orb_from_index,2)
+!!!  !!   sparsemat_out%orb_from_index=f_malloc_ptr((/iis1.to.iie1,iis2.to.iie2/),id='sparsemat_out%orb_from_index')
+!!!  !!   do i1=iis1,iie1
+!!!  !!      do i2 = iis2,iie2
+!!!  !!         sparsemat_out%orb_from_index(i1,i2) = sparsemat_in%orb_from_index(i1,i2)
+!!!  !!      end do
+!!!  !!   end do
+!!!  !!end if
+!!!
+!!!  if(associated(sparsemat_out%matrixindex_in_compressed_fortransposed)) then
+!!!     call f_free_ptr(sparsemat_out%matrixindex_in_compressed_fortransposed)
+!!!  end if
+!!!  if(associated(sparsemat_in%matrixindex_in_compressed_fortransposed)) then
+!!!     iis1=lbound(sparsemat_in%matrixindex_in_compressed_fortransposed,1)
+!!!     iie1=ubound(sparsemat_in%matrixindex_in_compressed_fortransposed,1)
+!!!     iis2=lbound(sparsemat_in%matrixindex_in_compressed_fortransposed,2)
+!!!     iie2=ubound(sparsemat_in%matrixindex_in_compressed_fortransposed,2)
+!!!     sparsemat_out%matrixindex_in_compressed_fortransposed=f_malloc_ptr((/iis1.to.iie1,iis2.to.iie2/),&
+!!!         id='sparsemat_out%matrixindex_in_compressed_fortransposed')
+!!!     do i1=iis1,iie1
+!!!        do i2 = iis2,iie2
+!!!           sparsemat_out%matrixindex_in_compressed_fortransposed(i1,i2) = &
+!!!                sparsemat_in%matrixindex_in_compressed_fortransposed(i1,i2)
+!!!        end do
+!!!     end do
+!!!  end if
+!!!
+!!!
+!!!  sparsemat_out%smmm%nout = sparsemat_in%smmm%nout
+!!!  sparsemat_out%smmm%nseq = sparsemat_in%smmm%nseq
+!!!  sparsemat_out%smmm%nseg = sparsemat_in%smmm%nseg
+!!!  
+!!!  if(associated(sparsemat_out%smmm%ivectorindex)) then
+!!!     call f_free_ptr(sparsemat_out%smmm%ivectorindex)
+!!!  end if
+!!!  if(associated(sparsemat_in%smmm%ivectorindex)) then
+!!!     iis1=lbound(sparsemat_in%smmm%ivectorindex,1)
+!!!     iie1=ubound(sparsemat_in%smmm%ivectorindex,1)
+!!!     sparsemat_out%smmm%ivectorindex=f_malloc_ptr(iis1.to.iie1,id='sparsemat_out%smmm%ivectorindex')
+!!!     do i1=iis1,iie1
+!!!        sparsemat_out%smmm%ivectorindex(i1) = sparsemat_in%smmm%ivectorindex(i1)
+!!!     end do
+!!!  end if
+!!!
+!!!  if(associated(sparsemat_out%smmm%nsegline)) then
+!!!     call f_free_ptr(sparsemat_out%smmm%nsegline)
+!!!  end if
+!!!  if(associated(sparsemat_in%smmm%nsegline)) then
+!!!     iis1=lbound(sparsemat_in%smmm%nsegline,1)
+!!!     iie1=ubound(sparsemat_in%smmm%nsegline,1)
+!!!     sparsemat_out%smmm%nsegline=f_malloc_ptr(iis1.to.iie1,id='sparsemat_out%smmm%nsegline')
+!!!     do i1=iis1,iie1
+!!!        sparsemat_out%smmm%nsegline(i1) = sparsemat_in%smmm%nsegline(i1)
+!!!     end do
+!!!  end if
+!!!
+!!!  if(associated(sparsemat_out%smmm%istsegline)) then
+!!!     call f_free_ptr(sparsemat_out%smmm%istsegline)
+!!!  end if
+!!!  if(associated(sparsemat_in%smmm%istsegline)) then
+!!!     iis1=lbound(sparsemat_in%smmm%istsegline,1)
+!!!     iie1=ubound(sparsemat_in%smmm%istsegline,1)
+!!!     sparsemat_out%smmm%istsegline=f_malloc_ptr(iis1.to.iie1,id='sparsemat_out%smmm%istsegline')
+!!!     do i1=iis1,iie1
+!!!        sparsemat_out%smmm%istsegline(i1) = sparsemat_in%smmm%istsegline(i1)
+!!!     end do
+!!!  end if
+!!!
+!!!  if(associated(sparsemat_out%smmm%indices_extract_sequential)) then
+!!!     call f_free_ptr(sparsemat_out%smmm%indices_extract_sequential)
+!!!  end if
+!!!  if(associated(sparsemat_in%smmm%indices_extract_sequential)) then
+!!!     iis1=lbound(sparsemat_in%smmm%indices_extract_sequential,1)
+!!!     iie1=ubound(sparsemat_in%smmm%indices_extract_sequential,1)
+!!!     sparsemat_out%smmm%indices_extract_sequential=f_malloc_ptr(iis1.to.iie1,id='sparsemat_out%smmm%indices_extract_sequential')
+!!!     do i1=iis1,iie1
+!!!        sparsemat_out%smmm%indices_extract_sequential(i1) = sparsemat_in%smmm%indices_extract_sequential(i1)
+!!!     end do
+!!!  end if
+!!!
+!!!  if(associated(sparsemat_out%smmm%onedimindices)) then
+!!!     call f_free_ptr(sparsemat_out%smmm%onedimindices)
+!!!  end if
+!!!  if(associated(sparsemat_in%smmm%onedimindices)) then
+!!!     iis1=lbound(sparsemat_in%smmm%onedimindices,1)
+!!!     iie1=ubound(sparsemat_in%smmm%onedimindices,1)
+!!!     iis2=lbound(sparsemat_in%smmm%onedimindices,2)
+!!!     iie2=ubound(sparsemat_in%smmm%onedimindices,2)
+!!!     sparsemat_out%smmm%onedimindices=f_malloc_ptr((/iis1.to.iie1,iis2.to.iie2/),&
+!!!         id='sparsemat_out%smmm%onedimindices')
+!!!     do i1=iis1,iie1
+!!!        do i2 = iis2,iie2
+!!!           sparsemat_out%smmm%onedimindices(i1,i2) = &
+!!!                sparsemat_in%smmm%onedimindices(i1,i2)
+!!!        end do
+!!!     end do
+!!!  end if
+!!!
+!!!  if(associated(sparsemat_out%smmm%keyg)) then
+!!!     call f_free_ptr(sparsemat_out%smmm%keyg)
+!!!  end if
+!!!  if(associated(sparsemat_in%smmm%keyg)) then
+!!!     iis1=lbound(sparsemat_in%smmm%keyg,1)
+!!!     iie1=ubound(sparsemat_in%smmm%keyg,1)
+!!!     iis2=lbound(sparsemat_in%smmm%keyg,2)
+!!!     iie2=ubound(sparsemat_in%smmm%keyg,2)
+!!!     sparsemat_out%smmm%keyg=f_malloc_ptr((/iis1.to.iie1,iis2.to.iie2/),&
+!!!         id='sparsemat_out%smmm%keyg')
+!!!     do i1=iis1,iie1
+!!!        do i2 = iis2,iie2
+!!!           sparsemat_out%smmm%keyg(i1,i2) = &
+!!!                sparsemat_in%smmm%keyg(i1,i2)
+!!!        end do
+!!!     end do
+!!!  end if
+!!!
+!!!
+!!!  call timing(iproc,'sparse_copy','OF')
+!!!
+!!!end subroutine sparse_copy_pattern
+
+
+
+subroutine copy_linear_matrices(linmat_in, linmat_out)
   use module_types
-  use module_interfaces, except_this_one => sparse_copy_pattern
+  use sparsematrix_base, only: sparse_matrix_null
   implicit none
 
   ! Calling arguments
-  type(sparseMatrix),intent(in):: sparseMat_in
-  type(sparseMatrix),intent(out):: sparseMat_out
-  integer, intent(in) :: iproc
-  character(len=*),intent(in):: subname
+  type(linear_matrices),intent(in) :: linmat_in
+  type(linear_matrices),intent(out) :: linmat_out
 
   ! Local variables
-  integer:: iis1, iie1, iis2, iie2, i1, i2, istat, iall
+  integer :: ispin
 
-  call timing(iproc,'sparse_copy','ON')
-
-  !assume sparsemat_out is nullified, take advantage of pointers
-
-sparsemat_out=sparsemat_in
-
-  nullify(sparsemat_out%matrix)
-  nullify(sparsemat_out%matrix_compr)
-
-return
-
-  sparsemat_out%nvctr = sparsemat_in%nvctr
-  sparsemat_out%nseg = sparsemat_in%nseg
-  sparsemat_out%full_dim1 = sparsemat_in%full_dim1
-  sparsemat_out%full_dim2 = sparsemat_in%full_dim2
-
-  nullify(sparsemat_out%matrix)
-  nullify(sparsemat_out%matrix_compr)
-
-  if(associated(sparsemat_in%keyv)) then
-     sparsemat_out%keyv = sparsemat_in%keyv
+  call copy_sparse_matrix(linmat_in%s, linmat_out%s)
+  call copy_sparse_matrix(linmat_in%m, linmat_out%m)
+  call copy_sparse_matrix(linmat_in%l, linmat_out%l)
+  if (associated(linmat_in%ks)) then
+      allocate(linmat_out%ks(linmat_in%l%nspin))
+      do ispin=1,linmat_in%l%nspin
+          linmat_out%ks(ispin) = sparse_matrix_null()
+          call copy_sparse_matrix(linmat_in%ks(ispin), linmat_out%ks(ispin))
+      end do
+  else
+      nullify(linmat_out%ks)
   end if
-
-  if(associated(sparsemat_in%nsegline)) then
-     sparsemat_out%nsegline(i1) = sparsemat_in%nsegline(i1)
+  if (associated(linmat_in%ks_e)) then
+      allocate(linmat_out%ks_e(linmat_in%l%nspin))
+      do ispin=1,linmat_in%l%nspin
+          linmat_out%ks_e(ispin) = sparse_matrix_null()
+          call copy_sparse_matrix(linmat_in%ks_e(ispin), linmat_out%ks_e(ispin))
+      end do
+  else
+      nullify(linmat_out%ks_e)
   end if
+  call copy_matrices(linmat_in%ham_, linmat_out%ham_)
+  call copy_matrices(linmat_in%ovrlp_, linmat_out%ovrlp_)
+  call copy_matrices(linmat_in%kernel_, linmat_out%kernel_)
 
-  if(associated(sparsemat_in%istsegline)) then
-     sparsemat_out%istsegline = sparsemat_in%istsegline
-  end if
+end subroutine copy_linear_matrices
 
-  if(associated(sparsemat_in%keyg)) then
-     sparsemat_out%keyg = sparsemat_in%keyg
-  end if
 
-  if(associated(sparsemat_in%matrixindex_in_compressed)) then
-     sparsemat_out%matrixindex_in_compressed = sparsemat_in%matrixindex_in_compressed
-  end if
-
-  if(associated(sparsemat_in%orb_from_index)) then
-     sparsemat_out%orb_from_index = sparsemat_in%orb_from_index
-  end if
-
-  call timing(iproc,'sparse_copy','OF')
-
-end subroutine sparse_copy_pattern_new
-
-!only copying sparsity pattern here, not copying whole matrix
-subroutine sparse_copy_pattern(sparseMat_in, sparseMat_out, iproc, subname)
-  use module_base
-  use module_types
-  use module_interfaces, except_this_one => sparse_copy_pattern
+subroutine copy_sparse_matrix(smat_in, smat_out)
+  use sparsematrix_base, only: sparse_matrix
+  use copy_utils, only: allocate_and_copy
+  use wrapper_MPI, only: mpi_environment_null
   implicit none
 
   ! Calling arguments
-  type(sparseMatrix),intent(in):: sparseMat_in
-  type(sparseMatrix),intent(inout):: sparseMat_out
-  integer, intent(in) :: iproc
-  character(len=*),intent(in):: subname
+  type(sparse_matrix),intent(in) :: smat_in
+  type(sparse_matrix),intent(out) :: smat_out
 
   ! Local variables
-  integer:: iis1, iie1, iis2, iie2, i1, i2, istat, iall
+  integer :: i, is, ie
 
-  call timing(iproc,'sparse_copy','ON')
 
-  sparsemat_out%nvctr = sparsemat_in%nvctr
-  sparsemat_out%nseg = sparsemat_in%nseg
-  sparsemat_out%full_dim1 = sparsemat_in%full_dim1
-  sparsemat_out%full_dim2 = sparsemat_in%full_dim2
+  smat_out%nvctr = smat_in%nvctr
+  smat_out%nseg = smat_in%nseg
+  smat_out%nvctrp = smat_in%nvctrp
+  smat_out%isvctr = smat_in%isvctr
+  smat_out%parallel_compression = smat_in%parallel_compression
+  smat_out%nfvctr = smat_in%nfvctr
+  smat_out%nfvctrp = smat_in%nfvctrp
+  smat_out%isfvctr = smat_in%isfvctr
+  smat_out%nspin = smat_in%nspin
+  smat_out%store_index = smat_in%store_index
+  smat_out%can_use_dense = smat_in%can_use_dense
+  smat_out%ntaskgroup = smat_in%ntaskgroup
+  smat_out%ntaskgroupp = smat_in%ntaskgroupp
+  smat_out%istartendseg_t(1:2) = smat_in%istartendseg_t(1:2)
+  smat_out%istartend_t(1:2) = smat_in%istartend_t(1:2)
+  smat_out%nvctrp_tg = smat_in%nvctrp_tg
+  smat_out%isvctrp_tg = smat_in%isvctrp_tg
+  smat_out%iseseg_tg(1:2) = smat_in%iseseg_tg(1:2)
+  smat_out%istartend_local(1:2) = smat_in%istartend_local(1:2)
+  smat_out%istartendseg_local(1:2) = smat_in%istartendseg_local(1:2)
 
-  nullify(sparsemat_out%matrix)
-  nullify(sparsemat_out%matrix_compr)
 
-  if(associated(sparsemat_out%keyv)) then
-     iall=-product(shape(sparsemat_out%keyv))*kind(sparsemat_out%keyv)
-     deallocate(sparsemat_out%keyv, stat=istat)
-     call memocc(istat, iall, 'sparsemat_out%keyv', subname)
-  end if
-  if(associated(sparsemat_in%keyv)) then
-     iis1=lbound(sparsemat_in%keyv,1)
-     iie1=ubound(sparsemat_in%keyv,1)
-     allocate(sparsemat_out%keyv(iis1:iie1), stat=istat)
-     call memocc(istat, sparsemat_out%keyv, 'sparsemat_out%keyv', subname)
-     do i1=iis1,iie1
-        sparsemat_out%keyv(i1) = sparsemat_in%keyv(i1)
-     end do
-  end if
+  call allocate_and_copy(smat_in%keyv, smat_out%keyv, id='smat_out%')
+  call allocate_and_copy(smat_in%nsegline, smat_out%nsegline, id='smat_out%nsegline')
+  call allocate_and_copy(smat_in%istsegline, smat_out%istsegline, id='smat_out%istsegline')
+  call allocate_and_copy(smat_in%isvctr_par, smat_out%isvctr_par, id='smat_out%isvctr_par')
+  call allocate_and_copy(smat_in%nvctr_par, smat_out%nvctr_par, id='smat_out%nvctr_par')
+  call allocate_and_copy(smat_in%isfvctr_par, smat_out%isfvctr_par, id='smat_out%isfvctr_par')
+  call allocate_and_copy(smat_in%nfvctr_par, smat_out%nfvctr_par, id='smat_out%nfvctr_par')
 
-  if(associated(sparsemat_out%nsegline)) then
-     iall=-product(shape(sparsemat_out%nsegline))*kind(sparsemat_out%nsegline)
-     deallocate(sparsemat_out%nsegline, stat=istat)
-     call memocc(istat, iall, 'sparsemat_out%nsegline', subname)
-  end if
-  if(associated(sparsemat_in%nsegline)) then
-     iis1=lbound(sparsemat_in%nsegline,1)
-     iie1=ubound(sparsemat_in%nsegline,1)
-     allocate(sparsemat_out%nsegline(iis1:iie1), stat=istat)
-     call memocc(istat, sparsemat_out%nsegline, 'sparsemat_out%nsegline', subname)
-     do i1=iis1,iie1
-        sparsemat_out%nsegline(i1) = sparsemat_in%nsegline(i1)
-     end do
-  end if
+  call allocate_and_copy(smat_in%keyg, smat_out%keyg, id='smat_out%keyg')
+  call allocate_and_copy(smat_in%matrixindex_in_compressed_arr, smat_out%matrixindex_in_compressed_arr, &
+                         id='smat_out%matrixindex_in_compressed_arr')
+  call allocate_and_copy(smat_in%matrixindex_in_compressed_fortransposed, smat_out%matrixindex_in_compressed_fortransposed, &
+                         id='smat_out%matrixindex_in_compressed_fortransposed')
+  call allocate_and_copy(smat_in%taskgroup_startend, smat_out%taskgroup_startend, id='smat_out%taskgroup_startend')
+  call allocate_and_copy(smat_in%taskgroupid, smat_out%taskgroupid, id='smat_out%taskgroupid')
+  call allocate_and_copy(smat_in%inwhichtaskgroup, smat_out%inwhichtaskgroup, id='smat_out%inwhichtaskgroup')
+  call allocate_and_copy(smat_in%tgranks, smat_out%tgranks, id='smat_out%tgranks')
+  call allocate_and_copy(smat_in%nranks, smat_out%nranks, id='smat_out%nranks')
 
-  if(associated(sparsemat_out%istsegline)) then
-     iall=-product(shape(sparsemat_out%istsegline))*kind(sparsemat_out%istsegline)
-     deallocate(sparsemat_out%istsegline, stat=istat)
-     call memocc(istat, iall, 'sparsemat_out%istsegline', subname)
-  end if
-  if(associated(sparsemat_in%istsegline)) then
-     iis1=lbound(sparsemat_in%istsegline,1)
-     iie1=ubound(sparsemat_in%istsegline,1)
-     allocate(sparsemat_out%istsegline(iis1:iie1), stat=istat)
-     call memocc(istat, sparsemat_out%istsegline, 'sparsemat_out%istsegline', subname)
-     do i1=iis1,iie1
-        sparsemat_out%istsegline(i1) = sparsemat_in%istsegline(i1)
-     end do
-  end if
 
-  if(associated(sparsemat_out%keyg)) then
-     iall=-product(shape(sparsemat_out%keyg))*kind(sparsemat_out%keyg)
-     deallocate(sparsemat_out%keyg, stat=istat)
-     call memocc(istat, iall, 'sparsemat_out%keyg', subname)
-  end if
-  if(associated(sparsemat_in%keyg)) then
-     iis1=lbound(sparsemat_in%keyg,1)
-     iie1=ubound(sparsemat_in%keyg,1)
-     iis2=lbound(sparsemat_in%keyg,2)
-     iie2=ubound(sparsemat_in%keyg,2)
-     allocate(sparsemat_out%keyg(iis1:iie1,iis2:iie2), stat=istat)
-     call memocc(istat, sparsemat_out%keyg, 'sparsemat_out%keyg', subname)
-     do i1=iis1,iie1
-        do i2 = iis2,iie2
-           sparsemat_out%keyg(i1,i2) = sparsemat_in%keyg(i1,i2)
-        end do
-     end do
+  call copy_sparse_matrix_matrix_multiplication(smat_in%smmm, smat_out%smmm)
+
+  if (associated(smat_in%mpi_groups)) then
+      is = lbound(smat_in%mpi_groups,1)
+      ie = ubound(smat_in%mpi_groups,1)
+      if (associated(smat_out%mpi_groups)) then
+          deallocate(smat_out%mpi_groups)
+      end if
+      allocate(smat_out%mpi_groups(is:ie))
+      do i=is,ie
+          smat_out%mpi_groups(i) = mpi_environment_null()
+          call copy_mpi_environment(smat_in%mpi_groups(i), smat_out%mpi_groups(i))
+      end do
+  else
+      nullify(smat_out%mpi_groups)
   end if
 
-  if(associated(sparsemat_out%matrixindex_in_compressed)) then
-     iall=-product(shape(sparsemat_out%matrixindex_in_compressed))*kind(sparsemat_out%matrixindex_in_compressed)
-     deallocate(sparsemat_out%matrixindex_in_compressed, stat=istat)
-     call memocc(istat, iall, 'sparsemat_out%matrixindex_in_compressed', subname)
-  end if
-  if(associated(sparsemat_in%matrixindex_in_compressed)) then
-     iis1=lbound(sparsemat_in%matrixindex_in_compressed,1)
-     iie1=ubound(sparsemat_in%matrixindex_in_compressed,1)
-     iis2=lbound(sparsemat_in%matrixindex_in_compressed,2)
-     iie2=ubound(sparsemat_in%matrixindex_in_compressed,2)
-     allocate(sparsemat_out%matrixindex_in_compressed(iis1:iie1,iis2:iie2), stat=istat)
-     call memocc(istat, sparsemat_out%matrixindex_in_compressed, 'sparsemat_out%matrixindex_in_compressed', subname)
-     do i1=iis1,iie1
-        do i2 = iis2,iie2
-           sparsemat_out%matrixindex_in_compressed(i1,i2) = sparsemat_in%matrixindex_in_compressed(i1,i2)
-        end do
-     end do
-  end if
+end subroutine copy_sparse_matrix
 
-  if(associated(sparsemat_out%orb_from_index)) then
-     iall=-product(shape(sparsemat_out%orb_from_index))*kind(sparsemat_out%orb_from_index)
-     deallocate(sparsemat_out%orb_from_index, stat=istat)
-     call memocc(istat, iall, 'sparsemat_out%orb_from_index', subname)
+
+subroutine copy_sparse_matrix_matrix_multiplication(smmm_in, smmm_out)
+  use sparsematrix_base, only: sparse_matrix_matrix_multiplication
+  use copy_utils, only: allocate_and_copy
+  implicit none
+
+  ! Calling arguments
+  type(sparse_matrix_matrix_multiplication),intent(in) :: smmm_in
+  type(sparse_matrix_matrix_multiplication),intent(out) :: smmm_out
+  smmm_out%nout = smmm_in%nout
+  smmm_out%nseq = smmm_in%nseq
+  smmm_out%nseg = smmm_in%nseg
+  smmm_out%nfvctrp = smmm_in%nfvctrp
+  smmm_out%isfvctr = smmm_in%isfvctr
+  smmm_out%nvctrp = smmm_in%nvctrp
+  smmm_out%isvctr = smmm_in%isvctr
+  smmm_out%istartendseg_mm(1:2) = smmm_in%istartendseg_mm(1:2)
+  smmm_out%istartend_mm(1:2) = smmm_in%istartend_mm(1:2)
+  smmm_out%istartend_mm_dj(1:2) = smmm_in%istartend_mm_dj(1:2)
+
+  call allocate_and_copy(smmm_in%ivectorindex, smmm_out%ivectorindex, id='smmm_out%ivectorindex')
+  call allocate_and_copy(smmm_in%nsegline, smmm_out%nsegline, id='smmm_out%segline')
+  call allocate_and_copy(smmm_in%istsegline, smmm_out%istsegline, id='smmm_out%stsegline')
+  call allocate_and_copy(smmm_in%indices_extract_sequential, smmm_out%indices_extract_sequential, &
+       id='smmm_out%ndices_extract_sequential')
+  call allocate_and_copy(smmm_in%isvctr_par, smmm_out%isvctr_par, id='smmm_out%isvctr_par')
+  call allocate_and_copy(smmm_in%nvctr_par, smmm_out%nvctr_par, id='smmm_out%nvctr_par')
+  call allocate_and_copy(smmm_in%onedimindices, smmm_out%onedimindices, id='smmm_out%onedimindices')
+  !!call allocate_and_copy(smmm_in%keyg, smmm_out%keyg, id='smmm_out%keyg')
+end subroutine copy_sparse_matrix_matrix_multiplication
+
+
+subroutine copy_matrices(mat_in, mat_out)
+  use sparsematrix_base, only: matrices
+  use copy_utils, only: allocate_and_copy
+  implicit none
+
+  ! Calling arguments
+  type(matrices),intent(in) :: mat_in
+  type(matrices),intent(out) :: mat_out
+
+
+  call allocate_and_copy(mat_in%matrix_compr, mat_out%matrix_compr, id='mat_out%matrix_compr')
+  call allocate_and_copy(mat_in%matrix_comprp, mat_out%matrix_comprp, id='mat_out%matrix_comprp')
+
+  call allocate_and_copy(mat_in%matrix, mat_out%matrix, id='mat_out%matrix')
+  call allocate_and_copy(mat_in%matrixp, mat_out%matrixp, id='mat_out%matrixp')
+
+end subroutine copy_matrices
+
+
+subroutine copy_comms_linear(comms_in, comms_out)
+  use communications_base, only: comms_linear
+  use copy_utils, only: allocate_and_copy
+  implicit none
+
+  ! Calling arguments
+  type(comms_linear),intent(in) :: comms_in
+  type(comms_linear),intent(out) :: comms_out
+
+
+    comms_out%nptsp_c = comms_in%nptsp_c
+    comms_out%ndimpsi_c = comms_in%ndimpsi_c
+    comms_out%ndimind_c = comms_in%ndimind_c
+    comms_out%ndimind_f = comms_in%ndimind_f
+    comms_out%nptsp_f = comms_in%nptsp_f
+    comms_out%ndimpsi_f = comms_in%ndimpsi_f
+    comms_out%ncomms_repartitionrho = comms_in%ncomms_repartitionrho
+    comms_out%window = comms_in%window
+    comms_out%imethod_overlap = comms_in%imethod_overlap
+
+    call allocate_and_copy(comms_in%nsendcounts_c, comms_out%nsendcounts_c, id='comms_out%nsendcounts_c')
+    call allocate_and_copy(comms_in%nsenddspls_c, comms_out%nsenddspls_c, id='comms_out%nsenddspls_c')
+    call allocate_and_copy(comms_in%nrecvcounts_c, comms_out%nrecvcounts_c, id='comms_out%nrecvcounts_c')
+    call allocate_and_copy(comms_in%nrecvdspls_c, comms_out%nrecvdspls_c, id='comms_out%nrecvdspls_c')
+    call allocate_and_copy(comms_in%isendbuf_c, comms_out%isendbuf_c, id='comms_out%isendbuf_c')
+    call allocate_and_copy(comms_in%iextract_c, comms_out%iextract_c, id='comms_out%iextract_c')
+    call allocate_and_copy(comms_in%iexpand_c, comms_out%iexpand_c, id='comms_out%iexpand_c')
+    call allocate_and_copy(comms_in%irecvbuf_c, comms_out%irecvbuf_c, id='comms_out%irecvbuf_c')
+    call allocate_and_copy(comms_in%norb_per_gridpoint_c, comms_out%norb_per_gridpoint_c, id='comms_out%norb_per_gridpoint_c')
+    call allocate_and_copy(comms_in%indexrecvorbital_c, comms_out%indexrecvorbital_c, id='comms_out%indexrecvorbital_c')
+    call allocate_and_copy(comms_in%nsendcounts_f, comms_out%nsendcounts_f, id='comms_out%nsendcounts_f')
+    call allocate_and_copy(comms_in%nsenddspls_f, comms_out%nsenddspls_f, id='comms_out%nsenddspls_f')
+    call allocate_and_copy(comms_in%nrecvcounts_f, comms_out%nrecvcounts_f, id='comms_out%nrecvcounts_f')
+    call allocate_and_copy(comms_in%nrecvdspls_f, comms_out%nrecvdspls_f, id='comms_out%nrecvdspls_f')
+    call allocate_and_copy(comms_in%isendbuf_f, comms_out%isendbuf_f, id='comms_out%isendbuf_f')
+    call allocate_and_copy(comms_in%iextract_f, comms_out%iextract_f, id='comms_out%iextract_f')
+    call allocate_and_copy(comms_in%iexpand_f, comms_out%iexpand_f, id='comms_out%iexpand_f')
+    call allocate_and_copy(comms_in%irecvbuf_f, comms_out%irecvbuf_f, id='comms_out%irecvbuf_f')
+    call allocate_and_copy(comms_in%norb_per_gridpoint_f, comms_out%norb_per_gridpoint_f, id='ncomms_out%orb_per_gridpoint_f')
+    call allocate_and_copy(comms_in%indexrecvorbital_f, comms_out%indexrecvorbital_f, id='comms_out%indexrecvorbital_f')
+    call allocate_and_copy(comms_in%isptsp_c, comms_out%isptsp_c, id='comms_out%isptsp_c')
+    call allocate_and_copy(comms_in%isptsp_f, comms_out%isptsp_f, id='comms_out%isptsp_f')
+    call allocate_and_copy(comms_in%nsendcounts_repartitionrho, comms_out%nsendcounts_repartitionrho, &
+                           id='comms_out%nsendcounts_repartitionrho')
+    call allocate_and_copy(comms_in%nrecvcounts_repartitionrho, comms_out%nrecvcounts_repartitionrho, &
+                           id='comms_out%nrecvcounts_repartitionrho')
+    call allocate_and_copy(comms_in%nsenddspls_repartitionrho, comms_out%nsenddspls_repartitionrho, &
+                           id='comms_out%nsenddspls_repartitionrho')
+    call allocate_and_copy(comms_in%nrecvdspls_repartitionrho, comms_out%nrecvdspls_repartitionrho, &
+                           id='comms_out%nrecvdspls_repartitionrho')
+
+    call allocate_and_copy(comms_in%commarr_repartitionrho, comms_out%commarr_repartitionrho, id='comms_in%commarr_repartitionrho')
+
+    call allocate_and_copy(comms_in%psit_c, comms_out%psit_c, id='comms_out%psit_c')
+    call allocate_and_copy(comms_in%psit_f, comms_out%psit_f, id='comms_out%psit_f')
+
+end subroutine copy_comms_linear
+
+
+subroutine copy_mpi_environment(mpi_in, mpi_out)
+  use module_base
+  use wrapper_MPI, only: mpi_environment
+  implicit none
+  ! Calling arguments
+  type(mpi_environment),intent(in) :: mpi_in
+  type(mpi_environment),intent(out) :: mpi_out
+  ! Local variables
+  integer :: ierr
+
+  if (mpi_in%mpi_comm/=MPI_COMM_NULL) then
+      call mpi_comm_dup(mpi_in%mpi_comm, mpi_out%mpi_comm, ierr)
+      call mpi_comm_size(mpi_out%mpi_comm, mpi_out%nproc, ierr)
+      call mpi_comm_rank(mpi_out%mpi_comm, mpi_out%nproc, ierr)
   end if
-  if(associated(sparsemat_in%orb_from_index)) then
-     iis1=lbound(sparsemat_in%orb_from_index,1)
-     iie1=ubound(sparsemat_in%orb_from_index,1)
-     iis2=lbound(sparsemat_in%orb_from_index,2)
-     iie2=ubound(sparsemat_in%orb_from_index,2)
-     allocate(sparsemat_out%orb_from_index(iis1:iie1,iis2:iie2), stat=istat)
-     call memocc(istat, sparsemat_out%orb_from_index, 'sparsemat_out%orb_from_index', subname)
-     do i1=iis1,iie1
-        do i2 = iis2,iie2
-           sparsemat_out%orb_from_index(i1,i2) = sparsemat_in%orb_from_index(i1,i2)
-        end do
-     end do
-  end if
+  mpi_out%igroup = mpi_in%igroup
+  mpi_out%ngroup = mpi_in%ngroup
 
-  call timing(iproc,'sparse_copy','OF')
-
-end subroutine sparse_copy_pattern
-
+end subroutine copy_mpi_environment

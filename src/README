@@ -1,43 +1,53 @@
-/*! @mainpage BigDFT Package developer documentation
- The BigDFT project is an electronic structure calculations based on wavelet basis set.
+/*! @file
+@brief README of the BigDFT source directory
 
- Binaries:
- - <b> abscalc                 </b>   XANES calculation
- - <b> bart                    </b>   BigDFT + ART
- - <b> bigdft                  </b>   the main program
- - <b> bigdft-tool             </b>   Tool to check input files and to estimate memory use
- - <b> BigDFT2Wannier          </b>   Wannier analysis
- - <b> frequencies             </b>   Calculation of the atomic frequencies by finite-difference
- - <b> MDanalysis              </b>   Molecular Dynamics analysis
- - <b> memguess                </b>   Used by bigdft-tool script
- - <b> NEB                     </b>   Nudge-Elastic Band method (saddle point determination)
- - <b> oneatom                 </b>   Test program which runs non-self consistent calculations
- - <b> sandbox                 </b>   Test for development purpose
- - <b> splsad                  </b>   Spline Saddle search program
- - <b> rism                    </b>   Test program to calculate atomic charge with York's method
- - <b> test_forces             </b>   Test program
- - <b> WaCo                    </b>   Wannier Constructors
- 
- Sub-directories:
- - <b>  art                    </b>   ART method from Normand Mousseau
- - <b>  convolutions           </b>   Convolutions for the Daubechies functions
- - <b>  convolutions-c         </b>   Convolutions using C routines
- - <b>  convolutions-generated </b>   Automatic generation of optimzed convolutions
- - <b>  CUDA                   </b>   Routines for the GPU part based on CUDA library from NVIDIA.
-                                      3D convolutions are coded.
- - <b>  init                   </b>   Initialization routines
- - <b>  lib                    </b>   Contains routines for the compilation (only fft)
- - <b>  linear                 </b>   Specific routines for the order N method
- - <b>  modules                </b>   Main modules of BigDFT package
- - <b>  OpenCL                 </b>   Routines for OpenCL acceleration
- - <b>  profiling              </b>   Routines to profile the code (time and memory)
- - <b>  PSolver                </b>   Contains Poisson solver routines
-                                      which can be compiled standalone as a library.
-                                      There are also the routines to build and manipulate
-                                      the interpolating scaling functions.
- - <b>  tools                  </b>   Contains tools to manipulate atomic coordinates or
-                                      doing Bader charge analysis
- - <b>  unused                 </b>   Contains deprecated routines (not documented)
- - <b>  wavelib                </b>   Basic routines for wavelets
- - <b>  wfn_opt                </b>   Wavefunction optimization
+@dir
+@brief
+   This directory contains the source of the core project of BigDFT.
+
+@dir ./src/convolutions
+@brief
+   This directory contains the source of short convolutions used inside BigDFT.
+
+@dir ./src/convolutions-c
+@brief
+   C version of some optimized convolutions (using SSE instructions for instance).
+
+@dir ./src/init
+@brief
+   Initialization (guess wavefunctions)
+
+@dir ./src/linear
+@brief
+   Linear scaling version routines
+
+@dir ./src/modules
+@brief
+   All modules of internal part of BigDFT
+
+@dir ./src/profiling
+@brief
+   Old profiling routines 'should be replaced by the flib routines (see @ref FLIB_MEMORY "flib memory")
+
+@dir ./src/tools
+@brief
+   Tools to analyze the outputs from BigDFT (bader, ...)
+
+@dir ./src/tools/bader
+@brief
+   Bader analysis of the electronic charge density
+
+@dir ./src/wavelib
+@brief
+   Contains some routines useful to handling the wavefunctions
+
+@dir ./src/wfn_opt
+@brief
+   Contains routines which operates to the wavefunctions
+
+@dir ./src/xcPSolver
+@brief
+   Contains the routine to calculate the exchange-correlation energy and potential using the libxc library.
+@todo Remove the use of PSolver in this directory and call it xc.
+
 */

@@ -1,0 +1,5 @@
+Test link to PAW library:
+1) It reads the PAW pseudopotential
+2) It fills in PAW objects
+3) It fits NL projectors to a sum of complex Gaussians
+4) At the end it writes down psppar.H.wvl with the Gaussian projectors

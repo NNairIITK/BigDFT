@@ -55,12 +55,12 @@ contains
 
     if (AB_DBG) write(std_err,*) "AB kpoints: call get irreductible zone."
 
-    errno = AB6_NO_ERROR
+    errno = AB7_NO_ERROR
     call symmetry_get_from_id(sym, symid, errno)
-    if (errno /= AB6_NO_ERROR) return
+    if (errno /= AB7_NO_ERROR) return
 
     if (sym%withSpin /= nspden) then
-       errno = AB6_ERROR_ARG
+       errno = AB7_ERROR_ARG
        return
     end if
 
@@ -93,9 +93,9 @@ contains
 
     if (AB_DBG) write(std_err,*) "AB symmetry: call get k grid1."
 
-    errno = AB6_NO_ERROR
+    errno = AB7_NO_ERROR
     call symmetry_get_from_id(sym, symid, errno)
-    if (errno /= AB6_NO_ERROR) return
+    if (errno /= AB7_NO_ERROR) return
 
     ! First, compute the number of kpoints
     kptrlatt(:,:) = 0
@@ -133,9 +133,9 @@ contains
 
     if (AB_DBG) write(std_err,*) "AB symmetry: call get k grid2."
 
-    errno = AB6_NO_ERROR
+    errno = AB7_NO_ERROR
     call symmetry_get_from_id(sym, symid, errno)
-    if (errno /= AB6_NO_ERROR) return
+    if (errno /= AB7_NO_ERROR) return
 
     ! Then, we call it again to get the actual values for the k points.
     call getkgrid(6, 1, kpt, 1, kptrlatt, kptrlen, &
@@ -168,7 +168,7 @@ contains
 
     call kpoints_binding_mp_k_1(symid, nkpt, ngkpt, kptrlatt, kptrlen, &
          & nshiftk_, shiftk_, errno)
-    if (errno /= AB6_NO_ERROR) return
+    if (errno /= AB7_NO_ERROR) return
     allocate(kpt(3, nkpt))
     allocate(wkpt(nkpt))
     call kpoints_binding_mp_k_2(symid, nkpt, kpt, wkpt, &
@@ -199,9 +199,9 @@ contains
 
     if (AB_DBG) write(std_err,*) "AB symmetry: call get auto k grid1."
 
-    errno = AB6_NO_ERROR
+    errno = AB7_NO_ERROR
     call symmetry_get_from_id(sym, symid, errno)
-    if (errno /= AB6_NO_ERROR) return
+    if (errno /= AB7_NO_ERROR) return
 
     !  The parameters of the k lattice are not known, compute
     !  kptrlatt, nshiftk, shiftk.
@@ -209,11 +209,19 @@ contains
          & AB6_MAX_SYMMETRIES,nshiftk,sym%nSym,0,sym%rprimd,&
          & shiftk,sym%symAfm,sym%sym,sym%vacuum)
     if (AB_DBG) write(std_err,*) "AB symmetry: testkgrid -> kptrlatt=", kptrlatt
+    
+    !LG: the array kpt seems not allocated here.
+    !I would classify it as a bug
+    !therefore:
+    nkpt=0
+    allocate(kpt(3, nkpt))
+    allocate(wkpt(nkpt))
 
     call getkgrid(6, 1, kpt, 1, kptrlatt, kptrlen, &
          & AB6_MAX_SYMMETRIES, 0, nkpt, nshiftk, sym%nSym, &
          & sym%rprimd, shiftk, sym%symAfm, sym%sym, &
          & sym%vacuum, wkpt)
+    deallocate(kpt,wkpt)
     if (AB_DBG) write(std_err,*) "AB symmetry: getkgrid -> nkpt=", nkpt
   end subroutine kpoints_binding_auto_k_1
 
@@ -241,9 +249,9 @@ contains
 
     if (AB_DBG) write(std_err,*) "AB symmetry: call get auto k grid2."
 
-    errno = AB6_NO_ERROR
+    errno = AB7_NO_ERROR
     call symmetry_get_from_id(sym, symid, errno)
-    if (errno /= AB6_NO_ERROR) return
+    if (errno /= AB7_NO_ERROR) return
 
     ! Then, we call it again to get the actual values for the k points.
     call getkgrid(6, 1, kpt, 1, kptrlatt, kptrlen, &
@@ -271,7 +279,7 @@ contains
     kptrlen_ = kptrlen
     call kpoints_binding_auto_k_1(symid, nkpt, kptrlatt, kptrlen_, &
        & nshiftk, shiftk, errno)
-    if (errno /= AB6_NO_ERROR) return
+    if (errno /= AB7_NO_ERROR) return
     allocate(kpt(3, nkpt))
     allocate(wkpt(nkpt))
     call kpoints_binding_auto_k_2(symid, nkpt, kpt, wkpt, kptrlatt, kptrlen_, &

@@ -1,0 +1,6 @@
+check_sumrho 1
+experimental_mode T
+kappa_conv 0.5
+evbounds_nsatur 100
+correction_co_contra T
+mixing_after_inputguess 2

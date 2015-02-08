@@ -10,9 +10,13 @@
 
 !> Modules which contains the low level definitions, as well as some profiling procedures
 module module_base 
+  use wrapper_linalg
+  use wrapper_MPI
   use module_defs
+  use dictionaries, dict_set => set !error_handling
   use dynamic_memory
-  !use m_profiling
-
+  use time_profiling
+  use f_utils
+  use yaml_strings
   implicit none  
 end module module_base

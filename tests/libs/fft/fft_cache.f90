@@ -1,14 +1,15 @@
-!!****p* BigDFT/fft_cache
-!!
-!! DESCRIPTION
-!!   Check the best cache size
-!!
-!! COPYRIGHT
+!> @file
+!!   Calculate the optimal cache parameter for the FFT routine.
+!! @copyright
 !!   Copyright (C) Stefan Goedecker, CEA Grenoble, 2002, Basel University, 2009
+!!   Copyright (C) 2009-2013 BigDFT group
 !!   This file is distributed under the terms of the
-!!   GNU General Public License, see http://www.gnu.org/copyleft/gpl.txt .
-!!
-!! SYNOPSIS
+!!   GNU General Public License, see ~/COPYING file
+!!   or http://www.gnu.org/copyleft/gpl.txt .
+!!   For the list of contributors, see ~/AUTHORS
+
+
+!>   Check the best cache size
 !!   3-dimensional complex-complex FFT routine: 
 !!   When compared to the best vendor implementations on RISC architectures 
 !!   it gives close to optimal performance (perhaps loosing 20 percent in speed)
@@ -18,14 +19,11 @@
 !!   was significantly faster than the vendor routines
 !!
 !!  The theoretical background is described in :
-!!  1) S. Goedecker: Rotating a three-dimensional array in optimal
+!!  S. Goedecker: Rotating a three-dimensional array in optimal
 !!  positions for vector processing: Case study for a three-dimensional Fast
-!!  Fourier Transform, Comp. Phys. Commun. \underline{76}, 294 (1993)
+!!  Fourier Transform, Comp. Phys. Commun. 76, 294 (1993)
 !!  Citing of this reference is greatly appreciated if the routines are used 
 !!  for scientific work.
-!!
-!! SOURCE
-!!
 program fft_cache
 
    use module_fft_sg
@@ -35,23 +33,23 @@ program fft_cache
    character (len=100) :: tatonam
    integer :: ip,jp,n3,ndat,ntime
    real(kind=8) :: time,tela
+   logical :: success
 
-! Get arguments
-
-  call getarg(1,tatonam)
-
-  if(trim(tatonam)=='') then
-     write(*,'(1x,a)')&
-          'Usage: ./fft_cache <cache_size>'
-     write(*,'(1x,a)')&
-          'Indicate the cache size in kB for FFT test'
-     stop
-  else
-     !Read the cache size
-     read(unit=tatonam,fmt=*) ncache
-     ncache = ncache*1024
-     write(unit=6,fmt="(a,i0,a)",advance="no") "Cache size=",ncache,":"
-  end if
+   ! Get arguments
+   call getarg(1,tatonam)
+   
+   if(trim(tatonam)=='') then
+      write(*,'(1x,a)')&
+           'Usage: ./fft_cache <cache_size>'
+      write(*,'(1x,a)')&
+           'Indicate the cache size in kB for FFT test'
+      stop
+   else
+      !Read the cache size
+      read(unit=tatonam,fmt=*) ncache
+      ncache = ncache*1024
+      write(unit=6,fmt="(a,i0,a)",advance="no") "Cache size=",ncache,":"
+   end if
 
    open(unit=iunit,file="fft_cache.dat",status="unknown",position="append")
    do ip=1,ndata,10
@@ -60,8 +58,10 @@ program fft_cache
       ndat = nsize_dat/8/n3
       ntime=1!3
       do jp=1,ntime
-         call do_fft(ndat, n3, time, tela)
+         call do_fft(ndat, n3, time, tela, success)
+         if (.not. success) exit
       end do
+      if (.not. success) exit
       write(unit=6,fmt="(a,i0,a)",advance="no") "[",n3,"]"
       write(unit=iunit,fmt=*) ncache,n3,ndat,time,tela
    end do
@@ -71,13 +71,14 @@ program fft_cache
 
 contains
 
-   subroutine do_fft(ndat,n3,time,tela)
+   subroutine do_fft(ndat,n3,time,tela,success)
 
       implicit none
 
       ! dimension parameters
       integer, intent(in) :: ndat, n3
       real(kind=8), intent(out) :: time,tela
+      logical, intent(out) :: success
       ! Local variables
       integer :: count1,count2,count_rate,count_max,i,inzee,i_sign
       real(kind=8) :: t1,t2
@@ -108,7 +109,7 @@ contains
       inzee=1
       call cpu_time(t1)
       call system_clock(count1,count_rate,count_max)      
-      call fft1(ndat,n3,nddat,nd3,z,i_sign,inzee)
+      call fft1(ndat,n3,nddat,nd3,z,i_sign,inzee,success)
       call system_clock(count2,count_rate,count_max)      
       call cpu_time(t2)
       time=(t2-t1)
@@ -137,8 +138,8 @@ contains
       end do
    end subroutine init
 
-   !Do one basic FFT (transform along Z)
-   subroutine fft1(ndat,n3,nddat,nd3,z,i_sign,inzee)
+   !> Do one basic FFT (transform along Z)
+   subroutine fft1(ndat,n3,nddat,nd3,z,i_sign,inzee, success)
 
       use module_fft_sg
       implicit real(kind=8) (a-h,o-z), integer (i-n)
@@ -155,6 +156,7 @@ contains
       !Arguments
       integer, intent(in) :: ndat,n3,nddat,nd3,i_sign
       integer, intent(inout) :: inzee
+      logical, intent(out) :: success
       real(kind=8), intent(inout) :: z(2,nddat*nd3,2)
       !Local variables
       real(kind=8), dimension(:,:), allocatable :: trig
@@ -165,6 +167,8 @@ contains
          write(*,*) 'Dimension bigger than ', nfft_max
          stop
       end if
+
+      success = .true.
 
       ntrig=n3
       allocate(trig(2,ntrig))
@@ -216,7 +220,9 @@ contains
          nn=lot
          n=n3
          if (2*n*lot*2.gt.ncache) then
-            stop 'ncache1'
+            write(*,"(A)",advance="no") 'STOP ncache1'
+            success = .false.
+            return
          end if
 
          call ctrig_sg(n3,ntrig,trig,after,before,now,i_sign,ic)
@@ -274,5 +280,3 @@ contains
 
 
 end program fft_cache
-!!***
-

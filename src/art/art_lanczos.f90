@@ -1,19 +1,22 @@
 !> @file
-!! Contains routines for the lanczos procedure
-!! @author
+!!    Contains routines for the lanczos procedure
+!!
+!! @details
+!! Modified by:
+!! - EM 2010, see ~/AUTHORS
+!! - Laurent Karim Beland, UdeM 2011: Gramm-Schmidt orthogonalization
+!! - ID and EM 2011, see ~/AUTHORS: Gramm-Schmidt, DSTEV->DGEEV
+!!
+!! @copyright
 !!    Copyright (C) 2001 Normand Mousseau
-!!    Copyright (C) 2010-2011 BigDFT group
+!!    Copyright (C) 2010-2013 BigDFT group
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
-!! Modified by:
-!! -EM 2010, see ~/AUTHORS
-!! -Laurent Karim Beland, UdeM 2011: Gramm-Schmidt orthogonalization
-!! -ID and EM 2011, see ~/AUTHORS: Gramm-Schmidt, DSTEV->DGEEV
 
-!> Module lanczos_defs ( ART )
-!! to use lanczos inside art
+
+!> Module to use lanczos inside ART
 module lanczos_defs
 
   implicit none

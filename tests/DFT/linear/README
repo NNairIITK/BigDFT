@@ -1,1 +1,38 @@
-Test the linear version of the code.
+/*! @file
+@brief README of the non-regression tests for the linear version (ground-state calculations).
+
+@dir
+@brief Contains the non-regression tests for the linear version (ground-state calculations)
+
+@page TESTS_DFT_LINEAR Test the linear version of the code.
+@brief Non-regression tests (ground-state with the linear version)
+
+Tests the ground-state calculation capabilities for teh linear version.
+
+The command <tt>make check</tt> performs the series of tests:
+- @b base:           Base test
+- @b cdft:
+- @b cleanup:
+- @b deltascf:
+- @b directmin:      Direct minimisation
+- @b foe:            Test of the Fermi Operator Expansaion (FOE)
+- @b fructose:       Fructose molecule
+- @b geopt:          Geometry optimisation
+- @b hybridlarge:
+- @b Locreg:
+- @b mixpotential:
+- @b molecule:
+- @b moreIGorbs:
+- @b onlyhigh:
+- @b paracetamol:   Paracetamol molecule
+- @b penicillin-G:
+- @b reformat:      Test the reformt of the wavefunctions
+- @b restartdisk:   test the restart from disk
+- @b rotate:   
+- @b rotate2:
+- @b rotatesmall:
+- @b rotatesmall2:
+- @b testforces:
+- @b water:        Water molecule
+- @b withder:
+*/

@@ -1,7 +1,7 @@
 !> @file
-!!  Define the fortran types
+!!  Define operations over gaussian functions
 !! @author
-!!    Copyright (C) 2008-2011 BigDFT group (LG)
+!!    Copyright (C) 2008-2013 BigDFT group (LG)
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
@@ -12,55 +12,120 @@
 !! Spherical harmonics are used in the cartesian form
 module gaussians
 
-  use module_base, only: gp,memocc,ndebug
-
+  use module_base
+  implicit none
   private
 
-  integer, parameter :: NSD_=2,EXPO_=1,COEFF_=2  !< positions of exponents and coefficients in the storage space
-  integer, parameter :: NSHID_=3,DOC_=1,L_=2,N_=3  !< positions of shell identification numbers in shell id space
-  integer, parameter :: NTERM_MAX_OVERLAP=62 !<maximum number of terms for the considered shells
-  integer, parameter :: NTERM_MAX_KINETIC=190 !<maximum number of terms for the considered shells in the case of laplacian
-  integer, parameter :: L_MAX=3 !< maximum number of angular momentum considered
+  integer, parameter :: NSD_=2,EXPO_=1,COEFF_=2    !< Positions of exponents and coefficients in the storage space
+  integer, parameter :: NSHID_=3,DOC_=1,L_=2,N_=3  !< Positions of shell identification numbers in shell id space
+  integer, parameter :: NTERM_MAX_OVERLAP=62       !< Maximum number of terms for the considered shells
+  integer, parameter :: NTERM_MAX_KINETIC=190      !< Maximum number of terms for the considered shells in the case of laplacian
+  integer, parameter :: L_MAX=3                    !< Maximum number of angular momentum considered
 
-  integer :: itype_scf=0 !< type of the interpolating SCF, 0= data unallocated
-  integer :: n_scf=-1    !< number of points of the allocated data
-  real(gp), dimension(:), allocatable :: scf_data !< values for the interpolating scaling functions points
+  integer :: itype_scf=0                          !< Type of the interpolating SCF, 0= data unallocated
+  integer :: n_scf=-1                             !< Number of points of the allocated data
+  integer :: nrange_scf=0                         !< range of the integration
+  real(gp), dimension(:), allocatable :: scf_data !< Values for the interpolating scaling functions points
+  !> log of the minimum value of the scf data
+  !! to avoid floating point exceptions while multiplying with it
+  real(gp) :: mn_scf = 0.0_gp
 
   !> Structures of basis of gaussian functions
   type, public :: gaussian_basis
-     integer :: nat  !< number of centers
-     integer :: ncoeff !< number of total basis elements
-     integer :: nshltot !< total number of shells (m quantum number ignored) 
-     integer :: nexpo !< number of exponents (sum of the contractions)
+     integer :: nat     !< Number of centers
+     integer :: ncoeff  !< Number of total basis elements
+     integer :: nshltot !< Total number of shells (m quantum number ignored) 
+     integer :: nexpo   !< Number of exponents (sum of the contractions)
+     integer :: ncplx   !< Number of complex comp. (real or complex gaussians)
      !storage units
-     integer, dimension(:), pointer :: nshell !< number of shells for any of the centers
-     integer, dimension(:), pointer :: ndoc,nam !< degree of contraction, angular momentum of any shell
-     real(gp), dimension(:), pointer :: xp,psiat !<factors and values of the exponents (complex numbers are allowed)
-     real(gp), dimension(:,:), pointer :: rxyz !<positions of the centers
+     integer, dimension(:), pointer :: nshell      !< Number of shells for any of the centers
+     integer, dimension(:), pointer :: ndoc,nam    !< Degree of contraction, angular momentum of any shell
+     real(gp), dimension(:,:), pointer :: xp,psiat !< Factors and values of the exponents (complex numbers are allowed)
+     real(gp), dimension(:,:), pointer :: rxyz     !< Positions of the centers
   end type gaussian_basis
 
   !> Structures of basis of gaussian functions
-  type :: gaussian_basis_new
-     integer :: nat  !< number of centers
-     integer :: ncoeff !< number of total basis elements
-     integer :: nshltot !< total number of shells (m quantum number ignored) 
-     integer :: nexpo !< number of exponents (sum of the contractions)
-     integer :: ncplx !< =1 if traditional, =2 if complex gaussians
+  type, public :: gaussian_basis_new
+     integer :: nat     !< Number of centers
+     integer :: ncoeff  !< Number of total basis elements
+     integer :: nshltot !< Total number of shells (m quantum number ignored) 
+     integer :: nexpo   !< Number of exponents (sum of the contractions)
+     integer :: ncplx   !< =1 if traditional, =2 if complex gaussians
      !storage units
-     integer, dimension(:), pointer :: nshell !< number of shells for any of the centers
-     integer, dimension(:,:), pointer :: shid !< degree of contraction, angular momentum and principal quantum number
-     real(gp), dimension(:,:), pointer :: sd !<sigma and contraction coefficients the exponents (complex numbers are allowed)
-     real(gp), dimension(:,:), pointer :: rxyz !<positions of the centers
+     integer, dimension(:), pointer :: nshell  !< Number of shells for any of the centers
+     integer, dimension(:,:), pointer :: shid  !< Degree of contraction, angular momentum and principal quantum number
+     real(gp), dimension(:,:), pointer :: sd   !< Sigma and contraction coefficients the exponents (complex numbers are allowed)
+     real(gp), dimension(:,:), pointer :: rxyz !< Positions of the centers
   end type gaussian_basis_new
 
   public :: gaudim_check,normalize_shell,gaussian_overlap,kinetic_overlap,gauint0
-  public :: initialize_real_space_conversion,finalize_real_space_conversion,scfdotf
+  public :: initialize_real_space_conversion,finalize_real_space_conversion,scfdotf,mp_exp
+
+  public :: nullify_gaussian_basis, deallocate_gwf, gaussian_basis_null, gaussian_basis_free
+
+  public :: gaussian_basis_from_psp, gaussian_basis_from_paw,nullify_gaussian_basis_new
+
+  type, public :: gaussian_basis_iter
+     integer :: nshell = 0 !< Number of shells to iter on, read only.
+     integer :: ishell = 0 !< Current shell id, read only.
+     integer :: ndoc       !< Number of gaussians for current shell, read only.
+     integer :: idoc       !< Current gaussian id, read only.
+     integer :: l, n       !< Quantum number of current shell, read only.
+
+     integer :: ishell_s   !< Internal, may change.
+     integer :: iexpo      !< Internal, may change.
+  end type gaussian_basis_iter
+  public :: gaussian_iter_start, gaussian_iter_next_shell, gaussian_iter_next_gaussian
 
 contains
 
-  function gaussian_basis_null() result(G)
+
+  !> Nullify the pointers of the structure gaussian_basis
+  pure subroutine nullify_gaussian_basis(G)
+
+    implicit none
+    !Arguments
+    type(gaussian_basis),intent(inout) :: G 
+
+    G%nat=0     
+    G%ncoeff=0  
+    G%nshltot=0 
+    G%nexpo=0   
+    G%ncplx=1
+    nullify(G%nshell)
+    nullify(G%ndoc)
+    nullify(G%nam)
+    nullify(G%psiat)
+    nullify(G%xp)
+    nullify(G%rxyz)
+  END SUBROUTINE nullify_gaussian_basis
+
+
+!> De-Allocate gaussian_basis type
+  subroutine deallocate_gwf(G)
+    use module_base
+    implicit none
+    type(gaussian_basis), intent(inout) :: G
+
+    !normally positions should be deallocated outside
+    call f_free_ptr(G%ndoc)
+    call f_free_ptr(G%nam)
+    call f_free_ptr(G%nshell)
+    call f_free_ptr(G%psiat)
+    call f_free_ptr(G%xp)
+
+  END SUBROUTINE deallocate_gwf
+
+
+  !> Nullify the pointers of the structure gaussian_basis_new
+  pure function gaussian_basis_null() result(G)
     implicit none
     type(gaussian_basis_new) :: G
+    call nullify_gaussian_basis_new(G)
+  end function gaussian_basis_null
+  pure subroutine nullify_gaussian_basis_new(G)
+    implicit none
+    type(gaussian_basis_new), intent(out) :: G
     G%nat=0
     G%ncoeff=0
     G%nshltot=0
@@ -70,17 +135,18 @@ contains
     nullify(G%shid)
     nullify(G%sd)
     nullify(G%rxyz)
-  end function gaussian_basis_null
+  end subroutine nullify_gaussian_basis_new
 
-  function gaussian_basis_init(nat,nshell,rxyz) result(G)
+
+  subroutine init_gaussian_basis(nat,nshell,rxyz,G)
     implicit none
     integer, intent(in) :: nat
     integer, dimension(nat), intent(in) :: nshell
     real(gp), dimension(3,nat), intent(in), target :: rxyz
-    type(gaussian_basis_new) :: G
+    type(gaussian_basis_new),intent(out) :: G
     !local variables
-    character(len=*), parameter :: subname='gaussian_basis_init'
-    integer :: i_stat,iat
+    character(len=*), parameter :: subname='init_gaussian_basis'
+    integer :: iat
 
     G=gaussian_basis_null()
 
@@ -88,8 +154,7 @@ contains
     G%rxyz => rxyz
 
     !number of shells per atoms
-    allocate(G%nshell(G%nat+ndebug),stat=i_stat)
-    call memocc(i_stat,G%nshell,'G%nshell',subname)
+    G%nshell = f_malloc_ptr(G%nat,id='G%nshell')
 
     G%nshltot=0
     do iat=1,nat
@@ -97,10 +162,210 @@ contains
        G%nshltot=G%nshltot+nshell(iat)
     end do
 
-    allocate(G%shid(NSHID_,G%nshltot+ndebug),stat=i_stat)
-    call memocc(i_stat,G%shid,'G%shid',subname)
+    G%shid = f_malloc_ptr((/ NSHID_, G%nshltot /),id='G%shid')
+  end subroutine init_gaussian_basis
 
-  end function gaussian_basis_init
+  subroutine gaussian_basis_from_psp(nat,iatyp,rxyz,psppar,ntyp,G)
+    implicit none
+    integer, intent(in) :: nat, ntyp
+    integer, dimension(nat) :: iatyp
+    real(gp), dimension(0:4,0:6,ntyp), intent(in) :: psppar
+    real(gp), dimension(3,nat), intent(in), target :: rxyz
+    type(gaussian_basis_new),intent(out) :: G
+    !local variables
+    integer, dimension(nat) :: nshell
+    integer :: iat, l, i, ishell, iexpo
+
+    call f_routine(id='gaussian_basis_from_psp')
+    
+    ! Build nshell from psppar.
+    do iat = 1, nat
+       nshell(iat) = 0
+       do l=1,4 !generic case, also for HGHs (for GTH it will stop at l=2)
+          do i=1,3 !generic case, also for HGHs (for GTH it will stop at i=2)
+             if (psppar(l,i,iatyp(iat)) /= 0.0_gp) then
+                nshell(iat) = nshell(iat) + 1
+             end if
+          end do
+       end do
+    end do
+
+    call init_gaussian_basis(nat,nshell,rxyz,G)
+
+    ! Associate values in shid.
+    ishell = 1
+    do iat = 1, nat
+       do l=1,4 !generic case, also for HGHs (for GTH it will stop at l=2)
+          do i=1,3 !generic case, also for HGHs (for GTH it will stop at i=2)
+             if (psppar(l,i,iatyp(iat)) /= 0.0_gp) then
+                G%shid(DOC_, ishell) = 1
+                G%shid(L_, ishell) = l
+                G%shid(N_, ishell) = i
+                G%nexpo=G%nexpo+1
+                G%ncoeff=G%ncoeff+2*l-1
+                ishell = ishell + 1
+             end if
+          end do
+       end do
+    end do
+
+    !allocate storage space (real exponents and coeffs for the moment)
+    G%sd = f_malloc_ptr((/ G%ncplx*NSD_, G%nexpo /),id='G%sd')
+
+    ! Associate values in sd.
+    iexpo = 1
+    do iat = 1, nat
+       do l=1,4 !generic case, also for HGHs (for GTH it will stop at l=2)
+          do i=1,3 !generic case, also for HGHs (for GTH it will stop at i=2)
+             if (psppar(l,i,iatyp(iat)) /= 0.0_gp) then
+                G%sd(EXPO_,iexpo)  = 0.5_gp/(psppar(l,0,iatyp(iat))**2)
+                G%sd(COEFF_,iexpo) = 1._gp
+                iexpo = iexpo + 1
+             end if
+          end do
+       end do
+    end do
+
+    call f_release_routine()
+
+  end subroutine gaussian_basis_from_psp
+
+  !> Initialise the gaussian basis from PAW datas.
+  subroutine gaussian_basis_from_paw(nat, iatyp, rxyz, pawtab, ntyp, G)
+    use m_pawtab, only : pawtab_type
+    
+    implicit none
+
+    !Arguments ------------------------------------
+    integer, intent(in) :: nat, ntyp
+    integer, dimension(nat) :: iatyp
+    type(pawtab_type), dimension(ntyp), intent(in) :: pawtab
+    real(gp), dimension(3,nat), intent(in), target :: rxyz
+    type(gaussian_basis_new),intent(out) :: G
+
+    !Local variables-------------------------------
+    integer, dimension(nat) :: nshell
+    integer :: iat, i, ib, lprev, nprev, l, n, ishell, iexpo
+
+    ! Build nshell from pawtab.
+    do iat = 1, nat
+       nshell(iat) = pawtab(iatyp(iat))%basis_size
+    end do
+    call init_gaussian_basis(nat,nshell,rxyz,G)
+
+    ! Store stuff.
+    G%ncplx=2 !Complex gaussians
+
+    ! Associate values in shid.
+    ishell = 1
+    do iat = 1, nat
+       ib = 1
+       l = -1
+       n = -1
+       do i = 1, G%nshell(iat)
+          ! Look for next (l,n) tuple.
+          do
+             if (ib > pawtab(iatyp(iat))%lmn_size) stop "indlmn impl."
+             lprev = l
+             nprev = n
+             l = pawtab(iatyp(iat))%indlmn(1, ib)
+             n = pawtab(iatyp(iat))%indlmn(3, ib)
+             ib = ib + 1
+             !    write(*,*)ll,pawtab(itypat)%indlmn(2,ib),nn
+             if (l /= lprev .or. n /= nprev) exit
+             !    write(*,*)jb,pawtab(itypat)%indlmn(1:3,ib)
+          end do
+
+          G%shid(DOC_, ishell) = pawtab(iatyp(iat))%wvl%pngau(i)
+          G%shid(L_, ishell) = l + 1 ! 1 is added due to BigDFT convention
+          G%shid(N_, ishell) = 1
+          G%nexpo  = G%nexpo  + G%shid(DOC_, ishell)
+          G%ncoeff = G%ncoeff + 2*G%shid(L_, ishell)-1
+          ishell = ishell + 1
+       end do
+    end do
+    !allocate storage space (real exponents and coeffs for the moment)
+    G%sd = f_malloc_ptr((/ G%ncplx*NSD_, G%nexpo /),id='G%sd')
+    ! Copy coefficients and factors.
+    iexpo = 0
+    do iat = 1, nat
+       do i = 1, pawtab(iatyp(iat))%wvl%ptotgau
+          ! minus real part is for BigDFT convention.
+          G%sd((EXPO_ - 1) * 2 + 1,iexpo + i)  = -pawtab(iatyp(iat))%wvl%parg(1,i)
+          G%sd((EXPO_ - 1) * 2 + 2,iexpo + i)  = pawtab(iatyp(iat))%wvl%parg(2,i)
+          G%sd((COEFF_ - 1) * 2 + 1,iexpo + i) = pawtab(iatyp(iat))%wvl%pfac(1,i)
+          G%sd((COEFF_ - 1) * 2 + 2,iexpo + i) = pawtab(iatyp(iat))%wvl%pfac(2,i)
+!!$          write(*,*) iat, iexpo, i, G%sd((EXPO_ - 1) * 2 + 1,iexpo + i), &
+!!$               & G%sd((EXPO_ - 1) * 2 + 2,iexpo + i), G%sd((COEFF_ - 1) * 2 + 1,iexpo + i), &
+!!$               & G%sd((COEFF_ - 1) * 2 + 2,iexpo + i)
+       end do
+       iexpo = iexpo + pawtab(iatyp(iat))%wvl%ptotgau
+    end do
+  end subroutine gaussian_basis_from_paw
+
+  !> Start a new iterator on gaussian basis for the shells of a given atom.
+  subroutine gaussian_iter_start(G, iat, iter)
+    implicit none
+    type(gaussian_basis_new), intent(in) :: G
+    integer, intent(in) :: iat
+    type(gaussian_basis_iter), intent(out) :: iter
+
+    integer :: i, j
+
+    ! Compute offset in shell array and exposant array.
+    iter%ishell_s = 0
+    iter%iexpo    = 0
+    do i = 1, iat - 1
+       do j = iter%ishell_s + 1, iter%ishell_s + G%nshell(i)
+          iter%iexpo = iter%iexpo + G%shid(DOC_, j)
+       end do
+       iter%ishell_s = iter%ishell_s + G%nshell(i)
+    end do
+
+    iter%ishell = 0
+    iter%nshell = G%nshell(iat)
+  end subroutine gaussian_iter_start
+
+  !> Go to the next shell of the current iterator.
+  function gaussian_iter_next_shell(G, iter)
+    implicit none
+    type(gaussian_basis_new), intent(in) :: G
+    type(gaussian_basis_iter), intent(inout) :: iter
+    logical :: gaussian_iter_next_shell
+
+    gaussian_iter_next_shell = .false.
+    ! End of loop case
+    if (iter%ishell >= iter%nshell) return
+
+    iter%ishell = iter%ishell + 1
+    iter%l      = G%shid(L_, iter%ishell_s + iter%ishell)
+    iter%n      = G%shid(N_, iter%ishell_s + iter%ishell)
+    iter%ndoc   = G%shid(DOC_, iter%ishell_s + iter%ishell)
+    iter%idoc   = 0
+    if (iter%ishell > 1) iter%iexpo = iter%iexpo + G%shid(DOC_, iter%ishell_s + iter%ishell - 1)
+    gaussian_iter_next_shell = .true.
+  end function gaussian_iter_next_shell
+
+  !> Go to the next gaussian of the current shell.
+  function gaussian_iter_next_gaussian(G, iter, coeff, expo)
+    implicit none
+    type(gaussian_basis_new), intent(in) :: G
+    type(gaussian_basis_iter), intent(inout) :: iter
+    real(gp), dimension(G%ncplx), intent(out), optional :: coeff, expo
+    logical :: gaussian_iter_next_gaussian
+
+    gaussian_iter_next_gaussian = .false.
+    ! End of loop case
+    if (iter%idoc >= iter%ndoc) return
+
+    iter%idoc  = iter%idoc + 1
+    coeff(1) = G%sd(G%ncplx * (COEFF_ - 1) + 1, iter%iexpo + iter%idoc)
+    expo(1)  = G%sd(G%ncplx * (EXPO_ - 1) + 1, iter%iexpo + iter%idoc)
+    coeff(G%ncplx) = G%sd(G%ncplx * (COEFF_ - 1) + G%ncplx, iter%iexpo + iter%idoc)
+    expo(G%ncplx)  = G%sd(G%ncplx * (EXPO_ - 1) + G%ncplx, iter%iexpo + iter%idoc)
+    gaussian_iter_next_gaussian = .true.
+  end function gaussian_iter_next_gaussian
+
 
   subroutine gaussian_basis_convert(G,Gold)
     implicit none
@@ -108,9 +373,10 @@ contains
     type(gaussian_basis), intent(in) :: Gold
     !local variables
     character(len=*), parameter :: subname='gaussian_basis_convert'
-    integer :: ishell,i_stat,iexpo
+    integer :: ishell,iexpo
 
-    G=gaussian_basis_init(Gold%nat,Gold%nshell,Gold%rxyz)
+    !G=init_gaussian_basis(Gold%nat,Gold%nshell,Gold%rxyz)
+    call init_gaussian_basis(Gold%nat,Gold%nshell,Gold%rxyz,G)
     G%ncplx=1
     G%nexpo=0
     do ishell=1,G%nshltot
@@ -121,98 +387,146 @@ contains
        G%ncoeff=G%ncoeff+2*Gold%nam(ishell)-1
     end do
     !allocate storage space (real exponents and coeffs for the moment)
-    allocate(G%sd(G%ncplx*NSD_,G%nexpo+ndebug),stat=i_stat)
-    call memocc(i_stat,G%sd,'G%sd',subname)
+    G%sd = f_malloc_ptr((/ G%ncplx*NSD_, G%nexpo /),id='G%sd')
 
     do iexpo=1,G%nexpo
-       G%sd(EXPO_,iexpo)=0.5_gp/Gold%xp(iexpo)**2
-       G%sd(COEFF_,iexpo)=Gold%psiat(iexpo)
+       G%sd(EXPO_,iexpo)=0.5_gp/Gold%xp(1,iexpo)**2
+       G%sd(COEFF_,iexpo)=Gold%psiat(1,iexpo)
     end do
 
   end subroutine gaussian_basis_convert
 
-  subroutine gaussian_basis_free(G,subname)
+
+  subroutine gaussian_basis_free(G)
     implicit none
-    character(len=*), intent(in) :: subname
     type(gaussian_basis_new), intent(inout) :: G
-    !local variables
-    integer :: i_all,i_stat
 
     !do not deallocate the atomic centers
     if (associated(G%rxyz)) nullify(G%rxyz)
 
-    if (associated(G%sd)) then
-       i_all=-product(shape(G%sd))*kind(G%sd)
-       deallocate(G%sd,stat=i_stat)
-       call memocc(i_stat,i_all,'G%sd',subname)
-    end if
-    if (associated(G%shid)) then
-       i_all=-product(shape(G%shid))*kind(G%shid)
-       deallocate(G%shid,stat=i_stat)
-       call memocc(i_stat,i_all,'G%shid',subname)
-    end if
-    if (associated(G%nshell)) then
-       i_all=-product(shape(G%nshell))*kind(G%nshell)
-       deallocate(G%nshell,stat=i_stat)
-       call memocc(i_stat,i_all,'G%nshell',subname)
-    end if
+    call f_free_ptr(G%sd)
+    call f_free_ptr(G%shid)
+    call f_free_ptr(G%nshell)
 
     G=gaussian_basis_null()
 
   end subroutine gaussian_basis_free
 
+
   !> Prepare the array for the evaluation with the interpolating Scaling Functions
-  subroutine initialize_real_space_conversion(npoints,isf_m)
+  !! one might add also the function to be converted and the 
+  !! prescription for integrating knowing the scaling relation of the function
+  subroutine initialize_real_space_conversion(npoints,isf_m,nmoms)
     implicit none
-    integer, intent(in), optional :: npoints,isf_m
+    integer, intent(in), optional :: npoints,isf_m,nmoms
     !local variables
     character(len=*), parameter :: subname='initialize_real_space_conversion'
-    integer :: i_stat,n_range,i_all
+    integer :: n_range,i,nmm
+    real(gp) :: tt
     real(gp), dimension(:), allocatable :: x_scf !< to be removed in a future implementation
 
-    itype_scf=16
-    if (present(isf_m)) itype_scf=isf_m
+    if (present(isf_m)) then
+       itype_scf=isf_m
+    else
+       itype_scf=16
+    end if
 
-    n_scf=2*itype_scf*(2**6)
-    if (present(npoints)) n_scf=2*itype_scf*npoints
+    if (present(nmoms)) then
+       nmm=nmoms
+    else
+       nmm=0
+    end if
+
+    if (present(npoints)) then
+       n_scf=2*(itype_scf+nmm)*npoints
+    else
+       n_scf=2*(itype_scf+nmm)*(2**6)
+    end if
 
     !allocations for scaling function data array
-    allocate(x_scf(0:n_scf),stat=i_stat)
-    call memocc(i_stat,x_scf,'x_scf',subname)
+    x_scf = f_malloc(0.to.n_scf,id='x_scf')
 
-    allocate(scf_data(0:n_scf),stat=i_stat)
-    call memocc(i_stat,scf_data,'scf_data',subname)
+    scf_data = f_malloc(0.to.n_scf,id='scf_data')
 
     !Build the scaling function external routine coming from Poisson Solver. To be customized accordingly
-    call scaling_function(itype_scf,n_scf,n_range,x_scf,scf_data)
+    !call scaling_function(itype_scf,n_scf,n_range,x_scf,scf_data)
+    !call wavelet_function(itype_scf,n_scf,x_scf,scf_data)
+    call ISF_family(itype_scf,nmm,n_scf,n_range,x_scf,scf_data)
+    !stop 
+    call f_free(x_scf)
 
-    i_all=-product(shape(x_scf))*kind(x_scf)
-    deallocate(x_scf,stat=i_stat)
-    call memocc(i_stat,i_all,'x_scf',subname)
+    nrange_scf=n_range
+    !define the log of the smallest nonzero value as the 
+    !cutoff for multiplying with it
+    !this means that the values which are 
+    !lower than scf_data squared will be considered as zero
+    mn_scf=epsilon(1.d0)**2 !just to put a "big" value
+    do i=0,n_scf
+       tt=scf_data(i)
+       if (tt /= 0.0_gp .and. abs(tt) > sqrt(tiny(1.0))) then
+          mn_scf=min(mn_scf,tt**2)
+       end if
+    end do
 
   end subroutine initialize_real_space_conversion
 
-  subroutine finalize_real_space_conversion(subname)
+ 
+  !> Deallocate scf_data
+  subroutine finalize_real_space_conversion()
     implicit none
-    character(len=*), intent(in) :: subname
-    !local variables
-    integer :: i_stat,i_all
 
     itype_scf=0
     n_scf=-1
-    i_all=-product(shape(scf_data))*kind(scf_data)
-    deallocate(scf_data,stat=i_stat)
-    call memocc(i_stat,i_all,'scf_data',subname)
+    mn_scf=0.0_gp
+    nrange_scf=0
+    call f_free(scf_data)
 
   end subroutine finalize_real_space_conversion
 
-  !> this function calculates the scalar product between a ISF and a 
-  !input function, which is a gaussian times a power centered
-  ! here pure specifier is redundant
-  ! we should add here the threshold from which the 
-  ! normal function can be evaluated
+
+  !> multipole-preserving gaussian function
+  !! chooses between traditional exponential and scfdotf 
+  !! according to the value of the exponent in units of the grid spacing
+  !! the function is supposed to be x**pow*exp(-expo*x**2)
+  !! where x=hgrid*j-x0
+  !! @warning
+  !! this function is also elemental to ease its evaluation, though 
+  !! the usage for vector argument is discouraged: dedicated routines has to be 
+  !! written to meet performance
+  !! @todo 
+  !!  Optimize it!
+  elemental pure function mp_exp(hgrid,x0,expo,j,pow,modified)
+    implicit none
+    real(gp), intent(in) :: hgrid   !< Hgrid 
+    real(gp), intent(in) :: x0      !< X value
+    real(gp), intent(in) :: expo    !< Exponent of the gaussian
+    logical, intent(in) :: modified !< Switch to scfdotf if true
+    integer, intent(in) :: j        !< Location of the scf from x0
+    integer, intent(in) :: pow      !< Exp(-expo*x**2)*(x**pow)
+    real(gp) :: mp_exp
+    !local variables
+    real(gp) :: x
+
+    !added failsafe to avoid segfaults
+    if (modified .and. allocated(scf_data)) then
+       mp_exp=scfdotf(j,hgrid,expo,x0,pow)
+    else
+       x=hgrid*j-x0
+       mp_exp=safe_exp(-expo*x**2)
+       if (pow /= 0) mp_exp=mp_exp*(x**pow)
+    end if
+  end function mp_exp
+
+
+  !> This function calculates the scalar product between a ISF and a 
+  !! input function, which is a gaussian times a power centered
+  !! @f$g(x) = (x-x_0)^{pow} e^{-pgauss (x-x_0)}@f$
+  !! here pure specifier is redundant
+  !! we should add here the threshold from which the 
+  !! normal function can be evaluated
   elemental pure function scfdotf(j,hgrid,pgauss,x0,pow) result(gint)
     implicit none
+    !Arguments
     integer, intent(in) :: j !<value of the input result in the hgrid reference
     integer, intent(in) :: pow
     real(gp), intent(in) :: hgrid,pgauss,x0
@@ -223,32 +537,45 @@ contains
     gint=0.0_gp
 
     !Step grid for the integration
-    dx = real(2*itype_scf,gp)/real(n_scf,gp)
+    !dx = real(2*itype_scf,gp)/real(n_scf,gp)
+    dx = real(nrange_scf,gp)/real(n_scf,gp)
     !starting point for the x coordinate for integration
-    x  = real(j-itype_scf+1,gp)-dx
+    !x  = real(j-itype_scf+1,gp)-dx
+    x  = real(j-nrange_scf/2+1,gp)-dx
 
     !the loop can be unrolled to maximize performances
-    do i=0,n_scf
-       x=x+dx
-       absci = x*hgrid - x0
-       !here evaluate the function
-       if (pow/=0) then
-          fabsci=absci**pow
-       else
-          fabsci=1.0_gp
-       end if
-       absci = -pgauss*absci*absci
-       fabsci=fabsci*dexp(absci)
-       !calculate the integral
-       gint=gint+scf_data(i)*fabsci
-!       print *,'test',i,scf_data(i),fabsci,pgauss,pow,absci
-    end do
-    gint=gint*dx
+    if (pow /= 0) then
+       do i=0,n_scf
+          x=x+dx
+          absci = x*hgrid - x0
+          !here evaluate the function
+          fabsci = absci**pow
+          absci = -pgauss*absci*absci
+          fabsci = fabsci*safe_exp(absci,underflow=mn_scf)
+          !calculate the integral
+          gint = gint + scf_data(i)*fabsci
+   !       print *,'test',i,scf_data(i),fabsci,pgauss,pow,absci
+       end do
+    else
+       do i=0,n_scf
+          x=x+dx
+          absci = x*hgrid - x0
+!          !here evaluate the function
+          absci = -pgauss*absci*absci
+          fabsci = safe_exp(absci,underflow=mn_scf)
+          !calculate the integral
+!          fabsci= safe_gaussian(x0,x*hgrid,pgauss)
+          !print *,'test',i,scf_data(i),fabsci,pgauss,absci,log(tiny(1.d0)),tiny(1.d0)
+          gint = gint + scf_data(i)*fabsci
+
+       end do
+    end if
+    gint = gint*dx
 
   end function scfdotf
 
 
-  !>   Overlap matrix between two different basis structures
+  !> Overlap matrix between two different basis structures
   subroutine gaussian_overlap(A,B,ovrlp)
     implicit none
     type(gaussian_basis), intent(in) :: A,B
@@ -269,8 +596,8 @@ contains
 
     call overlap(G,H,ovrlp)
 
-    call gaussian_basis_free(G,'gaussian_overlap')
-    call gaussian_basis_free(H,'gaussian_overlap')
+    call gaussian_basis_free(G)
+    call gaussian_basis_free(H)
 
     return
 
@@ -306,8 +633,8 @@ contains
                       jovrlp=jovrlp+1
                       !if ((jovrlp >= iovrlp .and. A%ncoeff == B%ncoeff) .or. &
                       !     A%ncoeff /= B%ncoeff ) then
-                      call gbasovrlp(A%xp(iexpo:),A%psiat(iexpo:),&
-                           B%xp(jexpo:),B%psiat(jexpo:),&
+                      call gbasovrlp(A%xp(1,iexpo:),A%psiat(1,iexpo:),&
+                           B%xp(1,jexpo:),B%psiat(1,jexpo:),&
                            ngA,ngB,lA,mA,lB,mB,dx,dy,dz,&
                            niw,nrw,iw,rw,ovrlp(iovrlp,jovrlp))
                       !end if
@@ -327,8 +654,9 @@ contains
 
   END SUBROUTINE gaussian_overlap
 
-  !>   Overlap kinetic matrix between two different basis structures
-  !!   the kinetic operator is applicated on the A basis structure
+
+  !> Overlap kinetic matrix between two different basis structures
+  !! the kinetic operator is applicated on the A basis structure
   subroutine kinetic_overlap(A,B,ovrlp)
     implicit none
     type(gaussian_basis), intent(in) :: A,B
@@ -349,11 +677,10 @@ contains
 
     call kinetic(G,H,ovrlp)
 
-    call gaussian_basis_free(G,'gaussian_overlap')
-    call gaussian_basis_free(H,'gaussian_overlap')
+    call gaussian_basis_free(G)
+    call gaussian_basis_free(H)
 
     return
-
 
     iovrlp=0
     ishell=0
@@ -386,8 +713,8 @@ contains
                       jovrlp=jovrlp+1
                       if (jovrlp >= iovrlp .and. A%ncoeff == B%ncoeff .or. &
                            A%ncoeff /= B%ncoeff ) then
-                         call kineticovrlp(A%xp(iexpo:),A%psiat(iexpo:),&
-                              B%xp(jexpo:),B%psiat(jexpo:),&
+                         call kineticovrlp(A%xp(1,iexpo:),A%psiat(1,iexpo:),&
+                              B%xp(1,jexpo:),B%psiat(1,jexpo:),&
                               ngA,ngB,lA,mA,lB,mB,dx,dy,dz,&
                               niw,nrw,iw,rw,ovrlp(iovrlp,jovrlp))
                       end if
@@ -407,10 +734,11 @@ contains
 
   END SUBROUTINE kinetic_overlap
 
-  !>   Calculates the scalar product between two shells
-  !!   by considering only the nonzero coefficients
-  !!   actual building block for calculating overlap matrix
-  !!   inserted work arrays for calculation
+
+  !> Calculates the scalar product between two shells
+  !! by considering only the nonzero coefficients
+  !! actual building block for calculating overlap matrix
+  !! inserted work arrays for calculation
   subroutine gbasovrlp(expo1,coeff1,expo2,coeff2,ng1,ng2,l1,m1,l2,m2,dx,dy,dz,&
        niw,nrw,iw,rw,ovrlp)
     implicit none
@@ -425,7 +753,7 @@ contains
     integer :: i1,i2
     real(gp) :: a1,a2,c1,c2,govrlpr
 
-    ovrlp=0.d0
+    ovrlp=0.0_gp
     do i1=1,ng1
        a1=expo1(i1)
        a1=0.5_gp/a1**2
@@ -443,10 +771,11 @@ contains
 
   END SUBROUTINE gbasovrlp
 
-  !>   Calculates the scalar product between two shells
-  !!   by considering only the nonzero coefficients
-  !!   actual building block for calculating overlap matrix
-  !!   inserted work arrays for calculation
+
+  !> Calculates the scalar product between two shells
+  !! by considering only the nonzero coefficients
+  !! actual building block for calculating overlap matrix
+  !! inserted work arrays for calculation
   subroutine kineticovrlp(expo1,coeff1,expo2,coeff2,ng1,ng2,l1,m1,l2,m2,dx,dy,dz,&
        niw,nrw,iw,rw,ovrlp)
     implicit none
@@ -461,7 +790,7 @@ contains
     integer :: i1,i2
     real(gp) :: a1,a2,c1,c2,govrlpr
 
-    ovrlp=0.d0
+    ovrlp=0.0_gp
     do i1=1,ng1
        a1=expo1(i1)
        a1=0.5_gp/a1**2
@@ -479,9 +808,10 @@ contains
 
   END SUBROUTINE kineticovrlp
 
-  !>   Calculates a dot product between two differents gaussians times spherical harmonics
-  !!   valid only for shell which belongs to different atoms, and with also dy/=0/=dx dz/=0
-  !!   to be rearranged when only some of them is zero
+
+  !> Calculates a dot product between two differents gaussians times spherical harmonics
+  !! valid only for shell which belongs to different atoms, and with also dy/=0/=dx dz/=0
+  !! to be rearranged when only some of them is zero
   subroutine gprod(a1,a2,dx,dy,dz,l1,m1,l2,m2,niw,nrw,iw,rw,ovrlp)
     implicit none
     integer, intent(in) :: l1,l2,m1,m2,niw,nrw 
@@ -499,7 +829,7 @@ contains
          iw(1),iw(nx+1),iw(2*nx+1),rw(1))
     call calc_coeff_inguess(l2,m2,nx,n2,&
          iw(3*nx+1),iw(4*nx+1),iw(5*nx+1),rw(n1+1))
-    ovrlp=0.d0
+    ovrlp=0.0_gp
     do i2=1,n2
        qx=iw(3*nx+i2)
        qy=iw(4*nx+i2)
@@ -522,8 +852,9 @@ contains
 
   END SUBROUTINE gprod
 
-  !>evaluate the wavefunction for a given grid mesh
-  !TO BE verified and optimized
+
+  !> Evaluate the wavefunction for a given grid mesh
+  !! @todo TO BE verified and optimized
   subroutine wavefunction(j1,j2,j3,G,h1,h2,h3,coeff,wvfnct)
     implicit none
     integer, intent(in) :: j1,j2,j3
@@ -588,7 +919,7 @@ contains
   end subroutine wavefunction
 
 
-  !>   Overlap matrix between two different basis structures
+  !> Overlap matrix between two different basis structures
   subroutine overlap(A,B,ovrlp)
     implicit none
     type(gaussian_basis_new), intent(in) :: A,B
@@ -729,6 +1060,7 @@ contains
     end do
   end function gdot
 
+
 !!$  !>calculate the density kernel matrix between two shells for a set of spatial points
 !!$  pure subroutine density_kernel_shell
 !!$    integer, intent(in) :: l1,l2 !<angular momenta of the shell
@@ -743,7 +1075,7 @@ contains
 !!$
 !!$  end subroutine density_kernel_shell
 
-  !>performs the gaussian product for all the terms in the shell
+  !> Performs the gaussian product for all the terms in the shell
   pure subroutine gdot_shell(sd1,l1,ntpdsh1,ntpd1,pws1,ftpd1,&
        sd2,l2,ntpdsh2,ntpd2,pws2,ftpd2,dr,overlap)
     implicit none
@@ -785,6 +1117,7 @@ contains
     end do
 
   end subroutine gdot_shell
+
 
   !> Overlap matrix between two different basis structures
   !! laplacian is applied to the first one
@@ -871,9 +1204,9 @@ contains
 
   END SUBROUTINE kinetic
 
-  !>   Calculates @f$\int \exp^{-a1*x^2} x^l1 \exp^{-a2*(x-d)^2} (x-d)^l2 dx@f$
-  !!   Uses gauint0 if d==0
-  !!
+
+  !> Calculates @f$\int e^{-a1*x^2} x^l1 \exp^{-a2*(x-d)^2} (x-d)^l2 dx@f$
+  !! Uses the function gauint0 if d==0.0
   pure function govrlp(a1,a2,d,l1,l2)
     implicit none
     integer, intent(in) :: l1,l2
@@ -884,7 +1217,7 @@ contains
     real(gp) :: prefac,stot,aeff,ceff,tt,fsum!,gauint,gauint0
 
     !quick check
-    if (d==0.0_gp) then
+    if (d == 0.0_gp) then
        govrlp=gauint0(a1+a2,l1+l2)
        return
     end if
@@ -931,11 +1264,11 @@ contains
     govrlp=prefac*stot
   END FUNCTION govrlp
   
-  !>   Kinetic overlap between gaussians, based on cartesian coordinates
-  !!   calculates a dot product between two differents gaussians times spherical harmonics
-  !!   valid only for shell which belongs to different atoms, and with also dy/=0/=dx dz/=0
-  !!   to be rearranged when only some of them is zero
-  !!
+
+  !> Kinetic overlap between gaussians, based on cartesian coordinates
+  !! calculates a dot product between two differents gaussians times spherical harmonics
+  !! valid only for shell which belongs to different atoms, and with also dy/=0/=dx dz/=0
+  !! to be rearranged when only some of them is zero
   subroutine kinprod(a1,a2,dx,dy,dz,l1,m1,l2,m2,niw,nrw,iw,rw,ovrlp)
     implicit none
     integer, intent(in) :: l1,l2,m1,m2,niw,nrw 
@@ -953,7 +1286,7 @@ contains
          iw(1),iw(nx+1),iw(2*nx+1),rw(1))
     call calc_coeff_inguess(l2,m2,nx,n2,&
          iw(3*nx+1),iw(4*nx+1),iw(5*nx+1),rw(n1+1))
-    ovrlp=0.d0
+    ovrlp=0.0_gp
     do i2=1,n2
        qx=iw(3*nx+i2)
        qy=iw(4*nx+i2)
@@ -980,8 +1313,9 @@ contains
 
   END SUBROUTINE kinprod
 
-  !>   Calculates @f$\int d^2/dx^2(\exp^{-a1*x^2} x^l1) \exp^{-a2*(x-d)^2} (x-d)^l2 dx@f$
-  !!   in terms of the govrlp function below
+
+  !> Calculates @f$\int d^2/dx^2(\exp^{-a1*x^2} x^l1) \exp^{-a2*(x-d)^2} (x-d)^l2 dx@f$
+  !! in terms of the govrlp function below
   pure function kinovrlp(a1,a2,d,l1,l2)
     implicit none
     integer, intent(in) :: l1,l2
@@ -1006,46 +1340,47 @@ contains
     end if
   END FUNCTION kinovrlp
 
-  !>   Calculates @f$\int \exp^{-a*x^2} x^l dx@f$
-  !!   this works for all l
+
+  !> Calculates @f$ I(l) = \int \exp^{-a*x^2} x^l dx @f$ i.e. the moments of the gaussian
+  !! @f$ I(0)  = \sqrt{\pi} @f$
+  !! @f$ I(2p) = (p-1/2) I(2p-2) @f$
+  !! this works for all l
   pure function gauint0(a,l)
     implicit none
+    !Arguments
     integer, intent(in) :: l
     real(gp), intent(in) :: a
     real(gp) :: gauint0
     !local variables
-    real(gp), parameter :: gammaonehalf=1.772453850905516027298d0
+    real(gp), parameter :: gammaonehalf=1.772453850905516027298_gp ! i.e. sqrt(pi)
     integer :: p
     real(gp) :: prefac,tt
     !build the prefactor
-    prefac=sqrt(a)
-    prefac=1.d0/prefac
+    prefac=1.0_gp/sqrt(a)
     prefac=gammaonehalf*prefac**(l+1)
 
     p=l/2
     if (2*p < l) then
+       ! l is odd
        gauint0=0.0_gp
-       return
+    else
+       tt=xfac(1,p,-0.5_gp)
+       !final result
+       gauint0=prefac*tt
     end if
-    tt=xfac(1,p,-0.5d0)
-    !final result
-    gauint0=prefac*tt
 
   END FUNCTION gauint0
 
 
-
-  !>   Calculates @f$\int \exp^{-a*(x-c)^2} x^l dx@f$
-  !!   this works ONLY when c/=0.d0
-  !!
-  !!
+  !> Calculates @f$\int \exp^{-a*(x-c)^2} x^l dx@f$
+  !! this works ONLY when c /= 0.d0
   pure function gauint(a,c,l)
     implicit none
     integer, intent(in) :: l
     real(gp), intent(in) :: a,c
     real(gp) :: gauint
     !local variables
-    real(gp), parameter :: gammaonehalf=1.772453850905516027298d0
+    real(gp), parameter :: gammaonehalf=1.772453850905516027298_gp
     integer :: p
     real(gp) :: prefac,stot,fsum,tt!,firstprod
 
@@ -1056,7 +1391,7 @@ contains
 
     !build the prefactor
     prefac=sqrt(a)
-    prefac=1.d0/prefac
+    prefac=1.0_gp/prefac
     prefac=gammaonehalf*prefac
 
     !the first term of the sum is one
@@ -1109,7 +1444,7 @@ contains
 
   END FUNCTION gauint
 
-  !>
+
   pure function firstprod(p)
     implicit none
     integer, intent(in) :: p
@@ -1126,7 +1461,7 @@ contains
     end do
   END FUNCTION firstprod
 
-  !>
+
   subroutine gaudim_check(iexpo,icoeff,ishell,nexpo,ncoeff,nshltot)
     implicit none
     integer, intent(in) :: iexpo,icoeff,ishell,nexpo,ncoeff,nshltot
@@ -1143,9 +1478,8 @@ contains
     end if
   END SUBROUTINE gaudim_check
 
-  !>   Normalize a given atomic shell following the angular momentum
-  !!
-  !!
+
+  !> Normalize a given atomic shell following the angular momentum
   pure subroutine normalize_shell(ng,l,expo,coeff)
     implicit none
     integer, intent(in) :: ng,l
@@ -1155,7 +1489,7 @@ contains
     integer :: i,j
     real(gp) :: norm,tt,e1,ex,c1,c2!,gauint0
 
-    norm=0.d0
+    norm=0.0_gp
     do i=1,ng
        e1=expo(i)
        c1=coeff(i)
@@ -1176,6 +1510,7 @@ contains
 
   END SUBROUTINE normalize_shell
 
+
   !> Factorial (float)
   pure function rfac(is,ie)
     implicit none
@@ -1184,33 +1519,38 @@ contains
     !local variables
     integer :: i
     real(gp) :: tt
-    rfac=1.d0
+    rfac=1.0_gp
     do i=is,ie
        tt=real(i,gp)
        rfac=rfac*tt
     end do
   END FUNCTION rfac
 
+
   !> Partial factorial, with real shift
-  !!With this function n!=xfac(1,n,0.d0)
+  !! With this function n! = xfac(1,n,0.d0)
+  !! @f$ \prod_1^n (n - s) @f$
   pure function xfac(is,ie,sh)
     implicit none
+    !Arguments
     integer, intent(in) :: is,ie
     real(gp), intent(in) :: sh
     real(gp) :: xfac
     !local variables
     integer :: i
     real(gp) :: tt
-    xfac=1.d0
+    xfac=1.0_gp
     do i=is,ie
        tt=real(i,gp)+sh
        xfac=xfac*tt
     end do
   END FUNCTION xfac
 
+
   !> Routine to extract the coefficients from the quantum numbers and the operation
   pure subroutine tensor_product_decomposition(n,l,ntpd_shell,ntpd,pow,ftpd)
     implicit none
+    !Arguments
     integer, intent(in) :: n,l
     integer, intent(out) :: ntpd_shell !< No. of terms for the whole shell
     integer, dimension(2*l+1), intent(out) :: ntpd !< number of terms per shell element
@@ -1352,7 +1692,7 @@ contains
 
 
   !> Routine to extract the coefficients from the quantum numbers and the operation
-  !> it provides the tensor product decomposition of the laplacian of a given shell
+  !! it provides the tensor product decomposition of the laplacian of a given shell
   pure subroutine tensor_product_decomposition_laplacian(a,n,l,ntpd_shell,ntpd,pow,ftpd)
     implicit none
     integer, intent(in) :: n,l
@@ -1610,4 +1950,5 @@ contains
        end select
     end select
   end subroutine tensor_product_decomposition_laplacian
+
 end module gaussians

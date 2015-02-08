@@ -9,35 +9,30 @@
 !!    For the list of contributors, see ~/AUTHORS 
 
 
-!>  Self-Consistent Loop API
+!> Module determining the Self-Consistent Loop API
 module scfloop_API
 
-  use module_base
-  use module_types
+  use bigdft_run, only: run_objects
+!!$  use module_base
+!!$  use module_types
 
   implicit none
 
   ! Storage of required variables for a SCF loop calculation.
   logical :: scfloop_initialised = .false.
   integer :: scfloop_nproc, itime_shift_for_restart
-  type(atoms_data), pointer :: scfloop_at
-  type(input_variables), pointer :: scfloop_in
-  type(restart_objects), pointer :: scfloop_rst
+  type(run_objects), pointer :: scfloop_obj
 
   public :: scfloop_init
 !!!  public :: scfloop_finalise
 contains
 
-  subroutine scfloop_init(nproc_, at_, in_, rst_)
-    integer, intent(in) :: nproc_
-    type(atoms_data), intent(in), target :: at_
-    type(input_variables), intent(in), target :: in_
-    type(restart_objects), intent(in), target :: rst_
+  subroutine scfloop_init(nproc, obj)
+    integer, intent(in) :: nproc
+    type(run_objects), intent(in), target :: obj
 
-    scfloop_nproc = nproc_
-    scfloop_at => at_
-    scfloop_in => in_
-    scfloop_rst => rst_
+    scfloop_nproc = nproc
+    scfloop_obj => obj
 
     scfloop_initialised = .true.
   END SUBROUTINE scfloop_init
@@ -50,8 +45,7 @@ end module scfloop_API
 subroutine scfloop_main(acell, epot, fcart, grad, itime, me, natom, rprimd, xred)
   use scfloop_API
   use module_base
-  use module_types
-  use module_interfaces
+  use bigdft_run
 
   implicit none
 
@@ -59,14 +53,13 @@ subroutine scfloop_main(acell, epot, fcart, grad, itime, me, natom, rprimd, xred
   real(dp), intent(out) :: epot
   real(dp), intent(in) :: acell(3)
   real(dp), intent(in) :: rprimd(3,3), xred(3,natom)
-  real(dp), intent(out) :: fcart(3, natom), grad(3, natom)
+  real(dp), intent(out) :: grad(3, natom)
+  real(dp), intent(out), target :: fcart(3, natom)
 
   character(len=*), parameter :: subname='scfloop_main'
-  integer :: infocode, i, i_stat, i_all,j
-  real(gp) :: fnoise
+  integer :: infocode, i, j
   real(dp) :: favg(3)
-  real(gp), dimension(6) :: strten
-  real(dp), allocatable :: xcart(:,:)
+  type(state_properties) :: outs
 
   if (.not. scfloop_initialised) then
      write(0,*) "No previous call to scfloop_init(). On strike, refuse to work."
@@ -79,76 +72,74 @@ subroutine scfloop_main(acell, epot, fcart, grad, itime, me, natom, rprimd, xred
   end if
 
   ! We transfer acell into at
-  scfloop_at%alat1 = acell(1)
-  scfloop_at%alat2 = rprimd(2,2)
-  scfloop_at%alat3 = acell(3)
+  scfloop_obj%atoms%astruct%cell_dim(1) = acell(1)
+  scfloop_obj%atoms%astruct%cell_dim(2)= rprimd(2,2)
+  scfloop_obj%atoms%astruct%cell_dim(3)= acell(3)
 
-  scfloop_in%inputPsiId=1
+  scfloop_obj%inputs%inputPsiId=1
   ! need to transform xred into xcart
-  allocate(xcart(3, scfloop_at%nat+ndebug),stat=i_stat)
-  call memocc(i_stat,xcart,'xcart',subname)
-  do i = 1, scfloop_at%nat, 1
+  do i = 1, scfloop_obj%atoms%astruct%nat, 1
      do j=1,3
-        xcart(j,i)=modulo(xred(j,i),1._gp)*acell(j)
+        if (scfloop_obj%atoms%astruct%geocode=='F') then
+           scfloop_obj%atoms%astruct%rxyz(j,i)=xred(j,i)*acell(j)
+        else
+           scfloop_obj%atoms%astruct%rxyz(j,i)=modulo(xred(j,i),1._gp)*acell(j)
+        end if
      end do
   end do
 
 !!$  open(100+me)
 !!$  write(100+me,*)xcart
 !!$  close(100+me)
-
-  scfloop_in%inputPsiId = 1
-  call call_bigdft(scfloop_nproc,me,scfloop_at,xcart,scfloop_in,epot,grad,strten,fnoise,scfloop_rst,infocode)
+  outs%fxyz => fcart
+  scfloop_obj%inputs%inputPsiId = 1
+  call bigdft_state(scfloop_obj,outs,infocode)
+  epot = outs%energy
+  nullify(outs%fxyz)
+  call deallocate_state_properties(outs)
 
   ! need to transform the forces into reduced ones.
   favg(:) = real(0, dp)
-  do i = 1, scfloop_at%nat, 1
-     fcart(:, i) = grad(:, i)
+  do i = 1, scfloop_obj%atoms%astruct%nat, 1
      favg(:) = favg(:) + fcart(:, i) / real(natom, dp)
-     grad(:, i) = -grad(:, i) / acell(:)
+     grad(:, i) = -fcart(:, i) / acell(:)
   end do
-  do i = 1, scfloop_at%nat, 1
+  do i = 1, scfloop_obj%atoms%astruct%nat, 1
      fcart(:, i) = fcart(:, i) - favg(:)
   end do
-
-  i_all=-product(shape(xcart))*kind(xcart)
-  deallocate(xcart,stat=i_stat)
-  call memocc(i_stat,i_all,'xcart',subname)
 END SUBROUTINE scfloop_main
 
 
 subroutine scfloop_output(acell, epot, ekin, fred, itime, me, natom, rprimd, vel, xred)
   use scfloop_API
   use module_base
-  use module_types
-  use module_interfaces
+  !use module_types
+  use module_atoms, only: astruct_dump_to_file
 
   implicit none
 
   !Arguments
   integer, intent(in) :: natom, itime, me
   real(dp), intent(in) :: epot, ekin
-  real(dp), intent(in) :: acell(3)
-  real(dp), intent(in) :: xred(3,natom)
-  real(dp), intent(in) :: fred(3, natom), vel(3, natom),rprimd(3,3)
+  real(dp), dimension(3), intent(in) :: acell
+  real(dp), dimension(3,natom), intent(in) :: xred
+  real(dp), dimension(3,natom), intent(in) :: fred, vel, rprimd
   !Local variables
   character(len=*), parameter :: subname='scfloop_output'
   character(len = 5) :: fn5
   character(len = 40) :: comment
-  integer :: i, i_stat, i_all
   real :: fnrm
   real(dp), dimension(:,:), allocatable :: xcart,fcart
+  integer :: i
 
   if (me /= 0) return
 
   fnrm = real(0, dp)
   ! need to transform xred into xcart
-  allocate(xcart(3, scfloop_at%nat+ndebug),stat=i_stat)
-  call memocc(i_stat,xcart,'xcart',subname)
-  allocate(fcart(3, scfloop_at%nat+ndebug),stat=i_stat)
-  call memocc(i_stat,fcart,'fcart',subname)
+  xcart = f_malloc((/ 3, natom /),id='xcart')
+  fcart = f_malloc((/ 3, natom /),id='fcart')
 
-  do i = 1, scfloop_at%nat
+  do i = 1, natom
      xcart(:, i) = xred(:, i) * acell(:)
      fnrm = fnrm + real(fred(1, i) * acell(1) * fred(1, i) * acell(1) + &
           & fred(2, i) * acell(2) * fred(2, i) * acell(2) + &
@@ -158,18 +149,19 @@ subroutine scfloop_output(acell, epot, ekin, fred, itime, me, natom, rprimd, vel
 
   write(fn5,'(i5.5)') itime+itime_shift_for_restart
   write(comment,'(a,1pe10.3)')'AB6MD:fnrm= ', sqrt(fnrm)
-  call write_atomic_file(trim(scfloop_in%dir_output)//'posmd_'//fn5, epot + ekin, xcart, scfloop_at, trim(comment),forces=fcart)
+  call astruct_dump_to_file(scfloop_obj%atoms%astruct,&
+       trim(scfloop_obj%inputs%dir_output)//'posmd_'//fn5, &
+       trim(comment),&
+       epot + ekin,rxyz=xcart,forces=fcart)
+!!$  call write_atomic_file(trim(scfloop_obj%inputs%dir_output)//'posmd_'//fn5, &
+!!$       & epot + ekin, xcart, scfloop_obj%atoms%astruct%ixyz_int, scfloop_obj%atoms, trim(comment),forces=fcart)
 
   !write velocities
   write(comment,'(a,i6.6)')'Timestep= ',itime+itime_shift_for_restart
-  call wtvel('velocities.xyz',vel,scfloop_at,comment)
+  call wtvel('velocities.xyz',vel,scfloop_obj%atoms,comment)
 
-  i_all=-product(shape(xcart))*kind(xcart)
-  deallocate(xcart,stat=i_stat)
-  call memocc(i_stat,i_all,'xcart',subname)
-  i_all=-product(shape(fcart))*kind(fcart)
-  deallocate(fcart,stat=i_stat)
-  call memocc(i_stat,i_all,'fcart',subname)
+  call f_free(xcart)
+  call f_free(fcart)
 
   
   !To avoid warning from compiler
@@ -186,7 +178,7 @@ subroutine read_velocities(iproc,filename,atoms,vxyz)
   character(len=*), intent(in) :: filename
   integer, intent(in) :: iproc
   type(atoms_data), intent(in) :: atoms
-  real(gp), dimension(3,atoms%nat), intent(out) :: vxyz
+  real(gp), dimension(3,atoms%astruct%nat), intent(out) :: vxyz
   !local variables
   !n(c) character(len=*), parameter :: subname='read_velocities'
   character(len=2) :: symbol
@@ -203,12 +195,12 @@ subroutine read_velocities(iproc,filename,atoms,vxyz)
   !inquire whether the input file is present, otherwise put velocities to zero
   inquire(file=filename,exist=exists)
   if (.not. exists) then  
-     call razero(3*atoms%nat,vxyz)
+     call f_zero(vxyz)
      return
   end if
 
   !controls if the positions are provided with machine precision
-  if (atoms%units== 'atomicd0' .or. atoms%units== 'bohrd0') then
+  if (atoms%astruct%units== 'atomicd0' .or. atoms%astruct%units== 'bohrd0') then
      lpsdbl=.true.
   else
      lpsdbl=.false.
@@ -219,7 +211,7 @@ subroutine read_velocities(iproc,filename,atoms,vxyz)
   read(99,*) nat,units,extra,itime_shift_for_restart
  
   !check whether the number of atoms is different 
-  if (nat /= atoms%nat) then
+  if (nat /= atoms%astruct%nat) then
      if (iproc ==0) write(*,*)' ERROR: the number of atoms in the velocities is different'
      stop
   end if
@@ -244,7 +236,7 @@ subroutine read_velocities(iproc,filename,atoms,vxyz)
      write(*,*) 'recognized units are angstroem or atomic = bohr'
      stop 
   endif
-  do iat=1,atoms%nat
+  do iat=1,atoms%astruct%nat
      !xyz input file, allow extra information
      read(99,'(a150)')line 
      if (lpsdbl) then
@@ -269,9 +261,9 @@ subroutine read_velocities(iproc,filename,atoms,vxyz)
            vxyz(i,iat)=vxyz(i,iat)/Bohr_Ang
         enddo
      else if (units == 'reduced') then 
-        vxyz(1,iat)=vxyz(1,iat)*atoms%alat1
-        if (atoms%geocode == 'P') vxyz(2,iat)=vxyz(2,iat)*atoms%alat2
-        vxyz(3,iat)=vxyz(3,iat)*atoms%alat3
+        vxyz(1,iat)=vxyz(1,iat)*atoms%astruct%cell_dim(1)
+        if (atoms%astruct%geocode == 'P') vxyz(2,iat)=vxyz(2,iat)*atoms%astruct%cell_dim(2)
+        vxyz(3,iat)=vxyz(3,iat)*atoms%astruct%cell_dim(3)
      endif
   enddo
 
@@ -284,7 +276,7 @@ subroutine wtvel(filename,vxyz,atoms,comment)
   implicit none
   character(len=*), intent(in) :: filename,comment
   type(atoms_data), intent(in) :: atoms
-  real(gp), dimension(3,atoms%nat), intent(in) :: vxyz
+  real(gp), dimension(3,atoms%astruct%nat), intent(in) :: vxyz
   !Local variables
   integer, parameter :: iunit = 9
   character(len=2) :: symbol
@@ -294,7 +286,7 @@ subroutine wtvel(filename,vxyz,atoms,comment)
   real(gp) :: factor
 
   open(unit=iunit,file=trim(filename),status='unknown',action='write')
-  if (trim(atoms%units) == 'angstroem' .or. trim(atoms%units) == 'angstroemd0') then
+  if (trim(atoms%astruct%units) == 'angstroem' .or. trim(atoms%astruct%units) == 'angstroemd0') then
      factor=Bohr_Ang
      units='angstroemd0'
   else
@@ -302,19 +294,19 @@ subroutine wtvel(filename,vxyz,atoms,comment)
      units='atomicd0'
   end if
 
-  write(iunit,'(i6,2x,a,2x,a)') atoms%nat,trim(units),comment
+  write(iunit,'(i6,2x,a,2x,a)') atoms%astruct%nat,trim(units),comment
 
-  if (atoms%geocode == 'P') then
+  if (atoms%astruct%geocode == 'P') then
      write(iunit,'(a,3(1x,1pe24.17))') 'periodic',&
-       &  atoms%alat1*factor,atoms%alat2*factor,atoms%alat3*factor
-  else if (atoms%geocode == 'S') then
+       &  atoms%astruct%cell_dim(1)*factor,atoms%astruct%cell_dim(2)*factor,atoms%astruct%cell_dim(3)*factor
+  else if (atoms%astruct%geocode == 'S') then
      write(iunit,'(a,3(1x,1pe24.17))') 'surface',&
-       &  atoms%alat1*factor,atoms%alat2*factor,atoms%alat3*factor
+       &  atoms%astruct%cell_dim(1)*factor,atoms%astruct%cell_dim(2)*factor,atoms%astruct%cell_dim(3)*factor
   else
      write(9,*)'free'
   end if
-  do iat=1,atoms%nat
-     name=trim(atoms%atomnames(atoms%iatype(iat)))
+  do iat=1,atoms%astruct%nat
+     name=trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))
      if (name(3:3)=='_') then
         symbol=name(1:2)
      else if (name(2:2)=='_') then

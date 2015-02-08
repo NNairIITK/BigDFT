@@ -1,3 +1,14 @@
+!> @file
+!!  Test of the overlap point to point (mpi)
+!! @author
+!!    Copyright (C) 2012-2013 BigDFT group
+!!    This file is distributed under the terms of the
+!!    GNU General Public License, see ~/COPYING file
+!!    or http://www.gnu.org/copyleft/gpl.txt .
+!!    For the list of contributors, see ~/AUTHORS
+
+
+!> Program to test the OP2P (overlap point to point)
 program mpi_check
   use BigDFT_API
   implicit none
@@ -26,7 +37,7 @@ program mpi_check
   call MPI_ALLREDUCE(buffer,copybuffer,ntot,&
        MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,ierr)
 
-  call mpiallred(buffer(1),isizes(nspin,nother),MPI_SUM,MPI_COMM_WORLD,ierr)
+  call mpiallred(buffer(1),isizes(nspin,nother),MPI_SUM)
   failed=.false.
   do i=1,ntot
      if (abs(copybuffer(i)-buffer(i))>1.d-12 .or. abs(copybuffer(i)-real(nproc,kind=8))> 1.d-12) then

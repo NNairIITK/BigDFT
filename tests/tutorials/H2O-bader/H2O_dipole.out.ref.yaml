@@ -1,0 +1,28 @@
+ Atoms coordinates:
+ -  #Atoms 1
+    {Coord.:  [  7.3,  7.3,  7.3 ], Charge core:  1.0, Charge elec.: -0.4072698937150526, 
+ Charge net:  0.5927301062849474}
+ -  #Atoms 2
+    {Coord.:  [  7.300337,  8.415319,  7.299663 ], Charge core:  6.0, 
+ Charge elec.: -7.185420375739572, Charge net: -1.185420375739572}
+ -  #Atoms 3
+    {Coord.:  [  7.24325,  8.700265,  10.15675 ], Charge core:  1.0, 
+ Charge elec.: -0.4073097234046957, Charge net:  0.5926902765953043}
+  #Atomic polarization dipole-moments with respect to the corresponding nuclei positions [e.a0]
+ Atomic polarization dipole_moments:
+ -  #Atoms 1
+    {P: [-3.2438701611513314E-006,  0.1137545979617256,  0.1289143086126775], 
+     Norm P:  0.1719273321291329}
+ -  #Atoms 2
+    {P: [-2.613168503765026E-004,  0.3681470307911529,  1.8808656223141313E-004], 
+     Norm P:  0.3681471715814115}
+ -  #Atoms 3
+    {P: [-2.438886357869481E-006,  0.1137148880585036, -0.1289374772381514], 
+     Norm P:  0.1719184365001176}
+ Charge-transfer contributions: [ 5.2126963190346487E-008, -1.322121802499915, 
+                                 -3.7209617604272438E-004,  1.322121854861037]
+ Total dipole moment: [-2.669474799323331E-004, -0.7265052856885325, -2.0717823928517731E-004, 
+                        0.7265053642728015]
+  #Dipole-moment of the whole system (not decomposed to atoms) with respect to arbitrary origin
+ Total dipole moment of the whole system: [-2.6694743820598887E-004, -0.7264710006157742, 
+                                           -2.0717570464512391E-004,  0.7264710792030138]

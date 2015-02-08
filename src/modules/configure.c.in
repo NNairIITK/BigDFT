@@ -25,7 +25,7 @@ static char LIBS_DEPS[] = "@LIBS_SHORT_DEPS@";
 #define TRUNCATED "(...)"
 
 
-void FC_FUNC(bigdft_config_get_user_args, BIGDFT_CONFIG_GET_USER_ARGS)
+void FC_FUNC_(bigdft_config_get_user_args, BIGDFT_CONFIG_GET_USER_ARGS)
      (char *args, unsigned int *ln, int args_ln)
 {
   memset(args, ' ', sizeof(char) * *ln);
@@ -35,7 +35,7 @@ void FC_FUNC(bigdft_config_get_user_args, BIGDFT_CONFIG_GET_USER_ARGS)
     memcpy(args, TRUNCATED, sizeof(TRUNCATED)-1);
 }
 
-void FC_FUNC(bigdft_config_get_compilers, BIGDFT_CONFIG_GET_COMPILERS)
+void FC_FUNC_(bigdft_config_get_compilers, BIGDFT_CONFIG_GET_COMPILERS)
      (char *cc, char *fc, char *cxx, unsigned int *ln, int cc_ln, int fc_ln, int cxx_ln)
 {
   memset(cc, ' ', sizeof(char) * *ln);
@@ -57,7 +57,7 @@ void FC_FUNC(bigdft_config_get_compilers, BIGDFT_CONFIG_GET_COMPILERS)
     memcpy(cxx, TRUNCATED, sizeof(TRUNCATED) - 1);
 }
 
-void FC_FUNC(bigdft_config_get_compiler_flags, BIGDFT_CONFIG_GET_COMPILER_FLAGS)
+void FC_FUNC_(bigdft_config_get_compiler_flags, BIGDFT_CONFIG_GET_COMPILER_FLAGS)
      (char *cflags, char *fcflags, char *cxxflags, char *cppflags, unsigned int *ln,
       int c_ln, int fc_ln, int cxx_ln, int cpp_ln)
 {
@@ -86,7 +86,7 @@ void FC_FUNC(bigdft_config_get_compiler_flags, BIGDFT_CONFIG_GET_COMPILER_FLAGS)
     memcpy(cppflags, TRUNCATED, sizeof(TRUNCATED) - 1);
 }
 
-void FC_FUNC(bigdft_config_get_linker, BIGDFT_CONFIG_GET_LINKER)
+void FC_FUNC_(bigdft_config_get_linker, BIGDFT_CONFIG_GET_LINKER)
      (char *ld, char *ldflags, char *libs, char *libs_deps, unsigned int *ln,
       int ld_ln, int ldflags_ln, int libs_ln, int libs_deps_ln)
 {

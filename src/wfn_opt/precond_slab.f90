@@ -25,17 +25,17 @@ subroutine precong_slab(n1,n2,n3,nseg_c,nvctr_c,nseg_f,nvctr_f,keyg,keyv, &
   real(gp), intent(in) :: hx,hy,hz,cprecr
   integer, dimension(2,nseg_c+nseg_f), intent(in) :: keyg
   integer, dimension(nseg_c+nseg_f), intent(in) :: keyv
-  real(wp), intent(inout) ::  x(nvctr_c+7*nvctr_f)
+  real(wp), dimension(nvctr_c+7*nvctr_f), intent(inout) :: x
   ! local variables
-  real(gp)::scal(0:8)
-  real(wp)::rmr,rmr_new,alpha,beta
-  integer i,i_stat,i_all
-  real(wp),allocatable::b(:),r(:),d(:)
-  real(wp),allocatable::psifscf(:),ww(:)
+  real(gp), dimension(0:8) :: scal
+  real(wp) :: rmr,rmr_new,alpha,beta
+  integer :: i
+  real(wp), dimension(:), allocatable :: b,r,d
+  real(wp), dimension(:), allocatable :: psifscf,ww
 
   integer, parameter :: lowfil=-14,lupfil=14
-  real(gp), allocatable,dimension(:,:) :: af,bf,cf,ef
-  integer,allocatable,dimension(:)::modul1,modul3
+  real(gp), allocatable, dimension(:,:) :: af,bf,cf,ef
+  integer, allocatable, dimension(:) :: modul1,modul3
 
   call allocate_all()
 
@@ -44,7 +44,7 @@ subroutine precong_slab(n1,n2,n3,nseg_c,nvctr_c,nseg_f,nvctr_f,keyg,keyv, &
   !   initializes the wavelet scaling coefficients   
   call wscal_init_per(scal,hx,hy,hz,cprecr)
   !b=x
-  call dcopy(nvctr_c+7*nvctr_f,x,1,b,1) 
+  call vcopy(nvctr_c+7*nvctr_f,x(1),1,b(1),1) 
 
   !   compute the input guess x via a Fourier transform in a cubic box.
   !   Arrays psifscf and ww serve as work arrays for the Fourier
@@ -88,77 +88,32 @@ contains
 
   subroutine allocate_all
 
-    allocate(modul1(lowfil:n1+lupfil+ndebug),stat=i_stat)
-    call memocc(i_stat,modul1,'modul1','precong_per')
-    allocate(modul3(lowfil:n3+lupfil+ndebug),stat=i_stat)
-    call memocc(i_stat,modul3,'modul3','precong_per')
-    allocate(af(lowfil:lupfil,3+ndebug),stat=i_stat)
-    call memocc(i_stat,af,'af','precong_per')
-    allocate(bf(lowfil:lupfil,3+ndebug),stat=i_stat)
-    call memocc(i_stat,bf,'bf','precong_per')
-    allocate(cf(lowfil:lupfil,3+ndebug),stat=i_stat)
-    call memocc(i_stat,cf,'cf','precong_per')
-    allocate(ef(lowfil:lupfil,3+ndebug),stat=i_stat)
-    call memocc(i_stat,ef,'ef','precong_per')
-
-    allocate(b(nvctr_c+7*nvctr_f+ndebug),stat=i_stat)
-    call memocc(i_stat,b,'b','precong_per')
-    allocate(r(nvctr_c+7*nvctr_f+ndebug),stat=i_stat)
-    call memocc(i_stat,r,'r','precong_per')
-    allocate(d(nvctr_c+7*nvctr_f+ndebug),stat=i_stat)
-    call memocc(i_stat,d,'','precong_per')
-    allocate( psifscf((2*n1+2)*(2*n2+16)*(2*n3+2)+ndebug),stat=i_stat )
-    call memocc(i_stat,psifscf,'psifscf','precong_per')
-    allocate( ww((2*n1+2)*(2*n2+16)*(2*n3+2)+ndebug) ,stat=i_stat)
-    call memocc(i_stat,ww,'ww','precong_per')
+    modul1 = f_malloc(lowfil.to.n1+lupfil,id='modul1')
+    modul3 = f_malloc(lowfil.to.n3+lupfil,id='modul3')
+    af = f_malloc((/ lowfil.to.lupfil, 1.to.3 /),id='af')
+    bf = f_malloc((/ lowfil.to.lupfil, 1.to.3 /),id='bf')
+    cf = f_malloc((/ lowfil.to.lupfil, 1.to.3 /),id='cf')
+    ef = f_malloc((/ lowfil.to.lupfil, 1.to.3 /),id='ef')
+    b = f_malloc(nvctr_c+7*nvctr_f,id='b')
+    r = f_malloc(nvctr_c+7*nvctr_f,id='r')
+    d = f_malloc(nvctr_c+7*nvctr_f,id='d')
+    psifscf = f_malloc((2*n1+2)*(2*n2+16)*(2*n3+2),id='psifscf')
+    ww = f_malloc((2*n1+2)*(2*n2+16)*(2*n3+2),id='ww')
   END SUBROUTINE allocate_all
 
   subroutine deallocate_all
 
-    i_all=-product(shape(modul1))*kind(modul1)
-    deallocate(modul1,stat=i_stat)
-    call memocc(i_stat,i_all,'modul1','precong_slab')
-
-    i_all=-product(shape(modul3))*kind(modul3)
-    deallocate(modul3,stat=i_stat)
-    call memocc(i_stat,i_all,'modul3','precong_slab')
-
-    i_all=-product(shape(af))*kind(af)
-    deallocate(af,stat=i_stat)
-    call memocc(i_stat,i_all,'af','precong_slab')
-
-    i_all=-product(shape(bf))*kind(bf)
-    deallocate(bf,stat=i_stat)
-    call memocc(i_stat,i_all,'bf','precong_slab')
-
-    i_all=-product(shape(cf))*kind(cf)
-    deallocate(cf,stat=i_stat)
-    call memocc(i_stat,i_all,'cf','precong_slab')
-
-    i_all=-product(shape(ef))*kind(ef)
-    deallocate(ef,stat=i_stat)
-    call memocc(i_stat,i_all,'ef','precong_slab')
-
-
-    i_all=-product(shape(psifscf))*kind(psifscf)
-    deallocate(psifscf,stat=i_stat)
-    call memocc(i_stat,i_all,'psifscf','precong_slab')
-
-    i_all=-product(shape(ww))*kind(ww)
-    deallocate(ww,stat=i_stat)
-    call memocc(i_stat,i_all,'ww','precong_slab')
-
-    i_all=-product(shape(b))*kind(b)
-    deallocate(b,stat=i_stat)
-    call memocc(i_stat,i_all,'b','precong_slab')
-
-    i_all=-product(shape(r))*kind(r)
-    deallocate(r,stat=i_stat)
-    call memocc(i_stat,i_all,'r','precong_slab')
-
-    i_all=-product(shape(d))*kind(d)
-    deallocate(d,stat=i_stat)
-    call memocc(i_stat,i_all,'d','precong_slab')
+    call f_free(modul1)
+    call f_free(modul3)
+    call f_free(af)
+    call f_free(bf)
+    call f_free(cf)
+    call f_free(ef)
+    call f_free(psifscf)
+    call f_free(ww)
+    call f_free(b)
+    call f_free(r)
+    call f_free(d)
   END SUBROUTINE deallocate_all
 
 END SUBROUTINE precong_slab
@@ -295,8 +250,8 @@ subroutine apply_hp_slab_sd_scal(n1,n2,n3, &
 END SUBROUTINE apply_hp_slab_sd_scal
 
 
-!>   Solves (KE+cprecr*I)*xx=yy by conjugate gradient method
-!!   hpsi is the right hand side on input and the solution on output
+!> Solves (KE+cprecr*I)*xx=yy by conjugate gradient method
+!! hpsi is the right hand side on input and the solution on output
 subroutine prec_fft_slab_fast(n1,n2,n3, &
      nseg_c,nvctr_c,nseg_f,nvctr_f,keyg,keyv, &
      cprecr,hx,hy,hz,hpsi,kern_k1,kern_k3,z,x_c)
@@ -332,8 +287,8 @@ subroutine prec_fft_slab_fast(n1,n2,n3, &
 END SUBROUTINE prec_fft_slab_fast
 
 
-!>   Solves (KE+cprecr*I)*xx=yy by conjugate gradient method
-!!   hpsi is the right hand side on input and the solution on output
+!> Solves (KE+cprecr*I)*xx=yy by conjugate gradient method
+!! hpsi is the right hand side on input and the solution on output
 subroutine prec_fft_slab(n1,n2,n3, &
      nseg_c,nvctr_c,nseg_f,nvctr_f,keyg,keyv, &
      cprecr,hx,hy,hz,hpsi)
@@ -346,7 +301,6 @@ subroutine prec_fft_slab(n1,n2,n3, &
   integer, dimension(nseg_c+nseg_f), intent(in) :: keyv
   real(wp), intent(inout) ::  hpsi(nvctr_c+7*nvctr_f)
   !local variables
-  integer i_stat,i_all
   real(gp), dimension(:), allocatable :: kern_k1,kern_k3
   real(wp), dimension(:,:,:), allocatable :: x_c! in and out of Fourier preconditioning
   real(wp), allocatable::z(:,:,:,:) ! work array for FFT
@@ -371,41 +325,25 @@ subroutine prec_fft_slab(n1,n2,n3, &
 contains
 
   subroutine allocate_all
-    allocate(kern_k1(0:n1+ndebug),stat=i_stat)
-    call memocc(i_stat,kern_k1,'kern_k1','prec_fft')
-    allocate(kern_k3(0:n3+ndebug),stat=i_stat)
-    call memocc(i_stat,kern_k3,'kern_k3','prec_fft')
-    allocate(z(2,0:(n1+1)/2,0:n2,0:n3+ndebug),stat=i_stat) ! work array for fft
-    call memocc(i_stat,z,'z','prec_fft')
-    allocate(x_c(0:n1,0:n2,0:n3+ndebug),stat=i_stat)
-    call memocc(i_stat,x_c,'x_c','prec_fft')
+    kern_k1 = f_malloc(0.to.n1,id='kern_k1')
+    kern_k3 = f_malloc(0.to.n3,id='kern_k3')
+    z = f_malloc((/ 1.to.2, 0.to.(n1+1)/2, 0.to.n2, 0.to.n3 /),id='z')
+    x_c = f_malloc((/ 0.to.n1, 0.to.n2, 0.to.n3 /),id='x_c')
   END SUBROUTINE allocate_all
 
   subroutine deallocate_all
-    i_all=-product(shape(z))*kind(z)
-    deallocate(z,stat=i_stat)
-    call memocc(i_stat,i_all,'z','prec_fft_slab')
-
-    i_all=-product(shape(kern_k1))*kind(kern_k1)
-    deallocate(kern_k1,stat=i_stat)
-    call memocc(i_stat,i_all,'kern_k1','prec_fft_slab')
-
-    i_all=-product(shape(kern_k3))*kind(kern_k3)
-    deallocate(kern_k3,stat=i_stat)
-    call memocc(i_stat,i_all,'kern_k3','prec_fft_slab')
-
-    i_all=-product(shape(x_c))*kind(x_c)
-    deallocate(x_c,stat=i_stat)
-    call memocc(i_stat,i_all,'x_c','prec_fft_slab')
-
+    call f_free(z)
+    call f_free(kern_k1)
+    call f_free(kern_k3)
+    call f_free(x_c)
   END SUBROUTINE deallocate_all
 
 END SUBROUTINE prec_fft_slab
 
 
-!>   Solve the discretized equation
-!!   (-d^2/dy^2+ct(k1,k3)) zx(output) = zx(input)
-!!   for all k1,k3 via Lapack
+!> Solve the discretized equation
+!! (-d^2/dy^2+ct(k1,k3)) zx(output) = zx(input)
+!! for all k1,k3 via Lapack
 subroutine segment_invert(n1,n2,n3,kern_k1,kern_k3,c,zx,hgrid)
   use module_base
   implicit none
@@ -416,17 +354,21 @@ subroutine segment_invert(n1,n2,n3,kern_k1,kern_k3,c,zx,hgrid)
   real(wp),intent(inout) :: zx(2,0:(n1+1)/2,0:n2,0:n3)
 
   real(gp) :: ct
-  real(gp),allocatable,dimension(:,:) :: ab
+  real(gp),allocatable,dimension(:,:), save :: ab
   !real(wp) :: b(0:n2,2)
-  real(wp),allocatable,dimension(:,:) :: b
+  real(wp),allocatable,dimension(:,:), save :: b
   !     .. Scalar Arguments ..
-  INTEGER :: INFO, Kd, LDAB, LDB, NRHS=2,n
+  INTEGER :: NRHS=2
+  INTEGER :: INFO, Kd, LDAB, LDB, n
   integer :: i1,i2,i3,i,j
 
   integer,parameter :: lowfil=-14,lupfil=14
   real(gp) :: scale
   real(gp) :: fil(lowfil:lupfil)
+  !$omp threadprivate(b,ab)
 
+  call f_routine(id='segment_invert')
+  
   scale=-.5_gp/hgrid**2
 
   ! second derivative filters for Daubechies 16
@@ -459,11 +401,16 @@ subroutine segment_invert(n1,n2,n3,kern_k1,kern_k3,c,zx,hgrid)
   ldb=n2+1
 
   ! hit the fourier transform of x with the kernel
-
+  !We avoid to use f_malloc in an omp parallel section
   !$omp parallel default(none) & 
-  !$omp private (b,ab,i3,i1,i2,j,i,ct,info) &
+  !$omp private (i3,i1,i2,j,i,ct,info) &
   !$omp shared (n1,n2,n3,zx,fil,kd,ldb,ldab,nrhs,n,c,kern_k1,kern_k3)
-  allocate(ab(ldab,n),b(0:n2,2))
+
+  !$omp critical
+  ab = f_malloc((/ ldab, n /),id='ab')
+  b = f_malloc((/ 0.to.n2, 1.to.2 /),id='b')
+  !$omp end critical
+
   !$omp do schedule(static,1)
   do i3=0,n3
      !   do i1=0,n1
@@ -492,7 +439,124 @@ subroutine segment_invert(n1,n2,n3,kern_k1,kern_k3,c,zx,hgrid)
      enddo
   enddo
   !$omp end do
-  deallocate(ab,b)
+
+  !$omp critical
+  call f_free(ab)
+  call f_free(b)
+  !$omp end critical
+
   !$omp end parallel
 
+call f_release_routine()
+
 END SUBROUTINE segment_invert
+
+
+!!! subroutine segment_invert(n1,n2,n3,kern_k1,kern_k3,c,zx,hgrid)
+!!!   use module_base
+!!!   use yaml_output, only: yaml_map
+!!!   implicit none
+!!!   integer,intent(in) :: n1,n2,n3
+!!!   real(wp),intent(in) :: kern_k1(0:n1)
+!!!   real(wp),intent(in) :: kern_k3(0:n3)
+!!!   real(gp),intent(in) :: c,hgrid
+!!!   real(wp),intent(inout) :: zx(2,0:(n1+1)/2,0:n2,0:n3)
+!!! 
+!!!   real(gp) :: ct
+!!!   real(gp),allocatable,dimension(:,:,:) :: ab
+!!!   !real(wp) :: b(0:n2,2)
+!!!   real(wp),allocatable,dimension(:,:,:) :: b
+!!!   !     .. Scalar Arguments ..
+!!!   INTEGER :: NRHS=2
+!!!   INTEGER :: INFO, Kd, LDAB, LDB, n, itime,jtime
+!!!   integer :: i1,i2,i3,i,j
+!!!   !$ integer :: nthread,ithread, omp_get_max_threads, omp_get_thread_num
+!!! 
+!!!   integer,parameter :: lowfil=-14,lupfil=14
+!!!   real(gp) :: scale
+!!!   real(gp) :: fil(lowfil:lupfil)
+!!! 
+!!!   call f_routine(id='segment_invert')
+!!!   
+!!!   scale=-.5_gp/hgrid**2
+!!! 
+!!!   ! second derivative filters for Daubechies 16
+!!!   fil(0)=   -3.5536922899131901941296809374_gp*scale
+!!!   fil(1)=    2.2191465938911163898794546405_gp*scale
+!!!   fil(2)=   -0.6156141465570069496314853949_gp*scale
+!!!   fil(3)=    0.2371780582153805636239247476_gp*scale
+!!!   fil(4)=   -0.0822663999742123340987663521_gp*scale
+!!!   fil(5)=    0.02207029188482255523789911295638968409_gp*scale
+!!!   fil(6)=   -0.409765689342633823899327051188315485e-2_gp*scale
+!!!   fil(7)=    0.45167920287502235349480037639758496e-3_gp*scale
+!!!   fil(8)=   -0.2398228524507599670405555359023135e-4_gp*scale
+!!!   fil(9)=    2.0904234952920365957922889447361e-6_gp*scale
+!!!   fil(10)=  -3.7230763047369275848791496973044e-7_gp*scale
+!!!   fil(11)=  -1.05857055496741470373494132287e-8_gp*scale
+!!!   fil(12)=  -5.813879830282540547959250667e-11_gp*scale
+!!!   fil(13)=   2.70800493626319438269856689037647576e-13_gp*scale
+!!!   fil(14)=  -6.924474940639200152025730585882e-18_gp*scale
+!!! 
+!!!   do i=1,14
+!!!      fil(-i)=fil(i)
+!!!   enddo
+!!! 
+!!!   fil=fil*(n1+1)*(n3+1) ! include the factor from the Fourier transform
+!!! 
+!!!   ! initialize the variables for matrix inversion
+!!!   n=n2+1
+!!!   kd=lupfil
+!!!   ldab=kd+1!
+!!!   ldb=n2+1
+!!! 
+!!!   ! hit the fourier transform of x with the kernel
+!!! itime=f_time()
+!!!   !We avoid to use f_malloc in an omp parallel section
+!!!   nthread = 1
+!!!   !$ nthread = omp_get_max_threads()
+!!!   ab = f_malloc((/ 1.to.ldab, 1.to.n, 0.to.nthread-1 /),id='ab')
+!!!   b = f_malloc((/ 0.to.n2, 1.to.2, 0.to.nthread-1 /),id='b')
+!!!   !$omp parallel default(none) & 
+!!!   !$omp private (i3,i1,i2,j,i,ct,info,ithread) &
+!!!   !$omp shared (ab,b,n1,n2,n3,zx,fil,kd,ldb,ldab,nrhs,n,c,kern_k1,kern_k3)
+!!!   ithread = 0
+!!!   !$ ithread = omp_get_thread_num()
+!!!   !$omp do schedule(static,1)
+!!!   do i3=0,n3
+!!!      !   do i1=0,n1
+!!!      do i1=0,(n1+1)/2
+!!!         !      ct=kern_k1(i1)+kern_k3(i3)+c
+!!!         ct=(kern_k1(i1)+kern_k3(i3)+c)*(n1+1)*(n3+1)
+!!!         ! ab has to be reinitialized each time
+!!!         ! since it is overwritten in the course of  dgbsv
+!!!         do j=1,n
+!!!            do i=max(1,j-lupfil),j
+!!!               ab(kd+1+i-j,j,ithread)=fil(i-j)
+!!!            enddo
+!!!            ab(kd+1,j,ithread)=fil(0)+ct
+!!!         enddo
+!!!         do i2=0,n2
+!!!            b(i2,1,ithread)=zx(1,i1,i2,i3)
+!!!            b(i2,2,ithread)=zx(2,i1,i2,i3)
+!!!         enddo
+!!!         !      call DGBSV( N, KL, KU, NRHS, ab , LDAB, IPIV, b, LDB, INFO )
+!!!         call DPBSV( 'U', N, KD, NRHS, AB(1,1,ithread), LDAB, B(0,1,ithread), LDB, INFO )
+!!!         if (info.ne.0) stop 'error in matrix inversion'
+!!!         do i2=0,n2
+!!!            zx(1,i1,i2,i3)=b(i2,1,ithread)
+!!!            zx(2,i1,i2,i3)=b(i2,2,ithread)
+!!!         enddo
+!!!      enddo
+!!!   enddo
+!!!   !$omp end do
+!!!   !$omp end parallel
+!!!   call f_free(ab)
+!!!   call f_free(b)
+!!! 
+!!! jtime=f_time()
+!!! 
+!!! call yaml_map('Time elapsed (ns)',jtime-itime)
+!!! 
+!!! call f_release_routine()
+!!! 
+!!! END SUBROUTINE segment_invert

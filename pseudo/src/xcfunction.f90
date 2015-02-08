@@ -1,8 +1,16 @@
-! libXC interfaces for pseudo.
+!> @file
+!! libXC interfaces for the pseudo program
+!! BigDFT package performing ab initio calculation based on wavelets
+!! @author
+!!    Copyright (C) 2010-2013 BigDFT group
+!!    This file is distributed under the terms of the
+!!    GNU General Public License, see ~/COPYING file
+!!    or http://www.gnu.org/copyleft/gpl.txt .
+!!    For the list of contributors, see ~/AUTHORS
 
-! TEST version derived from BigDFTs libABINIT/src/56_xc/m_libxc_functionals.F90 
 
-
+!> Module (pseudo) defining the interfaces with libxc library for the pseudo program
+!! Test version derived from BigDFTs libABINIT/src/56_xc/m_libxc_functionals.F90
 module libxcModule
 
   use xc_f90_types_m
@@ -33,30 +41,11 @@ module libxcModule
 &      xcfunction
 
 contains
-!!*** 
+  
 
-!!****f* libxc_functionals/libxc_functionals_init
-!! NAME
-!!  libxc_functionals_init
-!!
-!! FUNCTION
-!!  Initialize the desired XC functional, from LibXC.
-!!  * Call the LibXC initializer
-!!  * Fill preliminary fields in module structures.
-!!
-!! INPUTS
-!!
-!! OUTPUT
-!! 
-!! PARENTS
-!!      driver
-!!
-!! CHILDREN
-!!      xc_f90_gga_exc_vxc,xc_f90_gga_vxc,xc_f90_lda_exc_vxc,xc_f90_lda_vxc
-!!      xc_f90_mgga_exc_vxc,xc_f90_mgga_vxc
-!!
-!! SOURCE
-
+   !>  Initialize the desired xc functional, from libxc.
+   !!  * call the libxc initializer
+   !!  * fill preliminary fields in module structures.
   subroutine libxc_functionals_init(ixc,nspden)
 
 
@@ -117,28 +106,10 @@ contains
 !!!!      end do
     end do
   end subroutine libxc_functionals_init
-!!***
 
-!!****f* libxc_functionals/libxc_functionals_end
-!! NAME
-!!  libxc_functionals_end
-!!
-!! FUNCTION
-!!  End usage of LibXC functional. Call LibXC end function,
-!!  and deallocate module contents.
-!!
-!! INPUTS
-!!
-!! OUTPUT
-!!
-!! PARENTS
-!!      driver
-!!
-!! CHILDREN
-!!      xc_f90_gga_exc_vxc,xc_f90_gga_vxc,xc_f90_lda_exc_vxc,xc_f90_lda_vxc
-!!      xc_f90_mgga_exc_vxc,xc_f90_mgga_vxc
-!!
-!! SOURCE
+
+   !> End usage of libxc functional. call libxc end function,
+   !! and deallocate module contents.
   subroutine libxc_functionals_end()
 
 
@@ -151,25 +122,9 @@ contains
       call xc_f90_func_end(funcs(i)%conf)
     end do
   end subroutine libxc_functionals_end
-!!*** 
 
-!!****f* libxc_functionals/libxc_functionals_isgga
-!! NAME
-!!  libxc_functionals_isgga
-!!
-!! FUNCTION
-!!  Test function to identify whether the presently used functional
-!!  is a GGA or not
-!!
-!! INPUTS
-!!
-!! OUTPUT
-!! 
-!! PARENTS
-!!
-!! CHILDREN
-!!
-!! SOURCE
+   !> Test function to identify whether the presently used functional
+   !! is a gga or not
   function libxc_functionals_isgga()
 
 
@@ -189,21 +144,7 @@ contains
       libxc_functionals_isgga = .false.
     end if
   end function libxc_functionals_isgga
-!!*** 
-
-!!****f* libxc_functionals/libxc_functionals_exctXfac
-!!
-!! FUNCTION
-!!
-!! INPUTS
-!!
-!! OUTPUT
-!! 
-!! PARENTS
-!!
-!! CHILDREN
-!!
-!! SOURCE
+ 
 
   real(kind=8) function libxc_functionals_exctXfac()
 
@@ -227,25 +168,10 @@ contains
     end if
 
   end function libxc_functionals_exctXfac
-!!*** 
+ 
 
-!!****f* libxc_functionals/libxc_functionals_ismgga
-!! NAME
-!!  libxc_functionals_ismgga
-!!
-!! FUNCTION
-!!  Test function to identify whether the presently used functional
-!!  is a Meta-GGA or not
-!!
-!! INPUTS
-!!
-!! OUTPUT
-!! 
-!! PARENTS
-!!
-!! CHILDREN
-!!
-!! SOURCE
+   !> Test function to identify whether the presently used functional
+   !! is a meta-gga or not
   function libxc_functionals_ismgga()
 
 
@@ -266,32 +192,11 @@ contains
     end if
 
   end function libxc_functionals_ismgga
-!!*** 
-
-!!****f* libxc_functionals/libxc_functionals_getvxc
-!! NAME
-!!  libxc_functionals_getvxc
-!!
-!! FUNCTION
-!!  Return XC potential and energy, from input density (event gradient etc...)
-!!
-!! INPUTS
-!!
-!! OUTPUT
-!! 
-!! PARENTS
-!!      drivexc
-!!
-!! CHILDREN
-!!      xc_f90_gga_exc_vxc,xc_f90_gga_vxc,xc_f90_lda_exc_vxc,xc_f90_lda_vxc
-!!      xc_f90_mgga_exc_vxc,xc_f90_mgga_vxc
-!!
-!! SOURCE
-
-!end module 
-!!***
-
-
+   
+   
+   !> Return xc potential and energy, from input density (event gradient etc...)
+   !! This version calls bigdfts xc drivers, which access libxc as part of the abinit xc functions.
+   !! Should really try to put this apart from bigdft and abinit, and directly call libxc. 
 SUBROUTINE XCFUNCTION(nspol,rho,grad,EXC,VXC,dEdg)
 ! this version calls BigDFTs XC drivers, which access LibXC as part of the ABINIT XC functions.
 ! I should really try to put this apart from BigDFT and ABINIT, and directly call libXC. 

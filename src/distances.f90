@@ -1,7 +1,7 @@
 !> @file
-!!  Routines to do atomic analysis configuration
+!!  Program MDanalysis to do atomic analysis configuration
 !! @author
-!!    Copyright (C) 2009-2011 BigDFT group
+!!    Copyright (C) 2009-2013 BigDFT group
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
@@ -11,7 +11,7 @@
 
 
 !>    Analyse atomic configurations
-program find_angles
+program MDanalysis
  implicit none
  integer, parameter :: ntypes=4,nnmax=15,nseg=1800,nsegr=10000
  real(kind=8), parameter :: rstep=0.005d0!factor=12.82,rad=3.2d0/factor
@@ -203,11 +203,10 @@ program find_angles
  if (whichone /= 'B') then
     close(iunit)
  end if
- print *,''
- print *,'anglemin,anglemax,ncountmax=',anglemin,anglemax,ncountmax
+ write(*,*)
+ write(*,*) 'anglemin,anglemax,ncountmax=',anglemin,anglemax,ncountmax
  call system_clock(timeread_stop)
- write(0, "(A,F20.8,A)") "Global file read: ", &
-      & real(timeread_stop - timeread_start) / real(timecount) , "s"
+ write(0, "(A,F20.8,A)") "Global file read: ", real(timeread_stop - timeread_start) / real(timecount) , "s"
  call finaliseExtract()
 
  !values of the normalisations
@@ -234,7 +233,7 @@ program find_angles
 
  !print istogram
  do i=1,nseg
-    write(13,'(f10.4,20(1pe12.4))')180.d0*real(i,kind=8)/real(nseg,kind=8),(nisto(i,j),j=1,nnmax+1)
+    write(13,'(f10.4,20(1pe12.4))')180.d0*real(i,kind=8)/real(nseg,kind=8),(smearing(nseg,nisto(:,j),0.0d0,i),j=1,nnmax+1)!(nisto(i,j),j=1,nnmax+1)
  end do
 
  print *,'Normalisations:'
@@ -272,10 +271,38 @@ program find_angles
 
 contains
 
+  !> calculate the smearing of the istogram
+  pure function smearing(nseg,nisto,sigma,i)
+    implicit none
+    integer, intent(in) :: nseg
+    real(kind=8), dimension(nseg), intent(in) :: nisto
+    real(kind=8), intent(in) :: sigma !<gaussian spread in units of tenths of a degree
+    integer, intent(in) :: i !< output point
+    real(kind=8) :: smearing
+    !local variables
+    integer :: j
+    real(kind=8) :: exponent
+
+    if (sigma==0.0d0) then
+       smearing=nisto(i)
+       return
+    end if
+    
+    smearing=0.0d0
+    do j=1,nseg
+       exponent=real(i-nisto(j),kind=8)
+       exponent=exponent/sigma
+       exponent=0.5d0*exponent**2
+       smearing=smearing+exp(-exponent)
+    end do
+
+  end function smearing
+
   subroutine box_features(whichone,contcar,nrep,nat,ntypes,iatype,pos,factor)
     use BigDFT_API
     use module_interfaces
     use m_ab6_symmetry
+    use module_atoms, only: deallocate_atomic_structure,set_astruct_from_file
     implicit none
     character(len=1), intent(in) :: whichone
     character(len=40), intent(in) :: contcar
@@ -289,7 +316,7 @@ contains
     real(kind=8) :: xlo,xhi
     integer, dimension(ntypes) :: natoms
     type(atoms_data) :: atoms
-    real(gp), dimension(:,:), pointer :: rxyz
+    character(len=*), parameter :: subname='box_features'
 
     !!allocate arrays and set atom types
     if (whichone /= 'B') open(11,file=contcar,status='unknown')
@@ -345,17 +372,18 @@ contains
     else if (whichone == 'B') then
        !open the first file to check box features
 !print *,'here'
-       call read_atomic_file(trim(contcar),0,atoms,rxyz)
-       nat=atoms%nat
+       call set_astruct_from_file(trim(contcar),0,atoms%astruct)
+       nat=atoms%astruct%nat
 !print *,'nat',nat
        allocate(iatype(nrep**3*nat),pos(3,nrep**3*nat))
        do i=1,nat
-          iatype(i)=atoms%iatype(i)
+          iatype(i)=atoms%astruct%iatype(i)
        enddo
-       factor=atoms%alat1 * Bohr_Ang
+       factor=atoms%astruct%cell_dim(1) * Bohr_Ang
 
-       deallocate(rxyz)
-       call deallocate_atoms(atoms, "box_features")
+       deallocate(atoms%astruct%rxyz)
+       call deallocate_atomic_structure(atoms%astruct) 
+!       call deallocate_atoms(atoms, "box_features")
 
     end if
 
@@ -369,13 +397,14 @@ contains
   END SUBROUTINE box_features
 
 
-end program find_angles
+end program MDanalysis
 
 
 subroutine read_pos(iunit,whichone,nat,pos,nrep)
   use BigDFT_API
   use module_interfaces
   use m_ab6_symmetry
+  use module_atoms, only: deallocate_atomic_structure,set_astruct_from_file
   implicit none
   character(len=1), intent(in) :: whichone
   integer, intent(in) :: iunit,nat,nrep
@@ -385,7 +414,7 @@ subroutine read_pos(iunit,whichone,nat,pos,nrep)
   integer :: i,iat,ityp,i1,i2,i3
   real(kind=8) :: x,y,z,vx,vy,vz,xlo,xhi,ylo,yhi,zlo,zhi,alat(3)
   type(atoms_data) :: atoms
-  real(gp), dimension(:,:), pointer :: rxyz
+  character(len=*), parameter :: subname='read_pos'
 
 
   if (whichone == 'V') then
@@ -409,20 +438,22 @@ subroutine read_pos(iunit,whichone,nat,pos,nrep)
   else if (whichone == 'B') then
      !use the BigDFT call with iunit to control the posout
      write(fn4,'(i5.5)') iunit
-     call read_atomic_file('posmd_'//fn4,0,atoms,rxyz)
+     call set_astruct_from_file('posmd_'//fn4,0,atoms%astruct)
+     call allocate_atoms_nat(atoms)
+     call allocate_atoms_ntypes(atoms)
      !transform the positions in reduced coordinates
-     alat(1) = atoms%alat1
-     if (atoms%geocode == 'F') alat(1) = 1.d0
-     alat(2) = atoms%alat2
-     if (atoms%geocode == 'F' .or. atoms%geocode == 'S') alat(2) = 1.d0
-     alat(3) = atoms%alat3
-     if (atoms%geocode == 'F') alat(3) = 1.d0
+     alat(1) = atoms%astruct%cell_dim(1)
+     if (atoms%astruct%geocode == 'F') alat(1) = 1.d0
+     alat(2) = atoms%astruct%cell_dim(2)
+     if (atoms%astruct%geocode == 'F' .or. atoms%astruct%geocode == 'S') alat(2) = 1.d0
+     alat(3) = atoms%astruct%cell_dim(3)
+     if (atoms%astruct%geocode == 'F') alat(3) = 1.d0
      do iat=1,nat
-        pos(1,iat)=rxyz(1,iat)/alat(1)
-        pos(2,iat)=rxyz(2,iat)/alat(2)
-        pos(3,iat)=rxyz(3,iat)/alat(3)
+        pos(1,iat)=atoms%astruct%rxyz(1,iat)/alat(1)
+        pos(2,iat)=atoms%astruct%rxyz(2,iat)/alat(2)
+        pos(3,iat)=atoms%astruct%rxyz(3,iat)/alat(3)
      enddo
-     call deallocate_atoms(atoms, 'distance')
+     call deallocate_atomic_structure(atoms%astruct)
   end if
 
   !replica of the atom positions

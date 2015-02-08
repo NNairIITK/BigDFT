@@ -1,13 +1,15 @@
 !> @file
+!! Define a module whihc is used to determine the saddle points with ART
 !! @author
 !!    Copyright (C) 2001 Normand Mousseau
-!!    Copyright (C) 2010-2011 BigDFT group 
+!!    Copyright (C) 2010-2013 BigDFT group 
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
 
-!> ART Module saddles 
+
+!> Module saddles used by ART
 module saddles
 
   implicit none
@@ -283,7 +285,7 @@ subroutine local_move( )
            xij = x(j) - xi - boxl(1) * nint((x(j)-xi) * invbox(1))
            yij = y(j) - yi - boxl(2) * nint((y(j)-yi) * invbox(2))
            zij = z(j) - zi - boxl(3) * nint((z(j)-zi) * invbox(3))
-           
+          
            dr2 = xij*xij + yij*yij + zij*zij
            if ( dr2 < lcutoff2 ) then ! Close enough, give a random displacement.
               do
@@ -295,6 +297,16 @@ subroutine local_move( )
                 dr2 = dx(j)**2 + dy(j)**2 + dz(j)**2
                 if ( dr2 < 0.25d0 ) exit  
               end do
+              !bias torwards the surface. should take out of code soon
+              !we now bias torwards bottom
+!              if(j==1) dx(j)=dx(j)+0.5d0
+!              if(j==1) dy(j)=dy(j)+0.5d0
+               if(j==1) dz(j)=dz(j)+0.5d0
+             
+!             if(j==31) dx(j)= dx(j) + 0.5d0
+!              if(j==31) dy(j)= dy(j) -0.6d0
+!              if(j==32) dx(j)= dx(j) + 0.6d0
+!              if(j==31) dz(j)= 0.5d0
               natom_displaced = natom_displaced + 1
               atom_displaced(j) = 1
            end if

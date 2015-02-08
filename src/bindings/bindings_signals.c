@@ -28,15 +28,15 @@ gboolean onClientConnection(GSocket *socket, GIOCondition condition,
 void onPsiReadyInet(BigDFT_Wf *wf, guint iter, gpointer *data);
 void onHPsiReadyInet(BigDFT_Wf *wf, guint iter, gpointer *data);
 void onLzdDefinedInet(BigDFT_Lzd *lzd, gpointer *data);
-void onEKSReadyInet(BigDFT_Energs *energs, guint iter, gpointer *data);
+void onEKSReadyInet(BigDFT_Goutput *energs, guint iter, gpointer *data);
 void onDensityReadyInet(BigDFT_LocalFields *localfields, guint iter, gpointer *data);
 void onVExtReadyInet(BigDFT_LocalFields *localfields, gpointer *data);
-void onIterHamInet(BigDFT_OptLoop *optloop, BigDFT_Energs *energs, gpointer *data);
-void onIterSubInet(BigDFT_OptLoop *optloop, BigDFT_Energs *energs, gpointer *data);
-void onIterWfnInet(BigDFT_OptLoop *optloop, BigDFT_Energs *energs, gpointer *data);
-void onDoneHamInet(BigDFT_OptLoop *optloop, BigDFT_Energs *energs, gpointer *data);
-void onDoneSubInet(BigDFT_OptLoop *optloop, BigDFT_Energs *energs, gpointer *data);
-void onDoneWfnInet(BigDFT_OptLoop *optloop, BigDFT_Energs *energs, gpointer *data);
+void onIterHamInet(BigDFT_OptLoop *optloop, BigDFT_Goutput *energs, gpointer *data);
+void onIterSubInet(BigDFT_OptLoop *optloop, BigDFT_Goutput *energs, gpointer *data);
+void onIterWfnInet(BigDFT_OptLoop *optloop, BigDFT_Goutput *energs, gpointer *data);
+void onDoneHamInet(BigDFT_OptLoop *optloop, BigDFT_Goutput *energs, gpointer *data);
+void onDoneSubInet(BigDFT_OptLoop *optloop, BigDFT_Goutput *energs, gpointer *data);
+void onDoneWfnInet(BigDFT_OptLoop *optloop, BigDFT_Goutput *energs, gpointer *data);
 #endif
 
 #ifdef HAVE_GDBUS
@@ -65,7 +65,7 @@ gboolean onDoneDenspotReady(BigdftDBusLocalFields *denspot,
 gboolean onGetDenspot(BigdftDBusLocalFields *denspot,
                              GDBusMethodInvocation *invocation,
                       BigDFT_DensPotIds kind, gpointer user_data);
-void onEKSReadyDBus(BigDFT_Energs *energs_, guint iter, gpointer data);
+void onEKSReadyDBus(BigDFT_Goutput *energs_, guint iter, gpointer data);
 gboolean onRegisterEnergReady(BigdftDBusEnergs *energs,
                                      GDBusMethodInvocation *invocation,
                               gpointer user_data);
@@ -293,7 +293,7 @@ void FC_FUNC_(bigdft_signals_add_energs, BIGDFT_SIGNALS_ADD_ENERGS)(gpointer *se
   BigdftDBusEnergs *energs;
 #endif
 
-  bmain->energs = BIGDFT_ENERGS(*energs_);
+  bmain->energs = BIGDFT_GOUTPUT(*energs_);
 #ifdef HAVE_GLIB
   g_object_ref(G_OBJECT(*energs_));
 #endif
@@ -362,7 +362,7 @@ void FC_FUNC_(bigdft_signals_rm_energs, BIGDFT_SIGNALS_RM_ENERGS)(gpointer *self
 #ifdef HAVE_GLIB
   g_object_unref(bmain->energs);
 #endif
-  bmain->energs = (BigDFT_Energs*)0;
+  bmain->energs = (BigDFT_Goutput*)0;
 }
 
 void FC_FUNC_(bigdft_signals_add_optloop, BIGDFT_SIGNALS_ADD_OPTLOOP)(gpointer *self,

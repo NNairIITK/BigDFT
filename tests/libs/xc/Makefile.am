@@ -8,7 +8,7 @@ CLEANFILES = xc.out xc.tmp.* xc.report
 
 check_PROGRAMS = test_xc
 
-AM_FCFLAGS = -I$(top_builddir)/src/includes -I$(top_builddir)/src/modules @LIBABINIT_INCLUDE@ 
+AM_FCFLAGS = @LIBABINIT_INCLUDE@ -I$(top_builddir)/includes
 AM_LDFLAGS = -L$(top_builddir)/src
 if BUILD_DYNAMIC_LIBS
 AM_LDFLAGS += -Wl,-rpath=$(abs_top_builddir)/src
@@ -20,7 +20,7 @@ test_xc_SOURCES = test_xc.f90
 test_xc_LDADD = -lbigdft-1
 
 xc.out: test_xc
-	$(run_parallel) ./test_xc > xc.out
+	-$(run_parallel) ./test_xc > xc.out
 
 check: xc.out xc.out.ref
 	@cut -b -70 xc.out > xc.tmp.out

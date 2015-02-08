@@ -1,3 +1,13 @@
+!> @file
+!! Bindings for BigDFT
+!! @author
+!!    Copyright (C) 2012-2013 BigDFT group
+!!    This file is distributed under the terms of the
+!!    GNU General Public License, see ~/COPYING file
+!!    or http://www.gnu.org/copyleft/gpl.txt .
+!!    For the list of contributors, see ~/AUTHORS
+
+
 subroutine wf_emit_psi(c_obj, istep)
   implicit none
   integer(kind = 8), intent(in) :: c_obj
@@ -20,13 +30,6 @@ subroutine wf_copy_from_fortran(c_obj, radii, crmult, frmult)
   real(gp), intent(in) :: radii(:,:)
 end subroutine wf_copy_from_fortran
 
-subroutine energs_emit(c_obj, kind)
-  use module_types
-  implicit none
-  integer(kind = 8), intent(in) :: c_obj
-  integer, intent(in) :: kind
-END SUBROUTINE energs_emit
-
 subroutine localfields_emit_v_ext(c_obj)
   use module_types
   implicit none
@@ -39,20 +42,12 @@ subroutine localfields_emit_rhov(c_obj, iter)
   integer, intent(in) :: iter
 END SUBROUTINE localfields_emit_rhov
 
-subroutine optloop_emit_iter(optloop, id, energs, iproc, nproc)
+subroutine optloop_emit(optloop_c_obj, id, energs_c_obj)
   use module_types
   implicit none
-  type(DFT_optimization_loop), intent(inout) :: optloop
-  type(energy_terms), intent(in) :: energs
-  integer, intent(in) :: id, iproc, nproc
-END SUBROUTINE optloop_emit_iter
-subroutine optloop_emit_done(optloop, id, energs, iproc, nproc)
-  use module_types
-  implicit none
-  type(DFT_optimization_loop), intent(inout) :: optloop
-  type(energy_terms), intent(in) :: energs
-  integer, intent(in) :: id, iproc, nproc
-END SUBROUTINE optloop_emit_done
+  integer, intent(in) :: id
+  integer(kind = 8), intent(in) :: optloop_c_obj, energs_c_obj
+END SUBROUTINE optloop_emit
 
 subroutine bigdft_signals_init(c_obj, type, domain, ln)
   implicit none
@@ -60,6 +55,7 @@ subroutine bigdft_signals_init(c_obj, type, domain, ln)
   integer, intent(in) :: type
   integer, intent(in) :: ln
   character(len = ln), intent(in) :: domain
+  c_obj=0
 END SUBROUTINE bigdft_signals_init
 subroutine bigdft_signals_free(c_obj)
   implicit none
@@ -111,10 +107,6 @@ subroutine localfields_free_wrapper(c_obj)
   implicit none
   integer(kind = 8), intent(in) :: c_obj
 END SUBROUTINE localfields_free_wrapper
-subroutine energs_free_wrapper(c_obj)
-  implicit none
-  integer(kind = 8), intent(in) :: c_obj
-END SUBROUTINE energs_free_wrapper
 subroutine wf_free_wrapper(c_obj)
   implicit none
   integer(kind = 8), intent(in) :: c_obj
@@ -129,22 +121,19 @@ subroutine wf_new_wrapper(c_obj, f_st)
   implicit none
   integer(kind = 8), intent(out) :: c_obj
   type(DFT_wavefunction), intent(in) :: f_st
+  c_obj=0
 END SUBROUTINE wf_new_wrapper
-subroutine energs_new_wrapper(c_obj, f_st)
-  use module_types
-  implicit none
-  integer(kind = 8), intent(out) :: c_obj
-  type(energy_terms), intent(in) :: f_st
-END SUBROUTINE energs_new_wrapper
 subroutine localfields_new_wrapper(c_obj, f_st)
   use module_types
   implicit none
   integer(kind = 8), intent(out) :: c_obj
   type(DFT_local_fields), intent(in) :: f_st
+  c_obj=0
 END SUBROUTINE localfields_new_wrapper
 subroutine optloop_new_wrapper(c_obj, f_st)
   use module_types
   implicit none
   integer(kind = 8), intent(out) :: c_obj
   type(DFT_optimization_loop), intent(in) :: f_st
+  c_obj=0
 END SUBROUTINE optloop_new_wrapper

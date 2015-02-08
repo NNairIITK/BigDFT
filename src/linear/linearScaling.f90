@@ -1,112 +1,167 @@
-subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,nlpspd,proj,GPU,&
-           energs,energy,fpulay,infocode)
+!> @file
+!!  Routines used by the linear scaling version
+!! @author
+!!    Copyright (C) 2012-2013 BigDFT group
+!!    This file is distributed under the terms of the
+!!    GNU General Public License, see ~/COPYING file
+!!    or http://www.gnu.org/copyleft/gpl.txt .
+!!    For the list of contributors, see ~/AUTHORS
+
+
+subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,nlpsp,GPU,&
+           energs,energy,fpulay,infocode,ref_frags,cdft, &
+           fdisp, fion)
  
   use module_base
   use module_types
   use module_interfaces, exceptThisOne => linearScaling
   use yaml_output
+  use module_fragments
+  use constrained_dft
+  use diis_sd_optimization
+  use Poisson_Solver, except_dp => dp, except_gp => gp, except_wp => wp
+  use communications_base, only: work_transpose, allocate_p2pComms_buffer, &
+                                 deallocate_p2pComms_buffer, &
+                                 work_transpose_null, allocate_work_transpose, deallocate_work_transpose
+  use communications, only: synchronize_onesided_communication, transpose_localized, untranspose_localized
+  !use communications_init, only: orbitals_communicators
+  use sparsematrix_base, only: sparse_matrix, sparse_matrix_null, deallocate_sparse_matrix, &
+                               matrices_null, allocate_matrices, deallocate_matrices, &
+                               sparsematrix_malloc, sparsematrix_malloc_ptr, assignment(=), SPARSE_FULL
+  use sparsematrix, only: gather_matrix_from_taskgroups_inplace, extract_taskgroup_inplace
   implicit none
 
   ! Calling arguments
   integer,intent(in) :: iproc, nproc
   type(atoms_data),intent(inout) :: at
   type(input_variables),intent(in) :: input ! need to hack to be inout for geopt changes
-  real(8),dimension(3,at%nat),intent(inout) :: rxyz
-  real(8),dimension(3,at%nat),intent(out) :: fpulay
+  real(kind=8),dimension(3,at%astruct%nat),intent(inout) :: rxyz
+  real(kind=8),dimension(3,at%astruct%nat),intent(out) :: fpulay
   type(DFT_local_fields), intent(inout) :: denspot
-  real(gp), dimension(:), intent(inout) :: rhopotold
-  type(nonlocal_psp_descriptors),intent(in) :: nlpspd
-  real(wp),dimension(nlpspd%nprojel),intent(inout) :: proj
-  type(GPU_pointers),intent(in out) :: GPU
+  real(gp), dimension(*), intent(inout) :: rhopotold
+  type(DFT_PSP_projectors),intent(inout) :: nlpsp
+  type(GPU_pointers),intent(inout) :: GPU
   type(energy_terms),intent(inout) :: energs
   real(gp), dimension(:), pointer :: rho,pot
-  real(8),intent(out) :: energy
+  real(kind=8),intent(out) :: energy
   type(DFT_wavefunction),intent(inout),target :: tmb
   type(DFT_wavefunction),intent(inout),target :: KSwfn
   integer,intent(out) :: infocode
-  
-  real(8) :: pnrm,trace,trace_old,fnrm_tmb
-  integer :: infoCoeff,istat,iall,it_scc,itout,info_scf,i,ierr,iorb
-  character(len=*),parameter :: subname='linearScaling'
-  real(8),dimension(:),allocatable :: rhopotold_out
-  real(8) :: energyold, energyDiff, energyoldout, fnrm_pulay, convCritMix
-  type(mixrhopotDIISParameters) :: mixdiis
-  type(localizedDIISParameters) :: ldiis, ldiis_coeff
-  logical :: can_use_ham, update_phi, locreg_increased, reduce_conf
-  logical :: fix_support_functions, check_initialguess, fix_supportfunctions
+  type(system_fragment), dimension(:), pointer :: ref_frags ! for transfer integrals
+  type(cdft_data), intent(inout) :: cdft
+  real(kind=8),dimension(3,at%astruct%nat),intent(in) :: fdisp, fion
+
+  !Local variables
+  real(kind=8) :: pnrm,trace,trace_old,fnrm_tmb
+  integer :: infoCoeff,istat,it_scc,itout,info_scf,i,iorb
+  character(len=*), parameter :: subname='linearScaling'
+  real(kind=8),dimension(:),allocatable :: rhopotold_out
+  real(kind=8) :: energyold, energyDiff, energyoldout, fnrm_pulay, convCritMix, convCritMix_init
+  type(localizedDIISParameters) :: ldiis
+  type(DIIS_obj) :: ldiis_coeff, vdiis
+  logical :: can_use_ham, update_phi, locreg_increased, reduce_conf, orthonormalization_on
+  logical :: fix_support_functions
   integer :: itype, istart, nit_lowaccuracy, nit_highaccuracy
-  real(8),dimension(:),allocatable :: locrad_tmp
-  integer :: ldiis_coeff_hist
+  integer :: ldiis_coeff_hist, nitdmin
   logical :: ldiis_coeff_changed
-  integer :: mix_hist, info_basis_functions, nit_scc, cur_it_highaccuracy
-  real(8) :: pnrm_out, alpha_mix, ratio_deltas
-  logical :: lowaccur_converged, exit_outer_loop
-  real(8),dimension(:),allocatable :: locrad
+  integer :: mix_hist, info_basis_functions, nit_scc, cur_it_highaccuracy, nit_scc_changed
+  real(kind=8) :: pnrm_out, alpha_mix, ratio_deltas, convcrit_dmin, tt1, tt2
+  logical :: lowaccur_converged, exit_outer_loop, calculate_overlap, invert_overlap_matrix
+  real(kind=8),dimension(:),allocatable :: locrad
   integer:: target_function, nit_basis
-  type(sparseMatrix) :: ham_small
-  integer :: isegsmall, iseglarge, iismall, iilarge, is, ie
+  logical :: keep_value
+  type(workarrays_quartic_convolutions),dimension(:),pointer :: precond_convol_workarrays
+  type(workarr_precond),dimension(:),pointer :: precond_workarrays
+  type(work_transpose) :: wt_philarge, wt_hpsinoprecond, wt_hphi, wt_phi
+
+  
+  real(kind=gp) :: ebs, vgrad_old, vgrad, valpha, vold, vgrad2, vold_tmp, conv_crit_TMB, best_charge_diff, cdft_charge_thresh
+  real(kind=gp), allocatable, dimension(:,:) :: coeff_tmp
+  integer :: jorb, cdft_it, nelec, iat, ityp, norder_taylor, ispin, ishift
+  integer :: dmin_diag_it, dmin_diag_freq, ioffset
+  logical :: reorder, rho_negative
+  real(wp), dimension(:,:,:), pointer :: mom_vec_fake
+  type(matrices) :: weight_matrix_
+  real(kind=8) :: sign_of_energy_change
+  integer :: nit_energyoscillation
+  integer(kind=8) :: nsize
+  type(work_mpiaccumulate) :: fnrm_work, energs_work
+
+  real(8),dimension(:),allocatable :: rho_tmp, tmparr
+  real(8) :: tt, ddot
+
+  !better names/input variables
+  logical, parameter :: write_fragments=.true.
+  logical, parameter :: write_full_system=.true.
+
+
+  !integer :: ind, ilr, iorbp, iiorb, indg, npsidim_global
+  !real(kind=gp), allocatable, dimension(:) :: gpsi, psit_large_c, psit_large_f, kpsit_c, kpsit_f, kpsi, kpsi_small
+  !real(kind=gp), pointer, dimension(:) :: gpsi_all, gpsi_virt
+  !type(orbitals_data) :: fakeorbs
+  !type(comms_cubic) :: comms
+
+
+  !!rho_tmp = f_malloc(size(denspot%rhov),id='rho_tmp')
 
   call timing(iproc,'linscalinit','ON') !lr408t
 
+  call f_routine(id='linear_scaling')
+
   call allocate_local_arrays()
 
-  if(iproc==0) then
-      write(*,'(1x,a)') repeat('*',84)
-      write(*,'(1x,a)') '****************************** LINEAR SCALING VERSION ******************************'
-  end if
+
 
   ! Allocate the communications buffers needed for the communications of the potential and
   ! post the messages. This will send to each process the part of the potential that this process
   ! needs for the application of the Hamlitonian to all orbitals on that process.
-  call allocateCommunicationsBuffersPotential(tmb%comgp, subname)
-
-  ! Initialize the DIIS mixing of the potential if required.
-  if(input%lin%mixHist_lowaccuracy>0 .and. input%lin%scf_mode/=LINEAR_DIRECT_MINIMIZATION) then
-      call initializeMixrhopotDIIS(input%lin%mixHist_lowaccuracy, denspot%dpbox%ndimpot, mixdiis)
-  end if
+  call allocate_p2pComms_buffer(tmb%comgp)
 
   pnrm=1.d100
   pnrm_out=1.d100
   energyold=0.d0
   energyoldout=0.d0
+  energy=0.d0
+  energs%ebs=0.0d0
   target_function=TARGET_FUNCTION_IS_TRACE
   lowaccur_converged=.false.
   info_basis_functions=-1
   fix_support_functions=.false.
-  check_initialguess=.true.
   cur_it_highaccuracy=0
   trace_old=0.0d0
-  ldiis_coeff_hist=input%lin%mixHist_lowaccuracy
+  ldiis_coeff_hist=input%lin%dmin_hist_lowaccuracy
   reduce_conf=.false.
   ldiis_coeff_changed = .false.
+  orthonormalization_on=.true.
+  dmin_diag_it=0
+  dmin_diag_freq=-1
+  reorder=.false.
+  nullify(mom_vec_fake)
+  norder_taylor=input%lin%order_taylor
+  sign_of_energy_change = -1.d0
+  nit_energyoscillation = 0
+  keep_value = .false.
 
-  call nullify_sparsematrix(ham_small) ! nullify anyway
 
-  if (input%lin%scf_mode==LINEAR_FOE) then ! deallocate ham_small
-     call sparse_copy_pattern(tmb%linmat%ovrlp,ham_small,iproc,subname)
-     allocate(ham_small%matrix_compr(ham_small%nvctr), stat=istat)
-     call memocc(istat, ham_small%matrix_compr, 'ham_small%matrix_compr', subname)
-  end if
 
   ! Allocate the communication arrays for the calculation of the charge density.
 
   if (input%lin%scf_mode==LINEAR_DIRECT_MINIMIZATION) then  
-     call initialize_DIIS_coeff(ldiis_coeff_hist, ldiis_coeff)
-     call allocate_DIIS_coeff(tmb, ldiis_coeff)
+     ldiis_coeff%alpha_coeff=input%lin%alphaSD_coeff
+!!$     call initialize_DIIS_coeff(ldiis_coeff_hist, ldiis_coeff)
+!!$     call allocate_DIIS_coeff(tmb, ldiis_coeff)
+     if (input%lin%extra_states==0) then
+        call DIIS_set(ldiis_coeff_hist,0.1_gp,tmb%orbs%norb*KSwfn%orbs%norbp,1,ldiis_coeff)
+     else
+        call DIIS_set(ldiis_coeff_hist,0.1_gp,tmb%orbs%norb*tmb%orbs%norbp,1,ldiis_coeff)
+     end if
   end if
 
-  ! Orthogonalize the input guess minimal basis functions using exact calculation of S^-1/2
   tmb%can_use_transposed=.false.
-  nullify(tmb%psit_c)
-  nullify(tmb%psit_f)
-  !if(iproc==0) write(*,*) 'calling orthonormalizeLocalized (exact)'
+  !nullify(tmb%psit_c)
+  !nullify(tmb%psit_f)
 
   call timing(iproc,'linscalinit','OF') !lr408t
-
-  ! now done in inputguess
-      ! CHEATING here and passing tmb%linmat%denskern instead of tmb%linmat%inv_ovrlp
-  !call orthonormalizeLocalized(iproc, nproc, -1, tmb%npsidim_orbs, tmb%orbs, tmb%lzd, tmb%linmat%ovrlp, tmb%linmat%denskern, &
-  !     tmb%collcom, tmb%orthpar, tmb%psi, tmb%psit_c, tmb%psit_f, tmb%can_use_transposed)
 
   ! Check the quality of the input guess
   call check_inputguess()
@@ -114,57 +169,179 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
   call timing(iproc,'linscalinit','ON') !lr408t
 
   if(input%lin%scf_mode/=LINEAR_MIXPOT_SIMPLE) then
-      call dcopy(max(denspot%dpbox%ndimrhopot,denspot%dpbox%nrhodim),rhopotold(1),1,rhopotold_out(1),1)
+      call vcopy(max(denspot%dpbox%ndimrhopot,denspot%dpbox%nrhodim),rhopotold(1),1,rhopotold_out(1),1)
+      !!call mix_rhopot(iproc,nproc,denspot%mix%nfft*denspot%mix%nspden,alpha_mix,denspot%mix,&
+      !!     denspot%rhov,1,denspot%dpbox%ndims(1),denspot%dpbox%ndims(2),denspot%dpbox%ndims(3),&
+      !!     at%astruct%cell_dim(1)*at%astruct%cell_dim(2)*at%astruct%cell_dim(3),&
+      !!     pnrm,denspot%dpbox%nscatterarr)
   else
-      call dcopy(max(denspot%dpbox%ndimrhopot,denspot%dpbox%nrhodim),denspot%rhov(1),1,rhopotold_out(1),1)
-      call dcopy(max(KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3p,1) &
+      call vcopy(max(denspot%dpbox%ndimrhopot,denspot%dpbox%nrhodim),denspot%rhov(1),1,rhopotold_out(1),1)
+      call vcopy(max(KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3d,1) &
             *input%nspin, denspot%rhov(1), 1, rhopotOld(1), 1)
   end if
 
-  if (iproc==0) call yaml_open_map('Checking Communications of Minimal Basis')
-  call check_communications_locreg(iproc,nproc,tmb%orbs,tmb%Lzd,tmb%collcom, &
-       tmb%npsidim_orbs,tmb%npsidim_comp)
-  if (iproc==0) call yaml_close_map()
 
-  if (iproc==0) call yaml_open_map('Checking Communications of Enlarged Minimal Basis')
-  call check_communications_locreg(iproc,nproc,tmb%orbs,tmb%ham_descr%lzd,tmb%ham_descr%collcom, &
-       tmb%ham_descr%npsidim_orbs,tmb%ham_descr%npsidim_comp)
-  if (iproc ==0) call yaml_close_map()
+  !!!! These tests are already done in cluster, keep them for consitency with the test references
+  !!!if (iproc==0) call yaml_mapping_open('Checking Communications of Minimal Basis')
+  !!!call check_communications_locreg(iproc,nproc,tmb%orbs,input%nspin,tmb%lzd, &
+  !!!     tmb%collcom,tmb%linmat%s,tmb%linmat%ovrlp_, &
+  !!!     tmb%npsidim_orbs,tmb%npsidim_comp)
+  !!!if (iproc==0) call yaml_mapping_close()
+  !!!write(*,*) 'after 1st check, sums', sum(tmb%linmat%ovrlp_%matrix_compr), sum(tmb%linmat%kernel_%matrix_compr)
+
+  !!!if (iproc==0) call yaml_mapping_open('Checking Communications of Enlarged Minimal Basis')
+  !!!call check_communications_locreg(iproc,nproc,tmb%orbs,input%nspin,tmb%ham_descr%lzd, &
+  !!!     tmb%ham_descr%collcom,tmb%linmat%m,tmb%linmat%ham_, &
+  !!!     tmb%ham_descr%npsidim_orbs,tmb%ham_descr%npsidim_comp)
+  !!!if (iproc ==0) call yaml_mapping_close()
+  !!!write(*,*) 'after 2nd check, sums', sum(tmb%linmat%ovrlp_%matrix_compr), sum(tmb%linmat%kernel_%matrix_compr)
+
+
+  ! CDFT: calculate w_ab here given w(r)
+  ! CDFT: first check that we aren't updating the basis at any point and we don't have any low acc iterations
+  if (input%lin%constrained_dft) then
+     !if (nit_lowaccuracy>0 .or. input%lin%nItBasis_highaccuracy>1) then
+     !   stop 'Basis cannot be updated for now in constrained DFT calculations and no low accuracy is allowed'
+     !end if
+
+     weight_matrix_ = matrices_null()
+     call allocate_matrices(tmb%linmat%m, allocate_full=.false., matname='weight_matrix_', mat=weight_matrix_)
+     weight_matrix_%matrix_compr=cdft%weight_matrix_%matrix_compr
+
+     !!call extract_taskgroup_inplace(tmb%linmat%l, tmb%linmat%kernel_)
+     !!call extract_taskgroup_inplace(tmb%linmat%m, weight_matrix_)
+     call calculate_kernel_and_energy(iproc,nproc,tmb%linmat%l,tmb%linmat%m, &
+          tmb%linmat%kernel_,weight_matrix_,&
+          ebs,tmb%coeff,KSwfn%orbs,tmb%orbs,.false.)
+     !!call gather_matrix_from_taskgroups_inplace(iproc, nproc, tmb%linmat%l, tmb%linmat%kernel_)
+     !!call gather_matrix_from_taskgroups_inplace(iproc, nproc, tmb%linmat%m, weight_matrix_)
+
+     !tmb%linmat%denskern_large%matrix_compr = tmb%linmat%kernel_%matrix_compr
+     call deallocate_matrices(weight_matrix_)
+
+     call timing(iproc,'constraineddft','ON')
+     vgrad_old=ebs-cdft%charge
+
+     !!if (iproc==0) write(*,'(a,4(ES16.6e3,2x))') 'N, Tr(KW), Tr(KW)-N, V*(Tr(KW)-N)',&
+     !!     cdft%charge,ebs,vgrad_old,cdft%lag_mult*vgrad_old
+     if (iproc==0) then
+         call yaml_mapping_open('CDFT infos')
+         call yaml_map('N',cdft%charge,fmt='(es16.6e3)')
+         call yaml_map('Tr(KW)',ebs,fmt='(es16.6e3)')
+         call yaml_map('Tr(KW)-N',vgrad_old,fmt='(es16.6e3)')
+         call yaml_map('V*(Tr(KW)-N)',cdft%lag_mult*vgrad_old,fmt='(es16.6e3)')
+         call yaml_mapping_close()
+     end if
+     vgrad_old=abs(vgrad_old)
+     valpha=0.5_gp
+     !best_charge_diff=vgrad_old
+     coeff_tmp=f_malloc((/tmb%orbs%norb,tmb%orbs%norb/),id='coeff_tmp')
+     cdft_charge_thresh=1.e-2
+     call timing(iproc,'constraineddft','OF')
+  end if
+
+
+  ! modify tmb%orbs%occup, as we normally use orbs%occup elsewhere
+  if (input%lin%extra_states>0) then
+     call f_zero(tmb%orbs%norb,tmb%orbs%occup(1))
+     call vcopy(KSwfn%orbs%norb, KSwfn%orbs%occup(1), 1, tmb%orbs%occup(1), 1)
+     ! occupy the next few states - don't need to preserve the charge as only using for support function optimization
+     do iorb=1,tmb%orbs%norb
+        if (tmb%orbs%occup(iorb)==1.0_gp) then
+           tmb%orbs%occup(iorb)=2.0_gp
+        else if (tmb%orbs%occup(iorb)==0.0_gp) then
+           do jorb=iorb,min(iorb+input%lin%extra_states-1,tmb%orbs%norb)
+             tmb%orbs%occup(jorb)=2.0_gp
+           end do
+           exit
+        end if
+     end do
+  else
+     ! only use tmb%orbs%occup for calculating energy components, otherwise using KSwfn%orbs%occup
+     tmb%orbs%occup=1.0d0
+  end if
+
+  ! if we want to ignore read in coeffs and diag at start - EXPERIMENTAL
+  if (input%lin%diag_start .and. input%inputPsiId==INPUT_PSI_DISK_LINEAR) then
+     ! Calculate the charge density.
+     !!tmparr = sparsematrix_malloc(tmb%linmat%l,iaction=SPARSE_FULL,id='tmparr')
+     !!call vcopy(tmb%linmat%l%nvctr, tmb%linmat%kernel_%matrix_compr(1), 1, tmparr(1), 1)
+     !!call gather_matrix_from_taskgroups_inplace(iproc, nproc, tmb%linmat%l, tmb%linmat%kernel_)
+     call sumrho_for_TMBs(iproc, nproc, KSwfn%Lzd%hgrids(1), KSwfn%Lzd%hgrids(2), KSwfn%Lzd%hgrids(3), &
+          tmb%collcom_sr, tmb%linmat%l, tmb%linmat%kernel_, denspot%dpbox%ndimrhopot, &
+          denspot%rhov, rho_negative)
+     !!call vcopy(tmb%linmat%l%nvctr, tmparr(1), 1, tmb%linmat%kernel_%matrix_compr(1), 1)
+     !!call f_free(tmparr)
+
+     if (rho_negative) then
+         call corrections_for_negative_charge(iproc, nproc, KSwfn, at, input, tmb, denspot)
+         !!if (iproc==0) call yaml_warning('Charge density contains negative points, need to increase FOE cutoff')
+         !!call increase_FOE_cutoff(iproc, nproc, tmb%lzd, at%astruct, input, KSwfn%orbs, tmb%orbs, tmb%foe_obj, init=.false.)
+         !!call clean_rho(iproc, KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3d, denspot%rhov)
+     end if
+     ! Calculate the new potential.
+     !if(iproc==0) write(*,'(1x,a)') '---------------------------------------------------------------- Updating potential.'
+     !if (iproc==0) call yaml_map('update potential',.true.)
+     if (iproc==0) call yaml_mapping_open('update pot',flow=.true.)
+     call updatePotential(input%nspin,denspot,energs%eh,energs%exc,energs%evxc)
+  end if
 
   call timing(iproc,'linscalinit','OF') !lr408t
+
 
   ! Add one iteration if no low accuracy is desired since we need then a first fake iteration, with istart=0
   istart = min(1,nit_lowaccuracy)
   infocode=0 !default value
   ! This is the main outer loop. Each iteration of this loop consists of a first loop in which the basis functions
   ! are optimized and a consecutive loop in which the density is mixed.
+  if (iproc==0) then
+      call yaml_comment('Self-Consistent Cycle',hfill='-')
+      call yaml_sequence_open('Ground State Optimization')
+  end if
   outerLoop: do itout=istart,nit_lowaccuracy+nit_highaccuracy
 
       if (input%lin%nlevel_accuracy==2) then
           ! Check whether the low accuracy part (i.e. with strong confining potential) has converged.
           call check_whether_lowaccuracy_converged(itout, nit_lowaccuracy, input%lin%lowaccuracy_conv_crit, &
                lowaccur_converged, pnrm_out)
+          !!if (iproc==0) write(*,*) 'lowaccur_converged,associated(precond_workarrays)',lowaccur_converged,associated(precond_workarrays)
+          !!if (lowaccur_converged) then
+          !!    call deallocate_precond_arrays(tmb%orbs, tmb%lzd, precond_convol_workarrays, precond_workarrays)
+          !!end if
           ! Set all remaining variables that we need for the optimizations of the basis functions and the mixing.
           call set_optimization_variables(input, at, tmb%orbs, tmb%lzd%nlr, tmb%orbs%onwhichatom, tmb%confdatarr, &
-           convCritMix, lowaccur_converged, nit_scc, mix_hist, alpha_mix, locrad, target_function, nit_basis)
+               convCritMix_init, lowaccur_converged, nit_scc, mix_hist, alpha_mix, locrad, target_function, nit_basis, &
+               convcrit_dmin, nitdmin, conv_crit_TMB)
+          if (itout==1) then
+              call allocate_precond_arrays(tmb%orbs, tmb%lzd, tmb%confdatarr, precond_convol_workarrays, precond_workarrays)
+              wt_philarge = work_transpose_null()
+              wt_hpsinoprecond = work_transpose_null()
+              wt_hphi = work_transpose_null()
+              wt_phi = work_transpose_null()
+              call allocate_work_transpose(nproc, tmb%ham_descr%collcom, wt_philarge)
+              call allocate_work_transpose(nproc, tmb%ham_descr%collcom, wt_hpsinoprecond)
+              call allocate_work_transpose(nproc, tmb%ham_descr%collcom, wt_hphi)
+              call allocate_work_transpose(nproc, tmb%collcom, wt_phi)
+          end if
+          !!if (iproc==0) write(*,*) 'AFTER: lowaccur_converged,associated(precond_workarrays)',lowaccur_converged,associated(precond_workarrays)
+          if (keep_value) then
+              nit_scc = nit_scc_changed
+          end if
       else if (input%lin%nlevel_accuracy==1 .and. itout==1) then
-          call set_variables_for_hybrid(tmb%lzd%nlr, input, at, tmb%orbs, lowaccur_converged, tmb%confdatarr, &
-               target_function, nit_basis, nit_scc, mix_hist, locrad, alpha_mix, convCritMix)
-         !! lowaccur_converged=.false.
-         !! do iorb=1,tmb%orbs%norbp
-         !!     ilr=tmb%orbs%inwhichlocreg(tmb%orbs%isorb+iorb)
-         !!     iiat=tmb%orbs%onwhichatom(tmb%orbs%isorb+iorb)
-         !!     tmb%confdatarr(iorb)%prefac=input%lin%potentialPrefac_lowaccuracy(at%iatype(iiat))
-         !! end do
-         !! target_function=TARGET_FUNCTION_IS_HYBRID
-         !! nit_basis=input%lin%nItBasis_lowaccuracy
-         !! nit_scc=input%lin%nitSCCWhenFixed_lowaccuracy
-         !! mix_hist=input%lin%mixHist_lowaccuracy
-         !! do ilr=1,tmb%lzd%nlr
-         !!     locrad(ilr)=input%lin%locrad_lowaccuracy(ilr)
-         !! end do
-         !! alpha_mix=input%lin%alpha_mix_lowaccuracy
-         !! convCritMix=input%lin%convCritMix_lowaccuracy
+          call set_variables_for_hybrid(iproc, tmb%lzd%nlr, input, at, tmb%orbs, &
+               lowaccur_converged, tmb%damping_factor_confinement, tmb%confdatarr, &
+               target_function, nit_basis, nit_scc, mix_hist, locrad, alpha_mix, convCritMix_init, conv_crit_TMB)
+               convcrit_dmin=input%lin%convCritDmin_highaccuracy
+               nitdmin=input%lin%nItdmin_highaccuracy
+          call allocate_precond_arrays(tmb%orbs, tmb%lzd, tmb%confdatarr, precond_convol_workarrays, precond_workarrays)
+          wt_philarge = work_transpose_null()
+          wt_hpsinoprecond = work_transpose_null()
+          wt_hphi = work_transpose_null()
+          wt_phi = work_transpose_null()
+          call allocate_work_transpose(nproc, tmb%ham_descr%collcom, wt_philarge)
+          call allocate_work_transpose(nproc, tmb%ham_descr%collcom, wt_hpsinoprecond)
+          call allocate_work_transpose(nproc, tmb%ham_descr%collcom, wt_hphi)
+          call allocate_work_transpose(nproc, tmb%collcom, wt_phi)
       end if
 
       ! Do one fake iteration if no low accuracy is desired.
@@ -176,18 +353,40 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
       if(lowaccur_converged) cur_it_highaccuracy=cur_it_highaccuracy+1
 
       if(cur_it_highaccuracy==1) then
+          if (iproc==0) then
+              call yaml_comment('Adjustments for high accuracy',hfill='=')
+          end if
+          ! nit_scc might have been overwritten, so recalculate it and set the ! flag to false
+          if (input%lin%nlevel_accuracy==2) then
+              ! Set all remaining variables that we need for the optimizations of the basis functions and the mixing.
+              call set_optimization_variables(input, at, tmb%orbs, tmb%lzd%nlr, tmb%orbs%onwhichatom, tmb%confdatarr, &
+                   convCritMix_init, lowaccur_converged, nit_scc, mix_hist, alpha_mix, locrad, target_function, nit_basis, &
+                   convcrit_dmin, nitdmin, conv_crit_TMB)
+              keep_value = .false.
+          end if
           ! Adjust the confining potential if required.
           call adjust_locregs_and_confinement(iproc, nproc, KSwfn%Lzd%hgrids(1), KSwfn%Lzd%hgrids(2), KSwfn%Lzd%hgrids(3), &
-               at, input, rxyz, KSwfn, tmb, denspot, ldiis, locreg_increased, lowaccur_converged, locrad)
+               at, input, rxyz, KSwfn, tmb, denspot, nlpsp, ldiis, locreg_increased, lowaccur_converged, locrad)
+          orthonormalization_on=.true.
 
-          if (locreg_increased .and. input%lin%scf_mode==LINEAR_FOE) then ! deallocate ham_small
-             call deallocate_sparsematrix(ham_small,subname)
-             call nullify_sparsematrix(ham_small) ! nullify anyway
-             call sparse_copy_pattern(tmb%linmat%ovrlp,ham_small,iproc,subname)
-             allocate(ham_small%matrix_compr(ham_small%nvctr), stat=istat)
-             call memocc(istat, ham_small%matrix_compr, 'ham_small%matrix_compr', subname)
-          end if
+          call deallocate_precond_arrays(tmb%orbs, tmb%lzd, precond_convol_workarrays, precond_workarrays)
+          call deallocate_work_transpose(wt_philarge)
+          call deallocate_work_transpose(wt_hpsinoprecond)
+          call deallocate_work_transpose(wt_hphi)
+          call deallocate_work_transpose(wt_phi)
 
+          call allocate_precond_arrays(tmb%orbs, tmb%lzd, tmb%confdatarr, precond_convol_workarrays, precond_workarrays)
+          wt_philarge = work_transpose_null()
+          wt_hpsinoprecond = work_transpose_null()
+          wt_hphi = work_transpose_null()
+          wt_phi = work_transpose_null()
+          call allocate_work_transpose(nproc, tmb%ham_descr%collcom, wt_philarge)
+          call allocate_work_transpose(nproc, tmb%ham_descr%collcom, wt_hpsinoprecond)
+          call allocate_work_transpose(nproc, tmb%ham_descr%collcom, wt_hphi)
+          call allocate_work_transpose(nproc, tmb%collcom, wt_phi)
+
+          ! is this really necessary if the locrads haven't changed?  we should check this!
+          ! for now for CDFT don't do the extra get_coeffs, as don't want to add extra CDFT loop here
           if (target_function==TARGET_FUNCTION_IS_HYBRID) then
               if (iproc==0) write(*,*) 'WARNING: COMMENTED THESE LINES'
           else
@@ -195,25 +394,50 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
              ! being different for low and high accuracy.
              update_phi=.true.
              tmb%can_use_transposed=.false.   !check if this is set properly!
-             call get_coeff(iproc,nproc,input%lin%scf_mode,KSwfn%orbs,at,rxyz,denspot,GPU,&
-                  infoCoeff,energs%ebs,nlpspd,proj,input%SIC,tmb,pnrm,update_phi,update_phi,&
-                  .true.,ham_small,ldiis_coeff=ldiis_coeff)
+             ! NB nothing is written to screen for this get_coeff
+             if (.not. input%lin%constrained_dft) then
+                ! Check whether the overlap matrix must be calculated and inverted (otherwise it has already been done)
+                !!calculate_overlap = ((update_phi .and. .not.input%correction_co_contra) .or. cur_it_highaccuracy==1)
+                !!invert_overlap_matrix = ((input%method_updatekernel/=UPDATE_BY_FOE .and. &
+                !!                         input%method_updatekernel/=UPDATE_BY_RENORMALIZATION) .or. &
+                !!                         cur_it_highaccuracy==1)
+                calculate_overlap = ((update_phi .and. .not.input%correction_co_contra) .or. cur_it_highaccuracy==1)
+                invert_overlap_matrix = calculate_overlap
+                !invert_overlap_matrix = (.not.(target_function==TARGET_FUNCTION_IS_HYBRID .and. &
+                !                          (input%method_updatekernel==UPDATE_BY_FOE .or. &
+                !                         input%method_updatekernel==UPDATE_BY_RENORMALIZATION)))
+                !!call extract_taskgroup_inplace(tmb%linmat%l, tmb%linmat%kernel_)
+                call get_coeff(iproc,nproc,input%lin%scf_mode,KSwfn%orbs,at,rxyz,denspot,GPU,&
+                     infoCoeff,energs,nlpsp,input%SIC,tmb,pnrm,calculate_overlap,invert_overlap_matrix,update_phi,&
+                     .true.,input%lin%extra_states,itout,0,0,norder_taylor,input%lin%max_inversion_error,&
+                     input%purification_quickreturn,&
+                     input%calculate_KS_residue,input%calculate_gap,energs_work,&
+                     convcrit_dmin,nitdmin,input%lin%curvefit_dmin,ldiis_coeff)
+                !!call gather_matrix_from_taskgroups_inplace(iproc, nproc, tmb%linmat%l, tmb%linmat%kernel_)
+             end if
           end if
 
           ! Some special treatement if we are in the high accuracy part
-          call adjust_DIIS_for_high_accuracy(input, denspot, mixdiis, lowaccur_converged, &
+          call adjust_DIIS_for_high_accuracy(input, denspot, lowaccur_converged, &
                ldiis_coeff_hist, ldiis_coeff_changed)
       end if
 
 
       if (input%lin%scf_mode==LINEAR_DIRECT_MINIMIZATION) then 
-         call initialize_DIIS_coeff(ldiis_coeff_hist, ldiis_coeff)
-         ! need to reallocate DIIS matrices to adjust for changing history length
-         if (ldiis_coeff_changed) then
-            call deallocateDIIS(ldiis_coeff)
-            call allocate_DIIS_coeff(tmb, ldiis_coeff)
-            ldiis_coeff_changed = .false.
+         !call initialize_DIIS_coeff(ldiis_coeff_hist, ldiis_coeff)
+         call DIIS_free(ldiis_coeff)
+         if (input%lin%extra_states==0) then
+            call DIIS_set(ldiis_coeff_hist,0.1_gp,tmb%orbs%norb*KSwfn%orbs%norbp,1,ldiis_coeff)
+         else
+            call DIIS_set(ldiis_coeff_hist,0.1_gp,tmb%orbs%norb*tmb%orbs%norbp,1,ldiis_coeff)
          end if
+
+         ! need to reallocate DIIS matrices to adjust for changing history length
+!!$         if (ldiis_coeff_changed) then
+!!$            call deallocateDIIS(ldiis_coeff)
+!!$            call allocate_DIIS_coeff(tmb, ldiis_coeff)
+!!$            ldiis_coeff_changed = .false.
+!!$         end if
       end if
 
       if(itout>1 .or. (nit_lowaccuracy==0 .and. itout==1)) then
@@ -224,23 +448,6 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
       else
           call initializeDIIS(input%lin%DIIS_hist_lowaccur, tmb%lzd, tmb%orbs, ldiis)
       end if
-      ldiis%DIISHistMin=0
-      if (lowaccur_converged) then
-          ldiis%DIISHistMax=input%lin%DIIS_hist_highaccur
-      else
-          ldiis%DIISHistMax=input%lin%DIIS_hist_lowaccur
-      end if
-      ldiis%switchSD=.false.
-      ldiis%trmin=1.d100
-      ldiis%trold=1.d100
-      ldiis%icountSDSatur=0
-      ldiis%icountSwitch=0
-      ldiis%icountDIISFailureTot=0
-      ldiis%icountDIISFailureCons=0
-      ldiis%is=0
-      ldiis%switchSD=.false.
-      ldiis%trmin=1.d100
-      ldiis%trold=1.d100
       if(itout==1) then
           ldiis%alphaSD=input%lin%alphaSD
           ldiis%alphaDIIS=input%lin%alphaDIIS
@@ -248,17 +455,23 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
 
       ! Do nothing if no low accuracy is desired.
       if (nit_lowaccuracy==0 .and. itout==0) then
-          if (associated(tmb%psit_c)) then
-              iall=-product(shape(tmb%psit_c))*kind(tmb%psit_c)
-              deallocate(tmb%psit_c, stat=istat)
-              call memocc(istat, iall, 'tmb%psit_c', subname)
-          end if
-          if (associated(tmb%psit_f)) then
-              iall=-product(shape(tmb%psit_f))*kind(tmb%psit_f)
-              deallocate(tmb%psit_f, stat=istat)
-              call memocc(istat, iall, 'tmb%psit_f', subname)
-          end if
+          !!if (associated(tmb%psit_c)) then
+          !!    call f_free_ptr(tmb%psit_c)
+          !!end if
+          !!if (associated(tmb%psit_f)) then
+          !!    call f_free_ptr(tmb%psit_f)
+          !!end if
           tmb%can_use_transposed=.false.
+          if (iproc==0) then
+              call yaml_sequence(advance='no')
+              call yaml_sequence_open('fake iteration',label=&
+                                 'it_fake'//trim(adjustl(yaml_toa(0,fmt='(i3.3)'))))
+              call yaml_sequence(label='final_fake'//trim(adjustl(yaml_toa(0,fmt='(i3.3)'))),advance='no')
+              call yaml_mapping_open(flow=.true.)
+              call yaml_map('fake iteration','bridge low accuracy')
+              call yaml_mapping_close
+              call yaml_sequence_close()
+          end if
           cycle outerLoop
       end if
 
@@ -273,46 +486,124 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
        if(update_phi) then
            if (target_function==TARGET_FUNCTION_IS_HYBRID .and. reduce_conf) then
                if (input%lin%reduce_confinement_factor>0.d0) then
-                   if (iproc==0) write(*,'(1x,a,es8.1)') 'Multiply the confinement prefactor by',input%lin%reduce_confinement_factor
+                   !if (iproc==0) write(*,'(1x,a,es8.1)') 'Multiply the confinement prefactor by',input%lin%reduce_confinement_factor
+                   if (iproc==0) call yaml_map('multiplicator for the confinement',input%lin%reduce_confinement_factor)
                    tmb%confdatarr(:)%prefac=input%lin%reduce_confinement_factor*tmb%confdatarr(:)%prefac
                else
-                   if (ratio_deltas<=1.d0) then
-                       if (iproc==0) write(*,'(1x,a,es8.1)') 'Multiply the confinement prefactor by',ratio_deltas
-                       tmb%confdatarr(:)%prefac=ratio_deltas*tmb%confdatarr(:)%prefac
-                   else
-                       if (iproc==0) write(*,*) 'WARNING: ratio_deltas>1!. Using 0.5 instead'
-                       if (iproc==0) write(*,'(1x,a,es8.1)') 'Multiply the confinement prefactor by',0.5d0
+                   if (ratio_deltas<=1.d0 .and. ratio_deltas>0.d0) then
+                       !if (iproc==0) write(*,'(1x,a,es8.1)') 'Multiply the confinement prefactor by',ratio_deltas
+                       !if (iproc==0) call yaml_map('multiplicator for the confinement',ratio_deltas)
+                       if (iproc==0) call yaml_map('multiplicator for the confinement',ratio_deltas**2)
+                       tmb%confdatarr(:)%prefac=(ratio_deltas**2)*tmb%confdatarr(:)%prefac
+                   else if (ratio_deltas>1.d0) then
+                       !if (iproc==0) write(*,*) 'WARNING: ratio_deltas>1!. Using 0.5 instead'
+                       !if (iproc==0) write(*,'(1x,a,es8.1)') 'Multiply the confinement prefactor by',0.5d0
+                       if (iproc==0) call yaml_warning('ratio_deltas>1, using 1.0 instead')
+                       if (iproc==0) call yaml_newline()
+                       if (iproc==0) call yaml_map('multiplicator for the confinement',1.0d0)
+                       tmb%confdatarr(:)%prefac=1.0d0*tmb%confdatarr(:)%prefac
+                   else if (ratio_deltas<=0.d0) then
+                       !if (iproc==0) write(*,*) 'WARNING: ratio_deltas<=0.d0!. Using 0.5 instead'
+                       !if (iproc==0) write(*,'(1x,a,es8.1)') 'Multiply the confinement prefactor by',0.5d0
+                       if (iproc==0) call yaml_warning('ratio_deltas<=0.d0, using 0.5 instead')
+                       if (iproc==0) call yaml_newline()
+                       if (iproc==0) call yaml_map('multiplicator for the confinement',0.5d0)
                        tmb%confdatarr(:)%prefac=0.5d0*tmb%confdatarr(:)%prefac
                    end if
                end if
                !if (iproc==0) write(*,'(a,es18.8)') 'tmb%confdatarr(1)%prefac',tmb%confdatarr(1)%prefac
+               !if (iproc==0) write(*,*) "WARNING: DON'T LET THE PREFACTOR GO BELOW 1.D-5"
+               !tmb%confdatarr(:)%prefac=max(tmb%confdatarr(:)%prefac,2.4d-5)
            end if
 
-           call getLocalizedBasis(iproc,nproc,at,KSwfn%orbs,rxyz,denspot,GPU,trace,trace_old,fnrm_tmb,&
-               info_basis_functions,nlpspd,input%lin%scf_mode,proj,ldiis,input%SIC,tmb,energs, &
-               reduce_conf,fix_supportfunctions,input%lin%nItPrecond,target_function,input%lin%correctionOrthoconstraint,&
-               nit_basis,input%lin%deltaenergy_multiplier_TMBexit,input%lin%deltaenergy_multiplier_TMBfix,&
-               ratio_deltas)
+           !!if (pnrm_out<5.d-9) then
+           !!    if (iproc==0) write(*,*) 'outswitch off ortho'
+           !!    orthonormalization_on=.false.
+           !!end if
+           !!if (sum(tmb%confdatarr(:)%prefac)==0.d0) then
+           !!    if (iproc==0) write(*,*) 'WARNING: modifi nit_basis'
+           !!    nit_basis=100
+           !!end if
+           !if (iproc==0) write(*,*) 'upper bound for prefac: 1.d-5'
+           !tmb%confdatarr(:)%prefac=max(tmb%confdatarr(:)%prefac,1.d-5)
+
+           !if (itout<=20) then
+           !    if (iproc==0) write(*,*) 'set ldiis%isx=0)'
+           !    ldiis%isx=0
+           !end if
+           if (input%experimental_mode) then
+               if (iproc==0) call yaml_warning('No orthogonalizing of the support functions')
+               !if (iproc==0) write(*,*) 'WARNING: set orthonormalization_on to false'
+               orthonormalization_on=.false.
+           end if
+           if (iproc==0) then
+               call yaml_comment('support function optimization',hfill='=')
+           end if
+           if (iproc==0) then
+               call yaml_sequence(advance='no')
+               call yaml_sequence_open('support function optimization',label=&
+                              'it_supfun'//trim(adjustl(yaml_toa(itout,fmt='(i3.3)'))))
+           end if
+           !!call extract_taskgroup_inplace(tmb%linmat%l, tmb%linmat%kernel_)
+           if (input%lin%constrained_dft) then
+              call getLocalizedBasis(iproc,nproc,at,KSwfn%orbs,rxyz,denspot,GPU,trace,trace_old,fnrm_tmb,&
+                  info_basis_functions,nlpsp,input%lin%scf_mode,ldiis,input%SIC,tmb,energs, &
+                  input%lin%nItPrecond,target_function,input%lin%correctionOrthoconstraint,&
+                  nit_basis,&
+                  ratio_deltas,orthonormalization_on,input%lin%extra_states,itout,conv_crit_TMB,input%experimental_mode,&
+                  input%lin%early_stop, input%lin%gnrm_dynamic, input%lin%min_gnrm_for_dynamic, &
+                  can_use_ham, norder_taylor, input%lin%max_inversion_error, input%kappa_conv,&
+                  input%method_updatekernel,input%purification_quickreturn, &
+                  input%correction_co_contra, &
+                  precond_convol_workarrays, precond_workarrays, &
+                  wt_philarge, wt_hpsinoprecond, wt_hphi, wt_phi, fnrm_work, energs_work, &
+                  cdft, input%frag, ref_frags)
+           else
+              call getLocalizedBasis(iproc,nproc,at,KSwfn%orbs,rxyz,denspot,GPU,trace,trace_old,fnrm_tmb,&
+                  info_basis_functions,nlpsp,input%lin%scf_mode,ldiis,input%SIC,tmb,energs, &
+                  input%lin%nItPrecond,target_function,input%lin%correctionOrthoconstraint,&
+                  nit_basis,&
+                  ratio_deltas,orthonormalization_on,input%lin%extra_states,itout,conv_crit_TMB,input%experimental_mode,&
+                  input%lin%early_stop, input%lin%gnrm_dynamic, input%lin%min_gnrm_for_dynamic, &
+                  can_use_ham, norder_taylor, input%lin%max_inversion_error, input%kappa_conv,&
+                  input%method_updatekernel,input%purification_quickreturn, &
+                  input%correction_co_contra, precond_convol_workarrays, precond_workarrays, &
+                  wt_philarge, wt_hpsinoprecond, wt_hphi, wt_phi, fnrm_work, energs_work)
+           end if
+           !!call gather_matrix_from_taskgroups_inplace(iproc, nproc, tmb%linmat%l, tmb%linmat%kernel_)
+           reduce_conf=.true.
+           if (iproc==0) then
+               call yaml_sequence_close()
+           end if
+
+    !       !update weight matrix following basis optimization (could add check to ensure this is really necessary)
+    !       if (input%lin%constrained_dft) then
+    !          if (trim(cdft%method)=='fragment_density') then ! fragment density approach
+    !             if (input%lin%diag_start) stop 'fragment_density not allowed'
+    !          else if (trim(cdft%method)=='lowdin') then ! direct weight matrix approach
+    !             !should already have overlap matrix so no need to recalculate
+    !             call calculate_weight_matrix_lowdin_wrapper(cdft,tmb,input,ref_frags,.false.,input%lin%order_taylor)
+    !          else 
+    !             stop 'Error invalid method for calculating CDFT weight matrix'
+    !          end if
+    !       end if
 
            tmb%can_use_transposed=.false. !since basis functions have changed...
 
-           if (input%lin%scf_mode==LINEAR_DIRECT_MINIMIZATION) ldiis_coeff%alpha_coeff=0.2d0 !reset to default value
+           if (input%lin%scf_mode==LINEAR_DIRECT_MINIMIZATION) ldiis_coeff%alpha_coeff=input%lin%alphaSD_coeff !reset to default value
 
-           if (input%inputPsiId==101 .and. info_basis_functions<0 .and. itout==1) then
+           ! I think this is causing a memory leak somehow in certain cases (possibly only with fragment calculations?)
+           if (input%inputPsiId==101 .and. info_basis_functions<=-2 .and. itout==1 .and. (.not.input%lin%fragment_calculation)) then
                ! There seem to be some convergence problems after a restart. Better to quit
                ! and start with a new AO input guess.
                if (iproc==0) write(*,'(1x,a)') 'There are convergence problems after the restart. &
                                                 &Start over again with an AO input guess.'
-               if (associated(tmb%psit_c)) then
-                   iall=-product(shape(tmb%psit_c))*kind(tmb%psit_c)
-                   deallocate(tmb%psit_c, stat=istat)
-                   call memocc(istat, iall, 'tmb%psit_c', subname)
-               end if
-               if (associated(tmb%psit_f)) then
-                   iall=-product(shape(tmb%psit_f))*kind(tmb%psit_f)
-                   deallocate(tmb%psit_f, stat=istat)
-                   call memocc(istat, iall, 'tmb%psit_f', subname)
-               end if
+               !!if (associated(tmb%psit_c)) then
+               !!    call f_free_ptr(tmb%psit_c)
+               !!end if
+               !!if (associated(tmb%psit_f)) then
+               !!    call f_free_ptr(tmb%psit_f)
+               !!end if
                infocode=2
                exit outerLoop
            end if
@@ -320,218 +611,703 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
 
        ! Check whether we can use the Hamiltonian matrix from the TMB optimization
        ! for the first step of the coefficient optimization
-       can_use_ham=.true.
+       !can_use_ham=.true.
+       ! can_use_ham was set in getLocalizedBasis
        if(target_function==TARGET_FUNCTION_IS_TRACE) then
-           do itype=1,at%ntypes
+           do itype=1,at%astruct%ntypes
                if(input%lin%potentialPrefac_lowaccuracy(itype)/=0.d0) then
                    can_use_ham=.false.
                    exit
                end if
            end do
        else if(target_function==TARGET_FUNCTION_IS_ENERGY) then
-           do itype=1,at%ntypes
+           do itype=1,at%astruct%ntypes
                if(input%lin%potentialPrefac_highaccuracy(itype)/=0.d0) then
                    can_use_ham=.false.
                    exit
                end if
            end do
+       !!else if(target_function==TARGET_FUNCTION_IS_HYBRID) then
+       !!    do itype=1,at%astruct%ntypes
+       !!        if(input%lin%potentialPrefac_lowaccuracy(itype)/=0.d0) then
+       !!            can_use_ham=.false.
+       !!            exit
+       !!        end if
+       !!    end do
        end if
 
-      if (can_use_ham .and. input%lin%scf_mode==LINEAR_FOE) then ! copy ham to ham_small here already as it won't be changing
-        ! NOT ENTIRELY GENERAL HERE - assuming ovrlp is small and ham is large, converting ham to match ovrlp
 
-         call timing(iproc,'FOE_init','ON') !lr408t
 
-         iismall=0
-         iseglarge=1
-         do isegsmall=1,tmb%linmat%ovrlp%nseg
-            do
-               is=max(tmb%linmat%ovrlp%keyg(1,isegsmall),tmb%linmat%ham%keyg(1,iseglarge))
-               ie=min(tmb%linmat%ovrlp%keyg(2,isegsmall),tmb%linmat%ham%keyg(2,iseglarge))
-               iilarge=tmb%linmat%ham%keyv(iseglarge)-tmb%linmat%ham%keyg(1,iseglarge)
-               do i=is,ie
-                  iismall=iismall+1
-                  ham_small%matrix_compr(iismall)=tmb%linmat%ham%matrix_compr(iilarge+i)
-               end do
-               if (ie>=is) exit
-               iseglarge=iseglarge+1
-            end do
-         end do
-
-         call timing(iproc,'FOE_init','OF') !lr408t
-
+      if (input%lin%constrained_dft) then
+         call DIIS_set(30,valpha,1,1,vdiis)
+         call vcopy(tmb%orbs%norb**2,tmb%coeff(1,1),1,coeff_tmp(1,1),1)
+         vold=cdft%lag_mult
       end if
-
-
-      ! The self consistency cycle. Here we try to get a self consistent density/potential with the fixed basis.
-      kernel_loop : do it_scc=1,nit_scc
-
-          ! If the hamiltonian is available do not recalculate it
-          ! also using update_phi for calculate_overlap_matrix and communicate_phi_for_lsumrho
-          ! since this is only required if basis changed
-          if(update_phi .and. can_use_ham .and. info_basis_functions>=0) then
-              call get_coeff(iproc,nproc,input%lin%scf_mode,KSwfn%orbs,at,rxyz,denspot,GPU,&
-                   infoCoeff,energs%ebs,nlpspd,proj,input%SIC,tmb,pnrm,update_phi,update_phi,&
-                   .false.,ham_small,ldiis_coeff=ldiis_coeff)
-          else
-              call get_coeff(iproc,nproc,input%lin%scf_mode,KSwfn%orbs,at,rxyz,denspot,GPU,&
-                   infoCoeff,energs%ebs,nlpspd,proj,input%SIC,tmb,pnrm,update_phi,update_phi,&
-                   .true.,ham_small,ldiis_coeff=ldiis_coeff)
-          end if
-
-          ! Since we do not update the basis functions anymore in this loop
-          update_phi = .false.
-
-          ! Calculate the total energy.
-          !if(iproc==0) print *,'energs',energs%ebs,energs%eh,energs%exc,energs%evxc,energs%eexctX,energs%eion,energs%edisp
-          energy=energs%ebs-energs%eh+energs%exc-energs%evxc-energs%eexctX+energs%eion+energs%edisp
-          energyDiff=energy-energyold
-          energyold=energy
-
-          ! update alpha_coeff for direct minimization steepest descents
-          if(input%lin%scf_mode==LINEAR_DIRECT_MINIMIZATION .and. it_scc>1 .and. ldiis_coeff%isx == 0) then
-             if(energyDiff<0.d0) then
-                ldiis_coeff%alpha_coeff=1.1d0*ldiis_coeff%alpha_coeff
+      ! CDFT: need to pass V*w_ab to get_coeff so that it can be added to H_ab and the correct KS eqn can therefore be solved
+      ! CDFT: for the first iteration this will be some initial guess for V (or from the previous outer loop)
+      ! CDFT: all this will be in some extra CDFT loop
+      cdft_loop : do cdft_it=1,100
+         if (input%lin%scf_mode==LINEAR_DIRECT_MINIMIZATION .and. input%lin%constrained_dft) then 
+            call DIIS_free(ldiis_coeff)
+            if (input%lin%extra_states==0) then
+               call DIIS_set(ldiis_coeff_hist,0.1_gp,tmb%orbs%norb*KSwfn%orbs%norbp,1,ldiis_coeff)
+            else
+               call DIIS_set(ldiis_coeff_hist,0.1_gp,tmb%orbs%norb*tmb%orbs%norbp,1,ldiis_coeff)
+            end if
+         end if
+         ! The self consistency cycle. Here we try to get a self consistent density/potential with the fixed basis.
+         if (iproc==0) then
+             call yaml_comment('kernel optimization',hfill='=')
+             !call yaml_sequence(advance='no')
+             !if (input%lin%constrained_dft) then
+             !    call yaml_mapping_open('kernel optimization',label=&
+             !         'it_kernel'//trim(adjustl(yaml_toa(itout,fmt='(i3.3)')))//&
+             !         '_'//trim(adjustl(yaml_toa(cdft_it,fmt='(i3.3)'))))
+             !else
+             !    call yaml_mapping_open('kernel optimization',label=&
+             !         'it_kernel'//trim(adjustl(yaml_toa(itout,fmt='(i3.3)'))))
+             !end if
+             call yaml_sequence(advance='no')
+             if (input%lin%constrained_dft) then
+                 call yaml_sequence_open('kernel optimization',label=&
+                      'it_kernel'//trim(adjustl(yaml_toa(itout,fmt='(i3.3)')))//&
+                      '_'//trim(adjustl(yaml_toa(cdft_it,fmt='(i3.3)'))))
              else
-                ldiis_coeff%alpha_coeff=0.5d0*ldiis_coeff%alpha_coeff
+                 call yaml_sequence_open('kernel optimization',label=&
+                      'it_kernel'//trim(adjustl(yaml_toa(itout,fmt='(i3.3)'))))
              end if
-             if(iproc==0) write(*,*) ''
-             if(iproc==0) write(*,*) 'alpha, energydiff',ldiis_coeff%alpha_coeff,energydiff
-          end if
-
-          ! Calculate the charge density.
-          call sumrho_for_TMBs(iproc, nproc, KSwfn%Lzd%hgrids(1), KSwfn%Lzd%hgrids(2), KSwfn%Lzd%hgrids(3), &
-               tmb%collcom_sr, tmb%linmat%denskern, KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3d, denspot%rhov)
-
-          ! Mix the density.
-          if (input%lin%scf_mode==LINEAR_MIXDENS_SIMPLE .or. input%lin%scf_mode==LINEAR_FOE) then
-             call mix_main(iproc, nproc, mix_hist, input, KSwfn%Lzd%Glr, alpha_mix, &
-                  denspot, mixdiis, rhopotold, pnrm)
-          end if
- 
-          if (input%lin%scf_mode/=LINEAR_MIXPOT_SIMPLE .and.(pnrm<convCritMix .or. it_scc==nit_scc)) then
-             ! calculate difference in density for convergence criterion of outer loop
-             pnrm_out=0.d0
-             do i=1,KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3p
-                pnrm_out=pnrm_out+(denspot%rhov(i)-rhopotOld_out(i))**2
-             end do
-             call mpiallred(pnrm_out, 1, mpi_sum, bigdft_mpi%mpi_comm, ierr)
-             pnrm_out=sqrt(pnrm_out)/(KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*KSwfn%Lzd%Glr%d%n3i*input%nspin)
-             call dcopy(max(KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3p,1)*input%nspin, &
-                  denspot%rhov(1), 1, rhopotOld_out(1), 1) 
-          end if
-
-          ! Calculate the new potential.
-          if(iproc==0) write(*,'(1x,a)') '---------------------------------------------------------------- Updating potential.'
-          call updatePotential(input%ixc,input%nspin,denspot,energs%eh,energs%exc,energs%evxc)
-
-          ! Mix the potential
-          if(input%lin%scf_mode==LINEAR_MIXPOT_SIMPLE) then
-             call mix_main(iproc, nproc, mix_hist, input, KSwfn%Lzd%Glr, alpha_mix, &
-                  denspot, mixdiis, rhopotold, pnrm)
-             if (pnrm<convCritMix .or. it_scc==nit_scc) then
-                ! calculate difference in density for convergence criterion of outer loop
-                pnrm_out=0.d0
-                do i=1,KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3p
-                   pnrm_out=pnrm_out+(denspot%rhov(i)-rhopotOld_out(i))**2
-                end do
-                call mpiallred(pnrm_out, 1, mpi_sum, bigdft_mpi%mpi_comm, ierr)
-                pnrm_out=sqrt(pnrm_out)/(KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*KSwfn%Lzd%Glr%d%n3i*input%nspin)
-                call dcopy(max(KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3p,1)*input%nspin, &
-                     denspot%rhov(1), 1, rhopotOld_out(1), 1) 
+         end if
+         ! @NEW: adjust the convergence criterion for the kernel optimization
+         ! The better the support functions are converged, the better the kernel sould be converged
+         convCritMix = convCritMix_init*fnrm_tmb
+         kernel_loop : do it_scc=1,nit_scc
+             dmin_diag_it=dmin_diag_it+1
+             ! If the hamiltonian is available do not recalculate it
+             ! also using update_phi for calculate_overlap_matrix and communicate_phi_for_lsumrho
+             ! since this is only required if basis changed
+             if (iproc==0) then
+                !if (it_scc==nit_scc) then
+                !   call yaml_sequence(label='final_kernel'//trim(adjustl(yaml_toa(itout,fmt='(i3.3)'))),advance='no')
+                !else
+                   call yaml_sequence(advance='no')
+                !end if
+                !call yaml_mapping_open(flow=.false.)
+                call yaml_comment('kernel iter:'//yaml_toa(it_scc,fmt='(i6)'),hfill='-')
              end if
+             ! Check whether the overlap matrix must be calculated and inverted (otherwise it has already been done)
+             calculate_overlap = ((update_phi .and. .not.input%correction_co_contra))! .or. cur_it_highaccuracy==1)
+             invert_overlap_matrix = (.not.(target_function==TARGET_FUNCTION_IS_HYBRID .and. &
+                                       (input%method_updatekernel==UPDATE_BY_FOE .or. &
+                                      input%method_updatekernel==UPDATE_BY_RENORMALIZATION)) .and. &
+                                      it_scc==1)
+                                      !cur_it_highaccuracy==1)
+             !!call extract_taskgroup_inplace(tmb%linmat%l, tmb%linmat%kernel_)
+             if(update_phi .and. can_use_ham) then! .and. info_basis_functions>=0) then
+                if (input%lin%constrained_dft) then
+                   call get_coeff(iproc,nproc,input%lin%scf_mode,KSwfn%orbs,at,rxyz,denspot,GPU,&
+                        infoCoeff,energs,nlpsp,input%SIC,tmb,pnrm,calculate_overlap,invert_overlap_matrix,update_phi,&
+                        .false.,input%lin%extra_states,itout,it_scc,cdft_it,norder_taylor,input%lin%max_inversion_error,&
+                        input%purification_quickreturn,&
+                        input%calculate_KS_residue,input%calculate_gap,energs_work,&
+                        convcrit_dmin,nitdmin,input%lin%curvefit_dmin,ldiis_coeff,reorder,cdft)
+                else
+                   call get_coeff(iproc,nproc,input%lin%scf_mode,KSwfn%orbs,at,rxyz,denspot,GPU,&
+                        infoCoeff,energs,nlpsp,input%SIC,tmb,pnrm,calculate_overlap,invert_overlap_matrix,update_phi,&
+                        .false.,input%lin%extra_states,itout,it_scc,cdft_it,norder_taylor,input%lin%max_inversion_error,&
+                        input%purification_quickreturn,&
+                        input%calculate_KS_residue,input%calculate_gap,energs_work,&
+                        convcrit_dmin,nitdmin,input%lin%curvefit_dmin,ldiis_coeff,reorder)
+                end if
+             else
+                if (input%lin%constrained_dft) then
+                   call get_coeff(iproc,nproc,input%lin%scf_mode,KSwfn%orbs,at,rxyz,denspot,GPU,&
+                        infoCoeff,energs,nlpsp,input%SIC,tmb,pnrm,calculate_overlap,invert_overlap_matrix,update_phi,&
+                        .true.,input%lin%extra_states,itout,it_scc,cdft_it,norder_taylor,input%lin%max_inversion_error,&
+                        input%purification_quickreturn,&
+                        input%calculate_KS_residue,input%calculate_gap,energs_work,&
+                        convcrit_dmin,nitdmin,input%lin%curvefit_dmin,ldiis_coeff,reorder,cdft)
+                else
+                   call get_coeff(iproc,nproc,input%lin%scf_mode,KSwfn%orbs,at,rxyz,denspot,GPU,&
+                        infoCoeff,energs,nlpsp,input%SIC,tmb,pnrm,calculate_overlap,invert_overlap_matrix,update_phi,&
+                        .true.,input%lin%extra_states,itout,it_scc,cdft_it,norder_taylor,input%lin%max_inversion_error,&
+                        input%purification_quickreturn,&
+                        input%calculate_KS_residue,input%calculate_gap,energs_work,&
+                        convcrit_dmin,nitdmin,input%lin%curvefit_dmin,ldiis_coeff,reorder)
+                end if
+             end if
+             !!call gather_matrix_from_taskgroups_inplace(iproc, nproc, tmb%linmat%l, tmb%linmat%kernel_)
+
+
+
+             ! Since we do not update the basis functions anymore in this loop
+             update_phi = .false.
+
+             !EXPERIMENTAL (currently switched off)
+             ! every so often during direct min want to diagonalize - figure out a good way to specify how often...
+             if (input%lin%scf_mode==LINEAR_DIRECT_MINIMIZATION.and.iproc==0.and.dmin_diag_freq>=0) &
+                  print*,'COUNTDOWN',dmin_diag_freq-dmin_diag_it
+             if (input%lin%scf_mode==LINEAR_DIRECT_MINIMIZATION&!.and.(it_scc==nit_scc.or.pnrm<convCritMix)&
+                  .and.dmin_diag_it>=dmin_diag_freq.and.dmin_diag_freq/=-1) then
+                reorder=.true.
+                !call get_coeff(iproc,nproc,LINEAR_MIXDENS_SIMPLE,KSwfn%orbs,at,rxyz,denspot,GPU,&
+                !     infoCoeff,energs,nlpsp,input%SIC,tmb,pnrm,update_phi,update_phi,&
+                !     .true.,ham_small,input%lin%extra_states)
+                ! just diagonalize with optimized states?
+                dmin_diag_it=0
+             !else if (input%lin%scf_mode==LINEAR_DIRECT_MINIMIZATION.and.it_scc==nit_scc.and.dmin_diag_it>=dmin_diag_freq) then
+             !   if (iproc==0) print*,'NOTCOUNTDOWN',pnrm,convcrit_dmin*10.0d0
+             else
+                reorder=.false.
+             end if
+             !END EXPERIMENTAL
+
+             ! CDFT: this is the real energy here as we subtracted the constraint term from the Hamiltonian before calculating ebs
+             ! Calculate the total energy.
+             !if(iproc==0) write(*,'(a,7es14.6)') 'energs', &
+             !    energs%ebs,energs%eh,energs%exc,energs%evxc,energs%eexctX,energs%eion,energs%edisp
+             energy=energs%ebs-energs%eh+energs%exc-energs%evxc-energs%eexctX+energs%eion+energs%edisp
+             energyDiff=energy-energyold
+             energyold=energy
+
+             ! update alpha_coeff for direct minimization steepest descents
+             if(input%lin%scf_mode==LINEAR_DIRECT_MINIMIZATION .and. it_scc>1 .and.&
+                  ldiis_coeff%idsx == 0 .and. (.not. input%lin%curvefit_dmin)) then
+                ! apply a cap so that alpha_coeff never goes below around 1.d-2 or above 2
+                !SM <= due to the tests...
+                if (energyDiff<=0.d0 .and. ldiis_coeff%alpha_coeff < 1.8d0) then
+                   ldiis_coeff%alpha_coeff=1.1d0*ldiis_coeff%alpha_coeff
+                else if (ldiis_coeff%alpha_coeff > 1.7d-3) then
+                   ldiis_coeff%alpha_coeff=0.5d0*ldiis_coeff%alpha_coeff
+                end if
+                !!if(iproc==0) write(*,*) ''
+                !!if(iproc==0) write(*,*) 'alpha, energydiff',ldiis_coeff%alpha_coeff,energydiff
+                if (iproc==0) then
+                    call yaml_map('alpha',ldiis_coeff%alpha_coeff)
+                    call yaml_map('energydiff',energydiff)
+                end if
+             end if
+
+             ! Calculate the charge density.
+             if (iproc==0) then
+                 call yaml_mapping_open('Hamiltonian update',flow=.true.)
+                 ! Use this subroutine to write the energies, with some
+                 ! fake number
+                 ! to prevent it from writing too much
+                 call write_energies(0,0,energs,0.d0,0.d0,'',.true.)
+             end if
+             !!tmparr = sparsematrix_malloc(tmb%linmat%l,iaction=SPARSE_FULL,id='tmparr')
+             !!call vcopy(tmb%linmat%l%nvctr, tmb%linmat%kernel_%matrix_compr(1), 1, tmparr(1), 1)
+             !!call gather_matrix_from_taskgroups_inplace(iproc, nproc, tmb%linmat%l, tmb%linmat%kernel_)
+             call sumrho_for_TMBs(iproc, nproc, KSwfn%Lzd%hgrids(1), KSwfn%Lzd%hgrids(2), KSwfn%Lzd%hgrids(3), &
+                  tmb%collcom_sr, tmb%linmat%l, tmb%linmat%kernel_, &
+                  denspot%dpbox%ndimrhopot, &
+                  denspot%rhov, rho_negative)
+             !!call vcopy(tmb%linmat%l%nvctr, tmparr(1), 1, tmb%linmat%kernel_%matrix_compr(1), 1)
+             !!call f_free(tmparr)
+             if (rho_negative) then
+                 call corrections_for_negative_charge(iproc, nproc, KSwfn, at, input, tmb, denspot)
+                 !!if (iproc==0) call yaml_warning('Charge density contains negative points, need to increase FOE cutoff')
+                 !!call increase_FOE_cutoff(iproc, nproc, tmb%lzd, at%astruct, input, KSwfn%orbs, tmb%orbs, tmb%foe_obj, init=.false.)
+                 !!call clean_rho(iproc, KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3d, denspot%rhov)
+             end if
+
+             if (input%lin%constrained_dft) then
+                !call timing(iproc,'constraineddft','ON')
+                ! CDFT: see how satisfaction of constraint varies as kernel is updated
+                ! CDFT: calculate Tr[Kw]-Nc
+                weight_matrix_ = matrices_null()
+                call allocate_matrices(tmb%linmat%m, allocate_full=.false., matname='weight_matrix_', mat=weight_matrix_)
+                weight_matrix_%matrix_compr=cdft%weight_matrix_%matrix_compr
+
+                !!call extract_taskgroup_inplace(tmb%linmat%l, tmb%linmat%kernel_)
+                call extract_taskgroup_inplace(tmb%linmat%m, weight_matrix_)
+                call calculate_kernel_and_energy(iproc,nproc,tmb%linmat%l,tmb%linmat%m, &
+                     tmb%linmat%kernel_,weight_matrix_,&
+                     ebs,tmb%coeff,KSwfn%orbs,tmb%orbs,.false.)
+                !!call gather_matrix_from_taskgroups_inplace(iproc, nproc, tmb%linmat%l, tmb%linmat%kernel_)
+                call gather_matrix_from_taskgroups_inplace(iproc, nproc, tmb%linmat%m, weight_matrix_)
+
+                !tmb%linmat%denskern_large%matrix_compr = tmb%linmat%kernel_%matrix_compr
+                call deallocate_matrices(weight_matrix_)
+                !call timing(iproc,'constraineddft','OF')
+             end if
+
+             ! Mix the density.
+             if (input%lin%scf_mode/=LINEAR_MIXPOT_SIMPLE) then
+                ! use it_scc+1 since we already have the density from the input guess as iteration 1
+                !!rho_tmp=denspot%rhov
+                call mix_rhopot(iproc,nproc,denspot%mix%nfft*denspot%mix%nspden,1.d0-alpha_mix,denspot%mix,&
+                     denspot%rhov,it_scc+1,denspot%dpbox%ndims(1),denspot%dpbox%ndims(2),denspot%dpbox%ndims(3),&
+                     at%astruct%cell_dim(1)*at%astruct%cell_dim(2)*at%astruct%cell_dim(3),&
+                     pnrm,denspot%dpbox%nscatterarr)
+                 !!rho_tmp=rho_tmp-denspot%rhov
+                 !!tt=ddot(size(rho_tmp),rho_tmp,1,rho_tmp,1)
+                 !!call mpiallred(tt,1,mpi_sum,bigdft_mpi%mpi_comm)
+                 !!tt=tt/dble(denspot%dpbox%ndims(1)*denspot%dpbox%ndims(2)*denspot%dpbox%ndims(3))
+                 !!if (iproc==0) write(*,*) 'delta rho',tt
+                     !!write(*,*) 'after mix_rhopot 1.1: pnrm', pnrm
+                !SM: to make sure that the result is analogous for polarized and non-polarized calculations, to be checked...
+                !write(*,*) 'old pnrm',pnrm
+                !!tt1=sum(denspot%dpbox%nscatterarr(:,1))
+                !!tt2=sum(denspot%dpbox%nscatterarr(:,2))
+                !!pnrm = pnrm*sqrt(tt2/tt1)
+                pnrm=pnrm*sqrt(real(denspot%mix%nspden,kind=8))
+                     !!write(*,*) 'after mix_rhopot 1.2: pnrm', pnrm
+                !write(*,*) 'new pnrm',pnrm
+                call check_negative_rho(KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3d, &
+                     denspot%rhov, rho_negative)
+                if (rho_negative) then
+                    call corrections_for_negative_charge(iproc, nproc, KSwfn, at, input, tmb, denspot)
+                end if
+
+                if ((pnrm<convCritMix .or. it_scc==nit_scc)) then
+                   ! calculate difference in density for convergence criterion of outer loop
+                   ! ioffset is the buffer which is present for GGA calculations
+                   ioffset=KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%i3xcsh
+                   pnrm_out=0.d0
+                   do ispin=1,input%nspin
+                       ! ishift gives the start of the spin down component
+                       ishift=(ispin-1)*KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3d 
+                       do i=1,KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3p
+                          pnrm_out=pnrm_out+(denspot%rhov(ishift+ioffset+i)-rhopotOld_out(ishift+ioffset+i))**2
+                       end do
+                   end do
+                   ! To make the residue for the polarized and non-polarized case analogous
+                   if (input%nspin==2) then
+                       pnrm_out = pnrm_out*2.d0
+                   end if
+
+                   if (nproc > 1) then
+                      call mpiallred(pnrm_out, 1, mpi_sum, bigdft_mpi%mpi_comm)
+                   end if
+                   !pnrm_out = pnrm_out/dble(input%nspin)
+
+                   nsize = int(KSwfn%Lzd%Glr%d%n1i,kind=8)*int(KSwfn%Lzd%Glr%d%n2i,kind=8)*int(KSwfn%Lzd%Glr%d%n3i,kind=8)
+                   pnrm_out=sqrt(pnrm_out)/real(nsize,kind=8)
+                   !only want to copy across when CDFT loop has also converged
+                   if (.not. input%lin%constrained_dft .or. (ebs-cdft%charge < cdft_charge_thresh) &
+                        .or. target_function==TARGET_FUNCTION_IS_TRACE) then
+                      call vcopy(max(KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3d,1)*input%nspin, &
+                        denspot%rhov(1), 1, rhopotOld_out(1), 1)
+                   end if
+                end if
+
+             end if
+
+             ! Calculate the new potential.
+             !!if(iproc==0) write(*,'(1x,a)') '---------------------------------------------------------------- Updating potential.'
+             if (iproc==0) then
+!                 if (iproc==0) call yaml_mapping_open('pot',flow=.true.)
+                 !call yaml_map('update potential',.true.)
+             end if
+             if (iproc==0) call yaml_newline()
+             
+
+             call updatePotential(input%nspin,denspot,energs%eh,energs%exc,energs%evxc)
+             if (iproc==0) call yaml_mapping_close()
+
+
+             ! update occupations wrt eigenvalues (NB for directmin these aren't guaranteed to be true eigenvalues)
+             ! switch off for FOE at the moment
+             ! switch off for directmin too, unless we decide to reactivate calculating the expectation values the output is meaningless
+             if (input%lin%scf_mode/=LINEAR_FOE .and. input%lin%scf_mode/=LINEAR_DIRECT_MINIMIZATION) then
+                 !call vcopy(kswfn%orbs%norb,tmb%orbs%eval(1),1,kswfn%orbs%eval(1),1)
+                 ! Copy the spin up eigenvalues (or all in the case of a non-polarized calculation)
+                 call vcopy(kswfn%orbs%norbu,tmb%orbs%eval(1),1,kswfn%orbs%eval(1),1)
+                 if (input%nspin==2) then
+                     ! Copy the spin down eigenvalues
+                     call vcopy(kswfn%orbs%norbd,tmb%orbs%eval(tmb%linmat%l%nfvctr+1),1,kswfn%orbs%eval(kswfn%orbs%norbu+1),1)
+                 end if
+                 ! Keep the ocupations for the moment.. maybe to be activated later (with a better if statement)
+                 if (input%Tel > 0.0_gp) then
+                     call evaltoocc(iproc,nproc,.false.,input%tel,kswfn%orbs,input%occopt)
+                 end if
+                if (bigdft_mpi%iproc ==0) then 
+                   call write_eigenvalues_data(0.1d0,kswfn%orbs,mom_vec_fake)
+                end if
+             end if
+
+             ! Mix the potential
+             if(input%lin%scf_mode==LINEAR_MIXPOT_SIMPLE) then
+                call mix_rhopot(iproc,nproc,denspot%mix%nfft*denspot%mix%nspden,1.d0-alpha_mix,denspot%mix,&
+                     denspot%rhov,it_scc+1,denspot%dpbox%ndims(1),denspot%dpbox%ndims(2),denspot%dpbox%ndims(3),&
+                     at%astruct%cell_dim(1)*at%astruct%cell_dim(2)*at%astruct%cell_dim(3),&
+                     pnrm,denspot%dpbox%nscatterarr)
+                    !write(*,*) 'after mix_rhopot 1.1: pnrm', pnrm
+
+                !SM: to make sure that the result is analogous for polarized and non-polarized calculations, to be checked...
+                pnrm=pnrm*sqrt(real(denspot%mix%nspden,kind=8))
+                    !write(*,*) 'after mix_rhopot 1.2: pnrm', pnrm
+                if (pnrm<convCritMix .or. it_scc==nit_scc) then
+                   ! calculate difference in density for convergence criterion of outer loop
+                   ! There is no ioffset (unlike to the case of density mixing)
+                   ! since also for GGA calculations there is no offset for the potential
+                   pnrm_out=0.d0
+                   do ispin=1,input%nspin
+                       ! ishift gives the start of the spin down component
+                       ishift=(ispin-1)*KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3p 
+                       do i=1,KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3p
+                          pnrm_out=pnrm_out+(denspot%rhov(ishift+i)-rhopotOld_out(ishift+i))**2
+                       end do
+                   end do
+                   ! To make the residue for the polarized and non-polarized case analogous
+                   if (input%nspin==2) then
+                       pnrm_out = pnrm_out*2.d0
+                   end if
+
+                   if (nproc > 1) then
+                      call mpiallred(pnrm_out, 1, mpi_sum, bigdft_mpi%mpi_comm)
+                   end if
+
+                   pnrm_out=sqrt(pnrm_out)/(KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*KSwfn%Lzd%Glr%d%n3i)!)*input%nspin)
+                   !only want to copy across when CDFT loop has also converged
+                   if (.not. input%lin%constrained_dft .or. (ebs-cdft%charge < cdft_charge_thresh) &
+                        .or. target_function==TARGET_FUNCTION_IS_TRACE) then
+                      call vcopy(max(KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3d,1)*input%nspin, &
+                           denspot%rhov(1), 1, rhopotOld_out(1), 1) 
+                   end if
+                end if
+             end if
+
+             ! Keep the support functions fixed if they converged and the density
+             ! change is below the tolerance already in the very first iteration
+             if(it_scc==1 .and. pnrm<convCritMix .and.  info_basis_functions>0) then
+                fix_support_functions=.true.
+             end if
+
+             ! Write some informations.
+             call printSummary()
+
+             if (pnrm<convCritMix.and.input%lin%scf_mode/=LINEAR_DIRECT_MINIMIZATION) then
+                 info_scf=it_scc
+                 if (iproc==0) then
+                     !yaml output
+                     !call yaml_mapping_close() !iteration
+                    call yaml_flush_document()
+                    !call bigdft_utils_flush(unit=6)
+                 end if
+                 exit
+             else if (pnrm<convCritMix.and.input%lin%scf_mode==LINEAR_DIRECT_MINIMIZATION) then
+                 if (iproc==0) then
+                     !yaml output
+                     !call yaml_mapping_close() !iteration
+                    call yaml_flush_document()
+                    !call bigdft_utils_flush(unit=6)
+                 end if
+                exit
+             !else if (pnrm<convCritMix.and.reorder) then
+             !    exit
+             !else if (pnrm<convCritMix) then
+             !    reorder=.true.
+             !    dmin_diag_it=0
+             else
+                 info_scf=-1
+             end if
+
+             if (iproc==0) then
+                 !yaml output
+                 !call yaml_mapping_close() !iteration
+                call yaml_flush_document()
+                ! call bigdft_utils_flush(unit=6)
+             end if
+
+         end do kernel_loop
+
+         ! Write the final results
+         if (iproc==0) then
+             if (input%lin%constrained_dft) then
+                 call yaml_sequence(label='final_kernel'//trim(adjustl(yaml_toa(itout,fmt='(i3.3)')))//&
+                      '_'//trim(adjustl(yaml_toa(cdft_it,fmt='(i3.3)'))),advance='no')
+             else
+                 call yaml_sequence(label='final_kernel'//trim(adjustl(yaml_toa(itout,fmt='(i3.3)'))),advance='no')
+             end if
+             call yaml_mapping_open(flow=.true.)
+             call yaml_comment('iter:'//yaml_toa(it_scc,fmt='(i6)'),hfill='-')
+             call printSummary()
+             call yaml_mapping_close() !iteration
+             call yaml_flush_document()
+             !call bigdft_utils_flush(unit=6)
+         end if
+
+          ! Close sequence for the optimization steps
+          if (iproc==0) then
+              call yaml_sequence_close()
           end if
 
-          ! Keep the support functions fixed if they converged and the density
-          ! change is below the tolerance already in the very first iteration
-          if(it_scc==1 .and. pnrm<convCritMix .and.  info_basis_functions>0) then
-             fix_support_functions=.true.
-          end if
+         if (input%lin%constrained_dft) then
 
-          ! Write some informations.
-          call printSummary()
+            !! CDFT: see how satisfaction of constraint varies as kernel is updated
+            !! CDFT: calculate Tr[Kw]-Nc
+            !call calculate_kernel_and_energy(iproc,nproc,tmb%linmat%denskern,cdft%weight_matrix,&
+            !     ebs,tmb%coeff,KSwfn%orbs,tmb%orbs,.false.)
 
-          if(pnrm<convCritMix) then
-              info_scf=it_scc
-              exit
-          else
-              info_scf=-1
-          end if
+            vgrad=ebs-cdft%charge
 
-      end do kernel_loop
+            ! CDFT: update V (maximizing E wrt V)
+            ! CDFT: we updated the kernel in get_coeff so 1st deriv of W wrt V becomes Tr[Kw]-Nc as in CONQUEST
+            ! CDFT: 2nd deriv more problematic?
+            ! CDFT: use simplest possible scheme for now
+
+            !if (iproc==0) write(*,*) ''
+            !if (iproc==0) write(*,'(a,I4,2x,6(ES12.4e2,2x),2(ES16.6e2,2x))') &
+            !     'itc, N, Tr(KW), Tr(KW)-N, V*(Tr(KW)-N), V, Vold, EBS, energy',&
+            !     cdft_it,cdft%charge,ebs,vgrad,cdft%lag_mult*vgrad,cdft%lag_mult,vold,energs%ebs,energy
+            if (iproc==0) then
+               call yaml_sequence_open('CDFT',flow=.true.)
+               call yaml_map('itc',cdft_it)
+               call yaml_map('N',cdft%charge,fmt='(es12.2)')
+               call yaml_map('Tr(KW)',ebs,fmt='(es14.4)')
+               !call yaml_map('Tr(KW)-N',vgrad)
+               call yaml_map('Vc',cdft%lag_mult,fmt='(es12.2)')
+               call yaml_map('energy',energy,fmt='(es14.4)')
+               call yaml_sequence_close()
+            end if
+
+            ! CDFT: exit when W is converged wrt both V and rho
+            if (abs(vgrad) < cdft_charge_thresh .or. target_function==TARGET_FUNCTION_IS_TRACE) then
+               !call vcopy(max(KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3d,1)*input%nspin, &
+               !     denspot%rhov(1), 1, rhopotOld_out(1), 1) 
+               exit
+            end if
+            !reset to best previous coeffs, not necessarily original coeffs
+            !if (abs(vgrad) < best_charge_diff) call vcopy(tmb%orbs%norb**2,tmb%coeff(1,1),1,coeff_tmp(1,1),1)
+            !best_charge_diff=min(best_charge_diff,abs(vgrad))
+
+            call timing(iproc,'constraineddft','ON')
+            !! CHECK HERE WHETHER n3d is correct!!
+            ! reset rhopotold (to zero) to ensure we don't exit immediately if V only changes a little
+            !call f_zero(max(KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3p,1)*input%nspin, rhopotOld(1)) 
+
+            ! assuming density mixing/no mixing not potential mixing
+            call vcopy(max(KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3d,1)*input%nspin, &
+                 rhopotOld_out(1), 1, rhopotOld(1), 1) 
+
+            call vcopy(max(KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3d,1)*input%nspin, &
+                 rhopotOld_out(1), 1, denspot%rhov(1), 1)
+            call timing(iproc,'constraineddft','OF')
+
+            call updatePotential(input%nspin,denspot,energs%eh,energs%exc,energs%evxc)
+
+            call timing(iproc,'constraineddft','ON')
+            ! reset coeffs as well
+            call vcopy(tmb%orbs%norb**2,coeff_tmp(1,1),1,tmb%coeff(1,1),1)
+
+            if (.false.) then ! diis
+               vdiis%mids=mod(vdiis%ids,vdiis%idsx)+1
+               vdiis%ids=vdiis%ids+1
+               vold=cdft%lag_mult
+               call diis_opt(0,1,1,0,1,(/0/),(/1/),1,&
+                  cdft%lag_mult,-vgrad,vdiis) 
+               !call diis_opt(iproc,nproc,1,0,1,(/iproc/),(/1/),1,&
+               !   cdft%lag_mult,-vgrad,vdiis) 
+            else if (.false.) then !sd
+               if (abs(vgrad)<abs(vgrad_old)) then
+                  valpha=valpha*1.1d0
+               else
+                  valpha=valpha*0.6d0
+               end if
+               vold=cdft%lag_mult
+               cdft%lag_mult=cdft%lag_mult+valpha*vgrad
+            else if (cdft_it==1) then !first step newton
+               vold=cdft%lag_mult
+               !debug:
+               !if (iproc==0) write(*,'(a,I4,2x,6(ES16.6e3,2x))') 'itn, V, Vg',&
+               !     cdft_it,cdft%lag_mult,vgrad
+               cdft%lag_mult=cdft%lag_mult*2.0_gp
+            else ! newton
+               vgrad2=(vgrad-vgrad_old)/(cdft%lag_mult-vold)
+               !debug:
+               !if (iproc==0) write(*,'(a,I4,2x,6(ES16.6e3,2x))') 'itn, V, Vold, Vg, Vgold, Vg2, Vg/Vg2',&
+               !     cdft_it,cdft%lag_mult,vold,vgrad,vgrad_old,vgrad2,vgrad/vgrad2
+               vold_tmp=cdft%lag_mult
+               cdft%lag_mult=vold-vgrad_old/vgrad2
+               vold=vold_tmp
+            end if
+
+            vgrad_old=vgrad
+            call timing(iproc,'constraineddft','OF')
+
+         ! if not constrained DFT exit straight away
+         else
+            exit
+         end if
+      end do cdft_loop
+      if (input%lin%constrained_dft) call DIIS_free(vdiis)
+      ! CDFT: end of CDFT loop to find V which correctly imposes constraint and corresponding density
 
       if(tmb%can_use_transposed) then
-          iall=-product(shape(tmb%psit_c))*kind(tmb%psit_c)
-          deallocate(tmb%psit_c, stat=istat)
-          call memocc(istat, iall, 'tmb%psit_c', subname)
-          iall=-product(shape(tmb%psit_f))*kind(tmb%psit_f)
-          deallocate(tmb%psit_f, stat=istat)
-          call memocc(istat, iall, 'tmb%psit_f', subname)
+          !!call f_free_ptr(tmb%psit_c)
+          !!call f_free_ptr(tmb%psit_f)
+          tmb%can_use_transposed=.false.
       end if
 
       call print_info(.false.)
 
       energyoldout=energy
 
+
+
+      if (input%intermediate_forces) then
+          call intermediate_forces()
+      end if
+
+
+
+
       call check_for_exit()
       if(exit_outer_loop) exit outerLoop
 
-      if(pnrm_out<input%lin%support_functions_converged.and.lowaccur_converged .or. &
-         fix_supportfunctions) then
-          if(iproc==0) write(*,*) 'fix the support functions from now on'
+      if(pnrm_out<input%lin%support_functions_converged.and.lowaccur_converged) then
+          !if(iproc==0) write(*,*) 'fix the support functions from now on'
+          if (iproc==0) call yaml_map('fix the support functions from now on',.true.)
           fix_support_functions=.true.
       end if
 
+
+
   end do outerLoop
+
+  
+  call deallocate_precond_arrays(tmb%orbs, tmb%lzd, precond_convol_workarrays, precond_workarrays)
+  call deallocate_work_transpose(wt_philarge)
+  call deallocate_work_transpose(wt_hpsinoprecond)
+  call deallocate_work_transpose(wt_hphi)
+  call deallocate_work_transpose(wt_phi)
+
+
+
+  if (input%write_orbitals) then
+      call build_ks_orbitals(iproc, nproc, tmb, KSwfn, at, rxyz, denspot, GPU, &
+               energs, nlpsp, input, norder_taylor,&
+               energy, energyDiff, energyold)
+  end if
+
+
+  !TEMPORARY, to be cleaned/removed
+  !!!missing occs but otherwise ok? (at least doesn't crash, add occs and recheck by comparing with lowdin/do linear to cubic
+  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! here as I guess we're deallocating something we need later
+  !call nullify_orbitals_data(fakeorbs)
+  !call copy_orbitals_data(tmb%orbs, fakeorbs, subname)
+  !call orbitals_communicators(iproc, nproc, tmb%lzd%glr, fakeorbs, comms)
+  !
+  !npsidim_global=max(tmb%orbs%norbp*(tmb%lzd%glr%wfd%nvctr_c+7*tmb%lzd%glr%wfd%nvctr_f), &
+  !                   tmb%orbs%norb*comms%nvctr_par(iproc,0)*fakeorbs%nspinor)
+  !gpsi_all=f_malloc_ptr(npsidim_global,id='gpsi_all')
+  !call build_ks_orbitals_laura_tmp(iproc, nproc, tmb, KSwfn, at, rxyz, denspot, GPU, &
+  !         energs, nlpsp, input, norder_taylor, &
+  !         energy, energyDiff, energyold, npsidim_global, gpsi_all)
+  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 
   ! Diagonalize the matrix for the FOE/direct min case to get the coefficients. Only necessary if
   ! the Pulay forces are to be calculated, or if we are printing eigenvalues for restart
   if ((input%lin%scf_mode==LINEAR_FOE.or.input%lin%scf_mode==LINEAR_DIRECT_MINIMIZATION)& 
-       .and. (input%lin%pulay_correction.or.input%lin%plotBasisFunctions /= WF_FORMAT_NONE)) then
+       .and. (input%lin%pulay_correction.or.input%lin%plotBasisFunctions /= WF_FORMAT_NONE&
+       .or. input%lin%diag_end)) then
 
+       !!if (input%lin%scf_mode==LINEAR_FOE) then
+       !!    tmb%coeff=f_malloc_ptr((/tmb%orbs%norb,tmb%orbs%norb/),id='tmb%coeff')
+       !!end if
+
+       !!call extract_taskgroup_inplace(tmb%linmat%l, tmb%linmat%kernel_)
        call get_coeff(iproc,nproc,LINEAR_MIXDENS_SIMPLE,KSwfn%orbs,at,rxyz,denspot,GPU,&
-           infoCoeff,energs%ebs,nlpspd,proj,input%SIC,tmb,pnrm,update_phi,.false.,&
-           .true.,ham_small,ldiis_coeff=ldiis_coeff)
+           infoCoeff,energs,nlpsp,input%SIC,tmb,pnrm,update_phi,.true.,.false.,&
+           .true.,input%lin%extra_states,itout,0,0,norder_taylor,input%lin%max_inversion_error,&
+           input%purification_quickreturn,&
+           input%calculate_KS_residue,input%calculate_gap,energs_work)
+       !!call gather_matrix_from_taskgroups_inplace(iproc, nproc, tmb%linmat%l, tmb%linmat%kernel_)
+
+       !!if (input%lin%scf_mode==LINEAR_FOE) then
+       !!    call f_free_ptr(tmb%coeff)
+       !!end if
+
+       if (bigdft_mpi%iproc ==0) then 
+          call write_eigenvalues_data(0.1d0,tmb%orbs,mom_vec_fake)
+       end if
+  end if
+
+  ! only print eigenvalues if they have meaning, i.e. diag or the case above
+  if (input%lin%scf_mode==LINEAR_MIXPOT_SIMPLE.or.input%lin%scf_mode==LINEAR_MIXDENS_SIMPLE) then
+     if (bigdft_mpi%iproc ==0) then 
+        call write_eigenvalues_data(0.1d0,tmb%orbs,mom_vec_fake)
+     end if
   end if
 
 
-  if (input%lin%scf_mode==LINEAR_FOE) then ! deallocate ham_small
-     call deallocate_sparsematrix(ham_small,subname)
+  !! TEST ##########################
+  if (input%lin%new_pulay_correction) then
+      !!if (input%lin%scf_mode==LINEAR_FOE .and. ) then
+      !!    tmb%coeff=f_malloc_ptr((/tmb%orbs%norb,tmb%orbs%norb/),id='tmb%coeff')
+      !!end if
+      !!call extract_taskgroup_inplace(tmb%linmat%l, tmb%linmat%kernel_)
+      call get_coeff(iproc,nproc,LINEAR_MIXDENS_SIMPLE,KSwfn%orbs,at,rxyz,denspot,GPU,&
+           infoCoeff,energs,nlpsp,input%SIC,tmb,pnrm,update_phi,.true.,.false.,&
+           .true.,input%lin%extra_states,itout,0,0,norder_taylor,input%lin%max_inversion_error,&
+           input%purification_quickreturn,&
+           input%calculate_KS_residue,input%calculate_gap,energs_work)
+      !!call gather_matrix_from_taskgroups_inplace(iproc, nproc, tmb%linmat%l, tmb%linmat%kernel_)
+      !!call scalprod_on_boundary(iproc, nproc, tmb, kswfn%orbs, at, fpulay)
+      call pulay_correction_new(iproc, nproc, tmb, kswfn%orbs, at, fpulay)
+      !!if (input%lin%scf_mode==LINEAR_FOE) then
+      !!    call f_free_ptr(tmb%coeff)
+      !!end if
+  end if
+  !! END TEST ######################
+
+
+  if (input%lin%fragment_calculation .and. input%frag%nfrag>1) then
+     call coeff_weight_analysis(iproc, nproc, input, KSwfn%orbs, tmb, ref_frags)
+  end if
+
+
+  if (input%lin%constrained_dft) then
+     call cdft_data_free(cdft)
+     call f_free(coeff_tmp)
   end if
 
 
   ! print the final summary
   call print_info(.true.)
 
-  ! Deallocate everything that is not needed any more.
-  if (input%lin%scf_mode==LINEAR_DIRECT_MINIMIZATION) call deallocateDIIS(ldiis_coeff)
-  call deallocateDIIS(ldiis)
-  if(input%lin%mixHist_highaccuracy>0 .and. input%lin%scf_mode/=LINEAR_DIRECT_MINIMIZATION) then
-      call deallocateMixrhopotDIIS(mixdiis)
+
+
+  if (iproc==0) call yaml_sequence_close()
+
+  if (input%loewdin_charge_analysis) then
+      call loewdin_charge_analysis(iproc, tmb, at, denspot, calculate_overlap_matrix=.true., &
+           calculate_ovrlp_half=.true., meth_overlap=0)
+      call support_function_multipoles(iproc, tmb, at, denspot)
   end if
+
+
+  ! Deallocate everything that is not needed any more.
+  if (input%lin%scf_mode==LINEAR_DIRECT_MINIMIZATION) call DIIS_free(ldiis_coeff)!call deallocateDIIS(ldiis_coeff)
+  call deallocateDIIS(ldiis)
   !!call wait_p2p_communication(iproc, nproc, tmb%comgp)
   call synchronize_onesided_communication(iproc, nproc, tmb%comgp)
-  call deallocateCommunicationsBuffersPotential(tmb%comgp, subname)
+  call deallocate_p2pComms_buffer(tmb%comgp)
 
 
-  if (input%lin%pulay_correction) then
-      if (iproc==0) write(*,'(1x,a)') 'WARNING: commented correction_locrad!'
+  if (input%lin%pulay_correction .and. .not.input%lin%new_pulay_correction) then
+      !if (iproc==0) write(*,'(1x,a)') 'WARNING: commented correction_locrad!'
+      if (iproc==0) call yaml_warning('commented correction_locrad')
       !!! Testing energy corrections due to locrad
       !!call correction_locrad(iproc, nproc, tmblarge, KSwfn%orbs,tmb%coeff) 
       ! Calculate Pulay correction to the forces
-      call pulay_correction(iproc, nproc, KSwfn%orbs, at, rxyz, nlpspd, proj, input%SIC, denspot, GPU, tmb, fpulay)
-  else
-      call to_zero(3*at%nat, fpulay(1,1))
+      !!if (input%lin%scf_mode==LINEAR_FOE) then
+      !!    tmb%coeff=f_malloc_ptr((/tmb%orbs%norb,tmb%orbs%norb/),id='tmb%coeff')
+      !!end if
+      call pulay_correction(iproc, nproc, KSwfn%orbs, at, rxyz, nlpsp, input%SIC, denspot, GPU, tmb, fpulay)
+      !!if (input%lin%scf_mode==LINEAR_FOE) then
+      !!    call f_free_ptr(tmb%coeff)
+      !!end if
+  else if (.not.input%lin%new_pulay_correction) then
+      call f_zero(fpulay)
   end if
 
   if(tmb%ham_descr%can_use_transposed) then
-      iall=-product(shape(tmb%ham_descr%psit_c))*kind(tmb%ham_descr%psit_c)
-      deallocate(tmb%ham_descr%psit_c, stat=istat)
-      call memocc(istat, iall, 'tmb%ham_descr%psit_c', subname)
-      iall=-product(shape(tmb%ham_descr%psit_f))*kind(tmb%ham_descr%psit_f)
-      deallocate(tmb%ham_descr%psit_f, stat=istat)
-      call memocc(istat, iall, 'tmb%ham_descr%psit_f', subname)
+      call f_free_ptr(tmb%ham_descr%psit_c)
+      call f_free_ptr(tmb%ham_descr%psit_f)
       tmb%ham_descr%can_use_transposed=.false.
   end if
   ! here or cluster, not sure which is best
@@ -539,35 +1315,119 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
 
 
   !Write the linear wavefunctions to file if asked, also write Hamiltonian and overlap matrices
-  if(input%lin%plotBasisFunctions /= WF_FORMAT_NONE) then
-    call writemywaves_linear(iproc,trim(input%dir_output) // 'minBasis',input%lin%plotBasisFunctions,&
-       max(tmb%npsidim_orbs,tmb%npsidim_comp),tmb%Lzd,tmb%orbs,at,rxyz,tmb%psi,tmb%coeff)
-    call write_linear_matrices(iproc,nproc,trim(input%dir_output),input%lin%plotBasisFunctions,tmb,input,at,rxyz)
+  if (input%lin%plotBasisFunctions /= WF_FORMAT_NONE) then
+     nelec=0
+     do iat=1,at%astruct%nat
+        ityp=at%astruct%iatype(iat)
+        nelec=nelec+at%nelpsp(ityp)
+     enddo
+     if (write_full_system) then
+        call writemywaves_linear(iproc,trim(input%dir_output) // 'minBasis',input%lin%plotBasisFunctions,&
+             max(tmb%npsidim_orbs,tmb%npsidim_comp),tmb%Lzd,tmb%orbs,nelec,at,rxyz,tmb%psi,tmb%linmat%l%nfvctr,tmb%coeff)
+        call write_linear_matrices(iproc,nproc,input%imethod_overlap,trim(input%dir_output),&
+             input%lin%plotBasisFunctions,tmb,at,rxyz)
+     end if
+     !write as fragments - for now don't write matrices, think later if this is useful/worth the effort
+     if (write_fragments .and. input%lin%fragment_calculation) then
+        call writemywaves_linear_fragments(iproc,'minBasis',input%lin%plotBasisFunctions,&
+             max(tmb%npsidim_orbs,tmb%npsidim_comp),tmb%Lzd,tmb%orbs,nelec,at,rxyz,tmb%psi,tmb%coeff, &
+             trim(input%dir_output),input%frag,ref_frags)
+     end if
   end if
 
-  !DEBUG
-  !ind=1
-  !do iorb=1,tmb%orbs%norbp
-  !   write(orbname,*) iorb
-  !   ilr=tmb%orbs%inwhichlocreg(iorb+tmb%orbs%isorb)
-  !   call plot_wf(trim(adjustl(orbname)),1,at,1.0_dp,tmb%lzd%llr(ilr),KSwfn%Lzd%hgrids(1),KSwfn%Lzd%hgrids(2),&
-  !        KSwfn%Lzd%hgrids(3),rxyz,tmb%psi(ind:ind+tmb%Lzd%Llr(ilr)%wfd%nvctr_c+7*tmb%Lzd%Llr(ilr)%wfd%nvctr_f))
-  !   ind=ind+tmb%Lzd%Llr(ilr)%wfd%nvctr_c+7*tmb%Lzd%Llr(ilr)%wfd%nvctr_f
-  !end do
-  ! END DEBUG
 
+  ! TEMPORARY DEBUG - plot in global box - CHECK WITH REFORMAT ETC IN LRs
+  !nullify(gpsi_virt)
+  !if (.false.) then
+  !   gpsi_all=f_malloc_ptr(tmb%orbs%norbp*(tmb%Lzd%glr%wfd%nvctr_c+7*tmb%Lzd%glr%wfd%nvctr_f),id='gpsi_all')
+  !   call to_zero(tmb%orbs%norbp*(tmb%Lzd%glr%wfd%nvctr_c+7*tmb%Lzd%glr%wfd%nvctr_f),gpsi_all)
+  !   psit_large_c=f_malloc(tmb%ham_descr%collcom%ndimind_c,id='psit_large_c')
+  !   psit_large_f=f_malloc(7*tmb%ham_descr%collcom%ndimind_f,id='psit_large_f')
+  !   kpsit_c=f_malloc(tmb%ham_descr%collcom%ndimind_c,id='psit_large_c')
+  !   kpsit_f=f_malloc(7*tmb%ham_descr%collcom%ndimind_f,id='psit_large_f')
+  !   kpsi=f_malloc(tmb%ham_descr%npsidim_orbs,id='kpsi')
+  !   kpsi_small=f_malloc(tmb%npsidim_orbs,id='kpsi_small')
+  !   !NB might need kernel without occs to avoid including occs twice, unless tmb%occs are all 1...
+  !   call small_to_large_locreg(iproc, tmb%npsidim_orbs, tmb%ham_descr%npsidim_orbs, tmb%lzd, tmb%ham_descr%lzd, &
+  !        tmb%orbs, tmb%psi, tmb%ham_descr%psi)
+  !   call transpose_localized(iproc, nproc, tmb%ham_descr%npsidim_orbs, tmb%orbs, tmb%ham_descr%collcom, &
+  !        tmb%ham_descr%psi, psit_large_c, psit_large_f, tmb%ham_descr%lzd)
+  !   call build_linear_combination_transposed(tmb%ham_descr%collcom, &
+  !        tmb%linmat%l, tmb%linmat%kernel_, psit_large_c, psit_large_f, .true., kpsit_c, kpsit_f, iproc)
+  !   call untranspose_localized(iproc, nproc, tmb%ham_descr%npsidim_orbs, tmb%orbs, tmb%ham_descr%collcom, &
+  !        kpsit_c, kpsit_f, kpsi, tmb%ham_descr%lzd)
+  !   call large_to_small_locreg(iproc, tmb%npsidim_orbs, tmb%ham_descr%npsidim_orbs, tmb%lzd, tmb%ham_descr%lzd, &
+  !        tmb%orbs, kpsi, kpsi_small)
+  !   call f_free(psit_large_c)
+  !   call f_free(psit_large_f)
+  !   call f_free(kpsit_c)
+  !   call f_free(kpsit_f)
+  !   call f_free(kpsi)
+  !end if
+
+  !ind=1
+  !!indg=1
+  !gpsi=f_malloc((tmb%Lzd%glr%wfd%nvctr_c+7*tmb%Lzd%glr%wfd%nvctr_f),id='gpsi')
+  !do iorbp=1,tmb%orbs%norbp
+  !   iiorb=iorbp+tmb%orbs%isorb
+  !   ilr = tmb%orbs%inwhichlocreg(iiorb)
+  !
+  !   call to_zero(tmb%Lzd%glr%wfd%nvctr_c+7*tmb%Lzd%glr%wfd%nvctr_f,gpsi)
+  !   !call to_zero(tmb%Lzd%glr%wfd%nvctr_c+7*tmb%Lzd%glr%wfd%nvctr_f,gpsi_all(indg))
+  !
+  !!call vcopy(tmb%Lzd%glr%wfd%nvctr_c+7*tmb%Lzd%glr%wfd%nvctr_f,gpsi(1),1,gpsi_all(indg),1)
+  !
+  !   !call Lpsi_to_global2(iproc, tmb%Lzd%Llr(ilr)%wfd%nvctr_c+7*tmb%Lzd%Llr(ilr)%wfd%nvctr_f, &
+  !   !     tmb%Lzd%glr%wfd%nvctr_c+7*tmb%Lzd%glr%wfd%nvctr_f, &
+  !   !     1, 1, 1, tmb%Lzd%glr, tmb%Lzd%Llr(ilr), kpsi_small(ind), gpsi_all(indg))
+  !
+  !   call Lpsi_to_global2(iproc, tmb%Lzd%Llr(ilr)%wfd%nvctr_c+7*tmb%Lzd%Llr(ilr)%wfd%nvctr_f, &
+  !        tmb%Lzd%glr%wfd%nvctr_c+7*tmb%Lzd%glr%wfd%nvctr_f, &
+  !        1, 1, 1, tmb%Lzd%glr, tmb%Lzd%Llr(ilr), tmb%psi(ind), gpsi)
+  ! 
+  !   call plot_wf(trim(input%dir_output)//trim(adjustl(yaml_toa(iiorb))),1,at,1.0_dp,tmb%Lzd%glr,&
+  !        tmb%Lzd%hgrids(1),tmb%Lzd%hgrids(2),tmb%Lzd%hgrids(3),rxyz,gpsi)
+  !   !call plot_wf(trim(adjustl(orbname)),1,at,1.0_dp,tmb%Lzd%Llr(ilr),&
+  !   !     tmb%Lzd%hgrids(1),tmb%Lzd%hgrids(2),tmb%Lzd%hgrids(3),rxyz,tmb%psi)
+  ! 
+  !   ind = ind + tmb%Lzd%Llr(ilr)%wfd%nvctr_c+7*tmb%Lzd%Llr(ilr)%wfd%nvctr_f
+  !   !indg = indg + tmb%Lzd%glr%wfd%nvctr_c+7*tmb%Lzd%glr%wfd%nvctr_f
+  !end do
+  !call f_free(gpsi)
+  !!call f_free(kpsi_small)
+
+  !fakeorbs%norb=0
+  !call local_analysis(iproc,nproc,KSwfn%Lzd%hgrids(1),KSwfn%Lzd%hgrids(2),KSwfn%Lzd%hgrids(3),at,rxyz,tmb%lzd%glr,&
+  !     tmb%orbs,fakeorbs,gpsi_all,gpsi_virt)
+  !call f_free_ptr(gpsi_all)
+  ! END DEBUG 
+
+
+  ! check why this is here!
+  !!tmparr = sparsematrix_malloc(tmb%linmat%l,iaction=SPARSE_FULL,id='tmparr')
+  !!call vcopy(tmb%linmat%l%nvctr, tmb%linmat%kernel_%matrix_compr(1), 1, tmparr(1), 1)
+  !!call gather_matrix_from_taskgroups_inplace(iproc, nproc, tmb%linmat%l, tmb%linmat%kernel_)
   call sumrho_for_TMBs(iproc, nproc, KSwfn%Lzd%hgrids(1), KSwfn%Lzd%hgrids(2), KSwfn%Lzd%hgrids(3), &
-       tmb%collcom_sr, tmb%linmat%denskern, KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3d, denspot%rhov)
+       tmb%collcom_sr, tmb%linmat%l, tmb%linmat%kernel_, denspot%dpbox%ndimrhopot, &
+       denspot%rhov, rho_negative)
+  !!call vcopy(tmb%linmat%l%nvctr, tmparr(1), 1, tmb%linmat%kernel_%matrix_compr(1), 1)
+  !!call f_free(tmparr)
+  if (rho_negative) then
+      call corrections_for_negative_charge(iproc, nproc, KSwfn, at, input, tmb, denspot)
+      !!if (iproc==0) call yaml_warning('Charge density contains negative points, need to increase FOE cutoff')
+      !!call increase_FOE_cutoff(iproc, nproc, tmb%lzd, at%astruct, input, KSwfn%orbs, tmb%orbs, tmb%foe_obj, init=.false.)
+      !!call clean_rho(iproc, KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3d, denspot%rhov)
+  end if
 
 
   ! Otherwise there are some problems... Check later.
-  allocate(KSwfn%psi(1),stat=istat)
-  call memocc(istat,KSwfn%psi,'KSwfn%psi',subname)
+  KSwfn%psi = f_malloc_ptr(1,id='KSwfn%psi')
   nullify(KSwfn%psit)
 
   nullify(rho,pot)
 
   call deallocate_local_arrays()
+  call f_release_routine()
 
   call timing(bigdft_mpi%mpi_comm,'WFN_OPT','PR')
 
@@ -575,44 +1435,38 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
 
     subroutine allocate_local_arrays()
 
-      allocate(locrad(tmb%lzd%nlr), stat=istat)
-      call memocc(istat, locrad, 'locrad', subname)
-
+      locrad = f_malloc(tmb%lzd%nlr,id='locrad')
       ! Allocate the old charge density (used to calculate the variation in the charge density)
-      allocate(rhopotold_out(max(denspot%dpbox%ndimrhopot,denspot%dpbox%nrhodim)),stat=istat)
-      call memocc(istat, rhopotold_out, 'rhopotold_out', subname)
+      rhopotold_out = f_malloc(max(denspot%dpbox%ndimrhopot,denspot%dpbox%nrhodim),id='rhopotold_out')
 
-      allocate(locrad_tmp(tmb%lzd%nlr), stat=istat)
-      call memocc(istat, locrad_tmp, 'locrad_tmp', subname)
+      fnrm_work = work_mpiaccumulate_null()
+      fnrm_work%ncount = 1
+      call allocate_work_mpiaccumulate(fnrm_work)
+      energs_work = work_mpiaccumulate_null()
+      energs_work%ncount = 4
+      call allocate_work_mpiaccumulate(energs_work)
 
     end subroutine allocate_local_arrays
 
 
     subroutine deallocate_local_arrays()
 
-      iall=-product(shape(locrad))*kind(locrad)
-      deallocate(locrad, stat=istat)
-      call memocc(istat, iall, 'locrad', subname)
-
-      iall=-product(shape(locrad_tmp))*kind(locrad_tmp)
-      deallocate(locrad_tmp, stat=istat)
-      call memocc(istat, iall, 'locrad_tmp', subname)
-
-      iall=-product(shape(rhopotold_out))*kind(rhopotold_out)
-      deallocate(rhopotold_out, stat=istat)
-      call memocc(istat, iall, 'rhopotold_out', subname)
+      call f_free(locrad)
+      call f_free(rhopotold_out)
+      call deallocate_work_mpiaccumulate(energs_work)
+      call deallocate_work_mpiaccumulate(fnrm_work)
 
     end subroutine deallocate_local_arrays
 
 
     subroutine check_inputguess()
-      real(8) :: dnrm2
+      real(kind=8) :: dnrm2
       if (input%inputPsiId==101) then           !should we put 102 also?
 
           if (input%lin%pulay_correction) then
              ! Check the input guess by calculation the Pulay forces.
 
-             call to_zero(tmb%ham_descr%npsidim_orbs,tmb%ham_descr%psi(1))
+             call f_zero(tmb%ham_descr%npsidim_orbs,tmb%ham_descr%psi(1))
              call small_to_large_locreg(iproc, tmb%npsidim_orbs, tmb%ham_descr%npsidim_orbs, tmb%lzd, tmb%ham_descr%lzd, &
                   tmb%orbs, tmb%psi, tmb%ham_descr%psi)
 
@@ -620,31 +1474,30 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
              ! - need some restructuring/reordering though, or addition of lots of extra initializations?!
 
              ! Calculate Pulay correction to the forces
-             call pulay_correction(iproc, nproc, KSwfn%orbs, at, rxyz, nlpspd, proj, input%SIC, denspot, GPU, tmb, fpulay)
-             fnrm_pulay=dnrm2(3*at%nat, fpulay, 1)/sqrt(dble(at%nat))
+             call pulay_correction(iproc, nproc, KSwfn%orbs, at, rxyz, nlpsp, input%SIC, denspot, GPU, tmb, fpulay)
+             fnrm_pulay=dnrm2(3*at%astruct%nat, fpulay, 1)/sqrt(dble(at%astruct%nat))
 
-             if (iproc==0) write(*,*) 'fnrm_pulay',fnrm_pulay
+             !if (iproc==0) write(*,*) 'fnrm_pulay',fnrm_pulay
+             if (iproc==0) call yaml_map('fnrm Pulay',fnrm_pulay)
 
              if (fnrm_pulay>1.d-1) then !1.d-10
-                if (iproc==0) write(*,'(1x,a)') 'The pulay force is too large after the restart. &
-                                                   &Start over again with an AO input guess.'
-                if (associated(tmb%psit_c)) then
-                    iall=-product(shape(tmb%psit_c))*kind(tmb%psit_c)
-                    deallocate(tmb%psit_c, stat=istat)
-                    call memocc(istat, iall, 'tmb%psit_c', subname)
+                if (iproc==0) then
+                    call yaml_warning('The pulay force is too large after the restart. &
+                         &Start over again with an AO input guess.')
                 end if
-                if (associated(tmb%psit_f)) then
-                    iall=-product(shape(tmb%psit_f))*kind(tmb%psit_f)
-                    deallocate(tmb%psit_f, stat=istat)
-                    call memocc(istat, iall, 'tmb%psit_f', subname)
-                end if
+                !!if (associated(tmb%psit_c)) then
+                !!    call f_free_ptr(tmb%psit_c)
+                !!end if
+                !!if (associated(tmb%psit_f)) then
+                !!    call f_free_ptr(tmb%psit_f)
+                !!end if
                 tmb%can_use_transposed=.false.
                 nit_lowaccuracy=input%lin%nit_lowaccuracy
                 nit_highaccuracy=input%lin%nit_highaccuracy
                 !!input%lin%highaccuracy_conv_crit=1.d-8
                 call inputguessConfinement(iproc, nproc, at, input, &
                      KSwfn%Lzd%hgrids(1), KSwfn%Lzd%hgrids(2), KSwfn%Lzd%hgrids(3), &
-                     rxyz, nlpspd, proj, GPU, KSwfn%orbs, tmb, denspot, rhopotold, energs)
+                     rxyz, nlpsp, GPU, KSwfn%orbs, KSwfn, tmb, denspot, rhopotold, energs)
                      energs%eexctX=0.0_gp
 
                 !already done in inputguess
@@ -652,12 +1505,17 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
                 !call orthonormalizeLocalized(iproc, nproc, 0, tmb%npsidim_orbs, tmb%orbs, tmb%lzd, tmb%linmat%ovrlp, &
                 !     tmb%linmat%denskern, tmb%collcom, tmb%orthpar, tmb%psi, tmb%psit_c, tmb%psit_f, tmb%can_use_transposed)
              else if (fnrm_pulay>1.d-2) then ! 1.d2 1.d-2
-                if (iproc==0) write(*,'(1x,a)') 'The pulay forces are rather large, so start with low accuracy.'
+                !!if (iproc==0) write(*,'(1x,a)') 'The pulay forces are rather large, so start with low accuracy.'
+                if (iproc==0) then
+                    call yaml_warning('The pulay forces are rather large, so start with low accuracy.')
+                end if
                 nit_lowaccuracy=input%lin%nit_lowaccuracy
                 nit_highaccuracy=input%lin%nit_highaccuracy
              else if (fnrm_pulay>1.d-10) then !1d-10
-                if (iproc==0) write(*,'(1x,a)') &
-                     'The pulay forces are fairly large, so reoptimising basis with high accuracy only.'
+                if (iproc==0) then
+                    !write(*,'(1x,a)') 'The pulay forces are fairly large, so reoptimising basis with high accuracy only.'
+                    call yaml_warning('The pulay forces are fairly large, so reoptimising basis with high accuracy only.')
+                end if
                 nit_lowaccuracy=0
                 nit_highaccuracy=input%lin%nit_highaccuracy
              else
@@ -665,14 +1523,10 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
                      'The pulay forces are fairly small, so not reoptimising basis.'
                     nit_lowaccuracy=0
                     nit_highaccuracy=0
-                    !!nit_highaccuracy=2
-                    !!input%lin%nItBasis_highaccuracy=2
-                    !!input%lin%nitSCCWhenFixed_highaccuracy=100
-                    !!input%lin%highaccuracy_conv_crit=1.d-8
              end if
           else
               ! Calculation of Pulay forces not possible, so always start with low accuracy
-              call to_zero(3*at%nat, fpulay(1,1))
+              call f_zero(fpulay)
               if (input%lin%scf_mode==LINEAR_FOE) then
                  nit_lowaccuracy=input%lin%nit_lowaccuracy
               else
@@ -717,31 +1571,51 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
       implicit none
 
       if(iproc==0) then
-          write(*,'(1x,a)') repeat('+',92 + int(log(real(it_SCC))/log(10.)))
-          write(*,'(1x,a,i0,a)') 'at iteration ', it_SCC, ' of the density optimization:'
-          !!if(infoCoeff<0) then
-          !!    write(*,'(3x,a)') '- WARNING: coefficients not converged!'
-          !!else if(infoCoeff>0) then
-          !!    write(*,'(3x,a,i0,a)') '- coefficients converged in ', infoCoeff, ' iterations.'
+          call yaml_sequence_open('summary',flow=.true.)
+          call yaml_mapping_open()
           if(input%lin%scf_mode==LINEAR_DIRECT_MINIMIZATION) then
-              write(*,'(3x,a)') 'coefficients / kernel obtained by direct minimization.'
+              call yaml_map('kernel method','DMIN')
           else if (input%lin%scf_mode==LINEAR_FOE) then
-              write(*,'(3x,a)') 'kernel obtained by Fermi Operator Expansion'
+              call yaml_map('kernel method','FOE')
           else
-              write(*,'(3x,a)') 'coefficients / kernel obtained by diagonalization.'
+              call yaml_map('kernel method','DIAG')
           end if
-          if(input%lin%scf_mode==LINEAR_MIXDENS_SIMPLE .or. input%lin%scf_mode==LINEAR_FOE) then
-              write(*,'(3x,a,3x,i0,2x,es13.7,es27.17,es14.4)') 'it, Delta DENS, energy, energyDiff', &
-                   it_SCC, pnrm, energy, energyDiff
-          else if(input%lin%scf_mode==LINEAR_MIXPOT_SIMPLE) then
-              write(*,'(3x,a,3x,i0,2x,es13.7,es27.17,es14.4)') 'it, Delta POT, energy, energyDiff', &
-                   it_SCC, pnrm, energy, energyDiff
-          else if(input%lin%scf_mode==LINEAR_DIRECT_MINIMIZATION) then
-              write(*,'(3x,a,3x,i0,2x,es13.7,es27.17,es14.4)') 'it, fnrm coeff, energy, energyDiff', &
-                   it_SCC, pnrm, energy, energyDiff
+
+          if (input%lin%scf_mode==LINEAR_MIXDENS_SIMPLE .or.  input%lin%scf_mode==LINEAR_FOE &
+              .or. input%lin%scf_mode==LINEAR_DIRECT_MINIMIZATION) then
+              call yaml_map('mix entity','DENS')
+          else if (input%lin%scf_mode==LINEAR_MIXPOT_SIMPLE) then
+              call yaml_map('mix entity','POT')
           end if
-          write(*,'(1x,a)') repeat('+',92 + int(log(real(it_SCC))/log(10.)))
+          call yaml_map('mix hist',mix_hist)
+          call yaml_map('conv crit',convCritMix,fmt='(es8.2)')
+
+
+          if (input%lin%constrained_dft) then
+             if (iproc==0) then
+                 call yaml_newline()
+                 call yaml_map('iter',it_scc,fmt='(i6)')
+                 call yaml_map('delta',pnrm,fmt='(es9.2)')
+                 call yaml_map('energy',energy,fmt='(es24.17)')
+                 call yaml_map('D',energyDiff,fmt='(es10.3)')
+                 call yaml_map('Tr(KW)',ebs,fmt='(es14.4)')
+                 call yaml_mapping_close()
+             end if
+          else
+             if (iproc==0) then
+                 call yaml_newline()
+                 call yaml_map('iter',it_scc,fmt='(i6)')
+                 call yaml_map('delta',pnrm,fmt='(es9.2)')
+                 call yaml_map('energy',energy,fmt='(es24.17)')
+                 call yaml_map('D',energyDiff,fmt='(es10.3)')
+                 call yaml_mapping_close()
+             end if
+          end if     
+          call yaml_sequence_close()
       end if
+
+
+
 
     end subroutine printSummary
 
@@ -750,680 +1624,369 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
     subroutine print_info(final)
       implicit none
 
-      real(8) :: energyDiff, mean_conf
+      real(kind=8) :: energyDiff, mean_conf
       logical, intent(in) :: final
+      integer :: ii
 
       energyDiff = energy - energyoldout
 
-      if(target_function==TARGET_FUNCTION_IS_HYBRID) then
-          mean_conf=0.d0
-          do iorb=1,tmb%orbs%norbp
-              mean_conf=mean_conf+tmb%confdatarr(iorb)%prefac
-          end do
-          call mpiallred(mean_conf, 1, mpi_sum, bigdft_mpi%mpi_comm, ierr)
-          mean_conf=mean_conf/dble(tmb%orbs%norb)
+      mean_conf=0.d0
+      do iorb=1,tmb%orbs%norbp
+          mean_conf=mean_conf+tmb%confdatarr(iorb)%prefac
+      end do
+
+      if (nproc > 1) then
+         call mpiallred(mean_conf, 1, mpi_sum, bigdft_mpi%mpi_comm)
       end if
+      mean_conf=mean_conf/dble(tmb%orbs%norb)
 
       ! Print out values related to two iterations of the outer loop.
       if(iproc==0.and.(.not.final)) then
 
-          !Before convergence
-          write(*,'(3x,a,7es20.12)') 'ebs, ehart, eexcu, vexcu, eexctX, eion, edisp', &
-              energs%ebs, energs%eh, energs%exc, energs%evxc, energs%eexctX, energs%eion, energs%edisp
-          if(input%lin%scf_mode/=LINEAR_MIXPOT_SIMPLE) then
-             if (.not. lowaccur_converged) then
-                 write(*,'(3x,a,3x,i0,es11.2,es27.17,es14.4)')&
-                      'itoutL, Delta DENSOUT, energy, energyDiff', itout, pnrm_out, energy, &
-                      energyDiff
-             else
-                 write(*,'(3x,a,3x,i0,es11.2,es27.17,es14.4)')&
-                      'itoutH, Delta DENSOUT, energy, energyDiff', itout, pnrm_out, energy, &
-                      energyDiff
-             end if
-          else if(input%lin%scf_mode==LINEAR_MIXPOT_SIMPLE) then
-             if (.not. lowaccur_converged) then
-                 write(*,'(3x,a,3x,i0,es11.2,es27.17,es14.4)')&
-                      'itoutL, Delta POTOUT, energy energyDiff', itout, pnrm_out, energy, energyDiff
-             else
-                 write(*,'(3x,a,3x,i0,es11.2,es27.17,es14.4)')&
-                      'itoutH, Delta POTOUT, energy energyDiff', itout, pnrm_out, energy, energyDiff
-             end if
-          end if
-
-          !when convergence is reached, use this block
-          write(*,'(1x,a)') repeat('#',92 + int(log(real(itout))/log(10.)))
-          write(*,'(1x,a,i0,a)') 'at iteration ', itout, ' of the outer loop:'
-          write(*,'(3x,a)') '> basis functions optimization:'
+          call yaml_comment('Summary of both steps',hfill='=')
+          call yaml_sequence_open('self consistency summary',label=&
+              'it_sc'//trim(adjustl(yaml_toa(itout,fmt='(i3.3)'))))
+          call yaml_sequence(advance='no')
+          call yaml_mapping_open(flow=.true.)
+          call yaml_map('iter',itout)
           if(target_function==TARGET_FUNCTION_IS_TRACE) then
-              write(*,'(5x,a)') '- target function is trace'
+              call yaml_map('Omega','TRACE')
           else if(target_function==TARGET_FUNCTION_IS_ENERGY) then
-              write(*,'(5x,a)') '- target function is energy'
+              call yaml_map('Omega','ENERGY')
           else if(target_function==TARGET_FUNCTION_IS_HYBRID) then
-              write(*,'(5x,a,es8.2)') '- target function is hybrid; mean confinement prefactor = ',mean_conf
+              call yaml_map('Omega','HYBRID')
+          end if
+          if (target_function==TARGET_FUNCTION_IS_HYBRID) then
+              call yaml_map('mean conf prefac',mean_conf,fmt='(es8.2)')
+              call yaml_map('damping',tmb%damping_factor_confinement,fmt='(es8.2)')
           end if
           if(info_basis_functions<=0) then
-              write(*,'(5x,a)') '- WARNING: basis functions not converged!'
+              call yaml_warning('support function optimization not converged')
+              call yaml_newline()
           else
-              write(*,'(5x,a,i0,a)') '- basis functions converged in ', info_basis_functions, ' iterations.'
+              call yaml_map('iterations to converge support functions',info_basis_functions)
           end if
-          write(*,'(5x,a,es15.6,2x,es10.2)') 'Final values: target function, fnrm', trace, fnrm_tmb
-          write(*,'(3x,a)') '> density optimization:'
           if(input%lin%scf_mode==LINEAR_DIRECT_MINIMIZATION) then
-              write(*,'(5x,a)') '- using direct minimization.'
+              call yaml_map('kernel optimization','DIRMIN')
           else if (input%lin%scf_mode==LINEAR_FOE) then
-              write(*,'(5x,a)') '- using Fermi Operator Expansion / mixing.'
+              call yaml_map('kernel optimization','FOE')
           else
-              write(*,'(5x,a)') '- using diagonalization / mixing.'
+              call yaml_map('kernel optimization','DIAG')
           end if
           if(info_scf<0) then
-              write(*,'(5x,a)') '- WARNING: density optimization not converged!'
+              call yaml_warning('density optimization not converged')
+              call yaml_newline()
           else
-              write(*,'(5x,a,i0,a)') '- density optimization converged in ', info_scf, ' iterations.'
+              call yaml_map('iterations to converge kernel optimization',info_scf)
+              call yaml_newline()
           end if
-          if(input%lin%scf_mode==LINEAR_MIXDENS_SIMPLE .or. input%lin%scf_mode==LINEAR_FOE) then
-              write(*,'(5x,a,3x,i0,es12.2,es27.17)') 'FINAL values: it, Delta DENS, energy', itout, pnrm, energy
-          else if(input%lin%scf_mode==LINEAR_MIXPOT_SIMPLE) then
-              write(*,'(5x,a,3x,i0,es12.2,es27.17)') 'FINAL values: it, Delta POT, energy', itout, pnrm, energy
-          else if(input%lin%scf_mode==LINEAR_DIRECT_MINIMIZATION) then
-              write(*,'(5x,a,3x,i0,es12.2,es27.17)') 'FINAL values: it, fnrm coeff, energy', itout, pnrm, energy
-          end if
-          write(*,'(3x,a,es14.6)') '> energy difference to last iteration:', energyDiff
-          write(*,'(1x,a)') repeat('#',92 + int(log(real(itout))/log(10.)))
-      else if (iproc==0.and.final) then
-          !Before convergence
-          write(*,'(3x,a,7es20.12)') 'ebs, ehart, eexcu, vexcu, eexctX, eion, edisp', &
-              energs%ebs, energs%eh, energs%exc, energs%evxc, energs%eexctX, energs%eion, energs%edisp
           if(input%lin%scf_mode/=LINEAR_MIXPOT_SIMPLE) then
              if (.not. lowaccur_converged) then
-                 write(*,'(3x,a,3x,i0,es11.2,es27.17,es14.4,3x,a)')&
-                      'itoutL, Delta DENSOUT, energy, energyDiff', itout, pnrm_out, energy, &
-                      energyDiff,'FINAL'
+                 call yaml_map('iter low',itout)
              else
-                 write(*,'(3x,a,3x,i0,es11.2,es27.17,es14.4,3x,a)')&
-                      'itoutH, Delta DENSOUT, energy, energyDiff', itout, pnrm_out, energy, &
-                      energyDiff,'FINAL'
+                 call yaml_map('iter high',itout)
+             end if
+                 call yaml_map('delta out',pnrm_out,fmt='(es10.3)')
+                 call yaml_map('energy',energy,fmt='(es27.17)')
+                 call yaml_map('D',energyDiff,fmt='(es10.3)')
+          else if(input%lin%scf_mode==LINEAR_MIXPOT_SIMPLE) then
+             if (.not. lowaccur_converged) then
+                 call yaml_map('iter low',itout)
+             else
+                 call yaml_map('iter high',itout)
+             end if
+             call yaml_map('delta out',pnrm_out,fmt='(es10.3)')
+             call yaml_map('energy',energy,fmt='(es27.17)')
+             call yaml_map('D',energyDiff,fmt='(es10.3)')
+          end if
+          call yaml_mapping_close()
+
+          !when convergence is reached, use this block
+      else if (iproc==0.and.final) then
+          call yaml_comment('final results',hfill='=')
+          call yaml_sequence_open('self consistency summary')
+          call yaml_sequence(advance='no')
+          call yaml_mapping_open(flow=.true.)
+          call yaml_map('iter',itout)
+          call write_energies(0,0,energs,0.d0,0.d0,'',.true.)
+          if (input%lin%scf_mode/=LINEAR_MIXPOT_SIMPLE) then
+             if (.not. lowaccur_converged) then
+                 call yaml_map('iter low',itout)
+                 call yaml_map('delta out',pnrm_out,fmt='(es10.3)')
+                 call yaml_map('energy',energy,fmt='(es27.17)')
+                 call yaml_map('D',energyDiff,fmt='(es10.3)')
+                 call yaml_comment('FINAL')
+                 call yaml_mapping_close()
+             else
+                 call yaml_map('iter high',itout)
+                 call yaml_map('delta out',pnrm_out,fmt='(es10.3)')
+                 call yaml_map('energy',energy,fmt='(es27.17)')
+                 call yaml_map('D',energyDiff,fmt='(es10.3)')
+                 call yaml_comment('FINAL')
+                 call yaml_mapping_close()
              end if
           else if(input%lin%scf_mode==LINEAR_MIXPOT_SIMPLE) then
              if (.not. lowaccur_converged) then
-                 write(*,'(3x,a,3x,i0,es11.2,es27.17,es14.4,3x,a)')&
-                      'itoutL, Delta POTOUT, energy energyDiff', itout, pnrm_out, energy, energyDiff,'FINAL'
+                 call yaml_map('iter low',itout)
+                 call yaml_map('delta out',pnrm_out,fmt='(es10.3)')
+                 call yaml_map('energy',energy,fmt='(es27.17)')
+                 call yaml_map('D',energyDiff,fmt='(es10.3)')
+                 call yaml_comment('FINAL')
+                 call yaml_mapping_close()
              else
-                 write(*,'(3x,a,3x,i0,es11.2,es27.17,es14.4,3x,a)')&
-                      'itoutH, Delta POTOUT, energy energyDiff', itout, pnrm_out, energy, energyDiff,'FINAL'
+                 call yaml_map('iter high',itout)
+                 call yaml_map('delta out',pnrm_out,fmt='(es10.3)')
+                 call yaml_map('energy',energy,fmt='(es27.17)')
+                 call yaml_map('D',energyDiff,fmt='(es10.3)')
+                 call yaml_comment('FINAL')
+                 call yaml_mapping_close()
              end if
           end if
        end if
 
+       call yaml_flush_document()
+       !call bigdft_utils_flush(unit=6)
+    call yaml_sequence_close()
+
+    if (.not.final .and. input%adjust_kernel_iterations) then
+        ! Determine whether the sign of the energy change is the same as in the previous iteration
+        ! (i.e. whether the energy continues to increase or decrease)
+        tt = sign(energyDiff,sign_of_energy_change)
+        if (tt/energyDiff>0.d0) then
+            ! same sign, everything ok
+        else if (abs(energyDiff/energy)>1.d-7) then
+            nit_energyoscillation = nit_energyoscillation + 1
+            if (iproc==0) then
+                call yaml_warning('oscillation of the energy, increase counter')
+                call yaml_map('energy_scillation_counter',nit_energyoscillation)
+            end if
+        end if
+        if (nit_energyoscillation>1) then
+            nit_scc = nit_scc + 1
+            ii = 3*max(input%lin%nitSCCWhenFixed_lowaccuracy,input%lin%nitSCCWhenFixed_highaccuracy)
+            if (nit_scc>ii) then
+                if (iproc==0) call yaml_map('nit_scc reached maximum, reset to',ii)
+                nit_scc = ii
+            end if
+            nit_energyoscillation = 0
+            if (iproc==0) call yaml_map('new nit_scc',nit_scc)
+            ! Needed for low/high accuracy... maybe to be cleaned
+            nit_scc_changed = nit_scc
+            keep_value = .true.
+        end if
+    end if
+
+
+    ! Determine the sign of the energy change
+    sign_of_energy_change = sign(1.d0,energyDiff)
+
+
     end subroutine print_info
+
+
+    subroutine intermediate_forces()
+
+      ! Local variables
+      real(kind=8) :: eh_tmp, exc_tmp, evxc_tmp, eexctX_tmp
+      real(kind=8) :: fnoise, pressure, ehart_fake
+      real(kind=8),dimension(6) :: ewaldstr, hstrten, xcstr, strten
+      real(kind=8),dimension(:),allocatable :: rhopot_work
+          real(kind=8),dimension(:,:),allocatable :: fxyz
+
+      ! TEST: calculate forces here ####################################################
+      fxyz=f_malloc((/3,at%astruct%nat/),id='fxyz')
+      ewaldstr=1.d100
+      hstrten=1.d100
+      xcstr=1.d100
+      eh_tmp=energs%eh
+      exc_tmp=energs%exc
+      evxc_tmp=energs%evxc
+      eexctX_tmp=energs%eexctX
+
+      ioffset=kswfn%Lzd%Glr%d%n1i*kswfn%Lzd%Glr%d%n2i*denspot%dpbox%i3xcsh
+
+      if (denspot%dpbox%ndimpot>0) then
+          denspot%pot_work=f_malloc_ptr(denspot%dpbox%ndimpot,id='denspot%dpbox%ndimpot')
+
+      else
+          denspot%pot_work=f_malloc_ptr(1,id='denspot%dpbox%ndimpot')
+      end if
+      if (denspot%dpbox%ndimrhopot>0) then
+          rhopot_work=f_malloc(denspot%dpbox%ndimrhopot,id='rhopot_work')
+      else
+          rhopot_work=f_malloc(1,id='rhopot_work')
+      end if
+      call vcopy(denspot%dpbox%ndimrhopot,denspot%rhov(1),1,rhopot_work(1),1)
+
+
+      !!tmparr = sparsematrix_malloc(tmb%linmat%l,iaction=SPARSE_FULL,id='tmparr')
+      !!call vcopy(tmb%linmat%l%nvctr, tmb%linmat%kernel_%matrix_compr(1), 1, tmparr(1), 1)
+      !!call gather_matrix_from_taskgroups_inplace(iproc, nproc, tmb%linmat%l, tmb%linmat%kernel_)
+      call sumrho_for_TMBs(iproc, nproc, KSwfn%Lzd%hgrids(1), KSwfn%Lzd%hgrids(2), KSwfn%Lzd%hgrids(3), &
+           tmb%collcom_sr, tmb%linmat%l, tmb%linmat%kernel_, denspot%dpbox%ndimrhopot, &
+           denspot%rhov, rho_negative)
+      !!call vcopy(tmb%linmat%l%nvctr, tmparr(1), 1, tmb%linmat%kernel_%matrix_compr(1), 1)
+      !!call f_free(tmparr)
+      if (rho_negative) then
+          call corrections_for_negative_charge(iproc, nproc, KSwfn, at, input, tmb, denspot)
+          !!if (iproc==0) call yaml_warning('Charge density contains negative points, need to increase FOE cutoff')
+          !!call increase_FOE_cutoff(iproc, nproc, tmb%lzd, at%astruct, input, KSwfn%orbs, tmb%orbs, tmb%foe_obj, init=.false.)
+          !!call clean_rho(iproc, KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3d, denspot%rhov)
+      end if
+      !denspot%rho_work=f_malloc_ptr(max(denspot%dpbox%ndimrhopot,denspot%dpbox%nrhodim),id='denspot%rho_work')
+      denspot%rho_work=f_malloc_ptr(denspot%dpbox%ndimpot,id='denspot%rho_work')
+      !call vcopy(max(denspot%dpbox%ndimrhopot,denspot%dpbox%nrhodim),&
+      !     denspot%rhov(1),1,denspot%rho_work(1),1)
+      call vcopy(denspot%dpbox%ndimpot,denspot%rhov(ioffset+1),1,denspot%rho_work(1),1)
+      if (denspot%dpbox%nrhodim==2) then
+          call axpy(denspot%dpbox%ndimpot,1.d0,denspot%rhov(ioffset+denspot%dpbox%ndimpot+1),1,denspot%rho_work(1),1)
+      end if
+
+      call updatePotential(input%nspin,denspot,energs%eh,energs%exc,energs%evxc)
+
+      ! Density already present in denspot%rho_work
+      call vcopy(denspot%dpbox%ndimpot,denspot%rho_work(1),1,denspot%pot_work(1),1)
+      call H_potential('D',denspot%pkernel,denspot%pot_work,denspot%pot_work,ehart_fake,&
+           0.0_dp,.false.,stress_tensor=hstrten)
+
+      
+      KSwfn%psi=f_malloc_ptr(1,id='KSwfn%psi')
+
+
+      fpulay=0.d0
+      call calculate_forces(iproc,nproc,denspot%pkernel%mpi_env%nproc,KSwfn%Lzd%Glr,at,KSwfn%orbs,nlpsp,rxyz,& 
+           KSwfn%Lzd%hgrids(1),KSwfn%Lzd%hgrids(2),KSwfn%Lzd%hgrids(3),&
+           denspot%dpbox%i3s+denspot%dpbox%i3xcsh,denspot%dpbox%n3p,&
+           denspot%dpbox%nrhodim,.false.,denspot%dpbox%ngatherarr,denspot%rho_work,&
+           denspot%pot_work,denspot%V_XC,size(KSwfn%psi),KSwfn%psi,fion,fdisp,fxyz,&
+           ewaldstr,hstrten,xcstr,strten,fnoise,pressure,denspot%psoffset,1,tmb,fpulay)
+      call f_free(fxyz)
+      call f_free_ptr(KSwfn%psi)
+
+      call vcopy(denspot%dpbox%ndimrhopot,rhopot_work(1),1,denspot%rhov(1),1)
+      energs%eh=eh_tmp
+      energs%exc=exc_tmp
+      energs%evxc=evxc_tmp
+      energs%eexctX=eexctX_tmp
+
+      call f_free(rhopot_work)
+      call f_free_ptr(denspot%rho_work)
+      call f_free_ptr(denspot%pot_work)
+
+
+    end subroutine intermediate_forces
 
 end subroutine linearScaling
 
 
 
-subroutine set_optimization_variables(input, at, lorbs, nlr, onwhichatom, confdatarr, &
-     convCritMix, lowaccur_converged, nit_scc, mix_hist, alpha_mix, locrad, target_function, nit_basis)
+
+subroutine output_fragment_rotations(iproc,nat,rxyz,iformat,filename,input_frag,ref_frags)
   use module_base
   use module_types
+  use yaml_output
+  use module_fragments
+  use internal_io
+  use module_interfaces
   implicit none
-  
-  ! Calling arguments
-  integer,intent(in) :: nlr
-  type(orbitals_data),intent(in) :: lorbs
-  type(input_variables),intent(in) :: input
-  type(atoms_data),intent(in) :: at
-  integer,dimension(lorbs%norb),intent(in) :: onwhichatom
-  type(confpot_data),dimension(lorbs%norbp),intent(inout) :: confdatarr
-  real(kind=8), intent(out) :: convCritMix, alpha_mix
-  logical, intent(in) :: lowaccur_converged
-  integer, intent(out) :: nit_scc, mix_hist
-  real(kind=8), dimension(nlr), intent(out) :: locrad
-  integer, intent(out) :: target_function, nit_basis
 
-  ! Local variables
-  integer :: iorb, ilr, iiat
+  integer, intent(in) :: iproc, iformat, nat
+  character(len=*), intent(in) :: filename
+  real(gp), dimension(3,nat), intent(in) :: rxyz
+  type(fragmentInputParameters), intent(in) :: input_frag
+  type(system_fragment), dimension(input_frag%nfrag_ref), intent(in) :: ref_frags
+  !Local variables
+  integer :: ifrag, jfrag, ifrag_ref, jfrag_ref, iat, isfat, jsfat
+  real(kind=gp), dimension(:,:), allocatable :: rxyz_ref, rxyz_new
+  real(kind=gp) :: null_axe
+  type(fragment_transformation) :: frag_trans
+  character(len=*), parameter :: subname='output_fragment_rotations'
 
-  if(lowaccur_converged) then
-      do iorb=1,lorbs%norbp
-          iiat=onwhichatom(lorbs%isorb+iorb)
-          confdatarr(iorb)%prefac=input%lin%potentialPrefac_highaccuracy(at%iatype(iiat))
-      end do
-      target_function=TARGET_FUNCTION_IS_ENERGY
-      nit_basis=input%lin%nItBasis_highaccuracy
-      nit_scc=input%lin%nitSCCWhenFixed_highaccuracy
-      mix_hist=input%lin%mixHist_highaccuracy
-      do ilr=1,nlr
-          locrad(ilr)=input%lin%locrad_highaccuracy(ilr)
-      end do
-      alpha_mix=input%lin%alpha_mix_highaccuracy
-      convCritMix=input%lin%convCritMix_highaccuracy
-  else
-      do iorb=1,lorbs%norbp
-          iiat=onwhichatom(lorbs%isorb+iorb)
-          confdatarr(iorb)%prefac=input%lin%potentialPrefac_lowaccuracy(at%iatype(iiat))
-      end do
-      target_function=TARGET_FUNCTION_IS_TRACE
-      nit_basis=input%lin%nItBasis_lowaccuracy
-      nit_scc=input%lin%nitSCCWhenFixed_lowaccuracy
-      mix_hist=input%lin%mixHist_lowaccuracy
-      do ilr=1,nlr
-          locrad(ilr)=input%lin%locrad_lowaccuracy(ilr)
-      end do
-      alpha_mix=input%lin%alpha_mix_lowaccuracy
-      convCritMix=input%lin%convCritMix_lowaccuracy
-  end if
+  if (iproc==0) then
 
-  !!! new hybrid version... not the best place here
-  !!if (input%lin%nit_highaccuracy==-1) then
-  !!    do iorb=1,lorbs%norbp
-  !!        ilr=lorbs%inwhichlocreg(lorbs%isorb+iorb)
-  !!        iiat=onwhichatom(lorbs%isorb+iorb)
-  !!        confdatarr(iorb)%prefac=input%lin%potentialPrefac_lowaccuracy(at%iatype(iiat))
-  !!    end do
-  !!    wfnmd%bs%target_function=TARGET_FUNCTION_IS_HYBRID
-  !!    wfnmd%bs%nit_basis_optimization=input%lin%nItBasis_lowaccuracy
-  !!    wfnmd%bs%conv_crit=input%lin%convCrit_lowaccuracy
-  !!    nit_scc=input%lin%nitSCCWhenFixed_lowaccuracy
-  !!    mix_hist=input%lin%mixHist_lowaccuracy
-  !!    do ilr=1,nlr
-  !!        locrad(ilr)=input%lin%locrad_lowaccuracy(ilr)
-  !!    end do
-  !!    alpha_mix=input%lin%alpha_mix_lowaccuracy
-  !!end if
+     null_axe=1.0d0/dsqrt(3.0d0)
 
-end subroutine set_optimization_variables
+     if(iformat == WF_FORMAT_PLAIN) then
+        open(99, file=filename//'rotations.bin', status='unknown',form='formatted')
+        write(99,'(a)') '#Label, name, label, name, angle, axis'
+     else
+        open(99, file=filename//'rotations.bin', status='unknown',form='unformatted')
+        write(99) '#Label, name, label, name, angle, axis'
+     end if
 
+     jsfat=0
+     do jfrag=1,input_frag%nfrag
+        jfrag_ref=input_frag%frag_index(jfrag)
+        isfat=0
+        do ifrag=1,input_frag%nfrag
+           ifrag_ref=input_frag%frag_index(ifrag)
 
+           ! only calculate rotations if same type of reference fragments
+           if (jfrag_ref/=ifrag_ref) then
+              if (iformat==WF_FORMAT_PLAIN) then
+                 write(99,'(2(a,1x,I5,1x),F12.6,2x,3(F12.6,1x),6(1x,F18.6))')  trim(input_frag%label(ifrag_ref)),ifrag,&
+                      trim(input_frag%label(jfrag_ref)),jfrag,-1.0d0,null_axe,null_axe,null_axe,&
+                      -1.0d0,-1.0d0,-1.0d0,-1.0d0,-1.0d0,-1.0d0
+              else
+                 write(99) trim(input_frag%label(ifrag_ref)),ifrag,&
+                      trim(input_frag%label(jfrag_ref)),jfrag,-1.0d0,null_axe,null_axe,null_axe,&
+                      -1.0d0,-1.0d0,-1.0d0,-1.0d0,-1.0d0,-1.0d0
+              end if
+              isfat=isfat+ref_frags(ifrag_ref)%astruct_frg%nat
+              cycle
+           else if (ifrag==jfrag) then
+              if (iformat==WF_FORMAT_PLAIN) then
+                 write(99,'(2(a,1x,I5,1x),F12.6,2x,3(F12.6,1x),6(1x,F18.6))')  trim(input_frag%label(ifrag_ref)),ifrag,&
+                      trim(input_frag%label(jfrag_ref)),jfrag,0.0d0,null_axe,null_axe,null_axe,&
+                      0.0d0,0.0d0,0.0d0,0.0d0,0.0d0,0.0d0
+              else
+                 write(99)  trim(input_frag%label(ifrag_ref)),ifrag,&
+                      trim(input_frag%label(jfrag_ref)),jfrag,0.0d0,null_axe,null_axe,null_axe,&
+                      0.0d0,0.0d0,0.0d0,0.0d0,0.0d0,0.0d0
+              end if
+              isfat=isfat+ref_frags(ifrag_ref)%astruct_frg%nat
+              cycle
+           end if
 
-subroutine adjust_locregs_and_confinement(iproc, nproc, hx, hy, hz, at, input, &
-           rxyz, KSwfn, tmb, denspot, ldiis, locreg_increased, lowaccur_converged, locrad)
-  use module_base
-  use module_types
-  use module_interfaces, except_this_one => adjust_locregs_and_confinement
-  implicit none
-  
-  ! Calling argument
-  integer,intent(in) :: iproc, nproc
-  real(8),intent(in) :: hx, hy, hz
-  type(atoms_data),intent(in) :: at
-  type(input_variables),intent(in) :: input
-  real(8),dimension(3,at%nat),intent(in):: rxyz
-  type(DFT_wavefunction),intent(inout) :: KSwfn, tmb
-  type(DFT_local_fields),intent(inout) :: denspot
-  type(localizedDIISParameters),intent(inout) :: ldiis
-  logical, intent(out) :: locreg_increased
-  logical, intent(in) :: lowaccur_converged
-  real(8), dimension(tmb%lzd%nlr), intent(inout) :: locrad
+           rxyz_ref = f_malloc((/3,ref_frags(ifrag_ref)%astruct_frg%nat/),id='rxyz_ref')
+           rxyz_new = f_malloc((/3,ref_frags(ifrag_ref)%astruct_frg%nat/),id='rxyz_new')
 
-  ! Local variables
-  integer :: iall, istat, ilr, npsidim_orbs_tmp, npsidim_comp_tmp
-  real(kind=8),dimension(:,:),allocatable :: locregCenter
-  real(kind=8),dimension(:),allocatable :: lphilarge
-  type(local_zone_descriptors) :: lzd_tmp
-  character(len=*),parameter :: subname='adjust_locregs_and_confinement'
+           do iat=1,ref_frags(ifrag_ref)%astruct_frg%nat
+              rxyz_new(:,iat)=rxyz(:,isfat+iat)
+              rxyz_ref(:,iat)=rxyz(:,jsfat+iat)
+           end do
 
-  locreg_increased=.false.
-  if(lowaccur_converged ) then
-      do ilr = 1, tmb%lzd%nlr
-         if(input%lin%locrad_highaccuracy(ilr) /= input%lin%locrad_lowaccuracy(ilr)) then
-             if(iproc==0) write(*,'(1x,a)') 'Increasing the localization radius for the high accuracy part.'
-             locreg_increased=.true.
-             exit
-         end if
-      end do
-  end if
+           ! use center of fragment for now, could later change to center of symmetry
+           frag_trans%rot_center=frag_center(ref_frags(jfrag_ref)%astruct_frg%nat,rxyz_ref)
+           frag_trans%rot_center_new=frag_center(ref_frags(ifrag_ref)%astruct_frg%nat,rxyz_new)
 
-  if(locreg_increased) then
-     !tag=1
-     !call wait_p2p_communication(iproc, nproc, tmb%comgp)
-     call synchronize_onesided_communication(iproc, nproc, tmb%comgp)
-     call deallocate_p2pComms(tmb%comgp, subname)
+           ! shift rxyz wrt center of rotation
+           do iat=1,ref_frags(ifrag_ref)%astruct_frg%nat
+              rxyz_ref(:,iat)=rxyz_ref(:,iat)-frag_trans%rot_center
+              rxyz_new(:,iat)=rxyz_new(:,iat)-frag_trans%rot_center_new
+           end do
 
-     call deallocate_collective_comms(tmb%collcom, subname)
-     call deallocate_collective_comms(tmb%collcom_sr, subname)
+           call find_frag_trans(ref_frags(ifrag_ref)%astruct_frg%nat,rxyz_ref,rxyz_new,frag_trans)
 
-     call nullify_local_zone_descriptors(lzd_tmp)
-     call copy_local_zone_descriptors(tmb%lzd, lzd_tmp, subname)
-     call deallocate_local_zone_descriptors(tmb%lzd, subname)
+           call f_free(rxyz_ref)
+           call f_free(rxyz_new)
 
-     npsidim_orbs_tmp = tmb%npsidim_orbs
-     npsidim_comp_tmp = tmb%npsidim_comp
-
-     call deallocate_foe(tmb%foe_obj, subname)
-
-     call deallocate_sparseMatrix(tmb%linmat%denskern, subname)
-     call deallocate_sparseMatrix(tmb%linmat%inv_ovrlp, subname)
-     call deallocate_sparseMatrix(tmb%linmat%ovrlp, subname)
-     call deallocate_sparseMatrix(tmb%linmat%ham, subname)
-
-     allocate(locregCenter(3,lzd_tmp%nlr), stat=istat)
-     call memocc(istat, locregCenter, 'locregCenter', subname)
-     do ilr=1,lzd_tmp%nlr
-        locregCenter(:,ilr)=lzd_tmp%llr(ilr)%locregCenter
+           if (iformat==WF_FORMAT_PLAIN) then
+              write(99,'(2(a,1x,I5,1x),F12.6,2x,3(F12.6,1x),6(1x,F18.6))') trim(input_frag%label(ifrag_ref)),ifrag,&
+                   trim(input_frag%label(jfrag_ref)),jfrag,frag_trans%theta/(4.0_gp*atan(1.d0)/180.0_gp),frag_trans%rot_axis,&
+                   frag_trans%rot_center,frag_trans%rot_center_new
+           else
+              write(99) trim(input_frag%label(ifrag_ref)),ifrag,&
+                   trim(input_frag%label(jfrag_ref)),jfrag,frag_trans%theta/(4.0_gp*atan(1.d0)/180.0_gp),frag_trans%rot_axis,&
+                   frag_trans%rot_center,frag_trans%rot_center_new
+           end if
+           isfat=isfat+ref_frags(ifrag_ref)%astruct_frg%nat
+        end do
+        jsfat=jsfat+ref_frags(jfrag_ref)%astruct_frg%nat
      end do
 
-     !temporary,  moved from update_locreg
-     tmb%orbs%eval=-0.5_gp
-     call update_locreg(iproc, nproc, lzd_tmp%nlr, locrad, locregCenter, lzd_tmp%glr, .false., &
-          denspot%dpbox%nscatterarr, hx, hy, hz, at, input, KSwfn%orbs, tmb%orbs, tmb%lzd, tmb%npsidim_orbs, tmb%npsidim_comp, &
-          tmb%comgp, tmb%collcom, tmb%foe_obj, tmb%collcom_sr)
+     close(99)
 
-     iall=-product(shape(locregCenter))*kind(locregCenter)
-     deallocate(locregCenter, stat=istat)
-     call memocc(istat, iall, 'locregCenter', subname)
+   end if
 
-     ! calculate psi in new locreg
-     allocate(lphilarge(tmb%npsidim_orbs), stat=istat)
-     call memocc(istat, lphilarge, 'lphilarge', subname)
-     call to_zero(tmb%npsidim_orbs, lphilarge(1))
-     call small_to_large_locreg(iproc, npsidim_orbs_tmp, tmb%npsidim_orbs, lzd_tmp, tmb%lzd, &
-          tmb%orbs, tmb%psi, lphilarge)
-
-     call deallocate_local_zone_descriptors(lzd_tmp, subname)
-     iall=-product(shape(tmb%psi))*kind(tmb%psi)
-     deallocate(tmb%psi, stat=istat)
-     call memocc(istat, iall, 'tmb%psi', subname)
-     allocate(tmb%psi(tmb%npsidim_orbs), stat=istat)
-     call memocc(istat, tmb%psi, 'tmb%psi', subname)
-     call dcopy(tmb%npsidim_orbs, lphilarge(1), 1, tmb%psi(1), 1)
-     iall=-product(shape(lphilarge))*kind(lphilarge)
-     deallocate(lphilarge, stat=istat)
-     call memocc(istat, iall, 'lphilarge', subname) 
-     
-     call update_ldiis_arrays(tmb, subname, ldiis)
-
-     ! Emit that lzd has been changed.
-     if (tmb%c_obj /= 0) then
-        call kswfn_emit_lzd(tmb, iproc, nproc)
-     end if
-
-     ! Now update hamiltonian descriptors
-     !call destroy_new_locregs(iproc, nproc, tmblarge)
-
-     ! to eventually be better sorted - replace with e.g. destroy_hamiltonian_descriptors
-     call synchronize_onesided_communication(iproc, nproc, tmb%ham_descr%comgp)
-     call deallocate_p2pComms(tmb%ham_descr%comgp, subname)
-     call deallocate_local_zone_descriptors(tmb%ham_descr%lzd, subname)
-     call deallocate_collective_comms(tmb%ham_descr%collcom, subname)
-
-     call deallocate_auxiliary_basis_function(subname, tmb%ham_descr%psi, tmb%hpsi)
-     if(tmb%ham_descr%can_use_transposed) then
-        iall=-product(shape(tmb%ham_descr%psit_c))*kind(tmb%ham_descr%psit_c)
-        deallocate(tmb%ham_descr%psit_c, stat=istat)
-        call memocc(istat, iall, 'tmb%ham_descr%psit_c', subname)
-        iall=-product(shape(tmb%ham_descr%psit_f))*kind(tmb%ham_descr%psit_f)
-        deallocate(tmb%ham_descr%psit_f, stat=istat)
-        call memocc(istat, iall, 'tmb%ham_descr%psit_f', subname)
-        tmb%ham_descr%can_use_transposed=.false.
-     end if
-     
-     deallocate(tmb%confdatarr, stat=istat)
-
-     call create_large_tmbs(iproc, nproc, KSwfn, tmb, denspot, input, at, rxyz, lowaccur_converged)
-
-     ! Update sparse matrices
-     call initSparseMatrix(iproc, nproc, tmb%ham_descr%lzd, tmb%orbs, tmb%linmat%ham)
-     call initSparseMatrix(iproc, nproc, tmb%lzd, tmb%orbs, tmb%linmat%ovrlp)
-     !call initSparseMatrix(iproc, nproc, tmb%ham_descr%lzd, tmb%orbs, tmb%linmat%inv_ovrlp)
-     call initSparseMatrix(iproc, nproc, tmb%ham_descr%lzd, tmb%orbs, tmb%linmat%denskern)
-     call nullify_sparsematrix(tmb%linmat%inv_ovrlp)
-     call sparse_copy_pattern(tmb%linmat%denskern,tmb%linmat%inv_ovrlp,iproc,subname) ! save recalculating
-
-     allocate(tmb%linmat%denskern%matrix_compr(tmb%linmat%denskern%nvctr), stat=istat)
-     call memocc(istat, tmb%linmat%denskern%matrix_compr, 'tmb%linmat%denskern%matrix_compr', subname)
-     allocate(tmb%linmat%ham%matrix_compr(tmb%linmat%ham%nvctr), stat=istat)
-     call memocc(istat, tmb%linmat%ham%matrix_compr, 'tmb%linmat%ham%matrix_compr', subname)
-     allocate(tmb%linmat%ovrlp%matrix_compr(tmb%linmat%ovrlp%nvctr), stat=istat)
-     call memocc(istat, tmb%linmat%ovrlp%matrix_compr, 'tmb%linmat%ovrlp%matrix_compr', subname)
-     !allocate(tmb%linmat%inv_ovrlp%matrix_compr(tmb%linmat%inv_ovrlp%nvctr), stat=istat)
-     !call memocc(istat, tmb%linmat%inv_ovrlp%matrix_compr, 'tmb%linmat%inv_ovrlp%matrix_compr', subname)
-
-  else ! no change in locrad, just confining potential that needs updating
-
-     call define_confinement_data(tmb%confdatarr,tmb%orbs,rxyz,at,&
-          tmb%ham_descr%lzd%hgrids(1),tmb%ham_descr%lzd%hgrids(2),tmb%ham_descr%lzd%hgrids(3),&
-          4,input%lin%potentialPrefac_highaccuracy,tmb%ham_descr%lzd,tmb%orbs%onwhichatom)
-
-  end if
-
-end subroutine adjust_locregs_and_confinement
-
-
-
-subroutine adjust_DIIS_for_high_accuracy(input, denspot, mixdiis, lowaccur_converged, ldiis_coeff_hist, ldiis_coeff_changed)
-  use module_base
-  use module_types
-  use module_interfaces, except_this_one => adjust_DIIS_for_high_accuracy
-  implicit none
-  
-  ! Calling arguments
-  type(input_variables),intent(in) :: input
-  type(DFT_local_fields),intent(inout) :: denspot
-  type(mixrhopotDIISParameters),intent(inout) :: mixdiis
-  logical, intent(in) :: lowaccur_converged
-  integer, intent(inout) :: ldiis_coeff_hist
-  logical, intent(out) :: ldiis_coeff_changed  
-
-  if(lowaccur_converged) then
-     if (input%lin%scf_mode/=LINEAR_DIRECT_MINIMIZATION) then
-        if(input%lin%mixHist_lowaccuracy==0 .and. input%lin%mixHist_highaccuracy>0) then
-           call initializeMixrhopotDIIS(input%lin%mixHist_highaccuracy, denspot%dpbox%ndimpot, mixdiis)
-        else if(input%lin%mixHist_lowaccuracy>0 .and. input%lin%mixHist_highaccuracy==0) then
-           call deallocateMixrhopotDIIS(mixdiis)
-        end if
-     else
-        ! check whether ldiis_coeff_hist arrays will need reallocating due to change in history length
-        if (ldiis_coeff_hist /= input%lin%mixHist_highaccuracy) then
-           ldiis_coeff_changed=.true.
-        else
-           ldiis_coeff_changed=.false.
-        end if
-        ldiis_coeff_hist=input%lin%mixHist_highaccuracy
-     end if
-  else
-     if (input%lin%scf_mode==LINEAR_DIRECT_MINIMIZATION) then
-        ldiis_coeff_changed=.false.
-     end if
-  end if
-  
-end subroutine adjust_DIIS_for_high_accuracy
-
-
-subroutine check_whether_lowaccuracy_converged(itout, nit_lowaccuracy, lowaccuracy_convcrit, &
-     lowaccur_converged, pnrm_out)
-  use module_base
-  use module_types
-  implicit none
-
-  ! Calling arguments
-  integer,intent(in) :: itout
-  integer,intent(in) :: nit_lowaccuracy
-  real(8),intent(in) :: lowaccuracy_convcrit
-  logical, intent(inout) :: lowaccur_converged
-  real(kind=8), intent(in) :: pnrm_out
-  
-  if(.not.lowaccur_converged .and. &
-       (itout>=nit_lowaccuracy+1 .or. pnrm_out<lowaccuracy_convcrit)) then
-     lowaccur_converged=.true.
-     !cur_it_highaccuracy=0
-  end if 
-
-end subroutine check_whether_lowaccuracy_converged
-
-subroutine pulay_correction(iproc, nproc, orbs, at, rxyz, nlpspd, proj, SIC, denspot, GPU, tmb, fpulay)
-  use module_base
-  use module_types
-  use module_interfaces, except_this_one => pulay_correction
-  implicit none
-
-  ! Calling arguments
-  integer,intent(in) :: iproc, nproc
-  type(orbitals_data),intent(in) :: orbs
-  type(atoms_data),intent(in) :: at
-  real(kind=8),dimension(3,at%nat),intent(in) :: rxyz
-  type(nonlocal_psp_descriptors),intent(in) :: nlpspd
-  real(wp),dimension(nlpspd%nprojel),intent(inout) :: proj
-  type(SIC_data),intent(in) :: SIC
-  type(DFT_local_fields), intent(inout) :: denspot
-  type(GPU_pointers),intent(inout) :: GPU
-  type(DFT_wavefunction),intent(inout) :: tmb
-  real(kind=8),dimension(3,at%nat),intent(out) :: fpulay
-
-  ! Local variables
-  integer:: istat, iall, ierr, iialpha, jorb
-  integer:: iorb, ii, iseg, isegstart, isegend
-  integer:: jat, jdir, ibeta
-  !!integer :: ialpha, iat, iiorb
-  real(kind=8) :: kernel, ekernel
-  real(kind=8),dimension(:),allocatable :: lhphilarge, psit_c, psit_f, hpsit_c, hpsit_f, lpsit_c, lpsit_f
-  type(sparseMatrix) :: dovrlp(3), dham(3)
-  type(energy_terms) :: energs
-  type(confpot_data),dimension(:),allocatable :: confdatarrtmp
-  character(len=*),parameter :: subname='pulay_correction'
-
-  ! Begin by updating the Hpsi
-  call local_potential_dimensions(tmb%ham_descr%lzd,tmb%orbs,denspot%dpbox%ngatherarr(0,1))
-
-  allocate(lhphilarge(tmb%ham_descr%npsidim_orbs), stat=istat)
-  call memocc(istat, lhphilarge, 'lhphilarge', subname)
-  call to_zero(tmb%ham_descr%npsidim_orbs,lhphilarge(1))
-
-  !!call post_p2p_communication(iproc, nproc, denspot%dpbox%ndimpot, denspot%rhov, &
-  !!     tmb%ham_descr%comgp%nrecvbuf, tmb%ham_descr%comgp%recvbuf, tmb%ham_descr%comgp, tmb%ham_descr%lzd)
-  call start_onesided_communication(iproc, nproc, denspot%dpbox%ndimpot, denspot%rhov, &
-       tmb%ham_descr%comgp%nrecvbuf, tmb%ham_descr%comgp%recvbuf, tmb%ham_descr%comgp, tmb%ham_descr%lzd)
-
-  allocate(confdatarrtmp(tmb%orbs%norbp))
-  call default_confinement_data(confdatarrtmp,tmb%orbs%norbp)
-
-
-  call NonLocalHamiltonianApplication(iproc,at,tmb%ham_descr%npsidim_orbs,tmb%orbs,rxyz,&
-       proj,tmb%ham_descr%lzd,nlpspd,tmb%ham_descr%psi,lhphilarge,energs%eproj)
-
-  ! only kinetic because waiting for communications
-  call LocalHamiltonianApplication(iproc,nproc,at,tmb%ham_descr%npsidim_orbs,tmb%orbs,&
-       tmb%ham_descr%lzd,confdatarrtmp,denspot%dpbox%ngatherarr,denspot%pot_work,tmb%ham_descr%psi,lhphilarge,&
-       energs,SIC,GPU,3,pkernel=denspot%pkernelseq,dpbox=denspot%dpbox,potential=denspot%rhov,comgp=tmb%ham_descr%comgp)
-  call full_local_potential(iproc,nproc,tmb%orbs,tmb%ham_descr%lzd,2,denspot%dpbox,denspot%rhov,denspot%pot_work, &
-       tmb%ham_descr%comgp)
-  ! only potential
-  call LocalHamiltonianApplication(iproc,nproc,at,tmb%ham_descr%npsidim_orbs,tmb%orbs,&
-       tmb%ham_descr%lzd,confdatarrtmp,denspot%dpbox%ngatherarr,denspot%pot_work,tmb%ham_descr%psi,lhphilarge,&
-       energs,SIC,GPU,2,pkernel=denspot%pkernelseq,dpbox=denspot%dpbox,potential=denspot%rhov,comgp=tmb%ham_descr%comgp)
-
-  call timing(iproc,'glsynchham1','ON') !lr408t
-  call SynchronizeHamiltonianApplication(nproc,tmb%ham_descr%npsidim_orbs,tmb%orbs,tmb%ham_descr%lzd,GPU,lhphilarge,&
-       energs%ekin,energs%epot,energs%eproj,energs%evsic,energs%eexctX)
-  call timing(iproc,'glsynchham1','OF') !lr408t
-  deallocate(confdatarrtmp)
-  
-
-  ! Now transpose the psi and hpsi
-  allocate(lpsit_c(tmb%ham_descr%collcom%ndimind_c))
-  call memocc(istat, lpsit_c, 'lpsit_c', subname)
-  allocate(lpsit_f(7*tmb%ham_descr%collcom%ndimind_f))
-  call memocc(istat, lpsit_f, 'lpsit_f', subname)
-  allocate(hpsit_c(tmb%ham_descr%collcom%ndimind_c))
-  call memocc(istat, hpsit_c, 'hpsit_c', subname)
-  allocate(hpsit_f(7*tmb%ham_descr%collcom%ndimind_f))
-  call memocc(istat, hpsit_f, 'hpsit_f', subname)
-  allocate(psit_c(tmb%ham_descr%collcom%ndimind_c))
-  call memocc(istat, psit_c, 'psit_c', subname)
-  allocate(psit_f(7*tmb%ham_descr%collcom%ndimind_f))
-  call memocc(istat, psit_f, 'psit_f', subname)
-
-  call transpose_localized(iproc, nproc, tmb%ham_descr%npsidim_orbs, tmb%orbs, tmb%ham_descr%collcom, &
-       tmb%ham_descr%psi, lpsit_c, lpsit_f, tmb%ham_descr%lzd)
-
-  call transpose_localized(iproc, nproc, tmb%ham_descr%npsidim_orbs, tmb%orbs, tmb%ham_descr%collcom, &
-       lhphilarge, hpsit_c, hpsit_f, tmb%ham_descr%lzd)
-
-  !now build the derivative and related matrices <dPhi_a | H | Phi_b> and <dPhi_a | Phi_b>
-
-  ! DOVRLP AND DHAM SHOULD HAVE DIFFERENT SPARSITIES, BUT TO MAKE LIFE EASIER KEEPING THEM THE SAME FOR NOW
-  ! also array of structure a bit inelegant at the moment
-  do jdir = 1, 3
-    call nullify_sparsematrix(dovrlp(jdir))
-    call nullify_sparsematrix(dham(jdir))
-    call sparse_copy_pattern(tmb%linmat%ham,dovrlp(jdir),iproc,subname) 
-    call sparse_copy_pattern(tmb%linmat%ham,dham(jdir),iproc,subname)
-    allocate(dham(jdir)%matrix_compr(dham(jdir)%nvctr), stat=istat)
-    call memocc(istat, dham(jdir)%matrix_compr, 'dham%matrix_compr', subname)
-    allocate(dovrlp(jdir)%matrix_compr(dovrlp(jdir)%nvctr), stat=istat)
-    call memocc(istat, dovrlp(jdir)%matrix_compr, 'dovrlp%matrix_compr', subname)
-
-    call get_derivative(jdir, tmb%ham_descr%npsidim_orbs, tmb%ham_descr%lzd%hgrids(1), tmb%orbs, &
-         tmb%ham_descr%lzd, tmb%ham_descr%psi, lhphilarge)
-
-    call transpose_localized(iproc, nproc, tmb%ham_descr%npsidim_orbs, tmb%orbs, tmb%ham_descr%collcom, &
-         lhphilarge, psit_c, psit_f, tmb%ham_descr%lzd)
-
-    call calculate_overlap_transposed(iproc, nproc, tmb%orbs, tmb%ham_descr%collcom,&
-         psit_c, lpsit_c, psit_f, lpsit_f, dovrlp(jdir))
-
-    call calculate_overlap_transposed(iproc, nproc, tmb%orbs, tmb%ham_descr%collcom,&
-         psit_c, hpsit_c, psit_f, hpsit_f, dham(jdir))
-  end do
-
-
-  !DEBUG
-  !!print *,'iproc,tmb%orbs%norbp',iproc,tmb%orbs%norbp
-  !!if(iproc==0)then
-  !!do iorb = 1, tmb%orbs%norb
-  !!   do iiorb=1,tmb%orbs%norb
-  !!      !print *,'Hamiltonian of derivative: ',iorb, iiorb, (matrix(iorb,iiorb,jdir),jdir=1,3)
-  !!      print *,'Overlap of derivative: ',iorb, iiorb, (dovrlp(iorb,iiorb,jdir),jdir=1,3)
-  !!   end do
-  !!end do
-  !!end if
-  !!!Check if derivatives are orthogonal to functions
-  !!if(iproc==0)then
-  !!  do iorb = 1, tmbder%orbs%norb
-  !!     !print *,'overlap of derivative: ',iorb, (dovrlp(iorb,iiorb),iiorb=1,tmb%orbs%norb)
-  !!     do iiorb=1,tmbder%orbs%norb
-  !!         write(*,*) iorb, iiorb, dovrlp(iorb,iiorb)
-  !!     end do
-  !!  end do
-  !!end if
-  !END DEBUG
-
-   ! needs generalizing if dovrlp and dham are to have different structures
-   call to_zero(3*at%nat, fpulay(1,1))
-   do jdir=1,3
-     !do ialpha=1,tmb%orbs%norb
-     if (tmb%orbs%norbp>0) then
-         isegstart=dham(jdir)%istsegline(tmb%orbs%isorb_par(iproc)+1)
-         if (tmb%orbs%isorb+tmb%orbs%norbp<tmb%orbs%norb) then
-             isegend=dham(jdir)%istsegline(tmb%orbs%isorb_par(iproc+1)+1)-1
-         else
-             isegend=dham(jdir)%nseg
-         end if
-         do iseg=isegstart,isegend
-              ii=dham(jdir)%keyv(iseg)-1
-              do jorb=dham(jdir)%keyg(1,iseg),dham(jdir)%keyg(2,iseg)
-                  ii=ii+1
-                  iialpha = (jorb-1)/tmb%orbs%norb + 1
-                  ibeta = jorb - (iialpha-1)*tmb%orbs%norb
-                  jat=tmb%orbs%onwhichatom(iialpha)
-                  kernel = 0.d0
-                  ekernel= 0.d0
-                  do iorb=1,orbs%norb
-                      kernel  = kernel+orbs%occup(iorb)*tmb%coeff(iialpha,iorb)*tmb%coeff(ibeta,iorb)
-                      ekernel = ekernel+tmb%orbs%eval(iorb)*orbs%occup(iorb) &
-                           *tmb%coeff(iialpha,iorb)*tmb%coeff(ibeta,iorb) 
-                  end do
-                  fpulay(jdir,jat)=fpulay(jdir,jat)+&
-                         2.0_gp*(kernel*dham(jdir)%matrix_compr(ii)-ekernel*dovrlp(jdir)%matrix_compr(ii))
-              end do
-         end do
-     end if
-   end do 
-
-   call mpiallred(fpulay(1,1), 3*at%nat, mpi_sum, bigdft_mpi%mpi_comm, ierr)
-
-  if(iproc==0) then
-       do jat=1,at%nat
-           write(*,'(a,i5,3es16.6)') 'iat, fpulay', jat, fpulay(1:3,jat)
-       end do
-  end if
-
-  iall=-product(shape(psit_c))*kind(psit_c)
-  deallocate(psit_c, stat=istat)
-  call memocc(istat, iall, 'psit_c', subname)
-  iall=-product(shape(psit_f))*kind(psit_f)
-  deallocate(psit_f, stat=istat)
-  call memocc(istat, iall, 'psit_f', subname)
-  iall=-product(shape(hpsit_c))*kind(hpsit_c)
-  deallocate(hpsit_c, stat=istat)
-  call memocc(istat, iall, 'hpsit_c', subname)
-  iall=-product(shape(hpsit_f))*kind(hpsit_f)
-  deallocate(hpsit_f, stat=istat)
-  call memocc(istat, iall, 'hpsit_f', subname)
-  iall=-product(shape(lpsit_c))*kind(lpsit_c)
-  deallocate(lpsit_c, stat=istat)
-  call memocc(istat, iall, 'lpsit_c', subname)
-  iall=-product(shape(lpsit_f))*kind(lpsit_f)
-  deallocate(lpsit_f, stat=istat)
-  call memocc(istat, iall, 'lpsit_f', subname)
-
-  iall=-product(shape(lhphilarge))*kind(lhphilarge)
-  deallocate(lhphilarge, stat=istat)
-  call memocc(istat, iall, 'lhphilarge', subname)
-
-  iall=-product(shape(denspot%pot_work))*kind(denspot%pot_work)
-  deallocate(denspot%pot_work, stat=istat)
-  call memocc(istat, iall, 'denspot%pot_work', subname)
-
-  do jdir=1,3
-     call deallocate_sparseMatrix(dovrlp(jdir),subname)
-     call deallocate_sparseMatrix(dham(jdir),subname)
-  end do
-
-  if(iproc==0) write(*,'(1x,a)') 'done.'
-
-end subroutine pulay_correction
-
-
-
-!!subroutine derivative_coeffs_from_standard_coeffs(orbs, tmb, tmbder)
-!!  use module_base
-!!  use module_types
-!!  implicit none
-!!
-!!  ! Calling arguments
-!!  type(orbitals_data),intent(in) :: orbs
-!!  type(DFT_wavefunction),intent(in) :: tmb
-!!  type(DFT_wavefunction),intent(out) :: tmbder
-!!
-!!  ! Local variables
-!!  integer :: iorb, jorb, jjorb
-!!
-!!  call to_zero(tmbder%orbs%norb*orbs%norb, tmbder%coeff(1,1))
-!!  do iorb=1,orbs%norb
-!!      jjorb=0
-!!      do jorb=1,tmbder%orbs%norb,4
-!!          jjorb=jjorb+1
-!!          tmbder%coeff(jorb,iorb)=tmb%coeff(jjorb,iorb)
-!!      end do
-!!  end do
-!!
-!!end subroutine derivative_coeffs_from_standard_coeffs
-
-
-
-subroutine set_variables_for_hybrid(nlr, input, at, orbs, lowaccur_converged, confdatarr, &
-           target_function, nit_basis, nit_scc, mix_hist, locrad, alpha_mix, convCritMix)
-  use module_base
-  use module_types
-  implicit none
-
-  ! Calling arguments
-  integer,intent(in) :: nlr
-  type(input_variables),intent(in) :: input
-  type(atoms_data),intent(in) :: at
-  type(orbitals_data),intent(in) :: orbs
-  logical,intent(out) :: lowaccur_converged
-  type(confpot_data),dimension(orbs%norbp),intent(inout) :: confdatarr
-  integer,intent(out) :: target_function, nit_basis, nit_scc, mix_hist
-  real(kind=8),dimension(nlr),intent(out) :: locrad
-  real(kind=8),intent(out) :: alpha_mix, convCritMix
-
-  ! Local variables
-  integer :: iorb, ilr, iiat
-
-  lowaccur_converged=.false.
-  do iorb=1,orbs%norbp
-      ilr=orbs%inwhichlocreg(orbs%isorb+iorb)
-      iiat=orbs%onwhichatom(orbs%isorb+iorb)
-      confdatarr(iorb)%prefac=input%lin%potentialPrefac_lowaccuracy(at%iatype(iiat))
-  end do
-  target_function=TARGET_FUNCTION_IS_HYBRID
-  nit_basis=input%lin%nItBasis_lowaccuracy
-  nit_scc=input%lin%nitSCCWhenFixed_lowaccuracy
-  mix_hist=input%lin%mixHist_lowaccuracy
-  do ilr=1,nlr
-      locrad(ilr)=input%lin%locrad_lowaccuracy(ilr)
-  end do
-  alpha_mix=input%lin%alpha_mix_lowaccuracy
-  convCritMix=input%lin%convCritMix_lowaccuracy
-
-end subroutine set_variables_for_hybrid
+end subroutine output_fragment_rotations

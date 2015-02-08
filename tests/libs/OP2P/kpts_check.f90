@@ -1,3 +1,15 @@
+!> @file
+!!  Test the kpoints in OP2P
+!! @author
+!!    Copyright (C) 2012-2013 BigDFT group
+!!    This file is distributed under the terms of the
+!!    GNU General Public License, see ~/COPYING file
+!!    or http://www.gnu.org/copyleft/gpl.txt .
+!!    For the list of contributors, see ~/AUTHORS
+
+
+!> Program to test the OP2P (overlap point to point) check kp points.
+!! @todo : load balancing verifications of particular k-points distributions
 program kpts_check
   use BigDFT_API
   implicit none
@@ -8,7 +20,6 @@ program kpts_check
   character(len=20) :: argstring
   integer :: i_all,i_stat,info,lubo,lubc
 
-  !@todo : load balancing verifications of particular k-points distributions
 
   call getarg(1,argstring)
   read(argstring,*)nproc

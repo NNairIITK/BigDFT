@@ -98,7 +98,7 @@ character(len=*),parameter:: subname='get_coeff'
   if(iproc==0) write(*,'(1x,a)') 'done.'
 
   ! Deallocate the buffers needed for the communication of the potential.
-  call deallocateCommunicationsBuffersPotential(tmbmix%comgp, subname)
+  call deallocate_p2pComms_buffer(tmbmix%comgp, subname)
 
 
 
@@ -109,7 +109,7 @@ character(len=*),parameter:: subname='get_coeff'
 
 
   ! Symmetrize the Hamiltonian
-  call dcopy(tmbmix%orbs%norb**2, matrixElements(1,1,1), 1, matrixElements(1,1,2), 1)
+  call vcopy(tmbmix%orbs%norb**2, matrixElements(1,1,1), 1, matrixElements(1,1,2), 1)
   do iorb=1,tmbmix%orbs%norb
       do jorb=1,tmbmix%orbs%norb
           matrixElements(jorb,iorb,1) = .5d0*(matrixElements(jorb,iorb,2)+matrixElements(iorb,jorb,2))
@@ -125,7 +125,7 @@ character(len=*),parameter:: subname='get_coeff'
   ! Diagonalize the Hamiltonian, either iteratively or with lapack.
   ! Make a copy of the matrix elements since dsyev overwrites the matrix and the matrix elements
   ! are still needed later.
-  call dcopy(tmbmix%orbs%norb**2, matrixElements(1,1,1), 1, matrixElements(1,1,2), 1)
+  call vcopy(tmbmix%orbs%norb**2, matrixElements(1,1,1), 1, matrixElements(1,1,2), 1)
   if(blocksize_pdsyev<0) then
       if(iproc==0) write(*,'(1x,a)',advance='no') 'Diagonalizing the Hamiltonian, sequential version... '
       call diagonalizeHamiltonian2(iproc, nproc, tmbmix%orbs, tmbmix%op%nsubmax, matrixElements(1,1,2), ovrlp, eval)
@@ -136,7 +136,7 @@ character(len=*),parameter:: subname='get_coeff'
   end if
   if(iproc==0) write(*,'(a)') 'done.'
   do iorb=1,orbs%norb
-      call dcopy(tmbmix%orbs%norb, matrixElements(1,iorb,2), 1, tmbmix%wfnmd%coeff(1,iorb), 1)
+      call vcopy(tmbmix%orbs%norb, matrixElements(1,iorb,2), 1, tmbmix%wfnmd%coeff(1,iorb), 1)
   end do
   infoCoeff=0
 
@@ -157,7 +157,7 @@ character(len=*),parameter:: subname='get_coeff'
   end if
 
   ! debug
-  call dcopy(orbs%norb, eval(1), 1, orbs%eval(1), 1)
+  call vcopy(orbs%norb, eval(1), 1, orbs%eval(1), 1)
 
 
   ! Calculate the band structure energy with matrixElements instead of wfnmd%coeff sue to the problem mentioned
@@ -402,14 +402,14 @@ logical,parameter:: secondLocreg=.false.
       call memocc(istat, tmb%orbs%onwhichatom, 'tmb%orbs%onwhichatom', subname)
       call vcopy(tmb%orbs%norb, onwhichatom_reference(1), 1, tmb%orbs%onwhichatom(1), 1)
       tmb%wfnmd%nphi=tmb%orbs%npsidim_orbs
-      call dcopy(tmblarge%orbs%npsidim_orbs, tmblarge%psi(1), 1, tmb%psi(1), 1)
+      call vcopy(tmblarge%orbs%npsidim_orbs, tmblarge%psi(1), 1, tmb%psi(1), 1)
       call vcopy(tmb%orbs%norb, tmblarge%orbs%onwhichatom(1), 1, onwhichatom_reference(1), 1)
       !!call destroy_new_locregs(tmblarge%lzd, tmblarge%orbs, tmblarge%op, tmblarge%comon, tmblarge%mad, tmblarge%comgp, &
       !!     tmblarge%psi, lhphilarge, lhphilargeold, lphilargeold)
       call destroy_new_locregs(tmblarge%lzd, tmblarge%orbs, tmblarge%op, tmblarge%comon, tmblarge%mad, tmblarge%comgp, &
            tmblarge%psi, lhphilarge, lhphilargeold, lphilargeold)
 
-      if(.not.variable_locregs) call allocateCommunicationsBuffersPotential(tmb%comgp, subname)
+      if(.not.variable_locregs) call allocate_p2pComms_buffer(tmb%comgp, subname)
 
 
       locrad_tmp=factor*locrad
@@ -505,7 +505,7 @@ logical,parameter:: secondLocreg=.false.
                   call memocc(istat, tmb%orbs%onwhichatom, 'tmb%orbs%onwhichatom', subname)
                   call vcopy(tmb%orbs%norb, onwhichatom_reference(1), 1, tmb%orbs%onwhichatom(1), 1)
                   tmb%wfnmd%nphi=tmb%orbs%npsidim_orbs
-                  call allocateCommunicationsBuffersPotential(tmb%comgp, subname)
+                  call allocate_p2pComms_buffer(tmb%comgp, subname)
               end if
 
 
@@ -694,7 +694,7 @@ logical,parameter:: secondLocreg=.false.
                    alpha=alpha*.6d0
                    if(tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_TRACE) then
                        if(iproc==0) write(*,'(1x,a)') 'Reject orbitals, reuse the old ones and decrease step size.'
-                       call dcopy(size(tmb%psi), lphiold, 1, tmb%psi, 1)
+                       call vcopy(size(tmb%psi), lphiold, 1, tmb%psi, 1)
                    else
                        ! It is not possible to use the old orbitals since the locregs might have changed.
                        if(iproc==0) write(*,'(1x,a)') 'Decrease step size, but accept new orbitals'
@@ -735,7 +735,7 @@ logical,parameter:: secondLocreg=.false.
 
       ! Keep the gradient for the next iteration.
       if(it>1) then
-          call dcopy(tmb%orbs%norbp, fnrmArr(1,1), 1, fnrmOldArr(1), 1)
+          call vcopy(tmb%orbs%norbp, fnrmArr(1,1), 1, fnrmOldArr(1), 1)
       end if
   
       ! Determine the gradient norm and its maximal component. In addition, adapt the
@@ -762,9 +762,9 @@ logical,parameter:: secondLocreg=.false.
       fnrm=sqrt(fnrm/dble(tmb%orbs%norb))
       fnrmMax=sqrt(fnrmMax)
       ! Copy the gradient (will be used in the next iteration to adapt the step size).
-      call dcopy(tmb%orbs%npsidim_orbs, lhphi, 1, lhphiold, 1)
+      call vcopy(tmb%orbs%npsidim_orbs, lhphi, 1, lhphiold, 1)
       if(variable_locregs .and. tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_ENERGY) &
-          call dcopy(max(tmblarge%orbs%npsidim_orbs,tmblarge%orbs%npsidim_comp), lhphilarge, 1, lhphilargeold, 1)
+          call vcopy(max(tmblarge%orbs%npsidim_orbs,tmblarge%orbs%npsidim_comp), lhphilarge, 1, lhphilargeold, 1)
       trHold=trH
   
       ! Precondition the gradient.
@@ -1133,11 +1133,11 @@ contains
                      !write(*,'(a,4i9)') 'iproc, ncount, istsource, istdest', iproc, ncount, istsource, istdest
                      !if(.not.newgradient) then
                      if(.not.variable_locregs .or. tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_TRACE) then
-                         call dcopy(ncount, ldiis%phiHist(istsource), 1, tmb%psi(istdest), 1)
-                         call dcopy(ncount, ldiis%phiHist(istsource), 1, lphiold(istdest), 1)
+                         call vcopy(ncount, ldiis%phiHist(istsource), 1, tmb%psi(istdest), 1)
+                         call vcopy(ncount, ldiis%phiHist(istsource), 1, lphiold(istdest), 1)
                      else
-                         call dcopy(ncount, ldiis%phiHist(istsource), 1, tmblarge%psi(istdest), 1)
-                         call dcopy(ncount, ldiis%phiHist(istsource), 1, lphilargeold(istdest), 1)
+                         call vcopy(ncount, ldiis%phiHist(istsource), 1, tmblarge%psi(istdest), 1)
+                         call vcopy(ncount, ldiis%phiHist(istsource), 1, lphilargeold(istdest), 1)
                      end if
                      offset=offset+ldiis%isx*ncount
                      istdest=istdest+ncount
@@ -1146,9 +1146,9 @@ contains
                  ! else copy the orbitals of the last iteration to lphiold
                  !if(.not.newgradient) then
                  if(.not.variable_locregs .or. tmb%wfnmd%bs%target_function==TARGET_FUNCTION_IS_TRACE) then
-                     call dcopy(size(tmb%psi), tmb%psi(1), 1, lphiold(1), 1)
+                     call vcopy(size(tmb%psi), tmb%psi(1), 1, lphiold(1), 1)
                  else
-                     call dcopy(size(tmblarge%psi), tmblarge%psi(1), 1, lphilargeold(1), 1)
+                     call vcopy(size(tmblarge%psi), tmblarge%psi(1), 1, lphilargeold(1), 1)
                  end if
               end if
               !!!call deallocateDIIS(ldiis)
@@ -1367,7 +1367,7 @@ end subroutine getLocalizedBasis
 subroutine my_geocode_buffers(geocode,nl1,nl2,nl3)
   implicit none
   integer, intent(out) :: nl1,nl2,nl3
-  character(len=1), intent(in) :: geocode
+  character(len=1), intent(in) :: geocode !< @copydoc poisson_solver::doc::geocode
   !local variables
   logical :: perx,pery,perz
   integer :: nr1,nr2,nr3
@@ -1419,7 +1419,7 @@ implicit none
 ! Calling arguments
 integer,intent(in):: iproc, nproc
 type(orbitals_data), intent(in) :: orbs
-type(communications_arrays), intent(in) :: comms
+type(comms_cubic), intent(in) :: comms
 real(8),dimension(sum(comms%nvctr_par(iproc,1:orbs%nkptsp))*orbs%nspinor,orbs%norb), intent(in) :: phi, hphi
 real(8),dimension(orbs%norb,orbs%norb),intent(out):: HamSmall
 
@@ -1732,8 +1732,8 @@ implicit none
 integer:: iproc, nproc
 type(orbitals_data), intent(in) :: orbs
 type(orbitals_data), intent(in) :: orbsLIN
-type(communications_arrays), intent(in) :: comms
-type(communications_arrays), intent(in) :: commsLIN
+type(comms_cubic), intent(in) :: comms
+type(comms_cubic), intent(in) :: commsLIN
 real(8),dimension(sum(commsLIN%nvctr_par(iproc,1:orbsLIN%nkptsp))*orbsLIN%nspinor,orbsLIN%norb) :: phi
 real(8),dimension(sum(comms%nvctr_par(iproc,1:orbs%nkptsp))*orbs%nspinor,orbs%norb) :: psi
 real(8),dimension(orbsLIN%norb,orbsLIN%norb):: HamSmall
@@ -1786,8 +1786,8 @@ implicit none
 integer:: iproc, nproc
 type(orbitals_data), intent(in) :: orbs
 type(orbitals_data), intent(in) :: orbsLIN
-type(communications_arrays), intent(in) :: comms
-type(communications_arrays), intent(in) :: commsLIN
+type(comms_cubic), intent(in) :: comms
+type(comms_cubic), intent(in) :: commsLIN
 real(8),dimension(sum(commsLIN%nvctr_par(iproc,1:orbsLIN%nkptsp))*orbsLIN%nspinor,orbsLIN%norb) :: phi
 real(8),dimension(sum(comms%nvctr_par(iproc,1:orbs%nkptsp))*orbs%nspinor,orbs%norb) :: psi
 real(8),dimension(orbsLIN%norb,orbs%norb):: coeff
@@ -2263,19 +2263,19 @@ end interface
      ! Wavefunction in real space
      allocate(psir(Lzd%Llr(ilr)%d%n1i*Lzd%Llr(ilr)%d%n2i*Lzd%Llr(ilr)%d%n3i,orbs%nspinor+ndebug),stat=i_stat)
      call memocc(i_stat,psir,'psir',subname)
-     call razero(Lzd%Llr(ilr)%d%n1i*Lzd%Llr(ilr)%d%n2i*Lzd%Llr(ilr)%d%n3i*orbs%nspinor,psir)
+     call to_zero(Lzd%Llr(ilr)%d%n1i*Lzd%Llr(ilr)%d%n2i*Lzd%Llr(ilr)%d%n3i*orbs%nspinor,psir)
 
      allocate(psirx(Lzd%Llr(ilr)%d%n1i*Lzd%Llr(ilr)%d%n2i*Lzd%Llr(ilr)%d%n3i,orbs%nspinor+ndebug),stat=i_stat)
      call memocc(i_stat,psirx,'psirx',subname)
-     call razero(Lzd%Llr(ilr)%d%n1i*Lzd%Llr(ilr)%d%n2i*Lzd%Llr(ilr)%d%n3i*orbs%nspinor,psirx)
+     call to_zero(Lzd%Llr(ilr)%d%n1i*Lzd%Llr(ilr)%d%n2i*Lzd%Llr(ilr)%d%n3i*orbs%nspinor,psirx)
 
      allocate(psiry(Lzd%Llr(ilr)%d%n1i*Lzd%Llr(ilr)%d%n2i*Lzd%Llr(ilr)%d%n3i,orbs%nspinor+ndebug),stat=i_stat)
      call memocc(i_stat,psiry,'psiry',subname)
-     call razero(Lzd%Llr(ilr)%d%n1i*Lzd%Llr(ilr)%d%n2i*Lzd%Llr(ilr)%d%n3i*orbs%nspinor,psiry)
+     call to_zero(Lzd%Llr(ilr)%d%n1i*Lzd%Llr(ilr)%d%n2i*Lzd%Llr(ilr)%d%n3i*orbs%nspinor,psiry)
 
      allocate(psirz(Lzd%Llr(ilr)%d%n1i*Lzd%Llr(ilr)%d%n2i*Lzd%Llr(ilr)%d%n3i,orbs%nspinor+ndebug),stat=i_stat)
      call memocc(i_stat,psirz,'psirz',subname)
-     call razero(Lzd%Llr(ilr)%d%n1i*Lzd%Llr(ilr)%d%n2i*Lzd%Llr(ilr)%d%n3i*orbs%nspinor,psirz)
+     call to_zero(Lzd%Llr(ilr)%d%n1i*Lzd%Llr(ilr)%d%n2i*Lzd%Llr(ilr)%d%n3i*orbs%nspinor,psirz)
 
      !transform the wavefunction in Daubechies basis to the wavefunction in ISF basis
      !the psir wavefunction is given in the spinorial form
@@ -2309,19 +2309,19 @@ end interface
      call isf_to_daub(lzd%llr(ilr), work_sr, psiry, ypsi(1+oidx))
      call isf_to_daub(lzd%llr(ilr), work_sr, psirz, zpsi(1+oidx))
 
-     !!call dcopy(Lzd%Llr(ilr)%d%n1i*Lzd%Llr(ilr)%d%n2i*Lzd%Llr(ilr)%d%n3i*orbs%nspinor, psir(1,1), 1, vpsir(1,1), 1)
+     !!call vcopy(Lzd%Llr(ilr)%d%n1i*Lzd%Llr(ilr)%d%n2i*Lzd%Llr(ilr)%d%n3i*orbs%nspinor, psir(1,1), 1, vpsir(1,1), 1)
      !!call position_operator(iproc, lzd%llr(ilr)%d%n1,lzd%llr(ilr)%d%n2,lzd%llr(ilr)%d%n3,1,1,1,0,orbs%nspinor, vpsir, &
      !!     hxh, hyh, hzh, confdatarr(iorb)%ioffset, 'x', &
      !!     lzd%llr(ilr)%bounds%ibyyzz_r) !optional
      !!call isf_to_daub(lzd%llr(ilr), work_sr, vpsir, xpsi(1+oidx))
 
-     !!call dcopy(Lzd%Llr(ilr)%d%n1i*Lzd%Llr(ilr)%d%n2i*Lzd%Llr(ilr)%d%n3i*orbs%nspinor, psir(1,1), 1, vpsir(1,1), 1)
+     !!call vcopy(Lzd%Llr(ilr)%d%n1i*Lzd%Llr(ilr)%d%n2i*Lzd%Llr(ilr)%d%n3i*orbs%nspinor, psir(1,1), 1, vpsir(1,1), 1)
      !!call position_operator(iproc, lzd%llr(ilr)%d%n1,lzd%llr(ilr)%d%n2,lzd%llr(ilr)%d%n3,1,1,1,0,orbs%nspinor, vpsir, &
      !!     hxh, hyh, hzh, confdatarr(iorb)%ioffset, 'y', &
      !!     lzd%llr(ilr)%bounds%ibyyzz_r) !optional
      !!call isf_to_daub(lzd%llr(ilr), work_sr, vpsir, ypsi(1+oidx))
 
-     !!call dcopy(Lzd%Llr(ilr)%d%n1i*Lzd%Llr(ilr)%d%n2i*Lzd%Llr(ilr)%d%n3i*orbs%nspinor, psir(1,1), 1, vpsir(1,1), 1)
+     !!call vcopy(Lzd%Llr(ilr)%d%n1i*Lzd%Llr(ilr)%d%n2i*Lzd%Llr(ilr)%d%n3i*orbs%nspinor, psir(1,1), 1, vpsir(1,1), 1)
      !!call position_operator(iproc, lzd%llr(ilr)%d%n1,lzd%llr(ilr)%d%n2,lzd%llr(ilr)%d%n3,1,1,1,0,orbs%nspinor, vpsir, &
      !!     hxh, hyh, hzh, confdatarr(iorb)%ioffset, 'z', &
      !!     lzd%llr(ilr)%bounds%ibyyzz_r) !optional
@@ -2654,7 +2654,7 @@ end subroutine commutator
 !!     ! Wavefunction in real space
 !!     allocate(psir(Lzd%Llr(ilr)%d%n1i*Lzd%Llr(ilr)%d%n2i*Lzd%Llr(ilr)%d%n3i,orbs%nspinor+ndebug),stat=i_stat)
 !!     call memocc(i_stat,psir,'psir',subname)
-!!     call razero(Lzd%Llr(ilr)%d%n1i*Lzd%Llr(ilr)%d%n2i*Lzd%Llr(ilr)%d%n3i*orbs%nspinor,psir)
+!!     call to_zero(Lzd%Llr(ilr)%d%n1i*Lzd%Llr(ilr)%d%n2i*Lzd%Llr(ilr)%d%n3i*orbs%nspinor,psir)
 !!
 !!     call daub_to_isf(lzd%llr(ilr), work_sr, psi(1+oidx), psir)
 !!     !apply the potential to the psir wavefunction and calculate potential energy
@@ -2969,19 +2969,19 @@ integer, dimension(3) :: ishift !temporary variable in view of wavefunction crea
      ! Wavefunction in real space
      allocate(psir(Lzd%Llr(ilr)%d%n1i*Lzd%Llr(ilr)%d%n2i*Lzd%Llr(ilr)%d%n3i,orbs%nspinor+ndebug),stat=i_stat)
      call memocc(i_stat,psir,'psir',subname)
-     call razero(Lzd%Llr(ilr)%d%n1i*Lzd%Llr(ilr)%d%n2i*Lzd%Llr(ilr)%d%n3i*orbs%nspinor,psir)
+     call to_zero(Lzd%Llr(ilr)%d%n1i*Lzd%Llr(ilr)%d%n2i*Lzd%Llr(ilr)%d%n3i*orbs%nspinor,psir)
 
      !!allocate(psirx(Lzd%Llr(ilr)%d%n1i*Lzd%Llr(ilr)%d%n2i*Lzd%Llr(ilr)%d%n3i,orbs%nspinor+ndebug),stat=i_stat)
      !!call memocc(i_stat,psirx,'psirx',subname)
-     !!call razero(Lzd%Llr(ilr)%d%n1i*Lzd%Llr(ilr)%d%n2i*Lzd%Llr(ilr)%d%n3i*orbs%nspinor,psirx)
+     !!call to_zero(Lzd%Llr(ilr)%d%n1i*Lzd%Llr(ilr)%d%n2i*Lzd%Llr(ilr)%d%n3i*orbs%nspinor,psirx)
 
      !!allocate(psiry(Lzd%Llr(ilr)%d%n1i*Lzd%Llr(ilr)%d%n2i*Lzd%Llr(ilr)%d%n3i,orbs%nspinor+ndebug),stat=i_stat)
      !!call memocc(i_stat,psiry,'psiry',subname)
-     !!call razero(Lzd%Llr(ilr)%d%n1i*Lzd%Llr(ilr)%d%n2i*Lzd%Llr(ilr)%d%n3i*orbs%nspinor,psiry)
+     !!call to_zero(Lzd%Llr(ilr)%d%n1i*Lzd%Llr(ilr)%d%n2i*Lzd%Llr(ilr)%d%n3i*orbs%nspinor,psiry)
 
      !!allocate(psirz(Lzd%Llr(ilr)%d%n1i*Lzd%Llr(ilr)%d%n2i*Lzd%Llr(ilr)%d%n3i,orbs%nspinor+ndebug),stat=i_stat)
      !!call memocc(i_stat,psirz,'psirz',subname)
-     !!call razero(Lzd%Llr(ilr)%d%n1i*Lzd%Llr(ilr)%d%n2i*Lzd%Llr(ilr)%d%n3i*orbs%nspinor,psirz)
+     !!call to_zero(Lzd%Llr(ilr)%d%n1i*Lzd%Llr(ilr)%d%n2i*Lzd%Llr(ilr)%d%n3i*orbs%nspinor,psirz)
 
      !transform the wavefunction in Daubechies basis to the wavefunction in ISF basis
      !the psir wavefunction is given in the spinorial form
@@ -3014,19 +3014,19 @@ integer, dimension(3) :: ishift !temporary variable in view of wavefunction crea
      !!call isf_to_daub(lzd%llr(ilr), work_sr, psiry, ypsi(1+oidx))
      !!call isf_to_daub(lzd%llr(ilr), work_sr, psirz, zpsi(1+oidx))
 
-     !!call dcopy(Lzd%Llr(ilr)%d%n1i*Lzd%Llr(ilr)%d%n2i*Lzd%Llr(ilr)%d%n3i*orbs%nspinor, psir(1,1), 1, vpsir(1,1), 1)
+     !!call vcopy(Lzd%Llr(ilr)%d%n1i*Lzd%Llr(ilr)%d%n2i*Lzd%Llr(ilr)%d%n3i*orbs%nspinor, psir(1,1), 1, vpsir(1,1), 1)
      !!call position_operator(iproc, lzd%llr(ilr)%d%n1,lzd%llr(ilr)%d%n2,lzd%llr(ilr)%d%n3,1,1,1,0,orbs%nspinor, vpsir, &
      !!     hxh, hyh, hzh, confdatarr(iorb)%ioffset, 'x', &
      !!     lzd%llr(ilr)%bounds%ibyyzz_r) !optional
      !!call isf_to_daub(lzd%llr(ilr), work_sr, vpsir, xpsi(1+oidx))
 
-     !!call dcopy(Lzd%Llr(ilr)%d%n1i*Lzd%Llr(ilr)%d%n2i*Lzd%Llr(ilr)%d%n3i*orbs%nspinor, psir(1,1), 1, vpsir(1,1), 1)
+     !!call vcopy(Lzd%Llr(ilr)%d%n1i*Lzd%Llr(ilr)%d%n2i*Lzd%Llr(ilr)%d%n3i*orbs%nspinor, psir(1,1), 1, vpsir(1,1), 1)
      !!call position_operator(iproc, lzd%llr(ilr)%d%n1,lzd%llr(ilr)%d%n2,lzd%llr(ilr)%d%n3,1,1,1,0,orbs%nspinor, vpsir, &
      !!     hxh, hyh, hzh, confdatarr(iorb)%ioffset, 'y', &
      !!     lzd%llr(ilr)%bounds%ibyyzz_r) !optional
      !!call isf_to_daub(lzd%llr(ilr), work_sr, vpsir, ypsi(1+oidx))
 
-     !!call dcopy(Lzd%Llr(ilr)%d%n1i*Lzd%Llr(ilr)%d%n2i*Lzd%Llr(ilr)%d%n3i*orbs%nspinor, psir(1,1), 1, vpsir(1,1), 1)
+     !!call vcopy(Lzd%Llr(ilr)%d%n1i*Lzd%Llr(ilr)%d%n2i*Lzd%Llr(ilr)%d%n3i*orbs%nspinor, psir(1,1), 1, vpsir(1,1), 1)
      !!call position_operator(iproc, lzd%llr(ilr)%d%n1,lzd%llr(ilr)%d%n2,lzd%llr(ilr)%d%n3,1,1,1,0,orbs%nspinor, vpsir, &
      !!     hxh, hyh, hzh, confdatarr(iorb)%ioffset, 'z', &
      !!     lzd%llr(ilr)%bounds%ibyyzz_r) !optional
@@ -3518,7 +3518,7 @@ subroutine update_kernel(norb, Umat, kernel)
   allocate(kernelold(norb,norb), stat=istat)
   call memocc(istat, kernelold, 'kernelold', subname)
   
-  call dcopy(norb**2, kernel(1,1), 1, kernelold(1,1), 1)
+  call vcopy(norb**2, kernel(1,1), 1, kernelold(1,1), 1)
   do iorb=1,norb
       do jorb=1,norb
           tt=0.d0

@@ -1,36 +1,35 @@
 !> @file
 !!  Routines to estimate the use of memory
 !! @author
-!!    Copyright (C) Luigi Genovese, CEA Grenoble, France, 2007-2011
+!!    Copyright (C) Luigi Genovese, CEA Grenoble, France, 2007-2013
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
 
 
-!>   Estimation of the used memory
-subroutine MemoryEstimator(nproc,idsx,lr,nat,norb,nspinor,nkpt,nprojel,nspin,itrpmax,iscf,peakmem)
+!> Estimation of the used memory
+subroutine MemoryEstimator(nproc,idsx,lr,norb,nspinor,nkpt,nprojel,nspin,itrpmax,iscf,mem)
 
   use module_base
   use module_types
   use Poisson_Solver
-  use yaml_output
 
   implicit none
 
   !Arguments
-  integer, intent(in) :: nproc,idsx,nat,norb,nspin,nprojel
+  integer, intent(in) :: nproc,idsx,norb,nspin,nprojel
   integer, intent(in) :: nkpt,nspinor,itrpmax,iscf
   type(locreg_descriptors), intent(in) :: lr
-  real(kind=8), intent(out) :: peakmem
+  type(memory_estimation), intent(out) :: mem
   !Local variables
-  character(len=*), parameter :: subname='MemoryEstimator'
+  !character(len=*), parameter :: subname='MemoryEstimator'
   real(kind=8), parameter :: eps_mach=1.d-12
   integer :: norbp,nvctrp,n1,n2,n3
   integer :: n01,n02,n03,m1,m2,m3,md1,md2,md3,nd1,nd2,nd3
   integer(kind=8) :: mworkham, mworkrho
   real(kind=8) :: omemwf,omemker,omemden,omempot,omemproj,nden,npotden,npotham,narr
-  real(kind=8) :: tt,tmemker,tmemden,tmemps,tmemha
+  real(kind=8) :: tt
 !!$ real(kind=8) :: timinamount
 
   n1=lr%d%n1
@@ -54,17 +53,17 @@ subroutine MemoryEstimator(nproc,idsx,lr,nat,norb,nspinor,nkpt,nprojel,nspin,itr
   omemwf=real(nvctrp*nproc*8,kind=8)
   
   if (lr%geocode == 'P') then
-     call P_FFT_dimensions(2*n1+2,2*n2+2,2*n3+2,m1,m2,m3,n01,n02,n03,md1,md2,md3,nd1,nd2,nd3,nproc)
+     call P_FFT_dimensions(2*n1+2,2*n2+2,2*n3+2,m1,m2,m3,n01,n02,n03,md1,md2,md3,nd1,nd2,nd3,nproc,.false.)
      n01=2*n1+2
      n02=2*n2+2
      n03=2*n3+2
   else if (lr%geocode == 'S') then
-     call S_FFT_dimensions(2*n1+2,2*n2+31,2*n3+2,m1,m2,m3,n01,n02,n03,md1,md2,md3,nd1,nd2,nd3,nproc,0)
+     call S_FFT_dimensions(2*n1+2,2*n2+31,2*n3+2,m1,m2,m3,n01,n02,n03,md1,md2,md3,nd1,nd2,nd3,nproc,0,.false.)
      n01=2*n1+2
      n02=2*n2+31
      n03=2*n3+2
   else if (lr%geocode == 'F') then
-     call F_FFT_dimensions(2*n1+31,2*n2+31,2*n3+31,m1,m2,m3,n01,n02,n03,md1,md2,md3,nd1,nd2,nd3,nproc,0)
+     call F_FFT_dimensions(2*n1+31,2*n2+31,2*n3+31,m1,m2,m3,n01,n02,n03,md1,md2,md3,nd1,nd2,nd3,nproc,0,.false.)
      n01=2*n1+31
      n02=2*n2+31
      n03=2*n3+31
@@ -101,126 +100,74 @@ subroutine MemoryEstimator(nproc,idsx,lr,nat,norb,nspinor,nkpt,nprojel,nspin,itr
      nden = nden + narr
   end if
 
-  call yaml_comment('Estimation of Memory Consumption',hfill='-')
-  call yaml_open_map('Memory requirements for principal quantities (MiB.KiB)')
-    call yaml_map('Subspace Matrix',trim(MibdotKib(real(norb,kind=8)**2)),advance='no')
-      call yaml_comment('(Number of Orbitals:'//trim(yaml_toa(norb))//')',tabbing=50)
-    call yaml_map('Single orbital',trim(MibdotKib(omemwf)),advance='no')
-      call yaml_comment('(Number of Components:'//trim(yaml_toa(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f))//')',tabbing=50)
-      if(nproc > 1 ) omemwf=24.d0*real(norbp*nvctrp*nproc,kind=8)  !takes into account psit
-      if(nproc == 1 ) omemwf=16.d0*real(norbp*nvctrp*nproc,kind=8)
-    call yaml_map('All (distributed) orbitals',trim(MibdotKib(omemwf)),advance='no')
-      call yaml_comment('(Number of Orbitals per MPI task:'//trim(yaml_toa(norbp))//')',tabbing=50)
-      if(nproc > 1 ) omemwf=8.d0*real(2*idsx+3,kind=8)*real(norbp*nvctrp*nproc,kind=8)
-      if(nproc == 1 ) omemwf=8.d0*real(2*idsx+2,kind=8)*real(norbp*nvctrp*nproc,kind=8)
-    call yaml_map('Wavefunction storage size',trim(MibdotKib(omemwf)),advance='no')
-      call yaml_comment('(DIIS/SD workspaces included)',tabbing=50)
-    call yaml_map('Nonlocal Pseudopotential Arrays',trim(MibdotKib(omemproj)))
-    call yaml_map('Full Uncompressed (ISF) grid',trim(MibdotKib(omempot)))
-    call yaml_map('Workspaces storage size',trim(MibdotKib(real(max(mworkrho,mworkham),kind=8))))
-  call yaml_close_map()
+  mem%submat = real(norb,kind=8)**2
+  mem%norb = norb
+  mem%oneorb = omemwf
+  mem%ncomponents = lr%wfd%nvctr_c+7*lr%wfd%nvctr_f
+  !takes into account psit
+  if(nproc > 1 ) mem%allpsi_mpi=24.d0*real(norbp*nvctrp*nproc,kind=8)
+  if(nproc == 1 ) mem%allpsi_mpi=16.d0*real(norbp*nvctrp*nproc,kind=8)
+  mem%norbp = norbp
+  if(nproc > 1 ) mem%psistorage=8.d0*real(2*idsx+3,kind=8)*real(norbp*nvctrp*nproc,kind=8)
+  if(nproc == 1 ) mem%psistorage=8.d0*real(2*idsx+2,kind=8)*real(norbp*nvctrp*nproc,kind=8)
+  mem%projarr = omemproj
+  mem%grid = omempot
+  mem%workarr = real(max(mworkrho,mworkham),kind=8)
 
-!!$  write(*,'(1x,a)')&
-!!$       '------------------------------------------------------------------ Memory Estimation'
-!!$  write(*,'(1x,a,i5,a,i6,a,3(i5))')&
-!!$       'Number of atoms=',nat,' Number of orbitals=',norb,' Sim. Box Dimensions= ', n1,n2,n3
-!!$  write(*,'(1x,a,i0,a)')&
-!!$       'Estimation performed for ',nproc,' processors.'
-!!$  write(*,'(1x,a)')&
-!!$       'Memory occupation for principal arrays:'
-!!$  write(*,'(1x,a,2(i6,a3))')&
-!!$       '              Poisson Solver Kernel (K):',mega(omemker),'MB',kappa(omemker),'KB'  
-!!$  write(*,'(1x,a,2(i6,a3))')&
-!!$       '             Poisson Solver Density (D):',mega(omemden),'MB',kappa(omemden),'KB'  
-!!$  write(*,'(1x,a,2(i6,a3))')&
-!!$       '    Single Wavefunction for one orbital:',mega(omemwf),'MB',kappa(omemwf),'KB'  
-!!$  if(nproc > 1 ) omemwf=24.d0*real(norbp*nvctrp*nproc,kind=8)  !takes into account psit
-!!$  if(nproc == 1 ) omemwf=16.d0*real(norbp*nvctrp*nproc,kind=8)
-!!$  write(*,'(1x,a,2(i6,a3))')&
-!!$       '   All Wavefunctions for each processor:',mega(omemwf),'MB',kappa(omemwf),'KB'  
-!!$  if(nproc > 1 ) omemwf=8.d0*real(2*idsx+3,kind=8)*real(norbp*nvctrp*nproc,kind=8)
-!!$  if(nproc == 1 ) omemwf=8.d0*real(2*idsx+2,kind=8)*real(norbp*nvctrp*nproc,kind=8)
-!!$  write(*,'(1x,a,2(i6,a3))')&
-!!$       '      Wavefunctions + DIIS per proc (W):',mega(omemwf),'MB',kappa(omemwf),'KB'  
-!!$  write(*,'(1x,a,2(i6,a3))')&
-!!$       '    Nonlocal Pseudopotential Arrays (P):',mega(omemproj),'MB',kappa(omemproj),'KB'  
-!!$  write(*,'(1x,a,2(i6,a3))')&
-!!$       '   Arrays of full uncompressed grid (U):',mega(omempot),'MB',kappa(omempot),'KB' 
-!!$
-!!$  write(*,'(1x,a)')&
-!!$       'Estimation of Memory requirements for principal code sections:'
-!!$  write(*,'(1x,a)')&
-!!$       ' Kernel calculation | Density Construction | Poisson Solver | Hamiltonian application'
   if (nproc > 1) then 
-!!$     write(*,'(1x,a,I0,a,I2,a,I0,a,I2,a)')&
-!!$       '      ~19*K         |   W+~',nint(npotden),'*U+~',nint(nden),&
-!!$       & '*D+K+P   |   ~12*D+K+W+P  |   W+~',nint(npotham),'*U+~',nint(nden),'*D+K+P '
-     tmemker=19.d0*omemker
-     tmemden=omemwf+nden*omemden+npotden*omempot+omemker+omemproj
-     tmemps=12.d0*omemden+omemwf+omemker+omemproj
-     tmemha=nden*omemden+npotham*omempot+omemwf+omemker+omemproj
+     mem%kernel=19.d0*omemker
+     mem%density=mem%psistorage+nden*omemden+npotden*omempot+omemker+omemproj
+     mem%psolver=12.d0*omemden+mem%psistorage+omemker+omemproj
+     mem%ham=nden*omemden+npotham*omempot+mem%psistorage+omemker+omemproj
   else
-!!$     write(*,'(1x,a,I0,a,I2,a,I0,a,I2,a)')&
-!!$       '      ~11*K         |   W+~',nint(npotden - 1.d0),'*U+~',nint(nden),&
-!!$       & '*D+K+P   |   ~8*D+K+W+P   |   W+~',nint(npotham - 1.d0),'*U+~',nint(nden),'*D+K+P '
-     tmemker=11.d0*omemker
-     tmemden=omemwf+nden*omemden+(npotden-1.d0)*omempot+omemker+omemproj
-     tmemps=8.d0*omemden+omemwf+omemker+omemproj
-     tmemha=nden*omemden+(npotham-1.d0)*omempot+omemwf+omemker+omemproj
+     mem%kernel=11.d0*omemker
+     mem%density=mem%psistorage+nden*omemden+(npotden-1.d0)*omempot+omemker+omemproj
+     mem%psolver=8.d0*omemden+mem%psistorage+omemker+omemproj
+     mem%ham=nden*omemden+(npotham-1.d0)*omempot+mem%psistorage+omemker+omemproj
   end if
-!!$  write(*,'(1x,4(1x,i8,a))')&
-!!$       mega(tmemker),'MB         | ',mega(tmemden),'MB          |',&
-!!$       mega(tmemps),'MB     |     ',mega(tmemha),'MB'
   !estimation of the memory peak
-  peakmem=max(tmemker,tmemden,tmemps,tmemha)
-
-  call yaml_open_map('Memory requirements for principal code sections (MiB.KiB)')
-     call yaml_map('Kernel calculation',trim(MibdotKib(tmemker)))
-     call yaml_map('Density Construction',trim(MibdotKib(tmemden)))
-     call yaml_map('Poisson Solver',trim(MibdotKib(tmemps)))
-     call yaml_map('Hamiltonian application',trim(MibdotKib(tmemha)))
-!           call yaml_comment('Wfn, Work, Den, Ker ',tabbing=50)
-  call yaml_close_map()
-  call yaml_map('Estimated Memory Peak (MB)',yaml_toa(mega(peakmem)))
-
-
-!!$  write(*,'(1x,a,i0,a)')&
-!!$       'The overall memory requirement needed for this calculation is thus: ',&
-!!$       mega(peakmem),' MB'
-!!$  tminamount=real(3*(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*8,kind=8)+3.d0*real(n01*n02,kind=8)+&
-!!$       (3.d0+2.d0*tt)*omempot+omemproj
-!!$  write(*,'(1x,a)')&
-!!$       'By reducing the DIIS history and/or increasing the number of processors the amount of'
-!!$  write(*,'(1x,a,i0,a)')&
-!!$       ' memory can be reduced but for this system it will never be less than ',&
-!!$       mega(tminamount),' MB'
-
-contains
-
-  function mega(omemory)
-    implicit none
-    real(kind=8), intent(in) :: omemory
-    integer(kind=8) :: mega
-    mega=int(omemory/1048576.d0,kind=8)
-  end function mega
-
-  function kappa(omemory)
-    implicit none
-    real(kind=8), intent(in) :: omemory
-    integer :: kappa
-    kappa=ceiling((omemory-aint(omemory/1048576.d0)*1048576.d0)/1024.d0)
-  end function kappa
-
-  function MiBdotKiB(omemory)
-    implicit none
-    real(kind=8), intent(in) :: omemory
-    character(len=50) MiBdotKiB
-
-    MiBdotKiB=repeat(' ',len(MiBdotKiB))
-
-    MiBdotKiB=trim(adjustl(yaml_toa(int(mega(omemory)))))//'.'//&
-         trim(adjustl(yaml_toa(int(kappa(omemory)))))
-    
-  end function MiBdotKiB
+  mem%peak=max(mem%kernel,mem%density,mem%psolver,mem%ham+mem%submat)
 
 END SUBROUTINE MemoryEstimator
+
+!> old timing routine, should disappear as soon as the f_timing routine is called
+subroutine timing(iproc,category,action)
+  use dictionaries, only: max_field_length,f_err_raise
+  use yaml_output, only: yaml_toa
+  use module_types, only: find_category
+  use time_profiling 
+  implicit none
+  !Variables
+  integer, intent(in) :: iproc
+  character(len=*), intent(in) :: category
+  character(len=2), intent(in) :: action  
+  !Local variables
+  integer :: cat_id,ierr,nproc
+  character(len=max_field_length) :: cattmp
+  external :: gather_timings
+  !this is to ensure that timing routines have been properly called
+  !call check_initialization()
+
+  !modification of the timing to see if it works
+  select case(action)
+  case('PR')
+     !here iproc is the communicator
+     call MPI_COMM_SIZE(iproc,nproc,ierr)
+     call f_timing_checkpoint(ctr_name=category,mpi_comm=iproc,nproc=nproc,&
+          gather_routine=gather_timings)
+  case default
+     !find category in the old scheme
+     call find_category(category,cat_id)
+
+     if (cat_id /= TIMING_UNINITIALIZED) then
+        call get_category_name(cat_id,cattmp)
+        if (f_err_raise(trim(cattmp)/=trim(category),'Error in category '//&
+             trim(yaml_toa(cat_id))//' (name='//trim(category)//' ), found '//&
+             trim(cattmp)//' instead',err_name='BIGDFT_RUNTIME_ERROR')) return
+        
+        call f_timing(cat_id,action)
+     end if
+  end select
+
+END SUBROUTINE timing
+

@@ -13,6 +13,7 @@
 program oneatom
   use BigDFT_API
   use Poisson_Solver
+  use gaussians, only: gaussian_basis
   implicit none
   character(len=*), parameter :: subname='oneatom'
   logical :: dokernel=.false.
@@ -20,6 +21,7 @@ program oneatom
   integer :: n1i,n2i,n3i,iproc,nproc,i_stat,i_all,nelec
   integer :: n3d,n3p,n3pi,i3xcsh,i3s,n1,n2,n3,ndegree_ip
   integer :: idsx_actual,ndiis_sd_sw,idsx_actual_before,iter,istat
+  integer :: iatyp
   real(gp) :: hxh,hyh,hzh
   real(gp) :: tt,gnrm !n(c) gnrm_zero,alpha
   real(gp) :: energy,energy_min,scprsum !n(c) energy_old
@@ -29,12 +31,14 @@ program oneatom
   type(locreg_descriptors) :: Glr
   type(local_zone_descriptors) :: Lzd
   type(nonlocal_psp_descriptors) :: nlpspd
-  type(communications_arrays) :: comms
+  type(comms_cubic) :: comms
   type(denspot_distribution) :: denspotd
   type(GPU_pointers) :: GPU
   type(diis_objects) :: diis
   type(rho_descriptors)  :: rhodsc
   type(energy_terms) :: energs
+  type(gaussian_basis),dimension(:),allocatable::proj_G
+  type(paw_objects)::paw
   character(len=4) :: itername
   real(gp), dimension(3) :: shift
   integer, dimension(:,:), allocatable :: nscatterarr,ngatherarr
@@ -67,11 +71,20 @@ program oneatom
   call read_input_variables(iproc,'posinp',in, atoms, rxyz)
 
   if (iproc == 0) then
-     call print_general_parameters(nproc,in,atoms)
+     call print_general_parameters(in,atoms)
   end if
        
   allocate(radii_cf(atoms%ntypes,3+ndebug),stat=i_stat)
   call memocc(i_stat,radii_cf,'radii_cf',subname)
+
+! Nullify paw objects:
+  allocate(proj_G(atoms%ntypes),stat=i_stat)
+  !call memocc(i_stat,proj_G,'proj_G',subname)
+  do iatyp=1,atoms%ntypes
+     call nullify_gaussian_basis(proj_G(iatyp))
+  end do
+  paw%usepaw=0 !Not using PAW
+  call nullify_paw_objects(paw)
 
   call system_properties(iproc,nproc,in,atoms,orbs,radii_cf,nelec)
 
@@ -99,7 +112,7 @@ program oneatom
   ! Calculate all projectors, or allocate array for on-the-fly calculation
   call timing(iproc,'CrtProjectors ','ON')
   call createProjectorsArrays(iproc,Glr,rxyz,atoms,orbs,&
-       radii_cf,in%frmult,in%frmult,in%hx,in%hy,in%hz,nlpspd,proj)
+       radii_cf,in%frmult,in%frmult,in%hx,in%hy,in%hz,nlpspd,proj_G,proj)
   call timing(iproc,'CrtProjectors ','OF')
 
   !allocate communications arrays
@@ -149,7 +162,7 @@ program oneatom
   !the allocation with npsidim is not necessary here since DIIS arrays
   !are always calculated in the transposed form
   call allocate_diis_objects(in%idsx,in%alphadiis,sum(comms%ncntt(0:nproc-1)),&
-       orbs%nkptsp,orbs%nspinor,diis,subname)  
+       orbs%nkptsp,orbs%nspinor,diis)  
 
   !write the local potential in pot_ion array
   call createPotential(atoms%geocode,iproc,nproc,atoms,rxyz,hxh,hyh,hzh,&
@@ -283,7 +296,11 @@ program oneatom
   !call last_orthon(iproc,nproc,orbs,Glr%wfd,in%nspin,&
   !     comms,psi,hpsi,psit,evsum)
   
-  call deallocate_diis_objects(diis,subname)
+  call deallocate_diis_objects(diis)
+
+  !i_all=-product(shape(proj_G))*kind(proj_G)
+  deallocate(proj_G,stat=i_stat)
+  !call memocc(i_stat,i_all,'proj_G',subname)
 
   if (nproc > 1) then
      i_all=-product(shape(psit))*kind(psit)
@@ -316,9 +333,9 @@ program oneatom
   call memocc(i_stat,i_all,'radii_cf',subname)
 
 
-  call deallocate_lr(Glr,subname)
-  call deallocate_comms(comms,subname)
-  call deallocate_orbs(orbs,subname)
+  call deallocate_lr(Glr)
+  call deallocate_comms(comms)
+  call deallocate_orbs(orbs)
   call deallocate_proj_descr(nlpspd,subname)
 
   if (dokernel) then
@@ -340,7 +357,7 @@ program oneatom
   call memocc(i_stat,i_all,'rxyz',subname)
   call free_input_variables(in)
 
-  call deallocate_rho_descriptors(rhodsc,subname)
+  call deallocate_rho_descriptors(rhodsc)
   deallocate(confdatarr)
   !finalize memory counting
   call memocc(0,0,'count','stop')
@@ -360,7 +377,7 @@ subroutine createPotential(geocode,iproc,nproc,at,rxyz,& !n(c) elecfield (arg:9)
   !  use module_interfaces, except_this_one => createIonicPotential
   use Poisson_Solver
   implicit none
-  character(len=1), intent(in) :: geocode
+  character(len=1), intent(in) :: geocode !< @copydoc poisson_solver::doc::geocode
   integer, intent(in) :: iproc,nproc,n1,n2,n3,n3pi,i3s,n1i,n2i,n3i
   real(gp), intent(in) :: hxh,hyh,hzh,psoffset
   type(atoms_data), intent(in) :: at
@@ -399,7 +416,7 @@ subroutine createPotential(geocode,iproc,nproc,at,rxyz,& !n(c) elecfield (arg:9)
   ! Ionic energy (can be calculated for all the processors)
 
   !Creates charge density arising from the ionic PSP cores
-  call razero(n1i*n2i*n3pi,pot_ion)
+  call to_zero(n1i*n2i*n3pi,pot_ion)
 
   !conditions for periodicity in the three directions
   perx=(geocode /= 'F')
@@ -554,7 +571,7 @@ subroutine createPotential(geocode,iproc,nproc,at,rxyz,& !n(c) elecfield (arg:9)
            allocate(potion_corr(n1i*n2i*n3pi+ndebug),stat=i_stat)
            call memocc(i_stat,potion_corr,'potion_corr',subname)
 
-           call razero(n1i*n2i*n3pi,potion_corr)
+           call to_zero(n1i*n2i*n3pi,potion_corr)
 
            !calculate pot_ion with an explicit error function to correct in the case of big grid spacings
            !for the moment works only in the isolated BC case
@@ -826,13 +843,13 @@ subroutine psi_from_gaussians(iproc,nproc,at,orbs,Lzd,rxyz,hx,hy,hz,nspin,psi)
 !!$  end if
 
      !copy the eigenvectors to the matrix
-     call razero(G%ncoeff*orbs%norbp*orbs%nspinor,gaucoeffs)
+     call to_zero(G%ncoeff*orbs%norbp*orbs%nspinor,gaucoeffs)
      if (orbs%norb > G%ncoeff) stop 'wrong gaussian basis'
      jorb=mod(orbs%isorb,orbs%norb)
      do iorb=1,orbs%norbp
         jorb=jorb+1
         if (jorb == orbs%norb+1) jorb=1 !for k-points calculation
-        call dcopy(G%ncoeff,ovrlp(1,jorb),1,gaucoeffs(1,orbs%nspinor*(iorb-1)+1),orbs%nspinor)
+        call vcopy(G%ncoeff,ovrlp(1,jorb),1,gaucoeffs(1,orbs%nspinor*(iorb-1)+1),orbs%nspinor)
      end do
 
 
@@ -925,7 +942,7 @@ subroutine plot_wf_oneatom(orbname,nexpo,at,lr,hxh,hyh,hzh,rxyz,psi)
   call memocc(i_stat,psir,'psir',subname)
   !initialisation
   if (lr%geocode == 'F') then
-     call razero(lr%d%n1i*lr%d%n2i*lr%d%n3i,psir)
+     call to_zero(lr%d%n1i*lr%d%n2i*lr%d%n3i,psir)
   end if
 
   allocate(psi2(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f+ndebug),stat=i_stat)
@@ -939,10 +956,10 @@ subroutine plot_wf_oneatom(orbname,nexpo,at,lr,hxh,hyh,hzh,rxyz,psi)
 
   print *,'normISF',dot(n1i*n2i*n3i,psir(-nl1,-nl2,-nl3),1,psir(-nl1,-nl2,-nl3),1)
 
-  call dcopy(n1i*n2i*n3i,psir(-nl1,-nl2,-nl3),1,psir2(-nl1,-nl2,-nl3),1)
+  call vcopy(n1i*n2i*n3i,psir(-nl1,-nl2,-nl3),1,psir2(-nl1,-nl2,-nl3),1)
   call isf_to_daub(lr,w,psir2,psi2)
   !psir2 is destroyed
-  call dcopy(n1i*n2i*n3i,psir(-nl1,-nl2,-nl3),1,psir2(-nl1,-nl2,-nl3),1)
+  call vcopy(n1i*n2i*n3i,psir(-nl1,-nl2,-nl3),1,psir2(-nl1,-nl2,-nl3),1)
 
   print *,'normDaub2',dot(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,psi2(1),1,psi2(1),1)
 

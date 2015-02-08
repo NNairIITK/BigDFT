@@ -1,11 +1,21 @@
+!> @file
+!! Contains the amoeba routine without rl2
+!! @author
+!!    Alex Willand, under the supervision of Stefan Goedecker
+!!    gpu accelerated routines by Raffael Widmer
+!!    parts of this program were based on the fitting program by matthias krack
+!!    http://cvs.berlios.de/cgi-bin/viewcvs.cgi/cp2k/potentials/goedecker/pseudo/v2.2/
+!!
+!!    Copyright (C) 2010-2013 BigDFT group
+!!    This file is distributed under the terms of the
+!!    GNU General Public License, see ~/COPYING file
+!!    or http://www.gnu.org/copyleft/gpl.txt .
+!!    For the list of contributors, see ~/AUTHORS
 
 
-!     minimizes the penalty function (subroutine) using
-!     a simplex downhill method (amoeba)
-
-!     cwh: if amoeba doesn't improve within ntrymax iterations
-!     amoeba also returns
-
+!> Minimizes the penalty function (subroutine) using
+!! a simplex downhill method (amoeba)
+!! @note cwh: if amoeba doesn't improve within ntrymax iterations amoeba also returns
       SUBROUTINE AMOEBA(P,Y,ndim,FTOL,ITER,itmax,namoeb,  &
      &     noccmax,noccmx,lmax,lmx,lpx,lpmx,lcx,nspin,pol,nsmx,  &
      &     no,lo,so,ev,crcov,dcrcov,ddcrcov,norb,  &

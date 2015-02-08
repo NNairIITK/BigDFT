@@ -1,3 +1,14 @@
+/** @file 
+     Header for the BigDFT bindings.
+    @author
+     Copyright (C) 2011-2013 BigDFT group (DC)
+     This file is distributed under the terms of the
+     GNU General Public License, see ~/COPYING file
+     or http://www.gnu.org/copyleft/gpl.txt .
+     For the list of contributors, see ~/AUTHORS 
+*/
+
+
 #ifndef BINDINGS_H
 #define BINDINGS_H
 
@@ -11,43 +22,43 @@
 #define GET_ATTR_UINT(obj,OBJ,name,NAME) {       \
   f90_pointer_int tmp; \
   memset(&tmp, 0, sizeof(f90_pointer_int)); \
-  FC_FUNC_(obj ## _get_ ## name, OBJ ## _GET_ ## NAME)(obj->data, &tmp); \
+  FC_FUNC_(obj ## _get_ ## name, OBJ ## _GET_ ## NAME)(F_TYPE(obj->data), &tmp); \
   obj->name = (guint*)tmp.data; \
   }
 #define GET_ATTR_UINT_2D(obj,OBJ,name,NAME) {       \
   f90_pointer_int tmp; \
   memset(&tmp, 0, sizeof(f90_pointer_int_2D)); \
-  FC_FUNC_(obj ## _get_ ## name, OBJ ## _GET_ ## NAME)(obj->data, &tmp); \
+  FC_FUNC_(obj ## _get_ ## name, OBJ ## _GET_ ## NAME)(F_TYPE(obj->data), &tmp); \
   obj->name = (guint*)tmp.data; \
   }
 #define GET_ATTR_INT(obj,OBJ,name,NAME) {       \
   f90_pointer_int tmp; \
   memset(&tmp, 0, sizeof(f90_pointer_int)); \
-  FC_FUNC_(obj ## _get_ ## name, OBJ ## _GET_ ## NAME)(obj->data, &tmp); \
+  FC_FUNC_(obj ## _get_ ## name, OBJ ## _GET_ ## NAME)(F_TYPE(obj->data), &tmp); \
   obj->name = (int*)tmp.data; \
   }
 #define GET_ATTR_DBL(obj,OBJ,name,NAME) {       \
   f90_pointer_double tmp; \
   memset(&tmp, 0, sizeof(f90_pointer_double)); \
-  FC_FUNC_(obj ## _get_ ## name, OBJ ## _GET_ ## NAME)(obj->data, &tmp); \
+  FC_FUNC_(obj ## _get_ ## name, OBJ ## _GET_ ## NAME)(F_TYPE(obj->data), &tmp); \
   obj->name = (double*)tmp.data; \
   }
 #define GET_ATTR_DBL_2D(obj,OBJ,name,NAME) {       \
   f90_pointer_double_2D tmp; \
   memset(&tmp, 0, sizeof(f90_pointer_double_2D)); \
-  FC_FUNC_(obj ## _get_ ## name, OBJ ## _GET_ ## NAME)(obj->data, &tmp); \
+  FC_FUNC_(obj ## _get_ ## name, OBJ ## _GET_ ## NAME)(F_TYPE(obj->data), &tmp); \
   obj->name = (double*)tmp.data; \
   }
 #define GET_ATTR_DBL_3D(obj,OBJ,name,NAME) {       \
   f90_pointer_double_3D tmp; \
   memset(&tmp, 0, sizeof(f90_pointer_double_3D)); \
-  FC_FUNC_(obj ## _get_ ## name, OBJ ## _GET_ ## NAME)(obj->data, &tmp); \
+  FC_FUNC_(obj ## _get_ ## name, OBJ ## _GET_ ## NAME)(F_TYPE(obj->data), &tmp); \
   obj->name = (double*)tmp.data; \
   }
 #define GET_ATTR_DBL_4D(obj,OBJ,name,NAME) {       \
   f90_pointer_double_4D tmp; \
   memset(&tmp, 0, sizeof(f90_pointer_double_4D)); \
-  FC_FUNC_(obj ## _get_ ## name, OBJ ## _GET_ ## NAME)(obj->data, &tmp); \
+  FC_FUNC_(obj ## _get_ ## name, OBJ ## _GET_ ## NAME)(F_TYPE(obj->data), &tmp); \
   obj->name = (double*)tmp.data; \
   }
 
@@ -78,7 +89,18 @@ void FC_FUNC_(f90_pointer_5d_init, F90_POINTER_5D_INIT)(f90_pointer_double_5D *p
   FC_FUNC_(f90_pointer_5d_init, F90_POINTER_5D_INIT)(pt, &size_);       \
   }
 
-void FC_FUNC_(deallocate_double_1d, DEALLOCATE_DOUBLE_1D)(f90_pointer_double *array);
-void FC_FUNC_(deallocate_double_2d, DEALLOCATE_DOUBLE_2D)(f90_pointer_double_2D *array);
+/* Constructors of C wrappers around already built Fortran objects. */
+BigDFT_Dict*    bigdft_dict_new_from_fortran   (f90_dictionary_pointer dict);
+BigDFT_Atoms*   bigdft_atoms_new_from_fortran  (f90_atoms_data_pointer at);
+BigDFT_Inputs*  bigdft_inputs_new_from_fortran (f90_input_variables_pointer inputs);
+BigDFT_Run*     bigdft_run_new_from_fortran    (f90_run_objects_pointer obj,
+                                                gboolean create_wrappers);
+BigDFT_Goutput* bigdft_goutput_new_from_fortran(f90_DFT_global_output_pointer obj);
+
+/* Additional private methods. */
+void _inputs_sync(BigDFT_Inputs *in);
+
+/*  Generic tools. */
+gchar* _get_c_string(const gchar *fstr, guint len);
 
 #endif

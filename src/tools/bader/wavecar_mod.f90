@@ -1,19 +1,25 @@
-! Copyright 2009
-! Wenjie Tang, Andri Arnaldsson, Samuel T. Chill, and Graeme Henkelman
-!
-! Bader is free software: you can redistribute it and/or modify
-! it under the terms of the GNU General Public License as published by
-! the Free Software Foundation, either version 3 of the License, or
-! (at your option) any later version.
-!
-! A copy of the GNU General Public License is available at
-! http://www.gnu.org/licenses/
+!> @file
+!!    Use by the Bader method (Bader charge density analysis program)
+!! @author
+!!    Copyright 2009
+!!    Wenjie Tang, Andri Arnaldsson, Samuel T. Chill, and Graeme Henkelman
+!!   
+!!    Bader is free software: you can redistribute it and/or modify
+!!    it under the terms of the GNU General Public License as published by
+!!    the Free Software Foundation, either version 3 of the License, or
+!!    (at your option) any later version.
+!!   
+!!    A copy of the GNU General Public License is available at
+!!    http://www.gnu.org/licenses/
+!!
+!!    Copyright (C) 2007-2013 BigDFT group
+!!    This file is distributed under the terms of the
+!!    GNU General Public License, see ~/COPYING file
+!!    or http://www.gnu.org/copyleft/gpl.txt .
+!!    For the list of contributors, see ~/AUTHORS
 
-!-----------------------------------------------------------------------------------!
-! Bader charge density analysis program
-!  Module for reading wavefunctions
-!-----------------------------------------------------------------------------------!
 
+!>  Module for reading wavefunctions
 MODULE wave_mod
   USE kind_mod , ONLY : q2
   USE matrix_mod
@@ -207,90 +213,91 @@ MODULE wave_mod
 ! matrix nxn by nxn:
 ! row1: band1 overlap with bands bandbegin through bandend
 
-        write(13,*)"old wavecar"
-        nxn=ndiff+1
-        do i = 1,nxn
-          do j = 1,nxn
-            overlap = 0.
-            do k = 1,npw
-              overlap=overlap+conjg(ac(k,i))*ac(k,j)
-            end do
-            write(13,'(E25.18)', ADVANCE='NO') overlap
+      write(13,*)"old wavecar"
+      nxn=ndiff+1
+      do i = 1,nxn
+        do j = 1,nxn
+          overlap = 0.
+          do k = 1,npw
+            overlap=overlap+conjg(ac(k,i))*ac(k,j)
           end do
-            write(13,*)" "
+          write(13,'(E25.18)', ADVANCE='NO') overlap
         end do
+          write(13,*)" "
+      end do
 !--------------------------------------------------------
 
 ! Overlap of "new wavecar" bands with other "old wavecar" bands
 ! matrix nxn by nxn:
 ! row1: band1 overlap with bands bandbegin through bandend
 
-    write(13,*)"new wavecar"
-        nxn=ndiff+1
-         do i = 1,nxn
-          do j = 1,nxn
+      write(13,*)"new wavecar"
+      nxn=ndiff+1
+      do i = 1,nxn
+         do j = 1,nxn
             overlap = 0.
             do k = 1,npw
               overlap=overlap+conjg(dc(k,i))*dc(k,j)
             end do
             write(13,'(E25.18)', ADVANCE='NO') overlap
-          end do
+         end do
             write(13,*)" "
-        end do
+      end do
 !--------------------------------------------------------
 
 ! Overlap of "old wavecar" bands with other "old wavecar" bands
 ! matrix nxn by nxn:
 ! row1: band1 overlap with bands bandbegin through bandend
 
-	    write(13,*)"mix wavecars"
-	nxn=ndiff+1
-	do i = 1,nxn
-	  do j = 1,nxn
-	    overlap = 0.
-	    do k = 1,npw
-	      overlap=overlap+conjg(ac(k,i))*dc(k,j)
-	    end do
+      write(13,*)"mix wavecars"
+      nxn=ndiff+1
+      do i = 1,nxn
+         do j = 1,nxn
+            overlap = 0.
+            do k = 1,npw
+               overlap=overlap+conjg(ac(k,i))*dc(k,j)
+            end do
             write(13,'(E25.18)', ADVANCE='NO') overlap
-	  end do
-	    write(13,*)" "
-	end do
+         end do
+         write(13,*)" "
+      end do
 !--------------------------------------------------------
 
 ! Calculate overlap we actually use (real### files)
 ! matrix nxn by nxn:
 
-	    write(13,*)"first term"
-	nxn=ndiff+1
-	do i = 1,nxn
-	  do j = 1,nxn
-	    overlap = 0.
-	    do k = 1,npw
-	      overlap=overlap+conjg(ac(k,i))*dc(k,j) 
-	      overlap=overlap-conjg(dc(k,i))*ac(k,j) 
-	    end do
+      write(13,*)"first term"
+      nxn=ndiff+1
+      do i = 1,nxn
+         do j = 1,nxn
+            overlap = 0.
+            do k = 1,npw
+               overlap=overlap+conjg(ac(k,i))*dc(k,j) 
+               overlap=overlap-conjg(dc(k,i))*ac(k,j) 
+            end do
             write(13,'(E25.18)', ADVANCE='NO') overlap
-	  end do
-	    write(13,*)" "
-	end do
+         end do
+         write(13,*)" "
+      end do
 !--------------------------------------------------------
 
 ! Yet more overlap
 ! matrix nxn by nxn:
 
-        write(13,*)"second term"
-    nxn=ndiff+1
-    do i = 1,nxn
-      do j = 1,nxn
-        overlap = 0.
-        do k = 1,npw
-          overlap=overlap+conjg(dc(k,i))*dc(k,j) 
-          overlap=overlap-conjg(ac(k,i))*ac(k,j) 
+      write(13,*)"second term"
+      nxn=ndiff+1
+      do i = 1,nxn
+        do j = 1,nxn
+          overlap = 0.
+          do k = 1,npw
+            overlap=overlap+conjg(dc(k,i))*dc(k,j) 
+            overlap=overlap-conjg(ac(k,i))*ac(k,j) 
+          end do
+              write(13,'(E25.18)', ADVANCE='NO') overlap
         end do
-            write(13,'(E25.18)', ADVANCE='NO') overlap
+          write(13,*)" "
       end do
-        write(13,*)" "
-    end do
 !--------------------------------------------------------
-    end
+   end subroutine wave_card
+end module wave_mod
 

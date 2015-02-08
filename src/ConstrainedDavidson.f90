@@ -49,12 +49,13 @@
 !!   (retranspose v and psi)\n
 subroutine constrained_davidson(iproc,nproc,in,at,& 
      orbs,orbsv,nvirt,Lzd,comms,commsv,&
-     hx,hy,hz,rxyz,rhopot,psi,v,dpcom,GPU)
+     hx,hy,hz,rxyz,rhopot,psi,v,dpcom,xc,GPU)
   use module_base
   use module_types
   use module_interfaces, except_this_one => constrained_davidson
   use module_xc
   use yaml_output
+  use communications, only: transpose_v, untranspose_v
   implicit none
   integer, intent(in) :: iproc,nproc
   integer, intent(in) :: nvirt
@@ -62,10 +63,11 @@ subroutine constrained_davidson(iproc,nproc,in,at,&
   type(atoms_data), intent(in) :: at
   type(local_zone_descriptors), intent(in) :: Lzd
   type(orbitals_data), intent(in) :: orbs
-  type(communications_arrays), intent(in) :: comms, commsv
+  type(comms_cubic), intent(in) :: comms, commsv
   type(denspot_distribution), intent(in) :: dpcom
+  type(xc_info), intent(in) :: xc
   real(gp), intent(in) :: hx,hy,hz
-  real(gp), dimension(3,at%nat), intent(in) :: rxyz
+  real(gp), dimension(3,at%astruct%nat), intent(in) :: rxyz
   real(dp), dimension(*), intent(in) :: rhopot
   type(orbitals_data), intent(inout) :: orbsv
   type(GPU_pointers), intent(inout) :: GPU
@@ -84,7 +86,10 @@ subroutine constrained_davidson(iproc,nproc,in,at,&
   real(wp), dimension(:,:,:), allocatable :: e,eg,e_tmp,eg_tmp
   real(wp), dimension(:), pointer :: psiw,psirocc,pot
   real(wp), dimension(:), allocatable :: ALPHAR,ALPHAI,BETA,VR,VL
+  type(paw_objects) ::paw !dummy herem, only used for PAW
   
+  paw%usepaw=.false. !Not using PAW
+  call nullify_paw_objects(paw)
   
   !logical flag which control to othogonalise wrt the occupied orbitals or not
   if (orbs%nkpts /= orbsv%nkpts) then
@@ -115,16 +120,16 @@ subroutine constrained_davidson(iproc,nproc,in,at,&
      call free_gpu(GPU,orbs%norbp)
      call prepare_gpu_for_locham(Lzd%Glr%d%n1,Lzd%Glr%d%n2,Lzd%Glr%d%n3,in%nspin,&
           hx,hy,hz,Lzd%Glr%wfd,orbsv,GPU)
-  else if (OCLconv) then
+  else if (GPU%OCLconv) then
      call free_gpu_OCL(GPU,orbs,in%nspin)   
-     call allocate_data_OCL(Lzd%Glr%d%n1,Lzd%Glr%d%n2,Lzd%Glr%d%n3,at%geocode,&
+     call allocate_data_OCL(Lzd%Glr%d%n1,Lzd%Glr%d%n2,Lzd%Glr%d%n3,at%astruct%geocode,&
           in%nspin,Lzd%Glr%wfd,orbsv,GPU) 
   end if
  
   GPU%full_locham=.true.
   !verify whether the calculation of the exact exchange term
   !should be performed
-  exctX = (xc_exctXfac() /= 0.0_gp)
+  exctX = (xc_exctXfac(xc) /= 0.0_gp)
 
   !check the size of the rhopot array related to NK SIC
   nrhodim=in%nspin
@@ -147,9 +152,10 @@ subroutine constrained_davidson(iproc,nproc,in,at,&
   !before transposition, create the array of the occupied
   !wavefunctions in real space, for exact exchange calculations
   if (exctX) then
-     allocate(psirocc(max(max(Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*Lzd%Glr%d%n3i*orbs%norbp,&
-          dpcom%ngatherarr(0,1)*orbs%norb),1)+ndebug),stat=i_stat)
-     call memocc(i_stat,psirocc,'psirocc',subname)
+     psirocc=f_malloc_ptr(max(max(Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*Lzd%Glr%d%n3i*orbs%norbp,&
+          dpcom%ngatherarr(0,1)*orbs%norb),1),id='psirocc')
+!!$     allocate(psirocc(max(max(Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*Lzd%Glr%d%n3i*orbs%norbp,&
+!!$          dpcom%ngatherarr(0,1)*orbs%norb),1)+ndebug),stat=i_stat)
 
      call prepare_psirocc(iproc,nproc,Lzd%Glr,orbs,dpcom%nscatterarr(iproc,2),dpcom%ngatherarr(0,1),psi,psirocc)
   end if
@@ -160,15 +166,13 @@ subroutine constrained_davidson(iproc,nproc,in,at,&
   !
   !allocate the work array for transpositions
   if(nproc > 1)then
-     allocate(psiw(max(orbs%npsidim_comp,orbs%npsidim_orbs)+ndebug),stat=i_stat)
-     call memocc(i_stat,psiw,'psiw',subname)
+     psiw = f_malloc_ptr(max(orbs%npsidim_comp, orbs%npsidim_orbs),id='psiw')
   else
      psiw => null()
   end if
   
   ! allocate and init eval array
-  allocate(orbsv%eval(orbsv%norb*orbsv%nkpts+ndebug),stat=i_stat)
-  call memocc(i_stat,orbsv%eval,'eval',subname)
+  orbsv%eval = f_malloc_ptr(orbsv%norb*orbsv%nkpts,id='orbsv%eval')
   orbsv%eval(1:orbsv%norb*orbsv%nkpts)=-0.5d0
   ! end memory work memory 
   ! **********************************************
@@ -176,16 +180,17 @@ subroutine constrained_davidson(iproc,nproc,in,at,&
   
   !transpose the wavefunction psi if any 
   if (occorbs) then
-     call transpose_v(iproc,nproc,orbs,Lzd%Glr%wfd,comms,psi,work=psiw)
+     call transpose_v(iproc,nproc,orbs,lzd%glr%wfd,comms,psi(1),psiw(1))
   end if
 
 
   ! prepare the v array starting from a set of gaussians
-  call psivirt_from_gaussians(iproc,nproc,at,orbsv,Lzd,commsv,rxyz,hx,hy,hz,in%nspin,v)
+  call psivirt_from_gaussians(iproc,nproc,at,orbsv,Lzd,commsv,rxyz,hx,hy,hz,in%nspin,&
+       & v, max(orbsv%npsidim_orbs, orbsv%npsidim_comp))
 
 
   ! allocate the potential in the full box
-   call full_local_potential(iproc,nproc,orbsv,Lzd,0,dpcom,rhopot,pot)
+   call full_local_potential(iproc,nproc,orbsv,Lzd,0,dpcom,xc,rhopot,pot)
 !!$   call full_local_potential(iproc,nproc,Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*dpcom%nscatterarr(iproc,2),&
 !!$        Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*Lzd%Glr%d%n3i,&
 !!$        in%nspin,Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*dpcom%nscatterarr(iproc,1)*nrhodim,i3rho_add,&
@@ -194,20 +199,15 @@ subroutine constrained_davidson(iproc,nproc,in,at,&
   
   ! **********************************************
   ! some memory work memory 
-  allocate(hv(max(orbsv%npsidim_orbs,orbsv%npsidim_comp)+ndebug),stat=i_stat)
-  call memocc(i_stat,hv,'hv',subname)
+  hv = f_malloc(max(orbsv%npsidim_orbs, orbsv%npsidim_comp),id='hv')
 
-  allocate(e(orbsv%norb,orbsv%nkpts,2+ndebug),stat=i_stat)
-  call memocc(i_stat,e,'e',subname)
+  e = f_malloc((/ orbsv%norb, orbsv%nkpts, 2 /),id='e')
   
-  allocate(eg(orbsv%norb,orbsv%nkpts,2+ndebug),stat=i_stat)
-  call memocc(i_stat,eg,'eg',subname)
+  eg = f_malloc((/ orbsv%norb, orbsv%nkpts, 2 /),id='eg')
   
-  allocate(e_tmp(orbsv%norb,orbsv%nkpts,2+ndebug),stat=i_stat)
-  call memocc(i_stat,eg,'e_tmp',subname)
+  e_tmp = f_malloc((/ orbsv%norb, orbsv%nkpts, 2 /),id='e_tmp')
 
-  allocate(eg_tmp(orbsv%norb,orbsv%nkpts,2+ndebug),stat=i_stat)
-  call memocc(i_stat,eg,'eg_tmp',subname)
+  eg_tmp = f_malloc((/ orbsv%norb, orbsv%nkpts, 2 /),id='eg_tmp')
 
   if (orbsv%nspinor > 1) then
      ncplx=2
@@ -216,29 +216,21 @@ subroutine constrained_davidson(iproc,nproc,in,at,&
   end if
   
   nwork=max(10,16*orbsv%norb)
-  allocate(work(ncplx*nwork+ndebug),stat=i_stat)
-  call memocc(i_stat,work,'work',subname)
+  work = f_malloc(ncplx*nwork,id='work')
   
-  allocate(ALPHAR(2*orbsv%norb+ndebug),stat=i_stat)
-  call memocc(i_stat,ALPHAR,'ALPHAR',subname)
+  ALPHAR = f_malloc(2*orbsv%norb,id='ALPHAR')
 
-  allocate(ALPHAI(2*orbsv%norb+ndebug),stat=i_stat)
-  call memocc(i_stat,ALPHAI,'ALPHAI',subname)
+  ALPHAI = f_malloc(2*orbsv%norb,id='ALPHAI')
   
-  allocate(BETA(2*orbsv%norb+ndebug),stat=i_stat)
-  call memocc(i_stat,BETA,'BETA',subname)
+  BETA = f_malloc(2*orbsv%norb,id='BETA')
  
-  allocate(VR(4*orbsv%norb*orbsv%norb+ndebug),stat=i_stat)
-  call memocc(i_stat,VR,'VR',subname)
+  VR = f_malloc(4*orbsv%norb*orbsv%norb,id='VR')
 
-  allocate(ew(2*orbsv%norb+ndebug),stat=i_stat)
-  call memocc(i_stat,ew,'ew',subname)
+  ew = f_malloc(2*orbsv%norb,id='ew')
 
-  allocate(g(max(orbsv%npsidim_orbs,orbsv%npsidim_comp)+ndebug),stat=i_stat)
-  call memocc(i_stat,g,'g',subname)
+  g = f_malloc(max(orbsv%npsidim_orbs, orbsv%npsidim_comp),id='g')
 
-  allocate(hg(max(orbsv%npsidim_orbs,orbsv%npsidim_comp)+ndebug),stat=i_stat)
-  call memocc(i_stat,hg,'hg',subname)
+  hg = f_malloc(max(orbsv%npsidim_orbs, orbsv%npsidim_comp),id='hg')
   ! end memory work memory 
   ! **********************************************
 
@@ -267,7 +259,7 @@ subroutine constrained_davidson(iproc,nproc,in,at,&
   !
   ! untranspose v 
   !
-  call untranspose_v(iproc,nproc,orbsv,Lzd%Glr%wfd,commsv,v,work=psiw)
+  call untranspose_v(iproc,nproc,orbsv,Lzd%Glr%wfd,commsv,v(1),psiw(1))
   !
   ! inform
   !
@@ -294,12 +286,12 @@ subroutine constrained_davidson(iproc,nproc,in,at,&
   ! 
   !transpose  v and hv
   !
-  call transpose_v(iproc,nproc,orbsv,Lzd%Glr%wfd,commsv,v,work=psiw)
-  call transpose_v(iproc,nproc,orbsv,Lzd%Glr%wfd,commsv,hv,work=psiw)
+  call transpose_v(iproc,nproc,orbsv,lzd%glr%wfd,commsv,v(1),psiw(1))
+  call transpose_v(iproc,nproc,orbsv,lzd%glr%wfd,commsv,hv(1),psiw(1))
   !
   ! reset e 
   !
-  call razero(orbsv%norb*2*orbsv%nkpts,e)
+  call f_zero(e)
   !
   ! compute rayleigh quotients.
   !
@@ -331,7 +323,7 @@ subroutine constrained_davidson(iproc,nproc,in,at,&
   if(nproc > 1)then
      !sum up the contributions of nproc sets with 
      !commsv%nvctr_par(iproc,1) wavelet coefficients each
-     call mpiallred(e(1,1,1),2*orbsv%norb*orbsv%nkpts,MPI_SUM,bigdft_mpi%mpi_comm,ierr)
+     call mpiallred(e(1,1,1),2*orbsv%norb*orbsv%nkpts,MPI_SUM,bigdft_mpi%mpi_comm)
   end if
   !
   ! inform
@@ -376,8 +368,7 @@ subroutine constrained_davidson(iproc,nproc,in,at,&
   !
   ! number of components for the overlap matrix in wp-kind real numbers
   !
-  allocate(ndimovrlp(nspin,0:orbsv%nkpts+ndebug),stat=i_stat)
-  call memocc(i_stat,ndimovrlp,'ndimovrlp',subname)
+  ndimovrlp = f_malloc((/ 1.to.nspin, 0.to.orbsv%nkpts /),id='ndimovrlp')
   !
   ! fill ndimovrlp
   !
@@ -385,12 +376,11 @@ subroutine constrained_davidson(iproc,nproc,in,at,&
   !
   ! the dimension should be chosen with the max between k-points
   !
-  allocate(hamovr(8*ndimovrlp(nspin,orbsv%nkpts)+ndebug),stat=i_stat)
-  call memocc(i_stat,hamovr,'hamovr',subname)
+  hamovr = f_malloc0(8*ndimovrlp(nspin, orbsv%nkpts),id='hamovr')
   !
   ! put to zero all the k-points which are not needed
   !
-  call razero(8*ndimovrlp(nspin,orbsv%nkpts),hamovr)
+  !call to_zero(8*ndimovrlp(nspin,orbsv%nkpts),hamovr)
   !
   ! End interaction/overlap hamovr matrix allocation
   ! **********************************************
@@ -416,7 +406,7 @@ subroutine constrained_davidson(iproc,nproc,in,at,&
      !
      ! copy hv => g, as we keep hv for later
      !
-     call dcopy(max(orbsv%npsidim_orbs,orbsv%npsidim_comp),hv,1,g,1)  
+     call vcopy(max(orbsv%npsidim_orbs,orbsv%npsidim_comp),hv(1),1,g(1),1)  
      !
      ! substract g = g - v*<v|H|v>/<v|P|v>
      !
@@ -470,12 +460,12 @@ subroutine constrained_davidson(iproc,nproc,in,at,&
      ! reduce if necessary
      if(nproc > 1)then
         !sum up the contributions of nproc sets with nvctrp wavelet coefficients each
-        call mpiallred(e(1,1,2),orbsv%norb*orbsv%nkpts,MPI_SUM,bigdft_mpi%mpi_comm,ierr)
+        call mpiallred(e(1,1,2),orbsv%norb*orbsv%nkpts,MPI_SUM,bigdft_mpi%mpi_comm)
      end if
      !
      ! untranspose gradients for preconditionning
      !
-     call untranspose_v(iproc,nproc,orbsv,Lzd%Glr%wfd,commsv,g,work=psiw)
+     call untranspose_v(iproc,nproc,orbsv,Lzd%Glr%wfd,commsv,g(1),psiw(1))
      !
      ! use the values of the eval for the orbitals used in the preconditioner
      !
@@ -491,7 +481,7 @@ subroutine constrained_davidson(iproc,nproc,in,at,&
      !
      ! transpose gradients for orthogonalization and norm computation
      !
-     call transpose_v(iproc,nproc,orbsv,Lzd%Glr%wfd,commsv,g,work=psiw)
+     call transpose_v(iproc,nproc,orbsv,lzd%glr%wfd,commsv,g(1),psiw(1))
      !
      ! orthogonalize with respect to occupied states again
      !
@@ -506,7 +496,7 @@ subroutine constrained_davidson(iproc,nproc,in,at,&
      !
      ! untranspose gradients
      !
-     call untranspose_v(iproc,nproc,orbsv,Lzd%Glr%wfd,commsv,g,work=psiw)
+     call untranspose_v(iproc,nproc,orbsv,Lzd%Glr%wfd,commsv,g(1),psiw(1))
      !
      ! End gradients
      ! **********************************************
@@ -519,7 +509,7 @@ subroutine constrained_davidson(iproc,nproc,in,at,&
      ! compute maximum gradient
      !
      gnrm=0._dp
-     if(msg) call yaml_open_sequence('Squared norm of the (nvirt) gradients')
+     if(msg) call yaml_sequence_open('Squared norm of the (nvirt) gradients')
      !if(msg) write(*,'(1x,a)')"squared norm of the (nvirt) gradients"
      ! loop on kpoints
      do ikpt=1,orbsv%nkpts
@@ -583,12 +573,12 @@ subroutine constrained_davidson(iproc,nproc,in,at,&
      !
      ! transpose  g and hg and Pg (v, hv and Pv are aLzd%Glready transposed)
      !
-     call transpose_v(iproc,nproc,orbsv,Lzd%Glr%wfd,commsv,g,work=psiw)
-     call transpose_v(iproc,nproc,orbsv,Lzd%Glr%wfd,commsv,hg,work=psiw)
+     call transpose_v(iproc,nproc,orbsv,lzd%glr%wfd,commsv,g(1),psiw(1))
+     call transpose_v(iproc,nproc,orbsv,lzd%glr%wfd,commsv,hg(1),psiw(1))
      !
      ! reset expanded hamiltonian/overlap matrices
      !
-     call razero(8*ndimovrlp(nspin,orbsv%nkpts),hamovr)
+     call f_zero(hamovr)
      !
      ! compute expanded hamiltonian/overlap matrices   
      ! store upper triangular part of these matrices only
@@ -624,7 +614,7 @@ subroutine constrained_davidson(iproc,nproc,in,at,&
      ! reduce result if necessary 
      !
      if(nproc > 1)then
-        call mpiallred(hamovr(1),8*ndimovrlp(nspin,orbsv%nkpts),MPI_SUM,bigdft_mpi%mpi_comm,ierr)
+        call mpiallred(hamovr(1),8*ndimovrlp(nspin,orbsv%nkpts),MPI_SUM,bigdft_mpi%mpi_comm)
      end if
      !
      ! check asymmetry
@@ -722,7 +712,7 @@ subroutine constrained_davidson(iproc,nproc,in,at,&
                 !
                 ! copy best case in first part of hamovr
                 !
-                call dcopy(2*norb,VR(1+(imin-1)*2*norb),1,hamovr(ish1+(iorb-1)*2*norb),1)
+                call vcopy(2*norb,VR(1+(imin-1)*2*norb),1,hamovr(ish1+(iorb-1)*2*norb),1)
                 !
                 ! store energy in e and scratch ew(imin)
                 ! 
@@ -732,8 +722,7 @@ subroutine constrained_davidson(iproc,nproc,in,at,&
            ! complex case
            else
               ! allocate work array for complex arithmetic
-              allocate(work_rp(6*norb+1+ndebug),stat=i_stat)
-              call memocc(i_stat,work_rp,'work_rp',subname)
+              work_rp = f_malloc(6*norb+1,id='work_rp')
               ! call lapack GEVP
               call hegv(1,'V','U',2*norb,hamovr(ish1),2*norb,hamovr(ish2),2*norb,&
                    ew(1),work(1),nwork,work_rp(1),i_stat)! Lapack GEVP
@@ -741,9 +730,7 @@ subroutine constrained_davidson(iproc,nproc,in,at,&
               if (i_stat /= 0) write(*,*) &
                    'Error in HEGV on process ',iproc,', infocode ', i_stat
               ! free memory
-              i_all=-product(shape(work_rp))*kind(work_rp)
-              deallocate(work_rp,stat=i_stat)
-              call memocc(i_stat,i_all,'work_rp',subname)
+              call f_free(work_rp)
            end if
            !
            ! keep eigen values
@@ -811,7 +798,7 @@ subroutine constrained_davidson(iproc,nproc,in,at,&
      !
      ! untranspose v 
      !
-     call untranspose_v(iproc,nproc,orbsv,Lzd%Glr%wfd,commsv,v,work=psiw)
+     call untranspose_v(iproc,nproc,orbsv,Lzd%Glr%wfd,commsv,v(1),psiw(1))
      !
      ! inform
      !
@@ -840,12 +827,12 @@ subroutine constrained_davidson(iproc,nproc,in,at,&
      ! 
      !transpose  v and hv
      !
-     call transpose_v(iproc,nproc,orbsv,Lzd%Glr%wfd,commsv,v,work=psiw)
-     call transpose_v(iproc,nproc,orbsv,Lzd%Glr%wfd,commsv,hv,work=psiw)
+     call transpose_v(iproc,nproc,orbsv,lzd%glr%wfd,commsv,v(1),psiw(1))
+     call transpose_v(iproc,nproc,orbsv,lzd%glr%wfd,commsv,hv(1),psiw(1))
      !
      ! compute rayleigh quotients. 
      !
-     call razero(orbsv%norb*2*orbsv%nkpts,e)
+     call f_zero(e)
      ! starting index
      ispsi=1
      ! number of components
@@ -874,8 +861,8 @@ subroutine constrained_davidson(iproc,nproc,in,at,&
      if(nproc > 1)then
         !sum up the contributions of nproc sets with 
         !commsv%nvctr_par(iproc,1) wavelet coefficients each
-        call mpiallred( e(1,1,1),2*orbsv%norb*orbsv%nkpts,MPI_SUM,bigdft_mpi%mpi_comm,ierr)
-        call mpiallred(eg(1,1,1),2*orbsv%norb*orbsv%nkpts,MPI_SUM,bigdft_mpi%mpi_comm,ierr)
+        call mpiallred( e(1,1,1),2*orbsv%norb*orbsv%nkpts,MPI_SUM,bigdft_mpi%mpi_comm)
+        call mpiallred(eg(1,1,1),2*orbsv%norb*orbsv%nkpts,MPI_SUM,bigdft_mpi%mpi_comm)
      end if
      !
      ! End Hamiltonian application:
@@ -909,8 +896,10 @@ subroutine constrained_davidson(iproc,nproc,in,at,&
      !
      iter=iter+1
      if (iter>in%itermax) then 
-        if(iproc==0)write(*,'(1x,a)')&
-             'No convergence within the allowed number of minimization steps (itermax)'
+        if(iproc==0) call yaml_warning( &
+          &   'No convergence within the allowed number of minimization steps (itermax)')
+        !if(iproc==0) write(*,'(1x,a)')&
+        !     'No convergence within the allowed number of minimization steps (itermax)'
         exit davidson_loop
      end if
      !
@@ -921,8 +910,8 @@ subroutine constrained_davidson(iproc,nproc,in,at,&
 
 
   !retranspose v and psi
-  call untranspose_v(iproc,nproc,orbsv,Lzd%Glr%wfd,commsv,v,work=psiw)
-  call untranspose_v(iproc,nproc,orbs,Lzd%Glr%wfd,comms,psi,work=psiw)
+  call untranspose_v(iproc,nproc,orbsv,Lzd%Glr%wfd,commsv,v(1),psiw(1))
+  call untranspose_v(iproc,nproc,orbs,Lzd%Glr%wfd,comms,psi(1),psiw(1))
 
 
   ! inform
@@ -951,81 +940,47 @@ subroutine constrained_davidson(iproc,nproc,in,at,&
   ! ******************************************************
   ! memory work  
   ! deallocate potential
-  i_all=-product(shape(hg))*kind(hg)
-  deallocate(hg,stat=i_stat)
-  call memocc(i_stat,i_all,'hg',subname)
+  call f_free(hg)
 
-  i_all=-product(shape(g))*kind(g)
-  deallocate(g,stat=i_stat)
-  call memocc(i_stat,i_all,'g',subname)
+  call f_free(g)
 
-  call free_full_potential(dpcom%mpi_env%nproc,0,pot,subname)
+  call free_full_potential(dpcom%mpi_env%nproc,0,xc,pot,subname)
 
-  i_all=-product(shape(ndimovrlp))*kind(ndimovrlp)
-  deallocate(ndimovrlp,stat=i_stat)
-  call memocc(i_stat,i_all,'ndimovrlp',subname)
+  call f_free(ndimovrlp)
 
-  i_all=-product(shape(hamovr))*kind(hamovr)
-  deallocate(hamovr,stat=i_stat)
-  call memocc(i_stat,i_all,'hamovr',subname)
+  call f_free(hamovr)
 
-  i_all=-product(shape(work))*kind(work)
-  deallocate(work,stat=i_stat)
-  call memocc(i_stat,i_all,'work',subname)
+  call f_free(work)
 
-  i_all=-product(shape(ew))*kind(ew)
-  deallocate(ew,stat=i_stat)
-  call memocc(i_stat,i_all,'ew',subname)
+  call f_free(ew)
 
   !deallocate real array of wavefunctions
   if(exctX)then
-     i_all=-product(shape(psirocc))*kind(psirocc)
-     deallocate(psirocc,stat=i_stat)
-     call memocc(i_stat,i_all,'psirocc',subname)
+     call f_free_ptr(psirocc)
   end if
 
   if(nproc > 1) then
-     i_all=-product(shape(psiw))*kind(psiw)
-     deallocate(psiw,stat=i_stat)
-     call memocc(i_stat,i_all,'psiw',subname)
+     call f_free_ptr(psiw)
   end if
 
-  i_all=-product(shape(hv))*kind(hv)
-  deallocate(hv,stat=i_stat)
-  call memocc(i_stat,i_all,'hv',subname)
+  call f_free(hv)
 
-  i_all=-product(shape(e))*kind(e)
-  deallocate(e,stat=i_stat)
-  call memocc(i_stat,i_all,'e',subname)
+  call f_free(e)
 
-  i_all=-product(shape(eg))*kind(eg)
-  deallocate(eg,stat=i_stat)
-  call memocc(i_stat,i_all,'eg',subname)
+  call f_free(eg)
 
-  i_all=-product(shape(e_tmp))*kind(e_tmp)
-  deallocate(e_tmp,stat=i_stat)
-  call memocc(i_stat,i_all,'e_tmp',subname)
+  call f_free(e_tmp)
 
-  i_all=-product(shape(eg_tmp))*kind(eg_tmp)
-  deallocate(eg_tmp,stat=i_stat)
-  call memocc(i_stat,i_all,'eg_tmp',subname)
+  call f_free(eg_tmp)
   
   
-  i_all=-product(shape(ALPHAR))*kind(ALPHAR)
-  deallocate(ALPHAR,stat=i_stat)
-  call memocc(i_stat,i_all,'ALPHAR',subname)
+  call f_free(ALPHAR)
   
-  i_all=-product(shape(ALPHAI))*kind(ALPHAI)
-  deallocate(ALPHAI,stat=i_stat)
-  call memocc(i_stat,i_all,'ALPHAI',subname)
+  call f_free(ALPHAI)
   
-  i_all=-product(shape(BETA))*kind(BETA)
-  deallocate(BETA,stat=i_stat)
-  call memocc(i_stat,i_all,'BETA',subname)
+  call f_free(BETA)
   
-  i_all=-product(shape(VR))*kind(VR)
-  deallocate(VR,stat=i_stat)
-  call memocc(i_stat,i_all,'VR',subname)
+  call f_free(VR)
 
   ! end memory work  
   ! ******************************************************
@@ -1033,7 +988,7 @@ subroutine constrained_davidson(iproc,nproc,in,at,&
 
   if (GPUconv) then
      call free_gpu(GPU,orbsv%norbp)
-  else if (OCLconv) then
+  else if (GPU%OCLconv) then
      call free_gpu_OCL(GPU,orbsv,in%nspin)
   end if
 

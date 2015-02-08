@@ -127,8 +127,8 @@
 !!!  !nullify(lin%hamold)
 !!!  call nullify_orbitals_data(lin%orbs)
 !!!  call nullify_orbitals_data(lin%gorbs)
-!!!  call nullify_communications_arrays(lin%comms)
-!!!  call nullify_communications_arrays(lin%gcomms)
+!!!  call nullify_comms_cubic(lin%comms)
+!!!  call nullify_comms_cubic(lin%gcomms)
 !!!  nullify(lin%norbsPerType)
 !!!  !call nullify_p2pCommsSumrho(lin%comsr)
 !!!  call nullify_p2pComms(lin%comsr)
@@ -204,3 +204,18 @@ subroutine nullify_nonlocal_psp_descriptors(nlpspd)
 end subroutine nullify_nonlocal_psp_descriptors
 
 
+subroutine nullify_comms_cubic(comms)
+  use module_base
+  use communications_base, only: comms_cubic
+  implicit none
+
+  ! Calling arguments
+  type(comms_cubic),intent(out):: comms
+
+  nullify(comms%ncntd)
+  nullify(comms%ncntt)
+  nullify(comms%ndspld)
+  nullify(comms%ndsplt)
+  nullify(comms%nvctr_par)
+  
+end subroutine nullify_comms_cubic

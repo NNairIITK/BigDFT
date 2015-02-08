@@ -1,4 +1,5 @@
 !> @file
+!! Initialize the structures used by BigDFT+ART
 !! @author
 !!    Copyright (C) 2001 Normand Mousseau
 !!    Copyright (C) 2010 BigDFT group 
@@ -175,6 +176,7 @@ subroutine initialize()
         close(FLOG)
      end if
      mincounter = mincounter + 1
+
                                       ! if dual_search we dont do this check at the
                                       ! beginning. It is not well defined.
      if ( success .and. .not. dual_search ) then

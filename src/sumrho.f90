@@ -11,71 +11,76 @@
 !> Selfconsistent potential is saved in rhopot, 
 !! new arrays rho,pot for calculation of forces ground state electronic density
 !! Potential from electronic charge density
-subroutine density_and_hpot(dpbox,symObj,orbs,Lzd,pkernel,rhodsc,GPU,psi,rho,vh,hstrten)
+subroutine density_and_hpot(dpbox,symObj,orbs,Lzd,pkernel,rhodsc,GPU,xc,psi,rho,vh,hstrten)
   use module_base
   use module_types
+  use module_xc
   use module_interfaces, fake_name => density_and_hpot
-  use Poisson_Solver
+  use Poisson_Solver, except_dp => dp, except_gp => gp, except_wp => wp
   implicit none
+  !Arguments
   type(denspot_distribution), intent(in) :: dpbox
   type(rho_descriptors),intent(inout) :: rhodsc
   type(orbitals_data), intent(in) :: orbs
   type(local_zone_descriptors), intent(in) :: Lzd
   type(symmetry_data), intent(in) :: symObj
   type(coulomb_operator), intent(in) :: pkernel
+  type(xc_info), intent(in) :: xc
   real(wp), dimension(orbs%npsidim_orbs), intent(in) :: psi
   type(GPU_pointers), intent(inout) :: GPU
   real(gp), dimension(6), intent(out) :: hstrten
   real(dp), dimension(:), pointer :: rho,vh
   !local variables
   character(len=*), parameter :: subname='density_and_hpot'
-  integer :: i_stat
   real(gp) :: ehart_fake
   real(dp), dimension(:,:), pointer :: rho_p
 
   if (.not. associated(rho)) then
      if (dpbox%ndimpot>0) then
-        allocate(rho(dpbox%ndimpot*orbs%nspin+ndebug),stat=i_stat)
-        call memocc(i_stat,rho,'rho',subname)
+        rho = f_malloc_ptr(dpbox%ndimpot*orbs%nspin,id='rho')
      else
-        allocate(rho(1*orbs%nspin+ndebug),stat=i_stat)
-        call memocc(i_stat,rho,'rho',subname)
+        rho = f_malloc_ptr(1*orbs%nspin,id='rho')
      end if
 
      nullify(rho_p)
-     call sumrho(dpbox,orbs,Lzd,GPU,symObj,rhodsc,psi,rho_p)
+     call sumrho(dpbox,orbs,Lzd,GPU,symObj,rhodsc,xc,psi,rho_p)
      call communicate_density(dpbox,orbs%nspin,rhodsc,rho_p,rho,.false.)
   end if
 
-  !calculate the total density in the case of nspin==2
+  !Calculate the total density in the case of nspin==2
   if (orbs%nspin==2) then
      call axpy(dpbox%ndimpot,1.0_dp,rho(1+dpbox%ndimpot),1,rho(1),1)
   end if
   if (dpbox%ndimpot>0) then
-     allocate(vh(dpbox%ndimpot+ndebug),stat=i_stat)
-     call memocc(i_stat,vh,'vh',subname)
+     vh = f_malloc_ptr(dpbox%ndimpot,id='vh')
   else
-     allocate(vh(1+ndebug),stat=i_stat)
-     call memocc(i_stat,vh,'vh',subname)
+     vh = f_malloc_ptr(1,id='vh')
   end if
 
-  !calculate electrostatic potential
-  call dcopy(dpbox%ndimpot,rho,1,vh,1)
-  call H_potential('D',pkernel,vh,vh,ehart_fake,0.0_dp,.false.,stress_tensor=hstrten)
-  !in principle symmetrization of the stress tensor is not needed since the density has been 
-  !already symmetrized
+  if (xc%id(1) /= XC_NO_HARTREE) then
+     !Calculate electrostatic potential
+     call vcopy(dpbox%ndimpot,rho(1),1,vh(1),1)
+     call H_potential('D',pkernel,vh,vh,ehart_fake,0.0_dp,.false.,stress_tensor=hstrten)
+  else
+     !Only to_zero vh
+     vh=0.0_dp
+     ehart_fake=0.0_dp
+  end if
 
+  !In principle symmetrization of the stress tensor is not needed since the density has been 
+  !already symmetrized
   if (symObj%symObj >= 0 .and. pkernel%geocode=='P') &
-       call symm_stress((dpbox%mpi_env%iproc+dpbox%mpi_env%igroup==0),hstrten,symObj%symObj)
+       call symm_stress(hstrten,symObj%symObj)
 
 END SUBROUTINE density_and_hpot
 
 
 !> Calculates the charge density by summing the square of all orbitals
-subroutine sumrho(dpbox,orbs,Lzd,GPU,symObj,rhodsc,psi,rho_p,mapping)
+subroutine sumrho(dpbox,orbs,Lzd,GPU,symObj,rhodsc,xc,psi,rho_p,mapping)
    use module_base
    use module_types
    use module_xc
+   use module_interfaces, except_this_one => sumrho
    use yaml_output
    implicit none
    !Arguments
@@ -84,6 +89,7 @@ subroutine sumrho(dpbox,orbs,Lzd,GPU,symObj,rhodsc,psi,rho_p,mapping)
    type(orbitals_data), intent(in) :: orbs
    type(local_zone_descriptors), intent(in) :: Lzd
    type(symmetry_data), intent(in) :: symObj
+   type(xc_info), intent(in) :: xc
    real(wp), dimension(orbs%npsidim_orbs), intent(in) :: psi
    real(dp), dimension(:,:), pointer :: rho_p
    !real(dp), dimension(max(Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*nscatterarr(iproc,1),1),nspin), intent(out), target :: rho
@@ -92,7 +98,6 @@ subroutine sumrho(dpbox,orbs,Lzd,GPU,symObj,rhodsc,psi,rho_p,mapping)
    !Local variables
    character(len=*), parameter :: subname='sumrho'
    logical :: writeout
-   integer :: i_stat,i_all
    integer :: nspinn
    integer :: iorb
    integer,dimension(:),allocatable:: localmapping
@@ -102,7 +107,7 @@ subroutine sumrho(dpbox,orbs,Lzd,GPU,symObj,rhodsc,psi,rho_p,mapping)
    call timing(dpbox%mpi_env%iproc,'Rho_comput    ','ON')
 
    if (writeout) then
-      call yaml_map('GPU acceleration',(GPUconv .or. OCLconv))
+      call yaml_map('GPU acceleration',(GPUconv .or. GPU%OCLconv))
    end if
 
    !components of the charge density
@@ -117,16 +122,15 @@ subroutine sumrho(dpbox,orbs,Lzd,GPU,symObj,rhodsc,psi,rho_p,mapping)
       stop
    end if
    !print *,'here',Lzd%linear,present(mapping),dpbox%iproc_world
-   !write(*,*) 'iproc,rhoarray dim', iproc, Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*nrhotot,nspinn+ndebug
-   allocate(rho_p(Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*rhodsc%nrhotot,nspinn+ndebug),stat=i_stat)
-   call memocc(i_stat,rho_p,'rho_p',subname)
+   !write(*,*) 'iproc,rhoarray dim', iproc, Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*nrhotot,nspinn
+   rho_p = f_malloc_ptr((/ Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*rhodsc%nrhotot , nspinn /),id='rho_p')
 
    !switch between GPU/CPU treatment of the density
    !here also one might decide to save the value of psir and of its laplacian 
    if (GPUconv) then
       call local_partial_density_GPU(orbs,rhodsc%nrhotot,Lzd%Glr,&
            dpbox%hgrids(1),dpbox%hgrids(2),dpbox%hgrids(3),orbs%nspin,psi,rho_p,GPU)
-   else if (OCLconv) then
+   else if (GPU%OCLconv) then
       call local_partial_density_OCL(orbs,rhodsc%nrhotot,Lzd%Glr,&
            dpbox%hgrids(1),dpbox%hgrids(2),dpbox%hgrids(3),orbs%nspin,psi,rho_p,GPU)
    else if(Lzd%linear) then
@@ -137,24 +141,21 @@ subroutine sumrho(dpbox,orbs,Lzd,GPU,symObj,rhodsc,psi,rho_p,mapping)
            end if
            !write(*,'(1x,a)') &
            !    'WARNING: mapping is not present, using fake local mapping array. Check whether this is correct!'
-           allocate(localmapping(orbs%norb), stat=i_stat)
-           call memocc(i_stat,localmapping,'localmapping',subname)
+           localmapping = f_malloc(orbs%norb,id='localmapping')
            do iorb=1,orbs%norb
                localmapping(iorb)=iorb
            end do
            call local_partial_densityLinear(dpbox%mpi_env%nproc,(rhodsc%icomm==1),dpbox%nscatterarr,rhodsc%nrhotot,&
-                Lzd,dpbox%hgrids(1),dpbox%hgrids(2),dpbox%hgrids(3),orbs%nspin,orbs,localmapping,psi,rho_p)
-           i_all=-product(shape(localmapping))*kind(localmapping)
-           deallocate(localmapping,stat=i_stat)
-           call memocc(i_stat,i_all,'localmapping',subname)
+                Lzd,dpbox%hgrids(1),dpbox%hgrids(2),dpbox%hgrids(3),xc,orbs%nspin,orbs,localmapping,psi,rho_p)
+           call f_free(localmapping)
        else
            call local_partial_densityLinear(dpbox%mpi_env%nproc,(rhodsc%icomm==1),dpbox%nscatterarr,rhodsc%nrhotot,&
-                Lzd,dpbox%hgrids(1),dpbox%hgrids(2),dpbox%hgrids(3),orbs%nspin,orbs,mapping,psi,rho_p)
+                Lzd,dpbox%hgrids(1),dpbox%hgrids(2),dpbox%hgrids(3),xc,orbs%nspin,orbs,mapping,psi,rho_p)
        end if
    else
       !initialize the rho array at 10^-20 instead of zero, due to the invcb ABINIT routine
       !otherwise use libXC routine
-      call xc_init_rho(Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*rhodsc%nrhotot*nspinn,rho_p,dpbox%mpi_env%nproc)
+      call xc_init_rho(xc, Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*rhodsc%nrhotot*nspinn,rho_p,dpbox%mpi_env%nproc)
 
       !for each of the orbitals treated by the processor build the partial densities
       call local_partial_density(dpbox%mpi_env%nproc,(rhodsc%icomm==1),dpbox%nscatterarr,&
@@ -172,7 +173,8 @@ subroutine sumrho(dpbox,orbs,Lzd,GPU,symObj,rhodsc,psi,rho_p,mapping)
 
  END SUBROUTINE sumrho
  
-   !starting point for the communication routine of the density
+
+!> Starting point for the communication routine of the density
 subroutine communicate_density(dpbox,nspin,rhodsc,rho_p,rho,keep_rhop)
   use module_base
   use module_types
@@ -187,7 +189,7 @@ subroutine communicate_density(dpbox,nspin,rhodsc,rho_p,rho,keep_rhop)
   !local variables
   character(len=*), parameter :: subname='communicate_density'
   logical :: dump
-  integer :: i1,i2,i3,i3off,i3s,i,ispin,i_all,i_stat,ierr,j3,j3p,j,itmred,n3d,irho
+  integer :: i1,i2,i3,i3off,i3s,i,ispin,ierr,j3,j3p,j,itmred,n3d,irho
   real(dp) :: charge,tt,rhotot_dbl
   real(dp), dimension(:,:), allocatable :: tmred
   !!  real(dp), dimension(:,:), allocatable :: rho_p_OCL
@@ -225,20 +227,18 @@ subroutine communicate_density(dpbox,nspin,rhodsc,rho_p,rho,keep_rhop)
              rhotot_dbl=rhotot_dbl+rho_p(irho,ispin)*product(dpbox%hgrids)!hxh*hyh*hzh
            enddo
         enddo
-        call mpiallred(rhotot_dbl,1,MPI_SUM,bigdft_mpi%mpi_comm,ierr)
+        call mpiallred(rhotot_dbl,1,MPI_SUM,bigdft_mpi%mpi_comm)
 
         !call system_clock(ncount0,ncount_rate,ncount_max)
 
-        allocate(sprho_comp(rhodsc%sp_size,nspin),stat=i_stat)
-        call memocc(i_stat,sprho_comp,'sprho_comp',subname)
-        allocate(dprho_comp(rhodsc%dp_size,nspin),stat=i_stat)
-        call memocc(i_stat,dprho_comp,'dprho_comp',subname)
+        sprho_comp = f_malloc((/ rhodsc%sp_size, nspin /),id='sprho_comp')
+        dprho_comp = f_malloc((/ rhodsc%dp_size, nspin /),id='dprho_comp')
         call compress_rho(rho_p,dpbox%ndimgrid,nspin,rhodsc,sprho_comp,dprho_comp)
 
         !call system_clock(ncount1,ncount_rate,ncount_max)
         !write(*,*) 'TIMING:ARED1',real(ncount1-ncount0)/real(ncount_rate)
-        call mpiallred(sprho_comp(1,1),rhodsc%sp_size*nspin,MPI_SUM,bigdft_mpi%mpi_comm,ierr)
-        call mpiallred(dprho_comp(1,1),rhodsc%dp_size*nspin,MPI_SUM,bigdft_mpi%mpi_comm,ierr)
+        call mpiallred(sprho_comp(1,1),rhodsc%sp_size*nspin,MPI_SUM,bigdft_mpi%mpi_comm)
+        call mpiallred(dprho_comp(1,1),rhodsc%dp_size*nspin,MPI_SUM,bigdft_mpi%mpi_comm)
         !call system_clock(ncount2,ncount_rate,ncount_max)
         !write(*,*) 'TIMING:ARED2',real(ncount2-ncount1)/real(ncount_rate)
 
@@ -250,18 +250,14 @@ subroutine communicate_density(dpbox,nspin,rhodsc,rho_p,rho,keep_rhop)
         !write(*,*) 'TIMING:ARED3',real(ncount3-ncount2)/real(ncount_rate)
          !write(*,*) 'TIMING:MIX',real(ncount3-ncount0)/real(ncount_rate)
 
-        i_all=-product(shape(sprho_comp))*kind(sprho_comp)
-        deallocate(sprho_comp,stat=i_stat)
-        call memocc(i_stat,i_all,'sprho_comp',subname)
-        i_all=-product(shape(dprho_comp))*kind(dprho_comp)
-        deallocate(dprho_comp,stat=i_stat)
-        call memocc(i_stat,i_all,'dprho_comp',subname)
+        call f_free(sprho_comp)
+        call f_free(dprho_comp)
 
         !naive communication (unsplitted GGA case) (icomm=0)
      else if (rhodsc%icomm==0) then
         if (dump) call yaml_map('Rho Commun','ALLRED')
         call mpiallred(rho_p(1,1),dpbox%ndimgrid*nspin,&
-             &   MPI_SUM,bigdft_mpi%mpi_comm,ierr)
+             &   MPI_SUM,bigdft_mpi%mpi_comm)
          !call system_clock(ncount1,ncount_rate,ncount_max)
          !write(*,*) 'TIMING:DBL',real(ncount1-ncount0)/real(ncount_rate)
      else
@@ -305,8 +301,7 @@ subroutine communicate_density(dpbox,nspin,rhodsc,rho_p,rho,keep_rhop)
      itmred=1
   end if
   !use this check also for the magnetic density orientation
-  allocate(tmred(nspin+1,itmred+ndebug),stat=i_stat)
-  call memocc(i_stat,tmred,'tmred',subname)
+  tmred = f_malloc((/ nspin+1, itmred /),id='tmred')
 
 
 
@@ -325,9 +320,7 @@ subroutine communicate_density(dpbox,nspin,rhodsc,rho_p,rho,keep_rhop)
   end do
 
   if (.not. keep_rhop) then
-     i_all=-product(shape(rho_p))*kind(rho_p)
-     deallocate(rho_p,stat=i_stat)
-     call memocc(i_stat,i_all,'rho_p',subname)
+     call f_free_ptr(rho_p)
   end if
   
   !print *,'okhere1',dpbox%iproc_world
@@ -367,11 +360,9 @@ subroutine communicate_density(dpbox,nspin,rhodsc,rho_p,rho,keep_rhop)
      end if
      call yaml_newline()
   end if
-!call yaml_close_map()
+!call yaml_mapping_close()
 
-  i_all=-product(shape(tmred))*kind(tmred)
-  deallocate(tmred,stat=i_stat)
-  call memocc(i_stat,i_all,'tmred',subname)
+  call f_free(tmred)
 
   call timing(dpbox%mpi_env%iproc,'Rho_comput    ','OF')
 
@@ -396,13 +387,13 @@ subroutine local_partial_density(nproc,rsflag,nscatterarr,&
    real(dp), dimension(lr%d%n1i,lr%d%n2i,nrhotot,max(nspin,orbs%nspinor)), intent(inout) :: rho_p
    !local variables
    character(len=*), parameter :: subname='local_partial_density'
-   integer :: iorb,i_stat,i_all !n(c) i1,i2,i3,ii 
+   integer :: iorb !n(c) i1,i2,i3,ii 
    integer :: oidx,sidx,nspinn,npsir,ncomplex
    real(gp) :: hfac,spinval
    type(workarr_sumrho) :: w
    real(wp), dimension(:,:), allocatable :: psir
 
-   call initialize_work_arrays_sumrho(lr,w)
+   call initialize_work_arrays_sumrho(1,lr,.true.,w)
 
    !components of wavefunction in real space which must be considered simultaneously
    !and components of the charge density
@@ -416,13 +407,10 @@ subroutine local_partial_density(nproc,rsflag,nscatterarr,&
       ncomplex=orbs%nspinor-1
    end if
 
-   allocate(psir(lr%d%n1i*lr%d%n2i*lr%d%n3i,npsir+ndebug),stat=i_stat)
-   call memocc(i_stat,psir,'psir',subname)
+   psir = f_malloc((/ lr%d%n1i*lr%d%n2i*lr%d%n3i, npsir /),id='psir')
    !initialisation
    !print *,iproc,'there'
-   if (lr%geocode == 'F') then
-      call razero(lr%d%n1i*lr%d%n2i*lr%d%n3i*npsir,psir)
-   end if
+   if (lr%geocode == 'F') call f_zero(psir)
 
    do iorb=1,orbs%norbp
       !print *,'norbp',orbs%norbp,orbs%norb,orbs%nkpts,orbs%kwgts,orbs%iokpt,orbs%occup
@@ -475,9 +463,7 @@ subroutine local_partial_density(nproc,rsflag,nscatterarr,&
    enddo
    
 
-   i_all=-product(shape(psir))*kind(psir)
-   deallocate(psir,stat=i_stat)
-   call memocc(i_stat,i_all,'psir',subname)
+   call f_free(psir)
    call deallocate_work_arrays_sumrho(w)
 
 END SUBROUTINE local_partial_density
@@ -502,8 +488,10 @@ subroutine partial_density(rsflag,nproc,n1i,n2i,n3i,npsir,nspinn,nrhotot,&
    !!!  integer :: ithread,nthread,omp_get_thread_num,omp_get_num_threads
    !sum different slices by taking into account the overlap
    i3sg=0
-   !$omp parallel default(private) shared(n1i,nproc,rsflag,nspinn,nscatterarr,spinsgn) &
-   !$omp shared(n2i,npsir,hfac,psir,rho_p,n3i,i3sg)
+   !$omp parallel default(none) &
+   !$omp private(jproc,i1,i3s,i1s,i1e,i3off,n3d,i3,j3,isjmp,psisq,p1,p2,p3,p4,r1,r2,r3,r4,i2) &
+   !$omp shared(n1i,nproc,rsflag,nspinn,nscatterarr,spinsgn) &
+   !$omp shared(n2i,npsir,hfac,hfac2,psir,rho_p,n3i,i3sg)
    i3s=0
    hfac2=2.0_gp*hfac
    !!!  ithread=omp_get_thread_num()
@@ -706,21 +694,23 @@ subroutine partial_density_free(rsflag,nproc,n1i,n2i,n3i,npsir,nspinn,nrhotot,&
 END SUBROUTINE partial_density_free
 
 
+!> Symmetrise the density using the symmetry operation
 subroutine symmetrise_density(iproc,nproc,geocode,n1i,n2i,n3i,nspin,rho,& !n(c) nscatterarr (arg:6)
      sym)
   use module_base!, only: gp,dp,wp,ndebug,memocc
   use module_types
   use m_ab6_symmetry
-
+  use yaml_output, only: yaml_warning
   implicit none
+  !Arguments
   integer, intent(in) :: iproc,nproc,nspin, n1i, n2i, n3i
-  character(len = 1), intent(in) :: geocode
+  character(len=1), intent(in) :: geocode !< @copydoc poisson_solver::doc::geocode
   !n(c) integer, dimension(0:nproc-1,4), intent(in) :: nscatterarr !n3d,n3p,i3s+i3xcsh-1,i3xcsh
   real(dp), dimension(n1i,n2i,n3i,nspin), intent(inout) :: rho
   type(symmetry_data), intent(in) :: sym
   !local variables
   character(len=*), parameter :: subname='symmetrise_density'
-  integer :: errno, ispden, nsym_used, nSym, isym, imagn, r2,i_stat,i_all,inzee,isign, n2i_eff
+  integer :: errno, ispden, nsym_used, nSym, isym, imagn, r2,inzee,isign, n2i_eff
   integer :: nd2, izone_max, numpt, izone, rep, nup, iup, ind, j, j1, j2, j3,i1,i2,i3, i2_eff
   real(dp) :: rhosu1, rhosu2
   real(dp), dimension(:,:), allocatable :: rhosu12
@@ -733,6 +723,10 @@ subroutine symmetrise_density(iproc,nproc,geocode,n1i,n2i,n3i,nspin,rho,& !n(c) 
 
   call symmetry_get_matrices_p(sym%symObj, nSym, symRel, transNon, symAfm, errno)
   if (nSym == 1) return
+  if (geocode == 'F') then
+     !call yaml_warning('The symmetrization of the density is not implemented for the isolated systems')
+     return
+  end if
 
 !!$  ! Array sizes for the real-to-complex FFT: note that n1(there)=n1(here)+1
 !!$  ! and the same for n2,n3. Not needed for the moment
@@ -740,15 +734,12 @@ subroutine symmetrise_density(iproc,nproc,geocode,n1i,n2i,n3i,nspin,rho,& !n(c) 
   n2i_eff = n2i
   if (geocode == "S") then
      n2i_eff = 1
-     allocate(zw(2,ncache/4,2+ndebug),stat=i_stat)
-     call memocc(i_stat,zw,'zw',subname)
+     zw = f_malloc((/ 2, ncache/4, 2 /),id='zw')
      !use this check also for the magnetic density orientation
-     allocate(rhog(2,n1i+1,1,n3i+1,2+ndebug),stat=i_stat)
-     call memocc(i_stat,rhog,'rhog',subname)
+     rhog = f_malloc((/ 2, n1i+1, 1, n3i+1, 2 /),id='rhog')
   else
      !use this check also for the magnetic density orientation
-     allocate(rhog(2,n1i+1,n2i+1,n3i+1,2+ndebug),stat=i_stat)
-     call memocc(i_stat,rhog,'rhog',subname)
+     rhog = f_malloc((/ 2, n1i+1, n2i+1, n3i+1, 2 /),id='rhog')
   end if
 
 
@@ -804,8 +795,7 @@ subroutine symmetrise_density(iproc,nproc,geocode,n1i,n2i,n3i,nspin,rho,& !n(c) 
 
         !    Get maxvalue of izone
         izone_max=count(sym%irrzon(:,2,imagn)>0)
-        allocate(rhosu12(2,izone_max+ndebug),stat=i_stat)
-        call memocc(i_stat,rhosu12,'rhosu12',subname)
+        rhosu12 = f_malloc((/ 2, izone_max /),id='rhosu12')
 
         numpt=0
         do izone=1,n1i*n2i_eff*n3i
@@ -895,9 +885,7 @@ subroutine symmetrise_density(iproc,nproc,geocode,n1i,n2i,n3i,nspin,rho,& !n(c) 
            !      End loop over izone
         end do
 
-        i_all=-product(shape(rhosu12))*kind(rhosu12)
-        deallocate(rhosu12,stat=i_stat)
-        call memocc(i_stat,i_all,'rhosu12',subname)
+        call f_free(rhosu12)
 
         !    Pull out full or spin up density, now symmetrized
         !!     call fourdp(cplex,rhog,work,1,mpi_enreg,nfft,ngfft,paral_kgb,0)
@@ -924,13 +912,9 @@ subroutine symmetrise_density(iproc,nproc,geocode,n1i,n2i,n3i,nspin,rho,& !n(c) 
 
   end do ! ispden
 
-  i_all=-product(shape(rhog))*kind(rhog)
-  deallocate(rhog,stat=i_stat)
-  call memocc(i_stat,i_all,'rhog',subname)
+  call f_free(rhog)
   if (geocode == "S") then
-     i_all=-product(shape(zw))*kind(zw)
-     deallocate(zw,stat=i_stat)
-     call memocc(i_stat,i_all,'zw',subname)
+     call f_free(zw)
   end if
 
 END SUBROUTINE symmetrise_density
@@ -1126,52 +1110,49 @@ subroutine uncompress_rho_old(sprho_comp,dprho_comp,&
 END SUBROUTINE uncompress_rho_old
 
 
-subroutine rho_segkey(iproc,at,rxyz,crmult,frmult,radii_cf,&
+subroutine rho_segkey(iproc,at,rxyz,crmult,frmult,&
       &   n1i,n2i,n3i,hxh,hyh,hzh,nspin,rhodsc,iprint)
    use module_base
    use module_types
    implicit none
    integer,intent(in) :: n1i,n2i,n3i,iproc,nspin
    type(atoms_data), intent(in) :: at
-   real(gp), dimension(3,at%nat), intent(in) :: rxyz
+   real(gp), dimension(3,at%astruct%nat), intent(in) :: rxyz
    real(gp), intent(in) :: crmult,frmult,hxh,hyh,hzh
-   real(gp), dimension(at%ntypes,3), intent(in) :: radii_cf
+   !real(gp), dimension(at%astruct%ntypes,3), intent(in) :: radii_cf
    logical,intent(in) :: iprint
    type(rho_descriptors),intent(inout) :: rhodsc
    !local variables
    real(gp), parameter :: epsilon=1.e-10_gp
-   integer :: i1,i2,i3,iseg,irho,i_stat,iat !n(c) ispin, i_all,jrho, nseg
+   integer :: i1,i2,i3,iseg,irho,iat !n(c) ispin, i_all,jrho, nseg
    integer :: reg_c,reg_l
    !these give stack overflow!!!!
    !integer, dimension(n1i*n2i*n3i) :: reg
    !integer,dimension(n1i*n2i*n3i,2) :: dpkey,spkey
    integer :: n_fsegs,n_csegs
    character(len=*), parameter :: subname='rhokey'
-   integer :: nbx,nby,nbz,nl1,nl2,nl3,nat,i_all
+   integer :: nbx,nby,nbz,nl1,nl2,nl3,nat
    real(gp) :: dpmult,dsq,spadd
    integer :: i1min,i1max,i2min,i2max,i3min,i3max,nrhomin,nrhomax
-   integer,dimension(at%nat) :: i1fmin,i1fmax,i2fmin,i2fmax,i3fmin,i3fmax
-   integer,dimension(at%nat) :: i1cmin,i1cmax,i2cmin,i2cmax,i3cmin,i3cmax!,dsq_cr,dsq_fr
-   real(gp), dimension(at%nat) :: dsq_cr,dsq_fr
+   integer,dimension(at%astruct%nat) :: i1fmin,i1fmax,i2fmin,i2fmax,i3fmin,i3fmax
+   integer,dimension(at%astruct%nat) :: i1cmin,i1cmax,i2cmin,i2cmax,i3cmin,i3cmax!,dsq_cr,dsq_fr
+   real(gp), dimension(at%astruct%nat) :: dsq_cr,dsq_fr
    integer :: csegstot,fsegstot,corx,cory,corz,ithread,nthreads
    integer, dimension(:), allocatable :: reg
    integer, dimension(:,:), allocatable :: dpkey,spkey
-   !integer :: ncount0,ncount1,ncount2,ncount3,ncount4,ncount_rate,ncount_max
+   !integer :: ncount0,ncount1,ncount2,ncount3,ncount4,ncount_rate,ncount_max, i_stat
    !$ integer :: omp_get_thread_num,omp_get_num_threads
 
-   allocate(reg(n1i*n2i*n3i+ndebug),stat=i_stat)
-   call memocc(i_stat,reg,'reg',subname)
-   allocate(dpkey(n1i*n2i*n3i,2+ndebug),stat=i_stat)
-   call memocc(i_stat,dpkey,'dpkey',subname)
-   allocate(spkey(n1i*n2i*n3i,2+ndebug),stat=i_stat)
-   call memocc(i_stat,spkey,'spkey',subname)
+   reg = f_malloc(n1i*n2i*n3i,id='reg')
+   dpkey = f_malloc((/ n1i*n2i*n3i, 2 /),id='dpkey')
+   spkey = f_malloc((/ n1i*n2i*n3i, 2 /),id='spkey')
 
 
    ithread=0
    nthreads=1
 
-   rhodsc%geocode=at%geocode
-   nat=at%nat
+   rhodsc%geocode=at%astruct%geocode
+   nat=at%astruct%nat
 
    !parameter to adjust the single precision and double precision regions
    spadd=5.0_gp
@@ -1180,14 +1161,14 @@ subroutine rho_segkey(iproc,at,rxyz,crmult,frmult,radii_cf,&
 
    ! calculate the corrections of the grid when transforming from 
    ! n1,n2,n3 to n1i, n2i, n3i
-   call gridcorrection(nbx,nby,nbz,nl1,nl2,nl3,at%geocode)
+   call gridcorrection(nbx,nby,nbz,nl1,nl2,nl3,at%astruct%geocode)
 
    corx=nl1+nbx+1
    cory=nl2+nby+1
    corz=nl3+nbz+1 
 
    ! set the boundaries of the regions that we will determine the segment structure
-   call get_boxbound(at,rxyz,radii_cf,crmult,frmult,hxh,hyh,hzh,spadd,dpmult,&
+   call get_boxbound(at,rxyz,crmult,frmult,hxh,hyh,hzh,spadd,dpmult,&
       &   n1i,n2i,n3i,corx,cory,corz,i1min,i1max,i2min,i2max,i3min,i3max)
 
    nrhomin = (i3min-1)*n1i*n2i+(i2min-1)*n1i+i1min
@@ -1215,13 +1196,13 @@ subroutine rho_segkey(iproc,at,rxyz,crmult,frmult,radii_cf,&
    !$omp end parallel
 
    do iat=1,nat
-      call get_atbound(iat,at,rxyz,radii_cf,crmult,frmult,hxh,&
+      call get_atbound(iat,at,rxyz,crmult,frmult,hxh,&
          &   hyh,hzh,spadd,dpmult,n1i,n2i,n3i,corx,cory,corz,&
          &   i1cmin(iat),i1cmax(iat),i2cmin(iat),i2cmax(iat),i3cmin(iat),i3cmax(iat),&
          &   i1fmin(iat),i1fmax(iat),i2fmin(iat),i2fmax(iat),i3fmin(iat),i3fmax(iat))
 
-      dsq_cr(iat)=(radii_cf(at%iatype(iat),1)*crmult+hxh*spadd)**2
-      dsq_fr(iat)=(radii_cf(at%iatype(iat),2)*frmult*dpmult)**2
+      dsq_cr(iat)=(at%radii_cf(at%astruct%iatype(iat),1)*crmult+hxh*spadd)**2
+      dsq_fr(iat)=(at%radii_cf(at%astruct%iatype(iat),2)*frmult*dpmult)**2
    enddo
 
    !$omp parallel default(none)&
@@ -1372,14 +1353,10 @@ subroutine rho_segkey(iproc,at,rxyz,crmult,frmult,radii_cf,&
    rhodsc%n_fsegs=n_fsegs
    rhodsc%n_csegs=n_csegs
 
-   allocate(rhodsc%dpkey(n_fsegs,2+ndebug),stat=i_stat)
-   call memocc(i_stat,rhodsc%dpkey,'dpkey',subname)
-   allocate(rhodsc%spkey(n_csegs,2+ndebug),stat=i_stat)
-   call memocc(i_stat,rhodsc%spkey,'spkey',subname)
-   allocate(rhodsc%cseg_b(n_csegs+ndebug),stat=i_stat)
-   call memocc(i_stat,rhodsc%cseg_b,'csegb',subname)
-   allocate(rhodsc%fseg_b(n_fsegs+ndebug),stat=i_stat)
-   call memocc(i_stat,rhodsc%fseg_b,'fsegb',subname)
+   rhodsc%dpkey = f_malloc_ptr((/ n_fsegs, 2 /),id='rhodsc%dpkey')
+   rhodsc%spkey = f_malloc_ptr((/ n_csegs, 2 /),id='rhodsc%spkey')
+   rhodsc%cseg_b = f_malloc_ptr(n_csegs,id='rhodsc%cseg_b')
+   rhodsc%fseg_b = f_malloc_ptr(n_fsegs,id='rhodsc%fseg_b')
 
    csegstot=1
    fsegstot=1
@@ -1396,15 +1373,9 @@ subroutine rho_segkey(iproc,at,rxyz,crmult,frmult,radii_cf,&
       csegstot=csegstot+spkey(iseg,2)-spkey(iseg,1)+1
    enddo
 
-   i_all=-product(shape(reg))*kind(reg)
-   deallocate(reg,stat=i_stat)
-   call memocc(i_stat,i_all,'reg',subname)
-   i_all=-product(shape(dpkey))*kind(dpkey)
-   deallocate(dpkey,stat=i_stat)
-   call memocc(i_stat,i_all,'dpkey',subname)
-   i_all=-product(shape(spkey))*kind(spkey)
-   deallocate(spkey,stat=i_stat)
-   call memocc(i_stat,i_all,'spkey',subname)
+   call f_free(reg)
+   call f_free(dpkey)
+   call f_free(spkey)
 
 
    if (iprint) then
@@ -1452,7 +1423,7 @@ END SUBROUTINE rho_segkey
 
 subroutine gridcorrection(nbx,nby,nbz,nl1,nl2,nl3,geocode)
    implicit none
-   character(len=1),intent(in) :: geocode
+   character(len=1),intent(in) :: geocode !< @copydoc poisson_solver::doc::geocode
    integer,intent(out) :: nbx,nby,nbz,nl1,nl2,nl3
 
    !conditions for periodicity in the three directions
@@ -1479,7 +1450,7 @@ subroutine gridcorrection(nbx,nby,nbz,nl1,nl2,nl3,geocode)
 END SUBROUTINE gridcorrection
 
 
-subroutine get_boxbound(at,rxyz,radii_cf,crmult,frmult,hxh,hyh,hzh,spadd,dpmult,&
+subroutine get_boxbound(at,rxyz,crmult,frmult,hxh,hyh,hzh,spadd,dpmult,&
       &   n1i,n2i,n3i,corx,cory,corz,i1min,i1max,i2min,i2max,i3min,i3max)
    use module_base
    use module_types
@@ -1487,11 +1458,11 @@ subroutine get_boxbound(at,rxyz,radii_cf,crmult,frmult,hxh,hyh,hzh,spadd,dpmult,
    real(gp),intent(in) :: dpmult,spadd
    integer,intent(in) :: n1i,n2i,n3i,corx,cory,corz
    type(atoms_data), intent(in) :: at
-   real(gp), dimension(3,at%nat), intent(in) :: rxyz
+   real(gp), dimension(3,at%astruct%nat), intent(in) :: rxyz
    real(gp), intent(in) :: crmult,frmult,hxh,hyh,hzh
-   real(gp), dimension(at%ntypes,3), intent(in) :: radii_cf
+   !real(gp), dimension(at%astruct%ntypes,3), intent(in) :: radii_cf
    integer,intent(out) :: i1min,i1max,i2min,i2max,i3min,i3max
-   integer,dimension(at%nat,6) :: crbound,frbound
+   integer,dimension(at%astruct%nat,6) :: crbound,frbound
    real(gp) :: sprad,dprad
    integer :: iat
 
@@ -1507,9 +1478,9 @@ subroutine get_boxbound(at,rxyz,radii_cf,crmult,frmult,hxh,hyh,hzh,spadd,dpmult,
 !write (*,*) 'hxh,hyh,hzh',hxh,hyh,hzh
 
    ! setup up the cubes that determines the single and double precision segments
-   do iat=1,at%nat
-      sprad=radii_cf(at%iatype(iat),1)*crmult+hxh*spadd
-      dprad=radii_cf(at%iatype(iat),2)*frmult*dpmult
+   do iat=1,at%astruct%nat
+      sprad=at%radii_cf(at%astruct%iatype(iat),1)*crmult+hxh*spadd
+      dprad=at%radii_cf(at%astruct%iatype(iat),2)*frmult*dpmult
       crbound(iat,1)=floor((rxyz(1,iat)-sprad)/hxh)+corx
 !write(*,*) 'crbound(iat,1)',crbound(iat,1)
       crbound(iat,2)=floor((rxyz(1,iat)+sprad)/hxh)+corx
@@ -1550,7 +1521,7 @@ subroutine get_boxbound(at,rxyz,radii_cf,crmult,frmult,hxh,hyh,hzh,spadd,dpmult,
 END SUBROUTINE get_boxbound
 
 
-subroutine get_atbound(iat,at,rxyz,radii_cf,crmult,frmult,hxh,hyh,hzh,&
+subroutine get_atbound(iat,at,rxyz,crmult,frmult,hxh,hyh,hzh,&
       &   spadd,dpmult,n1i,n2i,n3i,corx,cory,corz,&
       &   i1cmin,i1cmax,i2cmin,i2cmax,i3cmin,i3cmax,&
       &   i1fmin,i1fmax,i2fmin,i2fmax,i3fmin,i3fmax)
@@ -1560,15 +1531,15 @@ subroutine get_atbound(iat,at,rxyz,radii_cf,crmult,frmult,hxh,hyh,hzh,&
    real(gp),intent(in) :: dpmult,spadd
    integer,intent(in) :: n1i,n2i,n3i,iat,corx,cory,corz
    type(atoms_data), intent(in) :: at
-   real(gp), dimension(3,at%nat), intent(in) :: rxyz
+   real(gp), dimension(3,at%astruct%nat), intent(in) :: rxyz
    real(gp), intent(in) :: crmult,frmult,hxh,hyh,hzh
-   real(gp), dimension(at%ntypes,3), intent(in) :: radii_cf
+   !real(gp), dimension(at%astruct%ntypes,3), intent(in) :: radii_cf
    integer,intent(out) :: i1cmin,i1cmax,i2cmin,i2cmax,i3cmin,i3cmax
    integer,intent(out) :: i1fmin,i1fmax,i2fmin,i2fmax,i3fmin,i3fmax
    real(gp) :: sprad,dprad
 
-   sprad=radii_cf(at%iatype(iat),1)*crmult+hxh*spadd
-   dprad=dpmult*frmult*radii_cf(at%iatype(iat),2)
+   sprad=at%radii_cf(at%astruct%iatype(iat),1)*crmult+hxh*spadd
+   dprad=dpmult*frmult*at%radii_cf(at%astruct%iatype(iat),2)
 
    i1cmin=floor((rxyz(1,iat)-sprad)/hxh)+corx+1
    i1cmax=floor((rxyz(1,iat)+sprad)/hxh)+corx-1

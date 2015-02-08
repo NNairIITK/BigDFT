@@ -12,6 +12,7 @@
 module m_ab6_symmetry
 
   use defs_basis
+!  use iso_c_binding
 
   implicit none
 
@@ -19,13 +20,14 @@ module m_ab6_symmetry
 
   integer, parameter, public :: AB6_MAX_SYMMETRIES = 16384
 
+  !> This type is public and do interface with ABINIT routines
   type, public :: symmetry_type
-     ! The input characteristics
-     real(dp) :: tolsym
+     !> The input characteristics
+     real(dp) :: tolsym  !< Tolerance for the detection of the symmetry
      real(dp) :: rprimd(3,3), gprimd(3,3), rmet(3,3)
-     integer :: nAtoms
-     integer, pointer :: typeAt(:)
-     real(dp), pointer :: xRed(:,:)
+     integer :: nAtoms               !< Number of atoms
+     integer, pointer :: typeAt(:)   !< Type of the atoms
+     real(dp), pointer :: xRed(:,:)  !< Atomic coordinates
 
      logical :: withField
      real(dp) :: field(3)
@@ -37,19 +39,24 @@ module m_ab6_symmetry
 
      logical :: withSpinOrbit
 
+     !> Specify the periodicity
      integer :: vacuum(3)
+     !> If .true. for Free Boundary Conditions use symmetry routines (no ABINIT origin)
+     logical :: FBC
+     !> C structure for FBC
+     !type(c_ptr) :: cPointer
 
      ! The output characteristics
      ! The bravais parameters
      integer :: nBravSym
      integer :: bravais(11), bravSym(3, 3, AB6_MAX_SYMMETRIES)
-     ! The symmetry matrices
+     !> The symmetry matrices
      logical  :: auto
      integer  :: nSym
      integer, pointer  :: sym(:,:,:)
      real(dp), pointer :: transNon(:,:)
      integer, pointer  :: symAfm(:)
-     ! Some additional information
+     !> Some additional information
      integer          :: multiplicity
      real(dp)         :: genAfm(3)
      integer          :: spaceGroup, pointGroupMagn
@@ -96,12 +103,8 @@ module m_ab6_symmetry
 
 contains
 
+
   subroutine new_item(token)
-
-
-!This section has been created automatically by the script Abilint (TD).
-!Do not modify the following lines by hand.
-!End of the abilint section
 
     type(symmetry_list), pointer :: token
 
@@ -125,12 +128,8 @@ contains
     if (AB_DBG) write(0,*) "AB symmetry: creation OK with id ", token%id
   end subroutine new_item
 
+
   subroutine free_item(token)
-
-
-!This section has been created automatically by the script Abilint (TD).
-!Do not modify the following lines by hand.
-!End of the abilint section
 
     type(symmetry_list), pointer :: token
 
@@ -163,12 +162,13 @@ contains
     if (AB_DBG) write(0,*) "AB symmetry: free done"
   end subroutine free_item
 
+
+  !> Basic routine to deal with the structure of the symmetry (hidden outside this module)
   subroutine get_item(token, id)
-
-
-    type(symmetry_list), pointer :: token
+    !Arguments
+    type(symmetry_list), pointer, intent(out) :: token
     integer, intent(in) :: id
-
+    !Local variables
     type(symmetry_list), pointer :: tmp
 
     if (AB_DBG) write(0,*) "AB symmetry: request list element ", id
@@ -187,6 +187,7 @@ contains
     end do
   end subroutine get_item
 
+
   subroutine symmetry_get_from_id(sym, id, errno)
 
     type(symmetry_type), pointer :: sym
@@ -195,7 +196,7 @@ contains
 
     type(symmetry_list), pointer :: token
 
-    errno = AB6_NO_ERROR
+    errno = AB7_NO_ERROR
     call get_item(token, id)
     if (associated(token)) then
        sym => token%data
@@ -204,13 +205,13 @@ contains
           call compute_matrices(sym, errno)
        end if
     else
-       errno = AB6_ERROR_OBJ
+       errno = AB7_ERROR_OBJ
        nullify(sym)
     end if
   end subroutine symmetry_get_from_id
 
-  subroutine new_symmetry(sym)
 
+  subroutine new_symmetry(sym)
 
     type(symmetry_type), intent(out) :: sym
 
@@ -232,10 +233,11 @@ contains
     sym%multiplicity = -1
     nullify(sym%indexingAtoms)
     sym%vacuum = 0
+    sym%FBC = .false.
   end subroutine new_symmetry
 
-  subroutine free_symmetry(sym)
 
+  subroutine free_symmetry(sym)
 
     type(symmetry_type), intent(inout) :: sym
 
@@ -251,18 +253,11 @@ contains
   end subroutine free_symmetry
 
 
-
-
-
+  !> Create a new symmetry object
   subroutine symmetry_new(id)
-
-
-!This section has been created automatically by the script Abilint (TD).
-!Do not modify the following lines by hand.
-!End of the abilint section
-
+    !Arguments
     integer, intent(out) :: id
-
+    !Local variables
     type(symmetry_list), pointer :: token
 
     if (AB_DBG) write(0,*) "AB symmetry: call new symmetry."
@@ -270,12 +265,8 @@ contains
     id = token%id
   end subroutine symmetry_new
 
+
   subroutine symmetry_free(id)
-
-
-!This section has been created automatically by the script Abilint (TD).
-!Do not modify the following lines by hand.
-!End of the abilint section
 
     integer, intent(in) :: id
 
@@ -287,12 +278,9 @@ contains
     if (associated(token)) call free_item(token)
   end subroutine symmetry_free
 
+
+  !> Set the tolerance for the calculation of the symmetry
   subroutine symmetry_set_tolerance(id, tolsym, errno)
-
-
-!This section has been created automatically by the script Abilint (TD).
-!Do not modify the following lines by hand.
-!End of the abilint section
 
     integer, intent(in) :: id
     real(dp), intent(in) :: tolsym
@@ -302,10 +290,10 @@ contains
 
     if (AB_DBG) write(0,*) "AB symmetry: call set tolerance."
 
-    errno = AB6_NO_ERROR
+    errno = AB7_NO_ERROR
     call get_item(token, id)
     if (.not. associated(token)) then
-       errno = AB6_ERROR_OBJ
+       errno = AB7_ERROR_OBJ
        return
     end if
 
@@ -317,6 +305,7 @@ contains
        token%data%nSym  = 0
     end if
   end subroutine symmetry_set_tolerance
+
 
   subroutine symmetry_set_lattice(id, rprimd, errno)
 
@@ -339,10 +328,10 @@ contains
     if (AB_DBG) write(0, "(A,3F12.6,A)") "  (", rprimd(:,2), ")"
     if (AB_DBG) write(0, "(A,3F12.6,A)") "  (", rprimd(:,3), ")"
 
-    errno = AB6_NO_ERROR
+    errno = AB7_NO_ERROR
     call get_item(token, id)
     if (.not. associated(token)) then
-       errno = AB6_ERROR_OBJ
+       errno = AB7_ERROR_OBJ
        return
     end if
 
@@ -356,12 +345,9 @@ contains
     end if
   end subroutine symmetry_set_lattice
 
+
+  !> Set the atomic structure
   subroutine symmetry_set_structure(id, nAtoms, typeAt, xRed, errno)
-
-
-!This section has been created automatically by the script Abilint (TD).
-!Do not modify the following lines by hand.
-!End of the abilint section
 
     integer, intent(in) :: id
     integer, intent(in) :: nAtoms
@@ -380,10 +366,10 @@ contains
        end do
     end if
 
-    errno = AB6_NO_ERROR
+    errno = AB7_NO_ERROR
     call get_item(token, id)
     if (.not. associated(token)) then
-       errno = AB6_ERROR_OBJ
+       errno = AB7_ERROR_OBJ
        return
     end if
 
@@ -400,12 +386,8 @@ contains
     if (associated(token%data%indexingAtoms)) deallocate(token%data%indexingAtoms)
   end subroutine symmetry_set_structure
 
+
   subroutine symmetry_set_spin(id, nAtoms, spinAt, errno)
-
-
-!This section has been created automatically by the script Abilint (TD).
-!Do not modify the following lines by hand.
-!End of the abilint section
 
     integer, intent(in) :: id
     integer, intent(in) :: nAtoms
@@ -422,14 +404,14 @@ contains
        end do
     end if
 
-    errno = AB6_NO_ERROR
+    errno = AB7_NO_ERROR
     call get_item(token, id)
     if (.not. associated(token)) then
-       errno = AB6_ERROR_OBJ
+       errno = AB7_ERROR_OBJ
        return
     end if
     if (token%data%nAtoms /= nAtoms) then
-       errno = AB6_ERROR_ARG
+       errno = AB7_ERROR_ARG
        return
     end if
 
@@ -443,12 +425,8 @@ contains
     end if
   end subroutine symmetry_set_spin
 
+
   subroutine symmetry_set_collinear_spin(id, nAtoms, spinAt, errno)
-
-
-!This section has been created automatically by the script Abilint (TD).
-!Do not modify the following lines by hand.
-!End of the abilint section
 
     integer, intent(in) :: id
     integer, intent(in) :: nAtoms
@@ -465,20 +443,21 @@ contains
        end do
     end if
 
-    errno = AB6_NO_ERROR
+    errno = AB7_NO_ERROR
     call get_item(token, id)
     if (.not. associated(token)) then
-       errno = AB6_ERROR_OBJ
+       errno = AB7_ERROR_OBJ
        return
     end if
     if (token%data%nAtoms /= nAtoms) then
-       errno = AB6_ERROR_ARG
+       errno = AB7_ERROR_ARG
        return
     end if
 
     token%data%withSpin = 2
-    allocate(token%data%spinAt(1, nAtoms))
-    token%data%spinAt = real(reshape(spinAt, (/ 1, nAtoms /)), dp)
+    allocate(token%data%spinAt(3, nAtoms))
+    token%data%spinAt = 0._dp
+    token%data%spinAt(3, :) = real(spinAt)
 
     ! We unset only the symmetries
     if (token%data%auto) then
@@ -486,12 +465,8 @@ contains
     end if
   end subroutine symmetry_set_collinear_spin
 
+
   subroutine symmetry_set_spin_orbit(id, withSpinOrbit, errno)
-
-
-!This section has been created automatically by the script Abilint (TD).
-!Do not modify the following lines by hand.
-!End of the abilint section
 
     integer, intent(in) :: id
     logical, intent(in) :: withSpinOrbit
@@ -501,10 +476,10 @@ contains
 
     if (AB_DBG) write(0,*) "AB symmetry: call set spin orbit."
 
-    errno = AB6_NO_ERROR
+    errno = AB7_NO_ERROR
     call get_item(token, id)
     if (.not. associated(token)) then
-       errno = AB6_ERROR_OBJ
+       errno = AB7_ERROR_OBJ
        return
     end if
 
@@ -516,12 +491,8 @@ contains
     end if
   end subroutine symmetry_set_spin_orbit
 
+
   subroutine symmetry_set_field(id, field, errno)
-
-
-!This section has been created automatically by the script Abilint (TD).
-!Do not modify the following lines by hand.
-!End of the abilint section
 
     integer, intent(in) :: id
     real(dp), intent(in) :: field(3)
@@ -531,10 +502,10 @@ contains
 
     if (AB_DBG) write(0,*) "AB symmetry: call set field."
 
-    errno = AB6_NO_ERROR
+    errno = AB7_NO_ERROR
     call get_item(token, id)
     if (.not. associated(token)) then
-       errno = AB6_ERROR_OBJ
+       errno = AB7_ERROR_OBJ
        return
     end if
 
@@ -548,12 +519,8 @@ contains
     end if
   end subroutine symmetry_set_field
 
+
   subroutine symmetry_set_jellium(id, jellium, errno)
-
-
-!This section has been created automatically by the script Abilint (TD).
-!Do not modify the following lines by hand.
-!End of the abilint section
 
     integer, intent(in) :: id
     logical, intent(in) :: jellium
@@ -563,10 +530,10 @@ contains
 
     if (AB_DBG) write(0,*) "AB symmetry: call set jellium."
 
-    errno = AB6_NO_ERROR
+    errno = AB7_NO_ERROR
     call get_item(token, id)
     if (.not. associated(token)) then
-       errno = AB6_ERROR_OBJ
+       errno = AB7_ERROR_OBJ
        return
     end if
 
@@ -578,12 +545,8 @@ contains
     end if
   end subroutine symmetry_set_jellium
 
+
   subroutine symmetry_set_periodicity(id, periodic, errno)
-
-
-!This section has been created automatically by the script Abilint (TD).
-!Do not modify the following lines by hand.
-!End of the abilint section
 
     integer, intent(in) :: id
     logical, intent(in) :: periodic(3)
@@ -594,10 +557,10 @@ contains
     if (AB_DBG) write(0,*) "AB symmetry: call set periodicity."
     if (AB_DBG) write(0, "(A,3L1,A)") "  (", periodic, ")"
 
-    errno = AB6_NO_ERROR
+    errno = AB7_NO_ERROR
     call get_item(token, id)
     if (.not. associated(token)) then
-       errno = AB6_ERROR_OBJ
+       errno = AB7_ERROR_OBJ
        return
     end if
 
@@ -605,18 +568,13 @@ contains
     if (.not. periodic(1)) token%data%vacuum(1) = 1
     if (.not. periodic(2)) token%data%vacuum(2) = 1
     if (.not. periodic(3)) token%data%vacuum(3) = 1
+    !Determine if the system is isolated (free boundary conditions)
+    if (.not. periodic(1) .and. .not. periodic(3) .and. .not. periodic(3)) token%data%FBC = .true.
+
   end subroutine symmetry_set_periodicity
 
 
-
-
-
   subroutine symmetry_get_n_atoms(id, nAtoms, errno)
-    !scalars
-
-!This section has been created automatically by the script Abilint (TD).
-!Do not modify the following lines by hand.
-!End of the abilint section
 
     integer, intent(in) :: id
     integer, intent(out) :: errno
@@ -626,18 +584,18 @@ contains
 
     if (AB_DBG) write(0,*) "AB symmetry: call get nAtoms."
 
-    errno = AB6_NO_ERROR
+    errno = AB7_NO_ERROR
     call get_item(token, id)
     if (.not. associated(token)) then
-       errno = AB6_ERROR_OBJ
+       errno = AB7_ERROR_OBJ
        return
     end if
 
     nAtoms = token%data%nAtoms
   end subroutine symmetry_get_n_atoms
 
-  subroutine compute_bravais(sym)
 
+  subroutine compute_bravais(sym)
 
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
@@ -647,6 +605,11 @@ contains
     type(symmetry_type), intent(inout) :: sym
 
     integer :: berryopt
+
+    if (sym%FBC) then
+       !Free Boundary Conditions: no Bravais lattice
+       return
+    end if
 
     ! We do the computation
     if (sym%withField) then
@@ -663,16 +626,14 @@ contains
     if (AB_DBG) write(0, "(A,I3)") "  center   :", sym%bravais(2)
   end subroutine compute_bravais
 
+
+  !> Get the symmetry of the Bravais lattice
   subroutine symmetry_get_bravais(id, bravais, holohedry, center, &
        & nBravSym, bravSym, errno)
     !scalars
 
-!This section has been created automatically by the script Abilint (TD).
-!Do not modify the following lines by hand.
-!End of the abilint section
-
-    integer, intent(in) :: id
-    integer, intent(out) :: errno
+    integer, intent(in) :: id     !< Id of the token
+    integer, intent(out) :: errno !< Error generated
     integer, intent(out) :: nBravSym, holohedry, center
     !arrays
     integer, intent(out) :: bravais(3,3), bravSym(3, 3, AB6_MAX_SYMMETRIES)
@@ -681,10 +642,16 @@ contains
 
     if (AB_DBG) write(0,*) "AB symmetry: call get bravais."
 
-    errno = AB6_NO_ERROR
+    errno = AB7_NO_ERROR
     call get_item(token, id)
     if (.not. associated(token)) then
-       errno = AB6_ERROR_OBJ
+       errno = AB7_ERROR_OBJ
+       return
+    end if
+
+    if (token%data%FBC) then
+       !No sense for FBC
+       errno = AB7_ERROR_ARG
        return
     end if
 
@@ -700,8 +667,9 @@ contains
     bravSym(:, :, 1:nBravSym) = token%data%bravSym(:, :, 1:nBravSym)
   end subroutine symmetry_get_bravais
 
-  subroutine compute_matrices(sym, errno)
 
+  !> Determine the symmetries
+  subroutine compute_matrices(sym, errno)
 
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
@@ -718,7 +686,14 @@ contains
     real(dp) :: transNon_(3, AB6_MAX_SYMMETRIES)
     integer  :: symAfm_(AB6_MAX_SYMMETRIES)
 
-    errno = AB6_NO_ERROR
+    errno = AB7_NO_ERROR
+
+    if (sym%FBC) then
+       !Calculation for Free Boundary conditions (isolated systems)
+    !   call find_symmetries(sym%nAtoms, sym%typeAt, sym%xRed, sym%cPointer)
+       return
+    end if
+
 
     if (sym%nBravSym < 0) then
        ! We do the computation of the Bravais part.
@@ -796,12 +771,8 @@ contains
     if (AB_DBG) write(0, "(A,I3)") "  space:", sym%spaceGroup
   end subroutine compute_matrices
 
-  subroutine symmetry_get_n_sym(id, nSym, errno)
-    !scalars
 
-!This section has been created automatically by the script Abilint (TD).
-!Do not modify the following lines by hand.
-!End of the abilint section
+  subroutine symmetry_get_n_sym(id, nSym, errno)
 
     integer, intent(in) :: id
     integer, intent(out) :: errno
@@ -811,10 +782,10 @@ contains
 
     if (AB_DBG) write(0,*) "AB symmetry: call get nSym."
 
-    errno = AB6_NO_ERROR
+    errno = AB7_NO_ERROR
     call get_item(token, id)
     if (.not. associated(token)) then
-       errno = AB6_ERROR_OBJ
+       errno = AB7_ERROR_OBJ
        return
     end if
 
@@ -826,12 +797,8 @@ contains
     nSym = token%data%nSym
   end subroutine symmetry_get_n_sym
 
-  subroutine symmetry_set_n_sym(id, nSym, sym, transNon, symAfm, errno)
-    !scalars
 
-!This section has been created automatically by the script Abilint (TD).
-!Do not modify the following lines by hand.
-!End of the abilint section
+  subroutine symmetry_set_n_sym(id, nSym, sym, transNon, symAfm, errno)
 
     integer, intent(in)  :: id
     integer, intent(in)  :: nSym
@@ -844,15 +811,15 @@ contains
 
     if (AB_DBG) write(0,*) "AB symmetry: call get nSym."
 
-    errno = AB6_NO_ERROR
+    errno = AB7_NO_ERROR
     call get_item(token, id)
     if (.not. associated(token)) then
-       errno = AB6_ERROR_OBJ
+       errno = AB7_ERROR_OBJ
        return
     end if
 
     if (nSym <= 0) then
-       errno = AB6_ERROR_ARG
+       errno = AB7_ERROR_ARG
        return
     else
        allocate(token%data%sym(3, 3, nSym))
@@ -870,12 +837,8 @@ contains
     call compute_matrices(token%data, errno)
   end subroutine symmetry_set_n_sym
 
+
   subroutine symmetry_get_matrices(id, nSym, sym, transNon, symAfm, errno)
-
-
-!This section has been created automatically by the script Abilint (TD).
-!Do not modify the following lines by hand.
-!End of the abilint section
 
     integer, intent(in) :: id
     integer, intent(out) :: errno
@@ -888,10 +851,10 @@ contains
 
     if (AB_DBG) write(0,*) "AB symmetry: call get matrices."
 
-    errno = AB6_NO_ERROR
+    errno = AB7_NO_ERROR
     call get_item(token, id)
     if (.not. associated(token)) then
-       errno = AB6_ERROR_OBJ
+       errno = AB7_ERROR_OBJ
        return
     end if
 
@@ -924,10 +887,10 @@ contains
 
     if (AB_DBG) write(0,*) "AB symmetry: call get matrices as pointers."
 
-    errno = AB6_NO_ERROR
+    errno = AB7_NO_ERROR
     call get_item(token, id)
     if (.not. associated(token)) then
-       errno = AB6_ERROR_OBJ
+       errno = AB7_ERROR_OBJ
        return
     end if
 
@@ -956,10 +919,10 @@ contains
 
     if (AB_DBG) write(0,*) "AB symmetry: call get multiplicity."
 
-    errno = AB6_NO_ERROR
+    errno = AB7_NO_ERROR
     call get_item(token, id)
     if (.not. associated(token)) then
-       errno = AB6_ERROR_OBJ
+       errno = AB7_ERROR_OBJ
        return
     end if
 
@@ -993,10 +956,10 @@ contains
 
     if (AB_DBG) write(0,*) "AB symmetry: call get group."
 
-    errno = AB6_NO_ERROR
+    errno = AB7_NO_ERROR
     call get_item(token, id)
     if (.not. associated(token)) then
-       errno = AB6_ERROR_OBJ
+       errno = AB7_ERROR_OBJ
        return
     end if
 
@@ -1006,7 +969,7 @@ contains
     end if
 
     if (token%data%multiplicity /= 1) then
-       errno = AB6_ERROR_SYM_NOT_PRIMITIVE
+       errno = AB7_ERROR_SYM_NOT_PRIMITIVE
        return
     end if
 
@@ -1019,8 +982,8 @@ contains
     genAfm         = token%data%genAfm
   end subroutine symmetry_get_group
 
-  subroutine compute_equivalent_atoms(sym)
 
+  subroutine compute_equivalent_atoms(sym)
 
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
@@ -1049,8 +1012,8 @@ contains
     deallocate(symrec)
   end subroutine compute_equivalent_atoms
 
-  subroutine symmetry_get_equivalent_atom(id, equiv, iAtom, errno)
 
+  subroutine symmetry_get_equivalent_atom(id, equiv, iAtom, errno)
 
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
@@ -1065,15 +1028,15 @@ contains
 
     if (AB_DBG) write(0,*) "AB symmetry: call get equivalent."
 
-    errno = AB6_NO_ERROR
+    errno = AB7_NO_ERROR
     call get_item(token, id)
     if (.not. associated(token)) then
-       errno = AB6_ERROR_OBJ
+       errno = AB7_ERROR_OBJ
        return
     end if
 
     if (iAtom < 1 .or. iAtom > token%data%nAtoms) then
-       errno = AB6_ERROR_ARG
+       errno = AB7_ERROR_ARG
        return
     end if
 

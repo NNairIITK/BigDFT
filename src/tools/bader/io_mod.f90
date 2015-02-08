@@ -1,19 +1,19 @@
-! Copyright 2009
-! Wenjie Tang, Andri Arnaldsson, Samuel T. Chill, and Graeme Henkelman
-!
-! Bader is free software: you can redistribute it and/or modify
-! it under the terms of the GNU General Public License as published by
-! the Free Software Foundation, either version 3 of the License, or
-! (at your option) any later version.
-!
-! A copy of the GNU General Public License is available at
-! http://www.gnu.org/licenses/
+!> @file
+!!  Module for the Bader charge density analysis program
+!! @author
+!!  Copyright 2009
+!! Wenjie Tang, Andri Arnaldsson, Samuel T. Chill, and Graeme Henkelman
+!!
+!! Bader is free software: you can redistribute it and/or modify
+!! it under the terms of the GNU General Public License as published by
+!! the Free Software Foundation, either version 3 of the License, or
+!! (at your option) any later version.
+!!
+!! A copy of the GNU General Public License is available at
+!! http://www.gnu.org/licenses/
 
-!-----------------------------------------------------------------------------------!
-! Bader charge density analysis program
-!  Module for reading and writing charge density data
-!-----------------------------------------------------------------------------------!
 
+!> Module for reading and writing charge density data (Bader charge analysis)
 MODULE io_mod
   USE kind_mod
   USE matrix_mod
@@ -27,13 +27,12 @@ MODULE io_mod
   PRIVATE
   PUBLIC :: read_charge,read_charge_ref,write_charge
 
+
   CONTAINS
 
-!-----------------------------------------------------------------------------------!
-! read_charge: Reads the charge density from a file in vasp or Gaussian cube format,
-!    by first reading the header, and then charges
-!-----------------------------------------------------------------------------------!
 
+  !> Reads the charge density from a file in vasp or Gaussian cube format,
+  !! by first reading the header, and then charges
   SUBROUTINE read_charge(ions,chg,opts)
 
     TYPE(ions_obj) :: ions
@@ -82,11 +81,10 @@ MODULE io_mod
    
   RETURN
   END SUBROUTINE read_charge
-!-----------------------------------------------------------------------------------!
-! read_charge_ref: Reads the charge density from a file in vasp or Gaussian cube format,
-!    by first reading the header, and then charges
-!-----------------------------------------------------------------------------------!
 
+
+   !> Reads the charge density from a file in vasp or Gaussian cube format,
+   !! by first reading the header, and then charges
   SUBROUTINE read_charge_ref(ions,chg,opts)
 
     TYPE(ions_obj) :: ions
@@ -129,10 +127,8 @@ MODULE io_mod
   RETURN
   END SUBROUTINE read_charge_ref
 
-!-----------------------------------------------------------------------------------!
-! write_charge: Writes the charge density to a file in vasp or Gaussian cube format
-!-----------------------------------------------------------------------------------!
 
+  !> Writes the charge density to a file in vasp or Gaussian cube format
   SUBROUTINE write_charge(ions,chg,opts,chargefile)
 
     TYPE(ions_obj) :: ions
@@ -154,6 +150,5 @@ MODULE io_mod
   RETURN
   END SUBROUTINE write_charge
 
-!-----------------------------------------------------------------------------------!
 
 END MODULE io_mod

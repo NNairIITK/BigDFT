@@ -11,7 +11,8 @@
 subroutine comb_grow_all_hybrid(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,nw1,nw2&
      ,w1,w2,xc,xf,y,gb)
    !n(c) use module_base
-   use module_types
+  use module_defs, only: wp
+   use locregs, only: grow_bounds
    implicit none
    type(grow_bounds),intent(in):: gb
    integer,intent(in)::n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,nw1,nw2
@@ -269,7 +270,7 @@ END SUBROUTINE comb_rot_grow_ib_1
 !! then convolves with magic filter
 !! then adds the result to y.
 !! The size of the data is allowed to grow
-subroutine  comb_rot_grow(n1,ndat,x,y)
+subroutine comb_rot_grow(n1,ndat,x,y)
 use module_base
 implicit none
 integer,intent(in) :: n1,ndat
@@ -352,6 +353,7 @@ enddo
 !$omp do
 do l=(ndat/8)*8+1,ndat
    do i=0,n1
+      !SERIOUS DOUBTS ABOUT THIS LINE
       y2i =fil2(16,1)*x(tt,l)
       y2i1=0._wp
       do t=i-7,i+7
@@ -374,7 +376,8 @@ END SUBROUTINE comb_rot_grow
 !! The input array y is not overwritten
 subroutine comb_shrink_hyb(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,w1,w2,y,xc,xf,sb)
 !n(c) use module_base
-use module_types
+  use module_defs, only: wp
+use locregs, only: shrink_bounds
 implicit none
 type(shrink_bounds),intent(in):: sb
 integer, intent(in) :: n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3

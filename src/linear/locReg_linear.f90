@@ -1,6 +1,15 @@
+!> @file
+!!  Routines used by the linear scaling version
+!! @author
+!!    Copyright (C) 2012-2013 BigDFT group
+!!    This file is distributed under the terms of the
+!!    GNU General Public License, see ~/COPYING file
+!!    or http://www.gnu.org/copyleft/gpl.txt .
+!!    For the list of contributors, see ~/AUTHORS
+
+
 !> Determines the the wavefunction descriptors,wfd, and fine grid upper limit of locreg 
 !! taking into account the pediodicity
-!!          
 !! @warning
 !!    We assign Llr%nfl and llr%nfu with respect to the origin of the local zone, like in determine_locreg. 
 subroutine determine_wfd_periodicity(ilr,nlr,Glr,Llr)!,outofzone)
@@ -23,6 +32,8 @@ subroutine determine_wfd_periodicity(ilr,nlr,Glr,Llr)!,outofzone)
   integer,dimension(3) :: Gife,Gifs,iedir,isdir,Lifs,Life,period
   integer :: nseg_c,nseg_f,nvctr_c,nvctr_f      ! total number of sgements and elements
   character(len=*), parameter :: subname='determine_wfd_periodicity'
+
+  call f_routine(id='determine_wfd_periodicity')
 
    !starting point of locreg (always inside locreg)
    isdir(1) = Llr(ilr)%ns1
@@ -100,7 +111,7 @@ subroutine determine_wfd_periodicity(ilr,nlr,Glr,Llr)!,outofzone)
    Llr(ilr)%wfd%nvctr_f= nvctr_f
 
    !allocate the wavefunction descriptors following the needs
-   call allocate_wfd(Llr(ilr)%wfd,subname)
+   call allocate_wfd(Llr(ilr)%wfd)
 
    !Now, fill the descriptors:
    !coarse part
@@ -124,25 +135,26 @@ subroutine determine_wfd_periodicity(ilr,nlr,Glr,Llr)!,outofzone)
         Llr(ilr)%wfd%keyvglob(Llr(ilr)%wfd%nseg_c+min(1,Llr(ilr)%wfd%nseg_f)),&
         Llr(ilr)%outofzone(:))
 
+   call f_release_routine()
 
 END SUBROUTINE determine_wfd_periodicity
 
 
-subroutine determine_locregSphere_parallel(iproc,nproc,nlr,cxyz,locrad,hx,hy,hz,at,orbs,Glr,Llr,calculateBounds)!,outofzone)
+subroutine determine_locregSphere_parallel(iproc,nproc,nlr,hx,hy,hz,astruct,orbs,Glr,Llr,calculateBounds)!,outofzone)
+
   use module_base
   use module_types
   use module_interfaces, except_this_one => determine_locregSphere_parallel
+  use communications, only: communicate_locreg_descriptors_basics, communicate_locreg_descriptors_keys
 
   implicit none
   integer, intent(in) :: iproc,nproc
   integer, intent(in) :: nlr
   real(gp), intent(in) :: hx,hy,hz
-  type(atoms_data),intent(in) :: at
+  type(atomic_structure),intent(in) :: astruct
   type(orbitals_data),intent(in) :: orbs
   type(locreg_descriptors), intent(in) :: Glr
-  real(gp), dimension(nlr), intent(in) :: locrad
-  real(gp), dimension(3,nlr), intent(in) :: cxyz
-  type(locreg_descriptors), dimension(nlr), intent(out) :: Llr
+  type(locreg_descriptors), dimension(nlr), intent(inout) :: Llr
   logical,dimension(nlr),intent(in) :: calculateBounds
 !  integer, dimension(3,nlr),intent(out) :: outofzone
   !local variables
@@ -153,20 +165,29 @@ subroutine determine_locregSphere_parallel(iproc,nproc,nlr,cxyz,locrad,hx,hy,hz,
   integer :: Lnbl1,Lnbl2,Lnbl3,Lnbr1,Lnbr2,Lnbr3
   integer :: ilr,isx,isy,isz,iex,iey,iez
   integer :: ln1,ln2,ln3
-  integer :: ii, ierr, iall, istat, iorb, iat, norb, norbu, norbd, nspin, iilr
+  integer :: ii, iall, istat, iorb, iat, norb, norbu, norbd, nspin, jproc, iiorb
   integer,dimension(3) :: outofzone
-  integer,dimension(:),allocatable :: rootarr, norbsperatom, norbsperlocreg
+  integer,dimension(:),allocatable :: rootarr, norbsperatom, norbsperlocreg, onwhichmpi
   real(8),dimension(:,:),allocatable :: locregCenter
   type(orbitals_data) :: orbsder
 
-  allocate(rootarr(nlr), stat=istat)
-  call memocc(istat, rootarr, 'rootarr', subname)
+  call f_routine(id='determine_locregSphere_parallel')
+
+  rootarr = f_malloc(nlr,id='rootarr')
 
   ! Determine how many locregs one process handles at most
   ii=ceiling(dble(nlr)/dble(nproc))
   !determine the limits of the different localisation regions
   rootarr=1000000000
-  iilr=0
+
+  onwhichmpi=f_malloc(nlr,id='onwhichmpi')
+  iiorb=0
+  do jproc=0,nproc-1
+      do iorb=1,orbs%norb_par(jproc,0)
+          iiorb=iiorb+1
+          onWhichMPI(iiorb)=jproc
+      end do
+  end do
 
   call timing(iproc,'wfd_creation  ','ON')  
   do ilr=1,nlr
@@ -179,29 +200,19 @@ subroutine determine_locregSphere_parallel(iproc,nproc,nlr,cxyz,locrad,hx,hy,hz,
      yperiodic = .false.
      zperiodic = .false. 
 
-     !if(mod(ilr-1,nproc)==iproc) then
-     if(orbs%onwhichmpi(ilr)==iproc) then
-     !if (ilr>orbs%isorb .and. iilr<orbs%norbp) then
-     !    iilr=iilr+1
-     !if(calculateBounds(ilr) .or. (mod(ilr-1,nproc)==iproc)) then 
+
+     if(calculateBounds(ilr)) then 
          ! This makes sure that each locreg is only handled once by one specific processor.
     
-         llr(ilr)%locregCenter(1)=cxyz(1,ilr)
-         llr(ilr)%locregCenter(2)=cxyz(2,ilr)
-         llr(ilr)%locregCenter(3)=cxyz(3,ilr)
-
-         llr(ilr)%locrad=locrad(ilr)
-  
          ! Determine the extrema of this localization regions (using only the coarse part, since this is always larger or equal than the fine part).
          call determine_boxbounds_sphere(glr%d%n1, glr%d%n2, glr%d%n3, glr%ns1, glr%ns2, glr%ns3, hx, hy, hz, &
               llr(ilr)%locrad, llr(ilr)%locregCenter, &
-               glr%wfd%nseg_c, glr%wfd%keygloc, glr%wfd%keyvloc, isx, isy, isz, iex, iey, iez)
+              glr%wfd%nseg_c, glr%wfd%keygloc, glr%wfd%keyvloc, isx, isy, isz, iex, iey, iez)
     
          ln1 = iex-isx
          ln2 = iey-isy
          ln3 = iez-isz
-    
-    
+  
          ! Localization regions should have free boundary conditions by default
          Llr(ilr)%geocode='F'
     
@@ -379,25 +390,37 @@ subroutine determine_locregSphere_parallel(iproc,nproc,nlr,cxyz,locrad,hx,hy,hz,
   ! This communication is uneffective. Instead of using bcast we should be using mpialltoallv.
   call timing(iproc,'comm_llr      ','ON')
   if (nproc > 1) then
-     call mpiallred(rootarr(1), nlr, mpi_min, bigdft_mpi%mpi_comm, ierr)
+     call mpiallred(rootarr(1), nlr, mpi_min, bigdft_mpi%mpi_comm)
      
      ! Communicate those parts of the locregs that all processes need.
      call communicate_locreg_descriptors_basics(iproc, nlr, rootarr, orbs, llr)
 
+     !do ilr=1,nlr
+     !    write(*,*) 'iproc, nseg_c', iproc, llr(ilr)%wfd%nseg_c
+     !end do
 
      ! Now communicate those parts of the locreg that only some processes need (the keys).
      ! For this we first need to create orbsder that describes the derivatives.
-     call create_orbsder()
+     !call create_orbsder()
+
+     !iiorb=0
+     !onwhichmpider=f_malloc(orbsder%norb,id='onwhichmpider')
+     !do jproc=0,nproc-1
+     !   do iorb=1,orbsder%norb_par(jproc,0)
+     !     iiorb=iiorb+1
+     !     onWhichMPIder(iiorb)=jproc
+     !   end do
+     !end do
 
      ! Now communicate the keys
-     call communicate_locreg_descriptors_keys(iproc, nproc, nlr, glr, llr, orbs, orbsder, rootarr)
+     call communicate_locreg_descriptors_keys(iproc, nproc, nlr, glr, llr, orbs, rootarr, onwhichmpi)
 
-     call deallocate_orbitals_data(orbsder, subname)
+     !call deallocate_orbitals_data(orbsder)
+     !call f_free(onwhichmpider)
   end if
   call timing(iproc,'comm_llr      ','OF')
 
-
-!create the bound arrays for the locregs we need on the MPI tasks
+  !create the bound arrays for the locregs we need on the MPI tasks
   call timing(iproc,'calc_bounds   ','ON') 
   do ilr=1,nlr
          if (Llr(ilr)%geocode=='F' .and. calculateBounds(ilr) ) then
@@ -406,68 +429,49 @@ subroutine determine_locregSphere_parallel(iproc,nproc,nlr,cxyz,locrad,hx,hy,hz,
                  Llr(ilr)%d%nfl3,Llr(ilr)%d%nfu3,Llr(ilr)%wfd,Llr(ilr)%bounds)
          end if
   end do
+
   call timing(iproc,'calc_bounds   ','OF') 
 
+  call f_free(rootarr)
+
+  call f_free(onwhichmpi)
+  call f_release_routine()
 
 
-iall = -product(shape(rootarr))*kind(rootarr)
-deallocate(rootarr,stat=istat)
-call memocc(istat,iall,'rootarr',subname)
-
-
-
-contains 
-  subroutine create_orbsder()
-    call nullify_orbitals_data(orbsder)
-    allocate(norbsperatom(at%nat), stat=istat)
-    call memocc(istat, norbsperatom, 'norbsperatom', subname)
-    allocate(locregCenter(3,nlr), stat=istat)
-    call memocc(istat, locregCenter, 'locregCenter', subname)
-    allocate(norbsPerLocreg(nlr), stat=istat) 
-    call memocc(istat, norbsPerLocreg, 'norbsPerLocreg', subname)
-    norbsperatom=0
-    do iorb=1,orbs%norb
-        iat=orbs%onwhichatom(iorb)
-        norbsperatom(iat)=norbsperatom(iat)+3
-    end do
-    norb=3*orbs%norb
-    norbu=norb
-    norbd=0
-    nspin=1
-    call orbitals_descriptors(iproc, nproc, norb, norbu, norbd, nspin, orbs%nspinor,&
-         orbs%nkpts, orbs%kpts, orbs%kwgts, orbsder,.true.) !simple repartition
-    iall=-product(shape(orbsder%onwhichatom))*kind(orbsder%inWhichLocreg)
-    deallocate(orbsder%onwhichatom, stat=istat)
-    call memocc(istat, iall, 'orbsder%onwhichatom', subname)
-                 
-    call assignToLocreg2(iproc, nproc, orbsder%norb, orbsder%norb_par, at%nat, at%nat, &
-         nspin, norbsPerAtom, cxyz, orbsder%onwhichatom)
-
-
-    do ilr=1,nlr
-        locregCenter(:,ilr)=llr(ilr)%locregCenter
-    end do
-
-    iall=-product(shape(orbsder%inWhichLocreg))*kind(orbsder%inWhichLocreg)
-    deallocate(orbsder%inWhichLocreg, stat=istat)
-    norbsPerLocreg=3
-
-    call memocc(istat, iall, 'orbsder%inWhichLocreg', subname)
-    call assignToLocreg2(iproc, nproc, orbsder%norb, orbsder%norb_par, at%nat, nlr, &
-         nspin, norbsPerLocreg, locregCenter, orbsder%inwhichlocreg)
-
-    iall=-product(shape(locregCenter))*kind(locregCenter)
-    deallocate(locregCenter, stat=istat)
-    call memocc(istat, iall, 'locregCenter', subname)
-
-    iall=-product(shape(norbsPerLocreg))*kind(norbsPerLocreg)
-    deallocate(norbsPerLocreg, stat=istat)
-    call memocc(istat, iall, 'norbsPerLocreg', subname)
-
-    iall=-product(shape(norbsperatom))*kind(norbsperatom)
-    deallocate(norbsperatom, stat=istat)
-    call memocc(istat, iall, 'norbsperatom', subname)
-  end subroutine create_orbsder
+!!$  subroutine create_orbsder()
+!!$    call nullify_orbitals_data(orbsder)
+!!$    norbsperatom = f_malloc0(astruct%nat,id='norbsperatom')
+!!$    locregCenter = f_malloc((/ 3, nlr /),id='locregCenter')
+!!$    norbsPerLocreg = f_malloc(nlr,id='norbsPerLocreg')
+!!$    do iorb=1,orbs%norb
+!!$        iat=orbs%onwhichatom(iorb)
+!!$        norbsperatom(iat)=norbsperatom(iat)+3
+!!$    end do
+!!$    norb=3*orbs%norb
+!!$    norbu=norb
+!!$    norbd=0
+!!$    nspin=1
+!!$    call orbitals_descriptors(iproc, nproc, norb, norbu, norbd, nspin, orbs%nspinor,&
+!!$         orbs%nkpts, orbs%kpts, orbs%kwgts, orbsder,.true.) !simple repartition
+!!$    call f_free_ptr(orbsder%onwhichatom)
+!!$
+!!$    do ilr=1,nlr
+!!$        locregCenter(:,ilr)=llr(ilr)%locregCenter
+!!$    end do
+!!$                 
+!!$    call assignToLocreg2(iproc, nproc, orbsder%norb, orbsder%norb_par, astruct%nat, astruct%nat, &
+!!$         nspin, norbsPerAtom, locregCenter, orbsder%onwhichatom)
+!!$
+!!$    call f_free_ptr(orbsder%inWhichLocreg)
+!!$    norbsPerLocreg=3
+!!$
+!!$    call assignToLocreg2(iproc, nproc, orbsder%norb, orbsder%norb_par, astruct%nat, nlr, &
+!!$         nspin, norbsPerLocreg, locregCenter, orbsder%inwhichlocreg)
+!!$
+!!$    call f_free(locregCenter)
+!!$    call f_free(norbsPerLocreg)
+!!$    call f_free(norbsperatom)
+!!$  end subroutine create_orbsder
 
 END SUBROUTINE determine_locregSphere_parallel
 
@@ -498,6 +502,9 @@ subroutine determine_wfdSphere(ilr,nlr,Glr,hx,hy,hz,Llr)!,outofzone)
   integer,dimension(3) :: Gife,Gifs,iedir,isdir,Lifs,Life,period
   character(len=*), parameter :: subname='determine_wfdSphere'
 !!  integer :: nseg_c,nseg_f,nvctr_c,nvctr_f      ! total number of sgements and elements
+  integer, allocatable :: keygloc_tmp(:,:)
+
+   call f_routine(id=subname)
 
    !starting point of locreg (always inside global locreg)
    isdir(1) = Llr(ilr)%ns1
@@ -575,9 +582,17 @@ subroutine determine_wfdSphere(ilr,nlr,Glr,hx,hy,hz,Llr)!,outofzone)
         llr(ilr)%wfd%nseg_f, llr(ilr)%wfd%nvctr_f)
 
    !allocate the wavefunction descriptors following the needs
-   call allocate_wfd(Llr(ilr)%wfd,subname)
+   call allocate_wfd(Llr(ilr)%wfd)
 
    !Now, fill the descriptors:
+
+   keygloc_tmp = f_malloc((/ 2, (llr(ilr)%wfd%nseg_c+llr(ilr)%wfd%nseg_f) /),id='keygloc_tmp')
+
+   !$omp parallel default(private) &
+   !$omp shared(Glr,llr,hx,hy,hz,ilr,keygloc_tmp)  
+   !$omp sections
+   !$omp section
+
    !coarse part
    call segkeys_Sphere(Glr%d%n1, Glr%d%n2, Glr%d%n3, &
         glr%ns1, glr%ns2, glr%ns3, &
@@ -588,8 +603,10 @@ subroutine determine_wfdSphere(ilr,nlr,Glr,hx,hy,hz,Llr)!,outofzone)
         Glr%wfd%nseg_c, Glr%wfd%keygloc(1,1), &
         Glr%wfd%keyvloc(1), &
         llr(ilr)%wfd%keygloc(1,1),llr(ilr)%wfd%keyglob(1,1), &
-        llr(ilr)%wfd%keyvloc(1), llr(ilr)%wfd%keyvglob(1))
+        llr(ilr)%wfd%keyvloc(1), llr(ilr)%wfd%keyvglob(1), &
+        keygloc_tmp(1,1))
 
+   !$omp section
    !fine part
    call segkeys_Sphere(Glr%d%n1, Glr%d%n2, Glr%d%n3, &
         glr%ns1, glr%ns2, glr%ns3, &
@@ -602,7 +619,14 @@ subroutine determine_wfdSphere(ilr,nlr,Glr,hx,hy,hz,Llr)!,outofzone)
         llr(ilr)%wfd%keygloc(1,llr(ilr)%wfd%nseg_c+min(1,llr(ilr)%wfd%nseg_f)), &
         llr(ilr)%wfd%keyglob(1,llr(ilr)%wfd%nseg_c+min(1,llr(ilr)%wfd%nseg_f)), &
         llr(ilr)%wfd%keyvloc(llr(ilr)%wfd%nseg_c+min(1,llr(ilr)%wfd%nseg_f)), &
-        llr(ilr)%wfd%keyvglob(llr(ilr)%wfd%nseg_c+min(1,llr(ilr)%wfd%nseg_f)))
+        llr(ilr)%wfd%keyvglob(llr(ilr)%wfd%nseg_c+min(1,llr(ilr)%wfd%nseg_f)), &
+        keygloc_tmp(1,llr(ilr)%wfd%nseg_c+min(1,llr(ilr)%wfd%nseg_f)))  
+   !$omp end sections
+   !$omp end parallel
+
+   call f_free(keygloc_tmp)
+
+   call f_release_routine()
 
 
 END SUBROUTINE determine_wfdSphere
@@ -619,7 +643,7 @@ subroutine num_segkeys_periodic(n1,n2,n3,i1sc,i1ec,i2sc,i2ec,i3sc,i3ec,nseg,nvct
   integer, dimension(3),intent(in) :: outofzone
   !local variables
   logical :: lseg,go1,go2,go3
-  integer :: iseg,jj,j0,j1,ii,i1,i2,i3,i0,i,nsrt,nend,nvctr_check
+  integer :: iseg,jj,j0,j1,ii,i1,i2,i3,i0,i,nsrt,nend,nvctr_check,n1p1,np
 
   nvctr_loc=0
   !control variable
@@ -628,15 +652,16 @@ subroutine num_segkeys_periodic(n1,n2,n3,i1sc,i1ec,i2sc,i2ec,i3sc,i3ec,nseg,nvct
   nsrt=0
   nend=0
 
+  n1p1=n1+1
+  np=n1p1*(n2+1)
   do iseg=1,nseg
-     jj=keyv(iseg)
      j0=keyg(1,iseg)
      j1=keyg(2,iseg)
      ii=j0-1
-     i3=ii/((n1+1)*(n2+1))
-     ii=ii-i3*(n1+1)*(n2+1)
-     i2=ii/(n1+1)
-     i0=ii-i2*(n1+1)
+     i3=ii/np
+     ii=ii-i3*np
+     i2=ii/n1p1
+     i0=ii-i2*n1p1
      i1=i0+j1-j0
      lseg=.false.
      ! overlap conditions if zone completely inside simulation box
@@ -698,35 +723,41 @@ subroutine num_segkeys_sphere(n1, n2, n3, nl1glob, nl2glob, nl3glob, hx, hy, hz,
   integer,intent(out) :: nseg, nvctr
   !local variables
   logical :: segment
-  integer :: i, i1, i2, i3, nstart, nend, i2old, iseg, jj, j0, j1, ii, i0, ii1, ii2, ii3
+  integer :: i, i1, i2, i3, nstart, nend, iseg, jj, j0, j1, ii, i0, ii1, ii2, ii3, n1p1, np
   real(kind=8) :: cut, dx,dy, dz
 
 
   nvctr=0
   nstart=0
   nend=0
-  segment=.false.
 
   cut=locrad**2
-  i2old=-1
+  n1p1=n1+1
+  np=n1p1*(n2+1)
+
+  !$omp parallel default(none) &
+  !$omp shared(nsegglob,keygglob,nl1glob,nl2glob,nl3glob,locregCenter) &
+  !$omp shared(hx,hy,hz,cut,n1p1,np,nstart,nvctr,nend) &
+  !$omp private(iseg,jj,j0,j1,ii,i3,i2,i0,i1,ii2,ii3,ii1,i,dx,dy,dz,segment)
+  segment=.false.
+  !$omp do reduction(+:nstart,nvctr,nend)
   do iseg=1,nsegglob
-      jj=keyvglob(iseg)
       j0=keygglob(1,iseg)
       j1=keygglob(2,iseg)
       ii=j0-1
-      i3=ii/((n1+1)*(n2+1))
-      ii=ii-i3*(n1+1)*(n2+1)
-      i2=ii/(n1+1)
-      i0=ii-i2*(n1+1)
+      i3=ii/np
+      ii=ii-i3*np
+      i2=ii/n1p1
+      i0=ii-i2*n1p1
       i1=i0+j1-j0
 
       ii2=i2+nl2glob
       ii3=i3+nl3glob
 
+      dz=((ii3*hz)-locregCenter(3))**2
+      dy=((ii2*hy)-locregCenter(2))**2
       do i=i0,i1
           ii1=i+nl1glob
-          dz=((ii3*hz)-locregCenter(3))**2
-          dy=((ii2*hy)-locregCenter(2))**2
           dx=((ii1*hx)-locregCenter(1))**2
           if(dx+dy+dz<=cut) then
               nvctr=nvctr+1
@@ -741,15 +772,14 @@ subroutine num_segkeys_sphere(n1, n2, n3, nl1glob, nl2glob, nl3glob, hx, hy, hz,
               end if
           end if
       end do
-      !if(segment .and. i2/=i2old) then
       if(segment) then
           ! Always start a new segment if we come to a new line in y direction.
           nend=nend+1
           segment=.false.
       end if
-      i2old=i2
   end do
-
+  !$omp enddo
+  !$omp end parallel
 
   nseg=nstart
 
@@ -759,12 +789,12 @@ subroutine num_segkeys_sphere(n1, n2, n3, nl1glob, nl2glob, nl3glob, hx, hy, hz,
      stop 'nend <> nstart'
   endif
 
-
 END SUBROUTINE num_segkeys_sphere
 
 
 subroutine determine_boxbounds_sphere(n1glob, n2glob, n3glob, nl1glob, nl2glob, nl3glob, hx, hy, hz, locrad, locregCenter, &
            nsegglob, keygglob, keyvglob, ixmin, iymin, izmin, ixmax, iymax, izmax)
+  use dynamic_memory
   implicit none
   integer, intent(in) :: n1glob, n2glob, n3glob, nl1glob, nl2glob, nl3glob, nsegglob
   real(kind=8),intent(in) :: hx, hy, hz, locrad
@@ -773,14 +803,17 @@ subroutine determine_boxbounds_sphere(n1glob, n2glob, n3glob, nl1glob, nl2glob, 
   integer,dimension(nsegglob),intent(in) :: keyvglob
   integer,intent(out) :: ixmin, iymin, izmin, ixmax, iymax, izmax
   !local variables
-  integer :: i, i1, i2, i3, iseg, jj, j0, j1, ii, i0, ii1, ii2, ii3
+  integer :: i, i1, i2, i3, iseg, jj, j0, j1, ii, i0, ii1, ii2, ii3, n1p1, np
   real(kind=8) :: cut, dx,dy, dz
   !debug
   integer :: iiimin, isegmin
+
+  call f_routine(id='determine_boxbounds_sphere')
+
   iiimin=0
   isegmin=0
 
-  ! Initialize the retun values
+  ! Initialize the return values
   ixmax=0
   iymax=0
   izmax=0
@@ -789,36 +822,46 @@ subroutine determine_boxbounds_sphere(n1glob, n2glob, n3glob, nl1glob, nl2glob, 
   izmin=nl3glob+n3glob
 
   cut=locrad**2
+  n1p1=n1glob+1
+  np=n1p1*(n2glob+1)
+  !$omp parallel default(none) &
+  !$omp shared(nsegglob,keygglob,n1glob,n2glob,n3glob,nl1glob,nl2glob,nl3glob,locregCenter) &
+  !$omp shared(ixmin,iymin,izmin,ixmax,iymax,izmax,hx,hy,hz,cut,n1p1,np) &
+  !$omp private(iseg,jj,j0,j1,ii,i3,i2,i0,i1,ii2,ii3,ii1,i,dx,dy,dz,iiimin,isegmin)
+  !$omp do reduction(max:ixmax,iymax,izmax) reduction(min:ixmin,iymin,izmin)
   do iseg=1,nsegglob
-      jj=keyvglob(iseg)
       j0=keygglob(1,iseg)
       j1=keygglob(2,iseg)
       ii=j0-1
-      i3=ii/((n1glob+1)*(n2glob+1))
-      ii=ii-i3*(n1glob+1)*(n2glob+1)
-      i2=ii/(n1glob+1)
-      i0=ii-i2*(n1glob+1)
+      i3=ii/np
+      ii=ii-i3*np
+      i2=ii/n1p1
+      i0=ii-i2*n1p1
       i1=i0+j1-j0
 
       ii2=i2+nl2glob
       ii3=i3+nl3glob
 
+      dz=((ii3*hz)-locregCenter(3))**2
+      dy=((ii2*hy)-locregCenter(2))**2
       do i=i0,i1
           ii1=i+nl1glob
-          dz=((ii3*hz)-locregCenter(3))**2
-          dy=((ii2*hy)-locregCenter(2))**2
           dx=((ii1*hx)-locregCenter(1))**2
           if(dx+dy+dz<=cut) then
-              if(ii1>ixmax) ixmax=ii1
-              if(ii2>iymax) iymax=ii2
-              if(ii3>izmax) izmax=ii3
-              if(ii1<ixmin) ixmin=ii1 ; iiimin=j0-1 ; isegmin=iseg
-              if(ii2<iymin) iymin=ii2
-              if(ii3<izmin) izmin=ii3
+              ixmax=max(ii1,ixmax)
+              iymax=max(ii2,iymax)
+              izmax=max(ii3,izmax)
+              ixmin=min(ii1,ixmin)
+              !if(ii1<ixmin) iiimin=j0-1 ; isegmin=iseg
+              iymin=min(ii2,iymin)
+              izmin=min(ii3,izmin)
           end if
       end do
   end do
+  !$omp enddo
+  !$omp end parallel
 
+  call f_release_routine()
 
 END SUBROUTINE determine_boxbounds_sphere
 
@@ -838,10 +881,16 @@ subroutine segkeys_periodic(n1,n2,n3,i1sc,i1ec,i2sc,i2ec,i3sc,i3ec,nseg,nvctr,ke
   !local variables
   character(len=*),parameter :: subname = 'segkeys_periodic'
   logical :: go1,go2,go3,lseg
-  integer :: iseg,jj,j0,j1,ii,i1,i2,i3,i0,i,nsrt,nend,nvctr_check,n1l,n2l,n3l,i1l,i2l,i3l
+  integer :: iseg,jj,j0,j1,ii,i1,i2,i3,i0,i,nsrt,nend,nvctr_check,n1l,n2l,n3l,i1l,i2l,i3l,n1p1,np,n1lp1,nlp
   integer :: i_stat, i_all
   integer :: ngridp,ngridlob,loc
   integer, allocatable :: keyg_loc(:,:)
+
+  call f_routine('segkeys_periodic')
+
+  !should be initialized
+  ngridp=-1000
+  ngridlob=-1000
 
   !dimensions of the localisation region (O:nIl)
   ! must be smaller or equal to simulation box dimensions
@@ -850,23 +899,25 @@ subroutine segkeys_periodic(n1,n2,n3,i1sc,i1ec,i2sc,i2ec,i3sc,i3ec,nseg,nvctr,ke
   n3l=i3ec-i3sc
 
 
-  allocate(keyg_loc(2,nseg_loc),stat=i_stat)
-  call memocc(i_stat,keyg_loc,'keyg_loc',subname)
+  keyg_loc = f_malloc((/ 2, nseg_loc /),id='keyg_loc')
 
   !control variable
   nvctr_check=0
   !start and end points
   nsrt=0
   nend=0
+  n1p1=n1+1
+  np=n1p1*(n2+1)
+  n1lp1=n1l+1
+  nlp=n1lp1*(n2l+1)
   do iseg=1,nseg
-     jj=keyv(iseg)
      j0=keyg(1,iseg)
      j1=keyg(2,iseg)
      ii=j0-1
-     i3=ii/((n1+1)*(n2+1))
-     ii=ii-i3*(n1+1)*(n2+1)
-     i2=ii/(n1+1)
-     i0=ii-i2*(n1+1)
+     i3=ii/np
+     ii=ii-i3*np
+     i2=ii/n1p1
+     i0=ii-i2*n1p1
      i1=i0+j1-j0
      lseg=.false.
 
@@ -888,8 +939,8 @@ subroutine segkeys_periodic(n1,n2,n3,i1sc,i1ec,i2sc,i2ec,i3sc,i3ec,nseg,nvctr,ke
           if(outofzone(2) > 0 .and. i2 <= outofzone(2))i2l = i2 - i2sc + n2 + 1
           i3l=i3-i3sc
           if(outofzone(3) > 0 .and. i3 <= outofzone(3))i3l = i3 - i3sc + n3 + 1
-          ngridp=i3l*((n1l+1)*(n2l+1)) + i2l*(n1l+1) + i1l+1
-          ngridlob = i3 * ((n1+1)*(n2+1)) + i2 * (n1+1) + i + 1
+          ngridp=i3l*nlp + i2l*n1lp1 + i1l+1
+          ngridlob = i3 * np + i2 * n1p1 + i + 1
 
           nvctr_check=nvctr_check+1
           if (.not. lseg) then
@@ -940,16 +991,16 @@ subroutine segkeys_periodic(n1,n2,n3,i1sc,i1ec,i2sc,i2ec,i3sc,i3ec,nseg,nvctr,ke
 !    print *,'iseg,keyglob,keyvglob,keygloc,keyvloc',iseg,keyglob(1,iseg),keyvglob(iseg),keygloc(1,iseg),keyvloc(iseg)
  end do
 
- i_all = -product(shape(keyg_loc))*kind(keyg_loc)
- deallocate(keyg_loc, stat = i_stat)
- call memocc(i_stat,i_all,'keyg_loc',subname)
+ call f_free(keyg_loc)
+
+ call f_release_routine()
 
 END SUBROUTINE segkeys_periodic
 
 
 subroutine segkeys_Sphere(n1, n2, n3, nl1glob, nl2glob, nl3glob, nl1, nu1, nl2, nu2, nl3, nu3, nseg, hx, hy, hz, &
      locrad, locregCenter, &
-     nsegglob, keygglob, keyvglob, keyg_loc, keyg_glob, keyv_loc, keyv_glob)
+     nsegglob, keygglob, keyvglob, keyg_loc, keyg_glob, keyv_loc, keyv_glob, keygloc)
   use module_base
   implicit none
   integer,intent(in) :: n1, n2, n3, nl1glob, nl2glob, nl3glob, nl1, nu1, nl2, nu2, nl3, nu3, nseg, nsegglob
@@ -959,16 +1010,18 @@ subroutine segkeys_Sphere(n1, n2, n3, nl1glob, nl2glob, nl3glob, nl1, nu1, nl2, 
   integer,dimension(nsegglob),intent(in) :: keyvglob
   integer,dimension(2,nseg),intent(out) :: keyg_loc, keyg_glob
   integer,dimension(nseg),intent(out) :: keyv_loc, keyv_glob
+  integer,dimension(2,nseg),intent(out) :: keygloc !tmp
   !local variables
   character(len=*),parameter :: subname = 'segkeys_Sphere'
-  integer :: i, i1, i2, i3, nstart, nend, nvctr, igridpoint, igridglob, i2old, iseg, jj, j0, j1, ii, i0, n1l, n2l, n3l
-  integer :: i1l, i2l, i3l, ii1, ii2, ii3, istat, iall, loc
+  integer :: i, i1, i2, i3, nstart, nend, nvctr, igridpoint, igridglob, iseg, jj, j0, j1, ii, i0, n1l, n2l, n3l
+  integer :: i1l, i2l, i3l, ii1, ii2, ii3, istat, iall, loc, n1p1, np, n1lp1, nlp, igridpointa, igridgloba
   real(kind=8) :: cut, dx, dy, dz
   logical :: segment
-  integer, allocatable :: keygloc(:,:)
+  !integer, allocatable :: keygloc(:,:)
 
-  allocate(keygloc(2,nseg),stat=istat)
-  call memocc(istat,keygloc,'keygloc',subname)
+  !call f_routine('segkeys_Sphere')
+
+  !keygloc = f_malloc((/ 2, nseg /),id='keygloc')
 
   !dimensions of the localisation region (O:nIl)
   ! must be smaller or equal to simulation box dimensions
@@ -984,32 +1037,37 @@ subroutine segkeys_Sphere(n1, n2, n3, nl1glob, nl2glob, nl3glob, nl1, nu1, nl2, 
   nend=0
   segment=.false.
 
+  !can add openmp here too as segment always ends at end of y direction? 
+  !problem is need nend value - can do a pre-scan to find seg value only as with init_collcom.
+  !for now just do omp section
   cut=locrad**2
-  i2old=-1
+  n1p1=n1+1
+  np=n1p1*(n2+1)
+  n1lp1=n1l+1
+  nlp=n1lp1*(n2l+1)
   do iseg=1,nsegglob
-      jj=keyvglob(iseg)
       j0=keygglob(1,iseg)
       j1=keygglob(2,iseg)
       ii=j0-1
-      i3=ii/((n1+1)*(n2+1))
-      ii=ii-i3*(n1+1)*(n2+1)
-      i2=ii/(n1+1)
-      i0=ii-i2*(n1+1)
+      i3=ii/np
+      ii=ii-i3*np
+      i2=ii/n1p1
+      i0=ii-i2*n1p1
       i1=i0+j1-j0
-
       ii2=i2+nl2glob
       ii3=i3+nl3glob
-
+      dz=((ii3*hz)-locregCenter(3))**2
+      dy=((ii2*hy)-locregCenter(2))**2
+      i2l=ii2-nl2
+      i3l=ii3-nl3
+      igridpointa=i3l*nlp+i2l*n1lp1+1
+      igridgloba=ii3*np+ii2*n1p1+1 
       do i=i0,i1
           ii1=i+nl1glob
-          dz=((ii3*hz)-locregCenter(3))**2
-          dy=((ii2*hy)-locregCenter(2))**2
           dx=((ii1*hx)-locregCenter(1))**2
           i1l=ii1-nl1
-          i2l=ii2-nl2
-          i3l=ii3-nl3
-          igridpoint=i3l*((n1l+1)*(n2l+1)) + i2l*(n1l+1) + i1l+1
-          igridglob = ii3*(n1+1)*(n2+1) + ii2*(n1+1) + ii1 + 1 
+          igridpoint=igridpointa+i1l
+          igridglob=igridgloba+ii1 
           if(dx+dy+dz<=cut) then
               ! Check that we are not outside the global region
               if(ii1>nu1) then
@@ -1048,7 +1106,6 @@ subroutine segkeys_Sphere(n1, n2, n3, nl1glob, nl2glob, nl3glob, nl1, nu1, nl2, 
           keyg_glob(2,nend)=igridglob
           segment=.false.
       end if
-      i2old=i2
   end do
 
   if (nend /= nstart) then
@@ -1071,11 +1128,12 @@ subroutine segkeys_Sphere(n1, n2, n3, nl1glob, nl2glob, nl3glob, nl1, nu1, nl2, 
      keyv_loc(iseg) = keyv_glob(loc)
 !    print *,'iseg,keyglob,keyvglob,keygloc,keyvloc',iseg,keyglob(1,iseg),keyvglob(iseg),keygloc(1,iseg),keyvloc(iseg)
   end do
-  iall = -product(shape(keygloc))*kind(keygloc)
-  deallocate(keygloc,stat=istat)
-  call memocc(istat,iall,'keygloc',subname)
+  !call f_free(keygloc)
+
+  !call f_release_routine()
 
 END SUBROUTINE segkeys_Sphere
+
 
 !> Divides the locreg into zones contained inside the simulation box, by applying the primitive vectors
 !! It returns: astart(3,nzones) which is the starting points of the different zones (max. 8)
@@ -1158,6 +1216,7 @@ subroutine fracture_periodic_zone(nzones,Glr,Llr,outofzone,astart,aend)
 
 END SUBROUTINE fracture_periodic_zone
 
+
 !> Determine a set of localisation regions from the centers and the radii.
 !! cut in cubes the global reference system
 subroutine check_linear_inputguess(iproc,nlr,cxyz,locrad,hx,hy,hz,Glr,linear)
@@ -1228,6 +1287,7 @@ subroutine check_linear_inputguess(iproc,nlr,cxyz,locrad,hx,hy,hz,Glr,linear)
   end do
       
 end subroutine check_linear_inputguess
+
 
 !> Determine a set of localisation regions from the centers and the radii.
 !! cut in cubes the global reference system
@@ -1515,213 +1575,8 @@ END SUBROUTINE determine_locreg_parallel
 
 
 
-subroutine check_overlapregion(glr, llr_i, llr_j, olr)
-use module_base
-use module_types
-implicit none
-
-! Calling arguments
-type(locreg_descriptors),intent(in) :: glr, llr_i, llr_j, olr
-
-  if(olr%ns1<glr%ns1) then
-      write(*,'(a,2(i0,a))') 'ERROR: olr%ns1 = ', olr%ns1, ' < ', glr%ns1, '= glr%ns1'
-      stop
-  end if
-  if(olr%ns2<glr%ns2) then
-      write(*,'(a,2(i0,a))') 'ERROR: olr%ns2 = ', olr%ns2, ' < ', glr%ns2, '= glr%ns2'
-      stop
-  end if
-  if(olr%ns3<glr%ns3) then
-      write(*,'(a,2(i0,a))') 'ERROR: olr%ns3 = ', olr%ns3, ' < ', glr%ns3, '= glr%ns3'
-      stop
-  end if
-  if(olr%ns1+olr%d%n1>glr%ns1+glr%d%n1) then
-      write(*,'(a,2(i0,a))') 'ERROR: olr%ns1+olr%d%n1 = ', olr%ns1+olr%d%n1, ' < ', glr%ns1+glr%d%n1, '= glr%ns1+glr%d%n1'
-      stop
-  end if
-  if(olr%ns2+olr%d%n2>glr%ns2+glr%d%n2) then
-      write(*,'(a,2(i0,a))') 'ERROR: olr%ns2+olr%d%n2 = ', olr%ns2+olr%d%n2, ' < ', glr%ns2+glr%d%n2, '= glr%ns2+glr%d%n2'
-      stop
-  end if
-  if(olr%ns3+olr%d%n3>glr%ns3+glr%d%n3) then
-      write(*,'(a,2(i0,a))') 'ERROR: olr%ns3+olr%d%n3 = ', olr%ns3+olr%d%n3, ' < ', glr%ns3+glr%d%n3, '= glr%ns3+glr%d%n3'
-      stop
-  end if
-  
-  if(olr%ns1<llr_i%ns1) then
-      write(*,'(a,2(i0,a))') 'ERROR: olr%ns1 = ', olr%ns1, ' < ', llr_i%ns1, '= llr_i%ns1'
-      stop
-  end if
-  if(olr%ns2<llr_i%ns2) then
-      write(*,'(a,2(i0,a))') 'ERROR: olr%ns2 = ', olr%ns2, ' < ', llr_i%ns2, '= llr_i%ns2'
-      stop
-  end if
-  if(olr%ns3<llr_i%ns3) then
-      write(*,'(a,2(i0,a))') 'ERROR: olr%ns3 = ', olr%ns3, ' < ', llr_i%ns3, '= llr_i%ns3'
-      stop
-  end if
-  if(olr%ns1+olr%d%n1>llr_i%ns1+llr_i%d%n1) then
-      write(*,'(a,2(i0,a))') 'ERROR: olr%ns1+olr%d%n1 = ', olr%ns1+olr%d%n1, ' < ', llr_i%ns1+llr_i%d%n1, '= llr_i%ns1+llr_i%d%n1'
-      stop
-  end if
-  if(olr%ns2+olr%d%n2>llr_i%ns2+llr_i%d%n2) then
-      write(*,'(a,2(i0,a))') 'ERROR: olr%ns2+olr%d%n2 = ', olr%ns2+olr%d%n2, ' < ', llr_i%ns2+llr_i%d%n2, '= llr_i%ns2+llr_i%d%n2'
-      stop
-  end if
-  if(olr%ns3+olr%d%n3>llr_i%ns3+llr_i%d%n3) then
-      write(*,'(a,2(i0,a))') 'ERROR: olr%ns3+olr%d%n3 = ', olr%ns3+olr%d%n3, ' < ', llr_i%ns3+llr_i%d%n3, '= llr_i%ns3+llr_i%d%n3'
-      stop
-  end if
-  
-  if(olr%ns1<llr_j%ns1) then
-      write(*,'(a,2(i0,a))') 'ERROR: olr%ns1 = ', olr%ns1, ' < ', llr_j%ns1, '= llr_j%ns1'
-      stop
-  end if
-  if(olr%ns2<llr_j%ns2) then
-      write(*,'(a,2(i0,a))') 'ERROR: olr%ns2 = ', olr%ns2, ' < ', llr_j%ns2, '= llr_j%ns2'
-      stop
-  end if
-  if(olr%ns3<llr_j%ns3) then
-      write(*,'(a,2(i0,a))') 'ERROR: olr%ns3 = ', olr%ns3, ' < ', llr_j%ns3, '= llr_j%ns3'
-      stop
-  end if
-  if(olr%ns1+olr%d%n1>llr_j%ns1+llr_j%d%n1) then
-      write(*,'(a,2(i0,a))') 'ERROR: olr%ns1+olr%d%n1 = ', olr%ns1+olr%d%n1, ' < ', llr_j%ns1+llr_j%d%n1, '= llr_j%ns1+llr_j%d%n1'
-      stop
-  end if
-  if(olr%ns2+olr%d%n2>llr_j%ns2+llr_j%d%n2) then
-      write(*,'(a,2(i0,a))') 'ERROR: olr%ns2+olr%d%n2 = ', olr%ns2+olr%d%n2, ' < ', llr_j%ns2+llr_j%d%n2, '= llr_j%ns2+llr_j%d%n2'
-      stop
-  end if
-  if(olr%ns3+olr%d%n3>llr_j%ns3+llr_j%d%n3) then
-      write(*,'(a,2(i0,a))') 'ERROR: olr%ns3+olr%d%n3 = ', olr%ns3+olr%d%n3, ' < ', llr_j%ns3+llr_j%d%n3, '= llr_j%ns3+llr_j%d%n3'
-      stop
-  end if
 
 
-end subroutine check_overlapregion
-
-
-
-
-!> Gives the dimensions of the overlap box resulting from the overlap of two wavefunction descriptors and
-!> the number of segments of the resulting overlap descriptor.
-!> Calling arguments: *_i refers to overlap region i (input)
-!>                    *_j refers to overlap region j (input)
-!>                    *_g refers to the global region (input)
-!>                    *_k refers to the overlap region (output)
-subroutine overlapbox_from_descriptors(n1_i, n2_i, n3_i, n1_j, n2_j, n3_j, n1_g, n2_g, n3_g, &
-           ns1_i, ns2_i, ns3_i, ns1_j, ns2_j, ns3_j, ns1_g, ns2_g, ns3_g, &
-           nseg_i, nseg_j, &
-           keyg_i, keyv_i, keyg_j, keyv_j, &
-           n1_k, n2_k, n3_k, ns1_k, ns2_k, ns3_k, nseg_k)
-use module_base
-use module_types
-implicit none
-
-! Calling arguments
-integer,intent(in) :: n1_i, n2_i, n3_i, n1_j, n2_j, n3_j, n1_g, n2_g, n3_g
-integer,intent(in) :: ns1_i, ns2_i, ns3_i, ns1_j, ns2_j, ns3_j, ns1_g, ns2_g, ns3_g
-integer :: nseg_i, nseg_j
-integer,dimension(2,nseg_i),intent(in) :: keyg_i
-integer,dimension(nseg_i),intent(in) :: keyv_i
-integer,dimension(2,nseg_j),intent(in) :: keyg_j
-integer,dimension(nseg_j),intent(in) :: keyv_j
-integer,intent(out) :: n1_k, n2_k, n3_k, ns1_k, ns2_k, ns3_k, nseg_k
-
-! Local variables
-integer :: iseg, jseg, istart, jstart, istartg, jstartg, kstartg
-integer :: iend, jend, iendg, jendg, kendg, transform_index
-integer :: kxs, kys, kzs, kxe, kye, kze, kxemax, kyemax, kzemax
-character(len=1) :: increase
-
-
-! Initialize the return values such that they represent a box with no volume
-ns1_k=ns1_g+n1_g+1
-ns2_k=ns2_g+n2_g+1
-ns3_k=ns3_g+n3_g+1
-n1_k=0
-n2_k=0
-n3_k=0
-nseg_k=0
-
-! Quick return if possible
-if(nseg_i==0 .or. nseg_j==0) return
-
-! Initialize some counters
-iseg=min(1,nseg_i)
-jseg=min(1,nseg_j)
-kxemax=0
-kyemax=0
-kzemax=0
-
-
-segment_loop: do
-
-    ! Starting point in local coordinates
-    istart=keyg_i(1,iseg)
-    jstart=keyg_j(1,jseg)
-
-    ! Get the global counterparts
-    istartg=transform_index(istart, n1_i, n2_i, n3_i, n1_g, n2_g, n3_g, ns1_i-ns1_g, ns2_i-ns2_g, ns3_i-ns3_g)
-    jstartg=transform_index(jstart, n1_j, n2_j, n3_j, n1_g, n2_g, n3_g, ns1_j-ns1_g, ns2_j-ns2_g, ns3_j-ns3_g)
-
-    ! Ending point in local coordinates
-    iend=keyg_i(2,iseg)
-    jend=keyg_j(2,jseg)
-
-    ! Get the global counterparts
-    iendg=transform_index(iend, n1_i, n2_i, n3_i, n1_g, n2_g, n3_g, ns1_i-ns1_g, ns2_i-ns2_g, ns3_i-ns3_g)
-    jendg=transform_index(jend, n1_j, n2_j, n3_j, n1_g, n2_g, n3_g, ns1_j-ns1_g, ns2_j-ns2_g, ns3_j-ns3_g)
-
-    ! Determine starting and ending point of the common segment in global coordinates.
-    kstartg=max(istartg,jstartg)
-    kendg=min(iendg,jendg)
-
-    ! Determine which segment counter should be increased.
-    if((iendg<=jendg .and. iseg<nseg_i) .or. jseg==nseg_j) then
-        increase='i'
-    else if(jseg<nseg_j) then
-        increase='j'
-    end if
-
-    ! Check whether this common segment has a non-zero length
-    if(kendg-kstartg+1>0) then
-        nseg_k=nseg_k+1
-
-        ! Get the global coordinates of this segment
-        call get_coordinates(kstartg, n1_g, n2_g, n3_g, kxs, kys, kzs)
-        call get_coordinates(kendg, n1_g, n2_g, n3_g, kxe, kye, kze)
-
-        ! Check whether this segment enlarges the overlap box
-        if(kxs<ns1_k) ns1_k=kxs
-        if(kys<ns2_k) ns2_k=kys
-        if(kzs<ns3_k) ns3_k=kzs
-        if(kxe>kxemax) kxemax=kxe
-        if(kye>kyemax) kyemax=kye
-        if(kze>kzemax) kzemax=kze
-
-    end if
-
-    ! Check whether all segments of both localization regions have been processed.
-    if(iseg>=nseg_i .and. jseg>=nseg_j) exit segment_loop
-
-    ! Increase the segment index
-    if(increase=='i') then
-        iseg=iseg+1
-    else if(increase=='j') then
-        jseg=jseg+1
-    end if
-
-end do segment_loop
-
-! n1_k etc is the length of the segment, but kxemax etc is the end position of the segment, 
-! therefore subtract the starting position
-n1_k=kxemax-ns1_k
-n2_k=kyemax-ns2_k
-n3_k=kzemax-ns3_k
-
-end subroutine overlapbox_from_descriptors
 
 
 ! check if Llrs overlap from there descriptors
@@ -1729,332 +1584,143 @@ end subroutine overlapbox_from_descriptors
 ! which are correctly defined. 
 subroutine check_overlap_from_descriptors_periodic(nseg_i, nseg_j, keyg_i, keyg_j,  &
            isoverlap, onseg)
-use module_base
-use module_types
-implicit none
-! Calling arguments
-integer :: nseg_i, nseg_j
-integer,dimension(2,nseg_i),intent(in) :: keyg_i
-integer,dimension(2,nseg_j),intent(in) :: keyg_j
-logical,intent(out) :: isoverlap
-integer, intent(out) :: onseg
-! Local variables
-integer :: iseg, jseg, istart, jstart, kstartg
-integer :: iend, jend, kendg, nseg_k
+  use module_base
+  use module_types
+  implicit none
+  ! Calling arguments
+  integer :: nseg_i, nseg_j
+  integer,dimension(2,nseg_i),intent(in) :: keyg_i
+  integer,dimension(2,nseg_j),intent(in) :: keyg_j
+  logical,intent(out) :: isoverlap
+  integer, intent(out) :: onseg
+  ! Local variables
+  integer :: iseg, jseg, istart, jstart, kstartg
+  integer :: iend, jend, kendg, nseg_k
 
 
-! Initialize some counters
-iseg=1
-jseg=1
-nseg_k=0
-isoverlap = .false.
-onseg = 0  ! in case they don't overlap
-segment_loop: do
+  ! Initialize some counters
+  iseg=1
+  jseg=1
+  nseg_k=0
+  isoverlap = .false.
+  onseg = 0  ! in case they don't overlap
+  ! Check whether all segments of both localization regions have been processed.
+  if(iseg>=nseg_i .and. jseg>=nseg_j) return
 
-    ! Starting point already in global coordinates
-    istart=keyg_i(1,iseg)
-    jstart=keyg_j(1,jseg)
+  segment_loop: do
 
-    ! Ending point already in global coordinates
-    iend=keyg_i(2,iseg)
-    jend=keyg_j(2,jseg)
-    ! Determine starting and ending point of the common segment in global coordinates.
-    kstartg=max(istart,jstart)
-    kendg=min(iend,jend)
+      ! Starting point already in global coordinates
+      istart=keyg_i(1,iseg)
+      jstart=keyg_j(1,jseg)
 
-    ! Check whether this common segment has a non-zero length
-    if(kendg-kstartg+1>0) then
-        isoverlap = .true.
-        nseg_k=nseg_k+1
-    end if
+      ! Ending point already in global coordinates
+      iend=keyg_i(2,iseg)
+      jend=keyg_j(2,jseg)
+      ! Determine starting and ending point of the common segment in global coordinates.
+      kstartg=max(istart,jstart)
+      kendg=min(iend,jend)
 
-    ! Check whether all segments of both localization regions have been processed.
-    if(iseg>=nseg_i .and. jseg>=nseg_j) exit segment_loop
+      ! Check whether this common segment has a non-zero length
+      if(kendg-kstartg+1>0) then
+          isoverlap = .true.
+          nseg_k=nseg_k+1
+      end if
 
-    ! Increase the segment index
-    if((iend<=jend .and. iseg<nseg_i) .or. jseg==nseg_j) then
-        iseg=iseg+1
-    else if(jseg<nseg_j) then
-        jseg=jseg+1
-    end if
+      ! Check whether all segments of both localization regions have been processed.
+      if(iseg>=nseg_i .and. jseg>=nseg_j) exit segment_loop
 
-end do segment_loop
+      ! Increase the segment index
+      if((iend<=jend .and. iseg<nseg_i) .or. jseg==nseg_j) then
+          iseg=iseg+1
+      else if(jseg<nseg_j) then
+          jseg=jseg+1
+      end if
 
-if(isoverlap) then
-   onseg = nseg_k
-end if
+  end do segment_loop
+
+  if(isoverlap) then
+     onseg = nseg_k
+  end if
 
 end subroutine check_overlap_from_descriptors_periodic
 
-subroutine get_overlap_from_descriptors_periodic(nseg_i, nseg_j, keyg_i, keyg_j,  &                                                                                                                          
-           isoverlap,onseg, onvctr, keyglob, keyvglob)
-use module_base
-use module_types
-implicit none
-! Calling arguments
-integer :: nseg_i, nseg_j
-integer,dimension(2,nseg_i),intent(in) :: keyg_i
-integer,dimension(2,nseg_j),intent(in) :: keyg_j
-logical, intent(in) :: isoverlap
-integer, intent(in) :: onseg
-integer, intent(out) :: onvctr
-integer, dimension(2,max(onseg,1)),intent(out) :: keyglob
-integer, dimension(max(onseg,1)), intent(out) :: keyvglob
-! Local variables
-integer :: iseg, jseg, knvctr, istart, jstart, kstartg
-integer :: iend, jend, kendg, nseg_k
 
-if(.not. isoverlap) then
-!initialize the variable
-onvctr = 0
-return
-end if
+  subroutine check_overlap(Llr_i, Llr_j, Glr, overlap)
+  use locregs, only: locreg_descriptors
+  implicit none
 
-nseg_k = 0
-knvctr = 1
-iseg = 1
-jseg= 1
-segment_loop: do
+  ! Calling arguments
+  type(locreg_descriptors),intent(in) :: Llr_i, Llr_j, Glr
+  logical, intent(out) :: overlap
 
-    ! Starting point already in global coordinates
-    istart=keyg_i(1,iseg)
-    jstart=keyg_j(1,jseg)
+  ! Local variables
+  integer :: onseg
 
-    ! Ending point already in global coordinates
-    iend=keyg_i(2,iseg)
-    jend=keyg_j(2,jseg)
-
-    ! Determine starting and ending point of the common segment in global coordinates.
-    kstartg=max(istart,jstart)
-    kendg=min(iend,jend)
-
-    ! Check whether this common segment has a non-zero length
-    ! and assign the keys
-    if(kendg-kstartg+1>0) then
-        nseg_k=nseg_k+1
-        keyglob(1,nseg_k) = kstartg
-        keyglob(2,nseg_k) = kendg
-        keyvglob(nseg_k) =  knvctr
-        knvctr = knvctr + kendg-kstartg+1
+    call check_overlap_cubic_periodic(Glr,Llr_i,Llr_j,overlap)
+    if(overlap) then
+      call check_overlap_from_descriptors_periodic(Llr_i%wfd%nseg_c, Llr_j%wfd%nseg_c,&
+           Llr_i%wfd%keyglob, Llr_j%wfd%keyglob, overlap, onseg)
     end if
-
-    ! Check whether all segments of both localization regions have been processed.
-    if(iseg>=nseg_i .and. jseg>=nseg_j) exit segment_loop
-
-    ! Increase the segment index
-    if((iend<=jend .and. iseg<nseg_i) .or. jseg==nseg_j) then
-        iseg=iseg+1
-    else if(jseg<nseg_j) then
-        jseg=jseg+1
-    end if
-
-end do segment_loop
-
-onvctr = knvctr-1
-!check if everything matches
-if(onseg .ne. nseg_k) then
-  print *,'onseg ',onseg,' nseg_k ',nseg_k
-  stop 'get_overlap_from_descriptors_periodic: number of segments not right'
-end if
-
-end subroutine get_overlap_from_descriptors_periodic
-
-!> Transform an index from localization region A to localization region B.
-!! Calling arguments:
-!!   ist: index to transform (with respcet to coordinate system of locreg A)
-!!   n1a, n2a, n3a:             box size of locreg A
-!!   n1b, n2b, n3b:             box size of locreg B
-!!   nshift1, nshift2, nshift3: nsa-nsb, where nsa,nsb are the starting points of the boxes of A,B (for all 3 dimensions)
-function transform_index(ist, n1a, n2a, n3a, n1b, n2b, n3b, nshift1, nshift2, nshift3)
-implicit none
-
-! Calling arguments
-integer,intent(in) :: ist, n1a, n2a, n3a, n1b, n2b, n3b, nshift1, nshift2, nshift3
-integer :: transform_index
-
-! Local variables
-integer :: ii, ix, iy, iz, ixg, iyg, izg, istg
-
-  ! Get the coordinates with respect to localization region A
-  ii = ist - 1
-  iz = ii / ((n1a+1) * (n2a+1))
-  ii = ii - iz * ((n1a+1) * (n2a+1))
-  iy = ii / (n1a+1)
-  ix = ii - iy * (n1a+1)
-
-  ! Transform ix, iy, iz to the coordinates with respect to localization region B
-  ! WARNING: MODULO ONLY CORRECT WHEN COMPARING TO GLR
-  ! FOR NOW THIS FUNCTION ALWAYS DOES THIS... SHOULD DISAPEAR NOW THE KEYGLOB IS DEFINED
-!!  izg = modulo(iz + nshift3, n3b)
-!!  iyg = modulo(iy + nshift2, n2b)
-!!  ixg = modulo(ix + nshift1, n1b)
-  izg = iz + nshift3
-  iyg = iy + nshift2
-  ixg = ix + nshift1
-
-  ! Transform ist to its counterpart in the coordinate system of B
-  istg = izg*(n1b+1)*(n2b+1) + iyg*(n1b+1) + ixg + 1
-  
-  ! Assign istg to the value that is passed back.
-  transform_index=istg
-
-end function transform_index
-
-
-
-!> Get the coordinates of ist with respect to its localization region
-!! Calling arguments:
-!!  ist          index for which coordinates shall be calculated
-!!  n1, n2, n3   box sizes
-!!  ix, iy, iz   coordinates of ist
-subroutine get_coordinates(ist, n1, n2, n3, ix, iy, iz)
-implicit none
-
-! Calling arguments
-integer,intent(in) :: ist, n1, n2, n3
-integer,intent(out) :: ix, iy, iz
-
-! Local variable
-integer :: ii
-
-  ! Get the coordinates ix, iy, iz
-  ii = ist - 1
-  !ii = ist
-  iz = ii / ((n1+1) * (n2+1))
-  ii = ii - iz * ((n1+1) * (n2+1))
-  iy = ii / (n1+1)
-  ix = ii - iy * (n1+1)
-
-end subroutine get_coordinates
-
-subroutine check_overlap(Llr_i, Llr_j, Glr, overlap)
-use module_base
-use module_types
-use module_interfaces
-implicit none
-
-! Calling arguments
-type(locreg_descriptors),intent(in) :: Llr_i, Llr_j, Glr
-logical, intent(out) :: overlap
-
-! Local variables
-integer :: onseg
-
-  call check_overlap_cubic_periodic(Glr,Llr_i,Llr_j,overlap)
-  if(overlap) then
-    call check_overlap_from_descriptors_periodic(Llr_i%wfd%nseg_c, Llr_j%wfd%nseg_c,&
-         Llr_i%wfd%keyglob, Llr_j%wfd%keyglob, overlap, onseg)
-  end if
 
 end subroutine check_overlap
 
 
 subroutine transform_keyglob_to_keygloc(Glr,Llr,nseg,keyglob,keygloc)
-use module_base
-use module_types
-use module_interfaces
-implicit none
-type(locreg_descriptors),intent(in) :: Glr, Llr
-integer, intent(in) :: nseg
-integer, dimension(2,nseg),intent(in) :: keyglob
-integer, dimension(2,nseg),intent(out) :: keygloc
-!local variables
-integer :: i, j, j0, ii, iz, iy, ix
-do i = 1 , 2
-   do j = 1, nseg
-      ! Writing keyglob in cartesian coordinates
-      j0 = keyglob(i,j)
-      ii = j0-1
-      iz = ii/((Glr%d%n1+1)*(Glr%d%n2+1))
-      ii = ii-iz*(Glr%d%n1+1)*(Glr%d%n2+1)
-      iy = ii/(Glr%d%n1+1)
-      ix = ii-iy*(Glr%d%n1+1)
 
-      ! Checking consistency
-      if(iz < Llr%ns3 .or. iy < Llr%ns2 .or. ix < Llr%ns1) stop 'transform_keyglob_to_keygloc : minimum overflow'
-      if(iz > Llr%ns3+Llr%d%n3 .or. iy > Llr%ns2+Llr%d%n2 .or. ix > Llr%ns1+Llr%d%n1)&
-         stop 'transform_keyglob_to_keygloc : maximum overflow'
+  use module_base
+  use module_types
+  use module_interfaces
+  implicit none
+  type(locreg_descriptors),intent(in) :: Glr, Llr
+  integer, intent(in) :: nseg
+  integer, dimension(2,nseg),intent(in) :: keyglob
+  integer, dimension(2,nseg),intent(out) :: keygloc
+  !local variables
+  integer :: i, j, j0, ii, iz, iy, ix, n1p1, np
 
-      ! Using coordinates to write keygloc      
-      keygloc(i,j) = (iz-Llr%ns3)*(Llr%d%n1+1)*(Llr%d%n2+1) + (iy-Llr%ns2)*(Llr%d%n1+1) + (ix-Llr%ns1) + 1
-   end do
-end do
+  call f_routine(id='transform_keyglob_to_keygloc')
+
+  n1p1=Glr%d%n1+1
+  np=n1p1*(Glr%d%n2+1)
+  do i = 1 , 2
+     do j = 1, nseg
+        ! Writing keyglob in cartesian coordinates
+        j0 = keyglob(i,j)
+        ii = j0-1
+        iz = ii/np
+        ii = ii-iz*np
+        iy = ii/n1p1
+        ix = ii-iy*n1p1
+
+        ! Checking consistency
+        if(iz < Llr%ns3 .or. iy < Llr%ns2 .or. ix < Llr%ns1) stop 'transform_keyglob_to_keygloc : minimum overflow'
+        if(iz > Llr%ns3+Llr%d%n3 .or. iy > Llr%ns2+Llr%d%n2 .or. ix > Llr%ns1+Llr%d%n1)&
+           stop 'transform_keyglob_to_keygloc : maximum overflow'
+
+        ! Using coordinates to write keygloc      
+        keygloc(i,j) = (iz-Llr%ns3)*(Llr%d%n1+1)*(Llr%d%n2+1) + (iy-Llr%ns2)*(Llr%d%n1+1) + (ix-Llr%ns1) + 1
+     end do
+  end do
+
+  call f_release_routine()
 
 end subroutine transform_keyglob_to_keygloc
 
-subroutine transform_ISFcoordinates(direction,iin1,iin2,iin3,Glr,Llr,iout1,iout2,iout3,ishift1, ishift2, ishift3)
-use module_types
-implicit none
-integer, intent(in) :: direction                      !< integer specifying the direction of the transformation (0 from local to global, 1 from global to local)
-integer, intent(in) :: iin1, iin2, iin3               !< the input coordinate
-type(locreg_descriptors), intent(in) :: Glr           !< global region descriptors
-type(locreg_descriptors), intent(in) :: Llr           !< Localization regiondescriptors
-integer, intent(out) :: iout1, iout2, iout3           !< ouput coordinates
-integer, intent(out) :: ishift1, ishift2, ishift3     !< shift between coordinates: in_coord + shift = out_coord
 
-!This routines supposes that the specified coordinate is part of both regions.
-if(direction==0) then
-!from local to global
-iout1 = iin1 -(Glr%nsi1 - Llr%nsi1)
-ishift1 = Llr%nsi1 - Glr%nsi1
-iout2 = iin2 -(Glr%nsi2 - Llr%nsi2)
-ishift2 = Llr%nsi2 - Glr%nsi2
-iout3 = iin3 -(Glr%nsi3 - Llr%nsi3)
-ishift3 = Llr%nsi3 - Glr%nsi3
-if(iout1 > Glr%nsi1 + Glr%d%n1i .and. Glr%geocode/='F') then
-   iout1 = modulo(iout1,Glr%d%n1i+1)+Glr%nsi1
-   ishift1 = ishift1 - Glr%d%n1i
-end if
-if(iout2 > Glr%nsi2 + Glr%d%n2i .and. Glr%geocode=='P') then
-   iout2 = modulo(iout2,Glr%d%n2i+1)+Glr%nsi2
-   ishift2 = ishift2 - Glr%d%n2i
-end if
-if(iout3 > Glr%nsi3 + Glr%d%n3i .and. Glr%geocode/='F') then
-   iout3 = modulo(iout3,Glr%d%n3i+1)+Glr%nsi3
-   ishift3 = ishift3 - Glr%d%n3i
-end if
-
-else if(direction==1) then
-!from global to local
-iout1 = iin1 -(Llr%nsi1 - Glr%nsi1)
-ishift1 = Glr%nsi1 - Llr%nsi1
-iout2 = iin2 -(Llr%nsi2 - Glr%nsi2)
-ishift2 = Glr%nsi2 - Llr%nsi2
-iout3 = iin3 -(Llr%nsi3 - Glr%nsi3)
-ishift3 = Glr%nsi3 - Llr%nsi3
-if(iout1 < 0 .and. Glr%geocode/='F') then
-   iout1 = iin1 + Glr%d%n1i - Llr%nsi1
-   ishift1 = ishift1 + Glr%d%n1i 
-end if
-if(iout2 < 0 .and. Glr%geocode=='P') then
-   iout2 = iin2 + Glr%d%n2i - Llr%nsi2
-   ishift2 = ishift2 + Glr%d%n2i 
-end if
-if(iout3 < 0 .and. Glr%geocode/='F') then
-   iout3 = iin3 + Glr%d%n3i - Llr%nsi3
-   ishift3 = ishift3 + Glr%d%n3i 
-end if
-
-else
-STOP 'transform_ISFcoordinates: wrong descriptor, should be 0 or 1'
-end if
-
-end subroutine transform_ISFcoordinates
-
-! Almost degenerate with get_number_of_overlap_region
-! should merge the two... prefering this one since argument list is better 
+!> Almost degenerate with get_number_of_overlap_region
+!! should merge the two... prefering this one since argument list is better 
 subroutine check_overlap_cubic_periodic(Glr,Ilr,Jlr,isoverlap)
-use module_types
-use module_base
-implicit none
-type(locreg_descriptors), intent(in) :: Glr
-type(locreg_descriptors), intent(in) :: Ilr
-type(locreg_descriptors), intent(in) :: Jlr
-logical, intent(out) :: isoverlap
-!Local variables
-integer :: azones,bzones,ii,izones,jzones !, i_stat, i_all
-logical :: go1, go2, go3
-integer,dimension(3,8) :: astart,bstart,aend,bend
+  use module_types
+  use module_base
+  implicit none
+  type(locreg_descriptors), intent(in) :: Glr
+  type(locreg_descriptors), intent(in) :: Ilr
+  type(locreg_descriptors), intent(in) :: Jlr
+  logical, intent(out) :: isoverlap
+  !Local variables
+  integer :: azones,bzones,ii,izones,jzones !, i_stat, i_all
+  logical :: go1, go2, go3
+  integer,dimension(3,8) :: astart,bstart,aend,bend
 
   azones = 1
   bzones = 1
@@ -2064,20 +1730,8 @@ integer,dimension(3,8) :: astart,bstart,aend,bend
      if(Jlr%outofzone(ii) > 0) bzones = bzones * 2
   end do
 
-!allocate astart and aend
-!!  allocate(astart(3,azones),stat=i_stat)
-!!  call memocc(i_stat,astart,'astart',subname)
-!!  allocate(aend(3,azones),stat=i_stat)
-!!  call memocc(i_stat,aend,'aend',subname)
-
 !FRACTURE THE FIRST LOCALIZATION REGION
   call fracture_periodic_zone(azones,Glr,Ilr,Ilr%outofzone,astart,aend)
-
-!allocate bstart and bend
-!!  allocate(bstart(3,bzones),stat=i_stat)
-!!  call memocc(i_stat,bstart,'bstart',subname)
-!!  allocate(bend(3,bzones),stat=i_stat)
-!!  call memocc(i_stat,bend,'bend',subname)
 
 !FRACTURE SECOND LOCREG
   call fracture_periodic_zone(bzones,Glr,Jlr,Jlr%outofzone,bstart,bend)
@@ -2096,102 +1750,193 @@ integer,dimension(3,8) :: astart,bstart,aend,bend
     end do
   end do loop_izones
 
-! Deallocation block
-!!  i_all = -product(shape(astart))*kind(astart)
-!!  deallocate(astart,stat=i_stat)
-!!  call memocc(i_stat,i_all,'astart',subname)
-!!  i_all = -product(shape(aend))*kind(aend)
-!!  deallocate(aend,stat=i_stat)
-!!  call memocc(i_stat,i_all,'aend',subname)
-!!  i_all = -product(shape(bstart))*kind(bstart)
-!!  deallocate(bstart,stat=i_stat)
-!!  call memocc(i_stat,i_all,'bstart',subname)
-!!  i_all = -product(shape(bend))*kind(bend)
-!!  deallocate(bend,stat=i_stat)
-!!  call memocc(i_stat,i_all,'bend',subname)
-
 end subroutine check_overlap_cubic_periodic
 
 
-subroutine fracture_periodic_zone_ISF(nzones,Glr,Llr,outofzone,astart,aend)
+
+!> Tranform wavefunction between localisation region and the global region
+!! @warning 
+!! WARNING: Make sure psi is set to zero where Glr does not collide with Llr (or everywhere)
+subroutine Lpsi_to_global2(iproc, ldim, gdim, norb, nspinor, nspin, Glr, Llr, lpsi, psi)
 
   use module_base
   use module_types
 
-  implicit none
+ implicit none
 
-  !#######################################
   ! Subroutine Scalar Arguments
-  !#######################################
-  integer,intent(in) :: nzones
+  integer,intent(in):: iproc
+  integer :: Gdim          ! dimension of psi 
+  integer :: Ldim          ! dimension of lpsi
+  integer :: norb          ! number of orbitals
+  integer :: nspinor       ! number of spinors
+  integer :: nspin         ! number of spins 
   type(locreg_descriptors),intent(in) :: Glr  ! Global grid descriptor
-  type(locreg_descriptors),intent(in) :: Llr  ! Localization grid descriptors 
-  !########################################
+  type(locreg_descriptors), intent(in) :: Llr  ! Localization grid descriptors 
+  
   !Subroutine Array Arguments
-  !########################################
-  integer,dimension(3),intent(in) :: outofzone  ! array indicating the directions in which the locreg exceeds the Glr
-  integer,dimension(3,nzones),intent(out) :: astart !
-  integer,dimension(3,nzones),intent(out) :: aend !
-  !#############################################
+  real(wp),dimension(Gdim),intent(inout) :: psi       !Wavefunction (compressed format)
+  real(wp),dimension(Ldim),intent(in) :: lpsi         !Wavefunction in localization region
+  
   !local variables
-  !############################################
-  integer :: ii,index,jj
-  integer,dimension(3) :: alrs,alre,Gend,Gstart,period
+  integer :: igrid,isegloc,isegG,ix!,iorbs
+  integer :: lmin,lmax,Gmin,Gmax
+  integer :: icheck      ! check to make sure the dimension of loc_psi does not overflow 
+  integer :: offset      ! gives the difference between the starting point of Lseg and Gseg
+  integer :: length      ! Length of the overlap between Lseg and Gseg
+  integer :: lincrement  ! Increment for writing orbitals in loc_psi
+  integer :: Gincrement  ! Increment for reading orbitals in psi
+  integer :: nseg        ! total number of segments in Llr
+  integer, allocatable :: keymask(:,:)  ! shift for every segment of Llr (with respect to Glr)
+  character(len=*), parameter :: subname='Lpsi_to_global'
+  integer :: i_all
+  integer :: start,Gstart,Lindex
+  integer :: lfinc,Gfinc,spinshift,ispin,Gindex,isegstart
+  integer :: istart
+  !integer :: i_stat
 
-! Start and end of Global region
-  Gstart(1) = Glr%nsi1
-  Gstart(2) = Glr%nsi2
-  Gstart(3) = Glr%nsi3
-  Gend(1) = Glr%nsi1 + Glr%d%n1i
-  Gend(2) = Glr%nsi2 + Glr%d%n2i
-  Gend(3) = Glr%nsi3 + Glr%d%n3i
+  call f_routine(id=subname)
 
-! Periodicity of the system
-  period(1) = Glr%d%n1i + 1
-  period(2) = Glr%d%n2i + 1
-  period(3) = Glr%d%n3i + 1
+  if(nspin/=1) stop 'not fully implemented for nspin/=1!'
 
-! Start and end of local region
-  alrs(1) = Llr%nsi1
-  alrs(2) = Llr%nsi2
-  alrs(3) = Llr%nsi3
-  alre(1) = Llr%nsi1 + Llr%d%n1i
-  alre(2) = Llr%nsi2 + Llr%d%n2i
-  alre(3) = Llr%nsi3 + Llr%d%n3i
+! Define integers
+  nseg = Llr%wfd%nseg_c + Llr%wfd%nseg_f
+  lincrement = Llr%wfd%nvctr_c + 7*Llr%wfd%nvctr_f
+  Gincrement = Glr%wfd%nvctr_c + 7*Glr%wfd%nvctr_f
+  icheck = 0
+  spinshift = Gdim / nspin
+ 
+! Get the keymask: shift for every segment of Llr (with respect to Glr)
+! allocate(keymask(2,nseg),stat=i_stat)
+  keymask = f_malloc((/2,nseg/),id='keymask')
 
-  if(outofzone(1) <= 0 .and. outofzone(2) <= 0 .and. outofzone(3) <= 0 ) then !Nothing to do
-     astart(1,1) = alrs(1)
-     astart(2,1) = alrs(2)
-     astart(3,1) = alrs(3)
-     aend(1,1) = alre(1)
-     aend(2,1) = alre(2)
-     aend(3,1) = alre(3)
-     return
+  call shift_locreg_indexes(Glr,Llr,keymask,nseg)
+
+!####################################################
+! Do coarse region
+!####################################################
+  isegstart=1
+
+ 
+  !$omp parallel default(private) &
+  !$omp shared(Glr,Llr, keymask,lpsi,icheck,psi,norb) &
+  !$omp firstprivate(isegstart,nseg,lincrement,Gincrement,spinshift,nspin) 
+
+  !$omp do reduction(+:icheck)
+  local_loop_c: do isegloc = 1,Llr%wfd%nseg_c
+     lmin = keymask(1,isegloc)
+     lmax = keymask(2,isegloc)
+     istart = llr%wfd%keyvloc(isegloc)-1
+
+     
+     global_loop_c: do isegG = isegstart,Glr%wfd%nseg_c
+        Gmin = Glr%wfd%keygloc(1,isegG)
+        Gmax = Glr%wfd%keygloc(2,isegG)
+
+        ! For each segment in Llr check if there is a collision with the segment in Glr
+        !if not, cycle
+        if(lmin > Gmax) then
+            isegstart=isegG
+        end if
+        if(Gmin > lmax) exit global_loop_c
+
+        !if((lmin > Gmax) .or. (lmax < Gmin))  cycle global_loop_c
+        if(lmin > Gmax)  cycle global_loop_c
+
+        ! Define the offset between the two segments
+        offset = lmin - Gmin
+        if(offset < 0) then
+           offset = 0
+        end if
+
+        ! Define the length of the two segments
+        length = min(lmax,Gmax)-max(lmin,Gmin)
+
+        !Find the common elements and write them to the new global wavefunction
+        icheck = icheck + (length + 1)
+
+        ! WARNING: index goes from 0 to length because it is the offset of the element
+
+        do ix = 0,length     
+           istart = istart + 1
+           do ispin=1,nspin
+              Gindex = Glr%wfd%keyvloc(isegG)+offset+ix+spinshift*(ispin-1)
+              Lindex = istart+lincrement*norb*(ispin-1)
+              psi(Gindex) = lpsi(Lindex) 
+           end do
+        end do
+     end do global_loop_c
+  end do local_loop_c
+  !$omp end do
+
+
+!##############################################################
+! Now do fine region
+!##############################################################
+
+  start = Llr%wfd%nvctr_c
+  Gstart = Glr%wfd%nvctr_c
+  lfinc  = Llr%wfd%nvctr_f
+  Gfinc = Glr%wfd%nvctr_f
+
+  isegstart=Glr%wfd%nseg_c+1
+
+  !$omp do reduction(+:icheck)
+  local_loop_f: do isegloc = Llr%wfd%nseg_c+1,nseg
+     lmin = keymask(1,isegloc)
+     lmax = keymask(2,isegloc)
+     istart = llr%wfd%keyvloc(isegloc)-1
+
+     global_loop_f: do isegG = isegstart,Glr%wfd%nseg_c+Glr%wfd%nseg_f
+
+        Gmin = Glr%wfd%keygloc(1,isegG)
+        Gmax = Glr%wfd%keygloc(2,isegG)
+
+        ! For each segment in Llr check if there is a collision with the segment in Glr
+        ! if not, cycle
+        if(lmin > Gmax) then
+            isegstart=isegG
+        end if
+        if(Gmin > lmax)  exit global_loop_f
+        !if((lmin > Gmax) .or. (lmax < Gmin))  cycle global_loop_f
+        if(lmin > Gmax)  cycle global_loop_f
+
+        offset = lmin - Gmin
+        if(offset < 0) offset = 0
+
+        length = min(lmax,Gmax)-max(lmin,Gmin)
+
+        !Find the common elements and write them to the new global wavefunction
+        ! First set to zero those elements which are not copied. WARNING: will not work for npsin>1!!
+ 
+        icheck = icheck + (length + 1)
+
+        ! WARNING: index goes from 0 to length because it is the offset of the element
+        do ix = 0,length
+        istart = istart + 1
+           do igrid=1,7
+              do ispin = 1, nspin
+                 Gindex = Gstart + (Glr%wfd%keyvloc(isegG)+offset+ix-1)*7+igrid + spinshift*(ispin-1)
+                 Lindex = start+(istart-1)*7+igrid + lincrement*norb*(ispin-1) 
+                 psi(Gindex) = lpsi(Lindex) 
+              end do
+           end do
+        end do
+     end do global_loop_f
+  end do local_loop_f
+  !$omp end do
+
+  !$omp end parallel
+
+  !Check if the number of elements in loc_psi is valid
+  if(icheck .ne. Llr%wfd%nvctr_f+Llr%wfd%nvctr_c) then
+    write(*,*)'There is an error in Lpsi_to_global: sum of fine and coarse points used',icheck
+    write(*,*)'is not equal to the sum of fine and coarse points in the region',Llr%wfd%nvctr_f+Llr%wfd%nvctr_c
+    stop
   end if
 
-!assign the first zone (necessarily without shift) and initiliaze the others
-  do ii=1,3
-     astart(ii,:) = alrs(ii)
-     aend(ii,:) = min(Gend(ii),alre(ii))
-  end do
+  call f_free(keymask)
 
-!assign the other zones
-  index = 2
-  do ii=1,2
-     if(outofzone(ii) > 0) then    !Translation: X,Y
-        astart(ii,index) =  Gstart(ii)
-        aend(ii,index) = modulo(alre(ii),period(ii))
-        index = index + 1
-     end if
-     do jj=ii+1,2
-        if(outofzone(ii) > 0 .and. outofzone(jj) > 0) then  !Translation: X+Y
-           astart(ii,index) = Gstart(ii)
-           astart(jj,index) = Gstart(jj)
-           aend(ii,index) = modulo(alre(ii),period(ii))
-           aend(jj,index) = modulo(alre(jj),period(jj))
-           index = index + 1
-        end if
-     end do
-  end do
+  call f_release_routine()
 
-END SUBROUTINE fracture_periodic_zone_ISF
+END SUBROUTINE Lpsi_to_global2

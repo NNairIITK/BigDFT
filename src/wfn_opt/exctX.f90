@@ -1,28 +1,31 @@
 !> @file
 !!   Routines to calculate the exact exchange potential
 !! @author
-!!    Copyright (C) 2010-2011 BigDFT group 
+!!    Copyright (C) 2010-2013 BigDFT group 
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
- 
-!>    Calculate the exact exchange potential
-subroutine exact_exchange_potential(iproc,nproc,geocode,nspin,lr,orbs,n3parr,n3p,&
+
+
+!> Calculate the exact exchange potential
+subroutine exact_exchange_potential(iproc,nproc,geocode,xc,nspin,lr,orbs,n3parr,n3p,&
      hxh,hyh,hzh,pkernel,psi,psir,eexctX)
 
   use module_base
   use module_types
-  use Poisson_Solver
+  use Poisson_Solver, except_dp => dp, except_gp => gp, except_wp => wp
   use module_xc
   use yaml_output
 
   implicit none
-  character(len=1), intent(in) :: geocode
-  integer, intent(in) :: iproc,nproc,n3p,nspin
-  real(gp), intent(in) :: hxh,hyh,hzh
-  type(locreg_descriptors), intent(in) :: lr
-  type(orbitals_data), intent(in) :: orbs
+  character(len=1), intent(in) :: geocode !< @copydoc poisson_solver::doc::geocode             !< Determine Boundary conditions
+  integer, intent(in) :: iproc,nproc                  !< MPI information
+  integer, intent(in) :: n3p,nspin                    !< spin and ...
+  real(gp), intent(in) :: hxh,hyh,hzh                 !< hgrid
+  type(xc_info), intent(in) :: xc
+  type(locreg_descriptors), intent(in) :: lr          !< Local region descriptors
+  type(orbitals_data), intent(in) :: orbs             !< Orbitals
   integer, dimension(0:nproc-1), intent(in) :: n3parr
   real(wp), dimension(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,orbs%nspinor,orbs%norbp), intent(in) :: psi
   type(coulomb_operator), intent(in) :: pkernel
@@ -30,7 +33,7 @@ subroutine exact_exchange_potential(iproc,nproc,geocode,nspin,lr,orbs,n3parr,n3p
   real(wp), dimension(max(lr%d%n1i*lr%d%n2i*lr%d%n3i*orbs%norbp,n3parr(0)*orbs%norb)), intent(out) :: psir
   !local variables
   character(len=*), parameter :: subname='exact_exchange_potential'
-  integer :: i_all,i_stat,ierr,ispinor,ispsiw,ispin,norb,ncall
+  integer :: ierr,ispinor,ispsiw,ispin,norb,ncall
   integer :: i1,i2,i3p,iorb,iorbs,jorb,jorbs,ispsir,ind3,ind2,ind1i,ind1j,jproc,igran,ngran
   real(gp) :: ehart,hfac,exctXfac,sign,sfac,hfaci,hfacj
   type(workarr_sumrho) :: w
@@ -40,11 +43,11 @@ subroutine exact_exchange_potential(iproc,nproc,geocode,nspin,lr,orbs,n3parr,n3p
 
   !call timing(iproc,'Exchangecorr  ','ON')
 
-  exctXfac = xc_exctXfac()
+  exctXfac = xc_exctXfac(xc)
 
   eexctX=0.0_gp
 
-  call initialize_work_arrays_sumrho(lr,w)
+  call initialize_work_arrays_sumrho(1,lr,.true.,w)
   
   !save the value of the previous offset of the kernel
   !kerneloff=pkernel(1)
@@ -57,13 +60,12 @@ subroutine exact_exchange_potential(iproc,nproc,geocode,nspin,lr,orbs,n3parr,n3p
   ngran=1
 
   !partial densities with a given granularity
-  allocate(rp_ij(lr%d%n1i,lr%d%n2i,n3p,ngran+ndebug),stat=i_stat)
-  call memocc(i_stat,rp_ij,'rp_ij',subname)
-  allocate(psiw(max(max(lr%d%n1i*lr%d%n2i*lr%d%n3i*orbs%norbp,n3parr(0)*orbs%norb),1)+ndebug),stat=i_stat)
-  call memocc(i_stat,psiw,'psiw',subname)
+  rp_ij = f_malloc((/ lr%d%n1i, lr%d%n2i, n3p, ngran /),id='rp_ij')
+  psiw = f_malloc(max(max(lr%d%n1i*lr%d%n2i*lr%d%n3i*orbs%norbp, n3parr(0)*orbs%norb), 1),id='psiw')
 
   if (geocode == 'F') then
-     call razero(lr%d%n1i*lr%d%n2i*lr%d%n3i*orbs%norbp,psiw)
+     !call to_zero(lr%d%n1i*lr%d%n2i*lr%d%n3i*orbs%norbp,psiw)
+     call f_zero(psiw)
   end if
 
   !uncompress the wavefunction in the real grid
@@ -76,7 +78,7 @@ subroutine exact_exchange_potential(iproc,nproc,geocode,nspin,lr,orbs,n3parr,n3p
      do jproc=0,nproc-1
         !write(*,'(a,1x,8(i10))'),'iproc,jproc',iproc,jproc,iorb,orbs%norbp,ispsir,ispsiw,&
         !     lr%d%n1i*lr%d%n2i*max(lr%d%n3i*orbs%norbp,n3p*orbs%norb),n3parr(jproc)
-        call dcopy(n3parr(jproc),psiw(ispsiw),1,psir(ispsir),1)
+        call vcopy(n3parr(jproc),psiw(ispsiw),1,psir(ispsir),1)
         ispsiw=ispsiw+n3parr(jproc)
         if (jproc /= nproc-1) then
            do jorb=iorb,orbs%norbp
@@ -97,8 +99,7 @@ subroutine exact_exchange_potential(iproc,nproc,geocode,nspin,lr,orbs,n3parr,n3p
      !and only real functions (nspinor=1)
      !this distribution is in principle valid also for k-points
 
-     allocate(ncommarr(0:nproc-1,4+ndebug),stat=i_stat)
-     call memocc(i_stat,ncommarr,'ncommarr',subname)
+     ncommarr = f_malloc((/ 0.to.nproc-1, 1.to.4 /),id='ncommarr')
 
      !count array for orbitals => components
      do jproc=0,nproc-1
@@ -123,11 +124,11 @@ subroutine exact_exchange_potential(iproc,nproc,geocode,nspin,lr,orbs,n3parr,n3p
           psiw,ncommarr(0,3),ncommarr(0,4),mpidtypw,bigdft_mpi%mpi_comm,ierr)
 
   else
-     call dcopy(lr%d%n1i*lr%d%n2i*n3p*orbs%norb,psir,1,psiw,1)
+     call vcopy(lr%d%n1i*lr%d%n2i*n3p*orbs%norb,psir(1),1,psiw(1),1)
   end if
 
   !this is the array of the actions of the X potential on psi
-  call razero(lr%d%n1i*lr%d%n2i*n3p*orbs%norb,psir)
+  call f_zero(lr%d%n1i*lr%d%n2i*n3p*orbs%norb,psir(1))
 
   !build the partial densities for the poisson solver, calculate the partial potential
   !and accumulate the result
@@ -199,9 +200,8 @@ subroutine exact_exchange_potential(iproc,nproc,geocode,nspin,lr,orbs,n3parr,n3p
                  !write(*,*)'Exact exchange calculation: spin, orbitals:',ispin,iorb,jorb
                  call yaml_comment('Exact exchange calculation: ' // trim(yaml_toa( nint(real(ncall,gp)/ &
                  &    real(orbs%norbu*(orbs%norbu+1)/2+orbs%norbd*(orbs%norbd+1)/2,gp)*100.0_gp),fmt='(i3)')) // '%')
-                 !write(*,'(1x,a,i3,a2)')'Exact exchange calculation:',&
-                 !     nint(real(ncall,gp)/real(orbs%norbu*(orbs%norbu+1)/2+orbs%norbd*(orbs%norbd+1)/2,gp)*100.0_gp),'% '
               end if
+              
               call H_potential('D',pkernel,rp_ij(1,1,1,igran),rp_ij,ehart,0.0_dp,.false.,&
                    quiet='YES')
 
@@ -277,7 +277,7 @@ subroutine exact_exchange_potential(iproc,nproc,geocode,nspin,lr,orbs,n3parr,n3p
 
   !assign the potential for each function
   if (nproc > 1) then
-     !call dcopy(lr%d%n1i*lr%d%n2i*n3p*orbs%norb,psir,1,psirt,1)
+     !call vcopy(lr%d%n1i*lr%d%n2i*n3p*orbs%norb,psir,1,psirt,1)
      !recommunicate the values in the psir array
      call MPI_ALLTOALLV(psir,ncommarr(0,3),ncommarr(0,4),mpidtypw, &
           psiw,ncommarr(0,1),ncommarr(0,2),mpidtypw,bigdft_mpi%mpi_comm,ierr)
@@ -286,7 +286,7 @@ subroutine exact_exchange_potential(iproc,nproc,geocode,nspin,lr,orbs,n3parr,n3p
      do iorb=1,orbs%norbp
         ispsir=1+(iorb-1)*n3parr(0)
         do jproc=0,nproc-1
-           call dcopy(n3parr(jproc),psiw(ispsir),1,psir(ispsiw),1)
+           call vcopy(n3parr(jproc),psiw(ispsir),1,psir(ispsiw),1)
            ispsiw=ispsiw+n3parr(jproc)
            if (jproc /= nproc-1) then
               do jorb=iorb,orbs%norbp
@@ -300,19 +300,12 @@ subroutine exact_exchange_potential(iproc,nproc,geocode,nspin,lr,orbs,n3parr,n3p
      end do
   end if
 
-  i_all=-product(shape(rp_ij))*kind(rp_ij)
-  deallocate(rp_ij,stat=i_stat)
-  call memocc(i_stat,i_all,'rp_ij',subname)
-  
-  i_all=-product(shape(psiw))*kind(psiw)
-  deallocate(psiw,stat=i_stat)
-  call memocc(i_stat,i_all,'psiw',subname)
+  call f_free(rp_ij)
+  call f_free(psiw)
 
 
   if (nproc > 1) then
-     i_all=-product(shape(ncommarr))*kind(ncommarr)
-     deallocate(ncommarr,stat=i_stat)
-     call memocc(i_stat,i_all,'ncommarr',subname)
+     call f_free(ncommarr)
   end if
 
   !call timing(iproc,'Exchangecorr  ','OF')
@@ -332,21 +325,21 @@ subroutine prepare_psirocc(iproc,nproc,lr,orbsocc,n3p,n3parr,psiocc,psirocc)
   real(wp), dimension(max(lr%d%n1i*lr%d%n2i*lr%d%n3i*orbsocc%norbp,n3parr(0)*orbsocc%norb)), intent(out) :: psirocc
   !local variables
   character(len=*), parameter :: subname='prepare_psirocc'
-  integer :: i_all,i_stat,ierr,ispinor,ispsiw
+  integer :: ierr,ispinor,ispsiw
   integer :: iorb,jorb,ispsir,jproc
   type(workarr_sumrho) :: w
   integer, dimension(:,:), allocatable :: ncommocc
   real(wp), dimension(:), allocatable :: psiwocc
 
-  call initialize_work_arrays_sumrho(lr,w)
+  call initialize_work_arrays_sumrho(1,lr,.true.,w)
 
-  allocate(psiwocc(max(max(lr%d%n1i*lr%d%n2i*lr%d%n3i*orbsocc%norbp,n3parr(0)*orbsocc%norb),1)+ndebug),stat=i_stat)
-  call memocc(i_stat,psiwocc,'psiwocc',subname)
+  psiwocc = f_malloc0(max(max(lr%d%n1i*lr%d%n2i*lr%d%n3i*orbsocc%norbp, n3parr(0)*orbsocc%norb), 1),id='psiwocc')
 
-  call razero(max(max(lr%d%n1i*lr%d%n2i*lr%d%n3i*orbsocc%norbp,n3parr(0)*orbsocc%norb),1),psiwocc)
+  !call to_zero(max(max(lr%d%n1i*lr%d%n2i*lr%d%n3i*orbsocc%norbp,n3parr(0)*orbsocc%norb),1),psiwocc)
 
   if (lr%geocode == 'F') then
-     call razero(lr%d%n1i*lr%d%n2i*lr%d%n3i*orbsocc%norbp,psirocc)
+     !call f_zero(lr%d%n1i*lr%d%n2i*lr%d%n3i*orbsocc%norbp,psirocc)
+     call f_zero(psirocc)
   end if
 
   !uncompress the wavefunction in the real grid
@@ -361,7 +354,7 @@ subroutine prepare_psirocc(iproc,nproc,lr,orbsocc,n3p,n3parr,psiocc,psirocc)
      do jproc=0,nproc-1
         !write(*,'(a,1x,8(i10))'),'iproc,jproc',iproc,jproc,iorb,orbs%norbp,ispsir,ispsiw,&
         !     lr%d%n1i*lr%d%n2i*max(lr%d%n3i*orbs%norbp,n3p*orbs%norb),n3parr(jproc)
-        call dcopy(n3parr(jproc),psirocc(ispsiw),1,psiwocc(ispsir),1)
+        call vcopy(n3parr(jproc),psirocc(ispsiw),1,psiwocc(ispsir),1)
         ispsiw=ispsiw+n3parr(jproc)
         if (jproc /= nproc-1) then
            do jorb=iorb,orbsocc%norbp
@@ -382,8 +375,7 @@ subroutine prepare_psirocc(iproc,nproc,lr,orbsocc,n3p,n3parr,psiocc,psirocc)
      !valid only for one k-point for the moment
      !and only real functions (nspinor=1)
      !this distribution is in principle valid also for k-points
-     allocate(ncommocc(0:nproc-1,4+ndebug),stat=i_stat)
-     call memocc(i_stat,ncommocc,'ncommocc',subname)
+     ncommocc = f_malloc((/ 0.to.nproc-1, 1.to.4 /),id='ncommocc')
 
      !count occay for orbitals => components
      do jproc=0,nproc-1
@@ -407,16 +399,12 @@ subroutine prepare_psirocc(iproc,nproc,lr,orbsocc,n3p,n3parr,psiocc,psirocc)
      call MPI_ALLTOALLV(psiwocc,ncommocc(0,1),ncommocc(0,2),mpidtypw, &
           psirocc,ncommocc(0,3),ncommocc(0,4),mpidtypw,bigdft_mpi%mpi_comm,ierr)
   else
-     call dcopy(lr%d%n1i*lr%d%n2i*n3p*orbsocc%norb,psiwocc,1,psirocc,1)
+     call vcopy(lr%d%n1i*lr%d%n2i*n3p*orbsocc%norb,psiwocc(1),1,psirocc(1),1)
   end if
-  i_all=-product(shape(psiwocc))*kind(psiwocc)
-  deallocate(psiwocc,stat=i_stat)
-  call memocc(i_stat,i_all,'psiwocc',subname)
+  call f_free(psiwocc)
 
   if (nproc > 1) then
-     i_all=-product(shape(ncommocc))*kind(ncommocc)
-     deallocate(ncommocc,stat=i_stat)
-     call memocc(i_stat,i_all,'ncommocc',subname)
+     call f_free(ncommocc)
   end if
 
 END SUBROUTINE prepare_psirocc
@@ -429,10 +417,10 @@ subroutine exact_exchange_potential_virt(iproc,nproc,geocode,nspin,lr,orbsocc,or
      hxh,hyh,hzh,pkernel,psirocc,psivirt,psirvirt)
   use module_base
   use module_types
-  use Poisson_Solver
+  use Poisson_Solver, except_dp => dp, except_gp => gp, except_wp => wp
   use yaml_output
   implicit none
-  character(len=1), intent(in) :: geocode
+  character(len=1), intent(in) :: geocode !< @copydoc poisson_solver::doc::geocode
   integer, intent(in) :: iproc,nproc,n3p,nspin
   real(gp), intent(in) :: hxh,hyh,hzh
   type(locreg_descriptors), intent(in) :: lr
@@ -444,7 +432,7 @@ subroutine exact_exchange_potential_virt(iproc,nproc,geocode,nspin,lr,orbsocc,or
   real(wp), dimension(max(lr%d%n1i*lr%d%n2i*lr%d%n3i*orbsvirt%norbp,n3parr(0)*orbsvirt%norb)), intent(out) :: psirvirt
   !local variables
   character(len=*), parameter :: subname='exact_exchange_potential_virt'
-  integer :: i_all,i_stat,ierr,ispinor,ispsiw,ispin,norbocc,norbvirt
+  integer :: ierr,ispinor,ispsiw,ispin,norbocc,norbvirt
   integer :: i1,i2,i3p,iorb,iorbs,jorb,jorbs,ispsir,ind3,ind2,ind1i,ind1j,jproc,igran,ngran
   real(gp) :: ehart,hfac,sign,sfac,hfaci
   type(workarr_sumrho) :: w
@@ -454,7 +442,7 @@ subroutine exact_exchange_potential_virt(iproc,nproc,geocode,nspin,lr,orbsocc,or
 
   !call timing(iproc,'Exchangecorr  ','ON')
 
-  call initialize_work_arrays_sumrho(lr,w)
+  call initialize_work_arrays_sumrho(1,lr,.true.,w)
   
   !the granularity of the calculation is set by ngran
   !for the moment it is irrelevant but if the poisson solver is modified
@@ -462,13 +450,11 @@ subroutine exact_exchange_potential_virt(iproc,nproc,geocode,nspin,lr,orbsocc,or
   ngran=1
 
   !partial densities with a given granularity
-  allocate(rp_ij(lr%d%n1i,lr%d%n2i,n3p,ngran+ndebug),stat=i_stat)
-  call memocc(i_stat,rp_ij,'rp_ij',subname)
-  allocate(psiwvirt(max(max(lr%d%n1i*lr%d%n2i*lr%d%n3i*orbsvirt%norbp,n3parr(0)*orbsvirt%norb),1)+ndebug),stat=i_stat)
-  call memocc(i_stat,psiwvirt,'psiwvirt',subname)
+  rp_ij = f_malloc((/ lr%d%n1i, lr%d%n2i, n3p, ngran /),id='rp_ij')
+  psiwvirt = f_malloc(max(max(lr%d%n1i*lr%d%n2i*lr%d%n3i*orbsvirt%norbp, n3parr(0)*orbsvirt%norb), 1),id='psiwvirt')
 
   if (geocode == 'F') then
-     call razero(lr%d%n1i*lr%d%n2i*lr%d%n3i*orbsvirt%norbp,psiwvirt)
+     call f_zero(psiwvirt)
   end if
 
   !uncompress the wavefunction in the real grid
@@ -482,7 +468,7 @@ subroutine exact_exchange_potential_virt(iproc,nproc,geocode,nspin,lr,orbsocc,or
      do jproc=0,nproc-1
         !write(*,'(a,1x,8(i10))'),'iproc,jproc',iproc,jproc,iorb,orbs%norbp,ispsir,ispsiw,&
         !     lr%d%n1i*lr%d%n2i*max(lr%d%n3i*orbs%norbp,n3p*orbs%norb),n3parr(jproc)
-        call dcopy(n3parr(jproc),psiwvirt(ispsiw),1,psirvirt(ispsir),1)
+        call vcopy(n3parr(jproc),psiwvirt(ispsiw),1,psirvirt(ispsir),1)
         ispsiw=ispsiw+n3parr(jproc)
         if (jproc /= nproc-1) then
            do jorb=iorb,orbsvirt%norbp
@@ -505,8 +491,7 @@ subroutine exact_exchange_potential_virt(iproc,nproc,geocode,nspin,lr,orbsocc,or
      !and only real functions (nspinor=1)
      !this distribution is in principle valid also for k-points
 
-     allocate(ncommvirt(0:nproc-1,4+ndebug),stat=i_stat)
-     call memocc(i_stat,ncommvirt,'ncommvirt',subname)
+     ncommvirt = f_malloc((/ 0.to.nproc-1, 1.to.4 /),id='ncommvirt')
 
      !count array for orbitals => components
      do jproc=0,nproc-1
@@ -531,11 +516,11 @@ subroutine exact_exchange_potential_virt(iproc,nproc,geocode,nspin,lr,orbsocc,or
           psiwvirt,ncommvirt(0,3),ncommvirt(0,4),mpidtypw,bigdft_mpi%mpi_comm,ierr)
 
   else
-     call dcopy(lr%d%n1i*lr%d%n2i*n3p*orbsvirt%norb,psirvirt,1,psiwvirt,1)
+     call vcopy(lr%d%n1i*lr%d%n2i*n3p*orbsvirt%norb,psirvirt(1),1,psiwvirt(1),1)
   end if
 
   !this is the array of the actions of the X potential on psi
-  call razero(lr%d%n1i*lr%d%n2i*n3p*orbsvirt%norb,psirvirt)
+  call f_zero(psirvirt)
 
   !build the partial densities for the poisson solver, calculate the partial potential
   !and accumulate the result
@@ -605,6 +590,7 @@ subroutine exact_exchange_potential_virt(iproc,nproc,geocode,nspin,lr,orbsocc,or
                  call yaml_map('Exact exchange calculation (spin, orbitals)', (/ispin,iorb,jorb /))
                  !write(*,*)'Exact exchange calculation: spin, orbitals:',ispin,iorb,jorb
               end if
+
               call H_potential('D',pkernel,rp_ij(1,1,1,igran),rp_ij,ehart,0.0_dp,.false.,&
                    quiet='YES')
 
@@ -652,7 +638,7 @@ subroutine exact_exchange_potential_virt(iproc,nproc,geocode,nspin,lr,orbsocc,or
 
   !assign the potential for each function
   if (nproc > 1) then
-     !call dcopy(lr%d%n1i*lr%d%n2i*n3p*orbs%norb,psir,1,psirt,1)
+     !call vcopy(lr%d%n1i*lr%d%n2i*n3p*orbs%norb,psir,1,psirt,1)
      !recommunicate the values in the psir array
      call MPI_ALLTOALLV(psirvirt,ncommvirt(0,3),ncommvirt(0,4),mpidtypw, &
           psiwvirt,ncommvirt(0,1),ncommvirt(0,2),mpidtypw,bigdft_mpi%mpi_comm,ierr)
@@ -661,7 +647,7 @@ subroutine exact_exchange_potential_virt(iproc,nproc,geocode,nspin,lr,orbsocc,or
      do iorb=1,orbsvirt%norbp
         ispsir=1+(iorb-1)*n3parr(0)
         do jproc=0,nproc-1
-           call dcopy(n3parr(jproc),psiwvirt(ispsir),1,psirvirt(ispsiw),1)
+           call vcopy(n3parr(jproc),psiwvirt(ispsir),1,psirvirt(ispsiw),1)
            ispsiw=ispsiw+n3parr(jproc)
            if (jproc /= nproc-1) then
               do jorb=iorb,orbsvirt%norbp
@@ -675,19 +661,12 @@ subroutine exact_exchange_potential_virt(iproc,nproc,geocode,nspin,lr,orbsocc,or
      end do
   end if
 
-  i_all=-product(shape(rp_ij))*kind(rp_ij)
-  deallocate(rp_ij,stat=i_stat)
-  call memocc(i_stat,i_all,'rp_ij',subname)
-
-  i_all=-product(shape(psiwvirt))*kind(psiwvirt)
-  deallocate(psiwvirt,stat=i_stat)
-  call memocc(i_stat,i_all,'psiwvirt',subname)
+  call f_free(rp_ij)
+  call f_free(psiwvirt)
 
 
   if (nproc > 1) then
-     i_all=-product(shape(ncommvirt))*kind(ncommvirt)
-     deallocate(ncommvirt,stat=i_stat)
-     call memocc(i_stat,i_all,'ncommvirt',subname)
+     call f_free(ncommvirt)
   end if
 
 END SUBROUTINE exact_exchange_potential_virt
@@ -696,17 +675,17 @@ END SUBROUTINE exact_exchange_potential_virt
 !> Calculate the exact exchange potential on occupied orbitals
 !! within the symmetric round-robin scheme
 !! the psi is already given in the real-space form
-subroutine exact_exchange_potential_round(iproc,nproc,geocode,nspin,lr,orbs,&
+subroutine exact_exchange_potential_round(iproc,nproc,xc,nspin,lr,orbs,&
      hxh,hyh,hzh,pkernel,psi,dpsir,eexctX)
   use module_base
   use module_types
-  use Poisson_Solver
+  use Poisson_Solver, except_dp => dp, except_gp => gp, except_wp => wp
   use module_xc
   use yaml_output
   implicit none
-  character(len=1), intent(in) :: geocode
   integer, intent(in) :: iproc,nproc,nspin
   real(gp), intent(in) :: hxh,hyh,hzh
+  type(xc_info), intent(in) :: xc
   type(locreg_descriptors), intent(in) :: lr
   type(orbitals_data), intent(in) :: orbs
   real(wp), dimension(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,orbs%nspinor,orbs%norbp), intent(in) :: psi
@@ -716,8 +695,8 @@ subroutine exact_exchange_potential_round(iproc,nproc,geocode,nspin,lr,orbs,&
   !local variables
   character(len=*), parameter :: subname='exact_exchange_potential_round'
   logical :: doit
-  integer :: i_all,i_stat,ierr,ncommsstep,ncommsstep2,isnow,irnow,isnow2,irnow2,jsorb,kproc,norbp
-  integer :: i,iorb,jorb,jproc,igroup,ngroup,ngroupp,nend,isorb,iorbs,jorbs
+  integer :: ierr,ncommsstep,ncommsstep2,isnow,irnow,isnow2,irnow2,jsorb,kproc,norbp
+  integer :: i,iorb,jorb,jproc,igroup,ngroup,ngroupp,nend,isorb,iorbs,jorbs,ii
   integer :: icount,nprocgr,iprocgrs,iprocgrr,itestproc,norbi,norbj,ncalltot,icountmax,iprocref,ncalls
   real(gp) :: ehart,hfac,exctXfac,sfac,hfaci,hfacj,hfac2
   integer, dimension(4) :: mpireq,mpireq2
@@ -732,7 +711,7 @@ subroutine exact_exchange_potential_round(iproc,nproc,geocode,nspin,lr,orbs,&
 
   !call timing(iproc,'Exchangecorr  ','ON')
 
-  exctXfac = xc_exctXfac()
+  exctXfac = xc_exctXfac(xc)
 
   eexctX=0.0_gp
 
@@ -755,15 +734,12 @@ subroutine exact_exchange_potential_round(iproc,nproc,geocode,nspin,lr,orbs,&
   !since the orbitals are all occupied we have to use the symmetric scheme
   !we have first to define the number of groups, which correspond to the repartition 
   !of spin up and spin down orbitals
-  allocate(nvctr_par(0:nproc-1,ngroup+ndebug),stat=i_stat)
-  call memocc(i_stat,nvctr_par,'nvctr_par',subname)
+  nvctr_par = f_malloc((/ 0.to.nproc-1, 1.to.ngroup /),id='nvctr_par')
 
-  allocate(iorbgr(2,0:nproc-1,ngroup+ndebug),stat=i_stat)
-  call memocc(i_stat,iorbgr,'iorbgr',subname)
+  iorbgr = f_malloc((/ 1.to.2, 0.to.nproc-1, 1.to.ngroup /),id='iorbgr')
 
   !test array for data sending
-  allocate(ndatas(2,0:nproc-1,ngroup+ndebug),stat=i_stat)
-  call memocc(i_stat,ndatas,'ndatas',subname)
+  ndatas = f_malloc((/ 1.to.2, 0.to.nproc-1, 1.to.ngroup /),id='ndatas')
 
   
   if (ngroup==2) then
@@ -813,14 +789,11 @@ subroutine exact_exchange_potential_round(iproc,nproc,geocode,nspin,lr,orbs,&
   end do
 
   !determine the array of the groups which are of interest for this processor
-  allocate(igrpr(ngroupp+ndebug),stat=i_stat)
-  call memocc(i_stat,igrpr,'igrpr',subname)
-  allocate(iprocpm1(2,0:nproc-1,ngroupp+ndebug),stat=i_stat)
-  call memocc(i_stat,iprocpm1,'iprocpm1',subname)
+  igrpr = f_malloc(ngroupp,id='igrpr')
+  iprocpm1 = f_malloc((/ 1.to.2, 0.to.nproc-1, 1.to.ngroupp /),id='iprocpm1')
 
   !test array for data calculation
-  allocate(ndatac(ngroupp+ndebug),stat=i_stat)
-  call memocc(i_stat,ndatac,'ndatac',subname)
+  ndatac = f_malloc(ngroupp,id='ndatac')
 
 
   !determine for each processor the groups which has to be used
@@ -869,8 +842,7 @@ subroutine exact_exchange_potential_round(iproc,nproc,geocode,nspin,lr,orbs,&
 
   !calculate the list of send-receive operations which have to be performed per group
   !allocate it at the maximum size needed
-  allocate(jprocsr(4,0:nproc/2+1,ngroupp+ndebug),stat=i_stat)
-  call memocc(i_stat,jprocsr,'jprocsr',subname)
+  jprocsr = f_malloc((/ 1.to.4, 0.to.nproc/2+1, 1.to.ngroupp /),id='jprocsr')
   !initalise array to minus one
   jprocsr=-1
 
@@ -1016,7 +988,7 @@ subroutine exact_exchange_potential_round(iproc,nproc,geocode,nspin,lr,orbs,&
 
      end do
 
-     if (nproc > 1) call mpiallred(ndatas(1,0,1),2*nproc*ngroup,MPI_SUM,bigdft_mpi%mpi_comm,ierr)
+     if (nproc > 1) call mpiallred(ndatas(1,0,1),2*nproc*ngroup,MPI_SUM,bigdft_mpi%mpi_comm)
      !if(iproc ==0)print *,'iproc,datas',iproc,ndatas
 
      do igroup=1,ngroupp
@@ -1035,11 +1007,10 @@ subroutine exact_exchange_potential_round(iproc,nproc,geocode,nspin,lr,orbs,&
   !stop
   !open(100+iproc)  
   
-  call initialize_work_arrays_sumrho(lr,w)
-  allocate(psir(lr%d%n1i*lr%d%n2i*lr%d%n3i,orbs%norbp+ndebug),stat=i_stat)
-  call memocc(i_stat,psir,'psir',subname)
+  call initialize_work_arrays_sumrho(1,lr,.true.,w)
+  psir = f_malloc0((/ lr%d%n1i*lr%d%n2i*lr%d%n3i, orbs%norbp /),id='psir')
   
-  call razero(lr%d%n1i*lr%d%n2i*lr%d%n3i*orbs%norbp,psir)
+  !call to_zero(lr%d%n1i*lr%d%n2i*lr%d%n3i*orbs%norbp,psir(1,1))
   
   !uncompress the wavefunction in the real grid
   do iorb=1,orbs%norbp
@@ -1049,19 +1020,20 @@ subroutine exact_exchange_potential_round(iproc,nproc,geocode,nspin,lr,orbs,&
   
   call deallocate_work_arrays_sumrho(w)
   
-  allocate(psiw(lr%d%n1i*lr%d%n2i*lr%d%n3i,maxval(orbs%norb_par(:,0)),2,ngroupp+ndebug),stat=i_stat)
-  call memocc(i_stat,psiw,'psiw',subname)
-  allocate(dpsiw(lr%d%n1i*lr%d%n2i*lr%d%n3i,maxval(orbs%norb_par(:,0)),3,ngroupp+ndebug),stat=i_stat)
-  call memocc(i_stat,dpsiw,'dpsiw',subname)
+  psiw = f_malloc0((/ 1.to.lr%d%n1i*lr%d%n2i*lr%d%n3i, 1.to.maxval(orbs%norb_par(:,0)), 1.to.2, 1.to.ngroupp /),id='psiw')
+  dpsiw = f_malloc0((/ 1.to.lr%d%n1i*lr%d%n2i*lr%d%n3i, 1.to.maxval(orbs%norb_par(:,0)), 1.to.3, 1.to.ngroupp /),id='dpsiw')
   !partial densities and potentials
-  allocate(rp_ij(lr%d%n1i*lr%d%n2i*lr%d%n3i+ndebug),stat=i_stat)
-  call memocc(i_stat,rp_ij,'rp_ij',subname)
+  rp_ij = f_malloc(lr%d%n1i*lr%d%n2i*lr%d%n3i,id='rp_ij')
   
   !this is the array of the actions of the X potential on psi
-  call razero(lr%d%n1i*lr%d%n2i*lr%d%n3i*maxval(orbs%norb_par,1)*2*ngroupp,psiw)
-  call razero(lr%d%n1i*lr%d%n2i*lr%d%n3i*maxval(orbs%norb_par,1)*3*ngroupp,dpsiw)
+  !ii=lr%d%n1i*lr%d%n2i*lr%d%n3i*maxval(orbs%norb_par(:,0))*2*ngroupp
+  !call to_zero(lr%d%n1i*lr%d%n2i*lr%d%n3i*maxval(orbs%norb_par,1)*2*ngroupp,psiw(1,1,1,1))
+  !call to_zero(ii,psiw(1,1,1,1))
+  !ii=lr%d%n1i*lr%d%n2i*lr%d%n3i*maxval(orbs%norb_par(:,0))*3*ngroupp
+  !call to_zero(lr%d%n1i*lr%d%n2i*lr%d%n3i*maxval(orbs%norb_par,1)*3*ngroupp,dpsiw(1,1,1,1))
+  !call to_zero(ii,dpsiw(1,1,1,1))
   
-  call razero(lr%d%n1i*lr%d%n2i*lr%d%n3i*orbs%norbp,dpsir)
+  call f_zero(dpsir)
 
   ncalls=0
   !real communication
@@ -1107,7 +1079,9 @@ subroutine exact_exchange_potential_round(iproc,nproc,geocode,nspin,lr,orbs,&
      do igroup=1,ngroupp
         if (jproc /= 0 .and. jprocsr(3,jproc,igroup) /= -1) then
            !put to zero the sending element
-           call razero(lr%d%n1i*lr%d%n2i*lr%d%n3i*maxval(orbs%norb_par,1),dpsiw(1,1,3,igroup))
+           ii=lr%d%n1i*lr%d%n2i*lr%d%n3i*maxval(orbs%norb_par(:,0))
+           !call to_zero(lr%d%n1i*lr%d%n2i*lr%d%n3i*maxval(orbs%norb_par,1),dpsiw(1,1,3,igroup))
+           call f_zero(ii,dpsiw(1,1,3,igroup))
         end if
      end do
      
@@ -1266,7 +1240,7 @@ subroutine exact_exchange_potential_round(iproc,nproc,geocode,nspin,lr,orbs,&
                    ': sending',nvctr_par(jprocsr(3,jproc,igroup),igrpr(igroup)),&
                    'elements from',iproc,'to',jprocsr(3,jproc,igroup)
            end if
-           call dcopy(nvctr_par(jprocsr(3,jproc,igroup),igrpr(igroup)),&
+           call vcopy(nvctr_par(jprocsr(3,jproc,igroup),igrpr(igroup)),&
                 dpsiw(1,1,3,igroup),1,dpsiw(1,1,isnow2,igroup),1)
            
            call MPI_ISEND(dpsiw(1,1,isnow2,igroup),&
@@ -1301,7 +1275,7 @@ subroutine exact_exchange_potential_round(iproc,nproc,geocode,nspin,lr,orbs,&
   end do
   
   !call MPI_BARRIER(bigdft_mpi%mpi_comm,ierr)
-  if (nproc>1) call mpiallred(eexctX,1,MPI_SUM,bigdft_mpi%mpi_comm,ierr)
+  if (nproc>1) call mpiallred(eexctX,1,MPI_SUM,bigdft_mpi%mpi_comm)
   
   !the exact exchange energy is half the Hartree energy (which already has another half)
   eexctX=-exctXfac*eexctX
@@ -1310,64 +1284,25 @@ subroutine exact_exchange_potential_round(iproc,nproc,geocode,nspin,lr,orbs,&
   !if (iproc == 0) write(*,'(1x,a,1x,1pe18.11)')'Exact Exchange Energy:',eexctX
 
   !close(100+iproc)
-  i_all=-product(shape(nvctr_par))*kind(nvctr_par)
-  deallocate(nvctr_par,stat=i_stat)
-  call memocc(i_stat,i_all,'nvctr_par',subname)
-  
-  i_all=-product(shape(iorbgr))*kind(iorbgr)
-  deallocate(iorbgr,stat=i_stat)
-  call memocc(i_stat,i_all,'iorbgr',subname)
-
-
-  i_all=-product(shape(ndatas))*kind(ndatas)
-  deallocate(ndatas,stat=i_stat)
-  call memocc(i_stat,i_all,'ndatas',subname)
-
-  i_all=-product(shape(ndatac))*kind(ndatac)
-  deallocate(ndatac,stat=i_stat)
-  call memocc(i_stat,i_all,'ndatac',subname)
-
-  i_all=-product(shape(rp_ij))*kind(rp_ij)
-  deallocate(rp_ij,stat=i_stat)
-  call memocc(i_stat,i_all,'rp_ij',subname)
-  
-  i_all=-product(shape(psiw))*kind(psiw)
-  deallocate(psiw,stat=i_stat)
-  call memocc(i_stat,i_all,'psiw',subname)
-
-  i_all=-product(shape(dpsiw))*kind(dpsiw)
-  deallocate(dpsiw,stat=i_stat)
-  call memocc(i_stat,i_all,'dpsiw',subname)
-
-
-  i_all=-product(shape(psir))*kind(psir)
-  deallocate(psir,stat=i_stat)
-  call memocc(i_stat,i_all,'psir',subname)
-
-  i_all=-product(shape(igrpr))*kind(igrpr)
-  deallocate(igrpr,stat=i_stat)
-  call memocc(i_stat,i_all,'igrpr',subname)
-
-  i_all=-product(shape(iprocpm1))*kind(iprocpm1)
-  deallocate(iprocpm1,stat=i_stat)
-  call memocc(i_stat,i_all,'iprocpm1',subname)
-
-  i_all=-product(shape(jprocsr))*kind(jprocsr)
-  deallocate(jprocsr,stat=i_stat)
-  call memocc(i_stat,i_all,'jprocsr',subname)
-
+  call f_free(nvctr_par)
+  call f_free(iorbgr)
+  call f_free(ndatas)
+  call f_free(ndatac)
+  call f_free(rp_ij)
+  call f_free(psiw)
+  call f_free(dpsiw)
+  call f_free(psir)
+  call f_free(igrpr)
+  call f_free(iprocpm1)
+  call f_free(jprocsr)
   !call timing(iproc,'Exchangecorr  ','OF')
 
 END SUBROUTINE exact_exchange_potential_round
 
 
-!!$!> BigDFT/exact_exchange_potential_round
-!!$!! :
-!!$!!   Calculate the exact exchange potential on occupied orbitals
-!!$!!   within the symmetric round-robin scheme
-!!$!!   the psi is already given in the real-space form
-!!$!!
-!!$!! 
+!!$!> Calculate the exact exchange potential on occupied orbitals
+!!$!! within the symmetric round-robin scheme
+!!$!! the psi is already given in the real-space form
 !!$subroutine exact_exchange_potential_round_new(iproc,nproc,geocode,nspin,lr,orbs,&
 !!$     hxh,hyh,hzh,pkernel,psi,dpsir,eexctX)
 !!$  use module_base
@@ -1375,7 +1310,7 @@ END SUBROUTINE exact_exchange_potential_round
 !!$  use Poisson_Solver
 !!$  use module_xc
 !!$  implicit none
-!!$  character(len=1), intent(in) :: geocode
+!!$  character(len=1), intent(in) :: geocode !< @copydoc poisson_solver::doc::geocode
 !!$  integer, intent(in) :: iproc,nproc,nspin
 !!$  real(gp), intent(in) :: hxh,hyh,hzh
 !!$  type(locreg_descriptors), intent(in) :: lr
@@ -1385,9 +1320,9 @@ END SUBROUTINE exact_exchange_potential_round
 !!$  real(gp), intent(out) :: eexctX
 !!$  real(wp), dimension(lr%d%n1i*lr%d%n2i*lr%d%n3i,orbs%norbp), intent(out) :: dpsir
 !!$  !local variables
-!!$  character(len=*), parameter :: subname='exact_exchange_potential_round'
+!!$  character(len=*), parameter :: subname='exact_exchange_potential_round_new'
 !!$  logical :: doit
-!!$  integer :: i_all,i_stat,ierr,ispin,ncommsstep,ncommsstep2,isnow,irnow,isnow2,irnow2,jsorb,kproc,norbp,jgroup
+!!$  integer :: ierr,ispin,ncommsstep,ncommsstep2,isnow,irnow,isnow2,irnow2,jsorb,kproc,norbp,jgroup
 !!$  integer :: i,iorb,jorb,jproc,igroup,ngroup,ngroupp,jprocsend,jprocrecv,jprocrecv2,nend,isorb,iorbs,iorbe,jorbs,jorbe
 !!$  integer :: icount,nprocgr,iprocgrs,iprocgrr,itestproc,norbi,norbj,iproclast,ncalltot,icountmax,iprocref,ncalls
 !!$  real(gp) :: ehart,hfac,exctXfac,sfac,hfaci,hfacj,hfac2
@@ -1602,11 +1537,11 @@ END SUBROUTINE exact_exchange_potential_round
 !!$  !stop
 !!$  !open(100+iproc)  
 !!$  
-!!$  call initialize_work_arrays_sumrho(lr,w)
+!!$  call initialize_work_arrays_sumrho(1,lr,.true.,w)
 !!$  allocate(psir(lr%d%n1i*lr%d%n2i*lr%d%n3i,orbs%norbp+ndebug),stat=i_stat)
 !!$  call memocc(i_stat,psir,'psir',subname)
 !!$  
-!!$  call razero(lr%d%n1i*lr%d%n2i*lr%d%n3i*orbs%norbp,psir)
+!!$  call to_zero(lr%d%n1i*lr%d%n2i*lr%d%n3i*orbs%norbp,psir)
 !!$  
 !!$  !uncompress the wavefunction in the real grid
 !!$  do iorb=1,orbs%norbp
@@ -1625,10 +1560,10 @@ END SUBROUTINE exact_exchange_potential_round
 !!$  call memocc(i_stat,rp_ij,'rp_ij',subname)
 !!$  
 !!$  !this is the array of the actions of the X potential on psi
-!!$  call razero(lr%d%n1i*lr%d%n2i*lr%d%n3i*maxval(orbs%norb_par)*2*ngroupp,psiw)
-!!$  call razero(lr%d%n1i*lr%d%n2i*lr%d%n3i*maxval(orbs%norb_par)*3*ngroupp,dpsiw)
+!!$  call to_zero(lr%d%n1i*lr%d%n2i*lr%d%n3i*maxval(orbs%norb_par)*2*ngroupp,psiw)
+!!$  call to_zero(lr%d%n1i*lr%d%n2i*lr%d%n3i*maxval(orbs%norb_par)*3*ngroupp,dpsiw)
 !!$  
-!!$  call razero(lr%d%n1i*lr%d%n2i*lr%d%n3i*orbs%norbp,dpsir)
+!!$  call to_zero(lr%d%n1i*lr%d%n2i*lr%d%n3i*orbs%norbp,dpsir)
 !!$
 !!$  ncalls=0
 !!$  !real communication
@@ -1674,7 +1609,7 @@ END SUBROUTINE exact_exchange_potential_round
 !!$     do igroup=1,ngroupp
 !!$        if (jproc /= 0 .and. jprocsr(3,jproc,igroup) /= -1) then
 !!$           !put to zero the sending element
-!!$           call razero(lr%d%n1i*lr%d%n2i*lr%d%n3i*maxval(orbs%norb_par),dpsiw(1,1,3,igroup))
+!!$           call to_zero(lr%d%n1i*lr%d%n2i*lr%d%n3i*maxval(orbs%norb_par),dpsiw(1,1,3,igroup))
 !!$        end if
 !!$     end do
 !!$     
@@ -1833,7 +1768,7 @@ END SUBROUTINE exact_exchange_potential_round
 !!$                   ': sending',nvctr_par(jprocsr(3,jproc,igroup),igrpr(igroup)),&
 !!$                   'elements from',iproc,'to',jprocsr(3,jproc,igroup)
 !!$           end if
-!!$           call dcopy(nvctr_par(jprocsr(3,jproc,igroup),igrpr(igroup)),&
+!!$           call vcopy(nvctr_par(jprocsr(3,jproc,igroup),igrpr(igroup)),&
 !!$                dpsiw(1,1,3,igroup),1,dpsiw(1,1,isnow2,igroup),1)
 !!$           
 !!$           call MPI_ISEND(dpsiw(1,1,isnow2,igroup),&

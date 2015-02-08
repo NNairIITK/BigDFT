@@ -1,17 +1,18 @@
 !> @file
 !!   Routines to handle Gaussian basis set
 !! @author
-!!    Copyright (C) 2007-2011 CEA (LG)
+!!    Copyright (C) 2007-2013 BigDFT group
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
 
 
-!>  Restart from gaussian functions
+!> Restart from gaussian functions
 subroutine restart_from_gaussians(iproc,nproc,orbs,Lzd,hx,hy,hz,psi,G,coeffs)
   use module_base
   use module_types
+  use gaussians, only: gaussian_basis, deallocate_gwf
   implicit none
   integer, intent(in) :: iproc,nproc
   real(gp), intent(in) :: hx,hy,hz
@@ -22,7 +23,6 @@ subroutine restart_from_gaussians(iproc,nproc,orbs,Lzd,hx,hy,hz,psi,G,coeffs)
   real(wp), dimension(:,:), pointer :: coeffs
   !local variables
   character(len=*), parameter :: subname='restart_from_gaussians'
-  integer :: i_stat,i_all
 
   !the atomic positions corresponds to the new values
   !calculate the dual coefficients with the new positions
@@ -35,10 +35,8 @@ subroutine restart_from_gaussians(iproc,nproc,orbs,Lzd,hx,hy,hz,psi,G,coeffs)
   call gaussians_to_wavelets_new(iproc,nproc,Lzd,orbs,G,coeffs,psi)
 
   !deallocate gaussian structure and coefficients
-  call deallocate_gwf(G,subname)
-  i_all=-product(shape(coeffs))*kind(coeffs)
-  deallocate(coeffs,stat=i_stat)
-  call memocc(i_stat,i_all,'coeffs',subname)
+  call deallocate_gwf(G)
+  call f_free_ptr(coeffs)
 
   nullify(G%rxyz)
 
@@ -58,10 +56,12 @@ subroutine read_gaussian_information(orbs,G,coeffs,filename, opt_fillrxyz)
   !local variables
   character(len=*), parameter :: subname='read_gaussian_information'
   logical :: exists
-  integer :: i_stat,jexpo,iexpo,iat,iorb,jat,icoeff,jcoeff,jorb,j
+  integer :: jexpo,iexpo,iat,iorb,jat,icoeff,jcoeff,jorb,j
   real(gp) :: rx,ry
   real(gp), dimension(4) :: coeff
   logical fillrxyz
+  
+
 
   if (present(opt_fillrxyz)) then
      fillrxyz=opt_fillrxyz
@@ -80,25 +80,19 @@ subroutine read_gaussian_information(orbs,G,coeffs,filename, opt_fillrxyz)
 
   open(unit=99,file=filename,status='unknown')
   read(99,*)G%nat,G%nshltot,G%nexpo,G%ncoeff
+  G%ncplx=1 !2 only for PAW or XANES
 
-  allocate(G%nshell(G%nat+ndebug),stat=i_stat)
-  call memocc(i_stat,G%nshell,'G%nshell',subname)
-  allocate(G%nam(G%nshltot+ndebug),stat=i_stat)
-  call memocc(i_stat,G%nam,'G%nam',subname)
-  allocate(G%ndoc(G%nshltot+ndebug),stat=i_stat)
-  call memocc(i_stat,G%ndoc,'G%ndoc',subname)
-  allocate(G%xp(G%nexpo+ndebug),stat=i_stat)
-  call memocc(i_stat,G%xp,'G%xp',subname)
-  allocate(G%psiat(G%nexpo+ndebug),stat=i_stat)
-  call memocc(i_stat,G%psiat,'G%psiat',subname)
+  G%nshell = f_malloc_ptr(G%nat,id='G%nshell')
+  G%nam = f_malloc_ptr(G%nshltot,id='G%nam')
+  G%ndoc = f_malloc_ptr(G%nshltot,id='G%ndoc')
+  G%xp = f_malloc_ptr((/ G%ncplx, G%nexpo /),id='G%xp')
+  G%psiat = f_malloc_ptr((/ G%ncplx, G%nexpo /),id='G%psiat')
 
-  allocate(coeffs(G%ncoeff,orbs%norbp*orbs%nspinor+ndebug),stat=i_stat)
-  call memocc(i_stat,coeffs,'coeffs',subname)
+  coeffs = f_malloc_ptr((/ G%ncoeff, orbs%norbp*orbs%nspinor /),id='coeffs')
   
   if(fillrxyz) then
 
-     allocate(G%rxyz (3,G%nat+ndebug),stat=i_stat)
-     call memocc(i_stat,G%rxyz,'G%rxyz',subname)
+     G%rxyz  = f_malloc_ptr((/ 3, G%nat /),id='G%rxyz ')
      do iat=1,G%nat
         read(99,*)jat,G%rxyz(1, iat),G%rxyz(2, iat),G%rxyz(3, iat)  ,G%nshell(iat)
      end do
@@ -111,7 +105,7 @@ subroutine read_gaussian_information(orbs,G,coeffs,filename, opt_fillrxyz)
 
   read(99,*)G%ndoc(1:G%nshltot),G%nam(1:G%nshltot)
   do iexpo=1,G%nexpo
-     read(99,*)jexpo,G%xp(jexpo),G%psiat(jexpo)
+     read(99,*)jexpo,G%xp(1,jexpo),G%psiat(1,jexpo)
   end do
   do iorb=1,orbs%norb
      read(99,*)jorb,orbs%eval(jorb)
@@ -142,17 +136,15 @@ subroutine write_gaussian_information(iproc,nproc,orbs,G,coeffs,filename)
   real(wp), dimension(G%ncoeff,orbs%norbp*orbs%nspinor), intent(in) :: coeffs
   !local variables
   character(len=*), parameter :: subname='write_gaussian_information'
-  integer :: jproc,i_stat,i_all,ierr,iexpo,iat,iorb,icoeff,jorb,j,norb_tot
+  integer :: jproc,ierr,iexpo,iat,iorb,icoeff,jorb,j,norb_tot
   integer, dimension(:,:), allocatable :: gatherarr
   real(gp), dimension(:,:), allocatable :: gaupsi
 
-  allocate(gaupsi(G%ncoeff,orbs%norb*orbs%nspinor+ndebug),stat=i_stat)
-  call memocc(i_stat,gaupsi,'gaupsi',subname)
+  gaupsi = f_malloc((/ G%ncoeff, orbs%norb*orbs%nspinor /),id='gaupsi')
 
 
   if (nproc > 1) then
-     allocate(gatherarr(0:nproc-1,2+ndebug),stat=i_stat)
-     call memocc(i_stat,gatherarr,'gatherarr',subname)
+     gatherarr = f_malloc((/ 0.to.nproc-1, 1.to.2 /),id='gatherarr')
      
      norb_tot=0
      gatherarr(0,1)=G%ncoeff*orbs%norb_par(0,0)*orbs%nspinor
@@ -167,9 +159,7 @@ subroutine write_gaussian_information(iproc,nproc,orbs,G,coeffs,filename)
      call MPI_GATHERV(coeffs,gatherarr(iproc,1),mpidtypw,gaupsi,gatherarr(0,1),gatherarr(0,2),&
           mpidtypw,0,bigdft_mpi%mpi_comm,ierr)
 
-     i_all=-product(shape(gatherarr))*kind(gatherarr)
-     deallocate(gatherarr,stat=i_stat)
-     call memocc(i_stat,i_all,'gatherarr',subname)
+     call f_free(gatherarr)
   else
      gaupsi(1:G%ncoeff,1:orbs%norb*orbs%nspinor)=&
           coeffs(1:G%ncoeff,1:orbs%norb*orbs%nspinor)
@@ -185,7 +175,7 @@ subroutine write_gaussian_information(iproc,nproc,orbs,G,coeffs,filename)
      end do
      write(99,*)G%ndoc,G%nam
      do iexpo=1,G%nexpo
-        write(99,'(i6,2(1x,1pe21.14))')iexpo,G%xp(iexpo),G%psiat(iexpo)
+        write(99,'(i6,2(1x,1pe21.14))')iexpo,G%xp(1,iexpo),G%psiat(1,iexpo)
      end do
      do iorb=1,orbs%norb
         write(99,'(i6,1x,1pe21.14)')iorb,orbs%eval(iorb)
@@ -197,9 +187,7 @@ subroutine write_gaussian_information(iproc,nproc,orbs,G,coeffs,filename)
      close(99)
   end if
 
-  i_all=-product(shape(gaupsi))*kind(gaupsi)
-  deallocate(gaupsi,stat=i_stat)
-  call memocc(i_stat,i_all,'gaupsi',subname)
+  call f_free(gaupsi)
   
 END SUBROUTINE write_gaussian_information
 
@@ -208,6 +196,7 @@ END SUBROUTINE write_gaussian_information
 subroutine gaussian_pswf_basis(ng,enlargerprb,iproc,nspin,at,rxyz,G,Gocc, gaenes, &
      iorbtolr,iorbto_l, iorbto_m,  iorbto_ishell,iorbto_iexpobeg)
   use module_base
+  use ao_inguess, only: iguess_generator,print_eleconf,ao_nspin_ig,nmax_occ_ao
   use module_types
   use yaml_output
   use module_interfaces, except_this_one => gaussian_pswf_basis
@@ -215,28 +204,27 @@ subroutine gaussian_pswf_basis(ng,enlargerprb,iproc,nspin,at,rxyz,G,Gocc, gaenes
   logical, intent(in) :: enlargerprb
   integer, intent(in) :: iproc,nspin,ng
   type(atoms_data), intent(in) :: at
-  real(gp), dimension(3,at%nat), target, intent(in) :: rxyz
+  real(gp), dimension(3,at%astruct%nat), target, intent(in) :: rxyz
   type(gaussian_basis), intent(inout) :: G
   real(wp), dimension(:), pointer :: Gocc
 
-  !! the following arguments are used wheb building PPD : the preconditioner for CG spectra
-  real(gp), pointer, optional :: gaenes(:)
-  integer, pointer, optional :: iorbtolr(:)
-  integer, pointer, optional :: iorbto_l(:)
-  integer, pointer, optional :: iorbto_m(:)
-  integer, pointer, optional :: iorbto_ishell(:)
-  integer, pointer, optional :: iorbto_iexpobeg(:)
+  !! the following arguments are used when building PPD : the preconditioner for CG spectra
+  real(gp), dimension(:), pointer, optional :: gaenes
+  integer, dimension(:), pointer, optional :: iorbtolr
+  integer, dimension(:), pointer, optional :: iorbto_l
+  integer, dimension(:), pointer, optional :: iorbto_m
+  integer, dimension(:), pointer, optional :: iorbto_ishell
+  integer, dimension(:), pointer, optional :: iorbto_iexpobeg
 
   !local variables
   character(len=*), parameter :: subname='gaussian_pswf_basis'
-  integer, parameter :: noccmax=2,lmax=4,nelecmax=32 !n(c) nmax=6
+  !integer, parameter :: noccmax=2,lmax=4,nelecmax=32 !n(c) nmax=6
   logical :: occeq
-  integer :: i_stat,i_all,iat,ityp,ishell,iexpo,l,i,ig,ictotpsi,norbe,norbsc,ishltmp
+  integer :: iat,ityp,ishell,iexpo,l,i,ig,ictotpsi,norbe,norbsc,ishltmp
   integer :: ityx,ntypesx,nspinor,jat,noncoll,icoeff,iocc,nlo,ispin,m,icoll,ngv,ngc,islcc
   real(gp) :: ek
-  integer, dimension(lmax) :: nl
-  real(gp), dimension(noccmax,lmax) :: occup
-  logical, dimension(:,:,:), allocatable :: scorb
+  !integer, dimension(lmax) :: nl
+  !real(gp), dimension(noccmax,lmax) :: occup
   integer, dimension(:), allocatable :: iatypex
   integer, dimension(:,:), allocatable :: norbsc_arr
   real(gp), dimension(:), allocatable :: psiatn,locrad
@@ -244,9 +232,9 @@ subroutine gaussian_pswf_basis(ng,enlargerprb,iproc,nspin,at,rxyz,G,Gocc, gaenes
   real(gp), dimension(:,:,:), allocatable :: psiat  
 
   !! auxiliary variables used when creating optional arrays for PPD
-  real(gp)  :: gaenes_aux(5*at%nat)
-  integer :: last_aux, firstperityx(at%nat)
-
+  real(gp)  :: gaenes_aux(nmax_occ_ao*at%astruct%nat)
+  integer :: last_aux, firstperityx(at%astruct%nat)
+  integer :: nspin_print !< to be removed, shouldpass in input variables
 
 
   !quick return if possible
@@ -256,12 +244,8 @@ subroutine gaussian_pswf_basis(ng,enlargerprb,iproc,nspin,at,rxyz,G,Gocc, gaenes
      return
   end if
 
-  allocate(scorb(4,2,at%natsc+ndebug),stat=i_stat)
-  call memocc(i_stat,scorb,'scorb',subname)
-  allocate(norbsc_arr(at%natsc+1,1+ndebug),stat=i_stat)
-  call memocc(i_stat,norbsc_arr,'norbsc_arr',subname)
-  allocate(locrad(at%nat+ndebug),stat=i_stat)
-  call memocc(i_stat,locrad,'locrad',subname)
+  norbsc_arr = f_malloc((/ at%natsc+1, 1 /),id='norbsc_arr')
+  locrad = f_malloc(at%astruct%nat,id='locrad')
 
   !for the moment, only collinear
   nspinor=1
@@ -272,45 +256,44 @@ subroutine gaussian_pswf_basis(ng,enlargerprb,iproc,nspin,at,rxyz,G,Gocc, gaenes
      noncoll=1
   end if
 
-  call readAtomicOrbitals(at,norbe,norbsc,nspin,nspinor,scorb,norbsc_arr,locrad)
+  nspin_print=ao_nspin_ig(nspin,nspinor=nspinor)
 
-  i_all=-product(shape(locrad))*kind(locrad)
-  deallocate(locrad,stat=i_stat)
-  call memocc(i_stat,i_all,'locrad',subname)
+  call readAtomicOrbitals(at,norbe,norbsc,nspin,nspinor,norbsc_arr,locrad)
+
+  call f_free(locrad)
 
   !Generate the input guess via the inguess_generator
   !take also into account the IG polarisations
 
   !the number of gaussian centers are thus nat
-  G%nat=at%nat
+  G%nat=at%astruct%nat
   !this pointing creates problems if at the next call the positions are given by a different array.
   !presumably the best if to copy the values and allocate the pointer
   G%rxyz => rxyz
 
   !copy the parsed values in the gaussian structure
   !count also the total number of shells
-  allocate(G%nshell(at%nat+ndebug),stat=i_stat)
-  call memocc(i_stat,G%nshell,'G%nshell',subname)
+  G%nshell = f_malloc_ptr(at%astruct%nat,id='G%nshell')
 
   !calculate the number of atom types by taking into account the occupation
-  allocate(iatypex(at%nat+ndebug),stat=i_stat)
-  call memocc(i_stat,iatypex,'iatypex',subname)
+  iatypex = f_malloc(at%astruct%nat,id='iatypex')
   
   ntypesx=0
   G%nshltot=0
-  count_shells: do iat=1,at%nat
-     ityp=at%iatype(iat)
-     call count_atomic_shells(lmax,noccmax,nelecmax,nspin,nspinor,at%aocc(1,iat),occup,nl)
-     G%nshell(iat)=(nl(1)+nl(2)+nl(3)+nl(4))
+  count_shells: do iat=1,at%astruct%nat
+     ityp=at%astruct%iatype(iat)
+     !call count_atomic_shells(nspin_print,at%aoig(iat)%aocc,occup,nl)
+     G%nshell(iat)=sum(at%aoig(iat)%nl)!(nl(1)+nl(2)+nl(3)+nl(4))
      G%nshltot=G%nshltot+G%nshell(iat)
      !check the occupation numbers and the atoms type
      !once you find something equal exit the procedure
      do jat=1,iat-1
-        if (at%iatype(jat) == ityp) then
-           occeq=.true.
-           do i=1,nelecmax
-              occeq = occeq .and. (at%aocc(i,jat) == at%aocc(i,iat))
-           end do
+        if (at%astruct%iatype(jat) == ityp) then
+           occeq= all(at%aoig(jat)%aocc == at%aoig(iat)%aocc)!.true.
+           !do i=1,nelecmax
+           !   occeq = occeq .and. &
+           !        (at%aoig(jat)%aocc(i) == at%aoig(iat)%aocc(i))
+           !end do
            !have found another similar atoms
            if (occeq) then
               iatypex(iat)=iatypex(jat)
@@ -322,38 +305,31 @@ subroutine gaussian_pswf_basis(ng,enlargerprb,iproc,nspin,at,rxyz,G,Gocc, gaenes
      iatypex(iat)=ntypesx
   end do count_shells
 
-  allocate(G%ndoc(G%nshltot+ndebug),stat=i_stat)
-  call memocc(i_stat,G%ndoc,'G%ndoc',subname)
-  allocate(G%nam(G%nshltot+ndebug),stat=i_stat)
-  call memocc(i_stat,G%nam,'G%nam',subname)
-
+  G%ndoc = f_malloc_ptr(G%nshltot,id='G%ndoc')
+  G%nam = f_malloc_ptr(G%nshltot,id='G%nam')
 
   !the default value for the gaussians is chosen to be 21
-  allocate(xpt(ng,ntypesx+ndebug),stat=i_stat)
-  call memocc(i_stat,xpt,'xpt',subname)
-  allocate(psiat(ng,5,ntypesx+ndebug),stat=i_stat)
-  call memocc(i_stat,psiat,'psiat',subname)
-  allocate(psiatn(ng+ndebug),stat=i_stat)
-  call memocc(i_stat,psiatn,'psiatn',subname)
+  xpt = f_malloc((/ ng, ntypesx /),id='xpt')
+  psiat = f_malloc((/ ng , nmax_occ_ao , ntypesx /),id='psiat')
+  psiatn = f_malloc(ng,id='psiatn')
 
 
   !assign shell IDs and count the number of exponents and coefficients
+  G%ncplx=1
   G%nexpo=0
   G%ncoeff=0
   ishell=0
   ntypesx=0
-  do iat=1,at%nat
-     ityp=at%iatype(iat)
+  do iat=1,at%astruct%nat
+     ityp=at%astruct%iatype(iat)
      ityx=iatypex(iat)
      ishltmp=0
-     call count_atomic_shells(lmax,noccmax,nelecmax,nspin,nspinor,at%aocc(1,iat),occup,nl)
+     !call count_atomic_shells(nspin_print,at%aoig(iat)%aocc,occup,nl)
      if (ityx > ntypesx) then
         if (iproc == 0 .and. verbose > 1) then
-           call yaml_map('Generation of input wavefunction data for atom ', trim(at%atomnames(ityp)))
-           !write(*,'(1x,a,a6,a)') 'Generation of input wavefunction data for atom ',&
-           !     & trim(at%atomnames(ityp)),':'
-           call print_eleconf(nspin,nspinor,noccmax,nelecmax,lmax,&
-                at%aocc(1,iat),at%iasctype(iat))
+           call yaml_map('Generation of input wavefunction data for atom ', trim(at%astruct%atomnames(ityp)))
+           call print_eleconf(nspin_print,&
+                at%aoig(iat)%aocc,at%aoig(iat)%nl_sc)
         end if
 
         firstperityx( ityx)=iat
@@ -365,26 +341,24 @@ subroutine gaussian_pswf_basis(ng,enlargerprb,iproc,nspin,at,rxyz,G,Gocc, gaenes
 
 
         if( present(gaenes)) then
-           call iguess_generator_modified(at%nzatom(ityp),at%nelpsp(ityp),&
-                real(at%nelpsp(ityp),gp),at%psppar(0,0,ityp),&
-                at%npspcode(ityp),ngv,ngc,at%nlccpar(0,max(islcc,1)),&
-                ng-1,nl,5,noccmax,lmax,occup,xpt(1,ityx),&
-                psiat(1,1,ityx),enlargerprb, gaenes_aux(1+5*( firstperityx( ityx)   -1))  )
+           call iguess_generator(at%nzatom(ityp),at%nelpsp(ityp),& !_modified
+                real(at%nelpsp(ityp),gp),nspin_print,at%aoig(iat)%aocc,at%psppar(0:,0:,ityp),&
+                at%npspcode(ityp),ngv,ngc,at%nlccpar(0:,max(islcc,1)),&
+                ng-1,xpt(1,ityx),psiat(1,1,ityx),enlargerprb, &
+                gaenes_aux=gaenes_aux(1+nmax_occ_ao*( firstperityx( ityx)-1))  )
         else
            call iguess_generator(at%nzatom(ityp),at%nelpsp(ityp),&
-                real(at%nelpsp(ityp),gp),at%psppar(0,0,ityp),&
-                at%npspcode(ityp),ngv,ngc,at%nlccpar(0,max(islcc,1)),&
-                ng-1,nl,5,noccmax,lmax,occup,xpt(1,ityx),&
-                psiat(1,1,ityx),enlargerprb)
+                real(at%nelpsp(ityp),gp),nspin_print,at%aoig(iat)%aocc,at%psppar(0:,0:,ityp),&
+                at%npspcode(ityp),ngv,ngc,at%nlccpar(0:,max(islcc,1)),&
+                ng-1,xpt(1,ityx),psiat(1,1,ityx),enlargerprb)
         endif
-
 
         ntypesx=ntypesx+1
         !if (iproc == 0 .and. verbose > 1) write(*,'(1x,a)')'done.'
      end if
 
-     do l=1,4
-        do i=1,nl(l)
+     do l=1,size(at%aoig(iat)%nl)
+        do i=1,at%aoig(iat)%nl(l-1)!nl(l)
            ishell=ishell+1
            ishltmp=ishltmp+1
            G%ndoc(ishell)=ng!(ity)
@@ -393,7 +367,7 @@ subroutine gaussian_pswf_basis(ng,enlargerprb,iproc,nspin,at,rxyz,G,Gocc, gaenes
            G%ncoeff=G%ncoeff+2*l-1
            !print *,'iat,i,l',iat,i,l,norbe,G%ncoeff
            if( present(gaenes)) then
-              gaenes_aux(ishltmp +5*(iat-1))=gaenes_aux(ishltmp +5*(  firstperityx( ityx)-1))
+              gaenes_aux(ishltmp+nmax_occ_ao*(iat-1))=gaenes_aux(ishltmp+nmax_occ_ao*(firstperityx(ityx)-1))
            endif
         end do
      end do
@@ -408,62 +382,49 @@ subroutine gaussian_pswf_basis(ng,enlargerprb,iproc,nspin,at,rxyz,G,Gocc, gaenes
 
   !now we have to allocate the array of the "occupation numbers"
   !of the molecular orbitals
-  allocate(Gocc(G%ncoeff+ndebug),stat=i_stat)
-  call memocc(i_stat,Gocc,'Gocc',subname)
-  call razero(G%ncoeff,Gocc)
+  Gocc = f_malloc0_ptr(G%ncoeff,id='Gocc')
+  !call to_zero(G%ncoeff,Gocc)
 
   if( present(gaenes)) then
 
-     allocate(gaenes(G%ncoeff+ndebug),stat=i_stat)
-     call memocc(i_stat,gaenes,'gaenes',subname)
-     call razero(G%ncoeff,gaenes)
+     gaenes = f_malloc0_ptr(G%ncoeff,id='gaenes')
+     !call to_zero(G%ncoeff,gaenes)
 
-
-     allocate(iorbtolr(G%ncoeff+ndebug),stat=i_stat)
-     call memocc(i_stat,iorbtolr,'iorbtolr',subname)
-     
-     allocate(iorbto_l(G%ncoeff+ndebug),stat=i_stat)
-     call memocc(i_stat,iorbto_l,'iorbto_l',subname)
-     
-     allocate(iorbto_m(G%ncoeff+ndebug),stat=i_stat)
-     call memocc(i_stat,iorbto_m,'iorbto_m',subname)
-     
-     allocate(iorbto_ishell(G%ncoeff+ndebug),stat=i_stat)
-     call memocc(i_stat,iorbto_ishell,'iorbto_ishell',subname)
-     
-     allocate(iorbto_iexpobeg(G%ncoeff+ndebug),stat=i_stat)
-     call memocc(i_stat,iorbto_iexpobeg,'iorbto_iexpobeg',subname)
+     iorbtolr = f_malloc_ptr(G%ncoeff,id='iorbtolr')
+     iorbto_l = f_malloc_ptr(G%ncoeff,id='iorbto_l')
+     iorbto_m = f_malloc_ptr(G%ncoeff,id='iorbto_m')
+     iorbto_ishell = f_malloc_ptr(G%ncoeff,id='iorbto_ishell')
+     iorbto_iexpobeg = f_malloc_ptr(G%ncoeff,id='iorbto_iexpobeg')
      
   endif
 
   !allocate and assign the exponents and the coefficients
-  allocate(G%psiat(G%nexpo+ndebug),stat=i_stat)
-  call memocc(i_stat,G%psiat,'G%psiat',subname)
-  allocate(G%xp(G%nexpo+ndebug),stat=i_stat)
-  call memocc(i_stat,G%xp,'G%xp',subname)
+  G%psiat = f_malloc_ptr((/ G%ncplx, G%nexpo /),id='G%psiat')
+  G%xp = f_malloc_ptr((/ G%ncplx, G%nexpo /),id='G%xp')
 
   ishell=0
   iexpo=0
   icoeff=1
-  do iat=1,at%nat
+  do iat=1,at%astruct%nat
      if( present(gaenes))  last_aux=ishell
      !print *, 'debug',iat,present(gaenes),nspin,noncoll
-     ityp=at%iatype(iat)
+     ityp=at%astruct%iatype(iat)
      ityx=iatypex(iat)
-     call count_atomic_shells(lmax,noccmax,nelecmax,nspin,nspinor,at%aocc(1,iat),occup,nl)
+     !call count_atomic_shells(ao_nspin_ig(nspin,nspinor=nspinor),&
+     !     at%aoig(iat)%aocc,occup,nl)
      ictotpsi=0
      iocc=0
-     do l=1,4
+     do l=1,size(at%aoig(iat)%nl)
         iocc=iocc+1
-        nlo=nint(at%aocc(iocc,iat)) !just to increase the counting 
-        do i=1,nl(l)
+        nlo=nint(at%aoig(iat)%aocc(iocc)) !just to increase the counting 
+        do i=1,at%aoig(iat)%nl(l-1)
            ishell=ishell+1
            ictotpsi=ictotpsi+1
            call atomkin(l-1,ng,xpt(1,ityx),psiat(1,ictotpsi,ityx),psiatn,ek)
            do ig=1,G%ndoc(ishell)
               iexpo=iexpo+1
-              G%psiat(iexpo)=psiatn(ig)
-              G%xp(iexpo)=xpt(ig,ityp)
+              G%psiat(1,iexpo)=psiatn(ig)*sign(1.0_gp,psiatn(1))
+              G%xp(1,iexpo)=xpt(ig,ityp)
            end do
 
            do ispin=1,nspin
@@ -472,10 +433,10 @@ subroutine gaussian_pswf_basis(ng,enlargerprb,iproc,nspin,at,rxyz,G,Gocc, gaenes
                  !non-collinear case
                  do icoll=1,noncoll !non-trivial only for nspinor=4
                     iocc=iocc+1
-                    Gocc(icoeff)=Gocc(icoeff)+at%aocc(iocc,iat)
+                    Gocc(icoeff)=Gocc(icoeff)+at%aoig(iat)%aocc(iocc)
                     !print *,'test',iocc,icoeff,shape(at%aocc),'test2',shape(Gocc)
                     if( present(gaenes)) then
-                        gaenes(icoeff)=gaenes_aux( ishell-last_aux+  5*(iat-1) )
+                        gaenes(icoeff)=gaenes_aux( ishell-last_aux+  nmax_occ_ao*(iat-1) )
                         iorbtolr       (icoeff)=iat
                         iorbto_l       (icoeff)=l        
                         iorbto_m       (icoeff)=m
@@ -497,27 +458,13 @@ subroutine gaussian_pswf_basis(ng,enlargerprb,iproc,nspin,at,rxyz,G,Gocc, gaenes
      stop 
   end if
 
-  i_all=-product(shape(scorb))*kind(scorb)
-  deallocate(scorb,stat=i_stat)
-  call memocc(i_stat,i_all,'scorb',subname)
-  i_all=-product(shape(xpt))*kind(xpt)
-  deallocate(xpt,stat=i_stat)
-  call memocc(i_stat,i_all,'xpt',subname)
-  i_all=-product(shape(psiat))*kind(psiat)
-  deallocate(psiat,stat=i_stat)
-  call memocc(i_stat,i_all,'psiat',subname)
-  i_all=-product(shape(norbsc_arr))*kind(norbsc_arr)
-  deallocate(norbsc_arr,stat=i_stat)
-  call memocc(i_stat,i_all,'norbsc_arr',subname)
-  i_all=-product(shape(psiatn))*kind(psiatn)
-  deallocate(psiatn,stat=i_stat)
-  call memocc(i_stat,i_all,'psiatn',subname)
-  i_all=-product(shape(iatypex))*kind(iatypex)
-  deallocate(iatypex,stat=i_stat)
-  call memocc(i_stat,i_all,'iatypex',subname)
+  call f_free(xpt)
+  call f_free(psiat)
+  call f_free(norbsc_arr)
+  call f_free(psiatn)
+  call f_free(iatypex)
 
 END SUBROUTINE gaussian_pswf_basis
-
 
 
 !> Create gaussian structure from ptildes   _for_paw
@@ -527,7 +474,7 @@ subroutine gaussian_pswf_basis_for_paw(at,rxyz,G,  &
   use module_types
   implicit none
   type(atoms_data), intent(in) :: at
-  real(gp), dimension(3,at%nat), target, intent(in) :: rxyz
+  real(gp), dimension(3,at%astruct%nat), target, intent(in) :: rxyz
   type(gaussian_basis_c), intent(inout) :: G
 
   integer, pointer :: iorbtolr(:)
@@ -540,9 +487,9 @@ subroutine gaussian_pswf_basis_for_paw(at,rxyz,G,  &
 
   !local variables
   character(len=*), parameter :: subname='gaussian_pswf_basis_for_paw'
-  integer, parameter :: noccmax=2,lmax=4,nmax=6,nelecmax=32
+  !integer, parameter :: noccmax=2,lmax=4,nmax=6,nelecmax=32
   integer :: il, j
-  integer :: i_stat,iat,ityp,jtyp,ishell,iexpo,l,i
+  integer :: iat,ityp,jtyp,ishell,iexpo,l,i
   integer :: ig,iexpoat_qs , iexpoat_coeffs
   integer :: natpaw, imatrix
   integer :: nspinor,noncoll,icoeff,m
@@ -564,32 +511,30 @@ subroutine gaussian_pswf_basis_for_paw(at,rxyz,G,  &
   end if
 
   natpaw=0
-  do iat=1, at%nat
-     if(  at%paw_NofL(at%iatype(iat)).gt.0) then
+  do iat=1, at%astruct%nat
+     if(  at%paw_NofL(at%astruct%iatype(iat)).gt.0) then
         natpaw=natpaw+1
      end if
   end do
 
   !the number of gaussian centers are thus natpaw
   G%nat= natpaw   
-  allocate(G%rxyz ( 3, natpaw+ndebug ),stat=i_stat)
-  call memocc(i_stat,G%rxyz,'G%rxyz',subname)
+  G%rxyz  = f_malloc_ptr((/ 3, natpaw /),id='G%rxyz ')
 
   natpaw=0
-  do iat=1, at%nat
-     if(  at%paw_NofL(at%iatype(iat)).gt.0) then
+  do iat=1, at%astruct%nat
+     if(  at%paw_NofL(at%astruct%iatype(iat)).gt.0) then
         natpaw=natpaw+1
         G%rxyz (:, natpaw) = rxyz(:,iat)
      end if
   end do
 
-  allocate(G%nshell( natpaw  +ndebug),stat=i_stat)
-  call memocc(i_stat,G%nshell,'G%nshell',subname)
+  G%nshell = f_malloc_ptr(natpaw  ,id='G%nshell')
 
   G%nshltot=0
   natpaw=0
-  count_shells: do iat=1,at%nat
-     ityp=at%iatype(iat)
+  count_shells: do iat=1,at%astruct%nat
+     ityp=at%astruct%iatype(iat)
      if(  at%paw_NofL(ityp).gt.0) then
         natpaw=natpaw+1
         G%nshell(natpaw)=0
@@ -605,18 +550,16 @@ subroutine gaussian_pswf_basis_for_paw(at,rxyz,G,  &
      end if
   end do count_shells
 
-  allocate(G%ndoc(G%nshltot+ndebug),stat=i_stat)
-  call memocc(i_stat,G%ndoc,'G%ndoc',subname)
-  allocate(G%nam(G%nshltot+ndebug),stat=i_stat)
-  call memocc(i_stat,G%nam,'G%nam',subname)
+  G%ndoc = f_malloc_ptr(G%nshltot,id='G%ndoc')
+  G%nam = f_malloc_ptr(G%nshltot,id='G%nam')
 
   !assign shell IDs and count the number of exponents and coefficients
   G%nexpo=0
   G%ncoeff=0
   ishell=0
   il=0
-  do iat=1,at%nat
-     ityp=at%iatype(iat) 
+  do iat=1,at%astruct%nat
+     ityp=at%astruct%iatype(iat) 
      if(  at%paw_NofL(ityp).gt.0) then
         il=0
         do jtyp=1,ityp-1
@@ -641,42 +584,26 @@ subroutine gaussian_pswf_basis_for_paw(at,rxyz,G,  &
   end do
 
 
-  allocate(iorbtolr(G%ncoeff+ndebug),stat=i_stat)
-  call memocc(i_stat,iorbtolr,'iorbtolr',subname)
-
-  allocate(iorbto_l(G%ncoeff+ndebug),stat=i_stat)
-  call memocc(i_stat,iorbto_l,'iorbto_l',subname)
-
-  allocate(iorbto_paw_nchannels(G%ncoeff+ndebug),stat=i_stat)
-  call memocc(i_stat,iorbto_paw_nchannels,'iorbto_paw_nchannels',subname)
-
-  allocate(iorbto_m(G%ncoeff+ndebug),stat=i_stat)
-  call memocc(i_stat,iorbto_m,'iorbto_m',subname)
-
-  allocate(iorbto_ishell(G%ncoeff+ndebug),stat=i_stat)
-  call memocc(i_stat,iorbto_ishell,'iorbto_ishell',subname)
-
-  allocate(iorbto_iexpobeg(G%ncoeff+ndebug),stat=i_stat)
-  call memocc(i_stat,iorbto_iexpobeg,'iorbto_iexpobeg',subname)
-
-  allocate(iorbto_imatrixbeg(G%ncoeff+ndebug),stat=i_stat)
-  call memocc(i_stat,iorbto_imatrixbeg,'iorbto_imatrixbeg',subname)
-
+  iorbtolr = f_malloc_ptr(G%ncoeff,id='iorbtolr')
+  iorbto_l = f_malloc_ptr(G%ncoeff,id='iorbto_l')
+  iorbto_paw_nchannels = f_malloc_ptr(G%ncoeff,id='iorbto_paw_nchannels')
+  iorbto_m = f_malloc_ptr(G%ncoeff,id='iorbto_m')
+  iorbto_ishell = f_malloc_ptr(G%ncoeff,id='iorbto_ishell')
+  iorbto_iexpobeg = f_malloc_ptr(G%ncoeff,id='iorbto_iexpobeg')
+  iorbto_imatrixbeg = f_malloc_ptr(G%ncoeff,id='iorbto_imatrixbeg')
 
 
   !allocate and assign the exponents and the coefficients
-  allocate(G%psiat(G%nexpo+ndebug),stat=i_stat)
-  call memocc(i_stat ,  G%psiat ,'G%psiat',subname)
+  G%psiat = f_malloc_ptr(G%nexpo,id='G%psiat')
 
-  allocate(G%expof(G%nexpo+ndebug),stat=i_stat)
-  call memocc(i_stat, G%expof,  'G%expof',subname)
+  G%expof = f_malloc_ptr(G%nexpo,id='G%expof')
 
   iexpo=0
   icoeff=0
 
   natpaw=0
   
-  do iat=1,at%nat
+  do iat=1,at%astruct%nat
 
      il=0
      ishell=0
@@ -684,7 +611,7 @@ subroutine gaussian_pswf_basis_for_paw(at,rxyz,G,  &
      iexpoat_coeffs =0
      imatrix=1
 
-     ityp=at%iatype(iat)
+     ityp=at%astruct%iatype(iat)
 
      if(  at%paw_NofL(ityp).gt.0) then
         natpaw=natpaw+1
@@ -745,20 +672,19 @@ subroutine gaussian_psp_basis(at,rxyz,G)
   use module_types
   implicit none
   type(atoms_data), intent(in) :: at
-  real(gp), dimension(3,at%nat), target, intent(in) :: rxyz
+  real(gp), dimension(3,at%astruct%nat), target, intent(in) :: rxyz
   type(gaussian_basis), intent(out) :: G  
   !local variables
   character(len=*), parameter :: subname='gaussian_psp_basis'
-  integer :: iat,nshell,ityp,iexpo,l,ishell,i_stat
+  integer :: iat,nshell,ityp,iexpo,l,ishell
 
-  G%nat=at%nat
+  G%nat=at%astruct%nat
   G%rxyz => rxyz
-  allocate(G%nshell(at%nat+ndebug),stat=i_stat)
-  call memocc(i_stat,G%nshell,'G%nshell',subname)
+  G%nshell = f_malloc_ptr(at%astruct%nat,id='G%nshell')
  
   G%nshltot=0
   do iat=1,G%nat
-     ityp=at%iatype(iat) 
+     ityp=at%astruct%iatype(iat) 
      nshell=0
      do l=1,4 
         if (at%psppar(l,0,ityp) /= 0.0_gp) nshell=nshell+1
@@ -767,17 +693,16 @@ subroutine gaussian_psp_basis(at,rxyz,G)
      G%nshltot=G%nshltot+nshell
   end do
 
-  allocate(G%ndoc(G%nshltot+ndebug),stat=i_stat)
-  call memocc(i_stat,G%ndoc,'G%ndoc',subname)
-  allocate(G%nam(G%nshltot+ndebug),stat=i_stat)
-  call memocc(i_stat,G%nam,'G%nam',subname)
+  G%ndoc = f_malloc_ptr(G%nshltot,id='G%ndoc')
+  G%nam = f_malloc_ptr(G%nshltot,id='G%nam')
 
   !assign shell IDs and count the number of exponents and coefficients
+  G%ncplx=1
   G%nexpo=0
   G%ncoeff=0
   ishell=0
   do iat=1,G%nat
-     ityp=at%iatype(iat)
+     ityp=at%astruct%iatype(iat)
      do l=1,4 
         if (at%psppar(l,0,ityp) /= 0.0_gp) then
            ishell=ishell+1
@@ -790,21 +715,19 @@ subroutine gaussian_psp_basis(at,rxyz,G)
   end do
 
   !allocate and assign the exponents and the coefficients
-  allocate(G%xp(G%nexpo+ndebug),stat=i_stat)
-  call memocc(i_stat,G%xp,'G%xp',subname)
-  allocate(G%psiat(G%nexpo+ndebug),stat=i_stat)
-  call memocc(i_stat,G%psiat,'G%psiat',subname)
+  G%xp = f_malloc_ptr((/ G%ncplx, G%nexpo /),id='G%xp')
+  G%psiat = f_malloc_ptr((/ G%ncplx, G%nexpo /),id='G%psiat')
 
   ishell=0
   iexpo=0
   do iat=1,G%nat
-     ityp=at%iatype(iat)
+     ityp=at%astruct%iatype(iat)
      do l=1,4 
         if (at%psppar(l,0,ityp) /= 0.0_gp) then
            ishell=ishell+1
            iexpo=iexpo+1
-           G%psiat(iexpo)=1.0_gp
-           G%xp(iexpo)=at%psppar(l,0,ityp)
+           G%psiat(1,iexpo)=1.0_gp
+           G%xp(1,iexpo)=at%psppar(l,0,ityp)
         end if
      end do
   end do
@@ -826,23 +749,18 @@ subroutine gaussian_orthogonality(iproc,nproc,norb,norbp,G,coeffs)
   real(wp), dimension(G%ncoeff,norbp), intent(inout) :: coeffs
   !local variables
   character(len=*), parameter :: subname='gaussian_orthogonality' 
-  integer :: iorb,i,jproc,i_stat,i_all,info,ierr
+  integer :: iorb,i,jproc,info,ierr
   integer, dimension(:,:), allocatable :: gatherarr
   real(gp), dimension(:,:), allocatable :: ovrlp,gaupsi,tmp,smat
 
-  allocate(ovrlp(G%ncoeff,G%ncoeff+ndebug),stat=i_stat)
-  call memocc(i_stat,ovrlp,'ovrlp',subname)
-  allocate(gaupsi(G%ncoeff,norb+ndebug),stat=i_stat)
-  call memocc(i_stat,gaupsi,'gaupsi',subname)
-  allocate(tmp(G%ncoeff,norb+ndebug),stat=i_stat)
-  call memocc(i_stat,tmp,'tmp',subname)
-  allocate(smat(norb,norb+ndebug),stat=i_stat)
-  call memocc(i_stat,smat,'smat',subname)
+  ovrlp = f_malloc((/ G%ncoeff, G%ncoeff /),id='ovrlp')
+  gaupsi = f_malloc((/ G%ncoeff, norb /),id='gaupsi')
+  tmp = f_malloc((/ G%ncoeff, norb /),id='tmp')
+  smat = f_malloc((/ norb, norb /),id='smat')
 
 
   if (nproc > 1) then
-     allocate(gatherarr(0:nproc-1,2+ndebug),stat=i_stat)
-     call memocc(i_stat,gatherarr,'gatherarr',subname)
+     gatherarr = f_malloc((/ 0.to.nproc-1, 1.to.2 /),id='gatherarr')
 
      !gather the coefficients in a unique array
      do jproc=0,nproc-1
@@ -853,9 +771,7 @@ subroutine gaussian_orthogonality(iproc,nproc,norb,norbp,G,coeffs)
      call MPI_ALLGATHERV(coeffs,gatherarr(iproc,1),mpidtypw,gaupsi,gatherarr(0,1),gatherarr(0,2),&
           mpidtypw,bigdft_mpi%mpi_comm,ierr)
 
-     i_all=-product(shape(gatherarr))*kind(gatherarr)
-     deallocate(gatherarr,stat=i_stat)
-     call memocc(i_stat,i_all,'gatherarr',subname)
+     call f_free(gatherarr)
   else
      gaupsi(1:G%ncoeff,1:norb)=coeffs(1:G%ncoeff,1:norb)
   end if
@@ -896,18 +812,10 @@ subroutine gaussian_orthogonality(iproc,nproc,norb,norbp,G,coeffs)
      end if
   end do
   
-  i_all=-product(shape(ovrlp))*kind(ovrlp)
-  deallocate(ovrlp,stat=i_stat)
-  call memocc(i_stat,i_all,'ovrlp',subname)
-  i_all=-product(shape(tmp))*kind(tmp)
-  deallocate(tmp,stat=i_stat)
-  call memocc(i_stat,i_all,'tmp',subname)
-  i_all=-product(shape(smat))*kind(smat)
-  deallocate(smat,stat=i_stat)
-  call memocc(i_stat,i_all,'smat',subname)
-  i_all=-product(shape(gaupsi))*kind(gaupsi)
-  deallocate(gaupsi,stat=i_stat)
-  call memocc(i_stat,i_all,'gaupsi',subname)
+  call f_free(ovrlp)
+  call f_free(tmp)
+  call f_free(smat)
+  call f_free(gaupsi)
 
 END SUBROUTINE gaussian_orthogonality
 
@@ -1122,7 +1030,7 @@ subroutine wavelets_to_gaussians(geocode,norbp,nspinor,n1,n2,n3,G,thetaphi,hx,hy
   use module_base
   use module_types
   implicit none
-  character(len=1), intent(in) :: geocode
+  character(len=1), intent(in) :: geocode !< @copydoc poisson_solver::doc::geocode
   integer, intent(in) :: norbp,n1,n2,n3,nspinor
   real(gp), intent(in) :: hx,hy,hz
   type(gaussian_basis), intent(in) :: G
@@ -1136,7 +1044,7 @@ subroutine wavelets_to_gaussians(geocode,norbp,nspinor,n1,n2,n3,G,thetaphi,hx,hy
   do iorb=1,norbp
      do ispinor=1,nspinor
         call orbital_projection(geocode,n1,n2,n3,G%nat,G%rxyz,thetaphi,&
-             G%nshell,G%ndoc,G%nam,G%xp,G%psiat,G%nshltot,G%nexpo,G%ncoeff,&
+             G%nshell,G%ndoc,G%nam,G%xp(1,:),G%psiat(1,:),G%nshltot,G%nexpo,G%ncoeff,&
              hx,hy,hz,wfd,psi(1,ispinor,iorb),coeffs(1,ispinor,iorb))
         !print *,'iorb, coeffs',iorb,coeffs(:,1,iorb)
      end do
@@ -1156,7 +1064,7 @@ subroutine orbital_projection(geocode,n1,n2,n3,nat,rxyz,thetaphi,nshell,ndoc,nam
   use module_types
   use gaussians
   implicit none
-  character(len=1), intent(in) :: geocode
+  character(len=1), intent(in) :: geocode !< @copydoc poisson_solver::doc::geocode
   integer, intent(in) :: n1,n2,n3,nat,nshltot,nexpo,ncoeff
   real(gp), intent(in) :: hx,hy,hz
   type(wavefunctions_descriptors), intent(in) :: wfd
@@ -1189,11 +1097,9 @@ subroutine orbital_projection(geocode,n1,n2,n3,nat,rxyz,thetaphi,nshell,ndoc,nam
   
 END SUBROUTINE orbital_projection
 
-!>
-!!
-!!
+
 subroutine dual_gaussian_coefficients(norbp,G,coeffs)
-  use module_base, only: ndebug,gp,memocc
+  use module_base
   use gaussians
   implicit none
   integer, intent(in) :: norbp
@@ -1201,18 +1107,15 @@ subroutine dual_gaussian_coefficients(norbp,G,coeffs)
   real(gp), dimension(G%ncoeff,norbp), intent(inout) :: coeffs !warning: the precision here should be wp
   !local variables
   character(len=*), parameter :: subname='dual_gaussian_coefficients'
-  integer :: nwork,info,i_stat,i_all
+  integer :: nwork,info
   integer, dimension(:), allocatable :: iwork
   real(gp), dimension(:), allocatable :: ovrlp,work
 
-  allocate(iwork(G%ncoeff+ndebug),stat=i_stat)
-  call memocc(i_stat,iwork,'iwork',subname)
-  allocate(ovrlp(G%ncoeff*G%ncoeff+ndebug),stat=i_stat)
-  call memocc(i_stat,ovrlp,'ovrlp',subname)
+  iwork = f_malloc(G%ncoeff,id='iwork')
+  ovrlp = f_malloc(G%ncoeff*G%ncoeff,id='ovrlp')
 
   !temporary allocation of the work array, workspace query in dsysv
-  allocate(work(100+ndebug),stat=i_stat)
-  call memocc(i_stat,work,'work',subname)
+  work = f_malloc(100,id='work')
 
   if (norbp > 0) then
      call dsysv('U',G%ncoeff,norbp,ovrlp(1),G%ncoeff,iwork(1),coeffs(1,1),&
@@ -1220,11 +1123,8 @@ subroutine dual_gaussian_coefficients(norbp,G,coeffs)
   end if
   nwork=int(work(1))
 
-  i_all=-product(shape(work))*kind(work)
-  deallocate(work,stat=i_stat)
-  call memocc(i_stat,i_all,'work',subname)
-  allocate(work(nwork+ndebug),stat=i_stat)
-  call memocc(i_stat,work,'work',subname)
+  call f_free(work)
+  work = f_malloc(nwork,id='work')
 
   call gaussian_overlap(G,G,ovrlp)
 
@@ -1239,15 +1139,9 @@ subroutine dual_gaussian_coefficients(norbp,G,coeffs)
           G%ncoeff,work,nwork,info)
   end if
 
-  i_all=-product(shape(iwork))*kind(iwork)
-  deallocate(iwork,stat=i_stat)
-  call memocc(i_stat,i_all,'iwork',subname)
-  i_all=-product(shape(work))*kind(work)
-  deallocate(work,stat=i_stat)
-  call memocc(i_stat,i_all,'work',subname)
-  i_all=-product(shape(ovrlp))*kind(ovrlp)
-  deallocate(ovrlp,stat=i_stat)
-  call memocc(i_stat,i_all,'ovrlp',subname)
+  call f_free(iwork)
+  call f_free(work)
+  call f_free(ovrlp)
 
 !!!  do iorb=1,norbp
 !!!     print *,'iorb, dual,coeffs',iorb,coeffs(:,iorb)
@@ -1266,7 +1160,7 @@ subroutine lsh_projection(geocode,l,ng,xp,psiat,n1,n2,n3,rxyz,thetaphi,hx,hy,hz,
   use module_base
   use module_types
   implicit none
-  character(len=1), intent(in) :: geocode
+  character(len=1), intent(in) :: geocode !< @copydoc poisson_solver::doc::geocode
   integer, intent(in) :: l,ng,n1,n2,n3
   real(gp), intent(in) :: hx,hy,hz
   type(wavefunctions_descriptors), intent(in) :: wfd
@@ -1354,7 +1248,7 @@ subroutine wavetogau(geocode,n1,n2,n3,nterm,ntp,lx,ly,lz,fac_arr,xp,psiat,rx,ry,
      nseg_c,mvctr_c,keyg_c,keyv_c,nseg_f,mvctr_f,keyg_f,keyv_f,psi_c,psi_f,overlap)
   use module_base
   implicit none
-  character(len=1), intent(in) :: geocode
+  character(len=1), intent(in) :: geocode !< @copydoc poisson_solver::doc::geocode
   integer, intent(in) :: n1,n2,n3,nterm,ntp,nseg_c,nseg_f,mvctr_c,mvctr_f
   real(gp), intent(in) :: rx,ry,rz,hx,hy,hz
   integer, dimension(ntp), intent(in) :: lx,ly,lz
@@ -1371,7 +1265,7 @@ subroutine wavetogau(geocode,n1,n2,n3,nterm,ntp,lx,ly,lz,fac_arr,xp,psiat,rx,ry,
   character(len=*), parameter :: subname='wavetogau'
   integer, parameter ::nw=32000
   logical :: perx,pery,perz
-  integer:: iterm,itp,n_gau,ml1,mu1,ml2,mu2,ml3,mu3,i1,i2,i3,i_all,i_stat,iseg,ii,jj,j0,j1,i0,i
+  integer:: iterm,itp,n_gau,ml1,mu1,ml2,mu2,ml3,mu3,i1,i2,i3,iseg,ii,jj,j0,j1,i0,i
   real(wp) :: ovlp_c,ovlp_f1,ovlp_f2,ovlp_f3,ovlp_f4,ovlp_f5,ovlp_f6,ovlp_f7,ovlp
   real(gp) :: gau_a,te
   real(wp), dimension(0:nw,2) :: work
@@ -1382,12 +1276,9 @@ subroutine wavetogau(geocode,n1,n2,n3,nterm,ntp,lx,ly,lz,fac_arr,xp,psiat,rx,ry,
   pery=(geocode == 'P')
   perz=(geocode /= 'F')
 
-  allocate(wprojx(0:n1,2+ndebug),stat=i_stat)
-  call memocc(i_stat,wprojx,'wprojx',subname)
-  allocate(wprojy(0:n2,2+ndebug),stat=i_stat)
-  call memocc(i_stat,wprojy,'wprojy',subname)
-  allocate(wprojz(0:n3,2+ndebug),stat=i_stat)
-  call memocc(i_stat,wprojz,'wprojz',subname)
+  wprojx = f_malloc((/ 0.to.n1, 1.to.2 /),id='wprojx')
+  wprojy = f_malloc((/ 0.to.n2, 1.to.2 /),id='wprojy')
+  wprojz = f_malloc((/ 0.to.n3, 1.to.2 /),id='wprojz')
 
   overlap=0.0_wp
 
@@ -1461,15 +1352,9 @@ subroutine wavetogau(geocode,n1,n2,n3,nterm,ntp,lx,ly,lz,fac_arr,xp,psiat,rx,ry,
 
   end do
 
-  i_all=-product(shape(wprojx))*kind(wprojx)
-  deallocate(wprojx,stat=i_stat)
-  call memocc(i_stat,i_all,'wprojx',subname)
-  i_all=-product(shape(wprojy))*kind(wprojy)
-  deallocate(wprojy,stat=i_stat)
-  call memocc(i_stat,i_all,'wprojy',subname)
-  i_all=-product(shape(wprojz))*kind(wprojz)
-  deallocate(wprojz,stat=i_stat)
-  call memocc(i_stat,i_all,'wprojz',subname)
+  call f_free(wprojx)
+  call f_free(wprojy)
+  call f_free(wprojz)
 
 END SUBROUTINE wavetogau
 

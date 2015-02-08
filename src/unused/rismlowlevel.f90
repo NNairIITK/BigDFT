@@ -330,8 +330,8 @@ subroutine atomic_charges_york(iproc,nproc,rxyz,radii,atoms,nelec,lr,ngatherarr,
   allocate(work(100+ndebug),stat=i_stat)
   call memocc(i_stat,work,'work',subname)
 
-  call dcopy(nbasis*nbasis,H,1,Hwork,1)
-  call dcopy(nbasis,rhoarr,1,u,1)
+  call vcopy(nbasis*nbasis,H,1,Hwork,1)
+  call vcopy(nbasis,rhoarr,1,u,1)
   !workspace query
   call dsysv('U',nbasis,1,Hwork(1,1),nbasis,iwork(1),u(1),nbasis,work(1),-1,info)
   nwork=work(1)
@@ -344,16 +344,16 @@ subroutine atomic_charges_york(iproc,nproc,rxyz,radii,atoms,nelec,lr,ngatherarr,
   call memocc(i_stat,work,'work',subname)
 
   !here we start with the linear algebra
-  call dcopy(nbasis,rhoarr,1,u,1)
-  call dcopy(nbasis*nbasis,H,1,Hwork,1)
+  call vcopy(nbasis,rhoarr,1,u,1)
+  call vcopy(nbasis*nbasis,H,1,Hwork,1)
   call dsysv('U',nbasis,1,Hwork(1,1),nbasis,iwork(1),u(1),nbasis,work(1),nwork,info)
   if (info /= 0) then
      write(*,*) 'info calculation of u',info
   end if
 
   !here we start with the linear algebra
-  call dcopy(nbasis,D,1,v,1)
-  call dcopy(nbasis*nbasis,H,1,Hwork,1)
+  call vcopy(nbasis,D,1,v,1)
+  call vcopy(nbasis*nbasis,H,1,Hwork,1)
 !!$  if (iproc == 0) print *,'here',v(:)
 !!$  if (iproc == 0) print '(a,4(1pe15.7))','000',Hwork(1,1),Hwork(1,2),Hwork(2,1),Hwork(2,2)
   call dsysv('U',nbasis,1,Hwork(1,1),nbasis,iwork(1),v(1),nbasis,work(1),nwork,info)
@@ -376,7 +376,7 @@ subroutine atomic_charges_york(iproc,nproc,rxyz,radii,atoms,nelec,lr,ngatherarr,
   !gammafac=ddotu/ddotv
 
   !calculate the eigenvalues of H
-  call dcopy(nbasis*nbasis,H,1,Hwork,1)
+  call vcopy(nbasis*nbasis,H,1,Hwork,1)
   !print *,'nwork',nwork,3*nbasis-1
   call dsyev('N','U',nbasis,Hwork(1,1),nbasis,v(1),work(1),nwork,info)
 
@@ -395,7 +395,7 @@ subroutine atomic_charges_york(iproc,nproc,rxyz,radii,atoms,nelec,lr,ngatherarr,
   call vscal(nbasis,gammafac,D(1),1)
 
   !initalise C
-  call dcopy(nbasis,D,1,Caux,1)
+  call vcopy(nbasis,D,1,Caux,1)
   
   !fill it 
   call axpy(nbasis,-1.0_gp,rhoarr(1),1,Caux(1),1)
@@ -521,7 +521,6 @@ subroutine gaussian_hermite_basis(nhermitemax,nat,radii,rxyz,G)
   character(len=*), parameter :: subname='gaussian_psp_basis'
   !n(c) real(gp), parameter :: oneo2pi3halves=0.0634936359342409697857633_gp
   integer :: iat,nshell,iexpo,l,ishell,i_stat
-
   G%nat=nat
   G%rxyz => rxyz
   allocate(G%nshell(G%nat+ndebug),stat=i_stat)
@@ -540,6 +539,7 @@ subroutine gaussian_hermite_basis(nhermitemax,nat,radii,rxyz,G)
   call memocc(i_stat,G%nam,'G%nam',subname)
 
   !assign shell IDs and count the number of exponents and coefficients
+  G%ncplx=1
   G%nexpo=0
   G%ncoeff=0
   ishell=0
@@ -554,9 +554,9 @@ subroutine gaussian_hermite_basis(nhermitemax,nat,radii,rxyz,G)
   end do
 
   !allocate and assign the exponents and the coefficients
-  allocate(G%xp(G%nexpo+ndebug),stat=i_stat)
+  allocate(G%xp(G%ncplx,G%nexpo+ndebug),stat=i_stat)
   call memocc(i_stat,G%xp,'G%xp',subname)
-  allocate(G%psiat(G%nexpo+ndebug),stat=i_stat)
+  allocate(G%psiat(G%ncplx,G%nexpo+ndebug),stat=i_stat)
   call memocc(i_stat,G%psiat,'G%psiat',subname)
 
   ishell=0
@@ -565,8 +565,8 @@ subroutine gaussian_hermite_basis(nhermitemax,nat,radii,rxyz,G)
      do l=1,G%nshell(iat) 
         ishell=ishell+1
         iexpo=iexpo+1
-        G%psiat(iexpo)=1.0_gp
-        G%xp(iexpo)=radii(iat)
+        G%psiat(1,iexpo)=1.0_gp
+        G%xp(1,iexpo)=radii(iat)
      end do
   end do
 
@@ -579,7 +579,7 @@ subroutine calculate_rho(iproc,nproc,geocode,nat,radii,rxyz,hxh,hyh,hzh,&
   use module_types
   implicit none
   !Arguments---------
-  character(len=1), intent(in) :: geocode
+  character(len=1), intent(in) :: geocode !< @copydoc poisson_solver::doc::geocode
   integer, intent(in) :: iproc,nproc,n1,n2,n3,n3pi,i3s,n1i,n2i,nat
   real(gp), intent(in) :: hxh,hyh,hzh
   real(gp), dimension(nat), intent(in) :: radii
@@ -705,7 +705,6 @@ subroutine kinetic_overlap_h(A,B,ovrlp)
   ishell=0
   iexpo=1
   icoeff=1
-
   !loop on each shell (intensive calculation)
   do iat=1,A%nat
      do isat=1,A%nshell(iat)
@@ -738,8 +737,8 @@ subroutine kinetic_overlap_h(A,B,ovrlp)
                     jovrlp=jovrlp+1
                     if (jovrlp >= iovrlp .and. A%ncoeff == B%ncoeff .or. &
                          A%ncoeff /= B%ncoeff ) then
-                       call kineticovrlp_h(A%xp(iexpo),A%psiat(iexpo),&
-                            B%xp(jexpo),B%psiat(jexpo),&
+                       call kineticovrlp_h(A%xp(1,iexpo),A%psiat(1,iexpo),&
+                            B%xp(1,jexpo),B%psiat(1,jexpo),&
                             ngA,ngB,lA,isat,lB,jsat,dx,dy,dz,&
                             niw,nrw,iw,rw,ovrlp(iovrlp,jovrlp))
                     end if
@@ -992,10 +991,12 @@ subroutine gaussians_to_wavelets_orb_h(ncplx,lr,hx,hy,hz,kx,ky,kz,G,wfn_gau,psi)
   !local variables
   character(len=*), parameter :: subname='gaussians_to_wavelets_orb'
   integer, parameter :: nterm_max=48,maxsizeKB=2048,nw=65536
+  integer,parameter:: ncplx_g=1 !true for NC pseudos
   logical :: perx,pery,perz
   integer :: i_stat,i_all,ishell,iexpo,icoeff,iat,isat,ng,l,m,i,nterm,ig
   integer :: nterms_max,nterms,iterm,n_gau,ml1,mu1,ml2,mu2,ml3,mu3 !n(c) iscoeff
-  real(gp) :: rx,ry,rz,gau_a
+  real(gp) :: rx,ry,rz,gau_a(ncplx_g)
+  real(gp),parameter:: gau_cut=1.0_d0 !only useful for PAW
   integer, dimension(nterm_max) :: lx,ly,lz
   real(gp), dimension(nterm_max) :: fac_arr
   real(wp), allocatable, dimension(:,:,:) :: work
@@ -1023,7 +1024,7 @@ subroutine gaussians_to_wavelets_orb_h(ncplx,lr,hx,hy,hz,kx,ky,kz,G,wfn_gau,psi)
   perz=(lr%geocode /= 'F')
 
   !initialize the wavefunction
-  call razero((lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*ncplx,psi)
+  call to_zero((lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*ncplx,psi)
 
   !calculate the number of terms for this orbital
   nterms=0
@@ -1067,23 +1068,23 @@ subroutine gaussians_to_wavelets_orb_h(ncplx,lr,hx,hy,hz,kx,ky,kz,G,wfn_gau,psi)
               !gauss_to_daub are zero outside [ml:mr] 
               do ig=1,ng
                  do i=1,nterm
-                    !print *,iat,ig,i,fac_arr(i),wfn_gau(icoeff),G%xp(iexpo+ig-1)
-                    gau_a=G%xp(iexpo+ig-1)
+                    !print *,iat,ig,i,fac_arr(i),wfn_gau(icoeff),G%xp(1,iexpo+ig-1)
+                    gau_a(:)=G%xp(1,iexpo+ig-1)
                     n_gau=lx(i)
                     !print *,'x',gau_a,nterm,ncplx,kx,ky,kz,ml1,mu1,lr%d%n1
-                    call gauss_to_daub_k(hx,kx*hx,ncplx,fac_arr(i),rx,gau_a,n_gau,&
+                    call gauss_to_daub_k(hx,kx*hx,ncplx,ncplx_g,ncplx,fac_arr(i),rx,gau_a,n_gau,&
                          lr%ns1,lr%d%n1,ml1,mu1,&
-                         wx(1,0,1,iterm),work,nw,perx) 
+                         wx(1,0,1,iterm),work,nw,perx,gau_cut) 
                     n_gau=ly(i)
                     !print *,'y',ml2,mu2,lr%d%n2
-                    call gauss_to_daub_k(hy,ky*hy,ncplx,wfn_gau(icoeff),ry,gau_a,n_gau,&
+                    call gauss_to_daub_k(hy,ky*hy,ncplx,ncplx_g,ncplx,wfn_gau(icoeff),ry,gau_a,n_gau,&
                          lr%ns2,lr%d%n2,ml2,mu2,&
-                         wy(1,0,1,iterm),work,nw,pery) 
+                         wy(1,0,1,iterm),work,nw,pery,gau_cut) 
                     n_gau=lz(i) 
                     !print *,'z',ml3,mu3,lr%d%n3
-                    call gauss_to_daub_k(hz,kz*hz,ncplx,G%psiat(iexpo+ig-1),rz,gau_a,n_gau,&
+                    call gauss_to_daub_k(hz,kz*hz,ncplx,ncplx_g,ncplx,G%psiat(1,iexpo+ig-1),rz,gau_a,n_gau,&
                          lr%ns3,lr%d%n3,ml3,mu3,&
-                         wz(1,0,1,iterm),work,nw,perz)
+                         wz(1,0,1,iterm),work,nw,perz,gau_cut)
                     iterm=iterm+1
                  end do
               end do
@@ -1169,8 +1170,8 @@ subroutine gaussian_overlap_h(A,B,ovrlp)
                     jovrlp=jovrlp+1
                     if ((jovrlp >= iovrlp .and. A%ncoeff == B%ncoeff) .or. &
                          A%ncoeff /= B%ncoeff ) then
-                       call gbasovrlp_h(A%xp(iexpo),A%psiat(iexpo),&
-                            B%xp(jexpo),B%psiat(jexpo),&
+                       call gbasovrlp_h(A%xp(1,iexpo),A%psiat(1,iexpo),&
+                            B%xp(1,jexpo),B%psiat(1,jexpo),&
                             ngA,ngB,lA,isat,lB,mB,dx,dy,dz,&
                             niw,nrw,iw,rw,ovrlp(iovrlp,jovrlp))
                     end if

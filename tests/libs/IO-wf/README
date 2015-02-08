@@ -1,1 +1,7 @@
-tests writing and reading wavefunctions with NetCDF file format
+/*! @file
+@brief README of the Input/output wavefunction tests.
+
+@dir
+@brief Tests writing and reading wavefunctions with NetCDF file format.
+
+*/

@@ -1,104 +1,145 @@
 ---
-  #================================ Daubechies Wavelets for DFT Pseudopotential Calculations
  Code logo:
-         TTTT         F       DDDDD
-        T    T               D
-       T     T        F     D
-       T    T         F     D        D
-       TTTTT          F     D         D
-       T    T         F     D         D
-       T     T        F     D         D
-       T      T       F     D         D
-       T     T     FFFF     D         D
-       T TTTT         F      D        D
-       T             F        D      D
-   TTTTTTTTT    FFFFF          DDDDDD
-     gggggg          iiiii    BBBBBBBBB
-    g      g        i             B
-   g        g      i         BBBB B
-   g         g     iiii     B     B
-   g         g     i       B      B
-   g         g     i        B     B
-   g         g     i         B    B
-   g         g     i          BBBBB
-    g        g     i         B    B
-             g     i        B     B
-            g               B    B
-       ggggg       i         BBBB
+   "__________________________________ A fast and precise DFT wavelet code
+   |     |     |     |     |     |
+   |     |     |     |     |     |      BBBB         i       gggggg
+   |_____|_____|_____|_____|_____|     B    B               g
+   |     |  :  |  :  |     |     |    B     B        i     g
+   |     |-0+--|-0+--|     |     |    B    B         i     g        g
+   |_____|__:__|__:__|_____|_____|___ BBBBB          i     g         g
+   |  :  |     |     |  :  |     |    B    B         i     g         g
+   |--+0-|     |     |-0+--|     |    B     B     iiii     g         g
+   |__:__|_____|_____|__:__|_____|    B     B        i      g        g
+   |     |  :  |  :  |     |     |    B BBBB        i        g      g
+   |     |-0+--|-0+--|     |     |    B        iiiii          gggggg
+   |_____|__:__|__:__|_____|_____|__BBBBB
+   |     |     |     |  :  |     |                           TTTTTTTTT
+   |     |     |     |--+0-|     |  DDDDDD          FFFFF        T
+   |_____|_____|_____|__:__|_____| D      D        F        TTTT T
+   |     |     |     |  :  |     |D        D      F        T     T
+   |     |     |     |--+0-|     |D         D     FFFF     T     T
+   |_____|_____|_____|__:__|_____|D___      D     F         T    T
+   |     |     |  :  |     |     |D         D     F          TTTTT
+   |     |     |--+0-|     |     | D        D     F         T    T
+   |_____|_____|__:__|_____|_____|          D     F        T     T
+   |     |     |     |     |     |         D               T    T
+   |     |     |     |     |     |   DDDDDD       F         TTTT
+   |_____|_____|_____|_____|_____|______                    www.bigdft.org   "
  
  Reference Paper                       : The Journal of Chemical Physics 129, 014109 (2008)
- Version Number                        : 1.7-dev.21
- Timestamp of this run                 : 2013-01-08 12:11:56.753
- Root process Hostname                 : localhost
- Number of MPI tasks                   :  1
+ Version Number                        : 1.7.0.32
+ Timestamp of this run                 : 2013-11-07 08:27:53.796
+ Root process Hostname                 : girofle
+ Number of MPI tasks                   :  3
  OpenMP parallelization                :  Yes
- Maximal OpenMP threads per MPI task   :  4
- #... (file:input.perf)..................................................Performance Options
- #|debug F                      Debug option                                                 
- #|fftcache 8192                Cache size for the FFT                                       
- #|accel NO                     Acceleration (NO, CUDAGPU, OCLGPU, OCLCPU, OCLACC)           
- #|OCL_platform                 Chosen OCL platform                                          
- #|blas F                       CUBLAS acceleration                                          
- #|projrad  1.50E+01            Radius of the projector as a function of the maxrad          
- #|exctxpar OP2P                Exact exchange parallelisation scheme                        
- #|ig_diag T                    Input guess: (T:Direct, F:Iterative) diag. of Ham.           
- #|ig_norbp 5                   Input guess: Orbitals per process for iterative diag.        
- #|ig_blocks 300 800            Input guess: Block sizes for orthonormalisation              
- #|ig_tol  1.00E-04             Input guess: Tolerance criterion                             
- #|methortho 0                  Orthogonalisation (0=Cholesky,1=GS/Chol,2=Loewdin)           
- #|rho_commun DEF               Density communication scheme (DBL, RSC, MIX)                 
- #|psolver_groupsize 0          Size of Poisson Solver taskgroups (0=nproc)                  
- #|psolver_accel 0              Acceleration of the Poisson Solver (0=none, 1=CUDA)          
- #|unblock_comms OFF            Overlap Communications of fields (OFF,DEN,POT)               
- #|linear OFF                   Linear Input Guess approach (OFF, LIG, FUL, TMO)             
- #|tolsym  1.00E-08             Tolerance for symmetry detection                             
- #|signaling F                  Expose calculation results on Network                        
- #|signalTimeout 0              Time out on startup for signal connection                    
- #|domain                       Domain to add to the hostname to find the IP                 
- #|verbosity 2                  verbosity of the output 0=low, 2=high                        
- #|outdir ./                    Writing directory                                            
- #|psp_onfly T                  Calculate pseudopotential projectors on the fly              
- #... (file:input.dft)............................................DFT Calculation Parameters
- #|0.450 0.450 0.450  hx,hy,hz: grid spacing in the three directions                         
- #|5.0  9.0       c(f)rmult: c(f)rmult*radii_cf(:,1(2))=coarse(fine) atom-based radius       
- #|11             ixc: exchange-correlation parameter (LDA=1,PBE=11)                         
- #|0 0.0  0.0 0.0 charge of the system, Electric field (Ex,Ey,Ez)                            
- #|1  0           nspin=1 non-spin polarization, mpol=total magnetic moment                  
- #|1.E-6          gnrm_cv: convergence criterion gradient                                    
- #|4  1           itermax,nrepmax: max. # of wfn. opt. steps and of re-diag. runs            
- #|6  0           ncong, idsx: # of CG it. for preconditioning eq., wfn. diis history        
- #|0              dispersion correction potential (values 1,2,3), 0=none                     
- #|0 0            InputPsiId, output_wf, output_denspot                                      
- #|0.0  30        rbuf, ncongt: length of the tail (AU),# tail CG iterations                 
- #|0 0  0         Davidson subspace dim., # of opt. orbs, # of plotted orbs                  
- #|T              disable the symmetry detection                                             
- #... (file:input.mix).....................................................Mixing Parameters
- #|17             Mixing parameters                                                          
- #|2              Maximum number of diagonalisation iterations                               
- #|1.d-07         Stop criterion on the residue of potential or density                      
- #|4 1.d-3 1      No. of additional bands, elec. temperature, smearing method                
- #|0.95 2.0       Multiplying factors for the mixing and the electronic DIIS                 
- # ==== WARNING: the following lines have not been processed by the parser ====
- #|                                                                                          
- #... (file:input.geopt.. not present)..................................Geometry Parameters 
- #|BFGS           Geometry optimisation method                                               
- #|1              Maximum number of force evaluations                                        
- #|1.0 0.0        fract_fluct,forcemax                                                       
- #|0.0            random displacement amplitude                                              
- #|4.0            Stepsize for the geometry optimisation                                     
- #... (file:input.tddft.. not present)....................................TD-DFT Parameters 
- #|NONE           TDDFT Method                                                               
- #... (file:input.sic.. not present).........................................SIC Parameters 
- #|NONE           SIC method: NONE, PZ, NK                                                   
- #|0.0            SIC downscaling parameter                                                  
- #|0.0            Reference occupation fref (NK case only)                                   
- #... (file:input.kpt.. not present).....................Brillouin Zone Sampling Parameters 
- #|manual         K-point sampling method                                                    
- #|1              Number of K-points                                                         
- #|0. 0. 0. 1.    K-pt coords, K-pt weigth                                                   
+ Maximal OpenMP threads per MPI task   :  2
+ MPI tasks of root process node        :  3
+  #------------------------------------------------------------------ Code compiling options
+ Compilation options:
+   Configure arguments:
+     " 'FC=/opt/openmpi-1.6.5_intel/bin/mpif90' 'CC=icc' 'FCFLAGS=-O2 -xSSE4.2 -openmp' 
+     '--with-ext-linalg=/opt/intel/composer_xe_2013_sp1.0.080/mkl/lib/intel64/libmkl_blas95_l
+     p64 /opt/intel/composer_xe_2013_sp1.0.080/mkl/lib/intel64/libmkl_lapack95_lp64 
+     -L/opt/intel/composer_xe_2013_sp1.0.080/mkl/lib/intel64 -lmkl_scalapack_lp64 
+     -lmkl_cdft_core -lmkl_intel_lp64 -lmkl_core -lmkl_intel_thread 
+     -lmkl_blacs_intelmpi_lp64 -lpthread -lm'"
+ 
+   Compilers (CC, FC, CXX)             :  [ icc, /opt/openmpi-1.6.5_intel/bin/mpif90, g++ ]
+   Compiler flags:
+     CFLAGS                            : -g -O2
+     FCFLAGS                           : -O2 -xSSE4.2 -openmp
+     CXXFLAGS                          : -g -O2
+  #------------------------------------------------------------------------ Input parameters
+ perf:
+   debug                               : No #     Debug option
+   fftcache                            : 8192 #   Cache size for the FFT
+   accel                               : NO #     Acceleration (hardware)
+   ocl_platform                        : ~ #      Chosen OCL platform
+   ocl_devices                         : ~ #      Chosen OCL devices
+   blas                                : No #     CUBLAS acceleration
+   projrad                             : 15.000 # Radius of the projector as a function of the maxrad
+   exctxpar                            : OP2P #   Exact exchange parallelisation scheme
+   ig_diag                             : Yes #    Input guess (T=Direct, F=Iterative) diag. of Ham.
+   ig_norbp                            : 5 #      Input guess Orbitals per process for iterative diag.
+   ig_blocks: [300, 800] #                        Input guess Block sizes for orthonormalisation
+   ig_tol                              : 0.1E-03 # Input guess Tolerance criterion
+   methortho                           : 0 #      Orthogonalisation
+   rho_commun                          : DEF #    Density communication scheme (DBL, RSC, MIX)
+   psolver_groupsize                   : 0 #      Size of Poisson Solver taskgroups (0=nproc)
+   psolver_accel                       : 0 #      Acceleration of the Poisson Solver (0=none, 1=CUDA)
+   unblock_comms                       : OFF #    Overlap Communications of fields (OFF,DEN,POT)
+   linear                              : OFF #    Linear Input Guess approach
+   tolsym                              : 0.1E-07 # Tolerance for symmetry detection
+   signaling                           : No #     Expose calculation results on Network
+   signaltimeout                       : 0 #      Time out on startup for signal connection (in seconds)
+   domain                              : ~ #      Domain to add to the hostname to find the IP
+   inguess_geopt                       : 0 #      0= wavlet input guess, 1= real space input guess
+   store_index                         : Yes #    linear scaling: store indices or recalculate them
+   verbosity                           : 2 #      verbosity of the output
+   outdir                              : ./ #     Writing directory
+   psp_onfly                           : Yes #    Calculate pseudopotential projectors on the fly
+   pdsyev_blocksize                    : -8 #     SCALAPACK linear scaling blocksize
+   pdgemm_blocksize                    : -8 #     SCALAPACK linear scaling blocksize
+   maxproc_pdsyev                      : 4 #      SCALAPACK linear scaling max num procs
+   maxproc_pdgemm                      : 4 #      SCALAPACK linear scaling max num procs
+   ef_interpol_det                     : 0.10E-19 # FOE: max determinant of cubic interpolation matrix
+   ef_interpol_chargediff              : 0.10E+02 # FOE: max charge difference for interpolation
+   mixing_after_inputguess             : Yes #    mixing step after linear input guess (T/F)
+   iterative_orthogonalization         : No #     iterative_orthogonalization for input guess orbitals
+   check_sumrho                        : 2 #      enables linear sumrho check
+   experimental_mode                   : No #     linear scaling: activate the experimental mode
+ dft:
+   hgrids: [0.45000, 0.45000, 0.45000] #          grid spacing in the three directions (bohr)
+   rmult: [5.00, 9.00] #                          c(f)rmult*radii_cf(:,1(2))=coarse(fine) atom-basec radius
+   ixc                                 : 11 #     exchange-correlation parameter (LDA=1,PBE=11)
+   qcharge                             : 0 #      charge of the system
+   elecfield: [0.0000, 0.0000, 0.0000] #          electric field (Ex,Ey,Ez)
+   nspin                               : 1 #      spin polarization
+   mpol                                : 0 #      total magnetic moment
+   gnrm_cv                             : 0.1E-05 # convergence criterion gradient
+   itermax                             : 4 #      max. # of wfn. opt. steps
+   nrepmax                             : 1 #      max. # of re-diag. runs
+   ncong                               : 6 #      # of CG it. for preconditioning eq.
+   idsx                                : 0 #      wfn. diis history
+   dispersion                          : 0 #      dispersion correction potential (values 1,2,3,4,5), 0=none
+   inputpsiid                          : 0
+   output_wf                           : 0
+   output_denspot                      : 0
+   rbuf                                : 0.00 #   length of the tail (AU)
+   ncongt                              : 30 #     # tail CG iterations
+   norbv                               : 0 #      Davidson subspace dim.
+   nvirt                               : 0 #      # of opt. orbs
+   nplot                               : 0 #      # of plottec orbs
+   disablesym                          : Yes #    disable the symmetry detection
+ kpt:
+   method                              : manual # K-point sampling method
+   kpt: #                                         Kpt coordinates
+   -  [0., 0., 0.]
+   wkpt: [1.] #                                   Kpt weights
+   bands                               : No #     For doing band structure calculation
+ geopt:
+   method                              : none #   Geometry optimisation method
+   ncount_cluster_x                    : 1 #      Maximum number of force evaluations
+   frac_fluct                          : 1.
+   forcemax                            : 0.
+   randdis                             : 0. #     random displacement amplitude
+   betax                               : 4. #     Stepsize for the geometry optimisation
+ mix:
+   iscf                                : 17 #     mixing parameters
+   itrpmax                             : 2 #      maximum number of diagonalisation iterations
+   rpnrm_cv                            : 0.1E-06 # stop criterion on the residue of potential or density
+   norbsempty                          : 4 #      No. of additional bands
+   tel                                 : 0.10E-02 # electronic temperature
+   occopt                              : 1 #      smearing method
+   alphamix                            : 0.950 #  Multiplying factors for the mixing
+   alphadiis                           : 2.000 #  Multiplying factors for the electronic DIIS
+ sic:
+   sic_approach                        : none #   SIC method
+   sic_alpha                           : 0. #     SIC downscaling parameter
+ tddft:
+   tddft_approach                      : none #   TDDFT method
   #--------------------------------------------------------------------------------------- |
  Data Writing directory                : ./data/
- Material acceleration                 :  No #iproc=0
   #-------------------------------------------------- Input Atomic System (file: posinp.xyz)
  Atomic System Properties:
    Number of atomic types              :  2
@@ -110,7 +151,7 @@
   #------------------------------ Geometry optimization Input Parameters (file: input.geopt)
  Geometry Optimization Parameters:
    Maximum steps                       :  1
-   Algorithm                           : BFGS
+   Algorithm                           : none
    Random atomic displacement          :  0.0E+00
    Fluctuation in forces               :  1.0E+00
    Maximum in forces                   :  0.0E+00
@@ -127,6 +168,7 @@
    Occupied scheme                     : Error func.
    Rp norm                             :  1.00E-07
    output DOS                          : no verb. < 3
+ Material acceleration                 :  No #iproc=0
   #------------------------------------------------------------------------ Input parameters
  DFT parameters:
    eXchange Correlation:
@@ -219,12 +261,17 @@
      -  [  0.00000,  0.00000,  0.00000 ]
    No. of projectors                   :  5
    PSP XC                              : "XC: Teter 93"
-    #WARNING: Input ixc parameter corresponds to XC: Perdew, Burke & Ernzerhof XC functional
+    #WARNING: Input XC is "XC: Perdew, Burke & Ernzerhof"
   #-------------------------------------------------------------------------- Atom Positions
  Atomic positions within the cell (Atomic and Grid Units):
  - Ti: {AU:  [  8.6240,  10.800,  10.800 ], GU:  [  19.164,  24.000,  24.000 ]} # 0001
  - Na: {AU:  [  13.331,  10.800,  10.800 ], GU:  [  29.624,  24.000,  24.000 ]} # 0002
  Rigid Shift Applied (AU)              :  [  8.9773,  10.800,  10.800 ]
+ Atomic structure:
+   Positions:
+   - Ti: [ 8.623978943,  10.80000000,  10.80000000] # [  19.16,  24.00,  24.00 ] 0001
+   - Na: [ 13.33068340,  10.80000000,  10.80000000] # [  29.62,  24.00,  24.00 ] 0002
+   Rigid Shift Applied (AU)            :  [  8.9773,  10.800,  10.800 ]
   #------------------------------------------------------------------------- Grid properties
  Box Grid spacings                     :  [  0.4500,  0.4500,  0.4500 ]
  Sizes of the simulation domain:
@@ -237,14 +284,21 @@
  High Res. box is treated separately   :  Yes
   #------------------------------------------------------------------- Kernel Initialization
  Poisson Kernel Initialization:
-   MPI tasks                           :  1
-   OpenMP threads per MPI task         :  4
+   MPI tasks                           :  3
+   OpenMP threads per MPI task         :  2
  Poisson Kernel Creation:
    Boundary Conditions                 : Free
    Memory Requirements per MPI task:
-     Density (MB)                      :  17.50
-     Kernel (MB)                       :  17.90
+     Density (MB)                      :  5.88
+     Kernel (MB)                       :  5.97
      Full Grid Arrays (MB)             :  17.10
+     Load Balancing of calculations:
+       Density:
+         MPI tasks 0- 1                : 100%
+         MPI task 2                    :  98%
+       Kernel:
+         MPI tasks 0- 2                : 100%
+       Complete LB per task            : 1/3 LB_density + 2/3 LB_kernel
  Wavefunctions Descriptors, full simulation domain:
    Coarse resolution grid:
      No. of segments                   :  1885
@@ -256,12 +310,16 @@
  Total Number of Electrons             :  13
  Spin treatment                        : Averaged
   #WARNING: Odd number of electrons, no closed shell system
+ Orbitals Repartition:
+   MPI tasks  0- 0                     :  4
+   MPI tasks  1- 1                     :  3
+   MPI tasks  2- 2                     :  4
  Total Number of Orbitals              :  11
  Occupation numbers coming from        : System properties
  Input Occupation Numbers:
  - Occupation Numbers: {Orbitals No. 1-6:  2.0000, Orbital No. 7:  1.0000, 
                        Orbitals No. 8-11:  0.0000}
- Wavefunctions memory occupation for root MPI process:  5 MB 739 KB 1016 B
+ Wavefunctions memory occupation for root MPI process:  2 MB 82 KB 928 B
  NonLocal PSP Projectors Descriptors:
    Creation strategy                   : On-the-fly
    Total number of projectors          :  18
@@ -271,44 +329,50 @@
  Memory requirements for principal quantities (MiB.KiB):
    Subspace Matrix                     : 0.1 #    (Number of Orbitals: 11)
    Single orbital                      : 0.533 #  (Number of Components: 68189)
-   All (distributed) orbitals          : 11.456 # (Number of Orbitals per MPI task: 11)
-   Wavefunction storage size           : 11.456 # (DIIS/SD workspaces included)
+   All (distributed) orbitals          : 6.249 #  (Number of Orbitals per MPI task: 4)
+   Wavefunction storage size           : 6.249 #  (DIIS/SD workspaces included)
    Nonlocal Pseudopotential Arrays     : 2.339
    Full Uncompressed (ISF) grid        : 17.108
    Workspaces storage size             : 1.448
- Memory requirements for principal code sections (MiB.KiB):
-   Kernel calculation                  : 196.939
-   Density Construction                : 374.218
-   Poisson Solver                      : 171.694
-   Hamiltonian application             : 375.289
- Estimated Memory Peak (MB)            :  375
+ Accumulated memory requirements during principal run stages (MiB.KiB):
+   Kernel calculation                  : 113.385
+   Density Construction                : 165.1
+   Poisson Solver                      : 85.91
+   Hamiltonian application             : 166.72
+ Estimated Memory Peak (MB)            :  166
  Ion-Ion interaction energy            :  2.54955460188745E+00
   #---------------------------------------------------------------- Ionic Potential Creation
  Total ionic charge                    : -13.000000000000
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  139,  127,  127 ]
-   MPI tasks                           :  1
-  #----------------------------------- Wavefunctions from PSP Atomic Orbitals initialization
+   MPI tasks                           :  3
+  #----------------------------------- Wavefunctions from PSP Atomic Orbitals Initialization
  Input Hamiltonian:
    Total No. of Atomic Input Orbitals  :  11
    No. of Semicore Orbitals            :  4
+   Inputguess Orbitals Repartition:
+     MPI tasks  0- 1                   :  4
+     MPI tasks  2- 2                   :  3
    Atomic Input Orbital Generation:
-   -  {Atom Type: Ti, Electronic configuration: {(s): [ 2.00], (p): [ 2.00,  2.00,  2.00], d: [ 0.33,  0.33,  0.33,  0.50,  0.50], s: [ 2.00]}}
+   -  {Atom Type: Ti, Electronic configuration: {(s): [ 2.00], (p): [ 2.00,  2.00,  2.00], d: [
+  0.33,  0.33,  0.33,  0.50,  0.50], s: [ 2.00]}}
    -  {Atom Type: Na, Electronic configuration: {s: [ 1.00]}}
    Wavelet conversion succeeded        :  Yes
    Deviation from normalization        :  1.12E-03
    GPU acceleration                    :  No
+   Rho Commun                          : ALLRED
    Total electronic charge             :  12.999995445729
    Poisson Solver:
      BC                                : Free
      Box                               :  [  139,  127,  127 ]
-     MPI tasks                         :  1
+     MPI tasks                         :  3
    Expected kinetic energy             :  25.0822283779
    Energies: {Ekin:  2.50984902080E+01, Epot: -3.60162246612E+01, Enl: -3.29662977669E+00, 
                 EH:  4.86467482286E+01,  EXC: -7.21408278897E+00, EvXC: -9.36171835460E+00}
-   EKS                                 : -5.81639222910116871E+01
+   EKS                                 : -5.81639222910140035E+01
    Input Guess Overlap Matrices: {Calculated:  Yes, Diagonalized:  Yes}
+   Noise added to input eigenvalues to determine occupation numbers:  1.00000E-03
     #Eigenvalues and New Occupation Numbers
    Orbitals: [
  {e: -2.367430545925E+00, f:  2.0000},  # 00001
@@ -322,7 +386,7 @@
  {e: -1.645233053812E-01, f:  0.0000},  # 00009
  {e: -1.627768671408E-01, f:  0.0000},  # 00010
  {e: -1.392572087248E-01, f:  0.0000}] # 00011
-   Fermi Energy                        : -1.71611008472468E-01
+   Fermi Energy                        : -1.71611008472469E-01
    IG wavefunctions defined            :  Yes
    Accuracy estimation for this run:
      Energy                            :  1.63E-02
@@ -333,70 +397,69 @@
    - Subspace Optimization: &itrep001-01
        Wavefunctions Iterations:
        -  { #---------------------------------------------------------------------- iter: 1
- GPU acceleration:  No, Total electronic charge:  12.999995629993, 
- Poisson Solver: {BC: Free, Box:  [  139,  127,  127 ], MPI tasks:  1}, 
+ GPU acceleration:  No, Rho Commun: ALLRED, Total electronic charge:  12.999995629993, 
+ Poisson Solver: {BC: Free, Box:  [  139,  127,  127 ], MPI tasks:  3}, 
  Hamiltonian Applied:  Yes, Orthoconstraint:  Yes, Preconditioning:  Yes, 
- iter:  1, tr(H): -9.32404196738273683E+00, gnrm:  1.61E-01, gnrm0:  2.1E-01, 
+ iter:  1, tr(H): -9.32404196738282742E+00, gnrm:  1.61E-01, gnrm0:  2.1E-01, 
  SDalpha:  2.000E+00, Orthogonalization Method:  0}
        -  { #---------------------------------------------------------------------- iter: 2
  Hamiltonian Applied:  Yes, Orthoconstraint:  Yes, Preconditioning:  Yes, 
- iter:  2, tr(H): -9.79412673070662976E+00, gnrm:  1.30E-01, gnrm0:  1.9E-01, D: -4.70E-01, 
+ iter:  2, tr(H): -9.79412673070672568E+00, gnrm:  1.30E-01, gnrm0:  1.9E-01, D: -4.70E-01, 
  SDalpha:  2.000E+00, Orthogonalization Method:  0}
        -  { #---------------------------------------------------------------------- iter: 3
  Hamiltonian Applied:  Yes, Orthoconstraint:  Yes, Preconditioning:  Yes, 
- iter:  3, tr(H): -9.94941132251670446E+00, gnrm:  1.38E-01, gnrm0:  2.2E-01, D: -1.55E-01, 
+ iter:  3, tr(H): -9.94941132251680038E+00, gnrm:  1.38E-01, gnrm0:  2.2E-01, D: -1.55E-01, 
  SDalpha:  2.000E+00, Orthogonalization Method:  0}
        -  &final0001  { #---------------------------------------------------------- iter: 4
  Hamiltonian Applied:  Yes, 
- iter:  4, FKS: -5.82753881209285680E+01, gnrm:  1.38E-01, gnrm0:  2.2E-01, D: -1.11E-01,  #final
- Energies: {Ekin:  2.22420905160E+01, Epot: -2.98364634029E+01, Enl: -2.72911540494E+00, 
+ iter:  4, FKS: -5.82753881209296480E+01, gnrm:  1.38E-01, gnrm0:  2.2E-01, D: -1.11E-01,  #final
+ Energies: {Ekin:  2.22420905160E+01, Epot: -2.98364634030E+01, Enl: -2.72911540494E+00, 
               EH:  5.28240194662E+01,  EXC: -7.79337970160E+00, EvXC: -1.01168430710E+01, 
             Eion:  2.54955460189E+00,   TS:  8.98334224158E-04}, 
  SCF criterion:  0}
         #No convergence within the allowed number of minimization steps
-       Non-Hermiticity of Hamiltonian in the Subspace:  6.93E-31
-        #WARNING: Wavefunctions not converged after cycle  1
+       Non-Hermiticity of Hamiltonian in the Subspace:  8.87E-31
     #Eigenvalues and New Occupation Numbers
    Orbitals: [
  {e: -1.972901329608E+00, f:  2.0000},  # 00001
  {e: -1.082473995492E+00, f:  2.0000},  # 00002
  {e: -1.080894923165E+00, f:  2.0000},  # 00003
  {e: -1.022055933822E+00, f:  2.0000},  # 00004
- {e: -9.659615404165E-02, f:  2.0000},  # 00005
- {e: -1.204579156656E-02, f:  2.0000},  # 00006
+ {e: -9.659615404166E-02, f:  2.0000},  # 00005
+ {e: -1.204579156657E-02, f:  2.0000},  # 00006
  {e:  4.057393606125E-02, f:  0.6643},  # 00007
  {e:  4.094781088660E-02, f:  0.3357},  # 00008
  {e:  4.954603333160E-02, f:  0.0000},  # 00009
  {e:  5.030026621255E-02, f:  0.0000},  # 00010
  {e:  8.265776402505E-02, f:  0.0000}] # 00011
-   Fermi Energy                        :  4.02670706968384E-02
+   Fermi Energy                        :  4.02670706968356E-02
  - Hamiltonian Optimization: &itrp002
    - Subspace Optimization: &itrep002-01
        Wavefunctions Iterations:
        -  { #---------------------------------------------------------------------- iter: 1
- GPU acceleration:  No, Total electronic charge:  12.999997740763, 
+ GPU acceleration:  No, Rho Commun: ALLRED, Total electronic charge:  12.999997740764, 
  itrp:  2, Mixing on: Density, RhoPot delta per volume unit:  &rpnrm0002  2.70E-06, 
- Poisson Solver: {BC: Free, Box:  [  139,  127,  127 ], MPI tasks:  1}, 
+ Poisson Solver: {BC: Free, Box:  [  139,  127,  127 ], MPI tasks:  3}, 
  Hamiltonian Applied:  Yes, Orthoconstraint:  Yes, Preconditioning:  Yes, 
- iter:  1, tr(H): -1.08653200884713357E+01, gnrm:  2.06E-01, gnrm0:  1.2E-01, D: -9.16E-01, 
+ iter:  1, tr(H): -1.08653200884714423E+01, gnrm:  2.06E-01, gnrm0:  1.2E-01, D: -9.16E-01, 
  SDalpha:  2.000E+00, Orthogonalization Method:  0}
        -  { #---------------------------------------------------------------------- iter: 2
  Hamiltonian Applied:  Yes, Orthoconstraint:  Yes, Preconditioning:  Yes, 
- iter:  2, tr(H): -1.08048422477151540E+01, gnrm:  2.49E-01, gnrm0:  1.2E-01, D:  6.05E-02, 
+ iter:  2, tr(H): -1.08048422477152748E+01, gnrm:  2.49E-01, gnrm0:  1.2E-01, D:  6.05E-02, 
  SDalpha:  1.000E+00, Orthogonalization Method:  0}
        -  { #---------------------------------------------------------------------- iter: 3
  Hamiltonian Applied:  Yes, Orthoconstraint:  Yes, Preconditioning:  Yes, 
- iter:  3, tr(H): -1.10272745395858607E+01, gnrm:  6.27E-02, gnrm0:  2.6E-02, D: -2.22E-01, 
+ iter:  3, tr(H): -1.10272745395859566E+01, gnrm:  6.27E-02, gnrm0:  2.6E-02, D: -2.22E-01, 
  SDalpha:  1.050E+00, Orthogonalization Method:  0}
        -  &FINAL001  { #----------------------------------------------------------- iter: 4
  Hamiltonian Applied:  Yes, 
- iter:  4, FKS: -5.84434551849611239E+01, gnrm:  6.27E-02, gnrm0:  2.6E-02, D: -1.68E-01,  #FINAL
+ iter:  4, FKS: -5.84434551849625024E+01, gnrm:  6.27E-02, gnrm0:  2.6E-02, D: -1.68E-01,  #FINAL
  Energies: {Ekin:  1.85619185221E+01, Epot: -2.82611773410E+01, Enl: -1.49025914811E+00, 
               EH:  5.20995356588E+01,  EXC: -7.70747967423E+00, EvXC: -1.00043919520E+01, 
-            Eion:  2.54955460189E+00,   TS:  8.68438825108E-04}, 
+            Eion:  2.54955460189E+00,   TS:  8.68438825109E-04}, 
  SCF criterion:  0}
         #No convergence within the allowed number of minimization steps
-       Non-Hermiticity of Hamiltonian in the Subspace:  1.23E-30
+       Non-Hermiticity of Hamiltonian in the Subspace:  8.16E-30
         #WARNING: Wavefunctions not converged after cycle  1
     #Eigenvalues and New Occupation Numbers
    Orbitals: [
@@ -406,19 +469,20 @@
  {e: -1.086911977198E+00, f:  2.0000},  # 00004
  {e: -1.251496474281E-01, f:  2.0000},  # 00005
  {e: -5.504832175777E-02, f:  2.0000},  # 00006
- {e: -2.847668252713E-03, f:  0.6232},  # 00007
- {e: -2.570245748044E-03, f:  0.3768},  # 00008
+ {e: -2.847668252706E-03, f:  0.6232},  # 00007
+ {e: -2.570245748050E-03, f:  0.3768},  # 00008
  {e:  1.391342122263E-02, f:  0.0000},  # 00009
- {e:  1.503566283222E-02, f:  0.0000},  # 00010
- {e:  4.089221531330E-02, f:  0.0000}] # 00011
-   Fermi Energy                        : -3.19513090013279E-03
+ {e:  1.503566283221E-02, f:  0.0000},  # 00010
+ {e:  4.089221531329E-02, f:  0.0000}] # 00011
+   Fermi Energy                        : -3.19513090013140E-03
   #---------------------------------------------------------------------- Forces Calculation
  GPU acceleration                      :  No
+ Rho Commun                            : RED_SCT
  Total electronic charge               :  12.999997573288
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  139,  127,  127 ]
-   MPI tasks                           :  1
+   MPI tasks                           :  3
  Electric Dipole Moment (AU):
    P vector                            :  [ -6.4058E+00, -3.4006E-02, -3.4119E-02 ]
    norm(P)                             :  6.406007E+00
@@ -429,29 +493,30 @@
  Calculate Non Local forces            :  Yes
  Average noise forces: {x:  2.43752946E-02, y:  3.05177190E-03, z:  3.07759784E-03, 
                     total:  2.47576232E-02}
- Clean forces norm (Ha/Bohr): {maxval:  1.072917896801E-01, fnrm2:  2.302305626552E-02}
+ Clean forces norm (Ha/Bohr): {maxval:  1.072917896801E-01, fnrm2:  2.302305626551E-02}
  Raw forces norm (Ha/Bohr): {maxval:  1.245278259101E-01, fnrm2:  2.365289532955E-02}
   #--------------------------------------------------------------------------- Atomic Forces
  Atomic Forces (Ha/Bohr):
- -  {Ti:  [ -1.072917896801E-01,  8.673617379884E-19,  4.336808689942E-19 ]} # 0001
- -  {Na:  [  1.072917896801E-01,  4.336808689942E-19,  8.673617379884E-19 ]} # 0002
+ -  {Ti: [-1.072917896801E-01,  8.673617379884E-19,  8.673617379884E-19]} # 0001
+ -  {Na: [ 1.072917896801E-01,  8.673617379884E-19,  4.336808689942E-19]} # 0002
   #----------------------------------------------------------------- Timing for root process
  Timings for root process:
-   CPU time (s)                        :  24.10
-   Elapsed time (s)                    :  6.41
+   CPU time (s)                        :  16.20
+   Elapsed time (s)                    :  8.67
   #WARNING: Self-consistent cycle did not meet convergence criteria
   #-------------------------------- Warnings obtained during the run, check their relevance!
  WARNINGS:
- - Input ixc parameter corresponds to XC: Perdew, Burke & Ernzerhof XC functional
+ - PSP generated with a different XC. Input XC is "XC: Perdew, Burke & Ernzerhof"
  - Odd number of electrons, no closed shell system
+ - No convergence within the allowed number of minimization steps
  - Wavefunctions not converged after cycle  1
- - Wavefunctions not converged after cycle  1
+ - Wavefunction residue is not consistent with density convergence (T_el too small?)
  - Self-consistent cycle did not meet convergence criteria
  Memory Consumption Report:
-   Tot. No. of Allocations  : 4343
-   Tot. No. of Deallocations: 4343
-   Remaining Memory (B)     : 0
-   Memory occupation: 
-      Peak Value (MB): 546
-      for the array: f_i
-      in the routine: vxcpostprocessing
+   Tot. No. of Allocations             :  2862
+   Tot. No. of Deallocations           :  2862
+   Remaining Memory (B)                :  0
+   Memory occupation:
+     Peak Value (MB)                   :  110
+     for the array                     : f_i
+     in the routine                    : vxcpostprocessing

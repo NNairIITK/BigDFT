@@ -64,40 +64,28 @@ program GPUham
 
 
   !allocate arrays
-  allocate(psi_in(2*(n1+1),2*(n2+1),2*(n3+1)+ndebug),stat=i_stat)
+  psi_in = f_malloc_ptr((/ 2*(n1+1), 2*(n2+1), 2*(n3+1) /),id='psi_in')
 
 
  ! call cpu_pinned_allocation(2*(n1+1)*2*(n2+1)*2*(n3+1)+ndebug,cptr_psi_in,i_stat)
  ! call c_f_pointer(cptr_psi_in, psi_in, (/ 2*(n1+1) ,2*(n2+1),2*(n3+1)+ndebug /) )
 
-  call memocc(i_stat,psi_in,'psi_in',subname)
-
-
-  allocate(psi_out(2*(n1+1),2*(n2+1),2*(n3+1)+ndebug),stat=i_stat)
-  call memocc(i_stat,psi_out,'psi_out',subname)
-
-
-  allocate(psir(2*(n1+1),2*(n2+1),2*(n3+1)+ndebug),stat=i_stat)
-  call memocc(i_stat,psir,'psir',subname)
-
-
-  allocate(psifscf(2*(n1+1),2*(n2+1),2*(n3+1)+ndebug),stat=i_stat)
+  psi_out = f_malloc_ptr((/ 2*(n1+1), 2*(n2+1), 2*(n3+1) /),id='psi_out')
+  psir = f_malloc_ptr((/ 2*(n1+1), 2*(n2+1), 2*(n3+1) /),id='psir')
+  psifscf = f_malloc_ptr((/ 2*(n1+1), 2*(n2+1), 2*(n3+1) /),id='psifscf')
 
 ! call cpu_pinned_allocation(2*(n1+1)*2*(n2+1)*2*(n3+1)+ndebug,cptr_psifscf,i_stat)
 
 !  call c_f_pointer(cptr_psifscf, psifscf, (/ 2*(n1+1),2*(n2+1),2*(n3+1)+ndebug /) )
 
-  call memocc(i_stat,psifscf,'psifscf',subname)
 
-
-  allocate(pot(2*(n1+1),2*(n2+1),2*(n3+1)+ndebug),stat=i_stat)
+  pot = f_malloc_ptr((/ 2*(n1+1), 2*(n2+1), 2*(n3+1) /),id='pot')
 
  ! call cpu_pinned_allocation(2*(n1+1)*2*(n2+1)*2*(n3+1)+ndebug,cptr_pot,i_stat)
 
  ! call c_f_pointer(cptr_pot, pot, (/ 2*(n1+1),2*(n2+1),2*(n3+1)+ndebug /) )
 
 
-  call memocc(i_stat,pot,'pot',subname)
 
   ! Wavefunction expressed everywhere in fine scaling functions 
 
@@ -284,27 +272,17 @@ program GPUham
 
 
 
-  i_all=-product(shape(psi_in))
-  deallocate(psi_in,stat=i_stat)
  ! call cpu_pinned_deallocation(cptr_psi_in,i_stat)
-  call memocc(i_stat,i_all,'psi_in',subname)
+
+  call f_free_ptr(psi_in)
 
 
-
-  i_all=-product(shape(psi_out))
-  deallocate(psi_out,stat=i_stat)
-  call memocc(i_stat,i_all,'psi_out',subname)
-  i_all=-product(shape(psir))
-  deallocate(psir,stat=i_stat)
-  call memocc(i_stat,i_all,'psir',subname)
-  i_all=-product(shape(psifscf))
-  deallocate(psifscf,stat=i_stat)
-  call memocc(i_stat,i_all,'psifscf',subname)
-  i_all=-product(shape(pot))
-  deallocate(pot,stat=i_stat)
+  call f_free_ptr(psi_out)
+  call f_free_ptr(psir)
+  call f_free_ptr(psifscf)
+  call f_free_ptr(pot)
 
  ! call cpu_pinned_deallocation(cptr_pot,i_stat)
-  call memocc(i_stat,i_all,'pot',subname)
 
 
 

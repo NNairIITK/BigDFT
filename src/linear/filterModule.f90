@@ -1,7 +1,7 @@
 !> @file
 !!   Contains filter for Daubechies wavelets
 !! @author
-!!    Copyright (C) 2011-2012 BigDFT group
+!!    Copyright (C) 2011-2013 BigDFT group
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
@@ -10,27 +10,28 @@
 
 
 
-!>  This module contains various filters for the Daubechies 16 wavelet family.
-!!   The meaning is the following:
-!!     a_i=<phi|Op|phi_i>
-!!     b_i=<psi|Op|phi_i>
-!!     c_i=<phi|Op|psi_i>
-!!     e_i=<psi|Op|psi_i>
+!> @brief Module which contains various filters for the Daubechies 16 wavelet family.
+!! @details Definition of the filters:
+!!     @f$ a_i=<\phi|Op|\phi_i> @f$ @n
+!!     @f$ b_i=<\psi|Op|\phi_i> @f$ @n
+!!     @f$ c_i=<\phi|Op|\psi_i> @f$ @n
+!!     @f$ e_i=<\psi|Op|\psi_i> @f$ 
+!!
 !!   There are five different operators:
-!!     Op = second derivative -> a, b, c, e
+!!     Op = second derivative -> a, b, c, e        
 !!     Op = first derivative -> ad1, bd1, cd1, ed1
-!!     Op = x -> a1, b1, c1, e1
-!!     Op = x^2 -> a2, b2, c2, e2
-!!     Op = x^3 -> a3, b3, c3, e3
-!!     Op = x^4 -> a4, b4, c4, e4
-!!     Op = x^5 -> a5, b5, c5, e5
-!!     Op = x^6 -> a6, b6, c6, e6
+!!     Op = @f$ x   @f$  -> a1, b1, c1, e1 @n
+!!     Op = @f$ x^2 @f$  -> a2, b2, c2, e2 @n
+!!     Op = @f$ x^3 @f$  -> a3, b3, c3, e3 @n
+!!     Op = @f$ x^4 @f$  -> a4, b4, c4, e4 @n
+!!     Op = @f$ x^5 @f$  -> a5, b5, c5, e5 @n
+!!     Op = @f$ x^6 @f$  -> a6, b6, c6, e6
 module filterModule
 
 implicit none
 
-! The lower and upper bound for the filters.
-integer,parameter:: lb=-14, ub=14
+integer,parameter:: lb=-14 !< The lower bound for the filters.
+integer,parameter:: ub=14  !< The upper bound for the filters.
 
 real(8),dimension(lb:ub),parameter:: a = [ -6.92447490505951028E-18, &
                                             2.70800498995346639E-13, &

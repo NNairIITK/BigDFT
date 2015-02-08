@@ -1,17 +1,14 @@
 !> @file
+!! Define some module for BigDFT+ART
 !! @author
 !!    Copyright (C) 2001 Normand Mousseau
-!!    Copyright (C) 2010 BigDFT group
+!!    Copyright (C) 2010-2013 BigDFT group
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
 
-!> ART Module random
-!!    Random number generator (from "Numerical Recipes").
-!!    Returns a uniform random deviate between 0.0 and 1.0.
-!!    Set idum to any negative value to initialize or
-!!    reinitialize the sequence.
+!> Module defining the random number generator (from "Numerical Recipes").
 module random
 
   implicit none
@@ -24,7 +21,9 @@ module random
 END MODULE random
 
 
-!> ART Function ran3
+!> Returns a uniform random deviate between 0.0 and 1.0.
+!! Set idum to any negative value to initialize or
+!! reinitialize the sequence.
 real(kind=8) function ran3()
 
   use random 

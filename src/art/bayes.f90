@@ -1,4 +1,5 @@
 !> @file
+!! Define some module for BigDFT+ART
 !! @author
 !!    Written by Laurent Karim Beland, UdeM 2011!!
 !!    Copyright (C) 2001 Normand Mousseau
@@ -8,7 +9,8 @@
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
 
-!> ART Module BAYES 
+
+!> Module BAYES used by ART (Activation Relaxation Technique)
 module BAYES
 
    implicit none
@@ -258,7 +260,6 @@ END SUBROUTINE init_bayes
 !> ART bayes_learn_from_data
 subroutine bayes_learn_from_data(what_direction)
    use bayes
-   use defs,only : iproc
    implicit none
    !real(8), dimension(data_size),intent(in) :: datax_in !the abscysse coordinates of the data
    !real(8), dimension(data_size),intent(in) :: dataf_in !the value of the function of the data
@@ -314,7 +315,6 @@ END SUBROUTINE bayes_learn_from_data
 !> ART bayes_calc_one_force
 subroutine bayes_calc_one_force(coord_in,coord_nei,what_direction,force_out,variance)
    use bayes
-   use defs,only:iproc
    implicit none
 
    real(kind=8), intent(in), dimension(4) :: coord_in
@@ -380,7 +380,7 @@ END SUBROUTINE squared_exponential
 !> ART calcforce_bayes
 subroutine calcforce_bayes(nat,posa,boxl,forca, energy)
 
-   use defs, only : nbr_quantum,nbr_quantum_trash,iproc,maxnei,boundary
+   use defs, only : nbr_quantum,nbr_quantum_trash,maxnei,boundary
    use bayes,only : sigma,delta,prob_h,configs_learned,configs_to_learn
    use random
    implicit none

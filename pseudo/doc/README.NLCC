@@ -1,10 +1,10 @@
+/*! @file
 
+@brief Non-linear core corrections
 
-______________________________________
- 
-   About Nonlinear Core Corrections
-______________________________________
+@details
 
+@section NLCC_INTRO About Nonlinear Core Corrections
 
 This version of pseudo can fit pseudopotentials for DFT calculations with a nonlinear core correction.
 For this purpose, a simple analytic approximation of the core charge density will be described by
@@ -78,3 +78,5 @@ improve the result by enabling additional free fitting parameters, that correspo
 coefficients of the core charge for the NLCC. These parameters are optional inputs on line 4 of 
 "FITPAR". Notice the first value on this line always specifies the number of separable terms, which
 is mandatory, just like on line 5 of "psppar".
+
+*/

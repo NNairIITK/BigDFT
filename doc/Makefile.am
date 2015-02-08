@@ -11,17 +11,8 @@ EXTRA_DIST = \
 	Manual/grid400.pdf \
 	Manual/BigDFT-manual.tex \
 	Manual/sym_16.pdf \
-	html/commun.css \
-	html/doxygen.css \
-	html/footer.html \
-	html/header.html \
 	html/logo_header.png \
-	html/menu_fond.png \
-	html/menu_footer.png \
-	html/menu_header.png \
-	html/original.css \
-	html/point.png \
-	html/sample.png
+	html/extra.css
 
 CLEANFILES = *.aux *.toc *.log *.xml
 
@@ -34,7 +25,7 @@ pdfs =
 endif
 
 if BUILD_DEVDOC
-devdocs = Doxygen/html
+devdocs = doxygen-doc
 else
 devdocs =
 endif
@@ -42,18 +33,16 @@ endif
 doc_DATA = $(pdfs) $(devdocs)
 noinst_DATA = tests.xml
 
+doxygen-doc: Doxygen/html
+
 Doxygen/html: Doxygen.stamp web.stamp
 
-Doxygen.stamp: $(top_builddir)/config/Doxyfile $(srcdir)/html/header.html $(srcdir)/html/footer.html
+Doxygen.stamp: $(top_builddir)/config/Doxyfile
 	\rm -rf Doxygen;\
 	doxygen $(top_builddir)/config/Doxyfile; \
 	touch Doxygen.stamp
 
 web.stamp: Doxygen.stamp
-	if [ ! -d Doxygen/images ] ; then mkdir Doxygen/images ; fi
-	\cp $(srcdir)/html/*.png Doxygen/images
-	if [ ! -d Doxygen/styles ] ; then mkdir Doxygen/styles ; fi
-	\cp $(srcdir)/html/*.css Doxygen/styles
 	touch web.stamp
 
 cluster.pdf: cluster.tex compress.pdf figrid.pdf
@@ -103,5 +92,5 @@ tests.xml:
 	echo "</bigdft-tests>" >> tests.xml
 
 clean-local:
-	rm -rf *.aux *.log cluster.pdf halFFT.pdf BigDFT-manual.pdf *.toc Doxygen *.stamp
+	rm -rf *.aux *.log cluster.pdf halFFT.pdf BigDFT-manual.pdf *.toc Doxygen *.stamp doxygen.warnings
 

@@ -1,18 +1,21 @@
 # Give here the list of existing tests
 TESTDIRS = \
-	   GEOPT-BFGS \
-	   GEOPT-LBFGS \
-	   NH3 \
-	   H2O-slab \
-	   H2-freq \
-	   NEB \
-	   SPLSAD \
-	   XabsCheb \
-	   XabsLanc \
-	   Xabsb2B \
-	   BigDFT2Wannier \
-           testforces \
-	   IO-wf
+	C6H6-freq \
+	GEOPT-all \
+	GEOPT-BFGS \
+	GEOPT-LBFGS \
+	GEOPT-newIG \
+	NH3 \
+	H2O-slab \
+	H2-freq \
+	NEB \
+	SPLSAD \
+	XabsCheb \
+	XabsLanc \
+	Xabsb2B \
+	BigDFT2Wannier \
+	testforces \
+	IO-wf
 
 EXTRA_DIST = MH_taskgroups
 
@@ -20,10 +23,10 @@ if HAVE_ETSF_IO
 TESTDIRS += IO-wf-ETSF
 endif
 
-
-#This will run the automatic tests also for minima hopping
-if USE_MINIMA_HOPPING
-TESTDIRS += MINHOP
+if USE_OCL
+else
+#Add MINHOP (box too small)
+  TESTDIRS += MINHOP
 endif
 
 # Give here the pseudo-potentials used by each test.
@@ -46,11 +49,36 @@ IO-wf_plain-read.out.out: IO-wf_plain.out.out
 IO-wf_binary-read.out.out: IO-wf_binary.out.out
 IO-wf-ETSF_read.out.out: IO-wf-ETSF_write.out.out
 
-# Additional freq in.
-H2-freq.post-in: $(abs_top_builddir)/src/frequencies
+
+# Additional freq post-in to avoid a fail when the run is done again.
+H2-freq-test.post-in:
+	rm -f frequencies.res
+C6H6-freq-test.post-in: 
 	rm -f frequencies.res
 
-#additional outs
+# Additional MINHOP in;
+MINHOP-test.post-in:
+	rm -f posloc* posimed* data/global.mon
+
+# Additional NEB in.
+NEB-test.post-in:
+	if ! test -f NEB_include.sh ; then sed "s;%%abs_top_builddir%%;$(abs_top_builddir);g" NEB_include.sh.in > NEB_include.sh ; fi
+	if ! test -L NEB_driver.sh ; then ln -fs $(abs_top_srcdir)/src/NEB_driver.sh ; fi
+	rm -f neb.NEB.restart
+NEB-test.post-clean:
+	rm -f NEB_include.sh NEB_driver.sh
+
+# Additional H2O-slab in.
+H2O-slab-test.post-in:
+	cp -f velocities.in velocities.xyz
+	chmod a+w velocities.xyz
+
+# Additional reference for geopt.mon test
+global.mon.out : test.minhop.out
+	cp -f data/global.mon $@
+
+
+# Additional outs
 H2-freq.post-out:
 	cp -f log.yaml log-freq.yaml
 
@@ -59,10 +87,12 @@ H2-freq2.post-out:
 	mv log-freq.yaml log.yaml
 
 IO-wf_plain.out.post-out:
+	if test -e data-plain-read; then rm -rf data-plain-read; fi
 	mv -f data-plain data-plain-read
 	$(MAKE) -f ../Makefile IO-wf_plain.cube
 
 IO-wf_binary.out.post-out:
+	if test -e data-binary-read; then rm -rf data-binary-read; fi
 	mv -f data-binary data-binary-read
 	$(MAKE) -f ../Makefile IO-wf_binary.cube
 
@@ -73,44 +103,32 @@ IO-wf-ETSF_write.out.post-out:
 NH3.out.post-out:
 	mv -f data/geopt.mon NH3.geopt.mon.out
 
-# Additional NEB in.
-NEB.post-in:
-	if ! test -f NEB_include.sh ; then sed "s;%%abs_top_builddir%%;$(abs_top_builddir);g" NEB_include.sh.in > NEB_include.sh ; fi
-	if ! test -L NEB_driver.sh ; then ln -fs $(abs_top_srcdir)/src/NEB_driver.sh ; fi
-NEB.post-clean:
-	rm -f NEB_include.sh NEB_driver.sh
-
-# Additional H2O-slab in.
-H2O-slab.post-in:
-	cp -f velocities.in velocities.xyz
-	chmod a+w velocities.xyz
-
-# Additional reference for geopt.mon test
-global.mon.out : test.minhop.out
-	cp -f data/global.mon $@
-#	python $(abs_top_srcdir)/tests/fldiff.py $$mode --discrepancy="5e-9" global.mon global.mon.ref | tee global.mon.report
-
-# Additional run rules.
 InputGenPot.xabs.post-out:
 	mv -f local_potentialb2B.cube b2B_xanes.cube
 	cp InputGenPot.xyz b2B_xanes.xyz
 
-#introduce specific targets for export-wavefunctions
+
+# Introduce specific targets for export-wavefunctions
 IO-wf_plain.cube: 
-	export LD_LIBRARY_PATH=${LD_LIBRARY_PATH} ; \
-	$(abs_top_builddir)/src/bigdft-tool --name plain-read -a export-wf data-plain-read/wavefunction-k002-DI.b0003 >> IO-wf_plain.out.out
+	if test -n "${LD_LIBRARY_PATH}" ; then export LD_LIBRARY_PATH=${LD_LIBRARY_PATH} ; fi ; \
+    rm plain-read.perf ;\
+	$(run_serial) $(abs_top_builddir)/src/bigdft-tool --name plain-read -a export-wf data-plain-read/wavefunction-k002-DI.b0003 >> log-plain.yaml
+	if test -e check.perf; then cp check.perf plain-read.perf; fi
 	mv wavefunction-k002-DI.b0003.cube wf_plain.cube
 	rm -f wavefunction-k002-DI.b0003_avg_*
 
 IO-wf_binary.cube: 
-	export LD_LIBRARY_PATH=${LD_LIBRARY_PATH} ; \
-	$(abs_top_builddir)/src/bigdft-tool --name binary-read -a export-wf data-binary-read/wavefunction-k002-DI.bin.b0003 >> IO-wf_binary.out.out
+	if test -n "${LD_LIBRARY_PATH}" ; then export LD_LIBRARY_PATH=${LD_LIBRARY_PATH} ; fi ; \
+    rm binary-read.perf ;\
+	$(run_serial) $(abs_top_builddir)/src/bigdft-tool --name binary-read -a export-wf data-binary-read/wavefunction-k002-DI.bin.b0003 >> log-binary.yaml
+	if test -e check.perf; then cp check.perf binary-read.perf; fi
 	mv wavefunction-k002-DI.b0003.cube wf_binary.cube
 	rm -f wavefunction-k002-DI.b0003_avg_*
 
 IO-wf_ETSF.cube: 
-	export LD_LIBRARY_PATH=${LD_LIBRARY_PATH} ; \
-	$(abs_top_builddir)/src/bigdft-tool --name read -a export-wf data-read/wavefunction.etsf --i-band 3 --i-spin 2 --i-kpt 2 --i-complex 2 >> IO-wf-ETSF_write.out.out
+	if test -n "${LD_LIBRARY_PATH}" ; then export LD_LIBRARY_PATH=${LD_LIBRARY_PATH} ; fi ; \
+	$(run_serial) $(abs_top_builddir)/src/bigdft-tool --name read -a export-wf data-read/wavefunction.etsf \
+	--i-band 3 --i-spin 2 --i-kpt 2 --i-complex 2 >> IO-wf-ETSF_write.out.out
 	mv wavefunction-k002-DI.b0003.cube wf_etsf.cube
 	rm -f wavefunction-k002-DI.b0003_avg_*
 
@@ -124,7 +142,6 @@ IO-wf_ETSF.cube:
         case $* in \
           GEOPT-BFGS.out*)  prec="1.e-9" ;; \
           GEOPT-LBFGS.out*) prec="1.e-9" ;; \
-          H2-freq*)         prec="1.e-8" ;; \
 	  NEB*)             prec="5e-5" ;; \
 	  SPLSAD*)          prec="2e-8" ;; \
 	  MINHOP*)          prec="5e-9" ;; \
@@ -141,7 +158,7 @@ IO-wf_ETSF.cube:
 	else \
 	name=`basename $< .xabs.ref.yaml`  ; fi;\
 	tols=`basename $< .out.ref.yaml` ;\
-	if test -n "$$name" ; then log=log-$$name.yaml ; else log=log.yaml ; fi ;\
+	if test -n "$$name" ; then log=log-$$name.yaml ; else log=log.yaml ; fi ; \
 	python $(abs_top_srcdir)/tests/fldiff_yaml.py \
 		-r $< -d $$log -t $(abs_top_srcdir)/tests/tols-BigDFT.yaml --label=$$tols -o $@ 
 

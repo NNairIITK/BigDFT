@@ -9,45 +9,84 @@
 
 
 !> Initialize work arrays for local hamiltonian
-subroutine initialize_work_arrays_locham(lr,nspinor,w)
+subroutine initialize_work_arrays_locham(nlr,lr,nspinor,allocate_arrays,w)
   use module_base
   use module_types
   implicit none
-  integer, intent(in) :: nspinor
-  type(locreg_descriptors), intent(in) :: lr
+  integer, intent(in) :: nlr, nspinor
+  type(locreg_descriptors), dimension(nlr), intent(in) :: lr
+  logical,intent(in) :: allocate_arrays
   type(workarr_locham), intent(out) :: w
   !local variables
   character(len=*), parameter :: subname='initialize_work_arrays_locham'
-  integer :: i_stat
+  integer :: ilr
   integer :: n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,n1i,n2i,n3i,nw,nww,nf
+  character(len=1) :: geo
+  logical :: hyb
 
-  n1=lr%d%n1
-  n2=lr%d%n2
-  n3=lr%d%n3
-  n1i=lr%d%n1i
-  n2i=lr%d%n2i
-  n3i=lr%d%n3i
-  nfl1=lr%d%nfl1
-  nfl2=lr%d%nfl2
-  nfl3=lr%d%nfl3
-  nfu1=lr%d%nfu1
-  nfu2=lr%d%nfu2
-  nfu3=lr%d%nfu3
+  ! Determine the maximum array sizes for all locregs 1,..,nlr
+  ! If the sizes for a specific locreg are needed, simply call the routine with nlr=1
+  ! For the moment the geocode of all locregs must be the same
+  n1=0
+  n2=0
+  n3=0
+  n1i=0
+  n2i=0
+  n3i=0
+  nfl1=1000000000
+  nfl2=1000000000
+  nfl3=1000000000
+  nfu1=0
+  nfu2=0
+  nfu3=0
+  geo=lr(1)%geocode
+  hyb=lr(1)%hybrid_on
+  do ilr=1,nlr
+      n1=max(n1,lr(ilr)%d%n1)
+      n2=max(n2,lr(ilr)%d%n2)
+      n3=max(n3,lr(ilr)%d%n3)
+      n1i=max(n1i,lr(ilr)%d%n1i)
+      n2i=max(n2i,lr(ilr)%d%n2i)
+      n3i=max(n3i,lr(ilr)%d%n3i)
+      nfl1=min(nfl1,lr(ilr)%d%nfl1)
+      nfl2=min(nfl2,lr(ilr)%d%nfl2)
+      nfl3=min(nfl3,lr(ilr)%d%nfl3)
+      nfu1=max(nfu1,lr(ilr)%d%nfu1)
+      nfu2=max(nfu2,lr(ilr)%d%nfu2)
+      nfu3=max(nfu3,lr(ilr)%d%nfu3)
+      if (lr(ilr)%geocode /= geo) stop 'lr(ilr)%geocode/=geo'
+      if (lr(ilr)%hybrid_on .neqv. hyb) stop 'lr(ilr)%hybrid_on .neqv. hyb'
+  end do
 
-  select case(lr%geocode)
+
+  if (allocate_arrays) then !this might create memory leaks if there is no check performed
+     !if (associated(w%xc)) &
+     !     call f_err_throw('Error in initialize_work_arrays_locham: arrays already allocated',&
+     !     err_name='BIGDFT_RUNTIME_ERROR')
+     nullify(w%w1)
+     nullify(w%w2)
+     nullify(w%x_c)
+     nullify(w%y_c)
+     nullify(w%x_f1)
+     nullify(w%x_f2)
+     nullify(w%x_f3)
+     nullify(w%x_f)
+     nullify(w%y_f)
+  end if
+
+
+  select case(geo)
   case('F')
      !dimensions of work arrays
      ! shrink convention: nw1>nw2
      w%nw1=max((n3+1)*(2*n1+31)*(2*n2+31),&
-          (n1+1)*(2*n2+31)*(2*n3+31),&
-          2*(nfu1-nfl1+1)*(2*(nfu2-nfl2)+31)*(2*(nfu3-nfl3)+31),&
-          2*(nfu3-nfl3+1)*(2*(nfu1-nfl1)+31)*(2*(nfu2-nfl2)+31))
-
+           (n1+1)*(2*n2+31)*(2*n3+31),&
+           2*(nfu1-nfl1+1)*(2*(nfu2-nfl2)+31)*(2*(nfu3-nfl3)+31),&
+           2*(nfu3-nfl3+1)*(2*(nfu1-nfl1)+31)*(2*(nfu2-nfl2)+31))
      w%nw2=max(4*(nfu2-nfl2+1)*(nfu3-nfl3+1)*(2*(nfu1-nfl1)+31),&
-          4*(nfu1-nfl1+1)*(nfu2-nfl2+1)*(2*(nfu3-nfl3)+31),&
-          (n1+1)*(n2+1)*(2*n3+31),&
-          (2*n1+31)*(n2+1)*(n3+1))
-
+           4*(nfu1-nfl1+1)*(nfu2-nfl2+1)*(2*(nfu3-nfl3)+31),&
+           (n1+1)*(n2+1)*(2*n3+31),&
+           (2*n1+31)*(n2+1)*(n3+1))
      w%nyc=(n1+1)*(n2+1)*(n3+1)
      w%nyf=7*(nfu1-nfl1+1)*(nfu2-nfl2+1)*(nfu3-nfl3+1)
      w%nxc=(n1+1)*(n2+1)*(n3+1)
@@ -57,36 +96,26 @@ subroutine initialize_work_arrays_locham(lr,nspinor,w)
      w%nxf3=(nfu1-nfl1+1)*(nfu2-nfl2+1)*(nfu3-nfl3+1)
 
      !allocation of work arrays
-     allocate(w%y_c(w%nyc,nspinor+ndebug),stat=i_stat)
-     call memocc(i_stat,w%y_c,'y_c',subname)
-     allocate(w%y_f(w%nyf,nspinor+ndebug),stat=i_stat)
-     call memocc(i_stat,w%y_f,'y_f',subname)
-     allocate(w%x_c(w%nxc,nspinor+ndebug),stat=i_stat)
-     call memocc(i_stat,w%x_c,'x_c',subname)
-     allocate(w%x_f(w%nxf,nspinor+ndebug),stat=i_stat)
-     call memocc(i_stat,w%x_f,'x_f',subname)
-     allocate(w%w1(w%nw1+ndebug),stat=i_stat)
-     call memocc(i_stat,w%w1,'w1',subname)
-     allocate(w%w2(w%nw2+ndebug),stat=i_stat)
-     call memocc(i_stat,w%w2,'w2',subname)
-     allocate(w%x_f1(w%nxf1,nspinor+ndebug),stat=i_stat)
-     call memocc(i_stat,w%x_f1,'x_f1',subname)
-     allocate(w%x_f2(w%nxf2,nspinor+ndebug),stat=i_stat)
-     call memocc(i_stat,w%x_f2,'x_f2',subname)
-     allocate(w%x_f3(w%nxf3,nspinor+ndebug),stat=i_stat)
-     call memocc(i_stat,w%x_f3,'x_f3',subname)
+     if (allocate_arrays) then
+         w%y_c = f_malloc_ptr((/ w%nyc, nspinor /),id='w%y_c')
+         w%y_f = f_malloc_ptr((/ w%nyf, nspinor /),id='w%y_f')
+         w%x_c = f_malloc_ptr((/ w%nxc, nspinor /),id='w%x_c')
+         w%x_f = f_malloc_ptr((/ w%nxf, nspinor /),id='w%x_f')
+         w%w1 = f_malloc_ptr(w%nw1,id='w%w1')
+         w%w2 = f_malloc_ptr(w%nw2,id='w%w2')
+         w%x_f1 = f_malloc_ptr((/ w%nxf1, nspinor /),id='w%x_f1')
+         w%x_f2 = f_malloc_ptr((/ w%nxf2, nspinor /),id='w%x_f2')
+         w%x_f3 = f_malloc_ptr((/ w%nxf3, nspinor /),id='w%x_f3')
+     end if
 
      !initialisation of the work arrays
-     call to_zero(w%nxf1*nspinor,w%x_f1(1,1))
-     call to_zero(w%nxf2*nspinor,w%x_f2(1,1))
-     call to_zero(w%nxf3*nspinor,w%x_f3(1,1))
-     call to_zero(w%nxc*nspinor,w%x_c(1,1))
-     call to_zero(w%nxf*nspinor,w%x_f(1,1))
-     call to_zero(w%nyc*nspinor,w%y_c(1,1))
-     call to_zero(w%nyf*nspinor,w%y_f(1,1))
-
-!!        call razero(w%nw1*nspinor,w%w1)
-!!        call razero(w%nw2*nspinor,w%w2)
+     call f_zero(w%x_f1)
+     call f_zero(w%x_f2)
+     call f_zero(w%x_f3)
+     call f_zero(w%x_c)
+     call f_zero(w%x_f)
+     call f_zero(w%y_c)
+     call f_zero(w%y_f)
 
   case('S')
      w%nw1=0
@@ -100,13 +129,13 @@ subroutine initialize_work_arrays_locham(lr,nspinor,w)
      w%nxf3=0
 
      !allocation of work arrays
-     allocate(w%x_c(w%nxc,nspinor+ndebug),stat=i_stat)
-     call memocc(i_stat,w%x_c,'x_c',subname)
-     allocate(w%y_c(w%nyc,nspinor+ndebug),stat=i_stat)
-     call memocc(i_stat,w%y_c,'y_c',subname)
+     if (allocate_arrays) then
+         w%x_c = f_malloc_ptr((/ w%nxc, nspinor /),id='w%x_c')
+         w%y_c = f_malloc_ptr((/ w%nyc, nspinor /),id='w%y_c')
+     end if
 
   case('P')
-     if (lr%hybrid_on) then
+     if (hyb) then
         ! Wavefunction expressed everywhere in fine scaling functions (for potential and kinetic energy)
         nf=(nfu1-nfl1+1)*(nfu2-nfl2+1)*(nfu3-nfl3+1)
 
@@ -128,24 +157,15 @@ subroutine initialize_work_arrays_locham(lr,nspinor,w)
         w%nxf2=nf
         w%nxf3=nf
 
-        allocate(w%y_c(w%nyc,nspinor+ndebug),stat=i_stat)
-        call memocc(i_stat,w%y_c,'y_c',subname)
-        allocate(w%y_f(w%nyf,nspinor+ndebug),stat=i_stat)
-        call memocc(i_stat,w%y_f,'y_f',subname)
-        allocate(w%x_c(w%nxc,nspinor+ndebug),stat=i_stat)
-        call memocc(i_stat,w%x_c,'x_c',subname)
-        allocate(w%x_f(w%nxf,nspinor+ndebug),stat=i_stat)
-        call memocc(i_stat,w%x_f,'x_f',subname)
-        allocate(w%w1(w%nw1+ndebug),stat=i_stat)
-        call memocc(i_stat,w%w1,'w1',subname)
-        allocate(w%w2(w%nw2+ndebug),stat=i_stat)
-        call memocc(i_stat,w%w2,'w2',subname)
-        allocate(w%x_f1(w%nxf1,nspinor+ndebug),stat=i_stat)
-        call memocc(i_stat,w%x_f1,'x_f1',subname)
-        allocate(w%x_f2(w%nxf2,nspinor+ndebug),stat=i_stat)
-        call memocc(i_stat,w%x_f2,'x_f2',subname)
-        allocate(w%x_f3(w%nxf3,nspinor+ndebug),stat=i_stat)
-        call memocc(i_stat,w%x_f3,'x_f3',subname)
+        w%y_c = f_malloc_ptr((/ w%nyc, nspinor /),id='w%y_c')
+        w%y_f = f_malloc_ptr((/ w%nyf, nspinor /),id='w%y_f')
+        w%x_c = f_malloc_ptr((/ w%nxc, nspinor /),id='w%x_c')
+        w%x_f = f_malloc_ptr((/ w%nxf, nspinor /),id='w%x_f')
+        w%w1 = f_malloc_ptr(w%nw1,id='w%w1')
+        w%w2 = f_malloc_ptr(w%nw2,id='w%w2')
+        w%x_f1 = f_malloc_ptr((/ w%nxf1, nspinor /),id='w%x_f1')
+        w%x_f2 = f_malloc_ptr((/ w%nxf2, nspinor /),id='w%x_f2')
+        w%x_f3 = f_malloc_ptr((/ w%nxf3, nspinor /),id='w%x_f3')
 
      else
 
@@ -159,20 +179,16 @@ subroutine initialize_work_arrays_locham(lr,nspinor,w)
         w%nxf2=0
         w%nxf3=0
 
-        allocate(w%x_c(w%nxc,nspinor+ndebug),stat=i_stat)
-        call memocc(i_stat,w%x_c,'x_c',subname)
-        allocate(w%y_c(w%nyc,nspinor+ndebug),stat=i_stat)
-        call memocc(i_stat,w%y_c,'y_c',subname)
+        if (allocate_arrays) then
+            w%x_c = f_malloc_ptr((/ w%nxc, nspinor /),id='w%x_c')
+            w%y_c = f_malloc_ptr((/ w%nyc, nspinor /),id='w%y_c')
+        end if
      endif
   end select
 
 END SUBROUTINE initialize_work_arrays_locham
 
 
-
-!>
-!!
-!!
 subroutine memspace_work_arrays_locham(lr,memwork) !n(c) nspinor (arg:2)
   !n(c) use module_base
   use module_types
@@ -197,7 +213,7 @@ subroutine memspace_work_arrays_locham(lr,memwork) !n(c) nspinor (arg:2)
   nfu2=lr%d%nfu2
   nfu3=lr%d%nfu3
 
-  select case(lr%geocode)
+  select case(lr%geocode) 
   case('F')
      !dimensions of work arrays
      ! shrink convention: nw1>nw2
@@ -273,60 +289,76 @@ subroutine memspace_work_arrays_locham(lr,memwork) !n(c) nspinor (arg:2)
 END SUBROUTINE memspace_work_arrays_locham
 
 
-
-!>
-!!
-!!
-subroutine deallocate_work_arrays_locham(lr,w)
+!> Set to zero the work arrays for local hamiltonian
+subroutine zero_work_arrays_locham(lr,nspinor,w)
   use module_base
   use module_types
   implicit none
+  integer, intent(in) :: nspinor
   type(locreg_descriptors), intent(in) :: lr
   type(workarr_locham), intent(inout) :: w
   !local variables
+  integer :: n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3
+
+  n1=lr%d%n1
+  n2=lr%d%n2
+  n3=lr%d%n3
+  nfl1=lr%d%nfl1
+  nfl2=lr%d%nfl2
+  nfl3=lr%d%nfl3
+  nfu1=lr%d%nfu1
+  nfu2=lr%d%nfu2
+  nfu3=lr%d%nfu3
+
+  select case(lr%geocode)
+
+  case('F')
+
+     w%nyc=(n1+1)*(n2+1)*(n3+1)
+     w%nyf=7*(nfu1-nfl1+1)*(nfu2-nfl2+1)*(nfu3-nfl3+1)
+     w%nxc=(n1+1)*(n2+1)*(n3+1)
+     w%nxf=7*(nfu1-nfl1+1)*(nfu2-nfl2+1)*(nfu3-nfl3+1)
+     w%nxf1=(nfu1-nfl1+1)*(nfu2-nfl2+1)*(nfu3-nfl3+1)
+     w%nxf2=(nfu1-nfl1+1)*(nfu2-nfl2+1)*(nfu3-nfl3+1)
+     w%nxf3=(nfu1-nfl1+1)*(nfu2-nfl2+1)*(nfu3-nfl3+1)
+
+     !initialisation of the work arrays
+     call f_zero(w%x_f1)
+     call f_zero(w%x_f2)
+     call f_zero(w%x_f3)
+     call f_zero(w%x_c)
+     call f_zero(w%x_f)
+     call f_zero(w%y_c)
+     call f_zero(w%y_f)
+
+  case('S')
+
+  case('P')
+
+  end select
+
+END SUBROUTINE zero_work_arrays_locham
+
+
+subroutine deallocate_work_arrays_locham(w)
+  use module_base
+  use module_types
+  implicit none
+  type(workarr_locham), intent(inout) :: w
+  !local variables
   character(len=*), parameter :: subname='deallocate_work_arrays_locham'
-  integer :: i_stat,i_all
   
-  i_all=-product(shape(w%y_c))*kind(w%y_c)
-  deallocate(w%y_c,stat=i_stat)
-  call memocc(i_stat,i_all,'y_c',subname)
-  i_all=-product(shape(w%x_c))*kind(w%x_c)
-  deallocate(w%x_c,stat=i_stat)
-  call memocc(i_stat,i_all,'x_c',subname)
-
-
-  if ((lr%geocode == 'P' .and. lr%hybrid_on) .or. lr%geocode == 'F') then
-     i_all=-product(shape(w%x_f1))*kind(w%x_f1)
-     deallocate(w%x_f1,stat=i_stat)
-     call memocc(i_stat,i_all,'x_f1',subname)
-
-     i_all=-product(shape(w%x_f2))*kind(w%x_f2)
-     deallocate(w%x_f2,stat=i_stat)
-     call memocc(i_stat,i_all,'x_f2',subname)
-
-     i_all=-product(shape(w%x_f3))*kind(w%x_f3)
-     deallocate(w%x_f3,stat=i_stat)
-     call memocc(i_stat,i_all,'x_f3',subname)
-
-     i_all=-product(shape(w%y_f))*kind(w%y_f)
-     deallocate(w%y_f,stat=i_stat)
-     call memocc(i_stat,i_all,'y_f',subname)
-
-     i_all=-product(shape(w%x_f))*kind(w%x_f)
-     deallocate(w%x_f,stat=i_stat)
-     call memocc(i_stat,i_all,'x_f',subname)
-
-     i_all=-product(shape(w%w1))*kind(w%w1)
-     deallocate(w%w1,stat=i_stat)
-     call memocc(i_stat,i_all,'w1',subname)
-
-     i_all=-product(shape(w%w2))*kind(w%w2)
-     deallocate(w%w2,stat=i_stat)
-     call memocc(i_stat,i_all,'w2',subname)
-  end if
-
-  
+  call f_free_ptr(w%y_c)
+  call f_free_ptr(w%x_c)
+  call f_free_ptr(w%x_f1)
+  call f_free_ptr(w%x_f2)
+  call f_free_ptr(w%x_f3)
+  call f_free_ptr(w%y_f)
+  call f_free_ptr(w%x_f)
+  call f_free_ptr(w%w1)
+  call f_free_ptr(w%w2)
 END SUBROUTINE deallocate_work_arrays_locham
+
 
 subroutine psi_to_tpsi(hgrids,kptv,nspinor,lr,psi,w,hpsi,ekin,k_strten)
   use module_base
@@ -341,6 +373,7 @@ subroutine psi_to_tpsi(hgrids,kptv,nspinor,lr,psi,w,hpsi,ekin,k_strten)
   real(wp), dimension(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,nspinor), intent(inout) :: hpsi
   real(wp), dimension(6), optional :: k_strten
   !Local variables
+  logical, parameter :: transpose=.false.
   logical :: usekpts
   integer :: idx,i,i_f,iseg_f,ipsif,isegf
   real(gp) :: ekino
@@ -387,8 +420,8 @@ subroutine psi_to_tpsi(hgrids,kptv,nspinor,lr,psi,w,hpsi,ekin,k_strten)
              w%x_c(1,idx),w%x_f(1,idx),&
              w%x_f1(1,idx),w%x_f2(1,idx),w%x_f3(1,idx))
 
-        call to_zero(w%nyc,w%y_c(1,idx))
-        call to_zero(w%nyf,w%y_f(1,idx))
+        call f_zero(w%nyc,w%y_c(1,idx))
+        call f_zero(w%nyf,w%y_f(1,idx))
 
         call ConvolkineticT(lr%d%n1,lr%d%n2,lr%d%n3,&
              lr%d%nfl1,lr%d%nfu1,lr%d%nfl2,lr%d%nfu2,lr%d%nfl3,lr%d%nfu3,  &
@@ -426,7 +459,7 @@ subroutine psi_to_tpsi(hgrids,kptv,nspinor,lr,psi,w,hpsi,ekin,k_strten)
         !Transposition of the work arrays (use y_c as workspace)
         call transpose_for_kpoints(nspinor,2*lr%d%n1+2,2*lr%d%n2+31,2*lr%d%n3+2,&
              w%x_c,w%y_c,.true.)
-        call to_zero(nspinor*w%nyc,w%y_c(1,1))
+        call f_zero(nspinor*w%nyc,w%y_c(1,1))
 
         ! compute the kinetic part and add  it to psi_out
         ! the kinetic energy is calculated at the same time
@@ -461,7 +494,7 @@ subroutine psi_to_tpsi(hgrids,kptv,nspinor,lr,psi,w,hpsi,ekin,k_strten)
                 lr%wfd%keygloc(1,isegf),lr%wfd%keyvloc(isegf),   &
                 psi(1,idx),psi(ipsif,idx),w%x_c(1,idx),w%y_c(1,idx))
 
-           call to_zero(w%nyc,w%y_c(1,idx))
+           call f_zero(w%nyc,w%y_c(1,idx))
            ! compute the kinetic part and add  it to psi_out
            ! the kinetic energy is calculated at the same time
            call convolut_kinetic_slab_T(2*lr%d%n1+1,2*lr%d%n2+15,2*lr%d%n3+1,&
@@ -497,8 +530,8 @@ subroutine psi_to_tpsi(hgrids,kptv,nspinor,lr,psi,w,hpsi,ekin,k_strten)
                 w%x_f1(1,idx),w%x_f2(1,idx),w%x_f3(1,idx),&
                 lr%d%nfl1,lr%d%nfu1,lr%d%nfl2,lr%d%nfu2,lr%d%nfl3,lr%d%nfu3)
 
-           call to_zero(w%nyc,w%y_c(1,idx))
-           call to_zero(w%nyf,w%y_f(1,idx))
+           call f_zero(w%nyc,w%y_c(1,idx))
+           call f_zero(w%nyf,w%y_f(1,idx))
 
            call convolut_kinetic_hyb_T(lr%d%n1,lr%d%n2,lr%d%n3, &
                 lr%d%nfl1,lr%d%nfu1,lr%d%nfl2,lr%d%nfu2,lr%d%nfl3,lr%d%nfu3,  &
@@ -527,26 +560,35 @@ subroutine psi_to_tpsi(hgrids,kptv,nspinor,lr,psi,w,hpsi,ekin,k_strten)
                    psi(1,idx),psi(ipsif,idx),w%x_c(1,idx),w%y_c(1,idx))
            end do
 
-           !Transposition of the work arrays (use psir as workspace)
-           call transpose_for_kpoints(nspinor,2*lr%d%n1+2,2*lr%d%n2+2,2*lr%d%n3+2,&
-                w%x_c,w%y_c,.true.)
+           if (transpose) then
+              !Transposition of the work arrays (use psir as workspace)
+              call transpose_for_kpoints(nspinor,2*lr%d%n1+2,2*lr%d%n2+2,2*lr%d%n3+2,&
+                   w%x_c,w%y_c,.true.)
 
-           call to_zero(nspinor*w%nyc,w%y_c(1,1))
+              call f_zero(w%y_c)
+              ! compute the kinetic part and add  it to psi_out
+              ! the kinetic energy is calculated at the same time
+              do idx=1,nspinor,2
+                 !print *,'AAA',2*lr%d%n1+1,2*lr%d%n2+1,2*lr%d%n3+1,hgridh
 
-           ! compute the kinetic part and add  it to psi_out
-           ! the kinetic energy is calculated at the same time
-           do idx=1,nspinor,2
-              !print *,'AAA',2*lr%d%n1+1,2*lr%d%n2+1,2*lr%d%n3+1,hgridh
-              
-              call convolut_kinetic_per_T_k(2*lr%d%n1+1,2*lr%d%n2+1,2*lr%d%n3+1,&
-                   hgridh,w%x_c(1,idx),w%y_c(1,idx),kstrteno,kptv(1),kptv(2),kptv(3))
-              kstrten=kstrten+kstrteno
-              !ekin=ekin+ekino
-           end do
+                 call convolut_kinetic_per_T_k(2*lr%d%n1+1,2*lr%d%n2+1,2*lr%d%n3+1,&
+                      hgridh,w%x_c(1,idx),w%y_c(1,idx),kstrteno,kptv(1),kptv(2),kptv(3))
+                 kstrten=kstrten+kstrteno
+                 !ekin=ekin+ekino
+              end do
 
-           !Transposition of the work arrays (use psir as workspace)
-           call transpose_for_kpoints(nspinor,2*lr%d%n1+2,2*lr%d%n2+2,2*lr%d%n3+2,&
-                w%y_c,w%x_c,.false.)
+              !Transposition of the work arrays (use psir as workspace)
+              call transpose_for_kpoints(nspinor,2*lr%d%n1+2,2*lr%d%n2+2,2*lr%d%n3+2,&
+                   w%y_c,w%x_c,.false.)
+
+           else
+              call f_zero(w%y_c)
+              do idx=1,nspinor,2
+                 call convolut_kinetic_per_T_k_notranspose(2*lr%d%n1+1,2*lr%d%n2+1,2*lr%d%n3+1,&
+                      hgridh,w%x_c(1,idx),w%y_c(1,idx),kstrteno,kptv(1),kptv(2),kptv(3))
+                 kstrten=kstrten+kstrteno
+              end do
+           end if
 
            do idx=1,nspinor
 
@@ -569,7 +611,7 @@ subroutine psi_to_tpsi(hgrids,kptv,nspinor,lr,psi,w,hpsi,ekin,k_strten)
                    lr%wfd%keygloc(1,isegf),lr%wfd%keyvloc(isegf),   &
                    psi(1,idx),psi(ipsif,idx),w%x_c(1,idx),w%y_c(1,idx))
 
-              call to_zero(w%nyc,w%y_c(1,idx))
+              call f_zero(w%nyc,w%y_c(1,idx))
               ! compute the kinetic part and add  it to psi_out
               ! the kinetic energy is calculated at the same time
               call convolut_kinetic_per_t(2*lr%d%n1+1,2*lr%d%n2+1,2*lr%d%n3+1,&
@@ -608,6 +650,7 @@ subroutine daub_to_isf_locham(nspinor,lr,w,psi,psir)
   integer :: idx,i,i_f,iseg_f
   real(wp), dimension(0:3) :: scal
 
+
   do i=0,3
      scal(i)=1.0_wp
   enddo
@@ -616,11 +659,11 @@ subroutine daub_to_isf_locham(nspinor,lr,w,psi,psir)
   i_f=min(1,lr%wfd%nvctr_f)
   iseg_f=min(1,lr%wfd%nseg_f)
 
-  !call razero((2*n1+31)*(2*n2+31)*(2*n3+31)*nspinor,psir)
+  !call f_zero((2*n1+31)*(2*n2+31)*(2*n3+31)*nspinor,psir)
   !call MPI_COMM_RANK(bigdft_mpi%mpi_comm,iproc,ierr)
   select case(lr%geocode)
   case('F')
-     call to_zero(lr%d%n1i*lr%d%n2i*lr%d%n3i*nspinor,psir(1,1))
+     call f_zero(psir)
      !call timing(iproc,'CrtDescriptors','ON') !temporary
      do idx=1,nspinor  
         call uncompress_forstandard(lr%d%n1,lr%d%n2,lr%d%n3,&
@@ -695,8 +738,9 @@ subroutine daub_to_isf_locham(nspinor,lr,w,psi,psir)
   
 END SUBROUTINE daub_to_isf_locham
 
+
 subroutine isf_to_daub_kinetic(hx,hy,hz,kx,ky,kz,nspinor,lr,w,psir,hpsi,ekin,k_strten)
-  !use module_base
+  use module_defs, only: gp,wp
   use module_types
   implicit none
   integer, intent(in) :: nspinor
@@ -976,30 +1020,61 @@ subroutine isf_to_daub_kinetic(hx,hy,hz,kx,ky,kz,nspinor,lr,w,psir,hpsi,ekin,k_s
 END SUBROUTINE isf_to_daub_kinetic
 
 
-subroutine initialize_work_arrays_sumrho(lr,w)
+subroutine initialize_work_arrays_sumrho(nlr,lr,allocate_arrays,w)
   use module_base
   use module_types
   implicit none
-  type(locreg_descriptors), intent(in) :: lr
+  integer, intent(in) :: nlr
+  type(locreg_descriptors), dimension(nlr), intent(in) :: lr
+  logical, intent(in) :: allocate_arrays
   type(workarr_sumrho), intent(out) :: w
   !local variables
   character(len=*), parameter :: subname='initialize_work_arrays_sumrho'
-  integer :: n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,i_stat !n(c) n1i,n2i,n3i
-  
-  n1=lr%d%n1
-  n2=lr%d%n2
-  n3=lr%d%n3
-  !n(c) n1i=lr%d%n1i
-  !n(c) n2i=lr%d%n2i
-  !n(c) n3i=lr%d%n3i
-  nfl1=lr%d%nfl1
-  nfl2=lr%d%nfl2
-  nfl3=lr%d%nfl3
-  nfu1=lr%d%nfu1
-  nfu2=lr%d%nfu2
-  nfu3=lr%d%nfu3
+  integer :: n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3!n(c) n1i,n2i,n3i
+  integer :: ilr
+  character(len=1) :: geo
+  logical :: hyb
 
-  select case(lr%geocode)
+  ! Determine the maximum array sizes for all locregs 1,..,nlr
+  ! If the sizes for a specific locreg are needed, simply call the routine with nlr=1
+  ! For the moment the geocode of all locregs must be the same
+  
+  n1=0
+  n2=0
+  n3=0
+  nfl1=1000000000
+  nfl2=1000000000
+  nfl3=1000000000
+  nfu1=0
+  nfu2=0
+  nfu3=0
+  geo=lr(1)%geocode
+  hyb=lr(1)%hybrid_on
+  do ilr=1,nlr
+      n1=max(n1,lr(ilr)%d%n1)
+      n2=max(n2,lr(ilr)%d%n2)
+      n3=max(n3,lr(ilr)%d%n3)
+      nfl1=min(nfl1,lr(ilr)%d%nfl1)
+      nfl2=min(nfl2,lr(ilr)%d%nfl2)
+      nfl3=min(nfl3,lr(ilr)%d%nfl3)
+      nfu1=max(nfu1,lr(ilr)%d%nfu1)
+      nfu2=max(nfu2,lr(ilr)%d%nfu2)
+      nfu3=max(nfu3,lr(ilr)%d%nfu3)
+      if (lr(ilr)%geocode /= geo) then
+          write(*,*) 'lr(ilr)%geocode, geo', lr(ilr)%geocode, geo
+          stop 'lr(ilr)%geocode/=geo'
+      end if
+      if (lr(ilr)%hybrid_on .neqv. hyb) stop 'lr(ilr)%hybrid_on .neqv. hyb'
+  end do
+
+  if (allocate_arrays) then
+     nullify(w%x_c)
+     nullify(w%x_f)
+     nullify(w%w1)
+     nullify(w%w2)
+  end if
+
+  select case(geo)
   case('F')
      !dimension of the work arrays
      ! shrink convention: nw1>nw2
@@ -1020,7 +1095,7 @@ subroutine initialize_work_arrays_sumrho(lr,w)
      w%nxc=(2*n1+2)*(2*n2+31)*(2*n3+2)
      w%nxf=1
   case('P')
-     if (lr%hybrid_on) then
+     if (hyb) then
         ! hybrid case:
         w%nxc=(n1+1)*(n2+1)*(n3+1)
         w%nxf=7*(nfu1-nfl1+1)*(nfu2-nfl2+1)*(nfu3-nfl3+1)
@@ -1042,23 +1117,22 @@ subroutine initialize_work_arrays_sumrho(lr,w)
 
   end select
   !work arrays
-  allocate(w%x_c(w%nxc+ndebug),stat=i_stat)
-  call memocc(i_stat,w%x_c,'x_c',subname)
-  allocate(w%x_f(w%nxf+ndebug),stat=i_stat)
-  call memocc(i_stat,w%x_f,'x_f',subname)
-  allocate(w%w1(w%nw1+ndebug),stat=i_stat)
-  call memocc(i_stat,w%w1,'w1',subname)
-  allocate(w%w2(w%nw2+ndebug),stat=i_stat)
-  call memocc(i_stat,w%w2,'w2',subname)
+  if (allocate_arrays) then
+      w%x_c = f_malloc_ptr(w%nxc,id='w%x_c')
+      w%x_f = f_malloc_ptr(w%nxf,id='w%x_f')
+      w%w1 = f_malloc_ptr(w%nw1,id='w%w1')
+      w%w2 = f_malloc_ptr(w%nw2,id='w%w2')
+  end if
   
 
-  if (lr%geocode == 'F') then
-     call to_zero(w%nxc,w%x_c(1))
-     call to_zero(w%nxf,w%x_f(1))
+  if (geo == 'F') then
+     call f_zero(w%x_c)
+     call f_zero(w%x_f)
   end if
 
 
 END SUBROUTINE initialize_work_arrays_sumrho
+
 
 subroutine memspace_work_arrays_sumrho(lr,memwork)
   !n(c) use module_base
@@ -1134,26 +1208,30 @@ subroutine deallocate_work_arrays_sumrho(w)
   type(workarr_sumrho), intent(inout) :: w
   !local variables
   character(len=*), parameter :: subname='deallocate_work_arrays_sumrho'
-  integer :: i_all, i_stat
 
-  i_all=-product(shape(w%x_c))*kind(w%x_c)
-  deallocate(w%x_c,stat=i_stat)
-  call memocc(i_stat,i_all,'x_c',subname)
-  i_all=-product(shape(w%x_f))*kind(w%x_f)
-  deallocate(w%x_f,stat=i_stat)
-  call memocc(i_stat,i_all,'x_f',subname)
-  i_all=-product(shape(w%w1))*kind(w%w1)
-  deallocate(w%w1,stat=i_stat)
-  call memocc(i_stat,i_all,'w1',subname)
-  i_all=-product(shape(w%w2))*kind(w%w2)
-  deallocate(w%w2,stat=i_stat)
-  call memocc(i_stat,i_all,'w2',subname)
+  call f_free_ptr(w%x_c)
+  call f_free_ptr(w%x_f)
+  call f_free_ptr(w%w1)
+  call f_free_ptr(w%w2)
   
 END SUBROUTINE deallocate_work_arrays_sumrho
 
-!transform a daubechies function in compressed form to a function in real space via
-!the Magic Filter operation
-!do this for a single component (spinorial and/or complex)
+
+subroutine psig_to_psir_free(n1,n2,n3,work,psig_psir)
+ implicit none
+ integer, intent(in) :: n1,n2,n3 !< dimensions in the daubechies grid
+ real(kind=8),dimension((2*n1+31)*(2*n2+31)*(2*n3+31)), intent(inout):: work !< enlarged buffer 
+ real(kind=8),dimension((2*n1+31)*(2*n2+31)*(2*n3+31)), intent(inout):: psig_psir  !< final result, containing psig data but big enough to contain psir (used as work array)
+
+ call synthese_free_self(n1,n2,n3,psig_psir,work)
+ call convolut_magic_n_free_self(2*n1+15,2*n2+15,2*n3+15,work,psig_psir)
+
+end subroutine psig_to_psir_free
+
+
+!> Transform a daubechies function in compressed form to a function in real space via
+!! the Magic Filter operation
+!! do this for a single component (spinorial and/or complex)
 subroutine daub_to_isf(lr,w,psi,psir)
   use module_base
   use module_types
@@ -1166,6 +1244,8 @@ subroutine daub_to_isf(lr,w,psi,psir)
   integer :: i,i_f,iseg_f
   real(wp), dimension(0:3) :: scal
 
+  call f_routine(id='daub_to_isf')
+
   i_f=min(lr%wfd%nvctr_f,1)
   iseg_f=min(lr%wfd%nseg_f,1)
 
@@ -1175,7 +1255,7 @@ subroutine daub_to_isf(lr,w,psi,psir)
 
   select case(lr%geocode)
   case('F')
-     call to_zero(lr%d%n1i*lr%d%n2i*lr%d%n3i,psir(1))
+     call f_zero(psir)
 
      call uncompress_forstandard_short(lr%d%n1,lr%d%n2,lr%d%n3,&
           lr%d%nfl1,lr%d%nfu1,lr%d%nfl2,lr%d%nfu2,lr%d%nfl3,lr%d%nfu3,&
@@ -1231,15 +1311,19 @@ subroutine daub_to_isf(lr,w,psi,psir)
 
   end select
 
+  call f_release_routine()
+
 END SUBROUTINE daub_to_isf
 
-!>   Transforms a wavefunction written in real space basis into a 
-!!   wavefunction in Daubechies form
-!!   does the job for all supported BC
-!!   Warning: the psir is destroyed for some BCs (slab and periodic)
-!!   Warning: psi must already be initialized (to zero) before entering this routine
+
+!> Transforms a wavefunction written in real space basis into a 
+!! wavefunction in Daubechies form
+!! does the job for all supported BC
+!! @warning: 
+!!  - the psir is destroyed for some BCs (slab and periodic)
+!!  - psi must already be initialized (to zero) before entering this routine
 subroutine isf_to_daub(lr,w,psir,psi)
-  !n(c) use module_base
+  use module_defs, only: wp
   use module_types
   implicit none
   type(locreg_descriptors), intent(in) :: lr

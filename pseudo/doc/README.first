@@ -1,9 +1,12 @@
+/*! @file
+@brief Explain the use of the pseudo and atom programs for the egneration of pseudopotentials
 
-________________________
+@defgroup PSEUDO The pseudo program
+@brief The pseudopotential generation program: The atom and pseudo programs are used to generate the pseudopotentials used by the BigDFT code.
 
-   What is pseudo2.5?
-________________________
+@details
 
+@section PSEUDO_INTRO     What is pseudo2.5?
 
 Pseudo is a program to generate accurate, soft and transferable Goedecker-type pseudopotentials. 
 The analytic form of the potentials is optimized using a downhill simplex method for least square
@@ -19,13 +22,11 @@ Note that this version of pseudo uses the libXC libraries for the exchange corre
 supports spin polarized or relativistic LDA and GGA calculations and allows the inclusion of non-
 linear core corrections of a simple analytic form that may be fitted as well.
 
+More information is given in the doc and Tutorial subdirectories.
 
 
-____________________
 
-   How to Install
-____________________
-
+@section PSEUDO_INSTALL    How to Install
 
 To compile pseudo from its sources, you need to specify your preffered fortran MPI compiler, flags,
 libraries and include paths in the corresponding Makefiles. For this, you may want to follow the
@@ -39,11 +40,8 @@ uses simple placeholder routines for MPI, libXC, BLAS and LAPACK.
 
 
 
-_________________
 
-   How to run
-_________________
-
+@section PSEUDO_RUN        How to run
 
 First, you will need to setup an input file for the all electron DFT calculation that will provide
 the reference data for the empirical penalty function of the fit. A short description of the
@@ -57,40 +55,38 @@ wavelet transformation.
 
 
 
-_______________________
+@section PSEUDO_DETAILS     More README files
 
-   More README files
-_______________________
-
-
-README.pseudo.inputs   gives an overview of the inpput files and methodology of pseudo. It also
-                       declares version changes that are important when taking a look at ...
-
-README.pseudo.old      ... from a previous version of the program, which explains in detail the
-                       analytical form of the pseudo potentials and empirical penalty function.
-                       It also contains some more hints for fitting.
-
-README.pseudo.parallel describes those features and input files that are suitable for parallel
-                       computations. This includes multiple electronic configureations, wavelet
-                       transformations and GPU acceleration.
-
-README.NLCC            gives some instructions for the usage of nonlinear core corrections. This
-                       feature is especially needful when generating pseudopotentials for spin
-                       polarized calculations.
-
-README.iXC             Explains which functionals from libXC are available and how they are
-                       requested with the iXC input variable.
-
-README.separable.part  Describes a test feature that may help to produce better semicore
-                       pseudopotentials in the future.
-
-README.atom            Contains instructions for using the all electron program atom.f, which 
-                       generates the reference data needed by pseudo. More information about
-                       this program is found in the documentation of an earlier version, ... 
-
-README.atom.old        ... which should not be needed to use the updated version of atom.f. 
+- README.pseudo.inputs
+                         Gives an overview of the inpput files and methodology of pseudo. It also
+                         declares version changes that are important when taking a look at ...
+- README.pseudo.old
+                         ... From a previous version of the program, which explains in detail the
+                         analytical form of the pseudo potentials and empirical penalty function.
+                         It also contains some more hints for fitting.
+- README.pseudo.parallel 
+                         Describes those features and input files that are suitable for parallel
+                         computations. This includes multiple electronic configureations, wavelet
+                         transformations and GPU acceleration.
+- README.NLCC            
+                         Gives some instructions for the usage of nonlinear core corrections. This
+                         feature is especially needful when generating pseudopotentials for spin
+                         polarized calculations.
+- README.iXC             
+                         Explains which functionals from libXC are available and how they are
+                         requested with the iXC input variable.
+- README.separable.part  
+                         Describes a test feature that may help to produce better semicore
+                         pseudopotentials in the future.
+- @link README.atom @endlink
+                         Contains instructions for using the all electron program atom, which 
+                         generates the reference data needed by pseudo. More information about
+                         this program is found in the documentation of an earlier version, ... 
+- README.atom.old        
+                         ... Which should not be needed to use the updated version of atom.f. 
 
 
 Finally, there are also some step by step instructions for the usage of pseudo for fitting:
-
                        see Tutorials/oxygen.NLCC/INSTRUCTIONS
+
+*/

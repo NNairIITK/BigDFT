@@ -1,77 +1,69 @@
 !> @file
+!! Solve the preconditioning equation for the linear version
 !! @author
-!!    Copyright (C) 2011-2012 BigDFT group
+!!    Copyright (C) 2011-2013 BigDFT group
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS
 
+
 !> Solves the preconditioning equation by conjugate gradient iterations.
 !! The equation reads ( kin.energy + cprecr*Id + potentialPrefac*(r-r0)^4 )x=y
 !! Solves (KE+cprecr*I)*xx=yy by conjugate gradient method.
 !! x is the right hand side on input and the solution on output
-!! 
-!! Calling arguments:
-!! ==================
-!!   Input arguments:
-!!   ----------------   
-!!     lr               type describing the localization region
-!!     ncplx            real or complex??
-!!     ncong            number of CG iterations
-!!     cprecr           preconditioning constant
-!!     hx               hgrid in x direction
-!!     hy               hgrid in y direction
-!!     hz               hgrid in z direction
-!!     kx               kpoints in x direction?
-!!     ky               kpoints in y direction?
-!!     kz               kpoints in z direction?
-!!     rxyzParab        the center of the confinement potential
-!!     orbs             type describing the orbitals
-!!     potentialPrefac  prefactor for the confinement potential
-!!     it               delete later??
-!!   Input / Output arguments:
-!!   -------------------------
-!!     x                on input: the right hand side of the equation (i.e. y)
-!!                      on output: the solution of the equation (i.e. x)
 subroutine solvePrecondEquation(iproc,nproc,lr,ncplx,ncong,cprecr,&
-     hx,hy,hz,kx,ky,kz,x,  rxyzParab, orbs, potentialPrefac, confPotOrder)
+     hx,hy,hz,kx,ky,kz,x,  rxyzParab, orbs, potentialPrefac, confPotOrder, &
+     work_conv, w)
 
-use module_base
-use module_types
+  use module_base
+  use module_types
 
-implicit none
-integer, intent(in) :: iproc,nproc,ncong,ncplx,confPotOrder
-real(gp), intent(in) :: hx,hy,hz,cprecr,kx,ky,kz
-type(locreg_descriptors), intent(in) :: lr
-real(wp), dimension((lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*ncplx), intent(inout) :: x
-real(8),dimension(3),intent(in):: rxyzParab
-type(orbitals_data), intent(in):: orbs
-real(8):: potentialPrefac
+  implicit none
+  integer, intent(in) :: iproc,nproc
+  integer, intent(in) :: ncong                !> number of CG iterations
+  integer, intent(in) :: ncplx                !> real or complex??
+  integer, intent(in) :: confPotOrder         
+  real(gp), intent(in) :: hx,hy,hz            !> hgrid in x, y and z direction
+  real(gp), intent(in) :: cprecr              !> preconditioning constant
+  real(gp), intent(in) :: kx,ky,kz            !> kpoints in x, y and z direction
+  type(locreg_descriptors), intent(in) :: lr  !> Type describing the localization region
+  !> on input: the right hand side of the equation (i.e. y)
+  !! on output: the solution of the equation (i.e. x)
+  real(wp), dimension((lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*ncplx), intent(inout) :: x
+  real(kind=8), dimension(3), intent(in) :: rxyzParab !> the center of the confinement potential
+  type(orbitals_data), intent(in) :: orbs     !> type describing the orbitals
+  real(kind=8) :: potentialPrefac             !> prefactor for the confinement potential
+  type(workarrays_quartic_convolutions),intent(inout):: work_conv !< workarrays for the convolutions
+  type(workarr_precond),intent(inout) :: w !< workarrays
 
-! Local variables
-character(len=*), parameter :: subname='precondition_residue'
-real(gp), dimension(0:7) :: scal
-real(wp) :: rmr_old,rmr_new,alpha,beta
-integer :: i_stat,i_all,icong
-type(workarr_precond) :: w
-real(wp), dimension(:), allocatable :: b,r,d
-logical:: with_confpot
-type(workarrays_quartic_convolutions):: work_conv
+  ! Local variables
+  character(len=*), parameter :: subname='precondition_residue'
+  real(gp), dimension(0:7) :: scal
+  real(wp) :: rmr_old,rmr_new,alpha,beta
+  integer :: icong
+  real(wp), dimension(:), allocatable :: b,r,d
+  logical:: with_confpot
+
+  call f_routine(id='solvePrecondEquation')
+
+  !!type(workarrays_quartic_convolutions):: work_conv
 
   !arrays for the CG procedure
-  allocate(b(ncplx*(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)+ndebug),stat=i_stat)
-  call memocc(i_stat,b,'b',subname)
-  allocate(r(ncplx*(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)+ndebug),stat=i_stat)
-  call memocc(i_stat,r,'r',subname)
-  allocate(d(ncplx*(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)+ndebug),stat=i_stat)
-  call memocc(i_stat,d,'d',subname)
+  b = f_malloc(ncplx*(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f),id='b')
+  r = f_malloc(ncplx*(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f),id='r')
+  d = f_malloc(ncplx*(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f),id='d')
 
-  call allocate_work_arrays(lr%geocode,lr%hybrid_on,ncplx,lr%d,w)
+  !call allocate_work_arrays(lr%geocode,lr%hybrid_on,ncplx,lr%d,w)
 
-  call precondition_preconditioner(lr,ncplx,hx,hy,hz,scal,cprecr,w,x,b)
+  !call precondition_preconditioner(lr,ncplx,hx,hy,hz,scal,cprecr,w,x,b)
+  call precondition_preconditioner(lr,ncplx,hx,hy,hz,scal,cprecr,w,x,r)
 
   with_confpot=(potentialPrefac/=0.d0)
-  call init_local_work_arrays(lr%d%n1, lr%d%n2, lr%d%n3, &
+  !!call init_local_work_arrays(lr%d%n1, lr%d%n2, lr%d%n3, &
+  !!     lr%d%nfl1, lr%d%nfu1, lr%d%nfl2, lr%d%nfu2, lr%d%nfl3, lr%d%nfu3, &
+  !!     with_confpot, work_conv)
+  call zero_local_work_arrays(lr%d%n1, lr%d%n2, lr%d%n3, &
        lr%d%nfl1, lr%d%nfu1, lr%d%nfl2, lr%d%nfu2, lr%d%nfl3, lr%d%nfu3, &
        with_confpot, work_conv, subname)
   !!call allocate_workarrays_quartic_convolutions(lr, subname, work_conv)
@@ -82,7 +74,9 @@ type(workarrays_quartic_convolutions):: work_conv
 !!  write(*,*)'debug1',rmr_new
 
   !this operation should be rewritten in a better way
-  r=b-d ! r=b-Ax
+  !r=b-d ! r=b-Ax
+  ! Rewritten using axpy since precondition_preconditioner is now called with r instead of b
+  call axpy(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f, -1.d0, d(1), 1, r(1), 1)
 
   call calculate_rmr_new(lr%geocode,lr%hybrid_on,ncplx,lr%wfd,scal,r,d,rmr_new)
   !stands for
@@ -110,26 +104,26 @@ type(workarrays_quartic_convolutions):: work_conv
 
      beta=rmr_new/rmr_old
 
-     d=b+beta*d
+     !d=b+beta*d
+     call swap(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f, b(1), 1, d(1), 1)
+     call axpy(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f, beta, b(1), 1, d(1), 1)
     
   enddo
 
   call finalise_precond_residue(lr%geocode,lr%hybrid_on,ncplx,lr%wfd,scal,x)
 
-  call deallocate_workarrays_quartic_convolutions(lr, subname, work_conv)
+  !!call deallocate_workarrays_quartic_convolutions(work_conv)
 
-  i_all=-product(shape(b))*kind(b)
-  deallocate(b,stat=i_stat)
-  call memocc(i_stat,i_all,'b',subname)
-  i_all=-product(shape(r))*kind(r)
-  deallocate(r,stat=i_stat)
-  call memocc(i_stat,i_all,'r',subname)
-  i_all=-product(shape(d))*kind(d)
-  deallocate(d,stat=i_stat)
-  call memocc(i_stat,i_all,'d',subname)
-  call timing(iproc,'deallocprec','ON') ! lr408t
-  call deallocate_work_arrays(lr%geocode,lr%hybrid_on,ncplx,w)
-  call timing(iproc,'deallocprec','OF') ! lr408t
+  call f_free(b)
+  call f_free(r)
+  call f_free(d)
+
+  !call timing(iproc,'deallocprec','ON') ! lr408t
+  !call deallocate_work_arrays(lr%geocode,lr%hybrid_on,ncplx,w)
+  !call timing(iproc,'deallocprec','OF') ! lr408t
+
+  call f_release_routine()
+
 END SUBROUTINE solvePrecondEquation
 
 
@@ -151,6 +145,8 @@ subroutine differentiateBetweenBoundaryConditions(iproc,nproc,ncplx,lr,hx,hy,hz,
   type(workarrays_quartic_convolutions),intent(inout):: work_conv
   !local variables
   integer :: idx,nf
+
+  call f_routine(id='differentiateBetweenBoundaryConditions')
 
   if (lr%geocode == 'F') then
      do idx=1,ncplx
@@ -212,15 +208,18 @@ subroutine differentiateBetweenBoundaryConditions(iproc,nproc,ncplx,lr,hx,hy,hz,
 
      end if
    end if
+
+  call f_release_routine()
+
 END SUBROUTINE differentiateBetweenBoundaryConditions
 
 
 
-!>   WRONG DESCRIPTION
-!!   This subroutine uncompresses the wave function, applies the operators on it, 
-!!   and compresses it again. The operators are: kinetic energy + cprec*Id + r^4.
-!!   Here cprecr is a constant and r^4 is the confinement potential of the form
-!!   lin%potentialPrefac*[(x-x0)^4 + (y-y0)^4 + (z-z0)^4]
+!> WRONG DESCRIPTION
+!! This subroutine uncompresses the wave function, applies the operators on it, 
+!! and compresses it again. The operators are: kinetic energy + cprec*Id + r^4.
+!! Here cprecr is a constant and r^4 is the confinement potential of the form
+!! lin%potentialPrefac*[(x-x0)^4 + (y-y0)^4 + (z-z0)^4]
 subroutine applyOperator(iproc,nproc,n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, ns1, ns2, ns3, &
      nseg_c,nvctr_c,keyg_c,keyv_c,nseg_f,nvctr_f,keyg_f,keyv_f, &
      scal,cprecr,hgrid,ibyz_c,ibxz_c,ibxy_c,ibyz_f,ibxz_f,ibxy_f,&
@@ -263,15 +262,21 @@ subroutine applyOperator(iproc,nproc,n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, ns1
   ! Local variables
   character(len=*),parameter:: subname='applyOperator'
 
+
+  call f_routine(id='applyOperator')
+
   ! Uncompress the wavefunction.
+  call f_routine(id='call_to_uncompress_for_quartic_convolutions')
   call uncompress_for_quartic_convolutions(n1, n2, n3, nfl1, nfu1, nfl2, nfu2, nfl3, nfu3, &
        nseg_c, nvctr_c, keyg_c, keyv_c, nseg_f, nvctr_f,  keyg_f, keyv_f, &
        scal, xpsi_c, xpsi_f, &
        work_conv)
+  call f_release_routine()
 
   ! Apply the  following operators to the wavefunctions: kinetic energy + cprec*Id + r^4.
   if(confPotOrder==4) then
-
+     call timing(iproc,'convolQuartic ','ON')
+      call f_routine(id='call_to_ConvolQuartic4')
       call ConvolQuartic4(iproc, nproc, n1, n2, n3, nfl1, nfu1, nfl2, nfu2, nfl3, nfu3, &
            hgrid, ns1, ns2, ns3, ibyz_c, ibxz_c, ibxy_c, ibyz_f, ibxz_f, ibxy_f, &
            rxyzParab, parabPrefac, .true., cprecr, max(n1,n2,n3), &
@@ -287,16 +292,17 @@ subroutine applyOperator(iproc,nproc,n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, ns1
            work_conv%xya_f, work_conv%xyb_f, work_conv%xyc_f, work_conv%xye_f, &
            work_conv%xza_f, work_conv%xzb_f, work_conv%xzc_f, work_conv%xze_f, &
            work_conv%yza_f, work_conv%yzb_f, work_conv%yzc_f, work_conv%yze_f, &
-           work_conv%aeff0, work_conv%aeff1, work_conv%aeff2, work_conv%aeff3, &
-           work_conv%beff0, work_conv%beff1, work_conv%beff2, work_conv%beff3, &
-           work_conv%ceff0, work_conv%ceff1, work_conv%ceff2, work_conv%ceff3, &
-           work_conv%eeff0, work_conv%eeff1, work_conv%eeff2, work_conv%eeff3, &
-           work_conv%aeff0_2, work_conv%aeff1_2, work_conv%aeff2_2, work_conv%aeff3_2, &
-           work_conv%beff0_2, work_conv%beff1_2, work_conv%beff2_2, work_conv%beff3_2, &
-           work_conv%ceff0_2, work_conv%ceff1_2, work_conv%ceff2_2, work_conv%ceff3_2, &
-           work_conv%eeff0_2, work_conv%eeff1_2, work_conv%eeff2_2, work_conv%eeff3_2, & 
+!           work_conv%aeff0, work_conv%aeff1, work_conv%aeff2, work_conv%aeff3, &
+!           work_conv%beff0, work_conv%beff1, work_conv%beff2, work_conv%beff3, &
+!           work_conv%ceff0, work_conv%ceff1, work_conv%ceff2, work_conv%ceff3, &
+!           work_conv%eeff0, work_conv%eeff1, work_conv%eeff2, work_conv%eeff3, &
+!           work_conv%aeff0_2, work_conv%aeff1_2, work_conv%aeff2_2, work_conv%aeff3_2, &
+!           work_conv%beff0_2, work_conv%beff1_2, work_conv%beff2_2, work_conv%beff3_2, &
+!           work_conv%ceff0_2, work_conv%ceff1_2, work_conv%ceff2_2, work_conv%ceff3_2, &
+!           work_conv%eeff0_2, work_conv%eeff1_2, work_conv%eeff2_2, work_conv%eeff3_2, & 
            work_conv%y_c, work_conv%y_f)
-
+      call f_release_routine()
+      call timing(iproc,'convolQuartic ','OF')
   else if(confPotOrder==6) then
 
       stop 'sextic potential deprecated'
@@ -304,132 +310,15 @@ subroutine applyOperator(iproc,nproc,n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, ns1
   end if
 
   ! Compress the wavefunctions.
+  call f_routine(id='compress_forstandard')
   call compress_forstandard(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,  &
        nseg_c,nvctr_c,keyg_c,keyv_c,  & 
        nseg_f,nvctr_f,keyg_f,keyv_f,  & 
        scal,work_conv%y_c,work_conv%y_f,ypsi_c,ypsi_f)
+  call f_release_routine()
+
+  call f_release_routine()
 
 END SUBROUTINE applyOperator
 
 
-!>   Preconditions all orbitals belonging to iproc.
-!!  
-!! Calling arguments:
-!! ==================
-!!   Input arguments:
-!!   ----------------
-!!     iproc     process ID
-!!     nproc     total number of processes
-!!     orbs      type describing the physical orbitals psi
-!!     lin       type containing parameters for the linear version
-!!     lr        type describing the localization region
-!!     hx        grid spacing in x direction
-!!     hy        grid spacing in y direction
-!!     hz        grid spacing in z direction
-!!     ncong     number of CG iterations 
-!!     rxyz      the center of the confinement potential
-!!     at        type containing the paraneters for the atoms
-!!     it        iteration -- delete maybe??
-!!  Input/Output arguments
-!!  ---------------------
-!!     hpsi      the gradient to be preconditioned
-subroutine choosePreconditioner2(iproc, nproc, orbs, lr, hx, hy, hz, ncong, hpsi, &
-           confpotorder, potentialprefac, iorb, eval_zero)
-
-use module_base
-use module_types
-
-implicit none
-integer, intent(in) :: iproc,nproc,ncong, iorb, confpotorder
-real(gp), intent(in) :: hx,hy,hz
-type(locreg_descriptors), intent(in) :: lr
-type(orbitals_data), intent(in) :: orbs
-real(8),intent(in):: potentialprefac
-!real(wp), dimension(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,orbs%nspinor,orbs%norbp), intent(inout) :: hpsi
-real(wp), dimension(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,orbs%nspinor), intent(inout) :: hpsi
-real(8),intent(in):: eval_zero
-!local variables
-integer :: inds, ncplx, iiAt!,ikpt,ierr
-real(wp) :: cprecr!,scpr,eval_zero,evalmax 
-real(gp) :: kx,ky,kz
-
-
-
-   !!evalmax=orbs%eval(orbs%isorb+1)
-   !!do iorb=1,orbs%norbp
-   !!  evalmax=max(orbs%eval(orbs%isorb+iorb),evalmax)
-   !!enddo
-   !!call MPI_ALLREDUCE(evalmax,eval_zero,1,mpidtypd,&
-   !!     MPI_MAX,bigdft_mpi%mpi_comm,ierr)
-
-
-  !do iorb=1,orbs%norbp
-!     ! define zero energy for preconditioning 
-!     eval_zero=max(orbs%eval(orbs%norb),0.d0)  !  Non-spin pol
-!     if (orbs%spinsgn(orbs%isorb+iorb) > 0.0_gp) then    !spin-pol
-!        eval_zero=max(orbs%eval(orbs%norbu),0.d0)  !up orbital
-!     else if (orbs%spinsgn(orbs%isorb+iorb) < 0.0_gp) then
-!        eval_zero=max(orbs%eval(orbs%norbu+orbs%norbd),0.d0)  !down orbital
-!     end if
-     !indo=(iorb-1)*nspinor+1
-     !loop over the spinorial components
-     !k-point values, if present
-     kx=orbs%kpts(1,orbs%iokpt(iorb))
-     ky=orbs%kpts(2,orbs%iokpt(iorb))
-     kz=orbs%kpts(3,orbs%iokpt(iorb))
-
-     !real k-point different from Gamma still not implemented
-     if (kx**2+ky**2+kz**2 > 0.0_gp .or. orbs%nspinor==2 ) then
-        ncplx=2
-     else
-        ncplx=1
-     end if
-
-     do inds=1,orbs%nspinor,ncplx
-        
-        select case(lr%geocode)
-        case('F')
-           cprecr=sqrt(.2d0**2+min(0.d0,orbs%eval(orbs%isorb+iorb))**2)
-        case('S')
-           cprecr=sqrt(0.2d0**2+(orbs%eval(orbs%isorb+iorb)-eval_zero)**2)
-        case('P')
-           cprecr=sqrt(0.2d0**2+(orbs%eval(orbs%isorb+iorb)-eval_zero)**2)
-        end select
-
-        !cases with no CG iterations, diagonal preconditioning
-        !for Free BC it is incorporated in the standard procedure
-        if (ncong == 0 .and. lr%geocode /= 'F') then
-           select case(lr%geocode)
-           case('F')
-           case('S')
-              call prec_fft_slab(lr%d%n1,lr%d%n2,lr%d%n3, &
-                   lr%wfd%nseg_c,lr%wfd%nvctr_c,lr%wfd%nseg_f,&
-                   lr%wfd%nvctr_f,lr%wfd%keygloc,lr%wfd%keyvloc, &
-                   cprecr,hx,hy,hz,hpsi(1,inds))
-           case('P')
-              call prec_fft(lr%d%n1,lr%d%n2,lr%d%n3, &
-                   lr%wfd%nseg_c,lr%wfd%nvctr_c,lr%wfd%nseg_f,lr%wfd%nvctr_f,&
-                   lr%wfd%keygloc,lr%wfd%keyvloc, &
-                   cprecr,hx,hy,hz,hpsi(1,inds))
-           end select
-
-        else !normal preconditioner
-
-           ! iiAt indicates on which atom orbital iorb is centered.
-           !iiAt=lin%onWhichAtom(iorb)
-           !iiAt=lin%orbs%inWhichLocregp(iorb)
-           iiAt=orbs%inWhichLocreg(orbs%isorb+iorb)
-!!!call solvePrecondEquation(iproc,nproc,lr,ncplx,ncong,cprecr,&
-!!!     hx,hy,hz,kx,ky,kz,hpsi(1,inds), rxyz(1,iiAt), orbs,&
-!!!     potentialPrefac, confPotOrder, it)
-              !!write(*,*) 'cprecr',cprecr
-           call solvePrecondEquation(iproc,nproc,lr,ncplx,ncong,cprecr,&
-                hx,hy,hz,kx,ky,kz,hpsi(1,inds), lr%locregCenter(1), orbs,&
-                   potentialPrefac, confPotOrder)
-
-        end if
-
-     end do
-  !enddo
-
-END SUBROUTINE choosePreconditioner2

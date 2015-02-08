@@ -1,4 +1,5 @@
 !> @file
+!! Read the parameters for BigDFT+ART
 !! @author
 !!    Copyright (C) 2001 Normand Mousseau
 !!    Copyright (C) 2010 BigDFT group
@@ -6,6 +7,7 @@
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
+
 
 !> ART read_parameters
 !! Read the parameters defining the simulation 
@@ -774,6 +776,7 @@ subroutine write_parameters( )
   use lanczos_defs
   use saddles
   use random
+  use module_defs
   implicit none  
 
   !Local variables
@@ -822,7 +825,7 @@ subroutine write_parameters( )
   write(flog,*) '****************************** '
   call timestamp ('Start')
   write(flog,'(1X,A39,f12.3)')  ' - Version number of  ART            : ', VERSION_NUMBER
-  write(flog,'(1X,A39,A14)')    ' - Version number of  BIGDFT         : ', BIGREVNO 
+  write(flog,'(1X,A39,A14)')    ' - Version number of  BIGDFT         : ', package_version 
   write(flog,*) ''
   write(flog,'(1X,A39,A16  )')  ' - Event type                        : ', trim(eventtype)
   write(flog,'(1X,A39,f12.4)')  ' - Temperature                       : ', temperature

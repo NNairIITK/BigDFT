@@ -10,8 +10,7 @@
 !!    For the list of contributors, see ~/AUTHORS 
 
 
-!> ART print_event
-!!    This subroutine prints the initial details for an event
+!> This subroutine prints the initial details for an event (ART)
 subroutine print_event( ievent_current, temperat )
 
   use defs
@@ -42,9 +41,8 @@ subroutine print_event( ievent_current, temperat )
 END SUBROUTINE print_event
 
 
-!> ART displacement
-!!    It computes the distance between two configurations and 
-!!    the number of particles having moved by more than a THRESHOLD
+!> It (ART) computes the distance between two configurations and 
+!! the number of particles having moved by more than a THRESHOLD
 subroutine displacement( posa, posb, delr, npart )
 
   use defs
@@ -146,7 +144,7 @@ subroutine store( fname )
 
   ! Added by Fedwa El-Mellouhi July 2002, writes the configuration in .xyz format. 
   ! Modified by E. Machado-charry for v_sim and BigDFT.
-  if ( write_xyz ) then
+!  if ( write_xyz ) then
 
      ! If there is a constraint over a given atom, is written in the geometry file.
      do i = 1, NATOMS
@@ -164,7 +162,7 @@ subroutine store( fname )
      fnamexyz = trim(fname) // extension
      write(*,*) ' Writing to file : ', fnamexyz
      open(unit=XYZ,file=fnamexyz,status='unknown',action='write',iostat=ierror)
-     write(XYZ,*) NATOMS , 'angstroem' 
+     write(XYZ,*) NATOMS , 'angstroemd0' 
      if (boundary == 'P') then
         write(XYZ,'(a,3(1x,1p,e24.17,0p))')'periodic', (boxl(i),i=1,3)
      else if (boundary == 'S') then
@@ -176,7 +174,7 @@ subroutine store( fname )
         write(XYZ,'(1x,A2,3(2x,f16.8),2x,a4)')   Atom(i), x(i), y(i), z(i), frzchain(i)
      end do
      close(XYZ)
-  end if
+!  end if
 
 END SUBROUTINE store
 
@@ -230,7 +228,7 @@ subroutine save_intermediate( stage )
 
      open(unit=XYZ,file=fname,status='unknown',action='write',iostat=ierror)
 
-     write(XYZ,*) NATOMS,  'angstroem' 
+     write(XYZ,*) NATOMS,  'angstroemd0' 
 
      if (boundary == 'P') then
         write(XYZ,'(a,3(1x,1p,e24.17,0p))') 'periodic', (boxl(i),i=1,3)

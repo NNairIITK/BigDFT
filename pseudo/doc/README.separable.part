@@ -1,15 +1,16 @@
+/*! @file
 
-_______________________________________________
+@brief  Separable part with additional parameters
 
-   Separable part with additional parameters
-_______________________________________________
+@details
 
+@section SEPARABLE_INTRO    Separable part with additional parameters
 
 If a pseudopotential should capture the coupling of states with different spatial extensions,
 for instance when semicore states are included, it can be favorable to add a slight modification
 to the analytic form of the separable part. The standard approach in HGH pseudopotentials is
 to include higher hij elements that couple Gaussian type projectors that have different polynomial
-parts. The nonocal potential per angular momentum channel is then given by
+parts. The nonocal potential per angular momentum channel is then given by:
 
    V_nl (r, r') =  sum_l,m,i,j   < r| P_l,m,i >  h_ij < P_l,m,j | r' >  ;  i, j = 1 ... 3
 
@@ -33,20 +34,16 @@ The integer that defines the number of hij parameters per l-channel can be negat
 The negative sign means that parameter r_l2 follows at the beginning of the next line.
 
 
-Example without r_l2, traditional format
-
+Example without r_l2, traditional format:
+<pre>
 0.59194990  2  5.30819456 -2.06237933    r n h11 h12
                            2.66252027            h22 
+</pre>
 
-
-Example with r_l2, new format convention
-
+Example with r_l2, new format convention:
+<pre>
 0.59194990 -2  5.30819456 -2.06237933   rl n h11 h12
 0.75000000                 2.66252027   rl2      h22 
+</pre>
 
-
-
-
-
-
-
+*/

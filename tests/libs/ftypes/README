@@ -1,0 +1,7 @@
+/*! @file
+@brief Readme of the ftypes tests.
+
+@dir
+@brief Contains some tests about the bindings of BigDFT with python.
+
+*/

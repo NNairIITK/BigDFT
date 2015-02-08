@@ -6,290 +6,15 @@
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
-
-
-!> Calculate atomic forces via finite differences (test purpose)
-subroutine forces_via_finite_differences(iproc,nproc,atoms,inputs,energy,fxyz,fnoise,rst,infocode)
-  use module_base
-  use module_types
-  implicit none
-  integer, intent(in) :: iproc,nproc
-  integer, intent(inout) :: infocode
-  real(gp), intent(inout) :: energy,fnoise
-  type(input_variables), intent(inout) :: inputs
-  type(atoms_data), intent(inout) :: atoms
-  type(restart_objects), intent(inout) :: rst
-  real(gp), dimension(3,atoms%nat), intent(inout) :: fxyz
-  !local variables
-  character(len=*), parameter :: subname='forces_via_finite_differences'
-  character(len=4) :: cc
-  integer :: ik,km,n_order,i_all,i_stat,iat,ii,i,k,order,iorb_ref
-  real(gp) :: dd,alat,functional_ref,fd_alpha,energy_ref
-  real(gp), dimension(3) :: fd_step
-  real(gp), dimension(6) :: strten
-  integer, dimension(:), allocatable :: kmoves
-  real(gp), dimension(:), allocatable :: functional,dfunctional
-  real(gp), dimension(:,:), allocatable :: rxyz_ref,fxyz_fake
-
-  interface
-     subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
-          KSwfn,tmb,&!psi,Lzd,gaucoeffs,gbd,orbs,
-          rxyz_old,hx_old,hy_old,hz_old,in,GPU,infocode)
-       use module_base
-       use module_types
-       implicit none
-       integer, intent(in) :: nproc,iproc
-       integer, intent(out) :: infocode
-       real(gp), intent(inout) :: hx_old,hy_old,hz_old
-       type(input_variables), intent(in) :: in
-       !type(local_zone_descriptors), intent(inout) :: Lzd
-       type(atoms_data), intent(inout) :: atoms
-       !type(gaussian_basis), intent(inout) :: gbd
-       !type(orbitals_data), intent(inout) :: orbs
-       type(GPU_pointers), intent(inout) :: GPU
-       type(DFT_wavefunction), intent(inout) :: KSwfn,tmb
-       real(gp), intent(out) :: energy,fnoise
-       real(gp), dimension(3,atoms%nat), intent(inout) :: rxyz_old
-       real(gp), dimension(3,atoms%nat), target, intent(inout) :: rxyz
-       real(gp), dimension(6), intent(out) :: strten
-       real(gp), dimension(3,atoms%nat), intent(out) :: fxyz
-       !real(wp), dimension(:), pointer :: psi
-       !real(wp), dimension(:,:), pointer :: gaucoeffs
-     END SUBROUTINE cluster
-  end interface
-
-  if (iproc == 0) then
-     write(*,*)
-     write(*,'(1x,a,59("="))') '=Forces via finite Difference '
-  end if
-
-  !read the file (experimental version)
-  open(unit=79,file='input.finite_difference_forces',status='unknown')
-  read(79,*) order,fd_alpha
-  read(79,*) iorb_ref
-  close(unit=79)
-
-  !read the step size
-  ! Initialize freq_step (step to move atoms)
-  fd_step(1) = fd_alpha*inputs%hx
-  fd_step(2) = fd_alpha*inputs%hy
-  fd_step(3) = fd_alpha*inputs%hz
-
-  !first, mark the reference energy
-  energy_ref=energy
-
-  !assign the reference
-  functional_ref=functional_definition(iorb_ref,energy)
-
-  if (order == -1) then
-     n_order = 1
-     allocate(kmoves(n_order+ndebug),stat=i_stat)
-     kmoves = (/ -1 /)
-  else if (order == 1) then
-     n_order = 1
-     allocate(kmoves(n_order+ndebug),stat=i_stat)
-     kmoves = (/ 1 /)
-  else if (order == 2) then
-     n_order = 2
-     allocate(kmoves(n_order+ndebug),stat=i_stat)
-     kmoves = (/ -1, 1 /)
-  else if (order == 3) then
-     n_order = 4
-     allocate(kmoves(n_order+ndebug),stat=i_stat)
-     kmoves = (/ -2, -1, 1, 2 /)
-  else
-     print *, "Finite Differences: This order",order," is not implemented!"
-     stop
-  end if
-  call memocc(i_stat,kmoves,'kmoves',subname)
-
-  allocate(functional(n_order+ndebug),stat=i_stat)
-  call memocc(i_stat,functional,'functional',subname)
-  allocate(dfunctional(3*atoms%nat+ndebug),stat=i_stat)
-  call memocc(i_stat,dfunctional,'dfunctional',subname)
-  allocate(rxyz_ref(3,atoms%nat+ndebug),stat=i_stat)
-  call memocc(i_stat,rxyz_ref,'rxyz_ref',subname)
-  allocate(fxyz_fake(3,atoms%nat+ndebug),stat=i_stat)
-  call memocc(i_stat,fxyz_fake,'fxyz_fake',subname)
-
-
-  call razero(3*atoms%nat,dfunctional)
-
-  !write reference in the array
-  call dcopy(3*atoms%nat,rst%rxyz_new,1,rxyz_ref,1)
-
-  do iat=1,atoms%nat
-
-     if (atoms%ifrztyp(iat) == 1) then
-        if (iproc == 0) write(*,"(1x,a,i0,a)") '=F:The atom ',iat,' is frozen.'
-        cycle
-     end if
-
-     do i=1,3 !a step in each of the three directions
-        ii = i+3*(iat-1)
-        if (i==1) then
-           alat=atoms%alat1
-           cc(3:4)='*x'
-        else if (i==2) then
-           alat=atoms%alat2
-           cc(3:4)='*y'
-        else
-           alat=atoms%alat3
-           cc(3:4)='*z'
-        end if
-        km = 0
-        functional=0.0_gp
-        do ik=1,n_order
-           k = kmoves(ik)
-           !-1-> 1, 1 -> 2, y = ( x + 3 ) / 2
-           km = km + 1
-           write(cc(1:2),"(i2)") k
-           !Displacement
-           dd=real(k,gp)*fd_step(i)
-           !We copy atomic positions (not necessary)
-           call dcopy(3*atoms%nat,rxyz_ref,1,rst%rxyz_new,1)
-           if (iproc == 0) then
-              write(*,"(1x,a,i0,a,a,a,1pe20.10,a)") &
-                   '=FD Move the atom ',iat,' in the direction ',cc,' by ',dd,' bohr'
-           end if
-           if (atoms%geocode == 'P') then
-              rst%rxyz_new(i,iat)=modulo(rxyz_ref(i,iat)+dd,alat)
-           else if (atoms%geocode == 'S') then
-              rst%rxyz_new(i,iat)=modulo(rxyz_ref(i,iat)+dd,alat)
-           else
-              rst%rxyz_new(i,iat)=rxyz_ref(i,iat)+dd
-           end if
-           inputs%inputPsiId=1
-           !here we should call cluster
-           call cluster(nproc,iproc,atoms,rst%rxyz_new,energy,fxyz_fake,strten,fnoise,&
-                rst%KSwfn,rst%tmb,&!psi,rst%Lzd,rst%gaucoeffs,rst%gbd,rst%orbs,&
-                rst%rxyz_old,rst%hx_old,rst%hy_old,rst%hz_old,inputs,rst%GPU,infocode)
-
-           !assign the quantity which should be differentiated
-           functional(km)=functional_definition(iorb_ref,energy)
-!!$           if (iorb_ref==0) then
-!!$              functional(km)=energy
-!!$           else if (iorb_ref==-1) then
-!!$              functional(km)=rst%orbs%HLgap
-!!$           else if(iorb_ref < -1) then      !definition which brings to the neutral fukui function (chemical potential)
-!!$              !definition which brings Chemical potential
-!!$              functional(km)=-abs(rst%orbs%eval(-iorb_ref)+ 0.5_gp*rst%orbs%HLgap)
-!!$           else
-!!$              functional(km)=rst%orbs%eval(iorb_ref)
-!!$           end if
-           
-        end do
-        ! Build the finite-difference quantity if the calculatio has converged properly
-        if (infocode ==0) then
-           !Force is -dE/dR
-           if (order == -1) then
-              dd = - (functional_ref - functional(1))/fd_step(i)
-           else if (order == 1) then
-              dd = - (functional(1) - functional_ref)/fd_step(i)
-           else if (order == 2) then
-              dd = - (functional(2) - functional(1))/(2.0_gp*fd_step(i))
-           else if (order == 3) then
-              dd = - (functional(4) + functional(3) - functional(2) - functional(1))/(6.d0*fd_step(i))
-           else
-              stop "BUG (FD_forces): this order is not defined"
-           end if
-           !if (abs(dd).gt.1.d-10) then
-           dfunctional(ii) = dd
-           !end if
-        else
-           if (iproc==0)&
-                write(*,*)'ERROR: the wavefunctions have not converged properly, meaningless result. Exiting. Infocode:',infocode
-           stop
-        end if
-        
-     end do
-  end do
-
-  !copy the final value of the energy and of the dfunctional
-  if (.not. experimental_modulebase_var_onlyfion) then !normal case
-     call dcopy(3*atoms%nat,dfunctional,1,fxyz,1)
-  else
-     call axpy(3*atoms%nat,2.0_gp*rst%KSwfn%orbs%norb,dfunctional(1),1,fxyz(1,1),1)
-  end if
-  !clean the center mass shift and the torque in isolated directions
-  call clean_forces(iproc,atoms,rxyz_ref,fxyz,fnoise)
-  if (iproc == 0) call write_forces(atoms,fxyz)
-
-  energy=functional_ref
-
-  if (iproc == 0) then
-     write(*,"(1x,2(a,1pe20.10))") &
-          '=FD Step done, Internal Energy:',energy_ref,' functional value:', functional_ref
-  end if
-
-
-  i_all=-product(shape(kmoves))*kind(kmoves)
-  deallocate(kmoves,stat=i_stat)
-  call memocc(i_stat,i_all,'kmoves',subname)
-  i_all=-product(shape(functional))*kind(functional)
-  deallocate(functional,stat=i_stat)
-  call memocc(i_stat,i_all,'functional',subname)
-  i_all=-product(shape(dfunctional))*kind(dfunctional)
-  deallocate(dfunctional,stat=i_stat)
-  call memocc(i_stat,i_all,'dfunctional',subname)
-  i_all=-product(shape(rxyz_ref))*kind(rxyz_ref)
-  deallocate(rxyz_ref,stat=i_stat)
-  call memocc(i_stat,i_all,'rxyz_ref',subname)
-  i_all=-product(shape(fxyz_fake))*kind(fxyz_fake)
-  deallocate(fxyz_fake,stat=i_stat)
-  call memocc(i_stat,i_all,'fxyz_fake',subname)
-
-contains
-  
-  function functional_definition(iorb_ref,energy)
-    use module_base
-    use module_types
-    implicit none
-    integer, intent(in) :: iorb_ref
-    real(gp), intent(in) :: energy
-    real(gp) :: functional_definition
-    !local variables
-    real(gp) :: mu
-
-    !chemical potential =1/2(e_HOMO+e_LUMO)= e_HOMO + 1/2 GAP (the sign is to be decided - electronegativity?)
-    !definition which brings to Chemical Potential
-    if (rst%KSwfn%orbs%HLgap/=UNINITIALIZED(rst%KSwfn%orbs%HLgap) .and. iorb_ref< -1) then
-       mu=-abs(rst%KSwfn%orbs%eval(-iorb_ref)+ 0.5_gp*rst%KSwfn%orbs%HLgap) 
-    else
-       mu=UNINITIALIZED(1.0_gp)
-    end if
-
-    !assign the reference
-    if (iorb_ref==0) then
-       functional_definition=energy
-    else if (iorb_ref == -1) then
-       if (rst%KSwfn%orbs%HLgap/=UNINITIALIZED(rst%KSwfn%orbs%HLgap)) then
-          functional_definition=rst%KSwfn%orbs%HLgap !here we should add the definition which brings to Fukui function
-       else
-          stop ' ERROR (FDforces): gap not defined' 
-       end if
-    else if(iorb_ref < -1) then      !definition which brings to the neutral fukui function (chemical potential)
-       if (rst%KSwfn%orbs%HLgap/=UNINITIALIZED(rst%KSwfn%orbs%HLgap)) then
-          functional_definition=mu!-mu*real(2*orbs%norb,gp)+energy
-       else
-          stop ' ERROR (FDforces): gap not defined, chemical potential cannot be calculated' 
-       end if
-    else
-       functional_definition=rst%KSwfn%orbs%eval(iorb_ref)
-    end if
-    
-  end function functional_definition
-
-end subroutine forces_via_finite_differences
-
-
-subroutine calculate_forces(iproc,nproc,psolver_groupsize,Glr,atoms,orbs,nlpspd,rxyz,hx,hy,hz,proj,i3s,n3p,nspin,&
+subroutine calculate_forces(iproc,nproc,psolver_groupsize,Glr,atoms,orbs,nlpsp,rxyz,hx,hy,hz,i3s,n3p,nspin,&
      refill_proj,ngatherarr,rho,pot,potxc,nsize_psi,psi,fion,fdisp,fxyz,&
      ewaldstr,hstrten,xcstr,strten,fnoise,pressure,psoffset,imode,tmb,fpulay)
   use module_base
   use module_types
   use module_interfaces, except_this_one => calculate_forces
+  use communications_base
   use yaml_output
+  use module_forces
   implicit none
   logical, intent(in) :: refill_proj
   integer, intent(in) :: iproc,nproc,i3s,n3p,nspin,psolver_groupsize,imode,nsize_psi
@@ -297,29 +22,33 @@ subroutine calculate_forces(iproc,nproc,psolver_groupsize,Glr,atoms,orbs,nlpspd,
   type(locreg_descriptors), intent(in) :: Glr
   type(atoms_data), intent(in) :: atoms
   type(orbitals_data), intent(in) :: orbs
-  type(nonlocal_psp_descriptors), intent(in) :: nlpspd
+  type(DFT_PSP_projectors), intent(inout) :: nlpsp
   integer, dimension(0:nproc-1,2), intent(in) :: ngatherarr 
-  real(wp), dimension(nlpspd%nprojel), intent(inout) :: proj
   real(wp), dimension(Glr%d%n1i,Glr%d%n2i,n3p), intent(in) :: rho,pot,potxc
   real(wp), dimension(nsize_psi), intent(in) :: psi
   real(gp), dimension(6), intent(in) :: ewaldstr,hstrten,xcstr
-  real(gp), dimension(3,atoms%nat), intent(in) :: rxyz,fion,fdisp,fpulay
+  real(gp), dimension(3,atoms%astruct%nat), intent(in) :: rxyz,fion,fdisp,fpulay
   real(gp), intent(out) :: fnoise,pressure
   real(gp), dimension(6), intent(out) :: strten
-  real(gp), dimension(3,atoms%nat), intent(out) :: fxyz
-  type(DFT_wavefunction),intent(in) :: tmb
+  real(gp), dimension(3,atoms%astruct%nat), intent(out) :: fxyz
+  type(DFT_wavefunction),intent(inout) :: tmb
   !local variables
-  integer :: ierr,iat,i,j
-  real(gp) :: charge,ucvol
+  integer :: iat,i,j
+  real(gp) :: charge,ucvol,maxdiff
   real(gp), dimension(6,4) :: strtens!local,nonlocal,kin,erf
   character(len=16), dimension(4) :: messages
 
-  call to_zero(6,strten(1))
 
-  call to_zero(6*4,strtens(1,1))
+  call f_zero(strten)
+  call f_zero(strtens)
 
   call local_forces(iproc,atoms,rxyz,0.5_gp*hx,0.5_gp*hy,0.5_gp*hz,&
        Glr%d%n1,Glr%d%n2,Glr%d%n3,n3p,i3s,Glr%d%n1i,Glr%d%n2i,rho,pot,fxyz,strtens(1,1),charge)
+
+
+  !!do iat=1,atoms%astruct%nat
+  !!    write(4100+iproc,'(a,i8,3es15.6)') 'iat, fxyz(:,iat)', iat, fxyz(:,iat)
+  !!end do
 
   !calculate forces originated by rhocore
   call rhocore_forces(iproc,atoms,nspin,Glr%d%n1,Glr%d%n2,Glr%d%n3,Glr%d%n1i,Glr%d%n2i,n3p,i3s,&
@@ -327,57 +56,102 @@ subroutine calculate_forces(iproc,nproc,psolver_groupsize,Glr,atoms,orbs,nlpspd,
 
   !for a taksgroup Poisson Solver, multiply by the ratio.
   !it is important that the forces are bitwise identical among the processors.
-  if (psolver_groupsize < nproc) call vscal(3*atoms%nat,real(psolver_groupsize,gp)/real(nproc,gp),fxyz(1,1),1)
+  if (psolver_groupsize < nproc) call vscal(3*atoms%astruct%nat,real(psolver_groupsize,gp)/real(nproc,gp),fxyz(1,1),1)
   
   !if (iproc == 0 .and. verbose > 1) write( *,'(1x,a)',advance='no')'Calculate nonlocal forces...'
  
   if (imode==0) then
       !cubic version of nonlocal forces
-      call nonlocal_forces(iproc,Glr,hx,hy,hz,atoms,rxyz,&
-           orbs,nlpspd,proj,Glr%wfd,psi,fxyz,refill_proj,strtens(1,2))
+      call nonlocal_forces(Glr,hx,hy,hz,atoms,rxyz,&
+           orbs,nlpsp,Glr%wfd,psi,fxyz,refill_proj,strtens(1,2))
   else if (imode==1) then
       !linear version of nonlocal forces
       call nonlocal_forces_linear(iproc,nproc,tmb%npsidim_orbs,tmb%lzd%glr,hx,hy,hz,atoms,rxyz,&
-           tmb%orbs,nlpspd,proj,tmb%lzd,tmb%collcom,tmb%psi,tmb%linmat%denskern,fxyz,refill_proj,&
+           tmb%orbs,nlpsp,tmb%lzd,tmb%psi,tmb%linmat%l,tmb%linmat%kernel_,fxyz,refill_proj,&
            strtens(1,2))
+      !!do iat=1,atoms%astruct%nat
+      !!    write(4200+iproc,'(a,i8,3es15.6)') 'iat, fxyz(:,iat)', iat, fxyz(:,iat)
+      !!end do
   else
       stop 'wrong imode'
   end if
 
   !if (iproc == 0 .and. verbose > 1) write( *,'(1x,a)')'done.'
-  
   !if (iproc == 0 .and. verbose > 1) call yaml_map('Non Local forces calculated',.true.)
-   if (iproc == 0 .and. verbose > 1) call yaml_map('Calculate Non Local forces',(nlpspd%nprojel > 0))
+   if (iproc == 0 .and. verbose > 1) call yaml_map('Calculate Non Local forces',(nlpsp%nprojel > 0))
 
-  if (atoms%geocode == 'P' .and. psolver_groupsize == nproc) then
+  if (atoms%astruct%geocode == 'P' .and. psolver_groupsize == nproc) then
      call local_hamiltonian_stress(orbs,Glr,hx,hy,hz,psi,strtens(1,3))
 
      call erf_stress(atoms,rxyz,0.5_gp*hx,0.5_gp*hy,0.5_gp*hz,Glr%d%n1i,Glr%d%n2i,Glr%d%n3i,n3p,&
           iproc,nproc,ngatherarr,rho,strtens(1,4)) !shouud not be reduced for the moment
   end if
 
+  !add to the forces the ionic and dispersion contribution
+  if (.not. experimental_modulebase_var_onlyfion) then !normal case
+     if (iproc==0) then
+        do iat=1,atoms%astruct%nat
+           fxyz(1,iat)=fxyz(1,iat)+fion(1,iat)+fdisp(1,iat)+fpulay(1,iat)
+           fxyz(2,iat)=fxyz(2,iat)+fion(2,iat)+fdisp(2,iat)+fpulay(2,iat)
+           fxyz(3,iat)=fxyz(3,iat)+fion(3,iat)+fdisp(3,iat)+fpulay(3,iat)
+        enddo
+     end if
+     !!do iat=1,atoms%astruct%nat
+     !!    write(4300+iproc,'(a,i8,3es15.6)') 'iat, fxyz(:,iat)', iat, fxyz(:,iat)
+     !!end do
+  else
+     if (iproc==0) then
+        call vcopy(3*atoms%astruct%nat,fion(1,1),1,fxyz(1,1),1)
+     else
+        call f_zero(fxyz)
+     end if
+  end if
+
   ! Add up all the force contributions
   if (nproc > 1) then
      !TD: fxyz(1,1) not used in case of no atoms
-     call mpiallred(fxyz,3*atoms%nat,MPI_SUM,bigdft_mpi%mpi_comm,ierr)
-       if (atoms%geocode == 'P') &
-            call mpiallred(strtens(1,1),6*3,MPI_SUM,bigdft_mpi%mpi_comm,ierr) !do not reduce erfstr
-     call mpiallred(charge,1,MPI_SUM,bigdft_mpi%mpi_comm,ierr)
+     !if (atoms%astruct%nat>0) then
+     call mpiallred(fxyz,MPI_SUM,bigdft_mpi%mpi_comm)
+     !end if
+     if (atoms%astruct%geocode == 'P') &
+         call mpiallred(strtens(1,1),6*3,MPI_SUM,bigdft_mpi%mpi_comm) !do not reduce erfstr
+     call mpiallred(charge,1,MPI_SUM,bigdft_mpi%mpi_comm)
   end if
 
-  !add to the forces the ionic and dispersion contribution 
-  if (.not. experimental_modulebase_var_onlyfion) then !normal case
-     do iat=1,atoms%nat
-        fxyz(1,iat)=fxyz(1,iat)+fion(1,iat)+fdisp(1,iat)+fpulay(1,iat)
-        fxyz(2,iat)=fxyz(2,iat)+fion(2,iat)+fdisp(2,iat)+fpulay(2,iat)
-        fxyz(3,iat)=fxyz(3,iat)+fion(3,iat)+fdisp(3,iat)+fpulay(3,iat)
-     enddo
-  else
-     call vcopy(3*atoms%nat,fion(1,1),1,fxyz(1,1),1)
+  !!do iat=1,atoms%astruct%nat
+  !!    write(4400+iproc,'(a,i8,3es15.6)') 'iat, fxyz(:,iat)', iat, fxyz(:,iat)
+  !!end do
+
+  ! @ NEW: POSSIBLE CONSTRAINTS IN INTERNAL COORDINATES ############
+  if (atoms%astruct%inputfile_format=='int') then
+      if (iproc==0) call yaml_map('cleaning using internal coordinates','Yes')
+      !if (bigdft_mpi%iproc==0) call yaml_map('force start',fxyz)
+      !if (bigdft_mpi%iproc==0) call yaml_map('BEFORE: MAX COMPONENT',maxval(fxyz))
+      call internal_forces(atoms%astruct%nat, rxyz, atoms%astruct%ixyz_int, atoms%astruct%ifrztyp, fxyz)
+      !if (bigdft_mpi%iproc==0) call yaml_map('AFTER: MAX COMPONENT',maxval(fxyz))
   end if
+  ! @ ##############################################################
+
 
   !clean the center mass shift and the torque in isolated directions
   call clean_forces(iproc,atoms,rxyz,fxyz,fnoise)
+  !!do iat=1,atoms%astruct%nat
+  !!    write(4500+iproc,'(a,i8,3es15.6)') 'iat, fxyz(:,iat)', iat, fxyz(:,iat)
+  !!end do
+
+
+  ! Apply symmetries when needed
+  if (atoms%astruct%sym%symObj >= 0) call symmetrise_forces(fxyz,atoms)
+
+  ! Check forces consistency.
+  if (bigdft_mpi%nproc >1) then
+     call mpibcast(fxyz,comm=bigdft_mpi%mpi_comm,maxdiff=maxdiff)
+     !maxdiff=mpimaxdiff(fxyz,comm=bigdft_mpi%mpi_comm)
+     !call check_array_consistency(maxdiff, nproc, fxyz, bigdft_mpi%mpi_comm)
+     if (iproc==0 .and. maxdiff > epsilon(1.0_gp)) &
+          call yaml_warning('Output forces were not identical! (broadcasted) '//&
+          '(difference:'//trim(yaml_toa(maxdiff))//' )')
+  end if
   if (iproc == 0) call write_forces(atoms,fxyz)
 
   !volume element for local stress
@@ -385,9 +159,9 @@ subroutine calculate_forces(iproc,nproc,psolver_groupsize,Glr,atoms,orbs,nlpspd,
   strtens(1:3,1)=strtens(1:3,1)+charge*psoffset&
        /real(0.5_gp*hx*0.5_gp*hy*0.5_gp*hz,gp)**2.0_gp/real(Glr%d%n1i*Glr%d%n2i*Glr%d%n3i,dp)**2.0_gp
 
-  if (atoms%geocode == 'P') then
-     ucvol=atoms%alat1*atoms%alat2*atoms%alat3 !orthorombic cell
-     if (iproc==0) call yaml_open_map('Stress Tensor')
+  if (atoms%astruct%geocode == 'P') then
+     ucvol=atoms%astruct%cell_dim(1)*atoms%astruct%cell_dim(2)*atoms%astruct%cell_dim(3) !orthorombic cell
+     if (iproc==0) call yaml_mapping_open('Stress Tensor')
      !sum and symmetrize results
      if (iproc==0 .and. verbose > 2)call write_strten_info(.false.,ewaldstr,ucvol,pressure,'Ewald')
      if (iproc==0 .and. verbose > 2)call write_strten_info(.false.,hstrten,ucvol,pressure,'Hartree')
@@ -401,7 +175,7 @@ subroutine calculate_forces(iproc,nproc,psolver_groupsize,Glr,atoms,orbs,nlpspd,
      messages(4)='PSP Long Range'
      !here we should add the pretty printings
      do i=1,4
-        if (atoms%sym%symObj >= 0) call symm_stress((iproc==0 .and. i==1),strtens(1,i),atoms%sym%symObj)
+        if (atoms%astruct%sym%symObj >= 0) call symm_stress(strtens(1,i),atoms%astruct%sym%symObj)
         if (iproc==0 .and. verbose>2)&
              call write_strten_info(.false.,strtens(1,i),ucvol,pressure,trim(messages(i)))
         do j=1,6
@@ -411,23 +185,20 @@ subroutine calculate_forces(iproc,nproc,psolver_groupsize,Glr,atoms,orbs,nlpspd,
      !final result
      pressure=(strten(1)+strten(2)+strten(3))/3.0_gp
      if (iproc==0)call write_strten_info(.true.,strten,ucvol,pressure,'Total')
-     if (iproc==0) call yaml_close_map()
+     if (iproc==0) call yaml_mapping_close()
   end if
-
 !!$  if (iproc == 0) then
 !!$     sumx=0.d0 ; sumy=0.d0 ; sumz=0.d0
 !!$     fumx=0.d0 ; fumy=0.d0 ; fumz=0.d0
-!!$     do iat=1,atoms%nat
+!!$     do iat=1,atoms%astruct%nat
 !!$        sumx=sumx+fxyz(1,iat) ; sumy=sumy+fxyz(2,iat) ; sumz=sumz+fxyz(3,iat)
 !!$        fumx=fumx+fion(1,iat) ; fumy=fumy+fion(2,iat) ; fumz=fumz+fion(3,iat)
 !!$     enddo
 !!$     write(77,'(a30,3(1x,e10.3))') 'translat. force total pot ',sumx,sumy,sumz
 !!$     write(77,'(a30,3(1x,e10.3))') 'translat. force ionic pot ',fumx,fumy,fumz
 !!$  endif
-
-  ! Apply symmetries when needed
-  if (atoms%sym%symObj >= 0) call symmetrise_forces(iproc,fxyz,atoms)
 end subroutine calculate_forces
+
 
 !> calculate the contribution to the forces given by the core density charge
 subroutine rhocore_forces(iproc,atoms,nspin,n1,n2,n3,n1i,n2i,n3p,i3s,hxh,hyh,hzh,rxyz,potxc,fxyz)
@@ -439,8 +210,8 @@ subroutine rhocore_forces(iproc,atoms,nspin,n1,n2,n3,n1i,n2i,n3p,i3s,hxh,hyh,hzh
   real(gp), intent(in) :: hxh,hyh,hzh
   type(atoms_data), intent(in) :: atoms
   real(wp), dimension(n1i*n2i*n3p*nspin), intent(in) :: potxc
-  real(gp), dimension(3,atoms%nat), intent(in) :: rxyz
-  real(gp), dimension(3,atoms%nat), intent(inout) :: fxyz
+  real(gp), dimension(3,atoms%astruct%nat), intent(in) :: rxyz
+  real(gp), dimension(3,atoms%astruct%nat), intent(inout) :: fxyz
   !local variables
   real(gp), parameter :: oneo4pi=.079577471545947_wp
   logical :: perx,pery,perz,gox,goy,goz
@@ -459,12 +230,12 @@ subroutine rhocore_forces(iproc,atoms,nspin,n1,n2,n3,n1i,n2i,n3p,i3s,hxh,hyh,hzh
         spinfac=1.0_gp
      end if
      !perform the loop on any of the atoms which have this feature
-     do iat=1,atoms%nat
+     do iat=1,atoms%astruct%nat
         rx=rxyz(1,iat) 
         ry=rxyz(2,iat)
         rz=rxyz(3,iat)
 
-        ityp=atoms%iatype(iat)
+        ityp=atoms%astruct%iatype(iat)
         frcx=0.0_gp
         frcy=0.0_gp
         frcz=0.0_gp
@@ -494,9 +265,9 @@ subroutine rhocore_forces(iproc,atoms,nspin,n1,n2,n3,n1i,n2i,n3p,i3s,hxh,hyh,hzh
            cutoff=10.d0*rloc
 
            !conditions for periodicity in the three directions
-           perx=(atoms%geocode /= 'F')
-           pery=(atoms%geocode == 'P')
-           perz=(atoms%geocode /= 'F')
+           perx=(atoms%astruct%geocode /= 'F')
+           pery=(atoms%astruct%geocode == 'P')
+           perz=(atoms%astruct%geocode /= 'F')
 
            call ext_buffers(perx,nbl1,nbr1)
            call ext_buffers(pery,nbl2,nbr2)
@@ -574,59 +345,60 @@ end subroutine rhocore_forces
 !> Calculates the local forces acting on the atoms belonging to iproc
 subroutine local_forces(iproc,at,rxyz,hxh,hyh,hzh,&
      n1,n2,n3,n3pi,i3s,n1i,n2i,rho,pot,floc,locstrten,charge)
-  use module_base
+  use module_base, pi => pi_param
   use module_types
   use yaml_output
+  use gaussians, only: initialize_real_space_conversion, finalize_real_space_conversion,mp_exp
   implicit none
   !Arguments---------
   type(atoms_data), intent(in) :: at
   integer, intent(in) :: iproc,n1,n2,n3,n3pi,i3s,n1i,n2i
   real(gp), intent(in) :: hxh,hyh,hzh 
   real(gp),intent(out) :: charge
-  real(gp), dimension(3,at%nat), intent(in) :: rxyz
+  real(gp), dimension(3,at%astruct%nat), intent(in) :: rxyz
   real(dp), dimension(*), intent(in) :: rho,pot
-  real(gp), dimension(3,at%nat), intent(out) :: floc
+  real(gp), dimension(3,at%astruct%nat), intent(out) :: floc
   real(gp), dimension(6), intent(out) :: locstrten
   !Local variables---------
   logical :: perx,pery,perz,gox,goy,goz
-  real(kind=8) :: pi,prefactor,cutoff,rloc,Vel,rhoel
+  real(kind=8) :: prefactor,cutoff,rloc,Vel,rhoel
   real(kind=8) :: fxerf,fyerf,fzerf,fxion,fyion,fzion,fxgau,fygau,fzgau,forceleaked,forceloc
   real(kind=8) :: rx,ry,rz,x,y,z,arg,r2,xp,tt,Txx,Tyy,Tzz,Txy,Txz,Tyz
   integer :: i1,i2,i3,ind,iat,ityp,nloc,iloc
   integer :: nbl1,nbr1,nbl2,nbr2,nbl3,nbr3,j1,j2,j3,isx,isy,isz,iex,iey,iez
   !array of coefficients of the derivative
   real(kind=8), dimension(4) :: cprime 
-  
-  pi=4.d0*atan(1.d0)
 
+  if (at%multipole_preserving) call initialize_real_space_conversion(isf_m=at%mp_isf)
+  
   locstrten=0.0_gp
 
-charge=0.d0
-do i3=1,n3pi
-        do i2=1,n2i
-           do i1=1,n1i
-              ind=i1+(i2-1)*n1i+(i3-1)*n1i*n2i
-charge=charge+rho(ind)
-           enddo
+  charge=0.d0
+  do i3=1,n3pi
+     do i2=1,n2i
+        do i1=1,n1i
+           ind=i1+(i2-1)*n1i+(i3-1)*n1i*n2i
+           charge=charge+rho(ind)
         enddo
      enddo
-charge=charge*hxh*hyh*hzh
+  enddo
+  charge=charge*hxh*hyh*hzh
 
  !if (iproc == 0 .and. verbose > 1) write(*,'(1x,a)',advance='no')'Calculate local forces...'
-  if (iproc == 0 .and. verbose > 1) call yaml_open_map('Calculate local forces',flow=.true.)
+  if (iproc == 0 .and. verbose > 1) call yaml_mapping_open('Calculate local forces',flow=.true.)
   forceleaked=0.d0
 
   !conditions for periodicity in the three directions
-  perx=(at%geocode /= 'F')
-  pery=(at%geocode == 'P')
-  perz=(at%geocode /= 'F')
+  perx=(at%astruct%geocode /= 'F')
+  pery=(at%astruct%geocode == 'P')
+  perz=(at%astruct%geocode /= 'F')
 
   call ext_buffers(perx,nbl1,nbr1)
   call ext_buffers(pery,nbl2,nbr2)
   call ext_buffers(perz,nbl3,nbr3)
 
-  do iat=1,at%nat
-     ityp=at%iatype(iat)
+  do iat=1,at%astruct%nat
+     ityp=at%astruct%iatype(iat)
      !coordinates of the center
      rx=rxyz(1,iat) 
      ry=rxyz(2,iat) 
@@ -669,6 +441,10 @@ charge=charge*hxh*hyh*hzh
      prefactor=real(at%nelpsp(ityp),kind=8)/(2.d0*pi*sqrt(2.d0*pi)*rloc**5)
      !maximum extension of the gaussian
      cutoff=10.d0*rloc
+     if (at%multipole_preserving) then
+        !We want to have a good accuracy of the last point rloc*10
+        cutoff=cutoff+max(hxh,hyh,hzh)*real(at%mp_isf,kind=gp)
+     end if
 
      isx=floor((rx-cutoff)/hxh)
      isy=floor((ry-cutoff)/hyh)
@@ -680,7 +456,7 @@ charge=charge*hxh*hyh*hzh
 
      !calculate the forces near the atom due to the error function part of the potential
      !calculate forces for all atoms only in the distributed part of the simulation box
-     if (n3pi >0 ) then
+     if (n3pi > 0) then
         do i3=isz,iez
            z=real(i3,kind=8)*hzh-rz
            call ind_positions(perz,i3,n3,j3,goz) 
@@ -693,7 +469,16 @@ charge=charge*hxh*hyh*hzh
                  call ind_positions(perx,i1,n1,j1,gox)
                  r2=x**2+y**2+z**2
                  arg=r2/rloc**2
-                 xp=exp(-.5d0*arg)
+
+                 if (at%multipole_preserving) then
+                    !use multipole-preserving function
+                    xp=mp_exp(hxh,rx,0.5_gp/(rloc**2),i1,0,.true.)*&
+                       mp_exp(hyh,ry,0.5_gp/(rloc**2),i2,0,.true.)*&
+                       mp_exp(hzh,rz,0.5_gp/(rloc**2),i3,0,.true.)
+                 else
+                    xp=exp(-.5d0*arg)
+                 end if
+
                  if (j3 >= i3s .and. j3 <= i3s+n3pi-1  .and. goy  .and. gox ) then
                     ind=j1+1+nbl1+(j2+nbl2)*n1i+(j3-i3s+1-1)*n1i*n2i
                     !gaussian part
@@ -765,8 +550,10 @@ charge=charge*hxh*hyh*hzh
  !if (iproc == 0 .and. verbose > 1) write(*,'(a,1pe12.5)') 'done. Leaked force: ',forceleaked
   if (iproc == 0 .and. verbose > 1) then
      call yaml_map('Leaked force',trim(yaml_toa(forceleaked,fmt='(1pe12.5)')))
-     call yaml_close_map()
+     call yaml_mapping_close()
   end if
+
+  if (at%multipole_preserving) call finalize_real_space_conversion()
 
 END SUBROUTINE local_forces
 
@@ -774,24 +561,24 @@ END SUBROUTINE local_forces
 !> Calculates the nonlocal forces on all atoms arising from the wavefunctions 
 !! belonging to iproc and adds them to the force array
 !! recalculate the projectors at the end if refill flag is .true.
-subroutine nonlocal_forces(iproc,lr,hx,hy,hz,at,rxyz,&
-     orbs,nlpspd,proj,wfd,psi,fsep,refill,strten)
+subroutine nonlocal_forces(lr,hx,hy,hz,at,rxyz,&
+     orbs,nlpsp,wfd,psi,fsep,refill,strten)
   use module_base
   use module_types
+  use psp_projectors, only: PSPCODE_HGH,PSPCODE_HGH_K,PSPCODE_HGH_K_NLCC,&
+       PSPCODE_PAW
   implicit none
   !Arguments-------------
   type(atoms_data), intent(in) :: at
   type(wavefunctions_descriptors), intent(in) :: wfd
-  type(nonlocal_psp_descriptors), intent(in) :: nlpspd
+  type(DFT_PSP_projectors), intent(inout) :: nlpsp
   logical, intent(in) :: refill
-  integer, intent(in) :: iproc
   real(gp), intent(in) :: hx,hy,hz
   type(locreg_descriptors) :: lr
   type(orbitals_data), intent(in) :: orbs
-  real(gp), dimension(3,at%nat), intent(in) :: rxyz
+  real(gp), dimension(3,at%astruct%nat), intent(in) :: rxyz
   real(wp), dimension((wfd%nvctr_c+7*wfd%nvctr_f)*orbs%norbp*orbs%nspinor), intent(in) :: psi
-  real(wp), dimension(nlpspd%nprojel), intent(inout) :: proj
-  real(gp), dimension(3,at%nat), intent(inout) :: fsep
+  real(gp), dimension(3,at%astruct%nat), intent(inout) :: fsep
   real(gp), dimension(6), intent(out) :: strten
   !local variables--------------
   character(len=*), parameter :: subname='nonlocal_forces'
@@ -800,30 +587,33 @@ subroutine nonlocal_forces(iproc,lr,hx,hy,hz,at,rxyz,&
   integer :: mbvctr_c,mbvctr_f,iorb,nwarnings,nspinor,ispinor,jorbd
   real(gp) :: offdiagcoeff,hij,sp0,spi,sp0i,sp0j,spj,strc,Enl,vol
   real(gp) :: orbfac
-  integer :: idir,i_all,i_stat,ncplx,icplx,isorb,ikpt,ieorb,istart_ck,ispsi_k,ispsi,jorb
+  integer :: idir,ncplx,icplx,isorb,ikpt,ieorb,istart_ck,ispsi_k,ispsi,jorb
   real(gp), dimension(2,2,3) :: offdiagarr
   real(gp), dimension(:,:), allocatable :: fxyz_orb
   real(dp), dimension(:,:,:,:,:,:,:), allocatable :: scalprod
   real(gp), dimension(6) :: sab
 
-  call to_zero(6,strten(1)) 
-
+  call f_routine(id=subname)
+  call f_zero(strten) 
+  
   !quick return if no orbitals on this processor
   if (orbs%norbp == 0) return
      
   !always put complex scalprod
   !also nspinor for the moment is the biggest as possible
 
-  !  allocate(scalprod(2,0:3,7,3,4,at%nat,orbs%norbp*orbs%nspinor+ndebug),stat=i_stat)
+  !  allocate(scalprod(2,0:3,7,3,4,at%astruct%nat,orbs%norbp*orbs%nspinor),stat=i_stat)
   ! need more components in scalprod to calculate terms like dp/dx*psi*x
-  allocate(scalprod(2,0:9,7,3,4,at%nat,orbs%norbp*orbs%nspinor+ndebug),stat=i_stat)
-  call memocc(i_stat,scalprod,'scalprod',subname)
-  call razero(2*10*7*3*4*at%nat*orbs%norbp*orbs%nspinor,scalprod)
+  scalprod = &
+       f_malloc0([1.to.2,0.to.9,1.to.7,1.to.3,1.to.4,1.to.at%astruct%nat,1.to.orbs%norbp*orbs%nspinor],id='scalprod')
+  !if (2*10*7*3*4*at%astruct%nat*orbs%norbp*orbs%nspinor>0) then
+  !    call to_zero(2*10*7*3*4*at%astruct%nat*orbs%norbp*orbs%nspinor,scalprod(1,0,1,1,1,1,1))
+  !end if
 
 
   Enl=0._gp
   !strten=0.d0
-  vol=real(at%alat1*at%alat2*at%alat3,gp)
+  vol=real(at%astruct%cell_dim(1)*at%astruct%cell_dim(2)*at%astruct%cell_dim(3),gp)
   sab=0.d0
 
   !calculate the coefficients for the off-diagonal terms
@@ -875,24 +665,25 @@ subroutine nonlocal_forces(iproc,lr,hx,hy,hz,at,rxyz,&
         nwarnings=0 !not used, simply initialised 
         iproj=0 !should be equal to four times nproj at the end
         jorbd=jorb
-        do iat=1,at%nat
+        do iat=1,at%astruct%nat
 
-           call plr_segs_and_vctrs(nlpspd%plr(iat),&
+           call plr_segs_and_vctrs(nlpsp%pspd(iat)%plr,&
                 mbseg_c,mbseg_f,mbvctr_c,mbvctr_f)
            jseg_c=1
            jseg_f=1
 
            do idir=0,9
-              ityp=at%iatype(iat)
+              ityp=at%astruct%iatype(iat)
               !calculate projectors
               istart_c=1
-              call atom_projector(ikpt,iat,idir,istart_c,iproj,nlpspd%nprojel,&
-                   lr,hx,hy,hz,rxyz(1,iat),at,orbs,nlpspd%plr(iat),&
-                   proj,nwarnings)
+              call atom_projector(nlpsp, ityp, iat, at%astruct%atomnames(ityp), &
+                   & at%astruct%geocode, idir, lr, hx, hy, hz, &
+                   & orbs%kpts(1,ikpt), orbs%kpts(2,ikpt), orbs%kpts(3,ikpt), &
+                   & istart_c, iproj, nwarnings)
               !!do i_all=1,nlpspd%nprojel
               !!    write(850+iat,*) i_all, proj(i_all)
               !!end do
-!              print *,'iat,ilr,idir,sum(proj)',iat,ilr,idir,sum(proj)
+              !print '(a,i6,i6,1pe14.6)','iat,idir,sum(proj)',iat,idir,sum(nlpsp%proj)
  
               !calculate the contribution for each orbital
               !here the nspinor contribution should be adjusted
@@ -911,11 +702,13 @@ subroutine nonlocal_forces(iproc,lr,hx,hy,hz,at,rxyz,&
                                      wfd%nvctr_c,wfd%nvctr_f,wfd%nseg_c,wfd%nseg_f,&
                                      wfd%keyvglob,wfd%keyglob,psi(ispsi),&
                                      mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,&
-                                     nlpspd%plr(iat)%wfd%keyvglob(jseg_c),&
-                                     nlpspd%plr(iat)%wfd%keyglob(1,jseg_c),&
-                                     proj(istart_c),&
+                                     nlpsp%pspd(iat)%plr%wfd%keyvglob(jseg_c),&
+                                     nlpsp%pspd(iat)%plr%wfd%keyglob(1,jseg_c),&
+                                     nlpsp%proj(istart_c),&
                                      scalprod(1,idir,m,i,l,iat,jorb))
                                 istart_c=istart_c+(mbvctr_c+7*mbvctr_f)*ncplx
+                                !write(*,'(a,6i6,es16.8)') 'idir,m,i,l,iat,jorb,scalprod',&
+                                !     idir,m,i,l,iat,jorb,scalprod(1,idir,m,i,l,iat,jorb)
                              end do
                           end if
                        end do
@@ -923,7 +716,7 @@ subroutine nonlocal_forces(iproc,lr,hx,hy,hz,at,rxyz,&
                     ispsi=ispsi+(wfd%nvctr_c+7*wfd%nvctr_f)*ncplx
                  end do
               end do
-              if (istart_c-1  > nlpspd%nprojel) stop '2:applyprojectors'
+              if (istart_c-1  > nlpsp%nprojel) stop '2:applyprojectors'
            end do
 
         end do
@@ -938,7 +731,7 @@ subroutine nonlocal_forces(iproc,lr,hx,hy,hz,at,rxyz,&
      do idir=0,9
 
         if (idir /= 0) then !for the first run the projectors are already allocated
-           call fill_projectors(iproc,lr,hx,hy,hz,at,orbs,rxyz,nlpspd,proj,idir)
+           call fill_projectors(lr,hx,hy,hz,at,orbs,rxyz,nlpsp,idir)
         end if
         !apply the projectors  k-point of the processor
         !starting k-point
@@ -960,12 +753,12 @@ subroutine nonlocal_forces(iproc,lr,hx,hy,hz,at,rxyz,&
                  ! loop over all projectors of this k-point
                  iproj=0
                  istart_c=istart_ck
-                 do iat=1,at%nat
-                    call plr_segs_and_vctrs(nlpspd%plr(iat),&
+                 do iat=1,at%astruct%nat
+                    call plr_segs_and_vctrs(nlpsp%pspd(iat)%plr,&
                          mbseg_c,mbseg_f,mbvctr_c,mbvctr_f)
                     jseg_c=1
                     jseg_f=1
-                    ityp=at%iatype(iat)
+                    ityp=at%astruct%iatype(iat)
                     do l=1,4
                        do i=1,3
                           if (at%psppar(l,i,ityp) /= 0.0_gp) then
@@ -975,10 +768,11 @@ subroutine nonlocal_forces(iproc,lr,hx,hy,hz,at,rxyz,&
                                      wfd%nvctr_c,wfd%nvctr_f,wfd%nseg_c,wfd%nseg_f,&
                                      wfd%keyvglob,wfd%keyglob,psi(ispsi),  &
                                      mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,&
-                                     nlpspd%plr(iat)%wfd%keyvglob(jseg_c),&
-                                     nlpspd%plr(iat)%wfd%keyglob(1,jseg_c),&
-                                     proj(istart_c),scalprod(1,idir,m,i,l,iat,jorb))
+                                     nlpsp%pspd(iat)%plr%wfd%keyvglob(jseg_c),&
+                                     nlpsp%pspd(iat)%plr%wfd%keyglob(1,jseg_c),&
+                                     nlpsp%proj(istart_c),scalprod(1,idir,m,i,l,iat,jorb))
                                 istart_c=istart_c+(mbvctr_c+7*mbvctr_f)*ncplx
+                                !write(*,'(a,6i6,es16.8)') 'idir,m,i,l,iat,jorb,scalprod',idir,m,i,l,iat,jorb,scalprod(1,idir,m,i,l,iat,jorb)
                              end do
                           end if
                        end do
@@ -986,26 +780,25 @@ subroutine nonlocal_forces(iproc,lr,hx,hy,hz,at,rxyz,&
                  end do
                  ispsi=ispsi+(wfd%nvctr_c+7*wfd%nvctr_f)*ncplx
               end do
-              if (iproj /= nlpspd%nproj) stop '1:applyprojectors'
+              if (iproj /= nlpsp%nproj) stop '1:applyprojectors'
            end do
            istart_ck=istart_c
            if (ieorb == orbs%norbp) exit loop_kpt
            ikpt=ikpt+1
            ispsi_k=ispsi
         end do loop_kpt
-        if (istart_ck-1  /= nlpspd%nprojel) stop '2:applyprojectors'
+        if (istart_ck-1  /= nlpsp%nprojel) stop '2:applyprojectors'
 
      end do
 
      !restore the projectors in the proj array (for on the run forces calc., tails or so)
      if (refill) then 
-        call fill_projectors(iproc,lr,hx,hy,hz,at,orbs,rxyz,nlpspd,proj,0)
+        call fill_projectors(lr,hx,hy,hz,at,orbs,rxyz,nlpsp,0)
      end if
 
   end if
 
-  allocate(fxyz_orb(3,at%nat+ndebug),stat=i_stat)
-  call memocc(i_stat,fxyz_orb,'fxyz_orb',subname)
+  fxyz_orb = f_malloc((/ 3, at%astruct%nat /),id='fxyz_orb')
 
   !apply the projectors  k-point of the processor
   !starting k-point
@@ -1021,11 +814,11 @@ subroutine nonlocal_forces(iproc,lr,hx,hy,hz,at,rxyz,&
      do iorb=isorb,ieorb
         sab=0.0_gp
         ! loop over all projectors
-        call to_zero(3*at%nat,fxyz_orb)
+        call f_zero(fxyz_orb)
         do ispinor=1,nspinor,ncplx
            jorb=jorb+1
-           do iat=1,at%nat
-              ityp=at%iatype(iat)
+           do iat=1,at%astruct%nat
+              ityp=at%astruct%iatype(iat)
               do l=1,4
                  do i=1,3
                     if (at%psppar(l,i,ityp) /= 0.0_gp) then
@@ -1038,7 +831,7 @@ subroutine nonlocal_forces(iproc,lr,hx,hy,hz,at,rxyz,&
                              !write(250+iproc,'(a,7i8,es20.10)') 'icplx,0,m,i,l,iat,iorb,scalprod(icplx,0,m,i,l,iat,iorb)',icplx,0,m,i,l,iat,iorb,scalprod(icplx,0,m,i,l,iat,iorb)
                              do idir=1,3
                                 spi=real(scalprod(icplx,idir,m,i,l,iat,jorb),gp)
-                                !write(210+iproc,'(a,10i6,es18.8)') 'iorb,jorb,icplx,0,m,i,l,iat,iiat,&
+                                !write(*,'(a,10i6,es18.8)') 'iorb,jorb,icplx,0,m,i,l,iat,iiat,&
                                 !                                    &idir,fxyz_orb(idir,iat)', &
                                 !                                    iorb,jorb,icplx,0,m,i,l,iat,iat,&
                                 !                                    idir,fxyz_orb(idir,iat)
@@ -1061,14 +854,16 @@ orbs%occup(iorb+orbs%isorb)*orbs%kwgts(orbs%iokpt(iorb))
                  end do
               end do
               !HGH case, offdiagonal terms
-              if (at%npspcode(ityp) == 3 .or. at%npspcode(ityp) == 10) then
+              if (at%npspcode(ityp) == PSPCODE_HGH .or. &
+                  at%npspcode(ityp) == PSPCODE_HGH_K .or. &
+                  at%npspcode(ityp) == PSPCODE_HGH_K_NLCC ) then
                  do l=1,3 !no offdiagoanl terms for l=4 in HGH-K case
                     do i=1,2
                        if (at%psppar(l,i,ityp) /= 0.0_gp) then 
                           loop_j: do j=i+1,3
                              if (at%psppar(l,j,ityp) == 0.0_gp) exit loop_j
                              !offdiagonal HGH term
-                             if (at%npspcode(ityp) == 3) then !traditional HGH convention
+                             if (at%npspcode(ityp) == PSPCODE_HGH) then !traditional HGH convention
                                 hij=offdiagarr(i,j-i,l)*at%psppar(l,j,ityp)
                              else !HGH-K convention
                                 hij=at%psppar(l,i+j+1,ityp)
@@ -1086,16 +881,13 @@ orbs%occup(iorb+orbs%isorb)*orbs%kwgts(orbs%iokpt(iorb))
                                            hij*(sp0j*spi+spj*sp0i)
                                    end do
 
-Enl=Enl+2.0_gp*sp0i*sp0j*hij&
-*orbs%occup(iorb+orbs%isorb)*orbs%kwgts(orbs%iokpt(iorb))
-                                  do idir=4,9
-spi=real(scalprod(icplx,idir,m,i,l,iat,jorb),gp)
-spj=real(scalprod(icplx,idir,m,j,l,iat,jorb),gp)
-sab(idir-3)=&
-sab(idir-3)+&   
-2.0_gp*hij*(sp0j*spi+sp0i*spj)&
-*orbs%occup(iorb+orbs%isorb)*orbs%kwgts(orbs%iokpt(iorb))
-                                  end do
+                                   Enl = Enl + 2.0_gp*sp0i*sp0j*hij*orbs%occup(iorb+orbs%isorb)*orbs%kwgts(orbs%iokpt(iorb))
+                                   do idir=4,9
+                                      spi = real(scalprod(icplx,idir,m,i,l,iat,jorb),gp)
+                                      spj = real(scalprod(icplx,idir,m,j,l,iat,jorb),gp)
+                                      sab(idir-3) = sab(idir-3) + &   
+                                      2.0_gp*hij*(sp0j*spi+sp0i*spj)*orbs%occup(iorb+orbs%isorb)*orbs%kwgts(orbs%iokpt(iorb))
+                                   end do
                                 end do
                              end do
                           end do loop_j
@@ -1109,14 +901,15 @@ sab(idir-3)+&
         !orbital-dependent factor for the forces
         orbfac=orbs%kwgts(orbs%iokpt(iorb))*orbs%occup(iorb+orbs%isorb)*2.0_gp
 
-!seq: strten(1:6) =  11 22 33 23 13 12 
-strten(1)=strten(1)+sab(1)/vol 
-strten(2)=strten(2)+sab(2)/vol 
-strten(3)=strten(3)+sab(3)/vol 
-strten(4)=strten(4)+sab(5)/vol
-strten(5)=strten(5)+sab(6)/vol
-strten(6)=strten(6)+sab(4)/vol
-        do iat=1,at%nat
+        !seq: strten(1:6) =  11 22 33 23 13 12 
+        strten(1)=strten(1)+sab(1)/vol 
+        strten(2)=strten(2)+sab(2)/vol 
+        strten(3)=strten(3)+sab(3)/vol 
+        strten(4)=strten(4)+sab(5)/vol
+        strten(5)=strten(5)+sab(6)/vol
+        strten(6)=strten(6)+sab(4)/vol
+
+        do iat=1,at%astruct%nat
            fsep(1,iat)=fsep(1,iat)+orbfac*fxyz_orb(1,iat)
            fsep(2,iat)=fsep(2,iat)+orbfac*fxyz_orb(2,iat)
            fsep(3,iat)=fsep(3,iat)+orbfac*fxyz_orb(3,iat)
@@ -1134,17 +927,15 @@ do i=1,3
 strten(i)=strten(i)+Enl/vol
 end do
 
-!!!  do iat=1,at%nat
+!!!  do iat=1,at%astruct%nat
 !!!     write(20+iat,'(1x,i5,1x,3(1x,1pe12.5))') &
 !!!          iat,fsep(1,iat),fsep(2,iat),fsep(3,iat)
 !!!  end do
 
-  i_all=-product(shape(fxyz_orb))*kind(fxyz_orb)
-  deallocate(fxyz_orb,stat=i_stat)
-  call memocc(i_stat,i_all,'fxyz_orb',subname)
-  i_all=-product(shape(scalprod))*kind(scalprod)
-  deallocate(scalprod,stat=i_stat)
-  call memocc(i_stat,i_all,'scalprod',subname)
+  call f_free(fxyz_orb)
+  call f_free(scalprod)
+
+call f_release_routine()
 
 END SUBROUTINE nonlocal_forces
 
@@ -3499,7 +3290,7 @@ subroutine elim_torque_reza(nat,rat0,fat)
   real(gp), dimension(3*nat), intent(inout) :: fat
   !local variables
   character(len=*), parameter :: subname='elim_torque_reza'
-  integer :: i,iat,i_all,i_stat
+  integer :: i,iat
   real(gp) :: vrotnrm,cmx,cmy,cmz,alpha,totmass
   !this is an automatic array but it should be allocatable
   real(gp), dimension(3) :: evaleria
@@ -3508,8 +3299,7 @@ subroutine elim_torque_reza(nat,rat0,fat)
   real(gp), dimension(3*nat,3) :: vrot
   real(gp), dimension(:), allocatable :: amass
   
-  allocate(amass(nat+ndebug),stat=i_stat)
-  call memocc(i_stat,amass,'amass',subname)
+  amass = f_malloc(nat,id='amass')
 
   rat=rat0
   amass(1:nat)=1.0_gp
@@ -3566,9 +3356,7 @@ subroutine elim_torque_reza(nat,rat0,fat)
      endif
   enddo
 
-  i_all=-product(shape(amass))*kind(amass)
-  deallocate(amass,stat=i_stat)
-  call memocc(i_stat,i_all,'amass',subname)
+  call f_free(amass)
 
 END SUBROUTINE elim_torque_reza
 
@@ -3595,13 +3383,12 @@ subroutine moment_of_inertia(nat,rat,teneria,evaleria)
   !local variables
   character(len=*), parameter :: subname='moment_of_inertia'
   integer, parameter::lwork=100
-  integer :: iat,info,i_all,i_stat
+  integer :: iat,info
   real(gp) :: tt
   real(gp), dimension(lwork) :: work
   real(gp), dimension(:), allocatable :: amass
 
-  allocate(amass(nat+ndebug),stat=i_stat)
-  call memocc(i_stat,amass,'amass',subname)
+  amass = f_malloc(nat,id='amass')
   
   !positions relative to center of geometry
   amass(1:nat)=1.0_gp
@@ -3621,9 +3408,7 @@ subroutine moment_of_inertia(nat,rat,teneria,evaleria)
   enddo
   !diagonalize inertia tensor
   call DSYEV('V','L',3,teneria,3,evaleria,work,lwork,info)
-  i_all=-product(shape(amass))*kind(amass)
-  deallocate(amass,stat=i_stat)
-  call memocc(i_stat,i_all,'amass',subname)
+  call f_free(amass)
   
 END SUBROUTINE moment_of_inertia
 
@@ -3647,139 +3432,190 @@ subroutine normalizevector(n,v)
 END SUBROUTINE normalizevector
 
 
-subroutine clean_forces(iproc,at,rxyz,fxyz,fnoise)
-  use module_base
-  use module_types
-  use yaml_output
-  implicit none
-  integer, intent(in) :: iproc
-  type(atoms_data), intent(in) :: at
-  real(gp), dimension(3,at%nat), intent(in) :: rxyz
-  real(gp), dimension(3,at%nat), intent(inout) :: fxyz
-  real(gp), intent(out) :: fnoise
-  !local variables
-  logical :: move_this_coordinate
-  integer :: iat,ixyz
-  real(gp) :: sumx,sumy,sumz
-  !my variables
-  real(gp):: fmax1,t1,t2,t3,fnrm1
-  real(gp):: fmax2,fnrm2
-
-  !The maximum force and force norm is computed prior to modification of the forces
-  fmax1=0._gp
-  fnrm1=0._gp
-  do iat=1,at%nat
-     t1=fxyz(1,iat)**2
-     t2=fxyz(2,iat)**2
-     t3=fxyz(3,iat)**2
-     fmax1=max(fmax1,sqrt(t1+t2+t3))
-     fnrm1=fnrm1+t1+t2+t3
-  enddo
-  
-  
-  sumx=0.0_gp
-  sumy=0.0_gp
-  sumz=0.0_gp
-  do iat=1,at%nat
-     sumx=sumx+fxyz(1,iat)
-     sumy=sumy+fxyz(2,iat)
-     sumz=sumz+fxyz(3,iat)
-  enddo
-  if (at%nat /= 0) then 
-     fnoise=sqrt((sumx**2+sumy**2+sumz**2)/real(at%nat,gp))
-     sumx=sumx/real(at%nat,gp)
-     sumy=sumy/real(at%nat,gp)
-     sumz=sumz/real(at%nat,gp)
-  else
-     fnoise = 0.0_gp
-  end if
-
-  if (iproc==0) then 
-     !write( *,'(1x,a,1x,3(1x,1pe9.2))') &
-     !  'Subtracting center-mass shift of',sumx,sumy,sumz
-!           write(*,'(1x,a)')'the sum of the forces is'
-
-     call yaml_open_map('Average noise forces',flow=.true.)
-     call yaml_map('x',sumx*sqrt(real(at%nat,gp)),fmt='(1pe16.8)')
-     call yaml_map('y',sumy*sqrt(real(at%nat,gp)),fmt='(1pe16.8)')
-     call yaml_map('z',sumz*sqrt(real(at%nat,gp)),fmt='(1pe16.8)')
-     call yaml_map('total',sqrt(sumx**2+sumy**2+sumz**2)*sqrt(real(at%nat,gp)),fmt='(1pe16.8)')
-     call yaml_close_map()
-     !     write(*,'(a,1pe16.8)')' average noise along x direction: ',sumx*sqrt(real(at%nat,gp))
-     !     write(*,'(a,1pe16.8)')' average noise along y direction: ',sumy*sqrt(real(at%nat,gp))
-     !     write(*,'(a,1pe16.8)')' average noise along z direction: ',sumz*sqrt(real(at%nat,gp))
-     !     write(*,'(a,1pe16.8)')' total average noise            : ',sqrt(sumx**2+sumy**2+sumz**2)*sqrt(real(at%nat,gp))
-!!$
-!!$     write(*,'(a,1x,1pe24.17)') 'translational force along x=', sumx  
-!!$     write(*,'(a,1x,1pe24.17)') 'translational force along y=', sumy  
-!!$     write(*,'(a,1x,1pe24.17)') 'translational force along z=', sumz  
-  end if
-  
-  if (at%geocode == 'F') then
-     do iat=1,at%nat
-        fxyz(1,iat)=fxyz(1,iat)-sumx
-        fxyz(2,iat)=fxyz(2,iat)-sumy
-        fxyz(3,iat)=fxyz(3,iat)-sumz
-     enddo
-     
-     call elim_torque_reza(at%nat,rxyz,fxyz)
-     
-  else if (at%geocode == 'S') then
-     do iat=1,at%nat
-        fxyz(2,iat)=fxyz(2,iat)-sumy
-     enddo
-  end if
-  
-  !clean the forces for blocked atoms
-  do iat=1,at%nat
-     do ixyz=1,3
-        if (.not. move_this_coordinate(at%ifrztyp(iat),ixyz)) fxyz(ixyz,iat)=0.0_gp
-     end do
-  end do
-  
-  !the noise of the forces is the norm of the translational force
-!  fnoise=real(at%nat,gp)**2*(sumx**2+sumy**2+sumz**2)
-
-  !The maximum force and force norm is computed after modification of the forces
-  fmax2=0._gp
-  fnrm2=0._gp
-  do iat=1,at%nat
-     t1=fxyz(1,iat)**2
-     t2=fxyz(2,iat)**2
-     t3=fxyz(3,iat)**2
-     fmax2=max(fmax2,sqrt(t1+t2+t3))
-     fnrm2=fnrm2+t1+t2+t3
-  enddo
-
-  if (iproc==0) then
-     call yaml_open_map('Clean forces norm (Ha/Bohr)',flow=.true.)
-     call yaml_map('maxval', fmax2,fmt='(1pe20.12)')
-     call yaml_map('fnrm2',  fnrm2,fmt='(1pe20.12)')
-     call yaml_close_map()
-     if (at%geocode /= 'P') then
-        call yaml_open_map('Raw forces norm (Ha/Bohr)',flow=.true.)
-        call yaml_map('maxval', fmax1,fmt='(1pe20.12)')
-        call yaml_map('fnrm2',  fnrm1,fmt='(1pe20.12)')
-        call yaml_close_map()
-     end if
-     !write(*,'(2(1x,a,1pe20.12))') 'clean forces norm (Ha/Bohr): maxval=', fmax2, ' fnrm2=', fnrm2
-     !if (at%geocode /= 'P') &
-     !&  write(*,'(2(1x,a,1pe20.12))') 'raw forces:                  maxval=', fmax1, ' fnrm2=', fnrm1
-  end if
-END SUBROUTINE clean_forces
+!!subroutine clean_forces(iproc,at,rxyz,fxyz,fnoise)
+!!  use module_base
+!!  use module_atoms!types
+!!  use yaml_output
+!!  implicit none
+!!  integer, intent(in) :: iproc
+!!  type(atoms_data), intent(in) :: at
+!!  real(gp), dimension(3,at%astruct%nat), intent(in) :: rxyz
+!!  real(gp), dimension(3,at%astruct%nat), intent(inout) :: fxyz
+!!  real(gp), intent(out) :: fnoise
+!!  !local variables
+!!  integer :: iat,ixyz, ijk(3)
+!!  real(gp) :: sumx,sumy,sumz, u(3), scal
+!!  !my variables
+!!  real(gp):: fmax1,t1,t2,t3,fnrm1
+!!  real(gp):: fmax2,fnrm2
+!!  !local variables for blocs (FL)
+!!  integer :: n_bloc1, n_bloc2                 !< Number of atoms allowed to move only as blocs.
+!!  real(gp), dimension(3) :: f_bloc1, f_bloc2  !< Sum, then average of the forces in blocs.
+!!
+!!
+!!  !The maximum force and force norm is computed prior to modification of the forces
+!!  fmax1=0._gp
+!!  fnrm1=0._gp
+!!  do iat=1,at%astruct%nat
+!!     t1=fxyz(1,iat)**2
+!!     t2=fxyz(2,iat)**2
+!!     t3=fxyz(3,iat)**2
+!!     fmax1=max(fmax1,sqrt(t1+t2+t3))
+!!     fnrm1=fnrm1+t1+t2+t3
+!!  enddo
+!!  
+!!  
+!!  sumx=0.0_gp
+!!  sumy=0.0_gp
+!!  sumz=0.0_gp
+!!  do iat=1,at%astruct%nat
+!!     sumx=sumx+fxyz(1,iat)
+!!     sumy=sumy+fxyz(2,iat)
+!!     sumz=sumz+fxyz(3,iat)
+!!  enddo
+!!  if (at%astruct%nat /= 0) then 
+!!     fnoise=sqrt((sumx**2+sumy**2+sumz**2)/real(at%astruct%nat,gp))
+!!     sumx=sumx/real(at%astruct%nat,gp)
+!!     sumy=sumy/real(at%astruct%nat,gp)
+!!     sumz=sumz/real(at%astruct%nat,gp)
+!!  else
+!!     fnoise = 0.0_gp
+!!  end if
+!!
+!!  if (iproc==0) then 
+!!     !write( *,'(1x,a,1x,3(1x,1pe9.2))') &
+!!     !  'Subtracting center-mass shift of',sumx,sumy,sumz
+!!!           write(*,'(1x,a)')'the sum of the forces is'
+!!
+!!     call yaml_mapping_open('Average noise forces',flow=.true.)
+!!     call yaml_map('x',sumx*sqrt(real(at%astruct%nat,gp)),fmt='(1pe16.8)')
+!!     call yaml_map('y',sumy*sqrt(real(at%astruct%nat,gp)),fmt='(1pe16.8)')
+!!     call yaml_map('z',sumz*sqrt(real(at%astruct%nat,gp)),fmt='(1pe16.8)')
+!!     call yaml_map('total',sqrt(sumx**2+sumy**2+sumz**2)*sqrt(real(at%astruct%nat,gp)),fmt='(1pe16.8)')
+!!     call yaml_mapping_close()
+!!     !     write(*,'(a,1pe16.8)')' average noise along x direction: ',sumx*sqrt(real(at%astruct%nat,gp))
+!!     !     write(*,'(a,1pe16.8)')' average noise along y direction: ',sumy*sqrt(real(at%astruct%nat,gp))
+!!     !     write(*,'(a,1pe16.8)')' average noise along z direction: ',sumz*sqrt(real(at%astruct%nat,gp))
+!!     !     write(*,'(a,1pe16.8)')' total average noise            : ',sqrt(sumx**2+sumy**2+sumz**2)*sqrt(real(at%astruct%nat,gp))
+!!!!$
+!!!!$     write(*,'(a,1x,1pe24.17)') 'translational force along x=', sumx  
+!!!!$     write(*,'(a,1x,1pe24.17)') 'translational force along y=', sumy  
+!!!!$     write(*,'(a,1x,1pe24.17)') 'translational force along z=', sumz  
+!!  end if
+!!  
+!!  if (at%astruct%geocode == 'F') then
+!!     do iat=1,at%astruct%nat
+!!        fxyz(1,iat)=fxyz(1,iat)-sumx
+!!        fxyz(2,iat)=fxyz(2,iat)-sumy
+!!        fxyz(3,iat)=fxyz(3,iat)-sumz
+!!     enddo
+!!     
+!!     call elim_torque_reza(at%astruct%nat,rxyz,fxyz)
+!!     
+!!  else if (at%astruct%geocode == 'S') then
+!!     do iat=1,at%astruct%nat
+!!        fxyz(2,iat)=fxyz(2,iat)-sumy
+!!     enddo
+!!  end if
+!!  
+!!  !Clean the forces for blocked atoms
+!!  !Modification by FL: atom possibly frozen in moving blocs.
+!!  !@todo Need a better handling of the given constraints
+!!  f_bloc1 = 0.0_gp
+!!  f_bloc2 = 0.0_gp
+!!  n_bloc1 = 0
+!!  n_bloc2 = 0
+!!  do iat=1,at%astruct%nat
+!!     if (at%astruct%ifrztyp(iat) < 1000) then
+!!        if (at%astruct%ifrztyp(iat) < 200) then
+!!           do ixyz=1,3
+!!              if (.not. move_this_coordinate(at%astruct%ifrztyp(iat),ixyz)) fxyz(ixyz,iat)=0.0_gp
+!!           end do
+!!        else
+!!           ! internal coordinates, will be handled separately
+!!        end if
+!!     else if (at%astruct%ifrztyp(iat) == 1001)   then   ! atom "iat" in bloc 1.
+!!       f_bloc1 = f_bloc1 + fxyz(:,iat)
+!!       n_bloc1 = n_bloc1 + 1                            ! could be done once, after reading the inputs.
+!!     else if (at%astruct%ifrztyp(iat) == 1002)   then   ! atom "iat" in bloc 2. Can't be in 2 blocs.
+!!       f_bloc2 = f_bloc2 + fxyz(:,iat)
+!!       n_bloc2 = n_bloc2 + 1  ! could be done once, after reading the inputs.
+!!     else
+!!        ! Projection on a plane, defined by Miller indices stored in ifrztyp:
+!!        !  ifrztyp(iat) = 9ijk
+!!        ijk = (/ (at%astruct%ifrztyp(iat) - 9000) / 100, &
+!!             & modulo(at%astruct%ifrztyp(iat) - 9000, 100) / 10, &
+!!             & modulo(at%astruct%ifrztyp(iat) - 9000, 10) /)
+!!        u = (/ at%astruct%cell_dim(1) / real(ijk(1), gp), &
+!!             & at%astruct%cell_dim(2) / real(ijk(2), gp), &
+!!             & at%astruct%cell_dim(3) / real(ijk(3), gp) /)
+!!        u = u / nrm2(3, u(1), 1)
+!!        scal = fxyz(1,iat) * u(1) + fxyz(2,iat) * u(2) + fxyz(3,iat) * u(3)
+!!        fxyz(1,iat)=fxyz(1,iat) - scal * u(1)
+!!        fxyz(2,iat)=fxyz(2,iat) - scal * u(2)
+!!        fxyz(3,iat)=fxyz(3,iat) - scal * u(3)
+!!     end if
+!!  end do
+!!  !--- We don't do the following in most of the cases ; only when blocs are defined:
+!!  if ( n_bloc1 .ne. 0 )   f_bloc1 = f_bloc1 / n_bloc1
+!!  if ( n_bloc2 .ne. 0 )   f_bloc2 = f_bloc2 / n_bloc2
+!!  if_atoms_in_blocs: &
+!!  if ( n_bloc1 .ne. 0  .or.  n_bloc2 .ne. 0 )   then
+!!    !--- Forces of atoms in blocs are replaced by the average force in the bloc. Then
+!!       ! - by action and reaction principle, internal forces are suppressed;
+!!       ! - all atoms in a bloc have the same force => same displacments;
+!!       ! - gradient of E relative to the bloc center of gravity is -n_bloc*f_bloc.
+!!    do iat=1,at%astruct%nat
+!!      if (at%astruct%ifrztyp(iat) == 1001)   then   ! atom "iat" in bloc 1.
+!!         fxyz(:,iat) = f_bloc1
+!!      else if (at%astruct%ifrztyp(iat) == 1002)   then   ! atom "iat" in bloc 2. Can't be in 2 blocs.
+!!         fxyz(:,iat) = f_bloc2
+!!      end if
+!!    end do
+!!  end if if_atoms_in_blocs
+!!  !--- End of "Modification by FL: atom possibly frozen in moving blocs".
+!!  
+!!  !the noise of the forces is the norm of the translational force
+!!!  fnoise=real(at%astruct%nat,gp)**2*(sumx**2+sumy**2+sumz**2)
+!!
+!!  !The maximum force and force norm is computed after modification of the forces
+!!  fmax2=0._gp
+!!  fnrm2=0._gp
+!!  do iat=1,at%astruct%nat
+!!     t1=fxyz(1,iat)**2
+!!     t2=fxyz(2,iat)**2
+!!     t3=fxyz(3,iat)**2
+!!     fmax2=max(fmax2,sqrt(t1+t2+t3))
+!!     fnrm2=fnrm2+t1+t2+t3
+!!  enddo
+!!
+!!  if (iproc==0) then
+!!     call yaml_mapping_open('Clean forces norm (Ha/Bohr)',flow=.true.)
+!!     call yaml_map('maxval', fmax2,fmt='(1pe20.12)')
+!!     call yaml_map('fnrm2',  fnrm2,fmt='(1pe20.12)')
+!!     call yaml_mapping_close()
+!!     if (at%astruct%geocode /= 'P') then
+!!        call yaml_mapping_open('Raw forces norm (Ha/Bohr)',flow=.true.)
+!!        call yaml_map('maxval', fmax1,fmt='(1pe20.12)')
+!!        call yaml_map('fnrm2',  fnrm1,fmt='(1pe20.12)')
+!!        call yaml_mapping_close()
+!!     end if
+!!     !write(*,'(2(1x,a,1pe20.12))') 'clean forces norm (Ha/Bohr): maxval=', fmax2, ' fnrm2=', fnrm2
+!!     !if (at%astruct%geocode /= 'P') &
+!!     !&  write(*,'(2(1x,a,1pe20.12))') 'raw forces:                  maxval=', fmax1, ' fnrm2=', fnrm1
+!!  end if
+!!END SUBROUTINE clean_forces
 
 
 !> Symmetrize stress (important with special k points)
-!@todo: modifiy the arguments of this routine
-subroutine symm_stress(dump,tens,symobj)
+subroutine symm_stress(tens,symobj)
   use defs_basis
-  use module_base, only: verbose,gp
+  use module_base, only: gp!,verbose
   use m_ab6_symmetry
   use module_types
   use yaml_output
   implicit none
   !Arguments
-  logical, intent(in) :: dump
   integer, intent(in) :: symobj
   real(gp), dimension(6), intent(inout) :: tens
   !Local variables
@@ -3791,11 +3627,8 @@ subroutine symm_stress(dump,tens,symobj)
   real(gp),dimension(3,3) :: symtens
 
   call symmetry_get_matrices_p(symObj, nsym, sym, transNon, symAfm, errno)
-  if (errno /= AB6_NO_ERROR) stop
+  if (errno /= AB7_NO_ERROR) stop
   if (nsym < 2) return
-
-  !write(*,"(1x,A,I0,A)") "Symmetrize stress tensor with ", nsym, "symmetries."
-  !if (dump) call yaml_map('Number of Symmetries for stress symmetrization',nsym,fmt='(i0)')
 
   !Get the symmetry matrices in terms of reciprocal basis
   allocate(symrec(3, 3, nsym))
@@ -3830,25 +3663,23 @@ subroutine symm_stress(dump,tens,symobj)
   tens(5)=symtens(1,3)
   tens(6)=symtens(1,2)
 
-!  if (iproc == 0 .and. verbose > 2) then
-!     write(*,*) '=== SYMMETRISED ==='
-!     write(*,*) tens(:)
-!  end if
-
 end subroutine symm_stress
 
+
 !> Symmetrise the atomic forces (needed with special k points)
-subroutine symmetrise_forces(iproc, fxyz, at)
+subroutine symmetrise_forces(fxyz, at)
   use defs_basis
   use m_ab6_symmetry
-  use module_types
+  use module_defs, only: gp
+  use module_types, only: atoms_data
   use yaml_output
 
   implicit none
 
-  integer, intent(in) :: iproc
+  !Arguments
   type(atoms_data), intent(in) :: at
-  real(gp), intent(inout) :: fxyz(3, at%nat)
+  real(gp), intent(inout) :: fxyz(3, at%astruct%nat)
+  !Local variables
   integer :: ia, mu, isym, errno, ind, nsym
   integer :: indsym(4, AB6_MAX_SYMMETRIES)
   real(gp) :: summ
@@ -3859,8 +3690,8 @@ subroutine symmetrise_forces(iproc, fxyz, at)
   integer, pointer  :: symAfm(:)
   real(gp), pointer :: transNon(:,:)
 
-  call symmetry_get_matrices_p(at%sym%symObj, nsym, sym, transNon, symAfm, errno)
-  if (errno /= AB6_NO_ERROR) stop
+  call symmetry_get_matrices_p(at%astruct%sym%symObj, nsym, sym, transNon, symAfm, errno)
+  if (errno /= AB7_NO_ERROR) stop
   if (nsym < 2) return
  !if (iproc == 0) write(*,"(1x,A,I0,A)") "Symmetrise forces with ", nsym, " symmetries."
   !if (iproc == 0) call yaml_map('Number of Symmetries for forces symmetrization',nsym,fmt='(i0)')
@@ -3871,19 +3702,19 @@ subroutine symmetrise_forces(iproc, fxyz, at)
      call mati3inv(sym(:,:,isym), symrec(:,:,isym))
   end do
 
-  alat = (/ at%alat1, at%alat2, at%alat3 /)
-  if (at%geocode == 'S') alat(2) = real(1, gp)
+  alat = (/ at%astruct%cell_dim(1), at%astruct%cell_dim(2), at%astruct%cell_dim(3) /)
+  if (at%astruct%geocode == 'S') alat(2) = real(1, gp)
 
   !Save fxyz into dedt.
-  allocate(dedt(3,at%nat))
-  do ia = 1, at%nat
+  allocate(dedt(3,at%astruct%nat))
+  do ia = 1, at%astruct%nat
      dedt(:, ia) = fxyz(:, ia) / alat
   end do
 
   ! actually conduct symmetrization
-  do ia = 1, at%nat
-     call symmetry_get_equivalent_atom(at%sym%symObj, indsym, ia, errno)
-     if (errno /= AB6_NO_ERROR) stop
+  do ia = 1, at%astruct%nat
+     call symmetry_get_equivalent_atom(at%astruct%sym%symObj, indsym, ia, errno)
+     if (errno /= AB7_NO_ERROR) stop
      do mu = 1, 3
         summ = real(0, gp)
         do isym = 1, nsym
@@ -3901,7 +3732,7 @@ subroutine symmetrise_forces(iproc, fxyz, at)
   deallocate(symrec)
   
   ! fxyz is in reduced coordinates, we expand here.
-  do ia = 1, at%nat
+  do ia = 1, at%astruct%nat
      fxyz(:, ia) = fxyz(:, ia) * alat
   end do
 end subroutine symmetrise_forces
@@ -3911,7 +3742,7 @@ subroutine local_hamiltonian_stress(orbs,lr,hx,hy,hz,psi,tens)
   use module_base
   use module_types
   use module_interfaces
-  use libxc_functionals
+  use module_xc
   implicit none
   real(gp), intent(in) :: hx,hy,hz
   type(orbitals_data), intent(in) :: orbs
@@ -3921,16 +3752,14 @@ subroutine local_hamiltonian_stress(orbs,lr,hx,hy,hz,psi,tens)
    real(gp) :: ekin_sum,epot_sum
   !local variables
   character(len=*), parameter :: subname='local_hamiltonian_stress'
-  integer :: i_all,i_stat,iorb,npot,oidx
-  real(wp) :: exctXcoeff,kinstr(6)
+  integer :: iorb,npot,oidx
+  real(wp) :: kinstr(6)
   real(gp) :: ekin,kx,ky,kz,etest
   type(workarr_locham) :: wrk_lh
   real(wp), dimension(:,:), allocatable :: psir,hpsi
 
-  exctXcoeff=libxc_functionals_exctXfac()
-
   !initialise the work arrays
-  call initialize_work_arrays_locham(lr,orbs%nspinor,wrk_lh)  
+  call initialize_work_arrays_locham(1,lr,orbs%nspinor,.true.,wrk_lh)  
 
   tens=0.d0
 
@@ -3938,13 +3767,11 @@ subroutine local_hamiltonian_stress(orbs,lr,hx,hy,hz,psi,tens)
   npot=orbs%nspinor
   if (orbs%nspinor == 2) npot=1
 
-  allocate(hpsi(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,orbs%nspinor*orbs%norbp),stat=i_stat)
-  call memocc(i_stat,hpsi,'hpsi',subname)
+  hpsi = f_malloc((/ lr%wfd%nvctr_c+7*lr%wfd%nvctr_f , orbs%nspinor*orbs%norbp /),id='hpsi')
   hpsi=0.0_wp
   ! Wavefunction in real space
-  allocate(psir(lr%d%n1i*lr%d%n2i*lr%d%n3i,orbs%nspinor+ndebug),stat=i_stat)
-  call memocc(i_stat,psir,'psir',subname)
-  call razero(lr%d%n1i*lr%d%n2i*lr%d%n3i*orbs%nspinor,psir)
+  psir = f_malloc0((/ lr%d%n1i*lr%d%n2i*lr%d%n3i, orbs%nspinor /),id='psir')
+  !call to_zero(lr%d%n1i*lr%d%n2i*lr%d%n3i*orbs%nspinor,psir)
 
 
 
@@ -3974,15 +3801,11 @@ subroutine local_hamiltonian_stress(orbs,lr,hx,hy,hz,psi,tens)
   end do !loop over orbitals: finished
 
   !deallocations of work arrays
-  i_all=-product(shape(psir))*kind(psir)
-  deallocate(psir,stat=i_stat)
-  call memocc(i_stat,i_all,'psir',subname)
+  call f_free(psir)
 
-  i_all=-product(shape(hpsi))*kind(hpsi)
-  deallocate(hpsi,stat=i_stat)
-  call memocc(i_stat,i_all,'hpsi',subname)
+  call f_free(hpsi)
 
-  call deallocate_work_arrays_locham(lr,wrk_lh)
+  call deallocate_work_arrays_locham(wrk_lh)
 
 END SUBROUTINE local_hamiltonian_stress
 
@@ -3994,7 +3817,7 @@ subroutine erf_stress(at,rxyz,hxh,hyh,hzh,n1i,n2i,n3i,n3p,iproc,nproc,ngatherarr
   implicit none
   !passed var
   type(atoms_data), intent(in) :: at
-  real(gp), dimension(3,at%nat), target, intent(in) :: rxyz
+  real(gp), dimension(3,at%astruct%nat), target, intent(in) :: rxyz
   real(gp), intent(in) :: hxh,hyh,hzh
   integer,intent(in) :: n1i,n2i,n3i,n3p,iproc,nproc
   real(kind=8), dimension(n1i*n2i*max(n3p,1)), intent(in), target :: rho
@@ -4004,8 +3827,8 @@ subroutine erf_stress(at,rxyz,hxh,hyh,hzh,n1i,n2i,n3i,n3p,iproc,nproc,ngatherarr
   character(len=*), parameter :: subname='erf_stress'
   real(kind=8),allocatable :: rhog(:,:,:,:,:)
   real(kind=8),dimension(:),pointer :: rhor
-  integer :: ierr,i_stat,i_all
-  real(kind=8) :: pi,p(3),g2,rloc,set,fac
+  integer :: ierr
+  real(kind=8) :: pi,p(3),g2,rloc,setv,fac
   real(kind=8) :: rx,ry,rz,sfr,sfi,rhore,rhoim
   real(kind=8) :: potg,potg2
   real(kind=8) :: Zion
@@ -4016,8 +3839,7 @@ subroutine erf_stress(at,rxyz,hxh,hyh,hzh,n1i,n2i,n3i,n3p,iproc,nproc,ngatherarr
   !write(*,*) 'iproc',iproc, ngatherarr(iproc-1,1),ngatherarr(iproc-1,2)
 
   if (nproc > 1) then
-     allocate(rhor(n1i*n2i*n3i),stat=i_stat)
-     call memocc(i_stat,rhor,'rhor',subname)
+     rhor = f_malloc_ptr(n1i*n2i*n3i,id='rhor')
      call MPI_ALLGATHERV(rho(1),ngatherarr(iproc,1),&
           &   mpidtypw,rhor(1),ngatherarr(0,1),&
           ngatherarr(0,2),mpidtypw,bigdft_mpi%mpi_comm,ierr)
@@ -4048,9 +3870,9 @@ subroutine erf_stress(at,rxyz,hxh,hyh,hzh,n1i,n2i,n3i,n3p,iproc,nproc,ngatherarr
 
   tens=0.0_dp
 
-  do iat=1,at%nat                          ! SUM OVER ATOMS
+  do iat=1,at%astruct%nat                          ! SUM OVER ATOMS
 
-     ityp=at%iatype(iat)                ! ityp
+     ityp=at%astruct%iatype(iat)                ! ityp
      rloc=at%psppar(0,0,ityp)           ! take corresp. r_loc
      Zion = real(at%nelpsp(ityp),kind=8)
 
@@ -4089,12 +3911,12 @@ subroutine erf_stress(at,rxyz,hxh,hyh,hzh,n1i,n2i,n3i,n3p,iproc,nproc,ngatherarr
               !set = rhog^el (analytic)
               fac=(Zion/rloc**3.0_gp)/sqrt(2.0_gp*pi)/(2.0_gp*pi)
               fac=fac/real(n1i*hxh*n2i*hyh*n3i*hzh,kind=8)                    !Division by Volume
-              set=((sqrt(pi*2.0_gp*rloc**2.0_gp))**3)*fac*exp(-pi*pi*g2*2.0_gp*rloc**2.0_gp)
+              setv=((sqrt(pi*2.0_gp*rloc**2.0_gp))**3)*fac*exp(-pi*pi*g2*2.0_gp*rloc**2.0_gp)
 
               if (g2 /= 0) then
 
-                 potg = -set/(pi*g2)  ! V^el(G)
-                 potg2 = (set/pi)*((real(1.d0,kind=8)/g2**2.d0)&
+                 potg = -setv/(pi*g2)  ! V^el(G)
+                 potg2 = (setv/pi)*((real(1.d0,kind=8)/g2**2.d0)&
                       +real(pi*pi*2.d0*rloc**2.d0/g2,kind=8))
 
                  !STRESS TENSOR
@@ -4122,9 +3944,7 @@ subroutine erf_stress(at,rxyz,hxh,hyh,hzh,n1i,n2i,n3i,n3p,iproc,nproc,ngatherarr
 !!$  end if
 
   if (nproc>1) then
-     i_all=-product(shape(rhor))*kind(rhor)
-     deallocate(rhor,stat=i_stat)
-     call memocc(i_stat,i_all,'rhor',subname)
+     call f_free_ptr(rhor)
   else
      nullify(rhor)
   end if
@@ -4133,65 +3953,82 @@ subroutine erf_stress(at,rxyz,hxh,hyh,hzh,n1i,n2i,n3i,n3p,iproc,nproc,ngatherarr
 END SUBROUTINE erf_stress
 
 
-
-
-
 !> Calculates the nonlocal forces on all atoms arising from the wavefunctions 
 !! belonging to iproc and adds them to the force array
 !! recalculate the projectors at the end if refill flag is .true.
 subroutine nonlocal_forces_linear(iproc,nproc,npsidim_orbs,lr,hx,hy,hz,at,rxyz,&
-     orbs,nlpspd,proj,lzd,collcom,phi,denskern,fsep,refill,strten)
+     orbs,nlpsp,lzd,phi,denskern,denskern_mat,fsep,refill,strten)
   use module_base
   use module_types
+  use sparsematrix_base, only: sparse_matrix, matrices, sparsematrix_malloc, assignment(=), SPARSE_FULL
+  use sparsematrix, only: gather_matrix_from_taskgroups
+  use psp_projectors, only: PSPCODE_HGH,PSPCODE_HGH_K,PSPCODE_HGH_K_NLCC,&
+       PSPCODE_PAW
+  use yaml_output
   implicit none
   !Arguments-------------
   type(atoms_data), intent(in) :: at
   type(local_zone_descriptors), intent(in) :: lzd
-  type(collective_comms),intent(in) :: collcom
-  type(nonlocal_psp_descriptors), intent(in) :: nlpspd
+  type(DFT_PSP_projectors), intent(inout) :: nlpsp
   logical, intent(in) :: refill
   integer, intent(in) :: iproc, nproc, npsidim_orbs
   real(gp), intent(in) :: hx,hy,hz
   type(locreg_descriptors) :: lr
   type(orbitals_data), intent(in) :: orbs
-  real(gp), dimension(3,at%nat), intent(in) :: rxyz
+  real(gp), dimension(3,at%astruct%nat), intent(in) :: rxyz
   real(wp), dimension(npsidim_orbs), intent(in) :: phi
-  type(SparseMatrix),intent(in) :: denskern
-  real(wp), dimension(nlpspd%nprojel), intent(inout) :: proj
-  real(gp), dimension(3,at%nat), intent(inout) :: fsep
+  type(sparse_matrix),intent(in) :: denskern
+  type(matrices),intent(inout) :: denskern_mat
+  real(gp), dimension(3,at%astruct%nat), intent(inout) :: fsep
   real(gp), dimension(6), intent(out) :: strten
   !local variables--------------
-  character(len=*), parameter :: subname='nonlocal_forces'
   integer :: istart_c,iproj,iat,ityp,i,j,l,m,iorbout,iiorb,ilr
-  integer :: mbseg_c,mbseg_f,jseg_c,jseg_f,ind,iseg,jjorb
-  integer :: mbvctr_c,mbvctr_f,iorb,nwarnings,nspinor,ispinor,jorbd
+  integer :: mbseg_c,mbseg_f,jseg_c,jseg_f,ind,iseg,jjorb,ispin
+  integer :: mbvctr_c,mbvctr_f,iorb,nwarnings,nspinor,ispinor,jorbd,ncount,ist_send
   real(gp) :: offdiagcoeff,hij,sp0,spi,sp0i,sp0j,spj,Enl,vol
   !real(gp) :: orbfac,strc
-  integer :: idir,i_all,i_stat,ncplx,icplx,isorb,ikpt,ieorb,istart_ck,ispsi_k,ispsi,jorb,jproc,ii,ist,ierr,iiat
+  integer :: idir,ncplx,icplx,isorb,ikpt,ieorb,istart_ck,ispsi_k,ispsi,jorb,jproc,ii,ist,ierr,iiat,iiiat
   real(gp), dimension(2,2,3) :: offdiagarr
   real(gp), dimension(:,:), allocatable :: fxyz_orb
   real(dp), dimension(:,:,:,:,:,:,:), allocatable :: scalprod
   real(gp), dimension(6) :: sab
   integer,dimension(:),allocatable :: nat_par, isat_par, sendcounts, recvcounts, senddspls, recvdspls
+  integer,dimension(:,:),allocatable :: iat_startend
   real(dp),dimension(:,:,:,:,:,:,:),allocatable :: scalprod_sendbuf
   real(dp),dimension(:),allocatable :: scalprod_recvbuf
   integer,parameter :: ndir=3 !3 for forces, 9 for forces and stresses
+  real(kind=8),dimension(:),allocatable :: denskern_gathered
+  integer,dimension(:,:),allocatable :: iorbminmax, iatminmax
+  integer :: iorbmin, jorbmin, iorbmax, jorbmax
+  integer :: nat_per_iteration, isat, natp, iat_out, nat_out, norbp_max
+  integer,parameter :: MAX_SIZE=268435456 !max size of the array scalprod, in elements
 
   !integer :: ldim, gdim
   !real(8),dimension(:),allocatable :: phiglobal
-  !real(8),dimension(2,0:9,7,3,4,at%nat,orbsglobal%norb) :: scalprodglobal
+  !real(8),dimension(2,0:9,7,3,4,at%astruct%nat,orbsglobal%norb) :: scalprodglobal
   !scalprodglobal=0.d0
   !!allocate(phiglobal(lzd%glr%wfd%nvctr_c+7*lzd%glr%wfd%nvctr_f))
 
+  call f_routine(id='nonlocal_forces_linear')
+
+  fxyz_orb = f_malloc0((/ 3, at%astruct%nat /),id='fxyz_orb')
+
+
+  ! Gather together the entire density kernel
+  denskern_gathered = sparsematrix_malloc(denskern,iaction=SPARSE_FULL,id='denskern_gathered')
+  call gather_matrix_from_taskgroups(iproc, nproc, denskern, denskern_mat%matrix_compr, denskern_gathered)
+
+  isat = 1
+
+
+  natp = at%astruct%nat
 
   ! Determine how many atoms each MPI task will handle
-  allocate(nat_par(0:nproc-1),stat=i_stat)
-  call memocc(i_stat,nat_par,'nat_par',subname)
-  allocate(isat_par(0:nproc-1),stat=i_stat)
-  call memocc(i_stat,isat_par,'isat_par',subname)
-  ii=at%nat/nproc
+  nat_par = f_malloc(0.to.nproc-1,id='nat_par')
+  isat_par = f_malloc(0.to.nproc-1,id='isat_par')
+  ii=natp/nproc
   nat_par(0:nproc-1)=ii
-  ii=at%nat-ii*nproc
+  ii=natp-ii*nproc
   do i=0,ii-1
       nat_par(i)=nat_par(i)+1
   end do
@@ -4200,15 +4037,12 @@ subroutine nonlocal_forces_linear(iproc,nproc,npsidim_orbs,lr,hx,hy,hz,at,rxyz,&
       isat_par(jproc)=isat_par(jproc-1)+nat_par(jproc-1)
   end do
 
-  allocate(sendcounts(0:nproc-1),stat=i_stat)
-  call memocc(i_stat,sendcounts,'sendcounts',subname)
-  allocate(recvcounts(0:nproc-1),stat=i_stat)
-  call memocc(i_stat,recvcounts,'recvcounts',subname)
-  allocate(senddspls(0:nproc-1),stat=i_stat)
-  call memocc(i_stat,senddspls,'senddspls',subname)
-  allocate(recvdspls(0:nproc-1),stat=i_stat)
-  call memocc(i_stat,recvdspls,'recvdspls',subname)
-
+  
+  sendcounts = f_malloc(0.to.nproc-1,id='sendcounts')
+  recvcounts = f_malloc(0.to.nproc-1,id='recvcounts')
+  senddspls = f_malloc(0.to.nproc-1,id='senddspls')
+  recvdspls = f_malloc(0.to.nproc-1,id='recvdspls')
+  
   do jproc=0,nproc-1
       sendcounts(jproc)=2*(ndir+1)*7*3*4*orbs%norbp*nat_par(jproc)
       recvcounts(jproc)=2*(ndir+1)*7*3*4*orbs%norb_par(jproc,0)*nat_par(iproc)
@@ -4219,28 +4053,25 @@ subroutine nonlocal_forces_linear(iproc,nproc,npsidim_orbs,lr,hx,hy,hz,at,rxyz,&
       senddspls(jproc)=senddspls(jproc-1)+sendcounts(jproc-1)
       recvdspls(jproc)=recvdspls(jproc-1)+recvcounts(jproc-1)
   end do
-
-  call to_zero(6,strten(1)) 
-
+  
+  call f_zero(strten) 
+  
      
   !always put complex scalprod
   !also nspinor for the moment is the biggest as possible
-
-  !  allocate(scalprod(2,0:3,7,3,4,at%nat,orbs%norbp*orbs%nspinor+ndebug),stat=i_stat)
+  
+  !  allocate(scalprod(2,0:3,7,3,4,natp,orbs%norbp*orbs%nspinor),stat=i_stat)
   ! need more components in scalprod to calculate terms like dp/dx*psi*x
-  allocate(scalprod(2,0:ndir,7,3,4,at%nat,max(1,orbs%norbp*orbs%nspinor+ndebug)),stat=i_stat)
-  call memocc(i_stat,scalprod,'scalprod',subname)
-  call razero(2*(ndir+1)*7*3*4*at%nat*max(1,orbs%norbp*orbs%nspinor),scalprod(1,0,1,1,1,1,1))
-
-
-
-
-
+  !scalprod = f_malloc0((/ 1.to.2, 0.to.ndir, 1.to.7, 1.to.3, 1.to.4, &
+  !                       1.to.natp, 1.to.max(1, orbs%norbp*orbs%nspinor) /),id='scalprod')
+  !call to_zero(2*(ndir+1)*7*3*4*natp*max(1,orbs%norbp*orbs%nspinor),scalprod(1,0,1,1,1,1,1))
+  
+  
   Enl=0._gp
   !strten=0.d0
-  vol=real(at%alat1*at%alat2*at%alat3,gp)
+  vol=real(at%astruct%cell_dim(1)*at%astruct%cell_dim(2)*at%astruct%cell_dim(3),gp)
   sab=0.d0
-
+  
   !calculate the coefficients for the off-diagonal terms
   do l=1,3
      do i=1,2
@@ -4272,534 +4103,987 @@ subroutine nonlocal_forces_linear(iproc,nproc,npsidim_orbs,lr,hx,hy,hz,at,rxyz,&
         end do
      end do
   end do
+  
+  ! Minimal and maximal value of jorb for which scalprod (with respect to a given atom) is non-zero
+  iorbminmax = f_malloc((/natp,2/),id='iorbminmax')
+  iorbminmax(:,1) = orbs%norb
+  iorbminmax(:,2) = 1
+  iatminmax = f_malloc0((/orbs%norb,2/),id='iatminmax')
+  iatminmax(orbs%isorb+1:orbs%isorb+orbs%norbp,1) = at%astruct%nat
+  iatminmax(orbs%isorb+1:orbs%isorb+orbs%norbp,2) = 1
 
-  norbp_if: if (orbs%norbp>0) then
 
-      !look for the strategy of projectors application
-      if (DistProjApply) then
-         !apply the projectors on the fly for each k-point of the processor
-         !starting k-point
-         ikpt=orbs%iokpt(1)
-         ispsi_k=1
-         jorb=0
-         loop_kptD: do
+  ! Determine the size of the array scalprod_sendbuf (indicated by iat_startend)
+  iat_startend = f_malloc0((/1.to.2,0.to.nproc-1/),id='iat_startend')
+  iat_startend(1,iproc) = at%astruct%nat
+  iat_startend(2,iproc) = 1
+  call determine_dimension_scalprod()
+  scalprod_sendbuf = f_malloc0((/ 1.to.2, 0.to.ndir, 1.to.7, 1.to.3, 1.to.4, &
+                                 iat_startend(1,iproc).to.iat_startend(2,iproc), &
+                                 1.to.max(1,orbs%norbp*orbs%nspinor) /),id='scalprod_sendbuf')
+  
+  ! Calculate the values of scalprod
+  call calculate_scalprod()
+  
+  
+  
+  ! Communicate scalprod
+  call transpose_scalprod()
+  
+  call f_free(sendcounts)
+  call f_free(recvcounts)
+  call f_free(senddspls)
+  call f_free(recvdspls)
+  
+  call calculate_forces()
+  
+  
+  
+  !Adding Enl to the diagonal components of strten after loop over kpts is finished...
+  do i=1,3
+  strten(i)=strten(i)+Enl/vol
+  end do
+  
+  !  do iat=1,natp
+  !     write(20+iat,'(1x,i5,1x,3(1x,1pe12.5))') &
+  !          iat,fsep(1,iat),fsep(2,iat),fsep(3,iat)
+  !  end do
+  
+  call f_free(iorbminmax)
+  call f_free(iatminmax)
+  call f_free(scalprod)
+  call f_free(nat_par)
+  call f_free(isat_par)
+  call f_free(iat_startend)
+
+
+  call f_free(fxyz_orb)
+  call f_free(denskern_gathered)
+
+  call f_release_routine()
+
+
+  contains
+
+
+      subroutine determine_dimension_scalprod()
+        implicit none
+
+        call f_routine(id='determine_dimension_scalprod')
+
+        norbp_if: if (orbs%norbp>0) then
     
-            call orbs_in_kpt(ikpt,orbs,isorb,ieorb,nspinor)
+            !look for the strategy of projectors application
+            if (DistProjApply) then
+               !apply the projectors on the fly for each k-point of the processor
+               !starting k-point
+               ikpt=orbs%iokpt(1)
+               loop_kptD: do
+          
+                  call orbs_in_kpt(ikpt,orbs,isorb,ieorb,nspinor)
+          
+          
+                  do iat=1,natp
+                     iiat = iat+isat-1
+          
+                     ityp=at%astruct%iatype(iiat)
+                     do iorb=isorb,ieorb
+                        iiorb=orbs%isorb+iorb
+                        ilr=orbs%inwhichlocreg(iiorb)
+                        ! Quick check
+                        if (lzd%llr(ilr)%ns1>nlpsp%pspd(iiat)%plr%ns1+nlpsp%pspd(iiat)%plr%d%n1 .or. &
+                            nlpsp%pspd(iiat)%plr%ns1>lzd%llr(ilr)%ns1+lzd%llr(ilr)%d%n1 .or. &
+                            lzd%llr(ilr)%ns2>nlpsp%pspd(iiat)%plr%ns2+nlpsp%pspd(iiat)%plr%d%n2 .or. &
+                            nlpsp%pspd(iiat)%plr%ns2>lzd%llr(ilr)%ns2+lzd%llr(ilr)%d%n2 .or. &
+                            lzd%llr(ilr)%ns3>nlpsp%pspd(iiat)%plr%ns3+nlpsp%pspd(iiat)%plr%d%n3 .or. &
+                            nlpsp%pspd(iiat)%plr%ns3>lzd%llr(ilr)%ns3+lzd%llr(ilr)%d%n3) then
+                            cycle 
+                        else
+                            iat_startend(1,iproc) = min(iat_startend(1,iproc),iat)
+                            iat_startend(2,iproc) = max(iat_startend(2,iproc),iat)
+                        end if
+                     end do
+          
+                  end do
+          
+                  if (ieorb == orbs%norbp) exit loop_kptD
+                  ikpt=ikpt+1
+                  ispsi_k=ispsi
+               end do loop_kptD
+          
+            else
+
+               stop 'carefully test this section...'
+               !calculate all the scalar products for each direction and each orbitals
+          
+                  !apply the projectors  k-point of the processor
+                  !starting k-point
+                  ikpt=orbs%iokpt(1)
+                  loop_kpt: do
+          
+                     call orbs_in_kpt(ikpt,orbs,isorb,ieorb,nspinor)
+          
+                     do iorb=isorb,ieorb
+                        iiorb=orbs%isorb+iorb
+                        ilr=orbs%inwhichlocreg(iiorb)
+                        ! Quick check
+                        if (lzd%llr(ilr)%ns1>nlpsp%pspd(iiat)%plr%ns1+nlpsp%pspd(iiat)%plr%d%n1 .or. &
+                            nlpsp%pspd(iiat)%plr%ns1>lzd%llr(ilr)%ns1+lzd%llr(ilr)%d%n1 .or. &
+                            lzd%llr(ilr)%ns2>nlpsp%pspd(iiat)%plr%ns2+nlpsp%pspd(iiat)%plr%d%n2 .or. &
+                            nlpsp%pspd(iiat)%plr%ns2>lzd%llr(ilr)%ns2+lzd%llr(ilr)%d%n2 .or. &
+                            lzd%llr(ilr)%ns3>nlpsp%pspd(iiat)%plr%ns3+nlpsp%pspd(iiat)%plr%d%n3 .or. &
+                            nlpsp%pspd(iiat)%plr%ns3>lzd%llr(ilr)%ns3+lzd%llr(ilr)%d%n3) then
+                            cycle 
+                        else
+                            iat_startend(1,iproc) = min(iat_startend(1,iproc),iat)
+                            iat_startend(2,iproc) = max(iat_startend(2,iproc),iat)
+                        end if
+                     end do
+                     if (ieorb == orbs%norbp) exit loop_kpt
+                     ikpt=ikpt+1
+                  end do loop_kpt
+          
+            end if
+
+        else norbp_if
+
+            iat_startend(1,iproc) = 1
+            iat_startend(2,iproc) = 1
     
-            call ncplx_kpt(ikpt,orbs,ncplx)
+        end if norbp_if
+
+        if (nproc>1) then
+            call mpiallred(iat_startend(1,0), 2*nproc, mpi_sum, bigdft_mpi%mpi_comm)
+        end if
+
+        call f_release_routine()
+
+      end subroutine determine_dimension_scalprod
+
+
+      subroutine calculate_scalprod()
+        implicit none
+
+        call f_routine(id='calculate_scalprod')
+
+        norbp_if: if (orbs%norbp>0) then
     
-            nwarnings=0 !not used, simply initialised 
-            iproj=0 !should be equal to four times nproj at the end
-            jorbd=jorb
-            do iat=1,at%nat
-    
-               call plr_segs_and_vctrs(nlpspd%plr(iat),&
-                    mbseg_c,mbseg_f,mbvctr_c,mbvctr_f)
-               jseg_c=1
-               jseg_f=1
-    
-               do idir=0,ndir
-    !!$           mbseg_c=nlpspd%nseg_p(2*iat-1)-nlpspd%nseg_p(2*iat-2)
-    !!$           mbseg_f=nlpspd%nseg_p(2*iat  )-nlpspd%nseg_p(2*iat-1)
-    !!$           jseg_c=nlpspd%nseg_p(2*iat-2)+1
-    !!$           jseg_f=nlpspd%nseg_p(2*iat-1)+1
-    !!$           mbvctr_c=nlpspd%nvctr_p(2*iat-1)-nlpspd%nvctr_p(2*iat-2)
-    !!$           mbvctr_f=nlpspd%nvctr_p(2*iat  )-nlpspd%nvctr_p(2*iat-1)
-    
-               ityp=at%iatype(iat)
-                  !calculate projectors
-                  istart_c=1
-                  call atom_projector(ikpt,iat,idir,istart_c,iproj,nlpspd%nprojel,&
-                       lr,hx,hy,hz,rxyz(1,iat),at,orbs,nlpspd%plr(iat),&
-                       proj,nwarnings)
-                   !!do i_all=1,nlpspd%nprojel
-                   !!    write(800+iat,*) i_all, proj(i_all)
-                   !!end do
-    !              print *,'iat,ilr,idir,sum(proj)',iat,ilr,idir,sum(proj)
-     
-                  !calculate the contribution for each orbital
-                  !here the nspinor contribution should be adjusted
-                  ! loop over all my orbitals
-                  ispsi=ispsi_k
-                  jorb=jorbd
-                  do iorb=isorb,ieorb
-                     iiorb=orbs%isorb+iorb
-                     ilr=orbs%inwhichlocreg(iiorb)
-                     do ispinor=1,nspinor,ncplx
-                        jorb=jorb+1
+            !look for the strategy of projectors application
+            if (DistProjApply) then
+               !apply the projectors on the fly for each k-point of the processor
+               !starting k-point
+               ikpt=orbs%iokpt(1)
+               ispsi_k=1
+               jorb=0
+               loop_kptD: do
+          
+                  call orbs_in_kpt(ikpt,orbs,isorb,ieorb,nspinor)
+          
+                  call ncplx_kpt(ikpt,orbs,ncplx)
+          
+                  nwarnings=0 !not used, simply initialised 
+                  iproj=0 !should be equal to four times nproj at the end
+                  jorbd=jorb
+                  do iat=1,natp
+                     iiat = iat+isat-1
+                     
+          
+                     call plr_segs_and_vctrs(nlpsp%pspd(iiat)%plr,&
+                          mbseg_c,mbseg_f,mbvctr_c,mbvctr_f)
+                     jseg_c=1
+                     jseg_f=1
+          
+                     do idir=0,ndir
+          
+                     ityp=at%astruct%iatype(iiat)
+                        !calculate projectors
                         istart_c=1
-                        do l=1,4
-                           do i=1,3
-                              if (at%psppar(l,i,ityp) /= 0.0_gp) then
-                                 do m=1,2*l-1
-                                    !!do i_stat=ispsi,ispsi+lzd%llr(ilr)%wfd%nvctr_c+7*lzd%llr(ilr)%wfd%nvctr_f-1
-                                    !!    write(200+iproc,*) phi(i_stat)
-                                    !!end do
-                                    !!do i_stat=istart_c,istart_c+mbvctr_c+7*mbvctr_f-1
-                                    !!    write(250+iproc,*) proj(i_stat)
-                                    !!end do
-                                    !!ldim=lzd%Llr(ilr)%wfd%nvctr_c+7*lzd%Llr(ilr)%wfd%nvctr_f
-                                    !!gdim=lzd%Glr%wfd%nvctr_c+7*lzd%Glr%wfd%nvctr_f
-                                    !!phiglobal=0.d0
-                                    !!call Lpsi_to_global2(iproc,ldim,gdim,orbs%norb,orbs%nspinor,1,lzd%Glr,&
-                                    !!     lzd%Llr(ilr),phi(ispsi),phiglobal(1))
-                                    !!if (jorb==37 .and. iat==4 .and. l==1 .and. i==1 .and. m==1 .and. idir==1) then
-                                    !!    call wpdot_wrap_debug1(ncplx,&
-                                    !!         lzd%llr(ilr)%wfd%nvctr_c,lzd%llr(ilr)%wfd%nvctr_f,&
-                                    !!         lzd%llr(ilr)%wfd%nseg_c,lzd%llr(ilr)%wfd%nseg_f,&
-                                    !!         lzd%llr(ilr)%wfd%keyvglob,lzd%llr(ilr)%wfd%keyglob,phi(ispsi),&
-                                    !!         mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,&
-    !!$                             !!            nlpspd%keyv_p(jseg_c),&
-    !!$                             !!            nlpspd%keyg_p(1,jseg_c),&
-                                    !!         nlpspd%plr(iat)%wfd%keyvglob(jseg_c),&
-                                    !!         nlpspd%plr(iat)%wfd%keyglob(1,jseg_c),&
-                                    !!         proj(istart_c),&
-                                    !!         scalprod(1,idir,m,i,l,iat,jorb))
-                                    !!    write(800+iproc,'(a,7i6,es20.10)') 'jorb,iat,l,i,m,idir,1,value',jorb,iat,l,i,m,idir,1,scalprod(1,idir,m,i,l,iat,jorb)
-                                    !!    call wpdot_wrap_debug2(ncplx,&
-                                    !!         lzd%glr%wfd%nvctr_c,lzd%glr%wfd%nvctr_f,&
-                                    !!         lzd%glr%wfd%nseg_c,lzd%glr%wfd%nseg_f,&
-                                    !!         lzd%glr%wfd%keyvglob,lzd%glr%wfd%keyglob,phiglobal(1),&
-                                    !!         mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,&
-    !!$                             !!            nlpspd%keyv_p(jseg_c),&
-    !!$                             !!            nlpspd%keyg_p(1,jseg_c),&
-                                    !!         nlpspd%plr(iat)%wfd%keyvglob(jseg_c),&
-                                    !!         nlpspd%plr(iat)%wfd%keyglob(1,jseg_c),&
-                                    !!         proj(istart_c),&
-                                    !!         scalprod(1,idir,m,i,l,iat,jorb))
-                                    !!    write(900+iproc,'(a,7i6,es20.10)') 'jorb,iat,l,i,m,idir,1,value',jorb,iat,l,i,m,idir,1,scalprod(1,idir,m,i,l,iat,jorb)
-                                    !!else
-                                        call wpdot_wrap(ncplx,&
-                                             lzd%llr(ilr)%wfd%nvctr_c,lzd%llr(ilr)%wfd%nvctr_f,&
-                                             lzd%llr(ilr)%wfd%nseg_c,lzd%llr(ilr)%wfd%nseg_f,&
-                                             lzd%llr(ilr)%wfd%keyvglob,lzd%llr(ilr)%wfd%keyglob,phi(ispsi),&
-                                             mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,&
-    !!$                                         nlpspd%keyv_p(jseg_c),&
-    !!$                                         nlpspd%keyg_p(1,jseg_c),&
-                                             nlpspd%plr(iat)%wfd%keyvglob(jseg_c),&
-                                             nlpspd%plr(iat)%wfd%keyglob(1,jseg_c),&
-                                             proj(istart_c),&
-                                             scalprod(1,idir,m,i,l,iat,jorb))
-                                        !!write(800+iproc,'(a,7i6,es20.10)') 'jorb,iat,l,i,m,idir,1,value',jorb,iat,l,i,m,idir,1,scalprod(1,idir,m,i,l,iat,jorb)
-                                        !!call wpdot_wrap(ncplx,&
-                                        !!     lzd%glr%wfd%nvctr_c,lzd%glr%wfd%nvctr_f,&
-                                        !!     lzd%glr%wfd%nseg_c,lzd%glr%wfd%nseg_f,&
-                                        !!     lzd%glr%wfd%keyvglob,lzd%glr%wfd%keyglob,phiglobal(1),&
-                                        !!     mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,&
-    !!$                                 !!        nlpspd%keyv_p(jseg_c),&
-    !!$                                 !!        nlpspd%keyg_p(1,jseg_c),&
-                                        !!     nlpspd%plr(iat)%wfd%keyvglob(jseg_c),&
-                                        !!     nlpspd%plr(iat)%wfd%keyglob(1,jseg_c),&
-                                        !!     proj(istart_c),&
-                                        !!     scalprod(1,idir,m,i,l,iat,jorb))
-                                        !!write(900+iproc,'(a,7i6,es20.10)') 'jorb,iat,l,i,m,idir,1,value',jorb,iat,l,i,m,idir,1,scalprod(1,idir,m,i,l,iat,jorb)
-                                    !!end if
-                                    !!do i_stat=1,orbsglobal%norb
-                                    !!  scalprodglobal(1,idir,m,i,l,iat,i_stat) = scalprodglobal(1,idir,m,i,l,iat,i_stat) + &
-                                    !!      coeff(iiorb,i_stat)*scalprod(1,idir,m,i,l,iat,jorb)
-                                    !!end do
-                                    istart_c=istart_c+(mbvctr_c+7*mbvctr_f)*ncplx
+                        call atom_projector(nlpsp, ityp, iiat, at%astruct%atomnames(ityp), &
+                             & at%astruct%geocode, idir, lr, hx, hy, hz, &
+                             & orbs%kpts(1,ikpt), orbs%kpts(2,ikpt), orbs%kpts(3,ikpt), &
+                             & istart_c, iproj, nwarnings)
+                         !!do i_all=1,nlpspd%nprojel
+                         !!    write(800+iiat,*) i_all, proj(i_all)
+                         !!end do
+          !              print *,'iiat,ilr,idir,sum(proj)',iiat,ilr,idir,sum(proj)
+           
+                        !calculate the contribution for each orbital
+                        !here the nspinor contribution should be adjusted
+                        ! loop over all my orbitals
+                        ispsi=ispsi_k
+                        jorb=jorbd
+                        do iorb=isorb,ieorb
+                           iiorb=orbs%isorb+iorb
+                           ilr=orbs%inwhichlocreg(iiorb)
+                           ! Quick check
+                           if (lzd%llr(ilr)%ns1>nlpsp%pspd(iiat)%plr%ns1+nlpsp%pspd(iiat)%plr%d%n1 .or. &
+                               nlpsp%pspd(iiat)%plr%ns1>lzd%llr(ilr)%ns1+lzd%llr(ilr)%d%n1 .or. &
+                               lzd%llr(ilr)%ns2>nlpsp%pspd(iiat)%plr%ns2+nlpsp%pspd(iiat)%plr%d%n2 .or. &
+                               nlpsp%pspd(iiat)%plr%ns2>lzd%llr(ilr)%ns2+lzd%llr(ilr)%d%n2 .or. &
+                               lzd%llr(ilr)%ns3>nlpsp%pspd(iiat)%plr%ns3+nlpsp%pspd(iiat)%plr%d%n3 .or. &
+                               nlpsp%pspd(iiat)%plr%ns3>lzd%llr(ilr)%ns3+lzd%llr(ilr)%d%n3) then
+                               jorb=jorb+1
+                               ispsi=ispsi+(lzd%llr(ilr)%wfd%nvctr_c+7*lzd%llr(ilr)%wfd%nvctr_f)*ncplx
+                               cycle 
+                           end if
+                           do ispinor=1,nspinor,ncplx
+                              jorb=jorb+1
+                              istart_c=1
+                              do l=1,4
+                                 do i=1,3
+                                    if (at%psppar(l,i,ityp) /= 0.0_gp) then
+                                       do m=1,2*l-1
+                                          call wpdot_wrap(ncplx,&
+                                               lzd%llr(ilr)%wfd%nvctr_c,lzd%llr(ilr)%wfd%nvctr_f,&
+                                               lzd%llr(ilr)%wfd%nseg_c,lzd%llr(ilr)%wfd%nseg_f,&
+                                               lzd%llr(ilr)%wfd%keyvglob,lzd%llr(ilr)%wfd%keyglob,phi(ispsi),&
+                                               mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,&
+                                               nlpsp%pspd(iiat)%plr%wfd%keyvglob(jseg_c),&
+                                               nlpsp%pspd(iiat)%plr%wfd%keyglob(1,jseg_c),&
+                                               nlpsp%proj(istart_c),&
+                                               scalprod_sendbuf(1,idir,m,i,l,iat,jorb))
+                                          !!scalprod_sendbuf(1,idir,m,i,l,iat,jorb) = scalprod(1,idir,m,i,l,iat,jorb)
+                                          if (scalprod_sendbuf(1,idir,m,i,l,iat,jorb)/=0.d0) then
+                                              iorbminmax(iat,1) = min(iorbminmax(iat,1),iiorb)
+                                              iorbminmax(iat,2) = max(iorbminmax(iat,2),iiorb)
+                                              iatminmax(iiorb,1) = min(iatminmax(iiorb,1),iat)
+                                              iatminmax(iiorb,2) = max(iatminmax(iiorb,2),iat)
+                                          end if
+                                          istart_c=istart_c+(mbvctr_c+7*mbvctr_f)*ncplx
+                                       end do
+                                    end if
                                  end do
-                              end if
+                              end do
+                              ispsi=ispsi+(lzd%llr(ilr)%wfd%nvctr_c+7*lzd%llr(ilr)%wfd%nvctr_f)*ncplx
                            end do
                         end do
-                        ispsi=ispsi+(lzd%llr(ilr)%wfd%nvctr_c+7*lzd%llr(ilr)%wfd%nvctr_f)*ncplx
+                        if (istart_c-1  > nlpsp%nprojel) stop '2:applyprojectors'
                      end do
+          
                   end do
-                  if (istart_c-1  > nlpspd%nprojel) stop '2:applyprojectors'
+          
+                  if (ieorb == orbs%norbp) exit loop_kptD
+                  ikpt=ikpt+1
+                  ispsi_k=ispsi
+               end do loop_kptD
+          
+            else
+               !calculate all the scalar products for each direction and each orbitals
+               do idir=0,ndir
+          
+                  if (idir /= 0) then !for the first run the projectors are already allocated
+                     call fill_projectors(lr,hx,hy,hz,at,orbs,rxyz,nlpsp,idir)
+                  end if
+                  !apply the projectors  k-point of the processor
+                  !starting k-point
+                  ikpt=orbs%iokpt(1)
+                  istart_ck=1
+                  ispsi_k=1
+                  jorb=0
+                  loop_kpt: do
+          
+                     call orbs_in_kpt(ikpt,orbs,isorb,ieorb,nspinor)
+          
+                     call ncplx_kpt(ikpt,orbs,ncplx)
+          
+                     ! calculate the scalar product for all the orbitals
+                     ispsi=ispsi_k
+                     do iorb=isorb,ieorb
+                        iiorb=orbs%isorb+iorb
+                        ilr=orbs%inwhichlocreg(iiorb)
+                        ! Quick check
+                        if (lzd%llr(ilr)%ns1>nlpsp%pspd(iiat)%plr%ns1+nlpsp%pspd(iiat)%plr%d%n1 .or. &
+                            nlpsp%pspd(iiat)%plr%ns1>lzd%llr(ilr)%ns1+lzd%llr(ilr)%d%n1 .or. &
+                            lzd%llr(ilr)%ns2>nlpsp%pspd(iiat)%plr%ns2+nlpsp%pspd(iiat)%plr%d%n2 .or. &
+                            nlpsp%pspd(iiat)%plr%ns2>lzd%llr(ilr)%ns2+lzd%llr(ilr)%d%n2 .or. &
+                            lzd%llr(ilr)%ns3>nlpsp%pspd(iiat)%plr%ns3+nlpsp%pspd(iiat)%plr%d%n3 .or. &
+                            nlpsp%pspd(iiat)%plr%ns3>lzd%llr(ilr)%ns3+lzd%llr(ilr)%d%n3) then
+                            jorb=jorb+1
+                            ispsi=ispsi+(lzd%llr(ilr)%wfd%nvctr_c+7*lzd%llr(ilr)%wfd%nvctr_f)*ncplx
+                            cycle 
+                        end if
+                        do ispinor=1,nspinor,ncplx
+                           jorb=jorb+1
+                           ! loop over all projectors of this k-point
+                           iproj=0
+                           istart_c=istart_ck
+                           do iat=1,natp
+                              iiat=iat+isat-1
+                              call plr_segs_and_vctrs(nlpsp%pspd(iiat)%plr,&
+                                   mbseg_c,mbseg_f,mbvctr_c,mbvctr_f)
+                              jseg_c=1
+                              jseg_f=1
+          
+                              ityp=at%astruct%iatype(iiat)
+                              do l=1,4
+                                 do i=1,3
+                                    if (at%psppar(l,i,ityp) /= 0.0_gp) then
+                                       do m=1,2*l-1
+                                          iproj=iproj+1
+                                          call wpdot_wrap(ncplx,&
+                                               lzd%llr(ilr)%wfd%nvctr_c,lzd%llr(ilr)%wfd%nvctr_f,&
+                                               lzd%llr(ilr)%wfd%nseg_c,lzd%llr(ilr)%wfd%nseg_f,&
+                                               lzd%llr(ilr)%wfd%keyvglob,lzd%llr(ilr)%wfd%keyglob,phi(ispsi),  &
+                                               mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,&
+                                               nlpsp%pspd(iiat)%plr%wfd%keyvglob(jseg_c),&
+                                               nlpsp%pspd(iiat)%plr%wfd%keyglob(1,jseg_c),&
+                                               nlpsp%proj(istart_c),scalprod_sendbuf(1,idir,m,i,l,iat,jorb))
+                                          !!scalprod_sendbuf(1,idir,m,i,l,iat,jorb) = scalprod(1,idir,m,i,l,iat,jorb)
+                                          if (scalprod_sendbuf(1,idir,m,i,l,iat,jorb)/=0.d0) then
+                                              iorbminmax(iat,1) = min(iorbminmax(iat,1),iiorb)
+                                              iorbminmax(iat,2) = max(iorbminmax(iat,2),iiorb)
+                                              iatminmax(iiorb,1) = min(iatminmax(iiorb,1),iat)
+                                              iatminmax(iiorb,2) = max(iatminmax(iiorb,2),iat)
+                                          end if
+                                          istart_c=istart_c+(mbvctr_c+7*mbvctr_f)*ncplx
+                                       end do
+                                    end if
+                                 end do
+                              end do
+                           end do
+                           ispsi=ispsi+(lzd%llr(ilr)%wfd%nvctr_c+7*lzd%llr(ilr)%wfd%nvctr_f)*ncplx
+                        end do
+                        if (iproj /= nlpsp%nproj) stop '1:applyprojectors'
+                     end do
+                     istart_ck=istart_c
+                     if (ieorb == orbs%norbp) exit loop_kpt
+                     ikpt=ikpt+1
+                     ispsi_k=ispsi
+                  end do loop_kpt
+                  if (istart_ck-1  /= nlpsp%nprojel) stop '2:applyprojectors'
+          
                end do
-    
-            end do
-    
-            if (ieorb == orbs%norbp) exit loop_kptD
-            ikpt=ikpt+1
-            ispsi_k=ispsi
-         end do loop_kptD
-    
-      else
-         !calculate all the scalar products for each direction and each orbitals
-         do idir=0,ndir
-    
-            if (idir /= 0) then !for the first run the projectors are already allocated
-               call fill_projectors(iproc,lr,hx,hy,hz,at,orbs,rxyz,nlpspd,proj,idir)
+          
+               !restore the projectors in the proj array (for on the run forces calc., tails or so)
+               if (refill) then 
+                  call fill_projectors(lr,hx,hy,hz,at,orbs,rxyz,nlpsp,0)
+               end if
+          
             end if
+    
+        end if norbp_if
+
+        if (nproc>1) then
+            call mpiallred(iatminmax(1,1), 2*orbs%norb, mpi_sum, bigdft_mpi%mpi_comm)
+            call mpiallred(iorbminmax(1,1), natp, mpi_min, bigdft_mpi%mpi_comm)
+            call mpiallred(iorbminmax(1,2), natp, mpi_max, bigdft_mpi%mpi_comm)
+        end if
+
+        call f_release_routine()
+
+      end subroutine calculate_scalprod
+
+
+      subroutine transpose_scalprod()
+        implicit none
+
+        ! Local variables
+        integer :: window, iatmin, iatmax, is, ie, nat_on_task, ist_recv, nsize, size_of_double
+        integer,dimension(:),allocatable :: datatypes
+        real(kind=8),dimension(:),allocatable :: scalprod_recvbuf
+
+        call f_routine(id='transpose_scalprod')
+
+        !!scalprod_sendbuf = f_malloc0((/ 1.to.2, 0.to.ndir, 1.to.7, 1.to.3, 1.to.4, &
+        !!                               1.to.max(1, orbs%norbp*orbs%nspinor), 1.to.natp /),id='scalprod_sendbuf')
+      
+        !!! Copy scalprod to auxiliary array for communication
+        !!do iorb=1,orbs%norbp
+        !!    do iat=1,natp
+        !!        call vcopy(2*(ndir+1)*7*3*4, scalprod(1,0,1,1,1,iat,iorb), 1, scalprod_sendbuf(1,0,1,1,1,iorb,iat), 1)
+        !!    end do
+        !!end do
+      
+        !!call f_free(scalprod)
+      
+        !!scalprod_recvbuf = f_malloc0(2*(ndir+1)*7*3*4*max(1, nat_par(iproc))*orbs%norb*orbs%nspinor,id='scalprod_recvbuf')
+      
+        !!if (nproc>1) then
+        !!    call mpi_alltoallv(scalprod_sendbuf, sendcounts, senddspls, mpi_double_precision, &
+        !!                       scalprod_recvbuf, recvcounts, recvdspls, mpi_double_precision, &
+        !!                       bigdft_mpi%mpi_comm, ierr)
+        !!else
+        !!    call vcopy(2*(ndir+1)*7*3*4*natp*orbs%norb*orbs%nspinor, scalprod_sendbuf(1,0,1,1,1,1,1), &
+        !!         1, scalprod_recvbuf(1), 1)
+        !!end if
+      
+        !!call f_free(scalprod_sendbuf)
+
+
+
+        ! Maximal size to be allocated
+        iorbmin = orbs%norb
+        iorbmax = 1
+        do iat=1,nat_par(iproc)
+            iiat = isat_par(iproc) + iat
+            iorbmin = min(iorbmin,iorbminmax(iiat,1))
+            iorbmax = max(iorbmax,iorbminmax(iiat,2))
+        end do
+        !!scalprod = f_malloc0((/ 1.to.2, 0.to.ndir, 1.to.7, 1.to.3, 1.to.4, &
+        !!                       1.to.max(1, nat_par(iproc)), 1.to.orbs%norb*orbs%nspinor /),id='scalprod')
+        if (orbs%nspinor/=1) stop 'nonlocal_forces_linear: nspinor must be 1 for the moment'
+        scalprod = f_malloc0((/ 1.to.2, 0.to.ndir, 1.to.7, 1.to.3, 1.to.4, &
+                               1.to.max(1, nat_par(iproc)), iorbmin.to.iorbmax /),id='scalprod')
+
+        scalprod_recvbuf = f_malloc(2*(ndir+1)*7*3*4*max(1,nat_par(iproc))*(iorbmax-iorbmin+1),id='scalprod_recvbuf')
+    
+        !!ist=1
+        !!do jproc=0,nproc-1
+        !!    do iat=1,nat_par(iproc)
+        !!        iiorb=orbs%isorb_par(jproc)
+        !!        do iorb=1,orbs%norb_par(jproc,0)
+        !!            iiorb=iiorb+1
+        !!            if (iiorb>=iorbmin .and. iiorb<=iorbmax) then
+        !!                call vcopy(2*(ndir+1)*7*3*4, scalprod_recvbuf(ist), 1, scalprod(1,0,1,1,1,iat,iiorb), 1)
+        !!            end if
+        !!            ist=ist+2*(ndir+1)*7*3*4
+        !!        end do
+        !!    end do
+        !!end do
+
+
+        !@NEW ###########################################
+        nat_on_task = iat_startend(2,iproc)-iat_startend(1,iproc)+1
+        if (nproc>1) then
+            window = mpiwindow(2*(ndir+1)*7*3*4*(iat_startend(2,iproc)-iat_startend(1,iproc)+1)*max(1,orbs%norbp*orbs%nspinor), &
+                     scalprod_sendbuf(1,0,1,1,1,iat_startend(1,iproc),1), bigdft_mpi%mpi_comm)
+            call mpi_type_size(mpi_double_precision, size_of_double, ierr)
+        end if
+        datatypes = f_malloc(0.to.nproc-1,id='datatypes')
+
+        if (nproc>1) then
+            ist_recv = 1
+            do jproc=0,nproc-1
+                isorb = orbs%isorb_par(jproc) + 1
+                ieorb = orbs%isorb_par(jproc) + orbs%norb_par(jproc,0)
+                is = max(isorb,iorbmin)
+                ie = min(ieorb,iorbmax)
+                iatmin = at%astruct%nat
+                iatmax = 1
+                do iorb=is,ie
+                    ii = max(isat_par(iproc)+1,iatminmax(iorb,1))
+                    iatmin = min(ii,iatmin)
+                    ii = min(isat_par(iproc)+nat_par(iproc),iatminmax(iorb,2))
+                    iatmax = max(ii,iatmax)
+                end do
+                ncount = 2*(ndir+1)*7*3*4*(iatmax-iatmin+1)
+                nat_on_task = iat_startend(2,jproc)-iat_startend(1,jproc)+1
+                if (ie>=is .and. ncount>0) then
+                    call mpi_type_vector(ie-is+1, ncount, 2*(ndir+1)*7*3*4*nat_on_task, &
+                         mpi_double_precision, datatypes(jproc), ierr)
+                    call mpi_type_commit(datatypes(jproc), ierr)
+                    !!do iorb=is,ie
+                    !!    if (ncount>0) then
+                    !!        ist = 2*(ndir+1)*7*3*4*(nat_on_task*(iorb-orbs%isorb_par(jproc)-1)+iatmin-iat_startend(1,jproc))!orbs%norb_par(jproc,0)
+                    !!        !!write(*,'(a,8i9)') 'iproc, jproc, iorb, ist, iorb, orbs%isorb_par(jproc), iatmin, ncount', &
+                    !!        !!    iproc, jproc, iorb, ist, iorb, orbs%isorb_par(jproc), iatmin, ncount
+                    !!        !!if (ist<0) write(*,*) 'ist<0',ist
+                    !!        !!if (ist+ncount>2*(ndir+1)*7*3*4*at%astruct%nat*max(1,orbs%norb_par(jproc,0)*orbs%nspinor)) &
+                    !!        !!    write(*,*) 'ist>', &
+                    !!        !!        ist,ncount,2*(ndir+1)*7*3*4*at%astruct%nat*max(1,orbs%norb_par(jproc,0)*orbs%nspinor)
+                    !!        call mpiget(scalprod(1,0,1,1,1,iatmin-isat_par(iproc),iorb), ncount, jproc, &
+                    !!             int(ist,kind=mpi_address_kind), window)
+                    !!    end if
+                    !!end do
+                    ist = 2*(ndir+1)*7*3*4*(nat_on_task*(is-orbs%isorb_par(jproc)-1)+iatmin-iat_startend(1,jproc))!orbs%norb_par(jproc,0)
+                    call mpi_type_size(datatypes(jproc), nsize, ierr)
+                    nsize = nsize/size_of_double
+                    call mpi_get(scalprod_recvbuf(ist_recv), nsize, mpi_double_precision, jproc, &
+                         int(ist,kind=mpi_address_kind), 1, datatypes(jproc), window, ierr)
+                    ist_recv = ist_recv + nsize
+                end if
+            end do
+        else
+            call vcopy(2*(ndir+1)*7*3*4*(iat_startend(2,iproc)-iat_startend(1,iproc)+1)*(iorbmax-iorbmin+1), &
+                       scalprod_sendbuf(1,0,1,1,1,iat_startend(1,iproc),1), 1, &
+                       scalprod(1,0,1,1,1,1,iorbmin), 1)
+        end if
+        if (nproc>1) then
+            call mpi_fenceandfree(window)
+            ist_recv = 1
+            do jproc=0,nproc-1
+                isorb = orbs%isorb_par(jproc) + 1
+                ieorb = orbs%isorb_par(jproc) + orbs%norb_par(jproc,0)
+                is = max(isorb,iorbmin)
+                ie = min(ieorb,iorbmax)
+                iatmin = at%astruct%nat
+                iatmax = 1
+                do iorb=is,ie
+                    ii = max(isat_par(iproc)+1,iatminmax(iorb,1))
+                    iatmin = min(ii,iatmin)
+                    ii = min(isat_par(iproc)+nat_par(iproc),iatminmax(iorb,2))
+                    iatmax = max(ii,iatmax)
+                end do
+                ncount = 2*(ndir+1)*7*3*4*(iatmax-iatmin+1)
+                nat_on_task = iat_startend(2,jproc)-iat_startend(1,jproc)+1
+                if (ie>=is .and. ncount>0) then
+                    do iorb=is,ie
+                       call vcopy(ncount, scalprod_recvbuf(ist_recv), 1, scalprod(1,0,1,1,1,iatmin-isat_par(iproc),iorb), 1)
+                       ist_recv = ist_recv + ncount
+                    end do
+                    call mpi_type_free(datatypes(jproc), ierr)
+                end if
+            end do
+        end if
+
+        call f_free(datatypes)
+
+        !@END NEW #######################################
+    
+      call f_free(scalprod_recvbuf)
+      call f_free(scalprod_sendbuf)
+
+      call f_release_routine()
+
+      end subroutine transpose_scalprod
+
+
+      subroutine calculate_forces()
+        implicit none
+
+        call f_routine(id='calculate_forces')
+
+        natp_if: if (nat_par(iproc)>0) then
+    
             !apply the projectors  k-point of the processor
             !starting k-point
             ikpt=orbs%iokpt(1)
-            istart_ck=1
-            ispsi_k=1
             jorb=0
-            loop_kpt: do
+            loop_kptF: do
     
                call orbs_in_kpt(ikpt,orbs,isorb,ieorb,nspinor)
     
                call ncplx_kpt(ikpt,orbs,ncplx)
     
-               ! calculate the scalar product for all the orbitals
-               ispsi=ispsi_k
-               do iorb=isorb,ieorb
-                  iiorb=orbs%isorb+iorb
-                  ilr=orbs%inwhichlocreg(iiorb)
-                  do ispinor=1,nspinor,ncplx
-                     jorb=jorb+1
-                     ! loop over all projectors of this k-point
-                     iproj=0
-                     istart_c=istart_ck
-                     do iat=1,at%nat
-                        call plr_segs_and_vctrs(nlpspd%plr(iat),&
-                             mbseg_c,mbseg_f,mbvctr_c,mbvctr_f)
-                        jseg_c=1
-                        jseg_f=1
+         !call f_zero(fxyz_orb)
     
-    !!$                    mbseg_c=nlpspd%nseg_p(2*iat-1)-nlpspd%nseg_p(2*iat-2)
-    !!$                    mbseg_f=nlpspd%nseg_p(2*iat  )-nlpspd%nseg_p(2*iat-1)
-    !!$                    jseg_c=nlpspd%nseg_p(2*iat-2)+1
-    !!$                    jseg_f=nlpspd%nseg_p(2*iat-1)+1
-    !!$                    mbvctr_c=nlpspd%nvctr_p(2*iat-1)-nlpspd%nvctr_p(2*iat-2)
-    !!$                    mbvctr_f=nlpspd%nvctr_p(2*iat  )-nlpspd%nvctr_p(2*iat-1)
-                        ityp=at%iatype(iat)
-                        do l=1,4
-                           do i=1,3
-                              if (at%psppar(l,i,ityp) /= 0.0_gp) then
-                                 do m=1,2*l-1
-                                    iproj=iproj+1
-                                    call wpdot_wrap(ncplx,&
-                                         lzd%llr(ilr)%wfd%nvctr_c,lzd%llr(ilr)%wfd%nvctr_f,&
-                                         lzd%llr(ilr)%wfd%nseg_c,lzd%llr(ilr)%wfd%nseg_f,&
-                                         lzd%llr(ilr)%wfd%keyvglob,lzd%llr(ilr)%wfd%keyglob,phi(ispsi),  &
-                                         mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,&
-    !!$                                     nlpspd%keyv_p(jseg_c),&
-    !!$                                     nlpspd%keyg_p(1,jseg_c),&
-                                         nlpspd%plr(iat)%wfd%keyvglob(jseg_c),&
-                                         nlpspd%plr(iat)%wfd%keyglob(1,jseg_c),&
-                                         proj(istart_c),scalprod(1,idir,m,i,l,iat,jorb))
-                                    istart_c=istart_c+(mbvctr_c+7*mbvctr_f)*ncplx
-                                 end do
-                              end if
-                           end do
-                        end do
-                     end do
-                     ispsi=ispsi+(lzd%llr(ilr)%wfd%nvctr_c+7*lzd%llr(ilr)%wfd%nvctr_f)*ncplx
-                  end do
-                  if (iproj /= nlpspd%nproj) stop '1:applyprojectors'
-               end do
-               istart_ck=istart_c
-               if (ieorb == orbs%norbp) exit loop_kpt
-               ikpt=ikpt+1
-               ispsi_k=ispsi
-            end do loop_kpt
-            if (istart_ck-1  /= nlpspd%nprojel) stop '2:applyprojectors'
-    
-         end do
-    
-         !restore the projectors in the proj array (for on the run forces calc., tails or so)
-         if (refill) then 
-            call fill_projectors(iproc,lr,hx,hy,hz,at,orbs,rxyz,nlpspd,proj,0)
-         end if
-    
-      end if
-
-  end if norbp_if
-
-
-  !!call mpiallred(scalprodglobal(1,0,1,1,1,1,1), 2*10*7*3*4*at%nat*orbsglobal%norb, mpi_sum, bigdft_mpi%mpi_comm, ierr)
-
-
-     !!do iorb=1,orbsglobal%norb
-     !!   ! loop over all projectors
-     !!   do ispinor=1,nspinor
-     !!      do iat=1,at%nat
-     !!         ityp=at%iatype(iat)
-     !!         do l=1,4
-     !!            do i=1,3
-     !!               if (at%psppar(l,i,ityp) /= 0.0_gp) then
-     !!                  do m=1,2*l-1
-     !!                     do icplx=1,ncplx
-     !!                        write(200+iproc,'(a,7i8,es20.10)') &
-     !!                            'icplx,0,m,i,l,iat,iorb,scalprodglobal(icplx,0,m,i,l,iat,iorb)',&
-     !!                            icplx,0,m,i,l,iat,iorb,scalprodglobal(icplx,0,m,i,l,iat,iorb)
-     !!                     end do
-     !!                  end do
-     !!               end if
-     !!            end do
-     !!         end do
-     !!      end do
-     !!   end do
-     !!end do
-
-
-
-
-
-  allocate(scalprod_sendbuf(2,0:ndir,7,3,4,max(1,orbs%norbp*orbs%nspinor)+ndebug,at%nat),stat=i_stat)
-  call memocc(i_stat,scalprod_sendbuf,'scalprod_sendbuf',subname)
-  call razero(2*(ndir+1)*7*3*4*at%nat*max(1,orbs%norbp*orbs%nspinor),scalprod_sendbuf(1,0,1,1,1,1,1))
-
-  ! Copy scalprod to auxiliary array for communication
-  do iorb=1,orbs%norbp
-      do iat=1,at%nat
-          call dcopy(2*(ndir+1)*7*3*4, scalprod(1,0,1,1,1,iat,iorb), 1, scalprod_sendbuf(1,0,1,1,1,iorb,iat), 1)
-          !write(*,'(a,3i7,es18.8)') 'FIRST: iproc, iorb, iat, scalprod(1,0,1,1,1,iat,iorb)', &
-          !                           iproc, iorb, iat, scalprod(1,0,1,1,1,iat,iorb)
-          !write(*,'(a,3i7,es18.8)') 'TEMP: iproc, iorb, iat, scalprod_sendbuf(1,0,1,1,1,iorb,iat)', &
-          !                           iproc, iorb, iat, scalprod_sendbuf(1,0,1,1,1,iorb,iat)
-      end do
-  end do
-
-  i_all=-product(shape(scalprod))*kind(scalprod)
-  deallocate(scalprod,stat=i_stat)
-  call memocc(i_stat,i_all,'scalprod',subname)
-
-  allocate(scalprod_recvbuf(2*(ndir+1)*7*3*4*max(1,nat_par(iproc))*orbs%norb*orbs%nspinor+ndebug),stat=i_stat)
-  call memocc(i_stat,scalprod_recvbuf,'scalprod_recvbuf',subname)
-  call razero(2*(ndir+1)*7*3*4*max(1,nat_par(iproc))*orbs%norb*orbs%nspinor,scalprod_recvbuf(1))
-
-  if (nproc>1) then
-      call mpi_alltoallv(scalprod_sendbuf, sendcounts, senddspls, mpi_double_precision, &
-                         scalprod_recvbuf, recvcounts, recvdspls, mpi_double_precision, &
-                         bigdft_mpi%mpi_comm, ierr)
-  else
-      call dcopy(2*(ndir+1)*7*3*4*at%nat*orbs%norb*orbs%nspinor, scalprod_sendbuf(1,0,1,1,1,1,1), 1, scalprod_recvbuf(1), 1)
-  end if
-
-  i_all=-product(shape(scalprod_sendbuf))*kind(scalprod_sendbuf)
-  deallocate(scalprod_sendbuf,stat=i_stat)
-  call memocc(i_stat,i_all,'scalprod_sendbuf',subname)
-
-  !write(*,'(a,i7,es18.8)') 'iproc, scalprod_recvbuf(1)', iproc, scalprod_recvbuf(1)
-  
-  !allocate(scalprod(2,0:9,7,3,4,at%nat,orbs%norbp*orbs%nspinor+ndebug),stat=i_stat)
-  !allocate(scalprod_sendbuf(2,0:9,7,3,4,orbs%norbp*orbs%nspinor+ndebug,at%nat),stat=i_stat)
-  !allocate(scalprod_recvbuf(2*10*7*3*4*nat_par(iproc)*orbs%norb*orbs%nspinor+ndebug),stat=i_stat)
-
-  allocate(scalprod(2,0:ndir,7,3,4,max(1,nat_par(iproc)),orbs%norb*orbs%nspinor+ndebug),stat=i_stat)
-  call memocc(i_stat,scalprod,'scalprod',subname)
-  call to_zero(2*(ndir+1)*7*3*4*max(1,nat_par(iproc))*orbs%norb*orbs%nspinor,scalprod(1,0,1,1,1,1,1))
-
-  ist=1
-  do jproc=0,nproc-1
-      do iat=1,nat_par(iproc)
-          iiorb=orbs%isorb_par(jproc)
-          !!write(*,'(a,4i8)') 'iproc, jproc, orbs%isorb_par(jproc), iiorb', iproc, jproc, orbs%isorb_par(jproc), iiorb
-          do iorb=1,orbs%norb_par(jproc,0)
-              iiorb=iiorb+1
-              call dcopy(2*(ndir+1)*7*3*4, scalprod_recvbuf(ist), 1, scalprod(1,0,1,1,1,iat,iiorb), 1)
-              !write(*,'(a,5i7,2es18.8)') 'SECOND: iproc, jproc, iiorb, iat, ist, scalprod(1,0,1,1,1,iat,iiorb), &
-              !                           &scalprod_recvbuf(ist)', &
-              !                           iproc, jproc, iiorb, iat, ist, scalprod(1,0,1,1,1,iat,iiorb), scalprod_recvbuf(ist)
-              ist=ist+2*(ndir+1)*7*3*4
-          end do
-      end do
-  end do
-
-
-
-  allocate(fxyz_orb(3,at%nat+ndebug),stat=i_stat)
-  call memocc(i_stat,fxyz_orb,'fxyz_orb',subname)
-
-  natp_if: if (nat_par(iproc)>0) then
-
-      !apply the projectors  k-point of the processor
-      !starting k-point
-      ikpt=orbs%iokpt(1)
-      jorb=0
-      loop_kptF: do
-
-         call orbs_in_kpt(ikpt,orbs,isorb,ieorb,nspinor)
-
-         call ncplx_kpt(ikpt,orbs,ncplx)
-
-         call to_zero(3*at%nat,fxyz_orb(1,1))
-
-         ! loop over all my orbitals for calculating forces
-         !do iorbout=isorb,ieorb
-         !do iorbout=1,orbs%norb
-         ii=0
-         do iseg=1,denskern%nseg
-            do jjorb=denskern%keyg(1,iseg),denskern%keyg(2,iseg)
-               ii=ii+1
-               iorbout = (jjorb-1)/orbs%norb + 1
-               jorb = jjorb - (iorbout-1)*orbs%norb
-            !jorb=0 !THIS WILL CREATE PROBLEMS FOR K-POINTS!!
-            sab=0.0_gp
-            ! loop over all projectors
-            !do iorb=isorb,ieorb
-            !do iorb=1,orbs%norb
-               do ispinor=1,nspinor,ncplx
-                  !jorb=jorb+1
-                  !ind=collcom%matrixindex_in_compressed(jorb,iorbout)
-                  !ind=collcom%matrixindex_in_compressed(iorbout,jorb)
-                  ind=ii
-                  !write(100+iproc,'(a,3i8,es20.10)') 'iorbout, jorb, ind, denskern%matrix_compr(ind)', iorbout, jorb, ind, denskern%matrix_compr(ind)
-                  !if (kernel(jorb,iorbout)==0.d0) cycle
-                  if (denskern%matrix_compr(ind)==0.d0) cycle
-                  !do iat=1,at%nat
+               ! loop over all my orbitals for calculating forces
+               !do iorbout=isorb,ieorb
+               !do iorbout=1,orbs%norb
+               spin_loop: do ispin=1,denskern%nspin
                   do iat=1,nat_par(iproc)
                      iiat=isat_par(iproc)+iat
-                     ityp=at%iatype(iiat)
-                     do l=1,4
-                        do i=1,3
-                           if (at%psppar(l,i,ityp) /= 0.0_gp) then
-                              do m=1,2*l-1
-                                 do icplx=1,ncplx
-                                    ! scalar product with the derivatives in all the directions
-                                    sp0=real(scalprod(icplx,0,m,i,l,iat,iorbout),gp)
-                                    !if (kernel(jorb,iorbout)/=0.d0) then
-                                        !!write(100+iproc,'(a,9i6,es18.8)') 'iorbout,jorb,icplx,0,m,i,l,iat,iiat,sp0', &
-                                        !!                                   iorbout,jorb,icplx,0,m,i,l,iat,iiat,sp0
-                                    !end if
-                                    do idir=1,3
-                                       spi=real(scalprod(icplx,idir,m,i,l,iat,jorb),gp)
-                                       !ind=collcom%matrixindex_in_compressed(jorb,iorbout)
-                                       !ind=collcom%matrixindex_in_compressed(iorbout,jorb)
-                                       ind=ii
-                                       !fxyz_orb(idir,iiat)=fxyz_orb(idir,iiat)+&
-                                       !     kernel(jorb,iorbout)*at%psppar(l,i,ityp)*sp0*spi
-                                       fxyz_orb(idir,iiat)=fxyz_orb(idir,iiat)+&
-                                            denskern%matrix_compr(ind)*at%psppar(l,i,ityp)*sp0*spi
-                                       !if (kernel(jorb,iorbout)/=0.d0) then
-                                           !!write(110+iproc,'(a,10i6,es18.8)') 'iorbout,jorb,icplx,0,m,i,l,iat,iiat,&
-                                           !!                                    &idir,fxyz_orb(idir,iat)', &
-                                           !!                                    iorbout,jorb,icplx,0,m,i,l,iat,iiat,&
-                                           !!                                    idir,fxyz_orb(idir,iat)
-                                       !end if
-                                    end do
-                                    spi=real(scalprod(icplx,0,m,i,l,iat,jorb),gp)
-                                    !!Enl=Enl+sp0*spi*at%psppar(l,i,ityp)*&
-                                    !!orbs%occup(iorb+orbs%isorb)*orbs%kwgts(orbs%iokpt(iorb))
-                                    !!do idir=4,9 !for stress
-                                    !!    strc=real(scalprod(icplx,idir,m,i,l,iat,jorb),gp)
-                                    !!    sab(idir-3)=&
-                                    !!    sab(idir-3)+&   
-                                    !!    at%psppar(l,i,ityp)*sp0*2.0_gp*strc*&
-                                    !!    orbs%occup(iorb+orbs%isorb)*orbs%kwgts(orbs%iokpt(iorb))
-                                    !!end do
-                                 end do
-                              end do
+                     iiiat=isat_par(iproc)+iat+isat-1
+                     ityp=at%astruct%iatype(iiat)
+                     !write(*,'(a,3i9,2i12)') 'iproc, iat, iiat, iorbminmax', iproc, iat, iiat, iorbminmax(iiat,:)
+                     do iseg=1,denskern%nseg
+                        ! Check whether this segment is within the range to be considered (check 
+                        ! only the line number as one segment is always on one single line).
+                        iorbout = denskern%keyg(1,2,iseg)
+                        if (ispin==2) then
+                            iorbout = iorbout + denskern%nfvctr
+                        end if
+                        if (iorbout<iorbminmax(iiat,1) .or. iorbout>iorbminmax(iiat,2)) cycle
+                        !if (denskern%keyg(1,2,iseg)<iorbminmax(iiat,1) .or. denskern%keyg(1,2,iseg)>iorbminmax(iiat,2)) cycle
+                        ii = denskern%keyv(iseg)-1 + (ispin-1)*denskern%nvctr 
+                        do jjorb=denskern%keyg(1,1,iseg),denskern%keyg(2,1,iseg)
+                           ii=ii+1
+                           !!iorbout = (jjorb-1)/orbs%norb + 1
+                           !!jorb = jjorb - (iorbout-1)*orbs%norb
+                           jorb = jjorb
+                           if (jorb<iorbminmax(iiat,1) .or. jorb>iorbminmax(iiat,2)) cycle
+                           !spin shift
+                           if (ispin==2) then
+                               !iorbout = iorbout + denskern%nfvctr
+                               jorb = jorb + denskern%nfvctr
                            end if
-                        end do
-                     end do
-                     !HGH case, offdiagonal terms
-                     if (at%npspcode(ityp) == 3 .or. at%npspcode(ityp) == 10) then
-                        do l=1,3 !no offdiagoanl terms for l=4 in HGH-K case
-                           do i=1,2
-                              if (at%psppar(l,i,ityp) /= 0.0_gp) then 
-                                 loop_j: do j=i+1,3
-                                    if (at%psppar(l,j,ityp) == 0.0_gp) exit loop_j
-                                    !offdiagonal HGH term
-                                    if (at%npspcode(ityp) == 3) then !traditional HGH convention
-                                       hij=offdiagarr(i,j-i,l)*at%psppar(l,j,ityp)
-                                    else !HGH-K convention
-                                       hij=at%psppar(l,i+j+1,ityp)
-                                    end if
-                                    do m=1,2*l-1
-                                       !F_t= 2.0*h_ij (<D_tp_i|psi><psi|p_j>+<p_i|psi><psi|D_tp_j>)
-                                       !(the two factor is below)
-                                       do icplx=1,ncplx
-                                          sp0i=real(scalprod(icplx,0,m,i,l,iat,iorbout),gp)
-                                          sp0j=real(scalprod(icplx,0,m,j,l,iat,iorbout),gp)
-                                          do idir=1,3
-                                             spi=real(scalprod(icplx,idir,m,i,l,iat,jorb),gp)
-                                             spj=real(scalprod(icplx,idir,m,j,l,iat,jorb),gp)
-                                             !ind=collcom%matrixindex_in_compressed(jorb,iorbout)
-                                             !ind=collcom%matrixindex_in_compressed(iorbout,jorb)
-                                             ind=ii
-                                             !fxyz_orb(idir,iiat)=fxyz_orb(idir,iiat)+&
-                                             !     kernel(jorb,iorbout)*hij*(sp0j*spi+spj*sp0i)
-                                             fxyz_orb(idir,iiat)=fxyz_orb(idir,iiat)+&
-                                                  denskern%matrix_compr(ind)*hij*(sp0j*spi+spj*sp0i)
+                        !jorb=0 !THIS WILL CREATE PROBLEMS FOR K-POINTS!!
+                        sab=0.0_gp
+                        ! loop over all projectors
+                        !do iorb=isorb,ieorb
+                        !do iorb=1,orbs%norb
+                           do ispinor=1,nspinor,ncplx
+                              !jorb=jorb+1
+                              !ind=collcom%matrixindex_in_compressed(jorb,iorbout)
+                              !ind=collcom%matrixindex_in_compressed(iorbout,jorb)
+                              ind=ii
+                              !write(100+iproc,'(a,3i8,es20.10)') 'iorbout, jorb, ind, denskern%matrix_compr(ind)', iorbout, jorb, ind, denskern%matrix_compr(ind)
+                              !if (kernel(jorb,iorbout)==0.d0) cycle
+                              if (denskern_gathered(ind)==0.d0) cycle
+                              !do iat=1,natp
+                                 do l=1,4
+                                    do i=1,3
+                                       if (at%psppar(l,i,ityp) /= 0.0_gp) then
+                                          do m=1,2*l-1
+                                             do icplx=1,ncplx
+                                                ! scalar product with the derivatives in all the directions
+                                                sp0=real(scalprod(icplx,0,m,i,l,iat,iorbout),gp)
+                                                !if (kernel(jorb,iorbout)/=0.d0) then
+                                                    !!write(100+iproc,'(a,9i6,es18.8)') 'iorbout,jorb,icplx,0,m,i,l,iat,iiat,sp0', &
+                                                    !!                                   iorbout,jorb,icplx,0,m,i,l,iat,iiat,sp0
+                                                !end if
+                                                !if (sp0==0.d0) write(*,*) 'sp0 is zero'
+                                                do idir=1,3
+                                                   spi=real(scalprod(icplx,idir,m,i,l,iat,jorb),gp)
+                                                   !if (spi==0.d0) write(*,*) 'sp0 is zero'
+                                                   !ind=collcom%matrixindex_in_compressed(jorb,iorbout)
+                                                   !ind=collcom%matrixindex_in_compressed(iorbout,jorb)
+                                                   ind=ii
+                                                   !fxyz_orb(idir,iiat)=fxyz_orb(idir,iiat)+&
+                                                   !     kernel(jorb,iorbout)*at%psppar(l,i,ityp)*sp0*spi
+                                                   fxyz_orb(idir,iiiat)=fxyz_orb(idir,iiiat)+&
+                                                        denskern_gathered(ind)*at%psppar(l,i,ityp)*sp0*spi
+                                                   !if (kernel(jorb,iorbout)/=0.d0) then
+                                                       !!write(110+iproc,'(a,10i6,es18.8)') 'iorbout,jorb,icplx,0,m,i,l,iat,iiat,&
+                                                       !!                                    &idir,fxyz_orb(idir,iat)', &
+                                                       !!                                    iorbout,jorb,icplx,0,m,i,l,iat,iiat,&
+                                                       !!                                    idir,fxyz_orb(idir,iat)
+                                                   !end if
+                                                end do
+                                                !!spi=real(scalprod(icplx,0,m,i,l,iat,jorb),gp)
+                                                !!Enl=Enl+sp0*spi*at%psppar(l,i,ityp)*&
+                                                !!orbs%occup(iorb+orbs%isorb)*orbs%kwgts(orbs%iokpt(iorb))
+                                                !!do idir=4,9 !for stress
+                                                !!    strc=real(scalprod(icplx,idir,m,i,l,iat,jorb),gp)
+                                                !!    sab(idir-3)=&
+                                                !!    sab(idir-3)+&   
+                                                !!    at%psppar(l,i,ityp)*sp0*2.0_gp*strc*&
+                                                !!    orbs%occup(iorb+orbs%isorb)*orbs%kwgts(orbs%iokpt(iorb))
+                                                !!end do
+                                             end do
                                           end do
-                                          sp0i=real(scalprod(icplx,0,m,i,l,iat,jorb),gp)
-                                          !!Enl=Enl+2.0_gp*sp0i*sp0j*hij&
-                                          !!*orbs%occup(iorb+orbs%isorb)*orbs%kwgts(orbs%iokpt(iorb))
-                                          !!do idir=4,9
-                                          !!    spi=real(scalprod(icplx,idir,m,i,l,iat,jorb),gp)
-                                          !!    spj=real(scalprod(icplx,idir,m,j,l,iat,jorb),gp)
-                                          !!    sab(idir-3)=&
-                                          !!    sab(idir-3)+&   
-                                          !!    2.0_gp*hij*(sp0j*spi+sp0i*spj)&
-                                          !!    *orbs%occup(iorb+orbs%isorb)*orbs%kwgts(orbs%iokpt(iorb))
-                                          !!end do
+                                       end if
+                                    end do
+                                 end do
+                                 !HGH case, offdiagonal terms
+                                 if (at%npspcode(ityp) == PSPCODE_HGH .or. &
+                                     at%npspcode(ityp) == PSPCODE_HGH_K .or. &
+                                     at%npspcode(ityp) == PSPCODE_HGH_K_NLCC) then
+                                    do l=1,3 !no offdiagoanl terms for l=4 in HGH-K case
+                                       do i=1,2
+                                          if (at%psppar(l,i,ityp) /= 0.0_gp) then 
+                                             loop_j: do j=i+1,3
+                                                if (at%psppar(l,j,ityp) == 0.0_gp) exit loop_j
+                                                !offdiagonal HGH term
+                                                if (at%npspcode(ityp) == PSPCODE_HGH) then !traditional HGH convention
+                                                   hij=offdiagarr(i,j-i,l)*at%psppar(l,j,ityp)
+                                                else !HGH-K convention
+                                                   hij=at%psppar(l,i+j+1,ityp)
+                                                end if
+                                                do m=1,2*l-1
+                                                   !F_t= 2.0*h_ij (<D_tp_i|psi><psi|p_j>+<p_i|psi><psi|D_tp_j>)
+                                                   !(the two factor is below)
+                                                   do icplx=1,ncplx
+                                                      sp0i=real(scalprod(icplx,0,m,i,l,iat,iorbout),gp)
+                                                      sp0j=real(scalprod(icplx,0,m,j,l,iat,iorbout),gp)
+                                                      do idir=1,3
+                                                         spi=real(scalprod(icplx,idir,m,i,l,iat,jorb),gp)
+                                                         spj=real(scalprod(icplx,idir,m,j,l,iat,jorb),gp)
+                                                         !ind=collcom%matrixindex_in_compressed(jorb,iorbout)
+                                                         !ind=collcom%matrixindex_in_compressed(iorbout,jorb)
+                                                         ind=ii
+                                                         !fxyz_orb(idir,iiat)=fxyz_orb(idir,iiat)+&
+                                                         !     kernel(jorb,iorbout)*hij*(sp0j*spi+spj*sp0i)
+                                                         fxyz_orb(idir,iiiat)=fxyz_orb(idir,iiiat)+&
+                                                              denskern_gathered(ind)*hij*(sp0j*spi+spj*sp0i)
+                                                      end do
+                                                      !!sp0i=real(scalprod(icplx,0,m,i,l,iat,jorb),gp)
+                                                      !!Enl=Enl+2.0_gp*sp0i*sp0j*hij&
+                                                      !!*orbs%occup(iorb+orbs%isorb)*orbs%kwgts(orbs%iokpt(iorb))
+                                                      !!do idir=4,9
+                                                      !!    spi=real(scalprod(icplx,idir,m,i,l,iat,jorb),gp)
+                                                      !!    spj=real(scalprod(icplx,idir,m,j,l,iat,jorb),gp)
+                                                      !!    sab(idir-3)=&
+                                                      !!    sab(idir-3)+&   
+                                                      !!    2.0_gp*hij*(sp0j*spi+sp0i*spj)&
+                                                      !!    *orbs%occup(iorb+orbs%isorb)*orbs%kwgts(orbs%iokpt(iorb))
+                                                      !!end do
+                                                   end do
+                                                end do
+                                             end do loop_j
+                                          end if
                                        end do
                                     end do
-                                 end do loop_j
-                              end if
+                                 end if
                            end do
+             
+                           !!!orbital-dependent factor for the forces
+                           !!orbfac=orbs%kwgts(orbs%iokpt(iorbout))*orbs%occup(iorbout+orbs%isorb)*2.0_gp
+             
+                           !seq: strten(1:6) =  11 22 33 23 13 12 
+                           strten(1)=strten(1)+sab(1)/vol 
+                           strten(2)=strten(2)+sab(2)/vol 
+                           strten(3)=strten(3)+sab(3)/vol 
+                           strten(4)=strten(4)+sab(5)/vol
+                           strten(5)=strten(5)+sab(6)/vol
+                           strten(6)=strten(6)+sab(4)/vol
                         end do
-                     end if
+                     end do
                   end do
+               end do spin_loop
+               !do iat=1,natp
+               do iat=1,nat_par(iproc)
+                  iiat=isat_par(iproc)+iat+isat-1
+                  !write(120+iproc,'(a,2i7,2es18.8)') 'iorbout, iat, fsep(1,iiat), fxyz_orb(1,iiat)', &
+                  !                                    iorbout, iat, fsep(1,iiat), fxyz_orb(1,iiat)
+                  !!fsep(1,iat)=fsep(1,iat)+orbfac*fxyz_orb(1,iat)
+                  !!fsep(2,iat)=fsep(2,iat)+orbfac*fxyz_orb(2,iat)
+                  !!fsep(3,iat)=fsep(3,iat)+orbfac*fxyz_orb(3,iat)
+                  fsep(1,iiat)=fsep(1,iiat)+2.d0*fxyz_orb(1,iiat)
+                  fsep(2,iiat)=fsep(2,iiat)+2.d0*fxyz_orb(2,iiat)
+                  fsep(3,iiat)=fsep(3,iiat)+2.d0*fxyz_orb(3,iiat)
                end do
-       
-               !!!orbital-dependent factor for the forces
-               !!orbfac=orbs%kwgts(orbs%iokpt(iorbout))*orbs%occup(iorbout+orbs%isorb)*2.0_gp
-       
-               !seq: strten(1:6) =  11 22 33 23 13 12 
-               strten(1)=strten(1)+sab(1)/vol 
-               strten(2)=strten(2)+sab(2)/vol 
-               strten(3)=strten(3)+sab(3)/vol 
-               strten(4)=strten(4)+sab(5)/vol
-               strten(5)=strten(5)+sab(6)/vol
-               strten(6)=strten(6)+sab(4)/vol
-            end do
-         end do
-         !do iat=1,at%nat
-         do iat=1,nat_par(iproc)
-            iiat=isat_par(iproc)+iat
-            !write(120+iproc,'(a,2i7,2es18.8)') 'iorbout, iat, fsep(1,iiat), fxyz_orb(1,iiat)', &
-            !                                    iorbout, iat, fsep(1,iiat), fxyz_orb(1,iiat)
-            !!fsep(1,iat)=fsep(1,iat)+orbfac*fxyz_orb(1,iat)
-            !!fsep(2,iat)=fsep(2,iat)+orbfac*fxyz_orb(2,iat)
-            !!fsep(3,iat)=fsep(3,iat)+orbfac*fxyz_orb(3,iat)
-            fsep(1,iiat)=fsep(1,iiat)+2.d0*fxyz_orb(1,iiat)
-            fsep(2,iiat)=fsep(2,iiat)+2.d0*fxyz_orb(2,iiat)
-            fsep(3,iiat)=fsep(3,iiat)+2.d0*fxyz_orb(3,iiat)
-         end do
-         if (ieorb == orbs%norbp) exit loop_kptF
-         ikpt=ikpt+1
-         ispsi_k=ispsi
-      end do loop_kptF
+               if (ieorb == orbs%norbp) exit loop_kptF
+               ikpt=ikpt+1
+               ispsi_k=ispsi
+            end do loop_kptF
+    
+        end if natp_if
 
-  end if natp_if
+        call f_release_routine()
 
-
-!!!Adding Enl to the diagonal components of strten after loop over kpts is finished...
-!!do i=1,3
-!!strten(i)=strten(i)+Enl/vol
-!!end do
-
-!!!  do iat=1,at%nat
-!!!     write(20+iat,'(1x,i5,1x,3(1x,1pe12.5))') &
-!!!          iat,fsep(1,iat),fsep(2,iat),fsep(3,iat)
-!!!  end do
-
-  i_all=-product(shape(fxyz_orb))*kind(fxyz_orb)
-  deallocate(fxyz_orb,stat=i_stat)
-  call memocc(i_stat,i_all,'fxyz_orb',subname)
-  i_all=-product(shape(scalprod))*kind(scalprod)
-  deallocate(scalprod,stat=i_stat)
-  call memocc(i_stat,i_all,'scalprod',subname)
-  i_all=-product(shape(nat_par))*kind(nat_par)
-  deallocate(nat_par,stat=i_stat)
-  call memocc(i_stat,i_all,'nat_par',subname)
-  i_all=-product(shape(isat_par))*kind(isat_par)
-  deallocate(isat_par,stat=i_stat)
-  call memocc(i_stat,i_all,'isat_par',subname)
-  i_all=-product(shape(sendcounts))*kind(sendcounts)
-  deallocate(sendcounts,stat=i_stat)
-  call memocc(i_stat,i_all,'sendcounts',subname)
-  i_all=-product(shape(recvcounts))*kind(recvcounts)
-  deallocate(recvcounts,stat=i_stat)
-  call memocc(i_stat,i_all,'recvcounts',subname)
-  i_all=-product(shape(senddspls))*kind(senddspls)
-  deallocate(senddspls,stat=i_stat)
-  call memocc(i_stat,i_all,'senddspls',subname)
-  i_all=-product(shape(recvdspls))*kind(recvdspls)
-  deallocate(recvdspls,stat=i_stat)
-  call memocc(i_stat,i_all,'recvdspls',subname)
-
-  i_all=-product(shape(scalprod_recvbuf))*kind(scalprod_recvbuf)
-  deallocate(scalprod_recvbuf,stat=i_stat)
-  call memocc(i_stat,i_all,'scalprod_recvbuf',subname)
-
+      end subroutine calculate_forces
 
 END SUBROUTINE nonlocal_forces_linear
+
+
+
+
+
+subroutine internal_forces(nat, rxyz, ixyz_int, ifrozen, fxyz)
+  use module_base
+  use dynamic_memory
+  use internal_coordinates
+  use yaml_output
+  implicit none
+
+  ! Calling arguments
+  integer,intent(in) :: nat
+  real(gp),dimension(3,nat),intent(in) :: rxyz
+  integer,dimension(3,nat),intent(in) :: ixyz_int
+  integer,dimension(nat),intent(in) :: ifrozen
+  real(gp),dimension(3,nat),intent(inout) :: fxyz
+
+  ! Local variables
+  integer :: iat, ii
+  integer,dimension(:),allocatable :: na, nb, nc
+  real(gp),parameter :: degree=57.29578d0
+  real(gp),dimension(:,:),allocatable :: geo, rxyz_tmp, geo_tmp, fxyz_int, tmp, rxyz_shifted
+  real(gp),parameter :: alpha=1.d1
+  real(kind=8),dimension(3) :: shift
+  logical :: fix_bond, fix_phi, fix_theta
+
+  call f_routine(id='internal_forces')
+
+  ! Using internal coordinates the first atom is by definition at (0,0,0), so
+  ! the global shift is just given by rxyz(:,1).
+  shift=rxyz(:,1)
+
+  na = f_malloc(nat,id='na')
+  nb = f_malloc(nat,id='nb')
+  nc = f_malloc(nat,id='nc')
+  geo = f_malloc((/3,nat/),id='geo')
+  rxyz_tmp = f_malloc((/3,nat/),id='rxyz_tmp')
+  rxyz_shifted = f_malloc((/3,nat/),id='rxyz_shifted')
+  geo_tmp = f_malloc((/3,nat/),id='geo_tmp')
+  fxyz_int = f_malloc((/3,nat/),id='fxyz_int')
+  tmp = f_malloc((/3,nat/),id='tmp')
+
+  na=ixyz_int(1,:)
+  nb=ixyz_int(2,:)
+  nc=ixyz_int(3,:)
+
+  do iat=1,nat
+      rxyz_shifted(1,iat)=rxyz(1,iat)-shift(1)
+      rxyz_shifted(2,iat)=rxyz(2,iat)-shift(2)
+      rxyz_shifted(3,iat)=rxyz(3,iat)-shift(3)
+  end do
+
+!!#  if (bigdft_mpi%iproc==0) call yaml_map('force start',fxyz)
+!!#  if (bigdft_mpi%iproc==0) call yaml_map('rxyz_shifted start',rxyz_shifted)
+
+  !!! Get the neighbor lists
+  !!call get_neighbors(rxyz, nat, na, nb, nc)
+  
+  ! Transform the atomic positions to internal coordinates 
+  !call xyzint(rxyz, nat, na, nb, nc, degree, geo)
+  call xyzint(rxyz_shifted, nat, na, nb, nc, degree, geo)
+  !!if (bigdft_mpi%iproc==0) call yaml_map('internal orig',geo)
+!!! TEST ######################
+!!call internal_to_cartesian(nat, na, nb, nc, geo, rxyz_tmp)
+!!if (bigdft_mpi%iproc==0) call yaml_map('rxyz start',rxyz)
+!!if (bigdft_mpi%iproc==0) call yaml_map('rxyz end',rxyz_tmp)
+!!! ###########################
+
+  ! Shift the atomic positions according to the forces
+  rxyz_tmp = rxyz_shifted + alpha*fxyz
+
+  ! Transform these new atomic positions to internal coordinates
+  call xyzint(rxyz_tmp, nat, na, nb, nc, degree, geo_tmp)
+
+  !!! Define the forces in internal coordinates
+  !!fxyz_int = geo_tmp - geo
+
+  ! Apply some constraints if required
+  do iat=1,nat
+      !!if (bigdft_mpi%iproc==0) then
+      !!    write(*,'(a,i4,2es16.6)') 'iat, geo(1,iat), geo_tmp(1,iat)', iat, geo(1,iat), geo_tmp(1,iat)
+      !!    write(*,'(a,i4,2es16.6)') 'iat, geo(2,iat), geo_tmp(2,iat)', iat, geo(2,iat), geo_tmp(2,iat)
+      !!    write(*,'(a,i4,2es16.6)') 'iat, geo(3,iat), geo_tmp(3,iat)', iat, geo(3,iat), geo_tmp(3,iat)
+      !!end if
+      ii=ifrozen(iat)
+      fix_theta = (mod(ii,10)==2)
+      if (fix_theta) ii=ii-2
+      fix_phi = (mod(ii,100)==20)
+      if (fix_phi) ii=ii-20
+      fix_bond = (mod(ii,1000)==200)
+      if (fix_bond) then
+          ! keep the original value, i.e. don't let this value be modified by the forces
+          geo_tmp(1,iat)=geo(1,iat)
+          if (bigdft_mpi%iproc==0) call yaml_map('keep internal coordinate fixed',(/1,iat/))
+      end if
+      if (fix_phi) then
+          ! keep the original value, i.e. don't let this value be modified by the forces
+          geo_tmp(2,iat)=geo(2,iat)
+          if (bigdft_mpi%iproc==0) call yaml_map('keep internal coordinate fixed',(/2,iat/))
+      end if
+      if (fix_theta) then
+          ! keep the original value, i.e. don't let this value be modified by the forces
+          geo_tmp(3,iat)=geo(3,iat)
+          if (bigdft_mpi%iproc==0) call yaml_map('keep internal coordinate fixed',(/3,iat/))
+      end if
+  end do
+
+
+  ! Transform the atomic positions back to cartesian coordinates
+  ! The bond angle must be modified (take 180 degrees minus the angle)
+  geo_tmp(2:2,1:nat) = 180.d0 - geo_tmp(2:2,1:nat)
+  geo(2:2,1:nat) = 180.d0 - geo(2:2,1:nat)
+  !fxyz_int(2:2,1:nat) = 180.d0 - fxyz_int(2:2,1:nat)
+  ! convert to rad
+  geo_tmp(2:3,1:nat) = geo_tmp(2:3,1:nat) / degree
+  geo(2:3,1:nat) = geo(2:3,1:nat) / degree
+  !fxyz_int(2:3,1:nat) = fxyz_int(2:3,1:nat) / degree
+  call internal_to_cartesian(nat, na, nb, nc, geo_tmp, rxyz_tmp)
+  call internal_to_cartesian(nat, na, nb, nc, geo, tmp)
+  !call internal_to_cartesian(nat, na, nb, nc, fxyz_int, fxyz)
+
+  !if (bigdft_mpi%iproc==0) then
+  !    do iat=1,nat
+  !        write(*,'(a,i4,2es16.6)') 'iat, tmp(1,iat)-rxyz(1,iat), tmp(1,iat)-rxyz_tmp(1,iat)', &
+  !            iat, tmp(1,iat)-rxyz(1,iat), tmp(1,iat)-rxyz_tmp(1,iat) 
+  !        write(*,'(a,i4,2es16.6)') 'iat, tmp(2,iat)-rxyz(2,iat), tmp(2,iat)-rxyz_tmp(2,iat)', &
+  !            iat, tmp(2,iat)-rxyz(2,iat), tmp(2,iat)-rxyz_tmp(2,iat) 
+  !        write(*,'(a,i4,2es16.6)') 'iat, tmp(3,iat)-rxyz(3,iat), tmp(3,iat)-rxyz_tmp(3,iat)', &
+  !            iat, tmp(3,iat)-rxyz(3,iat), tmp(3,iat)-rxyz_tmp(3,iat) 
+  !    end do
+  !end if
+
+  !if (bigdft_mpi%iproc==0) call yaml_map('rxyz_tmp end',rxyz_tmp)
+  !if (bigdft_mpi%iproc==0) call yaml_map('tmp end',tmp)
+
+  ! Define the new forces
+  fxyz = rxyz_tmp - tmp
+  fxyz = fxyz/alpha
+
+  !!if (bigdft_mpi%iproc==0) call yaml_map('force end',fxyz)
+
+  ! Test
+  rxyz_tmp = rxyz+alpha*fxyz
+  call xyzint(rxyz_tmp, nat, na, nb, nc, degree, geo_tmp)
+!!#  if (bigdft_mpi%iproc==0) call yaml_map('cartesian end before',rxyz)
+!!#  if (bigdft_mpi%iproc==0) call yaml_map('cartesian end after',rxyz_tmp)
+!!#  if (bigdft_mpi%iproc==0) call yaml_map('internal end',geo_tmp)
+
+
+  call f_free(na)
+  call f_free(nb)
+  call f_free(nc)
+  call f_free(geo)
+  call f_free(rxyz_tmp)
+  call f_free(rxyz_shifted)
+  call f_free(geo_tmp)
+  call f_free(fxyz_int)
+  call f_free(tmp)
+
+  call f_release_routine()
+
+end subroutine internal_forces
+
+
+
+subroutine keep_internal_coordinates_constraints(nat, rxyz_int, ixyz_int, ifrozen, rxyz)
+  use module_base
+  use dynamic_memory
+  use internal_coordinates
+  use yaml_output
+  implicit none
+
+  ! Calling arguments
+  integer,intent(in) :: nat
+  real(gp),dimension(3,nat),intent(in) :: rxyz_int
+  integer,dimension(3,nat),intent(in) :: ixyz_int
+  integer,dimension(nat),intent(in) :: ifrozen
+  real(gp),dimension(3,nat),intent(inout) :: rxyz
+
+  ! Local variables
+  integer :: iat, i, ii
+  integer,dimension(:),allocatable :: na, nb, nc
+  real(gp),parameter :: degree=57.29578d0
+  real(gp),dimension(:,:),allocatable :: geo, geo_ref
+  real(gp),parameter :: alpha=1.d0
+  real(kind=8),dimension(3) :: shift
+  logical :: fix_bond, fix_phi, fix_theta
+
+  call f_routine(id='internal_forces')
+
+  ! Using internal coordinates the first atom is by definition at (0,0,0), so
+  ! the global shift is just given by rxyz(:,1).
+  shift=rxyz(:,1)
+
+  na = f_malloc(nat,id='na')
+  nb = f_malloc(nat,id='nb')
+  nc = f_malloc(nat,id='nc')
+  geo = f_malloc((/3,nat/),id='geo')
+
+  na=ixyz_int(1,:)
+  nb=ixyz_int(2,:)
+  nc=ixyz_int(3,:)
+
+  
+  ! Transform the atomic positions to internal coordinates 
+  call xyzint(rxyz, nat, na, nb, nc, degree, geo)
+
+  ! The bond angle must be modified (take 180 degrees minus the angle)
+  geo(2:2,1:nat) = 180.d0 - geo(2:2,1:nat)
+  ! convert to rad
+  geo(2:3,1:nat) = geo(2:3,1:nat) / degree
+
+  ! Apply some constraints if required
+  do iat=1,nat
+      ii=ifrozen(iat)
+      fix_theta = (mod(ii,10)==2)
+      if (fix_theta) ii=ii-2
+      fix_phi = (mod(ii,100)==20)
+      if (fix_phi) ii=ii-20
+      fix_bond = (mod(ii,1000)==200)
+      if (fix_bond) then
+          ! keep the original value, i.e. don't let this value be modified by the forces
+          geo(1,iat)=rxyz_int(1,iat)
+          if (bigdft_mpi%iproc==0) call yaml_map('keep internal coordinate fixed',(/1,iat/))
+      end if
+      if (fix_phi) then
+          ! keep the original value, i.e. don't let this value be modified by the forces
+          geo(2,iat)=rxyz_int(2,iat)
+          if (bigdft_mpi%iproc==0) call yaml_map('keep internal coordinate fixed',(/2,iat/))
+      end if
+      if (fix_theta) then
+          ! keep the original value, i.e. don't let this value be modified by the forces
+          geo(3,iat)=rxyz_int(3,iat)
+          if (bigdft_mpi%iproc==0) call yaml_map('keep internal coordinate fixed',(/3,iat/))
+      end if
+  end do
+
+
+  ! Transform the atomic positions back to cartesian coordinates
+  call internal_to_cartesian(nat, na, nb, nc, geo, rxyz)
+
+
+  call f_free(na)
+  call f_free(nb)
+  call f_free(nc)
+  call f_free(geo)
+
+  call f_release_routine()
+
+end subroutine keep_internal_coordinates_constraints

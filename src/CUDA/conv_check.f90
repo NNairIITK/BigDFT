@@ -1,7 +1,7 @@
 !> @file
 !!  Test of convolutions
 !! @author
-!!    Copyright (C) 2008-2012 BigDFT group 
+!!    Copyright (C) 2008-2014 BigDFT group 
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
@@ -36,6 +36,9 @@ program conv_check_cuda
   integer, parameter :: lowfilK=-14,lupfilK=14 ! kinetic term
   real(kind=8), dimension(lowfilK:lupfilK) :: fil
   integer(kind=8) :: tsc0, tsc1
+
+  !Initiliaze the f_lib library (f_malloc, yaml, ...)
+  call f_lib_initialize()
 
 !!!  !Use arguments
 !!!  call getarg(1,chain)
@@ -111,10 +114,8 @@ program conv_check_cuda
         do n1=n1s,n1e
            !set of one-dimensional convolutions
            !allocate arrays
-           allocate(psi_in(n1,ndat,1+ndebug),stat=i_stat)
-           call memocc(i_stat,psi_in,'psi_in',subname)
-           allocate(psi_out(ndat,n1,1+ndebug),stat=i_stat)
-           call memocc(i_stat,psi_out,'psi_out',subname)
+           psi_in = f_malloc((/ n1, ndat, 1 /),id='psi_in')
+           psi_out = f_malloc((/ ndat, n1, 1 /),id='psi_out')
 
            !initialise array
            sigma2=0.25d0*((n1*hx)**2)
@@ -152,10 +153,8 @@ program conv_check_cuda
 !!$                CPUtime*1.d3/real(ntimes,kind=8),&
 !!$                real(n1*ndat*ntimes,kind=8)*32.d0/(CPUtime*1.d9)
 
-           allocate(psi_cuda(n1,ndat,1+ndebug),stat=i_stat)
-           call memocc(i_stat,psi_cuda,'psi_cuda',subname)
-           allocate(v_cuda(ndat,n1,1+ndebug),stat=i_stat)
-           call memocc(i_stat,v_cuda,'v_cuda',subname)
+           psi_cuda = f_malloc((/ n1, ndat, 1 /),id='psi_cuda')
+           v_cuda = f_malloc((/ ndat, n1, 1 /),id='v_cuda')
 
            !the input and output arrays must be reverted in this implementation
            do i=1,ndat
@@ -242,8 +241,7 @@ program conv_check_cuda
 
            write(*,'(a,i6,i6)')'CPU Kinetic, dimensions:',n1,ndat
 
-           allocate(modarr(lowfilK:n1-1+lupfilK+ndebug),stat=i_stat)
-           call memocc(i_stat,modarr,'modarr',subname)
+           modarr = f_malloc(lowfilK.to.n1-1+lupfilK,id='modarr')
            call fill_mod_arr(modarr,lowfilK,n1-1+lupfilK,n1)
 
 
@@ -270,9 +268,7 @@ program conv_check_cuda
 
            CPUtime=real(tsc1-tsc0,kind=8)*1d-9
 
-           i_all=-product(shape(modarr))
-           deallocate(modarr,stat=i_stat)
-           call memocc(i_stat,i_all,'modarr',subname)
+           call f_free(modarr)
 
            call print_time(CPUtime,n1*ndat,45,ntimes)
 !!$           write(*,'(a,f9.2,1pe12.5)')'Finished. Time(ms), GFlops',&
@@ -536,18 +532,10 @@ program conv_check_cuda
 !!$              end if
            end if
 
-           i_all=-product(shape(psi_out))
-           deallocate(psi_out,stat=i_stat)
-           call memocc(i_stat,i_all,'psi_out',subname)
-           i_all=-product(shape(psi_in))
-           deallocate(psi_in,stat=i_stat)
-           call memocc(i_stat,i_all,'psi_in',subname)
-           i_all=-product(shape(psi_cuda))
-           deallocate(psi_cuda,stat=i_stat)
-           call memocc(i_stat,i_all,'psi_cuda',subname)
-           i_all=-product(shape(v_cuda))
-           deallocate(v_cuda,stat=i_stat)
-           call memocc(i_stat,i_all,'v_cuda',subname)
+           call f_free(psi_out)
+           call f_free(psi_in)
+           call f_free(psi_cuda)
+           call f_free(v_cuda)
 
            !**************************************************compression-decompression
            !create keys arrays
@@ -556,10 +544,8 @@ program conv_check_cuda
 
            print *,'nseg=',nseg
 
-           allocate(keyg(2,nseg+ndebug),stat=i_stat)
-           call memocc(i_stat,keyg,'keyg',subname)
-           allocate(keyv(nseg+ndebug),stat=i_stat)
-           call memocc(i_stat,keyv,'keyv',subname)
+           keyg = f_malloc((/ 2, nseg /),id='keyg')
+           keyv = f_malloc(nseg,id='keyv')
 
            !take a rectangle of a cubic region
            i1s=5
@@ -575,8 +561,7 @@ program conv_check_cuda
            end do
            nvctr_cf=keyv(nseg)+i1e-i1s+1
 
-           allocate(psi(8*nvctr_cf+ndebug),stat=i_stat)
-           call memocc(i_stat,psi,'psi',subname)
+           psi = f_malloc(8*nvctr_cf,id='psi')
            !determine the values for psi function
            do i=1,nvctr_cf
               psi(i)=real(i,kind=8)
@@ -587,11 +572,8 @@ program conv_check_cuda
               end do
            end do
 
-           allocate(psi_in((2*n1+2),(2*n1+2),(2*n1+2)+ndebug),stat=i_stat)
-           call memocc(i_stat,psi_in,'psi_in',subname)
-
-           allocate(psi_cuda((2*n1+2),(2*n1+2),(2*n1+2)+ndebug),stat=i_stat)
-           call memocc(i_stat,psi_cuda,'psi_cuda',subname)
+           psi_in = f_malloc((/ (2*n1+2), (2*n1+2), (2*n1+2) /),id='psi_in')
+           psi_cuda = f_malloc((/ (2*n1+2), (2*n1+2), (2*n1+2) /),id='psi_cuda')
 
            
            write(*,'(a,3(i6))')'CPU Uncompress, dimensions:',n1,n1,n1
@@ -686,11 +668,8 @@ program conv_check_cuda
 !!$                   '<<<< WARNING' 
 !!$           end if
 
-           i_all=-product(shape(psi_cuda))
-           deallocate(psi_cuda,stat=i_stat)
-           call memocc(i_stat,i_all,'psi_cuda',subname)
-           allocate(psi_cuda(8*nvctr_cf,1,1+ndebug),stat=i_stat)
-           call memocc(i_stat,psi_cuda,'psi_cuda',subname)
+           call f_free(psi_cuda)
+           psi_cuda = f_malloc((/ 8*nvctr_cf, 1, 1 /),id='psi_cuda')
 
 
            write(*,'(a,3(i6))')'CPU Compress, dimensions:',n1,n1,n1
@@ -777,23 +756,11 @@ program conv_check_cuda
 !!$                   '<<<< WARNING' 
 !!$           end if
 
-           i_all=-product(shape(psi))
-           deallocate(psi,stat=i_stat)
-           call memocc(i_stat,i_all,'psi',subname)
-           i_all=-product(shape(psi_in))
-           deallocate(psi_in,stat=i_stat)
-           call memocc(i_stat,i_all,'psi_in',subname)
-           i_all=-product(shape(psi_cuda))
-           deallocate(psi_cuda,stat=i_stat)
-           call memocc(i_stat,i_all,'psi_cuda',subname)
-
-
-           i_all=-product(shape(keyg))
-           deallocate(keyg,stat=i_stat)
-           call memocc(i_stat,i_all,'keyg',subname)
-           i_all=-product(shape(keyv))
-           deallocate(keyv,stat=i_stat)
-           call memocc(i_stat,i_all,'keyv',subname)
+           call f_free(psi)
+           call f_free(psi_in)
+           call f_free(psi_cuda)
+           call f_free(keyg)
+           call f_free(keyv)
 
 
         end do
@@ -802,6 +769,9 @@ program conv_check_cuda
   else 
      print *,'wrong ndim',ndim
   end if
+   
+  !Finalize the f_lib (report and so on.)
+  call f_lib_finalize()
 
 contains
 

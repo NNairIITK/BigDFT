@@ -8,16 +8,19 @@
 !! Ideally, timab should be incorporated here.
 !!
 !! COPYRIGHT
-!! Copyright (C) 2010 ABINIT group
+!! Copyright (C) 2010-2014 ABINIT group
 !! This file is distributed under the terms of the
 !! GNU General Public License, see ~abinit/COPYING
 !! or http://www.gnu.org/copyleft/gpl.txt .
 
 #if defined HAVE_CONFIG_H
-#include "config.inc"
+#include "config.h"
 #endif
-  
+
   module m_profiling
+
+    use defs_basis
+
     implicit none
 
     private
@@ -30,20 +33,24 @@
 
     ! Save values for memocc.
 #if defined DEBUG_MODE
-    integer, parameter :: ndebug = 5
+!    integer, parameter :: ndebug = 5  !5 will not work for wavelets compiling with debug=naughty
+    integer,public, parameter :: ndebug = 0
+
 #else
-    integer, parameter :: ndebug = 0
+    integer,public, parameter :: ndebug = 0
 #endif
-    real :: memorylimit = 0.e0
-    logical :: meminit = .false.
+    real,save :: memorylimit = 0.e0
+    logical,save :: meminit = .false.
     integer, parameter :: mallocFile = 98
-    character(len=256) :: filename=repeat(' ',256)
-    integer :: stdout=6
-    type(memstat), save :: memloc,memtot
-    integer :: memalloc,memdealloc,memproc = 0
+    type(memstat),save :: memloc,memtot
+    integer,save :: memalloc,memdealloc,memproc = 0
     !Debug option for memocc, set in the input file
     !logical :: memdebug=.true.
-    integer :: malloc_level=2
+    integer,save :: malloc_level=2
+
+    integer, public :: ABI_ALLOC_STAT, ABI_ALLOC_SIZE
+    ! MG: These are not a good names for  public variables that are exported 
+    integer, public :: sz1, sz2, sz3, sz4, sz5, sz6, sz7
 
     !interface for the memory allocation control, depends on ndebug
     interface memocc
@@ -55,77 +62,89 @@
             memocc_internal  !central routine to be used for deallocation
     end interface
 
-    public :: ndebug
-    public :: memocc
-    public :: memocc_set_state
-    public :: memocc_set_stdout
-    public :: memocc_set_filename
-    public :: memocc_set_memory_limit
-    public :: memocc_report
-    public :: d_nan,r_nan
+!    public :: memocc
+!    public :: memocc_get_info
+!    public :: memocc_set_state
+!    public :: memocc_set_memory_limit
+!    public :: memocc_report
+!    public :: d_nan,r_nan
+!!***
 
   contains
 
-    !> State of malloc.prc file and of counters
+    !!****f* m_profiling/memocc_set_state
+    !! NAME
+    !! memocc_set_state
+    !!
+    !! FUNCTION
     !!  @param istatus 0 no file malloc.prc is created, only memory allocation counters running
     !!                 1 file malloc.prc is created in a light version (only current information is written)
     !!                 2 file malloc.prc is created with full information inside (default state if not specified)
     !! The status can only be downgraded. A stop signal is produced if status is increased
     subroutine memocc_set_state(istatus)
+
+
+!This section has been created automatically by the script Abilint (TD).
+!Do not modify the following lines by hand.
+#undef ABI_FUNC
+#define ABI_FUNC 'memocc_set_state'
+!End of the abilint section
+
       integer, intent(in) :: istatus
-      !local variable
-      integer :: istat_del
-      if (istatus > malloc_level) then
-         !here we should replace by yaml_warning
-         !write(7,*) 'WARNING: malloc_level can be only downgraded, ignoring'
-         return
-      end if
+
+      if (istatus > malloc_level) stop 'malloc_level can be only downgraded'
 
       malloc_level = istatus
       
       if (istatus == 2) return !the default situation
 
-      if (istatus == 1 .and. memproc==0) then 
-         !clean the file situation (delete the previously existing file)
-         close(unit=mallocFile)                        
-         !call delete(trim(filename),len(trim(filename)),istat_del)
-         open(unit=mallocFile,file=trim(filename),status='unknown',action='write')
+      if (istatus == 1) then 
+         !clean the file situation
+         close(unit=mallocFile)
+         open(unit=mallocFile,file='malloc.prc',status='unknown',action='write')
       end if
 
-      if (istatus == 0 .and. memproc==0) then
+      if (istatus == 0) then
          !the file should be deleted
          close(unit=mallocFile)
-         !open(unit=mallocFile,file='malloc.prc',status='replace')
-         !close(unit=mallocFile)
-         call delete(trim(filename),len(trim(filename)),istat_del)
+         open(unit=mallocFile,file='malloc.prc',status='replace')
+         close(unit=mallocFile)
       end if
     end subroutine memocc_set_state
+    !!***
 
+    !!****f* m_profiling/memocc_set_memory_limit
+    !! NAME
+    !! memocc_set_memory_limit
+    !!
+    !! FUNCTION
+    !!  @param limit Give a memory limit above which the code will stop
+    !!               properly. The unit is bytes.
     subroutine memocc_set_memory_limit(limit)
+
+
+!This section has been created automatically by the script Abilint (TD).
+!Do not modify the following lines by hand.
+#undef ABI_FUNC
+#define ABI_FUNC 'memocc_set_memory_limit'
+!End of the abilint section
+
       real, intent(in) :: limit
 
       memorylimit = limit
-      filename=repeat(' ',len(filename))
-      filename='malloc.prc'
     end subroutine memocc_set_memory_limit
-
-    subroutine memocc_set_filename(file)
-      character(len=*), intent(in) :: file
-      !local variables
-      integer :: ipos
-
-      ipos=min(len(trim(file)),len(filename))
-      filename=repeat(' ',len(filename))
-      filename(1:ipos)=file(1:ipos)
-      
-    end subroutine memocc_set_filename
-    
-    subroutine memocc_report()
-      call memocc(0,0,'count', 'stop')
-    end subroutine memocc_report
+    !!***
 
     !> Put to zero memocc counters
     subroutine memocc_variables_init()
+
+
+!This section has been created automatically by the script Abilint (TD).
+!Do not modify the following lines by hand.
+#undef ABI_FUNC
+#define ABI_FUNC 'memocc_variables_init'
+!End of the abilint section
+
       memtot%memory=int(0,kind=8)
       memtot%peak=int(0,kind=8)
       memalloc=0
@@ -137,8 +156,60 @@
       memloc%peak=int(0,kind=8)
     end subroutine memocc_variables_init
 
+    subroutine memocc_report()
+
+
+!This section has been created automatically by the script Abilint (TD).
+!Do not modify the following lines by hand.
+#undef ABI_FUNC
+#define ABI_FUNC 'memocc_report'
+!End of the abilint section
+
+      call memocc(0,0,'count', 'stop')
+    end subroutine memocc_report
+
+    !!****f* m_profiling/memocc_get_info
+    !! NAME
+    !! memocc_get_info
+    !!
+    !! FUNCTION
+    !!  Function that returns the number of allocations and deallocations that have
+    !!  been done and the memory currently used
+    !! INPUT VARIABLES
+    !!
+    !! OUTPUT VARIABLES
+    !!  @param nalloc       number of allocations that have been done
+    !!  @param ndealloc     number of deallocations that have been done
+    !!  @param allocmemory  total memory used
+    subroutine memocc_get_info(nalloc,ndealloc,allocmemory)
+
+
+!This section has been created automatically by the script Abilint (TD).
+!Do not modify the following lines by hand.
+#undef ABI_FUNC
+#define ABI_FUNC 'memocc_get_info'
+!End of the abilint section
+
+      integer(kind=8), intent(out) :: allocmemory
+      integer, intent(out) :: nalloc,ndealloc
+
+      nalloc = memalloc
+      ndealloc = memdealloc
+      allocmemory = memtot%memory
+
+    end subroutine memocc_get_info
+    !!***
+
     subroutine memocc_open_file()
-      open(unit=mallocFile,file=trim(filename),status='unknown')
+
+
+!This section has been created automatically by the script Abilint (TD).
+!Do not modify the following lines by hand.
+#undef ABI_FUNC
+#define ABI_FUNC 'memocc_open_file'
+!End of the abilint section
+
+      open(unit=mallocFile,file='malloc.prc',status='unknown')
       !if (memdebug) then
          write(mallocFile,'(a,t40,a,t70,4(1x,a12))')&
               '(Data in KB) Routine','Array name    ',&
@@ -150,13 +221,6 @@
       !end if
     end subroutine memocc_open_file
 
-    subroutine memocc_set_stdout(unit)
-      implicit none
-      integer, intent(in) :: unit
-
-      stdout=unit
-
-    end subroutine memocc_set_stdout
 
 
     !!****f* ABINIT/memory_occupation
@@ -165,7 +229,7 @@
     !! DESCRIPTION
     !!   when allocating allocating an array "stuff" of dimension n in the routine "dosome":
     !!      allocate(stuff(n),stat=i_stat)
-    !!      call memocc(i_stat,stuff,'stuff','dosome')
+    !!      call memocc(i_stat,product(shape(stuff))*kind(stuff),'stuff','dosome')
     !!   when deallocating:
     !!      i_all=-product(shape(stuff))*kind(stuff)
     !!      deallocate(stuff,stat=i_stat)
@@ -188,12 +252,29 @@
     !!    This file is distributed under the terms of the
     !!    GNU General Public License, see ~/COPYING file
     !!    or http://www.gnu.org/copyleft/gpl.txt .
-    !!    For the list of contributors, see ~/AUTHORS 
+    !!    For the list of contributors, see ~/AUTHORS
+!! PARENTS
+!!      abinit
+!!
+!! CHILDREN
+!!      memory_occupation
+!!
     !! SOURCE
     !!
     subroutine memory_occupation(istat,isize,array,routine)
 
+
+!This section has been created automatically by the script Abilint (TD).
+!Do not modify the following lines by hand.
+#undef ABI_FUNC
+#define ABI_FUNC 'memory_occupation'
+!End of the abilint section
+
       implicit none
+
+#if defined HAVE_MPI
+ include 'mpif.h'
+#endif
 
       ! Arguments
       integer, intent(in) :: istat,isize
@@ -201,15 +282,14 @@
 
       ! Local variables
       logical :: lmpinit
-      integer :: ierr,istat_del
+      integer :: ierr
 
-      include 'mpif.h'
-
-      !print *,memproc,array,routine
+      !write(std_out,*) memproc,array,routine
       ! Initialised first
       if (.not.meminit) then
 
          call memocc_variables_init()
+#if defined HAVE_MPI
          !Use MPI to have the mpi rank
          call MPI_INITIALIZED(lmpinit,ierr)
          if (lmpinit) then
@@ -218,12 +298,12 @@
             !no-mpi case 
             memproc=0
          end if
+#else
+         memproc = 0
+#endif
 
          !open the writing file for the root process
          if (memproc == 0 .and. malloc_level > 0) then
-            if (len(trim(filename))==0) then
-               filename='malloc.prc'
-            end if
             call memocc_open_file()
          end if
          meminit = .true.
@@ -241,30 +321,27 @@
                     (memtot%peak+memloc%peak-memloc%memory)/int(1024,kind=8)
                close(unit=mallocFile)
             end if
-	    !write it in Yaml Format without yaml module
-            write(stdout,'(1x,a)')'Memory Consumption Report:'
-            write(stdout,'(1x,a,i0)')'  Tot. No. of Allocations  : ',memalloc
-            write(stdout,'(1x,a,i0)')'  Tot. No. of Deallocations: ',memdealloc
-            write(stdout,'(1x,a,i0)')'  Remaining Memory (B)     : ',memtot%memory
-            write(stdout,'(1x,a)')   '  Memory occupation: '
-            write(stdout,'(1x,a,i0)')'     Peak Value (MB): ',memtot%peak/int(1048576,kind=8)
-            write(stdout,'(1x,a)')   '     for the array: '//trim(memtot%array)       
-            write(stdout,'(1x,a)')   '     in the routine: '//trim(memtot%routine)       
-            !here we can add a routine which open the malloc.prc file in case of some 
-            !memory allocation problem, and which eliminates it for a successful run
+             write(std_out,'(1x,a)')&
+                  '-------------------------MEMORY CONSUMPTION REPORT-----------------------------'
+             write(std_out,'(1x,2(i0,a,1x),i0)')&
+                  memalloc,' allocations and',memdealloc,' deallocations, remaining memory(B):',&
+                  memtot%memory
+             write(std_out,'(1x,a,i0,a)') 'memory occupation peak: ',memtot%peak/int(1048576,kind=8),' MB'
+             write(std_out,'(4(1x,a))') 'for the array ',trim(memtot%array),&
+                  'in the routine',trim(memtot%routine)
+               !here we can add a routine which open the malloc.prc file in case of some
+               !memory allocation problem, and which eliminates it for a successful run
             if (malloc_level == 1 .and. memalloc == memdealloc .and. memtot%memory==int(0,kind=8)) then
-               !open(unit=mallocFile,file='malloc.prc',status='unknown',action='write')
                !remove file should be put here
-               call delete(trim(filename),len(trim(filename)),istat_del)
-
-               !write(unit=mallocFile,fmt='()',advance='no')
-               !close(unit=mallocFile)
+               open(unit=mallocFile,file='malloc.prc',status='unknown',action='write')
+               write(unit=mallocFile,fmt='()',advance='no')
+               close(unit=mallocFile)
             else
                call memory_malloc_check(memalloc,memdealloc)
             end if
          else if (trim(routine)/='stop') then
-            write(*,*) "memocc: ",array," ",routine
-            write(*,"(a,i0,a)") "Error[",memproc,"]: Use memocc and the word 'count' only with the word 'stop'."
+            write(std_out,*) "memocc: ",array," ",routine
+            write(std_out,"(a,i0,a)") "Error[",memproc,"]: Use memocc and the word 'count' only with the word 'stop'."
             stop
          end if
 
@@ -272,15 +349,23 @@
          !control of the allocation/deallocation status
          if (istat/=0) then
             if (isize>=0) then
-               write(*,*)' subroutine ',routine,': problem of allocation of array ',array,&
+               write(std_out,*)' subroutine ',routine,': problem of allocation of array ',array,&
                     ', error code=',istat,' exiting...'
                if (memproc == 0 .and. malloc_level > 0) close(unit=mallocFile)
+#if defined HAVE_MPI
                call MPI_ABORT(MPI_COMM_WORLD,ierr)
+#else
+               stop
+#endif
             else if (isize<0) then
-               write(*,*)' subroutine ',routine,': problem of deallocation of array ',array,&
+               write(std_out,*)' subroutine ',routine,': problem of deallocation of array ',array,&
                     ', error code=',istat,' exiting...'
                if (memproc == 0 .and. malloc_level > 0) close(unit=mallocFile)
+#if defined HAVE_MPI
                call MPI_ABORT(MPI_COMM_WORLD,ierr)
+#else
+               stop
+#endif
             end if
          end if
          !total counter, for all the processes
@@ -298,19 +383,23 @@
 
          if (memorylimit /= 0.e0 .and. &
               memtot%memory > int(real(memorylimit,kind=8)*1073741824.d0,kind=8)) then !memory limit is in GB
-            write(*,'(1x,a,f7.3,2(a,i0),a)')&
+            write(std_out,'(1x,a,f7.3,2(a,i0),a)')&
                  'ERROR: Memory limit of ',memorylimit,&
                  ' GB reached for memproc ',memproc,' : total memory is ',memtot%memory,' B.'
-            write(*,'(1x,2(a,i0))')&
+            write(std_out,'(1x,2(a,i0))')&
                  '       this happened for array '//trim(memtot%array)//' in routine '//trim(memtot%routine)
+#if defined HAVE_MPI
                call MPI_ABORT(MPI_COMM_WORLD,ierr)
+#else
+               stop
+#endif
          end if
 
          select case(memproc)
          case (0)
             if (malloc_level ==2) then
                !to be used for inspecting an array which is not deallocated
-               write(mallocFile,'(a,t40,a,t70,4(1x,i12))')trim(routine),trim(array),isize,memtot%memory
+               write(98,'(a,t40,a,t70,4(1x,i12))')trim(routine),trim(array),isize,memtot%memory
             else if (malloc_level ==1) then
                !Compact format
                if (trim(memloc%routine) /= routine) then
@@ -342,33 +431,57 @@
     !!***
 
 
-    !!****f* ABINIT/memory_malloc_check
+    !!****f* m_profiling/memory_malloc_check
+    !! NAME
+    !! memory_malloc_check
+    !!
     !! FUNCTION
     !!   Check the malloc.prc file (verbose format)
+!! PARENTS
+!!      m_profiling
+!!
+!! CHILDREN
+!!      memory_occupation
+!!
     !! SOURCE
     !!
     subroutine memory_malloc_check(nalloc,ndealloc)
+
+
+!This section has been created automatically by the script Abilint (TD).
+!Do not modify the following lines by hand.
+#undef ABI_FUNC
+#define ABI_FUNC 'memory_malloc_check'
+!End of the abilint section
+
       implicit none
       !Arguments
       integer, intent(in) :: nalloc,ndealloc
       !Local variables
       if (malloc_level==2 .and. nalloc /= ndealloc) then
-         !Use # to be yaml compliant (is a comment in yaml)
-         write(*,*) &
-              "#Use the python script 'memcheck.py' in utils/scripts to check"//&
-              trim(filename)//" file"
+         write(std_out,*) &
+              "Use the python script 'memcheck.py' in utils/scripts to check 'malloc.prc' file"
       end if
     END SUBROUTINE memory_malloc_check
     !!***
 
 
-    !!****f* ABINIT/d_nan
+    !!****f* m_profiling/d_nan
+    !! NAME
+    !! d_nan
+    !!
     !! FUNCTION
     !!   Function which specify NaN according to IEEE specifications
     !! SOURCE
     !!
     function d_nan()
 
+
+!This section has been created automatically by the script Abilint (TD).
+!Do not modify the following lines by hand.
+#undef ABI_FUNC
+#define ABI_FUNC 'd_nan'
+!End of the abilint section
 
       implicit none
       double precision :: d_nan
@@ -384,13 +497,22 @@
     end function d_nan
     !!***
 
-    !!****f* ABINIT/r_nan
+    !!****f* m_profiling/r_nan
+    !! NAME
+    !! r_nan
+    !!
     !! FUNCTION
     !!   Function which specify NaN according to IEEE specifications
     !! SOURCE
     !!
     function r_nan()
 
+
+!This section has been created automatically by the script Abilint (TD).
+!Do not modify the following lines by hand.
+#undef ABI_FUNC
+#define ABI_FUNC 'r_nan'
+!End of the abilint section
 
       implicit none
       real :: r_nan
@@ -403,75 +525,233 @@
     end function r_nan
     !!***
 
-    !routine used for deallocations
+    !!****f* m_profiling/memocc_internal
+    !! NAME
+    !! memocc_internal
+    !!
+    !! FUNCTION
+    !!   routine used for deallocations
+!! PARENTS
+!!
+!! CHILDREN
+!!      memory_occupation
+!!
+    !! SOURCE
+    !!
     subroutine memocc_internal(istat,isize,array,routine)
+
+
+!This section has been created automatically by the script Abilint (TD).
+!Do not modify the following lines by hand.
+#undef ABI_FUNC
+#define ABI_FUNC 'memocc_internal'
+!End of the abilint section
+
       implicit none
       character(len=*), intent(in) :: array,routine
       integer, intent(in) :: istat,isize
-      call memory_occupation(istat,isize,array,routine) !this routine is in profiling/memory.f90
+      call memory_occupation(istat,isize,array,routine)
     end subroutine memocc_internal
+    !!***
 
+    !!****f* m_profiling/dp_padding
+    !! NAME
+    !! dp_padding
+    !!
+    !! FUNCTION
+    !!   Pad the end of the array with NAN values.
+!! PARENTS
+!!      m_profiling
+!!
+!! CHILDREN
+!!      memory_occupation
+!!
+    !! SOURCE
+    !!
     subroutine dp_padding(npaddim,nstart,array)
+
+
+!This section has been created automatically by the script Abilint (TD).
+!Do not modify the following lines by hand.
+#undef ABI_FUNC
+#define ABI_FUNC 'dp_padding'
+!End of the abilint section
+
       implicit none
       integer, intent(in) :: npaddim,nstart
       double precision, dimension(*) :: array
       !local variables
-      integer :: i
+      integer :: i,nstart_
+      nstart_=max(nstart,0)
       do i=1,npaddim*ndebug
-         array(nstart+i)= d_nan() !this function is in profiling/memory.f90
+         array(nstart_+i)= d_nan()
       end do
     end subroutine dp_padding
+    !!***
 
+    !!****f* m_profiling/sp_padding
+    !! NAME
+    !! sp_padding
+    !!
+    !! FUNCTION
+    !!   Pad the end of the array with NAN values.
+!! PARENTS
+!!      m_profiling
+!!
+!! CHILDREN
+!!      memory_occupation
+!!
+    !! SOURCE
+    !!
     subroutine sp_padding(npaddim,nstart,array)
+
+
+!This section has been created automatically by the script Abilint (TD).
+!Do not modify the following lines by hand.
+#undef ABI_FUNC
+#define ABI_FUNC 'sp_padding'
+!End of the abilint section
+
       implicit none
       integer, intent(in) :: npaddim,nstart
       real, dimension(*) :: array
       !local variables
-      integer :: i
+      integer :: i,nstart_
+      nstart_=max(nstart,0)
       do i=1,npaddim*ndebug
-         array(nstart+i)= r_nan() !this function is in profiling/memory.f90
+         array(nstart_+i)= r_nan()
       end do
     end subroutine sp_padding
+    !!***
 
+    !!****f* m_profiling/i_padding
+    !! NAME
+    !! i_padding
+    !!
+    !! FUNCTION
+    !!   Pad the end of the array with NAN values.
+!! PARENTS
+!!      m_profiling
+!!
+!! CHILDREN
+!!      memory_occupation
+!!
+    !! SOURCE
+    !!
     subroutine i_padding(npaddim,nstart,array)
+
+
+!This section has been created automatically by the script Abilint (TD).
+!Do not modify the following lines by hand.
+#undef ABI_FUNC
+#define ABI_FUNC 'i_padding'
+!End of the abilint section
+
       implicit none
       integer, intent(in) :: npaddim,nstart
       integer, dimension(*) :: array
       !local variables
-      integer :: i
+      integer :: i,nstart_
+      nstart_=max(nstart,0)
       do i=1,npaddim*ndebug
-         array(nstart+i)= int(r_nan()) !this function is in profiling/timem.f90
+         array(nstart_+i)= int(r_nan())
       end do
     end subroutine i_padding
+    !!***
 
+    !!****f* m_profiling/l_padding
+    !! NAME
+    !! l_padding
+    !!
+    !! FUNCTION
+    !!   Pad the end of the array with .false. values.
+!! PARENTS
+!!      m_profiling
+!!
+!! CHILDREN
+!!      memory_occupation
+!!
+    !! SOURCE
+    !!
     subroutine l_padding(npaddim,nstart,array)
 
+
+!This section has been created automatically by the script Abilint (TD).
+!Do not modify the following lines by hand.
+#undef ABI_FUNC
+#define ABI_FUNC 'l_padding'
+!End of the abilint section
 
       implicit none
       integer, intent(in) :: npaddim,nstart
       logical, dimension(*) :: array
       !local variables
-      integer :: i
+      integer :: i,nstart_
+      nstart_=max(nstart,0)
       do i=1,npaddim*ndebug
-         array(nstart+i)=.false.
+         array(nstart_+i)=.false.
       end do
     end subroutine l_padding
+    !!***
 
+    !!****f* m_profiling/c_padding
+    !! NAME
+    !! c_padding
+    !!
+    !! FUNCTION
+    !!   Pad the end of the array with character values.
+!! PARENTS
+!!      m_profiling
+!!
+!! CHILDREN
+!!      memory_occupation
+!!
+    !! SOURCE
+    !!
     subroutine c_padding(npaddim,nstart,array)
 
+
+!This section has been created automatically by the script Abilint (TD).
+!Do not modify the following lines by hand.
+#undef ABI_FUNC
+#define ABI_FUNC 'c_padding'
+!End of the abilint section
 
       implicit none
       integer, intent(in) :: npaddim,nstart
       character(len=20), dimension(*) :: array
       !local variables
-      integer :: i
+      integer :: i,nstart_
+      nstart_=max(nstart,0)
       do i=1,npaddim*ndebug
-         array(nstart+i)='AAAAAAAAAAAAAAAAAAAA'
+         array(nstart_+i)='AAAAAAAAAAAAAAAAAAAA'
       end do
     end subroutine c_padding
+    !!***
 
-    !beginning of the verbose section
+    !!****f* m_profiling/mo_dp1
+    !! NAME
+    !! mo_dp1
+    !!
+    !! FUNCTION
+    !!   Pad the given array with debug values and call the statistic
+    !!   on allocation size.
+!! PARENTS
+!!
+!! CHILDREN
+!!      memory_occupation
+!!
+    !! SOURCE
+    !!
     subroutine mo_dp1(istat,array,aname,rname)
+
+
+!This section has been created automatically by the script Abilint (TD).
+!Do not modify the following lines by hand.
+#undef ABI_FUNC
+#define ABI_FUNC 'mo_dp1'
+!End of the abilint section
+
       implicit none
       character(len=*), intent(in) :: aname,rname
       integer, intent(in) :: istat
@@ -484,8 +764,31 @@
       end if
       call memory_occupation(istat,product(shape(array))*kind(array),aname,rname)
     end subroutine mo_dp1
+    !!***
 
+    !!****f* m_profiling/mo_dp2
+    !! NAME
+    !! mo_dp2
+    !!
+    !! FUNCTION
+    !!   Pad the given array with debug values and call the statistic
+    !!   on allocation size.
+!! PARENTS
+!!
+!! CHILDREN
+!!      memory_occupation
+!!
+    !! SOURCE
+    !!
     subroutine mo_dp2(istat,array,aname,rname)
+
+
+!This section has been created automatically by the script Abilint (TD).
+!Do not modify the following lines by hand.
+#undef ABI_FUNC
+#define ABI_FUNC 'mo_dp2'
+!End of the abilint section
+
       implicit none
       character(len=*), intent(in) :: aname,rname
       integer, intent(in) :: istat
@@ -501,8 +804,31 @@
       end if
       call memory_occupation(istat,product(shape(array))*kind(array),aname,rname)
     end subroutine mo_dp2
+    !!***
 
+    !!****f* m_profiling/mo_dp3
+    !! NAME
+    !! mo_dp3
+    !!
+    !! FUNCTION
+    !!   Pad the given array with debug values and call the statistic
+    !!   on allocation size.
+!! PARENTS
+!!
+!! CHILDREN
+!!      memory_occupation
+!!
+    !! SOURCE
+    !!
     subroutine mo_dp3(istat,array,aname,rname)
+
+
+!This section has been created automatically by the script Abilint (TD).
+!Do not modify the following lines by hand.
+#undef ABI_FUNC
+#define ABI_FUNC 'mo_dp3'
+!End of the abilint section
+
       implicit none
       character(len=*), intent(in) :: aname,rname
       integer, intent(in) :: istat
@@ -518,8 +844,31 @@
       end if
       call memory_occupation(istat,product(shape(array))*kind(array),aname,rname)
     end subroutine mo_dp3
+    !!***
 
+    !!****f* m_profiling/mo_dp4
+    !! NAME
+    !! mo_dp4
+    !!
+    !! FUNCTION
+    !!   Pad the given array with debug values and call the statistic
+    !!   on allocation size.
+!! PARENTS
+!!
+!! CHILDREN
+!!      memory_occupation
+!!
+    !! SOURCE
+    !!
     subroutine mo_dp4(istat,array,aname,rname)
+
+
+!This section has been created automatically by the script Abilint (TD).
+!Do not modify the following lines by hand.
+#undef ABI_FUNC
+#define ABI_FUNC 'mo_dp4'
+!End of the abilint section
+
       implicit none
       character(len=*), intent(in) :: aname,rname
       integer, intent(in) :: istat
@@ -535,8 +884,31 @@
       end if
       call memory_occupation(istat,product(shape(array))*kind(array),aname,rname)
     end subroutine mo_dp4
+    !!***
 
+    !!****f* m_profiling/mo_dp5
+    !! NAME
+    !! mo_dp5
+    !!
+    !! FUNCTION
+    !!   Pad the given array with debug values and call the statistic
+    !!   on allocation size.
+!! PARENTS
+!!
+!! CHILDREN
+!!      memory_occupation
+!!
+    !! SOURCE
+    !!
     subroutine mo_dp5(istat,array,aname,rname)
+
+
+!This section has been created automatically by the script Abilint (TD).
+!Do not modify the following lines by hand.
+#undef ABI_FUNC
+#define ABI_FUNC 'mo_dp5'
+!End of the abilint section
+
       implicit none
       character(len=*), intent(in) :: aname,rname
       integer, intent(in) :: istat
@@ -552,8 +924,31 @@
       end if
       call memory_occupation(istat,product(shape(array))*kind(array),aname,rname)
     end subroutine mo_dp5
+    !!***
 
+    !!****f* m_profiling/mo_dp6
+    !! NAME
+    !! mo_dp6
+    !!
+    !! FUNCTION
+    !!   Pad the given array with debug values and call the statistic
+    !!   on allocation size.
+!! PARENTS
+!!
+!! CHILDREN
+!!      memory_occupation
+!!
+    !! SOURCE
+    !!
     subroutine mo_dp6(istat,array,aname,rname)
+
+
+!This section has been created automatically by the script Abilint (TD).
+!Do not modify the following lines by hand.
+#undef ABI_FUNC
+#define ABI_FUNC 'mo_dp6'
+!End of the abilint section
+
       implicit none
       character(len=*), intent(in) :: aname,rname
       integer, intent(in) :: istat
@@ -569,8 +964,31 @@
       end if
       call memory_occupation(istat,product(shape(array))*kind(array),aname,rname)
     end subroutine mo_dp6
+    !!***
 
+    !!****f* m_profiling/mo_dp7
+    !! NAME
+    !! mo_dp7
+    !!
+    !! FUNCTION
+    !!   Pad the given array with debug values and call the statistic
+    !!   on allocation size.
+!! PARENTS
+!!
+!! CHILDREN
+!!      memory_occupation
+!!
+    !! SOURCE
+    !!
     subroutine mo_dp7(istat,array,aname,rname)
+
+
+!This section has been created automatically by the script Abilint (TD).
+!Do not modify the following lines by hand.
+#undef ABI_FUNC
+#define ABI_FUNC 'mo_dp7'
+!End of the abilint section
+
       implicit none
       character(len=*), intent(in) :: aname,rname
       integer, intent(in) :: istat
@@ -586,8 +1004,31 @@
       end if
       call memory_occupation(istat,product(shape(array))*kind(array),aname,rname)
     end subroutine mo_dp7
+    !!***
 
+    !!****f* m_profiling/mo_sp1
+    !! NAME
+    !! mo_sp1
+    !!
+    !! FUNCTION
+    !!   Pad the given array with debug values and call the statistic
+    !!   on allocation size.
+!! PARENTS
+!!
+!! CHILDREN
+!!      memory_occupation
+!!
+    !! SOURCE
+    !!
     subroutine mo_sp1(istat,array,aname,rname)
+
+
+!This section has been created automatically by the script Abilint (TD).
+!Do not modify the following lines by hand.
+#undef ABI_FUNC
+#define ABI_FUNC 'mo_sp1'
+!End of the abilint section
+
       implicit none
       character(len=*), intent(in) :: aname,rname
       integer, intent(in) :: istat
@@ -600,8 +1041,31 @@
       end if
       call memory_occupation(istat,product(shape(array))*kind(array),aname,rname)
     end subroutine mo_sp1
+    !!***
 
+    !!****f* m_profiling/mo_sp2
+    !! NAME
+    !! mo_sp2
+    !!
+    !! FUNCTION
+    !!   Pad the given array with debug values and call the statistic
+    !!   on allocation size.
+!! PARENTS
+!!
+!! CHILDREN
+!!      memory_occupation
+!!
+    !! SOURCE
+    !!
     subroutine mo_sp2(istat,array,aname,rname)
+
+
+!This section has been created automatically by the script Abilint (TD).
+!Do not modify the following lines by hand.
+#undef ABI_FUNC
+#define ABI_FUNC 'mo_sp2'
+!End of the abilint section
+
       implicit none
       character(len=*), intent(in) :: aname,rname
       integer, intent(in) :: istat
@@ -617,8 +1081,31 @@
       end if
       call memory_occupation(istat,product(shape(array))*kind(array),aname,rname)
     end subroutine mo_sp2
+    !!***
 
+    !!****f* m_profiling/mo_sp3
+    !! NAME
+    !! mo_sp3
+    !!
+    !! FUNCTION
+    !!   Pad the given array with debug values and call the statistic
+    !!   on allocation size.
+!! PARENTS
+!!
+!! CHILDREN
+!!      memory_occupation
+!!
+    !! SOURCE
+    !!
     subroutine mo_sp3(istat,array,aname,rname)
+
+
+!This section has been created automatically by the script Abilint (TD).
+!Do not modify the following lines by hand.
+#undef ABI_FUNC
+#define ABI_FUNC 'mo_sp3'
+!End of the abilint section
+
       implicit none
       character(len=*), intent(in) :: aname,rname
       integer, intent(in) :: istat
@@ -634,8 +1121,31 @@
       end if
       call memory_occupation(istat,product(shape(array))*kind(array),aname,rname)
     end subroutine mo_sp3
+    !!***
 
+    !!****f* m_profiling/mo_sp4
+    !! NAME
+    !! mo_sp4
+    !!
+    !! FUNCTION
+    !!   Pad the given array with debug values and call the statistic
+    !!   on allocation size.
+!! PARENTS
+!!
+!! CHILDREN
+!!      memory_occupation
+!!
+    !! SOURCE
+    !!
     subroutine mo_sp4(istat,array,aname,rname)
+
+
+!This section has been created automatically by the script Abilint (TD).
+!Do not modify the following lines by hand.
+#undef ABI_FUNC
+#define ABI_FUNC 'mo_sp4'
+!End of the abilint section
+
       implicit none
       character(len=*), intent(in) :: aname,rname
       integer, intent(in) :: istat
@@ -651,8 +1161,31 @@
       end if
       call memory_occupation(istat,product(shape(array))*kind(array),aname,rname)
     end subroutine mo_sp4
+    !!***
 
+    !!****f* m_profiling/mo_sp5
+    !! NAME
+    !! mo_sp5
+    !!
+    !! FUNCTION
+    !!   Pad the given array with debug values and call the statistic
+    !!   on allocation size.
+!! PARENTS
+!!
+!! CHILDREN
+!!      memory_occupation
+!!
+    !! SOURCE
+    !!
     subroutine mo_sp5(istat,array,aname,rname)
+
+
+!This section has been created automatically by the script Abilint (TD).
+!Do not modify the following lines by hand.
+#undef ABI_FUNC
+#define ABI_FUNC 'mo_sp5'
+!End of the abilint section
+
       implicit none
       character(len=*), intent(in) :: aname,rname
       integer, intent(in) :: istat
@@ -668,8 +1201,31 @@
       end if
       call memory_occupation(istat,product(shape(array))*kind(array),aname,rname)
     end subroutine mo_sp5
+    !!***
 
+    !!****f* m_profiling/mo_sp6
+    !! NAME
+    !! mo_sp6
+    !!
+    !! FUNCTION
+    !!   Pad the given array with debug values and call the statistic
+    !!   on allocation size.
+!! PARENTS
+!!
+!! CHILDREN
+!!      memory_occupation
+!!
+    !! SOURCE
+    !!
     subroutine mo_sp6(istat,array,aname,rname)
+
+
+!This section has been created automatically by the script Abilint (TD).
+!Do not modify the following lines by hand.
+#undef ABI_FUNC
+#define ABI_FUNC 'mo_sp6'
+!End of the abilint section
+
       implicit none
       character(len=*), intent(in) :: aname,rname
       integer, intent(in) :: istat
@@ -685,8 +1241,31 @@
       end if
       call memory_occupation(istat,product(shape(array))*kind(array),aname,rname)
     end subroutine mo_sp6
+    !!***
 
+    !!****f* m_profiling/mo_sp7
+    !! NAME
+    !! mo_sp7
+    !!
+    !! FUNCTION
+    !!   Pad the given array with debug values and call the statistic
+    !!   on allocation size.
+!! PARENTS
+!!
+!! CHILDREN
+!!      memory_occupation
+!!
+    !! SOURCE
+    !!
     subroutine mo_sp7(istat,array,aname,rname)
+
+
+!This section has been created automatically by the script Abilint (TD).
+!Do not modify the following lines by hand.
+#undef ABI_FUNC
+#define ABI_FUNC 'mo_sp7'
+!End of the abilint section
+
       implicit none
       character(len=*), intent(in) :: aname,rname
       integer, intent(in) :: istat
@@ -702,8 +1281,31 @@
       end if
       call memory_occupation(istat,product(shape(array))*kind(array),aname,rname)
     end subroutine mo_sp7
+    !!***
 
+    !!****f* m_profiling/mo_i1
+    !! NAME
+    !! mo_i1
+    !!
+    !! FUNCTION
+    !!   Pad the given array with debug values and call the statistic
+    !!   on allocation size.
+!! PARENTS
+!!
+!! CHILDREN
+!!      memory_occupation
+!!
+    !! SOURCE
+    !!
     subroutine mo_i1(istat,array,aname,rname)
+
+
+!This section has been created automatically by the script Abilint (TD).
+!Do not modify the following lines by hand.
+#undef ABI_FUNC
+#define ABI_FUNC 'mo_i1'
+!End of the abilint section
+
       implicit none
       character(len=*), intent(in) :: aname,rname
       integer, intent(in) :: istat
@@ -716,8 +1318,31 @@
       end if
       call memory_occupation(istat,product(shape(array))*kind(array),aname,rname)
     end subroutine mo_i1
+    !!***
 
+    !!****f* m_profiling/mo_i2
+    !! NAME
+    !! mo_i2
+    !!
+    !! FUNCTION
+    !!   Pad the given array with debug values and call the statistic
+    !!   on allocation size.
+!! PARENTS
+!!
+!! CHILDREN
+!!      memory_occupation
+!!
+    !! SOURCE
+    !!
     subroutine mo_i2(istat,array,aname,rname)
+
+
+!This section has been created automatically by the script Abilint (TD).
+!Do not modify the following lines by hand.
+#undef ABI_FUNC
+#define ABI_FUNC 'mo_i2'
+!End of the abilint section
+
       implicit none
       character(len=*), intent(in) :: aname,rname
       integer, intent(in) :: istat
@@ -733,8 +1358,31 @@
       end if
       call memory_occupation(istat,product(shape(array))*kind(array),aname,rname)
     end subroutine mo_i2
+    !!***
 
+    !!****f* m_profiling/mo_i3
+    !! NAME
+    !! mo_i3
+    !!
+    !! FUNCTION
+    !!   Pad the given array with debug values and call the statistic
+    !!   on allocation size.
+!! PARENTS
+!!
+!! CHILDREN
+!!      memory_occupation
+!!
+    !! SOURCE
+    !!
     subroutine mo_i3(istat,array,aname,rname)
+
+
+!This section has been created automatically by the script Abilint (TD).
+!Do not modify the following lines by hand.
+#undef ABI_FUNC
+#define ABI_FUNC 'mo_i3'
+!End of the abilint section
+
       implicit none
       character(len=*), intent(in) :: aname,rname
       integer, intent(in) :: istat
@@ -750,8 +1398,31 @@
       end if
       call memory_occupation(istat,product(shape(array))*kind(array),aname,rname)
     end subroutine mo_i3
+    !!***
 
+    !!****f* m_profiling/mo_i4
+    !! NAME
+    !! mo_i4
+    !!
+    !! FUNCTION
+    !!   Pad the given array with debug values and call the statistic
+    !!   on allocation size.
+!! PARENTS
+!!
+!! CHILDREN
+!!      memory_occupation
+!!
+    !! SOURCE
+    !!
     subroutine mo_i4(istat,array,aname,rname)
+
+
+!This section has been created automatically by the script Abilint (TD).
+!Do not modify the following lines by hand.
+#undef ABI_FUNC
+#define ABI_FUNC 'mo_i4'
+!End of the abilint section
+
       implicit none
       character(len=*), intent(in) :: aname,rname
       integer, intent(in) :: istat
@@ -767,8 +1438,31 @@
       end if
       call memory_occupation(istat,product(shape(array))*kind(array),aname,rname)
     end subroutine mo_i4
+    !!***
 
+    !!****f* m_profiling/mo_i5
+    !! NAME
+    !! mo_i5
+    !!
+    !! FUNCTION
+    !!   Pad the given array with debug values and call the statistic
+    !!   on allocation size.
+!! PARENTS
+!!
+!! CHILDREN
+!!      memory_occupation
+!!
+    !! SOURCE
+    !!
     subroutine mo_i5(istat,array,aname,rname)
+
+
+!This section has been created automatically by the script Abilint (TD).
+!Do not modify the following lines by hand.
+#undef ABI_FUNC
+#define ABI_FUNC 'mo_i5'
+!End of the abilint section
+
       implicit none
       character(len=*), intent(in) :: aname,rname
       integer, intent(in) :: istat
@@ -784,8 +1478,31 @@
       end if
       call memory_occupation(istat,product(shape(array))*kind(array),aname,rname)
     end subroutine mo_i5
+    !!***
 
+    !!****f* m_profiling/mo_i6
+    !! NAME
+    !! mo_i6
+    !!
+    !! FUNCTION
+    !!   Pad the given array with debug values and call the statistic
+    !!   on allocation size.
+!! PARENTS
+!!
+!! CHILDREN
+!!      memory_occupation
+!!
+    !! SOURCE
+    !!
     subroutine mo_i6(istat,array,aname,rname)
+
+
+!This section has been created automatically by the script Abilint (TD).
+!Do not modify the following lines by hand.
+#undef ABI_FUNC
+#define ABI_FUNC 'mo_i6'
+!End of the abilint section
+
       implicit none
       character(len=*), intent(in) :: aname,rname
       integer, intent(in) :: istat
@@ -801,8 +1518,31 @@
       end if
       call memory_occupation(istat,product(shape(array))*kind(array),aname,rname)
     end subroutine mo_i6
+    !!***
 
+    !!****f* m_profiling/mo_i7
+    !! NAME
+    !! mo_i7
+    !!
+    !! FUNCTION
+    !!   Pad the given array with debug values and call the statistic
+    !!   on allocation size.
+!! PARENTS
+!!
+!! CHILDREN
+!!      memory_occupation
+!!
+    !! SOURCE
+    !!
     subroutine mo_i7(istat,array,aname,rname)
+
+
+!This section has been created automatically by the script Abilint (TD).
+!Do not modify the following lines by hand.
+#undef ABI_FUNC
+#define ABI_FUNC 'mo_i7'
+!End of the abilint section
+
       implicit none
       character(len=*), intent(in) :: aname,rname
       integer, intent(in) :: istat
@@ -818,8 +1558,31 @@
       end if
       call memory_occupation(istat,product(shape(array))*kind(array),aname,rname)
     end subroutine mo_i7
+    !!***
 
+    !!****f* m_profiling/mo_l1
+    !! NAME
+    !! mo_l1
+    !!
+    !! FUNCTION
+    !!   Pad the given array with debug values and call the statistic
+    !!   on allocation size.
+!! PARENTS
+!!
+!! CHILDREN
+!!      memory_occupation
+!!
+    !! SOURCE
+    !!
     subroutine mo_l1(istat,array,aname,rname)
+
+
+!This section has been created automatically by the script Abilint (TD).
+!Do not modify the following lines by hand.
+#undef ABI_FUNC
+#define ABI_FUNC 'mo_l1'
+!End of the abilint section
+
       implicit none
       character(len=*), intent(in) :: aname,rname
       integer, intent(in) :: istat
@@ -832,8 +1595,31 @@
       end if
       call memory_occupation(istat,product(shape(array))*kind(array),aname,rname)
     end subroutine mo_l1
+    !!***
 
+    !!****f* m_profiling/mo_l2
+    !! NAME
+    !! mo_l2
+    !!
+    !! FUNCTION
+    !!   Pad the given array with debug values and call the statistic
+    !!   on allocation size.
+!! PARENTS
+!!
+!! CHILDREN
+!!      memory_occupation
+!!
+    !! SOURCE
+    !!
     subroutine mo_l2(istat,array,aname,rname)
+
+
+!This section has been created automatically by the script Abilint (TD).
+!Do not modify the following lines by hand.
+#undef ABI_FUNC
+#define ABI_FUNC 'mo_l2'
+!End of the abilint section
+
       implicit none
       character(len=*), intent(in) :: aname,rname
       integer, intent(in) :: istat
@@ -849,8 +1635,31 @@
       end if
       call memory_occupation(istat,product(shape(array))*kind(array),aname,rname)
     end subroutine mo_l2
+    !!***
 
+    !!****f* m_profiling/mo_l3
+    !! NAME
+    !! mo_l3
+    !!
+    !! FUNCTION
+    !!   Pad the given array with debug values and call the statistic
+    !!   on allocation size.
+!! PARENTS
+!!
+!! CHILDREN
+!!      memory_occupation
+!!
+    !! SOURCE
+    !!
     subroutine mo_l3(istat,array,aname,rname)
+
+
+!This section has been created automatically by the script Abilint (TD).
+!Do not modify the following lines by hand.
+#undef ABI_FUNC
+#define ABI_FUNC 'mo_l3'
+!End of the abilint section
+
       implicit none
       character(len=*), intent(in) :: aname,rname
       integer, intent(in) :: istat
@@ -866,8 +1675,31 @@
       end if
       call memory_occupation(istat,product(shape(array))*kind(array),aname,rname)
     end subroutine mo_l3
+    !!***
 
+    !!****f* m_profiling/mo_l4
+    !! NAME
+    !! mo_l4
+    !!
+    !! FUNCTION
+    !!   Pad the given array with debug values and call the statistic
+    !!   on allocation size.
+!! PARENTS
+!!
+!! CHILDREN
+!!      memory_occupation
+!!
+    !! SOURCE
+    !!
     subroutine mo_l4(istat,array,aname,rname)
+
+
+!This section has been created automatically by the script Abilint (TD).
+!Do not modify the following lines by hand.
+#undef ABI_FUNC
+#define ABI_FUNC 'mo_l4'
+!End of the abilint section
+
       implicit none
       character(len=*), intent(in) :: aname,rname
       integer, intent(in) :: istat
@@ -883,8 +1715,31 @@
       end if
       call memory_occupation(istat,product(shape(array))*kind(array),aname,rname)
     end subroutine mo_l4
+    !!***
 
+    !!****f* m_profiling/mo_l5
+    !! NAME
+    !! mo_l5
+    !!
+    !! FUNCTION
+    !!   Pad the given array with debug values and call the statistic
+    !!   on allocation size.
+!! PARENTS
+!!
+!! CHILDREN
+!!      memory_occupation
+!!
+    !! SOURCE
+    !!
     subroutine mo_l5(istat,array,aname,rname)
+
+
+!This section has been created automatically by the script Abilint (TD).
+!Do not modify the following lines by hand.
+#undef ABI_FUNC
+#define ABI_FUNC 'mo_l5'
+!End of the abilint section
+
       implicit none
       character(len=*), intent(in) :: aname,rname
       integer, intent(in) :: istat
@@ -900,8 +1755,31 @@
       end if
       call memory_occupation(istat,product(shape(array))*kind(array),aname,rname)
     end subroutine mo_l5
+    !!***
 
+    !!****f* m_profiling/mo_l6
+    !! NAME
+    !! mo_l6
+    !!
+    !! FUNCTION
+    !!   Pad the given array with debug values and call the statistic
+    !!   on allocation size.
+!! PARENTS
+!!
+!! CHILDREN
+!!      memory_occupation
+!!
+    !! SOURCE
+    !!
     subroutine mo_l6(istat,array,aname,rname)
+
+
+!This section has been created automatically by the script Abilint (TD).
+!Do not modify the following lines by hand.
+#undef ABI_FUNC
+#define ABI_FUNC 'mo_l6'
+!End of the abilint section
+
       implicit none
       character(len=*), intent(in) :: aname,rname
       integer, intent(in) :: istat
@@ -917,8 +1795,31 @@
       end if
       call memory_occupation(istat,product(shape(array))*kind(array),aname,rname)
     end subroutine mo_l6
+    !!***
 
+    !!****f* m_profiling/mo_l7
+    !! NAME
+    !! mo_l7
+    !!
+    !! FUNCTION
+    !!   Pad the given array with debug values and call the statistic
+    !!   on allocation size.
+!! PARENTS
+!!
+!! CHILDREN
+!!      memory_occupation
+!!
+    !! SOURCE
+    !!
     subroutine mo_l7(istat,array,aname,rname)
+
+
+!This section has been created automatically by the script Abilint (TD).
+!Do not modify the following lines by hand.
+#undef ABI_FUNC
+#define ABI_FUNC 'mo_l7'
+!End of the abilint section
+
       implicit none
       character(len=*), intent(in) :: aname,rname
       integer, intent(in) :: istat
@@ -934,8 +1835,31 @@
       end if
       call memory_occupation(istat,product(shape(array))*kind(array),aname,rname)
     end subroutine mo_l7
+    !!***
 
+    !!****f* m_profiling/mo_c1
+    !! NAME
+    !! mo_c1
+    !!
+    !! FUNCTION
+    !!   Pad the given array with debug values and call the statistic
+    !!   on allocation size.
+!! PARENTS
+!!
+!! CHILDREN
+!!      memory_occupation
+!!
+    !! SOURCE
+    !!
     subroutine mo_c1(istat,array,aname,rname)
+
+
+!This section has been created automatically by the script Abilint (TD).
+!Do not modify the following lines by hand.
+#undef ABI_FUNC
+#define ABI_FUNC 'mo_c1'
+!End of the abilint section
+
       implicit none
       character(len=*), intent(in) :: aname,rname
       integer, intent(in) :: istat
@@ -948,11 +1872,31 @@
       end if
       call memory_occupation(istat,product(shape(array))*kind(array),aname,rname)
     end subroutine mo_c1
+    !!***
 
-
-
-
+    !!****f* m_profiling/mo_cmpdp1
+    !! NAME
+    !! mo_cmpdp1
+    !!
+    !! FUNCTION
+    !!   Pad the given array with debug values and call the statistic
+    !!   on allocation size.
+!! PARENTS
+!!
+!! CHILDREN
+!!      memory_occupation
+!!
+    !! SOURCE
+    !!
     subroutine mo_cmpdp1(istat,array,aname,rname)
+
+
+!This section has been created automatically by the script Abilint (TD).
+!Do not modify the following lines by hand.
+#undef ABI_FUNC
+#define ABI_FUNC 'mo_cmpdp1'
+!End of the abilint section
+
       implicit none
       character(len=*), intent(in) :: aname,rname
       integer, intent(in) :: istat
@@ -961,12 +1905,11 @@
       integer :: ndim
       if (ndebug /=0) then
          ndim=product(shape(array))-ndebug
-         stop "I don't have this function!!!!!"
+         !TODO: to be implemented.
          !call cmpdp_padding(1,ndim,array)
       end if
       call memory_occupation(istat,product(shape(array))*kind(array),aname,rname)
     end subroutine mo_cmpdp1
-
-
+    !!***
 
 end module m_profiling

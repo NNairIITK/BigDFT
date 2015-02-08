@@ -25,7 +25,7 @@ program sandbox
 !!  type(orbitals_data) :: orbs
 !!  type(locreg_descriptors) :: Glr
 !!  type(nonlocal_psp_descriptors) :: nlpspd
-!!  type(communications_arrays) :: comms
+!!  type(comms_cubic) :: comms
 !!  type(GPU_pointers) :: GPU
 !!  type(diis_objects) :: diis
 !!  character(len=4) :: itername
@@ -158,7 +158,7 @@ program sandbox
 !!  !the allocation with npsidim is not necessary here since DIIS arrays
 !!  !are always calculated in the transposed form
 !!  if (in%idsx > 0) then
-!!     call allocate_diis_objects(in%idsx,sum(comms%ncntt(0:nproc-1)),orbs%nkptsp,diis,subname)  
+!!     call allocate_diis_objects(in%idsx,sum(comms%ncntt(0:nproc-1)),orbs%nkptsp,diis)  
 !!  endif
 !!
 !!  sum_pot = 0.0d0
@@ -263,15 +263,15 @@ program sandbox
 !!! Allocate overlaps accumulators
 !!     allocate(overlap1(orbs%norb,orbs%norb),stat=i_stat)
 !!     call memocc(i_stat,overlap1,'overlap1',subname)
-!!     call razero(orbs%norb*orbs%norb,overlap1)
+!!     call to_zero(orbs%norb*orbs%norb,overlap1)
 !!
 !!     allocate(koverlap(orbs%norb,orbs%norb),stat=i_stat)
 !!     call memocc(i_stat,koverlap,'koverlap',subname)
-!!     call razero(orbs%norb*orbs%norb,koverlap)
+!!     call to_zero(orbs%norb*orbs%norb,koverlap)
 !!
 !!     allocate(poverlap(orbs%norb,orbs%norb),stat=i_stat)
 !!     call memocc(i_stat,poverlap,'poverlap',subname)
-!!     call razero(orbs%norb*orbs%norb,poverlap)    
+!!     call to_zero(orbs%norb*orbs%norb,poverlap)    
 !!
 !!! Third, transform the wavefunction to overlap regions
 !!     do ilr=1,isovrlp
@@ -375,8 +375,8 @@ program sandbox
 !!  call memocc(i_stat,ppsi,'ppsi',subname)
 !!
 !!! initialise lppsi and ppsi
-!!  call razero((Olr(ilr)%wfd%nvctr_c + 7*Olr(ilr)%wfd%nvctr_f)*orbs%norb*orbs%nspinor,lppsi)
-!!  call razero((Glr%wfd%nvctr_c + 7*Glr%wfd%nvctr_f)*orbs%norb*orbs%nspinor,ppsi)
+!!  call to_zero((Olr(ilr)%wfd%nvctr_c + 7*Olr(ilr)%wfd%nvctr_f)*orbs%norb*orbs%nspinor,lppsi)
+!!  call to_zero((Glr%wfd%nvctr_c + 7*Glr%wfd%nvctr_f)*orbs%norb*orbs%nspinor,ppsi)
 !!
 !!! Apply without the localization (for comparison)
 !!  eproj_sum = 0.0_gp
@@ -577,7 +577,7 @@ program sandbox
 !!       comms,psi,hpsi,psit,evsum)
 !!  
 !!  if (in%idsx > 0) then
-!!     call deallocate_diis_objects(diis,subname)
+!!     call deallocate_diis_objects(diis)
 !!  end if
 !!
 !!  if (nproc > 1) then
@@ -611,9 +611,9 @@ program sandbox
 !!  call memocc(i_stat,i_all,'radii_cf',subname)
 !!
 !!
-!!  call deallocate_lr(Glr,subname)
-!!  call deallocate_comms(comms,subname)
-!!  call deallocate_orbs(orbs,subname)
+!!  call deallocate_lr(Glr)
+!!  call deallocate_comms(comms)
+!!  call deallocate_orbs(orbs)
 !!  call deallocate_atoms_scf(atoms,subname) 
 !!  call deallocate_proj_descr(nlpspd,subname)
 !!
@@ -670,12 +670,10 @@ subroutine psi_from_gaussians(iproc,nproc,at,orbs,lr,rxyz,hx,hy,hz,nspin,psi)
   !use a better basis than the input guess
   call gaussian_pswf_basis(31,.false.,iproc,nspin,at,rxyz,G,gbd_occ)
 
-  allocate(gaucoeffs(G%ncoeff,orbs%norbp*orbs%nspinor+ndebug),stat=i_stat)
-  call memocc(i_stat,gaucoeffs,'gaucoeffs',subname)
+  gaucoeffs = f_malloc((/ G%ncoeff, orbs%norbp*orbs%nspinor /),id='gaucoeffs')
 
   !in view of complete gaussian calculation
-  allocate(ovrlp(G%ncoeff,G%ncoeff),stat=i_stat)
-  call memocc(i_stat,ovrlp,'ovrlp',subname)
+  ovrlp = f_malloc((/ G%ncoeff, G%ncoeff /),id='ovrlp')
 
 
   !the kinetic overlap is correctly calculated only with Free BC
@@ -732,10 +730,8 @@ subroutine psi_from_gaussians(iproc,nproc,at,orbs,lr,rxyz,hx,hy,hz,nspin,psi)
      !call kinetic_overlap(G,G,ovrlp)
      call gaussian_overlap(G,G,ovrlp)
      nwork=3*G%ncoeff+1
-     allocate(work(nwork+ndebug),stat=i_stat)
-     call memocc(i_stat,work,'work',subname)
-     allocate(ev(G%ncoeff+ndebug),stat=i_stat)
-     call memocc(i_stat,ev,'ev',subname)
+     work = f_malloc(nwork,id='work')
+     ev = f_malloc(G%ncoeff,id='ev')
 
 !!$  if (iproc == 0) then
 !!$     do iat=1,G%ncoeff
@@ -762,44 +758,34 @@ subroutine psi_from_gaussians(iproc,nproc,at,orbs,lr,rxyz,hx,hy,hz,nspin,psi)
 !!$  end if
 
      !copy the eigenvectors to the matrix
-     call razero(G%ncoeff*orbs%norbp*orbs%nspinor,gaucoeffs)
+     call f_zero(gaucoeffs)
      if (orbs%norb > G%ncoeff) stop 'wrong gaussian basis'
      jorb=mod(orbs%isorb,orbs%norb)
      do iorb=1,orbs%norbp
         jorb=jorb+1
         if (jorb == orbs%norb+1) jorb=1 !for k-points calculation
-        call dcopy(G%ncoeff,ovrlp(1,jorb),1,gaucoeffs(1,orbs%nspinor*(iorb-1)+1),orbs%nspinor)
+        call vcopy(G%ncoeff,ovrlp(1,jorb),1,gaucoeffs(1,orbs%nspinor*(iorb-1)+1),orbs%nspinor)
      end do
 
-     i_all=-product(shape(work))*kind(work)
-     deallocate(work,stat=i_stat)
-     call memocc(i_stat,i_all,'work',subname)
-     i_all=-product(shape(ev))*kind(ev)
-     deallocate(ev,stat=i_stat)
-     call memocc(i_stat,i_all,'ev',subname)
+     call f_free(work)
+     call f_free(ev)
 
      !call MPI_BARRIER(MPI_COMM_WORLD,info)
      !stop
 
   end if
 
-  i_all=-product(shape(ovrlp))*kind(ovrlp)
-  deallocate(ovrlp,stat=i_stat)
-  call memocc(i_stat,i_all,'ovrlp',subname)
+  call f_free(ovrlp)
 
 !WARNING: not correct!
   call gaussians_to_wavelets_new(iproc,nproc,lr,orbs,G,&
        gaucoeffs,psi)
   !deallocate the gaussian basis descriptors
-  call deallocate_gwf(G,subname)
+  call deallocate_gwf(G)
 
   !deallocate gaussian array
-  i_all=-product(shape(gaucoeffs))*kind(gaucoeffs)
-  deallocate(gaucoeffs,stat=i_stat)
-  call memocc(i_stat,i_all,'gaucoeffs',subname)
-  i_all=-product(shape(gbd_occ))*kind(gbd_occ)
-  deallocate(gbd_occ,stat=i_stat)
-  call memocc(i_stat,i_all,'gbd_occ',subname)
+  call f_free(gaucoeffs)
+  call f_free_ptr(gbd_occ)
 
 END SUBROUTINE psi_from_gaussians
 
@@ -854,13 +840,12 @@ subroutine plot_wf_sandbox(orbname,nexpo,at,lr,hxh,hyh,hzh,rxyz,psi,comment)
      nu3=0
   end if
 
-  call initialize_work_arrays_sumrho(lr,w)
+  call initialize_work_arrays_sumrho(1,lr,.true.,w)
  
-  allocate(psir(-nl1:2*n1+1+nu1,-nl2:2*n2+1+nu2,-nl3:2*n3+1+nu3+ndebug),stat=i_stat)
-  call memocc(i_stat,psir,'psir',subname)
+  psir = f_malloc((/ -nl1.to.2*n1+1+nu1, -nl2.to.2*n2+1+nu2, -nl3.to.2*n3+1+nu3 /),id='psir')
   !initialisation
   if (lr%geocode == 'F') then
-     call razero(lr%d%n1i*lr%d%n2i*lr%d%n3i,psir)
+     call f_zero(psir)
   end if
  
   call daub_to_isf(lr,w,psi,psir)
@@ -885,9 +870,7 @@ subroutine plot_wf_sandbox(orbname,nexpo,at,lr,hxh,hyh,hzh,rxyz,psi,comment)
   end do
   close(22)
 
-  i_all=-product(shape(psir))*kind(psir)
-  deallocate(psir,stat=i_stat)
-  call memocc(i_stat,i_all,'psir',subname)
+  call f_free(psir)
 
   call deallocate_work_arrays_sumrho(w)
 

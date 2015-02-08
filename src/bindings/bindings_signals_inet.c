@@ -46,7 +46,7 @@ typedef struct _BigDFT_SignalReply
   guint ikpt, iorb, kind;
 } BigDFT_SignalReply;
 
-static gboolean client_handle_energs(GSocket *socket, BigDFT_Energs *energs,
+static gboolean client_handle_energs(GSocket *socket, BigDFT_Goutput *energs,
                                      GCancellable *cancellable, GError **error);
 
 static gboolean _socket_receive(GSocket *socket, gchar *dest, guint destSize,
@@ -80,7 +80,7 @@ static void _error_report(GError *error)
     g_error("Error is missing, contact dev.");
 }
 
-static void onOptLoop(BigDFT_OptLoop *optloop, BigDFT_Energs *energs,
+static void onOptLoop(BigDFT_OptLoop *optloop, BigDFT_Goutput *energs,
                       GSocket **socket_, BigDFT_OptLoopIds kind)
 {
   GSocket *socket = (GSocket*)(*socket_);
@@ -127,8 +127,8 @@ static void onOptLoop(BigDFT_OptLoop *optloop, BigDFT_Energs *energs,
           return;
         case BIGDFT_SIGNAL_ANSWER_GET_E:
           size = g_socket_send(socket, (const gchar*)energs,
-                               sizeof(BigDFT_Energs), NULL, &error);
-          if (size != sizeof(BigDFT_Energs))
+                               sizeof(BigDFT_Goutput), NULL, &error);
+          if (size != sizeof(BigDFT_Goutput))
             _error_report(error);
           break;
         case BIGDFT_SIGNAL_ANSWER_GET_OPTLOOP:
@@ -171,7 +171,7 @@ static void onOptLoop(BigDFT_OptLoop *optloop, BigDFT_Energs *energs,
   while (1);
 }
 static gboolean client_handle_optloop(GSocket *socket, BigDFT_OptLoop *optloop, BigDFT_OptLoopIds kind,
-                                      BigDFT_Energs *energs, GAsyncQueue *message,
+                                      BigDFT_Goutput *energs, GAsyncQueue *message,
                                       GCancellable *cancellable, GError **error)
 {
   BigDFT_SignalReply answer;
@@ -248,27 +248,27 @@ static void onOptLoopSyncInet(BigDFT_OptLoop *optloop, gpointer data)
       return;
     }
 }
-void onIterHamInet(BigDFT_OptLoop *optloop, BigDFT_Energs *energs, gpointer *data)
+void onIterHamInet(BigDFT_OptLoop *optloop, BigDFT_Goutput *energs, gpointer *data)
 {
   onOptLoop(optloop, energs, (GSocket**)data, BIGDFT_OPTLOOP_ITER_HAMILTONIAN);
 }
-void onIterSubInet(BigDFT_OptLoop *optloop, BigDFT_Energs *energs, gpointer *data)
+void onIterSubInet(BigDFT_OptLoop *optloop, BigDFT_Goutput *energs, gpointer *data)
 {
   onOptLoop(optloop, energs, (GSocket**)data, BIGDFT_OPTLOOP_ITER_SUBSPACE);
 }
-void onIterWfnInet(BigDFT_OptLoop *optloop, BigDFT_Energs *energs, gpointer *data)
+void onIterWfnInet(BigDFT_OptLoop *optloop, BigDFT_Goutput *energs, gpointer *data)
 {
   onOptLoop(optloop, energs, (GSocket**)data, BIGDFT_OPTLOOP_ITER_WAVEFUNCTIONS);
 }
-void onDoneHamInet(BigDFT_OptLoop *optloop, BigDFT_Energs *energs, gpointer *data)
+void onDoneHamInet(BigDFT_OptLoop *optloop, BigDFT_Goutput *energs, gpointer *data)
 {
   onOptLoop(optloop, energs, (GSocket**)data, BIGDFT_OPTLOOP_DONE_HAMILTONIAN);
 }
-void onDoneSubInet(BigDFT_OptLoop *optloop, BigDFT_Energs *energs, gpointer *data)
+void onDoneSubInet(BigDFT_OptLoop *optloop, BigDFT_Goutput *energs, gpointer *data)
 {
   onOptLoop(optloop, energs, (GSocket**)data, BIGDFT_OPTLOOP_DONE_SUBSPACE);
 }
-void onDoneWfnInet(BigDFT_OptLoop *optloop, BigDFT_Energs *energs, gpointer *data)
+void onDoneWfnInet(BigDFT_OptLoop *optloop, BigDFT_Goutput *energs, gpointer *data)
 {
   onOptLoop(optloop, energs, (GSocket**)data, BIGDFT_OPTLOOP_DONE_WAVEFUNCTIONS);
 }
@@ -440,7 +440,7 @@ static gboolean client_handle_denspot(GSocket *socket, BigDFT_LocalFields *densp
   return TRUE;
 }
 
-void onEKSReadyInet(BigDFT_Energs *energs, guint iter, gpointer *data)
+void onEKSReadyInet(BigDFT_Goutput *energs, guint iter, gpointer *data)
 {
   GSocket *socket = (GSocket*)(*data);
   GError *error;
@@ -483,18 +483,18 @@ void onEKSReadyInet(BigDFT_Energs *energs, guint iter, gpointer *data)
 
       /* We send the energy values. */
       size = g_socket_send(socket, (const gchar*)energs,
-                           sizeof(BigDFT_Energs), NULL, &error);
-      if (size != sizeof(BigDFT_Energs))
+                           sizeof(BigDFT_Goutput), NULL, &error);
+      if (size != sizeof(BigDFT_Goutput))
         _error_report(error);
     }
   while (1);
 }
-static gboolean client_handle_energs(GSocket *socket, BigDFT_Energs *energs,
+static gboolean client_handle_energs(GSocket *socket, BigDFT_Goutput *energs,
                                      GCancellable *cancellable, GError **error)
 {
   BigDFT_SignalReply answer;
   gssize size, psize;
-  BigDFT_Energs energs_;
+  BigDFT_Goutput energs_;
 
   /* g_print("Client: send get E.\n"); */
   answer.id = BIGDFT_SIGNAL_ANSWER_GET_E;
@@ -507,7 +507,7 @@ static gboolean client_handle_energs(GSocket *socket, BigDFT_Energs *energs,
   do
     {
       size = g_socket_receive(socket, (gchar*)(&energs_) + psize,
-                              sizeof(BigDFT_Energs), cancellable, error);
+                              sizeof(BigDFT_Goutput), cancellable, error);
       if (size == 0)
         *error = g_error_new(G_IO_ERROR, G_IO_ERROR_CLOSED,
                              "Connection closed by peer.");
@@ -515,11 +515,11 @@ static gboolean client_handle_energs(GSocket *socket, BigDFT_Energs *energs,
         return FALSE;
       psize += size;
     }
-  while (psize < sizeof(BigDFT_Energs));
-  /* g_print("Client: receive %ld / %ld.\n", psize, sizeof(BigDFT_Energs)); */
+  while (psize < sizeof(BigDFT_Goutput));
+  /* g_print("Client: receive %ld / %ld.\n", psize, sizeof(BigDFT_Goutput)); */
   memcpy((void*)((char*)energs + sizeof(GObject)),
          (const void*)((char*)(&energs_) + sizeof(GObject)),
-         sizeof(BigDFT_Energs) - sizeof(GObject) - sizeof(gpointer));
+         sizeof(BigDFT_Goutput) - sizeof(GObject) - sizeof(gpointer));
   /* g_print("Client: emitting signal kind %d.\n", signal.kind); */
   
   return TRUE;
@@ -1000,7 +1000,7 @@ static gboolean bigdft_signals_client_handle(BigDFT_SignalsClient *client,
         case BIGDFT_ENERGS_EKS:
           if (g_signal_has_handler_pending(client->energs,
                                            g_signal_lookup("eks-ready",
-                                                           BIGDFT_ENERGS_TYPE),
+                                                           BIGDFT_GOUTPUT_TYPE),
                                            0, FALSE))
             ret = client_handle_energs(client->socket, client->energs, cancellable, error);
           if (ret && client->message)
@@ -1012,7 +1012,7 @@ static gboolean bigdft_signals_client_handle(BigDFT_SignalsClient *client,
               while (g_async_queue_length(client->message) > 0);
             }
           else if (ret)
-            bigdft_energs_emit(client->energs, signal.iter, signal.kind);
+            bigdft_goutput_emit_energs(client->energs, signal.iter, signal.kind);
           break;
         }
       break;
@@ -1233,7 +1233,7 @@ static gboolean onMainClientTransfer(gpointer user_data)
   struct _SourceArg *ct = (struct _SourceArg *)user_data;
   BigDFT_SignalsClient *client = ct->client;
   gpointer data;
-  BigDFT_Energs *energs;
+  BigDFT_Goutput *energs;
   BigDFT_Wf *wf;
   BigDFT_Signals *signal;
   BigDFT_SignalReply *answer;
@@ -1254,9 +1254,9 @@ static gboolean onMainClientTransfer(gpointer user_data)
   switch (GPOINTER_TO_INT(data))
     {
     case BIGDFT_SIGNAL_E_READY:
-      energs = BIGDFT_ENERGS(g_async_queue_pop(client->message));
+      energs = BIGDFT_GOUTPUT(g_async_queue_pop(client->message));
       signal = (BigDFT_Signals*)g_async_queue_pop(client->message);
-      bigdft_energs_emit(energs, signal->iter, signal->kind);
+      bigdft_goutput_emit_energs(energs, signal->iter, signal->kind);
       break;
     case BIGDFT_SIGNAL_PSI_READY:
       wf = BIGDFT_WF(g_async_queue_pop(client->message));
@@ -1284,7 +1284,7 @@ static gboolean onMainClientTransfer(gpointer user_data)
     case BIGDFT_SIGNAL_OPTLOOP_READY:
       optloop = BIGDFT_OPTLOOP(g_async_queue_pop(client->message));
       kind = GPOINTER_TO_INT(g_async_queue_pop(client->message)) - 1;
-      energs = BIGDFT_ENERGS(g_async_queue_pop(client->message));
+      energs = BIGDFT_GOUTPUT(g_async_queue_pop(client->message));
       bigdft_optloop_emit(optloop, kind, energs);
       break;
     case BIGDFT_SIGNAL_CONNECTION_CLOSED:
@@ -1300,7 +1300,7 @@ static gboolean onMainClientTransfer(gpointer user_data)
   return TRUE;
 }
 
-GSource* bigdft_signals_client_create_source(BigDFT_SignalsClient *client, BigDFT_Energs *energs,
+GSource* bigdft_signals_client_create_source(BigDFT_SignalsClient *client, BigDFT_Goutput *energs,
                                              BigDFT_Wf *wf, BigDFT_LocalFields *denspot,
                                              BigDFT_OptLoop *optloop, GCancellable *cancellable,
                                              GDestroyNotify destroy, gpointer data)
@@ -1400,7 +1400,7 @@ static gpointer _signals_client_thread(gpointer data)
  * @user_data: (closure) (allow-none):
  *
  */
-void bigdft_signals_client_create_thread(BigDFT_SignalsClient *client, BigDFT_Energs *energs,
+void bigdft_signals_client_create_thread(BigDFT_SignalsClient *client, BigDFT_Goutput *energs,
                                          BigDFT_Wf *wf, BigDFT_LocalFields *denspot,
                                          BigDFT_OptLoop *optloop,
                                          GCancellable *cancellable,

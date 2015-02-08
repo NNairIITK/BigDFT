@@ -1,4 +1,14 @@
+!> @file
+!! Determine the derivative of the support functions
+!! @author
+!!    Copyright (C) 2013-2013 BigDFT group
+!!    This file is distributed under the terms of the
+!!    GNU General Public License, see ~/COPYING file
+!!    or http://www.gnu.org/copyleft/gpl.txt .
+!!    For the list of contributors, see ~/AUTHORS
 
+
+!> Calculate all derviative for the support functions
 subroutine get_derivative_supportfunctions(ndim, hgrid, lzd, lorbs, phi, phid)
   use module_base
   use module_types
@@ -118,115 +128,51 @@ contains
        (lzd%llr(ilr)%d%nfu3-lzd%llr(ilr)%d%nfl3+1)
 
     ! Allocate work arrays
-    allocate(w_c(0:lzd%llr(ilr)%d%n1,0:lzd%llr(ilr)%d%n2,0:lzd%llr(ilr)%d%n3+ndebug), stat=istat)
-    call memocc(istat, w_c, 'w_c', subname)
-    !!w_c=0.d0
-    call to_zero((lzd%llr(ilr)%d%n1+1)*(lzd%llr(ilr)%d%n2+1)*(lzd%llr(ilr)%d%n3+1), w_c(0,0,0))
+    w_c = f_malloc0((/ 0.to.lzd%llr(ilr)%d%n1, 0.to.lzd%llr(ilr)%d%n2, 0.to.lzd%llr(ilr)%d%n3 /),id='w_c')
 
-    allocate(w_f(7,lzd%llr(ilr)%d%nfl1:lzd%llr(ilr)%d%nfu1,lzd%llr(ilr)%d%nfl2:lzd%llr(ilr)%d%nfu2, &
-                 lzd%llr(ilr)%d%nfl3:lzd%llr(ilr)%d%nfu3+ndebug), stat=istat)
-    call memocc(istat, w_f, 'w_f', subname)
-    !!w_f=0.d0
-    call to_zero(7*nf, w_f(1,lzd%llr(ilr)%d%nfl1,lzd%llr(ilr)%d%nfl2,lzd%llr(ilr)%d%nfl3))
+    w_f = f_malloc0((/ 1.to.7 , lzd%llr(ilr)%d%nfl1.to.lzd%llr(ilr)%d%nfu1 , lzd%llr(ilr)%d%nfl2.to.lzd%llr(ilr)%d%nfu2 , &
+                 lzd%llr(ilr)%d%nfl3 .to. lzd%llr(ilr)%d%nfu3/),id='w_f')
 
   
-    allocate(w_f1(nf+ndebug), stat=istat)
-    call memocc(istat, w_f1, 'w_f1', subname)
-    !!w_f1=0.d0
-    call to_zero(nf, w_f1(1))
+    w_f1 = f_malloc0(nf,id='w_f1')
     
-    allocate(w_f2(nf+ndebug), stat=istat)
-    call memocc(istat, w_f2, 'w_f2', subname)
-    !!w_f2=0.d0
-    call to_zero(nf, w_f2(1))
+    w_f2 = f_malloc0(nf,id='w_f2')
 
-    allocate(w_f3(nf+ndebug), stat=istat)
-    call memocc(istat, w_f3, 'w_f3', subname)
-    !!w_f3=0.d0
-    call to_zero(nf, w_f3(1))
+    w_f3 = f_malloc0(nf,id='w_f3')
   
   
-    allocate(phix_f(7,lzd%llr(ilr)%d%nfl1:lzd%llr(ilr)%d%nfu1,lzd%llr(ilr)%d%nfl2:lzd%llr(ilr)%d%nfu2, &
-                    lzd%llr(ilr)%d%nfl3:lzd%llr(ilr)%d%nfu3), stat=istat)
-    call memocc(istat, phix_f, 'phix_f', subname)
-    !!phix_f=0.d0
-    call to_zero(7*nf, phix_f(1,lzd%llr(ilr)%d%nfl1,lzd%llr(ilr)%d%nfl2,lzd%llr(ilr)%d%nfl3))
+    phix_f = f_malloc0((/ 1.to.7, lzd%llr(ilr)%d%nfl1.to.lzd%llr(ilr)%d%nfu1, lzd%llr(ilr)%d%nfl2.to.lzd%llr(ilr)%d%nfu2, &
+                              lzd%llr(ilr)%d%nfl3.to.lzd%llr(ilr)%d%nfu3 /),id='phix_f')
 
-    allocate(phix_c(0:lzd%llr(ilr)%d%n1,0:lzd%llr(ilr)%d%n2,0:lzd%llr(ilr)%d%n3), stat=istat)
-    call memocc(istat, phix_c, 'phix_c', subname)
-    !!phix_c=0.d0
-    call to_zero((lzd%llr(ilr)%d%n1+1)*(lzd%llr(ilr)%d%n2+1)*(lzd%llr(ilr)%d%n3+1), phix_c(0,0,0))
+    phix_c = f_malloc0((/ 0.to.lzd%llr(ilr)%d%n1, 0.to.lzd%llr(ilr)%d%n2, 0.to.lzd%llr(ilr)%d%n3 /),id='phix_c')
+    !call to_zero((lzd%llr(ilr)%d%n1+1)*(lzd%llr(ilr)%d%n2+1)*(lzd%llr(ilr)%d%n3+1), phix_c(0,0,0))
 
-    allocate(phiy_f(7,lzd%llr(ilr)%d%nfl1:lzd%llr(ilr)%d%nfu1,lzd%llr(ilr)%d%nfl2:lzd%llr(ilr)%d%nfu2, &
-                    lzd%llr(ilr)%d%nfl3:lzd%llr(ilr)%d%nfu3), stat=istat)
-    call memocc(istat, phiy_f, 'phiy_f', subname)
-    !!phiy_f=0.d0
-    call to_zero(7*nf, phiy_f(1,lzd%llr(ilr)%d%nfl1,lzd%llr(ilr)%d%nfl2,lzd%llr(ilr)%d%nfl3))
+    phiy_f = f_malloc0((/ 1.to.7, lzd%llr(ilr)%d%nfl1.to.lzd%llr(ilr)%d%nfu1, lzd%llr(ilr)%d%nfl2.to.lzd%llr(ilr)%d%nfu2, &
+                              lzd%llr(ilr)%d%nfl3.to.lzd%llr(ilr)%d%nfu3 /),id='phiy_f')
 
-    allocate(phiy_c(0:lzd%llr(ilr)%d%n1,0:lzd%llr(ilr)%d%n2,0:lzd%llr(ilr)%d%n3), stat=istat)
-    call memocc(istat, phiy_c, 'phiy_c', subname)
-    !!phiy_c=0.d0
-    call to_zero((lzd%llr(ilr)%d%n1+1)*(lzd%llr(ilr)%d%n2+1)*(lzd%llr(ilr)%d%n3+1), phiy_c(0,0,0))
+    phiy_c = f_malloc0((/ 0.to.lzd%llr(ilr)%d%n1, 0.to.lzd%llr(ilr)%d%n2, 0.to.lzd%llr(ilr)%d%n3 /),id='phiy_c')
 
-    allocate(phiz_f(7,lzd%llr(ilr)%d%nfl1:lzd%llr(ilr)%d%nfu1,lzd%llr(ilr)%d%nfl2:lzd%llr(ilr)%d%nfu2, &
-                    lzd%llr(ilr)%d%nfl3:lzd%llr(ilr)%d%nfu3), stat=istat)
-    call memocc(istat, phiz_f, 'phiz_f', subname)
-    !!phiz_f=0.d0
-    call to_zero(7*nf, phiz_f(1,lzd%llr(ilr)%d%nfl1,lzd%llr(ilr)%d%nfl2,lzd%llr(ilr)%d%nfl3))
+    phiz_f = f_malloc0((/ 1.to.7, lzd%llr(ilr)%d%nfl1.to.lzd%llr(ilr)%d%nfu1, lzd%llr(ilr)%d%nfl2.to.lzd%llr(ilr)%d%nfu2, &
+                              lzd%llr(ilr)%d%nfl3.to.lzd%llr(ilr)%d%nfu3 /),id='phiz_f')
 
-    allocate(phiz_c(0:lzd%llr(ilr)%d%n1,0:lzd%llr(ilr)%d%n2,0:lzd%llr(ilr)%d%n3), stat=istat)
-    call memocc(istat, phiz_c, 'phiz_c', subname)
-    !!phiz_c=0.d0
-    call to_zero((lzd%llr(ilr)%d%n1+1)*(lzd%llr(ilr)%d%n2+1)*(lzd%llr(ilr)%d%n3+1), phiz_c(0,0,0))
+    phiz_c = f_malloc0((/ 0.to.lzd%llr(ilr)%d%n1, 0.to.lzd%llr(ilr)%d%n2, 0.to.lzd%llr(ilr)%d%n3 /),id='phiz_c')
   
   end subroutine allocateWorkarrays
 
 
   subroutine deallocateWorkarrays
 
-    iall=-product(shape(w_c))*kind(w_c)
-    deallocate(w_c, stat=istat)
-    call memocc(istat, iall, 'w_c', subname)
-
-    iall=-product(shape(w_f))*kind(w_f)
-    deallocate(w_f, stat=istat)
-    call memocc(istat, iall, 'w_f', subname)
-
-    iall=-product(shape(w_f1))*kind(w_f1)
-    deallocate(w_f1, stat=istat)
-    call memocc(istat, iall, 'w_f1', subname)
-
-    iall=-product(shape(w_f2))*kind(w_f2)
-    deallocate(w_f2, stat=istat)
-    call memocc(istat, iall, 'w_f2', subname)
-
-    iall=-product(shape(w_f3))*kind(w_f3)
-    deallocate(w_f3, stat=istat)
-    call memocc(istat, iall, 'w_f3', subname)
-
-    iall=-product(shape(phix_f))*kind(phix_f)
-    deallocate(phix_f, stat=istat)
-    call memocc(istat, iall, 'phix_f', subname)
-
-    iall=-product(shape(phix_c))*kind(phix_c)
-    deallocate(phix_c, stat=istat)
-    call memocc(istat, iall, 'phix_c', subname)
-
-    iall=-product(shape(phiy_f))*kind(phiy_f)
-    deallocate(phiy_f, stat=istat)
-    call memocc(istat, iall, 'phiy_f', subname)
-
-    iall=-product(shape(phiy_c))*kind(phiy_c)
-    deallocate(phiy_c, stat=istat)
-    call memocc(istat, iall, 'phiy_c', subname)
-
-    iall=-product(shape(phiz_f))*kind(phiz_f)
-    deallocate(phiz_f, stat=istat)
-    call memocc(istat, iall, 'phiz_f', subname)
-
-    iall=-product(shape(phiz_c))*kind(phiz_c)
-    deallocate(phiz_c, stat=istat)
-    call memocc(istat, iall, 'phiz_c', subname)
+    call f_free(w_c)
+    call f_free(w_f)
+    call f_free(w_f1)
+    call f_free(w_f2)
+    call f_free(w_f3)
+    call f_free(phix_f)
+    call f_free(phix_c)
+    call f_free(phiy_f)
+    call f_free(phiy_c)
+    call f_free(phiz_f)
+    call f_free(phiz_c)
 
   end subroutine deallocateWorkarrays
 
@@ -376,8 +322,8 @@ end subroutine get_one_derivative_supportfunction
 !!  call calculate_overlap_transposed(iproc, nproc, tmb%orbs, tmb%sparsemat, &
 !!       tmb%collcom, psit_c, phidr_c, psit_f, phidr_f, overlap_compr)
 !!
-!!  call uncompressMatrix(tmb%orbs%norb, tmb%sparsemat, matrix_compr, matrix)
-!!  call uncompressMatrix(tmb%orbs%norb, tmb%sparsemat, overlap_compr, overlap)
+!!  call uncompress_matrix(tmb%orbs%norb, tmb%sparsemat, matrix_compr, matrix)
+!!  call uncompress_matrix(tmb%orbs%norb, tmb%sparsemat, overlap_compr, overlap)
 !!
 !!  iall = -product(shape(matrix_compr))*kind(matrix_compr)
 !!  deallocate(matrix_compr,stat=istat)
@@ -513,7 +459,7 @@ subroutine get_derivative(idir, ndim, hgrid, orbs, lzd, phi, phider)
   real(kind=8),dimension(:,:,:,:),allocatable :: w_f, phider_f
   character(len=*),parameter :: subname='get_derivative'
 
-   call to_zero(ndim,phider(1))
+   call f_zero(phider)
 
    istrt = 1
    do iorb=1, orbs%norbp
@@ -593,77 +539,37 @@ contains
        (lzd%llr(ilr)%d%nfu3-lzd%llr(ilr)%d%nfl3+1)
 
     ! Allocate work arrays
-    allocate(w_c(0:lzd%llr(ilr)%d%n1,0:lzd%llr(ilr)%d%n2,0:lzd%llr(ilr)%d%n3+ndebug), stat=istat)
-    call memocc(istat, w_c, 'w_c', subname)
-    !!w_c=0.d0
-    call to_zero((lzd%llr(ilr)%d%n1+1)*(lzd%llr(ilr)%d%n2+1)*(lzd%llr(ilr)%d%n3+1), w_c(0,0,0))
+    w_c = f_malloc0((/ 0.to.lzd%llr(ilr)%d%n1, 0.to.lzd%llr(ilr)%d%n2, 0.to.lzd%llr(ilr)%d%n3 /),id='w_c')
 
-    allocate(w_f(7,lzd%llr(ilr)%d%nfl1:lzd%llr(ilr)%d%nfu1,lzd%llr(ilr)%d%nfl2:lzd%llr(ilr)%d%nfu2, &
-                 lzd%llr(ilr)%d%nfl3:lzd%llr(ilr)%d%nfu3+ndebug), stat=istat)
-    call memocc(istat, w_f, 'w_f', subname)
-    !!w_f=0.d0
-    call to_zero(7*nf, w_f(1,lzd%llr(ilr)%d%nfl1,lzd%llr(ilr)%d%nfl2,lzd%llr(ilr)%d%nfl3))
+    w_f = f_malloc0((/ 1.to.7, lzd%llr(ilr)%d%nfl1.to.lzd%llr(ilr)%d%nfu1, lzd%llr(ilr)%d%nfl2.to.lzd%llr(ilr)%d%nfu2, &
+                           lzd%llr(ilr)%d%nfl3.to.lzd%llr(ilr)%d%nfu3 /),id='w_f')
 
 
-    allocate(w_f1(nf+ndebug), stat=istat)
-    call memocc(istat, w_f1, 'w_f1', subname)
-    !!w_f1=0.d0
-    call to_zero(nf, w_f1(1))
+    w_f1 = f_malloc0(nf,id='w_f1')
 
-    allocate(w_f2(nf+ndebug), stat=istat)
-    call memocc(istat, w_f2, 'w_f2', subname)
-    !!w_f2=0.d0
-    call to_zero(nf, w_f2(1))
+    w_f2 = f_malloc0(nf,id='w_f2')
 
-    allocate(w_f3(nf+ndebug), stat=istat)
-    call memocc(istat, w_f3, 'w_f3', subname)
-    !!w_f3=0.d0
-    call to_zero(nf, w_f3(1))
+    w_f3 = f_malloc0(nf,id='w_f3')
 
 
-    allocate(phider_f(7,lzd%llr(ilr)%d%nfl1:lzd%llr(ilr)%d%nfu1,lzd%llr(ilr)%d%nfl2:lzd%llr(ilr)%d%nfu2, &
-                    lzd%llr(ilr)%d%nfl3:lzd%llr(ilr)%d%nfu3), stat=istat)
-    call memocc(istat, phider_f, 'phider_f', subname)
-    !!phix_f=0.d0
-    call to_zero(7*nf, phider_f(1,lzd%llr(ilr)%d%nfl1,lzd%llr(ilr)%d%nfl2,lzd%llr(ilr)%d%nfl3))
+    phider_f = f_malloc0((/ 1.to.7, lzd%llr(ilr)%d%nfl1.to.lzd%llr(ilr)%d%nfu1, lzd%llr(ilr)%d%nfl2.to.lzd%llr(ilr)%d%nfu2, &
+                                lzd%llr(ilr)%d%nfl3.to.lzd%llr(ilr)%d%nfu3 /),id='phider_f')
 
-    allocate(phider_c(0:lzd%llr(ilr)%d%n1,0:lzd%llr(ilr)%d%n2,0:lzd%llr(ilr)%d%n3), stat=istat)
-    call memocc(istat, phider_c, 'phider_c', subname)
-    !!phix_c=0.d0
-    call to_zero((lzd%llr(ilr)%d%n1+1)*(lzd%llr(ilr)%d%n2+1)*(lzd%llr(ilr)%d%n3+1), phider_c(0,0,0))
+    phider_c = f_malloc0((/ 0.to.lzd%llr(ilr)%d%n1, 0.to.lzd%llr(ilr)%d%n2, 0.to.lzd%llr(ilr)%d%n3 /),id='phider_c')
 
   end subroutine allocateWorkarrays
 
 
   subroutine deallocateWorkarrays
 
-    iall=-product(shape(w_c))*kind(w_c)
-    deallocate(w_c, stat=istat)
-    call memocc(istat, iall, 'w_c', subname)
 
-    iall=-product(shape(w_f))*kind(w_f)
-    deallocate(w_f, stat=istat)
-    call memocc(istat, iall, 'w_f', subname)
-
-    iall=-product(shape(w_f1))*kind(w_f1)
-    deallocate(w_f1, stat=istat)
-    call memocc(istat, iall, 'w_f1', subname)
-
-    iall=-product(shape(w_f2))*kind(w_f2)
-    deallocate(w_f2, stat=istat)
-    call memocc(istat, iall, 'w_f2', subname)
-
-    iall=-product(shape(w_f3))*kind(w_f3)
-    deallocate(w_f3, stat=istat)
-    call memocc(istat, iall, 'w_f3', subname)
-
-    iall=-product(shape(phider_f))*kind(phider_f)
-    deallocate(phider_f, stat=istat)
-    call memocc(istat, iall, 'phider_f', subname)
-
-    iall=-product(shape(phider_c))*kind(phider_c)
-    deallocate(phider_c, stat=istat)
-    call memocc(istat, iall, 'phider_c', subname)
+    call f_free(w_c)
+    call f_free(w_f)
+    call f_free(w_f1)
+    call f_free(w_f2)
+    call f_free(w_f3)
+    call f_free(phider_f)
+    call f_free(phider_c)
 
   end subroutine deallocateWorkarrays
 end subroutine get_derivative

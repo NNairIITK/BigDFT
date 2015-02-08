@@ -12,16 +12,17 @@ dynlib_DATA         = $(bigdft_dynamic_library)
 
 # Sub-directories.
 # ---------------
-SUBDIRS = flib \
+SUBDIRS = \
 	modules \
 	convolutions \
-	lib \
-	PSolver \
+	xcPSolver \
 	$(sub_dirs_libconfig) \
 	CUDA \
 	OpenCL \
 	bindings \
 	art \
+	mhgps_files \
+	global_files \
 	$(sub_dirs_bin)
 
 EXTRA_DIST = \
@@ -29,28 +30,33 @@ EXTRA_DIST = \
 	wavelib/recs16.inc \
 	wavelib/sym_16.inc \
 	init/pspconf.in.f90 \
-	NEB_driver.sh
+	NEB_driver.sh \
+	input_variables_definition.yaml
 
 # Build targets, binaries and libraries.
 # -------------
-noinst_LIBRARIES = libmain.a
-# put all subs except flib/libflib.a
-subs_static_library = modules/libmodules.a \
+noinst_LIBRARIES = libmain.a libabscalc.a
+# put all subs
+subs_static_library = \
+	modules/libmodules.a \
 	CUDA/libCUDA.a \
 	convolutions/libconvolutions.a \
-	PSolver/libPSolver.a \
+	xcPSolver/libxcPSolver.a \
 	OpenCL/libOpenCL.a \
-	lib/liblib.a \
 	bindings/libbindings.a
+out_static_library =  \
+	$(top_builddir)/PSolver/src/libPSolver-1.a \
+	$(top_builddir)/wrappers/libwrappers.a \
+	$(top_builddir)/flib/src/libflib-1.a
 if BUILD_DYNAMIC_LIBS
-bigdft_dynamic_library = libbigdft-1.so.7.0.24
-bigdft_soname_library = libbigdft-1.so.7
+bigdft_dynamic_library = libbigdft-1.so.@BIGDFT_MINOR_VERSION@.0.@BIGDFT_MICRO_VERSION@
+bigdft_soname_library = libbigdft-1.so.@BIGDFT_MINOR_VERSION@
 bigdft_library = $(bigdft_soname_library)
 AM_LDFLAGS = -Wl,-rpath=$(DESTDIR)$(dynlibdir)
 else
 bigdft_dynamic_library =
 bigdft_soname_library =
-bigdft_library = libbigdft-1.a @LIBS_SHORT_DEPS@
+bigdft_library = libbigdft-1.a $(out_static_library) @LIBS_SHORT_DEPS@ $(amber_ld)
 endif
 if BUILD_LIB_BIGDFT
 lib_bigdft = libbigdft-1.a
@@ -58,15 +64,17 @@ else
 lib_bigdft =
 endif
 if BUILD_BINARIES
-binaries_sources = bigdft memguess splsad NEB frequencies MDanalysis $(minima_hopping_sources) bart abscalc BigDFT2Wannier WaCo NEB_images
+binaries_sources = bigdft memguess splsad NEB frequencies global globaltool abscalc mhgps mhgpstool
 local_binaries = test_forces
 scripts_sources = NEB_driver.sh bigdft-tool
 sub_dirs_bin = tools tools/bader
+EXTRA_PROGRAMS = MDanalysis bart BigDFT2Wannier WaCo NEB_images
 else
 binaries_sources =
 local_binaries =
 scripts_sources =
 sub_dirs_bin =
+check_PROGRAMS =
 endif
 
 # Additional sources.
@@ -84,50 +92,50 @@ else
 etsf_files = wavelib/etsf_fake.f90
 endif
 
-# Specific treatment for global (not distributed).
-if USE_MINIMA_HOPPING
-minima_hopping_sources = global
+if HAVE_AMBERTOOLS
+amber_ld= @LIB_AMBERTOOLS@  -lsff -lnab -lpbsa -lcifparse -lrism -lfftw3 -larpack
+ambertools_wrap= wrap.c
+###for amber supp.:
+wrap.o:     wrap.c
+	$(NAB) -c  -g $<
 else
-minima_hopping_sources =
+ambertools_wrap= wrap_fake.f90
+amber_ld =
 endif
-global_SOURCES = # Should be global.f90, but see below.
-global_LDADD = $(bigdft_library) @LINALG_LIBS@
-# Hack to avoid global.f90 inclusion into make dist.
-am_global_OBJECTS = global.$(OBJEXT)
-global_LINK = $(FCLD) $(FCFLAGS) $(AM_CFLAGS) $(CFLAGS) $(global_LDFLAGS) \
-	$(LDFLAGS) -o $@
 
-AM_FCFLAGS = -I. -Iincludes -I$(srcdir)/wavelib -I$(srcdir)/PSolver \
+
+AM_FCFLAGS = -I. -I$(top_builddir)/includes -I$(srcdir)/wavelib \
 	@LIBABINIT_INCLUDE@ @LIBXC_INCLUDE@ \
 	@LIBETSFIO_INCLUDE@ @LIBSGPU_INCLUDE@ \
 	@MPI_INCLUDE@
 AM_CPPFLAGS = @LIB_ARCHIVE_CFLAGS@ @LIBSGPU_INCLUDE@ -I$(srcdir)/modules -Imodules
 #AM_CFLAGS = -Wall -Werror -Wno-strict-aliasing @DGEMMSY_CPPFLAGS@ @CUDA_INCLUDE@ -Wno-deprecated-declarations -Wno-cpp
-AM_CFLAGS = @CUDA_INCLUDE@ @LIB_YAML_CFLAGS@
+AM_CFLAGS = @CUDA_INCLUDE@
 
 #objects which depends from module_types
 high_level = cluster.f90 \
 	init.f90 \
+	initialization.f90 \
 	input_variables.f90 \
+	input_variables_text.f90 \
 	sumrho.f90 \
 	hpsiortho.f90 \
 	forces.f90 \
 	tail.f90 \
 	restart.f90 \
+	lbfgs.f90 \
 	geometry.f90 \
 	davidson.f90 \
 	ConstrainedDavidson.f90 \
 	pdos.f90 \
 	sdcg.f90 \
 	bfgs.f90 \
-	lanczos_interface.f90 \
-	lanczos_base.f90 \
-	lanczos.f90 \
+	sqnm.f90 \
 	scfloop_API.f90 \
-	esatto.f90 \
 	tddft.f90 \
 	output.f90 \
-	external.f90
+	external.f90 \
+	images.f90
 
 #objects which can be compiled only with module_base
 low_level = \
@@ -141,8 +149,8 @@ low_level = \
 	init/logrid.f90 \
 	init/logrid_per.f90 \
 	init/inputguess.f90 \
+	init/rcov.f90 \
 	init/gautowav.f90 \
-	init/eleconf.f90 \
 	init/pspconf.f90 \
 	init/locreg_init.f90 \
 	init/sysprop.f90 \
@@ -153,6 +161,7 @@ low_level = \
 	wfn_opt/orthogonality.f90 \
 	wfn_opt/diis.f90 \
 	wfn_opt/applyh.f90 \
+	wfn_opt/potential.f90 \
 	wfn_opt/exctX.f90 \
 	wfn_opt/exctX_op2p.f90 \
 	wfn_opt/sic.f90 \
@@ -171,11 +180,9 @@ low_level = \
 	wavelib/gauss_to_daub.f90 \
 	wavelib/daubisf.f90 \
 	profiling/memoryestimator.f90 \
-	profiling/time.f90 \
 	linear/cleanup.f90 \
 	linear/nullify.f90 \
 	linear/filterModule.f90 \
-	linear/communicatetypes.f90 \
 	linear/misc.f90 \
 	linear/getLocBasis.f90 \
 	linear/convolutions_aux.f90 \
@@ -196,38 +203,57 @@ low_level = \
 	linear/derivativeBasis.f90 \
 	linear/parallelLinAlg.f90 \
 	linear/locReg_linear.f90 \
-	linear/communicatePotential.f90 \
 	linear/hpsiortho_linear.f90 \
 	linear/init_collective_comms.f90 \
 	linear/optimize_coeffs.f90 \
 	linear/foe.f90 \
-	linear/chebyshev.f90 \
-	linear/communications_onesided.f90 \
-	linear/sparse_matrices.f90
+	linear/pulay.f90 \
+	linear/transferintegrals.f90 \
+	linear/cdft.f90 \
+	linear/frags.f90\
+	$(ambertools_wrap)
 
 # C objects
 c_level = posfiles.c \
-	init/atoms_yaml.c init/atoms_yaml.h
+	input_variables_description.c
 
 libmain_a_SOURCES = \
 	$(c_level) \
 	$(low_level) \
 	$(high_level)
 
+libabscalc_a_SOURCES = \
+	lanczos_base.f90 \
+	abscalc_module.f90 \
+	lanczos_interface.f90 \
+	lanczos.f90 \
+	abscalc_init.f90 \
+	esatto.f90
+
 libbigdft_1_a_SOURCES =
 
-libbigdft-1.a: $(libmain_a_OBJECTS) $(subs_static_library)
+input_variables_description.o: input_variables_definition-inc.h
+#build the fortran include file with the stream of input variables into a local string
+#should we check (AC_CHECK_PROG) if sed and echo are available?
+#the sed command below will transform the entire yaml document into a fortran string
+input_variables_definition-inc.h: input_variables_definition.yaml
+	$(SED) -e "s/^/\"/;s/$$/\\\n\"/" $< > $@
+
+tmp-libbigdft/extract.stamp: $(subs_static_library) $(out_static_library)
 	test -e "tmp-libbigdft" || $(INSTALL) -d -m 755 tmp-libbigdft
 	cd tmp-libbigdft ; \
-	for lib in $(subs_static_library) ; do \
+	rm -f *; \
+	for lib in $^; do \
 	  $(AR) x ../$$lib ; \
-	done
-	$(AR) $(ARFLAGS) $@ $(libmain_a_OBJECTS) tmp-libbigdft/*
-	$(RANLIB) $@
-	rm -rf tmp-libbigdft
+	done ; \
+	touch extract.stamp
 
-$(bigdft_dynamic_library): $(libmain_a_OBJECTS) $(subs_static_library)
-	$(FC) $(FCFLAGS) -shared $(LDFLAGS) -Wl,-soname=$(bigdft_library) -o $@ $(libmain_a_OBJECTS) $(subs_static_library) @LIBS_SHORT_DEPS@
+libbigdft-1.a: $(libmain_a_OBJECTS) tmp-libbigdft/extract.stamp
+	$(AR) $(ARFLAGS) $@ $(libmain_a_OBJECTS) tmp-libbigdft/*.o
+	$(RANLIB) $@
+
+$(bigdft_dynamic_library): $(libmain_a_OBJECTS) tmp-libbigdft/extract.stamp
+	$(FC) $(FCFLAGS) -shared $(LDFLAGS) -Wl,-soname=$(bigdft_library) -o $@ $(libmain_a_OBJECTS) tmp-libbigdft/*.o @LIBS_SHORT_DEPS@ $(amber_ld)
 	@chmod a+x $@
 
 libbigdft-1.so.7: $(bigdft_dynamic_library)
@@ -243,6 +269,9 @@ install-data-hook:
 	fi
 
 #obsolete dependency $(bin_PROGRAMS) $(noinst_PROGRAMS): libbigdft-1.a libdft_common.a
+
+#sources for abscalc exeutable, to be removed from libbigdft.a
+#abscalc_additional= 
 
 bigdft_SOURCES = BigDFT.f90
 bigdft_LDADD = $(bigdft_library)
@@ -271,47 +300,79 @@ WaCo_LDADD = $(bigdft_library) @LINALG_LIBS@
 MDanalysis_SOURCES = distances.f90
 MDanalysis_LDADD = $(bigdft_library)
 
-abscalc_SOURCES = abscalc.f90
-abscalc_LDADD = $(bigdft_library) @LINALG_LIBS@
+abscalc_SOURCES = abscalc.f90 
+abscalc_FCFLAGS = -I. -I$(top_builddir)/includes -I$(srcdir)/wavelib -I$(top_srcdir)/PSolver/src \
+	@LIBABINIT_INCLUDE@ @LIBXC_INCLUDE@ \
+	@LIBETSFIO_INCLUDE@ @LIBSGPU_INCLUDE@ \
+	@MPI_INCLUDE@
+abscalc_LDADD = libabscalc.a $(bigdft_library) @LINALG_LIBS@
 
 test_forces_SOURCES = test_forces.f90
 test_forces_LDADD = $(bigdft_library)
 
 NEB_SOURCES = NEB.f90
-NEB_LDADD = $(bigdft_library)
+NEB_LDADD = $(bigdft_library) @LINALG_LIBS@
 
-memguess_SOURCES = memguess.f90 flib/MPIfake.f90
+#to be adjusted: when the compiler has MPI built-in libraries the linker finds multiple definitions
+memguess_SOURCES = memguess.f90 $(top_srcdir)/flib/src/MPIfake.f90
 memguess_LDADD = $(bigdft_library) @LINALG_LIBS@
 
 frequencies_SOURCES = frequencies.f90
 frequencies_LDADD = $(bigdft_library) @LINALG_LIBS@
 
 bart_SOURCES = art.f90
-bart_FCFLAGS = -I. -Iart -Iincludes @LIBABINIT_INCLUDE@ @LIBXC_INCLUDE@
+bart_FCFLAGS = -I. -Iart -I$(top_builddir)/includes @LIBABINIT_INCLUDE@ @LIBXC_INCLUDE@
 bart_LDADD = art/libart.a $(bigdft_library) @LINALG_LIBS@
 
-CLEANFILES = *.@MODULE_EXT@ bindings_dbus.* introspect libbigdft-1.*
+mhgps_SOURCES = mhgps.f90
+mhgps_FCFLAGS = -I. -Imhgps_files -I$(top_builddir)/includes @LIBABINIT_INCLUDE@ @LIBXC_INCLUDE@
+mhgps_LDADD = mhgps_files/libmhgps.a $(bigdft_library) @LINALG_LIBS@
+
+mhgpstool_SOURCES = mhgpstool.f90
+mhgpstool_FCFLAGS = -I. -Imhgps_files -I$(top_builddir)/includes @LIBABINIT_INCLUDE@ @LIBXC_INCLUDE@
+mhgpstool_LDADD = mhgps_files/libmhgps.a $(bigdft_library)  @LINALG_LIBS@
+
+global_SOURCES = global.f90
+global_LDADD = $(bigdft_library) @LINALG_LIBS@
+
+globaltool_SOURCES = globaltool.f90
+globaltool_FCFLAGS = -I. -Iglobal_files -I$(top_builddir)/includes @LIBABINIT_INCLUDE@ @LIBXC_INCLUDE@
+globaltool_LDADD = global_files/libglobalf.a $(bigdft_library)  @LINALG_LIBS@
+
+CLEANFILES = *.@MODULE_EXT@ bindings_dbus.* introspect libbigdft-1.* input_variables_definition-inc.h
 clean-local:
-	-rm -rf includes
+	rm -rf tmp-libbigdft
 
 all: all-recursive
+	chmod ug+x bigdft-tool
+install: install-recursive
 	chmod ug+x bigdft-tool
 
 check:
 	@if test $(MAKELEVEL) = 0 ; then python $(top_srcdir)/tests/report.py ; fi
 
 #dependencies
-linear/convolutions_aux.o: filterModule.o
+convolutions_aux.o linear/convolutions_aux.o: linear/filterModule.f90 filterModule.o
 
-cluster.o geometry.o xabsorber.o: esatto.o scfloop_API.o
+cluster.o geometry.o xabsorber.o: scfloop_API.o
 
-abscalc.o : esatto.o
+lanczos_interface.o: abscalc_module.o lanczos_base.o
 
-lanczos.o : lanczos_base.o lanczos_interface.o
+abscalc_init.o abscalc-abscalc.o: esatto.o lanczos_interface.o
 
-xabsorber.o init/xabsorber.o : init/xabsorber.f90 esatto.o
+lanczos.o : lanczos_interface.o
 
-#initAndUtils.o: cleanup.o
+xabsorber.o init/xabsorber.o : init/xabsorber.f90
+
+geometry.o bfgs.o sdcg.o sqnm.o: lbfgs.o
+
+initAndUtils.o linear/initAndUtils.o: linear/initAndUtils.f90 cleanup.o
+
+linearScaling.o transferintegrals.o: i-o.o
+
+NEB.o: images.o
+
+restart.o: i-o.o
 
 # Introspection for Python bindings
 # ---------------------------------
@@ -321,10 +382,20 @@ BUILT_GIRSOURCES = BigDFT-1.7.gir
 gir_DATA = $(BUILT_GIRSOURCES)
 typelibs_DATA = $(BUILT_GIRSOURCES:.gir=.typelib)
 
+if BUILD_BINDINGS
+additonal_sources = $(srcdir)/bindings/bindings.c \
+		$(srcdir)/bindings/bindings_regions.c \
+		$(srcdir)/bindings/bindings_localfields.c \
+		$(srcdir)/bindings/bindings_wavefunctions.c \
+		$(srcdir)/bindings/bindings_signals.c \
+		$(srcdir)/bindings/bindings_signals_inet.c
+
+endif
+
 $(gir_DATA): $(G_IR_SCANNER) $(bigdft_library)
 	$(G_IR_SCANNER) -v --warn-all \
 		--namespace BigDFT \
-		--symbol-prefix=bigdft --identifier-prefix=BigDFT_ \
+		--symbol-prefix=bigdft --identifier-prefix=BigDFT_ --identifier-prefix=Bigdft \
 		--symbol-prefix=f90 --identifier-prefix=f90_ \
 		--nsversion "1.7" \
 		--add-include-path=$(girdir) \
@@ -337,14 +408,13 @@ $(gir_DATA): $(G_IR_SCANNER) $(bigdft_library)
 		-DGLIB_MAJOR_VERSION=2 -L$(builddir) \
 		-I$(srcdir)/modules -I$(builddir)/modules \
 		$(srcdir)/modules/bigdft.h \
+		$(srcdir)/modules/bigdft_input_keys.h \
 		$(builddir)/modules/bigdft_cst.h \
-		$(srcdir)/bindings/bindings.c \
-		$(srcdir)/bindings/bindings_atoms.c \
-		$(srcdir)/bindings/bindings_regions.c \
-		$(srcdir)/bindings/bindings_localfields.c \
-		$(srcdir)/bindings/bindings_wavefunctions.c \
-		$(srcdir)/bindings/bindings_signals.c \
-		$(srcdir)/bindings/bindings_signals_inet.c
+		$(srcdir)/bindings/wrappers.c \
+		$(srcdir)/bindings/wrapper_inputs.c \
+		$(srcdir)/bindings/wrapper_run.c \
+		$(srcdir)/bindings/wrapper_neb.c \
+		$(srcdir)/bindings/wrapper_atoms.c
 
 $(typelibs_DATA): $(gir_DATA) $(G_IR_COMPILER)
 	$(G_IR_COMPILER) \

@@ -55,11 +55,15 @@ for line in header.splitlines()[1:]:
   c_mod = ""
   if tp[0].startswith("type"):
     f_tp = re.match(r"^type\((?P<type>[^)]+)\)", tp[0]).group("type")
-    c_tp = "_%s *" % f_tp # "gpointer "
-  elif (tp[0].startswith("real") or tp[0].startswith("double")) and "pointer" not in tp:
-    c_tp = "double *"
-  elif (tp[0].startswith("real") or tp[0].startswith("double")) and "pointer" in tp:
-    c_tp = "f90_pointer_double%s " % dim
+    if "pointer" in tp:
+      c_tp = "f90_%s_pointer *" % f_tp # "gpointer "
+    else:
+      c_tp = "f90_%s *" % f_tp # "gpointer "
+  elif (tp[0].startswith("real") or tp[0].startswith("double")):
+    if "pointer" in tp:
+      c_tp = "f90_pointer_double%s *" % dim
+    else:
+      c_tp = "double *"
   elif tp[0].startswith("logical") and "pointer" not in tp:
     c_tp = "int *"
   elif tp[0].startswith("integer") and "pointer" not in tp:
@@ -68,14 +72,10 @@ for line in header.splitlines()[1:]:
       c_tp = "int *"
     elif kind == "8":
       c_tp = "long *"
-  elif tp[0].startswith("integer") and "pointer" not in tp:
-    c_tp = "int *"
   elif tp[0].startswith("integer") and "pointer" in tp:
-    c_tp = "f90_pointer_int%s " % dim
+    c_tp = "f90_pointer_int%s *" % dim
   elif tp[0].startswith("character") and "pointer" not in tp:
     c_tp = "char *"
-  if "pointer" in tp:
-    c_tp += "*"
   if "intent(in)" in tp:
     c_mod = "const "
   args = [re.match(r"^ *(?P<var>[^(]+)", x.strip()).group("var") for x in var[1].split(",")]

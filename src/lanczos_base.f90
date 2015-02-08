@@ -44,12 +44,11 @@ module lanczos_base
       !endif
 
       if(LB_norbp.gt.0) then
-         allocate(LB_alpha_cheb( LB_norbp  ,   0: 3*LB_nsteps+ndebug ) , stat=i_stat)
+         LB_alpha_cheb = f_malloc_ptr((/ 1.to.LB_norbp, 0.to. 3*LB_nsteps /),id='LB_alpha_cheb')
       else
-         allocate(LB_alpha_cheb( LB_norbp+1  ,   0: 3*LB_nsteps+ndebug ) , stat=i_stat)      
+         LB_alpha_cheb = f_malloc_ptr((/ 1.to.LB_norbp+1, 0.to. 3*LB_nsteps /),id='LB_alpha_cheb')
       endif
 
-      call memocc(i_stat,LB_alpha_cheb,'LB_alpha_cheb',subname)
 
       !    allocate(LB_alpha(0: 3*LB_nsteps+ndebug ) , stat=i_stat)
       !    call memocc(i_stat,LB_alpha,'LB_alpha',subname)
@@ -81,27 +80,13 @@ module lanczos_base
       !   call  LB_de_allocate_for_lanczos( )
       !endif
 
-      allocate(LB_alpha(0: LB_nsteps+ndebug ) , stat=i_stat)
-      call memocc(i_stat,LB_alpha,'LB_alpha',subname)
-
-      allocate(LB_beta(0: LB_nsteps-1+ndebug ) , stat=i_stat)
-      call memocc(i_stat,LB_beta,'LB_beta',subname)
-
-      allocate(omega( 0:LB_nsteps,  0:LB_nsteps     +ndebug )  , stat=i_stat)
-      call memocc(i_stat,omega,'omega',subname)
-
-
-      allocate(evect( 0:LB_nsteps-1,  0:LB_nsteps-1   +ndebug )   , stat=i_stat)
-      call memocc(i_stat,evect,'evect',subname)
-
-      allocate(LB_eval(0: LB_nsteps-1+ndebug )   , stat=i_stat)
-      call memocc(i_stat,LB_eval,'LB_eval',subname)
-
-      allocate(diagwork( 0:LB_nsteps*(3+LB_nsteps+ndebug)   )  , stat=i_stat)
-      call memocc(i_stat,diagwork,'diagwork',subname)
-
-      allocate(oldalpha (0: LB_nsteps+ndebug )        , stat=i_stat  )
-      call memocc(i_stat,oldalpha,'oldalpha',subname)
+      LB_alpha = f_malloc_ptr(0.to. LB_nsteps,id='LB_alpha')
+      LB_beta = f_malloc_ptr(0.to. LB_nsteps-1,id='LB_beta')
+      omega = f_malloc_ptr((/ 0.to.LB_nsteps, 0.to.LB_nsteps      /),id='omega')
+      evect = f_malloc_ptr((/ 0.to.LB_nsteps-1, 0.to.LB_nsteps-1    /),id='evect')
+      LB_eval = f_malloc_ptr(0.to. LB_nsteps-1,id='LB_eval')
+      diagwork = f_malloc_ptr(0.to.LB_nsteps*(3+LB_nsteps),id='diagwork')
+      oldalpha  = f_malloc_ptr(0.to. LB_nsteps,id='oldalpha ')
 
 
 
@@ -111,43 +96,19 @@ module lanczos_base
 
    subroutine LB_de_allocate_for_lanczos( )
 
-      i_all=-product(shape(LB_alpha))*kind(LB_alpha)
-      deallocate(LB_alpha)
-      call memocc(i_stat,i_all,'LB_alpha',subname)
-
-
-      i_all=-product(shape(LB_beta))*kind(LB_beta)
-      deallocate(LB_beta)
-      call memocc(i_stat,i_all,'LB_beta',subname)
-
-
-      i_all=-product(shape(omega))*kind(omega)
-      deallocate(omega )
-      call memocc(i_stat,i_all,'omega',subname)
-
-      i_all=-product(shape(evect))*kind(evect)
-      deallocate(evect  )
-      call memocc(i_stat,i_all,'evect',subname)
-
-      i_all=-product(shape(LB_eval))*kind(LB_eval)
-      deallocate(LB_eval  )
-      call memocc(i_stat,i_all,'LB_eval',subname)
-
-      i_all=-product(shape(diagwork))*kind(diagwork)
-      deallocate(diagwork    )
-      call memocc(i_stat,i_all,'diagwork',subname)
-
-      i_all=-product(shape(oldalpha))*kind(oldalpha)
-      deallocate(oldalpha          )
-      call memocc(i_stat,i_all,'oldalpha',subname)
+      call f_free_ptr(LB_alpha)
+      call f_free_ptr(LB_beta)
+      call f_free_ptr(omega)
+      call f_free_ptr(evect)
+      call f_free_ptr(LB_eval)
+      call f_free_ptr(diagwork)
+      call f_free_ptr(oldalpha)
 
    END SUBROUTINE LB_de_allocate_for_lanczos
 
    subroutine LB_de_allocate_for_cheb( )
 
-      i_all=-product(shape(LB_alpha_cheb))*kind(LB_alpha_cheb)
-      deallocate(LB_alpha_cheb)
-      call memocc(i_stat,i_all,'LB_alpha_cheb',subname)
+      call f_free_ptr(LB_alpha_cheb)
 
    END SUBROUTINE LB_de_allocate_for_cheb
 
@@ -419,8 +380,8 @@ module lanczos_base
 
       call EP_copy(k, m )
 
-      allocate(dumomega(0:m-1,0:m-1+ndebug))
-      allocate(dumomega2(0:m-1,0:m-1+ndebug))
+      dumomega = f_malloc_ptr((/ 0.to.m-1, 0.to.m-1 /),id='dumomega')
+      dumomega2 = f_malloc_ptr((/ 0.to.m-1, 0.to.m-1 /),id='dumomega2')
 
       acoeff=1.0D0
       bcoeff =0.0D0
@@ -434,8 +395,8 @@ module lanczos_base
       omega(0:k-1,0:k-1)= dumomega2 (0:k-1,0:k-1)
 
 
-      deallocate(dumomega)
-      deallocate( dumomega2)
+      call f_free_ptr(dumomega)
+      call f_free_ptr(dumomega2)
 
 
    END SUBROUTINE ricipolla
@@ -724,33 +685,14 @@ module lanczos_base
       enddo
       Nbar=Nbar*2   
 
-      allocate(Xs(0:Nbar-1+ndebug) , stat=i_stat)
-      call memocc(i_stat,Xs,'Xs',subname)
-
-      allocate(res(0:Nbar-1+ndebug) , stat=i_stat)
-      call memocc(i_stat,res,'res',subname)
-
-
-      !! memocc does not work in complex
-      allocate(alphas(0:Nbar-1+ndebug) , stat=i_stat)
-      !! call memocc(i_stat,alphas,'alphas',subname)
-
-      !! memocc does not work in complex
-      allocate(expn(0:Nbar-1+ndebug) , stat=i_stat)
-
-
-      allocate(cfftreal(0:2*Nbar-1+ndebug) , stat=i_stat)
-      call memocc(i_stat,cfftreal,'cfftreal',subname)
-
-      allocate(result(0:2*Nbar-1+ndebug) , stat=i_stat)
-      call memocc(i_stat,result,'result',subname)
-
-
-      allocate(cfftimag(0:2*Nbar-1+ndebug) , stat=i_stat)
-      call memocc(i_stat,cfftimag,'cfftimag',subname)
-
-      allocate(zinout (2,2*Nbar,2+ndebug) , stat=i_stat)
-      call memocc(i_stat,zinout,'zinout',subname)
+      Xs = f_malloc_ptr(0.to.Nbar-1,id='Xs')
+      res = f_malloc_ptr(0.to.Nbar-1,id='res')
+      alphas = f_malloc_ptr(0.to.Nbar-1,id='alphas')
+      expn = f_malloc_ptr(0.to.Nbar-1,id='expn')
+      cfftreal = f_malloc_ptr(0.to.2*Nbar-1,id='cfftreal')
+      result = f_malloc_ptr(0.to.2*Nbar-1,id='result')
+      cfftimag = f_malloc_ptr(0.to.2*Nbar-1,id='cfftimag')
+      zinout  = f_malloc_ptr((/ 2, 2*Nbar, 2 /),id='zinout ')
 
       result=0.0_gp
 
@@ -788,16 +730,16 @@ module lanczos_base
          zinout(2,1:2*Nbar,1) = cfftimag(:)
 
 
-         call dcopy(2*Nbar,cfftreal(0),1,zinout(1,1,1),2)
-         call dcopy(2*Nbar,cfftimag(0),1,zinout(2,1,1),2)
+         call vcopy(2*Nbar,cfftreal(0),1,zinout(1,1,1),2)
+         call vcopy(2*Nbar,cfftimag(0),1,zinout(2,1,1),2)
          !zinout(1,1:2*Nbar,1) = cfftreal(:)
          !zinout(2,1:2*Nbar,1) = cfftimag(:)
 
 
          call fft_1d_ctoc(1 ,1, 2*Nbar ,zinout(1,1,1) ,inzee)
 
-         call dcopy(2*Nbar,zinout(1,1,inzee),2,cfftreal(0),1)
-         call dcopy(2*Nbar,zinout(2,1,inzee),2,cfftimag(0),1)
+         call vcopy(2*Nbar,zinout(1,1,inzee),2,cfftreal(0),1)
+         call vcopy(2*Nbar,zinout(2,1,inzee),2,cfftimag(0),1)
          !cfftreal(:)  =   zinout(1,1:2*Nbar,inzee)   
          !cfftimag(:)  =   zinout(2,1:2*Nbar,inzee)    
 
@@ -850,41 +792,14 @@ module lanczos_base
          close(unit=22)
       endif
 
-      i_all=-product(shape(Xs))*kind(Xs)
-      deallocate(Xs)
-      call memocc(i_stat,i_all,'Xs',subname)
-
-      i_all=-product(shape(res))*kind(res)
-      deallocate(res)
-      call memocc(i_stat,i_all,'res',subname)
-
-      !! memocc does not work in complex
-      i_all=-product(shape(alphas))*kind(alphas)
-      deallocate(alphas)
-      !! call memocc(i_stat,i_all,'alphas',subname)
-
-
-      !! memocc does not work in complex
-      i_all=-product(shape(expn))*kind(expn)
-      deallocate(expn)
-      !! call memocc(i_stat,i_all,'expn',subname)
-
-      i_all=-product(shape(cfftreal))*kind(cfftreal)
-      deallocate(cfftreal)
-      call memocc(i_stat,i_all,'cfftreal',subname)
-
-      i_all=-product(shape(result))*kind(result)
-      deallocate(result)
-      call memocc(i_stat,i_all,'result',subname)
-
-      i_all=-product(shape(cfftimag))*kind(cfftimag)
-      deallocate(cfftimag)
-      call memocc(i_stat,i_all,'cfftimag',subname)
-
-
-      i_all=-product(shape(zinout))*kind(zinout)
-      deallocate(zinout)
-      call memocc(i_stat,i_all,'zinout',subname)
+      call f_free_ptr(Xs)
+      call f_free_ptr(res)
+      call f_free_ptr(alphas)
+      call f_free_ptr(expn)
+      call f_free_ptr(cfftreal)
+      call f_free_ptr(result)
+      call f_free_ptr(cfftimag)
+      call f_free_ptr(zinout)
 
    END SUBROUTINE CalcolaSpettroChebychev
 

@@ -65,8 +65,7 @@ subroutine adjust_keys_for_gpu(nseg_c,nseg_f,keyv_c,keyg_c,keyv_f,keyg_f,nvctr_c
 
 
   !allocate the array to be copied
-  allocate(keys(4,nseggpu+ndebug),stat=i_stat)
-  call memocc(i_stat,keys,'keys',subname)
+  keys = f_malloc((/ 4, nseggpu /),id='keys')
   
   nseg_tot=0
   !assign the keys values, coarse part
@@ -138,9 +137,7 @@ subroutine adjust_keys_for_gpu(nseg_c,nseg_f,keyv_c,keyg_c,keyv_f,keyg_f,nvctr_c
   call sg_send_mem_instantaneously(keys_GPU,keys,4*nseggpu,4,i_stat)
        
   
-  i_all=-product(shape(keys))*kind(keys)
-  deallocate(keys,stat=i_stat)
-  call memocc(i_stat,i_all,'keys',subname)
+  call f_free(keys)
 
 
 END SUBROUTINE adjust_keys_for_gpu
@@ -165,8 +162,7 @@ subroutine prepare_gpu_for_locham(n1,n2,n3,nspin,hx,hy,hz,wfd,orbs,GPU)
   call creategpuparameters(n1,n2,n3,hx,hy,hz)
 
   !allocate the number of GPU pointers for the wavefunctions
-  allocate(GPU%psi(orbs%norbp+ndebug),stat=i_stat)
-  call memocc(i_stat,GPU%psi,'GPU%psi',subname)
+  GPU%psi = f_malloc_ptr(orbs%norbp,id='GPU%psi')
 
   !allocate space on the card
   !allocate the compressed wavefunctions such as to be used as workspace
@@ -219,9 +215,7 @@ subroutine free_gpu(GPU,norbp)
      call sg_gpu_free(GPU%psi(iorb),i_stat)
   end do
 
-  i_all=-product(shape(GPU%psi))*kind(GPU%psi)
-  deallocate(GPU%psi,stat=i_stat)
-  call memocc(i_stat,i_all,'GPU%psi',subname)
+  call f_free_ptr(GPU%psi)
 
 END SUBROUTINE free_gpu
 
@@ -229,6 +223,7 @@ END SUBROUTINE free_gpu
 subroutine local_hamiltonian_GPU(orbs,lr,hx,hy,hz,& !n(c) iproc (arg:1)
      nspin,pot,psi,hpsi,ekin_sum,epot_sum,GPU)
   !n(c) use module_base
+  use module_defs, only: gp,wp,dp
   use module_types
   implicit none
   integer, intent(in) :: nspin !n(c) iproc
@@ -325,8 +320,7 @@ subroutine preconditionall_GPU(orbs,lr,hx,hy,hz,ncong,hpsi,gnrm,gnrm_zero,GPU) !
   call allocate_work_arrays(lr%geocode,lr%hybrid_on,ncplx,lr%d,w)
  
   !arrays for the CG procedure
-  allocate(b(ncplx*(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f),orbs%norbp+ndebug),stat=i_stat)
-  call memocc(i_stat,b,'b',subname)
+  b = f_malloc((/ ncplx*(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f), orbs%norbp /),id='b')
 
   gnrm=0.0_dp
   !norm of gradient of unoccupied orbitals
@@ -396,9 +390,7 @@ subroutine preconditionall_GPU(orbs,lr,hx,hy,hz,ncong,hpsi,gnrm,gnrm_zero,GPU) !
 
   !end of dynamic repartition
 
-  i_all=-product(shape(b))*kind(b)
-  deallocate(b,stat=i_stat)
-  call memocc(i_stat,i_all,'b',subname)
+  call f_free(b)
 
   call deallocate_work_arrays(lr%geocode,lr%hybrid_on,ncplx,w)
 
@@ -408,6 +400,7 @@ END SUBROUTINE preconditionall_GPU
 subroutine local_partial_density_GPU(orbs,&  !n(c) iproc (arg:1), nproc (arg:2)
      nrhotot,lr,hxh,hyh,hzh,nspin,psi,rho_p,GPU)
   !n(c) use module_base
+  use module_defs, only: gp,dp,wp
   use module_types
   !n(c) use module_interfaces
   implicit none
@@ -468,6 +461,7 @@ END SUBROUTINE local_partial_density_GPU
 
 subroutine gpu_locden(lr,nspin,hxh,hyh,hzh,orbs,GPU)
   !n(c) use module_base
+  use module_defs, only: gp
   use module_types
   implicit none
   integer, intent(in) :: nspin
@@ -488,6 +482,7 @@ END SUBROUTINE gpu_locden
 
 subroutine gpu_locden_helper_stream(lr,nspin,hxh,hyh,hzh,orbs,GPU,stream_ptr)
   !n(c) use module_base
+  use module_defs, only: gp
   use module_types
   implicit none
   integer, intent(in) :: nspin
@@ -511,6 +506,7 @@ END SUBROUTINE gpu_locden_helper_stream
 
 subroutine gpu_locham(n1,n2,n3,hx,hy,hz,orbs,GPU,ekin_sum,epot_sum)
   !n(c) use module_base
+  use module_defs, only: gp
   use module_types
   implicit none
   integer, intent(in) :: n1,n2,n3
@@ -553,6 +549,7 @@ END SUBROUTINE gpu_locham
 
 subroutine gpu_locham_helper_stream(n1,n2,n3,hx,hy,hz,orbs,GPU,ekin_sum,epot_sum,iorb,stream_ptr)
   !n(c) use module_base
+  use module_defs, only: gp
   use module_types
   implicit none
   integer, intent(in) :: n1,n2,n3
@@ -590,6 +587,7 @@ END SUBROUTINE gpu_locham_helper_stream
 
 subroutine gpu_precond(lr,hx,hy,hz,GPU,norbp,ncong,gnrm) !n(c) eval (arg:8)
   !n(c) use module_base
+ use module_defs, only: gp,wp
   use module_types
   implicit none
   integer, intent(in) :: norbp,ncong
@@ -620,6 +618,7 @@ END SUBROUTINE gpu_precond
 
 subroutine gpu_intprecond(lr,hx,hy,hz,GPU,ncong,iorb) !n(c) norbp (args:6), eval (arg:8)
   !n(c) use module_base
+  use module_defs, only: gp,wp
   use module_types
   implicit none
   integer, intent(in) :: ncong,iorb !n(c) norbp
@@ -642,6 +641,7 @@ END SUBROUTINE gpu_intprecond
 
 subroutine gpu_precond_helper_stream(lr,hx,hy,hz,GPU,ncong,gnrm,currOrb,stream_ptr) !n(c) norbp (arg:6), eval (arg:8)
   !n(c) use module_base
+  use module_defs, only: gp,wp
   use module_types
   implicit none
   integer, intent(in) :: ncong !n(c) norbp
@@ -671,6 +671,7 @@ END SUBROUTINE gpu_precond_helper_stream
 subroutine gpu_precondprecond_helper_stream(lr,hx,hy,hz,cprecr,scal,ncplx,w,x,b,&
      stream_ptr)
   !n(c) use module_base
+  use module_defs, only: gp,wp
   use module_types
   implicit none
   integer, intent(in) :: ncplx
@@ -704,6 +705,7 @@ subroutine precond_preconditioner_wrapper(hybrid_on,&
      x,b)
   !n(c) use module_base
   use module_types
+  use module_defs, only: gp,wp
   implicit none
   logical :: hybrid_on
   integer :: n1,n2,n3,nvctr_c,nvctr_f,nseg_c,nseg_f,ncplx
@@ -735,7 +737,7 @@ subroutine precond_preconditioner_wrapper(hybrid_on,&
 !!$  if (hybrid_on) then
 !!$     do idx=1,ncplx
 !!$        !b=x
-!!$        call dcopy(nvctr_c+7*nvctr_f,x(1,idx),1,b(1,idx),1) 
+!!$        call vcopy(nvctr_c+7*nvctr_f,x(1,idx),1,b(1,idx),1) 
 !!$
 !!$        call prec_fft_fast(n1,n2,n3,&
 !!$             nseg_c,nvctr_c,nseg_f,nvctr_f,&
@@ -755,7 +757,7 @@ subroutine precond_preconditioner_wrapper(hybrid_on,&
 !!$        call wscal_per_self(nvctr_c,nvctr_f,scal,&
 !!$             x(1,idx),x(nvctr_c+1,idx))
 !!$        !b=x
-!!$        call dcopy(nvctr_c+7*nvctr_f,x(1,idx),1,b(1,idx),1) 
+!!$        call vcopy(nvctr_c+7*nvctr_f,x(1,idx),1,b(1,idx),1) 
 !!$
 !!$        !if GPU is swithced on and there is no call to GPU preconditioner
 !!$        !do not do the FFT preconditioning

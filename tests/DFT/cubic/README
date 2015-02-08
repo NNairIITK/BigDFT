@@ -1,1 +1,47 @@
-Test the cubic version of the code.
+/*! @file
+@brief README of the non-regression tests for the cubic version (ground-state calculations).
+
+@dir
+@brief Contains the non-regression test for the cubic version (ground-state calculations)
+
+@page TESTS_DFT_CUBIC Test the cubic version of the code.
+@brief Non-regression tests (ground-state with the cubic version)
+
+Tests the ground-state calculation capabilities for the cubic version.
+
+The command <tt>make check</tt> performs the series of tests:
+- @b AgBulk:      Tests bulk Silver periodic boundary conditions, with an example for mixing and k-points
+- @b Ca2:         Tests adaptive mesh (by checking symmetry)
+- @b C:           Tests non-local pseudo-potential for isolated system. 
+                  We use the file occup.dat in order to populate equally the 3 p states.
+                  WARNING: The input guess has not the correct symmetry due to the lapack library.
+                  There is a small overlap (1.e-6) between s and p states in Gaussian functions projected into wavelet basis sets
+                  and the 3 eigenvalues of p states are a diffrence of 1.e-6. 
+- @b ElectField:  Tests the calculation when electric filed is applied in an arbitrary direction.
+                  If rotated, the forces (only magnitude!) should be conserved. The energy (because of different ref. for external potential can be different)
+- @b ElectronGas: Tests no atoms and k points with random input wavefunctions
+- @b FeHyb:       Tests the hybrid functional
+- @b GPU:         Tests GPU code (CUDA).
+                  To use GPU capabilities, you should use the option --enable-cuda with configure,
+                  add 'accel' keyword in input.perf with value 'CUDAGPU' 
+                  (this keyword indicates that the special GPU interface is used for convolutions) 
+                  and have a file for the affinity: cpu_gpu_aff.config
+- @b Graphene:    Tests surface with k-points for a graphene sheet
+- @b H2O-CP2K:    Tests import wavefunctions from a gaussian basis set
+- @b H2-spin:     Uses the spin in the calculation of hydrogen atom
+- @b H:           Tests the hydrogen in a periodic box
+- @b H-Rydberg:   Calculate the first Rydberg states using no Hartree and XC terms
+- @b Li+:         Calculates an isolated charged system
+- @b Mn2:         Tests non-collinear spin
+- @b NaCl:        Tests non-local pseudo-potential and adaptive mesh
+- @b OCL:         Tests GPU code (OpenCL)
+                  To use GPU capabilities, you should:
+                  - Use the option --enable-ocl with configure
+                  - Add a keyword accel in the file input.perf with value:
+                  OCLGPU this keyword indicates that the special GPU interface is used for convolutions
+- @b SiBulk:      Tests bulk silicon in periodic boundary conditions
+- @b SiH4:        Tests the geometry relaxation for the silane molecule. Use the ASCII file format instead of the XYZ one
+- @b TiMix:       Tests the diagonalisation and mixing scheme using a Pulay algorithm on density
+- @b TiMix:       Tests for different smearing methods: gaussian, fermi, marzari, ...
+- @b TiSmear:     Tests a different smearing method: Marzari'c cold amearing (could be changed for other methos as well)
+*/

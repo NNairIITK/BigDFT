@@ -1,0 +1,74 @@
+  #---------------------------------------------------------------------- Minimal input file
+  #This file indicates the minimal set of input variables which has to be given to perform 
+  #the run. The code would produce the same output if this file is used as input.
+ dft:
+   hgrids: 0.36
+   rmult: [5.0, 7.0]
+   ixc: PBE (ABINIT)
+   nspin: 2
+   mpol: 4
+   itermax: 30
+   nrepmax: 5
+   ncong: 5
+   idsx: 4
+   inputpsiid: linear
+   disablesym: Yes
+ perf:
+   ef_interpol_chargediff: 1.0
+   ef_interpol_det: 1.e-10
+   check_sumrho: 2
+   calculate_KS_residue: Yes
+   method_updatekernel: 2
+   purification_quickreturn: Yes
+   check_matrix_compression: No
+   correction_co_contra: Yes
+   adjust_kernel_iterations: No
+ lin_general:
+   hybrid: No
+   nit: [2,3]
+   rpnrm_cv: 1.0e-6
+   calc_dipole: Yes
+   max_inversion_error: 5.0e-8
+ lin_basis:
+   nit: 4
+   idsx: 4
+   gnrm_cv: 1.0e-3
+   deltae_cv: 5.0e-5
+   min_gnrm_for_dynamic: 2.0e-3
+   alpha_diis: 0.5
+   alpha_sd: 0.5
+   nstep_prec: 6
+   fix_basis: 1.0e-12
+   correction_orthoconstraint: 0
+ lin_kernel:
+   nstep: 8
+   nit: 4
+   idsx_coeff: [6, 0]
+   idsx: 6
+   alphamix: 0.05
+   eval_range_foe: [-1.0, 1.0]
+   fscale_foe: 5.0E-002
+   linear_method: DIRMIN
+ lin_basis_params:
+   O:
+     nbasis: 4
+     ao_confinement: 2.2e-2
+     confinement: [ 2.2e-2 , 0.0 ]
+     rloc: [ 5.5 , 6.0 ] 
+     rloc_kernel: 8.0
+     rloc_kernel_foe: 15.0
+ posinp:
+   units: angstroem
+   positions:
+   - O: [0.0, 0.0, 0.0]
+     IGSpin: 2
+   - O: [0.0, 0.0, 1.208]
+     IGSpin: 2
+   properties:
+     format: xyz
+     source: posinp
+# ig_occupation:
+#   O:
+#     2s: [1.0, 1.0]
+#     2p: [1.0, 1.0, 1.0, 1/3, 1/3, 1/3]
+#     3d: 0.0 

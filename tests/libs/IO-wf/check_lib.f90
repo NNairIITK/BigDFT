@@ -1,4 +1,15 @@
-program schtroumpf_lib
+!> @file
+!!  Check the input/output routines for the wavefunctions
+!! @author
+!!    Copyright (C) 2012-2013 BigDFT group
+!!    This file is distributed under the terms of the
+!!    GNU General Public License, see ~/COPYING file
+!!    or http://www.gnu.org/copyleft/gpl.txt .
+!!    For the list of contributors, see ~/AUTHORS
+
+
+!>  Program to check the input/output routines for the wavefunctions
+program IO_wf_test
   use BigDFT_API
 
   implicit none
@@ -13,9 +24,10 @@ program schtroumpf_lib
   
   real(wp) :: nrm
   integer :: ierr, i, j, k  
+  call f_lib_initialize()
 
   call MPI_INIT(ierr)
-  call f_set_status(memory_limit=0.e0)
+  call f_malloc_set_status(memory_limit=0.e0)
 
   call get_command_argument(1, value = filename)
 
@@ -45,9 +57,11 @@ program schtroumpf_lib
   write(*,"(A,3I10)")   " number of points in iscf representation: ", n1, n2, n3
   write(*,"(A,I2,A,22x,F12.8)")  " norm of orbital ", iorbp, ":", nrm
 
-  call free_wave_to_isf(psiscf)
+  call f_free_ptr(psiscf)
+  !call free_wave_to_isf(psiscf)
 
-  call memocc(0,0,'count','stop')
+  !call memocc(0,0,'count','stop')
 
   call MPI_FINALIZE(ierr)
-end program schtroumpf_lib
+  call f_lib_finalize()
+end program IO_wf_test

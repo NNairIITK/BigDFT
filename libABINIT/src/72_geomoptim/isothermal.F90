@@ -5,6 +5,7 @@ subroutine md_isothermal(acell, acell_next, amass, bmass, dtion, etotal, etotal0
 
   use defs_basis
   use defs_datatypes
+  use interfaces_14_hidewrite
 
   implicit none
 

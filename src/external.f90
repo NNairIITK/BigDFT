@@ -1,5 +1,6 @@
 !> @file
-!! External routine of the bigDFT library.
+!! @brief External routines of the BigDFT library.
+!! @details
 !! To be documented in detail once stabilized
 !! All the call to BigDFT code should be performed from these routines
 !! No interface should be required to manipulate these routines
@@ -10,10 +11,8 @@
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS
-
-
 !> Routine which initalizes the BigDFT environment
-subroutine bigdft_init(mpi_info,nconfig,run_id,ierr)
+subroutine bigdft_init_old(mpi_info,nconfig,run_id,ierr)
   use BigDFT_API
   implicit none
   integer, dimension(4), intent(out) :: mpi_info !< first entry: id of MPI task in the groups,
@@ -23,28 +22,16 @@ subroutine bigdft_init(mpi_info,nconfig,run_id,ierr)
   integer, intent(out) :: ierr                   !< error code
   !local variables
   logical :: exist_list
-  integer :: iproc,nproc,nconfig_file,mpi_groupsize
+  integer :: nconfig_file,mpi_groupsize
   character(len=60) :: posinp_file,radical
 
   !Initalize the global mpi environment
   call bigdft_mpi_init(ierr)
-  call MPI_COMM_RANK(MPI_COMM_WORLD,iproc,ierr)
-  call MPI_COMM_SIZE(MPI_COMM_WORLD,nproc,ierr)
-
-  if (ierr /= MPI_SUCCESS) return
-
-  !set the memory limit for the allocation library
-  call f_set_status(memory_limit=memorylimit,iproc=iproc)
-  !call memocc_set_memory_limit(memorylimit)
-
-
+  if (ierr /= MPI_SUCCESS) then
+     return
+  end if
   call command_line_information(mpi_groupsize,posinp_file,radical,ierr)
-
-!!$  print *,'list_posinp',trim(posinp_file),'iproc',iproc
-!!$  print *,'run_id',trim(radical),'iproc',iproc
-!!$  print *,'mpi_groupsize',mpi_groupsize,'iproc',iproc
-
-  call mpi_environment_set(bigdft_mpi,iproc,nproc,MPI_COMM_WORLD,mpi_groupsize)
+  call bigdft_init_mpi_env(mpi_info, mpi_groupsize, ierr)
 
   !minimum number of different configurations dictated by ngroups
   nconfig=bigdft_mpi%ngroup
@@ -63,27 +50,90 @@ subroutine bigdft_init(mpi_info,nconfig,run_id,ierr)
         stop
      end if
   end if
+end subroutine bigdft_init_old
+
+
+subroutine bigdft_mpi_init(ierr)
+  use wrapper_mpi, only: wmpi_init_thread,MPI_SUCCESS
+  use module_types, only: bigdft_init_errors,bigdft_init_timing_categories
+  use exception_callbacks, only: severe_callback_add
+  implicit none
+  integer, intent(out) :: ierr
+
+  call wmpi_init_thread(ierr)
+
+  if (ierr == MPI_SUCCESS) then
+     call bigdft_init_errors()
+     call bigdft_init_timing_categories()
+  end if
+end subroutine bigdft_mpi_init
+
+
+subroutine bigdft_init_mpi_env(mpi_info,mpi_groupsize, ierr)
+  use BigDFT_API
+  implicit none
+  
+  integer, dimension(4), intent(out) :: mpi_info
+  integer, intent(in) :: mpi_groupsize
+  integer, intent(out) :: ierr
+  !local variables
+  integer :: iproc,nproc,ngroup_size
+
+  !here wrappers for MPI should be used
+  call MPI_COMM_RANK(MPI_COMM_WORLD,iproc,ierr)
+  call MPI_COMM_SIZE(MPI_COMM_WORLD,nproc,ierr)
+  if (ierr /= MPI_SUCCESS) return
+
+  !set the memory limit for the allocation library
+  call f_malloc_set_status(memory_limit=memorylimit,iproc=iproc)
+  !call memocc_set_memory_limit(memorylimit)
+
+!!$  print *,'list_posinp',trim(posinp_file),'iproc',iproc
+!!$  print *,'run_id',trim(radical),'iproc',iproc
+!!$  print *,'mpi_groupsize',mpi_groupsize,'iproc',iproc
+
+  !if the taskgroup size is not a divisor of nproc do not create taskgroups
+  if (nproc >1 .and. mpi_groupsize > 0 .and. mpi_groupsize < nproc .and.&
+       mod(nproc,mpi_groupsize)==0) then
+     ngroup_size=mpi_groupsize
+  else
+     ngroup_size=nproc
+  end if
+  call mpi_environment_set(bigdft_mpi,iproc,nproc,MPI_COMM_WORLD,ngroup_size)
+
   !final values
   mpi_info(1)=bigdft_mpi%iproc
   mpi_info(2)=bigdft_mpi%nproc
   mpi_info(3)=bigdft_mpi%igroup
   mpi_info(4)=bigdft_mpi%ngroup
+end subroutine bigdft_init_mpi_env
 
-end subroutine bigdft_init
+subroutine bigdft_init_mpi_force(igroup, ngroup)
+  use BigDFT_API
+  implicit none
+  integer, intent(in) :: igroup, ngroup
 
+  if (igroup >= 0) bigdft_mpi%igroup = igroup
+  if (ngroup >= 0) bigdft_mpi%ngroup = ngroup
+END SUBROUTINE bigdft_init_mpi_force
 
 subroutine bigdft_finalize(ierr)
   use BigDFT_API
   implicit none
   integer, intent(out) :: ierr
-  
-  !here a routine to free the environment should be called
-   call MPI_BARRIER(MPI_COMM_WORLD,ierr)
-   call mpi_environment_free(bigdft_mpi)
-   !wait all processes before finalisation
-   call MPI_BARRIER(MPI_COMM_WORLD,ierr)
-   call MPI_FINALIZE(ierr)
 
+  ierr=0
+
+  !here a routine to free the environment should be called
+  call mpibarrier() !over comm world
+  !call MPI_BARRIER(MPI_COMM_WORLD,ierr)
+  call mpi_environment_free(bigdft_mpi)
+  call mpibarrier() !over comm world
+  !wait all processes before finalisation
+  !call MPI_BARRIER(MPI_COMM_WORLD,ierr)
+  !call MPI_FINALIZE(ierr)
+  call mpifinalize()
+  
 end subroutine bigdft_finalize
 
 
@@ -163,3 +213,30 @@ function bigdft_error_ret(err_signal,err_message) result (ierr)
   ierr=err_signal
   
 end function bigdft_error_ret
+
+!> Abort bigdft program
+subroutine bigdft_severe_abort()
+  use module_base
+  use yaml_output, only: yaml_toa,yaml_comment,yaml_flush_document
+  implicit none
+  integer :: ierr
+  !local variables
+  character(len=128) :: filename
+  !the MPI_ABORT works only in MPI_COMM_WORLD
+  filename(1:len(filename))='bigdft-err-'//trim(adjustl(yaml_toa(bigdft_mpi%iproc)))//&
+       '-'//trim(adjustl(yaml_toa(bigdft_mpi%igroup)))//'.yaml'
+  call f_malloc_dump_status(filename=filename)
+  if (bigdft_mpi%iproc ==0) then
+     call f_dump_all_errors(-1)
+     call yaml_comment('Error raised!',hfill='^')
+     call yaml_comment('Messages are above, dumping run status in file(s) '//&
+          'bigdft-err-*.yaml',hfill='^')
+     call yaml_comment('Exiting...',hfill='~')
+     call yaml_flush_document() !might help, sometimes..
+  end if
+  !call f_lib_finalize()
+  call f_pause(1) !< wait one second
+  call MPI_ABORT(MPI_COMM_WORLD,816437,ierr)
+  if (ierr/=0) stop 'Problem in MPI_ABORT'
+
+end subroutine bigdft_severe_abort
