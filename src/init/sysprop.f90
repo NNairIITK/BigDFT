@@ -475,7 +475,7 @@ subroutine system_initialization(iproc,nproc,dump,inputpsi,input_wf_format,dry_r
        implicit none
 
        !Local variables
-       integer :: iorb, iiorb, ilr, ncplx, ist, i, ierr, ii
+       integer :: iorb, iiorb, ilr, ncplx, ist, i, ierr, ii, jj
        logical :: with_confpot
        real(gp) :: kx, ky, kz
        type(workarrays_quartic_convolutions),dimension(:),allocatable :: precond_convol_workarrays
@@ -490,7 +490,10 @@ subroutine system_initialization(iproc,nproc,dump,inputpsi,input_wf_format,dry_r
           iiorb=lorbs%isorb+iorb
           ilr=lorbs%inwhichlocreg(iiorb)
           ii = (lzd_lin%llr(ilr)%d%n1+1)*(lzd_lin%llr(ilr)%d%n2+1)*(lzd_lin%llr(ilr)%d%n3+1)
-          times_convol(iiorb) = real(ii,kind=8)
+          jj = 7*(lzd_lin%llr(ilr)%d%nfu1-lzd_lin%llr(ilr)%d%nfl1+1)*&
+                 (lzd_lin%llr(ilr)%d%nfu2-lzd_lin%llr(ilr)%d%nfl2+1)*&
+                 (lzd_lin%llr(ilr)%d%nfu3-lzd_lin%llr(ilr)%d%nfl3+1)
+          times_convol(iiorb) = real(ii+jj,kind=8)
       end do
       if (nproc>1) then
           call mpiallred(times_convol, mpi_sum, bigdft_mpi%mpi_comm)
