@@ -1251,7 +1251,7 @@ subroutine wtxyz(iunit,energy,rxyz,astruct,comment)
   character(len=10) :: name
   character(len=11) :: units
   !character(len=226) :: extra
-  integer :: iat,j
+  integer :: iat
   real(gp) :: xmax,ymax,zmax,factor
 
 
@@ -1368,7 +1368,7 @@ subroutine wtascii(iunit,energy,rxyz,astruct,comment)
   character(len=2) :: symbol
   !character(len=226) :: extra
   character(len=10) :: name
-  integer :: iat,j
+  integer :: iat
   real(gp) :: xmax,ymax,zmax,factor(3)
 
   xmax=0.0_gp
