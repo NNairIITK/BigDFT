@@ -359,6 +359,10 @@ subroutine psitohpsi(iproc,nproc,atoms,scf,denspot,itrp,itwfn,iscf,alphamix,&
      call kswfn_emit_psi(wfn, itwfn, 1, iproc, nproc)
   end if
 
+  if (wfn%paw%usepaw) then
+     call paw_compute_rhoij(wfn%paw, wfn%orbs, atoms, denspot)
+  end if
+
   !deallocate potential
   call free_full_potential(denspot%dpbox%mpi_env%nproc,linflag,denspot%xc,denspot%pot_work,subname)
   !----
@@ -3348,3 +3352,120 @@ subroutine paw_compute_dij(paw, at, denspot, vxc)
 
   call f_free(xred)
 end subroutine paw_compute_dij
+
+!> Compute the PAW quantities rhoij (augmentation occupancies)
+!  Remember:for each atom, rho_ij=Sum_{n,k} {occ(n,k)*<Cnk|p_i><p_j|Cnk>}
+subroutine paw_compute_rhoij(paw, orbs, atoms, denspot)
+  use module_base, only: bigdft_mpi, gp
+  use module_types, only: orbitals_data, paw_objects, atoms_data, DFT_local_fields
+  use m_pawrhoij, only: pawrhoij_type, pawrhoij_init_unpacked, pawrhoij_mpisum_unpacked, &
+       & pawrhoij_free
+  use dynamic_memory
+  use abi_defs_basis, only: AB7_NO_ERROR
+  use m_ab6_symmetry
+  use abi_interfaces_libpaw, only: pawaccrhoij, pawmkrho
+  use abi_interfaces_numeric, only: abi_mati3inv
+  implicit none
+  type(paw_objects), intent(inout) :: paw
+  type(orbitals_data), intent(in) :: orbs
+  type(atoms_data), intent(in) :: atoms
+  type(DFT_local_fields), intent(inout) :: denspot
+
+  integer, parameter :: cplex = 1, pawprtvol = 0, usewvl = 1, pawxcdev = 1, ipert = 0, idir = 1
+  integer :: iatom, iorbp, isppol, ncplx, iorb, errno, isym, nsym
+  integer :: nfft, ngfft(18)
+  integer, dimension(atoms%astruct%nat) :: atindx
+  real(gp) :: compch_fft
+  type(pawrhoij_type), pointer :: pawrhoij_all(:)
+  real(gp) :: ucvol
+  real(gp), dimension(3), parameter :: qphon = (/ 0._gp, 0._gp, 0._gp /)
+
+  type(symmetry_type), pointer :: symObj
+  integer, allocatable :: symrec(:,:,:)
+  integer, pointer  :: sym(:,:,:), indsym(:,:,:)
+  integer, pointer  :: symAfm(:)
+  real(gp), pointer :: transNon(:,:)
+
+  !Build and initialize unpacked rhoij (to be computed here)
+  call pawrhoij_init_unpacked(paw%pawrhoij)
+
+  !If pawrhoij is MPI-distributed over atomic sites, gather it
+!!$  if (associated(paw%mpi_atmtab)) then
+!!$     allocate(pawrhoij_all(atoms%astruct%nat))
+!!$  else
+     pawrhoij_all => paw%pawrhoij
+!!$  end if
+
+  do iatom = 1, atoms%astruct%nat
+     atindx(iatom) = iatom
+  end do
+
+  ! Loop on band for this proc.
+  do iorbp = 1, orbs%norbp
+     iorb = orbs%isorb + iorbp
+     isppol = 1 + (iorb - 1) / orbs%norbu
+     call ncplx_kpt(orbs%iokpt(iorbp),orbs,ncplx)
+     call pawaccrhoij(atindx, ncplx, &
+          & paw%cprj(:, (iorb - 1 ) * orbs%nspinor + 1:(iorb - 1 ) * orbs%nspinor + orbs%nspinor), &
+          & paw%cprj(:, (iorb - 1 ) * orbs%nspinor + 1:(iorb - 1 ) * orbs%nspinor + orbs%nspinor),&
+          & 0, isppol, size(paw%pawrhoij), atoms%astruct%nat, orbs%nspinor, &
+          & orbs%occup(iorb), 1, pawrhoij_all, &
+          & .false., orbs%kwgts(orbs%iokpt(iorbp)))
+  end do
+
+  !MPI: need to exchange rhoij_ between procs
+  call pawrhoij_mpisum_unpacked(pawrhoij_all, bigdft_mpi%mpi_comm)
+
+  !In case of distribution over atomic sites, dispatch rhoij
+!!$  if (associated(paw%mpi_atmtab)) then
+!!$     do iatom=1,size(paw%mpi_atmtab)
+!!$        paw%pawrhoij(iatom)%rhoij_(:,:)=pawrhoij_all(paw%mpi_atmtab(iatom))%rhoij_(:,:)
+!!$     end do
+!!$     call pawrhoij_free(pawrhoij_all)
+!!$     deallocate(pawrhoij_all)
+!!$  end if
+
+  nfft = denspot%dpbox%ndims(1) * denspot%dpbox%ndims(2) * denspot%dpbox%n3p
+  ngfft(1:3) = denspot%dpbox%ndims
+  ucvol = product(denspot%dpbox%ndims) * product(denspot%dpbox%hgrids)
+
+  if (atoms%astruct%sym%nsym > 0) then
+     call symmetry_get_matrices_p(atoms%astruct%sym%symObj, nsym, sym, transNon, symAfm, indSym = indSym, errno = errno)
+     if (errno /= AB7_NO_ERROR) stop
+     call symmetry_get_from_id(symObj, atoms%astruct%sym%symObj, errno)
+     if (errno /= AB7_NO_ERROR) stop
+  else
+     nsym = 1
+     sym = f_malloc0_ptr((/ 3, 3, 1 /), id = "sym")
+     sym(1,1,1) = 1
+     sym(2,2,1) = 1
+     sym(3,3,1) = 1
+     indsym = f_malloc_ptr((/ 4, nsym, atoms%astruct%nat /), id = "indsym")
+     allocate(symObj)
+     symObj%xred = f_malloc_ptr((/ 3, atoms%astruct%nat /), id = "xred")
+  end if
+
+  !Get the symmetry matrices in terms of reciprocal basis
+  symrec = f_malloc((/ 3, 3, nsym /), id = "symrec")
+  do isym = 1, nsym, 1
+     call abi_mati3inv(sym(:,:,isym), symrec(:,:,isym))
+  end do
+
+  call pawmkrho(compch_fft,cplex,symObj%gprimd,idir,indsym,ipert,&
+&          nfft, nfft / 8, ngfft, &
+&          size(paw%pawrhoij),atoms%astruct%nat,denspot%dpbox%nrhodim,nsym,atoms%astruct%ntypes, &
+& 0,atoms%pawang,paw%pawfgrtab,pawprtvol,&
+&          paw%pawrhoij,paw%pawrhoij,&
+&          atoms%pawtab,qphon,denspot%rhov,denspot%rhov,denspot%rhov,&
+& symObj%rprimd,symAfm,symrec,atoms%astruct%iatype,ucvol,usewvl,symObj%xred)
+
+  call f_free(symrec)
+
+  if (atoms%astruct%sym%nsym == 0) then
+     call f_free_ptr(symObj%xred)
+     deallocate(symObj)
+     call f_free_ptr(indsym)
+     call f_free_ptr(sym)
+  end if
+
+end subroutine paw_compute_rhoij
