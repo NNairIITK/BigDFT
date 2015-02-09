@@ -239,8 +239,7 @@ subroutine orthoconstraint(iproc,nproc,orbs,comms,symm,psi,hpsi,scprsum,spsi) !n
   
   !Allocate ovrlp for PAW: 
   if(present(spsi)) then
-    norb=max(orbs%norbu,orbs%norbd,1)
-    paw_ovrlp = f_malloc(norb,id='paw_ovrlp')
+    paw_ovrlp = f_malloc(ndim_ovrlp(nspin, orbs%nkpts),id='paw_ovrlp')
   end if
 
   !put to zero all the k-points which are not needed
@@ -271,28 +270,28 @@ subroutine orthoconstraint(iproc,nproc,orbs,comms,symm,psi,hpsi,scprsum,spsi) !n
                    alag(ndim_ovrlp(ispin,ikpt-1)+1),norb)
            end if
         else
-        !this part should be recheck in the case of nspinor == 2
-        call c_gemm('C','N',norb,norb,ncomp*nvctrp,(1.0_wp,0.0_wp),psi(ispsi),&
-             max(1,ncomp*nvctrp), &
-             hpsi(ispsi),max(1,ncomp*nvctrp),(0.0_wp,0.0_wp),&
-             alag(ndim_ovrlp(ispin,ikpt-1)+1),norb)
+           !this part should be recheck in the case of nspinor == 2
+           call c_gemm('C','N',norb,norb,ncomp*nvctrp,(1.0_wp,0.0_wp),psi(ispsi),&
+                max(1,ncomp*nvctrp), &
+                hpsi(ispsi),max(1,ncomp*nvctrp),(0.0_wp,0.0_wp),&
+                alag(ndim_ovrlp(ispin,ikpt-1)+1),norb)
         end if
         !In PAW we should do <psi|H|psi>/<psi|S|psi>
         !However when the overlap is too large (usually when we have a bad initial guess)
         !Dividing by <psi|S|psi> is not a good idea since |gnrm> might get too large.
         !Hence the following part is not done:
-        if (present(spsi) .and. 1==2) then
+        if (present(spsi)) then
           if(nspinor==1) then
              !dgemmsy desactivated for the moment due to SIC
              !call gemmsy('T','N',norb,norb,nvctrp,1.0_wp,psi(ispsi),&
+!!$             call gemm('T','N',norb,norb,nvctrp,1.0_wp,psi(ispsi),&
+!!$                  max(1,nvctrp),psi(ispsi),max(1,nvctrp),0.0_wp,&
+!!$                  paw_ovrlp(ndim_ovrlp(ispin,ikpt-1)+1),norb)
+!!$                  !write(*,*)'orthoconstraint l260, erase me:'
+!!$                  !write(*,*)'<psi|psi>',paw_ovrlp
              call gemm('T','N',norb,norb,nvctrp,1.0_wp,psi(ispsi),&
-                  max(1,nvctrp),psi(ispsi),max(1,nvctrp),0.0_wp,&
-                  paw_ovrlp(1),norb)
-                  !write(*,*)'orthoconstraint l260, erase me:'
-                  !write(*,*)'<psi|psi>',paw_ovrlp
-             call gemm('T','N',norb,norb,nvctrp,1.0_wp,psi(ispsi),&
-                  max(1,nvctrp),spsi(ispsi),max(1,nvctrp),1.0_wp,&
-                  paw_ovrlp(1),norb)
+                  max(1,nvctrp),spsi(ispsi),max(1,nvctrp),0.0_wp,&
+                  paw_ovrlp(ndim_ovrlp(ispin,ikpt-1)+1),norb)
           else
              !this part should be recheck in the case of nspinor == 2
              call c_gemm('C','N',norb,norb,ncomp*nvctrp,(1.0_wp,0.0_wp),psi(ispsi),&
@@ -304,10 +303,9 @@ subroutine orthoconstraint(iproc,nproc,orbs,comms,symm,psi,hpsi,scprsum,spsi) !n
                   spsi(ispsi),max(1,ncomp*nvctrp),(1.0_wp,0.0_wp),&
                   paw_ovrlp(1),norb)
           end if
-          if(nproc>1) call mpiallred(paw_ovrlp(1),1,MPI_SUM,bigdft_mpi%mpi_comm)
-          alag(ialag:ialag+norb)=alag(ialag:ialag+norb)/paw_ovrlp(1:norb)
+          !if(nproc>1) call mpiallred(paw_ovrlp(1),norb,MPI_SUM,bigdft_mpi%mpi_comm)
           !write(*,*)'orthoconstraint l268, erase me:'
-          !write(*,*)'<psi|S|psi>',paw_ovrlp
+          !write(*,*)'<psi|S|psi>',paw_ovrlp(ndim_ovrlp(ispin,ikpt-1)+1:ndim_ovrlp(ispin,ikpt-1)+norb)
         end if
         ispsi=ispsi+nvctrp*norb*nspinor
      end do
@@ -317,8 +315,15 @@ if (nproc > 1) then
   call timing(iproc,'LagrM_comput  ','OF')
   call timing(iproc,'LagrM_commun  ','ON')
   call mpiallred(alag(1),ndim_ovrlp(nspin,orbs%nkpts),MPI_SUM,bigdft_mpi%mpi_comm)
+  if (present(spsi)) call mpiallred(paw_ovrlp(1),ndim_ovrlp(nspin,orbs%nkpts),MPI_SUM,bigdft_mpi%mpi_comm)
   call timing(iproc,'LagrM_commun  ','OF')
   call timing(iproc,'LagrM_comput  ','ON')
+end if
+
+if (present(spsi)) then
+   alag=alag/paw_ovrlp
+
+   call f_free(paw_ovrlp)
 end if
 
 !now each processors knows all the overlap matrices for each k-point
@@ -391,26 +396,26 @@ do ikptp=1,orbs%nkptsp
                 end if
                 !n(c) ise=norb
 
-                if(nspinor==1 .and. nvctrp /= 0) then
-                   call gemm('N','N',nvctrp,norb,norb,-1.0_wp,psi(ispsi),max(1,nvctrp),&
-                        alag(ndim_ovrlp(ispin,ikpt-1)+1),norb,1.0_wp,&
-                        hpsi(ispsi),max(1,nvctrp))
-                else if (nvctrp /= 0) then
-                   call c_gemm('N','N',ncomp*nvctrp,norb,norb,(-1.0_wp,0.0_wp),psi(ispsi),max(1,ncomp*nvctrp),&
-                        alag(ndim_ovrlp(ispin,ikpt-1)+1),norb,(1.0_wp,0.0_wp),hpsi(ispsi),max(1,ncomp*nvctrp))
+                if (present(spsi)) then
+                   !Only for PAW:
+                   if(nspinor==1 .and. nvctrp /= 0) then
+                      call gemm('N','N',nvctrp,norb,norb,-1.0_wp,spsi(ispsi),max(1,nvctrp),&
+                           alag(ndim_ovrlp(ispin,ikpt-1)+1),norb,1.0_wp,&
+                           hpsi(ispsi),max(1,nvctrp))
+                   else if (nvctrp /= 0) then
+                      call c_gemm('N','N',ncomp*nvctrp,norb,norb,(-1.0_wp,0.0_wp),spsi(ispsi),max(1,ncomp*nvctrp),&
+                           alag(ndim_ovrlp(ispin,ikpt-1)+1),norb,(1.0_wp,0.0_wp),hpsi(ispsi),max(1,ncomp*nvctrp))
+                   end if
+                else
+                   if(nspinor==1 .and. nvctrp /= 0) then
+                      call gemm('N','N',nvctrp,norb,norb,-1.0_wp,psi(ispsi),max(1,nvctrp),&
+                           alag(ndim_ovrlp(ispin,ikpt-1)+1),norb,1.0_wp,&
+                           hpsi(ispsi),max(1,nvctrp))
+                   else if (nvctrp /= 0) then
+                      call c_gemm('N','N',ncomp*nvctrp,norb,norb,(-1.0_wp,0.0_wp),psi(ispsi),max(1,ncomp*nvctrp),&
+                           alag(ndim_ovrlp(ispin,ikpt-1)+1),norb,(1.0_wp,0.0_wp),hpsi(ispsi),max(1,ncomp*nvctrp))
+                   end if
                 end if
-
-        !Only for PAW:
-        if (present(spsi)) then
-          if(nspinor==1 .and. nvctrp /= 0) then
-             call gemm('N','N',nvctrp,norb,norb,-1.0_wp,spsi(ispsi),max(1,nvctrp),&
-                  alag(ndim_ovrlp(ispin,ikpt-1)+1),norb,1.0_wp,&
-                  hpsi(ispsi),max(1,nvctrp))
-          else if (nvctrp /= 0) then
-             call c_gemm('N','N',ncomp*nvctrp,norb,norb,(-1.0_wp,0.0_wp),spsi(ispsi),max(1,ncomp*nvctrp),&
-                  alag(ndim_ovrlp(ispin,ikpt-1)+1),norb,(1.0_wp,0.0_wp),hpsi(ispsi),max(1,ncomp*nvctrp))
-          end if
-        end if
 
                 ispsi=ispsi+nvctrp*norb*nspinor
              end do
@@ -423,10 +428,6 @@ do ikptp=1,orbs%nkptsp
           end if
 
           call f_free(alag)
-
-  if(present(spsi)) then
-    call f_free(paw_ovrlp)
-  end if
 
   call f_free(ndim_ovrlp)
 
