@@ -793,12 +793,12 @@ module sparsematrix
              !stop 'layout==DENSE_PARALLEL not yet implemented'
              luccomm => smat%luccomm
              nvctrp = smat%nvctrp
-             nccomm = smat%smmm%nccomm_smmm
+             nccomm = smat%nccomm
          !else if (layout==DENSE_MATMUL) then
          else if (layout==SPARSE_MATMUL_SMALL) then
              luccomm => smat%smmm%luccomm_smmm
              nvctrp = smat%smmm%nvctrp_mm
-             nccomm = smat%nccomm
+             nccomm = smat%smmm%nccomm_smmm
          end if
          if (size(matrixp)/=max(1,nvctrp)) then
              call f_err_throw('Array matrixp has size '//trim(yaml_toa(size(matrixp),fmt='(i0)'))//&

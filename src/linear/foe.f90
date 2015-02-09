@@ -2294,49 +2294,49 @@ end subroutine scale_and_shift_matrix
 
 
 
-      subroutine retransform_ext(iproc, nproc, smat, inv_ovrlp, kernel)
-          use module_base
-          use sparsematrix_base, only: sparse_matrix, sparsematrix_malloc, assignment(=), &
-                                       SPARSEMM_SEQ, SPARSE_MATMUL_LARGE
-          use sparsematrix, only: sequential_acces_matrix_fast, sequential_acces_matrix_fast2, &
-                                  compress_matrix_distributed_wrapper, &
-                                  sparsemm_new, transform_sparsity_pattern
-          implicit none
-          ! Calling arguments
-          integer,intent(in) :: iproc, nproc
-          type(sparse_matrix),intent(in) :: smat
-          real(kind=8),dimension(smat%nvctrp_tg),intent(inout) :: inv_ovrlp
-          real(kind=8),dimension(smat%nvctrp_tg),intent(inout) :: kernel
-          
+subroutine retransform_ext(iproc, nproc, smat, inv_ovrlp, kernel)
+    use module_base
+    use sparsematrix_base, only: sparse_matrix, sparsematrix_malloc, assignment(=), &
+                                 SPARSEMM_SEQ, SPARSE_MATMUL_LARGE
+    use sparsematrix, only: sequential_acces_matrix_fast, sequential_acces_matrix_fast2, &
+                            compress_matrix_distributed_wrapper, &
+                            sparsemm_new, transform_sparsity_pattern
+    implicit none
+    ! Calling arguments
+    integer,intent(in) :: iproc, nproc
+    type(sparse_matrix),intent(in) :: smat
+    real(kind=8),dimension(smat%nvctrp_tg),intent(inout) :: inv_ovrlp
+    real(kind=8),dimension(smat%nvctrp_tg),intent(inout) :: kernel
+    
 
-          ! Local variables
-          real(kind=8),dimension(:),pointer :: inv_ovrlpp_new, tempp_new
-          real(kind=8),dimension(:),allocatable :: inv_ovrlp_compr_seq, kernel_compr_seq
+    ! Local variables
+    real(kind=8),dimension(:),pointer :: inv_ovrlpp_new, tempp_new
+    real(kind=8),dimension(:),allocatable :: inv_ovrlp_compr_seq, kernel_compr_seq
 
-          call f_routine(id='retransform_ext')
+    call f_routine(id='retransform_ext')
 
-          inv_ovrlpp_new = f_malloc_ptr(smat%smmm%nvctrp, id='inv_ovrlpp_new')
-          tempp_new = f_malloc_ptr(smat%smmm%nvctrp, id='tempp_new')
-          inv_ovrlp_compr_seq = sparsematrix_malloc(smat, iaction=SPARSEMM_SEQ, id='inv_ovrlp_compr_seq')
-          kernel_compr_seq = sparsematrix_malloc(smat, iaction=SPARSEMM_SEQ, id='inv_ovrlp_compr_seq')
-          call sequential_acces_matrix_fast2(smat, kernel, kernel_compr_seq)
-          call sequential_acces_matrix_fast2(smat, &
-               inv_ovrlp, inv_ovrlp_compr_seq)
-          call transform_sparsity_pattern(smat%nfvctr, smat%smmm%nvctrp_mm, smat%smmm%isvctr_mm, &
-               smat%nseg, smat%keyv, smat%keyg, smat%smmm%line_and_column_mm, &
-               smat%smmm%nvctrp, smat%smmm%isvctr, &
-               smat%smmm%nseg, smat%smmm%keyv, smat%smmm%keyg, smat%smmm%istsegline, &
-               'small_to_large', inv_ovrlp(smat%smmm%isvctr_mm-smat%isvctrp_tg+1), inv_ovrlpp_new)
-          call sparsemm_new(smat, kernel_compr_seq, inv_ovrlpp_new, tempp_new)
-          call sparsemm_new(smat, inv_ovrlp_compr_seq, tempp_new, inv_ovrlpp_new)
-          call f_zero(kernel)
-          call compress_matrix_distributed_wrapper(iproc, nproc, smat, SPARSE_MATMUL_LARGE, &
-               inv_ovrlpp_new, kernel)
-          call f_free_ptr(inv_ovrlpp_new)
-          call f_free_ptr(tempp_new)
-          call f_free(inv_ovrlp_compr_seq)
-          call f_free(kernel_compr_seq)
+    inv_ovrlpp_new = f_malloc_ptr(smat%smmm%nvctrp, id='inv_ovrlpp_new')
+    tempp_new = f_malloc_ptr(smat%smmm%nvctrp, id='tempp_new')
+    inv_ovrlp_compr_seq = sparsematrix_malloc(smat, iaction=SPARSEMM_SEQ, id='inv_ovrlp_compr_seq')
+    kernel_compr_seq = sparsematrix_malloc(smat, iaction=SPARSEMM_SEQ, id='inv_ovrlp_compr_seq')
+    call sequential_acces_matrix_fast2(smat, kernel, kernel_compr_seq)
+    call sequential_acces_matrix_fast2(smat, &
+         inv_ovrlp, inv_ovrlp_compr_seq)
+    call transform_sparsity_pattern(smat%nfvctr, smat%smmm%nvctrp_mm, smat%smmm%isvctr_mm, &
+         smat%nseg, smat%keyv, smat%keyg, smat%smmm%line_and_column_mm, &
+         smat%smmm%nvctrp, smat%smmm%isvctr, &
+         smat%smmm%nseg, smat%smmm%keyv, smat%smmm%keyg, smat%smmm%istsegline, &
+         'small_to_large', inv_ovrlp(smat%smmm%isvctr_mm-smat%isvctrp_tg+1), inv_ovrlpp_new)
+    call sparsemm_new(smat, kernel_compr_seq, inv_ovrlpp_new, tempp_new)
+    call sparsemm_new(smat, inv_ovrlp_compr_seq, tempp_new, inv_ovrlpp_new)
+    call f_zero(kernel)
+    call compress_matrix_distributed_wrapper(iproc, nproc, smat, SPARSE_MATMUL_LARGE, &
+         inv_ovrlpp_new, kernel)
+    call f_free_ptr(inv_ovrlpp_new)
+    call f_free_ptr(tempp_new)
+    call f_free(inv_ovrlp_compr_seq)
+    call f_free(kernel_compr_seq)
 
-          call f_release_routine()
+    call f_release_routine()
 
-      end subroutine retransform_ext
+end subroutine retransform_ext
