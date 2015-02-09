@@ -9,8 +9,9 @@
 !!    For the list of contributors, see ~/AUTHORS
 !subroutine geopt(nat,wpos,etot,fout,fnrmtol,count,count_sd,displr)
 subroutine sqnm(runObj,outsIO,nproc,iproc,verbosity,ncount_bigdft,fail)
-!bigdft_state has to be run once on runObj and outs !before calling this routine
-!sqnm will return to caller the energies and coordinates used/obtained from the last accepted iteration step
+!bigdft_state has to be run once on runObj and outs
+!before calling this routine. sqnm will return to the caller the energies
+!and coordinates used/obtained at the last accepted iteration step
    use module_base
    use bigdft_run!module_types
    use yaml_output
