@@ -716,6 +716,14 @@ module module_types
   end type workarrays_quartic_convolutions
 
 
+  type,public :: work_mpiaccumulate
+    integer :: ncount
+    real(wp),dimension(:),pointer :: receivebuf
+    real(wp),dimension(:),pointer :: sendbuf
+    integer :: window
+  end type work_mpiaccumulate
+
+
   type, public :: localizedDIISParameters
     integer :: is, isx, mis, DIISHistMax, DIISHistMin
     integer :: icountSDSatur, icountDIISFailureCons, icountSwitch, icountDIISFailureTot, itBest
@@ -762,6 +770,7 @@ module module_types
      real(gp) :: prefac                 !< Prefactor
      real(gp), dimension(3) :: hh       !< Grid spacings in ISF grid
      real(gp), dimension(3) :: rxyzConf !< Confining potential center in global coordinates
+     real(gp) :: damping                !< Damping factor to be used after the restart
   end type confpot_data
 
 
@@ -1103,14 +1112,15 @@ module module_types
  public :: material_acceleration_null,input_psi_names
  public :: wf_format_names,bigdft_init_errors,bigdft_init_timing_categories
  public :: deallocate_orbs,deallocate_locreg_descriptors,nullify_wfd
- public :: deallocate_wfd,deallocate_bounds,update_nlpsp,deallocate_paw_objects
+ public :: deallocate_wfd,update_nlpsp,deallocate_paw_objects
  public :: old_wavefunction_set,allocate_wfd,basis_params_set_dict
  public :: input_set,copy_locreg_descriptors,nullify_locreg_descriptors
  public :: input_psi_help,deallocate_rho_descriptors
  public :: nullify_paw_objects,frag_from_dict,copy_grid_dimensions
  public :: cprj_to_array,deallocate_gwf_c
  public :: SIC_data_null,local_zone_descriptors_null,output_wf_format_help
- public :: energy_terms_null
+ public :: energy_terms_null, work_mpiaccumulate_null
+ public :: allocate_work_mpiaccumulate, deallocate_work_mpiaccumulate
 
 contains
 
@@ -1710,6 +1720,39 @@ contains
       end do
     end if
   end subroutine cprj_to_array
+
+
+  pure function work_mpiaccumulate_null() result(w)
+    implicit none
+    type(work_mpiaccumulate) :: w
+    call nullify_work_mpiaccumulate(w)
+  end function work_mpiaccumulate_null
+
+
+  pure subroutine nullify_work_mpiaccumulate(w)
+    implicit none
+    type(work_mpiaccumulate),intent(out) :: w
+    w%ncount = 0
+    w%window = 0
+    nullify(w%receivebuf)
+    nullify(w%sendbuf)
+  end subroutine nullify_work_mpiaccumulate
+
+
+  subroutine allocate_work_mpiaccumulate(w)
+    implicit none
+    type(work_mpiaccumulate),intent(out) :: w
+    w%receivebuf = f_malloc_ptr(w%ncount,id='w%receivebuf')
+    w%sendbuf = f_malloc_ptr(w%ncount,id='w%sendbuf')
+  end subroutine allocate_work_mpiaccumulate
+
+
+  subroutine deallocate_work_mpiaccumulate(w)
+    implicit none
+    type(work_mpiaccumulate),intent(out) :: w
+    call f_free_ptr(w%receivebuf)
+    call f_free_ptr(w%sendbuf)
+  end subroutine deallocate_work_mpiaccumulate
 
 
   !> create a null Lzd. Note: this is the correct way of defining 

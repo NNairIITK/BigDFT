@@ -18,6 +18,7 @@
 !!   @warning psi, keyg, keyv and eval should be freed after use outside of the routine.
 subroutine cluster(nproc,iproc,atoms,rxyz,energy,energs,fxyz,strten,fnoise,pressure,&
      KSwfn,tmb,rxyz_old,in,GPU,infocode)
+  use locregs, only: deallocate_convolutions_bounds
   use module_base
   use module_types
   use module_interfaces
@@ -181,7 +182,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,energs,fxyz,strten,fnoise,press
         !deallocation
         call deallocate_wfd(KSwfn%Lzd%Glr%wfd)
         !already here due to new input guess
-        call deallocate_bounds(KSwfn%Lzd%Glr%geocode, KSwfn%Lzd%Glr%hybrid_on, KSwfn%lzd%glr%bounds)
+        call deallocate_convolutions_bounds(KSwfn%lzd%glr%bounds)
      else
         inputpsi = INPUT_PSI_LCAO
      end if
@@ -595,7 +596,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,energs,fxyz,strten,fnoise,press
 
      ! Treat the info code from the optimization routine.
      if (infocode == 2 .or. infocode == 3) then
-        call deallocate_bounds(KSwfn%Lzd%Glr%geocode, KSwfn%Lzd%Glr%hybrid_on, KSwfn%lzd%glr%bounds)
+        call deallocate_convolutions_bounds(KSwfn%lzd%glr%bounds)
         call deallocate_before_exiting
         return
      end if
@@ -1295,8 +1296,7 @@ contains
     !if(inputpsi == INPUT_PSI_LINEAR_AO .or. inputpsi == INPUT_PSI_DISK_LINEAR &
     !                 .or. inputpsi == INPUT_PSI_MEMORY_LINEAR) then
     if (in%inguess_geopt/=1) then
-        call deallocate_bounds(KSwfn%Lzd%Glr%geocode,KSwfn%Lzd%Glr%hybrid_on,&
-             KSwfn%Lzd%Glr%bounds)
+        call deallocate_convolutions_bounds(KSwfn%Lzd%Glr%bounds)
      end if
     call deallocate_Lzd_except_Glr(KSwfn%Lzd)
 

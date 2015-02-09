@@ -20,8 +20,9 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
   use constrained_dft
   use diis_sd_optimization
   use Poisson_Solver, except_dp => dp, except_gp => gp, except_wp => wp
-  use communications_base, only: allocate_p2pComms_buffer, &
-                                 deallocate_p2pComms_buffer
+  use communications_base, only: work_transpose, allocate_p2pComms_buffer, &
+                                 deallocate_p2pComms_buffer, &
+                                 work_transpose_null, allocate_work_transpose, deallocate_work_transpose
   use communications, only: synchronize_onesided_communication, transpose_localized, untranspose_localized
   !use communications_init, only: orbitals_communicators
   use sparsematrix_base, only: sparse_matrix, sparse_matrix_null, deallocate_sparse_matrix, &
@@ -69,6 +70,10 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
   real(kind=8),dimension(:),allocatable :: locrad
   integer:: target_function, nit_basis
   logical :: keep_value
+  type(workarrays_quartic_convolutions),dimension(:),pointer :: precond_convol_workarrays
+  type(workarr_precond),dimension(:),pointer :: precond_workarrays
+  type(work_transpose) :: wt_philarge, wt_hpsinoprecond, wt_hphi, wt_phi
+
   
   real(kind=gp) :: ebs, vgrad_old, vgrad, valpha, vold, vgrad2, vold_tmp, conv_crit_TMB, best_charge_diff, cdft_charge_thresh
   real(kind=gp), allocatable, dimension(:,:) :: coeff_tmp
@@ -80,6 +85,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
   real(kind=8) :: sign_of_energy_change
   integer :: nit_energyoscillation
   integer(kind=8) :: nsize
+  type(work_mpiaccumulate) :: fnrm_work, energs_work
 
   real(8),dimension(:),allocatable :: rho_tmp, tmparr
   real(8) :: tt, ddot
@@ -103,6 +109,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
   call f_routine(id='linear_scaling')
 
   call allocate_local_arrays()
+
 
 
   ! Allocate the communications buffers needed for the communications of the potential and
@@ -297,10 +304,26 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
           ! Check whether the low accuracy part (i.e. with strong confining potential) has converged.
           call check_whether_lowaccuracy_converged(itout, nit_lowaccuracy, input%lin%lowaccuracy_conv_crit, &
                lowaccur_converged, pnrm_out)
+          !!if (iproc==0) write(*,*) 'lowaccur_converged,associated(precond_workarrays)',lowaccur_converged,associated(precond_workarrays)
+          !!if (lowaccur_converged) then
+          !!    call deallocate_precond_arrays(tmb%orbs, tmb%lzd, precond_convol_workarrays, precond_workarrays)
+          !!end if
           ! Set all remaining variables that we need for the optimizations of the basis functions and the mixing.
           call set_optimization_variables(input, at, tmb%orbs, tmb%lzd%nlr, tmb%orbs%onwhichatom, tmb%confdatarr, &
                convCritMix_init, lowaccur_converged, nit_scc, mix_hist, alpha_mix, locrad, target_function, nit_basis, &
                convcrit_dmin, nitdmin, conv_crit_TMB)
+          if (itout==1) then
+              call allocate_precond_arrays(tmb%orbs, tmb%lzd, tmb%confdatarr, precond_convol_workarrays, precond_workarrays)
+              wt_philarge = work_transpose_null()
+              wt_hpsinoprecond = work_transpose_null()
+              wt_hphi = work_transpose_null()
+              wt_phi = work_transpose_null()
+              call allocate_work_transpose(nproc, tmb%ham_descr%collcom, wt_philarge)
+              call allocate_work_transpose(nproc, tmb%ham_descr%collcom, wt_hpsinoprecond)
+              call allocate_work_transpose(nproc, tmb%ham_descr%collcom, wt_hphi)
+              call allocate_work_transpose(nproc, tmb%collcom, wt_phi)
+          end if
+          !!if (iproc==0) write(*,*) 'AFTER: lowaccur_converged,associated(precond_workarrays)',lowaccur_converged,associated(precond_workarrays)
           if (keep_value) then
               nit_scc = nit_scc_changed
           end if
@@ -310,6 +333,15 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
                target_function, nit_basis, nit_scc, mix_hist, locrad, alpha_mix, convCritMix_init, conv_crit_TMB)
                convcrit_dmin=input%lin%convCritDmin_highaccuracy
                nitdmin=input%lin%nItdmin_highaccuracy
+          call allocate_precond_arrays(tmb%orbs, tmb%lzd, tmb%confdatarr, precond_convol_workarrays, precond_workarrays)
+          wt_philarge = work_transpose_null()
+          wt_hpsinoprecond = work_transpose_null()
+          wt_hphi = work_transpose_null()
+          wt_phi = work_transpose_null()
+          call allocate_work_transpose(nproc, tmb%ham_descr%collcom, wt_philarge)
+          call allocate_work_transpose(nproc, tmb%ham_descr%collcom, wt_hpsinoprecond)
+          call allocate_work_transpose(nproc, tmb%ham_descr%collcom, wt_hphi)
+          call allocate_work_transpose(nproc, tmb%collcom, wt_phi)
       end if
 
       ! Do one fake iteration if no low accuracy is desired.
@@ -337,6 +369,21 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
                at, input, rxyz, KSwfn, tmb, denspot, nlpsp, ldiis, locreg_increased, lowaccur_converged, locrad)
           orthonormalization_on=.true.
 
+          call deallocate_precond_arrays(tmb%orbs, tmb%lzd, precond_convol_workarrays, precond_workarrays)
+          call deallocate_work_transpose(wt_philarge)
+          call deallocate_work_transpose(wt_hpsinoprecond)
+          call deallocate_work_transpose(wt_hphi)
+          call deallocate_work_transpose(wt_phi)
+
+          call allocate_precond_arrays(tmb%orbs, tmb%lzd, tmb%confdatarr, precond_convol_workarrays, precond_workarrays)
+          wt_philarge = work_transpose_null()
+          wt_hpsinoprecond = work_transpose_null()
+          wt_hphi = work_transpose_null()
+          wt_phi = work_transpose_null()
+          call allocate_work_transpose(nproc, tmb%ham_descr%collcom, wt_philarge)
+          call allocate_work_transpose(nproc, tmb%ham_descr%collcom, wt_hpsinoprecond)
+          call allocate_work_transpose(nproc, tmb%ham_descr%collcom, wt_hphi)
+          call allocate_work_transpose(nproc, tmb%collcom, wt_phi)
 
           ! is this really necessary if the locrads haven't changed?  we should check this!
           ! for now for CDFT don't do the extra get_coeffs, as don't want to add extra CDFT loop here
@@ -364,7 +411,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
                      infoCoeff,energs,nlpsp,input%SIC,tmb,pnrm,calculate_overlap,invert_overlap_matrix,update_phi,&
                      .true.,input%lin%extra_states,itout,0,0,norder_taylor,input%lin%max_inversion_error,&
                      input%purification_quickreturn,&
-                     input%calculate_KS_residue,input%calculate_gap,&
+                     input%calculate_KS_residue,input%calculate_gap,energs_work,&
                      convcrit_dmin,nitdmin,input%lin%curvefit_dmin,ldiis_coeff)
                 !!call gather_matrix_from_taskgroups_inplace(iproc, nproc, tmb%linmat%l, tmb%linmat%kernel_)
              end if
@@ -507,7 +554,10 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
                   input%lin%early_stop, input%lin%gnrm_dynamic, input%lin%min_gnrm_for_dynamic, &
                   can_use_ham, norder_taylor, input%lin%max_inversion_error, input%kappa_conv,&
                   input%method_updatekernel,input%purification_quickreturn, &
-                  input%correction_co_contra, cdft, input%frag, ref_frags)
+                  input%correction_co_contra, &
+                  precond_convol_workarrays, precond_workarrays, &
+                  wt_philarge, wt_hpsinoprecond, wt_hphi, wt_phi, fnrm_work, energs_work, &
+                  cdft, input%frag, ref_frags)
            else
               call getLocalizedBasis(iproc,nproc,at,KSwfn%orbs,rxyz,denspot,GPU,trace,trace_old,fnrm_tmb,&
                   info_basis_functions,nlpsp,input%lin%scf_mode,ldiis,input%SIC,tmb,energs, &
@@ -517,7 +567,8 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
                   input%lin%early_stop, input%lin%gnrm_dynamic, input%lin%min_gnrm_for_dynamic, &
                   can_use_ham, norder_taylor, input%lin%max_inversion_error, input%kappa_conv,&
                   input%method_updatekernel,input%purification_quickreturn, &
-                  input%correction_co_contra)
+                  input%correction_co_contra, precond_convol_workarrays, precond_workarrays, &
+                  wt_philarge, wt_hpsinoprecond, wt_hphi, wt_phi, fnrm_work, energs_work)
            end if
            !!call gather_matrix_from_taskgroups_inplace(iproc, nproc, tmb%linmat%l, tmb%linmat%kernel_)
            reduce_conf=.true.
@@ -657,14 +708,14 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
                         infoCoeff,energs,nlpsp,input%SIC,tmb,pnrm,calculate_overlap,invert_overlap_matrix,update_phi,&
                         .false.,input%lin%extra_states,itout,it_scc,cdft_it,norder_taylor,input%lin%max_inversion_error,&
                         input%purification_quickreturn,&
-                        input%calculate_KS_residue,input%calculate_gap,&
+                        input%calculate_KS_residue,input%calculate_gap,energs_work,&
                         convcrit_dmin,nitdmin,input%lin%curvefit_dmin,ldiis_coeff,reorder,cdft)
                 else
                    call get_coeff(iproc,nproc,input%lin%scf_mode,KSwfn%orbs,at,rxyz,denspot,GPU,&
                         infoCoeff,energs,nlpsp,input%SIC,tmb,pnrm,calculate_overlap,invert_overlap_matrix,update_phi,&
                         .false.,input%lin%extra_states,itout,it_scc,cdft_it,norder_taylor,input%lin%max_inversion_error,&
                         input%purification_quickreturn,&
-                        input%calculate_KS_residue,input%calculate_gap,&
+                        input%calculate_KS_residue,input%calculate_gap,energs_work,&
                         convcrit_dmin,nitdmin,input%lin%curvefit_dmin,ldiis_coeff,reorder)
                 end if
              else
@@ -673,14 +724,14 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
                         infoCoeff,energs,nlpsp,input%SIC,tmb,pnrm,calculate_overlap,invert_overlap_matrix,update_phi,&
                         .true.,input%lin%extra_states,itout,it_scc,cdft_it,norder_taylor,input%lin%max_inversion_error,&
                         input%purification_quickreturn,&
-                        input%calculate_KS_residue,input%calculate_gap,&
+                        input%calculate_KS_residue,input%calculate_gap,energs_work,&
                         convcrit_dmin,nitdmin,input%lin%curvefit_dmin,ldiis_coeff,reorder,cdft)
                 else
                    call get_coeff(iproc,nproc,input%lin%scf_mode,KSwfn%orbs,at,rxyz,denspot,GPU,&
                         infoCoeff,energs,nlpsp,input%SIC,tmb,pnrm,calculate_overlap,invert_overlap_matrix,update_phi,&
                         .true.,input%lin%extra_states,itout,it_scc,cdft_it,norder_taylor,input%lin%max_inversion_error,&
                         input%purification_quickreturn,&
-                        input%calculate_KS_residue,input%calculate_gap,&
+                        input%calculate_KS_residue,input%calculate_gap,energs_work,&
                         convcrit_dmin,nitdmin,input%lin%curvefit_dmin,ldiis_coeff,reorder)
                 end if
              end if
@@ -1116,6 +1167,13 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
 
   end do outerLoop
 
+  
+  call deallocate_precond_arrays(tmb%orbs, tmb%lzd, precond_convol_workarrays, precond_workarrays)
+  call deallocate_work_transpose(wt_philarge)
+  call deallocate_work_transpose(wt_hpsinoprecond)
+  call deallocate_work_transpose(wt_hphi)
+  call deallocate_work_transpose(wt_phi)
+
 
 
   if (input%write_orbitals) then
@@ -1156,7 +1214,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
            infoCoeff,energs,nlpsp,input%SIC,tmb,pnrm,update_phi,.true.,.false.,&
            .true.,input%lin%extra_states,itout,0,0,norder_taylor,input%lin%max_inversion_error,&
            input%purification_quickreturn,&
-           input%calculate_KS_residue,input%calculate_gap)
+           input%calculate_KS_residue,input%calculate_gap,energs_work)
        !!call gather_matrix_from_taskgroups_inplace(iproc, nproc, tmb%linmat%l, tmb%linmat%kernel_)
 
        !!if (input%lin%scf_mode==LINEAR_FOE) then
@@ -1186,7 +1244,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
            infoCoeff,energs,nlpsp,input%SIC,tmb,pnrm,update_phi,.true.,.false.,&
            .true.,input%lin%extra_states,itout,0,0,norder_taylor,input%lin%max_inversion_error,&
            input%purification_quickreturn,&
-           input%calculate_KS_residue,input%calculate_gap)
+           input%calculate_KS_residue,input%calculate_gap,energs_work)
       !!call gather_matrix_from_taskgroups_inplace(iproc, nproc, tmb%linmat%l, tmb%linmat%kernel_)
       !!call scalprod_on_boundary(iproc, nproc, tmb, kswfn%orbs, at, fpulay)
       call pulay_correction_new(iproc, nproc, tmb, kswfn%orbs, at, fpulay)
@@ -1381,6 +1439,13 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
       ! Allocate the old charge density (used to calculate the variation in the charge density)
       rhopotold_out = f_malloc(max(denspot%dpbox%ndimrhopot,denspot%dpbox%nrhodim),id='rhopotold_out')
 
+      fnrm_work = work_mpiaccumulate_null()
+      fnrm_work%ncount = 1
+      call allocate_work_mpiaccumulate(fnrm_work)
+      energs_work = work_mpiaccumulate_null()
+      energs_work%ncount = 4
+      call allocate_work_mpiaccumulate(energs_work)
+
     end subroutine allocate_local_arrays
 
 
@@ -1388,6 +1453,8 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
 
       call f_free(locrad)
       call f_free(rhopotold_out)
+      call deallocate_work_mpiaccumulate(energs_work)
+      call deallocate_work_mpiaccumulate(fnrm_work)
 
     end subroutine deallocate_local_arrays
 

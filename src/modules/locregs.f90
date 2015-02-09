@@ -75,7 +75,7 @@ module locregs
   end type locreg_descriptors
 
   public :: nullify_locreg_descriptors,locreg_null
-  public :: deallocate_locreg_descriptors,deallocate_bounds,deallocate_wfd
+  public :: deallocate_locreg_descriptors,deallocate_wfd,deallocate_convolutions_bounds
   public :: allocate_wfd,copy_locreg_descriptors,copy_grid_dimensions,nullify_wfd
 
 contains
@@ -251,54 +251,109 @@ contains
     
   end subroutine deallocate_locreg_descriptors
 
-
-  !> De-Allocate convolutions_bounds type, depending of the geocode and the hybrid_on
-  subroutine deallocate_bounds(geocode,hybrid_on,bounds)
-    use module_base
+  subroutine deallocate_convolutions_bounds(bounds)
     implicit none
-    character(len=1), intent(in) :: geocode !< @copydoc poisson_solver::doc::geocode
-    logical, intent(in) :: hybrid_on 
-    type(convolutions_bounds) :: bounds
-
-    !if ((geocode == 'P' .and. hybrid_on) .or. geocode == 'F') then
-    !   ! Just test the first one...
-    !   if (associated(bounds%kb%ibyz_f)) then
-    call f_free_ptr(bounds%kb%ibyz_f)
-    call f_free_ptr(bounds%kb%ibxz_f)
-    call f_free_ptr(bounds%kb%ibxy_f)
-
-    call f_free_ptr(bounds%sb%ibxy_ff)
-    call f_free_ptr(bounds%sb%ibzzx_f)
-    call f_free_ptr(bounds%sb%ibyyzz_f)
-
-    call f_free_ptr(bounds%gb%ibyz_ff)
-
-    call f_free_ptr(bounds%gb%ibzxx_f)
-    call f_free_ptr(bounds%gb%ibxxyy_f)
-    !   end if
-    !end if
-
-    !the arrays which are needed only for free BC
-    !if (geocode == 'F') then
-    ! Just test the first one...
-    !   if (associated(bounds%kb%ibyz_c)) then
-    call f_free_ptr(bounds%kb%ibyz_c)
-    call f_free_ptr(bounds%kb%ibxz_c)
-    call f_free_ptr(bounds%kb%ibxy_c)
-
-
-    call f_free_ptr(bounds%sb%ibzzx_c)
-    call f_free_ptr(bounds%sb%ibyyzz_c)
-
-    call f_free_ptr(bounds%gb%ibzxx_c)
-    call f_free_ptr(bounds%gb%ibxxyy_c)
+    type(convolutions_bounds),intent(inout):: bounds
 
     call f_free_ptr(bounds%ibyyzz_r)
 
-    !  end if
-    !end if
+    call deallocate_kinetic_bounds(bounds%kb)
+    call deallocate_shrink_bounds(bounds%sb)
+    call deallocate_grow_bounds(bounds%gb)
 
-  END SUBROUTINE deallocate_bounds
+  end subroutine deallocate_convolutions_bounds
+
+
+  subroutine deallocate_kinetic_bounds(kb)
+    implicit none
+    ! Calling arguments
+    type(kinetic_bounds),intent(inout):: kb
+
+    call f_free_ptr(kb%ibyz_c)
+    call f_free_ptr(kb%ibxz_c)
+    call f_free_ptr(kb%ibxy_c)
+    call f_free_ptr(kb%ibyz_f)
+    call f_free_ptr(kb%ibxz_f)
+    call f_free_ptr(kb%ibxy_f)
+
+  end subroutine deallocate_kinetic_bounds
+
+
+  subroutine deallocate_shrink_bounds(sb)
+    implicit none
+    ! Calling arguments
+    type(shrink_bounds),intent(inout):: sb
+
+    call f_free_ptr(sb%ibzzx_c)
+    call f_free_ptr(sb%ibyyzz_c)
+    call f_free_ptr(sb%ibxy_ff)
+    call f_free_ptr(sb%ibzzx_f)
+    call f_free_ptr(sb%ibyyzz_f)
+
+  end subroutine deallocate_shrink_bounds
+
+
+  subroutine deallocate_grow_bounds(gb)
+    implicit none
+    ! Calling arguments
+    type(grow_bounds),intent(inout):: gb
+
+    call f_free_ptr(gb%ibzxx_c)
+    call f_free_ptr(gb%ibxxyy_c)
+    call f_free_ptr(gb%ibyz_ff)
+    call f_free_ptr(gb%ibzxx_f)
+    call f_free_ptr(gb%ibxxyy_f)
+
+  end subroutine deallocate_grow_bounds
+
+
+!!$  !> De-Allocate convolutions_bounds type, depending of the geocode and the hybrid_on
+!!$  subroutine deallocate_bounds(geocode,hybrid_on,bounds)
+!!$    use module_base
+!!$    implicit none
+!!$    character(len=1), intent(in) :: geocode !< @copydoc poisson_solver::doc::geocode
+!!$    logical, intent(in) :: hybrid_on 
+!!$    type(convolutions_bounds) :: bounds
+!!$
+!!$    !if ((geocode == 'P' .and. hybrid_on) .or. geocode == 'F') then
+!!$    !   ! Just test the first one...
+!!$    !   if (associated(bounds%kb%ibyz_f)) then
+!!$    call f_free_ptr(bounds%kb%ibyz_f)
+!!$    call f_free_ptr(bounds%kb%ibxz_f)
+!!$    call f_free_ptr(bounds%kb%ibxy_f)
+!!$
+!!$    call f_free_ptr(bounds%sb%ibxy_ff)
+!!$    call f_free_ptr(bounds%sb%ibzzx_f)
+!!$    call f_free_ptr(bounds%sb%ibyyzz_f)
+!!$
+!!$    call f_free_ptr(bounds%gb%ibyz_ff)
+!!$
+!!$    call f_free_ptr(bounds%gb%ibzxx_f)
+!!$    call f_free_ptr(bounds%gb%ibxxyy_f)
+!!$    !   end if
+!!$    !end if
+!!$
+!!$    !the arrays which are needed only for free BC
+!!$    !if (geocode == 'F') then
+!!$    ! Just test the first one...
+!!$    !   if (associated(bounds%kb%ibyz_c)) then
+!!$    call f_free_ptr(bounds%kb%ibyz_c)
+!!$    call f_free_ptr(bounds%kb%ibxz_c)
+!!$    call f_free_ptr(bounds%kb%ibxy_c)
+!!$
+!!$
+!!$    call f_free_ptr(bounds%sb%ibzzx_c)
+!!$    call f_free_ptr(bounds%sb%ibyyzz_c)
+!!$
+!!$    call f_free_ptr(bounds%gb%ibzxx_c)
+!!$    call f_free_ptr(bounds%gb%ibxxyy_c)
+!!$
+!!$    call f_free_ptr(bounds%ibyyzz_r)
+!!$
+!!$    !  end if
+!!$    !end if
+!!$
+!!$  END SUBROUTINE deallocate_bounds
 
 
   !> Methods for copying the structures, can be needed to avoid recalculating them

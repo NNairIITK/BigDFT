@@ -20,6 +20,8 @@ subroutine orthonormalizeLocalized(iproc, nproc, methTransformOverlap, max_inver
                                assignment(=), sparsematrix_malloc_ptr, SPARSE_TASKGROUP
   use sparsematrix, only: compress_matrix, uncompress_matrix, gather_matrix_from_taskgroups_inplace
   use foe_base, only: foe_data
+  use transposed_operations, only: calculate_overlap_transposed, build_linear_combination_transposed, &
+                                   normalize_transposed
   use yaml_output
   implicit none
 
@@ -164,6 +166,7 @@ subroutine orthoconstraintNonorthogonal(iproc, nproc, lzd, npsidim_orbs, npsidim
                           sequential_acces_matrix_fast2, sparsemm, transform_sparse_matrix, orb_from_index, &
                           gather_matrix_from_taskgroups_inplace, extract_taskgroup_inplace, &
                           transform_sparse_matrix_local, uncompress_matrix_distributed2
+  use transposed_operations, only: calculate_overlap_transposed, build_linear_combination_transposed
   implicit none
 
   ! Calling arguments
@@ -508,7 +511,6 @@ subroutine overlapPowerGeneral(iproc, nproc, iorder, ncalc, power, blocksize, im
 
   ! new for sparse taylor
   integer :: nout, nseq, ispin, ishift, ishift2, isshift, ilshift, ilshift2, nspin
-  integer,dimension(:),allocatable :: ivectorindex
   integer,dimension(:,:),pointer :: onedimindices
   integer,dimension(:,:,:),allocatable :: istindexarr
   real(kind=8),dimension(:),pointer :: ovrlpminone_sparse
@@ -1532,6 +1534,8 @@ subroutine overlap_minus_one_exact_serial(norb,inv_ovrlp)
 
   integer :: info, iorb, jorb
 
+  call f_routine(id='overlap_minus_one_exact_serial')
+
   call dpotrf('u', norb, inv_ovrlp(1,1), norb, info)
   if(info/=0) then
      write(*,'(1x,a,i0)') 'ERROR in dpotrf, info=',info
@@ -1551,6 +1555,8 @@ subroutine overlap_minus_one_exact_serial(norb,inv_ovrlp)
      end do
   end do
   !$omp end parallel do 
+
+  call f_release_routine()
 
 end subroutine overlap_minus_one_exact_serial
 
@@ -2384,6 +2390,8 @@ subroutine orthonormalize_subset(iproc, nproc, methTransformOverlap, npsidim_orb
                                sparsematrix_malloc, assignment(=), SPARSE_FULL
   use sparsematrix_init, only: matrixindex_in_compressed
   use sparsematrix, only: gather_matrix_from_taskgroups_inplace, extract_taskgroup_inplace
+  use transposed_operations, only: calculate_overlap_transposed, build_linear_combination_transposed, &
+                                   normalize_transposed
   implicit none
 
   ! Calling arguments
@@ -2591,6 +2599,7 @@ subroutine gramschmidt_subset(iproc, nproc, methTransformOverlap, npsidim_orbs, 
   use sparsematrix_base, only: sparse_matrix, matrices_null, allocate_matrices, deallocate_matrices
   use sparsematrix_init, only: matrixindex_in_compressed
   use sparsematrix, only: gather_matrix_from_taskgroups_inplace
+  use transposed_operations, only: calculate_overlap_transposed, build_linear_combination_transposed
   implicit none
 
   ! Calling arguments

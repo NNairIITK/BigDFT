@@ -7,20 +7,22 @@
  total elements                        :  100
  non-zero elements                     :  60
  sparsity in %                         :  40.00
- sparse matmul load balancing naive / optimized:  [  1.00,  1.00 ]
+ sparse matmul load balancing naive / optimized:  [  5.30,  1.29 ]
  taskgroup summary:
    number of taskgroups                :  1
    taskgroups overview:
-   -  {number of tasks:  1, IDs:  [  0 ], 
+   -  {number of tasks:  4, IDs: { 0: {s:  1, e:  60},  1: {s:  1, e:  60},  2: {s:  1, 
+ e:  60},  3: {s:  1, e:  60}}, 
  start / end:  [  1,  60 ], start / end disjoint:  [  1,  60 ]}
  total elements                        :  100
  non-zero elements                     :  60
  sparsity in %                         :  40.00
- sparse matmul load balancing naive / optimized:  [  1.00,  1.00 ]
+ sparse matmul load balancing naive / optimized:  [  5.30,  1.29 ]
  taskgroup summary:
    number of taskgroups                :  1
    taskgroups overview:
-   -  {number of tasks:  1, IDs:  [  0 ], 
+   -  {number of tasks:  4, IDs: { 0: {s:  1, e:  60},  1: {s:  1, e:  60},  2: {s:  1, 
+ e:  60},  3: {s:  1, e:  60}}, 
  start / end:  [  1,  60 ], start / end disjoint:  [  1,  60 ]}
  initial matrix:
  -  {segment:  1, elements: [
@@ -287,7 +289,7 @@
  {coordinates:  [  10,  9 ], value: -2.2617320167248375E-002}, 
  {coordinates:  [  10,  10 ], value:  0.900861856617801}]}
  Max error of the result               :  5.1818594488544867E-002
- Mean error of the result              :  2.8579321968034262E-002
+ Mean error of the result              :  2.8579321968034258E-002
   #-------------------------------------------------------------------------------- check: 3
  check number                          :  3
  imode                                 :  2
@@ -473,7 +475,7 @@
  {coordinates:  [  10,  9 ], value: -2.2617320167248375E-002}, 
  {coordinates:  [  10,  10 ], value:  0.900861856617801}]}
  Max error of the result               :  5.1818594488544867E-002
- Mean error of the result              :  2.8579321968034262E-002
+ Mean error of the result              :  2.8579321968034258E-002
   #-------------------------------------------------------------------------------- check: 5
  check number                          :  5
  imode                                 :  2
@@ -938,7 +940,7 @@
  {coordinates:  [  10,  9 ], value: -2.635863962895232E-002}, 
  {coordinates:  [  10,  10 ], value:  0.8422240897165774}]}
  Max error of the result               :  0.1036371889770897
- Mean error of the result              :  5.7158643936068523E-002
+ Mean error of the result              :  5.7158643936068516E-002
   #------------------------------------------------------------------------------- check: 10
  check number                          :  10
  imode                                 :  2
@@ -1596,7 +1598,7 @@
  {coordinates:  [  10,  9 ], value: -2.2617320167248375E-002}, 
  {coordinates:  [  10,  10 ], value:  0.900861856617801}]}
  Max error of the result               :  0.1061153742933049
- Mean error of the result              :  4.7677847372337226E-002
+ Mean error of the result              :  4.7677847372337219E-002
   #------------------------------------------------------------------------------- check: 18
  check number                          :  18
  imode                                 :  1
@@ -2072,7 +2074,7 @@
  {coordinates:  [  10,  9 ], value: -3.0191039748156658E-002}, 
  {coordinates:  [  10,  10 ], value:  0.8401594342194794}]}
  Max error of the result               :  0.175709484053067
- Mean error of the result              :  6.5695867315858705E-002
+ Mean error of the result              :  6.5695867315858691E-002
   #------------------------------------------------------------------------------- check: 24
  check number                          :  24
  imode                                 :  1
@@ -2166,7 +2168,7 @@
  {coordinates:  [  10,  9 ], value:  0.0}, 
  {coordinates:  [  10,  10 ], value:  0.8115520847088715}]}
  Max error of the result               :  0.1665655991260328
- Mean error of the result              :  6.6254663175588091E-002
+ Mean error of the result              :  6.6254663175588077E-002
   #------------------------------------------------------------------------------- check: 25
  check number                          :  25
  imode                                 :  1
@@ -2951,15 +2953,15 @@
  Mean error of the result              :  7.4122877308968493E-002
   #========================================================================= checks finished
  Memory Consumption Report:
-   Tot. No. of Allocations             :  479
-   Tot. No. of Deallocations           :  479
+   Tot. No. of Allocations             :  567
+   Tot. No. of Deallocations           :  567
    Remaining Memory (B)                :  0
    Memory occupation:
-     Peak Value (MB)                   :  0
-     for the array                     : vectors
-     in the routine                    : chebyshev_clean
-     Memory Peak of process            : 13900 kB
- Max No. of dictionaries used          :  988 #( 837 still in use)
+     Peak Value (MB)                   :  0.015
+     for the array                     : work
+     in the routine                    : overlap_plus_minus_one_half_exac
+     Memory Peak of process            : 18.256 MB
+ Max No. of dictionaries used          :  1071 #( 841 still in use)
  Number of dictionary folders allocated:  1
   #//////////////////////////////////////// Program to check the overlapPowergeneral routine
  reading from file                     : inputdata.fake
@@ -2974,7 +2976,8 @@
  taskgroup summary:
    number of taskgroups                :  1
    taskgroups overview:
-   -  {number of tasks:  1, IDs:  [  0 ], 
+   -  {number of tasks:  4, IDs: { 0: {s:  1, e:  144},  1: {s:  1, e:  144},  2: {s:  1, 
+ e:  144},  3: {s:  1, e:  144}}, 
  start / end:  [  1,  144 ], start / end disjoint:  [  1,  144 ]}
  total elements                        :  144
  non-zero elements                     :  144
@@ -2983,7 +2986,8 @@
  taskgroup summary:
    number of taskgroups                :  1
    taskgroups overview:
-   -  {number of tasks:  1, IDs:  [  0 ], 
+   -  {number of tasks:  4, IDs: { 0: {s:  1, e:  144},  1: {s:  1, e:  144},  2: {s:  1, 
+ e:  144},  3: {s:  1, e:  144}}, 
  start / end:  [  1,  144 ], start / end disjoint:  [  1,  144 ]}
  initial matrix:
  -  {segment:  1, elements: [
@@ -3484,7 +3488,7 @@
  {coordinates:  [  12,  11 ], value: -9.8578182377362378E-002}, 
  {coordinates:  [  12,  12 ], value:  0.9921959325586279}]}
  Max error of the result               :  5.9272616195291339E-002
- Mean error of the result              :  3.0706919450134429E-002
+ Mean error of the result              :  3.0706919450134425E-002
   #-------------------------------------------------------------------------------- check: 3
  check number                          :  3
  imode                                 :  2
@@ -3655,7 +3659,7 @@
  {coordinates:  [  12,  11 ], value: -6.524850250981655E-002}, 
  {coordinates:  [  12,  12 ], value:  1.066372847773533}]}
  Max error of the result               :  6.6825200642426252E-002
- Mean error of the result              :  5.6843371966172999E-002
+ Mean error of the result              :  5.6843371966173006E-002
   #-------------------------------------------------------------------------------- check: 4
  check number                          :  4
  imode                                 :  2
@@ -3826,7 +3830,7 @@
  {coordinates:  [  12,  11 ], value: -9.8578182377362378E-002}, 
  {coordinates:  [  12,  12 ], value:  0.9921959325586279}]}
  Max error of the result               :  5.9272616195291339E-002
- Mean error of the result              :  3.0706919450134429E-002
+ Mean error of the result              :  3.0706919450134425E-002
   #-------------------------------------------------------------------------------- check: 5
  check number                          :  5
  imode                                 :  2
@@ -4852,7 +4856,7 @@
  {coordinates:  [  12,  11 ], value: -0.2125040145363348}, 
  {coordinates:  [  12,  12 ], value:  1.110212306515266}]}
  Max error of the result               :  1.0477735346015038E-009
- Mean error of the result              :  8.7909347690070076E-010
+ Mean error of the result              :  8.7909347690070087E-010
   #------------------------------------------------------------------------------- check: 11
  check number                          :  11
  imode                                 :  2
@@ -5536,7 +5540,7 @@
  {coordinates:  [  12,  11 ], value:  5.0051043747717822E-002}, 
  {coordinates:  [  12,  12 ], value:  0.9250354575112781}]}
  Max error of the result               :  8.6147886223668368E-002
- Mean error of the result              :  6.0971225503081122E-002
+ Mean error of the result              :  6.0971225503081129E-002
   #------------------------------------------------------------------------------- check: 15
  check number                          :  15
  imode                                 :  2
@@ -6051,7 +6055,7 @@
  {coordinates:  [  12,  11 ], value: -9.8578182377362378E-002}, 
  {coordinates:  [  12,  12 ], value:  0.9921959325586279}]}
  Max error of the result               :  0.1185452323905827
- Mean error of the result              :  6.1413838900268858E-002
+ Mean error of the result              :  6.1413838900268851E-002
   #------------------------------------------------------------------------------- check: 18
  check number                          :  18
  imode                                 :  1
@@ -6395,7 +6399,7 @@
  {coordinates:  [  12,  11 ], value: -9.8578182377362378E-002}, 
  {coordinates:  [  12,  12 ], value:  0.9921959325586279}]}
  Max error of the result               :  0.1185452323905827
- Mean error of the result              :  6.1413838900268858E-002
+ Mean error of the result              :  6.1413838900268851E-002
   #------------------------------------------------------------------------------- check: 20
  check number                          :  20
  imode                                 :  1
@@ -6567,7 +6571,7 @@
  {coordinates:  [  12,  11 ], value: -9.7581526380490197E-002}, 
  {coordinates:  [  12,  12 ], value:  1.03924460938076}]}
  Max error of the result               :  1.0477733125568989E-009
- Mean error of the result              :  8.7909347075177293E-010
+ Mean error of the result              :  8.7909347075177303E-010
   #------------------------------------------------------------------------------- check: 21
  check number                          :  21
  imode                                 :  1
@@ -7427,7 +7431,7 @@
  {coordinates:  [  12,  11 ], value: -0.2125040145363348}, 
  {coordinates:  [  12,  12 ], value:  1.110212306515266}]}
  Max error of the result               :  1.0477733125568989E-009
- Mean error of the result              :  8.7909347075177293E-010
+ Mean error of the result              :  8.7909347075177303E-010
   #------------------------------------------------------------------------------- check: 26
  check number                          :  26
  imode                                 :  1
@@ -8115,7 +8119,7 @@
  {coordinates:  [  12,  11 ], value:  5.0051043747717822E-002}, 
  {coordinates:  [  12,  12 ], value:  0.9250354575112781}]}
  Max error of the result               :  0.1722957724473367
- Mean error of the result              :  0.1219424510061622
+ Mean error of the result              :  0.1219424510061623
   #------------------------------------------------------------------------------- check: 30
  check number                          :  30
  imode                                 :  1
@@ -8854,15 +8858,15 @@
  Mean error of the result              :  8.7600604327480245E-016
   #========================================================================= checks finished
  Memory Consumption Report:
-   Tot. No. of Allocations             :  554
-   Tot. No. of Deallocations           :  554
+   Tot. No. of Allocations             :  660
+   Tot. No. of Deallocations           :  660
    Remaining Memory (B)                :  0
    Memory occupation:
-     Peak Value (MB)                   :  0
+     Peak Value (MB)                   :  0.036
      for the array                     : vectors
      in the routine                    : chebyshev_clean
-     Memory Peak of process            : 14024 kB
- Max No. of dictionaries used          :  988 #( 837 still in use)
+     Memory Peak of process            : 22.072 MB
+ Max No. of dictionaries used          :  1071 #( 841 still in use)
  Number of dictionary folders allocated:  1
   #//////////////////////////////////////// Program to check the overlapPowergeneral routine
  reading from file                     : inputdata.fake
@@ -8873,20 +8877,22 @@
  total elements                        :  121
  non-zero elements                     :  11
  sparsity in %                         :  90.91
- sparse matmul load balancing naive / optimized:  [  1.00,  1.00 ]
+ sparse matmul load balancing naive / optimized:  [  1.50,  1.50 ]
  taskgroup summary:
    number of taskgroups                :  1
    taskgroups overview:
-   -  {number of tasks:  1, IDs:  [  0 ], 
+   -  {number of tasks:  4, IDs: { 0: {s:  1, e:  11},  1: {s:  1, e:  11},  2: {s:  1, 
+ e:  11},  3: {s:  1, e:  11}}, 
  start / end:  [  1,  11 ], start / end disjoint:  [  1,  11 ]}
  total elements                        :  121
  non-zero elements                     :  11
  sparsity in %                         :  90.91
- sparse matmul load balancing naive / optimized:  [  1.00,  1.00 ]
+ sparse matmul load balancing naive / optimized:  [  1.50,  1.50 ]
  taskgroup summary:
    number of taskgroups                :  1
    taskgroups overview:
-   -  {number of tasks:  1, IDs:  [  0 ], 
+   -  {number of tasks:  4, IDs: { 0: {s:  1, e:  11},  1: {s:  1, e:  11},  2: {s:  1, 
+ e:  11},  3: {s:  1, e:  11}}, 
  start / end:  [  1,  11 ], start / end disjoint:  [  1,  11 ]}
  initial matrix:
  -  {segment:  1, elements: [
@@ -8923,7 +8929,7 @@
    powers:
      x                                 : -1/2
    order                               :  0
-   max / mean error                    :  [  9.99E-16,  3.94E-16 ]
+   max / mean error                    :  [  9.99E-16,  4.05E-16 ]
  final result:
  -  {segment:  1, elements: [
  {coordinates:  [  1,  1 ], value:  0.9851146969087604}]}
@@ -8948,7 +8954,7 @@
  -  {segment:  11, elements: [
  {coordinates:  [  11,  11 ], value:  1.014692647067333}]}
  Max error of the result               :  9.9920072216264089E-016
- Mean error of the result              :  3.9394788565180984E-016
+ Mean error of the result              :  4.0516572544818256E-016
   #-------------------------------------------------------------------------------- check: 2
  check number                          :  2
  imode                                 :  2
@@ -9022,7 +9028,7 @@
  -  {segment:  11, elements: [
  {coordinates:  [  11,  11 ], value:  1.033956550420588}]}
  Max error of the result               :  4.0384237062297546E-002
- Mean error of the result              :  3.2892755733794028E-002
+ Mean error of the result              :  3.2892755733794042E-002
   #-------------------------------------------------------------------------------- check: 4
  check number                          :  4
  imode                                 :  2
@@ -9096,7 +9102,7 @@
  -  {segment:  11, elements: [
  {coordinates:  [  11,  11 ], value:  1.014692647061654}]}
  Max error of the result               :  9.8894781253022757E-012
- Mean error of the result              :  8.109206972474558E-012
+ Mean error of the result              :  8.1091989734293977E-012
   #-------------------------------------------------------------------------------- check: 6
  check number                          :  6
  imode                                 :  2
@@ -9108,7 +9114,7 @@
    powers:
      x                                 : -1
    order                               :  0
-   max / mean error                    :  [  4.44E-16,  2.25E-16 ]
+   max / mean error                    :  [  4.44E-16,  2.53E-16 ]
  final result:
  -  {segment:  1, elements: [
  {coordinates:  [  1,  1 ], value:  1.01093380328573}]}
@@ -9133,7 +9139,7 @@
  -  {segment:  11, elements: [
  {coordinates:  [  11,  11 ], value:  1.072470756799847}]}
  Max error of the result               :  4.4408920985006262E-016
- Mean error of the result              :  2.2455366315174155E-016
+ Mean error of the result              :  2.5272680969279197E-016
   #-------------------------------------------------------------------------------- check: 7
  check number                          :  7
  imode                                 :  2
@@ -9206,8 +9212,8 @@
  {coordinates:  [  10,  10 ], value:  0.991657199878312}]}
  -  {segment:  11, elements: [
  {coordinates:  [  11,  11 ], value:  1.160785032997756}]}
- Max error of the result               :  0.2343081824729265
- Mean error of the result              :  0.1913650084112233
+ Max error of the result               :  0.2343081824729263
+ Mean error of the result              :  0.1913650084112232
   #-------------------------------------------------------------------------------- check: 9
  check number                          :  9
  imode                                 :  2
@@ -9269,7 +9275,7 @@
  -  {segment:  5, elements: [
  {coordinates:  [  5,  5 ], value:  1.169000345685033}]}
  -  {segment:  6, elements: [
- {coordinates:  [  6,  6 ], value:  1.039243050499706}]}
+ {coordinates:  [  6,  6 ], value:  1.039243050499705}]}
  -  {segment:  7, elements: [
  {coordinates:  [  7,  7 ], value:  0.9021149916334179}]}
  -  {segment:  8, elements: [
@@ -9281,7 +9287,7 @@
  -  {segment:  11, elements: [
  {coordinates:  [  11,  11 ], value:  1.07247075679203}]}
  Max error of the result               :  1.9778956250604551E-011
- Mean error of the result              :  1.6218483589125978E-011
+ Mean error of the result              :  1.6218461400634312E-011
   #------------------------------------------------------------------------------- check: 11
  check number                          :  11
  imode                                 :  2
@@ -9355,7 +9361,7 @@
  -  {segment:  11, elements: [
  {coordinates:  [  11,  11 ], value:  1.040549449104915}]}
  Max error of the result               :  2.3129474573694409E-002
- Mean error of the result              :  2.0856697289790609E-002
+ Mean error of the result              :  2.0856697289790612E-002
   #------------------------------------------------------------------------------- check: 13
  check number                          :  13
  imode                                 :  2
@@ -9392,7 +9398,7 @@
  -  {segment:  11, elements: [
  {coordinates:  [  11,  11 ], value:  1.02076258104559}]}
  Max error of the result               :  2.878335072765692E-003
- Mean error of the result              :  2.3450897122800907E-003
+ Mean error of the result              :  2.3450897122800911E-003
   #------------------------------------------------------------------------------- check: 14
  check number                          :  14
  imode                                 :  2
@@ -10165,13 +10171,13 @@
  Mean error of the result              :  2.4920038860605143E-014
   #========================================================================= checks finished
  Memory Consumption Report:
-   Tot. No. of Allocations             :  500
-   Tot. No. of Deallocations           :  500
+   Tot. No. of Allocations             :  615
+   Tot. No. of Deallocations           :  615
    Remaining Memory (B)                :  0
    Memory occupation:
-     Peak Value (MB)                   :  0
+     Peak Value (MB)                   :  0.014
      for the array                     : work
      in the routine                    : overlap_plus_minus_one_half_exac
-     Memory Peak of process            : 13880 kB
- Max No. of dictionaries used          :  988 #( 837 still in use)
+     Memory Peak of process            : 17.200 MB
+ Max No. of dictionaries used          :  1071 #( 841 still in use)
  Number of dictionary folders allocated:  1

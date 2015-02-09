@@ -16,6 +16,7 @@ AM_FCFLAGS = -I. -I$(srcdir) -I$(top_builddir)/includes @MPI_INCLUDE@\
 EXTRA_DIST = hunt-inc.f90
 
 CLEANFILES = *.@MODULE_EXT@ 
+
 noinst_LIBRARIES = libglobalf.a
 
 libglobalf_a_SOURCES = $(globalf_SOURCES)

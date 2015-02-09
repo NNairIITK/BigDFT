@@ -302,9 +302,8 @@ program wvl
   deallocate(psi)
 
   call deallocate_comms(comms)
-  call deallocate_wfd(Lzd%Glr%wfd)
-
-  call deallocate_bounds(Lzd%Glr%geocode,Lzd%Glr%hybrid_on,Lzd%Glr%bounds)
+  
+  call deallocate_locreg_descriptors(Lzd%Glr)
 
   call deallocate_Lzd_except_Glr(Lzd)
   !deallocate(Lzd%Glr%projflg)
