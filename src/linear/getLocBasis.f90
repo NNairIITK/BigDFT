@@ -2460,7 +2460,7 @@ subroutine reorthonormalize_coeff(iproc, nproc, norb, blocksize_dsyev, blocksize
             call mpiallred(ovrlp_coeff, MPI_SUM, bigdft_mpi%mpi_comm)
          end if
 
-         if (norb==orbs%norb) then
+         if (norb==orbs%norb .and. basis_overlap%nspin==1) then
             ! Parallelization for nspin/=1 not done
             if (orbs%norbp>0) then
                call deviation_from_unity_parallel(iproc, nproc, orbs%norb, orbs%norbp, orbs%isorb, &
