@@ -540,7 +540,7 @@ subroutine coeff_weight_analysis(iproc, nproc, input, ksorbs, tmb, ref_frags)
   occsum=sum(KSorbs%occup(1:ksorbs%norb))
   if (iproc==0) then
      call yaml_mapping_open(flow=.true.)
-     call yaml_map('sum',occsum,fmt='(f6.4)')
+     call yaml_map('sum',occsum,fmt='(f8.4)')
   end if
   do ifrag=1,input%frag%nfrag
      if (iproc==0) call yaml_map('frac',weight_sum(ifrag),fmt='(f6.4)')
