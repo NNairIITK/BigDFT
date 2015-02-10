@@ -2609,7 +2609,7 @@ module communications_init
       real(kind=8),dimension(lzd%glr%d%n3i),intent(out) :: weights_per_zpoint
     
       ! Local variables
-      integer :: iorb, ilr, i3, i2, i1, is1, ie1, is2, ie2, is3, ie3
+      integer :: iorb, ilr, i3, i2, i1, is1, ie1, is2, ie2, is3, ie3, js3, je3, ii1, ii2
       real(kind=8) :: tt, zz
       real(kind=8),dimension(:,:),allocatable :: weight_xy
     
@@ -2624,28 +2624,54 @@ module communications_init
     
       tt=0.d0
       weights_per_slice(:) = 0.0d0
-      do i3=nscatterarr(iproc,3)+1,nscatterarr(iproc,3)+nscatterarr(iproc,2)
+      js3=nscatterarr(iproc,3)+1
+      je3=nscatterarr(iproc,3)+nscatterarr(iproc,2)
+      !do i3=nscatterarr(iproc,3)+1,nscatterarr(iproc,3)+nscatterarr(iproc,2)
+      do i3=js3,je3
          !call to_zero(lzd%glr%d%n1i*lzd%glr%d%n2i, weight_xy(1,1))
           call f_zero(weight_xy)
           do iorb=1,orbs%norb
               if (orbs%spinsgn(iorb)<0.d0) cycle !consider only up orbitals
               ilr=orbs%inwhichlocreg(iorb)
-              is3=1+lzd%Llr(ilr)%nsi3
-              ie3=lzd%Llr(ilr)%nsi3+lzd%llr(ilr)%d%n3i
-              if (is3>i3 .or. i3>ie3) cycle
-              is1=1+lzd%Llr(ilr)%nsi1
-              ie1=lzd%Llr(ilr)%nsi1+lzd%llr(ilr)%d%n1i
-              is2=1+lzd%Llr(ilr)%nsi2
-              ie2=lzd%Llr(ilr)%nsi2+lzd%llr(ilr)%d%n2i
-              !$omp parallel default(none) shared(is2, ie2, is1, ie1, weight_xy) private(i2, i1)
-              !$omp do
+              !is3=1+lzd%Llr(ilr)%nsi3
+              !ie3=lzd%Llr(ilr)%nsi3+lzd%llr(ilr)%d%n3i
+              is3=modulo(1+lzd%Llr(ilr)%nsi3-1,lzd%glr%d%n3i)+1
+              ie3=modulo(lzd%Llr(ilr)%nsi3+lzd%llr(ilr)%d%n3i-1,lzd%glr%d%n3i)+1
+              !write(*,'(a,3i8,l3)') 'is3,ie3,i3,overlap',is3,ie3,i3,check_whether_bounds_overlap(is3,ie3,i3,i3)
+              !if ((is3>i3 .or. i3>ie3).neqv..not.check_whether_bounds_overlap(is3,ie3,i3,i3)) then
+              !    write(*,'(a,4i8,l3)') 'ERROR: is3,ie3,i3,i3,overlap',is3,ie3,i3,i3,check_whether_bounds_overlap(is3,ie3,i3,i3)
+              !end if
+              !if (is3>i3 .or. i3>ie3) cycle
+              !write(*,*) 'is3, ie3, i3, res', is3, ie3, i3, check_whether_bounds_overlap(is3,ie3,i3,i3)
+              if (.not.check_whether_bounds_overlap(is3,ie3,i3,i3)) cycle
+              !is1=1+lzd%Llr(ilr)%nsi1
+              !ie1=lzd%Llr(ilr)%nsi1+lzd%llr(ilr)%d%n1i
+              !is2=1+lzd%Llr(ilr)%nsi2
+              !ie2=lzd%Llr(ilr)%nsi2+lzd%llr(ilr)%d%n2i
+              is1=modulo(1+lzd%Llr(ilr)%nsi1-1,lzd%glr%d%n1i)+1
+              !ie1=modulo(lzd%Llr(ilr)%nsi1+lzd%llr(ilr)%d%n1i-1,lzd%glr%d%n1i)+1
+              ie1=is1+lzd%llr(ilr)%d%n1i-1
+              is2=modulo(1+lzd%Llr(ilr)%nsi2-1,lzd%glr%d%n2i)+1
+              !ie2=modulo(lzd%Llr(ilr)%nsi2+lzd%llr(ilr)%d%n2i-1,lzd%glr%d%n2i)+1
+              ie2=is2+lzd%llr(ilr)%d%n2i-1
+              !write(*,*) 'is2,ie2,n2i_l,n2i_g',is2,ie2,lzd%llr(ilr)%d%n2i,lzd%glr%d%n2i
+              !!if (1+lzd%Llr(ilr)%nsi1/=is1) stop
+              !!if (1+lzd%Llr(ilr)%nsi2/=is2) stop
+              !!if (lzd%Llr(ilr)%nsi1+lzd%llr(ilr)%d%n1i/=ie1) stop
+              !!if (lzd%Llr(ilr)%nsi2+lzd%llr(ilr)%d%n2i/=ie2) stop
+              !!$omp parallel default(none) shared(is2, ie2, is1, ie1, weight_xy, lzd) private(i2, i1, ii2, ii1)
+              !!$omp do
               do i2=is2,ie2
+                  ii2=modulo(i2-1,lzd%glr%d%n2i)+1
+                  !write(*,*) 'i3,i2,ii2',i3,i2,ii2
                   do i1=is1,ie1
-                      weight_xy(i1,i2) = weight_xy(i1,i2)+1.d0
+                      ii1=modulo(i1-1,lzd%glr%d%n1i)+1
+                      !weight_xy(i1,i2) = weight_xy(i1,i2)+1.d0
+                      weight_xy(ii1,ii2) = weight_xy(ii1,ii2)+1.d0
                   end do
               end do
-              !$omp end do
-              !$omp end parallel
+              !!$omp end do
+              !!$omp end parallel
           end do
           zz=0.d0
           !$omp parallel default(none) shared(lzd, weight_xy, zz, tt) private(i2, i1)
@@ -2669,7 +2695,7 @@ module communications_init
       else
          weight_tot=tt
       end if
-    
+
       call f_free(weight_xy)
     
       ! Ideal weight per process
@@ -2741,19 +2767,28 @@ module communications_init
                   do iorb=1,orbs%norb
                       if (orbs%spinsgn(iorb)<0.d0) cycle !consider only up orbitals
                       ilr=orbs%inwhichlocreg(iorb)
-                      is1=1+lzd%Llr(ilr)%nsi1
-                      ie1=lzd%Llr(ilr)%nsi1+lzd%llr(ilr)%d%n1i
-                      is2=1+lzd%Llr(ilr)%nsi2
-                      ie2=lzd%Llr(ilr)%nsi2+lzd%llr(ilr)%d%n2i
-                      is3=1+lzd%Llr(ilr)%nsi3
-                      ie3=lzd%Llr(ilr)%nsi3+lzd%llr(ilr)%d%n3i
-                      if (is3>i3 .or. i3>ie3) cycle
+                      !is1=1+lzd%Llr(ilr)%nsi1
+                      !ie1=lzd%Llr(ilr)%nsi1+lzd%llr(ilr)%d%n1i
+                      !is2=1+lzd%Llr(ilr)%nsi2
+                      !ie2=lzd%Llr(ilr)%nsi2+lzd%llr(ilr)%d%n2i
+                      !is3=1+lzd%Llr(ilr)%nsi3
+                      !ie3=lzd%Llr(ilr)%nsi3+lzd%llr(ilr)%d%n3i
+                      is1=modulo(1+lzd%Llr(ilr)%nsi1-1,lzd%glr%d%n1i)+1
+                      ie1=modulo(lzd%Llr(ilr)%nsi1+lzd%llr(ilr)%d%n1i-1,lzd%glr%d%n1i)+1
+                      is2=modulo(1+lzd%Llr(ilr)%nsi2-1,lzd%glr%d%n2i)+1
+                      ie2=modulo(lzd%Llr(ilr)%nsi2+lzd%llr(ilr)%d%n2i-1,lzd%glr%d%n2i)+1
+                      is3=modulo(1+lzd%Llr(ilr)%nsi3-1,lzd%glr%d%n3i)+1
+                      ie3=modulo(lzd%Llr(ilr)%nsi3+lzd%llr(ilr)%d%n3i-1,lzd%glr%d%n3i)+1
+                      !if (is3>i3 .or. i3>ie3) cycle
+                      if (.not.check_whether_bounds_overlap(is3,ie3,i3,i3)) cycle
                       !$omp parallel default(none) shared(lzd, slicearr, is1, ie1, is2, ie2) private(i1, i2)
                       !$omp do
                       do i2=1,lzd%glr%d%n2i
-                          if (is2>i2 .or. i2>ie2) cycle
+                          !if (is2>i2 .or. i2>ie2) cycle
+                          if (.not.check_whether_bounds_overlap(is2,ie2,i2,i2)) cycle
                           do i1=1,lzd%glr%d%n1i
-                              if (is1<=i1 .and. i1<=ie1) then
+                              !if (is1<=i1 .and. i1<=ie1) then
+                              if (check_whether_bounds_overlap(is1,ie1,i1,i1)) then
                                   slicearr(i1,i2)=slicearr(i1,i2)+1.d0
                               end if
                           end do
@@ -2798,6 +2833,10 @@ module communications_init
       istartend(2,nproc-1)=int(lzd%glr%d%n1i,kind=8)*int(lzd%glr%d%n2i,kind=8)*int(lzd%glr%d%n3i,kind=8)
     
       nptsp = int(istartend(2,iproc)-istartend(1,iproc),kind=4) + 1
+
+      write(*,*) 'iproc, npts', iproc, lzd%glr%d%n1i*lzd%glr%d%n2i*lzd%glr%d%n3i
+      write(*,*) 'iproc, istartend', iproc, istartend
+      write(*,*) 'weight_tot', weight_tot
     
       call f_free(weights_startend)
     
@@ -2835,7 +2874,7 @@ module communications_init
       integer,dimension(nptsp),intent(out) :: norb_per_gridpoint
     
       ! Local variables
-      integer :: i3, i2, i1, ipt, ilr, is1, ie1, is2, ie2, is3, ie3, iorb, i, jproc
+      integer :: i3, i2, i1, ipt, ilr, is1, ie1, is2, ie2, is3, ie3, iorb, i, jproc, j1, j2
       real(kind=8) :: tt, weight_check
       integer(kind=8) :: ii, ii2, ii3    
     
@@ -2857,20 +2896,33 @@ module communications_init
           end if
           do iorb=1,orbs%norbu
               ilr=orbs%inwhichlocreg(iorb)
-              is3=1+lzd%Llr(ilr)%nsi3
-              ie3=lzd%Llr(ilr)%nsi3+lzd%llr(ilr)%d%n3i
-              if (is3>i3 .or. i3>ie3) cycle
-              is2=1+lzd%Llr(ilr)%nsi2
-              ie2=lzd%Llr(ilr)%nsi2+lzd%llr(ilr)%d%n2i
-              is1=1+lzd%Llr(ilr)%nsi1
-              ie1=lzd%Llr(ilr)%nsi1+lzd%llr(ilr)%d%n1i
+              !is3=1+lzd%Llr(ilr)%nsi3
+              !ie3=lzd%Llr(ilr)%nsi3+lzd%llr(ilr)%d%n3i
+              is3=modulo(1+lzd%Llr(ilr)%nsi3-1,lzd%glr%d%n3i)+1
+              ie3=modulo(lzd%Llr(ilr)%nsi3+lzd%llr(ilr)%d%n3i-1,lzd%glr%d%n3i)+1
+              !if (is3>i3 .or. i3>ie3) cycle
+              if (.not.check_whether_bounds_overlap(is3,ie3,i3,i3)) cycle
+              !is2=1+lzd%Llr(ilr)%nsi2
+              !ie2=lzd%Llr(ilr)%nsi2+lzd%llr(ilr)%d%n2i
+              !is1=1+lzd%Llr(ilr)%nsi1
+              !ie1=lzd%Llr(ilr)%nsi1+lzd%llr(ilr)%d%n1i
+              is2=modulo(1+lzd%Llr(ilr)%nsi2-1,lzd%glr%d%n2i)+1
+              !ie2=modulo(lzd%Llr(ilr)%nsi2+lzd%llr(ilr)%d%n2i-1,lzd%glr%d%n2i)+1
+              ie2=is2+lzd%llr(ilr)%d%n2i-1
+              is1=modulo(1+lzd%Llr(ilr)%nsi1-1,lzd%glr%d%n1i)+1
+              !ie1=modulo(lzd%Llr(ilr)%nsi1+lzd%llr(ilr)%d%n1i-1,lzd%glr%d%n1i)+1
+              ie1=is1+lzd%llr(ilr)%d%n1i-1
               !$omp parallel default(none) &
-              !$omp shared(i3, ii3, is2, ie2, is1, ie1, lzd, istartend, iproc, norb_per_gridpoint) private(i2, i1, ii, ii2, ipt)
+              !$omp shared(i3, ii3, is2, ie2, is1, ie1, lzd, istartend, iproc, norb_per_gridpoint) &
+              !$omp private(j2, j1, i2, i1, ii, ii2, ipt)
               !$omp do
               do i2=is2,ie2
-                  ii2=ii3+int(i2-1,kind=8)*int(lzd%glr%d%n1i,kind=8)
+                  j2=modulo(i2-1,lzd%glr%d%n2i)+1
+                  !ii2=ii3+int(i2-1,kind=8)*int(lzd%glr%d%n1i,kind=8)
+                  ii2=ii3+int(j2-1,kind=8)*int(lzd%glr%d%n1i,kind=8)
                   do i1=is1,ie1
-                      ii=ii2+int(i1,kind=8)
+                      j1=modulo(i1-1,lzd%glr%d%n1i)+1
+                      ii=ii2+int(j1,kind=8)
                       if (ii>=istartend(1,iproc) .and. ii<=istartend(2,iproc)) then
                           ipt=int(ii-istartend(1,iproc),kind=4)+1
                           !write(1000+iproc,'(a,5i9)') 'i1, i2, i3, ipt, npg',i1, i2, i3, ipt, norb_per_gridpoint(ipt)
@@ -2927,7 +2979,7 @@ module communications_init
       integer,intent(out) :: ndimpsi
     
       ! Local variables
-      integer :: iorb, iiorb, ilr, is1, ie1, is2, ie2, is3, ie3, jproc, i3, i2, i1, ii, ierr, ii0
+      integer :: iorb, iiorb, ilr, is1, ie1, is2, ie2, is3, ie3, jproc, i3, i2, i1, ii, ierr, ii0, j1, j2, j3
       integer,dimension(:),allocatable :: nsendcounts_tmp, nsenddspls_tmp, nrecvcounts_tmp, nrecvdspls_tmp
       character(len=*),parameter :: subname='determine_communication_arrays_sumrho'
       integer(kind=8) :: ind, ii2, ii3
@@ -2939,28 +2991,41 @@ module communications_init
       do iorb=1,orbs%norbp
           iiorb=orbs%isorb+iorb
           ilr=orbs%inwhichlocreg(iiorb)
-          is1=1+lzd%Llr(ilr)%nsi1
-          ie1=lzd%Llr(ilr)%nsi1+lzd%llr(ilr)%d%n1i
-          is2=1+lzd%Llr(ilr)%nsi2
-          ie2=lzd%Llr(ilr)%nsi2+lzd%llr(ilr)%d%n2i
-          is3=1+lzd%Llr(ilr)%nsi3
-          ie3=lzd%Llr(ilr)%nsi3+lzd%llr(ilr)%d%n3i
+          !is1=1+lzd%Llr(ilr)%nsi1
+          !ie1=lzd%Llr(ilr)%nsi1+lzd%llr(ilr)%d%n1i
+          !is2=1+lzd%Llr(ilr)%nsi2
+          !ie2=lzd%Llr(ilr)%nsi2+lzd%llr(ilr)%d%n2i
+          !is3=1+lzd%Llr(ilr)%nsi3
+          !ie3=lzd%Llr(ilr)%nsi3+lzd%llr(ilr)%d%n3i
+          is1=modulo(1+lzd%Llr(ilr)%nsi1-1,lzd%glr%d%n1i)+1
+          !ie1=modulo(lzd%Llr(ilr)%nsi1+lzd%llr(ilr)%d%n1i-1,lzd%glr%d%n1i)+1
+          ie1=is1+lzd%llr(ilr)%d%n1i-1
+          is2=modulo(1+lzd%Llr(ilr)%nsi2-1,lzd%glr%d%n2i)+1
+          !ie2=modulo(lzd%Llr(ilr)%nsi2+lzd%llr(ilr)%d%n2i-1,lzd%glr%d%n2i)+1
+          ie2=is2+lzd%llr(ilr)%d%n2i-1
+          is3=modulo(1+lzd%Llr(ilr)%nsi3-1,lzd%glr%d%n3i)+1
+          !ie3=modulo(lzd%Llr(ilr)%nsi3+lzd%llr(ilr)%d%n3i-1,lzd%glr%d%n3i)+1
+          ie3=is3+lzd%llr(ilr)%d%n3i-1
           do jproc=0,nproc-1
               ii=0
               do i3=is3,ie3
-                  if (int(i3,kind=8)*int(lzd%glr%d%n1i,kind=8)*int(lzd%glr%d%n2i,kind=8)<istartend(1,jproc) .or. &
-                      int(i3-1,kind=8)*int(lzd%glr%d%n1i,kind=8)*int(lzd%glr%d%n2i,kind=8)+int(1,kind=8)>istartend(2,jproc)) then
+                  j3=modulo(i3-1,lzd%glr%d%n3i)+1
+                  if (int(j3,kind=8)*int(lzd%glr%d%n1i,kind=8)*int(lzd%glr%d%n2i,kind=8)<istartend(1,jproc) .or. &
+                      int(j3-1,kind=8)*int(lzd%glr%d%n1i,kind=8)*int(lzd%glr%d%n2i,kind=8)+int(1,kind=8)>istartend(2,jproc)) then
                       cycle
                   end if
                   ii0=0
-                  ii3=int(i3-1,kind=8)*int(lzd%glr%d%n1i,kind=8)*int(lzd%glr%d%n2i,kind=8)
+                  ii3=int(j3-1,kind=8)*int(lzd%glr%d%n1i,kind=8)*int(lzd%glr%d%n2i,kind=8)
                   !$omp parallel default(none) &
-                  !$omp shared(i3, is2, ie2, is1, ie1, lzd, istartend, jproc, ii0, ii3) private(i2, i1, ind, ii2)
+                  !$omp shared(is2, ie2, is1, ie1, lzd, istartend, jproc, ii0, ii3) &
+                  !$omp private(i2, i1, ind, ii2, j1, j2)
                   !$omp do reduction(+:ii0)
                   do i2=is2,ie2
-                      ii2=ii3+int(i2-1,kind=8)*int(lzd%glr%d%n1i,kind=8)
+                      j2=modulo(i2-1,lzd%glr%d%n2i)+1
+                      ii2=ii3+int(j2-1,kind=8)*int(lzd%glr%d%n1i,kind=8)
                       do i1=is1,ie1
-                        ind = ii2+int(i1,kind=8)
+                        j1=modulo(i1-1,lzd%glr%d%n1i)+1
+                        ind = ii2+int(j1,kind=8)
                         if (ind>=istartend(1,jproc) .and. ind<=istartend(2,jproc)) then
                             !nsendcounts(jproc)=nsendcounts(jproc)+1
                             ii0=ii0+1
@@ -3051,7 +3116,7 @@ module communications_init
       integer,dimension(ndimind),intent(out) :: iextract, iexpand, indexrecvorbital
     
       ! Local variables
-      integer :: jproc, iitot, iiorb, ilr, is1, ie1, is2, ie2, is3, ie3, i3, i2, i1, ind, ierr, ii
+      integer :: jproc, iitot, iiorb, ilr, is1, ie1, is2, ie2, is3, ie3, i3, i2, i1, ind, ierr, ii, j1, j2, j3
       integer :: iorb, i, ipt, itotadd
       integer,dimension(:),allocatable :: nsend, indexsendorbital, indexsendorbital2, indexrecvorbital2
       integer,dimension(:),allocatable :: gridpoint_start, gridpoint_start_tmp
@@ -3077,15 +3142,25 @@ module communications_init
           do iorb=1,orbs%norbp
               iiorb=orbs%isorb+iorb
               ilr=orbs%inwhichlocreg(iiorb)
-              is1=1+lzd%Llr(ilr)%nsi1
-              ie1=lzd%Llr(ilr)%nsi1+lzd%llr(ilr)%d%n1i
-              is2=1+lzd%Llr(ilr)%nsi2
-              ie2=lzd%Llr(ilr)%nsi2+lzd%llr(ilr)%d%n2i
-              is3=1+lzd%Llr(ilr)%nsi3
-              ie3=lzd%Llr(ilr)%nsi3+lzd%llr(ilr)%d%n3i
+              !is1=1+lzd%Llr(ilr)%nsi1
+              !ie1=lzd%Llr(ilr)%nsi1+lzd%llr(ilr)%d%n1i
+              !is2=1+lzd%Llr(ilr)%nsi2
+              !ie2=lzd%Llr(ilr)%nsi2+lzd%llr(ilr)%d%n2i
+              !is3=1+lzd%Llr(ilr)%nsi3
+              !ie3=lzd%Llr(ilr)%nsi3+lzd%llr(ilr)%d%n3i
+              is1=modulo(1+lzd%Llr(ilr)%nsi1-1,lzd%glr%d%n1i)+1
+              !ie1=modulo(lzd%Llr(ilr)%nsi1+lzd%llr(ilr)%d%n1i-1,lzd%glr%d%n1i)+1
+              ie1=is1+lzd%llr(ilr)%d%n1i-1
+              is2=modulo(1+lzd%Llr(ilr)%nsi2-1,lzd%glr%d%n2i)+1
+              !ie2=modulo(lzd%Llr(ilr)%nsi2+lzd%llr(ilr)%d%n2i-1,lzd%glr%d%n2i)+1
+              ie2=is2+lzd%llr(ilr)%d%n2i-1
+              is3=modulo(1+lzd%Llr(ilr)%nsi3-1,lzd%glr%d%n3i)+1
+              !ie3=modulo(lzd%Llr(ilr)%nsi3+lzd%llr(ilr)%d%n3i-1,lzd%glr%d%n3i)+1
+              ie3=is3+lzd%llr(ilr)%d%n3i-1
               itotadd=(ie2-is2+1)*(ie1-is1+1)
               do i3=is3,ie3
-                  indglob3a=int(i3,kind=8)*int(lzd%glr%d%n1i,kind=8)*int(lzd%glr%d%n2i,kind=8)
+                  j3=modulo(i3-1,lzd%glr%d%n3i)+1
+                  indglob3a=int(j3,kind=8)*int(lzd%glr%d%n1i,kind=8)*int(lzd%glr%d%n2i,kind=8)
                   indglob3=indglob3a-int(lzd%glr%d%n1i,kind=8)*int(lzd%glr%d%n2i,kind=8)
                   if (indglob3a<istartend(1,jproc) .or. &
                       indglob3+int(1,kind=8)>istartend(2,jproc)) then
@@ -3093,9 +3168,11 @@ module communications_init
                       cycle
                   end if
                   do i2=is2,ie2
-                      indglob2=indglob3+int(i2-1,kind=8)*int(lzd%glr%d%n1i,kind=8)
+                      j2=modulo(i2-1,lzd%glr%d%n2i)+1
+                      indglob2=indglob3+int(j2-1,kind=8)*int(lzd%glr%d%n1i,kind=8)
                       do i1=is1,ie1
-                          indglob = indglob2+int(i1,kind=8)
+                          j1=modulo(i1-1,lzd%glr%d%n1i)+1
+                          indglob = indglob2+int(j1,kind=8)
                           iitot=iitot+1
                           if (indglob>=istartend(1,jproc) .and. indglob<=istartend(2,jproc)) then
                               nsend(jproc)=nsend(jproc)+1
@@ -3336,6 +3413,9 @@ module communications_init
       integer(kind=8) :: ii
     
       call f_routine(id='communication_arrays_repartitionrho_general')
+
+      write(*,'(a,4i8,3x,6i8)') 'n1, n2, n3, ntot, istartend',lzd%glr%d%n1i,lzd%glr%d%n2i,lzd%glr%d%n3i,lzd%glr%d%n1i*lzd%glr%d%n2i*lzd%glr%d%n3i,istartend
+      write(*,'(a,2i8,3x,6i8)') 'iproc, n3i, nscatterarr(iproc,:)', iproc, lzd%glr%d%n3i, nscatterarr(iproc,:)
     
       ! only do this if task iproc has to receive a part of the potential
       if (nscatterarr(iproc,1)>0) then
@@ -3347,6 +3427,7 @@ module communications_init
           do jproc=nproc-1,0,-1
               if (ii>=istartend(1,jproc)) then
                   jproc_send=jproc
+                  write(*,'(a,5i8)') 'FIRST: iproc, i3, ii, jproc_send', iproc, i3, ii, jproc_send
                   ncomms_repartitionrho=ncomms_repartitionrho+1
                   exit
               end if
@@ -3357,6 +3438,7 @@ module communications_init
           nel=0
           started=.false.
           do i3=nscatterarr(iproc,3)-nscatterarr(iproc,4)+1,nscatterarr(iproc,3)-nscatterarr(iproc,4)+nscatterarr(iproc,1)
+              write(*,'(a,3i8)') 'iproc, i3, lzd%glr%d%n3i', iproc, i3, lzd%glr%d%n3i
               ii=int(i3-1,kind=8)*int(lzd%glr%d%n2i,kind=8)*int(lzd%glr%d%n1i,kind=8)
               do i2=1,lzd%glr%d%n2i
                   do i1=1,lzd%glr%d%n1i
@@ -3365,6 +3447,7 @@ module communications_init
                       if (ii>=istartend(1,jproc_send) .and. ii<=istartend(2,jproc_send)) then
                           nel=nel+1
                       else
+                          write(*,'(a,5i8)') 'iproc, i1, i2, i3, ii, jproc_send', iproc, i1, i2, i3, ii, jproc_send
                           jproc_send=jproc_send+1
                           ncomms_repartitionrho=ncomms_repartitionrho+1
                       end if
@@ -4075,5 +4158,29 @@ module communications_init
     END SUBROUTINE orbitals_communicators
 
 
+    !> Checks whether a segment with bounds i1,i2 (where i2 might be smaller
+    !! than i1 due to periodic boundary conditions) overlaps with a segment with
+    !! bounds j1,2 (where j1<=j2)
+    function check_whether_bounds_overlap(i1, i2, j1, j2) result(overlap)
+      implicit none
+      ! Calling arguments
+      integer,intent(in) :: i1, i2, j1, j2
+      logical :: overlap
+      ! Local variables
+      logical :: periodic
+      
+
+      ! If the end is smaller than the start, we have a periodic wrap around
+      periodic = (i2<i1)
+
+      ! Check whether there is an overlap
+      if (periodic) then
+          overlap = (i1<=j2 & !i2>=j1 due to periodic wrap around 
+               .or. i2>=j1)   !i1<=j2 due to periodic wrap around
+      else
+          overlap = (i2>=j1 .and. i1<=j2)
+      end if
+
+    end function check_whether_bounds_overlap
 
 end module communications_init
