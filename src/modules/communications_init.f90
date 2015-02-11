@@ -24,6 +24,11 @@ module communications_init
     module procedure check_whether_bounds_overlap_int
     module procedure check_whether_bounds_overlap_long
   end interface check_whether_bounds_overlap
+  
+  interface get_extent_of_overlap
+    module procedure get_extent_of_overlap_int
+    module procedure get_extent_of_overlap_long
+  end interface get_extent_of_overlap
 
   contains
 
@@ -3610,9 +3615,9 @@ module communications_init
       type(p2pComms),intent(out):: comgp
       
       ! Local variables
-      integer:: is1, ie1, is2, ie2, is3, ie3, ilr, ii, iorb, iiorb, jproc, kproc, istsource
+      integer:: is1, ie1, is2, ie2, is3, ie3, ilr, ii, iorb, iiorb, jproc, kproc, istsource, is, ie, iie3j
       integer:: ioverlap, is3j, ie3j, is3k, ie3k, mpidest, istdest, ioffsetx, ioffsety, ioffsetz
-      integer :: is3min, ie3max, tag, ncount, ierr, nmaxoverlap
+      integer :: is3min, ie3max, tag, ncount, ierr, nmaxoverlap, nlen, nlen2, nlen1
       logical :: datatype_defined
       character(len=*),parameter:: subname='initialize_communication_potential'
       integer,dimension(6) :: ise
@@ -3642,34 +3647,41 @@ module communications_init
           iiorb=orbs%isorb+iorb 
           ilr=orbs%inwhichlocreg(iiorb)
       
-          ii=1+lzd%Llr(ilr)%nsi1
-          if(ii < is1) then
-              is1=ii
+          is=modulo(1+lzd%Llr(ilr)%nsi1-1,lzd%glr%d%n1i)+1
+          if(is < is1) then
+              is1=is
           end if
-          ii=lzd%Llr(ilr)%nsi1+lzd%Llr(ilr)%d%n1i
-          if(ii > ie1) then
-              ie1=ii
-          end if
-      
-          ii=1+lzd%Llr(ilr)%nsi2
-          if(ii < is2) then
-              is2=ii
-          end if
-          ii=lzd%Llr(ilr)%nsi2+lzd%Llr(ilr)%d%n2i
-          if(ii > ie2) then
-              ie2=ii
+          !ii=lzd%Llr(ilr)%nsi1+lzd%Llr(ilr)%d%n1i
+          ie=is+lzd%llr(ilr)%d%n1i-1
+          if(ie > ie1) then
+              ie1=ie
           end if
       
-          ii=1+lzd%Llr(ilr)%nsi3
-          if(ii < is3) then
-              is3=ii
+          is=modulo(1+lzd%Llr(ilr)%nsi2-1,lzd%glr%d%n2i)+1
+          if(is < is2) then
+              is2=is
           end if
-          ii=lzd%Llr(ilr)%nsi3+lzd%Llr(ilr)%d%n3i
-          if(ii > ie3) then
-              ie3=ii
+          !ii=lzd%Llr(ilr)%nsi2+lzd%Llr(ilr)%d%n2i
+          ie=is+lzd%llr(ilr)%d%n2i-1
+          if(ie > ie2) then
+              ie2=ie
+          end if
+      
+          !ii=1+lzd%Llr(ilr)%nsi3
+          is=modulo(1+lzd%Llr(ilr)%nsi3-1,lzd%glr%d%n3i)+1
+          if(is < is3) then
+              is3=is
+          end if
+          !ii=lzd%Llr(ilr)%nsi3+lzd%Llr(ilr)%d%n3i
+          ie=is+lzd%llr(ilr)%d%n3i-1
+          if(ie > ie3) then
+              ie3=ie
           end if
       
       end do
+      write(*,'(a,i4,3x,9i6)') 'iproc, is1, ie1, n1, is2, ie2, n2, is3, ie3, n3', iproc, is1, ie1, lzd%glr%d%n1i, is2, ie2, lzd%glr%d%n2i, is3, ie3, lzd%glr%d%n3i
+
+      ! For non-free boundary conditions teh values ie1, ie2, ie3 may lie outside of the box!
       if (.not.bgq) then
           ! Communicate only the essential part, i.e. a subbox of the slices
           comgp%ise(1)=is1
@@ -3696,23 +3708,33 @@ module communications_init
       !do jproc=0,nproc-1
           is3j=comgp%ise(5)
           ie3j=comgp%ise(6)
+          if (ie3j>lzd%glr%d%n3i) then
+              ! Take modulo and make sure that it stays smaller than the beginning
+              iie3j=modulo(ie3j-1,lzd%glr%d%n3i)+1
+              iie3j=min(iie3j,is3j-1)
+          else
+              iie3j=ie3j
+          end if
           mpidest=iproc
           ioverlap=0
           do kproc=0,nproc-1
               is3k=nscatterarr(kproc,3)+1
               ie3k=is3k+nscatterarr(kproc,2)-1
-              if(is3j<=ie3k .and. ie3j>=is3k) then
+              !if(is3j<=ie3k .and. ie3j>=is3k) then
+              write(*,'(a,6i8,l6)') 'iproc, is3j, ie3j, iie3j, is3k, ie3k, overlap', iproc, is3j, ie3j, iie3j, is3k, ie3k, check_whether_bounds_overlap(is3j, iie3j, is3k, ie3k)
+              if(check_whether_bounds_overlap(is3j, iie3j, is3k, ie3k)) then
                   ioverlap=ioverlap+1
                   !if(iproc==0) write(*,'(2(a,i0),a)') 'process ',jproc,' gets potential from process ',kproc,'.' 
               !TAKE INTO ACCOUNT THE PERIODICITY HERE
-              else if(ie3j > lzd%Glr%d%n3i .and. lzd%Glr%geocode /= 'F') then
-                  ie3j = comgp%ise(6) - lzd%Glr%d%n3i
-                  if(ie3j>=is3k) then
-                     ioverlap=ioverlap+1
-                  end if
-                  if(is3j <= ie3k)then
-                     ioverlap=ioverlap+1
-                  end if
+              !else if(ie3j > lzd%Glr%d%n3i .and. lzd%Glr%geocode /= 'F') then
+              !    stop 'periodicity here deprecated'
+              !    ie3j = comgp%ise(6) - lzd%Glr%d%n3i
+              !    if(ie3j>=is3k) then
+              !       ioverlap=ioverlap+1
+              !    end if
+              !    if(is3j <= ie3k)then
+              !       ioverlap=ioverlap+1
+              !    end if
               end if
           end do
           !if (ioverlap>nmaxoverlap) nmaxoverlap=ioverlap
@@ -3737,6 +3759,13 @@ module communications_init
       nproc_if: if (nproc>1) then
           is3j=comgp%ise(5)
           ie3j=comgp%ise(6)
+          if (ie3j>lzd%glr%d%n3i) then
+              ! Take modulo and make sure that it stays smaller than the beginning
+              iie3j=modulo(ie3j-1,lzd%glr%d%n3i)+1
+              iie3j=min(iie3j,is3j-1)
+          else
+              iie3j=ie3j
+          end if
           mpidest=iproc
           ioverlap=0
           istdest=1
@@ -3746,19 +3775,78 @@ module communications_init
               ie3k=is3k+nscatterarr(kproc,2)-1
               !SHOULD TAKE INTO ACCOUNT THE PERIODICITY HERE
               !Need to split the region
-              if(is3j<=ie3k .and. ie3j>=is3k) then
-                  is3=max(is3j,is3k) ! starting index in z dimension for data to be sent
-                  ie3=min(ie3j,ie3k) ! ending index in z dimension for data to be sent
+              !if(is3j<=ie3k .and. ie3j>=is3k) then
+              if(check_whether_bounds_overlap(is3j, iie3j, is3k, ie3k)) then
+                  !is3=max(is3j,is3k) ! starting index in z dimension for data to be sent
+                  !ie3=min(ie3j,ie3k) ! ending index in z dimension for data to be sent
+                  call get_extent_of_overlap(is3j, iie3j, is3k, ie3k, is3, ie3, nlen)
+                  write(*,'(a,8i8)') 'iproc, kproc, is3j, iie3j, is3k, ie3k, is3, ie3', iproc, kproc, is3j, iie3j, is3k, ie3k, is3, ie3
                   ioffsetz=is3-is3k ! starting index (in z direction) of data to be sent (actually it is the index -1)
-                  ioffsety=comgp%ise(3)-1
-                  ioffsetx=comgp%ise(1)
+                  if (comgp%ise(4)>lzd%glr%d%n2i) then
+                      ! Take modulo and make sure that it stays smaller than the beginning
+                      ii=modulo(comgp%ise(4)-1,lzd%glr%d%n2i)+1
+                      ii=min(ii,comgp%ise(3)-1)
+                  else
+                      ii=comgp%ise(4)
+                  end if
+                  call get_extent_of_overlap(comgp%ise(3), ii, 1, lzd%glr%d%n2i, is2, ie2, nlen2)
+                  ioffsety = is2-1
+                  if (comgp%ise(2)>lzd%glr%d%n1i) then
+                      ! Take modulo and make sure that it stays smaller than the beginning
+                      ii=modulo(comgp%ise(2)-1,lzd%glr%d%n1i)+1
+                      ii=min(ii,comgp%ise(1)-1)
+                  else
+                      ii=comgp%ise(2)
+                  end if
+                  !write(*,*) 'iproc, comgp%ise(1), comgp%ise(2)', iproc, comgp%ise(1), comgp%ise(2)
+                  call get_extent_of_overlap(comgp%ise(1), ii, 1, lzd%glr%d%n1i, is1, ie1, nlen1)
+                  ioffsetx = is1
+                  !if (comgp%ise(4)>lzd%glr%d%n2i) then
+                  !    ! Take modulo and make sure that it stays smaller than the beginning
+                  !    ioffsety=modulo(comgp%ise(4)-1,lzd%glr%d%n2i)+1
+                  !    ioffsety=min(ioffsety,comgp%ise(3))-1
+                  !else
+                  !    ioffsety=comgp%ise(3)-1
+                  !end if
+                  !!ioffsetx=comgp%ise(1)
+                  !if (comgp%ise(2)>lzd%glr%d%n1i) then
+                  !    ! Take modulo and make sure that it stays smaller than the beginning
+                  !    ioffsetx=modulo(comgp%ise(2)-1,lzd%glr%d%n1i)+1
+                  !    ioffsetx=min(ioffsetx,comgp%ise(1))
+                  !else
+                  !    ioffsetx=comgp%ise(1)-1
+                  !end if
+                  write(*,'(a,6i8)') 'iproc, ioffsetx, ie1, ioffsety, ie2, ioffsetz', iproc, ioffsetx, ie1, ioffsety, ie2, ioffsetz
                   ioverlap=ioverlap+1
-                  if(is3<is3min .or. ioverlap==1) then
-                      is3min=is3
+
+                  ! Check whether there are holes in the slices
+                  if (comgp%ise(2)>lzd%glr%d%n1i) then
+                      ! Take modulo and make sure that it stays smaller than the beginning
+                      ii=modulo(comgp%ise(2)-1,lzd%glr%d%n1i)+1
+                      ii=min(ii,comgp%ise(1)-1)
+                  else
+                      ii=comgp%ise(2)
                   end if
-                  if(ie3>ie3max .or. ioverlap==1) then
-                      ie3max=ie3
+                  if (comgp%ise(1)>is1 .and. ii<ie1) then
+                      write(*,*) 'iproc, hole in x', iproc
                   end if
+                  if (comgp%ise(4)>lzd%glr%d%n2i) then
+                      ! Take modulo and make sure that it stays smaller than the beginning
+                      ii=modulo(comgp%ise(4)-1,lzd%glr%d%n2i)+1
+                      ii=min(ii,comgp%ise(3)-1)
+                  else
+                      ii=comgp%ise(4)
+                  end if
+                  if (comgp%ise(3)>is2 .and. ii<ie2) then
+                      write(*,*) 'iproc, hole in y', iproc
+                  end if
+
+                  !!!if(is3<is3min .or. ioverlap==1) then
+                  !!!    is3min=is3
+                  !!!end if
+                  !!!if(ie3>ie3max .or. ioverlap==1) then
+                  !!!    ie3max=ie3
+                  !!!end if
                   !!if (.not.bgq) then
                       ! Communicate only the essential part, i.e. set the starting point to this part
                       istsource = ioffsetz*lzd%glr%d%n1i*lzd%glr%d%n2i + ioffsety*lzd%glr%d%n1i + ioffsetx
@@ -3783,61 +3871,61 @@ module communications_init
                             (ie3-is3+1)*(comgp%ise(2)-comgp%ise(1)+1)*(comgp%ise(4)-comgp%ise(3)+1)
                   comgp%nrecvBuf = comgp%nrecvBuf + &
                             (ie3-is3+1)*(comgp%ise(2)-comgp%ise(1)+1)*(comgp%ise(4)-comgp%ise(3)+1)
-              else if(ie3j > lzd%Glr%d%n3i .and. lzd%Glr%geocode /= 'F')then
-                   stop 'WILL PROBABLY NOT WORK!'
-                   ie3j = comgp%ise(6) - lzd%Glr%d%n3i
-                   if(ie3j>=is3k) then
-                       is3=max(0,is3k) ! starting index in z dimension for data to be sent
-                       ie3=min(ie3j,ie3k) ! ending index in z dimension for data to be sent
-                       ioffsetz=is3-0 ! starting index (in z direction) of data to be sent (actually it is the index -1)
-                       ioverlap=ioverlap+1
-                       !tag=tag+1
-                       !!tag=p2p_tag(jproc)
-                       if(is3<is3min .or. ioverlap==1) then
-                           is3min=is3
-                       end if
-                       if(ie3>ie3max .or. ioverlap==1) then
-                           ie3max=ie3
-                       end if
-                       !!call setCommunicationPotential(kproc, is3, ie3, ioffsetz, lzd%Glr%d%n1i, lzd%Glr%d%n2i, jproc,&
-                       !!     istdest, tag, comgp%comarr(1,ioverlap,jproc))
-                       istsource=ioffsetz*lzd%glr%d%n1i*lzd%glr%d%n2i+1
-                       !ncount=(ie3-is3+1)*lzd%glr%d%n1i*lzd%glr%d%n2i
-                       ncount=lzd%glr%d%n1i*lzd%glr%d%n2i
-                       call setCommsParameters(kproc, jproc, istsource, istdest, ncount, tag, comgp%comarr(1,ioverlap))
-                       comgp%comarr(7,ioverlap)=(ie3-is3+1)
-                       comgp%comarr(8,ioverlap)=lzd%glr%d%n1i*lzd%glr%d%n2i
-                       istdest = istdest + (ie3-is3+1)*ncount
-                       if(iproc==jproc) then
-                           comgp%nrecvBuf = comgp%nrecvBuf + (ie3-is3+1)*lzd%Glr%d%n1i*lzd%Glr%d%n2i
-                       end if
-                   end if
-                   if(is3j <= ie3k)then
-                       is3=max(is3j,is3k) ! starting index in z dimension for data to be sent
-                       ie3=min(lzd%Glr%d%n3i,ie3k) ! ending index in z dimension for data to be sent
-                       ioffsetz=is3-is3k ! starting index (in z direction) of data to be sent (actually it is the index -1)
-                       ioverlap=ioverlap+1
-                       !tag=tag+1
-                       !!tag=p2p_tag(jproc)
-                       if(is3<is3min .or. ioverlap==1) then
-                           is3min=is3
-                       end if
-                       if(ie3>ie3max .or. ioverlap==1) then
-                           ie3max=ie3
-                       end if
-                       !!call setCommunicationPotential(kproc, is3, ie3, ioffsetz, lzd%Glr%d%n1i, lzd%Glr%d%n2i, jproc,&
-                       !!     istdest, tag, comgp%comarr(1,ioverlap,jproc))
-                       istsource=ioffsetz*lzd%glr%d%n1i*lzd%glr%d%n2i+1
-                       !ncount=(ie3-is3+1)*lzd%glr%d%n1i*lzd%glr%d%n2i
-                       ncount=lzd%glr%d%n1i*lzd%glr%d%n2i
-                       call setCommsParameters(kproc, jproc, istsource, istdest, ncount, tag, comgp%comarr(1,ioverlap))
-                       comgp%comarr(7,ioverlap)=ie3-is3+1
-                       comgp%comarr(8,ioverlap)=lzd%glr%d%n1i*lzd%glr%d%n2i
-                       istdest = istdest + (ie3-is3+1)*ncount
-                       if(iproc==jproc) then
-                           comgp%nrecvBuf = comgp%nrecvBuf + (ie3-is3+1)*lzd%Glr%d%n1i*lzd%Glr%d%n2i
-                       end if
-                   end if
+              !!else if(ie3j > lzd%Glr%d%n3i .and. lzd%Glr%geocode /= 'F')then
+              !!     stop 'WILL PROBABLY NOT WORK!'
+              !!     ie3j = comgp%ise(6) - lzd%Glr%d%n3i
+              !!     if(ie3j>=is3k) then
+              !!         is3=max(0,is3k) ! starting index in z dimension for data to be sent
+              !!         ie3=min(ie3j,ie3k) ! ending index in z dimension for data to be sent
+              !!         ioffsetz=is3-0 ! starting index (in z direction) of data to be sent (actually it is the index -1)
+              !!         ioverlap=ioverlap+1
+              !!         !tag=tag+1
+              !!         !!tag=p2p_tag(jproc)
+              !!         if(is3<is3min .or. ioverlap==1) then
+              !!             is3min=is3
+              !!         end if
+              !!         if(ie3>ie3max .or. ioverlap==1) then
+              !!             ie3max=ie3
+              !!         end if
+              !!         !!call setCommunicationPotential(kproc, is3, ie3, ioffsetz, lzd%Glr%d%n1i, lzd%Glr%d%n2i, jproc,&
+              !!         !!     istdest, tag, comgp%comarr(1,ioverlap,jproc))
+              !!         istsource=ioffsetz*lzd%glr%d%n1i*lzd%glr%d%n2i+1
+              !!         !ncount=(ie3-is3+1)*lzd%glr%d%n1i*lzd%glr%d%n2i
+              !!         ncount=lzd%glr%d%n1i*lzd%glr%d%n2i
+              !!         call setCommsParameters(kproc, jproc, istsource, istdest, ncount, tag, comgp%comarr(1,ioverlap))
+              !!         comgp%comarr(7,ioverlap)=(ie3-is3+1)
+              !!         comgp%comarr(8,ioverlap)=lzd%glr%d%n1i*lzd%glr%d%n2i
+              !!         istdest = istdest + (ie3-is3+1)*ncount
+              !!         if(iproc==jproc) then
+              !!             comgp%nrecvBuf = comgp%nrecvBuf + (ie3-is3+1)*lzd%Glr%d%n1i*lzd%Glr%d%n2i
+              !!         end if
+              !!     end if
+              !!     if(is3j <= ie3k)then
+              !!         is3=max(is3j,is3k) ! starting index in z dimension for data to be sent
+              !!         ie3=min(lzd%Glr%d%n3i,ie3k) ! ending index in z dimension for data to be sent
+              !!         ioffsetz=is3-is3k ! starting index (in z direction) of data to be sent (actually it is the index -1)
+              !!         ioverlap=ioverlap+1
+              !!         !tag=tag+1
+              !!         !!tag=p2p_tag(jproc)
+              !!         if(is3<is3min .or. ioverlap==1) then
+              !!             is3min=is3
+              !!         end if
+              !!         if(ie3>ie3max .or. ioverlap==1) then
+              !!             ie3max=ie3
+              !!         end if
+              !!         !!call setCommunicationPotential(kproc, is3, ie3, ioffsetz, lzd%Glr%d%n1i, lzd%Glr%d%n2i, jproc,&
+              !!         !!     istdest, tag, comgp%comarr(1,ioverlap,jproc))
+              !!         istsource=ioffsetz*lzd%glr%d%n1i*lzd%glr%d%n2i+1
+              !!         !ncount=(ie3-is3+1)*lzd%glr%d%n1i*lzd%glr%d%n2i
+              !!         ncount=lzd%glr%d%n1i*lzd%glr%d%n2i
+              !!         call setCommsParameters(kproc, jproc, istsource, istdest, ncount, tag, comgp%comarr(1,ioverlap))
+              !!         comgp%comarr(7,ioverlap)=ie3-is3+1
+              !!         comgp%comarr(8,ioverlap)=lzd%glr%d%n1i*lzd%glr%d%n2i
+              !!         istdest = istdest + (ie3-is3+1)*ncount
+              !!         if(iproc==jproc) then
+              !!             comgp%nrecvBuf = comgp%nrecvBuf + (ie3-is3+1)*lzd%Glr%d%n1i*lzd%Glr%d%n2i
+              !!         end if
+              !!     end if
               end if
           end do
           !!comgp%ise3(1,jproc)=is3min
@@ -4268,31 +4356,45 @@ module communications_init
     !! than i1 due to periodic boundary conditions) overlaps with a segment with
     !! bounds j1,2 (where j1<=j2). Is so, it gives the starting point, ending
     !! point and the extent of the overlap.
-    subroutine get_extent_of_overlap(i1, i2, j1, j2, is, ie, n)
+    subroutine get_extent_of_overlap_int(i1, i2, j1, j2, is, ie, n)
       use dictionaries, only: f_err_throw
       implicit none
       ! Calling arguments
-      integer(kind=8),intent(in) :: i1, i2, j1, j2
-      integer(kind=8),intent(out) :: is, ie, n
+      integer,intent(in) :: i1, i2, j1, j2
+      integer,intent(out) :: is, ie, n
       ! Local variables
-      logical :: periodic
+      integer :: is1, ie1, is2, ie2
+      logical :: periodic, found_case
+
 
       ! Check whether there is an overlap
       if (check_whether_bounds_overlap(i1, i2, j1, j2)) then
           ! If the end is smaller than the start, we have a periodic wrap around
           periodic = (i2<i1)
           if (periodic) then
+              found_case =.false.
               if (i1<=j2) then
-                  is = max(i1,j1)
-                  ie = j2 !don't need to check i2 due to periodic wrap around
-                  n = ie - is + 1
-              else if (i2>=j1) then
-                  is = j1 !don't need to check i1 due to periodic wrap around
-                  ie = min(i2,j2)
-                  n = ie - is + 1
+                  is1 = max(i1,j1)
+                  ie1 = j2 !don't need to check i2 due to periodic wrap around
+                  found_case = .true.
               else
+                  is1=huge(i1)
+                  ie1=-huge(i1)
+              end if
+              if (i2>=j1) then
+                  is2 = j1 !don't need to check i1 due to periodic wrap around
+                  ie2 = min(i2,j2)
+                  found_case = .true.
+              else
+                  is2=huge(i2)
+                  ie2=-huge(i2)
+              end if
+              if (.not. found_case) then
                   call f_err_throw('Cannot determine overlap',err_name='BIGDFT_RUNTIME_ERROR')
               end if
+              is = min(is1,is2)
+              ie = max(ie1,ie2)
+              n = ie - is + 1
           else
               is = max(i1,j1)
               ie = min(i2,j2)
@@ -4305,6 +4407,60 @@ module communications_init
           n = 0
       end if
 
-    end subroutine get_extent_of_overlap
+    end subroutine get_extent_of_overlap_int
+
+
+    subroutine get_extent_of_overlap_long(i1, i2, j1, j2, is, ie, n)
+      use dictionaries, only: f_err_throw
+      implicit none
+      ! Calling arguments
+      integer(kind=8),intent(in) :: i1, i2, j1, j2
+      integer(kind=8),intent(out) :: is, ie, n
+      ! Local variables
+      integer(kind=8) :: is1, ie1, is2, ie2
+      logical :: periodic, found_case
+
+
+      ! Check whether there is an overlap
+      if (check_whether_bounds_overlap(i1, i2, j1, j2)) then
+          ! If the end is smaller than the start, we have a periodic wrap around
+          periodic = (i2<i1)
+          if (periodic) then
+              found_case =.false.
+              if (i1<=j2) then
+                  is1 = max(i1,j1)
+                  ie1 = j2 !don't need to check i2 due to periodic wrap around
+                  found_case = .true.
+              else
+                  is1=huge(i1)
+                  ie1=-huge(i1)
+              end if
+              if (i2>=j1) then
+                  is2 = j1 !don't need to check i1 due to periodic wrap around
+                  ie2 = min(i2,j2)
+                  found_case = .true.
+              else
+                  is2=huge(i2)
+                  ie2=-huge(i2)
+              end if
+              if (.not. found_case) then
+                  call f_err_throw('Cannot determine overlap',err_name='BIGDFT_RUNTIME_ERROR')
+              end if
+              is = min(is1,is2)
+              ie = max(ie1,ie2)
+              n = ie - is + 1
+          else
+              is = max(i1,j1)
+              ie = min(i2,j2)
+              n = ie - is + 1
+          end if
+          !write(*,'(a,7i8)') 'i1, i2, j1, j2, is, ie, n', i1, i2, j1, j2, is, ie, n
+      else
+          is = -1
+          ie = -1
+          n = 0
+      end if
+
+    end subroutine get_extent_of_overlap_long
 
 end module communications_init

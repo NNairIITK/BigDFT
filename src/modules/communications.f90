@@ -1119,7 +1119,14 @@ module communications
                                if (isend_shift+istsource + &
                                    (nit-1)*lzd%glr%d%n1i*lzd%glr%d%n2i + &
                                    (comm%ise(4)-comm%ise(3))*lzd%glr%d%n1i + &
-                                   comm%ise(2)-comm%ise(1) > npotarr(mpisource)*comm%nspin) stop 'out of window'
+                                   comm%ise(2)-comm%ise(1) > npotarr(mpisource)*comm%nspin) then
+                                   call f_err_throw('out of window: ist='//trim(yaml_toa(isend_shift+istsource,fmt='(i0)'))//&
+                                        &', n='//trim(yaml_toa((nit-1)*lzd%glr%d%n1i*lzd%glr%d%n2i+&
+                                        (comm%ise(4)-comm%ise(3))*lzd%glr%d%n1i+comm%ise(2)-comm%ise(1),fmt='(i0)'))//&
+                                        &', nwin='//trim(yaml_toa(npotarr(mpisource)*comm%nspin,fmt='(i0)')),&
+                                        err_name='BIGDFT_RUNTIME_ERROR')
+                                   !stop 'out of window'
+                               end if
                                if (rma_sync==RMA_SYNC_PASSIVE) then
                                    !write(*,'(2(a,i0))') 'BEFORE: proc ',iproc,' calls lock for proc ',mpisource
                                    call mpi_win_lock(MPI_LOCK_EXCLUSIVE, mpisource, 0, comm%window, ierr)
