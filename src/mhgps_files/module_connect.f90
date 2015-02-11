@@ -581,6 +581,7 @@ subroutine connect(mhgpsst,fsw,uinp,runObj,outs,rcov,&
     integer :: isame
     integer :: ipush
     integer :: iloop
+    integer :: istat
     real(gp) :: scl
 
     connected=.false.
@@ -750,279 +751,316 @@ connectloop: do while(cobj%ntodo>=1)
         endif
     endif
 
-    scl=-1.0_gp
-    ipush=1
-    loopL: do
-        if(mhgpsst%iproc==0)&
-        call yaml_comment('(MHGPS) Relax from left side ',hfill='.')
-
-        call pushoffsingle(uinp,runObj%atoms%astruct%nat,&
-             cobj%saddle(1,1,mhgpsst%nsad),cobj%minmode(1,1,mhgpsst%nsad),scl,&
-             cobj%leftmin(1,1,mhgpsst%nsad))
-
-        ener_count=0.0_gp
-        call mhgpsenergyandforces(mhgpsst,runObj,outs,&
-             cobj%leftmin(1,1,mhgpsst%nsad),cobj%fleft(1,1,mhgpsst%nsad),&
-             cobj%enerleft(mhgpsst%nsad),infocode)
-        if(infocode/=0)then
-            if(ipush>=npushmax)then
-                mhgpsst%isadprob=mhgpsst%isadprob+1
-                write(mhgpsst%isadprobc,'(i5.5)')mhgpsst%isadprob
-                if(mhgpsst%iproc==0)then
-                    write(comment,'(a)')'Prob: Neighbors '//&
-                    'unknown. Error in energy evaluation during pushoff.'
-                    call astruct_dump_to_file(&
-                         bigdft_get_astruct_ptr(runObj),mhgpsst%currDir//&
-                         '/sadProb'//trim(adjustl(mhgpsst%isadprobc))//&
-                         '_finalM',comment,cobj%enersad(mhgpsst%nsad),&
-                         rxyz=cobj%saddle(:,:,mhgpsst%nsad),&
-                         forces=cobj%minmode(:,:,mhgpsst%nsad))
-                    call astruct_dump_to_file(&
-                         bigdft_get_astruct_ptr(runObj),mhgpsst%currDir//&
-                         '/sadProb'//trim(adjustl(mhgpsst%isadprobc))//&
-                         '_Reactant',comment,0.0_gp,rxyz=cobj%rxyz1)
-                    call astruct_dump_to_file(&
-                         bigdft_get_astruct_ptr(runObj),mhgpsst%currDir//&
-                         '/sadProb'//trim(adjustl(mhgpsst%isadprobc))//&
-                         '_Product',comment,0.0_gp,rxyz=cobj%rxyz2)
-                endif
-    
-                connected=.false.
-                mhgpsst%nsad=mhgpsst%nsad-1
-                mhgpsst%isad=mhgpsst%isad-1
-                write(mhgpsst%isadc,'(i5.5)')mhgpsst%isad
-    
-                if(mhgpsst%iproc==0)&
-                call yaml_warning('(MHGPS) Cannot determine forces after '//&
-                                  'pushoff from saddle. '//&
-                                  'Connection attempt stopped. Will '//&
-                                  'proceed with next connection attempt.')
-                
-                exit connectloop !stop connection
-            endif
-            scl=abs(uinp%saddle_scale_stepoff)*scl
-            if(mhgpsst%iproc==0)&
-            call yaml_comment('INFO: (MHGPS) After pushoff, error'//&
-                 ' while computing forces for left side. Will retry'//&
-                 ' with increased pushoff:  '//yaml_toa(scl))
-            ipush=ipush+1
-            runObj%inputs%inputPsiId=0
-            cycle loopL
-        endif
-
-        if(mhgpsst%iproc==0 .and. uinp%mhgps_verbosity >= 3)&
-             call astruct_dump_to_file(&
-                  bigdft_get_astruct_ptr(runObj),mhgpsst%currDir//&
-                  '/sad'//trim(adjustl(mhgpsst%isadc))//'_pushL',&
-                  comment,cobj%enerleft(mhgpsst%nsad),cobj%leftmin(:,:,mhgpsst%nsad),&
-                  cobj%fleft(:,:,mhgpsst%nsad))
-
-        call minimize(mhgpsst,uinp,runObj,outs,rcov,&
-             cobj%leftmin(1,1,mhgpsst%nsad),cobj%fleft(1,1,mhgpsst%nsad),&
-             cobj%enerleft(mhgpsst%nsad),ener_count,converged,'L')
-        call fnrmandforcemax(cobj%fleft(1,1,mhgpsst%nsad),fnrm,fmax,&
-             runObj%atoms%astruct%nat)
-        fnrm=sqrt(fnrm)
-        write(comment,'(a,1pe10.3,5x,1pe10.3)')'fnrm, fmax = ',fnrm,&
-                                              fmax
-        if(mhgpsst%iproc==0)&
-             call astruct_dump_to_file(&
-                  bigdft_get_astruct_ptr(runObj),mhgpsst%currDir//&
-                  '/sad'//trim(adjustl(mhgpsst%isadc))//'_minFinalL',&
-                  comment,cobj%enerleft(mhgpsst%nsad),cobj%leftmin(:,:,mhgpsst%nsad),&
-                  cobj%fleft(:,:,mhgpsst%nsad))
-
-        call fingerprint(runObj%atoms%astruct%nat,mhgpsst%nid,&
-             runObj%atoms%astruct%cell_dim,&
-             bigdft_get_geocode(runObj),rcov,cobj%leftmin(1,1,mhgpsst%nsad),&
-             cobj%fpleft(1,mhgpsst%nsad))
-        if(.not.equal(mhgpsst%iproc,'(MHGPS)','MS',mhgpsst%nid,uinp%en_delta_sad,&
-           uinp%fp_delta_sad,cobj%enersad(mhgpsst%nsad),cobj%enerleft(mhgpsst%nsad),&
-           cobj%fpsad(1,mhgpsst%nsad),cobj%fpleft(1,mhgpsst%nsad)))then
-           exit loopL
-        elseif(ipush>=npushmax)then
-            mhgpsst%isadprob=mhgpsst%isadprob+1
-            write(mhgpsst%isadprobc,'(i5.5)')mhgpsst%isadprob
-            if(mhgpsst%iproc==0)then
+   call pushoff_and_relax_bothSides(uinp,mhgpsst,runObj,outs,rcov,&
+        cobj%saddle(1,1,mhgpsst%nsad),cobj%enersad(mhgpsst%nsad),&
+        cobj%fpsad(1,mhgpsst%nsad),cobj%minmode(1,1,mhgpsst%nsad),&
+        cobj%leftmin(1,1,mhgpsst%nsad),cobj%fleft(1,1,mhgpsst%nsad),&
+        cobj%enerleft(mhgpsst%nsad),cobj%fpleft(1,mhgpsst%nsad),&
+        cobj%rightmin(1,1,mhgpsst%nsad),cobj%fright(1,1,mhgpsst%nsad),&
+        cobj%enerright(mhgpsst%nsad),cobj%fpright(1,mhgpsst%nsad),istat)
+    if(istat/=0)then
+        if(mhgpsst%iproc==0)then
+            if(istat==1)then
+               write(comment,'(a)')'Unspecified error after pushoff.'
+            elseif(istat==2)then
+               write(comment,'(a)')'Prob: Neighbors '//&
+                 'unknown. Error in energy evaluation during pushoff.'
+            elseif(istat==3)then
                 write(comment,'(a)')'Prob: Neighbors '//&
-                'unknown (stepoff converged back to saddle)'
-                call astruct_dump_to_file(&
-                     bigdft_get_astruct_ptr(runObj),mhgpsst%currDir//&
-                     '/sadProb'//trim(adjustl(mhgpsst%isadprobc))//&
-                     '_finalM',comment,cobj%enersad(mhgpsst%nsad),&
-                     rxyz=cobj%saddle(:,:,mhgpsst%nsad),&
-                     forces=cobj%minmode(:,:,mhgpsst%nsad))
-                call astruct_dump_to_file(&
-                     bigdft_get_astruct_ptr(runObj),mhgpsst%currDir//&
-                     '/sadProb'//trim(adjustl(mhgpsst%isadprobc))//&
-                     '_Reactant',comment,0.0_gp,rxyz=cobj%rxyz1)
-                call astruct_dump_to_file(&
-                     bigdft_get_astruct_ptr(runObj),mhgpsst%currDir//&
-                     '/sadProb'//trim(adjustl(mhgpsst%isadprobc))//&
-                     '_Product',comment,0.0_gp,rxyz=cobj%rxyz2)
+               'unknown (stepoff converged back to saddle)'
+            else
+               write(comment,'(a)')'Unknown error code.'
             endif
-
-            connected=.false.
-            mhgpsst%nsad=mhgpsst%nsad-1
-            mhgpsst%isad=mhgpsst%isad-1
-            write(mhgpsst%isadc,'(i5.5)')mhgpsst%isad
-
-            if(mhgpsst%iproc==0)&
-            call yaml_warning('(MHGPS)  after relaxation from '//&
-                              'saddle point the left minimum is '//&
-                              'identical to the saddle point. '//&
-                              'Stopped connection attempt. Will '//&
-                              'proceed with next connection attempt.')
-            
-            exit connectloop !stop connection
+            call astruct_dump_to_file(&
+                 bigdft_get_astruct_ptr(runObj),mhgpsst%currDir//&
+                 '/sadProb'//trim(adjustl(mhgpsst%isadprobc))//&
+                 '_finalM',comment,cobj%enersad(mhgpsst%nsad),&
+                 rxyz=cobj%saddle(:,:,mhgpsst%nsad),&
+                 forces=cobj%minmode(:,:,mhgpsst%nsad))
+            call astruct_dump_to_file(&
+                 bigdft_get_astruct_ptr(runObj),mhgpsst%currDir//&
+                 '/sadProb'//trim(adjustl(mhgpsst%isadprobc))//&
+                 '_Reactant',comment,0.0_gp,rxyz=cobj%rxyz1)
+            call astruct_dump_to_file(&
+                 bigdft_get_astruct_ptr(runObj),mhgpsst%currDir//&
+                 '/sadProb'//trim(adjustl(mhgpsst%isadprobc))//&
+                 '_Product',comment,0.0_gp,rxyz=cobj%rxyz2)
         endif
-        scl=abs(uinp%saddle_scale_stepoff)*scl
-        if(mhgpsst%iproc==0)&
-        call yaml_comment('INFO: (MHGPS) After pushoff, left side '//&
-                       'converged back to saddle. Will retry with '//&
-                       'increased pushoff: '//&
-                        yaml_toa(scl))
-        ipush=ipush+1
-    enddo loopL
+    endif
 
-    scl=1.0_gp
-    ipush=1
-    loopR: do
-        if(mhgpsst%iproc==0)&
-        call yaml_comment('(MHGPS) Relax from right side ',hfill='.')
-
-        call pushoffsingle(uinp,runObj%atoms%astruct%nat,&
-             cobj%saddle(1,1,mhgpsst%nsad),cobj%minmode(1,1,mhgpsst%nsad),&
-             scl,cobj%rightmin(1,1,mhgpsst%nsad))
-
-        !use inputPsiId=0 here, because wavefct. in memory corresponds
-        !to left minimum. However, we are close to saddle, again.
-        runObj%inputs%inputPsiId=0
-        ener_count=0.0_gp
-        call mhgpsenergyandforces(mhgpsst,runObj,outs,&
-             cobj%rightmin(1,1,mhgpsst%nsad),cobj%fright(1,1,mhgpsst%nsad),&
-             cobj%enerright(mhgpsst%nsad),infocode)
-        if(infocode/=0)then
-            if(ipush>=npushmax)then
-                mhgpsst%isadprob=mhgpsst%isadprob+1
-                write(mhgpsst%isadprobc,'(i5.5)')mhgpsst%isadprob
-                if(mhgpsst%iproc==0)then
-                    write(comment,'(a)')'Prob: Neighbors '//&
-                    'unknown. Error in energy evaluation during pushoff.'
-                    call astruct_dump_to_file(&
-                         bigdft_get_astruct_ptr(runObj),mhgpsst%currDir//&
-                         '/sadProb'//trim(adjustl(mhgpsst%isadprobc))//&
-                         '_finalM',comment,cobj%enersad(mhgpsst%nsad),&
-                         rxyz=cobj%saddle(:,:,mhgpsst%nsad),&
-                         forces=cobj%minmode(:,:,mhgpsst%nsad))
-                    call astruct_dump_to_file(&
-                         bigdft_get_astruct_ptr(runObj),mhgpsst%currDir//&
-                         '/sadProb'//trim(adjustl(mhgpsst%isadprobc))//&
-                         '_Reactant',comment,0.0_gp,rxyz=cobj%rxyz1)
-                    call astruct_dump_to_file(&
-                         bigdft_get_astruct_ptr(runObj),mhgpsst%currDir//&
-                         '/sadProb'//trim(adjustl(mhgpsst%isadprobc))//&
-                         '_Product',comment,0.0_gp,rxyz=cobj%rxyz2)
-                endif
-    
-                connected=.false.
-                mhgpsst%nsad=mhgpsst%nsad-1
-                mhgpsst%isad=mhgpsst%isad-1
-                write(mhgpsst%isadc,'(i5.5)')mhgpsst%isad
-    
-                if(mhgpsst%iproc==0)&
-                call yaml_warning('(MHGPS) Cannot determine forces after '//&
-                                  'pushoff from saddle. '//&
-                                  'Connection attempt stopped. Will '//&
-                                  'proceed with next connection attempt.')
-                
-                exit connectloop !stop connection
-            endif
-            scl=abs(uinp%saddle_scale_stepoff)*scl
-            if(mhgpsst%iproc==0)&
-            call yaml_comment('INFO: (MHGPS) After pushoff, error'//&
-                 ' while computing forces for left side. Will retry'//&
-                 ' with increased pushoff:  '//yaml_toa(scl))
-            ipush=ipush+1
-            runObj%inputs%inputPsiId=0
-            cycle loopR
-        endif
-
-        if(mhgpsst%iproc==0 .and. uinp%mhgps_verbosity >= 3)&
-             call astruct_dump_to_file(bigdft_get_astruct_ptr(runObj),&
-             mhgpsst%currDir//'/sad'//trim(adjustl(mhgpsst%isadc))//'_pushR',&
-             comment,&
-             cobj%enerright(mhgpsst%nsad),cobj%rightmin(1,1,mhgpsst%nsad),&
-             cobj%fright(1,1,mhgpsst%nsad))
-
-        call minimize(mhgpsst,uinp,runObj,outs,rcov,&
-                            cobj%rightmin(1,1,mhgpsst%nsad),&
-                            cobj%fright(1,1,mhgpsst%nsad),&
-                            cobj%enerright(mhgpsst%nsad),ener_count,&
-                            converged,'R')
-        call fnrmandforcemax(cobj%fright(1,1,mhgpsst%nsad),fnrm,fmax,&
-             runObj%atoms%astruct%nat)
-        fnrm=sqrt(fnrm)
-        write(comment,'(a,1pe10.3,5x,1pe10.3)')'fnrm, fmax = ',fnrm,&
-                                              fmax
-        if(mhgpsst%iproc==0)&
-             call astruct_dump_to_file(bigdft_get_astruct_ptr(runObj),&
-             mhgpsst%currDir//'/sad'//trim(adjustl(mhgpsst%isadc))//'_minFinalR',&
-             comment,&
-             cobj%enerright(mhgpsst%nsad),cobj%rightmin(1,1,mhgpsst%nsad),&
-             cobj%fright(1,1,mhgpsst%nsad))
-        call fingerprint(runObj%atoms%astruct%nat,mhgpsst%nid,&
-             runObj%atoms%astruct%cell_dim,bigdft_get_geocode(runObj),&
-             rcov,cobj%rightmin(1,1,mhgpsst%nsad),&
-             cobj%fpright(1,mhgpsst%nsad))
-        if(.not.equal(mhgpsst%iproc,'(MHGPS)','MS',mhgpsst%nid,uinp%en_delta_sad,uinp%fp_delta_sad,&
-           cobj%enersad(mhgpsst%nsad),cobj%enerright(mhgpsst%nsad),&
-           cobj%fpsad(1,mhgpsst%nsad),cobj%fpright(1,mhgpsst%nsad)))then
-           exit loopR
-        elseif(ipush>=npushmax)then
-            mhgpsst%isadprob=mhgpsst%isadprob+1
-            write(mhgpsst%isadprobc,'(i5.5)')mhgpsst%isadprob
-            if(mhgpsst%iproc==0)then
-                write(comment,'(a)')'Prob: Neighbors '//&
-                     'unknown (stepoff converged back to saddle)'
-
-                call astruct_dump_to_file(bigdft_get_astruct_ptr(runObj),&
-                     mhgpsst%currDir//'/sadProb'//trim(adjustl(mhgpsst%isadprobc))//'_finalM',&
-                     comment,&
-                     cobj%enersad(mhgpsst%nsad),cobj%saddle(:,:,mhgpsst%nsad),&
-                     forces=cobj%minmode(:,:,mhgpsst%nsad))
-                call astruct_dump_to_file(bigdft_get_astruct_ptr(runObj),&
-                     mhgpsst%currDir//'/sadProb'//trim(adjustl(mhgpsst%isadprobc))//'_Reactant',&
-                     comment,&
-                0.0_gp,rxyz=cobj%rxyz1)
-                call astruct_dump_to_file(bigdft_get_astruct_ptr(runObj),&
-                     mhgpsst%currDir//'/sadProb'//trim(adjustl(mhgpsst%isadprobc))//'_Product',&
-                     comment,&
-                0.0_gp,rxyz=cobj%rxyz2)
-
-            endif
-
-            connected=.false.
-            mhgpsst%nsad=mhgpsst%nsad-1
-            mhgpsst%isad=mhgpsst%isad-1
-            write(mhgpsst%isadc,'(i5.5)')mhgpsst%isad
-
-            if(mhgpsst%iproc==0)&
-            call yaml_warning('(MHGPS)  after relaxation from '//&
-                              'saddle point the right minimum is '//&
-                              'identical to the saddle point. '//&
-                              'Stopped connection attempt. Will '//&
-                              'proceed with next connection attempt.')
-            exit connectloop !stop connection
-        endif
-        scl=abs(uinp%saddle_scale_stepoff)*scl
-        if(mhgpsst%iproc==0)&
-        call yaml_comment('INFO: (MHGPS) After pushoff, right side'//&
-                       ' converged back to saddle. Will retry with'//&
-                       ' increased pushoff: '//&
-                        yaml_toa(scl))
-        ipush=ipush+1
-    enddo loopR
+!    scl=-1.0_gp
+!    ipush=1
+!    loopL: do
+!        if(mhgpsst%iproc==0)&
+!        call yaml_comment('(MHGPS) Relax from left side ',hfill='.')
+!
+!        call pushoffsingle(uinp,runObj%atoms%astruct%nat,&
+!             cobj%saddle(1,1,mhgpsst%nsad),cobj%minmode(1,1,mhgpsst%nsad),scl,&
+!             cobj%leftmin(1,1,mhgpsst%nsad))
+!
+!        ener_count=0.0_gp
+!        call mhgpsenergyandforces(mhgpsst,runObj,outs,&
+!             cobj%leftmin(1,1,mhgpsst%nsad),cobj%fleft(1,1,mhgpsst%nsad),&
+!             cobj%enerleft(mhgpsst%nsad),infocode)
+!        if(infocode/=0)then
+!            if(ipush>=npushmax)then
+!                mhgpsst%isadprob=mhgpsst%isadprob+1
+!                write(mhgpsst%isadprobc,'(i5.5)')mhgpsst%isadprob
+!                if(mhgpsst%iproc==0)then
+!                    write(comment,'(a)')'Prob: Neighbors '//&
+!                    'unknown. Error in energy evaluation during pushoff.'
+!                    call astruct_dump_to_file(&
+!                         bigdft_get_astruct_ptr(runObj),mhgpsst%currDir//&
+!                         '/sadProb'//trim(adjustl(mhgpsst%isadprobc))//&
+!                         '_finalM',comment,cobj%enersad(mhgpsst%nsad),&
+!                         rxyz=cobj%saddle(:,:,mhgpsst%nsad),&
+!                         forces=cobj%minmode(:,:,mhgpsst%nsad))
+!                    call astruct_dump_to_file(&
+!                         bigdft_get_astruct_ptr(runObj),mhgpsst%currDir//&
+!                         '/sadProb'//trim(adjustl(mhgpsst%isadprobc))//&
+!                         '_Reactant',comment,0.0_gp,rxyz=cobj%rxyz1)
+!                    call astruct_dump_to_file(&
+!                         bigdft_get_astruct_ptr(runObj),mhgpsst%currDir//&
+!                         '/sadProb'//trim(adjustl(mhgpsst%isadprobc))//&
+!                         '_Product',comment,0.0_gp,rxyz=cobj%rxyz2)
+!                endif
+!    
+!                connected=.false.
+!                mhgpsst%nsad=mhgpsst%nsad-1
+!                mhgpsst%isad=mhgpsst%isad-1
+!                write(mhgpsst%isadc,'(i5.5)')mhgpsst%isad
+!    
+!                if(mhgpsst%iproc==0)&
+!                call yaml_warning('(MHGPS) Cannot determine forces after '//&
+!                                  'pushoff from saddle. '//&
+!                                  'Connection attempt stopped. Will '//&
+!                                  'proceed with next connection attempt.')
+!                
+!                exit connectloop !stop connection
+!            endif
+!            scl=abs(uinp%saddle_scale_stepoff)*scl
+!            if(mhgpsst%iproc==0)&
+!            call yaml_comment('INFO: (MHGPS) After pushoff, error'//&
+!                 ' while computing forces for left side. Will retry'//&
+!                 ' with increased pushoff:  '//yaml_toa(scl))
+!            ipush=ipush+1
+!            runObj%inputs%inputPsiId=0
+!            cycle loopL
+!        endif
+!
+!        if(mhgpsst%iproc==0 .and. uinp%mhgps_verbosity >= 3)&
+!             call astruct_dump_to_file(&
+!                  bigdft_get_astruct_ptr(runObj),mhgpsst%currDir//&
+!                  '/sad'//trim(adjustl(mhgpsst%isadc))//'_pushL',&
+!                  comment,cobj%enerleft(mhgpsst%nsad),cobj%leftmin(:,:,mhgpsst%nsad),&
+!                  cobj%fleft(:,:,mhgpsst%nsad))
+!
+!        call minimize(mhgpsst,uinp,runObj,outs,rcov,&
+!             cobj%leftmin(1,1,mhgpsst%nsad),cobj%fleft(1,1,mhgpsst%nsad),&
+!             cobj%enerleft(mhgpsst%nsad),ener_count,converged,'L')
+!        call fnrmandforcemax(cobj%fleft(1,1,mhgpsst%nsad),fnrm,fmax,&
+!             runObj%atoms%astruct%nat)
+!        fnrm=sqrt(fnrm)
+!        write(comment,'(a,1pe10.3,5x,1pe10.3)')'fnrm, fmax = ',fnrm,&
+!                                              fmax
+!        if(mhgpsst%iproc==0)&
+!             call astruct_dump_to_file(&
+!                  bigdft_get_astruct_ptr(runObj),mhgpsst%currDir//&
+!                  '/sad'//trim(adjustl(mhgpsst%isadc))//'_minFinalL',&
+!                  comment,cobj%enerleft(mhgpsst%nsad),cobj%leftmin(:,:,mhgpsst%nsad),&
+!                  cobj%fleft(:,:,mhgpsst%nsad))
+!
+!        call fingerprint(runObj%atoms%astruct%nat,mhgpsst%nid,&
+!             runObj%atoms%astruct%cell_dim,&
+!             bigdft_get_geocode(runObj),rcov,cobj%leftmin(1,1,mhgpsst%nsad),&
+!             cobj%fpleft(1,mhgpsst%nsad))
+!        if(.not.equal(mhgpsst%iproc,'(MHGPS)','MS',mhgpsst%nid,uinp%en_delta_sad,&
+!           uinp%fp_delta_sad,cobj%enersad(mhgpsst%nsad),cobj%enerleft(mhgpsst%nsad),&
+!           cobj%fpsad(1,mhgpsst%nsad),cobj%fpleft(1,mhgpsst%nsad)))then
+!           exit loopL
+!        elseif(ipush>=npushmax)then
+!            mhgpsst%isadprob=mhgpsst%isadprob+1
+!            write(mhgpsst%isadprobc,'(i5.5)')mhgpsst%isadprob
+!            if(mhgpsst%iproc==0)then
+!                write(comment,'(a)')'Prob: Neighbors '//&
+!                'unknown (stepoff converged back to saddle)'
+!                call astruct_dump_to_file(&
+!                     bigdft_get_astruct_ptr(runObj),mhgpsst%currDir//&
+!                     '/sadProb'//trim(adjustl(mhgpsst%isadprobc))//&
+!                     '_finalM',comment,cobj%enersad(mhgpsst%nsad),&
+!                     rxyz=cobj%saddle(:,:,mhgpsst%nsad),&
+!                     forces=cobj%minmode(:,:,mhgpsst%nsad))
+!                call astruct_dump_to_file(&
+!                     bigdft_get_astruct_ptr(runObj),mhgpsst%currDir//&
+!                     '/sadProb'//trim(adjustl(mhgpsst%isadprobc))//&
+!                     '_Reactant',comment,0.0_gp,rxyz=cobj%rxyz1)
+!                call astruct_dump_to_file(&
+!                     bigdft_get_astruct_ptr(runObj),mhgpsst%currDir//&
+!                     '/sadProb'//trim(adjustl(mhgpsst%isadprobc))//&
+!                     '_Product',comment,0.0_gp,rxyz=cobj%rxyz2)
+!            endif
+!
+!            connected=.false.
+!            mhgpsst%nsad=mhgpsst%nsad-1
+!            mhgpsst%isad=mhgpsst%isad-1
+!            write(mhgpsst%isadc,'(i5.5)')mhgpsst%isad
+!
+!            if(mhgpsst%iproc==0)&
+!            call yaml_warning('(MHGPS)  after relaxation from '//&
+!                              'saddle point the left minimum is '//&
+!                              'identical to the saddle point. '//&
+!                              'Stopped connection attempt. Will '//&
+!                              'proceed with next connection attempt.')
+!            
+!            exit connectloop !stop connection
+!        endif
+!        scl=abs(uinp%saddle_scale_stepoff)*scl
+!        if(mhgpsst%iproc==0)&
+!        call yaml_comment('INFO: (MHGPS) After pushoff, left side '//&
+!                       'converged back to saddle. Will retry with '//&
+!                       'increased pushoff: '//&
+!                        yaml_toa(scl))
+!        ipush=ipush+1
+!    enddo loopL
+!
+!    scl=1.0_gp
+!    ipush=1
+!    loopR: do
+!        if(mhgpsst%iproc==0)&
+!        call yaml_comment('(MHGPS) Relax from right side ',hfill='.')
+!
+!        call pushoffsingle(uinp,runObj%atoms%astruct%nat,&
+!             cobj%saddle(1,1,mhgpsst%nsad),cobj%minmode(1,1,mhgpsst%nsad),&
+!             scl,cobj%rightmin(1,1,mhgpsst%nsad))
+!
+!        !use inputPsiId=0 here, because wavefct. in memory corresponds
+!        !to left minimum. However, we are close to saddle, again.
+!        runObj%inputs%inputPsiId=0
+!        ener_count=0.0_gp
+!        call mhgpsenergyandforces(mhgpsst,runObj,outs,&
+!             cobj%rightmin(1,1,mhgpsst%nsad),cobj%fright(1,1,mhgpsst%nsad),&
+!             cobj%enerright(mhgpsst%nsad),infocode)
+!        if(infocode/=0)then
+!            if(ipush>=npushmax)then
+!                mhgpsst%isadprob=mhgpsst%isadprob+1
+!                write(mhgpsst%isadprobc,'(i5.5)')mhgpsst%isadprob
+!                if(mhgpsst%iproc==0)then
+!                    write(comment,'(a)')'Prob: Neighbors '//&
+!                    'unknown. Error in energy evaluation during pushoff.'
+!                    call astruct_dump_to_file(&
+!                         bigdft_get_astruct_ptr(runObj),mhgpsst%currDir//&
+!                         '/sadProb'//trim(adjustl(mhgpsst%isadprobc))//&
+!                         '_finalM',comment,cobj%enersad(mhgpsst%nsad),&
+!                         rxyz=cobj%saddle(:,:,mhgpsst%nsad),&
+!                         forces=cobj%minmode(:,:,mhgpsst%nsad))
+!                    call astruct_dump_to_file(&
+!                         bigdft_get_astruct_ptr(runObj),mhgpsst%currDir//&
+!                         '/sadProb'//trim(adjustl(mhgpsst%isadprobc))//&
+!                         '_Reactant',comment,0.0_gp,rxyz=cobj%rxyz1)
+!                    call astruct_dump_to_file(&
+!                         bigdft_get_astruct_ptr(runObj),mhgpsst%currDir//&
+!                         '/sadProb'//trim(adjustl(mhgpsst%isadprobc))//&
+!                         '_Product',comment,0.0_gp,rxyz=cobj%rxyz2)
+!                endif
+!    
+!                connected=.false.
+!                mhgpsst%nsad=mhgpsst%nsad-1
+!                mhgpsst%isad=mhgpsst%isad-1
+!                write(mhgpsst%isadc,'(i5.5)')mhgpsst%isad
+!    
+!                if(mhgpsst%iproc==0)&
+!                call yaml_warning('(MHGPS) Cannot determine forces after '//&
+!                                  'pushoff from saddle. '//&
+!                                  'Connection attempt stopped. Will '//&
+!                                  'proceed with next connection attempt.')
+!                
+!                exit connectloop !stop connection
+!            endif
+!            scl=abs(uinp%saddle_scale_stepoff)*scl
+!            if(mhgpsst%iproc==0)&
+!            call yaml_comment('INFO: (MHGPS) After pushoff, error'//&
+!                 ' while computing forces for left side. Will retry'//&
+!                 ' with increased pushoff:  '//yaml_toa(scl))
+!            ipush=ipush+1
+!            runObj%inputs%inputPsiId=0
+!            cycle loopR
+!        endif
+!
+!        if(mhgpsst%iproc==0 .and. uinp%mhgps_verbosity >= 3)&
+!             call astruct_dump_to_file(bigdft_get_astruct_ptr(runObj),&
+!             mhgpsst%currDir//'/sad'//trim(adjustl(mhgpsst%isadc))//'_pushR',&
+!             comment,&
+!             cobj%enerright(mhgpsst%nsad),cobj%rightmin(1,1,mhgpsst%nsad),&
+!             cobj%fright(1,1,mhgpsst%nsad))
+!
+!        call minimize(mhgpsst,uinp,runObj,outs,rcov,&
+!                            cobj%rightmin(1,1,mhgpsst%nsad),&
+!                            cobj%fright(1,1,mhgpsst%nsad),&
+!                            cobj%enerright(mhgpsst%nsad),ener_count,&
+!                            converged,'R')
+!        call fnrmandforcemax(cobj%fright(1,1,mhgpsst%nsad),fnrm,fmax,&
+!             runObj%atoms%astruct%nat)
+!        fnrm=sqrt(fnrm)
+!        write(comment,'(a,1pe10.3,5x,1pe10.3)')'fnrm, fmax = ',fnrm,&
+!                                              fmax
+!        if(mhgpsst%iproc==0)&
+!             call astruct_dump_to_file(bigdft_get_astruct_ptr(runObj),&
+!             mhgpsst%currDir//'/sad'//trim(adjustl(mhgpsst%isadc))//'_minFinalR',&
+!             comment,&
+!             cobj%enerright(mhgpsst%nsad),cobj%rightmin(1,1,mhgpsst%nsad),&
+!             cobj%fright(1,1,mhgpsst%nsad))
+!        call fingerprint(runObj%atoms%astruct%nat,mhgpsst%nid,&
+!             runObj%atoms%astruct%cell_dim,bigdft_get_geocode(runObj),&
+!             rcov,cobj%rightmin(1,1,mhgpsst%nsad),&
+!             cobj%fpright(1,mhgpsst%nsad))
+!        if(.not.equal(mhgpsst%iproc,'(MHGPS)','MS',mhgpsst%nid,uinp%en_delta_sad,uinp%fp_delta_sad,&
+!           cobj%enersad(mhgpsst%nsad),cobj%enerright(mhgpsst%nsad),&
+!           cobj%fpsad(1,mhgpsst%nsad),cobj%fpright(1,mhgpsst%nsad)))then
+!           exit loopR
+!        elseif(ipush>=npushmax)then
+!            mhgpsst%isadprob=mhgpsst%isadprob+1
+!            write(mhgpsst%isadprobc,'(i5.5)')mhgpsst%isadprob
+!            if(mhgpsst%iproc==0)then
+!                write(comment,'(a)')'Prob: Neighbors '//&
+!                     'unknown (stepoff converged back to saddle)'
+!
+!                call astruct_dump_to_file(bigdft_get_astruct_ptr(runObj),&
+!                     mhgpsst%currDir//'/sadProb'//trim(adjustl(mhgpsst%isadprobc))//'_finalM',&
+!                     comment,&
+!                     cobj%enersad(mhgpsst%nsad),cobj%saddle(:,:,mhgpsst%nsad),&
+!                     forces=cobj%minmode(:,:,mhgpsst%nsad))
+!                call astruct_dump_to_file(bigdft_get_astruct_ptr(runObj),&
+!                     mhgpsst%currDir//'/sadProb'//trim(adjustl(mhgpsst%isadprobc))//'_Reactant',&
+!                     comment,&
+!                0.0_gp,rxyz=cobj%rxyz1)
+!                call astruct_dump_to_file(bigdft_get_astruct_ptr(runObj),&
+!                     mhgpsst%currDir//'/sadProb'//trim(adjustl(mhgpsst%isadprobc))//'_Product',&
+!                     comment,&
+!                0.0_gp,rxyz=cobj%rxyz2)
+!
+!            endif
+!
+!            connected=.false.
+!            mhgpsst%nsad=mhgpsst%nsad-1
+!            mhgpsst%isad=mhgpsst%isad-1
+!            write(mhgpsst%isadc,'(i5.5)')mhgpsst%isad
+!
+!            if(mhgpsst%iproc==0)&
+!            call yaml_warning('(MHGPS)  after relaxation from '//&
+!                              'saddle point the right minimum is '//&
+!                              'identical to the saddle point. '//&
+!                              'Stopped connection attempt. Will '//&
+!                              'proceed with next connection attempt.')
+!            exit connectloop !stop connection
+!        endif
+!        scl=abs(uinp%saddle_scale_stepoff)*scl
+!        if(mhgpsst%iproc==0)&
+!        call yaml_comment('INFO: (MHGPS) After pushoff, right side'//&
+!                       ' converged back to saddle. Will retry with'//&
+!                       ' increased pushoff: '//&
+!                        yaml_toa(scl))
+!        ipush=ipush+1
+!    enddo loopR
 
     !We don't check if the left side and right side converged to
     !absolutely (permutationally and with respect to chirality)
@@ -1693,5 +1731,206 @@ subroutine write_todoList(uinp,mhgpsst,runObj,cobj)
         enddo
     endif
 end subroutine
+!=====================================================================
+subroutine pushoff_and_relax_bothSides(uinp,mhgpsst,runObj,outs,rcov,&
+           rxyz_sad,ener_sad,fp_sad,minmode,rxyz_minL,fxyz_minL,&
+           ener_minL,fp_minL,rxyz_minR,fxyz_minR,ener_minR,fp_minR,istat)
+    use module_base
+    use yaml_output
+    use module_atoms, only: astruct_dump_to_file
+    use bigdft_run, only: run_objects,&
+                          state_properties
+    use module_userinput
+    use module_mhgps_state
+    implicit none
+    !parameters
+    type(userinput), intent(in)     :: uinp
+    type(mhgps_state), intent(inout) :: mhgpsst
+    type(run_objects), intent(inout) :: runObj
+    type(state_properties), intent(inout) :: outs
+    real(gp), intent(in)   :: rcov(runObj%atoms%astruct%nat)
+    real(gp), intent(in) :: rxyz_sad(3,runObj%atoms%astruct%nat)
+    real(gp), intent(in) :: ener_sad
+    real(gp), intent(in) :: fp_sad(mhgpsst%nid)
+    real(gp), intent(in) :: minmode(3,runObj%atoms%astruct%nat)
+    real(gp), intent(out) :: rxyz_minL(3,runObj%atoms%astruct%nat)
+    real(gp), intent(out) :: fxyz_minL(3,runObj%atoms%astruct%nat)
+    real(gp), intent(out) :: ener_minL
+    real(gp), intent(out) :: fp_minL(mhgpsst%nid)
+    real(gp), intent(out) :: rxyz_minR(3,runObj%atoms%astruct%nat)
+    real(gp), intent(out) :: fxyz_minR(3,runObj%atoms%astruct%nat)
+    real(gp), intent(out) :: ener_minR
+    real(gp), intent(out) :: fp_minR(mhgpsst%nid)
+    integer, intent(out)  :: istat
+    !internal variables
+    real(gp) :: scl
+    integer :: ipush
+    integer :: istatint
+    if(mhgpsst%iproc==0)&
+        call yaml_comment('(MHGPS) Relax from left side ',hfill='.')
+    scl=-1.0_gp
+    call pushoff_and_relax_oneSide(uinp,mhgpsst,runObj,outs,rcov,scl,&
+           rxyz_sad,ener_sad,fp_sad,minmode,rxyz_minL,fxyz_minL,&
+           ener_minL,fp_minL,istatint)
+    if(istatint/=0)then
+        istat=-istatint !negative status integer for 
+                        !indicating problem with left side
+        return
+    endif
+
+    if(mhgpsst%iproc==0)&
+        call yaml_comment('(MHGPS) Relax from right side ',hfill='.')
+    scl=1.0_gp
+    call pushoff_and_relax_oneSide(uinp,mhgpsst,runObj,outs,rcov,scl,&
+           rxyz_sad,ener_sad,fp_sad,minmode,rxyz_minR,fxyz_minR,&
+           ener_minR,fp_minR,istatint)
+    if(istatint/=0)then
+        istat=abs(istatint) !positive status integer for 
+                            !indicating problem with right side
+        return
+    endif
+end subroutine pushoff_and_relax_bothSides
+!=====================================================================
+subroutine pushoff_and_relax_oneSide(uinp,mhgpsst,runObj,outs,rcov,scl,&
+           rxyz_sad,ener_sad,fp_sad,minmode,rxyz_min,fxyz_min,&
+           ener_min,fp_min,istat)
+    use module_base
+    use yaml_output
+    use module_atoms, only: astruct_dump_to_file
+    use bigdft_run, only: run_objects, bigdft_get_astruct_ptr,&
+                          state_properties, bigdft_get_geocode
+    use module_fingerprints
+    use module_userinput
+    use module_mhgps_state
+    use module_energyandforces
+    use module_minimizers
+    !istat:
+    !istat=0 : all ok
+    !ATTENTION: if istat/=0, rxyz_min may not contain the actual minimum!
+    !istat=1 : undefined error
+    !istat=2 : error during evaluations of energies after pushoff
+    !istat=3 : converged back to saddle
+    implicit none
+    !parameters
+    type(userinput), intent(in)     :: uinp
+    type(mhgps_state), intent(inout) :: mhgpsst
+    type(run_objects), intent(inout) :: runObj
+    type(state_properties), intent(inout) :: outs
+    real(gp), intent(in)   :: rcov(runObj%atoms%astruct%nat)
+    real(gp), intent(inout) :: scl
+    integer, intent(out) :: istat
+    real(gp), intent(in) :: rxyz_sad(3,runObj%atoms%astruct%nat)
+    real(gp), intent(in) :: ener_sad
+    real(gp), intent(in) :: fp_sad(mhgpsst%nid)
+    real(gp), intent(in) :: minmode(3,runObj%atoms%astruct%nat)
+    real(gp), intent(out) :: rxyz_min(3,runObj%atoms%astruct%nat)
+    real(gp), intent(out) :: fxyz_min(3,runObj%atoms%astruct%nat)
+    real(gp), intent(out) :: ener_min
+    real(gp), intent(out) :: fp_min(mhgpsst%nid)
+    !internal variables
+    integer, parameter :: npushmax=3
+    integer :: ipush
+    real(gp) :: ener_count
+    character(len=200) :: comment
+    integer :: infocode
+    character(len=1) :: LR
+    logical :: converged
+    real(gp) :: fnrm, fmax
+
+    istat=0
+
+    ipush=1
+    scl=scl/abs(scl)
+    if(scl<0)then
+        LR='L'
+    else
+        LR='R'
+    endif
+    loopPush: do
+
+        call pushoffsingle(uinp,runObj%atoms%astruct%nat,&
+             rxyz_sad(1,1),minmode(1,1),scl,rxyz_min(1,1))
+
+        ener_count=0.0_gp
+        call mhgpsenergyandforces(mhgpsst,runObj,outs,rxyz_min(1,1),&
+             fxyz_min(1,1),ener_min,infocode)
+        if(infocode/=0)then
+            if(ipush>=npushmax)then
+                mhgpsst%isadprob=mhgpsst%isadprob+1
+                write(mhgpsst%isadprobc,'(i5.5)')mhgpsst%isadprob
+                if(mhgpsst%iproc==0)then
+                    write(comment,'(a)')'Prob: Neighbors '//&
+                    'unknown. Error in energy evaluation after pushoff.'
+                endif
+    
+                istat=2
+                exit loopPush
+            endif
+            scl=abs(uinp%saddle_scale_stepoff)*scl
+            if(mhgpsst%iproc==0)&
+            call yaml_comment('INFO: (MHGPS) After pushoff, error'//&
+                 ' while computing forces for left side. Will retry'//&
+                 ' with increased pushoff:  '//yaml_toa(scl))
+            ipush=ipush+1
+            runObj%inputs%inputPsiId=0
+            cycle loopPush
+        endif
+
+        if(mhgpsst%iproc==0 .and. uinp%mhgps_verbosity >= 3)&
+             call astruct_dump_to_file(&
+                  bigdft_get_astruct_ptr(runObj),mhgpsst%currDir//&
+                  '/sad'//trim(adjustl(mhgpsst%isadc))//'_push'//LR,&
+                  comment,ener_min,rxyz_min,fxyz_min)
+
+        call minimize(mhgpsst,uinp,runObj,outs,rcov,&
+             rxyz_min(1,1),fxyz_min(1,1),&
+             ener_min,ener_count,converged,LR)
+        call fnrmandforcemax(fxyz_min(1,1),fnrm,fmax,&
+             runObj%atoms%astruct%nat)
+        fnrm=sqrt(fnrm)
+        write(comment,'(a,1pe10.3,5x,1pe10.3)')'fnrm, fmax = ',fnrm,&
+                                              fmax
+        if(mhgpsst%iproc==0)&
+             call astruct_dump_to_file(&
+                  bigdft_get_astruct_ptr(runObj),mhgpsst%currDir//&
+                  '/sad'//trim(adjustl(mhgpsst%isadc))//'_minFinal'//LR,&
+                  comment,ener_min,rxyz_min,fxyz_min)
+
+        call fingerprint(runObj%atoms%astruct%nat,mhgpsst%nid,&
+             runObj%atoms%astruct%cell_dim,&
+             bigdft_get_geocode(runObj),rcov,rxyz_min(1,1),&
+             fp_min(1))
+        if(.not.equal(mhgpsst%iproc,'(MHGPS)','MS',mhgpsst%nid,&
+             uinp%en_delta_sad,uinp%fp_delta_sad,ener_sad,ener_min,&
+                                             fp_sad(1),fp_min(1)))then
+            exit loopPush
+        elseif(ipush>=npushmax)then
+            mhgpsst%isadprob=mhgpsst%isadprob+1
+            write(mhgpsst%isadprobc,'(i5.5)')mhgpsst%isadprob
+            if(mhgpsst%iproc==0)then
+                write(comment,'(a)')'Prob: Neighbors '//&
+                'unknown (stepoff converged back to saddle)'
+            endif
+
+            istat=3
+            exit loopPush
+        endif
+        scl=abs(uinp%saddle_scale_stepoff)*scl
+        if(mhgpsst%iproc==0)then
+        if(scl<0)then
+        call yaml_comment('INFO: (MHGPS) After pushoff, left side '//&
+                       'converged back to saddle. Will retry with '//&
+                       'increased pushoff: '//&
+                        yaml_toa(scl))
+        else
+        call yaml_comment('INFO: (MHGPS) After pushoff, right side '//&
+                       'converged back to saddle. Will retry with '//&
+                       'increased pushoff: '//&
+                        yaml_toa(scl))
+        endif
+        endif
+        ipush=ipush+1
+    enddo loopPush
+end subroutine pushoff_and_relax_oneSide
 !=====================================================================
 end module
