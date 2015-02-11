@@ -997,8 +997,8 @@ subroutine kpt_input_analyse(iproc, in, dict, sym, geocode, alat)
            stop
         end if
         !assumes that the allocation went through (arrays allocated by abinit routines)
-        in%gen_kpt=f_malloc_ptr(src=gen_kpt,id='gen_kpt')
-        in%gen_wkpt=f_malloc_ptr(src=gen_wkpt,id='gen_wkpt')
+        in%gen_kpt=f_malloc_ptr(src_ptr=gen_kpt,id='gen_kpt')
+        in%gen_wkpt=f_malloc_ptr(src_ptr=gen_wkpt,id='gen_wkpt')
         deallocate(gen_kpt,gen_wkpt)
 !!$        call memocc(0,in%gen_kpt,'in%gen_kpt',subname)
 !!$        call memocc(0,in%gen_wkpt,'in%gen_wkpt',subname)
@@ -1041,8 +1041,8 @@ subroutine kpt_input_analyse(iproc, in, dict, sym, geocode, alat)
         end if
         !assumes that the allocation went through 
         !(arrays allocated by abinit routines)
-        in%gen_kpt=f_malloc_ptr(src=gen_kpt,id='gen_kpt')
-        in%gen_wkpt=f_malloc_ptr(src=gen_wkpt,id='gen_wkpt')
+        in%gen_kpt=f_malloc_ptr(src_ptr=gen_kpt,id='gen_kpt')
+        in%gen_wkpt=f_malloc_ptr(src_ptr=gen_wkpt,id='gen_wkpt')
         deallocate(gen_kpt,gen_wkpt)
 !!$        call memocc(0,in%gen_kpt,'in%gen_kpt',subname)
 !!$        call memocc(0,in%gen_wkpt,'in%gen_wkpt',subname)

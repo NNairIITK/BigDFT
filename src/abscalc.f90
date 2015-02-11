@@ -96,7 +96,8 @@ END PROGRAM abscalc_main
 !> Routines to use abscalc as a blackbox
 subroutine call_abscalc(nproc,iproc,runObj,energy,fxyz,infocode)
    use module_base
-   use module_types, only: input_variables,deallocate_wfd,atoms_data
+   use locregs, only: deallocate_locreg_descriptors
+   use module_types, only: input_variables,atoms_data
    use module_interfaces
    use bigdft_run
    use module_atoms, only: astruct_dump_to_file
@@ -133,7 +134,7 @@ subroutine call_abscalc(nproc,iproc,runObj,energy,fxyz,infocode)
          call f_free_ptr(runObj%rst%KSwfn%orbs%eval)
          nullify(runObj%rst%KSwfn%orbs%eval)
 
-        call deallocate_wfd(runObj%rst%KSwfn%Lzd%Glr%wfd)
+        call deallocate_locreg_descriptors(runObj%rst%KSwfn%Lzd%Glr)
       end if
 
       if(.not. runObj%inputs%c_absorbtion) then 
@@ -175,7 +176,7 @@ subroutine call_abscalc(nproc,iproc,runObj,energy,fxyz,infocode)
          call f_free_ptr(runObj%rst%KSwfn%orbs%eval)
          nullify(runObj%rst%KSwfn%orbs%eval)
 
-        call deallocate_wfd(runObj%rst%KSwfn%Lzd%Glr%wfd)
+        call deallocate_locreg_descriptors(runObj%rst%KSwfn%Lzd%Glr)
 
         !test if stderr works
         write(0,*)'unnormal end'
@@ -192,7 +193,7 @@ subroutine call_abscalc(nproc,iproc,runObj,energy,fxyz,infocode)
    runObj%inputs%inputPsiId=inputPsiId_orig
 
    !put a barrier for all the processes
-   call MPI_BARRIER(MPI_COMM_WORLD,ierr)
+   call mpibarrier()!MPI_COMM_WORLD,ierr)
 
 END SUBROUTINE call_abscalc
 
@@ -1113,7 +1114,7 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
    !routine which deallocate the pointers and the arrays before exiting 
    subroutine deallocate_before_exiting
      use communications_base, only: deallocate_comms
-     use locregs, only: deallocate_convolutions_bounds
+     !use locregs, only: deallocate_convolutions_bounds
      implicit none
      external :: gather_timings
       !when this condition is verified we are in the middle of the SCF cycle
@@ -1195,7 +1196,7 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
       end if
 
       !De-allocations
-      call deallocate_convolutions_bounds(KSwfn%Lzd%Glr%bounds)
+      !call deallocate_convolutions_bounds(KSwfn%Lzd%Glr%bounds)
       call deallocate_Lzd_except_Glr(KSwfn%Lzd)
 !      i_all=-product(shape(Lzd%Glr%projflg))*kind(Lzd%Glr%projflg)
 !      deallocate(Lzd%Glr%projflg,stat=i_stat)

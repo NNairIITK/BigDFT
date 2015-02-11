@@ -796,7 +796,9 @@ endif
      end if
   case('PI')
      if (present(dlogeps)) then
-        kernel%dlogeps=f_malloc_ptr(src=dlogeps,id='dlogeps')
+        !kernel%dlogeps=f_malloc_ptr(src=dlogeps,id='dlogeps')
+        kernel%dlogeps=f_malloc_ptr(shape(dlogeps),id='dlogeps')
+        call f_memcpy(src=dlogeps,dest=kernel%dlogeps)
      else if (present(eps)) then
         kernel%dlogeps=f_malloc_ptr([3,kernel%ndims(1),kernel%ndims(2),kernel%ndims(3)],&
              id='dlogeps')
