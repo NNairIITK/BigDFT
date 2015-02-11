@@ -35,7 +35,7 @@ EXTRA_DIST = \
 libmhgps_a_SOURCES = $(mhgps_SOURCES)
 #dependencies
 
-module_mhgps_state.o : ../modules/BigDFT_API.o
+module_mhgps_state.o : ../modules/BigDFT_API.o mhgps_version_number-inc.f90
 
 module_energyandforces.o : module_mhgps_state.o \
                            ../modules/BigDFT_API.o

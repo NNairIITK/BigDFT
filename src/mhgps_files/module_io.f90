@@ -275,6 +275,7 @@ subroutine read_jobs(uinp,mhgpsst)
                 call f_err_throw(trim(adjustl(jobfile))//' empty')
             endif
         else if(trim(adjustl(uinp%operation_mode))=='simple'.or.&
+                trim(adjustl(uinp%operation_mode))=='simpleandminimize'.or.&
                 trim(adjustl(uinp%operation_mode))=='hessian'.or.&
                 trim(adjustl(uinp%operation_mode))=='minimize')then
             do iline=1,999
@@ -310,6 +311,7 @@ subroutine read_jobs(uinp,mhgpsst)
                 mhgpsst%njobs=mhgpsst%njobs+1
             enddo
         else if(trim(adjustl(uinp%operation_mode))=='simple'.or.&
+                trim(adjustl(uinp%operation_mode))=='simpleandminimize'.or.&
                 trim(adjustl(uinp%operation_mode))=='hessian'.or.&
                 trim(adjustl(uinp%operation_mode))=='minimize')then
             do ifile=1,999
@@ -387,7 +389,8 @@ subroutine read_mode(mhgpsst,nat,filename,minmode)
     type(atomic_structure):: astruct !< Contains all info
 
 
-    call read_atomic_file(filename,mhgpsst%iproc,astruct)
+    call read_atomic_file(filename,mhgpsst%iproc,astruct,&
+         disableTrans=.true.)
     if(nat/=astruct%nat) &
          call f_err_throw('(MHGPS) severe error in read_mode: '//&
          'nat/=astruct%nat')

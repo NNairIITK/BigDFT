@@ -214,6 +214,7 @@ contains
             read(u,*)uinp%saddle_cutoffratio
             read(u,*)uinp%saddle_recompIfCurvPos
             read(u,*)uinp%saddle_stepoff, uinp%saddle_scale_stepoff
+            uinp%saddle_scale_stepoff = abs(uinp%saddle_scale_stepoff)
             if(.not.uinp%external_mini)then
                 read(u,*)uinp%mini_nhistx
                 read(u,*)uinp%mini_ncluster_x

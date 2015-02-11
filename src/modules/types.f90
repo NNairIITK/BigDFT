@@ -2136,6 +2136,8 @@ contains
              in%run_mode=AMBER_RUN_MODE
           case('morse_bulk')
              in%run_mode=MORSE_BULK_RUN_MODE
+          case('morse_slab')
+             in%run_mode=MORSE_SLAB_RUN_MODE
           end select
        case(MM_PARAMSET)
             in%mm_paramset=val
