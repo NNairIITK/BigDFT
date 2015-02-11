@@ -22,8 +22,9 @@ module module_connect
     
     private
 
-    public :: connect_recursively
+!    public :: connect_recursively
     public :: connect
+    public :: pushoff_and_relax_bothSides
 contains
 !=====================================================================
 !> This recursive subroutine does not fully support a restart.
@@ -765,9 +766,18 @@ connectloop: do while(cobj%ntodo>=1)
             elseif(istat==2)then
                write(comment,'(a)')'Prob: Neighbors '//&
                  'unknown. Error in energy evaluation during pushoff.'
+                 call yaml_warning('(MHGPS) Cannot determine forces after '//&
+                                   'pushoff from saddle. '//&
+                                   'Connection attempt stopped. Will '//&
+                                   'proceed with next connection attempt.')
             elseif(istat==3)then
                 write(comment,'(a)')'Prob: Neighbors '//&
                'unknown (stepoff converged back to saddle)'
+               call yaml_warning('(MHGPS)  after relaxation from '//&
+                                 'saddle point the minimum is '//&
+                                 'identical to the saddle point. '//&
+                                 'Stopped connection attempt. Will '//&
+                                 'proceed with next connection attempt.')
             else
                write(comment,'(a)')'Unknown error code.'
             endif
@@ -786,6 +796,11 @@ connectloop: do while(cobj%ntodo>=1)
                  '/sadProb'//trim(adjustl(mhgpsst%isadprobc))//&
                  '_Product',comment,0.0_gp,rxyz=cobj%rxyz2)
         endif
+        connected=.false.
+        mhgpsst%nsad=mhgpsst%nsad-1
+        mhgpsst%isad=mhgpsst%isad-1
+        write(mhgpsst%isadc,'(i5.5)')mhgpsst%isad
+        exit connectloop !stop connection
     endif
 
 !    scl=-1.0_gp

@@ -27,13 +27,15 @@ program mhgps
     use module_saddle, only: findsad_work, findsad,&
                              allocate_finsad_workarrays,&
                              deallocate_finsad_workarrays
-    use module_connect, only: connect_recursively, connect
+    use module_connect, only: connect,&
+                              pushoff_and_relax_bothSides
     use module_fingerprints, only: fingerprint
     use module_hessian, only: cal_hessian_fd 
     use module_minimizers
     use bigdft_run
     implicit none
     integer                   :: u
+    integer                   :: istat
     integer                   :: nfree
     integer                   :: iat
     integer                   :: info
@@ -69,6 +71,10 @@ program mhgps
     real(gp), allocatable :: rxyz(:,:),fxyz(:,:)
     real(gp), allocatable :: fat(:,:)
     real(gp), allocatable :: rxyz2(:,:),fxyz2(:,:)
+    real(gp), allocatable :: rxyz_minL(:,:),fxyz_minL(:,:),fp_minL(:)
+    real(gp)              :: ener_minL
+    real(gp), allocatable :: rxyz_minR(:,:),fxyz_minR(:,:),fp_minR(:)
+    real(gp)              :: ener_minR
     real(gp), allocatable :: tsguess(:,:),minmodeguess(:,:)
     real(gp), allocatable :: minmode(:,:)
     real(gp), allocatable :: tsgforces(:,:)
@@ -165,6 +171,18 @@ program mhgps
     iconnect = f_malloc((/ 1.to.2, 1.to.1000/),id='iconnect')
     rotforce = f_malloc((/ 1.to.3, 1.to.bigdft_nat(runObj)/),&
                 id='rotforce')
+    rxyz_minL     = f_malloc((/ 1.to.3, 1.to.bigdft_nat(runObj)/),&
+                id='rxyz_minL')
+    fxyz_minL     = f_malloc((/ 1.to.3, 1.to.bigdft_nat(runObj)/),&
+                id='fxyz_minL')
+    fp_minL       = f_malloc((/ 1.to.mhgpsst%nid/),&
+                id='fp_minL')
+    rxyz_minR     = f_malloc((/ 1.to.3, 1.to.bigdft_nat(runObj)/),&
+                id='rxyz_minR')
+    fxyz_minR     = f_malloc((/ 1.to.3, 1.to.bigdft_nat(runObj)/),&
+                id='fxyz_minR')
+    fp_minR       = f_malloc((/ 1.to.mhgpsst%nid/),&
+                id='fp_minR')
 
 
     call allocate_connect_object(bigdft_nat(runObj),mhgpsst%nid,uinp%nsadmax,cobj)
@@ -290,7 +308,7 @@ program mhgps
               if(premature_exit)then
                  exit outer
               endif
-           case('simple')
+           case('simple','simpleandminimize')
               mhgpsst%isad=mhgpsst%isad+1
               write(mhgpsst%isadc,'(i3.3)')mhgpsst%isad
               if(uinp%random_minmode_guess)then
@@ -318,7 +336,8 @@ program mhgps
                    rxyz(1,1),energy,fxyz(1,1),minmode(1,1),displ,ec,&
                    rotforce(1,1),converged)
               if(.not.converged)then
-                 call yaml_warning('Saddle '//yaml_toa(mhgpsst%isad)//&
+                 if(mhgpsst%iproc==0)&
+                 call yaml_warning('(MHGPS) Saddle '//yaml_toa(mhgpsst%isad)//&
                       ' not converged')
               endif
               call fnrmandforcemax(fxyz(1,1),fnrm,&
@@ -346,6 +365,19 @@ program mhgps
                       trim(adjustl(mhgpsst%isadc))//'_mode_final',&
                       minmode(1,1),rotforce(1,1))
               endif
+              if(trim(adjustl(uinp%operation_mode))=='simpleandminimize')then
+                call fingerprint(bigdft_nat(runObj),mhgpsst%nid,&
+                              runObj%atoms%astruct%cell_dim,&
+                              bigdft_get_geocode(runObj),rcov,&
+                              rxyz(1,1),fp(1))
+                call pushoff_and_relax_bothSides(uinp,mhgpsst,runObj,outs,rcov,& 
+                     rxyz(1,1),energy,fp(1),minmode(1,1),rxyz_minL,fxyz_minL,&      
+                     ener_minL,fp_minL,rxyz_minR,fxyz_minR,ener_minR,fp_minR,istat)
+                if(istat/=0)then
+                    if(mhgpsst%iproc==0)&
+                    call yaml_warning('(MHGPS) Pushoff not successful.')
+                endif
+              endif
            case('minimize')
               mhgpsst%isad=mhgpsst%isad+1
               write(mhgpsst%isadc,'(i3.3)')mhgpsst%isad
@@ -357,6 +389,7 @@ program mhgps
                    rxyz(1,1),fxyz(1,1),energy,ec,&
                    converged,'')
               if(.not.converged)then
+                 if(mhgpsst%iproc==0)&
                  call yaml_warning('Minimization '//yaml_toa(mhgpsst%isad)&
                       //' not converged')
               endif
@@ -439,6 +472,12 @@ program mhgps
     call f_free(iconnect)
     call f_free(rotforce)
     call f_free(hess)
+    call f_free(rxyz_minL)
+    call f_free(fxyz_minL)
+    call f_free(rxyz_minR)
+    call f_free(fxyz_minR)
+    call f_free(fp_minL)
+    call f_free(fp_minR)
     call deallocate_connect_object(cobj)
     call deallocate_finsad_workarrays(fsw)
 
