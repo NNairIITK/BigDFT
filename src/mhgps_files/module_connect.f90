@@ -1795,6 +1795,9 @@ subroutine pushoff_and_relax_bothSides(uinp,mhgpsst,runObj,outs,rcov,&
 
     if(mhgpsst%iproc==0)&
         call yaml_comment('(MHGPS) Relax from right side ',hfill='.')
+    !use inputPsiId=0 here, because wavefct. in memory corresponds
+    !to left minimum. However, we are close to saddle, again.
+    runObj%inputs%inputPsiId=0
     scl=1.0_gp
     call pushoff_and_relax_oneSide(uinp,mhgpsst,runObj,outs,rcov,scl,&
            rxyz_sad,ener_sad,fp_sad,minmode,rxyz_minR,fxyz_minR,&

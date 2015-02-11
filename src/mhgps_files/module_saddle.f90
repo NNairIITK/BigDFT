@@ -1753,6 +1753,7 @@ subroutine fixfrag_pos_slab(mhgpsst,nat,rcov,pos,fixfragmented)
     enddo
 
 end subroutine fixfrag_pos_slab
+!=====================================================================
 subroutine fixfrag(mhgpsst,uinp,runObj,rcov,pos)
     use bigdft_run, only: run_objects, bigdft_get_geocode
     use yaml_output
