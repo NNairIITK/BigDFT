@@ -1781,6 +1781,7 @@ subroutine pushoff_and_relax_bothSides(uinp,mhgpsst,runObj,outs,rcov,&
     real(gp) :: scl
     integer :: ipush
     integer :: istatint
+    istat=0
     if(mhgpsst%iproc==0)&
         call yaml_comment('(MHGPS) Relax from left side ',hfill='.')
     scl=-1.0_gp
@@ -1788,7 +1789,7 @@ subroutine pushoff_and_relax_bothSides(uinp,mhgpsst,runObj,outs,rcov,&
            rxyz_sad,ener_sad,fp_sad,minmode,rxyz_minL,fxyz_minL,&
            ener_minL,fp_minL,istatint)
     if(istatint/=0)then
-        istat=-istatint !negative status integer for 
+        istat=-abs(istatint) !negative status integer for 
                         !indicating problem with left side
         return
     endif
