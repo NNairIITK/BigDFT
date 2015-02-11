@@ -20,6 +20,11 @@ module communications_init
   public :: initialize_communication_potential
   public :: orbitals_communicators
 
+  interface check_whether_bounds_overlap
+    module procedure check_whether_bounds_overlap_int
+    module procedure check_whether_bounds_overlap_long
+  end interface check_whether_bounds_overlap
+
   contains
 
     subroutine init_comms_linear(iproc, nproc, imethod_overlap, npsidim_orbs, orbs, lzd, nspin, collcom)
@@ -3408,9 +3413,9 @@ module communications_init
       character(len=*),parameter :: subname='communication_arrays_repartitionrho_general'
     
       ! Local variables
-      integer :: i1, i2, i3, jproc, jproc_send, iidest, nel, ioverlaps, iassign
+      integer :: i1, i2, i3, jproc, jproc_send, iidest, nel, ioverlaps, iassign, is3, ie3, iis3, iie3, i
       logical :: started
-      integer(kind=8) :: ii
+      integer(kind=8) :: ii, iis, iie, is, ie, n
     
       call f_routine(id='communication_arrays_repartitionrho_general')
 
@@ -3420,92 +3425,144 @@ module communications_init
       ! only do this if task iproc has to receive a part of the potential
       if (nscatterarr(iproc,1)>0) then
         
-          ! First process from which iproc has to receive data
+          !!!! First process from which iproc has to receive data
+          !!!ncomms_repartitionrho=0
+          !!!i3=nscatterarr(iproc,3)-nscatterarr(iproc,4)
+          !!!ii=int(i3,kind=8)*int(lzd%glr%d%n2i,kind=8)*int(lzd%glr%d%n1i,kind=8)+int(1,kind=8)
+          !!!do jproc=nproc-1,0,-1
+          !!!    if (ii>=istartend(1,jproc)) then
+          !!!        jproc_send=jproc
+          !!!        write(*,'(a,5i8)') 'FIRST: iproc, i3, ii, jproc_send', iproc, i3, ii, jproc_send
+          !!!        ncomms_repartitionrho=ncomms_repartitionrho+1
+          !!!        exit
+          !!!    end if
+          !!!end do
+        
+          !!!! The remaining processes
+          !!!iidest=0
+          !!!nel=0
+          !!!started=.false.
+          !!!do i3=nscatterarr(iproc,3)-nscatterarr(iproc,4)+1,nscatterarr(iproc,3)-nscatterarr(iproc,4)+nscatterarr(iproc,1)
+          !!!    write(*,'(a,3i8)') 'iproc, i3, lzd%glr%d%n3i', iproc, i3, lzd%glr%d%n3i
+          !!!    ii=int(i3-1,kind=8)*int(lzd%glr%d%n2i,kind=8)*int(lzd%glr%d%n1i,kind=8)
+          !!!    do i2=1,lzd%glr%d%n2i
+          !!!        do i1=1,lzd%glr%d%n1i
+          !!!            ii=ii+int(1,kind=8)
+          !!!            iidest=iidest+1
+          !!!            if (ii>=istartend(1,jproc_send) .and. ii<=istartend(2,jproc_send)) then
+          !!!                nel=nel+1
+          !!!            else
+          !!!                write(*,'(a,5i8)') 'iproc, i1, i2, i3, ii, jproc_send', iproc, i1, i2, i3, ii, jproc_send
+          !!!                jproc_send=jproc_send+1
+          !!!                ncomms_repartitionrho=ncomms_repartitionrho+1
+          !!!            end if
+          !!!        end do
+          !!!    end do
+          !!!end do
+
+          !@NEW #########################
+          ! Starting and ending point of the density required by task iproc (in z direction)
+          is3=nscatterarr(iproc,3)-nscatterarr(iproc,4)+1
+          ie3=nscatterarr(iproc,3)-nscatterarr(iproc,4)+nscatterarr(iproc,1)
+          ! Due to perdiodic boundary conditions, iie3 might be smaller than iis3
+          iis3=modulo(is3-1,lzd%glr%d%n3i)+1
+          iie3=modulo(ie3-1,lzd%glr%d%n3i)+1
+          
+          ! Starting and ending point of the density required by task iproc (in global coordinates)
+          iis=int(iis3-1,kind=8)*int(lzd%glr%d%n2i,kind=8)*int(lzd%glr%d%n1i,kind=8)+int(1,kind=8)
+          iie=int(iie3,kind=8)*int(lzd%glr%d%n2i,kind=8)*int(lzd%glr%d%n1i,kind=8)
+
+          ! Check whether there is an overlap between the density required on
+          ! task iproc and the one calculated on task jproc
+          !jproc_send=0
           ncomms_repartitionrho=0
-          i3=nscatterarr(iproc,3)-nscatterarr(iproc,4)
-          ii=int(i3,kind=8)*int(lzd%glr%d%n2i,kind=8)*int(lzd%glr%d%n1i,kind=8)+int(1,kind=8)
-          do jproc=nproc-1,0,-1
-              if (ii>=istartend(1,jproc)) then
-                  jproc_send=jproc
-                  write(*,'(a,5i8)') 'FIRST: iproc, i3, ii, jproc_send', iproc, i3, ii, jproc_send
+          do jproc=0,nproc-1
+              !write(*,'(a,6i8)') 'iproc, jproc, iis, iie, ise(1), ise(2)', iproc, jproc, iis, iie, istartend(1,jproc), istartend(2,jproc)
+              if(check_whether_bounds_overlap(iis,iie,istartend(1,jproc),istartend(2,jproc))) then
+                  !jproc_send=jproc_send+1
                   ncomms_repartitionrho=ncomms_repartitionrho+1
-                  exit
               end if
           end do
-        
-          ! The remaining processes
-          iidest=0
-          nel=0
-          started=.false.
-          do i3=nscatterarr(iproc,3)-nscatterarr(iproc,4)+1,nscatterarr(iproc,3)-nscatterarr(iproc,4)+nscatterarr(iproc,1)
-              write(*,'(a,3i8)') 'iproc, i3, lzd%glr%d%n3i', iproc, i3, lzd%glr%d%n3i
-              ii=int(i3-1,kind=8)*int(lzd%glr%d%n2i,kind=8)*int(lzd%glr%d%n1i,kind=8)
-              do i2=1,lzd%glr%d%n2i
-                  do i1=1,lzd%glr%d%n1i
-                      ii=ii+int(1,kind=8)
-                      iidest=iidest+1
-                      if (ii>=istartend(1,jproc_send) .and. ii<=istartend(2,jproc_send)) then
-                          nel=nel+1
-                      else
-                          write(*,'(a,5i8)') 'iproc, i1, i2, i3, ii, jproc_send', iproc, i1, i2, i3, ii, jproc_send
-                          jproc_send=jproc_send+1
-                          ncomms_repartitionrho=ncomms_repartitionrho+1
-                      end if
-                  end do
-              end do
-          end do
+          !@END NEW #####################
         
         
           call allocate_MPI_comms_cubic_repartitionp2p(ncomms_repartitionrho, commarr_repartitionrho)
         
         
-          ! First process from which iproc has to receive data
+          !!! First process from which iproc has to receive data
+          !!ioverlaps=0
+          !!i3=nscatterarr(iproc,3)-nscatterarr(iproc,4)
+          !!ii=int(i3,kind=8)*int(lzd%glr%d%n2i,kind=8)*int(lzd%glr%d%n1i,kind=8)+int(1,kind=8)
+          !!do jproc=nproc-1,0,-1
+          !!    if (ii>=istartend(1,jproc)) then
+          !!        jproc_send=jproc
+          !!        ioverlaps=ioverlaps+1
+          !!        exit
+          !!    end if
+          !!end do
+        
+        
+          !!! The remaining processes
+          !!iassign=0
+          !!iidest=0
+          !!nel=0
+          !!started=.false.
+          !!do i3=nscatterarr(iproc,3)-nscatterarr(iproc,4)+1,nscatterarr(iproc,3)-nscatterarr(iproc,4)+nscatterarr(iproc,1)
+          !!    ii=int(i3-1,kind=8)*int(lzd%glr%d%n2i,kind=8)*int(lzd%glr%d%n1i,kind=8)
+          !!    do i2=1,lzd%glr%d%n2i
+          !!        do i1=1,lzd%glr%d%n1i
+          !!            ii=ii+int(1,kind=8)
+          !!            iidest=iidest+1
+          !!            if (ii>=istartend(1,jproc_send) .and. ii<=istartend(2,jproc_send)) then
+          !!                nel=nel+1
+          !!            else
+          !!                commarr_repartitionrho(4,ioverlaps)=nel
+          !!                jproc_send=jproc_send+1
+          !!                ioverlaps=ioverlaps+1
+          !!                nel=1
+          !!                started=.false.
+          !!            end if
+          !!            if (.not.started) then
+          !!                if (jproc_send>=nproc) stop 'ERROR: jproc_send>=nproc'
+          !!                commarr_repartitionrho(1,ioverlaps)=jproc_send
+          !!                commarr_repartitionrho(2,ioverlaps)=int(ii-istartend(1,jproc_send),kind=8)+1
+          !!                commarr_repartitionrho(3,ioverlaps)=iidest
+          !!                started=.true.
+          !!                iassign=iassign+1
+          !!            end if
+          !!        end do
+          !!    end do
+          !!end do
+          !!commarr_repartitionrho(4,ioverlaps)=nel
+
+          !!do i=1,ncomms_repartitionrho
+          !!    write(*,'(a,i5,3x,4i8)') 'FIRST: iproc, cr(1:4,i)', iproc, commarr_repartitionrho(1:4,i)
+          !!end do
+
+          !@ NEW ###############################
+          ! For each overlap, get the starting, ending point and extent
+          !jproc_send=0
           ioverlaps=0
-          i3=nscatterarr(iproc,3)-nscatterarr(iproc,4)
-          ii=int(i3,kind=8)*int(lzd%glr%d%n2i,kind=8)*int(lzd%glr%d%n1i,kind=8)+int(1,kind=8)
-          do jproc=nproc-1,0,-1
-              if (ii>=istartend(1,jproc)) then
-                  jproc_send=jproc
+          do jproc=0,nproc-1
+              if(check_whether_bounds_overlap(iis,iie,istartend(1,jproc),istartend(2,jproc))) then
+                  !jproc_send=jproc_send+1
                   ioverlaps=ioverlaps+1
-                  exit
+                  call get_extent_of_overlap(iis,iie,istartend(1,jproc),istartend(2,jproc), is, ie, n)
+                  commarr_repartitionrho(1,ioverlaps)=jproc
+                  commarr_repartitionrho(2,ioverlaps)=int(is-istartend(1,jproc),kind=4)+1
+                  i3=nscatterarr(iproc,3)-nscatterarr(iproc,4)+1
+                  iidest = int(is-int(i3-1,kind=8)*int(lzd%glr%d%n2i,kind=8)*int(lzd%glr%d%n1i,kind=8),kind=4)
+                  commarr_repartitionrho(3,ioverlaps)=iidest
+                  commarr_repartitionrho(4,ioverlaps)=int(n,kind=4)
               end if
           end do
-        
-        
-          ! The remaining processes
-          iassign=0
-          iidest=0
-          nel=0
-          started=.false.
-          do i3=nscatterarr(iproc,3)-nscatterarr(iproc,4)+1,nscatterarr(iproc,3)-nscatterarr(iproc,4)+nscatterarr(iproc,1)
-              ii=int(i3-1,kind=8)*int(lzd%glr%d%n2i,kind=8)*int(lzd%glr%d%n1i,kind=8)
-              do i2=1,lzd%glr%d%n2i
-                  do i1=1,lzd%glr%d%n1i
-                      ii=ii+int(1,kind=8)
-                      iidest=iidest+1
-                      if (ii>=istartend(1,jproc_send) .and. ii<=istartend(2,jproc_send)) then
-                          nel=nel+1
-                      else
-                          commarr_repartitionrho(4,ioverlaps)=nel
-                          jproc_send=jproc_send+1
-                          ioverlaps=ioverlaps+1
-                          nel=1
-                          started=.false.
-                      end if
-                      if (.not.started) then
-                          if (jproc_send>=nproc) stop 'ERROR: jproc_send>=nproc'
-                          commarr_repartitionrho(1,ioverlaps)=jproc_send
-                          commarr_repartitionrho(2,ioverlaps)=int(ii-istartend(1,jproc_send),kind=8)+1
-                          commarr_repartitionrho(3,ioverlaps)=iidest
-                          started=.true.
-                          iassign=iassign+1
-                      end if
-                  end do
-              end do
-          end do
-          commarr_repartitionrho(4,ioverlaps)=nel
+          !@ END NEW ###########################
           if (ioverlaps/=ncomms_repartitionrho) stop 'ERROR: ioverlaps/=ncomms_repartitionrho'
-          if (iassign/=ncomms_repartitionrho) stop 'ERROR: iassign/=ncomms_repartitionrho'
+          !if (iassign/=ncomms_repartitionrho) stop 'ERROR: iassign/=ncomms_repartitionrho'
+
+          do i=1,ncomms_repartitionrho
+              write(*,'(a,i5,3x,4i8)') 'SECOND: iproc, cr(1:4,i)', iproc, commarr_repartitionrho(1:4,i)
+          end do
         
           ! some checks
           nel=0
@@ -4161,7 +4218,7 @@ module communications_init
     !> Checks whether a segment with bounds i1,i2 (where i2 might be smaller
     !! than i1 due to periodic boundary conditions) overlaps with a segment with
     !! bounds j1,2 (where j1<=j2)
-    function check_whether_bounds_overlap(i1, i2, j1, j2) result(overlap)
+    function check_whether_bounds_overlap_int(i1, i2, j1, j2) result(overlap)
       implicit none
       ! Calling arguments
       integer,intent(in) :: i1, i2, j1, j2
@@ -4181,6 +4238,73 @@ module communications_init
           overlap = (i2>=j1 .and. i1<=j2)
       end if
 
-    end function check_whether_bounds_overlap
+    end function check_whether_bounds_overlap_int
+
+
+    function check_whether_bounds_overlap_long(i1, i2, j1, j2) result(overlap)
+      implicit none
+      ! Calling arguments
+      integer(kind=8),intent(in) :: i1, i2, j1, j2
+      logical :: overlap
+      ! Local variables
+      logical :: periodic
+      
+
+      ! If the end is smaller than the start, we have a periodic wrap around
+      periodic = (i2<i1)
+
+      ! Check whether there is an overlap
+      if (periodic) then
+          overlap = (i1<=j2 & !i2>=j1 due to periodic wrap around 
+               .or. i2>=j1)   !i1<=j2 due to periodic wrap around
+      else
+          overlap = (i2>=j1 .and. i1<=j2)
+      end if
+
+    end function check_whether_bounds_overlap_long
+
+
+    !> Checks whether a segment with bounds i1,i2 (where i2 might be smaller
+    !! than i1 due to periodic boundary conditions) overlaps with a segment with
+    !! bounds j1,2 (where j1<=j2). Is so, it gives the starting point, ending
+    !! point and the extent of the overlap.
+    subroutine get_extent_of_overlap(i1, i2, j1, j2, is, ie, n)
+      use dictionaries, only: f_err_throw
+      implicit none
+      ! Calling arguments
+      integer(kind=8),intent(in) :: i1, i2, j1, j2
+      integer(kind=8),intent(out) :: is, ie, n
+      ! Local variables
+      logical :: periodic
+
+      ! Check whether there is an overlap
+      if (check_whether_bounds_overlap(i1, i2, j1, j2)) then
+          ! If the end is smaller than the start, we have a periodic wrap around
+          periodic = (i2<i1)
+          if (periodic) then
+              if (i1<=j2) then
+                  is = max(i1,j1)
+                  ie = j2 !don't need to check i2 due to periodic wrap around
+                  n = ie - is + 1
+              else if (i2>=j1) then
+                  is = j1 !don't need to check i1 due to periodic wrap around
+                  ie = min(i2,j2)
+                  n = ie - is + 1
+              else
+                  call f_err_throw('Cannot determine overlap',err_name='BIGDFT_RUNTIME_ERROR')
+              end if
+          else
+              is = max(i1,j1)
+              ie = min(i2,j2)
+              n = ie - is + 1
+          end if
+          write(*,'(a,7i8)') 'i1, i2, j1, j2, is, ie, n', i1, i2, j1, j2, is, ie, n
+      else
+          is = -1
+          ie = -1
+          n = 0
+      end if
+
+    end subroutine get_extent_of_overlap
 
 end module communications_init
