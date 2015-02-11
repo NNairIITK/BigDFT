@@ -3621,6 +3621,11 @@ module communications_init
       logical :: datatype_defined
       character(len=*),parameter:: subname='initialize_communication_potential'
       integer,dimension(6) :: ise
+      integer,dimension(2) :: blocklengthsx, blocklengthsy, types
+      integer(kind=mpi_address_kind),dimension(2) :: displacementsx, displacementsy
+      integer(kind=mpi_address_kind) :: lb, extent
+      integer :: nsegx, nsegy, xline_type, size_of_double
+      !integer,dimension(:),allocatable :: derived_types
 
 
       call timing(iproc,'init_commPot  ','ON')
@@ -3829,6 +3834,17 @@ module communications_init
                   end if
                   if (comgp%ise(1)>is1 .and. ii<ie1) then
                       write(*,*) 'iproc, hole in x', iproc
+                      nsegx=2
+                      blocklengthsx(1)=comgp%ise(1)-is1+1
+                      blocklengthsx(2)=ie1-ii+1
+                      displacementsx(1)=int(0,kind=mpi_address_kind)
+                      displacementsx(2)=int(ii-1,kind=mpi_address_kind)
+                  else
+                      nsegx=1
+                      blocklengthsx(1)=comgp%ise(2)-comgp%ise(1)+1
+                      blocklengthsx(2)=0
+                      displacementsx(1)=int(0,kind=mpi_address_kind)
+                      displacementsx(2)=int(comgp%ise(2),kind=mpi_address_kind)
                   end if
                   if (comgp%ise(4)>lzd%glr%d%n2i) then
                       ! Take modulo and make sure that it stays smaller than the beginning
@@ -3839,6 +3855,20 @@ module communications_init
                   end if
                   if (comgp%ise(3)>is2 .and. ii<ie2) then
                       write(*,*) 'iproc, hole in y', iproc
+                  end if
+                  if (comgp%ise(3)>is2 .and. ii<ie2) then
+                      write(*,*) 'iproc, hole in y', iproc
+                      nsegy=2
+                      blocklengthsy(1)=comgp%ise(3)-is2+1
+                      blocklengthsy(2)=ie2-ii+1
+                      displacementsy(1)=int(0,kind=mpi_address_kind)
+                      displacementsy(2)=int(ii-1,kind=mpi_address_kind)
+                  else
+                      nsegy=1
+                      blocklengthsy(1)=comgp%ise(4)-comgp%ise(3)+1
+                      blocklengthsy(2)=0
+                      displacementsy(1)=int(0,kind=mpi_address_kind)
+                      displacementsy(2)=int(comgp%ise(4),kind=mpi_address_kind)
                   end if
 
                   !!!if(is3<is3min .or. ioverlap==1) then
@@ -3862,9 +3892,30 @@ module communications_init
                   comgp%comarr(5,ioverlap)=ie3-is3+1
                   comgp%comarr(6,ioverlap)=lzd%glr%d%n1i*lzd%glr%d%n2i
                   if (.not. datatype_defined) then
-                      call mpi_type_vector(comgp%ise(4)-comgp%ise(3)+1, comgp%ise(2)-comgp%ise(1)+1, &
-                           lzd%glr%d%n1i, mpi_double_precision, comgp%mpi_datatypes(0), ierr)
+                      types(:)=mpi_double_precision
+                      call mpi_type_size(mpi_double_precision, size_of_double, ierr)
+                      write(*,'(a,8i8)') 'iproc, nsegx, blocklengthsx, displacementsx, comgp%ise(1), comgp%ise(2)', &
+                                          iproc, nsegx, blocklengthsx, displacementsx, comgp%ise(1), comgp%ise(2)
+                      call mpi_type_create_struct(nsegx, blocklengthsx, displacementsx, &
+                           types, xline_type, ierr)
+                      call mpi_type_commit(xline_type, ierr)
+                      call mpi_type_size(xline_type, ii, ierr)
+                      call mpi_type_get_extent(xline_type, lb, extent, ierr)
+                      write(*,'(a,4i10)') 'iproc, size, lb, extent, of xline_type', iproc, ii, lb, extent
+                      !write(*,*) 'iproc, size of xline_type', iproc, ii
+                      !!call mpi_type_vector(comgp%ise(4)-comgp%ise(3)+1, comgp%ise(2)-comgp%ise(1)+1, &
+                      !!     lzd%glr%d%n1i, mpi_double_precision, comgp%mpi_datatypes(0), ierr)
+                      !derived_types = f_malloc(comgp%ise(4)-comgp%ise(3)+1,id='derived_types')
+                      !derived_types(:)=xline_type
+                      call mpi_type_create_hvector(comgp%ise(4)-comgp%ise(3)+1, 1, &
+                           int(size_of_double*lzd%glr%d%n1i,kind=mpi_address_kind), &
+                           xline_type, comgp%mpi_datatypes(0), ierr)
+                      !call f_free(derived_types)
                       call mpi_type_commit(comgp%mpi_datatypes(0), ierr)
+                      call mpi_type_size(comgp%mpi_datatypes(0), ii, ierr)
+                      call mpi_type_get_extent(comgp%mpi_datatypes(0), lb, extent, ierr)
+                      write(*,'(a,4i14)') 'iproc, size, lb, extent, of comgp%mpi_datatypes(0)', iproc, ii, lb, extent
+                      call mpi_type_free(xline_type, ierr)
                       datatype_defined=.true.
                   end if
                   istdest = istdest + &
