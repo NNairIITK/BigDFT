@@ -494,8 +494,8 @@ subroutine global_to_local_parallel(Glr,Llr,nspin,size_rho,size_Lrho,rho,Lrho,i1
                  !indLarge= i1+ii1shift+istl
                  indLarge= iii1+istl
                  Lrho(indSmall)=rho(indLarge+indSpin)
-                 write(666,'(a,8i8,2es16.8)') 'i1glob, i2glob, i3glob, iii1, iii2, iii3, indsmall, indlarge, val, testval', &
-                     i1glob, i2glob, i3glob, iii1, iii2, iii3, indsmall, indlarge, Lrho(indSmall), real((i1glob+(i2glob-1)*glr%d%n1i+(i3glob-1)*glr%d%n1i*glr%d%n2i),kind=8)
+                 !!write(666,'(a,8i8,2es16.8)') 'i1glob, i2glob, i3glob, iii1, iii2, iii3, indsmall, indlarge, val, testval', &
+                 !!    i1glob, i2glob, i3glob, iii1, iii2, iii3, indsmall, indlarge, Lrho(indSmall), real((i1glob+(i2glob-1)*glr%d%n1i+(i3glob-1)*glr%d%n1i*glr%d%n2i),kind=8)
              end do
          end do
      end do

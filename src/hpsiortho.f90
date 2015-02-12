@@ -1338,9 +1338,9 @@ subroutine full_local_potential(iproc,nproc,orbs,Lzd,iflag,dpbox,xc,potential,po
          !do i=1,2097152
          !    read(499,*) comgp%recvbuf(i)
          !end do
-         do i=1,comgp%nrecvbuf
-             write(520,'(es16.8)') comgp%recvbuf(i)
-         end do
+         !do i=1,comgp%nrecvbuf
+         !    write(520,'(es16.8)') comgp%recvbuf(i)
+         !end do
 
          ist=1
          do iorb=1,nilr
@@ -1423,12 +1423,12 @@ subroutine full_local_potential(iproc,nproc,orbs,Lzd,iflag,dpbox,xc,potential,po
                 i3shift=0
             end if
             if (comgp%ise(4)<comgp%ise(3)) then
-                i2shift=comgp%ise(3)
+                i2shift=comgp%ise(4)
             else
                 i2shift=0
             end if
             if (comgp%ise(2)<comgp%ise(1)) then
-                i1shift=comgp%ise(1)
+                i1shift=comgp%ise(2)
             else
                 i1shift=0
             end if
