@@ -485,15 +485,18 @@ subroutine findsad(mhgpsst,fsw,uinp,runObj,outs,rcov,&
                      fmt='(1pe21.14)')
             endif
 
-             !inputPsiId=0
-            call opt_curv(mhgpsst,it,uinp%imode,fsw,uinp,runObj,outs,uinp%saddle_alpha0_rot,&
-                          curvgraddiff_tmp,uinp%saddle_nit_rot,uinp%saddle_nhistx_rot,&
-!                          uinp%saddle_curvforcediff,uinp%saddle_nit_rot,uinp%saddle_nhistx_rot,&
-                          fsw%rxyzraw_trans(1,1,nhist-1),fsw%fxyzraw_trans(1,1,nhist-1),&
-                          minmode(1,1),curv,rotforce(1,1),tol,&
-                          ener_count,optCurvConv,fsw%iconnect,nbond,&
-                          uinp%saddle_alpha_rot_stretch0,uinp%saddle_maxcurvrise,uinp%saddle_cutoffratio,&
-                          minoverlap)
+            !we have to compute minimum mode  at rxyzraw_trans(1,1,nhist-1)
+            !and not at rxyz_trans(1,1,nhist-1), because we only know the
+            !forces at rxyzraw_trans(1,1,nhist-1)
+            call opt_curv(mhgpsst,it,uinp%imode,fsw,uinp,runObj,outs,&
+                 uinp%saddle_alpha0_rot,curvgraddiff_tmp,&
+                 uinp%saddle_nit_rot,uinp%saddle_nhistx_rot,&
+                 fsw%rxyzraw_trans(1,1,nhist-1),&
+                 fsw%fxyzraw_trans(1,1,nhist-1),minmode(1,1),curv,&
+                 rotforce(1,1),tol,ener_count,optCurvConv,fsw%iconnect,&
+                 nbond,uinp%saddle_alpha_rot_stretch0,&
+                 uinp%saddle_maxcurvrise,uinp%saddle_cutoffratio,&
+                 minoverlap)
 
             runObj%inputs%inputPsiId=1
             minmode = minmode / dnrm2(3*runObj%atoms%astruct%nat,minmode(1,1),1)
@@ -884,7 +887,7 @@ real(gp) :: alpha0int
                       dcurv,fmax,fnrm, fsw%alpha_rot,fsw%ndim_rot,&
                       fsw%alpha_stretch_rot,displr,displp
             endif
-
+write(133,*)sqrt(sum(fsw%rxyzraw_rot(:,:,fsw%nhist_rot-1)-fsw%rxyz_rot(1,iat,fsw%nhist_rot-1))**2)
             do iat=1,runObj%atoms%astruct%nat
                 fsw%rxyz_rot(1,iat,0)=fsw%rxyzraw_rot(1,iat,fsw%nhist_rot-1)
                 fsw%rxyz_rot(2,iat,0)=fsw%rxyzraw_rot(2,iat,fsw%nhist_rot-1)

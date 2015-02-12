@@ -133,7 +133,6 @@ subroutine minimizer_sqnm(mhgpsst,uinp,runObj,outs,rcov,&
    real(gp) :: trustr !< a single atoms is not allowed to be dsiplaced more than by trustr
    integer,  allocatable, dimension(:,:)   :: iconnect
    real(gp), allocatable, dimension(:,:,:) :: rxyz
-   real(gp), allocatable, dimension(:,:,:) :: rxyzraw
    real(gp), allocatable, dimension(:,:,:) :: fxyz
    real(gp), allocatable, dimension(:,:,:) :: fxyzraw
    real(gp), allocatable, dimension(:,:,:) :: fstretch
@@ -220,7 +219,6 @@ subroutine minimizer_sqnm(mhgpsst,uinp,runObj,outs,rcov,&
    ! allocate arrays
    lworkf=1000+10*runObj%atoms%astruct%nat**2
    rxyz = f_malloc((/ 1.to.3, 1.to.runObj%atoms%astruct%nat, 0.to.nhistx /),id='rxyz')
-   rxyzraw = f_malloc((/ 1.to.3, 1.to.runObj%atoms%astruct%nat, 0.to.nhistx /),id='rxyzraw')
    fxyz = f_malloc((/ 1.to.3, 1.to.runObj%atoms%astruct%nat, 0.to.nhistx /),id='fxyz')
    fxyzraw = f_malloc((/ 1.to.3, 1.to.runObj%atoms%astruct%nat, 0.to.nhistx /),id='fxyzraw')
    fstretch = f_malloc((/ 1.to.3, 1.to.runObj%atoms%astruct%nat, 0.to.nhistx /),id='fstretch')
@@ -259,7 +257,7 @@ subroutine minimizer_sqnm(mhgpsst,uinp,runObj,outs,rcov,&
 
    etot=energyio
    call minenergyandforces(mhgpsst,.false.,uinp%imode,runObj,outs,rxyz(1,1,0),&
-       rxyzraw(1,1,0),fxyz(1,1,0),fstretch(1,1,0),fxyzraw(1,1,0),&
+       fxyz(1,1,0),fstretch(1,1,0),fxyzraw(1,1,0),&
        etot,iconnect,nbond,wold,beta_stretchx,beta_stretch,infocode)
    call fnrmandforcemax(fxyzraw(1,1,0),fnrm,fmax,runObj%atoms%astruct%nat)
    fnrm=sqrt(fnrm)
@@ -314,7 +312,6 @@ endif
             do iat=1,runObj%atoms%astruct%nat
                do l=1,3
                   rxyz(l,iat,ihist)=rxyz(l,iat,ihist+1)
-                  rxyzraw(l,iat,ihist)=rxyzraw(l,iat,ihist+1)
                   fxyz(l,iat,ihist)=fxyz(l,iat,ihist+1)
                   fxyzraw(l,iat,ihist)=fxyzraw(l,iat,ihist+1)
                   fstretch(l,iat,ihist)=fstretch(l,iat,ihist+1)
@@ -369,7 +366,7 @@ endif
       delta=rxyz(:,:,nhist)-rxyzOld
       displr=displr+dnrm2(3*runObj%atoms%astruct%nat,delta(1,1),1)
       runObj%inputs%inputPsiId=1
-      call minenergyandforces(mhgpsst,.true.,uinp%imode,runObj,outs,rxyz(1,1,nhist),rxyzraw(1,1,nhist),&
+      call minenergyandforces(mhgpsst,.true.,uinp%imode,runObj,outs,rxyz(1,1,nhist),&
                              fxyz(1,1,nhist),fstretch(1,1,nhist),fxyzraw(1,1,nhist),&
                              etotp,iconnect,nbond,wold,beta_stretchx,beta_stretch,infocode)
       detot=etotp-etotold
@@ -458,9 +455,6 @@ endif
                rxyz(1,iat,0)=rxyz(1,iat,nhist-1)
                rxyz(2,iat,0)=rxyz(2,iat,nhist-1)
                rxyz(3,iat,0)=rxyz(3,iat,nhist-1)
-               rxyzraw(1,iat,0)=rxyzraw(1,iat,nhist-1)
-               rxyzraw(2,iat,0)=rxyzraw(2,iat,nhist-1)
-               rxyzraw(3,iat,0)=rxyzraw(3,iat,nhist-1)
    
                fxyz(1,iat,0)=fxyz(1,iat,nhist-1)
                fxyz(2,iat,0)=fxyz(2,iat,nhist-1)
@@ -581,7 +575,6 @@ endif
    call f_free(rxyz)
    call f_free(rxyzOld)
    call f_free(delta)
-   call f_free(rxyzraw)
    call f_free(fxyz)
    call f_free(fxyzraw)
    call f_free(fstretch)
@@ -601,7 +594,7 @@ endif
  end subroutine minimizer_sqnm
 
 
-subroutine minenergyandforces(mhgpsst,eeval,imode,runObj,outs,rat,rxyzraw,fat,fstretch,&
+subroutine minenergyandforces(mhgpsst,eeval,imode,runObj,outs,rat,fat,fstretch,&
            fxyzraw,epot,iconnect,nbond_,wold,alpha_stretch0,alpha_stretch,infocode)
     use module_base, only: gp
     use module_energyandforces
@@ -617,7 +610,6 @@ subroutine minenergyandforces(mhgpsst,eeval,imode,runObj,outs,rat,rxyzraw,fat,fs
     integer, intent(in)           :: nbond_
     integer,  dimension(2,nbond_), intent(in)  :: iconnect
     real(gp), dimension(3,runObj%atoms%astruct%nat), intent(inout)  :: rat
-    real(gp), dimension(3,runObj%atoms%astruct%nat), intent(out)    :: rxyzraw
     real(gp), dimension(3,runObj%atoms%astruct%nat), intent(out)    :: fxyzraw
     real(gp), dimension(3,runObj%atoms%astruct%nat), intent(inout)  :: fat
     real(gp), dimension(3,runObj%atoms%astruct%nat), intent(out)    :: fstretch
@@ -630,7 +622,6 @@ subroutine minenergyandforces(mhgpsst,eeval,imode,runObj,outs,rat,rxyzraw,fat,fs
     !internal
 
     if(eeval)call mhgpsenergyandforces(mhgpsst,runObj,outs,rat,fat,epot,infocode)
-    rxyzraw=rat
     fxyzraw=fat
     fstretch=0.0_gp
 

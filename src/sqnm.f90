@@ -76,7 +76,6 @@ subroutine sqnm(runObj,outsIO,nproc,iproc,verbosity,ncount_bigdft,fail)
    real(gp) :: trustr !< a single atoms is not allowed to be dsiplaced more than by trustr
    integer,  allocatable, dimension(:,:)   :: iconnect
    real(gp), allocatable, dimension(:,:,:) :: rxyz
-   real(gp), allocatable, dimension(:,:,:) :: rxyzraw
    real(gp), allocatable, dimension(:,:,:) :: fxyz
    real(gp), allocatable, dimension(:,:,:) :: fxyzraw
    real(gp), allocatable, dimension(:,:,:) :: fstretch
@@ -151,7 +150,6 @@ subroutine sqnm(runObj,outsIO,nproc,iproc,verbosity,ncount_bigdft,fail)
    ! allocate arrays
    lwork=1000+10*nat**2
    rxyz = f_malloc((/ 1.to.3, 1.to.nat, 0.to.nhistx /),id='rxyz')
-   rxyzraw = f_malloc((/ 1.to.3, 1.to.nat, 0.to.nhistx /),id='rxyzraw')
    fxyz = f_malloc((/ 1.to.3, 1.to.nat, 0.to.nhistx /),id='fxyz')
    fxyzraw = f_malloc((/ 1.to.3, 1.to.nat, 0.to.nhistx /),id='fxyzraw')
    fstretch = f_malloc((/ 1.to.3, 1.to.nat, 0.to.nhistx /),id='fstretch')
@@ -198,7 +196,7 @@ subroutine sqnm(runObj,outsIO,nproc,iproc,verbosity,ncount_bigdft,fail)
    etot=outs%energy
 
    call minenergyandforces(iproc,nproc,.false.,imode,runObj,outs,nat,rxyz(1,1,0),&
-       rxyzraw(1,1,0),fxyz(1,1,0),fstretch(1,1,0),fxyzraw(1,1,0),&
+       fxyz(1,1,0),fstretch(1,1,0),fxyzraw(1,1,0),&
        etot,iconnect,nbond,wold,beta_stretchx,beta_stretch,infocode)
    if(imode==2)rxyz(:,:,0)=rxyz(:,:,0)+beta_stretch*fstretch(:,:,0)
 
@@ -246,7 +244,6 @@ subroutine sqnm(runObj,outsIO,nproc,iproc,verbosity,ncount_bigdft,fail)
             do iat=1,nat
                do l=1,3
                   rxyz(l,iat,ihist)=rxyz(l,iat,ihist+1)
-                  rxyzraw(l,iat,ihist)=rxyzraw(l,iat,ihist+1)
                   fxyz(l,iat,ihist)=fxyz(l,iat,ihist+1)
                   fxyzraw(l,iat,ihist)=fxyzraw(l,iat,ihist+1)
                   fstretch(l,iat,ihist)=fstretch(l,iat,ihist+1)
@@ -304,7 +301,7 @@ subroutine sqnm(runObj,outsIO,nproc,iproc,verbosity,ncount_bigdft,fail)
       delta=rxyz(:,:,nhist)-rxyzOld
       displr=displr+dnrm2(3*nat,delta(1,1),1)
       runObj%inputs%inputPsiId=1
-      call minenergyandforces(iproc,nproc,.true.,imode,runObj,outs,nat,rxyz(1,1,nhist),rxyzraw(1,1,nhist),&
+      call minenergyandforces(iproc,nproc,.true.,imode,runObj,outs,nat,rxyz(1,1,nhist),&
                              fxyz(1,1,nhist),fstretch(1,1,nhist),fxyzraw(1,1,nhist),&
                              etotp,iconnect,nbond,wold,beta_stretchx,beta_stretch,infocode)
       detot=etotp-etotold
@@ -388,9 +385,6 @@ subroutine sqnm(runObj,outsIO,nproc,iproc,verbosity,ncount_bigdft,fail)
                rxyz(1,iat,0)=rxyz(1,iat,nhist-1)
                rxyz(2,iat,0)=rxyz(2,iat,nhist-1)
                rxyz(3,iat,0)=rxyz(3,iat,nhist-1)
-               rxyzraw(1,iat,0)=rxyzraw(1,iat,nhist-1)
-               rxyzraw(2,iat,0)=rxyzraw(2,iat,nhist-1)
-               rxyzraw(3,iat,0)=rxyzraw(3,iat,nhist-1)
    
                fxyz(1,iat,0)=fxyz(1,iat,nhist-1)
                fxyz(2,iat,0)=fxyz(2,iat,nhist-1)
@@ -514,7 +508,6 @@ subroutine sqnm(runObj,outsIO,nproc,iproc,verbosity,ncount_bigdft,fail)
    call f_free(rxyz)
    call f_free(rxyzOld)
    call f_free(delta)
-   call f_free(rxyzraw)
    call f_free(fxyz)
    call f_free(fxyzraw)
    call f_free(fstretch)
@@ -534,7 +527,7 @@ subroutine sqnm(runObj,outsIO,nproc,iproc,verbosity,ncount_bigdft,fail)
    call f_free(iconnect)
    call deallocate_state_properties(outs)
 end subroutine
-subroutine minenergyandforces(iproc,nproc,eeval,imode,runObj,outs,nat,rat,rxyzraw,fat,fstretch,&
+subroutine minenergyandforces(iproc,nproc,eeval,imode,runObj,outs,nat,rat,fat,fstretch,&
            fxyzraw,epot,iconnect,nbond_,wold,alpha_stretch0,alpha_stretch,infocode)
     use module_base
     use bigdft_run!module_types
@@ -549,7 +542,6 @@ subroutine minenergyandforces(iproc,nproc,eeval,imode,runObj,outs,nat,rat,rxyzra
     integer, intent(in)           :: nbond_
     integer, intent(in)           :: iconnect(2,nbond_)
     real(gp),intent(inout)        :: rat(3,nat)
-    real(gp),intent(out)          :: rxyzraw(3,nat)
     real(gp),intent(out)          :: fxyzraw(3,nat)
     real(gp),intent(inout)        :: fat(3,nat)
     real(gp),intent(out)          :: fstretch(3,nat)
@@ -561,12 +553,7 @@ subroutine minenergyandforces(iproc,nproc,eeval,imode,runObj,outs,nat,rat,rxyzra
     integer,intent(out) :: infocode
     !internal
 
-!    rxyzraw=rat
-!    if(eeval)call energyandforces(nat,alat,rat,fat,fnoise,epot)
-!    fxyzraw=fat
-!    fstretch=0.0_gp
     infocode=0
-    call vcopy(3 * runObj%atoms%astruct%nat, rat(1,1), 1,rxyzraw(1,1), 1)
     if(eeval)then
         call vcopy(3 * runObj%atoms%astruct%nat, rat(1,1), 1,runObj%atoms%astruct%rxyz(1,1), 1)
         runObj%inputs%inputPsiId=1
