@@ -1024,6 +1024,7 @@ module communications
       integer :: ioffset_send, ist, i2, i3, ist2, ist3, info, nsize, size_of_double, isend_shift
       integer :: islices, ilines, ist1, ish1, ish2
       integer,dimension(:),allocatable :: npotarr
+      integer(kind=mpi_address_kind) :: lb, extent
 
 !!integer :: itemsize
 !!type(c_ptr) :: baseptr
@@ -1106,6 +1107,8 @@ module communications
                   !if (iproc==mpidest .and. iproc==1 .and. iproc/=mpisource) then
                       if (.not.bgq) then
                            call mpi_type_size(comm%mpi_datatypes(joverlap), nsize, ierr)
+                           call mpi_type_get_extent(comm%mpi_datatypes(joverlap), lb, extent, ierr)
+                           extent=extent/size_of_double
                            nsize=nsize/size_of_double
                            if(nsize>0) then
                                !!write(*,'(7(a,i0))') 'proc ',iproc,' gets ',nsize,' elements at ',ispin_shift+istdest, &
@@ -1116,13 +1119,20 @@ module communications
                                !!    (nit-1)*lzd%glr%d%n1i*lzd%glr%d%n2i + &
                                !!    (comm%ise(4)-comm%ise(3))*lzd%glr%d%n1i + &
                                !!    comm%ise(2)-comm%ise(1) , npotarr(mpisource)*comm%nspin 
-                               if (isend_shift+istsource + &
-                                   (nit-1)*lzd%glr%d%n1i*lzd%glr%d%n2i + &
-                                   (comm%ise(4)-comm%ise(3))*lzd%glr%d%n1i + &
-                                   comm%ise(2)-comm%ise(1) > npotarr(mpisource)*comm%nspin) then
+                               !!if (isend_shift+istsource + &
+                               !!    (nit-1)*lzd%glr%d%n1i*lzd%glr%d%n2i + &
+                               !!    (comm%ise(4)-comm%ise(3))*lzd%glr%d%n1i + &
+                               !!    comm%ise(2)-comm%ise(1) > npotarr(mpisource)*comm%nspin) then
+                               !!    call f_err_throw('out of window: ist='//trim(yaml_toa(isend_shift+istsource,fmt='(i0)'))//&
+                               !!         &', n='//trim(yaml_toa((nit-1)*lzd%glr%d%n1i*lzd%glr%d%n2i+&
+                               !!         (comm%ise(4)-comm%ise(3))*lzd%glr%d%n1i+comm%ise(2)-comm%ise(1),fmt='(i0)'))//&
+                               !!         &', nwin='//trim(yaml_toa(npotarr(mpisource)*comm%nspin,fmt='(i0)')),&
+                               !!         err_name='BIGDFT_RUNTIME_ERROR')
+                               !!    !stop 'out of window'
+                               !!end if
+                               if (isend_shift+istsource+extent-1 > npotarr(mpisource)*comm%nspin) then
                                    call f_err_throw('out of window: ist='//trim(yaml_toa(isend_shift+istsource,fmt='(i0)'))//&
-                                        &', n='//trim(yaml_toa((nit-1)*lzd%glr%d%n1i*lzd%glr%d%n2i+&
-                                        (comm%ise(4)-comm%ise(3))*lzd%glr%d%n1i+comm%ise(2)-comm%ise(1),fmt='(i0)'))//&
+                                        &', n='//trim(yaml_toa(int(extent,kind=8),fmt='(i0)'))//&
                                         &', nwin='//trim(yaml_toa(npotarr(mpisource)*comm%nspin,fmt='(i0)')),&
                                         err_name='BIGDFT_RUNTIME_ERROR')
                                    !stop 'out of window'
