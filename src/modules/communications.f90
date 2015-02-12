@@ -1063,7 +1063,7 @@ module communications
 
           ispin_shift = (ispin-1)*comm%nrecvbuf
     
-          nproc_if: if (nproc>1) then
+          !nproc_if: if (nproc>1) then
     
               ! Allocate MPI memory window. Only necessary in the first iteration.
               if (ispin==1) then
@@ -1111,10 +1111,15 @@ module communications
                            extent=extent/size_of_double
                            nsize=nsize/size_of_double
                            if(nsize>0) then
+                               write(*,'(a,6i9)') 'iproc, joverlap, nsize, extent, comm%nrecvbuf, total', &
+                                       iproc, joverlap, nsize, extent, comm%nrecvbuf, lzd%glr%d%n1i*lzd%glr%d%n2i*lzd%glr%d%n1i
                                !!write(*,'(7(a,i0))') 'proc ',iproc,' gets ',nsize,' elements at ',ispin_shift+istdest, &
                                !!                     ' from proc ',mpisource,' at ',isend_shift+istsource,&
                                !!                     '; size(send)=',size(sendbuf),', size(recv)=',size(recvbuf)
-                               if (ispin_shift+istdest+nsize-1>nrecvbuf) stop 'ispin_shift+istdest+nsize-1>nrecvbuf'
+                               if (ispin_shift+istdest+nsize-1>nrecvbuf) then
+                                   write(*,*) 'ispin_shift+istdest, nsize, nrecvbuf', ispin_shift+istdest, nsize, nrecvbuf
+                                   stop 'ispin_shift+istdest+nsize-1>nrecvbuf'
+                               end if
                                !!write(*,*) 'val, limit', isend_shift+istsource + &
                                !!    (nit-1)*lzd%glr%d%n1i*lzd%glr%d%n2i + &
                                !!    (comm%ise(4)-comm%ise(3))*lzd%glr%d%n1i + &
@@ -1142,6 +1147,8 @@ module communications
                                    call mpi_win_lock(MPI_LOCK_EXCLUSIVE, mpisource, 0, comm%window, ierr)
                                    !write(*,'(2(a,i0))') 'AFTER: proc ',iproc,' calls lock for proc ',mpisource
                                end if
+                               write(*,'(a,5i10)') 'iproc, mpisource, ispin_shift+istdest, nsize, isend_shift+istsource-1', &
+                                   iproc, mpisource, ispin_shift+istdest, nsize, isend_shift+istsource-1
                                call mpi_get(recvbuf(ispin_shift+istdest), nsize, &
                                     mpi_double_precision, mpisource, int((isend_shift+istsource-1),kind=mpi_address_kind), &
                                     1, comm%mpi_datatypes(joverlap), comm%window, ierr)
@@ -1191,31 +1198,31 @@ module communications
                   end if
               end do
     
-          else nproc_if
+          !else nproc_if
     
-              ist=1
-              isend_shift = (ispin-1)*npotarr(iproc)
-              do i3=comm%ise(5),comm%ise(6)
-                  ist3=(i3-1)*lzd%glr%d%n1i*lzd%glr%d%n2i
-                  do i2=comm%ise(3),comm%ise(4)
-                      ist2=(i2-1)*lzd%glr%d%n1i
-                      !call vcopy(comm%ise(2,iproc)-comm%ise(1,iproc)+1, sendbuf(ist3+ist2+1), 1, recvbuf(ist), 1)
-                      !write(*,'(5(a,i0))') 'proc ',iproc,' gets ',comm%ise(2,iproc)-comm%ise(1,iproc)+1, &
-                      !                     ' elements at ',ispin_shift+ist,' from proc ',iproc,' at ', &
-                      !                     isend_shift+ist3+ist2+comm%ise(1,iproc)
-                      call vcopy(comm%ise(2)-comm%ise(1)+1, &
-                                 sendbuf(isend_shift+ist3+ist2+comm%ise(1)), 1, recvbuf(ispin_shift+ist), 1)
-                      ist=ist+comm%ise(2)-comm%ise(1)+1
-                  end do
-              end do
+          !    ist=1
+          !    isend_shift = (ispin-1)*npotarr(iproc)
+          !    do i3=comm%ise(5),comm%ise(6)
+          !        ist3=(i3-1)*lzd%glr%d%n1i*lzd%glr%d%n2i
+          !        do i2=comm%ise(3),comm%ise(4)
+          !            ist2=(i2-1)*lzd%glr%d%n1i
+          !            !call vcopy(comm%ise(2,iproc)-comm%ise(1,iproc)+1, sendbuf(ist3+ist2+1), 1, recvbuf(ist), 1)
+          !            !write(*,'(5(a,i0))') 'proc ',iproc,' gets ',comm%ise(2,iproc)-comm%ise(1,iproc)+1, &
+          !            !                     ' elements at ',ispin_shift+ist,' from proc ',iproc,' at ', &
+          !            !                     isend_shift+ist3+ist2+comm%ise(1,iproc)
+          !            call vcopy(comm%ise(2)-comm%ise(1)+1, &
+          !                       sendbuf(isend_shift+ist3+ist2+comm%ise(1)), 1, recvbuf(ispin_shift+ist), 1)
+          !            ist=ist+comm%ise(2)-comm%ise(1)+1
+          !        end do
+          !    end do
     
-          end if nproc_if
+          !end if nproc_if
       
       end do spin_loop
       
       ! Flag indicating whether the communication is complete or not
       !if(nproc>1 .and. (.not. bgq)) then
-      if(nproc>1) then
+!!#      if(nproc>1) then
           comm%communication_complete=.false.
       !else if (nproc>1) then
       !    call mpi_win_fence(mpi_mode_nosucceed, comm%window, ierr)
@@ -1224,9 +1231,9 @@ module communications
       !    end do
       !    call mpi_win_free(comm%window, ierr)
       !    comm%communication_complete=.true.
-      else
-          comm%communication_complete=.true.
-      end if
+!!#      else
+!!#          comm%communication_complete=.true.
+!!#      end if
 
       call f_free(npotarr)
     

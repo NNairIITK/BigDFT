@@ -3624,7 +3624,7 @@ module communications_init
       integer,dimension(2) :: blocklengthsx, blocklengthsy, types, xyblock_type, nblocksy
       integer(kind=mpi_address_kind),dimension(2) :: displacementsx, displacementsy
       integer(kind=mpi_address_kind) :: lb, extent
-      integer :: nsegx, nsegy, xline_type, size_of_double
+      integer :: nsegx, nsegy, xline_type, size_of_double, size_datatype
       !integer,dimension(:),allocatable :: derived_types
 
 
@@ -3682,11 +3682,23 @@ module communications_init
           if(ie > ie3) then
               ie3=ie
           end if
+
+          write(*,'(a,7i8)') 'ilr, lnsi3, lni3, gnsi3, gni3, is, ie', ilr, lzd%Llr(ilr)%nsi3, lzd%llr(ilr)%d%n3i, lzd%glr%nsi3, lzd%glr%d%n3i, is, ie
       
       end do
       write(*,'(a,i4,3x,9i6)') 'iproc, is1, ie1, n1, is2, ie2, n2, is3, ie3, n3', iproc, is1, ie1, lzd%glr%d%n1i, is2, ie2, lzd%glr%d%n2i, is3, ie3, lzd%glr%d%n3i
 
-      ! For non-free boundary conditions teh values ie1, ie2, ie3 may lie outside of the box!
+      ! For non-free boundary conditions the values ie1, ie2, ie3 may lie outside of the box!
+      ! Make sure that the wrapped aruond end is smaller than the beginning
+      if (ie1>lzd%glr%d%n1i) then
+          ie1=min(modulo(ie1-1,lzd%glr%d%n1i)+1,is1-1)
+      end if
+      if (ie2>lzd%glr%d%n2i) then
+          ie2=min(modulo(ie2-1,lzd%glr%d%n2i)+1,is2-1)
+      end if
+      if (ie3>lzd%glr%d%n3i) then
+          ie3=min(modulo(ie3-1,lzd%glr%d%n3i)+1,is3-1)
+      end if
       if (.not.bgq) then
           ! Communicate only the essential part, i.e. a subbox of the slices
           comgp%ise(1)=is1
@@ -3703,6 +3715,7 @@ module communications_init
       comgp%ise(5)=is3
       comgp%ise(6)=ie3
     
+      write(*,'(a,i5,6i6)') 'iproc, ise', iproc, comgp%ise
     
       
       ! Determine how many slices each process receives.
@@ -3761,7 +3774,7 @@ module communications_init
       ie3max=0
     
       ! Only do this if we have more than one MPI task
-      nproc_if: if (nproc>1) then
+      !nproc_if: if (nproc>1) then
           is3j=comgp%ise(5)
           ie3j=comgp%ise(6)
           if (ie3j>lzd%glr%d%n3i) then
@@ -3944,10 +3957,14 @@ module communications_init
                       call mpi_type_free(xline_type, ierr)
                       datatype_defined=.true.
                   end if
-                  istdest = istdest + &
-                            (ie3-is3+1)*(comgp%ise(2)-comgp%ise(1)+1)*(comgp%ise(4)-comgp%ise(3)+1)
-                  comgp%nrecvBuf = comgp%nrecvBuf + &
-                            (ie3-is3+1)*(comgp%ise(2)-comgp%ise(1)+1)*(comgp%ise(4)-comgp%ise(3)+1)
+                  !!istdest = istdest + &
+                  !!          (ie3-is3+1)*(comgp%ise(2)-comgp%ise(1)+1)*(comgp%ise(4)-comgp%ise(3)+1)
+                  !!comgp%nrecvBuf = comgp%nrecvBuf + &
+                  !!          (ie3-is3+1)*(comgp%ise(2)-comgp%ise(1)+1)*(comgp%ise(4)-comgp%ise(3)+1)
+                  call mpi_type_size(comgp%mpi_datatypes(0), size_datatype, ierr)
+                  size_datatype=size_datatype/size_of_double
+                  istdest = istdest + nlen*size_datatype
+                  comgp%nrecvBuf = comgp%nrecvBuf + nlen*size_datatype
               !!else if(ie3j > lzd%Glr%d%n3i .and. lzd%Glr%geocode /= 'F')then
               !!     stop 'WILL PROBABLY NOT WORK!'
               !!     ie3j = comgp%ise(6) - lzd%Glr%d%n3i
@@ -4013,12 +4030,12 @@ module communications_init
           !if (comgp%ise(6,jproc)/=ie3max) stop 'ERROR 2'
           if(ioverlap/=comgp%noverlaps) stop 'ioverlap/=comgp%noverlaps'
     
-      else nproc_if ! monoproc
+      !else nproc_if ! monoproc
     
-          comgp%nrecvbuf = (comgp%ise(2)-comgp%ise(1)+1)*(comgp%ise(4)-comgp%ise(3)+1)*&
-                           (comgp%ise(6)-comgp%ise(5)+1)
-      
-      end if nproc_if
+      !    comgp%nrecvbuf = (comgp%ise(2)-comgp%ise(1)+1)*(comgp%ise(4)-comgp%ise(3)+1)*&
+      !                     (comgp%ise(6)-comgp%ise(5)+1)
+      !
+      !end if nproc_if
     
       ! This is the size of the communication buffer without spin
       comgp%nrecvbuf=max(comgp%nrecvbuf,1)

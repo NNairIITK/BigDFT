@@ -848,7 +848,8 @@ subroutine check_communication_potential(iproc,denspot,tmb)
   type(DFT_local_fields), intent(inout) :: denspot
   !local variables
   logical :: dosome
-  integer :: i1,i2,i3,ind,i3s,n3p,ilr,iorb,ilr_orb,n2i,n1i,ierr,numtot,i_stat,i_all,ishift,ispin
+  integer :: i1,i2,i3,ind,n3p,ilr,iorb,ilr_orb,n2i,n1i,ierr,numtot,i_stat,i_all,ishift,ispin
+  integer :: i1s, i1e, i2s, i2e, i3s, i3e, ii1, ii2, ii3
   real(dp) :: maxdiff,sumdiff,testval
   real(dp),parameter :: tol_calculation_mean=1.d-12
   real(dp),parameter :: tol_calculation_max=1.d-10
@@ -872,6 +873,7 @@ subroutine check_communication_potential(iproc,denspot,tmb)
                ind=ind+1
                !denspot%rhov(ind)=real(ishift+i1+(i2-1)*n1i+(i3-1)*n1i*n2i,dp)
                denspot%rhov(ind)=real((-1)**(ispin+1)*(i1+(i2-1)*n1i+(i3-1)*n1i*n2i),dp)
+               !write(500,'(es16.8)') denspot%rhov(ind)
             end do
          end do
       end do
@@ -917,16 +919,29 @@ subroutine check_communication_potential(iproc,denspot,tmb)
         if (ilr_orb /= ilr) cycle loop_orbs
 
         ind=tmb%orbs%ispot(iorb)-1
-        do i3=1,tmb%ham_descr%Lzd%Llr(ilr)%d%n3i
-           do i2=1,tmb%ham_descr%Lzd%Llr(ilr)%d%n2i
-              do i1=1,tmb%ham_descr%Lzd%Llr(ilr)%d%n1i
+        i3s=tmb%ham_descr%Lzd%Llr(ilr)%nsi3+1
+        i3e=i3s+tmb%ham_descr%Lzd%Llr(ilr)%d%n3i-1
+        i2s=tmb%ham_descr%Lzd%Llr(ilr)%nsi2+1
+        i2e=i2s+tmb%ham_descr%Lzd%Llr(ilr)%d%n2i-1
+        i1s=tmb%ham_descr%Lzd%Llr(ilr)%nsi1+1
+        i1e=i1s+tmb%ham_descr%Lzd%Llr(ilr)%d%n1i-1
+        !do i3=1,tmb%ham_descr%Lzd%Llr(ilr)%d%n3i
+        do i3=i3s,i3e
+           ii3=modulo(i3-1,tmb%ham_descr%Lzd%glr%d%n3i)+1
+           !do i2=1,tmb%ham_descr%Lzd%Llr(ilr)%d%n2i
+           do i2=i2s,i2e
+              ii2=modulo(i2-1,tmb%ham_descr%Lzd%glr%d%n2i)+1
+              !do i1=1,tmb%ham_descr%Lzd%Llr(ilr)%d%n1i
+              do i1=i1s,i1e
+                 ii1=modulo(i1-1,tmb%ham_descr%Lzd%glr%d%n1i)+1
                  ind=ind+1
-                 testval=real(i1+tmb%ham_descr%Lzd%Llr(ilr)%nsi1+&
-                      (i2+tmb%ham_descr%Lzd%Llr(ilr)%nsi2-1)*n1i+&
-                      (i3+tmb%ham_descr%Lzd%Llr(ilr)%nsi3-1)*n1i*n2i,dp)
-                 testval=real((-1)**(ispin+1)*(i1+tmb%ham_descr%Lzd%Llr(ilr)%nsi1+&
-                      (i2+tmb%ham_descr%Lzd%Llr(ilr)%nsi2-1)*n1i+&
-                      (i3+tmb%ham_descr%Lzd%Llr(ilr)%nsi3-1)*n1i*n2i),dp)
+                 !!testval=real(i1+tmb%ham_descr%Lzd%Llr(ilr)%nsi1+&
+                 !!     (i2+tmb%ham_descr%Lzd%Llr(ilr)%nsi2-1)*n1i+&
+                 !!     (i3+tmb%ham_descr%Lzd%Llr(ilr)%nsi3-1)*n1i*n2i,dp)
+                 !testval=real((-1)**(ispin+1)*(i1+tmb%ham_descr%Lzd%Llr(ilr)%nsi1+&
+                 !     (i2+tmb%ham_descr%Lzd%Llr(ilr)%nsi2-1)*n1i+&
+                 !     (i3+tmb%ham_descr%Lzd%Llr(ilr)%nsi3-1)*n1i*n2i),dp)
+                 testval=real((-1)**(ispin+1)*(ii1+(ii2-1)*n1i+(ii3-1)*n1i*n2i),dp)
                  !if (iproc==0) write(*,'(a,4i8,2es14.3)') 'i1, i2, i3, ind, val, ref', i1, i2, i3, ind, denspot%pot_work(ind), testval
                  testval=abs(denspot%pot_work(ind)-testval)
                  maxdiff=max(maxdiff,testval)
@@ -976,6 +991,9 @@ subroutine check_communication_potential(iproc,denspot,tmb)
   nullify(denspot%pot_work)
 
   call timing(bigdft_mpi%iproc,'check_pot','OF')
+
+  call mpi_finalize(ierr)
+  stop
 
 end subroutine check_communication_potential
 
