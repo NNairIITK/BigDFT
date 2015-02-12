@@ -64,7 +64,6 @@ type findsad_work
     real(gp), allocatable :: rxyz_rot(:,:,:)
     real(gp), allocatable :: fxyz_rot(:,:,:)
     real(gp), allocatable :: fxyzraw_rot(:,:,:)
-    real(gp), allocatable :: rxyzraw_rot(:,:,:)
     real(gp), allocatable :: fstretch_rot(:,:,:)
     real(gp), allocatable :: eval_rot(:)
     real(gp), allocatable :: res_rot(:)
@@ -105,8 +104,6 @@ subroutine allocate_finsad_workarrays(runObj,uinp,fsw)
                 0.to.uinp%saddle_nhistx_rot/),id='fxyz_rot')
     fsw%fxyzraw_rot = f_malloc((/ 1.to.3, 1.to.nat,&
                 0.to.uinp%saddle_nhistx_rot/),id='fxyzraw_rot')
-    fsw%rxyzraw_rot = f_malloc((/ 1.to.3, 1.to.nat,&
-                0.to.uinp%saddle_nhistx_rot/),id='rxyzraw_rot')
     fsw%fstretch_rot = f_malloc((/ 1.to.3, 1.to.nat,&
                 0.to.uinp%saddle_nhistx_rot/),id='fstretch_rot')
     fsw%eval_rot = f_malloc((/1.to.uinp%saddle_nhistx_rot/),id='eval_rot')
@@ -181,7 +178,6 @@ subroutine deallocate_finsad_workarrays(fsw)
     call f_free(fsw%rxyz_rot)
     call f_free(fsw%fxyz_rot)
     call f_free(fsw%fxyzraw_rot)
-    call f_free(fsw%rxyzraw_rot)
     call f_free(fsw%fstretch_rot)
     call f_free(fsw%eval_rot)
     call f_free(fsw%res_rot)
@@ -766,7 +762,7 @@ real(gp) :: alpha0int
 
     call mincurvforce(mhgpsst,imode,runObj,outs,curvforcediff,&
          rxyz_fix(1,1),fxyz_fix(1,1),fsw%rxyz_rot(1,1,fsw%nhist_rot),&
-         fsw%rxyzraw_rot(1,1,fsw%nhist_rot),fsw%fxyz_rot(1,1,fsw%nhist_rot),fsw%fstretch_rot(1,1,fsw%nhist_rot),&
+         fsw%fxyz_rot(1,1,fsw%nhist_rot),fsw%fstretch_rot(1,1,fsw%nhist_rot),&
          fsw%fxyzraw_rot(1,1,fsw%nhist_rot),curv,1,ener_count,iconnect,nbond,fsw%wold_rot,&
          alpha_stretch0,fsw%alpha_stretch_rot)
     if(imode==2)then
@@ -805,7 +801,6 @@ real(gp) :: alpha0int
                     do l=1,3
                         fsw%rxyz_rot(l,iat,ihist)=fsw%rxyz_rot(l,iat,ihist+1)
                         fsw%fxyz_rot(l,iat,ihist)=fsw%fxyz_rot(l,iat,ihist+1)
-                        fsw%rxyzraw_rot(l,iat,ihist)=fsw%rxyzraw_rot(l,iat,ihist+1)
                         fsw%fxyzraw_rot(l,iat,ihist)=fsw%fxyzraw_rot(l,iat,ihist+1)
                         fsw%fstretch_rot(l,iat,ihist)=fsw%fstretch_rot(l,iat,ihist+1)
                     enddo
@@ -834,7 +829,7 @@ real(gp) :: alpha0int
         displr=displr+dnrm2(3*runObj%atoms%astruct%nat,delta(1,1),1)
         call mincurvforce(mhgpsst,imode,runObj,outs,curvforcediff,&
              rxyz_fix(1,1),fxyz_fix(1,1),fsw%rxyz_rot(1,1,fsw%nhist_rot),&
-             fsw%rxyzraw_rot(1,1,fsw%nhist_rot),fsw%fxyz_rot(1,1,fsw%nhist_rot),fsw%fstretch_rot(1,1,fsw%nhist_rot),&
+             fsw%fxyz_rot(1,1,fsw%nhist_rot),fsw%fstretch_rot(1,1,fsw%nhist_rot),&
              fsw%fxyzraw_rot(1,1,fsw%nhist_rot),curvp,1,ener_count,iconnect,nbond,&
              fsw%wold_rot,alpha_stretch0,fsw%alpha_stretch_rot)
         dcurv=curvp-curvold
@@ -874,7 +869,6 @@ real(gp) :: alpha0int
                 call mincurvforce(mhgpsst,imode,runObj,outs,&
                      curvforcediff,rxyz_fix(1,1),fxyz_fix(1,1),&
                      fsw%rxyz_rot(1,1,fsw%nhist_rot-1),&
-                     fsw%rxyzraw_rot(1,1,fsw%nhist_rot-1),&
                      fsw%fxyz_rot(1,1,fsw%nhist_rot-1),&
                      fsw%fstretch_rot(1,1,fsw%nhist_rot-1),&
                      fsw%fxyzraw_rot(1,1,fsw%nhist_rot-1),curvold,1,&
@@ -887,14 +881,10 @@ real(gp) :: alpha0int
                       dcurv,fmax,fnrm, fsw%alpha_rot,fsw%ndim_rot,&
                       fsw%alpha_stretch_rot,displr,displp
             endif
-write(133,*)sqrt(sum(fsw%rxyzraw_rot(:,:,fsw%nhist_rot-1)-fsw%rxyz_rot(1,iat,fsw%nhist_rot-1))**2)
             do iat=1,runObj%atoms%astruct%nat
-                fsw%rxyz_rot(1,iat,0)=fsw%rxyzraw_rot(1,iat,fsw%nhist_rot-1)
-                fsw%rxyz_rot(2,iat,0)=fsw%rxyzraw_rot(2,iat,fsw%nhist_rot-1)
-                fsw%rxyz_rot(3,iat,0)=fsw%rxyzraw_rot(3,iat,fsw%nhist_rot-1)
-                fsw%rxyzraw_rot(1,iat,0)=fsw%rxyzraw_rot(1,iat,fsw%nhist_rot-1)
-                fsw%rxyzraw_rot(2,iat,0)=fsw%rxyzraw_rot(2,iat,fsw%nhist_rot-1)
-                fsw%rxyzraw_rot(3,iat,0)=fsw%rxyzraw_rot(3,iat,fsw%nhist_rot-1)
+                fsw%rxyz_rot(1,iat,0)=fsw%rxyz_rot(1,iat,fsw%nhist_rot-1)
+                fsw%rxyz_rot(2,iat,0)=fsw%rxyz_rot(2,iat,fsw%nhist_rot-1)
+                fsw%rxyz_rot(3,iat,0)=fsw%rxyz_rot(3,iat,fsw%nhist_rot-1)
  
                 fsw%fxyz_rot(1,iat,0)=fsw%fxyzraw_rot(1,iat,fsw%nhist_rot-1)
                 fsw%fxyz_rot(2,iat,0)=fsw%fxyzraw_rot(2,iat,fsw%nhist_rot-1)
@@ -1377,7 +1367,7 @@ endif
 end subroutine fixfrag_posvel
 !=====================================================================
 subroutine mincurvforce(mhgpsst,imode,runObj,outs,diff,rxyz1,fxyz1,&
-           vec,vecraw,rotforce,rotfstretch,rotforceraw,curv,imethod,&
+           vec,rotforce,rotfstretch,rotforceraw,curv,imethod,&
            ec,iconnect,nbond_,wold,alpha_stretch0,alpha_stretch)
     use module_base, only: gp
     use yaml_output
@@ -1396,7 +1386,6 @@ subroutine mincurvforce(mhgpsst,imode,runObj,outs,diff,rxyz1,fxyz1,&
     real(gp), intent(in)     :: rxyz1(3,runObj%atoms%astruct%nat)
     real(gp), intent(in)     :: fxyz1(3,runObj%atoms%astruct%nat)
     real(gp), intent(inout)  :: vec(3,runObj%atoms%astruct%nat)
-    real(gp), intent(inout)  :: vecraw(3,runObj%atoms%astruct%nat)
     real(gp), intent(out)    :: rotforce(3,runObj%atoms%astruct%nat)
     real(gp), intent(out)    :: rotforceraw(3,runObj%atoms%astruct%nat)
     real(gp), intent(out)    :: rotfstretch(3,runObj%atoms%astruct%nat)
@@ -1431,9 +1420,6 @@ subroutine mincurvforce(mhgpsst,imode,runObj,outs,diff,rxyz1,fxyz1,&
 !    call mhgpsenergyandforces(nat,rat,fat,epot)
      call curvforce(mhgpsst,runObj,outs,diff,rxyz1,fxyz1,vec,curv,&
           rotforce,imethod,ec)
-    !if biomode is not working, you might
-    !must move vecraw=vec right before call curvforce, above
-     vecraw=vec
      rxyz2 =rxyz1+diff*vec
      rotforceraw=rotforce
      rotfstretch=0.0_gp
