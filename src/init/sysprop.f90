@@ -441,6 +441,7 @@ subroutine system_initialization(iproc,nproc,dump,inputpsi,input_wf_format,dry_r
      end subroutine init_linear_orbs
 
      subroutine init_lzd_linear()
+       use locregs, only: copy_locreg_descriptors
        implicit none
        call copy_locreg_descriptors(Lzd%Glr, lzd_lin%glr)
        call lzd_set_hgrids(lzd_lin, Lzd%hgrids)
