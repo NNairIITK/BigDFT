@@ -3581,8 +3581,8 @@ module communications_init
                       !case with periodic wrap around
                       iidest = int(iiis(j)+lzd%glr%d%n1i*lzd%glr%d%n2i*lzd%glr%d%n3i-ii,kind=4)
                   end if
-                  write(*,'(a,11i11)') 'iproc, jproc, iis, iie, istartend(1,jproc), istartend(2,jproc), j, iiis(j), iiie(j), i3, iidest', &
-                      iproc, jproc, iis, iie, istartend(1,jproc), istartend(2,jproc), j, iiis(j), iiie(j), i3, iidest
+                  write(*,'(a,12i11)') 'iproc, jproc, iis, iie, istartend(1,jproc), istartend(2,jproc), j, iiis(j), iiie(j), i3, iidest, iisrc', &
+                      iproc, jproc, iis, iie, istartend(1,jproc), istartend(2,jproc), j, iiis(j), iiie(j), i3, iidest, int(iiis(j)-istartend(1,jproc),kind=4)+1
                   commarr_repartitionrho(3,ioverlaps)=iidest
                   commarr_repartitionrho(4,ioverlaps)=int(nlen(1),kind=4)
               end do

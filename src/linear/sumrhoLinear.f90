@@ -1263,6 +1263,7 @@ subroutine check_communication_sumrho(iproc, nproc, orbs, lzd, collcom_sr, densp
       !end if
 
       do i3=ii3s,ii3e
+          ii3=modulo(i3-1,lzd%glr%d%n3i)+1
           do iorb=1,orbs%norbu
               ilr=orbs%inwhichlocreg(iorb)
               !is3=1+lzd%Llr(ilr)%nsi3
@@ -1271,7 +1272,8 @@ subroutine check_communication_sumrho(iproc, nproc, orbs, lzd, collcom_sr, densp
               !ie3=is3+lzd%llr(ilr)%d%n3i-1
               ie3=modulo(lzd%llr(ilr)%nsi3+lzd%llr(ilr)%d%n3i-1,lzd%glr%d%n3i)+1
               !if (is3>i3 .or. i3>ie3) cycle
-              if (.not.check_whether_bounds_overlap(is3,ie3,i3,i3)) cycle
+              !if (.not.check_whether_bounds_overlap(is3,ie3,i3,i3)) cycle
+              if (.not.check_whether_bounds_overlap(is3,ie3,ii3,ii3)) cycle
               !is1=1+lzd%Llr(ilr)%nsi1
               !ie1=lzd%Llr(ilr)%nsi1+lzd%llr(ilr)%d%n1i
               is1=modulo(1+lzd%Llr(ilr)%nsi1-1,lzd%glr%d%n1i)+1
@@ -1308,6 +1310,7 @@ subroutine check_communication_sumrho(iproc, nproc, orbs, lzd, collcom_sr, densp
       iorbmin=1000000000
       iorbmax=-1000000000
       do i3=ii3s,ii3e
+          ii3=modulo(i3-1,lzd%glr%d%n3i)+1
           do iorb=1,orbs%norbu
               ilr=orbs%inwhichlocreg(iorb)
               !is3=1+lzd%Llr(ilr)%nsi3
@@ -1315,7 +1318,8 @@ subroutine check_communication_sumrho(iproc, nproc, orbs, lzd, collcom_sr, densp
               is3=modulo(1+lzd%Llr(ilr)%nsi3-1,lzd%glr%d%n3i)+1
               ie3=modulo(lzd%llr(ilr)%nsi3+lzd%llr(ilr)%d%n3i-1,lzd%glr%d%n3i)+1
               !if (is3>i3 .or. i3>ie3) cycle
-              if (.not.check_whether_bounds_overlap(is3,ie3,i3,i3)) cycle
+              !if (.not.check_whether_bounds_overlap(is3,ie3,i3,i3)) cycle
+              if (.not.check_whether_bounds_overlap(is3,ie3,ii3,ii3)) cycle
               !is1=1+lzd%Llr(ilr)%nsi1
               !ie1=lzd%Llr(ilr)%nsi1+lzd%llr(ilr)%d%n1i
               !is2=1+lzd%Llr(ilr)%nsi2
@@ -1389,15 +1393,16 @@ subroutine check_communication_sumrho(iproc, nproc, orbs, lzd, collcom_sr, densp
     
       ! Now calculate the charge density and store the result in rho_check
       rho_check=f_malloc(max(lzd%glr%d%n1i*lzd%glr%d%n2i*(ii3e-ii3s+1)*denskern%nspin,1),id='rho_check')
+      write(*,*) 'iproc, ii3s, ii3e', iproc, ii3s, ii3e
       do ispin=1,denskern%nspin
           ishift=(ispin-1)*lzd%glr%d%n1i*lzd%glr%d%n2i*(ii3e-ii3s+1)
-          !$omp parallel default (none) &
-          !$omp private (i3, i2, i1, ii3, iixyz, ind, tt, i,j, ii, tti, ikernel, jj, ttj) &
-          !$omp shared (ii3s, ii3e, lzd, weight, orbital_id, denskern, denskern_, rho_check) &
-          !$omp shared (nxyz, factor, matrixindex_in_compressed_auxilliary, ispin, orbs, ishift)
+          !!$omp parallel default (none) &
+          !!$omp private (i3, i2, i1, ii3, iixyz, ind, tt, i,j, ii, tti, ikernel, jj, ttj) &
+          !!$omp shared (ii3s, ii3e, lzd, weight, orbital_id, denskern, denskern_, rho_check) &
+          !!$omp shared (nxyz, factor, matrixindex_in_compressed_auxilliary, ispin, orbs, ishift)
           do i3=ii3s,ii3e
               ii3=modulo(i3-1,lzd%glr%d%n3i)+1
-              !$omp do
+              !!$omp do
               do i2=1,lzd%glr%d%n2i
                   do i1=1,lzd%glr%d%n1i
                       !iixyz=(i3-1)*lzd%glr%d%n1i*lzd%glr%d%n2i+(i2-1)*lzd%glr%d%n1i+i1
@@ -1427,11 +1432,12 @@ subroutine check_communication_sumrho(iproc, nproc, orbs, lzd, collcom_sr, densp
                       end do
                       tt=tt*factor
                       rho_check(ind)=tt
+                      write(2100+iproc,'(a,4i9,es18.8)') 'ind, i1, i2, ii3, rho_check(ind)',ind, i1, i2, ii3, rho_check(ind)
                   end do
               end do
-              !$omp end do
+              !!$omp end do
           end do
-          !$omp end parallel
+          !!$omp end parallel
       end do
     
       call f_free(matrixindex_in_compressed_auxilliary)
