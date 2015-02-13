@@ -19,6 +19,7 @@ module communications_init
   public :: init_comms_linear_sumrho
   public :: initialize_communication_potential
   public :: orbitals_communicators
+  public :: check_whether_bounds_overlap
 
   interface check_whether_bounds_overlap
     module procedure check_whether_bounds_overlap_int
@@ -3423,7 +3424,7 @@ module communications_init
       integer(kind=8) :: ii, iis, iie
       integer(kind=8),dimension(2) :: iiis, iiie, nlen
       integer(kind=8) :: is
-      integer :: n
+      integer :: n, j
     
       call f_routine(id='communication_arrays_repartitionrho_general')
 
@@ -3485,11 +3486,12 @@ module communications_init
           !jproc_send=0
           ncomms_repartitionrho=0
           do jproc=0,nproc-1
-              !write(*,'(a,6i8)') 'iproc, jproc, iis, iie, ise(1), ise(2)', iproc, jproc, iis, iie, istartend(1,jproc), istartend(2,jproc)
-              if(check_whether_bounds_overlap(iis,iie,istartend(1,jproc),istartend(2,jproc))) then
-                  !jproc_send=jproc_send+1
-                  ncomms_repartitionrho=ncomms_repartitionrho+1
-              end if
+              !if(check_whether_bounds_overlap(iis,iie,istartend(1,jproc),istartend(2,jproc))) then
+              call get_extent_of_overlap(iis,iie,istartend(1,jproc),istartend(2,jproc), n, iiis, iiie, nlen)
+              write(*,'(a,11i11)') 'iproc, jproc, iis, iie, ise(1), ise(2), n, iiis, iiie', iproc, jproc, iis, iie, istartend(1,jproc), istartend(2,jproc), n, iiis, iiie
+              !jproc_send=jproc_send+1
+              ncomms_repartitionrho=ncomms_repartitionrho+n
+              !end if
           end do
           !@END NEW #####################
         
@@ -3552,23 +3554,38 @@ module communications_init
           !jproc_send=0
           ioverlaps=0
           do jproc=0,nproc-1
-              if(check_whether_bounds_overlap(iis,iie,istartend(1,jproc),istartend(2,jproc))) then
+              !if(check_whether_bounds_overlap(iis,iie,istartend(1,jproc),istartend(2,jproc))) then
+              call get_extent_of_overlap(iis,iie,istartend(1,jproc),istartend(2,jproc), n, iiis, iiie, nlen)
+              ! DO nothing if n==0
+              do j=1,n
                   !jproc_send=jproc_send+1
                   ioverlaps=ioverlaps+1
-                  call get_extent_of_overlap(iis,iie,istartend(1,jproc),istartend(2,jproc), n, iiis, iiie, nlen)
-                  if (n>1) then
-                      write(*,*) 'WARNING: THIS WRONG AND NEEDS A FIX'
-                      is=minval(iiis)
-                  else
-                      is=iiis(1)
-                  end if
+                  !call get_extent_of_overlap(iis,iie,istartend(1,jproc),istartend(2,jproc), n, iiis, iiie, nlen)
+                  !!if (n>1) then
+                  !!    write(*,*) 'WARNING: THIS WRONG AND NEEDS A FIX'
+                  !!    is=minval(iiis)
+                  !!else
+                  !!    is=iiis(1)
+                  !!end if
                   commarr_repartitionrho(1,ioverlaps)=jproc
-                  commarr_repartitionrho(2,ioverlaps)=int(is-istartend(1,jproc),kind=4)+1
-                  i3=nscatterarr(iproc,3)-nscatterarr(iproc,4)+1
-                  iidest = int(is-int(i3-1,kind=8)*int(lzd%glr%d%n2i,kind=8)*int(lzd%glr%d%n1i,kind=8),kind=4)
+                  commarr_repartitionrho(2,ioverlaps)=int(iiis(j)-istartend(1,jproc),kind=4)+1
+                  !i3=nscatterarr(iproc,3)-nscatterarr(iproc,4)+1
+                  i3=modulo(nscatterarr(iproc,3)-nscatterarr(iproc,4)+1-1,lzd%glr%d%n3i)+1
+                  ! iidest is the offest to the start of the density received by iproc
+                  ii = int(i3-1,kind=8)*int(lzd%glr%d%n2i,kind=8)*int(lzd%glr%d%n1i,kind=8)
+                  !iidest = int(iiis(j)-int(i3-1,kind=8)*int(lzd%glr%d%n2i,kind=8)*int(lzd%glr%d%n1i,kind=8),kind=4)
+                  if (iiis(j)>ii) then
+                      !standard case
+                      iidest = int(iiis(j)-ii,kind=4)
+                  else
+                      !case with periodic wrap around
+                      iidest = int(iiis(j)+lzd%glr%d%n1i*lzd%glr%d%n2i*lzd%glr%d%n3i-ii,kind=4)
+                  end if
+                  write(*,'(a,11i11)') 'iproc, jproc, iis, iie, istartend(1,jproc), istartend(2,jproc), j, iiis(j), iiie(j), i3, iidest', &
+                      iproc, jproc, iis, iie, istartend(1,jproc), istartend(2,jproc), j, iiis(j), iiie(j), i3, iidest
                   commarr_repartitionrho(3,ioverlaps)=iidest
                   commarr_repartitionrho(4,ioverlaps)=int(nlen(1),kind=4)
-              end if
+              end do
           end do
           !@ END NEW ###########################
           if (ioverlaps/=ncomms_repartitionrho) stop 'ERROR: ioverlaps/=ncomms_repartitionrho'
