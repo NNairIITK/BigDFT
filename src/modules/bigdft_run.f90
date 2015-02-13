@@ -135,6 +135,7 @@ contains
     use dynamic_memory
     use public_enums
     use module_morse_bulk
+    use module_tersoff
     use module_lj
     use module_lenosky_si
     implicit none
@@ -195,6 +196,12 @@ contains
        mm_rst%refcnt=f_ref_new('mm_rst')
         call init_morse_bulk(runObj%inputs%mm_paramset,&
              runObj%inputs%mm_paramfile,runObj%atoms%astruct%geocode)
+    case('TERSOFF_RUN_MODE')
+       call nullify_MM_restart_objects(mm_rst)
+       !create reference counter
+       mm_rst%refcnt=f_ref_new('mm_rst')
+       call init_tersoff(nat,runObj%atoms%astruct,runObj%inputs%mm_paramset,&
+            runObj%inputs%mm_paramfile,runObj%atoms%astruct%geocode) 
     case('AMBER_RUN_MODE')
        if (associated(mm_rst%rf_extra)) then
           if (size(mm_rst%rf_extra) == nat) then
@@ -1253,6 +1260,7 @@ contains
     use yaml_output
     use module_forces
     use module_morse_bulk
+    use module_tersoff
     implicit none
     !parameters
     type(run_objects), intent(inout) :: runObj
@@ -1295,6 +1303,8 @@ contains
         call morse_slab_wrapper(nat,bigdft_get_cell(runObj),rxyz_ptr, outs%fxyz, outs%energy)
     case('MORSE_BULK_RUN_MODE')
         call morse_bulk_wrapper(nat,bigdft_get_cell(runObj),rxyz_ptr, outs%fxyz, outs%energy)
+    case('TERSOFF_RUN_MODE')
+        call tersoff(nat,bigdft_get_cell(runObj),rxyz_ptr,outs%fxyz,outs%strten,outs%energy)
     case('LENOSKY_SI_CLUSTERS_RUN_MODE')
        !else if(trim(adjustl(efmethod))=='LENSIc')then!for clusters
        call f_memcpy(src=rxyz_ptr,dest=runObj%mm_rst%rf_extra)
