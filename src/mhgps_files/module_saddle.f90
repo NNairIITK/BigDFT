@@ -1,579 +1,593 @@
-!> @file
-!!    SQNS Saddle Search Method
-!! @author Bastian Schaefer
-!!    Copyright (C) 2014 BigDFT group
-!!    This file is distributed under the terms of the
-!!    GNU General Public License, see ~/COPYING file
-!!    or http://www.gnu.org/copyleft/gpl.txt .
-!!    Copyright (C) 2015-2015 BigDFT group
-!!    This file is distributed under the terms of the
-!!    GNU General Public License, see ~/COPYING file
-!!    or http://www.gnu.org/copyleft/gpl.txt .
-!!    For the list of contributors, see ~/AUTHORS 
+    !> @file
+    !!    SQNS Saddle Search Method
+    !! @author Bastian Schaefer
+    !!    Copyright (C) 2014 BigDFT group
+    !!    This file is distributed under the terms of the
+    !!    GNU General Public License, see ~/COPYING file
+    !!    or http://www.gnu.org/copyleft/gpl.txt .
+    !!    Copyright (C) 2015-2015 BigDFT group
+    !!    This file is distributed under the terms of the
+    !!    GNU General Public License, see ~/COPYING file
+    !!    or http://www.gnu.org/copyleft/gpl.txt .
+    !!    For the list of contributors, see ~/AUTHORS 
 
 
-!> Module saddle for SQNS
-module module_saddle
-use module_base
-implicit none
-
-private
-
-public :: findsad
-public :: findsad_work
-public :: allocate_finsad_workarrays
-public :: deallocate_finsad_workarrays
-
-type findsad_work
-
-    
-   integer,  allocatable   :: iconnect(:,:)
-
-    !translation
-    real(gp), allocatable :: rxyz_trans(:,:,:)
-    real(gp), allocatable :: fxyz_trans(:,:,:)
-    real(gp), allocatable :: fxyzraw_trans(:,:,:)
-    real(gp), allocatable :: rxyzraw_trans(:,:,:)
-    real(gp), allocatable :: fstretch_trans(:,:,:)
-    real(gp), allocatable :: eval_trans(:)
-    real(gp), allocatable :: res_trans(:)
-    real(gp), allocatable :: rrr_trans(:,:,:)
-    real(gp), allocatable :: aa_trans(:,:)
-    real(gp), allocatable :: ff_trans(:,:,:)
-    real(gp), allocatable :: rr_trans(:,:,:)
-    real(gp), allocatable :: dd_trans(:,:)
-    real(gp), allocatable :: fff_trans(:,:,:)
-    real(gp), allocatable :: scpr_trans(:)
-    real(gp), allocatable :: wold_trans(:)
-    real(gp), allocatable :: rxyzold_trans(:,:)
-    real(gp), allocatable :: dds_trans(:,:)
-    real(gp), allocatable :: dd0_trans(:,:)
-    real(gp), allocatable :: delta_trans(:,:)
-    real(gp), allocatable :: ftmp_trans(:,:)
-    real(gp), allocatable :: minmodeold_trans(:,:)
-    real(gp), allocatable :: minmode0_trans(:,:)
-    integer               :: lwork_trans
-    real(gp), allocatable :: work_trans(:)
-
-
-
-
-    !variables for rotation
-    integer              :: nhist_rot,ndim_rot
-    real(gp)             :: alpha_rot, alpha_stretch_rot
-    real(gp), allocatable :: rxyz_rot(:,:,:)
-    real(gp), allocatable :: fxyz_rot(:,:,:)
-    real(gp), allocatable :: fxyzraw_rot(:,:,:)
-    real(gp), allocatable :: fstretch_rot(:,:,:)
-    real(gp), allocatable :: eval_rot(:)
-    real(gp), allocatable :: res_rot(:)
-    real(gp), allocatable :: rrr_rot(:,:,:)
-    real(gp), allocatable :: aa_rot(:,:)
-    real(gp), allocatable :: ff_rot(:,:,:)
-    real(gp), allocatable :: rr_rot(:,:,:)
-    real(gp), allocatable :: dd_rot(:,:)
-    real(gp), allocatable :: fff_rot(:,:,:)
-    real(gp), allocatable :: scpr_rot(:)
-    real(gp), allocatable :: wold_rot(:)
-    integer               :: lwork_rot
-    real(gp), allocatable :: work_rot(:)
-end type
-
-contains
-!=====================================================================
-subroutine allocate_finsad_workarrays(runObj,uinp,fsw)
+    !> Module saddle for SQNS
+    module module_saddle
     use module_base
-    use dynamic_memory
-    use bigdft_run
-    use module_userinput
     implicit none
-    !parameters
-    type(run_objects), intent(in)          :: runObj
-    type(findsad_work), intent(out) :: fsw
-    type(userinput), intent(in)            :: uinp
-    !internal
-    integer :: nat, info
-    real(gp) :: wd(1)
-    nat = bigdft_nat(runObj)
-   
-    fsw%iconnect = f_malloc((/ 1.to.2, 1.to.1000/),id='iconnect')
 
-    fsw%rxyz_rot = f_malloc((/ 1.to.3, 1.to.nat,&
-                0.to.uinp%saddle_nhistx_rot/),id='rxyz_rot')
-    fsw%fxyz_rot = f_malloc((/ 1.to.3, 1.to.nat,&
-                0.to.uinp%saddle_nhistx_rot/),id='fxyz_rot')
-    fsw%fxyzraw_rot = f_malloc((/ 1.to.3, 1.to.nat,&
-                0.to.uinp%saddle_nhistx_rot/),id='fxyzraw_rot')
-    fsw%fstretch_rot = f_malloc((/ 1.to.3, 1.to.nat,&
-                0.to.uinp%saddle_nhistx_rot/),id='fstretch_rot')
-    fsw%eval_rot = f_malloc((/1.to.uinp%saddle_nhistx_rot/),id='eval_rot')
-    fsw%res_rot = f_malloc((/1.to.uinp%saddle_nhistx_rot/),id='res_rot')
-    fsw%rrr_rot = f_malloc((/ 1.to.3, 1.to.nat,&
-                0.to.uinp%saddle_nhistx_rot/),id='rrr_rot')
-    fsw%aa_rot = f_malloc((/1.to.uinp%saddle_nhistx_rot,&
-             1.to.uinp%saddle_nhistx_rot/),id='aa_rot')
-    fsw%ff_rot = f_malloc((/ 1.to.3, 1.to.nat,&
-                0.to.uinp%saddle_nhistx_rot/),id='ff_rot')
-    fsw%rr_rot = f_malloc((/ 1.to.3, 1.to.nat,&
-                0.to.uinp%saddle_nhistx_rot/),id='rr_rot')
-    fsw%dd_rot = f_malloc((/ 1.to.3, 1.to.nat/),&
-                id='dd_rot')
-    fsw%fff_rot = f_malloc((/ 1.to.3, 1.to.nat,&
-                0.to.uinp%saddle_nhistx_rot/),id='fff_rot')
-    fsw%scpr_rot = f_malloc((/ 1.to.uinp%saddle_nhistx_rot/),id='scpr_rot')
-    fsw%rxyz_trans = f_malloc((/ 1.to.3, 1.to.nat,&
-                0.to.uinp%saddle_nhistx_trans/),id='rxyz_trans')
-    fsw%fxyz_trans = f_malloc((/ 1.to.3, 1.to.nat,&
-                0.to.uinp%saddle_nhistx_trans/),id='fxyz_trans')
-    fsw%fxyzraw_trans = f_malloc((/ 1.to.3, 1.to.nat,&
-                0.to.uinp%saddle_nhistx_trans/),id='fxyzraw_trans')
-    fsw%rxyzraw_trans = f_malloc((/ 1.to.3, 1.to.nat,&
-                0.to.uinp%saddle_nhistx_trans/),id='rxyzraw_trans')
-    fsw%fstretch_trans = f_malloc((/ 1.to.3, 1.to.nat,&
-                0.to.uinp%saddle_nhistx_trans/),id='fstretch_trans')
-    fsw%eval_trans = f_malloc((/1.to.uinp%saddle_nhistx_trans/),&
-                 id='eval_trans')
-    fsw%res_trans = f_malloc((/1.to.uinp%saddle_nhistx_trans/),id='res_trans')
-    fsw%rrr_trans = f_malloc((/ 1.to.3, 1.to.nat,&
-                0.to.uinp%saddle_nhistx_trans/),id='rrr_trans')
-    fsw%aa_trans = f_malloc((/1.to.uinp%saddle_nhistx_trans,&
-                1.to.uinp%saddle_nhistx_trans/),id='aa_trans')
-    fsw%ff_trans = f_malloc((/ 1.to.3, 1.to.nat,&
-                0.to.uinp%saddle_nhistx_trans/),id='ff_trans')
-    fsw%rr_trans = f_malloc((/ 1.to.3, 1.to.nat,&
-                0.to.uinp%saddle_nhistx_trans/),id='rr_trans')
-    fsw%dd_trans = f_malloc((/ 1.to.3, 1.to.nat/),id='dd_trans')
-    fsw%fff_trans = f_malloc((/ 1.to.3, 1.to.nat,&
-                -1.to.uinp%saddle_nhistx_trans/),id='fff_trans')
-    fsw%scpr_trans = f_malloc((/ 1.to.uinp%saddle_nhistx_trans/),&
-                 id='scpr_trans')
-    fsw%rxyzold_trans = f_malloc((/ 1.to.3, 1.to.nat/),id='rxyzold_trans')
-    fsw%dds_trans = f_malloc((/ 1.to.3, 1.to.nat/),id='dds_trans')
-    fsw%dd0_trans = f_malloc((/ 1.to.3, 1.to.nat/),id='dd0_trans')
-    fsw%delta_trans = f_malloc((/ 1.to.3, 1.to.nat/),id='delta_trans')
-    fsw%ftmp_trans = f_malloc((/ 1.to.3, 1.to.nat/),id='ftmp_trans')
-    fsw%minmodeold_trans = f_malloc((/ 1.to.3, 1.to.nat/),id='minmodeold_trans')
-    fsw%minmode0_trans = f_malloc((/ 1.to.3, 1.to.nat/),id='minmode0_trans')
+    private
 
-    call DSYEV('N','L',uinp%saddle_nhistx_trans,fsw%aa_trans,&
-         uinp%saddle_nhistx_trans,fsw%eval_trans,wd,-1,info)
-    if (info.ne.0) stop 'info query'
-    fsw%lwork_trans=nint(wd(1))
-    fsw%work_trans = f_malloc((/ 1.to.fsw%lwork_trans/),id='work_trans')
+    public :: findsad
+    public :: findsad_work
+    public :: allocate_finsad_workarrays
+    public :: deallocate_finsad_workarrays
 
-    call DSYEV('N','L',uinp%saddle_nhistx_rot,fsw%aa_rot,&
-         uinp%saddle_nhistx_rot,fsw%eval_rot,wd,-1,info)
-    if (info.ne.0) stop 'info query'
-    fsw%lwork_rot=nint(wd(1))
-    fsw%work_rot = f_malloc((/ 1.to.fsw%lwork_rot/),id='work_rot')
+    type findsad_work
 
-end subroutine
-!=====================================================================
-subroutine deallocate_finsad_workarrays(fsw)
-    use dynamic_memory
-    implicit none
-    !parameters
-    type(findsad_work), intent(inout) :: fsw
-    call f_free(fsw%iconnect)
-    call f_free(fsw%rxyz_rot)
-    call f_free(fsw%fxyz_rot)
-    call f_free(fsw%fxyzraw_rot)
-    call f_free(fsw%fstretch_rot)
-    call f_free(fsw%eval_rot)
-    call f_free(fsw%res_rot)
-    call f_free(fsw%rrr_rot)
-    call f_free(fsw%aa_rot)
-    call f_free(fsw%ff_rot)
-    call f_free(fsw%rr_rot)
-    call f_free(fsw%dd_rot)
-    call f_free(fsw%fff_rot)
-    call f_free(fsw%scpr_rot)
-    call f_free(fsw%rxyz_trans)
-    call f_free(fsw%fxyz_trans)
-    call f_free(fsw%fxyzraw_trans)
-    call f_free(fsw%rxyzraw_trans)
-    call f_free(fsw%fstretch_trans)
-    call f_free(fsw%eval_trans)
-    call f_free(fsw%res_trans)
-    call f_free(fsw%rrr_trans)
-    call f_free(fsw%aa_trans)
-    call f_free(fsw%ff_trans)
-    call f_free(fsw%rr_trans)
-    call f_free(fsw%dd_trans)
-    call f_free(fsw%fff_trans) 
-    call f_free(fsw%scpr_trans)
-    call f_free(fsw%rxyzold_trans)
-    call f_free(fsw%dds_trans)
-    call f_free(fsw%dd0_trans)
-    call f_free(fsw%delta_trans)
-    call f_free(fsw%ftmp_trans)
-    call f_free(fsw%minmodeold_trans)
-    call f_free(fsw%minmode0_trans)
-    call f_free(fsw%work_trans)
-    call f_free(fsw%work_rot)
+        
+       integer,  allocatable   :: iconnect(:,:)
 
-end subroutine
-!=====================================================================
-subroutine findsad(mhgpsst,fsw,uinp,runObj,outs,rcov,&
-                  wpos,etot,fout,minmode,displ,ener_count,&
-                  rotforce,converged)
-    !imode=1 for clusters
-    !imode=2 for biomolecules
-    use module_base
-    use module_atoms, only: astruct_dump_to_file
-    use bigdft_run
-    use yaml_output
-    use module_interfaces
-    use module_sqn
-    use module_userinput
-    use module_mhgps_state
-    implicit none
-    !parameters    
-    type(mhgps_state), intent(inout) :: mhgpsst
-    type(userinput), intent(in) :: uinp
-    type(findsad_work), intent(inout)      :: fsw
-    type(run_objects), intent(inout) :: runObj
-    type(state_properties), intent(inout) :: outs
-    real(gp), intent(in)      :: rcov(runObj%atoms%astruct%nat)
-    real(gp), intent(inout)   :: wpos(3,runObj%atoms%astruct%nat)
-    real(gp), intent(out)     :: etot
-    real(gp), intent(out)     :: fout(3,runObj%atoms%astruct%nat)
-    real(gp), intent(inout)   :: minmode(3,runObj%atoms%astruct%nat)
-    real(gp), intent(out)   :: displ
-    real(gp), intent(inout)   :: ener_count
-    logical, intent(out)      :: converged
-    real(gp), intent(in)      :: rotforce(3,runObj%atoms%astruct%nat)
-    !internal
-!    real(gp), allocatable, dimension(:,:)   :: rxyzold
-!    real(gp), allocatable, dimension(:,:)   :: dds
-!    real(gp), allocatable, dimension(:,:)   :: dd0
-!    real(gp), allocatable, dimension(:,:)   :: delta
-!    real(gp), allocatable, dimension(:,:)   :: ftmp
-!    real(gp), allocatable, dimension(:,:)   :: minmodeold
-!    real(gp), allocatable, dimension(:,:)   :: minmode0
-    logical  :: steep
-    real(gp) :: maxd
-    real(gp) :: alpha
-    real(gp) :: alpha_stretch
-    real(gp) :: fnrm
-    real(gp) :: fmax
-    real(gp) :: etotp
-    real(gp) :: etotold
-    real(gp) :: detot
-    real(gp) :: cosangle
-    real(gp) :: scl
-    real(gp) :: tt
-    real(gp) :: dt
-    integer  :: nbond
-    integer  :: iat
-    integer  :: itswitch
-    integer  :: nhist
-    integer  :: ndim
-    integer  :: it
-    integer  :: ihist
-    integer  :: i
-    integer  :: recompute
-    integer  :: fc
-    integer  :: icheck
-    integer  :: icheckmax
-    real(gp) :: tol
-    real(gp) :: displold
-    real(gp) :: curv
-    real(gp) :: overlap
-    real(gp) :: minoverlap
-    real(gp) :: tmp
-    logical  :: optCurvConv
-    logical  :: tooFar
-    logical  :: subspaceSucc
-    logical  :: tighten
-    character(len=9)   :: fn9
-    character(len=300)  :: comment
-    real(gp) :: curvgraddiff_tmp
-    real(gp) :: maxdiff
-    !functions
-    real(gp) :: ddot,dnrm2
-
-!    if(bigdft_get_geocode(runObj)/='F'.and. .not.&
-!            (trim(adjustl(char(runObj%run_mode)))==&
-!                        'LENOSKY_SI_CLUSTERS_RUN_MODE'))then
-!        stop 'STOP: saddle search only implemented for free BC'
-!    endif
-
-    if((uinp%saddle_minoverlap0>=-1.0_gp).and.uinp%saddle_tighten)&
-    stop 'STOP: Do not use minoverlap and no tightening in combination'
-
-    if(mhgpsst%iproc==0)then
-        call yaml_comment('(MHGPS) Start Saddle Search ....',&
-                          hfill='-')
-    endif
-
-    nbond=1
-    fsw%ndim_rot=0
-    fsw%nhist_rot=0
-    fsw%alpha_rot=uinp%saddle_alpha0_rot
-    fsw%alpha_stretch_rot=uinp%saddle_alpha_stretch0
-!    flag=.true.
-    fc=0
-    converged=.false.
-    subspaceSucc=.true.
-    optCurvConv=.true.
-    tol=uinp%saddle_tolc
-    displ=0.0_gp
-    displold=0.0_gp
-    detot=0.0_gp
-    curv=1000.0_gp
-    icheck=0
-!    icheckmax=5
-    icheckmax=0
-    if(icheckmax==0 .and. uinp%saddle_tighten) icheckmax=1
-    tighten=.false.
-    alpha_stretch=uinp%saddle_alpha_stretch0
-
-    !Check and synchronize input minimum mode over all processors.
-    !This is important, since otherwise we get slightly different curvatures
-    !on each processor (in subroutine curvforce)
-    call mpibarrier(bigdft_mpi%mpi_comm)
-    if (bigdft_mpi%nproc >1) then
-       call mpibcast(minmode,comm=bigdft_mpi%mpi_comm,&
-            maxdiff=maxdiff)
-       if (maxdiff > epsilon(1.0_gp)) then
-          if (bigdft_mpi%iproc==0) then
-             call yaml_warning('Input minimum mode not identical! '//&
-                  '(difference:'//trim(yaml_toa(maxdiff))//&
-                  ' ), however broadcasting from master node.')
-             call yaml_flush_document()
-          end if
-       end if
-    end if
-    if(uinp%saddle_biomode)then
-       call findbonds('(MHGPS)',mhgpsst%iproc,uinp%mhgps_verbosity,bigdft_nat(runObj),rcov,&
-       bigdft_get_rxyz_ptr(runObj),nbond,fsw%iconnect)
-    endif
-    fsw%wold_trans = f_malloc((/ 1.to.nbond/),id='wold_trans')
-    fsw%wold_rot = f_malloc((/ 1.to.nbond/),id='wold_rot')
-    fsw%minmode0_trans=minmode
-    fsw%minmodeold_trans=minmode
-    fsw%wold_trans=0.0_gp
-    fsw%fstretch_trans=0.0_gp
-    fsw%rxyz_trans(:,:,0)=wpos
-
-    call fixfrag(mhgpsst,uinp,runObj,rcov,fsw%rxyz_trans(1,1,0))
+        !translation
+        integer, allocatable  :: idx_trans(:)
+        real(gp), allocatable :: rxyz_trans(:,:,:)
+        real(gp), allocatable :: fxyz_trans(:,:,:)
+        real(gp), allocatable :: fxyzraw_trans(:,:,:)
+        real(gp), allocatable :: rxyzraw_trans(:,:,:)
+        real(gp), allocatable :: fstretch_trans(:,:,:)
+        real(gp), allocatable :: eval_trans(:)
+        real(gp), allocatable :: res_trans(:)
+        real(gp), allocatable :: rrr_trans(:,:,:)
+        real(gp), allocatable :: aa_trans(:,:)
+        real(gp), allocatable :: ff_trans(:,:,:)
+        real(gp), allocatable :: rr_trans(:,:,:)
+        real(gp), allocatable :: dd_trans(:,:)
+        real(gp), allocatable :: fff_trans(:,:,:)
+        real(gp), allocatable :: scpr_trans(:)
+        real(gp), allocatable :: wold_trans(:)
+        real(gp), allocatable :: rxyzold_trans(:,:)
+        real(gp), allocatable :: dds_trans(:,:)
+        real(gp), allocatable :: dd0_trans(:,:)
+        real(gp), allocatable :: delta_trans(:,:)
+        real(gp), allocatable :: ftmp_trans(:,:)
+        real(gp), allocatable :: minmodeold_trans(:,:)
+        real(gp), allocatable :: minmode0_trans(:,:)
+        integer               :: lwork_trans
+        real(gp), allocatable :: work_trans(:)
 
 
-    runObj%inputs%inputPsiId=0
-    call minenergyandforces(mhgpsst,.true.,uinp%imode,runObj,outs,&
-         fsw%rxyz_trans(1,1,0),fsw%rxyzraw_trans(1,1,0),&
-         fsw%fxyz_trans(1,1,0),fsw%fstretch_trans(1,1,0),&
-         fsw%fxyzraw_trans(1,1,0),etot,fsw%iconnect,nbond,fsw%wold_trans,&
-         uinp%saddle_alpha_stretch0,alpha_stretch)
-    fsw%rxyzold_trans=fsw%rxyz_trans(:,:,0)
-    ener_count=ener_count+1.0_gp
-    if(uinp%imode==2)then
-        fsw%rxyz_trans(:,:,0)=fsw%rxyz_trans(:,:,0)+&
-                              alpha_stretch*fsw%fstretch_trans(:,:,0)
-    endif
-    call fnrmandforcemax(fsw%fxyzraw_trans(1,1,0),fnrm,fmax,&
-         runObj%atoms%astruct%nat)
 
-    fnrm=sqrt(fnrm)
-    etotold=etot
-    etotp=etot
 
-!    itswitch=2
-    itswitch=-2
-    ndim=0
-    nhist=0
-    alpha=uinp%saddle_alpha0_trans
-    if(mhgpsst%iproc==0.and.uinp%mhgps_verbosity>=2)then
-        write(*,'(a)')&
-        '  #(MHGPS) METHOD COUNT  IT  Energy                '//&
-        'DIFF      FMAX      FNRM      alpha    ndim dspl         '//&
-        'alpha_strtch'
-        write(*,'(a,1x,i4.4,1x,i4.4,1x,es21.14,4(1x,es9.2),1x,'//&
-                 'i3.3,1x,es12.5,1x,es9.2)')&
-        '   (MHGPS) GEOPT ',nint(ener_count),0,etotp,detot,fmax,&
-        fnrm, alpha,ndim,displ,alpha_stretch
-    endif
-    do it=1,uinp%saddle_nit_trans
-        nhist=nhist+1
+        !variables for rotation
+        integer              :: nhist_rot,ndim_rot
+        real(gp)             :: alpha_rot, alpha_stretch_rot
+        integer, allocatable :: idx_rot(:)
+        real(gp), allocatable :: rxyz_rot(:,:,:)
+        real(gp), allocatable :: fxyz_rot(:,:,:)
+        real(gp), allocatable :: fxyzraw_rot(:,:,:)
+        real(gp), allocatable :: fstretch_rot(:,:,:)
+        real(gp), allocatable :: eval_rot(:)
+        real(gp), allocatable :: res_rot(:)
+        real(gp), allocatable :: rrr_rot(:,:,:)
+        real(gp), allocatable :: aa_rot(:,:)
+        real(gp), allocatable :: ff_rot(:,:,:)
+        real(gp), allocatable :: rr_rot(:,:,:)
+        real(gp), allocatable :: dd_rot(:,:)
+        real(gp), allocatable :: fff_rot(:,:,:)
+        real(gp), allocatable :: scpr_rot(:)
+        real(gp), allocatable :: wold_rot(:)
+        integer               :: lwork_rot
+        real(gp), allocatable :: work_rot(:)
+    end type
 
-        if ((.not. subspaceSucc) .or. &
-             fnrm .gt. uinp%saddle_steepthresh_trans  .or. &
-             it.le.itswitch) then
-            ndim=0
-            steep=.true.
-            !if (it.gt.itswitch) itswitch=it+nhistx_trans
-        else
-            steep=.false.
-            !alpha=alpha0_trans
+    contains
+    !=====================================================================
+    subroutine allocate_finsad_workarrays(runObj,uinp,fsw)
+        use module_base
+        use dynamic_memory
+        use bigdft_run
+        use module_userinput
+        implicit none
+        !parameters
+        type(run_objects), intent(in)          :: runObj
+        type(findsad_work), intent(out) :: fsw
+        type(userinput), intent(in)            :: uinp
+        !internal
+        integer :: nat, info
+        real(gp) :: wd(1)
+        nat = bigdft_nat(runObj)
+       
+        fsw%iconnect = f_malloc((/ 1.to.2, 1.to.1000/),id='iconnect')
+
+        fsw%idx_rot = f_malloc((/ 0.to.uinp%saddle_nhistx_rot/),id='idx_rot')
+        fsw%rxyz_rot = f_malloc((/ 1.to.3, 1.to.nat,&
+                    0.to.uinp%saddle_nhistx_rot/),id='rxyz_rot')
+        fsw%fxyz_rot = f_malloc((/ 1.to.3, 1.to.nat,&
+                    0.to.uinp%saddle_nhistx_rot/),id='fxyz_rot')
+        fsw%fxyzraw_rot = f_malloc((/ 1.to.3, 1.to.nat,&
+                    0.to.uinp%saddle_nhistx_rot/),id='fxyzraw_rot')
+        fsw%fstretch_rot = f_malloc((/ 1.to.3, 1.to.nat,&
+                    0.to.uinp%saddle_nhistx_rot/),id='fstretch_rot')
+        fsw%eval_rot = f_malloc((/1.to.uinp%saddle_nhistx_rot/),id='eval_rot')
+        fsw%res_rot = f_malloc((/1.to.uinp%saddle_nhistx_rot/),id='res_rot')
+        fsw%rrr_rot = f_malloc((/ 1.to.3, 1.to.nat,&
+                    0.to.uinp%saddle_nhistx_rot/),id='rrr_rot')
+        fsw%aa_rot = f_malloc((/1.to.uinp%saddle_nhistx_rot,&
+                 1.to.uinp%saddle_nhistx_rot/),id='aa_rot')
+        fsw%ff_rot = f_malloc((/ 1.to.3, 1.to.nat,&
+                    0.to.uinp%saddle_nhistx_rot/),id='ff_rot')
+        fsw%rr_rot = f_malloc((/ 1.to.3, 1.to.nat,&
+                    0.to.uinp%saddle_nhistx_rot/),id='rr_rot')
+        fsw%dd_rot = f_malloc((/ 1.to.3, 1.to.nat/),&
+                    id='dd_rot')
+        fsw%fff_rot = f_malloc((/ 1.to.3, 1.to.nat,&
+                    0.to.uinp%saddle_nhistx_rot/),id='fff_rot')
+        fsw%scpr_rot = f_malloc((/ 1.to.uinp%saddle_nhistx_rot/),id='scpr_rot')
+        fsw%idx_trans = f_malloc((/ 0.to.uinp%saddle_nhistx_trans/),id='idx_trans')
+        fsw%rxyz_trans = f_malloc((/ 1.to.3, 1.to.nat,&
+                    0.to.uinp%saddle_nhistx_trans/),id='rxyz_trans')
+        fsw%fxyz_trans = f_malloc((/ 1.to.3, 1.to.nat,&
+                    0.to.uinp%saddle_nhistx_trans/),id='fxyz_trans')
+        fsw%fxyzraw_trans = f_malloc((/ 1.to.3, 1.to.nat,&
+                    0.to.uinp%saddle_nhistx_trans/),id='fxyzraw_trans')
+        fsw%rxyzraw_trans = f_malloc((/ 1.to.3, 1.to.nat,&
+                    0.to.uinp%saddle_nhistx_trans/),id='rxyzraw_trans')
+        fsw%fstretch_trans = f_malloc((/ 1.to.3, 1.to.nat,&
+                    0.to.uinp%saddle_nhistx_trans/),id='fstretch_trans')
+        fsw%eval_trans = f_malloc((/1.to.uinp%saddle_nhistx_trans/),&
+                     id='eval_trans')
+        fsw%res_trans = f_malloc((/1.to.uinp%saddle_nhistx_trans/),id='res_trans')
+        fsw%rrr_trans = f_malloc((/ 1.to.3, 1.to.nat,&
+                    0.to.uinp%saddle_nhistx_trans/),id='rrr_trans')
+        fsw%aa_trans = f_malloc((/1.to.uinp%saddle_nhistx_trans,&
+                    1.to.uinp%saddle_nhistx_trans/),id='aa_trans')
+        fsw%ff_trans = f_malloc((/ 1.to.3, 1.to.nat,&
+                    0.to.uinp%saddle_nhistx_trans/),id='ff_trans')
+        fsw%rr_trans = f_malloc((/ 1.to.3, 1.to.nat,&
+                    0.to.uinp%saddle_nhistx_trans/),id='rr_trans')
+        fsw%dd_trans = f_malloc((/ 1.to.3, 1.to.nat/),id='dd_trans')
+        fsw%fff_trans = f_malloc((/ 1.to.3, 1.to.nat,&
+                    -1.to.uinp%saddle_nhistx_trans/),id='fff_trans')
+        fsw%scpr_trans = f_malloc((/ 1.to.uinp%saddle_nhistx_trans/),&
+                     id='scpr_trans')
+        fsw%rxyzold_trans = f_malloc((/ 1.to.3, 1.to.nat/),id='rxyzold_trans')
+        fsw%dds_trans = f_malloc((/ 1.to.3, 1.to.nat/),id='dds_trans')
+        fsw%dd0_trans = f_malloc((/ 1.to.3, 1.to.nat/),id='dd0_trans')
+        fsw%delta_trans = f_malloc((/ 1.to.3, 1.to.nat/),id='delta_trans')
+        fsw%ftmp_trans = f_malloc((/ 1.to.3, 1.to.nat/),id='ftmp_trans')
+        fsw%minmodeold_trans = f_malloc((/ 1.to.3, 1.to.nat/),id='minmodeold_trans')
+        fsw%minmode0_trans = f_malloc((/ 1.to.3, 1.to.nat/),id='minmode0_trans')
+
+        call DSYEV('N','L',uinp%saddle_nhistx_trans,fsw%aa_trans,&
+             uinp%saddle_nhistx_trans,fsw%eval_trans,wd,-1,info)
+        if (info.ne.0) stop 'info query'
+        fsw%lwork_trans=nint(wd(1))
+        fsw%work_trans = f_malloc((/ 1.to.fsw%lwork_trans/),id='work_trans')
+
+        call DSYEV('N','L',uinp%saddle_nhistx_rot,fsw%aa_rot,&
+             uinp%saddle_nhistx_rot,fsw%eval_rot,wd,-1,info)
+        if (info.ne.0) stop 'info query'
+        fsw%lwork_rot=nint(wd(1))
+        fsw%work_rot = f_malloc((/ 1.to.fsw%lwork_rot/),id='work_rot')
+
+    end subroutine
+    !=====================================================================
+    subroutine deallocate_finsad_workarrays(fsw)
+        use dynamic_memory
+        implicit none
+        !parameters
+        type(findsad_work), intent(inout) :: fsw
+        call f_free(fsw%iconnect)
+        call f_free(fsw%idx_rot)
+        call f_free(fsw%rxyz_rot)
+        call f_free(fsw%fxyz_rot)
+        call f_free(fsw%fxyzraw_rot)
+        call f_free(fsw%fstretch_rot)
+        call f_free(fsw%eval_rot)
+        call f_free(fsw%res_rot)
+        call f_free(fsw%rrr_rot)
+        call f_free(fsw%aa_rot)
+        call f_free(fsw%ff_rot)
+        call f_free(fsw%rr_rot)
+        call f_free(fsw%dd_rot)
+        call f_free(fsw%fff_rot)
+        call f_free(fsw%scpr_rot)
+        call f_free(fsw%idx_trans)
+        call f_free(fsw%rxyz_trans)
+        call f_free(fsw%fxyz_trans)
+        call f_free(fsw%fxyzraw_trans)
+        call f_free(fsw%rxyzraw_trans)
+        call f_free(fsw%fstretch_trans)
+        call f_free(fsw%eval_trans)
+        call f_free(fsw%res_trans)
+        call f_free(fsw%rrr_trans)
+        call f_free(fsw%aa_trans)
+        call f_free(fsw%ff_trans)
+        call f_free(fsw%rr_trans)
+        call f_free(fsw%dd_trans)
+        call f_free(fsw%fff_trans) 
+        call f_free(fsw%scpr_trans)
+        call f_free(fsw%rxyzold_trans)
+        call f_free(fsw%dds_trans)
+        call f_free(fsw%dd0_trans)
+        call f_free(fsw%delta_trans)
+        call f_free(fsw%ftmp_trans)
+        call f_free(fsw%minmodeold_trans)
+        call f_free(fsw%minmode0_trans)
+        call f_free(fsw%work_trans)
+        call f_free(fsw%work_rot)
+
+    end subroutine
+    !=====================================================================
+    subroutine findsad(mhgpsst,fsw,uinp,runObj,outs,rcov,&
+                      wpos,etot,fout,minmode,displ,ener_count,&
+                      rotforce,converged)
+        !imode=1 for clusters
+        !imode=2 for biomolecules
+        use module_base
+        use module_atoms, only: astruct_dump_to_file
+        use bigdft_run
+        use yaml_output
+        use module_interfaces
+        use module_sqn
+        use module_userinput
+        use module_mhgps_state
+        implicit none
+        !parameters    
+        type(mhgps_state), intent(inout) :: mhgpsst
+        type(userinput), intent(in) :: uinp
+        type(findsad_work), intent(inout)      :: fsw
+        type(run_objects), intent(inout) :: runObj
+        type(state_properties), intent(inout) :: outs
+        real(gp), intent(in)      :: rcov(runObj%atoms%astruct%nat)
+        real(gp), intent(inout)   :: wpos(3,runObj%atoms%astruct%nat)
+        real(gp), intent(out)     :: etot
+        real(gp), intent(out)     :: fout(3,runObj%atoms%astruct%nat)
+        real(gp), intent(inout)   :: minmode(3,runObj%atoms%astruct%nat)
+        real(gp), intent(out)   :: displ
+        real(gp), intent(inout)   :: ener_count
+        logical, intent(out)      :: converged
+        real(gp), intent(in)      :: rotforce(3,runObj%atoms%astruct%nat)
+        !internal
+    !    real(gp), allocatable, dimension(:,:)   :: rxyzold
+    !    real(gp), allocatable, dimension(:,:)   :: dds
+    !    real(gp), allocatable, dimension(:,:)   :: dd0
+    !    real(gp), allocatable, dimension(:,:)   :: delta
+    !    real(gp), allocatable, dimension(:,:)   :: ftmp
+    !    real(gp), allocatable, dimension(:,:)   :: minmodeold
+    !    real(gp), allocatable, dimension(:,:)   :: minmode0
+        logical  :: steep
+        real(gp) :: maxd
+        real(gp) :: alpha
+        real(gp) :: alpha_stretch
+        real(gp) :: fnrm
+        real(gp) :: fmax
+        real(gp) :: etotp
+        real(gp) :: etotold
+        real(gp) :: detot
+        real(gp) :: cosangle
+        real(gp) :: scl
+        real(gp) :: tt
+        real(gp) :: dt
+        integer  :: idxtmp
+        integer  :: nbond
+        integer  :: iat
+        integer  :: itswitch
+        integer  :: nhist
+        integer  :: ndim
+        integer  :: it
+        integer  :: ihist
+        integer  :: i
+        integer  :: recompute
+        integer  :: fc
+        integer  :: icheck
+        integer  :: icheckmax
+        real(gp) :: tol
+        real(gp) :: displold
+        real(gp) :: curv
+        real(gp) :: overlap
+        real(gp) :: minoverlap
+        real(gp) :: tmp
+        logical  :: optCurvConv
+        logical  :: tooFar
+        logical  :: subspaceSucc
+        logical  :: tighten
+        character(len=9)   :: fn9
+        character(len=300)  :: comment
+        real(gp) :: curvgraddiff_tmp
+        real(gp) :: maxdiff
+        !functions
+        real(gp) :: ddot,dnrm2
+
+    !    if(bigdft_get_geocode(runObj)/='F'.and. .not.&
+    !            (trim(adjustl(char(runObj%run_mode)))==&
+    !                        'LENOSKY_SI_CLUSTERS_RUN_MODE'))then
+    !        stop 'STOP: saddle search only implemented for free BC'
+    !    endif
+
+        if((uinp%saddle_minoverlap0>=-1.0_gp).and.uinp%saddle_tighten)&
+        stop 'STOP: Do not use minoverlap and no tightening in combination'
+
+        if(mhgpsst%iproc==0)then
+            call yaml_comment('(MHGPS) Start Saddle Search ....',&
+                              hfill='-')
         endif
 
-        !make space in the history list
-        if (nhist.gt.uinp%saddle_nhistx_trans) then
-            nhist=uinp%saddle_nhistx_trans
-            do ihist=0,nhist-1
-                do iat=1,runObj%atoms%astruct%nat
-                    do i=1,3
-                        fsw%rxyz_trans(i,iat,ihist)=fsw%rxyz_trans(i,iat,ihist+1)
-                        fsw%fxyz_trans(i,iat,ihist)=fsw%fxyz_trans(i,iat,ihist+1)
-                        fsw%rxyzraw_trans(i,iat,ihist)=fsw%rxyzraw_trans(i,iat,ihist+1)
-                        fsw%fxyzraw_trans(i,iat,ihist)=fsw%fxyzraw_trans(i,iat,ihist+1)
-                        fsw%fstretch_trans(i,iat,ihist)=fsw%fstretch_trans(i,iat,ihist+1)
-                     enddo
-                enddo
-            enddo
+        nbond=1
+        fsw%ndim_rot=0
+        fsw%nhist_rot=0
+        fsw%alpha_rot=uinp%saddle_alpha0_rot
+        fsw%alpha_stretch_rot=uinp%saddle_alpha_stretch0
+    !    flag=.true.
+        fc=0
+        converged=.false.
+        subspaceSucc=.true.
+        optCurvConv=.true.
+        tol=uinp%saddle_tolc
+        displ=0.0_gp
+        displold=0.0_gp
+        detot=0.0_gp
+        curv=1000.0_gp
+        icheck=0
+    !    icheckmax=5
+        icheckmax=0
+        if(icheckmax==0 .and. uinp%saddle_tighten) icheckmax=1
+        tighten=.false.
+        alpha_stretch=uinp%saddle_alpha_stretch0
+        do i=0,uinp%saddle_nhistx_trans
+            fsw%idx_trans(i) = i
+        enddo
+
+        !Check and synchronize input minimum mode over all processors.
+        !This is important, since otherwise we get slightly different curvatures
+        !on each processor (in subroutine curvforce)
+        call mpibarrier(bigdft_mpi%mpi_comm)
+        if (bigdft_mpi%nproc >1) then
+           call mpibcast(minmode,comm=bigdft_mpi%mpi_comm,&
+                maxdiff=maxdiff)
+           if (maxdiff > epsilon(1.0_gp)) then
+              if (bigdft_mpi%iproc==0) then
+                 call yaml_warning('Input minimum mode not identical! '//&
+                      '(difference:'//trim(yaml_toa(maxdiff))//&
+                      ' ), however broadcasting from master node.')
+                 call yaml_flush_document()
+              end if
+           end if
+        end if
+
+        if(uinp%saddle_biomode)then
+           call findbonds('(MHGPS)',mhgpsst%iproc,uinp%mhgps_verbosity,bigdft_nat(runObj),rcov,&
+           bigdft_get_rxyz_ptr(runObj),nbond,fsw%iconnect)
         endif
+        fsw%wold_trans = f_malloc((/ 1.to.nbond/),id='wold_trans')
+        fsw%wold_rot = f_malloc((/ 1.to.nbond/),id='wold_rot')
+        fsw%minmode0_trans=minmode
+        fsw%minmodeold_trans=minmode
+        fsw%wold_trans=0.0_gp
+        fsw%fstretch_trans=0.0_gp
+        fsw%rxyz_trans(:,:,0)=wpos
 
-        !START FINDING LOWEST MODE
+        call fixfrag(mhgpsst,uinp,runObj,rcov,fsw%rxyz_trans(1,1,0))
 
-        !Walked too far? Then recompute direction of lowest mode!
-        tooFar = abs(displ-displold)>uinp%saddle_rmsdispl0*sqrt(dble(3*runObj%atoms%astruct%nat))
- 
-        !determine if final tightening should be done:
-        if(tighten.and.uinp%saddle_tighten)then
-            if(mhgpsst%iproc==0.and.uinp%mhgps_verbosity>=2)then
-                call yaml_comment('(MHGPS) tightening')
+
+        runObj%inputs%inputPsiId=0
+        call minenergyandforces(mhgpsst,.true.,uinp%imode,runObj,outs,&
+             fsw%rxyz_trans(1,1,0),fsw%rxyzraw_trans(1,1,0),&
+             fsw%fxyz_trans(1,1,0),fsw%fstretch_trans(1,1,0),&
+             fsw%fxyzraw_trans(1,1,0),etot,fsw%iconnect,nbond,fsw%wold_trans,&
+             uinp%saddle_alpha_stretch0,alpha_stretch)
+        fsw%rxyzold_trans=fsw%rxyz_trans(:,:,0)
+        ener_count=ener_count+1.0_gp
+        if(uinp%imode==2)then
+            fsw%rxyz_trans(:,:,0)=fsw%rxyz_trans(:,:,0)+&
+                                  alpha_stretch*fsw%fstretch_trans(:,:,0)
+        endif
+        call fnrmandforcemax(fsw%fxyzraw_trans(1,1,0),fnrm,fmax,&
+             runObj%atoms%astruct%nat)
+
+        fnrm=sqrt(fnrm)
+        etotold=etot
+        etotp=etot
+
+    !    itswitch=2
+        itswitch=-2
+        ndim=0
+        nhist=0
+        alpha=uinp%saddle_alpha0_trans
+        if(mhgpsst%iproc==0.and.uinp%mhgps_verbosity>=2)then
+            write(*,'(a)')&
+            '  #(MHGPS) METHOD COUNT  IT  Energy                '//&
+            'DIFF      FMAX      FNRM      alpha    ndim dspl         '//&
+            'alpha_strtch'
+            write(*,'(a,1x,i4.4,1x,i4.4,1x,es21.14,4(1x,es9.2),1x,'//&
+                     'i3.3,1x,es12.5,1x,es9.2)')&
+            '   (MHGPS) GEOPT ',nint(ener_count),0,etotp,detot,fmax,&
+            fnrm, alpha,ndim,displ,alpha_stretch
+        endif
+        do it=1,uinp%saddle_nit_trans
+            nhist=nhist+1
+
+            if ((.not. subspaceSucc) .or. &
+                 fnrm .gt. uinp%saddle_steepthresh_trans  .or. &
+                 it.le.itswitch) then
+                ndim=0
+                steep=.true.
+                !if (it.gt.itswitch) itswitch=it+nhistx_trans
+            else
+                steep=.false.
+                !alpha=alpha0_trans
             endif
-            tol=uinp%saddle_tolf
-            recompute=it
-            minoverlap=-2._gp !disable overlap control in opt_curv
-        else
-            tol=uinp%saddle_tolc
-            minoverlap=uinp%saddle_minoverlap0
-        endif
-        if(tooFar& !recompute lowest mode if walked too far
-          .or. it==1& !compute lowest mode at first step
-!          .or. (.not. optCurvConv)&
-          .or. (curv>=0.0_gp .and. &
-               ((mod(it,uinp%saddle_recompIfCurvPos)==0).or. fnrm<uinp%saddle_fnrmtol))&
-                                                  !For LJ
-                                                  !systems
-                                                  !recomputation
-                                                  !every
-                                                  !nth=recompIfCurvPos
-                                                  !step raises
-                                                  !stability
-          .or.recompute==it)then
-            !if(mhgpsst%iproc==0.and.uinp%mhgps_verbosity>=2)call yaml_comment(&
-            !'(MHGPS) METHOD COUNT  IT  CURVATURE             &
-            !DIFF      FMAX      FNRM      alpha    ndim')
-            if(mhgpsst%iproc==0.and.uinp%mhgps_verbosity>=2)write(*,'(a)')&
-            '  #(MHGPS) METHOD COUNT  IT  CURVATURE             '//&
-            'DIFF      GMAX      GNRM      alpha    ndim '//&
-            'alpha_strtch overl. displr       displp'
-            runObj%inputs%inputPsiId=1
-            !determine finite difference
-            call clean_minmode(runObj%atoms%astruct%nat,&
-                 bigdft_get_geocode(runObj),&
-                 fsw%rxyzraw_trans(1,1,nhist-1),minmode(1,1))
+
+            !cycle the index array
+            if (nhist.gt.uinp%saddle_nhistx_trans) then
+                nhist=uinp%saddle_nhistx_trans
+                idxtmp=fsw%idx_trans(0)
+                do ihist=0,nhist-1
+                    fsw%idx_trans(ihist)=fsw%idx_trans(ihist+1)
+                enddo
+                fsw%idx_trans(nhist)=idxtmp
+            endif
+
+            !START FINDING LOWEST MODE
+
+            !Walked too far? Then recompute direction of lowest mode!
+            tooFar = abs(displ-displold)>uinp%saddle_rmsdispl0*sqrt(dble(3*runObj%atoms%astruct%nat))
+     
+            !determine if final tightening should be done:
+            if(tighten.and.uinp%saddle_tighten)then
+                if(mhgpsst%iproc==0.and.uinp%mhgps_verbosity>=2)then
+                    call yaml_comment('(MHGPS) tightening')
+                endif
+                tol=uinp%saddle_tolf
+                recompute=it
+                minoverlap=-2._gp !disable overlap control in opt_curv
+            else
+                tol=uinp%saddle_tolc
+                minoverlap=uinp%saddle_minoverlap0
+            endif
+            if(tooFar& !recompute lowest mode if walked too far
+              .or. it==1& !compute lowest mode at first step
+    !          .or. (.not. optCurvConv)&
+              .or. (curv>=0.0_gp .and. &
+                   ((mod(it,uinp%saddle_recompIfCurvPos)==0).or. fnrm<uinp%saddle_fnrmtol))&
+                                                      !For LJ
+                                                      !systems
+                                                      !recomputation
+                                                      !every
+                                                      !nth=recompIfCurvPos
+                                                      !step raises
+                                                      !stability
+              .or.recompute==it)then
+                !if(mhgpsst%iproc==0.and.uinp%mhgps_verbosity>=2)call yaml_comment(&
+                !'(MHGPS) METHOD COUNT  IT  CURVATURE             &
+                !DIFF      FMAX      FNRM      alpha    ndim')
+                if(mhgpsst%iproc==0.and.uinp%mhgps_verbosity>=2)write(*,'(a)')&
+                '  #(MHGPS) METHOD COUNT  IT  CURVATURE             '//&
+                'DIFF      GMAX      GNRM      alpha    ndim '//&
+                'alpha_strtch overl. displr       displp'
+                runObj%inputs%inputPsiId=1
+                !determine finite difference
+                call clean_minmode(runObj%atoms%astruct%nat,&
+                     bigdft_get_geocode(runObj),&
+                     fsw%rxyzraw_trans(1,1,fsw%idx_trans(nhist-1)),minmode(1,1))
+                
+                dt=0.0_gp
+                maxd=-huge(1.0_gp)
+                do iat=1,runObj%atoms%astruct%nat
+                    dt=minmode(1,iat)**2+minmode(2,iat)**2+minmode(3,iat)**2
+                    maxd=max(maxd,dt)
+                enddo
+                maxd=sqrt(maxd)
+                curvgraddiff_tmp = uinp%saddle_curvforcediff / maxd
+                if(mhgpsst%iproc==0.and.uinp%mhgps_verbosity>=2)then
+                    call yaml_map('  (MHGPS) Finite difference spacing '//&
+                         'for curvature computation',curvgraddiff_tmp,&
+                         fmt='(1pe21.14)')
+                endif
+
+                !we have to compute minimum mode  at rxyzraw_trans(1,1,fsw%idx_trans(nhist-1))
+                !and not at rxyz_trans(1,1,fsw%idx_trans(nhist-1)), because we only know the
+                !forces at rxyzraw_trans(1,1,fsw%idx_trans(nhist-1))
+                call opt_curv(mhgpsst,it,uinp%imode,fsw,uinp,runObj,outs,&
+                     uinp%saddle_alpha0_rot,curvgraddiff_tmp,&
+                     uinp%saddle_nit_rot,uinp%saddle_nhistx_rot,&
+                     fsw%rxyzraw_trans(1,1,fsw%idx_trans(nhist-1)),&
+                     fsw%fxyzraw_trans(1,1,fsw%idx_trans(nhist-1)),minmode(1,1),curv,&
+                     rotforce(1,1),tol,ener_count,optCurvConv,fsw%iconnect,&
+                     nbond,uinp%saddle_alpha_rot_stretch0,&
+                     uinp%saddle_maxcurvrise,uinp%saddle_cutoffratio,&
+                     minoverlap)
+
+                runObj%inputs%inputPsiId=1
+                minmode = minmode / dnrm2(3*runObj%atoms%astruct%nat,minmode(1,1),1)
+    !            if(.not.optCurvConv)then
+    !                if(mhgpsst%iproc==0)call yaml_warning('(MHGPS) opt_curv '//&
+    !                                              'failed')
+    !                converged=.false.
+    ! stop 'opt_curv failed'
+    !                return
+    !            endif
+                overlap=ddot(3*runObj%atoms%astruct%nat,fsw%minmodeold_trans(1,1),1,minmode(1,1),1)
+                if(mhgpsst%iproc==0.and.uinp%mhgps_verbosity>=2)&
+                    call yaml_map('  (MHGPS) minmode overlap',overlap)
+                if((.not.optCurvConv).and. (overlap <0.85d0))then
+                    minmode=fsw%minmodeold_trans
+                endif
+                fsw%minmodeold_trans=minmode
+                displold=displ
+                recompute=huge(1)
+                !if(mhgpsst%iproc==0.and.mhgps_verbosity>=2)call yaml_comment(&
+                !'(MHGPS) METHOD COUNT  IT  Energy                &
+                !DIFF      FMAX      FNRM      alpha    ndim')
+                if(mhgpsst%iproc==0.and.uinp%mhgps_verbosity>=2)write(*,'(a)')&
+                '  #(MHGPS) METHOD COUNT  IT  Energy                '//&
+                'DIFF      FMAX      FNRM      alpha    ndim dspl   '//&
+                '      alpha_strtch'
+            endif
+            !END FINDING LOWEST MODE
             
+            call modify_gradient(runObj%atoms%astruct%nat,ndim,fsw%rrr_trans(1,1,1),fsw%eval_trans(1),&
+                 fsw%res_trans(1),fsw%fxyz_trans(1,1,fsw%idx_trans(nhist-1)),alpha,fsw%dd_trans(1,1))
+     
+            !save a version of dd without minmode direction in fsw%dd0_trans
+            !(used for gradient feedback)
+            !fsw%dd0_trans=dd-ddot(3*nat,dd(1,1),1,minmode(1,1),1)*minmode
+            tmp=-ddot(3*runObj%atoms%astruct%nat,fsw%dd_trans(1,1),1,minmode(1,1),1)
+            call vcopy(3*runObj%atoms%astruct%nat,fsw%dd_trans(1,1),1,fsw%dd0_trans(1,1),1) 
+            call daxpy(3*runObj%atoms%astruct%nat,tmp, minmode(1,1), 1, fsw%dd0_trans(1,1), 1 )
+     
+            !invert gradient in minmode direction
+            !dd=dd-2.0_gp*ddot(3*nat,dd(1,1),1,minmode(1,1),1)*minmode
+            tmp=2.0_gp*tmp
+            call daxpy(3*runObj%atoms%astruct%nat,tmp, minmode(1,1), 1, fsw%dd_trans(1,1), 1 )
+     
+            tt=0.0_gp
             dt=0.0_gp
             maxd=-huge(1.0_gp)
             do iat=1,runObj%atoms%astruct%nat
-                dt=minmode(1,iat)**2+minmode(2,iat)**2+minmode(3,iat)**2
+                dt=fsw%dd_trans(1,iat)**2+fsw%dd_trans(2,iat)**2+fsw%dd_trans(3,iat)**2
+                tt=tt+dt
                 maxd=max(maxd,dt)
             enddo
+            tt=sqrt(tt)
             maxd=sqrt(maxd)
-            curvgraddiff_tmp = uinp%saddle_curvforcediff / maxd
-            if(mhgpsst%iproc==0.and.uinp%mhgps_verbosity>=2)then
-                call yaml_map('  (MHGPS) Finite difference spacing '//&
-                     'for curvature computation',curvgraddiff_tmp,&
-                     fmt='(1pe21.14)')
+     
+            !trust radius approach
+            if(maxd>uinp%saddle_trustr .or. (curv>=0.0_gp .and. fnrm<uinp%saddle_fnrmtol))then
+    !        if(maxd>trustr)then
+                if(mhgpsst%iproc==0)call yaml_map('  (MHGPS) resize step ',maxd)
+                scl=0.5_gp*uinp%saddle_trustr/maxd
+                fsw%dd_trans=fsw%dd_trans*scl
+                tt=tt*scl
+                maxd=0.5_gp*uinp%saddle_trustr
             endif
-
-            !we have to compute minimum mode  at rxyzraw_trans(1,1,nhist-1)
-            !and not at rxyz_trans(1,1,nhist-1), because we only know the
-            !forces at rxyzraw_trans(1,1,nhist-1)
-            call opt_curv(mhgpsst,it,uinp%imode,fsw,uinp,runObj,outs,&
-                 uinp%saddle_alpha0_rot,curvgraddiff_tmp,&
-                 uinp%saddle_nit_rot,uinp%saddle_nhistx_rot,&
-                 fsw%rxyzraw_trans(1,1,nhist-1),&
-                 fsw%fxyzraw_trans(1,1,nhist-1),minmode(1,1),curv,&
-                 rotforce(1,1),tol,ener_count,optCurvConv,fsw%iconnect,&
-                 nbond,uinp%saddle_alpha_rot_stretch0,&
-                 uinp%saddle_maxcurvrise,uinp%saddle_cutoffratio,&
-                 minoverlap)
-
+            !do the move
+            fsw%rxyz_trans(:,:,fsw%idx_trans(nhist))=&
+                          fsw%rxyz_trans(:,:,fsw%idx_trans(nhist-1))-&
+                          fsw%dd_trans(:,:)
+            call fixfrag(mhgpsst,uinp,runObj,rcov,&
+                 fsw%rxyz_trans(1,1,fsw%idx_trans(nhist)))
+            !displ=displ+tt
+     
+            fsw%delta_trans=fsw%rxyz_trans(:,:,fsw%idx_trans(nhist))-&
+                             fsw%rxyzold_trans
+            displ=displ+dnrm2(3*runObj%atoms%astruct%nat,fsw%delta_trans(1,1),1)
             runObj%inputs%inputPsiId=1
-            minmode = minmode / dnrm2(3*runObj%atoms%astruct%nat,minmode(1,1),1)
-!            if(.not.optCurvConv)then
-!                if(mhgpsst%iproc==0)call yaml_warning('(MHGPS) opt_curv '//&
-!                                              'failed')
-!                converged=.false.
-! stop 'opt_curv failed'
-!                return
-!            endif
-            overlap=ddot(3*runObj%atoms%astruct%nat,fsw%minmodeold_trans(1,1),1,minmode(1,1),1)
-            if(mhgpsst%iproc==0.and.uinp%mhgps_verbosity>=2)&
-                call yaml_map('  (MHGPS) minmode overlap',overlap)
-            if((.not.optCurvConv).and. (overlap <0.85d0))then
-                minmode=fsw%minmodeold_trans
-            endif
-            fsw%minmodeold_trans=minmode
-            displold=displ
-            recompute=huge(1)
-            !if(mhgpsst%iproc==0.and.mhgps_verbosity>=2)call yaml_comment(&
-            !'(MHGPS) METHOD COUNT  IT  Energy                &
-            !DIFF      FMAX      FNRM      alpha    ndim')
-            if(mhgpsst%iproc==0.and.uinp%mhgps_verbosity>=2)write(*,'(a)')&
-            '  #(MHGPS) METHOD COUNT  IT  Energy                '//&
-            'DIFF      FMAX      FNRM      alpha    ndim dspl   '//&
-            '      alpha_strtch'
-        endif
-        !END FINDING LOWEST MODE
-        
-        call modify_gradient(runObj%atoms%astruct%nat,ndim,fsw%rrr_trans(1,1,1),fsw%eval_trans(1),&
-             fsw%res_trans(1),fsw%fxyz_trans(1,1,nhist-1),alpha,fsw%dd_trans(1,1))
- 
-        !save a version of dd without minmode direction in fsw%dd0_trans
-        !(used for gradient feedback)
-        !fsw%dd0_trans=dd-ddot(3*nat,dd(1,1),1,minmode(1,1),1)*minmode
-        tmp=-ddot(3*runObj%atoms%astruct%nat,fsw%dd_trans(1,1),1,minmode(1,1),1)
-        call vcopy(3*runObj%atoms%astruct%nat,fsw%dd_trans(1,1),1,fsw%dd0_trans(1,1),1) 
-        call daxpy(3*runObj%atoms%astruct%nat,tmp, minmode(1,1), 1, fsw%dd0_trans(1,1), 1 )
- 
-        !invert gradient in minmode direction
-        !dd=dd-2.0_gp*ddot(3*nat,dd(1,1),1,minmode(1,1),1)*minmode
-        tmp=2.0_gp*tmp
-        call daxpy(3*runObj%atoms%astruct%nat,tmp, minmode(1,1), 1, fsw%dd_trans(1,1), 1 )
- 
-        tt=0.0_gp
-        dt=0.0_gp
-        maxd=-huge(1.0_gp)
-        do iat=1,runObj%atoms%astruct%nat
-            dt=fsw%dd_trans(1,iat)**2+fsw%dd_trans(2,iat)**2+fsw%dd_trans(3,iat)**2
-            tt=tt+dt
-            maxd=max(maxd,dt)
-        enddo
-        tt=sqrt(tt)
-        maxd=sqrt(maxd)
- 
-        !trust radius approach
-        if(maxd>uinp%saddle_trustr .or. (curv>=0.0_gp .and. fnrm<uinp%saddle_fnrmtol))then
-!        if(maxd>trustr)then
-            if(mhgpsst%iproc==0)call yaml_map('  (MHGPS) resize step ',maxd)
-            scl=0.5_gp*uinp%saddle_trustr/maxd
-            fsw%dd_trans=fsw%dd_trans*scl
-            tt=tt*scl
-            maxd=0.5_gp*uinp%saddle_trustr
-        endif
-        !do the move
-        fsw%rxyz_trans(:,:,nhist)=fsw%rxyz_trans(:,:,nhist-1)-fsw%dd_trans(:,:)
-        call fixfrag(mhgpsst,uinp,runObj,rcov,fsw%rxyz_trans(1,1,nhist))
-        !displ=displ+tt
- 
-        fsw%delta_trans=fsw%rxyz_trans(:,:,nhist)-fsw%rxyzold_trans
-        displ=displ+dnrm2(3*runObj%atoms%astruct%nat,fsw%delta_trans(1,1),1)
-        runObj%inputs%inputPsiId=1
-        call minenergyandforces(mhgpsst,.true.,uinp%imode,runObj,outs,&
-             fsw%rxyz_trans(1,1,nhist),fsw%rxyzraw_trans(1,1,nhist),fsw%fxyz_trans(1,1,nhist),&
-             fsw%fstretch_trans(1,1,nhist),fsw%fxyzraw_trans(1,1,nhist),etotp,fsw%iconnect,&
-             nbond,fsw%wold_trans,uinp%saddle_alpha_stretch0,alpha_stretch)
+            call minenergyandforces(mhgpsst,.true.,uinp%imode,runObj,outs,&
+                 fsw%rxyz_trans(1,1,fsw%idx_trans(nhist)),&
+                 fsw%rxyzraw_trans(1,1,fsw%idx_trans(nhist)),&
+                 fsw%fxyz_trans(1,1,fsw%idx_trans(nhist)),&
+                 fsw%fstretch_trans(1,1,fsw%idx_trans(nhist)),&
+                 fsw%fxyzraw_trans(1,1,fsw%idx_trans(nhist)),&
+                 etotp,fsw%iconnect,nbond,fsw%wold_trans,&
+                 uinp%saddle_alpha_stretch0,alpha_stretch)
         ener_count=ener_count+1.0_gp
-        fsw%rxyzold_trans=fsw%rxyz_trans(:,:,nhist)
+        fsw%rxyzold_trans=fsw%rxyz_trans(:,:,fsw%idx_trans(nhist))
         detot=etotp-etotold
  
-        call fnrmandforcemax(fsw%fxyzraw_trans(1,1,nhist),fnrm,fmax,runObj%atoms%astruct%nat)
+        call fnrmandforcemax(fsw%fxyzraw_trans(1,1,fsw%idx_trans(nhist)),&
+             fnrm,fmax,runObj%atoms%astruct%nat)
         fnrm=sqrt(fnrm)
         if (mhgpsst%iproc == 0 .and. uinp%mhgps_verbosity >=4) then
            fc=fc+1
@@ -583,12 +597,12 @@ subroutine findsad(mhgpsst,fsw,uinp,runObj,outs,rcov,&
            'the guessed reaction path| fnrm, fmax = ',fnrm,fmax
            call astruct_dump_to_file(bigdft_get_astruct_ptr(runObj),&
                 mhgpsst%currDir//'/sad'//trim(adjustl(mhgpsst%isadc))//'_posout_'//&
-                fn9,trim(comment),etotp,fsw%rxyz_trans(:,:,nhist),&
+                fn9,trim(comment),etotp,fsw%rxyz_trans(:,:,fsw%idx_trans(nhist)),&
                 forces=minmode)
         endif
 
-        tmp=-ddot(3*runObj%atoms%astruct%nat,fsw%fxyz_trans(1,1,nhist),1,minmode(1,1),1)
-        call vcopy(3*runObj%atoms%astruct%nat,fsw%fxyz_trans(1,1,nhist),1,fsw%ftmp_trans(1,1),1) 
+        tmp=-ddot(3*runObj%atoms%astruct%nat,fsw%fxyz_trans(1,1,fsw%idx_trans(nhist)),1,minmode(1,1),1)
+        call vcopy(3*runObj%atoms%astruct%nat,fsw%fxyz_trans(1,1,fsw%idx_trans(nhist)),1,fsw%ftmp_trans(1,1),1) 
         call daxpy(3*runObj%atoms%astruct%nat,tmp, minmode(1,1), 1, fsw%ftmp_trans(1,1), 1 )
         cosangle=-dot_double(3*runObj%atoms%astruct%nat,fsw%ftmp_trans(1,1),1,fsw%dd0_trans(1,1),1)/&
                  sqrt(dot_double(3*runObj%atoms%astruct%nat,fsw%ftmp_trans(1,1),1,fsw%ftmp_trans(1,1),1)*&
@@ -616,8 +630,8 @@ subroutine findsad(mhgpsst,fsw,uinp,runObj,outs,rcov,&
         if(uinp%imode==2)then
 !           fsw%fstretch_trans(:,:,nhist)=fsw%fstretch_trans(:,:,nhist)-2.0_gp*&
 !            ddot(3*nat,fsw%fstretch_trans(1,1,nhist),1,minmode(1,1),1)*minmode
-            fsw%dds_trans=alpha_stretch*(fsw%fstretch_trans(:,:,nhist)-&
-                2.0_gp*ddot(3*runObj%atoms%astruct%nat,fsw%fstretch_trans(1,1,nhist),1,&
+            fsw%dds_trans=alpha_stretch*(fsw%fstretch_trans(:,:,fsw%idx_trans(nhist))-&
+                2.0_gp*ddot(3*runObj%atoms%astruct%nat,fsw%fstretch_trans(1,1,fsw%idx_trans(nhist)),1,&
                 minmode(1,1),1)*minmode)
             dt=0.0_gp
             maxd=-huge(1.0_gp)
@@ -638,7 +652,7 @@ subroutine findsad(mhgpsst,fsw,uinp,runObj,outs,rcov,&
                 fsw%dds_trans=fsw%dds_trans*scl
             endif
             !fsw%rxyz_trans(:,:,nhist)=fsw%rxyz_trans(:,:,nhist)+alpha_stretch*fsw%fstretch_trans(:,:,nhist)
-            fsw%rxyz_trans(:,:,nhist)=fsw%rxyz_trans(:,:,nhist)+fsw%dds_trans
+            fsw%rxyz_trans(:,:,fsw%idx_trans(nhist))=fsw%rxyz_trans(:,:,fsw%idx_trans(nhist))+fsw%dds_trans
 !            if (bigdft_get_geocode(runObj) == 'F') then
 !            call fixfrag_posvel(nat,rcov,fsw%rxyz_trans(1,1,nhist),tnatdmy,1,fixfragmented)
 !                if(fixfragmented .and. uinp%mhgps_verbosity >=2.and. mhgpsst%iproc==0)&
@@ -655,7 +669,7 @@ subroutine findsad(mhgpsst,fsw,uinp,runObj,outs,rcov,&
         call getSubSpaceEvecEval('(MHGPS)',mhgpsst%iproc,&
              uinp%mhgps_verbosity,runObj%atoms%astruct%nat,nhist,&
              uinp%saddle_nhistx_trans,ndim,uinp%saddle_cutoffratio,&
-             fsw%lwork_trans,fsw%work_trans,fsw%rxyz_trans,&
+             fsw%lwork_trans,fsw%work_trans,fsw%idx_trans,fsw%rxyz_trans,&
              fsw%fxyz_trans,fsw%aa_trans,fsw%rr_trans,fsw%ff_trans,&
              fsw%rrr_trans,fsw%fff_trans,fsw%eval_trans,&
              fsw%res_trans,subspaceSucc)
@@ -677,8 +691,8 @@ subroutine findsad(mhgpsst,fsw,uinp,runObj,outs,rcov,&
     
     do iat=1,runObj%atoms%astruct%nat
         do i=1,3
-            wpos(i,iat)= fsw%rxyz_trans(i,iat,nhist)
-            fout(i,iat)= fsw%fxyzraw_trans(i,iat,nhist)
+            wpos(i,iat)= fsw%rxyz_trans(i,iat,fsw%idx_trans(nhist))
+            fout(i,iat)= fsw%fxyzraw_trans(i,iat,fsw%idx_trans(nhist))
         enddo
     enddo
     call f_free(fsw%wold_trans)
@@ -724,6 +738,8 @@ subroutine opt_curv(mhgpsst,itgeopt,imode,fsw,uinp,runObj,outs,alpha0,curvforced
     real(gp), dimension(3,runObj%atoms%astruct%nat) :: dxyzin0
     !internal
     integer, parameter         :: nmaxrise=10
+    integer                    :: idxtmp
+    integer                    :: i
     integer                    :: nrise, itup
     real(gp), dimension(3,runObj%atoms%astruct%nat) :: rxyzOld,delta
     real(gp)                   :: displr,displp
@@ -739,6 +755,9 @@ real(gp) :: alpha0int
         fsw%ndim_rot=0
         fsw%nhist_rot=0
         fsw%alpha_rot=alpha0
+        do i=0,nhistx
+            fsw%idx_rot(i)=i
+        enddo
     endif
     alpha0int=alpha0
 
@@ -753,7 +772,7 @@ real(gp) :: alpha0int
     if(fsw%nhist_rot==0)then
         do iat=1,runObj%atoms%astruct%nat
            do l=1,3
-              fsw%rxyz_rot(l,iat,fsw%nhist_rot)=dxyzin(l,iat)
+              fsw%rxyz_rot(l,iat,fsw%idx_rot(0))=dxyzin(l,iat)
               rxyzOld(l,iat)=dxyzin(l,iat)
               dxyzin0(l,iat)=dxyzin(l,iat)
            enddo
@@ -761,20 +780,20 @@ real(gp) :: alpha0int
     endif
 
     call mincurvforce(mhgpsst,imode,runObj,outs,curvforcediff,&
-         rxyz_fix(1,1),fxyz_fix(1,1),fsw%rxyz_rot(1,1,fsw%nhist_rot),&
-         fsw%fxyz_rot(1,1,fsw%nhist_rot),fsw%fstretch_rot(1,1,fsw%nhist_rot),&
-         fsw%fxyzraw_rot(1,1,fsw%nhist_rot),curv,1,ener_count,iconnect,nbond,fsw%wold_rot,&
+         rxyz_fix(1,1),fxyz_fix(1,1),fsw%rxyz_rot(1,1,fsw%idx_rot(fsw%nhist_rot)),&
+         fsw%fxyz_rot(1,1,fsw%idx_rot(fsw%nhist_rot)),fsw%fstretch_rot(1,1,fsw%idx_rot(fsw%nhist_rot)),&
+         fsw%fxyzraw_rot(1,1,fsw%idx_rot(fsw%nhist_rot)),curv,1,ener_count,iconnect,nbond,fsw%wold_rot,&
          alpha_stretch0,fsw%alpha_stretch_rot)
     if(imode==2)then
-        fsw%rxyz_rot(:,:,fsw%nhist_rot)=fsw%rxyz_rot(:,:,fsw%nhist_rot)+&
-                        fsw%alpha_stretch_rot*fsw%fstretch_rot(:,:,fsw%nhist_rot)
+        fsw%rxyz_rot(:,:,fsw%idx_rot(fsw%nhist_rot))=fsw%rxyz_rot(:,:,fsw%idx_rot(fsw%nhist_rot))+&
+                        fsw%alpha_stretch_rot*fsw%fstretch_rot(:,:,fsw%idx_rot(fsw%nhist_rot))
     endif
 
-    call fnrmandforcemax(fsw%fxyzraw_rot(1,1,fsw%nhist_rot),fnrm,fmax,runObj%atoms%astruct%nat)
+    call fnrmandforcemax(fsw%fxyzraw_rot(1,1,fsw%idx_rot(fsw%nhist_rot)),fnrm,fmax,runObj%atoms%astruct%nat)
     fnrm=sqrt(fnrm)
     curvold=curv
     curvp=curv
-    overlap=ddot(3*runObj%atoms%astruct%nat,dxyzin0(1,1),1,fsw%rxyz_rot(1,1,fsw%nhist_rot),1)
+    overlap=ddot(3*runObj%atoms%astruct%nat,dxyzin0(1,1),1,fsw%rxyz_rot(1,1,fsw%idx_rot(fsw%nhist_rot)),1)
  
     if(mhgpsst%iproc==0.and.uinp%mhgps_verbosity>=2)&
      write(*,'(a,1x,i4.4,1x,i4.4,1x,es21.14,4(1x,es9.2),1x,i3.3,'//&
@@ -793,23 +812,18 @@ real(gp) :: alpha0int
             steep=.false.
         endif
 
-        ! make space in the history list
+        ! cycle the index array
         if (fsw%nhist_rot.gt.nhistx) then
             fsw%nhist_rot=nhistx
+            idxtmp = fsw%idx_rot(0)
             do ihist=0,fsw%nhist_rot-1
-                do iat=1,runObj%atoms%astruct%nat
-                    do l=1,3
-                        fsw%rxyz_rot(l,iat,ihist)=fsw%rxyz_rot(l,iat,ihist+1)
-                        fsw%fxyz_rot(l,iat,ihist)=fsw%fxyz_rot(l,iat,ihist+1)
-                        fsw%fxyzraw_rot(l,iat,ihist)=fsw%fxyzraw_rot(l,iat,ihist+1)
-                        fsw%fstretch_rot(l,iat,ihist)=fsw%fstretch_rot(l,iat,ihist+1)
-                    enddo
-                enddo
+                fsw%idx_rot(ihist) = fsw%idx_rot(ihist+1)
             enddo
+            fsw%idx_rot(fsw%nhist_rot)=idxtmp
         endif
         500 continue
         call modify_gradient(runObj%atoms%astruct%nat,fsw%ndim_rot,fsw%rrr_rot(1,1,1),fsw%eval_rot(1),fsw%res_rot(1),&
-             fsw%fxyz_rot(1,1,fsw%nhist_rot-1),fsw%alpha_rot,fsw%dd_rot(1,1))
+             fsw%fxyz_rot(1,1,fsw%idx_rot(fsw%nhist_rot-1)),fsw%alpha_rot,fsw%dd_rot(1,1))
 
         tt=0.0_gp
         do iat=1,runObj%atoms%astruct%nat
@@ -820,25 +834,25 @@ real(gp) :: alpha0int
 !        displ=displ+sqrt(tt)
 
         do iat=1,runObj%atoms%astruct%nat
-            fsw%rxyz_rot(1,iat,fsw%nhist_rot)=fsw%rxyz_rot(1,iat,fsw%nhist_rot-1)-fsw%dd_rot(1,iat)
-            fsw%rxyz_rot(2,iat,fsw%nhist_rot)=fsw%rxyz_rot(2,iat,fsw%nhist_rot-1)-fsw%dd_rot(2,iat)
-            fsw%rxyz_rot(3,iat,fsw%nhist_rot)=fsw%rxyz_rot(3,iat,fsw%nhist_rot-1)-fsw%dd_rot(3,iat)
+            fsw%rxyz_rot(1,iat,fsw%idx_rot(fsw%nhist_rot))=fsw%rxyz_rot(1,iat,fsw%idx_rot(fsw%nhist_rot-1))-fsw%dd_rot(1,iat)
+            fsw%rxyz_rot(2,iat,fsw%idx_rot(fsw%nhist_rot))=fsw%rxyz_rot(2,iat,fsw%idx_rot(fsw%nhist_rot-1))-fsw%dd_rot(2,iat)
+            fsw%rxyz_rot(3,iat,fsw%idx_rot(fsw%nhist_rot))=fsw%rxyz_rot(3,iat,fsw%idx_rot(fsw%nhist_rot-1))-fsw%dd_rot(3,iat)
         enddo
 
-        delta=fsw%rxyz_rot(:,:,fsw%nhist_rot)-rxyzOld
+        delta=fsw%rxyz_rot(:,:,fsw%idx_rot(fsw%nhist_rot))-rxyzOld
         displr=displr+dnrm2(3*runObj%atoms%astruct%nat,delta(1,1),1)
         call mincurvforce(mhgpsst,imode,runObj,outs,curvforcediff,&
-             rxyz_fix(1,1),fxyz_fix(1,1),fsw%rxyz_rot(1,1,fsw%nhist_rot),&
-             fsw%fxyz_rot(1,1,fsw%nhist_rot),fsw%fstretch_rot(1,1,fsw%nhist_rot),&
-             fsw%fxyzraw_rot(1,1,fsw%nhist_rot),curvp,1,ener_count,iconnect,nbond,&
+             rxyz_fix(1,1),fxyz_fix(1,1),fsw%rxyz_rot(1,1,fsw%idx_rot(fsw%nhist_rot)),&
+             fsw%fxyz_rot(1,1,fsw%idx_rot(fsw%nhist_rot)),fsw%fstretch_rot(1,1,fsw%idx_rot(fsw%nhist_rot)),&
+             fsw%fxyzraw_rot(1,1,fsw%idx_rot(fsw%nhist_rot)),curvp,1,ener_count,iconnect,nbond,&
              fsw%wold_rot,alpha_stretch0,fsw%alpha_stretch_rot)
         dcurv=curvp-curvold
 
-        call fnrmandforcemax(fsw%fxyzraw_rot(1,1,fsw%nhist_rot),fnrm,fmax,runObj%atoms%astruct%nat)
+        call fnrmandforcemax(fsw%fxyzraw_rot(1,1,fsw%idx_rot(fsw%nhist_rot)),fnrm,fmax,runObj%atoms%astruct%nat)
         fnrm=sqrt(fnrm)
-        cosangle=-dot_double(3*runObj%atoms%astruct%nat,fsw%fxyz_rot(1,1,fsw%nhist_rot),1,fsw%dd_rot(1,1),1)/&
-                  sqrt(dot_double(3*runObj%atoms%astruct%nat,fsw%fxyz_rot(1,1,fsw%nhist_rot),1,&
-                  fsw%fxyz_rot(1,1,fsw%nhist_rot),1)*&
+        cosangle=-dot_double(3*runObj%atoms%astruct%nat,fsw%fxyz_rot(1,1,fsw%idx_rot(fsw%nhist_rot)),1,fsw%dd_rot(1,1),1)/&
+                  sqrt(dot_double(3*runObj%atoms%astruct%nat,fsw%fxyz_rot(1,1,fsw%idx_rot(fsw%nhist_rot)),1,&
+                  fsw%fxyz_rot(1,1,fsw%idx_rot(fsw%nhist_rot)),1)*&
                   dot_double(3*runObj%atoms%astruct%nat,fsw%dd_rot(1,1),1,fsw%dd_rot(1,1),1))
 
         if (dcurv.gt.maxcurvrise .and. fsw%alpha_rot>1.e-1_gp*alpha0int) then 
@@ -848,7 +862,7 @@ real(gp) :: alpha0int
                 call yaml_comment('INFO: (MHGPS) Curv. raised by'//&
                      ' more than maxcurvrise '//trim(yaml_toa(it))//&
                      ''//trim(yaml_toa(dcurv)))
-            overlap=ddot(3*runObj%atoms%astruct%nat,dxyzin0(1,1),1,fsw%rxyz_rot(1,1,fsw%nhist_rot),1)
+            overlap=ddot(3*runObj%atoms%astruct%nat,dxyzin0(1,1),1,fsw%rxyz_rot(1,1,fsw%idx_rot(fsw%nhist_rot)),1)
             if(mhgpsst%iproc==0.and.uinp%mhgps_verbosity>=2)&
                 write(*,'(a,1x,i4.4,1x,i4.4,1x,es21.14,4(1x,es9.2)'//&
                       ',1x,i3.3,2(1x,es9.2),2(1x,es12.5))')&
@@ -868,10 +882,10 @@ real(gp) :: alpha0int
                 runObj%inputs%inputPsiId=0
                 call mincurvforce(mhgpsst,imode,runObj,outs,&
                      curvforcediff,rxyz_fix(1,1),fxyz_fix(1,1),&
-                     fsw%rxyz_rot(1,1,fsw%nhist_rot-1),&
-                     fsw%fxyz_rot(1,1,fsw%nhist_rot-1),&
-                     fsw%fstretch_rot(1,1,fsw%nhist_rot-1),&
-                     fsw%fxyzraw_rot(1,1,fsw%nhist_rot-1),curvold,1,&
+                     fsw%rxyz_rot(1,1,fsw%idx_rot(fsw%nhist_rot-1)),&
+                     fsw%fxyz_rot(1,1,fsw%idx_rot(fsw%nhist_rot-1)),&
+                     fsw%fstretch_rot(1,1,fsw%idx_rot(fsw%nhist_rot-1)),&
+                     fsw%fxyzraw_rot(1,1,fsw%idx_rot(fsw%nhist_rot-1)),curvold,1,&
                      ener_count,iconnect,nbond,fsw%wold_rot,&
                      alpha_stretch0,fsw%alpha_stretch_rot)
                 if(mhgpsst%iproc==0.and.uinp%mhgps_verbosity>=2)&
@@ -882,18 +896,21 @@ real(gp) :: alpha0int
                       fsw%alpha_stretch_rot,displr,displp
             endif
             do iat=1,runObj%atoms%astruct%nat
-                fsw%rxyz_rot(1,iat,0)=fsw%rxyz_rot(1,iat,fsw%nhist_rot-1)
-                fsw%rxyz_rot(2,iat,0)=fsw%rxyz_rot(2,iat,fsw%nhist_rot-1)
-                fsw%rxyz_rot(3,iat,0)=fsw%rxyz_rot(3,iat,fsw%nhist_rot-1)
+                fsw%rxyz_rot(1,iat,0)=fsw%rxyz_rot(1,iat,fsw%idx_rot(fsw%nhist_rot-1))
+                fsw%rxyz_rot(2,iat,0)=fsw%rxyz_rot(2,iat,fsw%idx_rot(fsw%nhist_rot-1))
+                fsw%rxyz_rot(3,iat,0)=fsw%rxyz_rot(3,iat,fsw%idx_rot(fsw%nhist_rot-1))
  
-                fsw%fxyz_rot(1,iat,0)=fsw%fxyzraw_rot(1,iat,fsw%nhist_rot-1)
-                fsw%fxyz_rot(2,iat,0)=fsw%fxyzraw_rot(2,iat,fsw%nhist_rot-1)
-                fsw%fxyz_rot(3,iat,0)=fsw%fxyzraw_rot(3,iat,fsw%nhist_rot-1)
-                fsw%fxyzraw_rot(1,iat,0)=fsw%fxyzraw_rot(1,iat,fsw%nhist_rot-1)
-                fsw%fxyzraw_rot(2,iat,0)=fsw%fxyzraw_rot(2,iat,fsw%nhist_rot-1)
-                fsw%fxyzraw_rot(3,iat,0)=fsw%fxyzraw_rot(3,iat,fsw%nhist_rot-1)
+                fsw%fxyz_rot(1,iat,0)=fsw%fxyzraw_rot(1,iat,fsw%idx_rot(fsw%nhist_rot-1))
+                fsw%fxyz_rot(2,iat,0)=fsw%fxyzraw_rot(2,iat,fsw%idx_rot(fsw%nhist_rot-1))
+                fsw%fxyz_rot(3,iat,0)=fsw%fxyzraw_rot(3,iat,fsw%idx_rot(fsw%nhist_rot-1))
+                fsw%fxyzraw_rot(1,iat,0)=fsw%fxyzraw_rot(1,iat,fsw%idx_rot(fsw%nhist_rot-1))
+                fsw%fxyzraw_rot(2,iat,0)=fsw%fxyzraw_rot(2,iat,fsw%idx_rot(fsw%nhist_rot-1))
+                fsw%fxyzraw_rot(3,iat,0)=fsw%fxyzraw_rot(3,iat,fsw%idx_rot(fsw%nhist_rot-1))
             enddo
             fsw%nhist_rot=1
+            do i=0,nhistx
+                fsw%idx_rot(i) = i
+            enddo
             goto  500
         endif
         if (dcurv.gt.maxcurvrise) then 
@@ -905,10 +922,10 @@ real(gp) :: alpha0int
         curv=curvp
         curvold=curv
     
-        delta=fsw%rxyz_rot(:,:,fsw%nhist_rot)-rxyzOld
+        delta=fsw%rxyz_rot(:,:,fsw%idx_rot(fsw%nhist_rot))-rxyzOld
         displp=displp+dnrm2(3*runObj%atoms%astruct%nat,delta(1,1),1)
-        rxyzOld=fsw%rxyz_rot(:,:,fsw%nhist_rot)
-        overlap=ddot(3*runObj%atoms%astruct%nat,dxyzin0(1,1),1,fsw%rxyz_rot(1,1,fsw%nhist_rot),1)
+        rxyzOld=fsw%rxyz_rot(:,:,fsw%idx_rot(fsw%nhist_rot))
+        overlap=ddot(3*runObj%atoms%astruct%nat,dxyzin0(1,1),1,fsw%rxyz_rot(1,1,fsw%idx_rot(fsw%nhist_rot)),1)
         if(mhgpsst%iproc==0.and.uinp%mhgps_verbosity>=2)&
             write(*,'(a,1x,i4.4,1x,i4.4,1x,es21.14,4(1x,es9.2),1x,'//&
                  'i3.3,2(1x,es9.2),2(1x,es12.5))')&
@@ -918,15 +935,15 @@ real(gp) :: alpha0int
 
         do iat=1,runObj%atoms%astruct%nat
             do l=1,3
-                dxyzin(l,iat)= fsw%rxyz_rot(l,iat,fsw%nhist_rot) !to be done before stretch modification
+                dxyzin(l,iat)= fsw%rxyz_rot(l,iat,fsw%idx_rot(fsw%nhist_rot)) !to be done before stretch modification
             enddo
         enddo
 
         if(imode==2)then
-            fsw%rxyz_rot(:,:,fsw%nhist_rot)=&
-                fsw%rxyz_rot(:,:,fsw%nhist_rot)+&
+            fsw%rxyz_rot(:,:,fsw%idx_rot(fsw%nhist_rot))=&
+                fsw%rxyz_rot(:,:,fsw%idx_rot(fsw%nhist_rot))+&
                 fsw%alpha_stretch_rot*&
-                fsw%fstretch_rot(:,:,fsw%nhist_rot)
+                fsw%fstretch_rot(:,:,fsw%idx_rot(fsw%nhist_rot))
         endif
 
 !        if (cosangle.gt..20_gp) then
@@ -940,7 +957,7 @@ real(gp) :: alpha0int
         call getSubSpaceEvecEval('(MHGPS)',mhgpsst%iproc,&
              uinp%mhgps_verbosity,runObj%atoms%astruct%nat,&
              fsw%nhist_rot,nhistx,fsw%ndim_rot,cutoffratio,&
-             fsw%lwork_rot,fsw%work_rot,fsw%rxyz_rot,fsw%fxyz_rot,&
+             fsw%lwork_rot,fsw%work_rot,fsw%idx_rot,fsw%rxyz_rot,fsw%fxyz_rot,&
              fsw%aa_rot,fsw%rr_rot,fsw%ff_rot,fsw%rrr_rot,&
              fsw%fff_rot,fsw%eval_rot,fsw%res_rot,subspaceSucc)
         if(.not.subspaceSucc)stop 'subroutine findsad: no success in getSubSpaceEvecEval.'
@@ -967,7 +984,7 @@ real(gp) :: alpha0int
     do iat=1,runObj%atoms%astruct%nat
         do l=1,3
 !            dxyzin(l,iat)= fsw%rxyz_rot(l,iat,fsw%nhist_rot)
-            fout(l,iat)= fsw%fxyzraw_rot(l,iat,fsw%nhist_rot)
+            fout(l,iat)= fsw%fxyzraw_rot(l,iat,fsw%idx_rot(fsw%nhist_rot))
         enddo
     enddo
     curv=curvp
