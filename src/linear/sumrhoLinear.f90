@@ -1128,12 +1128,12 @@ subroutine check_communication_sumrho(iproc, nproc, orbs, lzd, collcom_sr, densp
 
   ! Communicate the data
   call transpose_communicate_psir(iproc, nproc, collcom_sr, psirwork, psirtwork)
-  do ipt=1,size(psirwork)
-      write(800+iproc,*) psirwork(ipt)
-  end do
-  do ipt=1,size(psirtwork)
-      write(810+iproc,*) psirtwork(ipt)
-  end do
+  !!do ipt=1,size(psirwork)
+  !!    write(800+iproc,*) psirwork(ipt)
+  !!end do
+  !!do ipt=1,size(psirtwork)
+  !!    write(810+iproc,*) psirtwork(ipt)
+  !!end do
   !! TEST #################################
   !do ipt=1,collcom_sr%ndimind_c
   !    if (iproc==0) write(*,'(a,i9,2f13.2)') 'psirtwork, ipt, val', ipt, psirtwork(ipt)
@@ -1392,14 +1392,16 @@ subroutine check_communication_sumrho(iproc, nproc, orbs, lzd, collcom_sr, densp
       do ispin=1,denskern%nspin
           ishift=(ispin-1)*lzd%glr%d%n1i*lzd%glr%d%n2i*(ii3e-ii3s+1)
           !$omp parallel default (none) &
-          !$omp private (i3, i2, i1, iixyz, ind, tt, i,j, ii, tti, ikernel, jj, ttj) &
+          !$omp private (i3, i2, i1, ii3, iixyz, ind, tt, i,j, ii, tti, ikernel, jj, ttj) &
           !$omp shared (ii3s, ii3e, lzd, weight, orbital_id, denskern, denskern_, rho_check) &
           !$omp shared (nxyz, factor, matrixindex_in_compressed_auxilliary, ispin, orbs, ishift)
           do i3=ii3s,ii3e
+              ii3=modulo(i3-1,lzd%glr%d%n3i)+1
               !$omp do
               do i2=1,lzd%glr%d%n2i
                   do i1=1,lzd%glr%d%n1i
-                      iixyz=(i3-1)*lzd%glr%d%n1i*lzd%glr%d%n2i+(i2-1)*lzd%glr%d%n1i+i1
+                      !iixyz=(i3-1)*lzd%glr%d%n1i*lzd%glr%d%n2i+(i2-1)*lzd%glr%d%n1i+i1
+                      iixyz=(ii3-1)*lzd%glr%d%n1i*lzd%glr%d%n2i+(i2-1)*lzd%glr%d%n1i+i1
                       ind=(i3-ii3s)*lzd%glr%d%n1i*lzd%glr%d%n2i+(i2-1)*lzd%glr%d%n1i+i1+ishift
                       tt=1.d-20
                       do i=1,weight(i1,i2,i3) !the number of orbitals touching this grid point
@@ -1446,17 +1448,17 @@ subroutine check_communication_sumrho(iproc, nproc, orbs, lzd, collcom_sr, densp
       ii=0
       do ispin=1,denskern%nspin
           ii=(ispin-1)*lzd%glr%d%n1i*lzd%glr%d%n2i*(ii3e-ii3s+1)
-          !$omp parallel default(none) shared(ii,lzd,ii3e,ii3s,rho,rho_check,sumdiff,maxdiff) private(i,tt)
-          !$omp do reduction(+:sumdiff) reduction(max:maxdiff) 
+          !!$omp parallel default(none) shared(ii,lzd,ii3e,ii3s,rho,rho_check,sumdiff,maxdiff) private(i,tt)
+          !!$omp do reduction(+:sumdiff) reduction(max:maxdiff) 
           do i=1,lzd%glr%d%n1i*lzd%glr%d%n2i*(ii3e-ii3s+1)
               !ii=ii+1
               tt=abs(rho(ii+i)-rho_check(ii+i))
-              !write(2000+iproc,'(a,2i9,4es18.8)') 'i,ii,rho(ii),rho_check(ii),diff,sumdiff',i,ii,rho(ii),rho_check(ii), tt, sumdiff
+              write(2000+iproc,'(a,2i9,4es18.8)') 'i,ii,rho(ii+i),rho_check(ii+1),diff,sumdiff',i,ii,rho(ii+i),rho_check(ii+i), tt, sumdiff
               sumdiff = sumdiff + tt**2
               if (tt>maxdiff) maxdiff=tt
           end do
-          !$omp end do
-          !$omp end parallel
+          !!$omp end do
+          !!$omp end parallel
       end do
     
       ! Reduce the results
