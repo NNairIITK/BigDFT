@@ -753,12 +753,12 @@ subroutine sumrho_for_TMBs(iproc, nproc, hx, hy, hz, collcom_sr, denskern, densk
                   nsize=collcom_sr%commarr_repartitionrho(4,jproc)
                   ishift_source=(ispin-1)*isend_total(mpisource) !spin shift for the send buffer
                   if (nsize>0) then
+                      write(*,'(6(a,i0))') 'process ',iproc, ' gets ',nsize,' elements at position ',istdest+ishift_dest, &
+                                           ' from position ',istsource+ishift_source,' on process ',mpisource, &
+                                           '; error code=',ierr
                       call mpi_get(rho(istdest+ishift_dest), nsize, mpi_double_precision, mpisource, &
                            int((istsource-1+ishift_source),kind=mpi_address_kind), &
                            nsize, mpi_double_precision, collcom_sr%window, ierr)
-                      !write(*,'(6(a,i0))') 'process ',iproc, ' gets ',nsize,' elements at position ',istdest+ishift_dest, &
-                      !                     ' from position ',istsource+ishift_source,' on process ',mpisource, &
-                      !                     '; error code=',ierr
                   end if
               end do
           end do
@@ -1003,6 +1003,7 @@ subroutine check_communication_sumrho(iproc, nproc, orbs, lzd, collcom_sr, densp
   use module_types
   use module_interfaces, except_this_one => check_communication_sumrho
   use yaml_output
+  use communications_init, only: check_whether_bounds_overlap
   use communications, only: transpose_switch_psir, transpose_communicate_psir, transpose_unswitch_psirt
   use sparsematrix_base, only: sparse_matrix, matrices
   use sparsematrix_init, only: matrixindex_in_compressed
@@ -1022,6 +1023,7 @@ subroutine check_communication_sumrho(iproc, nproc, orbs, lzd, collcom_sr, densp
   integer :: ist, iorb, iiorb, ilr, i, iz, ii, iy, ix, iix, iiy, iiz, iixyz, nxyz, ipt, i0, ierr, jproc
   integer :: i1, i2, i3, is1, is2, is3, ie1, ie2, ie3, ii3s, ii3e, nmax, jj, j, ind, ikernel, iim
   integer :: iorbmin, iorbmax, jorb, iall, istat, ispin,ishift
+  integer :: n2, n3, ii1, ii2, ii3
   real(kind=8) :: maxdiff, sumdiff, tt, tti, ttj, hxh, hyh, hzh, factor, ref_value
   real(kind=8) :: diff
   real(kind=8),dimension(:),allocatable :: psir, psirwork, psirtwork, rho, rho_check
@@ -1059,28 +1061,49 @@ subroutine check_communication_sumrho(iproc, nproc, orbs, lzd, collcom_sr, densp
   do iorb=1,orbs%norbp
       iiorb=orbs%isorb+iorb
       ilr=orbs%inWhichLocreg(iiorb)
-      !$omp parallel default(none) &
-      !$omp shared(orbs, lzd, psir, iorb, iiorb, ilr, ist, nxyz) &
-      !$omp private(i, ii, iz, iy, ix, iix, iiy, iiz, iixyz)
-      !$omp do
-      do i=1,lzd%llr(ilr)%d%n1i*lzd%llr(ilr)%d%n2i*lzd%llr(ilr)%d%n3i
-          ! coordinates within locreg
-          ii=i-1
-          iz=ii/(lzd%llr(ilr)%d%n1i*lzd%llr(ilr)%d%n2i)+1
-          ii=ii-(iz-1)*lzd%llr(ilr)%d%n1i*lzd%llr(ilr)%d%n2i
-          iy=ii/lzd%llr(ilr)%d%n1i+1
-          ix=ii-(iy-1)*lzd%llr(ilr)%d%n1i+1
-          ! coordinates within global region
-          iix=ix+lzd%llr(ilr)%nsi1
-          iiy=iy+lzd%llr(ilr)%nsi2
-          iiz=iz+lzd%llr(ilr)%nsi3
-          iixyz=(iiz-1)*lzd%glr%d%n1i*lzd%glr%d%n2i+(iiy-1)*lzd%glr%d%n1i+iix
-          ! assign unique value
-          !psir(ist+i)=dble(iiorb)*orbs%spinsgn(iiorb)!test_value_sumrho(iiorb,iixyz,nxyz)
-          psir(ist+i)=test_value_sumrho(iiorb,iixyz,nxyz)
+      !!$omp parallel default(none) &
+      !!$omp shared(orbs, lzd, psir, iorb, iiorb, ilr, ist, nxyz) &
+      !!$omp private(i, ii, iz, iy, ix, iix, iiy, iiz, iixyz)
+      !!$omp do
+      !!do i=1,lzd%llr(ilr)%d%n1i*lzd%llr(ilr)%d%n2i*lzd%llr(ilr)%d%n3i
+      !!    ! coordinates within locreg
+      !!    ii=i-1
+      !!    iz=ii/(lzd%llr(ilr)%d%n1i*lzd%llr(ilr)%d%n2i)+1
+      !!    ii=ii-(iz-1)*lzd%llr(ilr)%d%n1i*lzd%llr(ilr)%d%n2i
+      !!    iy=ii/lzd%llr(ilr)%d%n1i+1
+      !!    ix=ii-(iy-1)*lzd%llr(ilr)%d%n1i+1
+      !!    ! coordinates within global region
+      !!    iix=ix+lzd%llr(ilr)%nsi1
+      !!    iiy=iy+lzd%llr(ilr)%nsi2
+      !!    iiz=iz+lzd%llr(ilr)%nsi3
+      !!    iixyz=(iiz-1)*lzd%glr%d%n1i*lzd%glr%d%n2i+(iiy-1)*lzd%glr%d%n1i+iix
+      !!    ! assign unique value
+      !!    !psir(ist+i)=dble(iiorb)*orbs%spinsgn(iiorb)!test_value_sumrho(iiorb,iixyz,nxyz)
+      !!    psir(ist+i)=test_value_sumrho(iiorb,iixyz,nxyz)
+      !!end do
+      !!$omp end do
+      !!$omp end parallel
+      is3 = modulo(1+lzd%llr(ilr)%nsi3-1,lzd%glr%d%n3i)+1
+      ie3 = is3+lzd%llr(ilr)%d%n3i-1
+      is2 = modulo(1+lzd%llr(ilr)%nsi2-1,lzd%glr%d%n2i)+1
+      ie2 = is2+lzd%llr(ilr)%d%n2i-1
+      is1 = modulo(1+lzd%llr(ilr)%nsi1-1,lzd%glr%d%n1i)+1
+      ie1 = is1+lzd%llr(ilr)%d%n1i-1
+      i = 0
+      do i3=is3,ie3
+          ii3 = modulo(i3-1,lzd%glr%d%n3i)+1
+          n3 = (ii3-1)*lzd%glr%d%n1i*lzd%glr%d%n2i
+          do i2=is2,ie2
+              ii2 = modulo(i2-1,lzd%glr%d%n2i)+1
+              n2 = (ii2-1)*lzd%glr%d%n1i
+              do i1=is1,ie1
+                  ii1 = modulo(i1-1,lzd%glr%d%n1i)+1
+                  iixyz = n3 + n2 + ii1
+                  i = i + 1
+                  psir(ist+i)=test_value_sumrho(iiorb,iixyz,nxyz)
+              end do
+          end do
       end do
-      !$omp end do
-      !$omp end parallel
       ist = ist + lzd%llr(ilr)%d%n1i*lzd%llr(ilr)%d%n2i*lzd%llr(ilr)%d%n3i
   end do
   if(ist/=collcom_sr%ndimpsi_c) then
@@ -1105,6 +1128,12 @@ subroutine check_communication_sumrho(iproc, nproc, orbs, lzd, collcom_sr, densp
 
   ! Communicate the data
   call transpose_communicate_psir(iproc, nproc, collcom_sr, psirwork, psirtwork)
+  !!do ipt=1,size(psirwork)
+  !!    write(800+iproc,*) psirwork(ipt)
+  !!end do
+  !!do ipt=1,size(psirtwork)
+  !!    write(810+iproc,*) psirtwork(ipt)
+  !!end do
   !! TEST #################################
   !do ipt=1,collcom_sr%ndimind_c
   !    if (iproc==0) write(*,'(a,i9,2f13.2)') 'psirtwork, ipt, val', ipt, psirtwork(ipt)
@@ -1234,22 +1263,34 @@ subroutine check_communication_sumrho(iproc, nproc, orbs, lzd, collcom_sr, densp
       !end if
 
       do i3=ii3s,ii3e
+          ii3=modulo(i3-1,lzd%glr%d%n3i)+1
           do iorb=1,orbs%norbu
               ilr=orbs%inwhichlocreg(iorb)
-              is3=1+lzd%Llr(ilr)%nsi3
-              ie3=lzd%Llr(ilr)%nsi3+lzd%llr(ilr)%d%n3i
-              if (is3>i3 .or. i3>ie3) cycle
-              is1=1+lzd%Llr(ilr)%nsi1
-              ie1=lzd%Llr(ilr)%nsi1+lzd%llr(ilr)%d%n1i
-              is2=1+lzd%Llr(ilr)%nsi2
-              ie2=lzd%Llr(ilr)%nsi2+lzd%llr(ilr)%d%n2i
+              !is3=1+lzd%Llr(ilr)%nsi3
+              !ie3=lzd%Llr(ilr)%nsi3+lzd%llr(ilr)%d%n3i
+              is3=modulo(1+lzd%Llr(ilr)%nsi3-1,lzd%glr%d%n3i)+1
+              !ie3=is3+lzd%llr(ilr)%d%n3i-1
+              ie3=modulo(lzd%llr(ilr)%nsi3+lzd%llr(ilr)%d%n3i-1,lzd%glr%d%n3i)+1
+              !if (is3>i3 .or. i3>ie3) cycle
+              !if (.not.check_whether_bounds_overlap(is3,ie3,i3,i3)) cycle
+              if (.not.check_whether_bounds_overlap(is3,ie3,ii3,ii3)) cycle
+              !is1=1+lzd%Llr(ilr)%nsi1
+              !ie1=lzd%Llr(ilr)%nsi1+lzd%llr(ilr)%d%n1i
+              is1=modulo(1+lzd%Llr(ilr)%nsi1-1,lzd%glr%d%n1i)+1
+              ie1=is1+lzd%llr(ilr)%d%n1i-1
+              !is2=1+lzd%Llr(ilr)%nsi2
+              !ie2=lzd%Llr(ilr)%nsi2+lzd%llr(ilr)%d%n2i
+              is2=modulo(1+lzd%Llr(ilr)%nsi2-1,lzd%glr%d%n2i)+1
+              ie2=is2+lzd%llr(ilr)%d%n2i-1
               !$omp parallel default(none) &
-              !$omp shared(is2, ie2, is1, ie1, weight, i3) &
-              !$omp private(i2, i1) 
+              !$omp shared(is2, ie2, is1, ie1, weight, i3, lzd) &
+              !$omp private(i2, i1, ii2, ii1) 
               !$omp do
               do i2=is2,ie2
+                  ii2=modulo(i2-1,lzd%glr%d%n2i)+1
                   do i1=is1,ie1
-                      weight(i1,i2,i3) = weight(i1,i2,i3)+1
+                      ii1=modulo(i1-1,lzd%glr%d%n1i)+1
+                      weight(ii1,ii2,i3) = weight(ii1,ii2,i3)+1
                   end do
               end do
               !$omp end do
@@ -1269,28 +1310,39 @@ subroutine check_communication_sumrho(iproc, nproc, orbs, lzd, collcom_sr, densp
       iorbmin=1000000000
       iorbmax=-1000000000
       do i3=ii3s,ii3e
+          ii3=modulo(i3-1,lzd%glr%d%n3i)+1
           do iorb=1,orbs%norbu
               ilr=orbs%inwhichlocreg(iorb)
-              is3=1+lzd%Llr(ilr)%nsi3
-              ie3=lzd%Llr(ilr)%nsi3+lzd%llr(ilr)%d%n3i
-              if (is3>i3 .or. i3>ie3) cycle
-              is1=1+lzd%Llr(ilr)%nsi1
-              ie1=lzd%Llr(ilr)%nsi1+lzd%llr(ilr)%d%n1i
-              is2=1+lzd%Llr(ilr)%nsi2
-              ie2=lzd%Llr(ilr)%nsi2+lzd%llr(ilr)%d%n2i
+              !is3=1+lzd%Llr(ilr)%nsi3
+              !ie3=lzd%Llr(ilr)%nsi3+lzd%llr(ilr)%d%n3i
+              is3=modulo(1+lzd%Llr(ilr)%nsi3-1,lzd%glr%d%n3i)+1
+              ie3=modulo(lzd%llr(ilr)%nsi3+lzd%llr(ilr)%d%n3i-1,lzd%glr%d%n3i)+1
+              !if (is3>i3 .or. i3>ie3) cycle
+              !if (.not.check_whether_bounds_overlap(is3,ie3,i3,i3)) cycle
+              if (.not.check_whether_bounds_overlap(is3,ie3,ii3,ii3)) cycle
+              !is1=1+lzd%Llr(ilr)%nsi1
+              !ie1=lzd%Llr(ilr)%nsi1+lzd%llr(ilr)%d%n1i
+              !is2=1+lzd%Llr(ilr)%nsi2
+              !ie2=lzd%Llr(ilr)%nsi2+lzd%llr(ilr)%d%n2i
+              is1=modulo(1+lzd%Llr(ilr)%nsi1-1,lzd%glr%d%n1i)+1
+              ie1=is1+lzd%llr(ilr)%d%n1i-1
+              is2=modulo(1+lzd%Llr(ilr)%nsi2-1,lzd%glr%d%n2i)+1
+              ie2=is2+lzd%llr(ilr)%d%n2i-1
               !$omp parallel default(none) &
-              !$omp shared(is2, ie2, is1, ie1, weight, orbital_id, i3, iorb, iorbmin, iorbmax) &
-              !$omp private(i2, i1, jj)
+              !$omp shared(is2, ie2, is1, ie1, weight, orbital_id, i3, iorb, iorbmin, iorbmax, lzd) &
+              !$omp private(i2, i1, ii2, ii1, jj)
               !$omp do reduction(min:iorbmin) reduction(max:iorbmax)
               do i2=is2,ie2
+                  ii2=modulo(i2-1,lzd%glr%d%n2i)+1
                   do i1=is1,ie1
-                      jj=weight(i1,i2,i3)+1
+                      ii1=modulo(i1-1,lzd%glr%d%n1i)+1
+                      jj=weight(ii1,ii2,i3)+1
                       !weight(i1,i2,i3) = weight(i1,i2,i3)+1
                       !orbital_id(weight(i1,i2,i3),i1,i2,i3) = iorb
-                      orbital_id(jj,i1,i2,i3) = iorb
+                      orbital_id(jj,ii1,ii2,i3) = iorb
                       if (iorb<iorbmin) iorbmin=iorb
                       if (iorb>iorbmax) iorbmax=iorb
-                      weight(i1,i2,i3)=jj
+                      weight(ii1,ii2,i3)=jj
                   end do
               end do
               !$omp end do
@@ -1341,17 +1393,20 @@ subroutine check_communication_sumrho(iproc, nproc, orbs, lzd, collcom_sr, densp
     
       ! Now calculate the charge density and store the result in rho_check
       rho_check=f_malloc(max(lzd%glr%d%n1i*lzd%glr%d%n2i*(ii3e-ii3s+1)*denskern%nspin,1),id='rho_check')
+      write(*,*) 'iproc, ii3s, ii3e', iproc, ii3s, ii3e
       do ispin=1,denskern%nspin
           ishift=(ispin-1)*lzd%glr%d%n1i*lzd%glr%d%n2i*(ii3e-ii3s+1)
-          !$omp parallel default (none) &
-          !$omp private (i3, i2, i1, iixyz, ind, tt, i,j, ii, tti, ikernel, jj, ttj) &
-          !$omp shared (ii3s, ii3e, lzd, weight, orbital_id, denskern, denskern_, rho_check) &
-          !$omp shared (nxyz, factor, matrixindex_in_compressed_auxilliary, ispin, orbs, ishift)
+          !!$omp parallel default (none) &
+          !!$omp private (i3, i2, i1, ii3, iixyz, ind, tt, i,j, ii, tti, ikernel, jj, ttj) &
+          !!$omp shared (ii3s, ii3e, lzd, weight, orbital_id, denskern, denskern_, rho_check) &
+          !!$omp shared (nxyz, factor, matrixindex_in_compressed_auxilliary, ispin, orbs, ishift)
           do i3=ii3s,ii3e
-              !$omp do
+              ii3=modulo(i3-1,lzd%glr%d%n3i)+1
+              !!$omp do
               do i2=1,lzd%glr%d%n2i
                   do i1=1,lzd%glr%d%n1i
-                      iixyz=(i3-1)*lzd%glr%d%n1i*lzd%glr%d%n2i+(i2-1)*lzd%glr%d%n1i+i1
+                      !iixyz=(i3-1)*lzd%glr%d%n1i*lzd%glr%d%n2i+(i2-1)*lzd%glr%d%n1i+i1
+                      iixyz=(ii3-1)*lzd%glr%d%n1i*lzd%glr%d%n2i+(i2-1)*lzd%glr%d%n1i+i1
                       ind=(i3-ii3s)*lzd%glr%d%n1i*lzd%glr%d%n2i+(i2-1)*lzd%glr%d%n1i+i1+ishift
                       tt=1.d-20
                       do i=1,weight(i1,i2,i3) !the number of orbitals touching this grid point
@@ -1377,11 +1432,12 @@ subroutine check_communication_sumrho(iproc, nproc, orbs, lzd, collcom_sr, densp
                       end do
                       tt=tt*factor
                       rho_check(ind)=tt
+                      write(2100+iproc,'(a,4i9,es18.8)') 'ind, i1, i2, ii3, rho_check(ind)',ind, i1, i2, ii3, rho_check(ind)
                   end do
               end do
-              !$omp end do
+              !!$omp end do
           end do
-          !$omp end parallel
+          !!$omp end parallel
       end do
     
       call f_free(matrixindex_in_compressed_auxilliary)
@@ -1398,17 +1454,17 @@ subroutine check_communication_sumrho(iproc, nproc, orbs, lzd, collcom_sr, densp
       ii=0
       do ispin=1,denskern%nspin
           ii=(ispin-1)*lzd%glr%d%n1i*lzd%glr%d%n2i*(ii3e-ii3s+1)
-          !$omp parallel default(none) shared(ii,lzd,ii3e,ii3s,rho,rho_check,sumdiff,maxdiff) private(i,tt)
-          !$omp do reduction(+:sumdiff) reduction(max:maxdiff) 
+          !!$omp parallel default(none) shared(ii,lzd,ii3e,ii3s,rho,rho_check,sumdiff,maxdiff) private(i,tt)
+          !!$omp do reduction(+:sumdiff) reduction(max:maxdiff) 
           do i=1,lzd%glr%d%n1i*lzd%glr%d%n2i*(ii3e-ii3s+1)
               !ii=ii+1
               tt=abs(rho(ii+i)-rho_check(ii+i))
-              !write(2000+iproc,'(a,2i9,4es18.8)') 'i,ii,rho(ii),rho_check(ii),diff,sumdiff',i,ii,rho(ii),rho_check(ii), tt, sumdiff
+              write(2000+iproc,'(a,2i9,4es18.8)') 'i,ii,rho(ii+i),rho_check(ii+1),diff,sumdiff',i,ii,rho(ii+i),rho_check(ii+i), tt, sumdiff
               sumdiff = sumdiff + tt**2
               if (tt>maxdiff) maxdiff=tt
           end do
-          !$omp end do
-          !$omp end parallel
+          !!$omp end do
+          !!$omp end parallel
       end do
     
       ! Reduce the results

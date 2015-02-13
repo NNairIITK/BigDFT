@@ -392,16 +392,16 @@ subroutine global_to_local_parallel(Glr,Llr,nspin,size_rho,size_Lrho,rho,Lrho,i1
  indSpin=0
  ! Deactivate the spin for the moment
  do ispin=1,1!nspin
-     !!$omp parallel default(none) &
-     !!$omp shared(Glr, Llr, Lrho, rho, indSpin, i1s, i1e, i2s, i2e, i3s, i3e) &
-     !!$omp shared(ii1shift, ii2shift, ii3shift, ni1, ni2, ise) &
-     !!$omp private(ii1, ii2, ii3, i1glob, i2glob, i3glob, i1shift, i2shift, i3shift) &
-     !!$omp private(ist3S, ist3L, istsa, ist2S, ist2L, ists, istl, indSmall, indLarge) &
-     !!$omp private(iii1, iii2, iii3)
-     !!$omp do
+     !$omp parallel default(none) &
+     !$omp shared(Glr, Llr, Lrho, rho, indSpin, i1s, i1e, i2s, i2e, i3s, i3e) &
+     !$omp shared(i1shift, i2shift, i3shift, ni1, ni2, ise) &
+     !$omp private(ii1, ii2, ii3, i1glob, i2glob, i3glob, ii1shift, ii2shift, ii3shift) &
+     !$omp private(ist3S, ist3L, istsa, ist2S, ist2L, ists, istl, indSmall, indLarge) &
+     !$omp private(iii1, iii2, iii3)
+     !$omp do
      do ii3=i3s,i3e
          i3glob = ii3+ise(5)-1
-         i3=modulo(i3glob-1,glr%d%n3i)+1
+         !i3=modulo(i3glob-1,glr%d%n3i)+1
          if (modulo(ii3-1,glr%d%n3i)+1>modulo(i3e-1,glr%d%n3i)+1) then
              !This is a line before the wrap around, i.e. one needs a shift since 
              ii3shift = i3shift
@@ -418,7 +418,7 @@ subroutine global_to_local_parallel(Glr,Llr,nspin,size_rho,size_Lrho,rho,Lrho,i1
          istsa=ist3S-i1s+1
          do ii2=i2s,i2e
              i2glob = ii2+ise(3)-1
-             i2=modulo(i2glob-1,glr%d%n2i)+1
+             !i2=modulo(i2glob-1,glr%d%n2i)+1
              if (modulo(ii2-1,glr%d%n2i)+1>modulo(i2e-1,glr%d%n2i)+1) then
                  !This is a line before the wrap around, i.e. one needs a shift since 
                  !the potential in the global region starts with the wrapped around part
@@ -437,7 +437,7 @@ subroutine global_to_local_parallel(Glr,Llr,nspin,size_rho,size_Lrho,rho,Lrho,i1
              istl=ist3L+ist2L
              do ii1=i1s,i1e
                  i1glob = ii1+ise(1)-1
-                 i1=modulo(i1glob-1,glr%d%n1i)+1
+                 !i1=modulo(i1glob-1,glr%d%n1i)+1
                  if (modulo(ii1-1,glr%d%n1i)+1>modulo(i1e-1,glr%d%n1i)+1) then
                      !This is a line before the wrap around, i.e. one needs a shift since 
                      !the potential in the global region starts with the wrapped around part
@@ -455,17 +455,17 @@ subroutine global_to_local_parallel(Glr,Llr,nspin,size_rho,size_Lrho,rho,Lrho,i1
                  ! indLarge is the index in the global localization region. 
                  indLarge= iii1+istl
                  Lrho(indSmall)=rho(indLarge+indSpin)
-                 write(600+bigdft_mpi%iproc,'(a,14i8,2es16.8)') 'i1glob, i2glob, i3glob, i1, i2, i3, iii1, iii2, iii3, i1shift, i2shift, i3shift, indsmall, indlarge, val, testval', &
-                     i1glob, i2glob, i3glob, i1, i2, i3, iii1, iii2, iii3, i1shift, i2shift, i3shift, indsmall, indlarge, Lrho(indSmall), real((i1+(i2-1)*glr%d%n1i+(i3-1)*glr%d%n1i*glr%d%n2i),kind=8)
-                 if (abs(Lrho(indSmall)-real((i1+(i2-1)*glr%d%n1i+(i3-1)*glr%d%n1i*glr%d%n2i),kind=8))>1.d-3) then
-                     write(700+bigdft_mpi%iproc,'(a,11i8,2es16.8)') 'i1glob, i2glob, i3glob, i1, i2, i3, iii1, iii2, iii3, indsmall, indlarge, val, testval', &
-                         i1glob, i2glob, i3glob, i1, i2, i3, iii1, iii2, iii3, indsmall, indlarge, Lrho(indSmall), real((i1+(i2-1)*glr%d%n1i+(i3-1)*glr%d%n1i*glr%d%n2i),kind=8)
-                 end if
+                 !write(600+bigdft_mpi%iproc,'(a,14i7,2es16.8)') 'i1glob, i2glob, i3glob, i1, i2, i3, iii1, iii2, iii3, i1shift, i2shift, i3shift, indsmall, indlarge, val, testval', &
+                 !    i1glob, i2glob, i3glob, i1, i2, i3, iii1, iii2, iii3, i1shift, i2shift, i3shift, indsmall, indlarge, Lrho(indSmall), real((i1+(i2-1)*glr%d%n1i+(i3-1)*glr%d%n1i*glr%d%n2i),kind=8)
+                 !if (abs(Lrho(indSmall)-real((i1+(i2-1)*glr%d%n1i+(i3-1)*glr%d%n1i*glr%d%n2i),kind=8))>1.d-3) then
+                 !    write(700+bigdft_mpi%iproc,'(a,11i7,2es16.8)') 'i1glob, i2glob, i3glob, i1, i2, i3, iii1, iii2, iii3, indsmall, indlarge, val, testval', &
+                 !        i1glob, i2glob, i3glob, i1, i2, i3, iii1, iii2, iii3, indsmall, indlarge, Lrho(indSmall), real((i1+(i2-1)*glr%d%n1i+(i3-1)*glr%d%n1i*glr%d%n2i),kind=8)
+                 !end if
              end do
          end do
      end do
-     !!$omp end do
-     !!$omp end parallel
+     !$omp end do
+     !$omp end parallel
      indSpin=indSpin+Glr%d%n1i*Glr%d%n2i*Glr%d%n3i
  end do
 
