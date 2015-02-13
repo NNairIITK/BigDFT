@@ -992,8 +992,8 @@ subroutine check_communication_potential(iproc,denspot,tmb)
 
   call timing(bigdft_mpi%iproc,'check_pot','OF')
 
-  call mpi_finalize(ierr)
-  stop
+  !call mpi_finalize(ierr)
+  !stop
 
 end subroutine check_communication_potential
 
