@@ -349,7 +349,7 @@ subroutine determine_locregSphere_parallel(iproc,nproc,nlr,hx,hy,hz,astruct,orbs
          Llr(ilr)%nsi1= 2 * Llr(ilr)%ns1 - (Lnbl1 - Gnbl1)
          Llr(ilr)%nsi2= 2 * Llr(ilr)%ns2 - (Lnbl2 - Gnbl2)
          Llr(ilr)%nsi3= 2 * Llr(ilr)%ns3 - (Lnbl3 - Gnbl3)
-         write(*,*) 'ilr, Llr(ilr)%nsi3',ilr, Llr(ilr)%nsi3
+         !write(*,*) 'ilr, Llr(ilr)%nsi3',ilr, Llr(ilr)%nsi3
 
     
          !dimensions of the fine grid inside the localisation region

@@ -1111,8 +1111,8 @@ module communications
                            extent=extent/size_of_double
                            nsize=nsize/size_of_double
                            if(nsize>0) then
-                               write(*,'(a,6i9)') 'iproc, joverlap, nsize, extent, comm%nrecvbuf, total', &
-                                       iproc, joverlap, nsize, extent, comm%nrecvbuf, lzd%glr%d%n1i*lzd%glr%d%n2i*lzd%glr%d%n1i
+                               !write(*,'(a,6i9)') 'iproc, joverlap, nsize, extent, comm%nrecvbuf, total', &
+                               !        iproc, joverlap, nsize, extent, comm%nrecvbuf, lzd%glr%d%n1i*lzd%glr%d%n2i*lzd%glr%d%n1i
                                !!write(*,'(7(a,i0))') 'proc ',iproc,' gets ',nsize,' elements at ',ispin_shift+istdest, &
                                !!                     ' from proc ',mpisource,' at ',isend_shift+istsource,&
                                !!                     '; size(send)=',size(sendbuf),', size(recv)=',size(recvbuf)
@@ -1147,8 +1147,8 @@ module communications
                                    call mpi_win_lock(MPI_LOCK_EXCLUSIVE, mpisource, 0, comm%window, ierr)
                                    !write(*,'(2(a,i0))') 'AFTER: proc ',iproc,' calls lock for proc ',mpisource
                                end if
-                               write(*,'(a,5i10)') 'iproc, mpisource, ispin_shift+istdest, nsize, isend_shift+istsource-1', &
-                                   iproc, mpisource, ispin_shift+istdest, nsize, isend_shift+istsource-1
+                               !write(*,'(a,5i10)') 'iproc, mpisource, ispin_shift+istdest, nsize, isend_shift+istsource-1', &
+                               !!    iproc, mpisource, ispin_shift+istdest, nsize, isend_shift+istsource-1
                                call mpi_get(recvbuf(ispin_shift+istdest), nsize, &
                                     mpi_double_precision, mpisource, int((isend_shift+istsource-1),kind=mpi_address_kind), &
                                     1, comm%mpi_datatypes(joverlap), comm%window, ierr)
