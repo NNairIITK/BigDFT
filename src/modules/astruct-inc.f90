@@ -366,6 +366,7 @@ subroutine read_ascii_positions(ifile,filename,astruct,comment,energy,fxyz,getli
 
   call astruct_set_n_atoms(astruct, iat)
 
+
   !controls if the positions are provided within machine precision
   if (index(astruct%units, 'd0') > 0 .or. reduced) then
      lpsdbl=.true.

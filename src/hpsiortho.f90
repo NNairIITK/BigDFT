@@ -1138,6 +1138,7 @@ subroutine full_local_potential(iproc,nproc,orbs,Lzd,iflag,dpbox,xc,potential,po
    integer:: istl, ist, size_Lpot, i3s, i3e, i2s, i2e, i1s, i1e, iispin, ishift
    integer,dimension(:),allocatable:: ilrtable
    real(wp), dimension(:), pointer :: pot1
+   integer :: i1shift, i2shift, i3shift, i
    
    call timing(iproc,'Pot_commun    ','ON')
    call f_routine(id='full_local_potential')
@@ -1331,6 +1332,16 @@ subroutine full_local_potential(iproc,nproc,orbs,Lzd,iflag,dpbox,xc,potential,po
 
          !write(*,*) 'ne full_local_potential: comgp%nrecvbuf',comgp%nrecvbuf
 
+         !do i=1,comgp%nrecvbuf
+         !    write(510,'(es16.8)') comgp%recvbuf(i)
+         !end do
+         !do i=1,2097152
+         !    read(499,*) comgp%recvbuf(i)
+         !end do
+         !do i=1,comgp%nrecvbuf
+         !    write(520,'(es16.8)') comgp%recvbuf(i)
+         !end do
+
          ist=1
          do iorb=1,nilr
             ilr = ilrtable(iorb)
@@ -1355,26 +1366,81 @@ subroutine full_local_potential(iproc,nproc,orbs,Lzd,iflag,dpbox,xc,potential,po
 
 
             ! Extract the part of the potential which is needed for the current localization region.
-            i3s=lzd%Llr(ilr)%nsi3-comgp%ise(5)+2 ! starting index of localized  potential with respect to total potential in comgp%recvBuf
-            i3e=lzd%Llr(ilr)%nsi3+lzd%Llr(ilr)%d%n3i-comgp%ise(5)+1 ! ending index of localized potential with respect to total potential in comgp%recvBuf
-            i2s=lzd%Llr(ilr)%nsi2-comgp%ise(3)+2
-            i2e=lzd%Llr(ilr)%nsi2+lzd%Llr(ilr)%d%n2i-comgp%ise(3)+1
-            i1s=lzd%Llr(ilr)%nsi1-comgp%ise(1)+2
-            i1e=lzd%Llr(ilr)%nsi1+lzd%Llr(ilr)%d%n1i-comgp%ise(1)+1
-            ni1=comgp%ise(2)-comgp%ise(1)+1
-            ni2=comgp%ise(4)-comgp%ise(3)+1
+            !!i3s=lzd%Llr(ilr)%nsi3-comgp%ise(5)+2 ! starting index of localized  potential with respect to total potential in comgp%recvBuf
+            !!i3e=lzd%Llr(ilr)%nsi3+lzd%Llr(ilr)%d%n3i-comgp%ise(5)+1 ! ending index of localized potential with respect to total potential in comgp%recvBuf
+            !!i2s=lzd%Llr(ilr)%nsi2-comgp%ise(3)+2
+            !!i2e=lzd%Llr(ilr)%nsi2+lzd%Llr(ilr)%d%n2i-comgp%ise(3)+1
+            !!i1s=lzd%Llr(ilr)%nsi1-comgp%ise(1)+2
+            !!i1e=lzd%Llr(ilr)%nsi1+lzd%Llr(ilr)%d%n1i-comgp%ise(1)+1
+            i3s=modulo(lzd%Llr(ilr)%nsi3-1,lzd%glr%d%n3i)+1-comgp%ise(5)+2 ! starting index of localized  potential with respect to total potential in comgp%recvBuf
+            i3e=i3s+lzd%Llr(ilr)%d%n3i-1 ! ending index of localized potential with respect to total potential in comgp%recvBuf
+            i2s=modulo(lzd%Llr(ilr)%nsi2-1,lzd%glr%d%n2i)+1-comgp%ise(3)+2
+            i2e=i2s+lzd%Llr(ilr)%d%n2i-1
+            i1s=modulo(lzd%Llr(ilr)%nsi1-1,lzd%glr%d%n1i)+1-comgp%ise(1)+2
+            i1e=i1s+lzd%Llr(ilr)%d%n1i-1
+            !!!! Make sure that the length is not larger than the global box (only possible for non-free BC)
+            !!!ni1=min(comgp%ise(2)-comgp%ise(1)+1,lzd%glr%d%n1i)
+            !!!ni2=min(comgp%ise(4)-comgp%ise(3)+1,lzd%glr%d%n2i)
+            if (comgp%ise(2)>=comgp%ise(1)) then
+                ni1=comgp%ise(2)-comgp%ise(1)+1
+            else
+                ! This is the case with aperiodic wrap around
+                ni1=comgp%ise(2)+lzd%glr%d%n1i-comgp%ise(1)+1
+            end if
+            if (comgp%ise(4)>=comgp%ise(3)) then
+                ni2=comgp%ise(4)-comgp%ise(3)+1
+            else
+                ! This is the case with aperiodic wrap around
+                ni2=comgp%ise(4)+lzd%glr%d%n2i-comgp%ise(3)+1
+            end if
             if(i3e-i3s+1 /= Lzd%Llr(ilr)%d%n3i) then
                write(*,'(a,i0,3x,i0)') 'ERROR: i3e-i3s+1 /= Lzd%Llr(ilr)%d%n3i',i3e-i3s+1, Lzd%Llr(ilr)%d%n3i
                stop
             end if
-            !!write(*,*) 'size(comgp%recvBuf), comgp%nrecvBuf, nspin', size(comgp%recvBuf), comgp%nrecvBuf, comgp%nspin
-            !!write(*,'(a,i7,2x,8i6)') 'iproc, i1s, i1e, i2s, i2e, i3s, i3e, ni1, ni2', iproc, i1s, i1e, i2s, i2e, i3s, i3e, ni1, ni2
-            !!write(*,'(a,i7,2x,i5,2x,6i6)') 'iproc, ilr, ns1i, ise1, ns2i, ise2, ns3i, ise3', &
-            !!          iproc, ilr, lzd%Llr(ilr)%nsi1, comgp%ise(1,iproc), lzd%Llr(ilr)%nsi2, comgp%ise(3,iproc), lzd%Llr(ilr)%nsi3, comgp%ise(3,iproc)
+
+            ! Shift of the potential in the receive buffer for non-free boundary conditions
+            !!if (comgp%ise(6)>lzd%glr%d%n3i) then
+            !!    i3shift = modulo(comgp%ise(6)-1,lzd%glr%d%n3i)
+            !!    i3shift = min(i3shift,comgp%ise(5)-1)
+            !!else
+            !!    i3shift = 0
+            !!end if
+            !!if (comgp%ise(4)>lzd%glr%d%n2i) then
+            !!    i2shift = modulo(comgp%ise(4)-1,lzd%glr%d%n2i)
+            !!    i2shift = min(i2shift,comgp%ise(3)-1)
+            !!else
+            !!    i2shift = 0
+            !!end if
+            !!if (comgp%ise(2)>lzd%glr%d%n1i) then
+            !!    i1shift = modulo(comgp%ise(2)-1,lzd%glr%d%n1i)
+            !!    i1shift = min(i1shift,comgp%ise(1)-1)
+            !!else
+            !!    i1shift = 0
+            !!end if
+            if (comgp%ise(6)<comgp%ise(5)) then
+                i3shift=comgp%ise(6)
+            else
+                i3shift=0
+            end if
+            if (comgp%ise(4)<comgp%ise(3)) then
+                i2shift=comgp%ise(4)
+            else
+                i2shift=0
+            end if
+            if (comgp%ise(2)<comgp%ise(1)) then
+                i1shift=comgp%ise(2)
+            else
+                i1shift=0
+            end if
+            write(*,*) 'size(comgp%recvBuf), comgp%nrecvBuf, nspin', size(comgp%recvBuf), comgp%nrecvBuf, comgp%nspin
+            write(*,'(a,i7,2x,8i6)') 'iproc, i1s, i1e, i2s, i2e, i3s, i3e, ni1, ni2', iproc, i1s, i1e, i2s, i2e, i3s, i3e, ni1, ni2
+            write(*,'(a,i7,2x,i5,2x,9i6)') 'iproc, ilr, ns1i, ise1, ns2i, ise2, ns3i, ise3', &
+                      iproc, ilr, lzd%Llr(ilr)%nsi1, comgp%ise(1:2), lzd%Llr(ilr)%nsi2, comgp%ise(3:4), lzd%Llr(ilr)%nsi3, comgp%ise(5:6)
             !!call global_to_local_parallel(lzd%Glr, lzd%Llr(ilr), 0, comgp%nspin*comgp%nrecvBuf, size_Lpot,&
             !!     comgp%recvBuf(ishift+1), pot(ist), i1s, i1e, i2s, i2e, i3s, i3e, ni1, ni2)
             call global_to_local_parallel(lzd%Glr, lzd%Llr(ilr), 0, comgp%nrecvBuf, size_Lpot,&
-                 comgp%recvBuf(ishift+1), pot(ist), i1s, i1e, i2s, i2e, i3s, i3e, ni1, ni2)
+                 comgp%recvBuf(ishift+1), pot(ist), i1s, i1e, i2s, i2e, i3s, i3e, ni1, ni2, &
+                 i1shift, i2shift, i3shift, comgp%ise)
             !write(*,'(3(a,i0))') 'process ',iproc,' copies data from position ',ishift+1,' to position ',ist
             !write(*,'(a,2i6,i10,2es17.6,6i6)') 'iproc, iorb, ishift, sum(pot[iorb]), sum(recvbuf[ishift+1]), i1s, i1e, i2s, i2e, i3s, i3e', &
             !    iproc, iorb, ishift, sum(pot(ist:ist+size_lpot-1)), sum(comgp%recvBuf(ishift+1:ishift+comgp%nrecvBuf-1)), i1s, i1e, i2s, i2e, i3s, i3e

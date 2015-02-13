@@ -306,6 +306,15 @@ subroutine determine_locregSphere_parallel(iproc,nproc,nlr,hx,hy,hz,astruct,orbs
               Llr(ilr)%geocode = 'P'
             end if
          end select
+
+         ! Make sure that the localization regions are not periodic
+         if (xperiodic .or. yperiodic .or. zperiodic) then
+             call f_err_throw('The size of the localization region '&
+                 &//trim(yaml_toa(ilr,fmt='(i0)'))//&
+                 &' is larger than that of the global region.&
+                 & Reduce the localization radii or use the cubic version',&
+                 & err_name='BIGDFT_RUNTIME_ERROR')
+         end if
     
          !values for the starting point of the cube for wavelet grid
          Llr(ilr)%ns1=isx
@@ -340,6 +349,8 @@ subroutine determine_locregSphere_parallel(iproc,nproc,nlr,hx,hy,hz,astruct,orbs
          Llr(ilr)%nsi1= 2 * Llr(ilr)%ns1 - (Lnbl1 - Gnbl1)
          Llr(ilr)%nsi2= 2 * Llr(ilr)%ns2 - (Lnbl2 - Gnbl2)
          Llr(ilr)%nsi3= 2 * Llr(ilr)%ns3 - (Lnbl3 - Gnbl3)
+         write(*,*) 'ilr, Llr(ilr)%nsi3',ilr, Llr(ilr)%nsi3
+
     
          !dimensions of the fine grid inside the localisation region
          Llr(ilr)%d%nfl1=max(isx,Glr%d%nfl1)-isx ! should we really substract isx (probably because the routines are coded with 0 as origin)?
@@ -364,6 +375,17 @@ subroutine determine_locregSphere_parallel(iproc,nproc,nlr,hx,hy,hz,astruct,orbs
             Llr(ilr)%d%n1i=2*Llr(ilr)%d%n1+2
             Llr(ilr)%d%n2i=2*Llr(ilr)%d%n2+2
             Llr(ilr)%d%n3i=2*Llr(ilr)%d%n3+2
+         end if
+
+
+         ! Make sure that the extent of the interpolating functions grid for the
+         ! locreg is not larger than the that of the global box.
+         if (Llr(ilr)%d%n1i>Glr%d%n1i .or. Llr(ilr)%d%n2i>Glr%d%n2i .or.  Llr(ilr)%d%n3i>Glr%d%n3i) then
+             call f_err_throw('The interpolating functions grid for locreg '&
+                 &//trim(yaml_toa(ilr,fmt='(i0)'))//&
+                 &' is larger than that of the global region.&
+                 & Reduce the localization radii or use the cubic version',&
+                 & err_name='BIGDFT_RUNTIME_ERROR')
          end if
     
     !DEBUG

@@ -2077,6 +2077,7 @@ contains
       logical :: found, found_start, found_end
       integer :: iprocstart_current, iprocend_current, iprocend_prev, iprocstart_next
       integer :: irow, icol, inc, ist, ind_min1, ind_max1
+      integer,dimension(:),pointer :: isvctr_par, nvctr_par
 
       call f_routine(id='init_matrix_taskgroups')
 
@@ -2166,8 +2167,28 @@ contains
           end if
       end do
 
-      smat%istartend_local(1) = ind_min
-      smat%istartend_local(2) = ind_max
+      ! Now the minimal and maximal values are known
+      iuse_startend(1,iproc) = ind_min
+      iuse_startend(2,iproc) = ind_max
+      if (nproc>1) then
+          call mpiallred(iuse_startend(1,0), 2*nproc, mpi_sum, bigdft_mpi%mpi_comm)
+      end if
+
+      ! Make sure that the used parts are always "monotonically increasing"
+      do jproc=nproc-2,0,-1
+          ! The start of part jproc must not be greater than the start of part jproc+1
+          iuse_startend(1,jproc) = min(iuse_startend(1,jproc),iuse_startend(1,jproc+1)) 
+      end do
+      do jproc=1,nproc-1
+          ! The end of part jproc must not be smaller than the end of part jproc-1
+          iuse_startend(2,jproc) = max(iuse_startend(2,jproc),iuse_startend(2,jproc-1)) 
+      end do
+
+
+      !!smat%istartend_local(1) = ind_min
+      !!smat%istartend_local(2) = ind_max
+      smat%istartend_local(1) = iuse_startend(1,iproc)
+      smat%istartend_local(2) = iuse_startend(2,iproc)
 
       ! Check to which segments these values belong
       found_start = .false.
@@ -2185,22 +2206,6 @@ contains
       if (.not.found_start) stop 'segment corresponding to smat%istartend_local(1) not found!'
       if (.not.found_end) stop 'segment corresponding to smat%istartend_local(2) not found!'
 
-      ! Now the minimal and maximal values are known
-      iuse_startend(1,iproc) = ind_min
-      iuse_startend(2,iproc) = ind_max
-      if (nproc>1) then
-          call mpiallred(iuse_startend(1,0), 2*nproc, mpi_sum, bigdft_mpi%mpi_comm)
-      end if
-
-      ! Make sure that the used parts are always "monotonically increasing"
-      do jproc=nproc-2,0,-1
-          ! The start of part jproc must not be greater than the start of part jproc+1
-          iuse_startend(1,jproc) = min(iuse_startend(1,jproc),iuse_startend(1,jproc+1)) 
-      end do
-      do jproc=1,nproc-1
-          ! The end of part jproc must not be smaller than the end of part jproc-1
-          iuse_startend(2,jproc) = max(iuse_startend(2,jproc),iuse_startend(2,jproc-1)) 
-      end do
 
       !!if (iproc==0)  then
       !!    do jproc=0,nproc-1
@@ -2801,30 +2806,63 @@ contains
       !!!    stop
       !!!end if
 
+      do i=1,2
+          if (i==1) then
+              isvctr_par => smat%smmm%isvctr_mm_par
+              nvctr_par => smat%smmm%nvctr_mm_par
+          else if (i==2) then
+              isvctr_par => smat%isvctr_par
+              nvctr_par => smat%nvctr_par
+          end if
 
-      smat%smmm%nccomm_smmm = 0
-      do jproc=0,nproc-1
-          !!if (istartend_local(1) > smat%smmm%isvctr_mm_par(jproc) + smat%smmm%nvctr_mm_par(jproc)) cycle
-          !!if (istartend_local(2) < smat%smmm%isvctr_mm_par(jproc)) exit
-          istart = max(smat%istartend_local(1),smat%smmm%isvctr_mm_par(jproc)+1)
-          iend = min(smat%istartend_local(2),smat%smmm%isvctr_mm_par(jproc)+smat%smmm%nvctr_mm_par(jproc))
-          if (istart>iend) cycle
-          smat%smmm%nccomm_smmm = smat%smmm%nccomm_smmm + 1
-      end do
+          !smat%smmm%nccomm_smmm = 0
+          ii = 0
+          do jproc=0,nproc-1
+              !!istart = max(smat%istartend_local(1),smat%smmm%isvctr_mm_par(jproc)+1)
+              !!iend = min(smat%istartend_local(2),smat%smmm%isvctr_mm_par(jproc)+smat%smmm%nvctr_mm_par(jproc))
+              !!if (istart>iend) cycle
+              !!smat%smmm%nccomm_smmm = smat%smmm%nccomm_smmm + 1
+              istart = max(smat%istartend_local(1),isvctr_par(jproc)+1)
+              iend = min(smat%istartend_local(2),isvctr_par(jproc)+nvctr_par(jproc))
+              if (istart>iend) cycle
+              ii = ii + 1
+          end do
 
-      smat%smmm%luccomm_smmm = f_malloc_ptr((/4,smat%smmm%nccomm_smmm/),id='smat%smmm%luccomm_smmm')
-      ii = 0
-      do jproc=0,nproc-1
-          !!if (istartend_local(1) > smat%smmm%isvctr_mm_par(jproc) + smat%smmm%nvctr_mm_par(jproc)) cycle
-          !!if (istartend_local(2) < smat%smmm%isvctr_mm_par(jproc)) exit
-          istart = max(smat%istartend_local(1),smat%smmm%isvctr_mm_par(jproc)+1)
-          iend = min(smat%istartend_local(2),smat%smmm%isvctr_mm_par(jproc)+smat%smmm%nvctr_mm_par(jproc))
-          if (istart>iend) cycle
-          ii = ii + 1
-          smat%smmm%luccomm_smmm(1,ii) = jproc !get data from this process
-          smat%smmm%luccomm_smmm(2,ii) = istart-smat%smmm%isvctr_mm_par(jproc) !starting address on sending process
-          smat%smmm%luccomm_smmm(3,ii) = istart-smat%isvctrp_tg !starting address on receiving process
-          smat%smmm%luccomm_smmm(4,ii) = iend-istart+1 !number of elements
+          if (i==1) then
+              smat%smmm%nccomm_smmm = ii
+              smat%smmm%luccomm_smmm = f_malloc_ptr((/4,smat%smmm%nccomm_smmm/),id='smat%smmm%luccomm_smmm')
+          else if (i==2) then
+              smat%nccomm = ii
+              smat%luccomm = f_malloc_ptr((/4,smat%nccomm/),id='smatluccomm')
+          end if
+
+          !!smat%smmm%luccomm_smmm = f_malloc_ptr((/4,smat%smmm%nccomm_smmm/),id='smat%smmm%luccomm_smmm')
+          ii = 0
+          do jproc=0,nproc-1
+              !!istart = max(smat%istartend_local(1),smat%smmm%isvctr_mm_par(jproc)+1)
+              !!iend = min(smat%istartend_local(2),smat%smmm%isvctr_mm_par(jproc)+smat%smmm%nvctr_mm_par(jproc))
+              !!if (istart>iend) cycle
+              !!ii = ii + 1
+              !!smat%smmm%luccomm_smmm(1,ii) = jproc !get data from this process
+              !!smat%smmm%luccomm_smmm(2,ii) = istart-smat%smmm%isvctr_mm_par(jproc) !starting address on sending process
+              !!smat%smmm%luccomm_smmm(3,ii) = istart-smat%isvctrp_tg !starting address on receiving process
+              !!smat%smmm%luccomm_smmm(4,ii) = iend-istart+1 !number of elements
+              istart = max(smat%istartend_local(1),isvctr_par(jproc)+1)
+              iend = min(smat%istartend_local(2),isvctr_par(jproc)+nvctr_par(jproc))
+              if (istart>iend) cycle
+              ii = ii + 1
+              if (i==1) then
+                  smat%smmm%luccomm_smmm(1,ii) = jproc !get data from this process
+                  smat%smmm%luccomm_smmm(2,ii) = istart-isvctr_par(jproc) !starting address on sending process
+                  smat%smmm%luccomm_smmm(3,ii) = istart-smat%isvctrp_tg !starting address on receiving process
+                  smat%smmm%luccomm_smmm(4,ii) = iend-istart+1 !number of elements
+              else if (i==2) then
+                  smat%luccomm(1,ii) = jproc !get data from this process
+                  smat%luccomm(2,ii) = istart-isvctr_par(jproc) !starting address on sending process
+                  smat%luccomm(3,ii) = istart-smat%isvctrp_tg !starting address on receiving process
+                  smat%luccomm(4,ii) = iend-istart+1 !number of elements
+              end if
+          end do
       end do
 
       call f_free(in_taskgroup)

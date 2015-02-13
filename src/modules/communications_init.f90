@@ -20,6 +20,16 @@ module communications_init
   public :: initialize_communication_potential
   public :: orbitals_communicators
 
+  interface check_whether_bounds_overlap
+    module procedure check_whether_bounds_overlap_int
+    module procedure check_whether_bounds_overlap_long
+  end interface check_whether_bounds_overlap
+  
+  interface get_extent_of_overlap
+    module procedure get_extent_of_overlap_int
+    module procedure get_extent_of_overlap_long
+  end interface get_extent_of_overlap
+
   contains
 
     subroutine init_comms_linear(iproc, nproc, imethod_overlap, npsidim_orbs, orbs, lzd, nspin, collcom)
@@ -2609,7 +2619,7 @@ module communications_init
       real(kind=8),dimension(lzd%glr%d%n3i),intent(out) :: weights_per_zpoint
     
       ! Local variables
-      integer :: iorb, ilr, i3, i2, i1, is1, ie1, is2, ie2, is3, ie3
+      integer :: iorb, ilr, i3, i2, i1, is1, ie1, is2, ie2, is3, ie3, js3, je3, ii1, ii2
       real(kind=8) :: tt, zz
       real(kind=8),dimension(:,:),allocatable :: weight_xy
     
@@ -2624,28 +2634,54 @@ module communications_init
     
       tt=0.d0
       weights_per_slice(:) = 0.0d0
-      do i3=nscatterarr(iproc,3)+1,nscatterarr(iproc,3)+nscatterarr(iproc,2)
+      js3=nscatterarr(iproc,3)+1
+      je3=nscatterarr(iproc,3)+nscatterarr(iproc,2)
+      !do i3=nscatterarr(iproc,3)+1,nscatterarr(iproc,3)+nscatterarr(iproc,2)
+      do i3=js3,je3
          !call to_zero(lzd%glr%d%n1i*lzd%glr%d%n2i, weight_xy(1,1))
           call f_zero(weight_xy)
           do iorb=1,orbs%norb
               if (orbs%spinsgn(iorb)<0.d0) cycle !consider only up orbitals
               ilr=orbs%inwhichlocreg(iorb)
-              is3=1+lzd%Llr(ilr)%nsi3
-              ie3=lzd%Llr(ilr)%nsi3+lzd%llr(ilr)%d%n3i
-              if (is3>i3 .or. i3>ie3) cycle
-              is1=1+lzd%Llr(ilr)%nsi1
-              ie1=lzd%Llr(ilr)%nsi1+lzd%llr(ilr)%d%n1i
-              is2=1+lzd%Llr(ilr)%nsi2
-              ie2=lzd%Llr(ilr)%nsi2+lzd%llr(ilr)%d%n2i
-              !$omp parallel default(none) shared(is2, ie2, is1, ie1, weight_xy) private(i2, i1)
-              !$omp do
+              !is3=1+lzd%Llr(ilr)%nsi3
+              !ie3=lzd%Llr(ilr)%nsi3+lzd%llr(ilr)%d%n3i
+              is3=modulo(1+lzd%Llr(ilr)%nsi3-1,lzd%glr%d%n3i)+1
+              ie3=modulo(lzd%Llr(ilr)%nsi3+lzd%llr(ilr)%d%n3i-1,lzd%glr%d%n3i)+1
+              !write(*,'(a,3i8,l3)') 'is3,ie3,i3,overlap',is3,ie3,i3,check_whether_bounds_overlap(is3,ie3,i3,i3)
+              !if ((is3>i3 .or. i3>ie3).neqv..not.check_whether_bounds_overlap(is3,ie3,i3,i3)) then
+              !    write(*,'(a,4i8,l3)') 'ERROR: is3,ie3,i3,i3,overlap',is3,ie3,i3,i3,check_whether_bounds_overlap(is3,ie3,i3,i3)
+              !end if
+              !if (is3>i3 .or. i3>ie3) cycle
+              !write(*,*) 'is3, ie3, i3, res', is3, ie3, i3, check_whether_bounds_overlap(is3,ie3,i3,i3)
+              if (.not.check_whether_bounds_overlap(is3,ie3,i3,i3)) cycle
+              !is1=1+lzd%Llr(ilr)%nsi1
+              !ie1=lzd%Llr(ilr)%nsi1+lzd%llr(ilr)%d%n1i
+              !is2=1+lzd%Llr(ilr)%nsi2
+              !ie2=lzd%Llr(ilr)%nsi2+lzd%llr(ilr)%d%n2i
+              is1=modulo(1+lzd%Llr(ilr)%nsi1-1,lzd%glr%d%n1i)+1
+              !ie1=modulo(lzd%Llr(ilr)%nsi1+lzd%llr(ilr)%d%n1i-1,lzd%glr%d%n1i)+1
+              ie1=is1+lzd%llr(ilr)%d%n1i-1
+              is2=modulo(1+lzd%Llr(ilr)%nsi2-1,lzd%glr%d%n2i)+1
+              !ie2=modulo(lzd%Llr(ilr)%nsi2+lzd%llr(ilr)%d%n2i-1,lzd%glr%d%n2i)+1
+              ie2=is2+lzd%llr(ilr)%d%n2i-1
+              !write(*,*) 'is2,ie2,n2i_l,n2i_g',is2,ie2,lzd%llr(ilr)%d%n2i,lzd%glr%d%n2i
+              !!if (1+lzd%Llr(ilr)%nsi1/=is1) stop
+              !!if (1+lzd%Llr(ilr)%nsi2/=is2) stop
+              !!if (lzd%Llr(ilr)%nsi1+lzd%llr(ilr)%d%n1i/=ie1) stop
+              !!if (lzd%Llr(ilr)%nsi2+lzd%llr(ilr)%d%n2i/=ie2) stop
+              !!$omp parallel default(none) shared(is2, ie2, is1, ie1, weight_xy, lzd) private(i2, i1, ii2, ii1)
+              !!$omp do
               do i2=is2,ie2
+                  ii2=modulo(i2-1,lzd%glr%d%n2i)+1
+                  !write(*,*) 'i3,i2,ii2',i3,i2,ii2
                   do i1=is1,ie1
-                      weight_xy(i1,i2) = weight_xy(i1,i2)+1.d0
+                      ii1=modulo(i1-1,lzd%glr%d%n1i)+1
+                      !weight_xy(i1,i2) = weight_xy(i1,i2)+1.d0
+                      weight_xy(ii1,ii2) = weight_xy(ii1,ii2)+1.d0
                   end do
               end do
-              !$omp end do
-              !$omp end parallel
+              !!$omp end do
+              !!$omp end parallel
           end do
           zz=0.d0
           !$omp parallel default(none) shared(lzd, weight_xy, zz, tt) private(i2, i1)
@@ -2669,7 +2705,7 @@ module communications_init
       else
          weight_tot=tt
       end if
-    
+
       call f_free(weight_xy)
     
       ! Ideal weight per process
@@ -2741,19 +2777,28 @@ module communications_init
                   do iorb=1,orbs%norb
                       if (orbs%spinsgn(iorb)<0.d0) cycle !consider only up orbitals
                       ilr=orbs%inwhichlocreg(iorb)
-                      is1=1+lzd%Llr(ilr)%nsi1
-                      ie1=lzd%Llr(ilr)%nsi1+lzd%llr(ilr)%d%n1i
-                      is2=1+lzd%Llr(ilr)%nsi2
-                      ie2=lzd%Llr(ilr)%nsi2+lzd%llr(ilr)%d%n2i
-                      is3=1+lzd%Llr(ilr)%nsi3
-                      ie3=lzd%Llr(ilr)%nsi3+lzd%llr(ilr)%d%n3i
-                      if (is3>i3 .or. i3>ie3) cycle
+                      !is1=1+lzd%Llr(ilr)%nsi1
+                      !ie1=lzd%Llr(ilr)%nsi1+lzd%llr(ilr)%d%n1i
+                      !is2=1+lzd%Llr(ilr)%nsi2
+                      !ie2=lzd%Llr(ilr)%nsi2+lzd%llr(ilr)%d%n2i
+                      !is3=1+lzd%Llr(ilr)%nsi3
+                      !ie3=lzd%Llr(ilr)%nsi3+lzd%llr(ilr)%d%n3i
+                      is1=modulo(1+lzd%Llr(ilr)%nsi1-1,lzd%glr%d%n1i)+1
+                      ie1=modulo(lzd%Llr(ilr)%nsi1+lzd%llr(ilr)%d%n1i-1,lzd%glr%d%n1i)+1
+                      is2=modulo(1+lzd%Llr(ilr)%nsi2-1,lzd%glr%d%n2i)+1
+                      ie2=modulo(lzd%Llr(ilr)%nsi2+lzd%llr(ilr)%d%n2i-1,lzd%glr%d%n2i)+1
+                      is3=modulo(1+lzd%Llr(ilr)%nsi3-1,lzd%glr%d%n3i)+1
+                      ie3=modulo(lzd%Llr(ilr)%nsi3+lzd%llr(ilr)%d%n3i-1,lzd%glr%d%n3i)+1
+                      !if (is3>i3 .or. i3>ie3) cycle
+                      if (.not.check_whether_bounds_overlap(is3,ie3,i3,i3)) cycle
                       !$omp parallel default(none) shared(lzd, slicearr, is1, ie1, is2, ie2) private(i1, i2)
                       !$omp do
                       do i2=1,lzd%glr%d%n2i
-                          if (is2>i2 .or. i2>ie2) cycle
+                          !if (is2>i2 .or. i2>ie2) cycle
+                          if (.not.check_whether_bounds_overlap(is2,ie2,i2,i2)) cycle
                           do i1=1,lzd%glr%d%n1i
-                              if (is1<=i1 .and. i1<=ie1) then
+                              !if (is1<=i1 .and. i1<=ie1) then
+                              if (check_whether_bounds_overlap(is1,ie1,i1,i1)) then
                                   slicearr(i1,i2)=slicearr(i1,i2)+1.d0
                               end if
                           end do
@@ -2798,6 +2843,10 @@ module communications_init
       istartend(2,nproc-1)=int(lzd%glr%d%n1i,kind=8)*int(lzd%glr%d%n2i,kind=8)*int(lzd%glr%d%n3i,kind=8)
     
       nptsp = int(istartend(2,iproc)-istartend(1,iproc),kind=4) + 1
+
+      write(*,*) 'iproc, npts', iproc, lzd%glr%d%n1i*lzd%glr%d%n2i*lzd%glr%d%n3i
+      write(*,*) 'iproc, istartend', iproc, istartend
+      write(*,*) 'weight_tot', weight_tot
     
       call f_free(weights_startend)
     
@@ -2835,7 +2884,7 @@ module communications_init
       integer,dimension(nptsp),intent(out) :: norb_per_gridpoint
     
       ! Local variables
-      integer :: i3, i2, i1, ipt, ilr, is1, ie1, is2, ie2, is3, ie3, iorb, i, jproc
+      integer :: i3, i2, i1, ipt, ilr, is1, ie1, is2, ie2, is3, ie3, iorb, i, jproc, j1, j2
       real(kind=8) :: tt, weight_check
       integer(kind=8) :: ii, ii2, ii3    
     
@@ -2857,20 +2906,33 @@ module communications_init
           end if
           do iorb=1,orbs%norbu
               ilr=orbs%inwhichlocreg(iorb)
-              is3=1+lzd%Llr(ilr)%nsi3
-              ie3=lzd%Llr(ilr)%nsi3+lzd%llr(ilr)%d%n3i
-              if (is3>i3 .or. i3>ie3) cycle
-              is2=1+lzd%Llr(ilr)%nsi2
-              ie2=lzd%Llr(ilr)%nsi2+lzd%llr(ilr)%d%n2i
-              is1=1+lzd%Llr(ilr)%nsi1
-              ie1=lzd%Llr(ilr)%nsi1+lzd%llr(ilr)%d%n1i
+              !is3=1+lzd%Llr(ilr)%nsi3
+              !ie3=lzd%Llr(ilr)%nsi3+lzd%llr(ilr)%d%n3i
+              is3=modulo(1+lzd%Llr(ilr)%nsi3-1,lzd%glr%d%n3i)+1
+              ie3=modulo(lzd%Llr(ilr)%nsi3+lzd%llr(ilr)%d%n3i-1,lzd%glr%d%n3i)+1
+              !if (is3>i3 .or. i3>ie3) cycle
+              if (.not.check_whether_bounds_overlap(is3,ie3,i3,i3)) cycle
+              !is2=1+lzd%Llr(ilr)%nsi2
+              !ie2=lzd%Llr(ilr)%nsi2+lzd%llr(ilr)%d%n2i
+              !is1=1+lzd%Llr(ilr)%nsi1
+              !ie1=lzd%Llr(ilr)%nsi1+lzd%llr(ilr)%d%n1i
+              is2=modulo(1+lzd%Llr(ilr)%nsi2-1,lzd%glr%d%n2i)+1
+              !ie2=modulo(lzd%Llr(ilr)%nsi2+lzd%llr(ilr)%d%n2i-1,lzd%glr%d%n2i)+1
+              ie2=is2+lzd%llr(ilr)%d%n2i-1
+              is1=modulo(1+lzd%Llr(ilr)%nsi1-1,lzd%glr%d%n1i)+1
+              !ie1=modulo(lzd%Llr(ilr)%nsi1+lzd%llr(ilr)%d%n1i-1,lzd%glr%d%n1i)+1
+              ie1=is1+lzd%llr(ilr)%d%n1i-1
               !$omp parallel default(none) &
-              !$omp shared(i3, ii3, is2, ie2, is1, ie1, lzd, istartend, iproc, norb_per_gridpoint) private(i2, i1, ii, ii2, ipt)
+              !$omp shared(i3, ii3, is2, ie2, is1, ie1, lzd, istartend, iproc, norb_per_gridpoint) &
+              !$omp private(j2, j1, i2, i1, ii, ii2, ipt)
               !$omp do
               do i2=is2,ie2
-                  ii2=ii3+int(i2-1,kind=8)*int(lzd%glr%d%n1i,kind=8)
+                  j2=modulo(i2-1,lzd%glr%d%n2i)+1
+                  !ii2=ii3+int(i2-1,kind=8)*int(lzd%glr%d%n1i,kind=8)
+                  ii2=ii3+int(j2-1,kind=8)*int(lzd%glr%d%n1i,kind=8)
                   do i1=is1,ie1
-                      ii=ii2+int(i1,kind=8)
+                      j1=modulo(i1-1,lzd%glr%d%n1i)+1
+                      ii=ii2+int(j1,kind=8)
                       if (ii>=istartend(1,iproc) .and. ii<=istartend(2,iproc)) then
                           ipt=int(ii-istartend(1,iproc),kind=4)+1
                           !write(1000+iproc,'(a,5i9)') 'i1, i2, i3, ipt, npg',i1, i2, i3, ipt, norb_per_gridpoint(ipt)
@@ -2927,7 +2989,7 @@ module communications_init
       integer,intent(out) :: ndimpsi
     
       ! Local variables
-      integer :: iorb, iiorb, ilr, is1, ie1, is2, ie2, is3, ie3, jproc, i3, i2, i1, ii, ierr, ii0
+      integer :: iorb, iiorb, ilr, is1, ie1, is2, ie2, is3, ie3, jproc, i3, i2, i1, ii, ierr, ii0, j1, j2, j3
       integer,dimension(:),allocatable :: nsendcounts_tmp, nsenddspls_tmp, nrecvcounts_tmp, nrecvdspls_tmp
       character(len=*),parameter :: subname='determine_communication_arrays_sumrho'
       integer(kind=8) :: ind, ii2, ii3
@@ -2939,28 +3001,41 @@ module communications_init
       do iorb=1,orbs%norbp
           iiorb=orbs%isorb+iorb
           ilr=orbs%inwhichlocreg(iiorb)
-          is1=1+lzd%Llr(ilr)%nsi1
-          ie1=lzd%Llr(ilr)%nsi1+lzd%llr(ilr)%d%n1i
-          is2=1+lzd%Llr(ilr)%nsi2
-          ie2=lzd%Llr(ilr)%nsi2+lzd%llr(ilr)%d%n2i
-          is3=1+lzd%Llr(ilr)%nsi3
-          ie3=lzd%Llr(ilr)%nsi3+lzd%llr(ilr)%d%n3i
+          !is1=1+lzd%Llr(ilr)%nsi1
+          !ie1=lzd%Llr(ilr)%nsi1+lzd%llr(ilr)%d%n1i
+          !is2=1+lzd%Llr(ilr)%nsi2
+          !ie2=lzd%Llr(ilr)%nsi2+lzd%llr(ilr)%d%n2i
+          !is3=1+lzd%Llr(ilr)%nsi3
+          !ie3=lzd%Llr(ilr)%nsi3+lzd%llr(ilr)%d%n3i
+          is1=modulo(1+lzd%Llr(ilr)%nsi1-1,lzd%glr%d%n1i)+1
+          !ie1=modulo(lzd%Llr(ilr)%nsi1+lzd%llr(ilr)%d%n1i-1,lzd%glr%d%n1i)+1
+          ie1=is1+lzd%llr(ilr)%d%n1i-1
+          is2=modulo(1+lzd%Llr(ilr)%nsi2-1,lzd%glr%d%n2i)+1
+          !ie2=modulo(lzd%Llr(ilr)%nsi2+lzd%llr(ilr)%d%n2i-1,lzd%glr%d%n2i)+1
+          ie2=is2+lzd%llr(ilr)%d%n2i-1
+          is3=modulo(1+lzd%Llr(ilr)%nsi3-1,lzd%glr%d%n3i)+1
+          !ie3=modulo(lzd%Llr(ilr)%nsi3+lzd%llr(ilr)%d%n3i-1,lzd%glr%d%n3i)+1
+          ie3=is3+lzd%llr(ilr)%d%n3i-1
           do jproc=0,nproc-1
               ii=0
               do i3=is3,ie3
-                  if (int(i3,kind=8)*int(lzd%glr%d%n1i,kind=8)*int(lzd%glr%d%n2i,kind=8)<istartend(1,jproc) .or. &
-                      int(i3-1,kind=8)*int(lzd%glr%d%n1i,kind=8)*int(lzd%glr%d%n2i,kind=8)+int(1,kind=8)>istartend(2,jproc)) then
+                  j3=modulo(i3-1,lzd%glr%d%n3i)+1
+                  if (int(j3,kind=8)*int(lzd%glr%d%n1i,kind=8)*int(lzd%glr%d%n2i,kind=8)<istartend(1,jproc) .or. &
+                      int(j3-1,kind=8)*int(lzd%glr%d%n1i,kind=8)*int(lzd%glr%d%n2i,kind=8)+int(1,kind=8)>istartend(2,jproc)) then
                       cycle
                   end if
                   ii0=0
-                  ii3=int(i3-1,kind=8)*int(lzd%glr%d%n1i,kind=8)*int(lzd%glr%d%n2i,kind=8)
+                  ii3=int(j3-1,kind=8)*int(lzd%glr%d%n1i,kind=8)*int(lzd%glr%d%n2i,kind=8)
                   !$omp parallel default(none) &
-                  !$omp shared(i3, is2, ie2, is1, ie1, lzd, istartend, jproc, ii0, ii3) private(i2, i1, ind, ii2)
+                  !$omp shared(is2, ie2, is1, ie1, lzd, istartend, jproc, ii0, ii3) &
+                  !$omp private(i2, i1, ind, ii2, j1, j2)
                   !$omp do reduction(+:ii0)
                   do i2=is2,ie2
-                      ii2=ii3+int(i2-1,kind=8)*int(lzd%glr%d%n1i,kind=8)
+                      j2=modulo(i2-1,lzd%glr%d%n2i)+1
+                      ii2=ii3+int(j2-1,kind=8)*int(lzd%glr%d%n1i,kind=8)
                       do i1=is1,ie1
-                        ind = ii2+int(i1,kind=8)
+                        j1=modulo(i1-1,lzd%glr%d%n1i)+1
+                        ind = ii2+int(j1,kind=8)
                         if (ind>=istartend(1,jproc) .and. ind<=istartend(2,jproc)) then
                             !nsendcounts(jproc)=nsendcounts(jproc)+1
                             ii0=ii0+1
@@ -3051,7 +3126,7 @@ module communications_init
       integer,dimension(ndimind),intent(out) :: iextract, iexpand, indexrecvorbital
     
       ! Local variables
-      integer :: jproc, iitot, iiorb, ilr, is1, ie1, is2, ie2, is3, ie3, i3, i2, i1, ind, ierr, ii
+      integer :: jproc, iitot, iiorb, ilr, is1, ie1, is2, ie2, is3, ie3, i3, i2, i1, ind, ierr, ii, j1, j2, j3
       integer :: iorb, i, ipt, itotadd
       integer,dimension(:),allocatable :: nsend, indexsendorbital, indexsendorbital2, indexrecvorbital2
       integer,dimension(:),allocatable :: gridpoint_start, gridpoint_start_tmp
@@ -3077,15 +3152,25 @@ module communications_init
           do iorb=1,orbs%norbp
               iiorb=orbs%isorb+iorb
               ilr=orbs%inwhichlocreg(iiorb)
-              is1=1+lzd%Llr(ilr)%nsi1
-              ie1=lzd%Llr(ilr)%nsi1+lzd%llr(ilr)%d%n1i
-              is2=1+lzd%Llr(ilr)%nsi2
-              ie2=lzd%Llr(ilr)%nsi2+lzd%llr(ilr)%d%n2i
-              is3=1+lzd%Llr(ilr)%nsi3
-              ie3=lzd%Llr(ilr)%nsi3+lzd%llr(ilr)%d%n3i
+              !is1=1+lzd%Llr(ilr)%nsi1
+              !ie1=lzd%Llr(ilr)%nsi1+lzd%llr(ilr)%d%n1i
+              !is2=1+lzd%Llr(ilr)%nsi2
+              !ie2=lzd%Llr(ilr)%nsi2+lzd%llr(ilr)%d%n2i
+              !is3=1+lzd%Llr(ilr)%nsi3
+              !ie3=lzd%Llr(ilr)%nsi3+lzd%llr(ilr)%d%n3i
+              is1=modulo(1+lzd%Llr(ilr)%nsi1-1,lzd%glr%d%n1i)+1
+              !ie1=modulo(lzd%Llr(ilr)%nsi1+lzd%llr(ilr)%d%n1i-1,lzd%glr%d%n1i)+1
+              ie1=is1+lzd%llr(ilr)%d%n1i-1
+              is2=modulo(1+lzd%Llr(ilr)%nsi2-1,lzd%glr%d%n2i)+1
+              !ie2=modulo(lzd%Llr(ilr)%nsi2+lzd%llr(ilr)%d%n2i-1,lzd%glr%d%n2i)+1
+              ie2=is2+lzd%llr(ilr)%d%n2i-1
+              is3=modulo(1+lzd%Llr(ilr)%nsi3-1,lzd%glr%d%n3i)+1
+              !ie3=modulo(lzd%Llr(ilr)%nsi3+lzd%llr(ilr)%d%n3i-1,lzd%glr%d%n3i)+1
+              ie3=is3+lzd%llr(ilr)%d%n3i-1
               itotadd=(ie2-is2+1)*(ie1-is1+1)
               do i3=is3,ie3
-                  indglob3a=int(i3,kind=8)*int(lzd%glr%d%n1i,kind=8)*int(lzd%glr%d%n2i,kind=8)
+                  j3=modulo(i3-1,lzd%glr%d%n3i)+1
+                  indglob3a=int(j3,kind=8)*int(lzd%glr%d%n1i,kind=8)*int(lzd%glr%d%n2i,kind=8)
                   indglob3=indglob3a-int(lzd%glr%d%n1i,kind=8)*int(lzd%glr%d%n2i,kind=8)
                   if (indglob3a<istartend(1,jproc) .or. &
                       indglob3+int(1,kind=8)>istartend(2,jproc)) then
@@ -3093,9 +3178,11 @@ module communications_init
                       cycle
                   end if
                   do i2=is2,ie2
-                      indglob2=indglob3+int(i2-1,kind=8)*int(lzd%glr%d%n1i,kind=8)
+                      j2=modulo(i2-1,lzd%glr%d%n2i)+1
+                      indglob2=indglob3+int(j2-1,kind=8)*int(lzd%glr%d%n1i,kind=8)
                       do i1=is1,ie1
-                          indglob = indglob2+int(i1,kind=8)
+                          j1=modulo(i1-1,lzd%glr%d%n1i)+1
+                          indglob = indglob2+int(j1,kind=8)
                           iitot=iitot+1
                           if (indglob>=istartend(1,jproc) .and. indglob<=istartend(2,jproc)) then
                               nsend(jproc)=nsend(jproc)+1
@@ -3331,98 +3418,165 @@ module communications_init
       character(len=*),parameter :: subname='communication_arrays_repartitionrho_general'
     
       ! Local variables
-      integer :: i1, i2, i3, jproc, jproc_send, iidest, nel, ioverlaps, iassign
+      integer :: i1, i2, i3, jproc, jproc_send, iidest, nel, ioverlaps, iassign, is3, ie3, iis3, iie3, i
       logical :: started
-      integer(kind=8) :: ii
+      integer(kind=8) :: ii, iis, iie
+      integer(kind=8),dimension(2) :: iiis, iiie, nlen
+      integer(kind=8) :: is
+      integer :: n
     
       call f_routine(id='communication_arrays_repartitionrho_general')
+
+      write(*,'(a,4i8,3x,6i8)') 'n1, n2, n3, ntot, istartend',lzd%glr%d%n1i,lzd%glr%d%n2i,lzd%glr%d%n3i,lzd%glr%d%n1i*lzd%glr%d%n2i*lzd%glr%d%n3i,istartend
+      write(*,'(a,2i8,3x,6i8)') 'iproc, n3i, nscatterarr(iproc,:)', iproc, lzd%glr%d%n3i, nscatterarr(iproc,:)
     
       ! only do this if task iproc has to receive a part of the potential
       if (nscatterarr(iproc,1)>0) then
         
-          ! First process from which iproc has to receive data
+          !!!! First process from which iproc has to receive data
+          !!!ncomms_repartitionrho=0
+          !!!i3=nscatterarr(iproc,3)-nscatterarr(iproc,4)
+          !!!ii=int(i3,kind=8)*int(lzd%glr%d%n2i,kind=8)*int(lzd%glr%d%n1i,kind=8)+int(1,kind=8)
+          !!!do jproc=nproc-1,0,-1
+          !!!    if (ii>=istartend(1,jproc)) then
+          !!!        jproc_send=jproc
+          !!!        write(*,'(a,5i8)') 'FIRST: iproc, i3, ii, jproc_send', iproc, i3, ii, jproc_send
+          !!!        ncomms_repartitionrho=ncomms_repartitionrho+1
+          !!!        exit
+          !!!    end if
+          !!!end do
+        
+          !!!! The remaining processes
+          !!!iidest=0
+          !!!nel=0
+          !!!started=.false.
+          !!!do i3=nscatterarr(iproc,3)-nscatterarr(iproc,4)+1,nscatterarr(iproc,3)-nscatterarr(iproc,4)+nscatterarr(iproc,1)
+          !!!    write(*,'(a,3i8)') 'iproc, i3, lzd%glr%d%n3i', iproc, i3, lzd%glr%d%n3i
+          !!!    ii=int(i3-1,kind=8)*int(lzd%glr%d%n2i,kind=8)*int(lzd%glr%d%n1i,kind=8)
+          !!!    do i2=1,lzd%glr%d%n2i
+          !!!        do i1=1,lzd%glr%d%n1i
+          !!!            ii=ii+int(1,kind=8)
+          !!!            iidest=iidest+1
+          !!!            if (ii>=istartend(1,jproc_send) .and. ii<=istartend(2,jproc_send)) then
+          !!!                nel=nel+1
+          !!!            else
+          !!!                write(*,'(a,5i8)') 'iproc, i1, i2, i3, ii, jproc_send', iproc, i1, i2, i3, ii, jproc_send
+          !!!                jproc_send=jproc_send+1
+          !!!                ncomms_repartitionrho=ncomms_repartitionrho+1
+          !!!            end if
+          !!!        end do
+          !!!    end do
+          !!!end do
+
+          !@NEW #########################
+          ! Starting and ending point of the density required by task iproc (in z direction)
+          is3=nscatterarr(iproc,3)-nscatterarr(iproc,4)+1
+          ie3=nscatterarr(iproc,3)-nscatterarr(iproc,4)+nscatterarr(iproc,1)
+          ! Due to perdiodic boundary conditions, iie3 might be smaller than iis3
+          iis3=modulo(is3-1,lzd%glr%d%n3i)+1
+          iie3=modulo(ie3-1,lzd%glr%d%n3i)+1
+          
+          ! Starting and ending point of the density required by task iproc (in global coordinates)
+          iis=int(iis3-1,kind=8)*int(lzd%glr%d%n2i,kind=8)*int(lzd%glr%d%n1i,kind=8)+int(1,kind=8)
+          iie=int(iie3,kind=8)*int(lzd%glr%d%n2i,kind=8)*int(lzd%glr%d%n1i,kind=8)
+
+          ! Check whether there is an overlap between the density required on
+          ! task iproc and the one calculated on task jproc
+          !jproc_send=0
           ncomms_repartitionrho=0
-          i3=nscatterarr(iproc,3)-nscatterarr(iproc,4)
-          ii=int(i3,kind=8)*int(lzd%glr%d%n2i,kind=8)*int(lzd%glr%d%n1i,kind=8)+int(1,kind=8)
-          do jproc=nproc-1,0,-1
-              if (ii>=istartend(1,jproc)) then
-                  jproc_send=jproc
+          do jproc=0,nproc-1
+              !write(*,'(a,6i8)') 'iproc, jproc, iis, iie, ise(1), ise(2)', iproc, jproc, iis, iie, istartend(1,jproc), istartend(2,jproc)
+              if(check_whether_bounds_overlap(iis,iie,istartend(1,jproc),istartend(2,jproc))) then
+                  !jproc_send=jproc_send+1
                   ncomms_repartitionrho=ncomms_repartitionrho+1
-                  exit
               end if
           end do
-        
-          ! The remaining processes
-          iidest=0
-          nel=0
-          started=.false.
-          do i3=nscatterarr(iproc,3)-nscatterarr(iproc,4)+1,nscatterarr(iproc,3)-nscatterarr(iproc,4)+nscatterarr(iproc,1)
-              ii=int(i3-1,kind=8)*int(lzd%glr%d%n2i,kind=8)*int(lzd%glr%d%n1i,kind=8)
-              do i2=1,lzd%glr%d%n2i
-                  do i1=1,lzd%glr%d%n1i
-                      ii=ii+int(1,kind=8)
-                      iidest=iidest+1
-                      if (ii>=istartend(1,jproc_send) .and. ii<=istartend(2,jproc_send)) then
-                          nel=nel+1
-                      else
-                          jproc_send=jproc_send+1
-                          ncomms_repartitionrho=ncomms_repartitionrho+1
-                      end if
-                  end do
-              end do
-          end do
+          !@END NEW #####################
         
         
           call allocate_MPI_comms_cubic_repartitionp2p(ncomms_repartitionrho, commarr_repartitionrho)
         
         
-          ! First process from which iproc has to receive data
+          !!! First process from which iproc has to receive data
+          !!ioverlaps=0
+          !!i3=nscatterarr(iproc,3)-nscatterarr(iproc,4)
+          !!ii=int(i3,kind=8)*int(lzd%glr%d%n2i,kind=8)*int(lzd%glr%d%n1i,kind=8)+int(1,kind=8)
+          !!do jproc=nproc-1,0,-1
+          !!    if (ii>=istartend(1,jproc)) then
+          !!        jproc_send=jproc
+          !!        ioverlaps=ioverlaps+1
+          !!        exit
+          !!    end if
+          !!end do
+        
+        
+          !!! The remaining processes
+          !!iassign=0
+          !!iidest=0
+          !!nel=0
+          !!started=.false.
+          !!do i3=nscatterarr(iproc,3)-nscatterarr(iproc,4)+1,nscatterarr(iproc,3)-nscatterarr(iproc,4)+nscatterarr(iproc,1)
+          !!    ii=int(i3-1,kind=8)*int(lzd%glr%d%n2i,kind=8)*int(lzd%glr%d%n1i,kind=8)
+          !!    do i2=1,lzd%glr%d%n2i
+          !!        do i1=1,lzd%glr%d%n1i
+          !!            ii=ii+int(1,kind=8)
+          !!            iidest=iidest+1
+          !!            if (ii>=istartend(1,jproc_send) .and. ii<=istartend(2,jproc_send)) then
+          !!                nel=nel+1
+          !!            else
+          !!                commarr_repartitionrho(4,ioverlaps)=nel
+          !!                jproc_send=jproc_send+1
+          !!                ioverlaps=ioverlaps+1
+          !!                nel=1
+          !!                started=.false.
+          !!            end if
+          !!            if (.not.started) then
+          !!                if (jproc_send>=nproc) stop 'ERROR: jproc_send>=nproc'
+          !!                commarr_repartitionrho(1,ioverlaps)=jproc_send
+          !!                commarr_repartitionrho(2,ioverlaps)=int(ii-istartend(1,jproc_send),kind=8)+1
+          !!                commarr_repartitionrho(3,ioverlaps)=iidest
+          !!                started=.true.
+          !!                iassign=iassign+1
+          !!            end if
+          !!        end do
+          !!    end do
+          !!end do
+          !!commarr_repartitionrho(4,ioverlaps)=nel
+
+          !!do i=1,ncomms_repartitionrho
+          !!    write(*,'(a,i5,3x,4i8)') 'FIRST: iproc, cr(1:4,i)', iproc, commarr_repartitionrho(1:4,i)
+          !!end do
+
+          !@ NEW ###############################
+          ! For each overlap, get the starting, ending point and extent
+          !jproc_send=0
           ioverlaps=0
-          i3=nscatterarr(iproc,3)-nscatterarr(iproc,4)
-          ii=int(i3,kind=8)*int(lzd%glr%d%n2i,kind=8)*int(lzd%glr%d%n1i,kind=8)+int(1,kind=8)
-          do jproc=nproc-1,0,-1
-              if (ii>=istartend(1,jproc)) then
-                  jproc_send=jproc
+          do jproc=0,nproc-1
+              if(check_whether_bounds_overlap(iis,iie,istartend(1,jproc),istartend(2,jproc))) then
+                  !jproc_send=jproc_send+1
                   ioverlaps=ioverlaps+1
-                  exit
+                  call get_extent_of_overlap(iis,iie,istartend(1,jproc),istartend(2,jproc), n, iiis, iiie, nlen)
+                  if (n>1) then
+                      write(*,*) 'WARNING: THIS WRONG AND NEEDS A FIX'
+                      is=minval(iiis)
+                  else
+                      is=iiis(1)
+                  end if
+                  commarr_repartitionrho(1,ioverlaps)=jproc
+                  commarr_repartitionrho(2,ioverlaps)=int(is-istartend(1,jproc),kind=4)+1
+                  i3=nscatterarr(iproc,3)-nscatterarr(iproc,4)+1
+                  iidest = int(is-int(i3-1,kind=8)*int(lzd%glr%d%n2i,kind=8)*int(lzd%glr%d%n1i,kind=8),kind=4)
+                  commarr_repartitionrho(3,ioverlaps)=iidest
+                  commarr_repartitionrho(4,ioverlaps)=int(nlen(1),kind=4)
               end if
           end do
-        
-        
-          ! The remaining processes
-          iassign=0
-          iidest=0
-          nel=0
-          started=.false.
-          do i3=nscatterarr(iproc,3)-nscatterarr(iproc,4)+1,nscatterarr(iproc,3)-nscatterarr(iproc,4)+nscatterarr(iproc,1)
-              ii=int(i3-1,kind=8)*int(lzd%glr%d%n2i,kind=8)*int(lzd%glr%d%n1i,kind=8)
-              do i2=1,lzd%glr%d%n2i
-                  do i1=1,lzd%glr%d%n1i
-                      ii=ii+int(1,kind=8)
-                      iidest=iidest+1
-                      if (ii>=istartend(1,jproc_send) .and. ii<=istartend(2,jproc_send)) then
-                          nel=nel+1
-                      else
-                          commarr_repartitionrho(4,ioverlaps)=nel
-                          jproc_send=jproc_send+1
-                          ioverlaps=ioverlaps+1
-                          nel=1
-                          started=.false.
-                      end if
-                      if (.not.started) then
-                          if (jproc_send>=nproc) stop 'ERROR: jproc_send>=nproc'
-                          commarr_repartitionrho(1,ioverlaps)=jproc_send
-                          commarr_repartitionrho(2,ioverlaps)=int(ii-istartend(1,jproc_send),kind=8)+1
-                          commarr_repartitionrho(3,ioverlaps)=iidest
-                          started=.true.
-                          iassign=iassign+1
-                      end if
-                  end do
-              end do
-          end do
-          commarr_repartitionrho(4,ioverlaps)=nel
+          !@ END NEW ###########################
           if (ioverlaps/=ncomms_repartitionrho) stop 'ERROR: ioverlaps/=ncomms_repartitionrho'
-          if (iassign/=ncomms_repartitionrho) stop 'ERROR: iassign/=ncomms_repartitionrho'
+          !if (iassign/=ncomms_repartitionrho) stop 'ERROR: iassign/=ncomms_repartitionrho'
+
+          do i=1,ncomms_repartitionrho
+              write(*,'(a,i5,3x,4i8)') 'SECOND: iproc, cr(1:4,i)', iproc, commarr_repartitionrho(1:4,i)
+          end do
         
           ! some checks
           nel=0
@@ -3470,12 +3624,18 @@ module communications_init
       type(p2pComms),intent(out):: comgp
       
       ! Local variables
-      integer:: is1, ie1, is2, ie2, is3, ie3, ilr, ii, iorb, iiorb, jproc, kproc, istsource
+      integer:: is1, ie1, is2, ie2, is3, ie3, ilr, ii, iorb, iiorb, jproc, kproc, istsource, is, ie, iie3j
       integer:: ioverlap, is3j, ie3j, is3k, ie3k, mpidest, istdest, ioffsetx, ioffsety, ioffsetz
-      integer :: is3min, ie3max, tag, ncount, ierr, nmaxoverlap
+      integer :: is3min, ie3max, tag, ncount, ierr, nmaxoverlap, nlen, iseg, j3
       logical :: datatype_defined
       character(len=*),parameter:: subname='initialize_communication_potential'
       integer,dimension(6) :: ise
+      integer,dimension(2) :: blocklengthsx, blocklengthsy, types, xyblock_type, nblocksy
+      integer(kind=mpi_address_kind),dimension(2) :: displacementsx, displacementsy
+      integer(kind=mpi_address_kind) :: lb, extent
+      integer :: nsegx, nsegy, xline_type, size_of_double, size_datatype, n1, n2, n3
+      integer,dimension(2) :: iis3, iie3, iis2, iie2, iis1, iie1, nlen1, nlen2, nlen3
+      !integer,dimension(:),allocatable :: derived_types
 
 
       call timing(iproc,'init_commPot  ','ON')
@@ -3502,34 +3662,53 @@ module communications_init
           iiorb=orbs%isorb+iorb 
           ilr=orbs%inwhichlocreg(iiorb)
       
-          ii=1+lzd%Llr(ilr)%nsi1
-          if(ii < is1) then
-              is1=ii
+          is=modulo(1+lzd%Llr(ilr)%nsi1-1,lzd%glr%d%n1i)+1
+          if(is < is1) then
+              is1=is
           end if
-          ii=lzd%Llr(ilr)%nsi1+lzd%Llr(ilr)%d%n1i
-          if(ii > ie1) then
-              ie1=ii
-          end if
-      
-          ii=1+lzd%Llr(ilr)%nsi2
-          if(ii < is2) then
-              is2=ii
-          end if
-          ii=lzd%Llr(ilr)%nsi2+lzd%Llr(ilr)%d%n2i
-          if(ii > ie2) then
-              ie2=ii
+          !ii=lzd%Llr(ilr)%nsi1+lzd%Llr(ilr)%d%n1i
+          ie=is+lzd%llr(ilr)%d%n1i-1
+          if(ie > ie1) then
+              ie1=ie
           end if
       
-          ii=1+lzd%Llr(ilr)%nsi3
-          if(ii < is3) then
-              is3=ii
+          is=modulo(1+lzd%Llr(ilr)%nsi2-1,lzd%glr%d%n2i)+1
+          if(is < is2) then
+              is2=is
           end if
-          ii=lzd%Llr(ilr)%nsi3+lzd%Llr(ilr)%d%n3i
-          if(ii > ie3) then
-              ie3=ii
+          !ii=lzd%Llr(ilr)%nsi2+lzd%Llr(ilr)%d%n2i
+          ie=is+lzd%llr(ilr)%d%n2i-1
+          if(ie > ie2) then
+              ie2=ie
           end if
+      
+          !ii=1+lzd%Llr(ilr)%nsi3
+          is=modulo(1+lzd%Llr(ilr)%nsi3-1,lzd%glr%d%n3i)+1
+          if(is < is3) then
+              is3=is
+          end if
+          !ii=lzd%Llr(ilr)%nsi3+lzd%Llr(ilr)%d%n3i
+          ie=is+lzd%llr(ilr)%d%n3i-1
+          if(ie > ie3) then
+              ie3=ie
+          end if
+
+          write(*,'(a,7i8)') 'ilr, lnsi3, lni3, gnsi3, gni3, is, ie', ilr, lzd%Llr(ilr)%nsi3, lzd%llr(ilr)%d%n3i, lzd%glr%nsi3, lzd%glr%d%n3i, is, ie
       
       end do
+      write(*,'(a,i4,3x,9i6)') 'iproc, is1, ie1, n1, is2, ie2, n2, is3, ie3, n3', iproc, is1, ie1, lzd%glr%d%n1i, is2, ie2, lzd%glr%d%n2i, is3, ie3, lzd%glr%d%n3i
+
+      ! For non-free boundary conditions the values ie1, ie2, ie3 may lie outside of the box!
+      ! Make sure that the wrapped aruond end is smaller than the beginning
+      if (ie1>lzd%glr%d%n1i) then
+          ie1=min(modulo(ie1-1,lzd%glr%d%n1i)+1,is1-1)
+      end if
+      if (ie2>lzd%glr%d%n2i) then
+          ie2=min(modulo(ie2-1,lzd%glr%d%n2i)+1,is2-1)
+      end if
+      if (ie3>lzd%glr%d%n3i) then
+          ie3=min(modulo(ie3-1,lzd%glr%d%n3i)+1,is3-1)
+      end if
       if (.not.bgq) then
           ! Communicate only the essential part, i.e. a subbox of the slices
           comgp%ise(1)=is1
@@ -3546,6 +3725,7 @@ module communications_init
       comgp%ise(5)=is3
       comgp%ise(6)=ie3
     
+      write(*,'(a,i5,6i6)') 'iproc, ise', iproc, comgp%ise
     
       
       ! Determine how many slices each process receives.
@@ -3556,24 +3736,36 @@ module communications_init
       !do jproc=0,nproc-1
           is3j=comgp%ise(5)
           ie3j=comgp%ise(6)
+          if (ie3j>lzd%glr%d%n3i) then
+              ! Take modulo and make sure that it stays smaller than the beginning
+              iie3j=modulo(ie3j-1,lzd%glr%d%n3i)+1
+              iie3j=min(iie3j,is3j-1)
+          else
+              iie3j=ie3j
+          end if
           mpidest=iproc
           ioverlap=0
           do kproc=0,nproc-1
               is3k=nscatterarr(kproc,3)+1
               ie3k=is3k+nscatterarr(kproc,2)-1
-              if(is3j<=ie3k .and. ie3j>=is3k) then
-                  ioverlap=ioverlap+1
-                  !if(iproc==0) write(*,'(2(a,i0),a)') 'process ',jproc,' gets potential from process ',kproc,'.' 
-              !TAKE INTO ACCOUNT THE PERIODICITY HERE
-              else if(ie3j > lzd%Glr%d%n3i .and. lzd%Glr%geocode /= 'F') then
-                  ie3j = comgp%ise(6) - lzd%Glr%d%n3i
-                  if(ie3j>=is3k) then
-                     ioverlap=ioverlap+1
-                  end if
-                  if(is3j <= ie3k)then
-                     ioverlap=ioverlap+1
-                  end if
-              end if
+              !if(is3j<=ie3k .and. ie3j>=is3k) then
+              write(*,'(a,6i8,l6)') 'iproc, is3j, ie3j, iie3j, is3k, ie3k, overlap', iproc, is3j, ie3j, iie3j, is3k, ie3k, check_whether_bounds_overlap(is3j, iie3j, is3k, ie3k)
+              !!if(check_whether_bounds_overlap(is3j, iie3j, is3k, ie3k)) then
+              !!    ioverlap=ioverlap+1
+              !!    !if(iproc==0) write(*,'(2(a,i0),a)') 'process ',jproc,' gets potential from process ',kproc,'.' 
+              !!!TAKE INTO ACCOUNT THE PERIODICITY HERE
+              !!!else if(ie3j > lzd%Glr%d%n3i .and. lzd%Glr%geocode /= 'F') then
+              !!!    stop 'periodicity here deprecated'
+              !!!    ie3j = comgp%ise(6) - lzd%Glr%d%n3i
+              !!!    if(ie3j>=is3k) then
+              !!!       ioverlap=ioverlap+1
+              !!!    end if
+              !!!    if(is3j <= ie3k)then
+              !!!       ioverlap=ioverlap+1
+              !!!    end if
+              !!end if
+              call get_extent_of_overlap(is3j, iie3j, is3k, ie3k, n3, iis3, iie3, nlen3)
+              ioverlap=ioverlap+n3
           end do
           !if (ioverlap>nmaxoverlap) nmaxoverlap=ioverlap
           comgp%noverlaps=ioverlap
@@ -3594,9 +3786,16 @@ module communications_init
       ie3max=0
     
       ! Only do this if we have more than one MPI task
-      nproc_if: if (nproc>1) then
+      !nproc_if: if (nproc>1) then
           is3j=comgp%ise(5)
           ie3j=comgp%ise(6)
+          if (ie3j>lzd%glr%d%n3i) then
+              ! Take modulo and make sure that it stays smaller than the beginning
+              iie3j=modulo(ie3j-1,lzd%glr%d%n3i)+1
+              iie3j=min(iie3j,is3j-1)
+          else
+              iie3j=ie3j
+          end if
           mpidest=iproc
           ioverlap=0
           istdest=1
@@ -3606,98 +3805,245 @@ module communications_init
               ie3k=is3k+nscatterarr(kproc,2)-1
               !SHOULD TAKE INTO ACCOUNT THE PERIODICITY HERE
               !Need to split the region
-              if(is3j<=ie3k .and. ie3j>=is3k) then
-                  is3=max(is3j,is3k) ! starting index in z dimension for data to be sent
-                  ie3=min(ie3j,ie3k) ! ending index in z dimension for data to be sent
-                  ioffsetz=is3-is3k ! starting index (in z direction) of data to be sent (actually it is the index -1)
-                  ioffsety=comgp%ise(3)-1
-                  ioffsetx=comgp%ise(1)
-                  ioverlap=ioverlap+1
-                  if(is3<is3min .or. ioverlap==1) then
-                      is3min=is3
+              !if(is3j<=ie3k .and. ie3j>=is3k) then
+              if(check_whether_bounds_overlap(is3j, iie3j, is3k, ie3k)) then
+                  !is3=max(is3j,is3k) ! starting index in z dimension for data to be sent
+                  !ie3=min(ie3j,ie3k) ! ending index in z dimension for data to be sent
+                  call get_extent_of_overlap(is3j, iie3j, is3k, ie3k, n3, iis3, iie3, nlen3)
+                  do j3=1,n3
+                      write(*,'(a,8i8)') 'iproc, kproc, is3j, iie3j, is3k, ie3k, iis3(j3), iie3(j3)', iproc, kproc, is3j, iie3j, is3k, ie3k, iis3(j3), iie3(j3)
+                      ioffsetz=iis3(j3)-is3k ! starting index (in z direction) of data to be sent (actually it is the index -1)
+                      if (comgp%ise(4)>lzd%glr%d%n2i) then
+                          ! Take modulo and make sure that it stays smaller than the beginning
+                          ii=modulo(comgp%ise(4)-1,lzd%glr%d%n2i)+1
+                          ii=min(ii,comgp%ise(3)-1)
+                      else
+                          ii=comgp%ise(4)
+                      end if
+                      call get_extent_of_overlap(comgp%ise(3), ii, 1, lzd%glr%d%n2i, n2, iis2, iie2, nlen2)
+                      if (n2>1) then
+                          is2=minval(iis2)
+                          ie2=maxval(iie2)
+                      end if
+                      !if (n2/=1) stop 'n2/=1'
+                      ioffsety = is2-1
+                      if (comgp%ise(2)>lzd%glr%d%n1i) then
+                          ! Take modulo and make sure that it stays smaller than the beginning
+                          ii=modulo(comgp%ise(2)-1,lzd%glr%d%n1i)+1
+                          ii=min(ii,comgp%ise(1)-1)
+                      else
+                          ii=comgp%ise(2)
+                      end if
+                      !write(*,*) 'iproc, comgp%ise(1), comgp%ise(2)', iproc, comgp%ise(1), comgp%ise(2)
+                      call get_extent_of_overlap(comgp%ise(1), ii, 1, lzd%glr%d%n1i, n1, iis1, iie1, nlen1)
+                      if (n1>1) then
+                          is1=minval(iis1)
+                          ie1=maxval(iie1)
+                      end if
+                      !if (n1/=1) stop 'n1/=1'
+                      ioffsetx = iis1(1)
+                      !if (comgp%ise(4)>lzd%glr%d%n2i) then
+                      !    ! Take modulo and make sure that it stays smaller than the beginning
+                      !    ioffsety=modulo(comgp%ise(4)-1,lzd%glr%d%n2i)+1
+                      !    ioffsety=min(ioffsety,comgp%ise(3))-1
+                      !else
+                      !    ioffsety=comgp%ise(3)-1
+                      !end if
+                      !!ioffsetx=comgp%ise(1)
+                      !if (comgp%ise(2)>lzd%glr%d%n1i) then
+                      !    ! Take modulo and make sure that it stays smaller than the beginning
+                      !    ioffsetx=modulo(comgp%ise(2)-1,lzd%glr%d%n1i)+1
+                      !    ioffsetx=min(ioffsetx,comgp%ise(1))
+                      !else
+                      !    ioffsetx=comgp%ise(1)-1
+                      !end if
+                      write(*,'(a,6i8)') 'iproc, ioffsetx, ie1, ioffsety, ie2, ioffsetz', iproc, ioffsetx, ie1, ioffsety, ie2, ioffsetz
+                      ioverlap=ioverlap+1
+
+                      ! Check whether there are holes in the slices
+                      if (comgp%ise(2)>lzd%glr%d%n1i) then
+                          ! Take modulo and make sure that it stays smaller than the beginning
+                          ii=modulo(comgp%ise(2)-1,lzd%glr%d%n1i)+1
+                          ii=min(ii,comgp%ise(1)-1)
+                      else
+                          ii=comgp%ise(2)
+                      end if
+                      !if (comgp%ise(1)>is1 .and. ii<ie1) then
+                      call mpi_type_size(mpi_double_precision, size_of_double, ierr)
+                      if (ii<comgp%ise(1) .and. ii>is1 .and. comgp%ise(1)<ie1) then
+                          write(*,'(a,5i8)') 'hole in x, iproc, is1, ie1, comgp%ise(1), ii', iproc, is1, ie1, comgp%ise(1), ii
+                          nsegx=2
+                          !!blocklengthsx(1)=comgp%ise(1)-is1+1
+                          !!blocklengthsx(2)=ie1-ii+1
+                          !!displacementsx(1)=int(0,kind=mpi_address_kind)
+                          !!displacementsx(2)=int(ii-1,kind=mpi_address_kind)
+                          blocklengthsx(1)=ii-is1+1
+                          blocklengthsx(2)=ie1-comgp%ise(1)+1
+                          displacementsx(1)=int(0*size_of_double,kind=mpi_address_kind)
+                          displacementsx(2)=int((comgp%ise(1)-1)*size_of_double,kind=mpi_address_kind)
+                      else
+                          nsegx=1
+                          blocklengthsx(1)=comgp%ise(2)-comgp%ise(1)+1
+                          blocklengthsx(2)=0
+                          displacementsx(1)=int(0*size_of_double,kind=mpi_address_kind)
+                          displacementsx(2)=int(comgp%ise(2)*size_of_double,kind=mpi_address_kind)
+                      end if
+                      if (comgp%ise(4)>lzd%glr%d%n2i) then
+                          ! Take modulo and make sure that it stays smaller than the beginning
+                          ii=modulo(comgp%ise(4)-1,lzd%glr%d%n2i)+1
+                          ii=min(ii,comgp%ise(3)-1)
+                      else
+                          ii=comgp%ise(4)
+                      end if
+                      !if (comgp%ise(3)>is2 .and. ii<ie2) then
+                      if (ii<comgp%ise(3) .and. ii>is2 .and. comgp%ise(3)<ie2) then
+                          write(*,*) 'iproc, hole in y', iproc
+                          nsegy=2
+                          !!blocklengthsy(1)=comgp%ise(3)-is2+1
+                          !!blocklengthsy(2)=ie2-ii+1
+                          !!displacementsy(1)=int(0,kind=mpi_address_kind)
+                          !!displacementsy(2)=int(ii-1,kind=mpi_address_kind)
+                          blocklengthsy(1)=ii-is2+1
+                          blocklengthsy(2)=ie2-comgp%ise(3)+1
+                          displacementsy(1)=int(0*lzd%glr%d%n1i*size_of_double,kind=mpi_address_kind)
+                          displacementsy(2)=int((comgp%ise(3)-1)*lzd%glr%d%n1i*size_of_double,kind=mpi_address_kind)
+                      else
+                          nsegy=1
+                          blocklengthsy(1)=comgp%ise(4)-comgp%ise(3)+1
+                          blocklengthsy(2)=0
+                          displacementsy(1)=int(0*lzd%glr%d%n1i*size_of_double,kind=mpi_address_kind)
+                          displacementsy(2)=int(comgp%ise(4)*lzd%glr%d%n1i*size_of_double,kind=mpi_address_kind)
+                      end if
+
+                      !!!if(is3<is3min .or. ioverlap==1) then
+                      !!!    is3min=is3
+                      !!!end if
+                      !!!if(ie3>ie3max .or. ioverlap==1) then
+                      !!!    ie3max=ie3
+                      !!!end if
+                      !!if (.not.bgq) then
+                          ! Communicate only the essential part, i.e. set the starting point to this part
+                          istsource = ioffsetz*lzd%glr%d%n1i*lzd%glr%d%n2i + ioffsety*lzd%glr%d%n1i + ioffsetx
+                      !!else
+                      !!    ! Communicate the entire slice, i.e. set the starting point to the beginning of a slice
+                      !!    istsource = ioffsetz*lzd%glr%d%n1i*lzd%glr%d%n2i
+                      !!end if
+                      ncount = 1
+                      comgp%comarr(1,ioverlap)=kproc
+                      comgp%comarr(2,ioverlap)=istsource
+                      comgp%comarr(3,ioverlap)=iproc
+                      comgp%comarr(4,ioverlap)=istdest
+                      comgp%comarr(5,ioverlap)=iie3(j3)-iis3(j3)+1
+                      comgp%comarr(6,ioverlap)=lzd%glr%d%n1i*lzd%glr%d%n2i
+                      if (.not. datatype_defined) then
+                          write(*,'(a,8i8)') 'iproc, nsegx, blocklengthsx, displacementsx, comgp%ise(1), comgp%ise(2)', &
+                                              iproc, nsegx, blocklengthsx, displacementsx, comgp%ise(1), comgp%ise(2)
+                          types(:)=mpi_double_precision
+                          call mpi_type_create_struct(nsegx, blocklengthsx, displacementsx, &
+                               types, xline_type, ierr)
+                          call mpi_type_commit(xline_type, ierr)
+                          call mpi_type_size(xline_type, ii, ierr)
+                          call mpi_type_get_extent(xline_type, lb, extent, ierr)
+                          write(*,'(a,4i10)') 'iproc, size, lb, extent, of xline_type', iproc, ii, lb, extent
+                          !write(*,*) 'iproc, size of xline_type', iproc, ii
+                          !!call mpi_type_vector(comgp%ise(4)-comgp%ise(3)+1, comgp%ise(2)-comgp%ise(1)+1, &
+                          !!     lzd%glr%d%n1i, mpi_double_precision, comgp%mpi_datatypes(0), ierr)
+                          !derived_types = f_malloc(comgp%ise(4)-comgp%ise(3)+1,id='derived_types')
+                          !derived_types(:)=xline_type
+                          !!call mpi_type_create_hvector(comgp%ise(4)-comgp%ise(3)+1, 1, &
+                          !!     int(size_of_double*lzd%glr%d%n1i,kind=mpi_address_kind), &
+                          !!     xline_type, comgp%mpi_datatypes(0), ierr)
+                          ! Now create a type describing one block
+                          xyblock_type(:)=0 !just to initialize
+                          do iseg=1,nsegy
+                              call mpi_type_create_hvector(blocklengthsy(iseg), 1, &
+                                   int(size_of_double*lzd%glr%d%n1i,kind=mpi_address_kind), &
+                                   xline_type, xyblock_type(iseg), ierr)
+                              call mpi_type_commit(xyblock_type(iseg), ierr)
+                              call mpi_type_size(xyblock_type(iseg), ii, ierr)
+                              call mpi_type_get_extent(xyblock_type(iseg), lb, extent, ierr)
+                              write(*,'(a,4i14)') 'iproc, size, lb, extent, of xyblock_type(iseg)', iproc, ii, lb, extent
+                              types(iseg)=xyblock_type(iseg)
+                              nblocksy(iseg)=1
+                          end do
+                          types(:)=xyblock_type
+                          call mpi_type_create_struct(nsegy, nblocksy, displacementsy, &
+                               types, comgp%mpi_datatypes(0), ierr)
+                          !call f_free(derived_types)
+                          call mpi_type_commit(comgp%mpi_datatypes(0), ierr)
+                          call mpi_type_size(comgp%mpi_datatypes(0), ii, ierr)
+                          call mpi_type_get_extent(comgp%mpi_datatypes(0), lb, extent, ierr)
+                          write(*,'(a,4i14)') 'iproc, size, lb, extent, of comgp%mpi_datatypes(0)', iproc, ii, lb, extent
+                          do iseg=1,nsegy
+                              call mpi_type_free(xyblock_type(iseg), ierr)
+                          end do
+                          call mpi_type_free(xline_type, ierr)
+                          datatype_defined=.true.
                   end if
-                  if(ie3>ie3max .or. ioverlap==1) then
-                      ie3max=ie3
-                  end if
-                  !!if (.not.bgq) then
-                      ! Communicate only the essential part, i.e. set the starting point to this part
-                      istsource = ioffsetz*lzd%glr%d%n1i*lzd%glr%d%n2i + ioffsety*lzd%glr%d%n1i + ioffsetx
-                  !!else
-                  !!    ! Communicate the entire slice, i.e. set the starting point to the beginning of a slice
-                  !!    istsource = ioffsetz*lzd%glr%d%n1i*lzd%glr%d%n2i
-                  !!end if
-                  ncount = 1
-                  comgp%comarr(1,ioverlap)=kproc
-                  comgp%comarr(2,ioverlap)=istsource
-                  comgp%comarr(3,ioverlap)=iproc
-                  comgp%comarr(4,ioverlap)=istdest
-                  comgp%comarr(5,ioverlap)=ie3-is3+1
-                  comgp%comarr(6,ioverlap)=lzd%glr%d%n1i*lzd%glr%d%n2i
-                  if (.not. datatype_defined) then
-                      call mpi_type_vector(comgp%ise(4)-comgp%ise(3)+1, comgp%ise(2)-comgp%ise(1)+1, &
-                           lzd%glr%d%n1i, mpi_double_precision, comgp%mpi_datatypes(0), ierr)
-                      call mpi_type_commit(comgp%mpi_datatypes(0), ierr)
-                      datatype_defined=.true.
-                  end if
-                  istdest = istdest + &
-                            (ie3-is3+1)*(comgp%ise(2)-comgp%ise(1)+1)*(comgp%ise(4)-comgp%ise(3)+1)
-                  comgp%nrecvBuf = comgp%nrecvBuf + &
-                            (ie3-is3+1)*(comgp%ise(2)-comgp%ise(1)+1)*(comgp%ise(4)-comgp%ise(3)+1)
-              else if(ie3j > lzd%Glr%d%n3i .and. lzd%Glr%geocode /= 'F')then
-                   stop 'WILL PROBABLY NOT WORK!'
-                   ie3j = comgp%ise(6) - lzd%Glr%d%n3i
-                   if(ie3j>=is3k) then
-                       is3=max(0,is3k) ! starting index in z dimension for data to be sent
-                       ie3=min(ie3j,ie3k) ! ending index in z dimension for data to be sent
-                       ioffsetz=is3-0 ! starting index (in z direction) of data to be sent (actually it is the index -1)
-                       ioverlap=ioverlap+1
-                       !tag=tag+1
-                       !!tag=p2p_tag(jproc)
-                       if(is3<is3min .or. ioverlap==1) then
-                           is3min=is3
-                       end if
-                       if(ie3>ie3max .or. ioverlap==1) then
-                           ie3max=ie3
-                       end if
-                       !!call setCommunicationPotential(kproc, is3, ie3, ioffsetz, lzd%Glr%d%n1i, lzd%Glr%d%n2i, jproc,&
-                       !!     istdest, tag, comgp%comarr(1,ioverlap,jproc))
-                       istsource=ioffsetz*lzd%glr%d%n1i*lzd%glr%d%n2i+1
-                       !ncount=(ie3-is3+1)*lzd%glr%d%n1i*lzd%glr%d%n2i
-                       ncount=lzd%glr%d%n1i*lzd%glr%d%n2i
-                       call setCommsParameters(kproc, jproc, istsource, istdest, ncount, tag, comgp%comarr(1,ioverlap))
-                       comgp%comarr(7,ioverlap)=(ie3-is3+1)
-                       comgp%comarr(8,ioverlap)=lzd%glr%d%n1i*lzd%glr%d%n2i
-                       istdest = istdest + (ie3-is3+1)*ncount
-                       if(iproc==jproc) then
-                           comgp%nrecvBuf = comgp%nrecvBuf + (ie3-is3+1)*lzd%Glr%d%n1i*lzd%Glr%d%n2i
-                       end if
-                   end if
-                   if(is3j <= ie3k)then
-                       is3=max(is3j,is3k) ! starting index in z dimension for data to be sent
-                       ie3=min(lzd%Glr%d%n3i,ie3k) ! ending index in z dimension for data to be sent
-                       ioffsetz=is3-is3k ! starting index (in z direction) of data to be sent (actually it is the index -1)
-                       ioverlap=ioverlap+1
-                       !tag=tag+1
-                       !!tag=p2p_tag(jproc)
-                       if(is3<is3min .or. ioverlap==1) then
-                           is3min=is3
-                       end if
-                       if(ie3>ie3max .or. ioverlap==1) then
-                           ie3max=ie3
-                       end if
-                       !!call setCommunicationPotential(kproc, is3, ie3, ioffsetz, lzd%Glr%d%n1i, lzd%Glr%d%n2i, jproc,&
-                       !!     istdest, tag, comgp%comarr(1,ioverlap,jproc))
-                       istsource=ioffsetz*lzd%glr%d%n1i*lzd%glr%d%n2i+1
-                       !ncount=(ie3-is3+1)*lzd%glr%d%n1i*lzd%glr%d%n2i
-                       ncount=lzd%glr%d%n1i*lzd%glr%d%n2i
-                       call setCommsParameters(kproc, jproc, istsource, istdest, ncount, tag, comgp%comarr(1,ioverlap))
-                       comgp%comarr(7,ioverlap)=ie3-is3+1
-                       comgp%comarr(8,ioverlap)=lzd%glr%d%n1i*lzd%glr%d%n2i
-                       istdest = istdest + (ie3-is3+1)*ncount
-                       if(iproc==jproc) then
-                           comgp%nrecvBuf = comgp%nrecvBuf + (ie3-is3+1)*lzd%Glr%d%n1i*lzd%Glr%d%n2i
-                       end if
-                   end if
+                  !!istdest = istdest + &
+                  !!          (ie3-is3+1)*(comgp%ise(2)-comgp%ise(1)+1)*(comgp%ise(4)-comgp%ise(3)+1)
+                  !!comgp%nrecvBuf = comgp%nrecvBuf + &
+                  !!          (ie3-is3+1)*(comgp%ise(2)-comgp%ise(1)+1)*(comgp%ise(4)-comgp%ise(3)+1)
+                  call mpi_type_size(comgp%mpi_datatypes(0), size_datatype, ierr)
+                  size_datatype=size_datatype/size_of_double
+                  istdest = istdest + nlen3(j3)*size_datatype
+                  comgp%nrecvBuf = comgp%nrecvBuf + nlen3(j3)*size_datatype
+              !!else if(ie3j > lzd%Glr%d%n3i .and. lzd%Glr%geocode /= 'F')then
+              !!     stop 'WILL PROBABLY NOT WORK!'
+              !!     ie3j = comgp%ise(6) - lzd%Glr%d%n3i
+              !!     if(ie3j>=is3k) then
+              !!         is3=max(0,is3k) ! starting index in z dimension for data to be sent
+              !!         ie3=min(ie3j,ie3k) ! ending index in z dimension for data to be sent
+              !!         ioffsetz=is3-0 ! starting index (in z direction) of data to be sent (actually it is the index -1)
+              !!         ioverlap=ioverlap+1
+              !!         !tag=tag+1
+              !!         !!tag=p2p_tag(jproc)
+              !!         if(is3<is3min .or. ioverlap==1) then
+              !!             is3min=is3
+              !!         end if
+              !!         if(ie3>ie3max .or. ioverlap==1) then
+              !!             ie3max=ie3
+              !!         end if
+              !!         !!call setCommunicationPotential(kproc, is3, ie3, ioffsetz, lzd%Glr%d%n1i, lzd%Glr%d%n2i, jproc,&
+              !!         !!     istdest, tag, comgp%comarr(1,ioverlap,jproc))
+              !!         istsource=ioffsetz*lzd%glr%d%n1i*lzd%glr%d%n2i+1
+              !!         !ncount=(ie3-is3+1)*lzd%glr%d%n1i*lzd%glr%d%n2i
+              !!         ncount=lzd%glr%d%n1i*lzd%glr%d%n2i
+              !!         call setCommsParameters(kproc, jproc, istsource, istdest, ncount, tag, comgp%comarr(1,ioverlap))
+              !!         comgp%comarr(7,ioverlap)=(ie3-is3+1)
+              !!         comgp%comarr(8,ioverlap)=lzd%glr%d%n1i*lzd%glr%d%n2i
+              !!         istdest = istdest + (ie3-is3+1)*ncount
+              !!         if(iproc==jproc) then
+              !!             comgp%nrecvBuf = comgp%nrecvBuf + (ie3-is3+1)*lzd%Glr%d%n1i*lzd%Glr%d%n2i
+              !!         end if
+              !!     end if
+              !!     if(is3j <= ie3k)then
+              !!         is3=max(is3j,is3k) ! starting index in z dimension for data to be sent
+              !!         ie3=min(lzd%Glr%d%n3i,ie3k) ! ending index in z dimension for data to be sent
+              !!         ioffsetz=is3-is3k ! starting index (in z direction) of data to be sent (actually it is the index -1)
+              !!         ioverlap=ioverlap+1
+              !!         !tag=tag+1
+              !!         !!tag=p2p_tag(jproc)
+              !!         if(is3<is3min .or. ioverlap==1) then
+              !!             is3min=is3
+              !!         end if
+              !!         if(ie3>ie3max .or. ioverlap==1) then
+              !!             ie3max=ie3
+              !!         end if
+              !!         !!call setCommunicationPotential(kproc, is3, ie3, ioffsetz, lzd%Glr%d%n1i, lzd%Glr%d%n2i, jproc,&
+              !!         !!     istdest, tag, comgp%comarr(1,ioverlap,jproc))
+              !!         istsource=ioffsetz*lzd%glr%d%n1i*lzd%glr%d%n2i+1
+              !!         !ncount=(ie3-is3+1)*lzd%glr%d%n1i*lzd%glr%d%n2i
+              !!         ncount=lzd%glr%d%n1i*lzd%glr%d%n2i
+              !!         call setCommsParameters(kproc, jproc, istsource, istdest, ncount, tag, comgp%comarr(1,ioverlap))
+              !!         comgp%comarr(7,ioverlap)=ie3-is3+1
+              !!         comgp%comarr(8,ioverlap)=lzd%glr%d%n1i*lzd%glr%d%n2i
+              !!         istdest = istdest + (ie3-is3+1)*ncount
+              !!         if(iproc==jproc) then
+              !!             comgp%nrecvBuf = comgp%nrecvBuf + (ie3-is3+1)*lzd%Glr%d%n1i*lzd%Glr%d%n2i
+              !!         end if
+              !!     end if
+              end do
               end if
           end do
           !!comgp%ise3(1,jproc)=is3min
@@ -3708,12 +4054,12 @@ module communications_init
           !if (comgp%ise(6,jproc)/=ie3max) stop 'ERROR 2'
           if(ioverlap/=comgp%noverlaps) stop 'ioverlap/=comgp%noverlaps'
     
-      else nproc_if ! monoproc
+      !else nproc_if ! monoproc
     
-          comgp%nrecvbuf = (comgp%ise(2)-comgp%ise(1)+1)*(comgp%ise(4)-comgp%ise(3)+1)*&
-                           (comgp%ise(6)-comgp%ise(5)+1)
-      
-      end if nproc_if
+      !    comgp%nrecvbuf = (comgp%ise(2)-comgp%ise(1)+1)*(comgp%ise(4)-comgp%ise(3)+1)*&
+      !                     (comgp%ise(6)-comgp%ise(5)+1)
+      !
+      !end if nproc_if
     
       ! This is the size of the communication buffer without spin
       comgp%nrecvbuf=max(comgp%nrecvbuf,1)
@@ -4075,5 +4421,202 @@ module communications_init
     END SUBROUTINE orbitals_communicators
 
 
+    !> Checks whether a segment with bounds i1,i2 (where i2 might be smaller
+    !! than i1 due to periodic boundary conditions) overlaps with a segment with
+    !! bounds j1,2 (where j1<=j2)
+    function check_whether_bounds_overlap_int(i1, i2, j1, j2) result(overlap)
+      implicit none
+      ! Calling arguments
+      integer,intent(in) :: i1, i2, j1, j2
+      logical :: overlap
+      ! Local variables
+      logical :: periodic
+      
+
+      ! If the end is smaller than the start, we have a periodic wrap around
+      periodic = (i2<i1)
+
+      ! Check whether there is an overlap
+      if (periodic) then
+          overlap = (i1<=j2 & !i2>=j1 due to periodic wrap around 
+               .or. i2>=j1)   !i1<=j2 due to periodic wrap around
+      else
+          overlap = (i2>=j1 .and. i1<=j2)
+      end if
+
+    end function check_whether_bounds_overlap_int
+
+
+    function check_whether_bounds_overlap_long(i1, i2, j1, j2) result(overlap)
+      implicit none
+      ! Calling arguments
+      integer(kind=8),intent(in) :: i1, i2, j1, j2
+      logical :: overlap
+      ! Local variables
+      logical :: periodic
+      
+
+      ! If the end is smaller than the start, we have a periodic wrap around
+      periodic = (i2<i1)
+
+      ! Check whether there is an overlap
+      if (periodic) then
+          overlap = (i1<=j2 & !i2>=j1 due to periodic wrap around 
+               .or. i2>=j1)   !i1<=j2 due to periodic wrap around
+      else
+          overlap = (i2>=j1 .and. i1<=j2)
+      end if
+
+    end function check_whether_bounds_overlap_long
+
+
+    !> Checks whether a segment with bounds i1,i2 (where i2 might be smaller
+    !! than i1 due to periodic boundary conditions) overlaps with a segment with
+    !! bounds j1,2 (where j1<=j2). Is so, it gives the starting point, ending
+    !! point and the extent of the (possibly two) overlaps.
+    subroutine get_extent_of_overlap_int(i1, i2, j1, j2, n, ks, ke, nlen)
+      use dictionaries, only: f_err_throw
+      implicit none
+      ! Calling arguments
+      integer,intent(in) :: i1, i2, j1, j2
+      integer,intent(out) :: n !<number of overlaps
+      integer,dimension(2),intent(out) :: ks, ke, nlen
+      ! Local variables
+      integer :: ks1, ke1, ks2, ke2
+      logical :: periodic, case1, case2, found_case
+
+
+      ! Check whether there is an overlap
+      if (check_whether_bounds_overlap(i1, i2, j1, j2)) then
+          ! If the end is smaller than the start, we have a periodic wrap around
+          periodic = (i2<i1)
+          if (periodic) then
+              found_case = .false.
+              if (i2>=j1) then
+                  ks1 = j1 !don't need to check i1 due to periodic wrap around
+                  ke1 = min(i2,j2)
+                  found_case = .true.
+                  case1 = .true.
+              else
+                  ks1=huge(i2)
+                  ke1=-huge(i2)
+                  case1 = .false.
+              end if
+              if (i1<=j2) then
+                  ks2 = max(i1,j1)
+                  ke2 = j2 !don't need to check i2 due to periodic wrap around
+                  found_case = .true.
+                  case2 = .true.
+              else
+                  ks2=huge(i1)
+                  ke2=-huge(i1)
+                  case2 = .false.
+              end if
+              if (.not. found_case) then
+                  call f_err_throw('Cannot determine overlap',err_name='BIGDFT_RUNTIME_ERROR')
+              end if
+              if (case1 .and. case2) then
+                  ! There are two overlaps
+                  n = 2
+                  ks(1) = ks1
+                  ke(1) = ke1
+                  nlen(1) = ke(1) - ks(1) + 1
+                  ks(2) = ks2
+                  ke(2) = ke2
+                  nlen(2) = ke(2) - ks(2) + 1
+              else
+                  n = 1
+                  ks = min(ks1,ks2)
+                  ke = max(ke1,ke2)
+                  nlen = ke(1) - ks(1) + 1
+              end if
+          else
+              n = 0
+              ks(1) = max(i1,j1)
+              ke(1) = min(i2,j2)
+              nlen(1) = ke(1) - ks(1) + 1
+          end if
+          !write(*,'(a,7i8)') 'i1, i2, j1, j2, is, ie, n', i1, i2, j1, j2, is, ie, n
+      else
+          n = 0
+          ks(1) = -1
+          ke(1) = -1
+          nlen(1) = 0
+      end if
+
+    end subroutine get_extent_of_overlap_int
+
+
+    subroutine get_extent_of_overlap_long(i1, i2, j1, j2, n, ks, ke, nlen)
+      use dictionaries, only: f_err_throw
+      implicit none
+      ! Calling arguments
+      integer(kind=8),intent(in) :: i1, i2, j1, j2
+      integer,intent(out) :: n
+      integer(kind=8),dimension(2),intent(out) :: ks, ke, nlen
+      ! Local variables
+      integer(kind=8) :: ks1, ke1, ks2, ke2
+      logical :: periodic, case1, case2, found_case
+
+
+      ! Check whether there is an overlap
+      if (check_whether_bounds_overlap(i1, i2, j1, j2)) then
+          ! If the end is smaller than the start, we have a periodic wrap around
+          periodic = (i2<i1)
+          if (periodic) then
+              found_case = .false.
+              if (i2>=j1) then
+                  ks1 = j1 !don't need to check i1 due to periodic wrap around
+                  ke1 = min(i2,j2)
+                  found_case = .true.
+                  case1 = .true.
+              else
+                  ks1=huge(i2)
+                  ke1=-huge(i2)
+                  case1 = .false.
+              end if
+              if (i1<=j2) then
+                  ks2 = max(i1,j1)
+                  ke2 = j2 !don't need to check i2 due to periodic wrap around
+                  found_case = .true.
+                  case2 = .true.
+              else
+                  ks2=huge(i1)
+                  ke2=-huge(i1)
+                  case2 = .false.
+              end if
+              if (.not. found_case) then
+                  call f_err_throw('Cannot determine overlap',err_name='BIGDFT_RUNTIME_ERROR')
+              end if
+              if (case1 .and. case2) then
+                  ! There are two overlaps
+                  n = 2
+                  ks(1) = ks1
+                  ke(1) = ke1
+                  nlen(1) = ke(1) - ks(1) + 1
+                  ks(2) = ks2
+                  ke(2) = ke2
+                  nlen(2) = ke(2) - ks(2) + 1
+              else
+                  n = 1
+                  ks = min(ks1,ks2)
+                  ke = max(ke1,ke2)
+                  nlen = ke(1) - ks(1) + 1
+              end if
+          else
+              n = 0
+              ks(1) = max(i1,j1)
+              ke(1) = min(i2,j2)
+              nlen(1) = ke(1) - ks(1) + 1
+          end if
+          !write(*,'(a,7i8)') 'i1, i2, j1, j2, is, ie, n', i1, i2, j1, j2, is, ie, n
+      else
+          n = 0
+          ks(1) = -1
+          ke(1) = -1
+          nlen(1) = 0
+      end if
+
+    end subroutine get_extent_of_overlap_long
 
 end module communications_init

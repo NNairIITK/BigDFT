@@ -2460,7 +2460,7 @@ subroutine reorthonormalize_coeff(iproc, nproc, norb, blocksize_dsyev, blocksize
             call mpiallred(ovrlp_coeff, MPI_SUM, bigdft_mpi%mpi_comm)
          end if
 
-         if (norb==orbs%norb) then
+         if (norb==orbs%norb .and. basis_overlap%nspin==1) then
             ! Parallelization for nspin/=1 not done
             if (orbs%norbp>0) then
                call deviation_from_unity_parallel(iproc, nproc, orbs%norb, orbs%norbp, orbs%isorb, &
@@ -3147,7 +3147,7 @@ subroutine renormalize_kernel(iproc, nproc, order_taylor, max_inversion_error, t
                                SPARSE_FULL, DENSE_FULL, DENSE_MATMUL, SPARSEMM_SEQ, &
                                matrices
   use sparsematrix_init, only: matrixindex_in_compressed
-  use sparsematrix, only: uncompress_matrix, compress_matrix_distributed
+  use sparsematrix, only: uncompress_matrix
 
   implicit none
 
