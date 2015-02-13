@@ -3810,6 +3810,7 @@ module communications_init
                   !is3=max(is3j,is3k) ! starting index in z dimension for data to be sent
                   !ie3=min(ie3j,ie3k) ! ending index in z dimension for data to be sent
                   call get_extent_of_overlap(is3j, iie3j, is3k, ie3k, n3, iis3, iie3, nlen3)
+                  write(*,'(a,7i7)') 'iproc, kproc, is3j, iie3j, is3k, ie3k, n3', iproc, kproc, is3j, iie3j, is3k, ie3k, n3
                   do j3=1,n3
                       write(*,'(a,8i8)') 'iproc, kproc, is3j, iie3j, is3k, ie3k, iis3(j3), iie3(j3)', iproc, kproc, is3j, iie3j, is3k, ie3k, iis3(j3), iie3(j3)
                       ioffsetz=iis3(j3)-is3k ! starting index (in z direction) of data to be sent (actually it is the index -1)
@@ -3987,6 +3988,7 @@ module communications_init
                   call mpi_type_size(comgp%mpi_datatypes(0), size_datatype, ierr)
                   size_datatype=size_datatype/size_of_double
                   istdest = istdest + nlen3(j3)*size_datatype
+                  write(*,*) 'j3, nlen3(j3), size_datatype', j3, nlen3(j3), size_datatype
                   comgp%nrecvBuf = comgp%nrecvBuf + nlen3(j3)*size_datatype
               !!else if(ie3j > lzd%Glr%d%n3i .and. lzd%Glr%geocode /= 'F')then
               !!     stop 'WILL PROBABLY NOT WORK!'
@@ -4531,7 +4533,7 @@ module communications_init
                   nlen = ke(1) - ks(1) + 1
               end if
           else
-              n = 0
+              n = 1
               ks(1) = max(i1,j1)
               ke(1) = min(i2,j2)
               nlen(1) = ke(1) - ks(1) + 1
@@ -4604,7 +4606,7 @@ module communications_init
                   nlen = ke(1) - ks(1) + 1
               end if
           else
-              n = 0
+              n = 1
               ks(1) = max(i1,j1)
               ke(1) = min(i2,j2)
               nlen(1) = ke(1) - ks(1) + 1
