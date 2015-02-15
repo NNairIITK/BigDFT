@@ -30,7 +30,7 @@ subroutine orthogonalize(iproc,nproc,orbs,comms,psi,orthpar,paw)
   character(len=*), parameter :: subname='orthogonalize'
   !integer :: i,idx
   integer :: ispin,nspin,nspinor
-  logical :: usepaw=.false.
+  logical :: usepaw
   integer, dimension(:,:), allocatable :: ndim_ovrlp
   real(wp), dimension(:), allocatable :: ovrlp
   integer,dimension(:),allocatable:: norbArr
@@ -43,7 +43,7 @@ subroutine orthogonalize(iproc,nproc,orbs,comms,psi,orthpar,paw)
   else 
      nspin=1
   end if
-
+  usepaw=.false.
   !Determine whether we are in a paw calculation:
   if(present(paw)) usepaw=paw%usepaw
 
