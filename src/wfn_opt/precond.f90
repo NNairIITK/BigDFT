@@ -335,7 +335,7 @@ subroutine preconditionall2(iproc,nproc,orbs,Lzd,hx,hy,hz,ncong,npsidim,hpsi,con
 !!$ end if
   !gather the results of the gnrm per orbital in the case of high verbosity
   if (verbose >= 3) then
-     gnrms = f_malloc(orbs%norb*orbs%nkpts,id='gnrms')
+     gnrms = f_malloc0(orbs%norb*orbs%nkpts,id='gnrms')
      !prepare displacements arrays
      ncntdsp = f_malloc((/ nproc, 2 /),id='ncntdsp')
      ncntdsp(1,2)=0
@@ -344,7 +344,7 @@ subroutine preconditionall2(iproc,nproc,orbs,Lzd,hx,hy,hz,ncong,npsidim,hpsi,con
         ncntdsp(jproc+1,2)=ncntdsp(jproc,2)+ncntdsp(jproc,1)
         ncntdsp(jproc+1,1)=orbs%norb_par(jproc,0)
      end do
-     call to_zero(orbs%norb*orbs%nkpts,gnrms(1))
+     !call f_zero(orbs%norb*orbs%nkpts,gnrms(1))
      !root mpi task collects the data
      if (nproc > 1) then
         call MPI_GATHERV(gnrmp(1),orbs%norbp,mpidtypw,gnrms(1),ncntdsp(1,1),&
@@ -482,6 +482,8 @@ subroutine finalise_precond_residue(geocode,hybrid_on,ncplx,wfd,scal,x)
   !local variables
   integer :: idx
 
+  call f_routine(id='finalise_precond_residue')
+
   if (geocode == 'F') then
      do idx=1,ncplx
         call wscalv_wrap(wfd%nvctr_c,wfd%nvctr_f,scal,x(1,idx))
@@ -496,6 +498,9 @@ subroutine finalise_precond_residue(geocode,hybrid_on,ncplx,wfd,scal,x)
      end do
   else
   end if
+
+  call f_release_routine()
+
 END SUBROUTINE finalise_precond_residue
 
 
@@ -515,6 +520,8 @@ subroutine calculate_rmr_new(geocode,hybrid_on,ncplx,wfd,scal,r,b,rmr_new)
   logical :: noscal
   integer :: idx
 
+  call f_routine(id='calculate_rmr_new')
+
   noscal = ((geocode == 'P' .and. .not. hybrid_on) .or. &
        geocode == 'F' .or. geocode == 'S')
 
@@ -529,6 +536,8 @@ subroutine calculate_rmr_new(geocode,hybrid_on,ncplx,wfd,scal,r,b,rmr_new)
      end do
      rmr_new=dot(ncplx*(wfd%nvctr_c+7*wfd%nvctr_f),r(1,1),1,b(1,1),1)
   end if
+
+  call f_release_routine()
 
 END SUBROUTINE calculate_rmr_new
 
@@ -552,6 +561,8 @@ subroutine precondition_preconditioner(lr,ncplx,hx,hy,hz,scal,cprecr,w,x,b)
   integer :: n1f,n3f,n1b,n3b,nd1f,nd3f,nd1b,nd3b 
   real(gp) :: fac
   real(wp) :: fac_h,h0,h1,h2,h3
+
+  call f_routine(id='precondition_preconditioner')
     
   if (lr%geocode == 'F') then
      !using hx instead of hgrid for isolated bc
@@ -593,19 +604,13 @@ subroutine precondition_preconditioner(lr,ncplx,hx,hy,hz,scal,cprecr,w,x,b)
      end do
 
      !initalize to zero the work arrays, probably not needed
-     call to_zero((lr%d%nfu1-lr%d%nfl1+1)*(lr%d%nfu2-lr%d%nfl2+1)*(lr%d%nfu3-lr%d%nfl3+1),&
-          w%x_f1(1))
-     call to_zero((lr%d%nfu1-lr%d%nfl1+1)*(lr%d%nfu2-lr%d%nfl2+1)*(lr%d%nfu3-lr%d%nfl3+1),&
-          w%x_f2(1))
-     call to_zero((lr%d%nfu1-lr%d%nfl1+1)*(lr%d%nfu2-lr%d%nfl2+1)*(lr%d%nfu3-lr%d%nfl3+1),&
-          w%x_f3(1))
-     call to_zero((lr%d%n1+1)*(lr%d%n2+1)*(lr%d%n3+1),w%xpsig_c(0,0,0))
-     call to_zero(7*(lr%d%nfu1-lr%d%nfl1+1)*(lr%d%nfu2-lr%d%nfl2+1)*(lr%d%nfu3-lr%d%nfl3+1),&
-          w%xpsig_f(1,lr%d%nfl1,lr%d%nfl2,lr%d%nfl3))
-
-     call to_zero((lr%d%n1+1)*(lr%d%n2+1)*(lr%d%n3+1),w%ypsig_c(0,0,0))
-     call to_zero(7*(lr%d%nfu1-lr%d%nfl1+1)*(lr%d%nfu2-lr%d%nfl2+1)*(lr%d%nfu3-lr%d%nfl3+1),&
-          w%ypsig_f(1,lr%d%nfl1,lr%d%nfl2,lr%d%nfl3))
+     call f_zero(w%x_f1)
+     call f_zero(w%x_f2)
+     call f_zero(w%x_f3)
+     call f_zero(w%xpsig_c)
+     call f_zero(w%xpsig_f)
+     call f_zero(w%ypsig_c)
+     call f_zero(w%ypsig_f)
 
   else if (lr%geocode == 'P') then
 
@@ -699,6 +704,8 @@ subroutine precondition_preconditioner(lr,ncplx,hx,hy,hz,scal,cprecr,w,x,b)
      end do
 
   end if
+
+  call f_release_routine()
   
 END SUBROUTINE precondition_preconditioner
 
@@ -1379,26 +1386,16 @@ subroutine precong(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, &
   endif
 
   !allocate work arrays
-  xpsig_c = f_malloc((/ 0.to.n1, 0.to.n2, 0.to.n3 /),id='xpsig_c')
-  xpsig_f = f_malloc((/ 1.to.7, nfl1.to.nfu1, nfl2.to.nfu2, nfl3.to.nfu3 /),id='xpsig_f')
-  ypsig_c = f_malloc((/ 0.to.n1, 0.to.n2, 0.to.n3 /),id='ypsig_c')
-  ypsig_f = f_malloc((/ 1.to.7, nfl1.to.nfu1, nfl2.to.nfu2, nfl3.to.nfu3 /),id='ypsig_f')
+  xpsig_c = f_malloc0((/ 0.to.n1, 0.to.n2, 0.to.n3 /),id='xpsig_c')
+  xpsig_f = f_malloc0((/ 1.to.7, nfl1.to.nfu1, nfl2.to.nfu2, nfl3.to.nfu3 /),id='xpsig_f')
+  ypsig_c = f_malloc0((/ 0.to.n1, 0.to.n2, 0.to.n3 /),id='ypsig_c')
+  ypsig_f = f_malloc0((/ 1.to.7, nfl1.to.nfu1, nfl2.to.nfu2, nfl3.to.nfu3 /),id='ypsig_f')
 
-  x_f1 = f_malloc((/ nfl1.to.nfu1, nfl2.to.nfu2, nfl3.to.nfu3 /),id='x_f1')
-  x_f2 = f_malloc((/ nfl2.to.nfu2, nfl1.to.nfu1, nfl3.to.nfu3 /),id='x_f2')
-  x_f3 = f_malloc((/ nfl3.to.nfu3, nfl1.to.nfu1, nfl2.to.nfu2 /),id='x_f3')
+  x_f1 = f_malloc0((/ nfl1.to.nfu1, nfl2.to.nfu2, nfl3.to.nfu3 /),id='x_f1')
+  x_f2 = f_malloc0((/ nfl2.to.nfu2, nfl1.to.nfu1, nfl3.to.nfu3 /),id='x_f2')
+  x_f3 = f_malloc0((/ nfl3.to.nfu3, nfl1.to.nfu1, nfl2.to.nfu2 /),id='x_f3')
   
-  !initalize to zero the work arrays, probably not needed
-  call to_zero((nfu1-nfl1+1)*(nfu2-nfl2+1)*(nfu3-nfl3+1),x_f1(nfl1,nfl2,nfl3))
-  call to_zero((nfu1-nfl1+1)*(nfu2-nfl2+1)*(nfu3-nfl3+1),x_f2(nfl2,nfl1,nfl3))
-  call to_zero((nfu1-nfl1+1)*(nfu2-nfl2+1)*(nfu3-nfl3+1),x_f3(nfl3,nfl1,nfl2))
-
-  call to_zero((n1+1)*(n2+1)*(n3+1),xpsig_c(0,0,0))
-  call to_zero(7*(nfu1-nfl1+1)*(nfu2-nfl2+1)*(nfu3-nfl3+1),xpsig_f(1,nfl1,nfl2,nfl3))
-
-  call to_zero((n1+1)*(n2+1)*(n3+1),ypsig_c(0,0,0))
-  call to_zero(7*(nfu1-nfl1+1)*(nfu2-nfl2+1)*(nfu3-nfl3+1),ypsig_f(1,nfl1,nfl2,nfl3))
-  
+ 
   call calc_grad_reza(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, &
        nseg_c,nvctr_c,keyg,keyv,nseg_f,nvctr_f,keyg(1,nseg_c+1),keyv(nseg_c+1), &
        scal,cprecr,hgrid,ibyz_c,ibxz_c,ibxy_c,ibyz_f,ibxz_f,ibxy_f,hpsi,&

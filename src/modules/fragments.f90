@@ -94,6 +94,8 @@ contains
     ! local variables
     integer :: ifrag
 
+    call f_routine(id='init_fragments')
+
     if (in%lin%fragment_calculation) then
         ! read fragment posinps and initialize fragment, except for psi and lzds
         do ifrag=1,in%frag%nfrag_ref
@@ -122,6 +124,8 @@ contains
 
      end if
 
+    call f_release_routine()
+
   end subroutine init_fragments
 
 
@@ -135,6 +139,7 @@ contains
     type(input_variables), intent(in) :: input
     type(atomic_structure), intent(in) :: astruct ! atomic structure of full system
 
+    call f_routine(id='init_fragment_from_file')
 
     ! nullify fragment
     frag=fragment_null()
@@ -160,6 +165,8 @@ contains
     !   integer :: npsidim_comp  !< Number of elements inside psi in the components distribution scheme
     !   type(local_zone_descriptors) :: Lzd
     !   type(minimal_orbitals_data) :: forbs
+
+    call f_release_routine()
 
   end subroutine init_fragment_from_file
 
@@ -329,11 +336,27 @@ contains
     forbs%norbp = orbs%norbp
     forbs%isorb = orbs%isorb
 
-    forbs%norb_par => orbs%norb_par
-    forbs%inwhichlocreg => orbs%inwhichlocreg
-    forbs%onwhichatom => orbs%onwhichatom
-    forbs%isorb_par => orbs%isorb_par
-    forbs%ispot => orbs%ispot
+    !forbs%norb_par => orbs%norb_par
+    !forbs%inwhichlocreg => orbs%inwhichlocreg
+    !forbs%onwhichatom => orbs%onwhichatom
+    !forbs%isorb_par => orbs%isorb_par
+    !forbs%ispot => orbs%ispot
+    if(associated(orbs%norb_par)) then
+        forbs%norb_par = f_malloc_ptr(src=orbs%norb_par,lbounds=lbound(orbs%norb_par),id='forbs%norb_par')
+    end if
+    if(associated(orbs%inwhichlocreg)) then
+        forbs%inwhichlocreg = f_malloc_ptr(src=orbs%inwhichlocreg,lbounds=lbound(orbs%inwhichlocreg),id='forbs%inwhichlocreg')
+    end if
+    if(associated(orbs%onwhichatom)) then
+        forbs%onwhichatom = f_malloc_ptr(src=orbs%onwhichatom,lbounds=lbound(orbs%onwhichatom),id='forbs%onwhichatom')
+    end if
+    if(associated(orbs%isorb_par)) then
+        forbs%isorb_par = f_malloc_ptr(src=orbs%isorb_par,lbounds=lbound(orbs%isorb_par),id='forbs%isorb_par')
+    end if
+    if(associated(orbs%ispot)) then
+        forbs%ispot = f_malloc_ptr(src=orbs%ispot,lbounds=lbound(orbs%ispot),id='forbs%ispot')
+    end if
+
   end subroutine orbs_to_min_orbs_point
 
   subroutine calculate_fragment_density(frag,ndimrho,tmb,iorb_start,charge,atoms,rxyz,denspot)
@@ -391,8 +414,8 @@ contains
     indg=1
     indr=1
 
-    gpsi=f_malloc(tmb%Lzd%glr%wfd%nvctr_c+7*tmb%Lzd%glr%wfd%nvctr_f,id='gpsi')
-    call to_zero(tmb%Lzd%glr%wfd%nvctr_c+7*tmb%Lzd%glr%wfd%nvctr_f,gpsi)
+    gpsi=f_malloc0(tmb%Lzd%glr%wfd%nvctr_c+7*tmb%Lzd%glr%wfd%nvctr_f,id='gpsi')
+    !call f_zero(tmb%Lzd%glr%wfd%nvctr_c+7*tmb%Lzd%glr%wfd%nvctr_f,gpsi)
     call initialize_work_arrays_sumrho(1,tmb%lzd%glr,.true.,w)
     psir=f_malloc(tmb%lzd%glr%d%n1i*tmb%lzd%glr%d%n2i*tmb%lzd%glr%d%n3i*frag%fbasis%forbs%norb,id='psir')
 
@@ -574,6 +597,8 @@ contains
 
     call deallocate_atomic_structure(frag%astruct_frg)
     frag%astruct_frg=atomic_structure_null()
+    call minimal_orbitals_data_free(frag%fbasis%forbs)
+    frag%fbasis%forbs = minimal_orbitals_data_null()
     call f_free_ptr(frag%rxyz_env)
     call f_free_ptr(frag%coeff)
     call f_free_ptr(frag%kernel)
@@ -589,7 +614,7 @@ contains
 
     call f_routine(id='fragment_allocate')
 
-    frag%rxyz_env=f_malloc_ptr((/3,frag%nat_env/),id='frag%rxyz_env')
+    frag%rxyz_env=f_malloc_ptr((/3,min(1,frag%nat_env)/),id='frag%rxyz_env')
     frag%coeff=f_malloc_ptr((/frag%fbasis%forbs%norb,frag%fbasis%forbs%norb/),id='frag%coeff')
     frag%kernel=f_malloc_ptr((/frag%fbasis%forbs%norb,frag%fbasis%forbs%norb/),id='frag%kernel')
     frag%eval=f_malloc_ptr(frag%fbasis%forbs%norb,id='frag%eval')

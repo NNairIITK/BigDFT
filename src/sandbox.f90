@@ -758,7 +758,7 @@ subroutine psi_from_gaussians(iproc,nproc,at,orbs,lr,rxyz,hx,hy,hz,nspin,psi)
 !!$  end if
 
      !copy the eigenvectors to the matrix
-     call to_zero(G%ncoeff*orbs%norbp*orbs%nspinor,gaucoeffs)
+     call f_zero(gaucoeffs)
      if (orbs%norb > G%ncoeff) stop 'wrong gaussian basis'
      jorb=mod(orbs%isorb,orbs%norb)
      do iorb=1,orbs%norbp
@@ -845,7 +845,7 @@ subroutine plot_wf_sandbox(orbname,nexpo,at,lr,hxh,hyh,hzh,rxyz,psi,comment)
   psir = f_malloc((/ -nl1.to.2*n1+1+nu1, -nl2.to.2*n2+1+nu2, -nl3.to.2*n3+1+nu3 /),id='psir')
   !initialisation
   if (lr%geocode == 'F') then
-     call to_zero(lr%d%n1i*lr%d%n2i*lr%d%n3i,psir)
+     call f_zero(psir)
   end if
  
   call daub_to_isf(lr,w,psi,psir)

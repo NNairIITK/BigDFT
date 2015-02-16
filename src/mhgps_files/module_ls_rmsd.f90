@@ -1,3 +1,6 @@
+!> @file
+!!    Module fo minima hopping calculating the rmsd
+!!
 !! @author
 !!    Copyright (C) 2007-2013 BigDFT group
 !!    Copyright (C) 2004, 2005 Chaok Seok, Evangelos Coutsias
@@ -12,8 +15,9 @@
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS
-!---------------------------------------------------------------------
-!---------------------------------------------------------------------
+
+
+!> Module Minima hopping calculating the rmsd
 module module_ls_rmsd
 !---------------------------------------------------------------------
 
@@ -22,9 +26,10 @@ module module_ls_rmsd
 
   public :: superimpose
 
-!---------------------------------------------------------------------
+
 contains
-!---------------------------------------------------------------------
+
+
 subroutine superimpose(nat,rxyz1,rxyz2)
     use module_base
     implicit none
@@ -41,21 +46,20 @@ subroutine superimpose(nat,rxyz1,rxyz2)
     do iat=1, nat
         rxyz2(:,iat) = matmul(U, rxyz2(:,iat) - center2) + center1
     enddo
-!write(*,*)rmsdval,sqrt(sum((rxyz2-rxyz1)**2)/nat)
+    !write(*,*)rmsdval,sqrt(sum((rxyz2-rxyz1)**2)/nat)
 end subroutine
-!---------------------------------------------------------------------
+
+
+!> This subroutine calculates the least square rmsd of two coordinate
+!! sets coord1(3,n) and coord2(3,n) using a method based on
+!! quaternion.
+!! If option=1, then the rotation matrix U and the centers of coord
+!! are returned.
+!!
+!! if calc_g == .true., derivative of RMSD with respect to coord1
+!! is returned
 subroutine rmsd(n, coord1, coord2, option, U, x_center, y_center, & 
      error)!, calc_g, g)
-!---------------------------------------------------------------------
-!  This subroutine calculates the least square rmsd of two coordinate
-!  sets coord1(3,n) and coord2(3,n) using a method based on
-!   quaternion.
-!  If option=1, then the rotation matrix U and the centers of coord
-! are returned.
-!---------------------------------------------------------------------
-! if calc_g == .true., derivative of RMSD with respect to coord1
-! is returned
-!---------------------------------------------------------------------
   use module_base
   integer, intent(in) :: n, option
   real(gp), dimension(:,:), intent(in) :: coord1, coord2
@@ -67,11 +71,11 @@ subroutine rmsd(n, coord1, coord2, option, U, x_center, y_center, &
   integer :: i, j
   real(gp), dimension(3,n) :: x, y
   real(gp), dimension(n) :: xi, yi
-  real(gp) :: x_norm, y_norm, lambda, y1, y2, y3
+  real(gp) :: x_norm, y_norm, lambda
   real(gp), dimension(3,3) :: Rmatrix
-  real(gp), dimension(4,4) :: S, dS
+  real(gp), dimension(4,4) :: S
   real(gp), dimension(4) :: q
-  real(gp) :: tmp(3)
+!  real(gp), dimension(3) :: tmp
 
   ! make copies of the original coordinates
   x(:,1:n) = coord1(:,1:n)
@@ -144,11 +148,10 @@ subroutine rmsd(n, coord1, coord2, option, U, x_center, y_center, &
 !  end if
 
 end subroutine rmsd
-!---------------------------------------------------------------------
+
+
+!> This subroutine constructs rotation matrix U from quaternion q.
 subroutine rotation_matrix(q, U)
-!---------------------------------------------------------------------
-! This subroutine constructs rotation matrix U from quaternion q.
-!---------------------------------------------------------------------
 
   use module_base
   real(gp), dimension(:), intent(in) :: q
@@ -193,28 +196,28 @@ subroutine rotation_matrix(q, U)
   U(3,3) = q00+q33
 
 end subroutine rotation_matrix
-!---------------------------------------------------------------------
+
+
+!> A simple subroutine to compute the leading eigenvalue and
+!! eigenvector  of a symmetric, traceless 4x4 matrix A by an inverse
+!! power iteration:
+!! (1) the matrix is converted to tridiagonal form by 3 Givens
+!! rotations;  V*A*V' = T
+!! (2) Gershgorin's theorem is used to estimate a lower
+!! bound for the leading negative eigenvalue:
+!! lambda_1 > g=min(T11-t12,-t21+T22-t23,-t32+T33-t34,-t43+T44)
+!!          =
+!! where tij=abs(Tij)
+!! (3) Form the positive definite matrix 
+!!     B = T-gI
+!! (4) Use svd (algorithm svdcmp from "Numerical Recipes")
+!!     to compute eigenvalues and eigenvectors for SPD matrix B
+!! (5) Shift spectrum back and keep leading singular vector
+!!     and largest eigenvalue.
+!! (6) Convert eigenvector to original matrix A, through 
+!!     multiplication by V'.  
 subroutine DSTMEV(A,lambda,evec)
-!---------------------------------------------------------------------
-! a simple subroutine to compute the leading eigenvalue and
-! eigenvector  of a symmetric, traceless 4x4 matrix A by an inverse
-! power iteration:
-! (1) the matrix is converted to tridiagonal form by 3 Givens
-! rotations;  V*A*V' = T
-! (2) Gershgorin's theorem is used to estimate a lower
-! bound for the leading negative eigenvalue:
-! lambda_1 > g=min(T11-t12,-t21+T22-t23,-t32+T33-t34,-t43+T44)
-!          =
-! where tij=abs(Tij)
-! (3) Form the positive definite matrix 
-!     B = T-gI
-! (4) Use svd (algorithm svdcmp from "Numerical Recipes")
-!     to compute eigenvalues and eigenvectors for SPD matrix B
-! (5) Shift spectrum back and keep leading singular vector
-!     and largest eigenvalue.
-! (6) Convert eigenvector to original matrix A, through 
-!     multiplication by V'.  
-!---------------------------------------------------------------------
+
   use module_base
   real(gp), dimension(4,4) :: A, T, V, SV
   integer :: i
@@ -258,7 +261,10 @@ subroutine DSTMEV(A,lambda,evec)
   !99 format(1x,4(d19.13,1x))
 
 end subroutine dstmev
-!---------------------------------------------------------------------
+
+
+!> Performs Givens rotations to reduce symmetric 4x4 matrix to
+!! tridiagonal
 subroutine givens4(S,T,V)
 !---------------------------------------------------------------------
   use module_base
@@ -267,8 +273,6 @@ subroutine givens4(S,T,V)
   real(gp)  :: c1,c2,c3, s1,s2,s3, r1,r2,r3, c1c2, s1c2
   !double precision :: pythag
   ! external        pythag
-  !performs givens rotations to reduce symmetric 4x4 matrix to
-  !tridiagonal
   T=S; V = 0._gp
   !-------------------------------------------------------------------
   !Zero out entries T(4,1) and T(1,4)
@@ -326,7 +330,8 @@ subroutine givens4(S,T,V)
   !-------------------------------------------------------------------
   !write(*,*) (V(1:4,i) - W(1:4,i),i=1,4)
 end subroutine givens4
-!---------------------------------------------------------------------
+
+
 SUBROUTINE svdcmp(mmax,a,m,n,w,v,rv1)
 !---------------------------------------------------------------------
   use module_base
@@ -560,7 +565,8 @@ SUBROUTINE svdcmp(mmax,a,m,n,w,v,rv1)
 !---------------------------------------------------------------------
 
 END subroutine svdcmp
-!---------------------------------------------------------------------
+
+
 FUNCTION pythag(a,b)
 !---------------------------------------------------------------------
   use module_base

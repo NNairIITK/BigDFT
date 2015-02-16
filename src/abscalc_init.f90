@@ -524,8 +524,8 @@ subroutine createPawProjectorsArrays(iproc,n1,n2,n3,rxyz,at,orbs,&
        &   iorbto_paw_nchannels, PAWD%iprojto_imatrixbeg )  
 
 
-  Gocc = f_malloc_ptr(PAWD%G%ncoeff,id='Gocc')
-  call to_zero(PAWD%G%ncoeff,Gocc)
+  Gocc = f_malloc0_ptr(PAWD%G%ncoeff,id='Gocc')
+  
 
   ! allocated  : gaenes, Gocc , PAWD%iorbtolr,iorbto_l, iorbto_m,  iorbto_ishell,iorbto_iexpobeg, iorbto_paw_nchannels
 

@@ -270,7 +270,7 @@ END SUBROUTINE comb_rot_grow_ib_1
 !! then convolves with magic filter
 !! then adds the result to y.
 !! The size of the data is allowed to grow
-subroutine  comb_rot_grow(n1,ndat,x,y)
+subroutine comb_rot_grow(n1,ndat,x,y)
 use module_base
 implicit none
 integer,intent(in) :: n1,ndat
@@ -353,6 +353,7 @@ enddo
 !$omp do
 do l=(ndat/8)*8+1,ndat
    do i=0,n1
+      !SERIOUS DOUBTS ABOUT THIS LINE
       y2i =fil2(16,1)*x(tt,l)
       y2i1=0._wp
       do t=i-7,i+7

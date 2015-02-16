@@ -21,7 +21,7 @@ subroutine bfgsdriver(runObj,outs,nproc,iproc,ncount_bigdft)
     integer, intent(in) :: nproc,iproc
     integer, intent(inout) :: ncount_bigdft
     type(run_objects), intent(inout) :: runObj
-    type(DFT_global_output), intent(inout) :: outs
+    type(state_properties), intent(inout) :: outs
     !Local variables
     character(len=*), parameter :: subname='bfgs'
     real(gp) :: fluct=0.0_gp,fnrm,fmax
@@ -61,7 +61,7 @@ subroutine bfgsdriver(runObj,outs,nproc,iproc,ncount_bigdft)
         !    call atomic_copymoving_forward(atoms,n,f(1,ip),nr,fa(1,ip))
         !enddo
         !if(icall/=0) then
-            call call_bigdft(runObj,outs,infocode)
+            call bigdft_state(runObj,outs,infocode)
             ncount_bigdft=ncount_bigdft+1
         !endif
         call atomic_copymoving_forward(runObj%atoms%astruct,3*outs%fdim,outs%fxyz,nr,f)
@@ -584,7 +584,7 @@ subroutine lbfgsdriver(runObj,outs,nproc,iproc,ncount_bigdft,fail)
   integer, intent(in) :: nproc,iproc
   integer, intent(inout) :: ncount_bigdft
   type(run_objects), intent(inout) :: runObj
-  type(DFT_global_output), intent(inout) :: outs
+  type(state_properties), intent(inout) :: outs
   logical, intent(out) :: fail
 
   !n(c) real(gp), dimension(3*runObj%atoms%astruct%nat):: txyz, sxyz
@@ -746,9 +746,9 @@ subroutine lbfgsdriver(runObj,outs,nproc,iproc,ncount_bigdft,fail)
 !  alpha=0._gp
 !  call atomic_axpy(at,txyz,alpha,sxyz,rxyz)
   runObj%inputs%inputPsiId=1
-!  if(ICALL.ne.0) call call_bigdft(nproc,iproc,at,rxyz,in,F,fxyz,rst,infocode)
+!  if(ICALL.ne.0) call bigdft_state(nproc,iproc,at,rxyz,in,F,fxyz,rst,infocode)
   if(ICALL.ne.0) then
-     call call_bigdft(runObj,outs,infocode)
+     call bigdft_state(runObj,outs,infocode)
      F=outs%energy
      ncount_bigdft=ncount_bigdft+1
   end if

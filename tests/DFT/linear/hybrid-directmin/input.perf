@@ -1,2 +1,3 @@
 store_index F
 check_sumrho 1
+adjust_kernel_iterations F

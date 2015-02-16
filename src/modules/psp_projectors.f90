@@ -258,6 +258,7 @@ contains
 !!$            stop 'WRONG icoarse, false case' 
        end if
     end if
+
   end subroutine bounds_to_plr_limits
 
 
@@ -527,7 +528,7 @@ contains
     !calculate the size of the mask array
     call vcopy(wfd_lr%nseg_c+wfd_lr%nseg_f,&
          wfd_lr%keyglob(1,1),2,keyag_lin_cf(1),1)
-    call to_zero(wfd_p%nseg_c+wfd_p%nseg_f,nbsegs_cf(1))
+    call f_zero(nbsegs_cf)
     call mask_sizes(wfd_lr,wfd_p,keyag_lin_cf,nbsegs_cf,&
          tolr%nmseg_c,tolr%nmseg_f)
     !then allocate and fill it
@@ -655,7 +656,8 @@ contains
 
     eproj=0.0_gp
     !put to zero the array
-    call to_zero((wfd_p%nvctr_c+7*wfd_p%nvctr_f)*n_w*ncplx_w,psi_pack(1,1))
+    !call to_zero((wfd_p%nvctr_c+7*wfd_p%nvctr_f)*n_w*ncplx_w,psi_pack(1,1))
+    call f_zero(psi_pack)
 
     !here also the strategy can be considered
     call proj_dot_psi(n_p*ncplx_p,wfd_p,proj,n_w*ncplx_w,wfd_w,psi,&

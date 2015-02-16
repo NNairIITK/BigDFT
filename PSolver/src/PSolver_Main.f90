@@ -27,9 +27,6 @@
 !!    Wire boundary condition is missing
 subroutine H_potential(datacode,kernel,rhopot,pot_ion,eh,offset,sumpion,&
       quiet,stress_tensor) !optional argument
-   use yaml_output
-   use time_profiling, only: f_timing
-   use dynamic_memory
    implicit none
 
    !> kernel of the Poisson equation. It is provided in distributed case, with
@@ -72,18 +69,19 @@ subroutine H_potential(datacode,kernel,rhopot,pot_ion,eh,offset,sumpion,&
 
    !local variables
    character(len=*), parameter :: subname='H_potential'
+   real(dp), parameter :: max_ratioex = 1.0e10_dp
    logical :: wrtmsg,cudasolver
    integer :: m1,m2,m3,md1,md2,md3,n1,n2,n3,nd1,nd2,nd3
-   integer :: i_stat,ierr,ind,ind2,ind3,indp,ind2p,ind3p,i
+   integer :: ierr,ind,ind2,ind3,indp,ind2p,ind3p,i
    integer :: i1,i2,i3,j2,istart,iend,i3start,jend,jproc,i3xcsh
-   integer :: nxc,istden,istglo
-   real(dp) :: scal,ehartreeLOC,pot
+   integer :: nxc,istden,istglo,ip,irho,i3s,i23,i23s,n23
+   real(dp) :: ehartreeLOC,pot,rhores2,zeta,epsc,pval,qval,rval,beta,kappa
+   real(dp) :: beta0,alpha,ratio,normb,normr
+   !real(dp) :: scal
    real(dp), dimension(6) :: strten
+   real(dp), dimension(:,:), allocatable :: rho,rhopol,x,q,p,r,z
    real(dp), dimension(:,:,:), allocatable :: zf
-   real(dp), dimension(:), allocatable :: zf1
-   integer, dimension(:,:), allocatable :: gather_arr
-   integer, dimension(3) :: n
-   integer :: size1,size2,switch_alg
+   !integer, dimension(:,:), allocatable :: gather_arr
 
    call f_routine(id='H_potential')
    
@@ -96,9 +94,8 @@ subroutine H_potential(datacode,kernel,rhopot,pot_ion,eh,offset,sumpion,&
       else if(trim(quiet) == 'no' .or. trim(quiet) == 'NO') then
          wrtmsg=.true.
       else
-         call yaml_warning('ERROR: Unrecognised value for "quiet" option: ' // trim(quiet))
+         call f_err_throw('ERROR: Unrecognised value for "quiet" option: ' // trim(quiet))
          !write(*,*)'ERROR: Unrecognised value for "quiet" option:',quiet
-         stop
       end if
    else
       wrtmsg=.true.
@@ -110,31 +107,33 @@ subroutine H_potential(datacode,kernel,rhopot,pot_ion,eh,offset,sumpion,&
    !call timing(kernel%mpi_env%iproc,'PSolv_comput  ','ON')
    call f_timing(TCAT_PSOLV_COMPUT,'ON')
    !calculate the dimensions wrt the geocode
-   if (kernel%geocode == 'P') then
+   select case(kernel%geocode)
+   case('P')
       if (wrtmsg) &
            call yaml_map('BC','Periodic')
       call P_FFT_dimensions(kernel%ndims(1),kernel%ndims(2),kernel%ndims(3),m1,m2,m3,n1,n2,n3,&
            md1,md2,md3,nd1,nd2,nd3,kernel%mpi_env%nproc,.false.)
-   else if (kernel%geocode == 'S') then
+   case('S')
       if (wrtmsg) &
            call yaml_map('BC','Surface')
       call S_FFT_dimensions(kernel%ndims(1),kernel%ndims(2),kernel%ndims(3),m1,m2,m3,n1,n2,n3,&
            md1,md2,md3,nd1,nd2,nd3,&
            kernel%mpi_env%nproc,kernel%igpu,.false.)
-   else if (kernel%geocode == 'F') then
+   case('F')
       if (wrtmsg) &
            call yaml_map('BC','Free')
       call F_FFT_dimensions(kernel%ndims(1),kernel%ndims(2),kernel%ndims(3),m1,m2,m3,n1,n2,n3,&
            md1,md2,md3,nd1,nd2,nd3,&
            kernel%mpi_env%nproc,kernel%igpu,.false.)
-   else if (kernel%geocode == 'W') then
+   case('W')
       if (wrtmsg) &
            call yaml_map('BC','Wires')
       call W_FFT_dimensions(kernel%ndims(1),kernel%ndims(2),kernel%ndims(3),m1,m2,m3,n1,n2,n3,&
            md1,md2,md3,nd1,nd2,nd3,kernel%mpi_env%nproc,kernel%igpu,.false.)
-   else
-      stop 'PSolver: geometry code not admitted'
-   end if
+   case default
+      call f_err_throw('geometry code ("'//kernel%geocode//'" not admitted in PSolver')
+      !stop 'PSolver: geometry code not admitted'
+   end select
    
    cudasolver= (kernel%igpu==1 .and. .not. present(stress_tensor))
    
@@ -142,237 +141,250 @@ subroutine H_potential(datacode,kernel,rhopot,pot_ion,eh,offset,sumpion,&
       call yaml_map('Box',kernel%ndims,fmt='(i5)')
       call yaml_map('MPI tasks',kernel%mpi_env%nproc,fmt='(i5)')
       if (cudasolver) call yaml_map('GPU acceleration',.true.)
-      call yaml_mapping_close()
-!      call yaml_newline()
    end if
-   
-   if(kernel%geocode == 'P') then
-      !no powers of hgrid because they are incorporated in the plane wave treatment
-      scal=1.0_dp/(real(n1,dp)*real(n2*n3,dp)) !to reduce chances of integer overflow
-   else if (kernel%geocode == 'S') then
-      !only one power of hgrid 
-      !factor of -4*pi for the definition of the Poisson equation
-      scal=-16.0_dp*atan(1.0_dp)*real(kernel%hgrids(2),dp)/real(n1*n2,dp)/real(n3,dp)
-   else if (kernel%geocode == 'F' .or. kernel%geocode == 'H') then
-      !hgrid=max(hx,hy,hz)
-      scal=product(kernel%hgrids)/real(n1*n2,dp)/real(n3,dp)
-   else if (kernel%geocode == 'W') then
-      !only one power of hgrid 
-      !factor of -1/(2pi) already included in the kernel definition
-      scal=-2.0_dp*kernel%hgrids(1)*kernel%hgrids(2)/real(n1*n2,dp)/real(n3,dp)
-   end if
-   !here the case ncplx/= 1 should be added
    
    !array allocations
-   zf = f_malloc((/ md1, md3, 2*md2/kernel%mpi_env%nproc /),id='zf')
    !initalise to zero the zf array
-   call to_zero(md1*md3*(md2/kernel%mpi_env%nproc),zf(1,1,1))
-   
-   istart=kernel%mpi_env%iproc*(md2/kernel%mpi_env%nproc)
-   iend=min((kernel%mpi_env%iproc+1)*md2/kernel%mpi_env%nproc,m2)
-   if (istart <= m2-1) then
-      nxc=iend-istart
-   else
-      nxc=0
-   end if
-   
-   if (datacode=='G') then
+   zf = f_malloc([md1, md3, 2*md2/kernel%mpi_env%nproc],id='zf')
+
+   select case(datacode)
+   case('G')
       !starting address of rhopot in the case of global i/o
-      i3start=istart+1
-   else if (datacode == 'D') then
+      i3start=kernel%grid%istart*kernel%ndims(1)*kernel%ndims(2)+1
+      if (kernel%grid%n3p == 0) i3start=1
+   case('D')
       !distributed i/o
       i3start=1
-   else
-      stop 'PSolver: datacode not admitted'
-   end if
-   
-   !this routine builds the values for each process of the potential (zf), multiplying by scal 
-   
-   !fill the array with the values of the charge density
-   !no more overlap between planes
-   !still the complex case should be defined
-   
-   do i3 = 1, nxc
-      !$omp parallel do default(shared) private(i2, i1, i)
-      do i2=1,m3
-         do i1=1,m1
-            i=i1+(i2-1)*m1+(i3+i3start-2)*m1*m3
-            zf(i1,i2,i3)=rhopot(i)
+   case default
+      call f_err_throw('datacode ("'//datacode//'" not admitted in PSolver')
+   end select
+
+   n23=kernel%grid%m3*kernel%grid%n3p
+   n1=kernel%grid%m1
+
+   !now switch the treatment according to the method used
+   select case(trim(kernel%method))
+   case('VAC')
+      !core psolver routine
+      call apply_kernel(cudasolver,kernel,rhopot(i3start),offset,strten,zf,.false.)
+
+      call finalize_hartree_results(sumpion,pot_ion,&
+           kernel%grid%m1,kernel%grid%m3,kernel%grid%n3p,&
+           kernel%grid%md1,kernel%grid%md3,2*(kernel%grid%md2/kernel%mpi_env%nproc),&
+           rhopot(i3start),zf,rhopot(i3start),ehartreeLOC)
+      !gathering the data to obtain the distribution array
+      if (datacode == 'G' .and. kernel%mpi_env%nproc > 1) then
+         call mpiallgather(rhopot(1),recvcounts=kernel%counts,&
+              displs=kernel%displs,comm=kernel%mpi_env%mpi_comm)
+      end if
+   case('PI')
+      if (datacode /= 'G') &
+           call f_err_throw('Error in H_potential, PI method only works with datacode=G')
+      !allocate arrays
+      rhopol=f_malloc0([kernel%ndims(1),kernel%ndims(2)*kernel%ndims(3)],&
+           id='rhopol')
+      rho=f_malloc([n1,n23],id='rho')
+      call f_memcpy(n=size(rho),src=rhopot(i3start),dest=rho)
+      if (wrtmsg) &
+           call yaml_sequence_open('Embedded PSolver, Polarization Iteration Method')
+      pi_loop: do ip=1,kernel%max_iter
+
+         !update the needed part of rhopot array
+         irho=i3start
+         !i3s=kernel%grid%istart
+         i23s=kernel%grid%istart*kernel%grid%m3
+         do i23=1,n23
+            do i1=1,n1
+               rhopot(irho)=&
+                    kernel%oneoeps(i1,i23)*rho(i1,i23)+&
+                    rhopol(i1,i23+i23s)
+!!$                       kernel%oneoeps(i1,i2,i3+i3s)*rho(i1,i2,i3)+&
+!!$                       rhopol(i1,i2,i3+i3s)
+               irho=irho+1
+            end do
+         end do
+         
+         call apply_kernel(cudasolver,kernel,rhopot(i3start),offset,strten,zf,.true.)
+         !gathering the data to obtain the distribution array
+         !this method only works with datacode == 'G'
+         if (kernel%mpi_env%nproc > 1) then
+            call mpiallgather(rhopot(1),recvcounts=kernel%counts,&
+                 displs=kernel%displs,comm=kernel%mpi_env%mpi_comm)
+         end if
+         
+         !update rhopol and calculate residue
+         call fssnord3DmatNabla_LG(kernel%ndims(1),kernel%ndims(2),&
+              kernel%ndims(3),&
+              rhopot,kernel%nord,kernel%hgrids,kernel%PI_eta,kernel%dlogeps,rhopol,rhores2)
+
+         !reduction of the residue not necessary as datacode==G
+         !if (kernel%mpi_env%nproc > 1) &
+         !     call mpiallred(rhores2,1,MPI_SUM,comm=kernel%mpi_env%mpi_comm)
+
+         if (wrtmsg) then 
+            call yaml_sequence(advance='no')
+            call EPS_iter_output(ip,0.0_dp,rhores2,0.0_dp,0.0_dp,0.0_dp)
+         end if
+
+         if (rhores2 < kernel%minres) exit pi_loop
+
+      end do pi_loop
+      if (wrtmsg) call yaml_sequence_close()
+      !here the harteee energy can be calculated and the ionic potential
+      !added
+      call finalize_hartree_results(sumpion,pot_ion,&
+           kernel%grid%m1,kernel%grid%m3,kernel%grid%n3p,&
+           kernel%grid%m1,kernel%grid%m3,kernel%grid%n3p,&
+           rho,rhopot(i3start),rhopot(i3start),ehartreeLOC)
+      if (kernel%mpi_env%nproc > 1 .and. sumpion) then
+         call mpiallgather(rhopot(1),recvcounts=kernel%counts,&
+              displs=kernel%displs,comm=kernel%mpi_env%mpi_comm)
+      end if
+
+      call f_free(rho)
+      call f_free(rhopol)
+
+   case('PCG')
+
+      r=f_malloc([n1,n23],id='r')
+      x=f_malloc0([n1,n23],id='x')
+      q=f_malloc0([n1,n23],id='q')
+      p=f_malloc0([n1,n23],id='p')
+      z=f_malloc([n1,n23],id='z')
+
+      if (wrtmsg) &
+           call yaml_sequence_open('Embedded PSolver, Preconditioned Conjugate Gradient Method')
+      beta=1.d0
+      ratio=1.d0
+
+      normb=dot(n1*n23,rhopot(i3start),1,rhopot(i3start),1)
+      if (kernel%mpi_env%nproc > 1) &
+           call mpiallred(normb,1,MPI_SUM,comm=kernel%mpi_env%mpi_comm)
+      normb=sqrt(normb)
+
+      call f_memcpy(n=kernel%grid%m1*kernel%grid%m3*kernel%grid%n3p,&
+           src=rhopot(i3start),dest=r)
+
+      !$omp parallel do default(shared) private(i1,i23)
+      do i23=1,n23
+         do i1=1,n1
+            z(i1,i23)=r(i1,i23)*kernel%oneoeps(i1,i23)
          end do
       end do
       !$omp end parallel do
-   end do
-   
-   if (.not. cudasolver) then !CPU case
 
-      !call timing(kernel%mpi_env%iproc,'PSolv_comput  ','OF')
-      call f_timing(TCAT_PSOLV_COMPUT,'OF')
-      call G_PoissonSolver(kernel%mpi_env%iproc,kernel%mpi_env%nproc,&
-           kernel%part_mpi%mpi_comm,kernel%inplane_mpi%iproc,kernel%inplane_mpi%mpi_comm,kernel%geocode,1,&
-           n1,n2,n3,nd1,nd2,nd3,md1,md2,md3,kernel%kernel,&
-           zf(1,1,1),&
-           scal,kernel%hgrids(1),kernel%hgrids(2),kernel%hgrids(3),offset,strten)
-      call f_timing(TCAT_PSOLV_COMPUT,'ON')
-      !call timing(kernel%mpi_env%iproc,'PSolv_comput  ','ON')
+      PCG_loop: do ip=1,kernel%max_iter
 
-      !check for the presence of the stress tensor
-      if (present(stress_tensor)) then
-         call vcopy(6,strten(1),1,stress_tensor(1),1)
+         if (ratio < kernel%minres .or. ratio > max_ratioex) exit PCG_loop
+
+         !  Apply the Preconditioner
+         call apply_kernel(cudasolver,kernel,z,offset,strten,zf,.true.)
+
+         beta0 = beta
+         beta=0.d0
+         !$omp parallel do default(shared) private(i1,i23,rval,zeta) &
+         !$omp reduction(+:beta)
+         do i23=1,n23
+            do i1=1,n1
+               zeta=z(i1,i23)
+               zeta=zeta*kernel%oneoeps(i1,i23)
+               rval=r(i1,i23)
+               rval=rval*zeta
+               beta=beta+rval
+               z(i1,i23)=zeta
+            end do
+         end do
+         !$omp end parallel do
+
+         if (kernel%mpi_env%nproc > 1) &
+              call mpiallred(beta,1,MPI_SUM,comm=kernel%mpi_env%mpi_comm)
+
+         kappa=0.d0
+         !$omp parallel do default(shared) private(i1,i23,epsc,zeta)&
+         !$omp private(pval,qval,rval) reduction(+:kappa)
+         do i23=1,n23
+            do i1=1,n1
+               zeta=z(i1,i23)
+               epsc=kernel%corr(i1,i23)
+               pval=p(i1,i23)
+               qval=q(i1,i23)
+               rval=r(i1,i23)
+               pval = zeta+(beta/beta0)*pval
+               qval = zeta*epsc+rval+(beta/beta0)*qval
+               p(i1,i23) = pval
+               q(i1,i23) = qval
+               rval=pval*qval
+               kappa = kappa+rval 
+            end do
+         end do
+         !$omp end parallel do
+
+         if (kernel%mpi_env%nproc > 1) &
+              call mpiallred(kappa,1,MPI_SUM,comm=kernel%mpi_env%mpi_comm)
+
+         alpha = beta/kappa
+
+         normr=0.d0
+         !$omp parallel do default(shared) private(i1,i23,rval) &
+         !$omp reduction(+:normr)
+         do i23=1,n23
+            do i1=1,n1
+               x(i1,i23) = x(i1,i23) + alpha*p(i1,i23)
+               r(i1,i23) = r(i1,i23) - alpha*q(i1,i23)
+               z(i1,i23) = r(i1,i23)*kernel%oneoeps(i1,i23)
+               rval=r(i1,i23)*r(i1,i23)
+               normr=normr+rval
+            end do
+         end do
+         !$omp end parallel do
+
+         if (kernel%mpi_env%nproc > 1) &
+              call mpiallred(normr,1,MPI_SUM,comm=kernel%mpi_env%mpi_comm)
+
+         normr=sqrt(normr)
+
+         ratio=normr/normb
+         if (wrtmsg) then
+            call yaml_sequence(advance='no')
+            call EPS_iter_output(ip,normb,normr,ratio,alpha,beta)
+         end if
+      end do PCG_loop
+      if (wrtmsg) call yaml_sequence_close()
+      !here the harteee energy can be calculated and the ionic potential
+      !added
+      call finalize_hartree_results(sumpion,pot_ion,&
+           kernel%grid%m1,kernel%grid%m3,kernel%grid%n3p,&
+           kernel%grid%m1,kernel%grid%m3,kernel%grid%n3p,&
+           rhopot(i3start),x,rhopot(i3start),ehartreeLOC)
+      if (kernel%mpi_env%nproc > 1 .and. datacode =='G') then
+         call mpiallgather(rhopot(1),recvcounts=kernel%counts,&
+              displs=kernel%displs,comm=kernel%mpi_env%mpi_comm)
       end if
-   
-   else !GPU case
-   
-      n(1)=n1!kernel%ndims(1)*(2-kernel%geo(1))
-      n(2)=n3!kernel%ndims(2)*(2-kernel%geo(2))
-      n(3)=n2!kernel%ndims(3)*(2-kernel%geo(3))
-   
-      size1=md1*md2*md3! nproc always 1 kernel%ndims(1)*kernel%ndims(2)*kernel%ndims(3)
-   
-      if (kernel%keepGPUmemory == 0) then
-        size2=2*n1*n2*n3
-        call cudamalloc(size2,kernel%work1_GPU,i_stat)
-        if (i_stat /= 0) print *,'error cudamalloc',i_stat
-        call cudamalloc(size2,kernel%work2_GPU,i_stat)
-        if (i_stat /= 0) print *,'error cudamalloc',i_stat
-      endif
-   
-    if (kernel%mpi_env%nproc > 1) then
-      zf1 = f_malloc(md1*md3*md2,id='zf1')
-   
-      call mpi_gather(zf,size1/kernel%mpi_env%nproc,mpidtypd,zf1,size1/kernel%mpi_env%nproc, &
-           mpidtypd,0,kernel%mpi_env%mpi_comm,ierr)
-   
-      if (kernel%mpi_env%iproc == 0) then
-       !fill the GPU memory
-   
-       call reset_gpu_data(size1,zf1,kernel%work1_GPU)
-   
-       switch_alg=0
-   
-       if (kernel%initCufftPlan == 1) then
-         call cuda_3d_psolver_general(n,kernel%plan,kernel%work1_GPU,kernel%work2_GPU, &
-           kernel%k_GPU,switch_alg,kernel%geo,scal)
-       else
-         call cuda_3d_psolver_plangeneral(n,kernel%work1_GPU,kernel%work2_GPU, &
-           kernel%k_GPU,kernel%geo,scal)
-       endif
-   
-       !take data from GPU
-       call get_gpu_data(size1,zf1,kernel%work1_GPU)
-       endif
-   
-       call MPI_Scatter(zf1,size1/kernel%mpi_env%nproc,mpidtypd,zf,size1/kernel%mpi_env%nproc, &
-            mpidtypd,0,kernel%mpi_env%mpi_comm,ierr)
-   
-       call f_free(zf1)
-   
-    else
-   
-      !fill the GPU memory
-      call reset_gpu_data(size1,zf,kernel%work1_GPU)
-   
-      switch_alg=0
-   
-      if (kernel%initCufftPlan == 1) then
-         call cuda_3d_psolver_general(n,kernel%plan,kernel%work1_GPU,kernel%work2_GPU, &
-           kernel%k_GPU,switch_alg,kernel%geo,scal)
-      else
-         call cuda_3d_psolver_plangeneral(n,kernel%work1_GPU,kernel%work2_GPU, &
-           kernel%k_GPU,kernel%geo,scal)
-      endif
-   
-   
-      !take data from GPU
-      call get_gpu_data(size1,zf,kernel%work1_GPU)
-  
-   
-    endif
-   
-    if (kernel%keepGPUmemory == 0) then
-      call cudafree(kernel%work1_GPU)
-      call cudafree(kernel%work2_GPU)
-    endif
-   
-    if (kernel%keepGPUmemory == 0) then
-      call cudafree(kernel%work1_GPU)
-      call cudafree(kernel%work2_GPU)
-    endif
-   
-   endif
-   
-   !the value of the shift depends on the distributed i/o or not
-   if (datacode=='G') then
-      i3xcsh=istart !beware on the fact that this is not what represents its name!!!
-      !is_step=n01*n02*n03
-   else if (datacode=='D') then
-      i3xcsh=0 !shift not needed anymore
-   end if
-   
-   !if (iproc == 0) print *,'n03,nxc,kernel%geocode,datacode',n03,nxc,kernel%geocode,datacode
-   
-   ehartreeLOC=0.0_dp
-   !recollect the final data
-   !this part can be eventually removed once the zf disappears
-   if (sumpion) then
-      do j2=1,nxc
-         i2=j2+i3xcsh 
-         ind3=(i2-1)*kernel%ndims(1)*kernel%ndims(2)
-         ind3p=(j2-1)*kernel%ndims(1)*kernel%ndims(2)
-         !$omp parallel do default(shared) private(i3, ind2, ind2p, i1, ind, indp, pot) &
-         !$omp reduction(+:ehartreeLOC)
-         do i3=1,m3
-            ind2=(i3-1)*kernel%ndims(1)+ind3
-            ind2p=(i3-1)*kernel%ndims(1)+ind3p
-            do i1=1,m1
-               ind=i1+ind2
-               indp=i1+ind2p
-               pot=zf(i1,i3,j2)
-               ehartreeLOC=ehartreeLOC+rhopot(ind)*pot
-               rhopot(ind)=real(pot,wp)+real(pot_ion(indp),wp)
-            end do
-         end do
-         !$omp end parallel do
-      end do
-   else
-      do j2=1,nxc
-         i2=j2+i3xcsh 
-         ind3=(i2-1)*kernel%ndims(1)*kernel%ndims(2)
-         !$omp parallel do default(shared) private(i3, ind2, i1, ind, pot) &
-         !$omp reduction(+:ehartreeLOC)
-         do i3=1,m3
-            ind2=(i3-1)*kernel%ndims(1)+ind3
-            do i1=1,m1
-               ind=i1+ind2
-               pot=zf(i1,i3,j2)
-               ehartreeLOC=ehartreeLOC+rhopot(ind)*pot
-               rhopot(ind)=real(pot,wp)
-            end do
-         end do
-         !$omp end parallel do
-      end do
-   end if
-   
-   ehartreeLOC=ehartreeLOC*0.5_dp*product(kernel%hgrids)!hx*hy*hz
-   
+      call f_free(x)
+      call f_free(z)
+      call f_free(p)
+      call f_free(q)
+      call f_free(r)
+
+   end select
+
    call f_free(zf)
-   
-   !call timing(kernel%mpi_env%iproc,'PSolv_comput  ','OF')
-   !call f_timing(TCAT_PSOLV_COMPUT,'OF')
 
-   !gathering the data to obtain the distribution array
+
+   !check for the presence of the stress tensor
+   if (present(stress_tensor)) call f_memcpy(src=strten,dest=stress_tensor)
+
    !evaluating the total ehartree
-   eh=real(ehartreeLOC,gp)
+   eh=real(ehartreeLOC,gp)*0.5_dp*product(kernel%hgrids)
    if (kernel%mpi_env%nproc > 1) then
-      !call timing(kernel%mpi_env%iproc,'PSolv_commun  ','ON')
-      !call f_timing(TCAT_PSOLV_COMPUT,'ON')
 
-      eh=ehartreeLOC
       call mpiallred(eh,1,MPI_SUM,comm=kernel%mpi_env%mpi_comm)
       !reduce also the value of the stress tensor
    
       if (present(stress_tensor)) then
-         call mpiallred(stress_tensor(1),6,MPI_SUM,comm=kernel%mpi_env%mpi_comm)
+         call mpiallred(stress_tensor,MPI_SUM,comm=kernel%mpi_env%mpi_comm)
       end if
+   end if
    
       !call timing(kernel%mpi_env%iproc,'PSolv_commun  ','OF')
       !call f_timing(TCAT_PSOLV_COMPUT,'OF')
@@ -381,47 +393,249 @@ subroutine H_potential(datacode,kernel,rhopot,pot_ion,eh,offset,sumpion,&
          !building the array of the data to be sent from each process
          !and the array of the displacement
    
-         !call timing(kernel%mpi_env%iproc,'PSolv_comput  ','ON')
-         !call f_timing(TCAT_PSOLV_COMPUT,'ON')
-         gather_arr = f_malloc((/ 0.to.kernel%mpi_env%nproc-1, 1.to.2 /),id='gather_arr')
-         do jproc=0,kernel%mpi_env%nproc-1
-            istart=min(jproc*(md2/kernel%mpi_env%nproc),m2-1)
-            jend=max(min(md2/kernel%mpi_env%nproc,m2-md2/kernel%mpi_env%nproc*jproc),0)
-            gather_arr(jproc,1)=m1*m3*jend
-            gather_arr(jproc,2)=m1*m3*istart
-         end do
-         !gather all the results in the same rhopot array
-         istart=min(kernel%mpi_env%iproc*(md2/kernel%mpi_env%nproc),m2-1)
-   
-         !call f_timing(TCAT_PSOLV_COMPUT,'OF')
+!!$         gather_arr = f_malloc((/ 0.to.kernel%mpi_env%nproc-1, 1.to.2 /),id='gather_arr')
+!!$         do jproc=0,kernel%mpi_env%nproc-1
+!!$            istart=min(jproc*(md2/kernel%mpi_env%nproc),m2-1)
+!!$            jend=max(min(md2/kernel%mpi_env%nproc,m2-md2/kernel%mpi_env%nproc*jproc),0)
+!!$            gather_arr(jproc,1)=m1*m3*jend
+!!$            gather_arr(jproc,2)=m1*m3*istart
+!!$         end do
+!!$         !gather all the results in the same rhopot array
+!!$         istart=min(kernel%mpi_env%iproc*(md2/kernel%mpi_env%nproc),m2-1)
+!!$   
+!!$         istden=1+kernel%ndims(1)*kernel%ndims(2)*istart
+!!$         istglo=1
+!!$         !call mpiallgatherv(rhopot(istglo), gather_arr(:,1), gather_arr(:,2), &
+         !call mpiallgatherv(rhopot, kernel%counts,kernel%displs, &
+         !     kernel%mpi_env%iproc, kernel%mpi_env%mpi_comm)
+!!$         call f_free(gather_arr)
          !call timing(kernel%mpi_env%iproc,'PSolv_comput  ','OF')
-         !call timing(kernel%mpi_env%iproc,'PSolv_commun  ','ON')
-         !call f_timing(TCAT_PSOLV_COMPUT,'ON')
-
-         istden=1+kernel%ndims(1)*kernel%ndims(2)*istart
-         istglo=1
-!!$        call MPI_ALLGATHERV(rhopot(istden),gather_arr(kernel%mpi_env%iproc,1),mpidtypw,&
-!!$             rhopot(istglo),gather_arr(0,1),gather_arr(0,2),mpidtypw,&
-!!$             kernel%mpi_env%mpi_comm,ierr)
-         call mpiallgatherv(rhopot(istglo), gather_arr(:,1), gather_arr(:,2), &
-              & kernel%mpi_env%iproc, kernel%mpi_env%mpi_comm,ierr)
-!!$         call MPI_ALLGATHERV(MPI_IN_PLACE,gather_arr(kernel%mpi_env%iproc,1),mpidtypw,&
-!!$              rhopot(istglo),gather_arr(0,1),gather_arr(0,2),mpidtypw,&
-!!$              kernel%mpi_env%mpi_comm,ierr)
-         !call f_timing(TCAT_PSOLV_COMPUT,'OF')
-         !call timing(kernel%mpi_env%iproc,'PSolv_commun  ','OF')
-         !call timing(kernel%mpi_env%iproc,'PSolv_comput  ','ON')
-         !call f_timing(TCAT_PSOLV_COMPUT,'ON')
-         call f_free(gather_arr)
-         !call timing(kernel%mpi_env%iproc,'PSolv_comput  ','OF')
-     
       end if
-   end if
+!!$   end if
 
+   if (wrtmsg) call yaml_mapping_close()
    call f_timing(TCAT_PSOLV_COMPUT,'OF')
    call f_release_routine()
 
 END SUBROUTINE H_potential
+
+!regroup the psolver from here -------------
+subroutine apply_kernel(gpu,kernel,rho,offset,strten,zf,updaterho)
+  use f_utils, only: f_zero
+  use time_profiling, only: f_timing
+  implicit none
+  !>when true, the density is updated with the value of zf
+  logical, intent(in) :: updaterho
+  logical, intent(in) :: gpu !< logical variable controlling the gpu acceleration
+  type(coulomb_operator), intent(in) :: kernel 
+  !> Total integral on the supercell of the final potential on output
+  real(dp), intent(in) :: offset
+  real(dp), dimension(kernel%grid%m1,kernel%grid%m3*kernel%grid%n3p), intent(inout) :: rho
+  !>work array for the usage of the main routine
+  real(dp), dimension(kernel%grid%md1,kernel%grid%md3*2*(kernel%grid%md2/kernel%mpi_env%nproc)), intent(inout) :: zf
+  real(dp), dimension(6), intent(out) :: strten !< stress tensor associated to the cell
+  !local variables
+  integer, dimension(3) :: n
+  integer :: size1,size2,switch_alg,i_stat,ierr,i23,j23,j3,i1,n3delta
+  real(dp) :: pt,rh
+  real(dp), dimension(:), allocatable :: zf1
+
+  call f_zero(zf)
+  !this routine builds the values for each process of the potential (zf), multiplying by scal   
+  !fill the array with the values of the charge density
+  !no more overlap between planes
+  !still the complex case should be defined
+  n3delta=kernel%grid%md3-kernel%grid%m3
+  !$omp parallel do default(shared) private(i1,i23,j23,j3)
+  do i23=1,kernel%grid%n3p*kernel%grid%m3
+     j3=(i23-1)/kernel%grid%m3
+     !j2=i23-kernel%grid%m3*j3
+     j23=i23+n3delta*j3!=j2+kernel%grid%md3*j3
+     do i1=1,kernel%grid%m1
+        zf(i1,j23)=rho(i1,i23)
+     end do
+  end do
+  !$omp end parallel do
+
+  call f_zero(strten)
+  if (.not. gpu) then !CPU case
+     call f_timing(TCAT_PSOLV_COMPUT,'OF')
+     call G_PoissonSolver(kernel%mpi_env%iproc,kernel%mpi_env%nproc,&
+          kernel%part_mpi%mpi_comm,kernel%inplane_mpi%iproc,&
+          kernel%inplane_mpi%mpi_comm,kernel%geocode,1,&
+          kernel%grid%n1,kernel%grid%n2,kernel%grid%n3,&
+          kernel%grid%nd1,kernel%grid%nd2,kernel%grid%nd3,&
+          kernel%grid%md1,kernel%grid%md2,kernel%grid%md3,&
+          kernel%kernel,zf,&
+          kernel%grid%scal,kernel%hgrids(1),kernel%hgrids(2),kernel%hgrids(3),offset,strten)
+     call f_timing(TCAT_PSOLV_COMPUT,'ON')
+
+  else !GPU case
+
+     n(1)=kernel%grid%n1!kernel%ndims(1)*(2-kernel%geo(1))
+     n(2)=kernel%grid%n3!kernel%ndims(2)*(2-kernel%geo(2))
+     n(3)=kernel%grid%n2!kernel%ndims(3)*(2-kernel%geo(3))
+
+     size1=kernel%grid%md1*kernel%grid%md2*kernel%grid%md3! nproc always 1 kernel%ndims(1)*kernel%ndims(2)*kernel%ndims(3)
+
+     if (kernel%keepGPUmemory == 0) then
+        size2=2*kernel%grid%n1*kernel%grid%n2*kernel%grid%n3
+        call cudamalloc(size2,kernel%work1_GPU,i_stat)
+        if (i_stat /= 0) print *,'error cudamalloc',i_stat
+        call cudamalloc(size2,kernel%work2_GPU,i_stat)
+        if (i_stat /= 0) print *,'error cudamalloc',i_stat
+     endif
+
+     if (kernel%mpi_env%nproc > 1) then
+        zf1 = f_malloc(size1,id='zf1')
+
+        call mpi_gather(zf,size1/kernel%mpi_env%nproc,mpidtypd,zf1,size1/kernel%mpi_env%nproc, &
+             mpidtypd,0,kernel%mpi_env%mpi_comm,ierr)
+
+        if (kernel%mpi_env%iproc == 0) then
+           !fill the GPU memory
+           call reset_gpu_data(size1,zf1,kernel%work1_GPU)
+
+           switch_alg=0
+           if (kernel%initCufftPlan == 1) then
+              call cuda_3d_psolver_general(n,kernel%plan,kernel%work1_GPU,kernel%work2_GPU, &
+                   kernel%k_GPU,switch_alg,kernel%geo,kernel%grid%scal)
+           else
+              call cuda_3d_psolver_plangeneral(n,kernel%work1_GPU,kernel%work2_GPU, &
+                   kernel%k_GPU,kernel%geo,kernel%grid%scal)
+           endif
+
+           !take data from GPU
+           call get_gpu_data(size1,zf1,kernel%work1_GPU)
+        endif
+
+        call MPI_Scatter(zf1,size1/kernel%mpi_env%nproc,mpidtypd,zf,size1/kernel%mpi_env%nproc, &
+             mpidtypd,0,kernel%mpi_env%mpi_comm,ierr)
+
+        call f_free(zf1)
+
+     else
+
+        !fill the GPU memory
+        call reset_gpu_data(size1,zf,kernel%work1_GPU)
+
+        switch_alg=0
+
+        if (kernel%initCufftPlan == 1) then
+           call cuda_3d_psolver_general(n,kernel%plan,kernel%work1_GPU,kernel%work2_GPU, &
+                kernel%k_GPU,switch_alg,kernel%geo,kernel%grid%scal)
+        else
+           call cuda_3d_psolver_plangeneral(n,kernel%work1_GPU,kernel%work2_GPU, &
+                kernel%k_GPU,kernel%geo,kernel%grid%scal)
+        endif
+
+
+        !take data from GPU
+        call get_gpu_data(size1,zf,kernel%work1_GPU)
+
+
+     endif
+
+     if (kernel%keepGPUmemory == 0) then
+        call cudafree(kernel%work1_GPU)
+        call cudafree(kernel%work2_GPU)
+     endif
+
+     if (kernel%keepGPUmemory == 0) then
+        call cudafree(kernel%work1_GPU)
+        call cudafree(kernel%work2_GPU)
+     endif
+
+  endif
+
+  if (updaterho) then
+     !$omp parallel do default(shared) private(i1,i23,j23,j3)
+     do i23=1,kernel%grid%n3p*kernel%grid%m3
+        j3=(i23-1)/kernel%grid%m3
+        j23=i23+n3delta*j3
+        do i1=1,kernel%grid%m1
+           rho(i1,i23)=zf(i1,j23)
+        end do
+     end do
+     !$omp end parallel do
+  end if
+
+end subroutine apply_kernel
+
+subroutine finalize_hartree_results(sumpion,pot_ion,m1,m2,m3p,md1,md2,md3p,&
+     rho,zf,pot,eh)
+  implicit none
+  logical, intent(in) :: sumpion
+  integer, intent(in) :: m1,m2,m3p !< dimension of the grid
+  integer, intent(in) :: md1,md2,md3p !< dimension of the zf array
+  !> original density and final potential (can point to the same array)
+  real(dp), dimension(m1,m2*m3p) :: rho,pot 
+  !> ionic potential, to be added to the potential
+  real(dp), dimension(m1,m2*m3p), intent(in) :: pot_ion
+  !> work array for the usage of the main routine (might have the same dimension of rho)
+  real(dp), dimension(md1,md2*md3p), intent(inout) :: zf
+  !>hartree energy, being \int d^3 x \rho(x) V_H(x)
+  real(dp), intent(out) :: eh
+  !local variables
+  integer :: i1,i23,j23,j3,n3delta
+  real(dp) :: pt,rh
+
+  eh=0.0_dp
+  !recollect the final data
+  n3delta=md2-m2 !this is the y dimension
+  if (sumpion) then
+     !$omp parallel do default(shared) private(i1,i23,j23,j3,pt,rh) &
+     !$omp reduction(+:eh)
+     do i23=1,m2*m3p
+        j3=(i23-1)/m2
+        j23=i23+n3delta*j3
+        do i1=1,m1
+           pt=zf(i1,j23)
+           rh=rho(i1,i23)
+           rh=rh*pt
+           eh=eh+rh
+           pot(i1,i23)=pt+pot_ion(i1,i23)
+        end do
+     end do
+     !$omp end parallel do
+  else
+     !$omp parallel do default(shared) private(i1,i23,j23,j3,pt,rh) &
+     !$omp reduction(+:eh)
+     do i23=1,m2*m3p
+        j3=(i23-1)/m2
+        j23=i23+n3delta*j3
+        do i1=1,m1
+           pt=zf(i1,j23)
+           rh=rho(i1,i23)
+           rh=rh*pt      
+           eh=eh+rh
+           pot(i1,i23)=pt
+        end do
+     end do
+     !$omp end parallel do
+  end if
+end subroutine finalize_hartree_results
+
+subroutine EPS_iter_output(iter,normb,normr,ratio,alpha,beta)
+  use yaml_output
+  implicit none
+  integer, intent(in) :: iter
+  real(dp), intent(in) :: normb,normr,ratio,beta,alpha
+  !local variables
+  character(len=*), parameter :: vrb='(1pe25.17)'!'(1pe16.4)'
+
+  call yaml_mapping_open('Iteration quality',flow=.true.)
+  if (beta /= 0.0_dp) call yaml_comment('Iteration '//trim(yaml_toa(iter)),hfill='_')
+  !write the PCG iteration
+  call yaml_map('iter',iter,fmt='(i4)')
+  !call yaml_map('rho_norm',normb)
+  if (normr/=0.0_dp) call yaml_map('res',normr,fmt=vrb)
+  if (ratio /= 0.0_dp) call yaml_map('ratio',ratio,fmt=vrb)
+  if (alpha /= 0.0_dp) call yaml_map('alpha',alpha,fmt=vrb)
+  if (beta /= 0.0_dp) call yaml_map('beta',beta,fmt=vrb)
+
+  call yaml_mapping_close()
+end subroutine EPS_iter_output
 
 
 !> Calculate the dimensions needed for the allocation of the arrays 
@@ -476,7 +690,8 @@ subroutine PS_dim4allocation(geocode,datacode,iproc,nproc,n01,n02,n03,use_gradie
    
    
    !calculate the dimensions wrt the geocode
-   if (geocode == 'P') then
+   select case(geocode)
+   case('P')
       call P_FFT_dimensions(n01,n02,n03,m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd3,nproc,.false.)
        if (nproc>2*(n3/2+1)-1 .and. .false.) then
         n3pr1=nproc/(n3/2+1)
@@ -485,7 +700,7 @@ subroutine PS_dim4allocation(geocode,datacode,iproc,nproc,n01,n02,n03,use_gradie
            md2=(md2/nproc+1)*nproc
         endif
       endif
-   else if (geocode == 'S') then
+   case('S')
       call S_FFT_dimensions(n01,n02,n03,m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd3,nproc,0,.false.)
       if (nproc>2*(n3/2+1)-1 .and. .false.) then
         n3pr1=nproc/(n3/2+1)
@@ -494,7 +709,7 @@ subroutine PS_dim4allocation(geocode,datacode,iproc,nproc,n01,n02,n03,use_gradie
            md2=(md2/nproc+1)*nproc
         endif
       endif
-   else if (geocode == 'F' .or. geocode == 'H') then
+   case('F','H')
       call F_FFT_dimensions(n01,n02,n03,m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd3,nproc,0,.false.)
       if (nproc>2*(n3/2+1)-1 .and. .false.) then
         n3pr1=nproc/(n3/2+1)
@@ -503,7 +718,7 @@ subroutine PS_dim4allocation(geocode,datacode,iproc,nproc,n01,n02,n03,use_gradie
            md2=(md2/nproc+1)*nproc 
         endif
       endif
-   else if (geocode == 'W') then
+   case('W')
       call W_FFT_dimensions(n01,n02,n03,m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd3,nproc,0,.false.)
       if (nproc>2*(n3/2+1)-1 .and. .false.) then
         n3pr1=nproc/(n3/2+1)
@@ -512,16 +727,18 @@ subroutine PS_dim4allocation(geocode,datacode,iproc,nproc,n01,n02,n03,use_gradie
            md2=(md2/nproc+1)*nproc
         endif
       endif
-   else
-      write(*,*) geocode
-      stop 'PS_dim4allocation: geometry code not admitted'
-   end if
+   case default
+      !write(*,*) geocode
+      !stop 'PS_dim4allocation: geometry code not admitted'
+      call f_err_throw('Geometry code "'//geocode//'" not admitted in PS_dim4allocation')
+   end select
    
    !formal start and end of the slice
    istart=iproc*(md2/nproc)
    iend=min((iproc+1)*md2/nproc,m2)
    
-   if (datacode == 'D') then
+   select case(datacode)
+   case('D')
       call xc_dimensions(geocode,use_gradient,use_wb_corr,istart,iend,m2,nxc,nxcl,nxcr,nwbl,nwbr,i3s,i3xcsh)
    
       nwb=nxcl+nxc+nxcr-2
@@ -530,16 +747,17 @@ subroutine PS_dim4allocation(geocode,datacode,iproc,nproc,n01,n02,n03,use_gradie
       n3p=nxc
       n3d=nxt
       n3pi=n3p
-   else if (datacode == 'G') then
+   case('G')
       n3d=n03
       n3p=n03
       i3xcsh=0
       i3s=min(istart,m2-1)+1
       n3pi=max(iend-istart,0)
-   else
-      print *,datacode
-      stop 'PS_dim4allocation: data code not admitted'
-   end if
+   case default
+      !print *,datacode
+      !stop 'PS_dim4allocation: data code not admitted'
+      call f_err_throw('data code "'//datacode//'" not admitted in PS_dim4allocation')
+   end select
 
 !!  print *,'P4,iproc',iproc,'nxc,ncxl,ncxr,nwbl,nwbr',nxc,nxcl,nxcr,nwbl,nwbr,&
 !!       'ixc,n3d,n3p,i3xcsh,i3s',ixc,n3d,n3p,i3xcsh,i3s
@@ -636,19 +854,6 @@ END SUBROUTINE xc_dimensions
 !> Calculate four sets of dimension needed for the calculation of the
 !! convolution for the periodic system
 !!
-!!    @param n01,n02,n03 original real dimensions (input)
-!!
-!!    @param m1,m2,m3 original real dimension, with m2 and m3 exchanged
-!!
-!!    @param n1,n2,n3 the first FFT dimensions (even for the moment - the medium point being n/2+1)
-!!
-!!    @param md1,md2,md3 the n1,n2,n3 dimensions. They contain the real unpadded space.
-!!           !!           md2 is further enlarged to be a multiple of nproc
-!!
-!!    @param nd1,nd2,nd3 fourier dimensions for which the kernel is injective,
-!!                formally 1/8 of the fourier grid. Here the dimension nd3 is
-!!                enlarged to be a multiple of nproc
-!!
 !! @warning
 !!    This four sets of dimensions are actually redundant (mi=n0i), 
 !!    due to the backward-compatibility
@@ -657,11 +862,19 @@ END SUBROUTINE xc_dimensions
 !! @author Luigi Genovese
 !! @date October 2006
 subroutine P_FFT_dimensions(n01,n02,n03,m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd3,nproc,enlarge_md2)
-  !use module_defs, only: md2plus
  implicit none
+ !Arguments
  logical, intent(in) :: enlarge_md2
- integer, intent(in) :: n01,n02,n03,nproc
- integer, intent(out) :: m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd3
+ integer, intent(in) :: n01,n02,n03   !< original real dimensions (input)
+ integer, intent(in) :: nproc
+ integer, intent(out) :: m1,m2,m3     !< original real dimension, with m2 and m3 exchanged
+ integer, intent(out) :: n1,n2,n3     !< the first FFT dimensions (even for the moment - the medium point being n/2+1)
+ integer, intent(out) :: md1,md2,md3  !< the n1,n2,n3 dimensions. They contain the real unpadded space.
+                                      !! md2 is further enlarged to be a multiple of nproc
+ integer, intent(out) :: nd1,nd2,nd3  !< Fourier dimensions for which the kernel is injective,
+                                      !! formally 1/8 of the fourier grid. Here the dimension nd3 is
+                                      !! enlarged to be a multiple of nproc
+ !Local variables
  integer :: l1,l2,l3
  
  !dimensions of the density in the real space
@@ -681,23 +894,26 @@ subroutine P_FFT_dimensions(n01,n02,n03,m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd
 
  call fourier_dim(l1,n1)
  if (n1 /= m1) then
-    print *,'the FFT in the x direction is not allowed'
-    print *,'n01 dimension',n01
-    stop
+    !print *,'the FFT in the x direction is not allowed'
+    !print *,'n01 dimension',n01
+    !stop
+    call f_err_throw('The FFT in the x direction is not allowed, n01 dimension '//trim(yaml_toa(n01)))
  end if
 
  call fourier_dim(l2,n2)
  if (n2 /= m2) then
-    print *,'the FFT in the z direction is not allowed'
-    print *,'n03 dimension',n03
-    stop
+    !print *,'the FFT in the z direction is not allowed'
+    !print *,'n03 dimension',n03
+    !stop
+    call f_err_throw('The FFT in the z direction is not allowed, n03 dimension '//trim(yaml_toa(n03)))
  end if
  
  call fourier_dim(l3,n3)
  if (n3 /= m3) then
-    print *,'the FFT in the y direction is not allowed'
-    print *,'n02 dimension',n02
-    stop
+    !print *,'the FFT in the y direction is not allowed'
+    !print *,'n02 dimension',n02
+    !stop
+    call f_err_throw('The FFT in the y direction is not allowed, n02 dimension '//trim(yaml_toa(n02)))
  end if
 
  !dimensions that contain the unpadded real space,
@@ -973,7 +1189,6 @@ END SUBROUTINE W_FFT_dimensions
 !! @author Luigi Genovese
 !! @date February 2006
 subroutine F_FFT_dimensions(n01,n02,n03,m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd3,nproc,gpu,enlarge_md2)
-  !use module_defs, only: md2plus
  implicit none
  logical, intent(in) :: enlarge_md2
  integer, intent(in) :: n01,n02,n03,nproc,gpu

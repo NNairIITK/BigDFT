@@ -73,8 +73,10 @@ EXTRA_DIST = \
 	lazy_ISF_50_2048.inc\
 	lazy_ISF_60_2048.inc\
 	lazy_ISF_100_2048.inc\
-	perfdata.inc \
-	configure.inc.in \
+	perfdata.inc\
+	configure.inc.in\
+	FiniteDiffCorff.inc\
+	FiniteDiffCorff_2der.inc\
 	$(SOURCES_MOD)
 
 # Build targets.
@@ -135,6 +137,7 @@ wofz.o Build_Kernel.o scaling_function.o PSolver_Base_new.o: Poisson_Solver.o
 
 # Copy modules in a common include directory.
 all: all-am insmod
+install: install-am insmod
 check: check-am insmod
 insmod: $(modules)
 	test -e "$(top_builddir)/includes" || $(INSTALL) -d -m 755 $(top_builddir)/includes

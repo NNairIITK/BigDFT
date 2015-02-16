@@ -105,7 +105,7 @@ subroutine reformatonewave(displ,wfd,at,hx_old,hy_old,hz_old,n1_old,n2_old,n3_ol
      hzh=.5_gp*hz
      hzh_old=.5_gp*hz_old
 
-     call to_zero((2*n1+2+2*nb1)*(2*n2+2+2*nb2)*(2*n3+2+2*nb3),psifscf(1))
+     call f_zero((2*n1+2+2*nb1)*(2*n2+2+2*nb2)*(2*n3+2+2*nb3),psifscf(1))
      !call cpu_time(t0)
 
      n1nb1=(2*n1+2+2*nb1)
@@ -586,7 +586,7 @@ contains
     lstat = .false.
     write(error, "(A)") "cannot read psig values."
 
-    call to_zero(8*(n1+1)*(n2+1)*(n3+1),psig(0,1,0,1,0,1))
+    call f_zero(psig)
     do iel=1,nvctr_c
        if (formatted) then
           read(unitwf,*,iostat=i_stat) i1,i2,i3,tt
@@ -699,7 +699,7 @@ subroutine readonewave(unitwf,useFormattedInput,iorb,iproc,n1,n2,n3,&
   else
 
      if (iproc == 0 .and. iorb == 1) then
-        call yaml_map('Need to reformat wavefunctions',.false.)
+        call yaml_map('Need to reformat wavefunctions',.true.)
         if (hx_old /= hx .or. hy_old /= hy .or. hz_old /= hz) &
            & call yaml_comment('because hgrid_old /= hgrid' // &
              & trim(yaml_toa((/ hx_old,hy_old,hz_old,hx,hy,hz /), fmt='(f14.10)')))
@@ -712,9 +712,9 @@ subroutine readonewave(unitwf,useFormattedInput,iorb,iproc,n1,n2,n3,&
         if (displ > 1.d-3 ) call yaml_comment('large displacement of molecule' // trim(yaml_toa(displ)))
      end if
 
-     psigold = f_malloc((/ 0.to.n1_old, 1.to.2, 0.to.n2_old, 1.to.2, 0.to.n3_old, 1.to.2 /),id='psigold')
+     psigold = f_malloc0((/ 0.to.n1_old, 1.to.2, 0.to.n2_old, 1.to.2, 0.to.n3_old, 1.to.2 /),id='psigold')
 
-     call to_zero(8*(n1_old+1)*(n2_old+1)*(n3_old+1),psigold(0,1,0,1,0,1))
+     !call to_zero(8*(n1_old+1)*(n2_old+1)*(n3_old+1),psigold(0,1,0,1,0,1))
      do iel=1,nvctr_c_old
         if (useFormattedInput) then
            read(unitwf,*) i1,i2,i3,tt
@@ -1283,7 +1283,7 @@ subroutine reformat_one_supportfunction(llr,llr_old,geocode,hgrids_old,n_old,psi
      call f_free(ww)
   else
      call initialize_work_arrays_sumrho(1,llr,.true.,w)
-     call to_zero(llr%wfd%nvctr_c+7*llr%wfd%nvctr_f,psi)
+     call f_zero(psi)
 !!$     write(*,*) 'iproc,norm psirnew ',dnrm2(llr%d%n1i*llr%d%n2i*llr%d%n3i,psir,1),llr%d%n1i,llr%d%n2i,llr%d%n3i
      call isf_to_daub(llr,w,psir,psi)
      call deallocate_work_arrays_sumrho(w)

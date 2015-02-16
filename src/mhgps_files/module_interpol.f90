@@ -1,3 +1,16 @@
+!! module forinterpolation between structures
+!! techniques implemented:
+!! linear synchronous transit:
+!!     subroutine lstpthpnt(nat,rxyzR,rxyzP,lambda,rxyz)
+!!     
+!! @author Bastian Schaefer
+!! @section LICENCE
+!!    Copyright (C) 2014 BigDFT group
+!!    This file is distributed under the terms of the
+!!    GNU General Public License, see ~/COPYING file
+!!    or http://www.gnu.org/copyleft/gpl.txt .
+!!    For the list of contributors, see ~/AUTHORS
+
 !> @file
 !> minor module for wrapping the lst_penalty routine
 !! intended as a temporary patch to conceptual problem in using transforce
@@ -186,16 +199,6 @@ subroutine lst_penalty(nat,rxyzR,rxyzP,rxyz,lambda,val,force)
   end subroutine lst_penalty
 
 end module lst_penalty_wrapper
-!! module forinterpolation between structures
-!! techniques implemented:
-!! linear synchronous transit:
-!!     subroutine lstpthpnt(nat,rxyzR,rxyzP,lambda,rxyz)
-!!     
-!! @author Bastian Schaefer
-!! @section LICENCE
-!!    Copyright (C) 2014 UNIBAS
-!!    This file is not freely distributed.
-!!    A licence is necessary from UNIBAS
 module module_interpol
     implicit none
 
@@ -206,17 +209,20 @@ module module_interpol
 
 contains
 !=====================================================================
-subroutine lstpthpnt(nat,rxyzR,rxyzP,lambda,rxyz)
+subroutine lstpthpnt(nat,mhgpsst,uinp,rxyzR,rxyzP,lambda,rxyz)
 !returns rxyz which is a point on the
 !linear synchronous transit path
 !corresponding to the interpolation parameter
 !lambda
     use module_base
-    use module_global_variables, only: fmax_tol => lst_fmax_tol
+    use module_mhgps_state
+    use module_userinput
     use lst_penalty_wrapper
     implicit none
     !parameters
+    type(mhgps_state), intent(in) :: mhgpsst
     integer, intent(in) :: nat
+    type(userinput), intent(in) :: uinp
     real(gp), intent(in) :: rxyzR(3,nat) !reactant
     real(gp), intent(in) :: rxyzP(3,nat) !product
     real(gp), intent(in) :: lambda       !interpol. parameter
@@ -276,7 +282,7 @@ subroutine lstpthpnt(nat,rxyzR,rxyzP,lambda,rxyz)
 !endif
 !<-DEBUG END-------------------------------------------------------->
     call init_lst_wrapper(nat,rxyzR,rxyzP,lambda)
-    call fire(nat,valforce,fmax_tol,rxyz,fxyz,epot)
+    call fire(mhgpsst,uinp,nat,valforce,rxyz,fxyz,epot)
     call finalize_lst_wrapper()
 !<-DEBUG START------------------------------------------------------>
 !if(mod(ic,10)==0)then
@@ -314,14 +320,16 @@ subroutine lstpthpnt(nat,rxyzR,rxyzP,lambda,rxyz)
 
 
 !=====================================================================
-subroutine fire(nat,valforce,fmax_tol,rxyz,fxyz,epot)
+subroutine fire(mhgpsst,uinp,nat,valforce,rxyz,fxyz,epot)
     use module_base
-    use module_global_variables, only: iproc,lst_dt_max
+    use module_userinput
     use yaml_output
+    use module_mhgps_state
     implicit none
     !parameters
+    type(mhgps_state), intent(in) :: mhgpsst
+    type(userinput), intent(in) :: uinp
     integer, intent(in) :: nat
-    real(gp)  :: fmax_tol
     real(gp), intent(inout) :: rxyz(3,nat),fxyz(3,nat)
     real(gp)  :: epot,fmax
     logical :: success
@@ -348,6 +356,7 @@ subroutine fire(nat,valforce,fmax_tol,rxyz,fxyz,epot)
     real(gp), parameter :: alpha_start=0.1_gp,f_alpha=0.99_gp
     real(gp) :: dt
     real(gp) :: ddot,dnrm2
+    real(gp) :: epotold
 !!<-DEBUG START------------------------------------------------------>
 !character(len=5), allocatable :: xat(:)
 !character(len=5) :: fc5
@@ -358,7 +367,7 @@ subroutine fire(nat,valforce,fmax_tol,rxyz,fxyz,epot)
    ! dt_max = 0.5_gp !for lj
    ! dt_max = 1.8_gp
    ! dt_max = 5.0_gp !for bigdft
-    dt_max=lst_dt_max
+    dt_max=uinp%lst_dt_max
     maxit=15000
 
     success=.false.
@@ -368,6 +377,7 @@ subroutine fire(nat,valforce,fmax_tol,rxyz,fxyz,epot)
     check=0
     cut=1
     call valforce(nat,rxyz,ff,epot)
+    epotold=epot
     count_fr=count_fr+1.0_gp
     do iter=1,maxit
 !!!! 1000   continue !!!to be avoided 
@@ -403,8 +413,9 @@ subroutine fire(nat,valforce,fmax_tol,rxyz,fxyz,epot)
            ff(2,iat) = at2
            ff(3,iat) = at3
         end do
-        call fnrmandforcemax(fxyz,fnrm,fmax,nat) 
-        call convcheck(fmax,fmax_tol,check)
+        call fnrmandforcemax(fxyz,fnrm,fmax,nat)
+        fnrm=sqrt(fnrm) 
+        call convcheck(fmax,uinp%lst_fmax_tol,check)
         if(check > 5)then
 !!<-DEBUG START------------------------------------------------------>
 !            write(*,'(a,x,i0,5(1x,es14.7))')&
@@ -425,9 +436,13 @@ subroutine fire(nat,valforce,fmax_tol,rxyz,fxyz,epot)
         power = ddot(3*nat,fxyz,1,vxyz,1)
         vxyz_norm = dnrm2(3*nat,vxyz,1)
         fxyz_norm = dnrm2(3*nat,fxyz,1)
-        vxyz = (1.0_gp-alpha)*vxyz + &
-               alpha * fxyz * vxyz_norm / fxyz_norm
-        if(power<=0)then
+        if(abs(fxyz_norm)>1.e-14_gp)then
+            vxyz = (1.0_gp-alpha)*vxyz + &
+                   alpha * fxyz * vxyz_norm / fxyz_norm
+        else
+            vxyz = (1.0_gp-alpha)*vxyz
+        endif
+        if(power<=0 .or. epot>epotold)then
             vxyz=0.0_gp
             cut=iter
             dt=dt*f_dec
@@ -436,8 +451,9 @@ subroutine fire(nat,valforce,fmax_tol,rxyz,fxyz,epot)
             dt= min(dt*f_inc,dt_max)
             alpha = alpha*f_alpha
         endif
+        epotold=epot
     enddo
-    if(fmax > fmax_tol .and. iproc==0)then
+    if(fmax > uinp%lst_fmax_tol .and. mhgpsst%iproc==0)then
         call yaml_warning('(MHGPS) Minimization of Linear '//&
                           'Synchronous Transit Path not converged:')
         call yaml_map('(MHGPS) epot, fmax, fnrm, dt, alpha',&

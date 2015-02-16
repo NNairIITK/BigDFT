@@ -11,7 +11,7 @@
 
 !> Handling of input guess creation from basis of atomic orbitals
 module ao_inguess
-  use module_base, only: gp,f_err_raise,to_zero,f_err_throw,bigdft_mpi
+  use module_base, only: gp,f_err_raise,f_zero,f_err_throw,bigdft_mpi
   use psp_projectors, only: PSPCODE_GTH, PSPCODE_HGH, PSPCODE_HGH_K, PSPCODE_HGH_K_NLCC, PSPCODE_PAW
 
   implicit none
@@ -150,7 +150,7 @@ contains
     real(gp), dimension(:,:,:,:), allocatable :: rmt
 
     !filename = 'psppar.'//trim(atomname)
-    if (present(gaenes_aux)) call to_zero(nmax_occ_ao,gaenes_aux(1))
+    if (present(gaenes_aux)) call f_zero(gaenes_aux)
 
     lpx=0
     lpx_determination: do i=1,4
@@ -551,6 +551,7 @@ contains
 
     !first, check if the dictionary of the atoms has an explicit 
     !expression or if it only gives the empty shells
+
     if (EXTRA_SHELLS_KEY .in. dict) then
        if (dict_size(dict) > 1) call f_err_throw('If the "'//EXTRA_SHELLS_KEY//&
             '" is present in the "'//IG_OCCUPATION//&
@@ -1083,8 +1084,7 @@ contains
        noncoll=1
     end if
 
-    call to_zero(nelecmax,occupIG)
-    !call to_zero(nelecmax, occupIG(1))
+    call f_zero(occupIG)
 
     !here we should define the array of the occupation numbers
     !such array can then be redefined on the parent routines and then used as input

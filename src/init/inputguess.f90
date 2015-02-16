@@ -88,11 +88,12 @@ subroutine inputguess_gaussian_orbitals(iproc,nproc,at,rxyz,nvirt,nspin,&
    case(1)
        ! SM: use for basedistd the same basedist as for the up orbitals. CHECK THIS!!!
        call orbitals_descriptors(iproc,nproc,nspin*noncoll*norbe,noncoll*norbe,(nspin-1)*norbe, &
-            nspin,nspinorfororbse,orbs%nkpts,orbs%kpts,orbs%kwgts,orbse,.false.,&
+            nspin,nspinorfororbse,orbs%nkpts,orbs%kpts,orbs%kwgts,orbse,LINEAR_PARTITION_NONE,&
             basedist=orbs%norb_par(0:,1:),basedistu=orbs%norbu_par(0:,1:),basedistd=orbs%norbu_par(0:,1:))
    case(2)
        call orbitals_descriptors(iproc,nproc,nspin*noncoll*norbe,noncoll*norbe,(nspin-1)*norbe, &
-            nspin,nspinorfororbse,orbs%nkpts,orbs%kpts,orbs%kwgts,orbse,.true.)
+            nspin,nspinorfororbse,orbs%nkpts,orbs%kpts,orbs%kwgts,orbse,LINEAR_PARTITION_OPTIMAL, &
+            orbs%norb_par, orbs%norbu_par, orbs%norbd_par)
    case default
        call f_err_throw('wrong value of iversion',err_id=BIGDFT_RUNTIME_ERROR)
    end select
@@ -436,7 +437,7 @@ subroutine AtomicOrbitals(iproc,at,rxyz,norbe,orbse,norbsc,&
       !stop 
    end if
 
-   call to_zero(orbse%norbp*orbse%nspinor*G%ncoeff,gaucoeff)
+   call f_zero(gaucoeff)
 
    !allocate and assign the exponents and the coefficients
    G%psiat = f_malloc_ptr((/ G%ncplx, G%nexpo /),id='G%psiat')
@@ -1889,7 +1890,7 @@ subroutine psitospi0(iproc,nproc,norbe,norbep,&
       end do
    end do
 
-   call to_zero(nvctr*nspin*norbep,psi)
+   call f_zero(psi)
 
    do iorb=1,norbe
       jorb=iorb-iproc*norbep

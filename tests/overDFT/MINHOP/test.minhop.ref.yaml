@@ -223,7 +223,7 @@
  #|0.700 0.700 0.700 hhx,hy,hz: grid spacing in the three directions                         
  #|3.0  8.0       c(f)rmult: c(f)rmult*radii_cf(:,1(2))=coarse(fine) atom-based radius       
  #|1              ixc: exchange-correlation parameter (LDA=1,PBE=11)                         
- #|0 0.000 0.000 0.000 ncharge of the system, Electric field (Ex,Ey,Ez)                      
+ #|0 0.000 0.000 0.000 qcharge of the system, Electric field (Ex,Ey,Ez)                      
  #|1  0           nspin=1 non-spin polarization, mpol=total magnetic moment                  
  #|1.E-02         gnrm_cv: convergence criterion gradient                                    
  #|50 10          itermax,nrepmax: max. # of wfn. opt. steps and of re-diag. runs            
@@ -274,12 +274,12 @@
    Maximum in forces                   :  1.0E-04
    Steepest descent step               :  1.0E+00
   #WARNING: Error found while deleting data-mdinput/
- (MH) beta_S, beta_O, beta_N           :  [  1.1000E+00,  1.1000E+00,  9.0909E-01 ]
+ (MH) beta_S, beta_O, beta_N           :  [  1.0500E+00,  1.1000E+00,  9.0909E-01 ]
  (MH) alpha_A, alpha_R                 :  [  9.0909E-01,  1.1000E+00 ]
  (MH) mdmin=                           :  2
- (MH) RCOV                             :Si:  2.0899999999999999
- (MH) RCOV                             :Si:  2.0899999999999999
- (MH) RCOV                             :Si:  2.0899999999999999
+ (MH) RCOV Si:  2.0899999999999999
+ (MH) RCOV Si:  2.0899999999999999
+ (MH) RCOV Si:  2.0899999999999999
  (MH) Input ediff, ekinetic, dt        :  [  1.384E-04,  8.140E-03,  8.400E-02 ]
  (MH) Input nsoften                    :  20
  Material acceleration                 :  No #iproc=0

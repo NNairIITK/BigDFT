@@ -18,7 +18,7 @@
 module module_input
 
    use module_base
-   use yaml_strings, only: read_fraction_string
+   use yaml_strings, only: read_fraction_string,operator(.eqv.)
    implicit none
    private
 
@@ -405,31 +405,6 @@ contains
 
    END SUBROUTINE find
 
-
-   !> Compare two strings (case-insensitive). Blanks are relevant!
-   function case_insensitive_equiv(stra,strb)
-      implicit none
-      character(len=*), intent(in) :: stra,strb
-      logical :: case_insensitive_equiv
-      !Local variables
-      integer :: i,ica,icb,ila,ilb,ilength
-      ila=len(stra)
-      ilb=len(strb)
-      ilength=min(ila,ilb)
-      ica=ichar(stra(1:1))
-      icb=ichar(strb(1:1))
-      case_insensitive_equiv=(modulo(ica-icb,32) == 0) .and. (ila==ilb)
-      do i=2,ilength
-         ica=ichar(stra(i:i))
-         icb=ichar(strb(i:i))
-         case_insensitive_equiv=case_insensitive_equiv .and. &
-            &   (modulo(ica-icb,32) == 0)
-         if (.not. case_insensitive_equiv) exit
-      end do
-
-   END FUNCTION case_insensitive_equiv
-
-
    !> Routines for compulsory file
    subroutine var_double_compulsory(var,default,dict,ranges,exclusive,comment,input_iostat)
       implicit none
@@ -810,7 +785,7 @@ contains
          if (present(exclusive)) then
             found=.false.
             found_loop: do ilist=1,size(exclusive)
-               if (case_insensitive_equiv(trim(var),trim(exclusive(ilist)))) then
+               if (trim(var) .eqv. trim(exclusive(ilist))) then
                   found=.true.
                   exit found_loop
                end if
@@ -985,7 +960,7 @@ contains
       character(len = *), intent(in) :: description
       integer, intent(out) :: var
 
-      integer :: i, j, ierror, ierr
+      integer :: i, j, ierror, ierr,ilg
       var = default
       call find(name, i, j)
 
@@ -998,7 +973,8 @@ contains
          end if
       end if
       if (output) then
-         write(inout_lines(parsed_lines(iline_parsed-1)),"(a,1x,I0,t30,a)") name, var, description
+         ilg=min(max(len(inout_lines)-31,0),len(trim(description)))
+         write(inout_lines(parsed_lines(iline_parsed-1)),"(a,1x,I0,t30,a)") name, var,description(1:ilg)
          iline_written=iline_written+1
       end if
    END SUBROUTINE var_integer
@@ -1322,6 +1298,8 @@ contains
        return
     end if
 
+    if (.not. associated(dict)) call dict_init(dict)
+
     call input_var(dummy_str,"BFGS",dict // GEOPT_METHOD, comment = "")
     !call set(dict // GEOPT_METHOD, dummy_str)
     call input_var(dummy_int,'1',dict // NCOUNT_CLUSTER_X,comment="")
@@ -1468,6 +1446,8 @@ contains
        call input_free(.false.)
        return
     end if
+
+    if (.not. associated(dict)) call dict_init(dict)
 
     call input_var(dummy_str,'NONE',dict // SIC_APPROACH,comment='')
     !call set(dict // SIC_APPROACH, dummy_str)
@@ -1651,7 +1631,6 @@ contains
     integer :: dummy_int, blocks(2)
     double precision :: dummy_real
     character(len = 7) :: dummy_str
-    character(len = max_field_length) :: dummy_path
 
     call input_set_file(iproc, (iproc == 0), filename, exists, PERF_VARIABLES)
     !if (exists) in%files = in%files + INPUTS_PERF
@@ -1718,8 +1697,6 @@ contains
     !verbosity of the output
     call input_var("verbosity", 2, "Verbosity of the output 0=low, 2=high",dummy_int)
     call set(dict // VERBOSITY, dummy_int)
-    call input_var("outdir", ".","Writing directory", dummy_path)
-    call set(dict // OUTDIR, dummy_path)
 
     !If false, apply the projectors in the once-and-for-all scheme, otherwise on-the-fly
     call input_var("psp_onfly", .true., "Calculate the PSP projectors on the fly (less memory)",dummy_bool)
@@ -1728,6 +1705,8 @@ contains
     !If true, preserve the multipole of the ionic part (local potential) projecting on delta instead of ISF
     call input_var("multipole_preserving", .false., "Preserve multipole moment of the ionic charge",dummy_bool)
     call set(dict // MULTIPOLE_PRESERVING, dummy_bool)
+    call input_var("mp_isf", 16, "Interpolating scaling function for the multipole preserving option",dummy_int)
+    call set(dict // MP_ISF, dummy_int)
 
     !block size for pdsyev/pdsygv, pdgemm (negative -> sequential)
     call input_var("pdsyev_blocksize",-8,"SCALAPACK linear scaling blocksize",dummy_int) !ranges=(/-100,1000/)
@@ -1817,7 +1796,13 @@ contains
     call set(dict // IMETHOD_OVERLAP, dummy_int)
 
     call input_var("enable_matrix_taskgroups", .true., "enable matrix taskgroups", dummy_bool)
-    call set(dict // IMETHOD_OVERLAP, dummy_int)
+    call set(dict // ENABLE_MATRIX_TASKGROUPS, dummy_bool)
+
+    call input_var("hamapp_radius_incr", 8, "radius enlargement for Ham application", dummy_int)
+    call set(dict // HAMAPP_RADIUS_INCR, dummy_int)
+
+    call input_var("adjust_kernel_iterations", .true., "addaptive ajustment of the number of kernel iterations", dummy_bool)
+    call set(dict // ADJUST_KERNEL_ITERATIONS, dummy_bool)
 
     call input_free(.false.)
 
@@ -2078,6 +2063,8 @@ contains
     open(unit = 123, file = trim(filename), action = "read")
     READ(123 , NML=NEB )
     close(123)
+
+    if (.not. associated(dict)) call dict_init(dict)
 
     call set(dict // GEOPT_METHOD, "NEB")
     call set(dict // NEB_CLIMBING, climbing)

@@ -24,7 +24,7 @@ PROGRAM rotate_posinp
 !   character(len=120) :: line2
    real(kind=8), dimension(3,natx) :: pos
    real(kind=8), dimension(3) :: pos_s
-   real(kind=8) :: scale,t1,t2,t3,phi_1,phi_2,phi_3,alat1,alat2,alat3
+   real(kind=8) :: scale,t1,t2,t3,phi_1,phi_2,phi_3,alat1,alat2,alat3,shiftz
    real(kind=8), parameter :: PI=3.141592654d0
    integer :: nat,iat,ierror
 
@@ -35,8 +35,8 @@ PROGRAM rotate_posinp
    if (nat.gt.natx) stop 'increase natx'
 !   read(9,*) line2
 !   write(*,*) line2
-   read(9,*) boundary,alat1,alat2,alat3
-   write(*,*) boundary,alat1,alat2,alat3
+   read(9,*) boundary!,alat1,alat2,alat3
+   write(*,*) boundary!,alat1,alat2,alat3
 
    ! put center of mass at origin
    pos_s(1)=0.d0
@@ -106,6 +106,8 @@ PROGRAM rotate_posinp
 
    write(*,*) 'scaling factor=?'
    read(*,*) scale
+   write(*,*) ' shift along z axis ?'
+   read(*,*) shiftz
 
    write(*,*) 'writing atomic positions to file rot_posinp'
    open(unit=9,file='rotate_posinp.xyz',status='unknown')
@@ -114,7 +116,7 @@ PROGRAM rotate_posinp
    write(9,'(a,3(2x,e21.14))') boundary,scale*alat1,scale*alat2,scale*alat3
    do iat=1,nat
       write(9,'(a5,3x,3(1x,e17.10),4x,a)') atomname(iat),   & 
-      pos(1,iat)*scale,pos(2,iat)*scale,pos(3,iat)*scale,extra(iat)
+      pos(1,iat)*scale,pos(2,iat)*scale,pos(3,iat)*scale+shiftz,extra(iat)
    end do
    close(unit=9)
 

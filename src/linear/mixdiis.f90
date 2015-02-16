@@ -140,8 +140,8 @@ subroutine mixrhopotDIIS(iproc, nproc, n3d, n3p, glr, input, rhopot, rhopotold, 
   ndim=max(glr%d%n1i*glr%d%n2i*n3p,1)*input%nspin
 
   ! Allocate the local arrays.
-  mat = f_malloc((/ mixdiis%isx+1, mixdiis%isx+1 /),id='mat')
-  rhs = f_malloc(mixdiis%isx+1,id='rhs')
+  mat = f_malloc0((/ mixdiis%isx+1, mixdiis%isx+1 /),id='mat')
+  rhs = f_malloc0(mixdiis%isx+1,id='rhs')
   lwork=100*mixdiis%isx
   work = f_malloc(lwork,id='work')
   ipiv = f_malloc(mixdiis%isx+1,id='ipiv')
@@ -169,9 +169,9 @@ subroutine mixrhopotDIIS(iproc, nproc, n3d, n3p, glr, input, rhopot, rhopotold, 
 
 
   !!mat=0.d0
-  call to_zero((mixdiis%isx+1)**2, mat(1,1))
+  !call to_zero((mixdiis%isx+1)**2, mat(1,1))
   !!rhs=0.d0
-  call to_zero(mixdiis%isx+1, rhs(1))
+  !call to_zero(mixdiis%isx+1, rhs(1))
 
   ! Copy rhopot and rhopotres to the DIIS history.
   jst=(mixdiis%mis-1)*ndimtot+1
@@ -251,7 +251,7 @@ subroutine mixrhopotDIIS(iproc, nproc, n3d, n3p, glr, input, rhopot, rhopotold, 
   ! If we are mixing the density (mixMeth==1) it is initialized to 0 or 10^-20, depending on the functional.
   ! If we are mixing the potential (mixMeth==2) it is always initialized to 0.
   if (xc_isgga(xc) .or. mixMeth==2) then
-      call to_zero(ndimtot, rhopot)
+      call f_zero(rhopot)
   else
       ! There is no mpi_allreduce, therefore directly initialize to
       ! 10^-20 and not 10^-20/nproc.
