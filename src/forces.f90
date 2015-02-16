@@ -369,7 +369,7 @@ subroutine local_forces(iproc,at,rxyz,hxh,hyh,hzh,&
   !array of coefficients of the derivative
   real(kind=8), dimension(4) :: cprime 
 
-  if (at%multipole_preserving) call initialize_real_space_conversion(isf_m=at%mp_isf)
+  if (at%multipole_preserving) call initialize_real_space_conversion(nmoms=at%mp_isf)
   
   locstrten=0.0_gp
 
@@ -443,7 +443,7 @@ subroutine local_forces(iproc,at,rxyz,hxh,hyh,hzh,&
      cutoff=10.d0*rloc
      if (at%multipole_preserving) then
         !We want to have a good accuracy of the last point rloc*10
-        cutoff=cutoff+max(hxh,hyh,hzh)*real(at%mp_isf,kind=gp)
+        cutoff=cutoff+max(hxh,hyh,hzh)*real(16+at%mp_isf,kind=gp)
      end if
 
      isx=floor((rx-cutoff)/hxh)

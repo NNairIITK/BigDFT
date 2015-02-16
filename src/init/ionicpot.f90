@@ -552,7 +552,7 @@ subroutine createIonicPotential(geocode,iproc,nproc,verb,at,rxyz,&
   call timing(iproc,'CrtLocPot     ','ON')
 
   !initialize the work arrays needed to integrate with isf
-  if (at%multipole_preserving) call initialize_real_space_conversion(isf_m=at%mp_isf)
+  if (at%multipole_preserving) call initialize_real_space_conversion(nmoms=at%mp_isf)
 
   ! Ionic charge (must be calculated for the PS active processes)
   rholeaked=0.d0
@@ -586,7 +586,7 @@ subroutine createIonicPotential(geocode,iproc,nproc,verb,at,rxyz,&
         cutoff=10.d0*rloc
         if (at%multipole_preserving) then
            !We want to have a good accuracy of the last point rloc*10
-           cutoff=cutoff+max(hxh,hyh,hzh)*real(at%mp_isf,kind=gp)
+           cutoff=cutoff+max(hxh,hyh,hzh)*real(16+at%mp_isf,kind=gp)
         end if
 
         isx=floor((rx-cutoff)/hxh)
@@ -828,7 +828,7 @@ subroutine createIonicPotential(geocode,iproc,nproc,verb,at,rxyz,&
         cutoff=10.d0*rloc
         if (at%multipole_preserving) then
            !We want to have a good accuracy of the last point rloc*10
-           cutoff=cutoff+max(hxh,hyh,hzh)*real(16,kind=gp)
+           cutoff=cutoff+max(hxh,hyh,hzh)*real(16+at%mp_isf,kind=gp)
         end if
 
         isx=floor((rx-cutoff)/hxh)
@@ -1241,7 +1241,7 @@ subroutine CounterIonPotential(geocode,iproc,nproc,in,shift,&
   call timing(iproc,'CrtLocPot     ','ON')
   
   !initialize the work arrays needed to integrate with isf
-  if (at%multipole_preserving) call initialize_real_space_conversion(isf_m=at%mp_isf)
+  if (at%multipole_preserving) call initialize_real_space_conversion(nmoms=at%mp_isf)
 
   if (iproc.eq.0) then
      write(*,'(1x,a)')&
@@ -1303,7 +1303,7 @@ subroutine CounterIonPotential(geocode,iproc,nproc,in,shift,&
         cutoff=10.d0*rloc
         if (at%multipole_preserving) then
            !We want to have a good accuracy of the last point rloc*10
-           cutoff=cutoff+max(hxh,hyh,hzh)*real(16,kind=gp)
+           cutoff=cutoff+max(hxh,hyh,hzh)*real(16+at%mp_isf,kind=gp)
         end if
 
         isx=floor((rx-cutoff)/hxh)

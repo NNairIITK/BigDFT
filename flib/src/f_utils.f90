@@ -303,11 +303,14 @@ contains
     character(len=*), intent(in) :: file
     !local variables
     logical :: exists
-    integer :: ierr
+    integer :: ierr,unit
     external :: delete
 
     call f_file_exists(trim(file),exists)
     if (exists) then
+       !close the corresponding fortran unit if the file is connected to it
+       call f_file_unit(trim(file),unit)
+       call f_close(unit)
        !c-function in utils.c
        call delete(trim(file),len_trim(file),ierr)
        if (ierr /=0) call f_err_throw('Error in deleting file='//&

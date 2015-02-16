@@ -35,7 +35,7 @@ program frequencies
    real(gp), parameter :: Temperature=300.0_gp !< Temperature (300K)
    character(len=*), dimension(3), parameter :: cc = (/ 'x', 'y', 'z' /)
    !File unit
-   integer, parameter :: u_hessian=20, u_dynamical=21, u_freq=15
+   integer, parameter :: u_hessian=20, u_dynamical=21, u_freq=15, u_hess=35
    real(gp) :: alat,dd,rmass
    character(len=60) :: run_id
    !Input variables
@@ -150,9 +150,7 @@ program frequencies
    ! If we want the Hessian and Dynamical matrices only for the freedom degrees not useful
    ! but permit to restart with more degrees of freedom (less frozen atoms)
    ifrztyp0 = runObj%atoms%astruct%ifrztyp
- !following line: setting runObj%atoms%astruct%ifrztyp does not make sense:
- !If atoms are frozen, we don't move them=> forces not needed for finite differences
-!   runObj%atoms%astruct%ifrztyp = 0
+   runObj%atoms%astruct%ifrztyp = 0
 
    !Initialize the moves using a restart file if present
    !Regenerate it if trouble and indicate if all calculations are done
@@ -266,9 +264,6 @@ program frequencies
             rmass = amu_emass*sqrt(runObj%atoms%amu(runObj%atoms%astruct%iatype(iat))* &
                  & runObj%atoms%amu(runObj%atoms%astruct%iatype(jat)))
             do j=1,3
-               if (.not.move_this_coordinate(ifrztyp0(jat),j)) then
-                  cycle
-               end if
                jj = j+3*(jat-1)
                !Force is -dE/dR
                select case(order)
@@ -284,7 +279,7 @@ program frequencies
                   call f_err_throw('(F) Frequencies: This order '//trim(yaml_toa(order))//' is not allowed!',&
                        err_name='FREQUENCIES_ORDER_ERROR')
                end select
-               hessian(jj,ii) = dd
+               if (move_this_coordinate(ifrztyp0(jat),j)) hessian(jj,ii) = dd
                dynamical(jj,ii) = dd/rmass
             end do
          end do
@@ -330,6 +325,13 @@ program frequencies
          hessian(i,j) = hessian(j,i)
       end do
    end do
+
+    !write symmetrized hessian to file
+    open(unit=u_hess,file='hessian_symmetrized.dat')
+    do i=1,3*runObj%atoms%astruct%nat
+        write(u_hess,'(60(1x,es24.17))')(hessian(i,j),j=1,3*runObj%atoms%astruct%nat)
+    enddo
+    close(u_hess)
 
 
    !Allocations

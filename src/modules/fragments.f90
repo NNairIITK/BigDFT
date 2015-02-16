@@ -341,21 +341,27 @@ contains
     !forbs%onwhichatom => orbs%onwhichatom
     !forbs%isorb_par => orbs%isorb_par
     !forbs%ispot => orbs%ispot
-    if(associated(orbs%norb_par)) then
-        forbs%norb_par = f_malloc_ptr(src=orbs%norb_par,lbounds=lbound(orbs%norb_par),id='forbs%norb_par')
-    end if
-    if(associated(orbs%inwhichlocreg)) then
-        forbs%inwhichlocreg = f_malloc_ptr(src=orbs%inwhichlocreg,lbounds=lbound(orbs%inwhichlocreg),id='forbs%inwhichlocreg')
-    end if
-    if(associated(orbs%onwhichatom)) then
-        forbs%onwhichatom = f_malloc_ptr(src=orbs%onwhichatom,lbounds=lbound(orbs%onwhichatom),id='forbs%onwhichatom')
-    end if
-    if(associated(orbs%isorb_par)) then
-        forbs%isorb_par = f_malloc_ptr(src=orbs%isorb_par,lbounds=lbound(orbs%isorb_par),id='forbs%isorb_par')
-    end if
-    if(associated(orbs%ispot)) then
-        forbs%ispot = f_malloc_ptr(src=orbs%ispot,lbounds=lbound(orbs%ispot),id='forbs%ispot')
-    end if
+    forbs%norb_par      = f_malloc_ptr(src_ptr=orbs%norb_par,id='forbs%norb_par')
+    forbs%inwhichlocreg = f_malloc_ptr(src_ptr=orbs%inwhichlocreg,id='forbs%inwhichlocreg')
+    forbs%onwhichatom   = f_malloc_ptr(src_ptr=orbs%onwhichatom,id='forbs%onwhichatom')
+    forbs%isorb_par     = f_malloc_ptr(src_ptr=orbs%isorb_par,id='forbs%isorb_par')
+    forbs%ispot         = f_malloc_ptr(src_ptr=orbs%ispot,id='forbs%ispot')
+
+!!$    if(associated(orbs%norb_par)) then
+!!$        forbs%norb_par = f_malloc_ptr(src=orbs%norb_par,lbounds=lbound(orbs%norb_par),id='forbs%norb_par')
+!!$    end if
+!!$    if(associated(orbs%inwhichlocreg)) then
+!!$        forbs%inwhichlocreg = f_malloc_ptr(src=orbs%inwhichlocreg,lbounds=lbound(orbs%inwhichlocreg),id='forbs%inwhichlocreg')
+!!$    end if
+!!$    if(associated(orbs%onwhichatom)) then
+!!$        forbs%onwhichatom = f_malloc_ptr(src=orbs%onwhichatom,lbounds=lbound(orbs%onwhichatom),id='forbs%onwhichatom')
+!!$    end if
+!!$    if(associated(orbs%isorb_par)) then
+!!$        forbs%isorb_par = f_malloc_ptr(src=orbs%isorb_par,lbounds=lbound(orbs%isorb_par),id='forbs%isorb_par')
+!!$    end if
+!!$    if(associated(orbs%ispot)) then
+!!$        forbs%ispot = f_malloc_ptr(src=orbs%ispot,lbounds=lbound(orbs%ispot),id='forbs%ispot')
+!!$    end if
 
   end subroutine orbs_to_min_orbs_point
 

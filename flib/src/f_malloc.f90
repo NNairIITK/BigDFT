@@ -133,9 +133,13 @@ module module_f_malloc
   interface f_malloc_ptr
      module procedure f_malloc_ptr,f_malloc_ptr_simple
      module procedure f_malloc_ptr_bounds,f_malloc_ptr_bound
-     module procedure f_malloc_ptr_i2
-     module procedure f_malloc_ptr_d1,f_malloc_ptr_d2
-     module procedure f_malloc_ptr_d3,f_malloc_ptr_d4
+     !module procedure f_malloc_ptr_i2,f_malloc_ptr_i3
+     module procedure f_malloc_ptr_i2_sp,f_malloc_ptr_i3_sp
+     module procedure f_malloc_ptr_i4_sp
+     !module procedure f_malloc_ptr_d1,f_malloc_ptr_d2
+     !module procedure f_malloc_ptr_d3,f_malloc_ptr_d4
+     module procedure f_malloc_ptr_d1_sp,f_malloc_ptr_d2_sp
+     module procedure f_malloc_ptr_d3_sp,f_malloc_ptr_d4_sp
   end interface
 
   interface f_malloc0_ptr
@@ -474,15 +478,6 @@ contains
     include 'f_malloc-inc.f90'
   end function f_malloc_d1
 
-  !this template is here waiting for a new unambiguous module procedure
-!!$  function f_malloc_d1_sp(src_ptr,id,routine_id,profile) result(m)
-!!$    implicit none
-!!$    double precision, dimension(:), pointer, intent(in) :: src_ptr
-!!$    type(malloc_information_all) :: m
-!!$    include 'f_malloc-base-inc.f90'
-!!$    include 'f_malloc-ptr-inc.f90'
-!!$  end function f_malloc_d1_sp
-
   function f_malloc_d2(src,id,routine_id,lbounds,ubounds,profile) result(m)
     implicit none
     double precision, dimension(:,:), intent(in) :: src
@@ -528,49 +523,135 @@ contains
     include 'f_malloc-inc.f90'
   end function f_malloc_i3
 
-  function f_malloc_ptr_i2(src,id,routine_id,lbounds,ubounds,profile) result(m)
-    implicit none
-    integer, dimension(:,:), pointer, intent(in) :: src
-    integer, dimension(:), intent(in), optional :: lbounds,ubounds
-    type(malloc_information_ptr) :: m
-    include 'f_malloc-base-inc.f90'
-    include 'f_malloc-inc.f90'
-  end function f_malloc_ptr_i2
+!!$  function f_malloc_ptr_i2(src,id,routine_id,sizes,lbounds,ubounds,profile) result(m)
+!!$    implicit none
+!!$    integer, dimension(:,:), intent(in) :: src
+!!$    integer, dimension(:), intent(in), optional :: sizes,lbounds,ubounds
+!!$    type(malloc_information_ptr) :: m
+!!$    include 'f_malloc-base-inc.f90'
+!!$    include 'f_malloc-inc.f90'
+!!$  end function f_malloc_ptr_i2
 
-  function f_malloc_ptr_d1(src,id,routine_id,lbounds,ubounds,profile) result(m)
+  !this template is here waiting for a new unambiguous module procedure
+  function f_malloc_ptr_i2_sp(src_ptr,id,routine_id,profile) result(m)
     implicit none
-    double precision, dimension(:), intent(in) :: src
-    integer, dimension(:), intent(in), optional :: lbounds,ubounds
+    integer, dimension(:,:), pointer, intent(in) :: src_ptr
     type(malloc_information_ptr) :: m
     include 'f_malloc-base-inc.f90'
-    include 'f_malloc-inc.f90'
-  end function f_malloc_ptr_d1
+    include 'f_malloc-null-ptr-inc.f90'
+    include 'f_malloc-ptr-inc.f90'
+    include 'f_malloc-ptr-inc.f90'
+  end function f_malloc_ptr_i2_sp
+
+!!$  function f_malloc_ptr_i3(src,id,routine_id,sizes,lbounds,ubounds,profile) result(m)
+!!$    implicit none
+!!$    integer, dimension(:,:,:), intent(in) :: src
+!!$    integer, dimension(:), intent(in), optional :: sizes,lbounds,ubounds
+!!$    type(malloc_information_ptr) :: m
+!!$    include 'f_malloc-base-inc.f90'
+!!$    include 'f_malloc-inc.f90'
+!!$  end function f_malloc_ptr_i3
+
+  !this template is here waiting for a new unambiguous module procedure
+  function f_malloc_ptr_i3_sp(src_ptr,id,routine_id,profile) result(m)
+    implicit none
+    integer, dimension(:,:,:), pointer, intent(in) :: src_ptr
+    type(malloc_information_ptr) :: m
+    include 'f_malloc-base-inc.f90'
+    include 'f_malloc-null-ptr-inc.f90'
+    include 'f_malloc-ptr-inc.f90'
+    include 'f_malloc-ptr-inc.f90'
+  end function f_malloc_ptr_i3_sp
+
+  !this template is here waiting for a new unambiguous module procedure
+  function f_malloc_ptr_i4_sp(src_ptr,id,routine_id,profile) result(m)
+    implicit none
+    integer, dimension(:,:,:,:), pointer, intent(in) :: src_ptr
+    type(malloc_information_ptr) :: m
+    include 'f_malloc-base-inc.f90'
+    include 'f_malloc-null-ptr-inc.f90'
+    include 'f_malloc-ptr-inc.f90'
+    include 'f_malloc-ptr-inc.f90'
+  end function f_malloc_ptr_i4_sp
+
+  !this template is here waiting for a new unambiguous module procedure
+  function f_malloc_ptr_d1_sp(src_ptr,id,routine_id,profile) result(m)
+    implicit none
+    double precision, dimension(:), pointer, intent(in) :: src_ptr
+    type(malloc_information_ptr) :: m
+    include 'f_malloc-base-inc.f90'
+    include 'f_malloc-null-ptr-inc.f90'
+    include 'f_malloc-ptr-inc.f90'
+    include 'f_malloc-ptr-inc.f90'
+  end function f_malloc_ptr_d1_sp
+
+  !this template is here waiting for a new unambiguous module procedure
+  function f_malloc_ptr_d2_sp(src_ptr,id,routine_id,profile) result(m)
+    implicit none
+    double precision, dimension(:,:), pointer, intent(in) :: src_ptr
+    type(malloc_information_ptr) :: m
+    include 'f_malloc-base-inc.f90'
+    include 'f_malloc-null-ptr-inc.f90'
+    include 'f_malloc-ptr-inc.f90'
+    include 'f_malloc-ptr-inc.f90'
+  end function f_malloc_ptr_d2_sp
+
+  !this template is here waiting for a new unambiguous module procedure
+  function f_malloc_ptr_d3_sp(src_ptr,id,routine_id,profile) result(m)
+    implicit none
+    double precision, dimension(:,:,:), pointer, intent(in) :: src_ptr
+    type(malloc_information_ptr) :: m
+    include 'f_malloc-base-inc.f90'
+    include 'f_malloc-null-ptr-inc.f90'
+    include 'f_malloc-ptr-inc.f90'
+    include 'f_malloc-ptr-inc.f90'
+  end function f_malloc_ptr_d3_sp
+
+  !this template is here waiting for a new unambiguous module procedure
+  function f_malloc_ptr_d4_sp(src_ptr,id,routine_id,profile) result(m)
+    implicit none
+    double precision, dimension(:,:,:,:), pointer, intent(in) :: src_ptr
+    type(malloc_information_ptr) :: m
+    include 'f_malloc-base-inc.f90'
+    include 'f_malloc-null-ptr-inc.f90'
+    include 'f_malloc-ptr-inc.f90'
+    include 'f_malloc-ptr-inc.f90'
+  end function f_malloc_ptr_d4_sp
   
-  function f_malloc_ptr_d2(src,id,routine_id,lbounds,ubounds,profile) result(m)
-    implicit none
-    double precision, dimension(:,:), intent(in) :: src
-    integer, dimension(:), intent(in), optional :: lbounds,ubounds
-    type(malloc_information_ptr) :: m
-    include 'f_malloc-base-inc.f90'
-    include 'f_malloc-inc.f90'
-  end function f_malloc_ptr_d2
+!!$  function f_malloc_ptr_d1(id,src,routine_id,sizes,lbounds,ubounds,profile) result(m)
+!!$    implicit none
+!!$    double precision, dimension(:), optional, intent(in) :: src
+!!$    integer, dimension(:), intent(in), optional :: sizes,lbounds,ubounds
+!!$    type(malloc_information_ptr) :: m
+!!$    include 'f_malloc-base-inc.f90'
+!!$    include 'f_malloc-inc.f90'
+!!$  end function f_malloc_ptr_d1
 
-  function f_malloc_ptr_d3(src,id,routine_id,lbounds,ubounds,profile) result(m)
-    implicit none
-    double precision, dimension(:,:,:), intent(in) :: src
-    integer, dimension(:), intent(in), optional :: lbounds,ubounds
-    type(malloc_information_ptr) :: m
-    include 'f_malloc-base-inc.f90'
-    include 'f_malloc-inc.f90'
-  end function f_malloc_ptr_d3
-
-  function f_malloc_ptr_d4(src,id,routine_id,lbounds,ubounds,profile) result(m)
-    implicit none
-    double precision, dimension(:,:,:,:), intent(in) :: src
-    integer, dimension(:), intent(in), optional :: lbounds,ubounds
-    type(malloc_information_ptr) :: m
-    include 'f_malloc-base-inc.f90'
-    include 'f_malloc-inc.f90'
-  end function f_malloc_ptr_d4
+!!$  function f_malloc_ptr_d2(id,src,routine_id,sizes,lbounds,ubounds,profile) result(m)
+!!$    implicit none
+!!$    double precision, dimension(:,:), optional, intent(in) :: src
+!!$    integer, dimension(:), intent(in), optional :: sizes,lbounds,ubounds
+!!$    type(malloc_information_ptr) :: m
+!!$    include 'f_malloc-base-inc.f90'
+!!$    include 'f_malloc-inc.f90'
+!!$  end function f_malloc_ptr_d2
+!!$
+!!$  function f_malloc_ptr_d3(id,src,routine_id,sizes,lbounds,ubounds,profile) result(m)
+!!$    implicit none
+!!$    double precision, dimension(:,:,:), optional, intent(in) :: src
+!!$    integer, dimension(:), intent(in), optional :: sizes,lbounds,ubounds
+!!$    type(malloc_information_ptr) :: m
+!!$    include 'f_malloc-base-inc.f90'
+!!$    include 'f_malloc-inc.f90'
+!!$  end function f_malloc_ptr_d3
+!!$
+!!$  function f_malloc_ptr_d4(id,src,routine_id,sizes,lbounds,ubounds,profile) result(m)
+!!$    implicit none
+!!$    double precision, dimension(:,:,:,:), optional, intent(in) :: src
+!!$    integer, dimension(:), intent(in), optional :: sizes,lbounds,ubounds
+!!$    type(malloc_information_ptr) :: m
+!!$    include 'f_malloc-base-inc.f90'
+!!$    include 'f_malloc-inc.f90'
+!!$  end function f_malloc_ptr_d4
   
 end module module_f_malloc

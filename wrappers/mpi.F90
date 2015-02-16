@@ -38,13 +38,13 @@ module wrapper_MPI
   integer, parameter :: smallsize=5 !< limit for a communication with small size
   character(len=*), parameter, public :: tgrp_mpi_name='Communications'
   !timing categories
-  integer, public, save :: TCAT_ALLRED_SMALL=TIMING_UNINITIALIZED
-  integer, public, save :: TCAT_ALLRED_LARGE=TIMING_UNINITIALIZED
-  integer, public, save :: TCAT_ALLGATHERV  =TIMING_UNINITIALIZED
-  integer, public, save :: TCAT_ALLGATHER   =TIMING_UNINITIALIZED
-  integer, public, save :: TCAT_GATHER      =TIMING_UNINITIALIZED
+  integer, public, save :: TCAT_ALLRED_SMALL = TIMING_UNINITIALIZED
+  integer, public, save :: TCAT_ALLRED_LARGE = TIMING_UNINITIALIZED
+  integer, public, save :: TCAT_ALLGATHERV   = TIMING_UNINITIALIZED
+  integer, public, save :: TCAT_ALLGATHER    = TIMING_UNINITIALIZED
+  integer, public, save :: TCAT_GATHER       = TIMING_UNINITIALIZED
   
-  !error codes
+  !> Error codes
   integer, public, save :: ERR_MPI_WRAPPERS
 
   !> Interface for MPITYPE routine
@@ -1156,8 +1156,8 @@ contains
     integer(kind=8), dimension(:,:), allocatable :: array_glob
     integer(kind=8) :: maxdiff 
     include 'maxdiff-decl-inc.f90'
-    ndims = n
-    maxdiff=int(0,kind=8)
+    ndims = int(n,kind=4)
+    maxdiff = int(0,kind=8)
     include 'maxdiff-inc.f90'
   end function mpimaxdiff_li0
 
@@ -1453,11 +1453,8 @@ contains
     integer(kind=mpi_address_kind),intent(in) :: target_disp
     integer,intent(inout) :: wind
     !local variables
-    integer :: nproc,jproc,nrecvbuf,ierr
+    integer :: ierr
     external :: getall
-    logical :: check
-    integer,target:: window
-
 
     call mpi_accumulate(origin_addr, origin_count, mpitype(origin_addr), &
          target_rank, target_disp, target_count, mpitype(origin_addr), op, wind, ierr)

@@ -1112,11 +1112,11 @@ module module_types
  public :: material_acceleration_null,input_psi_names
  public :: wf_format_names,bigdft_init_errors,bigdft_init_timing_categories
  public :: deallocate_orbs,deallocate_locreg_descriptors,nullify_wfd
- public :: deallocate_wfd,update_nlpsp,deallocate_paw_objects
- public :: old_wavefunction_set,allocate_wfd,basis_params_set_dict
- public :: input_set,copy_locreg_descriptors,nullify_locreg_descriptors
+ public :: update_nlpsp,deallocate_paw_objects!,deallocate_wfd,
+ public :: old_wavefunction_set,basis_params_set_dict
+ public :: input_set,nullify_locreg_descriptors
  public :: input_psi_help,deallocate_rho_descriptors
- public :: nullify_paw_objects,frag_from_dict,copy_grid_dimensions
+ public :: nullify_paw_objects,frag_from_dict!,copy_grid_dimensions
  public :: cprj_to_array,deallocate_gwf_c
  public :: SIC_data_null,local_zone_descriptors_null,output_wf_format_help
  public :: energy_terms_null, work_mpiaccumulate_null
@@ -2136,6 +2136,8 @@ contains
              in%run_mode=AMBER_RUN_MODE
           case('morse_bulk')
              in%run_mode=MORSE_BULK_RUN_MODE
+          case('morse_slab')
+             in%run_mode=MORSE_SLAB_RUN_MODE
           end select
        case(MM_PARAMSET)
             in%mm_paramset=val

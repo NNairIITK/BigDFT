@@ -1073,6 +1073,7 @@ subroutine tmb_overlap_onsite(iproc, nproc, imethod_overlap, at, tmb, rxyz)
 
   use module_base
   use module_types
+  use locregs, only: copy_locreg_descriptors,allocate_wfd,deallocate_wfd
   use module_interfaces
   use module_fragments
   use communications_base, only: comms_linear_null, deallocate_comms_linear, TRANSPOSE_FULL
@@ -2876,6 +2877,7 @@ END SUBROUTINE initialize_linear_from_file
 subroutine copy_old_supportfunctions(iproc,orbs,lzd,phi,lzd_old,phi_old)
   use module_base
   use module_types
+  use locregs, only: copy_locreg_descriptors
   use yaml_output
   implicit none
   integer,intent(in) :: iproc
@@ -2891,29 +2893,31 @@ subroutine copy_old_supportfunctions(iproc,orbs,lzd,phi,lzd_old,phi_old)
   ! First copy global quantities
   call nullify_locreg_descriptors(lzd_old%glr)
 
-  lzd_old%glr%wfd%nvctr_c = lzd%glr%wfd%nvctr_c
-  lzd_old%glr%wfd%nvctr_f = lzd%glr%wfd%nvctr_f
-  lzd_old%glr%wfd%nseg_c  = lzd%glr%wfd%nseg_c
-  lzd_old%glr%wfd%nseg_f  = lzd%glr%wfd%nseg_f
+  call copy_locreg_descriptors(lzd%glr,lzd_old%glr)
 
-  !allocations
-  call allocate_wfd(lzd_old%glr%wfd)
+!!$  lzd_old%glr%wfd%nvctr_c = lzd%glr%wfd%nvctr_c
+!!$  lzd_old%glr%wfd%nvctr_f = lzd%glr%wfd%nvctr_f
+!!$  lzd_old%glr%wfd%nseg_c  = lzd%glr%wfd%nseg_c
+!!$  lzd_old%glr%wfd%nseg_f  = lzd%glr%wfd%nseg_f
 
-  do iseg=1,lzd_old%glr%wfd%nseg_c+lzd_old%glr%wfd%nseg_f
-     lzd_old%glr%wfd%keyglob(1,iseg)    = lzd%glr%wfd%keyglob(1,iseg) 
-     lzd_old%glr%wfd%keyglob(2,iseg)    = lzd%glr%wfd%keyglob(2,iseg)
-     lzd_old%glr%wfd%keygloc(1,iseg)    = lzd%glr%wfd%keygloc(1,iseg)
-     lzd_old%glr%wfd%keygloc(2,iseg)    = lzd%glr%wfd%keygloc(2,iseg)
-     lzd_old%glr%wfd%keyvloc(iseg)      = lzd%glr%wfd%keyvloc(iseg)
-     lzd_old%glr%wfd%keyvglob(iseg)     = lzd%glr%wfd%keyvglob(iseg)
-  enddo
+!!$  !allocations
+!!$  call allocate_wfd(lzd_old%glr%wfd)
+!!$
+!!$  do iseg=1,lzd_old%glr%wfd%nseg_c+lzd_old%glr%wfd%nseg_f
+!!$     lzd_old%glr%wfd%keyglob(1,iseg)    = lzd%glr%wfd%keyglob(1,iseg) 
+!!$     lzd_old%glr%wfd%keyglob(2,iseg)    = lzd%glr%wfd%keyglob(2,iseg)
+!!$     lzd_old%glr%wfd%keygloc(1,iseg)    = lzd%glr%wfd%keygloc(1,iseg)
+!!$     lzd_old%glr%wfd%keygloc(2,iseg)    = lzd%glr%wfd%keygloc(2,iseg)
+!!$     lzd_old%glr%wfd%keyvloc(iseg)      = lzd%glr%wfd%keyvloc(iseg)
+!!$     lzd_old%glr%wfd%keyvglob(iseg)     = lzd%glr%wfd%keyvglob(iseg)
+!!$  enddo
   !!!deallocation
   !!call deallocate_wfd(lzd%glr%wfd,subname)
 
   !!lzd_old%glr%d%n1 = lzd%glr%d%n1
   !!lzd_old%glr%d%n2 = lzd%glr%d%n2
   !!lzd_old%glr%d%n3 = lzd%glr%d%n3
-  call copy_grid_dimensions(lzd%glr%d, lzd_old%glr%d)
+!!$  call copy_grid_dimensions(lzd%glr%d, lzd_old%glr%d)
 
 
   lzd_old%nlr=lzd%nlr

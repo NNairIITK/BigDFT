@@ -472,7 +472,8 @@ subroutine plot_density(iproc,nproc,filename,at,rxyz,box,nspin,rho)
 
   else
      !pot_ion => rho
-     pot_ion = f_malloc_ptr(src=rho,id='pot_ion')
+     pot_ion = f_malloc_ptr(shape(rho),id='pot_ion')
+     call f_memcpy(dest=pot_ion,src=rho)
   end if
 
   ! Format = 1 -> cube (default)

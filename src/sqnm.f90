@@ -9,8 +9,9 @@
 !!    For the list of contributors, see ~/AUTHORS
 !subroutine geopt(nat,wpos,etot,fout,fnrmtol,count,count_sd,displr)
 subroutine sqnm(runObj,outsIO,nproc,iproc,verbosity,ncount_bigdft,fail)
-!bigdft_state has to be run once on runObj and outs !before calling this routine
-!sqnm will return to caller the energies and coordinates used/obtained from the last accepted iteration step
+!bigdft_state has to be run once on runObj and outs
+!before calling this routine. sqnm will return to the caller the energies
+!and coordinates used/obtained at the last accepted iteration step
    use module_base
    use bigdft_run!module_types
    use yaml_output
@@ -100,6 +101,7 @@ subroutine sqnm(runObj,outsIO,nproc,iproc,verbosity,ncount_bigdft,fail)
    character(len=12)                        :: cdmy12_2
    character(len=9)                        :: cdmy9
    character(len=8)                        :: cdmy8
+   integer :: ifail
     !functions
     real(gp) :: ddot,dnrm2
 
@@ -114,6 +116,7 @@ subroutine sqnm(runObj,outsIO,nproc,iproc,verbosity,ncount_bigdft,fail)
    steepthresh=runObj%inputs%steepthresh
    trustr=runObj%inputs%trustr
    nbond=1
+   ifail=0
    if(runObj%inputs%biomode)imode=2
 
    if (iproc==0.and.verbosity > 0) then
@@ -196,7 +199,7 @@ subroutine sqnm(runObj,outsIO,nproc,iproc,verbosity,ncount_bigdft,fail)
 
    call minenergyandforces(iproc,nproc,.false.,imode,runObj,outs,nat,rxyz(1,1,0),&
        rxyzraw(1,1,0),fxyz(1,1,0),fstretch(1,1,0),fxyzraw(1,1,0),&
-       etot,iconnect,nbond,wold,beta_stretchx,beta_stretch)
+       etot,iconnect,nbond,wold,beta_stretchx,beta_stretch,infocode)
    if(imode==2)rxyz(:,:,0)=rxyz(:,:,0)+beta_stretch*fstretch(:,:,0)
 
    call fnrmandforcemax(fxyzraw(1,1,0),fnrm,fmax,nat)
@@ -219,6 +222,7 @@ subroutine sqnm(runObj,outsIO,nproc,iproc,verbosity,ncount_bigdft,fail)
        'beta=',trim(adjustl(cdmy9)),'dim=',ndim,'maxd=',&
        trim(adjustl(cdmy8)),'dsplr=',trim(adjustl(cdmy12_1)),&
        'dsplp=',trim(adjustl(cdmy12_2))
+       call f_utils_flush(16)
    endif
 
    do it=1,nit!start main loop
@@ -270,7 +274,10 @@ subroutine sqnm(runObj,outsIO,nproc,iproc,verbosity,ncount_bigdft,fail)
       !only used when in steepest decent mode
       if(maxd>trustr .and. steep)then
          if(debug.and.iproc==0)write(100,'(a,1x,es24.17,1x,i0)')'step too large',maxd,it
-         if(iproc==0)write(16,'(a,2(1x,es9.2))')'WARNING GEOPT_SQNM: step too large: maxd, trustradius ',maxd,trustr
+         if(iproc==0)then
+            write(16,'(a,2(1x,es9.2))')'WARNING GEOPT_SQNM: step too large: maxd, trustradius ',maxd,trustr
+            call f_utils_flush(16)
+         endif
          scl=0.50_gp*trustr/maxd
          dd=dd*scl
          tt=tt*scl
@@ -299,7 +306,7 @@ subroutine sqnm(runObj,outsIO,nproc,iproc,verbosity,ncount_bigdft,fail)
       runObj%inputs%inputPsiId=1
       call minenergyandforces(iproc,nproc,.true.,imode,runObj,outs,nat,rxyz(1,1,nhist),rxyzraw(1,1,nhist),&
                              fxyz(1,1,nhist),fstretch(1,1,nhist),fxyzraw(1,1,nhist),&
-                             etotp,iconnect,nbond,wold,beta_stretchx,beta_stretch)
+                             etotp,iconnect,nbond,wold,beta_stretchx,beta_stretch,infocode)
       detot=etotp-etotold
       ncount_bigdft=ncount_bigdft+1
 
@@ -317,17 +324,24 @@ subroutine sqnm(runObj,outsIO,nproc,iproc,verbosity,ncount_bigdft,fail)
 !!$              outs%energy,runObj%atoms%astruct%rxyz,runObj%atoms%astruct%ixyz_int,&
 !!$              runObj%atoms,trim(comment),forces=outs%fxyz)
       endif
-
-      if (fmax < 3.e-1_gp) call updatefluctsum(outs%fnoise,fluct)
+      if(infocode==0)then
+        ifail=0
+      else
+        ifail=ifail+1
+      endif
+      if ((infocode==0 .or. ifail>20).and.(fmax < 3.e-1_gp)) call updatefluctsum(outs%fnoise,fluct)
       cosangle=-dot_double(3*nat,fxyz(1,1,nhist),1,dd(1,1),1)/&
               sqrt(dot_double(3*nat,fxyz(1,1,nhist),1,fxyz(1,1,nhist),1)*&
               dot_double(3*nat,dd(1,1),1,dd(1,1),1))
 
       if (detot.gt.maxrise .and. beta > 1.e-1_gp*betax) then !
          if (debug.and.iproc==0) write(100,'(a,i0,1x,e9.2)') "WARN: it,detot", it,detot
-         if (debug.and.iproc==0) write(16,'(a,i0,4(1x,e9.2))') &
+         if (debug.and.iproc==0) then
+             write(16,'(a,i0,4(1x,e9.2))') &
              "WARNING GEOPT_SQNM: Prevent energy to rise by more than maxrise: it,maxrise,detot,beta,1.e-1*betax ",&
              it,maxrise,detot,beta,1.e-1_gp*betax
+             call f_utils_flush(16)
+         endif
          if (iproc==0.and.verbosity > 0) then
             !avoid space for leading sign (numbers are positive, anyway)
             write(cdmy8,'(es8.1)')abs(maxd)
@@ -341,6 +355,7 @@ subroutine sqnm(runObj,outsIO,nproc,iproc,verbosity,ncount_bigdft,fail)
              'beta=',trim(adjustl(cdmy9)),'dim=',ndim,&
              'maxd=',trim(adjustl(cdmy8)),'dsplr=',trim(adjustl(cdmy12_1)),&
              'dsplp=',trim(adjustl(cdmy12_2))
+            call f_utils_flush(16)
             call yaml_mapping_open('Geometry')
                call yaml_map('Ncount_BigDFT',ncount_bigdft)
                call yaml_map('Geometry step',it)
@@ -406,6 +421,7 @@ subroutine sqnm(runObj,outsIO,nproc,iproc,verbosity,ncount_bigdft,fail)
           'beta=',trim(adjustl(cdmy9)),'dim=',ndim,'maxd=',&
           trim(adjustl(cdmy8)),'dsplr=',trim(adjustl(cdmy12_1)),&
           'dsplp=',trim(adjustl(cdmy12_2))
+         call f_utils_flush(16)
          call yaml_mapping_open('Geometry')
             call yaml_map('Ncount_BigDFT',ncount_bigdft)
             call yaml_map('Geometry step',it)
@@ -427,9 +443,12 @@ subroutine sqnm(runObj,outsIO,nproc,iproc,verbosity,ncount_bigdft,fail)
       call copy_state_properties(outs,outsIO)
 
       if(detot .gt. maxrise)then
-         if (iproc==0) write(16,'(a,i0,4(1x,e9.2))') &
+         if (iproc==0) then
+            write(16,'(a,i0,4(1x,e9.2))') &
              "WARNING GEOPT_SQNM: Allowed energy to rise by more than maxrise: it,maxrise,detot,beta,1.d-1*betax ",&
              it,maxrise,detot,beta,1.e-1_gp*betax
+            call f_utils_flush(16)
+         endif
       endif
 
 
@@ -464,16 +483,22 @@ subroutine sqnm(runObj,outsIO,nproc,iproc,verbosity,ncount_bigdft,fail)
 
    !if code gets here, it failed
    if(debug.and.iproc==0) write(100,*) it,etot,fnrm
-   if(iproc==0) write(16,'(a,3(1x,i0))') &
+   if(iproc==0) then
+        write(16,'(a,3(1x,i0))') &
        "WARNING GEOPT_SQNM: SQNM not converged: it,ncount_bigdft,ncount_cluster_x: ", &
        it,ncount_bigdft,runObj%inputs%ncount_cluster_x
+       call f_utils_flush(16)
+    endif
 !   stop "No convergence "
    fail=.true.
    goto 2000
 
 1000 continue!converged successfully
    
-   if(iproc==0) write(16,'(2(a,1x,i0))') "SQNM converged at iteration ",it,". Needed bigdft calls: ",ncount_bigdft
+   if(iproc==0)then
+         write(16,'(2(a,1x,i0))') "SQNM converged at iteration ",it,". Needed bigdft calls: ",ncount_bigdft
+         call f_utils_flush(16)
+   endif
    if(iproc==0)  call yaml_map('Iterations when SQNM converged',it)
    fail=.false.
    
@@ -510,7 +535,7 @@ subroutine sqnm(runObj,outsIO,nproc,iproc,verbosity,ncount_bigdft,fail)
    call deallocate_state_properties(outs)
 end subroutine
 subroutine minenergyandforces(iproc,nproc,eeval,imode,runObj,outs,nat,rat,rxyzraw,fat,fstretch,&
-           fxyzraw,epot,iconnect,nbond_,wold,alpha_stretch0,alpha_stretch)
+           fxyzraw,epot,iconnect,nbond_,wold,alpha_stretch0,alpha_stretch,infocode)
     use module_base
     use bigdft_run!module_types
     use module_sqn
@@ -533,14 +558,14 @@ subroutine minenergyandforces(iproc,nproc,eeval,imode,runObj,outs,nat,rat,rxyzra
     real(gp), intent(inout)       :: alpha_stretch
     real(gp), intent(inout)       :: epot
     logical, intent(in)           :: eeval
+    integer,intent(out) :: infocode
     !internal
-    integer :: infocode
 
 !    rxyzraw=rat
 !    if(eeval)call energyandforces(nat,alat,rat,fat,fnoise,epot)
 !    fxyzraw=fat
 !    fstretch=0.0_gp
-
+    infocode=0
     call vcopy(3 * runObj%atoms%astruct%nat, rat(1,1), 1,rxyzraw(1,1), 1)
     if(eeval)then
         call vcopy(3 * runObj%atoms%astruct%nat, rat(1,1), 1,runObj%atoms%astruct%rxyz(1,1), 1)

@@ -149,8 +149,8 @@ contains
        call nullify_MM_restart_objects(mm_rst)
        !create reference counter
        mm_rst%refcnt=f_ref_new('mm_rst')
-        call init_lj(runObj%inputs%mm_paramset,&
-             runObj%inputs%mm_paramfile,runObj%atoms%astruct%units)
+       call init_lj(runObj%inputs%mm_paramset,&
+            runObj%inputs%mm_paramfile,runObj%atoms%astruct%units)
     case('LENOSKY_SI_CLUSTERS_RUN_MODE')
        if (associated(mm_rst%rf_extra)) then
           if (size(mm_rst%rf_extra) == nat) then
@@ -166,7 +166,8 @@ contains
           mm_rst%rf_extra=f_malloc0_ptr([3,nat],id='rf_extra')
        end if
        call init_lensic(runObj%inputs%mm_paramset,&
-             runObj%inputs%mm_paramfile,runObj%atoms%astruct%geocode)
+            runObj%inputs%mm_paramfile,runObj%atoms%astruct%geocode,&
+            runObj%atoms%astruct%units)
     case('LENOSKY_SI_BULK_RUN_MODE')
        if (associated(mm_rst%rf_extra)) then
           if (size(mm_rst%rf_extra) == nat) then
@@ -181,6 +182,13 @@ contains
           mm_rst%refcnt=f_ref_new('mm_rst')
           mm_rst%rf_extra=f_malloc0_ptr([3,nat],id='rf_extra')
        end if
+    case('MORSE_SLAB_RUN_MODE')
+       call nullify_MM_restart_objects(mm_rst)
+       !create reference counter
+       mm_rst%refcnt=f_ref_new('mm_rst')
+       call init_morse_slab(runObj%inputs%mm_paramset,&
+            runObj%inputs%mm_paramfile,runObj%atoms%astruct%geocode,&
+            runObj%atoms%astruct%units)
     case('MORSE_BULK_RUN_MODE')
        call nullify_MM_restart_objects(mm_rst)
        !create reference counter
@@ -483,7 +491,7 @@ contains
 
   !> copy the atom position in runObject into a workspace
   !! or retrieve the positions from a file
-  subroutine bigdft_get_rxyz(runObj,filename,rxyz_add,rxyz,energy)
+  subroutine bigdft_get_rxyz(runObj,filename,rxyz_add,rxyz,energy,disableTrans)
     use dynamic_memory, only: f_memcpy
     use yaml_strings, only: yaml_toa
     use module_atoms, only: atomic_structure,nullify_atomic_structure,&
@@ -503,6 +511,7 @@ contains
     !> array of correct size (3,bigdft_nat(runObj)) with the atomic positions
     real(gp), dimension(:,:), intent(out), optional :: rxyz
     real(gp), intent(out), optional :: energy
+    logical, intent(in), optional :: disableTrans
     !local variables
     integer :: n
     type(atomic_structure) :: astruct
@@ -535,7 +544,8 @@ contains
        end if
     else if (present(filename)) then
        call nullify_atomic_structure(astruct)
-       call set_astruct_from_file(trim(filename), bigdft_mpi%iproc, astruct,energy=energy)
+       call set_astruct_from_file(trim(filename), bigdft_mpi%iproc, &
+            astruct,energy=energy,disableTrans=disableTrans)
        n=3*astruct%nat
        if (present(rxyz_add)) then
           call f_memcpy(n=n,dest=rxyz_add,src=astruct%rxyz(1,1))
@@ -1253,8 +1263,8 @@ contains
     integer :: icc !for amber
     real(gp) :: alatint(3)
     real(gp), dimension(:,:), pointer :: rxyz_ptr
-!integer :: iat , l
-!real(gp) :: anoise,tt
+!!integer :: iat , l
+!!real(gp) :: anoise,tt
 
 
     !@NEW ####################################################
@@ -1281,6 +1291,8 @@ contains
        !            call yaml_map('LJ state, energy',outs%energy,fmt='(1pe24.17)')
        !         end if
 !       if (bigdft_mpi%iproc==0) call yaml_release_document()
+    case('MORSE_SLAB_RUN_MODE')
+        call morse_slab_wrapper(nat,bigdft_get_cell(runObj),rxyz_ptr, outs%fxyz, outs%energy)
     case('MORSE_BULK_RUN_MODE')
         call morse_bulk_wrapper(nat,bigdft_get_cell(runObj),rxyz_ptr, outs%fxyz, outs%energy)
     case('LENOSKY_SI_CLUSTERS_RUN_MODE')
@@ -1336,15 +1348,15 @@ contains
        call f_err_throw('Following method for evaluation of '//&
             'energies and forces is unknown: '//trim(yaml_toa(int(runObj%run_mode))))
     end select
-!         anoise=5.d-5
-!         if (anoise.ne.0.d0) then
-!         do iat=1,nat
-!         do l=1,3
-!          call random_number(tt)
-!          outs%fxyz(l,iat)=outs%fxyz(l,iat)+anoise*(tt-.5d0)
-!         enddo
-!         enddo
-!         endif
+!!         anoise=2.d-5
+!!         if (anoise.ne.0.d0) then
+!!         do iat=1,nat
+!!         do l=1,3
+!!          call random_number(tt)
+!!          outs%fxyz(l,iat)=outs%fxyz(l,iat)+anoise*(tt-.5d0)
+!!         enddo
+!!         enddo
+!!         endif
 
     call clean_forces(bigdft_mpi%iproc,runObj%atoms,rxyz_ptr,outs%fxyz,outs%fnoise,runObj%run_mode)
   end subroutine bigdft_state
@@ -1354,8 +1366,9 @@ contains
     use module_base
     use yaml_output
     use module_atoms, only: astruct_dump_to_file,rxyz_inside_box
+    use locregs, only: deallocate_locreg_descriptors
     use module_types, only: INPUT_PSI_MEMORY_LINEAR,LINEAR_VERSION,INPUT_PSI_MEMORY_GAUSS, &
-         INPUT_PSI_LCAO,INPUT_PSI_MEMORY_WVL,old_wavefunction_null,INPUT_PSI_LINEAR_AO,deallocate_wfd
+         INPUT_PSI_LCAO,INPUT_PSI_MEMORY_WVL,old_wavefunction_null,INPUT_PSI_LINEAR_AO!,deallocate_wfd
     !use communications_base
     implicit none
     type(run_objects), intent(inout) :: runObj
@@ -1435,7 +1448,8 @@ contains
        if (runObj%inputs%inputPsiId == INPUT_PSI_LCAO .and. associated(runObj%rst%KSwfn%psi)) then
           call f_free_ptr(runObj%rst%KSwfn%psi)
           call f_free_ptr(runObj%rst%KSwfn%orbs%eval)
-          call deallocate_wfd(runObj%rst%KSwfn%Lzd%Glr%wfd)
+          !call deallocate_wfd(runObj%rst%KSwfn%Lzd%Glr%wfd)
+          call deallocate_locreg_descriptors(runObj%rst%KSwfn%Lzd%Glr)
        end if
 
        !backdoor for hacking, finite difference method for calculating forces on particular quantities
@@ -1484,7 +1498,8 @@ contains
           call f_free_ptr(runObj%rst%KSwfn%psi)
           call f_free_ptr(runObj%rst%KSwfn%orbs%eval)
 
-          call deallocate_wfd(runObj%rst%KSwfn%Lzd%Glr%wfd)
+          !call deallocate_wfd(runObj%rst%KSwfn%Lzd%Glr%wfd)
+          call deallocate_locreg_descriptors(runObj%rst%KSwfn%Lzd%Glr)
 
           !test if stderr works
           write(0,*) 'unnormal end'
