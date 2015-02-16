@@ -1432,10 +1432,10 @@ subroutine full_local_potential(iproc,nproc,orbs,Lzd,iflag,dpbox,xc,potential,po
             else
                 i1shift=0
             end if
-            write(*,*) 'size(comgp%recvBuf), comgp%nrecvBuf, nspin', size(comgp%recvBuf), comgp%nrecvBuf, comgp%nspin
-            write(*,'(a,i7,2x,8i6)') 'iproc, i1s, i1e, i2s, i2e, i3s, i3e, ni1, ni2', iproc, i1s, i1e, i2s, i2e, i3s, i3e, ni1, ni2
-            write(*,'(a,i7,2x,i5,2x,9i6)') 'iproc, ilr, ns1i, ise1, ns2i, ise2, ns3i, ise3', &
-                      iproc, ilr, lzd%Llr(ilr)%nsi1, comgp%ise(1:2), lzd%Llr(ilr)%nsi2, comgp%ise(3:4), lzd%Llr(ilr)%nsi3, comgp%ise(5:6)
+            !write(*,*) 'size(comgp%recvBuf), comgp%nrecvBuf, nspin', size(comgp%recvBuf), comgp%nrecvBuf, comgp%nspin
+            !write(*,'(a,i7,2x,8i6)') 'iproc, i1s, i1e, i2s, i2e, i3s, i3e, ni1, ni2', iproc, i1s, i1e, i2s, i2e, i3s, i3e, ni1, ni2
+            !write(*,'(a,i7,2x,i5,2x,9i6)') 'iproc, ilr, ns1i, ise1, ns2i, ise2, ns3i, ise3', &
+            !!          iproc, ilr, lzd%Llr(ilr)%nsi1, comgp%ise(1:2), lzd%Llr(ilr)%nsi2, comgp%ise(3:4), lzd%Llr(ilr)%nsi3, comgp%ise(5:6)
             !!call global_to_local_parallel(lzd%Glr, lzd%Llr(ilr), 0, comgp%nspin*comgp%nrecvBuf, size_Lpot,&
             !!     comgp%recvBuf(ishift+1), pot(ist), i1s, i1e, i2s, i2e, i3s, i3e, ni1, ni2)
             call global_to_local_parallel(lzd%Glr, lzd%Llr(ilr), 0, comgp%nrecvBuf, size_Lpot,&

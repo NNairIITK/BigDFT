@@ -753,9 +753,9 @@ subroutine sumrho_for_TMBs(iproc, nproc, hx, hy, hz, collcom_sr, denskern, densk
                   nsize=collcom_sr%commarr_repartitionrho(4,jproc)
                   ishift_source=(ispin-1)*isend_total(mpisource) !spin shift for the send buffer
                   if (nsize>0) then
-                      write(*,'(6(a,i0))') 'process ',iproc, ' gets ',nsize,' elements at position ',istdest+ishift_dest, &
-                                           ' from position ',istsource+ishift_source,' on process ',mpisource, &
-                                           '; error code=',ierr
+                      !!write(*,'(6(a,i0))') 'process ',iproc, ' gets ',nsize,' elements at position ',istdest+ishift_dest, &
+                      !!                     ' from position ',istsource+ishift_source,' on process ',mpisource, &
+                      !!                     '; error code=',ierr
                       call mpi_get(rho(istdest+ishift_dest), nsize, mpi_double_precision, mpisource, &
                            int((istsource-1+ishift_source),kind=mpi_address_kind), &
                            nsize, mpi_double_precision, collcom_sr%window, ierr)
@@ -1234,12 +1234,16 @@ subroutine check_communication_sumrho(iproc, nproc, orbs, lzd, collcom_sr, densp
   if (iproc==0) then
       call yaml_map('Tolerance for the following test',tol_transpose,fmt='(1es25.18)')
       if (sumdiff>tol_transpose) then
-         call yaml_warning('TRANSPOSITION ERROR: mean difference of '//trim(yaml_toa(sumdiff,fmt='(1es25.18)')))
+         !call yaml_warning('TRANSPOSITION ERROR: mean difference of '//trim(yaml_toa(sumdiff,fmt='(1es25.18)')))
+         call f_err_throw('TRANSPOSITION ERROR: mean difference of '//trim(yaml_toa(sumdiff,fmt='(1es25.18)')),&
+              err_name='BIGDFT_MPI_ERROR')
       else
          call yaml_map('transposition check, mean error ', sumdiff,fmt='(1es25.18)')
       end if
       if (maxdiff>tol_transpose) then
-         call yaml_warning('TRANSPOSITION ERROR: max difference of '//trim(yaml_toa(maxdiff,fmt='(1es25.18)')))
+         !call yaml_warning('TRANSPOSITION ERROR: max difference of '//trim(yaml_toa(maxdiff,fmt='(1es25.18)')))
+         call f_err_throw('TRANSPOSITION ERROR: max difference of '//trim(yaml_toa(maxdiff,fmt='(1es25.18)')), &
+              err_name='BIGDFT_MPI_ERROR')
       else
          call yaml_map('transposition check, max error ', maxdiff,fmt='(1es25.18)')
       end if
@@ -1393,7 +1397,7 @@ subroutine check_communication_sumrho(iproc, nproc, orbs, lzd, collcom_sr, densp
     
       ! Now calculate the charge density and store the result in rho_check
       rho_check=f_malloc(max(lzd%glr%d%n1i*lzd%glr%d%n2i*(ii3e-ii3s+1)*denskern%nspin,1),id='rho_check')
-      write(*,*) 'iproc, ii3s, ii3e', iproc, ii3s, ii3e
+      !!write(*,*) 'iproc, ii3s, ii3e', iproc, ii3s, ii3e
       do ispin=1,denskern%nspin
           ishift=(ispin-1)*lzd%glr%d%n1i*lzd%glr%d%n2i*(ii3e-ii3s+1)
           !!$omp parallel default (none) &
@@ -1432,7 +1436,7 @@ subroutine check_communication_sumrho(iproc, nproc, orbs, lzd, collcom_sr, densp
                       end do
                       tt=tt*factor
                       rho_check(ind)=tt
-                      write(2100+iproc,'(a,4i9,es18.8)') 'ind, i1, i2, ii3, rho_check(ind)',ind, i1, i2, ii3, rho_check(ind)
+                      !!write(2100+iproc,'(a,4i9,es18.8)') 'ind, i1, i2, ii3, rho_check(ind)',ind, i1, i2, ii3, rho_check(ind)
                   end do
               end do
               !!$omp end do
@@ -1459,7 +1463,7 @@ subroutine check_communication_sumrho(iproc, nproc, orbs, lzd, collcom_sr, densp
           do i=1,lzd%glr%d%n1i*lzd%glr%d%n2i*(ii3e-ii3s+1)
               !ii=ii+1
               tt=abs(rho(ii+i)-rho_check(ii+i))
-              write(2000+iproc,'(a,2i9,4es18.8)') 'i,ii,rho(ii+i),rho_check(ii+1),diff,sumdiff',i,ii,rho(ii+i),rho_check(ii+i), tt, sumdiff
+              !!write(2000+iproc,'(a,2i9,4es18.8)') 'i,ii,rho(ii+i),rho_check(ii+1),diff,sumdiff',i,ii,rho(ii+i),rho_check(ii+i), tt, sumdiff
               sumdiff = sumdiff + tt**2
               if (tt>maxdiff) maxdiff=tt
           end do
@@ -1481,13 +1485,17 @@ subroutine check_communication_sumrho(iproc, nproc, orbs, lzd, collcom_sr, densp
       if (iproc==0) then
           call yaml_map('Tolerance for the following test',tol_calculation_mean,fmt='(1es25.18)')
           if (sumdiff>tol_calculation_mean) then
-             call yaml_warning('CALCULATION ERROR: total difference of '//trim(yaml_toa(sumdiff,fmt='(1es25.18)')))
+             !call yaml_warning('CALCULATION ERROR: total difference of '//trim(yaml_toa(sumdiff,fmt='(1es25.18)')))
+             call f_err_throw('CALCULATION ERROR: total difference of '//trim(yaml_toa(sumdiff,fmt='(1es25.18)')), &
+                  err_name='BIGDFT_RUNTIME_ERROR')
           else
              call yaml_map('calculation check, error sum', sumdiff,fmt='(1es25.18)')
           end if
           call yaml_map('Tolerance for the following test',tol_calculation_max,fmt='(1es25.18)')
           if (sumdiff>tol_calculation_max) then
-             call yaml_warning('CALCULATION ERROR: max difference of '//trim(yaml_toa(maxdiff,fmt='(1es25.18)')))
+             !call yaml_warning('CALCULATION ERROR: max difference of '//trim(yaml_toa(maxdiff,fmt='(1es25.18)')))
+             call f_err_throw('CALCULATION ERROR: max difference of '//trim(yaml_toa(maxdiff,fmt='(1es25.18)')), &
+                  err_name='BIGDFT_RUNTIME_ERROR')
           else
              call yaml_map('calculation check, error max', maxdiff,fmt='(1es25.18)')
           end if

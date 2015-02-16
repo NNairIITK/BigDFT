@@ -85,14 +85,18 @@ module communications_init
           iiorb=orbs%isorb+iorb
           ilr=orbs%inwhichlocreg(iiorb)
           if (lzd%llr(ilr)%wfd%nseg_c>0) then
-              n1p1=lzd%llr(ilr)%d%n1+1
-              np=n1p1*(lzd%llr(ilr)%d%n2+1)
+              !n1p1=lzd%llr(ilr)%d%n1+1
+              n1p1=lzd%glr%d%n1+1
+              !np=n1p1*(lzd%llr(ilr)%d%n2+1)
+              np=n1p1*(lzd%glr%d%n2+1)
               do iseg=1,lzd%llr(ilr)%wfd%nseg_c
-                  j0=lzd%llr(ilr)%wfd%keygloc(1,iseg)
-                  j1=lzd%llr(ilr)%wfd%keygloc(2,iseg)
+                  !write(*,*) 'keygloc(1,iseg), keyglob(1,iseg)', lzd%llr(ilr)%wfd%keygloc(1,iseg), lzd%llr(ilr)%wfd%keyglob(1,iseg)
+                  j0=lzd%llr(ilr)%wfd%keyglob(1,iseg)
+                  j1=lzd%llr(ilr)%wfd%keyglob(2,iseg)
                   ii=j0-1
                   i3=ii/np
-                  ii3=i3+lzd%llr(ilr)%ns3
+                  !ii3=i3+lzd%llr(ilr)%ns3
+                  ii3=i3+lzd%glr%ns3
                   ii3min = min(ii3min,ii3)
                   ii3max = max(ii3max,ii3)
               end do
@@ -334,17 +338,20 @@ module communications_init
           !!write(*,'(a,6i8)') 'init: iproc, iorb, ii3s, ii3e, i3s, i3e', iproc, iorb, ii3s, ii3e, i3s, i3e
           !if (ii3s+1>i3e .or. ii3e+1<i3s) cycle !+1 since ns3 starts at 0, but is3 at 1
 
-          n1p1=lzd%llr(ilr)%d%n1+1
-          np=n1p1*(lzd%llr(ilr)%d%n2+1)
+          !n1p1=lzd%llr(ilr)%d%n1+1
+          !np=n1p1*(lzd%llr(ilr)%d%n2+1)
+          n1p1=lzd%glr%d%n1+1
+          np=n1p1*(lzd%glr%d%n2+1)
 
           if (lzd%llr(ilr)%wfd%nseg_c>0) then
               !!$omp do
               do iseg=1,lzd%llr(ilr)%wfd%nseg_c
-                  j0=lzd%llr(ilr)%wfd%keygloc(1,iseg)
-                  j1=lzd%llr(ilr)%wfd%keygloc(2,iseg)
+                  j0=lzd%llr(ilr)%wfd%keyglob(1,iseg)
+                  j1=lzd%llr(ilr)%wfd%keyglob(2,iseg)
                   ii=j0-1
                   i3=ii/np
-                  ii3=i3+lzd%llr(ilr)%ns3
+                  !ii3=i3+lzd%llr(ilr)%ns3
+                  ii3=i3
                   if (ii3>i3end) stop 'strange 1'
                   if (ii3<i3start) stop 'strange 2'
                   !if (ii3+1<i3s) cycle
@@ -354,9 +361,11 @@ module communications_init
                   i0=ii-i2*n1p1
                   i1=i0+j1-j0
                   !write(*,'(a,8i8)') 'jj, ii, j0, j1, i0, i1, i2, i3',jj,ii,j0,j1,i0,i1,i2,i3
-                  ii2=i2+lzd%llr(ilr)%ns2
+                  !ii2=i2+lzd%llr(ilr)%ns2
+                  ii2=i2
                   do i=i0,i1
-                      ii1=i+lzd%llr(ilr)%ns1
+                      !ii1=i+lzd%llr(ilr)%ns1
+                      ii1=i
                       !weightppp_c(ii1,ii2,ii3+1-i3s+1)=weightppp_c(ii1,ii2,ii3+1-i3s+1)+1.d0
                       weightloc_c(ii1,ii2,ii3-i3start+1)=weightloc_c(ii1,ii2,ii3-i3start+1)+1.d0
                       !weight_c_tot=weight_c_tot+1.d0
@@ -509,19 +518,22 @@ module communications_init
           !!write(*,'(a,6i8)') 'init: iproc, iorb, ii3s, ii3e, i3s, i3e', iproc, iorb, ii3s, ii3e, i3s, i3e
           !if (ii3s+1>i3e .or. ii3e+1<i3s) cycle !+1 since ns3 starts at 0, but is3 at 1
 
-          n1p1=lzd%llr(ilr)%d%n1+1
-          np=n1p1*(lzd%llr(ilr)%d%n2+1)
+          !n1p1=lzd%llr(ilr)%d%n1+1
+          !np=n1p1*(lzd%llr(ilr)%d%n2+1)
+          n1p1=lzd%glr%d%n1+1
+          np=n1p1*(lzd%glr%d%n2+1)
 
           istart=lzd%llr(ilr)%wfd%nseg_c+min(1,lzd%llr(ilr)%wfd%nseg_f)
           iend=istart+lzd%llr(ilr)%wfd%nseg_f-1
           if (istart<=iend) then
               !!$omp do
               do iseg=istart,iend
-                  j0=lzd%llr(ilr)%wfd%keygloc(1,iseg)
-                  j1=lzd%llr(ilr)%wfd%keygloc(2,iseg)
+                  j0=lzd%llr(ilr)%wfd%keyglob(1,iseg)
+                  j1=lzd%llr(ilr)%wfd%keyglob(2,iseg)
                   ii=j0-1
                   i3=ii/np
-                  ii3=i3+lzd%llr(ilr)%ns3
+                  !ii3=i3+lzd%llr(ilr)%ns3
+                  ii3=i3
                   if (ii3>i3end) stop 'strange 1'
                   if (ii3<i3start) stop 'strange 2'
                   !if (ii3+1<i3s) cycle
@@ -531,9 +543,11 @@ module communications_init
                   i0=ii-i2*n1p1
                   i1=i0+j1-j0
                   !write(*,'(a,8i8)') 'jj, ii, j0, j1, i0, i1, i2, i3',jj,ii,j0,j1,i0,i1,i2,i3
-                  ii2=i2+lzd%llr(ilr)%ns2
+                  !ii2=i2+lzd%llr(ilr)%ns2
+                  ii2=i2
                   do i=i0,i1
-                      ii1=i+lzd%llr(ilr)%ns1
+                      !ii1=i+lzd%llr(ilr)%ns1
+                      ii1=i
                       !weightppp_f(ii1,ii2,ii3+1-i3s+1)=weightppp_f(ii1,ii2,ii3+1-i3s+1)+1.d0
                       weightloc_f(ii1,ii2,ii3-i3start+1)=weightloc_f(ii1,ii2,ii3-i3start+1)+1.d0
                   end do
@@ -756,8 +770,8 @@ module communications_init
           n1p1=lzd%glr%d%n1+1
           np=n1p1*(lzd%glr%d%n2+1)
           do iseg=1,lzd%glr%wfd%nseg_c
-              j0=lzd%glr%wfd%keygloc(1,iseg)
-              j1=lzd%glr%wfd%keygloc(2,iseg)
+              j0=lzd%glr%wfd%keyglob(1,iseg)
+              j1=lzd%glr%wfd%keyglob(2,iseg)
               ii=j0-1
               i3=ii/np
               if (i3+1<i3s) cycle
@@ -790,8 +804,8 @@ module communications_init
           n1p1=lzd%glr%d%n1+1
           np=n1p1*(lzd%glr%d%n2+1)
           do iseg=1,lzd%glr%wfd%nseg_c
-              j0=lzd%glr%wfd%keygloc(1,iseg)
-              j1=lzd%glr%wfd%keygloc(2,iseg)
+              j0=lzd%glr%wfd%keyglob(1,iseg)
+              j1=lzd%glr%wfd%keyglob(2,iseg)
               ii=j0-1
               i3=ii/np
               if (i3+1<i3s) cycle
@@ -965,8 +979,8 @@ module communications_init
           iend=istart+lzd%glr%wfd%nseg_f-1
           if (istart<=iend) then
               do iseg=istart,iend
-                  j0=lzd%glr%wfd%keygloc(1,iseg)
-                  j1=lzd%glr%wfd%keygloc(2,iseg)
+                  j0=lzd%glr%wfd%keyglob(1,iseg)
+                  j1=lzd%glr%wfd%keyglob(2,iseg)
                   ii=j0-1
                   i3=ii/np
                   if (i3+1<i3s) cycle
@@ -1003,8 +1017,8 @@ module communications_init
           end if
           if (istart<=iend) then
               do iseg=istart,iend
-                  j0=lzd%glr%wfd%keygloc(1,iseg)
-                  j1=lzd%glr%wfd%keygloc(2,iseg)
+                  j0=lzd%glr%wfd%keyglob(1,iseg)
+                  j1=lzd%glr%wfd%keyglob(2,iseg)
                   ii=j0-1
                   i3=ii/np
                   if (i3+1<i3s) cycle
@@ -1425,8 +1439,8 @@ module communications_init
       n1p1=lzd%glr%d%n1+1
       np=n1p1*(lzd%glr%d%n2+1)
       loop_nseg_c: do iseg=istart,iend
-         j0=lzd%glr%wfd%keygloc(1,iseg)
-         j1=lzd%glr%wfd%keygloc(2,iseg)
+         j0=lzd%glr%wfd%keyglob(1,iseg)
+         j1=lzd%glr%wfd%keyglob(2,iseg)
          ii=j0-1
          i3=ii/np
          ii=ii-i3*np
@@ -1505,8 +1519,8 @@ module communications_init
       n1p1=lzd%glr%d%n1+1
       np=n1p1*(lzd%glr%d%n2+1)
       loop_nseg_c: do iseg=istart,iend
-         j0=lzd%glr%wfd%keygloc(1,iseg)
-         j1=lzd%glr%wfd%keygloc(2,iseg)
+         j0=lzd%glr%wfd%keyglob(1,iseg)
+         j1=lzd%glr%wfd%keyglob(2,iseg)
          ii=j0-1
          i3=ii/np
          ii=ii-i3*np
@@ -1543,8 +1557,8 @@ module communications_init
     n1p1=lr%d%n1+1
     np=n1p1*(lr%d%n2+1)
     do iseg=1,lr%wfd%nseg_c
-       j0=lr%wfd%keygloc(1,iseg)
-       j1=lr%wfd%keygloc(2,iseg)
+       j0=lr%wfd%keyglob(1,iseg)
+       j1=lr%wfd%keyglob(2,iseg)
        ii=j0-1
        i3=ii/np
        ii=ii-i3*np
@@ -1564,8 +1578,8 @@ module communications_init
     istart=lr%wfd%nseg_c+min(1,lr%wfd%nseg_f)
     iend=istart+lr%wfd%nseg_f-1
     do iseg=istart,iend
-       j0=lr%wfd%keygloc(1,iseg)
-       j1=lr%wfd%keygloc(2,iseg)
+       j0=lr%wfd%keyglob(1,iseg)
+       j1=lr%wfd%keyglob(2,iseg)
        ii=j0-1
        i3=ii/np
        ii=ii-i3*np
@@ -1622,22 +1636,27 @@ module communications_init
           iiorb=orbs%isorb+iorb
           ilr=orbs%inwhichlocreg(iiorb)
           if (lzd%llr(ilr)%wfd%nseg_c>0) then
-              n1p1=lzd%llr(ilr)%d%n1+1
-              np=n1p1*(lzd%llr(ilr)%d%n2+1)
+              !!n1p1=lzd%llr(ilr)%d%n1+1
+              !!np=n1p1*(lzd%llr(ilr)%d%n2+1)
+              n1p1=lzd%glr%d%n1+1
+              np=n1p1*(lzd%glr%d%n2+1)
               !$omp do firstprivate(ilr) reduction(+:nsendcounts_c)
               do iseg=1,lzd%llr(ilr)%wfd%nseg_c
-                  j0=lzd%llr(ilr)%wfd%keygloc(1,iseg)
-                  j1=lzd%llr(ilr)%wfd%keygloc(2,iseg)
+                  j0=lzd%llr(ilr)%wfd%keyglob(1,iseg)
+                  j1=lzd%llr(ilr)%wfd%keyglob(2,iseg)
                   ii=j0-1
                   i3=ii/np
                   ii=ii-i3*np
                   i2=ii/n1p1
                   i0=ii-i2*n1p1
                   i1=i0+j1-j0
-                  ii2=i2+lzd%llr(ilr)%ns2
-                  ii3=i3+lzd%llr(ilr)%ns3
+                  !ii2=i2+lzd%llr(ilr)%ns2
+                  !ii3=i3+lzd%llr(ilr)%ns3
+                  ii2=i2
+                  ii3=i3
                   do i=i0,i1
-                      ii1=i+lzd%llr(ilr)%ns1
+                      !ii1=i+lzd%llr(ilr)%ns1
+                      ii1=i
                       ind=index_in_global_c(ii1,ii2,ii3)
                       jproctarget=-1
                       do jproc=0,nproc-1
@@ -1660,22 +1679,27 @@ module communications_init
           istart=lzd%llr(ilr)%wfd%nseg_c+min(1,lzd%llr(ilr)%wfd%nseg_f)
           iend=istart+lzd%llr(ilr)%wfd%nseg_f-1
           if (istart<iend) then
-              n1p1=lzd%llr(ilr)%d%n1+1
-              np=n1p1*(lzd%llr(ilr)%d%n2+1)
+              !n1p1=lzd%llr(ilr)%d%n1+1
+              !np=n1p1*(lzd%llr(ilr)%d%n2+1)
+              n1p1=lzd%glr%d%n1+1
+              np=n1p1*(lzd%glr%d%n2+1)
               !$omp do firstprivate(ilr) reduction(+:nsendcounts_f)
               do iseg=istart,iend
-                  j0=lzd%llr(ilr)%wfd%keygloc(1,iseg)
-                  j1=lzd%llr(ilr)%wfd%keygloc(2,iseg)
+                  j0=lzd%llr(ilr)%wfd%keyglob(1,iseg)
+                  j1=lzd%llr(ilr)%wfd%keyglob(2,iseg)
                   ii=j0-1
                   i3=ii/np
                   ii=ii-i3*np
                   i2=ii/n1p1
                   i0=ii-i2*n1p1
                   i1=i0+j1-j0
-                  ii2=i2+lzd%llr(ilr)%ns2
-                  ii3=i3+lzd%llr(ilr)%ns3
+                  !ii2=i2+lzd%llr(ilr)%ns2
+                  !ii3=i3+lzd%llr(ilr)%ns3
+                  ii2=i2
+                  ii3=i3
                   do i=i0,i1
-                      ii1=i+lzd%llr(ilr)%ns1
+                      !ii1=i+lzd%llr(ilr)%ns1
+                      ii1=i
                       !call get_index_in_global(lzd%glr, ii1, ii2, ii3, 'f', ind)
                       ind=index_in_global_f(ii1,ii2,ii3)
                       jproctarget=-1
@@ -1806,8 +1830,8 @@ module communications_init
        ! Initialize the MPI window
        if (nproc>1) then
            ! These arrays start at one instead of 0
-           i3min_c = (lzd%glr%wfd%keygloc(1,istartp_seg_c)-1)/np + 1
-           i3max_c = (lzd%glr%wfd%keygloc(2,iendp_seg_c)-1)/np + 1
+           i3min_c = (lzd%glr%wfd%keyglob(1,istartp_seg_c)-1)/np + 1
+           i3max_c = (lzd%glr%wfd%keyglob(2,iendp_seg_c)-1)/np + 1
 
            workrecv_c = f_malloc_ptr((/0.to.lzd%glr%d%n1,0.to.lzd%glr%d%n2,i3min_c.to.i3max_c/),id='workrecv')
 
@@ -1858,9 +1882,9 @@ module communications_init
        icheck_c = 0
        iiorb_c = 0
        do iseg=istartp_seg_c,iendp_seg_c
-           jj=lzd%glr%wfd%keyvloc(iseg)
-           j0=lzd%glr%wfd%keygloc(1,iseg)
-           j1=lzd%glr%wfd%keygloc(2,iseg)
+           jj=lzd%glr%wfd%keyvglob(iseg)
+           j0=lzd%glr%wfd%keyglob(1,iseg)
+           j1=lzd%glr%wfd%keyglob(2,iseg)
            ii=j0-1
            i3=ii/np
            ii=ii-i3*np
@@ -1902,8 +1926,8 @@ module communications_init
 
        if (nproc>1) then
            ! These arrays start at one instead of 0
-           i3min_f = (lzd%glr%wfd%keygloc(1,istartp_seg_f)-1)/np + 1
-           i3max_f = (lzd%glr%wfd%keygloc(2,iendp_seg_f)-1)/np + 1
+           i3min_f = (lzd%glr%wfd%keyglob(1,istartp_seg_f)-1)/np + 1
+           i3max_f = (lzd%glr%wfd%keyglob(2,iendp_seg_f)-1)/np + 1
 
            workrecv_f = f_malloc_ptr((/0.to.lzd%glr%d%n1,0.to.lzd%glr%d%n2,i3min_f.to.i3max_f/),id='workrecv')
 
@@ -1949,9 +1973,9 @@ module communications_init
        icheck_f = 0
        iiorb_f = 0
        do iseg=istartp_seg_f,iendp_seg_f
-           jj=lzd%glr%wfd%keyvloc(iseg)
-           j0=lzd%glr%wfd%keygloc(1,iseg)
-           j1=lzd%glr%wfd%keygloc(2,iseg)
+           jj=lzd%glr%wfd%keyvglob(iseg)
+           j0=lzd%glr%wfd%keyglob(1,iseg)
+           j1=lzd%glr%wfd%keyglob(2,iseg)
            ii=j0-1
            i3=ii/np
            ii=ii-i3*np
@@ -2075,12 +2099,14 @@ module communications_init
       do iorb=1,orbs%norbp
           iiorb=orbs%isorb+iorb
           ilr=orbs%inwhichlocreg(iiorb)
-          n1p1=lzd%llr(ilr)%d%n1+1
-          np=n1p1*(lzd%llr(ilr)%d%n2+1)
+          !n1p1=lzd%llr(ilr)%d%n1+1
+          !np=n1p1*(lzd%llr(ilr)%d%n2+1)
+          n1p1=lzd%glr%d%n1+1
+          np=n1p1*(lzd%glr%d%n2+1)
           do iseg=1,lzd%llr(ilr)%wfd%nseg_c
-              !jj=lzd%llr(ilr)%wfd%keyvloc(iseg)
-              j0=lzd%llr(ilr)%wfd%keygloc(1,iseg)
-              j1=lzd%llr(ilr)%wfd%keygloc(2,iseg)
+              !jj=lzd%llr(ilr)%wfd%keyvglob(iseg)
+              j0=lzd%llr(ilr)%wfd%keyglob(1,iseg)
+              j1=lzd%llr(ilr)%wfd%keyglob(2,iseg)
               ii=j0-1
               i3=ii/np
               ii=ii-i3*np
@@ -2088,10 +2114,13 @@ module communications_init
               i0=ii-i2*n1p1
               i1=i0+j1-j0
               !write(*,'(a,8i8)') 'jj, ii, j0, j1, i0, i1, i2, i3',jj,ii,j0,j1,i0,i1,i2,i3
-              ii2=i2+lzd%llr(ilr)%ns2
-              ii3=i3+lzd%llr(ilr)%ns3
+              !ii2=i2+lzd%llr(ilr)%ns2
+              !ii3=i3+lzd%llr(ilr)%ns3
+              ii2=i2
+              ii3=i3
               do i=i0,i1
-                  ii1=i+lzd%llr(ilr)%ns1
+                  !ii1=i+lzd%llr(ilr)%ns1
+                  ii1=i
                   !call get_index_in_global(lzd%glr, ii1, ii2, ii3, 'c', indglob)
                   indglob=index_in_global_c(ii1,ii2,ii3)
                   iitot=iitot+1
@@ -2132,12 +2161,14 @@ module communications_init
          ilr=orbs%inwhichlocreg(iiorb)
          istart=lzd%llr(ilr)%wfd%nseg_c+min(1,lzd%llr(ilr)%wfd%nseg_f)
          iend=istart+lzd%llr(ilr)%wfd%nseg_f-1
-         n1p1=lzd%llr(ilr)%d%n1+1
-         np=n1p1*(lzd%llr(ilr)%d%n2+1)
+         !n1p1=lzd%llr(ilr)%d%n1+1
+         !np=n1p1*(lzd%llr(ilr)%d%n2+1)
+         n1p1=lzd%glr%d%n1+1
+         np=n1p1*(lzd%glr%d%n2+1)
          do iseg=istart,iend
-            !jj=lzd%llr(ilr)%wfd%keyvloc(iseg)
-            j0=lzd%llr(ilr)%wfd%keygloc(1,iseg)
-            j1=lzd%llr(ilr)%wfd%keygloc(2,iseg)
+            !jj=lzd%llr(ilr)%wfd%keyvglob(iseg)
+            j0=lzd%llr(ilr)%wfd%keyglob(1,iseg)
+            j1=lzd%llr(ilr)%wfd%keyglob(2,iseg)
             ii=j0-1
             i3=ii/np
             ii=ii-i3*np
@@ -2145,10 +2176,13 @@ module communications_init
             i0=ii-i2*n1p1
             i1=i0+j1-j0
             !write(*,'(a,8i8)') 'jj, ii, j0, j1, i0, i1, i2, i3',jj,ii,j0,j1,i0,i1,i2,i3
-            ii2=i2+lzd%llr(ilr)%ns2
-            ii3=i3+lzd%llr(ilr)%ns3
+            !ii2=i2+lzd%llr(ilr)%ns2
+            !ii3=i3+lzd%llr(ilr)%ns3
+            ii2=i2
+            ii3=i3
             do i=i0,i1
-               ii1=i+lzd%llr(ilr)%ns1
+               !ii1=i+lzd%llr(ilr)%ns1
+               ii1=i
                !call get_index_in_global(lzd%glr, ii1, ii2, ii3, 'f', indglob)
                indglob=index_in_global_f(ii1,ii2,ii3)
                iitot=iitot+1
@@ -2845,9 +2879,9 @@ module communications_init
     
       nptsp = int(istartend(2,iproc)-istartend(1,iproc),kind=4) + 1
 
-      write(*,*) 'iproc, npts', iproc, lzd%glr%d%n1i*lzd%glr%d%n2i*lzd%glr%d%n3i
-      write(*,*) 'iproc, istartend', iproc, istartend
-      write(*,*) 'weight_tot', weight_tot
+      !!write(*,*) 'iproc, npts', iproc, lzd%glr%d%n1i*lzd%glr%d%n2i*lzd%glr%d%n3i
+      !!write(*,*) 'iproc, istartend', iproc, istartend
+      !!write(*,*) 'weight_tot', weight_tot
     
       call f_free(weights_startend)
     
@@ -3428,8 +3462,8 @@ module communications_init
     
       call f_routine(id='communication_arrays_repartitionrho_general')
 
-      write(*,'(a,4i8,3x,6i8)') 'n1, n2, n3, ntot, istartend',lzd%glr%d%n1i,lzd%glr%d%n2i,lzd%glr%d%n3i,lzd%glr%d%n1i*lzd%glr%d%n2i*lzd%glr%d%n3i,istartend
-      write(*,'(a,2i8,3x,6i8)') 'iproc, n3i, nscatterarr(iproc,:)', iproc, lzd%glr%d%n3i, nscatterarr(iproc,:)
+      !!write(*,'(a,4i8,3x,6i8)') 'n1, n2, n3, ntot, istartend',lzd%glr%d%n1i,lzd%glr%d%n2i,lzd%glr%d%n3i,lzd%glr%d%n1i*lzd%glr%d%n2i*lzd%glr%d%n3i,istartend
+      !!write(*,'(a,2i8,3x,6i8)') 'iproc, n3i, nscatterarr(iproc,:)', iproc, lzd%glr%d%n3i, nscatterarr(iproc,:)
     
       ! only do this if task iproc has to receive a part of the potential
       if (nscatterarr(iproc,1)>0) then
@@ -3488,7 +3522,7 @@ module communications_init
           do jproc=0,nproc-1
               !if(check_whether_bounds_overlap(iis,iie,istartend(1,jproc),istartend(2,jproc))) then
               call get_extent_of_overlap(iis,iie,istartend(1,jproc),istartend(2,jproc), n, iiis, iiie, nlen)
-              write(*,'(a,11i11)') 'iproc, jproc, iis, iie, ise(1), ise(2), n, iiis, iiie', iproc, jproc, iis, iie, istartend(1,jproc), istartend(2,jproc), n, iiis, iiie
+              !!write(*,'(a,11i11)') 'iproc, jproc, iis, iie, ise(1), ise(2), n, iiis, iiie', iproc, jproc, iis, iie, istartend(1,jproc), istartend(2,jproc), n, iiis, iiie
               !jproc_send=jproc_send+1
               ncomms_repartitionrho=ncomms_repartitionrho+n
               !end if
@@ -3581,8 +3615,8 @@ module communications_init
                       !case with periodic wrap around
                       iidest = int(iiis(j)+lzd%glr%d%n1i*lzd%glr%d%n2i*lzd%glr%d%n3i-ii,kind=4)
                   end if
-                  write(*,'(a,12i11)') 'iproc, jproc, iis, iie, istartend(1,jproc), istartend(2,jproc), j, iiis(j), iiie(j), i3, iidest, iisrc', &
-                      iproc, jproc, iis, iie, istartend(1,jproc), istartend(2,jproc), j, iiis(j), iiie(j), i3, iidest, int(iiis(j)-istartend(1,jproc),kind=4)+1
+                  !!write(*,'(a,12i11)') 'iproc, jproc, iis, iie, istartend(1,jproc), istartend(2,jproc), j, iiis(j), iiie(j), i3, iidest, iisrc', &
+                  !!    iproc, jproc, iis, iie, istartend(1,jproc), istartend(2,jproc), j, iiis(j), iiie(j), i3, iidest, int(iiis(j)-istartend(1,jproc),kind=4)+1
                   commarr_repartitionrho(3,ioverlaps)=iidest
                   commarr_repartitionrho(4,ioverlaps)=int(nlen(1),kind=4)
               end do
@@ -3591,9 +3625,9 @@ module communications_init
           if (ioverlaps/=ncomms_repartitionrho) stop 'ERROR: ioverlaps/=ncomms_repartitionrho'
           !if (iassign/=ncomms_repartitionrho) stop 'ERROR: iassign/=ncomms_repartitionrho'
 
-          do i=1,ncomms_repartitionrho
-              write(*,'(a,i5,3x,4i8)') 'SECOND: iproc, cr(1:4,i)', iproc, commarr_repartitionrho(1:4,i)
-          end do
+          !!do i=1,ncomms_repartitionrho
+          !!    write(*,'(a,i5,3x,4i8)') 'SECOND: iproc, cr(1:4,i)', iproc, commarr_repartitionrho(1:4,i)
+          !!end do
         
           ! some checks
           nel=0
@@ -3710,10 +3744,10 @@ module communications_init
               ie3=ie
           end if
 
-          write(*,'(a,7i8)') 'ilr, lnsi3, lni3, gnsi3, gni3, is, ie', ilr, lzd%Llr(ilr)%nsi3, lzd%llr(ilr)%d%n3i, lzd%glr%nsi3, lzd%glr%d%n3i, is, ie
+          !!write(*,'(a,7i8)') 'ilr, lnsi3, lni3, gnsi3, gni3, is, ie', ilr, lzd%Llr(ilr)%nsi3, lzd%llr(ilr)%d%n3i, lzd%glr%nsi3, lzd%glr%d%n3i, is, ie
       
       end do
-      write(*,'(a,i4,3x,9i6)') 'iproc, is1, ie1, n1, is2, ie2, n2, is3, ie3, n3', iproc, is1, ie1, lzd%glr%d%n1i, is2, ie2, lzd%glr%d%n2i, is3, ie3, lzd%glr%d%n3i
+      !!write(*,'(a,i4,3x,9i6)') 'iproc, is1, ie1, n1, is2, ie2, n2, is3, ie3, n3', iproc, is1, ie1, lzd%glr%d%n1i, is2, ie2, lzd%glr%d%n2i, is3, ie3, lzd%glr%d%n3i
 
       ! For non-free boundary conditions the values ie1, ie2, ie3 may lie outside of the box!
       ! Make sure that the wrapped aruond end is smaller than the beginning
@@ -3742,7 +3776,7 @@ module communications_init
       comgp%ise(5)=is3
       comgp%ise(6)=ie3
     
-      write(*,'(a,i5,6i6)') 'iproc, ise', iproc, comgp%ise
+      !!write(*,'(a,i5,6i6)') 'iproc, ise', iproc, comgp%ise
     
       
       ! Determine how many slices each process receives.
@@ -3766,7 +3800,7 @@ module communications_init
               is3k=nscatterarr(kproc,3)+1
               ie3k=is3k+nscatterarr(kproc,2)-1
               !if(is3j<=ie3k .and. ie3j>=is3k) then
-              write(*,'(a,6i8,l6)') 'iproc, is3j, ie3j, iie3j, is3k, ie3k, overlap', iproc, is3j, ie3j, iie3j, is3k, ie3k, check_whether_bounds_overlap(is3j, iie3j, is3k, ie3k)
+              !!write(*,'(a,6i8,l6)') 'iproc, is3j, ie3j, iie3j, is3k, ie3k, overlap', iproc, is3j, ie3j, iie3j, is3k, ie3k, check_whether_bounds_overlap(is3j, iie3j, is3k, ie3k)
               !!if(check_whether_bounds_overlap(is3j, iie3j, is3k, ie3k)) then
               !!    ioverlap=ioverlap+1
               !!    !if(iproc==0) write(*,'(2(a,i0),a)') 'process ',jproc,' gets potential from process ',kproc,'.' 
@@ -3827,9 +3861,9 @@ module communications_init
                   !is3=max(is3j,is3k) ! starting index in z dimension for data to be sent
                   !ie3=min(ie3j,ie3k) ! ending index in z dimension for data to be sent
                   call get_extent_of_overlap(is3j, iie3j, is3k, ie3k, n3, iis3, iie3, nlen3)
-                  write(*,'(a,7i7)') 'iproc, kproc, is3j, iie3j, is3k, ie3k, n3', iproc, kproc, is3j, iie3j, is3k, ie3k, n3
+                  !!write(*,'(a,7i7)') 'iproc, kproc, is3j, iie3j, is3k, ie3k, n3', iproc, kproc, is3j, iie3j, is3k, ie3k, n3
                   do j3=1,n3
-                      write(*,'(a,8i8)') 'iproc, kproc, is3j, iie3j, is3k, ie3k, iis3(j3), iie3(j3)', iproc, kproc, is3j, iie3j, is3k, ie3k, iis3(j3), iie3(j3)
+                      !!write(*,'(a,8i8)') 'iproc, kproc, is3j, iie3j, is3k, ie3k, iis3(j3), iie3(j3)', iproc, kproc, is3j, iie3j, is3k, ie3k, iis3(j3), iie3(j3)
                       ioffsetz=iis3(j3)-is3k ! starting index (in z direction) of data to be sent (actually it is the index -1)
                       if (comgp%ise(4)>lzd%glr%d%n2i) then
                           ! Take modulo and make sure that it stays smaller than the beginning
@@ -3875,7 +3909,7 @@ module communications_init
                       !else
                       !    ioffsetx=comgp%ise(1)-1
                       !end if
-                      write(*,'(a,6i8)') 'iproc, ioffsetx, ie1, ioffsety, ie2, ioffsetz', iproc, ioffsetx, ie1, ioffsety, ie2, ioffsetz
+                      !!write(*,'(a,6i8)') 'iproc, ioffsetx, ie1, ioffsety, ie2, ioffsetz', iproc, ioffsetx, ie1, ioffsety, ie2, ioffsetz
                       ioverlap=ioverlap+1
 
                       ! Check whether there are holes in the slices
@@ -3889,7 +3923,7 @@ module communications_init
                       !if (comgp%ise(1)>is1 .and. ii<ie1) then
                       call mpi_type_size(mpi_double_precision, size_of_double, ierr)
                       if (ii<comgp%ise(1) .and. ii>is1 .and. comgp%ise(1)<ie1) then
-                          write(*,'(a,5i8)') 'hole in x, iproc, is1, ie1, comgp%ise(1), ii', iproc, is1, ie1, comgp%ise(1), ii
+                          !!write(*,'(a,5i8)') 'hole in x, iproc, is1, ie1, comgp%ise(1), ii', iproc, is1, ie1, comgp%ise(1), ii
                           nsegx=2
                           !!blocklengthsx(1)=comgp%ise(1)-is1+1
                           !!blocklengthsx(2)=ie1-ii+1
@@ -3915,7 +3949,7 @@ module communications_init
                       end if
                       !if (comgp%ise(3)>is2 .and. ii<ie2) then
                       if (ii<comgp%ise(3) .and. ii>is2 .and. comgp%ise(3)<ie2) then
-                          write(*,*) 'iproc, hole in y', iproc
+                          !!write(*,*) 'iproc, hole in y', iproc
                           nsegy=2
                           !!blocklengthsy(1)=comgp%ise(3)-is2+1
                           !!blocklengthsy(2)=ie2-ii+1
@@ -3954,15 +3988,15 @@ module communications_init
                       comgp%comarr(5,ioverlap)=iie3(j3)-iis3(j3)+1
                       comgp%comarr(6,ioverlap)=lzd%glr%d%n1i*lzd%glr%d%n2i
                       if (.not. datatype_defined) then
-                          write(*,'(a,8i8)') 'iproc, nsegx, blocklengthsx, displacementsx, comgp%ise(1), comgp%ise(2)', &
-                                              iproc, nsegx, blocklengthsx, displacementsx, comgp%ise(1), comgp%ise(2)
+                          !!write(*,'(a,8i8)') 'iproc, nsegx, blocklengthsx, displacementsx, comgp%ise(1), comgp%ise(2)', &
+                          !!                    iproc, nsegx, blocklengthsx, displacementsx, comgp%ise(1), comgp%ise(2)
                           types(:)=mpi_double_precision
                           call mpi_type_create_struct(nsegx, blocklengthsx, displacementsx, &
                                types, xline_type, ierr)
                           call mpi_type_commit(xline_type, ierr)
                           call mpi_type_size(xline_type, ii, ierr)
                           call mpi_type_get_extent(xline_type, lb, extent, ierr)
-                          write(*,'(a,4i10)') 'iproc, size, lb, extent, of xline_type', iproc, ii, lb, extent
+                          !!write(*,'(a,4i10)') 'iproc, size, lb, extent, of xline_type', iproc, ii, lb, extent
                           !write(*,*) 'iproc, size of xline_type', iproc, ii
                           !!call mpi_type_vector(comgp%ise(4)-comgp%ise(3)+1, comgp%ise(2)-comgp%ise(1)+1, &
                           !!     lzd%glr%d%n1i, mpi_double_precision, comgp%mpi_datatypes(0), ierr)
@@ -3980,7 +4014,7 @@ module communications_init
                               call mpi_type_commit(xyblock_type(iseg), ierr)
                               call mpi_type_size(xyblock_type(iseg), ii, ierr)
                               call mpi_type_get_extent(xyblock_type(iseg), lb, extent, ierr)
-                              write(*,'(a,4i14)') 'iproc, size, lb, extent, of xyblock_type(iseg)', iproc, ii, lb, extent
+                              !!write(*,'(a,4i14)') 'iproc, size, lb, extent, of xyblock_type(iseg)', iproc, ii, lb, extent
                               types(iseg)=xyblock_type(iseg)
                               nblocksy(iseg)=1
                           end do
@@ -3991,7 +4025,7 @@ module communications_init
                           call mpi_type_commit(comgp%mpi_datatypes(0), ierr)
                           call mpi_type_size(comgp%mpi_datatypes(0), ii, ierr)
                           call mpi_type_get_extent(comgp%mpi_datatypes(0), lb, extent, ierr)
-                          write(*,'(a,4i14)') 'iproc, size, lb, extent, of comgp%mpi_datatypes(0)', iproc, ii, lb, extent
+                          !!write(*,'(a,4i14)') 'iproc, size, lb, extent, of comgp%mpi_datatypes(0)', iproc, ii, lb, extent
                           do iseg=1,nsegy
                               call mpi_type_free(xyblock_type(iseg), ierr)
                           end do
@@ -4005,7 +4039,7 @@ module communications_init
                   call mpi_type_size(comgp%mpi_datatypes(0), size_datatype, ierr)
                   size_datatype=size_datatype/size_of_double
                   istdest = istdest + nlen3(j3)*size_datatype
-                  write(*,*) 'j3, nlen3(j3), size_datatype', j3, nlen3(j3), size_datatype
+                  !!write(*,*) 'j3, nlen3(j3), size_datatype', j3, nlen3(j3), size_datatype
                   comgp%nrecvBuf = comgp%nrecvBuf + nlen3(j3)*size_datatype
               !!else if(ie3j > lzd%Glr%d%n3i .and. lzd%Glr%geocode /= 'F')then
               !!     stop 'WILL PROBABLY NOT WORK!'
