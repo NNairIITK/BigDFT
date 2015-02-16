@@ -389,6 +389,7 @@ subroutine createProjectorsArrays(lr,rxyz,at,orbs,&
     end subroutine nullify_structure
 
     subroutine allocate_arrays()
+      use locregs, only: allocate_wfd
       implicit none
 
       call f_routine(id='allocate_arrays')

@@ -202,6 +202,7 @@ end subroutine glr_new
 
 subroutine glr_copy(glr, d, wfd, from)
   use module_types
+  use locregs, only: copy_locreg_descriptors
   implicit none
   type(locreg_descriptors), pointer :: glr
   type(grid_dimensions), pointer :: d
@@ -334,6 +335,7 @@ end subroutine glr_get_locreg_data
 
 subroutine glr_set_wfd_dims(glr, nseg_c, nseg_f, nvctr_c, nvctr_f)
   use module_types
+  use locregs, only: allocate_wfd
   implicit none
   type(locreg_descriptors), intent(inout) :: glr
   integer, intent(in) :: nseg_c, nseg_f, nvctr_c, nvctr_f

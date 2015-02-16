@@ -187,6 +187,27 @@ call f_free(weight)
      call f_free_ptr(i1_ptr,ptr1)
      call f_release_routine()
 
+     !do it again with the src_ptr tool
+     i1_ptr=f_malloc_ptr(-4 .to. -2,id='i1_ptr')
+     i1_ptr=5 !initialize value
+     ptr1=f_malloc_ptr(src_ptr=i1_ptr,id='ptr1')
+     call yaml_map('Src Pointer allocated',associated(ptr1))
+     call yaml_map('Size',size(ptr1))
+     call yaml_map('Lbounds',lbound(ptr1))
+     call yaml_map('Ubounds',ubound(ptr1))
+     call yaml_map('Pointer difference again (should be 0)',i1_ptr-ptr1)
+     call f_free_ptr(i1_ptr,ptr1)
+
+     !now verify that the pointer is nullified at the end
+     i1_ptr=f_malloc_ptr(-4 .to. -2,id='i1_ptr')
+     ptr1=>i1_ptr !this associates the pointer
+     call yaml_map('Associations, first',[associated(ptr1),associated(i1_ptr)])
+     call f_free_ptr(i1_ptr)
+     call yaml_map('Associations, second',[associated(ptr1),associated(i1_ptr)])
+     !then the nullification should appear
+     ptr1=f_malloc_ptr(src_ptr=i1_ptr,id='ptr1')
+     call yaml_map('Associations, third',[associated(ptr1),associated(i1_ptr)])
+     call f_free_ptr(ptr1)
      !allocate and test string array
      str_arr=f_malloc0_str(len(str_arr),4,id='str_arr')
 

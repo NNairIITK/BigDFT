@@ -285,7 +285,6 @@ contains
     unt=7
     if (present(unit)) unt=unit
     do while(unit_is_open)      
-       unt=unt+1
        inquire(unit=unt,opened=unit_is_open,iostat=ierr)
        if (ierr /=0) then
           call f_err_throw('Error in inquiring unit='//&
@@ -293,6 +292,7 @@ contains
                err_id=INPUT_OUTPUT_ERROR)
           exit
        end if
+       unt=unt+1
     end do
     unt2=unt
   end function f_get_free_unit
@@ -303,11 +303,14 @@ contains
     character(len=*), intent(in) :: file
     !local variables
     logical :: exists
-    integer :: ierr
+    integer :: ierr,unit
     external :: delete
 
     call f_file_exists(trim(file),exists)
     if (exists) then
+       !close the corresponding fortran unit if the file is connected to it
+       call f_file_unit(trim(file),unit)
+       call f_close(unit)
        !c-function in utils.c
        call delete(trim(file),len_trim(file),ierr)
        if (ierr /=0) call f_err_throw('Error in deleting file='//&

@@ -16,7 +16,7 @@ subroutine determine_wfd_periodicity(ilr,nlr,Glr,Llr)!,outofzone)
 
   use module_base
   use module_types
- 
+  use locregs, only: allocate_wfd
   implicit none
 
   ! Subroutine Scalar Arguments
@@ -485,7 +485,7 @@ subroutine determine_wfdSphere(ilr,nlr,Glr,hx,hy,hz,Llr)!,outofzone)
 
   use module_base
   use module_types
- 
+  use locregs, only: allocate_wfd
   implicit none
 
   ! Subroutine Scalar Arguments

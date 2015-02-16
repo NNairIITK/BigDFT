@@ -18,8 +18,8 @@
 !!   @warning psi, keyg, keyv and eval should be freed after use outside of the routine.
 subroutine cluster(nproc,iproc,atoms,rxyz,energy,energs,fxyz,strten,fnoise,pressure,&
      KSwfn,tmb,rxyz_old,in,GPU,infocode)
-  use locregs, only: deallocate_convolutions_bounds
   use module_base
+  use locregs, only: deallocate_locreg_descriptors
   use module_types
   use module_interfaces
   use gaussians, only: deallocate_gwf
@@ -180,18 +180,18 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,energs,fxyz,strten,fnoise,press
 
         !to maintain the same treatment destroy wfd afterwards (to be unified soon)
         !deallocation
-        call deallocate_wfd(KSwfn%Lzd%Glr%wfd)
-        !already here due to new input guess
-        call deallocate_convolutions_bounds(KSwfn%lzd%glr%bounds)
+        call deallocate_locreg_descriptors(KSwfn%Lzd%Glr)
+!!$        call deallocate_wfd(KSwfn%Lzd%Glr%wfd)
+!!$        !already here due to new input guess
+!!$        call deallocate_convolutions_bounds(KSwfn%lzd%glr%bounds)
      else
         inputpsi = INPUT_PSI_LCAO
      end if
   else if (in%inputPsiId == INPUT_PSI_MEMORY_GAUSS) then
      if (associated(KSwfn%psi)) then
         !deallocate wavefunction and descriptors for placing the gaussians
-        
-        call deallocate_wfd(KSwfn%Lzd%Glr%wfd)
-
+        call deallocate_locreg_descriptors(KSwfn%Lzd%Glr)
+        !call deallocate_wfd(KSwfn%Lzd%Glr%wfd)
         call f_free_ptr(KSwfn%psi)
      else
         inputpsi = INPUT_PSI_LCAO
@@ -216,7 +216,8 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,energs,fxyz,strten,fnoise,press
         call copy_tmbs(iproc, tmb, tmb_old, subname)
         call destroy_DFT_wavefunction(tmb)
         call f_free_ptr(KSwfn%psi)
-        call deallocate_wfd(KSwfn%Lzd%Glr%wfd)
+        call deallocate_locreg_descriptors(KSwfn%Lzd%Glr)
+        !call deallocate_wfd(KSwfn%Lzd%Glr%wfd)
      else
         inputpsi = INPUT_PSI_LINEAR_AO
      end if
@@ -596,7 +597,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,energs,fxyz,strten,fnoise,press
 
      ! Treat the info code from the optimization routine.
      if (infocode == 2 .or. infocode == 3) then
-        call deallocate_convolutions_bounds(KSwfn%lzd%glr%bounds)
+        !call deallocate_convolutions_bounds(KSwfn%lzd%glr%bounds)
         call deallocate_before_exiting
         return
      end if
@@ -724,7 +725,8 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,energs,fxyz,strten,fnoise,press
         call f_free_ptr(fpulay)
         call destroy_DFT_wavefunction(tmb)
         call f_free_ptr(KSwfn%psi)
-        call deallocate_wfd(KSwfn%Lzd%Glr%wfd)
+        !call deallocate_wfd(KSwfn%Lzd%Glr%wfd)
+        call deallocate_locreg_descriptors(KSwfn%Lzd%Glr)
         call f_free_ptr(denspot%rho_work)
         call f_free_ptr(KSwfn%orbs%eval)
         call deallocate_before_exiting()
@@ -1295,9 +1297,9 @@ contains
 !!write(*,*) 'WARNING HERE!!!!!'
     !if(inputpsi == INPUT_PSI_LINEAR_AO .or. inputpsi == INPUT_PSI_DISK_LINEAR &
     !                 .or. inputpsi == INPUT_PSI_MEMORY_LINEAR) then
-    if (in%inguess_geopt/=1) then
-        call deallocate_convolutions_bounds(KSwfn%Lzd%Glr%bounds)
-     end if
+    !!if (in%inguess_geopt/=1) then
+    !!    call deallocate_convolutions_bounds(KSwfn%Lzd%Glr%bounds)
+    !! end if
     call deallocate_Lzd_except_Glr(KSwfn%Lzd)
 
 !    i_all=-product(shape(KSwfn%Lzd%Glr%projflg))*kind(KSwfn%Lzd%Glr%projflg)

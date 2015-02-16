@@ -1376,8 +1376,9 @@ contains
     use module_base
     use yaml_output
     use module_atoms, only: astruct_dump_to_file,rxyz_inside_box
+    use locregs, only: deallocate_locreg_descriptors
     use module_types, only: INPUT_PSI_MEMORY_LINEAR,LINEAR_VERSION,INPUT_PSI_MEMORY_GAUSS, &
-         INPUT_PSI_LCAO,INPUT_PSI_MEMORY_WVL,old_wavefunction_null,INPUT_PSI_LINEAR_AO,deallocate_wfd
+         INPUT_PSI_LCAO,INPUT_PSI_MEMORY_WVL,old_wavefunction_null,INPUT_PSI_LINEAR_AO!,deallocate_wfd
     !use communications_base
     implicit none
     type(run_objects), intent(inout) :: runObj
@@ -1457,7 +1458,8 @@ contains
        if (runObj%inputs%inputPsiId == INPUT_PSI_LCAO .and. associated(runObj%rst%KSwfn%psi)) then
           call f_free_ptr(runObj%rst%KSwfn%psi)
           call f_free_ptr(runObj%rst%KSwfn%orbs%eval)
-          call deallocate_wfd(runObj%rst%KSwfn%Lzd%Glr%wfd)
+          !call deallocate_wfd(runObj%rst%KSwfn%Lzd%Glr%wfd)
+          call deallocate_locreg_descriptors(runObj%rst%KSwfn%Lzd%Glr)
        end if
 
        !backdoor for hacking, finite difference method for calculating forces on particular quantities
@@ -1506,7 +1508,8 @@ contains
           call f_free_ptr(runObj%rst%KSwfn%psi)
           call f_free_ptr(runObj%rst%KSwfn%orbs%eval)
 
-          call deallocate_wfd(runObj%rst%KSwfn%Lzd%Glr%wfd)
+          !call deallocate_wfd(runObj%rst%KSwfn%Lzd%Glr%wfd)
+          call deallocate_locreg_descriptors(runObj%rst%KSwfn%Lzd%Glr)
 
           !test if stderr works
           write(0,*) 'unnormal end'

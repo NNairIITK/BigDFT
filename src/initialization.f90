@@ -263,6 +263,7 @@ END SUBROUTINE processor_id_per_node
 subroutine ensure_log_file(writing_directory, logfile, ierr)
   use yaml_output
   use yaml_strings
+  use f_utils, only: f_file_exists
   implicit none
   character(len = *), intent(in) :: writing_directory, logfile
   integer(kind=4), intent(out) :: ierr
@@ -274,7 +275,8 @@ subroutine ensure_log_file(writing_directory, logfile, ierr)
   ierr = 0
   filepath = writing_directory//logfile
   !inquire for the existence of a logfile
-  inquire(file=trim(filepath),exist=exists)
+  !inquire(file=trim(filepath),exist=exists)
+  call f_file_exists(trim(filepath),exists)
   if (exists) then
      logfile_old=writing_directory//'logfiles'
      call getdir(logfile_old,&

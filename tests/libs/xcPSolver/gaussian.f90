@@ -43,6 +43,9 @@ program MP_gaussian
   fj_coll=f_malloc(-npts .to. npts,id='fj_coll')
   call initialize_real_space_conversion(npoints=2**8,isf_m=itype_scf,nmoms=16) !initialize the work arrays needed to integrate with isf
 
+  call polynomial_exactness(npts,8,0,itype_scf,8,8,iplot)
+  stop
+
   call f_open_file(unit,file='MultipolesError.dat')
 
   !Initialize the work array needed to integrate with the Lagrange polynomial
@@ -221,8 +224,8 @@ contains
 
     call moments_1d(2*npts+1,fj_coll,x0+hgrid*(npts+1),hgrid,nmoms,moments(0,3))
 
-    write(iunit+istep,'(a)') '#Projection of a gaussian with iscf, collocation and lagrange polynomials method'
-    write(iunit+istep,'(a)') '#j,fj_phi(j),fj_coll(j),fj_lag(j)'
+    write(unit,'(a)') '#Projection of a gaussian with iscf, collocation and lagrange polynomials method'
+    write(unit,'(a)') '#j,fj_phi(j),fj_coll(j),fj_lag(j)'
     do j=-npts,npts
      write(unit,*) j,fj_phi(j),fj_coll(j)
     end do
@@ -376,6 +379,137 @@ contains
 
 end program MP_gaussian
 
+!>verify the property x**p = sum_j x_j**p \phi_j(x) for different families
+!!of interpolating functions
+subroutine polynomial_exactness(npts,itype_scf,nmoms,p,itype_scf_dual,nmoms_dual,iplot)
+  use module_base
+  use yaml_output
+  implicit none
+  integer, intent(in) :: npts,itype_scf,nmoms,p,iplot,itype_scf_dual,nmoms_dual
+  !local variables
+  integer :: n_scf,j,q,i,n_range,n_ext,n_ranget,n_scft
+  real(gp) :: phival,scalar
+  real(gp), dimension(0:p) :: deviations
+  real(gp), dimension(:), allocatable :: scf_dat,x_scf,x_scft,scft_dat
+  real(gp), dimension(:,:), allocatable :: pol_dat,pol_sp
+
+  !Initialize the work array needed to integrate with the Lagrange polynomial
+  n_scf = 2*(itype_scf+nmoms)*npts
+
+  !Allocations for lagrange polynomial data array
+  x_scf = f_malloc(0.to.n_scf)
+  scf_dat = f_malloc(0.to.n_scf,id='scf_dat')
+  pol_dat = f_malloc0([0.to.n_scf,0.to.p],id='pol_dat')
+  
+
+  !Build the scaling function external routine coming from Poisson Solver. To be customized accordingly
+  !call scaling_function(itype_scf,n_scf,n_range,x_scf,scf_dat)
+  call ISF_family(itype_scf,nmoms,n_scf,n_range,x_scf,scf_dat)
+
+  pol_sp = f_malloc0([-n_range.to.n_range,0.to.p],id='pol_sp')
+ 
+  !call yaml_set_stream(record_length=150)
+  call yaml_map('itype_scf',itype_scf)
+  call yaml_map('nmoms',nmoms)
+  call yaml_map('range', n_range)
+  call yaml_map('number of points',n_scf)
+  call yaml_map('step',x_scf(1)-x_scf(0))
+  call yaml_map('dx',real(2*(itype_scf+nmoms),gp)/real(n_scf,gp))
+
+  n_ext=n_range/2
+  !Step grid for the integration
+  !dx = real(2*itype_scf,gp)/real(n_scf,gp)
+  !starting point for the x coordinate for integration
+  !x  = real(-itype_scf,gp)-dx
+  write(iplot,'(a)') '#Abscissae   Interpolating_scaling_function   Lagrange_polynomial' 
+  do q=0,p
+     !evaluate the maxima
+     do j=-n_range,n_range
+        do i=0,n_scf
+           phival=phi(x_scf(i)-real(j,kind=8))
+           pol_dat(i,q)=pol_dat(i,q)+(real(j,kind=8)/real(n_ext,kind=8))**q*phival
+           pol_sp(j,q)=pol_sp(j,q)+((x_scf(i)+real(j,kind=8))/real(n_ext,kind=8))**q*scf_dat(i)
+        end do
+        pol_sp(j,q)=pol_sp(j,q)*(x_scf(1)-x_scf(0))
+        pol_sp(j,q)=abs(pol_sp(j,q)-(real(j,kind=8)/real(n_ext,kind=8))**q)
+     end do
+  end do
+  call yaml_map('Polynomial scalprods',[(maxval(pol_sp(:,q)),q=0,p)])
+  !evaluate the maxima
+  deviations=0.d0
+  do i=0,n_scf
+     !x=x+dx
+     !lag_dat(i) = lag_sym(x_scf(i),itype_scf,0)
+     forall (q=0:p) deviations(q)=max(deviations(q),abs((x_scf(i)/real(n_ext,kind=8))**q-pol_dat(i,q)))
+     write(iplot,'(f19.13,1x,30(1pe23.15,1x))') x_scf(i),scf_dat(i),pol_dat(i,:)
+  end do
+  call yaml_map('Polynomial exactness',deviations)
+
+  !Do scalar product with the dual function
+  !Initialize the work array needed to integrate with the Lagrange polynomial
+  n_scft = 2*(itype_scf_dual+nmoms_dual)*npts
+  !Allocations for lagrange polynomial data array
+  x_scft = f_malloc(0.to.n_scft)
+  scft_dat = f_malloc(0.to.n_scft,id='scf_dat')
+  call ISF_family(itype_scf_dual,nmoms_dual,n_scft,n_ranget,x_scft,scft_dat)
+
+  call yaml_map('itype_scf',itype_scf_dual)
+  call yaml_map('nmoms',nmoms_dual)
+  call yaml_map('range', n_ranget)
+  call yaml_map('number of points',n_scft)
+  call yaml_map('step',x_scft(1)-x_scft(0))
+  call yaml_map('dx',real(2*(itype_scf_dual+nmoms_dual),gp)/real(n_scft,gp))
+
+
+  do j=-n_ranget,n_ranget
+     scalar = 0.d0
+     do i=0,n_scft
+        phival=phi(x_scft(i)-real(j,kind=8))
+        scalar = scalar + scft_dat(i)*phival
+     end do
+     scalar = scalar*(x_scft(1)-x_scft(0))
+     call yaml_map('<phi|phi_{'//trim(adjustl(yaml_toa(j)))//'}>',scalar)
+  end do
+!!$
+!!$  call yaml_sequence_open('<lag|iscf>')
+!!$  istart=-(itype_scf/2-1)
+!!$  iend=itype_scf/2-1
+!!$  do i0=-itype_scf/2+1,itype_scf/2-1
+!!$     scalar = 0.d0
+!!$     do i=0,n_scf
+!!$        scalar = scalar + scf_dat(i)*lagrange(x_scf(i),istart,iend,i0)
+!!$        !scalar = scalar + scf_dat(i)*lag_sym(x_scf(i),itype_scf,i0)
+!!$        !scalar = scalar + scf_dat(i)*x_scf(i)**i0
+!!$     end do
+!!$     scalar = scalar*(x_scf(1)-x_scf(0))
+!!$     !call yaml_map(trim(yaml_toa(istart))//trim(yaml_toa(iend))//trim(yaml_toa(i0)), scalar)
+!!$     !call yaml_map(trim(yaml_toa(i0)), (/ scalar,lag_sym(real(i0,gp),itype_scf,i0) /))
+!!$     call yaml_map(trim(yaml_toa(i0)), (/ scalar,lagrange(real(i0,gp),istart,iend,i0) /))
+!!$  end do
+!!$  call yaml_sequence_close()
+ 
+  call f_free(x_scf,scf_dat)
+  call f_free(pol_dat)
+  call f_free(pol_sp)
+
+
+
+  contains
+
+    pure function phi(x0)
+      implicit none
+      double precision, intent(in) :: x0
+      double precision :: phi
+      !local variables
+      integer :: ival
+      phi=0.d0
+      ival=minloc(abs(x_scf-x0),1)+lbound(x_scf,1)-1
+      !print *,'ival',x0,ival,scf_dat(ival),x_scf(ival)
+      if (x_scf(ival) -x0 == 0.d0)  phi=scf_dat(ival)
+      
+    end function phi
+
+end subroutine polynomial_exactness
 
 !!$
 !!$!> takes a Gaussian of exponent pgauss an center x0 and discretize it on a grid of size 1 in units of sqrt(0.5*[pgauss])
