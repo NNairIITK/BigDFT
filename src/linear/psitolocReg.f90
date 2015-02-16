@@ -34,6 +34,13 @@ subroutine shift_locreg_indexes(Alr,Blr,keymask,nseg)
  integer :: shift(3)  !shift between the beginning of the segment in Blr and the origin of Alr
  integer ::  tmp
 
+
+ ! This routine is only intended for conversions between locregs with the same boundary conditions.
+ if (blr%geocode/='F') then
+     call f_err_throw('shift_locreg_indexes can only be used for locregs with free boundary conditions', &
+          err_name='BIGDFT_RUNTIME_ERROR')
+ end if
+
 !Big loop on all segments
 !$omp parallel do default(private) shared(Blr,nseg,Alr,keymask)
  do iseg=1,nseg
@@ -76,6 +83,86 @@ subroutine shift_locreg_indexes(Alr,Blr,keymask,nseg)
 !$omp end parallel do
 
 END SUBROUTINE shift_locreg_indexes
+
+
+
+!!!!!!> Find the shift necessary for the indexes of every segment of Blr
+!!!!!!!   to make them compatible with the indexes of Alr. These shifts are
+!!!!!!!   returned in the array keymask(nseg), where nseg should be the number
+!!!!!!!   of segments in Blr.
+!!!!!!! @warning 
+!!!!!!!   This routine supposes that the region Blr is contained in the region Alr.
+!!!!!!!   This should always be the case, if we concentrate on the overlap between two regions.
+!!!!!subroutine shift_locreg_indexes_global(Alr,Blr,keymask,nseg)
+!!!!!
+!!!!!  use module_base
+!!!!!  use module_types
+!!!!! 
+!!!!! implicit none
+!!!!!
+!!!!!! Arguments
+!!!!! type(locreg_descriptors),intent(in) :: Alr,Blr   ! The two localization regions
+!!!!! integer,intent(in) :: nseg
+!!!!! integer,intent(out) :: keymask(2,nseg)
+!!!!!
+!!!!!! Local variable
+!!!!! integer :: iseg      !integer for the loop
+!!!!! integer :: Bindex    !starting index of segments in Blr
+!!!!! integer :: x,y,z     !coordinates of start of segments in Blr 
+!!!!! integer :: shift(3)  !shift between the beginning of the segment in Blr and the origin of Alr
+!!!!! integer ::  tmp
+!!!!!
+!!!!!
+!!!!! ! This routine is only intended for conversions between locregs with the same boundary conditions.
+!!!!! if (blr%geocode/='F') then
+!!!!!     call f_err_throw('shift_locreg_indexes can only be used for locregs with free boundary conditions', &
+!!!!!          err_name='BIGDFT_RUNTIME_ERROR')
+!!!!! end if
+!!!!!
+!!!!!!Big loop on all segments
+!!!!!!$omp parallel do default(private) shared(Blr,nseg,Alr,keymask)
+!!!!! do iseg=1,nseg
+!!!!!
+!!!!!!##########################################
+!!!!!! For the Starting index
+!!!!!    Bindex = Blr%wfd%keyglob(1,iseg)
+!!!!!    tmp = Bindex -1
+!!!!!    z   = tmp / ((Blr%d%n2+1)*(Blr%d%n1+1))
+!!!!!    tmp = tmp - z*((Blr%d%n2+1)*(Blr%d%n1+1))
+!!!!!    y   = tmp / (Blr%d%n1+1)
+!!!!!    x   = tmp - y * (Blr%d%n1+1)
+!!!!! 
+!!!!!! Shift between the beginning of the segment and the start of the Alr region
+!!!!!    shift(1) = x + Blr%ns1 - Alr%ns1
+!!!!!    shift(2) = y + Blr%ns2 - Alr%ns2
+!!!!!    shift(3) = z + Blr%ns3 - Alr%ns3
+!!!!!
+!!!!!! Write the shift in index form
+!!!!!    keymask(1,iseg) = shift(3)*(Alr%d%n1+1)*(Alr%d%n2+1) + shift(2)*(Alr%d%n1+1) + shift(1) + 1
+!!!!!
+!!!!!!######################################
+!!!!!! For the ending index
+!!!!!
+!!!!!    Bindex = Blr%wfd%keyglob(2,iseg)
+!!!!!    tmp = Bindex -1
+!!!!!    z   = tmp / ((Blr%d%n2+1)*(Blr%d%n1+1))
+!!!!!    tmp = tmp - z*((Blr%d%n2+1)*(Blr%d%n1+1))
+!!!!!    y   = tmp / (Blr%d%n1+1)
+!!!!!    x   = tmp - y * (Blr%d%n1+1)
+!!!!!
+!!!!!! Shift between the beginning of the segment and the start of the Alr region
+!!!!!    shift(1) = x + Blr%ns1 - Alr%ns1
+!!!!!    shift(2) = y + Blr%ns2 - Alr%ns2
+!!!!!    shift(3) = z + Blr%ns3 - Alr%ns3
+!!!!!
+!!!!!! Write the shift in index form
+!!!!!    keymask(2,iseg) = shift(3)*(Alr%d%n1+1)*(Alr%d%n2+1) + shift(2)*(Alr%d%n1+1) + shift(1) + 1
+!!!!! end do
+!!!!!!$omp end parallel do
+!!!!!
+!!!!!END SUBROUTINE shift_locreg_indexes_global
+
+
 
 
 !> Projects a quantity stored with the global indexes (i1,i2,i3) within the localisation region.
