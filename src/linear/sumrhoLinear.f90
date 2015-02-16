@@ -847,7 +847,7 @@ subroutine check_communication_potential(iproc,denspot,tmb)
   type(DFT_wavefunction), intent(inout) :: tmb
   type(DFT_local_fields), intent(inout) :: denspot
   !local variables
-  logical :: dosome
+  logical :: dosome, abort
   integer :: i1,i2,i3,ind,n3p,ilr,iorb,ilr_orb,n2i,n1i,ierr,numtot,i_stat,i_all,ishift,ispin
   integer :: i1s, i1e, i2s, i2e, i3s, i3e, ii1, ii2, ii3
   real(dp) :: maxdiff,sumdiff,testval
@@ -976,15 +976,19 @@ subroutine check_communication_potential(iproc,denspot,tmb)
          call yaml_map('calculation check, error sum', sumdiff,fmt='(1es25.18)')
       end if
       call yaml_map('Tolerance for the following test',tol_calculation_max,fmt='(1es25.18)')
-      if (sumdiff>tol_calculation_max) then
+      if (maxdiff>tol_calculation_max) then
          call yaml_warning('CALCULATION ERROR: max difference of '//trim(yaml_toa(maxdiff,fmt='(1es25.18)')))
-         call f_err_throw('The communication of the potential is not correct for this setup, check communication routines',&
-                 err_name='BIGDFT_MPI_ERROR')
       else
          call yaml_map('calculation check, error max', maxdiff,fmt='(1es25.18)')
       end if
   end if
   if (bigdft_mpi%iproc==0) call yaml_mapping_close()
+
+  abort = (sumdiff>tol_calculation_mean .or. maxdiff>tol_calculation_max)
+  if (abort) then
+      call f_err_throw('The communication of the potential is not correct for this setup, check communication routines',&
+              err_name='BIGDFT_MPI_ERROR')
+  end if
 
   call f_free_ptr(denspot%pot_work)
 
