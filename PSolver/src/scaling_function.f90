@@ -7,7 +7,10 @@
 !! or http://www.gnu.org/copyleft/gpl.txt .
 !! For the list of contributors, see ~/AUTHORS 
 
+
 !> Calculate the values of a scaling function in real uniform grid
+!! if nmons == 0, define the direct isf
+!! if nmons /= 0, define the dual interpolating scaling function preserving nmons moments in x
 subroutine ISF_family(itype,nmoms,nd,nrange,a,x)
   use f_utils, only: f_open_file,f_close,f_zero
   use yaml_output, only: yaml_toa
@@ -15,19 +18,19 @@ subroutine ISF_family(itype,nmoms,nd,nrange,a,x)
   use dynamic_memory
 
   implicit none
+
   !Arguments
-  !>Type of interpolating functions
-  integer, intent(in) :: itype
-  !>number of moments of the lifted dual function
+  integer, intent(in) :: itype !< Type of interpolating functions
+  !> Number of moments of the lifted dual function
   !! to be preserved. If this value is different from 
   !! 0, then the dual scaling function is given as output
   integer, intent(in) :: nmoms
-  !>Number of points: must be 2**nex
+  !> Number of points: must be 2**nex
   integer, intent(in) :: nd
-  integer, intent(out) :: nrange
-  real(kind=8), dimension(0:nd), intent(out) :: a,x
+  integer, intent(out) :: nrange !< Give the minimal range
+  real(kind=8), dimension(0:nd), intent(out) :: a !< Values of the abscissae of the grid
+  real(kind=8), dimension(0:nd), intent(out) :: x !< Values of the function at a
   !Local variables
-  character(len=*), parameter :: subname='scaling_function'
   integer, parameter :: m_max=200
   integer :: i,nt,ni,unt,j,m
   real(kind=8) :: mom
@@ -85,6 +88,7 @@ subroutine ISF_family(itype,nmoms,nd,nrange,a,x)
 
 end subroutine ISF_family
 
+
 !> Calculate the values of a scaling function in real uniform grid
 subroutine scaling_function(itype,nd,nrange,a,x)
   use f_utils, only: f_open_file,f_close
@@ -104,13 +108,12 @@ subroutine scaling_function(itype,nd,nrange,a,x)
   integer, intent(out) :: nrange
   real(kind=8), dimension(0:nd), intent(out) :: a,x
   !Local variables
-  character(len=*), parameter :: subname='scaling_function'
   integer, parameter :: m_max=200
   integer :: m
   real(kind=8), dimension(:), allocatable :: y
   double precision, dimension(-m_max:m_max) :: ch,cg
-  integer :: i,nt,ni,unt,j
-  real(kind=8) :: mom
+  integer :: i,nt,ni!,unt,j
+  !real(kind=8) :: mom
   
   !Only itype=2,8,14,16,20,24,30,40,50,60,100
   select case(itype)
@@ -216,10 +219,9 @@ subroutine wavelet_function(itype,nd,a,x)
   integer, intent(in) :: nd
   real(kind=8), dimension(0:nd), intent(out) :: a,x
   !Local variables
-  character(len=*), parameter :: subname='wavelet_function'
   real(kind=8), dimension(:), allocatable :: y
-  integer :: i,nt,ni,unt,j
-  real(kind=8) :: mom
+  integer :: i,nt,ni!,unt,j
+  !real(kind=8) :: mom
 
   !Only itype=2,4,6,8,14,16,20,24,30,40,50,60,100
   Select case(itype)
@@ -304,16 +306,24 @@ subroutine wavelet_function(itype,nd,a,x)
  
 END SUBROUTINE wavelet_function
 
+
+!> Define the filters for the interpolating scaling functions given by itype (order)
+!! and by the number of preserved moments (nmons)
+!! if nmons == 0, define the dirac function (cht) for the dual and ch is the direct filters
+!! if nmons /= 0, define the dual interpolating scaling function preserving nmons moments AND CH is the DUAL FILTERS
 subroutine get_isf_family(m_max,itype,nmoms,m,nrange,ch,cg)
   use dictionaries, only: f_err_throw
   use yaml_output, only: yaml_toa
   implicit none
-  integer, intent(in) :: itype,m_max,nmoms
+  !Arguments
+  integer, intent(in) :: itype !< order of the iscf
+  integer, intent(in) :: m_max !< range of the filters
+  integer, intent(in) :: nmoms !< Number of required preserved moments for the dual (lifed)
   integer, intent(out) :: m,nrange
   double precision, dimension(-m_max:m_max), intent(out) :: ch,cg
-  !local variables
+  !Local variables
   integer :: i,dsflb,dsfrb,sflb,sfrb,unsflb,unsfrb,i1,ifac!,sfl,unsfl
-  double precision :: pref
+  !double precision :: pref
   double precision, dimension(-m_max:m_max) :: cht,chu
 
   !Only itype=2,8,14,16,20,24,30,40,50,60,100
@@ -336,8 +346,11 @@ subroutine get_isf_family(m_max,itype,nmoms,m,nrange,ch,cg)
   call scal_filters(m,itype,ch(-m),ifac)
   nrange=2*(itype+nmoms)
 
-  if (nmoms > 0) then
-     !lifted case
+  if (nmoms == 0) then
+     !Define the Dirac function as the dual
+     cht( 0)=1.d0
+  else
+     !lifted case to preserve nmons moments
      call scal_filters(m_max,nmoms,chu,ifac)
      ! prepare
      chu(0)=0.d0
@@ -371,15 +384,13 @@ subroutine get_isf_family(m_max,itype,nmoms,m,nrange,ch,cg)
              chu( max( unsflb, sflb-i1 ):min( unsfrb, sfrb-i1 )))
      end do
      ch(0) = -ch(0)
-     !then we have to invert ch and cht
+     !Then we have to INVERT (SWAP) ch and cht between direct and dual
      !chu is not needed anymore
      chu=cht
-     cht=2*ch
-     ch=2*chu
+     cht=2.d0*ch
+     ch=2.d0*chu
 !!$     cht=2*cht
 !!$     ch=2*ch    
-  else
-     cht( 0)=1.d0
   end if
 
   ! g coefficients from h coefficients
@@ -394,11 +405,15 @@ subroutine get_isf_family(m_max,itype,nmoms,m,nrange,ch,cg)
 
 end subroutine get_isf_family
 
+
+!> Define the direct filters (ch) for the interpolating scaling functions
 subroutine scal_filters(m,itype,ch,fact)
   implicit none
-  integer, intent(in) :: m,itype
-  integer, intent(in) :: fact
-  double precision, dimension(-m:m), intent(out) :: ch
+  !Arguments
+  integer, intent(in) :: m     !< Range of the filters
+  integer, intent(in) :: itype !< Order of the isf
+  integer, intent(in) :: fact  !< Pre-factor (1 or 2)
+  double precision, dimension(-m:m), intent(out) :: ch !< Direct filters
   !local variables
   integer :: i
   double precision :: pref
@@ -412,7 +427,8 @@ subroutine scal_filters(m,itype,ch,fact)
   end do
 
 contains
-  !>calculate the filters for the interpolating family of order k
+
+  !> Calculate the filters for the interpolating family of order k
   !! has to be multiplied by prefactor*2
   pure function h_odd(p,k)
     implicit none
@@ -424,7 +440,7 @@ contains
 
   end function h_odd
 
-  !> calculate the binomial coefficient n over k
+  !> Calculate the binomial coefficient n over k
   pure function binomial(n,k)
     implicit none
     integer, intent(in) :: n
@@ -439,7 +455,7 @@ contains
     end do
   end function binomial
 
-  !> depends of the isf family
+  !> Depends of the isf family
   pure function prefactor(p)
     implicit none
     integer, intent(in) :: p
@@ -455,7 +471,6 @@ contains
   end function prefactor
 
 end subroutine scal_filters
-
 
 
 !> Do iterations to go from p0gauss to pgauss
@@ -1103,7 +1118,8 @@ subroutine for_trans_8(nd,nt,x,y)
 
 END SUBROUTINE for_trans_8
 
-!> generic routine for the wavelet transformation
+
+!> Generic routine for the wavelet transformation
 subroutine back_trans(m,ch,cg,nd,nt,x,y)
   implicit none
   !Arguments
@@ -1125,17 +1141,17 @@ subroutine back_trans(m,ch,cg,nd,nt,x,y)
 
         ! periodically wrap index if necessary
         ind=i-j
-        loop99: do
+        loop_back: do
            if (ind.lt.0) then 
               ind=ind+nt/2
-              cycle loop99
+              cycle loop_back
            end if
            if (ind.ge.nt/2) then 
               ind=ind-nt/2
-              cycle loop99
+              cycle loop_back
            end if
-           exit loop99
-        end do loop99
+           exit loop_back
+        end do loop_back
 
         y(2*i+0)=y(2*i+0) + ch(2*j-0)*x(ind)+cg(2*j-0)*x(ind+nt/2)
         y(2*i+1)=y(2*i+1) + ch(2*j+1)*x(ind)+cg(2*j+1)*x(ind+nt/2)
@@ -1143,6 +1159,7 @@ subroutine back_trans(m,ch,cg,nd,nt,x,y)
 
   end do
 end subroutine back_trans
+
 
 !> Backward wavelet transform
 subroutine back_trans_8(nd,nt,x,y)
