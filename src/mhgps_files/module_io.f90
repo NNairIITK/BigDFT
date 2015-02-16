@@ -61,35 +61,61 @@ subroutine get_first_struct_file(mhgpsst,filename)
     endif
 end subroutine
 !=====================================================================
-subroutine read_restart(mhgpsst)
+subroutine read_restart(mhgpsst,runObj)
     use module_base
+    use bigdft_run
     use module_mhgps_state
     implicit none
     !parameters
     type(mhgps_state), intent(inout) :: mhgpsst
+    type(run_objects), intent(in)     :: runObj
     !local
     integer :: u
     logical :: exists
+    integer :: iatt, iat
     u=f_get_free_unit()
     inquire(file='restart',exist=exists)
     if(exists)then
         open(unit=u,file='restart')
         read(u,*)mhgpsst%ifolder
         read(u,*)mhgpsst%isad,mhgpsst%isadprob
+        read(u,*)mhgpsst%nsad
         read(u,*)mhgpsst%ntodo
         read(u,*)mhgpsst%nrestart
         mhgpsst%nrestart=mhgpsst%nrestart+1
+        read(u,*)mhgpsst%nattempted,mhgpsst%nattemptedmax
+        mhgpsst%attempted_connections =&
+             f_malloc([3,runObj%atoms%astruct%nat,2,mhgpsst%nattemptedmax]&
+             ,id='mhgpsst%attempted_connections')
+        do iatt=1,mhgpsst%nattempted
+            do iat=1,runObj%atoms%astruct%nat
+            read(u,*)mhgpsst%attempted_connections(1,iat,1,iatt),&
+                     mhgpsst%attempted_connections(2,iat,1,iatt),&
+                     mhgpsst%attempted_connections(3,iat,1,iatt)
+            enddo
+            do iat=1,runObj%atoms%astruct%nat
+            read(u,*)mhgpsst%attempted_connections(1,iat,2,iatt),&
+                     mhgpsst%attempted_connections(2,iat,2,iatt),&
+                     mhgpsst%attempted_connections(3,iat,2,iatt)
+            enddo
+        enddo
         close(u)
     else
         mhgpsst%ifolder=1
         mhgpsst%isad=0
         mhgpsst%isadprob=0
         mhgpsst%ntodo=0
+        mhgpsst%nsad=0
         mhgpsst%nrestart=0
+        mhgpsst%nattempted=0
+        mhgpsst%nattemptedmax=1000
+        mhgpsst%attempted_connections =&
+             f_malloc([3,runObj%atoms%astruct%nat,2,mhgpsst%nattemptedmax]&
+             ,id='mhgpsst%attempted_connections')
     endif
 end subroutine read_restart
 !=====================================================================
-subroutine write_restart(mhgpsst,runObj,cobj)
+subroutine write_restart(mhgpsst,runObj,cobj,writeJobList)
     use module_base
     use bigdft_run
     use module_mhgps_state
@@ -98,17 +124,38 @@ subroutine write_restart(mhgpsst,runObj,cobj)
     type(mhgps_state), intent(inout)              :: mhgpsst
     type(run_objects), intent(in)     :: runObj
     type(connect_object), optional, intent(in) :: cobj
+    logical, optional, intent(in) :: writeJobList
     !local
     integer :: u
+    integer :: iatt, iat
+    logical :: wJl
+    wJl=.true.
     u=f_get_free_unit()
     open(unit=u,file='restart')
     write(u,*)mhgpsst%ifolder
     write(u,*)mhgpsst%isad,mhgpsst%isadprob
+    write(u,*)mhgpsst%nsad
     write(u,*)mhgpsst%ntodo
     write(u,*)mhgpsst%nrestart
+    write(u,*)mhgpsst%nattempted, mhgpsst%nattemptedmax
+    do iatt=1,mhgpsst%nattempted
+        do iat=1,runObj%atoms%astruct%nat
+        write(u,'(3(1x,es24.17))')mhgpsst%attempted_connections(1,iat,1,iatt),&
+                                mhgpsst%attempted_connections(2,iat,1,iatt),&
+                                mhgpsst%attempted_connections(3,iat,1,iatt)
+        enddo
+        do iat=1,runObj%atoms%astruct%nat
+        write(u,'(3(1x,es24.17))')mhgpsst%attempted_connections(1,iat,2,iatt),&
+                                mhgpsst%attempted_connections(2,iat,2,iatt),&
+                                mhgpsst%attempted_connections(3,iat,2,iatt)
+        enddo
+    enddo
     close(u)
     
-    call write_jobs(mhgpsst,runObj,cobj)
+    if(present(writeJobList)) wJl=writeJobList
+    if(wJl)then
+        call write_jobs(mhgpsst,runObj,cobj)
+    endif
 end subroutine write_restart
 !=====================================================================
 subroutine write_jobs(mhgpsst,runObj,cobj)
@@ -126,32 +173,48 @@ subroutine write_jobs(mhgpsst,runObj,cobj)
     integer :: ijob, u, ntodo
     character(len=1) :: comment
     character(len=21)  :: filenameR, filenameL
+    logical :: lw
     comment = ' ' 
+    
+    lw=.false.
 
-    u=f_get_free_unit()
-    open(unit=u,file=trim(adjustl(mhgpsst%currdir))//'/job_list_restart')
+    if(mhgpsst%ijob+1<=mhgpsst%njobs) lw=.true.
     if(present(cobj))then
-        do ijob=cobj%ntodo,1,-1
-            !write files
-            write(filenameR,'(a,i5.5,a,i5.5,a)')'restart_',&
-                                        mhgpsst%nrestart,'_',ijob,'_R'
-            call astruct_dump_to_file(bigdft_get_astruct_ptr(runObj),&
-                 trim(adjustl(mhgpsst%currDir))//'/'//trim(filenameR),&
-                 comment,rxyz=cobj%todorxyz(1,1,2,ijob))
-            write(filenameL,'(a,i5.5,a,i5.5,a)')'restart_',&
-                                        mhgpsst%nrestart,'_',ijob,'_L'
-            call astruct_dump_to_file(bigdft_get_astruct_ptr(runObj),&
-                 trim(adjustl(mhgpsst%currDir))//'/'//trim(filenameL),&
-                 comment,rxyz=cobj%todorxyz(1,1,1,ijob))
-            !write job file
-            write(u,'(a,1x,a)')trim(adjustl(filenameL)),trim(adjustl(filenameR))
-        enddo
+        if(cobj%ntodo>=1) lw=.true.
     endif
-    do ijob=mhgpsst%ijob+1,mhgpsst%njobs
-        write(u,'(a,1x,a)')trim(adjustl(mhgpsst%joblist(1,ijob)(10:))),&
-                           trim(adjustl(mhgpsst%joblist(2,ijob)(10:)))
-    enddo
-    close(u)
+    if(lw)then
+        u=f_get_free_unit()
+        open(unit=u,file=trim(adjustl(mhgpsst%currdir))//'/job_list_restart')
+            if(present(cobj))then
+                do ijob=cobj%ntodo,1,-1
+                    !write files
+                    write(filenameR,'(a,i5.5,a,i5.5,a)')'restart_',&
+                          mhgpsst%nrestart,'_',ijob,'_R'
+                    call astruct_dump_to_file(bigdft_get_astruct_ptr(runObj),&
+                         trim(adjustl(mhgpsst%currDir))//'/'//trim(filenameR),&
+                         comment,rxyz=cobj%todorxyz(1,1,2,ijob))
+                    write(filenameL,'(a,i5.5,a,i5.5,a)')'restart_',&
+                          mhgpsst%nrestart,'_',ijob,'_L'
+                    call astruct_dump_to_file(bigdft_get_astruct_ptr(runObj),&
+                         trim(adjustl(mhgpsst%currDir))//'/'//trim(filenameL),&
+                         comment,rxyz=cobj%todorxyz(1,1,1,ijob))
+                    !write job file
+                    write(u,'(a,1x,a)')trim(adjustl(filenameL)),trim(adjustl(filenameR))
+                enddo
+                do ijob=mhgpsst%ijob+1,mhgpsst%njobs
+                    write(u,'(a,1x,a)')trim(adjustl(mhgpsst%joblist(1,ijob)(10:))),&
+                                       trim(adjustl(mhgpsst%joblist(2,ijob)(10:)))
+                enddo
+            else
+                do ijob=mhgpsst%ijob+1,mhgpsst%njobs
+                    if(trim(adjustl(mhgpsst%joblist(1,ijob)(10:16)))/='restart')then
+                    write(u,'(a,1x,a)')trim(adjustl(mhgpsst%joblist(1,ijob)(10:))),&
+                                       trim(adjustl(mhgpsst%joblist(2,ijob)(10:)))
+                    endif
+                enddo
+            endif
+        close(u)
+    endif
      
 end subroutine write_jobs
 !=====================================================================
@@ -171,6 +234,11 @@ subroutine read_jobs(uinp,mhgpsst)
     character(len=6) :: filename
     integer :: ifile,iline,u,istat
     character(len=50) :: jobfile
+    !put a barrier for all the processes
+    !otherwise, the joblist file may be updated, before
+    !all procsesses have read the identical file
+    call mpibarrier(bigdft_mpi%mpi_comm)
+
     inquire(file=trim(adjustl(mhgpsst%currDir))//'/job_list',exist=exists)
     if(exists)jobfile=trim(adjustl(mhgpsst%currDir))//'/'//'job_list'
     inquire(file=trim(adjustl(mhgpsst%currDir))//'/job_list_restart',&
@@ -207,6 +275,7 @@ subroutine read_jobs(uinp,mhgpsst)
                 call f_err_throw(trim(adjustl(jobfile))//' empty')
             endif
         else if(trim(adjustl(uinp%operation_mode))=='simple'.or.&
+                trim(adjustl(uinp%operation_mode))=='simpleandminimize'.or.&
                 trim(adjustl(uinp%operation_mode))=='hessian'.or.&
                 trim(adjustl(uinp%operation_mode))=='minimize')then
             do iline=1,999
@@ -220,6 +289,9 @@ subroutine read_jobs(uinp,mhgpsst)
                      trim(adjustl(mhgpsst%joblist(1,iline))))
                 mhgpsst%njobs=mhgpsst%njobs+1
             enddo
+        else
+            call f_err_throw('Operationmode '//&
+                 trim(adjustl(uinp%operation_mode))//' unknown.')
         endif
         close(u)
     else
@@ -239,6 +311,7 @@ subroutine read_jobs(uinp,mhgpsst)
                 mhgpsst%njobs=mhgpsst%njobs+1
             enddo
         else if(trim(adjustl(uinp%operation_mode))=='simple'.or.&
+                trim(adjustl(uinp%operation_mode))=='simpleandminimize'.or.&
                 trim(adjustl(uinp%operation_mode))=='hessian'.or.&
                 trim(adjustl(uinp%operation_mode))=='minimize')then
             do ifile=1,999
@@ -250,9 +323,16 @@ subroutine read_jobs(uinp,mhgpsst)
                 if(.not.fexists)exit
                 mhgpsst%njobs=mhgpsst%njobs+1
             enddo
+        else
+            call f_err_throw('Operationmode '//&
+                 trim(adjustl(uinp%operation_mode))//' unknown.')
         endif
     endif
 
+    !put a barrier for all the processes
+    !otherwise, the joblist file may be updated, before
+    !all procsesses have read the identical file
+    call mpibarrier(bigdft_mpi%mpi_comm)
 end subroutine
 !=====================================================================
 subroutine check_struct_file_exists(filename,exists)
@@ -309,7 +389,8 @@ subroutine read_mode(mhgpsst,nat,filename,minmode)
     type(atomic_structure):: astruct !< Contains all info
 
 
-    call read_atomic_file(filename,mhgpsst%iproc,astruct)
+    call read_atomic_file(filename,mhgpsst%iproc,astruct,&
+         disableTrans=.true.)
     if(nat/=astruct%nat) &
          call f_err_throw('(MHGPS) severe error in read_mode: '//&
          'nat/=astruct%nat')
@@ -379,10 +460,11 @@ subroutine print_logo_mhgps(mhgpsst)
     call yaml_scalar('(MHGPS)')
     !call print_logo()
     call yaml_mapping_close()
-    call yaml_mapping_open('(MHGPS) Reference Paper')
-    call yaml_scalar('(MHGPS) The Journal of Chemical Physics 140 (21):214102 (2014)')
+    call yaml_mapping_open('(MHGPS) Reference Papers')
+    call yaml_scalar('(MHGPS) The Journal of Chemical Physics 140, 214102 (2014)')
+    call yaml_scalar('(MHGPS) The Journal of Chemical Physics 142, 034112 (2015)')
     call yaml_mapping_close()
-    call yaml_map('(MHGPS) Version Number',mhgpsst%mhgps_version)
+    call yaml_map('(MHGPS) Version Number',trim(adjustl(mhgpsst%mhgps_version)))
     call yaml_map('(MHGPS) Timestamp of this run',yaml_date_and_time_toa())
 end subroutine print_logo_mhgps
 

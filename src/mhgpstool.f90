@@ -12,45 +12,45 @@ program mhgpstool
     use module_interfaces
     use yaml_output
     use bigdft_run
-    use module_atoms, only: astruct_dump_to_file
+    use module_atoms, only: set_astruct_from_file
     use module_mhgpstool
     use module_userinput, read_mhgps_input => read_input
     implicit none
     type(atoms_data) :: atoms
-    type(userinput) :: mhgps_uinp
     type(mhgpstool_data) :: mdat
     integer :: nat
     integer          :: nfolder
     character(len=500), allocatable :: folders(:)
     character(len=600) :: filename
     integer, allocatable :: nsad(:)
-!character(len=500) :: fsaddle,comment
-!real(gp) :: energy
-!real(gp) :: rxyz(3,38)
-
+    real(gp) :: energy
 
     call f_lib_initialize()
 
     call yaml_new_document()
 
     call read_folders(nfolder,folders)
+    call read_mhgps_input(mdat%mhgps_uinp)
     nsad = f_malloc((/ 1.to.nfolder/),id='nsad')
-    write(filename,'(a,i5.5,a)')trim(adjustl(folders(1))),1,'_finalF'
+    write(filename,'(a,i5.5,a)')trim(adjustl(folders(1)))//'/sad',1,'_finalF'
     nat = bigdft_nat(filename=filename)
     call count_saddle_points(nfolder,folders,nsad)
     call init_mhgpstool_data(nat,nfolder,nsad,mdat)
-    call read_and_merge_data(folders,mdat)
+    call set_astruct_from_file(trim(filename),0,mdat%astruct,energy=energy)
+    call yaml_comment('Covalent radii ....',hfill='-')
+    call give_rcov(0,mdat%astruct,mdat%astruct%nat,mdat%rcov)
+    call read_and_merge_data(folders,nsad,mdat)
 
-    call read_mhgps_input(mhgps_uinp)
 !write(fsaddle,'(a,i5.5,a)')trim(adjustl(folders(1)))//&
 !                               '/sad',1,'_finalF'
 !    call bigdft_get_rxyz(filename=trim(adjustl(fsaddle)),rxyz=rxyz,energy=energy)
 !write(*,*)energy
+    call write_data(mdat)
 
     call finalize_mhgpstool_data(mdat)
     call f_free_str(500,folders)
     call f_free(nsad)
 
-    call f_lib_finalize()
     call yaml_release_document()
+    call f_lib_finalize()
 end program mhgpstool

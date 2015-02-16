@@ -26,6 +26,7 @@ type userinput
     !input parameters for mhgps
     integer          :: mhgps_verbosity     = 3
     logical          :: external_mini       = .false.
+    logical          :: singlestep          = .false.
 
     !input parameters for sqnm saddle_search
     character(len=20) :: operation_mode             = 'connect'
@@ -181,7 +182,7 @@ contains
              stop
         endif
         open(u,file=filename)
-            read(u,*)uinp%mhgps_verbosity
+            read(u,*)uinp%mhgps_verbosity, uinp%singlestep
             read(u,*)uinp%operation_mode, uinp%random_minmode_guess
             read(u,*)uinp%nsadmax
             read(u,*)uinp%external_mini
@@ -213,6 +214,7 @@ contains
             read(u,*)uinp%saddle_cutoffratio
             read(u,*)uinp%saddle_recompIfCurvPos
             read(u,*)uinp%saddle_stepoff, uinp%saddle_scale_stepoff
+            uinp%saddle_scale_stepoff = abs(uinp%saddle_scale_stepoff)
             if(.not.uinp%external_mini)then
                 read(u,*)uinp%mini_nhistx
                 read(u,*)uinp%mini_ncluster_x
@@ -236,7 +238,7 @@ contains
         integer, parameter :: u=237
         character(17), parameter :: filename='mhgps.inp_default'
         open(u,file=filename)
-            write(u,'(1x,i0.0,1x,1a)')uinp%mhgps_verbosity,' #mhgps_verbosity'
+            write(u,'(1x,i0.0,1x,1L1,1x,1a)')uinp%mhgps_verbosity,uinp%singlestep,' #mhgps_verbosity,  singlestep'
             write(u,'(1x,1L1,1x,1L1,1x,1a)')trim(adjustl(uinp%operation_mode)),uinp%random_minmode_guess,&
                  ' #mode, random_minmode_guess'
             write(u,'(1x,i0.0,1x,1a)')uinp%nsadmax,' #nsadmax'
@@ -351,14 +353,14 @@ contains
     end subroutine print_input
 
 
-subroutine give_rcov(mhgpsst,astruct,nat,rcov)
+subroutine give_rcov(iproc,astruct,nat,rcov)
   use module_base, only: gp
   use module_types
   use yaml_output
   use module_mhgps_state
   implicit none
   !Arguments
-  type(mhgps_state), intent(in) :: mhgpsst
+  integer, intent(in) :: iproc
   integer, intent(in) :: nat
   type(atomic_structure), intent(in) :: astruct
   real(gp), intent(out) :: rcov(nat)
@@ -550,7 +552,7 @@ subroutine give_rcov(mhgpsst,astruct,nat,rcov)
              //trim(astruct%atomnames(astruct%iatype(iat))),&
              err_name='BIGDFT_RUNTIME_ERROR')
      end select
-     if (mhgpsst%iproc == 0) then
+     if (iproc == 0) then
         call yaml_map('(MHGPS) RCOV:'//trim(astruct%atomnames(astruct%iatype(iat))),rcov(iat))
      endif
   enddo

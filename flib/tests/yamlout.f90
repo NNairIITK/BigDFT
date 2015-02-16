@@ -115,6 +115,13 @@ subroutine test_yaml_output2()
            '-Wl,--end-group -openmp -lpthread -lm')
       call yaml_map('Long string array',(/('compiler',i=1,10)/))
    call yaml_mapping_close()
+
+   !test the definition of the warnings
+   call yaml_warning('Test warning 1')
+   call yaml_warning('Test warning 1, should not be repeated again')
+   call yaml_warning('Test warning 2')
+   call yaml_warning('Test warning 1, should not be repeated again')
+
 !stop
 end subroutine test_yaml_output2
 

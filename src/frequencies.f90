@@ -35,7 +35,7 @@ program frequencies
    real(gp), parameter :: Temperature=300.0_gp !< Temperature (300K)
    character(len=*), dimension(3), parameter :: cc = (/ 'x', 'y', 'z' /)
    !File unit
-   integer, parameter :: u_hessian=20, u_dynamical=21, u_freq=15
+   integer, parameter :: u_hessian=20, u_dynamical=21, u_freq=15, u_hess=35
    real(gp) :: alat,dd,rmass
    character(len=60) :: run_id
    !Input variables
@@ -279,7 +279,7 @@ program frequencies
                   call f_err_throw('(F) Frequencies: This order '//trim(yaml_toa(order))//' is not allowed!',&
                        err_name='FREQUENCIES_ORDER_ERROR')
                end select
-               hessian(jj,ii) = dd
+               if (move_this_coordinate(ifrztyp0(jat),j)) hessian(jj,ii) = dd
                dynamical(jj,ii) = dd/rmass
             end do
          end do
@@ -301,7 +301,6 @@ program frequencies
    !Deallocations
    call f_free(fpos)
    call f_free(kmoves)
-   call f_free(hessian)
 
    !Symmetrization of the dynamical matrix
    !Even if we can calculate more second derivatives, we have only nfree diagonal terms
@@ -316,12 +315,48 @@ program frequencies
          dsym = dsym + (tij-tji)**2
       end do
    end do
+   !Symmetrization of the hessian
+   do i=1,3*runObj%atoms%astruct%nat
+      do j=i+1,3*runObj%atoms%astruct%nat
+         tij = hessian(i,j)
+         tji = hessian(j,i)
+         !We symmetrize
+         hessian(j,i) = 0.5d0 * (tij+tji)
+         hessian(i,j) = hessian(j,i)
+      end do
+   end do
+
+    !write symmetrized hessian to file
+    open(unit=u_hess,file='hessian_symmetrized.dat')
+    do i=1,3*runObj%atoms%astruct%nat
+        write(u_hess,'(60(1x,es24.17))')(hessian(i,j),j=1,3*runObj%atoms%astruct%nat)
+    enddo
+    close(u_hess)
+
 
    !Allocations
    eigens    = f_malloc(3*runObj%atoms%astruct%nat,id='eigens')
    vectors   = f_malloc((/ 3*runObj%atoms%astruct%nat, 3*runObj%atoms%astruct%nat /),id='vectors')
    sort_work = f_malloc(3*runObj%atoms%astruct%nat,id='sort_work')
    iperm     = f_malloc(3*runObj%atoms%astruct%nat,id='iperm')
+
+   !Diagonalise the hessian
+   call solve(hessian,3*runObj%atoms%astruct%nat,eigens,vectors)
+   !Sort eigenvalues in descending order (use abinit routine sort_dp)
+   sort_work=eigens
+   do i=1,3*runObj%atoms%astruct%nat
+      iperm(i)=i
+   end do
+   call sort_dp(3*runObj%atoms%astruct%nat,sort_work,iperm,tol_freq)
+   if (bigdft_mpi%iproc == 0) then
+      call yaml_comment('(F) Hessian results',hfill='=')
+      call yaml_map('(F) Full Hessian Matrix Calculation',nfree == 3*runObj%atoms%astruct%nat)
+      call yaml_map('(F) Number of calculated degrees of freedom',nfree)
+      call yaml_map('(F) Hessian Eigenvalues',eigens(iperm(3*runObj%atoms%astruct%nat:1:-1)),fmt='(1pe20.10)')
+   endif
+
+   call f_free(hessian)
+
 
    !Diagonalise the dynamical matrix
    call solve(dynamical,3*runObj%atoms%astruct%nat,eigens,vectors)

@@ -52,7 +52,7 @@ SOURCES_MOD = PSolver_Main.f90 createKernel.f90
 EXTRA_DIST = \
 	gaussfit_wires.inc\
 	gaussfit_Yukawa.inc\
-	lazy_8.inc\
+	lazy_100.inc\
 	lazy_14.inc\
 	lazy_16.inc\
 	lazy_20.inc\
@@ -61,18 +61,19 @@ EXTRA_DIST = \
 	lazy_40.inc\
 	lazy_50.inc\
 	lazy_60.inc\
-	lazy_100.inc\
-	lazy_ISF_8_2048.inc\
+	lazy_8.inc\
+	lazy_2.inc\
+	lazy_ISF_100_2048.inc\
 	lazy_ISF_14_2048.inc\
-	lazy_ISF_16_2048.preinc\
 	lazy_ISF_16_2048.inc\
+	lazy_ISF_16_2048.preinc\
 	lazy_ISF_20_2048.inc\
 	lazy_ISF_24_2048.inc\
 	lazy_ISF_30_2048.inc\
-	lazy_ISF_40_2048.inc \
+	lazy_ISF_40_2048.inc\
 	lazy_ISF_50_2048.inc\
 	lazy_ISF_60_2048.inc\
-	lazy_ISF_100_2048.inc\
+	lazy_ISF_8_2048.inc\
 	perfdata.inc\
 	configure.inc.in\
 	FiniteDiffCorff.inc\

@@ -17,11 +17,12 @@ module module_hessian
 contains
 
    !> Reza's routine for finite difference hessian
-   subroutine cal_hessian_fd(mhgpsst,runObj,outs,pos,hess)
+   subroutine cal_hessian_fd(mhgpsst,runObj,outs,pos,hess,nfree)
       use module_base, only: gp, f_malloc, f_free, assignment(=)
       use module_energyandforces, only: mhgpsenergyandforces
       use bigdft_run, only: run_objects, state_properties
       use module_mhgps_state
+   use module_Atoms, only: move_this_coordinate
       implicit none
       type(mhgps_state), intent(inout) :: mhgpsst
       type(run_objects), intent(inout) :: runObj
@@ -33,17 +34,23 @@ contains
       !real(gp) :: t1,t2,t3
       !real(gp), allocatable, dimension(:,:) :: hess
       real(gp), allocatable, dimension(:) :: tpos,grad,eval,workf
-      real(gp) :: h,rlarge,twelfth,twothird,etot,cmx,cmy,cmz,dm,tt
-      real(gp) :: s,fnoise
-      integer :: i,j,k,lworkf,infocode
+      real(gp) :: h,twelfth,twothird,etot,cmx,cmy,cmz,dm,tt
+      real(gp) :: s
+      integer :: i,j,k,lworkf,infocode,idir,jat,jdir
+      integer, dimension(:), allocatable :: ifrztyp0 !< To avoid to freeze the atoms for bigdft_state
+      integer :: ifree, jfree,nfree
 
       !allocate(hess(3*runObj%atoms%astruct%nat,3*runObj%atoms%astruct%nat))
       tpos = f_malloc(3*runObj%atoms%astruct%nat,id='tpos')
       grad = f_malloc(3*runObj%atoms%astruct%nat,id='grad')
       eval = f_malloc(3*runObj%atoms%astruct%nat,id='eval')
+      ifrztyp0 = f_malloc(runObj%atoms%astruct%nat, id = 'ifrztyp0')
 
       lworkf=1000*runObj%atoms%astruct%nat
       workf = f_malloc(lworkf,id='workf')
+
+      ifrztyp0 = runObj%atoms%astruct%ifrztyp                             
+!      runObj%atoms%astruct%ifrztyp = 0 
 
       !h=1.e-1_gp
       !h=7.5e-2_gp
@@ -52,41 +59,81 @@ contains
       !h=1.e-2_gp
       !h=5.e-3_gp
       !h=2.e-2_gp
-      rlarge=1._gp*1.e4_gp
       twelfth=-1._gp/(12._gp*h)
       twothird=-2._gp/(3._gp*h)
+      hess=0.0_gp
       if(mhgpsst%iproc==0) write(*,*) '(hess) HESSIAN: h',h
       !-------------------------------------------------------
+      ifree=0
+      nfree=0
       do i=1,3*runObj%atoms%astruct%nat
          iat=(i-1)/3+1
-         do k=1,3*runObj%atoms%astruct%nat
-             tpos(k)=pos(k)
-             grad(k)=0._gp
+         idir=i-3*(iat-1)
+         if (.not.move_this_coordinate(ifrztyp0(iat),idir)) then          
+            cycle                                                      
+         end if 
+         nfree=nfree+1
+         ifree=ifree+1
+         do j=1,3*runObj%atoms%astruct%nat
+             tpos(j)=pos(j)
+             grad(j)=0._gp
          enddo
          !-----------------------------------------
          tpos(i)=tpos(i)-2*h
-         call mhgpsenergyandforces(mhgpsst,runObj,outs,tpos,grad,fnoise,etot,infocode)
+         call mhgpsenergyandforces(mhgpsst,runObj,outs,tpos,grad,etot,infocode)
+         jfree=0
          do j=1,3*runObj%atoms%astruct%nat
-             hess(j,i)=twelfth*grad(j)
+         jat=(j-1)/3+1
+         jdir=j-3*(jat-1)
+         if (.not.move_this_coordinate(ifrztyp0(jat),jdir)) then          
+            cycle                                                      
+         end if 
+             jfree=jfree+1
+             hess(jfree,ifree)=twelfth*grad(j)
+!             hess(j,i)=twelfth*grad(j)
          enddo
          !if(mhgpsst%iproc==0) write(*,*) 'ALIREZA-6',i,iat
          !-----------------------------------------
          tpos(i)=tpos(i)+h
-         call mhgpsenergyandforces(mhgpsst,runObj,outs,tpos,grad,fnoise,etot,infocode)
+         call mhgpsenergyandforces(mhgpsst,runObj,outs,tpos,grad,etot,infocode)
+         jfree=0
          do j=1,3*runObj%atoms%astruct%nat
-         hess(j,i)=hess(j,i)-twothird*grad(j)
+         jat=(j-1)/3+1
+         jdir=j-3*(jat-1)
+         if (.not.move_this_coordinate(ifrztyp0(jat),jdir)) then          
+            cycle                                                      
+         end if 
+             jfree=jfree+1
+         hess(jfree,ifree)=hess(jfree,ifree)-twothird*grad(j)
+!         hess(j,i)=hess(j,i)-twothird*grad(j)
          enddo
          !-----------------------------------------
          tpos(i)=tpos(i)+2*h
-         call mhgpsenergyandforces(mhgpsst,runObj,outs,tpos,grad,fnoise,etot,infocode)
+         call mhgpsenergyandforces(mhgpsst,runObj,outs,tpos,grad,etot,infocode)
+         jfree=0
          do j=1,3*runObj%atoms%astruct%nat
-         hess(j,i)=hess(j,i)+twothird*grad(j)
+         jat=(j-1)/3+1
+         jdir=j-3*(jat-1)
+         if (.not.move_this_coordinate(ifrztyp0(jat),jdir)) then          
+            cycle                                                      
+         end if 
+             jfree=jfree+1
+         hess(jfree,ifree)=hess(jfree,ifree)+twothird*grad(j)
+!         hess(j,i)=hess(j,i)+twothird*grad(j)
          enddo
          !-----------------------------------------
          tpos(i)=tpos(i)+h
-         call mhgpsenergyandforces(mhgpsst,runObj,outs,tpos,grad,fnoise,etot,infocode)
+         call mhgpsenergyandforces(mhgpsst,runObj,outs,tpos,grad,etot,infocode)
+         jfree=0
          do j=1,3*runObj%atoms%astruct%nat
-         hess(j,i)=hess(j,i)-twelfth*grad(j)
+         jat=(j-1)/3+1
+         jdir=j-3*(jat-1)
+         if (.not.move_this_coordinate(ifrztyp0(jat),jdir)) then          
+            cycle                                                      
+         end if 
+             jfree=jfree+1
+         hess(jfree,ifree)=hess(jfree,ifree)-twelfth*grad(j)
+!         hess(j,i)=hess(j,i)-twelfth*grad(j)
          !write(*,*) 'HESS ',j,i,hess(j,i)
          enddo
          !-----------------------------------------
@@ -95,7 +142,8 @@ contains
 
       !check symmetry
       dm=0._gp
-      do i=1,3*runObj%atoms%astruct%nat
+      do i=1,nfree
+!      do i=1,3*runObj%atoms%astruct%nat
          do j=1,i-1
             s=.5_gp*(hess(i,j)+hess(j,i))
             tt=abs(hess(i,j)-hess(j,i))/(1._gp+abs(s))
@@ -128,10 +176,12 @@ contains
          workf(i+1)= (pos(i+0)-cmx)
          workf(i+0)=-(pos(i+1)-cmy)
       enddo
+      runObj%atoms%astruct%ifrztyp = ifrztyp0 
       call f_free(tpos)
       call f_free(grad)
       call f_free(eval)
       call f_free(workf)
+      call f_free(ifrztyp0)
    end subroutine cal_hessian_fd
 
 end module module_hessian

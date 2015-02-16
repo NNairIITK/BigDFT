@@ -67,7 +67,7 @@ program wvl
    call user_dict_from_files(user_inputs, 'input', 'posinp', bigdft_mpi)
    call inputs_from_dict(inputs, atoms, user_inputs)
    if (iproc == 0) then
-      call print_general_parameters(inputs,atoms)
+      call print_general_parameters(inputs,atoms,'input','posinp')
    end if
    call dict_free(user_inputs)
    GPU%OCLconv = .false.
@@ -302,9 +302,8 @@ program wvl
   deallocate(psi)
 
   call deallocate_comms(comms)
-  call deallocate_wfd(Lzd%Glr%wfd)
-
-  call deallocate_bounds(Lzd%Glr%geocode,Lzd%Glr%hybrid_on,Lzd%Glr%bounds)
+  
+  call deallocate_locreg_descriptors(Lzd%Glr)
 
   call deallocate_Lzd_except_Glr(Lzd)
   !deallocate(Lzd%Glr%projflg)

@@ -670,7 +670,7 @@ subroutine default_confinement_data(confdatarr,norbp)
      confdatarr(iorb)%ioffset(1) =UNINITIALIZED(confdatarr(iorb)%ioffset(1)) 
      confdatarr(iorb)%ioffset(2) =UNINITIALIZED(confdatarr(iorb)%ioffset(2)) 
      confdatarr(iorb)%ioffset(3) =UNINITIALIZED(confdatarr(iorb)%ioffset(3)) 
-
+     confdatarr(iorb)%damping    =UNINITIALIZED(confdatarr(iorb)%damping)
   end do
 end subroutine default_confinement_data
 
@@ -709,6 +709,7 @@ subroutine define_confinement_data(confdatarr,orbs,rxyz,at,hx,hy,hz,&
      confdatarr(iorb)%ioffset(1)=lzd%llr(ilr)%nsi1-nl1-1
      confdatarr(iorb)%ioffset(2)=lzd%llr(ilr)%nsi2-nl2-1
      confdatarr(iorb)%ioffset(3)=lzd%llr(ilr)%nsi3-nl3-1
+     confdatarr(iorb)%damping   =1.0_gp
   end do
 
 contains

@@ -202,6 +202,7 @@ end subroutine glr_new
 
 subroutine glr_copy(glr, d, wfd, from)
   use module_types
+  use locregs, only: copy_locreg_descriptors
   implicit none
   type(locreg_descriptors), pointer :: glr
   type(grid_dimensions), pointer :: d
@@ -334,6 +335,7 @@ end subroutine glr_get_locreg_data
 
 subroutine glr_set_wfd_dims(glr, nseg_c, nseg_f, nvctr_c, nvctr_f)
   use module_types
+  use locregs, only: allocate_wfd
   implicit none
   type(locreg_descriptors), intent(inout) :: glr
   integer, intent(in) :: nseg_c, nseg_f, nvctr_c, nvctr_f
@@ -885,8 +887,9 @@ subroutine orbs_open_file(orbs, unitwf, name, ln, iformat, iorbp, ispinor)
   use module_interfaces, only: open_filename_of_iorb
   implicit none
   type(orbitals_data), intent(in) :: orbs
-  integer, intent(in) :: unitwf, ln, iformat, iorbp, ispinor
+  integer, intent(in) :: ln, iformat, iorbp, ispinor
   character(len = 1), dimension(ln), intent(in) :: name
+  integer, intent(inout) :: unitwf
 
   character(len = ln) :: filename
   integer :: i, iorb_out
@@ -1579,7 +1582,7 @@ subroutine run_objects_dump_to_file(iostat, dict, fname, userOnly,ln)
   integer, intent(in) :: ln
   integer, intent(out) :: iostat
   type(dictionary), pointer :: dict
-  character(len = ln), intent(in) :: fname
+  character(len = *), intent(in) :: fname
   logical, intent(in) :: userOnly
 
   integer, parameter :: iunit_true = 145214 !< Hopefully being unique...
@@ -1595,7 +1598,7 @@ subroutine run_objects_dump_to_file(iostat, dict, fname, userOnly,ln)
      iostat = 1
      return
   end if
-  call f_strcpy(src=fname,dest=filetmp)
+  call f_strcpy(src=fname(1:ln),dest=filetmp)
   open(unit = iunit, file =trim(filetmp), iostat = iostat)
   if (iostat /= 0) return
   call yaml_set_stream(unit = iunit, tabbing = 40, record_length = 100, istat = iostat)

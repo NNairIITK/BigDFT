@@ -565,6 +565,18 @@ contains
     implicit none
     type(dictionary), target :: dict
     type(dictionary) :: child
+!!$    type(dictionary), pointer :: dict
+!!$    type(dictionary), pointer :: child
+
+    !local variables
+    type(dictionary), pointer :: iter
+
+!!$    !eliminate recursion
+!!$    iter => child
+!!$    do while(associated(iter))
+!!$       iter%parent=>dict
+!!$       iter => iter%next
+!!$    end do
 
     child%parent=>dict
     if (associated(child%next)) call define_parent(dict,child%next)
@@ -642,7 +654,6 @@ contains
        call set_elem(dict%child,key)
        subd_ptr => dict%child
     end if
-
   end function get_child_ptr
 
 

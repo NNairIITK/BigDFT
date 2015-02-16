@@ -616,6 +616,8 @@ contains
     real(gp), dimension(3) :: radii_cf
     character(len = max_field_length) :: source_val
 
+    call f_routine(id='psp_dict_fill_all')
+
     filename = 'psppar.' // atomname
     dict_psp => dict // filename !inquire for the key?
 
@@ -710,6 +712,8 @@ contains
     call set(radii // FINE, radii_cf(2))
     call set(radii // COARSE_PSP, radii_cf(3))
     call set(radii // SOURCE_KEY, source_val)
+
+    call f_release_routine()
     
   end subroutine psp_dict_fill_all
 
@@ -723,6 +727,7 @@ contains
     use m_pawtab, only: pawtab_type, pawtab_nullify
     use psp_projectors, only: PSPCODE_PAW
     use public_keys, only: SOURCE_KEY
+    use dynamic_memory
     implicit none
     !Arguments
     type(dictionary), pointer :: dict        !< Input dictionary
@@ -737,6 +742,8 @@ contains
     logical :: pawpatch, l
     integer :: paw_tot_l,  paw_tot_q, paw_tot_coefficients, paw_tot_matrices
     character(len = max_field_length) :: fpaw
+
+    call f_routine(id='psp_dict_analyse')
 
     if (.not. associated(atoms%nzatom)) then
        call allocate_atoms_data(atoms)
@@ -800,6 +807,9 @@ contains
        nullify(atoms%paw_nofgaussians,atoms%paw_Greal,atoms%paw_Gimag)
        nullify(atoms%paw_Gcoeffs,atoms%paw_H_matrices,atoms%paw_S_matrices,atoms%paw_Sm1_matrices)
     end if
+
+    call f_release_routine()
+
   end subroutine psp_dict_analyse
 
 
@@ -1420,7 +1430,7 @@ contains
 
           call astruct_at_from_dict(at, str, rxyz_add = astruct%rxyz(1, iat), &
                & ifrztyp = astruct%ifrztyp(iat), igspin = igspin, igchrg = igchrg, &
-               & ixyz_add = astruct%ixyz_int(1,iat))
+               & ixyz_add = astruct%ixyz_int(1,iat), rxyz_int_add = astruct%rxyz_int(1,iat))
           astruct%iatype(iat) = types // str
           astruct%input_polarization(iat) = 1000 * igchrg + sign(1, igchrg) * 100 + igspin
 

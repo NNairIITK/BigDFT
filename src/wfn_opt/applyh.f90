@@ -50,6 +50,8 @@ subroutine local_hamiltonian(iproc,nproc,npsidim_orbs,orbs,Lzd,hx,hy,hz,&
   real(wp), dimension(:,:), allocatable :: psir
   !!write(*,*) 'condition',(present(dpbox) .and. present(potential) .and. present(comgp))
 
+  call f_routine(id='local_hamiltonian')
+
   epot=0.d0
   ekin=0.d0
 
@@ -196,6 +198,8 @@ subroutine local_hamiltonian(iproc,nproc,npsidim_orbs,orbs,Lzd,hx,hy,hz,&
 !!$end if
 !!$end do
 
+  call f_release_routine()
+
 END SUBROUTINE local_hamiltonian
 
 !> Calculate the action of the local potential on the orbitals
@@ -234,6 +238,7 @@ subroutine psi_to_vlocpsi(iproc,npsidim_orbs,orbs,Lzd,&
   type(workarr_sumrho) :: w
   real(wp), dimension(:,:), allocatable :: psir,vsicpsir,psir_noconf
 
+  call f_routine(id='psi_to_vlocpsi')
 
   !some checks
   exctXcoeff=xc_exctXfac(xc)
@@ -398,6 +403,7 @@ end do loop_lr
 
 call deallocate_work_arrays_sumrho(w)
 
+call f_release_routine()
 
 END SUBROUTINE psi_to_vlocpsi
 
@@ -504,6 +510,8 @@ subroutine psir_to_vpsi(npot,nspinor,lr,pot,vpsir,epot,confdata,vpsir_noconf,eco
   logical :: confining
   integer, dimension(3) :: ishift !temporary variable in view of wavefunction creation
 
+  call f_routine(id='psir_to_vpsi')
+
   epot=0.0_gp
   ishift=(/0,0,0/)
   confining=present(confdata)
@@ -557,6 +565,8 @@ subroutine psir_to_vpsi(npot,nspinor,lr,pot,vpsir,epot,confdata,vpsir_noconf,eco
              nspinor,npot,vpsir,pot,epot)
      end if
   end if
+
+  call f_release_routine()
 
 end subroutine psir_to_vpsi
 
@@ -779,6 +789,8 @@ subroutine applyprojectorsonthefly(iproc,orbs,at,lr,&
   integer :: iat,nwarnings,iproj,iorb
   integer :: iatype
   integer :: istart_c,idir,isorb,ieorb,ikpt,nspinor,ispsi_k,ispsi
+
+  call f_routine(id='applyprojectorsonthefly')
   
   !put idir=0, no derivative
   idir=0
@@ -847,6 +859,8 @@ subroutine applyprojectorsonthefly(iproc,orbs,at,lr,&
         !write(*,'(1x,a,f6.3)') 'Consider the possibility of modifying hgrid and/or the localisation radii.'
      end if
   end if
+
+  call f_release_routine()
 
 END SUBROUTINE applyprojectorsonthefly
 

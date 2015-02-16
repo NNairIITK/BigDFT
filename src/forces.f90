@@ -14,6 +14,7 @@ subroutine calculate_forces(iproc,nproc,psolver_groupsize,Glr,atoms,orbs,nlpsp,r
   use module_interfaces, except_this_one => calculate_forces
   use communications_base
   use yaml_output
+  use module_forces
   implicit none
   logical, intent(in) :: refill_proj
   integer, intent(in) :: iproc,nproc,i3s,n3p,nspin,psolver_groupsize,imode,nsize_psi
@@ -44,9 +45,6 @@ subroutine calculate_forces(iproc,nproc,psolver_groupsize,Glr,atoms,orbs,nlpsp,r
   call local_forces(iproc,atoms,rxyz,0.5_gp*hx,0.5_gp*hy,0.5_gp*hz,&
        Glr%d%n1,Glr%d%n2,Glr%d%n3,n3p,i3s,Glr%d%n1i,Glr%d%n2i,rho,pot,fxyz,strtens(1,1),charge)
 
-  !!do iat=1,atoms%astruct%nat
-  !!    write(4000+iproc,'(a,i8,3es15.6)') 'iat, fxyz(:,iat)', iat, fxyz(:,iat)
-  !!end do
 
   !!do iat=1,atoms%astruct%nat
   !!    write(4100+iproc,'(a,i8,3es15.6)') 'iat, fxyz(:,iat)', iat, fxyz(:,iat)
@@ -124,19 +122,23 @@ subroutine calculate_forces(iproc,nproc,psolver_groupsize,Glr,atoms,orbs,nlpsp,r
   !!    write(4400+iproc,'(a,i8,3es15.6)') 'iat, fxyz(:,iat)', iat, fxyz(:,iat)
   !!end do
 
+  ! @ NEW: POSSIBLE CONSTRAINTS IN INTERNAL COORDINATES ############
+  if (atoms%astruct%inputfile_format=='int') then
+      if (iproc==0) call yaml_map('cleaning using internal coordinates','Yes')
+      !if (bigdft_mpi%iproc==0) call yaml_map('force start',fxyz)
+      !if (bigdft_mpi%iproc==0) call yaml_map('BEFORE: MAX COMPONENT',maxval(fxyz))
+      call internal_forces(atoms%astruct%nat, rxyz, atoms%astruct%ixyz_int, atoms%astruct%ifrztyp, fxyz)
+      !if (bigdft_mpi%iproc==0) call yaml_map('AFTER: MAX COMPONENT',maxval(fxyz))
+  end if
+  ! @ ##############################################################
+
+
   !clean the center mass shift and the torque in isolated directions
   call clean_forces(iproc,atoms,rxyz,fxyz,fnoise)
   !!do iat=1,atoms%astruct%nat
   !!    write(4500+iproc,'(a,i8,3es15.6)') 'iat, fxyz(:,iat)', iat, fxyz(:,iat)
   !!end do
 
-  ! @ NEW: POSSIBLE CONSTRAINTS IN INTERNAL COORDINATES ############
-  if (atoms%astruct%inputfile_format=='int') then
-      if (iproc==0) call yaml_map('converting to  internal coordinates','Yes')
-      !!if (bigdft_mpi%iproc==0) call yaml_map('force start',fxyz)
-      call internal_forces(atoms%astruct%nat, rxyz, atoms%astruct%ixyz_int, atoms%astruct%ifrztyp, fxyz)
-  end if
-  ! @ ##############################################################
 
   ! Apply symmetries when needed
   if (atoms%astruct%sym%symObj >= 0) call symmetrise_forces(fxyz,atoms)
@@ -3430,179 +3432,179 @@ subroutine normalizevector(n,v)
 END SUBROUTINE normalizevector
 
 
-subroutine clean_forces(iproc,at,rxyz,fxyz,fnoise)
-  use module_base
-  use module_atoms!types
-  use yaml_output
-  implicit none
-  integer, intent(in) :: iproc
-  type(atoms_data), intent(in) :: at
-  real(gp), dimension(3,at%astruct%nat), intent(in) :: rxyz
-  real(gp), dimension(3,at%astruct%nat), intent(inout) :: fxyz
-  real(gp), intent(out) :: fnoise
-  !local variables
-  integer :: iat,ixyz, ijk(3)
-  real(gp) :: sumx,sumy,sumz, u(3), scal
-  !my variables
-  real(gp):: fmax1,t1,t2,t3,fnrm1
-  real(gp):: fmax2,fnrm2
-  !local variables for blocs (FL)
-  integer :: n_bloc1, n_bloc2                 !< Number of atoms allowed to move only as blocs.
-  real(gp), dimension(3) :: f_bloc1, f_bloc2  !< Sum, then average of the forces in blocs.
-
-
-  !The maximum force and force norm is computed prior to modification of the forces
-  fmax1=0._gp
-  fnrm1=0._gp
-  do iat=1,at%astruct%nat
-     t1=fxyz(1,iat)**2
-     t2=fxyz(2,iat)**2
-     t3=fxyz(3,iat)**2
-     fmax1=max(fmax1,sqrt(t1+t2+t3))
-     fnrm1=fnrm1+t1+t2+t3
-  enddo
-  
-  
-  sumx=0.0_gp
-  sumy=0.0_gp
-  sumz=0.0_gp
-  do iat=1,at%astruct%nat
-     sumx=sumx+fxyz(1,iat)
-     sumy=sumy+fxyz(2,iat)
-     sumz=sumz+fxyz(3,iat)
-  enddo
-  if (at%astruct%nat /= 0) then 
-     fnoise=sqrt((sumx**2+sumy**2+sumz**2)/real(at%astruct%nat,gp))
-     sumx=sumx/real(at%astruct%nat,gp)
-     sumy=sumy/real(at%astruct%nat,gp)
-     sumz=sumz/real(at%astruct%nat,gp)
-  else
-     fnoise = 0.0_gp
-  end if
-
-  if (iproc==0) then 
-     !write( *,'(1x,a,1x,3(1x,1pe9.2))') &
-     !  'Subtracting center-mass shift of',sumx,sumy,sumz
-!           write(*,'(1x,a)')'the sum of the forces is'
-
-     call yaml_mapping_open('Average noise forces',flow=.true.)
-     call yaml_map('x',sumx*sqrt(real(at%astruct%nat,gp)),fmt='(1pe16.8)')
-     call yaml_map('y',sumy*sqrt(real(at%astruct%nat,gp)),fmt='(1pe16.8)')
-     call yaml_map('z',sumz*sqrt(real(at%astruct%nat,gp)),fmt='(1pe16.8)')
-     call yaml_map('total',sqrt(sumx**2+sumy**2+sumz**2)*sqrt(real(at%astruct%nat,gp)),fmt='(1pe16.8)')
-     call yaml_mapping_close()
-     !     write(*,'(a,1pe16.8)')' average noise along x direction: ',sumx*sqrt(real(at%astruct%nat,gp))
-     !     write(*,'(a,1pe16.8)')' average noise along y direction: ',sumy*sqrt(real(at%astruct%nat,gp))
-     !     write(*,'(a,1pe16.8)')' average noise along z direction: ',sumz*sqrt(real(at%astruct%nat,gp))
-     !     write(*,'(a,1pe16.8)')' total average noise            : ',sqrt(sumx**2+sumy**2+sumz**2)*sqrt(real(at%astruct%nat,gp))
-!!$
-!!$     write(*,'(a,1x,1pe24.17)') 'translational force along x=', sumx  
-!!$     write(*,'(a,1x,1pe24.17)') 'translational force along y=', sumy  
-!!$     write(*,'(a,1x,1pe24.17)') 'translational force along z=', sumz  
-  end if
-  
-  if (at%astruct%geocode == 'F') then
-     do iat=1,at%astruct%nat
-        fxyz(1,iat)=fxyz(1,iat)-sumx
-        fxyz(2,iat)=fxyz(2,iat)-sumy
-        fxyz(3,iat)=fxyz(3,iat)-sumz
-     enddo
-     
-     call elim_torque_reza(at%astruct%nat,rxyz,fxyz)
-     
-  else if (at%astruct%geocode == 'S') then
-     do iat=1,at%astruct%nat
-        fxyz(2,iat)=fxyz(2,iat)-sumy
-     enddo
-  end if
-  
-  !Clean the forces for blocked atoms
-  !Modification by FL: atom possibly frozen in moving blocs.
-  !@todo Need a better handling of the given constraints
-  f_bloc1 = 0.0_gp
-  f_bloc2 = 0.0_gp
-  n_bloc1 = 0
-  n_bloc2 = 0
-  do iat=1,at%astruct%nat
-     if (at%astruct%ifrztyp(iat) < 1000) then
-        if (at%astruct%ifrztyp(iat) < 200) then
-           do ixyz=1,3
-              if (.not. move_this_coordinate(at%astruct%ifrztyp(iat),ixyz)) fxyz(ixyz,iat)=0.0_gp
-           end do
-        else
-           ! internal coordinates, will be handled separately
-        end if
-     else if (at%astruct%ifrztyp(iat) == 1001)   then   ! atom "iat" in bloc 1.
-       f_bloc1 = f_bloc1 + fxyz(:,iat)
-       n_bloc1 = n_bloc1 + 1                            ! could be done once, after reading the inputs.
-     else if (at%astruct%ifrztyp(iat) == 1002)   then   ! atom "iat" in bloc 2. Can't be in 2 blocs.
-       f_bloc2 = f_bloc2 + fxyz(:,iat)
-       n_bloc2 = n_bloc2 + 1  ! could be done once, after reading the inputs.
-     else
-        ! Projection on a plane, defined by Miller indices stored in ifrztyp:
-        !  ifrztyp(iat) = 9ijk
-        ijk = (/ (at%astruct%ifrztyp(iat) - 9000) / 100, &
-             & modulo(at%astruct%ifrztyp(iat) - 9000, 100) / 10, &
-             & modulo(at%astruct%ifrztyp(iat) - 9000, 10) /)
-        u = (/ at%astruct%cell_dim(1) / real(ijk(1), gp), &
-             & at%astruct%cell_dim(2) / real(ijk(2), gp), &
-             & at%astruct%cell_dim(3) / real(ijk(3), gp) /)
-        u = u / nrm2(3, u(1), 1)
-        scal = fxyz(1,iat) * u(1) + fxyz(2,iat) * u(2) + fxyz(3,iat) * u(3)
-        fxyz(1,iat)=fxyz(1,iat) - scal * u(1)
-        fxyz(2,iat)=fxyz(2,iat) - scal * u(2)
-        fxyz(3,iat)=fxyz(3,iat) - scal * u(3)
-     end if
-  end do
-  !--- We don't do the following in most of the cases ; only when blocs are defined:
-  if ( n_bloc1 .ne. 0 )   f_bloc1 = f_bloc1 / n_bloc1
-  if ( n_bloc2 .ne. 0 )   f_bloc2 = f_bloc2 / n_bloc2
-  if_atoms_in_blocs: &
-  if ( n_bloc1 .ne. 0  .or.  n_bloc2 .ne. 0 )   then
-    !--- Forces of atoms in blocs are replaced by the average force in the bloc. Then
-       ! - by action and reaction principle, internal forces are suppressed;
-       ! - all atoms in a bloc have the same force => same displacments;
-       ! - gradient of E relative to the bloc center of gravity is -n_bloc*f_bloc.
-    do iat=1,at%astruct%nat
-      if (at%astruct%ifrztyp(iat) == 1001)   then   ! atom "iat" in bloc 1.
-         fxyz(:,iat) = f_bloc1
-      else if (at%astruct%ifrztyp(iat) == 1002)   then   ! atom "iat" in bloc 2. Can't be in 2 blocs.
-         fxyz(:,iat) = f_bloc2
-      end if
-    end do
-  end if if_atoms_in_blocs
-  !--- End of "Modification by FL: atom possibly frozen in moving blocs".
-  
-  !the noise of the forces is the norm of the translational force
-!  fnoise=real(at%astruct%nat,gp)**2*(sumx**2+sumy**2+sumz**2)
-
-  !The maximum force and force norm is computed after modification of the forces
-  fmax2=0._gp
-  fnrm2=0._gp
-  do iat=1,at%astruct%nat
-     t1=fxyz(1,iat)**2
-     t2=fxyz(2,iat)**2
-     t3=fxyz(3,iat)**2
-     fmax2=max(fmax2,sqrt(t1+t2+t3))
-     fnrm2=fnrm2+t1+t2+t3
-  enddo
-
-  if (iproc==0) then
-     call yaml_mapping_open('Clean forces norm (Ha/Bohr)',flow=.true.)
-     call yaml_map('maxval', fmax2,fmt='(1pe20.12)')
-     call yaml_map('fnrm2',  fnrm2,fmt='(1pe20.12)')
-     call yaml_mapping_close()
-     if (at%astruct%geocode /= 'P') then
-        call yaml_mapping_open('Raw forces norm (Ha/Bohr)',flow=.true.)
-        call yaml_map('maxval', fmax1,fmt='(1pe20.12)')
-        call yaml_map('fnrm2',  fnrm1,fmt='(1pe20.12)')
-        call yaml_mapping_close()
-     end if
-     !write(*,'(2(1x,a,1pe20.12))') 'clean forces norm (Ha/Bohr): maxval=', fmax2, ' fnrm2=', fnrm2
-     !if (at%astruct%geocode /= 'P') &
-     !&  write(*,'(2(1x,a,1pe20.12))') 'raw forces:                  maxval=', fmax1, ' fnrm2=', fnrm1
-  end if
-END SUBROUTINE clean_forces
+!!subroutine clean_forces(iproc,at,rxyz,fxyz,fnoise)
+!!  use module_base
+!!  use module_atoms!types
+!!  use yaml_output
+!!  implicit none
+!!  integer, intent(in) :: iproc
+!!  type(atoms_data), intent(in) :: at
+!!  real(gp), dimension(3,at%astruct%nat), intent(in) :: rxyz
+!!  real(gp), dimension(3,at%astruct%nat), intent(inout) :: fxyz
+!!  real(gp), intent(out) :: fnoise
+!!  !local variables
+!!  integer :: iat,ixyz, ijk(3)
+!!  real(gp) :: sumx,sumy,sumz, u(3), scal
+!!  !my variables
+!!  real(gp):: fmax1,t1,t2,t3,fnrm1
+!!  real(gp):: fmax2,fnrm2
+!!  !local variables for blocs (FL)
+!!  integer :: n_bloc1, n_bloc2                 !< Number of atoms allowed to move only as blocs.
+!!  real(gp), dimension(3) :: f_bloc1, f_bloc2  !< Sum, then average of the forces in blocs.
+!!
+!!
+!!  !The maximum force and force norm is computed prior to modification of the forces
+!!  fmax1=0._gp
+!!  fnrm1=0._gp
+!!  do iat=1,at%astruct%nat
+!!     t1=fxyz(1,iat)**2
+!!     t2=fxyz(2,iat)**2
+!!     t3=fxyz(3,iat)**2
+!!     fmax1=max(fmax1,sqrt(t1+t2+t3))
+!!     fnrm1=fnrm1+t1+t2+t3
+!!  enddo
+!!  
+!!  
+!!  sumx=0.0_gp
+!!  sumy=0.0_gp
+!!  sumz=0.0_gp
+!!  do iat=1,at%astruct%nat
+!!     sumx=sumx+fxyz(1,iat)
+!!     sumy=sumy+fxyz(2,iat)
+!!     sumz=sumz+fxyz(3,iat)
+!!  enddo
+!!  if (at%astruct%nat /= 0) then 
+!!     fnoise=sqrt((sumx**2+sumy**2+sumz**2)/real(at%astruct%nat,gp))
+!!     sumx=sumx/real(at%astruct%nat,gp)
+!!     sumy=sumy/real(at%astruct%nat,gp)
+!!     sumz=sumz/real(at%astruct%nat,gp)
+!!  else
+!!     fnoise = 0.0_gp
+!!  end if
+!!
+!!  if (iproc==0) then 
+!!     !write( *,'(1x,a,1x,3(1x,1pe9.2))') &
+!!     !  'Subtracting center-mass shift of',sumx,sumy,sumz
+!!!           write(*,'(1x,a)')'the sum of the forces is'
+!!
+!!     call yaml_mapping_open('Average noise forces',flow=.true.)
+!!     call yaml_map('x',sumx*sqrt(real(at%astruct%nat,gp)),fmt='(1pe16.8)')
+!!     call yaml_map('y',sumy*sqrt(real(at%astruct%nat,gp)),fmt='(1pe16.8)')
+!!     call yaml_map('z',sumz*sqrt(real(at%astruct%nat,gp)),fmt='(1pe16.8)')
+!!     call yaml_map('total',sqrt(sumx**2+sumy**2+sumz**2)*sqrt(real(at%astruct%nat,gp)),fmt='(1pe16.8)')
+!!     call yaml_mapping_close()
+!!     !     write(*,'(a,1pe16.8)')' average noise along x direction: ',sumx*sqrt(real(at%astruct%nat,gp))
+!!     !     write(*,'(a,1pe16.8)')' average noise along y direction: ',sumy*sqrt(real(at%astruct%nat,gp))
+!!     !     write(*,'(a,1pe16.8)')' average noise along z direction: ',sumz*sqrt(real(at%astruct%nat,gp))
+!!     !     write(*,'(a,1pe16.8)')' total average noise            : ',sqrt(sumx**2+sumy**2+sumz**2)*sqrt(real(at%astruct%nat,gp))
+!!!!$
+!!!!$     write(*,'(a,1x,1pe24.17)') 'translational force along x=', sumx  
+!!!!$     write(*,'(a,1x,1pe24.17)') 'translational force along y=', sumy  
+!!!!$     write(*,'(a,1x,1pe24.17)') 'translational force along z=', sumz  
+!!  end if
+!!  
+!!  if (at%astruct%geocode == 'F') then
+!!     do iat=1,at%astruct%nat
+!!        fxyz(1,iat)=fxyz(1,iat)-sumx
+!!        fxyz(2,iat)=fxyz(2,iat)-sumy
+!!        fxyz(3,iat)=fxyz(3,iat)-sumz
+!!     enddo
+!!     
+!!     call elim_torque_reza(at%astruct%nat,rxyz,fxyz)
+!!     
+!!  else if (at%astruct%geocode == 'S') then
+!!     do iat=1,at%astruct%nat
+!!        fxyz(2,iat)=fxyz(2,iat)-sumy
+!!     enddo
+!!  end if
+!!  
+!!  !Clean the forces for blocked atoms
+!!  !Modification by FL: atom possibly frozen in moving blocs.
+!!  !@todo Need a better handling of the given constraints
+!!  f_bloc1 = 0.0_gp
+!!  f_bloc2 = 0.0_gp
+!!  n_bloc1 = 0
+!!  n_bloc2 = 0
+!!  do iat=1,at%astruct%nat
+!!     if (at%astruct%ifrztyp(iat) < 1000) then
+!!        if (at%astruct%ifrztyp(iat) < 200) then
+!!           do ixyz=1,3
+!!              if (.not. move_this_coordinate(at%astruct%ifrztyp(iat),ixyz)) fxyz(ixyz,iat)=0.0_gp
+!!           end do
+!!        else
+!!           ! internal coordinates, will be handled separately
+!!        end if
+!!     else if (at%astruct%ifrztyp(iat) == 1001)   then   ! atom "iat" in bloc 1.
+!!       f_bloc1 = f_bloc1 + fxyz(:,iat)
+!!       n_bloc1 = n_bloc1 + 1                            ! could be done once, after reading the inputs.
+!!     else if (at%astruct%ifrztyp(iat) == 1002)   then   ! atom "iat" in bloc 2. Can't be in 2 blocs.
+!!       f_bloc2 = f_bloc2 + fxyz(:,iat)
+!!       n_bloc2 = n_bloc2 + 1  ! could be done once, after reading the inputs.
+!!     else
+!!        ! Projection on a plane, defined by Miller indices stored in ifrztyp:
+!!        !  ifrztyp(iat) = 9ijk
+!!        ijk = (/ (at%astruct%ifrztyp(iat) - 9000) / 100, &
+!!             & modulo(at%astruct%ifrztyp(iat) - 9000, 100) / 10, &
+!!             & modulo(at%astruct%ifrztyp(iat) - 9000, 10) /)
+!!        u = (/ at%astruct%cell_dim(1) / real(ijk(1), gp), &
+!!             & at%astruct%cell_dim(2) / real(ijk(2), gp), &
+!!             & at%astruct%cell_dim(3) / real(ijk(3), gp) /)
+!!        u = u / nrm2(3, u(1), 1)
+!!        scal = fxyz(1,iat) * u(1) + fxyz(2,iat) * u(2) + fxyz(3,iat) * u(3)
+!!        fxyz(1,iat)=fxyz(1,iat) - scal * u(1)
+!!        fxyz(2,iat)=fxyz(2,iat) - scal * u(2)
+!!        fxyz(3,iat)=fxyz(3,iat) - scal * u(3)
+!!     end if
+!!  end do
+!!  !--- We don't do the following in most of the cases ; only when blocs are defined:
+!!  if ( n_bloc1 .ne. 0 )   f_bloc1 = f_bloc1 / n_bloc1
+!!  if ( n_bloc2 .ne. 0 )   f_bloc2 = f_bloc2 / n_bloc2
+!!  if_atoms_in_blocs: &
+!!  if ( n_bloc1 .ne. 0  .or.  n_bloc2 .ne. 0 )   then
+!!    !--- Forces of atoms in blocs are replaced by the average force in the bloc. Then
+!!       ! - by action and reaction principle, internal forces are suppressed;
+!!       ! - all atoms in a bloc have the same force => same displacments;
+!!       ! - gradient of E relative to the bloc center of gravity is -n_bloc*f_bloc.
+!!    do iat=1,at%astruct%nat
+!!      if (at%astruct%ifrztyp(iat) == 1001)   then   ! atom "iat" in bloc 1.
+!!         fxyz(:,iat) = f_bloc1
+!!      else if (at%astruct%ifrztyp(iat) == 1002)   then   ! atom "iat" in bloc 2. Can't be in 2 blocs.
+!!         fxyz(:,iat) = f_bloc2
+!!      end if
+!!    end do
+!!  end if if_atoms_in_blocs
+!!  !--- End of "Modification by FL: atom possibly frozen in moving blocs".
+!!  
+!!  !the noise of the forces is the norm of the translational force
+!!!  fnoise=real(at%astruct%nat,gp)**2*(sumx**2+sumy**2+sumz**2)
+!!
+!!  !The maximum force and force norm is computed after modification of the forces
+!!  fmax2=0._gp
+!!  fnrm2=0._gp
+!!  do iat=1,at%astruct%nat
+!!     t1=fxyz(1,iat)**2
+!!     t2=fxyz(2,iat)**2
+!!     t3=fxyz(3,iat)**2
+!!     fmax2=max(fmax2,sqrt(t1+t2+t3))
+!!     fnrm2=fnrm2+t1+t2+t3
+!!  enddo
+!!
+!!  if (iproc==0) then
+!!     call yaml_mapping_open('Clean forces norm (Ha/Bohr)',flow=.true.)
+!!     call yaml_map('maxval', fmax2,fmt='(1pe20.12)')
+!!     call yaml_map('fnrm2',  fnrm2,fmt='(1pe20.12)')
+!!     call yaml_mapping_close()
+!!     if (at%astruct%geocode /= 'P') then
+!!        call yaml_mapping_open('Raw forces norm (Ha/Bohr)',flow=.true.)
+!!        call yaml_map('maxval', fmax1,fmt='(1pe20.12)')
+!!        call yaml_map('fnrm2',  fnrm1,fmt='(1pe20.12)')
+!!        call yaml_mapping_close()
+!!     end if
+!!     !write(*,'(2(1x,a,1pe20.12))') 'clean forces norm (Ha/Bohr): maxval=', fmax2, ' fnrm2=', fnrm2
+!!     !if (at%astruct%geocode /= 'P') &
+!!     !&  write(*,'(2(1x,a,1pe20.12))') 'raw forces:                  maxval=', fmax1, ' fnrm2=', fnrm1
+!!  end if
+!!END SUBROUTINE clean_forces
 
 
 !> Symmetrize stress (important with special k points)
@@ -4667,18 +4669,22 @@ subroutine nonlocal_forces_linear(iproc,nproc,npsidim_orbs,lr,hx,hy,hz,at,rxyz,&
                      do iseg=1,denskern%nseg
                         ! Check whether this segment is within the range to be considered (check 
                         ! only the line number as one segment is always on one single line).
-                        if (denskern%keyg(1,2,iseg)<iorbminmax(iiat,1) .or. denskern%keyg(1,2,iseg)>iorbminmax(iiat,2)) cycle
+                        iorbout = denskern%keyg(1,2,iseg)
+                        if (ispin==2) then
+                            iorbout = iorbout + denskern%nfvctr
+                        end if
+                        if (iorbout<iorbminmax(iiat,1) .or. iorbout>iorbminmax(iiat,2)) cycle
+                        !if (denskern%keyg(1,2,iseg)<iorbminmax(iiat,1) .or. denskern%keyg(1,2,iseg)>iorbminmax(iiat,2)) cycle
                         ii = denskern%keyv(iseg)-1 + (ispin-1)*denskern%nvctr 
                         do jjorb=denskern%keyg(1,1,iseg),denskern%keyg(2,1,iseg)
                            ii=ii+1
                            !!iorbout = (jjorb-1)/orbs%norb + 1
                            !!jorb = jjorb - (iorbout-1)*orbs%norb
-                           iorbout = denskern%keyg(1,2,iseg)
                            jorb = jjorb
                            if (jorb<iorbminmax(iiat,1) .or. jorb>iorbminmax(iiat,2)) cycle
                            !spin shift
                            if (ispin==2) then
-                               iorbout = iorbout + denskern%nfvctr
+                               !iorbout = iorbout + denskern%nfvctr
                                jorb = jorb + denskern%nfvctr
                            end if
                         !jorb=0 !THIS WILL CREATE PROBLEMS FOR K-POINTS!!
@@ -4853,7 +4859,7 @@ subroutine internal_forces(nat, rxyz, ixyz_int, ifrozen, fxyz)
   integer,dimension(:),allocatable :: na, nb, nc
   real(gp),parameter :: degree=57.29578d0
   real(gp),dimension(:,:),allocatable :: geo, rxyz_tmp, geo_tmp, fxyz_int, tmp, rxyz_shifted
-  real(gp),parameter :: alpha=1.d0
+  real(gp),parameter :: alpha=1.d1
   real(kind=8),dimension(3) :: shift
   logical :: fix_bond, fix_phi, fix_theta
 
@@ -4890,11 +4896,17 @@ subroutine internal_forces(nat, rxyz, ixyz_int, ifrozen, fxyz)
   !!call get_neighbors(rxyz, nat, na, nb, nc)
   
   ! Transform the atomic positions to internal coordinates 
-  call xyzint(rxyz, nat, na, nb, nc, degree, geo)
+  !call xyzint(rxyz, nat, na, nb, nc, degree, geo)
+  call xyzint(rxyz_shifted, nat, na, nb, nc, degree, geo)
   !!if (bigdft_mpi%iproc==0) call yaml_map('internal orig',geo)
+!!! TEST ######################
+!!call internal_to_cartesian(nat, na, nb, nc, geo, rxyz_tmp)
+!!if (bigdft_mpi%iproc==0) call yaml_map('rxyz start',rxyz)
+!!if (bigdft_mpi%iproc==0) call yaml_map('rxyz end',rxyz_tmp)
+!!! ###########################
 
   ! Shift the atomic positions according to the forces
-  rxyz_tmp = rxyz + alpha*fxyz
+  rxyz_tmp = rxyz_shifted + alpha*fxyz
 
   ! Transform these new atomic positions to internal coordinates
   call xyzint(rxyz_tmp, nat, na, nb, nc, degree, geo_tmp)
@@ -4904,6 +4916,11 @@ subroutine internal_forces(nat, rxyz, ixyz_int, ifrozen, fxyz)
 
   ! Apply some constraints if required
   do iat=1,nat
+      !!if (bigdft_mpi%iproc==0) then
+      !!    write(*,'(a,i4,2es16.6)') 'iat, geo(1,iat), geo_tmp(1,iat)', iat, geo(1,iat), geo_tmp(1,iat)
+      !!    write(*,'(a,i4,2es16.6)') 'iat, geo(2,iat), geo_tmp(2,iat)', iat, geo(2,iat), geo_tmp(2,iat)
+      !!    write(*,'(a,i4,2es16.6)') 'iat, geo(3,iat), geo_tmp(3,iat)', iat, geo(3,iat), geo_tmp(3,iat)
+      !!end if
       ii=ifrozen(iat)
       fix_theta = (mod(ii,10)==2)
       if (fix_theta) ii=ii-2
@@ -4941,6 +4958,17 @@ subroutine internal_forces(nat, rxyz, ixyz_int, ifrozen, fxyz)
   call internal_to_cartesian(nat, na, nb, nc, geo, tmp)
   !call internal_to_cartesian(nat, na, nb, nc, fxyz_int, fxyz)
 
+  !if (bigdft_mpi%iproc==0) then
+  !    do iat=1,nat
+  !        write(*,'(a,i4,2es16.6)') 'iat, tmp(1,iat)-rxyz(1,iat), tmp(1,iat)-rxyz_tmp(1,iat)', &
+  !            iat, tmp(1,iat)-rxyz(1,iat), tmp(1,iat)-rxyz_tmp(1,iat) 
+  !        write(*,'(a,i4,2es16.6)') 'iat, tmp(2,iat)-rxyz(2,iat), tmp(2,iat)-rxyz_tmp(2,iat)', &
+  !            iat, tmp(2,iat)-rxyz(2,iat), tmp(2,iat)-rxyz_tmp(2,iat) 
+  !        write(*,'(a,i4,2es16.6)') 'iat, tmp(3,iat)-rxyz(3,iat), tmp(3,iat)-rxyz_tmp(3,iat)', &
+  !            iat, tmp(3,iat)-rxyz(3,iat), tmp(3,iat)-rxyz_tmp(3,iat) 
+  !    end do
+  !end if
+
   !if (bigdft_mpi%iproc==0) call yaml_map('rxyz_tmp end',rxyz_tmp)
   !if (bigdft_mpi%iproc==0) call yaml_map('tmp end',tmp)
 
@@ -4973,3 +5001,89 @@ subroutine internal_forces(nat, rxyz, ixyz_int, ifrozen, fxyz)
 end subroutine internal_forces
 
 
+
+subroutine keep_internal_coordinates_constraints(nat, rxyz_int, ixyz_int, ifrozen, rxyz)
+  use module_base
+  use dynamic_memory
+  use internal_coordinates
+  use yaml_output
+  implicit none
+
+  ! Calling arguments
+  integer,intent(in) :: nat
+  real(gp),dimension(3,nat),intent(in) :: rxyz_int
+  integer,dimension(3,nat),intent(in) :: ixyz_int
+  integer,dimension(nat),intent(in) :: ifrozen
+  real(gp),dimension(3,nat),intent(inout) :: rxyz
+
+  ! Local variables
+  integer :: iat, i, ii
+  integer,dimension(:),allocatable :: na, nb, nc
+  real(gp),parameter :: degree=57.29578d0
+  real(gp),dimension(:,:),allocatable :: geo, geo_ref
+  real(gp),parameter :: alpha=1.d0
+  real(kind=8),dimension(3) :: shift
+  logical :: fix_bond, fix_phi, fix_theta
+
+  call f_routine(id='internal_forces')
+
+  ! Using internal coordinates the first atom is by definition at (0,0,0), so
+  ! the global shift is just given by rxyz(:,1).
+  shift=rxyz(:,1)
+
+  na = f_malloc(nat,id='na')
+  nb = f_malloc(nat,id='nb')
+  nc = f_malloc(nat,id='nc')
+  geo = f_malloc((/3,nat/),id='geo')
+
+  na=ixyz_int(1,:)
+  nb=ixyz_int(2,:)
+  nc=ixyz_int(3,:)
+
+  
+  ! Transform the atomic positions to internal coordinates 
+  call xyzint(rxyz, nat, na, nb, nc, degree, geo)
+
+  ! The bond angle must be modified (take 180 degrees minus the angle)
+  geo(2:2,1:nat) = 180.d0 - geo(2:2,1:nat)
+  ! convert to rad
+  geo(2:3,1:nat) = geo(2:3,1:nat) / degree
+
+  ! Apply some constraints if required
+  do iat=1,nat
+      ii=ifrozen(iat)
+      fix_theta = (mod(ii,10)==2)
+      if (fix_theta) ii=ii-2
+      fix_phi = (mod(ii,100)==20)
+      if (fix_phi) ii=ii-20
+      fix_bond = (mod(ii,1000)==200)
+      if (fix_bond) then
+          ! keep the original value, i.e. don't let this value be modified by the forces
+          geo(1,iat)=rxyz_int(1,iat)
+          if (bigdft_mpi%iproc==0) call yaml_map('keep internal coordinate fixed',(/1,iat/))
+      end if
+      if (fix_phi) then
+          ! keep the original value, i.e. don't let this value be modified by the forces
+          geo(2,iat)=rxyz_int(2,iat)
+          if (bigdft_mpi%iproc==0) call yaml_map('keep internal coordinate fixed',(/2,iat/))
+      end if
+      if (fix_theta) then
+          ! keep the original value, i.e. don't let this value be modified by the forces
+          geo(3,iat)=rxyz_int(3,iat)
+          if (bigdft_mpi%iproc==0) call yaml_map('keep internal coordinate fixed',(/3,iat/))
+      end if
+  end do
+
+
+  ! Transform the atomic positions back to cartesian coordinates
+  call internal_to_cartesian(nat, na, nb, nc, geo, rxyz)
+
+
+  call f_free(na)
+  call f_free(nb)
+  call f_free(nc)
+  call f_free(geo)
+
+  call f_release_routine()
+
+end subroutine keep_internal_coordinates_constraints

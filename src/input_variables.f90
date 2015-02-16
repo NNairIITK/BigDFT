@@ -135,6 +135,7 @@ subroutine inputs_from_dict(in, atoms, dict)
        & HGRIDS, RMULT, PROJRAD, IXC, PERF_VARIABLES
   use module_input_dicts
   use dynamic_memory
+  use f_utils, only: f_zero
   use module_xc
   use input_old_text_format, only: dict_from_frag
   use module_atoms, only: atoms_data,atoms_data_null,atomic_data_set_from_dict,check_atoms_positions
@@ -229,6 +230,8 @@ subroutine inputs_from_dict(in, atoms, dict)
   end do
 
   ! Generate the dir_output
+  !outdir has to be initialized
+  call f_zero(outdir)
   call bigdft_get_run_properties(dict, naming_id = run_id, posinp_id = posinp_id, input_id = input_id, outdir_id = outdir)
   call f_strcpy(dest = in%dir_output, src = trim(outdir) // "data" // trim(run_id))
 
@@ -450,7 +453,8 @@ subroutine check_for_data_writing_directory(iproc,in)
        in%gaussian_help .or. &                         !Mulliken and local density of states
        bigdft_mpi%ngroup > 1   .or. &                  !taskgroups have been inserted
        in%lin%plotBasisFunctions > 0 .or. &            !dumping of basis functions for locreg runs
-       in%inputPsiId == 102                            !reading of basis functions
+       in%inputPsiId == 102 .or. &                     !reading of basis functions
+       in%write_orbitals                               !writing the KS orbitals in the linear case
 
   !here you can check whether the etsf format is compiled
 
@@ -993,8 +997,8 @@ subroutine kpt_input_analyse(iproc, in, dict, sym, geocode, alat)
            stop
         end if
         !assumes that the allocation went through (arrays allocated by abinit routines)
-        in%gen_kpt=f_malloc_ptr(src=gen_kpt,id='gen_kpt')
-        in%gen_wkpt=f_malloc_ptr(src=gen_wkpt,id='gen_wkpt')
+        in%gen_kpt=f_malloc_ptr(src_ptr=gen_kpt,id='gen_kpt')
+        in%gen_wkpt=f_malloc_ptr(src_ptr=gen_wkpt,id='gen_wkpt')
         deallocate(gen_kpt,gen_wkpt)
 !!$        call memocc(0,in%gen_kpt,'in%gen_kpt',subname)
 !!$        call memocc(0,in%gen_wkpt,'in%gen_wkpt',subname)
@@ -1037,8 +1041,8 @@ subroutine kpt_input_analyse(iproc, in, dict, sym, geocode, alat)
         end if
         !assumes that the allocation went through 
         !(arrays allocated by abinit routines)
-        in%gen_kpt=f_malloc_ptr(src=gen_kpt,id='gen_kpt')
-        in%gen_wkpt=f_malloc_ptr(src=gen_wkpt,id='gen_wkpt')
+        in%gen_kpt=f_malloc_ptr(src_ptr=gen_kpt,id='gen_kpt')
+        in%gen_wkpt=f_malloc_ptr(src_ptr=gen_wkpt,id='gen_wkpt')
         deallocate(gen_kpt,gen_wkpt)
 !!$        call memocc(0,in%gen_kpt,'in%gen_kpt',subname)
 !!$        call memocc(0,in%gen_wkpt,'in%gen_wkpt',subname)

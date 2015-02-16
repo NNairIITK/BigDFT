@@ -9,7 +9,7 @@ echo "Average number of energy/force calls per minimization:"
 grep "Needed energy calls" $file | awk '{sum+=$10} END { print "Average = ",sum/NR,NR}'
 
 echo "Average number of energy/force calls per saddle computation:"
-grep convergence $file | awk '{sum+=$5} END { print "Average = ",sum/NR,NR}'
+grep "convergence at" $file | awk '{sum+=$5} END { print "Average = ",sum/NR,NR}'
 
 echo "Average number of energy/force calls per saddle computation including input guess:"
 enersaddle=`grep convergence $file | awk '{sum+=$5} END { print sum}'`
@@ -23,5 +23,5 @@ grep "(MHGPS) succesfully connected, intermediate transition states" $file  | aw
 echo "Number of successfully connected input minima pairs: "
 grep "succesfully connected" $file | wc -l
 
-echo "Number of failed connections of input minima pairs:: "
+echo "Number of failed connections of input minima pairs: "
 grep establish $file | wc -l

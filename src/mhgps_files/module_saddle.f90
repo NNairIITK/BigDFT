@@ -1,6 +1,6 @@
 !> @file
 !!    SQNS Saddle Search Method
-!!
+!! @author Bastian Schaefer
 !!    Copyright (C) 2014 BigDFT group
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
@@ -25,6 +25,10 @@ public :: allocate_finsad_workarrays
 public :: deallocate_finsad_workarrays
 
 type findsad_work
+
+    
+   integer,  allocatable   :: iconnect(:,:)
+
     !translation
     real(gp), allocatable :: rxyz_trans(:,:,:)
     real(gp), allocatable :: fxyz_trans(:,:,:)
@@ -78,7 +82,7 @@ end type
 
 contains
 !=====================================================================
-subroutine allocate_finsad_workarrays(runObj,uinp,nbond,fsw)
+subroutine allocate_finsad_workarrays(runObj,uinp,fsw)
     use module_base
     use dynamic_memory
     use bigdft_run
@@ -88,11 +92,12 @@ subroutine allocate_finsad_workarrays(runObj,uinp,nbond,fsw)
     type(run_objects), intent(in)          :: runObj
     type(findsad_work), intent(out) :: fsw
     type(userinput), intent(in)            :: uinp
-    integer, intent(in)            :: nbond
     !internal
     integer :: nat, info
     real(gp) :: wd(1)
     nat = bigdft_nat(runObj)
+   
+    fsw%iconnect = f_malloc((/ 1.to.2, 1.to.1000/),id='iconnect')
 
     fsw%rxyz_rot = f_malloc((/ 1.to.3, 1.to.nat,&
                 0.to.uinp%saddle_nhistx_rot/),id='rxyz_rot')
@@ -152,8 +157,6 @@ subroutine allocate_finsad_workarrays(runObj,uinp,nbond,fsw)
     fsw%ftmp_trans = f_malloc((/ 1.to.3, 1.to.nat/),id='ftmp_trans')
     fsw%minmodeold_trans = f_malloc((/ 1.to.3, 1.to.nat/),id='minmodeold_trans')
     fsw%minmode0_trans = f_malloc((/ 1.to.3, 1.to.nat/),id='minmode0_trans')
-    fsw%wold_trans = f_malloc((/ 1.to.nbond/),id='wold_trans')
-    fsw%wold_rot = f_malloc((/ 1.to.nbond/),id='wold_rot')
 
     call DSYEV('N','L',uinp%saddle_nhistx_trans,fsw%aa_trans,&
          uinp%saddle_nhistx_trans,fsw%eval_trans,wd,-1,info)
@@ -174,6 +177,7 @@ subroutine deallocate_finsad_workarrays(fsw)
     implicit none
     !parameters
     type(findsad_work), intent(inout) :: fsw
+    call f_free(fsw%iconnect)
     call f_free(fsw%rxyz_rot)
     call f_free(fsw%fxyz_rot)
     call f_free(fsw%fxyzraw_rot)
@@ -209,14 +213,12 @@ subroutine deallocate_finsad_workarrays(fsw)
     call f_free(fsw%ftmp_trans)
     call f_free(fsw%minmodeold_trans)
     call f_free(fsw%minmode0_trans)
-    call f_free(fsw%wold_trans)
-    call f_free(fsw%wold_rot)
     call f_free(fsw%work_trans)
     call f_free(fsw%work_rot)
 
 end subroutine
 !=====================================================================
-subroutine findsad(mhgpsst,fsw,uinp,runObj,outs,rcov,nbond,iconnect,&
+subroutine findsad(mhgpsst,fsw,uinp,runObj,outs,rcov,&
                   wpos,etot,fout,minmode,displ,ener_count,&
                   rotforce,converged)
     !imode=1 for clusters
@@ -244,8 +246,6 @@ subroutine findsad(mhgpsst,fsw,uinp,runObj,outs,rcov,nbond,iconnect,&
     real(gp), intent(out)   :: displ
     real(gp), intent(inout)   :: ener_count
     logical, intent(out)      :: converged
-    integer, intent(in)       :: nbond
-    integer, intent(in)       :: iconnect(2,nbond)
     real(gp), intent(in)      :: rotforce(3,runObj%atoms%astruct%nat)
     !internal
 !    real(gp), allocatable, dimension(:,:)   :: rxyzold
@@ -268,6 +268,7 @@ subroutine findsad(mhgpsst,fsw,uinp,runObj,outs,rcov,nbond,iconnect,&
     real(gp) :: scl
     real(gp) :: tt
     real(gp) :: dt
+    integer  :: nbond
     integer  :: iat
     integer  :: itswitch
     integer  :: nhist
@@ -284,24 +285,23 @@ subroutine findsad(mhgpsst,fsw,uinp,runObj,outs,rcov,nbond,iconnect,&
     real(gp) :: curv
     real(gp) :: overlap
     real(gp) :: minoverlap
-    real(gp) :: tnatdmy(3,runObj%atoms%astruct%nat)
     real(gp) :: tmp
     logical  :: optCurvConv
     logical  :: tooFar
-    logical  :: fixfragmented
     logical  :: subspaceSucc
     logical  :: tighten
     character(len=9)   :: fn9
     character(len=300)  :: comment
+    real(gp) :: curvgraddiff_tmp
+    real(gp) :: maxdiff
     !functions
     real(gp) :: ddot,dnrm2
 
-
-    if(bigdft_get_geocode(runObj)/='F'.and. .not.&
-            (trim(adjustl(char(runObj%run_mode)))==&
-                        'LENOSKY_SI_CLUSTERS_RUN_MODE'))then
-        stop 'STOP: saddle search only implemented for free BC'
-    endif
+!    if(bigdft_get_geocode(runObj)/='F'.and. .not.&
+!            (trim(adjustl(char(runObj%run_mode)))==&
+!                        'LENOSKY_SI_CLUSTERS_RUN_MODE'))then
+!        stop 'STOP: saddle search only implemented for free BC'
+!    endif
 
     if((uinp%saddle_minoverlap0>=-1.0_gp).and.uinp%saddle_tighten)&
     stop 'STOP: Do not use minoverlap and no tightening in combination'
@@ -311,13 +311,13 @@ subroutine findsad(mhgpsst,fsw,uinp,runObj,outs,rcov,nbond,iconnect,&
                           hfill='-')
     endif
 
+    nbond=1
     fsw%ndim_rot=0
     fsw%nhist_rot=0
     fsw%alpha_rot=uinp%saddle_alpha0_rot
     fsw%alpha_stretch_rot=uinp%saddle_alpha_stretch0
 !    flag=.true.
     fc=0
-    fixfragmented=.false.
     converged=.false.
     subspaceSucc=.true.
     optCurvConv=.true.
@@ -333,25 +333,42 @@ subroutine findsad(mhgpsst,fsw,uinp,runObj,outs,rcov,nbond,iconnect,&
     tighten=.false.
     alpha_stretch=uinp%saddle_alpha_stretch0
 
-    ! allocate arrays
+    !Check and synchronize input minimum mode over all processors.
+    !This is important, since otherwise we get slightly different curvatures
+    !on each processor (in subroutine curvforce)
+    call mpibarrier(bigdft_mpi%mpi_comm)
+    if (bigdft_mpi%nproc >1) then
+       call mpibcast(minmode,comm=bigdft_mpi%mpi_comm,&
+            maxdiff=maxdiff)
+       if (maxdiff > epsilon(1.0_gp)) then
+          if (bigdft_mpi%iproc==0) then
+             call yaml_warning('Input minimum mode not identical! '//&
+                  '(difference:'//trim(yaml_toa(maxdiff))//&
+                  ' ), however broadcasting from master node.')
+             call yaml_flush_document()
+          end if
+       end if
+    end if
+    if(uinp%saddle_biomode)then
+       call findbonds('(MHGPS)',mhgpsst%iproc,uinp%mhgps_verbosity,bigdft_nat(runObj),rcov,&
+       bigdft_get_rxyz_ptr(runObj),nbond,fsw%iconnect)
+    endif
+    fsw%wold_trans = f_malloc((/ 1.to.nbond/),id='wold_trans')
+    fsw%wold_rot = f_malloc((/ 1.to.nbond/),id='wold_rot')
     fsw%minmode0_trans=minmode
     fsw%minmodeold_trans=minmode
     fsw%wold_trans=0.0_gp
     fsw%fstretch_trans=0.0_gp
     fsw%rxyz_trans(:,:,0)=wpos
 
-    if (bigdft_get_geocode(runObj) == 'F') then
-    call fixfrag_posvel(mhgpsst,runObj%atoms%astruct%nat,rcov,&
-         fsw%rxyz_trans(1,1,0),tnatdmy,1,fixfragmented)
-        if(fixfragmented .and. uinp%mhgps_verbosity >=0.and. &
-          mhgpsst%iproc==0) call yaml_comment('fragmentation fixed')
-    endif
+    call fixfrag(mhgpsst,uinp,runObj,rcov,fsw%rxyz_trans(1,1,0))
+
 
     runObj%inputs%inputPsiId=0
     call minenergyandforces(mhgpsst,.true.,uinp%imode,runObj,outs,&
          fsw%rxyz_trans(1,1,0),fsw%rxyzraw_trans(1,1,0),&
          fsw%fxyz_trans(1,1,0),fsw%fstretch_trans(1,1,0),&
-         fsw%fxyzraw_trans(1,1,0),etot,iconnect,nbond,fsw%wold_trans,&
+         fsw%fxyzraw_trans(1,1,0),etot,fsw%iconnect,nbond,fsw%wold_trans,&
          uinp%saddle_alpha_stretch0,alpha_stretch)
     fsw%rxyzold_trans=fsw%rxyz_trans(:,:,0)
     ener_count=ener_count+1.0_gp
@@ -446,15 +463,35 @@ subroutine findsad(mhgpsst,fsw,uinp,runObj,outs,rcov,nbond,iconnect,&
             !DIFF      FMAX      FNRM      alpha    ndim')
             if(mhgpsst%iproc==0.and.uinp%mhgps_verbosity>=2)write(*,'(a)')&
             '  #(MHGPS) METHOD COUNT  IT  CURVATURE             '//&
-            'DIFF      FMAX      FNRM      alpha    ndim '//&
+            'DIFF      GMAX      GNRM      alpha    ndim '//&
             'alpha_strtch overl. displr       displp'
             runObj%inputs%inputPsiId=1
+            !determine finite difference
+            call clean_minmode(runObj%atoms%astruct%nat,&
+                 bigdft_get_geocode(runObj),&
+                 fsw%rxyzraw_trans(1,1,nhist-1),minmode(1,1))
+            
+            dt=0.0_gp
+            maxd=-huge(1.0_gp)
+            do iat=1,runObj%atoms%astruct%nat
+                dt=minmode(1,iat)**2+minmode(2,iat)**2+minmode(3,iat)**2
+                maxd=max(maxd,dt)
+            enddo
+            maxd=sqrt(maxd)
+            curvgraddiff_tmp = uinp%saddle_curvforcediff / maxd
+            if(mhgpsst%iproc==0.and.uinp%mhgps_verbosity>=2)then
+                call yaml_map('  (MHGPS) Finite difference spacing '//&
+                     'for curvature computation',curvgraddiff_tmp,&
+                     fmt='(1pe21.14)')
+            endif
+
              !inputPsiId=0
             call opt_curv(mhgpsst,it,uinp%imode,fsw,uinp,runObj,outs,uinp%saddle_alpha0_rot,&
-                          uinp%saddle_curvforcediff,uinp%saddle_nit_rot,uinp%saddle_nhistx_rot,&
+                          curvgraddiff_tmp,uinp%saddle_nit_rot,uinp%saddle_nhistx_rot,&
+!                          uinp%saddle_curvforcediff,uinp%saddle_nit_rot,uinp%saddle_nhistx_rot,&
                           fsw%rxyzraw_trans(1,1,nhist-1),fsw%fxyzraw_trans(1,1,nhist-1),&
                           minmode(1,1),curv,rotforce(1,1),tol,&
-                          ener_count,optCurvConv,iconnect,nbond,&
+                          ener_count,optCurvConv,fsw%iconnect,nbond,&
                           uinp%saddle_alpha_rot_stretch0,uinp%saddle_maxcurvrise,uinp%saddle_cutoffratio,&
                           minoverlap)
 
@@ -523,12 +560,7 @@ subroutine findsad(mhgpsst,fsw,uinp,runObj,outs,rcov,nbond,iconnect,&
         endif
         !do the move
         fsw%rxyz_trans(:,:,nhist)=fsw%rxyz_trans(:,:,nhist-1)-fsw%dd_trans(:,:)
-        if (bigdft_get_geocode(runObj) == 'F') then
-        call fixfrag_posvel(mhgpsst,runObj%atoms%astruct%nat,rcov,fsw%rxyz_trans(1,1,nhist),tnatdmy,1,&
-             fixfragmented)
-        if(fixfragmented .and. uinp%mhgps_verbosity >=2.and. mhgpsst%iproc==0)&
-           call yaml_comment('fragmentation fixed')
-        endif
+        call fixfrag(mhgpsst,uinp,runObj,rcov,fsw%rxyz_trans(1,1,nhist))
         !displ=displ+tt
  
         fsw%delta_trans=fsw%rxyz_trans(:,:,nhist)-fsw%rxyzold_trans
@@ -536,7 +568,7 @@ subroutine findsad(mhgpsst,fsw,uinp,runObj,outs,rcov,nbond,iconnect,&
         runObj%inputs%inputPsiId=1
         call minenergyandforces(mhgpsst,.true.,uinp%imode,runObj,outs,&
              fsw%rxyz_trans(1,1,nhist),fsw%rxyzraw_trans(1,1,nhist),fsw%fxyz_trans(1,1,nhist),&
-             fsw%fstretch_trans(1,1,nhist),fsw%fxyzraw_trans(1,1,nhist),etotp,iconnect,&
+             fsw%fstretch_trans(1,1,nhist),fsw%fxyzraw_trans(1,1,nhist),etotp,fsw%iconnect,&
              nbond,fsw%wold_trans,uinp%saddle_alpha_stretch0,alpha_stretch)
         ener_count=ener_count+1.0_gp
         fsw%rxyzold_trans=fsw%rxyz_trans(:,:,nhist)
@@ -635,6 +667,8 @@ subroutine findsad(mhgpsst,fsw,uinp,runObj,outs,rcov,nbond,iconnect,&
 
   if(mhgpsst%iproc==0)call yaml_warning('(MHGPS) No convergence in findsad')
 !stop 'no convergence in findsad'
+    call f_free(fsw%wold_trans)
+    call f_free(fsw%wold_rot)
     return
 
 1000 continue
@@ -648,6 +682,8 @@ subroutine findsad(mhgpsst,fsw,uinp,runObj,outs,rcov,nbond,iconnect,&
             fout(i,iat)= fsw%fxyzraw_trans(i,iat,nhist)
         enddo
     enddo
+    call f_free(fsw%wold_trans)
+    call f_free(fsw%wold_rot)
 
 end subroutine
 !=====================================================================
@@ -692,6 +728,7 @@ subroutine opt_curv(mhgpsst,itgeopt,imode,fsw,uinp,runObj,outs,alpha0,curvforced
     integer                    :: nrise, itup
     real(gp), dimension(3,runObj%atoms%astruct%nat) :: rxyzOld,delta
     real(gp)                   :: displr,displp
+real(gp) :: alpha0int
     !functions
     real(gp)                   :: ddot
     real(gp)                   :: dnrm2
@@ -704,6 +741,7 @@ subroutine opt_curv(mhgpsst,itgeopt,imode,fsw,uinp,runObj,outs,alpha0,curvforced
         fsw%nhist_rot=0
         fsw%alpha_rot=alpha0
     endif
+    alpha0int=alpha0
 
     nrise=0
     itup=nint(ener_count)
@@ -805,7 +843,7 @@ subroutine opt_curv(mhgpsst,itgeopt,imode,fsw,uinp,runObj,outs,alpha0,curvforced
                   fsw%fxyz_rot(1,1,fsw%nhist_rot),1)*&
                   dot_double(3*runObj%atoms%astruct%nat,fsw%dd_rot(1,1),1,fsw%dd_rot(1,1),1))
 
-        if (dcurv.gt.maxcurvrise .and. fsw%alpha_rot>1.e-1_gp*alpha0) then 
+        if (dcurv.gt.maxcurvrise .and. fsw%alpha_rot>1.e-1_gp*alpha0int) then 
             itup=nint(ener_count)
             nrise=nrise+1
             if(mhgpsst%iproc==0 .and. uinp%mhgps_verbosity>=3)&
@@ -820,6 +858,7 @@ subroutine opt_curv(mhgpsst,itgeopt,imode,fsw,uinp,runObj,outs,alpha0,curvforced
                       dcurv,fmax,fnrm, fsw%alpha_rot,fsw%ndim_rot,&
                       fsw%alpha_stretch_rot,overlap,displr,displp
             fsw%alpha_rot=.5_gp*fsw%alpha_rot
+            alpha0int=alpha0*0.1_gp
             if(mhgpsst%iproc==0 .and. uinp%mhgps_verbosity>=3)&
                 call yaml_comment('INFO: (MHGPS) alpha reset (opt. curv): '//&
                      trim(yaml_toa(fsw%alpha_rot)))
@@ -897,10 +936,11 @@ subroutine opt_curv(mhgpsst,itgeopt,imode,fsw,uinp,runObj,outs,alpha0,curvforced
                 fsw%fstretch_rot(:,:,fsw%nhist_rot)
         endif
 
-        if (cosangle.gt..20_gp) then
+!        if (cosangle.gt..20_gp) then
+        if (cosangle.gt..40_gp) then
             fsw%alpha_rot=fsw%alpha_rot*1.10_gp
         else
-            fsw%alpha_rot=max(fsw%alpha_rot*.85_gp,alpha0)
+            fsw%alpha_rot=max(fsw%alpha_rot*.85_gp,alpha0int)
         endif
 
 
@@ -945,9 +985,11 @@ end subroutine
 subroutine curvforce(mhgpsst,runObj,outs,diff,rxyz1,fxyz1,vec,curv,rotforce,imethod,ener_count)
     use module_base
     use yaml_output
+    use bigdft_run, only: bigdft_get_geocode
     use module_energyandforces
     use bigdft_run, only: run_objects, state_properties
     use module_mhgps_state
+    use module_forces
     implicit none
     !parameters
     type(mhgps_state), intent(inout) :: mhgpsst
@@ -961,28 +1003,30 @@ subroutine curvforce(mhgpsst,runObj,outs,diff,rxyz1,fxyz1,vec,curv,rotforce,imet
     real(gp), intent(inout) :: ener_count
     !internal
     integer :: infocode
-    real(gp) :: diffinv, etot2,fnoise
+    real(gp) :: diffinv, etot2
     real(gp),allocatable :: rxyz2(:,:), fxyz2(:,:)
     real(gp),allocatable :: drxyz(:,:), dfxyz(:,:)
     !functions
     real(gp), external :: dnrm2,ddot
-
     
 !    diff=1.e-3_gp !lennard jones
 
     diffinv=1.0_gp/(diff)
-
     rxyz2 = f_malloc((/ 1.to.3, 1.to.runObj%atoms%astruct%nat/),id='rxyz2')
     fxyz2 = f_malloc((/ 1.to.3, 1.to.runObj%atoms%astruct%nat/),id='fxyz2')
     drxyz = f_malloc((/ 1.to.3, 1.to.runObj%atoms%astruct%nat/),id='drxyz')
     dfxyz = f_malloc((/ 1.to.3, 1.to.runObj%atoms%astruct%nat/),id='dfxyz')
     call elim_moment_fs(runObj%atoms%astruct%nat,vec(1,1))
-    call elim_torque_bastian(runObj%atoms%astruct%nat,rxyz1(1,1),vec(1,1))
+    if (bigdft_get_geocode(runObj)=='F')&
+        call elim_torque_bastian(runObj%atoms%astruct%nat,&
+             rxyz1(1,1),vec(1,1))
 
+    call clean_forces_base(runObj%atoms,vec) 
     vec = vec / dnrm2(3*runObj%atoms%astruct%nat,vec(1,1),1)
     rxyz2 = rxyz1 + diff * vec
+
     call mhgpsenergyandforces(mhgpsst,runobj,outs,rxyz2(1,1),&
-         fxyz2(1,1),fnoise,etot2,infocode)
+         fxyz2(1,1),etot2,infocode)
     ener_count=ener_count+1.0_gp
 
     if(imethod==1)then
@@ -993,7 +1037,9 @@ subroutine curvforce(mhgpsst,runObj,outs,diff,rxyz1,fxyz1,vec,curv,rotforce,imet
 
         rotforce = 2.0_gp*dfxyz*diffinv + 2.0_gp * curv * drxyz
         call elim_moment_fs(runObj%atoms%astruct%nat,rotforce(1,1))
-        call elim_torque_bastian(runObj%atoms%astruct%nat,rxyz1(1,1),rotforce(1,1))
+        if (bigdft_get_geocode(runObj)=='F')&
+            call elim_torque_bastian(runObj%atoms%astruct%nat,&
+                 rxyz1(1,1),rotforce(1,1))
     else
         stop 'unknown method for curvature computation'
     endif
@@ -1331,6 +1377,7 @@ subroutine mincurvforce(mhgpsst,imode,runObj,outs,diff,rxyz1,fxyz1,&
            vec,vecraw,rotforce,rotfstretch,rotforceraw,curv,imethod,&
            ec,iconnect,nbond_,wold,alpha_stretch0,alpha_stretch)
     use module_base, only: gp
+    use yaml_output
     use module_sqn
     use bigdft_run, only: run_objects, state_properties
     use module_mhgps_state
@@ -1359,11 +1406,31 @@ subroutine mincurvforce(mhgpsst,imode,runObj,outs,diff,rxyz1,fxyz1,&
     !internal
     integer :: infocode
     real(gp) :: rxyz2(3,runObj%atoms%astruct%nat)
+    real(gp) :: maxdiff
 
-     vecraw=vec
+    !Check and synchronize input minimum mode over all processors.
+    !This is important, since otherwise we might get slightly different curvatures
+    !on each processor (in subroutine curvforce)
+    call mpibarrier(bigdft_mpi%mpi_comm)
+    if (bigdft_mpi%nproc >1) then
+       call mpibcast(vec,comm=bigdft_mpi%mpi_comm,&
+            maxdiff=maxdiff)
+       if (maxdiff > epsilon(1.0_gp)) then
+          if (bigdft_mpi%iproc==0) then
+             call yaml_warning('Minimum mode not identical! '//&
+                  '(difference:'//trim(yaml_toa(maxdiff))//&
+                  ' ), however broadcasting from master node.')
+             call yaml_flush_document()
+          end if
+       end if
+    end if
+
 !    call mhgpsenergyandforces(nat,rat,fat,epot)
      call curvforce(mhgpsst,runObj,outs,diff,rxyz1,fxyz1,vec,curv,&
           rotforce,imethod,ec)
+    !if biomode is not working, you might
+    !must move vecraw=vec right before call curvforce, above
+     vecraw=vec
      rxyz2 =rxyz1+diff*vec
      rotforceraw=rotforce
      rotfstretch=0.0_gp
@@ -1391,7 +1458,7 @@ subroutine minenergyandforces(mhgpsst,eeval,imode,runObj,outs,rat,&
     type(state_properties), intent(inout) :: outs
     integer, intent(in)           :: nbond_
     integer, intent(in)           :: iconnect(2,nbond_)
-    real(gp),intent(in)           :: rat(3,runObj%atoms%astruct%nat)
+    real(gp),intent(inout)           :: rat(3,runObj%atoms%astruct%nat)
     real(gp),intent(out)          :: rxyzraw(3,runObj%atoms%astruct%nat)
     real(gp),intent(out)          :: fxyzraw(3,runObj%atoms%astruct%nat)
     real(gp),intent(inout)          :: fat(3,runObj%atoms%astruct%nat)
@@ -1403,11 +1470,10 @@ subroutine minenergyandforces(mhgpsst,eeval,imode,runObj,outs,rat,&
     logical, intent(in)           :: eeval
     !internal
     integer :: infocode
-    real(gp) :: fnoise
 
-    rxyzraw=rat
     if(eeval)call mhgpsenergyandforces(mhgpsst,runObj,outs,rat,fat,&
-                  fnoise,epot,infocode)
+                  epot,infocode)
+    rxyzraw=rat
     fxyzraw=fat
     fstretch=0.0_gp
 
@@ -1556,4 +1622,162 @@ subroutine elim_moment_fs(nat,vxyz)
     enddo
 end subroutine
 !=====================================================================
+subroutine clean_minmode(nat,geocode,rxyz,minmode)
+    use module_base
+    implicit none
+    !parameters
+    integer, intent(in) :: nat
+    character(len=*), intent(in) :: geocode
+    real(gp), intent(in) :: rxyz(3,nat)
+    real(gp), intent(inout) :: minmode(3,nat)
+    !local
+    !functions
+    real(gp) :: dnrm2
+    call elim_moment_fs(nat,minmode(1,1))
+    if (trim(adjustl(geocode))=='F')call elim_torque_bastian(nat,&
+                                          rxyz(1,1),minmode(1,1))
+    minmode = minmode / dnrm2(3*nat,minmode(1,1),1)
+end subroutine clean_minmode
+!=====================================================================
+subroutine fixfrag_pos_slab(mhgpsst,nat,rcov,pos,fixfragmented)
+    use module_base
+    use module_mhgps_state
+    implicit none
+    !parameters
+    type(mhgps_state), intent(in) :: mhgpsst
+    integer, intent(in) :: nat
+    real(gp),dimension(3,nat), INTENT(INOUT) :: pos
+    real(gp),dimension(nat), INTENT(IN) :: rcov
+    logical, intent(out) :: fixfragmented
+    !local variables
+    integer :: iat,i,ic,ib,ilow,ihigh,icen,mm,mj,jat
+    real(gp) :: ymin, ylow,yhigh,dx,dy,dz,dl,dist,distmin,d
+
+    integer, dimension(-100:1000):: ygrid
+    logical ,dimension(nat) :: onsurface
+
+    fixfragmented=.false.
+
+! empty space = 0
+    do i=-100,1000 
+        ygrid(i)=0
+    enddo
+
+    ymin=1.e100_gp
+    do iat=1,nat
+        ymin=min(ymin,pos(2,iat)) 
+    enddo
+
+! occupied space= nonzero
+    do iat=1,nat
+        ic=nint((pos(2,iat)-ymin)*4.0_gp)  ! ygrid spacing=.25
+        ib=nint(2.0_gp*rcov(iat)*4.0_gp)
+        if (ic-ib < -100) stop "#MHGPS error fixfrag_slab -100"
+        if (ic+ib > 1000) stop "#MHGPS error fixfrag_slab 1000"
+        do i=ic-ib,ic+ib
+            ygrid(i)=ygrid(i)+1
+        enddo
+    enddo
+
+! find center of slab
+    mm=0
+    do i=-100,1000
+        if (ygrid(i) .gt. mm) then
+            icen=i
+            mm=ygrid(i)
+        endif
+    enddo
+
+! find border between empty and occupied space
+    do i=icen,-100,-1
+        if (ygrid(i).eq.0) then
+            ilow=i
+            exit
+        endif
+    enddo
+
+    do i=icen,1000
+        if (ygrid(i).eq.0) then
+            ihigh=i
+            exit
+        endif
+    enddo
+
+
+    ylow=ymin+ilow*.25d0
+    yhigh=ymin+ihigh*.25d0
+!    if (mhgpsst%iproc.eq.0) write(*,'(a,3(1x,e10.3))') &
+!       "(MHGPS) ylow,ycen,yhigh",ylow,ymin+icen*.25d0,yhigh
+
+1000 continue
+    do iat=1,nat
+         if (pos(2,iat).lt.ylow-rcov(iat) .or. pos(2,iat).gt.yhigh+rcov(iat)) then 
+         onsurface(iat)=.false.
+         else
+         onsurface(iat)=.true.
+         endif
+    enddo
+    do iat=1,nat
+         if (onsurface(iat) .eqv. .false.) then 
+             distmin=1.d100
+            do jat=1,nat
+            if (jat.ne.iat .and. onsurface(jat)) then
+              dist=(pos(1,iat)-pos(1,jat))**2+(pos(2,iat)-pos(2,jat))**2+(pos(3,iat)-pos(3,jat))**2
+              dist=sqrt(dist)-1.25d0*rcov(iat)-1.25d0*rcov(jat)
+              if (dist.lt.distmin) then 
+                distmin=dist
+                mj=jat
+              endif
+            endif
+            enddo
+            if (mhgpsst%iproc.eq.0) write(*,*) iat,mj,distmin
+            if (distmin.gt.0.d0) then
+                fixfragmented=.true.
+                dx=pos(1,iat)-pos(1,mj)
+                dy=pos(2,iat)-pos(2,mj)
+                dz=pos(3,iat)-pos(3,mj)
+                dl=sqrt(dx**2+dy**2+dz**2)
+                d=distmin+0.1d0*(rcov(iat)+rcov(mj))
+                dx=dx*(d/dl)
+                dy=dy*(d/dl)
+                dz=dz*(d/dl)
+                if (mhgpsst%iproc.eq.0) write(*,*) "(MHGPS) moving atom",iat,pos(:,iat)
+                pos(1,iat)=pos(1,iat)-dx
+                pos(2,iat)=pos(2,iat)-dy
+                pos(3,iat)=pos(3,iat)-dz
+                if (mhgpsst%iproc.eq.0) write(*,*) "(MHGPS) moved atom",iat,pos(:,iat)
+                onsurface(iat)=.true.
+                goto 1000
+            endif
+         endif
+    enddo
+
+end subroutine fixfrag_pos_slab
+!=====================================================================
+subroutine fixfrag(mhgpsst,uinp,runObj,rcov,pos)
+    use bigdft_run, only: run_objects, bigdft_get_geocode
+    use yaml_output
+    use module_userinput
+    use module_mhgps_state
+    implicit none
+    !parameters
+    type(mhgps_state), intent(in) :: mhgpsst
+    type(run_objects), intent(in) :: runObj
+    type(userinput), intent(in)   :: uinp
+    real(gp),intent(in)           :: rcov(runObj%atoms%astruct%nat)
+    real(gp),intent(inout)        :: pos(3,runObj%atoms%astruct%nat)
+    !local variables
+    real(gp) :: veldmy(3,runObj%atoms%astruct%nat)
+    logical :: fixfragmented
+    fixfragmented=.false.
+    if (bigdft_get_geocode(runObj) == 'F') then
+        call fixfrag_posvel(mhgpsst,runObj%atoms%astruct%nat,rcov(1),&
+             pos(1,1),veldmy,1,fixfragmented)
+    else if(bigdft_get_geocode(runObj) == 'S') then
+        call fixfrag_pos_slab(mhgpsst,runObj%atoms%astruct%nat,&
+             rcov(1),pos(1,1),fixfragmented)
+    endif
+    if(fixfragmented .and. uinp%mhgps_verbosity >=0.and. &
+          mhgpsst%iproc==0) call yaml_comment('(MHGPS) fragmentation fixed')
+end subroutine
 end module

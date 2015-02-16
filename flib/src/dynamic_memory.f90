@@ -431,8 +431,8 @@ contains
 !!$      call yaml_mapping_close()
 !!$    call yaml_mapping_close()
     !end debug  
-
-    if (.true.) then
+!test
+    if (track_origins) then !.true.) then
        if(associated(mems(ictrl)%dict_routine)) then
 !          call yaml_map('adding routine; '//trim(id),&
 !               (/dict_size(mems(ictrl)%dict_global),dict_size(mems(ictrl)%dict_routine)/))
@@ -495,7 +495,11 @@ contains
        nullify(mems(ictrl)%dict_routine)
     end if
     !call yaml_map('Closing routine',trim(dict_key(dict_codepoint)))
-
+!test
+if (.not. track_origins) then
+call f_timer_resume()
+return
+end if
     call close_routine(mems(ictrl)%dict_codepoint,.not. mems(ictrl)%routine_opened)!trim(dict_key(dict_codepoint)))
 
 !!$    if (f_err_check()) then
@@ -1226,9 +1230,12 @@ contains
        end if
 
        if (base_time > 0.d0) then
+!!$          call f_strcpy(src=trim(yaml_toa(time(jkey)/base_time*100.d0,fmt='(f6.2)'))//'%'//extra,&
+!!$               dest=percent)
           percent(1:len(percent))=&
                trim(yaml_toa(time(jkey)/base_time*100.d0,fmt='(f6.2)'))//'%'//extra
        else
+!!$          call f_strcpy(src='~'//extra,dest=percent)
           percent(1:len(percent))='~'//extra
        end if
        call add(dict_pt,dict_new(trim(keys(jkey)) .is. &

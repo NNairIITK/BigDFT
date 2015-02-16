@@ -75,6 +75,15 @@ subroutine test_dictionaries0()
   !this had  a bug, now solved
   call set(dict1//'List',list_new((/.item. dict2,.item. '4',.item. '1.0'/)))
 
+  !search for a list element
+  call yaml_map('1.0 index',dict1//'List' .index. '1.0')
+
+  dict_tmp => list_new([.item. 'one',.item. '4',.item. '1.1'])
+  call yaml_map('1.1 index',dict_tmp .index. '1.1')
+  call dict_free(dict_tmp)
+  nullify(dict_tmp)
+
+
   !this works
 !!$  call add(dict1//'List',dict2)
 !!$  call add(dict1//'List',4)
@@ -143,6 +152,12 @@ subroutine test_dictionaries0()
 !stop
   dict1=>dict_new()
   call set(dict1//'hgrid',dict_new((/'test1' .is. '1','test2' .is. '2'/)))
+
+  !search for a dictionary item
+  call yaml_map('test2 index',dict1//'hgrid' .index. 'test2')
+  call yaml_map('hgrid index',dict1 .index. 'hgrid')
+  call yaml_comment('Improper testing of index function',hfill='TEST')
+
   call yaml_map('Length and size before',(/dict_len(dict1//'hgrid'),dict_size(dict1//'hgrid')/))
   call set(dict1//'hgrid'//0,'new')
 
