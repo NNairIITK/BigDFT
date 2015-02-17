@@ -439,6 +439,8 @@ subroutine spline_bm(fdsp,fsp,nsp,rco1,rco2,a2,a3,a4,a5,a6,hsp)
     integer::nsp,i,j
     real(16)::qdel,qfsp_int,qhsp,qrco1,qrco2,qa2,qa3,qa4,qa5,qa6,qr
     real(16), allocatable::qfdsp(:,:),qfsp(:,:)
+!    qfdsp = f_malloc((/0 .to. 3,0.to.nsp/),id='qfdsp')
+!    qfsp = f_malloc((/0 .to. 4,0.to.nsp-1/),id='qfsp')
     allocate(qfdsp(0:3,0:nsp),qfsp(0:4,0:nsp-1))
     qhsp=real(hsp,16);qa2=real(a2,16);qa3=real(a3,16);qa4=real(a4,16)
     qa5=real(a5,16);qa6=real(a6,16);qrco1=real(rco1,16);qrco2=real(rco2,16)
@@ -477,5 +479,7 @@ subroutine spline_bm(fdsp,fsp,nsp,rco1,rco2,a2,a3,a4,a5,a6,hsp)
     fdsp(0:3,0:nsp)=real(qfdsp(0:3,0:nsp),8)
     fsp(0:4,0:nsp-1)=real(qfsp(0:4,0:nsp-1),8)
     deallocate(qfdsp,qfsp)
+!    call f_free(qfdsp)
+!    call f_free(qfsp)
 end subroutine spline_bm
 end module module_BornHugginsMayerTosiFumi
