@@ -380,10 +380,24 @@ subroutine determine_locregSphere_parallel(iproc,nproc,nlr,hx,hy,hz,astruct,orbs
 
          ! Make sure that the extent of the interpolating functions grid for the
          ! locreg is not larger than the that of the global box.
-         if (Llr(ilr)%d%n1i>Glr%d%n1i .or. Llr(ilr)%d%n2i>Glr%d%n2i .or.  Llr(ilr)%d%n3i>Glr%d%n3i) then
-             call f_err_throw('The interpolating functions grid for locreg '&
-                 &//trim(yaml_toa(ilr,fmt='(i0)'))//&
-                 &' is larger than that of the global region.&
+         if (Llr(ilr)%d%n1i>Glr%d%n1i) then
+             call f_err_throw('The interpolating functions grid in x dimension for locreg '&
+                 &//trim(yaml_toa(ilr,fmt='(i0)'))//'('//trim(yaml_toa(Llr(ilr)%d%n1i,fmt='(i0)'))//')&
+                 & is larger than that of the global region('//trim(yaml_toa(Glr%d%n1i,fmt='(i0)'))//').&
+                 & Reduce the localization radii or use the cubic version',&
+                 & err_name='BIGDFT_RUNTIME_ERROR')
+         end if
+         if (Llr(ilr)%d%n2i>Glr%d%n2i) then
+             call f_err_throw('The interpolating functions grid in y dimension for locreg '&
+                 &//trim(yaml_toa(ilr,fmt='(i0)'))//'('//trim(yaml_toa(Llr(ilr)%d%n2i,fmt='(i0)'))//')&
+                 & is larger than that of the global region('//trim(yaml_toa(Glr%d%n2i,fmt='(i0)'))//').&
+                 & Reduce the localization radii or use the cubic version',&
+                 & err_name='BIGDFT_RUNTIME_ERROR')
+         end if
+         if (Llr(ilr)%d%n3i>Glr%d%n3i) then
+             call f_err_throw('The interpolating functions grid in z dimension for locreg '&
+                 &//trim(yaml_toa(ilr,fmt='(i0)'))//'('//trim(yaml_toa(Llr(ilr)%d%n3i,fmt='(i0)'))//')&
+                 & is larger than that of the global region('//trim(yaml_toa(Glr%d%n3i,fmt='(i0)'))//').&
                  & Reduce the localization radii or use the cubic version',&
                  & err_name='BIGDFT_RUNTIME_ERROR')
          end if

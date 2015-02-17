@@ -1332,9 +1332,9 @@ subroutine full_local_potential(iproc,nproc,orbs,Lzd,iflag,dpbox,xc,potential,po
 
          !write(*,*) 'ne full_local_potential: comgp%nrecvbuf',comgp%nrecvbuf
 
-         do i=1,comgp%nrecvbuf
-             write(510,'(es16.8)') comgp%recvbuf(i)
-         end do
+         !!do i=1,comgp%nrecvbuf
+         !!    write(510,'(es16.8)') comgp%recvbuf(i)
+         !!end do
          !do i=1,2097152
          !    read(499,*) comgp%recvbuf(i)
          !end do
