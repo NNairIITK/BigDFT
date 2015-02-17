@@ -12,6 +12,7 @@ module module_BornHugginsMayerTosiFumi
 
     public :: init_bhmtf
     public :: energyandforces_bhmtf
+    public :: finalize_bhmtf
 
 contains
 subroutine allocateshrtrngpotentialcoeffarrays(ntypat,nsp)
