@@ -78,10 +78,11 @@ subroutine init_bhmtf(nat,astruct,paramset,paramfile,geocode)
     integer :: leni, lenj
     character(len=2) :: namat(100)
     character(20)::strtmpi,strtmpj
-    character(2):: namatnamat1,namatnamat2
+    character(4):: namatnamat1,namatnamat2
     real(gp)::parameters(6,nall)
     character(len=4) :: nameinteraction(nall)
-    logical :: condition
+    logical :: condition, check
+    call yaml_comment('Initializing BHMTF',hfill='-')
 
     initialized=.false.
 
@@ -94,29 +95,6 @@ subroutine init_bhmtf(nat,astruct,paramset,paramfile,geocode)
 
     typat = f_malloc((/ 1 .to. nat/),id='typat')
 
-
-    ntypat=0
-    namat=''
-    do iat=1,nat
-        condition=.true.
-        do ityp=1,ntypat
-            if(trim(astruct%atomnames(astruct%iatype(iat)))==namat(ityp))then
-                typat(iat)=ityp
-                condition=.false.
-                exit
-            endif
-        enddo
-        if(condition) then
-            ntypat=ntypat+1
-            if (ntypat > 100) stop 'more than 100 atomnames not permitted'
-            namat(ityp)=trim(astruct%atomnames(astruct%iatype(iat)))
-            typat(iat)=ntypat
-        endif
-    enddo
-
-    call allocateshrtrngpotentialcoeffarrays(ntypat,nsp)
-    call preparespline(nsp,rcut)
-
     if(trim(paramfile)/='none')then                                    
          call f_err_throw('Reading parameters from file not '//&        
               'implemented for BHMTF potential')                                     
@@ -124,7 +102,7 @@ subroutine init_bhmtf(nat,astruct,paramset,paramfile,geocode)
 
         select case(trim(paramset))
         case('NaCl')
-            call yaml_mapping_open('Using NaCL parameters from'//&           
+            call yaml_mapping_open('Using NaCl parameters from'//&           
                  ' Adams, D. J., McDonald, I. R. J. Phys. C: Solid State Phys., Vol. 7, 1974')
             nameinteraction(1) = 'NaNa' 
             parameters(1,1) = 15.5672851674_gp !A(Na<->Na) 
@@ -133,7 +111,7 @@ subroutine init_bhmtf(nat,astruct,paramset,paramfile,geocode)
             parameters(4,1) = 2.9841448_gp !D(Na<->Na) 
             parameters(5,1) = 1.0_gp !q_Na*q_Na
             parameters(6,1) = 0.0_gp !???
-            nameinteraction(2) = 'NaCL' 
+            nameinteraction(2) = 'NaCl' 
             parameters(1,2) =  46.1167544593_gp!A(Na<->Cl) 
             parameters(2,2) =  1.6693287451_gp !1/rho (Na<->Cl)
             parameters(3,2) =  11.6990384_gp !C(Na<->Cl) 
@@ -159,6 +137,43 @@ subroutine init_bhmtf(nat,astruct,paramset,paramfile,geocode)
             call yaml_map('rho^-1 (Na<->Na)[Bohr^-1]',    parameters(2,1),   fmt='(1pe10.4)')           
             call yaml_map('rho^-1 (Na<->Cl)[Bohr^-1]',    parameters(2,2),   fmt='(1pe10.4)')           
             call yaml_map('rho^-1 (Cl<->Cl)[Bohr^-1]',    parameters(2,3),   fmt='(1pe10.4)')           
+            call yaml_mapping_close() 
+        case('KCl')
+            call yaml_mapping_open('Using KCl parameters from'//&           
+                 ' Adams, D. J., McDonald, I. R. J. Phys. C: Solid State Phys., Vol. 7, 1974')
+            nameinteraction(1) = 'KK' 
+            parameters(1,1) = 57.1660802102_gp !A(K<->K) 
+            parameters(2,1) = 1.5702587899_gp !1/rho (K<->K)
+            parameters(3,1) = 25.3827351_gp !C(K<->K) 
+            parameters(4,1) = 89.524344_gp !D(K<->K) 
+            parameters(5,1) = 1.0_gp !q_K*q_K
+            parameters(6,1) = 0.0_gp !???
+            nameinteraction(2) = 'KCl' 
+            parameters(1,2) = 65.6826605449_gp !A(K<->Cl) 
+            parameters(2,2) = 1.5702587899_gp !1/rho (K<->Cl)
+            parameters(3,2) = 50.138736_gp !C(K<->Cl) 
+            parameters(4,2) = 272.303213_gp !D(K<->Cl) 
+            parameters(5,2) = -1.0_gp !q_Na*q_F
+            parameters(6,2) = 0.0_gp !???
+            nameinteraction(3) = 'ClCl' 
+            parameters(1,3) = 70.7512853404_gp!A(Cl<->Cl) 
+            parameters(2,3) = 1.5702587899_gp !1/rho (Cl<->Cl)
+            parameters(3,3) = 130.0473465_gp!C(Cl<->Cl) 
+            parameters(4,3) = 932.54525_gp !D(Cl<->Cl) 
+            parameters(5,3) = 1.0_gp !q_F*q_F
+            parameters(6,3) = 0.0_gp !???
+            call yaml_map('A(Na<->Na) [Hartree]', parameters(1,1) ,  fmt='(1pe10.4)')           
+            call yaml_map('A(Na<->F) [Hartree]', parameters(1,2),  fmt='(1pe10.4)')           
+            call yaml_map('A(F<->F) [Hartree]', parameters(1,3),  fmt='(1pe10.4)')           
+            call yaml_map('C(Na<->Na) [Bohr^6 Hartree]', parameters(3,1),  fmt='(1pe10.4)')           
+            call yaml_map('C(Na<->F) [Bohr^6 Hartree]', parameters(3,2),  fmt='(1pe10.4)')           
+            call yaml_map('C(F<->F) [Bohr^6 Hartree]', parameters(3,3),  fmt='(1pe10.4)')           
+            call yaml_map('D(Na<->Na) [Bohr^8 Hartree]', parameters(4,1),  fmt='(1pe10.4)')           
+            call yaml_map('D(Na<->F) [Bohr^8 Hartree]', parameters(4,2),  fmt='(1pe10.4)')           
+            call yaml_map('D(F<->F) [Bohr^8 Hartree]', parameters(4,3),  fmt='(1pe10.4)')           
+            call yaml_map('rho^-1 (Na<->Na)[Bohr^-1]',    parameters(2,1),   fmt='(1pe10.4)')           
+            call yaml_map('rho^-1 (Na<->F)[Bohr^-1]',    parameters(2,2),   fmt='(1pe10.4)')           
+            call yaml_map('rho^-1 (F<->F)[Bohr^-1]',    parameters(2,3),   fmt='(1pe10.4)')           
             call yaml_mapping_close() 
         case('NaF')
             call yaml_mapping_open('Using NaF parameters from'//&           
@@ -207,6 +222,34 @@ subroutine init_bhmtf(nat,astruct,paramset,paramfile,geocode)
         end select
     endif
 
+    ntypat=0
+    namat=''
+    do iat=1,nat
+        condition=.true.
+        do ityp=1,ntypat
+            if(trim(astruct%atomnames(astruct%iatype(iat)))==namat(ityp))then
+                typat(iat)=ityp
+                condition=.false.
+                exit
+            endif
+        enddo
+        if(condition) then
+            ntypat=ntypat+1
+            if (ntypat > 100) stop 'more than 100 atomnames not permitted'
+            namat(ityp)=trim(astruct%atomnames(astruct%iatype(iat)))
+            typat(iat)=ntypat
+        endif
+    enddo
+
+    call allocateshrtrngpotentialcoeffarrays(ntypat,nsp)
+
+    aaa=huge(1.0_gp)
+    bbb=huge(1.0_gp)
+    ccc=huge(1.0_gp)
+    ddd=huge(1.0_gp)
+    eee=huge(1.0_gp)
+    fff=huge(1.0_gp)
+
     itypinter=0
     do itypat=1,ntypat
         strtmpi=namat(itypat)
@@ -219,19 +262,27 @@ subroutine init_bhmtf(nat,astruct,paramset,paramfile,geocode)
             lenj=len_trim(strtmpj)
             namatnamat1=strtmpi(1:leni)//strtmpj(1:lenj)
             namatnamat2=strtmpj(1:lenj)//strtmpi(1:leni)
+            check=.false.
             do iall=1,nall
-                if(namatnamat1==trim(adjustl(nameinteraction(iall))) .or. namatnamat2==trim(adjustl(nameinteraction(iall)))) then
+                if(trim(adjustl(namatnamat1))==trim(adjustl(nameinteraction(iall)))&
+                  .or. trim(adjustl(namatnamat2))==trim(adjustl(nameinteraction(iall)))) then
                 aaa(itypinter)=parameters(1,iall)
                 bbb(itypinter)=parameters(2,iall)
                 ccc(itypinter)=parameters(3,iall)
                 ddd(itypinter)=parameters(4,iall)
                 eee(itypinter)=parameters(5,iall)
                 fff(itypinter)=parameters(6,iall)
+                check=.true.
                 endif
             enddo
+            if(.not. check)then
+                initialized=.false.
+                call f_err_throw('Wrong atom(s) in coordinate file for chosen parameter set.')
+            endif
             !write(*,*) namatnamat1,namatnamat2
         enddo
     enddo
+    call preparespline(nsp,rcut)
     initialized=.true.
 end subroutine init_bhmtf
 
@@ -239,9 +290,6 @@ subroutine energyandforces_bhmtf(nat,rat,fat,epot)
 ! calculates the  Fumi-Tosi-Born-Meyer potential and forces in a spline representation
 ! THe array fps holds the spline coefficeints for the energy and fdsp for the forces
     use module_base
-!    use shrtrngpotentialcoeff, &
-!    only:aaa,bbb,ccc,ddd,eee,fff,fsp,fdsp,typinteraction,hsp
-!    use atoms, only:typat
     implicit none
     integer::itypinter
     real(gp)::a2,a3,a4,a5,rinv2,rinv6,rinv8,rinv10,rinvqq,rinv28,rinv30
@@ -256,6 +304,7 @@ subroutine energyandforces_bhmtf(nat,rat,fat,epot)
     integer::iat,jat,isp
 
     if(initialized==.false.)then
+        call f_err_throw('BHMTF potential not initialized.')
     endif
 
     pi=4.0_gp*atan(1.0_gp)
