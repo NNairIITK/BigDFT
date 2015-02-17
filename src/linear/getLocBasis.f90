@@ -954,7 +954,7 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
               energy_first=trH
           end if
           if (iproc==0) call yaml_map('rel D',(trH-energy_first)/energy_first,fmt='(es9.2)')
-          if ((trH-energy_first)/energy_first>early_stop .and. itout>0) then
+          if ((trH-energy_first)<0.d0 .and. abs((trH-energy_first)/energy_first)>early_stop .and. itout>0) then
               energy_diff=.true.
           end if
       end if

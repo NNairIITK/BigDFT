@@ -81,7 +81,10 @@ subroutine calculate_forces(iproc,nproc,psolver_groupsize,Glr,atoms,orbs,nlpsp,r
    if (iproc == 0 .and. verbose > 1) call yaml_map('Calculate Non Local forces',(nlpsp%nprojel > 0))
 
   if (atoms%astruct%geocode == 'P' .and. psolver_groupsize == nproc) then
-     call local_hamiltonian_stress(orbs,Glr,hx,hy,hz,psi,strtens(1,3))
+     if (imode==0) then
+         ! Otherwise psi is not available
+         call local_hamiltonian_stress(orbs,Glr,hx,hy,hz,psi,strtens(1,3))
+     end if
 
      call erf_stress(atoms,rxyz,0.5_gp*hx,0.5_gp*hy,0.5_gp*hz,Glr%d%n1i,Glr%d%n2i,Glr%d%n3i,n3p,&
           iproc,nproc,ngatherarr,rho,strtens(1,4)) !shouud not be reduced for the moment
@@ -160,32 +163,37 @@ subroutine calculate_forces(iproc,nproc,psolver_groupsize,Glr,atoms,orbs,nlpsp,r
        /real(0.5_gp*hx*0.5_gp*hy*0.5_gp*hz,gp)**2.0_gp/real(Glr%d%n1i*Glr%d%n2i*Glr%d%n3i,dp)**2.0_gp
 
   if (atoms%astruct%geocode == 'P') then
-     ucvol=atoms%astruct%cell_dim(1)*atoms%astruct%cell_dim(2)*atoms%astruct%cell_dim(3) !orthorombic cell
-     if (iproc==0) call yaml_mapping_open('Stress Tensor')
-     !sum and symmetrize results
-     if (iproc==0 .and. verbose > 2)call write_strten_info(.false.,ewaldstr,ucvol,pressure,'Ewald')
-     if (iproc==0 .and. verbose > 2)call write_strten_info(.false.,hstrten,ucvol,pressure,'Hartree')
-     if (iproc==0 .and. verbose > 2)call write_strten_info(.false.,xcstr,ucvol,pressure,'XC')
-     do j=1,6
-        strten(j)=ewaldstr(j)+hstrten(j)+xcstr(j)
-     end do
-     messages(1)='PSP Short Range'
-     messages(2)='PSP Projectors'
-     messages(3)='Kinetic'
-     messages(4)='PSP Long Range'
-     !here we should add the pretty printings
-     do i=1,4
-        if (atoms%astruct%sym%symObj >= 0) call symm_stress(strtens(1,i),atoms%astruct%sym%symObj)
-        if (iproc==0 .and. verbose>2)&
-             call write_strten_info(.false.,strtens(1,i),ucvol,pressure,trim(messages(i)))
-        do j=1,6
-           strten(j)=strten(j)+strtens(j,i)
-        end do
-     end do
-     !final result
-     pressure=(strten(1)+strten(2)+strten(3))/3.0_gp
-     if (iproc==0)call write_strten_info(.true.,strten,ucvol,pressure,'Total')
-     if (iproc==0) call yaml_mapping_close()
+     if (imode==0) then
+         if (iproc==0) call yaml_map('Stress Tensor calculated',.true.)
+         ucvol=atoms%astruct%cell_dim(1)*atoms%astruct%cell_dim(2)*atoms%astruct%cell_dim(3) !orthorombic cell
+         if (iproc==0) call yaml_mapping_open('Stress Tensor')
+         !sum and symmetrize results
+         if (iproc==0 .and. verbose > 2)call write_strten_info(.false.,ewaldstr,ucvol,pressure,'Ewald')
+         if (iproc==0 .and. verbose > 2)call write_strten_info(.false.,hstrten,ucvol,pressure,'Hartree')
+         if (iproc==0 .and. verbose > 2)call write_strten_info(.false.,xcstr,ucvol,pressure,'XC')
+         do j=1,6
+            strten(j)=ewaldstr(j)+hstrten(j)+xcstr(j)
+         end do
+         messages(1)='PSP Short Range'
+         messages(2)='PSP Projectors'
+         messages(3)='Kinetic'
+         messages(4)='PSP Long Range'
+         !here we should add the pretty printings
+         do i=1,4
+            if (atoms%astruct%sym%symObj >= 0) call symm_stress(strtens(1,i),atoms%astruct%sym%symObj)
+            if (iproc==0 .and. verbose>2)&
+                 call write_strten_info(.false.,strtens(1,i),ucvol,pressure,trim(messages(i)))
+            do j=1,6
+               strten(j)=strten(j)+strtens(j,i)
+            end do
+         end do
+         !final result
+         pressure=(strten(1)+strten(2)+strten(3))/3.0_gp
+         if (iproc==0)call write_strten_info(.true.,strten,ucvol,pressure,'Total')
+         if (iproc==0) call yaml_mapping_close()
+     else
+         if (iproc==0) call yaml_map('Stress Tensor calculated',.false.)
+     end if
   end if
 !!$  if (iproc == 0) then
 !!$     sumx=0.d0 ; sumy=0.d0 ; sumz=0.d0

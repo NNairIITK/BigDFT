@@ -3590,7 +3590,8 @@ module communications_init
           do jproc=0,nproc-1
               !if(check_whether_bounds_overlap(iis,iie,istartend(1,jproc),istartend(2,jproc))) then
               call get_extent_of_overlap(iis,iie,istartend(1,jproc),istartend(2,jproc), n, iiis, iiie, nlen)
-              ! DO nothing if n==0
+              !write(*,'(a,12i8)') 'iproc, iis,iie,istartend(:,jproc), n, iiis, iiie, nlen', iproc, iis,iie,istartend(:,jproc), n, iiis, iiie, nlen
+              ! Do nothing if n==0
               do j=1,n
                   !jproc_send=jproc_send+1
                   ioverlaps=ioverlaps+1
@@ -3618,7 +3619,7 @@ module communications_init
                   !!write(*,'(a,12i11)') 'iproc, jproc, iis, iie, istartend(1,jproc), istartend(2,jproc), j, iiis(j), iiie(j), i3, iidest, iisrc', &
                   !!    iproc, jproc, iis, iie, istartend(1,jproc), istartend(2,jproc), j, iiis(j), iiie(j), i3, iidest, int(iiis(j)-istartend(1,jproc),kind=4)+1
                   commarr_repartitionrho(3,ioverlaps)=iidest
-                  commarr_repartitionrho(4,ioverlaps)=int(nlen(1),kind=4)
+                  commarr_repartitionrho(4,ioverlaps)=int(nlen(j),kind=4)
               end do
           end do
           !@ END NEW ###########################
@@ -3638,6 +3639,7 @@ module communications_init
               !nel_array(ii)=nel_array(ii)+commarr_repartitionrho(4,ioverlaps)
           end do
           if (nel/=nscatterarr(iproc,1)*lzd%glr%d%n2i*lzd%glr%d%n1i) then
+              write(*,'(a,3i12)') 'nel, nscatterarr(iproc,1), lzd%glr%d%n2i*lzd%glr%d%n1i', nel, nscatterarr(iproc,1), lzd%glr%d%n2i*lzd%glr%d%n1i
               stop 'nel/=nscatterarr(iproc,2)*lzd%glr%d%n2i*lzd%glr%d%n1i'
           end if
           !!call mpiallred(nel_array(0), nproc, mpi_sum, bigdft_mpi%mpi_comm, ierr)
@@ -3744,22 +3746,36 @@ module communications_init
               ie3=ie
           end if
 
+          !!write(*,'(a,7i8)') 'ilr, lnsi1, lni1, gnsi1, gni1, is1, ie1', ilr, lzd%Llr(ilr)%nsi1, lzd%llr(ilr)%d%n1i, lzd%glr%nsi1, lzd%glr%d%n1i, is1, ie1
           !!write(*,'(a,7i8)') 'ilr, lnsi3, lni3, gnsi3, gni3, is, ie', ilr, lzd%Llr(ilr)%nsi3, lzd%llr(ilr)%d%n3i, lzd%glr%nsi3, lzd%glr%d%n3i, is, ie
       
       end do
       !!write(*,'(a,i4,3x,9i6)') 'iproc, is1, ie1, n1, is2, ie2, n2, is3, ie3, n3', iproc, is1, ie1, lzd%glr%d%n1i, is2, ie2, lzd%glr%d%n2i, is3, ie3, lzd%glr%d%n3i
 
       ! For non-free boundary conditions the values ie1, ie2, ie3 may lie outside of the box!
-      ! Make sure that the wrapped aruond end is smaller than the beginning
+      ! Make sure that the wrapped around end is smaller than the beginning
+      !if (ie1>lzd%glr%d%n1i) then
+      !    ie1=min(modulo(ie1-1,lzd%glr%d%n1i)+1,is1-1)
+      !end if
+      !if (ie2>lzd%glr%d%n2i) then
+      !    ie2=min(modulo(ie2-1,lzd%glr%d%n2i)+1,is2-1)
+      !end if
+      !if (ie3>lzd%glr%d%n3i) then
+      !    ie3=min(modulo(ie3-1,lzd%glr%d%n3i)+1,is3-1)
+      !end if
       if (ie1>lzd%glr%d%n1i) then
           ie1=min(modulo(ie1-1,lzd%glr%d%n1i)+1,is1-1)
+          ie1=modulo(ie1-1,lzd%glr%d%n1i)+1
       end if
       if (ie2>lzd%glr%d%n2i) then
           ie2=min(modulo(ie2-1,lzd%glr%d%n2i)+1,is2-1)
+          ie2=modulo(ie2-1,lzd%glr%d%n2i)+1
       end if
       if (ie3>lzd%glr%d%n3i) then
           ie3=min(modulo(ie3-1,lzd%glr%d%n3i)+1,is3-1)
+          ie3=modulo(ie3-1,lzd%glr%d%n3i)+1
       end if
+      !!write(*,'(a,i4,3x,9i6)') 'AFTER: iproc, is1, ie1, n1, is2, ie2, n2, is3, ie3, n3', iproc, is1, ie1, lzd%glr%d%n1i, is2, ie2, lzd%glr%d%n2i, is3, ie3, lzd%glr%d%n3i
       if (.not.bgq) then
           ! Communicate only the essential part, i.e. a subbox of the slices
           comgp%ise(1)=is1
@@ -3922,7 +3938,8 @@ module communications_init
                       end if
                       !if (comgp%ise(1)>is1 .and. ii<ie1) then
                       call mpi_type_size(mpi_double_precision, size_of_double, ierr)
-                      if (ii<comgp%ise(1) .and. ii>is1 .and. comgp%ise(1)<ie1) then
+                      !!write(*,'(a,5i8)') 'ii, is1, ie1, comgp%ise(1:2)', ii, is1, ie1, comgp%ise(1:2)
+                      if (ii<comgp%ise(1) .and. ii>=is1 .and. comgp%ise(1)<ie1) then
                           !!write(*,'(a,5i8)') 'hole in x, iproc, is1, ie1, comgp%ise(1), ii', iproc, is1, ie1, comgp%ise(1), ii
                           nsegx=2
                           !!blocklengthsx(1)=comgp%ise(1)-is1+1
@@ -3947,8 +3964,9 @@ module communications_init
                       else
                           ii=comgp%ise(4)
                       end if
+                      !!write(*,'(a,6i8)') 'iproc, ii, is2, ie2, comgp%ise(3:4)', iproc, ii, is2, ie2, comgp%ise(3:4)
                       !if (comgp%ise(3)>is2 .and. ii<ie2) then
-                      if (ii<comgp%ise(3) .and. ii>is2 .and. comgp%ise(3)<ie2) then
+                      if (ii<comgp%ise(3) .and. ii>=is2 .and. comgp%ise(3)<ie2) then
                           !!write(*,*) 'iproc, hole in y', iproc
                           nsegy=2
                           !!blocklengthsy(1)=comgp%ise(3)-is2+1
@@ -4008,6 +4026,7 @@ module communications_init
                           ! Now create a type describing one block
                           xyblock_type(:)=0 !just to initialize
                           do iseg=1,nsegy
+                              !!write(*,*) 'iproc, iseg, blocklengthsy(iseg)', iproc, iseg, blocklengthsy(iseg)
                               call mpi_type_create_hvector(blocklengthsy(iseg), 1, &
                                    int(size_of_double*lzd%glr%d%n1i,kind=mpi_address_kind), &
                                    xline_type, xyblock_type(iseg), ierr)
@@ -4039,8 +4058,8 @@ module communications_init
                   call mpi_type_size(comgp%mpi_datatypes(0), size_datatype, ierr)
                   size_datatype=size_datatype/size_of_double
                   istdest = istdest + nlen3(j3)*size_datatype
-                  !!write(*,*) 'j3, nlen3(j3), size_datatype', j3, nlen3(j3), size_datatype
                   comgp%nrecvBuf = comgp%nrecvBuf + nlen3(j3)*size_datatype
+                  !!write(*,'(a,4i9)') 'j3, nlen3(j3), size_datatype, comgp%nrecvBuf', j3, nlen3(j3), size_datatype, comgp%nrecvBuf
               !!else if(ie3j > lzd%Glr%d%n3i .and. lzd%Glr%geocode /= 'F')then
               !!     stop 'WILL PROBABLY NOT WORK!'
               !!     ie3j = comgp%ise(6) - lzd%Glr%d%n3i
