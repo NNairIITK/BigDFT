@@ -3937,7 +3937,7 @@ module communications_init
                       !if (comgp%ise(1)>is1 .and. ii<ie1) then
                       call mpi_type_size(mpi_double_precision, size_of_double, ierr)
                       write(*,'(a,5i8)') 'ii, is1, ie1, comgp%ise(1:2)', ii, is1, ie1, comgp%ise(1:2)
-                      if (ii<comgp%ise(1) .and. ii>is1 .and. comgp%ise(1)<ie1) then
+                      if (ii<comgp%ise(1) .and. ii>=is1 .and. comgp%ise(1)<ie1) then
                           !!write(*,'(a,5i8)') 'hole in x, iproc, is1, ie1, comgp%ise(1), ii', iproc, is1, ie1, comgp%ise(1), ii
                           nsegx=2
                           !!blocklengthsx(1)=comgp%ise(1)-is1+1
@@ -3962,8 +3962,9 @@ module communications_init
                       else
                           ii=comgp%ise(4)
                       end if
+                      write(*,'(a,6i8)') 'iproc, ii, is2, ie2, comgp%ise(3:4)', iproc, ii, is2, ie2, comgp%ise(3:4)
                       !if (comgp%ise(3)>is2 .and. ii<ie2) then
-                      if (ii<comgp%ise(3) .and. ii>is2 .and. comgp%ise(3)<ie2) then
+                      if (ii<comgp%ise(3) .and. ii>=is2 .and. comgp%ise(3)<ie2) then
                           !!write(*,*) 'iproc, hole in y', iproc
                           nsegy=2
                           !!blocklengthsy(1)=comgp%ise(3)-is2+1
@@ -4023,6 +4024,7 @@ module communications_init
                           ! Now create a type describing one block
                           xyblock_type(:)=0 !just to initialize
                           do iseg=1,nsegy
+                              write(*,*) 'iproc, iseg, blocklengthsy(iseg)', iproc, iseg, blocklengthsy(iseg)
                               call mpi_type_create_hvector(blocklengthsy(iseg), 1, &
                                    int(size_of_double*lzd%glr%d%n1i,kind=mpi_address_kind), &
                                    xline_type, xyblock_type(iseg), ierr)
