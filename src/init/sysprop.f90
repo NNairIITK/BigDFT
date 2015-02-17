@@ -91,7 +91,6 @@ subroutine system_initialization(iproc,nproc,dump,inputpsi,input_wf_format,dry_r
       end do
   end if
 
-
   if (present(denspot)) then
      call initialize_DFT_local_fields(denspot, in%ixc, in%nspin)
 
@@ -102,6 +101,7 @@ subroutine system_initialization(iproc,nproc,dump,inputpsi,input_wf_format,dry_r
      ! Create the Poisson solver kernels.
      call system_initKernels(.true.,iproc,nproc,atoms%astruct%geocode,in,denspot)
      call system_createKernels(denspot, (verbose > 1))
+     if (in%set_epsilon == EPSILON_RIGID_CAVITY) call epsilon_cavity(atoms,rxyz,denspot%pkernel)
   end if
 
   ! Create wavefunctions descriptors and allocate them inside the global locreg desc.
@@ -767,14 +767,14 @@ subroutine system_initKernels(verb, iproc, nproc, geocode, in, denspot)
   integer, parameter :: ndegree_ip = 16
 
   denspot%pkernel=pkernel_init(verb, iproc,nproc,in%matacc%PSolver_igpu,&
-       geocode,denspot%dpbox%ndims,denspot%dpbox%hgrids,ndegree_ip,mpi_env=denspot%dpbox%mpi_env)
+       geocode,denspot%dpbox%ndims,denspot%dpbox%hgrids,ndegree_ip,mpi_env=denspot%dpbox%mpi_env,method=in%GPS_method)
   !create the sequential kernel if the exctX parallelisation scheme requires it
   if ((xc_exctXfac(denspot%xc) /= 0.0_gp .and. in%exctxpar=='OP2P' .or. in%SIC%alpha /= 0.0_gp)&
        .and. denspot%dpbox%mpi_env%nproc > 1) then
      !the communicator of this kernel is bigdft_mpi%mpi_comm
      !this might pose problems when using SIC or exact exchange with taskgroups
      denspot%pkernelseq=pkernel_init(iproc==0 .and. verb,0,1,in%matacc%PSolver_igpu,&
-          geocode,denspot%dpbox%ndims,denspot%dpbox%hgrids,ndegree_ip)
+          geocode,denspot%dpbox%ndims,denspot%dpbox%hgrids,ndegree_ip,method=in%GPS_method)
   else 
      denspot%pkernelseq = denspot%pkernel
   end if
@@ -798,6 +798,64 @@ subroutine system_createKernels(denspot, verb)
   end if
 
 END SUBROUTINE system_createKernels
+
+!> calculate the dielectric function for the cavitBy
+subroutine epsilon_cavity(atoms,rxyz,pkernel)
+  use dynamic_memory
+  use Poisson_Solver
+  use module_atoms
+  use ao_inguess, only: atomic_info
+  !use yaml_output
+  use module_defs, only : Bohr_Ang
+  use f_utils
+  implicit none
+  type(atoms_data), intent(in) :: atoms
+  real(gp), dimension(3,atoms%astruct%nat), intent(in) :: rxyz
+  type(coulomb_operator), intent(inout) :: pkernel
+  !local variables
+  real(gp), parameter :: epsilon0=80.d0
+  integer :: i1,i2,i3,unt
+  real(gp) :: delta
+  type(atoms_iterator) :: it
+  real(gp), dimension(:), allocatable :: radii
+  real(gp), dimension(:,:,:), allocatable :: eps
+  !set the vdW radii for the cavity definition
+  !iterate above atoms
+
+  radii=f_malloc(atoms%astruct%nat,id='radii')
+  eps=f_malloc(pkernel%ndims,id='eps')
+
+  it=atoms_iter(atoms%astruct)
+  !python metod
+  do while(atoms_iter_next(it))
+     !only amu is extracted here
+     call atomic_info(atoms%nzatom(it%ityp),atoms%nelpsp(it%ityp),&
+          rcov=radii(it%iat))
+  end do
+  radii=1.59d0/Bohr_Ang
+  !call yaml_map('Covalent radii',radii)
+  delta=0.3d0*maxval(pkernel%hgrids)
+  call epsilon_rigid_cavity(atoms%astruct%geocode,pkernel%ndims,pkernel%hgrids,atoms%astruct%nat,rxyz,radii,&
+       epsilon0,delta,eps)
+
+  !set the epsilon to the poisson solver kernel
+  call pkernel_set_epsilon(pkernel,eps=eps)
+
+!!$  unt=f_get_free_unit(21)
+!!$  call f_open_file(unt,file='oneoepsilon.dat')
+!!$  i1=1!n03/2
+!!$  do i2=1,pkernel%ndims(2)
+!!$     do i3=1,pkernel%ndims(3)
+!!$        write(unt,'(2(1x,I4),2(1x,e14.7))')i2,i3,pkernel%oneoeps(i1,i2+(i3-1)*pkernel%ndims(2)),&
+!!$             pkernel%oneoeps(pkernel%ndims(1)/2,i2+(i3-1)*pkernel%ndims(2))
+!!$     end do
+!!$  end do
+!!$  call f_close(unt)
+
+
+  call f_free(radii)
+  call f_free(eps)
+end subroutine epsilon_cavity
 
 
 !> Calculate the important objects related to the physical properties of the system

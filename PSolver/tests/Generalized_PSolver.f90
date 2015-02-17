@@ -35,7 +35,7 @@ program GPS_3D
    character(len=2) :: geocode
    character(len=2), parameter :: datacode = 'G'
    !> Order of accuracy for derivatives into ApplyLaplace subroutine = Total number of points at left and right of the x0 where we want to calculate the derivative.
-   integer, parameter :: nord = 16 
+   integer, parameter :: nord = 16 , nat=3
    integer, dimension(3) :: ndims
    real(8), dimension(3) :: hgrids
    real(kind=8), parameter :: a_gauss = 1.0d0,a2 = a_gauss**2
@@ -145,7 +145,7 @@ program GPS_3D
    ! Set environment, namely permittivity epsilon, rhoele = electron charge density and rhoion = ion charge density .
 
    if (SetEps.eq.3) then
-    call get_rho(n01,n02,n03,nspden,acell,a_gauss,hx,hy,hz,rhoele,rhoion,sume)
+      call get_rho(n01,n02,n03,nspden,acell,a_gauss,hx,hy,hz,rhoele,rhoion,sume)
    else
     rhoele(:,:,:,:) = 0.d0
     rhoion(:,:,:,:) = 0.d0
@@ -192,16 +192,23 @@ program GPS_3D
    rhopot(:,:,:,:) = density(:,:,:,:)
   end if
 
+  !new method
+  pkernel=pkernel_init(.true.,iproc,nproc,0,geocode,ndims,hgrids,itype_scf,method=PSol)
+  call pkernel_set(pkernel,verbose=.true.)
+
   if ( trim(PSol)=='PCG') then
      
-     !new method
-     pkernel=pkernel_init(.true.,iproc,nproc,0,geocode,ndims,hgrids,itype_scf,method=PSol)
-     !set the coulomb operator of this system
-   if (SetEps.eq.2 .or. SetEps.eq.3) then
-     call pkernel_set(pkernel,verbose=.true.,eps=eps,oneosqrteps=oneosqrteps,corr=corr)
-   else
-     call pkernel_set(pkernel,verbose=.true.,eps=eps)
-   end if
+!!$     !set the coulomb operator of this system
+!!$   if (SetEps.eq.2 .or. SetEps.eq.3) then
+!!$     call pkernel_set(pkernel,verbose=.true.,eps=eps,oneosqrteps=oneosqrteps,corr=corr)
+!!$   else
+!!$     call pkernel_set(pkernel,verbose=.true.,eps=eps)
+!!$   end if
+     if (SetEps.eq.2 .or. SetEps.eq.3) then
+        call pkernel_set_epsilon(pkernel,oneosqrteps=oneosqrteps,corr=corr)
+     else
+        call pkernel_set_epsilon(pkernel,eps=eps)
+     end if
      call H_potential('G',pkernel,rhopot,rhopot,ehartree,0.d0,.false.)
      if (iproc==0) call writeroutinePot(n01,n02,n03,nspden,rhopot,pkernel%max_iter,&
           potential)
@@ -214,13 +221,18 @@ program GPS_3D
 
   else if (trim(PSol)=='PI') then
 
-     pkernel=pkernel_init(.true.,iproc,nproc,0,geocode,ndims,hgrids,itype_scf,method=PSol)
      !set the coulomb operator of this system
+!!$   if (SetEps.eq.2 .or. SetEps.eq.3) then
+!!$     call pkernel_set(pkernel,verbose=.true.,eps=eps,dlogeps=dlogeps,oneoeps=oneoeps)
+!!$   else
+!!$     call pkernel_set(pkernel,verbose=.true.,eps=eps)
+!!$   end if
    if (SetEps.eq.2 .or. SetEps.eq.3) then
-     call pkernel_set(pkernel,verbose=.true.,eps=eps,dlogeps=dlogeps,oneoeps=oneoeps)
+      call pkernel_set_epsilon(pkernel,oneoeps=oneoeps,dlogeps=dlogeps)
    else
-     call pkernel_set(pkernel,verbose=.true.,eps=eps)
+      call pkernel_set_epsilon(pkernel,eps=eps)
    end if
+
      call H_potential('G',pkernel,rhopot,rhopot,ehartree,0.d0,.false.)
      if (iproc==0) call writeroutinePot(n01,n02,n03,nspden,rhopot,pkernel%max_iter,potential)
 
@@ -867,6 +879,7 @@ end subroutine writeroutine
 subroutine writeroutinePot(n01,n02,n03,nspden,ri,i,potential)
   use yaml_output
   use dynamic_memory
+  use f_utils
   implicit none
   integer, intent(in) :: n01
   integer, intent(in) :: n02
@@ -877,7 +890,7 @@ subroutine writeroutinePot(n01,n02,n03,nspden,ri,i,potential)
   real(kind=8), dimension(n01,n02,n03),intent(in) :: potential
   !automatic array, to be check is stack poses problem
   real(kind=8), dimension(:,:,:,:), allocatable :: re
-  integer :: i1,i2,i3,j,i1_max,i2_max,i3_max,jj
+  integer :: i1,i2,i3,j,i1_max,i2_max,i3_max,jj,unt
   real(kind=8) :: max_val,fact
 
   re=f_malloc([n01,n02,n03,nspden],id='re')
@@ -913,6 +926,17 @@ subroutine writeroutinePot(n01,n02,n03,nspden,ri,i,potential)
               fmt='(1pe22.15)')
          call yaml_mapping_close()
       end if
+      
+      unt=f_get_free_unit(21)
+      call f_open_file(unt,file='final.dat')
+      i1=1!n03/2
+      do i2=1,n02
+         do i3=1,n03
+            write(unt,'(2(1x,I4),2(1x,e14.7))')i2,i3,ri(i1_max,i2,i3,1),potential(i1_max,i2,i3)
+         end do
+      end do
+      call f_close(unt)
+
       call f_free(re)
 end subroutine writeroutinePot
 
@@ -2246,7 +2270,7 @@ subroutine SetInitDensPot(n01,n02,n03,nspden,eps,dlogeps,sigmaeps,SetEps,erfL,er
 
   end if
 
- else if (SetEps.eq.2 .or. SetEps.eq.3) then
+ else if (any(SetEps == [2,3,4])) then
 
 ! Set initial potential as gaussian and density as the correct Generalized
 ! Laplace operator. It works with a gaussian epsilon.
@@ -2431,6 +2455,7 @@ subroutine SetEpsilon(n01,n02,n03,nspden,nord,acell,a_gauss,hx,hy,hz,erfL,erfR,s
   real(kind=8), dimension(n01,n02,n03,nspden) :: edens
   real(kind=8), dimension(n01,n02,n03,nspden,3) :: nabla_edens ! Nabla of the electron density.
   real(kind=8), dimension(n01,n02,n03,nspden) :: ddt_edens ! Laplacian of the electron density.
+  integer, parameter :: nat=3
   integer :: i,i1,i2,i3,ifx,ify,ifz,isp
   real(kind=8), parameter :: edensmax = 0.0035d0!!!!
   real(kind=8), parameter :: edensmin = 0.0001d0
@@ -2438,6 +2463,9 @@ subroutine SetEpsilon(n01,n02,n03,nspden,nord,acell,a_gauss,hx,hy,hz,erfL,erfR,s
   real(kind=8) :: x1,x2,x3,r,t,pi,r2,sigma,x0,factor,length,oneoeps0,oneosqrteps0
   real(kind=8) :: x,y,fx,fx2,fy,fy2,fz,fz2,a,ax,ay,az,bx,by,bz,tt,fx1,fy1,fz1
   real(kind=8) :: fact1,fact2,fact3,dtx,d2,dd,coeff,coeff1
+  real(kind=8), dimension(nat) :: radii
+  real(kind=8), dimension(3,nat) :: rxyz
+
 
   open(unit=21,file='Epsilon.out',status='unknown')
   open(unit=22,file='Epsilon_line.out',status='unknown')
@@ -2657,16 +2685,32 @@ subroutine SetEpsilon(n01,n02,n03,nspden,nord,acell,a_gauss,hx,hy,hz,erfL,erfR,s
 
    end if
 
- end if
+else if (SetEps ==4) then
+      rxyz(1:3,1)=[7.300000d0, 7.300337d0, 7.243250d0]-[2.30d0,2.85d0,3.7d0]
+      rxyz(1:3,2)=[7.300000d0, 8.415319d0, 8.700265d0]-[2.30d0,2.85d0,3.7d0]
+      rxyz(1:3,3)=[7.300000d0, 7.299663d0,10.156750d0]-[2.30d0,2.85d0,3.7d0]
+      radii=[2.0d0,2.5d0,2.0d0]
+      call Eps_rigid_cavity([n01,n02,n03],[hx,hy,hz],nat,rxyz,radii,eps0,3.d0*max(hx,hy,hz),eps,dlogeps)
+
+end if
 
 
-     i3=1!n03/2
+!!$     i3=1!n03/2
+!!$     do i2=1,n02
+!!$      do i1=1,n01
+!!$       write(21,'(2(1x,I4),2(1x,e14.7))')i1,i2,eps(i1,i2,i3),eps(i1,i2,n03/2)
+!!$      end do
+!!$      write(21,*)
+!!$     end do
+
+     i1=1!n03/2
      do i2=1,n02
-      do i1=1,n01
-       write(21,'(2(1x,I4),2(1x,e14.7))')i1,i2,eps(i1,i2,i3),eps(i1,i2,n03/2)
+      do i3=1,n03
+       write(21,'(2(1x,I4),2(1x,e14.7))')i2,i3,eps(i1,i2,i3),eps(n01/2,i2,i3)
       end do
       write(21,*)
      end do
+
 
      do i1=1,n01
       write(22,'(1x,I8,2(1x,e22.15))') i1,eps(i1,n02/2,n03/2),eps(n01/2,i1,n03/2)
@@ -2676,6 +2720,85 @@ subroutine SetEpsilon(n01,n02,n03,nspden,nord,acell,a_gauss,hx,hy,hz,erfL,erfR,s
   close(unit=22)
 
 end subroutine SetEpsilon
+
+!> calculates the value of the dielectric funnction for a smoothed cavity 
+!! given a set of centres and radii.
+!! Need the epsilon0 as well as the radius of the cavit and its smoothness
+subroutine Eps_rigid_cavity(ndims,hgrids,nat,rxyz,radii,epsilon0,delta,eps,dlogeps)
+  implicit none
+  integer, intent(in) :: nat !< number of centres defining the cavity
+  real(kind=8), intent(in) :: epsilon0 !< dielectric constant of th solvent
+  real(kind=8), intent(in) :: delta !< smoothness factor of the cavity
+  integer, dimension(3), intent(in) :: ndims   !< dimensions of the simulation box
+  real(kind=8), dimension(3), intent(in) :: hgrids !< grid spacings
+  real(kind=8), dimension(nat), intent(in) :: radii !< radii of each of the atoms
+  !> position of all the atoms in the grid coordinates
+  real(kind=8), dimension(3,nat), intent(in) :: rxyz
+  real(kind=8), dimension(ndims(1),ndims(2),ndims(3)), intent(out) :: eps !< dielectric function
+  real(kind=8), dimension(3,ndims(1),ndims(2),ndims(3)), intent(out) :: dlogeps !< dlogeps
+  !local variables
+  integer :: i1,i2,i3,iat
+  real(kind=8) :: r2,x,y2,z2,d2,y,z,eps_min,eps1
+  real(kind=8), dimension(3) :: deps
+
+  do i3=1,ndims(3)
+     z=hgrids(3)*(i3-1)
+     z2=z*z
+     do i2=1,ndims(2)
+        y=hgrids(2)*(i2-1)
+        y2=y*y
+        do i1=1,ndims(1)
+           x=hgrids(1)*(i1-1)
+           r2=x*x+y2+z2
+           !choose the closest atom
+           eps_min=1.d100
+           do iat=1,nat
+              d2=(x-rxyz(1,iat))**2+(y-rxyz(2,iat))**2+(z-rxyz(3,iat))**2
+              eps1=epsl(sqrt(d2),radii(iat),delta,epsilon0)
+              if (eps1< eps_min) then
+                 deps(1)=depsoeps(sqrt(d2),radii(iat),delta,epsilon0)*(x-rxyz(1,iat))/sqrt(d2)
+                 deps(2)=depsoeps(sqrt(d2),radii(iat),delta,epsilon0)*(y-rxyz(2,iat))/sqrt(d2)
+                 deps(3)=depsoeps(sqrt(d2),radii(iat),delta,epsilon0)*(z-rxyz(3,iat))/sqrt(d2)
+                 eps_min=eps1
+              end if
+              if (abs(eps_min-1.d0) < epsilon(1.d0)) exit
+           end do
+           if (nat==0) then
+              eps_min=1.d0
+              deps=0.d0
+           end if
+           eps(i1,i2,i3)=eps_min
+           dlogeps(1:3,i1,i2,i3)=deps(1:3)
+        end do
+     end do
+  end do
+
+  contains
+
+    pure function epsl(r,rc,delta,epsilon0)
+      implicit none
+      real(kind=8), intent(in) :: r,rc,delta,epsilon0
+      real(kind=8) :: epsl
+      !local variables
+      real(kind=8) :: d
+
+      d=(r-rc)/delta
+      epsl=0.5d0*((epsilon0-1.d0)*(erf(d)+1.d0)+1.d0)+1.d0
+    end function epsl
+
+    pure function depsoeps(r,rc,delta,epsilon0)
+      implicit none
+      real(kind=8), intent(in) :: r,rc,delta,epsilon0
+      real(kind=8) :: depsoeps
+      !local variables
+      real(kind=8) :: d
+
+      d=(r-rc)/delta
+      depsoeps=(epsilon0-1.d0)/delta*exp(-d**2)/epsl(r,rc,delta,epsilon0)
+    end function depsoeps
+
+
+end subroutine Eps_rigid_cavity
 
 subroutine SetEledens(n01,n02,n03,nspden,nord,acell,a_gauss,hx,hy,hz,SetEps,edens,nabla,ddt)
 
