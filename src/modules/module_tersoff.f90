@@ -31,7 +31,9 @@ character(len=*), intent(in) :: geocode
 integer:: iat
     call yaml_comment('Initializing Tersoff potential',hfill='-')
     if(nat>natmax)then
-    
+        initialized_tersoff=.false.                                       
+        call f_err_throw('Tersoff potential: Too many atoms '//&      
+             'nat > natmax, natmax: '//yaml_toa(natmax)) 
     endif
     if(trim(geocode)/='P')then                                         
         initialized_tersoff=.false.                                       

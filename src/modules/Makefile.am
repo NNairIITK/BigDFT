@@ -44,6 +44,7 @@ libmodules_a_SOURCES = base.f90 \
 	module_morse_bulk.f90 \
 	module_lenosky_si.f90 \
 	module_tersoff.f90 \
+	module_bornhugginsmayertosifumi.f90 \
 	op2p_module.f90 \
 	BigDFT_API.f90 \
 	vdwcorrection.f90 \
@@ -119,7 +120,8 @@ modules = MODULE_BASE.@MODULE_EXT@ \
 	MODULE_LJ.@MODULE_EXT@ \
 	MODULE_LENOSKY_SI.@MODULE_EXT@\
 	MODULE_MORSE_BULK.@MODULE_EXT@\
-	MODULE_TERSOFF.@MODULE_EXT@
+	MODULE_TERSOFF.@MODULE_EXT@\
+	MODULE_BORNHUGGINSMAYERTOSIFUMI.@MODULE_EXT@
 else
 modules = module_base.@MODULE_EXT@ \
 	module_defs.@MODULE_EXT@ \
@@ -165,6 +167,7 @@ modules = module_base.@MODULE_EXT@ \
 	module_lj.@MODULE_EXT@ \
 	module_morse_bulk.@MODULE_EXT@ \
 	module_tersoff.@MODULE_EXT@ \
+	module_bornhugginsmayertosifumi.@MODULE_EXT@ \
 	module_lenosky_si.@MODULE_EXT@
 else
 
@@ -228,11 +231,12 @@ fermi_level.o: base.o
 copy_utils.o: base.o
 gaussdaub.o: base.o
 module_sqn.o: base.o
-bigdft_run.o: types.o input_dicts.o interfaces.o module_forces.o module_lenosky_si.o module_lj.o module_morse_bulk.o module_tersoff.o
+bigdft_run.o: types.o input_dicts.o interfaces.o module_forces.o module_lenosky_si.o module_lj.o module_morse_bulk.o module_tersoff.o module_bornhugginsmayertosifumi.o
 ab7_mixing.o: defs.o
 module_lj.o: base.o defs.o
 module_morse_bulk.o: base.o
 module_tersoff.o: base.o atoms_data.o
+module_bornhugginsmayertosifumi.o: base.o atoms_data.o
 module_lenosky_si.o: base.o defs.o
 module_fingerprints.o: base.o
 transposed_operations.o: base.o types.o sparsematrix_base.o sparsematrix.o

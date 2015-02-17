@@ -269,6 +269,7 @@ module public_enums
   type(f_enumerator), parameter :: MORSE_SLAB_RUN_MODE         =f_enumerator('MORSE_SLAB_RUN_MODE',-995)
   type(f_enumerator), parameter :: QM_RUN_MODE                 =f_enumerator('QM_RUN_MODE',-994)
   type(f_enumerator), parameter :: TERSOFF_RUN_MODE         =f_enumerator('TERSOFF_RUN_MODE',-993)
+  type(f_enumerator), parameter :: BHMTF_RUN_MODE         =f_enumerator('BHMTF_RUN_MODE',-992)
   
 end module public_enums
 
