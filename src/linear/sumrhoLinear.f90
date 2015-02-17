@@ -873,7 +873,7 @@ subroutine check_communication_potential(iproc,denspot,tmb)
                ind=ind+1
                !denspot%rhov(ind)=real(ishift+i1+(i2-1)*n1i+(i3-1)*n1i*n2i,dp)
                denspot%rhov(ind)=real((-1)**(ispin+1)*(i1+(i2-1)*n1i+(i3-1)*n1i*n2i),dp)
-               !write(500,'(es16.8)') denspot%rhov(ind)
+               write(500,'(es16.8)') denspot%rhov(ind)
             end do
          end do
       end do
@@ -996,8 +996,8 @@ subroutine check_communication_potential(iproc,denspot,tmb)
 
   call timing(bigdft_mpi%iproc,'check_pot','OF')
 
-  !call mpi_finalize(ierr)
-  !stop
+  !!call mpi_finalize(ierr)
+  !!stop
 
 end subroutine check_communication_potential
 
