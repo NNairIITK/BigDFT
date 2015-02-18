@@ -118,7 +118,6 @@ module module_atoms
   public :: allocate_atoms_data,move_this_coordinate,frozen_itof
   public :: rxyz_inside_box,check_atoms_positions
   public :: atomic_data_set_from_dict
-  public :: atoms_iter, atoms_iter_next
 
 
 contains

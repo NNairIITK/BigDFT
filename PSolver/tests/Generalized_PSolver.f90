@@ -18,33 +18,29 @@ program GPS_3D
 !!$   integer, parameter :: n02 = 200
 !!$   integer, parameter :: n03 = 200
    integer, parameter :: nspden = 1
-   character(len=4) :: PSol !, parameter :: PSol='PI'!'PCG' !    PCG = Preconditioned Conjugate Gradient Method.
+   character(len=40) :: PSol !, parameter :: PSol='PI'!'PCG' !    PCG = Preconditioned Conjugate Gradient Method.
                                              !    PI  = Polarization Iterative Method.
-   ! To set 1 for analytical epsilon, 2 for analytical electron dependence,
-   ! 3 for real electron density from cube file.
-   integer :: SetEps! = 1!3 
-
+   !> To set 1 for Vacuum, 2 for error function in y direction, 3 for gaussian, 4 for electron dependence.
+   integer, parameter :: SetEps = 3 
    real(kind=8), parameter :: acell = 10.d0
-   real(kind=8) :: erfL  ! To set 1 for Vacuum and correct analitic comparison with gaussian potential.
-   real(kind=8) :: erfR  
+   real(kind=8), parameter :: erfL = 80.0d0 ! To set 1 for Vacuum and correct analitic comparison with gaussian potential.
+   real(kind=8), parameter :: erfR = 1.0d0
    real(kind=8), parameter :: sigmaeps = 0.05d0*acell
-   !> To set 1 for gaussian rho, 2 for gaussian potential. Beaware to use 2 or 3 when SetEps is setted to 1!!! 
+   !> To set 1 for gaussian rho, 2 for gaussian potential. Beaware to use 2 or 3 when SetEps is setted to 3!!! 
    integer, parameter :: Setrho = 2 
-!!$giu   character(len=2), parameter :: geocode = 'F'
-!   character(len=2), parameter :: geocode = 'P'
-   character(len=2) :: geocode
+   character(len=2), parameter :: geocode = 'F'
    character(len=2), parameter :: datacode = 'G'
    !> Order of accuracy for derivatives into ApplyLaplace subroutine = Total number of points at left and right of the x0 where we want to calculate the derivative.
-   integer, parameter :: nord = 16 , nat=3
+   integer, parameter :: nord = 16 
    integer, dimension(3) :: ndims
    real(8), dimension(3) :: hgrids
    real(kind=8), parameter :: a_gauss = 1.0d0,a2 = a_gauss**2
    !integer :: m1,m2,m3,md1,md2,md3,nd1,nd2,nd3,n1,n2,n3,
    integer :: itype_scf,i_all,i_stat,n_cell,iproc,nproc,ixc,n01,n02,n03
-   real(kind=8) :: hx,hy,hz,freq,fz,fz1,fz2,pi,curr,average,CondNum,wcurr,ave1,ave2,rhores2,En1,En2,dVnorm,hgrid,sume
+   real(kind=8) :: hx,hy,hz,freq,fz,fz1,fz2,pi,curr,average,CondNum,wcurr,ave1,ave2,rhores2,En1,En2,dVnorm,hgrid
    real(kind=8) :: Adiag,ersqrt,ercurr,factor,r,r2,max_diff,max_diffpot,fact,x1,x2,x3,derf_tt,diffcurr,diffcurrS,divprod,sum
    real(kind=8) :: ehartree,offset
-   real(kind=8), dimension(:,:,:,:), allocatable :: density,rhopot,rvApp,rhoele,rhoion
+   real(kind=8), dimension(:,:,:,:), allocatable :: density,rhopot,rvApp
    real(kind=8), pointer :: kernel(:)
    type(coulomb_operator) :: pkernel
 !   type(mpi_environment), intent(in), optional :: mpi_env
@@ -52,17 +48,6 @@ program GPS_3D
    integer :: i1,i2,i3,whichone,i,ii,j,info,icurr,ip,isd,i1_max,i2_max,i3_max,n3d,n3p,n3pi,i3xcsh,i3s,n3pr2,n3pr1,ierr
 !   type(mpi_environment) :: bigdft_mpi
   type(dictionary), pointer :: options
-
-  real(kind=8), dimension(:,:,:,:), allocatable :: dlogeps
-  !> inverse of epsilon. Needed for PI method.
-  !! if absent, it will be calculated from the array of epsilon
-  real(kind=8), dimension(:,:,:), allocatable :: oneoeps
-  !> inverse square root of epsilon. Needed for PCG method.
-  !! if absent, it will be calculated from the array of epsilon
-  real(kind=8), dimension(:,:,:), allocatable :: oneosqrteps
-  !> correction term of the Generalized Laplacian
-  !! if absent, it will be calculated from the array of epsilon
-  real(kind=8), dimension(:,:,:), allocatable :: corr
 
    call f_lib_initialize()
 
@@ -72,25 +57,11 @@ program GPS_3D
    call f_zero(PSol)
    PSol=options .get. 'method'
    ndims=options // 'ndim'
-!!$giu
-   geocode=options//'geocode'
-   SetEps =options//'seteps'
    call dict_free(options)
 
    n01=ndims(1)
    n02=ndims(2)
    n03=ndims(3)
-
-   if (SetEps.eq.3) then
-    call get_size_from_cube(n01,n02,n03,hx,hy,hz)
-    ndims(1) = n01
-    ndims(2) = n02
-    ndims(3) = n03
-   else
-    hx=acell/real(n01,kind=8)
-    hy=acell/real(n02,kind=8)
-    hz=acell/real(n03,kind=8)
-   end if
 
    call mpiinit()
    iproc=mpirank()
@@ -103,8 +74,6 @@ program GPS_3D
       call yaml_new_document()
    end if
 
-   erfL = 80.0d0 
-   erfR = 1.0d0  
 !   call MPI_INIT(ierr)
 !   call MPI_COMM_RANK(MPI_COMM_WORLD,iproc,ierr)
 !   call MPI_COMM_SIZE(MPI_COMM_WORLD,nproc,ierr)
@@ -112,22 +81,18 @@ program GPS_3D
 !   bigdft_mpi%mpi_comm=MPI_COMM_WORLD !workaround to be removed
 
    !allocate arrays to avoid stack overflow
-
    density=f_malloc([n01,n02,n03,nspden],id='density')
    rhopot =f_malloc([n01,n02,n03,nspden],id='rhopot')
    rvApp  =f_malloc([n01,n02,n03,nspden],id='rvApp')
-   rhoele =f_malloc([n01,n02,n03,nspden],id='rhoele')
-   rhoion =f_malloc([n01,n02,n03,nspden],id='rhoion')
    
    eps=f_malloc([n01,n02,n03],id='eps')
-   dlogeps=f_malloc([3,n01,n02,n03],id='dlogeps')
-   oneoeps=f_malloc([n01,n02,n03],id='oneoeps')
-   oneosqrteps=f_malloc([n01,n02,n03],id='oneosqrteps')
-   corr=f_malloc([n01,n02,n03],id='corr')
    potential=f_malloc([n01,n02,n03],id='potential')
    pot_ion=f_malloc([n01,n02,n03],id='pot_ion')
 
    n_cell = max(n01,n02,n03)
+   hx=acell/real(n01,kind=8)
+   hy=acell/real(n02,kind=8)
+   hz=acell/real(n03,kind=8)
    hgrid=max(hx,hy,hz)
 
    ixc=0
@@ -144,33 +109,20 @@ program GPS_3D
 !------------------------------------------------------------------------
 
 !------------------------------------------------------------------------
-   ! Set environment, namely permittivity epsilon, rhoele = electron charge density and rhoion = ion charge density .
+   ! Set environment, namely permittivity epsilon.
 
-   if (SetEps.eq.3) then
-      call get_rho(n01,n02,n03,nspden,acell,a_gauss,hx,hy,hz,rhoele,rhoion,sume)
-   else
-    rhoele(:,:,:,:) = 0.d0
-    rhoion(:,:,:,:) = 0.d0
-   end if
-
-    call SetEpsilon(n01,n02,n03,nspden,nord,acell,a_gauss,hx,hy,hz,erfL,erfR,sigmaeps,SetEps,geocode,PSol,eps,dlogeps,oneoeps,oneosqrteps,corr,rhoele)
-
-    if ( trim(PSol)=='VAC') then
-       eps=1.d0
-       SetEps=1
-       erfL=1.d0
-    end if
+    call SetEpsilon(n01,n02,n03,eps,acell,a_gauss,hx,hy,hz,erfL,erfR,sigmaeps,SetEps)
 
 !------------------------------------------------------------------------
 
    ! Set initial density, and the associated analitical potential for the Standard Poisson Equation.
-   call SetInitDensPot(n01,n02,n03,nspden,eps,dlogeps,sigmaeps,SetEps,erfL,erfR,acell,a_gauss,a2,hx,hy,hz,Setrho,density,potential,geocode,offset)
+   call SetInitDensPot(n01,n02,n03,nspden,eps,sigmaeps,erfR,acell,a_gauss,a2,hx,hy,hz,Setrho,density,potential)
 !  call SetRhoSoluto(n03,rhosol,acell)
 
 !------------------------------------------------------------------------
 
    ! Calculate the charge starting from the potential applying the proper Laplace operator.
-   call ApplyLaplace(n01,n02,n03,nspden,hx,hy,hz,potential,rvApp,acell,eps,nord)
+   call ApplyLaplace(n01,n02,n03,nspden,potential,rvApp,acell,eps,nord)
 
    call writeroutinePot(n01,n02,n03,1,density,0,rvApp)
 
@@ -194,58 +146,31 @@ program GPS_3D
 !!$   write(*,*)'Max abs difference between analytic density - ApplyLaplace to potential'
 !!$   write(*,'(3(1x,I4),2(1x,e14.7))')i1_max,i2_max,i3_max,max_diffpot,abs(density(n01/2,n02/2,n03/2,1)-rvApp(n01/2,n02/2,n03/2,1))
 
-  if (SetEps.eq.3) then
-   rhopot(:,:,:,:) = rhoele(:,:,:,:) + rhoion(:,:,:,:)
-  else
-   rhopot(:,:,:,:) = density(:,:,:,:)
-  end if
-
-  !new method
-  pkernel=pkernel_init(.true.,iproc,nproc,0,geocode,ndims,hgrids,itype_scf,method=PSol)
-  call pkernel_set(pkernel,verbose=.true.)
+  rhopot(:,:,:,:) = density(:,:,:,:)
 
   if ( trim(PSol)=='PCG') then
      
-!!$     !set the coulomb operator of this system
-!!$   if (SetEps.eq.2 .or. SetEps.eq.3) then
-!!$     call pkernel_set(pkernel,verbose=.true.,eps=eps,oneosqrteps=oneosqrteps,corr=corr)
-!!$   else
-!!$     call pkernel_set(pkernel,verbose=.true.,eps=eps)
-!!$   end if
-     if (SetEps.eq.2 .or. SetEps.eq.3) then
-        call pkernel_set_epsilon(pkernel,oneosqrteps=oneosqrteps,corr=corr)
-     else
-        call pkernel_set_epsilon(pkernel,eps=eps)
-     end if
-!!$     call H_potential('G',pkernel,rhopot,rhopot,ehartree,0.d0,.false.)
-!!$     if (iproc==0) call writeroutinePot(n01,n02,n03,nspden,rhopot,pkernel%max_iter,&
-!!$          potential)
+     !new method
+     pkernel=pkernel_init(.true.,iproc,nproc,0,geocode,ndims,hgrids,itype_scf,method=PSol)
+     !set the coulomb operator of this system
+     call pkernel_set(pkernel,verbose=.true.,eps=eps)
+     call H_potential('G',pkernel,rhopot,rhopot,ehartree,0.d0,.false.)
+     if (iproc==0) call writeroutinePot(n01,n02,n03,nspden,rhopot,pkernel%max_iter,&
+          potential)
 
 !!$     !old method, outside of PSolver
 !!$     pkernel=pkernel_init(.true.,iproc,nproc,0,geocode,ndims,hgrids,itype_scf,method='VAC')
 !!$     !set the coulomb operator of this system
 !!$     call pkernel_set(pkernel,verbose=.true.)
-!!$     call Prec_conjugate_gradient(n01,n02,n03,nspden,hx,hy,hz,rhopot,acell,eps,nord,pkernel,potential)
+!!$     call Prec_conjugate_gradient(n01,n02,n03,nspden,rhopot,acell,eps,nord,pkernel,potential)
 
   else if (trim(PSol)=='PI') then
 
+     pkernel=pkernel_init(.true.,iproc,nproc,0,geocode,ndims,hgrids,itype_scf,method=PSol)
      !set the coulomb operator of this system
-!!$   if (SetEps.eq.2 .or. SetEps.eq.3) then
-!!$     call pkernel_set(pkernel,verbose=.true.,eps=eps,dlogeps=dlogeps,oneoeps=oneoeps)
-!!$   else
-!!$     call pkernel_set(pkernel,verbose=.true.,eps=eps)
-!!$   end if
-   if (SetEps.eq.2 .or. SetEps.eq.3) then
-      call pkernel_set_epsilon(pkernel,oneoeps=oneoeps,dlogeps=dlogeps)
-   else
-      call pkernel_set_epsilon(pkernel,eps=eps)
-   end if
-
-!!$     call H_potential('G',pkernel,rhopot,rhopot,ehartree,0.d0,.false.)
-!!$     if (iproc==0) then
-!!$        call writeroutinePot(n01,n02,n03,nspden,rhopot,pkernel%max_iter,potential)
-!!$     end if
-     
+     call pkernel_set(pkernel,verbose=.true.,eps=eps)
+     call H_potential('G',pkernel,rhopot,rhopot,ehartree,0.d0,.false.)
+     if (iproc==0) call writeroutinePot(n01,n02,n03,nspden,rhopot,pkernel%max_iter,potential)
 
 !!$     !old method, outside of PSolver
 !!$     pkernel=pkernel_init(.true.,iproc,nproc,0,geocode,ndims,hgrids,itype_scf,method='VAC')
@@ -253,29 +178,15 @@ program GPS_3D
 !!$     call pkernel_set(pkernel,verbose=.true.)
 !!$     call PolarizationIteration(n01,n02,n03,nspden,rhopot,acell,eps,nord,pkernel,potential)
 
-!!$  else
-!!$     call f_err_throw('Unrecognized method (provided "'//trim(PSol)//'")')
+  else
+     call f_err_throw('Unrecognized method (provided "'//trim(PSol)//'")')
   end if
-
-  call H_potential('G',pkernel,rhopot,rhopot,ehartree,offset,.false.)
-  if (iproc==0) then
-     call writeroutinePot(n01,n02,n03,nspden,rhopot,pkernel%max_iter,potential)
-     call yaml_map('Hartree energy',ehartree)
-  end if
-
-  call Polarization_charge(n01,n02,n03,nspden,hx,hy,hz,rhopot,rvApp,acell,eps,nord)
 
   call pkernel_free(pkernel)
   call f_free(density)
   call f_free(rhopot)
-  call f_free(rhoele)
-  call f_free(rhoion)
   call f_free(rvApp)
   call f_free(eps)
-  call f_free(dlogeps)
-  call f_free(oneoeps)
-  call f_free(oneosqrteps)
-  call f_free(corr)
   call f_free(potential)
   call f_free(pot_ion)
 
@@ -346,20 +257,10 @@ subroutine PS_Check_options(parser)
        dict_new("PI" .is. 'Polarization iteration Method',&
                 "PCG" .is. 'Preconditioned Conjugate Gradient')))
 
-  call yaml_cl_parse_option(parser,'seteps','1',&
-       'Epsilon determination method','e',&
-       dict_new('Usage' .is. &
-       'Set the dielectric constant determination method.',&
-       'Allowed values' .is. &
-       dict_new('1' .is. 'Analytical epsilon' ,&
-                '2' .is. 'analytical electron dependence',&
-                '3' .is. 'real electron density from cube file (need electroninc_density.cube)')))
-
-
 end subroutine PS_Check_options
 
 
-subroutine PolarizationIteration(n01,n02,n03,nspden,hx,hy,hz,b,acell,eps,nord,pkernel,potential)
+subroutine PolarizationIteration(n01,n02,n03,nspden,b,acell,eps,nord,pkernel,potential)
   use yaml_output
   use Poisson_Solver
   use wrapper_linalg
@@ -369,7 +270,6 @@ subroutine PolarizationIteration(n01,n02,n03,nspden,hx,hy,hz,b,acell,eps,nord,pk
   integer, intent(in) :: n02
   integer, intent(in) :: n03
   integer, intent(in) :: nspden
-  real(kind=8), intent(in) :: hx,hy,hz
   integer, intent(in) :: nord
   real(kind=8), intent(in) :: acell
   type(coulomb_operator), intent(in) :: pkernel
@@ -384,7 +284,7 @@ subroutine PolarizationIteration(n01,n02,n03,nspden,hx,hy,hz,b,acell,eps,nord,pk
   real(kind=8), dimension(:,:,:,:), allocatable :: dlv,deps,rhosol,rhopol,rhotot
   real(kind=8), dimension(:,:,:,:), allocatable :: rhopolnew,rhopolold,rhores,lv
   integer :: i1,i2,i3,i,j,ip,isp
-  real(kind=8) :: divprod,rhores2,offset,diffcurr,pi,ehartree,res,rho
+  real(kind=8) :: divprod,rhores2,hx,hy,hz,offset,diffcurr,pi,ehartree,res,rho
   
   rhosol=f_malloc([n01,n02,n03,nspden],id='rhosol')
   rhopol=f_malloc([n01,n02,n03,nspden],id='rhopol')
@@ -397,6 +297,10 @@ subroutine PolarizationIteration(n01,n02,n03,nspden,hx,hy,hz,b,acell,eps,nord,pk
   dlv=f_malloc([3,n01,n02,n03],id='dlv')
 
   pi = 4.d0*datan(1.d0)
+  hx = acell/real(n01,kind=8)
+  hy = acell/real(n02,kind=8)
+  hz = acell/real(n03,kind=8)
+
 
   !write(*,'(a)')'--------------------------------------------------------------------------------------------'
   !write(*,'(a)')'Starting Polarization Iteration '
@@ -405,7 +309,7 @@ subroutine PolarizationIteration(n01,n02,n03,nspden,hx,hy,hz,b,acell,eps,nord,pk
   open(unit=38,file='MaxAnalysisPI.out',status='unknown')
 
 
-  call fssnord3DmatNabla3var(n01,n02,n03,nspden,hx,hy,hz,eps,deps,nord,acell)
+  call fssnord3DmatNabla3var(n01,n02,n03,nspden,eps,deps,nord,acell)
 
   isp=1
   do i3=1,n03
@@ -450,10 +354,10 @@ subroutine PolarizationIteration(n01,n02,n03,nspden,hx,hy,hz,b,acell,eps,nord,pk
 
      call writeroutinePot(n01,n02,n03,nspden,lv,ip,potential)
 
-     !call fssnord3DmatNabla_LG2(n01,n02,n03,hx,hy,hz,lv,nord,acell,eta,pkernel%dlogeps,rhopol,rhores2)
-     call fssnord3DmatNabla_LG2(n01,n02,n03,hx,hy,hz,lv,nord,acell,eta,dlv,rhopol,rhores2)
+     !call fssnord3DmatNabla_LG2(n01,n02,n03,lv,nord,acell,eta,pkernel%dlogeps,rhopol,rhores2)
+     call fssnord3DmatNabla_LG2(n01,n02,n03,lv,nord,acell,eta,dlv,rhopol,rhores2)
 
-     !!!call fssnord3DmatNabla(n01,n02,n03,nspden,hx,hy,hz,lv,dlv,nord,acell)
+     !!!call fssnord3DmatNabla(n01,n02,n03,nspden,lv,dlv,nord,acell)
      !!!
      !!!isp=1
      !!!rhores2=0.d0
@@ -537,7 +441,7 @@ subroutine PolarizationIteration(n01,n02,n03,nspden,hx,hy,hz,b,acell,eps,nord,pk
 
 end subroutine PolarizationIteration
 
-subroutine Prec_conjugate_gradient(n01,n02,n03,nspden,hx,hy,hz,b,acell,eps,nord,pkernel,potential)
+subroutine Prec_conjugate_gradient(n01,n02,n03,nspden,b,acell,eps,nord,pkernel,potential)
 
   use Poisson_Solver
   use yaml_output
@@ -548,7 +452,6 @@ subroutine Prec_conjugate_gradient(n01,n02,n03,nspden,hx,hy,hz,b,acell,eps,nord,
   integer, intent(in) :: n02
   integer, intent(in) :: n03
   integer, intent(in) :: nspden
-  real(kind=8), intent(in) :: hx,hy,hz
   integer, intent(in) :: nord
   real(kind=8), intent(in) :: acell
   type(coulomb_operator), intent(in) :: pkernel
@@ -596,8 +499,8 @@ subroutine Prec_conjugate_gradient(n01,n02,n03,nspden,hx,hy,hz,b,acell,eps,nord,
 ! Set the correction vector for the Generalized Laplace operator
 
 !  call fssnordEpsilonDerivative(n01,n02,n03,nspden,eps,de2,ddeps,nord,acell)
-  call fssnord3DmatNabla3varde2(n01,n02,n03,nspden,hx,hy,hx,eps,deps,de2,nord,acell)
-  call fssnord3DmatDiv3var(n01,n02,n03,nspden,hx,hy,hz,deps,ddeps,nord,acell)
+  call fssnord3DmatNabla3varde2(n01,n02,n03,nspden,eps,deps,de2,nord,acell)
+  call fssnord3DmatDiv3var(n01,n02,n03,nspden,deps,ddeps,nord,acell)
 
   isp=1
   do i3=1,n03
@@ -896,7 +799,6 @@ end subroutine writeroutine
 subroutine writeroutinePot(n01,n02,n03,nspden,ri,i,potential)
   use yaml_output
   use dynamic_memory
-  use f_utils
   implicit none
   integer, intent(in) :: n01
   integer, intent(in) :: n02
@@ -907,7 +809,7 @@ subroutine writeroutinePot(n01,n02,n03,nspden,ri,i,potential)
   real(kind=8), dimension(n01,n02,n03),intent(in) :: potential
   !automatic array, to be check is stack poses problem
   real(kind=8), dimension(:,:,:,:), allocatable :: re
-  integer :: i1,i2,i3,j,i1_max,i2_max,i3_max,jj,unt
+  integer :: i1,i2,i3,j,i1_max,i2_max,i3_max,jj
   real(kind=8) :: max_val,fact
 
   re=f_malloc([n01,n02,n03,nspden],id='re')
@@ -943,41 +845,33 @@ subroutine writeroutinePot(n01,n02,n03,nspden,ri,i,potential)
               fmt='(1pe22.15)')
          call yaml_mapping_close()
       end if
-      
-      unt=f_get_free_unit(21)
-      call f_open_file(unt,file='final.dat')
-      i1=n03/2
-      do i2=1,n02
-         do i3=1,n03
-            write(unt,'(2(1x,I4),2(1x,e14.7))')i2,i3,ri(i1,i2,i3,1),potential(i1,i2,i3)
-         end do
-      end do
-      call f_close(unt)
-
       call f_free(re)
 end subroutine writeroutinePot
 
-subroutine FluxSurface(n01,n02,n03,nspden,hx,hy,hz,x,acell,eps,nord)
+subroutine FluxSurface(n01,n02,n03,nspden,x,acell,eps,nord)
   use dynamic_memory
   implicit none
   integer, intent(in) :: n01
   integer, intent(in) :: n02
   integer, intent(in) :: n03
   integer, intent(in) :: nspden
-  real(kind=8), intent(in) :: hx,hy,hz
   integer, intent(in) :: nord
   real(kind=8), intent(in) :: acell
   real(kind=8), dimension(n01,n02,n03), intent(in) :: x
   real(kind=8), dimension(n01,n02,n03), intent(in) :: eps
   real(kind=8), dimension(:,:,:,:,:), allocatable :: dx
-  real(kind=8) :: pi,flux
+  real(kind=8) :: hx,hy,hz,pi,flux
   integer :: i1,i2,i3,isp,i
   
   dx=f_malloc([n01,n02,n03,nspden,3],id='dx')
 
   pi = 4.d0*datan(1.d0)
 
-   call fssnord3DmatNabla(n01,n02,n03,nspden,hx,hy,hz,x,dx,nord,acell)
+  hx=acell/real(n01,kind=8)
+  hy=acell/real(n02,kind=8)
+  hz=acell/real(n03,kind=8)
+
+   call fssnord3DmatNabla(n01,n02,n03,nspden,x,dx,nord,acell)
 
      flux=0.d0
       isp=1
@@ -1016,14 +910,13 @@ subroutine FluxSurface(n01,n02,n03,nspden,hx,hy,hz,x,acell,eps,nord)
 
 end subroutine FluxSurface 
 
-subroutine ApplyLaplace(n01,n02,n03,nspden,hx,hy,hz,x,y,acell,eps,nord)
+subroutine ApplyLaplace(n01,n02,n03,nspden,x,y,acell,eps,nord)
   use dynamic_memory
   implicit none
   integer, intent(in) :: n01
   integer, intent(in) :: n02
   integer, intent(in) :: n03
   integer, intent(in) :: nspden
-  real(kind=8), intent(in) :: hx,hy,hz
   integer, intent(in) :: nord
   real(kind=8), intent(in) :: acell
   real(kind=8), dimension(n01,n02,n03,nspden), intent(in) :: x
@@ -1032,7 +925,7 @@ subroutine ApplyLaplace(n01,n02,n03,nspden,hx,hy,hz,x,y,acell,eps,nord)
   real(kind=8), dimension(:,:,:,:), allocatable :: ddx
   real(kind=8), dimension(:,:,:,:,:), allocatable :: dx
   real(kind=8), dimension(:,:,:,:), allocatable :: deps
-  real(kind=8) :: pi
+  real(kind=8) :: hx,hy,hz,pi
   integer :: i1,i2,i3,isp,i
   pi = 4.d0*datan(1.d0)   
 
@@ -1040,7 +933,12 @@ subroutine ApplyLaplace(n01,n02,n03,nspden,hx,hy,hz,x,y,acell,eps,nord)
   dx=f_malloc([n01,n02,n03,nspden,3],id='dx')
   deps=f_malloc([n01,n02,n03,3],id='deps')
 
-  call fssnord3DmatNabla(n01,n02,n03,nspden,hx,hy,hz,x,dx,nord,acell)
+
+  hx=acell/real(n01,kind=8)
+  hy=acell/real(n02,kind=8)
+  hz=acell/real(n03,kind=8)
+
+   call fssnord3DmatNabla(n01,n02,n03,nspden,x,dx,nord,acell)
 
       isp=1
       do i3=1,n03
@@ -1053,7 +951,7 @@ subroutine ApplyLaplace(n01,n02,n03,nspden,hx,hy,hz,x,y,acell,eps,nord)
        end do
       end do
 
-   call fssnord3DmatDiv(n01,n02,n03,nspden,hx,hy,hz,dx,y,nord,acell)
+   call fssnord3DmatDiv(n01,n02,n03,nspden,dx,y,nord,acell)
 
    y(:,:,:,:)=-y(:,:,:,:)/(4.d0*pi)
 
@@ -1063,73 +961,7 @@ subroutine ApplyLaplace(n01,n02,n03,nspden,hx,hy,hz,x,y,acell,eps,nord)
 
 end subroutine ApplyLaplace
 
-subroutine Polarization_charge(n01,n02,n03,nspden,hx,hy,hz,x,y,acell,eps,nord)
-
-  use dynamic_memory
-
-  implicit none
-  integer, intent(in) :: n01
-  integer, intent(in) :: n02
-  integer, intent(in) :: n03
-  integer, intent(in) :: nspden
-  real(kind=8), intent(in) :: hx,hy,hz
-  integer, intent(in) :: nord
-  real(kind=8), intent(in) :: acell
-  real(kind=8), dimension(n01,n02,n03,nspden), intent(in) :: x
-  real(kind=8), dimension(n01,n02,n03), intent(in) :: eps
-  real(kind=8), dimension(n01,n02,n03,nspden), intent(out) :: y
-  real(kind=8), dimension(:,:,:,:), allocatable :: ddx
-  real(kind=8), dimension(:,:,:,:,:), allocatable :: dx
-  real(kind=8), dimension(:,:,:,:), allocatable :: deps
-  real(kind=8) :: pi
-  integer :: i1,i2,i3,isp,i
-
-  pi = 4.d0*datan(1.d0)
-
-  open(unit=23,file='Pol_charge.out',status='unknown')
-  open(unit=24,file='Pol_charge_line.out',status='unknown')
-
-  ddx=f_malloc([n01,n02,n03,nspden],id='ddx')
-  dx=f_malloc([n01,n02,n03,nspden,3],id='dx')
-  deps=f_malloc([n01,n02,n03,3],id='deps')
-
-  call fssnord3DmatNabla(n01,n02,n03,nspden,hx,hy,hz,x,dx,nord,acell)
-
-      isp=1
-      do i3=1,n03
-       do i2=1,n02
-        do i1=1,n01
-         do i=1,3
-          dx(i1,i2,i3,isp,i)=(eps(i1,i2,i3)-1)*dx(i1,i2,i3,isp,i)/(4.d0*pi)
-         end do
-        end do
-       end do
-      end do
-
-   call fssnord3DmatDiv(n01,n02,n03,nspden,hx,hy,hz,dx,y,nord,acell)
-
-     i3=1!n03/2
-     do i2=1,n02
-      do i1=1,n01
-       write(23,'(2(1x,I4),2(1x,e14.7))')i1,i2,y(i1,i2,i3,1),y(i1,i2,n03/2,1)
-      end do
-      write(23,*)
-     end do
-
-     do i1=1,n01
-      write(24,'(1x,I8,2(1x,e22.15))')i1,y(i1,n02/2,n03/2,1),y(n01/2,i1,n03/2,1)
-     end do
-
-  close(unit=23)
-  close(unit=24)
-
-   call f_free(deps)
-   call f_free(ddx)
-   call f_free(dx)
-
-end subroutine Polarization_charge
-
-subroutine fssnord3DmatNabla(n01,n02,n03,nspden,hx,hy,hz,u,du,nord,acell)
+subroutine fssnord3DmatNabla(n01,n02,n03,nspden,u,du,nord,acell)
       implicit none
 
 !c..this routine computes 'nord' order accurate first derivatives 
@@ -1144,7 +976,6 @@ subroutine fssnord3DmatNabla(n01,n02,n03,nspden,hx,hy,hz,u,du,nord,acell)
 
 !c..declare the pass
       integer, intent(in) :: n01,n02,n03,nspden,nord
-      real(kind=8), intent(in) :: hx,hy,hz
       real(kind=8), intent(in) :: acell
       real(kind=8), dimension(n01,n02,n03,nspden) :: u
       real(kind=8), dimension(n01,n02,n03,nspden,3) :: du
@@ -1153,10 +984,13 @@ subroutine fssnord3DmatNabla(n01,n02,n03,nspden,hx,hy,hz,u,du,nord,acell)
       integer :: n,m,n_cell
       integer :: i,j,ib,i1,i2,i3,isp,i1_max,i2_max
       real(kind=8), dimension(-nord/2:nord/2,-nord/2:nord/2) :: c1D,c1DF
-      real(kind=8) :: max_diff,fact
+      real(kind=8) :: hx,hy,hz,max_diff,fact
 
       n = nord+1
       m = nord/2
+      hx = acell/real(n01,kind=8)
+      hy = acell/real(n02,kind=8)
+      hz = acell/real(n03,kind=8)
       n_cell = max(n01,n02,n03)
 
       ! Beware that n_cell has to be > than n.
@@ -1249,7 +1083,7 @@ end subroutine fssnord3DmatNabla
 
 !> Like fssnord3DmatNabla but corrected such that the index goes at the beginning
 !! Multiplies also times (nabla epsilon)/(4pi*epsilon)= nabla (log(epsilon))/(4*pi)
-subroutine fssnord3DmatNabla_LG2(n01,n02,n03,hx,hy,hz,u,nord,acell,eta,dlogeps,rhopol,rhores2)
+subroutine fssnord3DmatNabla_LG2(n01,n02,n03,u,nord,acell,eta,dlogeps,rhopol,rhores2)
   !use module_defs, only: pi_param
   implicit none
 
@@ -1266,7 +1100,6 @@ subroutine fssnord3DmatNabla_LG2(n01,n02,n03,hx,hy,hz,u,nord,acell,eta,dlogeps,r
   !c..declare the pass
 
   integer, intent(in) :: n01,n02,n03,nord
-  real(kind=8), intent(in) :: hx,hy,hz
   real(kind=8), intent(in) :: acell,eta
   real(kind=8), dimension(n01,n02,n03), intent(in) :: u
   real(kind=8), dimension(3,n01,n02,n03), intent(in) :: dlogeps
@@ -1278,13 +1111,16 @@ subroutine fssnord3DmatNabla_LG2(n01,n02,n03,hx,hy,hz,u,nord,acell,eta,dlogeps,r
   integer :: i,j,ib,i1,i2,i3,isp,i1_max,i2_max
   !real(kind=8), parameter :: oneo4pi=0.25d0/pi_param
   real(kind=8), dimension(-nord/2:nord/2,-nord/2:nord/2) :: c1D,c1DF
-  real(kind=8) :: max_diff,fact,dx,dy,dz,res,rho
+  real(kind=8) :: hx,hy,hz,max_diff,fact,dx,dy,dz,res,rho
   real(kind=8) :: oneo4pi
 
   oneo4pi=1.0d0/(16.d0*atan(1.d0))
 
   n = nord+1
   m = nord/2
+  hx = acell/real(n01,kind=8)
+  hy = acell/real(n02,kind=8)
+  hz = acell/real(n03,kind=8)
   n_cell = max(n01,n02,n03)
 
   ! Beware that n_cell has to be > than n.
@@ -1380,7 +1216,7 @@ subroutine fssnord3DmatNabla_LG2(n01,n02,n03,hx,hy,hz,u,nord,acell,eta,dlogeps,r
 end subroutine fssnord3DmatNabla_LG2
 
 
-subroutine fssnord3DmatNabla3var(n01,n02,n03,nspden,hx,hy,hz,u,du,nord,acell)
+subroutine fssnord3DmatNabla3var(n01,n02,n03,nspden,u,du,nord,acell)
       implicit none
 
 !c..this routine computes 'nord' order accurate first derivatives 
@@ -1395,7 +1231,6 @@ subroutine fssnord3DmatNabla3var(n01,n02,n03,nspden,hx,hy,hz,u,du,nord,acell)
 
 !c..declare the pass
       integer, intent(in) :: n01,n02,n03,nspden,nord
-      real(kind=8), intent(in) :: hx,hy,hz
       real(kind=8), intent(in) :: acell
       real(kind=8), dimension(n01,n02,n03) :: u
       real(kind=8), dimension(n01,n02,n03,3) :: du
@@ -1404,9 +1239,13 @@ subroutine fssnord3DmatNabla3var(n01,n02,n03,nspden,hx,hy,hz,u,du,nord,acell)
       integer :: n,m,n_cell
       integer :: i,j,ib,i1,i2,i3
       real(kind=8), dimension(-nord/2:nord/2,-nord/2:nord/2) :: c1D
+      real(kind=8) :: hx,hy,hz
 
       n = nord+1
       m = nord/2
+      hx = acell/real(n01,kind=8)
+      hy = acell/real(n02,kind=8)
+      hz = acell/real(n03,kind=8)
       n_cell = max(n01,n02,n03)
 
       ! Beware that n_cell has to be > than n.
@@ -1492,7 +1331,7 @@ subroutine fssnord3DmatNabla3var(n01,n02,n03,nspden,hx,hy,hz,u,du,nord,acell)
 
 end subroutine fssnord3DmatNabla3var
 
-subroutine fssnord3DmatNabla3varde2(n01,n02,n03,nspden,hx,hy,hz,u,du,du2,nord,acell)
+subroutine fssnord3DmatNabla3varde2(n01,n02,n03,nspden,u,du,du2,nord,acell)
       implicit none
 
 !c..this routine computes 'nord' order accurate first derivatives 
@@ -1507,7 +1346,6 @@ subroutine fssnord3DmatNabla3varde2(n01,n02,n03,nspden,hx,hy,hz,u,du,du2,nord,ac
 
 !c..declare the pass
       integer, intent(in) :: n01,n02,n03,nspden,nord
-      real(kind=8), intent(in) :: hx,hy,hz
       real(kind=8), intent(in) :: acell
       real(kind=8), dimension(n01,n02,n03) :: u
       real(kind=8), dimension(n01,n02,n03,3) :: du
@@ -1517,9 +1355,13 @@ subroutine fssnord3DmatNabla3varde2(n01,n02,n03,nspden,hx,hy,hz,u,du,du2,nord,ac
       integer :: n,m,n_cell
       integer :: i,j,ib,i1,i2,i3
       real(kind=8), dimension(-nord/2:nord/2,-nord/2:nord/2) :: c1D
+      real(kind=8) :: hx,hy,hz
 
       n = nord+1
       m = nord/2
+      hx = acell/real(n01,kind=8)
+      hy = acell/real(n02,kind=8)
+      hz = acell/real(n03,kind=8)
       n_cell = max(n01,n02,n03)
 
       ! Beware that n_cell has to be > than n.
@@ -1611,7 +1453,7 @@ subroutine fssnord3DmatNabla3varde2(n01,n02,n03,nspden,hx,hy,hz,u,du,du2,nord,ac
 
 end subroutine fssnord3DmatNabla3varde2
 
-subroutine fssnordEpsilonDerivative(n01,n02,n03,nspden,hx,hy,hz,u,du2,ddu,nord,acell)
+subroutine fssnordEpsilonDerivative(n01,n02,n03,nspden,u,du2,ddu,nord,acell)
       implicit none
 
 !c..this routine computes 'nord' order accurate first and second derivatives 
@@ -1619,7 +1461,6 @@ subroutine fssnordEpsilonDerivative(n01,n02,n03,nspden,hx,hy,hz,u,du2,ddu,nord,a
 
 
       integer, intent(in) :: n01,n02,n03,nspden,nord
-      real(kind=8), intent(in) :: hx,hy,hz
       real(kind=8), intent(in) :: acell
       real(kind=8), dimension(n01,n02,n03), intent(in) :: u
       real(kind=8), dimension(n01,n02,n03), intent(out) :: du2,ddu
@@ -1627,10 +1468,13 @@ subroutine fssnordEpsilonDerivative(n01,n02,n03,nspden,hx,hy,hz,u,du2,ddu,nord,a
       integer :: n,m,n_cell
       integer :: i,j,ib,i1,i2,i3,i1_max,i2_max
       real(kind=8), dimension(-nord/2:nord/2,-nord/2:nord/2) :: c1D,c2D
-      real(kind=8) :: d,dd
+      real(kind=8) :: hx,hy,hz,d,dd
 
       n = nord+1
       m = nord/2
+      hx = acell/real(n01,kind=8)
+      hy = acell/real(n02,kind=8)
+      hz = acell/real(n03,kind=8)
       n_cell = min(n01,n02,n03)
 
       ! Beware that n_cell has to be > than n.
@@ -1742,7 +1586,7 @@ subroutine fssnordEpsilonDerivative(n01,n02,n03,nspden,hx,hy,hz,u,du2,ddu,nord,a
 
 end subroutine fssnordEpsilonDerivative
 
-subroutine fssnord3DmatDiv(n01,n02,n03,nspden,hx,hy,hz,u,du,nord,acell)
+subroutine fssnord3DmatDiv(n01,n02,n03,nspden,u,du,nord,acell)
       implicit none
 
 !c..this routine computes 'nord' order accurate first derivatives 
@@ -1757,7 +1601,6 @@ subroutine fssnord3DmatDiv(n01,n02,n03,nspden,hx,hy,hz,u,du,nord,acell)
 
 !c..declare the pass
       integer, intent(in) :: n01,n02,n03,nspden,nord
-      real(kind=8), intent(in) :: hx,hy,hz
       real(kind=8), intent(in) :: acell
       real(kind=8), dimension(n01,n02,n03,nspden,3) :: u
       real(kind=8), dimension(n01,n02,n03,nspden) :: du
@@ -1766,11 +1609,14 @@ subroutine fssnord3DmatDiv(n01,n02,n03,nspden,hx,hy,hz,u,du,nord,acell)
       integer :: n,m,n_cell
       integer :: i,j,ib,i1,i2,i3,isp
       real(kind=8), dimension(-nord/2:nord/2,-nord/2:nord/2) :: c1D
-      real(kind=8) :: d1,d2,d3
+      real(kind=8) :: hx,hy,hz,d1,d2,d3
       real(kind=8), parameter :: zero = 0.d0! 1.0d-11
 
       n = nord+1
       m = nord/2
+      hx = acell/real(n01,kind=8)
+      hy = acell/real(n02,kind=8)
+      hz = acell/real(n03,kind=8)
       n_cell = max(n01,n02,n03)
 
       ! Beware that n_cell has to be > than n.
@@ -1861,7 +1707,7 @@ subroutine fssnord3DmatDiv(n01,n02,n03,nspden,hx,hy,hz,u,du,nord,acell)
 
 end subroutine fssnord3DmatDiv
 
-subroutine fssnord3DmatDiv3var(n01,n02,n03,nspden,hx,hy,hz,u,du,nord,acell)
+subroutine fssnord3DmatDiv3var(n01,n02,n03,nspden,u,du,nord,acell)
       implicit none
 
 !c..this routine computes 'nord' order accurate first derivatives 
@@ -1876,7 +1722,6 @@ subroutine fssnord3DmatDiv3var(n01,n02,n03,nspden,hx,hy,hz,u,du,nord,acell)
 
 !c..declare the pass
       integer, intent(in) :: n01,n02,n03,nspden,nord
-      real(kind=8), intent(in) :: hx,hy,hz
       real(kind=8), intent(in) :: acell
       real(kind=8), dimension(n01,n02,n03,3) :: u
       real(kind=8), dimension(n01,n02,n03) :: du
@@ -1885,11 +1730,14 @@ subroutine fssnord3DmatDiv3var(n01,n02,n03,nspden,hx,hy,hz,u,du,nord,acell)
       integer :: n,m,n_cell
       integer :: i,j,ib,i1,i2,i3,isp
       real(kind=8), dimension(-nord/2:nord/2,-nord/2:nord/2) :: c1D
-      real(kind=8) :: d1,d2,d3
+      real(kind=8) :: hx,hy,hz,d1,d2,d3
       real(kind=8), parameter :: zero = 0.d0! 1.0d-11
 
       n = nord+1
       m = nord/2
+      hx = acell/real(n01,kind=8)
+      hy = acell/real(n02,kind=8)
+      hz = acell/real(n03,kind=8)
       n_cell = max(n01,n02,n03)
 
       ! Beware that n_cell has to be > than n.
@@ -1980,48 +1828,31 @@ subroutine fssnord3DmatDiv3var(n01,n02,n03,nspden,hx,hy,hz,u,du,nord,acell)
 
 end subroutine fssnord3DmatDiv3var
 
-subroutine SetInitDensPot(n01,n02,n03,nspden,eps,dlogeps,sigmaeps,SetEps,erfL,erfR,acell,a_gauss,a2,hx,hy,hz,Setrho,density,potential,geocode,offset)
+subroutine SetInitDensPot(n01,n02,n03,nspden,eps,sigmaeps,erfR,acell,a_gauss,a2,hx,hy,hz,Setrho,density,potential)
   use dynamic_memory
   use yaml_output
-  use f_utils
   implicit none
   integer, intent(in) :: n01
   integer, intent(in) :: n02
   integer, intent(in) :: n03
   integer, intent(in) :: nspden
   integer, intent(in) :: Setrho
-  real(kind=8), intent(in) :: acell,a_gauss,a2,hx,hy,hz,sigmaeps,erfL,erfR
-  integer, intent(in) :: SetEps
+  real(kind=8), intent(in) :: acell,a_gauss,a2,hx,hy,hz,sigmaeps,erfR
   real(kind=8), dimension(n01,n02,n03), intent(in) :: eps
-  real(kind=8), dimension(3,n01,n02,n03), intent(in) :: dlogeps
   real(kind=8), dimension(n01,n02,n03,nspden), intent(out) :: density
   real(kind=8), dimension(n01,n02,n03), intent(out) :: potential
-  character(len=2), intent(in) :: geocode
-  real(kind=8), intent(out) :: offset
   real(kind=8), dimension(:,:,:,:), allocatable :: density1,density2
   real(kind=8), dimension(:,:,:), allocatable :: potential1,potential2
-  integer :: i,i1,i2,i3,ifx,ify,ifz,unt
-  real(kind=8) :: sigma,sigma1,sigma2,pi,sumd,sump,tt1,tt2,x0,r12
+  integer :: i,i1,i2,i3
+  real(kind=8) :: sigma,sigma1,sigma2,pi,sum,sump,tt1,tt2,x0,r12
   real(kind=8) :: x1,x2,x3,r,r2,r1,r22,derf_tt1,derf_tt2,factor,factor1,factor2
-  real(kind=8) :: length,denval,derf_tt,k1,k2
-  real(kind=8) :: x,y,fx,fx2,fy,fy2,fz,fz2,a,ax,ay,az,bx,by,bz,tt,fx1,fy1,fz1
-  real(kind=8), dimension(3) :: r_v
-
 
   density1=f_malloc([n01,n02,n03,nspden],id='density1')
   density2=f_malloc([n01,n02,n03,nspden],id='density2')
   potential1=f_malloc([n01,n02,n03],id='potential1')
   potential2=f_malloc([n01,n02,n03],id='potential2')
 
-  density=0.d0
-  potential=0.d0
-
   pi = 4.d0*datan(1.d0)
-  offset=0.d0
-
- if (SetEps.eq.1) then
-
-  if (trim(geocode) == 'F') then
 
   if (Setrho.eq.1) then
 ! Set initial density as gaussian (or double gaussian with zero total charge) and potential as error function. It works only
@@ -2036,7 +1867,7 @@ subroutine SetInitDensPot(n01,n02,n03,nspden,eps,dlogeps,sigmaeps,SetEps,erfL,er
 !         factor2 = 1.d0/((sigma2**3)*sqrt((2.d0*pi)**3))
          factor2 = 0.d0! 1.d0/((sigma2**3)*sqrt((2.d0*pi)**3))
          !gaussian function for the density.
-         sumd=0.d0
+         sum=0.d0
          sump=0.d0
          do i3=1,n03
             x3 = hz*real(i3-n03/2,kind=8)
@@ -2049,7 +1880,7 @@ subroutine SetInitDensPot(n01,n02,n03,nspden,eps,dlogeps,sigmaeps,SetEps,erfL,er
                   do i=1,nspden
                      density(i1,i2,i3,i) = 1.d0/real(nspden,kind=8)*max(factor1*exp(-0.5d0*r12/(sigma1**2)),1d-24)&
                                          - 1.d0/real(nspden,kind=8)*max(factor2*exp(-0.5d0*r22/(sigma2**2)),1d-24)
-                  sumd=sumd+density(i1,i2,i3,i)
+                  sum=sum+density(i1,i2,i3,i)
                   end do
                   r1 = sqrt(r12)
                   r2 = sqrt(r22)
@@ -2077,7 +1908,7 @@ subroutine SetInitDensPot(n01,n02,n03,nspden,eps,dlogeps,sigmaeps,SetEps,erfL,er
 
    sigma = 0.03d0*acell
    x0 = 0.d0 ! hx*real(25-n01/2,kind=8)
-print *,'we should be here for vacuum'
+
          !Normalization
          factor = 1.d0/((sigma**3)*sqrt((2.d0*pi)**3))
          !gaussian function for the potential.
@@ -2096,7 +1927,7 @@ print *,'we should be here for vacuum'
             end do
           end do
 
-         sumd=0.d0
+         sum=0.d0
          !analitic density calculation.
          do i3=1,n03
             x3 = hz*real(i3-n03/2,kind=8)
@@ -2109,7 +1940,7 @@ print *,'we should be here for vacuum'
                   do i=1,nspden
                    density(i1,i2,i3,i) =(-1.d0/(4.d0*pi))*potential(i1,i2,i3)*(1.d0/(sigma**2))*&
                                         (r2*(1.d0/(sigmaeps**2))*(eps(i1,i2,i3)-erfR)+eps(i1,i2,i3)*(r2*(1.d0/(sigma**2))-3.d0))
-                   sumd=sumd+density(i1,i2,i3,i)
+                   sum=sum+density(i1,i2,i3,i)
                   end do
                end do
             end do
@@ -2147,7 +1978,7 @@ print *,'we should be here for vacuum'
             end do
           end do
 
-         sumd=0.d0
+         sum=0.d0
          !analitic density calculation.
          do i3=1,n03
             x3 = hz*real(i3-n03/2,kind=8)
@@ -2164,7 +1995,7 @@ print *,'we should be here for vacuum'
                                         (r2*(1.d0/(sigmaeps**2))*(eps(i1,i2,i3)-erfR)+eps(i1,i2,i3)*(r2*(1.d0/(sigma2**2))-3.d0))
                    density(i1,i2,i3,i) = density1(i1,i2,i3,i) - density2(i1,i2,i3,i)
 
-                   sumd=sumd+density(i1,i2,i3,i)
+                   sum=sum+density(i1,i2,i3,i)
                   end do
                end do
             end do
@@ -2173,197 +2004,12 @@ print *,'we should be here for vacuum'
 
   end if
 
-   denval=0.d0
-
-  else if (trim(geocode) == 'P') then
-
-         !parameters for the test functions
-         length=acell
-         a=0.5d0/a_gauss**2
-         !test functions in the three directions
-         ifx=5
-         ify=5
-         ifz=5
-         !parameters of the test functions
-         ax=length
-         ay=length
-         az=length
-         bx=2.d0!real(nu,kind=8)
-         by=2.d0!real(nu,kind=8)
-         bz=2.d0
-
-              !plot of the functions used
-              do i1=1,n03
-                 x = hx*real(i1,kind=8)!valid if hy=hz
-                 y = hz*real(i1,kind=8)
-                 call functions(x,ax,bx,fx,fx1,fx2,ifx)
-                 call functions(y,az,bz,fz,fz1,fz2,ifz)
-                 write(20,'(1x,I8,4(1x,e22.15))')i1,fx,fx2,fz,fz2
-              end do
-
-         !Initialization of density and potential
-         sumd=0.d0
-         sump=0.d0
-         do i3=1,n03
-            x3 = hz*real(i3-n03/2-1,kind=8)
-            call functions(x3,az,bz,fz,fz1,fz2,ifz)
-            do i2=1,n02
-               x2 = hy*real(i2-n02/2-1,kind=8)
-               call functions(x2,ay,by,fy,fy1,fy2,ify)
-               do i1=1,n01
-                  x1 = hx*real(i1-n01/2-1,kind=8)
-                  call functions(x1,ax,bx,fx,fx1,fx2,ifx)
-                  factor = (erfL-erfR)/(dexp(1.d0)**3-dexp(-1.d0)**3)
-                  do i=1,nspden
-                     density(i1,i2,i3,i) = 1.d0/real(nspden,kind=8)*((fx2*fy*fz+fx*fy2*fz+fx*fy*fz2)*eps(i1,i2,i3)+&
-                                           factor*((fx1*fy*fz)**2+(fx*fy1*fz)**2+(fx*fy*fz1)**2))
-                   sumd=sumd+density(i1,i2,i3,i)
-                  end do
-                  potential(i1,i2,i3) = -4.d0*pi*fx*fy*fz
-                  sump=sump+potential(i1,i2,i3)
-               end do
-            end do
-         end do
-
-         denval=0.d0
-
-      offset=0.d0
-      do i3=1,n03
-         do i2=1,n02
-            do i1=1,n01
-               offset=offset+potential(i1,i2,i3)
-            end do
-         end do
-      end do
-
-      offset=offset*hx*hy*hz
-
-      write(*,*)'offset',offset
-
-  else if (trim(geocode) == 'S') then
-
-         !parameters for the test functions
-         length=acell
-         a=0.5d0/a_gauss**2
-         !test functions in the three directions
-         ifx=5
-         ifz=5
-         !non-periodic dimension
-         ify=6
-         !parameters of the test functions
-         ax=length
-         az=length
-         bx=2.d0!real(nu,kind=8)
-         bz=2.d0!real(nu,kind=8)
-         !non-periodic dimension
-         ay=length
-         by=a
-
-         !Initialisation of density and potential
-         sumd=0.d0
-         sump=0.d0
-         do i3=1,n03
-            x3 = hz*real(i3-n03/2-1,kind=8)
-            call functions(x3,az,bz,fz,fz1,fz2,ifz)
-            do i2=1,n02
-               x2 = hy*real(i2-n02/2-1,kind=8)
-               call functions(x2,ay,by,fy,fy1,fy2,ify)
-               do i1=1,n01
-                  x1 = hx*real(i1-n02/2-1,kind=8)
-                  call functions(x1,ax,bx,fx,fx1,fx2,ifx)
-                  factor = (erfL-erfR)/(dexp(1.d0)**2)
-                  do i=1,nspden
-                     density(i1,i2,i3,i) = 1.d0/real(nspden,kind=8)/(4.d0*pi)*((fx2*fy*fz+fx*fy2*fz+fx*fy*fz2)*eps(i1,i2,i3)+&
-                                           factor*((fx1*fy*fz)**2+(fx*fy1*fz)**2+(fx*fy*fz1)**2))
-                   sumd=sumd+density(i1,i2,i3,i)
-                  end do
-                  potential(i1,i2,i3) = -fx*fy*fz
-                  sump=sump+potential(i1,i2,i3)
-               end do
-            end do
-         end do
-
-         denval=0.d0
-
-  end if
-
- else if (any(SetEps == [2,3,4])) then
-
-! Set initial potential as gaussian and density as the correct Generalized
-! Laplace operator. It works with a gaussian epsilon.
-
-   sigma = 0.03d0*acell
-   x0 = 0.d0 ! hx*real(25-n01/2,kind=8)
-print *,'we should be here for cavity'
-         !Normalization
-         factor = 1.d0/((sigma**3)*sqrt((2.d0*pi)**3))
-         !gaussian function for the potential.
-         sump=0.d0
-         do i3=1,n03
-            x3 = hz*real(i3-n03/2,kind=8)
-            do i2=1,n02
-               x2 = hy*real(i2-n02/2,kind=8)
-               do i1=1,n01
-                  x1 = hx*real(i1-n01/2,kind=8)
-!                  r2=(x1-x0)*(x1-x0)+(x2-x0)*(x2-x0)+(x3)*(x3)
-                  r2 = x1*x1+x2*x2+x3*x3
-                  potential(i1,i2,i3) = 1.d0/real(nspden,kind=8)*max(factor*exp(-0.5d0*r2/(sigma**2)),1d-24)
-                   sump=sump+potential(i1,i2,i3)
-               end do
-            end do
-          end do
-
-         sumd=0.d0
-         !analitic density calculation.
-         do i3=1,n03
-            x3 = hz*real(i3-n03/2,kind=8)
-            r_v(3)=x3
-            do i2=1,n02
-               x2 = hy*real(i2-n02/2,kind=8)
-               r_v(2)=x2
-               do i1=1,n01
-                  x1 = hx*real(i1-n01/2,kind=8)
-                  r_v(1)=x1
-!                  r2=(x1-x0)*(x1-x0)+(x2-x0)*(x2-x0)+(x3)*(x3)
-                  r2 = x1*x1+x2*x2+x3*x3
-                  k1=0.d0
-                  do i=1,3
-                   k1 = k1 + dlogeps(i,i1,i2,i3)*potential(i1,i2,i3)*(-r_v(i)/(sigma**2))
-                  end do
-                  k2 = potential(i1,i2,i3)*(r2/(sigma**2)-3.d0)/(sigma**2)
-                  do i=1,nspden
-                   density(i1,i2,i3,i) =(-1.d0/(4.d0*pi))*eps(i1,i2,i3)*(k1+k2)
-                   sumd=sumd+density(i1,i2,i3,i)
-                  end do
-               end do
-            end do
-          end do
-
-
- end if
-
-!plot of the starting conditions
- unt=f_get_free_unit(21)
- call f_open_file(unt,file='initial.dat')
- i1=n03/2
- do i2=1,n02
-    do i3=1,n03
-       write(unt,'(2(1x,I4),2(1x,e14.7))')i2,i3,density(i1,i2,i3,1),potential(i1,i2,i3)
-    end do
- end do
- call f_close(unt)
-
-
- !calculate hartree energy
- 
-
-  call yaml_map('Total Charge',sumd*hx*hy*hz)
-  call yaml_map('Expected hartree energy',0.5*hx*hy*hz*sum(density(:,:,:,1)*potential(:,:,:)))
+  call yaml_map('Total Charge',sum*hx*hy*hz)
   call yaml_map('Potential monopole',sump*hx*hy*hz)
   call yaml_map('Potential at the boundary 1 n02/2 1',&
        potential(1,n02/2,1))
   call yaml_map('Density at the boundary 1 n02/2 1',density(1,n02/2,1,1))
-  !write(*,*) 'charge sumd',sumd*hx*hy*hz,'potential sum',sump*hx*hy*hz
+  !write(*,*) 'charge sum',sum*hx*hy*hz,'potential sum',sump*hx*hy*hz
   !write(*,'(1x,a,1x,e14.7)')'Potential at the boundary 1 n02/2 1',poteantial(1,n02/2,1)
   !write(*,'(1x,a,1x,e14.7)')'Density at the boundary 1 n02/2 1',density(1,n02/2,1,1)
 
@@ -2374,141 +2020,57 @@ print *,'we should be here for cavity'
 
 end subroutine SetInitDensPot
 
-subroutine functions(x,a,b,f,f1,f2,whichone)
-      implicit none
-      integer, intent(in) :: whichone
-      real(kind=8), intent(in) :: x,a,b
-      real(kind=8), intent(out) :: f,f1,f2
-      !local variables
-      real(kind=8) :: r,r2,y,yp,ys,factor,pi,g,h,g1,g2,h1,h2
-      real(kind=8) :: length,frequency,nu,sigma,agauss
-
-      pi = 4.d0*datan(1.d0)
-      select case(whichone)
-      case(1)
-         !constant
-         f=1.d0
-         f2=0.d0
-      case(2)
-         !gaussian of sigma s.t. a=1/(2*sigma^2)
-         r2=a*x**2
-         f=dexp(-r2)
-         f2=(-2.d0*a+4.d0*a*r2)*dexp(-r2)
-      case(3)
-         !gaussian "shrinked" with a=length of the system
-         length=a
-         r=pi*x/length
-         y=dtan(r)
-         yp=pi/length*1.d0/(dcos(r))**2
-         ys=2.d0*pi/length*y*yp
-         factor=-2.d0*ys*y-2.d0*yp**2+4.d0*yp**2*y**2
-         f2=factor*dexp(-y**2)
-         f=dexp(-y**2)
-      case(4)
-         !cosine with a=length, b=frequency
-         length=a
-         frequency=b
-         r=frequency*pi*x/length
-         f=dcos(r)
-         f2=-(frequency*pi/length)**2*dcos(r)
-      case(5)
-         !exp of a cosine, a=length
-         nu=2.d0
-         r=pi*nu/a*x
-         y=dcos(r)
-         yp=dsin(r)
-         f=dexp(y)
-         factor=(pi*nu/a)**2*(-y+yp**2)
-         f1=-f*yp*(pi*nu/a)
-         f2=factor*f
-      case(6)
-         !gaussian times "shrinked" gaussian, sigma=length/10
-         length=a
-         r=pi*x/length
-         y=dtan(r)
-         yp=pi/length*1.d0/(dcos(r))**2
-         ys=2.d0*pi/length*y*yp
-         factor=-2.d0*ys*y-2.d0*yp**2+4.d0*yp**2*y**2
-         g=dexp(-y**2)
-         g1=-2.d0*y*yp*g
-         g2=factor*dexp(-y**2)
-
-         sigma=length/10
-         agauss=0.5d0/sigma**2
-         r2=agauss*x**2
-         h=max(dexp(-r2),1.0d-24)
-         h1=-2.d0*agauss*x*h
-         h2=(-2.d0*agauss+4.d0*agauss*r2)*h
-         f=max(g,1.d-24)*h
-         f1=g1*h+max(g,1.d-24)*h1
-         f2=g2*h+max(g,1.d-24)*h2+2.d0*g1*h1
-      case(7)
-         !sine with a=length, b=frequency
-         length=a
-         frequency=b
-         r=frequency*pi*x/length
-         f=dsin(r)
-         f2=-(frequency*pi/length)**2*dsin(r)
-      end select
-
-end subroutine functions
-
-subroutine SetEpsilon(n01,n02,n03,nspden,nord,acell,a_gauss,hx,hy,hz,erfL,erfR,sigmaeps,SetEps,geocode,PSol,eps,dlogeps,oneoeps,oneosqrteps,corr,rhoele)
-
+subroutine SetEpsilon(n01,n02,n03,eps,acell,a_gauss,hx,hy,hz,erfL,erfR,sigmaeps,SetEps)
   use dynamic_memory
   implicit none
   integer, intent(in) :: n01
   integer, intent(in) :: n02
   integer, intent(in) :: n03
-  integer, intent(in) :: nspden
-  integer, intent(in) :: nord
   real(kind=8), intent(in) :: acell,a_gauss,hx,hy,hz,erfL,erfR,sigmaeps
   integer, intent(in) :: SetEps
-  character(len=2), intent(in) :: geocode
-  character(len=4), intent(in) :: PSol
-
-  !> dielectric function. Needed for non VAC methods, given in full dimensions
   real(kind=8), dimension(n01,n02,n03), intent(out) :: eps
-  !> logarithmic derivative of epsilon. Needed for PCG method.
-  !! if absent, it will be calculated from the array of epsilon
-  real(kind=8), dimension(3,n01,n02,n03), intent(out), optional :: dlogeps
-  !> inverse of epsilon. Needed for PI method.
-  !! if absent, it will be calculated from the array of epsilon
-  real(kind=8), dimension(n01,n02,n03), intent(out), optional :: oneoeps
-  !> inverse square root of epsilon. Needed for PCG method.
-  !! if absent, it will be calculated from the array of epsilon
-  real(kind=8), dimension(n01,n02,n03), intent(out), optional :: oneosqrteps
-  !> correction term of the Generalized Laplacian
-  !! if absent, it will be calculated from the array of epsilon
-  real(kind=8), dimension(n01,n02,n03), intent(out), optional :: corr
-
-  real(kind=8), dimension(n01,n02,n03,nspden), intent(in), optional :: rhoele
-
-  ! local variables.
-  real(kind=8), dimension(n01,n02,n03,nspden) :: edens
-  real(kind=8), dimension(n01,n02,n03,nspden,3) :: nabla_edens ! Nabla of the electron density.
-  real(kind=8), dimension(n01,n02,n03,nspden) :: ddt_edens ! Laplacian of the electron density.
-  integer, parameter :: nat=3
-  integer :: i,i1,i2,i3,ifx,ify,ifz,isp
-  real(kind=8), parameter :: edensmax = 0.0035d0!!!!
-  real(kind=8), parameter :: edensmin = 0.0001d0
+  real(kind=8), dimension(:,:,:), allocatable :: edens
+  integer :: i,i1,i2,i3
+  real(kind=8), parameter :: edensmax = 1.5d0
+  real(kind=8), parameter :: edensmin = 0.01d0
   real(kind=8), parameter :: eps0 = 80.0d0
-  real(kind=8) :: x1,x2,x3,r,t,pi,r2,sigma,x0,factor,length,oneoeps0,oneosqrteps0
-  real(kind=8) :: x,y,fx,fx2,fy,fy2,fz,fz2,a,ax,ay,az,bx,by,bz,tt,fx1,fy1,fz1
-  real(kind=8) :: fact1,fact2,fact3,dtx,d2,dd,coeff,coeff1
-  real(kind=8), dimension(nat) :: radii
-  real(kind=8), dimension(3,nat) :: rxyz
+  real(kind=8) :: x1,x2,x3,r,t,pi,r2,sigma,x0,factor
+    
+  edens=f_malloc([n01,n02,n03],id='edens')
+!  open(unit=21,file='Epsilon.out',status='unknown')
 
+  if (SetEps.eq.1) then
 
-  open(unit=21,file='Epsilon.out',status='unknown')
-  open(unit=22,file='Epsilon_line.out',status='unknown')
+   do i3=1,n03
+    do i2=1,n02
+     do i1=1,n01
+      eps(i1,i2,i3) = 1.d0
+     end do
+    end do
+   end do
 
-  nabla_edens=0.d0
-  ddt_edens=0.d0
+  else if (SetEps.le.2) then
 
- if (SetEps.eq.1) then
+   do i2=1,n02
+    x2 = hy*real(i2-n02/2,kind=8)
+    do i3=1,n03
+     do i1=1,n01
 
-  if (trim(geocode) == 'F') then
+      eps(i1,i2,i3) = (erfL-erfR)*(1.d0-erf((x2)/(acell*0.1d0)))/2.d0 + erfR
+     
+     end do
+    end do
+   end do
+
+!     i3=1!n03/2
+!     do i2=1,n02
+!      do i1=1,n01
+!       write(21,'(2(1x,I4),2(1x,e14.7))')i1,i2,eps(i1,i2,i3),eps(i1,i2,n03/2)
+!      end do
+!      write(21,*)
+!     end do
+
+  else if (SetEps.le.3) then
 
    sigma = sigmaeps
    x0 = 0.d0 ! hx*real(25-n01/2,kind=8)
@@ -2529,609 +2091,89 @@ subroutine SetEpsilon(n01,n02,n03,nspden,nord,acell,a_gauss,hx,hy,hz,erfL,erfR,s
                end do
             end do
          end do
+  
+!     i3=1!n03/2
+!     do i2=1,n02
+!      do i1=1,n01
+!       write(21,'(2(1x,I4),2(1x,e14.7))')i1,i2,eps(i1,i2,i3),eps(i1,i2,n03/2)
+!      end do
+!      write(21,*)
+!     end do
 
-  else if (trim(geocode) == 'P') then
+!     do i1=1,n01
+!      write(35,'(1x,I8,2(1x,e22.15))') i1,eps(i1,n02/2,1),eps(i1,1,1)
+!     end do
 
-         !parameters for the test functions
-         length=acell
-         a=0.5d0/a_gauss**2
-         !test functions in the three directions
-         ifx=5
-         ify=5
-         ifz=5
-         !parameters of the test functions
-         ax=length
-         ay=length
-         az=length
-         bx=2.d0!real(nu,kind=8)
-         by=2.d0!real(nu,kind=8)
-         bz=2.d0
+   else if (SetEps.eq.4) then
 
-              !plot of the functions used
-              do i1=1,n03
-                 x = hx*real(i1-n01/2-1,kind=8)!valid if hy=hz
-                 y = hy*real(i1-n01/2-1,kind=8)
-                 call functions(x,ax,bx,fx,fx1,fx2,ifx)
-                 call functions(y,ay,by,fy,fy1,fy2,ify)
-                 write(36,'(1x,I8,6(1x,e22.15))')i1,fx,fx1,fx2,fy,fy1,fy2
-              end do
-
-         !Initialization of dielectric constant for periodic boundary
-         !conditions.
-         do i3=1,n03
-            x3 = hz*real(i3-n03/2-1,kind=8)
-            call functions(x3,az,bz,fz,fz1,fz2,ifz)
-            do i2=1,n02
-               x2 = hy*real(i2-n02/2-1,kind=8)
-               call functions(x2,ay,by,fy,fy1,fy2,ify)
-               do i1=1,n01
-                  x1 = hx*real(i1-n01/2-1,kind=8)
-                  call functions(x1,ax,bx,fx,fx1,fx2,ifx)
-                  factor = (erfL-erfR)/(dexp(1.d0)**3-dexp(-1.d0)**3)
-                  eps(i1,i2,i3) = factor*(fx*fy*fz-dexp(-1.d0)**3) + erfR
-               end do
-            end do
-         end do
-
-
-  else if (trim(geocode) == 'S') then
-
-         !parameters for the test functions
-         length=acell
-         a=0.5d0/a_gauss**2
-         !test functions in the three directions
-         ifx=5
-         ifz=5
-         !non-periodic dimension
-         ify=6
-         !parameters of the test functions
-         ax=length
-         az=length
-         bx=2.d0!real(nu,kind=8)
-         bz=2.d0!real(nu,kind=8)
-         !non-periodic dimension
-         ay=length
-         by=a
-
-              !plot of the functions used
-              do i1=1,n03
-                 x = hx*real(i1-n01/2-1,kind=8)!valid if hy=hz
-                 y = hy*real(i1-n01/2-1,kind=8)
-                 call functions(x,ax,bx,fx,fx1,fx2,ifx)
-                 call functions(y,ay,by,fy,fy1,fy2,ify)
-                 write(36,'(1x,I8,6(1x,e22.15))')i1,fx,fx1,fx2,fy,fy1,fy2
-              end do
-
-         !Initialisation of density and potential
-         do i3=1,n03
-            x3 = hz*real(i3-n03/2-1,kind=8)
-            call functions(x3,az,bz,fz,fz1,fz2,ifz)
-            do i2=1,n02
-               x2 = hy*real(i2-n02/2-1,kind=8)
-               call functions(x2,ay,by,fy,fy1,fy2,ify)
-               do i1=1,n01
-                  x1 = hx*real(i1-n02/2-1,kind=8)
-                  call functions(x1,ax,bx,fx,fx1,fx2,ifx)
-                  factor = (erfL-erfR)/(dexp(1.d0)**2)
-                  eps(i1,i2,i3) = factor*(fx*fy*fz) + erfR
-               end do
-            end do
-         end do
-
-  end if
-
- else if (SetEps.eq.2 .or. SetEps.eq.3) then
-
-   if (SetEps.eq.2) then
-    call SetEledens(n01,n02,n03,nspden,nord,acell,a_gauss,hx,hy,hz,SetEps,edens,nabla_edens,ddt_edens)
-   else if (SetEps.eq.3) then
-    edens(:,:,:,:) = rhoele(:,:,:,:)
-    call fssnord3DmatNabla(n01,n02,n03,nspden,hx,hy,hz,edens,nabla_edens,nord,acell)
-    call fssnord3DmatDiv(n01,n02,n03,nspden,hx,hy,hz,nabla_edens,ddt_edens,nord,acell)
-   end if
+   call SetEledens(n01,n02,n03,edens,acell,a_gauss,hx,hy,hz)
 
    pi = 4.d0*datan(1.d0)
    r=0.d0
    t=0.d0
-   oneoeps0=1.d0/eps0
-   oneosqrteps0=1.d0/dsqrt(eps0)
-   fact1=2.d0*pi/(dlog(edensmax)-dlog(edensmin))
-   fact2=(dlog(eps0))/(2.d0*pi)
-   fact3=(dlog(eps0))/(dlog(edensmax)-dlog(edensmin))
 
-   if ( trim(PSol)=='PCG') then
-
-   isp=1
    do i3=1,n03
     do i2=1,n02
      do i1=1,n01
 
-      if (dabs(edens(i1,i2,i3,isp)).gt.edensmax) then
+      if (dabs(edens(i1,i2,i3)).gt.edensmax) then
        eps(i1,i2,i3)=1.d0
-       oneosqrteps(i1,i2,i3)=1.d0
-       do i=1,3
-        dlogeps(i,i1,i2,i3)=0.d0
-       end do
-       corr(i1,i2,i3)=0.d0
-      else if (dabs(edens(i1,i2,i3,isp)).lt.edensmin) then
+      else if (dabs(edens(i1,i2,i3)).lt.edensmin) then
        eps(i1,i2,i3)=eps0
-       oneosqrteps(i1,i2,i3)=oneosqrteps0
-       do i=1,3
-        dlogeps(i,i1,i2,i3)=0.d0
-       end do
-       corr(i1,i2,i3)=0.d0
       else
-       r=fact1*(dlog(edensmax)-dlog(dabs(edens(i1,i2,i3,isp))))
-       t=fact2*(r-dsin(r))
+       r=2.d0*pi*(dlog(edensmax)-dlog(dabs(edens(i1,i2,i3))))/(dlog(edensmax)-dlog(edensmin))
+       t=((dlog(eps0))/(2.d0*pi))*(r-dsin(r))
        eps(i1,i2,i3)=dexp(t)
-       oneosqrteps(i1,i2,i3)=dexp(-0.5d0*t)
-       coeff=fact3*(1.d0-dcos(r))
-       dtx=-coeff/dabs(edens(i1,i2,i3,isp))
-       d2=0.d0
-       do i=1,3
-        dlogeps(i,i1,i2,i3)=dtx*nabla_edens(i1,i2,i3,isp,i)
-        d2 = d2+nabla_edens(i1,i2,i3,isp,i)**2
-       end do
-        dd = ddt_edens(i1,i2,i3,isp)
-       coeff1=(0.5d0*(coeff**2)+fact3*fact1*dsin(r)+coeff)/((edens(i1,i2,i3,isp))**2)
-       corr(i1,i2,i3)=(0.125d0/pi)*dexp(t)*(coeff1*d2+dtx*dd)
       end if
 
      end do
     end do
    end do
-
-   else if ( trim(PSol)=='PI') then
-
-   isp=1
-   do i3=1,n03
-    do i2=1,n02
-     do i1=1,n01
-
-      if (dabs(edens(i1,i2,i3,isp)).gt.edensmax) then
-       eps(i1,i2,i3)=1.d0
-       oneoeps(i1,i2,i3)=1.d0
-       do i=1,3
-        dlogeps(i,i1,i2,i3)=0.d0
-       end do
-      else if (dabs(edens(i1,i2,i3,isp)).lt.edensmin) then
-       eps(i1,i2,i3)=eps0
-       oneoeps(i1,i2,i3)=oneoeps0
-       do i=1,3
-        dlogeps(i,i1,i2,i3)=0.d0
-       end do
-      else
-       r=fact1*(dlog(edensmax)-dlog(dabs(edens(i1,i2,i3,isp))))
-       t=fact2*(r-dsin(r))
-       eps(i1,i2,i3)=dexp(t)
-       oneoeps(i1,i2,i3)=dexp(-t)
-       coeff=fact3*(1.d0-dcos(r))
-       dtx=-coeff/dabs(edens(i1,i2,i3,isp))
-       do i=1,3
-        dlogeps(i,i1,i2,i3)=dtx*nabla_edens(i1,i2,i3,isp,i)
-       end do
-      end if
-
-     end do
-    end do
-   end do
-
-   end if
-
-else if (SetEps ==4) then
-      rxyz(1:3,1)=[7.300000d0, 7.300337d0, 7.243250d0]-[2.30d0,2.85d0,3.7d0]
-      rxyz(1:3,2)=[7.300000d0, 8.415319d0, 8.700265d0]-[2.30d0,2.85d0,3.7d0]
-      rxyz(1:3,3)=[7.300000d0, 7.299663d0,10.156750d0]-[2.30d0,2.85d0,3.7d0]
-      radii=2*[2.0d0,2.5d0,2.0d0]
-      call Eps_rigid_cavity([n01,n02,n03],[hx,hy,hz],nat,rxyz,radii,eps0,3.d0*max(hx,hy,hz),eps,dlogeps)
-
-end if
-
-
-!!$     i3=1!n03/2
-!!$     do i2=1,n02
-!!$      do i1=1,n01
-!!$       write(21,'(2(1x,I4),2(1x,e14.7))')i1,i2,eps(i1,i2,i3),eps(i1,i2,n03/2)
-!!$      end do
-!!$      write(21,*)
-!!$     end do
-
-     i1=1!n03/2
-     do i2=1,n02
-      do i3=1,n03
-       write(21,'(2(1x,I4),2(1x,e14.7))')i2,i3,eps(i1,i2,i3),eps(n01/2,i2,i3)
-      end do
-      write(21,*)
-     end do
-
-
-     do i1=1,n01
-      write(22,'(1x,I8,2(1x,e22.15))') i1,eps(i1,n02/2,n03/2),eps(n01/2,i1,n03/2)
-     end do
+    
+  end if
 
   close(unit=21)
-  close(unit=22)
+
+  call f_free(edens)
 
 end subroutine SetEpsilon
 
-!> calculates the value of the dielectric funnction for a smoothed cavity 
-!! given a set of centres and radii.
-!! Need the epsilon0 as well as the radius of the cavit and its smoothness
-subroutine Eps_rigid_cavity(ndims,hgrids,nat,rxyz,radii,epsilon0,delta,eps,dlogeps)
-  implicit none
-  integer, intent(in) :: nat !< number of centres defining the cavity
-  real(kind=8), intent(in) :: epsilon0 !< dielectric constant of th solvent
-  real(kind=8), intent(in) :: delta !< smoothness factor of the cavity
-  integer, dimension(3), intent(in) :: ndims   !< dimensions of the simulation box
-  real(kind=8), dimension(3), intent(in) :: hgrids !< grid spacings
-  real(kind=8), dimension(nat), intent(in) :: radii !< radii of each of the atoms
-  !> position of all the atoms in the grid coordinates
-  real(kind=8), dimension(3,nat), intent(in) :: rxyz
-  real(kind=8), dimension(ndims(1),ndims(2),ndims(3)), intent(out) :: eps !< dielectric function
-  real(kind=8), dimension(3,ndims(1),ndims(2),ndims(3)), intent(out) :: dlogeps !< dlogeps
-  !local variables
-  integer :: i1,i2,i3,iat
-  real(kind=8) :: r2,x,y2,z2,d2,y,z,eps_min,eps1
-  real(kind=8), dimension(3) :: deps
-
-  do i3=1,ndims(3)
-     z=hgrids(3)*(i3-1)
-     z2=z*z
-     do i2=1,ndims(2)
-        y=hgrids(2)*(i2-1)
-        y2=y*y
-        do i1=1,ndims(1)
-           x=hgrids(1)*(i1-1)
-           r2=x*x+y2+z2
-           !choose the closest atom
-           eps_min=1.d100
-           do iat=1,nat
-              d2=(x-rxyz(1,iat))**2+(y-rxyz(2,iat))**2+(z-rxyz(3,iat))**2
-              eps1=epsl(sqrt(d2),radii(iat),delta,epsilon0)
-              if (eps1< eps_min) then
-                 deps(1)=depsoeps(sqrt(d2),radii(iat),delta,epsilon0)*(x-rxyz(1,iat))/sqrt(d2)
-                 deps(2)=depsoeps(sqrt(d2),radii(iat),delta,epsilon0)*(y-rxyz(2,iat))/sqrt(d2)
-                 deps(3)=depsoeps(sqrt(d2),radii(iat),delta,epsilon0)*(z-rxyz(3,iat))/sqrt(d2)
-                 eps_min=eps1
-              end if
-              if (abs(eps_min-1.d0) < epsilon(1.d0)) exit
-           end do
-           if (nat==0) then
-              eps_min=1.d0
-              deps=0.d0
-           end if
-           eps(i1,i2,i3)=eps_min
-           dlogeps(1:3,i1,i2,i3)=deps(1:3)
-        end do
-     end do
-  end do
-
-  contains
-
-    pure function epsl(r,rc,delta,epsilon0)
-      implicit none
-      real(kind=8), intent(in) :: r,rc,delta,epsilon0
-      real(kind=8) :: epsl
-      !local variables
-      real(kind=8) :: d
-
-      d=(r-rc)/delta
-      epsl=0.5d0*((epsilon0-1.d0)*(erf(d)+1.d0)+1.d0)+1.d0
-    end function epsl
-
-    pure function depsoeps(r,rc,delta,epsilon0)
-      implicit none
-      real(kind=8), intent(in) :: r,rc,delta,epsilon0
-      real(kind=8) :: depsoeps
-      !local variables
-      real(kind=8) :: d
-
-      d=(r-rc)/delta
-      depsoeps=(epsilon0-1.d0)/delta*exp(-d**2)/epsl(r,rc,delta,epsilon0)
-    end function depsoeps
-
-
-end subroutine Eps_rigid_cavity
-
-subroutine SetEledens(n01,n02,n03,nspden,nord,acell,a_gauss,hx,hy,hz,SetEps,edens,nabla,ddt)
-
-  use yaml_output
-
+subroutine SetEledens(n01,n02,n03,edens,acell,a_gauss,hx,hy,hz)
   implicit none
   integer, intent(in) :: n01
   integer, intent(in) :: n02
   integer, intent(in) :: n03
-  integer, intent(in) :: nspden
-  integer, intent(in) :: nord
   real(kind=8), intent(in) :: acell,a_gauss,hx,hy,hz
-  integer, intent(in) :: SetEps
-  real(kind=8), dimension(n01,n02,n03,nspden), intent(out) :: edens
-  real(kind=8), dimension(n01,n02,n03,nspden,3), intent(out) :: nabla
-  real(kind=8), dimension(n01,n02,n03,nspden), intent(out) :: ddt
+  real(kind=8), dimension(n01,n02,n03), intent(out) :: edens
 
-  real(kind=8) :: x1,x2,x3,pi,factor,r2,fac,sigma,x0,sume,dd
-  real(kind=8), dimension(3) :: x
-  integer :: i,i1,i2,i3,isp
+  real(kind=8) :: x1,x2,x3,freq,fz,fz1,fz2,average,pi,a2,factor,r2
+  integer :: i,i1,i2,i3
 
-  open(unit=18,file='ElectronDensity.out',status='unknown')
-  open(unit=19,file='ElectronDensity_line.out',status='unknown')
-
-  if (SetEps.eq.2) then
-
-   pi = 4.d0*atan(1.d0)
-   sigma = 0.04d0*acell
-   x0 = 0.d0 ! hx*real(25-n01/2,kind=8)
-
-         !Normalization
-!         factor = 1.d0/((sigma**3)*sqrt((2.d0*pi)**3))
-         factor = 1.d0
-
-         !gaussian function for the potential.
-         sume=0.d0
-         isp=1
-         do i3=1,n03
-            x3 = hz*real(i3-n03/2,kind=8)
-            x(3) = x3
-            do i2=1,n02
-               x2 = hy*real(i2-n02/2,kind=8)
-               x(2) = x2
-               do i1=1,n01
-                  x1 = hx*real(i1-n01/2,kind=8)
-                  x(1) = x1
-!                  r2=(x1-x0)*(x1-x0)+(x2-x0)*(x2-x0)+(x3)*(x3)
-                  r2 = x1*x1+x2*x2+x3*x3
-                  edens(i1,i2,i3,isp) = max(factor*exp(-0.5d0*r2/(sigma**2)),1d-24)
-                  sume = sume + edens(i1,i2,i3,isp)
-                  fac=-edens(i1,i2,i3,isp)/(sigma**2)
-                  do i=1,3
-                   nabla(i1,i2,i3,isp,i)= fac*x(i)
-                  end do      
-                  ddt(i1,i2,i3,isp)= fac*(3.d0-(r2/(sigma**2)))
-               end do
-            end do
-          end do
-
-          sume = sume*hx*hy*hz
-
-  else
-   write(*,*)'Error in the Set Eledens subroutine'
-   stop
-  end if
-
-    call yaml_map('Total electron Charge',sume)
-
-     i3=1!n03/2
-     do i2=1,n02
-      do i1=1,n01
-       write(18,'(2(1x,I4),2(1x,e14.7))')i1,i2,edens(i1,i2,i3,isp),edens(i1,i2,n03/2,isp)
-      end do
-      write(18,*)
-     end do
-
-     do i1=1,n01
-      write(19,'(1x,I8,2(1x,e22.15))') i1,edens(i1,n02/2,n03/2,isp),edens(n01/2,i1,n03/2,isp)
-     end do
-
-  close(unit=18)
-  close(unit=19)
-
-end subroutine SetEledens
-
-subroutine get_size_from_cube(n01,n02,n03,hx,hy,hz)
-
-  use yaml_output
-
-  implicit none
-  integer, intent(out) :: n01
-  integer, intent(out) :: n02
-  integer, intent(out) :: n03
-  real(kind=8), intent(out) :: hx
-  real(kind=8), intent(out) :: hy
-  real(kind=8), intent(out) :: hz
-  integer :: nat
-
-  real(8):: z_incr, z1_incr,x1_incr, x2_incr, y_incr,y2_incr
-  real(8):: origin_x, origin_y, origin_z
-  character (100) :: line1,line2
-
-  open (52,file='electronic_density.cube')
-
-  read(52,*)line1
-  read(52,*)line2
-  read(52,*)nat,origin_x,origin_y,origin_z
-  read(52,*)n01, hx, x1_incr, x2_incr
-  read(52,*)n02, y_incr, hy, y2_incr
-  read(52,*)n03, z_incr, z1_incr, hz
-
-  close(unit=52)
-
-end subroutine get_size_from_cube
-
-subroutine get_rho(n01,n02,n03,nspden,acell,a_gauss,hx,hy,hz,rhoele,rhoion,sume)
-
-  use yaml_output
-
-  implicit none
-  integer, intent(in) :: n01
-  integer, intent(in) :: n02
-  integer, intent(in) :: n03
-  integer, intent(in) :: nspden
-  real(kind=8), intent(in) :: acell,a_gauss,hx,hy,hz
-  real(kind=8), dimension(n01,n02,n03,nspden), intent(out) :: rhoele
-  real(kind=8), dimension(n01,n02,n03,nspden), intent(out) :: rhoion
-  real(kind=8), intent(out) :: sume
-
-  real(kind=8) :: x1,x2,x3,pi,factor,r2,fac,sigma,x0,sumi
-  real(kind=8), dimension(3) :: vec
-  integer :: i,isp
-
-  integer:: ngp,igp,I1,I2,I3,grid_x, grid_y, grid_z
-  integer:: N_line,ilmp,iat,nat,no_line
-  real(8), allocatable:: ATOM_info(:,:), chg(:,:,:), sigat(:)
-  real(8):: x,y,z,z_incr, z1_incr,x1_incr, x2_incr, y_incr,y2_incr
-  real(8):: origin_x, origin_y, origin_z
-  real(8):: total,xcent,ycent,zcent,hgridx_h,hgridy_h,hgridz_h,charge
-  character(14) filename
-  character(3) fn
-  character (100) :: line1,line2
-
-  open(unit=18,file='ElectronDensity_fromc.out',status='unknown')
-  open(unit=19,file='ElectronDensity_fromc_line.out',status='unknown')
-  open (50,file='electronic_density.cube')
-  open (51,file='sigat.dat')
-
-  read(50,*)line1
-  read(50,*)line2
-  read(50,*)nat,origin_x,origin_y,origin_z
-  read(50,*)grid_x, hgridx_h, x1_incr, x2_incr
-  read(50,*)grid_y, y_incr, hgridy_h, y2_incr
-  read(50,*)grid_z, z_incr, z1_incr, hgridz_h
-
-  if ((n01.ne.grid_x).or.(n02.ne.grid_y).or.(n03.ne.grid_z)) then
-   write(*,*)'Error get_rho subroutine'
-   stop
-  end if
-
-  N_line=NINT(((grid_y*grid_x*grid_z)/6)*1.d0)
-!  write(*,*)N_line
-  no_line=((grid_y*grid_x*grid_z))
-
-  allocate(chg(0:grid_x-1,0:grid_y-1,0:grid_z-1),ATOM_info(5,nat),sigat(nat))
-
-  do I1= 1,nat
-   read(50,*) (ATOM_info(I3,I1),I3=1,5)
-   read(51,*) sigat(I1)
-  end do
-
-  do I1=0,grid_x-1
-   do I2=0,grid_y-1
-    read(50,*)(chg(I1,I2,I3),I3=0,grid_z-1)
-   end do
-  end do
-
-!  hgridx=.4d0
-!  hgridy=.4d0
-!  hgridz=.4d0
-
-!  hgridx_h=.5d0*hgridx
-!  hgridy_h=.5d0*hgridy
-!  hgridz_h=.5d0*hgridz
-
-  total=0.d0
-  xcent=0.d0
-  ycent=0.d0
-  zcent=0.d0
-!  write(*,*)hgridz_h,hgridy_h,hgridx_h
-
-  do I3=0,grid_z-1
-   z=(I3)*hgridz_h
-   do I2=0,grid_y-1
-    y=(I2)*hgridy_h
-    do I1=0,grid_x-1
-     x=(I1)*hgridx_h
-
-     charge=chg(I1,I2,I3)
-     total=total+charge
-     xcent=xcent+charge*x
-     ycent=ycent+charge*y
-     zcent=zcent+charge*z
-
-    end do
-   end do
-  end do
-
-  total=-total*hgridx_h*hgridy_h*hgridz_h
-  xcent=-xcent*hgridx_h*hgridy_h*hgridz_h
-  ycent=-ycent*hgridx_h*hgridy_h*hgridz_h
-  zcent=-zcent*hgridx_h*hgridy_h*hgridz_h
-  sume = total
-
-  write(*,*) 'total, centers  Without ions'
-  write(*,*)  total,xcent,ycent,zcent
-
-  do iat= 1,nat
-   write(*,*) ATOM_info(:,iat)
-   total=total+ATOM_info(2,iat)
-   xcent=xcent+ATOM_info(2,iat)*ATOM_info(3,iat)
-   ycent=ycent+ATOM_info(2,iat)*ATOM_info(4,iat)
-   zcent=zcent+ATOM_info(2,iat)*ATOM_info(5,iat)
-  end do
-
-  write(*,*) 'total, centers  with    ions'
-  write(*,*)  total,xcent,ycent,zcent
-
-!-----------------------------------------------------------------------
-! Compute ion charge density
+!  open(unit=18,file='ElectronDensity.out',status='unknown')
 
   pi = 4.d0*atan(1.d0)
+  a2 = a_gauss**2
 
-  isp=1
-  do I3=0,grid_z-1
-   do I2=0,grid_y-1
-    do I1=0,grid_x-1
-     rhoele(I1+1,I2+1,I3+1,isp) = chg(I1,I2,I3)
-     rhoion(I1+1,I2+1,I3+1,isp) = 0.d0
+  !Normalization
+  factor = 1.d0/(a_gauss*a2*pi*sqrt(pi))
+  !gaussian function
+  do i3=1,n03
+   x3 = hz*real(i3-n03/2,kind=8)
+   do i2=1,n02
+    x2 = hy*real(i2-n02/2,kind=8)
+    do i1=1,n01
+     x1 = hx*real(i1-n01/2,kind=8)
+     r2 = x1*x1+x2*x2+x3*x3
+     edens(i1,i2,i3) = max(factor*exp(-r2/a2),1d-24)
     end do
    end do
   end do
 
-  do iat= 1,nat
+! Here averaged to zero in the old one dimensional code!
 
-   do i=1,3
-    vec(i) = ATOM_info(i+2,iat)
-   end do
+!  close(unit=18)
 
-   sigma = sigat(iat) !*acell
-   x0 = 0.d0 ! hx*real(25-n01/2,kind=8)
-
-   !Normalization
-   factor = ATOM_info(2,iat)/((sigma**3)*sqrt((2.d0*pi)**3))
-
-   !gaussian function for the potential.
-   sumi=0.d0
-   isp=1
-
-  do I3=0,grid_z-1
-   x3=(I3)*hgridz_h
-   do I2=0,grid_y-1
-    x2=(I2)*hgridy_h
-    do I1=0,grid_x-1
-     x1=(I1)*hgridx_h
-      r2=(x1-vec(1))**2+(x2-vec(2))**2+(x3-vec(3))**2
-!                  r2 = x1*x1+x2*x2+x3*x3
-      rhoion(I1+1,I2+1,I3+1,isp) = rhoion(I1+1,I2+1,I3+1,isp)  +  max(factor*exp(-0.5d0*r2/(sigma**2)),1d-24)
-      sumi = sumi + rhoion(I1+1,I2+1,I3+1,isp)
-     end do
-    end do
-   end do
-
-  end do
-
-     i3=1!n03/2
-     do i2=1,n02
-      do i1=1,n01
-       write(18,'(2(1x,I4),2(1x,e14.7))')i1,i2,rhoele(i1,i2,i3,isp),rhoele(i1,i2,n03/2,isp)
-      end do
-      write(18,*)
-     end do
-
-     do i1=1,n01
-      write(19,'(1x,I8,2(1x,e22.15))')i1,rhoele(i1,n02/2,n03/2,isp),rhoele(n01/2,i1,n03/2,isp)
-     end do
-
-  close(unit=18)
-  close(unit=19)
-
-
-  write(*,*)'Total ions charge'
-  write(*,*)sumi*hgridx_h*hgridy_h*hgridz_h
-
-  deallocate(chg,ATOM_info,sigat)
-
-  close(unit=50)
-  close(unit=51)
-
-end subroutine get_rho
+end subroutine SetEledens
 
 subroutine derf_local(derf_yy,yy)
 
