@@ -43,7 +43,7 @@ program MP_gaussian
   fj_coll=f_malloc(-npts .to. npts,id='fj_coll')
   call initialize_real_space_conversion(npoints=2**8,isf_m=itype_scf,nmoms=16) !initialize the work arrays needed to integrate with isf
 
-  call polynomial_exactness(npts,8,0,itype_scf,8,8,iplot)
+  call polynomial_exactness(npts,-8,0,itype_scf,-2,0,iplot)
   stop
 
   call f_open_file(unit,file='MultipolesError.dat')
@@ -328,7 +328,7 @@ contains
     real(gp), intent(in) :: x
     integer, intent(in) :: istart !< First point
     integer, intent(in) :: iend   !< Last point
-    integer, intent(in) :: i0     !< Center (i which removes)
+    integer, intent(in) :: i0     !< Center (removed from the product)
     real(gp) :: y
     !Local variables
     integer :: i
@@ -352,7 +352,7 @@ contains
     !Arguments
     real(gp), intent(in) :: x
     integer, intent(in) :: itypescf !< order of scf (should be even)
-    integer, intent(in) :: i0     !< Center (i which removes)
+    integer, intent(in) :: i0     !< Center 
     real(gp) :: y
     !Local variables
     integer :: i,ii
@@ -387,14 +387,16 @@ subroutine polynomial_exactness(npts,itype_scf,nmoms,p,itype_scf_dual,nmoms_dual
   implicit none
   integer, intent(in) :: npts,itype_scf,nmoms,p,iplot,itype_scf_dual,nmoms_dual
   !local variables
-  integer :: n_scf,j,q,i,n_range,n_ext,n_ranget,n_scft
+  integer :: n_scf,j,q,i,n_range,n_ext,n_ranget,n_scft,n_lag,n_lagt
   real(gp) :: phival,scalar
   real(gp), dimension(0:p) :: deviations
   real(gp), dimension(:), allocatable :: scf_dat,x_scf,x_scft,scft_dat
   real(gp), dimension(:,:), allocatable :: pol_dat,pol_sp
-
+  n_lag=0
+  if (itype_scf<0)  n_lag=-itype_scf
   !Initialize the work array needed to integrate with the Lagrange polynomial
-  n_scf = 2*(itype_scf+nmoms)*npts
+  n_scf = 2*(abs(itype_scf)+nmoms)*npts
+
 
   !Allocations for lagrange polynomial data array
   x_scf = f_malloc(0.to.n_scf)
@@ -404,7 +406,14 @@ subroutine polynomial_exactness(npts,itype_scf,nmoms,p,itype_scf_dual,nmoms_dual
 
   !Build the scaling function external routine coming from Poisson Solver. To be customized accordingly
   !call scaling_function(itype_scf,n_scf,n_range,x_scf,scf_dat)
-  call ISF_family(itype_scf,nmoms,n_scf,n_range,x_scf,scf_dat)
+  if (n_lag==0) then
+     call ISF_family(itype_scf,nmoms,n_scf,n_range,x_scf,scf_dat)
+  else
+     call lagrange_family(n_lag,n_scf,n_range,x_scf,scf_dat)
+  end if
+
+  !override scf_dat with lagrange polynomials
+  !n_range=4
 
   pol_sp = f_malloc0([-n_range.to.n_range,0.to.p],id='pol_sp')
  
@@ -414,23 +423,27 @@ subroutine polynomial_exactness(npts,itype_scf,nmoms,p,itype_scf_dual,nmoms_dual
   call yaml_map('range', n_range)
   call yaml_map('number of points',n_scf)
   call yaml_map('step',x_scf(1)-x_scf(0))
-  call yaml_map('dx',real(2*(itype_scf+nmoms),gp)/real(n_scf,gp))
+  call yaml_map('dx',real(2*(abs(itype_scf)+nmoms),gp)/real(n_scf,gp))
 
   n_ext=n_range/2
-  !Step grid for the integration
-  !dx = real(2*itype_scf,gp)/real(n_scf,gp)
-  !starting point for the x coordinate for integration
-  !x  = real(-itype_scf,gp)-dx
   write(iplot,'(a)') '#Abscissae   Interpolating_scaling_function   Lagrange_polynomial' 
   do q=0,p
      !evaluate the maxima
      do j=-n_range,n_range
         do i=0,n_scf
-           phival=phi(x_scf(i)-real(j,kind=8))
+           phival=phi(x_scf(i),j)
            pol_dat(i,q)=pol_dat(i,q)+(real(j,kind=8)/real(n_ext,kind=8))**q*phival
-           pol_sp(j,q)=pol_sp(j,q)+((x_scf(i)+real(j,kind=8))/real(n_ext,kind=8))**q*scf_dat(i)
+           !change of variables here
+           if (n_lag == 0) then
+              pol_sp(j,q)=pol_sp(j,q)+&
+                   ((x_scf(i)+real(j,kind=8))/real(n_ext,kind=8))**q*scf_dat(i)
+           else
+              pol_sp(j,q)=pol_sp(j,q)+&
+                   ((x_scf(i))/real(n_ext,kind=8))**q*phival
+           end if
         end do
         pol_sp(j,q)=pol_sp(j,q)*(x_scf(1)-x_scf(0))
+        !print *,'j,q',j,q,pol_sp(j,q),(real(j,kind=8)/real(n_ext,kind=8))**q
         pol_sp(j,q)=abs(pol_sp(j,q)-(real(j,kind=8)/real(n_ext,kind=8))**q)
      end do
   end do
@@ -438,55 +451,42 @@ subroutine polynomial_exactness(npts,itype_scf,nmoms,p,itype_scf_dual,nmoms_dual
   !evaluate the maxima
   deviations=0.d0
   do i=0,n_scf
-     !x=x+dx
-     !lag_dat(i) = lag_sym(x_scf(i),itype_scf,0)
      forall (q=0:p) deviations(q)=max(deviations(q),abs((x_scf(i)/real(n_ext,kind=8))**q-pol_dat(i,q)))
-     write(iplot,'(f19.13,1x,30(1pe23.15,1x))') x_scf(i),scf_dat(i),pol_dat(i,:)
+     write(iplot,'(f19.13,1x,30(1pe23.15,1x))') x_scf(i),phi(x_scf(i),0),pol_dat(i,:) !scf_dat(i),
   end do
   call yaml_map('Polynomial exactness',deviations)
 
   !Do scalar product with the dual function
   !Initialize the work array needed to integrate with the Lagrange polynomial
-  n_scft = 2*(itype_scf_dual+nmoms_dual)*npts
+  n_lagt=0
+  if (itype_scf_dual<0)  n_lagt=-itype_scf_dual
+
+  n_scft = 2*(abs(itype_scf_dual)+nmoms_dual)*npts
   !Allocations for lagrange polynomial data array
   x_scft = f_malloc(0.to.n_scft)
   scft_dat = f_malloc(0.to.n_scft,id='scf_dat')
-  call ISF_family(itype_scf_dual,nmoms_dual,n_scft,n_ranget,x_scft,scft_dat)
+  if (n_lagt==0) then
+     call ISF_family(itype_scf_dual,nmoms_dual,n_scft,n_ranget,x_scft,scft_dat)
+  else
+     call lagrange_family(n_lagt,n_scft,n_ranget,x_scft,scft_dat)
+  end if
 
   call yaml_map('itype_scf',itype_scf_dual)
   call yaml_map('nmoms',nmoms_dual)
   call yaml_map('range', n_ranget)
   call yaml_map('number of points',n_scft)
   call yaml_map('step',x_scft(1)-x_scft(0))
-  call yaml_map('dx',real(2*(itype_scf_dual+nmoms_dual),gp)/real(n_scft,gp))
-
+  call yaml_map('dx',real(2*(abs(itype_scf_dual)+nmoms_dual),gp)/real(n_scft,gp))
 
   do j=-n_ranget,n_ranget
      scalar = 0.d0
      do i=0,n_scft
-        phival=phi(x_scft(i)-real(j,kind=8))
+        phival=phi(x_scft(i),j)
         scalar = scalar + scft_dat(i)*phival
      end do
      scalar = scalar*(x_scft(1)-x_scft(0))
      call yaml_map('<phi|phi_{'//trim(adjustl(yaml_toa(j)))//'}>',scalar)
   end do
-!!$
-!!$  call yaml_sequence_open('<lag|iscf>')
-!!$  istart=-(itype_scf/2-1)
-!!$  iend=itype_scf/2-1
-!!$  do i0=-itype_scf/2+1,itype_scf/2-1
-!!$     scalar = 0.d0
-!!$     do i=0,n_scf
-!!$        scalar = scalar + scf_dat(i)*lagrange(x_scf(i),istart,iend,i0)
-!!$        !scalar = scalar + scf_dat(i)*lag_sym(x_scf(i),itype_scf,i0)
-!!$        !scalar = scalar + scf_dat(i)*x_scf(i)**i0
-!!$     end do
-!!$     scalar = scalar*(x_scf(1)-x_scf(0))
-!!$     !call yaml_map(trim(yaml_toa(istart))//trim(yaml_toa(iend))//trim(yaml_toa(i0)), scalar)
-!!$     !call yaml_map(trim(yaml_toa(i0)), (/ scalar,lag_sym(real(i0,gp),itype_scf,i0) /))
-!!$     call yaml_map(trim(yaml_toa(i0)), (/ scalar,lagrange(real(i0,gp),istart,iend,i0) /))
-!!$  end do
-!!$  call yaml_sequence_close()
  
   call f_free(x_scf,scf_dat)
   call f_free(pol_dat)
@@ -496,20 +496,74 @@ subroutine polynomial_exactness(npts,itype_scf,nmoms,p,itype_scf_dual,nmoms_dual
 
   contains
 
-    pure function phi(x0)
+    pure function phi(x0,i0)
       implicit none
+      integer, intent(in) :: i0
       double precision, intent(in) :: x0
       double precision :: phi
       !local variables
-      integer :: ival
+      integer :: ival,nrange
+      double precision :: y
       phi=0.d0
-      ival=minloc(abs(x_scf-x0),1)+lbound(x_scf,1)-1
+      y=x0-dble(i0)
+      ival=minloc(abs(x_scf-y),1)+lbound(x_scf,1)-1
       !print *,'ival',x0,ival,scf_dat(ival),x_scf(ival)
-      if (x_scf(ival) -x0 == 0.d0)  phi=scf_dat(ival)
-      
+      if (n_lag==0) then
+         if (x_scf(ival)-y == 0.d0) phi=scf_dat(ival)
+      else
+         phi=lagrange(x0,-n_lag,n_lag,i0)
+      end if
+
     end function phi
 
+    !> Calculate the Lagrange polynomial
+    !! @f$ l_{i_0}(x) = \prod_{i=istart, i \neq i_0}^{iend} \frac{x-i}{i0-i}$
+    elemental function lagrange(x,istart,iend,i0) result(y)
+      implicit none
+      !Arguments
+      real(gp), intent(in) :: x
+      integer, intent(in) :: istart !< First point
+      integer, intent(in) :: iend   !< Last point
+      integer, intent(in) :: i0     !< Center (removed from the product)
+      real(gp) :: y
+      !Local variables
+      integer :: i
+      if (i0 >= istart .and. i0<= iend) then
+         y = 1.d0
+         do i=istart,iend
+            if (i /= i0) then
+               y = y *(x-real(i,gp))/real(i0-i,gp)
+            end if
+         end do
+      else
+         y = 0.d0
+      end if
+    end function lagrange
+
+    subroutine lagrange_family(m,npts,n_range,x_scf,lag_dat)
+      implicit none
+      integer, intent(in) :: m
+      integer, intent(in) :: npts
+      integer, intent(out) :: n_range
+      double precision, dimension(0:npts), intent(out) :: x_scf
+      double precision, dimension(0:npts), intent(out) :: lag_dat
+      !local variables
+      integer :: i,ni
+
+      n_range=m
+
+      ni=n_range!-1
+      do i=0,npts
+         x_scf(i) = real(2*i*ni,kind=8)/real(npts,kind=8)-real(ni,kind=8)
+         lag_dat(i)=lagrange(x_scf(i),-n_range,n_range,0) !
+      end do
+
+    end subroutine lagrange_family
+
+
 end subroutine polynomial_exactness
+
+
 
 !!$
 !!$!> takes a Gaussian of exponent pgauss an center x0 and discretize it on a grid of size 1 in units of sqrt(0.5*[pgauss])
