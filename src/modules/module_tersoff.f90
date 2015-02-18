@@ -1,3 +1,11 @@
+!> @file
+!!  Tersoff potential
+!! @author
+!!    Copyright (C) 2007-2015 BigDFT group
+!!    This file is distributed under the terms of the
+!!    GNU General Public License, see ~/COPYING file
+!!    or http://www.gnu.org/copyleft/gpl.txt .
+!!    For the list of contributors, see ~/AUTHORS
 module module_tersoff
   use module_base
   implicit none
@@ -50,7 +58,7 @@ do iat=1,nat
      Kinds_tersoff(iat)=2
      only_c=.false.
    else 
-     stop "Tersoff only allowed with Silicon and Carbon atoms"
+     stop "Tersoff only allowed for Silicon and/or Carbon atoms"
    endif
 enddo
 end subroutine
