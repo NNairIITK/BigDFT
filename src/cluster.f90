@@ -492,6 +492,9 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,energs,fxyz,strten,fnoise,press
      !if (iproc==0) write(*,*)'value for Exc[rhoc]',energs%excrhoc
   end if
 
+  call f_strcpy(src=denspot%pkernel%method,dest=comment)
+  call f_strcpy(src='VAC',dest=denspot%pkernel%method)
+
   !here calculate the ionic energy and forces accordingly
   call IonicEnergyandForces(iproc,nproc,denspot%dpbox,atoms,in%elecfield,rxyz,&
        energs%eion,fion,in%dispersion,energs%edisp,fdisp,ewaldstr,&
@@ -504,7 +507,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,energs,fxyz,strten,fnoise,press
      call denspot_emit_v_ext(denspot, iproc, nproc)
   end if
 
-
+  call f_strcpy(dest=denspot%pkernel%method,src=comment)
 
   norbv=abs(in%norbv)
   if (in%inputPsiId == INPUT_PSI_LINEAR_AO .or. &

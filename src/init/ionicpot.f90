@@ -461,6 +461,107 @@ subroutine IonicEnergyandForces(iproc,nproc,dpbox,at,elecfield,&
 END SUBROUTINE IonicEnergyandForces
 
 
+!> calculates the value of the dielectric funnction for a smoothed cavity 
+!! given a set of centres and radii.
+!! Need the epsilon0 as well as the radius of the cavit and its smoothness
+subroutine epsilon_rigid_cavity(geocode,ndims,hgrids,nat,rxyz,radii,epsilon0,delta,eps)
+  use f_utils
+  implicit none
+  character(len=1), intent(in) :: geocode !< @copydoc poisson_solver::doc::geocode
+  integer, intent(in) :: nat !< number of centres defining the cavity
+  real(kind=8), intent(in) :: epsilon0 !< dielectric constant of th solvent
+  real(kind=8), intent(in) :: delta !< smoothness factor of the cavity
+  integer, dimension(3), intent(in) :: ndims   !< dimensions of the simulation box
+  real(kind=8), dimension(3), intent(in) :: hgrids !< grid spacings
+  real(kind=8), dimension(nat), intent(in) :: radii !< radii of each of the atoms
+  !> position of all the atoms in the grid coordinates
+  real(kind=8), dimension(3,nat), intent(in) :: rxyz
+  real(kind=8), dimension(ndims(1),ndims(2),ndims(3)), intent(out) :: eps !< dielectric function
+  !local variables
+  logical :: perx,pery,perz
+  integer :: i1,i2,i3,iat,nbl1,nbl2,nbl3,nbr1,nbr2,nbr3,unt
+  real(kind=8) :: r2,x,y2,z2,d2,y,z,eps_min,eps1
+  !  real(kind=8), dimension(3) :: deps
+
+  !buffers associated to the geocode
+  !conditions for periodicity in the three directions
+  perx=(geocode /= 'F')
+  pery=(geocode == 'P')
+  perz=(geocode /= 'F')
+
+  call ext_buffers(perx,nbl1,nbr1)
+  call ext_buffers(pery,nbl2,nbr2)
+  call ext_buffers(perz,nbl3,nbr3)
+
+
+  do i3=1,ndims(3)
+     z=hgrids(3)*(i3-1-nbl3)
+     z2=z*z
+     do i2=1,ndims(2)
+        y=hgrids(2)*(i2-1-nbl2)
+        y2=y*y
+        do i1=1,ndims(1)
+           x=hgrids(1)*(i1-1-nbl1)
+           r2=x*x+y2+z2
+           !choose the closest atom
+           eps_min=1.d100
+           do iat=1,nat
+              d2=(x-rxyz(1,iat))**2+(y-rxyz(2,iat))**2+(z-rxyz(3,iat))**2
+              eps1=epsl(sqrt(d2),radii(iat),delta,epsilon0)
+              if (eps1< eps_min) then
+                 !deps(1)=depsoeps(sqrt(d2),radii(iat),delta,epsilon0)*(x-rxyz(1,iat))/sqrt(d2)
+                 !deps(2)=depsoeps(sqrt(d2),radii(iat),delta,epsilon0)*(y-rxyz(2,iat))/sqrt(d2)
+                 !deps(3)=depsoeps(sqrt(d2),radii(iat),delta,epsilon0)*(z-rxyz(3,iat))/sqrt(d2)
+                 eps_min=eps1
+              end if
+              if (abs(eps_min-1.d0) < epsilon(1.d0)) exit
+           end do
+           if (nat==0) then
+              eps_min=1.d0
+              !deps=0.d0
+           end if
+           eps(i1,i2,i3)=eps_min
+           !dlogeps(1:3,i1,i2,i3)=deps(1:3)
+        end do
+     end do
+  end do
+
+!!$  unt=f_get_free_unit(21)
+!!$  call f_open_file(unt,file='epsilon.dat')
+!!$  i1=1!n03/2
+!!$  do i2=1,ndims(2)
+!!$     do i3=1,ndims(3)
+!!$        write(unt,'(2(1x,I4),2(1x,e14.7))')i2,i3,eps(i1,i2,i3),eps(ndims(1)/2,i2,i3)
+!!$     end do
+!!$  end do
+!!$  call f_close(unt)
+
+  contains
+
+    pure function epsl(r,rc,delta,epsilon0)
+      implicit none
+      real(kind=8), intent(in) :: r,rc,delta,epsilon0
+      real(kind=8) :: epsl
+      !local variables
+      real(kind=8) :: d
+
+      d=(r-rc)/delta
+      epsl=0.5d0*((epsilon0-1.d0)*(erf(d)+1.d0)+1.d0)+1.d0
+    end function epsl
+
+    pure function depsoeps(r,rc,delta,epsilon0)
+      implicit none
+      real(kind=8), intent(in) :: r,rc,delta,epsilon0
+      real(kind=8) :: depsoeps
+      !local variables
+      real(kind=8) :: d
+
+      d=(r-rc)/delta
+      depsoeps=(epsilon0-1.d0)/delta*exp(-d**2)/epsl(r,rc,delta,epsilon0)
+    end function depsoeps
+ end subroutine epsilon_rigid_cavity
+
+
 subroutine createEffectiveIonicPotential(iproc, nproc, verb, in, atoms, rxyz, shift, &
      & Glr, hxh, hyh, hzh, rhopotd, pkernel, pot_ion, elecfield, psoffset)
   use module_base

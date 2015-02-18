@@ -218,8 +218,6 @@ subroutine pkernel_set(kernel,eps,dlogeps,oneoeps,oneosqrteps,corr,verbose) !opt
   integer :: jproc,nlimd,nlimk,jfd,jhd,jzd,jfk,jhk,jzk,npd,npk
   real(kind=8) :: alphat,betat,gammat,mu0t,pi
   real(kind=8), dimension(:), allocatable :: pkernel2
-  real(dp), dimension(:,:,:), allocatable :: de2,ddeps
-  real(dp), dimension(:,:,:,:), allocatable :: deps
   integer :: i1,i2,i3,j1,j2,j3,ind,indt,switch_alg,size2,sizek,kernelnproc
   integer :: n3pr1,n3pr2,istart,jend,i23,i3s,n23
   integer,dimension(3) :: n
@@ -701,6 +699,70 @@ endif
      kernel%displs(jproc)=kernel%grid%m1*kernel%grid%m3*istart
   end do
 
+  select case(trim(kernel%method))
+  case('PCG')
+  if (present(eps)) then
+     if (present(oneosqrteps)) then
+        call pkernel_set_epsilon(kernel,eps=eps,oneosqrteps=oneosqrteps)
+     else if (present(corr)) then
+        call pkernel_set_epsilon(kernel,eps=eps,corr=corr)
+     else
+        call pkernel_set_epsilon(kernel,eps=eps)
+     end if
+  else if (present(oneosqrteps) .and. present(corr)) then
+     call pkernel_set_epsilon(kernel,oneosqrteps=oneosqrteps,corr=corr)
+  else if (present(oneosqrteps) .neqv. present(corr)) then
+     call f_err_throw('For PCG method either eps, oneosqrteps and/or corr should be present')
+  end if
+  case('PI')
+     if (present(eps)) then
+        if (present(oneoeps)) then
+           call pkernel_set_epsilon(kernel,eps=eps,oneoeps=oneoeps)
+        else if (present(dlogeps)) then
+           call pkernel_set_epsilon(kernel,eps=eps,dlogeps=dlogeps)
+        else
+           call pkernel_set_epsilon(kernel,eps=eps)
+        end if
+     else if (present(oneoeps) .and. present(dlogeps)) then
+        call pkernel_set_epsilon(kernel,oneoeps=oneoeps,dlogeps=dlogeps)
+     else if (present(oneoeps) .neqv. present(dlogeps)) then
+        call f_err_throw('For PI method either eps, oneoeps and/or dlogeps should be present')
+     end if
+  end select
+
+  call f_timing(TCAT_PSOLV_KERNEL,'OF')
+  !call timing(kernel%mpi_env%iproc+kernel%mpi_env%igroup*kernel%mpi_env%nproc,'PSolvKernel   ','OF')
+
+END SUBROUTINE pkernel_set
+
+
+!> set the epsilon in the pkernel structure as a function of the seteps variable.
+!! This routine has to be called each time the dielectric function has to be set
+subroutine pkernel_set_epsilon(kernel,eps,dlogeps,oneoeps,oneosqrteps,corr)
+  implicit none
+  !> Poisson Solver kernel
+  type(coulomb_operator), intent(inout) :: kernel
+  !> dielectric function. Needed for non VAC methods, given in full dimensions
+  real(dp), dimension(:,:,:), intent(in), optional :: eps
+  !> logarithmic derivative of epsilon. Needed for PCG method.
+  !! if absent, it will be calculated from the array of epsilon
+  real(dp), dimension(:,:,:,:), intent(in), optional :: dlogeps
+  !> inverse of epsilon. Needed for PI method.
+  !! if absent, it will be calculated from the array of epsilon
+  real(dp), dimension(:,:,:), intent(in), optional :: oneoeps
+  !> inverse square root of epsilon. Needed for PCG method.
+  !! if absent, it will be calculated from the array of epsilon
+  real(dp), dimension(:,:,:), intent(in), optional :: oneosqrteps
+  !> correction term of the Generalized Laplacian
+  !! if absent, it will be calculated from the array of epsilon
+  real(dp), dimension(:,:,:), intent(in), optional :: corr
+  !local variables
+  integer :: n1,n23,i3s,i23,i3,i2,i1
+  real(kind=8) :: pi
+  real(dp), dimension(:,:,:), allocatable :: de2,ddeps
+  real(dp), dimension(:,:,:,:), allocatable :: deps
+
+  pi=4.0_dp*atan(1.0_dp)
   if (present(corr)) then
      !check the dimensions (for the moment no parallelism)
      if (any(shape(corr) /= kernel%ndims)) &
@@ -841,10 +903,7 @@ endif
      end if
   end select
 
-  call f_timing(TCAT_PSOLV_KERNEL,'OF')
-  !call timing(kernel%mpi_env%iproc+kernel%mpi_env%igroup*kernel%mpi_env%nproc,'PSolvKernel   ','OF')
-
-END SUBROUTINE pkernel_set
+end subroutine pkernel_set_epsilon
 
 
 subroutine inplane_partitioning(mpi_env,mdz,n2wires,n3planes,part_mpi,inplane_mpi,n3pr1,n3pr2)
