@@ -125,10 +125,13 @@ module communications_init
          i3end=0
          i3start=1
       end if
-      weightloc_c = f_malloc0((/0.to.lzd%glr%d%n1,0.to.lzd%glr%d%n2,1.to.(i3end-i3start+1)/),id='weightloc_c')
-      weightloc_f = f_malloc0((/0.to.lzd%glr%d%n1,0.to.lzd%glr%d%n2,1.to.(i3end-i3start+1)/),id='weightloc_f')
+      !weightloc_c = f_malloc0((/0.to.lzd%glr%d%n1,0.to.lzd%glr%d%n2,1.to.(i3end-i3start+1)/),id='weightloc_c')
+      !weightloc_f = f_malloc0((/0.to.lzd%glr%d%n1,0.to.lzd%glr%d%n2,1.to.(i3end-i3start+1)/),id='weightloc_f')
+      weightloc_c = f_malloc0((/0.to.lzd%glr%d%n1,0.to.lzd%glr%d%n2,i3start.to.i3end/),id='weightloc_c')
+      weightloc_f = f_malloc0((/0.to.lzd%glr%d%n1,0.to.lzd%glr%d%n2,i3start.to.i3end/),id='weightloc_f')
       
     
+      write(*,'(a,5i8)') 'iproc, i3s, n3p, i3start, i3end', iproc, i3s, n3p, i3start, i3end
       call get_weights(iproc, nproc, orbs, lzd, i3s, n3p, i3start, i3end, weightloc_c, weightloc_f, window_c, window_f, &
            weightppp_c, weightppp_f)
     
@@ -260,19 +263,21 @@ module communications_init
       integer,intent(in) :: iproc, nproc, i3s, n3p, i3start, i3end
       type(orbitals_data),intent(in) :: orbs
       type(local_zone_descriptors),intent(in) :: lzd
-      real(kind=8),dimension(0:lzd%glr%d%n1,0:lzd%glr%d%n2,1:(i3end-i3start+1)),intent(inout) :: weightloc_c, weightloc_f
+      !real(kind=8),dimension(0:lzd%glr%d%n1,0:lzd%glr%d%n2,1:(i3end-i3start+1)),intent(inout) :: weightloc_c, weightloc_f
+      real(kind=8),dimension(0:lzd%glr%d%n1,0:lzd%glr%d%n2,i3start:i3end),intent(inout) :: weightloc_c, weightloc_f
       integer,intent(inout) :: window_c, window_f
       real(kind=8),dimension(0:lzd%glr%d%n1,0:lzd%glr%d%n2,1:max(1,n3p)),intent(out) :: weightppp_c, weightppp_f
       !real(kind=8),intent(out) :: weight_c_tot, weight_f_tot
       
       ! Local variables
       integer :: iorb, iiorb, i0, i1, i2, i3, ii, iseg, ilr, istart, iend, i, j0, j1, ii1, ii2, ii3, n1p1, np
-      integer :: i3e, ii3s, ii3e, is, ie, size_of_double, ierr, info, window, jproc, ncount
+      integer :: i3e, ii3s, ii3e, is, ie, size_of_double, ierr, info, window, jproc, ncount, k, n, js, je, imin, imax
       integer :: request_c, request_f
       real(kind=8),dimension(:),allocatable :: reducearr
       !real(kind=8),dimension(:,:,:),allocatable :: weightloc
       integer,dimension(:,:),allocatable :: i3startend
       real(kind=8) :: tt
+      integer,dimension(2) :: ks, ke, nlen
     
       call f_routine(id='get_weights')
     
@@ -345,6 +350,8 @@ module communications_init
 
           if (lzd%llr(ilr)%wfd%nseg_c>0) then
               !!$omp do
+              imin=10000000
+              imax=-1000000
               do iseg=1,lzd%llr(ilr)%wfd%nseg_c
                   j0=lzd%llr(ilr)%wfd%keyglob(1,iseg)
                   j1=lzd%llr(ilr)%wfd%keyglob(2,iseg)
@@ -352,6 +359,8 @@ module communications_init
                   i3=ii/np
                   !ii3=i3+lzd%llr(ilr)%ns3
                   ii3=i3
+                  if (ii3<imin) imin=ii3
+                  if (ii3>imax) imax=ii3
                   if (ii3>i3end) stop 'strange 1'
                   if (ii3<i3start) stop 'strange 2'
                   !if (ii3+1<i3s) cycle
@@ -371,6 +380,7 @@ module communications_init
                       !weight_c_tot=weight_c_tot+1.d0
                   end do
               end do
+              write(*,'(a,4i8)') 'iproc, ilr, imin, imax', iproc, ilr, imin, imax
               !!$omp end do
           end if
       end do
@@ -426,28 +436,50 @@ module communications_init
       end if
 
 
-      if (nproc>1) then
+      !if (nproc>1) then
           do jproc=0,nproc-1
               !Check whether there is an overlap
               is = max(i3startend(1,iproc),i3startend(3,jproc))
               ie = min(i3startend(2,iproc),i3startend(4,jproc))
-              if (ie-is>=0) then
-                  !!call mpi_accumulate(weightloc_c(0,0,is-i3start), (lzd%glr%d%n1+1)*(lzd%glr%d%n2+1)*(ie-is+1), &
-                  !!     mpi_double_precision, jproc, &
-                  !!     int((lzd%glr%d%n1+1)*(lzd%glr%d%n2+1)*(is-i3startend(3,jproc)),kind=mpi_address_kind), &
-                  !!     (lzd%glr%d%n1+1)*(lzd%glr%d%n2+1)*(ie-is+1), mpi_double_precision, &
-                  !!     mpi_sum, window_c, ierr)
-                  call mpiaccumulate(weightloc_c(0,0,is-i3start), (lzd%glr%d%n1+1)*(lzd%glr%d%n2+1)*(ie-is+1), &
-                       jproc, int((lzd%glr%d%n1+1)*(lzd%glr%d%n2+1)*(is-i3startend(3,jproc)),kind=mpi_address_kind), &
-                       (lzd%glr%d%n1+1)*(lzd%glr%d%n2+1)*(ie-is+1), mpi_sum, window_c)
-              end if
+              write(*,'(a,3i8)') 'i3startend(1,iproc),i3startend(3,jproc), is', i3startend(1,iproc),i3startend(3,jproc), is
+              write(*,'(a,3i8)') 'i3startend(2,iproc),i3startend(4,jproc), ie', i3startend(2,iproc),i3startend(4,jproc), ie
+              is=modulo(i3startend(1,iproc)-1,lzd%glr%d%n1+1)+1
+              ie=modulo(i3startend(2,iproc)-1,lzd%glr%d%n1+1)+1
+              js=i3startend(3,iproc)
+              je=i3startend(4,iproc)
+              call get_extent_of_overlap(is, ie, js, je, n, ks, ke, nlen)
+              do k=1,n
+                  ! Undo the periodic wrap around if required
+                  if (ks(k)>i3end) then
+                      ii=ks(k)-(lzd%glr%d%n3+1)
+                  else
+                      ii=ks(k)
+                  end if
+                  write(*,'(a,6i9)') 'k, ks(k), ke(k), nlen(k), i3start, ii', k, ks(k), ke(k), nlen(k), i3start, ii
+                  call mpiaccumulate(weightloc_c(0,0,ii), (lzd%glr%d%n1+1)*(lzd%glr%d%n2+1)*nlen(k), &
+                       jproc, int((lzd%glr%d%n1+1)*(lzd%glr%d%n2+1)*(ks(k)-i3startend(3,jproc)),kind=mpi_address_kind), &
+                       (lzd%glr%d%n1+1)*(lzd%glr%d%n2+1)*nlen(k), mpi_sum, window_c)
+                  !!call mpiaccumulate(weightloc_c(0,0,ks(k)-modulo(i3start-1,lzd%glr%d%n1+1)+1), (lzd%glr%d%n1+1)*(lzd%glr%d%n2+1)*nlen(k), &
+                  !!     jproc, int((lzd%glr%d%n1+1)*(lzd%glr%d%n2+1)*(ks(k)-i3startend(3,jproc)),kind=mpi_address_kind), &
+                  !!     (lzd%glr%d%n1+1)*(lzd%glr%d%n2+1)*nlen(k), mpi_sum, window_c)
+              end do
+              !if (ie-is>=0) then
+              !    !!call mpi_accumulate(weightloc_c(0,0,is-i3start), (lzd%glr%d%n1+1)*(lzd%glr%d%n2+1)*(ie-is+1), &
+              !    !!     mpi_double_precision, jproc, &
+              !    !!     int((lzd%glr%d%n1+1)*(lzd%glr%d%n2+1)*(is-i3startend(3,jproc)),kind=mpi_address_kind), &
+              !    !!     (lzd%glr%d%n1+1)*(lzd%glr%d%n2+1)*(ie-is+1), mpi_double_precision, &
+              !    !!     mpi_sum, window_c, ierr)
+              !    call mpiaccumulate(weightloc_c(0,0,is-i3start), (lzd%glr%d%n1+1)*(lzd%glr%d%n2+1)*(ie-is+1), &
+              !         jproc, int((lzd%glr%d%n1+1)*(lzd%glr%d%n2+1)*(is-i3startend(3,jproc)),kind=mpi_address_kind), &
+              !         (lzd%glr%d%n1+1)*(lzd%glr%d%n2+1)*(ie-is+1), mpi_sum, window_c)
+              !end if
           end do
-      else
-          is = i3startend(1,iproc)
-          ie = i3startend(2,iproc)
-          call vcopy((lzd%glr%d%n1+1)*(lzd%glr%d%n2+1)*(ie-is+1), weightloc_c(0,0,is-i3start), 1, &
-               weightppp_c(0,0,is-i3startend(3,iproc)+1), 1)
-      end if
+      !else
+      !    is = i3startend(1,iproc)
+      !    ie = i3startend(2,iproc)
+      !    call vcopy((lzd%glr%d%n1+1)*(lzd%glr%d%n2+1)*(ie-is+1), weightloc_c(0,0,is-i3start), 1, &
+      !         weightppp_c(0,0,is-i3startend(3,iproc)+1), 1)
+      !end if
 
 
       !call f_free(i3startend)
