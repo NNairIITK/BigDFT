@@ -208,6 +208,7 @@ subroutine determine_locregSphere_parallel(iproc,nproc,nlr,hx,hy,hz,astruct,orbs
          call determine_boxbounds_sphere(glr%d%n1, glr%d%n2, glr%d%n3, glr%ns1, glr%ns2, glr%ns3, hx, hy, hz, &
               llr(ilr)%locrad, llr(ilr)%locregCenter, &
               glr%wfd%nseg_c, glr%wfd%keygloc, glr%wfd%keyvloc, isx, isy, isz, iex, iey, iez)
+         write(*,'(a,3i7)') 'ilr, isx, iex', ilr, isx, iex
     
          ln1 = iex-isx
          ln2 = iey-isy
@@ -235,8 +236,8 @@ subroutine determine_locregSphere_parallel(iproc,nproc,nlr,hx,hy,hz,astruct,orbs
                iex=Glr%ns1 + Glr%d%n1
                xperiodic = .true.
             else
-               isx=modulo(isx,Glr%d%n1+1) + Glr%ns1
-               iex= ln1 + isx
+               !isx=modulo(isx,Glr%d%n1+1) + Glr%ns1
+               !iex= ln1 + isx
                if (iex > Glr%ns1+Glr%d%n1) then
                   outofzone(1)=modulo(iex,Glr%d%n1+1)
                end if           
@@ -253,8 +254,8 @@ subroutine determine_locregSphere_parallel(iproc,nproc,nlr,hx,hy,hz,astruct,orbs
                iez=Glr%ns3 + Glr%d%n3
                zperiodic = .true.
             else
-               isz=modulo(isz,Glr%d%n3+1) +  Glr%ns3
-               iez= ln3 + isz
+               !isz=modulo(isz,Glr%d%n3+1) +  Glr%ns3
+               !iez= ln3 + isz
                if (iez > Glr%ns3+Glr%d%n3) then
                   outofzone(3)=modulo(iez,Glr%d%n3+1)
                end if 
@@ -270,8 +271,8 @@ subroutine determine_locregSphere_parallel(iproc,nproc,nlr,hx,hy,hz,astruct,orbs
                iex=Glr%ns1 + Glr%d%n1
                xperiodic = .true.
             else
-               isx=modulo(isx,Glr%d%n1+1) + Glr%ns1
-               iex= ln1 + isx
+               !isx=modulo(isx,Glr%d%n1+1) + Glr%ns1
+               !iex= ln1 + isx
                if (iex > Glr%ns1+Glr%d%n1) then
                   outofzone(1)=modulo(iex,Glr%d%n1+1)
                end if           
@@ -283,8 +284,8 @@ subroutine determine_locregSphere_parallel(iproc,nproc,nlr,hx,hy,hz,astruct,orbs
                iey=Glr%ns2 + Glr%d%n2
                yperiodic = .true.
              else
-               isy=modulo(isy,Glr%d%n2+1) + Glr%ns2
-               iey= ln2 + isy
+               !isy=modulo(isy,Glr%d%n2+1) + Glr%ns2
+               !iey= ln2 + isy
                if (iey > Glr%ns2+Glr%d%n2) then
                   outofzone(2)=modulo(iey,Glr%d%n2+1)
                end if           
@@ -296,8 +297,8 @@ subroutine determine_locregSphere_parallel(iproc,nproc,nlr,hx,hy,hz,astruct,orbs
                iez=Glr%ns3 + Glr%d%n3
                zperiodic = .true.
             else
-               isz=modulo(isz,Glr%d%n3+1) +  Glr%ns3
-               iez= ln3 + isz
+               !isz=modulo(isz,Glr%d%n3+1) +  Glr%ns3
+               !iez= ln3 + isz
                if (iez > Glr%ns3+Glr%d%n3) then
                   outofzone(3)=modulo(iez,Glr%d%n3+1)
                end if 
@@ -403,16 +404,16 @@ subroutine determine_locregSphere_parallel(iproc,nproc,nlr,hx,hy,hz,astruct,orbs
          end if
     
     !DEBUG
-    !     if (iproc == 0) then
-    !        write(*,*)'Description of zone:',ilr
-    !        write(*,*)'ns:',Llr(ilr)%ns1,Llr(ilr)%ns2,Llr(ilr)%ns3
-    !        write(*,*)'ne:',Llr(ilr)%ns1+Llr(ilr)%d%n1,Llr(ilr)%ns2+Llr(ilr)%d%n2,Llr(ilr)%ns3+Llr(ilr)%d%n3
-    !        write(*,*)'n:',Llr(ilr)%d%n1,Llr(ilr)%d%n2,Llr(ilr)%d%n3
-    !        write(*,*)'nfl:',Llr(ilr)%d%nfl1,Llr(ilr)%d%nfl2,Llr(ilr)%d%nfl3
-    !        write(*,*)'nfu:',Llr(ilr)%d%nfu1,Llr(ilr)%d%nfu2,Llr(ilr)%d%nfu3
-    !        write(*,*)'ni:',Llr(ilr)%d%n1i,Llr(ilr)%d%n2i,Llr(ilr)%d%n3i
-    !        write(*,*)'outofzone',ilr,':',outofzone(:)
-    !     end if
+         if (iproc == 0) then
+            write(*,*)'Description of zone:',ilr
+            write(*,*)'ns:',Llr(ilr)%ns1,Llr(ilr)%ns2,Llr(ilr)%ns3
+            write(*,*)'ne:',Llr(ilr)%ns1+Llr(ilr)%d%n1,Llr(ilr)%ns2+Llr(ilr)%d%n2,Llr(ilr)%ns3+Llr(ilr)%d%n3
+            write(*,*)'n:',Llr(ilr)%d%n1,Llr(ilr)%d%n2,Llr(ilr)%d%n3
+            write(*,*)'nfl:',Llr(ilr)%d%nfl1,Llr(ilr)%d%nfl2,Llr(ilr)%d%nfl3
+            write(*,*)'nfu:',Llr(ilr)%d%nfu1,Llr(ilr)%d%nfu2,Llr(ilr)%d%nfu3
+            write(*,*)'ni:',Llr(ilr)%d%n1i,Llr(ilr)%d%n2i,Llr(ilr)%d%n3i
+            write(*,*)'outofzone',ilr,':',outofzone(:)
+         end if
     !DEBUG
     
         ! construct the wavefunction descriptors (wfd)
@@ -460,6 +461,7 @@ subroutine determine_locregSphere_parallel(iproc,nproc,nlr,hx,hy,hz,astruct,orbs
   call timing(iproc,'calc_bounds   ','ON') 
   do ilr=1,nlr
          if (Llr(ilr)%geocode=='F' .and. calculateBounds(ilr) ) then
+            write(*,*) 'calling locreg_bounds, ilr', ilr
             call locreg_bounds(Llr(ilr)%d%n1,Llr(ilr)%d%n2,Llr(ilr)%d%n3,&
                  Llr(ilr)%d%nfl1,Llr(ilr)%d%nfu1,Llr(ilr)%d%nfl2,Llr(ilr)%d%nfu2,&
                  Llr(ilr)%d%nfl3,Llr(ilr)%d%nfu3,Llr(ilr)%wfd,Llr(ilr)%bounds)
@@ -535,14 +537,14 @@ subroutine determine_wfdSphere(ilr,nlr,Glr,hx,hy,hz,Llr)!,outofzone)
 
   !local variables
   integer :: ii
-  integer,dimension(3) :: Gife,Gifs,iedir,isdir,Lifs,Life,period
+  integer,dimension(3) :: Gife,Gifs,iedir,isdir,Lifs,Life,period,Gics,Gice
   character(len=*), parameter :: subname='determine_wfdSphere'
 !!  integer :: nseg_c,nseg_f,nvctr_c,nvctr_f      ! total number of sgements and elements
   integer, allocatable :: keygloc_tmp(:,:)
 
    call f_routine(id=subname)
 
-   !starting point of locreg (always inside global locreg)
+   !starting point of locreg (can be outside the simulation box)
    isdir(1) = Llr(ilr)%ns1
    isdir(2) = Llr(ilr)%ns2
    isdir(3) = Llr(ilr)%ns3
@@ -550,6 +552,13 @@ subroutine determine_wfdSphere(ilr,nlr,Glr,hx,hy,hz,Llr)!,outofzone)
    iedir(1) = Llr(ilr)%ns1 + Llr(ilr)%d%n1
    iedir(2) = Llr(ilr)%ns2 + Llr(ilr)%d%n2
    iedir(3) = Llr(ilr)%ns3 + Llr(ilr)%d%n3
+   ! starting and ending point of coarse grid in Global region
+   Gics(1) = Glr%ns1
+   Gics(2) = Glr%ns2
+   Gics(3) = Glr%ns3
+   Gice(1) = Glr%ns1 + Glr%d%n1
+   Gice(2) = Glr%ns2 + Glr%d%n2
+   Gice(3) = Glr%ns3 + Glr%d%n3
    ! starting and ending point of fine grid in Global region
    Gifs(1) = Glr%d%nfl1 + Glr%ns1
    Gifs(2) = Glr%d%nfl2 + Glr%ns2
@@ -558,39 +567,64 @@ subroutine determine_wfdSphere(ilr,nlr,Glr,hx,hy,hz,Llr)!,outofzone)
    Gife(2) = Glr%d%nfu2 + Glr%ns2
    Gife(3) = Glr%d%nfu3 + Glr%ns3
    ! periodicity
-   period(1) = Glr%d%n1
-   period(2) = Glr%d%n2
-   period(3) = Glr%d%n3
+   period(1) = Glr%d%n1+1
+   period(2) = Glr%d%n2+1
+   period(3) = Glr%d%n3+1
 
-   ! Determine starting point of the fine grid in locreg
+   !!! Determine starting point of the fine grid in locreg
+   !!do ii=1,3
+   !!   if (Llr(ilr)%outofzone(ii) > 0) then
+   !!      ! When periodicity, we must check for 2 different situations:
+   !!      ! (1) : starting of locreg before or in fine grid zone
+   !!      if (isdir(ii) < Gife(ii)) Lifs(ii) = max(isdir(ii),Gifs(ii))-isdir(ii)
+   !!      ! (2) : starting point after fine grid
+   !!      if (isdir(ii) > Gife(ii)) Lifs(ii) = max(isdir(ii),Gifs(ii)+period(ii))-isdir(ii)
+   !!   else
+   !!       Lifs(ii) = max(isdir(ii),Gifs(ii))-isdir(ii)
+   !!   end if 
+   !!end do
+
+   !!! Determine ending point of the fine grid in locreg
+   !!do ii=1,3
+   !!   if(Llr(ilr)%outofzone(ii) > 0) then
+   !!      !When periodicity, we must check for three different situations:
+   !!      ! (1) : ending of locreg before fine grid zone
+   !!      if(iedir(ii) < (Gifs(ii) + period(ii))) Life(ii) = Gife(ii)-isdir(ii)
+   !!      ! (2) : ending of locreg in fine grid zone
+   !!      if(iedir(ii) > (Gifs(ii) + period(ii)) .and. iedir(ii) < (Gife(ii) + period(ii))) then
+   !!        Life(ii) = iedir(ii)-isdir(ii)
+   !!      end if
+   !!      ! (3) : ending of locreg after ending of fine grid zone
+   !!      if(iedir(ii) > (Gife(ii)+period(ii))) Life(ii) = Gife(ii) + period(ii)-isdir(ii)
+   !!   else
+   !!      Life(ii) = min(iedir(ii),Gife(ii))-isdir(ii)
+   !!   end if
+   !!end do
+
    do ii=1,3
-      if (Llr(ilr)%outofzone(ii) > 0) then
-         ! When periodicity, we must check for 2 different situations:
-         ! (1) : starting of locreg before or in fine grid zone
-         if (isdir(ii) < Gife(ii)) Lifs(ii) = max(isdir(ii),Gifs(ii))-isdir(ii)
-         ! (2) : starting point after fine grid
-         if (isdir(ii) > Gife(ii)) Lifs(ii) = max(isdir(ii),Gifs(ii)+period(ii))-isdir(ii)
-      else
-          Lifs(ii) = max(isdir(ii),Gifs(ii))-isdir(ii)
-      end if 
+       ! Determine starting point of the fine grid in locreg. There are two possibilities:
+       if (isdir(ii)<gics(ii)) then
+           ! Start of the locreg locreg outside of the global box
+           lifs(ii) = max(isdir(ii)+period(ii),gifs(ii)) - period(ii) - isdir(ii)
+       else if(isdir(ii)>=gics(ii)) then
+           ! Start of locreg inside of the global box
+           lifs(ii) = max(isdir(ii),gifs(ii)) - isdir(ii)
+       else
+           stop 'cannot determine start of fine grid'
+       end if
+
+       ! Determine ending point of the fine grid in locreg. There are two possibilities:
+       if (iedir(ii)>gice(ii)) then
+           ! End of the locreg outside of the global box
+           life(ii) = min(iedir(ii)-period(ii),gife(ii)) + period(ii) - isdir(ii)
+       else if(iedir(ii)<=gice(ii)) then
+           ! End of the locreg inside of the global box
+           life(ii) = min(iedir(ii),gife(ii)) - isdir(ii)
+       else
+           stop 'cannot determine start of fine grid'
+       end if
    end do
 
-   ! Determine ending point of the fine grid in locreg
-   do ii=1,3
-      if(Llr(ilr)%outofzone(ii) > 0) then
-         !When periodicity, we must check for three different situations:
-         ! (1) : ending of locreg before fine grid zone
-         if(iedir(ii) < (Gifs(ii) + period(ii))) Life(ii) = Gife(ii)-isdir(ii)
-         ! (2) : ending of locreg in fine grid zone
-         if(iedir(ii) > (Gifs(ii) + period(ii)) .and. iedir(ii) < (Gife(ii) + period(ii))) then
-           Life(ii) = iedir(ii)-isdir(ii)
-         end if
-         ! (3) : ending of locreg after ending of fine grid zone
-         if(iedir(ii) > (Gife(ii)+period(ii))) Life(ii) = Gife(ii) + period(ii)-isdir(ii)
-      else
-         Life(ii) = min(iedir(ii),Gife(ii))-isdir(ii)
-      end if
-   end do
 
    ! Assign values to Llr
    Llr(ilr)%d%nfl1 = Lifs(1)
@@ -617,6 +651,8 @@ subroutine determine_wfdSphere(ilr,nlr,Glr,hx,hy,hz,Llr)!,outofzone)
         Glr%wfd%keyvloc(Glr%wfd%nseg_c+min(1,Glr%wfd%nseg_f)), &
         llr(ilr)%wfd%nseg_f, llr(ilr)%wfd%nvctr_f)
 
+   write(*,'(a,2i8)') 'llr(ilr)%wfd%nvctr_c, llr(ilr)%wfd%nvctr_f', llr(ilr)%wfd%nvctr_c, llr(ilr)%wfd%nvctr_f
+
    !allocate the wavefunction descriptors following the needs
    call allocate_wfd(Llr(ilr)%wfd)
 
@@ -637,7 +673,7 @@ subroutine determine_wfdSphere(ilr,nlr,Glr,hx,hy,hz,Llr)!,outofzone)
         llr(ilr)%ns3, llr(ilr)%ns3+llr(ilr)%d%n3, &
         llr(ilr)%wfd%nseg_c, hx, hy, hz, llr(ilr)%locrad, llr(ilr)%locregCenter, &
         Glr%wfd%nseg_c, Glr%wfd%keygloc(1,1), &
-        Glr%wfd%keyvloc(1), &
+        Glr%wfd%keyvloc(1), llr(ilr)%wfd%nvctr_c, &
         llr(ilr)%wfd%keygloc(1,1),llr(ilr)%wfd%keyglob(1,1), &
         llr(ilr)%wfd%keyvloc(1), llr(ilr)%wfd%keyvglob(1), &
         keygloc_tmp(1,1))
@@ -651,7 +687,7 @@ subroutine determine_wfdSphere(ilr,nlr,Glr,hx,hy,hz,Llr)!,outofzone)
         llr(ilr)%ns3, llr(ilr)%ns3+llr(ilr)%d%n3, &
         llr(ilr)%wfd%nseg_f, hx, hy, hz, llr(ilr)%locrad, llr(ilr)%locregCenter, &
         Glr%wfd%nseg_f, Glr%wfd%keygloc(1,Glr%wfd%nseg_c+min(1,Glr%wfd%nseg_f)),&
-        Glr%wfd%keyvloc(Glr%wfd%nseg_c+min(1,Glr%wfd%nseg_f)), &
+        Glr%wfd%keyvloc(Glr%wfd%nseg_c+min(1,Glr%wfd%nseg_f)), llr(ilr)%wfd%nvctr_f, &
         llr(ilr)%wfd%keygloc(1,llr(ilr)%wfd%nseg_c+min(1,llr(ilr)%wfd%nseg_f)), &
         llr(ilr)%wfd%keyglob(1,llr(ilr)%wfd%nseg_c+min(1,llr(ilr)%wfd%nseg_f)), &
         llr(ilr)%wfd%keyvloc(llr(ilr)%wfd%nseg_c+min(1,llr(ilr)%wfd%nseg_f)), &
@@ -758,8 +794,9 @@ subroutine num_segkeys_sphere(n1, n2, n3, nl1glob, nl2glob, nl3glob, hx, hy, hz,
   integer,dimension(nsegglob),intent(in) :: keyvglob
   integer,intent(out) :: nseg, nvctr
   !local variables
-  logical :: segment
+  logical :: segment, inside
   integer :: i, i1, i2, i3, nstart, nend, iseg, jj, j0, j1, ii, i0, ii1, ii2, ii3, n1p1, np
+  integer :: ij1, ij2, ij3, jj1, jj2, jj3
   real(kind=8) :: cut, dx,dy, dz
 
 
@@ -773,8 +810,9 @@ subroutine num_segkeys_sphere(n1, n2, n3, nl1glob, nl2glob, nl3glob, hx, hy, hz,
 
   !$omp parallel default(none) &
   !$omp shared(nsegglob,keygglob,nl1glob,nl2glob,nl3glob,locregCenter) &
-  !$omp shared(hx,hy,hz,cut,n1p1,np,nstart,nvctr,nend) &
-  !$omp private(iseg,jj,j0,j1,ii,i3,i2,i0,i1,ii2,ii3,ii1,i,dx,dy,dz,segment)
+  !$omp shared(hx,hy,hz,cut,n1p1,np,nstart,nvctr,nend, n1, n2, n3) &
+  !$omp private(iseg,jj,j0,j1,ii,i3,i2,i0,i1,ii2,ii3,ii1,i,dx,dy,dz,segment) &
+  !$omp private(inside, ij1, ij2, ij3, jj1, jj2, jj3)
   segment=.false.
   !$omp do reduction(+:nstart,nvctr,nend)
   do iseg=1,nsegglob
@@ -790,12 +828,28 @@ subroutine num_segkeys_sphere(n1, n2, n3, nl1glob, nl2glob, nl3glob, hx, hy, hz,
       ii2=i2+nl2glob
       ii3=i3+nl3glob
 
-      dz=((ii3*hz)-locregCenter(3))**2
-      dy=((ii2*hy)-locregCenter(2))**2
+      !dz=((ii3*hz)-locregCenter(3))**2
+      !dy=((ii2*hy)-locregCenter(2))**2
       do i=i0,i1
           ii1=i+nl1glob
-          dx=((ii1*hx)-locregCenter(1))**2
-          if(dx+dy+dz<=cut) then
+          !dx=((ii1*hx)-locregCenter(1))**2
+          inside=.false.
+          do ij3=-1,1
+              jj3=ii3+ij3*(n3+1)
+              dz=((jj3*hz)-locregCenter(3))**2
+              do ij2=-1,1
+                  jj2=ii2+ij2*(n2+1)
+                  dy=((jj2*hy)-locregCenter(2))**2
+                  do ij1=-1,1
+                      jj1=ii1+ij1*(n1+1)
+                      dx=((jj1*hx)-locregCenter(1))**2
+                      if(dx+dy+dz<=cut) then
+                          inside=.true.
+                      end if
+                  end do
+              end do
+          end do
+          if(inside) then
               nvctr=nvctr+1
               if(.not.segment) then
                   nstart=nstart+1
@@ -840,6 +894,7 @@ subroutine determine_boxbounds_sphere(n1glob, n2glob, n3glob, nl1glob, nl2glob, 
   integer,intent(out) :: ixmin, iymin, izmin, ixmax, iymax, izmax
   !local variables
   integer :: i, i1, i2, i3, iseg, jj, j0, j1, ii, i0, ii1, ii2, ii3, n1p1, np
+  integer :: ij1, ij2 ,ij3, jj1, jj2, jj3
   real(kind=8) :: cut, dx,dy, dz
   !debug
   integer :: iiimin, isegmin
@@ -863,7 +918,8 @@ subroutine determine_boxbounds_sphere(n1glob, n2glob, n3glob, nl1glob, nl2glob, 
   !$omp parallel default(none) &
   !$omp shared(nsegglob,keygglob,n1glob,n2glob,n3glob,nl1glob,nl2glob,nl3glob,locregCenter) &
   !$omp shared(ixmin,iymin,izmin,ixmax,iymax,izmax,hx,hy,hz,cut,n1p1,np) &
-  !$omp private(iseg,jj,j0,j1,ii,i3,i2,i0,i1,ii2,ii3,ii1,i,dx,dy,dz,iiimin,isegmin)
+  !$omp private(iseg,jj,j0,j1,ii,i3,i2,i0,i1,ii2,ii3,ii1,i,dx,dy,dz,iiimin,isegmin) &
+  !$omp private(ij1, ij2, ij3, jj1, jj2, jj3)
   !$omp do reduction(max:ixmax,iymax,izmax) reduction(min:ixmin,iymin,izmin)
   do iseg=1,nsegglob
       j0=keygglob(1,iseg)
@@ -878,20 +934,41 @@ subroutine determine_boxbounds_sphere(n1glob, n2glob, n3glob, nl1glob, nl2glob, 
       ii2=i2+nl2glob
       ii3=i3+nl3glob
 
-      dz=((ii3*hz)-locregCenter(3))**2
-      dy=((ii2*hy)-locregCenter(2))**2
+      !dz=((ii3*hz)-locregCenter(3))**2
+      !dy=((ii2*hy)-locregCenter(2))**2
       do i=i0,i1
           ii1=i+nl1glob
-          dx=((ii1*hx)-locregCenter(1))**2
-          if(dx+dy+dz<=cut) then
-              ixmax=max(ii1,ixmax)
-              iymax=max(ii2,iymax)
-              izmax=max(ii3,izmax)
-              ixmin=min(ii1,ixmin)
-              !if(ii1<ixmin) iiimin=j0-1 ; isegmin=iseg
-              iymin=min(ii2,iymin)
-              izmin=min(ii3,izmin)
-          end if
+          do ij3=-1,1
+              jj3=ii3+ij3*(n3glob+1)
+              dz=((jj3*hz)-locregCenter(3))**2
+              do ij2=-1,1
+                  jj2=ii2+ij2*(n2glob+1)
+                  dy=((jj2*hy)-locregCenter(2))**2
+                  do ij1=-1,1
+                      jj1=ii1+ij1*(n1glob+1)
+                      dx=((jj1*hx)-locregCenter(1))**2
+                      if(dx+dy+dz<=cut) then
+                          ixmax=max(jj1,ixmax)
+                          iymax=max(jj2,iymax)
+                          izmax=max(jj3,izmax)
+                          ixmin=min(jj1,ixmin)
+                          iymin=min(jj2,iymin)
+                          izmin=min(jj3,izmin)
+                      end if
+                  end do
+              end do
+          end do
+          !dx=((ii1*hx)-locregCenter(1))**2
+          !!dx=((ii1*hx)-locregCenter(1))**2
+          !!if(dx+dy+dz<=cut) then
+          !!    ixmax=max(ii1,ixmax)
+          !!    iymax=max(ii2,iymax)
+          !!    izmax=max(ii3,izmax)
+          !!    ixmin=min(ii1,ixmin)
+          !!    !if(ii1<ixmin) iiimin=j0-1 ; isegmin=iseg
+          !!    iymin=min(ii2,iymin)
+          !!    izmin=min(ii3,izmin)
+          !!end if
       end do
   end do
   !$omp enddo
@@ -1036,10 +1113,10 @@ END SUBROUTINE segkeys_periodic
 
 subroutine segkeys_Sphere(n1, n2, n3, nl1glob, nl2glob, nl3glob, nl1, nu1, nl2, nu2, nl3, nu3, nseg, hx, hy, hz, &
      locrad, locregCenter, &
-     nsegglob, keygglob, keyvglob, keyg_loc, keyg_glob, keyv_loc, keyv_glob, keygloc)
+     nsegglob, keygglob, keyvglob, nvctr_loc, keyg_loc, keyg_glob, keyv_loc, keyv_glob, keygloc)
   use module_base
   implicit none
-  integer,intent(in) :: n1, n2, n3, nl1glob, nl2glob, nl3glob, nl1, nu1, nl2, nu2, nl3, nu3, nseg, nsegglob
+  integer,intent(in) :: n1, n2, n3, nl1glob, nl2glob, nl3glob, nl1, nu1, nl2, nu2, nl3, nu3, nseg, nsegglob, nvctr_loc
   real(kind=8) :: hx, hy, hz, locrad
   real(kind=8),dimension(3) :: locregCenter
   integer,dimension(2,nsegglob),intent(in) :: keygglob
@@ -1051,8 +1128,9 @@ subroutine segkeys_Sphere(n1, n2, n3, nl1glob, nl2glob, nl3glob, nl1, nu1, nl2, 
   character(len=*),parameter :: subname = 'segkeys_Sphere'
   integer :: i, i1, i2, i3, nstart, nend, nvctr, igridpoint, igridglob, iseg, jj, j0, j1, ii, i0, n1l, n2l, n3l
   integer :: i1l, i2l, i3l, ii1, ii2, ii3, istat, iall, loc, n1p1, np, n1lp1, nlp, igridpointa, igridgloba
+  integer :: ij1, ij2, ij3, jj1, jj2, jj3, ii1mod, ii2mod, ii3mod, ivctr, jvctr
   real(kind=8) :: cut, dx, dy, dz
-  logical :: segment
+  logical :: segment, inside
   !integer, allocatable :: keygloc(:,:)
 
   !call f_routine('segkeys_Sphere')
@@ -1081,6 +1159,8 @@ subroutine segkeys_Sphere(n1, n2, n3, nl1glob, nl2glob, nl3glob, nl1, nu1, nl2, 
   np=n1p1*(n2+1)
   n1lp1=n1l+1
   nlp=n1lp1*(n2l+1)
+  ivctr=0
+  jvctr=0
   do iseg=1,nsegglob
       j0=keygglob(1,iseg)
       j1=keygglob(2,iseg)
@@ -1094,28 +1174,69 @@ subroutine segkeys_Sphere(n1, n2, n3, nl1glob, nl2glob, nl3glob, nl1, nu1, nl2, 
       ii3=i3+nl3glob
       dz=((ii3*hz)-locregCenter(3))**2
       dy=((ii2*hy)-locregCenter(2))**2
-      i2l=ii2-nl2
-      i3l=ii3-nl3
-      igridpointa=i3l*nlp+i2l*n1lp1+1
+      !i2l=ii2-nl2
+      !i3l=ii3-nl3
+      !igridpointa=i3l*nlp+i2l*n1lp1+1
       igridgloba=ii3*np+ii2*n1p1+1 
       do i=i0,i1
           ii1=i+nl1glob
           dx=((ii1*hx)-locregCenter(1))**2
           i1l=ii1-nl1
-          igridpoint=igridpointa+i1l
+          !igridpoint=igridpointa+i1l
           igridglob=igridgloba+ii1 
-          if(dx+dy+dz<=cut) then
-              ! Check that we are not outside the global region
-              if(ii1>nu1) then
-                  write(*,'(a,i0,a,i0,a)') 'ERROR: ii1=',ii1,'>',nu1,'=nu1'
+          inside=.false.
+          do ij3=-1,1
+              jj3=ii3+ij3*(n3+1)
+              dz=((jj3*hz)-locregCenter(3))**2
+              do ij2=-1,1
+                  jj2=ii2+ij2*(n2+1)
+                  dy=((jj2*hy)-locregCenter(2))**2
+                  do ij1=-1,1
+                      jj1=ii1+ij1*(n1+1)
+                      dx=((jj1*hx)-locregCenter(1))**2
+                      if(dx+dy+dz<=cut) then
+                          if (inside) stop 'twice inside'
+                          inside=.true.
+                          ii1mod=jj1
+                          ii2mod=jj2
+                          ii3mod=jj3
+                          i1l=jj1-nl1
+                          i2l=jj2-nl2
+                          i3l=jj3-nl3
+                          igridpoint=i3l*nlp+i2l*n1lp1+i1l+1
+                          !write(*,'(a,4i8)') 'i1l, i2l, i3l, igridpoint', i1l, i2l, i3l, igridpoint
+                      end if
+                  end do
+              end do
+          end do
+          if(inside) then
+              ! Check that we are not outside of the locreg region
+              !ii1mod=modulo(ii1-1,n1)+1
+              !ii2mod=modulo(ii2-1,n2)+1
+              !ii3mod=modulo(ii3-1,n3)+1
+              ivctr=ivctr+1
+              if(ii1mod<nl1) then
+                  write(*,'(a,i0,a,i0,a)') 'ERROR: ii1mod=',ii1mod,'<',nl1,'=nl1'
                   stop
               end if
-              if(ii2>nu2) then
-                  write(*,'(a,i0,a,i0,a)') 'ERROR: ii2=',ii2,'>',nu2,'=nu2'
+              if(ii2mod<nl2) then
+                  write(*,'(a,i0,a,i0,a)') 'ERROR: ii2mod=',ii2mod,'<',nl2,'=nl2'
                   stop
               end if
-              if(ii3>nu3) then
-                  write(*,'(a,i0,a,i0,a)') 'ERROR: ii3=',ii3,'>',nu3,'=nu3'
+              if(ii3mod<nl3) then
+                  write(*,'(a,i0,a,i0,a)') 'ERROR: ii3mod=',ii3mod,'<',nl3,'=nl3'
+                  stop
+              end if
+              if(ii1mod>nu1) then
+                  write(*,'(a,i0,a,i0,a)') 'ERROR: ii1mod=',ii1mod,'>',nu1,'=nu1'
+                  stop
+              end if
+              if(ii2mod>nu2) then
+                  write(*,'(a,i0,a,i0,a)') 'ERROR: ii2mod=',ii2mod,'>',nu2,'=nu2'
+                  stop
+              end if
+              if(ii3mod>nu3) then
+                  write(*,'(a,i0,a,i0,a)') 'ERROR: ii3mod=',ii3mod,'>',nu3,'=nu3'
                   stop
               end if
               nvctr=nvctr+1
@@ -1132,6 +1253,7 @@ subroutine segkeys_Sphere(n1, n2, n3, nl1glob, nl2glob, nl3glob, nl1, nu1, nl2, 
                   keygloc(2,nend)=igridpoint-1
                   keyg_glob(2,nend)=igridglob-1
                   segment=.false.
+                  jvctr=jvctr+keygloc(2,nend)-keygloc(1,nend)+1
               end if
           end if
       end do
@@ -1141,8 +1263,20 @@ subroutine segkeys_Sphere(n1, n2, n3, nl1glob, nl2glob, nl3glob, nl1, nu1, nl2, 
           keygloc(2,nend)=igridpoint
           keyg_glob(2,nend)=igridglob
           segment=.false.
+          jvctr=jvctr+keygloc(2,nend)-keygloc(1,nend)+1
       end if
   end do
+
+  ! Some checks
+  if (ivctr/=nvctr_loc) then
+      write(*,*) 'ivctr, nvctr_loc', ivctr, nvctr_loc
+      stop 'ivctr/=nvctr_loc'
+  end if
+
+  if (jvctr/=nvctr_loc) then
+      write(*,*) 'jvctr, nvctr_loc', jvctr, nvctr_loc
+      stop 'jvctr/=nvctr_loc'
+  end if
 
   if (nend /= nstart) then
      write(*,*) 'nend , nstart',nend,nstart
@@ -1154,6 +1288,7 @@ subroutine segkeys_Sphere(n1, n2, n3, nl1glob, nl2glob, nl3glob, nl1, nu1, nl2, 
   endif
 
   ! Now build the keyvloc where we replace the segments in order for the loc
+  ivctr=0
   do iseg = 1, nseg
      !sorting the keyg_loc
      loc = minloc(keygloc(1,:),1)
@@ -1162,9 +1297,55 @@ subroutine segkeys_Sphere(n1, n2, n3, nl1glob, nl2glob, nl3glob, nl1, nu1, nl2, 
 !    print *,'iseg,keygloc,keyg_loc',iseg,keygloc(1,loc),keygloc(2,loc),keyg_loc(1,iseg),keyg_loc(2,iseg)
      keygloc(1,loc) = maxval(keygloc) + 1
      keyv_loc(iseg) = keyv_glob(loc)
-!    print *,'iseg,keyglob,keyvglob,keygloc,keyvloc',iseg,keyglob(1,iseg),keyvglob(iseg),keygloc(1,iseg),keyvloc(iseg)
+     !write(*,'(a,7i8)') 'iseg,keyglob,keyvglob,keygloc,keyvloc',iseg,keyg_glob(1:2,iseg),keyv_glob(iseg),keyg_loc(1:2,iseg),keyv_loc(iseg)
+     ivctr=ivctr+keyg_loc(2,iseg)-keyg_loc(1,iseg)+1
   end do
   !call f_free(keygloc)
+  if (ivctr/=nvctr_loc) then
+      write(*,*) 'ivctr, nvctr_loc', ivctr, nvctr_loc
+      stop 'rearrangement check: ivctr/=nvctr_loc'
+  end if
+
+  ! Some checks
+  ivctr=0
+  write(*,*) 'nlp, n1lp1', nlp, n1lp1
+  do iseg=1,nseg
+     j0=keyg_loc(1,iseg)
+     j1=keyg_loc(2,iseg)
+     ii=j0-1
+     i3=ii/nlp
+     ii=ii-i3*nlp
+     i2=ii/n1lp1
+     i0=ii-i2*n1lp1
+     i1=i0+j1-j0
+     !if (i2<nl2) then
+     !    write(*,'(a,2(i0,a))') 'ERROR: i2=',i2,'<',nl2,'=nl2' ; stop
+     !end if
+     if (i2>n2l) then
+         write(*,'(a,2(i0,a))') 'ERROR: i2=',i2,'>',n2l,'=n2l' ; stop
+     end if
+     !if (i3<nl3) then
+     !    write(*,'(a,2(i0,a))') 'ERROR: i3=',i3,'<',nl3,'=nl3' ; stop
+     !end if
+     if (i3>n3l) then
+         write(*,'(a,2(i0,a))') 'ERROR: i3=',i3,'>',n3l,'=n3l' ; stop
+     end if
+     do i=i0,i1
+        ivctr=ivctr+1
+        !write(*,'(a,6i8)') 'j0, j1, ii, i, i2, i3', j0, j1, ii, i, i2, i3
+        !if (i<nl1) then
+        !    write(*,'(a,2(i0,a))') 'ERROR: i=',i,'<',nl1,'=nl1' ; stop
+        !end if
+        if (i>n1l) then
+            write(*,'(a,2(i0,a))') 'ERROR: i=',i,'>',n1l,'=n1l' ; stop
+        end if
+     end do
+  end do
+
+  if (ivctr/=nvctr_loc) then
+      write(*,*) 'ivctr, nvctr_loc', ivctr, nvctr_loc
+      stop 'second check: ivctr/=nvctr_loc'
+  end if
 
   !call f_release_routine()
 
