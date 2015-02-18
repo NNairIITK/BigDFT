@@ -663,7 +663,7 @@
        morse_bulk: Morse bulk
        morse_slab: Morse slab
        tersoff: Tersoff potential for C and Si
-       bhmtf: Born Huggins Mayer Tosi Fumi Potential
+       bmhtf: Born Mayer Huggins Tosi Fumi Potential
      default: dft
    mm_paramset:
      COMMENT: Name of the hard-coded parameter set. Must be compatible to the chosen force field.
