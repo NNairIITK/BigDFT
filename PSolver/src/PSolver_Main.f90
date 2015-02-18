@@ -76,7 +76,7 @@ subroutine H_potential(datacode,kernel,rhopot,pot_ion,eh,offset,sumpion,&
    integer :: i1,i2,i3,j2,istart,iend,i3start,jend,jproc,i3xcsh
    integer :: nxc,istden,istglo,ip,irho,i3s,i23,i23s,n23
    real(dp) :: ehartreeLOC,pot,rhores2,zeta,epsc,pval,qval,rval,beta,kappa
-   real(dp) :: beta0,alpha,ratio,normb,normr
+   real(dp) :: beta0,alpha,ratio,normb,normr,norm_nonvac
    !real(dp) :: scal
    real(dp), dimension(6) :: strten
    real(dp), dimension(:,:), allocatable :: rho,rhopol,x,q,p,r,z
@@ -178,13 +178,24 @@ subroutine H_potential(datacode,kernel,rhopot,pot_ion,eh,offset,sumpion,&
               displs=kernel%displs,comm=kernel%mpi_env%mpi_comm)
       end if
    case('PI')
-      if (datacode /= 'G') &
+      if (.not. associated(kernel%oneoeps) .or. .not. associated(kernel%dlogeps))&
+           call f_err_throw('The PI method needs the arrays of dlogeps and oneoeps,'//&
+           ' use pkernel_set_epsilon routine to set them')
+      
+      if (datacode /= 'G' .and. kernel%mpi_env%nproc > 1) &
            call f_err_throw('Error in H_potential, PI method only works with datacode=G')
       !allocate arrays
       rhopol=f_malloc0([kernel%ndims(1),kernel%ndims(2)*kernel%ndims(3)],&
            id='rhopol')
       rho=f_malloc([n1,n23],id='rho')
       call f_memcpy(n=size(rho),src=rhopot(i3start),dest=rho)
+      !check the integrity of rhopot with respect to the vacuum region
+      call nonvacuum_projection(n1,n23,rho,kernel%oneoeps,norm_nonvac)
+      norm_nonvac=norm_nonvac*product(kernel%hgrids)
+      if (kernel%mpi_env%nproc > 1) &
+           call mpiallred(norm_nonvac,1,MPI_SUM,comm=kernel%mpi_env%mpi_comm)
+      if (wrtmsg) call yaml_map('Integral of the density in the nonvacuum region',norm_nonvac)
+
       if (wrtmsg) &
            call yaml_sequence_open('Embedded PSolver, Polarization Iteration Method')
       pi_loop: do ip=1,kernel%max_iter
@@ -222,6 +233,7 @@ subroutine H_potential(datacode,kernel,rhopot,pot_ion,eh,offset,sumpion,&
          !     call mpiallred(rhores2,1,MPI_SUM,comm=kernel%mpi_env%mpi_comm)
 
          if (wrtmsg) then 
+            call yaml_newline()
             call yaml_sequence(advance='no')
             call EPS_iter_output(ip,0.0_dp,rhores2,0.0_dp,0.0_dp,0.0_dp)
          end if
@@ -245,6 +257,16 @@ subroutine H_potential(datacode,kernel,rhopot,pot_ion,eh,offset,sumpion,&
       call f_free(rhopol)
 
    case('PCG')
+      if (.not. associated(kernel%oneoeps) .or. .not. associated(kernel%corr))&
+           call f_err_throw('The PCG method needs the arrays corr and oneosqrteps,'//&
+           ' use pkernel_set_epsilon routine to set them')
+
+      call nonvacuum_projection(n1,n23,rhopot(i3start),kernel%oneoeps,norm_nonvac)
+      norm_nonvac=norm_nonvac*product(kernel%hgrids)
+      if (kernel%mpi_env%nproc > 1) &
+           call mpiallred(norm_nonvac,1,MPI_SUM,comm=kernel%mpi_env%mpi_comm)
+      if (wrtmsg) call yaml_map('Integral of the density in the nonvacuum region',norm_nonvac)
+
 
       r=f_malloc([n1,n23],id='r')
       x=f_malloc0([n1,n23],id='x')
@@ -345,6 +367,7 @@ subroutine H_potential(datacode,kernel,rhopot,pot_ion,eh,offset,sumpion,&
 
          ratio=normr/normb
          if (wrtmsg) then
+            call yaml_newline()
             call yaml_sequence(advance='no')
             call EPS_iter_output(ip,normb,normr,ratio,alpha,beta)
          end if
@@ -418,6 +441,30 @@ subroutine H_potential(datacode,kernel,rhopot,pot_ion,eh,offset,sumpion,&
    call f_release_routine()
 
 END SUBROUTINE H_potential
+
+!> verify that the density is considerably zero in the region where epsilon is different from one
+subroutine nonvacuum_projection(n1,n23,rho,oneoeps,norm)
+  implicit none
+  integer, intent(in) :: n1,n23 !< parallelized box dimensions
+  real(dp), dimension(n1,n23), intent(in) :: rho !<charge density
+  !>inverse of epsilon (might also be inverse of sqrt(eps))
+  real(dp), dimension(n1,n23), intent(in) :: oneoeps 
+  real(dp), intent(out) :: norm !< \int of rho where epsilon /=1
+  !local variables
+  integer :: i1,i23
+  real(dp), parameter :: tol= 5.d-1
+ 
+  norm=0.0_dp
+  !$omp parallel do default(shared) private(i1,i23)&
+  !$omp reduction(+:norm)
+  do i23=1,n23
+     do i1=1,n1
+        if (abs(oneoeps(i1,i23) - 1.0_dp) > tol) norm=norm+rho(i1,i23)
+     end do
+  end do
+  !$omp end parallel do
+
+end subroutine nonvacuum_projection
 
 !regroup the psolver from here -------------
 subroutine apply_kernel(gpu,kernel,rho,offset,strten,zf,updaterho)
