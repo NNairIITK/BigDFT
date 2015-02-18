@@ -25,8 +25,8 @@ program GPS_3D
    integer :: SetEps! = 1!3 
 
    real(kind=8), parameter :: acell = 10.d0
-   real(kind=8), parameter :: erfL = 80.0d0 ! To set 1 for Vacuum and correct analitic comparison with gaussian potential.
-   real(kind=8), parameter :: erfR = 1.0d0
+   real(kind=8) :: erfL  ! To set 1 for Vacuum and correct analitic comparison with gaussian potential.
+   real(kind=8) :: erfR  
    real(kind=8), parameter :: sigmaeps = 0.05d0*acell
    !> To set 1 for gaussian rho, 2 for gaussian potential. Beaware to use 2 or 3 when SetEps is setted to 1!!! 
    integer, parameter :: Setrho = 2 
@@ -103,6 +103,8 @@ program GPS_3D
       call yaml_new_document()
    end if
 
+   erfL = 80.0d0 
+   erfR = 1.0d0  
 !   call MPI_INIT(ierr)
 !   call MPI_COMM_RANK(MPI_COMM_WORLD,iproc,ierr)
 !   call MPI_COMM_SIZE(MPI_COMM_WORLD,nproc,ierr)
@@ -152,6 +154,12 @@ program GPS_3D
    end if
 
     call SetEpsilon(n01,n02,n03,nspden,nord,acell,a_gauss,hx,hy,hz,erfL,erfR,sigmaeps,SetEps,geocode,PSol,eps,dlogeps,oneoeps,oneosqrteps,corr,rhoele)
+
+    if ( trim(PSol)=='VAC') then
+       eps=1.d0
+       SetEps=1
+       erfL=1.d0
+    end if
 
 !------------------------------------------------------------------------
 
@@ -209,9 +217,9 @@ program GPS_3D
      else
         call pkernel_set_epsilon(pkernel,eps=eps)
      end if
-     call H_potential('G',pkernel,rhopot,rhopot,ehartree,0.d0,.false.)
-     if (iproc==0) call writeroutinePot(n01,n02,n03,nspden,rhopot,pkernel%max_iter,&
-          potential)
+!!$     call H_potential('G',pkernel,rhopot,rhopot,ehartree,0.d0,.false.)
+!!$     if (iproc==0) call writeroutinePot(n01,n02,n03,nspden,rhopot,pkernel%max_iter,&
+!!$          potential)
 
 !!$     !old method, outside of PSolver
 !!$     pkernel=pkernel_init(.true.,iproc,nproc,0,geocode,ndims,hgrids,itype_scf,method='VAC')
@@ -233,8 +241,11 @@ program GPS_3D
       call pkernel_set_epsilon(pkernel,eps=eps)
    end if
 
-     call H_potential('G',pkernel,rhopot,rhopot,ehartree,0.d0,.false.)
-     if (iproc==0) call writeroutinePot(n01,n02,n03,nspden,rhopot,pkernel%max_iter,potential)
+!!$     call H_potential('G',pkernel,rhopot,rhopot,ehartree,0.d0,.false.)
+!!$     if (iproc==0) then
+!!$        call writeroutinePot(n01,n02,n03,nspden,rhopot,pkernel%max_iter,potential)
+!!$     end if
+     
 
 !!$     !old method, outside of PSolver
 !!$     pkernel=pkernel_init(.true.,iproc,nproc,0,geocode,ndims,hgrids,itype_scf,method='VAC')
@@ -242,8 +253,14 @@ program GPS_3D
 !!$     call pkernel_set(pkernel,verbose=.true.)
 !!$     call PolarizationIteration(n01,n02,n03,nspden,rhopot,acell,eps,nord,pkernel,potential)
 
-  else
-     call f_err_throw('Unrecognized method (provided "'//trim(PSol)//'")')
+!!$  else
+!!$     call f_err_throw('Unrecognized method (provided "'//trim(PSol)//'")')
+  end if
+
+  call H_potential('G',pkernel,rhopot,rhopot,ehartree,offset,.false.)
+  if (iproc==0) then
+     call writeroutinePot(n01,n02,n03,nspden,rhopot,pkernel%max_iter,potential)
+     call yaml_map('Hartree energy',ehartree)
   end if
 
   call Polarization_charge(n01,n02,n03,nspden,hx,hy,hz,rhopot,rvApp,acell,eps,nord)
@@ -929,10 +946,10 @@ subroutine writeroutinePot(n01,n02,n03,nspden,ri,i,potential)
       
       unt=f_get_free_unit(21)
       call f_open_file(unt,file='final.dat')
-      i1=1!n03/2
+      i1=n03/2
       do i2=1,n02
          do i3=1,n03
-            write(unt,'(2(1x,I4),2(1x,e14.7))')i2,i3,ri(i1_max,i2,i3,1),potential(i1_max,i2,i3)
+            write(unt,'(2(1x,I4),2(1x,e14.7))')i2,i3,ri(i1,i2,i3,1),potential(i1,i2,i3)
          end do
       end do
       call f_close(unt)
@@ -1966,7 +1983,7 @@ end subroutine fssnord3DmatDiv3var
 subroutine SetInitDensPot(n01,n02,n03,nspden,eps,dlogeps,sigmaeps,SetEps,erfL,erfR,acell,a_gauss,a2,hx,hy,hz,Setrho,density,potential,geocode,offset)
   use dynamic_memory
   use yaml_output
-
+  use f_utils
   implicit none
   integer, intent(in) :: n01
   integer, intent(in) :: n02
@@ -1983,8 +2000,8 @@ subroutine SetInitDensPot(n01,n02,n03,nspden,eps,dlogeps,sigmaeps,SetEps,erfL,er
   real(kind=8), intent(out) :: offset
   real(kind=8), dimension(:,:,:,:), allocatable :: density1,density2
   real(kind=8), dimension(:,:,:), allocatable :: potential1,potential2
-  integer :: i,i1,i2,i3,ifx,ify,ifz
-  real(kind=8) :: sigma,sigma1,sigma2,pi,sum,sump,tt1,tt2,x0,r12
+  integer :: i,i1,i2,i3,ifx,ify,ifz,unt
+  real(kind=8) :: sigma,sigma1,sigma2,pi,sumd,sump,tt1,tt2,x0,r12
   real(kind=8) :: x1,x2,x3,r,r2,r1,r22,derf_tt1,derf_tt2,factor,factor1,factor2
   real(kind=8) :: length,denval,derf_tt,k1,k2
   real(kind=8) :: x,y,fx,fx2,fy,fy2,fz,fz2,a,ax,ay,az,bx,by,bz,tt,fx1,fy1,fz1
@@ -2019,7 +2036,7 @@ subroutine SetInitDensPot(n01,n02,n03,nspden,eps,dlogeps,sigmaeps,SetEps,erfL,er
 !         factor2 = 1.d0/((sigma2**3)*sqrt((2.d0*pi)**3))
          factor2 = 0.d0! 1.d0/((sigma2**3)*sqrt((2.d0*pi)**3))
          !gaussian function for the density.
-         sum=0.d0
+         sumd=0.d0
          sump=0.d0
          do i3=1,n03
             x3 = hz*real(i3-n03/2,kind=8)
@@ -2032,7 +2049,7 @@ subroutine SetInitDensPot(n01,n02,n03,nspden,eps,dlogeps,sigmaeps,SetEps,erfL,er
                   do i=1,nspden
                      density(i1,i2,i3,i) = 1.d0/real(nspden,kind=8)*max(factor1*exp(-0.5d0*r12/(sigma1**2)),1d-24)&
                                          - 1.d0/real(nspden,kind=8)*max(factor2*exp(-0.5d0*r22/(sigma2**2)),1d-24)
-                  sum=sum+density(i1,i2,i3,i)
+                  sumd=sumd+density(i1,i2,i3,i)
                   end do
                   r1 = sqrt(r12)
                   r2 = sqrt(r22)
@@ -2060,7 +2077,7 @@ subroutine SetInitDensPot(n01,n02,n03,nspden,eps,dlogeps,sigmaeps,SetEps,erfL,er
 
    sigma = 0.03d0*acell
    x0 = 0.d0 ! hx*real(25-n01/2,kind=8)
-
+print *,'we should be here for vacuum'
          !Normalization
          factor = 1.d0/((sigma**3)*sqrt((2.d0*pi)**3))
          !gaussian function for the potential.
@@ -2079,7 +2096,7 @@ subroutine SetInitDensPot(n01,n02,n03,nspden,eps,dlogeps,sigmaeps,SetEps,erfL,er
             end do
           end do
 
-         sum=0.d0
+         sumd=0.d0
          !analitic density calculation.
          do i3=1,n03
             x3 = hz*real(i3-n03/2,kind=8)
@@ -2092,7 +2109,7 @@ subroutine SetInitDensPot(n01,n02,n03,nspden,eps,dlogeps,sigmaeps,SetEps,erfL,er
                   do i=1,nspden
                    density(i1,i2,i3,i) =(-1.d0/(4.d0*pi))*potential(i1,i2,i3)*(1.d0/(sigma**2))*&
                                         (r2*(1.d0/(sigmaeps**2))*(eps(i1,i2,i3)-erfR)+eps(i1,i2,i3)*(r2*(1.d0/(sigma**2))-3.d0))
-                   sum=sum+density(i1,i2,i3,i)
+                   sumd=sumd+density(i1,i2,i3,i)
                   end do
                end do
             end do
@@ -2130,7 +2147,7 @@ subroutine SetInitDensPot(n01,n02,n03,nspden,eps,dlogeps,sigmaeps,SetEps,erfL,er
             end do
           end do
 
-         sum=0.d0
+         sumd=0.d0
          !analitic density calculation.
          do i3=1,n03
             x3 = hz*real(i3-n03/2,kind=8)
@@ -2147,7 +2164,7 @@ subroutine SetInitDensPot(n01,n02,n03,nspden,eps,dlogeps,sigmaeps,SetEps,erfL,er
                                         (r2*(1.d0/(sigmaeps**2))*(eps(i1,i2,i3)-erfR)+eps(i1,i2,i3)*(r2*(1.d0/(sigma2**2))-3.d0))
                    density(i1,i2,i3,i) = density1(i1,i2,i3,i) - density2(i1,i2,i3,i)
 
-                   sum=sum+density(i1,i2,i3,i)
+                   sumd=sumd+density(i1,i2,i3,i)
                   end do
                end do
             end do
@@ -2185,7 +2202,7 @@ subroutine SetInitDensPot(n01,n02,n03,nspden,eps,dlogeps,sigmaeps,SetEps,erfL,er
               end do
 
          !Initialization of density and potential
-         sum=0.d0
+         sumd=0.d0
          sump=0.d0
          do i3=1,n03
             x3 = hz*real(i3-n03/2-1,kind=8)
@@ -2200,7 +2217,7 @@ subroutine SetInitDensPot(n01,n02,n03,nspden,eps,dlogeps,sigmaeps,SetEps,erfL,er
                   do i=1,nspden
                      density(i1,i2,i3,i) = 1.d0/real(nspden,kind=8)*((fx2*fy*fz+fx*fy2*fz+fx*fy*fz2)*eps(i1,i2,i3)+&
                                            factor*((fx1*fy*fz)**2+(fx*fy1*fz)**2+(fx*fy*fz1)**2))
-                   sum=sum+density(i1,i2,i3,i)
+                   sumd=sumd+density(i1,i2,i3,i)
                   end do
                   potential(i1,i2,i3) = -4.d0*pi*fx*fy*fz
                   sump=sump+potential(i1,i2,i3)
@@ -2243,7 +2260,7 @@ subroutine SetInitDensPot(n01,n02,n03,nspden,eps,dlogeps,sigmaeps,SetEps,erfL,er
          by=a
 
          !Initialisation of density and potential
-         sum=0.d0
+         sumd=0.d0
          sump=0.d0
          do i3=1,n03
             x3 = hz*real(i3-n03/2-1,kind=8)
@@ -2258,7 +2275,7 @@ subroutine SetInitDensPot(n01,n02,n03,nspden,eps,dlogeps,sigmaeps,SetEps,erfL,er
                   do i=1,nspden
                      density(i1,i2,i3,i) = 1.d0/real(nspden,kind=8)/(4.d0*pi)*((fx2*fy*fz+fx*fy2*fz+fx*fy*fz2)*eps(i1,i2,i3)+&
                                            factor*((fx1*fy*fz)**2+(fx*fy1*fz)**2+(fx*fy*fz1)**2))
-                   sum=sum+density(i1,i2,i3,i)
+                   sumd=sumd+density(i1,i2,i3,i)
                   end do
                   potential(i1,i2,i3) = -fx*fy*fz
                   sump=sump+potential(i1,i2,i3)
@@ -2277,7 +2294,7 @@ subroutine SetInitDensPot(n01,n02,n03,nspden,eps,dlogeps,sigmaeps,SetEps,erfL,er
 
    sigma = 0.03d0*acell
    x0 = 0.d0 ! hx*real(25-n01/2,kind=8)
-
+print *,'we should be here for cavity'
          !Normalization
          factor = 1.d0/((sigma**3)*sqrt((2.d0*pi)**3))
          !gaussian function for the potential.
@@ -2296,7 +2313,7 @@ subroutine SetInitDensPot(n01,n02,n03,nspden,eps,dlogeps,sigmaeps,SetEps,erfL,er
             end do
           end do
 
-         sum=0.d0
+         sumd=0.d0
          !analitic density calculation.
          do i3=1,n03
             x3 = hz*real(i3-n03/2,kind=8)
@@ -2316,7 +2333,7 @@ subroutine SetInitDensPot(n01,n02,n03,nspden,eps,dlogeps,sigmaeps,SetEps,erfL,er
                   k2 = potential(i1,i2,i3)*(r2/(sigma**2)-3.d0)/(sigma**2)
                   do i=1,nspden
                    density(i1,i2,i3,i) =(-1.d0/(4.d0*pi))*eps(i1,i2,i3)*(k1+k2)
-                   sum=sum+density(i1,i2,i3,i)
+                   sumd=sumd+density(i1,i2,i3,i)
                   end do
                end do
             end do
@@ -2325,12 +2342,28 @@ subroutine SetInitDensPot(n01,n02,n03,nspden,eps,dlogeps,sigmaeps,SetEps,erfL,er
 
  end if
 
-  call yaml_map('Total Charge',sum*hx*hy*hz)
+!plot of the starting conditions
+ unt=f_get_free_unit(21)
+ call f_open_file(unt,file='initial.dat')
+ i1=n03/2
+ do i2=1,n02
+    do i3=1,n03
+       write(unt,'(2(1x,I4),2(1x,e14.7))')i2,i3,density(i1,i2,i3,1),potential(i1,i2,i3)
+    end do
+ end do
+ call f_close(unt)
+
+
+ !calculate hartree energy
+ 
+
+  call yaml_map('Total Charge',sumd*hx*hy*hz)
+  call yaml_map('Expected hartree energy',0.5*hx*hy*hz*sum(density(:,:,:,1)*potential(:,:,:)))
   call yaml_map('Potential monopole',sump*hx*hy*hz)
   call yaml_map('Potential at the boundary 1 n02/2 1',&
        potential(1,n02/2,1))
   call yaml_map('Density at the boundary 1 n02/2 1',density(1,n02/2,1,1))
-  !write(*,*) 'charge sum',sum*hx*hy*hz,'potential sum',sump*hx*hy*hz
+  !write(*,*) 'charge sumd',sumd*hx*hy*hz,'potential sum',sump*hx*hy*hz
   !write(*,'(1x,a,1x,e14.7)')'Potential at the boundary 1 n02/2 1',poteantial(1,n02/2,1)
   !write(*,'(1x,a,1x,e14.7)')'Density at the boundary 1 n02/2 1',density(1,n02/2,1,1)
 
@@ -2689,7 +2722,7 @@ else if (SetEps ==4) then
       rxyz(1:3,1)=[7.300000d0, 7.300337d0, 7.243250d0]-[2.30d0,2.85d0,3.7d0]
       rxyz(1:3,2)=[7.300000d0, 8.415319d0, 8.700265d0]-[2.30d0,2.85d0,3.7d0]
       rxyz(1:3,3)=[7.300000d0, 7.299663d0,10.156750d0]-[2.30d0,2.85d0,3.7d0]
-      radii=[2.0d0,2.5d0,2.0d0]
+      radii=2*[2.0d0,2.5d0,2.0d0]
       call Eps_rigid_cavity([n01,n02,n03],[hx,hy,hz],nat,rxyz,radii,eps0,3.d0*max(hx,hy,hz),eps,dlogeps)
 
 end if
