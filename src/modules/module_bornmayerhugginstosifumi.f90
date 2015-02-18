@@ -369,29 +369,29 @@ subroutine energyandforces_bmhtf(nat,rat,fat,epot)
             itypinter=typinteraction(typat(iat),typat(jat))
             !write(*,*) 'itypinter=',itypinter
             !-------------------------------------------------------------------
-            a2=ccc(itypinter);a3=ddd(itypinter)  !*eee(itypinter)
-            a4=aaa(itypinter);a5=bbb(itypinter)  !;a6=fff(itypinter)
-            !rinv2=rinv**2;rinv4=rinv2**2;rinv6=rinv4*rinv2;rinv7=rinv6*rinv
-            !rinv8=rinv6*rinv2;rinv9=rinv8*rinv
-            rinv2=rinv**2;rinv6=rinv2**3;rinv8=rinv6*rinv2;rinv10=rinv8*rinv2
-            rinv28=rinv10*rinv10*rinv8;rinv30=rinv28*rinv2
-            rinvqq=rinv*eee(itypinter)
-            t2=a4*exp(-a5*r)
-            epot=epot+rinvqq - a2*rinv6 -a3*rinv8 + t2 !+ 1.d8*rinv28
-            !epot=(((epot+ t2) -a3*rinv8) - a2*rinv6) + rinvqq
-            ttt=rinv2*rinvqq -6.0_gp*a2*rinv8 -8.0_gp*a3*rinv10 + a5*t2*rinv !+ 3.e9_gp*rinv30
-            fx=ttt*dx;fy=ttt*dy;fz=ttt*dz
-            !-------------------------------------------------------------------
-!            !for using splines.
-!            rhspinv=r*hspinv
-!            isp=floor(rhspinv)
-!            t=rhspinv-isp
-!            spf=fsp(0,isp,itypinter)+(fsp(1,isp,itypinter)+(fsp(2,isp,itypinter)+(fsp(3,isp,itypinter)+ &
-!                fsp(4,isp,itypinter)*t)*t)*t)*t
-!            spfd=fdsp(0,isp,itypinter)+(fdsp(1,isp,itypinter)+(fdsp(2,isp,itypinter)+fdsp(3,isp,itypinter)*t)*t)*t
-!            epot=epot+spf
-!            ttt=-spfd*rinv
+!            a2=ccc(itypinter);a3=ddd(itypinter)  !*eee(itypinter)
+!            a4=aaa(itypinter);a5=bbb(itypinter)  !;a6=fff(itypinter)
+!            !rinv2=rinv**2;rinv4=rinv2**2;rinv6=rinv4*rinv2;rinv7=rinv6*rinv
+!            !rinv8=rinv6*rinv2;rinv9=rinv8*rinv
+!            rinv2=rinv**2;rinv6=rinv2**3;rinv8=rinv6*rinv2;rinv10=rinv8*rinv2
+!            rinv28=rinv10*rinv10*rinv8;rinv30=rinv28*rinv2
+!            rinvqq=rinv*eee(itypinter)
+!            t2=a4*exp(-a5*r)
+!            epot=epot+rinvqq - a2*rinv6 -a3*rinv8 + t2 !+ 1.d8*rinv28
+!            !epot=(((epot+ t2) -a3*rinv8) - a2*rinv6) + rinvqq
+!            ttt=rinv2*rinvqq -6.0_gp*a2*rinv8 -8.0_gp*a3*rinv10 + a5*t2*rinv !+ 3.e9_gp*rinv30
 !            fx=ttt*dx;fy=ttt*dy;fz=ttt*dz
+            !-------------------------------------------------------------------
+            !for using splines.
+            rhspinv=r*hspinv
+            isp=floor(rhspinv)
+            t=rhspinv-isp
+            spf=fsp(0,isp,itypinter)+(fsp(1,isp,itypinter)+(fsp(2,isp,itypinter)+(fsp(3,isp,itypinter)+ &
+                fsp(4,isp,itypinter)*t)*t)*t)*t
+            spfd=fdsp(0,isp,itypinter)+(fdsp(1,isp,itypinter)+(fdsp(2,isp,itypinter)+fdsp(3,isp,itypinter)*t)*t)*t
+            epot=epot+spf
+            ttt=-spfd*rinv
+            fx=ttt*dx;fy=ttt*dy;fz=ttt*dz
             !-------------------------------------------------------------------
             fat(1,iat)=fat(1,iat)+fx
             fat(2,iat)=fat(2,iat)+fy
