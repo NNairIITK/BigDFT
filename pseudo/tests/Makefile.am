@@ -7,20 +7,22 @@ SUBDIRS = \
 	  pawpatchtest \
 	  tutorials
 
-if BUILD_LIBYAML
-LD_LIBRARY_PATH := ${LD_LIBRARY_PATH}:$(abs_top_builddir)/yaml-0.1.4/src/.libs
-PYTHONPATH := ${PYTHONPATH}:`ls -d $(abs_top_builddir)/PyYAML-3.10/build/lib.*`
-endif
-
 EXTRA_DIST = \
 	README \
 	example.O.new \
-	pawpatchtest
+	pawpatchtest \
+	report.py.in
 
 check:
 	@if test $(MAKELEVEL) = 0 ; then $(MAKE) report ; fi
 
+report.py: report.py.in
+	sed							\
+		-e s!\@prefix\@!$(prefix)!			\
+		-e s!\@exec_prefix\@!$(exec_prefix)!		\
+		-e s!\@pyexecdir\@!$(pyexecdir)!		\
+		-e s!\@AX_PYYAML_PATH\@!$(AX_PYYAML_PATH)!	\
+		< $< > $@
+
 report: 
-	export PYTHONPATH=${PYTHONPATH} ; \
-	export LD_LIBRARY_PATH=${LD_LIBRARY_PATH} ; \
-	python $(top_srcdir)/tests/report.py
+	python $(top_builddir)/tests/report.py

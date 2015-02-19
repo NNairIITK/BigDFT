@@ -323,11 +323,6 @@ abi_sqnormm_v.o: abi_mixing/abi_sqnormm_v.F90 \
 	m_abi_xmpi.o
 	$(PPFCCOMPILE) -c -o abi_sqnormm_v.o `test -f 'abi_mixing/abi_sqnormm_v.F90' || echo '$(srcdir)/'`abi_mixing/abi_sqnormm_v.F90
 
-m_ab7_mixing.o: abi_mixing/m_ab7_mixing.F90 \
-	abi_defs_basis.o \
-	abi_interfaces_mixing.o
-	$(PPFCCOMPILE) -c -o m_ab7_mixing.o `test -f 'abi_mixing/m_ab7_mixing.F90' || echo '$(srcdir)/'`abi_mixing/m_ab7_mixing.F90
-
 abi_derfc.o: abi_numeric/abi_derfc.F90 \
 	abi_defs_basis.o
 	$(PPFCCOMPILE) -c -o abi_derfc.o `test -f 'abi_numeric/abi_derfc.F90' || echo '$(srcdir)/'`abi_numeric/abi_derfc.F90
@@ -479,6 +474,34 @@ abi_xcxalp.o: abi_xc_lowlevel/abi_xcxalp.F90 \
 	abi_interfaces_lowlevel.o
 	$(PPFCCOMPILE) -c -o abi_xcxalp.o `test -f 'abi_xc_lowlevel/abi_xcxalp.F90' || echo '$(srcdir)/'`abi_xc_lowlevel/abi_xcxalp.F90
 
+abi_initrhoij.o: add_libpaw/abi_initrhoij.F90 \
+	m_paral_atom.o \
+	m_pawrhoij.o \
+	m_pawtab.o \
+	m_libpaw_defs.o \
+	m_libpaw_tools.o
+	$(PPFCCOMPILE) -c -o abi_initrhoij.o `test -f 'add_libpaw/abi_initrhoij.F90' || echo '$(srcdir)/'`add_libpaw/abi_initrhoij.F90
+
+abi_interfaces_add_libpaw.o: add_libpaw/abi_interfaces_add_libpaw.F90 \
+	m_pawang.o \
+	m_pawrad.o \
+	m_pawrhoij.o \
+	m_pawtab.o \
+	m_libpaw_defs.o \
+	m_libpaw_defs.o
+	$(PPFCCOMPILE) -c -o abi_interfaces_add_libpaw.o `test -f 'add_libpaw/abi_interfaces_add_libpaw.F90' || echo '$(srcdir)/'`add_libpaw/abi_interfaces_add_libpaw.F90
+
+abi_pawinit.o: add_libpaw/abi_pawinit.F90 \
+	m_paw_atom.o \
+	m_paw_numeric.o \
+	m_pawang.o \
+	m_pawpsp.o \
+	m_pawrad.o \
+	m_pawtab.o \
+	m_libpaw_defs.o \
+	m_libpaw_tools.o
+	$(PPFCCOMPILE) -c -o abi_pawinit.o `test -f 'add_libpaw/abi_pawinit.F90' || echo '$(srcdir)/'`add_libpaw/abi_pawinit.F90
+
 m_libpaw_defs.o: libpaw/m_libpaw_defs.F90
 	$(PPFCCOMPILE) -c -o m_libpaw_defs.o `test -f 'libpaw/m_libpaw_defs.F90' || echo '$(srcdir)/'`libpaw/m_libpaw_defs.F90
 
@@ -493,6 +516,7 @@ m_libpaw_mpi.o: libpaw/m_libpaw_mpi.F90 \
 	$(PPFCCOMPILE) -c -o m_libpaw_mpi.o `test -f 'libpaw/m_libpaw_mpi.F90' || echo '$(srcdir)/'`libpaw/m_libpaw_mpi.F90
 
 m_libpaw_tools.o: libpaw/m_libpaw_tools.F90 \
+	yaml_output.o \
 	m_libpaw_defs.o \
 	m_libpaw_mpi.o
 	$(PPFCCOMPILE) -c -o m_libpaw_tools.o `test -f 'libpaw/m_libpaw_tools.F90' || echo '$(srcdir)/'`libpaw/m_libpaw_tools.F90

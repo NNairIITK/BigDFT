@@ -67,10 +67,12 @@
 
 /* Messages, errors */
 #define USE_MSG_HANDLING use m_libpaw_tools, only : wrtout => libpaw_wrtout, libpaw_msg_hndl
-#define MSG_COMMENT(msg) call libpaw_msg_hndl(msg,"COMMENT","PERS",__FILE__,__LINE__)
-#define MSG_WARNING(msg) call libpaw_msg_hndl(msg,"WARNING","PERS",__FILE__,__LINE__)
-#define MSG_ERROR(msg)   call libpaw_msg_hndl(msg,"ERROR"  ,"PERS",__FILE__,__LINE__)
-#define MSG_BUG(msg)     call libpaw_msg_hndl(msg,"BUG"    ,"PERS",__FILE__,__LINE__)
+#define MSG_COMMENT(msg) call libpaw_msg_hndl(msg,"COMMENT","PERS",line=__LINE__)
+#define MSG_WARNING(msg) call libpaw_msg_hndl(msg,"WARNING","PERS",line=__LINE__)
+#define MSG_ERROR(msg)   call libpaw_msg_hndl(msg,"ERROR"  ,"PERS",line=__LINE__)
+#define MSG_BUG(msg)     call libpaw_msg_hndl(msg,"BUG"    ,"PERS",line=__LINE__)
+/*BigDFT should accept long lines...*/
+/*#define MSG_ERROR(msg) call libpaw_msg_hndl(msg,"ERROR","PERS",__FILE__,__LINE__)*/
 
 /* Allocation/deallocation with memory profiling */
 #define USE_MEMORY_PROFILING use dynamic_memory
