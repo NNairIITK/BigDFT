@@ -2162,7 +2162,8 @@ module communications_init
 
        icheck_f = 0
        iiorb_f = 0
-       do iseg=lzd%glr%wfd%nseg_c+1,lzd%glr%wfd%nseg_c+lzd%glr%wfd%nseg_f !istartp_seg_f,iendp_seg_f
+       !do iseg=lzd%glr%wfd%nseg_c+1,lzd%glr%wfd%nseg_c+lzd%glr%wfd%nseg_f !istartp_seg_f,iendp_seg_f
+       do iseg=istartp_seg_f,iendp_seg_f
            jj=lzd%glr%wfd%keyvglob(iseg)
            j0=lzd%glr%wfd%keyglob(1,iseg)
            j1=lzd%glr%wfd%keyglob(2,iseg)
