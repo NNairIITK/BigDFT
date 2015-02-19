@@ -1128,7 +1128,7 @@ subroutine segkeys_Sphere(n1, n2, n3, nl1glob, nl2glob, nl3glob, nl1, nu1, nl2, 
   character(len=*),parameter :: subname = 'segkeys_Sphere'
   integer :: i, i1, i2, i3, nstart, nend, nvctr, igridpoint, igridglob, iseg, jj, j0, j1, ii, i0, n1l, n2l, n3l
   integer :: i1l, i2l, i3l, ii1, ii2, ii3, istat, iall, loc, n1p1, np, n1lp1, nlp, igridpointa, igridgloba
-  integer :: ij1, ij2, ij3, jj1, jj2, jj3, ii1mod, ii2mod, ii3mod, ivctr, jvctr
+  integer :: ij1, ij2, ij3, jj1, jj2, jj3, ii1mod, ii2mod, ii3mod, ivctr, jvctr, kvctr
   real(kind=8) :: cut, dx, dy, dz
   logical :: segment, inside
   !integer, allocatable :: keygloc(:,:)
@@ -1161,6 +1161,7 @@ subroutine segkeys_Sphere(n1, n2, n3, nl1glob, nl2glob, nl3glob, nl1, nu1, nl2, 
   nlp=n1lp1*(n2l+1)
   ivctr=0
   jvctr=0
+  kvctr=0
   do iseg=1,nsegglob
       j0=keygglob(1,iseg)
       j1=keygglob(2,iseg)
@@ -1209,12 +1210,15 @@ subroutine segkeys_Sphere(n1, n2, n3, nl1glob, nl2glob, nl3glob, nl1, nu1, nl2, 
                   end do
               end do
           end do
+          !write(*,*) 'ii1, ii2, ii3, inside', ii1, ii2, ii3, inside
           if(inside) then
               ! Check that we are not outside of the locreg region
               !ii1mod=modulo(ii1-1,n1)+1
               !ii2mod=modulo(ii2-1,n2)+1
               !ii3mod=modulo(ii3-1,n3)+1
               ivctr=ivctr+1
+              kvctr=kvctr+1
+              !write(*,*) 'inside: kvctr, igridpoint', kvctr, igridpoint
               if(ii1mod<nl1) then
                   write(*,'(a,i0,a,i0,a)') 'ERROR: ii1mod=',ii1mod,'<',nl1,'=nl1'
                   stop
@@ -1250,10 +1254,16 @@ subroutine segkeys_Sphere(n1, n2, n3, nl1glob, nl2glob, nl3glob, nl1, nu1, nl2, 
           else
               if(segment) then
                   nend=nend+1
-                  keygloc(2,nend)=igridpoint-1
+                  keygloc(2,nend)=igridpoint!-1
                   keyg_glob(2,nend)=igridglob-1
+                  !write(*,'(a,4i7)') 'outside: kvctr, igridpoint, keygloc(1:2,nend)', kvctr, igridpoint, keygloc(1:2,nend)
                   segment=.false.
                   jvctr=jvctr+keygloc(2,nend)-keygloc(1,nend)+1
+                  if (kvctr/=keygloc(2,nend)-keygloc(1,nend)+1) then
+                      write(*,*) 'kvctr, keygloc(2,nend)-keygloc(1,nend)+1', kvctr, keygloc(2,nend)-keygloc(1,nend)+1
+                      stop 'kvctr/=keygloc(2,nend)-keygloc(1,nend)+1'
+                  end if
+                  kvctr=0
               end if
           end if
       end do
@@ -1264,6 +1274,11 @@ subroutine segkeys_Sphere(n1, n2, n3, nl1glob, nl2glob, nl3glob, nl1, nu1, nl2, 
           keyg_glob(2,nend)=igridglob
           segment=.false.
           jvctr=jvctr+keygloc(2,nend)-keygloc(1,nend)+1
+          if (kvctr/=keygloc(2,nend)-keygloc(1,nend)+1) then
+              write(*,*) 'kvctr, keygloc(2,nend)-keygloc(1,nend)+1', kvctr, keygloc(2,nend)-keygloc(1,nend)+1
+              stop 'kvctr/=keygloc(2,nend)-keygloc(1,nend)+1'
+          end if
+          kvctr=0
       end if
   end do
 
