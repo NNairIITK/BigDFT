@@ -230,7 +230,7 @@ module communications_init
     
       if (extra_timing) call cpu_time(tr0) 
       call determine_num_orbs_per_gridpoint_new(iproc, nproc, lzd, i3s, n3p, weightppp_c, weightppp_f, &
-           istartend_c, istartend_f, &
+           i3start, istartend_c, istartend_f, &
            istartp_seg_c, iendp_seg_c, istartp_seg_f, iendp_seg_f, &
            weightp_c, weightp_f, collcom%nptsp_c, collcom%nptsp_f, &
            collcom%norb_per_gridpoint_c, collcom%norb_per_gridpoint_f)
@@ -383,7 +383,7 @@ module communications_init
           if (lzd%llr(ilr)%wfd%nseg_c>0) then
               !!$omp do
               imin=10000000
-              imax=-1000000
+              imax=-10000000
               do iseg=1,lzd%llr(ilr)%wfd%nseg_c
                   j0=lzd%llr(ilr)%wfd%keyglob(1,iseg)
                   j1=lzd%llr(ilr)%wfd%keyglob(2,iseg)
@@ -635,7 +635,7 @@ module communications_init
                   !!if (ii3+i3start<i3start) stop 'strange 2'
                   !if (ii3+1<i3s) cycle
                   !if (ii3+1>i3e) exit
-                  jj3=modulo(ii3-i3start,lzd%glr%d%n3)+1
+                  jj3=modulo(ii3-i3start,(lzd%glr%d%n3+1))+1
                   !!if (jj3>i3end) stop 'strange 1'
                   !!if (jj3<i3start) stop 'strange 2'
                   if (jj3>j3end) stop 'strange 1'
@@ -653,10 +653,22 @@ module communications_init
                       !weightppp_f(ii1,ii2,ii3+1-i3s+1)=weightppp_f(ii1,ii2,ii3+1-i3s+1)+1.d0
                       !weightloc_f(ii1,ii2,ii3-i3start+1)=weightloc_f(ii1,ii2,ii3-i3start+1)+1.d0
                       weightloc_f(ii1,ii2,jj3)=weightloc_f(ii1,ii2,jj3)+1.d0
+                      if (ii1==33 .and. ii2==33 .and. jj3==10) write(*,'(a,3i8,f11.1)') 'NONZERO, j0, j1, ii3, wl(ii1,ii2,jj3)', j0, j1, ii3, weightloc_f(ii1,ii2,jj3)
+                      if (ii1==33 .and. ii2==33 .and. ii3==125) write(*,'(a,3i8,f11.1)') 'NONZERO, j0, j1, jj3, wl(ii1,ii2,jj3)', j0, j1, jj3, weightloc_f(ii1,ii2,jj3)
                   end do
               end do
               !!$omp end do
           end if
+      end do
+
+      write(*,*) 'sum(weightloc_f)', sum(weightloc_f)
+      do i3=j3start,j3end
+        jj3=modulo(i3-i3start,lzd%glr%d%n3)+1
+        do i2=0,lzd%glr%d%n2
+          do i1=0,lzd%glr%d%n1
+            write(1201,'(a,4i8,f12.2)') 'i1,i2,i3,jj3,val',i1,i2,i3,jj3,weightloc_f(i1,i2,i3)
+          end do
+        end do
       end do
 
       !do i3=1,lzd%glr%d%n3+1
@@ -722,7 +734,7 @@ module communications_init
                   !    ii=ks(k)
                   !end if
                   ii=modulo(ks(k)-i3start-1,(lzd%glr%d%n3+1))+1
-                  write(*,'(a,6i9)') 'k, ks(k), ke(k), nlen(k), i3start, ii', k, ks(k), ke(k), nlen(k), i3start, ii
+                  write(*,'(a,7i9)') 'k, ks(k), ke(k), nlen(k), i3start, ks(k)-i3startend(3,jproc), ii', k, ks(k), ke(k), nlen(k), i3start, ks(k)-i3startend(3,jproc), ii
                   call mpiaccumulate(weightloc_f(0,0,ii), (lzd%glr%d%n1+1)*(lzd%glr%d%n2+1)*nlen(k), &
                        jproc, int((lzd%glr%d%n1+1)*(lzd%glr%d%n2+1)*(ks(k)-i3startend(3,jproc)),kind=mpi_address_kind), &
                        (lzd%glr%d%n1+1)*(lzd%glr%d%n2+1)*nlen(k), mpi_sum, window_f)
@@ -986,9 +998,9 @@ module communications_init
               end do
           end do
           write(*,*) 'AFTER SET TO ZERO: sum(weightppp_c)',sum(weightppp_c)
-          do i3=1,n3p
-              write(*,*) 'i3, sum(weightppp_c(:,:,i3))', i3, sum(weightppp_c(:,:,i3))
-          end do
+          !!do i3=1,n3p
+          !!    write(*,*) 'i3, sum(weightppp_c(:,:,i3))', i3, sum(weightppp_c(:,:,i3))
+          !!end do
 
           ! Communicate the data and assign the processor specific values
           if (nproc>1) then
@@ -1062,6 +1074,14 @@ module communications_init
           call mpi_win_fence(0, window_f, ierr)
           call mpi_win_free(window_f, ierr)
       !end if
+
+      do i3=1,n3p
+        do i2=0,lzd%glr%d%n2
+          do i1=0,lzd%glr%d%n1
+            write(1211,*) 'i1,i2,i3,val',i1,i2,i3,weightppp_f(i1,i2,i3)
+          end do
+        end do
+      end do
 
       weight_tot_f = 0.d0
       do i3=1,n3p
@@ -1281,416 +1301,416 @@ module communications_init
       
     end subroutine assign_weight_to_process
 
-    subroutine assign_weight_to_process_new(iproc, nproc, lzd, weight_c, weight_f, weight_tot_c, weight_tot_f, &
-               istartend_c, istartend_f, istartp_seg_c, iendp_seg_c, istartp_seg_f, iendp_seg_f, &
-               weightp_c, weightp_f, nptsp_c, nptsp_f, nvalp_c, nvalp_f)
-      use module_base
-      use module_types
-      implicit none
-      
-      ! Calling arguments
-      integer,intent(in) :: iproc, nproc
-      type(local_zone_descriptors),intent(in) :: lzd
-      real(kind=8),dimension(0:lzd%glr%d%n1,0:lzd%glr%d%n2,0:lzd%glr%d%n3),intent(in) :: weight_c, weight_f
-      real(kind=8),intent(in) :: weight_tot_c, weight_tot_f
-      integer,dimension(2,0:nproc-1),intent(out) :: istartend_c, istartend_f
-      integer,intent(out) :: istartp_seg_c, iendp_seg_c, istartp_seg_f, iendp_seg_f
-      real(kind=8),intent(out) :: weightp_c, weightp_f
-      integer,intent(out) :: nptsp_c, nptsp_f
-      integer,intent(out) :: nvalp_c, nvalp_f
-      
-      ! Local variables
-      integer :: jproc, i1, i2, i3, ii, istart, iend, j0, j1, ii_c, ii_f, n1p1, np, it, npr
-      integer :: i, iseg, i0, iitot, eproc, sproc, ith, nth, ierr, eseg, iitotseg, iitote
-      real(kind=8) :: tt, ttseg, tt2, weight_c_ideal, weight_f_ideal, nproc_block, ttt
-      real(kind=8),dimension(:,:),allocatable :: weights_c_startend, weights_f_startend
-      real(kind=4) :: tr0, tr1
-      real(kind=8) :: time1, time2
-      !$ integer  :: omp_get_thread_num,omp_get_max_threads
-    
-      ! Ideal weight per process.
-      weight_c_ideal=weight_tot_c/dble(nproc)
-      weight_f_ideal=weight_tot_f/dble(nproc)
-    
-      weights_c_startend = f_malloc((/ 1.to.2, 0.to.nproc-1 /),id='weights_c_startend')
-      weights_f_startend = f_malloc((/ 1.to.2, 0.to.nproc-1 /),id='weights_f_startend')
-    
-      tt=0.d0
-      weights_c_startend(1,0)=0.d0
-      do jproc=0,nproc-2
-          tt=tt+weight_c_ideal
-          weights_c_startend(2,jproc)=dble(floor(tt,kind=8))
-          weights_c_startend(1,jproc+1)=dble(floor(tt,kind=8))+1.d0
-      end do
-      weights_c_startend(2,nproc-1)=weight_tot_c
-
-      !split into subroutine and divide into larger sections so each thread does one chunk of MPI procs
-      istart=1
-      iend=lzd%glr%wfd%nseg_c
-
-      if (nproc==1) then
-         istartend_c(1,0)=1
-         istartend_c(2,0)=lzd%glr%wfd%nvctr_c
-         weightp_c = weight_tot_c 
-         istartp_seg_c=istart
-         iendp_seg_c=iend
-         ttt=0.d0
-         do i1=0,lzd%glr%d%n1
-            do i2=0,lzd%glr%d%n2
-               do i3=0,lzd%glr%d%n3
-                  ttt = ttt+sqrt(weight_c(i1,i2,i3))
-               end do
-            end do
-         end do
-         nvalp_c=nint(ttt)
-      else
-         nth=1
-         !$  nth = OMP_GET_max_threads()
-         nproc_block=real(nproc,kind=8)/nth
-
-         !$omp parallel default(none) &
-         !$omp private(sproc,eproc,iitot,iitote,iitotseg,ttseg,eseg,ith,time1,tr0,tr1,time2) &
-         !$omp shared(nproc_block,istart,iend,lzd,weight_c,iproc,nproc,weights_c_startend,weight_tot_c) &
-         !$omp shared(istartp_seg_c,iendp_seg_c,weightp_c,istartend_c,nth,nvalp_c)
-         ith=0
-         !$ ith = OMP_GET_THREAD_NUM()
-         !check we have enough MPI tasks for each thread
-         if (nproc_block>1) then
-            sproc=nint(nproc_block*ith)
-            if (ith==nth-1) then
-               eproc=nproc-1
-            else
-               eproc=nint(nproc_block*(ith+1))-1
-            end if
-         else
-            if (ith<nproc) then
-               sproc=ith
-               eproc=ith
-            else
-               sproc=-1
-               eproc=-1
-            end if
-         end if
-
-         !call cpu_time(tr0)
-         if (ith/=0.and.sproc/=-1) then
-            call assign_weight_to_process_find_end_point(nproc, sproc, lzd, weight_c, &
-                 weights_c_startend, istart, iend, ttseg, iitotseg, eseg)
-         else
-            ttseg=0.d0
-            iitotseg=0
-            eseg=istart
-         end if
-         !call cpu_time(tr1)
-         !time2=real(tr1-tr0,kind=8)
-
-         if (sproc/=-1) call assign_weight_to_process_sub(iproc, eproc+1, lzd, weight_c, weight_tot_c, &
-              istartend_c(1,sproc), istartp_seg_c, iendp_seg_c, weightp_c, weights_c_startend(1,sproc), &
-              eseg, iend, ttseg, iitotseg, sproc, nvalp_c)
-         !call cpu_time(tr0)
-         !time1=real(tr0-tr1,kind=8)
-         !if (iproc==0) print*,'thread times',iproc,ith,time2,time1,time1+time2
-         !$omp end parallel
-
-         ! check
-         !call mpi_barrier(bigdft_mpi%mpi_comm,ierr)
-         !if (iproc==0) print*,''
-         !call mpi_barrier(bigdft_mpi%mpi_comm,ierr)
-         !do jproc=0,nproc-1!sproc,eproc
-         !   if (iproc==jproc) then
-         !      print*,istartend_c(1,jproc),istartend_c(2,jproc),nint(weightp_c),nint(weight_tot_c/dble(nproc)),nint(weightp_c-weight_tot_c/dble(nproc))
-         !   end if
-         !   call mpi_barrier(bigdft_mpi%mpi_comm,ierr)
-         !end do
-      end if
-
-      ! Same for fine region
-      tt=0.d0
-      weights_f_startend(1,0)=0.d0
-      do jproc=0,nproc-2
-          tt=tt+weight_f_ideal
-          weights_f_startend(2,jproc)=dble(floor(tt,kind=8))
-          weights_f_startend(1,jproc+1)=dble(floor(tt,kind=8))+1.d0
-      end do
-      weights_f_startend(2,nproc-1)=weight_tot_f
-    
-      istart=lzd%glr%wfd%nseg_c+min(1,lzd%glr%wfd%nseg_f)
-      iend=istart+lzd%glr%wfd%nseg_f-1
-
-      if (nproc==1) then
-         istartend_f(1,0)=1
-         istartend_f(2,0)=lzd%glr%wfd%nvctr_f
-         weightp_f = weight_tot_f
-         istartp_seg_f=istart
-         iendp_seg_f=iend
-         ttt=0.d0
-         do i1=0,lzd%glr%d%n1
-            do i2=0,lzd%glr%d%n2
-               do i3=0,lzd%glr%d%n3
-                  ttt = ttt+sqrt(weight_f(i1,i2,i3))
-               end do
-            end do
-         end do
-         nvalp_f=nint(ttt)
-      else
-
-         !$omp parallel default(none) &
-         !$omp private(sproc,eproc,iitot,iitote,iitotseg,ttseg,eseg,ith) &
-         !$omp shared(nproc_block,istart,iend,lzd,weight_f,iproc,nproc,weights_f_startend,weight_tot_f) &
-         !$omp shared(istartp_seg_f,iendp_seg_f,weightp_f,istartend_f,nth,nvalp_f)
-         ith=0
-         !$ ith = OMP_GET_THREAD_NUM()
-         !check we have enough MPI tasks for each thread
-         if (nproc_block>1) then
-            sproc=nint(nproc_block*ith)
-            if (ith==nth-1) then
-               eproc=nproc-1
-            else
-               eproc=nint(nproc_block*(ith+1))-1
-            end if
-         else
-            if (ith<nproc) then
-               sproc=ith
-               eproc=ith
-            else
-               sproc=-1
-               eproc=-1
-            end if
-         end if
-
-         if (ith/=0.and.sproc/=-1) then
-            call assign_weight_to_process_find_end_point(nproc, sproc, lzd, weight_f, &
-                 weights_f_startend, istart, iend, ttseg, iitotseg, eseg)
-         else
-            ttseg=0.d0
-            iitotseg=0
-            eseg=istart
-         end if
-
-         if (sproc/=-1)call assign_weight_to_process_sub(iproc, eproc+1, lzd, weight_f, weight_tot_f, &
-              istartend_f(1,sproc), istartp_seg_f, iendp_seg_f, weightp_f, weights_f_startend(1,sproc), &
-              eseg, iend, ttseg, iitotseg, sproc, nvalp_f)
-         !$omp end parallel
-
-         ! check
-         !call mpi_barrier(bigdft_mpi%mpi_comm,ierr)
-         !if (iproc==0) print*,''
-         !call mpi_barrier(bigdft_mpi%mpi_comm,ierr)
-         !do jproc=0,nproc-1!sproc,eproc
-         !   if (iproc==jproc) then
-         !      print*,istartend_f(1,jproc),istartend_f(2,jproc),nint(weightp_f),nint(weight_tot_f/dble(nproc)),nint(weightp_f-weight_tot_f/dble(nproc))
-         !   end if
-         !   call mpi_barrier(bigdft_mpi%mpi_comm,ierr)
-         !end do
-      end if
-
-      call f_free(weights_c_startend)
-      call f_free(weights_f_startend)
-    
-      nptsp_c=istartend_c(2,iproc)-istartend_c(1,iproc)+1
-      nptsp_f=istartend_f(2,iproc)-istartend_f(1,iproc)+1
-        
-      ! some check
-      ii_f=istartend_f(2,iproc)-istartend_f(1,iproc)+1
-      if (nproc > 1) then
-        call mpiallred(ii_f, 1, mpi_sum, bigdft_mpi%mpi_comm)
-      end if
-      !if(ii_f/=lzd%glr%wfd%nvctr_f) stop 'assign_weight_to_process: ii_f/=lzd%glr%wfd%nvctr_f'
-      if(ii_f/=lzd%glr%wfd%nvctr_f) then
-         write(*,*) 'ii_f/=lzd%glr%wfd%nvctr_f',ii_f,lzd%glr%wfd%nvctr_f
-         if (iproc==0) then
-             do jproc=0,nproc-1
-                 write(*,*) jproc, istartend_f(1,jproc), istartend_f(2,jproc)
-             end do
-         end if
-         stop
-      end if
-     
-      ii_c=istartend_c(2,iproc)-istartend_c(1,iproc)+1
-      if (nproc > 1) then
-        call mpiallred(ii_c, 1, mpi_sum, bigdft_mpi%mpi_comm)
-      end if
-      if(ii_c/=lzd%glr%wfd%nvctr_c) then
-         write(*,*) 'ii_c/=lzd%glr%wfd%nvctr_c',ii_c,lzd%glr%wfd%nvctr_c
-         stop
-      end if
-    
-      ! some checks
-      if (nproc > 1) then
-         call mpiallred(weightp_c,1,mpi_sum, bigdft_mpi%mpi_comm,recvbuf=tt)
-         !call mpi_allreduce(weightp_c, tt, 1, mpi_double_precision, mpi_sum, bigdft_mpi%mpi_comm, ierr)
-      else
-          tt=weightp_c
-      end if
-      if(tt/=weight_tot_c) then
-         write(*,*) 'wrong partition of coarse weights',tt,weight_tot_c
-         stop
-      end if
-      if (nproc > 1) then
-         call mpiallred(weightp_f,1,mpi_sum,bigdft_mpi%mpi_comm,recvbuf=tt)
-         !call mpi_allreduce(weightp_f, tt, 1, mpi_double_precision, mpi_sum, bigdft_mpi%mpi_comm, ierr)
-      else
-          tt=weightp_f
-      end if     
-      if(tt/=weight_tot_f) then
-         write(*,*) 'wrong partition of fine weights',tt,weight_tot_f
-         stop
-      end if
-      if (nproc > 1) then
-         call mpiallred(nptsp_c, 1,mpi_sum, bigdft_mpi%mpi_comm,recvbuf=ii)
-         !call mpi_allreduce(nptsp_c, ii, 1, mpi_integer, mpi_sum, bigdft_mpi%mpi_comm, ierr)
-      else
-          ii=nptsp_c
-      end if
-      if(ii/=lzd%glr%wfd%nvctr_c) then
-         write(*,*) 'wrong partition of coarse grid points',ii,lzd%glr%wfd%nvctr_c
-         stop
-      end if
-      if (nproc > 1) then
-         call mpiallred(nptsp_f, 1,mpi_sum, bigdft_mpi%mpi_comm,recvbuf=ii)
-         !call mpi_allreduce(nptsp_f, ii, 1, mpi_integer, mpi_sum, bigdft_mpi%mpi_comm, ierr)
-      else
-          ii=nptsp_f
-      end if
-      if(ii/=lzd%glr%wfd%nvctr_f) then
-         write(*,*) 'wrong partition of fine grid points',ii,lzd%glr%wfd%nvctr_f
-         stop
-      end if
-      
-    end subroutine assign_weight_to_process_new
-
-    !better name and change names to indicate coarse OR fine
-    subroutine assign_weight_to_process_sub(iproc, nproc, lzd, weight_c, weight_tot_c, &
-               istartend_c, istartp_seg_c, iendp_seg_c, weightp_c, weights_c_startend,&
-               istart, iend, ttseg, iitotseg, jprocs, nvalp_c)
-      use module_base
-      use module_types
-      implicit none
-      
-      ! Calling arguments
-      integer,intent(in) :: iproc, nproc
-      type(local_zone_descriptors),intent(in) :: lzd
-      real(kind=8),dimension(0:lzd%glr%d%n1,0:lzd%glr%d%n2,0:lzd%glr%d%n3),intent(in) :: weight_c
-      real(kind=8),intent(in) :: weight_tot_c
-      integer,dimension(2,jprocs:nproc-1),intent(out) :: istartend_c
-      integer,intent(inout) :: istartp_seg_c, iendp_seg_c
-      real(kind=8),intent(inout) :: weightp_c
-      real(kind=8),dimension(1:2,jprocs:nproc-1),intent(in) :: weights_c_startend
-      integer, intent(in) :: istart, iend
-      integer, intent(in) :: iitotseg
-      real(kind=8), intent(in) :: ttseg
-      integer, intent(in) :: jprocs
-      integer, intent(out) :: nvalp_c
-      
-      ! Local variables
-      integer ::  jproc, i1, i2, i3, ii, j0, j1, n1p1, np, i, iseg, i0, iitot
-      real(kind=8) :: tt2, tt, ttt
-    
-      ! Iterate through all grid points and assign them to processes such that the
-      ! load balancing is optimal.
-      jproc=jprocs
-      tt=ttseg
-      tt2=0.d0
-      ttt=0.d0
-      iitot=iitotseg
-      n1p1=lzd%glr%d%n1+1
-      np=n1p1*(lzd%glr%d%n2+1)
-      loop_nseg_c: do iseg=istart,iend
-         j0=lzd%glr%wfd%keyglob(1,iseg)
-         j1=lzd%glr%wfd%keyglob(2,iseg)
-         ii=j0-1
-         i3=ii/np
-         ii=ii-i3*np
-         i2=ii/n1p1
-         i0=ii-i2*n1p1
-         i1=i0+j1-j0
-         do i=i0,i1
-            tt=tt+weight_c(i,i2,i3)
-            tt2=tt2+weight_c(i,i2,i3)
-            ttt=ttt+sqrt(weight_c(i,i2,i3))
-            iitot=iitot+1
-            if (jproc==nproc) then
-               if (tt>weights_c_startend(2,jproc-1)+1) exit loop_nseg_c
-            else if (tt>weights_c_startend(1,jproc)) then
-               if (jproc>jprocs) then
-                  if (iproc==jproc) then
-                     istartp_seg_c=iseg
-                  else if (iproc==jproc-1) then
-                     iendp_seg_c=iseg
-                     weightp_c=tt2
-                     nvalp_c=nint(ttt)
-                  end if
-                  tt2=0.d0
-                  ttt=0.d0
-                  istartend_c(1,jproc)=iitot+1
-               else if (jproc==jprocs) then
-                  if (jproc==0) then
-                     istartend_c(1,jproc)=1
-                     if (iproc==jproc) istartp_seg_c=istart
-                  else
-                     tt2=0.d0
-                     ttt=0.d0
-                     istartend_c(1,jproc)=iitot+1
-                     if (iproc==jproc) istartp_seg_c=iseg
-                  end if
-               end if
-               jproc=jproc+1
-            end if
-         end do
-      end do loop_nseg_c
-    
-      do jproc=jprocs,nproc-2
-         istartend_c(2,jproc)=istartend_c(1,jproc+1)-1
-      end do
-      istartend_c(2,nproc-1)=iitot    
-
-      if(iproc==nproc-1) then
-         weightp_c=tt2
-         iendp_seg_c=min(iseg,iend)
-         nvalp_c=nint(ttt)
-      end if
-
-    end subroutine assign_weight_to_process_sub
-
-    subroutine assign_weight_to_process_find_end_point(iproc, nproc, lzd, weight_c, &
-               weights_c_startend, istart, iend, ttseg, iitot, iseg)
-      use module_base
-      use module_types
-      implicit none
-      
-      ! Calling arguments
-      integer,intent(in) :: iproc, nproc !technically nproc isn't full nproc...
-      type(local_zone_descriptors),intent(in) :: lzd
-      real(kind=8),dimension(0:lzd%glr%d%n1,0:lzd%glr%d%n2,0:lzd%glr%d%n3),intent(in) :: weight_c
-      real(kind=8),dimension(1:2,0:nproc),intent(in) :: weights_c_startend
-      integer, intent(in) :: istart, iend
-      integer, intent(out) :: iitot, iseg
-      real(kind=8), intent(out) :: ttseg
-      
-      ! Local variables
-      integer ::  i1, i2, i3, ii, j0, j1, n1p1, np, i, i0
-      real(kind=8) :: tt
-
-      tt=0.d0
-      iitot=0
-      n1p1=lzd%glr%d%n1+1
-      np=n1p1*(lzd%glr%d%n2+1)
-      loop_nseg_c: do iseg=istart,iend
-         j0=lzd%glr%wfd%keyglob(1,iseg)
-         j1=lzd%glr%wfd%keyglob(2,iseg)
-         ii=j0-1
-         i3=ii/np
-         ii=ii-i3*np
-         i2=ii/n1p1
-         i0=ii-i2*n1p1
-         i1=i0+j1-j0
-         tt=tt+sum(weight_c(i0:i1,i2,i3))
-         if (tt>weights_c_startend(1,nproc)) exit
-         ttseg=tt
-         iitot=iitot+i1-i0+1
-      end do loop_nseg_c
-
-    end subroutine assign_weight_to_process_find_end_point
+!!    subroutine assign_weight_to_process_new(iproc, nproc, lzd, weight_c, weight_f, weight_tot_c, weight_tot_f, &
+!!               istartend_c, istartend_f, istartp_seg_c, iendp_seg_c, istartp_seg_f, iendp_seg_f, &
+!!               weightp_c, weightp_f, nptsp_c, nptsp_f, nvalp_c, nvalp_f)
+!!      use module_base
+!!      use module_types
+!!      implicit none
+!!      
+!!      ! Calling arguments
+!!      integer,intent(in) :: iproc, nproc
+!!      type(local_zone_descriptors),intent(in) :: lzd
+!!      real(kind=8),dimension(0:lzd%glr%d%n1,0:lzd%glr%d%n2,0:lzd%glr%d%n3),intent(in) :: weight_c, weight_f
+!!      real(kind=8),intent(in) :: weight_tot_c, weight_tot_f
+!!      integer,dimension(2,0:nproc-1),intent(out) :: istartend_c, istartend_f
+!!      integer,intent(out) :: istartp_seg_c, iendp_seg_c, istartp_seg_f, iendp_seg_f
+!!      real(kind=8),intent(out) :: weightp_c, weightp_f
+!!      integer,intent(out) :: nptsp_c, nptsp_f
+!!      integer,intent(out) :: nvalp_c, nvalp_f
+!!      
+!!      ! Local variables
+!!      integer :: jproc, i1, i2, i3, ii, istart, iend, j0, j1, ii_c, ii_f, n1p1, np, it, npr
+!!      integer :: i, iseg, i0, iitot, eproc, sproc, ith, nth, ierr, eseg, iitotseg, iitote
+!!      real(kind=8) :: tt, ttseg, tt2, weight_c_ideal, weight_f_ideal, nproc_block, ttt
+!!      real(kind=8),dimension(:,:),allocatable :: weights_c_startend, weights_f_startend
+!!      real(kind=4) :: tr0, tr1
+!!      real(kind=8) :: time1, time2
+!!      !$ integer  :: omp_get_thread_num,omp_get_max_threads
+!!    
+!!      ! Ideal weight per process.
+!!      weight_c_ideal=weight_tot_c/dble(nproc)
+!!      weight_f_ideal=weight_tot_f/dble(nproc)
+!!    
+!!      weights_c_startend = f_malloc((/ 1.to.2, 0.to.nproc-1 /),id='weights_c_startend')
+!!      weights_f_startend = f_malloc((/ 1.to.2, 0.to.nproc-1 /),id='weights_f_startend')
+!!    
+!!      tt=0.d0
+!!      weights_c_startend(1,0)=0.d0
+!!      do jproc=0,nproc-2
+!!          tt=tt+weight_c_ideal
+!!          weights_c_startend(2,jproc)=dble(floor(tt,kind=8))
+!!          weights_c_startend(1,jproc+1)=dble(floor(tt,kind=8))+1.d0
+!!      end do
+!!      weights_c_startend(2,nproc-1)=weight_tot_c
+!!
+!!      !split into subroutine and divide into larger sections so each thread does one chunk of MPI procs
+!!      istart=1
+!!      iend=lzd%glr%wfd%nseg_c
+!!
+!!      if (nproc==1) then
+!!         istartend_c(1,0)=1
+!!         istartend_c(2,0)=lzd%glr%wfd%nvctr_c
+!!         weightp_c = weight_tot_c 
+!!         istartp_seg_c=istart
+!!         iendp_seg_c=iend
+!!         ttt=0.d0
+!!         do i1=0,lzd%glr%d%n1
+!!            do i2=0,lzd%glr%d%n2
+!!               do i3=0,lzd%glr%d%n3
+!!                  ttt = ttt+sqrt(weight_c(i1,i2,i3))
+!!               end do
+!!            end do
+!!         end do
+!!         nvalp_c=nint(ttt)
+!!      else
+!!         nth=1
+!!         !$  nth = OMP_GET_max_threads()
+!!         nproc_block=real(nproc,kind=8)/nth
+!!
+!!         !$omp parallel default(none) &
+!!         !$omp private(sproc,eproc,iitot,iitote,iitotseg,ttseg,eseg,ith,time1,tr0,tr1,time2) &
+!!         !$omp shared(nproc_block,istart,iend,lzd,weight_c,iproc,nproc,weights_c_startend,weight_tot_c) &
+!!         !$omp shared(istartp_seg_c,iendp_seg_c,weightp_c,istartend_c,nth,nvalp_c)
+!!         ith=0
+!!         !$ ith = OMP_GET_THREAD_NUM()
+!!         !check we have enough MPI tasks for each thread
+!!         if (nproc_block>1) then
+!!            sproc=nint(nproc_block*ith)
+!!            if (ith==nth-1) then
+!!               eproc=nproc-1
+!!            else
+!!               eproc=nint(nproc_block*(ith+1))-1
+!!            end if
+!!         else
+!!            if (ith<nproc) then
+!!               sproc=ith
+!!               eproc=ith
+!!            else
+!!               sproc=-1
+!!               eproc=-1
+!!            end if
+!!         end if
+!!
+!!         !call cpu_time(tr0)
+!!         if (ith/=0.and.sproc/=-1) then
+!!            call assign_weight_to_process_find_end_point(nproc, sproc, lzd, weight_c, &
+!!                 weights_c_startend, istart, iend, ttseg, iitotseg, eseg)
+!!         else
+!!            ttseg=0.d0
+!!            iitotseg=0
+!!            eseg=istart
+!!         end if
+!!         !call cpu_time(tr1)
+!!         !time2=real(tr1-tr0,kind=8)
+!!
+!!         if (sproc/=-1) call assign_weight_to_process_sub(iproc, eproc+1, lzd, weight_c, weight_tot_c, &
+!!              istartend_c(1,sproc), istartp_seg_c, iendp_seg_c, weightp_c, weights_c_startend(1,sproc), &
+!!              eseg, iend, ttseg, iitotseg, sproc, nvalp_c)
+!!         !call cpu_time(tr0)
+!!         !time1=real(tr0-tr1,kind=8)
+!!         !if (iproc==0) print*,'thread times',iproc,ith,time2,time1,time1+time2
+!!         !$omp end parallel
+!!
+!!         ! check
+!!         !call mpi_barrier(bigdft_mpi%mpi_comm,ierr)
+!!         !if (iproc==0) print*,''
+!!         !call mpi_barrier(bigdft_mpi%mpi_comm,ierr)
+!!         !do jproc=0,nproc-1!sproc,eproc
+!!         !   if (iproc==jproc) then
+!!         !      print*,istartend_c(1,jproc),istartend_c(2,jproc),nint(weightp_c),nint(weight_tot_c/dble(nproc)),nint(weightp_c-weight_tot_c/dble(nproc))
+!!         !   end if
+!!         !   call mpi_barrier(bigdft_mpi%mpi_comm,ierr)
+!!         !end do
+!!      end if
+!!
+!!      ! Same for fine region
+!!      tt=0.d0
+!!      weights_f_startend(1,0)=0.d0
+!!      do jproc=0,nproc-2
+!!          tt=tt+weight_f_ideal
+!!          weights_f_startend(2,jproc)=dble(floor(tt,kind=8))
+!!          weights_f_startend(1,jproc+1)=dble(floor(tt,kind=8))+1.d0
+!!      end do
+!!      weights_f_startend(2,nproc-1)=weight_tot_f
+!!    
+!!      istart=lzd%glr%wfd%nseg_c+min(1,lzd%glr%wfd%nseg_f)
+!!      iend=istart+lzd%glr%wfd%nseg_f-1
+!!
+!!      if (nproc==1) then
+!!         istartend_f(1,0)=1
+!!         istartend_f(2,0)=lzd%glr%wfd%nvctr_f
+!!         weightp_f = weight_tot_f
+!!         istartp_seg_f=istart
+!!         iendp_seg_f=iend
+!!         ttt=0.d0
+!!         do i1=0,lzd%glr%d%n1
+!!            do i2=0,lzd%glr%d%n2
+!!               do i3=0,lzd%glr%d%n3
+!!                  ttt = ttt+sqrt(weight_f(i1,i2,i3))
+!!               end do
+!!            end do
+!!         end do
+!!         nvalp_f=nint(ttt)
+!!      else
+!!
+!!         !$omp parallel default(none) &
+!!         !$omp private(sproc,eproc,iitot,iitote,iitotseg,ttseg,eseg,ith) &
+!!         !$omp shared(nproc_block,istart,iend,lzd,weight_f,iproc,nproc,weights_f_startend,weight_tot_f) &
+!!         !$omp shared(istartp_seg_f,iendp_seg_f,weightp_f,istartend_f,nth,nvalp_f)
+!!         ith=0
+!!         !$ ith = OMP_GET_THREAD_NUM()
+!!         !check we have enough MPI tasks for each thread
+!!         if (nproc_block>1) then
+!!            sproc=nint(nproc_block*ith)
+!!            if (ith==nth-1) then
+!!               eproc=nproc-1
+!!            else
+!!               eproc=nint(nproc_block*(ith+1))-1
+!!            end if
+!!         else
+!!            if (ith<nproc) then
+!!               sproc=ith
+!!               eproc=ith
+!!            else
+!!               sproc=-1
+!!               eproc=-1
+!!            end if
+!!         end if
+!!
+!!         if (ith/=0.and.sproc/=-1) then
+!!            call assign_weight_to_process_find_end_point(nproc, sproc, lzd, weight_f, &
+!!                 weights_f_startend, istart, iend, ttseg, iitotseg, eseg)
+!!         else
+!!            ttseg=0.d0
+!!            iitotseg=0
+!!            eseg=istart
+!!         end if
+!!
+!!         if (sproc/=-1)call assign_weight_to_process_sub(iproc, eproc+1, lzd, weight_f, weight_tot_f, &
+!!              istartend_f(1,sproc), istartp_seg_f, iendp_seg_f, weightp_f, weights_f_startend(1,sproc), &
+!!              eseg, iend, ttseg, iitotseg, sproc, nvalp_f)
+!!         !$omp end parallel
+!!
+!!         ! check
+!!         !call mpi_barrier(bigdft_mpi%mpi_comm,ierr)
+!!         !if (iproc==0) print*,''
+!!         !call mpi_barrier(bigdft_mpi%mpi_comm,ierr)
+!!         !do jproc=0,nproc-1!sproc,eproc
+!!         !   if (iproc==jproc) then
+!!         !      print*,istartend_f(1,jproc),istartend_f(2,jproc),nint(weightp_f),nint(weight_tot_f/dble(nproc)),nint(weightp_f-weight_tot_f/dble(nproc))
+!!         !   end if
+!!         !   call mpi_barrier(bigdft_mpi%mpi_comm,ierr)
+!!         !end do
+!!      end if
+!!
+!!      call f_free(weights_c_startend)
+!!      call f_free(weights_f_startend)
+!!    
+!!      nptsp_c=istartend_c(2,iproc)-istartend_c(1,iproc)+1
+!!      nptsp_f=istartend_f(2,iproc)-istartend_f(1,iproc)+1
+!!        
+!!      ! some check
+!!      ii_f=istartend_f(2,iproc)-istartend_f(1,iproc)+1
+!!      if (nproc > 1) then
+!!        call mpiallred(ii_f, 1, mpi_sum, bigdft_mpi%mpi_comm)
+!!      end if
+!!      !if(ii_f/=lzd%glr%wfd%nvctr_f) stop 'assign_weight_to_process: ii_f/=lzd%glr%wfd%nvctr_f'
+!!      if(ii_f/=lzd%glr%wfd%nvctr_f) then
+!!         write(*,*) 'ii_f/=lzd%glr%wfd%nvctr_f',ii_f,lzd%glr%wfd%nvctr_f
+!!         if (iproc==0) then
+!!             do jproc=0,nproc-1
+!!                 write(*,*) jproc, istartend_f(1,jproc), istartend_f(2,jproc)
+!!             end do
+!!         end if
+!!         stop
+!!      end if
+!!     
+!!      ii_c=istartend_c(2,iproc)-istartend_c(1,iproc)+1
+!!      if (nproc > 1) then
+!!        call mpiallred(ii_c, 1, mpi_sum, bigdft_mpi%mpi_comm)
+!!      end if
+!!      if(ii_c/=lzd%glr%wfd%nvctr_c) then
+!!         write(*,*) 'ii_c/=lzd%glr%wfd%nvctr_c',ii_c,lzd%glr%wfd%nvctr_c
+!!         stop
+!!      end if
+!!    
+!!      ! some checks
+!!      if (nproc > 1) then
+!!         call mpiallred(weightp_c,1,mpi_sum, bigdft_mpi%mpi_comm,recvbuf=tt)
+!!         !call mpi_allreduce(weightp_c, tt, 1, mpi_double_precision, mpi_sum, bigdft_mpi%mpi_comm, ierr)
+!!      else
+!!          tt=weightp_c
+!!      end if
+!!      if(tt/=weight_tot_c) then
+!!         write(*,*) 'wrong partition of coarse weights',tt,weight_tot_c
+!!         stop
+!!      end if
+!!      if (nproc > 1) then
+!!         call mpiallred(weightp_f,1,mpi_sum,bigdft_mpi%mpi_comm,recvbuf=tt)
+!!         !call mpi_allreduce(weightp_f, tt, 1, mpi_double_precision, mpi_sum, bigdft_mpi%mpi_comm, ierr)
+!!      else
+!!          tt=weightp_f
+!!      end if     
+!!      if(tt/=weight_tot_f) then
+!!         write(*,*) 'wrong partition of fine weights',tt,weight_tot_f
+!!         stop
+!!      end if
+!!      if (nproc > 1) then
+!!         call mpiallred(nptsp_c, 1,mpi_sum, bigdft_mpi%mpi_comm,recvbuf=ii)
+!!         !call mpi_allreduce(nptsp_c, ii, 1, mpi_integer, mpi_sum, bigdft_mpi%mpi_comm, ierr)
+!!      else
+!!          ii=nptsp_c
+!!      end if
+!!      if(ii/=lzd%glr%wfd%nvctr_c) then
+!!         write(*,*) 'wrong partition of coarse grid points',ii,lzd%glr%wfd%nvctr_c
+!!         stop
+!!      end if
+!!      if (nproc > 1) then
+!!         call mpiallred(nptsp_f, 1,mpi_sum, bigdft_mpi%mpi_comm,recvbuf=ii)
+!!         !call mpi_allreduce(nptsp_f, ii, 1, mpi_integer, mpi_sum, bigdft_mpi%mpi_comm, ierr)
+!!      else
+!!          ii=nptsp_f
+!!      end if
+!!      if(ii/=lzd%glr%wfd%nvctr_f) then
+!!         write(*,*) 'wrong partition of fine grid points',ii,lzd%glr%wfd%nvctr_f
+!!         stop
+!!      end if
+!!      
+!!    end subroutine assign_weight_to_process_new
+!!
+!!    !better name and change names to indicate coarse OR fine
+!!    subroutine assign_weight_to_process_sub(iproc, nproc, lzd, weight_c, weight_tot_c, &
+!!               istartend_c, istartp_seg_c, iendp_seg_c, weightp_c, weights_c_startend,&
+!!               istart, iend, ttseg, iitotseg, jprocs, nvalp_c)
+!!      use module_base
+!!      use module_types
+!!      implicit none
+!!      
+!!      ! Calling arguments
+!!      integer,intent(in) :: iproc, nproc
+!!      type(local_zone_descriptors),intent(in) :: lzd
+!!      real(kind=8),dimension(0:lzd%glr%d%n1,0:lzd%glr%d%n2,0:lzd%glr%d%n3),intent(in) :: weight_c
+!!      real(kind=8),intent(in) :: weight_tot_c
+!!      integer,dimension(2,jprocs:nproc-1),intent(out) :: istartend_c
+!!      integer,intent(inout) :: istartp_seg_c, iendp_seg_c
+!!      real(kind=8),intent(inout) :: weightp_c
+!!      real(kind=8),dimension(1:2,jprocs:nproc-1),intent(in) :: weights_c_startend
+!!      integer, intent(in) :: istart, iend
+!!      integer, intent(in) :: iitotseg
+!!      real(kind=8), intent(in) :: ttseg
+!!      integer, intent(in) :: jprocs
+!!      integer, intent(out) :: nvalp_c
+!!      
+!!      ! Local variables
+!!      integer ::  jproc, i1, i2, i3, ii, j0, j1, n1p1, np, i, iseg, i0, iitot
+!!      real(kind=8) :: tt2, tt, ttt
+!!    
+!!      ! Iterate through all grid points and assign them to processes such that the
+!!      ! load balancing is optimal.
+!!      jproc=jprocs
+!!      tt=ttseg
+!!      tt2=0.d0
+!!      ttt=0.d0
+!!      iitot=iitotseg
+!!      n1p1=lzd%glr%d%n1+1
+!!      np=n1p1*(lzd%glr%d%n2+1)
+!!      loop_nseg_c: do iseg=istart,iend
+!!         j0=lzd%glr%wfd%keyglob(1,iseg)
+!!         j1=lzd%glr%wfd%keyglob(2,iseg)
+!!         ii=j0-1
+!!         i3=ii/np
+!!         ii=ii-i3*np
+!!         i2=ii/n1p1
+!!         i0=ii-i2*n1p1
+!!         i1=i0+j1-j0
+!!         do i=i0,i1
+!!            tt=tt+weight_c(i,i2,i3)
+!!            tt2=tt2+weight_c(i,i2,i3)
+!!            ttt=ttt+sqrt(weight_c(i,i2,i3))
+!!            iitot=iitot+1
+!!            if (jproc==nproc) then
+!!               if (tt>weights_c_startend(2,jproc-1)+1) exit loop_nseg_c
+!!            else if (tt>weights_c_startend(1,jproc)) then
+!!               if (jproc>jprocs) then
+!!                  if (iproc==jproc) then
+!!                     istartp_seg_c=iseg
+!!                  else if (iproc==jproc-1) then
+!!                     iendp_seg_c=iseg
+!!                     weightp_c=tt2
+!!                     nvalp_c=nint(ttt)
+!!                  end if
+!!                  tt2=0.d0
+!!                  ttt=0.d0
+!!                  istartend_c(1,jproc)=iitot+1
+!!               else if (jproc==jprocs) then
+!!                  if (jproc==0) then
+!!                     istartend_c(1,jproc)=1
+!!                     if (iproc==jproc) istartp_seg_c=istart
+!!                  else
+!!                     tt2=0.d0
+!!                     ttt=0.d0
+!!                     istartend_c(1,jproc)=iitot+1
+!!                     if (iproc==jproc) istartp_seg_c=iseg
+!!                  end if
+!!               end if
+!!               jproc=jproc+1
+!!            end if
+!!         end do
+!!      end do loop_nseg_c
+!!    
+!!      do jproc=jprocs,nproc-2
+!!         istartend_c(2,jproc)=istartend_c(1,jproc+1)-1
+!!      end do
+!!      istartend_c(2,nproc-1)=iitot    
+!!
+!!      if(iproc==nproc-1) then
+!!         weightp_c=tt2
+!!         iendp_seg_c=min(iseg,iend)
+!!         nvalp_c=nint(ttt)
+!!      end if
+!!
+!!    end subroutine assign_weight_to_process_sub
+!!
+!!    subroutine assign_weight_to_process_find_end_point(iproc, nproc, lzd, weight_c, &
+!!               weights_c_startend, istart, iend, ttseg, iitot, iseg)
+!!      use module_base
+!!      use module_types
+!!      implicit none
+!!      
+!!      ! Calling arguments
+!!      integer,intent(in) :: iproc, nproc !technically nproc isn't full nproc...
+!!      type(local_zone_descriptors),intent(in) :: lzd
+!!      real(kind=8),dimension(0:lzd%glr%d%n1,0:lzd%glr%d%n2,0:lzd%glr%d%n3),intent(in) :: weight_c
+!!      real(kind=8),dimension(1:2,0:nproc),intent(in) :: weights_c_startend
+!!      integer, intent(in) :: istart, iend
+!!      integer, intent(out) :: iitot, iseg
+!!      real(kind=8), intent(out) :: ttseg
+!!      
+!!      ! Local variables
+!!      integer ::  i1, i2, i3, ii, j0, j1, n1p1, np, i, i0
+!!      real(kind=8) :: tt
+!!
+!!      tt=0.d0
+!!      iitot=0
+!!      n1p1=lzd%glr%d%n1+1
+!!      np=n1p1*(lzd%glr%d%n2+1)
+!!      loop_nseg_c: do iseg=istart,iend
+!!         j0=lzd%glr%wfd%keyglob(1,iseg)
+!!         j1=lzd%glr%wfd%keyglob(2,iseg)
+!!         ii=j0-1
+!!         i3=ii/np
+!!         ii=ii-i3*np
+!!         i2=ii/n1p1
+!!         i0=ii-i2*n1p1
+!!         i1=i0+j1-j0
+!!         tt=tt+sum(weight_c(i0:i1,i2,i3))
+!!         if (tt>weights_c_startend(1,nproc)) exit
+!!         ttseg=tt
+!!         iitot=iitot+i1-i0+1
+!!      end do loop_nseg_c
+!!
+!!    end subroutine assign_weight_to_process_find_end_point
 
     subroutine get_index_in_global2(lr, ii3min, ii3max, jj3min, index_in_global_c, index_in_global_f)
     use module_base
@@ -1954,7 +1974,7 @@ module communications_init
 
 
     subroutine determine_num_orbs_per_gridpoint_new(iproc, nproc, lzd, i3s, n3p, weightppp_c, weightppp_f, &
-               istartend_c, istartend_f, &
+               jj3min, istartend_c, istartend_f, &
                istartp_seg_c, iendp_seg_c, istartp_seg_f, iendp_seg_f, &
                weightp_c, weightp_f, nptsp_c, nptsp_f, &
                norb_per_gridpoint_c, norb_per_gridpoint_f)
@@ -1963,7 +1983,7 @@ module communications_init
       implicit none
       
       ! Calling arguments
-      integer,intent(in):: iproc, nproc, i3s, n3p, nptsp_c, nptsp_f, istartp_seg_c, iendp_seg_c, istartp_seg_f, iendp_seg_f
+      integer,intent(in):: iproc, nproc, i3s, n3p, nptsp_c, nptsp_f, jj3min, istartp_seg_c, iendp_seg_c, istartp_seg_f, iendp_seg_f
       type(local_zone_descriptors),intent(in):: lzd
       integer,dimension(2,0:nproc-1),intent(in):: istartend_c, istartend_f
       real(kind=8),intent(in):: weightp_c, weightp_f
@@ -1973,7 +1993,7 @@ module communications_init
       
       ! Local variables
       integer :: ii, i1, i2, i3, iipt, iseg, jj, j0, j1, iitot, i, istart, iend, i0
-      integer :: icheck_c,icheck_f,iiorb_c,iiorb_f, npgp_c,npgp_f,np,n1p1
+      integer :: icheck_c,icheck_f,iiorb_c,iiorb_f, npgp_c,npgp_f,np,n1p1, jj3
       integer :: window, i3min_c, i3max_c, i3min_f, i3max_f, size_of_double, ierr, jproc, is, ie, info, ncount
       integer,dimension(:),allocatable :: i3s_par, n3_par
       real(kind=8),dimension(:,:,:),pointer :: workrecv_c, workrecv_f
@@ -1996,7 +2016,7 @@ module communications_init
 
        ! Initialize the MPI window
        if (nproc>1) then
-           ! These arrays start at one instead of 0
+           ! These arrays start at 1 instead of 0
            i3min_c = (lzd%glr%wfd%keyglob(1,istartp_seg_c)-1)/np + 1
            i3max_c = (lzd%glr%wfd%keyglob(2,iendp_seg_c)-1)/np + 1
 
@@ -2048,12 +2068,13 @@ module communications_init
 
        icheck_c = 0
        iiorb_c = 0
-       do iseg=istartp_seg_c,iendp_seg_c
+       do iseg=1,lzd%glr%wfd%nseg_c !istartp_seg_c,iendp_seg_c
            jj=lzd%glr%wfd%keyvglob(iseg)
            j0=lzd%glr%wfd%keyglob(1,iseg)
            j1=lzd%glr%wfd%keyglob(2,iseg)
            ii=j0-1
            i3=ii/np
+           !jj3=modulo(i3-jj3min,(lzd%glr%d%n3+1))+1
            ii=ii-i3*np
            i2=ii/n1p1
            i0=ii-i2*n1p1
@@ -2066,6 +2087,8 @@ module communications_init
                    iipt=jj-istartend_c(1,iproc)+i-i0+1
                    npgp_c = nint(sqrt(workrecv_c(i,i2,i3+1)))
                    iiorb_c=iiorb_c+nint(workrecv_c(i,i2,i3+1))
+                   !!npgp_c = nint(sqrt(workrecv_c(i,i2,jj3)))
+                   !!iiorb_c=iiorb_c+nint(workrecv_c(i,i2,jj3))
                    norb_per_gridpoint_c(iipt)=npgp_c
                end if
            end do
@@ -2139,12 +2162,13 @@ module communications_init
 
        icheck_f = 0
        iiorb_f = 0
-       do iseg=istartp_seg_f,iendp_seg_f
+       do iseg=lzd%glr%wfd%nseg_c+1,lzd%glr%wfd%nseg_c+lzd%glr%wfd%nseg_f !istartp_seg_f,iendp_seg_f
            jj=lzd%glr%wfd%keyvglob(iseg)
            j0=lzd%glr%wfd%keyglob(1,iseg)
            j1=lzd%glr%wfd%keyglob(2,iseg)
            ii=j0-1
            i3=ii/np
+           !!jj3=modulo(i3-jj3min,(lzd%glr%d%n3+1))+1
            ii=ii-i3*np
            i2=ii/n1p1
            i0=ii-i2*n1p1
@@ -2157,7 +2181,11 @@ module communications_init
                    iipt=jj-istartend_f(1,iproc)+i-i0+1
                    npgp_f = nint(sqrt(workrecv_f(i,i2,i3+1)))
                    iiorb_f=iiorb_f+nint(workrecv_f(i,i2,i3+1))
+                   !!npgp_f = nint(sqrt(workrecv_f(i,i2,jj3)))
+                   !!iiorb_f=iiorb_f+nint(workrecv_f(i,i2,jj3))
                    norb_per_gridpoint_f(iipt)=npgp_f
+                   !write(*,'(a,6i8)') 'iipt, i, i2, i3, jj3, npgp_f', iipt, i, i2, i3, jj3, npgp_f
+                   write(*,'(a,6i8)') 'iipt, i, i2, i3, npgp_f', iipt, i, i2, i3, npgp_f
                end if
            end do
        end do
@@ -2369,6 +2397,7 @@ module communications_init
                   ind=nsenddspls_f(jproctarget)+nsend_f(jproctarget)
                   isendbuf_f(iitot)=ind
                   indexsendbuf_f(ind)=indglob
+                  write(*,*) 'iiorb, ind, indglob', iiorb, ind, indglob
                   indexsendorbital_f(iitot)=iiorb
                end if
                !indexsendorbital(ind)=iiorb
@@ -2453,6 +2482,7 @@ module communications_init
           if (norb_per_gridpoint_f(ipt)>0) then
               gridpoint_start_f(i)=ii
           else
+              write(*,*) 'SET gridpoint_start_f TO ZERO: i',i
               gridpoint_start_f(i)=0
           end if
           ii=ii+norb_per_gridpoint_f(ipt)
@@ -2502,6 +2532,7 @@ module communications_init
           do i=1,sum(nrecvcounts_f)
               ii=indexrecvbuf_f(i)
               ind=gridpoint_start_f(ii)
+              !if(ind<1) write(*,*) 'ERROR: ind<1, i, ii, ind',i, ii, ind
               iextract_f(i)=ind
               gridpoint_start_f(ii)=gridpoint_start_f(ii)+1  
           end do
