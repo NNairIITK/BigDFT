@@ -1949,6 +1949,17 @@ subroutine determine_sparsity_pattern(iproc, nproc, orbs, lzd, nnonzero, nonzero
          do jorb=1,orbs%norbu
             jlr=orbs%inWhichLocreg(jorb)
             call check_overlap_cubic_periodic(lzd%Glr,lzd%llr(ilr),lzd%llr(jlr),isoverlap)
+            !write(*,'(a,3(6i6,4x),l4)') 'is1, ie1, is2, ie2, is3, ie3, js1, je1, js2, je2, js3, je3, ns1, ne1, ns2, ne2, ns3, ne3, isoverlap', &
+            !    lzd%llr(ilr)%ns1, lzd%llr(ilr)%ns1+lzd%llr(ilr)%d%n1, &
+            !    lzd%llr(ilr)%ns2, lzd%llr(ilr)%ns2+lzd%llr(ilr)%d%n2, &
+            !    lzd%llr(ilr)%ns3, lzd%llr(ilr)%ns3+lzd%llr(ilr)%d%n3, &
+            !    lzd%llr(jlr)%ns1, lzd%llr(jlr)%ns1+lzd%llr(jlr)%d%n1, &
+            !    lzd%llr(jlr)%ns2, lzd%llr(jlr)%ns2+lzd%llr(jlr)%d%n2, &
+            !    lzd%llr(jlr)%ns3, lzd%llr(jlr)%ns3+lzd%llr(jlr)%d%n3, &
+            !    lzd%glr%ns1, lzd%glr%ns1+lzd%glr%d%n1, &
+            !    lzd%glr%ns2, lzd%glr%ns2+lzd%glr%d%n2, &
+            !    lzd%glr%ns3, lzd%glr%ns3+lzd%glr%d%n3, &
+            !    isoverlap
             if(isoverlap) then
                ! From the viewpoint of the box boundaries, an overlap between ilr and jlr is possible.
                ! Now explicitly check whether there is an overlap by using the descriptors.
@@ -1965,6 +1976,7 @@ subroutine determine_sparsity_pattern(iproc, nproc, orbs, lzd, nnonzero, nonzero
             else
                overlapMatrix(jorb,iorb)=.false.
             end if
+            write(*,'(a,2i8,l4)') 'iiorb, jorb, isoverlap', iiorb, jorb, isoverlap
          end do
          noverlapsarr(iorb)=ioverlaporb
       end do
@@ -2028,8 +2040,10 @@ subroutine determine_sparsity_pattern_distance(orbs, lzd, astruct, cutoff, nnonz
   integer, dimension(:,:), pointer,intent(out) :: nonzero
 
   ! Local variables
+  logical :: overlap
+  integer :: i1, i2, i3
   integer :: iorb, iiorb, ilr, iwa, itype, jjorb, jlr, jwa, jtype, ii
-  real(kind=8) :: tt, cut
+  real(kind=8) :: tt, cut, xi, yi, zi, xj, yj, zj, x0, y0, z0
 
   call f_routine('determine_sparsity_pattern_distance')
 
@@ -2039,16 +2053,33 @@ subroutine determine_sparsity_pattern_distance(orbs, lzd, astruct, cutoff, nnonz
          ilr=orbs%inwhichlocreg(iiorb)
          iwa=orbs%onwhichatom(iiorb)
          itype=astruct%iatype(iwa)
+         xi=lzd%llr(ilr)%locregcenter(1)
+         yi=lzd%llr(ilr)%locregcenter(2)
+         zi=lzd%llr(ilr)%locregcenter(3)
          do jjorb=1,orbs%norbu
             jlr=orbs%inwhichlocreg(jjorb)
             jwa=orbs%onwhichatom(jjorb)
             jtype=astruct%iatype(jwa)
-            tt = (lzd%llr(ilr)%locregcenter(1)-lzd%llr(jlr)%locregcenter(1))**2 + &
-                 (lzd%llr(ilr)%locregcenter(2)-lzd%llr(jlr)%locregcenter(2))**2 + &
-                 (lzd%llr(ilr)%locregcenter(3)-lzd%llr(jlr)%locregcenter(3))**2
-            cut = cutoff(ilr)+cutoff(jlr)!+2.d0*incr
-            tt=sqrt(tt)
-            if (tt<=cut) then
+            x0=lzd%llr(jlr)%locregcenter(1)
+            y0=lzd%llr(jlr)%locregcenter(2)
+            z0=lzd%llr(jlr)%locregcenter(3)
+            cut = (cutoff(ilr)+cutoff(jlr))**2
+            overlap = .false.
+            do i3=-1,1
+                zj=z0+i3*(lzd%glr%d%n3+1)*lzd%hgrids(3)
+                do i2=-1,1
+                    yj=y0+i2*(lzd%glr%d%n2+1)*lzd%hgrids(2)
+                    do i1=-1,1
+                        xj=x0+i1*(lzd%glr%d%n1+1)*lzd%hgrids(1)
+                        tt = (xi-xj)**2 + (yi-yj)**2 + (zi-zj)**2
+                        if (tt<cut) then
+                            !if (overlap) stop 'determine_sparsity_pattern_distance: problem with overlap'
+                            overlap=.true.
+                        end if
+                    end do
+                end do
+            end do
+            if (overlap) then
                nnonzero=nnonzero+1
             end if
          end do
@@ -2057,27 +2088,67 @@ subroutine determine_sparsity_pattern_distance(orbs, lzd, astruct, cutoff, nnonz
       nonzero = f_malloc_ptr((/2,nnonzero/),id='nonzero')
 
       ii=0
+      !!do iorb=1,orbs%norbup
+      !!   iiorb=orbs%isorbu+iorb
+      !!   ilr=orbs%inwhichlocreg(iiorb)
+      !!   iwa=orbs%onwhichatom(iiorb)
+      !!   itype=astruct%iatype(iwa)
+      !!   do jjorb=1,orbs%norbu
+      !!      jlr=orbs%inwhichlocreg(jjorb)
+      !!      jwa=orbs%onwhichatom(jjorb)
+      !!      jtype=astruct%iatype(jwa)
+      !!      tt = (lzd%llr(ilr)%locregcenter(1)-lzd%llr(jlr)%locregcenter(1))**2 + &
+      !!           (lzd%llr(ilr)%locregcenter(2)-lzd%llr(jlr)%locregcenter(2))**2 + &
+      !!           (lzd%llr(ilr)%locregcenter(3)-lzd%llr(jlr)%locregcenter(3))**2
+      !!      cut = cutoff(ilr)+cutoff(jlr)!+2.d0*incr
+      !!      tt=sqrt(tt)
+      !!      if (tt<=cut) then
+      !!         ii=ii+1
+      !!         nonzero(1,ii)=jjorb
+      !!         nonzero(2,ii)=iiorb
+      !!      end if
+      !!   end do
+      !!end do
       do iorb=1,orbs%norbup
          iiorb=orbs%isorbu+iorb
          ilr=orbs%inwhichlocreg(iiorb)
          iwa=orbs%onwhichatom(iiorb)
          itype=astruct%iatype(iwa)
+         xi=lzd%llr(ilr)%locregcenter(1)
+         yi=lzd%llr(ilr)%locregcenter(2)
+         zi=lzd%llr(ilr)%locregcenter(3)
          do jjorb=1,orbs%norbu
             jlr=orbs%inwhichlocreg(jjorb)
             jwa=orbs%onwhichatom(jjorb)
             jtype=astruct%iatype(jwa)
-            tt = (lzd%llr(ilr)%locregcenter(1)-lzd%llr(jlr)%locregcenter(1))**2 + &
-                 (lzd%llr(ilr)%locregcenter(2)-lzd%llr(jlr)%locregcenter(2))**2 + &
-                 (lzd%llr(ilr)%locregcenter(3)-lzd%llr(jlr)%locregcenter(3))**2
-            cut = cutoff(ilr)+cutoff(jlr)!+2.d0*incr
-            tt=sqrt(tt)
-            if (tt<=cut) then
+            x0=lzd%llr(jlr)%locregcenter(1)
+            y0=lzd%llr(jlr)%locregcenter(2)
+            z0=lzd%llr(jlr)%locregcenter(3)
+            cut = (cutoff(ilr)+cutoff(jlr))**2
+            overlap = .false.
+            do i3=-1,1
+                zj=z0+i3*(lzd%glr%d%n3+1)*lzd%hgrids(3)
+                do i2=-1,1
+                    yj=y0+i2*(lzd%glr%d%n2+1)*lzd%hgrids(2)
+                    do i1=-1,1
+                        xj=x0+i1*(lzd%glr%d%n1+1)*lzd%hgrids(1)
+                        tt = (xi-xj)**2 + (yi-yj)**2 + (zi-zj)**2
+                        if (tt<cut) then
+                            !if (overlap) stop 'determine_sparsity_pattern_distance: problem with overlap'
+                            overlap=.true.
+                        end if
+                    end do
+                end do
+            end do
+            if (overlap) then
                ii=ii+1
                nonzero(1,ii)=jjorb
                nonzero(2,ii)=iiorb
             end if
          end do
       end do
+
+      if (ii/=nnonzero) stop 'ii/=nnonzero'
 
   call f_release_routine()
 

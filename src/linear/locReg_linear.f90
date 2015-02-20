@@ -1422,7 +1422,7 @@ subroutine fracture_periodic_zone(nzones,Glr,Llr,outofzone,astart,aend)
   index = 2
   do ii=1,3
      if(outofzone(ii) > 0) then    !Translation: X,Y,Z
-        astart(ii,index) =  Gstart(ii)
+        astart(ii,index) = Gstart(ii)
         aend(ii,index) = modulo(alre(ii),period(ii))
         index = index + 1
      end if 
@@ -1944,43 +1944,77 @@ end subroutine transform_keyglob_to_keygloc
 subroutine check_overlap_cubic_periodic(Glr,Ilr,Jlr,isoverlap)
   use module_types
   use module_base
+  use communications_init, only: check_whether_bounds_overlap
   implicit none
   type(locreg_descriptors), intent(in) :: Glr
   type(locreg_descriptors), intent(in) :: Ilr
   type(locreg_descriptors), intent(in) :: Jlr
   logical, intent(out) :: isoverlap
   !Local variables
-  integer :: azones,bzones,ii,izones,jzones !, i_stat, i_all
-  logical :: go1, go2, go3
-  integer,dimension(3,8) :: astart,bstart,aend,bend
+  integer :: is1, ie1, is2, ie2, is3, ie3, js1, je1, js2, je2, js3, je3
+  logical :: overlap1, overlap2, overlap3
+!!  integer :: azones,bzones,ii,izones,jzones !, i_stat, i_all
+!!  logical :: go1, go2, go3
+!!  integer,dimension(3,8) :: astart,bstart,aend,bend
 
-  azones = 1
-  bzones = 1
-! Calculate the number of regions to cut alr and blr
-  do ii=1,3
-     if(Ilr%outofzone(ii) > 0) azones = azones * 2
-     if(Jlr%outofzone(ii) > 0) bzones = bzones * 2
-  end do
+!!  azones = 1
+!!  bzones = 1
+!!! Calculate the number of regions to cut alr and blr
+!!  do ii=1,3
+!!     if(Ilr%outofzone(ii) > 0) azones = azones * 2
+!!     if(Jlr%outofzone(ii) > 0) bzones = bzones * 2
+!!  end do
+!!
+!!!FRACTURE THE FIRST LOCALIZATION REGION
+!!  call fracture_periodic_zone(azones,Glr,Ilr,Ilr%outofzone,astart,aend)
+!!
+!!!FRACTURE SECOND LOCREG
+!!  call fracture_periodic_zone(bzones,Glr,Jlr,Jlr%outofzone,bstart,bend)
+!!
+!!! Now check if they overlap
+!!  isoverlap = .false.
+!!  loop_izones: do izones=1,azones
+!!    do jzones=1,bzones
+!!      go1 = (bstart(1,jzones) .le. aend(1,izones) .and. bend(1,jzones) .ge. astart(1,izones))
+!!      go2 = (bstart(2,jzones) .le. aend(2,izones) .and. bend(2,jzones) .ge. astart(2,izones))
+!!      go3 = (bstart(3,jzones) .le. aend(3,izones) .and. bend(3,jzones) .ge. astart(3,izones))
+!!      if(go1 .and. go2 .and. go3) then
+!!        isoverlap = .true.
+!!        exit loop_izones
+!!      end if
+!!    end do
+!!  end do loop_izones
 
-!FRACTURE THE FIRST LOCALIZATION REGION
-  call fracture_periodic_zone(azones,Glr,Ilr,Ilr%outofzone,astart,aend)
 
-!FRACTURE SECOND LOCREG
-  call fracture_periodic_zone(bzones,Glr,Jlr,Jlr%outofzone,bstart,bend)
+  !@ NEW VERSION #########################################
+  ! Shift all the indices into the periodic cell. This can result is starting
+  ! indices being larger than ending indices
+  is1 = modulo(ilr%ns1,glr%d%n1+1)
+  ie1 = modulo(ilr%ns1+ilr%d%n1,glr%d%n1+1)
+  is2 = modulo(ilr%ns2,glr%d%n2+1)
+  ie2 = modulo(ilr%ns2+ilr%d%n2,glr%d%n2+1)
+  is3 = modulo(ilr%ns3,glr%d%n3+1)
+  ie3 = modulo(ilr%ns3+ilr%d%n3,glr%d%n3+1)
+  js1 = modulo(jlr%ns1,glr%d%n1+1)
+  je1 = modulo(jlr%ns1+jlr%d%n1,glr%d%n1+1)
+  js2 = modulo(jlr%ns2,glr%d%n2+1)
+  je2 = modulo(jlr%ns2+jlr%d%n2,glr%d%n2+1)
+  js3 = modulo(jlr%ns3,glr%d%n3+1)
+  je3 = modulo(jlr%ns3+jlr%d%n3,glr%d%n3+1)
+  overlap1 = check_whether_bounds_overlap(is1, ie1, js1, je1)
+  overlap2 = check_whether_bounds_overlap(is2, ie2, js2, je2)
+  overlap3 = check_whether_bounds_overlap(is3, ie3, js3, je3)
 
-! Now check if they overlap
-  isoverlap = .false.
-  loop_izones: do izones=1,azones
-    do jzones=1,bzones
-      go1 = (bstart(1,jzones) .le. aend(1,izones) .and. bend(1,jzones) .ge. astart(1,izones))
-      go2 = (bstart(2,jzones) .le. aend(2,izones) .and. bend(2,jzones) .ge. astart(2,izones))
-      go3 = (bstart(3,jzones) .le. aend(3,izones) .and. bend(3,jzones) .ge. astart(3,izones))
-      if(go1 .and. go2 .and. go3) then
-        isoverlap = .true.
-        exit loop_izones
-      end if
-    end do
-  end do loop_izones
+  if (overlap1 .and. overlap2 .and. overlap3) then
+      isoverlap = .true.
+  else
+      isoverlap = .false.
+  end if
+      
+  !@ END NEW VERSION #####################################
+
+  !!!debug
+  !!isoverlap=.true.
 
 end subroutine check_overlap_cubic_periodic
 

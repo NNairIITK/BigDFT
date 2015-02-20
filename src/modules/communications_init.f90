@@ -4763,28 +4763,42 @@ module communications_init
     END SUBROUTINE orbitals_communicators
 
 
+    !!!> Checks whether a segment with bounds i1,i2 (where i2 might be smaller
+    !!!! than i1 due to periodic boundary conditions) overlaps with a segment with
+    !!!! bounds j1,2 (where j1<=j2)
     !> Checks whether a segment with bounds i1,i2 (where i2 might be smaller
     !! than i1 due to periodic boundary conditions) overlaps with a segment with
-    !! bounds j1,2 (where j1<=j2)
+    !! bounds j1,2 (where j2 might be smaller than j1)
     function check_whether_bounds_overlap_int(i1, i2, j1, j2) result(overlap)
       implicit none
       ! Calling arguments
       integer,intent(in) :: i1, i2, j1, j2
       logical :: overlap
       ! Local variables
-      logical :: periodic
-      
+      integer :: periodic
 
       ! If the end is smaller than the start, we have a periodic wrap around
-      periodic = (i2<i1)
+      periodic = 0
+      if (i2<i1) then
+          periodic = periodic + 1
+      end if
+      if (j2<j1) then
+          periodic = periodic + 1
+      end if
 
       ! Check whether there is an overlap
-      if (periodic) then
+      select case(periodic)
+      case(2)
+          ! If both segments have a wrap around, they necessarily overlap
+          overlap = .true.
+      case(1)
           overlap = (i1<=j2 & !i2>=j1 due to periodic wrap around 
                .or. i2>=j1)   !i1<=j2 due to periodic wrap around
-      else
+      case(0)
           overlap = (i2>=j1 .and. i1<=j2)
-      end if
+      case default
+          stop 'wrong value of periodic'
+      end select
 
     end function check_whether_bounds_overlap_int
 
@@ -4795,19 +4809,30 @@ module communications_init
       integer(kind=8),intent(in) :: i1, i2, j1, j2
       logical :: overlap
       ! Local variables
-      logical :: periodic
-      
+      integer :: periodic
 
       ! If the end is smaller than the start, we have a periodic wrap around
-      periodic = (i2<i1)
+      periodic = 0
+      if (i2<i1) then
+          periodic = periodic + 1
+      end if
+      if (j2<j1) then
+          periodic = periodic + 1
+      end if
 
       ! Check whether there is an overlap
-      if (periodic) then
+      select case(periodic)
+      case(2)
+          ! If both segments have a wrap around, they necessarily overlap
+          overlap = .true.
+      case(1)
           overlap = (i1<=j2 & !i2>=j1 due to periodic wrap around 
                .or. i2>=j1)   !i1<=j2 due to periodic wrap around
-      else
+      case(0)
           overlap = (i2>=j1 .and. i1<=j2)
-      end if
+      case default
+          stop 'wrong value of periodic'
+      end select
 
     end function check_whether_bounds_overlap_long
 
