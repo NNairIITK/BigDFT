@@ -447,12 +447,18 @@ module communications_init
           end if
       end do
 
+      ! First a local check, then reduction for later
       weight_c_tot_check = sum(weightloc_c)
-
       if (nint(weight_c_tot_check)/=isize) then
           write(*,'(a,2i12)') 'weight_c_tot_check, isize', nint(weight_c_tot_check), isize
           stop 'weight_c_tot_check/=isize'
       end if
+
+      if (nproc>1) then
+          call mpiallred(weight_c_tot_check, 1, mpi_sum, bigdft_mpi%mpi_comm)
+      end if
+
+
 
       !!tt = sum(weightloc_c)
       !!call mpiallred(tt, 1, mpi_sum, bigdft_mpi%mpi_comm)
@@ -692,12 +698,17 @@ module communications_init
           end if
       end do
 
+      ! First a local check, then reduction for later
       weight_f_tot_check = sum(weightloc_f)
-
       if (nint(weight_f_tot_check)/=isize) then
           write(*,'(a,2i12)') 'weight_f_tot_check, isize', nint(weight_f_tot_check), isize
           stop 'weight_f_tot_check/=isize'
       end if
+
+      if (nproc>1) then
+          call mpiallred(weight_f_tot_check, 1, mpi_sum, bigdft_mpi%mpi_comm)
+      end if
+
 
       write(*,*) 'sum(weightloc_f)', sum(weightloc_f)
       do i3=j3start,j3end
@@ -891,9 +902,13 @@ module communications_init
           call mpi_win_free(window_c, ierr)
       !end if
 
-      if (sum(weightppp_c)/=weight_c_tot_check) then
-          write(*,'(a,2es20.10)') 'sum(weightppp_c), weight_c_tot_check', sum(weightppp_c), weight_c_tot_check
-          stop 'sum(weightppp_c)/=weight_c_tot_check'
+      tt=sum(weightppp_c)
+      if (nproc>1) then
+          call mpiallred(tt, 1, mpi_sum, bigdft_mpi%mpi_comm)
+      end if
+      if (tt/=weight_c_tot_check) then
+          write(*,'(a,2es20.10)') 'tt, weight_c_tot_check', tt, weight_c_tot_check
+          stop 'tt/=weight_c_tot_check'
       end if
 
       write(*,*) 'sum(weightppp_c)', sum(weightppp_c)
@@ -1125,9 +1140,13 @@ module communications_init
       !end if
 
 
-      if (sum(weightppp_f)/=weight_f_tot_check) then
-          write(*,'(a,2es20.10)') 'sum(weightppp_f), weight_f_tot_check', sum(weightppp_f), weight_f_tot_check
-          stop 'sum(weightppp_f)/=weight_f_tot_check'
+      tt=sum(weightppp_f)
+      if (nproc>1) then
+          call mpiallred(tt, 1, mpi_sum, bigdft_mpi%mpi_comm)
+      end if
+      if (tt/=weight_f_tot_check) then
+          write(*,'(a,2es20.10)') 'tt, weight_f_tot_check', tt, weight_f_tot_check
+          stop 'tt/=weight_f_tot_check'
       end if
 
       do i3=1,n3p
