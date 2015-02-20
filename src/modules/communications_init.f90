@@ -109,7 +109,7 @@ module communications_init
       !if (i3end-i3start/=j3end-j3start) stop 'i3end-i3start/=j3end-j3start'
 
       !write(*,'(a,9i8)') 'iproc, i3s, n3p, ii3min, ii3max, i3start, i3end, j3start, j3end', iproc, i3s, n3p, ii3min, ii3max, i3start, i3end, j3start, j3end
-      write(*,'(a,7i8)') 'iproc, i3s, n3p, i3start, i3end, j3start, j3end', iproc, i3s, n3p, i3start, i3end, j3start, j3end
+      !write(*,'(a,7i8)') 'iproc, i3s, n3p, i3start, i3end, j3start, j3end', iproc, i3s, n3p, i3start, i3end, j3start, j3end
 
       !!i3start=j3start
       !!i3end=j3end
@@ -543,7 +543,7 @@ module communications_init
               js=i3startend(3,jproc)
               je=i3startend(4,jproc)
               call get_extent_of_overlap(is, ie, js, je, n, ks, ke, nlen)
-              write(*,'(a,11i7)') 'is, ie, js, je, n, ks, ke, nlen', is, ie, js, je, n, ks, ke, nlen
+              !write(*,'(a,11i7)') 'is, ie, js, je, n, ks, ke, nlen', is, ie, js, je, n, ks, ke, nlen
               do k=1,n
                   ! Undo the periodic wrap around if required
                   !if (ks(k)>i3end) then
@@ -552,7 +552,7 @@ module communications_init
                   !    ii=ks(k)
                   !end if
                   ii=modulo(ks(k)-i3start-1,(lzd%glr%d%n3+1))+1
-                  write(*,'(a,9i9)') 'k, ks(k), ke(k), nlen(k), i3start, ii, ks(k), i3startend(3,jproc), n3p', k, ks(k), ke(k), nlen(k), i3start, ii, ks(k), i3startend(3,jproc), n3p
+                  !write(*,'(a,9i9)') 'k, ks(k), ke(k), nlen(k), i3start, ii, ks(k), i3startend(3,jproc), n3p', k, ks(k), ke(k), nlen(k), i3start, ii, ks(k), i3startend(3,jproc), n3p
                   call mpiaccumulate(weightloc_c(0,0,ii), (lzd%glr%d%n1+1)*(lzd%glr%d%n2+1)*nlen(k), &
                        jproc, int((lzd%glr%d%n1+1)*(lzd%glr%d%n2+1)*(ks(k)-i3startend(3,jproc)),kind=mpi_address_kind), &
                        (lzd%glr%d%n1+1)*(lzd%glr%d%n2+1)*nlen(k), mpi_sum, window_c)
@@ -719,15 +719,15 @@ module communications_init
       end if
 
 
-      write(*,*) 'sum(weightloc_f)', sum(weightloc_f)
-      do i3=j3start,j3end
-        jj3=modulo(i3-i3start,lzd%glr%d%n3)+1
-        do i2=0,lzd%glr%d%n2
-          do i1=0,lzd%glr%d%n1
-            write(1201,'(a,4i8,f12.2)') 'i1,i2,i3,jj3,val',i1,i2,i3,jj3,weightloc_f(i1,i2,i3)
-          end do
-        end do
-      end do
+      !write(*,*) 'sum(weightloc_f)', sum(weightloc_f)
+      !do i3=j3start,j3end
+      !  jj3=modulo(i3-i3start,lzd%glr%d%n3)+1
+      !  do i2=0,lzd%glr%d%n2
+      !    do i1=0,lzd%glr%d%n1
+      !      write(1201,'(a,4i8,f12.2)') 'i1,i2,i3,jj3,val',i1,i2,i3,jj3,weightloc_f(i1,i2,i3)
+      !    end do
+      !  end do
+      !end do
 
       !do i3=1,lzd%glr%d%n3+1
       !    ! Check whether this slice has been (partially) calculated by iproc,
@@ -797,7 +797,7 @@ module communications_init
                   !    ii=ks(k)
                   !end if
                   ii=modulo(ks(k)-i3start-1,(lzd%glr%d%n3+1))+1
-                  write(*,'(a,7i9)') 'k, ks(k), ke(k), nlen(k), i3start, ks(k)-i3startend(3,jproc), ii', k, ks(k), ke(k), nlen(k), i3start, ks(k)-i3startend(3,jproc), ii
+                  !write(*,'(a,7i9)') 'k, ks(k), ke(k), nlen(k), i3start, ks(k)-i3startend(3,jproc), ii', k, ks(k), ke(k), nlen(k), i3start, ks(k)-i3startend(3,jproc), ii
                   call mpiaccumulate(weightloc_f(0,0,ii), (lzd%glr%d%n1+1)*(lzd%glr%d%n2+1)*nlen(k), &
                        jproc, int((lzd%glr%d%n1+1)*(lzd%glr%d%n2+1)*(ks(k)-i3startend(3,jproc)),kind=mpi_address_kind), &
                        (lzd%glr%d%n1+1)*(lzd%glr%d%n2+1)*nlen(k), mpi_sum, window_f)
@@ -922,14 +922,14 @@ module communications_init
           stop 'tt/=weight_c_tot_check'
       end if
 
-      write(*,*) 'sum(weightppp_c)', sum(weightppp_c)
-      do i3=1,n3p
-        do i2=0,lzd%glr%d%n2
-          do i1=0,lzd%glr%d%n1
-            write(1210,*) 'i1,i2,i3,val',i1,i2,i3,weightppp_c(i1,i2,i3)
-          end do
-        end do
-      end do
+      !write(*,*) 'sum(weightppp_c)', sum(weightppp_c)
+      !do i3=1,n3p
+      !  do i2=0,lzd%glr%d%n2
+      !    do i1=0,lzd%glr%d%n1
+      !      write(1210,*) 'i1,i2,i3,val',i1,i2,i3,weightppp_c(i1,i2,i3)
+      !    end do
+      !  end do
+      !end do
 
       weight_tot_c = 0.d0
       do i3=1,n3p
@@ -1027,7 +1027,7 @@ module communications_init
           end if
 
 
-          write(*,*) 'n3p, sum(weightppp_c(:,:,1:n3p))', n3p, sum(weightppp_c(:,:,1:n3p))
+          !write(*,*) 'n3p, sum(weightppp_c(:,:,1:n3p))', n3p, sum(weightppp_c(:,:,1:n3p))
 
           tt = weight_prev
           ! number of gris points handled by processes 0..iproc-1
@@ -1067,12 +1067,12 @@ module communications_init
                   if (weightppp_c(i,i2,ii3)>0.d0) then
                       nval_c(jjproc) = nval_c(jjproc) + nint(sqrt(weightppp_c(i,i2,ii3))) !total number of grid points to be handled by process jjproc
                       weightpp_c(jjproc) = weightpp_c(jjproc) + weightppp_c(i,i2,ii3) !total weight to be handled by process jjproc
-                      write(500,'(a,3i7,f12.2)') 'i, i2, ii3, weightpp_c(jjproc)',i, i2, ii3, weightpp_c(jjproc)
+                      !write(500,'(a,3i7,f12.2)') 'i, i2, ii3, weightpp_c(jjproc)',i, i2, ii3, weightpp_c(jjproc)
                       !!weightppp_c(i,i2,ii3)=0.d0
                   end if
               end do
           end do
-          write(*,*) 'AFTER SET TO ZERO: sum(weightppp_c)',sum(weightppp_c)
+          !write(*,*) 'AFTER SET TO ZERO: sum(weightppp_c)',sum(weightppp_c)
           !!do i3=1,n3p
           !!    write(*,*) 'i3, sum(weightppp_c(:,:,i3))', i3, sum(weightppp_c(:,:,i3))
           !!end do
@@ -1160,13 +1160,13 @@ module communications_init
           stop 'tt/=weight_f_tot_check'
       end if
 
-      do i3=1,n3p
-        do i2=0,lzd%glr%d%n2
-          do i1=0,lzd%glr%d%n1
-            write(1211,*) 'i1,i2,i3,val',i1,i2,i3,weightppp_f(i1,i2,i3)
-          end do
-        end do
-      end do
+      !do i3=1,n3p
+      !  do i2=0,lzd%glr%d%n2
+      !    do i1=0,lzd%glr%d%n1
+      !      write(1211,*) 'i1,i2,i3,val',i1,i2,i3,weightppp_f(i1,i2,i3)
+      !    end do
+      !  end do
+      !end do
 
       weight_tot_f = 0.d0
       do i3=1,n3p
@@ -1998,7 +1998,7 @@ module communications_init
                               sum(nsendcounts_c)+sum(nsendcounts_f), npsidim_orbs
           stop
       end if
-      write(*,'(a,2i10)') 'sum(nsendcounts_c), 7*sum(nsendcounts_f)', sum(nsendcounts_c), 7*sum(nsendcounts_f)
+      !write(*,'(a,2i10)') 'sum(nsendcounts_c), 7*sum(nsendcounts_f)', sum(nsendcounts_c), 7*sum(nsendcounts_f)
       
       ! now nsenddspls
       nsenddspls_c(0)=0
@@ -2273,7 +2273,7 @@ module communications_init
                    !!iiorb_f=iiorb_f+nint(workrecv_f(i,i2,jj3))
                    norb_per_gridpoint_f(iipt)=npgp_f
                    !write(*,'(a,6i8)') 'iipt, i, i2, i3, jj3, npgp_f', iipt, i, i2, i3, jj3, npgp_f
-                   write(*,'(a,6i8)') 'iipt, i, i2, i3, npgp_f', iipt, i, i2, i3, npgp_f
+                   !write(*,'(a,6i8)') 'iipt, i, i2, i3, npgp_f', iipt, i, i2, i3, npgp_f
                end if
            end do
        end do

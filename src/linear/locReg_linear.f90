@@ -215,7 +215,7 @@ subroutine determine_locregSphere_parallel(iproc,nproc,nlr,hx,hy,hz,astruct,orbs
          call determine_boxbounds_sphere(gperx, gpery, gperz, glr%d%n1, glr%d%n2, glr%d%n3, glr%ns1, glr%ns2, glr%ns3, &
               hx, hy, hz, llr(ilr)%locrad, llr(ilr)%locregCenter, &
               glr%wfd%nseg_c, glr%wfd%keygloc, glr%wfd%keyvloc, isx, isy, isz, iex, iey, iez)
-         write(*,'(a,3i7)') 'ilr, isx, iex', ilr, isx, iex
+         !write(*,'(a,3i7)') 'ilr, isx, iex', ilr, isx, iex
     
          ln1 = iex-isx
          ln2 = iey-isy
@@ -1411,7 +1411,7 @@ subroutine segkeys_Sphere(perx, pery, perz, n1, n2, n3, nl1glob, nl2glob, nl3glo
 
   ! Some checks
   ivctr=0
-  write(*,*) 'nlp, n1lp1', nlp, n1lp1
+  !write(*,*) 'nlp, n1lp1', nlp, n1lp1
   do iseg=1,nseg
      j0=keyg_loc(1,iseg)
      j1=keyg_loc(2,iseg)
