@@ -30,7 +30,7 @@ subroutine orthogonalize(iproc,nproc,orbs,comms,psi,orthpar,paw)
   character(len=*), parameter :: subname='orthogonalize'
   !integer :: i,idx
   integer :: ispin,nspin,nspinor
-  logical :: usepaw=.false.
+  logical :: usepaw
   integer, dimension(:,:), allocatable :: ndim_ovrlp
   real(wp), dimension(:), allocatable :: ovrlp
   integer,dimension(:),allocatable:: norbArr
@@ -45,7 +45,8 @@ subroutine orthogonalize(iproc,nproc,orbs,comms,psi,orthpar,paw)
   end if
 
   !Determine whether we are in a paw calculation:
-  if(present(paw)) usepaw=paw%usepaw
+  usepaw = .false.
+  if(present(paw)) usepaw = paw%usepaw
 
   ! ndim_ovrlp describes the shape of the overlap matrix.
   ndim_ovrlp = f_malloc((/ 1.to.nspin, 0.to.orbs%nkpts /),id='ndim_ovrlp')
@@ -284,9 +285,9 @@ subroutine orthoconstraint(iproc,nproc,orbs,comms,symm,psi,hpsi,scprsum,spsi) !n
           if(nspinor==1) then
              !dgemmsy desactivated for the moment due to SIC
              !call gemmsy('T','N',norb,norb,nvctrp,1.0_wp,psi(ispsi),&
-!!$             call gemm('T','N',norb,norb,nvctrp,1.0_wp,psi(ispsi),&
-!!$                  max(1,nvctrp),psi(ispsi),max(1,nvctrp),0.0_wp,&
-!!$                  paw_ovrlp(ndim_ovrlp(ispin,ikpt-1)+1),norb)
+             call gemm('T','N',norb,norb,nvctrp,1.0_wp,psi(ispsi),&
+                  max(1,nvctrp),psi(ispsi),max(1,nvctrp),0.0_wp,&
+                  paw_ovrlp(ndim_ovrlp(ispin,ikpt-1)+1),norb)
 !!$                  !write(*,*)'orthoconstraint l260, erase me:'
 !!$                  !write(*,*)'<psi|psi>',paw_ovrlp
              call gemm('T','N',norb,norb,nvctrp,1.0_wp,psi(ispsi),&
@@ -305,7 +306,10 @@ subroutine orthoconstraint(iproc,nproc,orbs,comms,symm,psi,hpsi,scprsum,spsi) !n
           end if
           !if(nproc>1) call mpiallred(paw_ovrlp(1),norb,MPI_SUM,bigdft_mpi%mpi_comm)
           !write(*,*)'orthoconstraint l268, erase me:'
-          !write(*,*)'<psi|S|psi>',paw_ovrlp(ndim_ovrlp(ispin,ikpt-1)+1:ndim_ovrlp(ispin,ikpt-1)+norb)
+!!$          write(*,*)'<psi|H|psi>',alag(ndim_ovrlp(ispin,ikpt-1)+1:ndim_ovrlp(ispin,ikpt-1)+norb*norb)
+!!$          write(*,*)'<psi|S|psi>',paw_ovrlp(ndim_ovrlp(ispin,ikpt-1)+1:ndim_ovrlp(ispin,ikpt-1)+norb*norb)
+!!$          write(*,*)'Hp / Sp', alag(ndim_ovrlp(ispin,ikpt-1)+1:ndim_ovrlp(ispin,ikpt-1)+norb*norb) / &
+!!$               & paw_ovrlp(ndim_ovrlp(ispin,ikpt-1)+1:ndim_ovrlp(ispin,ikpt-1)+norb*norb)
         end if
         ispsi=ispsi+nvctrp*norb*nspinor
      end do
