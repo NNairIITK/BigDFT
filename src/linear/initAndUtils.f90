@@ -1976,7 +1976,7 @@ subroutine determine_sparsity_pattern(iproc, nproc, orbs, lzd, nnonzero, nonzero
             else
                overlapMatrix(jorb,iorb)=.false.
             end if
-            write(*,'(a,2i8,l4)') 'iiorb, jorb, isoverlap', iiorb, jorb, isoverlap
+            !!write(*,'(a,2i8,l4)') 'iiorb, jorb, isoverlap', iiorb, jorb, isoverlap
          end do
          noverlapsarr(iorb)=ioverlaporb
       end do
@@ -2043,9 +2043,39 @@ subroutine determine_sparsity_pattern_distance(orbs, lzd, astruct, cutoff, nnonz
   logical :: overlap
   integer :: i1, i2, i3
   integer :: iorb, iiorb, ilr, iwa, itype, jjorb, jlr, jwa, jtype, ii
+  integer :: ijs1, ije1, ijs2, ije2, ijs3, ije3
   real(kind=8) :: tt, cut, xi, yi, zi, xj, yj, zj, x0, y0, z0
+  logical :: perx, pery, perz
 
   call f_routine('determine_sparsity_pattern_distance')
+
+  ! periodicity in the three directions
+  perx=(lzd%glr%geocode /= 'F')
+  pery=(lzd%glr%geocode == 'P')
+  perz=(lzd%glr%geocode /= 'F')
+  ! For perdiodic boundary conditions, one has to check also in the neighboring
+  ! cells (see in the loop below)
+  if (perx) then
+      ijs1 = -1
+      ije1 = 1
+  else
+      ijs1 = 0
+      ije1 = 0
+  end if
+  if (pery) then
+      ijs2 = -1
+      ije2 = 1
+  else
+      ijs2 = 0
+      ije2 = 0
+  end if
+  if (perz) then
+      ijs3 = -1
+      ije3 = 1
+  else
+      ijs3 = 0
+      ije3 = 0
+  end if
 
       nnonzero=0
       do iorb=1,orbs%norbup
@@ -2065,11 +2095,11 @@ subroutine determine_sparsity_pattern_distance(orbs, lzd, astruct, cutoff, nnonz
             z0=lzd%llr(jlr)%locregcenter(3)
             cut = (cutoff(ilr)+cutoff(jlr))**2
             overlap = .false.
-            do i3=-1,1
+            do i3=ijs3,ije3!-1,1
                 zj=z0+i3*(lzd%glr%d%n3+1)*lzd%hgrids(3)
-                do i2=-1,1
+                do i2=ijs2,ije2!-1,1
                     yj=y0+i2*(lzd%glr%d%n2+1)*lzd%hgrids(2)
-                    do i1=-1,1
+                    do i1=ijs1,ije1!-1,1
                         xj=x0+i1*(lzd%glr%d%n1+1)*lzd%hgrids(1)
                         tt = (xi-xj)**2 + (yi-yj)**2 + (zi-zj)**2
                         if (tt<cut) then
@@ -2126,11 +2156,11 @@ subroutine determine_sparsity_pattern_distance(orbs, lzd, astruct, cutoff, nnonz
             z0=lzd%llr(jlr)%locregcenter(3)
             cut = (cutoff(ilr)+cutoff(jlr))**2
             overlap = .false.
-            do i3=-1,1
+            do i3=ijs3,ije3!-1,1
                 zj=z0+i3*(lzd%glr%d%n3+1)*lzd%hgrids(3)
-                do i2=-1,1
+                do i2=ijs2,ije2!-1,1
                     yj=y0+i2*(lzd%glr%d%n2+1)*lzd%hgrids(2)
-                    do i1=-1,1
+                    do i1=ijs1,ije1!-1,1
                         xj=x0+i1*(lzd%glr%d%n1+1)*lzd%hgrids(1)
                         tt = (xi-xj)**2 + (yi-yj)**2 + (zi-zj)**2
                         if (tt<cut) then
@@ -2178,6 +2208,8 @@ subroutine init_sparse_matrix_wrapper(iproc, nproc, nspin, orbs, lzd, astruct, s
   integer, parameter :: DISTANCE=2
 
   call f_routine(id='init_sparse_matrix_wrapper')
+
+
 
   cutoff = f_malloc(lzd%nlr,id='cutoff')
 
