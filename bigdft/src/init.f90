@@ -771,7 +771,7 @@ subroutine input_memory_linear(iproc, nproc, at, KSwfn, tmb, tmb_old, denspot, i
   real(kind=8),dimension(:,:),allocatable :: kernelp, ovrlpp
   type(localizedDIISParameters) :: ldiis
   logical :: ortho_on, reduce_conf, can_use_ham
-  real(kind=8) :: trace, trace_old, fnrm_tmb, ratio_deltas, ddot
+  real(kind=8) :: trace, trace_old, fnrm_tmb, ratio_deltas
   integer :: order_taylor, info_basis_functions, iortho, iat, jj, itype, inl
   integer,dimension(:),allocatable :: maxorbs_type, minorbs_type
   integer,dimension(:,:),allocatable :: nl_copy
@@ -1931,7 +1931,6 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
   use sparsematrix_base, only: sparse_matrix
   use communications_base, only: TRANSPOSE_FULL
   use communications, only: transpose_localized, untranspose_localized
-  use m_paw_ij, only: paw_ij_init
   use psp_projectors, only: PSPCODE_PAW, PSPCODE_HGH, free_DFT_PSP_projectors
   implicit none
 
@@ -1969,6 +1968,7 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
   real(kind=8) :: pnrm
   !!real(gp), dimension(:,:), allocatable :: ks, ksk
   !!real(gp) :: nonidem
+  real(gp) :: e_paw, e_pawdc, compch_sph, e_nl
 
   call f_routine(id='input_wf')
 
@@ -2555,8 +2555,21 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
    end if
 
    ! Init PAW from input wavefunctions.
-   call paw_init(KSwfn%paw, atoms, KSwfn%orbs%nspinor, in%nspin, &
+   call paw_init(iproc, KSwfn%paw, atoms, rxyz, KSwfn%Lzd%Glr%d, denspot%dpbox, KSwfn%orbs%nspinor, &
         & max(1,max(KSwfn%orbs%npsidim_orbs, KSwfn%orbs%npsidim_comp)), KSwfn%orbs%norb)
+   if (KSwfn%paw%usepaw .and. inputpsi == INPUT_PSI_LCAO) then
+      ! Compute |s|psi>.
+      call paw_compute_dij(KSwfn%paw, atoms, denspot, denspot%V_XC(1,1,1,1), e_paw, e_pawdc, compch_sph)
+
+      if (KSwfn%orbs%npsidim_orbs > 0) call f_zero(KSwfn%orbs%npsidim_orbs,KSwfn%hpsi(1))
+      call NonLocalHamiltonianApplication(iproc,atoms,KSwfn%orbs%npsidim_orbs,KSwfn%orbs,&
+           KSwfn%Lzd,nlpsp,KSwfn%psi,KSwfn%hpsi,e_nl,KSwfn%paw)
+      call f_free_ptr(KSwfn%hpsi)
+      
+      ! Orthogonalize
+      call first_orthon(iproc, nproc, KSwfn%orbs, KSwfn%Lzd, KSwfn%comms, &
+           & KSwfn%psi, KSwfn%hpsi, KSwfn%psit, KSwfn%orthpar, KSwfn%paw)
+   end if
 
    call f_release_routine()
 
