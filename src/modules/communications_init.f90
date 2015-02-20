@@ -87,16 +87,16 @@ module communications_init
       !j3end=-1000000000
       do iorb=1,orbs%norbp
           iiorb = orbs%isorb+iorb
-          if (orbs%spinsgn(iiorb)<0.d0) cycle !consider only up orbitals
+          !if (orbs%spinsgn(iiorb)<0.d0) cycle !consider only up orbitals
           ilr = orbs%inwhichlocreg(iiorb)
           i3start = min(i3start,lzd%llr(ilr)%ns3)
           i3end = max(i3end,lzd%llr(ilr)%ns3+lzd%llr(ilr)%d%n3)
           !j3start = min(j3start,modulo(lzd%llr(ilr)%ns3-lzd%llr(ilr)%ns3,lzd%llr(ilr)%d%n3)+1)
           !j3end = max(j3end,modulo(lzd%llr(ilr)%ns3+lzd%llr(ilr)%d%n3-lzd%llr(ilr)%ns3,lzd%llr(ilr)%d%n3)+1)
       end do
-      if (orbs%norbp==0.or.i3start==1000000000) then ! need to account for the case when norbp/=0 but all orbitals were down but should probably do in a better way
-         i3end=0
-         i3start=1
+      if (orbs%norbp==0) then!.or.i3start==1000000000) then ! need to account for the case when norbp/=0 but all orbitals were down but should probably do in a better way
+         i3end=1
+         i3start=0
       end if
 
       !j3start = modulo(i3start-i3start,(lzd%glr%d%n3+1))+1 !should give 1
@@ -320,6 +320,7 @@ module communications_init
       integer,dimension(:,:),allocatable :: i3startend
       real(kind=8) :: tt
       integer,dimension(2) :: ks, ke, nlen
+      logical :: communicate
     
       call f_routine(id='get_weights')
     
@@ -377,9 +378,12 @@ module communications_init
       !call to_zero((lzd%glr%d%n1+1)*(lzd%glr%d%n2+1)*n3p,weightppp_c(0,0,1))
       i3e=i3s+n3p-1
       isize = 0
+      communicate = .false.
       do iorb=1,orbs%norbp
           iiorb=orbs%isorb+iorb
           if (orbs%spinsgn(iiorb)<0.d0) cycle !consider only up orbitals
+          ! If one is at least once beyind this cycle, the communication later on can be performed
+          communicate = .true.
           ilr = orbs%inwhichlocreg(iiorb)
           isize = isize + lzd%llr(ilr)%wfd%nvctr_c
           ii3s = lzd%llr(ilr)%ns3
@@ -430,7 +434,7 @@ module communications_init
                   i2=ii/n1p1
                   i0=ii-i2*n1p1
                   i1=i0+j1-j0
-                  write(400,'(a,9i8)') 'j0, j1, ii, i0, i1, i2, i3, ii3, jj3',j0,j1,ii,i0,i1,i2,i3,ii3,jj3
+                  !!write(400,'(a,9i8)') 'j0, j1, ii, i0, i1, i2, i3, ii3, jj3',j0,j1,ii,i0,i1,i2,i3,ii3,jj3
                   !ii2=i2+lzd%llr(ilr)%ns2
                   ii2=i2
                   do i=i0,i1
@@ -442,7 +446,7 @@ module communications_init
                       !weight_c_tot=weight_c_tot+1.d0
                   end do
               end do
-              write(*,'(a,4i8)') 'iproc, ilr, imin, imax', iproc, ilr, imin, imax
+              !!write(*,'(a,4i8)') 'iproc, ilr, imin, imax', iproc, ilr, imin, imax
               !!$omp end do
           end if
       end do
@@ -511,16 +515,17 @@ module communications_init
       !end if
 
 
-      write(*,*) 'sum(weightloc_c)', sum(weightloc_c)
-      do i3=j3start,j3end
-        do i2=0,lzd%glr%d%n2
-          do i1=0,lzd%glr%d%n1
-            write(1200,*) 'i1,i2,i3,val',i1,i2,i3+i3start-1,weightloc_c(i1,i2,i3)
-          end do
-        end do
-      end do
+      !write(*,*) 'sum(weightloc_c)', sum(weightloc_c)
+      !do i3=j3start,j3end
+      !  do i2=0,lzd%glr%d%n2
+      !    do i1=0,lzd%glr%d%n1
+      !      write(1200,*) 'i1,i2,i3,val',i1,i2,i3+i3start-1,weightloc_c(i1,i2,i3)
+      !    end do
+      !  end do
+      !end do
 
       !if (nproc>1) then
+      if (communicate) then
           do jproc=0,nproc-1
               !Check whether there is an overlap
               ! Start and end on task iproc, possibly out of box
@@ -566,6 +571,7 @@ module communications_init
               !         (lzd%glr%d%n1+1)*(lzd%glr%d%n2+1)*(ie-is+1), mpi_sum, window_c)
               !end if
           end do
+      end if
       !else
       !    is = i3startend(1,iproc)
       !    ie = i3startend(2,iproc)
@@ -634,9 +640,12 @@ module communications_init
       !call to_zero((lzd%glr%d%n1+1)*(lzd%glr%d%n2+1)*n3p,weightppp_f(0,0,1))
       i3e=i3s+n3p-1
       isize = 0
+      communicate = .false.
       do iorb=1,orbs%norbp
           iiorb=orbs%isorb+iorb
           if (orbs%spinsgn(iiorb)<0.d0) cycle !consider only up orbitals
+          ! If one is at least once beyind this cycle, the communication later on can be performed
+          communicate = .true.
           ilr = orbs%inwhichlocreg(iiorb)
           isize = isize + lzd%llr(ilr)%wfd%nvctr_f
           ii3s = lzd%llr(ilr)%ns3
@@ -762,6 +771,7 @@ module communications_init
       !!call mpiallred(i3startend(1,0), 4*nproc, mpi_sum, bigdft_mpi%mpi_comm)
 
       !if (nproc>1) then
+      if (communicate) then
           do jproc=0,nproc-1
               !Check whether there is an overlap
               ! Start and end on task iproc, possibly out of box
@@ -819,6 +829,7 @@ module communications_init
               !!         (lzd%glr%d%n1+1)*(lzd%glr%d%n2+1)*(ie-is+1), mpi_sum, window_f)
               !!end if
           end do
+      end if
       !else
       !    is = i3startend(1,iproc)
       !    ie = i3startend(2,iproc)
@@ -2479,7 +2490,7 @@ module communications_init
                   ind=nsenddspls_f(jproctarget)+nsend_f(jproctarget)
                   isendbuf_f(iitot)=ind
                   indexsendbuf_f(ind)=indglob
-                  write(*,*) 'iiorb, ind, indglob', iiorb, ind, indglob
+                  !write(*,*) 'iiorb, ind, indglob', iiorb, ind, indglob
                   indexsendorbital_f(iitot)=iiorb
                end if
                !indexsendorbital(ind)=iiorb

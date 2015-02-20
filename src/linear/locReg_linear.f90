@@ -170,8 +170,10 @@ subroutine determine_locregSphere_parallel(iproc,nproc,nlr,hx,hy,hz,astruct,orbs
   integer,dimension(:),allocatable :: rootarr, norbsperatom, norbsperlocreg, onwhichmpi
   real(8),dimension(:,:),allocatable :: locregCenter
   type(orbitals_data) :: orbsder
+  logical :: perx, pery, perz
 
   call f_routine(id='determine_locregSphere_parallel')
+
 
   rootarr = f_malloc(nlr,id='rootarr')
 
@@ -189,6 +191,11 @@ subroutine determine_locregSphere_parallel(iproc,nproc,nlr,hx,hy,hz,astruct,orbs
       end do
   end do
 
+  ! Periodicity in the three directions
+  Gperx=(Glr%geocode /= 'F')
+  Gpery=(Glr%geocode == 'P')
+  Gperz=(Glr%geocode /= 'F')
+
   call timing(iproc,'wfd_creation  ','ON')  
   do ilr=1,nlr
      !initialize out of zone and logicals
@@ -205,8 +212,8 @@ subroutine determine_locregSphere_parallel(iproc,nproc,nlr,hx,hy,hz,astruct,orbs
          ! This makes sure that each locreg is only handled once by one specific processor.
     
          ! Determine the extrema of this localization regions (using only the coarse part, since this is always larger or equal than the fine part).
-         call determine_boxbounds_sphere(glr%d%n1, glr%d%n2, glr%d%n3, glr%ns1, glr%ns2, glr%ns3, hx, hy, hz, &
-              llr(ilr)%locrad, llr(ilr)%locregCenter, &
+         call determine_boxbounds_sphere(gperx, gpery, gperz, glr%d%n1, glr%d%n2, glr%d%n3, glr%ns1, glr%ns2, glr%ns3, &
+              hx, hy, hz, llr(ilr)%locrad, llr(ilr)%locregCenter, &
               glr%wfd%nseg_c, glr%wfd%keygloc, glr%wfd%keyvloc, isx, isy, isz, iex, iey, iez)
          write(*,'(a,3i7)') 'ilr, isx, iex', ilr, isx, iex
     
@@ -331,9 +338,6 @@ subroutine determine_locregSphere_parallel(iproc,nproc,nlr,hx,hy,hz,astruct,orbs
          Llr(ilr)%outofzone(:) = outofzone(:)
     
          ! Set the conditions for ext_buffers (conditions for buffer size)
-         Gperx=(Glr%geocode /= 'F')
-         Gpery=(Glr%geocode == 'P')
-         Gperz=(Glr%geocode /= 'F')
          Lperx=(Llr(ilr)%geocode /= 'F')
          Lpery=(Llr(ilr)%geocode == 'P')
          Lperz=(Llr(ilr)%geocode /= 'F')
@@ -403,18 +407,18 @@ subroutine determine_locregSphere_parallel(iproc,nproc,nlr,hx,hy,hz,astruct,orbs
                  & err_name='BIGDFT_RUNTIME_ERROR')
          end if
     
-    !DEBUG
-         if (iproc == 0) then
-            write(*,*)'Description of zone:',ilr
-            write(*,*)'ns:',Llr(ilr)%ns1,Llr(ilr)%ns2,Llr(ilr)%ns3
-            write(*,*)'ne:',Llr(ilr)%ns1+Llr(ilr)%d%n1,Llr(ilr)%ns2+Llr(ilr)%d%n2,Llr(ilr)%ns3+Llr(ilr)%d%n3
-            write(*,*)'n:',Llr(ilr)%d%n1,Llr(ilr)%d%n2,Llr(ilr)%d%n3
-            write(*,*)'nfl:',Llr(ilr)%d%nfl1,Llr(ilr)%d%nfl2,Llr(ilr)%d%nfl3
-            write(*,*)'nfu:',Llr(ilr)%d%nfu1,Llr(ilr)%d%nfu2,Llr(ilr)%d%nfu3
-            write(*,*)'ni:',Llr(ilr)%d%n1i,Llr(ilr)%d%n2i,Llr(ilr)%d%n3i
-            write(*,*)'outofzone',ilr,':',outofzone(:)
-         end if
-    !DEBUG
+    !!DEBUG
+    !     if (iproc == 0) then
+    !        write(*,*)'Description of zone:',ilr
+    !        write(*,*)'ns:',Llr(ilr)%ns1,Llr(ilr)%ns2,Llr(ilr)%ns3
+    !        write(*,*)'ne:',Llr(ilr)%ns1+Llr(ilr)%d%n1,Llr(ilr)%ns2+Llr(ilr)%d%n2,Llr(ilr)%ns3+Llr(ilr)%d%n3
+    !        write(*,*)'n:',Llr(ilr)%d%n1,Llr(ilr)%d%n2,Llr(ilr)%d%n3
+    !        write(*,*)'nfl:',Llr(ilr)%d%nfl1,Llr(ilr)%d%nfl2,Llr(ilr)%d%nfl3
+    !        write(*,*)'nfu:',Llr(ilr)%d%nfu1,Llr(ilr)%d%nfu2,Llr(ilr)%d%nfu3
+    !        write(*,*)'ni:',Llr(ilr)%d%n1i,Llr(ilr)%d%n2i,Llr(ilr)%d%n3i
+    !        write(*,*)'outofzone',ilr,':',outofzone(:)
+    !     end if
+    !!DEBUG
     
         ! construct the wavefunction descriptors (wfd)
         rootarr(ilr)=iproc
@@ -461,7 +465,7 @@ subroutine determine_locregSphere_parallel(iproc,nproc,nlr,hx,hy,hz,astruct,orbs
   call timing(iproc,'calc_bounds   ','ON') 
   do ilr=1,nlr
          if (Llr(ilr)%geocode=='F' .and. calculateBounds(ilr) ) then
-            write(*,*) 'calling locreg_bounds, ilr', ilr
+            !write(*,*) 'calling locreg_bounds, ilr', ilr
             call locreg_bounds(Llr(ilr)%d%n1,Llr(ilr)%d%n2,Llr(ilr)%d%n3,&
                  Llr(ilr)%d%nfl1,Llr(ilr)%d%nfu1,Llr(ilr)%d%nfl2,Llr(ilr)%d%nfu2,&
                  Llr(ilr)%d%nfl3,Llr(ilr)%d%nfu3,Llr(ilr)%wfd,Llr(ilr)%bounds)
@@ -657,7 +661,7 @@ subroutine determine_wfdSphere(ilr,nlr,Glr,hx,hy,hz,Llr)!,outofzone)
         Glr%wfd%keyvloc(Glr%wfd%nseg_c+min(1,Glr%wfd%nseg_f)), &
         llr(ilr)%wfd%nseg_f, llr(ilr)%wfd%nvctr_f)
 
-   write(*,'(a,2i8)') 'llr(ilr)%wfd%nvctr_c, llr(ilr)%wfd%nvctr_f', llr(ilr)%wfd%nvctr_c, llr(ilr)%wfd%nvctr_f
+   !write(*,'(a,2i8)') 'llr(ilr)%wfd%nvctr_c, llr(ilr)%wfd%nvctr_f', llr(ilr)%wfd%nvctr_c, llr(ilr)%wfd%nvctr_f
 
    !allocate the wavefunction descriptors following the needs
    call allocate_wfd(Llr(ilr)%wfd)
@@ -915,10 +919,11 @@ subroutine num_segkeys_sphere(perx, pery, perz, n1, n2, n3, nl1glob, nl2glob, nl
 END SUBROUTINE num_segkeys_sphere
 
 
-subroutine determine_boxbounds_sphere(n1glob, n2glob, n3glob, nl1glob, nl2glob, nl3glob, hx, hy, hz, locrad, locregCenter, &
+subroutine determine_boxbounds_sphere(gperx, gpery, gperz, n1glob, n2glob, n3glob, nl1glob, nl2glob, nl3glob, hx, hy, hz, locrad, locregCenter, &
            nsegglob, keygglob, keyvglob, ixmin, iymin, izmin, ixmax, iymax, izmax)
   use dynamic_memory
   implicit none
+  logical,intent(in) :: gperx, gpery, gperz
   integer, intent(in) :: n1glob, n2glob, n3glob, nl1glob, nl2glob, nl3glob, nsegglob
   real(kind=8),intent(in) :: hx, hy, hz, locrad
   real(kind=8),dimension(3),intent(in) :: locregCenter
@@ -928,11 +933,36 @@ subroutine determine_boxbounds_sphere(n1glob, n2glob, n3glob, nl1glob, nl2glob, 
   !local variables
   integer :: i, i1, i2, i3, iseg, jj, j0, j1, ii, i0, ii1, ii2, ii3, n1p1, np
   integer :: ij1, ij2 ,ij3, jj1, jj2, jj3
+  integer :: ijs1, ije1, ijs2, ije2, ijs3, ije3
   real(kind=8) :: cut, dx,dy, dz
   !debug
   integer :: iiimin, isegmin
 
   call f_routine(id='determine_boxbounds_sphere')
+
+  ! For perdiodic boundary conditions, one has to check also in the neighboring
+  ! cells (see in the loop below)
+  if (gperx) then
+      ijs1 = -1
+      ije1 = 1
+  else
+      ijs1 = 0
+      ije1 = 0
+  end if
+  if (gpery) then
+      ijs2 = -1
+      ije2 = 1
+  else
+      ijs2 = 0
+      ije2 = 0
+  end if
+  if (gperz) then
+      ijs3 = -1
+      ije3 = 1
+  else
+      ijs3 = 0
+      ije3 = 0
+  end if
 
   iiimin=0
   isegmin=0
@@ -950,7 +980,7 @@ subroutine determine_boxbounds_sphere(n1glob, n2glob, n3glob, nl1glob, nl2glob, 
   np=n1p1*(n2glob+1)
   !$omp parallel default(none) &
   !$omp shared(nsegglob,keygglob,n1glob,n2glob,n3glob,nl1glob,nl2glob,nl3glob,locregCenter) &
-  !$omp shared(ixmin,iymin,izmin,ixmax,iymax,izmax,hx,hy,hz,cut,n1p1,np) &
+  !$omp shared(ixmin,iymin,izmin,ixmax,iymax,izmax,hx,hy,hz,cut,n1p1,np,ijs1,ije1,ijs2,ije2,ijs3,ije3) &
   !$omp private(iseg,jj,j0,j1,ii,i3,i2,i0,i1,ii2,ii3,ii1,i,dx,dy,dz,iiimin,isegmin) &
   !$omp private(ij1, ij2, ij3, jj1, jj2, jj3)
   !$omp do reduction(max:ixmax,iymax,izmax) reduction(min:ixmin,iymin,izmin)
@@ -971,13 +1001,13 @@ subroutine determine_boxbounds_sphere(n1glob, n2glob, n3glob, nl1glob, nl2glob, 
       !dy=((ii2*hy)-locregCenter(2))**2
       do i=i0,i1
           ii1=i+nl1glob
-          do ij3=-1,1
+          do ij3=ijs3,ije3!-1,1
               jj3=ii3+ij3*(n3glob+1)
               dz=((jj3*hz)-locregCenter(3))**2
-              do ij2=-1,1
+              do ij2=ijs2,ije2!-1,1
                   jj2=ii2+ij2*(n2glob+1)
                   dy=((jj2*hy)-locregCenter(2))**2
-                  do ij1=-1,1
+                  do ij1=ijs1,ije1!-1,1
                       jj1=ii1+ij1*(n1glob+1)
                       dx=((jj1*hx)-locregCenter(1))**2
                       if(dx+dy+dz<=cut) then
