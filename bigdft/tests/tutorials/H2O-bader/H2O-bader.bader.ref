@@ -1,0 +1,81 @@
+
+  GRID BASED BADER ANALYSIS  (Version 0.27e 05/09/11)
+
+  OPEN ... data/electronic_density.cube                                                                                                    
+  GAUSSIAN-STYLE INPUT FILE
+  FFT-grid:   146 x 146 x 174
+  CLOSE ... data/electronic_density.cube                                                                                                    
+
+  RUN TIME:    1.85 SECONDS
+
+  CALCULATING BADER CHARGE DISTRIBUTION
+                 0  10  25  50  75  100
+  PERCENT DONE:  ---------------------- 
+
+  REFINING AUTOMATICALLY
+  ITERATION: 1
+  EDGE POINTS:        821798
+  REASSIGNED POINTS:   39236
+  ITERATION: 2
+  CHECKED POINTS:     397809
+  REASSIGNED POINTS:     517
+  ITERATION: 3
+  CHECKED POINTS:       6313
+  REASSIGNED POINTS:      24
+  ITERATION: 4
+  CHECKED POINTS:        430
+  REASSIGNED POINTS:      21
+  ITERATION: 5
+  CHECKED POINTS:        146
+  REASSIGNED POINTS:      12
+  ITERATION: 6
+  CHECKED POINTS:         94
+  REASSIGNED POINTS:      16
+  ITERATION: 7
+  CHECKED POINTS:        117
+  REASSIGNED POINTS:      12
+  ITERATION: 8
+  CHECKED POINTS:        108
+  REASSIGNED POINTS:      14
+  ITERATION: 9
+  CHECKED POINTS:        120
+  REASSIGNED POINTS:      12
+  ITERATION:10
+  CHECKED POINTS:        103
+  REASSIGNED POINTS:       9
+  ITERATION:11
+  CHECKED POINTS:         85
+  REASSIGNED POINTS:       4
+  ITERATION:12
+  CHECKED POINTS:         43
+  REASSIGNED POINTS:       0
+
+  RUN TIME:      16.98 SECONDS
+
+  CALCULATING MINIMUM DISTANCES TO ATOMS
+                 0  10  25  50  75  100
+  PERCENT DONE:  ----------------------
+
+  RUN TIME:    1.23 SECONDS
+
+  WRITING BADER ATOMIC CHARGES TO ACF.dat
+  WRITING BADER VOLUME CHARGES TO BCF.dat
+
+  NUMBER OF BADER MAXIMA FOUND:         604202
+      SIGNIFICANT MAXIMA FOUND:              4
+           NUMBER OF ELECTRONS:        8.00000
+
+  CALCULATING DIPOLE MOMENTS
+ Writing Bader atomic dipoles          : dipole.yaml
+
+ Memory Consumption Report:
+   Tot. No. of Allocations             :  0
+   Tot. No. of Deallocations           :  0
+   Remaining Memory (B)                :  0
+   Memory occupation:
+     Peak Value (MB)                   :  0.000
+     for the array                     : null
+     in the routine                    : null
+     Memory Peak of process            : 149.132 MB
+ Max No. of dictionaries used          :  198 #( 153 still in use)
+ Number of dictionary folders allocated:  1

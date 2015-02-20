@@ -27,6 +27,10 @@ module m_libpaw_tools
  USE_DEFS
  USE_MPI_WRAPPERS
 
+#if defined HAVE_LIBPAW_BIGDFT
+  use yaml_output
+#endif
+
  implicit none
 
  private
@@ -258,6 +262,14 @@ subroutine libpaw_write_lines(unit,msg)
 !******************************************************************
 
  msg_size=len_trim(msg)
+
+#if defined HAVE_LIBPAW_BIGDFT
+ if (msg_size>0 .and. unit==std_out) then
+    call yaml_comment(msg)
+ end if
+ return
+#endif
+
  if (msg_size==0) then
    write(unit,*) ; return 
  end if

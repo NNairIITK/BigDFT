@@ -1,0 +1,38 @@
+/*! @file
+@brief README of the non-regression tests of BigDFT.
+
+@dir
+@brief Contains all non-regression tests for BigDFT
+
+@page TESTS Non-regression tests for BigDFT
+@brief Non-regression tests (BigDFT)
+
+The directory tests contains the non-regression tests concerning BigDFT.
+
+The command <tt>make check</tt> performs the series of tests:
+- @subpage TESTS_DFT         Tests the DFT capabilitied of BigDFT;
+- @subpage TESTS_OVERDFT     Tests advanced features of BigDFT;
+- @subpage TESTS_LIBS        Tests the internal libraries used by BigDFT;
+- @subpage TESTS_TUTORIALS   Tutorials of BigDFT;
+-          tests/images      Contains the images used by the html page of the tutorials;
+-          tests/styles      Css stylesheets.
+
+
+Read the manual for more information or go to the web site http://bigdft.org.
+
+
+Test in parallel
+----------------
+
+Use the environment variable 'run_parallel' as:
+<pre>
+export run_parallel='mpirun -np 2'
+To use a batch system, add a batch file with:
+export run_parallel=...
+make check
+</pre>
+
+Each internal libraries as @link FLIB @endlink have also their set of non-regression tests 
+(see the directory flib/tests).
+
+*/

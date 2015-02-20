@@ -193,11 +193,15 @@ contains
          & AB6_MAX_SYMMETRIES,nshiftk,sym%nSym,0,sym%rprimd,&
          & shiftk,sym%symAfm,sym%sym,sym%vacuum)
     if (AB_DBG) write(std_err,*) "AB symmetry: abi_testkgrid -> kptrlatt=", kptrlatt
-
+    
+    nkpt=0
+    allocate(kpt(3, nkpt))
+    allocate(wkpt(nkpt))
     call abi_getkgrid(6, 1, kpt, 1, kptrlatt, kptrlen, &
          & AB6_MAX_SYMMETRIES, 0, nkpt, nshiftk, sym%nSym, &
          & sym%rprimd, shiftk, sym%symAfm, sym%sym, &
          & sym%vacuum, wkpt)
+    deallocate(kpt,wkpt)
     if (AB_DBG) write(std_err,*) "AB symmetry: abi_getkgrid -> nkpt=", nkpt
   end subroutine kpoints_binding_auto_k_1
 
