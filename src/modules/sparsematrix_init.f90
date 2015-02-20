@@ -2143,8 +2143,14 @@ contains
               end do
           end do search_out
       end do
-      if (ind_min>ind_min1) stop 'ind_min>ind_min1'
-      if (ind_max<ind_max1) stop 'ind_max<ind_max1'
+      if (ind_min>ind_min1) then
+          write(*,*) 'ind_min, ind_min1', ind_min, ind_min1
+          stop 'ind_min>ind_min1'
+      end if
+      if (ind_max<ind_max1) then
+          write(*,*) 'ind_max, ind_max1', ind_max, ind_max1
+          stop 'ind_max<ind_max1'
+      end if
       !!write(*,'(a,i3,3x,2(2i6,4x))') 'iproc, ind_min, ind_max, ind_min1, ind_max1', iproc,  ind_min, ind_max,  ind_min1, ind_max1
       !@ END NEW #################################################################
 
@@ -3069,18 +3075,23 @@ contains
     
           ! The operations done in the transposed wavefunction layout
           call check_transposed_layout()
+          write(*,'(a,2i8)') 'after check_transposed_layout: ind_min, ind_max', ind_min, ind_max
     
           ! Now check the compress_distributed layout
           call check_compress_distributed_layout()
+          write(*,'(a,2i8)') 'after check_compress_distributed_layout: ind_min, ind_max', ind_min, ind_max
     
           ! Now check the matrix matrix multiplications layout
           call check_matmul_layout()
+          write(*,'(a,2i8)') 'after check_matmul_layout: ind_min, ind_max', ind_min, ind_max
     
           ! Now check the sumrho operations
           call check_sumrho_layout()
+          write(*,'(a,2i8)') 'after check_sumrho_layout: ind_min, ind_max', ind_min, ind_max
     
           ! Now check the pseudo-exact orthonormalization during the input guess
           call check_ortho_inguess()
+          write(*,'(a,2i8)') 'after check_ortho_inguess: ind_min, ind_max', ind_min, ind_max
     
           !!write(*,'(a,3i8)') 'after check_local_matrix_extents: iproc, ind_min, ind_max', iproc, ind_min, ind_max
 
