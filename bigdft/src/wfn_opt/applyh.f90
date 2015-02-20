@@ -1202,7 +1202,7 @@ subroutine applyprojector_paw(ncplx,istart_c,iat,&
      dprj=0.0_wp
      iaux=paw_ij%cplex_dij*paw_ij%lmn2_size
      !call calculate_dprj(paw_ij%dij,iaux,paw_ij%ndij)
-     call calculate_dprj(paw_ij%dij(:,1),iaux)
+     call calculate_dprj(paw_ij%dij(1,1),iaux)
      !
      !apply non-local operator
      istart_j=istart_c
@@ -1210,21 +1210,21 @@ subroutine applyprojector_paw(ncplx,istart_c,iat,&
      eproj=eproj+eproj_i
      !
      !DEBUG: calculate <PSI|H|PSI>, only for 1 orbital and ncplx=1
-     do ispinor=1,nspinor,ncplx
-        scpr(1)=ddot(nvctr_c+7*nvctr_f,psi(istart_c,ispinor),1,hpsi(istart_c,ispinor),1)
-        !write(*,*)'erase me: applyprojector_paw l1231'
-        !write(*,*)'<psi|H|psi>= ',scpr(1:ncplx)
-     end do !ispinor
+!!$     do ispinor=1,nspinor,ncplx
+!!$        scpr(1)=ddot(nvctr_c+7*nvctr_f,psi(istart_c,ispinor),1,hpsi(istart_c,ispinor),1)
+!!$        !write(*,*)'erase me: applyprojector_paw l1231'
+!!$        !write(*,*)'<psi|H|psi>= ',scpr(1:ncplx)
+!!$     end do !ispinor
   end if
   if(sij_opt==2 .or. sij_opt==3) then
   !CALCULATE |S-I|PSI>
      dprj=0.0_wp
      !Pending: check if it works  for cplex_dij=2
-     iaux=paw_ij%cplex_dij*paw_ij%lmn2_size
+     iaux=lmn2_size
      !DEBUG
      !write(*,*)'erase me, applyprojector_paw, l1241 sij=',sij(1:iaux)
      !END DEBUG
-     call calculate_dprj(sij(1:iaux),iaux)
+     call calculate_dprj(sij,iaux)
      !
      !apply non-local operator
      istart_j=istart_c
@@ -1267,43 +1267,58 @@ subroutine applyprojector_paw(ncplx,istart_c,iat,&
      integer,intent(in)::dim1
      real(wp),dimension(dim1),intent(in)::kij 
 
-     !apply the matrix of the coefficients on the cprj array
-     jlmn=0
-     iter = iter0
-     do
-        if (.not. gaussian_iter_next_shell(proj_G, iter)) exit
-        do j_m=1,2*iter%l-1
-           jlmn=jlmn+1
-           j0lmn=jlmn*(jlmn-1)/2
-           !Diagonal components
-           klmn=j0lmn+jlmn;klmnc=paw_ij%cplex_dij*(klmn-1)
-           !case of cplex_dij pending
-           !dij=paw_ij%dij(klmn,1)
-           dij=kij(klmn)
-           !write(*,'(2(i2,x),f18.10,i2)')j_shell,j_m,dij,klmn
-           do ispinor=1,nspinor !real matrix
-              dprj(ispinor,jlmn)=dprj(ispinor,jlmn)+&
-              dij*cprj(ispinor,jlmn)
-           end do
-           !Off-diagonal components
-           ilmn=0
-           iter2 = iter0
-           do
-              if (.not. gaussian_iter_next_shell(proj_G, iter2)) exit
-              do i_m=1,2*iter2%l-1
-                 if(i_m>=j_m .and. iter%ishell==iter2%ishell) cycle
-                 ilmn=ilmn+1
-                 klmn=j0lmn+ilmn;klmnc=paw_ij%cplex_dij*(klmn-1)
-                 dij=paw_ij%dij(klmn,1)
-                 !write(*,'(4(i2,x),f18.10,i2)')j_shell,j_m,i_shell,i_m,dij,klmn
-                 do ispinor=1,nspinor !real matrix
-                     dprj(ispinor,jlmn)=dprj(ispinor,jlmn)+&
-                         dij*cprj(ispinor,ilmn)
-                     dprj(ispinor,ilmn)=dprj(ispinor,ilmn)+&
-                         dij*cprj(ispinor,jlmn)
-                 end do
-              end do
-           end do
+!!$     !apply the matrix of the coefficients on the cprj array
+!!$     jlmn=0
+!!$     iter = iter0
+!!$     do
+!!$        if (.not. gaussian_iter_next_shell(proj_G, iter)) exit
+!!$        do j_m=1,2*iter%l-1
+!!$           jlmn=jlmn+1
+!!$           j0lmn=jlmn*(jlmn-1)/2
+!!$           !Diagonal components
+!!$           klmn=j0lmn+jlmn !;klmnc=paw_ij%cplex_dij*(klmn-1)
+!!$           !case of cplex_dij pending
+!!$           !dij=paw_ij%dij(klmn,1)
+!!$           dij=kij(klmn)
+!!$           !write(*,'(2(i2,x),f18.10,i2)')j_shell,j_m,dij,klmn
+!!$           do ispinor=1,nspinor !real matrix
+!!$              dprj(ispinor,jlmn)=dprj(ispinor,jlmn)+&
+!!$              dij*cprj(ispinor,jlmn)
+!!$           end do
+!!$           write(*,*) jlmn, jlmn, klmn
+!!$           !Off-diagonal components
+!!$           ilmn=0
+!!$           iter2 = iter0
+!!$           do
+!!$              if (.not. gaussian_iter_next_shell(proj_G, iter2)) exit
+!!$              do i_m=1,2*iter2%l-1
+!!$                 ilmn=ilmn+1
+!!$                 if(i_m>=j_m .and. iter%ishell==iter2%ishell) cycle
+!!$                 klmn=j0lmn+ilmn !;klmnc=paw_ij%cplex_dij*(klmn-1)
+!!$                 write(*,*) jlmn, ilmn, klmn, iter%ishell, iter2%ishell
+!!$                 write(*,*) ilmn, jlmn, klmn, iter%ishell, iter2%ishell
+!!$                 dij=kij(klmn) !paw_ij%dij(klmn,1)
+!!$                 !write(*,'(4(i2,x),f18.10,i2)')j_shell,j_m,i_shell,i_m,dij,klmn
+!!$                 do ispinor=1,nspinor !real matrix
+!!$                     dprj(ispinor,jlmn)=dprj(ispinor,jlmn)+&
+!!$                         dij*cprj(ispinor,ilmn)
+!!$                     dprj(ispinor,ilmn)=dprj(ispinor,ilmn)+&
+!!$                         dij*cprj(ispinor,jlmn)
+!!$                 end do
+!!$              end do
+!!$           end do
+!!$        end do
+!!$     end do
+     do j_m = 1, proj_count, 1
+        do i_m = 1, j_m - 1
+           klmn = j_m * (j_m - 1) / 2 + i_m
+!!$           write(*,*) j_m, i_m, klmn
+           dprj(:, j_m) = dprj(:, j_m) + kij(klmn) * cprj(:, i_m)
+        end do
+        do i_m = j_m, proj_count, 1
+           klmn = i_m * (i_m - 1) / 2 + j_m
+!!$           write(*,*) j_m, i_m, klmn
+           dprj(:, j_m) = dprj(:, j_m) + kij(klmn) * cprj(:, i_m)
         end do
      end do
   end subroutine calculate_dprj 
@@ -1599,6 +1614,8 @@ subroutine apply_atproj_iorb_paw(iat,iorb,istart_c,at,orbs,wfd,&
   integer :: ncplx
   integer :: ityp,mbvctr_c,mbvctr_f,mbseg_c,mbseg_f
   real(gp) :: eproj_i
+  integer :: ispinor
+  real(gp) :: d1, d2
 
   !parameter for the descriptors of the projectors
   ityp=at%astruct%iatype(iat)
@@ -1632,6 +1649,27 @@ subroutine apply_atproj_iorb_paw(iat,iorb,istart_c,at,orbs,wfd,&
   !   write(401,*)ii,paw%spsi(ispsi+ii-1)
   !end do
   !DEBUG
+!!$   ! Compute <psi|S|psi>
+!!$   do ispinor=1,orbs%nspinor,ncplx
+!!$      call wpdot_wrap(ncplx,  &
+!!$           wfd%nvctr_c,wfd%nvctr_f,wfd%nseg_c,wfd%nseg_f,&
+!!$           wfd%keyvglob,wfd%keyglob,&
+!!$           psi(1, ispinor), &
+!!$           wfd%nvctr_c,wfd%nvctr_f,wfd%nseg_c,wfd%nseg_f,&
+!!$           wfd%keyvglob,wfd%keyglob,&
+!!$           psi(1, ispinor),&
+!!$           d1)
+!!$      call wpdot_wrap(ncplx,  &
+!!$           wfd%nvctr_c,wfd%nvctr_f,wfd%nseg_c,wfd%nseg_f,&
+!!$           wfd%keyvglob,wfd%keyglob,&
+!!$           psi(1, ispinor), &
+!!$           wfd%nvctr_c,wfd%nvctr_f,wfd%nseg_c,wfd%nseg_f,&
+!!$           wfd%keyvglob,wfd%keyglob,&
+!!$           spsi(1, ispinor),&
+!!$           d2)
+!!$      write(*,*) "DOT", d1 + d2
+!!$   end do !ispinor
+
   eproj=eproj+&
         &orbs%kwgts(orbs%iokpt(iorb))*orbs%occup(iorb+orbs%isorb)*eproj_i
 
