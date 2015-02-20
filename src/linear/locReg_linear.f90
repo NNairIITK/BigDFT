@@ -541,8 +541,14 @@ subroutine determine_wfdSphere(ilr,nlr,Glr,hx,hy,hz,Llr)!,outofzone)
   character(len=*), parameter :: subname='determine_wfdSphere'
 !!  integer :: nseg_c,nseg_f,nvctr_c,nvctr_f      ! total number of sgements and elements
   integer, allocatable :: keygloc_tmp(:,:)
+  logical :: perx, pery, perz
 
    call f_routine(id=subname)
+
+   ! periodicity in the three directions
+   perx=(glr%geocode /= 'F')
+   pery=(glr%geocode == 'P')
+   perz=(glr%geocode /= 'F')
 
    !starting point of locreg (can be outside the simulation box)
    isdir(1) = Llr(ilr)%ns1
@@ -636,7 +642,7 @@ subroutine determine_wfdSphere(ilr,nlr,Glr,hx,hy,hz,Llr)!,outofzone)
 
    ! define the wavefunction descriptors inside the localisation region
    !coarse part
-   call num_segkeys_sphere(Glr%d%n1, Glr%d%n2, Glr%d%n3, &
+   call num_segkeys_sphere(perx, pery, perz, Glr%d%n1, Glr%d%n2, Glr%d%n3, &
         glr%ns1, glr%ns2, glr%ns3, &
         hx, hy, hz, llr(ilr)%locrad, llr(ilr)%locregCenter, &
         Glr%wfd%nseg_c, Glr%wfd%keygloc(1,1), &
@@ -644,7 +650,7 @@ subroutine determine_wfdSphere(ilr,nlr,Glr,hx,hy,hz,Llr)!,outofzone)
         llr(ilr)%wfd%nseg_c, llr(ilr)%wfd%nvctr_c)
 
    !fine part
-   call num_segkeys_sphere(Glr%d%n1, Glr%d%n2, Glr%d%n3, &
+   call num_segkeys_sphere(perx, pery, perz, Glr%d%n1, Glr%d%n2, Glr%d%n3, &
         glr%ns1, glr%ns2, glr%ns3, &
         hx, hy, hz, llr(ilr)%locrad, llr(ilr)%locregCenter, &
         glr%wfd%nseg_f, Glr%wfd%keygloc(1,Glr%wfd%nseg_c+min(1,Glr%wfd%nseg_f)), &
@@ -661,12 +667,12 @@ subroutine determine_wfdSphere(ilr,nlr,Glr,hx,hy,hz,Llr)!,outofzone)
    keygloc_tmp = f_malloc((/ 2, (llr(ilr)%wfd%nseg_c+llr(ilr)%wfd%nseg_f) /),id='keygloc_tmp')
 
    !$omp parallel default(private) &
-   !$omp shared(Glr,llr,hx,hy,hz,ilr,keygloc_tmp)  
+   !$omp shared(Glr,llr,hx,hy,hz,ilr,keygloc_tmp,perx,pery,perz)  
    !$omp sections
    !$omp section
 
    !coarse part
-   call segkeys_Sphere(Glr%d%n1, Glr%d%n2, Glr%d%n3, &
+   call segkeys_Sphere(perx, pery, perz, Glr%d%n1, Glr%d%n2, Glr%d%n3, &
         glr%ns1, glr%ns2, glr%ns3, &
         llr(ilr)%ns1, llr(ilr)%ns1+llr(ilr)%d%n1, &
         llr(ilr)%ns2, llr(ilr)%ns2+llr(ilr)%d%n2, &
@@ -680,7 +686,7 @@ subroutine determine_wfdSphere(ilr,nlr,Glr,hx,hy,hz,Llr)!,outofzone)
 
    !$omp section
    !fine part
-   call segkeys_Sphere(Glr%d%n1, Glr%d%n2, Glr%d%n3, &
+   call segkeys_Sphere(perx, pery, perz, Glr%d%n1, Glr%d%n2, Glr%d%n3, &
         glr%ns1, glr%ns2, glr%ns3, &
         llr(ilr)%ns1, llr(ilr)%ns1+llr(ilr)%d%n1, &
         llr(ilr)%ns2, llr(ilr)%ns2+llr(ilr)%d%n2, &
@@ -783,10 +789,11 @@ subroutine num_segkeys_periodic(n1,n2,n3,i1sc,i1ec,i2sc,i2ec,i3sc,i3ec,nseg,nvct
 END SUBROUTINE num_segkeys_periodic
 
 
-subroutine num_segkeys_sphere(n1, n2, n3, nl1glob, nl2glob, nl3glob, hx, hy, hz, &
+subroutine num_segkeys_sphere(perx, pery, perz, n1, n2, n3, nl1glob, nl2glob, nl3glob, hx, hy, hz, &
      locrad, locregCenter, &
      nsegglob, keygglob, keyvglob, nseg, nvctr)
   implicit none
+  logical,intent(in) :: perx, pery, perz 
   integer, intent(in) :: n1, n2, n3, nl1glob, nl2glob, nl3glob, nsegglob
   real(kind=8),intent(in) :: hx, hy, hz, locrad
   real(kind=8),dimension(3),intent(in) :: locregCenter
@@ -796,7 +803,7 @@ subroutine num_segkeys_sphere(n1, n2, n3, nl1glob, nl2glob, nl3glob, hx, hy, hz,
   !local variables
   logical :: segment, inside
   integer :: i, i1, i2, i3, nstart, nend, iseg, jj, j0, j1, ii, i0, ii1, ii2, ii3, n1p1, np
-  integer :: ij1, ij2, ij3, jj1, jj2, jj3
+  integer :: ij1, ij2, ij3, jj1, jj2, jj3, ijs1, ijs2, ijs3, ije1, ije2, ije3
   real(kind=8) :: cut, dx,dy, dz
 
 
@@ -808,9 +815,33 @@ subroutine num_segkeys_sphere(n1, n2, n3, nl1glob, nl2glob, nl3glob, hx, hy, hz,
   n1p1=n1+1
   np=n1p1*(n2+1)
 
+  ! For perdiodic boundary conditions, one has to check also in the neighboring
+  ! cells (see in the loop below)
+  if (perx) then
+      ijs1 = -1
+      ije1 = 1
+  else
+      ijs1 = 0
+      ije1 = 0
+  end if
+  if (pery) then
+      ijs2 = -1
+      ije2 = 1
+  else
+      ijs2 = 0
+      ije2 = 0
+  end if
+  if (perz) then
+      ijs3 = -1
+      ije3 = 1
+  else
+      ijs3 = 0
+      ije3 = 0
+  end if
+
   !$omp parallel default(none) &
   !$omp shared(nsegglob,keygglob,nl1glob,nl2glob,nl3glob,locregCenter) &
-  !$omp shared(hx,hy,hz,cut,n1p1,np,nstart,nvctr,nend, n1, n2, n3) &
+  !$omp shared(hx,hy,hz,cut,n1p1,np,nstart,nvctr,nend, n1, n2, n3, ijs1, ijs2, ijs3, ije1, ije2, ije3) &
   !$omp private(iseg,jj,j0,j1,ii,i3,i2,i0,i1,ii2,ii3,ii1,i,dx,dy,dz,segment) &
   !$omp private(inside, ij1, ij2, ij3, jj1, jj2, jj3)
   segment=.false.
@@ -834,16 +865,18 @@ subroutine num_segkeys_sphere(n1, n2, n3, nl1glob, nl2glob, nl3glob, hx, hy, hz,
           ii1=i+nl1glob
           !dx=((ii1*hx)-locregCenter(1))**2
           inside=.false.
-          do ij3=-1,1
+          do ij3=ijs3,ije3!-1,1
               jj3=ii3+ij3*(n3+1)
               dz=((jj3*hz)-locregCenter(3))**2
-              do ij2=-1,1
+              do ij2=ijs2,ije2!-1,1
                   jj2=ii2+ij2*(n2+1)
                   dy=((jj2*hy)-locregCenter(2))**2
-                  do ij1=-1,1
+                  do ij1=ijs1,ije1!-1,1
                       jj1=ii1+ij1*(n1+1)
                       dx=((jj1*hx)-locregCenter(1))**2
+                      !write(*,'(a,6i7,4es12.4)') 'ii1, ii2, ii3, jj1, jj2, jj3, dx, dy, dz, cut', ii1, ii2, ii3, jj1, jj2, jj3, dx, dy, dz, cut
                       if(dx+dy+dz<=cut) then
+                          !write(*,'(a,6i7,4es12.4)') 'ii1, ii2, ii3, jj1, jj2, jj3, dx, dy, dz, cut', ii1, ii2, ii3, jj1, jj2, jj3, dx, dy, dz, cut
                           inside=.true.
                       end if
                   end do
@@ -1111,11 +1144,12 @@ subroutine segkeys_periodic(n1,n2,n3,i1sc,i1ec,i2sc,i2ec,i3sc,i3ec,nseg,nvctr,ke
 END SUBROUTINE segkeys_periodic
 
 
-subroutine segkeys_Sphere(n1, n2, n3, nl1glob, nl2glob, nl3glob, nl1, nu1, nl2, nu2, nl3, nu3, nseg, hx, hy, hz, &
+subroutine segkeys_Sphere(perx, pery, perz, n1, n2, n3, nl1glob, nl2glob, nl3glob, nl1, nu1, nl2, nu2, nl3, nu3, nseg, hx, hy, hz, &
      locrad, locregCenter, &
      nsegglob, keygglob, keyvglob, nvctr_loc, keyg_loc, keyg_glob, keyv_loc, keyv_glob, keygloc)
   use module_base
   implicit none
+  logical,intent(in) :: perx, pery, perz
   integer,intent(in) :: n1, n2, n3, nl1glob, nl2glob, nl3glob, nl1, nu1, nl2, nu2, nl3, nu3, nseg, nsegglob, nvctr_loc
   real(kind=8) :: hx, hy, hz, locrad
   real(kind=8),dimension(3) :: locregCenter
@@ -1128,7 +1162,7 @@ subroutine segkeys_Sphere(n1, n2, n3, nl1glob, nl2glob, nl3glob, nl1, nu1, nl2, 
   character(len=*),parameter :: subname = 'segkeys_Sphere'
   integer :: i, i1, i2, i3, nstart, nend, nvctr, igridpoint, igridglob, iseg, jj, j0, j1, ii, i0, n1l, n2l, n3l
   integer :: i1l, i2l, i3l, ii1, ii2, ii3, istat, iall, loc, n1p1, np, n1lp1, nlp, igridpointa, igridgloba
-  integer :: ij1, ij2, ij3, jj1, jj2, jj3, ii1mod, ii2mod, ii3mod, ivctr, jvctr, kvctr
+  integer :: ij1, ij2, ij3, jj1, jj2, jj3, ii1mod, ii2mod, ii3mod, ivctr, jvctr, kvctr, ijs1, ijs2, ijs3, ije1, ije2, ije3
   real(kind=8) :: cut, dx, dy, dz
   logical :: segment, inside
   !integer, allocatable :: keygloc(:,:)
@@ -1150,6 +1184,30 @@ subroutine segkeys_Sphere(n1, n2, n3, nl1glob, nl2glob, nl3glob, nl1, nu1, nl2, 
   nstart=0
   nend=0
   segment=.false.
+
+  ! For perdiodic boundary conditions, one has to check also in the neighboring
+  ! cells (see in the loop below)
+  if (perx) then
+      ijs1 = -1
+      ije1 = 1
+  else
+      ijs1 = 0
+      ije1 = 0
+  end if
+  if (pery) then
+      ijs2 = -1
+      ije2 = 1
+  else
+      ijs2 = 0
+      ije2 = 0
+  end if
+  if (perz) then
+      ijs3 = -1
+      ije3 = 1
+  else
+      ijs3 = 0
+      ije3 = 0
+  end if
 
   !can add openmp here too as segment always ends at end of y direction? 
   !problem is need nend value - can do a pre-scan to find seg value only as with init_collcom.
@@ -1186,13 +1244,13 @@ subroutine segkeys_Sphere(n1, n2, n3, nl1glob, nl2glob, nl3glob, nl1, nu1, nl2, 
           !igridpoint=igridpointa+i1l
           igridglob=igridgloba+ii1 
           inside=.false.
-          do ij3=-1,1
+          do ij3=ijs3,ije3!-1,1
               jj3=ii3+ij3*(n3+1)
               dz=((jj3*hz)-locregCenter(3))**2
-              do ij2=-1,1
+              do ij2=ijs2,ije2!-1,1
                   jj2=ii2+ij2*(n2+1)
                   dy=((jj2*hy)-locregCenter(2))**2
-                  do ij1=-1,1
+                  do ij1=ijs1,ije1!-1,1
                       jj1=ii1+ij1*(n1+1)
                       dx=((jj1*hx)-locregCenter(1))**2
                       if(dx+dy+dz<=cut) then
