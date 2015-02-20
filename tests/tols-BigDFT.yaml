@@ -1225,3 +1225,51 @@ log_model:
  System pseudo energy (Ha): 3.6e-11
  Keys to ignore:
   - Reference Paper
+
+periodic_silicon:
+ Epot: 1.1e-10
+ Omega: 3.3e-11
+ ebs_check: 2.1e-11
+ charge diff: 1.4e-10
+ ebs: 2.1e-11
+ Energy (Hartree): 1.2e-11
+ energy: 1.2e-11
+
+periodic_wateredge:
+ Epot: 1.1e-10
+ Omega: 3.3e-11
+ Enl: 1.1e-10
+ EH: 1.0e-9
+ EvXC: 1.1e-10
+ energy: 2.3e-11
+ Total charge: 1.1e-10
+
+periodic_water:
+ EH: 3.1e-9
+ Epot: 2.1e-9
+ EXC: 6.0e-10
+ EvXC: 8.1e-10
+ Ekin: 1.0e-9
+ Omega: 2.5e-11
+ ebs_check: 2.4e-9
+ ebs: 2.4e-9
+ eF: 8.0e-10
+ energy: 1.3e-11
+ guess for new ef: 1.0e-9
+ number of corrected points: 1
+
+surface_boronnitride:
+ Enl: 1.0e-9
+ Omega: 2.5e-11
+ energy: 1.7e-11
+ Energy (Hartree): 1.7e-11
+ Keys to ignore:
+  - Calculating wavelets expansion of projectors, found warnings
+  - found warnings
+
+surface_graphene:
+ Enl: 1.0e-10
+ Omega: 4.2e-11
+ ebs_check: 3.5e-11
+ ebs: 3.5e-11
+ charge diff: 1.0e-8

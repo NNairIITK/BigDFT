@@ -2,8 +2,8 @@
   #This file indicates the minimal set of input variables which has to be given to perform 
   #the run. The code would produce the same output if this file is used as input.
  dft:
-   hgrids: 0.52
-   rmult: [3.0, 4.0]
+   hgrids: 0.60
+   rmult: [3.0, 3.0]
    ixc: PBE
    nrepmax: accurate
    ncong: 5
@@ -18,6 +18,7 @@
    method_updatekernel: 2
    purification_quickreturn: Yes
    correction_co_contra: Yes
+   hamapp_radius_incr: 6
  lin_general:
    hybrid: Yes
    nit: 1
@@ -43,13 +44,14 @@
    alphamix: 0.05
    eval_range_foe: [-1.0, 1.0]
    fscale_foe: 1.0E-002
+   linear_method: FOE
  lin_basis_params:
    C:
      ao_confinement: 5.e-2
      confinement: 5.e-2
-     rloc: 3.2
-     rloc_kernel: 8.0
-     rloc_kernel_foe: 11.0
+     rloc: 3.0
+     rloc_kernel: 7.0
+     rloc_kernel_foe: 9.0
  posinp:
    cell: [ 23.069401, .inf,  23.97438]
    positions:
