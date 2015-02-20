@@ -1829,25 +1829,32 @@ subroutine pawpatch_from_file( filename, atoms,ityp, paw_tot_l, &
   endif
 end subroutine pawpatch_from_file
 
-subroutine paw_init(paw, at, nspinor, nspin, npsidim, norb)
+subroutine paw_init(iproc, paw, at, rxyz, d, dpbox, nspinor, npsidim, norb)
   !use module_base
   use module_defs, only: gp
-  use module_types, only: atoms_data, paw_objects, nullify_paw_objects
+  use module_types, only: atoms_data, paw_objects, nullify_paw_objects, &
+       & denspot_distribution
+  use locregs, only: grid_dimensions
   use dynamic_memory
   use m_paw_an, only: paw_an_init
   use m_paw_ij, only: paw_ij_init
   use m_pawcprj, only: pawcprj_alloc, pawcprj_getdim
   use m_pawfgrtab, only: pawfgrtab_init
-  use abi_interfaces_libpaw, only: initrhoij
+  use abi_interfaces_libpaw, only: initrhoij, wvl_nhatgrid
+  use abi_interfaces_geometry, only: abi_metric
   implicit none
   type(paw_objects), intent(out) :: paw
   type(atoms_data), intent(in) :: at
-  integer, intent(in) :: nspinor, nspin, npsidim, norb
+  real(gp), dimension(3, at%astruct%nat), intent(in) :: rxyz
+  type(grid_dimensions), intent(in) :: d
+  type(denspot_distribution), intent(in) :: dpbox
+  integer, intent(in) :: iproc, nspinor, npsidim, norb
 
   integer, parameter :: cplex = 1, pawxcdev = 1, pawcpxocc = 1, pawspnorb = 0
   integer :: i
-  integer, dimension(:), allocatable :: nlmn, nattyp, l_size_atm, lexexch, lpawu
+  integer, dimension(:), allocatable :: nlmn, nattyp, l_size_atm, lexexch, lpawu, atindx1
   real(gp), dimension(:,:), allocatable :: spinat
+  integer, parameter :: optcut = 0, optgr0 = 1, optgr1 = 0, optgr2 = 0, optrad = 0
 
   call nullify_paw_objects(paw)
   if (.not. associated(at%pawtab)) return
@@ -1858,19 +1865,19 @@ subroutine paw_init(paw, at, nspinor, nspin, npsidim, norb)
   paw%lmnmax = maxval(at%pawtab(:)%lmn_size)
 
   allocate(paw%paw_an(at%astruct%nat))
-  call paw_an_init(paw%paw_an, at%astruct%nat, at%astruct%ntypes, 0, nspin, cplex, pawxcdev, &
+  call paw_an_init(paw%paw_an, at%astruct%nat, at%astruct%ntypes, 0, dpbox%nrhodim, cplex, pawxcdev, &
        & at%astruct%iatype, at%pawang, at%pawtab, &
        & has_vxc=1, has_vxc_ex=1, has_vhartree=1) !, &
   !&   mpi_comm_atom=mpi_enreg%comm_atom,mpi_atmtab=mpi_enreg%my_atmtab)
 
   allocate(paw%paw_ij(at%astruct%nat))
-  call paw_ij_init(paw%paw_ij,cplex,nspinor,nspin,nspin,&
+  call paw_ij_init(paw%paw_ij,cplex,nspinor,dpbox%nrhodim,dpbox%nrhodim,&
        &   0,at%astruct%nat,at%astruct%ntypes,at%astruct%iatype,at%pawtab,&
        &   has_dij=1,has_dijhartree=1,has_dijso=0,has_dijhat=0,&
        &   has_pawu_occ=1,has_exexch_pot=1) !,&
   !&   mpi_comm_atom=mpi_enreg%comm_atom,mpi_atmtab=mpi_enreg%my_atmtab)
 
-  allocate(paw%cprj(at%astruct%nat, nspinor * nspin * norb))
+  allocate(paw%cprj(at%astruct%nat, nspinor * dpbox%nrhodim * norb))
   nlmn = f_malloc(at%astruct%nat, id = "nlmn")
   nattyp = f_malloc0(at%astruct%ntypes, id = "nattyp")
   do i = 1, at%astruct%nat
@@ -1878,7 +1885,6 @@ subroutine paw_init(paw, at, nspinor, nspin, npsidim, norb)
   end do
   call pawcprj_getdim(nlmn, at%astruct%nat, nattyp, at%astruct%ntypes, &
        & at%astruct%iatype, at%pawtab, 'O')
-  call f_free(nattyp)
   call pawcprj_alloc(paw%cprj, 0, nlmn)
   call f_free(nlmn)
 
@@ -1887,9 +1893,23 @@ subroutine paw_init(paw, at, nspinor, nspin, npsidim, norb)
   do i = 1, at%astruct%nat
      l_size_atm(i) = at%pawtab(at%astruct%iatype(i))%lcut_size
   end do
-  call pawfgrtab_init(paw%pawfgrtab, cplex, l_size_atm, nspin, at%astruct%iatype) !,&
+  call pawfgrtab_init(paw%pawfgrtab, cplex, l_size_atm, dpbox%nrhodim, at%astruct%iatype) !,&
   !&     mpi_atmtab=mpi_enreg%my_atmtab,mpi_comm_atom=mpi_enreg%comm_atom)
   call f_free(l_size_atm)
+  atindx1 = f_malloc(at%astruct%nat, id = "atindx1")
+  do i = 1, at%astruct%nat
+     atindx1(i) = i
+  end do
+  !ucvol = product(denspot%dpbox%ndims) * product(denspot%dpbox%hgrids)
+  call wvl_nhatgrid(atindx1, at%astruct%geocode, dpbox%hgrids, dpbox%i3s, &
+       & size(at%pawtab), at%astruct%nat, nattyp, at%astruct%ntypes, &
+       & d%n1, d%n1i, d%n2, d%n2i, d%n3, dpbox%n3pi, &
+       & optcut, optgr0, optgr1, optgr2, optrad, &
+       & paw%pawfgrtab, at%pawtab, d%n1i * d%n2i * dpbox%nscatterarr(iproc, 4), rxyz) !,&
+  !&         mpi_comm_atom=mpi_enreg%comm_atom,mpi_atmtab=mpi_enreg%my_atmtab,&
+  !&         mpi_comm_fft=spaceComm_fft,distribfft=mpi_enreg%distribfft)
+  call f_free(atindx1)
+  call f_free(nattyp)
 
   allocate(paw%pawrhoij(at%astruct%nat))
   spinat = f_malloc0((/3, at%astruct%nat/), id = "spinat")
@@ -1899,7 +1919,7 @@ subroutine paw_init(paw, at, nspinor, nspin, npsidim, norb)
   lpawu = f_malloc(at%astruct%ntypes, id = "lpawu")
   lpawu = -1
   call initrhoij(pawcpxocc, lexexch, lpawu, &
-       & at%astruct%nat, at%astruct%nat, nspin, nspinor, nspin, &
+       & at%astruct%nat, at%astruct%nat, dpbox%nrhodim, nspinor, dpbox%nrhodim, &
        & at%astruct%ntypes, paw%pawrhoij, pawspnorb, at%pawtab, spinat, at%astruct%iatype) !,&
   !&   mpi_comm_atom=mpi_enreg%comm_atom,mpi_atmtab=mpi_enreg%my_atmtab)
   call f_free(lpawu)
