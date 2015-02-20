@@ -525,11 +525,12 @@ if (idir == 6 .or. idir == 8) lz(iterm)=lz(iterm)+1
         end do
      end if
 
+!!$     write(*,*) geocode,nterm,ns1,ns2,ns3,n1,n2,n3,lx(1:nterm),ly(1:nterm),lz(1:nterm), rpaw
+!!$     write(*,*) hx,hy,hz,kx,ky,kz,ncplx_g,ncplx_k
      call crtproj(geocode,nterm,ns1,ns2,ns3,n1,n2,n3,&
           hx,hy,hz,kx,ky,kz,ncplx_g,ncplx_k,&
           gau_c,factors,rx,ry,rz,lx,ly,lz,&
           mbvctr_c,mbvctr_f,mseg_c,mseg_f,keyv_p,keyg_p,proj(istart_c),rpaw)
-
  
      !do iterm=1,nterm
      !   if (iproc.eq.0) write(*,'(1x,a,i0,1x,a,1pe10.3,3(1x,i0))') &
@@ -576,7 +577,7 @@ subroutine crtproj(geocode,nterm,ns1,ns2,ns3,n1,n2,n3, &
   integer :: mvctr1, mvctr2, mvctr_cf, mvctr_cf2
   !integer :: counter !test
   !real(wp) :: re_cmplx_prod,im_cmplx_prod
-  real(gp), dimension(ncplx_g) :: factor
+  real(gp), dimension(ncplx_g) :: factor, one
   !real(gp) :: err_norm
   real(wp), allocatable, dimension(:,:,:) :: work
   real(wp), allocatable, dimension(:,:,:,:) :: wprojx,wprojy,wprojz
@@ -637,6 +638,8 @@ subroutine crtproj(geocode,nterm,ns1,ns2,ns3,n1,n2,n3, &
   perx=(geocode /= 'F')
   pery=(geocode == 'P')
   perz=(geocode /= 'F')
+  one = real(1, gp)
+  if (ncplx_g == 2) one(2) = real(0, gp)
 
   ! make sure that the coefficients returned by CALL GAUSS_TO_DAUB are zero outside [ml:mr] 
   !n(c) err_norm=0.0_gp 
@@ -667,14 +670,14 @@ subroutine crtproj(geocode,nterm,ns1,ns2,ns3,n1,n2,n3, &
      !!$ ichunk=ichunk+1
      !!$ if (mod(ichunk,nthread).eq.ithread) then
      n_gau=ly(iterm) 
-     call gauss_to_daub_k(hy,ky*hy,ncplx_w,1,ncplx_k,1.d0,ry,gau_a,n_gau,ns2,n2,ml2,mu2,&
+     call gauss_to_daub_k(hy,ky*hy,ncplx_w,ncplx_g,ncplx_k,one,ry,gau_a,n_gau,ns2,n2,ml2,mu2,&
           wprojy(1,0,1,iterm),work,nw,pery,gau_cut) 
      !!$ endif
 
      !!$ ichunk=ichunk+1
      !!$ if (mod(ichunk,nthread).eq.ithread) then
      n_gau=lz(iterm) 
-     call gauss_to_daub_k(hz,kz*hz,ncplx_w,1,ncplx_k,1.d0,rz,gau_a,n_gau,ns3,n3,ml3,mu3,&
+     call gauss_to_daub_k(hz,kz*hz,ncplx_w,ncplx_g,ncplx_k,one,rz,gau_a,n_gau,ns3,n3,ml3,mu3,&
           wprojz(1,0,1,iterm),work,nw,perz,gau_cut)
      !!$ endif
   end do
