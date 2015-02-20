@@ -18,12 +18,12 @@
 
   <include href="gnome.modules"/>
 
-  <autotools id="libxc" check-target="false"> <!-- autogen-sh="autoreconf" -->
+  <autotools id="libxc" check-target="false" autogen-sh="autoreconf">
     <!--<branch repo="libxc" checkoutdir="libxc-2.0.x"/>-->
     <branch repo="local" module="libxc-2.0.x.tar.gz" version="2.0.x" checkoutdir="libxc"/>
   </autotools>
 
-  <autotools id="libyaml">
+  <autotools id="libyaml" autogen-sh="autoreconf">
     <!--<branch repo="libyaml" module="yaml-0.1.4.tar.gz" version="0.1.4"/>-->
     <branch repo="local" module="yaml-0.1.4.tar.gz" version="0.1.4" checkoutdir="yaml"/>
   </autotools>
@@ -36,15 +36,22 @@
     </dependencies>
   </distutils>
 
-  <autotools id="libABINIT" check-target="false">
+  <autotools id="libABINIT" check-target="false" autogen-sh="autoreconf">
     <branch repo="local" module="libABINIT-6.8+12.tar.gz" version="6.8+12" checkoutdir="libABINIT"/>
     <dependencies>
       <dep package="flib"/>
     </dependencies>
   </autotools>
 
-  <autotools id="flib" autogenargs="--disable-libpsolver">
+  <autotools id="flib" autogenargs="--disable-libpsolver" autogen-sh="autoreconf">
     <branch repo="local" module="bigdft-1.7.6.tar.gz" version="1.7.6" checkoutdir="bigdft"/>
+    <dependencies>
+      <dep package="libyaml"/>
+      <if condition-set="python">
+        <dep package="pygobject"/>
+        <dep package="gobject-introspection"/>
+      </if>
+    </dependencies>
   </autotools>
 
   <autotools id="psolver">
@@ -54,7 +61,7 @@
     </dependencies>
   </autotools>
 
-  <autotools id="bigdft" autogenargs="--without-internal-flib">
+  <autotools id="bigdft" autogenargs="--without-internal-flib" autogen-sh="autoreconf">
     <!--<branch repo="bigdft" module="bigdft" version="1.7.5"/>-->
     <branch repo="local" module="bigdft-1.7.6.tar.gz" version="1.7.6" checkoutdir="bigdft"/>
     <dependencies>
