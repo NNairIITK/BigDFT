@@ -1234,6 +1234,7 @@ periodic_silicon:
  ebs: 2.1e-11
  Energy (Hartree): 1.2e-11
  energy: 1.2e-11
+ charge diff: 3.8e-10
 
 periodic_wateredge:
  Epot: 1.1e-10
@@ -1250,13 +1251,15 @@ periodic_water:
  EXC: 6.0e-10
  EvXC: 8.1e-10
  Ekin: 1.0e-9
- Omega: 2.5e-11
+ Enl: 1.1e-10
+ Omega: 7.3e-11
  ebs_check: 2.4e-9
  ebs: 2.4e-9
  eF: 8.0e-10
- energy: 1.3e-11
+ energy: 7.2e-11
  guess for new ef: 1.0e-9
  number of corrected points: 1
+ charge diff: 1.2e-11
 
 surface_boronnitride:
  Enl: 1.0e-9
@@ -1269,7 +1272,9 @@ surface_boronnitride:
 
 surface_graphene:
  Enl: 1.0e-10
- Omega: 4.2e-11
+ Omega: 4.3e-11
  ebs_check: 3.5e-11
  ebs: 3.5e-11
  charge diff: 1.0e-8
+ guess for new ef: 1.1e-9
+ eF: 1.0e-10

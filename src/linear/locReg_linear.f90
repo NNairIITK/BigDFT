@@ -919,7 +919,8 @@ subroutine num_segkeys_sphere(perx, pery, perz, n1, n2, n3, nl1glob, nl2glob, nl
 END SUBROUTINE num_segkeys_sphere
 
 
-subroutine determine_boxbounds_sphere(gperx, gpery, gperz, n1glob, n2glob, n3glob, nl1glob, nl2glob, nl3glob, hx, hy, hz, locrad, locregCenter, &
+subroutine determine_boxbounds_sphere(gperx, gpery, gperz, n1glob, n2glob, n3glob, nl1glob, nl2glob, nl3glob, &
+           hx, hy, hz, locrad, locregCenter, &
            nsegglob, keygglob, keyvglob, ixmin, iymin, izmin, ixmax, iymax, izmax)
   use dynamic_memory
   implicit none
