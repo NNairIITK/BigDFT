@@ -1,7 +1,7 @@
 !{\src2tex{textfont=tt}}
-!!****f* ABINIT/initrhoij
+!!****f* ABINIT/abi_initrhoij
 !! NAME
-!! initrhoij
+!! abi_initrhoij
 !!
 !! FUNCTION
 !! Initialize PAW rhoij occupancies (in packed storage)
@@ -52,7 +52,7 @@
 
 #include "../libpaw/libpaw.h"
 
-subroutine initrhoij(cplex,lexexch,lpawu,my_natom,natom,&
+subroutine abi_initrhoij(cplex,lexexch,lpawu,my_natom,natom,&
 &                    nspden,nspinor,nsppol,ntypat,pawrhoij,pawspnorb,pawtab,spinat,typat,&
 &                    ngrhoij,nlmnmix,use_rhoij_,use_rhoijres,& ! optional arguments
 &                    mpi_atmtab,mpi_comm_atom) ! optional arguments (parallelism)
@@ -68,7 +68,7 @@ subroutine initrhoij(cplex,lexexch,lpawu,my_natom,natom,&
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
 #undef ABI_FUNC
-#define ABI_FUNC 'initrhoij'
+#define ABI_FUNC 'abi_initrhoij'
 !End of the abilint section
 
  implicit none
@@ -216,5 +216,5 @@ subroutine initrhoij(cplex,lexexch,lpawu,my_natom,natom,&
 !Destroy atom table used for parallelism
  call free_my_atmtab(my_atmtab,my_atmtab_allocated)
 
-end subroutine initrhoij
+end subroutine abi_initrhoij
 !!***

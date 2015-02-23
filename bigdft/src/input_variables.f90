@@ -141,7 +141,7 @@ subroutine inputs_from_dict(in, atoms, dict)
   use yaml_strings, only: f_strcpy
   use psp_projectors, only: PSPCODE_PAW
   use m_ab6_symmetry, only: symmetry_get_n_sym
-  use abi_interfaces_libpaw
+  use abi_interfaces_add_libpaw, only : abi_pawinit
   use bigdft_run, only: bigdft_get_run_properties
   implicit none
   !Arguments
@@ -307,7 +307,7 @@ subroutine inputs_from_dict(in, atoms, dict)
      !gsqcut_shp = two*abs(dtset%diecut)*dtset%dilatmx**2/pi**2
      gsqcut_shp = 2._gp * 2.2_gp / pi_param ** 2
      call symmetry_get_n_sym(atoms%astruct%sym%symObj, nsym, ierr)
-     call pawinit(1, gsqcut_shp, pawlcutd, pawlmix, maxval(atoms%pawtab(:)%lmn_size) + 1, &
+     call abi_pawinit(1, gsqcut_shp, pawlcutd, pawlmix, maxval(atoms%pawtab(:)%lmn_size) + 1, &
           & pawnphi, nsym, pawntheta, atoms%pawang, atoms%pawrad, 0, &
           & atoms%pawtab, pawxcdev, xclevel, usepotzero)
   end if

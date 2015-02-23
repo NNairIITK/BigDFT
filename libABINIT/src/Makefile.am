@@ -144,9 +144,9 @@ libabinit_a_SOURCES = \
 	abi_common/abi_fconv.F90 \
 	abi_common/abi_prtxvf.F90 \
 	abi_geomoptim/m_ab6_moldyn.F90 \
-	add_libpaw/pawinit.F90 \
-	add_libpaw/initrhoij.F90 \
-	add_libpaw/abi_interfaces_libpaw.F90 \
+	add_libpaw/abi_pawinit.F90 \
+	add_libpaw/abi_initrhoij.F90 \
+	add_libpaw/abi_interfaces_add_libpaw.F90 \
 	add_libpaw/m_distribfft.F90 \
 	add_libpaw/wvl_nhatgrid.F90 \
 	add_libpaw/pawnhatfr.F90 \
@@ -196,7 +196,7 @@ modules = \
 	ABI_INTERFACES_MIXING.@MODULE_EXT@ \
 	ABI_INTERFACES_RECIPSPACE.@MODULE_EXT@ \
 	ABI_INTERFACES_COMMON.@MODULE_EXT@ \
-	ABI_INTERFACES_LIBPAW.@MODULE_EXT@ \
+	ABI_INTERFACES_ADD_LIBPAW.@MODULE_EXT@ \
 	M_LIBPAW_MPI.@MODULE_EXT@ \
 	M_AB6_MOLDYN.@MODULE_EXT@ \
 	M_AB6_KPOINTS.@MODULE_EXT@ \
@@ -236,7 +236,7 @@ modules = \
 	abi_interfaces_mixing.@MODULE_EXT@ \
 	abi_interfaces_recipspace.@MODULE_EXT@ \
 	abi_interfaces_common.@MODULE_EXT@ \
-	abi_interfaces_libpaw.@MODULE_EXT@ \
+	abi_interfaces_add_libpaw.@MODULE_EXT@ \
 	m_libpaw_mpi.@MODULE_EXT@ \
 	m_ab6_moldyn.@MODULE_EXT@ \
 	m_ab6_kpoints.@MODULE_EXT@ \

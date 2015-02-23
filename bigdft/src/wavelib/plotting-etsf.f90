@@ -159,7 +159,7 @@ subroutine write_etsf_density(filename,message,at,rxyz,n1i,n2i,n3i,hxh,hyh,hzh,&
   end if
   call f_free(xred)
   call f_free(znucl)
-  call f_free_str(etsf_chemlen, spnames)
+  call f_free_str(etsf_chemlen,spnames)
 
   ! We switch to write mode.
   call etsf_io_low_set_write_mode(ncid, lstat, error_data = error)

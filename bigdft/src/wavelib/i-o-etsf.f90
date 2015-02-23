@@ -1081,7 +1081,7 @@ subroutine write_waves_etsf(iproc,filename,orbs,n1,n2,n3,hx,hy,hz,at,rxyz,wfd,ps
       if (.not. lstat) call etsf_error(error)
       call f_free(xred)
       call f_free(znucl)
-      call f_free_str(etsf_chemlen, spnames)
+      call f_free_str(etsf_chemlen,spnames)
       ! The eigenvalues & occupation.
       if (dims%number_of_spins == 1) then
          elec%eigenvalues%data1D => orbs%eval

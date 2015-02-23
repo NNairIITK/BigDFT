@@ -1840,7 +1840,7 @@ subroutine paw_init(iproc, paw, at, rxyz, d, dpbox, nspinor, npsidim, norb)
   use m_paw_ij, only: paw_ij_init
   use m_pawcprj, only: pawcprj_alloc, pawcprj_getdim
   use m_pawfgrtab, only: pawfgrtab_init
-  use abi_interfaces_libpaw, only: initrhoij, wvl_nhatgrid
+  use abi_interfaces_add_libpaw, only: abi_initrhoij, wvl_nhatgrid
   use abi_interfaces_geometry, only: abi_metric
   implicit none
   type(paw_objects), intent(out) :: paw
@@ -1918,7 +1918,7 @@ subroutine paw_init(iproc, paw, at, rxyz, d, dpbox, nspinor, npsidim, norb)
   lexexch = -1
   lpawu = f_malloc(at%astruct%ntypes, id = "lpawu")
   lpawu = -1
-  call initrhoij(pawcpxocc, lexexch, lpawu, &
+  call abi_initrhoij(pawcpxocc, lexexch, lpawu, &
        & at%astruct%nat, at%astruct%nat, dpbox%nrhodim, nspinor, dpbox%nrhodim, &
        & at%astruct%ntypes, paw%pawrhoij, pawspnorb, at%pawtab, spinat, at%astruct%iatype) !,&
   !&   mpi_comm_atom=mpi_enreg%comm_atom,mpi_atmtab=mpi_enreg%my_atmtab)

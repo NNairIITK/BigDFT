@@ -2936,7 +2936,7 @@ subroutine pawdijexxc(cplex,cplex_dij,dijexxc,lmselect,ndij,nspden,nsppol,&
              icount=in1+(in2*(in2-1))/2
              if(pawtab%ij_proj<icount)  then
                msg='PAW local exact-exchange: Problem while computing dijexxc !'
-         MSG_BUG(msg)
+               MSG_BUG(msg)
              end if
              dijexxc_idij(klmn)=pawtab%exchmix &
 &                              *(vpawx(1,klmn,idij)-dijexxc_idij(klmn))
@@ -2953,7 +2953,7 @@ subroutine pawdijexxc(cplex,cplex_dij,dijexxc,lmselect,ndij,nspden,nsppol,&
              icount=in1+(in2*(in2-1))/2
              if(pawtab%ij_proj<icount)  then
                msg='PAW local exact-exchange: Problem while computing dijexxc !'
-         MSG_BUG(msg)
+               MSG_BUG(msg)
              end if
              dijexxc_idij(klmn1)  =pawtab%exchmix &
 &                                 *(vpawx(1,klmn,idij)-dijexxc_idij(klmn1))

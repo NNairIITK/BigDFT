@@ -1,7 +1,7 @@
 !{\src2tex{textfont=tt}}
-!!****f* ABINIT/pawinit
+!!****f* ABINIT/abi_pawinit
 !! NAME
-!! pawinit
+!! abi_pawinit
 !!
 !! FUNCTION
 !! Initialize some starting values of several arrays used in
@@ -116,15 +116,12 @@
 
 #include "../libpaw/libpaw.h"
 
-subroutine pawinit(gnt_option,gsqcut_eff,lcutdens,lmix,mpsang,nphi,nsym,ntheta,&
-&                  pawang,pawrad,pawspnorb,pawtab,pawxcdev,xclevel,usepotzero)
+subroutine abi_pawinit(gnt_option,gsqcut_eff,lcutdens,lmix,mpsang,nphi,nsym,ntheta,&
+&                      pawang,pawrad,pawspnorb,pawtab,pawxcdev,xclevel,usepotzero)
 
  USE_DEFS
  USE_MSG_HANDLING
  USE_MEMORY_PROFILING
- !use m_errors
- !use m_profiling
- !use m_splines
 
  use m_paw_numeric, only: paw_spline
  use m_pawpsp, only: pawpsp_nl
@@ -136,7 +133,7 @@ subroutine pawinit(gnt_option,gsqcut_eff,lcutdens,lmix,mpsang,nphi,nsym,ntheta,&
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
 #undef ABI_FUNC
-#define ABI_FUNC 'pawinit'
+#define ABI_FUNC 'abi_pawinit'
 !End of the abilint section
 
  implicit none
@@ -575,6 +572,6 @@ subroutine pawinit(gnt_option,gsqcut_eff,lcutdens,lmix,mpsang,nphi,nsym,ntheta,&
    LIBPAW_DEALLOCATE(rad)
  end do
 
-end subroutine pawinit
+end subroutine abi_pawinit
 !!***
 

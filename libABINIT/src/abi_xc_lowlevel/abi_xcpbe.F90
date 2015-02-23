@@ -3869,8 +3869,6 @@ if (skip_the_rest) skip_the_rest=exexch==1
            div_rr=one/arg_rr
            rr=gamma*log(arg_rr)
            drr_dqq=beta*div_rr
-!print *,ipts,phi3_zeta,dpade_drs,tt
-!print *,arg_rr,drr_dqq,coeff_qq,grrho2
 
            drr_drs=drr_dqq*dqq_drs
            drr_dtt=drr_dqq*dqq_dtt
