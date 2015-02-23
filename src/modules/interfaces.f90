@@ -2025,7 +2025,7 @@ module module_interfaces
       end subroutine deallocate_workarrays_quartic_convolutions
 
       subroutine ConvolQuartic4(iproc, nproc, n1, n2, n3, nfl1, nfu1, nfl2, nfu2, nfl3, nfu3,  &
-                 hgrid, offsetx, offsety, offsetz, ibyz_c, ibxz_c, ibxy_c, ibyz_f, ibxz_f, ibxy_f, &
+                 hx, hy, hz, offsetx, offsety, offsetz, ibyz_c, ibxz_c, ibxy_c, ibyz_f, ibxz_f, ibxy_f, &
                  rxyzConf, potentialPrefac, with_kinetic, cprecr, maxdim, &
                  xx_c, xx_f1, xx_f, xy_c, xy_f2, xy_f,  xz_c, xz_f4, xz_f, &
                  aeff0array, beff0array, ceff0array, eeff0array, &
@@ -2043,7 +2043,7 @@ module module_interfaces
         use module_types
         implicit none
         integer,intent(in) :: iproc, nproc, n1, n2, n3, nfl1, nfu1, nfl2, nfu2, nfl3, nfu3, offsetx, offsety, offsetz, maxdim
-        real(gp),intent(in) :: hgrid, potentialPrefac, cprecr
+        real(gp),intent(in) :: hx, hy, hz, potentialPrefac, cprecr
         logical,intent(in) :: with_kinetic
         real(8),dimension(3) :: rxyzConf
         integer,dimension(2,0:n2,0:n3), intent(in) :: ibyz_c,ibyz_f

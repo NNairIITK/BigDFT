@@ -1150,7 +1150,7 @@ subroutine create_large_tmbs(iproc, nproc, KSwfn, tmb, denspot,nlpsp,input, at, 
       locregCenter(:,ilr)=tmb%lzd%llr(ilr)%locregCenter
   end do
   do ilr=1,tmb%lzd%nlr
-      locrad_tmp(ilr,1)=tmb%lzd%llr(ilr)%locrad+real(input%hamapp_radius_incr,kind=8)*tmb%lzd%hgrids(1)
+      locrad_tmp(ilr,1)=tmb%lzd%llr(ilr)%locrad+real(input%hamapp_radius_incr,kind=8)*maxval(tmb%lzd%hgrids(:))
       locrad_tmp(ilr,2)=tmb%lzd%llr(ilr)%locrad_kernel
       locrad_tmp(ilr,3)=tmb%lzd%llr(ilr)%locrad_mult
   end do
