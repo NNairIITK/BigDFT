@@ -2123,9 +2123,9 @@ subroutine check_eigenvalue_spectrum_new(nproc, smat_l, smat_s, mat, ispin, issh
   allredarr=abs(allredarr) !for some crazy situations this may be negative
   noise=1000.d0*anoise
 
-  if (bigdft_mpi%iproc==0) then
-      call yaml_map('errors, noise',(/allredarr(1),allredarr(2),noise/),fmt='(es12.4)')
-  end if
+  !if (bigdft_mpi%iproc==0) then
+  !    call yaml_map('errors, noise',(/allredarr(1),allredarr(2),noise/),fmt='(es12.4)')
+  !end if
   !write(*,*) 'allredarr, anoise', allredarr, anoise
   if (allredarr(1)>noise) then
       eval_bounds_ok(1)=.false.

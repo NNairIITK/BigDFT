@@ -810,8 +810,7 @@
  Energies: {Ekin:  2.70460233634E+02, Epot: -2.63618747915E+02, Enl:  4.43081793465E+01}, 
  Orthoconstraint:  Yes, calculation of S^-1: direct calculation, 
  calculate S^x: {mode: sparse, powers: {x: -1}, order:  1020, 
- ICE: {eval bounds:  [  0.50,  1.50 ], mult.:  20.00, pol. deg.:  20}, errors, noise: [
-  3.6379E-02,  3.6379E-02,  1.3925E+01], 
+ ICE: {eval bounds:  [  0.50,  1.50 ], mult.:  20.00, pol. deg.:  20}, 
  error estimation: [
  max / mean error:  [  7.28E-12,  9.10E-13 ]]}, 
  correction orthoconstraint:  Yes, Preconditioning:  Yes, rel D:  0.00E+00, 
@@ -819,8 +818,7 @@
  Optimization: {algorithm: DIIS, history length:  8, consecutive failures:  0, 
            total failures:  0}, 
  calculate S^x: {mode: sparse, powers: {x: -1/2}, order:  1020, 
- ICE: {eval bounds:  [  0.50,  1.50 ], mult.:  20.00, pol. deg.:  20}, errors, noise: [
-  9.5389E-03,  9.8233E-03,  1.3925E+01], 
+ ICE: {eval bounds:  [  0.50,  1.50 ], mult.:  20.00, pol. deg.:  20}, 
  error estimation: [
  max / mean error:  [  1.61E-12,  1.42E-13 ]]}, 
  Orthogonalization:  Yes}
@@ -829,8 +827,7 @@
  Energies: {Ekin:  2.74016717087E+02, Epot: -2.72769540108E+02, Enl:  4.60570538968E+01}, 
  Orthoconstraint:  Yes, calculation of S^-1: direct calculation, 
  calculate S^x: {mode: sparse, powers: {x: -1}, order:  1020, 
- ICE: {eval bounds:  [  0.50,  1.50 ], mult.:  20.00, pol. deg.:  20}, errors, noise: [
-  3.6687E-02,  3.6687E-02,  1.3925E+01], 
+ ICE: {eval bounds:  [  0.50,  1.50 ], mult.:  20.00, pol. deg.:  20},
  error estimation: [
  max / mean error:  [  7.28E-12,  9.17E-13 ]]}, 
  correction orthoconstraint:  Yes, Preconditioning:  Yes, rel D:  2.80E-02, 
@@ -936,13 +933,11 @@
  Orthoconstraint:  Yes, 
  kernel update by FOE: [
  calculate S^x: {mode: sparse, powers: {x: 1/2}, order:  1020, 
- ICE: {eval bounds:  [  0.50,  1.50 ], mult.:  20.00, pol. deg.:  20}, errors, noise: [
-  3.6687E-02,  3.6687E-02,  1.3925E+01], 
+ ICE: {eval bounds:  [  0.50,  1.50 ], mult.:  20.00, pol. deg.:  20}, 
  error estimation: [
  max / mean error:  [  3.77E-14,  4.68E-15 ]]}, 
  calculate S^x: {mode: sparse, powers: {x: 1/2, x: -1/2, x: -1}, order:  1020, 
- ICE: {eval bounds:  [  0.50,  1.50 ], mult.:  20.00, pol. deg.:  20}, errors, noise: [
-  3.6687E-02,  3.6687E-02,  1.3925E+01], 
+ ICE: {eval bounds:  [  0.50,  1.50 ], mult.:  20.00, pol. deg.:  20}, 
  error estimation: [
  max / mean error:  [  3.77E-14,  4.68E-15 ], 
  max / mean error:  [  1.71E-12,  2.16E-13 ], 
@@ -963,8 +958,7 @@
  Orthoconstraint:  Yes, 
  kernel update by FOE: [
  calculate S^x: {mode: sparse, powers: {x: 1/2, x: -1/2, x: -1}, order:  1020, 
- ICE: {eval bounds:  [  0.50,  1.50 ], mult.:  20.00, pol. deg.:  20}, errors, noise: [
-  1.2291E-03,  1.0180E-03,  1.3925E+01], 
+ ICE: {eval bounds:  [  0.50,  1.50 ], mult.:  20.00, pol. deg.:  20}, 
  error estimation: [
  max / mean error:  [  3.66E-14,  3.79E-15 ], 
  max / mean error:  [  1.71E-12,  1.74E-13 ], 
@@ -1234,13 +1228,11 @@
  Orthoconstraint:  Yes, 
  kernel update by FOE: [
  calculate S^x: {mode: sparse, powers: {x: 1/2}, order:  1020, 
- ICE: {eval bounds:  [  0.50,  1.50 ], mult.:  20.00, pol. deg.:  20}, errors, noise: [
-  1.2291E-03,  1.0180E-03,  1.3925E+01], 
+ ICE: {eval bounds:  [  0.50,  1.50 ], mult.:  20.00, pol. deg.:  20}, 
  error estimation: [
  max / mean error:  [  3.66E-14,  3.79E-15 ]]}, 
  calculate S^x: {mode: sparse, powers: {x: 1/2, x: -1/2, x: -1}, order:  1020, 
- ICE: {eval bounds:  [  0.50,  1.50 ], mult.:  20.00, pol. deg.:  20}, errors, noise: [
-  1.2291E-03,  1.0180E-03,  1.3925E+01], 
+ ICE: {eval bounds:  [  0.50,  1.50 ], mult.:  20.00, pol. deg.:  20}, 
  error estimation: [
  max / mean error:  [  3.66E-14,  3.79E-15 ], 
  max / mean error:  [  1.71E-12,  1.74E-13 ], 
@@ -1261,8 +1253,7 @@
  Orthoconstraint:  Yes, 
  kernel update by FOE: [
  calculate S^x: {mode: sparse, powers: {x: 1/2, x: -1/2, x: -1}, order:  1020, 
- ICE: {eval bounds:  [  0.50,  1.50 ], mult.:  20.00, pol. deg.:  20}, errors, noise: [
-  7.5583E-03,  1.1897E-04,  1.3925E+01], 
+ ICE: {eval bounds:  [  0.50,  1.50 ], mult.:  20.00, pol. deg.:  20}, 
  error estimation: [
  max / mean error:  [  3.36E-14,  3.45E-15 ], 
  max / mean error:  [  1.52E-12,  1.56E-13 ], 
@@ -1532,13 +1523,11 @@
  Orthoconstraint:  Yes, 
  kernel update by FOE: [
  calculate S^x: {mode: sparse, powers: {x: 1/2}, order:  1020, 
- ICE: {eval bounds:  [  0.50,  1.50 ], mult.:  20.00, pol. deg.:  20}, errors, noise: [
-  7.5583E-03,  1.1897E-04,  1.3925E+01], 
+ ICE: {eval bounds:  [  0.50,  1.50 ], mult.:  20.00, pol. deg.:  20}, 
  error estimation: [
  max / mean error:  [  3.36E-14,  3.45E-15 ]]}, 
  calculate S^x: {mode: sparse, powers: {x: 1/2, x: -1/2, x: -1}, order:  1020, 
- ICE: {eval bounds:  [  0.50,  1.50 ], mult.:  20.00, pol. deg.:  20}, errors, noise: [
-  7.5583E-03,  1.1897E-04,  1.3925E+01], 
+ ICE: {eval bounds:  [  0.50,  1.50 ], mult.:  20.00, pol. deg.:  20}, 
  error estimation: [
  max / mean error:  [  3.36E-14,  3.45E-15 ], 
  max / mean error:  [  1.52E-12,  1.56E-13 ], 
@@ -1559,8 +1548,7 @@
  Orthoconstraint:  Yes, 
  kernel update by FOE: [
  calculate S^x: {mode: sparse, powers: {x: 1/2, x: -1/2, x: -1}, order:  1020, 
- ICE: {eval bounds:  [  0.50,  1.50 ], mult.:  20.00, pol. deg.:  20}, errors, noise: [
-  1.8587E-03,  2.0843E-03,  1.3925E+01], 
+ ICE: {eval bounds:  [  0.50,  1.50 ], mult.:  20.00, pol. deg.:  20}, 
  error estimation: [
  max / mean error:  [  3.23E-14,  2.79E-15 ], 
  max / mean error:  [  1.46E-12,  1.27E-13 ], 

@@ -644,8 +644,7 @@
  Energies: {Ekin:  1.98428418645E+02, Epot: -9.79565800177E+01, Enl:  1.38945073124E+02}, 
  Orthoconstraint:  Yes, calculation of S^-1: direct calculation, 
  calculate S^x: {mode: sparse, powers: {x: -1}, order:  1020, 
- ICE: {eval bounds:  [  0.50,  1.50 ], mult.:  20.00, pol. deg.:  20}, errors, noise: [
-  5.3607E-02,  5.3493E-02,  1.3925E+01], 
+ ICE: {eval bounds:  [  0.50,  1.50 ], mult.:  20.00, pol. deg.:  20}, 
  error estimation: [
  max / mean error:  [  4.54E-09,  7.57E-10 ]]}, 
  correction orthoconstraint:  Yes, Preconditioning:  Yes, rel D:  0.00E+00, 
@@ -653,8 +652,7 @@
  Optimization: {algorithm: DIIS, history length:  8, consecutive failures:  0, 
            total failures:  0}, 
  calculate S^x: {mode: sparse, powers: {x: -1/2}, order:  1020, 
- ICE: {eval bounds:  [  0.50,  1.50 ], mult.:  20.00, pol. deg.:  20}, errors, noise: [
-  5.1588E-02,  4.9900E-02,  1.3925E+01], 
+ ICE: {eval bounds:  [  0.50,  1.50 ], mult.:  20.00, pol. deg.:  20}, 
  error estimation: [
  max / mean error:  [  1.42E-09,  2.03E-10 ]]}, 
  Orthogonalization:  Yes}
@@ -663,9 +661,7 @@
  Energies: {Ekin:  2.02660618897E+02, Epot: -1.07112700201E+02, Enl:  1.43240557051E+02}, 
  Orthoconstraint:  Yes, calculation of S^-1: direct calculation, 
  calculate S^x: {mode: sparse, powers: {x: -1}, order:  1020, 
- ICE: {eval bounds:  [  0.50,  1.50 ], mult.:  20.00, pol. deg.:  20}, errors, noise: [
-  2.0772E-02,  2.0702E-02,  1.3925E+01], 
- error estimation: [
+ ICE: {eval bounds:  [  0.50,  1.50 ], mult.:  20.00, pol. deg.:  20}, error estimation: [
  max / mean error:  [  1.75E-09,  2.70E-10 ]]}, 
  correction orthoconstraint:  Yes, Preconditioning:  Yes, rel D: -4.70E-03, 
                       kappa:  4.299E-01, 
@@ -693,7 +689,6 @@
          eval bounds                   :  [  0.50,  1.50 ]
          mult.                         :  20.00
          pol. deg.                     :  20
-       errors, noise                   :  [  2.0772E-02,  2.0702E-02,  1.3925E+01 ]
        error estimation:
          max / mean error              :  [  6.34E-10,  9.27E-11 ]
      decay length of error function    :  1.000E-02
@@ -702,13 +697,12 @@
      FOE to determine density kernel: &it_foe000-000-01-01
      -  { #---------------------------------------------------------------------- it FOE: 1
  bisec/eval bounds:  [ -0.10,  0.10, -1.00,  1.00 ], pol deg:  600, eF: -1.000000000E-01, 
-       polynomials: recalculated, 
-     errors, noise:  [  4.6168E-15,  3.7430E-12,  3.5735E-12 ], eval/bisection bounds ok: [
+       polynomials: recalculated , eval/bisection bounds ok: [
   Yes,  No,  No,  No]}
      -  { #---------------------------------------------------------------------- it FOE: 2
  bisec/eval bounds:  [ -0.10,  0.10, -1.00,  1.20 ], pol deg:  660, eF: -1.000000000E-01, 
-       polynomials: recalculated, 
-     errors, noise:  [  3.604E-15,  8.0115E-17,  2.0123E-12 ], eval/bisection bounds ok: [
+       polynomials: recalculated 
+     , eval/bisection bounds ok: [
   Yes,  Yes,  Yes,  No]}
      -  { #---------------------------------------------------------------------- it FOE: 3
  bisec/eval bounds:  [ -0.10,  0.10, -1.00,  1.20 ], pol deg:  660, eF:  1.000000000E-01, 
@@ -787,8 +781,8 @@
      FOE to determine density kernel: &it_foe000-000-02-01
      -  { #---------------------------------------------------------------------- it FOE: 1
  bisec/eval bounds:  [  0.58,  0.87, -1.00,  1.20 ], pol deg:  1320, eF:  5.828251980E-01, 
-       polynomials: recalculated, 
-     errors, noise:  [  6.9337E-16,  5.9135E-17,  4.3889E-12 ], eval/bisection bounds ok: [
+       polynomials: recalculated 
+     , eval/bisection bounds ok: [
   Yes,  Yes,  Yes,  No]}
      -  { #---------------------------------------------------------------------- it FOE: 2
  bisec/eval bounds:  [  0.58,  0.87, -1.00,  1.20 ], pol deg:  1320, eF:  8.698180800E-01, 
@@ -883,13 +877,11 @@
  Orthoconstraint:  Yes, 
  kernel update by FOE: [
  calculate S^x: {mode: sparse, powers: {x: 1/2}, order:  1020, 
- ICE: {eval bounds:  [  0.50,  1.50 ], mult.:  20.00, pol. deg.:  20}, errors, noise: [
-  2.0772E-02,  2.0702E-02,  1.3925E+01], 
+ ICE: {eval bounds:  [  0.50,  1.50 ], mult.:  20.00, pol. deg.:  20}, 
  error estimation: [
  max / mean error:  [  5.34E-11,  9.46E-12 ]]}, 
  calculate S^x: {mode: sparse, powers: {x: 1/2, x: -1/2, x: -1}, order:  1020, 
- ICE: {eval bounds:  [  0.50,  1.50 ], mult.:  20.00, pol. deg.:  20}, errors, noise: [
-  2.0772E-02,  2.0702E-02,  1.3925E+01], 
+ ICE: {eval bounds:  [  0.50,  1.50 ], mult.:  20.00, pol. deg.:  20}, 
  error estimation: [
  max / mean error:  [  5.34E-11,  9.46E-12 ], 
  max / mean error:  [  6.34E-10,  9.27E-11 ], 
@@ -906,8 +898,7 @@
  Orthoconstraint:  Yes, 
  kernel update by FOE: [
  calculate S^x: {mode: sparse, powers: {x: 1/2, x: -1/2, x: -1}, order:  1020, 
- ICE: {eval bounds:  [  0.50,  1.50 ], mult.:  20.00, pol. deg.:  20}, errors, noise: [
-  5.9739E-02,  6.0114E-02,  1.3925E+01], 
+ ICE: {eval bounds:  [  0.50,  1.50 ], mult.:  20.00, pol. deg.:  20}, 
  error estimation: [
  max / mean error:  [  2.07E-10,  2.39E-11 ], 
  max / mean error:  [  3.82E-09,  2.83E-10 ], 
@@ -937,8 +928,8 @@
        FOE to determine density kernel: &it_foe001-001-01-01
        -  { #-------------------------------------------------------------------- it FOE: 1
  bisec/eval bounds:  [  0.61,  0.84, -1.00,  1.20 ], pol deg:  1320, eF:  6.094876523E-01, 
-       polynomials: recalculated, 
-     errors, noise:  [  1.1771E-15,  1.6456E-15,  4.3889E-12 ], eval/bisection bounds ok: [
+       polynomials: recalculated
+     , eval/bisection bounds ok: [
   Yes,  Yes,  Yes,  No]}
        -  { #-------------------------------------------------------------------- it FOE: 2
  bisec/eval bounds:  [  0.61,  0.84, -1.00,  1.20 ], pol deg:  1320, eF:  8.419518868E-01, 

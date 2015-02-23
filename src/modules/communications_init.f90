@@ -2580,7 +2580,7 @@ module communications_init
           if (norb_per_gridpoint_f(ipt)>0) then
               gridpoint_start_f(i)=ii
           else
-              write(*,*) 'SET gridpoint_start_f TO ZERO: i',i
+              !write(*,*) 'SET gridpoint_start_f TO ZERO: i',i
               gridpoint_start_f(i)=0
           end if
           ii=ii+norb_per_gridpoint_f(ipt)
