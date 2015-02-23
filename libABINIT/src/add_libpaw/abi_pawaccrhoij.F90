@@ -1,8 +1,8 @@
 !{\src2tex{textfont=tt}}
-!!****f* ABINIT/pawaccrhoij
+!!****f* ABINIT/abi_pawaccrhoij
 !!
 !! NAME
-!! pawaccrhoij
+!! abi_pawaccrhoij
 !!
 !! FUNCTION
 !! Accumulate the PAW quantities rhoij (augmentation occupancies)
@@ -70,7 +70,7 @@
 
 #include "../libpaw/libpaw.h"
 
- subroutine pawaccrhoij(atindx,cplex,cwaveprj,cwaveprj1,ipert,isppol,my_natom,natom,&
+ subroutine abi_pawaccrhoij(atindx,cplex,cwaveprj,cwaveprj1,ipert,isppol,my_natom,natom,&
 &                       nspinor,occ_k,option,pawrhoij,usetimerev,wtk_k, &
 &                       occ_k_2, &
 &                       mpi_comm_atom,mpi_atmtab ) ! optional (parallelism)
@@ -87,7 +87,7 @@
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
 #undef ABI_FUNC
-#define ABI_FUNC 'pawaccrhoij'
+#define ABI_FUNC 'abi_pawaccrhoij'
 !End of the abilint section
 
  implicit none
@@ -595,5 +595,5 @@
 
 ! DBG_EXIT("COLL")
 
-end subroutine pawaccrhoij
+end subroutine abi_pawaccrhoij
 !!***

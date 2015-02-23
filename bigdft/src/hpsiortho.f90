@@ -3334,7 +3334,7 @@ subroutine paw_compute_dij(paw, at, denspot, vxc, e_paw, e_pawdc, compch_sph)
   use m_paw_ij, only: paw_ij_reset_flags
   use m_pawdij, only: pawdij
   use abi_defs_basis, only: tol14
-  use abi_interfaces_libpaw, only: pawdenpot
+  use abi_interfaces_add_libpaw, only: abi_pawdenpot
   use dynamic_memory
   use f_utils
   use yaml_output
@@ -3366,7 +3366,7 @@ subroutine paw_compute_dij(paw, at, denspot, vxc, e_paw, e_pawdc, compch_sph)
   nfftot = product(denspot%dpbox%ndims)
   ucvol = product(denspot%dpbox%ndims) * product(denspot%dpbox%hgrids)
 
-  call pawdenpot(compch_sph, e_paw, e_pawdc, ipert, denspot%xc%ixc, &
+  call abi_pawdenpot(compch_sph, e_paw, e_pawdc, ipert, denspot%xc%ixc, &
        & size(paw%pawrhoij), at%astruct%nat,&
        & denspot%dpbox%nrhodim, at%astruct%ntypes, nzlmopt, option, paw%paw_an, &
        & paw%paw_an, paw%paw_ij, at%pawang, pawprtvol, at%pawrad, &
@@ -3412,7 +3412,7 @@ subroutine paw_compute_rhoij(paw, orbs, atoms, denspot)
   use dynamic_memory
   use abi_defs_basis, only: AB7_NO_ERROR
   use m_ab6_symmetry
-  use abi_interfaces_libpaw, only: pawaccrhoij, pawmkrho
+  use abi_interfaces_add_libpaw, only: abi_pawaccrhoij, abi_pawmkrho
   use abi_interfaces_numeric, only: abi_mati3inv
   implicit none
   type(paw_objects), intent(inout) :: paw
@@ -3454,7 +3454,7 @@ subroutine paw_compute_rhoij(paw, orbs, atoms, denspot)
      iorb = orbs%isorb + iorbp
      isppol = 1 + (iorb - 1) / orbs%norbu
      call ncplx_kpt(orbs%iokpt(iorbp),orbs,ncplx)
-     call pawaccrhoij(atindx, ncplx, &
+     call abi_pawaccrhoij(atindx, ncplx, &
           & paw%cprj(:, (iorb - 1 ) * orbs%nspinor + 1:(iorb - 1 ) * orbs%nspinor + orbs%nspinor), &
           & paw%cprj(:, (iorb - 1 ) * orbs%nspinor + 1:(iorb - 1 ) * orbs%nspinor + orbs%nspinor),&
           & 0, isppol, size(paw%pawrhoij), atoms%astruct%nat, orbs%nspinor, &
@@ -3501,7 +3501,7 @@ subroutine paw_compute_rhoij(paw, orbs, atoms, denspot)
   end do
 
   if (denspot%rhov_is /= ELECTRONIC_DENSITY) stop "rhov must be density here."
-  call pawmkrho(compch_fft,cplex,symObj%gprimd,idir,indsym,ipert,&
+  call abi_pawmkrho(compch_fft,cplex,symObj%gprimd,idir,indsym,ipert,&
 &          nfft, nfft / 8, ngfft, &
 &          size(paw%pawrhoij),atoms%astruct%nat,denspot%dpbox%nrhodim,nsym,atoms%astruct%ntypes, &
 & 0,atoms%pawang,paw%pawfgrtab,pawprtvol,&

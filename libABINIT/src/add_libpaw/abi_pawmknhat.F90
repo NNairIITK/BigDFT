@@ -1,7 +1,7 @@
 !{\src2tex{textfont=tt}}
-!!****f* ABINIT/pawmknhat
+!!****f* ABINIT/abi_pawmknhat
 !! NAME
-!! pawmknhat
+!! abi_pawmknhat
 !!
 !! FUNCTION
 !! PAW only:
@@ -56,19 +56,19 @@
 !!    pawgrnhat(nfft,ispden,3)=derivatives of nhat on fine rectangular grid (and derivatives)
 !!
 !! PARENTS
-!!      bethe_salpeter,energy,nres2vres,odamix,paw_qpscgw,pawmkrho,respfn,scfcv
+!!      bethe_salpeter,energy,nres2vres,odamix,paw_qpscgw,abi_pawmkrho,respfn,scfcv
 !!      scfcv3,screening,setup_positron,sigma
 !!
 !! CHILDREN
 !!      destroy_distribfft,fourdp,free_my_atmtab,get_my_atmtab
-!!      init_distribfft_seq,initmpi_seq,mean_fftr,pawexpiqr,pawgylm,pawnhatfr
+!!      init_distribfft_seq,initmpi_seq,abi_mean_fftr,pawexpiqr,pawgylm,pawnhatfr
 !!      set_mpi_enreg_fft,timab,unset_mpi_enreg_fft,xmpi_sum,zerosym
 !!
 !! SOURCE
 
 #include "../libpaw/libpaw.h"
 
-subroutine pawmknhat(compch_fft,cplex,ider,idir,ipert,izero,gprimd,&
+subroutine abi_pawmknhat(compch_fft,cplex,ider,idir,ipert,izero,gprimd,&
 &          my_natom,natom,nfft,ngfft,nhatgrdim,nspden,ntypat,pawang,pawfgrtab,&
 &          pawgrnhat,pawnhat,pawrhoij,pawrhoij0,pawtab,qphon,rprimd,ucvol,usewvl,xred,&
 &          mpi_atmtab,mpi_comm_atom,mpi_comm_fft,mpi_comm_wvl,me_g0,paral_kgb,distribfft) ! optional arguments
@@ -81,7 +81,7 @@ subroutine pawmknhat(compch_fft,cplex,ider,idir,ipert,izero,gprimd,&
  !use defs_abitypes,  only : mpi_type
  !use m_mpinfo,       only : set_mpi_enreg_fft, unset_mpi_enreg_fft
 
- use m_distribfft,   only : distribfft_type, init_distribfft_seq, destroy_distribfft
+ use m_abi_distribfft,   only : distribfft_type, init_distribfft_seq, destroy_distribfft
 
  use m_pawang,       only : pawang_type
  use m_pawtab,       only : pawtab_type
@@ -93,8 +93,8 @@ subroutine pawmknhat(compch_fft,cplex,ider,idir,ipert,izero,gprimd,&
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
 #undef ABI_FUNC
-#define ABI_FUNC 'pawmknhat'
-use abi_interfaces_libpaw, only: pawnhatfr, mean_fftr
+#define ABI_FUNC 'abi_pawmknhat'
+use abi_interfaces_add_libpaw, only: abi_pawnhatfr, abi_mean_fftr
  !use interfaces_53_ffts
 !End of the abilint section
 
@@ -277,7 +277,7 @@ use abi_interfaces_libpaw, only: pawnhatfr, mean_fftr
        pawfgrtab(iatom)%nhatfrgr_allocated=2
      end if
      nullify(my_atmtab_);if (associated(my_atmtab)) my_atmtab_ => my_atmtab
-     call pawnhatfr(option,idir,ipert,my_natom,natom,nspden,ntypat,pawang,pawfgrtab,&
+     call abi_pawnhatfr(option,idir,ipert,my_natom,natom,nspden,ntypat,pawang,pawfgrtab,&
 &     pawrhoij0,pawtab,rprimd,mpi_comm_atom=my_comm_atom,mpi_atmtab=my_atmtab_)
    end if
 
@@ -588,7 +588,7 @@ use abi_interfaces_libpaw, only: pawnhatfr, mean_fftr
     if(present(mpi_comm_wvl) .and. usewvl==1) mpi_comm_sphgrid=mpi_comm_wvl
     
     nfftot=PRODUCT(ngfft(1:3))
-    call mean_fftr(pawnhat,tmp_compch_fft,nfft,nfftot,1,mpi_comm_sphgrid)
+    call abi_mean_fftr(pawnhat,tmp_compch_fft,nfft,nfftot,1,mpi_comm_sphgrid)
     compch_fft = tmp_compch_fft(1)
     compch_fft=compch_fft*ucvol
  end if
@@ -598,12 +598,12 @@ use abi_interfaces_libpaw, only: pawnhatfr, mean_fftr
 
  ! DBG_EXIT("COLL")
 
-end subroutine pawmknhat
+end subroutine abi_pawmknhat
 !!***
 
-!!****f* m_cgtools/mean_fftr
+!!****f* m_cgtools/abi_mean_fftr
 !! NAME
-!! mean_fftr
+!! abi_mean_fftr
 !!
 !! FUNCTION
 !!  Compute the mean of an arraysp(nfft,nspden), over the FFT grid, for each component nspden, 
@@ -623,7 +623,7 @@ end subroutine pawmknhat
 !!  meansp(nspden)=mean value for each nspden component
 !!
 !! PARENTS
-!!      fresid,multipoles_fftr,newvtr,pawmknhat,prcref,prcref_PMA
+!!      fresid,multipoles_fftr,newvtr,abi_pawmknhat,prcref,prcref_PMA
 !!      psolver_rhohxc,rhohxc,rhohxcpositron,rhotov
 !!
 !! CHILDREN
@@ -631,7 +631,7 @@ end subroutine pawmknhat
 !!
 !! SOURCE
 
-subroutine mean_fftr(arraysp,meansp,nfft,nfftot,nspden,mpi_comm_sphgrid)
+subroutine abi_mean_fftr(arraysp,meansp,nfft,nfftot,nspden,mpi_comm_sphgrid)
 
  USE_DEFS
  USE_MPI_WRAPPERS
@@ -639,7 +639,7 @@ subroutine mean_fftr(arraysp,meansp,nfft,nfftot,nspden,mpi_comm_sphgrid)
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
 #undef ABI_FUNC
-#define ABI_FUNC 'mean_fftr'
+#define ABI_FUNC 'abi_mean_fftr'
 !End of the abilint section
 
  implicit none
@@ -680,5 +680,5 @@ subroutine mean_fftr(arraysp,meansp,nfft,nfftot,nspden,mpi_comm_sphgrid)
    end if
  end if
 
-end subroutine mean_fftr
+end subroutine abi_mean_fftr
 !!***

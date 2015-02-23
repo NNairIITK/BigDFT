@@ -1,7 +1,7 @@
 !{\src2tex{textfont=tt}}
-!!****f* ABINIT/pawxenergy
+!!****f* ABINIT/abi_pawxenergy
 !! NAME
-!! pawxenergy
+!! abi_pawxenergy
 !!
 !! FUNCTION
 !! Compute contributions to energy for PAW+ local exact exchange calculations
@@ -33,7 +33,7 @@
 
 #include "../libpaw/libpaw.h"
 
- subroutine pawxenergy(eexex,pawprtvol,pawrhoij,pawtab)
+ subroutine abi_pawxenergy(eexex,pawprtvol,pawrhoij,pawtab)
 
    USE_MEMORY_PROFILING
    USE_DEFS
@@ -45,7 +45,7 @@
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
 #undef ABI_FUNC
-#define ABI_FUNC 'pawxenergy'
+#define ABI_FUNC 'abi_pawxenergy'
 !End of the abilint section
 
  implicit none
@@ -125,5 +125,5 @@
 
 ! DBG_EXIT("COLL")
 
- end subroutine pawxenergy
+ end subroutine abi_pawxenergy
 !!***

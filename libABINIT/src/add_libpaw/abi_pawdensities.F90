@@ -1,7 +1,7 @@
 !{\src2tex{textfont=tt}}
-!!****f* ABINIT/pawdensities
+!!****f* ABINIT/abi_pawdensities
 !! NAME
-!! pawdensities
+!! abi_pawdensities
 !!
 !! FUNCTION
 !! Compute PAW on-site densities (all-electron ,pseudo and compensation) for a given atom
@@ -66,7 +66,7 @@
 
 #include "../libpaw/libpaw.h"
 
-subroutine pawdensities(compch_sph,cplex,iatom,lmselectin,lmselectout,lm_size,nhat1,nspden,nzlmopt,&
+subroutine abi_pawdensities(compch_sph,cplex,iatom,lmselectin,lmselectout,lm_size,nhat1,nspden,nzlmopt,&
 &          opt_compch,opt_dens,opt_l,opt_print,pawang,pawprtvol,pawrad,pawrhoij,pawtab,rho1,trho1,&
 &          one_over_rad2) ! optional
 
@@ -82,7 +82,7 @@ subroutine pawdensities(compch_sph,cplex,iatom,lmselectin,lmselectout,lm_size,nh
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
 #undef ABI_FUNC
-#define ABI_FUNC 'pawdensities'
+#define ABI_FUNC 'abi_pawdensities'
 !End of the abilint section
 
  implicit none
@@ -429,5 +429,5 @@ subroutine pawdensities(compch_sph,cplex,iatom,lmselectin,lmselectout,lm_size,nh
 
 ! DBG_EXIT("COLL")
 
-end subroutine pawdensities
+end subroutine abi_pawdensities
 !!***

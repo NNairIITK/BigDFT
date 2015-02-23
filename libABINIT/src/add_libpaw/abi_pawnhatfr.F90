@@ -1,8 +1,8 @@
 !{\src2tex{textfont=tt}}
-!!****f* ABINIT/pawnhatfr
+!!****f* ABINIT/abi_pawnhatfr
 !!
 !! NAME
-!! pawnhatfr
+!! abi_pawnhatfr
 !!
 !! FUNCTION
 !! PAW: Compute frozen part of charge compensation density nhat
@@ -52,7 +52,7 @@
 
 #include "../libpaw/libpaw.h"
 
-subroutine pawnhatfr(ider,idir,ipert,my_natom,natom,nspden,ntypat,&
+subroutine abi_pawnhatfr(ider,idir,ipert,my_natom,natom,nspden,ntypat,&
 &                    pawang,pawfgrtab,pawrhoij,pawtab,rprimd, &
 &                    mpi_atmtab,mpi_comm_atom) ! optional arguments (parallelism)
 
@@ -71,7 +71,7 @@ subroutine pawnhatfr(ider,idir,ipert,my_natom,natom,nspden,ntypat,&
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
 #undef ABI_FUNC
-#define ABI_FUNC 'pawnhatfr'
+#define ABI_FUNC 'abi_pawnhatfr'
 !End of the abilint section
 
  implicit none
@@ -358,5 +358,5 @@ subroutine pawnhatfr(ider,idir,ipert,my_natom,natom,nspden,ntypat,&
 
  ! DBG_EXIT("COLL")
 
-end subroutine pawnhatfr
+end subroutine abi_pawnhatfr
 !!***

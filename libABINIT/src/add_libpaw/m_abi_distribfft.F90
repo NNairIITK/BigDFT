@@ -1,7 +1,7 @@
 !{\src2tex{textfont=tt}}
-!!****m* ABINIT/m_distribfft
+!!****m* ABINIT/m_abi_distribfft
 !! NAME
-!!  m_distribfft
+!!  m_abi_distribfft
 !!
 !! FUNCTION
 !!  This module provides the definition of the different arrays 
@@ -21,7 +21,7 @@
 
 #include "../libpaw/libpaw.h"
 
-MODULE m_distribfft
+MODULE m_abi_distribfft
 
  USE_DEFS
  USE_MSG_HANDLING
@@ -32,7 +32,7 @@ MODULE m_distribfft
  private
 !!***
 
-!!****t* m_distribfft/distribfft_type
+!!****t* m_abi_distribfft/distribfft_type
 !! NAME
 !! distribfft_type
 !!
@@ -107,7 +107,7 @@ end type distribfft_type
 CONTAINS !===========================================================
 !!***
 
-!!****f* m_distribfft/init_distribfft
+!!****f* m_abi_distribfft/init_distribfft
 !! NAME
 !!  init_distribfft
 !!
@@ -246,7 +246,7 @@ end subroutine init_distribfft
 
 !===========================================================
 
-!!****f* m_distribfft/init_distribfft_seq
+!!****f* m_abi_distribfft/init_distribfft_seq
 !! NAME
 !!  init_distribfft_seq
 !!
@@ -389,7 +389,7 @@ end subroutine init_distribfft_seq
 
 !===========================================================
 
-!!****f* m_distribfft/destroy_distribfft
+!!****f* m_abi_distribfft/destroy_distribfft
 !! NAME
 !!  destroy_distribfft
 !!
@@ -476,7 +476,7 @@ end subroutine destroy_distribfft
 
 !===========================================================
 
-!!****f* m_distribfft/copy_distribfft
+!!****f* m_abi_distribfft/copy_distribfft
 !! NAME
 !!  copy_distribfft
 !!
@@ -581,5 +581,5 @@ subroutine copy_distribfft(distribfft_src, distribfft_dst)
 end subroutine copy_distribfft
 !!***
 
-END MODULE m_distribfft
+END MODULE m_abi_distribfft
 !!***

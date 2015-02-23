@@ -1,7 +1,7 @@
 !{\src2tex{textfont=tt}}
-!!****f* ABINIT/pawmkrho
+!!****f* ABINIT/abi_pawmkrho
 !! NAME
-!! pawmkrho
+!! abi_pawmkrho
 !!
 !! FUNCTION
 !! PAW only:
@@ -75,14 +75,14 @@
 !!      nstpaw3,rhofermi3,vtorho,vtorho3
 !!
 !! CHILDREN
-!!      fourdp,pawmknhat,pawrhoij_copy,pawrhoij_destroy
+!!      fourdp,abi_pawmknhat,pawrhoij_copy,pawrhoij_destroy
 !!      pawrhoij_destroy_unpacked,pawrhoij_nullify,symrhoij,timab,transgrid
 !!
 !! SOURCE
 
 #include "../libpaw/libpaw.h"
 
-subroutine pawmkrho(compch_fft,cplex,gprimd,idir,indsym,ipert,&
+subroutine abi_pawmkrho(compch_fft,cplex,gprimd,idir,indsym,ipert,&
 &          nfft, nfftc, ngfft, &
 &          my_natom,natom,nspden,nsym,ntypat,paral_kgb,pawang,pawfgrtab,pawprtvol,&
 &          pawrhoij,pawrhoij_unsym,&
@@ -103,8 +103,8 @@ subroutine pawmkrho(compch_fft,cplex,gprimd,idir,indsym,ipert,&
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
 #undef ABI_FUNC
-#define ABI_FUNC 'pawmkrho'
- use abi_interfaces_libpaw, only: pawmknhat
+#define ABI_FUNC 'abi_pawmkrho'
+ use abi_interfaces_add_libpaw, only: abi_pawmknhat
 !End of the abilint section
 
  implicit none
@@ -207,7 +207,7 @@ subroutine pawmkrho(compch_fft,cplex,gprimd,idir,indsym,ipert,&
  else
    pawrhoij0_ptr => pawrhoij_ptr
  end if
- call pawmknhat(compch_fft,cplex,ider,idir,ipert,izero,gprimd,my_natom,natom,&
+ call abi_pawmknhat(compch_fft,cplex,ider,idir,ipert,izero,gprimd,my_natom,natom,&
 & nfft,ngfft,ider,nspden,ntypat,pawang,pawfgrtab,&
 & rhodum,pawnhat_ptr,pawrhoij_ptr,pawrhoij0_ptr,pawtab,qphon,rprimd,ucvol,usewvl,xred,&
 & mpi_comm_atom=comm_atom,mpi_atmtab=mpi_atmtab)
@@ -234,5 +234,5 @@ subroutine pawmkrho(compch_fft,cplex,gprimd,idir,indsym,ipert,&
  nullify(pawnhat_ptr)
  nullify(pawrhoij_ptr)
 
-end subroutine pawmkrho
+end subroutine abi_pawmkrho
 !!***

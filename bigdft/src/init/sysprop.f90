@@ -1840,7 +1840,7 @@ subroutine paw_init(iproc, paw, at, rxyz, d, dpbox, nspinor, npsidim, norb)
   use m_paw_ij, only: paw_ij_init
   use m_pawcprj, only: pawcprj_alloc, pawcprj_getdim
   use m_pawfgrtab, only: pawfgrtab_init
-  use abi_interfaces_add_libpaw, only: abi_initrhoij, wvl_nhatgrid
+  use abi_interfaces_add_libpaw, only: abi_initrhoij, abi_wvl_nhatgrid
   use abi_interfaces_geometry, only: abi_metric
   implicit none
   type(paw_objects), intent(out) :: paw
@@ -1901,7 +1901,7 @@ subroutine paw_init(iproc, paw, at, rxyz, d, dpbox, nspinor, npsidim, norb)
      atindx1(i) = i
   end do
   !ucvol = product(denspot%dpbox%ndims) * product(denspot%dpbox%hgrids)
-  call wvl_nhatgrid(atindx1, at%astruct%geocode, dpbox%hgrids, dpbox%i3s, &
+  call abi_wvl_nhatgrid(atindx1, at%astruct%geocode, dpbox%hgrids, dpbox%i3s, &
        & size(at%pawtab), at%astruct%nat, nattyp, at%astruct%ntypes, &
        & d%n1, d%n1i, d%n2, d%n2i, d%n3, dpbox%n3pi, &
        & optcut, optgr0, optgr1, optgr2, optrad, &

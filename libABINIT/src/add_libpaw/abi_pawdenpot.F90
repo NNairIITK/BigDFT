@@ -1,7 +1,7 @@
 !{\src2tex{textfont=tt}}
-!!****f* ABINIT/pawdenpot
+!!****f* ABINIT/abi_pawdenpot
 !! NAME
-!! pawdenpot
+!! abi_pawdenpot
 !!
 !! FUNCTION
 !! Compute different (PAW) energies, densities and potentials (or potential-like quantities)
@@ -79,7 +79,7 @@
 !!      bethe_salpeter,odamix,paw_qpscgw,respfn,scfcv,scfcv3,screening,sigma
 !!
 !! CHILDREN
-!!      free_my_atmtab,get_my_atmtab,pawdensities,pawdijfock,pawdijhartree
+!!      free_my_atmtab,get_my_atmtab,abi_pawdensities,pawdijfock,pawdijhartree
 !!      pawdijso,pawrad_deducer0,pawuenergy,pawxc,pawxc3,pawxcm,pawxcm3
 !!      pawxcmpositron,pawxcpositron,pawxenergy,pawxpot,poisson,setnoccmmp
 !!      timab,wrtout,xmpi_sum
@@ -88,7 +88,7 @@
 
 #include "../libpaw/libpaw.h"
 
-subroutine pawdenpot(compch_sph,epaw,epawdc,ipert,ixc,&
+subroutine abi_pawdenpot(compch_sph,epaw,epawdc,ipert,ixc,&
 & my_natom,natom,nspden,ntypat,nzlmopt,option,paw_an,paw_an0,&
 & paw_ij,pawang,pawprtvol,pawrad,pawrhoij,pawspnorb,pawtab,pawxcdev,spnorbscl,xclevel,xc_denpos,ucvol,znucl,&
 & mpi_atmtab,mpi_comm_atom,vpotzero) ! optional arguments
@@ -107,13 +107,13 @@ subroutine pawdenpot(compch_sph,epaw,epawdc,ipert,ixc,&
  use m_pawdij,  only: pawdijhartree, pawdijso, pawxpot ,pawdijfock
  use m_pawxc,   only: pawxc, pawxc3, pawxcm, pawxcm3, pawxcpositron, pawxcmpositron
  use m_paral_atom, only : get_my_atmtab, free_my_atmtab
- use abi_interfaces_libpaw, only: pawdensities
+ use abi_interfaces_add_libpaw, only: abi_pawdensities, abi_pawxenergy
 ! use m_electronpositron, only: electronpositron_type,electronpositron_calctype
 
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
 #undef ABI_FUNC
-#define ABI_FUNC 'pawdenpot'
+#define ABI_FUNC 'abi_pawdenpot'
 !End of the abilint section
 
  implicit none
@@ -360,7 +360,7 @@ subroutine pawdenpot(compch_sph,epaw,epawdc,ipert,ixc,&
 !  ===== Compute "on-site" densities (n1, ntild1, nhat1) =====
 !  ==========================================================
 
-   call pawdensities(compch_sph,cplex,iatom_tot,lmselect_cur,paw_an(iatom)%lmselect,lm_size,&
+   call abi_pawdensities(compch_sph,cplex,iatom_tot,lmselect_cur,paw_an(iatom)%lmselect,lm_size,&
 &   nhat1,nspden,nzlmopt,opt_compch,1-usexcnhat,-1,1,pawang,pawprtvol,pawrad(itypat),&
 &   pawrhoij(iatom),pawtab(itypat),rho1,trho1,one_over_rad2=one_over_rad2)
 
@@ -373,7 +373,7 @@ subroutine pawdenpot(compch_sph,epaw,epawdc,ipert,ixc,&
 !!$     lmselect_cur_ep(:)=.true.
 !!$     if (nzlmopt==1) lmselect_cur_ep(:)=electronpositron%lmselect_ep(1:lm_size,iatom)
 !!$
-!!$     call pawdensities(rdum,cplex,iatom_tot,lmselect_cur_ep,lmselect_ep,&
+!!$     call abi_pawdensities(rdum,cplex,iatom_tot,lmselect_cur_ep,lmselect_ep,&
 !!$&     lm_size,nhat1_ep,nspden,nzlmopt,0,1-usexcnhat,-1,0,pawang,0,pawrad(itypat),&
 !!$&     electronpositron%pawrhoij_ep(iatom),pawtab(itypat),&
 !!$&     rho1_ep,trho1_ep,one_over_rad2=one_over_rad2)
@@ -622,7 +622,7 @@ subroutine pawdenpot(compch_sph,epaw,epawdc,ipert,ixc,&
      LIBPAW_ALLOCATE(rho1xx,(mesh_size,lm_size,nspden))
      LIBPAW_ALLOCATE(lmselect_tmp,(lm_size))
      lmselect_tmp(:)=lmselect_cur(:)
-     call pawdensities(rdum,cplex,iatom_tot,lmselect_cur,lmselect_tmp,lm_size,rdum3,nspden,&
+     call abi_pawdensities(rdum,cplex,iatom_tot,lmselect_cur,lmselect_tmp,lm_size,rdum3,nspden,&
 &     1,0,2,pawtab(itypat)%lexexch,0,pawang,pawprtvol,pawrad(itypat),&
 &     pawrhoij(iatom),pawtab(itypat),rho1xx,rdum3,one_over_rad2=one_over_rad2)
      LIBPAW_DEALLOCATE(lmselect_tmp)
@@ -807,7 +807,7 @@ subroutine pawdenpot(compch_sph,epaw,epawdc,ipert,ixc,&
          write(msg, '(2a,i4)' )ch10,' For Atom',iatom_tot
          call wrtout(std_out,  msg,'COLL')
        end if
-       call pawxenergy(eexex,pawprtvol,pawrhoij(iatom),pawtab(itypat))
+       call abi_pawxenergy(eexex,pawprtvol,pawrhoij(iatom),pawtab(itypat))
      end if
 
    end if ! useexexch
@@ -976,5 +976,5 @@ subroutine pawdenpot(compch_sph,epaw,epawdc,ipert,ixc,&
 
 ! DBG_EXIT("COLL")
 
-end subroutine pawdenpot
+end subroutine abi_pawdenpot
 !!***

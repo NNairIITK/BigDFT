@@ -1,7 +1,7 @@
 !{\src2tex{textfont=tt}}
-!!****f* ABINIT/wvl_nhatgrid
+!!****f* ABINIT/abi_wvl_nhatgrid
 !! NAME
-!! wvl_nhatgrid
+!! abi_wvl_nhatgrid
 !!
 !! FUNCTION
 !! Determine parts of the rectangular (fine) grid that are contained
@@ -43,7 +43,7 @@
 !PENDING: ADD PARALELLISM OVER ATOMS:
 !COPY NHATGRID
 
-subroutine wvl_nhatgrid(atindx1,geocode,h,i3s,natom,natom_tot,&
+subroutine abi_wvl_nhatgrid(atindx1,geocode,h,i3s,natom,natom_tot,&
 & nattyp,ntypat,n1,n1i,n2,n2i,n3,n3pi,optcut,optgr0,optgr1,optgr2,optrad,&
 & pawfgrtab,pawtab,shift,rxyz)
 
@@ -58,7 +58,7 @@ subroutine wvl_nhatgrid(atindx1,geocode,h,i3s,natom,natom_tot,&
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
 #undef ABI_FUNC
-#define ABI_FUNC 'wvl_nhatgrid'
+#define ABI_FUNC 'abi_wvl_nhatgrid'
 !End of the abilint section
 
  implicit none
@@ -185,5 +185,5 @@ subroutine wvl_nhatgrid(atindx1,geocode,h,i3s,natom,natom_tot,&
 
 ! DBG_EXIT("COLL")
 
-end subroutine wvl_nhatgrid
+end subroutine abi_wvl_nhatgrid
 !!***
