@@ -3612,7 +3612,7 @@ subroutine symm_stress(tens,symobj)
   use m_ab6_symmetry
   use module_types
   use yaml_output
-  use abi_interfaces_numeric, only: abi_mati3inv
+!!$  use abi_interfaces_numeric, only: abi_mati3inv
   implicit none
   !Arguments
   integer, intent(in) :: symobj
@@ -3622,18 +3622,18 @@ subroutine symm_stress(tens,symobj)
   integer, pointer  :: symAfm(:)
   real(gp), pointer :: transNon(:,:)
   integer :: isym, errno, nsym,k,l
-  integer, allocatable :: symrec(:,:,:)
+!!$  integer, allocatable :: symrec(:,:,:)
   real(gp),dimension(3,3) :: symtens
 
-  call symmetry_get_matrices_p(symObj, nsym, sym, transNon, symAfm, errno)
+  call symmetry_get_matrices_p(symObj, nsym, sym, transNon, symAfm, errno = errno)
   if (errno /= AB7_NO_ERROR) stop
   if (nsym < 2) return
 
-  !Get the symmetry matrices in terms of reciprocal basis
-  allocate(symrec(3, 3, nsym))
-  do isym = 1, nsym, 1
-     call abi_mati3inv(sym(:,:,isym), symrec(:,:,isym))
-  end do
+!!$  !Get the symmetry matrices in terms of reciprocal basis
+!!$  allocate(symrec(3, 3, nsym))
+!!$  do isym = 1, nsym, 1
+!!$     call abi_mati3inv(sym(:,:,isym), symrec(:,:,isym))
+!!$  end do
 
   symtens=0.0_gp
   do isym = 1,nsym
@@ -3690,7 +3690,7 @@ subroutine symmetrise_forces(fxyz, at)
   integer, pointer  :: symAfm(:)
   real(gp), pointer :: transNon(:,:)
 
-  call symmetry_get_matrices_p(at%astruct%sym%symObj, nsym, sym, transNon, symAfm, errno)
+  call symmetry_get_matrices_p(at%astruct%sym%symObj, nsym, sym, transNon, symAfm, errno = errno)
   if (errno /= AB7_NO_ERROR) stop
   if (nsym < 2) return
  !if (iproc == 0) write(*,"(1x,A,I0,A)") "Symmetrise forces with ", nsym, " symmetries."
