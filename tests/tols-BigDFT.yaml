@@ -1228,12 +1228,13 @@ log_model:
 
 periodic_silicon:
  Epot: 1.1e-10
+ Enl: 1.1e-9
  Omega: 3.3e-11
- ebs_check: 2.1e-11
+ ebs_check: 3.6e-11
  charge diff: 1.4e-10
- ebs: 2.1e-11
- Energy (Hartree): 1.2e-11
- energy: 1.2e-11
+ ebs: 3.6e-11
+ Energy (Hartree): 2.4e-11
+ energy: 2.4e-11
  charge diff: 3.8e-10
 
 periodic_wateredge:
@@ -1252,20 +1253,22 @@ periodic_water:
  EvXC: 8.1e-10
  Ekin: 1.0e-9
  Enl: 1.1e-10
- Omega: 7.3e-11
- ebs_check: 2.4e-9
- ebs: 2.4e-9
+ Omega: 1.0e-10
+ ebs_check: 2.5e-9
+ ebs: 2.5e-9
  eF: 8.0e-10
- energy: 7.2e-11
+ D eF: 1.0e-9
+ energy: 1.0e-10
  guess for new ef: 1.0e-9
  number of corrected points: 1
- charge diff: 1.2e-11
+ charge diff: 1.6e-11
 
 surface_boronnitride:
  Enl: 1.0e-9
  Omega: 2.5e-11
  energy: 1.7e-11
  Energy (Hartree): 1.7e-11
+ Total charge: 1.0e-10
  Keys to ignore:
   - Calculating wavelets expansion of projectors, found warnings
   - found warnings

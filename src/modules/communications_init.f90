@@ -699,8 +699,8 @@ module communications_init
                       !weightppp_f(ii1,ii2,ii3+1-i3s+1)=weightppp_f(ii1,ii2,ii3+1-i3s+1)+1.d0
                       !weightloc_f(ii1,ii2,ii3-i3start+1)=weightloc_f(ii1,ii2,ii3-i3start+1)+1.d0
                       weightloc_f(ii1,ii2,jj3)=weightloc_f(ii1,ii2,jj3)+1.d0
-                      if (ii1==33 .and. ii2==33 .and. jj3==10) write(*,'(a,3i8,f11.1)') 'NONZERO, j0, j1, ii3, wl(ii1,ii2,jj3)', j0, j1, ii3, weightloc_f(ii1,ii2,jj3)
-                      if (ii1==33 .and. ii2==33 .and. ii3==125) write(*,'(a,3i8,f11.1)') 'NONZERO, j0, j1, jj3, wl(ii1,ii2,jj3)', j0, j1, jj3, weightloc_f(ii1,ii2,jj3)
+                      !if (ii1==33 .and. ii2==33 .and. jj3==10) write(*,'(a,3i8,f11.1)') 'NONZERO, j0, j1, ii3, wl(ii1,ii2,jj3)', j0, j1, ii3, weightloc_f(ii1,ii2,jj3)
+                      !if (ii1==33 .and. ii2==33 .and. ii3==125) write(*,'(a,3i8,f11.1)') 'NONZERO, j0, j1, jj3, wl(ii1,ii2,jj3)', j0, j1, jj3, weightloc_f(ii1,ii2,jj3)
                   end do
               end do
               !!$omp end do
