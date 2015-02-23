@@ -921,20 +921,20 @@ contains
          write(fname,"(A)") trim(filename)//'.'//trim(astruct%inputfile_format)
          if (formt == 'yaml') then
             call yaml_set_stream(unit = iunit, filename = trim(fname), &
-                 record_length = 92, setdefault = .false., tabbing = 0)
+                 & record_length = 92, tabbing = 0, setdefault = .false.)
          else
-            !here the f_utils module should be defined to control file opening
-            open(unit = iunit, file = trim(fname))
+            call yaml_set_stream(unit = iunit, filename = trim(fname), &
+                 & record_length = 4096, tabbing = 0, setdefault = .false.)
          end if
       end if
 
       select case(formt)
       case('xyz')
          call wtxyz(iunit,energy_,rxyz_,astruct,comment)
-         if (present(forces)) call wtxyz_forces(9,forces,astruct)
+         if (present(forces)) call wtxyz_forces(iunit,forces,astruct)
       case('ascii')
          call wtascii(iunit,energy_,rxyz_,astruct,comment)
-         if (present(forces)) call wtascii_forces(9,forces,astruct)
+         if (present(forces)) call wtascii_forces(iunit,forces,astruct)
       case ('int')
          !if (.not.present(na) .or. .not.present(nb) .or. .not.present(nc)) then
          !    call f_err_throw('na, nb, nc must be present to write a file in internal coordinates', &
@@ -960,11 +960,7 @@ contains
       end select
 
       if (iunit /= 6 .and. .not. present(unit)) then
-         if (astruct%inputfile_format == 'yaml') then
-            call yaml_close_stream(unit = iunit)
-         else
-            close(unit = iunit)
-         end if
+         call yaml_close_stream(unit = iunit)
          ! Add to archive
          if (index(filename, "posout_") == 1 .or. index(filename, "posmd_") == 1) then
             write(arFile, "(A)") "posout.tar.bz2"

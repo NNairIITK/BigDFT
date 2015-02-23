@@ -981,8 +981,8 @@ subroutine parse_extra_info(att, extra, errmess)
            nchrg=0
            call valid_frzchain(trim(suffix),go)
            if (.not. go) then
-              suffix='    '
               read(suffix,*,iostat=ierr2) nchrg
+              suffix='    '
               if (ierr2 /= 0) then
                  nchrg = 0
                  call error
@@ -996,11 +996,13 @@ subroutine parse_extra_info(att, extra, errmess)
               nspol=0
               nchrg=0
            else
-              read(extra,*,iostat=ierr2) nspol
-              if (ierr2 /=0) call error
               suffix='    '
               nchrg=0
-              nspol=0
+              read(extra,*,iostat=ierr2) nspol
+              if (ierr2 /=0) then
+                 call error
+                 nspol=0
+              end if
            end if
         end if
      end if
@@ -1292,7 +1294,6 @@ subroutine wtxyz(iunit,energy,rxyz,astruct,comment)
      write(iunit,*)'free'
   end select
 
-  call yaml_set_stream(unit = iunit, record_length = 4096, tabbing = 0, setdefault = .false.)
   do iat=1,astruct%nat
      name=trim(astruct%atomnames(astruct%iatype(iat)))
      if (name(3:3)=='_') then
