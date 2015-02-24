@@ -438,7 +438,7 @@ if test x"$internalflib" != x"yes" ; then
     AC_MSG_ERROR([FLib is not available, install FLib and provide paths --with-flib-libs --with-flib-incs.])
   fi
 else
-  LIB_FLIB_CFLAGS="-I$(top_builddir)/includes"
+  LIB_FLIB_CFLAGS='-I$(top_builddir)/includes'
   AC_SUBST(LIB_FLIB_CFLAGS)
   LIB_FLIB_LIBS=""
   AC_SUBST(LIB_FLIB_LIBS)
