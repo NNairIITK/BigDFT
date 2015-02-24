@@ -2895,7 +2895,7 @@ contains
                       i0j=i0+j
                       jjorb=collcom%indexrecvorbital_c(i0j)
                       ind = smat%matrixindex_in_compressed_fortransposed(jjorb,iiorb)
-                      !if (ind==0) write(*,'(a,2i8)') 'iszero: iiorb, jjorb', iiorb, jjorb
+                      if (ind==0) write(*,'(a,2i8)') 'coarse iszero: iiorb, jjorb', iiorb, jjorb
                       ind_min = min(ind_min,ind)
                       ind_max = max(ind_max,ind)
                   end do
@@ -2911,7 +2911,7 @@ contains
                       i0j=i0+j
                       jjorb=collcom%indexrecvorbital_f(i0j)
                       ind = smat%matrixindex_in_compressed_fortransposed(jjorb,iiorb)
-                      !if (ind==0) write(*,'(a,2i8)') 'iszero: iiorb, jjorb', iiorb, jjorb
+                      if (ind==0) write(*,'(a,2i8)') 'fine iszero: iiorb, jjorb', iiorb, jjorb
                       ind_min = min(ind_min,ind)
                       ind_max = max(ind_max,ind)
                   end do
