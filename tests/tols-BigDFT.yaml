@@ -1266,19 +1266,23 @@ periodic_water:
 surface_boronnitride:
  Enl: 1.0e-9
  Epot: 1.0e-9
- Omega: 2.7e-11
+ Omega: 3.4e-11
  energy: 1.9e-11
  Energy (Hartree): 1.9e-11
  Total charge: 1.0e-10
+ Total ionic charge: 1.9e-11
  Keys to ignore:
   - Calculating wavelets expansion of projectors, found warnings
   - found warnings
 
 surface_graphene:
+ Epot: 1.0e-9
  Enl: 1.1e-10
- Omega: 4.3e-11
- ebs_check: 3.5e-11
- ebs: 3.5e-11
- charge diff: 1.0e-8
+ Omega: 6.1e-11
+ ebs_check: 1.2e-10
+ ebs: 1.0e-10
+ charge diff: 1.4e-7
+ Tr(K): 2.0e-7
  guess for new ef: 1.1e-9
- eF: 1.0e-10
+ eF: 6.1e-10
+ D eF: 1.0e-10
