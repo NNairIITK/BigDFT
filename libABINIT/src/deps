@@ -39,7 +39,7 @@ abi_pawaccrhoij.o: add_libpaw/abi_pawaccrhoij.F90 \
 	$(PPFCCOMPILE) -c -o abi_pawaccrhoij.o `test -f 'add_libpaw/abi_pawaccrhoij.F90' || echo '$(srcdir)/'`add_libpaw/abi_pawaccrhoij.F90
 
 abi_pawmknhat.o: add_libpaw/abi_pawmknhat.F90 \
-	abi_interfaces_libpaw.o \
+	abi_interfaces_add_libpaw.o \
 	m_abi_distribfft.o \
 	m_paral_atom.o \
 	m_pawang.o \
@@ -55,7 +55,7 @@ abi_pawmknhat.o: add_libpaw/abi_pawmknhat.F90 \
 	$(PPFCCOMPILE) -c -o abi_pawmknhat.o `test -f 'add_libpaw/abi_pawmknhat.F90' || echo '$(srcdir)/'`add_libpaw/abi_pawmknhat.F90
 
 abi_pawmkrho.o: add_libpaw/abi_pawmkrho.F90 \
-	abi_interfaces_libpaw.o \
+	abi_interfaces_add_libpaw.o \
 	m_pawang.o \
 	m_pawfgrtab.o \
 	m_pawrhoij.o \
@@ -81,7 +81,7 @@ abi_pawdensities.o: add_libpaw/abi_pawdensities.F90 \
 	$(PPFCCOMPILE) -c -o abi_pawdensities.o `test -f 'add_libpaw/abi_pawdensities.F90' || echo '$(srcdir)/'`add_libpaw/abi_pawdensities.F90
 
 abi_pawdenpot.o: add_libpaw/abi_pawdenpot.F90 \
-	abi_interfaces_libpaw.o \
+	abi_interfaces_add_libpaw.o \
 	m_paral_atom.o \
 	m_paw_an.o \
 	m_pawang.o \
