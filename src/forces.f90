@@ -3828,18 +3828,21 @@ subroutine local_hamiltonian_stress_linear(iproc, nproc, orbs, lzd, hx, hy, hz, 
   !use module_xc
   use sparsematrix_base, only: sparse_matrix, matrices
   use communications_base, only: TRANSPOSE_FULL
+  use communications, only: transpose_localized
+  use transposed_operations, only: calculate_overlap_transposed
   implicit none
   integer,intent(in) :: iproc, nproc
   type(orbitals_data), intent(in) :: orbs
   type(local_zone_descriptors), intent(in) :: lzd
   type(comms_linear),intent(in) :: collcom
-  type(sparse_matrix),intent(in) :: msmat, lsmat
-  type(matrices),intent(in) :: mmat, lmat
+  type(sparse_matrix),intent(in) :: lsmat
+  type(sparse_matrix),intent(inout) :: msmat
+  type(matrices),intent(inout) :: mmat, lmat
   real(gp), intent(in) :: hx,hy,hz
   integer,intent(in) :: npsidim
   real(wp), dimension(npsidim), intent(in) :: psi
-  real(kind=8),dimension(collcom%ndimind_c),intent(in) :: psit_c
-  real(kind=8),dimension(7*collcom%ndimind_f),intent(in) :: psit_f
+  real(kind=8),dimension(collcom%ndimind_c),intent(inout) :: psit_c
+  real(kind=8),dimension(7*collcom%ndimind_f),intent(inout) :: psit_f
   real(gp), intent(inout) :: tens(6)
   !local variables
    real(gp) :: ekin_sum,epot_sum
