@@ -4115,6 +4115,7 @@ module communications_init
           do kproc=0,nproc-1
               is3k=nscatterarr(kproc,3)+1
               ie3k=is3k+nscatterarr(kproc,2)-1
+              if (ie3k<is3k) cycle !process kproc has no planes
               !if(is3j<=ie3k .and. ie3j>=is3k) then
               !!write(*,'(a,6i8,l6)') 'iproc, is3j, ie3j, iie3j, is3k, ie3k, overlap', iproc, is3j, ie3j, iie3j, is3k, ie3k, check_whether_bounds_overlap(is3j, iie3j, is3k, ie3k)
               !!if(check_whether_bounds_overlap(is3j, iie3j, is3k, ie3k)) then
@@ -4170,6 +4171,7 @@ module communications_init
           do kproc=0,nproc-1
               is3k=nscatterarr(kproc,3)+1
               ie3k=is3k+nscatterarr(kproc,2)-1
+              if (ie3k<is3k) cycle !process kproc has no planes
               !SHOULD TAKE INTO ACCOUNT THE PERIODICITY HERE
               !Need to split the region
               !if(is3j<=ie3k .and. ie3j>=is3k) then
