@@ -1570,7 +1570,7 @@ subroutine adjust_locregs_and_confinement(iproc, nproc, hx, hy, hz, at, input, &
 
      call check_kernel_cutoff(iproc, tmb%orbs, at, input%hamapp_radius_incr, tmb%lzd)
      call init_sparse_matrix_wrapper(iproc, nproc, input%nspin, tmb%orbs, tmb%lzd, at%astruct, &
-          input%store_index, imode=2, smat=tmb%linmat%l)
+          input%store_index, imode=2, smat=tmb%linmat%l, smat_ref=tmb%linmat%m)
      call allocate_matrices(tmb%linmat%l, allocate_full=.false., &
           matname='tmb%linmat%kernel_', mat=tmb%linmat%kernel_)
      do i=1,size(tmb%linmat%ovrlppowers_)
@@ -2026,7 +2026,7 @@ end subroutine determine_sparsity_pattern
 
 
 
-subroutine determine_sparsity_pattern_distance(orbs, lzd, astruct, cutoff, nnonzero, nonzero)
+subroutine determine_sparsity_pattern_distance(orbs, lzd, astruct, cutoff, nnonzero, nonzero, smat_ref)
   use module_base
   use module_types
   implicit none
@@ -2038,16 +2038,19 @@ subroutine determine_sparsity_pattern_distance(orbs, lzd, astruct, cutoff, nnonz
   real(kind=8),dimension(lzd%nlr), intent(in) :: cutoff
   integer, intent(out) :: nnonzero
   integer, dimension(:,:), pointer,intent(out) :: nonzero
+  type(sparse_matrix),intent(in),optional :: smat_ref !< reference sparsity pattern, in case the sparisty pattern to be calculated must be at least be as large as smat_ref
 
   ! Local variables
   logical :: overlap
   integer :: i1, i2, i3
   integer :: iorb, iiorb, ilr, iwa, itype, jjorb, jlr, jwa, jtype, ii
-  integer :: ijs1, ije1, ijs2, ije2, ijs3, ije3
+  integer :: ijs1, ije1, ijs2, ije2, ijs3, ije3, ind
   real(kind=8) :: tt, cut, xi, yi, zi, xj, yj, zj, x0, y0, z0
-  logical :: perx, pery, perz
+  logical :: perx, pery, perz, present_smat_ref
 
   call f_routine('determine_sparsity_pattern_distance')
+
+  present_smat_ref = present(smat_ref)
 
   ! periodicity in the three directions
   perx=(lzd%glr%geocode /= 'F')
@@ -2087,28 +2090,39 @@ subroutine determine_sparsity_pattern_distance(orbs, lzd, astruct, cutoff, nnonz
          yi=lzd%llr(ilr)%locregcenter(2)
          zi=lzd%llr(ilr)%locregcenter(3)
          do jjorb=1,orbs%norbu
-            jlr=orbs%inwhichlocreg(jjorb)
-            jwa=orbs%onwhichatom(jjorb)
-            jtype=astruct%iatype(jwa)
-            x0=lzd%llr(jlr)%locregcenter(1)
-            y0=lzd%llr(jlr)%locregcenter(2)
-            z0=lzd%llr(jlr)%locregcenter(3)
-            cut = (cutoff(ilr)+cutoff(jlr))**2
-            overlap = .false.
-            do i3=ijs3,ije3!-1,1
-                zj=z0+i3*(lzd%glr%d%n3+1)*lzd%hgrids(3)
-                do i2=ijs2,ije2!-1,1
-                    yj=y0+i2*(lzd%glr%d%n2+1)*lzd%hgrids(2)
-                    do i1=ijs1,ije1!-1,1
-                        xj=x0+i1*(lzd%glr%d%n1+1)*lzd%hgrids(1)
-                        tt = (xi-xj)**2 + (yi-yj)**2 + (zi-zj)**2
-                        if (tt<cut) then
-                            !if (overlap) stop 'determine_sparsity_pattern_distance: problem with overlap'
-                            overlap=.true.
-                        end if
+            if (present_smat_ref) then
+                ind = smat_ref%matrixindex_in_compressed_fortransposed(jjorb,iiorb)
+            else
+                ind = 0
+            end if
+            if (ind>0) then
+                ! There is an overlap in the reference sparsity pattern
+                overlap = .true.
+            else
+                ! Check explicitely whether there is an overlap
+                jlr=orbs%inwhichlocreg(jjorb)
+                jwa=orbs%onwhichatom(jjorb)
+                jtype=astruct%iatype(jwa)
+                x0=lzd%llr(jlr)%locregcenter(1)
+                y0=lzd%llr(jlr)%locregcenter(2)
+                z0=lzd%llr(jlr)%locregcenter(3)
+                cut = (cutoff(ilr)+cutoff(jlr))**2
+                overlap = .false.
+                do i3=ijs3,ije3!-1,1
+                    zj=z0+i3*(lzd%glr%d%n3+1)*lzd%hgrids(3)
+                    do i2=ijs2,ije2!-1,1
+                        yj=y0+i2*(lzd%glr%d%n2+1)*lzd%hgrids(2)
+                        do i1=ijs1,ije1!-1,1
+                            xj=x0+i1*(lzd%glr%d%n1+1)*lzd%hgrids(1)
+                            tt = (xi-xj)**2 + (yi-yj)**2 + (zi-zj)**2
+                            if (tt<cut) then
+                                !if (overlap) stop 'determine_sparsity_pattern_distance: problem with overlap'
+                                overlap=.true.
+                            end if
+                        end do
                     end do
                 end do
-            end do
+            end if
             if (overlap) then
                nnonzero=nnonzero+1
             end if
@@ -2148,28 +2162,39 @@ subroutine determine_sparsity_pattern_distance(orbs, lzd, astruct, cutoff, nnonz
          yi=lzd%llr(ilr)%locregcenter(2)
          zi=lzd%llr(ilr)%locregcenter(3)
          do jjorb=1,orbs%norbu
-            jlr=orbs%inwhichlocreg(jjorb)
-            jwa=orbs%onwhichatom(jjorb)
-            jtype=astruct%iatype(jwa)
-            x0=lzd%llr(jlr)%locregcenter(1)
-            y0=lzd%llr(jlr)%locregcenter(2)
-            z0=lzd%llr(jlr)%locregcenter(3)
-            cut = (cutoff(ilr)+cutoff(jlr))**2
-            overlap = .false.
-            do i3=ijs3,ije3!-1,1
-                zj=z0+i3*(lzd%glr%d%n3+1)*lzd%hgrids(3)
-                do i2=ijs2,ije2!-1,1
-                    yj=y0+i2*(lzd%glr%d%n2+1)*lzd%hgrids(2)
-                    do i1=ijs1,ije1!-1,1
-                        xj=x0+i1*(lzd%glr%d%n1+1)*lzd%hgrids(1)
-                        tt = (xi-xj)**2 + (yi-yj)**2 + (zi-zj)**2
-                        if (tt<cut) then
-                            !if (overlap) stop 'determine_sparsity_pattern_distance: problem with overlap'
-                            overlap=.true.
-                        end if
+            if (present_smat_ref) then
+                ind = smat_ref%matrixindex_in_compressed_fortransposed(jjorb,iiorb)
+            else
+                ind = 0
+            end if
+            if (ind>0) then
+                ! There is an overlap in the reference sparsity pattern
+                overlap = .true.
+            else
+                ! Check explicitely whether there is an overlap
+                jlr=orbs%inwhichlocreg(jjorb)
+                jwa=orbs%onwhichatom(jjorb)
+                jtype=astruct%iatype(jwa)
+                x0=lzd%llr(jlr)%locregcenter(1)
+                y0=lzd%llr(jlr)%locregcenter(2)
+                z0=lzd%llr(jlr)%locregcenter(3)
+                cut = (cutoff(ilr)+cutoff(jlr))**2
+                overlap = .false.
+                do i3=ijs3,ije3!-1,1
+                    zj=z0+i3*(lzd%glr%d%n3+1)*lzd%hgrids(3)
+                    do i2=ijs2,ije2!-1,1
+                        yj=y0+i2*(lzd%glr%d%n2+1)*lzd%hgrids(2)
+                        do i1=ijs1,ije1!-1,1
+                            xj=x0+i1*(lzd%glr%d%n1+1)*lzd%hgrids(1)
+                            tt = (xi-xj)**2 + (yi-yj)**2 + (zi-zj)**2
+                            if (tt<cut) then
+                                !if (overlap) stop 'determine_sparsity_pattern_distance: problem with overlap'
+                                overlap=.true.
+                            end if
+                        end do
                     end do
                 end do
-            end do
+            end if
             if (overlap) then
                ii=ii+1
                nonzero(1,ii)=jjorb
@@ -2185,7 +2210,7 @@ subroutine determine_sparsity_pattern_distance(orbs, lzd, astruct, cutoff, nnonz
 end subroutine determine_sparsity_pattern_distance
 
 
-subroutine init_sparse_matrix_wrapper(iproc, nproc, nspin, orbs, lzd, astruct, store_index, imode, smat)
+subroutine init_sparse_matrix_wrapper(iproc, nproc, nspin, orbs, lzd, astruct, store_index, imode, smat, smat_ref)
   use module_base
   use module_types
   use sparsematrix_init, only: init_sparse_matrix
@@ -2193,23 +2218,25 @@ subroutine init_sparse_matrix_wrapper(iproc, nproc, nspin, orbs, lzd, astruct, s
   implicit none
 
   ! Calling arguments
-  integer, intent(in) :: iproc, nproc, nspin, imode
-  type(orbitals_data), intent(in) :: orbs
-  type(local_zone_descriptors), intent(in) :: lzd
-  type(atomic_structure), intent(in) :: astruct
+  integer,intent(in) :: iproc, nproc, nspin, imode
+  type(orbitals_data),intent(in) :: orbs
+  type(local_zone_descriptors),intent(in) :: lzd
+  type(atomic_structure),intent(in) :: astruct
   logical,intent(in) :: store_index
-  type(sparse_matrix), intent(out) :: smat
+  type(sparse_matrix),intent(out) :: smat
+  type(sparse_matrix),intent(in),optional :: smat_ref !< reference sparsity pattern, in case smat must be at least as large as smat_ref
   
   ! Local variables
   integer :: nnonzero, nnonzero_mult, ilr
-  integer, dimension(:,:), pointer :: nonzero, nonzero_mult
-  real(kind=8),dimension(:), allocatable :: cutoff
-  integer, parameter :: KEYS=1
-  integer, parameter :: DISTANCE=2
+  integer,dimension(:,:),pointer :: nonzero, nonzero_mult
+  real(kind=8),dimension(:),allocatable :: cutoff
+  logical :: present_smat_ref
+  integer,parameter :: KEYS=1
+  integer,parameter :: DISTANCE=2
 
   call f_routine(id='init_sparse_matrix_wrapper')
 
-
+  present_smat_ref = present(smat_ref)
 
   cutoff = f_malloc(lzd%nlr,id='cutoff')
 
@@ -2220,7 +2247,11 @@ subroutine init_sparse_matrix_wrapper(iproc, nproc, nspin, orbs, lzd, astruct, s
   if (imode==KEYS) then
       call determine_sparsity_pattern(iproc, nproc, orbs, lzd, nnonzero, nonzero)
   else if (imode==DISTANCE) then
-      call determine_sparsity_pattern_distance(orbs, lzd, astruct, lzd%llr(:)%locrad_kernel, nnonzero, nonzero)
+      if (present_smat_ref) then
+          call determine_sparsity_pattern_distance(orbs, lzd, astruct, lzd%llr(:)%locrad_kernel, nnonzero, nonzero, smat_ref)
+      else
+          call determine_sparsity_pattern_distance(orbs, lzd, astruct, lzd%llr(:)%locrad_kernel, nnonzero, nonzero)
+      end if
   else
       stop 'wrong imode'
   end if
@@ -2235,7 +2266,11 @@ subroutine init_sparse_matrix_wrapper(iproc, nproc, nspin, orbs, lzd, astruct, s
       end if
   end do
 
-  call determine_sparsity_pattern_distance(orbs, lzd, astruct, lzd%llr(:)%locrad_mult, nnonzero_mult, nonzero_mult)
+  if (present_smat_ref) then
+      call determine_sparsity_pattern_distance(orbs, lzd, astruct, lzd%llr(:)%locrad_mult, nnonzero_mult, nonzero_mult, smat_ref)
+  else
+      call determine_sparsity_pattern_distance(orbs, lzd, astruct, lzd%llr(:)%locrad_mult, nnonzero_mult, nonzero_mult)
+  end if
   call init_sparse_matrix(iproc, nproc, nspin, orbs%norb, orbs%norbp, orbs%isorb, &
        orbs%norbu, orbs%norbup, orbs%isorbu, store_index, &
        nnonzero, nonzero, nnonzero_mult, nonzero_mult, smat)

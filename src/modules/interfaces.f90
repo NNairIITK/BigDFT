@@ -3870,7 +3870,7 @@ end subroutine build_ks_orbitals_laura_tmp
           integer,dimension(:,:),pointer,intent(out) :: nonzero
         end subroutine determine_sparsity_pattern
 
-        subroutine determine_sparsity_pattern_distance(orbs, lzd, astruct, cutoff, nnonzero, nonzero)
+        subroutine determine_sparsity_pattern_distance(orbs, lzd, astruct, cutoff, nnonzero, nonzero, smat_ref)
           use module_base
           use module_types
           implicit none
@@ -3880,9 +3880,10 @@ end subroutine build_ks_orbitals_laura_tmp
           real(kind=8),dimension(lzd%nlr),intent(in) :: cutoff
           integer,intent(out) :: nnonzero
           integer,dimension(:,:),pointer,intent(out) :: nonzero
+          type(sparse_matrix),intent(in),optional :: smat_ref !< reference sparsity pattern, in case the sparisty pattern to be calculated must be at least be as large as smat_ref
         end subroutine determine_sparsity_pattern_distance
 
-        subroutine init_sparse_matrix_wrapper(iproc, nproc, nspin, orbs, lzd, astruct, store_index, imode, smat)
+        subroutine init_sparse_matrix_wrapper(iproc, nproc, nspin, orbs, lzd, astruct, store_index, imode, smat, smat_ref)
           use module_base
           use module_types
           implicit none
@@ -3892,6 +3893,7 @@ end subroutine build_ks_orbitals_laura_tmp
           type(atomic_structure),intent(in) :: astruct
           logical,intent(in) :: store_index
           type(sparse_matrix), intent(out) :: smat
+          type(sparse_matrix),intent(in),optional :: smat_ref !< reference sparsity pattern, in case smat must be at least as large as smat_ref
         end subroutine init_sparse_matrix_wrapper
 
         subroutine check_accur_overlap_minus_one_sparse(iproc, nproc, smat, norb, norbp, isorb, nseq, nout, &
