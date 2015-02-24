@@ -4303,7 +4303,7 @@ module communications_init
                       comgp%comarr(2,ioverlap)=istsource
                       comgp%comarr(3,ioverlap)=iproc
                       comgp%comarr(4,ioverlap)=istdest
-                      comgp%comarr(5,ioverlap)=iie3(j3)-iis3(j3)+1
+                      comgp%comarr(5,ioverlap)=iie3(j3)-iis3(j3)+1 !nlen3(j3) !iie3(j3)-iis3(j3)+1
                       comgp%comarr(6,ioverlap)=lzd%glr%d%n1i*lzd%glr%d%n2i
                       if (.not. datatype_defined) then
                           !!write(*,'(a,8i8)') 'iproc, nsegx, blocklengthsx, displacementsx, comgp%ise(1), comgp%ise(2)', &
@@ -4873,6 +4873,7 @@ module communications_init
     !! point and the extent of the (possibly two) overlaps.
     subroutine get_extent_of_overlap_int(i1, i2, j1, j2, n, ks, ke, nlen)
       use dictionaries, only: f_err_throw
+      use yaml_output, only: yaml_toa
       implicit none
       ! Calling arguments
       integer,intent(in) :: i1, i2, j1, j2
@@ -4881,6 +4882,10 @@ module communications_init
       ! Local variables
       integer :: ks1, ke1, ks2, ke2
       logical :: periodic, case1, case2, found_case
+
+      ks(:) = 0
+      ke(:) = 0
+      nlen(:) = 0
 
 
       ! Check whether there is an overlap
@@ -4941,11 +4946,34 @@ module communications_init
           nlen(1) = 0
       end if
 
+      if (nlen(1)<0) then
+          call f_err_throw('nlen(1)<0: '//&
+               &'i1='//trim(yaml_toa(i1,fmt='(i0)'))//&
+               &', i2='//trim(yaml_toa(i2,fmt='(i0)'))//&
+               &', j1='//trim(yaml_toa(j1,fmt='(i0)'))//&
+               &', j2='//trim(yaml_toa(j2,fmt='(i0)'))//&
+               &', ks='//trim(yaml_toa(ks(1),fmt='(i0)'))//&
+               &', ke='//trim(yaml_toa(ke(2),fmt='(i0)'))&
+               ,err_name='BIGDFT_RUNTIME_ERROR')
+      end if
+
+      if (nlen(2)<0) then
+          call f_err_throw('nlen(2)<0: '//&
+               &'i1='//trim(yaml_toa(i1,fmt='(i0)'))//&
+               &', i2='//trim(yaml_toa(i2,fmt='(i0)'))//&
+               &', j1='//trim(yaml_toa(j1,fmt='(i0)'))//&
+               &', j2='//trim(yaml_toa(j2,fmt='(i0)'))//&
+               &', ks='//trim(yaml_toa(ks(2),fmt='(i0)'))//&
+               &', ke='//trim(yaml_toa(ke(2),fmt='(i0)'))&
+               ,err_name='BIGDFT_RUNTIME_ERROR')
+      end if
+
     end subroutine get_extent_of_overlap_int
 
 
     subroutine get_extent_of_overlap_long(i1, i2, j1, j2, n, ks, ke, nlen)
       use dictionaries, only: f_err_throw
+      use yaml_output, only: yaml_toa
       implicit none
       ! Calling arguments
       integer(kind=8),intent(in) :: i1, i2, j1, j2
@@ -4954,6 +4982,10 @@ module communications_init
       ! Local variables
       integer(kind=8) :: ks1, ke1, ks2, ke2
       logical :: periodic, case1, case2, found_case
+
+      ks(:) = 0
+      ke(:) = 0
+      nlen(:) = 0
 
 
       ! Check whether there is an overlap
@@ -5012,6 +5044,28 @@ module communications_init
           ks(1) = -1
           ke(1) = -1
           nlen(1) = 0
+      end if
+
+      if (nlen(1)<0) then
+          call f_err_throw('nlen(1)<0: '//&
+               &'i1='//trim(yaml_toa(i1,fmt='(i0)'))//&
+               &', i2='//trim(yaml_toa(i2,fmt='(i0)'))//&
+               &', j1='//trim(yaml_toa(j1,fmt='(i0)'))//&
+               &', j2='//trim(yaml_toa(j2,fmt='(i0)'))//&
+               &', ks='//trim(yaml_toa(ks(1),fmt='(i0)'))//&
+               &', ke='//trim(yaml_toa(ke(2),fmt='(i0)'))&
+               ,err_name='BIGDFT_RUNTIME_ERROR')
+      end if
+
+      if (nlen(2)<0) then
+          call f_err_throw('nlen(2)<0: '//&
+               &'i1='//trim(yaml_toa(i1,fmt='(i0)'))//&
+               &', i2='//trim(yaml_toa(i2,fmt='(i0)'))//&
+               &', j1='//trim(yaml_toa(j1,fmt='(i0)'))//&
+               &', j2='//trim(yaml_toa(j2,fmt='(i0)'))//&
+               &', ks='//trim(yaml_toa(ks(2),fmt='(i0)'))//&
+               &', ke='//trim(yaml_toa(ke(2),fmt='(i0)'))&
+               ,err_name='BIGDFT_RUNTIME_ERROR')
       end if
 
     end subroutine get_extent_of_overlap_long

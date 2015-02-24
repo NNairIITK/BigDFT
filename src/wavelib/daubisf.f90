@@ -425,7 +425,7 @@ subroutine psi_to_tpsi(hgrids,kptv,nspinor,lr,psi,w,hpsi,ekin,k_strten)
 
         call ConvolkineticT(lr%d%n1,lr%d%n2,lr%d%n3,&
              lr%d%nfl1,lr%d%nfu1,lr%d%nfl2,lr%d%nfu2,lr%d%nfl3,lr%d%nfu3,  &
-             hgrids(1),&        !here the grid spacings are supposed to be equal
+             hgrids(1),hgrids(2),hgrids(3), &        !here the grid spacings are supposed to be equal. SM: not any more
              lr%bounds%kb%ibyz_c,lr%bounds%kb%ibxz_c,lr%bounds%kb%ibxy_c,&
              lr%bounds%kb%ibyz_f,lr%bounds%kb%ibxz_f,lr%bounds%kb%ibxy_f, &
              w%x_c(1,idx),w%x_f(1,idx),&
@@ -800,7 +800,7 @@ subroutine isf_to_daub_kinetic(hx,hy,hz,kx,ky,kz,nspinor,lr,w,psir,hpsi,ekin,k_s
 
         call ConvolkineticT(lr%d%n1,lr%d%n2,lr%d%n3,&
              lr%d%nfl1,lr%d%nfu1,lr%d%nfl2,lr%d%nfu2,lr%d%nfl3,lr%d%nfu3,  &
-             hx,&        !here the grid spacings are supposed to be equal
+             hx,hy,hz,&      !here the grid spacings are supposed to be equal.  SM: not any more
              lr%bounds%kb%ibyz_c,lr%bounds%kb%ibxz_c,lr%bounds%kb%ibxy_c,&
              lr%bounds%kb%ibyz_f,lr%bounds%kb%ibxz_f,lr%bounds%kb%ibxy_f, &
              w%x_c(1,idx),w%x_f(1,idx),&
