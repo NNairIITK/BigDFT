@@ -649,7 +649,8 @@ module module_interfaces
          type(DFT_PSP_projectors), intent(inout) :: nlpsp
          integer, intent(in) :: iproc,nproc,ncongt,nspin
          logical, intent(in) :: output_denspot
-         real(kind=8), intent(in) :: hgrid,crmult,frmult,rbuf
+         real(kind=8), dimension(3), intent(in) :: hgrid
+         real(kind=8), intent(in) :: crmult,frmult,rbuf
          !real(kind=8), dimension(at%astruct%ntypes,3), intent(in) :: radii_cf
          real(kind=8), dimension(3,at%astruct%nat), intent(in) :: rxyz
          real(kind=8), dimension(Glr%d%n1i,Glr%d%n2i,Glr%d%n3i,nspin), intent(in) :: pot

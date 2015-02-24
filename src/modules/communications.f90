@@ -1113,13 +1113,13 @@ module communications
                            if(nsize>0) then
                                !write(*,'(a,6i9)') 'iproc, joverlap, nsize, extent, comm%nrecvbuf, total', &
                                !        iproc, joverlap, nsize, extent, comm%nrecvbuf, lzd%glr%d%n1i*lzd%glr%d%n2i*lzd%glr%d%n1i
-                               write(*,'(7(a,i0))') 'proc ',iproc,' gets ',nsize,' elements at ',ispin_shift+istdest, &
-                                                    ' from proc ',mpisource,' at ',isend_shift+istsource,&
-                                                    '; size(send)=',size(sendbuf),', size(recv)=',size(recvbuf)
-                               if (ispin_shift+istdest+nsize-1>nrecvbuf) then
-                                   write(*,*) 'ispin_shift+istdest, nsize, nrecvbuf', ispin_shift+istdest, nsize, nrecvbuf
-                                   stop 'ispin_shift+istdest+nsize-1>nrecvbuf'
-                               end if
+                               !write(*,'(7(a,i0))') 'proc ',iproc,' gets ',nsize,' elements at ',ispin_shift+istdest, &
+                               !                     ' from proc ',mpisource,' at ',isend_shift+istsource,&
+                               !                     '; size(send)=',size(sendbuf),', size(recv)=',size(recvbuf)
+                               !if (ispin_shift+istdest+nsize-1>nrecvbuf) then
+                               !    write(*,*) 'ispin_shift+istdest, nsize, nrecvbuf', ispin_shift+istdest, nsize, nrecvbuf
+                               !    stop 'ispin_shift+istdest+nsize-1>nrecvbuf'
+                               !end if
                                !!write(*,*) 'val, limit', isend_shift+istsource + &
                                !!    (nit-1)*lzd%glr%d%n1i*lzd%glr%d%n2i + &
                                !!    (comm%ise(4)-comm%ise(3))*lzd%glr%d%n1i + &
