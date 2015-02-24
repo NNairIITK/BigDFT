@@ -55,6 +55,8 @@ AM_CONDITIONAL(BUILD_LIBPAW, test x"$ac_internal_libpaw" = x"yes")
 if test x"$ac_internal_libpaw" = x"yes" ; then
   dnl FLib detection for libPAW.
   AX_FLIB()
+  dnl libXC detection for libPAW.
+  AX_LIBXC()
 fi
 
 moduledir=${includedir}
