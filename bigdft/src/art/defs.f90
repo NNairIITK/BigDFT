@@ -10,6 +10,7 @@
 
 !> Module which defines almost all variables used across the program ART
 module defs
+  use module_base
 
   implicit none
 
@@ -171,6 +172,6 @@ module defs
   character(len=11),parameter :: pos_units = "angstroemd0"
   
 
-  include 'mpif.h'
+  !include 'mpif.h'
 
 END MODULE defs
