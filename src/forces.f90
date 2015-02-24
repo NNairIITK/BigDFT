@@ -84,6 +84,12 @@ subroutine calculate_forces(iproc,nproc,psolver_groupsize,Glr,atoms,orbs,nlpsp,r
      if (imode==0) then
          ! Otherwise psi is not available
          call local_hamiltonian_stress(orbs,Glr,hx,hy,hz,psi,strtens(1,3))
+     else
+         !call local_hamiltonian_stress_linear(iproc, nproc, tmb%orbs, tmb%ham_descr%lzd, &
+         !     tmb%lzd%hgrids(1), tmb%lzd%hgrids(2), tmb%lzd%hgrids(3), tmb%ham_descr%npsidim_orbs, &
+         !     tmb%ham_descr%psi, tmb%ham_descr%psit_c, tmb%ham_descr%psit_f, &
+         !     tmb%ham_descr%collcom, tmb%linmat%m, tmb%linmat%ham_, tmb%linmat%l, tmb%linmat%kernel_, strtens(1,3))
+         ! call yaml_map('local stress tensor',strtens(:,3))
      end if
 
      call erf_stress(atoms,rxyz,0.5_gp*hx,0.5_gp*hy,0.5_gp*hz,Glr%d%n1i,Glr%d%n2i,Glr%d%n3i,n3p,&
@@ -3820,7 +3826,7 @@ END SUBROUTINE local_hamiltonian_stress
 
 
 subroutine local_hamiltonian_stress_linear(iproc, nproc, orbs, lzd, hx, hy, hz, npsidim, &
-           psi, psit_c, psit_f, hpsi, hpsit_c, hpsit_f, &
+           psi, psit_c, psit_f, &
            collcom, msmat, mmat, lsmat, lmat, tens)
   use module_base
   use module_types
@@ -3851,10 +3857,10 @@ subroutine local_hamiltonian_stress_linear(iproc, nproc, orbs, lzd, hx, hy, hz, 
   !real(wp) :: kinstr(6)
   real(gp) :: ekin,kx,ky,kz,etest, tt, trace_sparse
   type(workarr_locham) :: w
-  real(wp), dimension(:,:), allocatable :: psir,hpsi
+  real(wp), dimension(:,:), allocatable :: psir
   real(kind=8),dimension(0:3) :: scal=1.d0
   real(kind=8),dimension(3) :: hgridh
-  real(kind=8),dimension(:,:),allocatable :: hpsit_c, hpsit_f
+  real(kind=8),dimension(:,:),allocatable :: hpsit_c, hpsit_f, hpsi
 
 
   !@ NEW ####################################################
@@ -3865,6 +3871,7 @@ subroutine local_hamiltonian_stress_linear(iproc, nproc, orbs, lzd, hx, hy, hz, 
 
   hpsit_c = f_malloc((/collcom%ndimind_c,3/),id='hpsit_c')
   hpsit_f = f_malloc((/7*collcom%ndimind_f,3/),id='hpsit_f')
+  hpsi = f_malloc((/npsidim,3/),id='hpsi')
 
   call initialize_work_arrays_locham(lzd%nlr, lzd%llr, orbs%nspinor, .true., w)
   ist = 1
@@ -3923,6 +3930,7 @@ subroutine local_hamiltonian_stress_linear(iproc, nproc, orbs, lzd, hx, hy, hz, 
   call deallocate_work_arrays_locham(w)
   call f_free(hpsit_c)
   call f_free(hpsit_f)
+  call f_free(hpsi)
 
   !@ END NEW ################################################
 

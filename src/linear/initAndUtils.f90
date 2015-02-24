@@ -2029,6 +2029,7 @@ end subroutine determine_sparsity_pattern
 subroutine determine_sparsity_pattern_distance(orbs, lzd, astruct, cutoff, nnonzero, nonzero, smat_ref)
   use module_base
   use module_types
+  use sparsematrix_init, only: matrixindex_in_compressed
   implicit none
 
   ! Calling arguments
@@ -2091,7 +2092,7 @@ subroutine determine_sparsity_pattern_distance(orbs, lzd, astruct, cutoff, nnonz
          zi=lzd%llr(ilr)%locregcenter(3)
          do jjorb=1,orbs%norbu
             if (present_smat_ref) then
-                ind = smat_ref%matrixindex_in_compressed_fortransposed(jjorb,iiorb)
+                ind = matrixindex_in_compressed(smat_ref,jjorb,iiorb)
             else
                 ind = 0
             end if
@@ -2163,7 +2164,7 @@ subroutine determine_sparsity_pattern_distance(orbs, lzd, astruct, cutoff, nnonz
          zi=lzd%llr(ilr)%locregcenter(3)
          do jjorb=1,orbs%norbu
             if (present_smat_ref) then
-                ind = smat_ref%matrixindex_in_compressed_fortransposed(jjorb,iiorb)
+                ind = matrixindex_in_compressed(smat_ref,jjorb,iiorb)
             else
                 ind = 0
             end if
