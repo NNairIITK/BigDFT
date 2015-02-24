@@ -242,10 +242,12 @@ subroutine finalize_gt_data(gdat)
     call f_free(gdat%nminpd)
     call f_free_str(500,gdat%uinp%directories)
 !    call f_free_str(600,gdat%uinp%trans_pairs_paths)
+    if(gdat%uinp%search_transpairs)then
     deallocate(gdat%uinp%trans_pairs_paths)
+    deallocate(gdat%trans_pairs_paths_found)
+    endif
     call f_free(gdat%input_transpair_found)
 !    call f_free(gdat%trans_pairs_paths_found)
-    deallocate(gdat%trans_pairs_paths_found)
     call f_free(gdat%uinp%fp_arr_trans_pairs)
     call f_free(gdat%uinp%en_arr_trans_pairs)
     call f_free(gdat%fp_arr)
@@ -498,8 +500,8 @@ subroutine write_transitionpairs(gdat)
              abs(gdat%en_arr(kIDmin1)-gdat%en_arr(kIDmin2)),fpd,gdat%transpairs(itrans)
     enddo
 
-    call yaml_comment('Identified transition pairs (transition_pairs.inp)  ....',hfill='-')
     if(gdat%uinp%search_transpairs)then
+        call yaml_comment('Identified transition pairs (transition_pairs.inp)  ....',hfill='-')
         do itrans=1,gdat%uinp%ntranspairs
             if(.not.gdat%input_transpair_found(itrans))then
                 call f_err_throw('Transition pair no. '//yaml_toa(itrans)//&
