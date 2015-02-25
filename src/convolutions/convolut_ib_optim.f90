@@ -1078,7 +1078,6 @@ subroutine ConvolkineticT(n1,n2,n3, &
       num = num - ii
   end do
 
-  write(*,*) 'dodim',dodim
 
 !  if (firstcall) then
 !
