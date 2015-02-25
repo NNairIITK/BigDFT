@@ -17,7 +17,7 @@ subroutine psitohpsi(iproc,nproc,atoms,scf,denspot,itrp,itwfn,iscf,alphamix,&
   use module_types
   use module_interfaces, fake_name => psitohpsi
   use Poisson_Solver, except_dp => dp, except_gp => gp, except_wp => wp
-  use m_ab7_mixing
+  use module_mixing
   use yaml_output
   use psp_projectors, only: PSPCODE_PAW,PSP_APPLY_SKIP
   implicit none
