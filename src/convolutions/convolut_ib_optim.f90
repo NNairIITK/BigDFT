@@ -913,13 +913,18 @@ END SUBROUTINE Convolkinetic
 !!$  END SUBROUTINE Convolkinetic_SSE
 
 
+!> idir gives the dimension along which the convolutions shall be performed. It
+!! is a three digit number (one for each dimension), each digit being either 1 (do the convolution) or 0 (don't do).
+!! Example: 100 -> do in x, don't do in y and z
+!!          010 -> don't do in x and z, do in y
+!!          111 -> do in all three dimensions
 subroutine ConvolkineticT(n1,n2,n3, &
      nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,  &
-     hx,hy,hz,ibyz_c,ibxz_c,ibxy_c,ibyz_f,ibxz_f,ibxy_f,x_c,x_f,y_c,y_f,ekinout,x_f1,x_f2,x_f3)
+     hx,hy,hz,ibyz_c,ibxz_c,ibxy_c,ibyz_f,ibxz_f,ibxy_f,x_c,x_f,y_c,y_f,ekinout,x_f1,x_f2,x_f3,idir)
   !   y = y+(kinetic energy operator)x 
   use module_base
   implicit none
-  integer, intent(in) :: n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3
+  integer, intent(in) :: n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,idir
   real(gp), intent(in) :: hx,hy,hz
   integer, dimension(2,0:n2,0:n3), intent(in) :: ibyz_c,ibyz_f
   integer, dimension(2,0:n1,0:n3), intent(in) :: ibxz_c,ibxz_f
@@ -940,7 +945,7 @@ subroutine ConvolkineticT(n1,n2,n3, &
 
 !$ integer :: ncount1,ncount2,ncount3,ncount4,ncount5,ncount6,ncount0
 
-  integer :: i,t,i1,i2,i3
+  integer :: i,t,i1,i2,i3,ii,jj,kk,num
   integer :: icur,istart,iend,l
 
   real(wp) :: scale,dyi,dyi0,dyi1,dyi2,dyi3,t112,t121,t122,t212,t221,t222,t211,ekin
@@ -948,6 +953,7 @@ subroutine ConvolkineticT(n1,n2,n3, &
   real(wp), dimension(-3+lowfil:lupfil+3) :: a,ax,ay,az,b,bx,by,bz,c,cx,cy,cz
   real(wp), dimension(lowfil:lupfil) :: e,ex,ey,ez
   real(wp)::ekinp
+  logical,dimension(3) :: dodim
 
   !scale=-.5_wp/real(hgrid**2,wp)
   !---------------------------------------------------------------------------
@@ -1055,6 +1061,23 @@ subroutine ConvolkineticT(n1,n2,n3, &
   bz = scale*b(:)
   cz = scale*c(:)
   ez = scale*e(:)
+
+  ! Determine in which direction the convolutions should be performed
+  num = idir
+  do i=1,3
+      jj = 10**i
+      kk = 10**(i-1)
+      ii = mod(num,jj)
+      if (ii==kk) then
+          dodim(4-i) = .true.
+      else if (ii==0) then
+          dodim(4-i) = .false.
+      else
+          stop 'wrong value of idir'
+      end if
+      num = num - ii
+  end do
+
 
 !  if (firstcall) then
 !
@@ -1191,12 +1214,13 @@ subroutine ConvolkineticT(n1,n2,n3, &
 
   ekin=0._wp
 !$omp parallel default(private) &
-!$omp shared(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3) &
+!$omp shared(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,dodim) &
 !$omp shared(ekin,ibyz_c,ibxz_c,ibxy_c,ibyz_f,ibxz_f,ibxy_f,x_c,x_f,y_c,y_f)& 
 !$omp shared(x_f1,x_f2,x_f3,ax,ay,az,bx,by,bz,cx,cy,cz,ex,ey,ez,ncount0)&
 !$omp private(ncount1,ncount2,ncount3,ncount4,ncount5,ncount6)
   ekinp=0._wp
 
+if (dodim(1)) then
   !$omp do schedule(static,1)
   do i3=0,n3
      do i2=0,n2
@@ -1310,6 +1334,7 @@ subroutine ConvolkineticT(n1,n2,n3, &
      enddo
   enddo
   !$omp enddo
+end if
   
     !call system_clock(ncount1,ncount_rate,ncount_max)
     !tel=dble(ncount1-ncount0)/dble(ncount_rate)
@@ -1317,6 +1342,7 @@ subroutine ConvolkineticT(n1,n2,n3, &
   !!
   !!  ! + (1/2) d^2/dy^2
   !!
+if (dodim(2)) then
   !$omp do schedule(static,1)
   do i3=0,n3
      do i1=0,n1
@@ -1432,6 +1458,7 @@ subroutine ConvolkineticT(n1,n2,n3, &
      enddo
   enddo
   !$omp enddo
+end if
   !    
   !!
     !call system_clock(ncount2,ncount_rate,ncount_max)
@@ -1440,6 +1467,7 @@ subroutine ConvolkineticT(n1,n2,n3, &
   !!
   !!  ! + (1/2) d^2/dz^2
   !!
+if (dodim(3)) then
   !$omp do schedule(static,1)
   do i2=0,n2
      do i1=0,n1
@@ -1554,12 +1582,14 @@ subroutine ConvolkineticT(n1,n2,n3, &
      enddo
   enddo
   !$omp enddo
+end if
    !call system_clock(ncount3,ncount_rate,ncount_max)
    !tel=dble(ncount3-ncount2)/dble(ncount_rate)
    !write(99,'(a40,1x,e10.3,1x,f6.1)') 'T:FIRST PART:z',tel,1.d-6*mflop3/tel
 
   ! wavelet part
   ! (1/2) d^2/dx^2
+if (dodim(1)) then
   !$omp do schedule(static,1)
   do i3=nfl3,nfu3
      do i2=nfl2,nfu2
@@ -1593,6 +1623,7 @@ subroutine ConvolkineticT(n1,n2,n3, &
      enddo
   enddo
   !$omp enddo
+end if
 
     !call system_clock(ncount4,ncount_rate,ncount_max)
     !tel=dble(ncount4-ncount3)/dble(ncount_rate)
@@ -1601,6 +1632,7 @@ subroutine ConvolkineticT(n1,n2,n3, &
 
   ! + (1/2) d^2/dy^2
   !nb=16
+if (dodim(2)) then
   !$omp do schedule(static,1)
   do i3=nfl3,nfu3
      do i1=nfl1,nfu1
@@ -1634,6 +1666,7 @@ subroutine ConvolkineticT(n1,n2,n3, &
      enddo
   enddo
   !$omp enddo
+end if
 
     !call system_clock(ncount5,ncount_rate,ncount_max)
     !tel=dble(ncount5-ncount4)/dble(ncount_rate)
@@ -1641,6 +1674,7 @@ subroutine ConvolkineticT(n1,n2,n3, &
 
   ! + (1/2) d^2/dz^2
   !nb=16
+if (dodim(3)) then
   !$omp do schedule(static,1)
   do i2=nfl2,nfu2
      do i1=nfl1,nfu1
@@ -1674,6 +1708,7 @@ subroutine ConvolkineticT(n1,n2,n3, &
      enddo
   enddo
   !$omp enddo
+end if
   
     !call system_clock(ncount6,ncount_rate,ncount_max)
     !tel=dble(ncount6-ncount5)/dble(ncount_rate)

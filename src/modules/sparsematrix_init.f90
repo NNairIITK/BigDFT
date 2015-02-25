@@ -75,7 +75,7 @@ contains
               ! both indices belong to the second spin matrix
               ispin=2
           else
-              ! there seems to be a mix up the spin matrices
+              ! there seems to be a mix of the spin matrices
               stop 'matrixindex_in_compressed: problem in determining spin'
           end if
       else
