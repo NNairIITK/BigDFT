@@ -2807,13 +2807,12 @@ module module_interfaces
           real(gp), dimension(6), intent(out) :: locstrten
         end subroutine local_forces
 
-        subroutine denspot_set_history(denspot, iscf, nspin, &
-             & n1i, n2i, & !to be removed arguments when denspot has dimensions
+        subroutine denspot_set_history(denspot, iscf, &
              npulayit)
           use module_types
           implicit none
           type(DFT_local_fields), intent(inout) :: denspot
-          integer, intent(in) :: iscf, n1i, n2i, nspin
+          integer, intent(in) :: iscf
           integer,intent(in),optional :: npulayit
         end subroutine denspot_set_history
 

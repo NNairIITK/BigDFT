@@ -156,17 +156,14 @@ subroutine dpbox_set_box(dpbox,Lzd)
 end subroutine dpbox_set_box
 
 
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-!>todo: remove n1i and n2i
-subroutine denspot_set_history(denspot, iscf, nspin, &
-     & n1i, n2i, & !to be removed arguments when denspot has dimensions
+subroutine denspot_set_history(denspot, iscf, &
      npulayit)
   use module_base
   use module_types
-  use m_ab7_mixing
+  use module_mixing
   implicit none
   type(DFT_local_fields), intent(inout) :: denspot
-  integer, intent(in) :: iscf, n1i, n2i, nspin
+  integer, intent(in) :: iscf
   integer,intent(in),optional :: npulayit
   
   integer :: potden, npoints, ierr
@@ -174,20 +171,20 @@ subroutine denspot_set_history(denspot, iscf, nspin, &
 
   if (iscf < 10) then
      potden = AB7_MIXING_POTENTIAL
-     npoints = n1i*n2i*denspot%dpbox%n3p
+     npoints = denspot%dpbox%ndims(1)*denspot%dpbox%ndims(2)*denspot%dpbox%n3p
   else
      potden = AB7_MIXING_DENSITY
-     npoints = n1i*n2i*denspot%dpbox%n3d
+     npoints = denspot%dpbox%ndims(1)*denspot%dpbox%ndims(2)*denspot%dpbox%n3d
   end if
   if (iscf > SCF_KIND_DIRECT_MINIMIZATION) then
      allocate(denspot%mix)
      if (present(npulayit)) then
          call ab7_mixing_new(denspot%mix, modulo(iscf, 10), potden, &
-              AB7_MIXING_REAL_SPACE, npoints, nspin, 0, &
+              AB7_MIXING_REAL_SPACE, npoints, denspot%dpbox%nrhodim, 0, &
               ierr, errmess, npulayit=npulayit, useprec = .false.)
      else
          call ab7_mixing_new(denspot%mix, modulo(iscf, 10), potden, &
-              AB7_MIXING_REAL_SPACE, npoints, nspin, 0, &
+              AB7_MIXING_REAL_SPACE, npoints, denspot%dpbox%nrhodim, 0, &
               ierr, errmess, useprec = .false.)
      end if
      call ab7_mixing_eval_allocate(denspot%mix)
@@ -198,7 +195,7 @@ end subroutine denspot_set_history
 
 subroutine denspot_free_history(denspot)
   use module_types
-  use m_ab7_mixing
+  use module_mixing
   implicit none
   type(DFT_local_fields), intent(inout) :: denspot
   
