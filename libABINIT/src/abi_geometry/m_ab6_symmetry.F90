@@ -857,7 +857,7 @@ contains
     transNon(:, 1:nSym) = token%data%transNon(:,:)
   end subroutine symmetry_get_matrices
 
-  subroutine symmetry_get_matrices_p(id, nSym, sym, transNon, symAfm, errno)
+  subroutine symmetry_get_matrices_p(id, nSym, sym, transNon, symAfm, indSym, errno)
 
     integer, intent(in) :: id
     integer, intent(out) :: errno
@@ -865,6 +865,7 @@ contains
     integer, pointer  :: sym(:,:,:)
     integer, pointer  :: symAfm(:)
     real(dp), pointer :: transNon(:,:)
+    integer, pointer, optional  :: indSym(:,:,:)
 
     type(symmetry_list), pointer :: token
 
@@ -886,6 +887,14 @@ contains
     sym      => token%data%sym
     symAfm   => token%data%symAfm
     transNon => token%data%transNon
+
+    if (present(indSym)) then
+       if (.not. associated(token%data%indexingAtoms)) then
+          ! We do the computation of the matrix part.
+          call compute_equivalent_atoms(token%data)
+       end if
+       indSym => token%data%indexingAtoms
+    end if
   end subroutine symmetry_get_matrices_p
 
   subroutine symmetry_get_multiplicity(id, multiplicity, errno)

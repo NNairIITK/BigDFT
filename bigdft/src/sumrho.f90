@@ -721,7 +721,7 @@ subroutine symmetrise_density(iproc,nproc,geocode,n1i,n2i,n3i,nspin,rho,& !n(c) 
   integer, pointer :: symAfm(:)
   real(gp), pointer :: transNon(:,:)
 
-  call symmetry_get_matrices_p(sym%symObj, nSym, symRel, transNon, symAfm, errno)
+  call symmetry_get_matrices_p(sym%symObj, nSym, symRel, transNon, symAfm, errno = errno)
   if (nSym == 1) return
   if (geocode == 'F') then
      !call yaml_warning('The symmetrization of the density is not implemented for the isolated systems')

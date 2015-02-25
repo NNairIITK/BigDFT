@@ -26,6 +26,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,energs,fxyz,strten,fnoise,press
   use constrained_dft
   use Poisson_Solver, except_dp => dp, except_gp => gp, except_wp => wp
   use module_xc
+  use m_libpaw_libxc, only: libxc_functionals_init, libxc_functionals_end
   use communications_init, only: orbitals_communicators
   use communications_base, only: deallocate_comms
 !  use vdwcorrection
@@ -248,6 +249,11 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,energs,fxyz,strten,fnoise,press
          & .false.,in,atoms,rxyz,GPU%OCLconv,&
          KSwfn%orbs,tmb%npsidim_orbs,tmb%npsidim_comp,tmb%orbs,KSwfn%Lzd,tmb%Lzd,nlpsp,&
          KSwfn%comms,shift,ref_frags,denspot)
+  end if
+
+  ! Ugly here to be moved elsewhere.
+  if (associated(atoms%pawtab)) then
+     call libxc_functionals_init(denspot%xc%ixc, denspot%dpbox%nrhodim)
   end if
 
   !memory estimation, to be rebuilt in a more modular way
@@ -1228,6 +1234,10 @@ contains
        call f_free_ptr(fdisp)
     end if
     call xc_end(denspot%xc)
+    ! Ugly here to be moved elsewhere.
+    if (associated(atoms%pawtab)) then
+       call libxc_functionals_end()
+    end if
 
     !free GPU if it is the case
     if (GPUconv .and. .not.(DoDavidson)) then

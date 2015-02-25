@@ -147,6 +147,15 @@ libabinit_a_SOURCES = \
 	add_libpaw/abi_pawinit.F90 \
 	add_libpaw/abi_initrhoij.F90 \
 	add_libpaw/abi_interfaces_add_libpaw.F90 \
+	add_libpaw/m_abi_distribfft.F90 \
+	add_libpaw/abi_wvl_nhatgrid.F90 \
+	add_libpaw/abi_pawnhatfr.F90 \
+	add_libpaw/abi_pawmknhat.F90 \
+	add_libpaw/abi_pawmkrho.F90 \
+	add_libpaw/abi_pawaccrhoij.F90 \
+	add_libpaw/abi_pawxenergy.F90 \
+	add_libpaw/abi_pawdensities.F90 \
+	add_libpaw/abi_pawdenpot.F90 \
 	$(libpaw_files)
 
 CLEANFILES = mpif.h *.@MODULE_EXT@

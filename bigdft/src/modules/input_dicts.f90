@@ -610,7 +610,6 @@ contains
     filename = 'psppar.' // atomname
     dict_psp => dict // filename !inquire for the key?
 
-
     exists = has_key(dict_psp, LPSP_KEY)
     if (.not. exists) then
        if (dict_len(dict_psp) > 0) then
