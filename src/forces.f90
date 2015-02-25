@@ -3853,9 +3853,9 @@ subroutine local_hamiltonian_stress_linear(iproc, nproc, orbs, lzd, hx, hy, hz, 
   !local variables
    real(gp) :: ekin_sum,epot_sum
   character(len=*), parameter :: subname='local_hamiltonian_stress'
-  integer :: iorb, npot, i_f, iseg_f, iiorb, ilr, ist, idir
+  integer :: iorb, npot, i_f, iseg_f, iiorb, ilr, ist, idir, iidim
   !real(wp) :: kinstr(6)
-  real(gp) :: ekin,kx,ky,kz,etest, tt, trace_sparse
+  real(gp) :: ekin,kx,ky,kz,etest, tt, trace_sparse,ekino
   type(workarr_locham) :: w
   real(wp), dimension(:,:), allocatable :: psir
   real(kind=8),dimension(0:3) :: scal=1.d0
@@ -3902,9 +3902,21 @@ subroutine local_hamiltonian_stress_linear(iproc, nproc, orbs, lzd, hx, hy, hz, 
            w%x_c(1,1), w%x_f(1,1), w%x_f1(1,1), w%x_f2(1,1), w%x_f3(1,1))
 
       do idir=1,3
+          iidim = 10**(3-idir)
           call f_zero(w%y_c)
-          call convolut_kinetic_per_T_1D(2*lzd%llr(ilr)%d%n1+1, 2*lzd%llr(ilr)%d%n2+1, 2*lzd%llr(ilr)%d%n3+1, &
-               hgridh(idir), idir, w%x_c(1,1), w%y_c(1,1))
+          call f_zero(w%y_f)
+          !!call convolut_kinetic_per_T_1D(2*lzd%llr(ilr)%d%n1+1, 2*lzd%llr(ilr)%d%n2+1, 2*lzd%llr(ilr)%d%n3+1, &
+          !!     hgridh(idir), idir, w%x_c(1,1), w%y_c(1,1))
+          call ConvolkineticT(lzd%llr(ilr)%d%n1, lzd%llr(ilr)%d%n2, lzd%llr(ilr)%d%n3, &
+               lzd%llr(ilr)%d%nfl1, lzd%llr(ilr)%d%nfu1, &
+               lzd%llr(ilr)%d%nfl2, lzd%llr(ilr)%d%nfu2, &
+               lzd%llr(ilr)%d%nfl3, lzd%llr(ilr)%d%nfu3, &
+               hx, hy, hz, &      !here the grid spacings are supposed to be equal.  SM: not any more
+               lzd%llr(ilr)%bounds%kb%ibyz_c, lzd%llr(ilr)%bounds%kb%ibxz_c, lzd%llr(ilr)%bounds%kb%ibxy_c, &
+               lzd%llr(ilr)%bounds%kb%ibyz_f, lzd%llr(ilr)%bounds%kb%ibxz_f, lzd%llr(ilr)%bounds%kb%ibxy_f, &
+               w%x_c(1,1), w%x_f(1,1), &
+               w%y_c(1,1), w%y_f(1,1), ekino, &
+               w%x_f1(1,1), w%x_f2(1,1), w%x_f3(1,1),iidim)
           call compress_forstandard(lzd%llr(ilr)%d%n1, lzd%llr(ilr)%d%n2, lzd%llr(ilr)%d%n3, &
                lzd%llr(ilr)%d%nfl1, lzd%llr(ilr)%d%nfu1, &
                lzd%llr(ilr)%d%nfl2, lzd%llr(ilr)%d%nfu2, &
@@ -3926,8 +3938,9 @@ subroutine local_hamiltonian_stress_linear(iproc, nproc, orbs, lzd, hx, hy, hz, 
            hpsi(1,idir), hpsit_c, hpsit_f, lzd)
       call calculate_overlap_transposed(iproc, nproc, orbs, collcom, &
            psit_c, hpsit_c, psit_f, hpsit_f, msmat, mmat)
-      tt = trace_sparse(iproc, nproc, orbs, msmat, lsmat, mmat, lmat, 1)
-      tens(idir) = tens(idir) + -8.0_gp/(hx*hy*hz)/real(lzd%llr(ilr)%d%n1i*lzd%llr(ilr)%d%n2i*lzd%llr(ilr)%d%n3i,gp)*tt
+      tt = trace_sparse(iproc, nproc, orbs, msmat, lsmat, mmat%matrix_compr, lmat%matrix_compr, 1)
+      !tens(idir) = tens(idir) + -8.0_gp/(hx*hy*hz)/real(lzd%llr(ilr)%d%n1i*lzd%llr(ilr)%d%n2i*lzd%llr(ilr)%d%n3i,gp)*tt
+      tens(idir) = tens(idir) + -8.0_gp/(hx*hy*hz)/real(lzd%glr%d%n1i*lzd%glr%d%n2i*lzd%glr%d%n3i,gp)*tt
   end do
 
   call deallocate_work_arrays_locham(w)

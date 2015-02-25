@@ -430,7 +430,7 @@ subroutine psi_to_tpsi(hgrids,kptv,nspinor,lr,psi,w,hpsi,ekin,k_strten)
              lr%bounds%kb%ibyz_f,lr%bounds%kb%ibxz_f,lr%bounds%kb%ibxy_f, &
              w%x_c(1,idx),w%x_f(1,idx),&
              w%y_c(1,idx),w%y_f(1,idx),ekino, &
-             w%x_f1(1,idx),w%x_f2(1,idx),w%x_f3(1,idx))
+             w%x_f1(1,idx),w%x_f2(1,idx),w%x_f3(1,idx),111)
         ekin=ekin+ekino
 
         !new compression routine in standard form
@@ -805,7 +805,7 @@ subroutine isf_to_daub_kinetic(hx,hy,hz,kx,ky,kz,nspinor,lr,w,psir,hpsi,ekin,k_s
              lr%bounds%kb%ibyz_f,lr%bounds%kb%ibxz_f,lr%bounds%kb%ibxy_f, &
              w%x_c(1,idx),w%x_f(1,idx),&
              w%y_c(1,idx),w%y_f(1,idx),ekino, &
-             w%x_f1(1,idx),w%x_f2(1,idx),w%x_f3(1,idx))
+             w%x_f1(1,idx),w%x_f2(1,idx),w%x_f3(1,idx),111)
         ekin=ekin+ekino
 
         !new compression routine in standard form
