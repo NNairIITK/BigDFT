@@ -98,11 +98,11 @@ module wrapper_MPI
   end interface mpiget
 
   interface mpitypesize
-    module procedure mpitypesize_d0, mpitypesize_d1
+    module procedure mpitypesize_d0, mpitypesize_d1, mpitypesize_i0, mpitypesize_l0
   end interface mpitypesize
 
   interface mpiwindow
-    module procedure mpiwindow_d0
+    module procedure mpiwindow_d0, mpiwindow_i0, mpiwindow_l0
   end interface mpiwindow
 
   !> Interface for MPI_ALLGATHERV routine
@@ -1306,6 +1306,32 @@ contains
       sizeof=mpitypesize(1.d0)
   end function mpitypesize_d1
 
+  function mpitypesize_i0(foo) result(sizeof)
+    use dictionaries, only: f_err_throw,f_err_define
+    implicit none
+    integer, intent(in) :: foo
+    integer :: sizeof, ierr
+    
+    call mpi_type_size(mpi_integer, sizeof, ierr)
+    if (ierr/=0) then
+        call f_err_throw('Error in mpi_type_size',&
+             err_id=ERR_MPI_WRAPPERS)
+    end if
+  end function mpitypesize_i0
+
+  function mpitypesize_l0(foo) result(sizeof)
+    use dictionaries, only: f_err_throw,f_err_define
+    implicit none
+    logical, intent(in) :: foo
+    integer :: sizeof, ierr
+    
+    call mpi_type_size(mpi_logical, sizeof, ierr)
+    if (ierr/=0) then
+        call f_err_throw('Error in mpi_type_size',&
+             err_id=ERR_MPI_WRAPPERS)
+    end if
+  end function mpitypesize_l0
+
   function mpiinfo(key,val) result(info)
     use dictionaries, only: f_err_throw,f_err_define
     implicit none
@@ -1373,6 +1399,70 @@ contains
 
     
   end function mpiwindow_d0
+
+  function mpiwindow_i0(size,base,comm) result(window)
+    use dictionaries, only: f_err_throw,f_err_define
+    implicit none
+    integer,intent(in) :: size
+    integer,intent(in) :: base
+    integer,intent(in) :: comm
+    !local variables
+    integer :: sizeof,info,ierr
+    integer :: window
+
+    sizeof=mpitypesize(base)
+    info=mpiinfo("no_locks", "true")
+
+    call mpi_win_create(base, int(size,kind=mpi_address_kind)*int(sizeof,kind=mpi_address_kind), &
+         sizeof, info,comm, window, ierr)
+
+    if (ierr/=0) then
+       call f_err_throw('Error in mpi_win_create',&
+            err_id=ERR_MPI_WRAPPERS)
+    end if
+
+    call mpiinfofree(info)
+
+    call mpi_win_fence(MPI_MODE_NOPRECEDE, window, ierr)
+    if (ierr/=0) then
+       call f_err_throw('Error in mpi_win_fence',&
+            err_id=ERR_MPI_WRAPPERS)
+    end if
+
+    
+  end function mpiwindow_i0
+
+  function mpiwindow_l0(size,base,comm) result(window)
+    use dictionaries, only: f_err_throw,f_err_define
+    implicit none
+    integer,intent(in) :: size
+    logical,intent(in) :: base
+    integer,intent(in) :: comm
+    !local variables
+    integer :: sizeof,info,ierr
+    integer :: window
+
+    sizeof=mpitypesize(base)
+    info=mpiinfo("no_locks", "true")
+
+    call mpi_win_create(base, int(size,kind=mpi_address_kind)*int(sizeof,kind=mpi_address_kind), &
+         sizeof, info,comm, window, ierr)
+
+    if (ierr/=0) then
+       call f_err_throw('Error in mpi_win_create',&
+            err_id=ERR_MPI_WRAPPERS)
+    end if
+
+    call mpiinfofree(info)
+
+    call mpi_win_fence(MPI_MODE_NOPRECEDE, window, ierr)
+    if (ierr/=0) then
+       call f_err_throw('Error in mpi_win_fence',&
+            err_id=ERR_MPI_WRAPPERS)
+    end if
+
+    
+  end function mpiwindow_l0
 
   subroutine mpi_fenceandfree(window)
     use dictionaries, only: f_err_throw,f_err_define

@@ -1229,6 +1229,7 @@ log_model:
 periodic_silicon:
  Epot: 3.0e-10
  Enl: 1.1e-9
+ EXC: 1.1e-10
  Omega: 4.3e-11
  ebs_check: 1.1e-10
  charge diff: 1.4e-10
@@ -1261,7 +1262,7 @@ periodic_water:
  Ekin: 2.0e-9
  Enl: 1.1e-9
  Energy (Hartree): 6.7e-11
- Omega: 1.6e-10
+ Omega: 2.0e-10
  ebs_check: 2.5e-9
  ebs: 2.5e-9
  eF: 8.8e-9
@@ -1279,9 +1280,9 @@ periodic_water:
 surface_boronnitride:
  Enl: 1.0e-9
  Epot: 1.0e-9
- Omega: 3.4e-11
- energy: 1.9e-11
- Energy (Hartree): 1.9e-11
+ Omega: 5.7e-11
+ energy: 2.0e-11
+ Energy (Hartree): 2.0e-11
  Total charge: 1.0e-10
  Total ionic charge: 1.9e-11
  Keys to ignore:
@@ -1299,3 +1300,4 @@ surface_graphene:
  guess for new ef: 1.1e-9
  eF: 6.1e-10
  D eF: 1.1e-9
+ diff: 2.0e-11
