@@ -89,7 +89,6 @@ subroutine calculate_forces(iproc,nproc,psolver_groupsize,Glr,atoms,orbs,nlpsp,r
               tmb%lzd%hgrids(1), tmb%lzd%hgrids(2), tmb%lzd%hgrids(3), tmb%ham_descr%npsidim_orbs, &
               tmb%ham_descr%psi, &!tmb%ham_descr%psit_c, tmb%ham_descr%psit_f, &
               tmb%ham_descr%collcom, tmb%linmat%m, tmb%linmat%ham_, tmb%linmat%l, tmb%linmat%kernel_, strtens(1,3))
-          call yaml_map('local stress tensor',strtens(:,3))
      end if
 
      call erf_stress(atoms,rxyz,0.5_gp*hx,0.5_gp*hy,0.5_gp*hz,Glr%d%n1i,Glr%d%n2i,Glr%d%n3i,n3p,&
@@ -934,6 +933,7 @@ subroutine nonlocal_forces(lr,hx,hy,hz,at,rxyz,&
      ikpt=ikpt+1
      ispsi_k=ispsi
   end do loop_kptF
+
 
 
 !Adding Enl to the diagonal components of strten after loop over kpts is finished...
@@ -3940,7 +3940,7 @@ subroutine local_hamiltonian_stress_linear(iproc, nproc, orbs, lzd, hx, hy, hz, 
            psit_c, hpsit_c, psit_f, hpsit_f, msmat, mmat)
       tt = trace_sparse(iproc, nproc, orbs, msmat, lsmat, mmat%matrix_compr, lmat%matrix_compr, 1)
       !tens(idir) = tens(idir) + -8.0_gp/(hx*hy*hz)/real(lzd%llr(ilr)%d%n1i*lzd%llr(ilr)%d%n2i*lzd%llr(ilr)%d%n3i,gp)*tt
-      tens(idir) = tens(idir) + -8.0_gp/(hx*hy*hz)/real(lzd%glr%d%n1i*lzd%glr%d%n2i*lzd%glr%d%n3i,gp)*tt
+      tens(idir) = tens(idir) + -2.0_gp*8.0_gp/(hx*hy*hz)/real(lzd%glr%d%n1i*lzd%glr%d%n2i*lzd%glr%d%n3i,gp)*tt
       tens(idir) = tens(idir)/real(nproc,kind=8) !divide by nproc since an allreduce will follow
   end do
 
@@ -4337,8 +4337,11 @@ subroutine nonlocal_forces_linear(iproc,nproc,npsidim_orbs,lr,hx,hy,hz,at,rxyz,&
   
   !Adding Enl to the diagonal components of strten after loop over kpts is finished...
   do i=1,3
-  strten(i)=strten(i)+Enl/vol
+      strten(i)=strten(i)+Enl/vol
   end do
+
+  !!call mpiallred(Enl,1,mpi_sum, bigdft_mpi%mpi_comm)
+  !!if (bigdft_mpi%iproc==0) call yaml_map('Enl',Enl)
   
   !  do iat=1,natp
   !     write(20+iat,'(1x,i5,1x,3(1x,1pe12.5))') &
@@ -4491,7 +4494,7 @@ subroutine nonlocal_forces_linear(iproc,nproc,npsidim_orbs,lr,hx,hy,hz,at,rxyz,&
           
                      do idir=0,ndir
           
-                     ityp=at%astruct%iatype(iiat)
+                        ityp=at%astruct%iatype(iiat)
                         !calculate projectors
                         istart_c=1
                         call atom_projector(nlpsp, ityp, iiat, at%astruct%atomnames(ityp), &
@@ -4928,7 +4931,8 @@ subroutine nonlocal_forces_linear(iproc,nproc,npsidim_orbs,lr,hx,hy,hz,at,rxyz,&
                                                 end do
                                                 !!spi=real(scalprod(icplx,0,m,i,l,iat,jorb),gp)
                                                 !call yaml_warning('CHECK OCCUP AND KWGTHS')
-                                                Enl=Enl+sp0*sp0*denskern_gathered(ind)*at%psppar(l,i,ityp)!*&
+                                                spi=real(scalprod(icplx,0,m,i,l,iat,jorb),gp)
+                                                Enl=Enl+sp0*spi*denskern_gathered(ind)*at%psppar(l,i,ityp)!*&
                                                     !orbs%occup(iorb+orbs%isorb)*orbs%kwgts(orbs%iokpt(iorb))
                                                 do idir=4,9 !for stress
                                                     strc=real(scalprod(icplx,idir,m,i,l,iat,jorb),gp)
@@ -4975,7 +4979,9 @@ subroutine nonlocal_forces_linear(iproc,nproc,npsidim_orbs,lr,hx,hy,hz,at,rxyz,&
                                                               denskern_gathered(ind)*hij*(sp0j*spi+spj*sp0i)
                                                       end do
                                                       !!sp0i=real(scalprod(icplx,0,m,i,l,iat,jorb),gp)
-                                                      Enl=Enl+2.0_gp*denskern_gathered(ind)*sp0i*sp0j*hij!&
+                                                      spi=real(scalprod(icplx,0,m,i,l,iat,jorb),gp)
+                                                      spj=real(scalprod(icplx,0,m,j,l,iat,jorb),gp)
+                                                      Enl=Enl+denskern_gathered(ind)*(sp0i*spj+sp0j*spi)*hij!&
                                                       !!*orbs%occup(iorb+orbs%isorb)*orbs%kwgts(orbs%iokpt(iorb))
                                                       do idir=4,9
                                                           spi=real(scalprod(icplx,idir,m,i,l,iat,jorb),gp)

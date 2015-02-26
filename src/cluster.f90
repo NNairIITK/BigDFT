@@ -621,6 +621,8 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,energs,fxyz,strten,fnoise,press
           rxyz,denspot,denspot0,nlpsp,GPU,energs,energy,fpulay,infocode,ref_frags,cdft,&
           fdisp, fion)
 
+
+
      ! Clean denspot parts only needed in the SCF loop -- NEW
      call denspot_free_history(denspot)
 
@@ -727,6 +729,8 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,energs,fxyz,strten,fnoise,press
                        1, denspot%rho_work(1),1)
          end if
      end if
+
+
 
      if (infocode==2) then
         !!! Allocate this array since it will be deallcoated in deallocate_before_exiting
@@ -899,7 +903,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,energs,fxyz,strten,fnoise,press
           & inputpsi == INPUT_PSI_LINEAR_AO .or. inputpsi == INPUT_PSI_DISK_LINEAR .or. &
           & inputpsi == INPUT_PSI_MEMORY_LINEAR, fxyz, fnoise, fion, fdisp, fpulay, &
           & strten, pressure, ewaldstr, xcstr, GPU, denspot, atoms, rxyz, nlpsp, &
-          & output_denspot, in%dir_output, gridformat, refill_proj, calculate_dipole)
+          & output_denspot, in%dir_output, gridformat, refill_proj, calculate_dipole, in%nspin)
 
      call f_free_ptr(fpulay)
   end if
@@ -1806,7 +1810,7 @@ subroutine kswfn_post_treatments(iproc, nproc, KSwfn, tmb, linear, &
      & fxyz, fnoise, fion, fdisp, fpulay, &
      & strten, pressure, ewaldstr, xcstr, &
      & GPU, denspot, atoms, rxyz, nlpsp, &
-     & output_denspot, dir_output, gridformat, refill_proj, calculate_dipole)
+     & output_denspot, dir_output, gridformat, refill_proj, calculate_dipole, nspin)
   use module_base
   use module_types
   use module_interfaces, except_this_one => kswfn_post_treatments
@@ -1826,12 +1830,13 @@ subroutine kswfn_post_treatments(iproc, nproc, KSwfn, tmb, linear, &
   type(atoms_data), intent(in) :: atoms
   type(DFT_PSP_projectors), intent(inout) :: nlpsp
   logical, intent(in) :: linear, refill_proj, calculate_dipole
-  integer, intent(in) :: output_denspot, iproc, nproc
+  integer, intent(in) :: output_denspot, iproc, nproc, nspin
   character(len = *), intent(in) :: dir_output
   character(len = *), intent(in) :: gridformat
   real(gp), dimension(3, atoms%astruct%nat), intent(in) :: rxyz
   real(gp), dimension(3, atoms%astruct%nat), intent(in) :: fdisp, fion, fpulay
-  real(dp), dimension(6), intent(in) :: ewaldstr, xcstr
+  real(dp), dimension(6), intent(in) :: ewaldstr
+  real(dp), dimension(6), intent(inout) :: xcstr
   real(gp), intent(out) :: fnoise, pressure
   real(gp), dimension(6), intent(out) :: strten
   real(gp), dimension(3, atoms%astruct%nat), intent(out) :: fxyz
@@ -1840,7 +1845,7 @@ subroutine kswfn_post_treatments(iproc, nproc, KSwfn, tmb, linear, &
   character(len = *), parameter :: subname = "kswfn_post_treatments"
   integer ::  jproc, nsize_psi, imode, i, ispin
   real(dp), dimension(6) :: hstrten
-  real(gp) :: ehart_fake
+  real(gp) :: ehart_fake, exc_fake, evxc_fake
 
 
   !manipulate scatter array for avoiding the GGA shift
@@ -1880,12 +1885,22 @@ subroutine kswfn_post_treatments(iproc, nproc, KSwfn, tmb, linear, &
      if (denspot%dpbox%ndimpot>0) then
          call vcopy(denspot%dpbox%ndimpot,denspot%rho_work(1),1,denspot%pot_work(1),1)
      end if
+     ! This seems to be necessary to get the correct value of xcstr.
+     call XC_potential(atoms%astruct%geocode,'D',iproc,nproc,bigdft_mpi%mpi_comm,&
+          KSwfn%Lzd%Glr%d%n1i,KSwfn%Lzd%Glr%d%n2i,KSwfn%Lzd%Glr%d%n3i,denspot%xc,&
+          denspot%dpbox%hgrids(1),denspot%dpbox%hgrids(2),denspot%dpbox%hgrids(3),&
+          denspot%rhov,exc_fake,evxc_fake,nspin,denspot%rho_C,denspot%V_XC,xcstr)
+     !call denspot_set_rhov_status(denspot, CHARGE_DENSITY, -1,iproc,nproc)
      call H_potential('D',denspot%pkernel,denspot%pot_work,denspot%pot_work,ehart_fake,&
           0.0_dp,.false.,stress_tensor=hstrten)
   else
      call density_and_hpot(denspot%dpbox,atoms%astruct%sym,KSwfn%orbs,KSwfn%Lzd,&
           denspot%pkernel,denspot%rhod, GPU, denspot%xc, &
           & KSwfn%psi,denspot%rho_work,denspot%pot_work,hstrten)
+     !!call XC_potential(atoms%astruct%geocode,'D',iproc,nproc,bigdft_mpi%mpi_comm,&
+     !!     KSwfn%Lzd%Glr%d%n1i,KSwfn%Lzd%Glr%d%n2i,KSwfn%Lzd%Glr%d%n3i,denspot%xc,&
+     !!     denspot%dpbox%hgrids(1),denspot%dpbox%hgrids(2),denspot%dpbox%hgrids(3),&
+     !!     denspot%rhov,exc_fake,evxc_fake,nspin,denspot%rho_C,denspot%V_XC,xcstr)
   end if
 
   !xc stress, diagonal for the moment

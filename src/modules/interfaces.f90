@@ -588,7 +588,7 @@ module module_interfaces
            & fxyz, fnoise, fion, fdisp, fpulay, &
            & strten, pressure, ewaldstr, xcstr, &
            & GPU, denspot, atoms, rxyz, nlpsp, &
-           & output_denspot, dir_output, gridformat, refill_proj, calculate_dipole)
+           & output_denspot, dir_output, gridformat, refill_proj, calculate_dipole, nspin)
         use module_base
         use module_types
 
@@ -601,12 +601,13 @@ module module_interfaces
         type(atoms_data), intent(in) :: atoms
         type(DFT_PSP_projectors), intent(inout) :: nlpsp
         logical, intent(in) :: refill_proj, calculate_dipole, linear
-        integer, intent(in) :: output_denspot, iproc, nproc
+        integer, intent(in) :: output_denspot, iproc, nproc, nspin
         character(len = *), intent(in) :: dir_output
         character(len = *), intent(in) :: gridformat
         real(gp), dimension(3, atoms%astruct%nat), intent(in) :: rxyz
         real(gp), dimension(3, atoms%astruct%nat), intent(in) :: fdisp, fion, fpulay
-        real(dp), dimension(6), intent(in) :: ewaldstr, xcstr
+        real(dp), dimension(6), intent(in) :: ewaldstr
+        real(dp), dimension(6), intent(inout) :: xcstr
         real(gp), intent(out) :: fnoise, pressure
         real(gp), dimension(6), intent(out) :: strten
         real(gp), dimension(3, atoms%astruct%nat), intent(out) :: fxyz
