@@ -4162,6 +4162,7 @@ subroutine nonlocal_forces_linear(iproc,nproc,npsidim_orbs,lr,hx,hy,hz,at,rxyz,&
   use psp_projectors, only: PSPCODE_HGH,PSPCODE_HGH_K,PSPCODE_HGH_K_NLCC,&
        PSPCODE_PAW
   use yaml_output
+  use communications_init, only: check_whether_bounds_overlap
   implicit none
   !Arguments-------------
   type(atoms_data), intent(in) :: at
@@ -4196,8 +4197,9 @@ subroutine nonlocal_forces_linear(iproc,nproc,npsidim_orbs,lr,hx,hy,hz,at,rxyz,&
   real(dp),dimension(:),allocatable :: scalprod_recvbuf
   integer,parameter :: ndir=9 !3 for forces, 9 for forces and stresses
   real(kind=8),dimension(:),allocatable :: denskern_gathered
-  integer,dimension(:,:),allocatable :: iorbminmax, iatminmax
+  integer,dimension(:,:),allocatable :: iorbminmax, iatminmax 
   integer :: iorbmin, jorbmin, iorbmax, jorbmax
+  integer :: i1s, i1e, j1s, j1e, i2s, i2e, j2s, j2e, i3s, i3e, j3s, j3e
   integer :: nat_per_iteration, isat, natp, iat_out, nat_out, norbp_max
   integer,parameter :: MAX_SIZE=268435456 !max size of the array scalprod, in elements
 
@@ -4392,12 +4394,27 @@ subroutine nonlocal_forces_linear(iproc,nproc,npsidim_orbs,lr,hx,hy,hz,at,rxyz,&
                         iiorb=orbs%isorb+iorb
                         ilr=orbs%inwhichlocreg(iiorb)
                         ! Quick check
-                        if (lzd%llr(ilr)%ns1>nlpsp%pspd(iiat)%plr%ns1+nlpsp%pspd(iiat)%plr%d%n1 .or. &
-                            nlpsp%pspd(iiat)%plr%ns1>lzd%llr(ilr)%ns1+lzd%llr(ilr)%d%n1 .or. &
-                            lzd%llr(ilr)%ns2>nlpsp%pspd(iiat)%plr%ns2+nlpsp%pspd(iiat)%plr%d%n2 .or. &
-                            nlpsp%pspd(iiat)%plr%ns2>lzd%llr(ilr)%ns2+lzd%llr(ilr)%d%n2 .or. &
-                            lzd%llr(ilr)%ns3>nlpsp%pspd(iiat)%plr%ns3+nlpsp%pspd(iiat)%plr%d%n3 .or. &
-                            nlpsp%pspd(iiat)%plr%ns3>lzd%llr(ilr)%ns3+lzd%llr(ilr)%d%n3) then
+                        i1s = lzd%llr(ilr)%ns1
+                        i1e = lzd%llr(ilr)%ns1+lzd%llr(ilr)%d%n1
+                        j1s = nlpsp%pspd(iiat)%plr%ns1
+                        j1e = nlpsp%pspd(iiat)%plr%ns1+nlpsp%pspd(iiat)%plr%d%n1
+                        i2s = lzd%llr(ilr)%ns2
+                        i2e = lzd%llr(ilr)%ns2+lzd%llr(ilr)%d%n2
+                        j2s = nlpsp%pspd(iiat)%plr%ns2
+                        j2e = nlpsp%pspd(iiat)%plr%ns2+nlpsp%pspd(iiat)%plr%d%n2
+                        i3s = lzd%llr(ilr)%ns3
+                        i3e = lzd%llr(ilr)%ns3+lzd%llr(ilr)%d%n3
+                        j3s = nlpsp%pspd(iiat)%plr%ns3
+                        j3e = nlpsp%pspd(iiat)%plr%ns3+nlpsp%pspd(iiat)%plr%d%n3
+                        !if (lzd%llr(ilr)%ns1>nlpsp%pspd(iiat)%plr%ns1+nlpsp%pspd(iiat)%plr%d%n1 .or. &
+                        !    nlpsp%pspd(iiat)%plr%ns1>lzd%llr(ilr)%ns1+lzd%llr(ilr)%d%n1 .or. &
+                        !    lzd%llr(ilr)%ns2>nlpsp%pspd(iiat)%plr%ns2+nlpsp%pspd(iiat)%plr%d%n2 .or. &
+                        !    nlpsp%pspd(iiat)%plr%ns2>lzd%llr(ilr)%ns2+lzd%llr(ilr)%d%n2 .or. &
+                        !    lzd%llr(ilr)%ns3>nlpsp%pspd(iiat)%plr%ns3+nlpsp%pspd(iiat)%plr%d%n3 .or. &
+                        !    nlpsp%pspd(iiat)%plr%ns3>lzd%llr(ilr)%ns3+lzd%llr(ilr)%d%n3) then
+                        if (.not.check_whether_bounds_overlap(i1s,i1e,j1s,j1e) .or. &
+                            .not.check_whether_bounds_overlap(i2s,i2e,j2s,j2e) .or. &
+                            .not.check_whether_bounds_overlap(i3s,i3e,j3s,j3e)) then
                             cycle 
                         else
                             iat_startend(1,iproc) = min(iat_startend(1,iproc),iat)
@@ -4517,12 +4534,27 @@ subroutine nonlocal_forces_linear(iproc,nproc,npsidim_orbs,lr,hx,hy,hz,at,rxyz,&
                            iiorb=orbs%isorb+iorb
                            ilr=orbs%inwhichlocreg(iiorb)
                            ! Quick check
-                           if (lzd%llr(ilr)%ns1>nlpsp%pspd(iiat)%plr%ns1+nlpsp%pspd(iiat)%plr%d%n1 .or. &
-                               nlpsp%pspd(iiat)%plr%ns1>lzd%llr(ilr)%ns1+lzd%llr(ilr)%d%n1 .or. &
-                               lzd%llr(ilr)%ns2>nlpsp%pspd(iiat)%plr%ns2+nlpsp%pspd(iiat)%plr%d%n2 .or. &
-                               nlpsp%pspd(iiat)%plr%ns2>lzd%llr(ilr)%ns2+lzd%llr(ilr)%d%n2 .or. &
-                               lzd%llr(ilr)%ns3>nlpsp%pspd(iiat)%plr%ns3+nlpsp%pspd(iiat)%plr%d%n3 .or. &
-                               nlpsp%pspd(iiat)%plr%ns3>lzd%llr(ilr)%ns3+lzd%llr(ilr)%d%n3) then
+                           i1s = lzd%llr(ilr)%ns1
+                           i1e = lzd%llr(ilr)%ns1+lzd%llr(ilr)%d%n1
+                           j1s = nlpsp%pspd(iiat)%plr%ns1
+                           j1e = nlpsp%pspd(iiat)%plr%ns1+nlpsp%pspd(iiat)%plr%d%n1
+                           i2s = lzd%llr(ilr)%ns2
+                           i2e = lzd%llr(ilr)%ns2+lzd%llr(ilr)%d%n2
+                           j2s = nlpsp%pspd(iiat)%plr%ns2
+                           j2e = nlpsp%pspd(iiat)%plr%ns2+nlpsp%pspd(iiat)%plr%d%n2
+                           i3s = lzd%llr(ilr)%ns3
+                           i3e = lzd%llr(ilr)%ns3+lzd%llr(ilr)%d%n3
+                           j3s = nlpsp%pspd(iiat)%plr%ns3
+                           j3e = nlpsp%pspd(iiat)%plr%ns3+nlpsp%pspd(iiat)%plr%d%n3
+                           !if (lzd%llr(ilr)%ns1>nlpsp%pspd(iiat)%plr%ns1+nlpsp%pspd(iiat)%plr%d%n1 .or. &
+                           !    nlpsp%pspd(iiat)%plr%ns1>lzd%llr(ilr)%ns1+lzd%llr(ilr)%d%n1 .or. &
+                           !    lzd%llr(ilr)%ns2>nlpsp%pspd(iiat)%plr%ns2+nlpsp%pspd(iiat)%plr%d%n2 .or. &
+                           !    nlpsp%pspd(iiat)%plr%ns2>lzd%llr(ilr)%ns2+lzd%llr(ilr)%d%n2 .or. &
+                           !    lzd%llr(ilr)%ns3>nlpsp%pspd(iiat)%plr%ns3+nlpsp%pspd(iiat)%plr%d%n3 .or. &
+                           !    nlpsp%pspd(iiat)%plr%ns3>lzd%llr(ilr)%ns3+lzd%llr(ilr)%d%n3) then
+                           if (.not.check_whether_bounds_overlap(i1s,i1e,j1s,j1e) .or. &
+                               .not.check_whether_bounds_overlap(i2s,i2e,j2s,j2e) .or. &
+                               .not.check_whether_bounds_overlap(i3s,i3e,j3s,j3e)) then
                                jorb=jorb+1
                                ispsi=ispsi+(lzd%llr(ilr)%wfd%nvctr_c+7*lzd%llr(ilr)%wfd%nvctr_f)*ncplx
                                cycle 
@@ -4593,12 +4625,27 @@ subroutine nonlocal_forces_linear(iproc,nproc,npsidim_orbs,lr,hx,hy,hz,at,rxyz,&
                         iiorb=orbs%isorb+iorb
                         ilr=orbs%inwhichlocreg(iiorb)
                         ! Quick check
-                        if (lzd%llr(ilr)%ns1>nlpsp%pspd(iiat)%plr%ns1+nlpsp%pspd(iiat)%plr%d%n1 .or. &
-                            nlpsp%pspd(iiat)%plr%ns1>lzd%llr(ilr)%ns1+lzd%llr(ilr)%d%n1 .or. &
-                            lzd%llr(ilr)%ns2>nlpsp%pspd(iiat)%plr%ns2+nlpsp%pspd(iiat)%plr%d%n2 .or. &
-                            nlpsp%pspd(iiat)%plr%ns2>lzd%llr(ilr)%ns2+lzd%llr(ilr)%d%n2 .or. &
-                            lzd%llr(ilr)%ns3>nlpsp%pspd(iiat)%plr%ns3+nlpsp%pspd(iiat)%plr%d%n3 .or. &
-                            nlpsp%pspd(iiat)%plr%ns3>lzd%llr(ilr)%ns3+lzd%llr(ilr)%d%n3) then
+                        i1s = lzd%llr(ilr)%ns1
+                        i1e = lzd%llr(ilr)%ns1+lzd%llr(ilr)%d%n1
+                        j1s = nlpsp%pspd(iiat)%plr%ns1
+                        j1e = nlpsp%pspd(iiat)%plr%ns1+nlpsp%pspd(iiat)%plr%d%n1
+                        i2s = lzd%llr(ilr)%ns2
+                        i2e = lzd%llr(ilr)%ns2+lzd%llr(ilr)%d%n2
+                        j2s = nlpsp%pspd(iiat)%plr%ns2
+                        j2e = nlpsp%pspd(iiat)%plr%ns2+nlpsp%pspd(iiat)%plr%d%n2
+                        i3s = lzd%llr(ilr)%ns3
+                        i3e = lzd%llr(ilr)%ns3+lzd%llr(ilr)%d%n3
+                        j3s = nlpsp%pspd(iiat)%plr%ns3
+                        j3e = nlpsp%pspd(iiat)%plr%ns3+nlpsp%pspd(iiat)%plr%d%n3
+                        !if (lzd%llr(ilr)%ns1>nlpsp%pspd(iiat)%plr%ns1+nlpsp%pspd(iiat)%plr%d%n1 .or. &
+                        !    nlpsp%pspd(iiat)%plr%ns1>lzd%llr(ilr)%ns1+lzd%llr(ilr)%d%n1 .or. &
+                        !    lzd%llr(ilr)%ns2>nlpsp%pspd(iiat)%plr%ns2+nlpsp%pspd(iiat)%plr%d%n2 .or. &
+                        !    nlpsp%pspd(iiat)%plr%ns2>lzd%llr(ilr)%ns2+lzd%llr(ilr)%d%n2 .or. &
+                        !    lzd%llr(ilr)%ns3>nlpsp%pspd(iiat)%plr%ns3+nlpsp%pspd(iiat)%plr%d%n3 .or. &
+                        !    nlpsp%pspd(iiat)%plr%ns3>lzd%llr(ilr)%ns3+lzd%llr(ilr)%d%n3) then
+                        if (.not.check_whether_bounds_overlap(i1s,i1e,j1s,j1e) .or. &
+                            .not.check_whether_bounds_overlap(i2s,i2e,j2s,j2e) .or. &
+                            .not.check_whether_bounds_overlap(i3s,i3e,j3s,j3e)) then
                             jorb=jorb+1
                             ispsi=ispsi+(lzd%llr(ilr)%wfd%nvctr_c+7*lzd%llr(ilr)%wfd%nvctr_f)*ncplx
                             cycle 
