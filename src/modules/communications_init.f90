@@ -542,24 +542,26 @@ module communications_init
               end if
               js=i3startend(3,jproc)
               je=i3startend(4,jproc)
-              call get_extent_of_overlap(is, ie, js, je, n, ks, ke, nlen)
-              !write(*,'(a,11i7)') 'is, ie, js, je, n, ks, ke, nlen', is, ie, js, je, n, ks, ke, nlen
-              do k=1,n
-                  ! Undo the periodic wrap around if required
-                  !if (ks(k)>i3end) then
-                  !    ii=ks(k)-(lzd%glr%d%n3+1)
-                  !else
-                  !    ii=ks(k)
-                  !end if
-                  ii=modulo(ks(k)-i3start-1,(lzd%glr%d%n3+1))+1
-                  !write(*,'(a,9i9)') 'k, ks(k), ke(k), nlen(k), i3start, ii, ks(k), i3startend(3,jproc), n3p', k, ks(k), ke(k), nlen(k), i3start, ii, ks(k), i3startend(3,jproc), n3p
-                  call mpiaccumulate(weightloc_c(0,0,ii), (lzd%glr%d%n1+1)*(lzd%glr%d%n2+1)*nlen(k), &
-                       jproc, int((lzd%glr%d%n1+1)*(lzd%glr%d%n2+1)*(ks(k)-i3startend(3,jproc)),kind=mpi_address_kind), &
-                       (lzd%glr%d%n1+1)*(lzd%glr%d%n2+1)*nlen(k), mpi_sum, window_c)
-                  !!call mpiaccumulate(weightloc_c(0,0,ks(k)-modulo(i3start-1,lzd%glr%d%n1+1)+1), (lzd%glr%d%n1+1)*(lzd%glr%d%n2+1)*nlen(k), &
-                  !!     jproc, int((lzd%glr%d%n1+1)*(lzd%glr%d%n2+1)*(ks(k)-i3startend(3,jproc)),kind=mpi_address_kind), &
-                  !!     (lzd%glr%d%n1+1)*(lzd%glr%d%n2+1)*nlen(k), mpi_sum, window_c)
-              end do
+              if (je>=js) then
+                  call get_extent_of_overlap(is, ie, js, je, n, ks, ke, nlen)
+                  !write(*,'(a,11i7)') 'is, ie, js, je, n, ks, ke, nlen', is, ie, js, je, n, ks, ke, nlen
+                  do k=1,n
+                      ! Undo the periodic wrap around if required
+                      !if (ks(k)>i3end) then
+                      !    ii=ks(k)-(lzd%glr%d%n3+1)
+                      !else
+                      !    ii=ks(k)
+                      !end if
+                      ii=modulo(ks(k)-i3start-1,(lzd%glr%d%n3+1))+1
+                      !write(*,'(a,9i9)') 'k, ks(k), ke(k), nlen(k), i3start, ii, ks(k), i3startend(3,jproc), n3p', k, ks(k), ke(k), nlen(k), i3start, ii, ks(k), i3startend(3,jproc), n3p
+                      call mpiaccumulate(weightloc_c(0,0,ii), (lzd%glr%d%n1+1)*(lzd%glr%d%n2+1)*nlen(k), &
+                           jproc, int((lzd%glr%d%n1+1)*(lzd%glr%d%n2+1)*(ks(k)-i3startend(3,jproc)),kind=mpi_address_kind), &
+                           (lzd%glr%d%n1+1)*(lzd%glr%d%n2+1)*nlen(k), mpi_sum, window_c)
+                      !!call mpiaccumulate(weightloc_c(0,0,ks(k)-modulo(i3start-1,lzd%glr%d%n1+1)+1), (lzd%glr%d%n1+1)*(lzd%glr%d%n2+1)*nlen(k), &
+                      !!     jproc, int((lzd%glr%d%n1+1)*(lzd%glr%d%n2+1)*(ks(k)-i3startend(3,jproc)),kind=mpi_address_kind), &
+                      !!     (lzd%glr%d%n1+1)*(lzd%glr%d%n2+1)*nlen(k), mpi_sum, window_c)
+                  end do
+              end if
               !if (ie-is>=0) then
               !    !!call mpi_accumulate(weightloc_c(0,0,is-i3start), (lzd%glr%d%n1+1)*(lzd%glr%d%n2+1)*(ie-is+1), &
               !    !!     mpi_double_precision, jproc, &
@@ -788,23 +790,25 @@ module communications_init
               end if
               js=i3startend(3,jproc)
               je=i3startend(4,jproc)
-              call get_extent_of_overlap(is, ie, js, je, n, ks, ke, nlen)
-              do k=1,n
-                  ! Undo the periodic wrap around if required
-                  !if (ks(k)>i3end) then
-                  !    ii=ks(k)-(lzd%glr%d%n3+1)
-                  !else
-                  !    ii=ks(k)
-                  !end if
-                  ii=modulo(ks(k)-i3start-1,(lzd%glr%d%n3+1))+1
-                  !write(*,'(a,7i9)') 'k, ks(k), ke(k), nlen(k), i3start, ks(k)-i3startend(3,jproc), ii', k, ks(k), ke(k), nlen(k), i3start, ks(k)-i3startend(3,jproc), ii
-                  call mpiaccumulate(weightloc_f(0,0,ii), (lzd%glr%d%n1+1)*(lzd%glr%d%n2+1)*nlen(k), &
-                       jproc, int((lzd%glr%d%n1+1)*(lzd%glr%d%n2+1)*(ks(k)-i3startend(3,jproc)),kind=mpi_address_kind), &
-                       (lzd%glr%d%n1+1)*(lzd%glr%d%n2+1)*nlen(k), mpi_sum, window_f)
-                  !!call mpiaccumulate(weightloc_c(0,0,ks(k)-modulo(i3start-1,lzd%glr%d%n1+1)+1), (lzd%glr%d%n1+1)*(lzd%glr%d%n2+1)*nlen(k), &
-                  !!     jproc, int((lzd%glr%d%n1+1)*(lzd%glr%d%n2+1)*(ks(k)-i3startend(3,jproc)),kind=mpi_address_kind), &
-                  !!     (lzd%glr%d%n1+1)*(lzd%glr%d%n2+1)*nlen(k), mpi_sum, window_c)
-              end do
+              if (je>=js) then
+                  call get_extent_of_overlap(is, ie, js, je, n, ks, ke, nlen)
+                  do k=1,n
+                      ! Undo the periodic wrap around if required
+                      !if (ks(k)>i3end) then
+                      !    ii=ks(k)-(lzd%glr%d%n3+1)
+                      !else
+                      !    ii=ks(k)
+                      !end if
+                      ii=modulo(ks(k)-i3start-1,(lzd%glr%d%n3+1))+1
+                      !write(*,'(a,7i9)') 'k, ks(k), ke(k), nlen(k), i3start, ks(k)-i3startend(3,jproc), ii', k, ks(k), ke(k), nlen(k), i3start, ks(k)-i3startend(3,jproc), ii
+                      call mpiaccumulate(weightloc_f(0,0,ii), (lzd%glr%d%n1+1)*(lzd%glr%d%n2+1)*nlen(k), &
+                           jproc, int((lzd%glr%d%n1+1)*(lzd%glr%d%n2+1)*(ks(k)-i3startend(3,jproc)),kind=mpi_address_kind), &
+                           (lzd%glr%d%n1+1)*(lzd%glr%d%n2+1)*nlen(k), mpi_sum, window_f)
+                      !!call mpiaccumulate(weightloc_c(0,0,ks(k)-modulo(i3start-1,lzd%glr%d%n1+1)+1), (lzd%glr%d%n1+1)*(lzd%glr%d%n2+1)*nlen(k), &
+                      !!     jproc, int((lzd%glr%d%n1+1)*(lzd%glr%d%n2+1)*(ks(k)-i3startend(3,jproc)),kind=mpi_address_kind), &
+                      !!     (lzd%glr%d%n1+1)*(lzd%glr%d%n2+1)*nlen(k), mpi_sum, window_c)
+                  end do
+              end if
               !if (ie-is>=0) then
               !    !!call mpi_accumulate(weightloc_c(0,0,is-i3start), (lzd%glr%d%n1+1)*(lzd%glr%d%n2+1)*(ie-is+1), &
               !    !!     mpi_double_precision, jproc, &
@@ -3821,7 +3825,9 @@ module communications_init
           ncomms_repartitionrho=0
           do jproc=0,nproc-1
               !if(check_whether_bounds_overlap(iis,iie,istartend(1,jproc),istartend(2,jproc))) then
-              call get_extent_of_overlap(iis,iie,istartend(1,jproc),istartend(2,jproc), n, iiis, iiie, nlen)
+              if (istartend(2,jproc)>=istartend(1,jproc)) then
+                  call get_extent_of_overlap(iis,iie,istartend(1,jproc),istartend(2,jproc), n, iiis, iiie, nlen)
+              end if
               !!write(*,'(a,11i11)') 'iproc, jproc, iis, iie, ise(1), ise(2), n, iiis, iiie', iproc, jproc, iis, iie, istartend(1,jproc), istartend(2,jproc), n, iiis, iiie
               !jproc_send=jproc_send+1
               ncomms_repartitionrho=ncomms_repartitionrho+n
@@ -3889,38 +3895,40 @@ module communications_init
           ioverlaps=0
           do jproc=0,nproc-1
               !if(check_whether_bounds_overlap(iis,iie,istartend(1,jproc),istartend(2,jproc))) then
-              call get_extent_of_overlap(iis,iie,istartend(1,jproc),istartend(2,jproc), n, iiis, iiie, nlen)
-              !write(*,'(a,12i8)') 'iproc, iis,iie,istartend(:,jproc), n, iiis, iiie, nlen', iproc, iis,iie,istartend(:,jproc), n, iiis, iiie, nlen
-              ! Do nothing if n==0
-              do j=1,n
-                  !jproc_send=jproc_send+1
-                  ioverlaps=ioverlaps+1
-                  !call get_extent_of_overlap(iis,iie,istartend(1,jproc),istartend(2,jproc), n, iiis, iiie, nlen)
-                  !!if (n>1) then
-                  !!    write(*,*) 'WARNING: THIS WRONG AND NEEDS A FIX'
-                  !!    is=minval(iiis)
-                  !!else
-                  !!    is=iiis(1)
-                  !!end if
-                  commarr_repartitionrho(1,ioverlaps)=jproc
-                  commarr_repartitionrho(2,ioverlaps)=int(iiis(j)-istartend(1,jproc),kind=4)+1
-                  !i3=nscatterarr(iproc,3)-nscatterarr(iproc,4)+1
-                  i3=modulo(nscatterarr(iproc,3)-nscatterarr(iproc,4)+1-1,lzd%glr%d%n3i)+1
-                  ! iidest is the offest to the start of the density received by iproc
-                  ii = int(i3-1,kind=8)*int(lzd%glr%d%n2i,kind=8)*int(lzd%glr%d%n1i,kind=8)
-                  !iidest = int(iiis(j)-int(i3-1,kind=8)*int(lzd%glr%d%n2i,kind=8)*int(lzd%glr%d%n1i,kind=8),kind=4)
-                  if (iiis(j)>ii) then
-                      !standard case
-                      iidest = int(iiis(j)-ii,kind=4)
-                  else
-                      !case with periodic wrap around
-                      iidest = int(iiis(j)+lzd%glr%d%n1i*lzd%glr%d%n2i*lzd%glr%d%n3i-ii,kind=4)
-                  end if
-                  !!write(*,'(a,12i11)') 'iproc, jproc, iis, iie, istartend(1,jproc), istartend(2,jproc), j, iiis(j), iiie(j), i3, iidest, iisrc', &
-                  !!    iproc, jproc, iis, iie, istartend(1,jproc), istartend(2,jproc), j, iiis(j), iiie(j), i3, iidest, int(iiis(j)-istartend(1,jproc),kind=4)+1
-                  commarr_repartitionrho(3,ioverlaps)=iidest
-                  commarr_repartitionrho(4,ioverlaps)=int(nlen(j),kind=4)
-              end do
+              if (istartend(2,jproc)>=istartend(1,jproc)) then
+                  call get_extent_of_overlap(iis,iie,istartend(1,jproc),istartend(2,jproc), n, iiis, iiie, nlen)
+                  !write(*,'(a,12i8)') 'iproc, iis,iie,istartend(:,jproc), n, iiis, iiie, nlen', iproc, iis,iie,istartend(:,jproc), n, iiis, iiie, nlen
+                  ! Do nothing if n==0
+                  do j=1,n
+                      !jproc_send=jproc_send+1
+                      ioverlaps=ioverlaps+1
+                      !call get_extent_of_overlap(iis,iie,istartend(1,jproc),istartend(2,jproc), n, iiis, iiie, nlen)
+                      !!if (n>1) then
+                      !!    write(*,*) 'WARNING: THIS WRONG AND NEEDS A FIX'
+                      !!    is=minval(iiis)
+                      !!else
+                      !!    is=iiis(1)
+                      !!end if
+                      commarr_repartitionrho(1,ioverlaps)=jproc
+                      commarr_repartitionrho(2,ioverlaps)=int(iiis(j)-istartend(1,jproc),kind=4)+1
+                      !i3=nscatterarr(iproc,3)-nscatterarr(iproc,4)+1
+                      i3=modulo(nscatterarr(iproc,3)-nscatterarr(iproc,4)+1-1,lzd%glr%d%n3i)+1
+                      ! iidest is the offest to the start of the density received by iproc
+                      ii = int(i3-1,kind=8)*int(lzd%glr%d%n2i,kind=8)*int(lzd%glr%d%n1i,kind=8)
+                      !iidest = int(iiis(j)-int(i3-1,kind=8)*int(lzd%glr%d%n2i,kind=8)*int(lzd%glr%d%n1i,kind=8),kind=4)
+                      if (iiis(j)>ii) then
+                          !standard case
+                          iidest = int(iiis(j)-ii,kind=4)
+                      else
+                          !case with periodic wrap around
+                          iidest = int(iiis(j)+lzd%glr%d%n1i*lzd%glr%d%n2i*lzd%glr%d%n3i-ii,kind=4)
+                      end if
+                      !!write(*,'(a,12i11)') 'iproc, jproc, iis, iie, istartend(1,jproc), istartend(2,jproc), j, iiis(j), iiie(j), i3, iidest, iisrc', &
+                      !!    iproc, jproc, iis, iie, istartend(1,jproc), istartend(2,jproc), j, iiis(j), iiie(j), i3, iidest, int(iiis(j)-istartend(1,jproc),kind=4)+1
+                      commarr_repartitionrho(3,ioverlaps)=iidest
+                      commarr_repartitionrho(4,ioverlaps)=int(nlen(j),kind=4)
+                  end do
+              end if
           end do
           !@ END NEW ###########################
           if (ioverlaps/=ncomms_repartitionrho) stop 'ERROR: ioverlaps/=ncomms_repartitionrho'
@@ -4889,6 +4897,14 @@ module communications_init
       ke(:) = 0
       nlen(:) = 0
 
+      if (j2<j1) then
+          call f_err_throw('j2<j1: '//&
+               &'i1='//trim(yaml_toa(i1,fmt='(i0)'))//&
+               &', i2='//trim(yaml_toa(i2,fmt='(i0)'))//&
+               &', j1='//trim(yaml_toa(j1,fmt='(i0)'))//&
+               &', j2='//trim(yaml_toa(j2,fmt='(i0)'))&
+               ,err_name='BIGDFT_RUNTIME_ERROR')
+      end if
 
       ! Check whether there is an overlap
       if (check_whether_bounds_overlap(i1, i2, j1, j2)) then
@@ -4955,7 +4971,7 @@ module communications_init
                &', j1='//trim(yaml_toa(j1,fmt='(i0)'))//&
                &', j2='//trim(yaml_toa(j2,fmt='(i0)'))//&
                &', ks='//trim(yaml_toa(ks(1),fmt='(i0)'))//&
-               &', ke='//trim(yaml_toa(ke(2),fmt='(i0)'))&
+               &', ke='//trim(yaml_toa(ke(1),fmt='(i0)'))&
                ,err_name='BIGDFT_RUNTIME_ERROR')
       end if
 
@@ -4989,6 +5005,14 @@ module communications_init
       ke(:) = 0
       nlen(:) = 0
 
+      if (j2<j1) then
+          call f_err_throw('j2<j1: '//&
+               &'i1='//trim(yaml_toa(i1,fmt='(i0)'))//&
+               &', i2='//trim(yaml_toa(i2,fmt='(i0)'))//&
+               &', j1='//trim(yaml_toa(j1,fmt='(i0)'))//&
+               &', j2='//trim(yaml_toa(j2,fmt='(i0)'))&
+               ,err_name='BIGDFT_RUNTIME_ERROR')
+      end if
 
       ! Check whether there is an overlap
       if (check_whether_bounds_overlap(i1, i2, j1, j2)) then
@@ -5055,7 +5079,7 @@ module communications_init
                &', j1='//trim(yaml_toa(j1,fmt='(i0)'))//&
                &', j2='//trim(yaml_toa(j2,fmt='(i0)'))//&
                &', ks='//trim(yaml_toa(ks(1),fmt='(i0)'))//&
-               &', ke='//trim(yaml_toa(ke(2),fmt='(i0)'))&
+               &', ke='//trim(yaml_toa(ke(1),fmt='(i0)'))&
                ,err_name='BIGDFT_RUNTIME_ERROR')
       end if
 
