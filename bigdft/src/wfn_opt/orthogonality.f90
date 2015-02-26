@@ -291,7 +291,7 @@ subroutine orthoconstraint(iproc,nproc,orbs,comms,symm,psi,hpsi,scprsum,spsi) !n
 !!$                  !write(*,*)'orthoconstraint l260, erase me:'
 !!$                  !write(*,*)'<psi|psi>',paw_ovrlp
              call gemm('T','N',norb,norb,nvctrp,1.0_wp,psi(ispsi),&
-                  max(1,nvctrp),spsi(ispsi),max(1,nvctrp),0.0_wp,&
+                  max(1,nvctrp),spsi(ispsi),max(1,nvctrp),1.0_wp,&
                   paw_ovrlp(ndim_ovrlp(ispin,ikpt-1)+1),norb)
           else
              !this part should be recheck in the case of nspinor == 2
@@ -410,15 +410,14 @@ do ikptp=1,orbs%nkptsp
                       call c_gemm('N','N',ncomp*nvctrp,norb,norb,(-1.0_wp,0.0_wp),spsi(ispsi),max(1,ncomp*nvctrp),&
                            alag(ndim_ovrlp(ispin,ikpt-1)+1),norb,(1.0_wp,0.0_wp),hpsi(ispsi),max(1,ncomp*nvctrp))
                    end if
-                else
-                   if(nspinor==1 .and. nvctrp /= 0) then
-                      call gemm('N','N',nvctrp,norb,norb,-1.0_wp,psi(ispsi),max(1,nvctrp),&
-                           alag(ndim_ovrlp(ispin,ikpt-1)+1),norb,1.0_wp,&
-                           hpsi(ispsi),max(1,nvctrp))
-                   else if (nvctrp /= 0) then
-                      call c_gemm('N','N',ncomp*nvctrp,norb,norb,(-1.0_wp,0.0_wp),psi(ispsi),max(1,ncomp*nvctrp),&
-                           alag(ndim_ovrlp(ispin,ikpt-1)+1),norb,(1.0_wp,0.0_wp),hpsi(ispsi),max(1,ncomp*nvctrp))
-                   end if
+                end if
+                if(nspinor==1 .and. nvctrp /= 0) then
+                   call gemm('N','N',nvctrp,norb,norb,-1.0_wp,psi(ispsi),max(1,nvctrp),&
+                        alag(ndim_ovrlp(ispin,ikpt-1)+1),norb,1.0_wp,&
+                        hpsi(ispsi),max(1,nvctrp))
+                else if (nvctrp /= 0) then
+                   call c_gemm('N','N',ncomp*nvctrp,norb,norb,(-1.0_wp,0.0_wp),psi(ispsi),max(1,ncomp*nvctrp),&
+                        alag(ndim_ovrlp(ispin,ikpt-1)+1),norb,(1.0_wp,0.0_wp),hpsi(ispsi),max(1,ncomp*nvctrp))
                 end if
 
                 ispsi=ispsi+nvctrp*norb*nspinor
