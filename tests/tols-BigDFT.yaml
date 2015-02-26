@@ -1245,6 +1245,7 @@ periodic_wateredge:
  EvXC: 1.1e-10
  energy: 2.3e-11
  Total charge: 1.1e-10
+ PV (Ha): 2.7e-9
 
 periodic_water:
  EH: 3.1e-9
@@ -1266,6 +1267,7 @@ periodic_water:
  diff: 1.1e-10
  Tr(K): 5.0e-7
  D Tr: 2.1e-7
+ PV (Ha): 5.1e-10
 
 surface_boronnitride:
  Enl: 1.0e-9
