@@ -25,18 +25,13 @@ program GPS_3D
    integer :: SetEps! = 1!3 
 
    real(kind=8), parameter :: acell = 10.d0
-<<<<<<< TREE
-   real(kind=8), parameter :: erfL = 80.0d0 ! To set 1 for Vacuum and correct analitic comparison with gaussian potential.
-   real(kind=8), parameter :: rad_cav = 2.0d0 ! Radius of the dielectric rigid cavity with nat=1.
+   real(kind=8), parameter :: rad_cav = 0.30d0 ! Radius of the dielectric rigid cavity = rad_cav*acell (with nat=1).
    integer, parameter :: nat=1 ! Number of atoms to build rigid cavity with nat=1.
-   real(kind=8), parameter :: erfR = 1.0d0
-=======
    real(kind=8) :: erfL  ! To set 1 for Vacuum and correct analitic comparison with gaussian potential.
    real(kind=8) :: erfR  
->>>>>>> MERGE-SOURCE
    real(kind=8), parameter :: sigmaeps = 0.05d0*acell
    !> To set 1 for gaussian rho, 2 for gaussian potential. Beaware to use 2 or 3 when SetEps is setted to 1!!! 
-   integer, parameter :: Setrho = 2 
+   integer :: Setrho = 2 
 !!$giu   character(len=2), parameter :: geocode = 'F'
 !   character(len=2), parameter :: geocode = 'P'
    character(len=2) :: geocode
@@ -49,7 +44,7 @@ program GPS_3D
    !integer :: m1,m2,m3,md1,md2,md3,nd1,nd2,nd3,n1,n2,n3,
    integer :: itype_scf,i_all,i_stat,n_cell,iproc,nproc,ixc,n01,n02,n03
    real(kind=8) :: hx,hy,hz,freq,fz,fz1,fz2,pi,curr,average,CondNum,wcurr,ave1,ave2,rhores2,En1,En2,dVnorm,hgrid,sume
-   real(kind=8) :: Adiag,ersqrt,ercurr,factor,r,r2,max_diff,max_diffpot,fact,x1,x2,x3,derf_tt,diffcurr,diffcurrS,divprod,sum
+   real(kind=8) :: Adiag,ersqrt,ercurr,factor,r,r2,max_diff,max_diffpot,fact,x1,x2,x3,derf_tt,diffcurr,diffcurrS,divprod,sum,einit
    real(kind=8) :: ehartree,offset
    real(kind=8), dimension(:,:,:,:), allocatable :: density,rhopot,rvApp,rhoele,rhoion
    real(kind=8), pointer :: kernel(:)
@@ -112,6 +107,7 @@ program GPS_3D
 
    erfL = 80.0d0 
    erfR = 1.0d0  
+   call yaml_map('rad_cav',rad_cav)
 !   call MPI_INIT(ierr)
 !   call MPI_COMM_RANK(MPI_COMM_WORLD,iproc,ierr)
 !   call MPI_COMM_SIZE(MPI_COMM_WORLD,nproc,ierr)
@@ -168,10 +164,13 @@ program GPS_3D
        erfL=1.d0
     end if
 
+!    SetEps=1
+!    Setrho=1
+
 !------------------------------------------------------------------------
 
    ! Set initial density, and the associated analitical potential for the Standard Poisson Equation.
-   call SetInitDensPot(n01,n02,n03,nspden,eps,dlogeps,sigmaeps,SetEps,erfL,erfR,acell,a_gauss,a2,hx,hy,hz,Setrho,density,potential,geocode,offset)
+   call SetInitDensPot(n01,n02,n03,nspden,eps,dlogeps,sigmaeps,SetEps,erfL,erfR,acell,a_gauss,a2,hx,hy,hz,Setrho,density,potential,geocode,offset,einit)
 !  call SetRhoSoluto(n03,rhosol,acell)
 
 !------------------------------------------------------------------------
@@ -267,7 +266,9 @@ program GPS_3D
   call H_potential('G',pkernel,rhopot,rhopot,ehartree,offset,.false.)
   if (iproc==0) then
      call writeroutinePot(n01,n02,n03,nspden,rhopot,pkernel%max_iter,potential)
-     call yaml_map('Hartree energy',ehartree)
+     call yaml_map('Expected hartree energy',einit)
+     call yaml_map('Computed Hartree energy',ehartree)
+     call yaml_map('Diff of expected-computed Hartree energy',einit-ehartree)
   end if
 
   call Polarization_charge(n01,n02,n03,nspden,hx,hy,hz,rhopot,rvApp,acell,eps,nord)
@@ -602,7 +603,7 @@ subroutine Prec_conjugate_gradient(n01,n02,n03,nspden,hx,hy,hz,b,acell,eps,nord,
 !------------------------------------------------------------------------------------
 ! Set the correction vector for the Generalized Laplace operator
 
-!  call fssnordEpsilonDerivative(n01,n02,n03,nspden,eps,de2,ddeps,nord,acell)
+!  call fssnordEpsilonDerivative(n01,n02,n03,nspden,hx,hy,hz,eps,de2,ddeps,nord,acell)
   call fssnord3DmatNabla3varde2(n01,n02,n03,nspden,hx,hy,hx,eps,deps,de2,nord,acell)
   call fssnord3DmatDiv3var(n01,n02,n03,nspden,hx,hy,hz,deps,ddeps,nord,acell)
 
@@ -916,7 +917,7 @@ subroutine writeroutinePot(n01,n02,n03,nspden,ri,i,potential)
   real(kind=8), dimension(:,:,:,:), allocatable :: re
   integer :: i1,i2,i3,j,i1_max,i2_max,i3_max,jj,unt
   real(kind=8) :: max_val,fact
-
+  write(*,*)'Use of writeroutinePot'
   re=f_malloc([n01,n02,n03,nspden],id='re')
       max_val = 0.d0
       i1_max = 1
@@ -936,8 +937,8 @@ subroutine writeroutinePot(n01,n02,n03,nspden,ri,i,potential)
             end do
          end do
       end do
-      write(38,'(4(1x,I4),4(1x,e22.15))')i,i1_max,i2_max,i3_max,max_val,&
-           re(n01/2,n02/2,n03/2,1),re(2,n02/2,n03/2,1),re(10,n02/2,n03/2,1)
+!!$      write(38,'(4(1x,I4),4(1x,e22.15))')i,i1_max,i2_max,i3_max,max_val,&
+!!$           re(n01/2,n02/2,n03/2,1),re(2,n02/2,n03/2,1),re(10,n02/2,n03/2,1)
       !write(*,'(4(1x,I4),4(1x,e22.15))')i,i1_max,i2_max,i3_max,max_val,&
       !     re(n01/2,n02/2,n03/2,1),re(2,n02/2,n03/2,1),re(10,n02/2,n03/2,1)
       if (max_val == 0.d0) then
@@ -953,11 +954,18 @@ subroutine writeroutinePot(n01,n02,n03,nspden,ri,i,potential)
       
       unt=f_get_free_unit(21)
       call f_open_file(unt,file='final.dat')
-      i1=n03/2
+      i1=n01/2
       do i2=1,n02
          do i3=1,n03
             write(unt,'(2(1x,I4),2(1x,e14.7))')i2,i3,ri(i1,i2,i3,1),potential(i1,i2,i3)
          end do
+      end do
+      call f_close(unt)
+
+      unt=f_get_free_unit(22)
+      call f_open_file(unt,file='final_line.dat')
+      do i2=1,n02
+       write(unt,'(1x,I8,3(1x,e22.15))') i2,ri(n01/2,i2,n03/2,1),potential(n01/2,i2,n03/2)
       end do
       call f_close(unt)
 
@@ -1093,8 +1101,8 @@ subroutine Polarization_charge(n01,n02,n03,nspden,hx,hy,hz,x,y,acell,eps,nord)
 
   pi = 4.d0*datan(1.d0)
 
-  open(unit=23,file='Pol_charge.out',status='unknown')
-  open(unit=24,file='Pol_charge_line.out',status='unknown')
+  open(unit=23,file='Pol_charge.dat',status='unknown')
+  open(unit=24,file='Pol_charge_line.dat',status='unknown')
 
   ddx=f_malloc([n01,n02,n03,nspden],id='ddx')
   dx=f_malloc([n01,n02,n03,nspden,3],id='dx')
@@ -1987,7 +1995,7 @@ subroutine fssnord3DmatDiv3var(n01,n02,n03,nspden,hx,hy,hz,u,du,nord,acell)
 
 end subroutine fssnord3DmatDiv3var
 
-subroutine SetInitDensPot(n01,n02,n03,nspden,eps,dlogeps,sigmaeps,SetEps,erfL,erfR,acell,a_gauss,a2,hx,hy,hz,Setrho,density,potential,geocode,offset)
+subroutine SetInitDensPot(n01,n02,n03,nspden,eps,dlogeps,sigmaeps,SetEps,erfL,erfR,acell,a_gauss,a2,hx,hy,hz,Setrho,density,potential,geocode,offset,einit)
   use dynamic_memory
   use yaml_output
   use f_utils
@@ -2004,7 +2012,7 @@ subroutine SetInitDensPot(n01,n02,n03,nspden,eps,dlogeps,sigmaeps,SetEps,erfL,er
   real(kind=8), dimension(n01,n02,n03,nspden), intent(out) :: density
   real(kind=8), dimension(n01,n02,n03), intent(out) :: potential
   character(len=2), intent(in) :: geocode
-  real(kind=8), intent(out) :: offset
+  real(kind=8), intent(out) :: offset,einit
   real(kind=8), dimension(:,:,:,:), allocatable :: density1,density2
   real(kind=8), dimension(:,:,:), allocatable :: potential1,potential2
   integer :: i,i1,i2,i3,ifx,ify,ifz,unt
@@ -2041,7 +2049,7 @@ subroutine SetInitDensPot(n01,n02,n03,nspden,eps,dlogeps,sigmaeps,SetEps,erfL,er
          !Normalization
          factor1 = 1.d0/((sigma1**3)*sqrt((2.d0*pi)**3))
 !         factor2 = 1.d0/((sigma2**3)*sqrt((2.d0*pi)**3))
-         factor2 = 0.d0! 1.d0/((sigma2**3)*sqrt((2.d0*pi)**3))
+         factor2 = 1.d0/((sigma2**3)*sqrt((2.d0*pi)**3))
          !gaussian function for the density.
          sumd=0.d0
          sump=0.d0
@@ -2067,13 +2075,13 @@ subroutine SetInitDensPot(n01,n02,n03,nspden,eps,dlogeps,sigmaeps,SetEps,erfL,er
                      call derf_local(derf_tt1,r1/(sqrt(2.d0)*sigma1))
                      potential(i1,i2,i3) = derf_tt1/r1
                   end if
+                  if (r2 == 0.d0) then
+                     potential(i1,i2,i3) = potential(i1,i2,i3) - 2.d0/(sqrt(2.d0*pi)*sigma2)
+                  else
+                     call derf_local(derf_tt2,r2/(sqrt(2.d0)*sigma2))
+                     potential(i1,i2,i3) = potential(i1,i2,i3) - derf_tt2/r2
+                  end if
                   sump=sump+potential(i1,i2,i3)
-!                  if (r2 == 0.d0) then
-!                     potential(i1,i2,i3) = potential(i1,i2,i3) - 2.d0/(sqrt(2.d0*pi)*sigma2)
-!                  else
-!                     call derf_local(derf_tt2,r2/(sqrt(2.d0)*sigma2))
-!                     potential(i1,i2,i3) = potential(i1,i2,i3) - derf_tt2/r2
-!                  end if
                end do
             end do
          end do
@@ -2355,17 +2363,30 @@ print *,'we should be here for cavity'
  i1=n03/2
  do i2=1,n02
     do i3=1,n03
-       write(unt,'(2(1x,I4),2(1x,e14.7))')i2,i3,density(i1,i2,i3,1),potential(i1,i2,i3)
+       write(unt,'(2(1x,I4),3(1x,e14.7))')i2,i3,density(i1,i2,i3,1),potential(i1,i2,i3),eps(i1,i2,i3)
     end do
  end do
  call f_close(unt)
 
+ unt=f_get_free_unit(22)
+ call f_open_file(unt,file='initial_line.dat')
+ do i1=1,n01
+  write(unt,'(1x,I8,3(1x,e22.15))') i1,density(n01/2,i1,n03/2,1),potential(n01/2,i1,n03/2),eps(n01/2,i1,n03/2)
+ end do
+ call f_close(unt)
 
  !calculate hartree energy
- 
+ einit=0.d0
+ do i3=1,n03
+  do i2=1,n02
+   do i1=1,n01
+    einit= einit + density(i1,i2,i3,1)*potential(i1,i2,i3) 
+   end do
+  end do
+ end do
+ einit=0.5*hx*hy*hz*einit
 
-!  call yaml_map('Total Charge',sumd*hx*hy*hz)
-!  call yaml_map('Expected hartree energy',0.5*hx*hy*hz*sum(density(:,:,:,1)*potential(:,:,:)))
+  call yaml_map('Total Charge',sumd*hx*hy*hz)
   call yaml_map('Potential monopole',sump*hx*hy*hz)
   call yaml_map('Potential at the boundary 1 n02/2 1',&
        potential(1,n02/2,1))
@@ -2496,6 +2517,7 @@ subroutine SetEpsilon(n01,n02,n03,nspden,nord,nat,acell,a_gauss,hx,hy,hz,erfL,er
   real(kind=8), dimension(n01,n02,n03,nspden) :: edens
   real(kind=8), dimension(n01,n02,n03,nspden,3) :: nabla_edens ! Nabla of the electron density.
   real(kind=8), dimension(n01,n02,n03,nspden) :: ddt_edens ! Laplacian of the electron density.
+  real(kind=8), dimension(n01,n02,n03,3) :: deps ! Nabla of the electron density.
   integer :: i,i1,i2,i3,ifx,ify,ifz,isp
   real(kind=8), parameter :: edensmax = 0.0035d0!!!!
   real(kind=8), parameter :: edensmin = 0.0001d0
@@ -2507,8 +2529,8 @@ subroutine SetEpsilon(n01,n02,n03,nspden,nord,nat,acell,a_gauss,hx,hy,hz,erfL,er
   real(kind=8), dimension(3,nat) :: rxyz
 
 
-  open(unit=21,file='Epsilon.out',status='unknown')
-  open(unit=22,file='Epsilon_line.out',status='unknown')
+  open(unit=21,file='Epsilon.dat',status='unknown')
+  open(unit=22,file='Epsilon_line.dat',status='unknown')
 
   nabla_edens=0.d0
   ddt_edens=0.d0
@@ -2726,7 +2748,6 @@ subroutine SetEpsilon(n01,n02,n03,nspden,nord,nat,acell,a_gauss,hx,hy,hz,erfL,er
    end if
 
 else if (SetEps ==4) then
-<<<<<<< TREE
 !!$      rxyz(1:3,1)=[7.300000d0, 7.300337d0, 7.243250d0]-[2.30d0,2.85d0,3.7d0]
 !!$      rxyz(1:3,2)=[7.300000d0, 8.415319d0, 8.700265d0]-[2.30d0,2.85d0,3.7d0]
 !!$      rxyz(1:3,3)=[7.300000d0, 7.299663d0,10.156750d0]-[2.30d0,2.85d0,3.7d0]
@@ -2734,15 +2755,21 @@ else if (SetEps ==4) then
       rxyz(1,1) = hx*real(n01/2,kind=8)
       rxyz(2,1) = hy*real(n02/2,kind=8)
       rxyz(3,1) = hz*real(n03/2,kind=8)
-      radii(1)=rad_cav
-      call Eps_rigid_cavity([n01,n02,n03],[hx,hy,hz],nat,rxyz,radii,eps0,3.d0*max(hx,hy,hz),eps,dlogeps,oneoeps,oneosqrteps,corr)
-=======
-      rxyz(1:3,1)=[7.300000d0, 7.300337d0, 7.243250d0]-[2.30d0,2.85d0,3.7d0]
-      rxyz(1:3,2)=[7.300000d0, 8.415319d0, 8.700265d0]-[2.30d0,2.85d0,3.7d0]
-      rxyz(1:3,3)=[7.300000d0, 7.299663d0,10.156750d0]-[2.30d0,2.85d0,3.7d0]
-      radii=2*[2.0d0,2.5d0,2.0d0]
-      call Eps_rigid_cavity([n01,n02,n03],[hx,hy,hz],nat,rxyz,radii,eps0,3.d0*max(hx,hy,hz),eps,dlogeps)
->>>>>>> MERGE-SOURCE
+      radii(1)=rad_cav*acell
+      call Eps_rigid_cavity([n01,n02,n03],nspden,nord,acell,[hx,hy,hz],nat,rxyz,radii,eps0,3.d0*max(hx,hy,hz),eps,dlogeps,oneoeps,oneosqrteps,corr)
+!!$
+!!$print *,'New dlogeps calculation'
+!!$      call fssnord3DmatNabla3var(n01,n02,n03,nspden,hx,hy,hz,eps,deps,nord,acell)
+!!$      isp=1
+!!$      do i3=1,n03
+!!$       do i2=1,n02
+!!$        do i1=1,n01
+!!$         do i=1,3
+!!$          dlogeps(i,i1,i2,i3)=deps(i1,i2,i3,i)/eps(i1,i2,i3)
+!!$         end do
+!!$       end do
+!!$      end do
+!!$     end do
 
 end if
 
@@ -2776,9 +2803,12 @@ end subroutine SetEpsilon
 !> calculates the value of the dielectric function for a smoothed cavity 
 !! given a set of centres and radii.
 !! Need the epsilon0 as well as the radius of the cavit and its smoothness
-subroutine Eps_rigid_cavity(ndims,hgrids,nat,rxyz,radii,epsilon0,delta,eps,dlogeps,oneoeps,oneosqrteps,corr)
+subroutine Eps_rigid_cavity(ndims,nspden,nord,acell,hgrids,nat,rxyz,radii,epsilon0,delta,eps,dlogeps,oneoeps,oneosqrteps,corr)
   implicit none
   integer, intent(in) :: nat !< number of centres defining the cavity
+  integer, intent(in) :: nspden
+  integer, intent(in) :: nord
+  real(kind=8), intent(in) :: acell
   real(kind=8), intent(in) :: epsilon0 !< dielectric constant of th solvent
   real(kind=8), intent(in) :: delta !< smoothness factor of the cavity
   integer, dimension(3), intent(in) :: ndims   !< dimensions of the simulation box
@@ -2795,42 +2825,59 @@ subroutine Eps_rigid_cavity(ndims,hgrids,nat,rxyz,radii,epsilon0,delta,eps,dloge
   integer :: i,i1,i2,i3,iat
   real(kind=8) :: r2,x,y2,z2,d2,y,z,eps_min,eps1,pi,de2,dde,d1,oneod,h,coeff
   real(kind=8), dimension(3) :: deps,ddeps,v
+  real(kind=8), dimension(ndims(1),ndims(2),ndims(3)) :: v_de2
+  real(kind=8), dimension(ndims(1),ndims(2),ndims(3)) :: v_ddeps
 
   pi = 4.d0*datan(1.d0)
 
+
   do i3=1,ndims(3)
-     z=hgrids(3)*(i3-1)
+     z=hgrids(3)*i3 !(i3-1) for 0 axis start.
      z2=z*z
      v(3)=z
      do i2=1,ndims(2)
-        y=hgrids(2)*(i2-1)
+        y=hgrids(2)*i2 !*(i2-1) for 0 axis start.
         y2=y*y
         v(2)=y
         do i1=1,ndims(1)
-           x=hgrids(1)*(i1-1)
+           x=hgrids(1)*i1 !(i1-1) for 0 axis start.
            v(1)=x
            r2=x*x+y2+z2
            !choose the closest atom
            eps_min=1.d100
            do iat=1,nat
-              d2=(x-rxyz(1,iat))**2+(y-rxyz(2,iat))**2+(z-rxyz(3,iat))**2
-              if (d2.eq.0.d0) then
-               d2=1.0d-15
-              end if
-              oneod=1.d0/sqrt(d2)
-              eps1=epsl(sqrt(d2),radii(iat),delta,epsilon0)
+            d2=(x-rxyz(1,iat))**2+(y-rxyz(2,iat))**2+(z-rxyz(3,iat))**2
+            if (d2.eq.0.d0) then
+               d2=1.0d-30
+               eps1=epsl(sqrt(d2),radii(iat),delta,epsilon0)
+               d1=d1eps(sqrt(d2),radii(iat),delta,epsilon0)
+               oneod=1.d0/sqrt(d2)
+!               coeff=-2.d0*((sqrt(d2)-radii(iat))/(delta**2))
+!               coeff=oneod+2.d0*((sqrt(d2)-radii(iat))/(delta**2))
+               do i=1,3
+                h=0.d0
+                deps(i) =0.d0
+                ddeps(i)=0.d0
+               end do
+               eps_min=eps1
+             exit
+            else
+               oneod=1.d0/sqrt(d2)
+               eps1=epsl(sqrt(d2),radii(iat),delta,epsilon0)
               if (eps1< eps_min) then
                  d1=d1eps(sqrt(d2),radii(iat),delta,epsilon0)
                  coeff=oneod+2.d0*((sqrt(d2)-radii(iat))/(delta**2))
                  do i=1,3
                   h=(v(i)-rxyz(i,iat))*oneod
                   deps(i) =d1*h
-                  ddeps(i)=d1*(oneod-coeff*h**2)
+                  ddeps(i)=d1*(oneod-coeff*(h**2))
                  end do
                  eps_min=eps1
               end if
               if (abs(eps_min-1.d0) < epsilon(1.d0)) exit
+            end if
            end do
+
            if (nat==0) then
               eps_min=1.d0
               deps=0.d0
@@ -2846,6 +2893,81 @@ subroutine Eps_rigid_cavity(ndims,hgrids,nat,rxyz,radii,epsilon0,delta,eps,dloge
             de2 = de2 + deps(i)**2
             dde = dde + ddeps(i)
            end do
+!            de2 = d1**2
+!            dde = d1*(3.d0*oneod-coeff*(h**2))
+            corr(i1,i2,i3)=-(0.125d0/pi)*(0.5d0/eps_min*de2-dde)
+        end do
+     end do
+  end do
+
+  call fssnordEpsilonDerivative(ndims(1),ndims(2),ndims(3),1,hgrids(1),hgrids(2),hgrids(3),eps,v_de2,v_ddeps,nord,acell)
+
+  do i3=1,ndims(3)
+     z=hgrids(3)*i3 !(i3-1) for 0 axis start.
+     z2=z*z
+     v(3)=z
+     do i2=1,ndims(2)
+        y=hgrids(2)*i2 !*(i2-1) for 0 axis start.
+        y2=y*y
+        v(2)=y
+        do i1=1,ndims(1)
+           x=hgrids(1)*i1 !(i1-1) for 0 axis start.
+           v(1)=x
+           r2=x*x+y2+z2
+           !choose the closest atom
+           eps_min=1.d100
+           do iat=1,nat
+            d2=(x-rxyz(1,iat))**2+(y-rxyz(2,iat))**2+(z-rxyz(3,iat))**2
+            if (d2.eq.0.d0) then
+               d2=1.0d-30
+               eps1=epsl(sqrt(d2),radii(iat),delta,epsilon0)
+               d1=d1eps(sqrt(d2),radii(iat),delta,epsilon0)
+               oneod=1.d0/sqrt(d2)
+!               coeff=-2.d0*((sqrt(d2)-radii(iat))/(delta**2))
+!               coeff=oneod+2.d0*((sqrt(d2)-radii(iat))/(delta**2))
+               do i=1,3
+                h=0.d0
+                deps(i) =0.d0
+                ddeps(i)=0.d0
+               end do
+               eps_min=eps1
+             exit
+            else
+               oneod=1.d0/sqrt(d2)
+               eps1=epsl(sqrt(d2),radii(iat),delta,epsilon0)
+              if (eps1< eps_min) then
+                 d1=d1eps(sqrt(d2),radii(iat),delta,epsilon0)
+                 coeff=oneod+2.d0*((sqrt(d2)-radii(iat))/(delta**2))
+                 do i=1,3
+                  h=(v(i)-rxyz(i,iat))*oneod
+                  deps(i) =d1*h
+                  ddeps(i)=d1*(oneod-coeff*(h**2))
+                 end do
+                 eps_min=eps1
+              end if
+              if (abs(eps_min-1.d0) < epsilon(1.d0)) exit
+            end if
+           end do
+
+           if (nat==0) then
+              eps_min=1.d0
+              deps=0.d0
+              ddeps=0.d0
+           end if
+           eps(i1,i2,i3)=eps_min
+           oneoeps(i1,i2,i3)=1.d0/eps_min
+           oneosqrteps(i1,i2,i3)=1.d0/sqrt(eps_min)
+           dde=v_ddeps(i1,i2,i3)
+!           de2=v_de2(i1,i2,i3)
+           de2=0.d0
+!           dde=0.d0
+           do i=1,3
+            dlogeps(i,i1,i2,i3)=deps(i)/eps_min
+            de2 = de2 + deps(i)**2
+!            dde = dde + ddeps(i)
+           end do
+!            de2 = d1**2
+!            dde = d1*(3.d0*oneod-coeff*(h**2))
             corr(i1,i2,i3)=-(0.125d0/pi)*(0.5d0/eps_min*de2-dde)
         end do
      end do
@@ -2872,7 +2994,7 @@ subroutine Eps_rigid_cavity(ndims,hgrids,nat,rxyz,radii,epsilon0,delta,eps,dloge
       real(kind=8) :: d
 
       d=(r-rc)/delta
-      d1eps=((epsilon0-1.d0)/(delta*sqrt(pi)))*exp(-d**2)
+      d1eps=((epsilon0-1.d0)/(delta*sqrt(pi)))*max(exp(-d**2),1.0d-24)
     end function d1eps
 
 end subroutine Eps_rigid_cavity
