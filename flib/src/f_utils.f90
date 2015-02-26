@@ -284,16 +284,16 @@ contains
     unit_is_open=.true.
     unt=7
     if (present(unit)) unt=unit
-    do while(unit_is_open)      
-       inquire(unit=unt,opened=unit_is_open,iostat=ierr)
-       if (ierr /=0) then
-          call f_err_throw('Error in inquiring unit='//&
-               trim(yaml_toa(unt))//', iostat='//trim(yaml_toa(ierr)),&
-               err_id=INPUT_OUTPUT_ERROR)
-          exit
-       end if
+    inquire(unit=unt,opened=unit_is_open,iostat=ierr)
+    do while(unit_is_open .and. ierr==0)     
        unt=unt+1
+       inquire(unit=unt,opened=unit_is_open,iostat=ierr)
     end do
+    if (ierr /=0) then
+       call f_err_throw('Error in inquiring unit='//&
+            trim(yaml_toa(unt))//', iostat='//trim(yaml_toa(ierr)),&
+            err_id=INPUT_OUTPUT_ERROR)
+    end if
     unt2=unt
   end function f_get_free_unit
 
