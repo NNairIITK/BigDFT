@@ -4197,7 +4197,7 @@ subroutine nonlocal_forces_linear(iproc,nproc,npsidim_orbs,lr,hx,hy,hz,at,rxyz,&
   real(dp),dimension(:),allocatable :: scalprod_recvbuf
   integer,parameter :: ndir=9 !3 for forces, 9 for forces and stresses
   real(kind=8),dimension(:),allocatable :: denskern_gathered
-  integer,dimension(:,:),allocatable :: iorbminmax, iatminmax
+  integer,dimension(:,:),allocatable :: iorbminmax, iatminmax, iiat_nonzero_lookup
   logical,dimension(:,:),allocatable :: overlap_atomsorbs, overlap_orbsatoms
   integer :: iorbmin, jorbmin, iorbmax, jorbmax, nat_nonzero_prescreened
   integer :: i1s, i1e, j1s, j1e, i2s, i2e, j2s, j2e, i3s, i3e, j3s, j3e
@@ -4325,6 +4325,9 @@ subroutine nonlocal_forces_linear(iproc,nproc,npsidim_orbs,lr,hx,hy,hz,at,rxyz,&
   overlap_prescreened = f_malloc(natp,id='overlap_prescreened')
   overlap_prescreened(:) = .false.
   call determine_dimension_scalprod()
+  ii = nat_nonzero_prescreened
+  call mpiallred(ii, 1, mpi_sum, bigdft_mpi%mpi_comm)
+  iiat_nonzero_lookup = f_malloc((/1.to.ii,0.to.nproc-1/),id='iiat_nonzero_lookup')
   scalprod_sendbuf = f_malloc0((/ 1.to.2, 0.to.ndir, 1.to.7, 1.to.3, 1.to.4, &
                                  iat_startend(1,iproc).to.iat_startend(2,iproc), &
                                  1.to.max(1,orbs%norbp*orbs%nspinor) /),id='scalprod_sendbuf')
@@ -4385,8 +4388,12 @@ subroutine nonlocal_forces_linear(iproc,nproc,npsidim_orbs,lr,hx,hy,hz,at,rxyz,&
       subroutine determine_dimension_scalprod()
         implicit none
         logical :: overlap
+        logical,dimension(:),allocatable :: at_covered
 
         call f_routine(id='determine_dimension_scalprod')
+
+        !atom_covered = f_malloc(natp,id='atom_covered')
+        !atom_covered(:) = .false.
 
         nat_nonzero_prescreened = 0
         norbp_if: if (orbs%norbp>0) then
@@ -4434,6 +4441,7 @@ subroutine nonlocal_forces_linear(iproc,nproc,npsidim_orbs,lr,hx,hy,hz,at,rxyz,&
                             cycle 
                         else
                             overlap = .true.
+                            !atom_covered(iat) = .true.
                             iat_startend(1,iproc) = min(iat_startend(1,iproc),iat)
                             iat_startend(2,iproc) = max(iat_startend(2,iproc),iat)
                         end if
@@ -4491,9 +4499,13 @@ subroutine nonlocal_forces_linear(iproc,nproc,npsidim_orbs,lr,hx,hy,hz,at,rxyz,&
     
         end if norbp_if
 
+
+
         if (nproc>1) then
             call mpiallred(iat_startend(1,0), 2*nproc, mpi_sum, bigdft_mpi%mpi_comm)
         end if
+
+        !call f_free(atom_covered)
 
         call f_release_routine()
 
@@ -4590,6 +4602,7 @@ subroutine nonlocal_forces_linear(iproc,nproc,npsidim_orbs,lr,hx,hy,hz,at,rxyz,&
                            end if
                            if (increase) then
                                iat_nonzero = iat_nonzero + 1
+                               iiat_nonzero_lookup(iat_nonzero,iproc) = iat
                                increase = .false.
                            end if
                            do ispinor=1,nspinor,ncplx
@@ -4765,6 +4778,7 @@ subroutine nonlocal_forces_linear(iproc,nproc,npsidim_orbs,lr,hx,hy,hz,at,rxyz,&
             call mpiallred(iatminmax(1,1), 2*orbs%norb, mpi_sum, bigdft_mpi%mpi_comm)
             call mpiallred(iorbminmax(1,1), natp, mpi_min, bigdft_mpi%mpi_comm)
             call mpiallred(iorbminmax(1,2), natp, mpi_max, bigdft_mpi%mpi_comm)
+            call mpiallred(iiat_nonzero_lookup, mpi_sum, bigdft_mpi%mpi_comm)
         end if
 
         !do iat=1,natp
@@ -4834,7 +4848,8 @@ subroutine nonlocal_forces_linear(iproc,nproc,npsidim_orbs,lr,hx,hy,hz,at,rxyz,&
         integer,dimension(:),allocatable :: types_double, blocklengths, norbrecv, isorbrecv
         integer(kind=mpi_address_kind),dimension(:),allocatable :: displacements, displacements_at
         logical :: copy, first, communicate
-        real(kind=8),dimension(:),allocatable :: scalprod_recvbuf, blocklengths_at
+        real(kind=8),dimension(:),allocatable :: scalprod_recvbuf
+        integer,dimension(:),allocatable :: blocklengths_at
         logical,dimension(:),allocatable :: getdata, get_at
         real(kind=8),dimension(:,:,:,:,:,:,:),allocatable :: scalprod_recvbuf2
         integer(kind=mpi_address_kind) :: lb_send, extent_send, lb_recv, extent_recv
@@ -5026,7 +5041,7 @@ subroutine nonlocal_forces_linear(iproc,nproc,npsidim_orbs,lr,hx,hy,hz,at,rxyz,&
         get_at = f_malloc(nat_par(iproc),id='get_at')
         get_at = .false.
         blocklengths_at = f_malloc(nat_par(iproc),id='blocklengths_at')
-        types_at = f_malloc(nat_par(iproc),id='blocklengths_at')
+        types_at = f_malloc(nat_par(iproc),id='types_at')
         displacements_at = f_malloc(nat_par(iproc),id='displacements_at')
 
         types_double(:) = mpi_double_precision
@@ -5069,22 +5084,25 @@ subroutine nonlocal_forces_linear(iproc,nproc,npsidim_orbs,lr,hx,hy,hz,at,rxyz,&
             end if
 
             iiat = isat_par(iproc) + iat
-            do jat=1,natp
-                if (iat_nonzero_lookup(jat,jproc)==iiat) then
+            do jat=1,size(iiat_nonzero_lookup,1)
+                !if (iat_nonzero_lookup(jat,jproc)==iiat) then
+                if (iiat_nonzero_lookup(jat,jproc)==iiat) then
                     iiatref = jat
                 end if
             end do
             ngetat = 0
             do iat=1,nat_par(iproc)
                 iiat = isat_par(iproc) + iat
+                write(*,*) 'iproc, iat, get_at(iat)',iproc, iat, get_at(iat)
                 if (get_at(iat)) then
                     ngetat = ngetat + 1
                     blocklengths_at(ngetat) = 1
-                    do jat=1,natp
+                    do jat=1,size(iiat_nonzero_lookup,1)!natp
                        if (iat_nonzero_lookup(jat,jproc)==iiat) then
                            ii = jat-iiatref
                        end if
                     end do
+                    write(*,'(a,4i16)') 'iproc, ngetat, blocklengths_at(ngetat), ii', iproc, ngetat, blocklengths_at(ngetat), ii
                     displacements_at(ngetat) = int(ii*orbs%norb_par(jproc,0)*ncount*size_of_double,kind=mpi_address_kind)
                     ii = 0
                 end if
@@ -5101,7 +5119,7 @@ subroutine nonlocal_forces_linear(iproc,nproc,npsidim_orbs,lr,hx,hy,hz,at,rxyz,&
             !!     dataypes(1,jproc), datatypes(2,jproc), ierr)
             types_at(:) = datatypes2(1,jproc)
             do i=1,ngetat
-                write(*,'(a,5i12)') 'iproc, i, blocklengths_at(i), displacements_at(i), types_at(i)', iproc, i, blocklengths_at(i), displacements_at(i), types_at(i)
+                write(*,'(a,5i16)') 'iproc, i, blocklengths_at(i), displacements_at(i), types_at(i)', iproc, i, blocklengths_at(i), displacements_at(i), types_at(i)
             end do
             call mpi_type_create_struct(ngetat, blocklengths_at, displacements_at, &
                  types_at, datatypes2(2,jproc), ierr)
