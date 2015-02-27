@@ -4828,16 +4828,16 @@ subroutine nonlocal_forces_linear(iproc,nproc,npsidim_orbs,lr,hx,hy,hz,at,rxyz,&
 
         ! Local variables
         integer :: window, iatmin, iatmax, is, ie, nat_on_task, ist_recv, nsize, size_of_double
-        integer :: ii, iii, norbmax, nat_nonzero, iiat, iat_nonzero, ncount, nel, ngetat
+        integer :: ii, iii, norbmax, nat_nonzero, iiat, iat_nonzero, ncount, nel, ngetat, iiatref, jat
         integer,dimension(:),allocatable :: datatypes, types_at
-        integer,dimension(:,:),allocatable :: datatypes2
+        integer,dimension(:,:),allocatable :: datatypes2, iat_nonzero_lookup
         integer,dimension(:),allocatable :: types_double, blocklengths, norbrecv, isorbrecv
         integer(kind=mpi_address_kind),dimension(:),allocatable :: displacements, displacements_at
         logical :: copy, first, communicate
         real(kind=8),dimension(:),allocatable :: scalprod_recvbuf, blocklengths_at
         logical,dimension(:),allocatable :: getdata, get_at
         real(kind=8),dimension(:,:,:,:,:,:,:),allocatable :: scalprod_recvbuf2
-
+        integer(kind=mpi_address_kind) :: lb_send, extent_send, lb_recv, extent_recv
         call f_routine(id='transpose_scalprod')
 
         !!scalprod_sendbuf = f_malloc0((/ 1.to.2, 0.to.ndir, 1.to.7, 1.to.3, 1.to.4, &
@@ -4881,6 +4881,19 @@ subroutine nonlocal_forces_linear(iproc,nproc,npsidim_orbs,lr,hx,hy,hz,at,rxyz,&
         scalprod_sendbuf3 = f_malloc0((/ 1.to.2, 0.to.ndir, 1.to.7, 1.to.3, 1.to.4, &
                                        1.to.max(1,orbs%norbp*orbs%nspinor), 1.to.max(1,nat_nonzero) /), &
                                        id='scalprod_sendbuf3')
+        !iat_nonzero_lookup = f_malloc0((/1.to.nat_nonzero,0.to.nproc-1/),id='iat_nonzero_lookup')
+        iat_nonzero_lookup = f_malloc0((/1.to.natp,0.to.nproc-1/),id='iat_nonzero_lookup')
+        iat_nonzero = 0
+        do iat=1,natp
+            do jorb=1,orbs%norbp
+                if(overlap_atomsorbs(jorb,iat)) then
+                    iat_nonzero = iat_nonzero + 1
+                    iat_nonzero_lookup(iat_nonzero,iproc) = iat
+                    exit
+                end if
+            end do
+        end do
+        call mpiallred(iat_nonzero_lookup, mpi_sum, bigdft_mpi%mpi_comm)
         
         iiat = 0
         iat_nonzero = 0
@@ -4904,6 +4917,7 @@ subroutine nonlocal_forces_linear(iproc,nproc,npsidim_orbs,lr,hx,hy,hz,at,rxyz,&
             end if
         end do
         if (iat_nonzero/=nat_nonzero) then
+            write(*,*) 'iat_nonzero, nat_nonzero', iat_nonzero, nat_nonzero
             stop 'iat_nonzero/=nat_nonzero'
         end if
         if (iiat/=nat_nonzero_prescreened) then
@@ -4917,7 +4931,7 @@ subroutine nonlocal_forces_linear(iproc,nproc,npsidim_orbs,lr,hx,hy,hz,at,rxyz,&
         !iorbstart = orbs%norb
         iorbmin = orbs%norb
         iorbmax = 1
-        norbmax = 0
+        !!norbmax = 0
         do iat=1,nat_par(iproc)
             iiat = isat_par(iproc) + iat
             !write(*,'(a,5i8)') 'iproc, iat, iiat, iorbminmax(iiat,:)',iproc, iat, iiat, iorbminmax(iiat,:)
@@ -4936,10 +4950,29 @@ subroutine nonlocal_forces_linear(iproc,nproc,npsidim_orbs,lr,hx,hy,hz,at,rxyz,&
                             first = .false.
                         end if
                     end if
-                    norbmax = max(ii,norbmax)
                 end do
                 norbrecv(jproc) = iii
             end do
+            !norbmax = max(ii,norbmax)
+        end do
+
+        norbmax = 0
+        do jproc=0,nproc-1
+            ii = 0
+            do jorb=1,orbs%norb_par(jproc,0)
+                jjorb = orbs%isorb_par(jproc) + jorb
+                communicate = .false.
+                do iat=1,nat_par(iproc)
+                    if (overlap_orbsatoms(jjorb,iat)) then
+                        communicate = .true.
+                        exit
+                    end if
+                end do
+                if (communicate) then
+                    ii= ii + 1
+                end if
+            end do
+            norbmax = max(ii,norbmax)
         end do
 
         isorbrecv(0) = 0
@@ -4964,9 +4997,9 @@ subroutine nonlocal_forces_linear(iproc,nproc,npsidim_orbs,lr,hx,hy,hz,at,rxyz,&
 
         scalprod_recvbuf = f_malloc(2*(ndir+1)*7*3*4*max(1,nat_par(iproc))*(iorbmax-iorbmin+1),id='scalprod_recvbuf')
 
-        scalprod_sendbuf3 = f_malloc0((/ 1.to.2, 0.to.ndir, 1.to.7, 1.to.3, 1.to.4, &
-                                       1.to.max(1,orbs%norbp*orbs%nspinor), 1.to.max(1,nat_nonzero) /), &
-                                       id='scalprod_sendbuf3')
+        !!scalprod_sendbuf3 = f_malloc0((/ 1.to.2, 0.to.ndir, 1.to.7, 1.to.3, 1.to.4, &
+        !!                               1.to.max(1,orbs%norbp*orbs%nspinor), 1.to.max(1,nat_nonzero) /), &
+        !!                               id='scalprod_sendbuf3')
   !!scalprod_sendbuf = f_malloc0((/ 1.to.2, 0.to.ndir, 1.to.7, 1.to.3, 1.to.4, &
   !!                               iat_startend(1,iproc).to.iat_startend(2,iproc), &
   !!                               1.to.max(1,orbs%norbp*orbs%nspinor) /),id='scalprod_sendbuf')
@@ -4987,7 +5020,8 @@ subroutine nonlocal_forces_linear(iproc,nproc,npsidim_orbs,lr,hx,hy,hz,at,rxyz,&
         datatypes2 = f_malloc((/1.to.3,0.to.nproc-1/),id='datatypes2')
         types_double = f_malloc(norbmax,id='types_double')
         blocklengths = f_malloc(norbmax,id='blocklengths')
-        getdata = f_malloc(norbmax,id='getdata')
+        displacements = f_malloc(norbmax,id='blocklengths')
+        getdata = f_malloc(orbs%norb,id='getdata')
         getdata = .false.
         get_at = f_malloc(nat_par(iproc),id='get_at')
         get_at = .false.
@@ -4998,6 +5032,7 @@ subroutine nonlocal_forces_linear(iproc,nproc,npsidim_orbs,lr,hx,hy,hz,at,rxyz,&
         types_double(:) = mpi_double_precision
         blocklengths(:) = 1
         ncount = 2*(ndir+1)*7*3*4
+        call mpi_type_size(mpi_double_precision, size_of_double, ierr)
         do jproc=0,nproc-1
             nel = 0
             do jorb=1,orbs%norb_par(jproc,0)
@@ -5017,18 +5052,47 @@ subroutine nonlocal_forces_linear(iproc,nproc,npsidim_orbs,lr,hx,hy,hz,at,rxyz,&
                 end if
             end do
 
+            !!nel = 0
+            !!do iat=1,nat_par(iproc)
+            !!    ii = 0
+            !!    do jorb=1,orbs%norb_par(jproc,0)
+            !!        jjorb = orbs%isorb_par(jproc) + jorb
+            !!        if (overlap_orbsatoms(jjorb,iat)) then
+            !!            ii = ii + 1
+            !!        end if
+            !!    end do
+            !!    nel = max(nel,ii)
+            !!end do
+            if (nel>norbmax) then
+                write(*,*) 'nel, norbmax', nel, norbmax
+                stop 'nel>norbmax'
+            end if
+
+            iiat = isat_par(iproc) + iat
+            do jat=1,natp
+                if (iat_nonzero_lookup(jat,jproc)==iiat) then
+                    iiatref = jat
+                end if
+            end do
             ngetat = 0
-            ii = 0
             do iat=1,nat_par(iproc)
-                ii = ii + 1
+                iiat = isat_par(iproc) + iat
                 if (get_at(iat)) then
                     ngetat = ngetat + 1
                     blocklengths_at(ngetat) = 1
+                    do jat=1,natp
+                       if (iat_nonzero_lookup(jat,jproc)==iiat) then
+                           ii = jat-iiatref
+                       end if
+                    end do
                     displacements_at(ngetat) = int(ii*orbs%norb_par(jproc,0)*ncount*size_of_double,kind=mpi_address_kind)
                     ii = 0
                 end if
             end do
 
+            do i=1,nel
+                write(*,'(a,5i8)') 'iproc, i, blocklengths(i), displacements(i), types_double(i)', iproc, i, blocklengths(i), displacements(i), types_double(i)
+            end do
             call mpi_type_create_struct(nel, blocklengths, displacements, types_double, &
                  datatypes2(1,jproc), ierr)
             call mpi_type_commit(datatypes2(1,jproc), ierr)
@@ -5036,6 +5100,9 @@ subroutine nonlocal_forces_linear(iproc,nproc,npsidim_orbs,lr,hx,hy,hz,at,rxyz,&
             !!call mpi_type_create_hvector(nat_par(iproc), 1, int(size_of_double*orbs%norb_par(jproc,0)*ncount,kind=mpi_address_kind), &
             !!     dataypes(1,jproc), datatypes(2,jproc), ierr)
             types_at(:) = datatypes2(1,jproc)
+            do i=1,ngetat
+                write(*,'(a,5i12)') 'iproc, i, blocklengths_at(i), displacements_at(i), types_at(i)', iproc, i, blocklengths_at(i), displacements_at(i), types_at(i)
+            end do
             call mpi_type_create_struct(ngetat, blocklengths_at, displacements_at, &
                  types_at, datatypes2(2,jproc), ierr)
             call mpi_type_commit(datatypes2(2,jproc), ierr)
@@ -5044,9 +5111,25 @@ subroutine nonlocal_forces_linear(iproc,nproc,npsidim_orbs,lr,hx,hy,hz,at,rxyz,&
                  mpi_double_precision, datatypes2(3,jproc), ierr)
             call mpi_type_commit(datatypes2(3,jproc), ierr)
 
+            call mpi_type_get_extent(datatypes2(2,jproc), lb_recv, extent_recv, ierr)
+            call mpi_type_get_extent(datatypes2(3,jproc), lb_send, extent_send, ierr)
+
+            if ((isorbrecv(jproc)-1)*ncount+extent_recv>size(scalprod_recvbuf2)) then
+                write(*,*) 'ist, extent, size', (isorbrecv(jproc)-1)*ncount, extent_recv, size(scalprod_recvbuf2)
+                stop 'out of recvbuf'
+            end if
+            if ((iiatref-1)*orbs%norb_par(jproc,0)*ncount+extent_send>size(scalprod_sendbuf3)) then
+                write(*,*) 'ist, extent, size', isat_par(iproc)*orbs%norb_par(jproc,0)*ncount, extent_send, size(scalprod_sendbuf3)
+                stop 'out of sendbuf'
+            end if
+        scalprod_sendbuf3 = f_malloc0((/ 1.to.2, 0.to.ndir, 1.to.7, 1.to.3, 1.to.4, &
+                                       1.to.max(1,orbs%norbp*orbs%nspinor), 1.to.max(1,nat_nonzero) /), &
+                                       id='scalprod_sendbuf3')
+            write(*,*) 'call mpi_get, iproc', iproc
             call mpi_get(scalprod_recvbuf2(1,0,1,1,1,isorbrecv(jproc)+1,1), 1, datatypes2(3,jproc), &
-                 jproc, int(isat_par(iproc)*orbs%norb_par(jproc,0)*ncount), 1, datatypes2(2,jproc), &
+                 jproc, int((iiatref-1)*orbs%norb_par(jproc,0)*ncount), 1, datatypes2(2,jproc), &
                  window, ierr)
+            write(*,*) 'after mpi_get, iproc', iproc
         end do
         call mpi_fenceandfree(window)
         do iat=1,nat_par(iproc)
@@ -5187,6 +5270,7 @@ subroutine nonlocal_forces_linear(iproc,nproc,npsidim_orbs,lr,hx,hy,hz,at,rxyz,&
 
       subroutine calculate_forces()
         implicit none
+        integer :: iiiorbout, jjjorbout
 
         call f_routine(id='calculate_forces')
 
@@ -5207,6 +5291,8 @@ subroutine nonlocal_forces_linear(iproc,nproc,npsidim_orbs,lr,hx,hy,hz,at,rxyz,&
                ! loop over all my orbitals for calculating forces
                !do iorbout=isorb,ieorb
                !do iorbout=1,orbs%norb
+               iiiorbout = 0
+               jjjorbout = 0
                spin_loop: do ispin=1,denskern%nspin
                   do iat=1,nat_par(iproc)
                      iiat=isat_par(iproc)+iat
@@ -5223,6 +5309,11 @@ subroutine nonlocal_forces_linear(iproc,nproc,npsidim_orbs,lr,hx,hy,hz,at,rxyz,&
                         if (iorbout<iorbminmax(iiat,1) .or. iorbout>iorbminmax(iiat,2)) cycle
                         !if (denskern%keyg(1,2,iseg)<iorbminmax(iiat,1) .or. denskern%keyg(1,2,iseg)>iorbminmax(iiat,2)) cycle
                         ii = denskern%keyv(iseg)-1 + (ispin-1)*denskern%nvctr 
+                        if (overlap_orbsatoms(iorbout,iat)) then
+                            iiiorbout = iiiorbout + 1
+                        else
+                        !    cycle
+                        end if
                         do jjorb=denskern%keyg(1,1,iseg),denskern%keyg(2,1,iseg)
                            ii=ii+1
                            !!iorbout = (jjorb-1)/orbs%norb + 1
