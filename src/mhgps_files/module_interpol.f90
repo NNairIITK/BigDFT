@@ -108,7 +108,7 @@ subroutine lst_penalty(runObj,rxyzR,rxyzP,rxyz,lambda,val,force)
                                                                !the penal. fct. at
                                                                !rxyz
     !internal
-    integer, parameter :: necmin=3
+    integer, parameter :: necmin=1
     integer :: b !outer loop
     integer :: a !inner loop
     integer :: i,j,k !loops over periodic images
@@ -130,7 +130,7 @@ subroutine lst_penalty(runObj,rxyzR,rxyzP,rxyz,lambda,val,force)
     real(gp) :: rxyzint(3,runObj%atoms%astruct%nat) !the positon at which the 
                                                  !penalty fct. is to be
                                                  !evaluated in internal coord.
-    real(gp) :: latvec(3,3), cell(3), weight
+    real(gp) :: latvec(3,3), cell(3), weight, trans(3)
     integer :: nec1, nec2, nec3
     real(gp) :: rcut
 
@@ -188,12 +188,12 @@ subroutine lst_penalty(runObj,rxyzR,rxyzP,rxyz,lambda,val,force)
         call f_err_throw('lst_penalty: specified boundary conditions'//&
              ' not supported.')
     endif
-write(199,*)rcut
-write(199,*)nec1,nec2,nec3
+!write(199,*)rcut
+!write(199,*)nec1,nec2,nec3
 !!stop
-nec1=1
-nec2=1
-nec3=1
+!nec1=1
+!nec2=1
+!nec3=1
 
 
 
@@ -218,26 +218,30 @@ nec3=1
         do j=0,nec2-1
           do k=0,nec3-1
            do a = b+1, runObj%atoms%astruct%nat
+              trans(1) = latvec(1,1)*real(i,gp)+latvec(1,2)*real(j,gp)+latvec(1,3)*real(k,gp)
+              trans(2) = latvec(2,1)*real(i,gp)+latvec(2,2)*real(j,gp)+latvec(2,3)*real(k,gp)
+              trans(3) = latvec(3,1)*real(i,gp)+latvec(3,2)*real(j,gp)+latvec(3,3)*real(k,gp)
               !compute interatomic distances of reactant
-              rabR = (rxyzR(1,a)+latvec(1,1)*real(i,gp)+latvec(1,2)*real(j,gp)+latvec(1,3)*real(k,gp)-rxRb)**2+&
-                     (rxyzR(2,a)+latvec(2,1)*real(i,gp)+latvec(2,2)*real(j,gp)+latvec(2,3)*real(k,gp)-ryRb)**2+&
-                     (rxyzR(3,a)+latvec(3,1)*real(i,gp)+latvec(3,2)*real(j,gp)+latvec(3,3)*real(k,gp)-rzRb)**2
+              rabR = (rxyzR(1,a)+trans(1)-rxRb)**2+&
+                     (rxyzR(2,a)+trans(2)-ryRb)**2+&
+                     (rxyzR(3,a)+trans(3)-rzRb)**2
               rabR = sqrt(rabR)
               !compute interatomic distances of product
-              rabP = (rxyzP(1,a)+latvec(1,1)*real(i,gp)+latvec(1,2)*real(j,gp)+latvec(1,3)*real(k,gp)-rxPb)**2+&
-                     (rxyzP(2,a)+latvec(2,1)*real(i,gp)+latvec(2,2)*real(j,gp)+latvec(2,3)*real(k,gp)-ryPb)**2+&
-                     (rxyzP(3,a)+latvec(3,1)*real(i,gp)+latvec(3,2)*real(j,gp)+latvec(3,3)*real(k,gp)-rzPb)**2
+              rabP = (rxyzP(1,a)+trans(1)-rxPb)**2+&
+                     (rxyzP(2,a)+trans(2)-ryPb)**2+&
+                     (rxyzP(3,a)+trans(3)-rzPb)**2
               rabP = sqrt(rabP)
               !compute interatomic distances at rxyz
-              rxd = rxyz(1,a)+latvec(1,1)*real(i,gp)+latvec(1,2)*real(j,gp)+latvec(1,3)*real(k,gp)-rxb
-              ryd = rxyz(2,a)+latvec(2,1)*real(i,gp)+latvec(2,2)*real(j,gp)+latvec(2,3)*real(k,gp)-ryb
-              rzd = rxyz(3,a)+latvec(3,1)*real(i,gp)+latvec(3,2)*real(j,gp)+latvec(3,3)*real(k,gp)-rzb
+              rxd = rxyz(1,a)+trans(1)-rxb
+              ryd = rxyz(2,a)+trans(2)-ryb
+              rzd = rxyz(3,a)+trans(3)-rzb
               rabC = rxd**2+ryd**2+rzd**2
               rabC = sqrt(rabC)
-              if(rabC>rcut)cycle
               !compute interpolated interatomic distances
               rabi = oml*rabR+lambda*rabP
               rabim4 = 1.0_gp / (rabi**4)
+!              if(rabC>rcut)cycle
+              if(rabi>rcut)cycle
               if(i==0 .and. j==0 .and. k==0)then
                   weight= rabim4
               else
@@ -326,11 +330,11 @@ subroutine fire(mhgpsst,uinp,runObj,rxyzR,rxyzP,lambda,rxyz,fxyz,epot)
     real(gp) :: dt
     real(gp) :: ddot,dnrm2
     real(gp) :: epotold
-!<-DEBUG START------------------------------------------------------>
-character(len=5), allocatable :: xat(:)
-character(len=5) :: fc5
-character(len=50) :: filename
-!<-DEBUG END-------------------------------------------------------->
+!!<-DEBUG START------------------------------------------------------>
+!character(len=5), allocatable :: xat(:)
+!character(len=5) :: fc5
+!character(len=50) :: filename
+!!<-DEBUG END-------------------------------------------------------->
 
     count_fr=0._gp
    ! dt_max = 0.5_gp !for lj
@@ -353,19 +357,19 @@ character(len=50) :: filename
 !!!! 1000   continue !!!to be avoided 
         call daxpy(3*runObj%atoms%astruct%nat,dt,vxyz(1,1),1,rxyz(1,1),1)
         call daxpy(3*runObj%atoms%astruct%nat,0.5_gp*dt*dt,ff(1,1),1,rxyz(1,1),1)
-!<-DEBUG START------------------------------------------------------>
-write(fc5,'(i5.5)')iter
-write(filename,*)'pos_'//fc5//'.ascii'
-open(99,file=trim(adjustl((filename))))
-write(99,*)
-write(99,*)10.0 ,0, 10.0 
-write(99,*)0, 0, 10.0 
-do iat=1,runObj%atoms%astruct%nat
-write(99,'(3(1xes24.17),a)')rxyz(1,iat),rxyz(2,iat),rxyz(3,iat),&
-'  Pt'!xat(iat)
-enddo
-close(99)
-!<-DEBUG END-------------------------------------------------------->
+!!<-DEBUG START------------------------------------------------------>
+!write(fc5,'(i5.5)')iter
+!write(filename,*)'pos_'//fc5//'.ascii'
+!open(99,file=trim(adjustl((filename))))
+!write(99,*)
+!write(99,*)10.0 ,0, 10.0 
+!write(99,*)0, 0, 10.0 
+!do iat=1,runObj%atoms%astruct%nat
+!write(99,'(3(1xes24.17),a)')rxyz(1,iat),rxyz(2,iat),rxyz(3,iat),&
+!'  Pt'!xat(iat)
+!enddo
+!close(99)
+!!<-DEBUG END-------------------------------------------------------->
 
 
 !        call valforce(nat,rxyz,fxyz,epot)
@@ -388,21 +392,21 @@ close(99)
         fnrm=sqrt(fnrm)
         call convcheck(fmax,uinp%lst_fmax_tol,check)
         if(check > 5)then
-!<-DEBUG START------------------------------------------------------>
-            write(*,'(a,x,i0,5(1x,es14.7))')&
-            'FIRE converged # e evals, epot, &
-            fmax, fnrm, dt, alpha: ',&
-            int(count_fr),epot,fmax,sqrt(fnrm),dt,alpha
-!<-DEBUG END-------------------------------------------------------->
+!!<-DEBUG START------------------------------------------------------>
+!            write(*,'(a,x,i0,5(1x,es14.7))')&
+!            'FIRE converged # e evals, epot, &
+!            fmax, fnrm, dt, alpha: ',&
+!            int(count_fr),epot,fmax,sqrt(fnrm),dt,alpha
+!!<-DEBUG END-------------------------------------------------------->
             success=.true.
             return
-!<-DEBUG START------------------------------------------------------>
-        else
-            write(*,'(a,x,i0,5(1x,es14.7))')&
-            'FIRE # e evals, epot, &
-            fmax, fnrm, dt, alpha: ',&
-            int(count_fr),epot,fmax,sqrt(fnrm),dt,alpha
-!<-DEBUG END-------------------------------------------------------->
+!!<-DEBUG START------------------------------------------------------>
+!        else
+!            write(*,'(a,x,i0,5(1x,es14.7))')&
+!            'FIRE # e evals, epot, &
+!            fmax, fnrm, dt, alpha: ',&
+!            int(count_fr),epot,fmax,sqrt(fnrm),dt,alpha
+!!<-DEBUG END-------------------------------------------------------->
         endif
         power = ddot(3*runObj%atoms%astruct%nat,fxyz,1,vxyz,1)
         vxyz_norm = dnrm2(3*runObj%atoms%astruct%nat,vxyz,1)
