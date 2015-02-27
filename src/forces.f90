@@ -4193,15 +4193,16 @@ subroutine nonlocal_forces_linear(iproc,nproc,npsidim_orbs,lr,hx,hy,hz,at,rxyz,&
   real(gp), dimension(6) :: sab
   integer,dimension(:),allocatable :: nat_par, isat_par, sendcounts, recvcounts, senddspls, recvdspls
   integer,dimension(:,:),allocatable :: iat_startend
-  real(dp),dimension(:,:,:,:,:,:,:),allocatable :: scalprod_sendbuf
+  real(dp),dimension(:,:,:,:,:,:,:),allocatable :: scalprod_sendbuf, scalprod_sendbuf2, scalprod_sendbuf3
   real(dp),dimension(:),allocatable :: scalprod_recvbuf
   integer,parameter :: ndir=9 !3 for forces, 9 for forces and stresses
   real(kind=8),dimension(:),allocatable :: denskern_gathered
   integer,dimension(:,:),allocatable :: iorbminmax, iatminmax
   logical,dimension(:,:),allocatable :: overlap_atomsorbs, overlap_orbsatoms
-  integer :: iorbmin, jorbmin, iorbmax, jorbmax
+  integer :: iorbmin, jorbmin, iorbmax, jorbmax, nat_nonzero_prescreened
   integer :: i1s, i1e, j1s, j1e, i2s, i2e, j2s, j2e, i3s, i3e, j3s, j3e
   integer :: nat_per_iteration, isat, natp, iat_out, nat_out, norbp_max
+  logical,dimension(:),allocatable :: overlap_prescreened
   integer,parameter :: MAX_SIZE=268435456 !max size of the array scalprod, in elements
 
   !integer :: ldim, gdim
@@ -4321,9 +4322,14 @@ subroutine nonlocal_forces_linear(iproc,nproc,npsidim_orbs,lr,hx,hy,hz,at,rxyz,&
   iat_startend = f_malloc0((/1.to.2,0.to.nproc-1/),id='iat_startend')
   iat_startend(1,iproc) = at%astruct%nat
   iat_startend(2,iproc) = 1
+  overlap_prescreened = f_malloc(natp,id='overlap_prescreened')
+  overlap_prescreened(:) = .false.
   call determine_dimension_scalprod()
   scalprod_sendbuf = f_malloc0((/ 1.to.2, 0.to.ndir, 1.to.7, 1.to.3, 1.to.4, &
                                  iat_startend(1,iproc).to.iat_startend(2,iproc), &
+                                 1.to.max(1,orbs%norbp*orbs%nspinor) /),id='scalprod_sendbuf')
+  scalprod_sendbuf2 = f_malloc0((/ 1.to.2, 0.to.ndir, 1.to.7, 1.to.3, 1.to.4, &
+                                 1.to.nat_nonzero_prescreened, &
                                  1.to.max(1,orbs%norbp*orbs%nspinor) /),id='scalprod_sendbuf')
   
   ! Calculate the values of scalprod
@@ -4338,6 +4344,7 @@ subroutine nonlocal_forces_linear(iproc,nproc,npsidim_orbs,lr,hx,hy,hz,at,rxyz,&
   call f_free(recvcounts)
   call f_free(senddspls)
   call f_free(recvdspls)
+  call f_free(overlap_prescreened)
   
   call calculate_forces()
   
@@ -4377,9 +4384,11 @@ subroutine nonlocal_forces_linear(iproc,nproc,npsidim_orbs,lr,hx,hy,hz,at,rxyz,&
 
       subroutine determine_dimension_scalprod()
         implicit none
+        logical :: overlap
 
         call f_routine(id='determine_dimension_scalprod')
 
+        nat_nonzero_prescreened = 0
         norbp_if: if (orbs%norbp>0) then
     
             !look for the strategy of projectors application
@@ -4396,6 +4405,7 @@ subroutine nonlocal_forces_linear(iproc,nproc,npsidim_orbs,lr,hx,hy,hz,at,rxyz,&
                      iiat = iat+isat-1
           
                      ityp=at%astruct%iatype(iiat)
+                     overlap = .false.
                      do iorb=isorb,ieorb
                         iiorb=orbs%isorb+iorb
                         ilr=orbs%inwhichlocreg(iiorb)
@@ -4423,10 +4433,15 @@ subroutine nonlocal_forces_linear(iproc,nproc,npsidim_orbs,lr,hx,hy,hz,at,rxyz,&
                             .not.check_whether_bounds_overlap(i3s,i3e,j3s,j3e)) then
                             cycle 
                         else
+                            overlap = .true.
                             iat_startend(1,iproc) = min(iat_startend(1,iproc),iat)
                             iat_startend(2,iproc) = max(iat_startend(2,iproc),iat)
                         end if
                      end do
+                     if (overlap) then
+                         nat_nonzero_prescreened = nat_nonzero_prescreened + 1
+                         overlap_prescreened(iat) = .true.
+                     end if
           
                   end do
           
@@ -4487,12 +4502,15 @@ subroutine nonlocal_forces_linear(iproc,nproc,npsidim_orbs,lr,hx,hy,hz,at,rxyz,&
 
       subroutine calculate_scalprod()
         implicit none
-        integer :: iat, jorb
-        integer :: jproc, ierr, window, nsize, size_of_double
+        integer :: iat, jorb, iat_nonzero
+        integer :: jproc, ierr, window, nsize, size_of_logical
         integer,dimension(:),allocatable :: datatypes
         integer(kind=mpi_address_kind) :: lb, extent
+        logical :: increase
 
         call f_routine(id='calculate_scalprod')
+
+        iat_nonzero = 0
 
         norbp_if: if (orbs%norbp>0) then
     
@@ -4521,6 +4539,7 @@ subroutine nonlocal_forces_linear(iproc,nproc,npsidim_orbs,lr,hx,hy,hz,at,rxyz,&
                      jseg_c=1
                      jseg_f=1
           
+                     increase = .true.
                      do idir=0,ndir
           
                         ityp=at%astruct%iatype(iiat)
@@ -4569,6 +4588,10 @@ subroutine nonlocal_forces_linear(iproc,nproc,npsidim_orbs,lr,hx,hy,hz,at,rxyz,&
                                ispsi=ispsi+(lzd%llr(ilr)%wfd%nvctr_c+7*lzd%llr(ilr)%wfd%nvctr_f)*ncplx
                                cycle 
                            end if
+                           if (increase) then
+                               iat_nonzero = iat_nonzero + 1
+                               increase = .false.
+                           end if
                            do ispinor=1,nspinor,ncplx
                               jorb=jorb+1
                               istart_c=1
@@ -4586,10 +4609,13 @@ subroutine nonlocal_forces_linear(iproc,nproc,npsidim_orbs,lr,hx,hy,hz,at,rxyz,&
                                                nlpsp%proj(istart_c),&
                                                scalprod_sendbuf(1,idir,m,i,l,iat,jorb))
                                           !!scalprod_sendbuf(1,idir,m,i,l,iat,jorb) = scalprod(1,idir,m,i,l,iat,jorb)
+                                          scalprod_sendbuf2(1,idir,m,i,l,iat_nonzero,jorb) = scalprod_sendbuf(1,idir,m,i,l,iat,jorb)
                                           if (scalprod_sendbuf(1,idir,m,i,l,iat,jorb)/=0.d0) then
+                                              !write(*,*) 'NONZERO, iproc, iat, iiorb', iproc, iat, iiorb
                                               overlap_atomsorbs(jorb,iat) = .true.
                                               iorbminmax(iat,1) = min(iorbminmax(iat,1),iiorb)
                                               iorbminmax(iat,2) = max(iorbminmax(iat,2),iiorb)
+                                              !write(*,'(a,4i8)') 'MIDDLE: iproc, iat, iorbminmax(iat,:)',iproc, iat, iorbminmax(iat,:)
                                               iatminmax(iiorb,1) = min(iatminmax(iiorb,1),iat)
                                               iatminmax(iiorb,2) = max(iatminmax(iiorb,2),iat)
                                           end if
@@ -4612,6 +4638,7 @@ subroutine nonlocal_forces_linear(iproc,nproc,npsidim_orbs,lr,hx,hy,hz,at,rxyz,&
                end do loop_kptD
           
             else
+               stop 'carefully test this section...'
                !calculate all the scalar products for each direction and each orbitals
                do idir=0,ndir
           
@@ -4689,9 +4716,11 @@ subroutine nonlocal_forces_linear(iproc,nproc,npsidim_orbs,lr,hx,hy,hz,at,rxyz,&
                                                nlpsp%proj(istart_c),scalprod_sendbuf(1,idir,m,i,l,iat,jorb))
                                           !!scalprod_sendbuf(1,idir,m,i,l,iat,jorb) = scalprod(1,idir,m,i,l,iat,jorb)
                                           if (scalprod_sendbuf(1,idir,m,i,l,iat,jorb)/=0.d0) then
+                                              !write(*,*) 'NONZERO, iproc, iat, iiorb', iproc, iat, iiorb
                                               overlap_atomsorbs(jorb,iat) = .true.
                                               iorbminmax(iat,1) = min(iorbminmax(iat,1),iiorb)
                                               iorbminmax(iat,2) = max(iorbminmax(iat,2),iiorb)
+                                              !write(*,'(a,4i8)') 'MIDDLE: iproc, iat, iorbminmax(iat,:)',iproc, iat, iorbminmax(iat,:)
                                               iatminmax(iiorb,1) = min(iatminmax(iiorb,1),iat)
                                               iatminmax(iiorb,2) = max(iatminmax(iiorb,2),iat)
                                           end if
@@ -4723,29 +4752,45 @@ subroutine nonlocal_forces_linear(iproc,nproc,npsidim_orbs,lr,hx,hy,hz,at,rxyz,&
     
         end if norbp_if
 
+        if (iat_nonzero/=nat_nonzero_prescreened) then
+            write(*,'(a,3i8)') 'iproc, iat_nonzero, nat_nonzero_prescreened', iproc, iat_nonzero, nat_nonzero_prescreened
+            stop 'iat_nonzero/=nat_nonzero_prescreened'
+        end if
+
+        !do iat=1,natp
+        !    write(*,'(a,4i8)') 'BEFORE: iproc, iat, iorbminmax(iat,:)',iproc, iat, iorbminmax(iat,:)
+        !end do
+
         if (nproc>1) then
             call mpiallred(iatminmax(1,1), 2*orbs%norb, mpi_sum, bigdft_mpi%mpi_comm)
             call mpiallred(iorbminmax(1,1), natp, mpi_min, bigdft_mpi%mpi_comm)
             call mpiallred(iorbminmax(1,2), natp, mpi_max, bigdft_mpi%mpi_comm)
         end if
 
+        !do iat=1,natp
+        !    write(*,'(a,5i8)') 'AFTER: iproc, iat, iiat, iorbminmax(iat,:)',iproc, iat, iiat, iorbminmax(iat,:)
+        !end do
+
         ! Communicate overlap_atomsorbs
         datatypes = f_malloc(0.to.nproc-1,id='datatypes')
         window = mpiwindow(orbs%norbp*natp, overlap_atomsorbs(1,1), bigdft_mpi%mpi_comm)
-        call mpi_type_size(mpi_double_precision, size_of_double, ierr)
+        call mpi_type_size(mpi_logical, size_of_logical, ierr)
         do jproc=0,nproc-1
             call mpi_type_vector(nat_par(iproc), orbs%norb_par(jproc,0), orbs%norb, &
-                 mpi_double_precision, datatypes(jproc), ierr)
+                 mpi_logical, datatypes(jproc), ierr)
             call mpi_type_commit(datatypes(jproc), ierr)
             call mpi_type_size(datatypes(jproc), nsize, ierr)
             call mpi_type_get_extent(datatypes(jproc), lb, extent, ierr)
-            if (nsize/=nat_par(iproc)*orbs%norb_par(jproc,0)*size_of_double) then
-                stop 'nsize/=nat_par(iproc)*orbs%norb_par(jproc,0)*size_of_double'
+            if (nsize/=nat_par(iproc)*orbs%norb_par(jproc,0)*size_of_logical) then
+                stop 'nsize/=nat_par(iproc)*orbs%norb_par(jproc,0)*size_of_logical'
             end if
             !!write(*,*) 'call mpi_get: iproc, jproc', iproc, jproc
             if (isat_par(iproc)*orbs%norb_par(jproc,0)+nat_par(iproc)*orbs%norb_par(jproc,0)>orbs%norb_par(jproc,0)*natp) then
                 stop 'out of window'
             end if
+            !!write(*,'(6(a,i0))') 'task ',iproc,' gets ',nat_par(iproc)*orbs%norb_par(jproc,0),&
+            !!    ' elements at positions (',orbs%isorb_par(jproc)+1,',',1,') from position ',&
+            !!    isat_par(iproc)*orbs%norb_par(jproc,0),' on task ',jproc
             call mpi_get(overlap_orbsatoms(orbs%isorb_par(jproc)+1,1), 1, datatypes(jproc), &
                  jproc, int(isat_par(iproc)*orbs%norb_par(jproc,0),kind=mpi_address_kind), &
                  nat_par(iproc)*orbs%norb_par(jproc,0), mpi_logical, window, ierr)
@@ -4761,11 +4806,17 @@ subroutine nonlocal_forces_linear(iproc,nproc,npsidim_orbs,lr,hx,hy,hz,at,rxyz,&
         call f_free(datatypes)
         !!write(*,*) 'after deallocate datatypes, iproc', iproc
 
-        !do iat=1,nat_par(iproc)
-        !      do jorb=1,orbs%norb
-        !          write(200+iproc,*) 'iat, jorb, val', iat, jorb, overlap_orbsatoms(jorb,iat)
-        !      end do
-        !end do
+        !!do iat=1,natp
+        !!      do jorb=1,orbs%norbp
+        !!          write(100+iproc,*) 'iat, jorb, val', iat, jorb, overlap_atomsorbs(jorb,iat)
+        !!      end do
+        !!end do
+
+        !!do iat=1,nat_par(iproc)
+        !!      do jorb=1,orbs%norb
+        !!          write(200+iproc,*) 'iat, jorb, val', iat, jorb, overlap_orbsatoms(jorb,iat)
+        !!      end do
+        !!end do
 
         call f_release_routine()
 
@@ -4777,9 +4828,15 @@ subroutine nonlocal_forces_linear(iproc,nproc,npsidim_orbs,lr,hx,hy,hz,at,rxyz,&
 
         ! Local variables
         integer :: window, iatmin, iatmax, is, ie, nat_on_task, ist_recv, nsize, size_of_double
-        integer :: ii, norbmax
-        integer,dimension(:),allocatable :: datatypes
-        real(kind=8),dimension(:),allocatable :: scalprod_recvbuf
+        integer :: ii, iii, norbmax, nat_nonzero, iiat, iat_nonzero, ncount, nel, ngetat
+        integer,dimension(:),allocatable :: datatypes, types_at
+        integer,dimension(:,:),allocatable :: datatypes2
+        integer,dimension(:),allocatable :: types_double, blocklengths, norbrecv, isorbrecv
+        integer(kind=mpi_address_kind),dimension(:),allocatable :: displacements, displacements_at
+        logical :: copy, first, communicate
+        real(kind=8),dimension(:),allocatable :: scalprod_recvbuf, blocklengths_at
+        logical,dimension(:),allocatable :: getdata, get_at
+        real(kind=8),dimension(:,:,:,:,:,:,:),allocatable :: scalprod_recvbuf2
 
         call f_routine(id='transpose_scalprod')
 
@@ -4808,34 +4865,214 @@ subroutine nonlocal_forces_linear(iproc,nproc,npsidim_orbs,lr,hx,hy,hz,at,rxyz,&
       
         !!call f_free(scalprod_sendbuf)
 
+        ! Cut out the parts which are zero
+        nat_nonzero = 0
+        do iat=1,natp
+            do jorb=1,orbs%norbp
+                if(overlap_atomsorbs(jorb,iat)) then
+                    nat_nonzero = nat_nonzero + 1
+                    exit
+                end if
+            end do
+        end do
+        if (nat_nonzero>nat_nonzero_prescreened) then
+            stop 'nat_nonzero>nat_nonzero_prescreened'
+        end if
+        scalprod_sendbuf3 = f_malloc0((/ 1.to.2, 0.to.ndir, 1.to.7, 1.to.3, 1.to.4, &
+                                       1.to.max(1,orbs%norbp*orbs%nspinor), 1.to.max(1,nat_nonzero) /), &
+                                       id='scalprod_sendbuf3')
+        
+        iiat = 0
+        iat_nonzero = 0
+        ncount = 2*(ndir+1)*7*3*4
+        do iat=1,natp
+            if (.not.overlap_prescreened(iat)) cycle
+            iiat = iiat + 1
+            copy = .false.
+            do jorb=1,orbs%norbp
+                if(overlap_atomsorbs(jorb,iat)) then
+                    copy = .true.
+                    iat_nonzero = iat_nonzero + 1
+                    exit
+                end if
+            end do
+            if (copy) then
+                do jorb=1,orbs%norbp
+                    call vcopy(ncount, scalprod_sendbuf2(1,0,1,1,1,iiat,jorb), 1, &
+                         scalprod_sendbuf3(1,0,1,1,1,jorb,iat_nonzero), 1)
+                end do
+            end if
+        end do
+        if (iat_nonzero/=nat_nonzero) then
+            stop 'iat_nonzero/=nat_nonzero'
+        end if
+        if (iiat/=nat_nonzero_prescreened) then
+            stop 'iiat/=nat_nonzero_prescreened'
+        end if
 
 
         ! Maximal size to be allocated
+        norbrecv = f_malloc0(0.to.nproc-1,id='norbrecv')
+        isorbrecv = f_malloc0(0.to.nproc-1,id='isorbrecv')
+        !iorbstart = orbs%norb
         iorbmin = orbs%norb
         iorbmax = 1
         norbmax = 0
         do iat=1,nat_par(iproc)
             iiat = isat_par(iproc) + iat
+            !write(*,'(a,5i8)') 'iproc, iat, iiat, iorbminmax(iiat,:)',iproc, iat, iiat, iorbminmax(iiat,:)
             iorbmin = min(iorbmin,iorbminmax(iiat,1))
             iorbmax = max(iorbmax,iorbminmax(iiat,2))
             ii = 0
-            do jorb=1,orbs%norb
-                if(overlap_orbsatoms(jorb,iat)) then
-                    ii = ii + 1
-                end if
-                norbmax = max(ii,norbmax)
+            do jproc=0,nproc-1
+                first = .true.
+                iii = 0
+                do jorb=1,orbs%norb_par(jproc,0)
+                    jjorb = orbs%isorb_par(jproc) + jorb
+                    if(overlap_orbsatoms(jjorb,iat)) then
+                        ii = ii + 1
+                        iii = iii + 1
+                        if (first) then
+                            first = .false.
+                        end if
+                    end if
+                    norbmax = max(ii,norbmax)
+                end do
+                norbrecv(jproc) = iii
             end do
         end do
+
+        isorbrecv(0) = 0
+        do jproc=1,nproc-1
+            isorbrecv(jproc) = isorbrecv(jproc-1) + norbrecv(jproc-1)
+        end do
         write(*,'(a,4i8)') 'iproc, norbmax, old', iproc, norbmax, iorbmin, iorbmax
+
+
+
+
         !!scalprod = f_malloc0((/ 1.to.2, 0.to.ndir, 1.to.7, 1.to.3, 1.to.4, &
         !!                       1.to.max(1, nat_par(iproc)), 1.to.orbs%norb*orbs%nspinor /),id='scalprod')
         if (orbs%nspinor/=1) stop 'nonlocal_forces_linear: nspinor must be 1 for the moment'
         scalprod = f_malloc0((/ 1.to.2, 0.to.ndir, 1.to.7, 1.to.3, 1.to.4, &
                                1.to.max(1, nat_par(iproc)), iorbmin.to.iorbmax /),id='scalprod')
         scalprod2 = f_malloc0((/ 1.to.2, 0.to.ndir, 1.to.7, 1.to.3, 1.to.4, &
-                               1.to.max(1, nat_par(iproc)), 1.to.norbmax /),id='scalprod2')
+                               1.to.max(1,norbmax), 1.to.max(1, nat_par(iproc)) /),id='scalprod2')
+
+        scalprod_recvbuf2 = f_malloc0((/ 1.to.2, 0.to.ndir, 1.to.7, 1.to.3, 1.to.4, &
+                               1.to.max(1,norbmax), 1.to.max(1, nat_par(iproc)) /),id='scalprod2')
 
         scalprod_recvbuf = f_malloc(2*(ndir+1)*7*3*4*max(1,nat_par(iproc))*(iorbmax-iorbmin+1),id='scalprod_recvbuf')
+
+        scalprod_sendbuf3 = f_malloc0((/ 1.to.2, 0.to.ndir, 1.to.7, 1.to.3, 1.to.4, &
+                                       1.to.max(1,orbs%norbp*orbs%nspinor), 1.to.max(1,nat_nonzero) /), &
+                                       id='scalprod_sendbuf3')
+  !!scalprod_sendbuf = f_malloc0((/ 1.to.2, 0.to.ndir, 1.to.7, 1.to.3, 1.to.4, &
+  !!                               iat_startend(1,iproc).to.iat_startend(2,iproc), &
+  !!                               1.to.max(1,orbs%norbp*orbs%nspinor) /),id='scalprod_sendbuf')
+
+        !@ VERYNEW ##########################################
+        window = mpiwindow(2*(ndir+1)*7*3*4*max(1,orbs%norbp*orbs%nspinor*max(1,nat_nonzero)), &
+                 scalprod_sendbuf3(1,0,1,1,1,1,1), bigdft_mpi%mpi_comm)
+        !!do jproc=0,nproc-1
+        !!    do iat=1,nat_par(iproc)
+        !!        iiat = isat_par(iproc) + iat
+        !!        do jorb=1,orbs%norb_par(jproc,0)
+        !!            jjorb = orbs%isorb_par(jproc,0) + jorb
+        !!            if (overlap_orbsatoms(jjorb,iat)
+        !!        end do
+        !!    end do
+        !!end do
+
+        datatypes2 = f_malloc((/1.to.3,0.to.nproc-1/),id='datatypes2')
+        types_double = f_malloc(norbmax,id='types_double')
+        blocklengths = f_malloc(norbmax,id='blocklengths')
+        getdata = f_malloc(norbmax,id='getdata')
+        getdata = .false.
+        get_at = f_malloc(nat_par(iproc),id='get_at')
+        get_at = .false.
+        blocklengths_at = f_malloc(nat_par(iproc),id='blocklengths_at')
+        types_at = f_malloc(nat_par(iproc),id='blocklengths_at')
+        displacements_at = f_malloc(nat_par(iproc),id='displacements_at')
+
+        types_double(:) = mpi_double_precision
+        blocklengths(:) = 1
+        ncount = 2*(ndir+1)*7*3*4
+        do jproc=0,nproc-1
+            nel = 0
+            do jorb=1,orbs%norb_par(jproc,0)
+                jjorb = orbs%isorb_par(jproc) + jorb
+                communicate = .false.
+                do iat=1,nat_par(iproc)
+                    if (overlap_orbsatoms(jjorb,iat)) then
+                        communicate = .true.
+                        get_at(iat) = .true.
+                        exit
+                    end if
+                end do
+                if (communicate) then
+                    nel = nel + 1
+                    getdata(jjorb) = .true.
+                    displacements(nel) = int((jorb-1)*size_of_double*ncount,kind=mpi_address_kind)
+                end if
+            end do
+
+            ngetat = 0
+            ii = 0
+            do iat=1,nat_par(iproc)
+                ii = ii + 1
+                if (get_at(iat)) then
+                    ngetat = ngetat + 1
+                    blocklengths_at(ngetat) = 1
+                    displacements_at(ngetat) = int(ii*orbs%norb_par(jproc,0)*ncount*size_of_double,kind=mpi_address_kind)
+                    ii = 0
+                end if
+            end do
+
+            call mpi_type_create_struct(nel, blocklengths, displacements, types_double, &
+                 datatypes2(1,jproc), ierr)
+            call mpi_type_commit(datatypes2(1,jproc), ierr)
+
+            !!call mpi_type_create_hvector(nat_par(iproc), 1, int(size_of_double*orbs%norb_par(jproc,0)*ncount,kind=mpi_address_kind), &
+            !!     dataypes(1,jproc), datatypes(2,jproc), ierr)
+            types_at(:) = datatypes2(1,jproc)
+            call mpi_type_create_struct(ngetat, blocklengths_at, displacements_at, &
+                 types_at, datatypes2(2,jproc), ierr)
+            call mpi_type_commit(datatypes2(2,jproc), ierr)
+
+            call mpi_type_vector(nat_par(iproc), nel*ncount, norbmax*ncount, &
+                 mpi_double_precision, datatypes2(3,jproc), ierr)
+            call mpi_type_commit(datatypes2(3,jproc), ierr)
+
+            call mpi_get(scalprod_recvbuf2(1,0,1,1,1,isorbrecv(jproc)+1,1), 1, datatypes2(3,jproc), &
+                 jproc, int(isat_par(iproc)*orbs%norb_par(jproc,0)*ncount), 1, datatypes2(2,jproc), &
+                 window, ierr)
+        end do
+        call mpi_fenceandfree(window)
+        do iat=1,nat_par(iproc)
+            ii = 0
+            iii = 0
+            do jorb=1,orbs%norb
+                if (getdata(jorb)) then
+                    ii = ii + 1
+                end if
+                if (overlap_orbsatoms(jorb,iat)) then
+                    iii = iii + 1
+                    call vcopy(ncount, scalprod_recvbuf2(1,0,1,1,1,ii,iat), 1, &
+                         scalprod2(1,0,1,1,1,iii,iat), 1)
+                end if
+            end do
+        end do
+
+        do jproc=0,nproc-1
+            call mpi_type_free(datatypes2(1,jproc), ierr)
+            call mpi_type_free(datatypes2(2,jproc), ierr)
+            call mpi_type_free(datatypes2(3,jproc), ierr)
+        end do
+        call f_free(datatypes2)
+
+
+        !@ END VERYNEW ######################################
     
         !!ist=1
         !!do jproc=0,nproc-1
