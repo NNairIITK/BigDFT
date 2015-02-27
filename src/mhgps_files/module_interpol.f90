@@ -188,20 +188,21 @@ subroutine lst_penalty(runObj,rxyzR,rxyzP,rxyz,lambda,val,force)
         call f_err_throw('lst_penalty: specified boundary conditions'//&
              ' not supported.')
     endif
-!!write(*,*)rcut
-!!write(*,*)nec1,nec2,nec3
+write(199,*)rcut
+write(199,*)nec1,nec2,nec3
 !!stop
 nec1=1
 nec2=1
 nec3=1
 
 
+
     oml=1.0_gp-lambda!one minus lambda
     val=0.0_gp!function value
     force=0.0_gp!negative gradient
-!!    !$omp parallel default(private) shared(runObj, rxyzR, rxyzP, rxyz, &
-!!    !$omp val, force, oml, lambda)
-!!    !$omp do schedule(dynamic) reduction(+:force,val)
+    !$omp parallel default(private) shared(runObj, rxyzR, rxyzP, rxyz, &
+    !$omp val, force, oml, lambda, latvec, nec1, nec2, nec3, rcut)
+    !$omp do schedule(dynamic) reduction(+:force,val)
     !first sum
     do b = 1, runObj%atoms%astruct%nat-1
        rxRb = rxyzR(1,b)
@@ -242,7 +243,6 @@ nec3=1
               else
                   weight = rabim4 - 1.0_gp/ (rcut**4)
               endif
-write(99,*)weight
               !compute function value
               rabiMrabC = rabi - rabC
               val = val + rabiMrabC**2 * weight 
@@ -262,9 +262,9 @@ write(99,*)weight
          enddo
         enddo
     enddo
-!!    !$omp end do
+    !$omp end do
 
-!!    !$omp do schedule(dynamic) reduction(+:force,val)
+    !$omp do schedule(dynamic) reduction(+:force,val)
     !second sum
     do a = 1, runObj%atoms%astruct%nat
        waxi = oml*rxyzR(1,a) + lambda*rxyzP(1,a)
@@ -279,8 +279,8 @@ write(99,*)weight
        force(2,a) = force(2,a) + 2.e-6_gp * tty
        force(3,a) = force(3,a) + 2.e-6_gp * ttz
     enddo
-!!    !$omp end do
-!!    !$omp end parallel
+    !$omp end do
+    !$omp end parallel
 
     call clean_forces_base(runObj%atoms,force)
 end subroutine lst_penalty
@@ -386,7 +386,6 @@ close(99)
         end do
         call fnrmandforcemax(fxyz,fnrm,fmax,runObj%atoms%astruct%nat)
         fnrm=sqrt(fnrm)
-write(*,*)fxyz
         call convcheck(fmax,uinp%lst_fmax_tol,check)
         if(check > 5)then
 !<-DEBUG START------------------------------------------------------>
