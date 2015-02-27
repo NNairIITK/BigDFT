@@ -507,6 +507,7 @@ subroutine epsilon_rigid_cavity(geocode,ndims,hgrids,nat,rxyz,radii,epsilon0,del
            eps_min=1.d100
            do iat=1,nat
               d2=(x-rxyz(1,iat))**2+(y-rxyz(2,iat))**2+(z-rxyz(3,iat))**2
+              if (d2.eq.0.d0) d2=1.0d-30
               eps1=epsl(sqrt(d2),radii(iat),delta,epsilon0)
               if (eps1< eps_min) then
                  !deps(1)=depsoeps(sqrt(d2),radii(iat),delta,epsilon0)*(x-rxyz(1,iat))/sqrt(d2)
@@ -526,15 +527,22 @@ subroutine epsilon_rigid_cavity(geocode,ndims,hgrids,nat,rxyz,radii,epsilon0,del
      end do
   end do
 
-!!$  unt=f_get_free_unit(21)
-!!$  call f_open_file(unt,file='epsilon.dat')
-!!$  i1=1!n03/2
-!!$  do i2=1,ndims(2)
-!!$     do i3=1,ndims(3)
-!!$        write(unt,'(2(1x,I4),2(1x,e14.7))')i2,i3,eps(i1,i2,i3),eps(ndims(1)/2,i2,i3)
-!!$     end do
-!!$  end do
-!!$  call f_close(unt)
+  unt=f_get_free_unit(21)
+  call f_open_file(unt,file='epsilon.dat')
+  i1=1!n03/2
+  do i2=1,ndims(2)
+     do i3=1,ndims(3)
+        write(unt,'(2(1x,I4),2(1x,e14.7))')i2,i3,eps(i1,i2,i3),eps(ndims(1)/2,i2,i3)
+     end do
+  end do
+  call f_close(unt)
+
+  unt=f_get_free_unit(22)
+  call f_open_file(unt,file='epsilon_line.dat')
+  do i2=1,ndims(2)
+   write(unt,'(1x,I8,1(1x,e22.15))')i2,eps(ndims(1)/2,i2,ndims(3)/2)
+  end do
+  call f_close(unt)
 
   contains
 
@@ -546,7 +554,7 @@ subroutine epsilon_rigid_cavity(geocode,ndims,hgrids,nat,rxyz,radii,epsilon0,del
       real(kind=8) :: d
 
       d=(r-rc)/delta
-      epsl=0.5d0*((epsilon0-1.d0)*(erf(d)+1.d0)+1.d0)+1.d0
+      epsl=0.5d0*(epsilon0-1.d0)*(erf(d)+1.d0)+1.d0
     end function epsl
 
     pure function depsoeps(r,rc,delta,epsilon0)

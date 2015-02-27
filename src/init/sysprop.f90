@@ -808,6 +808,7 @@ subroutine epsilon_cavity(atoms,rxyz,pkernel)
   !use yaml_output
   use module_defs, only : Bohr_Ang
   use f_utils
+  use yaml_output
   implicit none
   type(atoms_data), intent(in) :: atoms
   real(gp), dimension(3,atoms%astruct%nat), intent(in) :: rxyz
@@ -832,9 +833,10 @@ subroutine epsilon_cavity(atoms,rxyz,pkernel)
      call atomic_info(atoms%nzatom(it%ityp),atoms%nelpsp(it%ityp),&
           rcov=radii(it%iat))
   end do
+  call yaml_map('Bohr_Ang',Bohr_Ang)
   radii=1.59d0/Bohr_Ang
-  !call yaml_map('Covalent radii',radii)
-  delta=1.7*maxval(pkernel%hgrids)
+  call yaml_map('Covalent radii',radii)
+  delta=3.0*maxval(pkernel%hgrids)
   call epsilon_rigid_cavity(atoms%astruct%geocode,pkernel%ndims,pkernel%hgrids,atoms%astruct%nat,rxyz,radii,&
        epsilon0,delta,eps)
 
