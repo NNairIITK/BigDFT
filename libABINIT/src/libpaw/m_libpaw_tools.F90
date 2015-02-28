@@ -16,7 +16,7 @@
 !!  This module comes directly from hide_write & hide_leave src files delivered with ABINIT.
 !!
 !!  FOR DEVELOPPERS: in order to preserve the portability of libPAW library,
-!!  please consult ~abinit/src/42_??libpaw/libpaw-coding-rules.txt
+!!  please consult ~abinit/src/??_libpaw/libpaw-coding-rules.txt
 !!
 !! SOURCE
 
@@ -27,7 +27,7 @@ module m_libpaw_tools
  USE_DEFS
  USE_MPI_WRAPPERS
 
-#if defined HAVE_LIBPAW_BIGDFT
+#if defined USE_YAML
   use yaml_output
 #endif
 
@@ -263,7 +263,7 @@ subroutine libpaw_write_lines(unit,msg)
 
  msg_size=len_trim(msg)
 
-#if defined HAVE_LIBPAW_BIGDFT
+#if defined USE_YAML
  if (msg_size>0 .and. unit==std_out) then
     call yaml_comment(msg)
  end if
@@ -489,7 +489,7 @@ subroutine libpaw_die(message,file,line)
  if (PRESENT(line)) f90line=line
  if (PRESENT(file)) f90name= libpaw_basename(file)
 
- rank=xpaw_mpi_comm_rank(xpaw_mpi_world) !Determine my rank inside MPI_COMM_WORLD
+ rank=xpaw_mpi_comm_rank(xpaw_mpi_world) !Determine my rank inside world communicator
 
  write(lnum,"(i0)") f90line
  write(strank,"(i0)") rank

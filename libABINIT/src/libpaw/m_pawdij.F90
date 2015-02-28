@@ -9,7 +9,7 @@
 !!         VNL = Sum_ij [ Dij |pi><pj| ],  with pi, pj= projectors
 !!
 !! COPYRIGHT
-!! Copyright (C) 2013-2014 ABINIT group (MT, FJ, BA)
+!! Copyright (C) 2013-2015 ABINIT group (MT, FJ, BA)
 !! This file is distributed under the terms of the
 !! GNU General Public License, see ~abinit/COPYING
 !! or http://www.gnu.org/copyleft/gpl.txt .
@@ -17,7 +17,7 @@
 !!
 !! NOTES
 !!  FOR DEVELOPPERS: in order to preserve the portability of libPAW library,
-!!  please consult ~abinit/src/42_??libpaw/libpaw-coding-rules.txt
+!!  please consult ~abinit/src/??_libpaw/libpaw-coding-rules.txt
 !!
 !! SOURCE
 
@@ -1452,7 +1452,7 @@ end subroutine pawdijxc
 !! (for one atom only)
 !!
 !! COPYRIGHT
-!! Copyright (C) 1998-2014 ABINIT group (MT)
+!! Copyright (C) 1998-2015 ABINIT group (MT)
 !! This file is distributed under the terms of the
 !! GNU General Public License, see ~abinit/COPYING
 !! or http://www.gnu.org/copyleft/gpl.txt .
@@ -4159,7 +4159,7 @@ subroutine symdij(gprimd,indsym,ipert,my_natom,natom,nsym,ntypat,option_dij,&
 
 !Local variables ---------------------------------------
 !scalars
- integer :: at_indx,cplex,cplex_dij,iafm,iatom,iatom_tot,ierr
+ integer :: at_indx,cplex,cplex_dij,iafm,iatom,iatom_tot
  integer :: il,il0,ilmn,iln,iln0,ilpm,indexi,indexii,indexj,indexjj,indexjj0,indexk,indexkc
  integer :: iplex,irot,ispden,itypat,j0lmn,jl,jl0,jlmn,jln,jln0,jlpm,jspden
  integer :: klmn,klmnc,kspden,lmn_size,mi,mj,my_comm_atom,mu,natinc,ndij0,ndij1,nu,optsym,sz1,sz2

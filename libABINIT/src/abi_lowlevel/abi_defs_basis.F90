@@ -192,7 +192,7 @@ module abi_defs_basis
 !This variable tells the code if some lines have to be written in a LOG file
  logical, public, save :: do_write_log   =.true.
 
-CONTAINS
+!CONTAINS
 !!***
 
 end module abi_defs_basis

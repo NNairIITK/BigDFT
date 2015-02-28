@@ -11,14 +11,14 @@
 !!         |Cnk> are wave functions
 !!
 !! COPYRIGHT
-!! Copyright (C) 2012-2014 ABINIT group (MT)
+!! Copyright (C) 2012-2015 ABINIT group (MT)
 !! This file is distributed under the terms of the
 !! GNU General Public License, see ~abinit/COPYING
 !! or http://www.gnu.org/copyleft/gpl.txt .
 !!
 !! NOTES
 !!  FOR DEVELOPPERS: in order to preserve the portability of libPAW library,
-!!  please consult ~abinit/src/42_??libpaw/libpaw-coding-rules.txt
+!!  please consult ~abinit/src/??_libpaw/libpaw-coding-rules.txt
 !!
 !! SOURCE
 
@@ -1756,15 +1756,15 @@ subroutine pawcprj_mpi_send(natom,n2dim,nlmn,ncpgr,cprj_out,receiver,spaceComm,i
  t2dim=size(cprj_out,dim=2)
  tcpgr=cprj_out(1,1)%ncpgr
 
- if (nn==n1dim) then
+ if (nn/=n1dim) then
    msg='size mismatch in natom (pawcprj_mpi_send)!'
    MSG_BUG(msg)
  end if
- if (t2dim==n2dim) then
+ if (t2dim/=n2dim) then
    msg='size mismatch in dim=2 (pawcprj_mpi_send)!'
    MSG_BUG(msg)
  end if
- if (tcpgr==ncpgr) then
+ if (tcpgr/=ncpgr) then
    msg='size mismatch in ncpgr (pawcprj_mpi_send)!'
    MSG_BUG(msg)
  end if
@@ -1877,15 +1877,15 @@ subroutine pawcprj_mpi_recv(natom,n2dim,nlmn,ncpgr,cprj_in,sender,spaceComm,ierr
  t2dim=size(cprj_in,dim=2)
  tcpgr=cprj_in(1,1)%ncpgr
 
- if (nn==n1dim) then
+ if (nn/=n1dim) then
    msg='size mismatch in natom (pawcprj_mpi_recv)!'
    MSG_BUG(msg)
  end if
- if (t2dim==n2dim) then
+ if (t2dim/=n2dim) then
    msg='size mismatch in dim=2 (pawcprj_mpi_recv)!'
    MSG_BUG(msg)
  end if
- if (tcpgr==ncpgr) then
+ if (tcpgr/=ncpgr) then
    msg='size mismatch in ncpgr (pawcprj_mpi_recv)!'
    MSG_BUG(msg)
  end if
@@ -2087,19 +2087,19 @@ subroutine pawcprj_mpi_allgather(cprj_loc,cprj_gat,natom,n2dim,nlmn,ncpgr,nproc,
  tg2dim=size(cprj_gat,dim=2)
  tcpgr=cprj_loc(1,1)%ncpgr
 
- if (nn==n1dim) then
+ if (nn/=n1dim) then
    msg='size mismatch in natom (pawcprj_mpi_allgather)!'
    MSG_BUG(msg)
  end if
- if (t2dim==n2dim) then
+ if (t2dim/=n2dim) then
    msg='size mismatch in dim=2 (pawcprj_mpi_allgather)!'
    MSG_BUG(msg)
  end if
- if (tg2dim==n2dim*nproc) then
+ if (tg2dim/=n2dim*nproc) then
    msg='size mismatch in dim=2 (pawcprj_mpi_allgather)!'
    MSG_BUG(msg)
  end if
- if (tcpgr==ncpgr) then
+ if (tcpgr/=ncpgr) then
    msg='size mismatch in ncpgr (pawcprj_mpi_allgather)!'
    MSG_BUG(msg)
  end if
@@ -2218,7 +2218,7 @@ subroutine pawcprj_bcast(Cprj,natom,n2dim,nlmn,ncpgr,master,spaceComm,ierr)
 
  nn=size(nlmn,dim=1)
  n1dim=size(Cprj,dim=1)
- if (nn==n1dim) then
+ if (nn/=n1dim) then
    msg='size mismatch in natom (pawcprj_bcast)!'
    MSG_BUG(msg)
  end if

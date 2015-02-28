@@ -9,14 +9,14 @@
 !!  pawtab_type variables define TABulated data for PAW (from pseudopotential)
 !!
 !! COPYRIGHT
-!! Copyright (C) 2013-2014 ABINIT group (MT)
+!! Copyright (C) 2013-2015 ABINIT group (MT)
 !! This file is distributed under the terms of the
 !! GNU General Public License, see ~abinit/COPYING
 !! or http://www.gnu.org/copyleft/gpl.txt .
 !!
 !! NOTES
 !!  FOR DEVELOPPERS: in order to preserve the portability of libPAW library,
-!!  please consult ~abinit/src/42_??libpaw/libpaw-coding-rules.txt
+!!  please consult ~abinit/src/??_libpaw/libpaw-coding-rules.txt
 !!
 !! SOURCE
 
@@ -32,7 +32,6 @@ MODULE m_pawtab
  implicit none
 
  private
- public :: pawtab_get_lsize
 !!***
 
 !----------------------------------------------------------------------
@@ -59,8 +58,8 @@ MODULE m_pawtab
 
  end type wvlpaw_rholoc_type
 
- public :: wvlpaw_rholoc_free   ! Free memory
- public :: wvlpaw_rholoc_nullify   
+ public :: wvlpaw_rholoc_free    ! Free memory
+ public :: wvlpaw_rholoc_nullify ! Nullify content
 !!***
 
 !----------------------------------------------------------------------
@@ -515,8 +514,9 @@ MODULE m_pawtab
 
  end type pawtab_type
 
- public :: pawtab_nullify
- public :: pawtab_free      ! Free memory
+ public :: pawtab_free         ! Free memory
+ public :: pawtab_nullify      ! Nullify content
+ public :: pawtab_get_lsize    ! Get the max. l for a product of 2 partial waves
  public :: pawtab_set_flags    ! Set the value of the internal flags
  public :: pawtab_print        ! Printout of the object.
  public :: pawtab_bcast        ! MPI broadcast the object

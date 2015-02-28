@@ -7,14 +7,14 @@
 !!  Module to read PAW atomic data
 !!
 !! COPYRIGHT
-!!  Copyright (C) 2012-2014 ABINIT group (T. Rangel, MT, FJ, GJ, FB, FrD, AF, GMR, DRH)
+!!  Copyright (C) 2012-2015 ABINIT group (MT, FJ,TR, GJ, FB, FrD, AF, GMR, DRH)
 !!  This file is distributed under the terms of the
 !!  GNU General Public License, see ~abinit/COPYING
 !!  or http://www.gnu.org/copyleft/gpl.txt .
 !!
 !! NOTES
 !!  FOR DEVELOPPERS: in order to preserve the portability of libPAW library,
-!!  please consult ~abinit/src/42_??libpaw/libpaw-coding-rules.txt
+!!  please consult ~abinit/src/??_libpaw/libpaw-coding-rules.txt
 !!
 !! SOURCE
 
@@ -780,8 +780,7 @@ subroutine pawpsp_read(core_mesh,funit,imainmesh,lmax,&
  implicit none
 
 !Arguments ------------------------------------
- integer,intent(in):: funit
- integer,intent(in):: lmax,usexcnhat_in
+ integer,intent(in):: funit,lmax,usexcnhat_in
  integer,intent(out) :: imainmesh,pspversion,usexcnhat_out,vlocopt
  logical,intent(in) :: save_core_msz
  real(dp),intent(in):: znucl
@@ -4305,7 +4304,7 @@ implicit none
  integer,intent(out):: lloc,lmax,pspcod,pspxc
  real(dp),intent(out):: r2well,zion,znucl
 !Local variables-------------------------------
- integer :: il, ii
+ integer :: ii,il
  character(len=100) :: xclibxc
  character(len=500) :: msg
 !arrays

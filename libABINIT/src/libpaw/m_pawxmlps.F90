@@ -8,14 +8,14 @@
 !! Can use either FoX or pure Fortran routines.
 !!
 !! COPYRIGHT
-!! Copyright (C) 2005-2014 ABINIT group (FJ, MT)
+!! Copyright (C) 2005-2015 ABINIT group (MT, FJ)
 !! This file is distributed under the terms of the
 !! GNU General Public License, see ~abinit/COPYING
 !! or http://www.gnu.org/copyleft/gpl.txt .
 !!
 !! NOTES
 !!  FOR DEVELOPPERS: in order to preserve the portability of libPAW library,
-!!  please consult ~abinit/src/42_??libpaw/libpaw-coding-rules.txt
+!!  please consult ~abinit/src/??_libpaw/libpaw-coding-rules.txt
 !!
 !! SOURCE
 
@@ -474,7 +474,7 @@ select case(name)
          value = getValue(attributes,"eq")
          if (value == "" ) value = "unknown"
          grids(igrid)%eq = trim(value)
-           
+
          value = getValue(attributes,"a")
          if (value == "" ) then
            grids(igrid)%aa=0.d0
@@ -855,7 +855,7 @@ subroutine paw_end_element1(namespaceURI,localName,name)
 !End of the abilint section
 
 character(len=*),intent(in) :: namespaceURI,localName,name
-character(len=100)  :: value
+character(len=100) :: msg,value
 
 !Just to fool abirules 
  value=localName
@@ -1000,6 +1000,7 @@ character(len=*),intent(in) :: chunk
 integer :: ii,ntokens,status,last_pos
 logical :: in_token
 character(len=len(chunk))  :: str
+character(len=50)  :: msg
 character(len=1)  :: cc
 real(dpxml),pointer :: x(:)
 
@@ -1509,7 +1510,7 @@ end subroutine paw_setup_copy
 !Local variables ---------------------------------------
  integer :: iaewf,ii,ipswf,iproj,ir,igrid,ival,ierr,ishpf,lmax,mesh_size
  logical :: endfile,found
- character(len=500) :: msg
+ character(len=100) :: msg
  character (len=XML_RECL) :: line,readline
  character (len=XML_RECL) :: strg
  character (len=30) :: strg1
@@ -2208,7 +2209,7 @@ end subroutine paw_setup_copy
  logical :: endfile,found, tread
  real(dp),allocatable :: work(:),phitmp(:,:)
  type(pawrad_type) :: tmpmesh
- character(len=500) :: msg,version
+ character(len=100) :: msg,version
  character (len=XML_RECL) :: line,readline
  character (len=XML_RECL) :: strg
  character (len=30) :: strg1

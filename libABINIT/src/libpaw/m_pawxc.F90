@@ -7,14 +7,14 @@
 !!  XC+PAW related operations
 !!
 !! COPYRIGHT
-!!  Copyright (C) 2013-2014 ABINIT group (T. Rangel, GJ, MT, FJ, TD)
+!!  Copyright (C) 2013-2015 ABINIT group (MT, FJ, TR, GJ, TD)
 !!  This file is distributed under the terms of the
 !!  GNU General Public License, see ~abinit/COPYING
 !!  or http://www.gnu.org/copyleft/gpl.txt .
 !!
 !! NOTES
 !!  FOR DEVELOPPERS: in order to preserve the portability of libPAW library,
-!!  please consult ~abinit/src/42_??libpaw/libpaw-coding-rules.txt
+!!  please consult ~abinit/src/??_libpaw/libpaw-coding-rules.txt
 !!
 !! SOURCE
 
@@ -285,10 +285,10 @@ subroutine pawxc_size_dvxc_wrapper(ixc,ndvxc,ngr2,nd2vxc,nspden,nvxcdgr,order)
 #endif
 !!***
 
+#if ! defined HAVE_LIBPAW_ABINIT
 contains
 !!***
 
-#if ! defined HAVE_LIBPAW_ABINIT
 !!****f* pawxc_size_dvxc_wrapper/pawxc_size_dvxc_local
 !! NAME
 !!  pawxc_size_dvxc_local
@@ -463,13 +463,12 @@ subroutine pawxc_xcmult_wrapper(depsxc,nfft,ngrad,nspden,nspgrad,rhonow)
 #else
  call pawxc_xcmult_local()
 #endif
-
-!!***
-
-contains
 !!***
 
 #if ! defined HAVE_LIBPAW_ABINIT
+contains
+!!***
+
 !!****f* pawxc_xcmult_wrapper/pawxc_xcmult_local
 !! NAME
 !!  pawxc_xcmult_local
@@ -588,13 +587,12 @@ subroutine pawxc_mkdenpos_wrapper(iwarn,nfft,nspden,option,rhonow,xc_denpos)
 #else
  call pawxc_mkdenpos_local()
 #endif
-
-!!***
-
-contains
 !!***
 
 #if ! defined HAVE_LIBPAW_ABINIT
+contains
+!!***
+
 !!****f* pawxc_mkdenpos_wrapper/pawxc_mkdenpos_local
 !! NAME
 !!  pawxc_mkdenpos_local
@@ -5515,6 +5513,8 @@ end subroutine pawxcmpositron
 &                  ' - ABINIT',ch10,' - libXC'
  MSG_BUG(msg)
 #endif
+
+ if (.false.) write(std_out,*) xc_tb09_c,lrho(1,1),tau(1,1)
 !!***
 
 contains
@@ -5558,14 +5558,12 @@ end if
 !Hence, only two posibilities are considered here:
 !1) Pass dvxc, exexch, grho2 and vxcgrho
  if (present(exexch)) then
-   call drivexc_main(exc,ixc,mgga,ndvxc,nd2vxc,ngr2,npts,nspden, &
-&                    nvxcgrho,order,rho,vxcrho,xclevel,&
-&                    dvxc=dvxc,exexch=exexch,grho2=grho2,vxcgrho=vxcgrho)
+   call drivexc_main(exc,ixc,mgga,ndvxc,nd2vxc,ngr2,npts,nspden,nvxcgrho,order,rho,vxcrho,xclevel,&
+&   dvxc=dvxc,exexch=exexch,grho2=grho2,vxcgrho=vxcgrho)
  else
 !2) Pass only dvxc, grho2 and vxcgrho
-   call drivexc_main(exc,ixc,mgga,ndvxc,nd2vxc,ngr2,npts,nspden, &
-&                    nvxcgrho,order,rho,vxcrho,xclevel,&
-&                    dvxc=dvxc,grho2=grho2,vxcgrho=vxcgrho)
+   call drivexc_main(exc,ixc,mgga,ndvxc,nd2vxc,ngr2,npts,nspden,nvxcgrho,order,rho,vxcrho,xclevel,&
+&   dvxc=dvxc,grho2=grho2,vxcgrho=vxcgrho)
  end if
 
 end subroutine pawxc_drivexc_abinit

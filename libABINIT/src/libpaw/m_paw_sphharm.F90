@@ -8,14 +8,14 @@
 !!  spherical harmonics Ylm (resp. Slm) (and gradients).
 !!
 !! COPYRIGHT
-!! Copyright (C) 2013-2014 ABINIT group (MT, FJ, TRangel)
+!! Copyright (C) 2013-2015 ABINIT group (MT, FJ, TRangel)
 !! This file is distributed under the terms of the
 !! GNU General Public License, see ~abinit/COPYING
 !! or http://www.gnu.org/copyleft/gpl.txt .
 !!
 !! NOTES
 !!  FOR DEVELOPPERS: in order to preserve the portability of libPAW library,
-!!  please consult ~abinit/src/42_??libpaw/libpaw-coding-rules.txt
+!!  please consult ~abinit/src/??_libpaw/libpaw-coding-rules.txt
 !!
 !! SOURCE
 
@@ -1568,8 +1568,8 @@ subroutine mat_mlms2jmj(lcor,mat_mlms,mat_jmj,ndij,option,optspin,prtvol,unitfi,
 !scalars
  integer :: ii,im,im1,im2,ispden,jc1,jc2,jj,jm,ll,ml1,ml2,ms1,ms2
  real(dp),parameter :: invsqrt2=one/sqrt2
- real(dp) :: invsqrt2lp1,mat_tmp,xj,xmj
- complex(dpc) :: tmp2
+ real(dp) :: invsqrt2lp1,xj,xmj
+ complex(dpc) :: mat_tmp,tmp2
  character(len=9),parameter :: dspinold(6)=(/"up       ","down     ","up-up    ","down-down","up-dn    ","dn-up    "/)
  character(len=9),parameter :: dspin(6)=(/"dn       ","up       ","dn-dn    ","up-up    ","dn-up    ","up-dn    "/)
  character(len=500) :: msg

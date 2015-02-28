@@ -8,14 +8,14 @@
 !!  on the fine grid around a given atom.
 !!
 !! COPYRIGHT
-!! Copyright (C) 2013-2014 ABINIT group (MT,FJ)
+!! Copyright (C) 2013-2015 ABINIT group (MT,FJ)
 !! This file is distributed under the terms of the
 !! GNU General Public License, see ~abinit/COPYING
 !! or http://www.gnu.org/copyleft/gpl.txt .
 !!
 !! NOTES
 !!  FOR DEVELOPPERS: in order to preserve the portability of libPAW library,
-!!  please consult ~abinit/src/42_??libpaw/libpaw-coding-rules.txt
+!!  please consult ~abinit/src/??_libpaw/libpaw-coding-rules.txt
 !!
 !! SOURCE
 
@@ -1107,8 +1107,7 @@ subroutine pawrfgd_wvl(geocode,hh,ifftsph,i3s,n1,n1i,n2,n2i,n3,n3pi,&
 !Temporary allocate "large" arrays
 !  use factor 1+int(1.1*, for safety reasons
  ncmax=1
- !if (n3pi>0) ncmax=1+int((rcut/hh(1)+1.0)*(rcut/hh(2)+1.0)*(rcut/hh(3)+1.0)*four_pi/three)
- if (n3pi>0) ncmax = 1 + int((rcut/hh(1)+1.0)*(rcut/hh(2)+1.0)*(rcut/hh(3)+1.0)*8.)
+ if (n3pi>0) ncmax=1+int((rcut/hh(1)+1.0)*(rcut/hh(2)+1.0)*(rcut/hh(3)+1.0)*four_pi/three)
  LIBPAW_ALLOCATE(ifftsph_tmp,(ncmax))
  LIBPAW_ALLOCATE(rfgd_tmp,(3,ncmax))
 
@@ -1130,8 +1129,7 @@ subroutine pawrfgd_wvl(geocode,hh,ifftsph,i3s,n1,n1i,n2,n2i,n3,n3pi,&
        if (j3>=i3s.and.j3<=i3s+n3pi-1.and.goy.and.gox) then
 
 !        Select matching points
-          !if (r2<=r2cut) then
-          if (abs(xx) <= rcut .and. abs(yy) <= rcut .and. abs(zz) <= rcut) then
+         if (r2<=r2cut) then
            ind=j1+1+nbl1+(j2+nbl2)*n1i+(j3-i3s)*n1i*n2i
            nfgd=nfgd+1
            rfgd_tmp(:,nfgd)=[xx,yy,zz]
