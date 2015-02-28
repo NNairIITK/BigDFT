@@ -218,7 +218,6 @@ subroutine morse_slab_wrapper(nat,alat,rxyz, fxyz, epot)
     
     alat_int(1)=alat(1)
     alat_int(3)=alat(3)
-write(137,*)alat_int
 
     call morse_bulk(rxyz(1),fxyz(1),epot, nat, rho, R0, A, periodic, & 
        alat_int, use_cutoff, rcut)
