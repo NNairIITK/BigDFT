@@ -36,7 +36,7 @@
 /* Messages, errors */
 /* Other macros already defined in abi_common.h */
 #define USE_MSG_HANDLING use m_errors, only : msg_hndl
-#undef  USE_YAML
+#undef  HAVE_YAML
 
 /* Allocation/deallocation with memory profiling */
 #define USE_MEMORY_PROFILING use m_profiling_abi
@@ -74,7 +74,7 @@
 #define MSG_BUG(msg)     call libpaw_msg_hndl(msg,"BUG"    ,"PERS")
 /*BigDFT should accept long lines...*/
 /*#define MSG_ERROR(msg) call libpaw_msg_hndl(msg,"ERROR","PERS",__FILE__,__LINE__)*/
-#define USE_YAML
+#define HAVE_YAML
 
 /* Allocation/deallocation with memory profiling */
 #define USE_MEMORY_PROFILING use dynamic_memory
@@ -110,7 +110,7 @@
 #define MSG_WARNING(msg) call libpaw_msg_hndl(msg,"WARNING","PERS")
 #define MSG_ERROR(msg)   call libpaw_msg_hndl(msg,"ERROR"  ,"PERS")
 #define MSG_BUG(msg)     call libpaw_msg_hndl(msg,"BUG"    ,"PERS")
-#undef  USE_YAML
+#undef  HAVE_YAML
 
 /* Allocation/deallocation */
 #define USE_MEMORY_PROFILING

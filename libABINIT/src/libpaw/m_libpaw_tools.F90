@@ -27,7 +27,7 @@ module m_libpaw_tools
  USE_DEFS
  USE_MPI_WRAPPERS
 
-#if defined USE_YAML
+#if defined HAVE_YAML
   use yaml_output
 #endif
 
@@ -263,7 +263,7 @@ subroutine libpaw_write_lines(unit,msg)
 
  msg_size=len_trim(msg)
 
-#if defined USE_YAML
+#if defined HAVE_YAML
  if (msg_size>0 .and. unit==std_out) then
     call yaml_comment(msg)
  end if
