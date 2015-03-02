@@ -313,7 +313,7 @@ subroutine createProjectorsArrays(lr,rxyz,at,orbs,&
      if (nl%pspd(iat)%mproj > 0) then 
 
         call bounds_to_plr_limits(.false.,1,nl%pspd(iat)%plr,&
-             nl1,nl2,nl3,nu1,nu2,nu3)         
+             nl1,nl2,nl3,nu1,nu2,nu3)
 
 !!$        !most likely the call can here be replaced by
 !!$        call fill_logrid(at%astruct%geocode,n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3,0,1,  &

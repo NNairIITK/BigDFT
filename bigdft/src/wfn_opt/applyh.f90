@@ -1627,7 +1627,6 @@ subroutine apply_atproj_iorb_paw(iat,iorb,istart_c,at,orbs,wfd,&
   !features of the k-point ikpt
   call ncplx_kpt(orbs%iokpt(iorb),orbs,ncplx)
 
-
   !calculate the scalar product with all the projectors of the atom
   !index for performing the calculation with all the projectors
   
