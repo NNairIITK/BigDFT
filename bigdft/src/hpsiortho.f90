@@ -166,9 +166,9 @@ subroutine psitohpsi(iproc,nproc,atoms,scf,denspot,itrp,itwfn,iscf,alphamix,&
      call denspot_set_rhov_status(denspot, ELECTRONIC_DENSITY, itwfn, iproc, nproc)
 
      if (wfn%paw%usepaw) then
-        write(*,*) "DENSITY", sum(denspot%rhov) * product(denspot%dpbox%hgrids)
+        !write(*,*) "DENSITY", sum(denspot%rhov) * product(denspot%dpbox%hgrids)
         call paw_compute_rhoij(wfn%paw, wfn%orbs, atoms, denspot)
-        write(*,*) "DENSITY", sum(denspot%rhov) * product(denspot%dpbox%hgrids)
+        !write(*,*) "DENSITY", sum(denspot%rhov) * product(denspot%dpbox%hgrids)
      end if
 
      !before creating the potential, save the density in the second part 
@@ -1699,7 +1699,7 @@ subroutine hpsitopsi(iproc,nproc,iter,idsx,wfn,&
    !local variables
    !character(len=*), parameter :: subname='hpsitopsi'
    !debug
-   integer :: jorb,iat
+!!$   integer :: jorb,iat
    !end debug
 
    if(wfn%paw%usepaw) then
@@ -1773,25 +1773,24 @@ subroutine hpsitopsi(iproc,nproc,iter,idsx,wfn,&
    end if
 
    !call checkortho_p(iproc,nproc,norb,nvctrp,psit)
-   if(wfn%paw%usepaw) then
-      !debug: 
-      call checkortho_paw(iproc,wfn%orbs%norb*wfn%orbs%nspinor,&
-           wfn%comms%nvctr_par(iproc,0),wfn%psit,wfn%paw%spsi)
-      if (iproc == 0 .and. verbose > 1) then
-!!$      write(*,*)'hpsiortho, l1478 erase me:'
-         call yaml_sequence_open('cprj(:,1) (5 first orbitals)')
-         do iat=1,wfn%paw%natom
-            call yaml_mapping_open("atom" // trim(yaml_toa(iat, fmt = "(I0)")))
-            do jorb=1,min(5, wfn%orbs%norbu)
-               call yaml_map("iorb" // trim(yaml_toa(jorb, fmt = "(I0)")), yaml_toa(wfn%paw%cprj(iat,jorb)%cp(:,1)))
-               !write(*,'(a,2(i4,1x),1000f20.12)')' cprj(iat,jorb)%cp(:,:)=',iat,jorb,wfn%paw%cprj(iat,jorb)%cp(:,:)
-               !call yaml_comment("iorb #" // yaml_toa(jorb, fmt = "(I0)"))
-            end do
-            call yaml_mapping_close()
-         end do
-         call yaml_sequence_close()
-      end if
-   end if
+!!$   if(wfn%paw%usepaw) then
+!!$      !debug: 
+!!$      call checkortho_paw(iproc,wfn%orbs%norb*wfn%orbs%nspinor,&
+!!$           wfn%comms%nvctr_par(iproc,0),wfn%psit,wfn%paw%spsi)
+!!$      if (iproc == 0 .and. verbose > 1) then
+!!$         call yaml_sequence_open('cprj(:,1) (5 first orbitals)')
+!!$         do iat=1,wfn%paw%natom
+!!$            call yaml_mapping_open("atom" // trim(yaml_toa(iat, fmt = "(I0)")))
+!!$            do jorb=1,min(5, wfn%orbs%norbu)
+!!$               call yaml_map("iorb" // trim(yaml_toa(jorb, fmt = "(I0)")), yaml_toa(wfn%paw%cprj(iat,jorb)%cp(:,1)))
+!!$               !write(*,'(a,2(i4,1x),1000f20.12)')' cprj(iat,jorb)%cp(:,:)=',iat,jorb,wfn%paw%cprj(iat,jorb)%cp(:,:)
+!!$               !call yaml_comment("iorb #" // yaml_toa(jorb, fmt = "(I0)"))
+!!$            end do
+!!$            call yaml_mapping_close()
+!!$         end do
+!!$         call yaml_sequence_close()
+!!$      end if
+!!$   end if
 
    call untranspose_v(iproc,nproc,wfn%orbs,wfn%Lzd%Glr%wfd,wfn%comms,&
         wfn%psit(1),wfn%hpsi(1),out_add=wfn%psi(1))
@@ -3329,7 +3328,7 @@ end subroutine integral_equation
 !> Compute the Dij coefficients from the current KS potential.
 subroutine paw_compute_dij(paw, at, denspot, vxc, e_paw, e_pawdc, compch_sph)
   use module_types, only: paw_objects, atoms_data, DFT_local_fields, KS_POTENTIAL
-  use module_defs, only: gp, Ha_eV
+  use module_defs, only: gp, Ha_eV, bigdft_mpi
   use m_paw_an, only: paw_an_reset_flags
   use m_paw_ij, only: paw_ij_reset_flags
   use m_pawdij, only: pawdij
@@ -3375,8 +3374,8 @@ subroutine paw_compute_dij(paw, at, denspot, vxc, e_paw, e_pawdc, compch_sph)
   !&     mpi_comm_atom=mpi_enreg%comm_atom,mpi_atmtab=mpi_enreg%my_atmtab,&
   !&     vpotzero=vpotzero)
 
-  call yaml_map('average electrostatic smooth potential [Ha] , [eV]', &
-       & (/ SUM(vpotzero(:)),SUM(vpotzero(:))*Ha_eV /))
+  !call yaml_map('average electrostatic smooth potential [Ha] , [eV]', &
+  !     & (/ SUM(vpotzero(:)),SUM(vpotzero(:))*Ha_eV /))
 
   denspot%rhov(:) = denspot%rhov(:) + SUM(vpotzero(:))
   if(option/=1)then
@@ -3386,10 +3385,13 @@ subroutine paw_compute_dij(paw, at, denspot, vxc, e_paw, e_pawdc, compch_sph)
      !      neutral systems)
      e_pawdc = e_pawdc - SUM(vpotzero) * sum(at%nelpsp) + vpotzero(2) * charge
   end if
-  call yaml_map('PAW energies', (/ e_paw, e_pawdc /))
-  call yaml_map('Compensation charge in spheres', compch_sph)
+  !call yaml_map('PAW energies', (/ e_paw, e_pawdc /))
+  if (bigdft_mpi%iproc == 0) then
+     call yaml_map('Compensation charge in spheres', compch_sph)
+  end if
 
   if (denspot%rhov_is /= KS_POTENTIAL) stop "rhov must be KS pot here."
+  call yaml_newline()
   call pawdij(cplex, enunit, gprimd, ipert, size(paw%pawrhoij), at%astruct%nat, nfft, nfftot, &
        & denspot%dpbox%nrhodim, at%astruct%ntypes, paw%paw_an, paw%paw_ij, at%pawang, &
        & paw%pawfgrtab, pawprtvol, at%pawrad, paw%pawrhoij, pawspnorb, at%pawtab, pawxcdev, &
@@ -3410,6 +3412,7 @@ subroutine paw_compute_rhoij(paw, orbs, atoms, denspot)
   use m_pawrhoij, only: pawrhoij_type, pawrhoij_init_unpacked, pawrhoij_mpisum_unpacked, &
        & pawrhoij_free
   use dynamic_memory
+  use yaml_output
   use abi_defs_basis, only: AB7_NO_ERROR
   use m_ab6_symmetry
   use abi_interfaces_add_libpaw, only: abi_pawaccrhoij, abi_pawmkrho
@@ -3501,6 +3504,7 @@ subroutine paw_compute_rhoij(paw, orbs, atoms, denspot)
   end do
 
   if (denspot%rhov_is /= ELECTRONIC_DENSITY) stop "rhov must be density here."
+  call yaml_newline()
   call abi_pawmkrho(compch_fft,cplex,symObj%gprimd,idir,indsym,ipert,&
 &          nfft, nfft / 8, ngfft, &
 &          size(paw%pawrhoij),atoms%astruct%nat,denspot%dpbox%nrhodim,nsym,atoms%astruct%ntypes, &

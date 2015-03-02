@@ -26,7 +26,6 @@ real(kind=8), intent(out) :: ehart, eexcu, vexcu !> Energies (Hartree, XC and XC
 ! Local variables
 character(len=*), parameter :: subname='updatePotential'
 logical :: nullifyVXC
-integer :: istat, iall
 real(dp), dimension(6) :: xcstr
 
 call f_routine(id='updatePotential')
