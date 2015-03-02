@@ -617,9 +617,9 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,energs,fxyz,strten,fnoise,press
      fpulay = f_malloc_ptr((/ 3, atoms%astruct%nat /),id='fpulay')
 
 
-     !call linearScaling(iproc,nproc,KSwfn,tmb,atoms,in,&
-     !     rxyz,denspot,denspot0,nlpsp,GPU,energs,energy,fpulay,infocode,ref_frags,cdft,&
-     !     fdisp, fion)
+     call linearScaling(iproc,nproc,KSwfn,tmb,atoms,in,&
+          rxyz,denspot,denspot0,nlpsp,GPU,energs,energy,fpulay,infocode,ref_frags,cdft,&
+          fdisp, fion)
 
 
 
