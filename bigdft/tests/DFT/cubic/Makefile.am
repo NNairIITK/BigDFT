@@ -15,7 +15,8 @@ TESTDIRS = C \
 	  ElectronGas \
 	  NLCC \
 	  taskgroups \
-	  CH4-D3 
+	  CH4-D3 \
+	  PAW
 
 tests_cpu_only = H Graphene FeHyb Mn2 SIC H-Rydberg
 tests_ocl_only = OCL
