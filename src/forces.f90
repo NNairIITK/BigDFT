@@ -4327,7 +4327,7 @@ subroutine nonlocal_forces_linear(iproc,nproc,npsidim_orbs,lr,hx,hy,hz,at,rxyz,&
   call determine_dimension_scalprod()
   ii = nat_nonzero_prescreened
   call mpiallred(ii, 1, mpi_sum, bigdft_mpi%mpi_comm)
-  iiat_nonzero_lookup = f_malloc((/1.to.ii,0.to.nproc-1/),id='iiat_nonzero_lookup')
+  iiat_nonzero_lookup = f_malloc0((/1.to.ii,0.to.nproc-1/),id='iiat_nonzero_lookup')
   scalprod_sendbuf = f_malloc0((/ 1.to.2, 0.to.ndir, 1.to.7, 1.to.3, 1.to.4, &
                                  iat_startend(1,iproc).to.iat_startend(2,iproc), &
                                  1.to.max(1,orbs%norbp*orbs%nspinor) /),id='scalprod_sendbuf')
@@ -4846,11 +4846,14 @@ subroutine nonlocal_forces_linear(iproc,nproc,npsidim_orbs,lr,hx,hy,hz,at,rxyz,&
         integer,dimension(:),allocatable :: datatypes, types_at
         integer,dimension(:,:),allocatable :: datatypes2, iat_nonzero_lookup
         integer,dimension(:),allocatable :: types_double, blocklengths, norbrecv, isorbrecv
-        integer(kind=mpi_address_kind),dimension(:),allocatable :: displacements, displacements_at
-        logical :: copy, first, communicate
+        integer(kind=mpi_address_kind),dimension(:),allocatable :: displacements
+        integer(kind=mpi_address_kind),dimension(:,:),allocatable :: displacements_at
+        integer :: size_send, size_recv, igetat, ii2
+        integer,dimension(:),allocatable :: size_scalprod_sendbuf3
+        logical :: copy, first, communicate, found
         real(kind=8),dimension(:),allocatable :: scalprod_recvbuf
         integer,dimension(:),allocatable :: blocklengths_at
-        logical,dimension(:),allocatable :: getdata, get_at
+        logical,dimension(:),allocatable :: getdata, get_at, create_types
         real(kind=8),dimension(:,:,:,:,:,:,:),allocatable :: scalprod_recvbuf2
         integer(kind=mpi_address_kind) :: lb_send, extent_send, lb_recv, extent_recv
         call f_routine(id='transpose_scalprod')
@@ -4896,6 +4899,9 @@ subroutine nonlocal_forces_linear(iproc,nproc,npsidim_orbs,lr,hx,hy,hz,at,rxyz,&
         scalprod_sendbuf3 = f_malloc0((/ 1.to.2, 0.to.ndir, 1.to.7, 1.to.3, 1.to.4, &
                                        1.to.max(1,orbs%norbp*orbs%nspinor), 1.to.max(1,nat_nonzero) /), &
                                        id='scalprod_sendbuf3')
+        size_scalprod_sendbuf3 = f_malloc0(0.to.nproc-1,id='size_scalprod_sendbuf3')
+        size_scalprod_sendbuf3(iproc) = size(scalprod_sendbuf3)
+        call mpiallred(size_scalprod_sendbuf3, mpi_sum, bigdft_mpi%mpi_comm)
         !iat_nonzero_lookup = f_malloc0((/1.to.nat_nonzero,0.to.nproc-1/),id='iat_nonzero_lookup')
         iat_nonzero_lookup = f_malloc0((/1.to.natp,0.to.nproc-1/),id='iat_nonzero_lookup')
         iat_nonzero = 0
@@ -4966,7 +4972,8 @@ subroutine nonlocal_forces_linear(iproc,nproc,npsidim_orbs,lr,hx,hy,hz,at,rxyz,&
                         end if
                     end if
                 end do
-                norbrecv(jproc) = iii
+                !norbrecv(jproc) = iii
+                !norbrecv(jproc) = max(iii,norbrecv(jproc))
             end do
             !norbmax = max(ii,norbmax)
         end do
@@ -4987,6 +4994,7 @@ subroutine nonlocal_forces_linear(iproc,nproc,npsidim_orbs,lr,hx,hy,hz,at,rxyz,&
                     ii= ii + 1
                 end if
             end do
+            norbrecv(jproc) = ii
             norbmax = max(ii,norbmax)
         end do
 
@@ -4995,6 +5003,9 @@ subroutine nonlocal_forces_linear(iproc,nproc,npsidim_orbs,lr,hx,hy,hz,at,rxyz,&
             isorbrecv(jproc) = isorbrecv(jproc-1) + norbrecv(jproc-1)
         end do
         write(*,'(a,4i8)') 'iproc, norbmax, old', iproc, norbmax, iorbmin, iorbmax
+        do jproc=0,nproc-1
+            write(*,'(a,4i9)') 'iproc, jproc, norbrecv(jproc), isorbrecv(jproc)', iproc, jproc, norbrecv(jproc), isorbrecv(jproc)
+        end do
 
 
 
@@ -5032,24 +5043,27 @@ subroutine nonlocal_forces_linear(iproc,nproc,npsidim_orbs,lr,hx,hy,hz,at,rxyz,&
         !!    end do
         !!end do
 
-        datatypes2 = f_malloc((/1.to.3,0.to.nproc-1/),id='datatypes2')
+        datatypes2 = f_malloc((/1.to.4,0.to.nproc-1/),id='datatypes2')
         types_double = f_malloc(norbmax,id='types_double')
         blocklengths = f_malloc(norbmax,id='blocklengths')
         displacements = f_malloc(norbmax,id='blocklengths')
         getdata = f_malloc(orbs%norb,id='getdata')
         getdata = .false.
         get_at = f_malloc(nat_par(iproc),id='get_at')
-        get_at = .false.
+        !get_at = .false.
         blocklengths_at = f_malloc(nat_par(iproc),id='blocklengths_at')
         types_at = f_malloc(nat_par(iproc),id='types_at')
-        displacements_at = f_malloc(nat_par(iproc),id='displacements_at')
+        displacements_at = f_malloc((/nat_par(iproc),2/),id='displacements_at')
+        create_types = f_malloc(0.to.nproc-1,id='create_types')
 
         types_double(:) = mpi_double_precision
-        blocklengths(:) = 1
         ncount = 2*(ndir+1)*7*3*4
+        !blocklengths(:) = 1
+        blocklengths(:) = ncount
         call mpi_type_size(mpi_double_precision, size_of_double, ierr)
         do jproc=0,nproc-1
             nel = 0
+            get_at(:) = .false.
             do jorb=1,orbs%norb_par(jproc,0)
                 jjorb = orbs%isorb_par(jproc) + jorb
                 communicate = .false.
@@ -5066,6 +5080,21 @@ subroutine nonlocal_forces_linear(iproc,nproc,npsidim_orbs,lr,hx,hy,hz,at,rxyz,&
                     displacements(nel) = int((jorb-1)*size_of_double*ncount,kind=mpi_address_kind)
                 end if
             end do
+            write(*,*) 'iproc, jproc, nel', iproc, jproc, nel
+
+            ngetat = 0
+            do iat=1,nat_par(iproc)
+                if (get_at(iat)) then
+                    ngetat = ngetat + 1
+                end if
+            end do
+            write(*,*) 'iproc, jproc, ngetat', iproc, jproc, ngetat
+            if (ngetat==0) then
+                write(*,*) 'CYCLE, iproc, jproc', iproc, jproc
+                create_types(jproc) = .false.
+                cycle
+            end if
+            create_types(jproc) = .true.
 
             !!nel = 0
             !!do iat=1,nat_par(iproc)
@@ -5083,69 +5112,125 @@ subroutine nonlocal_forces_linear(iproc,nproc,npsidim_orbs,lr,hx,hy,hz,at,rxyz,&
                 stop 'nel>norbmax'
             end if
 
-            iiat = isat_par(iproc) + iat
-            do jat=1,size(iiat_nonzero_lookup,1)
-                !if (iat_nonzero_lookup(jat,jproc)==iiat) then
-                if (iiat_nonzero_lookup(jat,jproc)==iiat) then
-                    iiatref = jat
+            if (nel>norbrecv(jproc)) then
+                write(*,*) 'nel, norbrecv(jproc)', nel, norbrecv(jproc)
+                stop 'nel>norbrecv(jproc)'
+            end if
+
+            !!iiat = isat_par(iproc) + 1 !+ iat
+            do iat=1,nat_par(iproc)
+                if (get_at(iat)) then
+                    iiat = isat_par(iproc) + iat
+                    exit
                 end if
             end do
-            ngetat = 0
+            found = .false.
+            do jat=1,size(iiat_nonzero_lookup,1)
+                !if (iat_nonzero_lookup(jat,jproc)==iiat) then
+                write(*,'(a,5i8)') 'iproc, jproc, jat, iiat, val', iproc, jproc, jat, iiat, iiat_nonzero_lookup(jat,jproc)
+                if (iiat_nonzero_lookup(jat,jproc)==iiat) then
+                    iiatref = jat
+                    found = .true.
+                end if
+            end do
+            if (.not.found) then
+                write(*,*) 'iproc, jproc, iiat',iproc, jproc, iiat
+                stop 'iiat not found'
+            end if
+            igetat = 0
             do iat=1,nat_par(iproc)
                 iiat = isat_par(iproc) + iat
                 write(*,*) 'iproc, iat, get_at(iat)',iproc, iat, get_at(iat)
                 if (get_at(iat)) then
-                    ngetat = ngetat + 1
-                    blocklengths_at(ngetat) = 1
+                    igetat = igetat + 1
+                    blocklengths_at(igetat) = 1
                     do jat=1,size(iiat_nonzero_lookup,1)!natp
-                       if (iat_nonzero_lookup(jat,jproc)==iiat) then
+                       if (iiat_nonzero_lookup(jat,jproc)==iiat) then
                            ii = jat-iiatref
+                           ii2 = jat-isat_par(iproc)+1
                        end if
                     end do
-                    write(*,'(a,4i16)') 'iproc, ngetat, blocklengths_at(ngetat), ii', iproc, ngetat, blocklengths_at(ngetat), ii
-                    displacements_at(ngetat) = int(ii*orbs%norb_par(jproc,0)*ncount*size_of_double,kind=mpi_address_kind)
+                    !write(*,'(a,4i16)') 'iproc, igetat, blocklengths_at(igetat), ii', iproc, igetat, blocklengths_at(igetat), ii
+                    displacements_at(igetat,1) = int(ii*orbs%norb_par(jproc,0)*ncount*size_of_double,kind=mpi_address_kind)
+                    displacements_at(igetat,2) = int(ii2*orbs%norb_par(jproc,0)*ncount*size_of_double,kind=mpi_address_kind)
                     ii = 0
                 end if
             end do
+            if (igetat/=ngetat) stop 'igetat/=ngetat'
+            write(*,*) 'iproc, jproc, igetat', iproc, jproc, igetat
 
-            do i=1,nel
-                write(*,'(a,5i8)') 'iproc, i, blocklengths(i), displacements(i), types_double(i)', iproc, i, blocklengths(i), displacements(i), types_double(i)
-            end do
+            !!do i=1,nel
+            !!    write(*,'(a,5i8)') 'iproc, i, blocklengths(i), displacements(i), types_double(i)', iproc, i, blocklengths(i), displacements(i), types_double(i)
+            !!end do
             call mpi_type_create_struct(nel, blocklengths, displacements, types_double, &
                  datatypes2(1,jproc), ierr)
             call mpi_type_commit(datatypes2(1,jproc), ierr)
+
+            call mpi_type_size(datatypes2(1,jproc), ii, ierr)
+            write(*,*) 'iproc, jproc, nel, ngetat, size(type1)', iproc, jproc, nel, ngetat, ii
 
             !!call mpi_type_create_hvector(nat_par(iproc), 1, int(size_of_double*orbs%norb_par(jproc,0)*ncount,kind=mpi_address_kind), &
             !!     dataypes(1,jproc), datatypes(2,jproc), ierr)
             types_at(:) = datatypes2(1,jproc)
             do i=1,ngetat
-                write(*,'(a,5i16)') 'iproc, i, blocklengths_at(i), displacements_at(i), types_at(i)', iproc, i, blocklengths_at(i), displacements_at(i), types_at(i)
+                write(*,'(a,6i14)') 'iproc, i, blocklengths_at(i), displacements_at(i,:), types_at(i)', iproc, i, blocklengths_at(i), displacements_at(i,:), types_at(i)
             end do
-            call mpi_type_create_struct(ngetat, blocklengths_at, displacements_at, &
+            call mpi_type_create_struct(ngetat, blocklengths_at, displacements_at(:,1), &
                  types_at, datatypes2(2,jproc), ierr)
             call mpi_type_commit(datatypes2(2,jproc), ierr)
 
-            call mpi_type_vector(nat_par(iproc), nel*ncount, norbmax*ncount, &
-                 mpi_double_precision, datatypes2(3,jproc), ierr)
-            call mpi_type_commit(datatypes2(3,jproc), ierr)
+     !       !# NEW ###############################
+     !!!!CONTINUE HERE AFTER THE MEETING!!!!
+     !       call mpi_type_create_struct(nel, blocklengths, displacements, types_double, &
+     !            datatypes2(1,jproc), ierr)
+     !       call mpi_type_commit(datatypes2(1,jproc), ierr)
+     !       !# NEW ###############################
 
-            call mpi_type_get_extent(datatypes2(2,jproc), lb_recv, extent_recv, ierr)
-            call mpi_type_get_extent(datatypes2(3,jproc), lb_send, extent_send, ierr)
+            write(*,'(a,5i12)') 'call mpi_type_vector, iproc, jproc, nat_par(iproc), nel, ncount', iproc, jproc, nat_par(iproc), nel, ncount
+            !!call mpi_type_vector(nat_par(iproc), nel*ncount, norbmax*ncount, &
+            !!     mpi_double_precision, datatypes2(4,jproc), ierr)
+            call mpi_type_create_struct(ngetat, blocklengths_at, displacements_at(:,2), &
+                 types_at, datatypes2(4,jproc), ierr)
+            call mpi_type_commit(datatypes2(4,jproc), ierr)
 
-            if ((isorbrecv(jproc)-1)*ncount+extent_recv>size(scalprod_recvbuf2)) then
-                write(*,*) 'ist, extent, size', (isorbrecv(jproc)-1)*ncount, extent_recv, size(scalprod_recvbuf2)
+            call mpi_type_get_extent(datatypes2(4,jproc), lb_recv, extent_recv, ierr)
+            call mpi_type_get_extent(datatypes2(2,jproc), lb_send, extent_send, ierr)
+            extent_send = extent_send/size_of_double
+            extent_recv = extent_recv/size_of_double
+
+            call mpi_type_size(datatypes2(2,jproc), size_send, ierr)
+            call mpi_type_size(datatypes2(4,jproc), size_recv, ierr)
+            size_send = size_send/size_of_double
+            size_recv = size_recv/size_of_double
+
+            if (size_send/=size_recv) then
+                write(*,*) 'size_send, size_recv', size_send, size_recv
+                stop 'size_send/=size_recv'
+            end if
+
+            write(*,*) 'types defined, iproc, jproc', iproc, jproc
+
+            if (isorbrecv(jproc)*ncount+size_recv>size(scalprod_recvbuf2)) then
+                write(*,*) 'ist, size_recv, size', isorbrecv(jproc)*ncount, size_recv, size(scalprod_recvbuf2)
                 stop 'out of recvbuf'
             end if
-            if ((iiatref-1)*orbs%norb_par(jproc,0)*ncount+extent_send>size(scalprod_sendbuf3)) then
-                write(*,*) 'ist, extent, size', isat_par(iproc)*orbs%norb_par(jproc,0)*ncount, extent_send, size(scalprod_sendbuf3)
+            if (isorbrecv(jproc)*ncount+extent_recv>size(scalprod_recvbuf2)) then
+                write(*,*) 'ist, size_recv, size', isorbrecv(jproc)*ncount, size_recv, size(scalprod_recvbuf2)
+                stop 'out of recvbuf'
+            end if
+            if ((iiatref-1)*orbs%norb_par(jproc,0)*ncount+size_send>size_scalprod_sendbuf3(jproc)) then
+                !write(*,*) 'ist, size_send, size', isat_par(iproc)*orbs%norb_par(jproc,0)*ncount, extent_send, size(scalprod_sendbuf3)
+                write(*,*) 'ist, size_send, size', (iiatref-1)*orbs%norb_par(jproc,0)*ncount, size_send, size_scalprod_sendbuf3(jproc)
                 stop 'out of sendbuf'
             end if
-        scalprod_sendbuf3 = f_malloc0((/ 1.to.2, 0.to.ndir, 1.to.7, 1.to.3, 1.to.4, &
-                                       1.to.max(1,orbs%norbp*orbs%nspinor), 1.to.max(1,nat_nonzero) /), &
-                                       id='scalprod_sendbuf3')
-            write(*,*) 'call mpi_get, iproc', iproc
-            call mpi_get(scalprod_recvbuf2(1,0,1,1,1,isorbrecv(jproc)+1,1), 1, datatypes2(3,jproc), &
-                 jproc, int((iiatref-1)*orbs%norb_par(jproc,0)*ncount), 1, datatypes2(2,jproc), &
+        !!scalprod_sendbuf3 = f_malloc0((/ 1.to.2, 0.to.ndir, 1.to.7, 1.to.3, 1.to.4, &
+        !!                               1.to.max(1,orbs%norbp*orbs%nspinor), 1.to.max(1,nat_nonzero) /), &
+        !!                               id='scalprod_sendbuf3')
+            write(*,'(a,8i10)') 'call mpi_get, iproc, jproc, size_send, extent_send, size_recv, extent_recv, size_scalprod_sendbuf3(jproc), size(scalprod_recvbuf2)', &
+                 iproc, jproc, size_send, extent_send, size_recv, extent_recv, size_scalprod_sendbuf3(jproc), size(scalprod_recvbuf2)
+            write(*,'(a,2i10)') 'call mpi_get, params: isorbrecv(jproc), iiatref', isorbrecv(jproc), iiatref
+            call mpi_get(scalprod_recvbuf2(1,0,1,1,1,isorbrecv(jproc)+1,1), 1, datatypes2(4,jproc), &
+                 jproc, int((iiatref-1)*orbs%norb_par(jproc,0)*ncount,kind=mpi_address_kind), 1, datatypes2(2,jproc), &
                  window, ierr)
             write(*,*) 'after mpi_get, iproc', iproc
         end do
@@ -5166,12 +5251,17 @@ subroutine nonlocal_forces_linear(iproc,nproc,npsidim_orbs,lr,hx,hy,hz,at,rxyz,&
         end do
 
         do jproc=0,nproc-1
-            call mpi_type_free(datatypes2(1,jproc), ierr)
-            call mpi_type_free(datatypes2(2,jproc), ierr)
-            call mpi_type_free(datatypes2(3,jproc), ierr)
+            if (create_types(jproc)) then
+                call mpi_type_free(datatypes2(1,jproc), ierr)
+                call mpi_type_free(datatypes2(2,jproc), ierr)
+                !call mpi_type_free(datatypes2(3,jproc), ierr)
+                call mpi_type_free(datatypes2(4,jproc), ierr)
+            end if
         end do
         call f_free(datatypes2)
 
+
+        write(*,*) 'at end very new'
 
         !@ END VERYNEW ######################################
     
