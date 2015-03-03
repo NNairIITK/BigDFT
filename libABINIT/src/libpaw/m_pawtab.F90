@@ -2166,7 +2166,7 @@ subroutine pawtab_bcast(pawtab,comm_mpi,only_from_file)
        ii=ii+siz_wvl_parg
      end if
      if (siz_wvl_pfac>0) then
-       list_dpr(ii:ii+siz_wvl_pfac-1)=reshape(pawtab%wvl%parg,(/siz_wvl_pfac/))
+       list_dpr(ii:ii+siz_wvl_pfac-1)=reshape(pawtab%wvl%pfac,(/siz_wvl_pfac/))
        ii=ii+siz_wvl_pfac
      end if
      if (siz_wvl_rholoc_rad>0) then
