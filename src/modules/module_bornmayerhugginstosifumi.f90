@@ -349,7 +349,7 @@ subroutine energyandforces_bmhtf(nat,rat,fat,epot)
     real(gp)::fx,fy,fz,pi,hspinv,rhspinv,rinv,spf,spfd
     integer::iat,jat,isp
 
-    if(initialized==.false.)then
+    if(.not. initialized)then
         call f_err_throw('BMHTF potential not initialized.')
     endif
 

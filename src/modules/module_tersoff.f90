@@ -603,9 +603,15 @@ subroutine subfiat_t(i,Nmol,Npmax,NNmax,Pn,Co_bcd,bcsq,dsq,h,XYZRrefdf,UadUrdf,F
 
                    !Cell gradient part
                    !My own implementation
-                   si1_sj1=transinv(1,1)*dkEij_rad(Nkpt3_per+1)+transinv(1,2)*dkEij_rad(Nkpt3_per+2)+transinv(1,3)*dkEij_rad(Nkpt3_per+3)
-                   si2_sj2=transinv(2,1)*dkEij_rad(Nkpt3_per+1)+transinv(2,2)*dkEij_rad(Nkpt3_per+2)+transinv(2,3)*dkEij_rad(Nkpt3_per+3)
-                   si3_sj3=transinv(3,1)*dkEij_rad(Nkpt3_per+1)+transinv(3,2)*dkEij_rad(Nkpt3_per+2)+transinv(3,3)*dkEij_rad(Nkpt3_per+3)
+                   si1_sj1=transinv(1,1)*dkEij_rad(Nkpt3_per+1)+&
+                           transinv(1,2)*dkEij_rad(Nkpt3_per+2)+&
+                           transinv(1,3)*dkEij_rad(Nkpt3_per+3)
+                   si2_sj2=transinv(2,1)*dkEij_rad(Nkpt3_per+1)+&
+                           transinv(2,2)*dkEij_rad(Nkpt3_per+2)+&
+                           transinv(2,3)*dkEij_rad(Nkpt3_per+3)
+                   si3_sj3=transinv(3,1)*dkEij_rad(Nkpt3_per+1)+&
+                           transinv(3,2)*dkEij_rad(Nkpt3_per+2)+&
+                           transinv(3,3)*dkEij_rad(Nkpt3_per+3)
                    stress(1,1)=stress(1,1)-dkEij_rad(Nkpt3_per+4)*dFxk*si1_sj1 
                    stress(1,2)=stress(1,2)-dkEij_rad(Nkpt3_per+4)*dFxk*si2_sj2 
                    stress(1,3)=stress(1,3)-dkEij_rad(Nkpt3_per+4)*dFxk*si3_sj3 

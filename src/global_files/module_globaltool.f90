@@ -670,12 +670,12 @@ subroutine check_given_pairs(gdat,iposloc_curr,iposloc_next)
     do itrans=1,gdat%uinp%ntranspairs
         if(.not.gdat%input_transpair_found(itrans))then
             !check icurr
-            if (equal(gdat%nid,gdat%uinp%en_arr_trans_pairs(1,itrans),&
+            if (equal_gt(gdat%nid,gdat%uinp%en_arr_trans_pairs(1,itrans),&
                 gdat%gmon_ener(iposloc_curr),&
                 gdat%uinp%fp_arr_trans_pairs(1,1,itrans),&
                 gdat%gmon_fp(1,iposloc_curr),&
                 gdat%uinp%en_delta,gdat%uinp%fp_delta))then
-                if(equal(gdat%nid,gdat%uinp%en_arr_trans_pairs(2,itrans),&
+                if(equal_gt(gdat%nid,gdat%uinp%en_arr_trans_pairs(2,itrans),&
                    gdat%gmon_ener(iposloc_next),&
                    gdat%uinp%fp_arr_trans_pairs(1,2,itrans),&
                    gdat%gmon_fp(1,iposloc_next),&
@@ -685,12 +685,12 @@ subroutine check_given_pairs(gdat,iposloc_curr,iposloc_next)
                     gdat%trans_pairs_paths_found(2,itrans)=gdat%gmon_path(iposloc_next)
                     gdat%input_transpair_found(itrans)=.true.
                 endif
-            else if((equal(gdat%nid,gdat%uinp%en_arr_trans_pairs(2,itrans),&
+            else if((equal_gt(gdat%nid,gdat%uinp%en_arr_trans_pairs(2,itrans),&
                 gdat%gmon_ener(iposloc_curr),&
                 gdat%uinp%fp_arr_trans_pairs(1,2,itrans),&
                 gdat%gmon_fp(1,iposloc_curr),&
                 gdat%uinp%en_delta,gdat%uinp%fp_delta))) then
-                if(equal(gdat%nid,gdat%uinp%en_arr_trans_pairs(1,itrans),&
+                if(equal_gt(gdat%nid,gdat%uinp%en_arr_trans_pairs(1,itrans),&
                    gdat%gmon_ener(iposloc_next),&
                    gdat%uinp%fp_arr_trans_pairs(1,1,itrans),&
                    gdat%gmon_fp(1,iposloc_next),&
@@ -1067,7 +1067,7 @@ subroutine give_rcov(iproc,astruct,rcov)
 
 end subroutine give_rcov
 !=====================================================================
-logical function equal(nid,ener1,ener2,fp1,fp2,en_delta,fp_delta)
+function equal_gt(nid,ener1,ener2,fp1,fp2,en_delta,fp_delta)
     use module_base
     use module_fingerprints
     implicit none
@@ -1075,14 +1075,15 @@ logical function equal(nid,ener1,ener2,fp1,fp2,en_delta,fp_delta)
     integer, intent(in) :: nid
     real(gp), intent(in) :: ener1, ener2
     real(gp), intent(in) :: fp1(nid),fp2(nid)
-    real(gp), intent(in) :: en_delta,fp_delta
+    real(gp), intent(in) :: en_delta,fp_delta   
+    logical :: equal_gt
     !local
     real(gp) :: d
 
-    equal=.false.
+    equal_gt=.false.
     if (abs(ener1-ener2).le.en_delta) then
         call fpdistance(nid,fp1,fp2,d)
-        if(d.le.fp_delta)equal=.true.
+        if(d.le.fp_delta)equal_gt=.true.
     endif
-end function equal
+end function equal_gt
 end module
