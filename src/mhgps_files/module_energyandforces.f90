@@ -1,7 +1,7 @@
 !> @file
 !!    Energy and Forces for minima hopping guided path sampling
 !! @author 
-!!    Copyright (C) 2014 BigDFT group
+!!    Copyright (C) 2015-2015 BigDFT group
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    GNU General Public License, see ~/COPYING file

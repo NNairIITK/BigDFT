@@ -1,7 +1,8 @@
     !> @file
     !!    SQNS Saddle Search Method
     !! @author Bastian Schaefer
-    !!    Copyright (C) 2014 BigDFT group
+    !!    Copyright (C) 2014-2015 UNIBAS, Bastian Schaefer 
+    !!    Copyright (C) 2015-2015 BigDFT group
     !!    This file is distributed under the terms of the
     !!    GNU General Public License, see ~/COPYING file
     !!    or http://www.gnu.org/copyleft/gpl.txt .
