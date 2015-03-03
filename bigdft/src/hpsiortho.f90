@@ -925,6 +925,10 @@ subroutine NonLocalHamiltonianApplication(iproc,at,npsidim_orbs,orbs,&
 
   end do loop_kpt
 
+  if(paw%usepaw) then  
+     call gather_cprj(orbs, paw)
+  end if
+
   if (.not. nl%on_the_fly) then !TO BE REMOVED WITH NEW PROJECTOR APPLICATION
      if (istart_ck-1 /= nl%nprojel) then
         call yaml_warning('Incorrect once-and-for-all psp application')
@@ -1754,8 +1758,6 @@ subroutine hpsitopsi(iproc,nproc,iter,idsx,wfn,&
 
 !    Transpose spsi:     
      call transpose_v(iproc,nproc,wfn%orbs,wfn%lzd%glr%wfd,wfn%comms,wfn%paw%spsi(1),wfn%hpsi(1))
-!    Gather cprj:
-     call gather_cprj()
    end if
 
    call timing(iproc,'Diis          ','OF')
@@ -1834,104 +1836,6 @@ subroutine hpsitopsi(iproc,nproc,iter,idsx,wfn,&
    !end if
    !END DEBUG
 
-contains
-
-   !> In this routine cprj will be communicated to all processors
-   subroutine gather_cprj()
-     use module_base
-     use module_types
-     implicit none
-   ! Local variables:
-     integer::iatom,ilmn,iorb,ierr,ikpts,jproc
-     character(len=*), parameter :: subname='gather_cprj'
-   ! Tabulated data to be send/received for mpi
-     integer,allocatable,dimension(:):: ndsplt
-     integer,allocatable,dimension(:):: ncntd 
-     integer,allocatable,dimension(:):: ncntt 
-   ! auxiliar arrays
-     real(dp),allocatable,dimension(:,:,:,:)::raux,raux2  
-
-     if (nproc > 1) then
-
-   !   Allocate temporary arrays
-       ndsplt = f_malloc(0.to.nproc-1,id='ndsplt')
-       ncntd = f_malloc(0.to.nproc-1,id='ncntd')
-       ncntt = f_malloc(0.to.nproc-1,id='ncntt')
-       raux = f_malloc((/ 2, wfn%paw%lmnmax, wfn%paw%natom, wfn%orbs%norbp /),id='raux')
-       raux2 = f_malloc((/ 2, wfn%paw%lmnmax, wfn%paw%natom, wfn%orbs%norb /),id='raux2')
-
-   !   Set tables for mpi operations:
-   !   Send buffer:
-       do jproc=0,nproc-1
-         ncntd(jproc)=0
-         do ikpts=1,wfn%orbs%nkpts
-           ncntd(jproc)=ncntd(jproc)+&
-                2*wfn%paw%lmnmax*wfn%paw%natom*wfn%orbs%norb_par(iproc,ikpts)*wfn%orbs%nspinor
-         end do
-       end do
-   !   receive buffer:
-       do jproc=0,nproc-1
-          ncntt(jproc)=0
-          do ikpts=1,wfn%orbs%nkpts
-             ncntt(jproc)=ncntt(jproc)+&
-                  2*wfn%paw%lmnmax*wfn%paw%natom*wfn%orbs%norb_par(jproc,ikpts)*wfn%orbs%nspinor
-          end do
-       end do
-   !   Displacements table:
-   !    ndspld(0)=0
-   !    do jproc=1,nproc-1
-   !      ndspld(jproc)=ndspld(jproc-1)+ncntd(jproc-1)
-   !    end do
-       ndsplt(0)=0
-       do jproc=1,nproc-1
-          ndsplt(jproc)=ndsplt(jproc-1)+ncntt(jproc-1)
-       end do
-
-   !   Transfer cprj to raux:
-       raux=0.0_dp
-   !Missing nspinor
-       do iorb=1,wfn%orbs%norbp
-         do iatom=1,wfn%paw%natom
-           do ilmn=1,wfn%paw%cprj(iatom,iorb)%nlmn
-             raux(:,ilmn,iatom,iorb)=wfn%paw%cprj(iatom,iorb)%cp(:,ilmn)
-           end do
-         end do
-       end do
-   !
-   !    sendcnt=2*lmnmax*natom*orbs%norbp !N. of data to send
-   !    recvcnt=2*lmnmax*natom*orbs%norb  !N. of data to receive
-   !   
-   !    call MPI_ALLGATHER(raux,sendcnt,MPI_DOUBLE_PRECISION,&
-   !&     raux2,recvcnt,MPI_DOUBLE_PRECISION,MPI_COMM_WORLD,ierr)
-       call MPI_ALLGATHERV(raux,ncntd,mpidtypw,&
-   &     raux2,ncntt,ndsplt,mpidtypw,MPI_COMM_WORLD,ierr)
-   !
-   !   Transfer back, raux2 to cprj:
-   !   First set cprj to zero
-       do iorb=1,wfn%orbs%norbp
-         do iatom=1,wfn%paw%natom
-           wfn%paw%cprj(iatom,iorb)%cp(:,:)=0.0_dp
-         end do
-       end do
-   !
-       do iorb=1,wfn%orbs%norb
-         do iatom=1,wfn%paw%natom
-           do ilmn=1,wfn%paw%cprj(iatom,iorb)%nlmn
-             wfn%paw%cprj(iatom,iorb)%cp(:,ilmn)=raux2(:,ilmn,iatom,iorb)
-           end do
-         end do
-       end do
-   !   Deallocate arrays:
-       call f_free(ndsplt)
-       call f_free(ncntd)
-       call f_free(ncntt)
-       call f_free(raux)
-       call f_free(raux2)
-     end if
-
-
-   end subroutine gather_cprj
-
 END SUBROUTINE hpsitopsi
 
 
@@ -1978,6 +1882,8 @@ subroutine first_orthon(iproc,nproc,orbs,lzd,comms,psi,hpsi,psit,orthpar,paw)
    if (nproc>1) then
        call transpose_v(iproc,nproc,orbs,lzd%glr%wfd,comms,psi(1),&
           &   hpsi(1),out_add=psit(1))
+       if (usepaw) call transpose_v(iproc,nproc,orbs,lzd%glr%wfd,comms,&
+            & paw%spsi(1), hpsi(1))
    else
        ! work array not nedded for nproc==1, so pass the same address
        call transpose_v(iproc,nproc,orbs,lzd%glr%wfd,comms,psi(1),&
@@ -3395,10 +3301,10 @@ subroutine paw_compute_dij(paw, at, denspot, vxc, e_paw, e_pawdc, compch_sph)
   call pawdij(cplex, enunit, gprimd, ipert, size(paw%pawrhoij), at%astruct%nat, nfft, nfftot, &
        & denspot%dpbox%nrhodim, at%astruct%ntypes, paw%paw_an, paw%paw_ij, at%pawang, &
        & paw%pawfgrtab, pawprtvol, at%pawrad, paw%pawrhoij, pawspnorb, at%pawtab, pawxcdev, &
-       & qphon, spnorbscl, ucvol, charge, denspot%rhov, vxc, xred) !, &
+       & qphon, spnorbscl, ucvol, charge, denspot%rhov, vxc, xred, &
+       & mpi_comm_grid = bigdft_mpi%mpi_comm) !, &
   !&     natvshift=dtset%natvshift,atvshift=dtset%atvshift,fatvshift=fatvshift) !,&
   !&     mpi_comm_atom=mpi_enreg%comm_atom,mpi_atmtab=mpi_enreg%my_atmtab,&
-  !&     mpi_comm_grid=spaceComm_grid)
 
   call f_free(xred)
 

@@ -1100,28 +1100,25 @@ subroutine applyprojector_paw(ncplx,istart_c,iat,&
   real(wp), dimension(lmn2_size),intent(in)::sij
   !local variables
   character(len=*),parameter::subname='applyprojector_paw'
-  integer :: ilmn,jlmn,klmn,j0lmn,ispinor
-  integer :: klmnc,i_m,j_m,iaux
+  integer :: jlmn,ispinor
+  integer :: i_m,j_m,iaux
   integer :: istart_j,icplx
   real(gp)::eproj_i
-  real(gp)::ddot
-  real(dp), dimension(2) :: scpr
-  real(gp) :: dij
   !real(wp), dimension(:,:), allocatable :: cprj_i
-  real(wp), dimension(:,:), allocatable :: cprj,dprj !scalar products with the projectors (always assumed to be complex and spinorial)
+  real(wp), dimension(:,:), allocatable :: dprj !scalar products with the projectors (always assumed to be complex and spinorial)
   integer :: proj_count
-  type(gaussian_basis_iter) :: iter, iter2, iter0
+  type(gaussian_basis_iter) :: iter, iter0
 
 ! change: keyv_p by nlpspd%keyv_p(jseg_c),&
 
 !
   proj_count= paw_ij%lmn_size
-  cprj = f_malloc((/ nspinor*ncplx, proj_count /),id='cprj')
-  dprj = f_malloc((/ nspinor*ncplx, proj_count /),id='dprj')
+!!$  cprj = f_malloc((/ nspinor*ncplx, proj_count /),id='cprj')
+  dprj = f_malloc(shape(cprj_out%cp),id='dprj')
 
   !cprj_out(1,1:nspinor)%cp(1:ncplx,1:proj_count)=0.0_wp
   eproj=0.0_gp
-  cprj=0.0_wp
+!!$  cprj=0.0_wp
   !call to_zero(4*7*3*4,cprj(1,1,1,1))
 
   !Use special subroutines for these number of projectors
@@ -1177,7 +1174,7 @@ subroutine applyprojector_paw(ncplx,istart_c,iat,&
                 mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,&
                 keyv_p,keyg_p,&
                 proj(istart_j),&
-                cprj(ispinor,jlmn))
+                cprj_out%cp(ispinor,jlmn))
         end do !ispinor
         istart_j=istart_j+(mbvctr_c+7*mbvctr_f)*ncplx
      end do !i_m
@@ -1191,10 +1188,10 @@ subroutine applyprojector_paw(ncplx,istart_c,iat,&
 !      cprj_out(1,ispinor)%cp(icplx,:)=cprj(jspinor,:) 
 !    end do
 !  end do
-  do ispinor=1,nspinor
-     cprj_out%cp(ispinor,:)=cprj(ispinor,:)
-     !write(*,*)'applyprojector_paw: erase me: l1212 cprj=',cprj_out%cp(ispinor,:)
-  end do
+!!$  do ispinor=1,nspinor
+!!$     cprj_out%cp(ispinor,:)=cprj(ispinor,:)
+!!$     !write(*,*)'applyprojector_paw: erase me: l1212 cprj=',cprj_out%cp(ispinor,:)
+!!$  end do
 !
 
   if(sij_opt==1 .or. sij_opt==3) then
@@ -1241,7 +1238,7 @@ subroutine applyprojector_paw(ncplx,istart_c,iat,&
   !update istart_c, note that we only used istart_j above.
   istart_c=istart_j
 
-  call f_free(cprj)
+!!$  call f_free(cprj)
   call f_free(dprj)
 
   contains
@@ -1266,6 +1263,7 @@ subroutine applyprojector_paw(ncplx,istart_c,iat,&
      implicit none
      integer,intent(in)::dim1
      real(wp),dimension(dim1),intent(in)::kij 
+     integer :: klmn
 
 !!$     !apply the matrix of the coefficients on the cprj array
 !!$     jlmn=0
@@ -1313,12 +1311,12 @@ subroutine applyprojector_paw(ncplx,istart_c,iat,&
         do i_m = 1, j_m - 1
            klmn = j_m * (j_m - 1) / 2 + i_m
 !!$           write(*,*) j_m, i_m, klmn
-           dprj(:, j_m) = dprj(:, j_m) + kij(klmn) * cprj(:, i_m)
+           dprj(:, j_m) = dprj(:, j_m) + kij(klmn) * cprj_out%cp(:, i_m)
         end do
         do i_m = j_m, proj_count, 1
            klmn = i_m * (i_m - 1) / 2 + j_m
 !!$           write(*,*) j_m, i_m, klmn
-           dprj(:, j_m) = dprj(:, j_m) + kij(klmn) * cprj(:, i_m)
+           dprj(:, j_m) = dprj(:, j_m) + kij(klmn) * cprj_out%cp(:, i_m)
         end do
      end do
   end subroutine calculate_dprj 
@@ -1343,7 +1341,7 @@ subroutine applyprojector_paw(ncplx,istart_c,iat,&
            jlmn=jlmn+1
            do ispinor=1,nspinor,ncplx
               do icplx=1,ncplx
-                 eproj_i=eproj_i+dprj(ispinor+icplx-1,jlmn)*cprj(ispinor+icplx-1,jlmn)
+                 eproj_i=eproj_i+dprj(ispinor+icplx-1,jlmn)*cprj_out%cp(ispinor+icplx-1,jlmn)
               end do
               call waxpy_wrap(ncplx,dprj(ispinor,jlmn),&
                    mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,&
@@ -1591,13 +1589,14 @@ END SUBROUTINE apply_atproj_iorb_new
 
 !> Applies the projector associated on a given atom on a corresponding orbital
 !! uses a generic representation of the projector to generalize the form of the projector  
-subroutine apply_atproj_iorb_paw(iat,iorb,istart_c,at,orbs,wfd,&
+subroutine apply_atproj_iorb_paw(iat,iorbp,istart_c,at,orbs,wfd,&
      nlpsp,psi,hpsi,spsi,eproj,paw)
   use module_base
   use module_types
   use gaussians, only: gaussian_basis
+  use m_pawcprj, only: pawcprj_mpi_allgather
   implicit none
-  integer, intent(in) :: iat,iorb
+  integer, intent(in) :: iat,iorbp
   integer, intent(inout)::istart_c
   type(atoms_data), intent(in) :: at
   type(orbitals_data), intent(in) :: orbs
@@ -1625,7 +1624,7 @@ subroutine apply_atproj_iorb_paw(iat,iorb,istart_c,at,orbs,wfd,&
   !complex functions or not
   !this should be decided as a function of the orbital
   !features of the k-point ikpt
-  call ncplx_kpt(orbs%iokpt(iorb),orbs,ncplx)
+  call ncplx_kpt(orbs%iokpt(iorbp),orbs,ncplx)
 
   !calculate the scalar product with all the projectors of the atom
   !index for performing the calculation with all the projectors
@@ -1639,7 +1638,7 @@ subroutine apply_atproj_iorb_paw(iat,iorb,istart_c,at,orbs,wfd,&
         nlpsp%pspd(iat)%plr%wfd%keyglob,& !nlpspd%keyg_p(1,jseg_c),&
         nlpsp%proj,&
         psi,hpsi,spsi,eproj_i,nlpsp%proj_G,paw%paw_ij(iat),&
-        at%pawtab(ityp)%lmn2_size,paw%cprj(iat,iorb),&
+        at%pawtab(ityp)%lmn2_size,paw%cprj(iat,iorbp + orbs%isorb),&
         sij_opt,at%pawtab(ityp)%sij)  
 
   !DEBUG
@@ -1666,14 +1665,92 @@ subroutine apply_atproj_iorb_paw(iat,iorb,istart_c,at,orbs,wfd,&
 !!$           wfd%keyvglob,wfd%keyglob,&
 !!$           spsi(1, ispinor),&
 !!$           d2)
-!!$      write(*,*) "DOT", d1 + d2
+!!$      write(*,*) bigdft_mpi%iproc, "DOT", d1, d2
 !!$   end do !ispinor
 
   eproj=eproj+&
-        &orbs%kwgts(orbs%iokpt(iorb))*orbs%occup(iorb+orbs%isorb)*eproj_i
+        &orbs%kwgts(orbs%iokpt(iorbp))*orbs%occup(iorbp+orbs%isorb)*eproj_i
 
 end subroutine apply_atproj_iorb_paw
 
+!> In this routine cprj will be communicated to all processors
+subroutine gather_cprj(orbs, paw)
+  use module_defs, only: dp, bigdft_mpi
+  use module_types, only: orbitals_data, paw_objects
+  use dynamic_memory
+  use wrapper_MPI
+  implicit none
+  type(orbitals_data), intent(in) :: orbs
+  type(paw_objects), intent(inout) :: paw
+  ! Local variables:
+  integer::iatom,ilmn,iorb,ierr,ikpts,jproc
+  ! Tabulated data to be send/received for mpi
+  integer,allocatable,dimension(:):: ndsplt
+  integer,allocatable,dimension(:):: ncntt 
+  ! auxiliar arrays
+  real(dp),allocatable,dimension(:,:,:,:)::raux  
+
+  if (bigdft_mpi%nproc > 1) then
+
+     !   Allocate temporary arrays
+     ndsplt = f_malloc(0.to.bigdft_mpi%nproc-1,id='ndsplt')
+     ncntt = f_malloc(0.to.bigdft_mpi%nproc-1,id='ncntt')
+     raux = f_malloc0((/ 2, paw%lmnmax, paw%natom, orbs%norb * orbs%nspinor /),id='raux')
+
+     !   Set tables for mpi operations:
+     !   receive buffer:
+     do jproc=0,bigdft_mpi%nproc-1
+        ncntt(jproc)=0
+        do ikpts=1,orbs%nkpts
+           ncntt(jproc)=ncntt(jproc)+&
+                2*paw%lmnmax*paw%natom*orbs%norb_par(jproc,ikpts)*orbs%nspinor
+        end do
+     end do
+     !   Displacements table:
+     !    ndspld(0)=0
+     !    do jproc=1,bigdft_mpi%nproc-1
+     !      ndspld(jproc)=ndspld(jproc-1)+ncntd(jproc-1)
+     !    end do
+     ndsplt(0)=0
+     do jproc=1,bigdft_mpi%nproc-1
+        ndsplt(jproc)=ndsplt(jproc-1)+ncntt(jproc-1)
+     end do
+
+     !   Transfer cprj to raux:
+     do iorb=orbs%isorb * orbs%nspinor+1,(orbs%isorb+orbs%norbp) * orbs%nspinor
+        do iatom=1,paw%natom
+           do ilmn=1,paw%cprj(iatom,iorb)%nlmn
+              raux(:,ilmn,iatom,iorb)=&
+                   & paw%cprj(iatom,iorb)%cp(:,ilmn)
+           end do
+        end do
+     end do
+     !
+     !    sendcnt=2*lmnmax*natom*orbs%norbp !N. of data to send
+     !    recvcnt=2*lmnmax*natom*orbs%norb  !N. of data to receive
+     !   
+     !    call MPI_ALLGATHER(raux,sendcnt,MPI_DOUBLE_PRECISION,&
+     !&     raux2,recvcnt,MPI_DOUBLE_PRECISION,MPI_COMM_WORLD,ierr)
+     call mpiallgatherv(raux(1,1,1,1), ncntt, ndsplt, bigdft_mpi%iproc, bigdft_mpi%mpi_comm, ierr)
+!!$     call MPI_ALLGATHERV(raux,ncntd,mpidtypw,&
+!!$          &     raux2,ncntt,ndsplt,mpidtypw,MPI_COMM_WORLD,ierr)
+     !
+     !   Transfer back, raux to cprj:
+     do iorb=1,orbs%norb * orbs%nspinor
+        do iatom=1,paw%natom
+           do ilmn=1,paw%cprj(iatom,iorb)%nlmn
+              paw%cprj(iatom,iorb)%cp(:,ilmn)=raux(:,ilmn,iatom,iorb)
+           end do
+        end do
+     end do
+     !   Deallocate arrays:
+     call f_free(ndsplt)
+     call f_free(ncntt)
+     call f_free(raux)
+  end if
+
+
+end subroutine gather_cprj
 
 !> Find the starting and ending orbital for kpoint ikpt, and the corresponding nspinor
 subroutine orbs_in_kpt(ikpt,orbs,isorb,ieorb,nspinor)
