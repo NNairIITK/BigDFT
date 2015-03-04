@@ -4207,7 +4207,7 @@ subroutine nonlocal_forces_linear(iproc,nproc,npsidim_orbs,lr,hx,hy,hz,at,rxyz,&
   integer :: iorbmin, jorbmin, iorbmax, jorbmax, nscalprod_send, nscalprod_recv, jat
   integer :: i1s, i1e, j1s, j1e, i2s, i2e, j2s, j2e, i3s, i3e, j3s, j3e
   integer :: nat_per_iteration, isat, natp, iat_out, nat_out, norbp_max
-  integer :: nat_overlap
+  integer :: nat_overlap, l_max, i_max, m_max
   !integer,parameter :: MAX_SIZE=268435456 !max size of the array scalprod, in elements
 
   !integer :: ldim, gdim
@@ -4292,11 +4292,29 @@ subroutine nonlocal_forces_linear(iproc,nproc,npsidim_orbs,lr,hx,hy,hz,at,rxyz,&
         end do
      end do
   end do
+
+
+  ! Determine the maximal value of l and i
+  l_max = 1
+  i_max = 1
+  do iat=1,natp
+      iiat = iat+isat-1
+      ityp=at%astruct%iatype(iiat)
+      do l=1,4
+          do i=1,3
+              if (at%psppar(l,i,ityp) /= 0.0_gp) then
+                  l_max = max(l,l_max)
+                  i_max = max(i,i_max)
+              end if
+          end do
+      end do
+  end do
+  m_max = 2*l_max-1
   
 
   ! Determine the size of the array scalprod_sendbuf (indicated by iat_startend)
   call determine_dimension_scalprod()
-  scalprod_sendbuf_new = f_malloc0((/ 1.to.2, 0.to.ndir, 1.to.7, 1.to.3, 1.to.4, &
+  scalprod_sendbuf_new = f_malloc0((/ 1.to.2, 0.to.ndir, 1.to.m_max, 1.to.i_max, 1.to.l_max, &
                                    1.to.max(nscalprod_send,1) /),id='scalprod_sendbuf_new')
   scalprod_send_lookup = f_malloc(max(nscalprod_send,1), id='scalprod_send_lookup')
 
@@ -4508,8 +4526,8 @@ subroutine nonlocal_forces_linear(iproc,nproc,npsidim_orbs,lr,hx,hy,hz,at,rxyz,&
                            do ispinor=1,nspinor,ncplx
                               jorb=jorb+1
                               istart_c=1
-                              do l=1,4
-                                 do i=1,3
+                              do l=1,l_max!4
+                                 do i=1,i_max!3
                                     if (at%psppar(l,i,ityp) /= 0.0_gp) then
                                        do m=1,2*l-1
                                           call wpdot_wrap(ncplx,&
@@ -4733,9 +4751,9 @@ subroutine nonlocal_forces_linear(iproc,nproc,npsidim_orbs,lr,hx,hy,hz,at,rxyz,&
 
         ! Determine the size of the receive buffer
         nscalprod_recv = sum(nrecvcounts)
-        scalprod_new = f_malloc((/ 1.to.2, 0.to.ndir, 1.to.7, 1.to.3, 1.to.4, &
+        scalprod_new = f_malloc((/ 1.to.2, 0.to.ndir, 1.to.m_max, 1.to.i_max, 1.to.l_max, &
                                   1.to.max(nscalprod_recv,1) /),id='scalprod_new')
-        scalprod_recvbuf = f_malloc(2*(ndir+1)*7*3*4*max(nscalprod_recv,1),id='scalprod_recvbuf')
+        scalprod_recvbuf = f_malloc(2*(ndir+1)*m_max*i_max*l_max*max(nscalprod_recv,1),id='scalprod_recvbuf')
         scalprod_lookup_recvbuf = f_malloc(max(nscalprod_recv,1), id='scalprod_send_lookup_recvbuf')
         scalprod_lookup = f_malloc(max(nscalprod_recv,1), id='scalprod_lookup')
 
@@ -4744,10 +4762,11 @@ subroutine nonlocal_forces_linear(iproc,nproc,npsidim_orbs,lr,hx,hy,hz,at,rxyz,&
              scalprod_lookup_recvbuf(1), nrecvcounts, nrecvdspls, bigdft_mpi%mpi_comm)
         
         ! Communicate the scalprods
-        nsendcounts(:) = nsendcounts(:)*2*(ndir+1)*7*3*4
-        nsenddspls(:) = nsenddspls(:)*2*(ndir+1)*7*3*4
-        nrecvcounts(:) = nrecvcounts(:)*2*(ndir+1)*7*3*4
-        nrecvdspls(:) = nrecvdspls(:)*2*(ndir+1)*7*3*4
+        ncount = 2*(ndir+1)*m_max*i_max*l_max
+        nsendcounts(:) = nsendcounts(:)*ncount
+        nsenddspls(:) = nsenddspls(:)*ncount
+        nrecvcounts(:) = nrecvcounts(:)*ncount
+        nrecvdspls(:) = nrecvdspls(:)*ncount
         call mpialltoallv(scalprod_sendbuf_new(1,0,1,1,1,1), nsendcounts, nsenddspls, &
              scalprod_recvbuf(1), nrecvcounts, nrecvdspls, bigdft_mpi%mpi_comm)
 
@@ -4765,7 +4784,7 @@ subroutine nonlocal_forces_linear(iproc,nproc,npsidim_orbs,lr,hx,hy,hz,at,rxyz,&
 
         ! Rearrange the elements
         is_supfun_per_atom_tmp = f_malloc(at%astruct%nat,id='is_supfun_per_atom_tmp')
-        ncount = 2*(ndir+1)*7*3*4
+        !ncount = 2*(ndir+1)*m_max*i_max*l_max
         call vcopy(at%astruct%nat, is_supfun_per_atom(1), 1, is_supfun_per_atom_tmp(1), 1)
         ii = 1
         isrc = 1
@@ -4858,8 +4877,8 @@ subroutine nonlocal_forces_linear(iproc,nproc,npsidim_orbs,lr,hx,hy,hz,at,rxyz,&
                            ! Loop over all projectors
                            do ispinor=1,nspinor,ncplx
                               if (denskern_gathered(ind)==0.d0) cycle
-                                 do l=1,4
-                                    do i=1,3
+                                 do l=1,l_max!4
+                                    do i=1,i_max!3
                                        if (at%psppar(l,i,ityp) /= 0.0_gp) then
                                           do m=1,2*l-1
                                              do icplx=1,ncplx
