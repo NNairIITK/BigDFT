@@ -25,8 +25,8 @@ program GPS_3D
    integer :: SetEps! = 1!3 
 
    real(kind=8), parameter :: acell = 10.d0
-   real(kind=8), parameter :: rad_cav = 0.30d0 ! Radius of the dielectric rigid cavity = rad_cav*acell (with nat=1).
-   integer, parameter :: nat=1 ! Number of atoms to build rigid cavity with nat=1.
+   real(kind=8), parameter :: rad_cav = 0.75d0 ! Radius of the dielectric rigid cavity = rad_cav*acell (with nat=1).
+   integer :: nat = 1 ! Number of atoms to build rigid cavity with nat=1.
    real(kind=8) :: erfL  ! To set 1 for Vacuum and correct analitic comparison with gaussian potential.
    real(kind=8) :: erfR  
    real(kind=8), parameter :: sigmaeps = 0.05d0*acell
@@ -47,6 +47,13 @@ program GPS_3D
    real(kind=8) :: Adiag,ersqrt,ercurr,factor,r,r2,max_diff,max_diffpot,fact,x1,x2,x3,derf_tt,diffcurr,diffcurrS,divprod,sum,einit
    real(kind=8) :: ehartree,offset
    real(kind=8), dimension(:,:,:,:), allocatable :: density,rhopot,rvApp,rhoele,rhoion
+
+   ! Now start modification for check.
+   real(kind=8), dimension(:,:,:,:,:), allocatable :: dens_check,pot_check
+   integer :: i_check,unt
+   integer, parameter :: n_check = 1 ! To set 1 for normal run, 3 for check V[\rho,\epsilon] + V[\rho_ion,epsilon] is = to V[\rho + \rho_ion, epsilon]
+
+   real(kind=8), dimension(:,:), allocatable :: rxyz
    real(kind=8), pointer :: kernel(:)
    type(coulomb_operator) :: pkernel
 !   type(mpi_environment), intent(in), optional :: mpi_env
@@ -84,7 +91,7 @@ program GPS_3D
    n03=ndims(3)
 
    if (SetEps.eq.3) then
-    call get_size_from_cube(n01,n02,n03,hx,hy,hz)
+    call get_size_from_cube(n01,n02,n03,hx,hy,hz,nat)
     ndims(1) = n01
     ndims(2) = n02
     ndims(3) = n03
@@ -121,6 +128,9 @@ program GPS_3D
    rvApp  =f_malloc([n01,n02,n03,nspden],id='rvApp')
    rhoele =f_malloc([n01,n02,n03,nspden],id='rhoele')
    rhoion =f_malloc([n01,n02,n03,nspden],id='rhoion')
+   dens_check =f_malloc([n01,n02,n03,nspden,n_check],id='dens_check')
+   pot_check =f_malloc([n01,n02,n03,nspden,n_check],id='pot_check')
+   rxyz   =f_malloc([3,nat],id='rxyz')
    
    eps=f_malloc([n01,n02,n03],id='eps')
    dlogeps=f_malloc([3,n01,n02,n03],id='dlogeps')
@@ -132,7 +142,7 @@ program GPS_3D
 
    n_cell = max(n01,n02,n03)
    hgrid=max(hx,hy,hz)
-
+   rxyz=0.d0
    ixc=0
    itype_scf=16
 !!$   iproc=0
@@ -150,17 +160,19 @@ program GPS_3D
    ! Set environment, namely permittivity epsilon, rhoele = electron charge density and rhoion = ion charge density .
 
    if (SetEps.eq.3) then
-      call get_rho(n01,n02,n03,nspden,acell,a_gauss,hx,hy,hz,rhoele,rhoion,sume)
+      call get_rho(n01,n02,n03,nspden,nat,acell,a_gauss,hx,hy,hz,rhoele,rhoion,sume,rxyz)
    else
     rhoele(:,:,:,:) = 0.d0
     rhoion(:,:,:,:) = 0.d0
    end if
 
-    call SetEpsilon(n01,n02,n03,nspden,nord,nat,acell,a_gauss,hx,hy,hz,erfL,erfR,sigmaeps,SetEps,geocode,PSol,eps,dlogeps,oneoeps,oneosqrteps,corr,rhoele,rad_cav)
+!   SetEps=4
+
+    call SetEpsilon(n01,n02,n03,nspden,nord,nat,acell,a_gauss,hx,hy,hz,erfL,erfR,sigmaeps,4,geocode,PSol,eps,dlogeps,oneoeps,oneosqrteps,corr,rhoele,rad_cav,rxyz)
 
     if ( trim(PSol)=='VAC') then
        eps=1.d0
-       SetEps=1
+!       SetEps=1
        erfL=1.d0
     end if
 
@@ -199,12 +211,26 @@ program GPS_3D
 !!$   end do
 !!$   write(*,*)'Max abs difference between analytic density - ApplyLaplace to potential'
 !!$   write(*,'(3(1x,I4),2(1x,e14.7))')i1_max,i2_max,i3_max,max_diffpot,abs(density(n01/2,n02/2,n03/2,1)-rvApp(n01/2,n02/2,n03/2,1))
+  if (n_check.eq.1) then
+   dens_check(:,:,:,:,1) = rhoion(:,:,:,:) - rhoele(:,:,:,:)
+  else if (n_check.eq.3) then
+   dens_check(:,:,:,:,1) = rhoion(:,:,:,:)
+   dens_check(:,:,:,:,2) = -rhoele(:,:,:,:)
+   dens_check(:,:,:,:,3) = rhoion(:,:,:,:) - rhoele(:,:,:,:)
+  end if
 
-!!$  if (SetEps.eq.3) then
-!!$   rhopot(:,:,:,:) = rhoele(:,:,:,:) + rhoion(:,:,:,:)
-!!$  else
-   rhopot(:,:,:,:) = density(:,:,:,:)
-!!$  end if
+ do i_check=1,n_check
+ 
+  if (n_check.eq.3 .and. SetEps.eq.3) then
+   write(*,'(a)')'--------------------------------------------------------------------------------------------'
+   write(*,'(a,i4)')'Calculation for ion+ele potential difference',i_check
+  end if
+
+!  if (SetEps.eq.3) then
+   rhopot(:,:,:,:) = dens_check(:,:,:,:,i_check)
+!  else
+!   rhopot(:,:,:,:) = density(:,:,:,:)
+!  end if
 
   !new method
   pkernel=pkernel_init(.true.,iproc,nproc,0,geocode,ndims,hgrids,itype_scf,method=PSol)
@@ -264,6 +290,9 @@ program GPS_3D
   end if
 
   call H_potential('G',pkernel,rhopot,rhopot,ehartree,offset,.false.)
+
+  pot_check(:,:,:,:,i_check) = rhopot(:,:,:,:)
+
   if (iproc==0) then
      call writeroutinePot(n01,n02,n03,nspden,rhopot,pkernel%max_iter,potential)
      call yaml_map('Expected hartree energy',einit)
@@ -271,13 +300,44 @@ program GPS_3D
      call yaml_map('Diff of expected-computed Hartree energy',einit-ehartree)
   end if
 
-  call Polarization_charge(n01,n02,n03,nspden,hx,hy,hz,rhopot,rvApp,acell,eps,nord)
+ end do ! End do check
+
+ call Polarization_charge(n01,n02,n03,nspden,hx,hy,hz,rhopot,rvApp,acell,eps,nord)
+
+ if (n_check.eq.3 .and. SetEps.eq.3) then
+
+  write(*,'(a)')'--------------------------------------------------------------------------------------------'
+  write(*,'(a)')'Difference between V[\rho,\epsilon] + V[\rho_ion,epsilon] and  V[\rho + \rho_ion, epsilon]'
+  potential(:,:,:)= pot_check(:,:,:,1,1) + pot_check(:,:,:,1,2)
+  call writeroutinePot(n01,n02,n03,nspden,rhopot,pkernel%max_iter,potential)
+
+      unt=f_get_free_unit(21)
+      call f_open_file(unt,file='final_ion_ele.dat')
+      i1=n01/2
+      do i2=1,n02
+         do i3=1,n03
+            write(unt,'(2(1x,I4),2(1x,e14.7))')i2,i3,pot_check(i1,i2,i3,1,1),pot_check(i1,i2,i3,1,2)
+         end do
+      end do
+      call f_close(unt)
+
+      unt=f_get_free_unit(22)
+      call f_open_file(unt,file='final_ion_ele_line.dat')
+      do i2=1,n02
+       write(unt,'(1x,I8,3(1x,e22.15))')i2,pot_check(n01/2,i2,n03/2,1,1),pot_check(n01/2,i2,n03/2,1,2)
+      end do
+      call f_close(unt)
+
+ end if
 
   call pkernel_free(pkernel)
   call f_free(density)
   call f_free(rhopot)
   call f_free(rhoele)
   call f_free(rhoion)
+  call f_free(dens_check)
+  call f_free(pot_check)
+  call f_free(rxyz)
   call f_free(rvApp)
   call f_free(eps)
   call f_free(dlogeps)
@@ -2481,7 +2541,7 @@ subroutine functions(x,a,b,f,f1,f2,whichone)
 
 end subroutine functions
 
-subroutine SetEpsilon(n01,n02,n03,nspden,nord,nat,acell,a_gauss,hx,hy,hz,erfL,erfR,sigmaeps,SetEps,geocode,PSol,eps,dlogeps,oneoeps,oneosqrteps,corr,rhoele,rad_cav)
+subroutine SetEpsilon(n01,n02,n03,nspden,nord,nat,acell,a_gauss,hx,hy,hz,erfL,erfR,sigmaeps,SetEps,geocode,PSol,eps,dlogeps,oneoeps,oneosqrteps,corr,rhoele,rad_cav,rxyz)
 
   use dynamic_memory
   implicit none
@@ -2512,13 +2572,14 @@ subroutine SetEpsilon(n01,n02,n03,nspden,nord,nat,acell,a_gauss,hx,hy,hz,erfL,er
   real(kind=8), dimension(n01,n02,n03), intent(out), optional :: corr
 
   real(kind=8), dimension(n01,n02,n03,nspden), intent(in), optional :: rhoele
+  real(kind=8), dimension(3,nat), intent(in), optional :: rxyz
 
   ! local variables.
   real(kind=8), dimension(n01,n02,n03,nspden) :: edens
   real(kind=8), dimension(n01,n02,n03,nspden,3) :: nabla_edens ! Nabla of the electron density.
   real(kind=8), dimension(n01,n02,n03,nspden) :: ddt_edens ! Laplacian of the electron density.
   real(kind=8), dimension(n01,n02,n03,3) :: deps ! Nabla of the electron density.
-  integer :: i,i1,i2,i3,ifx,ify,ifz,isp
+  integer :: i,i1,i2,i3,ifx,ify,ifz,isp,iat
   real(kind=8), parameter :: edensmax = 0.0035d0!!!!
   real(kind=8), parameter :: edensmin = 0.0001d0
   real(kind=8), parameter :: eps0 = 80.0d0
@@ -2526,7 +2587,6 @@ subroutine SetEpsilon(n01,n02,n03,nspden,nord,nat,acell,a_gauss,hx,hy,hz,erfL,er
   real(kind=8) :: x,y,fx,fx2,fy,fy2,fz,fz2,a,ax,ay,az,bx,by,bz,tt,fx1,fy1,fz1
   real(kind=8) :: fact1,fact2,fact3,dtx,d2,dd,coeff,coeff1
   real(kind=8), dimension(nat) :: radii
-  real(kind=8), dimension(3,nat) :: rxyz
 
 
   open(unit=21,file='Epsilon.dat',status='unknown')
@@ -2752,10 +2812,15 @@ else if (SetEps ==4) then
 !!$      rxyz(1:3,2)=[7.300000d0, 8.415319d0, 8.700265d0]-[2.30d0,2.85d0,3.7d0]
 !!$      rxyz(1:3,3)=[7.300000d0, 7.299663d0,10.156750d0]-[2.30d0,2.85d0,3.7d0]
 !!$      radii=[2.0d0,2.5d0,2.0d0]
-      rxyz(1,1) = hx*real(n01/2,kind=8)
-      rxyz(2,1) = hy*real(n02/2,kind=8)
-      rxyz(3,1) = hz*real(n03/2,kind=8)
-      radii(1)=rad_cav*acell
+!      rxyz(1,1) = hx*real(n01/2,kind=8)
+!      rxyz(2,1) = hy*real(n02/2,kind=8)
+!      rxyz(3,1) = hz*real(n03/2,kind=8)
+
+      do iat=1,nat
+       write(*,*)rxyz(:,iat)
+       radii(iat)=rad_cav/0.52917721092d0
+      end do
+
       call Eps_rigid_cavity([n01,n02,n03],nspden,nord,acell,[hx,hy,hz],nat,rxyz,radii,eps0,3.d0*max(hx,hy,hz),eps,dlogeps,oneoeps,oneosqrteps,corr)
 !!$
 !!$print *,'New dlogeps calculation'
@@ -3083,7 +3148,7 @@ subroutine SetEledens(n01,n02,n03,nspden,nord,acell,a_gauss,hx,hy,hz,SetEps,eden
 
 end subroutine SetEledens
 
-subroutine get_size_from_cube(n01,n02,n03,hx,hy,hz)
+subroutine get_size_from_cube(n01,n02,n03,hx,hy,hz,nat)
 
   use yaml_output
 
@@ -3094,7 +3159,7 @@ subroutine get_size_from_cube(n01,n02,n03,hx,hy,hz)
   real(kind=8), intent(out) :: hx
   real(kind=8), intent(out) :: hy
   real(kind=8), intent(out) :: hz
-  integer :: nat
+  integer, intent(out) :: nat
 
   real(8):: z_incr, z1_incr,x1_incr, x2_incr, y_incr,y2_incr
   real(8):: origin_x, origin_y, origin_z
@@ -3113,26 +3178,29 @@ subroutine get_size_from_cube(n01,n02,n03,hx,hy,hz)
 
 end subroutine get_size_from_cube
 
-subroutine get_rho(n01,n02,n03,nspden,acell,a_gauss,hx,hy,hz,rhoele,rhoion,sume)
+subroutine get_rho(n01,n02,n03,nspden,natoms,acell,a_gauss,hx,hy,hz,rhoele,rhoion,sume,rxyz)
 
   use yaml_output
+  use f_utils
 
   implicit none
   integer, intent(in) :: n01
   integer, intent(in) :: n02
   integer, intent(in) :: n03
   integer, intent(in) :: nspden
+  integer, intent(in) :: natoms
   real(kind=8), intent(in) :: acell,a_gauss,hx,hy,hz
   real(kind=8), dimension(n01,n02,n03,nspden), intent(out) :: rhoele
   real(kind=8), dimension(n01,n02,n03,nspden), intent(out) :: rhoion
   real(kind=8), intent(out) :: sume
+  real(kind=8), dimension(3,natoms), intent(out) :: rxyz
 
   real(kind=8) :: x1,x2,x3,pi,factor,r2,fac,sigma,x0,sumi
   real(kind=8), dimension(3) :: vec
   integer :: i,isp
 
   integer:: ngp,igp,I1,I2,I3,grid_x, grid_y, grid_z
-  integer:: N_line,ilmp,iat,nat,no_line
+  integer:: N_line,ilmp,iat,nat,no_line,unt
   real(8), allocatable:: ATOM_info(:,:), chg(:,:,:), sigat(:)
   real(8):: x,y,z,z_incr, z1_incr,x1_incr, x2_incr, y_incr,y2_incr
   real(8):: origin_x, origin_y, origin_z
@@ -3141,8 +3209,6 @@ subroutine get_rho(n01,n02,n03,nspden,acell,a_gauss,hx,hy,hz,rhoele,rhoion,sume)
   character(3) fn
   character (100) :: line1,line2
 
-  open(unit=18,file='ElectronDensity_fromc.out',status='unknown')
-  open(unit=19,file='ElectronDensity_fromc_line.out',status='unknown')
   open (50,file='electronic_density.cube')
   open (51,file='sigat.dat')
 
@@ -3153,7 +3219,7 @@ subroutine get_rho(n01,n02,n03,nspden,acell,a_gauss,hx,hy,hz,rhoele,rhoion,sume)
   read(50,*)grid_y, y_incr, hgridy_h, y2_incr
   read(50,*)grid_z, z_incr, z1_incr, hgridz_h
 
-  if ((n01.ne.grid_x).or.(n02.ne.grid_y).or.(n03.ne.grid_z)) then
+  if ((n01.ne.grid_x).or.(n02.ne.grid_y).or.(n03.ne.grid_z).or.(nat.ne.natoms)) then
    write(*,*)'Error get_rho subroutine'
    stop
   end if
@@ -3221,7 +3287,7 @@ subroutine get_rho(n01,n02,n03,nspden,acell,a_gauss,hx,hy,hz,rhoele,rhoion,sume)
    xcent=xcent+ATOM_info(2,iat)*ATOM_info(3,iat)
    ycent=ycent+ATOM_info(2,iat)*ATOM_info(4,iat)
    zcent=zcent+ATOM_info(2,iat)*ATOM_info(5,iat)
-  end do
+ end do
 
   write(*,*) 'total, centers  with    ions'
   write(*,*)  total,xcent,ycent,zcent
@@ -3245,6 +3311,7 @@ subroutine get_rho(n01,n02,n03,nspden,acell,a_gauss,hx,hy,hz,rhoele,rhoion,sume)
 
    do i=1,3
     vec(i) = ATOM_info(i+2,iat)
+    rxyz(i,iat) = ATOM_info(i+2,iat)
    end do
 
    sigma = sigat(iat) !*acell
@@ -3273,20 +3340,41 @@ subroutine get_rho(n01,n02,n03,nspden,acell,a_gauss,hx,hy,hz,rhoele,rhoion,sume)
 
   end do
 
+     unt=f_get_free_unit(40)
+     call f_open_file(unt,file='ElectronDensity_fromc.dat')
      i3=1!n03/2
      do i2=1,n02
       do i1=1,n01
-       write(18,'(2(1x,I4),2(1x,e14.7))')i1,i2,rhoele(i1,i2,i3,isp),rhoele(i1,i2,n03/2,isp)
+       write(unt,'(2(1x,I4),2(1x,e14.7))')i1,i2,rhoele(i1,i2,i3,isp),rhoele(i1,i2,n03/2,isp)
       end do
-      write(18,*)
+      write(unt,*)
      end do
+     call f_close(unt)
 
-     do i1=1,n01
-      write(19,'(1x,I8,2(1x,e22.15))')i1,rhoele(i1,n02/2,n03/2,isp),rhoele(n01/2,i1,n03/2,isp)
+     unt=f_get_free_unit(41)
+     call f_open_file(unt,file='ElectronDensity_fromc_line.dat')
+     do i2=1,n02
+      write(unt,'(1x,I8,3(1x,e22.15))')i2,rhoele(i2,n02/2,n03/2,isp),rhoele(n01/2,i2,n03/2,isp),rhoele(n01/2,n02/2,i2,isp)
      end do
+     call f_close(unt)
 
-  close(unit=18)
-  close(unit=19)
+     unt=f_get_free_unit(42)
+     call f_open_file(unt,file='IonicDensity.dat')
+     i3=1!n03/2
+     do i2=1,n02
+      do i1=1,n01
+       write(unt,'(2(1x,I4),2(1x,e14.7))')i1,i2,rhoion(i1,i2,i3,isp),rhoion(i1,i2,n03/2,isp)
+      end do
+      write(unt,*)
+     end do
+     call f_close(unt)
+
+     unt=f_get_free_unit(43)
+     call f_open_file(unt,file='IonicDensity_line.dat')
+     do i2=1,n02
+      write(unt,'(1x,I8,1(1x,e22.15))')i2,rhoion(n01/2,i2,n03/2,isp)
+     end do
+     call f_close(unt)
 
 
   write(*,*)'Total ions charge'

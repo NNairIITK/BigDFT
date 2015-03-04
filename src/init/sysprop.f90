@@ -834,7 +834,7 @@ subroutine epsilon_cavity(atoms,rxyz,pkernel)
           rcov=radii(it%iat))
   end do
   call yaml_map('Bohr_Ang',Bohr_Ang)
-  radii=1.59d0/Bohr_Ang
+  radii=6.0d0/Bohr_Ang
   call yaml_map('Covalent radii',radii)
   delta=3.0*maxval(pkernel%hgrids)
   call epsilon_rigid_cavity(atoms%astruct%geocode,pkernel%ndims,pkernel%hgrids,atoms%astruct%nat,rxyz,radii,&
