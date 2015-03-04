@@ -1251,7 +1251,7 @@ periodic_wateredge:
  energy: 1.6e-10
  Total charge: 1.1e-10
  PV (Ha): 2.7e-9
- Energy (Hartree): 6.9e-11
+ Energy (Hartree): 7.1e-11
  Total ionic charge: 2.7e-11
 
 periodic_water:
@@ -1261,7 +1261,7 @@ periodic_water:
  EvXC: 1.0e-9
  Ekin: 2.0e-9
  Enl: 1.1e-9
- Energy (Hartree): 6.7e-11
+ Energy (Hartree): 7.3e-11
  Omega: 2.0e-10
  ebs_check: 2.5e-9
  ebs: 2.5e-9
@@ -1274,7 +1274,7 @@ periodic_water:
  diff: 1.1e-10
  Tr(K): 5.0e-7
  D Tr: 2.1e-7
- PV (Ha): 5.2e-10
+ PV (Ha): 5.3e-10
  Total ionic charge: 6.0e-11
 
 surface_boronnitride:
@@ -1298,6 +1298,6 @@ surface_graphene:
  charge diff: 1.4e-7
  Tr(K): 2.0e-7
  guess for new ef: 1.1e-9
- eF: 6.1e-10
+ eF: 7.1e-10
  D eF: 1.1e-9
- diff: 2.0e-11
+ diff: 2.1e-11
