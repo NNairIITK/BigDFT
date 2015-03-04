@@ -4192,9 +4192,9 @@ subroutine nonlocal_forces_linear(iproc,nproc,npsidim_orbs,lr,hx,hy,hz,at,rxyz,&
   real(gp) :: strc
   integer :: idir,ncplx,icplx,isorb,ikpt,ieorb,istart_ck,ispsi_k,ispsi,jorb,jproc,ii,ist,ierr,iiat,iiiat
   real(gp), dimension(2,2,3) :: offdiagarr
-  real(gp), dimension(:,:), allocatable :: fxyz_orb
+  !real(gp), dimension(:,:), allocatable :: fxyz_orb
   real(dp), dimension(:,:,:,:,:,:,:), allocatable :: scalprod
-  real(gp), dimension(6) :: sab
+  !real(gp), dimension(6) :: sab
   integer,dimension(:),allocatable :: nat_par, isat_par!, sendcounts, recvcounts, senddspls, recvdspls
   integer,dimension(:),allocatable :: is_supfun_per_atom, supfun_per_atom, scalprod_send_lookup, scalprod_lookup
   !integer,dimension(:,:),allocatable :: iat_startend
@@ -4218,7 +4218,7 @@ subroutine nonlocal_forces_linear(iproc,nproc,npsidim_orbs,lr,hx,hy,hz,at,rxyz,&
 
   call f_routine(id='nonlocal_forces_linear')
 
-  fxyz_orb = f_malloc0((/ 3, at%astruct%nat /),id='fxyz_orb')
+  !fxyz_orb = f_malloc0((/ 3, at%astruct%nat /),id='fxyz_orb')
 
 
   ! Gather together the entire density kernel
@@ -4259,7 +4259,7 @@ subroutine nonlocal_forces_linear(iproc,nproc,npsidim_orbs,lr,hx,hy,hz,at,rxyz,&
   Enl=0._gp
   !strten=0.d0
   vol=real(at%astruct%cell_dim(1)*at%astruct%cell_dim(2)*at%astruct%cell_dim(3),gp)
-  sab=0.d0
+  !sab=0.d0
   
   !calculate the coefficients for the off-diagonal terms
   do l=1,3
@@ -4351,7 +4351,7 @@ subroutine nonlocal_forces_linear(iproc,nproc,npsidim_orbs,lr,hx,hy,hz,at,rxyz,&
   call f_free(scalprod_new)
   call f_free(nat_par)
   call f_free(isat_par)
-  call f_free(fxyz_orb)
+  !call f_free(fxyz_orb)
   call f_free(denskern_gathered)
 
   call f_release_routine()
@@ -4835,10 +4835,15 @@ subroutine nonlocal_forces_linear(iproc,nproc,npsidim_orbs,lr,hx,hy,hz,at,rxyz,&
         use sparsematrix_init, only: matrixindex_in_compressed
         implicit none
         integer :: jj
-
+        real(kind=8),dimension(:,:),allocatable :: fxyz_orb
+        !real(kind=8),dimension(:),allocatable :: sab, strten_loc
+        real(kind=8),dimension(6) :: sab, strten_loc
 
         call f_routine(id='calculate_forces')
 
+        fxyz_orb = f_malloc0((/3,nat_par(iproc)/),id='fxyz_orb')
+        !sab = f_malloc0(6,id='sab')
+        !strten_loc = f_malloc(6,id='strten_loc')
 
         natp_if2: if (nat_par(iproc)>0) then
     
@@ -4851,12 +4856,26 @@ subroutine nonlocal_forces_linear(iproc,nproc,npsidim_orbs,lr,hx,hy,hz,at,rxyz,&
                call orbs_in_kpt(ikpt,orbs,isorb,ieorb,nspinor)
     
                call ncplx_kpt(ikpt,orbs,ncplx)
+
+               ! Do the OMP loop over supfun_per_atom, as nat_par(iproc) is typically rather small
     
+               !$omp parallel default(none) &
+               !$omp shared(denskern, nat_par, iproc, isat_par, at, supfun_per_atom, is_supfun_per_atom) &
+               !$omp shared(scalprod_lookup, l_max, i_max, scalprod_new, fxyz_orb, denskern_gathered) &
+               !$omp shared(offdiagarr, strten, strten_loc, vol, Enl, nspinor,ncplx) &
+               !$omp private(ispin, iat, iiat, ityp, iorb, ii, iiorb, jorb, jj, jjorb, ind, sab, ispinor) &
+               !$omp private(l, i, m, icplx, sp0, idir, spi, strc, j, hij, sp0i, sp0j, spj)
                spin_loop2: do ispin=1,denskern%nspin
+
+                  !!allocate(sab(6))
+                  !!allocate(strten_loc(6))
+                  !!sab(:)=0.d0
+                  !!strten_loc(:)=0.d0
+
                   do iat=1,nat_par(iproc)
                      iiat=isat_par(iproc)+iat
-                     iiiat=isat_par(iproc)+iat+isat-1
                      ityp=at%astruct%iatype(iiat)
+                     !$omp do reduction(+:fxyz_orb,strten_loc,Enl)
                      do iorb=1,supfun_per_atom(iiat)
                         ii = is_supfun_per_atom(iiat) - is_supfun_per_atom(isat_par(iproc)+1) + iorb
                         iiorb = scalprod_lookup(ii)
@@ -4886,8 +4905,10 @@ subroutine nonlocal_forces_linear(iproc,nproc,npsidim_orbs,lr,hx,hy,hz,at,rxyz,&
                                                 sp0=real(scalprod_new(icplx,0,m,i,l,ii),gp)
                                                 do idir=1,3
                                                    spi=real(scalprod_new(icplx,idir,m,i,l,jj),gp)
-                                                   fxyz_orb(idir,iiiat)=fxyz_orb(idir,iiiat)+&
+                                                   !!$omp critical
+                                                   fxyz_orb(idir,iat)=fxyz_orb(idir,iat)+&
                                                         denskern_gathered(ind)*at%psppar(l,i,ityp)*sp0*spi
+                                                   !!$omp end critical
                                                 end do
                                                 spi=real(scalprod_new(icplx,0,m,i,l,jj),gp)
                                                 Enl=Enl+sp0*spi*denskern_gathered(ind)*at%psppar(l,i,ityp)
@@ -4905,8 +4926,8 @@ subroutine nonlocal_forces_linear(iproc,nproc,npsidim_orbs,lr,hx,hy,hz,at,rxyz,&
                                  if (at%npspcode(ityp) == PSPCODE_HGH .or. &
                                      at%npspcode(ityp) == PSPCODE_HGH_K .or. &
                                      at%npspcode(ityp) == PSPCODE_HGH_K_NLCC) then
-                                    do l=1,3 !no offdiagoanl terms for l=4 in HGH-K case
-                                       do i=1,2
+                                    do l=1,3!min(l_max,3) !no offdiagoanl terms for l=4 in HGH-K case
+                                       do i=1,2!min(i_max,2)
                                           if (at%psppar(l,i,ityp) /= 0.0_gp) then 
                                              loop_j2: do j=i+1,3
                                                 if (at%psppar(l,j,ityp) == 0.0_gp) exit loop_j2
@@ -4925,8 +4946,10 @@ subroutine nonlocal_forces_linear(iproc,nproc,npsidim_orbs,lr,hx,hy,hz,at,rxyz,&
                                                       do idir=1,3
                                                          spi=real(scalprod_new(icplx,idir,m,i,l,jj),gp)
                                                          spj=real(scalprod_new(icplx,idir,m,j,l,jj),gp)
-                                                         fxyz_orb(idir,iiiat)=fxyz_orb(idir,iiiat)+&
+                                                         !!$omp critical
+                                                         fxyz_orb(idir,iat)=fxyz_orb(idir,iat)+&
                                                               denskern_gathered(ind)*hij*(sp0j*spi+spj*sp0i)
+                                                         !!$omp end critical
                                                       end do
                                                       spi=real(scalprod_new(icplx,0,m,i,l,jj),gp)
                                                       spj=real(scalprod_new(icplx,0,m,j,l,jj),gp)
@@ -4948,22 +4971,32 @@ subroutine nonlocal_forces_linear(iproc,nproc,npsidim_orbs,lr,hx,hy,hz,at,rxyz,&
              
              
                            !seq: strten(1:6) =  11 22 33 23 13 12 
-                           strten(1)=strten(1)+sab(1)/vol 
-                           strten(2)=strten(2)+sab(2)/vol 
-                           strten(3)=strten(3)+sab(3)/vol 
-                           strten(4)=strten(4)+sab(5)/vol
-                           strten(5)=strten(5)+sab(6)/vol
-                           strten(6)=strten(6)+sab(4)/vol
+                           !!tmparr(1)=tmparr(1)+1.d0!sab(1)/vol 
+                           !!tmparr(2)=tmparr(2)+1.d0!sab(2)/vol 
+                           !!tmparr(3)=tmparr(3)+1.d0!sab(3)/vol 
+                           !!tmparr(4)=tmparr(4)+1.d0!sab(5)/vol
+                           !!tmparr(5)=tmparr(5)+1.d0!sab(6)/vol
+                           !!tmparr(6)=tmparr(6)+1.d0!sab(4)/vol
+                           strten_loc(1)=strten_loc(1)+sab(1)/vol 
+                           strten_loc(2)=strten_loc(2)+sab(2)/vol 
+                           strten_loc(3)=strten_loc(3)+sab(3)/vol 
+                           strten_loc(4)=strten_loc(4)+sab(5)/vol
+                           strten_loc(5)=strten_loc(5)+sab(6)/vol
+                           strten_loc(6)=strten_loc(6)+sab(4)/vol
                         end do
                      end do
+                     !$omp end do
                   end do
+                  !deallocate(sab)
                end do spin_loop2
+               !$omp end parallel
                do iat=1,nat_par(iproc)
                   iiat=isat_par(iproc)+iat+isat-1
-                  fsep(1,iiat)=fsep(1,iiat)+2.d0*fxyz_orb(1,iiat)
-                  fsep(2,iiat)=fsep(2,iiat)+2.d0*fxyz_orb(2,iiat)
-                  fsep(3,iiat)=fsep(3,iiat)+2.d0*fxyz_orb(3,iiat)
+                  fsep(1,iiat)=fsep(1,iiat)+2.d0*fxyz_orb(1,iat)
+                  fsep(2,iiat)=fsep(2,iiat)+2.d0*fxyz_orb(2,iat)
+                  fsep(3,iiat)=fsep(3,iiat)+2.d0*fxyz_orb(3,iat)
                end do
+               strten(:) = strten(:) + strten_loc(:)
                if (ieorb == orbs%norbp) exit loop_kptF2
                ikpt=ikpt+1
                ispsi_k=ispsi
@@ -4971,6 +5004,9 @@ subroutine nonlocal_forces_linear(iproc,nproc,npsidim_orbs,lr,hx,hy,hz,at,rxyz,&
     
         end if natp_if2
 
+        !call f_free(sab)
+        !call f_free(strten_loc)
+        call f_free(fxyz_orb)
 
         call f_release_routine()
 
