@@ -72,7 +72,7 @@ subroutine calculate_forces(iproc,nproc,psolver_groupsize,Glr,atoms,orbs,nlpsp,r
       call nonlocal_forces_linear(iproc,nproc,tmb%npsidim_orbs,tmb%lzd%glr,hx,hy,hz,atoms,rxyz,&
            tmb%orbs,nlpsp,tmb%lzd,tmb%psi,tmb%linmat%l,tmb%linmat%kernel_,fxyz,refill_proj,&
            strtens(1,2))
-      fxyz_tmp = fxyz - fxyz_tmp
+      !fxyz_tmp = fxyz - fxyz_tmp
       !do iat=1,atoms%astruct%nat
       !    write(1000+iproc,'(a,2i8,3es15.6)') 'iproc, iat, fxyz(:,iat)', iproc, iat, fxyz(:,iat)
       !end do
