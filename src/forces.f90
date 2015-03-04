@@ -4192,23 +4192,23 @@ subroutine nonlocal_forces_linear(iproc,nproc,npsidim_orbs,lr,hx,hy,hz,at,rxyz,&
   real(gp) :: strc
   integer :: idir,ncplx,icplx,isorb,ikpt,ieorb,istart_ck,ispsi_k,ispsi,jorb,jproc,ii,ist,ierr,iiat,iiiat
   real(gp), dimension(2,2,3) :: offdiagarr
-  real(gp), dimension(:,:), allocatable :: fxyz_orb
+  !real(gp), dimension(:,:), allocatable :: fxyz_orb
   real(dp), dimension(:,:,:,:,:,:,:), allocatable :: scalprod
-  real(gp), dimension(6) :: sab
-  integer,dimension(:),allocatable :: nat_par, isat_par, sendcounts, recvcounts, senddspls, recvdspls
+  !real(gp), dimension(6) :: sab
+  integer,dimension(:),allocatable :: nat_par, isat_par!, sendcounts, recvcounts, senddspls, recvdspls
   integer,dimension(:),allocatable :: is_supfun_per_atom, supfun_per_atom, scalprod_send_lookup, scalprod_lookup
-  integer,dimension(:,:),allocatable :: iat_startend
-  real(dp),dimension(:,:,:,:,:,:,:),allocatable :: scalprod_sendbuf
+  !integer,dimension(:,:),allocatable :: iat_startend
+  !real(dp),dimension(:,:,:,:,:,:,:),allocatable :: scalprod_sendbuf
   real(dp),dimension(:,:,:,:,:,:),allocatable :: scalprod_sendbuf_new, scalprod_new
   real(dp),dimension(:),allocatable :: scalprod_recvbuf
   integer,parameter :: ndir=9 !3 for forces, 9 for forces and stresses
   real(kind=8),dimension(:),allocatable :: denskern_gathered
-  integer,dimension(:,:),allocatable :: iorbminmax, iatminmax 
+  !integer,dimension(:,:),allocatable :: iorbminmax, iatminmax 
   integer :: iorbmin, jorbmin, iorbmax, jorbmax, nscalprod_send, nscalprod_recv, jat
   integer :: i1s, i1e, j1s, j1e, i2s, i2e, j2s, j2e, i3s, i3e, j3s, j3e
   integer :: nat_per_iteration, isat, natp, iat_out, nat_out, norbp_max
-  integer :: nat_overlap
-  integer,parameter :: MAX_SIZE=268435456 !max size of the array scalprod, in elements
+  integer :: nat_overlap, l_max, i_max, m_max
+  !integer,parameter :: MAX_SIZE=268435456 !max size of the array scalprod, in elements
 
   !integer :: ldim, gdim
   !real(8),dimension(:),allocatable :: phiglobal
@@ -4218,7 +4218,7 @@ subroutine nonlocal_forces_linear(iproc,nproc,npsidim_orbs,lr,hx,hy,hz,at,rxyz,&
 
   call f_routine(id='nonlocal_forces_linear')
 
-  fxyz_orb = f_malloc0((/ 3, at%astruct%nat /),id='fxyz_orb')
+  !fxyz_orb = f_malloc0((/ 3, at%astruct%nat /),id='fxyz_orb')
 
 
   ! Gather together the entire density kernel
@@ -4248,21 +4248,6 @@ subroutine nonlocal_forces_linear(iproc,nproc,npsidim_orbs,lr,hx,hy,hz,at,rxyz,&
   supfun_per_atom = f_malloc0(at%astruct%nat,id='supfun_per_atom')
   is_supfun_per_atom = f_malloc0(at%astruct%nat,id='is_supfun_per_atom')
   
-  sendcounts = f_malloc(0.to.nproc-1,id='sendcounts')
-  recvcounts = f_malloc(0.to.nproc-1,id='recvcounts')
-  senddspls = f_malloc(0.to.nproc-1,id='senddspls')
-  recvdspls = f_malloc(0.to.nproc-1,id='recvdspls')
-  
-  do jproc=0,nproc-1
-      sendcounts(jproc)=2*(ndir+1)*7*3*4*orbs%norbp*nat_par(jproc)
-      recvcounts(jproc)=2*(ndir+1)*7*3*4*orbs%norb_par(jproc,0)*nat_par(iproc)
-  end do
-  senddspls(0)=0
-  recvdspls(0)=0
-  do jproc=1,nproc-1
-      senddspls(jproc)=senddspls(jproc-1)+sendcounts(jproc-1)
-      recvdspls(jproc)=recvdspls(jproc-1)+recvcounts(jproc-1)
-  end do
   
   call f_zero(strten) 
   
@@ -4270,17 +4255,11 @@ subroutine nonlocal_forces_linear(iproc,nproc,npsidim_orbs,lr,hx,hy,hz,at,rxyz,&
   !always put complex scalprod
   !also nspinor for the moment is the biggest as possible
   
-  !  allocate(scalprod(2,0:3,7,3,4,natp,orbs%norbp*orbs%nspinor),stat=i_stat)
-  ! need more components in scalprod to calculate terms like dp/dx*psi*x
-  !scalprod = f_malloc0((/ 1.to.2, 0.to.ndir, 1.to.7, 1.to.3, 1.to.4, &
-  !                       1.to.natp, 1.to.max(1, orbs%norbp*orbs%nspinor) /),id='scalprod')
-  !call to_zero(2*(ndir+1)*7*3*4*natp*max(1,orbs%norbp*orbs%nspinor),scalprod(1,0,1,1,1,1,1))
-  
   
   Enl=0._gp
   !strten=0.d0
   vol=real(at%astruct%cell_dim(1)*at%astruct%cell_dim(2)*at%astruct%cell_dim(3),gp)
-  sab=0.d0
+  !sab=0.d0
   
   !calculate the coefficients for the off-diagonal terms
   do l=1,3
@@ -4313,25 +4292,29 @@ subroutine nonlocal_forces_linear(iproc,nproc,npsidim_orbs,lr,hx,hy,hz,at,rxyz,&
         end do
      end do
   end do
-  
-  ! Minimal and maximal value of jorb for which scalprod (with respect to a given atom) is non-zero
-  iorbminmax = f_malloc((/natp,2/),id='iorbminmax')
-  iorbminmax(:,1) = orbs%norb
-  iorbminmax(:,2) = 1
-  iatminmax = f_malloc0((/orbs%norb,2/),id='iatminmax')
-  iatminmax(orbs%isorb+1:orbs%isorb+orbs%norbp,1) = at%astruct%nat
-  iatminmax(orbs%isorb+1:orbs%isorb+orbs%norbp,2) = 1
 
+
+  ! Determine the maximal value of l and i
+  l_max = 1
+  i_max = 1
+  do iat=1,natp
+      iiat = iat+isat-1
+      ityp=at%astruct%iatype(iiat)
+      do l=1,4
+          do i=1,3
+              if (at%psppar(l,i,ityp) /= 0.0_gp) then
+                  l_max = max(l,l_max)
+                  i_max = max(i,i_max)
+              end if
+          end do
+      end do
+  end do
+  m_max = 2*l_max-1
+  
 
   ! Determine the size of the array scalprod_sendbuf (indicated by iat_startend)
-  iat_startend = f_malloc0((/1.to.2,0.to.nproc-1/),id='iat_startend')
-  iat_startend(1,iproc) = at%astruct%nat
-  iat_startend(2,iproc) = 1
   call determine_dimension_scalprod()
-  scalprod_sendbuf = f_malloc0((/ 1.to.2, 0.to.ndir, 1.to.7, 1.to.3, 1.to.4, &
-                                 iat_startend(1,iproc).to.iat_startend(2,iproc), &
-                                 1.to.max(1,orbs%norbp*orbs%nspinor) /),id='scalprod_sendbuf')
-  scalprod_sendbuf_new = f_malloc0((/ 1.to.2, 0.to.ndir, 1.to.7, 1.to.3, 1.to.4, &
+  scalprod_sendbuf_new = f_malloc0((/ 1.to.2, 0.to.ndir, 1.to.m_max, 1.to.i_max, 1.to.l_max, &
                                    1.to.max(nscalprod_send,1) /),id='scalprod_sendbuf_new')
   scalprod_send_lookup = f_malloc(max(nscalprod_send,1), id='scalprod_send_lookup')
 
@@ -4343,18 +4326,10 @@ subroutine nonlocal_forces_linear(iproc,nproc,npsidim_orbs,lr,hx,hy,hz,at,rxyz,&
   ! Calculate the values of scalprod
   call calculate_scalprod()
   
-  !do iorb=1,nscalprod_send
-  !    write(*,'(a,3i9)') 'iproc, iorb, scalprod_send_lookup(iorb)', iproc, iorb, scalprod_send_lookup(iorb)
-  !end do
   
   
   ! Communicate scalprod
   call transpose_scalprod()
-  
-  call f_free(sendcounts)
-  call f_free(recvcounts)
-  call f_free(senddspls)
-  call f_free(recvdspls)
   
   call calculate_forces()
   
@@ -4373,19 +4348,10 @@ subroutine nonlocal_forces_linear(iproc,nproc,npsidim_orbs,lr,hx,hy,hz,at,rxyz,&
   !!call mpiallred(Enl,1,mpi_sum, bigdft_mpi%mpi_comm)
   !!if (bigdft_mpi%iproc==0) call yaml_map('Enl',Enl)
   
-  !  do iat=1,natp
-  !     write(20+iat,'(1x,i5,1x,3(1x,1pe12.5))') &
-  !          iat,fsep(1,iat),fsep(2,iat),fsep(3,iat)
-  !  end do
-  
-  call f_free(iorbminmax)
-  call f_free(iatminmax)
   call f_free(scalprod_new)
   call f_free(nat_par)
   call f_free(isat_par)
-  call f_free(iat_startend)
-
-  call f_free(fxyz_orb)
+  !call f_free(fxyz_orb)
   call f_free(denskern_gathered)
 
   call f_release_routine()
@@ -4423,34 +4389,11 @@ subroutine nonlocal_forces_linear(iproc,nproc,npsidim_orbs,lr,hx,hy,hz,at,rxyz,&
                      do iorb=isorb,ieorb
                         iiorb=orbs%isorb+iorb
                         ilr=orbs%inwhichlocreg(iiorb)
-                        ! Quick check
-                        !i1s = lzd%llr(ilr)%ns1
-                        !i1e = lzd%llr(ilr)%ns1+lzd%llr(ilr)%d%n1
-                        !j1s = nlpsp%pspd(iiat)%plr%ns1
-                        !j1e = nlpsp%pspd(iiat)%plr%ns1+nlpsp%pspd(iiat)%plr%d%n1
-                        !i2s = lzd%llr(ilr)%ns2
-                        !i2e = lzd%llr(ilr)%ns2+lzd%llr(ilr)%d%n2
-                        !j2s = nlpsp%pspd(iiat)%plr%ns2
-                        !j2e = nlpsp%pspd(iiat)%plr%ns2+nlpsp%pspd(iiat)%plr%d%n2
-                        !i3s = lzd%llr(ilr)%ns3
-                        !i3e = lzd%llr(ilr)%ns3+lzd%llr(ilr)%d%n3
-                        !j3s = nlpsp%pspd(iiat)%plr%ns3
-                        !j3e = nlpsp%pspd(iiat)%plr%ns3+nlpsp%pspd(iiat)%plr%d%n3
-                        !if (lzd%llr(ilr)%ns1>nlpsp%pspd(iiat)%plr%ns1+nlpsp%pspd(iiat)%plr%d%n1 .or. &
-                        !    nlpsp%pspd(iiat)%plr%ns1>lzd%llr(ilr)%ns1+lzd%llr(ilr)%d%n1 .or. &
-                        !    lzd%llr(ilr)%ns2>nlpsp%pspd(iiat)%plr%ns2+nlpsp%pspd(iiat)%plr%d%n2 .or. &
-                        !    nlpsp%pspd(iiat)%plr%ns2>lzd%llr(ilr)%ns2+lzd%llr(ilr)%d%n2 .or. &
-                        !    lzd%llr(ilr)%ns3>nlpsp%pspd(iiat)%plr%ns3+nlpsp%pspd(iiat)%plr%d%n3 .or. &
-                        !    nlpsp%pspd(iiat)%plr%ns3>lzd%llr(ilr)%ns3+lzd%llr(ilr)%d%n3) then
-                        !if (.not.check_whether_bounds_overlap(i1s,i1e,j1s,j1e) .or. &
-                        !    .not.check_whether_bounds_overlap(i2s,i2e,j2s,j2e) .or. &
-                        !    .not.check_whether_bounds_overlap(i3s,i3e,j3s,j3e)) then
+                        ! Check whether there is an overlap between projector and support functions
                         if (.not.projector_has_overlap(iat, ilr, lzd, nlpsp, at)) then
                             cycle 
                         else
                             ii = ii +1
-                            iat_startend(1,iproc) = min(iat_startend(1,iproc),iat)
-                            iat_startend(2,iproc) = max(iat_startend(2,iproc),iat)
                         end if
                      end do
                      nscalprod_send = nscalprod_send + ii
@@ -4464,53 +4407,50 @@ subroutine nonlocal_forces_linear(iproc,nproc,npsidim_orbs,lr,hx,hy,hz,at,rxyz,&
                   ispsi_k=ispsi
                end do loop_kptD
 
-               !!! Need to sum up among all tasks
-               !!call mpiallred(supfun_per_atom, mpi_sum, bigdft_mpi%mpi_comm)
-          
             else
 
                stop 'carefully test this section...'
-               !calculate all the scalar products for each direction and each orbitals
+               !!!calculate all the scalar products for each direction and each orbitals
           
-                  !apply the projectors  k-point of the processor
-                  !starting k-point
-                  ikpt=orbs%iokpt(1)
-                  loop_kpt: do
+               !!   !apply the projectors  k-point of the processor
+               !!   !starting k-point
+               !!   ikpt=orbs%iokpt(1)
+               !!   loop_kpt: do
           
-                     call orbs_in_kpt(ikpt,orbs,isorb,ieorb,nspinor)
+               !!      call orbs_in_kpt(ikpt,orbs,isorb,ieorb,nspinor)
           
-                     do iorb=isorb,ieorb
-                        iiorb=orbs%isorb+iorb
-                        ilr=orbs%inwhichlocreg(iiorb)
-                        ! Quick check
-                        if (lzd%llr(ilr)%ns1>nlpsp%pspd(iiat)%plr%ns1+nlpsp%pspd(iiat)%plr%d%n1 .or. &
-                            nlpsp%pspd(iiat)%plr%ns1>lzd%llr(ilr)%ns1+lzd%llr(ilr)%d%n1 .or. &
-                            lzd%llr(ilr)%ns2>nlpsp%pspd(iiat)%plr%ns2+nlpsp%pspd(iiat)%plr%d%n2 .or. &
-                            nlpsp%pspd(iiat)%plr%ns2>lzd%llr(ilr)%ns2+lzd%llr(ilr)%d%n2 .or. &
-                            lzd%llr(ilr)%ns3>nlpsp%pspd(iiat)%plr%ns3+nlpsp%pspd(iiat)%plr%d%n3 .or. &
-                            nlpsp%pspd(iiat)%plr%ns3>lzd%llr(ilr)%ns3+lzd%llr(ilr)%d%n3) then
-                            cycle 
-                        else
-                            iat_startend(1,iproc) = min(iat_startend(1,iproc),iat)
-                            iat_startend(2,iproc) = max(iat_startend(2,iproc),iat)
-                        end if
-                     end do
-                     if (ieorb == orbs%norbp) exit loop_kpt
-                     ikpt=ikpt+1
-                  end do loop_kpt
+               !!      do iorb=isorb,ieorb
+               !!         iiorb=orbs%isorb+iorb
+               !!         ilr=orbs%inwhichlocreg(iiorb)
+               !!         ! Quick check
+               !!         if (lzd%llr(ilr)%ns1>nlpsp%pspd(iiat)%plr%ns1+nlpsp%pspd(iiat)%plr%d%n1 .or. &
+               !!             nlpsp%pspd(iiat)%plr%ns1>lzd%llr(ilr)%ns1+lzd%llr(ilr)%d%n1 .or. &
+               !!             lzd%llr(ilr)%ns2>nlpsp%pspd(iiat)%plr%ns2+nlpsp%pspd(iiat)%plr%d%n2 .or. &
+               !!             nlpsp%pspd(iiat)%plr%ns2>lzd%llr(ilr)%ns2+lzd%llr(ilr)%d%n2 .or. &
+               !!             lzd%llr(ilr)%ns3>nlpsp%pspd(iiat)%plr%ns3+nlpsp%pspd(iiat)%plr%d%n3 .or. &
+               !!             nlpsp%pspd(iiat)%plr%ns3>lzd%llr(ilr)%ns3+lzd%llr(ilr)%d%n3) then
+               !!             cycle 
+               !!         else
+               !!             iat_startend(1,iproc) = min(iat_startend(1,iproc),iat)
+               !!             iat_startend(2,iproc) = max(iat_startend(2,iproc),iat)
+               !!         end if
+               !!      end do
+               !!      if (ieorb == orbs%norbp) exit loop_kpt
+               !!      ikpt=ikpt+1
+               !!   end do loop_kpt
           
             end if
 
         else norbp_if
 
-            iat_startend(1,iproc) = 1
-            iat_startend(2,iproc) = 1
+            !!iat_startend(1,iproc) = 1
+            !!iat_startend(2,iproc) = 1
     
         end if norbp_if
 
-        if (nproc>1) then
-            call mpiallred(iat_startend(1,0), 2*nproc, mpi_sum, bigdft_mpi%mpi_comm)
-        end if
+        !if (nproc>1) then
+        !    call mpiallred(iat_startend(1,0), 2*nproc, mpi_sum, bigdft_mpi%mpi_comm)
+        !end if
 
         call f_release_routine()
 
@@ -4522,6 +4462,7 @@ subroutine nonlocal_forces_linear(iproc,nproc,npsidim_orbs,lr,hx,hy,hz,at,rxyz,&
         integer :: iii
         logical :: projector_has_overlap, increase, iat_overlap
         integer,dimension(:),allocatable :: is_supfun_per_atom_tmp
+        real(kind=8) :: scpr
 
         call f_routine(id='calculate_scalprod')
 
@@ -4566,10 +4507,6 @@ subroutine nonlocal_forces_linear(iproc,nproc,npsidim_orbs,lr,hx,hy,hz,at,rxyz,&
                              & at%astruct%geocode, idir, lr, hx, hy, hz, &
                              & orbs%kpts(1,ikpt), orbs%kpts(2,ikpt), orbs%kpts(3,ikpt), &
                              & istart_c, iproj, nwarnings)
-                         !!do i_all=1,nlpspd%nprojel
-                         !!    write(800+iiat,*) i_all, proj(i_all)
-                         !!end do
-          !              print *,'iiat,ilr,idir,sum(proj)',iiat,ilr,idir,sum(proj)
            
                         !calculate the contribution for each orbital
                         !here the nspinor contribution should be adjusted
@@ -4579,29 +4516,7 @@ subroutine nonlocal_forces_linear(iproc,nproc,npsidim_orbs,lr,hx,hy,hz,at,rxyz,&
                         do iorb=isorb,ieorb
                            iiorb=orbs%isorb+iorb
                            ilr=orbs%inwhichlocreg(iiorb)
-                           ! Quick check
-                           !i1s = lzd%llr(ilr)%ns1
-                           !i1e = lzd%llr(ilr)%ns1+lzd%llr(ilr)%d%n1
-                           !j1s = nlpsp%pspd(iiat)%plr%ns1
-                           !j1e = nlpsp%pspd(iiat)%plr%ns1+nlpsp%pspd(iiat)%plr%d%n1
-                           !i2s = lzd%llr(ilr)%ns2
-                           !i2e = lzd%llr(ilr)%ns2+lzd%llr(ilr)%d%n2
-                           !j2s = nlpsp%pspd(iiat)%plr%ns2
-                           !j2e = nlpsp%pspd(iiat)%plr%ns2+nlpsp%pspd(iiat)%plr%d%n2
-                           !i3s = lzd%llr(ilr)%ns3
-                           !i3e = lzd%llr(ilr)%ns3+lzd%llr(ilr)%d%n3
-                           !j3s = nlpsp%pspd(iiat)%plr%ns3
-                           !j3e = nlpsp%pspd(iiat)%plr%ns3+nlpsp%pspd(iiat)%plr%d%n3
-                           !if (lzd%llr(ilr)%ns1>nlpsp%pspd(iiat)%plr%ns1+nlpsp%pspd(iiat)%plr%d%n1 .or. &
-                           !    nlpsp%pspd(iiat)%plr%ns1>lzd%llr(ilr)%ns1+lzd%llr(ilr)%d%n1 .or. &
-                           !    lzd%llr(ilr)%ns2>nlpsp%pspd(iiat)%plr%ns2+nlpsp%pspd(iiat)%plr%d%n2 .or. &
-                           !    nlpsp%pspd(iiat)%plr%ns2>lzd%llr(ilr)%ns2+lzd%llr(ilr)%d%n2 .or. &
-                           !    lzd%llr(ilr)%ns3>nlpsp%pspd(iiat)%plr%ns3+nlpsp%pspd(iiat)%plr%d%n3 .or. &
-                           !    nlpsp%pspd(iiat)%plr%ns3>lzd%llr(ilr)%ns3+lzd%llr(ilr)%d%n3) then
-                           !if (.not.check_whether_bounds_overlap(i1s,i1e,j1s,j1e) .or. &
-                           !    .not.check_whether_bounds_overlap(i2s,i2e,j2s,j2e) .or. &
-                           !    .not.check_whether_bounds_overlap(i3s,i3e,j3s,j3e)) then
-                           !if (iproc==0) write(*,'(a,4i8,l4)') 'iproc, iat, iiorb, ilr, ovrlp', iproc, iat, iiorb, ilr, projector_has_overlap(iat, ilr, lzd, nlpsp, at)
+                           ! Check whether there is an overlap between projector and support functions
                            if (.not.projector_has_overlap(iat, ilr, lzd, nlpsp, at)) then
                                jorb=jorb+1
                                ispsi=ispsi+(lzd%llr(ilr)%wfd%nvctr_c+7*lzd%llr(ilr)%wfd%nvctr_f)*ncplx
@@ -4611,8 +4526,8 @@ subroutine nonlocal_forces_linear(iproc,nproc,npsidim_orbs,lr,hx,hy,hz,at,rxyz,&
                            do ispinor=1,nspinor,ncplx
                               jorb=jorb+1
                               istart_c=1
-                              do l=1,4
-                                 do i=1,3
+                              do l=1,l_max!4
+                                 do i=1,i_max!3
                                     if (at%psppar(l,i,ityp) /= 0.0_gp) then
                                        do m=1,2*l-1
                                           call wpdot_wrap(ncplx,&
@@ -4623,23 +4538,15 @@ subroutine nonlocal_forces_linear(iproc,nproc,npsidim_orbs,lr,hx,hy,hz,at,rxyz,&
                                                nlpsp%pspd(iiat)%plr%wfd%keyvglob(jseg_c),&
                                                nlpsp%pspd(iiat)%plr%wfd%keyglob(1,jseg_c),&
                                                nlpsp%proj(istart_c),&
-                                               scalprod_sendbuf(1,idir,m,i,l,iat,jorb))
-                                           !if (iproc==0) write(*,'(a,5i8,es16.8)') 'iproc, iat, iiorb, jorb, ilr, val', iproc, iat, iiorb, jorb, ilr, scalprod_sendbuf(1,idir,m,i,l,iat,jorb)
-                                          if (scalprod_sendbuf(1,idir,m,i,l,iat,jorb)/=0.d0) then
+                                               scpr)
+                                          if (scpr/=0.d0) then
                                               if (increase) then
                                                   is_supfun_per_atom_tmp(iat) = is_supfun_per_atom_tmp(iat)+1
                                                   increase = .false.
                                               end if
                                               iii = is_supfun_per_atom_tmp(iat)
-                                              !if (iproc==0) write(*,'(a,5i8,es16.8)') 'iproc, iat, iiorb, jorb, iii, val', iproc, iat, iiorb, jorb, iii, scalprod_sendbuf(1,idir,m,i,l,iat,jorb)
-                                              !if (iproc==0) write(*,'(a,5i9)') 'iproc, iat, jorb, iii, nscalprod_send', iproc, iat, jorb, iii, nscalprod_send
-                                              scalprod_sendbuf_new(1,idir,m,i,l,iii) = scalprod_sendbuf(1,idir,m,i,l,iat,jorb)
-                                              !scalprod_send_lookup(iii) = jorb
+                                              scalprod_sendbuf_new(1,idir,m,i,l,iii) = scpr
                                               scalprod_send_lookup(iii) = iiorb
-                                              iorbminmax(iat,1) = min(iorbminmax(iat,1),iiorb)
-                                              iorbminmax(iat,2) = max(iorbminmax(iat,2),iiorb)
-                                              iatminmax(iiorb,1) = min(iatminmax(iiorb,1),iat)
-                                              iatminmax(iiorb,2) = max(iatminmax(iiorb,2),iat)
                                           else
                                               stop 'scalprod should not be zero'
                                           end if
@@ -4663,121 +4570,116 @@ subroutine nonlocal_forces_linear(iproc,nproc,npsidim_orbs,lr,hx,hy,hz,at,rxyz,&
           
             else
                stop "shouldn't enter this section"
-               !calculate all the scalar products for each direction and each orbitals
-               do idir=0,ndir
+               !!!calculate all the scalar products for each direction and each orbitals
+               !!do idir=0,ndir
           
-                  if (idir /= 0) then !for the first run the projectors are already allocated
-                     call fill_projectors(lr,hx,hy,hz,at,orbs,rxyz,nlpsp,idir)
-                  end if
-                  !apply the projectors  k-point of the processor
-                  !starting k-point
-                  ikpt=orbs%iokpt(1)
-                  istart_ck=1
-                  ispsi_k=1
-                  jorb=0
-                  loop_kpt: do
+               !!   if (idir /= 0) then !for the first run the projectors are already allocated
+               !!      call fill_projectors(lr,hx,hy,hz,at,orbs,rxyz,nlpsp,idir)
+               !!   end if
+               !!   !apply the projectors  k-point of the processor
+               !!   !starting k-point
+               !!   ikpt=orbs%iokpt(1)
+               !!   istart_ck=1
+               !!   ispsi_k=1
+               !!   jorb=0
+               !!   loop_kpt: do
           
-                     call orbs_in_kpt(ikpt,orbs,isorb,ieorb,nspinor)
+               !!      call orbs_in_kpt(ikpt,orbs,isorb,ieorb,nspinor)
           
-                     call ncplx_kpt(ikpt,orbs,ncplx)
+               !!      call ncplx_kpt(ikpt,orbs,ncplx)
           
-                     ! calculate the scalar product for all the orbitals
-                     ispsi=ispsi_k
-                     do iorb=isorb,ieorb
-                        iiorb=orbs%isorb+iorb
-                        ilr=orbs%inwhichlocreg(iiorb)
-                        ! Quick check
-                        i1s = lzd%llr(ilr)%ns1
-                        i1e = lzd%llr(ilr)%ns1+lzd%llr(ilr)%d%n1
-                        j1s = nlpsp%pspd(iiat)%plr%ns1
-                        j1e = nlpsp%pspd(iiat)%plr%ns1+nlpsp%pspd(iiat)%plr%d%n1
-                        i2s = lzd%llr(ilr)%ns2
-                        i2e = lzd%llr(ilr)%ns2+lzd%llr(ilr)%d%n2
-                        j2s = nlpsp%pspd(iiat)%plr%ns2
-                        j2e = nlpsp%pspd(iiat)%plr%ns2+nlpsp%pspd(iiat)%plr%d%n2
-                        i3s = lzd%llr(ilr)%ns3
-                        i3e = lzd%llr(ilr)%ns3+lzd%llr(ilr)%d%n3
-                        j3s = nlpsp%pspd(iiat)%plr%ns3
-                        j3e = nlpsp%pspd(iiat)%plr%ns3+nlpsp%pspd(iiat)%plr%d%n3
-                        !if (lzd%llr(ilr)%ns1>nlpsp%pspd(iiat)%plr%ns1+nlpsp%pspd(iiat)%plr%d%n1 .or. &
-                        !    nlpsp%pspd(iiat)%plr%ns1>lzd%llr(ilr)%ns1+lzd%llr(ilr)%d%n1 .or. &
-                        !    lzd%llr(ilr)%ns2>nlpsp%pspd(iiat)%plr%ns2+nlpsp%pspd(iiat)%plr%d%n2 .or. &
-                        !    nlpsp%pspd(iiat)%plr%ns2>lzd%llr(ilr)%ns2+lzd%llr(ilr)%d%n2 .or. &
-                        !    lzd%llr(ilr)%ns3>nlpsp%pspd(iiat)%plr%ns3+nlpsp%pspd(iiat)%plr%d%n3 .or. &
-                        !    nlpsp%pspd(iiat)%plr%ns3>lzd%llr(ilr)%ns3+lzd%llr(ilr)%d%n3) then
-                        if (.not.check_whether_bounds_overlap(i1s,i1e,j1s,j1e) .or. &
-                            .not.check_whether_bounds_overlap(i2s,i2e,j2s,j2e) .or. &
-                            .not.check_whether_bounds_overlap(i3s,i3e,j3s,j3e)) then
-                            jorb=jorb+1
-                            ispsi=ispsi+(lzd%llr(ilr)%wfd%nvctr_c+7*lzd%llr(ilr)%wfd%nvctr_f)*ncplx
-                            cycle 
-                        end if
-                        do ispinor=1,nspinor,ncplx
-                           jorb=jorb+1
-                           ! loop over all projectors of this k-point
-                           iproj=0
-                           istart_c=istart_ck
-                           do iat=1,natp
-                              iiat=iat+isat-1
-                              call plr_segs_and_vctrs(nlpsp%pspd(iiat)%plr,&
-                                   mbseg_c,mbseg_f,mbvctr_c,mbvctr_f)
-                              jseg_c=1
-                              jseg_f=1
+               !!      ! calculate the scalar product for all the orbitals
+               !!      ispsi=ispsi_k
+               !!      do iorb=isorb,ieorb
+               !!         iiorb=orbs%isorb+iorb
+               !!         ilr=orbs%inwhichlocreg(iiorb)
+               !!         ! Quick check
+               !!         i1s = lzd%llr(ilr)%ns1
+               !!         i1e = lzd%llr(ilr)%ns1+lzd%llr(ilr)%d%n1
+               !!         j1s = nlpsp%pspd(iiat)%plr%ns1
+               !!         j1e = nlpsp%pspd(iiat)%plr%ns1+nlpsp%pspd(iiat)%plr%d%n1
+               !!         i2s = lzd%llr(ilr)%ns2
+               !!         i2e = lzd%llr(ilr)%ns2+lzd%llr(ilr)%d%n2
+               !!         j2s = nlpsp%pspd(iiat)%plr%ns2
+               !!         j2e = nlpsp%pspd(iiat)%plr%ns2+nlpsp%pspd(iiat)%plr%d%n2
+               !!         i3s = lzd%llr(ilr)%ns3
+               !!         i3e = lzd%llr(ilr)%ns3+lzd%llr(ilr)%d%n3
+               !!         j3s = nlpsp%pspd(iiat)%plr%ns3
+               !!         j3e = nlpsp%pspd(iiat)%plr%ns3+nlpsp%pspd(iiat)%plr%d%n3
+               !!         !if (lzd%llr(ilr)%ns1>nlpsp%pspd(iiat)%plr%ns1+nlpsp%pspd(iiat)%plr%d%n1 .or. &
+               !!         !    nlpsp%pspd(iiat)%plr%ns1>lzd%llr(ilr)%ns1+lzd%llr(ilr)%d%n1 .or. &
+               !!         !    lzd%llr(ilr)%ns2>nlpsp%pspd(iiat)%plr%ns2+nlpsp%pspd(iiat)%plr%d%n2 .or. &
+               !!         !    nlpsp%pspd(iiat)%plr%ns2>lzd%llr(ilr)%ns2+lzd%llr(ilr)%d%n2 .or. &
+               !!         !    lzd%llr(ilr)%ns3>nlpsp%pspd(iiat)%plr%ns3+nlpsp%pspd(iiat)%plr%d%n3 .or. &
+               !!         !    nlpsp%pspd(iiat)%plr%ns3>lzd%llr(ilr)%ns3+lzd%llr(ilr)%d%n3) then
+               !!         if (.not.check_whether_bounds_overlap(i1s,i1e,j1s,j1e) .or. &
+               !!             .not.check_whether_bounds_overlap(i2s,i2e,j2s,j2e) .or. &
+               !!             .not.check_whether_bounds_overlap(i3s,i3e,j3s,j3e)) then
+               !!             jorb=jorb+1
+               !!             ispsi=ispsi+(lzd%llr(ilr)%wfd%nvctr_c+7*lzd%llr(ilr)%wfd%nvctr_f)*ncplx
+               !!             cycle 
+               !!         end if
+               !!         do ispinor=1,nspinor,ncplx
+               !!            jorb=jorb+1
+               !!            ! loop over all projectors of this k-point
+               !!            iproj=0
+               !!            istart_c=istart_ck
+               !!            do iat=1,natp
+               !!               iiat=iat+isat-1
+               !!               call plr_segs_and_vctrs(nlpsp%pspd(iiat)%plr,&
+               !!                    mbseg_c,mbseg_f,mbvctr_c,mbvctr_f)
+               !!               jseg_c=1
+               !!               jseg_f=1
           
-                              ityp=at%astruct%iatype(iiat)
-                              do l=1,4
-                                 do i=1,3
-                                    if (at%psppar(l,i,ityp) /= 0.0_gp) then
-                                       do m=1,2*l-1
-                                          iproj=iproj+1
-                                          call wpdot_wrap(ncplx,&
-                                               lzd%llr(ilr)%wfd%nvctr_c,lzd%llr(ilr)%wfd%nvctr_f,&
-                                               lzd%llr(ilr)%wfd%nseg_c,lzd%llr(ilr)%wfd%nseg_f,&
-                                               lzd%llr(ilr)%wfd%keyvglob,lzd%llr(ilr)%wfd%keyglob,phi(ispsi),  &
-                                               mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,&
-                                               nlpsp%pspd(iiat)%plr%wfd%keyvglob(jseg_c),&
-                                               nlpsp%pspd(iiat)%plr%wfd%keyglob(1,jseg_c),&
-                                               nlpsp%proj(istart_c),scalprod_sendbuf(1,idir,m,i,l,iat,jorb))
-                                          !!scalprod_sendbuf(1,idir,m,i,l,iat,jorb) = scalprod(1,idir,m,i,l,iat,jorb)
-                                          if (scalprod_sendbuf(1,idir,m,i,l,iat,jorb)/=0.d0) then
-                                              iorbminmax(iat,1) = min(iorbminmax(iat,1),iiorb)
-                                              iorbminmax(iat,2) = max(iorbminmax(iat,2),iiorb)
-                                              iatminmax(iiorb,1) = min(iatminmax(iiorb,1),iat)
-                                              iatminmax(iiorb,2) = max(iatminmax(iiorb,2),iat)
-                                          end if
-                                          istart_c=istart_c+(mbvctr_c+7*mbvctr_f)*ncplx
-                                       end do
-                                    end if
-                                 end do
-                              end do
-                           end do
-                           ispsi=ispsi+(lzd%llr(ilr)%wfd%nvctr_c+7*lzd%llr(ilr)%wfd%nvctr_f)*ncplx
-                        end do
-                        if (iproj /= nlpsp%nproj) stop '1:applyprojectors'
-                     end do
-                     istart_ck=istart_c
-                     if (ieorb == orbs%norbp) exit loop_kpt
-                     ikpt=ikpt+1
-                     ispsi_k=ispsi
-                  end do loop_kpt
-                  if (istart_ck-1  /= nlpsp%nprojel) stop '2:applyprojectors'
+               !!               ityp=at%astruct%iatype(iiat)
+               !!               do l=1,4
+               !!                  do i=1,3
+               !!                     if (at%psppar(l,i,ityp) /= 0.0_gp) then
+               !!                        do m=1,2*l-1
+               !!                           iproj=iproj+1
+               !!                           call wpdot_wrap(ncplx,&
+               !!                                lzd%llr(ilr)%wfd%nvctr_c,lzd%llr(ilr)%wfd%nvctr_f,&
+               !!                                lzd%llr(ilr)%wfd%nseg_c,lzd%llr(ilr)%wfd%nseg_f,&
+               !!                                lzd%llr(ilr)%wfd%keyvglob,lzd%llr(ilr)%wfd%keyglob,phi(ispsi),  &
+               !!                                mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,&
+               !!                                nlpsp%pspd(iiat)%plr%wfd%keyvglob(jseg_c),&
+               !!                                nlpsp%pspd(iiat)%plr%wfd%keyglob(1,jseg_c),&
+               !!                                nlpsp%proj(istart_c),scalprod_sendbuf(1,idir,m,i,l,iat,jorb))
+               !!                           !!scalprod_sendbuf(1,idir,m,i,l,iat,jorb) = scalprod(1,idir,m,i,l,iat,jorb)
+               !!                           if (scalprod_sendbuf(1,idir,m,i,l,iat,jorb)/=0.d0) then
+               !!                               iorbminmax(iat,1) = min(iorbminmax(iat,1),iiorb)
+               !!                               iorbminmax(iat,2) = max(iorbminmax(iat,2),iiorb)
+               !!                               iatminmax(iiorb,1) = min(iatminmax(iiorb,1),iat)
+               !!                               iatminmax(iiorb,2) = max(iatminmax(iiorb,2),iat)
+               !!                           end if
+               !!                           istart_c=istart_c+(mbvctr_c+7*mbvctr_f)*ncplx
+               !!                        end do
+               !!                     end if
+               !!                  end do
+               !!               end do
+               !!            end do
+               !!            ispsi=ispsi+(lzd%llr(ilr)%wfd%nvctr_c+7*lzd%llr(ilr)%wfd%nvctr_f)*ncplx
+               !!         end do
+               !!         if (iproj /= nlpsp%nproj) stop '1:applyprojectors'
+               !!      end do
+               !!      istart_ck=istart_c
+               !!      if (ieorb == orbs%norbp) exit loop_kpt
+               !!      ikpt=ikpt+1
+               !!      ispsi_k=ispsi
+               !!   end do loop_kpt
+               !!   if (istart_ck-1  /= nlpsp%nprojel) stop '2:applyprojectors'
           
-               end do
+               !!end do
           
-               !restore the projectors in the proj array (for on the run forces calc., tails or so)
-               if (refill) then 
-                  call fill_projectors(lr,hx,hy,hz,at,orbs,rxyz,nlpsp,0)
-               end if
+               !!!restore the projectors in the proj array (for on the run forces calc., tails or so)
+               !!if (refill) then 
+               !!   call fill_projectors(lr,hx,hy,hz,at,orbs,rxyz,nlpsp,0)
+               !!end if
           
             end if
     
         end if norbp_if
 
-        if (nproc>1) then
-            call mpiallred(iatminmax(1,1), 2*orbs%norb, mpi_sum, bigdft_mpi%mpi_comm)
-            call mpiallred(iorbminmax(1,1), natp, mpi_min, bigdft_mpi%mpi_comm)
-            call mpiallred(iorbminmax(1,2), natp, mpi_max, bigdft_mpi%mpi_comm)
-        end if
 
         call f_free(is_supfun_per_atom_tmp)
 
@@ -4799,33 +4701,8 @@ subroutine nonlocal_forces_linear(iproc,nproc,npsidim_orbs,lr,hx,hy,hz,at,rxyz,&
 
         call f_routine(id='transpose_scalprod')
 
-        !!scalprod_sendbuf = f_malloc0((/ 1.to.2, 0.to.ndir, 1.to.7, 1.to.3, 1.to.4, &
-        !!                               1.to.max(1, orbs%norbp*orbs%nspinor), 1.to.natp /),id='scalprod_sendbuf')
-      
-        !!! Copy scalprod to auxiliary array for communication
-        !!do iorb=1,orbs%norbp
-        !!    do iat=1,natp
-        !!        call vcopy(2*(ndir+1)*7*3*4, scalprod(1,0,1,1,1,iat,iorb), 1, scalprod_sendbuf(1,0,1,1,1,iorb,iat), 1)
-        !!    end do
-        !!end do
-      
-        !!call f_free(scalprod)
-      
-        !!scalprod_recvbuf = f_malloc0(2*(ndir+1)*7*3*4*max(1, nat_par(iproc))*orbs%norb*orbs%nspinor,id='scalprod_recvbuf')
-      
-        !!if (nproc>1) then
-        !!    call mpi_alltoallv(scalprod_sendbuf, sendcounts, senddspls, mpi_double_precision, &
-        !!                       scalprod_recvbuf, recvcounts, recvdspls, mpi_double_precision, &
-        !!                       bigdft_mpi%mpi_comm, ierr)
-        !!else
-        !!    call vcopy(2*(ndir+1)*7*3*4*natp*orbs%norb*orbs%nspinor, scalprod_sendbuf(1,0,1,1,1,1,1), &
-        !!         1, scalprod_recvbuf(1), 1)
-        !!end if
-      
-        !!call f_free(scalprod_sendbuf)
 
 
-        !@ VERYNEW ##########################################################
         ! Prepare communication arrays for alltoallv
         nsendcounts = f_malloc0(0.to.nproc-1,id='nsendcounts')
         nsenddspls = f_malloc(0.to.nproc-1,id='nsenddspls')
@@ -4842,10 +4719,8 @@ subroutine nonlocal_forces_linear(iproc,nproc,npsidim_orbs,lr,hx,hy,hz,at,rxyz,&
             nsenddspls(jproc) = nsenddspls(jproc-1) + nsendcounts(jproc-1)
         end do
 
-        !write(*,*) 'iproc, nsendcounts', iproc, nsendcounts
-        !write(*,*) 'iproc, nsenddspls', iproc, nsenddspls
 
-        ! Communite the send counts and receive displacements using another alltoallv
+        ! Communicate the send counts and receive displacements using another alltoallv
         nsendcounts_tmp = f_malloc(0.to.nproc-1,id='nsendcounts_tmp')
         nsenddspls_tmp = f_malloc(0.to.nproc-1,id='nsenddspls_tmp')
         nrecvcounts_tmp = f_malloc(0.to.nproc-1,id='nrecvcounts_tmp')
@@ -4856,28 +4731,15 @@ subroutine nonlocal_forces_linear(iproc,nproc,npsidim_orbs,lr,hx,hy,hz,at,rxyz,&
             nrecvcounts_tmp(jproc) = 1
             nrecvdspls_tmp(jproc) = jproc
         end do
-        !write(*,*) 'iproc, nsendcounts_tmp', iproc, nsendcounts_tmp
-        !write(*,*) 'iproc, nsenddspls_tmp', iproc, nsenddspls_tmp
-        !write(*,*) 'iproc, nrecvcounts_tmp', iproc, nrecvcounts_tmp
-        !write(*,*) 'iproc, nrecvdspls_tmp', iproc, nrecvdspls_tmp
         call mpialltoallv(nsendcounts(0), nsendcounts_tmp, nsenddspls_tmp, &
              nrecvcounts(0), nrecvcounts_tmp, nrecvdspls_tmp, bigdft_mpi%mpi_comm)
-        !call mpialltoallv(nsenddspls(0), nsendcounts_tmp, nsenddspls_tmp, &
-        !     nrecvdspls(0), nrecvcounts_tmp, nrecvdspls_tmp, bigdft_mpi%mpi_comm)
         nrecvdspls(0) = 0
         do jproc=1,nproc-1
             nrecvdspls(jproc) = nrecvdspls(jproc-1) + nrecvcounts(jproc-1)
         end do
 
-        !do jproc=0,nproc-1
-        !    write(2100+iproc,'(a,3i9)') 'jproc, nrecvcounts(jproc), nrecvdspls(jproc)', jproc, nrecvcounts(jproc), nrecvdspls(jproc)
-        !end do
-
-        !write(*,*) 'iproc, nrecvcounts', iproc, nrecvcounts
-        !write(*,*) 'iproc, nrecvdspls', iproc, nrecvdspls
-
         ! Communicate the number of scalprods per atom, which will be needed as a switch
-        supfun_per_atom_recv = f_malloc(nat_par(iproc)*nproc,id='supfun_per_atom_recv')
+        supfun_per_atom_recv = f_malloc(max(nat_par(iproc),1)*nproc,id='supfun_per_atom_recv')
         do jproc=0,nproc-1
             nsendcounts_tmp(jproc) = nat_par(jproc)
             nsenddspls_tmp(jproc) = isat_par(jproc)
@@ -4889,10 +4751,9 @@ subroutine nonlocal_forces_linear(iproc,nproc,npsidim_orbs,lr,hx,hy,hz,at,rxyz,&
 
         ! Determine the size of the receive buffer
         nscalprod_recv = sum(nrecvcounts)
-        !write(*,*) 'iproc, nscalprod_recv', iproc, nscalprod_recv
-        scalprod_new = f_malloc((/ 1.to.2, 0.to.ndir, 1.to.7, 1.to.3, 1.to.4, &
+        scalprod_new = f_malloc((/ 1.to.2, 0.to.ndir, 1.to.m_max, 1.to.i_max, 1.to.l_max, &
                                   1.to.max(nscalprod_recv,1) /),id='scalprod_new')
-        scalprod_recvbuf = f_malloc(2*(ndir+1)*7*3*4*max(nscalprod_recv,1),id='scalprod_recvbuf')
+        scalprod_recvbuf = f_malloc(2*(ndir+1)*m_max*i_max*l_max*max(nscalprod_recv,1),id='scalprod_recvbuf')
         scalprod_lookup_recvbuf = f_malloc(max(nscalprod_recv,1), id='scalprod_send_lookup_recvbuf')
         scalprod_lookup = f_malloc(max(nscalprod_recv,1), id='scalprod_lookup')
 
@@ -4901,12 +4762,11 @@ subroutine nonlocal_forces_linear(iproc,nproc,npsidim_orbs,lr,hx,hy,hz,at,rxyz,&
              scalprod_lookup_recvbuf(1), nrecvcounts, nrecvdspls, bigdft_mpi%mpi_comm)
         
         ! Communicate the scalprods
-        nsendcounts(:) = nsendcounts(:)*2*(ndir+1)*7*3*4
-        nsenddspls(:) = nsenddspls(:)*2*(ndir+1)*7*3*4
-        nrecvcounts(:) = nrecvcounts(:)*2*(ndir+1)*7*3*4
-        nrecvdspls(:) = nrecvdspls(:)*2*(ndir+1)*7*3*4
-        !call mpialltoallv(scalprod_sendbuf_new(1,0,1,1,1,1), nsendcounts, nsenddspls, &
-        !     scalprod_new(1,0,1,1,1,1), nrecvcounts, nrecvdspls, bigdft_mpi%mpi_comm)
+        ncount = 2*(ndir+1)*m_max*i_max*l_max
+        nsendcounts(:) = nsendcounts(:)*ncount
+        nsenddspls(:) = nsenddspls(:)*ncount
+        nrecvcounts(:) = nrecvcounts(:)*ncount
+        nrecvdspls(:) = nrecvdspls(:)*ncount
         call mpialltoallv(scalprod_sendbuf_new(1,0,1,1,1,1), nsendcounts, nsenddspls, &
              scalprod_recvbuf(1), nrecvcounts, nrecvdspls, bigdft_mpi%mpi_comm)
 
@@ -4921,13 +4781,10 @@ subroutine nonlocal_forces_linear(iproc,nproc,npsidim_orbs,lr,hx,hy,hz,at,rxyz,&
             is_supfun_per_atom(jat) = is_supfun_per_atom(jat-1) + supfun_per_atom(jat-1)
         end do
 
-        !do jat=1,at%astruct%nat
-        !    write(2000+iproc,'(a,3i9)') 'jat, supfun_per_atom(jat), is_supfun_per_atom(jat)', jat, supfun_per_atom(jat), is_supfun_per_atom(jat)
-        !end do
 
         ! Rearrange the elements
         is_supfun_per_atom_tmp = f_malloc(at%astruct%nat,id='is_supfun_per_atom_tmp')
-        ncount = 2*(ndir+1)*7*3*4
+        !ncount = 2*(ndir+1)*m_max*i_max*l_max
         call vcopy(at%astruct%nat, is_supfun_per_atom(1), 1, is_supfun_per_atom_tmp(1), 1)
         ii = 1
         isrc = 1
@@ -4937,10 +4794,8 @@ subroutine nonlocal_forces_linear(iproc,nproc,npsidim_orbs,lr,hx,hy,hz,at,rxyz,&
                 nel = supfun_per_atom_recv(ii)
                 idst = is_supfun_per_atom_tmp(iiat) - is_supfun_per_atom(isat_par(iproc)+1) + 1
                 if (nel>0) then
-                    !write(*,'(a,8i9)') 'iproc, iiat, nel, isrc, idst, nscalprod_recv, isspa(iiat), isspa(isat_par(iproc)+1)', iproc, iiat, nel, isrc, idst, nscalprod_recv, is_supfun_per_atom_tmp(iiat), is_supfun_per_atom(isat_par(iproc)+1)
                     call vcopy(nel*ncount, scalprod_recvbuf((isrc-1)*ncount+1), 1, scalprod_new(1,0,1,1,1,idst), 1)
                     call vcopy(nel, scalprod_lookup_recvbuf(isrc), 1, scalprod_lookup(idst), 1)
-                    !write(*,*) 'iproc, nel, isrc, idst', iproc, nel, isrc, idst
                 end if
                 is_supfun_per_atom_tmp(iiat) = is_supfun_per_atom_tmp(iiat) + nel
                 isrc = isrc + nel
@@ -4955,9 +4810,7 @@ subroutine nonlocal_forces_linear(iproc,nproc,npsidim_orbs,lr,hx,hy,hz,at,rxyz,&
             iiat = isat_par(iproc) + iat
             do iorb=1,supfun_per_atom(iiat)
                 ii = is_supfun_per_atom(iiat)+iorb
-                !write(*,'(a,4i9)') 'iproc, iiat, iloc, ival', iproc, iiat, ii, scalprod_lookup(ii)
             end do
-            !write(*,'(a,3i9)') 'iproc, iiat, supfun_per_atom(iiat)',iproc, iiat, supfun_per_atom(iiat)
         end do
 
         call f_free(scalprod_recvbuf)
@@ -4972,147 +4825,26 @@ subroutine nonlocal_forces_linear(iproc,nproc,npsidim_orbs,lr,hx,hy,hz,at,rxyz,&
         call f_free(scalprod_lookup_recvbuf)
         call f_free(supfun_per_atom_recv)
 
-        !@ END VERYNEW ######################################################
-
-
-
-!        ! Maximal size to be allocated
-!        iorbmin = orbs%norb
-!        iorbmax = 1
-!        do iat=1,nat_par(iproc)
-!            iiat = isat_par(iproc) + iat
-!            iorbmin = min(iorbmin,iorbminmax(iiat,1))
-!            iorbmax = max(iorbmax,iorbminmax(iiat,2))
-!        end do
-!        !!scalprod = f_malloc0((/ 1.to.2, 0.to.ndir, 1.to.7, 1.to.3, 1.to.4, &
-!        !!                       1.to.max(1, nat_par(iproc)), 1.to.orbs%norb*orbs%nspinor /),id='scalprod')
-!        if (orbs%nspinor/=1) stop 'nonlocal_forces_linear: nspinor must be 1 for the moment'
-!        scalprod = f_malloc0((/ 1.to.2, 0.to.ndir, 1.to.7, 1.to.3, 1.to.4, &
-!                               1.to.max(1, nat_par(iproc)), iorbmin.to.iorbmax /),id='scalprod')
-!
-!        scalprod_recvbuf = f_malloc(2*(ndir+1)*7*3*4*max(1,nat_par(iproc))*(iorbmax-iorbmin+1),id='scalprod_recvbuf')
-!    
-!        !!ist=1
-!        !!do jproc=0,nproc-1
-!        !!    do iat=1,nat_par(iproc)
-!        !!        iiorb=orbs%isorb_par(jproc)
-!        !!        do iorb=1,orbs%norb_par(jproc,0)
-!        !!            iiorb=iiorb+1
-!        !!            if (iiorb>=iorbmin .and. iiorb<=iorbmax) then
-!        !!                call vcopy(2*(ndir+1)*7*3*4, scalprod_recvbuf(ist), 1, scalprod(1,0,1,1,1,iat,iiorb), 1)
-!        !!            end if
-!        !!            ist=ist+2*(ndir+1)*7*3*4
-!        !!        end do
-!        !!    end do
-!        !!end do
-!
-!
-!        !@NEW ###########################################
-!        nat_on_task = iat_startend(2,iproc)-iat_startend(1,iproc)+1
-!        if (nproc>1) then
-!            window = mpiwindow(2*(ndir+1)*7*3*4*(iat_startend(2,iproc)-iat_startend(1,iproc)+1)*max(1,orbs%norbp*orbs%nspinor), &
-!                     scalprod_sendbuf(1,0,1,1,1,iat_startend(1,iproc),1), bigdft_mpi%mpi_comm)
-!            call mpi_type_size(mpi_double_precision, size_of_double, ierr)
-!        end if
-!        datatypes = f_malloc(0.to.nproc-1,id='datatypes')
-!
-!        if (nproc>1) then
-!            ist_recv = 1
-!            do jproc=0,nproc-1
-!                isorb = orbs%isorb_par(jproc) + 1
-!                ieorb = orbs%isorb_par(jproc) + orbs%norb_par(jproc,0)
-!                is = max(isorb,iorbmin)
-!                ie = min(ieorb,iorbmax)
-!                iatmin = at%astruct%nat
-!                iatmax = 1
-!                do iorb=is,ie
-!                    ii = max(isat_par(iproc)+1,iatminmax(iorb,1))
-!                    iatmin = min(ii,iatmin)
-!                    ii = min(isat_par(iproc)+nat_par(iproc),iatminmax(iorb,2))
-!                    iatmax = max(ii,iatmax)
-!                end do
-!                ncount = 2*(ndir+1)*7*3*4*(iatmax-iatmin+1)
-!                nat_on_task = iat_startend(2,jproc)-iat_startend(1,jproc)+1
-!                if (ie>=is .and. ncount>0) then
-!                    call mpi_type_vector(ie-is+1, ncount, 2*(ndir+1)*7*3*4*nat_on_task, &
-!                         mpi_double_precision, datatypes(jproc), ierr)
-!                    call mpi_type_commit(datatypes(jproc), ierr)
-!                    !!do iorb=is,ie
-!                    !!    if (ncount>0) then
-!                    !!        ist = 2*(ndir+1)*7*3*4*(nat_on_task*(iorb-orbs%isorb_par(jproc)-1)+iatmin-iat_startend(1,jproc))!orbs%norb_par(jproc,0)
-!                    !!        !!write(*,'(a,8i9)') 'iproc, jproc, iorb, ist, iorb, orbs%isorb_par(jproc), iatmin, ncount', &
-!                    !!        !!    iproc, jproc, iorb, ist, iorb, orbs%isorb_par(jproc), iatmin, ncount
-!                    !!        !!if (ist<0) write(*,*) 'ist<0',ist
-!                    !!        !!if (ist+ncount>2*(ndir+1)*7*3*4*at%astruct%nat*max(1,orbs%norb_par(jproc,0)*orbs%nspinor)) &
-!                    !!        !!    write(*,*) 'ist>', &
-!                    !!        !!        ist,ncount,2*(ndir+1)*7*3*4*at%astruct%nat*max(1,orbs%norb_par(jproc,0)*orbs%nspinor)
-!                    !!        call mpiget(scalprod(1,0,1,1,1,iatmin-isat_par(iproc),iorb), ncount, jproc, &
-!                    !!             int(ist,kind=mpi_address_kind), window)
-!                    !!    end if
-!                    !!end do
-!                    ist = 2*(ndir+1)*7*3*4*(nat_on_task*(is-orbs%isorb_par(jproc)-1)+iatmin-iat_startend(1,jproc))!orbs%norb_par(jproc,0)
-!                    call mpi_type_size(datatypes(jproc), nsize, ierr)
-!                    nsize = nsize/size_of_double
-!                    call mpi_get(scalprod_recvbuf(ist_recv), nsize, mpi_double_precision, jproc, &
-!                         int(ist,kind=mpi_address_kind), 1, datatypes(jproc), window, ierr)
-!                    ist_recv = ist_recv + nsize
-!                end if
-!            end do
-!        else
-!            call vcopy(2*(ndir+1)*7*3*4*(iat_startend(2,iproc)-iat_startend(1,iproc)+1)*(iorbmax-iorbmin+1), &
-!                       scalprod_sendbuf(1,0,1,1,1,iat_startend(1,iproc),1), 1, &
-!                       scalprod(1,0,1,1,1,1,iorbmin), 1)
-!        end if
-!        if (nproc>1) then
-!            call mpi_fenceandfree(window)
-!            ist_recv = 1
-!            do jproc=0,nproc-1
-!                isorb = orbs%isorb_par(jproc) + 1
-!                ieorb = orbs%isorb_par(jproc) + orbs%norb_par(jproc,0)
-!                is = max(isorb,iorbmin)
-!                ie = min(ieorb,iorbmax)
-!                iatmin = at%astruct%nat
-!                iatmax = 1
-!                do iorb=is,ie
-!                    ii = max(isat_par(iproc)+1,iatminmax(iorb,1))
-!                    iatmin = min(ii,iatmin)
-!                    ii = min(isat_par(iproc)+nat_par(iproc),iatminmax(iorb,2))
-!                    iatmax = max(ii,iatmax)
-!                end do
-!                ncount = 2*(ndir+1)*7*3*4*(iatmax-iatmin+1)
-!                nat_on_task = iat_startend(2,jproc)-iat_startend(1,jproc)+1
-!                if (ie>=is .and. ncount>0) then
-!                    do iorb=is,ie
-!                       call vcopy(ncount, scalprod_recvbuf(ist_recv), 1, scalprod(1,0,1,1,1,iatmin-isat_par(iproc),iorb), 1)
-!                       ist_recv = ist_recv + ncount
-!                    end do
-!                    call mpi_type_free(datatypes(jproc), ierr)
-!                end if
-!            end do
-!        end if
-!
-!        call f_free(datatypes)
-!
-!        !@END NEW #######################################
-!    
-!      call f_free(scalprod_recvbuf)
-      call f_free(scalprod_sendbuf)
-
       call f_release_routine()
 
       end subroutine transpose_scalprod
 
 
+
       subroutine calculate_forces()
         use sparsematrix_init, only: matrixindex_in_compressed
         implicit none
-        integer :: jj
-
+        integer :: jj, iispin, jjspin
+        real(kind=8),dimension(:,:),allocatable :: fxyz_orb
+        !real(kind=8),dimension(:),allocatable :: sab, strten_loc
+        real(kind=8),dimension(6) :: sab, strten_loc
 
         call f_routine(id='calculate_forces')
 
+        fxyz_orb = f_malloc0((/3,nat_par(iproc)/),id='fxyz_orb')
+        !sab = f_malloc0(6,id='sab')
+        !strten_loc = f_malloc(6,id='strten_loc')
 
-   !@ NEW ################################################
         natp_if2: if (nat_par(iproc)>0) then
     
             !apply the projectors  k-point of the processor
@@ -5124,112 +4856,66 @@ subroutine nonlocal_forces_linear(iproc,nproc,npsidim_orbs,lr,hx,hy,hz,at,rxyz,&
                call orbs_in_kpt(ikpt,orbs,isorb,ieorb,nspinor)
     
                call ncplx_kpt(ikpt,orbs,ncplx)
+
+               ! Do the OMP loop over supfun_per_atom, as nat_par(iproc) is typically rather small
     
-         !call f_zero(fxyz_orb)
-    
-               ! loop over all my orbitals for calculating forces
-               !do iorbout=isorb,ieorb
-               !do iorbout=1,orbs%norb
+               !$omp parallel default(none) &
+               !$omp shared(denskern, nat_par, iproc, isat_par, at, supfun_per_atom, is_supfun_per_atom) &
+               !$omp shared(scalprod_lookup, l_max, i_max, scalprod_new, fxyz_orb, denskern_gathered) &
+               !$omp shared(offdiagarr, strten, strten_loc, vol, Enl, nspinor,ncplx) &
+               !$omp private(ispin, iat, iiat, ityp, iorb, ii, iiorb, jorb, jj, jjorb, ind, sab, ispinor) &
+               !$omp private(l, i, m, icplx, sp0, idir, spi, strc, j, hij, sp0i, sp0j, spj, iispin, jjspin)
                spin_loop2: do ispin=1,denskern%nspin
+
+
                   do iat=1,nat_par(iproc)
                      iiat=isat_par(iproc)+iat
-                     iiiat=isat_par(iproc)+iat+isat-1
                      ityp=at%astruct%iatype(iiat)
-                     !write(*,'(a,3i9,2i12)') 'iproc, iat, iiat, iorbminmax', iproc, iat, iiat, iorbminmax(iiat,:)
-                     !do iseg=1,denskern%nseg
+                     !$omp do reduction(+:fxyz_orb,strten_loc,Enl)
                      do iorb=1,supfun_per_atom(iiat)
                         ii = is_supfun_per_atom(iiat) - is_supfun_per_atom(isat_par(iproc)+1) + iorb
                         iiorb = scalprod_lookup(ii)
-                        !! Check whether this segment is within the range to be considered (check 
-                        !! only the line number as one segment is always on one single line).
-                        !!iorbout = denskern%keyg(1,2,iseg)
-                        if (ispin==2) then
-                            !!iorbout = iorbout + denskern%nfvctr
-                            iiorb = iiorb + denskern%nfvctr
-                        end if
-                        !!if (iorbout<iorbminmax(iiat,1) .or. iorbout>iorbminmax(iiat,2)) cycle
-                        !if (denskern%keyg(1,2,iseg)<iorbminmax(iiat,1) .or. denskern%keyg(1,2,iseg)>iorbminmax(iiat,2)) cycle
-                        !!ii = denskern%keyv(iseg)-1 + (ispin-1)*denskern%nvctr 
-                        !!do jjorb=denskern%keyg(1,1,iseg),denskern%keyg(2,1,iseg)
+                        iispin = (iiorb-1)/denskern%nfvctr + 1
+                        if (iispin/=ispin) cycle
+                      !  if (ispin==2) then
+                      !      ! spin shift
+                      !      iiorb = iiorb + denskern%nfvctr
+                      !  end if
                         do jorb=1,supfun_per_atom(iiat)
                            jj = is_supfun_per_atom(iiat) - is_supfun_per_atom(isat_par(iproc)+1) + jorb
                            jjorb = scalprod_lookup(jj)
-                           !ii=ii+1
-                           !!iorbout = (jjorb-1)/orbs%norb + 1
-                           !!jorb = jjorb - (iorbout-1)*orbs%norb
-                           !jorb = jjorb
-                           !if (jorb<iorbminmax(iiat,1) .or. jorb>iorbminmax(iiat,2)) cycle
-                           !spin shift
-                           if (ispin==2) then
-                               !iorbout = iorbout + denskern%nfvctr
-                               !jorb = jorb + denskern%nfvctr
-                               jjorb = jjorb + denskern%nfvctr
-                           end if
+                           jjspin = (jjorb-1)/denskern%nfvctr + 1
+                           if (jjspin/=ispin) cycle
+                      !     if (ispin==2) then
+                      !         !spin shift
+                      !         jjorb = jjorb + denskern%nfvctr
+                      !     end if
                            ind = matrixindex_in_compressed(denskern, jjorb, iiorb)
                            if (ind==0) cycle
-                        !jorb=0 !THIS WILL CREATE PROBLEMS FOR K-POINTS!!
-                        sab=0.0_gp
-                        ! loop over all projectors
-                        !do iorb=isorb,ieorb
-                        !do iorb=1,orbs%norb
-                        !write(*,'(a,10i10)') 'iproc, iat, iiat, iorb, ii, iiorb, jorb, jj, jjorb, ind', iproc, iat, iiat, iorb, ii, iiorb, jorb, jj, jjorb, ind
+                           sab=0.0_gp
+                           ! Loop over all projectors
                            do ispinor=1,nspinor,ncplx
-                              !jorb=jorb+1
-                              !ind=collcom%matrixindex_in_compressed(jorb,iorbout)
-                              !ind=collcom%matrixindex_in_compressed(iorbout,jorb)
-                              !ind=ii
-                              !write(100+iproc,'(a,3i8,es20.10)') 'iorbout, jorb, ind, denskern%matrix_compr(ind)', iorbout, jorb, ind, denskern%matrix_compr(ind)
-                              !if (kernel(jorb,iorbout)==0.d0) cycle
                               if (denskern_gathered(ind)==0.d0) cycle
-                              !do iat=1,natp
-                                 do l=1,4
-                                    do i=1,3
+                                 do l=1,l_max!4
+                                    do i=1,i_max!3
                                        if (at%psppar(l,i,ityp) /= 0.0_gp) then
                                           do m=1,2*l-1
                                              do icplx=1,ncplx
                                                 ! scalar product with the derivatives in all the directions
-                                                !sp0=real(scalprod(icplx,0,m,i,l,iat,iorbout),gp)
                                                 sp0=real(scalprod_new(icplx,0,m,i,l,ii),gp)
-                                                !write(*,'(a,9i6,es16.8)') 'iproc, iat, iiat, ii, l, i, m, icplx, ind, sp0', iproc, iat, iiat, ii, l, i, m, icplx, ind, sp0
-                                                !if (kernel(jorb,iorbout)/=0.d0) then
-                                                    !!write(100+iproc,'(a,9i6,es18.8)') 'iorbout,jorb,icplx,0,m,i,l,iat,iiat,sp0', &
-                                                    !!                                   iorbout,jorb,icplx,0,m,i,l,iat,iiat,sp0
-                                                !end if
-                                                !if (sp0==0.d0) write(*,*) 'sp0 is zero'
                                                 do idir=1,3
-                                                   !spi=real(scalprod(icplx,idir,m,i,l,iat,jorb),gp)
                                                    spi=real(scalprod_new(icplx,idir,m,i,l,jj),gp)
-                                                   !write(*,'(a,9i6,es16.8)') 'iproc, iat, iiat, ii, l, i, m, icplx, ind, spi', iproc, iat, iiat, ii, l, i, m, icplx, ind, spi
-                                                   !write(*,'(a,8i8,4es16.8)') 'iiorb, jorb, jj, jjorb, ind, l, i, ityp, denskern_gathered(ind), at%psppar(l,i,ityp), sp0, spi', iiorb, jorb, jj, jjorb, ind, l, i, ityp, denskern_gathered(ind), at%psppar(l,i,ityp), sp0, spi
-                                                   !if (spi==0.d0) write(*,*) 'sp0 is zero'
-                                                   !ind=collcom%matrixindex_in_compressed(jorb,iorbout)
-                                                   !ind=collcom%matrixindex_in_compressed(iorbout,jorb)
-                                                   !ind=ii
-                                                   !fxyz_orb(idir,iiat)=fxyz_orb(idir,iiat)+&
-                                                   !     kernel(jorb,iorbout)*at%psppar(l,i,ityp)*sp0*spi
-                                                   !write(*,'(a,2i8,2es16.8)') 'NEW before idir, iiiat, fxyz_orb(idir,iiiat), prod', idir, iiiat, fxyz_orb(idir,iiiat), denskern_gathered(ind)*at%psppar(l,i,ityp)*sp0*spi
-                                                   fxyz_orb(idir,iiiat)=fxyz_orb(idir,iiiat)+&
+                                                   !!$omp critical
+                                                   fxyz_orb(idir,iat)=fxyz_orb(idir,iat)+&
                                                         denskern_gathered(ind)*at%psppar(l,i,ityp)*sp0*spi
-                                                   !write(*,'(a,2i8,es16.8)') 'NEW idir, iiiat, fxyz_orb(idir,iiiat)', idir, iiiat, fxyz_orb(idir,iiiat)
-                                                   !if (kernel(jorb,iorbout)/=0.d0) then
-                                                       !!write(110+iproc,'(a,10i6,es18.8)') 'iorbout,jorb,icplx,0,m,i,l,iat,iiat,&
-                                                       !!                                    &idir,fxyz_orb(idir,iat)', &
-                                                       !!                                    iorbout,jorb,icplx,0,m,i,l,iat,iiat,&
-                                                       !!                                    idir,fxyz_orb(idir,iat)
-                                                   !end if
+                                                   !!$omp end critical
                                                 end do
-                                                !!spi=real(scalprod(icplx,0,m,i,l,iat,jorb),gp)
-                                                !call yaml_warning('CHECK OCCUP AND KWGTHS')
-                                                !spi=real(scalprod(icplx,0,m,i,l,iat,jorb),gp)
                                                 spi=real(scalprod_new(icplx,0,m,i,l,jj),gp)
-                                                Enl=Enl+sp0*spi*denskern_gathered(ind)*at%psppar(l,i,ityp)!*&
-                                                    !orbs%occup(iorb+orbs%isorb)*orbs%kwgts(orbs%iokpt(iorb))
+                                                Enl=Enl+sp0*spi*denskern_gathered(ind)*at%psppar(l,i,ityp)
                                                 do idir=4,9 !for stress
-                                                    !strc=real(scalprod(icplx,idir,m,i,l,iat,jorb),gp)
                                                     strc=real(scalprod_new(icplx,idir,m,i,l,jj),gp)
                                                     sab(idir-3) = sab(idir-3)+&   
-                                                        denskern_gathered(ind)*at%psppar(l,i,ityp)*sp0*2.0_gp*strc!*&
-                                                        !orbs%occup(iorb+orbs%isorb)*orbs%kwgts(orbs%iokpt(iorb))
+                                                        denskern_gathered(ind)*at%psppar(l,i,ityp)*sp0*2.0_gp*strc
                                                 end do
                                              end do
                                           end do
@@ -5240,8 +4926,8 @@ subroutine nonlocal_forces_linear(iproc,nproc,npsidim_orbs,lr,hx,hy,hz,at,rxyz,&
                                  if (at%npspcode(ityp) == PSPCODE_HGH .or. &
                                      at%npspcode(ityp) == PSPCODE_HGH_K .or. &
                                      at%npspcode(ityp) == PSPCODE_HGH_K_NLCC) then
-                                    do l=1,3 !no offdiagoanl terms for l=4 in HGH-K case
-                                       do i=1,2
+                                    do l=1,3!min(l_max,3) !no offdiagoanl terms for l=4 in HGH-K case
+                                       do i=1,2!min(i_max,2)
                                           if (at%psppar(l,i,ityp) /= 0.0_gp) then 
                                              loop_j2: do j=i+1,3
                                                 if (at%psppar(l,j,ityp) == 0.0_gp) exit loop_j2
@@ -5253,41 +4939,26 @@ subroutine nonlocal_forces_linear(iproc,nproc,npsidim_orbs,lr,hx,hy,hz,at,rxyz,&
                                                 end if
                                                 do m=1,2*l-1
                                                    !F_t= 2.0*h_ij (<D_tp_i|psi><psi|p_j>+<p_i|psi><psi|D_tp_j>)
-                                                   !(the two factor is below)
+                                                   !(the factor two is below)
                                                    do icplx=1,ncplx
-                                                      !!sp0i=real(scalprod(icplx,0,m,i,l,iat,iorbout),gp)
-                                                      !!sp0j=real(scalprod(icplx,0,m,j,l,iat,iorbout),gp)
                                                       sp0i=real(scalprod_new(icplx,0,m,i,l,ii),gp)
                                                       sp0j=real(scalprod_new(icplx,0,m,j,l,ii),gp)
                                                       do idir=1,3
-                                                         !!spi=real(scalprod(icplx,idir,m,i,l,iat,jorb),gp)
-                                                         !!spj=real(scalprod(icplx,idir,m,j,l,iat,jorb),gp)
                                                          spi=real(scalprod_new(icplx,idir,m,i,l,jj),gp)
                                                          spj=real(scalprod_new(icplx,idir,m,j,l,jj),gp)
-                                                         !ind=collcom%matrixindex_in_compressed(jorb,iorbout)
-                                                         !ind=collcom%matrixindex_in_compressed(iorbout,jorb)
-                                                         !ind=ii
-                                                         !fxyz_orb(idir,iiat)=fxyz_orb(idir,iiat)+&
-                                                         !     kernel(jorb,iorbout)*hij*(sp0j*spi+spj*sp0i)
-                                                         fxyz_orb(idir,iiiat)=fxyz_orb(idir,iiiat)+&
+                                                         !!$omp critical
+                                                         fxyz_orb(idir,iat)=fxyz_orb(idir,iat)+&
                                                               denskern_gathered(ind)*hij*(sp0j*spi+spj*sp0i)
-                                                         !write(*,'(a,2i8,es16.8)') 'NEW idir, iiiat, fxyz_orb(idir,iiiat)', idir, iiiat, fxyz_orb(idir,iiiat)
+                                                         !!$omp end critical
                                                       end do
-                                                      !!sp0i=real(scalprod(icplx,0,m,i,l,iat,jorb),gp)
-                                                      !spi=real(scalprod(icplx,0,m,i,l,iat,jorb),gp)
-                                                      !spj=real(scalprod(icplx,0,m,j,l,iat,jorb),gp)
                                                       spi=real(scalprod_new(icplx,0,m,i,l,jj),gp)
                                                       spj=real(scalprod_new(icplx,0,m,j,l,jj),gp)
-                                                      Enl=Enl+denskern_gathered(ind)*(sp0i*spj+sp0j*spi)*hij!&
-                                                      !!*orbs%occup(iorb+orbs%isorb)*orbs%kwgts(orbs%iokpt(iorb))
+                                                      Enl=Enl+denskern_gathered(ind)*(sp0i*spj+sp0j*spi)*hij
                                                       do idir=4,9
-                                                          !spi=real(scalprod(icplx,idir,m,i,l,iat,jorb),gp)
-                                                          !spj=real(scalprod(icplx,idir,m,j,l,iat,jorb),gp)
                                                           spi=real(scalprod_new(icplx,idir,m,i,l,jj),gp)
                                                           spj=real(scalprod_new(icplx,idir,m,j,l,jj),gp)
                                                           sab(idir-3)=sab(idir-3)+&   
                                                               2.0_gp*denskern_gathered(ind)*hij*(sp0j*spi+sp0i*spj)!&
-                                                              !*orbs%occup(iorb+orbs%isorb)*orbs%kwgts(orbs%iokpt(iorb))
                                                       end do
                                                    end do
                                                 end do
@@ -5298,38 +4969,33 @@ subroutine nonlocal_forces_linear(iproc,nproc,npsidim_orbs,lr,hx,hy,hz,at,rxyz,&
                                  end if
                            end do
              
-                           !!!orbital-dependent factor for the forces
-                           !!orbfac=orbs%kwgts(orbs%iokpt(iorbout))*orbs%occup(iorbout+orbs%isorb)*2.0_gp
              
                            !seq: strten(1:6) =  11 22 33 23 13 12 
-                           strten(1)=strten(1)+sab(1)/vol 
-                           strten(2)=strten(2)+sab(2)/vol 
-                           strten(3)=strten(3)+sab(3)/vol 
-                           strten(4)=strten(4)+sab(5)/vol
-                           strten(5)=strten(5)+sab(6)/vol
-                           strten(6)=strten(6)+sab(4)/vol
+                           !!tmparr(1)=tmparr(1)+1.d0!sab(1)/vol 
+                           !!tmparr(2)=tmparr(2)+1.d0!sab(2)/vol 
+                           !!tmparr(3)=tmparr(3)+1.d0!sab(3)/vol 
+                           !!tmparr(4)=tmparr(4)+1.d0!sab(5)/vol
+                           !!tmparr(5)=tmparr(5)+1.d0!sab(6)/vol
+                           !!tmparr(6)=tmparr(6)+1.d0!sab(4)/vol
+                           strten_loc(1)=strten_loc(1)+sab(1)/vol 
+                           strten_loc(2)=strten_loc(2)+sab(2)/vol 
+                           strten_loc(3)=strten_loc(3)+sab(3)/vol 
+                           strten_loc(4)=strten_loc(4)+sab(5)/vol
+                           strten_loc(5)=strten_loc(5)+sab(6)/vol
+                           strten_loc(6)=strten_loc(6)+sab(4)/vol
                         end do
                      end do
+                     !$omp end do
                   end do
                end do spin_loop2
-               !do iat=1,natp
+               !$omp end parallel
                do iat=1,nat_par(iproc)
                   iiat=isat_par(iproc)+iat+isat-1
-                  !write(120+iproc,'(a,2i7,2es18.8)') 'iorbout, iat, fsep(1,iiat), fxyz_orb(1,iiat)', &
-                  !                                    iorbout, iat, fsep(1,iiat), fxyz_orb(1,iiat)
-                  !!fsep(1,iat)=fsep(1,iat)+orbfac*fxyz_orb(1,iat)
-                  !!fsep(2,iat)=fsep(2,iat)+orbfac*fxyz_orb(2,iat)
-                  !!fsep(3,iat)=fsep(3,iat)+orbfac*fxyz_orb(3,iat)
-                  fsep(1,iiat)=fsep(1,iiat)+2.d0*fxyz_orb(1,iiat)
-                  fsep(2,iiat)=fsep(2,iiat)+2.d0*fxyz_orb(2,iiat)
-                  fsep(3,iiat)=fsep(3,iiat)+2.d0*fxyz_orb(3,iiat)
-                  !write(200+iproc,'(a,2i8,es16.8)') 'NEW, idir, iiat, val', 1, iiat, fsep(1,iiat)
-                  !write(200+iproc,'(a,2i8,es16.8)') 'NEW, idir, iiat, val', 2, iiat, fsep(2,iiat)
-                  !write(200+iproc,'(a,2i8,es16.8)') 'NEW, idir, iiat, val', 3, iiat, fsep(3,iiat)
-         !!fsep(1,iiat)=fsep(1,iiat)-2.d0*fxyz_orb(1,iiat)
-         !!fsep(2,iiat)=fsep(2,iiat)-2.d0*fxyz_orb(2,iiat)
-         !!fsep(3,iiat)=fsep(3,iiat)-2.d0*fxyz_orb(3,iiat)
+                  fsep(1,iiat)=fsep(1,iiat)+2.d0*fxyz_orb(1,iat)
+                  fsep(2,iiat)=fsep(2,iiat)+2.d0*fxyz_orb(2,iat)
+                  fsep(3,iiat)=fsep(3,iiat)+2.d0*fxyz_orb(3,iat)
                end do
+               strten(:) = strten(:) + strten_loc(:)
                if (ieorb == orbs%norbp) exit loop_kptF2
                ikpt=ikpt+1
                ispsi_k=ispsi
@@ -5337,210 +5003,9 @@ subroutine nonlocal_forces_linear(iproc,nproc,npsidim_orbs,lr,hx,hy,hz,at,rxyz,&
     
         end if natp_if2
 
-
-
-    !@ END NEW ################################################
-
-!    fxyz_orb = 0.d0
-!
-!        natp_if: if (nat_par(iproc)>0) then
-!    
-!            !apply the projectors  k-point of the processor
-!            !starting k-point
-!            ikpt=orbs%iokpt(1)
-!            jorb=0
-!            loop_kptF: do
-!    
-!               call orbs_in_kpt(ikpt,orbs,isorb,ieorb,nspinor)
-!    
-!               call ncplx_kpt(ikpt,orbs,ncplx)
-!    
-!         !call f_zero(fxyz_orb)
-!    
-!               ! loop over all my orbitals for calculating forces
-!               !do iorbout=isorb,ieorb
-!               !do iorbout=1,orbs%norb
-!               spin_loop: do ispin=1,denskern%nspin
-!                  do iat=1,nat_par(iproc)
-!                     iiat=isat_par(iproc)+iat
-!                     iiiat=isat_par(iproc)+iat+isat-1
-!                     ityp=at%astruct%iatype(iiat)
-!                     !write(*,'(a,3i9,2i12)') 'iproc, iat, iiat, iorbminmax', iproc, iat, iiat, iorbminmax(iiat,:)
-!                     do iseg=1,denskern%nseg
-!                        ! Check whether this segment is within the range to be considered (check 
-!                        ! only the line number as one segment is always on one single line).
-!                        iorbout = denskern%keyg(1,2,iseg)
-!                        if (ispin==2) then
-!                            iorbout = iorbout + denskern%nfvctr
-!                        end if
-!                        if (iorbout<iorbminmax(iiat,1) .or. iorbout>iorbminmax(iiat,2)) cycle
-!                        !if (denskern%keyg(1,2,iseg)<iorbminmax(iiat,1) .or. denskern%keyg(1,2,iseg)>iorbminmax(iiat,2)) cycle
-!                        ii = denskern%keyv(iseg)-1 + (ispin-1)*denskern%nvctr 
-!                        do jjorb=denskern%keyg(1,1,iseg),denskern%keyg(2,1,iseg)
-!                           ii=ii+1
-!                           !!iorbout = (jjorb-1)/orbs%norb + 1
-!                           !!jorb = jjorb - (iorbout-1)*orbs%norb
-!                           jorb = jjorb
-!                           if (jorb<iorbminmax(iiat,1) .or. jorb>iorbminmax(iiat,2)) cycle
-!                           !spin shift
-!                           if (ispin==2) then
-!                               !iorbout = iorbout + denskern%nfvctr
-!                               jorb = jorb + denskern%nfvctr
-!                           end if
-!                        !jorb=0 !THIS WILL CREATE PROBLEMS FOR K-POINTS!!
-!                        sab=0.0_gp
-!                        ! loop over all projectors
-!                        !do iorb=isorb,ieorb
-!                        !do iorb=1,orbs%norb
-!                           do ispinor=1,nspinor,ncplx
-!                              !jorb=jorb+1
-!                              !ind=collcom%matrixindex_in_compressed(jorb,iorbout)
-!                              !ind=collcom%matrixindex_in_compressed(iorbout,jorb)
-!                              ind=ii
-!                              !write(100+iproc,'(a,3i8,es20.10)') 'iorbout, jorb, ind, denskern%matrix_compr(ind)', iorbout, jorb, ind, denskern%matrix_compr(ind)
-!                              !if (kernel(jorb,iorbout)==0.d0) cycle
-!                              if (denskern_gathered(ind)==0.d0) cycle
-!                              !do iat=1,natp
-!                                 do l=1,4
-!                                    do i=1,3
-!                                       if (at%psppar(l,i,ityp) /= 0.0_gp) then
-!                                          do m=1,2*l-1
-!                                             do icplx=1,ncplx
-!                                                ! scalar product with the derivatives in all the directions
-!                                                sp0=real(scalprod(icplx,0,m,i,l,iat,iorbout),gp)
-!                                                write(*,'(a,9i6,es16.8)') 'iproc, iat, iiat, iorbout, l, i, m, icplx, ind, sp0', iproc, iat, iiat, iorbout, l, i, m, icplx, ind, sp0
-!                                                !if (kernel(jorb,iorbout)/=0.d0) then
-!                                                    !!write(100+iproc,'(a,9i6,es18.8)') 'iorbout,jorb,icplx,0,m,i,l,iat,iiat,sp0', &
-!                                                    !!                                   iorbout,jorb,icplx,0,m,i,l,iat,iiat,sp0
-!                                                !end if
-!                                                !if (sp0==0.d0) write(*,*) 'sp0 is zero'
-!                                                do idir=1,3
-!                                                   spi=real(scalprod(icplx,idir,m,i,l,iat,jorb),gp)
-!                                                write(*,'(a,9i6,es16.8)') 'iproc, iat, iiat, iorbout, l, i, m, icplx, ind, spi', iproc, iat, iiat, iorbout, l, i, m, icplx, ind, spi
-!                                                write(*,'(a,4i8,4es16.8)') 'ind, l, i, ityp, denskern_gathered(ind), at%psppar(l,i,ityp), sp0, spi', ind, l, i, ityp, denskern_gathered(ind), at%psppar(l,i,ityp), sp0, spi
-!                                                   !if (spi==0.d0) write(*,*) 'sp0 is zero'
-!                                                   !ind=collcom%matrixindex_in_compressed(jorb,iorbout)
-!                                                   !ind=collcom%matrixindex_in_compressed(iorbout,jorb)
-!                                                   ind=ii
-!                                                   !fxyz_orb(idir,iiat)=fxyz_orb(idir,iiat)+&
-!                                                   !     kernel(jorb,iorbout)*at%psppar(l,i,ityp)*sp0*spi
-!                                                   write(*,'(a,2i8,2es16.8)') 'NEW before idir, iiiat, fxyz_orb(idir,iiiat), prod', idir, iiiat, fxyz_orb(idir,iiiat), denskern_gathered(ind)*at%psppar(l,i,ityp)*sp0*spi
-!                                                   fxyz_orb(idir,iiiat)=fxyz_orb(idir,iiiat)+&
-!                                                        denskern_gathered(ind)*at%psppar(l,i,ityp)*sp0*spi
-!                                                   write(*,'(a,2i8,es16.8)') 'OLD idir, iiiat, fxyz_orb(idir,iiiat)', idir, iiiat, fxyz_orb(idir,iiiat)
-!                                                   !if (kernel(jorb,iorbout)/=0.d0) then
-!                                                       !!write(110+iproc,'(a,10i6,es18.8)') 'iorbout,jorb,icplx,0,m,i,l,iat,iiat,&
-!                                                       !!                                    &idir,fxyz_orb(idir,iat)', &
-!                                                       !!                                    iorbout,jorb,icplx,0,m,i,l,iat,iiat,&
-!                                                       !!                                    idir,fxyz_orb(idir,iat)
-!                                                   !end if
-!                                                end do
-!                                                !!spi=real(scalprod(icplx,0,m,i,l,iat,jorb),gp)
-!                                                !call yaml_warning('CHECK OCCUP AND KWGTHS')
-!                                                spi=real(scalprod(icplx,0,m,i,l,iat,jorb),gp)
-!                                                Enl=Enl+sp0*spi*denskern_gathered(ind)*at%psppar(l,i,ityp)!*&
-!                                                    !orbs%occup(iorb+orbs%isorb)*orbs%kwgts(orbs%iokpt(iorb))
-!                                                do idir=4,9 !for stress
-!                                                    strc=real(scalprod(icplx,idir,m,i,l,iat,jorb),gp)
-!                                                    sab(idir-3)=&
-!                                                        sab(idir-3)+&   
-!                                                        denskern_gathered(ind)*at%psppar(l,i,ityp)*sp0*2.0_gp*strc!*&
-!                                                        !orbs%occup(iorb+orbs%isorb)*orbs%kwgts(orbs%iokpt(iorb))
-!                                                end do
-!                                             end do
-!                                          end do
-!                                       end if
-!                                    end do
-!                                 end do
-!                                 !HGH case, offdiagonal terms
-!                                 if (at%npspcode(ityp) == PSPCODE_HGH .or. &
-!                                     at%npspcode(ityp) == PSPCODE_HGH_K .or. &
-!                                     at%npspcode(ityp) == PSPCODE_HGH_K_NLCC) then
-!                                    do l=1,3 !no offdiagoanl terms for l=4 in HGH-K case
-!                                       do i=1,2
-!                                          if (at%psppar(l,i,ityp) /= 0.0_gp) then 
-!                                             loop_j: do j=i+1,3
-!                                                if (at%psppar(l,j,ityp) == 0.0_gp) exit loop_j
-!                                                !offdiagonal HGH term
-!                                                if (at%npspcode(ityp) == PSPCODE_HGH) then !traditional HGH convention
-!                                                   hij=offdiagarr(i,j-i,l)*at%psppar(l,j,ityp)
-!                                                else !HGH-K convention
-!                                                   hij=at%psppar(l,i+j+1,ityp)
-!                                                end if
-!                                                do m=1,2*l-1
-!                                                   !F_t= 2.0*h_ij (<D_tp_i|psi><psi|p_j>+<p_i|psi><psi|D_tp_j>)
-!                                                   !(the two factor is below)
-!                                                   do icplx=1,ncplx
-!                                                      sp0i=real(scalprod(icplx,0,m,i,l,iat,iorbout),gp)
-!                                                      sp0j=real(scalprod(icplx,0,m,j,l,iat,iorbout),gp)
-!                                                      do idir=1,3
-!                                                         spi=real(scalprod(icplx,idir,m,i,l,iat,jorb),gp)
-!                                                         spj=real(scalprod(icplx,idir,m,j,l,iat,jorb),gp)
-!                                                         !ind=collcom%matrixindex_in_compressed(jorb,iorbout)
-!                                                         !ind=collcom%matrixindex_in_compressed(iorbout,jorb)
-!                                                         ind=ii
-!                                                         !fxyz_orb(idir,iiat)=fxyz_orb(idir,iiat)+&
-!                                                         !     kernel(jorb,iorbout)*hij*(sp0j*spi+spj*sp0i)
-!                                                         fxyz_orb(idir,iiiat)=fxyz_orb(idir,iiiat)+&
-!                                                              denskern_gathered(ind)*hij*(sp0j*spi+spj*sp0i)
-!                                                         write(*,'(a,2i8,es16.8)') 'OLD idir, iiiat, fxyz_orb(idir,iiiat)', idir, iiiat, fxyz_orb(idir,iiiat)
-!                                                      end do
-!                                                      !!sp0i=real(scalprod(icplx,0,m,i,l,iat,jorb),gp)
-!                                                      spi=real(scalprod(icplx,0,m,i,l,iat,jorb),gp)
-!                                                      spj=real(scalprod(icplx,0,m,j,l,iat,jorb),gp)
-!                                                      Enl=Enl+denskern_gathered(ind)*(sp0i*spj+sp0j*spi)*hij!&
-!                                                      !!*orbs%occup(iorb+orbs%isorb)*orbs%kwgts(orbs%iokpt(iorb))
-!                                                      do idir=4,9
-!                                                          spi=real(scalprod(icplx,idir,m,i,l,iat,jorb),gp)
-!                                                          spj=real(scalprod(icplx,idir,m,j,l,iat,jorb),gp)
-!                                                          sab(idir-3)=sab(idir-3)+&   
-!                                                              2.0_gp*denskern_gathered(ind)*hij*(sp0j*spi+sp0i*spj)!&
-!                                                              !*orbs%occup(iorb+orbs%isorb)*orbs%kwgts(orbs%iokpt(iorb))
-!                                                      end do
-!                                                   end do
-!                                                end do
-!                                             end do loop_j
-!                                          end if
-!                                       end do
-!                                    end do
-!                                 end if
-!                           end do
-!             
-!                           !!!orbital-dependent factor for the forces
-!                           !!orbfac=orbs%kwgts(orbs%iokpt(iorbout))*orbs%occup(iorbout+orbs%isorb)*2.0_gp
-!             
-!                           !seq: strten(1:6) =  11 22 33 23 13 12 
-!                           strten(1)=strten(1)+sab(1)/vol 
-!                           strten(2)=strten(2)+sab(2)/vol 
-!                           strten(3)=strten(3)+sab(3)/vol 
-!                           strten(4)=strten(4)+sab(5)/vol
-!                           strten(5)=strten(5)+sab(6)/vol
-!                           strten(6)=strten(6)+sab(4)/vol
-!                        end do
-!                     end do
-!                  end do
-!               end do spin_loop
-!               !do iat=1,natp
-!               do iat=1,nat_par(iproc)
-!                  iiat=isat_par(iproc)+iat+isat-1
-!                  !write(120+iproc,'(a,2i7,2es18.8)') 'iorbout, iat, fsep(1,iiat), fxyz_orb(1,iiat)', &
-!                  !                                    iorbout, iat, fsep(1,iiat), fxyz_orb(1,iiat)
-!                  !!fsep(1,iat)=fsep(1,iat)+orbfac*fxyz_orb(1,iat)
-!                  !!fsep(2,iat)=fsep(2,iat)+orbfac*fxyz_orb(2,iat)
-!                  !!fsep(3,iat)=fsep(3,iat)+orbfac*fxyz_orb(3,iat)
-!                  fsep(1,iiat)=fsep(1,iiat)+2.d0*fxyz_orb(1,iiat)
-!                  fsep(2,iiat)=fsep(2,iiat)+2.d0*fxyz_orb(2,iiat)
-!                  fsep(3,iiat)=fsep(3,iiat)+2.d0*fxyz_orb(3,iiat)
-!                  write(100+iproc,'(a,2i8,es16.8)') 'OLD, idir, iiat, val', 1, iiat, fsep(1,iiat)
-!                  write(100+iproc,'(a,2i8,es16.8)') 'OLD, idir, iiat, val', 2, iiat, fsep(2,iiat)
-!                  write(100+iproc,'(a,2i8,es16.8)') 'OLD, idir, iiat, val', 3, iiat, fsep(3,iiat)
-!               end do
-!               if (ieorb == orbs%norbp) exit loop_kptF
-!               ikpt=ikpt+1
-!               ispsi_k=ispsi
-!            end do loop_kptF
-!    
-!        end if natp_if
+        !call f_free(sab)
+        !call f_free(strten_loc)
+        call f_free(fxyz_orb)
 
         call f_release_routine()
 

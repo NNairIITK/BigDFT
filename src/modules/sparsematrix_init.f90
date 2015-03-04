@@ -76,6 +76,7 @@ contains
               ispin=2
           else
               ! there seems to be a mix of the spin matrices
+              write(*,*) 'iorb, jorb, nfvctr', iorb, jorb, sparsemat%nfvctr
               stop 'matrixindex_in_compressed: problem in determining spin'
           end if
       else

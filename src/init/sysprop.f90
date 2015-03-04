@@ -2356,7 +2356,7 @@ subroutine redistribute(nproc, norb, workload, workload_ideal, norb_par)
   integer,dimension(0:nproc-1),intent(out) :: norb_par
 
   ! Local variables
-  real(kind=8) :: tcount, jcount, wli, ratio, ratio_old
+  real(kind=8) :: tcount, jcount, wli, ratio, ratio_old, average
   real(kind=8),dimension(:),allocatable :: workload_par
   integer,dimension(:),allocatable :: norb_par_trial
   integer :: jproc, jjorb, jjorbtot, jorb, ii, imin, imax
@@ -2405,8 +2405,9 @@ subroutine redistribute(nproc, norb, workload, workload_ideal, norb_par)
       !        jproc, jjorb+(norb-jjorbtot), sum(workload)-tcount, workload_ideal
 
       ! Now take away one element from the maximum and add it to the minimum.
-      ! Repeat this as long as the ratio max/min decreases 
-      ratio_old = maxval(workload_par)/minval(workload_par)
+      ! Repeat this as long as the ratio max/average decreases 
+      average = sum(workload_par)/real(nproc,kind=8)
+      ratio_old = maxval(workload_par)/average
       adjust_loop: do
           imin = minloc(workload_par,1) - 1 !subtract 1 because the array starts a 0
           imax = maxloc(workload_par,1) - 1 !subtract 1 because the array starts a 0
@@ -2422,7 +2423,8 @@ subroutine redistribute(nproc, norb, workload, workload_ideal, norb_par)
                   workload_par(jproc) = workload_par(jproc) + workload(ii)
               end do
           end do
-          ratio = maxval(workload_par)/minval(workload_par)
+          average = sum(workload_par)/real(nproc,kind=8)
+          ratio = maxval(workload_par)/average
           !if (bigdft_mpi%iproc==0) write(*,*) 'ratio, ratio_old', ratio, ratio_old
           if (ratio<ratio_old) then
               call vcopy(nproc, norb_par_trial(0), 1, norb_par(0), 1)
