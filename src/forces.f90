@@ -4865,6 +4865,7 @@ subroutine nonlocal_forces_linear(iproc,nproc,npsidim_orbs,lr,hx,hy,hz,at,rxyz,&
                !$omp shared(offdiagarr, strten, strten_loc, vol, Enl, nspinor,ncplx) &
                !$omp private(ispin, iat, iiat, ityp, iorb, ii, iiorb, jorb, jj, jjorb, ind, sab, ispinor) &
                !$omp private(l, i, m, icplx, sp0, idir, spi, strc, j, hij, sp0i, sp0j, spj, iispin, jjspin)
+               strten_loc(:) = 0.d0
                spin_loop2: do ispin=1,denskern%nspin
 
 

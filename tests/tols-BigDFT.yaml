@@ -1280,11 +1280,11 @@ periodic_water:
 surface_boronnitride:
  Enl: 1.0e-9
  Epot: 1.0e-9
- Omega: 5.7e-11
- energy: 2.1e-11
- Energy (Hartree): 2.1e-11
+ Omega: 5.8e-11
+ energy: 2.2e-11
+ Energy (Hartree): 2.2e-11
  Total charge: 1.0e-10
- Total ionic charge: 1.9e-11
+ Total ionic charge: 2.4e-11
  Keys to ignore:
   - Calculating wavelets expansion of projectors, found warnings
   - found warnings
