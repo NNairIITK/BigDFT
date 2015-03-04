@@ -549,7 +549,7 @@ subroutine XC_potential(geocode,datacode,iproc,nproc,mpi_comm,n01,n02,n03,xcObj,
 
      energies_mpi(1)=eexcuLOC
      energies_mpi(2)=vexcuLOC
-     call mpiallred(energies_mpi(1), 2,MPI_SUM,mpi_comm,recvbuf=energies_mpi(3))
+     call mpiallred(energies_mpi(1), 2,MPI_SUM,comm=mpi_comm,recvbuf=energies_mpi(3))
      exc=energies_mpi(3)
      vxc=energies_mpi(4)
 

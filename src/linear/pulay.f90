@@ -57,7 +57,7 @@ subroutine pulay_correction_new(iproc, nproc, tmb, orbs, at, fpulay)
   end do
 
   if (nproc > 1) then
-     call mpiallred(energykernel(1,1), tmb%orbs%norb**2, mpi_sum, bigdft_mpi%mpi_comm)
+     call mpiallred(energykernel, mpi_sum, bigdft_mpi%mpi_comm)
   end if
 
   ! calculate the overlap matrix
@@ -132,7 +132,7 @@ subroutine pulay_correction_new(iproc, nproc, tmb, orbs, at, fpulay)
   end do
 
   if (nproc > 1) then
-     call mpiallred(fpulay(1,1), 3*at%astruct%nat, mpi_sum, bigdft_mpi%mpi_comm)
+     call mpiallred(fpulay, mpi_sum, bigdft_mpi%mpi_comm)
   end if
   call f_free_ptr(tmb%linmat%kernel_%matrix)
 
@@ -665,7 +665,7 @@ subroutine pulay_correction(iproc, nproc, orbs, at, rxyz, nlpsp, SIC, denspot, G
    end do 
 
    if (nproc > 1) then
-      call mpiallred(fpulay(1,1), 3*at%astruct%nat, mpi_sum, bigdft_mpi%mpi_comm)
+      call mpiallred(fpulay, mpi_sum, bigdft_mpi%mpi_comm)
    end if
 
   if(iproc==0) then

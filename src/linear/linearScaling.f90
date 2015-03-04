@@ -878,7 +878,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
                    end if
 
                    if (nproc > 1) then
-                      call mpiallred(pnrm_out, 1, mpi_sum, bigdft_mpi%mpi_comm)
+                      call mpiallred(pnrm_out, 1, mpi_sum, comm=bigdft_mpi%mpi_comm)
                    end if
                    !pnrm_out = pnrm_out/dble(input%nspin)
 
@@ -956,7 +956,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
                    end if
 
                    if (nproc > 1) then
-                      call mpiallred(pnrm_out, 1, mpi_sum, bigdft_mpi%mpi_comm)
+                      call mpiallred(pnrm_out, 1, mpi_sum, comm=bigdft_mpi%mpi_comm)
                    end if
 
                    pnrm_out=sqrt(pnrm_out)/(KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*KSwfn%Lzd%Glr%d%n3i)!)*input%nspin)
@@ -1636,7 +1636,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
       end do
 
       if (nproc > 1) then
-         call mpiallred(mean_conf, 1, mpi_sum, bigdft_mpi%mpi_comm)
+         call mpiallred(mean_conf, 1, mpi_sum, comm=bigdft_mpi%mpi_comm)
       end if
       mean_conf=mean_conf/dble(tmb%orbs%norb)
 

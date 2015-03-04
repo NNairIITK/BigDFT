@@ -137,12 +137,15 @@ contains
     use module_morse_bulk
     use module_lj
     use module_lenosky_si
+    use module_base, only: bigdft_mpi
+    use yaml_output
     implicit none
     type(run_objects), intent(inout) :: runObj
     type(f_enumerator), intent(in) :: run_mode
     integer, intent(in) :: nat
     type(MM_restart_objects), intent(inout) :: mm_rst
 
+    if (bigdft_mpi%iproc==0) call yaml_sequence_open('Initializing '//trim(char(run_mode)))
     !then check if extra workspaces have to be allocated
     select case(trim(char(run_mode)))
     case('LENNARD_JONES_RUN_MODE')
@@ -218,12 +221,16 @@ contains
   end subroutine init_MM_restart_objects
 
   subroutine free_MM_restart_objects(mm_rst)
+    use module_base, only: bigdft_mpi
     use dynamic_memory
+    use yaml_output
     implicit none
     type(MM_restart_objects), intent(inout) :: mm_rst
     !check if the object can be freed
     call f_ref_free(mm_rst%refcnt)
     call f_free_ptr(mm_rst%rf_extra)
+
+    if (bigdft_mpi%iproc==0) call yaml_sequence_close()
   end subroutine free_MM_restart_objects
 
   !> Allocate and nullify restart objects
@@ -443,6 +450,49 @@ contains
     call f_memcpy(src=outsA%fxyz,dest=outsB%fxyz)
     call f_memcpy(src=outsA%strten,dest=outsB%strten)
   end subroutine copy_state_properties
+
+  !> broadcast the state properties definitions among all the processors
+  !! important to preserve coherency with respect the minimizers
+  subroutine broadcast_state_properties(outs)
+    use module_base
+    use yaml_output
+    implicit none
+    type(state_properties), intent(inout) :: outs
+    !local variables
+    real(gp), dimension(:), allocatable :: data
+    real(gp) :: maxdiff
+
+    if (bigdft_mpi%nproc == 1) return
+
+    !allocate datatransfer buffer: energy, pressure, fnoise, fxyz, strten
+    data = f_malloc(3+size(outs%fxyz)+size(outs%strten),id='data')
+    !fill data
+    data(1)=outs%energy
+    data(2)=outs%pressure
+    data(3)=outs%fnoise
+    call f_memcpy(n=size(outs%fxyz),src=outs%fxyz(1,1),dest=data(4))
+    call f_memcpy(n=size(outs%strten),src=outs%strten(1),dest=data(4+size(outs%fxyz)))
+
+    call mpibcast(data,comm=bigdft_mpi%mpi_comm,&
+         maxdiff=maxdiff)
+    if (maxdiff > epsilon(1.0_gp)) then
+       if (bigdft_mpi%iproc==0) then
+          call yaml_warning('State properties not identical! '//&
+               '(difference:'//trim(yaml_toa(maxdiff))//&
+               ' ), however broadcasting from master node.')
+          call yaml_flush_document()
+       end if
+    end if
+
+    !copy back in the structure
+    outs%energy=data(1)
+    outs%pressure=data(2)
+    outs%fnoise=data(3)
+    call f_memcpy(n=size(outs%fxyz),dest=outs%fxyz(1,1),src=data(4))
+    call f_memcpy(n=size(outs%strten),dest=outs%strten(1),src=data(4+size(outs%fxyz)))
+
+    call f_free(data)
+  end subroutine broadcast_state_properties
 
 
   !> Associate to the structure run_objects, the input_variable structure and the atomic positions (atoms_data)
@@ -1261,36 +1311,57 @@ contains
     !local variables
     integer :: nat
     integer :: icc !for amber
-    real(gp) :: alatint(3)
+    real(gp) :: maxdiff
+    real(gp), dimension(3) :: alatint
     real(gp), dimension(:,:), pointer :: rxyz_ptr
 !!integer :: iat , l
 !!real(gp) :: anoise,tt
 
+    rxyz_ptr => bigdft_get_rxyz_ptr(runObj)
+    nat=bigdft_nat(runObj)
+
+    !Check the consistency between MPI processes of the atomic coordinates and broadcast them
+    if (bigdft_mpi%nproc >1) then
+       call mpibcast(rxyz_ptr,comm=bigdft_mpi%mpi_comm,&
+            maxdiff=maxdiff)
+       if (maxdiff > epsilon(1.0_gp)) then
+          if (bigdft_mpi%iproc==0) then
+             call yaml_warning('Input positions not identical! '//&
+                  '(difference:'//trim(yaml_toa(maxdiff))//&
+                  ' ), however broadcasting from master node.')
+             call yaml_flush_document()
+          end if
+       end if
+    end if
 
     !@NEW ####################################################
     ! Apply the constraints expressed in internal coordinates
     if (runObj%atoms%astruct%inputfile_format=='int') then
-        call keep_internal_coordinates_constraints(runObj%atoms%astruct%nat, runObj%atoms%astruct%rxyz_int, &
-             runObj%atoms%astruct%ixyz_int, runObj%atoms%astruct%ifrztyp, runObj%atoms%astruct%rxyz)
+        call constraints_internal(runObj%atoms%astruct)
     end if
     !#########################################################
 
-    rxyz_ptr => bigdft_get_rxyz_ptr(runObj)
-    nat=bigdft_nat(runObj)
 
     call clean_state_properties(outs) !zero the state first
+    !BS: is new document necessary (high overhead for FF)?
+    !LG: unfortunately it it important to make testing possible. We should probably investigate 
+    !    the reasons for such high overhead
+    !    The new document has been substituted by sequence, not to have multiple documents for FF runs
+    !    However this hybrid scheme has to be tested in the case of QM/MM runs
+    !open the document if the run_mode has not it inside
+    if (runObj%run_mode /= 'QM_RUN_MODE' .and. bigdft_mpi%iproc==0) then
+       call yaml_sequence(advance='no')
+       call yaml_mapping_open(trim(char(runObj%run_mode)),flow=.true.)
+       !call yaml_new_document()
+      end if
     infocode = 0
     !choose what to do by following the mode prescription
     select case(trim(char(runObj%run_mode)))
     case('LENNARD_JONES_RUN_MODE')
-       !if(trim(adjustl(efmethod))=='LJ')then
-!BS: is new document necessary (high overhead for FF)?
-!       if (bigdft_mpi%iproc==0) call yaml_new_document()
        call lenjon(nat,rxyz_ptr,outs%fxyz,outs%energy)
        !         if (bigdft_mpi%iproc == 0) then
        !            call yaml_map('LJ state, energy',outs%energy,fmt='(1pe24.17)')
        !         end if
-!       if (bigdft_mpi%iproc==0) call yaml_release_document()
     case('MORSE_SLAB_RUN_MODE')
         call morse_slab_wrapper(nat,bigdft_get_cell(runObj),rxyz_ptr, outs%fxyz, outs%energy)
     case('MORSE_BULK_RUN_MODE')
@@ -1301,25 +1372,18 @@ contains
        !convert from bohr to angstroem
        call vscal(3*nat,Bohr_Ang,runObj%mm_rst%rf_extra(1,1),1)
        alatint=Bohr_Ang*bigdft_get_cell(runObj)
-!BS: is new document necessary (high overhead for FF)?
-!       if (bigdft_mpi%iproc==0) call yaml_new_document()
        call lenosky_si_shift(nat,runObj%mm_rst%rf_extra,outs%fxyz,&
             outs%energy)
-!       if (bigdft_mpi%iproc==0) call yaml_release_document()
        !convert energy from eV to Hartree
        outs%energy=ev_Ha*outs%energy
        !convert forces from eV/Angstroem to hartree/bohr
        call vscal(3*nat,eVAng_HaBohr,outs%fxyz(1,1),1)
     case('LENOSKY_SI_BULK_RUN_MODE')
-       !else if(trim(adjustl(efmethod))=='LENSIb')then!for bulk
        call f_memcpy(src=rxyz_ptr,dest=runObj%mm_rst%rf_extra)
        !convert from bohr to angstroem
        call vscal(3*nat,Bohr_Ang,runObj%mm_rst%rf_extra(1,1),1)
        alatint=Bohr_Ang*bigdft_get_cell(runObj)
-!BS: is new document necessary (high overhead for FF)?
-!       if (bigdft_mpi%iproc==0) call yaml_new_document()
        call lenosky_si(nat,alatint,runObj%mm_rst%rf_extra,outs%fxyz,outs%energy)
-!       if (bigdft_mpi%iproc==0) call yaml_release_document()
        !convert energy from eV to Hartree
        outs%energy=ev_Ha*outs%energy
        !convert forces from eV/Angstroem to hartree/bohr
@@ -1331,10 +1395,8 @@ contains
        !convert from bohr to angstroem
        call vscal(3*nat,Bohr_Ang,runObj%mm_rst%rf_extra(1,1),1)
 !BS: is new document necessary (high overhead for FF)?
-!       if (bigdft_mpi%iproc==0) call yaml_new_document()
        !ATTENTION: call_nab_gradient returns gradient, not forces
        call call_nab_gradient(runObj%mm_rst%rf_extra,outs%fxyz,outs%energy,icc)
-!       if (bigdft_mpi%iproc==0) call yaml_release_document()
        outs%energy=kcalMol_Ha*outs%energy
        !convert from gradient in kcal_th/mol/angstrom to
        !force in hartree/bohr (minus before kcalMolAng_HaBohr)
@@ -1357,8 +1419,16 @@ contains
 !!         enddo
 !!         enddo
 !!         endif
-
     call clean_forces(bigdft_mpi%iproc,runObj%atoms,rxyz_ptr,outs%fxyz,outs%fnoise,runObj%run_mode)
+
+    !broadcast the state properties
+    call broadcast_state_properties(outs)
+
+    if (runObj%run_mode /= 'QM_RUN_MODE' .and. bigdft_mpi%iproc==0) then
+       !call yaml_release_document()
+       call yaml_mapping_close()
+    end if
+
   end subroutine bigdft_state
 
   !> Routine to use BigDFT as a blackbox
@@ -1385,33 +1455,6 @@ contains
     call mpibarrier(bigdft_mpi%mpi_comm)
 
     call f_routine(id=subname)
-    !Check the consistency between MPI processes of the atomic coordinates and broadcast them
-    if (bigdft_mpi%nproc >1) then
-       call mpibcast(runObj%atoms%astruct%rxyz,comm=bigdft_mpi%mpi_comm,&
-            maxdiff=maxdiff)
-       if (maxdiff > epsilon(1.0_gp)) then
-          if (bigdft_mpi%iproc==0) then
-             call yaml_warning('Input positions not identical! '//&
-                  '(difference:'//trim(yaml_toa(maxdiff))//&
-                  ' ), however broadcasting from master node.')
-             call yaml_flush_document()
-          end if
-       end if
-    end if
-!!$      maxdiff=mpimaxdiff(runObj%atoms%astruct%rxyz,comm=bigdft_mpi%mpi_comm,bcast=.true.)
-!!$      if (maxdiff > epsilon(1.0_gp)) then
-!!$         if (bigdft_mpi%iproc==0) then
-!!$            call yaml_warning('Input positions not identical! '//&
-!!$                 '(difference:'//trim(yaml_toa(maxdiff))//' ), broadcasting from master node.')
-!!$            call yaml_comment('If the code hangs here, this means that not all the tasks met the threshold')
-!!$            call yaml_comment('This might be related to arithmetics in performing the comparison')
-!!$            call yaml_flush_document()
-!!$         end if
-!!$         !the check=.true. is important here: it controls that each process
-!!$         !will participate in the broadcasting
-!!$         call mpibcast(runObj%atoms%astruct%rxyz,comm=bigdft_mpi%mpi_comm,&
-!!$              check=.true.)
-!!$      end if
 
     !fill the rxyz array with the positions
     !wrap the atoms in the periodic directions when needed
@@ -1448,7 +1491,6 @@ contains
        if (runObj%inputs%inputPsiId == INPUT_PSI_LCAO .and. associated(runObj%rst%KSwfn%psi)) then
           call f_free_ptr(runObj%rst%KSwfn%psi)
           call f_free_ptr(runObj%rst%KSwfn%orbs%eval)
-          !call deallocate_wfd(runObj%rst%KSwfn%Lzd%Glr%wfd)
           call deallocate_locreg_descriptors(runObj%rst%KSwfn%Lzd%Glr)
        end if
 

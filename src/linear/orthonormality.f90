@@ -2011,8 +2011,8 @@ subroutine max_matrix_diff_parallel(iproc, norb, norbp, isorb, mat1, mat2, &
   if (bigdft_mpi%nproc>1) then
       reducearr(1)=mean_deviation
       reducearr(2)=num
-      call mpiallred(max_deviation, 1, mpi_max, bigdft_mpi%mpi_comm)
-      call mpiallred(reducearr(1), 2, mpi_sum, bigdft_mpi%mpi_comm)
+      call mpiallred(max_deviation, 1, mpi_max, comm=bigdft_mpi%mpi_comm)
+      call mpiallred(reducearr, mpi_sum, bigdft_mpi%mpi_comm)
       mean_deviation=reducearr(1)
       num=reducearr(2)
   end if
@@ -2105,8 +2105,8 @@ subroutine deviation_from_unity_parallel(iproc, nproc, norb, norbp, isorb, ovrlp
   if (nproc>1) then
       reducearr(1)=mean_deviation
       reducearr(2)=num
-      call mpiallred(max_deviation, 1, mpi_max, bigdft_mpi%mpi_comm)
-      call mpiallred(reducearr(1), 2, mpi_sum, bigdft_mpi%mpi_comm)
+      call mpiallred(max_deviation, 1, mpi_max, comm=bigdft_mpi%mpi_comm)
+      call mpiallred(reducearr, mpi_sum, bigdft_mpi%mpi_comm)
       mean_deviation=reducearr(1)
       num=reducearr(2)
   end if

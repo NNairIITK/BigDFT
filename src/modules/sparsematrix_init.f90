@@ -355,9 +355,9 @@ contains
       call determine_sequential_length(norb, norbp, isorb, nseg, &
            nsegline, istsegline, keyg, sparsemat, &
            sparsemat%smmm%nseq, nseq_per_line)
-      if (nproc>1) call mpiallred(nseq_per_line(1), norb, mpi_sum, bigdft_mpi%mpi_comm)
+      if (nproc>1) call mpiallred(nseq_per_line, mpi_sum, bigdft_mpi%mpi_comm)
       rseq=real(sparsemat%smmm%nseq,kind=8) !real to prevent integer overflow
-      if (nproc>1) call mpiallred(rseq, 1, mpi_sum, bigdft_mpi%mpi_comm)
+      if (nproc>1) call mpiallred(rseq, 1, mpi_sum, comm=bigdft_mpi%mpi_comm)
 
       rseq_per_line = f_malloc(norb,id='rseq_per_line')
       do iorb=1,norb
@@ -407,9 +407,9 @@ contains
 
       ! Get the load balancing
       nseq_min = sparsemat%smmm%nseq
-      if (nproc>1) call mpiallred(nseq_min, 1, mpi_min, bigdft_mpi%mpi_comm)
+      if (nproc>1) call mpiallred(nseq_min, 1, mpi_min, comm=bigdft_mpi%mpi_comm)
       nseq_max = sparsemat%smmm%nseq
-      if (nproc>1) call mpiallred(nseq_max, 1, mpi_max, bigdft_mpi%mpi_comm)
+      if (nproc>1) call mpiallred(nseq_max, 1, mpi_max, comm=bigdft_mpi%mpi_comm)
       if (nseq_min>0) then
           ratio_before = real(nseq_max,kind=8)/real(nseq_min,kind=8)
           printable=.true.
@@ -427,9 +427,9 @@ contains
 
       ! Get the load balancing
       nseq_min = sparsemat%smmm%nseq
-      if (nproc>1) call mpiallred(nseq_min, 1, mpi_min, bigdft_mpi%mpi_comm)
+      if (nproc>1) call mpiallred(nseq_min, 1, mpi_min, comm=bigdft_mpi%mpi_comm)
       nseq_max = sparsemat%smmm%nseq
-      if (nproc>1) call mpiallred(nseq_max, 1, mpi_max, bigdft_mpi%mpi_comm)
+      if (nproc>1) call mpiallred(nseq_max, 1, mpi_max, comm=bigdft_mpi%mpi_comm)
       ! Not necessary to set the printable flag (if nseq_min was zero before it should be zero here as well)
       if (nseq_min>0) then
           ratio_after = real(nseq_max,kind=8)/real(nseq_min,kind=8)
@@ -457,7 +457,7 @@ contains
       temparr(iproc,1) = sparsemat%smmm%isfvctr
       temparr(iproc,2) = sparsemat%smmm%nfvctrp
       if (nproc>1) then
-          call mpiallred(temparr(0,1), 2*nproc,  mpi_sum, bigdft_mpi%mpi_comm)
+          call mpiallred(temparr,  mpi_sum, bigdft_mpi%mpi_comm)
       end if
       call init_matrix_parallelization(iproc, nproc, sparsemat%nfvctr, sparsemat%nseg, sparsemat%nvctr, &
            temparr(0,1), temparr(0,2), sparsemat%istsegline, sparsemat%keyv, &
@@ -509,7 +509,7 @@ contains
       istartend_mm = f_malloc0((/1.to.2,0.to.nproc-1/),id='istartend_mm')
       istartend_mm(1:2,iproc) = sparsemat%smmm%istartend_mm(1:2)
       if (nproc>1) then
-          call mpiallred(istartend_mm(1,0), 2*nproc, mpi_sum, bigdft_mpi%mpi_comm)
+          call mpiallred(istartend_mm, mpi_sum, bigdft_mpi%mpi_comm)
       end if
 
       ! Partition the entire matrix in disjoint submatrices
@@ -744,8 +744,8 @@ contains
           end if
       end do
       if (nproc>1) then
-          call mpiallred(sparsemat%isfvctr_par(0), nproc, mpi_sum, bigdft_mpi%mpi_comm)
-          call mpiallred(sparsemat%nfvctr_par(0), nproc, mpi_sum, bigdft_mpi%mpi_comm)
+          call mpiallred(sparsemat%isfvctr_par, mpi_sum, bigdft_mpi%mpi_comm)
+          call mpiallred(sparsemat%nfvctr_par, mpi_sum, bigdft_mpi%mpi_comm)
       end if
 
       call allocate_sparse_matrix_basic(store_index, norbu, nproc, sparsemat)
@@ -762,9 +762,9 @@ contains
 
 
       if (nproc>1) then
-          call mpiallred(sparsemat%nvctr, 1, mpi_sum, bigdft_mpi%mpi_comm)
-          call mpiallred(sparsemat%nseg, 1, mpi_sum, bigdft_mpi%mpi_comm)
-          call mpiallred(sparsemat%nsegline(1), sparsemat%nfvctr, mpi_sum, bigdft_mpi%mpi_comm)
+          call mpiallred(sparsemat%nvctr, 1, mpi_sum,comm=bigdft_mpi%mpi_comm)
+          call mpiallred(sparsemat%nseg, 1, mpi_sum, comm=bigdft_mpi%mpi_comm)
+          call mpiallred(sparsemat%nsegline(1), sparsemat%nfvctr, mpi_sum, comm=bigdft_mpi%mpi_comm)
       end if
 
 
@@ -798,14 +798,14 @@ contains
     
       ! check whether the number of elements agrees
       if (nproc>1) then
-          call mpiallred(ivctr, 1, mpi_sum, bigdft_mpi%mpi_comm)
+          call mpiallred(ivctr, 1, mpi_sum, comm=bigdft_mpi%mpi_comm)
       end if
       if (ivctr/=sparsemat%nvctr) then
           write(*,'(a,2i8)') 'ERROR: ivctr/=sparsemat%nvctr', ivctr, sparsemat%nvctr
           stop
       end if
       if (nproc>1) then
-          call mpiallred(sparsemat%keyg(1,1,1), 2*2*sparsemat%nseg, mpi_sum, bigdft_mpi%mpi_comm)
+          call mpiallred(sparsemat%keyg(1,1,1), 2*2*sparsemat%nseg, mpi_sum, comm=bigdft_mpi%mpi_comm)
       end if
 
 
@@ -891,9 +891,9 @@ contains
           call nseg_perline(norbu, lut, nseg_mult, nvctr_mult, nsegline_mult(iiorb))
       end do
       if (nproc>1) then
-          call mpiallred(nvctr_mult, 1, mpi_sum, bigdft_mpi%mpi_comm)
-          call mpiallred(nseg_mult, 1, mpi_sum, bigdft_mpi%mpi_comm)
-          call mpiallred(nsegline_mult(1), norbu, mpi_sum, bigdft_mpi%mpi_comm)
+          call mpiallred(nvctr_mult, 1, mpi_sum, comm=bigdft_mpi%mpi_comm)
+          call mpiallred(nseg_mult, 1, mpi_sum, comm=bigdft_mpi%mpi_comm)
+          call mpiallred(nsegline_mult, mpi_sum, bigdft_mpi%mpi_comm)
       end if
 
 
@@ -915,14 +915,14 @@ contains
       end do
       ! check whether the number of elements agrees
       if (nproc>1) then
-          call mpiallred(ivctr_mult, 1, mpi_sum, bigdft_mpi%mpi_comm)
+          call mpiallred(ivctr_mult, 1, mpi_sum, comm=bigdft_mpi%mpi_comm)
       end if
       if (ivctr_mult/=nvctr_mult) then
           write(*,'(a,2i8)') 'ERROR: ivctr_mult/=nvctr_mult', ivctr_mult, nvctr_mult
           stop
       end if
       if (nproc>1) then
-          call mpiallred(keyg_mult(1,1,1), 2*2*nseg_mult, mpi_sum, bigdft_mpi%mpi_comm)
+          call mpiallred(keyg_mult, mpi_sum, bigdft_mpi%mpi_comm)
       end if
 
 
@@ -1362,7 +1362,7 @@ contains
       iuse_startend(1,iproc) = ind_min
       iuse_startend(2,iproc) = ind_max
       if (nproc>1) then
-          call mpiallred(iuse_startend(1,0), 2*nproc, mpi_sum, bigdft_mpi%mpi_comm)
+          call mpiallred(iuse_startend(1,0), 2*nproc, mpi_sum, comm=bigdft_mpi%mpi_comm)
       end if
 
       ! Make sure that the used parts are always "monotonically increasing"
@@ -1794,7 +1794,7 @@ contains
       end if
 
       if (nproc>1) then
-          call mpiallred(smat%inwhichtaskgroup(1,0), 2*nproc, mpi_sum, bigdft_mpi%mpi_comm)
+          call mpiallred(smat%inwhichtaskgroup(1,0), 2*nproc, mpi_sum, comm=bigdft_mpi%mpi_comm)
       end if
 
       ! Partition the entire matrix in disjoint submatrices
@@ -1875,7 +1875,7 @@ contains
           tasks_per_taskgroup(iitaskgroup) = tasks_per_taskgroup(iitaskgroup) + 1
       end do
       if (nproc>1) then
-          call mpiallred(tasks_per_taskgroup(1), smat%ntaskgroup, mpi_sum, bigdft_mpi%mpi_comm)
+          call mpiallred(tasks_per_taskgroup, mpi_sum, comm=bigdft_mpi%mpi_comm)
       end if
       !if (iproc==0) write(*,'(a,i7,4x,1000i7)') 'iproc, tasks_per_taskgroup', iproc, tasks_per_taskgroup
       call mpi_comm_group(bigdft_mpi%mpi_comm, group, ierr)
@@ -1895,7 +1895,7 @@ contains
           in_taskgroup(iproc,iitaskgroups) = 1
       end do
       if (nproc>1) then
-          call mpiallred(in_taskgroup(0,1), nproc*smat%ntaskgroup, mpi_sum, bigdft_mpi%mpi_comm)
+          call mpiallred(in_taskgroup, mpi_sum, bigdft_mpi%mpi_comm)
       end if
 
       allocate(smat%mpi_groups(smat%ntaskgroup))

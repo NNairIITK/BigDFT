@@ -283,7 +283,7 @@ module communications_init
       i3startend(3,iproc) = i3s
       i3startend(4,iproc) = i3s+n3p-1
       if (nproc>1) then
-          call mpiallred(i3startend(1,0), 4*nproc, mpi_sum, bigdft_mpi%mpi_comm)
+          call mpiallred(i3startend, mpi_sum, comm=bigdft_mpi%mpi_comm)
       end if
 
 
@@ -679,7 +679,7 @@ module communications_init
           end do
       end do
       if (nproc>1) then
-          call mpiallred(weight_tot_c, 1, mpi_sum, bigdft_mpi%mpi_comm)
+          call mpiallred(weight_tot_c, 1, mpi_sum, comm=bigdft_mpi%mpi_comm)
       end if
     
     
@@ -705,15 +705,17 @@ module communications_init
           !@NEW #################################
           !call to_zero(2*nproc, istartend_c(1,0))
           call f_zero(istartend_c)
-          weight_per_process_c = f_malloc0(0.to.nproc,id='weight_per_process_c')
+          weight_per_process_c = f_malloc0(0.to.nproc-1,id='weight_per_process_c')
           points_per_process = f_malloc0(0.to.nproc-1,id='points_per_process')
           istartendseg_c = f_malloc0((/1.to.2,0.to.nproc-1/),id='istartendseg_c')
+          !LG: why these parts are not allocated until nproc-1 only?
           nval_c = f_malloc0(0.to.nproc,id='nval_c')
           weightpp_c = f_malloc0(0.to.nproc,id='weightpp_c')
 
           weight_per_process_c(iproc) = sum(weightppp_c)
           if (nproc>1) then
-              call mpiallred(weight_per_process_c(0), nproc, mpi_sum, bigdft_mpi%mpi_comm)
+             !this array was allocated with npproc-1 before
+              call mpiallred(weight_per_process_c, mpi_sum, comm=bigdft_mpi%mpi_comm)
           end if
           if (sum(weight_per_process_c)/=weight_tot_c) then
               write(*,'(a,2f16.2)') 'sum(weight_per_process_c), weight_tot_c', sum(weight_per_process_c), weight_tot_c
@@ -761,7 +763,7 @@ module communications_init
               end do
           end do
           if (nproc>1) then
-              call mpiallred(points_per_process(0), nproc, mpi_sum, bigdft_mpi%mpi_comm)
+              call mpiallred(points_per_process, mpi_sum,comm=bigdft_mpi%mpi_comm)
           end if
 
 
@@ -810,10 +812,10 @@ module communications_init
 
           ! Communicate the data and assign the processor specific values
           if (nproc>1) then
-              call mpiallred(istartend_c(1,0), 2*nproc, mpi_sum, bigdft_mpi%mpi_comm) !a bit wasteful to communicate the zeros of the second entry...
-              call mpiallred(istartendseg_c(1,0), 2*nproc, mpi_sum, bigdft_mpi%mpi_comm) !a bit wasteful to communicate the zeros of the second entry...
-              call mpiallred(nval_c(0), nproc, mpi_sum, bigdft_mpi%mpi_comm)
-              call mpiallred(weightpp_c(0), nproc, mpi_sum, bigdft_mpi%mpi_comm)
+              call mpiallred(istartend_c(1,0), 2*nproc, mpi_sum, comm=bigdft_mpi%mpi_comm) !a bit wasteful to communicate the zeros of the second entry...
+              call mpiallred(istartendseg_c, mpi_sum, comm=bigdft_mpi%mpi_comm) !a bit wasteful to communicate the zeros of the second entry...
+              call mpiallred(nval_c(0), nproc, mpi_sum, comm=bigdft_mpi%mpi_comm)
+              call mpiallred(weightpp_c(0), nproc, mpi_sum, comm=bigdft_mpi%mpi_comm)
           end if
           do jproc=0,nproc-2
               istartend_c(2,jproc) = istartend_c(1,jproc+1)-1
@@ -842,7 +844,7 @@ module communications_init
           ! Some checks
           ii_c=istartend_c(2,iproc)-istartend_c(1,iproc)+1
           if (nproc > 1) then
-            call mpiallred(ii_c, 1, mpi_sum, bigdft_mpi%mpi_comm)
+            call mpiallred(ii_c, 1, mpi_sum, comm=bigdft_mpi%mpi_comm)
           end if
           if(ii_c/=lzd%glr%wfd%nvctr_c) then
              write(*,*) 'ii_c/=lzd%glr%wfd%nvctr_c',ii_c,lzd%glr%wfd%nvctr_c
@@ -850,7 +852,7 @@ module communications_init
           end if
     
           if (nproc > 1) then
-             call mpiallred(weightp_c,1,mpi_sum, bigdft_mpi%mpi_comm,recvbuf=tt)
+             call mpiallred(weightp_c,1,mpi_sum,comm=bigdft_mpi%mpi_comm,recvbuf=tt)
           else
               tt=weightp_c
           end if
@@ -860,7 +862,7 @@ module communications_init
           end if
 
           if (nproc > 1) then
-             call mpiallred(nptsp_c, 1,mpi_sum, bigdft_mpi%mpi_comm,recvbuf=ii)
+             call mpiallred(nptsp_c, 1,mpi_sum, comm=bigdft_mpi%mpi_comm,recvbuf=ii)
           else
               ii=nptsp_c
           end if
@@ -891,7 +893,7 @@ module communications_init
           end do
       end do
       if (nproc>1) then
-          call mpiallred(weight_tot_f, 1, mpi_sum, bigdft_mpi%mpi_comm)
+          call mpiallred(weight_tot_f, 1, mpi_sum, comm=bigdft_mpi%mpi_comm)
       end if
 
       ! Ideal weight per process.
@@ -920,7 +922,7 @@ module communications_init
 
           weight_per_process_f(iproc) = sum(weightppp_f)
           if (nproc>1) then
-              call mpiallred(weight_per_process_f(0), nproc, mpi_sum, bigdft_mpi%mpi_comm)
+              call mpiallred(weight_per_process_f(0), nproc, mpi_sum, comm=bigdft_mpi%mpi_comm)
           end if
           if (sum(weight_per_process_f)/=weight_tot_f) then
               write(*,'(a,2f16.2)') 'sum(weight_per_process_f), weight_tot_f', sum(weight_per_process_f), weight_tot_f
@@ -971,7 +973,7 @@ module communications_init
               end do
           end if
           if (nproc>1) then
-              call mpiallred(points_per_process(0), nproc, mpi_sum, bigdft_mpi%mpi_comm)
+              call mpiallred(points_per_process(0), nproc, mpi_sum,comm=bigdft_mpi%mpi_comm)
           end if
 
 
@@ -1024,10 +1026,10 @@ module communications_init
 
           ! Communicate the data and assign the processor specific values
           if (nproc>1) then
-              call mpiallred(istartend_f(1,0), 2*nproc, mpi_sum, bigdft_mpi%mpi_comm) !a bit wasteful to communicate the zeros of the second entry...
-              call mpiallred(istartendseg_f(1,0), 2*nproc, mpi_sum, bigdft_mpi%mpi_comm) !a bit wasteful to communicate the zeros of the second entry...
-              call mpiallred(nval_f(0), nproc, mpi_sum, bigdft_mpi%mpi_comm)
-              call mpiallred(weightpp_f(0), nproc, mpi_sum, bigdft_mpi%mpi_comm)
+              call mpiallred(istartend_f(1,0), 2*nproc, mpi_sum,comm= bigdft_mpi%mpi_comm) !a bit wasteful to communicate the zeros of the second entry...
+              call mpiallred(istartendseg_f(1,0), 2*nproc, mpi_sum, comm=bigdft_mpi%mpi_comm) !a bit wasteful to communicate the zeros of the second entry...
+              call mpiallred(nval_f(0), nproc, mpi_sum,comm= bigdft_mpi%mpi_comm)
+              call mpiallred(weightpp_f(0), nproc, mpi_sum, comm=bigdft_mpi%mpi_comm)
           end if
           do jproc=0,nproc-2
               istartend_f(2,jproc) = istartend_f(1,jproc+1)-1
@@ -1056,7 +1058,7 @@ module communications_init
           ! Some checks
           ii_f=istartend_f(2,iproc)-istartend_f(1,iproc)+1
           if (nproc > 1) then
-            call mpiallred(ii_f, 1, mpi_sum, bigdft_mpi%mpi_comm)
+            call mpiallred(ii_f, 1, mpi_sum, comm=bigdft_mpi%mpi_comm)
           end if
           if(ii_f/=lzd%glr%wfd%nvctr_f) then
              write(*,*) 'ii_f/=lzd%glr%wfd%nvctr_f',ii_f,lzd%glr%wfd%nvctr_f
@@ -1064,7 +1066,7 @@ module communications_init
           end if
     
           if (nproc > 1) then
-             call mpiallred(weightp_f,1,mpi_sum, bigdft_mpi%mpi_comm,recvbuf=tt)
+             call mpiallred(weightp_f,1,mpi_sum, comm=bigdft_mpi%mpi_comm,recvbuf=tt)
           else
               tt=weightp_f
           end if
@@ -1074,7 +1076,7 @@ module communications_init
           end if
 
           if (nproc > 1) then
-             call mpiallred(nptsp_f, 1,mpi_sum, bigdft_mpi%mpi_comm,recvbuf=ii)
+             call mpiallred(nptsp_f, 1,mpi_sum, comm=bigdft_mpi%mpi_comm,recvbuf=ii)
           else
               ii=nptsp_f
           end if
@@ -1311,7 +1313,7 @@ module communications_init
       ! some check
       ii_f=istartend_f(2,iproc)-istartend_f(1,iproc)+1
       if (nproc > 1) then
-        call mpiallred(ii_f, 1, mpi_sum, bigdft_mpi%mpi_comm)
+        call mpiallred(ii_f, 1, mpi_sum, comm=bigdft_mpi%mpi_comm)
       end if
       !if(ii_f/=lzd%glr%wfd%nvctr_f) stop 'assign_weight_to_process: ii_f/=lzd%glr%wfd%nvctr_f'
       if(ii_f/=lzd%glr%wfd%nvctr_f) then
@@ -1326,7 +1328,7 @@ module communications_init
      
       ii_c=istartend_c(2,iproc)-istartend_c(1,iproc)+1
       if (nproc > 1) then
-        call mpiallred(ii_c, 1, mpi_sum, bigdft_mpi%mpi_comm)
+        call mpiallred(ii_c, 1, mpi_sum, comm=bigdft_mpi%mpi_comm)
       end if
       if(ii_c/=lzd%glr%wfd%nvctr_c) then
          write(*,*) 'ii_c/=lzd%glr%wfd%nvctr_c',ii_c,lzd%glr%wfd%nvctr_c
@@ -1335,7 +1337,7 @@ module communications_init
     
       ! some checks
       if (nproc > 1) then
-         call mpiallred(weightp_c,1,mpi_sum, bigdft_mpi%mpi_comm,recvbuf=tt)
+         call mpiallred(weightp_c,1,mpi_sum, comm=bigdft_mpi%mpi_comm,recvbuf=tt)
          !call mpi_allreduce(weightp_c, tt, 1, mpi_double_precision, mpi_sum, bigdft_mpi%mpi_comm, ierr)
       else
           tt=weightp_c
@@ -1345,7 +1347,7 @@ module communications_init
          stop
       end if
       if (nproc > 1) then
-         call mpiallred(weightp_f,1,mpi_sum,bigdft_mpi%mpi_comm,recvbuf=tt)
+         call mpiallred(weightp_f,1,mpi_sum,comm=bigdft_mpi%mpi_comm,recvbuf=tt)
          !call mpi_allreduce(weightp_f, tt, 1, mpi_double_precision, mpi_sum, bigdft_mpi%mpi_comm, ierr)
       else
           tt=weightp_f
@@ -1355,7 +1357,7 @@ module communications_init
          stop
       end if
       if (nproc > 1) then
-         call mpiallred(nptsp_c, 1,mpi_sum, bigdft_mpi%mpi_comm,recvbuf=ii)
+         call mpiallred(nptsp_c, 1,mpi_sum, comm=bigdft_mpi%mpi_comm,recvbuf=ii)
          !call mpi_allreduce(nptsp_c, ii, 1, mpi_integer, mpi_sum, bigdft_mpi%mpi_comm, ierr)
       else
           ii=nptsp_c
@@ -1365,7 +1367,7 @@ module communications_init
          stop
       end if
       if (nproc > 1) then
-         call mpiallred(nptsp_f, 1,mpi_sum, bigdft_mpi%mpi_comm,recvbuf=ii)
+         call mpiallred(nptsp_f, 1,mpi_sum,comm= bigdft_mpi%mpi_comm,recvbuf=ii)
          !call mpi_allreduce(nptsp_f, ii, 1, mpi_integer, mpi_sum, bigdft_mpi%mpi_comm, ierr)
       else
           ii=nptsp_f
@@ -1802,10 +1804,10 @@ module communications_init
 
            i3s_par = f_malloc0(0.to.nproc-1,id='i3s_par')
            i3s_par(iproc)=i3s
-           call mpiallred(i3s_par(0), nproc, mpi_sum, bigdft_mpi%mpi_comm)
+           call mpiallred(i3s_par,mpi_sum, comm=bigdft_mpi%mpi_comm)
            n3_par = f_malloc0(0.to.nproc-1,id='n3_par')
            n3_par(iproc)=n3p
-           call mpiallred(n3_par(0), nproc, mpi_sum, bigdft_mpi%mpi_comm)
+           call mpiallred(n3_par, mpi_sum, comm=bigdft_mpi%mpi_comm)
 
            call mpi_type_size(mpi_double_precision, size_of_double, ierr)
            call mpi_info_create(info, ierr)
@@ -1898,10 +1900,10 @@ module communications_init
 
            i3s_par = f_malloc0(0.to.nproc-1,id='i3s_par')
            i3s_par(iproc)=i3s
-           call mpiallred(i3s_par(0), nproc, mpi_sum, bigdft_mpi%mpi_comm)
+           call mpiallred(i3s_par, mpi_sum, bigdft_mpi%mpi_comm)
            n3_par = f_malloc0(0.to.nproc-1,id='n3_par')
            n3_par(iproc)=n3p
-           call mpiallred(n3_par(0), nproc, mpi_sum, bigdft_mpi%mpi_comm)
+           call mpiallred(n3_par, mpi_sum, bigdft_mpi%mpi_comm)
 
            ! Initialize the MPI window
            call mpi_type_size(mpi_double_precision, size_of_double, ierr)
@@ -2662,10 +2664,10 @@ module communications_init
       end do
       weights_per_slice(iproc)=tt
       if (nproc > 1) then
-         call mpiallred(weights_per_slice(0), nproc, mpi_sum, bigdft_mpi%mpi_comm)
-         call mpiallred(tt,1,mpi_sum, bigdft_mpi%mpi_comm,recvbuf=weight_tot)
+         call mpiallred(weights_per_slice(0), nproc, mpi_sum, comm=bigdft_mpi%mpi_comm)
+         call mpiallred(tt,1,mpi_sum, comm=bigdft_mpi%mpi_comm,recvbuf=weight_tot)
          !call mpi_allreduce(tt, weight_tot, 1, mpi_double_precision, mpi_sum, bigdft_mpi%mpi_comm, ierr)
-         call mpiallred(weights_per_zpoint(1), lzd%glr%d%n3i, mpi_sum, bigdft_mpi%mpi_comm)
+         call mpiallred(weights_per_zpoint(1), lzd%glr%d%n3i, mpi_sum, comm=bigdft_mpi%mpi_comm)
       else
          weight_tot=tt
       end if
@@ -2804,7 +2806,7 @@ module communications_init
       ! Some check
       tt=real(nptsp,kind=8)
       if (nproc > 1) then
-        call mpiallred(tt, 1, mpi_sum, bigdft_mpi%mpi_comm)
+        call mpiallred(tt, 1, mpi_sum, comm=bigdft_mpi%mpi_comm)
       end if
       if (tt/=real(lzd%glr%d%n1i,kind=8)*real(lzd%glr%d%n2i,kind=8)*real(lzd%glr%d%n3i,kind=8)) then
           write(*,'(a,2es24.14)') 'tt, real(lzd%glr%d%n1i,kind=8)*real(lzd%glr%d%n2i,kind=8)*real(lzd%glr%d%n3i,kind=8)', &
@@ -2897,7 +2899,7 @@ module communications_init
     
       ! Some check
       if (nproc > 1) then
-        call mpiallred(weight_check, 1, mpi_sum, bigdft_mpi%mpi_comm)
+        call mpiallred(weight_check, 1, mpi_sum, comm=bigdft_mpi%mpi_comm)
       end if
       if (abs(weight_check-weight_tot) > 1.d-3) then
           write(*,*) 'ERROR: weight_check/=weight_tot', weight_check, weight_tot

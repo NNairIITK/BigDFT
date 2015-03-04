@@ -141,6 +141,7 @@ subroutine geopt(runObj,outs,nproc,iproc,ncount_bigdft)
      if (iproc ==0) call yaml_map('ENTERING CG',ncount_bigdft)
      call conjgrad(runObj,outs,nproc,iproc,ncount_bigdft)
   case('VSSD')
+
      if (iproc ==0) call yaml_map('ENTERING VSSD',ncount_bigdft)
      call vstepsd(runObj,outs,nproc,iproc,ncount_bigdft)
   case('FIRE')
@@ -170,7 +171,6 @@ subroutine geopt(runObj,outs,nproc,iproc,ncount_bigdft)
   if (iproc==0) call yaml_map('End of minimization using ',parmin%approach)
 
   if (iproc==0) call finaliseCompress()
-
 END SUBROUTINE geopt
 
 

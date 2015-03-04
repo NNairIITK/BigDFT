@@ -426,7 +426,7 @@ subroutine verify_file_presence(filerad,orbs,iformat,nproc,nforb)
      end do
   end do loop_plain
   !reduce the result among the other processors
-  if (nproc > 1) call mpiallred(allfiles,1,MPI_LAND,bigdft_mpi%mpi_comm)
+  if (nproc > 1) call mpiallred(allfiles,1,MPI_LAND,comm=bigdft_mpi%mpi_comm)
  
   if (allfiles) then
      iformat=WF_FORMAT_PLAIN
@@ -453,7 +453,7 @@ subroutine verify_file_presence(filerad,orbs,iformat,nproc,nforb)
      end do
   end do loop_binary
   !reduce the result among the other processors
-  if (nproc > 1) call mpiallred(allfiles,1,MPI_LAND,bigdft_mpi%mpi_comm)
+  if (nproc > 1) call mpiallred(allfiles,1,MPI_LAND,comm=bigdft_mpi%mpi_comm)
 
   if (allfiles) then
      iformat=WF_FORMAT_BINARY
@@ -2836,8 +2836,8 @@ subroutine initialize_linear_from_file(iproc,nproc,input_frag,astruct,rxyz,orbs,
   Lzd%nlr = orbs%norb
 
   ! Communication of the quantities
-  if (nproc > 1)  call mpiallred(orbs%onwhichatom(1),orbs%norb,MPI_SUM,bigdft_mpi%mpi_comm)
-  if (nproc > 1)  call mpiallred(locrad(1),orbs%norb,MPI_SUM,bigdft_mpi%mpi_comm)
+  if (nproc > 1)  call mpiallred(orbs%onwhichatom(1),orbs%norb,MPI_SUM,comm=bigdft_mpi%mpi_comm)
+  if (nproc > 1)  call mpiallred(locrad,MPI_SUM,bigdft_mpi%mpi_comm)
 
   cxyz = f_malloc((/ 3, Lzd%nlr /),id='cxyz')
   lrad = f_malloc(Lzd%nlr,id='lrad')
@@ -3332,7 +3332,7 @@ subroutine reformat_supportfunctions(iproc,nproc,at,rxyz_old,rxyz,add_derivative
 
   ! Get the maximal shift among all tasks
   if (nproc>1) then
-      call mpiallred(max_shift, 1, mpi_max, bigdft_mpi%mpi_comm)
+      call mpiallred(max_shift, 1, mpi_max, comm=bigdft_mpi%mpi_comm)
   end if
   if (iproc==0) call yaml_map('max shift of a locreg center',max_shift,fmt='(es9.2)')
 
@@ -3457,7 +3457,7 @@ subroutine print_reformat_summary(iproc,nproc,reformat_reason)
   integer, intent(in) :: iproc,nproc
   integer, dimension(0:6), intent(inout) :: reformat_reason ! array giving reasons for reformatting
 
-  if (nproc > 1) call mpiallred(reformat_reason(0), 7, mpi_sum, bigdft_mpi%mpi_comm)
+  if (nproc > 1) call mpiallred(reformat_reason, mpi_sum, bigdft_mpi%mpi_comm)
 
   if (iproc==0) then
         call yaml_mapping_open('Overview of the reformatting (several categories may apply)')

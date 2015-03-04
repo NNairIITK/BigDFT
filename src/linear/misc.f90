@@ -1185,7 +1185,7 @@ real(kind=8),dimension(:),pointer :: phiwork_global
 !print*,KSwfn%orbs%occup(KSwfn%orbs%isorb+iorb)
                 end do
              end do
-          call mpiallred(coeffs_occs(1,1), KSwfn%orbs%norb*tmb%orbs%norb, mpi_sum, bigdft_mpi%mpi_comm)
+          call mpiallred(coeffs_occs, mpi_sum, bigdft_mpi%mpi_comm)
 
   nvctrp=comms%nvctr_par(iproc,0)*orbs%nspinor
   !call dgemm('n', 'n', nvctrp, KSwfn%orbs%norb, tmb%orbs%norb, 1.d0, phi_global, nvctrp, tmb%coeff(1,1), &
@@ -1968,8 +1968,8 @@ subroutine support_function_multipoles(iproc, tmb, atoms, denspot)
 
 
   if (bigdft_mpi%nproc>1) then
-      call mpiallred(dipole_net(1,1), 3*tmb%orbs%norb, mpi_sum, bigdft_mpi%mpi_comm)
-      call mpiallred(quadropole_net(1,1,1), 9*tmb%orbs%norb, mpi_sum, bigdft_mpi%mpi_comm)
+      call mpiallred(dipole_net, mpi_sum, bigdft_mpi%mpi_comm)
+      call mpiallred(quadropole_net, mpi_sum, bigdft_mpi%mpi_comm)
   end if
 
   if (iproc==0) then

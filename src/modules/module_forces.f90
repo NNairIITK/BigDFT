@@ -30,8 +30,9 @@ subroutine clean_forces(iproc,at,rxyz,fxyz,fnoise,run_mode)
     real(gp), dimension(3,at%astruct%nat), intent(inout) :: fxyz
     real(gp), intent(out) :: fnoise
     type(f_enumerator), intent(in),optional :: run_mode
-    !local
+    !local variables
     logical :: QM_clean
+    real(gp) :: maxdiff
     QM_clean=.true.
     if(present(run_mode))then
         if(trim(char(run_mode))/='QM_RUN_MODE')then
@@ -45,6 +46,16 @@ subroutine clean_forces(iproc,at,rxyz,fxyz,fnoise,run_mode)
     else
         call clean_forces_base(at,fxyz)
     endif
+
+!!$    !broadcast the forces after cleaning, to avoid roundoff errors
+!!$    ! Check forces consistency.
+!!$    if (bigdft_mpi%nproc >1) then
+!!$       call mpibcast(fxyz,comm=bigdft_mpi%mpi_comm,maxdiff=maxdiff)
+!!$       if (iproc==0 .and. maxdiff > epsilon(1.0_gp)) &
+!!$            call yaml_warning('Output forces were not identical! (broadcasted) '//&
+!!$            '(difference:'//trim(yaml_toa(maxdiff))//' )')
+!!$    end if
+
 end subroutine clean_forces
 
 subroutine clean_forces_base(at,fxyz)
@@ -201,7 +212,7 @@ subroutine clean_forces_dft(iproc,at,rxyz,fxyz,fnoise)
      enddo
   end if
 
-  call clean_forces_base(at,fxyz(1,1))
+  call clean_forces_base(at,fxyz)
   
   
   !the noise of the forces is the norm of the translational force

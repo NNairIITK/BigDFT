@@ -275,7 +275,7 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
           call f_free(tempmat)
           if (nproc>1) then
               call mpiallred(tmb%linmat%ham_%matrix(1,1,ispin), tmb%linmat%m%nfvctr**2, &
-                   mpi_sum, bigdft_mpi%mpi_comm)
+                   mpi_sum, comm=bigdft_mpi%mpi_comm)
           end if
 
           call f_zero(tmb%linmat%s%nfvctr**2, tmb%linmat%ovrlp_%matrix(1,1,ispin))
@@ -289,7 +289,7 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
           call f_free(tempmat)
           if (nproc>1) then
               call mpiallred(tmb%linmat%ovrlp_%matrix(1,1,ispin), tmb%linmat%s%nfvctr**2, &
-                   mpi_sum, bigdft_mpi%mpi_comm)
+                   mpi_sum, comm=bigdft_mpi%mpi_comm)
           end if
       end do
   end if
@@ -1298,7 +1298,7 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
   end do
 
   if (nproc > 1) then
-      call mpiallred(reducearr(1), 2, mpi_sum, bigdft_mpi%mpi_comm)
+      call mpiallred(reducearr, mpi_sum, bigdft_mpi%mpi_comm)
   end if
 
   reducearr(1)=reducearr(1)/dble(tmb%orbs%norb)
@@ -2238,7 +2238,7 @@ subroutine reorthonormalize_coeff(iproc, nproc, norb, blocksize_dsyev, blocksize
       if (nproc > 1) then
           call timing(iproc,'renormCoefCom1','OF')
           call timing(iproc,'renormCoefComm','ON')
-          call mpiallred(ovrlp_coeff(1,1), norbx**2, mpi_sum, bigdft_mpi%mpi_comm)
+          call mpiallred(ovrlp_coeff, mpi_sum, bigdft_mpi%mpi_comm)
           call timing(iproc,'renormCoefComm','OF')
           call timing(iproc,'renormCoefCom1','ON')
       end if
@@ -2540,7 +2540,7 @@ subroutine estimate_energy_change(npsidim_orbs, orbs, lzd, nspin, psidiff, hpsi_
   end if
 
   if (bigdft_mpi%nproc > 1) then
-      call mpiallred(delta_energy, 1, mpi_sum, bigdft_mpi%mpi_comm)
+      call mpiallred(delta_energy, 1, mpi_sum, comm=bigdft_mpi%mpi_comm)
   end if
 
   call f_release_routine()
@@ -2745,7 +2745,7 @@ subroutine purify_kernel(iproc, nproc, tmb, overlap_calculated, it_shift, it_opt
 
           if (nproc > 1) then
              !SM: need to fix the spin here
-             call mpiallred(tmb%linmat%kernel_%matrix(1,1,1), tmb%linmat%l%nfvctr**2, mpi_sum, bigdft_mpi%mpi_comm)
+             call mpiallred(tmb%linmat%kernel_%matrix(1,1,1), tmb%linmat%l%nfvctr**2, mpi_sum, comm=bigdft_mpi%mpi_comm)
           end if
       end if
 
@@ -2761,7 +2761,7 @@ subroutine purify_kernel(iproc, nproc, tmb, overlap_calculated, it_shift, it_opt
           end if
 
           if (nproc > 1) then
-              call mpiallred(ks(1,1), tmb%linmat%l%nfvctr**2, mpi_sum, bigdft_mpi%mpi_comm)
+              call mpiallred(ks, mpi_sum, bigdft_mpi%mpi_comm)
           end if
 
           if (tmb%linmat%l%nfvctrp>0) then
@@ -2808,7 +2808,7 @@ subroutine purify_kernel(iproc, nproc, tmb, overlap_calculated, it_shift, it_opt
           end if
 
           if (nproc > 1) then
-              call mpiallred(diff, 1, mpi_sum, bigdft_mpi%mpi_comm)
+              call mpiallred(diff, 1, mpi_sum, comm=bigdft_mpi%mpi_comm)
           end if
 
           diff=sqrt(diff)
@@ -2832,7 +2832,8 @@ subroutine purify_kernel(iproc, nproc, tmb, overlap_calculated, it_shift, it_opt
           end do
 
           if (nproc > 1) then
-              call mpiallred(tmb%linmat%kernel_%matrix(1,1,1), tmb%linmat%l%nfvctr**2, mpi_sum, bigdft_mpi%mpi_comm)
+              call mpiallred(tmb%linmat%kernel_%matrix(1,1,1), &
+                   tmb%linmat%l%nfvctr**2, mpi_sum, comm=bigdft_mpi%mpi_comm)
           end if
 
           if (diff<1.d-10) exit
@@ -3037,7 +3038,7 @@ subroutine get_KS_residue(iproc, nproc, tmb, KSorbs, hpsit_c, hpsit_f, KSres)
   end if
 
   if (nproc > 1) then
-      call mpiallred(KH(1,1,1), tmb%linmat%l%nspin*tmb%linmat%l%nfvctr**2, mpi_sum, bigdft_mpi%mpi_comm)
+      call mpiallred(KH, mpi_sum, bigdft_mpi%mpi_comm)
   end if
 
   if (tmb%orbs%norbp>0) then
@@ -3059,7 +3060,7 @@ subroutine get_KS_residue(iproc, nproc, tmb, KSorbs, hpsit_c, hpsit_f, KSres)
   end if
 
   if (nproc > 1) then
-      call mpiallred(KHKH(1,1,1), tmb%linmat%l%nspin*tmb%linmat%l%nfvctr**2, mpi_sum, bigdft_mpi%mpi_comm)
+      call mpiallred(KHKH, mpi_sum, bigdft_mpi%mpi_comm)
   end if
   call f_free(KH)
   Kgrad=f_malloc0((/tmb%linmat%l%nfvctr,tmb%linmat%l%nfvctr,tmb%linmat%l%nspin/),id='Kgrad')
@@ -3082,7 +3083,7 @@ subroutine get_KS_residue(iproc, nproc, tmb, KSorbs, hpsit_c, hpsit_f, KSres)
   end if
 
   if (nproc > 1) then
-      call mpiallred(Kgrad(1,1,1), tmb%linmat%l%nspin*tmb%linmat%l%nfvctr**2, mpi_sum, bigdft_mpi%mpi_comm)
+      call mpiallred(Kgrad, mpi_sum, bigdft_mpi%mpi_comm)
   end if
 
   !!if (iproc==0) then

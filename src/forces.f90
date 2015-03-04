@@ -101,7 +101,8 @@ subroutine calculate_forces(iproc,nproc,psolver_groupsize,Glr,atoms,orbs,nlpsp,r
      !!end do
   else
      if (iproc==0) then
-        call vcopy(3*atoms%astruct%nat,fion(1,1),1,fxyz(1,1),1)
+        !call vcopy(3*atoms%astruct%nat,fion(1,1),1,fxyz(1,1),1)
+        call f_memcpy(src=fion,dest=fxyz)
      else
         call f_zero(fxyz)
      end if
@@ -111,11 +112,11 @@ subroutine calculate_forces(iproc,nproc,psolver_groupsize,Glr,atoms,orbs,nlpsp,r
   if (nproc > 1) then
      !TD: fxyz(1,1) not used in case of no atoms
      !if (atoms%astruct%nat>0) then
-     call mpiallred(fxyz,MPI_SUM,bigdft_mpi%mpi_comm)
+     call mpiallred(sendbuf=fxyz,op=MPI_SUM,comm=bigdft_mpi%mpi_comm)
      !end if
      if (atoms%astruct%geocode == 'P') &
-         call mpiallred(strtens(1,1),6*3,MPI_SUM,bigdft_mpi%mpi_comm) !do not reduce erfstr
-     call mpiallred(charge,1,MPI_SUM,bigdft_mpi%mpi_comm)
+         call mpiallred(strtens(1,1),6*3,MPI_SUM,comm=bigdft_mpi%mpi_comm) !do not reduce erfstr
+     call mpiallred(charge,1,MPI_SUM,comm=bigdft_mpi%mpi_comm)
   end if
 
   !!do iat=1,atoms%astruct%nat
@@ -132,26 +133,16 @@ subroutine calculate_forces(iproc,nproc,psolver_groupsize,Glr,atoms,orbs,nlpsp,r
   end if
   ! @ ##############################################################
 
-
   !clean the center mass shift and the torque in isolated directions
-  call clean_forces(iproc,atoms,rxyz,fxyz,fnoise)
+  !no need to do it twice
+  !call clean_forces(iproc,atoms,rxyz,fxyz,fnoise)
   !!do iat=1,atoms%astruct%nat
   !!    write(4500+iproc,'(a,i8,3es15.6)') 'iat, fxyz(:,iat)', iat, fxyz(:,iat)
   !!end do
 
-
   ! Apply symmetries when needed
   if (atoms%astruct%sym%symObj >= 0) call symmetrise_forces(fxyz,atoms)
 
-  ! Check forces consistency.
-  if (bigdft_mpi%nproc >1) then
-     call mpibcast(fxyz,comm=bigdft_mpi%mpi_comm,maxdiff=maxdiff)
-     !maxdiff=mpimaxdiff(fxyz,comm=bigdft_mpi%mpi_comm)
-     !call check_array_consistency(maxdiff, nproc, fxyz, bigdft_mpi%mpi_comm)
-     if (iproc==0 .and. maxdiff > epsilon(1.0_gp)) &
-          call yaml_warning('Output forces were not identical! (broadcasted) '//&
-          '(difference:'//trim(yaml_toa(maxdiff))//' )')
-  end if
   if (iproc == 0) call write_forces(atoms,fxyz)
 
   !volume element for local stress
@@ -187,16 +178,6 @@ subroutine calculate_forces(iproc,nproc,psolver_groupsize,Glr,atoms,orbs,nlpsp,r
      if (iproc==0)call write_strten_info(.true.,strten,ucvol,pressure,'Total')
      if (iproc==0) call yaml_mapping_close()
   end if
-!!$  if (iproc == 0) then
-!!$     sumx=0.d0 ; sumy=0.d0 ; sumz=0.d0
-!!$     fumx=0.d0 ; fumy=0.d0 ; fumz=0.d0
-!!$     do iat=1,atoms%astruct%nat
-!!$        sumx=sumx+fxyz(1,iat) ; sumy=sumy+fxyz(2,iat) ; sumz=sumz+fxyz(3,iat)
-!!$        fumx=fumx+fion(1,iat) ; fumy=fumy+fion(2,iat) ; fumz=fumz+fion(3,iat)
-!!$     enddo
-!!$     write(77,'(a30,3(1x,e10.3))') 'translat. force total pot ',sumx,sumy,sumz
-!!$     write(77,'(a30,3(1x,e10.3))') 'translat. force ionic pot ',fumx,fumy,fumz
-!!$  endif
 end subroutine calculate_forces
 
 
@@ -4253,7 +4234,7 @@ subroutine nonlocal_forces_linear(iproc,nproc,npsidim_orbs,lr,hx,hy,hz,at,rxyz,&
         end if norbp_if
 
         if (nproc>1) then
-            call mpiallred(iat_startend(1,0), 2*nproc, mpi_sum, bigdft_mpi%mpi_comm)
+            call mpiallred(iat_startend, mpi_sum, bigdft_mpi%mpi_comm)
         end if
 
         call f_release_routine()
@@ -4464,9 +4445,9 @@ subroutine nonlocal_forces_linear(iproc,nproc,npsidim_orbs,lr,hx,hy,hz,at,rxyz,&
         end if norbp_if
 
         if (nproc>1) then
-            call mpiallred(iatminmax(1,1), 2*orbs%norb, mpi_sum, bigdft_mpi%mpi_comm)
-            call mpiallred(iorbminmax(1,1), natp, mpi_min, bigdft_mpi%mpi_comm)
-            call mpiallred(iorbminmax(1,2), natp, mpi_max, bigdft_mpi%mpi_comm)
+            call mpiallred(iatminmax, mpi_sum, bigdft_mpi%mpi_comm)
+            call mpiallred(iorbminmax(1,1), natp, mpi_min, comm=bigdft_mpi%mpi_comm)
+            call mpiallred(iorbminmax(1,2), natp, mpi_max, comm=bigdft_mpi%mpi_comm)
         end if
 
         call f_release_routine()
@@ -5000,7 +4981,13 @@ subroutine internal_forces(nat, rxyz, ixyz_int, ifrozen, fxyz)
 
 end subroutine internal_forces
 
-
+!> wrapper for the routine below
+subroutine constraints_internal(astruct)
+  use module_atoms, only: atomic_structure
+  implicit none
+  type(atomic_structure), intent(inout) :: astruct
+  call keep_internal_coordinates_constraints(astruct%nat, astruct%rxyz_int, astruct%ixyz_int, astruct%ifrztyp, astruct%rxyz)
+end subroutine constraints_internal
 
 subroutine keep_internal_coordinates_constraints(nat, rxyz_int, ixyz_int, ifrozen, rxyz)
   use module_base

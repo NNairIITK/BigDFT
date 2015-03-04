@@ -73,8 +73,13 @@ module f_utils
   end interface
 
   interface operator(==)
-     module procedure enum_is_int,enum_is_enum
+     module procedure enum_is_int,enum_is_enum,enum_is_char
   end interface operator(==)
+
+  interface operator(/=)
+     module procedure enum_is_not_int,enum_is_not_enum,enum_is_not_char
+  end interface operator(/=)
+
 
   interface int
      module procedure int_enum
@@ -84,7 +89,7 @@ module f_utils
      module procedure char_enum
   end interface char
 
-  public :: f_diff,int,char,f_enumerator_null,operator(==),f_file_unit
+  public :: f_diff,int,char,f_enumerator_null,operator(==),operator(/=),f_file_unit
   public :: f_utils_errors,f_utils_recl,f_file_exists,f_close,f_zero
   public :: f_get_free_unit,f_delete_file,f_getpid,f_rewind,f_open_file
   public :: f_iostream_from_file,f_iostream_from_lstring
@@ -121,6 +126,31 @@ contains
     logical :: ok
     ok = trim(en%name) .eqv. trim(char)
   end function enum_is_char
+
+  elemental pure function enum_is_not_enum(en,en1) result(ok)
+    implicit none
+    type(f_enumerator), intent(in) :: en
+    type(f_enumerator), intent(in) :: en1
+    logical :: ok
+    ok = .not. (en == en1)
+  end function enum_is_not_enum
+
+  elemental pure function enum_is_not_int(en,int) result(ok)
+    implicit none
+    type(f_enumerator), intent(in) :: en
+    integer, intent(in) :: int
+    logical :: ok
+    ok = .not. (en == int)
+  end function enum_is_not_int
+
+  elemental pure function enum_is_not_char(en,char) result(ok)
+    implicit none
+    type(f_enumerator), intent(in) :: en
+    character(len=*), intent(in) :: char
+    logical :: ok
+    ok = .not. (en == char)
+  end function enum_is_not_char
+
 
   !>integer of f_enumerator type.
   elemental pure function int_enum(en)
@@ -284,16 +314,16 @@ contains
     unit_is_open=.true.
     unt=7
     if (present(unit)) unt=unit
-    do while(unit_is_open)      
-       inquire(unit=unt,opened=unit_is_open,iostat=ierr)
-       if (ierr /=0) then
-          call f_err_throw('Error in inquiring unit='//&
-               trim(yaml_toa(unt))//', iostat='//trim(yaml_toa(ierr)),&
-               err_id=INPUT_OUTPUT_ERROR)
-          exit
-       end if
+    inquire(unit=unt,opened=unit_is_open,iostat=ierr)
+    do while(unit_is_open .and. ierr==0)      
        unt=unt+1
+       inquire(unit=unt,opened=unit_is_open,iostat=ierr)
     end do
+    if (ierr /=0) then
+       call f_err_throw('Error in inquiring unit='//&
+            trim(yaml_toa(unt))//', iostat='//trim(yaml_toa(ierr)),&
+            err_id=INPUT_OUTPUT_ERROR)
+    end if
     unt2=unt
   end function f_get_free_unit
 

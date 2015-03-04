@@ -1090,7 +1090,7 @@ subroutine update_wavefunctions_size(lzd,npsidim_orbs,npsidim_comp,orbs,iproc,np
      nvctr_tot = max(nvctr_tot,lzd%llr(ilr)%wfd%nvctr_c+7*lzd%llr(ilr)%wfd%nvctr_f)
   end do
   if (nproc > 1) then
-     call mpiallred(nvctr_tot, 1, mpi_max, bigdft_mpi%mpi_comm)
+     call mpiallred(nvctr_tot, 1, mpi_max, comm=bigdft_mpi%mpi_comm)
   end if
 
   nvctr_par = f_malloc((/ 0.to.nproc-1, 1.to.1 /),id='nvctr_par')
@@ -1873,8 +1873,8 @@ subroutine clean_rho(iproc, nproc, npt, rho)
   end do
 
   if (nproc > 1) then
-      call mpiallred(ncorrection, 1, mpi_sum, bigdft_mpi%mpi_comm)
-      call mpiallred(charge_correction, 1, mpi_sum, bigdft_mpi%mpi_comm)
+      call mpiallred(ncorrection, 1, mpi_sum, comm=bigdft_mpi%mpi_comm)
+      call mpiallred(charge_correction, 1, mpi_sum, comm=bigdft_mpi%mpi_comm)
   end if
 
   if (iproc==0) then

@@ -209,9 +209,9 @@ subroutine system_initialization(iproc,nproc,dump,inputpsi,input_wf_format,dry_r
          time_max(2) = time_min(2)
          totaltimes(iproc+1) = time_min(2)
          if (nproc>1) then
-             call mpiallred(time_min(1), 2, mpi_min, bigdft_mpi%mpi_comm)
-             call mpiallred(time_max(1), 2, mpi_max, bigdft_mpi%mpi_comm)
-             call mpiallred(totaltimes(1), nproc, mpi_sum, bigdft_mpi%mpi_comm)
+             call mpiallred(time_min, mpi_min, bigdft_mpi%mpi_comm)
+             call mpiallred(time_max, mpi_max, bigdft_mpi%mpi_comm)
+             call mpiallred(totaltimes, mpi_sum, bigdft_mpi%mpi_comm)
          end if
          ratio_before = real(time_max(1),kind=8)/real(max(1.d0,time_min(1)),kind=8) !max to prevent divide by zero
          ratio_after = real(time_max(2),kind=8)/real(max(1.d0,time_min(2)),kind=8) !max to prevent divide by zero
@@ -919,7 +919,7 @@ subroutine calculate_rhocore(at,d,rxyz,hxh,hyh,hzh,i3s,i3xcsh,n3d,n3p,rhocore)
         enddo
      enddo
 
-     if (bigdft_mpi%nproc > 1) call mpiallred(tt,1,MPI_SUM,bigdft_mpi%mpi_comm)
+     if (bigdft_mpi%nproc > 1) call mpiallred(tt,1,MPI_SUM,comm=bigdft_mpi%mpi_comm)
      tt=tt*hxh*hyh*hzh
      if (bigdft_mpi%iproc == 0) call yaml_map('Total core charge on the grid (To be compared with analytic one)', tt,fmt='(f15.7)')
 

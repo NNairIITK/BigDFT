@@ -33,7 +33,7 @@
            tmp=yaml_toa(vec(i))
         end if
         length=len(trim(tmp))-1
-        if (pos+length > max_value_length) exit
+        if (pos+length+2 > max_value_length) exit
         vec_toa(pos:pos+length)=tmp(1:length+1)
         if (i < nu) then
            vec_toa(pos+length+1:pos+length+2)=', '

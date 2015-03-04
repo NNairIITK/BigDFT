@@ -50,8 +50,9 @@ module wrapper_MPI
   !> Interface for MPITYPE routine
   interface mpitype
      module procedure mpitype_i,mpitype_d,mpitype_r,mpitype_l,mpitype_c,mpitype_li
-     module procedure mpitype_i1,mpitype_i2
-     module procedure mpitype_d1,mpitype_d2
+     module procedure mpitype_i1,mpitype_i2,mpitype_i3
+     module procedure mpitype_r1,mpitype_r2,mpitype_r3,mpitype_r4
+     module procedure mpitype_d1,mpitype_d2,mpitype_d3,mpitype_d4
      module procedure mpitype_c1
      module procedure mpitype_li1,mpitype_li2
   end interface mpitype
@@ -68,8 +69,9 @@ module wrapper_MPI
           & mpiallred_double,&!,mpiallred_double_1,mpiallred_double_2,&
           & mpiallred_log
      module procedure mpiallred_long
-     module procedure mpiallred_d1,mpiallred_d2
-     module procedure mpiallred_i1
+     module procedure mpiallred_r1,mpiallred_r2,mpiallred_r3,mpiallred_r4
+     module procedure mpiallred_d1,mpiallred_d2,mpiallred_d3,mpiallred_d4
+     module procedure mpiallred_i1,mpiallred_i2,mpiallred_i3
   end interface mpiallred
 
   interface mpigather
@@ -577,6 +579,13 @@ contains
     integer :: mt
     mt=MPI_INTEGER
   end function mpitype_i2
+  pure function mpitype_i3(data) result(mt)
+    implicit none
+    integer(kind=4), dimension(:,:,:), intent(in) :: data
+    integer :: mt
+    mt=MPI_INTEGER
+  end function mpitype_i3
+
 
   pure function mpitype_li(data) result(mt)
     implicit none
@@ -622,6 +631,44 @@ contains
     integer :: mt
     mt=MPI_DOUBLE_PRECISION
   end function mpitype_d2
+  pure function mpitype_d3(data) result(mt)
+    implicit none
+    double precision, dimension(:,:,:), intent(in) :: data
+    integer :: mt
+    mt=MPI_DOUBLE_PRECISION
+  end function mpitype_d3
+  pure function mpitype_d4(data) result(mt)
+    implicit none
+    double precision, dimension(:,:,:,:), intent(in) :: data
+    integer :: mt
+    mt=MPI_DOUBLE_PRECISION
+  end function mpitype_d4
+
+  pure function mpitype_r1(data) result(mt)
+    implicit none
+    real, dimension(:), intent(in) :: data
+    integer :: mt
+    mt=MPI_REAL
+  end function mpitype_r1
+  pure function mpitype_r2(data) result(mt)
+    implicit none
+    real, dimension(:,:), intent(in) :: data
+    integer :: mt
+    mt=MPI_REAL
+  end function mpitype_r2
+  pure function mpitype_r3(data) result(mt)
+    implicit none
+    real, dimension(:,:,:), intent(in) :: data
+    integer :: mt
+    mt=MPI_REAL
+  end function mpitype_r3
+  pure function mpitype_r4(data) result(mt)
+    implicit none
+    real, dimension(:,:,:,:), intent(in) :: data
+    integer :: mt
+    mt=MPI_REAL
+  end function mpitype_r4
+
   pure function mpitype_l(data) result(mt)
     implicit none
     logical, intent(in) :: data
@@ -986,7 +1033,7 @@ contains
     include 'allreduce-inc.f90'
   end subroutine mpiallred_real
 
-  subroutine mpiallred_double(sendbuf,count,op,comm,recvbuf)
+  subroutine mpiallred_double(sendbuf,count,op,recvbuf,comm)
     use dynamic_memory
     use dictionaries, only: f_err_throw,f_err_define
     implicit none
@@ -1017,6 +1064,72 @@ contains
     include 'allreduce-arr-inc.f90'
   end subroutine mpiallred_i1
 
+  subroutine mpiallred_i2(sendbuf,op,comm,recvbuf)
+    use dynamic_memory
+    use dictionaries, only: f_err_throw!,f_err_define
+    use yaml_output, only: yaml_toa
+    implicit none
+    integer, dimension(:,:), intent(inout) :: sendbuf
+    integer, dimension(:,:), intent(inout), optional :: recvbuf
+    integer, dimension(:,:), allocatable :: copybuf  
+    include 'allreduce-arr-inc.f90'
+  end subroutine mpiallred_i2
+
+  subroutine mpiallred_i3(sendbuf,op,comm,recvbuf)
+    use dynamic_memory
+    use dictionaries, only: f_err_throw!,f_err_define
+    use yaml_output, only: yaml_toa
+    implicit none
+    integer, dimension(:,:,:), intent(inout) :: sendbuf
+    integer, dimension(:,:,:), intent(inout), optional :: recvbuf
+    integer, dimension(:,:,:), allocatable :: copybuf  
+    include 'allreduce-arr-inc.f90'
+  end subroutine mpiallred_i3
+
+ 
+  subroutine mpiallred_r1(sendbuf,op,comm,recvbuf)
+    use dynamic_memory
+    use dictionaries, only: f_err_throw!,f_err_refine
+    use yaml_output, only: yaml_toa
+    implicit none
+    real, dimension(:), intent(inout) :: sendbuf
+    real, dimension(:), intent(inout), optional :: recvbuf
+    real, dimension(:), allocatable :: copybuf  
+    include 'allreduce-arr-inc.f90'
+  end subroutine mpiallred_r1
+
+  subroutine mpiallred_r2(sendbuf,op,comm,recvbuf)
+    use dynamic_memory
+    use dictionaries, only: f_err_throw!,f_err_define
+    use yaml_output, only: yaml_toa
+    implicit none
+    real, dimension(:,:), intent(inout) :: sendbuf
+    real, dimension(:,:), intent(inout), optional :: recvbuf
+    real, dimension(:,:), allocatable :: copybuf  
+    include 'allreduce-arr-inc.f90'
+  end subroutine mpiallred_r2
+
+  subroutine mpiallred_r3(sendbuf,op,comm,recvbuf)
+    use dynamic_memory
+    use dictionaries, only: f_err_throw!,f_err_define
+    use yaml_output, only: yaml_toa
+    implicit none
+    real, dimension(:,:,:), intent(inout) :: sendbuf
+    real, dimension(:,:,:), intent(inout), optional :: recvbuf
+    real, dimension(:,:,:), allocatable :: copybuf  
+    include 'allreduce-arr-inc.f90'
+  end subroutine mpiallred_r3
+
+  subroutine mpiallred_r4(sendbuf,op,comm,recvbuf)
+    use dynamic_memory
+    use dictionaries, only: f_err_throw!,f_err_define
+    use yaml_output, only: yaml_toa
+    implicit none
+    real, dimension(:,:,:,:), intent(inout) :: sendbuf
+    real, dimension(:,:,:,:), intent(inout), optional :: recvbuf
+    real, dimension(:,:,:,:), allocatable :: copybuf  
+    include 'allreduce-arr-inc.f90'
+  end subroutine mpiallred_r4
 
   subroutine mpiallred_d1(sendbuf,op,comm,recvbuf)
     use dynamic_memory
@@ -1039,6 +1152,28 @@ contains
     double precision, dimension(:,:), allocatable :: copybuf  
     include 'allreduce-arr-inc.f90'
   end subroutine mpiallred_d2
+
+  subroutine mpiallred_d3(sendbuf,op,comm,recvbuf)
+    use dynamic_memory
+    use dictionaries, only: f_err_throw!,f_err_define
+    use yaml_output, only: yaml_toa
+    implicit none
+    double precision, dimension(:,:,:), intent(inout) :: sendbuf
+    double precision, dimension(:,:,:), intent(inout), optional :: recvbuf
+    double precision, dimension(:,:,:), allocatable :: copybuf  
+    include 'allreduce-arr-inc.f90'
+  end subroutine mpiallred_d3
+
+  subroutine mpiallred_d4(sendbuf,op,comm,recvbuf)
+    use dynamic_memory
+    use dictionaries, only: f_err_throw!,f_err_define
+    use yaml_output, only: yaml_toa
+    implicit none
+    double precision, dimension(:,:,:,:), intent(inout) :: sendbuf
+    double precision, dimension(:,:,:,:), intent(inout), optional :: recvbuf
+    double precision, dimension(:,:,:,:), allocatable :: copybuf  
+    include 'allreduce-arr-inc.f90'
+  end subroutine mpiallred_d4
 
   recursive subroutine mpibcast_i0(buffer,count,root,comm,check,maxdiff)
     use dynamic_memory

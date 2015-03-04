@@ -122,6 +122,7 @@ SiBulk:
  Optimization of virtual orbitals: 7.0101e-8
  e_occupied: 1.42e-11
  Orbitals: 1.42e-11	
+ GPa: 3.0e-11
  # Necessary for GPU runs, to be updated...
  Keys to ignore:
   - Residues per orbital
@@ -317,6 +318,7 @@ NLCC: &NLCCs
  EKS: 5.9e-11
  Total electronic charge: 1.2e-11
  norm(P): 1.0e-10
+ GPa: 3.0e-11
 
 NLCC: &NLCCsnew
  EH: 5.1e-10
@@ -334,6 +336,7 @@ NLCC: &NLCCsnew
  PV (Ha): 5.9e-11
  Exc(rhoc): 3.8e-9
  norm(P): 1.0e-10
+ GPa: 3.0e-11
 
 #deepcopy of the above defined cases
 NLCC_free-O2: *NLCCs
