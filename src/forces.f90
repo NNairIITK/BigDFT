@@ -4739,7 +4739,7 @@ subroutine nonlocal_forces_linear(iproc,nproc,npsidim_orbs,lr,hx,hy,hz,at,rxyz,&
         end do
 
         ! Communicate the number of scalprods per atom, which will be needed as a switch
-        supfun_per_atom_recv = f_malloc(nat_par(iproc)*nproc,id='supfun_per_atom_recv')
+        supfun_per_atom_recv = f_malloc(max(nat_par(iproc),1)*nproc,id='supfun_per_atom_recv')
         do jproc=0,nproc-1
             nsendcounts_tmp(jproc) = nat_par(jproc)
             nsenddspls_tmp(jproc) = isat_par(jproc)
@@ -4834,7 +4834,7 @@ subroutine nonlocal_forces_linear(iproc,nproc,npsidim_orbs,lr,hx,hy,hz,at,rxyz,&
       subroutine calculate_forces()
         use sparsematrix_init, only: matrixindex_in_compressed
         implicit none
-        integer :: jj
+        integer :: jj, iispin, jjspin
         real(kind=8),dimension(:,:),allocatable :: fxyz_orb
         !real(kind=8),dimension(:),allocatable :: sab, strten_loc
         real(kind=8),dimension(6) :: sab, strten_loc
@@ -4864,13 +4864,9 @@ subroutine nonlocal_forces_linear(iproc,nproc,npsidim_orbs,lr,hx,hy,hz,at,rxyz,&
                !$omp shared(scalprod_lookup, l_max, i_max, scalprod_new, fxyz_orb, denskern_gathered) &
                !$omp shared(offdiagarr, strten, strten_loc, vol, Enl, nspinor,ncplx) &
                !$omp private(ispin, iat, iiat, ityp, iorb, ii, iiorb, jorb, jj, jjorb, ind, sab, ispinor) &
-               !$omp private(l, i, m, icplx, sp0, idir, spi, strc, j, hij, sp0i, sp0j, spj)
+               !$omp private(l, i, m, icplx, sp0, idir, spi, strc, j, hij, sp0i, sp0j, spj, iispin, jjspin)
                spin_loop2: do ispin=1,denskern%nspin
 
-                  !!allocate(sab(6))
-                  !!allocate(strten_loc(6))
-                  !!sab(:)=0.d0
-                  !!strten_loc(:)=0.d0
 
                   do iat=1,nat_par(iproc)
                      iiat=isat_par(iproc)+iat
@@ -4879,17 +4875,21 @@ subroutine nonlocal_forces_linear(iproc,nproc,npsidim_orbs,lr,hx,hy,hz,at,rxyz,&
                      do iorb=1,supfun_per_atom(iiat)
                         ii = is_supfun_per_atom(iiat) - is_supfun_per_atom(isat_par(iproc)+1) + iorb
                         iiorb = scalprod_lookup(ii)
-                        if (ispin==2) then
-                            ! spin shift
-                            iiorb = iiorb + denskern%nfvctr
-                        end if
+                        iispin = (iiorb-1)/denskern%nfvctr + 1
+                        if (iispin/=ispin) cycle
+                      !  if (ispin==2) then
+                      !      ! spin shift
+                      !      iiorb = iiorb + denskern%nfvctr
+                      !  end if
                         do jorb=1,supfun_per_atom(iiat)
                            jj = is_supfun_per_atom(iiat) - is_supfun_per_atom(isat_par(iproc)+1) + jorb
                            jjorb = scalprod_lookup(jj)
-                           if (ispin==2) then
-                               !spin shift
-                               jjorb = jjorb + denskern%nfvctr
-                           end if
+                           jjspin = (jjorb-1)/denskern%nfvctr + 1
+                           if (jjspin/=ispin) cycle
+                      !     if (ispin==2) then
+                      !         !spin shift
+                      !         jjorb = jjorb + denskern%nfvctr
+                      !     end if
                            ind = matrixindex_in_compressed(denskern, jjorb, iiorb)
                            if (ind==0) cycle
                            sab=0.0_gp
@@ -4987,7 +4987,6 @@ subroutine nonlocal_forces_linear(iproc,nproc,npsidim_orbs,lr,hx,hy,hz,at,rxyz,&
                      end do
                      !$omp end do
                   end do
-                  !deallocate(sab)
                end do spin_loop2
                !$omp end parallel
                do iat=1,nat_par(iproc)
