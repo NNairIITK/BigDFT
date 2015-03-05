@@ -68,7 +68,7 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
   logical :: update_kernel
   character(len=*),parameter :: subname='get_coeff'
   real(kind=gp) :: tmprtr, factor
-  real(kind=8) :: max_deviation, mean_deviation, KSres, max_deviation_p,  mean_deviation_p
+  real(kind=8) :: max_deviation, mean_deviation, KSres, max_deviation_p,  mean_deviation_p, maxdiff
 
   call f_routine(id='get_coeff')
 
@@ -332,6 +332,15 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
                    matrixElements(1,1,1), tmb%linmat%m%nfvctr, matrixElements(1,1,2), tmb%linmat%m%nfvctr, &
                    eval, info)
           end if
+
+          ! Broadcast the results (eigenvectors and eigenvalues) from task 0 to
+          ! all other tasks (in this way avoiding that different MPI tasks have different values)
+          if (iproc==0) call yaml_mapping_open('Cross-check among MPI tasks')
+          call mpibcast(matrixElements(:,:,1), comm=bigdft_mpi%mpi_comm, maxdiff=maxdiff)
+          if (iproc==0) call yaml_map('max diff of eigenvectors',maxdiff,fmt='(es8.2)')
+          call mpibcast(eval, comm=bigdft_mpi%mpi_comm, maxdiff=maxdiff)
+          if (iproc==0) call yaml_map('max diff of eigenvalues',maxdiff,fmt='(es8.2)')
+          if (iproc==0) call yaml_mapping_close()
           !if (iproc==0) write(*,'(a,3i6,100f9.2)') 'ispin, ishift+1, ishift+ii, evals', ispin, ishift+1, ishift+ii, tmb%orbs%eval(ishift+1:ishift+ii)
 
           ! copy all the eigenvalues
