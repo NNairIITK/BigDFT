@@ -93,13 +93,6 @@ module module_interfaces
         type(dictionary), pointer :: dict
       end subroutine read_input_dict_from_files
 
-      subroutine create_log_file(dict, writing_directory, dir_output, run_name)
-        use dictionaries
-        implicit none
-        type(dictionary), pointer :: dict
-        character(len = max_field_length), intent(out) :: writing_directory, dir_output, run_name
-      end subroutine create_log_file
-
       subroutine inputs_from_dict(in, atoms, dict)
         use module_types
         use module_defs
@@ -144,11 +137,11 @@ module module_interfaces
       END SUBROUTINE check_closed_shell
 
       subroutine orbitals_descriptors(iproc,nproc,norb,norbu,norbd,nspin,nspinor, &
-                 nkpt,kpt,wkpt,orbs,simple,basedist,basedistu,basedistd)
+                 nkpt,kpt,wkpt,orbs,linear_partition,basedist,basedistu,basedistd)
          use module_defs, only: gp
          use module_types
          implicit none
-         logical, intent(in) :: simple !< simple calculation of the repartition
+         integer, intent(in) :: linear_partition !< repartition mode for the linear scaling version
          integer, intent(in) :: iproc,nproc,norb,norbu,norbd,nkpt,nspin
          integer, intent(in) :: nspinor
          type(orbitals_data), intent(inout) :: orbs
@@ -554,7 +547,7 @@ module module_interfaces
       END SUBROUTINE NonLocalHamiltonianApplication
 
       subroutine SynchronizeHamiltonianApplication(nproc,npsidim_orbs,orbs,Lzd,GPU,xc,hpsi,&
-           ekin_sum,epot_sum,eproj_sum,eSIC_DC,eexctX)
+           ekin_sum,epot_sum,eproj_sum,eSIC_DC,eexctX,energs_work)
         use module_base
         use module_types
         use module_xc
@@ -566,6 +559,7 @@ module module_interfaces
         type(xc_info), intent(in) :: xc
         real(gp), intent(inout) :: ekin_sum,epot_sum,eproj_sum,eSIC_DC,eexctX
         real(wp), dimension(orbs%npsidim_orbs), intent(inout) :: hpsi
+        type(work_mpiaccumulate),optional,intent(inout) :: energs_work
       END SUBROUTINE SynchronizeHamiltonianApplication
 
       subroutine hpsitopsi(iproc,nproc,iter,idsx,wfn,&
@@ -893,17 +887,17 @@ module module_interfaces
          real(gp), intent(out) :: epot
       END SUBROUTINE apply_potential
 
-      subroutine plot_density(iproc,nproc,filename,at,rxyz,box,nspin,rho)
-        use module_base
-        use module_types
-        implicit none
-        integer, intent(in) :: iproc,nproc,nspin
-        type(atoms_data), intent(in) :: at
-        type(denspot_distribution), intent(in) :: box
-        character(len=*), intent(in) :: filename
-        real(gp), dimension(3,at%astruct%nat), intent(in) :: rxyz
-        real(dp), dimension(max(box%ndimpot,1),nspin), target, intent(in) :: rho
-      END SUBROUTINE plot_density
+!!$      subroutine plot_density(iproc,nproc,filename,at,rxyz,box,nspin,rho)
+!!$        use module_base
+!!$        use module_types
+!!$        implicit none
+!!$        integer, intent(in) :: iproc,nproc,nspin
+!!$        type(atoms_data), intent(in) :: at
+!!$        type(denspot_distribution), intent(in) :: box
+!!$        character(len=*), intent(in) :: filename
+!!$        real(gp), dimension(3,at%astruct%nat), intent(in) :: rxyz
+!!$        real(dp), dimension(max(box%ndimpot,1),nspin), target, intent(in) :: rho
+!!$      END SUBROUTINE plot_density
 
       subroutine read_density(filename,geocode,n1i,n2i,n3i,nspin,hxh,hyh,hzh,rho,&
             &   nat,rxyz,iatypes, znucl)
@@ -1432,16 +1426,20 @@ module module_interfaces
       END SUBROUTINE allocateRhoPot
 
       subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
-          fnrm,infoBasisFunctions,nlpsp,scf_mode,ldiis,SIC,tmb,energs_base,&
+          fnrm_tmb,infoBasisFunctions,nlpsp,scf_mode,ldiis,SIC,tmb,energs_base,&
           nit_precond,target_function,&
           correction_orthoconstraint,nit_basis,&
           ratio_deltas,ortho_on,extra_states,itout,conv_crit,experimental_mode,early_stop,&
           gnrm_dynamic, min_gnrm_for_dynamic, can_use_ham, order_taylor, max_inversion_error, kappa_conv, method_updatekernel,&
-          purification_quickreturn, correction_co_contra, cdft, input_frag, ref_frags)
+          purification_quickreturn, correction_co_contra, &
+          precond_convol_workarrays, precond_workarrays, &
+          wt_philarge, wt_hpsinoprecond, wt_hphi, wt_phi, fnrm, energs_work, &
+          cdft, input_frag, ref_frags)
         use module_base
         use module_types
         use module_fragments, only: system_fragment
         use constrained_dft, only: cdft_data
+        use communications_base, only: work_transpose
         implicit none
 
         ! Calling arguments
@@ -1454,7 +1452,7 @@ module module_interfaces
         real(kind=8),dimension(3,at%astruct%nat) :: rxyz
         type(DFT_local_fields), intent(inout) :: denspot
         type(GPU_pointers), intent(inout) :: GPU
-        real(kind=8),intent(out) :: trH, fnrm
+        real(kind=8),intent(out) :: trH, fnrm_tmb
         real(kind=8),intent(inout) :: trH_old
         type(DFT_PSP_projectors),intent(inout) :: nlpsp
         integer,intent(in) :: scf_mode
@@ -1472,8 +1470,12 @@ module module_interfaces
         logical,intent(out) :: can_use_ham
         integer,intent(in) :: method_updatekernel
         logical,intent(in) :: correction_co_contra
+        type(workarrays_quartic_convolutions),dimension(tmb%orbs%norbp),intent(inout) :: precond_convol_workarrays
+        type(workarr_precond),dimension(tmb%orbs%norbp),intent(inout) :: precond_workarrays
+        type(work_transpose),intent(inout) :: wt_philarge, wt_hpsinoprecond, wt_hphi, wt_phi
+        type(work_mpiaccumulate),intent(inout) :: fnrm, energs_work
         !these must all be present together
-        type(cdft_data),intent(in),optional :: cdft
+        type(cdft_data),intent(inout),optional :: cdft
         type(fragmentInputParameters),optional,intent(in) :: input_frag
         type(system_fragment), dimension(:), optional, intent(in) :: ref_frags
       end subroutine getLocalizedBasis
@@ -1493,7 +1495,7 @@ module module_interfaces
     subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
         energs,nlpsp,SIC,tmb,fnrm,calculate_overlap_matrix,invert_overlap_matrix,communicate_phi_for_lsumrho,&
         calculate_ham,extra_states,itout,it_scc,it_cdft,order_taylor,max_inversion_error,purification_quickreturn,&
-        calculate_KS_residue,calculate_gap,&
+        calculate_KS_residue,calculate_gap,energs_work,&
         convcrit_dmin,nitdmin,curvefit_dmin,ldiis_coeff,reorder,cdft, updatekernel)
       use module_base
       use module_types
@@ -1520,6 +1522,7 @@ module module_interfaces
       logical,intent(in):: calculate_overlap_matrix, invert_overlap_matrix
       logical,intent(in):: communicate_phi_for_lsumrho, purification_quickreturn
       logical,intent(in) :: calculate_ham, calculate_KS_residue, calculate_gap
+      type(work_mpiaccumulate),intent(inout) :: energs_work
       type(DIIS_obj),intent(inout),optional :: ldiis_coeff ! for dmin only
       integer, intent(in), optional :: nitdmin ! for dmin only
       real(kind=gp), intent(in), optional :: convcrit_dmin ! for dmin only
@@ -1698,7 +1701,7 @@ module module_interfaces
       integer, intent(in) :: size_Lrho
       integer, intent(in) :: nspin
       real(wp),dimension(size_rho),intent(in) :: rho
-      real(wp),dimension(size_Lrho),intent(out) :: Lrho
+      real(wp),intent(out) :: Lrho
      end subroutine global_to_local
 
      subroutine LDiagHam(iproc,nproc,natsc,nspin,orbs,Lzd,Lzde,comms,&
@@ -1791,19 +1794,6 @@ module module_interfaces
        integer,dimension(orbs%norb),intent(in):: onWhichAtomAll
        integer,intent(inout):: tag
      end subroutine initializeCommunicationPotential
-
-     subroutine initializeRepartitionOrbitals(iproc, nproc, tag, lorbs, llborbs, lzd, comrp)
-       use module_base
-       use module_types
-       use communications_base, only: p2pComms
-       implicit none
-       integer,intent(in):: iproc, nproc
-       integer,intent(inout):: tag
-       type(orbitals_data),intent(in):: lorbs, llborbs
-       type(local_zone_descriptors),intent(in):: lzd
-       !type(p2pCommsRepartition),intent(out):: comrp
-       type(p2pComms),intent(out):: comrp
-     end subroutine initializeRepartitionOrbitals
 
      subroutine mixrhopotDIIS(iproc, nproc, n3d, n3p, glr, input, rhopot, rhopotold, mixdiis, alphaMix, ioffset, mixMeth, pnrm, xc)
        use module_base
@@ -1922,25 +1912,6 @@ module module_interfaces
       type(foe_data),intent(inout):: foe_obj
       character(len=*),intent(in):: subname
     end subroutine deallocate_foe
-
-     subroutine initInputguessConfinement(iproc, nproc, at, lzd, orbs, collcom_reference, &
-                Glr, input, hx, hy, hz, lin, tmb, rxyz, nscatterarr)
-       use module_base
-       use module_types
-       implicit none
-       integer,intent(in):: iproc,nproc
-       real(gp), intent(in) :: hx, hy, hz
-       type(atoms_data),intent(inout) :: at
-       type(local_zone_descriptors),intent(in):: lzd
-       type(orbitals_data),intent(in):: orbs
-       type(comms_linear),intent(in):: collcom_reference
-       type(locreg_descriptors),intent(in) :: Glr
-       type(input_variables), intent(in) ::input
-       type(linearInputParameters),intent(in):: lin
-       type(DFT_wavefunction),intent(in) :: tmb
-       integer,dimension(0:nproc-1,4),intent(in):: nscatterarr !n3d,n3p,i3s+i3xcsh-1,i3xcsh
-       real(gp),dimension(3,at%astruct%nat),intent(in):: rxyz
-     end subroutine initInputguessConfinement
 
       subroutine orthoconstraintNonorthogonal(iproc, nproc, lzd, npsidim_orbs, npsidim_comp, orbs, collcom, orthpar, &
                  correction_orthoconstraint, linmat, lphi, lhphi, lagmat, lagmat_, psit_c, psit_f, &
@@ -2212,7 +2183,8 @@ module module_interfaces
        subroutine system_initialization(iproc,nproc,dump,inputpsi,input_wf_format,&
             & dry_run,in,atoms,rxyz,OCLconv,&
             orbs,lnpsidim_orbs,lnpsidim_comp,lorbs,Lzd,Lzd_lin,nlpsp,comms,shift,&
-            ref_frags, denspot, locregcenters, inwhichlocreg_old, onwhichatom_old, output_grid)
+            ref_frags, denspot, locregcenters, inwhichlocreg_old, onwhichatom_old, &
+            norb_par_ref, norbu_par_ref, norbd_par_ref,output_grid)
          use module_base
          use module_types
          use module_fragments
@@ -2235,6 +2207,7 @@ module module_interfaces
          type(system_fragment), dimension(:), pointer :: ref_frags
          real(kind=8),dimension(3,atoms%astruct%nat),intent(inout),optional :: locregcenters
          integer,dimension(:),pointer,optional:: inwhichlocreg_old, onwhichatom_old
+         integer,dimension(0:nproc-1),optional:: norb_par_ref, norbu_par_ref, norbd_par_ref !< support function distribution to be used as a reference
          logical, intent(in) :: dry_run, dump
          logical, intent(in), optional :: output_grid
        end subroutine system_initialization
@@ -2396,7 +2369,8 @@ module module_interfaces
          type(DFT_wavefunction),intent(inout):: wfn
        end subroutine destroy_DFT_wavefunction
 
-       subroutine init_orbitals_data_for_linear(iproc, nproc, nspinor, input, astruct, rxyz, lorbs)
+       subroutine init_orbitals_data_for_linear(iproc, nproc, nspinor, input, astruct, rxyz, lorbs, &
+           norb_par_ref, norbu_par_ref, norbd_par_ref)
          use module_base
          use module_types
          implicit none
@@ -2405,6 +2379,7 @@ module module_interfaces
          type(atomic_structure),intent(in):: astruct
          real(8),dimension(3,astruct%nat),intent(in):: rxyz
          type(orbitals_data),intent(out):: lorbs
+         integer,dimension(0:nproc-1),intent(in),optional :: norb_par_ref, norbu_par_ref, norbd_par_ref
        end subroutine init_orbitals_data_for_linear
 
        subroutine mix_main(iproc, nproc, mix_mode, mixHist, input, glr, alpha_mix, &
@@ -2422,46 +2397,92 @@ module module_interfaces
          real(8),intent(out):: pnrm
        end subroutine mix_main
 
+       !!subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
+       !!           ldiis, fnrmOldArr, fnrm_old, alpha, trH, trHold, fnrm, fnrmMax, alpha_mean, alpha_max, &
+       !!           energy_increased, tmb, lhphiold, overlap_calculated, &
+       !!           energs, hpsit_c, hpsit_f, nit_precond, target_function, correction_orthoconstraint, &
+       !!           hpsi_small, experimental_mode, calculate_inverse, correction_co_contra, hpsi_noprecond, &
+       !!           norder_taylor, max_inversion_error, method_updatekernel, precond_convol_workarrays, precond_workarrays,&
+       !!           wt_philarge, wt_hpsinoprecond, &
+       !!           cdft, input_frag, ref_frags)
+       !!  use module_base
+       !!  use module_types
+       !!  use constrained_dft, only: cdft_data
+       !!  use module_fragments, only: system_fragment
+       !!  use communications_base, only: work_transpose
+       !!  implicit none
+       !!  integer, intent(in) :: iproc, nproc, it, method_updatekernel
+       !!  integer,intent(inout) :: norder_taylor
+       !!  real(kind=8),intent(in) :: max_inversion_error
+       !!  type(DFT_wavefunction),target,intent(inout):: tmb
+       !!  type(localizedDIISParameters),intent(inout) :: ldiis
+       !!  real(8),dimension(tmb%orbs%norbp),intent(inout) :: fnrmOldArr
+       !!  real(kind=8),intent(inout) :: fnrm_old
+       !!  real(8),dimension(tmb%orbs%norbp),intent(inout) :: alpha
+       !!  real(8),intent(out):: trH, fnrm, fnrmMax, alpha_mean, alpha_max
+       !!  real(8),intent(in):: trHold
+       !!  logical,intent(out) :: energy_increased
+       !!  real(8),dimension(tmb%orbs%npsidim_orbs),intent(inout):: lhphiold
+       !!  logical,intent(inout):: overlap_calculated
+       !!  type(energy_terms),intent(in) :: energs
+       !!  real(kind=8),dimension(tmb%ham_descr%collcom%ndimind_c) :: hpsit_c
+       !!  real(kind=8),dimension(7*tmb%ham_descr%collcom%ndimind_f) :: hpsit_f
+       !!  integer, intent(in) :: nit_precond, target_function, correction_orthoconstraint
+       !!  logical, intent(in) :: experimental_mode, calculate_inverse, correction_co_contra
+       !!  real(kind=8),dimension(tmb%orbs%npsidim_orbs),intent(out) :: hpsi_small
+       !!  real(kind=8),dimension(tmb%orbs%npsidim_orbs),intent(out) :: hpsi_noprecond
+       !!  type(workarrays_quartic_convolutions),dimension(tmb%orbs%norbp),intent(inout) :: precond_convol_workarrays
+       !!  type(workarr_precond),dimension(tmb%orbs%norbp),intent(inout) :: precond_workarrays
+       !!  type(work_transpose),intent(inout) :: wt_philarge
+       !!  type(work_transpose),intent(out) :: wt_hpsinoprecond
+       !!  type(cdft_data),intent(inout),optional :: cdft
+       !!  type(fragmentInputParameters),optional,intent(in) :: input_frag
+       !!  type(system_fragment), dimension(:), optional, intent(in) :: ref_frags
+       !!end subroutine calculate_energy_and_gradient_linear
+
        subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
-                  ldiis, fnrmOldArr, fnrm_old, alpha, trH, trHold, fnrm, fnrmMax, alpha_mean, alpha_max, &
+                  ldiis, fnrmOldArr, fnrm_old, alpha, trH, trHold, fnrm, alpha_mean, alpha_max, &
                   energy_increased, tmb, lhphiold, overlap_calculated, &
                   energs, hpsit_c, hpsit_f, nit_precond, target_function, correction_orthoconstraint, &
                   hpsi_small, experimental_mode, calculate_inverse, correction_co_contra, hpsi_noprecond, &
                   norder_taylor, max_inversion_error, method_updatekernel, precond_convol_workarrays, precond_workarrays,&
-                  wt_philarge, wt_hpsinoprecond, &
+                  wt_hphi, wt_philarge, wt_hpsinoprecond, &
                   cdft, input_frag, ref_frags)
          use module_base
          use module_types
+         use communications_base, only: work_transpose
+         use sparsematrix_base, only: matrices
          use constrained_dft, only: cdft_data
          use module_fragments, only: system_fragment
-         use communications_base, only: work_transpose
          implicit none
          integer, intent(in) :: iproc, nproc, it, method_updatekernel
          integer,intent(inout) :: norder_taylor
          real(kind=8),intent(in) :: max_inversion_error
-         type(DFT_wavefunction),target,intent(inout):: tmb
-         type(localizedDIISParameters),intent(inout) :: ldiis
-         real(8),dimension(tmb%orbs%norbp),intent(inout) :: fnrmOldArr
+         type(DFT_wavefunction), target, intent(inout):: tmb
+         type(localizedDIISParameters), intent(inout) :: ldiis
+         real(kind=8), dimension(tmb%orbs%norbp), intent(inout) :: fnrmOldArr
          real(kind=8),intent(inout) :: fnrm_old
-         real(8),dimension(tmb%orbs%norbp),intent(inout) :: alpha
-         real(8),intent(out):: trH, fnrm, fnrmMax, alpha_mean, alpha_max
-         real(8),intent(inout):: trHold
+         real(kind=8), dimension(tmb%orbs%norbp), intent(inout) :: alpha
+         real(kind=8), intent(out):: trH, alpha_mean, alpha_max
+         type(work_mpiaccumulate), intent(inout):: fnrm
+         real(kind=8), intent(in):: trHold
          logical,intent(out) :: energy_increased
-         real(8),dimension(tmb%orbs%npsidim_orbs),intent(inout):: lhphiold
-         logical,intent(inout):: overlap_calculated
-         type(energy_terms),intent(in) :: energs
+         real(kind=8), dimension(tmb%npsidim_orbs), intent(inout):: lhphiold
+         logical, intent(inout):: overlap_calculated
+         type(energy_terms), intent(in) :: energs
          real(kind=8),dimension(tmb%ham_descr%collcom%ndimind_c) :: hpsit_c
          real(kind=8),dimension(7*tmb%ham_descr%collcom%ndimind_f) :: hpsit_f
          integer, intent(in) :: nit_precond, target_function, correction_orthoconstraint
          logical, intent(in) :: experimental_mode, calculate_inverse, correction_co_contra
-         real(kind=8),dimension(tmb%orbs%npsidim_orbs),intent(out) :: hpsi_small
-         real(kind=8),dimension(tmb%orbs%npsidim_orbs),intent(out) :: hpsi_noprecond
+         real(kind=8), dimension(tmb%npsidim_orbs), intent(out) :: hpsi_small
+         real(kind=8), dimension(tmb%npsidim_orbs),intent(out) :: hpsi_noprecond
          type(workarrays_quartic_convolutions),dimension(tmb%orbs%norbp),intent(inout) :: precond_convol_workarrays
          type(workarr_precond),dimension(tmb%orbs%norbp),intent(inout) :: precond_workarrays
+         type(work_transpose),intent(inout) :: wt_hphi
          type(work_transpose),intent(inout) :: wt_philarge
          type(work_transpose),intent(out) :: wt_hpsinoprecond
-         type(cdft_data),intent(in),optional :: cdft
-         type(fragmentInputParameters),optional,intent(in) :: input_frag
+         type(cdft_data),intent(inout),optional :: cdft
+         type(fragmentInputParameters), optional, intent(in) :: input_frag
          type(system_fragment), dimension(:), optional, intent(in) :: ref_frags
        end subroutine calculate_energy_and_gradient_linear
 
@@ -2495,7 +2516,7 @@ module module_interfaces
          real(kind=8),dimension(tmb%orbs%npsidim_orbs),optional,intent(out) :: psidiff
          logical, intent(in) :: ortho, experimental_mode
          real(kind=8),intent(out) :: trH_ref
-         real(kind=8),dimension(tmb%linmat%l%nvctr),intent(out) :: kernel_best
+         real(kind=8),dimension(tmb%linmat%l%nvctrp_tg*tmb%linmat%l%nspin),intent(inout) :: kernel_best
          logical,intent(out) :: complete_reset
        end subroutine hpsitopsi_linear
 
@@ -2510,7 +2531,7 @@ module module_interfaces
          real(kind=8),dimension(tmbopt%orbs%norbp),intent(inout):: alpha, alphaDIIS
          real(kind=8),dimension(max(tmbopt%npsidim_orbs,tmbopt%npsidim_comp)),intent(out):: lphioldopt
          real(kind=8),intent(out) :: trH_ref
-         real(kind=8),dimension(tmbopt%linmat%l%nvctr),intent(out) :: kernel_best
+         real(kind=8),dimension(tmbopt%linmat%l%nvctrp_tg*tmbopt%linmat%l%nspin),intent(inout) :: kernel_best
          logical,intent(out) :: complete_reset
        end subroutine DIISorSD
 
@@ -2711,12 +2732,12 @@ module module_interfaces
          real(gp), dimension(:,:), intent(out), optional :: rxyz_old
         end subroutine io_read_descr_coeff
 
-        subroutine read_coeff_minbasis(unitwf,useFormattedInput,iproc,ntmb,norb_old,coeff,eval,nat,rxyz_old)
+        subroutine read_coeff_minbasis(unitwf,useFormattedInput,iproc,ntmb,norb_old,nfvctr,coeff,eval,nat,rxyz_old)
           use module_base
           use module_types
           implicit none
           logical, intent(in) :: useFormattedInput
-          integer, intent(in) :: unitwf,iproc,ntmb
+          integer, intent(in) :: unitwf,iproc,ntmb,nfvctr
           integer, intent(out) :: norb_old
           real(wp), dimension(ntmb,ntmb), intent(out) :: coeff
           real(wp), dimension(ntmb), intent(out) :: eval
@@ -3073,10 +3094,10 @@ module module_interfaces
           type(cdft_data), intent(inout) :: cdft
         end subroutine input_memory_linear
 
-        subroutine copy_old_coefficients(norb_tmb, coeff, coeff_old)
+        subroutine copy_old_coefficients(norb_tmb, nfvctr, coeff, coeff_old)
           use module_base
           implicit none
-          integer,intent(in):: norb_tmb
+          integer,intent(in):: norb_tmb, nfvctr
           real(8),dimension(:,:),pointer:: coeff, coeff_old
         end subroutine copy_old_coefficients
 
@@ -3088,7 +3109,7 @@ module module_interfaces
         end subroutine copy_old_inwhichlocreg
 
         subroutine reformat_supportfunctions(iproc,nproc,at,rxyz_old,rxyz,add_derivatives,tmb,ndim_old,lzd_old,&
-               frag_trans,psi_old,input_dir,input_frag,ref_frags,phi_array_old)
+               frag_trans,psi_old,input_dir,input_frag,ref_frags,max_shift,phi_array_old)
           use module_base
           use module_types
           use module_fragments
@@ -3106,6 +3127,7 @@ module module_interfaces
           character(len=*), intent(in) :: input_dir
           type(fragmentInputParameters), intent(in) :: input_frag
           type(system_fragment), dimension(:), intent(in) :: ref_frags
+          real(gp),intent(out) :: max_shift
         end subroutine reformat_supportfunctions
 
         subroutine reformat_one_supportfunction(llr,llr_old,geocode,hgrids_old,n_old,psigold,&
@@ -3137,18 +3159,6 @@ module module_interfaces
           real(kind=8),dimension(lorbs%npsidim_orbs),intent(in) :: phi !< Basis functions
           real(kind=8),dimension(3*lorbs%npsidim_orbs),intent(inout) :: phid  !< Derivative basis functions
         end subroutine get_derivative_supportfunctions
-
-        subroutine normalize_transposed(iproc, nproc, orbs, nspin, collcom, psit_c, psit_f, norm)
-          use module_base
-          use module_types
-          implicit none
-          integer,intent(in):: iproc, nproc, nspin
-          type(orbitals_data),intent(in):: orbs
-          type(comms_linear),intent(in):: collcom
-          real(8),dimension(collcom%ndimind_c),intent(inout):: psit_c
-          real(8),dimension(7*collcom%ndimind_f),intent(inout):: psit_f
-          real(8),dimension(orbs%norb),intent(out):: norm
-        end subroutine normalize_transposed
 
 
         subroutine determine_locregSphere_parallel(iproc,nproc,nlr,hx,hy,hz,astruct,orbs,Glr,Llr,calculateBounds)!,outofzone)
@@ -3207,7 +3217,7 @@ module module_interfaces
           real(kind=8),intent(out) :: ebs
           logical,intent(in) :: purification_quickreturn
           logical,intent(in) :: calculate_minusonehalf
-          integer :: foe_verbosity
+          integer,intent(in) :: foe_verbosity
           integer,intent(in) :: accuracy_level
           type(DFT_wavefunction),intent(inout) :: tmb
           type(foe_data),intent(inout) :: foe_obj
@@ -3243,103 +3253,18 @@ module module_interfaces
           real(gp), dimension(6), intent(out) :: strten
         end subroutine nonlocal_forces_linear
 
-        subroutine calculate_overlap_transposed(iproc, nproc, orbs, collcom, &
-                   psit_c1, psit_c2, psit_f1, psit_f2, smat, ovrlp)
-          use module_base
-          use module_types
-          use sparsematrix_base, only: sparse_matrix
-          implicit none
-          integer,intent(in) :: iproc, nproc
-          type(orbitals_data),intent(in) :: orbs
-          type(comms_linear),intent(in) :: collcom
-          real(kind=8),dimension(collcom%ndimind_c),intent(in) :: psit_c1, psit_c2
-          real(kind=8),dimension(7*collcom%ndimind_f),intent(in) :: psit_f1, psit_f2
-          type(sparse_matrix),intent(inout) :: smat
-          type(matrices),intent(inout) :: ovrlp
-        end subroutine calculate_overlap_transposed
-
-        subroutine build_linear_combination_transposed(collcom, sparsemat, mat, psitwork_c, psitwork_f, &
-             reset, psit_c, psit_f, iproc)
-          use module_base
-          use module_types
-          use sparsematrix_base, only: sparse_matrix
-          implicit none
-
-          ! Calling arguments
-          type(sparse_matrix),intent(in) :: sparsemat
-          type(matrices),intent(in) :: mat
-          type(comms_linear),intent(in) :: collcom
-          real(kind=8),dimension(collcom%ndimind_c),intent(in) :: psitwork_c
-          real(kind=8),dimension(7*collcom%ndimind_f),intent(in) :: psitwork_f
-          logical,intent(in) :: reset
-          real(kind=8),dimension(collcom%ndimind_c),intent(inout) :: psit_c
-          real(kind=8),dimension(7*collcom%ndimind_f),intent(inout) :: psit_f
-          integer, intent(in) :: iproc
-        end subroutine build_linear_combination_transposed
-
-        subroutine axpy_kernel_vectors(norbp, norb, nout, onedimindices, a, x, y)
-          use module_base
-          use module_types
-          implicit none
-          integer,intent(in) :: norbp, norb, nout
-          integer,dimension(4,nout),intent(in) :: onedimindices
-          real(kind=8),intent(in) :: a
-          real(kind=8),dimension(norb,norbp),intent(in) :: x
-          real(kind=8),dimension(norb,norbp),intent(inout) :: y
-        end subroutine axpy_kernel_vectors
-
-        subroutine axbyz_kernel_vectors(norbp, norb, nout, onedimindices, a, x, b, y, z)
-          use module_base
-          use module_types
-          implicit none
-          integer,intent(in) :: norbp, norb, nout
-          integer,dimension(4,nout),intent(in) :: onedimindices
-          real(8),intent(in) :: a, b
-          real(kind=8),dimension(norb,norbp),intent(in) :: x, y
-          real(kind=8),dimension(norb,norbp),intent(out) :: z
-        end subroutine axbyz_kernel_vectors
-
-        subroutine copy_kernel_vectors(norbp, norb, nout, onedimindices, a, b)
-          use module_base
-          use module_types
-          implicit none
-          integer,intent(in) :: norbp, norb, nout
-          integer,dimension(4,nout),intent(in) :: onedimindices
-          real(kind=8),dimension(norb,norbp),intent(in) :: a
-          real(kind=8),dimension(norb,norbp),intent(out) :: b
-        end subroutine copy_kernel_vectors
-
-        subroutine chebyshev_clean(iproc, nproc, npl, cc, norb, norbp, isorb, kernel, ham_compr, &
-                   invovrlp_compr, calculate_SHS, nsize_polynomial, ncalc, fermi, penalty_ev, chebyshev_polynomials, &
-                   emergency_stop)
-          use module_base
-          use module_types
-          use sparsematrix_base, only: sparse_matrix
-          implicit none
-          integer,intent(in) :: iproc, nproc, npl, nsize_polynomial, norb, norbp, isorb, ncalc
-          real(8),dimension(npl,3,ncalc),intent(in) :: cc
-          type(sparse_matrix), intent(in) :: kernel
-          real(kind=8),dimension(kernel%nvctrp_tg),intent(in) :: ham_compr
-          real(kind=8),dimension(kernel%nvctr),intent(in) :: invovrlp_compr
-          logical,intent(in) :: calculate_SHS
-          real(kind=8),dimension(kernel%nfvctr,kernel%smmm%nfvctrp,ncalc),intent(out) :: fermi
-          real(kind=8),dimension(kernel%nfvctr,kernel%smmm%nfvctrp,2),intent(out) :: penalty_ev
-          real(kind=8),dimension(nsize_polynomial,npl),intent(out) :: chebyshev_polynomials
-          logical,intent(out) :: emergency_stop
-        end subroutine chebyshev_clean
-
-
-        subroutine set_variables_for_hybrid(nlr, input, at, orbs, lowaccur_converged, confdatarr, &
+        subroutine set_variables_for_hybrid(iproc, nlr, input, at, orbs, lowaccur_converged, damping_factor, confdatarr, &
                    target_function, nit_basis, nit_scc, mix_hist, locrad, alpha_mix, convCritMix, &
                    conv_crit_TMB)
           use module_base
           use module_types
           implicit none
-          integer,intent(in) :: nlr
+          integer,intent(in) :: iproc, nlr
           type(input_variables),intent(in) :: input
           type(atoms_data),intent(in) :: at
           type(orbitals_data),intent(in) :: orbs
           logical,intent(out) :: lowaccur_converged
+          real(kind=8),intent(in) :: damping_factor
           type(confpot_data),dimension(orbs%norbp),intent(inout) :: confdatarr
           integer,intent(out) :: target_function, nit_basis, nit_scc, mix_hist
           real(kind=8),dimension(nlr),intent(out) :: locrad
@@ -3715,6 +3640,30 @@ module module_interfaces
           real(kind=8), intent(inout) :: energyold
         end subroutine build_ks_orbitals
 
+!TEMPORARY, to be cleaned/removed
+subroutine build_ks_orbitals_laura_tmp(iproc, nproc, tmb, KSwfn, at, rxyz, denspot, GPU, &
+           energs, nlpsp, input, order_taylor, &
+           energy, energyDiff, energyold, npsidim_global, phiwork_global)
+  use module_base
+  use module_types
+  use yaml_output
+  implicit none
+  integer:: iproc, nproc
+  type(DFT_wavefunction),intent(inout) :: tmb, KSwfn
+  type(atoms_data), intent(in) :: at
+  real(gp), dimension(3,at%astruct%nat), intent(in) :: rxyz
+  type(DFT_local_fields), intent(inout) :: denspot
+  type(GPU_pointers), intent(inout) :: GPU
+  type(energy_terms),intent(inout) :: energs
+  type(DFT_PSP_projectors), intent(inout) :: nlpsp
+  type(input_variables),intent(in) :: input
+  integer,intent(inout) :: order_taylor
+  real(kind=8),intent(out) :: energy, energyDiff
+  real(kind=8), intent(inout) :: energyold
+integer, intent(in) :: npsidim_global
+real(kind=8),dimension(:),pointer :: phiwork_global
+end subroutine build_ks_orbitals_laura_tmp
+
         subroutine small_to_large_locreg(iproc, npsidim_orbs_small, npsidim_orbs_large, lzdsmall, lzdlarge, &
                orbs, phismall, philarge, to_global)
           use module_base
@@ -3805,7 +3754,6 @@ module module_interfaces
                    calculate_overlap_matrix,calculate_ovrlp_half,meth_overlap)
           use module_base
           use module_types
-          use communications, only: transpose_localized
           use sparsematrix_base, only: sparse_matrix
           implicit none
           integer,intent(in) :: iproc
@@ -4018,7 +3966,7 @@ module module_interfaces
           implicit none
           integer,intent(in) :: iproc, nproc, iorder, blocksize, power, norb
           real(kind=8),dimension(norb,norb),intent(in) :: ovrlp_matrix
-          real(kind=8),dimension(:,:),pointer,intent(out) :: inv_ovrlp_matrix
+          real(kind=8),dimension(:,:),pointer,intent(inout) :: inv_ovrlp_matrix
           type(sparse_matrix),intent(in) :: smat
           logical,intent(in) :: check_accur
           real(kind=8),intent(out),optional :: max_error, mean_error
@@ -4133,21 +4081,6 @@ module module_interfaces
           real(kind=8),intent(out) :: delta_energy
         end subroutine estimate_energy_change
 
-        subroutine chebyshev_fast(iproc, nproc, nsize_polynomial, npl, &
-                   norb, norbp, isorb, fermi, chebyshev_polynomials, ncalc, cc, kernelp)
-          use module_base
-          use module_types
-          use sparsematrix_base, only: sparse_matrix
-          implicit none
-        
-          ! Calling arguments
-          integer,intent(in) :: iproc, nproc, nsize_polynomial, npl, norb, norbp, isorb, ncalc
-          type(sparse_matrix),intent(in) :: fermi
-          real(kind=8),dimension(nsize_polynomial,npl),intent(in) :: chebyshev_polynomials
-          real(kind=8),dimension(npl,ncalc),intent(in) :: cc
-          real(kind=8),dimension(norb,norbp,ncalc),intent(out) :: kernelp
-        end subroutine chebyshev_fast
-
         subroutine init_sparse_matrix_for_KSorbs(iproc, nproc, orbs, input, nextra, smat, smat_extra)
           use module_base
           use module_types
@@ -4183,7 +4116,7 @@ module module_interfaces
           type(sparse_matrix),intent(in),optional :: smat2
           type(matrices),intent(in),optional :: mat2
           integer,intent(in),optional :: i2shift
-          real(kind=8),dimension(smatl%nvctr),intent(out) :: matscal_compr
+          real(kind=8),dimension(smatl%nvctrp_tg),intent(out) :: matscal_compr
           real(kind=8),intent(out) :: scale_factor, shift_value
         end subroutine scale_and_shift_matrix
 
@@ -4198,6 +4131,54 @@ module module_interfaces
           real(kind=8),dimension(tmb%ham_descr%collcom%ndimind_c),intent(out) :: hpsittmp_c !<workarray
           real(kind=8),dimension(7*tmb%ham_descr%collcom%ndimind_f),intent(out) :: hpsittmp_f !<workarray
         end subroutine build_gradient
+
+        subroutine writeLinearCoefficients(unitwf,useFormattedOutput,nat,rxyz,&
+                   ntmb,norb,nfvctr,coeff,eval)
+          use module_base
+          use yaml_output
+          implicit none
+          logical, intent(in) :: useFormattedOutput
+          integer, intent(in) :: unitwf,nat,ntmb,norb,nfvctr
+          real(wp), dimension(nfvctr,ntmb), intent(in) :: coeff
+          real(wp), dimension(ntmb), intent(in) :: eval
+          real(gp), dimension(3,nat), intent(in) :: rxyz
+        end subroutine writeLinearCoefficients
+
+        subroutine allocate_precond_arrays(orbs, lzd, confdatarr, precond_convol_workarrays, precond_workarrays)
+          use module_base, only: gp
+          use module_types
+          implicit none
+          type(orbitals_data),intent(in) :: orbs
+          type(local_zone_descriptors),intent(in) :: lzd
+          type(confpot_data),dimension(orbs%norbp),intent(in) ::  confdatarr
+          type(workarrays_quartic_convolutions),dimension(:),pointer,intent(inout) :: precond_convol_workarrays
+          type(workarr_precond),dimension(:),pointer,intent(inout) :: precond_workarrays
+        end subroutine allocate_precond_arrays
+
+        subroutine deallocate_precond_arrays(orbs, lzd, precond_convol_workarrays, precond_workarrays)
+          use module_base, only: gp
+          use module_types
+          implicit none
+          type(orbitals_data),intent(in) :: orbs
+          type(local_zone_descriptors),intent(in) :: lzd
+          type(workarrays_quartic_convolutions),dimension(:),pointer,intent(inout) :: precond_convol_workarrays
+          type(workarr_precond),dimension(:),pointer,intent(inout) :: precond_workarrays
+        end subroutine deallocate_precond_arrays
+
+        subroutine set_confdatarr(input, at, lorbs, onwhichatom, potential_prefac, locrad, text, add_sequence, confdatarr)
+          use module_base
+          use module_types
+          implicit none
+          type(orbitals_data), intent(in) :: lorbs
+          type(input_variables), intent(in) :: input
+          type(atoms_data), intent(in) :: at
+          integer, dimension(lorbs%norb), intent(in) :: onwhichatom
+          real(kind=8),dimension(at%astruct%ntypes),intent(in) :: potential_prefac
+          real(kind=8),dimension(lorbs%norb),intent(in) :: locrad
+          character(len=*) :: text
+          logical,intent(in) :: add_sequence
+          type(confpot_data),dimension(lorbs%norbp), intent(inout) :: confdatarr
+        end subroutine set_confdatarr
 
   end interface
 END MODULE module_interfaces

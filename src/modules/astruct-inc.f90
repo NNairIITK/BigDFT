@@ -1,202 +1,211 @@
-!> @file
-!!  Private Routines for the setting and creation of the astruct structure
-!!  included in the module module_atoms
-!! @author
-!!    Copyright (C) 2007-2013 BigDFT group (TD,LG)
-!!    This file is distributed under the terms of the
-!!    GNU General Public License, see ~/COPYING file
-!!    or http://www.gnu.org/copyleft/gpl.txt .
-!!    For the list of contributors, see ~/AUTHORS 
+    !> @file
+    !!  Private Routines for the setting and creation of the astruct structure
+    !!  included in the module module_atoms
+    !! @author
+    !!    Copyright (C) 2007-2013 BigDFT group (TD,LG)
+    !!    This file is distributed under the terms of the
+    !!    GNU General Public License, see ~/COPYING file
+    !!    or http://www.gnu.org/copyleft/gpl.txt .
+    !!    For the list of contributors, see ~/AUTHORS 
 
 
-!> Read atomic positions from xyz file and create astruct structure from it
-subroutine read_xyz_positions(ifile,filename,astruct,comment,energy,fxyz,getLine)
-  use module_defs, only: gp,UNINITIALIZED,Bohr_Ang, BIGDFT_INPUT_VARIABLES_ERROR
-  use dictionaries, only: f_err_raise, f_err_throw
-  use dynamic_memory
-  implicit none
-  !Arguments
-  integer, intent(in) :: ifile
-  character(len=*), intent(in) :: filename
-  type(atomic_structure), intent(inout) :: astruct
-  real(gp), intent(out) :: energy
-  real(gp), dimension(:,:), pointer :: fxyz
-  character(len = 1024), intent(out) :: comment
-  interface
-     subroutine getline(line,ifile,eof)
-       integer, intent(in) :: ifile
-       character(len=150), intent(out) :: line
-       logical, intent(out) :: eof
-     END SUBROUTINE getline
-  end interface
-  !local variables
-  character(len=*), parameter :: subname='read_atomic_positions'
-  character(len=20) :: symbol
-  character(len=20) :: tatonam
-  character(len=50) :: extra
-  character(len=150) :: line
-  logical :: lpsdbl, eof
-  integer :: iat,ityp,ntyp,i,ierrsfx
-  ! To read the file posinp (avoid differences between compilers)
-  real(kind=4) :: rx,ry,rz,alat1,alat2,alat3
-  ! case for which the atomic positions are given whithin general precision
-  real(gp) :: rxd0,ryd0,rzd0,alat1d0,alat2d0,alat3d0
-  character(len=20), dimension(100) :: atomnames
+    !> Read atomic positions from xyz file and create astruct structure from it
+    subroutine read_xyz_positions(ifile,filename,astruct,comment,energy,fxyz,getLine,disableTrans_)
+      use module_defs, only: gp,UNINITIALIZED,Bohr_Ang, BIGDFT_INPUT_VARIABLES_ERROR
+      use dictionaries, only: f_err_raise, f_err_throw
+      use dynamic_memory
+      implicit none
+      !Arguments
+      integer, intent(in) :: ifile
+      character(len=*), intent(in) :: filename
+      type(atomic_structure), intent(inout) :: astruct
+      real(gp), intent(out) :: energy
+      real(gp), dimension(:,:), pointer :: fxyz
+      character(len = 1024), intent(out) :: comment
+      logical, intent(in), optional :: disableTrans_
+      interface
+         subroutine getline(line,ifile,eof)
+           integer, intent(in) :: ifile
+           character(len=150), intent(out) :: line
+           logical, intent(out) :: eof
+         END SUBROUTINE getline
+      end interface
+      !local variables
+      character(len=*), parameter :: subname='read_atomic_positions'
+      character(len=20) :: symbol
+      character(len=20) :: tatonam
+      character(len=120) :: extra
+      character(len=150) :: line
+      logical :: lpsdbl, eof
+      integer :: iat,ityp,ntyp,i,ierrsfx
+      ! To read the file posinp (avoid differences between compilers)
+      real(kind=4) :: rx,ry,rz,alat1,alat2,alat3
+      ! case for which the atomic positions are given whithin general precision
+      real(gp) :: rxd0,ryd0,rzd0,alat1d0,alat2d0,alat3d0
+      character(len=20), dimension(100) :: atomnames
+      logical :: disableTrans
 
-  call getLine(line, ifile, eof)
-  if (f_err_raise(eof,"Unexpected end of file '"//trim(filename)//"'.",err_id=BIGDFT_INPUT_VARIABLES_ERROR)) return
-  !if (eof) then
-  !   write(*,*) "Error: unexpected end of file."
-  !   stop
-  !end if
-  energy = UNINITIALIZED(energy)
-  read(line,*, iostat = ierrsfx) iat,astruct%units,energy,comment
-  if (ierrsfx /= 0) then
-     read(line,*, iostat = ierrsfx) iat,astruct%units,energy
-     write(comment, "(A)") ""
-     if (ierrsfx /= 0) then
-        read(line,*, iostat = ierrsfx) iat,astruct%units
-        if (ierrsfx /= 0) then
-           read(line,*, iostat = ierrsfx) iat
-           write(astruct%units, "(A)") "bohr"
-        end if
-     end if
-  else
-     i = index(line, trim(comment))
-     write(comment, "(A)") line(i:)
-  end if
+      if(present(disableTrans_))then
+        disableTrans=disableTrans_
+      else
+        disableTrans=.false.
+      endif
 
-  call astruct_set_n_atoms(astruct, iat)
+      call getLine(line, ifile, eof)
+      if (f_err_raise(eof,"Unexpected end of file '"//trim(filename)//"'.",err_id=BIGDFT_INPUT_VARIABLES_ERROR)) return
+      !if (eof) then
+      !   write(*,*) "Error: unexpected end of file."
+      !   stop
+      !end if
+      energy = UNINITIALIZED(energy)
+      read(line,*, iostat = ierrsfx) iat,astruct%units,energy,comment
+      if (ierrsfx /= 0) then
+         read(line,*, iostat = ierrsfx) iat,astruct%units,energy
+         write(comment, "(A)") ""
+         if (ierrsfx /= 0) then
+            read(line,*, iostat = ierrsfx) iat,astruct%units
+            energy = UNINITIALIZED(energy)
+            if (ierrsfx /= 0) then
+               read(line,*, iostat = ierrsfx) iat
+               write(astruct%units, "(A)") "bohr"
+            end if
+         end if
+      else
+         i = index(line, trim(comment))
+         write(comment, "(A)") line(i:)
+      end if
 
-  !controls if the positions are provided with machine precision
-  if (astruct%units == 'angstroemd0' .or. astruct%units== 'atomicd0' .or. &
-       astruct%units== 'bohrd0' .or. astruct%units=='reduced') then
-     lpsdbl=.true.
-  else
-     lpsdbl=.false.
-  end if
+      call astruct_set_n_atoms(astruct, iat)
 
-  !read from positions of .xyz format, but accepts also the old .ascii format
-  call getLine(line, ifile, eof)
-  if (f_err_raise(eof,"Unexpected end of file '"//trim(filename)//"'.",err_id=BIGDFT_INPUT_VARIABLES_ERROR)) return
-  !if (eof) then
-     !write(*,*) "Error: unexpected end of file."
-     !stop
-  !end if
+      !controls if the positions are provided with machine precision
+      if (astruct%units == 'angstroemd0' .or. astruct%units== 'atomicd0' .or. &
+           astruct%units== 'bohrd0' .or. astruct%units=='reduced') then
+         lpsdbl=.true.
+      else
+         lpsdbl=.false.
+      end if
 
-!!!  !old format, still here for backward compatibility
-!!!  !admits only simple precision calculation
-!!!  read(line,*,iostat=ierror) rx,ry,rz,tatonam
+      !read from positions of .xyz format, but accepts also the old .ascii format
+      call getLine(line, ifile, eof)
+      if (f_err_raise(eof,"Unexpected end of file '"//trim(filename)//"'.",err_id=BIGDFT_INPUT_VARIABLES_ERROR)) return
+      !if (eof) then
+         !write(*,*) "Error: unexpected end of file."
+         !stop
+      !end if
 
-!!!  !in case of old format, put geocode to F and alat to 0.
-!!!  if (ierror == 0) then
-!!!     astruct%geocode='F'
-!!!     alat1d0=0.0_gp
-!!!     alat2d0=0.0_gp
-!!!     alat3d0=0.0_gp
-!!!  else
-  if (lpsdbl) then
-     read(line,*,iostat=ierrsfx) tatonam,alat1d0,alat2d0,alat3d0
-  else
-     read(line,*,iostat=ierrsfx) tatonam,alat1,alat2,alat3
-  end if
-  if (ierrsfx == 0) then
-     if (trim(tatonam)=='periodic') then
-        astruct%geocode='P'
-     else if (trim(tatonam)=='surface') then 
-        astruct%geocode='S'
-        astruct%cell_dim(2)=0.0_gp
-     else !otherwise free bc
-        astruct%geocode='F'
-        astruct%cell_dim(1)=0.0_gp
-        astruct%cell_dim(2)=0.0_gp
-        astruct%cell_dim(3)=0.0_gp
-     end if
-     if (.not. lpsdbl) then
-        alat1d0=real(alat1,gp)
-        alat2d0=real(alat2,gp)
-        alat3d0=real(alat3,gp)
-     end if
-  else
-     astruct%geocode='F'
-     alat1d0=0.0_gp
-     alat2d0=0.0_gp
-     alat3d0=0.0_gp
-  end if
-!!!  end if
+    !!!  !old format, still here for backward compatibility
+    !!!  !admits only simple precision calculation
+    !!!  read(line,*,iostat=ierror) rx,ry,rz,tatonam
 
-  !reduced coordinates are possible only with periodic units
-  if (f_err_raise( (astruct%units == 'reduced' .and. astruct%geocode == 'F'), &
-     & 'Reduced coordinates are not allowed with isolated BC', &
-       err_id=BIGDFT_INPUT_VARIABLES_ERROR)) return
-  !if (astruct%units == 'reduced' .and. astruct%geocode == 'F') then
-  !   if (iproc==0) write(*,'(1x,a)')&
-  !        'ERROR: Reduced coordinates are not allowed with isolated BC'
-  !end if
+    !!!  !in case of old format, put geocode to F and alat to 0.
+    !!!  if (ierror == 0) then
+    !!!     astruct%geocode='F'
+    !!!     alat1d0=0.0_gp
+    !!!     alat2d0=0.0_gp
+    !!!     alat3d0=0.0_gp
+    !!!  else
+      if (lpsdbl) then
+         read(line,*,iostat=ierrsfx) tatonam,alat1d0,alat2d0,alat3d0
+      else
+         read(line,*,iostat=ierrsfx) tatonam,alat1,alat2,alat3
+      end if
+      if (ierrsfx == 0) then
+         if (trim(tatonam)=='periodic') then
+            astruct%geocode='P'
+         else if (trim(tatonam)=='surface') then 
+            astruct%geocode='S'
+            astruct%cell_dim(2)=0.0_gp
+         else !otherwise free bc
+            astruct%geocode='F'
+            astruct%cell_dim(1)=0.0_gp
+            astruct%cell_dim(2)=0.0_gp
+            astruct%cell_dim(3)=0.0_gp
+         end if
+         if (.not. lpsdbl) then
+            alat1d0=real(alat1,gp)
+            alat2d0=real(alat2,gp)
+            alat3d0=real(alat3,gp)
+         end if
+      else
+         astruct%geocode='F'
+         alat1d0=0.0_gp
+         alat2d0=0.0_gp
+         alat3d0=0.0_gp
+      end if
+    !!!  end if
 
-  !convert the values of the cell sizes in bohr
-  if (astruct%units=='angstroem' .or. astruct%units=='angstroemd0') then
-     ! if Angstroem convert to Bohr
-     astruct%cell_dim(1)=alat1d0/Bohr_Ang
-     astruct%cell_dim(2)=alat2d0/Bohr_Ang
-     astruct%cell_dim(3)=alat3d0/Bohr_Ang
-  else if  (astruct%units=='atomic' .or. astruct%units=='bohr'  .or.&
-       astruct%units== 'atomicd0' .or. astruct%units== 'bohrd0') then
-     astruct%cell_dim(1)=alat1d0
-     astruct%cell_dim(2)=alat2d0
-     astruct%cell_dim(3)=alat3d0
-  else if (astruct%units == 'reduced') then
-     !assume that for reduced coordinates cell size is in bohr
-     astruct%cell_dim(1)=alat1d0
-     astruct%cell_dim(2)=alat2d0
-     astruct%cell_dim(3)=alat3d0
-  else
-     call f_err_throw('Length units in input file unrecognized.' // &
-          'Recognized units are angstroem or atomic = bohr',err_id=BIGDFT_INPUT_VARIABLES_ERROR)
-     return
-     !write(*,*) 'length units in input file unrecognized'
-     !write(*,*) 'recognized units are angstroem or atomic = bohr'
-     !stop 
-  endif
+      !reduced coordinates are possible only with periodic units
+      if (f_err_raise( (astruct%units == 'reduced' .and. astruct%geocode == 'F'), &
+         & 'Reduced coordinates are not allowed with isolated BC', &
+           err_id=BIGDFT_INPUT_VARIABLES_ERROR)) return
+      !if (astruct%units == 'reduced' .and. astruct%geocode == 'F') then
+      !   if (iproc==0) write(*,'(1x,a)')&
+      !        'ERROR: Reduced coordinates are not allowed with isolated BC'
+      !end if
 
-  ntyp=0
-  do iat=1,astruct%nat
-     !xyz input file, allow extra information
-     call getLine(line, ifile, eof)
-     if (f_err_raise(eof,"Unexpected end of file '"//trim(filename)//"'.",err_id=BIGDFT_INPUT_VARIABLES_ERROR)) return
+      !convert the values of the cell sizes in bohr
+      if (astruct%units=='angstroem' .or. astruct%units=='angstroemd0') then
+         ! if Angstroem convert to Bohr
+         astruct%cell_dim(1)=alat1d0/Bohr_Ang
+         astruct%cell_dim(2)=alat2d0/Bohr_Ang
+         astruct%cell_dim(3)=alat3d0/Bohr_Ang
+      else if  (astruct%units=='atomic' .or. astruct%units=='bohr'  .or.&
+           astruct%units== 'atomicd0' .or. astruct%units== 'bohrd0') then
+         astruct%cell_dim(1)=alat1d0
+         astruct%cell_dim(2)=alat2d0
+         astruct%cell_dim(3)=alat3d0
+      else if (astruct%units == 'reduced') then
+         !assume that for reduced coordinates cell size is in bohr
+         astruct%cell_dim(1)=alat1d0
+         astruct%cell_dim(2)=alat2d0
+         astruct%cell_dim(3)=alat3d0
+      else
+         call f_err_throw('Length units in input file unrecognized.' // &
+              'Recognized units are angstroem or atomic = bohr',err_id=BIGDFT_INPUT_VARIABLES_ERROR)
+         return
+         !write(*,*) 'length units in input file unrecognized'
+         !write(*,*) 'recognized units are angstroem or atomic = bohr'
+         !stop 
+      endif
 
-     !!if (lpsdbl) then
-     !!   read(line,*,iostat=ierrsfx)symbol,rxd0,ryd0,rzd0,extra
-     !!else
-     !!   read(line,*,iostat=ierrsfx)symbol,rx,ry,rz,extra
-     !!end if
-     call check_line_integrity()
-     !print *,'extra',iat,extra
-     call find_extra_info(line,extra,8)
-     !print *,'then',iat,extra
-     call parse_extra_info(iat,extra,astruct)
+      ntyp=0
+      do iat=1,astruct%nat
+         !xyz input file, allow extra information
+         call getLine(line, ifile, eof)
+         if (f_err_raise(eof,"Unexpected end of file '"//trim(filename)//"'.",err_id=BIGDFT_INPUT_VARIABLES_ERROR)) return
 
-     tatonam=trim(symbol)
-!!!     end if
-     if (lpsdbl) then
-        astruct%rxyz(1,iat)=rxd0
-        astruct%rxyz(2,iat)=ryd0
-        astruct%rxyz(3,iat)=rzd0
-     else
-        astruct%rxyz(1,iat)=real(rx,gp)
-        astruct%rxyz(2,iat)=real(ry,gp)
-        astruct%rxyz(3,iat)=real(rz,gp)
-     end if
+         !!if (lpsdbl) then
+         !!   read(line,*,iostat=ierrsfx)symbol,rxd0,ryd0,rzd0,extra
+         !!else
+         !!   read(line,*,iostat=ierrsfx)symbol,rx,ry,rz,extra
+         !!end if
+         call check_line_integrity()
+         !print *,'extra',iat,extra
+         call find_extra_info(line,extra,8)
+         !print *,'then',iat,extra
+         call parse_extra_info(iat,extra,astruct)
+
+         tatonam=trim(symbol)
+    !!!     end if
+         if (lpsdbl) then
+            astruct%rxyz(1,iat)=rxd0
+            astruct%rxyz(2,iat)=ryd0
+            astruct%rxyz(3,iat)=rzd0
+         else
+            astruct%rxyz(1,iat)=real(rx,gp)
+            astruct%rxyz(2,iat)=real(ry,gp)
+            astruct%rxyz(3,iat)=real(rz,gp)
+         end if
 
      if (astruct%units == 'reduced') then !add treatment for reduced coordinates
-        astruct%rxyz(1,iat)=modulo(astruct%rxyz(1,iat),1.0_gp)
+            astruct%rxyz(1,iat)=modulo(astruct%rxyz(1,iat),1.0_gp)
         if (astruct%geocode == 'P') astruct%rxyz(2,iat)=modulo(astruct%rxyz(2,iat),1.0_gp)
         astruct%rxyz(3,iat)=modulo(astruct%rxyz(3,iat),1.0_gp)
-     else if (astruct%geocode == 'P') then
+     else if (astruct%geocode == 'P' .and. (.not. disableTrans)) then
         astruct%rxyz(1,iat)=modulo(astruct%rxyz(1,iat),alat1d0)
         astruct%rxyz(2,iat)=modulo(astruct%rxyz(2,iat),alat2d0)
         astruct%rxyz(3,iat)=modulo(astruct%rxyz(3,iat),alat3d0)
-     else if (astruct%geocode == 'S') then
+     else if (astruct%geocode == 'S' .and. (.not. disableTrans)) then
         astruct%rxyz(1,iat)=modulo(astruct%rxyz(1,iat),alat1d0)
         astruct%rxyz(3,iat)=modulo(astruct%rxyz(3,iat),alat3d0)
      end if
@@ -270,7 +279,7 @@ END SUBROUTINE read_xyz_positions
 
 
 !> Read atomic positions of ascii files.
-subroutine read_ascii_positions(ifile,filename,astruct,comment,energy,fxyz,getline)
+subroutine read_ascii_positions(ifile,filename,astruct,comment,energy,fxyz,getline,disableTrans_)
   use module_base
   use dynamic_memory
   use yaml_output
@@ -281,6 +290,7 @@ subroutine read_ascii_positions(ifile,filename,astruct,comment,energy,fxyz,getli
   real(gp), intent(out) :: energy
   real(gp), dimension(:,:), pointer :: fxyz
   character(len = 1024), intent(out) :: comment
+  logical, intent(in), optional :: disableTrans_
   interface
      subroutine getline(line,ifile,eof)
        integer, intent(in) :: ifile
@@ -292,7 +302,7 @@ subroutine read_ascii_positions(ifile,filename,astruct,comment,energy,fxyz,getli
   character(len=*), parameter :: subname='read_ascii_positions'
   character(len=20) :: symbol
   character(len=20) :: tatonam
-  character(len=50) :: extra
+  character(len=120) :: extra
   character(len=150) :: line
   logical :: lpsdbl, reduced, eof, forces
   integer :: iat,ntyp,ityp,i,i_stat,nlines,istart,istop,count
@@ -303,6 +313,13 @@ subroutine read_ascii_positions(ifile,filename,astruct,comment,energy,fxyz,getli
   character(len=20), dimension(100) :: atomnames
   ! Store the file.
   character(len = 150), dimension(5000) :: lines
+  logical :: disableTrans
+
+  if(present(disableTrans_))then
+    disableTrans=disableTrans_
+  else
+    disableTrans=.false.
+  endif
 
   energy = UNINITIALIZED(energy)
   ! First pass to store the file in a string buffer.
@@ -447,11 +464,11 @@ subroutine read_ascii_positions(ifile,filename,astruct,comment,energy,fxyz,getli
            astruct%rxyz(1,iat)=modulo(astruct%rxyz(1,iat),1.0_gp)*astruct%cell_dim(1)
            astruct%rxyz(2,iat)=modulo(astruct%rxyz(2,iat),1.0_gp)*astruct%cell_dim(2)
            astruct%rxyz(3,iat)=modulo(astruct%rxyz(3,iat),1.0_gp)*astruct%cell_dim(3)
-        else if (astruct%geocode == 'P') then
+        else if (astruct%geocode == 'P' .and. (.not. disableTrans)) then
            astruct%rxyz(1,iat)=modulo(astruct%rxyz(1,iat),astruct%cell_dim(1))
            astruct%rxyz(2,iat)=modulo(astruct%rxyz(2,iat),astruct%cell_dim(2))
            astruct%rxyz(3,iat)=modulo(astruct%rxyz(3,iat),astruct%cell_dim(3))
-        else if (astruct%geocode == 'S') then
+        else if (astruct%geocode == 'S'.and. (.not. disableTrans)) then
            astruct%rxyz(1,iat)=modulo(astruct%rxyz(1,iat),astruct%cell_dim(1))
            astruct%rxyz(3,iat)=modulo(astruct%rxyz(3,iat),astruct%cell_dim(3))
         end if
@@ -521,7 +538,7 @@ subroutine read_ascii_positions(ifile,filename,astruct,comment,energy,fxyz,getli
 END SUBROUTINE read_ascii_positions
 
 !> Read atomic positions from int file and create astruct structure from it
-subroutine read_int_positions(iproc,ifile,astruct,comment,energy,fxyz,getLine)
+subroutine read_int_positions(iproc,ifile,astruct,comment,energy,fxyz,getLine,disableTrans_)
   use module_defs, only: gp,UNINITIALIZED,Bohr_Ang, Radian_Degree
   use dictionaries, only: f_err_raise
   use dynamic_memory
@@ -531,6 +548,7 @@ subroutine read_int_positions(iproc,ifile,astruct,comment,energy,fxyz,getLine)
   real(gp), intent(out) :: energy
   real(gp), dimension(:,:), pointer :: fxyz
   character(len = 1024), intent(out) :: comment
+  logical, intent(in), optional :: disableTrans_
   interface
      subroutine getline(line,ifile,eof)
        integer, intent(in) :: ifile
@@ -542,7 +560,7 @@ subroutine read_int_positions(iproc,ifile,astruct,comment,energy,fxyz,getLine)
   character(len=*), parameter :: subname='read_atomic_positions'
   character(len=20) :: symbol
   character(len=20) :: tatonam
-  character(len=50) :: extra
+  character(len=120) :: extra
   character(len=150) :: line
   logical :: lpsdbl, eof
   integer :: iat,ityp,ntyp,i,ierrsfx
@@ -552,6 +570,13 @@ subroutine read_int_positions(iproc,ifile,astruct,comment,energy,fxyz,getLine)
   real(gp) :: rxd0,ryd0,rzd0,alat1d0,alat2d0,alat3d0
   integer :: na, nb, nc
   character(len=20), dimension(100) :: atomnames
+  logical :: disableTrans
+
+  if(present(disableTrans_))then
+    disableTrans=disableTrans_
+  else
+    disableTrans=.false.
+  endif
 
   call getLine(line, ifile, eof)
   if (eof) then
@@ -710,11 +735,11 @@ subroutine read_int_positions(iproc,ifile,astruct,comment,energy,fxyz,getLine)
         astruct%rxyz(1,iat)=modulo(astruct%rxyz(1,iat),1.0_gp)
         if (astruct%geocode == 'P') astruct%rxyz(2,iat)=modulo(astruct%rxyz(2,iat),1.0_gp)
         astruct%rxyz(3,iat)=modulo(astruct%rxyz(3,iat),1.0_gp)
-     else if (astruct%geocode == 'P') then
+     else if (astruct%geocode == 'P'.and. (.not. disableTrans)) then
         astruct%rxyz(1,iat)=modulo(astruct%rxyz(1,iat),alat1d0)
         astruct%rxyz(2,iat)=modulo(astruct%rxyz(2,iat),alat2d0)
         astruct%rxyz(3,iat)=modulo(astruct%rxyz(3,iat),alat3d0)
-     else if (astruct%geocode == 'S') then
+     else if (astruct%geocode == 'S'.and. (.not. disableTrans)) then
         astruct%rxyz(1,iat)=modulo(astruct%rxyz(1,iat),alat1d0)
         astruct%rxyz(3,iat)=modulo(astruct%rxyz(3,iat),alat3d0)
      end if
@@ -878,14 +903,16 @@ end subroutine rxyz_inside_box
 
 !> Find extra information
 subroutine find_extra_info(line,extra,nspace)
+  use f_utils, only: f_zero
   implicit none
-  character(len=150), intent(in) :: line
-  character(len=50), intent(out) :: extra
+  character(len=*), intent(in) :: line
+  character(len=120), intent(out) :: extra
   integer,intent(in) :: nspace
   !local variables
   logical :: space
   integer :: i,ispace
 
+  call f_zero(extra)
   i=1
   space=.true.
   ispace=-1
@@ -898,10 +925,10 @@ subroutine find_extra_info(line,extra,nspace)
      end if
      !print *,line(i:i),ispace
      if (ispace==nspace) then
-        extra=line(i:min(150,i+49))
+        extra=line(i:min(len(line),i+len(extra)-1))
         exit find_space
      end if
-     if (i==150) then
+     if (i==len(line)) then
         !print *,'AAA',extra
         extra='nothing'
         exit find_space
@@ -913,67 +940,79 @@ END SUBROUTINE find_extra_info
 
 !> Parse extra information
 subroutine parse_extra_info(iat,extra,astruct)
+  use yaml_parse
+  use dictionaries
   implicit none
   !Arguments
   integer, intent(in) :: iat
-  character(len=50), intent(in) :: extra
+  character(len=*), intent(in) :: extra
   type(atomic_structure), intent(inout) :: astruct
   !Local variables
   character(len=4) :: suffix
   logical :: go
-  integer :: ierr,ierr1,ierr2,nspol,nchrg,nsgn
+  integer :: ierr,ierr1,ierr2,nspol,nchrg
+  type(dictionary), pointer :: dict
   !case with all the information
   !print *,iat,'ex'//trim(extra)//'ex'
-  read(extra,*,iostat=ierr) nspol,nchrg,suffix
-  if (extra == 'nothing') then !case with empty information
-     nspol=0
-     nchrg=0
-     suffix='    '
-  else if (ierr /= 0) then !case with partial information
-     read(extra,*,iostat=ierr1) nspol,suffix
-     if (ierr1 == 0) then
-        !Format nspol frzchain
-        nchrg=0
-        call valid_frzchain(trim(suffix),go)
-        if (.not. go) then
-           read(suffix,*,iostat=ierr2) nchrg
-           if (ierr2 /= 0) then
-              call error
-           else
-              suffix='    '
-           end if
-        end if
+
+  if (index(extra, ":") > 0) then
+     ! YAML case.
+     call yaml_parse_from_string(dict, extra)
+     if (dict_len(dict) > 0) then
+        call astruct_at_from_dict(dict // 0, ifrztyp = astruct%ifrztyp(iat), igspin = nspol, igchrg = nchrg)
      else
-        !Format frzchain
-        call valid_frzchain(trim(extra),go)
-        if (go) then
-           suffix=trim(extra)
-           nspol=0
+        nspol = 0
+        nchrg = 0
+     end if
+     call dict_free(dict)
+  else
+     ! Old case.
+     read(extra,*,iostat=ierr) nspol,nchrg,suffix
+     if (extra == 'nothing') then !case with empty information
+        nspol=0
+        nchrg=0
+        suffix='    '
+     else if (ierr /= 0) then !case with partial information
+        read(extra,*,iostat=ierr1) nspol,suffix
+        if (ierr1 == 0) then
+           !Format nspol frzchain
            nchrg=0
-        else
-           read(extra,*,iostat=ierr2) nspol
-           if (ierr2 /=0) then
-              call error
+           call valid_frzchain(trim(suffix),go)
+           if (.not. go) then
+              read(suffix,*,iostat=ierr2) nchrg
+              if (ierr2 /= 0) then
+                 call error
+              else
+                 suffix='    '
+              end if
            end if
-           suffix='    '
-           nchrg=0
+        else
+           !Format frzchain
+           call valid_frzchain(trim(extra),go)
+           if (go) then
+              suffix=trim(extra)
+              nspol=0
+              nchrg=0
+           else
+              read(extra,*,iostat=ierr2) nspol
+              if (ierr2 /=0) then
+                 call error
+              end if
+              suffix='    '
+              nchrg=0
+           end if
         end if
      end if
+
+     !convert the suffix into ifrztyp
+     call frozen_ftoi(suffix,astruct%ifrztyp(iat),ierr)
+     if (ierr /= 0) call error
   end if
 
   !now assign the array, following the rule
-  if(nchrg>=0) then
-     nsgn=1
-  else
-     nsgn=-1
-  end if
-  astruct%input_polarization(iat)=1000*nchrg+nsgn*100+nspol
+  astruct%input_polarization(iat)=1000*nchrg+sign(1, nchrg)*100+nspol
 
   !print *,'natpol atomic',iat,astruct%input_polarization(iat),suffix
-
-  !convert the suffix into ifrztyp
-  call frozen_ftoi(suffix,astruct%ifrztyp(iat),ierr)
-  if (ierr /= 0) call error
 
 !!!  if (trim(suffix) == 'f') then
 !!!     !the atom is considered as blocked
@@ -1188,7 +1227,7 @@ subroutine wtxyz(iunit,energy,rxyz,astruct,comment)
   character(len=20) :: symbol
   character(len=10) :: name
   character(len=11) :: units
-  character(len=50) :: extra
+  character(len=120) :: extra
   integer :: iat,j
   real(gp) :: xmax,ymax,zmax,factor
 
@@ -1242,7 +1281,7 @@ subroutine wtxyz(iunit,energy,rxyz,astruct,comment)
 
      call write_extra_info(extra,astruct%input_polarization(iat),astruct%ifrztyp(iat))
 
-     write(iunit,'(a5,1x,3(1x,1pe24.17),2x,a50)')symbol,(rxyz(j,iat)*factor,j=1,3),extra
+     write(iunit,'(a5,1x,3(1x,1pe24.17),2x,a)')symbol,(rxyz(j,iat)*factor,j=1,3),trim(extra)
   enddo
 
 END SUBROUTINE wtxyz
@@ -1288,7 +1327,7 @@ subroutine wtascii(iunit,energy,rxyz,astruct,comment)
   real(gp), dimension(3,astruct%nat), intent(in) :: rxyz
   !local variables
   character(len=2) :: symbol
-  character(len=50) :: extra
+  character(len=120) :: extra
   character(len=10) :: name
   integer :: iat,j
   real(gp) :: xmax,ymax,zmax,factor(3)
@@ -1355,7 +1394,7 @@ subroutine wtascii(iunit,energy,rxyz,astruct,comment)
 
      call write_extra_info(extra,astruct%input_polarization(iat),astruct%ifrztyp(iat))     
 
-     write(iunit,'(3(1x,1pe24.17),2x,a2,2x,a50)') (rxyz(j,iat)*factor(j),j=1,3),symbol,extra
+     write(iunit,'(3(1x,1pe24.17),2x,a2,2x,a)') (rxyz(j,iat)*factor(j),j=1,3),symbol,trim(extra)
   end do
 
 END SUBROUTINE wtascii
@@ -1407,7 +1446,7 @@ subroutine wtint(iunit,energy,rxyz,astruct,comment,na,nb,nc)
   character(len=20) :: symbol
   character(len=10) :: name
   character(len=11) :: units, angle
-  character(len=50) :: extra
+  character(len=120) :: extra
   integer :: iat
   real(gp) :: xmax,ymax,zmax,factor,factor_angle
 
@@ -1435,7 +1474,6 @@ subroutine wtint(iunit,energy,rxyz,astruct,comment,na,nb,nc)
      factor_angle=1.0_gp
      angle='radian'
   end if
-  write(*,*) '(trim(astruct%angle)), angle',(trim(astruct%angle)), angle
 
   if (energy /= 0.0_gp .and. energy /= UNINITIALIZED(energy)) then
      write(iunit,'(i6,2x,a,2x,a,2x,1pe24.17,2x,a)') astruct%nat,trim(units),&
@@ -1473,8 +1511,8 @@ subroutine wtint(iunit,energy,rxyz,astruct,comment,na,nb,nc)
 
      call write_extra_info(extra,astruct%input_polarization(iat),astruct%ifrztyp(iat))
 
-     write(iunit,'(a5,1x,3(1x,i6,2x,1pe24.17),2x,a50)')symbol,na(iat),rxyz(1,iat)*factor,nb(iat),rxyz(2,iat)*factor_angle,&
-          nc(iat),rxyz(3,iat)*factor_angle,extra
+     write(iunit,'(a5,1x,3(1x,i6,2x,1pe24.17),2x,a)')symbol,na(iat),rxyz(1,iat)*factor,nb(iat),rxyz(2,iat)*factor_angle,&
+          nc(iat),rxyz(3,iat)*factor_angle,trim(extra)
   enddo
 
 END SUBROUTINE wtint

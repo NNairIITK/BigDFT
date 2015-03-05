@@ -68,8 +68,8 @@ subroutine local_analysis(iproc,nproc,hx,hy,hz,at,rxyz,lr,orbs,orbsv,psi,psivirt
    !call gaussian_pswf_basis(31,.false.,iproc,inc%nspin,atc,cxyz,G,Gocc)
    call gaussian_pswf_basis(31,.false.,iproc,orbs%nspin,at,rxyz,G,Gocc)
 
-   thetaphi = f_malloc((/ 2, G%nat /),id='thetaphi')
-   call to_zero(2*G%nat,thetaphi)
+   thetaphi = f_malloc0((/ 2, G%nat /),id='thetaphi')
+   !call to_zero(2*G%nat,thetaphi)
    allpsigau = f_malloc((/ G%ncoeff*orbs%nspinor, orbs%norbp+norbpv /),id='allpsigau')
 !print *,'there'
    !this routine should be simplified like gaussians_to_wavelets

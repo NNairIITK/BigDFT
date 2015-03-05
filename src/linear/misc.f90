@@ -66,7 +66,7 @@ subroutine plotOrbitals(iproc, tmb, phi, nat, rxyz, hxh, hyh, hzh, it, basename)
    !write(*,*) 'write, tmb%orbs%nbasisp', tmb%orbs%norbp
     orbLoop: do iorb=1,tmb%orbs%norbp
         !!phir=0.d0
-        call to_zero(tmb%lzd%glr%d%n1i*tmb%lzd%glr%d%n2i*tmb%lzd%glr%d%n3i, phir(1))
+        call f_zero(phir)
         call daub_to_isf(tmb%lzd%glr,w,phi(istart+1),phir(1))
         ilr=tmb%orbs%inwhichlocreg(tmb%orbs%isorb+iorb)
         iiAt=tmb%orbs%onwhichatom(tmb%orbs%isorb+iorb)
@@ -581,10 +581,10 @@ subroutine plotGrid(iproc, norb, nspinor, nspin, orbitalNumber, llr, glr, atoms,
     ldim=llr%wfd%nvctr_c+7*llr%wfd%nvctr_f
     gdim=glr%wfd%nvctr_c+7*glr%wfd%nvctr_f
     lphi = f_malloc(ldim,id='lphi')
-    phi = f_malloc(gdim,id='phi')
+    phi = f_malloc0(gdim,id='phi')
     lphi=1.d0
     !!phi=0.d0
-    call to_zero(gdim, phi(1))
+    !call to_zero(gdim,phi(1))
     call Lpsi_to_global2(iproc, ldim, gdim, norb, nspinor, nspin, glr, llr, lphi, phi)
   
     write(num,'(i0)') orbitalNumber
@@ -856,7 +856,9 @@ subroutine build_ks_orbitals(iproc, nproc, tmb, KSwfn, at, rxyz, denspot, GPU, &
   use communications_base, only: comms_cubic
   use communications_init, only: orbitals_communicators
   use communications, only: transpose_v, untranspose_v
-  use sparsematrix_base, only: sparse_matrix
+  use sparsematrix_base, only: sparse_matrix, &
+                               sparsematrix_malloc, assignment(=), SPARSE_FULL
+  use sparsematrix, only: gather_matrix_from_taskgroups_inplace, extract_taskgroup_inplace
   use yaml_output
   implicit none
   
@@ -881,11 +883,18 @@ subroutine build_ks_orbitals(iproc, nproc, tmb, KSwfn, at, rxyz, denspot, GPU, &
   logical :: rho_negative
   integer :: infoCoeff, nvctrp, npsidim_global
   real(kind=8),dimension(:),pointer :: phi_global, phiwork_global
+  real(kind=8),dimension(:),allocatable :: tmparr
   character(len=*),parameter :: subname='build_ks_orbitals'
   real(wp), dimension(:,:,:), pointer :: mom_vec_fake
+  type(work_mpiaccumulate) :: energs_work
 
 
   nullify(mom_vec_fake)
+
+  energs_work = work_mpiaccumulate_null()
+  energs_work%ncount = 4
+  call allocate_work_mpiaccumulate(energs_work)
+
 
   !debug
   !integer :: iorb, jorb, ist, jst, ierr, i
@@ -896,9 +905,16 @@ subroutine build_ks_orbitals(iproc, nproc, tmb, KSwfn, at, rxyz, denspot, GPU, &
   ! Start with a "clean" density, i.e. without legacy from previous mixing steps
   call communicate_basis_for_density_collective(iproc, nproc, tmb%lzd, &
        max(tmb%npsidim_orbs,tmb%npsidim_comp), tmb%orbs, tmb%psi, tmb%collcom_sr)
+
+  tmparr = sparsematrix_malloc(tmb%linmat%l,iaction=SPARSE_FULL,id='tmparr')
+  call vcopy(tmb%linmat%l%nvctr, tmb%linmat%kernel_%matrix_compr(1), 1, tmparr(1), 1)
+  !!call gather_matrix_from_taskgroups_inplace(iproc, nproc, tmb%linmat%l, tmb%linmat%kernel_)
   call sumrho_for_TMBs(iproc, nproc, KSwfn%Lzd%hgrids(1), KSwfn%Lzd%hgrids(2), KSwfn%Lzd%hgrids(3), &
        tmb%collcom_sr, tmb%linmat%l, tmb%linmat%kernel_, denspot%dpbox%ndimrhopot, &
        denspot%rhov, rho_negative)
+  call vcopy(tmb%linmat%l%nvctr, tmparr(1), 1, tmb%linmat%kernel_%matrix_compr(1), 1)
+  call f_free(tmparr)
+
   if (rho_negative) then
       call corrections_for_negative_charge(iproc, nproc, KSwfn, at, input, tmb, denspot)
       !!if (iproc==0) call yaml_warning('Charge density contains negative points, need to increase FOE cutoff')
@@ -909,10 +925,12 @@ subroutine build_ks_orbitals(iproc, nproc, tmb, KSwfn, at, rxyz, denspot, GPU, &
   call updatePotential(input%nspin,denspot,energs%eh,energs%exc,energs%evxc)
 
   tmb%can_use_transposed=.false.
+  !!call extract_taskgroup_inplace(tmb%linmat%l, tmb%linmat%kernel_)
   call get_coeff(iproc, nproc, LINEAR_MIXDENS_SIMPLE, KSwfn%orbs, at, rxyz, denspot, GPU, infoCoeff, &
        energs, nlpsp, input%SIC, tmb, fnrm, .true., .true., .false., .true., 0, 0, 0, 0, &
        order_taylor,input%lin%max_inversion_error,input%purification_quickreturn,&
-       input%calculate_KS_residue,input%calculate_gap)
+       input%calculate_KS_residue,input%calculate_gap, energs_work)
+  !!call gather_matrix_from_taskgroups_inplace(iproc, nproc, tmb%linmat%l, tmb%linmat%kernel_)
 
   if (bigdft_mpi%iproc ==0) then
      call write_eigenvalues_data(0.1d0,KSwfn%orbs,mom_vec_fake)
@@ -1004,6 +1022,222 @@ subroutine build_ks_orbitals(iproc, nproc, tmb, KSwfn, at, rxyz, denspot, GPU, &
   ! which will be calculated by the cubic restart.
   call communicate_basis_for_density_collective(iproc, nproc, tmb%lzd, &
        max(tmb%npsidim_orbs,tmb%npsidim_comp), tmb%orbs, tmb%psi, tmb%collcom_sr)
+  tmparr = sparsematrix_malloc(tmb%linmat%l,iaction=SPARSE_FULL,id='tmparr')
+  call vcopy(tmb%linmat%l%nvctr, tmb%linmat%kernel_%matrix_compr(1), 1, tmparr(1), 1)
+  !!call gather_matrix_from_taskgroups_inplace(iproc, nproc, tmb%linmat%l, tmb%linmat%kernel_)
+  call sumrho_for_TMBs(iproc, nproc, KSwfn%Lzd%hgrids(1), KSwfn%Lzd%hgrids(2), KSwfn%Lzd%hgrids(3), &
+       tmb%collcom_sr, tmb%linmat%l, tmb%linmat%kernel_, denspot%dpbox%ndimrhopot, &
+       denspot%rhov, rho_negative)
+  call vcopy(tmb%linmat%l%nvctr, tmparr(1), 1, tmb%linmat%kernel_%matrix_compr(1), 1)
+  call f_free(tmparr)
+  if (rho_negative) then
+      call corrections_for_negative_charge(iproc, nproc, KSwfn, at, input, tmb, denspot)
+      !!if (iproc==0) call yaml_warning('Charge density contains negative points, need to increase FOE cutoff')
+      !!call increase_FOE_cutoff(iproc, nproc, tmb%lzd, at%astruct, input, KSwfn%orbs, tmb%orbs, tmb%foe_obj, init=.false.)
+      !!call clean_rho(iproc, nproc, KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3d, denspot%rhov)
+  end if
+  call updatePotential(input%nspin,denspot,energs%eh,energs%exc,energs%evxc)
+  tmb%can_use_transposed=.false.
+  !!call extract_taskgroup_inplace(tmb%linmat%l, tmb%linmat%kernel_)
+  call get_coeff(iproc, nproc, LINEAR_MIXDENS_SIMPLE, KSwfn%orbs, at, rxyz, denspot, GPU, infoCoeff, &
+       energs, nlpsp, input%SIC, tmb, fnrm, .true., .true., .false., .true., 0, 0, 0, 0, &
+       order_taylor, input%lin%max_inversion_error, input%purification_quickreturn, &
+       input%calculate_KS_residue, input%calculate_gap, energs_work, updatekernel=.false.)
+  !!call gather_matrix_from_taskgroups_inplace(iproc, nproc, tmb%linmat%l, tmb%linmat%kernel_)
+  energy=energs%ebs-energs%eh+energs%exc-energs%evxc-energs%eexctX+energs%eion+energs%edisp
+  energyDiff=energy-energyold
+  energyold=energy
+
+  !!if(tmb%can_use_transposed) then
+  !!    call f_free_ptr(tmb%psit_c)
+  !!    call f_free_ptr(tmb%psit_f)
+  !!end if
+
+  call deallocate_work_mpiaccumulate(energs_work)
+
+end subroutine build_ks_orbitals
+
+!TEMPORARY, to be cleaned/removed
+subroutine build_ks_orbitals_laura_tmp(iproc, nproc, tmb, KSwfn, at, rxyz, denspot, GPU, &
+           energs, nlpsp, input, order_taylor, &
+           energy, energyDiff, energyold, npsidim_global, phiwork_global)
+  use module_base
+  use module_types
+  use module_interfaces, except_this_one => build_ks_orbitals_laura_tmp
+  use communications_base, only: comms_cubic
+  use communications_init, only: orbitals_communicators
+  use communications, only: transpose_v, untranspose_v
+  use sparsematrix_base, only: sparse_matrix
+  use yaml_output
+  implicit none
+  
+  ! Calling arguments
+  integer:: iproc, nproc
+  type(DFT_wavefunction),intent(inout) :: tmb, KSwfn
+  type(atoms_data), intent(in) :: at
+  real(gp), dimension(3,at%astruct%nat), intent(in) :: rxyz
+  type(DFT_local_fields), intent(inout) :: denspot
+  type(GPU_pointers), intent(inout) :: GPU
+  type(energy_terms),intent(inout) :: energs
+  type(DFT_PSP_projectors), intent(inout) :: nlpsp
+  type(input_variables),intent(in) :: input
+  integer,intent(inout) :: order_taylor
+  real(kind=8),intent(out) :: energy, energyDiff
+  real(kind=8), intent(inout) :: energyold
+integer, intent(in) :: npsidim_global
+real(kind=8),dimension(:),pointer :: phiwork_global
+
+  ! Local variables
+  type(orbitals_data) :: orbs
+  type(comms_cubic) :: comms
+  real(gp) :: fnrm
+  logical :: rho_negative
+  integer :: infoCoeff, nvctrp
+  real(kind=8),dimension(:),pointer :: phi_global
+  real(kind=8),dimension(:,:),allocatable :: coeffs_occs
+  character(len=*),parameter :: subname='build_ks_orbitals'
+  real(wp), dimension(:,:,:), pointer :: mom_vec_fake
+  integer :: iorb, itmb
+  type(work_mpiaccumulate) :: energs_work
+
+  nullify(mom_vec_fake)
+
+  energs_work = work_mpiaccumulate_null()
+  energs_work%ncount = 4
+  call allocate_work_mpiaccumulate(energs_work)
+
+  !debug
+  !integer :: iorb, jorb, ist, jst, ierr, i
+  !real(kind=8) :: ddot, tt
+
+
+  ! Get the expansion coefficients
+  ! Start with a "clean" density, i.e. without legacy from previous mixing steps
+  call communicate_basis_for_density_collective(iproc, nproc, tmb%lzd, &
+       max(tmb%npsidim_orbs,tmb%npsidim_comp), tmb%orbs, tmb%psi, tmb%collcom_sr)
+  call sumrho_for_TMBs(iproc, nproc, KSwfn%Lzd%hgrids(1), KSwfn%Lzd%hgrids(2), KSwfn%Lzd%hgrids(3), &
+       tmb%collcom_sr, tmb%linmat%l, tmb%linmat%kernel_, denspot%dpbox%ndimrhopot, &
+       denspot%rhov, rho_negative)
+  if (rho_negative) then
+      call corrections_for_negative_charge(iproc, nproc, KSwfn, at, input, tmb, denspot)
+      !!if (iproc==0) call yaml_warning('Charge density contains negative points, need to increase FOE cutoff')
+      !!call increase_FOE_cutoff(iproc, nproc, tmb%lzd, at%astruct, input, KSwfn%orbs, tmb%orbs, tmb%foe_obj, init=.false.)
+      !!call clean_rho(iproc, nproc, KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3d, denspot%rhov)
+  end if
+
+  call updatePotential(input%nspin,denspot,energs%eh,energs%exc,energs%evxc)
+
+  tmb%can_use_transposed=.false.
+  call get_coeff(iproc, nproc, LINEAR_MIXDENS_SIMPLE, KSwfn%orbs, at, rxyz, denspot, GPU, infoCoeff, &
+       energs, nlpsp, input%SIC, tmb, fnrm, .true., .true., .false., .true., 0, 0, 0, 0, &
+       order_taylor,input%lin%max_inversion_error,input%purification_quickreturn,&
+       input%calculate_KS_residue,input%calculate_gap,energs_work)
+
+  if (bigdft_mpi%iproc ==0) then
+     call write_eigenvalues_data(0.1d0,KSwfn%orbs,mom_vec_fake)
+  end if
+
+
+  !call communicate_basis_for_density_collective(iproc, nproc, tmb%lzd, &
+  !     max(tmb%npsidim_orbs,tmb%npsidim_comp), tmb%orbs, tmb%psi, tmb%collcom_sr)
+  !call sumrho_for_TMBs(iproc, nproc, KSwfn%Lzd%hgrids(1), KSwfn%Lzd%hgrids(2), KSwfn%Lzd%hgrids(3), &
+  !     tmb%collcom_sr, tmb%linmat%denskern, KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3d, denspot%rhov)
+  !call updatePotential(input%ixc,input%nspin,denspot,energs%eh,energs%exc,energs%evxc)
+  !tmb%can_use_transposed=.false.
+  !call get_coeff(iproc, nproc, LINEAR_MIXDENS_SIMPLE, KSwfn%orbs, at, rxyz, denspot, GPU, infoCoeff, &
+  !     energs, nlpspd, proj, input%SIC, tmb, fnrm, .true., .false., .true., ham_small, 0, 0, 0, 0)
+  !energy=energs%ebs-energs%eh+energs%exc-energs%evxc-energs%eexctX+energs%eion+energs%edisp
+  !energyDiff=energy-energyold
+  !energyold=energy
+
+  !!if(tmb%can_use_transposed) then
+  !!    call f_free_ptr(tmb%psit_c)
+  !!    call f_free_ptr(tmb%psit_f)
+  !!end if
+
+  ! Create communication arrays for support functions in the global box
+  
+  call nullify_orbitals_data(orbs)
+  call copy_orbitals_data(tmb%orbs, orbs, subname)
+  call orbitals_communicators(iproc, nproc, tmb%lzd%glr, orbs, comms)
+
+
+  ! Transform the support functions to the global box
+  ! WARNING: WILL NOT WORK WITH K-POINTS, CHECK THIS
+  !npsidim_global=max(tmb%orbs%norbp*(tmb%lzd%glr%wfd%nvctr_c+7*tmb%lzd%glr%wfd%nvctr_f), &
+  !                   tmb%orbs%norb*comms%nvctr_par(iproc,0)*orbs%nspinor)
+  phi_global = f_malloc_ptr(npsidim_global,id='phi_global')
+  !phiwork_global = f_malloc_ptr(npsidim_global,id='phiwork_global')
+  call small_to_large_locreg(iproc, tmb%npsidim_orbs, &
+       tmb%orbs%norbp*(tmb%lzd%glr%wfd%nvctr_c+7*tmb%lzd%glr%wfd%nvctr_f), tmb%lzd, &
+       KSwfn%lzd, tmb%orbs, tmb%psi, phi_global, to_global=.true.)
+  call transpose_v(iproc, nproc, orbs, tmb%lzd%glr%wfd, comms, phi_global(1), phiwork_global(1))
+
+!NOT PRINTING, 2xcorrect charge?!
+!print*,'ntmb,ntmbp,norb,norbp',tmb%orbs%norb,tmb%orbs%norbp,KSwfn%orbs%norb,KSwfn%orbs%norbp
+  ! WARNING: WILL NOT WORK WITH K-POINTS, CHECK THIS
+  coeffs_occs=f_malloc0((/tmb%orbs%norb,KSwfn%orbs%norb/),id='coeffs_occs')
+  !call dgemm('n', 'n', nvctrp, KSwfn%orbs%norb, tmb%orbs%norb, 1.d0, KSwfn%orbs%occup(1), nvctrp, tmb%coeff(1,1), &
+  !     tmb%orbs%norb, 0.d0, coeffs_occs, nvctrp)
+             do iorb=1,KSwfn%orbs%norbp
+                do itmb=1,tmb%orbs%norb
+                    coeffs_occs(itmb,iorb) = sqrt(KSwfn%orbs%occup(KSwfn%orbs%isorb+iorb))*tmb%coeff(itmb,KSwfn%orbs%isorb+iorb)
+!print*,KSwfn%orbs%occup(KSwfn%orbs%isorb+iorb)
+                end do
+             end do
+          call mpiallred(coeffs_occs(1,1), KSwfn%orbs%norb*tmb%orbs%norb, mpi_sum, bigdft_mpi%mpi_comm)
+
+  nvctrp=comms%nvctr_par(iproc,0)*orbs%nspinor
+  !call dgemm('n', 'n', nvctrp, KSwfn%orbs%norb, tmb%orbs%norb, 1.d0, phi_global, nvctrp, tmb%coeff(1,1), &
+  call dgemm('n', 'n', nvctrp, KSwfn%orbs%norb, tmb%orbs%norb, 1.d0, phi_global, nvctrp, coeffs_occs(1,1), &
+             tmb%orbs%norb, 0.d0, phiwork_global, nvctrp)
+  call f_free(coeffs_occs)  
+
+  call untranspose_v(iproc, nproc, KSwfn%orbs, tmb%lzd%glr%wfd, KSwfn%comms, phiwork_global(1), phi_global(1))  
+
+  call f_free_ptr(phi_global)
+
+  !!ist=1
+  !!do iorb=1,KSwfn%orbs%norbp
+  !!    do i=1,tmb%lzd%glr%wfd%nvctr_c+7*tmb%lzd%glr%wfd%nvctr_f
+  !!        write(800+iproc,*) iorb, i, phiwork_global(ist)
+  !!        ist=ist+1
+  !!    end do
+  !!end do
+
+
+  !!ierr=tmb%lzd%glr%wfd%nvctr_c+7*tmb%lzd%glr%wfd%nvctr_f
+  !!do i=1,KSwfn%orbs%norb*ierr
+  !!    write(401,*) i, phiwork_global(i)
+  !!end do
+  !!write(*,*) 'GLOBAL DDOT',ddot(KSwfn%orbs%norb*ierr, phi_global, 1, phi_global, 1)
+
+  !!do i=1,KSwfn%orbs%norb*ierr
+  !!     tmb%psi(i)=phi_global(i)
+  !!end do
+  !!call get_coeff(iproc, nproc, LINEAR_MIXDENS_SIMPLE, tmb%orbs, at, rxyz, denspot, GPU, infoCoeff, &
+  !!     energs, nlpspd, proj, input%SIC, tmb, fnrm, .true., .false., .true., ham_small, 0, 0, 0, 0)
+
+  !!do i=1,KSwfn%orbs%norb*(tmb%lzd%glr%wfd%nvctr_c+7*tmb%lzd%glr%wfd%nvctr_f)
+  !!    write(600,'(i10,es16.7)') i, tmb%psi(i)
+  !!end do
+
+
+  !!write(*,*) 'iproc, input%output_wf_format',iproc, WF_FORMAT_PLAIN
+  !call writemywaves(iproc,trim(input%dir_output)//"wavefunction", WF_FORMAT_PLAIN, &
+  !     KSwfn%orbs, KSwfn%Lzd%Glr%d%n1, KSwfn%Lzd%Glr%d%n2, KSwfn%Lzd%Glr%d%n3, &
+  !     KSwfn%Lzd%hgrids(1), KSwfn%Lzd%hgrids(2), KSwfn%Lzd%hgrids(3), &
+  !     at, rxyz, KSwfn%Lzd%Glr%wfd, phiwork_global)
+
+   !call f_free_ptr(phiwork_global)
+   call deallocate_orbitals_data(orbs)
+   call deallocate_comms_cubic(comms)
+
+if (.false.) then
+  ! To get consistent values of the energy and the Kohn-Sham residue with those
+  ! which will be calculated by the cubic restart.
+  call communicate_basis_for_density_collective(iproc, nproc, tmb%lzd, &
+       max(tmb%npsidim_orbs,tmb%npsidim_comp), tmb%orbs, tmb%psi, tmb%collcom_sr)
   call sumrho_for_TMBs(iproc, nproc, KSwfn%Lzd%hgrids(1), KSwfn%Lzd%hgrids(2), KSwfn%Lzd%hgrids(3), &
        tmb%collcom_sr, tmb%linmat%l, tmb%linmat%kernel_, denspot%dpbox%ndimrhopot, &
        denspot%rhov, rho_negative)
@@ -1018,7 +1252,7 @@ subroutine build_ks_orbitals(iproc, nproc, tmb, KSwfn, at, rxyz, denspot, GPU, &
   call get_coeff(iproc, nproc, LINEAR_MIXDENS_SIMPLE, KSwfn%orbs, at, rxyz, denspot, GPU, infoCoeff, &
        energs, nlpsp, input%SIC, tmb, fnrm, .true., .true., .false., .true., 0, 0, 0, 0, &
        order_taylor, input%lin%max_inversion_error, input%purification_quickreturn, &
-       input%calculate_KS_residue, input%calculate_gap, updatekernel=.false.)
+       input%calculate_KS_residue, input%calculate_gap, energs_work, updatekernel=.false.)
   energy=energs%ebs-energs%eh+energs%exc-energs%evxc-energs%eexctX+energs%eion+energs%edisp
   energyDiff=energy-energyold
   energyold=energy
@@ -1027,10 +1261,9 @@ subroutine build_ks_orbitals(iproc, nproc, tmb, KSwfn, at, rxyz, denspot, GPU, &
   !!    call f_free_ptr(tmb%psit_c)
   !!    call f_free_ptr(tmb%psit_f)
   !!end if
-
-end subroutine build_ks_orbitals
-
-
+end if
+  call allocate_work_mpiaccumulate(energs_work)
+end subroutine build_ks_orbitals_laura_tmp
 
 subroutine cut_at_boundaries(cut, tmb)
   use module_base
@@ -1140,7 +1373,9 @@ subroutine loewdin_charge_analysis(iproc,tmb,atoms,denspot,&
   use sparsematrix_base, only: sparse_matrix, sparsematrix_malloc, sparsematrix_malloc0, sparsematrix_malloc_ptr, &
                                DENSE_FULL, assignment(=), &
                                matrices_null, allocate_matrices, deallocate_matrices
-  use sparsematrix, only: compress_matrix, uncompress_matrix
+  use sparsematrix, only: compress_matrix, uncompress_matrix, gather_matrix_from_taskgroups_inplace, &
+                          uncompress_matrix2
+  use transposed_operations, only: calculate_overlap_transposed
   use yaml_output
   implicit none
   integer,intent(in) :: iproc
@@ -1199,6 +1434,7 @@ subroutine loewdin_charge_analysis(iproc,tmb,atoms,denspot,&
 
      call calculate_overlap_transposed(bigdft_mpi%iproc, bigdft_mpi%nproc, tmb%orbs, tmb%collcom, tmb%psit_c, &
           tmb%psit_c, tmb%psit_f, tmb%psit_f, tmb%linmat%s, tmb%linmat%ovrlp_)
+     !!call gather_matrix_from_taskgroups_inplace(bigdft_mpi%iproc, bigdft_mpi%nproc, tmb%linmat%s, tmb%linmat%ovrlp_)
      ! This can then be deleted if the transition to the new type has been completed.
      !tmb%linmat%ovrlp%matrix_compr=tmb%linmat%ovrlp_%matrix_compr
 
@@ -1215,8 +1451,8 @@ subroutine loewdin_charge_analysis(iproc,tmb,atoms,denspot,&
 
   if (calculate_ovrlp_half) then
      tmb%linmat%ovrlp_%matrix = sparsematrix_malloc_ptr(tmb%linmat%s, iaction=DENSE_FULL, id='tmb%linmat%ovrlp_%matrix')
-     call uncompress_matrix(bigdft_mpi%iproc, tmb%linmat%s, &
-          inmat=tmb%linmat%ovrlp_%matrix_compr, outmat=tmb%linmat%ovrlp_%matrix)
+     call uncompress_matrix2(bigdft_mpi%iproc, bigdft_mpi%nproc, tmb%linmat%s, &
+          tmb%linmat%ovrlp_%matrix_compr, tmb%linmat%ovrlp_%matrix)
      call overlapPowerGeneral(bigdft_mpi%iproc, bigdft_mpi%nproc, meth_overlap, 1, (/2/), &
           tmb%orthpar%blocksize_pdsyev, &
           imode=2, ovrlp_smat=tmb%linmat%s, inv_ovrlp_smat=tmb%linmat%l, &
@@ -1229,7 +1465,7 @@ subroutine loewdin_charge_analysis(iproc,tmb,atoms,denspot,&
   ! optimize this to just change the matrix multiplication?
   proj_mat = sparsematrix_malloc0(tmb%linmat%l,iaction=DENSE_FULL,id='proj_mat')
 
-  call uncompress_matrix(iproc, tmb%linmat%l, inmat=tmb%linmat%kernel_%matrix_compr, outmat=proj_mat)
+  call uncompress_matrix2(iproc, bigdft_mpi%nproc, tmb%linmat%l, tmb%linmat%kernel_%matrix_compr, proj_mat)
   !!isforb=0
   !!do ifrag=1,input%frag%nfrag
   !!   ifrag_ref=input%frag%frag_index(ifrag)
@@ -1697,11 +1933,11 @@ subroutine support_function_multipoles(iproc, tmb, atoms, denspot)
   call f_routine(id='support_function_multipoles')
 
   phir = f_malloc(tmb%collcom_sr%ndimpsi_c,id='phir')
-  dipole_net = f_malloc((/3,tmb%orbs%norb/),id='dipole_net')
-  quadropole_net = f_malloc((/3,3,tmb%orbs%norb/),id='quadropole_net')
+  dipole_net = f_malloc0((/3,tmb%orbs%norb/),id='dipole_net')
+  quadropole_net = f_malloc0((/3,3,tmb%orbs%norb/),id='quadropole_net')
 
-  call to_zero(3*tmb%orbs%norb, dipole_net(1,1))
-  call to_zero(9*tmb%orbs%norb, quadropole_net(1,1,1))
+  !call to_zero(3*tmb%orbs%norb, dipole_net(1,1))
+  !call to_zero(9*tmb%orbs%norb, quadropole_net(1,1,1))
 
   ist=1
   istr=1

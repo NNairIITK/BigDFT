@@ -32,7 +32,6 @@ subroutine density_and_hpot(dpbox,symObj,orbs,Lzd,pkernel,rhodsc,GPU,xc,psi,rho,
   real(dp), dimension(:), pointer :: rho,vh
   !local variables
   character(len=*), parameter :: subname='density_and_hpot'
-  integer :: i_stat
   real(gp) :: ehart_fake
   real(dp), dimension(:,:), pointer :: rho_p
 
@@ -99,7 +98,6 @@ subroutine sumrho(dpbox,orbs,Lzd,GPU,symObj,rhodsc,xc,psi,rho_p,mapping)
    !Local variables
    character(len=*), parameter :: subname='sumrho'
    logical :: writeout
-   integer :: i_stat,i_all
    integer :: nspinn
    integer :: iorb
    integer,dimension(:),allocatable:: localmapping
@@ -191,7 +189,7 @@ subroutine communicate_density(dpbox,nspin,rhodsc,rho_p,rho,keep_rhop)
   !local variables
   character(len=*), parameter :: subname='communicate_density'
   logical :: dump
-  integer :: i1,i2,i3,i3off,i3s,i,ispin,i_all,i_stat,ierr,j3,j3p,j,itmred,n3d,irho
+  integer :: i1,i2,i3,i3off,i3s,i,ispin,ierr,j3,j3p,j,itmred,n3d,irho
   real(dp) :: charge,tt,rhotot_dbl
   real(dp), dimension(:,:), allocatable :: tmred
   !!  real(dp), dimension(:,:), allocatable :: rho_p_OCL
@@ -389,7 +387,7 @@ subroutine local_partial_density(nproc,rsflag,nscatterarr,&
    real(dp), dimension(lr%d%n1i,lr%d%n2i,nrhotot,max(nspin,orbs%nspinor)), intent(inout) :: rho_p
    !local variables
    character(len=*), parameter :: subname='local_partial_density'
-   integer :: iorb,i_stat,i_all !n(c) i1,i2,i3,ii 
+   integer :: iorb !n(c) i1,i2,i3,ii 
    integer :: oidx,sidx,nspinn,npsir,ncomplex
    real(gp) :: hfac,spinval
    type(workarr_sumrho) :: w
@@ -412,9 +410,7 @@ subroutine local_partial_density(nproc,rsflag,nscatterarr,&
    psir = f_malloc((/ lr%d%n1i*lr%d%n2i*lr%d%n3i, npsir /),id='psir')
    !initialisation
    !print *,iproc,'there'
-   if (lr%geocode == 'F') then
-      call to_zero(lr%d%n1i*lr%d%n2i*lr%d%n3i*npsir,psir)
-   end if
+   if (lr%geocode == 'F') call f_zero(psir)
 
    do iorb=1,orbs%norbp
       !print *,'norbp',orbs%norbp,orbs%norb,orbs%nkpts,orbs%kwgts,orbs%iokpt,orbs%occup
@@ -714,7 +710,7 @@ subroutine symmetrise_density(iproc,nproc,geocode,n1i,n2i,n3i,nspin,rho,& !n(c) 
   type(symmetry_data), intent(in) :: sym
   !local variables
   character(len=*), parameter :: subname='symmetrise_density'
-  integer :: errno, ispden, nsym_used, nSym, isym, imagn, r2,i_stat,i_all,inzee,isign, n2i_eff
+  integer :: errno, ispden, nsym_used, nSym, isym, imagn, r2,inzee,isign, n2i_eff
   integer :: nd2, izone_max, numpt, izone, rep, nup, iup, ind, j, j1, j2, j3,i1,i2,i3, i2_eff
   real(dp) :: rhosu1, rhosu2
   real(dp), dimension(:,:), allocatable :: rhosu12
@@ -1128,14 +1124,14 @@ subroutine rho_segkey(iproc,at,rxyz,crmult,frmult,&
    type(rho_descriptors),intent(inout) :: rhodsc
    !local variables
    real(gp), parameter :: epsilon=1.e-10_gp
-   integer :: i1,i2,i3,iseg,irho,i_stat,iat !n(c) ispin, i_all,jrho, nseg
+   integer :: i1,i2,i3,iseg,irho,iat !n(c) ispin, i_all,jrho, nseg
    integer :: reg_c,reg_l
    !these give stack overflow!!!!
    !integer, dimension(n1i*n2i*n3i) :: reg
    !integer,dimension(n1i*n2i*n3i,2) :: dpkey,spkey
    integer :: n_fsegs,n_csegs
    character(len=*), parameter :: subname='rhokey'
-   integer :: nbx,nby,nbz,nl1,nl2,nl3,nat,i_all
+   integer :: nbx,nby,nbz,nl1,nl2,nl3,nat
    real(gp) :: dpmult,dsq,spadd
    integer :: i1min,i1max,i2min,i2max,i3min,i3max,nrhomin,nrhomax
    integer,dimension(at%astruct%nat) :: i1fmin,i1fmax,i2fmin,i2fmax,i3fmin,i3fmax
@@ -1144,7 +1140,7 @@ subroutine rho_segkey(iproc,at,rxyz,crmult,frmult,&
    integer :: csegstot,fsegstot,corx,cory,corz,ithread,nthreads
    integer, dimension(:), allocatable :: reg
    integer, dimension(:,:), allocatable :: dpkey,spkey
-   !integer :: ncount0,ncount1,ncount2,ncount3,ncount4,ncount_rate,ncount_max
+   !integer :: ncount0,ncount1,ncount2,ncount3,ncount4,ncount_rate,ncount_max, i_stat
    !$ integer :: omp_get_thread_num,omp_get_num_threads
 
    reg = f_malloc(n1i*n2i*n3i,id='reg')

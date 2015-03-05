@@ -256,10 +256,25 @@ subroutine mpi_win_create()
   stop 'MPIFAKE: mpi_win_create'
 END SUBROUTINE  MPI_WIN_CREATE
 
+subroutine mpi_win_lock()
+  implicit none
+  stop 'MPIFAKE: mpi_win_create'
+END SUBROUTINE  MPI_WIN_LOCK
+
+subroutine mpi_win_unlock()
+  implicit none
+  stop 'MPIFAKE: mpi_win_create'
+END SUBROUTINE  MPI_WIN_UNLOCK
+
 subroutine mpi_get()
   implicit none
   stop 'MPIFAKE: mpi_get'
 END SUBROUTINE  MPI_GET
+
+subroutine mpi_accumulate()
+  implicit none
+  stop 'MPIFAKE: mpi_accumulate'
+END SUBROUTINE  MPI_ACCUMULATE
 
 subroutine mpi_get_address()
   implicit none

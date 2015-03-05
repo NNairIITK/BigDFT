@@ -304,7 +304,7 @@ class BigDFTiming:
     #shallow copies of important parts
     self.routines=self.log["Routines timing and number of calls"]
     self.hostnames=self.log.get("Hostnames")
-    self.scf=self.log["WFN_OPT"]
+    self.scf=self.log.get("WFN_OPT")
     self.classes=["Communications","Convolutions","BLAS-LAPACK","Linear Algebra",
                   "Other","PS Computation","Potential",
                   "Flib LowLevel","Initialization"]
@@ -410,7 +410,8 @@ if args.timedata:
   #timing = yaml.load(open(args.timedata, "r").read(), Loader = yaml.CLoader)
   #dict_routines = timing["Routines timing and number of calls"]
   #sys.stdout.write(yaml.dump(timing["WFN_OPT"]["Classes"],default_flow_style=False,explicit_start=True))
-  bt.bars_data(bt.scf["Classes"]) #timing["WFN_OPT"]["Classes"])
+  if bt.scf is not None:
+    bt.bars_data(bt.scf["Classes"]) #timing["WFN_OPT"]["Classes"])
   #bt.load_unbalancing(bt.scf["Classes"]) #timing["WFN_OPT"]["Classes"])
   data=dump_timing_level(bt.routines) #dict_routines)
   #sys.stdout.write(yaml.dump(data,default_flow_style=False,explicit_start=True))

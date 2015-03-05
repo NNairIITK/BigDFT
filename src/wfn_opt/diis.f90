@@ -407,8 +407,8 @@ subroutine allocate_diis_objects(idsx,alphadiis,npsidim,nkptsp,nspinor,diis)
 
   diis%psidst = f_malloc_ptr(npsidim*idsx,id='diis%psidst')
   diis%hpsidst = f_malloc_ptr(npsidim*idsx,id='diis%hpsidst')
-  diis%ads = f_malloc_ptr((/ ncplx, idsx+1, idsx+1, ngroup, nkptsp, 1 /),id='diis%ads')
-  call to_zero(nkptsp*ncplx*ngroup*(idsx+1)**2,diis%ads(1,1,1,1,1,1))
+  diis%ads = f_malloc0_ptr((/ ncplx, idsx+1, idsx+1, ngroup, nkptsp, 1 /),id='diis%ads')
+  !call to_zero(nkptsp*ncplx*ngroup*(idsx+1)**2,diis%ads(1,1,1,1,1,1))
 
   !initialize scalar variables
   !diis initialisation variables
@@ -463,6 +463,7 @@ subroutine mix_rhopot(iproc,nproc,npoints,alphamix,mix,rhopot,istep,&
   character(len = 500) :: errmess
   integer, allocatable :: user_data(:)
   real(8) :: ddot !debug
+  integer(kind=8) :: nsize
 
   call f_routine(id='mix_rhopot')
 
@@ -501,7 +502,8 @@ subroutine mix_rhopot(iproc,nproc,npoints,alphamix,mix,rhopot,istep,&
      call MPI_ABORT(bigdft_mpi%mpi_comm, ierr, ie)
   end if
   !write(*,'(a,i7,2es16.7)') 'in mix_rhopot: iproc, rpnrm, ddot', iproc, rpnrm, ddot(npoints,rhopot,1,rhopot,1)
-  rpnrm = sqrt(rpnrm) / real(n1 * n2 * n3, gp)
+  nsize = int(n1,kind=8)*int(n2,kind=8)*int(n3,kind=8)
+  rpnrm = sqrt(rpnrm) / real(nsize, gp)
   rpnrm = rpnrm / (1.d0 - alphamix)
   !write(*,*) 'in mix_rhopot 2: iproc, rpnrm', iproc, rpnrm
 
@@ -671,8 +673,7 @@ subroutine diis_or_sd(iproc,idsx,nkptsp,diis)
      diis%ids=0
      diis%idiistol=0
 
-     !ncplx and ngroup have to be added
-     call to_zero(nkptsp*(idsx+1)**2,diis%ads(1,1,1,1,1,1))
+     call f_zero(diis%ads)
   end if
 
 END SUBROUTINE diis_or_sd
@@ -714,11 +715,11 @@ subroutine diisstp(iproc,nproc,orbs,comms,diis)
   ngroup=1
 
   ipiv = f_malloc(diis%idsx+1,id='ipiv')
-  rds = f_malloc((/ ncplx, diis%idsx+1, ngroup, orbs%nkpts /),id='rds')
-  call to_zero(ncplx*ngroup*(diis%idsx+1)*orbs%nkpts,rds(1,1,1,1))
+  rds = f_malloc0((/ ncplx, diis%idsx+1, ngroup, orbs%nkpts /),id='rds')
+  !call to_zero(ncplx*ngroup*(diis%idsx+1)*orbs%nkpts,rds(1,1,1,1))
 
-  adsw = f_malloc((/ ncplx, diis%idsx+1, diis%idsx+1 /),id='adsw')
-  call to_zero(ncplx*(diis%idsx+1)**2,adsw(1,1,1))
+  adsw = f_malloc0((/ ncplx, diis%idsx+1, diis%idsx+1 /),id='adsw')
+  !call to_zero(ncplx*(diis%idsx+1)**2,adsw(1,1,1))
 
   ispsidst=1
   do ikptp=1,orbs%nkptsp
@@ -874,7 +875,7 @@ subroutine diisstp(iproc,nproc,orbs,comms,diis)
         if (diis%ids < diis%idsx) then
            !some arrays still has to be filled
            !call vscal(nvctrp*orbs%nspinor*norbi,0.0_tp,diis%psidst(iacc_add),1)
-           call to_zero(nvctrp*orbs%nspinor*norbi,diis%psidst(iacc_add))
+           call f_zero(nvctrp*orbs%nspinor*norbi,diis%psidst(iacc_add))
         end if
 
         jj=0

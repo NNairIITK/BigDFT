@@ -16,17 +16,16 @@ subroutine razero(n,x)
   double precision, dimension(n), intent(out) :: x
   !Local variables
   integer :: i
-!$ logical :: within_openmp,omp_in_parallel,omp_get_nested
-
-!$    within_openmp=omp_in_parallel() .or. omp_get_nested()
-
-!$omp parallel if (.not. within_openmp .and. n > 128) shared(x,n) private(i)
-!$omp do
-      do i=1,n
+  !$ logical :: omp_in_parallel,do_omp
+  !$ do_omp = n > 1024
+  !$ if (do_omp) do_omp= .not. omp_in_parallel()
+  !$omp parallel if (do_omp) shared(x,n) private(i)
+  !$omp do
+  do i=1,n
       x(i)=0.d0
-      end do
-!$omp enddo
-!$omp end parallel
+  end do
+  !$omp enddo
+  !$omp end parallel
 
 end subroutine razero
 
@@ -38,26 +37,37 @@ subroutine razero_simple(n,x)
   real(kind=4), intent(out) :: x(n)
   !Local variables
   integer :: i,m
+  !$ logical :: omp_in_parallel,do_omp
+  !$ do_omp = n > 1024
+  !$ if (do_omp) do_omp= .not. omp_in_parallel()
+  !$omp parallel if (do_omp) shared(x,n) private(i)
+  !$omp do
+  do i=1,n
+      x(i)=0.e0
+  end do
+  !$omp enddo
+  !$omp end parallel
+
   !!do i=1,n
   !!   x(i)=0.e0
   !!end do
-  m=mod(n,7)
-  if (m/=0) then
-      do i=1,m
-          x(i)=0.e0
-      end do
-      if (n<7) return
-  end if
-  m=m+1
-  do i=m,n,7
-      x(i+0)=0.e0
-      x(i+1)=0.e0
-      x(i+2)=0.e0
-      x(i+3)=0.e0
-      x(i+4)=0.e0
-      x(i+5)=0.e0
-      x(i+6)=0.e0
-  end do
+  !m=mod(n,7)
+  !if (m/=0) then
+  !    do i=1,m
+  !        x(i)=0.e0
+  !    end do
+  !    if (n<7) return
+  !end if
+  !m=m+1
+  !do i=m,n,7
+  !    x(i+0)=0.e0
+  !    x(i+1)=0.e0
+  !    x(i+2)=0.e0
+  !    x(i+3)=0.e0
+  !    x(i+4)=0.e0
+  !    x(i+5)=0.e0
+  !    x(i+6)=0.e0
+  !end do
 END SUBROUTINE razero_simple
 
 !>   Set to zero an array x(n)
@@ -68,27 +78,80 @@ subroutine razero_integer(n,x)
   integer, dimension(n), intent(out) :: x
   !Local variables
   integer :: i,m
-  !!do i=1,n
-  !!   x(i)=0
-  !!end do
-  m=mod(n,7)
-  if (m/=0) then
-      do i=1,m
-          x(i)=0
-      end do
-      if (n<7) return
-  end if
-  m=m+1
-  do i=m,n,7
-      x(i+0)=0
-      x(i+1)=0
-      x(i+2)=0
-      x(i+3)=0
-      x(i+4)=0
-      x(i+5)=0
-      x(i+6)=0
+  !$ logical :: omp_in_parallel,do_omp
+  !$ do_omp = n > 1024
+  !$ if (do_omp) do_omp= .not. omp_in_parallel()
+  !$omp parallel if (do_omp) shared(x,n) private(i)
+  !$omp do
+  do i=1,n
+      x(i)=0
   end do
+  !$omp enddo
+  !$omp end parallel
+
+  !!!!do i=1,n
+  !!!!   x(i)=0
+  !!!!end do
+  !!m=mod(n,7)
+  !!if (m/=0) then
+  !!    do i=1,m
+  !!        x(i)=0
+  !!    end do
+  !!    if (n<7) return
+  !!end if
+  !!m=m+1
+  !!do i=m,n,7
+  !!    x(i+0)=0
+  !!    x(i+1)=0
+  !!    x(i+2)=0
+  !!    x(i+3)=0
+  !!    x(i+4)=0
+  !!    x(i+5)=0
+  !!    x(i+6)=0
+  !!end do
 END SUBROUTINE razero_integer
+
+!>   Set to zero an array x(n)
+subroutine razero_integerlong(n,x)
+  implicit none
+  !Arguments
+  integer, intent(in) :: n
+  integer(kind=8), dimension(n), intent(out) :: x
+  !Local variables
+  integer :: i,m
+  !$ logical :: omp_in_parallel,do_omp
+  !$ do_omp = n > 1024
+  !$ if (do_omp) do_omp= .not. omp_in_parallel()
+  !$omp parallel if (do_omp) shared(x,n) private(i)
+  !$omp do
+  do i=1,n
+      x(i)=int(0,kind=8)
+  end do
+  !$omp enddo
+  !$omp end parallel
+
+
+  !!!!do i=1,n
+  !!!!   x(i)=0
+  !!!!end do
+  !!m=mod(n,7)
+  !!if (m/=0) then
+  !!    do i=1,m
+  !!        x(i)=int(0,kind=8)
+  !!    end do
+  !!    if (n<7) return
+  !!end if
+  !!m=m+1
+  !!do i=m,n,7
+  !!    x(i+0)=int(0,kind=8)
+  !!    x(i+1)=int(0,kind=8)
+  !!    x(i+2)=int(0,kind=8)
+  !!    x(i+3)=int(0,kind=8)
+  !!    x(i+4)=int(0,kind=8)
+  !!    x(i+5)=int(0,kind=8)
+  !!    x(i+6)=int(0,kind=8)
+  !!end do
+END SUBROUTINE razero_integerlong
 
 !!!>   Set to zero an array x(n): omp version of razero
 !!subroutine omp_razero(n,x)
@@ -254,3 +317,117 @@ function builtin_rand(idum)
   builtin_rand=min(am*iy,rnmx)
 END FUNCTION builtin_rand
 
+subroutine diff_i(n,a,b,diff)
+  implicit none
+  integer, intent(in) :: n
+  integer, dimension(n), intent(in) :: a
+  integer, dimension(n), intent(in) :: b
+  integer, intent(out) :: diff
+  !local variables
+  integer :: i
+
+  diff=0
+  do i=1,n
+     diff=max(diff,abs(a(i)-b(i)))
+  end do
+end subroutine diff_i
+subroutine diff_li(n,a,b,diff)
+  implicit none
+  integer, intent(in) :: n
+  integer(kind=8), dimension(n), intent(in) :: a
+  integer(kind=8), dimension(n), intent(in) :: b
+  integer(kind=8), intent(out) :: diff
+  !local variables
+  integer :: i
+
+  diff=int(0,kind=8)
+  do i=1,n
+     diff=max(diff,abs(a(i)-b(i)))
+  end do
+end subroutine diff_li
+subroutine diff_r(n,a,b,diff)
+  implicit none
+  integer, intent(in) :: n
+  real, dimension(n), intent(in) :: a
+  real, dimension(n), intent(in) :: b
+  real, intent(out) :: diff
+  !local variables
+  integer :: i
+
+  diff=0.0e0
+  do i=1,n
+     diff=max(diff,abs(a(i)-b(i)))
+  end do
+end subroutine diff_r
+subroutine diff_d(n,a,b,diff)
+  implicit none
+  integer, intent(in) :: n
+  double precision, dimension(n), intent(in) :: a
+  double precision, dimension(n), intent(in) :: b
+  double precision, intent(out) :: diff
+  !local variables
+  integer :: i
+
+  diff=0.0d0
+  do i=1,n
+     diff=max(diff,abs(a(i)-b(i)))
+  end do
+end subroutine diff_d
+subroutine diff_l(n,a,b,diff)
+  implicit none
+  integer, intent(in) :: n
+  logical, dimension(n), intent(in) :: a
+  logical, dimension(n), intent(in) :: b
+  logical, intent(out) :: diff
+  !local variables
+  integer :: i
+
+  diff=.false.
+  do i=1,n
+     diff=a(i) .eqv. b(i)
+     if (diff) exit
+  end do
+end subroutine diff_l
+
+subroutine diff_ci(n,a,b,diff)
+  implicit none
+  integer, intent(in) :: n
+  character, dimension(n), intent(in) :: a
+  integer, dimension(n), intent(in) :: b
+  integer, intent(out) :: diff
+  !local variables
+  integer :: i
+
+  diff=0
+  do i=1,n
+     diff=max(diff,abs(ichar(a(i))-b(i)))
+  end do
+end subroutine diff_ci
+
+subroutine f_itoa(n,src,dest)
+  implicit none
+  integer, intent(in) :: n
+  integer, dimension(n), intent(in) :: src
+  character, dimension(n), intent(out) :: dest
+  !local variables
+  integer :: i
+  
+  do i=1,n
+     dest(i)=achar(src(i))
+  end do
+
+end subroutine f_itoa
+
+subroutine f_atoi(n,src,dest)
+  implicit none
+  integer, intent(in) :: n
+  character, dimension(n), intent(in) :: src
+  integer, dimension(n), intent(out) :: dest
+  !local variables
+  integer :: i
+  
+  do i=1,n
+     dest(i)=ichar(src(i))
+  end do
+
+end subroutine f_atoi

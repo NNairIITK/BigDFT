@@ -31,8 +31,7 @@ program memguess
    character(len=40) :: comment
    character(len=1024) :: fcomment
    character(len=128) :: fileFrom, fileTo,filename_wfn
-   character(len=50) :: posinp
-   logical :: optimise,GPUtest,atwf,convert=.false.,exportwf=.false.
+   logical :: optimise,GPUtest,atwf,convert=.false.,exportwf=.false.,logfile=.false.
    logical :: disable_deprecation = .false.,convertpos=.false.,transform_coordinates=.false.
    integer :: ntimes,nproc,output_grid, i_arg,istat
    integer :: nspin,iorb,norbu,norbd,nspinor,norb,iorbp,iorb_out
@@ -55,6 +54,7 @@ program memguess
    character(len=3) :: in_name !lr408
    integer :: i, inputpsi, input_wf_format
    integer,parameter :: nconfig=1
+   type(dictionary), pointer :: run
    !character(len=60),dimension(nconfig) :: arr_radical,arr_posinp
    !character(len=60) :: run_id, infile, outfile
    !integer, dimension(4) :: mpi_info
@@ -246,6 +246,9 @@ program memguess
          else if (trim(tatonam) == 'dd') then
             ! dd: disable deprecation message
             disable_deprecation = .true.
+         else if (trim(tatonam) == 'l') then
+            ! l: log to disk
+            logfile = .true.
          else
             ! Use value as radical for input files.
             write(radical, "(A)") trim(tatonam)
@@ -428,14 +431,11 @@ program memguess
        stop
    end if
 
-   if (trim(radical) == "input") then
-      posinp='posinp'
-   else
-      posinp=trim(radical)
-   end if
+   nullify(run)
+   call bigdft_set_run_properties(run, run_id = trim(radical), run_from_files = .true., log_to_disk = logfile)
 
-   !this part has to be mergd with the one coming from bigdft_run module
-   call run_objects_init_from_run_name(runObj, radical, posinp)
+   call run_objects_init(runObj, run)
+   call dict_free(run)
 
    if (optimise) then
       if (runObj%atoms%astruct%geocode =='F') then
@@ -532,7 +532,7 @@ program memguess
       nspinor=1
 
       call orbitals_descriptors(0,nproc,norb,norbu,norbd,runObj%inputs%nspin,nspinor, &
-           runObj%inputs%gen_nkpt,runObj%inputs%gen_kpt,runObj%inputs%gen_wkpt,orbstst,.false.)
+           runObj%inputs%gen_nkpt,runObj%inputs%gen_kpt,runObj%inputs%gen_wkpt,orbstst,LINEAR_PARTITION_NONE)
       orbstst%eval = f_malloc_ptr(orbstst%norbp,id='orbstst%eval')
       do iorb=1,orbstst%norbp
          orbstst%eval(iorb)=-0.5_gp
@@ -948,11 +948,11 @@ subroutine compare_cpu_gpu_hamiltonian(iproc,nproc,matacc,at,orbs,&
    end do
 
    !allocate the wavefunctions
-   psi = f_malloc((/ Lzd%Glr%wfd%nvctr_c+7*Lzd%Glr%wfd%nvctr_f, orbs%nspinor*orbs%norbp /),id='psi')
-   hpsi = f_malloc((/ Lzd%Glr%wfd%nvctr_c+7*Lzd%Glr%wfd%nvctr_f , orbs%nspinor*orbs%norbp /),id='hpsi')
+   psi = f_malloc0((/ Lzd%Glr%wfd%nvctr_c+7*Lzd%Glr%wfd%nvctr_f, orbs%nspinor*orbs%norbp /),id='psi')
+   hpsi = f_malloc0((/ Lzd%Glr%wfd%nvctr_c+7*Lzd%Glr%wfd%nvctr_f , orbs%nspinor*orbs%norbp /),id='hpsi')
 
-   call to_zero(Lzd%Glr%wfd%nvctr_c+7*Lzd%Glr%wfd%nvctr_f*orbs%nspinor*orbs%norbp,psi)
-   call to_zero(Lzd%Glr%wfd%nvctr_c+7*Lzd%Glr%wfd%nvctr_f*orbs%nspinor*orbs%norbp,hpsi)
+   !call to_zero(Lzd%Glr%wfd%nvctr_c+7*Lzd%Glr%wfd%nvctr_f*orbs%nspinor*orbs%norbp,psi)
+   !call to_zero(Lzd%Glr%wfd%nvctr_c+7*Lzd%Glr%wfd%nvctr_f*orbs%nspinor*orbs%norbp,hpsi)
 
    !convert the gaussians in wavelets
    call gaussians_to_wavelets(iproc,nproc,at%astruct%geocode,orbs,Lzd%Glr%d,&
@@ -1438,7 +1438,7 @@ subroutine take_psi_from_file(filename,in_frag,hx,hy,hz,lr,at,rxyz,orbs,psi,iorb
               locrad,locregCenter,confPotOrder,confPotPrefac,&
               lpsi(1),eval_fake,psifscf)
 
-         call to_zero(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,psi(1,1))
+         call f_zero(psi)
 
          call Lpsi_to_global2(0,Lzd%llr(1)%wfd%nvctr_c+7*Lzd%llr(1)%wfd%nvctr_f, &
               lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,1,1,1,lr,Lzd%Llr(1),lpsi,psi)

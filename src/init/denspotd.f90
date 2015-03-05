@@ -175,11 +175,9 @@ subroutine denspot_set_history(denspot, iscf, nspin, &
   if (iscf < 10) then
      potden = AB7_MIXING_POTENTIAL
      npoints = n1i*n2i*denspot%dpbox%n3p
-     if (denspot%dpbox%n3p==0) npoints=1
   else
      potden = AB7_MIXING_DENSITY
      npoints = n1i*n2i*denspot%dpbox%n3d
-     if (denspot%dpbox%n3d==0) npoints=1
   end if
   if (iscf > SCF_KIND_DIRECT_MINIMIZATION) then
      allocate(denspot%mix)
@@ -614,7 +612,7 @@ subroutine density_descriptors(iproc,nproc,xc,nspin,crmult,frmult,atoms,dpbox,&
 !!$     rhodsc%icomm=1
 !!$  end if
 
-  !in the case of taskgroups the RSC scheme should be overrided
+  !in the case of taskgroups the RSC scheme should be overridden
   if (rhodsc%icomm==1 .and. size(dpbox%nscatterarr,1) < nproc) then
      if (atoms%astruct%geocode.eq.'F') then
         rhodsc%icomm=2
@@ -672,7 +670,7 @@ subroutine default_confinement_data(confdatarr,norbp)
      confdatarr(iorb)%ioffset(1) =UNINITIALIZED(confdatarr(iorb)%ioffset(1)) 
      confdatarr(iorb)%ioffset(2) =UNINITIALIZED(confdatarr(iorb)%ioffset(2)) 
      confdatarr(iorb)%ioffset(3) =UNINITIALIZED(confdatarr(iorb)%ioffset(3)) 
-
+     confdatarr(iorb)%damping    =UNINITIALIZED(confdatarr(iorb)%damping)
   end do
 end subroutine default_confinement_data
 
@@ -711,6 +709,7 @@ subroutine define_confinement_data(confdatarr,orbs,rxyz,at,hx,hy,hz,&
      confdatarr(iorb)%ioffset(1)=lzd%llr(ilr)%nsi1-nl1-1
      confdatarr(iorb)%ioffset(2)=lzd%llr(ilr)%nsi2-nl2-1
      confdatarr(iorb)%ioffset(3)=lzd%llr(ilr)%nsi3-nl3-1
+     confdatarr(iorb)%damping   =1.0_gp
   end do
 
 contains

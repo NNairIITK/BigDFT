@@ -8,6 +8,9 @@ typedef struct _flib_yaml_parser
 {
   FILE *input;
   yaml_parser_t parser;
+
+  yaml_event_t event; /* Current event. */
+  int i_lg_str;
 } FLib_Yaml_Parser;
 
 #define YAML_PARSER_C_ERROR -99999
@@ -115,6 +118,7 @@ void FC_FUNC_(yaml_parser_c_init, YAML_PARSER_C_INIT)(void **pt, const char *fna
   /* Create the Parser object. */
   yaml_parser_initialize(&(obj->parser));
   yaml_parser_set_input_file(&(obj->parser), obj->input);
+  obj->i_lg_str = -1;
 
   *pt = (void*)obj;
 }
@@ -141,6 +145,7 @@ void FC_FUNC_(yaml_parser_c_init_from_buf, YAML_PARSER_C_INIT_FROM_BUF)
       str = (unsigned char*)(*buf);
       yaml_parser_set_input_string(&(obj->parser), str, strlen((char*)str));
     }
+  obj->i_lg_str = -1;
 
   *pt = (void*)obj;
 }
@@ -220,35 +225,56 @@ void FC_FUNC_(yaml_parser_c_get_error,
 void FC_FUNC_(yaml_parser_c_next, YAML_PARSER_C_NEXT)(void **pt, int *type, char *val, int *len)
 {
   FLib_Yaml_Parser *obj = (FLib_Yaml_Parser*)(*pt);
-  yaml_event_t event;  
 
-  int done, i;
+  int done, i, offset;
   char *err_mess;
 
   done = 0;
-  if (yaml_parser_parse(&(obj->parser), &event))
+  if (obj->i_lg_str >= 0 || yaml_parser_parse(&(obj->parser), &(obj->event)))
     {
-      *type = (int)event.type;
+      *type = (int)obj->event.type;
 
-      if (event.type == YAML_SCALAR_EVENT)
+      if (obj->event.type == YAML_SCALAR_EVENT)
         {
-          for (i = 0; event.data.scalar.value[i] && i < *len; i++)
-            val[i] = event.data.scalar.value[i];
+          offset = (obj->i_lg_str < 0)?0:obj->i_lg_str;
+          for (i = 0;
+               obj->event.data.scalar.value[i + offset] && i < *len &&
+                 obj->event.data.scalar.value[i + offset] != '\n'; i++)
+            val[i] = obj->event.data.scalar.value[i + offset];
+          if (obj->event.data.scalar.value[i + offset] == '\n' && obj->i_lg_str < 0)
+            {
+              /* Long string start. */
+              *type = (int)YAML_SEQUENCE_START_EVENT;
+              obj->i_lg_str = 0;
+            }
+          else if (!obj->event.data.scalar.value[i + offset] && obj->i_lg_str >= 0)
+            {
+              /* Long string end. */
+              *type = (int)YAML_SEQUENCE_END_EVENT;
+              obj->i_lg_str = -1;
+            }
+          else
+            {
+              /* Scalar event (long string portion or single string). */
+              if (obj->event.data.scalar.value[i + offset] == '\n')
+                obj->i_lg_str = i + offset + 1;
+              for (; i < *len; i++)
+                val[i] = ' ';
+            }
+        }
+      if (obj->event.type == YAML_ALIAS_EVENT)
+        {
+          for (i = 0; obj->event.data.alias.anchor[i] && i < *len; i++)
+            val[i] = obj->event.data.alias.anchor[i];
           for (; i < *len; i++)
             val[i] = ' ';
         }
-      if (event.type == YAML_ALIAS_EVENT)
-        {
-          for (i = 0; event.data.alias.anchor[i] && i < *len; i++)
-            val[i] = event.data.alias.anchor[i];
-          for (; i < *len; i++)
-            val[i] = ' ';
-        }
 
-      done = (event.type == YAML_STREAM_END_EVENT);
+      done = (obj->event.type == YAML_STREAM_END_EVENT);
       
       /* The application is responsible for destroying the event object. */
-      yaml_event_delete(&event);
+      if (obj->event.type != YAML_SCALAR_EVENT || obj->i_lg_str < 0)
+        yaml_event_delete(&(obj->event));
     }
   else
     {

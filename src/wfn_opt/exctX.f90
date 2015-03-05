@@ -64,7 +64,8 @@ subroutine exact_exchange_potential(iproc,nproc,geocode,xc,nspin,lr,orbs,n3parr,
   psiw = f_malloc(max(max(lr%d%n1i*lr%d%n2i*lr%d%n3i*orbs%norbp, n3parr(0)*orbs%norb), 1),id='psiw')
 
   if (geocode == 'F') then
-     call to_zero(lr%d%n1i*lr%d%n2i*lr%d%n3i*orbs%norbp,psiw)
+     !call to_zero(lr%d%n1i*lr%d%n2i*lr%d%n3i*orbs%norbp,psiw)
+     call f_zero(psiw)
   end if
 
   !uncompress the wavefunction in the real grid
@@ -127,7 +128,7 @@ subroutine exact_exchange_potential(iproc,nproc,geocode,xc,nspin,lr,orbs,n3parr,
   end if
 
   !this is the array of the actions of the X potential on psi
-  call to_zero(lr%d%n1i*lr%d%n2i*n3p*orbs%norb,psir)
+  call f_zero(lr%d%n1i*lr%d%n2i*n3p*orbs%norb,psir(1))
 
   !build the partial densities for the poisson solver, calculate the partial potential
   !and accumulate the result
@@ -332,12 +333,13 @@ subroutine prepare_psirocc(iproc,nproc,lr,orbsocc,n3p,n3parr,psiocc,psirocc)
 
   call initialize_work_arrays_sumrho(1,lr,.true.,w)
 
-  psiwocc = f_malloc(max(max(lr%d%n1i*lr%d%n2i*lr%d%n3i*orbsocc%norbp, n3parr(0)*orbsocc%norb), 1),id='psiwocc')
+  psiwocc = f_malloc0(max(max(lr%d%n1i*lr%d%n2i*lr%d%n3i*orbsocc%norbp, n3parr(0)*orbsocc%norb), 1),id='psiwocc')
 
-  call to_zero(max(max(lr%d%n1i*lr%d%n2i*lr%d%n3i*orbsocc%norbp,n3parr(0)*orbsocc%norb),1),psiwocc)
+  !call to_zero(max(max(lr%d%n1i*lr%d%n2i*lr%d%n3i*orbsocc%norbp,n3parr(0)*orbsocc%norb),1),psiwocc)
 
   if (lr%geocode == 'F') then
-     call to_zero(lr%d%n1i*lr%d%n2i*lr%d%n3i*orbsocc%norbp,psirocc)
+     !call f_zero(lr%d%n1i*lr%d%n2i*lr%d%n3i*orbsocc%norbp,psirocc)
+     call f_zero(psirocc)
   end if
 
   !uncompress the wavefunction in the real grid
@@ -452,7 +454,7 @@ subroutine exact_exchange_potential_virt(iproc,nproc,geocode,nspin,lr,orbsocc,or
   psiwvirt = f_malloc(max(max(lr%d%n1i*lr%d%n2i*lr%d%n3i*orbsvirt%norbp, n3parr(0)*orbsvirt%norb), 1),id='psiwvirt')
 
   if (geocode == 'F') then
-     call to_zero(lr%d%n1i*lr%d%n2i*lr%d%n3i*orbsvirt%norbp,psiwvirt)
+     call f_zero(psiwvirt)
   end if
 
   !uncompress the wavefunction in the real grid
@@ -518,7 +520,7 @@ subroutine exact_exchange_potential_virt(iproc,nproc,geocode,nspin,lr,orbsocc,or
   end if
 
   !this is the array of the actions of the X potential on psi
-  call to_zero(lr%d%n1i*lr%d%n2i*n3p*orbsvirt%norb,psirvirt)
+  call f_zero(psirvirt)
 
   !build the partial densities for the poisson solver, calculate the partial potential
   !and accumulate the result
@@ -1006,9 +1008,9 @@ subroutine exact_exchange_potential_round(iproc,nproc,xc,nspin,lr,orbs,&
   !open(100+iproc)  
   
   call initialize_work_arrays_sumrho(1,lr,.true.,w)
-  psir = f_malloc((/ lr%d%n1i*lr%d%n2i*lr%d%n3i, orbs%norbp /),id='psir')
+  psir = f_malloc0((/ lr%d%n1i*lr%d%n2i*lr%d%n3i, orbs%norbp /),id='psir')
   
-  call to_zero(lr%d%n1i*lr%d%n2i*lr%d%n3i*orbs%norbp,psir(1,1))
+  !call to_zero(lr%d%n1i*lr%d%n2i*lr%d%n3i*orbs%norbp,psir(1,1))
   
   !uncompress the wavefunction in the real grid
   do iorb=1,orbs%norbp
@@ -1018,20 +1020,20 @@ subroutine exact_exchange_potential_round(iproc,nproc,xc,nspin,lr,orbs,&
   
   call deallocate_work_arrays_sumrho(w)
   
-  psiw = f_malloc((/ 1.to.lr%d%n1i*lr%d%n2i*lr%d%n3i, 1.to.maxval(orbs%norb_par(:,0)), 1.to.2, 1.to.ngroupp /),id='psiw')
-  dpsiw = f_malloc((/ 1.to.lr%d%n1i*lr%d%n2i*lr%d%n3i, 1.to.maxval(orbs%norb_par(:,0)), 1.to.3, 1.to.ngroupp /),id='dpsiw')
+  psiw = f_malloc0((/ 1.to.lr%d%n1i*lr%d%n2i*lr%d%n3i, 1.to.maxval(orbs%norb_par(:,0)), 1.to.2, 1.to.ngroupp /),id='psiw')
+  dpsiw = f_malloc0((/ 1.to.lr%d%n1i*lr%d%n2i*lr%d%n3i, 1.to.maxval(orbs%norb_par(:,0)), 1.to.3, 1.to.ngroupp /),id='dpsiw')
   !partial densities and potentials
   rp_ij = f_malloc(lr%d%n1i*lr%d%n2i*lr%d%n3i,id='rp_ij')
   
   !this is the array of the actions of the X potential on psi
-  ii=lr%d%n1i*lr%d%n2i*lr%d%n3i*maxval(orbs%norb_par(:,0))*2*ngroupp
+  !ii=lr%d%n1i*lr%d%n2i*lr%d%n3i*maxval(orbs%norb_par(:,0))*2*ngroupp
   !call to_zero(lr%d%n1i*lr%d%n2i*lr%d%n3i*maxval(orbs%norb_par,1)*2*ngroupp,psiw(1,1,1,1))
-  call to_zero(ii,psiw(1,1,1,1))
-  ii=lr%d%n1i*lr%d%n2i*lr%d%n3i*maxval(orbs%norb_par(:,0))*3*ngroupp
+  !call to_zero(ii,psiw(1,1,1,1))
+  !ii=lr%d%n1i*lr%d%n2i*lr%d%n3i*maxval(orbs%norb_par(:,0))*3*ngroupp
   !call to_zero(lr%d%n1i*lr%d%n2i*lr%d%n3i*maxval(orbs%norb_par,1)*3*ngroupp,dpsiw(1,1,1,1))
-  call to_zero(ii,dpsiw(1,1,1,1))
+  !call to_zero(ii,dpsiw(1,1,1,1))
   
-  call to_zero(lr%d%n1i*lr%d%n2i*lr%d%n3i*orbs%norbp,dpsir(1,1))
+  call f_zero(dpsir)
 
   ncalls=0
   !real communication
@@ -1079,7 +1081,7 @@ subroutine exact_exchange_potential_round(iproc,nproc,xc,nspin,lr,orbs,&
            !put to zero the sending element
            ii=lr%d%n1i*lr%d%n2i*lr%d%n3i*maxval(orbs%norb_par(:,0))
            !call to_zero(lr%d%n1i*lr%d%n2i*lr%d%n3i*maxval(orbs%norb_par,1),dpsiw(1,1,3,igroup))
-           call to_zero(ii,dpsiw(1,1,3,igroup))
+           call f_zero(ii,dpsiw(1,1,3,igroup))
         end if
      end do
      

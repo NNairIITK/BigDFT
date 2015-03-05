@@ -50,8 +50,8 @@
      B97-D: -170 #to be verified
      B3LYP: -402
      HF: 100 #Hartree-Fock
-   ncharge:
-     COMMENT: Charge of the system
+   qcharge:
+     COMMENT: Charge of the system. Can be integer or real.
      DESCRIPTION: Total charge of the system. A negative value means that extra electrons are added.
      RANGE: [-500., 500.]
      default: 0
@@ -178,6 +178,14 @@
      COMMENT: Disable the symmetry detection
      DESCRIPTION: Disable the symmetry detection (by default No except for isolated systems)
      default: No
+   solvent:
+     COMMENT: Electrostatic environment for Poisson Equation
+     DESCRIPTION: Define the method to set the dielectric function as a function of the position
+     EXCLUSIVE:
+       vacuum: No Solvent method, ordinary Poisson Equation
+       rigid:  Rigid (smoothed) cavity around the atoms, given as superposition of spheres
+       sccs: Self-Consistent Continuum Solvation (accordig to the model of Andreussi et. al JCP 136, 064102 (2012)
+     default: vacuum
 
 #K points parameters
  kpt:
@@ -281,7 +289,8 @@
        DIIS:   Direct inversion of iterative subspace
        FIRE:   Fast Inertial Relaxation Engine as described by Bitzek et al.
        NEB:    Nudged Elastic Band
-       SBFGS:  Stefans new optimizer
+       SBFGS:  SQNM minimizer, keyword deprecated, will be replaced by SQNM in future release
+       SQNM:   Stabilized quasi-Newton minimzer
      default: none
    ncount_cluster_x:
      COMMENT: Maximum number of force evaluations
@@ -317,6 +326,7 @@
        - FIRE
        - NEB
        - SBFGS
+       - SQNM
        - none
      PROFILE_FROM: method
      RANGE: [0., 100.]
@@ -353,6 +363,7 @@
        MASTER_KEY: method
        WHEN:
        - SBFGS
+       - SQNM
      RANGE: [0, 1000]
      default: 10
    biomode:
@@ -361,6 +372,7 @@
        MASTER_KEY: method
        WHEN:
        - SBFGS
+       - SQNM
      default: No
    beta_stretchx:
      COMMENT: Stepsize for steepest descent in stretching mode direction (only if in biomode)
@@ -376,6 +388,7 @@
        MASTER_KEY: method
        WHEN:
        - SBFGS
+       - SQNM
      RANGE: [0., 1e10]
      default: 1e-6
    cutoffratio:
@@ -384,6 +397,7 @@
        MASTER_KEY: method
        WHEN:
        - SBFGS
+       - SQNM
      RANGE: [0., 1.]
      default: 1e-4
    steepthresh:
@@ -392,6 +406,7 @@
        MASTER_KEY: method
        WHEN:
        - SBFGS
+       - SQNM
      RANGE: [0., 1e10]
      default: 0.5
    trustr:
@@ -400,6 +415,7 @@
        MASTER_KEY: method
        WHEN:
        - SBFGS
+       - SQNM
      RANGE: [0., 1e10]
      default: 0.5
    ionmov:
@@ -642,6 +658,26 @@
        none: no tddft post-processing
        TDA: ???
      default: none
+#overall run setup
+ mode:
+   method:
+     COMMENT: Run method of BigDFT call
+     EXCLUSIVE:
+       dft: Density Functional Theory
+       lj: Lennard-Jones force field
+       lensic: Lenosky Tight-Binding for Si clusters
+       lensib: Lenosky Tight-Binding for Si bulk
+       amber: AMBER Force Fields Package (requires AMBERtools)
+       morse_bulk: Morse bulk
+       morse_slab: Morse slab
+     default: dft
+   mm_paramset:
+     COMMENT: Name of the hard-coded parameter set. Must be compatible to the chosen force field.
+     default: default
+   mm_paramfile:
+     COMMENT: name of parameter file
+     default: none
+     
 #Performance parameters
  perf:
    debug:
@@ -692,7 +728,7 @@
    ig_tol:
      COMMENT: Input guess Tolerance criterion
      RANGE: [0., 1.]
-     default: 1e-4
+     default: 1.0e-4
    methortho:
      COMMENT: Orthogonalisation
      EXCLUSIVE:
@@ -731,7 +767,7 @@
    tolsym:
      COMMENT: Tolerance for symmetry detection
      RANGE: [0., 1.]
-     default: 1e-8
+     default: 1.0e-8
    signaling:
      COMMENT: Expose calculation results on Network
      default: No
@@ -759,15 +795,29 @@
        2: ???
        3: ???
      default: 2
-   outdir:
-     COMMENT: Writing directory
-     default: .
    psp_onfly:
      COMMENT: Calculate pseudopotential projectors on the fly
      default: Yes
    multipole_preserving:
      COMMENT: (EXPERIMENTAL) Preserve the multipole moment of the ionic density
      default: No
+   mp_isf:
+     COMMENT: (EXPERIMENTAL) Interpolating scalig function order for the multipole preserving
+     EXCLUSIVE:
+       2: isf 2
+       4: isf 4
+       6: isf 6
+       8: isf 8
+       14: isf 14
+       16: isf 16
+       20: isf 20
+       24: isf 24
+       30: isf 30
+       40: isf 40
+       50: isf 50
+       60: isf 60
+       100: isf 100
+     default: 16
    pdsyev_blocksize:
      COMMENT: SCALAPACK linear scaling blocksize
      default: -8
@@ -872,8 +922,8 @@
    FOE_restart:
      COMMENT: Restart method to be used for the FOE method
      EXCLUSVE:
-       0: REFORMAT
-       1: AO
+       0: AO
+       1: REFORMAT
      default: 0 
    imethod_overlap:
      COMMENT: method to calculate the overlap matrices (1=old, 2=new)
@@ -884,6 +934,20 @@
    enable_matrix_taskgroups:
      COMMENT: enable the matrix taskgroups
      default: True
+   hamapp_radius_incr:
+     COMMENT: radius enlargement for the Hamiltonian application (in grid points)
+     default: 8
+     RANGE: [0,8]
+   adjust_kernel_iterations:
+     COMMENT: enable the addaptive ajustment of the number of kernel iterations
+     default: True
+   gps_method:
+     COMMENT: method for the Generalized Poisson Equation
+     EXCLUSIVE:
+        VAC: Vacuum (ordinary treatment)
+        PI: Polarization Iteration
+        PCG: Preconditioned Conjugate Gradient
+     default: VAC
  lin_general:
      hybrid: 
        COMMENT: activate the hybrid mode; if activated, only the low accuracy values will be relevant
@@ -972,7 +1036,7 @@
        COMMENT: diagonalization at the end
        DESCRIPTION: |
                     possible value: logical
-                    Indicates whether a diagonliazation shall be performed at the end of the run
+                    Indicates whether a diagonalization shall be performed at the end of the run
        default: No
      extra_states:
        COMMENT: extra states to optimize (dmin only)
@@ -1088,7 +1152,7 @@
                     Indicates the number of iterations in the (self-consistent) optimization of the density kernel.
                     The first entry is used for the low accuracy part, the second one for the high accuracy part.
                     When the hybrid mode is used, only the first entry is taken into account.
-       RANGE: [0,100]
+       RANGE: [0,1000]
        default: [5,5]
 # check whether there are different DIIS histories...
      idsx_coeff:

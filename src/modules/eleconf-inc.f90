@@ -109,6 +109,18 @@ subroutine eleconf(nzatom,nvalelec,symbol,rcov,rprb,ehomo,neleconf,nsccode,mxpl,
      nsccode=1
      amu=9.012182d0
 
+  case(5*1000+5)
+     ! -----------------------           7
+     ! B            5           5     Symbol, Z, Zion
+     symbol = "B"
+     rcov=1.55d0
+     rprb=3.10d0
+     ehomo=-0.136603d0
+     neleconf(1,0)=2
+     neleconf(2,0)=2
+     neleconf(2,1)=1
+     amu=10.811d0
+
   case(5*1000+3)
      ! -----------------------           7
      ! B            5           3     Symbol, Z, Zion
@@ -157,6 +169,19 @@ subroutine eleconf(nzatom,nvalelec,symbol,rcov,rprb,ehomo,neleconf,nsccode,mxpl,
      neleconf(2,1)=3
      amu=14.00674d0
 
+  case(7*1000+7)
+     ! -----------------------           9
+     ! N            7           7     Symbol, Z, Zion
+     symbol = "N"
+     rcov=1.42d0
+     rprb=2.84d0
+     ehomo=-0.266297d0
+     neleconf(1,0)=2
+     neleconf(2,0)=2
+     neleconf(2,1)=3
+     amu=14.00674d0
+
+
   case(8*1000+6)
      ! -----------------------          10
      ! O            8           6     Symbol, Z, Zion
@@ -188,6 +213,18 @@ subroutine eleconf(nzatom,nvalelec,symbol,rcov,rprb,ehomo,neleconf,nsccode,mxpl,
      rcov=1.35d0
      rprb=2.72d0
      ehomo=-0.415606d0
+     neleconf(2,0)=2
+     neleconf(2,1)=5
+     amu=18.9984032d0
+
+  case(9*1000+9)
+     ! -----------------------          11
+     ! F            9           9     Symbol, Z, Zion
+     symbol = "F"
+     rcov=1.35d0
+     rprb=2.72d0
+     ehomo=-0.415606d0
+     neleconf(1,0)=2
      neleconf(2,0)=2
      neleconf(2,1)=5
      amu=18.9984032d0
@@ -975,6 +1012,21 @@ neleconf(5,0)=1.d-18
      nsccode=3
      amu=107.8682d0
 
+  case(47*1000+19)
+     ! -----------------------          74
+     ! Ag          47          19     Symbol, Z, Zion
+     symbol = "Ag"
+     rcov=2.30d0
+     rprb=4.60d0
+     ehomo=-0.157407d0
+     neleconf(4,0)=2
+     neleconf(4,1)=6
+     neleconf(4,2)=10
+     neleconf(5,0)=1
+     nsccode=3
+     amu=107.8682d0
+
+
   case(47*1000+1)
      ! -----------------------          75
      ! Ag          47           1     Symbol, Z, Zion
@@ -1659,6 +1711,10 @@ neleconf(7,0)=1.d-18
           err_name='BIGDFT_RUNTIME_ERROR')
   end select
 
+  !as now the symbol has been found overridde the psp rcov with the physical
+  !covalent radius
+  call covalent_radius(symbol,rcov)
+  
   ! Test than nvalelec is coherent with neleconf
   nsum = 0
   do l=0,lmax_ao

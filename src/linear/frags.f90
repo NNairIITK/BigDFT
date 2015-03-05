@@ -8,7 +8,9 @@ subroutine fragment_coeffs_to_kernel(iproc,input,input_frag_charge,ref_frags,tmb
   use communications_base, only: TRANSPOSE_FULL
   use communications, only: transpose_localized
   use sparsematrix_base, only: sparsematrix_malloc_ptr, DENSE_FULL, assignment(=)
-  use sparsematrix, only: uncompress_matrix
+  use sparsematrix, only: uncompress_matrix, gather_matrix_from_taskgroups_inplace, &
+                          uncompress_matrix2
+  use transposed_operations, only: calculate_overlap_transposed
   implicit none
   type(DFT_wavefunction), intent(inout) :: tmb
   type(input_variables), intent(in) :: input
@@ -130,6 +132,7 @@ subroutine fragment_coeffs_to_kernel(iproc,input,input_frag_charge,ref_frags,tmb
 
      call calculate_overlap_transposed(bigdft_mpi%iproc, bigdft_mpi%nproc, tmb%orbs, tmb%collcom, &
           tmb%psit_c, tmb%psit_c, tmb%psit_f, tmb%psit_f, tmb%linmat%s, tmb%linmat%ovrlp_)
+     !!call gather_matrix_from_taskgroups_inplace(bigdft_mpi%iproc, bigdft_mpi%nproc, tmb%linmat%s, tmb%linmat%ovrlp_)
      ! This can then be deleted if the transition to the new type has been completed.
      !tmb%linmat%ovrlp%matrix_compr=tmb%linmat%ovrlp_%matrix_compr
 
@@ -142,14 +145,14 @@ subroutine fragment_coeffs_to_kernel(iproc,input,input_frag_charge,ref_frags,tmb
   ! copy from coeff fragment to global coeffs - occupied states only
   isforb=0
   jsforb=0
-  call to_zero(tmb%orbs%norb*tmb%orbs%norb,coeff_final(1,1))
-  !*call to_zero(tmb%linmat%denskern%nvctr,kernel_final(1))
+  call f_zero(coeff_final)
+  !*call f_zero(tmb%linmat%denskern%nvctr,kernel_final(1))
   !!tmb%linmat%ovrlp%matrix=f_malloc_ptr((/tmb%orbs%norb,tmb%orbs%norb/),id='tmb%ovrlp%matrix')
   !!call uncompress_matrix(iproc,tmb%linmat%ovrlp)
   do ifrag=1,input%frag%nfrag
      ! find reference fragment this corresponds to
      ifrag_ref=input%frag%frag_index(ifrag)
-     call to_zero(tmb%orbs%norb*tmb%orbs%norb, tmb%coeff(1,1))
+     call f_zero(tmb%orbs%norb*tmb%orbs%norb, tmb%coeff(1,1))
 
      jstate_max=(ref_frags(ifrag_ref)%nelec-input_frag_charge(ifrag))/2.0_gp+num_extra_per_frag
      !jstate_max=ref_frags(ifrag_ref)%nelec/2.0_gp+num_extra_per_frag
@@ -204,7 +207,7 @@ subroutine fragment_coeffs_to_kernel(iproc,input,input_frag_charge,ref_frags,tmb
      !end do
      ! end debug
 
-     !call to_zero(tmb%linmat%denskern%nvctr,tmb%linmat%denskern%matrix_compr(1))
+     !call f_zero(tmb%linmat%denskern%nvctr,tmb%linmat%denskern%matrix_compr(1))
 
      ! should correct the occupation for kernel here, but as we replace the smaller kernel with the correct bigger kernel
      ! don't worry about this for now
@@ -213,8 +216,8 @@ subroutine fragment_coeffs_to_kernel(iproc,input,input_frag_charge,ref_frags,tmb
      tmb%linmat%ovrlp_%matrix = sparsematrix_malloc_ptr(tmb%linmat%s, &
                                 iaction=DENSE_FULL, id='tmb%linmat%ovrlp_%matrix')
      call timing(iproc,'kernel_init','OF')
-     call uncompress_matrix(iproc, tmb%linmat%s, &
-          inmat=tmb%linmat%ovrlp_%matrix_compr, outmat=tmb%linmat%ovrlp_%matrix)
+     call uncompress_matrix2(iproc, bigdft_mpi%nproc, tmb%linmat%s, &
+          tmb%linmat%ovrlp_%matrix_compr, tmb%linmat%ovrlp_%matrix)
      call reorthonormalize_coeff(bigdft_mpi%iproc, bigdft_mpi%nproc, &
           ceiling((ref_frags(ifrag_ref)%nelec-input_frag_charge(ifrag))/2.0_gp), &
           tmb%orthpar%blocksize_pdsyev, tmb%orthpar%blocksize_pdgemm, input%lin%order_taylor, &

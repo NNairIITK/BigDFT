@@ -92,7 +92,7 @@
    hgrids: [0.45000, 0.45000, 0.45000] #          grid spacing in the three directions (bohr)
    rmult: [5.00, 9.00] #                          c(f)rmult*radii_cf(:,1(2))=coarse(fine) atom-basec radius
    ixc                                 : 11 #     exchange-correlation parameter (LDA=1,PBE=11)
-   ncharge                             : 0 #      charge of the system
+   qcharge                             : 0 #      charge of the system
    elecfield: [0.0000, 0.0000, 0.0000] #          electric field (Ex,Ey,Ez)
    nspin                               : 1 #      spin polarization
    mpol                                : 0 #      total magnetic moment
@@ -508,7 +508,6 @@
  WARNINGS:
  - PSP generated with a different XC. Input XC is "XC: Perdew, Burke & Ernzerhof"
  - Odd number of electrons, no closed shell system
- - No convergence within the allowed number of minimization steps
  - No convergence within the allowed number of minimization steps
  - Wavefunctions not converged after cycle  1
  - Wavefunction residue is not consistent with density convergence (T_el too small?)

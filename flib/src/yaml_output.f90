@@ -31,6 +31,7 @@ module yaml_output
   integer, parameter :: SEQUENCE_ELEM          = -1010
   integer, parameter :: NEWLINE                = -1011
   integer, parameter :: COMMA_TO_BE_PUT        =  10
+  integer, parameter :: DEFAULT_STREAM_ID      =  0
 
   integer, parameter :: tot_max_record_length=95   !< Max record length by default
   integer, parameter :: tot_max_flow_events=500    !< Max flow events
@@ -249,21 +250,6 @@ contains
     call dict_init(stream_files)
     module_initialized=.true.
   end subroutine yaml_output_errors
-
-!!$  function stream_next_free_unit()
-!!$    integer :: stream_next_free_unit
-!!$    logical :: unit_is_open
-!!$    integer :: ierr
-!!$
-!!$    stream_next_free_unit = 75214
-!!$    unit_is_open = .true.
-!!$    do while (unit_is_open)
-!!$       stream_next_free_unit = stream_next_free_unit + 1
-!!$       inquire(unit=stream_next_free_unit,opened=unit_is_open,iostat=ierr)
-!!$       if (f_err_raise(ierr /=0,'error in unit inquiring, ierr='//trim(yaml_toa(ierr)),&
-!!$            YAML_INVALID)) return
-!!$    end do
-!!$  end function stream_next_free_unit
   
   !> Set the default stream of the module. Return  a STREAM_ALREADY_PRESENT errcode if
   !! The stream has not be initialized.
@@ -281,7 +267,6 @@ contains
     end if
 
   end subroutine yaml_set_default_stream
-
 
   !> Get the default stream unit
   pure subroutine yaml_get_default_stream(unit)
@@ -307,7 +292,7 @@ contains
 
     if (present(istat)) istat = NO_ERRORS !so far
 
-    unit = 0
+    unit = DEFAULT_STREAM_ID
     if (has_key(stream_files, trim(filename))) then
        unit = stream_files // trim(filename)
     else
@@ -487,10 +472,10 @@ contains
     integer, dimension(tot_max_record_length/tab) :: linetab
 
     !writing unit
-    unt=0
+    unt=DEFAULT_STREAM_ID
     if (present(unit)) unt=unit
     !stream to be analyzed
-    sunt=0
+    sunt=DEFAULT_STREAM_ID
     if (present(stream_unit)) sunt=unit
     call get_stream(sunt,strm)
 
@@ -575,7 +560,7 @@ contains
     !local variables
     integer :: unt,strm
 
-    unt=0
+    unt=DEFAULT_STREAM_ID
     if (present(unit)) unt=unit
     call get_stream(unt,strm)
 
@@ -600,7 +585,7 @@ contains
     !local variables
     integer :: unt,strm
 
-    unt=0
+    unt=DEFAULT_STREAM_ID
     if (present(unit)) unt=unit
     call get_stream(unt,strm)
 
@@ -619,7 +604,7 @@ contains
     !local variables
     integer :: unt,strm,unit_prev
 
-    unt=0
+    unt=DEFAULT_STREAM_ID
     if (present(unit)) unt=unit
     call get_stream(unt,strm)
 
@@ -648,7 +633,7 @@ contains
     integer :: unt,istatus,strm,funt
     type(dictionary), pointer :: iter
 
-    unt=0
+    unt=DEFAULT_STREAM_ID
     if (present(unit)) unt=unit
     call get_stream(unt,strm,istat=istatus)
 
@@ -747,10 +732,10 @@ contains
     integer, optional, intent(in) :: unit   !< @copydoc doc::unit
     !local variables
     integer :: unt,strm
-!!$    integer :: item
-!!$    type(dictionary), pointer :: dict_tmp
+    integer :: idx
+    type(dictionary), pointer :: dict_tmp
 
-    unt=0
+    unt=DEFAULT_STREAM_ID
     if (present(unit)) unt=unit
     call get_stream(unt,strm)
 
@@ -769,8 +754,10 @@ contains
 !!$       end if
        if (.not. associated(streams(strm)%dict_warning)) &
             call dict_init(streams(strm)%dict_warning)
-       !add the warning as a list
-       call add(streams(strm)%dict_warning//'WARNINGS',trim(message))
+       !add the warning as a list, if the warning does not exists
+       dict_tmp = streams(strm)%dict_warning .get. 'WARNINGS'
+       idx=dict_tmp .index. trim(message)
+       if (idx < 0) call add(streams(strm)%dict_warning//'WARNINGS',trim(message))
 
     end if
     if (present(level)) then
@@ -790,7 +777,7 @@ contains
     character(len=*), intent(in) :: message           !< The given comment (without #)
     character(len=*), optional, intent(in) :: advance !< @copydoc doc::advance
     integer, optional, intent(in) :: unit             !< @copydoc doc::unit
-    character(len=1), optional, intent(in) :: hfill   !< If present fill the line with the given character
+    character(len=*), optional, intent(in) :: hfill   !< If present fill the line with the given character
     integer, optional, intent(in) :: tabbing          !< Number of space for tabbing
     !Local variables
     integer :: unt,strm,msg_lgt,tb,ipos
@@ -798,7 +785,7 @@ contains
     character(len=3) :: adv
     character(len=tot_max_record_length) :: towrite
 
-    unt=0
+    unt=DEFAULT_STREAM_ID
     if (present(unit)) unt=unit
     call get_stream(unt,strm)
 
@@ -845,6 +832,7 @@ contains
 
        !Check if possible to hfill
        hmax = max(streams(strm)%max_record_length-ipos-len_trim(message)-3,0)
+       if (present(hfill)) hmax=hmax/len(hfill)
        !print *,'hmax',hmax,streams(strm)%max_record_length,ipos,lmsg
        if (present(hfill) .and. hmax > 0) then
           !Fill with the given character and dump
@@ -869,15 +857,15 @@ contains
   !> Write a scalar variable, takes care of indentation only
   subroutine yaml_scalar(message,advance,unit,hfill)
     implicit none
-    character(len=1), optional, intent(in) :: hfill   !< If present fill the line with the given character
+    character(len=*), optional, intent(in) :: hfill   !< If present fill the line with the given character
     character(len=*), intent(in) :: message           !< the message to be printed
     integer, optional, intent(in) :: unit             !< @copydoc doc::unit
     character(len=*), intent(in), optional :: advance !< @copydoc doc::advance
     !local variables
-    integer :: unt,strm
+    integer :: unt,strm,hmax
     character(len=3) :: adv
 
-    unt=0
+    unt=DEFAULT_STREAM_ID
     if (present(unit)) unt=unit
     call get_stream(unt,strm)
 
@@ -888,11 +876,13 @@ contains
        adv='yes'
     end if
     if (present(hfill)) then
-       call dump(streams(strm),&
-            repeat(hfill,&
-            max(streams(strm)%max_record_length-&
+       hmax = max(streams(strm)%max_record_length-&
             max(streams(strm)%icursor,streams(strm)%indent)-&
-            len_trim(message)-3,0))//' '//trim(message),&
+            len_trim(message)-3,0)
+       hmax=hmax/len(hfill)
+
+       call dump(streams(strm),&
+            repeat(hfill,hmax)//' '//trim(message),&
             advance=adv,event=COMMENT)
     else
        call dump(streams(strm),trim(message),advance=adv,event=SCALAR)
@@ -930,7 +920,7 @@ contains
 !!$    character(len=3) :: adv
 !!$    character(len=tot_max_record_length) :: towrite
 !!$
-!!$    unt=0
+!!$    unt=DEFAULT_STREAM_ID
 !!$    if (present(unit)) unt=unit
 !!$    call get_stream(unt,strm)
 !!$
@@ -980,7 +970,7 @@ contains
     character(len=3) :: adv
     logical :: doflow
 
-    unt=0
+    unt=DEFAULT_STREAM_ID
     if (present(unit)) unt=unit
     call get_stream(unt,strm)
 
@@ -1025,7 +1015,7 @@ contains
     character(len=3) :: adv
     logical :: doflow
 
-    unt=0
+    unt=DEFAULT_STREAM_ID
     if (present(unit)) unt=unit
     call get_stream(unt,strm)
 
@@ -1053,7 +1043,7 @@ contains
     !local variables
     integer :: unt,strm
 
-    unt=0
+    unt=DEFAULT_STREAM_ID
     if (present(unit)) unt=unit
     call get_stream(unt,strm)
 
@@ -1077,7 +1067,7 @@ contains
     character(len=3) :: adv
     character(len=tot_max_record_length) :: towrite
 
-    unt=0
+    unt=DEFAULT_STREAM_ID
     if (present(unit)) unt=unit
     call get_stream(unt,strm)
 
@@ -1119,7 +1109,7 @@ contains
     character(len=3) :: adv
     character(len=tot_max_record_length) :: towrite
 
-    unt=0
+    unt=DEFAULT_STREAM_ID
     if (present(unit)) unt=unit
     call get_stream(unt,strm)
 
@@ -1171,6 +1161,8 @@ contains
           end if
        end if
 !       if (streams(strm)%flowrite) call yaml_newline(unit=unt)
+       !first, if the cursor is already gone, carriage return
+       if (streams(strm)%icursor >= streams(strm)%max_record_length) call dump(streams(strm),' ',advance='yes',event=SCALAR)
        icut=len_trim(mapvalue)
        istr=1
        cut=.true.
@@ -1178,8 +1170,9 @@ contains
        idbg=0
        cut_line: do while(cut)
           idbg=idbg+1
-          !print *,'hereOUTPU',cut,icut,idbg
+          !print *,'hereOUTPU',cut,icut,idbg,streams(strm)%icursor,streams(strm)%max_record_length
        !verify where the message can be cut
+          !print *,'test2',index(trim((mapvalue(istr:istr+icut-1))),' ',back=.true.)
           cut=.false.
           cut_message :do while(icut > streams(strm)%max_record_length - &
                max(streams(strm)%icursor,streams(strm)%indent))
@@ -1221,7 +1214,7 @@ contains
     integer :: strm,unt
     character(len=max_field_length) :: lbl
 
-    unt=0
+    unt=DEFAULT_STREAM_ID
     if (present(unit)) unt=unit
     call get_stream(unt,strm)
 
@@ -1250,7 +1243,7 @@ contains
 
   subroutine yaml_map_i(mapname,mapvalue,label,advance,unit,fmt)
     implicit none
-    integer, intent(in) :: mapvalue
+    integer(kind=4), intent(in) :: mapvalue
     include 'yaml_map-inc.f90'
   end subroutine yaml_map_i
 
@@ -1306,7 +1299,7 @@ contains
 
   subroutine yaml_map_iv(mapname,mapvalue,label,advance,unit,fmt)
     implicit none
-    integer, dimension(:), intent(in) :: mapvalue
+    integer(kind=4), dimension(:), intent(in) :: mapvalue
     include 'yaml_map-arr-inc.f90'
   end subroutine yaml_map_iv
 
@@ -1351,7 +1344,7 @@ contains
 
     if (present(istat)) istat=0
 
-    if (unt==0) then
+    if (unt==DEFAULT_STREAM_ID) then
        !if there are no active streams activate them (to circumvent g95 bug)
        if (active_streams==0) call yaml_set_stream(record_length=92,istat=ierr)
        strm=default_stream
@@ -1970,7 +1963,7 @@ contains
        flowrite=flow
        default_flow=.false.
     end if
-    unt=0
+    unt=DEFAULT_STREAM_ID
     if (present(unit)) unt=unit
     verb=.false.
     if (present(verbatim)) verb=verbatim
@@ -2198,7 +2191,7 @@ contains
 
     flowrite=.false.
     if (present(flow)) flowrite=flow
-    unt=0
+    unt=DEFAULT_STREAM_ID
     if (present(unit)) unt=unit
     verb=.false.
     if (present(verbatim)) verb=verbatim

@@ -12,6 +12,7 @@ subroutine fillPcProjOnTheFly(PPD, Glr, iat, at, hx,hy,hz,startjorb,ecut_pc,   i
   use module_interfaces
   use module_base
   use module_types
+  use locregs, only: allocate_wfd,deallocate_wfd
   use module_abscalc
   implicit none
   type(pcproj_data_type),  intent(in) ::PPD
@@ -100,6 +101,7 @@ subroutine fillPawProjOnTheFly(PAWD, Glr, iat,  hx,hy,hz,kx,ky,kz,startjorb,   i
   use module_base
   use ao_inguess, only: atomic_info
   use module_types
+  use locregs, only: allocate_wfd,deallocate_wfd
   use module_abscalc
   implicit none
   type(pawproj_data_type),  intent(in) ::PAWD
@@ -196,6 +198,7 @@ subroutine createPcProjectorsArrays(iproc,n1,n2,n3,rxyz,at,orbs,&
      PPD, Glr)
   use module_base
   use module_types
+  use locregs, only: allocate_wfd,deallocate_wfd
   use module_abscalc
   use module_interfaces
   use gaussians, only: deallocate_gwf
@@ -474,6 +477,7 @@ subroutine createPawProjectorsArrays(iproc,n1,n2,n3,rxyz,at,orbs,&
   use module_interfaces
   use module_base
   use module_types
+  use locregs, only: allocate_wfd,deallocate_wfd
   use psp_projectors
   use module_abscalc
   implicit none
@@ -524,8 +528,8 @@ subroutine createPawProjectorsArrays(iproc,n1,n2,n3,rxyz,at,orbs,&
        &   iorbto_paw_nchannels, PAWD%iprojto_imatrixbeg )  
 
 
-  Gocc = f_malloc_ptr(PAWD%G%ncoeff,id='Gocc')
-  call to_zero(PAWD%G%ncoeff,Gocc)
+  Gocc = f_malloc0_ptr(PAWD%G%ncoeff,id='Gocc')
+  
 
   ! allocated  : gaenes, Gocc , PAWD%iorbtolr,iorbto_l, iorbto_m,  iorbto_ishell,iorbto_iexpobeg, iorbto_paw_nchannels
 

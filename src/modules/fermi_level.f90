@@ -112,13 +112,14 @@ module fermi_level
       integer :: internal_info
 
 
-      integer :: iproc, ierr
+!      integer :: iproc,ierr
 
       call f_routine(id='determine_fermi_level')
 
       ! Make sure that the bounds for the bisection are negative and positive
       charge_diff = sumn-f%target_charge
-      call mpi_comm_rank(mpi_comm_world, iproc, ierr)
+!iproc =mpirank(bigdft_mpi%mpi_comm)
+!      call mpi_comm_rank(mpi_comm_world, iproc, ierr)
       if (f%adjust_lower_bound) then
           if (charge_diff <= 0.d0) then
               ! Lower bound okay
@@ -222,6 +223,7 @@ module fermi_level
           real(kind=8),dimension(4,4) :: tmp_matrix
           real(kind=8),dimension(4) :: interpol_solution
           integer,dimension(4) :: ipiv
+          logical :: interpolation_nonsense
 
           !call yaml_map('sumn',sumn)
 
@@ -271,6 +273,17 @@ module fermi_level
               !    call yaml_newline()
               !    call yaml_map('zero of cubic polynomial',ef_interpol,fmt='(es10.3)')
               !end if
+              ! Sanity check: If the charge was too small, then new new guess
+              ! for the Fermi energy must be larger than the actual value, and
+              ! analogously if the charge was too large.
+              interpolation_nonsense = .false.
+              if (f%interpol_vector(ii)<0) then
+                  ! Charge too small, the new guess must be larger
+                  if (ef_interpol<ef) interpolation_nonsense = .true.
+              else if (f%interpol_vector(ii)>0) then
+                  ! Charge too large, the new guess must be smaller
+                  if (ef_interpol>ef) interpolation_nonsense = .true.
+              end if
           end if
         
           ! Calculate the new Fermi energy.
@@ -279,7 +292,8 @@ module fermi_level
               call yaml_mapping_open('Search new eF',flow=.true.)
           end if
           if (f%it_solver>=4 .and.  &
-              abs(sumn-f%target_charge) < f%ef_interpol_chargediff) then
+              abs(sumn-f%target_charge) < f%ef_interpol_chargediff .and. &
+              .not.interpolation_nonsense) then
               det=determinant(bigdft_mpi%iproc,4,f%interpol_matrix)
               if (f%verbosity >= 1 .and. bigdft_mpi%iproc==0) then
                   call yaml_map('det',det,fmt='(es10.3)')
@@ -293,6 +307,7 @@ module fermi_level
                   m = (f%interpol_vector(4)-f%interpol_vector(3))/(f%interpol_matrix(4,3)-f%interpol_matrix(3,3))
                   b = f%interpol_vector(4)-m*f%interpol_matrix(4,3)
                   ef = -b/m
+                  if (f%verbosity>=1 .and. bigdft_mpi%iproc==0) call yaml_map('method','linear interpolation')
               end if
           else
               ! Use mean value of bisection and secant method

@@ -24,6 +24,7 @@ module psp_projectors
   integer, parameter, public :: PSPCODE_PAW = 7
   integer, parameter, public :: PSPCODE_HGH_K = 10
   integer, parameter, public :: PSPCODE_HGH_K_NLCC = 12
+  integer,parameter,public :: NCPLX_MAX = 2
 
 
   !> Parameters identifying the different strategy for the application of a projector 
@@ -59,6 +60,13 @@ module psp_projectors
   end type nonlocal_psp_descriptors
 
 
+  type,public :: workarrays_projectors
+    real(wp),pointer,dimension(:,:,:,:) :: wprojx,wprojy,wprojz
+    real(wp),pointer,dimension(:) :: wproj
+    real(wp),pointer,dimension(:,:,:) :: work
+  end type workarrays_projectors
+
+
   !> describe the information associated to the non-local part of Pseudopotentials
   type, public :: DFT_PSP_projectors 
      logical :: on_the_fly             !< strategy for projector creation
@@ -76,12 +84,14 @@ module psp_projectors
      real(wp), dimension(:), pointer :: cproj
      !> same quantity after application of the hamiltonian
      real(wp), dimension(:), pointer :: hcproj
-  end type DFT_PSP_projectors
+     type(workarrays_projectors) :: wpr !< contains the workarrays for the projector creation end type DFT_PSP_projectors
+   end type DFT_PSP_projectors 
 
 
   public :: free_DFT_PSP_projectors,update_nlpsp,hgh_psp_application,DFT_PSP_projectors_null
   public :: nonlocal_psp_descriptors_null,bounds_to_plr_limits,set_nlpsp_to_wfd,pregion_size
   public :: deallocate_nonlocal_psp_descriptors
+  public :: workarrays_projectors_null, allocate_workarrays_projectors, deallocate_workarrays_projectors
 
 
 contains
@@ -136,6 +146,7 @@ contains
     nl%natoms=0
     nl%zerovol=100.0_gp
     call nullify_gaussian_basis_new(nl%proj_G)! = gaussian_basis_null()
+    call nullify_workarrays_projectors(nl%wpr)
     nullify(nl%proj)
     nullify(nl%pspd)
     nullify(nl%wpack)
@@ -187,6 +198,7 @@ contains
     end if
     nullify(nl%proj_G%rxyz)
     call gaussian_basis_free(nl%proj_G)
+    call deallocate_workarrays_projectors(nl%wpr)
     call f_free_ptr(nl%proj)
     call f_free_ptr(nl%wpack)
     call f_free_ptr(nl%scpr)
@@ -258,6 +270,7 @@ contains
 !!$            stop 'WRONG icoarse, false case' 
        end if
     end if
+
   end subroutine bounds_to_plr_limits
 
 
@@ -527,7 +540,7 @@ contains
     !calculate the size of the mask array
     call vcopy(wfd_lr%nseg_c+wfd_lr%nseg_f,&
          wfd_lr%keyglob(1,1),2,keyag_lin_cf(1),1)
-    call to_zero(wfd_p%nseg_c+wfd_p%nseg_f,nbsegs_cf(1))
+    call f_zero(nbsegs_cf)
     call mask_sizes(wfd_lr,wfd_p,keyag_lin_cf,nbsegs_cf,&
          tolr%nmseg_c,tolr%nmseg_f)
     !then allocate and fill it
@@ -655,7 +668,8 @@ contains
 
     eproj=0.0_gp
     !put to zero the array
-    call to_zero((wfd_p%nvctr_c+7*wfd_p%nvctr_f)*n_w*ncplx_w,psi_pack(1,1))
+    !call to_zero((wfd_p%nvctr_c+7*wfd_p%nvctr_f)*n_w*ncplx_w,psi_pack(1,1))
+    call f_zero(psi_pack)
 
     !here also the strategy can be considered
     call proj_dot_psi(n_p*ncplx_p,wfd_p,proj,n_w*ncplx_w,wfd_w,psi,&
@@ -858,6 +872,46 @@ contains
     end if
 
   end subroutine full_coefficients
+
+
+  pure function workarrays_projectors_null() result(wp)
+    implicit none
+    type(workarrays_projectors) :: wp
+    call nullify_workarrays_projectors(wp)
+  end function workarrays_projectors_null
+
+  pure subroutine nullify_workarrays_projectors(wp)
+    implicit none
+    type(workarrays_projectors),intent(out) :: wp
+    nullify(wp%wprojx)
+    nullify(wp%wprojy)
+    nullify(wp%wprojz)
+    nullify(wp%wproj)
+    nullify(wp%work)
+  end subroutine nullify_workarrays_projectors
+
+  subroutine allocate_workarrays_projectors(n1, n2, n3, wp)
+    implicit none
+    integer,intent(in) :: n1, n2, n3
+    type(workarrays_projectors),intent(inout) :: wp
+    integer,parameter :: nterm_max=20
+    integer,parameter :: nw=65536
+    wp%wprojx = f_malloc_ptr((/ 1.to.NCPLX_MAX, 0.to.n1, 1.to.2, 1.to.nterm_max /),id='wprojx')
+    wp%wprojy = f_malloc_ptr((/ 1.to.NCPLX_MAX, 0.to.n2, 1.to.2, 1.to.nterm_max /),id='wprojy')
+    wp%wprojz = f_malloc_ptr((/ 1.to.NCPLX_MAX, 0.to.n3, 1.to.2, 1.to.nterm_max /),id='wprojz')
+    wp%wproj = f_malloc_ptr(NCPLX_MAX*(max(n1,n2,n3)+1)*2,id='wprojz')
+    wp%work = f_malloc_ptr((/ 0.to.nw, 1.to.2, 1.to.2 /),id='work')
+  end subroutine allocate_workarrays_projectors
+
+  subroutine deallocate_workarrays_projectors(wp)
+    implicit none
+    type(workarrays_projectors),intent(inout) :: wp
+    call f_free_ptr(wp%wprojx)
+    call f_free_ptr(wp%wprojy)
+    call f_free_ptr(wp%wprojz)
+    call f_free_ptr(wp%wproj)
+    call f_free_ptr(wp%work)
+  end subroutine deallocate_workarrays_projectors
 
 end module psp_projectors
 

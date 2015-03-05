@@ -75,6 +75,15 @@ subroutine test_dictionaries0()
   !this had  a bug, now solved
   call set(dict1//'List',list_new((/.item. dict2,.item. '4',.item. '1.0'/)))
 
+  !search for a list element
+  call yaml_map('1.0 index',dict1//'List' .index. '1.0')
+
+  dict_tmp => list_new([.item. 'one',.item. '4',.item. '1.1'])
+  call yaml_map('1.1 index',dict_tmp .index. '1.1')
+  call dict_free(dict_tmp)
+  nullify(dict_tmp)
+
+
   !this works
 !!$  call add(dict1//'List',dict2)
 !!$  call add(dict1//'List',4)
@@ -143,6 +152,12 @@ subroutine test_dictionaries0()
 !stop
   dict1=>dict_new()
   call set(dict1//'hgrid',dict_new((/'test1' .is. '1','test2' .is. '2'/)))
+
+  !search for a dictionary item
+  call yaml_map('test2 index',dict1//'hgrid' .index. 'test2')
+  call yaml_map('hgrid index',dict1 .index. 'hgrid')
+  call yaml_comment('Improper testing of index function',hfill='TEST')
+
   call yaml_map('Length and size before',(/dict_len(dict1//'hgrid'),dict_size(dict1//'hgrid')/))
   call set(dict1//'hgrid'//0,'new')
 
@@ -162,6 +177,25 @@ subroutine test_dictionaries0()
 
   !test length and sizes of the dictionary
   call yaml_map('Length and size after',(/dict_len(dict_tmp),dict_size(dict_tmp)/))
+
+  call dict_free(dict1)
+
+  !test the values of the len after reaffectations
+  call dict_init(dict1)
+  call set(dict1//'key','scalar0')
+  call yaml_map('Entered dict',dict1)
+  call yaml_map('Length',dict_len(dict1//'key'))
+  call set(dict1//'key',['one','two','thr'])
+  call yaml_map('Entered dict',dict1)
+  call yaml_map('Length',dict_len(dict1//'key'))
+  !reaffectation
+  call set(dict1//'key','scalar')
+  call yaml_map('Entered dict',dict1)
+  call yaml_map('Length',dict_len(dict1//'key'))
+  !reaffectation again
+  call set(dict1//'key',['One','Two','Thr'])
+  call yaml_map('Entered dict',dict1)
+  call yaml_map('Length',dict_len(dict1//'key'))
 
   call dict_free(dict1)
 
@@ -329,10 +363,14 @@ subroutine test_dictionaries1()
    call yaml_map('Values retrieved from the dict',tmp_arr,fmt='(1pg12.5)')
 
    dict2=>find_key(dictA,'Stack')
+   call yaml_map('Lenght zero',dict_len(dict2))
+   call yaml_map('Dict extracted',dict2)
    call dict_remove_last(dict2)
+   call yaml_map('Lenght first',dict_len(dict2))
 
 
    call dict_remove_last(dict2)
+   call yaml_map('Lenght second',dict_len(dict2))
 
    !  call push(dict2,'Element')
    !  call append(dictA,dictA2)
@@ -424,8 +462,21 @@ subroutine test_dictionaries1()
    !call yaml_dict_dump2(dictA,verbatim=.true.)
    call yaml_dict_dump(dictA)
    call yaml_mapping_close()
-   
+   !test for scratching a dict
+   !zero1=>dict_new('Test1' .is. 'scratchToto')
+   !call set(dictA//'Test1','scratchToto')
+   !test of the copy
+   !zero1=>dict_new('Test1' .is. list_new(.item. 'scratchToto',.item. 'scratchTiti'))
+   !call yaml_map('To update dict',zero1)
+   !zero2 => dict_iter(zero1)
+   !call yaml_map('Key found',zero2)
+   !call dict_copy(dictA//'Test1',zero2)
+   !zero2 => dict_next(zero2)
+   !call yaml_map('Key found next',zero2)
+   !!call dict_update(dictA,zero1)
+   !call yaml_map('Scratched dict',dictA)
    call yaml_map('Keys of prepended dict',dict_keys(dictA))
+
 
    !perform an iterator on dictA
    dict_tmp=>dict_iter(dictA)
@@ -756,7 +807,7 @@ end subroutine test_dictionary_for_atoms
 !! and compares it to the usage of an array for doing similar things
 subroutine profile_dictionary_usage()
   use dictionaries
-  use dynamic_memory, only : f_time
+  use f_utils, only : f_time
   use yaml_output
   implicit none
   !local variables

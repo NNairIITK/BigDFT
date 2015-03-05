@@ -11,7 +11,10 @@ module public_keys
 
   public ! guess why?
 
-  character(len = *), parameter :: RADICAL_NAME = "radical"
+  character(len = *), parameter :: MODE_VARIABLES = "mode"
+  character(len = *), parameter :: METHOD_KEY = "method"
+  character(len = *), parameter :: RUN_NAME_KEY = "name"
+
   character(len = *), parameter :: POSINP = "posinp"
   character(len = *), parameter :: OCCUPATION = "occupation"
   character(len = *), parameter :: IG_OCCUPATION = "ig_occupation"
@@ -19,7 +22,7 @@ module public_keys
   character(len = *), parameter :: HGRIDS = "hgrids"
   character(len = *), parameter :: RMULT = "rmult"
   character(len = *), parameter :: IXC = "ixc"
-  character(len = *), parameter :: NCHARGE = "ncharge"
+  character(len = *), parameter :: NCHARGE = "qcharge"
   character(len = *), parameter :: ELECFIELD = "elecfield"
   character(len = *), parameter :: NSPIN = "nspin", MPOL = "mpol"
   character(len = *), parameter :: GNRM_CV = "gnrm_cv"
@@ -34,6 +37,7 @@ module public_keys
   character(len = *), parameter :: NORBV = "norbv", NVIRT = "nvirt"
   character(len = *), parameter :: NPLOT = "nplot"
   character(len = *), parameter :: DISABLE_SYM = "disablesym"
+  character(len = *), parameter :: SOLVENT = "solvent"
 
   character(len = *), parameter :: KPT_VARIABLES = "kpt"
   character(len = *), parameter :: KPT_METHOD = "method"
@@ -78,7 +82,7 @@ module public_keys
   character(len = *), parameter :: SPRINGS_K = "springs_k"
   character(len = *), parameter :: FIX_TOL = "fix_tol"
   character(len = *), parameter :: NIMG = "nimg"
-  !SBFGS parameters:
+  !SQNM parameters:
   character(len = *), parameter :: NHISTX = "nhistx"
   character(len = *), parameter :: BIOMODE = "biomode"
   character(len = *), parameter :: BETA_STRETCHX = "beta_stretchx"
@@ -86,6 +90,10 @@ module public_keys
   character(len = *), parameter :: CUTOFFRATIO = "cutoffratio"
   character(len = *), parameter :: STEEPTHRESH = "steepthresh"
   character(len = *), parameter :: TRUSTR = "trustr"
+
+  !Force field parameter keyword
+  character(len = *), parameter :: MM_PARAMSET = "mm_paramset" !for hard-coded parameter sets
+  character(len = *), parameter :: MM_PARAMFILE = "mm_paramfile" !for parameter sets given by file
 
 
   character(len = *), parameter :: MIX_VARIABLES = "mix"
@@ -132,7 +140,6 @@ module public_keys
   character(len = *), parameter :: INGUESS_GEOPT = "inguess_geopt"
   character(len = *), parameter :: STORE_INDEX = "store_index"
   character(len = *), parameter :: VERBOSITY = "verbosity"
-  character(len = *), parameter :: OUTDIR = "outdir"
   character(len = *), parameter :: PSP_ONFLY = "psp_onfly"
   character(len = *), parameter :: PDSYEV_BLOCKSIZE = "pdsyev_blocksize"
   character(len = *), parameter :: PDGEMM_BLOCKSIZE = "pdgemm_blocksize"
@@ -143,6 +150,7 @@ module public_keys
   character(len = *), parameter :: MIXING_AFTER_INPUTGUESS = "mixing_after_inputguess"
   character(len = *), parameter :: ITERATIVE_ORTHOGONALIZATION = "iterative_orthogonalization"
   character(len = *), parameter :: MULTIPOLE_PRESERVING = "multipole_preserving"
+  character(len = *), parameter :: MP_ISF = "mp_isf"
   character(len = *), parameter :: CHECK_SUMRHO = "check_sumrho"
   character(len = *), parameter :: CHECK_OVERLAP = "check_overlap"
   character(len = *), parameter :: EXPERIMENTAL_MODE = "experimental_mode"
@@ -160,6 +168,7 @@ module public_keys
   character(len = *), parameter :: LOEWDIN_CHARGE_ANALYSIS = "loewdin_charge_analysis"
   character(len = *), parameter :: CHECK_MATRIX_COMPRESSION = "check_matrix_compression"
   character(len = *), parameter :: CORRECTION_CO_CONTRA = "correction_co_contra"
+  character(len = *), parameter :: GPS_METHOD = "gps_method"
 
   !keys for linear input variables
   !level keys
@@ -209,12 +218,24 @@ module public_keys
   character(len=*), parameter :: IMETHOD_OVERLAP = "imethod_overlap"
   character(len=*), parameter :: EXTRA_SHELLS_KEY='empty_shells'
   character(len=*), parameter :: ENABLE_MATRIX_TASKGROUPS='enable_matrix_taskgroups'
+  character(len=*), parameter :: HAMAPP_RADIUS_INCR='hamapp_radius_incr'
+  character(len=*), parameter :: ADJUST_KERNEL_ITERATIONS='adjust_kernel_iterations'
 
   !> Parameters to avoid typos in dictionary keys
   character(len=*), parameter :: ASTRUCT_UNITS = 'units' 
   character(len=*), parameter :: ASTRUCT_CELL = 'cell' 
   character(len=*), parameter :: ASTRUCT_POSITIONS = 'positions' 
   character(len=*), parameter :: ASTRUCT_PROPERTIES = 'properties' 
+  character(len=*), parameter :: ASTRUCT_ATT_FROZEN = 'Frozen' 
+  character(len=*), parameter :: ASTRUCT_ATT_IGSPIN = 'IGSpin' 
+  character(len=*), parameter :: ASTRUCT_ATT_IGCHRG = 'IGChg' 
+  character(len=*), parameter :: ASTRUCT_ATT_IXYZ_1 = 'int_ref_atoms_1' 
+  character(len=*), parameter :: ASTRUCT_ATT_IXYZ_2 = 'int_ref_atoms_2' 
+  character(len=*), parameter :: ASTRUCT_ATT_IXYZ_3 = 'int_ref_atoms_3' 
+  character(len=*), parameter :: ASTRUCT_ATT_RXYZ_INT_1 = 'rxyz_int_atoms_1' 
+  character(len=*), parameter :: ASTRUCT_ATT_RXYZ_INT_2 = 'rxyz_int_atoms_2' 
+  character(len=*), parameter :: ASTRUCT_ATT_RXYZ_INT_3 = 'rxyz_int_atoms_3' 
+
   character(len=*), parameter :: GOUT_ENERGY = 'energy (Ha)' 
   character(len=*), parameter :: GOUT_FORCES = 'forces (Ha/Bohr)' 
   character(len=*), parameter :: FORMAT_KEY = 'format' 
@@ -231,7 +252,28 @@ module public_keys
   character(len=*), parameter :: ATOMIC_NUMBER = 'Atomic number'
   character(len=*), parameter :: ELECTRON_NUMBER = 'No. of Electrons'
   character(len=*), parameter :: POSINP_SOURCE = 'source'
-  
-
 
 end module public_keys
+
+!>module identifying constants that have to be used as enumerators
+!! they can be used to define f_enumerator types or directly as integers
+module public_enums
+  use f_utils
+  implicit none
+  
+  public
+  
+  type(f_enumerator), parameter :: LENNARD_JONES_RUN_MODE      =f_enumerator('LENNARD_JONES_RUN_MODE',-1000)
+  type(f_enumerator), parameter :: LENOSKY_SI_CLUSTERS_RUN_MODE=f_enumerator('LENOSKY_SI_CLUSTERS_RUN_MODE',-999)
+  type(f_enumerator), parameter :: LENOSKY_SI_BULK_RUN_MODE    =f_enumerator('LENOSKY_SI_BULK_RUN_MODE',-998)
+  type(f_enumerator), parameter :: AMBER_RUN_MODE              =f_enumerator('AMBER_RUN_MODE',-997)
+  type(f_enumerator), parameter :: MORSE_BULK_RUN_MODE         =f_enumerator('MORSE_BULK_RUN_MODE',-996)
+  type(f_enumerator), parameter :: MORSE_SLAB_RUN_MODE         =f_enumerator('MORSE_SLAB_RUN_MODE',-995)
+  type(f_enumerator), parameter :: QM_RUN_MODE                 =f_enumerator('QM_RUN_MODE',-994)
+  
+end module public_enums
+
+
+
+
+

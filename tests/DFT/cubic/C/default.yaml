@@ -2,7 +2,7 @@
    hgrids: [0.45, 0.45, 0.45] #                   grid spacing in the three directions (bohr)
    rmult: [5., 8.] #                              c(f)rmult*radii_cf(:,1(2))=coarse(fine) atom-basec radius
    ixc                                 : 1 #      exchange-correlation parameter (LDA=1,PBE=11)
-   ncharge                             : 0 #      charge of the system
+   qcharge                             : 0 #      charge of the system
    elecfield: [0., 0., 0.] #                      electric fielc (Ex,Ey,Ez)
    nspin                               : 1 #      spin polarization
    mpol                                : 0 #      total magnetic moment

@@ -271,7 +271,6 @@ subroutine IonicEnergyandForces(iproc,nproc,dpbox,at,elecfield,&
         rloc=at%psppar(0,0,ityp)
         charge=real(at%nelpsp(ityp),gp)/(2.0_gp*pi*sqrt(2.0_gp*pi)*rloc**3)
         prefactor=real(at%nelpsp(ityp),gp)/(2.0_gp*pi*sqrt(2.0_gp*pi)*rloc**5)
-        cutoff=10.0_gp*rloc
 
         !calculate the self energy of the isolated bc
         eself=eself+real(at%nelpsp(ityp),gp)**2/rloc
@@ -281,7 +280,7 @@ subroutine IonicEnergyandForces(iproc,nproc,dpbox,at,elecfield,&
 
      !if (nproc==1) 
      !print *,'iproc,eself',iproc,eself
-     call to_zero(n1i*n2i*n3pi,pot_ion(1))
+     call f_zero(n1i*n2i*n3pi,pot_ion(1))
 
      if (n3pi >0 ) then
         !then calculate the hartree energy and forces of the charge distributions
@@ -462,6 +461,115 @@ subroutine IonicEnergyandForces(iproc,nproc,dpbox,at,elecfield,&
 END SUBROUTINE IonicEnergyandForces
 
 
+!> calculates the value of the dielectric funnction for a smoothed cavity 
+!! given a set of centres and radii.
+!! Need the epsilon0 as well as the radius of the cavit and its smoothness
+subroutine epsilon_rigid_cavity(geocode,ndims,hgrids,nat,rxyz,radii,epsilon0,delta,eps)
+  use f_utils
+  implicit none
+  character(len=1), intent(in) :: geocode !< @copydoc poisson_solver::doc::geocode
+  integer, intent(in) :: nat !< number of centres defining the cavity
+  real(kind=8), intent(in) :: epsilon0 !< dielectric constant of th solvent
+  real(kind=8), intent(in) :: delta !< smoothness factor of the cavity
+  integer, dimension(3), intent(in) :: ndims   !< dimensions of the simulation box
+  real(kind=8), dimension(3), intent(in) :: hgrids !< grid spacings
+  real(kind=8), dimension(nat), intent(in) :: radii !< radii of each of the atoms
+  !> position of all the atoms in the grid coordinates
+  real(kind=8), dimension(3,nat), intent(in) :: rxyz
+  real(kind=8), dimension(ndims(1),ndims(2),ndims(3)), intent(out) :: eps !< dielectric function
+  !local variables
+  logical :: perx,pery,perz
+  integer :: i1,i2,i3,iat,nbl1,nbl2,nbl3,nbr1,nbr2,nbr3,unt
+  real(kind=8) :: r2,x,y2,z2,d2,y,z,eps_min,eps1
+  !  real(kind=8), dimension(3) :: deps
+
+  !buffers associated to the geocode
+  !conditions for periodicity in the three directions
+  perx=(geocode /= 'F')
+  pery=(geocode == 'P')
+  perz=(geocode /= 'F')
+
+  call ext_buffers(perx,nbl1,nbr1)
+  call ext_buffers(pery,nbl2,nbr2)
+  call ext_buffers(perz,nbl3,nbr3)
+
+
+  do i3=1,ndims(3)
+     z=hgrids(3)*(i3-1-nbl3)
+     z2=z*z
+     do i2=1,ndims(2)
+        y=hgrids(2)*(i2-1-nbl2)
+        y2=y*y
+        do i1=1,ndims(1)
+           x=hgrids(1)*(i1-1-nbl1)
+           r2=x*x+y2+z2
+           !choose the closest atom
+           eps_min=1.d100
+           do iat=1,nat
+              d2=(x-rxyz(1,iat))**2+(y-rxyz(2,iat))**2+(z-rxyz(3,iat))**2
+              if (d2.eq.0.d0) d2=1.0d-30
+              eps1=epsl(sqrt(d2),radii(iat),delta,epsilon0)
+              if (eps1< eps_min) then
+                 !deps(1)=depsoeps(sqrt(d2),radii(iat),delta,epsilon0)*(x-rxyz(1,iat))/sqrt(d2)
+                 !deps(2)=depsoeps(sqrt(d2),radii(iat),delta,epsilon0)*(y-rxyz(2,iat))/sqrt(d2)
+                 !deps(3)=depsoeps(sqrt(d2),radii(iat),delta,epsilon0)*(z-rxyz(3,iat))/sqrt(d2)
+                 eps_min=eps1
+              end if
+              if (abs(eps_min-1.d0) < epsilon(1.d0)) exit
+           end do
+           if (nat==0) then
+              eps_min=1.d0
+              !deps=0.d0
+           end if
+           eps(i1,i2,i3)=eps_min
+           !dlogeps(1:3,i1,i2,i3)=deps(1:3)
+        end do
+     end do
+  end do
+
+  unt=f_get_free_unit(21)
+  call f_open_file(unt,file='epsilon.dat')
+  i1=1!n03/2
+  do i2=1,ndims(2)
+     do i3=1,ndims(3)
+        write(unt,'(2(1x,I4),2(1x,e14.7))')i2,i3,eps(i1,i2,i3),eps(ndims(1)/2,i2,i3)
+     end do
+  end do
+  call f_close(unt)
+
+  unt=f_get_free_unit(22)
+  call f_open_file(unt,file='epsilon_line.dat')
+  do i2=1,ndims(2)
+   write(unt,'(1x,I8,1(1x,e22.15))')i2,eps(ndims(1)/2,i2,ndims(3)/2)
+  end do
+  call f_close(unt)
+
+  contains
+
+    pure function epsl(r,rc,delta,epsilon0)
+      implicit none
+      real(kind=8), intent(in) :: r,rc,delta,epsilon0
+      real(kind=8) :: epsl
+      !local variables
+      real(kind=8) :: d
+
+      d=(r-rc)/delta
+      epsl=0.5d0*(epsilon0-1.d0)*(erf(d)+1.d0)+1.d0
+    end function epsl
+
+    pure function depsoeps(r,rc,delta,epsilon0)
+      implicit none
+      real(kind=8), intent(in) :: r,rc,delta,epsilon0
+      real(kind=8) :: depsoeps
+      !local variables
+      real(kind=8) :: d
+
+      d=(r-rc)/delta
+      depsoeps=(epsilon0-1.d0)/delta*exp(-d**2)/epsl(r,rc,delta,epsilon0)
+    end function depsoeps
+ end subroutine epsilon_rigid_cavity
+
+
 subroutine createEffectiveIonicPotential(iproc, nproc, verb, in, atoms, rxyz, shift, &
      & Glr, hxh, hyh, hzh, rhopotd, pkernel, pot_ion, elecfield, psoffset)
   use module_base
@@ -553,14 +661,14 @@ subroutine createIonicPotential(geocode,iproc,nproc,verb,at,rxyz,&
   call timing(iproc,'CrtLocPot     ','ON')
 
   !initialize the work arrays needed to integrate with isf
-  if (at%multipole_preserving) call initialize_real_space_conversion()
+  if (at%multipole_preserving) call initialize_real_space_conversion(isf_m=at%mp_isf)
 
   ! Ionic charge (must be calculated for the PS active processes)
   rholeaked=0.d0
   ! Ionic energy (can be calculated for all the processors)
 
   !Creates charge density arising from the ionic PSP cores
-  call to_zero(n1i*n2i*n3pi,pot_ion(1))
+  call f_zero(n1i*n2i*n3pi,pot_ion(1))
 
   !conditions for periodicity in the three directions
   perx=(geocode /= 'F')
@@ -582,7 +690,13 @@ subroutine createIonicPotential(geocode,iproc,nproc,verb,at,rxyz,&
         rloc=at%psppar(0,0,ityp)
         rlocsq=rloc**2
         charge=real(at%nelpsp(ityp),kind=8)/(2.d0*pi*sqrt(2.d0*pi)*rloc**3)
+        !cutoff of the range
+
         cutoff=10.d0*rloc
+        if (at%multipole_preserving) then
+           !We want to have a good accuracy of the last point rloc*10
+           cutoff=cutoff+max(hxh,hyh,hzh)*real(at%mp_isf,kind=gp)
+        end if
 
         isx=floor((rx-cutoff)/hxh)
         isy=floor((ry-cutoff)/hyh)
@@ -751,9 +865,9 @@ subroutine createIonicPotential(geocode,iproc,nproc,verb,at,rxyz,&
      if (check_potion) then
         !if (iproc == 0) write(*,'(1x,a)',advance='no') 'Check the ionic potential...'
           
-        potion_corr = f_malloc(n1i*n2i*n3pi,id='potion_corr')
+        potion_corr = f_malloc0(n1i*n2i*n3pi,id='potion_corr')
 
-        call to_zero(n1i*n2i*n3pi,potion_corr)
+        !call to_zero(n1i*n2i*n3pi,potion_corr)
 
         !calculate pot_ion with an explicit error function to correct in the case of big grid spacings
         !for the moment works only in the isolated BC case
@@ -821,6 +935,10 @@ subroutine createIonicPotential(geocode,iproc,nproc,verb,at,rxyz,&
         rloc=at%psppar(0,0,ityp)
         rlocsq=rloc**2
         cutoff=10.d0*rloc
+        if (at%multipole_preserving) then
+           !We want to have a good accuracy of the last point rloc*10
+           cutoff=cutoff+max(hxh,hyh,hzh)*real(16,kind=gp)
+        end if
 
         isx=floor((rx-cutoff)/hxh)
         isy=floor((ry-cutoff)/hyh)
@@ -1202,7 +1320,7 @@ subroutine CounterIonPotential(geocode,iproc,nproc,in,shift,&
   use public_keys, only: IG_OCCUPATION
   use dictionaries
   use yaml_output
-  use module_atoms, only: deallocate_atoms_data,nullify_atoms_data,atomic_data_set_from_dict
+  use module_atoms, only: deallocate_atoms_data,atomic_data_set_from_dict,atoms_data_null
   use gaussians, only: initialize_real_space_conversion, finalize_real_space_conversion,mp_exp
   implicit none
   character(len=1), intent(in) :: geocode !< @copydoc poisson_solver::doc::geocode
@@ -1232,14 +1350,14 @@ subroutine CounterIonPotential(geocode,iproc,nproc,in,shift,&
   call timing(iproc,'CrtLocPot     ','ON')
   
   !initialize the work arrays needed to integrate with isf
-  if (at%multipole_preserving) call initialize_real_space_conversion()
+  if (at%multipole_preserving) call initialize_real_space_conversion(isf_m=at%mp_isf)
 
   if (iproc.eq.0) then
      write(*,'(1x,a)')&
           '--------------------------------------------------- Counter Ionic Potential Creation'
   end if
 
-  call nullify_atoms_data(at)
+  at = atoms_data_null()
   !read the positions of the counter ions from file
   call dict_init(dict)
   call astruct_file_merge_to_dict(dict, "posinp", 'posinp_ci')
@@ -1264,7 +1382,7 @@ subroutine CounterIonPotential(geocode,iproc,nproc,in,shift,&
   ! Ionic energy (can be calculated for all the processors)
 
   !Creates charge density arising from the ionic PSP cores
-  call to_zero(grid%n1i*grid%n2i*n3pi,pot_ion(1))
+  call f_zero(grid%n1i*grid%n2i*n3pi,pot_ion(1))
 
 
   !conditions for periodicity in the three directions
@@ -1292,6 +1410,10 @@ subroutine CounterIonPotential(geocode,iproc,nproc,in,shift,&
         rloc=at%psppar(0,0,ityp)
         charge=real(at%nelpsp(ityp),kind=8)/(2.d0*pi*sqrt(2.d0*pi)*rloc**3)
         cutoff=10.d0*rloc
+        if (at%multipole_preserving) then
+           !We want to have a good accuracy of the last point rloc*10
+           cutoff=cutoff+max(hxh,hyh,hzh)*real(16,kind=gp)
+        end if
 
         isx=floor((rx-cutoff)/hxh)
         isy=floor((ry-cutoff)/hyh)
@@ -1381,9 +1503,9 @@ subroutine CounterIonPotential(geocode,iproc,nproc,in,shift,&
      if (check_potion) then
         !if (iproc == 0) write(*,'(1x,a)',advance='no') 'Check the ionic potential...'
           
-        potion_corr = f_malloc(grid%n1i*grid%n2i*n3pi,id='potion_corr')
+        potion_corr = f_malloc0(grid%n1i*grid%n2i*n3pi,id='potion_corr')
 
-        call to_zero(grid%n1i*grid%n2i*n3pi,potion_corr)
+        !call to_zero(grid%n1i*grid%n2i*n3pi,potion_corr)
 
         !calculate pot_ion with an explicit error function to correct in the case of big grid spacings
         !for the moment works only in the isolated BC case

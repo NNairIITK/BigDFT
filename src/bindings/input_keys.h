@@ -102,6 +102,7 @@ static const gchar* _input_keys[] = {
   "outdir",
   "psp_onfly",
   "multipole_preserving",
+  "mp_isf",
   "pdsyev_blocksize",
   "pdgemm_blocksize",
   "maxproc_pdsyev",

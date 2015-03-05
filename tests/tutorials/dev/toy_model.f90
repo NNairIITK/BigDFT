@@ -67,7 +67,7 @@ program wvl
    call user_dict_from_files(user_inputs, 'input', 'posinp', bigdft_mpi)
    call inputs_from_dict(inputs, atoms, user_inputs)
    if (iproc == 0) then
-      call print_general_parameters(inputs,atoms)
+      call print_general_parameters(inputs,atoms,'input','posinp')
    end if
    call dict_free(user_inputs)
    GPU%OCLconv = .false.
@@ -112,7 +112,7 @@ program wvl
 
   ! Read wavefunctions from disk and store them in psi.
   allocate(orbs%eval(orbs%norb*orbs%nkpts))
-  call to_zero(orbs%norb*orbs%nkpts,orbs%eval(1))
+  call f_zero(orbs%eval)
   allocate(psi(max(orbs%npsidim_orbs,orbs%npsidim_comp)))
   allocate(rxyz_old(3, atoms%astruct%nat))
   call readmywaves(iproc,"data/wavefunction",WF_FORMAT_PLAIN,orbs,Lzd%Glr%d%n1,Lzd%Glr%d%n2,Lzd%Glr%d%n3, &
@@ -259,7 +259,7 @@ program wvl
   pkernel=pkernel_init(.true.,iproc,nproc,0,&
        atoms%astruct%geocode,(/Lzd%Glr%d%n1i,Lzd%Glr%d%n2i,Lzd%Glr%d%n3i/),&
        (/inputs%hx / 2._gp,inputs%hy / 2._gp,inputs%hz / 2._gp/),16)
-  call pkernel_set(pkernel,.false.)
+  call pkernel_set(pkernel,verbose=.false.)
   !call createKernel(iproc,nproc,atoms%astruct%geocode,&
   !     (/Lzd%Glr%d%n1i,Lzd%Glr%d%n2i,Lzd%Glr%d%n3i/), &
   !     (/inputs%hx / 2._gp,inputs%hy / 2._gp,inputs%hz / 2._gp/)&
@@ -302,9 +302,8 @@ program wvl
   deallocate(psi)
 
   call deallocate_comms(comms)
-  call deallocate_wfd(Lzd%Glr%wfd)
-
-  call deallocate_bounds(Lzd%Glr%geocode,Lzd%Glr%hybrid_on,Lzd%Glr%bounds)
+  
+  call deallocate_locreg_descriptors(Lzd%Glr)
 
   call deallocate_Lzd_except_Glr(Lzd)
   !deallocate(Lzd%Glr%projflg)

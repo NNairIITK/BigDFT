@@ -63,13 +63,15 @@ DYN_INCLUDES =  deallocate-inc.f90 allocate-inc.f90 \
 	deallocate-profile-inc.f90 allocate-profile-inc.f90 \
 	malloc_templates-inc.f90 \
 	deallocate-multiple-inc.f90 deallocate-multiple-inc-ptr.f90 \
-	f_memcpy-inc.f90 f_memcpy-base-inc.f90
+	f_memcpy-inc.f90 f_memcpy-base-inc.f90 f_maxdiff-base-inc.f90 \
+	allocate-ptr-inc.f90
 
 F_MALLOC_INCLUDES = f_malloc-inc.f90 f_malloc-extra-inc.f90 \
 	f_malloc-base-inc.f90 f_malloc-null-inc.f90 \
 	f_malloc-total-inc.f90 f_malloc-bound-inc.f90 \
 	f_malloc-bounds-inc.f90 f_malloc-simple-inc.f90 \
-	f_malloc-ptr-inc.f90 f_malloc-check-inc.f90
+	f_malloc-ptr-inc.f90 f_malloc-check-inc.f90 \
+	f_malloc-null-ptr-inc.f90
 
 YAML_INCLUDES = yaml_map-inc.f90 yaml_map-arr-inc.f90 \
 	yaml_map-mat-inc.f90 yaml_open-inc.f90
@@ -149,14 +151,14 @@ yaml_output.o : dictionaries.o f_utils.o $(YAML_INCLUDES)
 yaml_parse.o : dictionaries.o yaml_output.o
 #error_handling.o: dictionaries.o callbacks.o yaml_output.o $(ERR_INCLUDES)
 f_malloc.o: dictionaries.o $(F_MALLOC_INCLUDES)
-dynamic_memory.o: getadd.o yaml_strings.o yaml_output.o yaml_parse.o mem_profiling.o f_malloc.o $(DYN_INCLUDES)
-mem_profiling.o: yaml_output.o $(mpi_include) yaml_parse.o
-f_lib_highlev.o: dictionaries.o yaml_output.o dynamic_memory.o yaml_parse.o time.o
+dynamic_memory.o: getadd.o yaml_strings.o yaml_output.o yaml_parse.o mem_profiling.o f_malloc.o f_utils.o $(DYN_INCLUDES)
+mem_profiling.o: yaml_output.o $(mpi_include) yaml_parse.o yaml_strings.o
+f_lib_highlev.o: dictionaries.o yaml_output.o dynamic_memory.o yaml_parse.o time.o f_utils.o
 f_utils.o: dictionaries.o yaml_strings.o
 getadd.o: yaml_strings.o $(GETADD_INCLUDES)
 $(flush_object): yaml_output.o dictionaries.o
 
-time.o: $(NOOMP_INCLUDES) dynamic_memory.o $(mpi_include) #this is temporary, mpif.h should only be in wrappers
+time.o: $(NOOMP_INCLUDES) dynamic_memory.o f_utils.o $(mpi_include) #this is temporary, mpif.h should only be in wrappers
 
 #Fake mpif.h for serial compilation
 mpif.h:
@@ -174,6 +176,7 @@ mpif.h:
 
 # Copy modules in a common include directory.
 all: all-am insmod
+install: install-am insmod
 check: check-am insmod
 insmod: $(modules)
 	test -e "$(top_builddir)/includes" || $(INSTALL) -d -m 755 $(top_builddir)/includes
