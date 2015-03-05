@@ -813,7 +813,6 @@ subroutine foe(iproc, nproc, tmprtr, &
           ! Local variables
           real(kind=8),dimension(:,:),pointer :: inv_ovrlpp, tempp
           real(kind=8),dimension(:),pointer :: inv_ovrlpp_new, tempp_new
-          integer,dimension(:,:),pointer :: onedimindices
           real(kind=8),dimension(:),allocatable :: inv_ovrlp_compr_seq, kernel_compr_seq
           integer,dimension(:,:,:),allocatable :: istindexarr
           integer :: nout, nseq
