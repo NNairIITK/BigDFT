@@ -2567,6 +2567,7 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
       call f_free_ptr(KSwfn%hpsi)
       
       ! Orthogonalize
+      if (nproc > 1) call f_free_ptr(KSwfn%psit)
       call first_orthon(iproc, nproc, KSwfn%orbs, KSwfn%Lzd, KSwfn%comms, &
            & KSwfn%psi, KSwfn%hpsi, KSwfn%psit, KSwfn%orthpar, KSwfn%paw)
    end if
