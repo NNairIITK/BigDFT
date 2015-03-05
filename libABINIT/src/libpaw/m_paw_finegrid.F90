@@ -1130,8 +1130,8 @@ subroutine pawrfgd_wvl(geocode,hh,ifftsph,i3s,n1,n1i,n2,n2i,n3,n3pi,&
        if (j3>=i3s.and.j3<=i3s+n3pi-1.and.goy.and.gox) then
 
 !        Select matching points
-          !if (r2<=r2cut) then
-          if (abs(xx) <= rcut .and. abs(yy) <= rcut .and. abs(zz) <= rcut) then
+          if (r2<=r2cut) then
+          !if (abs(xx) <= rcut .and. abs(yy) <= rcut .and. abs(zz) <= rcut) then
            ind=j1+1+nbl1+(j2+nbl2)*n1i+(j3-i3s)*n1i*n2i
            nfgd=nfgd+1
            rfgd_tmp(:,nfgd)=[xx,yy,zz]
