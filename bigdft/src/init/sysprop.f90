@@ -308,6 +308,10 @@ subroutine system_initialization(iproc,nproc,dump,inputpsi,input_wf_format,dry_r
        in%frmult,in%frmult,Lzd%hgrids(1),Lzd%hgrids(2),&
        Lzd%hgrids(3),dry_run,nlpsp,init_projectors_completely)
   if (iproc == 0 .and. dump) call print_nlpsp(nlpsp)
+  if (iproc == 0 .and. .not. nlpsp%on_the_fly .and. .false.) then
+     call writemyproj("proj",WF_FORMAT_BINARY,orbs,Lzd%hgrids(1),Lzd%hgrids(2),&
+       Lzd%hgrids(3),atoms,rxyz,nlpsp)
+  end if
   !the complicated part of the descriptors has not been filled
   if (dry_run) then
      call f_release_routine()
