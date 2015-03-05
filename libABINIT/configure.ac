@@ -52,12 +52,26 @@ AC_ARG_WITH(internal-libpaw, AS_HELP_STRING([--with-internal-libpaw],
             ac_internal_libpaw=$withval, ac_internal_libpaw="yes")
 AM_CONDITIONAL(BUILD_LIBPAW, test x"$ac_internal_libpaw" = x"yes")
 
+AC_ARG_WITH(libpaw-host, AS_HELP_STRING([--with-libpaw-host],
+                                        [choice of low-level for LibPAW (default = plain Fortran).]),
+            ac_libpaw_host=$withval, ac_libpaw_host="BigDFT")
+
+LIBPAW_HOST_DEFS=""
 if test x"$ac_internal_libpaw" = x"yes" ; then
   dnl FLib detection for libPAW.
   AX_FLIB()
   dnl libXC detection for libPAW.
   AX_LIBXC()
+  dnl Choose the libPAW host mode.
+  AC_MSG_CHECKING([for libPAW host macro])
+  case "$ac_libpaw_host" in
+    bigdft | BigDFT) LIBPAW_HOST_DEFS="-DHAVE_LIBPAW_BIGDFT";;
+    abinit | ABINIT) LIBPAW_HOST_DEFS="-DHAVE_LIBPAW_AINIT";;
+    *) LIBPAW_HOST_DEFS="";;
+  esac
+  AC_MSG_RESULT([$LIBPAW_HOST_DEFS])
 fi
+AC_SUBST(LIBPAW_HOST_DEFS)
 
 moduledir=${includedir}
 AC_SUBST(moduledir)

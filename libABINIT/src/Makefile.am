@@ -28,7 +28,7 @@ include $(srcdir)/libpaw/libpaw.src
 libpaw_files_1 = $(LIBPAW_SRC_FILES:%.h=libpaw/%.h)
 libpaw_files = $(libpaw_files_1:%.F90=libpaw/%.F90)
 ##Activate libPAW BigDFT sections
-LIBPAW_DEFS += -DHAVE_LIBPAW_BIGDFT -DHAVE_DFT_LIBXC
+LIBPAW_DEFS += @LIBPAW_HOST_DEFS@ -DHAVE_DFT_LIBXC
 ##  Deactivate libXC libPAW code sections (for testing purpose)
 ##  LIBPAW_DEFS += -UHAVE_DFT_LIBXC
 ##  LIBXC_DEFS =
