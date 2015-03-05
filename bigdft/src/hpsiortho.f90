@@ -3291,13 +3291,14 @@ subroutine paw_compute_dij(paw, at, denspot, vxc, e_paw, e_pawdc, compch_sph)
      !      neutral systems)
      e_pawdc = e_pawdc - SUM(vpotzero) * sum(at%nelpsp) + vpotzero(2) * charge
   end if
-  !call yaml_map('PAW energies', (/ e_paw, e_pawdc /))
   if (bigdft_mpi%iproc == 0) then
+     call yaml_newline()
+     call yaml_map('PAW energies', (/ e_paw, e_pawdc /))
      call yaml_map('Compensation charge in spheres', compch_sph)
+     call yaml_newline()
   end if
 
   if (denspot%rhov_is /= KS_POTENTIAL) stop "rhov must be KS pot here."
-  call yaml_newline()
   call pawdij(cplex, enunit, gprimd, ipert, size(paw%pawrhoij), at%astruct%nat, nfft, nfftot, &
        & denspot%dpbox%nrhodim, at%astruct%ntypes, paw%paw_an, paw%paw_ij, at%pawang, &
        & paw%pawfgrtab, pawprtvol, at%pawrad, paw%pawrhoij, pawspnorb, at%pawtab, pawxcdev, &
@@ -3343,6 +3344,7 @@ subroutine paw_compute_rhoij(paw, orbs, atoms, denspot)
   integer, pointer  :: sym(:,:,:), indsym(:,:,:)
   integer, pointer  :: symAfm(:)
   real(gp), pointer :: transNon(:,:)
+!!$  real(gp), dimension(:,:), allocatable :: nhat
 
   !Build and initialize unpacked rhoij (to be computed here)
   call pawrhoij_init_unpacked(paw%pawrhoij)
@@ -3400,7 +3402,7 @@ subroutine paw_compute_rhoij(paw, orbs, atoms, denspot)
      sym(3,3,1) = 1
      indsym = f_malloc_ptr((/ 4, nsym, atoms%astruct%nat /), id = "indsym")
      allocate(symObj)
-     symObj%xred = f_malloc_ptr((/ 3, atoms%astruct%nat /), id = "xred")
+     symObj%xred = f_malloc0_ptr((/ 3, atoms%astruct%nat /), id = "xred")
   end if
 
   !Get the symmetry matrices in terms of reciprocal basis
@@ -3410,14 +3412,21 @@ subroutine paw_compute_rhoij(paw, orbs, atoms, denspot)
   end do
 
   if (denspot%rhov_is /= ELECTRONIC_DENSITY) stop "rhov must be density here."
-  call yaml_newline()
+  if (bigdft_mpi%iproc == 0) then
+     call yaml_newline()
+  end if
+!!$  nhat = f_malloc((/ nfft, denspot%dpbox%nrhodim /), id = "nhat")
   call abi_pawmkrho(compch_fft,cplex,symObj%gprimd,idir,indsym,ipert,&
 &          nfft, nfft / 8, ngfft, &
 &          size(paw%pawrhoij),atoms%astruct%nat,denspot%dpbox%nrhodim,nsym,atoms%astruct%ntypes, &
 & 0,atoms%pawang,paw%pawfgrtab,pawprtvol,&
 &          paw%pawrhoij,paw%pawrhoij,&
 &          atoms%pawtab,qphon,denspot%rhov,denspot%rhov,denspot%rhov,&
-& symObj%rprimd,symAfm,symrec,atoms%astruct%iatype,ucvol,usewvl,symObj%xred)
+& symObj%rprimd,symAfm,symrec,atoms%astruct%iatype,ucvol,usewvl,symObj%xred)!,&
+!!$& pawnhat = nhat)
+!!$  call plot_density(bigdft_mpi%iproc,bigdft_mpi%nproc,"nhat.cube",atoms,&
+!!$       & symObj%xred,denspot%dpbox,denspot%dpbox%nrhodim,nhat)
+!!$  call f_free(nhat)
 
   call f_free(symrec)
 
