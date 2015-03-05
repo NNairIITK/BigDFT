@@ -517,28 +517,31 @@ subroutine filename_of_iorb(lbin,filename,orbs,iorb,ispinor,filename_out,iorb_ou
 
   !calculate the actual orbital value
   iorb_out=iorb+orbs%isorb-(ikpt-1)*orbs%norb
-  !print *,"iorb_out (filename_of_iorb) = ", iorb_out
-  !print *,"ikpt (filename_of_iorb) = ", ikpt
-  !print *,"orbs%isorb (filename_of_iorb) = ", orbs%isorb
+  print *,"iorb_out (filename_of_iorb) = ", iorb_out
+  print *,"ikpt (filename_of_iorb) = ", ikpt
+  print *,"orbs%isorb (filename_of_iorb) = ", orbs%isorb
 
   if(present(iiorb)) iorb_out = iiorb
   !purge the value from the spin sign
   if (spins==-1.0_gp) iorb_out=iorb_out-orbs%norbu
+  write(*,*) 'iorb_out',iorb_out
 
   !value of the orbital 
   write(f4,'(a1,i4.4)') "b", iorb_out
+  write(*,*) 'iorb_out',iorb_out
 
   !complete the information in the name of the orbital
   completename='-'//f3//'-'//spintype//realimag
+  write(*,*) 'completename, lbin',completename, lbin
   if (lbin) then
      filename_out = trim(filename)//completename//".bin."//f4
      !print *,'complete name <',trim(filename_out),'> end'
  else
      filename_out = trim(filename)//completename//"."//f4
-     !print *,'complete name <',trim(filename_out),'> end'
+     print *,'complete name <',trim(filename_out),'> end'
  end if
 
-  !print *,'filename: ',filename_out
+  print *,'filename: ',filename_out
 end subroutine filename_of_iorb
 
 
@@ -565,8 +568,10 @@ subroutine open_filename_of_iorb(unitfile,lbin,filename,orbs,iorb,ispinor,iorb_o
      !restore previous behaviour even though the wannier construction can be compromised
      !call filename_of_iorb(lbin,filename,orbs,iorb,ispinor,filename_out,iorb_out) 
   else
+     write(*,*) 'call filename_of_iorb, lbin', lbin
      call filename_of_iorb(lbin,filename,orbs,iorb,ispinor,filename_out,iorb_out)
   end if
+  write(*,*) 'call f_open_file'
   call f_open_file(unitfile,file=filename_out,binary=lbin)
 !!$  if (lbin) then
 !!$     open(unit=unitfile,file=trim(filename_out),status='unknown',form="unformatted")

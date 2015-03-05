@@ -1180,6 +1180,8 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
       call build_ks_orbitals(iproc, nproc, tmb, KSwfn, at, rxyz, denspot, GPU, &
                energs, nlpsp, input, norder_taylor,&
                energy, energyDiff, energyold)
+      !call write_orbital_density(iproc, .false., input%lin%plotBasisFunctions, 'KS', &
+      !     KSwfn%orbs%npsidim_orbs, KSwfn%psi, KSwfn%orbs, KSwfn%lzd, at)
   end if
 
 

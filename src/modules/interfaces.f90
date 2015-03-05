@@ -4198,5 +4198,37 @@ end subroutine build_ks_orbitals_laura_tmp
           real(kind=8),dimension(smat%smmm%nvctrp),intent(in),optional :: cmatp
         end subroutine check_accur_overlap_minus_one_sparse_new
 
+        subroutine plot_wf(units_provided,orbname,nexpo,at,factor,lr,hx,hy,hz,rxyz,psi, &
+                   unit0_, unitx_, unity_, unitz_)
+          use module_base
+          use locregs, only: locreg_descriptors
+          use module_types, only: atoms_data
+          implicit none
+          logical,intent(in) :: units_provided
+          character(len=*) :: orbname
+          integer, intent(in) :: nexpo
+          real(dp), intent(in) :: factor
+          real(gp), intent(in) :: hx,hy,hz
+          type(atoms_data), intent(in) :: at
+          real(gp), dimension(3,at%astruct%nat), intent(in) :: rxyz
+          type(locreg_descriptors), intent(in) :: lr
+          real(wp), dimension(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f), intent(in) :: psi
+          integer,intent(in),optional :: unit0_, unitx_, unity_, unitz_
+        end subroutine plot_wf
+
+        subroutine write_orbital_density(iproc, transform_to_global, iformat, filename, npsidim, psi, orbs, lzd_g, at, lzd_l)
+          use module_base
+          use module_types
+          implicit none
+          logical,intent(in) :: transform_to_global
+          character(len=*),intent(in) :: filename
+          integer,intent(in) :: iproc, npsidim, iformat
+          real(kind=8),dimension(npsidim),intent(in),target :: psi
+          type(orbitals_data),intent(in) :: orbs !< orbitals descriptors
+          type(local_zone_descriptors),intent(inout) :: lzd_g !< global descriptors
+          type(atoms_data),intent(in) :: at
+          type(local_zone_descriptors),intent(in),optional :: lzd_l !< local descriptors
+        end subroutine write_orbital_density
+
   end interface
 END MODULE module_interfaces
