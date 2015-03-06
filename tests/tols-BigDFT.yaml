@@ -1295,7 +1295,7 @@ surface_graphene:
  Omega: 8.5e-11
  ebs_check: 1.2e-10
  ebs: 1.0e-10
- charge diff: 1.4e-7
+ charge diff: 1.5e-7
  Tr(K): 2.0e-7
  guess for new ef: 1.1e-9
  eF: 7.1e-10
