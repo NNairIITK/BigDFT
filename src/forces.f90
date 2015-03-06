@@ -3946,7 +3946,7 @@ subroutine local_hamiltonian_stress_linear(iproc, nproc, orbs, lzd, hx, hy, hz, 
            psit_c, hpsit_c, psit_f, hpsit_f, msmat, mmat)
       tt = trace_sparse(iproc, nproc, orbs, msmat, lsmat, mmat%matrix_compr, lmat%matrix_compr, 1)
       !tens(idir) = tens(idir) + -8.0_gp/(hx*hy*hz)/real(lzd%llr(ilr)%d%n1i*lzd%llr(ilr)%d%n2i*lzd%llr(ilr)%d%n3i,gp)*tt
-      tens(idir) = tens(idir) + -2.0_gp*8.0_gp/(hx*hy*hz)/real(lzd%glr%d%n1i*lzd%glr%d%n2i*lzd%glr%d%n3i,gp)*tt
+      tens(idir) = tens(idir) - 2.0_gp*8.0_gp/(hx*hy*hz)/real(lzd%glr%d%n1i*lzd%glr%d%n2i*lzd%glr%d%n3i,gp)*tt
       tens(idir) = tens(idir)/real(nproc,kind=8) !divide by nproc since an allreduce will follow
   end do
 
@@ -4460,7 +4460,7 @@ subroutine nonlocal_forces_linear(iproc,nproc,npsidim_orbs,lr,hx,hy,hz,at,rxyz,&
       subroutine calculate_scalprod()
         implicit none
         integer :: iii
-        logical :: projector_has_overlap, increase, iat_overlap
+        logical :: projector_has_overlap, increase
         integer,dimension(:),allocatable :: is_supfun_per_atom_tmp
         real(kind=8) :: scpr
 
@@ -4468,7 +4468,6 @@ subroutine nonlocal_forces_linear(iproc,nproc,npsidim_orbs,lr,hx,hy,hz,at,rxyz,&
 
         is_supfun_per_atom_tmp = f_malloc(at%astruct%nat,id='is_supfun_per_atom_tmp')
 
-        iat_overlap = 0
         norbp_if: if (orbs%norbp>0) then
     
             !look for the strategy of projectors application
