@@ -9,8 +9,7 @@ EXTRA_DIST = \
 	posinp.xyz \
 	write.out.ref \
 	read.out.ref \
-    check_lib.out.ref \
-	input.perf
+    check_lib.out.ref
 
 PPFILES = psppar.O
 
@@ -90,7 +89,6 @@ endif
 #Check read and write by doing twice run
 write_etsf.out: $(top_builddir)/src/bigdft $(PPFILES) input.kpt posinp.xyz write.dft 
 	$(MAKE) in
-	@cp input.perf etsf.perf
 	@cp write.dft etsf.dft
 	@cp input.kpt etsf.kpt
 	@cp posinp.xyz etsf.xyz
@@ -101,7 +99,6 @@ write_etsf.out: $(top_builddir)/src/bigdft $(PPFILES) input.kpt posinp.xyz write
 
 write_plain.out: $(top_builddir)/src/bigdft $(PPFILES) input.kpt posinp.xyz write.dft 
 	$(MAKE) in
-	@cp input.perf plain.perf
 	@cp write.dft plain.dft
 	@cp input.kpt plain.kpt
 	@cp posinp.xyz plain.xyz
@@ -113,7 +110,6 @@ write_plain.out: $(top_builddir)/src/bigdft $(PPFILES) input.kpt posinp.xyz writ
 
 write_binary.out: $(top_builddir)/src/bigdft $(PPFILES) input.kpt posinp.xyz write.dft 
 	$(MAKE) in
-	@cp input.perf binary.perf
 	@cp write.dft binary.dft
 	@cp input.kpt binary.kpt
 	@cp posinp.xyz binary.xyz
@@ -126,7 +122,6 @@ write_binary.out: $(top_builddir)/src/bigdft $(PPFILES) input.kpt posinp.xyz wri
 
 read_etsf.out: $(top_builddir)/src/bigdft $(PPFILES) input.kpt posinp.xyz read.dft write_etsf.out
 	$(MAKE) in
-	@cp input.perf etsf.perf
 	@cp read.dft etsf.dft
 	@cp input.kpt etsf.kpt
 	@cp posinp.xyz etsf.xyz
@@ -137,7 +132,6 @@ read_etsf.out: $(top_builddir)/src/bigdft $(PPFILES) input.kpt posinp.xyz read.d
 
 read_plain.out: $(top_builddir)/src/bigdft $(PPFILES) input.kpt posinp.xyz read.dft write_plain.out
 	$(MAKE) in
-	@cp input.perf plain.perf
 	@cp read.dft plain.dft
 	@cp input.kpt plain.kpt
 	@cp posinp.xyz plain.xyz
@@ -148,7 +142,6 @@ read_plain.out: $(top_builddir)/src/bigdft $(PPFILES) input.kpt posinp.xyz read.
 
 read_binary.out: $(top_builddir)/src/bigdft $(PPFILES) input.kpt posinp.xyz read.dft write_binary.out
 	$(MAKE) in
-	@cp input.perf binary.perf
 	@cp read.dft binary.dft
 	@cp input.kpt binary.kpt
 	@cp posinp.xyz binary.xyz
@@ -160,7 +153,6 @@ read_binary.out: $(top_builddir)/src/bigdft $(PPFILES) input.kpt posinp.xyz read
 
 wf_etsf.cube: write_etsf.out $(top_builddir)/src/bigdft-tool $(PPFILES) input.kpt posinp.xyz read.dft
 	$(MAKE) in
-	@cp input.perf etsf.perf
 	@cp read.dft etsf.dft
 	@cp input.kpt etsf.kpt
 	@cp posinp.xyz etsf.xyz
@@ -173,7 +165,6 @@ wf_etsf.cube: write_etsf.out $(top_builddir)/src/bigdft-tool $(PPFILES) input.kp
 
 wf_plain.cube: write_plain.out $(top_builddir)/src/bigdft-tool $(PPFILES) input.kpt posinp.xyz read.dft
 	$(MAKE) in
-	@cp input.perf plain.perf
 	@cp read.dft plain.dft
 	@cp input.kpt plain.kpt
 	@cp posinp.xyz plain.xyz
@@ -186,7 +177,6 @@ wf_plain.cube: write_plain.out $(top_builddir)/src/bigdft-tool $(PPFILES) input.
 
 wf_binary.cube: write_binary.out $(top_builddir)/src/bigdft-tool $(PPFILES) input.kpt posinp.xyz read.dft
 	$(MAKE) in
-	@cp input.perf binary.perf
 	@cp read.dft binary.dft
 	@cp input.kpt binary.kpt
 	@cp posinp.xyz binary.xyz

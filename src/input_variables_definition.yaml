@@ -859,7 +859,11 @@
      default: No
    write_orbitals:
      COMMENT: Linear scaling write KS orbitals for cubic restart (might take lot of disk space!)
-     default: No
+     default: 0
+     EXCLUSIVE:
+       0: No output
+       1: Output in in wavelet basis
+       2: In addition output in interpolating scaling functions (cube file)
    explicit_locregcenters:
      COMMENT: Linear scaling explicitely specify localization centers 
      default: No
