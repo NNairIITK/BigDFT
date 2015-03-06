@@ -1176,13 +1176,15 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
 
 
 
-  if (input%write_orbitals) then
+  if (input%write_orbitals>0) then
       call build_ks_orbitals(iproc, nproc, tmb, KSwfn, at, rxyz, denspot, GPU, &
                energs, nlpsp, input, norder_taylor,&
                energy, energyDiff, energyold)
       !call write_orbital_density(iproc, .false., input%lin%plotBasisFunctions, 'KS', &
       !     KSwfn%orbs%npsidim_orbs, KSwfn%psi, KSwfn%orbs, KSwfn%lzd, at)
   end if
+
+
 
 
   !TEMPORARY, to be cleaned/removed
@@ -1204,7 +1206,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
   ! Diagonalize the matrix for the FOE/direct min case to get the coefficients. Only necessary if
   ! the Pulay forces are to be calculated, or if we are printing eigenvalues for restart
   if ((input%lin%scf_mode==LINEAR_FOE.or.input%lin%scf_mode==LINEAR_DIRECT_MINIMIZATION)& 
-       .and. (input%lin%pulay_correction.or.input%lin%plotBasisFunctions /= WF_FORMAT_NONE&
+       .and. (input%lin%pulay_correction.or.mod(input%lin%plotBasisFunctions,10) /= WF_FORMAT_NONE&
        .or. input%lin%diag_end)) then
 
        !!if (input%lin%scf_mode==LINEAR_FOE) then
@@ -1317,21 +1319,25 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
 
 
   !Write the linear wavefunctions to file if asked, also write Hamiltonian and overlap matrices
-  if (input%lin%plotBasisFunctions /= WF_FORMAT_NONE) then
+  if (mod(input%lin%plotBasisFunctions,10) /= WF_FORMAT_NONE) then
      nelec=0
      do iat=1,at%astruct%nat
         ityp=at%astruct%iatype(iat)
         nelec=nelec+at%nelpsp(ityp)
      enddo
      if (write_full_system) then
-        call writemywaves_linear(iproc,trim(input%dir_output) // 'minBasis',input%lin%plotBasisFunctions,&
+        call writemywaves_linear(iproc,trim(input%dir_output) // 'minBasis',mod(input%lin%plotBasisFunctions,10),&
              max(tmb%npsidim_orbs,tmb%npsidim_comp),tmb%Lzd,tmb%orbs,nelec,at,rxyz,tmb%psi,tmb%linmat%l%nfvctr,tmb%coeff)
         call write_linear_matrices(iproc,nproc,input%imethod_overlap,trim(input%dir_output),&
-             input%lin%plotBasisFunctions,tmb,at,rxyz)
+             mod(input%lin%plotBasisFunctions,10),tmb,at,rxyz)
+        if (input%lin%plotBasisFunctions>10) then
+            call write_orbital_density(iproc, .true., mod(input%lin%plotBasisFunctions,10), 'SupFunDens', &
+                 tmb%npsidim_orbs, tmb%psi, tmb%orbs, KSwfn%lzd, at, rxyz, tmb%lzd)
+        end if
      end if
      !write as fragments - for now don't write matrices, think later if this is useful/worth the effort
      if (write_fragments .and. input%lin%fragment_calculation) then
-        call writemywaves_linear_fragments(iproc,'minBasis',input%lin%plotBasisFunctions,&
+        call writemywaves_linear_fragments(iproc,'minBasis',mod(input%lin%plotBasisFunctions,10),&
              max(tmb%npsidim_orbs,tmb%npsidim_comp),tmb%Lzd,tmb%orbs,nelec,at,rxyz,tmb%psi,tmb%coeff, &
              trim(input%dir_output),input%frag,ref_frags)
      end if

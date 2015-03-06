@@ -1063,7 +1063,7 @@ module sparsematrix
      ! @NEW ####################################
 
      !$omp parallel default(private) shared(smat, a_seq, b, c)
-     !$omp do
+     !$omp do schedule(guided)
      do iout=1,smat%smmm%nout
          i=smat%smmm%onedimindices_new(1,iout)
          ilen=smat%smmm%onedimindices_new(2,iout)

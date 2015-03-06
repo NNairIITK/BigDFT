@@ -4216,7 +4216,8 @@ end subroutine build_ks_orbitals_laura_tmp
           integer,intent(in),optional :: unit0_, unitx_, unity_, unitz_
         end subroutine plot_wf
 
-        subroutine write_orbital_density(iproc, transform_to_global, iformat, filename, npsidim, psi, orbs, lzd_g, at, lzd_l)
+        subroutine write_orbital_density(iproc, transform_to_global, iformat, &
+                   filename, npsidim, psi, orbs, lzd_g, at, rxyz, lzd_l)
           use module_base
           use module_types
           implicit none
@@ -4227,6 +4228,7 @@ end subroutine build_ks_orbitals_laura_tmp
           type(orbitals_data),intent(in) :: orbs !< orbitals descriptors
           type(local_zone_descriptors),intent(inout) :: lzd_g !< global descriptors
           type(atoms_data),intent(in) :: at
+          real(kind=8),dimension(3,at%astruct%nat),intent(in) :: rxyz
           type(local_zone_descriptors),intent(in),optional :: lzd_l !< local descriptors
         end subroutine write_orbital_density
 

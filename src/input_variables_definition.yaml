@@ -129,13 +129,17 @@
      linear: 100
      linear_restart: 102
    output_wf:
-     COMMENT: Output of the wavefunctions
+     COMMENT: Output of the support functions
      default: 0
      EXCLUSIVE:
        0: None
-       1: Plain text
-       2: Fortran binary
-       3: ETSF file format
+       1: Wavelet, Plain text
+       2: Wavelet, Fortran binary
+       3: Wavelet, ETSF file format
+       10: None
+       11: Wavelet and Interpolating Scaling Function, Plain text
+       12: Wavelet and Interpolating Scaling Function, Fortran binary
+       13: Wavelet and Interpolating Scaling Function, ETSF file format
    output_denspot:
      COMMENT: Output of the density or the potential
      default: 0

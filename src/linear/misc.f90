@@ -10,7 +10,8 @@
 
 !> Write the square of the wave functions (i.e. the orbital densities).
 !! This routine can also be used to print the "support functions densities".
-subroutine write_orbital_density(iproc, transform_to_global, iformat, filename, npsidim, psi, orbs, lzd_g, at, lzd_l)
+subroutine write_orbital_density(iproc, transform_to_global, iformat, &
+           filename, npsidim, psi, orbs, lzd_g, at, rxyz, lzd_l)
   use module_base
   use module_types
   use module_interfaces, except_this_one => write_orbital_density
@@ -24,6 +25,7 @@ subroutine write_orbital_density(iproc, transform_to_global, iformat, filename, 
   type(orbitals_data),intent(in) :: orbs !< orbitals descriptors
   type(local_zone_descriptors),intent(inout) :: lzd_g !< global descriptors
   type(atoms_data),intent(in) :: at
+  real(kind=8),dimension(3,at%astruct%nat),intent(in) :: rxyz
   type(local_zone_descriptors),intent(in),optional :: lzd_l !< local descriptors
 
   ! Local variables
@@ -39,6 +41,7 @@ subroutine write_orbital_density(iproc, transform_to_global, iformat, filename, 
   ! Transform to the global region
   if (transform_to_global) then
       psi_g = f_malloc_ptr(orbs%norbp*(lzd_g%glr%wfd%nvctr_c+7*lzd_g%glr%wfd%nvctr_f), id='psi_g')
+      write(*,*) 'npsidim',npsidim
       call small_to_large_locreg(iproc, npsidim, &
            orbs%norbp*(lzd_l%glr%wfd%nvctr_c+7*lzd_l%glr%wfd%nvctr_f), lzd_l, &
            lzd_g, orbs, psi, psi_g, to_global=.true.)
@@ -74,11 +77,13 @@ subroutine write_orbital_density(iproc, transform_to_global, iformat, filename, 
           write(*,'(a,6i9)') 'iproc, iorb, iunit0, iunitx, iunity, iunitz',iproc, iorb, iunit0, iunitx, iunity, iunitz
           call plot_wf(.true.,'', 2, at, 1.d0, lzd_g%glr, &
                lzd_g%hgrids(1), lzd_g%hgrids(2), lzd_g%hgrids(2), &
-               at%astruct%rxyz, psi_g(ist:ist+ncount-1), &
+               rxyz, psi_g(ist:ist+ncount-1), &
                iunit0, iunitx, iunity, iunitz)
           ist = ist + ncount
       end do
   end do
+
+  call deallocate_bounds(lzd_g%glr%geocode, lzd_g%glr%hybrid_on, lzd_g%glr%bounds)
 
   if (transform_to_global) then
       call f_free_ptr(psi_g)
@@ -1093,10 +1098,10 @@ subroutine build_ks_orbitals(iproc, nproc, tmb, KSwfn, at, rxyz, denspot, GPU, &
        KSwfn%Lzd%hgrids(1), KSwfn%Lzd%hgrids(2), KSwfn%Lzd%hgrids(3), &
        at, rxyz, KSwfn%Lzd%Glr%wfd, phiwork_global)
 
-  write(*,*) 'associated(kswfn%lzd%glr%bounds%kb%ibyz_c)',associated(kswfn%lzd%glr%bounds%kb%ibyz_c)
-  write(*,*) 'associated(tmb%lzd%glr%bounds%kb%ibyz_c)',associated(tmb%lzd%glr%bounds%kb%ibyz_c)
-  call write_orbital_density(iproc, .false., input%lin%plotBasisFunctions, 'KSdens', &
-       KSwfn%orbs%npsidim_orbs, phiwork_global, KSwfn%orbs, KSwfn%lzd, at)
+  if (input%write_orbitals==2) then
+      call write_orbital_density(iproc, .false., mod(input%lin%plotBasisFunctions,10), 'KSDens', &
+           KSwfn%orbs%npsidim_orbs, phiwork_global, KSwfn%orbs, KSwfn%lzd, at, rxyz)
+  end if
 
 
    call f_free_ptr(phiwork_global)
