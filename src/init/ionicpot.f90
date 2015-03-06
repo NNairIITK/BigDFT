@@ -238,9 +238,9 @@ subroutine IonicEnergyandForces(iproc,nproc,dpbox,at,elecfield,&
 
   !for the surfaces BC,
   !activate for the moment only the slow calculation of the ionic energy and forces
+  !the slowion command has also to be activated for the cavity calculation
   !if (at%astruct%geocode == 'S' .or. at%astruct%geocode == 'P') slowion=.true.
-  if (at%astruct%geocode == 'S') slowion=.true.
-  !slowion=.true.
+  if (at%astruct%geocode == 'S' .or. pkernel%method /= 'VAC') slowion=.true.
 
   if (slowion) then
 
