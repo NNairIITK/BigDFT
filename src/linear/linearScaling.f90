@@ -1332,7 +1332,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
              mod(input%lin%plotBasisFunctions,10),tmb,at,rxyz)
         if (input%lin%plotBasisFunctions>10) then
             call write_orbital_density(iproc, .true., mod(input%lin%plotBasisFunctions,10), 'SupFunDens', &
-                 tmb%npsidim_orbs, tmb%psi, tmb%orbs, KSwfn%lzd, at, rxyz, tmb%lzd)
+                 tmb%npsidim_orbs, tmb%psi, input, tmb%orbs, KSwfn%lzd, at, rxyz, tmb%lzd)
         end if
      end if
      !write as fragments - for now don't write matrices, think later if this is useful/worth the effort

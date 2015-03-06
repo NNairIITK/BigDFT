@@ -11,7 +11,7 @@
 !> Write the square of the wave functions (i.e. the orbital densities).
 !! This routine can also be used to print the "support functions densities".
 subroutine write_orbital_density(iproc, transform_to_global, iformat, &
-           filename, npsidim, psi, orbs, lzd_g, at, rxyz, lzd_l)
+           filename, npsidim, psi, input, orbs, lzd_g, at, rxyz, lzd_l)
   use module_base
   use module_types
   use module_interfaces, except_this_one => write_orbital_density
@@ -22,6 +22,7 @@ subroutine write_orbital_density(iproc, transform_to_global, iformat, &
   character(len=*),intent(in) :: filename
   integer,intent(in) :: iproc, npsidim, iformat
   real(kind=8),dimension(npsidim),intent(in),target :: psi
+  type(input_variables),intent(in) :: input
   type(orbitals_data),intent(in) :: orbs !< orbitals descriptors
   type(local_zone_descriptors),intent(inout) :: lzd_g !< global descriptors
   type(atoms_data),intent(in) :: at
@@ -33,6 +34,8 @@ subroutine write_orbital_density(iproc, transform_to_global, iformat, &
   real(kind=8),dimension(:),pointer :: psi_g
   integer :: iunit0, iunitx, iunity, iunitz, iorb, ispinor, ist, ncount
   integer :: iorb_out0, iorb_outx, iorb_outy, iorb_outz
+  character(len=500) :: filebase0, filebasex, filebasey, filebasez
+  character(len=500) :: file0, filex, filey, filez
 
   if (transform_to_global) then
       if (.not.present(lzd_l)) call f_err_throw('lzd_l not present',err_name='BIGDFT_RUNTIME_ERROR')
@@ -68,17 +71,32 @@ subroutine write_orbital_density(iproc, transform_to_global, iformat, &
           iunit0 = 102
           iunit0 = 103
           iunit0 = 104
-          write(*,*) 'open filename 1, iproc, filename', iproc, filename
-          call open_filename_of_iorb(iunit0, binary, filename, orbs, iorb, ispinor, iorb_out0)
-          write(*,*) 'open filename 2, iproc', iproc
-          call open_filename_of_iorb(iunitx, binary, filename, orbs, iorb, ispinor, iorb_outx)
-          call open_filename_of_iorb(iunity, binary, filename, orbs, iorb, ispinor, iorb_outy)
-          call open_filename_of_iorb(iunitz, binary, filename, orbs, iorb, ispinor, iorb_outz)
+          !!call open_filename_of_iorb(iunit0, binary, filename, orbs, iorb, ispinor, iorb_out0)
+          !!call open_filename_of_iorb(iunitx, binary, filename, orbs, iorb, ispinor, iorb_outx)
+          !!call open_filename_of_iorb(iunity, binary, filename, orbs, iorb, ispinor, iorb_outy)
+          !!call open_filename_of_iorb(iunitz, binary, filename, orbs, iorb, ispinor, iorb_outz)
+          call filename_of_iorb(binary, trim(input%dir_output)//filename, orbs, iorb, ispinor, filebase0, iorb_out0)
+          call filename_of_iorb(binary, trim(input%dir_output)//filename, orbs, iorb, ispinor, filebasex, iorb_outx)
+          call filename_of_iorb(binary, trim(input%dir_output)//filename, orbs, iorb, ispinor, filebasey, iorb_outy)
+          call filename_of_iorb(binary, trim(input%dir_output)//filename, orbs, iorb, ispinor, filebasez, iorb_outz)
+          file0 = trim(filebase0)//'.cube'
+          filex = trim(filebasex)//'.cube'
+          filey = trim(filebasey)//'.cube'
+          filez = trim(filebasez)//'.cube'
+          write(*,*) 'file0',file0
+          call f_open_file(iunit0, file=file0, binary=binary)
+          call f_open_file(iunitx, file=filex, binary=binary)
+          call f_open_file(iunity, file=filey, binary=binary)
+          call f_open_file(iunitz, file=filez, binary=binary)
           write(*,'(a,6i9)') 'iproc, iorb, iunit0, iunitx, iunity, iunitz',iproc, iorb, iunit0, iunitx, iunity, iunitz
           call plot_wf(.true.,'', 2, at, 1.d0, lzd_g%glr, &
                lzd_g%hgrids(1), lzd_g%hgrids(2), lzd_g%hgrids(2), &
                rxyz, psi_g(ist:ist+ncount-1), &
                iunit0, iunitx, iunity, iunitz)
+          call f_close(iunit0)
+          call f_close(iunitx)
+          call f_close(iunity)
+          call f_close(iunitz)
           ist = ist + ncount
       end do
   end do
@@ -1100,7 +1118,7 @@ subroutine build_ks_orbitals(iproc, nproc, tmb, KSwfn, at, rxyz, denspot, GPU, &
 
   if (input%write_orbitals==2) then
       call write_orbital_density(iproc, .false., mod(input%lin%plotBasisFunctions,10), 'KSDens', &
-           KSwfn%orbs%npsidim_orbs, phiwork_global, KSwfn%orbs, KSwfn%lzd, at, rxyz)
+           KSwfn%orbs%npsidim_orbs, phiwork_global, input, KSwfn%orbs, KSwfn%lzd, at, rxyz)
   end if
 
 
