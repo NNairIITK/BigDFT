@@ -70,7 +70,7 @@ module wrapper_MPI
           & mpiallred_log
      module procedure mpiallred_long
      module procedure mpiallred_d1,mpiallred_d2
-     module procedure mpiallred_i1
+     module procedure mpiallred_i1,mpiallred_i2
   end interface mpiallred
 
   interface mpigather
@@ -1024,6 +1024,17 @@ contains
     integer, dimension(:), allocatable :: copybuf  
     include 'allreduce-arr-inc.f90'
   end subroutine mpiallred_i1
+
+  subroutine mpiallred_i2(sendbuf,op,comm,recvbuf)
+    use dynamic_memory
+    use dictionaries, only: f_err_throw!,f_err_define
+    use yaml_output, only: yaml_toa
+    implicit none
+    integer, dimension(:,:), intent(inout) :: sendbuf
+    integer, dimension(:,:), intent(inout), optional :: recvbuf
+    integer, dimension(:,:), allocatable :: copybuf  
+    include 'allreduce-arr-inc.f90'
+  end subroutine mpiallred_i2
 
 
   subroutine mpiallred_d1(sendbuf,op,comm,recvbuf)

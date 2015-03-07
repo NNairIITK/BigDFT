@@ -2436,9 +2436,10 @@ module communications_init
       !write(*,*) 'iitot,ndimpsi_c',iitot,ndimpsi_c
       if(iitot/=ndimpsi_c) stop 'iitot/=ndimpsi_c'
 
-      if (minval(indexsendorbital_c)<1) then
+      ! Check only up to ndimpsi_c in case it was allocated with size 1 to avoid an allocation with size 0
+      if (minval(indexsendorbital_c(1:ndimpsi_c))<1) then
           write(*,*) 'minval(indexsendorbital_c)',minval(indexsendorbital_c)
-          stop 'inval(indexsendorbital_c)<1'
+          stop 'minval(indexsendorbital_c)<1'
       end if
     
       !check
@@ -2505,9 +2506,10 @@ module communications_init
       
       if(iitot/=ndimpsi_f) stop 'iitot/=ndimpsi_f'
 
-      if (minval(indexsendorbital_f)<1) then
+      ! Check only up to ndimpsi_f in case it was allocated with size 1 to avoid an allocation with size 0
+      if (minval(indexsendorbital_f(1:ndimpsi_f))<1) then
           write(*,*) 'minval(indexsendorbital_f)',minval(indexsendorbital_f)
-          stop 'inval(indexsendorbital_f)<1'
+          stop 'minval(indexsendorbital_f)<1'
       end if
     
       !$omp end sections
@@ -3947,7 +3949,8 @@ module communications_init
               !nel_array(ii)=nel_array(ii)+commarr_repartitionrho(4,ioverlaps)
           end do
           if (nel/=nscatterarr(iproc,1)*lzd%glr%d%n2i*lzd%glr%d%n1i) then
-              write(*,'(a,3i12)') 'nel, nscatterarr(iproc,1), lzd%glr%d%n2i*lzd%glr%d%n1i', nel, nscatterarr(iproc,1), lzd%glr%d%n2i*lzd%glr%d%n1i
+              write(*,'(a,3i12)') 'nel, nscatterarr(iproc,1), lzd%glr%d%n2i*lzd%glr%d%n1i', &
+                   nel, nscatterarr(iproc,1), lzd%glr%d%n2i*lzd%glr%d%n1i
               stop 'nel/=nscatterarr(iproc,2)*lzd%glr%d%n2i*lzd%glr%d%n1i'
           end if
           !!call mpiallred(nel_array(0), nproc, mpi_sum, bigdft_mpi%mpi_comm, ierr)

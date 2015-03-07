@@ -520,7 +520,6 @@ subroutine overlapPowerGeneral(iproc, nproc, iorder, ncalc, power, blocksize, im
 
   ! new for sparse taylor
   integer :: nout, nseq, ispin, ishift, ishift2, isshift, ilshift, ilshift2, nspin, iline, icolumn, ist
-  integer,dimension(:,:),pointer :: onedimindices
   integer,dimension(:,:,:),allocatable :: istindexarr
   real(kind=8),dimension(:),pointer :: ovrlpminone_sparse
   real(kind=8),dimension(:),allocatable :: ovrlp_compr_seq, ovrlpminone_sparse_seq, ovrlp_large_compr, tmparr
@@ -1343,7 +1342,6 @@ subroutine overlapPowerGeneral(iproc, nproc, iorder, ncalc, power, blocksize, im
                       call check_accur_overlap_minus_one_sparse_new(iproc, nproc, inv_ovrlp_smat, ovrlp_smat%nfvctr, &
                            inv_ovrlp_smat%smmm%nfvctrp, inv_ovrlp_smat%smmm%isfvctr, &
                            inv_ovrlp_smat%smmm%nseq, inv_ovrlp_smat%smmm%nout, &
-                           inv_ovrlp_smat%smmm%ivectorindex, &
                            invovrlp_compr_seq, ovrlp_largep_new, power(icalc), &
                            max_error, mean_error)
                   else if (power(icalc)==2) then
@@ -1366,7 +1364,6 @@ subroutine overlapPowerGeneral(iproc, nproc, iorder, ncalc, power, blocksize, im
                       call check_accur_overlap_minus_one_sparse_new(iproc, nproc, inv_ovrlp_smat, ovrlp_smat%nfvctr, &
                            inv_ovrlp_smat%smmm%nfvctrp, inv_ovrlp_smat%smmm%isfvctr, &
                            inv_ovrlp_smat%smmm%nseq, inv_ovrlp_smat%smmm%nout, &
-                           inv_ovrlp_smat%smmm%ivectorindex, &
                            invovrlp_compr_seq, invovrlpp_new, power(icalc), &
                            max_error, mean_error, cmatp=ovrlp_largep_new)
                   else if (power(icalc)==-2) then
@@ -1391,7 +1388,6 @@ subroutine overlapPowerGeneral(iproc, nproc, iorder, ncalc, power, blocksize, im
                       call check_accur_overlap_minus_one_sparse_new(iproc, nproc, inv_ovrlp_smat, ovrlp_smat%nfvctr, &
                            inv_ovrlp_smat%smmm%nfvctrp, inv_ovrlp_smat%smmm%isfvctr, &
                            inv_ovrlp_smat%smmm%nseq, inv_ovrlp_smat%smmm%nout, &
-                           inv_ovrlp_smat%smmm%ivectorindex, &
                            invovrlp_compr_seq, invovrlpp_new, power(icalc), &
                            max_error, mean_error, &
                            ovrlp_compr_seq)
@@ -2140,7 +2136,7 @@ end subroutine overlap_plus_minus_one_half_exact
 
 
 subroutine check_accur_overlap_minus_one_sparse_new(iproc, nproc, smat, norb, norbp, isorb, nseq, nout, &
-           ivectorindex, amat_seq, bmatp, power, &
+           amat_seq, bmatp, power, &
            max_error, mean_error, dmat_seq, cmatp)
   use module_base
   use sparsematrix_base, only: sparse_matrix
@@ -2148,7 +2144,6 @@ subroutine check_accur_overlap_minus_one_sparse_new(iproc, nproc, smat, norb, no
   implicit none
   integer,intent(in) :: iproc, nproc, norb, norbp, isorb, nseq, nout, power
   type(sparse_matrix) :: smat
-  integer,dimension(nseq),intent(in) :: ivectorindex
   real(kind=8),dimension(nseq),intent(in) :: amat_seq
   real(kind=8),dimension(smat%smmm%nvctrp),intent(in) :: bmatp
   real(kind=8),intent(out) :: max_error, mean_error
@@ -3640,8 +3635,6 @@ subroutine overlap_minus_one_half_serial(iproc, nproc, iorder, power, blocksize,
 
   ! new for sparse taylor
   integer :: nout, nseq
-  integer,dimension(:),allocatable :: ivectorindex
-  integer,dimension(:,:),pointer :: onedimindices
   integer,dimension(:,:,:),allocatable :: istindexarr
   real(kind=8),dimension(:),pointer :: ovrlpminone_sparse
   real(kind=8),dimension(:),allocatable :: ovrlp_compr_seq, ovrlpminone_sparse_seq, ovrlp_large_compr

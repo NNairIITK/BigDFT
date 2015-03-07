@@ -76,6 +76,7 @@ contains
               ispin=2
           else
               ! there seems to be a mix of the spin matrices
+              write(*,*) 'iorb, jorb, nfvctr', iorb, jorb, sparsemat%nfvctr
               stop 'matrixindex_in_compressed: problem in determining spin'
           end if
       else
@@ -615,13 +616,14 @@ contains
       integer,dimension(2,2,nseg),intent(in) :: keyg
       type(sparse_matrix),intent(inout) :: sparsemat
 
-      integer :: ierr, jproc, iorb, jjproc, iiorb, nseq_min, nseq_max, iseq, ind, ii, iseg, ncount
+      integer :: ierr, jproc, iorb, jjproc, iiorb, iseq, ind, ii, iseg, ncount
       integer :: iiseg, i, iel, ilen_seg, ist_seg, iend_seg, ispt, iline, icolumn, iseg_start
       integer,dimension(:),allocatable :: nseq_per_line, norb_par_ideal, isorb_par_ideal, nout_par, nseq_per_pt
       integer,dimension(:,:),allocatable :: istartend_dj, istartend_mm
       integer,dimension(:,:),allocatable :: temparr
       real(kind=8) :: rseq, rseq_ideal, tt, ratio_before, ratio_after
       logical :: printable
+      real(kind=8),dimension(2) :: rseq_max, rseq_average
       real(kind=8),dimension(:),allocatable :: rseq_per_line
 
       call f_routine(id='init_sparse_matrix_matrix_multiplication_new')
@@ -682,16 +684,17 @@ contains
 
 
       ! Get the load balancing
-      nseq_min = sparsemat%smmm%nseq
-      if (nproc>1) call mpiallred(nseq_min, 1, mpi_min, bigdft_mpi%mpi_comm)
-      nseq_max = sparsemat%smmm%nseq
-      if (nproc>1) call mpiallred(nseq_max, 1, mpi_max, bigdft_mpi%mpi_comm)
-      if (nseq_min>0) then
-          ratio_before = real(nseq_max,kind=8)/real(nseq_min,kind=8)
-          printable=.true.
-      else
-          printable=.false.
-      end if
+      rseq_max(1) = real(sparsemat%smmm%nseq,kind=8)
+      rseq_average(1) = rseq_max(1)/real(nproc,kind=8)
+      !if (nproc>1) call mpiallred(nseq_min, 1, mpi_min, bigdft_mpi%mpi_comm)
+      !nseq_max = sparsemat%smmm%nseq
+      !if (nproc>1) call mpiallred(nseq_max, 1, mpi_max, bigdft_mpi%mpi_comm)
+      !if (nseq_min>0) then
+      !    ratio_before = real(nseq_max,kind=8)/real(nseq_min,kind=8)
+      !    printable=.true.
+      !else
+      !    printable=.false.
+      !end if
 
 
       ! Realculate the values of sparsemat%smmm%nout and sparsemat%smmm%nseq with
@@ -726,23 +729,27 @@ contains
       !!write(*,*) 'NEW: iproc, nseq', iproc, sparsemat%smmm%nseq
 
       ! Get the load balancing
-      nseq_min = sparsemat%smmm%nseq
-      if (nproc>1) call mpiallred(nseq_min, 1, mpi_min, bigdft_mpi%mpi_comm)
-      nseq_max = sparsemat%smmm%nseq
-      if (nproc>1) call mpiallred(nseq_max, 1, mpi_max, bigdft_mpi%mpi_comm)
+      rseq_max(2) = real(sparsemat%smmm%nseq,kind=8)
+      rseq_average(2) = rseq_max(2)/real(nproc,kind=8)
+      if (nproc>1) call mpiallred(rseq_max, mpi_max, bigdft_mpi%mpi_comm)
+      if (nproc>1) call mpiallred(rseq_average, mpi_sum, bigdft_mpi%mpi_comm)
+      !nseq_max = sparsemat%smmm%nseq
+      !if (nproc>1) call mpiallred(nseq_max, 1, mpi_max, bigdft_mpi%mpi_comm)
       ! Not necessary to set the printable flag (if nseq_min was zero before it should be zero here as well)
-      if (nseq_min>0) then
-          ratio_after = real(nseq_max,kind=8)/real(nseq_min,kind=8)
-          if (.not.printable) stop 'this should not happen (sparsematrix)'
-      else
-          if (printable) stop 'this should not happen (sparsematrix)'
-      end if
+      !!if (nseq_min>0) then
+      !!    ratio_after = real(nseq_max,kind=8)/real(nseq_min,kind=8)
+      !!    if (.not.printable) stop 'this should not happen (sparsematrix)'
+      !!else
+      !!    if (printable) stop 'this should not happen (sparsematrix)'
+      !!end if
+      ratio_before = rseq_max(1)/rseq_average(1)
+      ratio_after = rseq_max(2)/rseq_average(2)
       if (iproc==0) then
-          if (printable) then
+          !if (printable) then
               call yaml_map('sparse matmul load balancing naive / optimized',(/ratio_before,ratio_after/),fmt='(f4.2)')
-          else
-              call yaml_map('sparse matmul load balancing naive / optimized','printing not meaningful (division by zero)')
-          end if
+          !!else
+          !!    call yaml_map('sparse matmul load balancing naive / optimized','printing not meaningful (division by zero)')
+          !!end if
       end if
       
 
@@ -839,6 +846,8 @@ contains
       !     sparsemat%smmm%nseq, sparsemat%smmm%ivectorindex)
       call get_arrays_for_sequential_acces_new(sparsemat%smmm%nout, ispt, nseg, sparsemat%smmm%nseq, &
            keyv, keyg, sparsemat, istsegline, sparsemat%smmm%ivectorindex_new)
+      call determine_consecutive_values(sparsemat%smmm%nout, sparsemat%smmm%nseq, sparsemat%smmm%ivectorindex_new, &
+           sparsemat%smmm%onedimindices_new, sparsemat%smmm%nconsecutive_max, sparsemat%smmm%consecutive_lookup)
       !call init_sequential_acces_matrix(norb, norb_par_ideal(iproc), isorb_par_ideal(iproc), sparsemat%nseg, &
       !     sparsemat%nsegline, sparsemat%istsegline, sparsemat%keyg, sparsemat, sparsemat%smmm%nseq, &
       !     sparsemat%smmm%indices_extract_sequential)
@@ -1756,7 +1765,7 @@ contains
       integer,dimension(2,2,nseg),intent(in) :: keyg
       type(sparse_matrix),intent(in) :: smat
       integer,dimension(smat%nfvctr),intent(in) :: istsegline
-      integer,dimension(3,nout) :: onedimindices
+      integer,dimension(4,nout) :: onedimindices
     
       ! Local variables
       integer :: itot, ipt, iipt, iline, icolumn, ilen, jseg, ii, jorb, iseg_start
@@ -1906,6 +1915,76 @@ contains
     end subroutine get_arrays_for_sequential_acces_new
 
 
+
+    subroutine determine_consecutive_values(nout, nseq, ivectorindex, onedimindices_new, &
+               nconsecutive_max, consecutive_lookup)
+      implicit none
+      
+      ! Calling arguments
+      integer,intent(in) :: nout, nseq
+      integer,dimension(nseq),intent(in) :: ivectorindex
+      integer,dimension(4,nout),intent(inout) :: onedimindices_new
+      integer,intent(out) :: nconsecutive_max
+      integer,dimension(:,:,:),pointer,intent(out) :: consecutive_lookup
+
+      ! Local variables
+      integer :: iout, ilen, ii, iend, nconsecutive, jorb, jjorb, jjorb_prev, iconsec
+
+
+      nconsecutive_max = 0
+      do iout=1,nout
+          ilen=onedimindices_new(2,iout)
+          ii=onedimindices_new(3,iout)
+
+          iend=ii+ilen-1
+
+          nconsecutive = 1
+          do jorb=ii,iend
+             jjorb=ivectorindex(jorb)
+             if (jorb>ii) then
+                 if (jjorb/=jjorb_prev+1) then
+                     nconsecutive = nconsecutive + 1
+                 end if
+             end if
+             jjorb_prev = jjorb
+          end do
+          nconsecutive_max = max(nconsecutive,nconsecutive_max)
+          onedimindices_new(4,iout) = nconsecutive
+      end do
+
+      consecutive_lookup = f_malloc_ptr((/3,nconsecutive_max,nout/),id='consecutive_lookup')
+
+
+      do iout=1,nout
+          ilen=onedimindices_new(2,iout)
+          ii=onedimindices_new(3,iout)
+
+          iend=ii+ilen-1
+
+          nconsecutive = 1
+          iconsec = 0
+          consecutive_lookup(1,nconsecutive,iout) = ii
+          consecutive_lookup(2,nconsecutive,iout) = ivectorindex(ii)
+          do jorb=ii,iend
+             jjorb=ivectorindex(jorb)
+             if (jorb>ii) then
+                 if (jjorb/=jjorb_prev+1) then
+                     consecutive_lookup(3,nconsecutive,iout) = iconsec
+                     nconsecutive = nconsecutive + 1
+                     consecutive_lookup(1,nconsecutive,iout) = jorb
+                     consecutive_lookup(2,nconsecutive,iout) = jjorb
+                     iconsec = 0
+                 end if
+             end if
+             iconsec = iconsec + 1
+             jjorb_prev = jjorb
+          end do
+          consecutive_lookup(3,nconsecutive,iout) = iconsec
+          if (nconsecutive>nconsecutive_max) stop 'nconsecutive>nconsecutive_max'
+      end do
+
+
+    end subroutine determine_consecutive_values
 
 
     subroutine init_sequential_acces_matrix(norb, norbp, isorb, nseg, &

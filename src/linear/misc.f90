@@ -6,6 +6,108 @@
 !!   GNU General Public License, see ~/COPYING file
 !!   or http://www.gnu.org/copyleft/gpl.txt .
 !!   For the list of contributors, see ~/AUTHORS 
+
+
+!> Write the square of the wave functions (i.e. the orbital densities).
+!! This routine can also be used to print the "support functions densities".
+subroutine write_orbital_density(iproc, transform_to_global, iformat, &
+           filename, npsidim, psi, input, orbs, lzd_g, at, rxyz, lzd_l)
+  use module_base
+  use module_types
+  use module_interfaces, except_this_one => write_orbital_density
+  implicit none
+
+  ! Calling arguments
+  logical,intent(in) :: transform_to_global
+  character(len=*),intent(in) :: filename
+  integer,intent(in) :: iproc, npsidim, iformat
+  real(kind=8),dimension(npsidim),intent(in),target :: psi
+  type(input_variables),intent(in) :: input
+  type(orbitals_data),intent(in) :: orbs !< orbitals descriptors
+  type(local_zone_descriptors),intent(inout) :: lzd_g !< global descriptors
+  type(atoms_data),intent(in) :: at
+  real(kind=8),dimension(3,at%astruct%nat),intent(in) :: rxyz
+  type(local_zone_descriptors),intent(in),optional :: lzd_l !< local descriptors
+
+  ! Local variables
+  logical :: binary
+  real(kind=8),dimension(:),pointer :: psi_g
+  integer :: iunit0, iunitx, iunity, iunitz, iorb, ispinor, ist, ncount
+  integer :: iorb_out0, iorb_outx, iorb_outy, iorb_outz
+  character(len=500) :: filebase0, filebasex, filebasey, filebasez
+  character(len=500) :: file0, filex, filey, filez
+
+  if (transform_to_global) then
+      if (.not.present(lzd_l)) call f_err_throw('lzd_l not present',err_name='BIGDFT_RUNTIME_ERROR')
+  end if
+
+  ! Transform to the global region
+  if (transform_to_global) then
+      psi_g = f_malloc_ptr(orbs%norbp*(lzd_g%glr%wfd%nvctr_c+7*lzd_g%glr%wfd%nvctr_f), id='psi_g')
+      write(*,*) 'npsidim',npsidim
+      call small_to_large_locreg(iproc, npsidim, &
+           orbs%norbp*(lzd_l%glr%wfd%nvctr_c+7*lzd_l%glr%wfd%nvctr_f), lzd_l, &
+           lzd_g, orbs, psi, psi_g, to_global=.true.)
+  else
+      psi_g => psi
+  end if
+
+  write(*,*) 'iproc, HERE'
+
+  binary = (iformat==WF_FORMAT_BINARY)
+
+  ! Need to create the convolution bounds
+  call locreg_bounds(lzd_g%glr%d%n1, lzd_g%glr%d%n2, lzd_g%glr%d%n3, &
+       lzd_g%glr%d%nfl1, lzd_g%glr%d%nfu1, &
+       lzd_g%glr%d%nfl2, lzd_g%glr%d%nfu2, &
+       lzd_g%glr%d%nfl3, lzd_g%glr%d%nfu3, &
+       lzd_g%glr%wfd, lzd_g%glr%bounds)
+
+  ist = 1
+  ncount = lzd_g%glr%wfd%nvctr_c+7*lzd_g%glr%wfd%nvctr_f
+  do iorb=1,orbs%norbp
+      do ispinor=1,orbs%nspinor
+          iunit0 = 101
+          iunit0 = 102
+          iunit0 = 103
+          iunit0 = 104
+          !!call open_filename_of_iorb(iunit0, binary, filename, orbs, iorb, ispinor, iorb_out0)
+          !!call open_filename_of_iorb(iunitx, binary, filename, orbs, iorb, ispinor, iorb_outx)
+          !!call open_filename_of_iorb(iunity, binary, filename, orbs, iorb, ispinor, iorb_outy)
+          !!call open_filename_of_iorb(iunitz, binary, filename, orbs, iorb, ispinor, iorb_outz)
+          call filename_of_iorb(binary, trim(input%dir_output)//filename, orbs, iorb, ispinor, filebase0, iorb_out0)
+          call filename_of_iorb(binary, trim(input%dir_output)//filename, orbs, iorb, ispinor, filebasex, iorb_outx)
+          call filename_of_iorb(binary, trim(input%dir_output)//filename, orbs, iorb, ispinor, filebasey, iorb_outy)
+          call filename_of_iorb(binary, trim(input%dir_output)//filename, orbs, iorb, ispinor, filebasez, iorb_outz)
+          file0 = trim(filebase0)//'.cube'
+          filex = trim(filebasex)//'.cube'
+          filey = trim(filebasey)//'.cube'
+          filez = trim(filebasez)//'.cube'
+          write(*,*) 'file0',file0
+          call f_open_file(iunit0, file=file0, binary=binary)
+          call f_open_file(iunitx, file=filex, binary=binary)
+          call f_open_file(iunity, file=filey, binary=binary)
+          call f_open_file(iunitz, file=filez, binary=binary)
+          write(*,'(a,6i9)') 'iproc, iorb, iunit0, iunitx, iunity, iunitz',iproc, iorb, iunit0, iunitx, iunity, iunitz
+          call plot_wf(.true.,'', 2, at, 1.d0, lzd_g%glr, &
+               lzd_g%hgrids(1), lzd_g%hgrids(2), lzd_g%hgrids(2), &
+               rxyz, psi_g(ist:ist+ncount-1), &
+               iunit0, iunitx, iunity, iunitz)
+          call f_close(iunit0)
+          call f_close(iunitx)
+          call f_close(iunity)
+          call f_close(iunitz)
+          ist = ist + ncount
+      end do
+  end do
+
+  call deallocate_bounds(lzd_g%glr%geocode, lzd_g%glr%hybrid_on, lzd_g%glr%bounds)
+
+  if (transform_to_global) then
+      call f_free_ptr(psi_g)
+  end if
+end subroutine write_orbital_density
+
  
 
 !> Plots the orbitals
@@ -1013,6 +1115,12 @@ subroutine build_ks_orbitals(iproc, nproc, tmb, KSwfn, at, rxyz, denspot, GPU, &
        KSwfn%orbs, KSwfn%Lzd%Glr%d%n1, KSwfn%Lzd%Glr%d%n2, KSwfn%Lzd%Glr%d%n3, &
        KSwfn%Lzd%hgrids(1), KSwfn%Lzd%hgrids(2), KSwfn%Lzd%hgrids(3), &
        at, rxyz, KSwfn%Lzd%Glr%wfd, phiwork_global)
+
+  if (input%write_orbitals==2) then
+      call write_orbital_density(iproc, .false., mod(input%lin%plotBasisFunctions,10), 'KSDens', &
+           KSwfn%orbs%npsidim_orbs, phiwork_global, input, KSwfn%orbs, KSwfn%lzd, at, rxyz)
+  end if
+
 
    call f_free_ptr(phiwork_global)
    call deallocate_orbitals_data(orbs)
