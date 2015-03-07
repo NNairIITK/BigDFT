@@ -8,10 +8,6 @@
 !!    For the list of contributors, see ~/AUTHORS
 
 
-
-
-
-
 subroutine calculate_pulay_overlap(iproc, nproc, orbs1, orbs2, collcom1, collcom2, psit_c1, psit_c2, psit_f1, psit_f2, ovrlp)
   use module_base
   use module_types

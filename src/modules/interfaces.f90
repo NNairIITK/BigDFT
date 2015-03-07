@@ -3880,20 +3880,6 @@ end subroutine build_ks_orbitals_laura_tmp
           real(kind=gp), dimension(nstates), intent(inout) :: homo_ham, homo_ovrlp
         end subroutine calc_transfer_integral
 
-        subroutine overlap_minus_one_half_serial(iproc, nproc, iorder, power, blocksize, &
-                   norb, ovrlp_matrix, inv_ovrlp_matrix, check_accur, &
-                   smat, max_error, mean_error)
-          use module_base
-          use module_types
-          implicit none
-          integer,intent(in) :: iproc, nproc, iorder, blocksize, power, norb
-          real(kind=8),dimension(norb,norb),intent(in) :: ovrlp_matrix
-          real(kind=8),dimension(:,:),pointer,intent(inout) :: inv_ovrlp_matrix
-          type(sparse_matrix),intent(in) :: smat
-          logical,intent(in) :: check_accur
-          real(kind=8),intent(out),optional :: max_error, mean_error
-        end subroutine overlap_minus_one_half_serial
-
         subroutine calculate_weight_matrix_lowdin(weight_matrix,weight_matrix_,nfrag_charged,ifrag_charged,tmb,input_frag,&
              ref_frags,calculate_overlap_matrix,calculate_ovrlp_half,meth_overlap)
           use module_defs, only: gp
@@ -3945,17 +3931,6 @@ end subroutine build_ks_orbitals_laura_tmp
           integer, intent(out) :: nstates_max ! number of states in total if we consider all partially occupied fragment states to be fully occupied
           logical, intent(in) :: cdft
         end subroutine fragment_coeffs_to_kernel
-
-        subroutine check_accur_overlap_minus_one(iproc,nproc,norb,norbp,isorb,power,ovrlp,inv_ovrlp,&
-                   smat,max_error,mean_error)
-          use module_base
-          use sparsematrix_base, only: sparse_matrix
-          implicit none
-          integer,intent(in) :: iproc, nproc, norb, norbp, isorb, power
-          real(kind=8),dimension(norb,norb),intent(in) :: ovrlp, inv_ovrlp
-          type(sparse_matrix),intent(in) :: smat
-          real(kind=8),intent(out) :: max_error, mean_error
-        end subroutine check_accur_overlap_minus_one
 
         subroutine max_matrix_diff(iproc, norb, mat1, mat2, smat, max_deviation, mean_deviation)
           use module_base
@@ -4090,21 +4065,6 @@ end subroutine build_ks_orbitals_laura_tmp
           logical,intent(in) :: add_sequence
           type(confpot_data),dimension(lorbs%norbp), intent(inout) :: confdatarr
         end subroutine set_confdatarr
-
-        subroutine check_accur_overlap_minus_one_sparse_new(iproc, nproc, smat, norb, norbp, isorb, nseq, nout, &
-                   amat_seq, bmatp, power, &
-                   max_error, mean_error, dmat_seq, cmatp)
-          use module_base
-          use sparsematrix_base, only: sparse_matrix
-          implicit none
-          integer,intent(in) :: iproc, nproc, norb, norbp, isorb, nseq, nout, power
-          type(sparse_matrix) :: smat
-          real(kind=8),dimension(nseq),intent(in) :: amat_seq
-          real(kind=8),dimension(smat%smmm%nvctrp),intent(in) :: bmatp
-          real(kind=8),intent(out) :: max_error, mean_error
-          real(kind=8),dimension(nseq),intent(in),optional :: dmat_seq
-          real(kind=8),dimension(smat%smmm%nvctrp),intent(in),optional :: cmatp
-        end subroutine check_accur_overlap_minus_one_sparse_new
 
         subroutine plot_wf(units_provided,orbname,nexpo,at,factor,lr,hx,hy,hz,rxyz,psi, &
                    unit0_, unitx_, unity_, unitz_)
