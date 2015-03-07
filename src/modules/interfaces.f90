@@ -3435,36 +3435,6 @@ module module_interfaces
           logical,intent(inout) :: can_use_transposed
         end subroutine gramschmidt_subset
 
-
-        subroutine overlapPowerGeneral(iproc, nproc, iorder, ncalc, power, blocksize, imode, &
-                   ovrlp_smat, inv_ovrlp_smat, ovrlp_mat, inv_ovrlp_mat, check_accur, &
-                   max_error, mean_error, nspinx)
-          use module_base
-          use module_types
-          use sparsematrix_base, only: sparse_matrix, SPARSE_FULL, DENSE_PARALLEL, DENSE_FULL, SPARSEMM_SEQ
-          use yaml_output
-          integer,intent(in) :: iproc, nproc, iorder, blocksize, ncalc
-          integer,dimension(ncalc),intent(in) :: power
-          integer,intent(in) :: imode
-          type(sparse_matrix),intent(inout) :: ovrlp_smat, inv_ovrlp_smat
-          type(matrices),intent(inout) :: ovrlp_mat
-          type(matrices),dimension(ncalc),intent(inout) :: inv_ovrlp_mat
-          logical,intent(in) :: check_accur
-          real(kind=8),intent(out),optional :: max_error, mean_error
-          integer,intent(in),optional :: nspinx !< overwrite the default spin value
-        end subroutine overlapPowerGeneral
-
-
-        !!subroutine overlap_plus_minus_one_half_exact(nproc,norb,blocksize,plusminus,inv_ovrlp_half,smat)
-        !!  use module_base
-        !!  use module_types
-        !!  implicit none
-        !!  integer,intent(in) :: nproc,norb,blocksize
-        !!  real(kind=8),dimension(:,:),pointer :: inv_ovrlp_half
-        !!  logical, intent(in) :: plusminus
-        !!  type(sparse_matrix),intent(in) :: smat
-        !!end subroutine overlap_plus_minus_one_half_exact
-
         subroutine input_wf_memory_new(nproc,iproc, atoms, &
                  rxyz_old, hx_old, hy_old, hz_old, psi_old,lzd_old, &
                  rxyz,psi,orbs,lzd)
@@ -3546,21 +3516,6 @@ module module_interfaces
           real(kind=8),dimension(fermi%nfvctr,fermi%smmm%nfvctrp),intent(out) :: vector
         end subroutine uncompress_polynomial_vector
 
-        subroutine check_communication_sumrho(iproc, nproc, orbs, lzd, collcom_sr, denspot, denskern, denskern_, check_sumrho)
-          use module_base
-          use module_types
-          use yaml_output
-          use sparsematrix_base, only: sparse_matrix
-          implicit none
-          integer,intent(in) :: iproc, nproc
-          type(local_zone_descriptors),intent(in) :: lzd
-          type(orbitals_data),intent(in) :: orbs
-          type(comms_linear),intent(inout) :: collcom_sr
-          type(DFT_local_fields),intent(in) :: denspot
-          type(sparse_matrix),intent(inout) :: denskern
-          type(matrices),intent(inout) :: denskern_
-          integer,intent(in) :: check_sumrho
-        end subroutine check_communication_sumrho
 
         subroutine purify_kernel(iproc, nproc, tmb, overlap_calculated, it_shift, it_opt, order_taylor, &
                    max_inversion_error, purification_quickreturn, ispin)
@@ -3860,42 +3815,6 @@ end subroutine build_ks_orbitals_laura_tmp
           real(wp), dimension(nvctr,orbs%nspinor,orbs%norbp), intent(in) :: psi
         end subroutine eigensystem_info
 
-        subroutine determine_sparsity_pattern(iproc, nproc, orbs, lzd, nnonzero, nonzero)
-          use module_base
-          use module_types
-          implicit none
-          integer,intent(in) :: iproc, nproc
-          type(orbitals_data),intent(in) :: orbs
-          type(local_zone_descriptors),intent(in) :: lzd
-          integer,intent(out) :: nnonzero
-          integer,dimension(:,:),pointer,intent(out) :: nonzero
-        end subroutine determine_sparsity_pattern
-
-        subroutine determine_sparsity_pattern_distance(orbs, lzd, astruct, cutoff, nnonzero, nonzero, smat_ref)
-          use module_base
-          use module_types
-          implicit none
-          type(orbitals_data),intent(in) :: orbs
-          type(local_zone_descriptors),intent(in) :: lzd
-          type(atomic_structure),intent(in) :: astruct
-          real(kind=8),dimension(lzd%nlr),intent(in) :: cutoff
-          integer,intent(out) :: nnonzero
-          integer,dimension(:,:),pointer,intent(out) :: nonzero
-          type(sparse_matrix),intent(in),optional :: smat_ref !< reference sparsity pattern, in case the sparisty pattern to be calculated must be at least be as large as smat_ref
-        end subroutine determine_sparsity_pattern_distance
-
-        subroutine init_sparse_matrix_wrapper(iproc, nproc, nspin, orbs, lzd, astruct, store_index, imode, smat, smat_ref)
-          use module_base
-          use module_types
-          implicit none
-          integer,intent(in) :: iproc, nproc, nspin, imode
-          type(orbitals_data),intent(in) :: orbs
-          type(local_zone_descriptors),intent(in) :: lzd
-          type(atomic_structure),intent(in) :: astruct
-          logical,intent(in) :: store_index
-          type(sparse_matrix), intent(out) :: smat
-          type(sparse_matrix),intent(in),optional :: smat_ref !< reference sparsity pattern, in case smat must be at least as large as smat_ref
-        end subroutine init_sparse_matrix_wrapper
 
         subroutine check_accur_overlap_minus_one_sparse(iproc, nproc, smat, norb, norbp, isorb, nseq, nout, &
                    ivectorindex, amat_seq, bmatp, power, &
@@ -4083,17 +4002,6 @@ end subroutine build_ks_orbitals_laura_tmp
           real(kind=8),dimension(npsidim_orbs),intent(in) :: psidiff, hpsi_noprecond
           real(kind=8),intent(out) :: delta_energy
         end subroutine estimate_energy_change
-
-        subroutine init_sparse_matrix_for_KSorbs(iproc, nproc, orbs, input, nextra, smat, smat_extra)
-          use module_base
-          use module_types
-          use sparsematrix_base, only: sparse_matrix
-          implicit none
-          integer, intent(in) :: iproc, nproc, nextra
-          type(orbitals_data), intent(in) :: orbs
-          type(input_variables), intent(in) :: input
-          type(sparse_matrix),dimension(:),pointer,intent(out) :: smat, smat_extra
-        end subroutine init_sparse_matrix_for_KSorbs
 
         subroutine ice(iproc, nproc, norder_polynomial, ovrlp_smat, inv_ovrlp_smat, ncalc, ex, ovrlp_mat, inv_ovrlp)
           use module_base
