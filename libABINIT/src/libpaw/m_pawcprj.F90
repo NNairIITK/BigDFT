@@ -36,7 +36,6 @@ module m_pawcprj
  implicit none
 
  private
- public :: pawcprj_conjg                ! cprj(:,:) <- conjugate(cprj(:,:))
 !!***
 
 !!****t* m_pawcprj/pawcprj_type
@@ -80,6 +79,7 @@ module m_pawcprj
  public :: pawcprj_copy           ! Copy a cprj datastructure into another
  public :: pawcprj_axpby          ! cprjy(:,:) <- alpha.cprjx(:,:)+beta.cprjy(:,:)
  public :: pawcprj_zaxpby         ! cprjy(:,:) <- alpha.cprjx(:,:)+beta.cprjy(:,:), alpha and beta are COMPLEX scalars
+ public :: pawcprj_conjg          ! cprj(:,:) <- conjugate(cprj(:,:))
  public :: pawcprj_lincom         ! Compute a LINear COMbination of cprj datastructure:
  public :: pawcprj_output         ! Output a cprj. Useful for debugging.
  public :: pawcprj_get            ! Read the cprj for a given k-point from memory or from a temporary file

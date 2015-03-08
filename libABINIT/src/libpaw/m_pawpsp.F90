@@ -785,11 +785,11 @@ subroutine pawpsp_read(core_mesh,funit,imainmesh,lmax,&
  logical,intent(in) :: save_core_msz
  real(dp),intent(in):: znucl
 !arrays
- real(dp),pointer :: ncore(:),tncore(:),tnvale(:),tproj(:,:),vlocr(:)   !vz_i
- type(pawrad_type),intent(inout) :: pawrad !vz_i
+ real(dp),pointer :: ncore(:),tncore(:),tnvale(:),tproj(:,:),vlocr(:)
+ type(pawrad_type),intent(inout) :: pawrad
  type(pawrad_type),intent(out)::core_mesh,tproj_mesh,vale_mesh,vloc_mesh
- type(pawrad_type),pointer :: radmesh(:)   !vz_i
- type(pawtab_type),intent(inout) :: pawtab !vz_i
+ type(pawrad_type),pointer :: radmesh(:)
+ type(pawtab_type),intent(inout) :: pawtab
  integer,intent(out)::nmesh
 
 !Local variables-------------------------------
@@ -802,7 +802,7 @@ subroutine pawpsp_read(core_mesh,funit,imainmesh,lmax,&
  real(dp) :: yp1,ypn
 !arrays
  integer,allocatable :: nprj(:)
- real(dp),allocatable:: shpf(:,:),vhnzc(:)
+ real(dp),allocatable :: shpf(:,:),val(:),vhnzc(:)
  real(dp),allocatable :: work1(:),work2(:),work3(:),work4(:)
  character :: blank=' ',numb=' '
  character(len=80) :: pspline
@@ -1154,8 +1154,12 @@ subroutine pawpsp_read(core_mesh,funit,imainmesh,lmax,&
    else
 !    If pawtab%has_wvl=0, we skip the lines
      do ib=1,pawtab%basis_size
-       if(ib/=1) read(funit,*) 
-       read(funit,*);read(funit,*);read(funit,*)
+       if(ib/=1) read(funit,*)
+       read(funit,*) pngau_, ptotgau_
+       LIBPAW_ALLOCATE(val, (pngau_  *2))
+       read(funit,*) val
+       read(funit,*) val
+       LIBPAW_DEALLOCATE(val)
      end do
    end if
  end if
