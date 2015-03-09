@@ -161,7 +161,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
   !nullify(tmb%psit_c)
   !nullify(tmb%psit_f)
 
-  call timing(iproc,'linscalinit','OF')408t
+  call timing(iproc,'linscalinit','OF')
 
   ! Check the quality of the input guess
   call check_inputguess()

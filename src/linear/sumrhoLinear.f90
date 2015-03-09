@@ -355,7 +355,7 @@ subroutine calculate_density_kernel(iproc, nproc, isKernel, orbs, orbs_tmb, &
       if (nproc > 1) then
           call timing(iproc,'commun_kernel','ON')
           call mpiallred(tmparr(1), denskern%nspin*denskern%nvctr, mpi_sum, bigdft_mpi%mpi_comm)
-          call timing(iproc,'commun_kernel','OF')408t
+          call timing(iproc,'commun_kernel','OF')
       end if
       call extract_taskgroup(denskern, tmparr, denskern_%matrix_compr)
       call f_free(tmparr)

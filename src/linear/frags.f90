@@ -160,7 +160,7 @@ subroutine fragment_coeffs_to_kernel(iproc,input,input_frag_charge,ref_frags,tmb
      call fill_unoccupied_coeffs()
 
      if (.not. completely_random) then
-     !   call reorder_and_print_coeffs()
+        call reorder_and_print_coeffs()
      end if
      call f_free(eval_tmp)
   else
