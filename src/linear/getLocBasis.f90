@@ -577,6 +577,7 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
   use module_fragments, only: system_fragment
   use sparsematrix,only: gather_matrix_from_taskgroups_inplace, extract_taskgroup_inplace
   use transposed_operations, only: calculate_overlap_transposed
+  use matrix_operations, only: overlapPowerGeneral
   !  use Poisson_Solver
   !use allocModule
   implicit none
@@ -2073,6 +2074,7 @@ subroutine reorthonormalize_coeff(iproc, nproc, norb, blocksize_dsyev, blocksize
   use sparsematrix_base, only: sparse_matrix, matrices, matrices_null, &
        allocate_matrices, deallocate_matrices
   use yaml_output, only: yaml_newline, yaml_map
+  use matrix_operations, only: overlapPowerGeneral, overlap_minus_one_half_serial
   implicit none
 
   ! Calling arguments
@@ -2571,6 +2573,7 @@ subroutine purify_kernel(iproc, nproc, tmb, overlap_calculated, it_shift, it_opt
                           uncompress_matrix2, compress_matrix2
   use foe_base, only: foe_data_get_real
   use transposed_operations, only: calculate_overlap_transposed
+  use matrix_operations, only: overlapPowerGeneral
   implicit none
 
   ! Calling arguments
@@ -3151,13 +3154,12 @@ end subroutine get_KS_residue
 subroutine renormalize_kernel(iproc, nproc, order_taylor, max_inversion_error, tmb, ovrlp, ovrlp_old)
   use module_base
   use module_types
-  use module_interfaces, only: overlapPowerGeneral
   use sparsematrix_base, only: sparsematrix_malloc_ptr, sparsematrix_malloc, assignment(=), &
                                SPARSE_FULL, DENSE_FULL, DENSE_MATMUL, SPARSEMM_SEQ, &
                                matrices
   use sparsematrix_init, only: matrixindex_in_compressed
   use sparsematrix, only: uncompress_matrix
-
+  use matrix_operations, only: overlapPowerGeneral
   implicit none
 
   ! Calling arguments

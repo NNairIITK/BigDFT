@@ -762,6 +762,7 @@ subroutine foe(iproc, nproc, tmprtr, &
         subroutine overlap_minus_onehalf()
           use sparsematrix_base, only: sparsematrix_malloc, SPARSE_FULL
           use sparsematrix, only: extract_taskgroup_inplace
+          use matrix_operations, only: overlapPowerGeneral
           implicit none
           real(kind=8) :: max_error, mean_error
           integer :: i, j, ii

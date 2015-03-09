@@ -1484,6 +1484,7 @@ subroutine loewdin_charge_analysis(iproc,tmb,atoms,denspot,&
   use sparsematrix, only: compress_matrix, uncompress_matrix, gather_matrix_from_taskgroups_inplace, &
                           uncompress_matrix2
   use transposed_operations, only: calculate_overlap_transposed
+  use matrix_operations, only: overlapPowerGeneral
   use yaml_output
   implicit none
   integer,intent(in) :: iproc

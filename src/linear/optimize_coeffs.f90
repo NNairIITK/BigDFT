@@ -454,6 +454,7 @@ subroutine coeff_weight_analysis(iproc, nproc, input, ksorbs, tmb, ref_frags)
                                sparsematrix_malloc_ptr, DENSE_FULL, SPARSE_FULL, assignment(=), &
                                matrices_null, allocate_matrices, deallocate_matrices
   use sparsematrix, only: uncompress_matrix, uncompress_matrix2
+  use matrix_operations, only: overlapPowerGeneral
   implicit none
 
   ! Calling arguments
@@ -1144,6 +1145,7 @@ subroutine calculate_coeff_gradient(iproc,nproc,tmb,order_taylor,max_inversion_e
   use sparsematrix_base, only: matrices, sparsematrix_malloc_ptr, DENSE_FULL, assignment(=), &
                                matrices_null, allocate_matrices, deallocate_matrices
   use sparsematrix, only: extract_taskgroup_inplace, gather_matrix_from_taskgroups_inplace
+  use matrix_operations, only: overlapPowerGeneral
   implicit none
 
   integer, intent(in) :: iproc, nproc
@@ -1535,6 +1537,7 @@ subroutine calculate_coeff_gradient_extra(iproc,nproc,num_extra,tmb,order_taylor
   use sparsematrix_base, only: matrices, sparsematrix_malloc_ptr, DENSE_FULL, assignment(=), &
                                matrices_null, allocate_matrices, deallocate_matrices
   use sparsematrix, only: extract_taskgroup_inplace, gather_matrix_from_taskgroups_inplace
+  use matrix_operations, only: overlapPowerGeneral
   implicit none
 
   integer, intent(in) :: iproc, nproc, num_extra
