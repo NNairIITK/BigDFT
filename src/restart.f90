@@ -426,7 +426,7 @@ subroutine verify_file_presence(filerad,orbs,iformat,nproc,nforb)
      end do
   end do loop_plain
   !reduce the result among the other processors
-  if (nproc > 1) call mpiallred(allfiles,1,MPI_LAND,bigdft_mpi%mpi_comm)
+  if (nproc > 1) call mpiallred(allfiles,1,MPI_LAND,comm=bigdft_mpi%mpi_comm)
  
   if (allfiles) then
      iformat=WF_FORMAT_PLAIN
@@ -453,7 +453,7 @@ subroutine verify_file_presence(filerad,orbs,iformat,nproc,nforb)
      end do
   end do loop_binary
   !reduce the result among the other processors
-  if (nproc > 1) call mpiallred(allfiles,1,MPI_LAND,bigdft_mpi%mpi_comm)
+  if (nproc > 1) call mpiallred(allfiles,1,MPI_LAND,comm=bigdft_mpi%mpi_comm)
 
   if (allfiles) then
      iformat=WF_FORMAT_BINARY
@@ -1073,6 +1073,7 @@ subroutine tmb_overlap_onsite(iproc, nproc, imethod_overlap, at, tmb, rxyz)
 
   use module_base
   use module_types
+  use locregs, only: copy_locreg_descriptors,allocate_wfd,deallocate_wfd
   use module_interfaces
   use module_fragments
   use communications_base, only: comms_linear_null, deallocate_comms_linear, TRANSPOSE_FULL
@@ -2835,8 +2836,8 @@ subroutine initialize_linear_from_file(iproc,nproc,input_frag,astruct,rxyz,orbs,
   Lzd%nlr = orbs%norb
 
   ! Communication of the quantities
-  if (nproc > 1)  call mpiallred(orbs%onwhichatom(1),orbs%norb,MPI_SUM,bigdft_mpi%mpi_comm)
-  if (nproc > 1)  call mpiallred(locrad(1),orbs%norb,MPI_SUM,bigdft_mpi%mpi_comm)
+  if (nproc > 1)  call mpiallred(orbs%onwhichatom(1),orbs%norb,MPI_SUM,comm=bigdft_mpi%mpi_comm)
+  if (nproc > 1)  call mpiallred(locrad,MPI_SUM,comm=bigdft_mpi%mpi_comm)
 
   cxyz = f_malloc((/ 3, Lzd%nlr /),id='cxyz')
   lrad = f_malloc(Lzd%nlr,id='lrad')
@@ -2876,6 +2877,7 @@ END SUBROUTINE initialize_linear_from_file
 subroutine copy_old_supportfunctions(iproc,orbs,lzd,phi,lzd_old,phi_old)
   use module_base
   use module_types
+  use locregs, only: copy_locreg_descriptors
   use yaml_output
   implicit none
   integer,intent(in) :: iproc
@@ -2891,29 +2893,31 @@ subroutine copy_old_supportfunctions(iproc,orbs,lzd,phi,lzd_old,phi_old)
   ! First copy global quantities
   call nullify_locreg_descriptors(lzd_old%glr)
 
-  lzd_old%glr%wfd%nvctr_c = lzd%glr%wfd%nvctr_c
-  lzd_old%glr%wfd%nvctr_f = lzd%glr%wfd%nvctr_f
-  lzd_old%glr%wfd%nseg_c  = lzd%glr%wfd%nseg_c
-  lzd_old%glr%wfd%nseg_f  = lzd%glr%wfd%nseg_f
+  call copy_locreg_descriptors(lzd%glr,lzd_old%glr)
 
-  !allocations
-  call allocate_wfd(lzd_old%glr%wfd)
+!!$  lzd_old%glr%wfd%nvctr_c = lzd%glr%wfd%nvctr_c
+!!$  lzd_old%glr%wfd%nvctr_f = lzd%glr%wfd%nvctr_f
+!!$  lzd_old%glr%wfd%nseg_c  = lzd%glr%wfd%nseg_c
+!!$  lzd_old%glr%wfd%nseg_f  = lzd%glr%wfd%nseg_f
 
-  do iseg=1,lzd_old%glr%wfd%nseg_c+lzd_old%glr%wfd%nseg_f
-     lzd_old%glr%wfd%keyglob(1,iseg)    = lzd%glr%wfd%keyglob(1,iseg) 
-     lzd_old%glr%wfd%keyglob(2,iseg)    = lzd%glr%wfd%keyglob(2,iseg)
-     lzd_old%glr%wfd%keygloc(1,iseg)    = lzd%glr%wfd%keygloc(1,iseg)
-     lzd_old%glr%wfd%keygloc(2,iseg)    = lzd%glr%wfd%keygloc(2,iseg)
-     lzd_old%glr%wfd%keyvloc(iseg)      = lzd%glr%wfd%keyvloc(iseg)
-     lzd_old%glr%wfd%keyvglob(iseg)     = lzd%glr%wfd%keyvglob(iseg)
-  enddo
+!!$  !allocations
+!!$  call allocate_wfd(lzd_old%glr%wfd)
+!!$
+!!$  do iseg=1,lzd_old%glr%wfd%nseg_c+lzd_old%glr%wfd%nseg_f
+!!$     lzd_old%glr%wfd%keyglob(1,iseg)    = lzd%glr%wfd%keyglob(1,iseg) 
+!!$     lzd_old%glr%wfd%keyglob(2,iseg)    = lzd%glr%wfd%keyglob(2,iseg)
+!!$     lzd_old%glr%wfd%keygloc(1,iseg)    = lzd%glr%wfd%keygloc(1,iseg)
+!!$     lzd_old%glr%wfd%keygloc(2,iseg)    = lzd%glr%wfd%keygloc(2,iseg)
+!!$     lzd_old%glr%wfd%keyvloc(iseg)      = lzd%glr%wfd%keyvloc(iseg)
+!!$     lzd_old%glr%wfd%keyvglob(iseg)     = lzd%glr%wfd%keyvglob(iseg)
+!!$  enddo
   !!!deallocation
   !!call deallocate_wfd(lzd%glr%wfd,subname)
 
   !!lzd_old%glr%d%n1 = lzd%glr%d%n1
   !!lzd_old%glr%d%n2 = lzd%glr%d%n2
   !!lzd_old%glr%d%n3 = lzd%glr%d%n3
-  call copy_grid_dimensions(lzd%glr%d, lzd_old%glr%d)
+!!$  call copy_grid_dimensions(lzd%glr%d, lzd_old%glr%d)
 
 
   lzd_old%nlr=lzd%nlr
@@ -3328,7 +3332,7 @@ subroutine reformat_supportfunctions(iproc,nproc,at,rxyz_old,rxyz,add_derivative
 
   ! Get the maximal shift among all tasks
   if (nproc>1) then
-      call mpiallred(max_shift, 1, mpi_max, bigdft_mpi%mpi_comm)
+      call mpiallred(max_shift, 1, mpi_max, comm=bigdft_mpi%mpi_comm)
   end if
   if (iproc==0) call yaml_map('max shift of a locreg center',max_shift,fmt='(es9.2)')
 
@@ -3453,7 +3457,7 @@ subroutine print_reformat_summary(iproc,nproc,reformat_reason)
   integer, intent(in) :: iproc,nproc
   integer, dimension(0:6), intent(inout) :: reformat_reason ! array giving reasons for reformatting
 
-  if (nproc > 1) call mpiallred(reformat_reason(0), 7, mpi_sum, bigdft_mpi%mpi_comm)
+  if (nproc > 1) call mpiallred(reformat_reason, mpi_sum, bigdft_mpi%mpi_comm)
 
   if (iproc==0) then
         call yaml_mapping_open('Overview of the reformatting (several categories may apply)')

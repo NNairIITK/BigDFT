@@ -345,7 +345,8 @@ subroutine calculate_density_kernel(iproc, nproc, isKernel, orbs, orbs_tmb, &
       if (keep_uncompressed) then
           if (nproc > 1) then
               call timing(iproc,'commun_kernel','ON') !lr408t
-              call mpiallred(denskern_%matrix(1,1,1), denskern%nspin*denskern%nfvctr**2, mpi_sum, bigdft_mpi%mpi_comm)
+              call mpiallred(denskern_%matrix(1,1,1), denskern%nspin*denskern%nfvctr**2, &
+                   mpi_sum, comm=bigdft_mpi%mpi_comm)
               call timing(iproc,'commun_kernel','OF') !lr408t
           end if
       end if
@@ -354,7 +355,7 @@ subroutine calculate_density_kernel(iproc, nproc, isKernel, orbs, orbs_tmb, &
       end if
       if (nproc > 1) then
           call timing(iproc,'commun_kernel','ON') !lr408t
-          call mpiallred(tmparr(1), denskern%nspin*denskern%nvctr, mpi_sum, bigdft_mpi%mpi_comm)
+          call mpiallred(tmparr(1), denskern%nspin*denskern%nvctr, mpi_sum, comm=bigdft_mpi%mpi_comm)
           call timing(iproc,'commun_kernel','OF') !lr408t
       end if
       call extract_taskgroup(denskern, tmparr, denskern_%matrix_compr)
@@ -740,7 +741,7 @@ subroutine sumrho_for_TMBs(iproc, nproc, hx, hy, hz, collcom_sr, denskern, densk
           ! would probably required to pass additional arguments to the subroutine
           isend_total = f_malloc0(0.to.nproc-1,id='isend_total')
           isend_total(iproc)=collcom_sr%nptsp_c
-          call mpiallred(isend_total(0), nproc, mpi_sum, bigdft_mpi%mpi_comm)
+          call mpiallred(isend_total, mpi_sum, comm=bigdft_mpi%mpi_comm)
     
     
           do ispin=1,denskern%nspin
@@ -781,7 +782,7 @@ subroutine sumrho_for_TMBs(iproc, nproc, hx, hy, hz, collcom_sr, denskern, densk
       if (nproc > 1) then
           reducearr(1) = total_charge
           reducearr(2) = rho_neg
-          call mpiallred(reducearr(1), 2, mpi_sum, bigdft_mpi%mpi_comm)
+          call mpiallred(reducearr, mpi_sum, comm=bigdft_mpi%mpi_comm)
           total_charge = reducearr(1)
           rho_neg = reducearr(2)
          !call mpiallred(total_charge, 1, mpi_sum, bigdft_mpi%mpi_comm)
@@ -861,7 +862,7 @@ subroutine check_negative_rho(ndimrho, rho, rho_negative)
   end do
 
   if (bigdft_mpi%nproc > 1) then
-     call mpiallred(irho, 1, mpi_sum, bigdft_mpi%mpi_comm)
+     call mpiallred(irho, 1, mpi_sum, comm=bigdft_mpi%mpi_comm)
   end if
 
   if (irho>0) then

@@ -80,7 +80,7 @@ subroutine calculate_pulay_overlap(iproc, nproc, orbs1, orbs2, collcom1, collcom
   call timing(iproc,'ovrlptransComm','ON') !lr408t
 
   if(nproc>1) then
-      call mpiallred(ovrlp(1,1), orbs1%norb*orbs2%norb, mpi_sum, bigdft_mpi%mpi_comm)
+      call mpiallred(ovrlp, mpi_sum, comm=bigdft_mpi%mpi_comm)
   end if
   call timing(iproc,'ovrlptransComm','OF') !lr408t
 end subroutine calculate_pulay_overlap

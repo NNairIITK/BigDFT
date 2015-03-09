@@ -781,8 +781,8 @@ subroutine max_matrix_diff_parallel(iproc, norb, norbp, isorb, mat1, mat2, &
   if (bigdft_mpi%nproc>1) then
       reducearr(1)=mean_deviation
       reducearr(2)=num
-      call mpiallred(max_deviation, 1, mpi_max, bigdft_mpi%mpi_comm)
-      call mpiallred(reducearr(1), 2, mpi_sum, bigdft_mpi%mpi_comm)
+      call mpiallred(max_deviation, 1, mpi_max, comm=bigdft_mpi%mpi_comm)
+      call mpiallred(reducearr, mpi_sum, comm=bigdft_mpi%mpi_comm)
       mean_deviation=reducearr(1)
       num=reducearr(2)
   end if
@@ -856,8 +856,8 @@ subroutine max_matrix_diff_parallel_new(iproc, norb, norbp, isorb, mat1, mat2, &
   if (bigdft_mpi%nproc>1) then
       reducearr(1)=mean_deviation
       reducearr(2)=num
-      call mpiallred(max_deviation, 1, mpi_max, bigdft_mpi%mpi_comm)
-      call mpiallred(reducearr(1), 2, mpi_sum, bigdft_mpi%mpi_comm)
+      call mpiallred(max_deviation, 1, mpi_max, comm=bigdft_mpi%mpi_comm)
+      call mpiallred(reducearr, mpi_sum, comm=bigdft_mpi%mpi_comm)
       mean_deviation=reducearr(1)
       num=reducearr(2)
   end if
@@ -1625,7 +1625,7 @@ subroutine gramschmidt_coeff(iproc,nproc,norb,basis_orbs,basis_overlap,basis_ove
      end if
 
      if (nproc>1) then
-        call mpiallred(ovrlp_coeff, mpi_sum, bigdft_mpi%mpi_comm)
+        call mpiallred(ovrlp_coeff, mpi_sum, comm=bigdft_mpi%mpi_comm)
      end if
 
      call cpu_time(tr1)
@@ -1761,7 +1761,7 @@ subroutine gramschmidt_coeff_trans(iproc,nproc,norbu,norb,basis_orbs,basis_overl
          end if
 
          if (nproc>1) then
-            call mpiallred(coeff_tmp, mpi_sum, bigdft_mpi%mpi_comm)
+            call mpiallred(coeff_tmp, mpi_sum, comm=bigdft_mpi%mpi_comm)
          end if
 
          call cpu_time(tr1)
@@ -1778,7 +1778,7 @@ subroutine gramschmidt_coeff_trans(iproc,nproc,norbu,norb,basis_orbs,basis_overl
          end if
 
          if (nproc>1) then
-            call mpiallred(ovrlp_coeff, mpi_sum, bigdft_mpi%mpi_comm)
+            call mpiallred(ovrlp_coeff, mpi_sum, comm=bigdft_mpi%mpi_comm)
          end if
          call f_free(coeff_tmp)
 

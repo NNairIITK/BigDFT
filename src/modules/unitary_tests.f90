@@ -138,8 +138,8 @@ module unitary_tests
     
       ! Reduce the results
       if (bigdft_mpi%nproc>1) then
-          call mpiallred(sumdiff, 1, mpi_sum, bigdft_mpi%mpi_comm)
-          call mpiallred(maxdiff, 1, mpi_max, bigdft_mpi%mpi_comm)
+          call mpiallred(sumdiff, 1, mpi_sum, comm=bigdft_mpi%mpi_comm)
+          call mpiallred(maxdiff, 1, mpi_max, comm=bigdft_mpi%mpi_comm)
       end if
         
       ! Get mean value for the sum
@@ -366,7 +366,7 @@ module unitary_tests
       istarr(iproc)=collcom_sr%nptsp_c
     
       if (nproc > 1) then
-         call mpiallred(istarr(0), nproc, mpi_sum, bigdft_mpi%mpi_comm)
+         call mpiallred(istarr(0), nproc, mpi_sum, comm=bigdft_mpi%mpi_comm)
       end if
     
       ist=0
@@ -403,8 +403,8 @@ module unitary_tests
     
       ! Reduce the results
       if (nproc>1) then
-          call mpiallred(sumdiff, 1, mpi_sum, bigdft_mpi%mpi_comm)
-          call mpiallred(maxdiff, 1, mpi_max, bigdft_mpi%mpi_comm)
+          call mpiallred(sumdiff, 1, mpi_sum, comm=bigdft_mpi%mpi_comm)
+          call mpiallred(maxdiff, 1, mpi_max, comm=bigdft_mpi%mpi_comm)
       end if
       call mpi_barrier(bigdft_mpi%mpi_comm, ierr)
       call mpi_barrier(bigdft_mpi%mpi_comm, ierr)
@@ -656,8 +656,8 @@ module unitary_tests
         
           ! Reduce the results
           if (nproc>1) then
-              call mpiallred(sumdiff, 1, mpi_sum, bigdft_mpi%mpi_comm)
-              call mpiallred(maxdiff, 1, mpi_max, bigdft_mpi%mpi_comm)
+              call mpiallred(sumdiff, 1, mpi_sum, comm=bigdft_mpi%mpi_comm)
+              call mpiallred(maxdiff, 1, mpi_max, comm=bigdft_mpi%mpi_comm)
           end if
         
           ! Get mean value for the sum
@@ -966,7 +966,7 @@ module unitary_tests
         
            if (nproc > 1) then
               !call MPI_BARRIER(bigdft_mpi%mpi_comm, ierr)
-              call mpiallred(checksum(1,1),2*orbs%norb*orbs%nspinor,MPI_SUM,bigdft_mpi%mpi_comm)
+              call mpiallred(checksum(1,1), 2*orbs%norb*orbs%nspinor, MPI_SUM, comm=bigdft_mpi%mpi_comm)
            end if
         
            if (iproc==0) then
@@ -1088,7 +1088,7 @@ module unitary_tests
                    !    i, mat_compr(i), mat%matrix_compr(i)
                end do
                if (nproc>1) then
-                   call mpiallred(maxdiff, 1, mpi_max, bigdft_mpi%mpi_comm)
+                   call mpiallred(maxdiff, 1, mpi_max, comm=bigdft_mpi%mpi_comm)
                end if
                call f_free(mat_compr)
                if (iproc==0) call yaml_map('Maxdiff for overlap calculation',maxdiff,fmt='(1es25.17)')
@@ -1123,7 +1123,7 @@ module unitary_tests
         
            if (nproc > 1) then
               !call MPI_BARRIER(bigdft_mpi%mpi_comm, ierr)
-              call mpiallred(maxdiff,1,MPI_MAX,bigdft_mpi%mpi_comm)
+              call mpiallred(maxdiff, 1, MPI_MAX, comm=bigdft_mpi%mpi_comm)
            end if
         
            if (iproc==0) call yaml_map('Maxdiff for untranspose',maxdiff,fmt='(1pe25.17)')

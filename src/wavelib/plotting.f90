@@ -433,7 +433,7 @@ subroutine plot_density(iproc,nproc,filename,at,rxyz,box,nspin,rho)
   type(denspot_distribution), intent(in) :: box
   character(len=*), intent(in) :: filename
   real(gp), dimension(3,at%astruct%nat), intent(in) :: rxyz
-  real(dp), dimension(max(box%ndimpot,1),nspin), target, intent(in) :: rho
+  real(dp), dimension(max(box%ndimpot,1),nspin), intent(in) :: rho !, target,
   !local variables
   character(len=*), parameter :: subname='plot_density'
   character(len=5) :: suffix
@@ -458,20 +458,28 @@ subroutine plot_density(iproc,nproc,filename,at,rxyz,box,nspin,rho)
   if (nproc > 1) then
      !allocate full density in pot_ion array
      pot_ion = f_malloc_ptr((/ box%ndimgrid, nspin /),id='pot_ion')
-
-     call MPI_ALLGATHERV(rho(1,1),box%ndimpot,&
-          mpidtypd,pot_ion(1,1),box%ngatherarr(0,1),&
-          box%ngatherarr(0,2),mpidtypd,box%mpi_env%mpi_comm,ierr)
+     
+     call mpiallgather(sendbuf=rho(1,1),sendcount=box%ndimpot,&
+          recvbuf=pot_ion(1,1),recvcounts=box%ngatherarr(:,1),&
+          displs=box%ngatherarr(:,2),comm=box%mpi_env%mpi_comm)
+!!$     call MPI_ALLGATHERV(rho(1,1),box%ndimpot,&
+!!$          mpidtypd,pot_ion(1,1),box%ngatherarr(0,1),&
+!!$          box%ngatherarr(0,2),mpidtypd,box%mpi_env%mpi_comm,ierr)
 
      !case for npspin==2
      if (nspin==2) then
-        call MPI_ALLGATHERV(rho(1,2),box%ndimpot,&
-             mpidtypd,pot_ion(1,2),box%ngatherarr(0,1),&
-             box%ngatherarr(0,2),mpidtypd,box%mpi_env%mpi_comm,ierr)
+        call mpiallgather(sendbuf=rho(1,2),sendcount=box%ndimpot,&
+             recvbuf=pot_ion(1,2),recvcounts=box%ngatherarr(:,1),&
+             displs=box%ngatherarr(:,2),comm=box%mpi_env%mpi_comm)
+!!$        call MPI_ALLGATHERV(rho(1,2),box%ndimpot,&
+!!$             mpidtypd,pot_ion(1,2),box%ngatherarr(0,1),&
+!!$             box%ngatherarr(0,2),mpidtypd,box%mpi_env%mpi_comm,ierr)
      end if
 
   else
-     pot_ion => rho
+     !pot_ion => rho
+     pot_ion = f_malloc_ptr(shape(rho),id='pot_ion')
+     call f_memcpy(dest=pot_ion,src=rho)
   end if
 
   ! Format = 1 -> cube (default)
@@ -574,9 +582,9 @@ subroutine plot_density(iproc,nproc,filename,at,rxyz,box,nspin,rho)
   end if
 
 
-  if (nproc > 1) then
+  !if (nproc > 1) then
      call f_free_ptr(pot_ion)
-  end if
+  !end if
 
 END SUBROUTINE plot_density
 
@@ -1292,7 +1300,7 @@ subroutine calc_dipole(box,nspin,at,rxyz,rho,calculate_quadropole)
 
   end if
 
-  if(box%mpi_env%iproc + box%mpi_env%igroup==0) then
+  if(box%mpi_env%iproc==0) then
      !dipole_el=dipole_el        !/0.393430307_gp  for e.bohr to Debye2or  /0.20822678_gp  for e.A2Debye
      !dipole_cores=dipole_cores  !/0.393430307_gp  for e.bohr to Debye2or  /0.20822678_gp  for e.A2Debye
      !write(*,*) 'dipole_cores', dipole_cores
@@ -1308,20 +1316,6 @@ subroutine calc_dipole(box,nspin,at,rxyz,rho,calculate_quadropole)
        call yaml_map('norm(P)',sqrt(sum(tmpdip**2)),fmt='(1pe14.6)')
      call yaml_mapping_close()
 
-!!$     write(*,'(1x,a)')repeat('-',61)//' Electric Dipole Moment'
-
-!!$     write(*,96) "|P| = ", sqrt(sum(tmpdip**2)), " (AU)       ", "(Px,Py,Pz)= " , tmpdip(1:3)  
-!!$     tmpdip=tmpdip/0.393430307_gp  ! au2debye              
-!!$     write(*,96) "|P| = ", sqrt(sum(tmpdip**2)), " (Debye)    ", "(Px,Py,Pz)= " , tmpdip(1:3) 
-!!$96   format (a8,Es14.6 ,a,a,3ES13.4)
-     !     write(*,'(a)') "  ================= Dipole moment in e.a0    (0.39343 e.a0 = 1 Debye) ================"  ! or [Debye] 
-     !     write(*,97) "    Px " ,"     Py ","     Pz ","   |P| " 
-     !     write(*,98) "electronic charge: ", dipole_el(1:3) , sqrt(sum(dipole_el**2))
-     !     write(*,98) "pseudo cores:      ", dipole_cores(1:3) , sqrt(sum(dipole_cores**2))
-     !     write(*,98) "Total (cores-el.): ", dipole_cores+dipole_el , sqrt(sum((dipole_cores+dipole_el)**2))
-     !97 format (20x,3a15  ,"    ==> ",a15)
-     !98 format (a20,3f15.7,"    ==> ",f15.5)
-
 
       if (calculate_quadropole) then
           !call yaml_sequence_open('core quadropole')
@@ -1336,7 +1330,7 @@ subroutine calc_dipole(box,nspin,at,rxyz,rho,calculate_quadropole)
           !end do
           !call yaml_sequence_close()
 
-          call yaml_sequence_open('Quadropole Moment (AU)')
+          call yaml_sequence_open('Quadrupole Moment (AU)')
           do i=1,3
              call yaml_sequence(trim(yaml_toa(tmpquadrop(i,1:3),fmt='(es15.8)')))
           end do
@@ -1350,12 +1344,8 @@ subroutine calc_dipole(box,nspin,at,rxyz,rho,calculate_quadropole)
 
   if (box%mpi_env%nproc > 1) then
      call f_free_ptr(ele_rho)
-!!$     i_all=-product(shape(rho_buf))*kind(rho_buf)
-!!$     deallocate(rho_buf,stat=i_stat)
-!!$     call memocc(i_stat,i_all,'rho_buf',subname)
   else
      nullify(ele_rho)
-!!$     nullify(rho_buf)
   end if
 
 END SUBROUTINE calc_dipole

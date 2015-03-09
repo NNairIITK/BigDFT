@@ -1161,7 +1161,7 @@ module sparsematrix
          !call to_zero(nproc, recvdspls(0))
          ncount = smat%smmm%istartend_mm_dj(2) - smat%smmm%istartend_mm_dj(1) + 1
          recvcounts(iproc) = ncount
-         call mpiallred(recvcounts(0), nproc, mpi_sum, bigdft_mpi%mpi_comm)
+         call mpiallred(recvcounts(0), nproc, mpi_sum, comm=bigdft_mpi%mpi_comm)
          recvdspls(0) = 0
          do jproc=1,nproc-1
              recvdspls(jproc) = recvdspls(jproc-1) + recvcounts(jproc-1)
@@ -1209,7 +1209,7 @@ module sparsematrix
          !call to_zero(nproc, recvdspls(0))
          ncount = smat%smmm%istartend_mm_dj(2) - smat%smmm%istartend_mm_dj(1) + 1
          recvcounts(iproc) = ncount
-         call mpiallred(recvcounts(0), nproc, mpi_sum, bigdft_mpi%mpi_comm)
+         call mpiallred(recvcounts(0), nproc, mpi_sum, comm=bigdft_mpi%mpi_comm)
          recvdspls(0) = 0
          do jproc=1,nproc-1
              recvdspls(jproc) = recvdspls(jproc-1) + recvcounts(jproc-1)

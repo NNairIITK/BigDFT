@@ -2597,10 +2597,10 @@ subroutine identical(iproc,nlminx,nlmin,nid,e_wpos,wfp,en_arr,fp_arr,en_delta,fp
   if (abs(e_wpos-en_arr(k)).le.en_delta) then
      call fpdistance(nid,wfp,fp_arr(1,k),d)
      if (iproc == 0) call yaml_map('(MH) Checking fpdistance',(/e_wpos-en_arr(k),d/),fmt='(e11.4)')
-     if (iproc.eq.0) write(*,*) '(MH)  k,d',k,d
-     if (iproc.eq.0) write(*,*) '(MH)  e_wpos,en_arr(k)', e_wpos,en_arr(k)
-     if (iproc.eq.0) write(*,'(a,20(e10.3))') '(MH)    wfp', (wfp(i),i=1,nid)
-     if (iproc.eq.0) write(*,'(a,20(e10.3))') '(MH) fp_arr', (fp_arr(i,k),i=1,nid)
+!     if (iproc.eq.0) write(*,*) '(MH)  k,d',k,d
+!     if (iproc.eq.0) write(*,*) '(MH)  e_wpos,en_arr(k)', e_wpos,en_arr(k)
+!     if (iproc.eq.0) write(*,'(a,20(e10.3))') '(MH)    wfp', (wfp(i),i=1,nid)
+!     if (iproc.eq.0) write(*,'(a,20(e10.3))') '(MH) fp_arr', (fp_arr(i,k),i=1,nid)
      if (d.lt.fp_delta) then
         if (iproc.eq.0) write(*,*) '(MH) identical to ',k
         newmin=.false.

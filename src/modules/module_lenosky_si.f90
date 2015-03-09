@@ -24,7 +24,7 @@ real(gp), save :: alat_int(3)
 
 contains
 
-subroutine init_lensic(paramset,paramfile,geocode)
+subroutine init_lensic(paramset,paramfile,geocode,units)
     use module_base
     use yaml_output
     implicit none
@@ -32,6 +32,7 @@ subroutine init_lensic(paramset,paramfile,geocode)
     character(len=*), intent(in) :: paramset
     character(len=*), intent(in) :: paramfile
     character(len=*), intent(in) :: geocode
+    character(len=*), intent(in) :: units
     !local
     logical :: exists
     integer :: u
@@ -68,6 +69,24 @@ subroutine init_lensic(paramset,paramfile,geocode)
         open(unit=u,file=trim(adjustl(paramfile)))
             read(u,*) alat_int(1), alat_int(2), alat_int(3)
         close(u)
+        if (units=='angstroem' .or. units=='angstroemd0') then
+           ! if Angstroem convert to Bohr                                    
+           alat_int(1)=alat_int(1)/Bohr_Ang                              
+           alat_int(2)=alat_int(2)/Bohr_Ang                              
+           alat_int(3)=alat_int(3)/Bohr_Ang                              
+        else if  (units=='atomic' .or. units=='bohr'  .or.&  
+             units== 'atomicd0' .or. units== 'bohrd0') then 
+             !do nothing 
+        else if (units == 'reduced') then                            
+           !assume that for reduced coordinates cell size is in bohr         
+        else                                                                 
+           call f_err_throw('Length units in input file unrecognized.' // &  
+                'Recognized units are angstroem or atomic = bohr',err_id=BIGDFT_INPUT_VARIABLES_ERROR)
+           return                                                            
+           !write(*,*) 'length units in input file unrecognized'             
+           !write(*,*) 'recognized units are angstroem or atomic = bohr'     
+           !stop                                                             
+        endif  
         call yaml_map('Read cell parameters from file',trim(adjustl(paramfile)))
         initialized=.true.
     else

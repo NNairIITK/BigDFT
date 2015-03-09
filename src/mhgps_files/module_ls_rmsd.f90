@@ -1,8 +1,8 @@
 !> @file
-!!    Module fo minima hopping calculating the rmsd
+!!    Module calculating the rmsd
 !!
 !! @author
-!!    Copyright (C) 2007-2013 BigDFT group
+!!    Copyright (C) 2007-2015 BigDFT group
 !!    Copyright (C) 2004, 2005 Chaok Seok, Evangelos Coutsias
 !!                  and Ken Dill
 !!                  UCSF, Univeristy of New Mexico, Seoul National
@@ -17,7 +17,7 @@
 !!    For the list of contributors, see ~/AUTHORS
 
 
-!> Module Minima hopping calculating the rmsd
+!> Module MinimaGuided Path Sampling calculating the rmsd
 module module_ls_rmsd
 !---------------------------------------------------------------------
 

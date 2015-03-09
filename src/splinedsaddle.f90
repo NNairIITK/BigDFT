@@ -102,7 +102,7 @@ program splined_saddle
         call bigdft_state(runObj, outs,infocode)
      end if
 
-     if (bigdft_mpi%iproc == 0) call write_forces(runObj%atoms,outs%fxyz)
+     if (bigdft_mpi%iproc == 0) call write_forces(bigdft_get_astruct_ptr(runObj),outs%fxyz)
 
      call deallocate_state_properties(outs)
      call free_run_objects(runObj)

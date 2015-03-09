@@ -38,6 +38,7 @@
   if (ntot<=smallsize) tcat=TCAT_ALLRED_SMALL
   if (in_place) then
      call f_timer_interrupt(tcat)
+     write(*,'(a,4i8)') 'ntot, size(sendbuf), op, mpi_max', ntot, size(sendbuf), op, mpi_max
      call MPI_ALLREDUCE(MPI_IN_PLACE,sendbuf,ntot,&
           mpitype(sendbuf),op,mpi_comm,ierr)
      call f_timer_resume()

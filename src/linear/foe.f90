@@ -543,7 +543,7 @@ subroutine foe(iproc, nproc, tmprtr, &
                       end do
     
                       if (nproc > 1) then
-                          call mpiallred(diff, 1, mpi_sum, bigdft_mpi%mpi_comm)
+                          call mpiallred(diff, 1, mpi_sum, comm=bigdft_mpi%mpi_comm)
                       end if
     
                       diff=sqrt(diff)
@@ -604,7 +604,7 @@ subroutine foe(iproc, nproc, tmprtr, &
           temparr(1) = ebsp
           temparr(2) = ebs_check
           if (nproc>1) then
-              call mpiallred(temparr(1), 2, mpi_sum, bigdft_mpi%mpi_comm)
+              call mpiallred(temparr, mpi_sum, comm=bigdft_mpi%mpi_comm)
           end if
           ebsp = temparr(1)
           ebs_check = temparr(2)
@@ -703,7 +703,7 @@ subroutine foe(iproc, nproc, tmprtr, &
           istl = tmb%linmat%l%smmm%istartend_mm_dj(1) - tmb%linmat%l%isvctrp_tg
           ebsp = ddot(ncount, tmb%linmat%kernel_%matrix_compr(ilshift+istl), 1, hamscal_compr(istl), 1)
           if (nproc>1) then
-              call mpiallred(ebsp, 1, mpi_sum, bigdft_mpi%mpi_comm)
+              call mpiallred(ebsp, 1, mpi_sum, comm=bigdft_mpi%mpi_comm)
           end if
           ebsp=ebsp/scale_factor+shift_value*sumn
     
@@ -949,7 +949,7 @@ subroutine foe(iproc, nproc, tmprtr, &
           !$omp end parallel
 
           if (nproc > 1) then
-              call mpiallred(trace, 1, mpi_sum, bigdft_mpi%mpi_comm)
+              call mpiallred(trace, 1, mpi_sum, comm=bigdft_mpi%mpi_comm)
           end if
 
           call f_release_routine()
@@ -993,7 +993,7 @@ subroutine chebft(A,B,N,cc,ef,fscale,tmprtr)
       if (tmprtr.eq.0.d0) then
           cf(k)=.5d0*erfcc((arg-ef)*(1.d0/fscale))
       else
-          cf(k)=1.d0/(1.d0+exp( (arg-ef)*(1.d0/tmprtr) ) )
+          cf(k)=1.d0/(1.d0+safe_exp( (arg-ef)*(1.d0/tmprtr) ) )
       end if
   end do
   !$omp end do
@@ -1046,7 +1046,7 @@ subroutine chebft2(a,b,n,cc)
   do k=1,n
       y=cos(pi*(k-0.5d0)*(1.d0/n))
       arg=y*bma+bpa
-      cf(k)=exp((arg-b)*ttt)
+      cf(k)=safe_exp((arg-b)*ttt)
   end do
   !$omp end do
   !$omp do
@@ -1150,6 +1150,7 @@ end subroutine evnoise
 
 !> Calculates the error function complement with an error of less than 1.2E-7
 function erfcc(x)
+  use module_defs, only: safe_exp
   implicit none
 
   ! Calling arguments
@@ -1161,7 +1162,7 @@ function erfcc(x)
 
   z=abs(x)
   t=1.d0/(1.+0.5d0*z)
-  erfcc=t*exp(-z*z-1.26551223+t*(1.00002368+t*(.37409196+ &
+  erfcc=t*safe_exp(-z*z-1.26551223+t*(1.00002368+t*(.37409196+ &
         & t*(.09678418+t*(-.18628806+t*(.27886807+t*(-1.13520398+ &
         & t*(1.48851587+t*(-.82215223+t*.17087277)))))))))
   if (x.lt.0.) erfcc=2.D0-erfcc
@@ -1546,7 +1547,7 @@ function trace_sparse(iproc, nproc, orbs, asmat, bsmat, amat, bmat, ispin)
   !end if
 
   if (nproc > 1) then
-      call mpiallred(sumn, 1, mpi_sum, bigdft_mpi%mpi_comm)
+      call mpiallred(sumn, 1, mpi_sum, comm=bigdft_mpi%mpi_comm)
   end if
 
   trace_sparse = sumn
@@ -2116,7 +2117,7 @@ subroutine check_eigenvalue_spectrum_new(nproc, smat_l, smat_s, mat, ispin, issh
   allredarr(2)=bound_up
 
   if (nproc > 1) then
-      call mpiallred(allredarr(1), 2, mpi_sum, bigdft_mpi%mpi_comm)
+      call mpiallred(allredarr, mpi_sum, comm=bigdft_mpi%mpi_comm)
   end if
 
 
@@ -2179,7 +2180,7 @@ subroutine check_emergency_stop(nproc,emergency_stop)
   end if
 
   if (nproc > 1) then
-      call mpiallred(iflag, 1, mpi_sum, bigdft_mpi%mpi_comm)
+      call mpiallred(iflag, 1, mpi_sum, comm=bigdft_mpi%mpi_comm)
   end if
 
   if (iflag>0) then

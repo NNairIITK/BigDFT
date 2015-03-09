@@ -99,7 +99,7 @@ subroutine write_orbital_density(iproc, transform_to_global, iformat, &
       end do
   end do
 
-  call deallocate_bounds(lzd_g%glr%geocode, lzd_g%glr%hybrid_on, lzd_g%glr%bounds)
+  !call deallocate_bounds(lzd_g%glr%geocode, lzd_g%glr%hybrid_on, lzd_g%glr%bounds)
 
   if (transform_to_global) then
       call f_free_ptr(psi_g)
@@ -1300,7 +1300,7 @@ real(kind=8),dimension(:),pointer :: phiwork_global
 !print*,KSwfn%orbs%occup(KSwfn%orbs%isorb+iorb)
                 end do
              end do
-          call mpiallred(coeffs_occs(1,1), KSwfn%orbs%norb*tmb%orbs%norb, mpi_sum, bigdft_mpi%mpi_comm)
+          call mpiallred(coeffs_occs, mpi_sum, comm=bigdft_mpi%mpi_comm)
 
   nvctrp=comms%nvctr_par(iproc,0)*orbs%nspinor
   !call dgemm('n', 'n', nvctrp, KSwfn%orbs%norb, tmb%orbs%norb, 1.d0, phi_global, nvctrp, tmb%coeff(1,1), &
@@ -2084,8 +2084,8 @@ subroutine support_function_multipoles(iproc, tmb, atoms, denspot)
 
 
   if (bigdft_mpi%nproc>1) then
-      call mpiallred(dipole_net(1,1), 3*tmb%orbs%norb, mpi_sum, bigdft_mpi%mpi_comm)
-      call mpiallred(quadropole_net(1,1,1), 9*tmb%orbs%norb, mpi_sum, bigdft_mpi%mpi_comm)
+      call mpiallred(dipole_net, mpi_sum, comm=bigdft_mpi%mpi_comm)
+      call mpiallred(quadropole_net, mpi_sum, comm=bigdft_mpi%mpi_comm)
   end if
 
   if (iproc==0) then
@@ -2167,10 +2167,10 @@ subroutine analyze_wavefunctions(output, region, lzd, orbs, npsidim, psi, ioffse
       ist = ist + ncount
   end do
 
-  call mpiallred(sigma_arr, mpi_sum, bigdft_mpi%mpi_comm)
+  call mpiallred(sigma_arr, mpi_sum, comm=bigdft_mpi%mpi_comm)
 
   if (trim(region)=='global') then
-      call deallocate_bounds(lzd%glr%geocode, lzd%glr%hybrid_on, lzd%glr%bounds)
+      !call deallocate_bounds(lzd%glr%geocode, lzd%glr%hybrid_on, lzd%glr%bounds)
   end if
 
   if (bigdft_mpi%iproc==0) then

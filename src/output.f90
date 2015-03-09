@@ -1176,14 +1176,14 @@ END SUBROUTINE write_gnrms
 
 
 !> Print the atomic forces
-subroutine write_forces(atoms,fxyz)
+subroutine write_forces(astruct,fxyz)
    use module_base
-   use module_types
+   use module_atoms
    use yaml_output
    implicit none
    !Arguments
-   type(atoms_data), intent(in) :: atoms                !< Atoms data
-   real(gp), dimension(3,atoms%astruct%nat), intent(in) :: fxyz !< Atomic forces
+   type(atomic_structure), intent(in) :: astruct
+   real(gp), dimension(3,astruct%nat), intent(in) :: fxyz !< Atomic forces
    !Local variables
    real(gp) :: sumx,sumy,sumz
    integer :: iat
@@ -1193,27 +1193,21 @@ subroutine write_forces(atoms,fxyz)
    sumz=0.d0
    call yaml_comment('Atomic Forces',hfill='-')
    call yaml_sequence_open('Atomic Forces (Ha/Bohr)')
-   do iat=1,atoms%astruct%nat
+   do iat=1,astruct%nat
       call yaml_sequence(advance='no')
       call yaml_mapping_open(flow=.true.)
-      call yaml_map(trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat))),fxyz(1:3,iat),fmt='(1pe20.12)')
+      call yaml_map(trim(astruct%atomnames(astruct%iatype(iat))),fxyz(1:3,iat),fmt='(1pe20.12)')
       !call yaml_map('AU',fxyz(1:3,iat),fmt='(1pe20.12)')
       !call yaml_map('eV/A',fxyz(1:3,iat)*Ha_eV/Bohr_Ang,fmt='(1pe9.2)')
       call yaml_mapping_close(advance='no')
       call yaml_comment(trim(yaml_toa(iat,fmt='(i4.4)')))
 !      write(*,'(1x,i5,1x,a6,3(1x,1pe12.5))') &
-!      iat,trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat))),(fxyz(j,iat),j=1,3)
+!      iat,trim(astruct%atomnames(astruct%iatype(iat))),(fxyz(j,iat),j=1,3)
       sumx=sumx+fxyz(1,iat)
       sumy=sumy+fxyz(2,iat)
       sumz=sumz+fxyz(3,iat)
    end do
    call yaml_sequence_close()
-   !$$        if (.not. inputs%gaussian_help .or. .true.) then !zero of the forces calculated
-   !$$           write(*,'(1x,a)')'the sum of the forces is'
-   !$$           write(*,'(1x,a16,3x,1pe16.8)')'x direction',sumx
-   !$$           write(*,'(1x,a16,3x,1pe16.8)')'y direction',sumy
-   !$$           write(*,'(1x,a16,3x,1pe16.8)')'z direction',sumz
-   !$$        end if
 END SUBROUTINE write_forces
 
 
