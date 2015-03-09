@@ -1911,15 +1911,6 @@ subroutine corrections_for_negative_charge(iproc, nproc, KSwfn, at, input, tmb, 
 
 end subroutine corrections_for_negative_charge
 
-
-      call timing(iproc,'determinespars','ON')
-
-      call timing(iproc,'determinespars','OF')
-  call timing(bigdft_mpi%iproc,'determinespars','ON')
-  call timing(bigdft_mpi%iproc,'determinespars','OF')
-
-
-
 subroutine set_confdatarr(input, at, lorbs, onwhichatom, potential_prefac, locrad, text, add_sequence, confdatarr)
   use module_base
   use module_types
