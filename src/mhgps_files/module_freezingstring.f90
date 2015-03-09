@@ -1068,7 +1068,7 @@ subroutine lst_interpol_freez(runObj,mhgpsst,uinp,left,right,step,interleft,inte
             call splint_wrapper(arcC,lstpathCRM(1,3,i),y2vecC(1,3,i),&
                  nimagestang,tau,rdmy,tangentleft(3,i))
         enddo
-        call clean_forces_base(runObj%atoms,tangentleft(1,1))
+        call clean_forces_base(bigdft_get_astruct_ptr(runObj),tangentleft(1,1))
         rdmy = dnrm2(tnat,tangentleft(1,1),1)
         tangentleft = tangentleft / rdmy
 
@@ -1092,7 +1092,7 @@ subroutine lst_interpol_freez(runObj,mhgpsst,uinp,left,right,step,interleft,inte
             call splint_wrapper(arcC,lstpathCRM(1,3,i),y2vecC(1,3,i),&
                  nimagestang,tau,rdmy,tangentright(3,i))
         enddo
-        call clean_forces_base(runObj%atoms,tangentright(1,1))
+        call clean_forces_base(bigdft_get_astruct_ptr(runObj),tangentright(1,1))
         rdmy = dnrm2(tnat,tangentright(1,1),1)
         tangentright = tangentright / rdmy
 

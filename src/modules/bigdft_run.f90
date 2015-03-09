@@ -145,7 +145,6 @@ contains
     integer, intent(in) :: nat
     type(MM_restart_objects), intent(inout) :: mm_rst
 
-    if (bigdft_mpi%iproc==0) call yaml_sequence_open('Initializing '//trim(char(run_mode)))
     !then check if extra workspaces have to be allocated
     select case(trim(char(run_mode)))
     case('LENNARD_JONES_RUN_MODE')
@@ -230,7 +229,6 @@ contains
     call f_ref_free(mm_rst%refcnt)
     call f_free_ptr(mm_rst%rf_extra)
 
-    if (bigdft_mpi%iproc==0) call yaml_sequence_close()
   end subroutine free_MM_restart_objects
 
   !> Allocate and nullify restart objects
@@ -478,8 +476,8 @@ contains
     if (maxdiff > epsilon(1.0_gp)) then
        if (bigdft_mpi%iproc==0) then
           call yaml_warning('State properties not identical! '//&
-               '(difference:'//trim(yaml_toa(maxdiff))//&
-               ' ), however broadcasting from master node.')
+               '(difference:'//trim(yaml_toa(maxdiff,fmt='(1pe15.5)'))//&
+               ' ), broadcasting from master node.')
           call yaml_flush_document()
        end if
     end if
@@ -765,10 +763,14 @@ contains
     use module_types
     use module_base
     use module_atoms, only: deallocate_atoms_data
+    use yaml_output, only: yaml_sequence_close
     implicit none
     type(run_objects), intent(inout) :: runObj
     !local variables
     integer :: count
+    if (bigdft_mpi%iproc==0 .and. runObj%run_mode /= 'QM_RUN_MODE') then
+       call yaml_sequence_close()
+    end if
 
     if (associated(runObj%rst)) then
        call f_unref(runObj%rst%refcnt,count=count)
@@ -802,7 +804,6 @@ contains
           nullify(runObj%inputs)
        end if
     end if
-
     call nullify_run_objects(runObj)
   end subroutine release_run_objects
 
@@ -812,8 +813,11 @@ contains
     use module_types
     use module_base
     use module_atoms, only: deallocate_atoms_data
+    use yaml_output, only: yaml_sequence_close
     implicit none
     type(run_objects), intent(inout) :: runObj
+    if (bigdft_mpi%iproc==0 .and. runObj%run_mode /= 'QM_RUN_MODE')&
+         call yaml_sequence_close()
 
     call dict_free(runObj%user_inputs)
     if (associated(runObj%rst)) then
@@ -966,6 +970,9 @@ contains
        call run_objects_associate(runObj,&
             source%inputs,source%atoms,source%rst,source%mm_rst)
     end if
+
+    if (bigdft_mpi%iproc==0 .and. runObj%run_mode /= 'QM_RUN_MODE') &
+         call yaml_sequence_open('Initializing '//trim(char(runObj%run_mode)))
 
     call f_release_routine()
 
@@ -1301,7 +1308,7 @@ contains
     use dynamic_memory, only: f_memcpy
     use yaml_strings, only: yaml_toa
     use yaml_output
-    use module_forces
+    use module_forces, only: clean_forces
     use module_morse_bulk
     implicit none
     !parameters
@@ -1327,8 +1334,8 @@ contains
        if (maxdiff > epsilon(1.0_gp)) then
           if (bigdft_mpi%iproc==0) then
              call yaml_warning('Input positions not identical! '//&
-                  '(difference:'//trim(yaml_toa(maxdiff))//&
-                  ' ), however broadcasting from master node.')
+                  '(difference:'//trim(yaml_toa(maxdiff,fmt='(1pe12.5)'))//&
+                  ' ), broadcasting from master node')
              call yaml_flush_document()
           end if
        end if
@@ -1419,7 +1426,8 @@ contains
 !!         enddo
 !!         enddo
 !!         endif
-    call clean_forces(bigdft_mpi%iproc,runObj%atoms,rxyz_ptr,outs%fxyz,outs%fnoise,runObj%run_mode)
+    call clean_forces(bigdft_mpi%iproc,bigdft_get_astruct_ptr(runObj),&
+         rxyz_ptr,outs%fxyz,outs%fnoise,runObj%run_mode)
 
     !broadcast the state properties
     call broadcast_state_properties(outs)
@@ -1800,8 +1808,8 @@ contains
        call axpy(3*atoms%astruct%nat,2.0_gp*rst%KSwfn%orbs%norb,dfunctional(1),1,fxyz(1,1),1)
     end if
     !clean the center mass shift and the torque in isolated directions
-    call clean_forces(iproc,atoms,rxyz_ref,fxyz,fnoise)
-    if (iproc == 0) call write_forces(atoms,fxyz)
+    call clean_forces(iproc,atoms%astruct,rxyz_ref,fxyz,fnoise)
+    if (iproc == 0) call write_forces(atoms%astruct,fxyz)
 
     energy=functional_ref
 

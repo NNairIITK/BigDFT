@@ -987,7 +987,8 @@ subroutine curvforce(mhgpsst,runObj,outs,diff,rxyz1,fxyz1,vec,curv,rotforce,imet
     use yaml_output
     use bigdft_run, only: bigdft_get_geocode
     use module_energyandforces
-    use bigdft_run, only: run_objects, state_properties
+    use bigdft_run, only: run_objects, state_properties,&
+         bigdft_get_astruct_ptr
     use module_mhgps_state
     use module_forces
     implicit none
@@ -1021,7 +1022,7 @@ subroutine curvforce(mhgpsst,runObj,outs,diff,rxyz1,fxyz1,vec,curv,rotforce,imet
         call elim_torque_bastian(runObj%atoms%astruct%nat,&
              rxyz1(1,1),vec(1,1))
 
-    call clean_forces_base(runObj%atoms,vec) 
+    call clean_forces_base(bigdft_get_astruct_ptr(runObj),vec) 
     vec = vec / dnrm2(3*runObj%atoms%astruct%nat,vec(1,1),1)
     rxyz2 = rxyz1 + diff * vec
 

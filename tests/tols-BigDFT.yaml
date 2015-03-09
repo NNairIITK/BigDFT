@@ -122,7 +122,7 @@ SiBulk:
  Optimization of virtual orbitals: 7.0101e-8
  e_occupied: 1.42e-11
  Orbitals: 1.42e-11	
- GPa: 3.0e-11
+ GPa: 7.0e-10
  # Necessary for GPU runs, to be updated...
  Keys to ignore:
   - Residues per orbital
@@ -1213,3 +1213,12 @@ log_model:
  System pseudo energy (Ha): 3.6e-11
  Keys to ignore:
   - Reference Paper
+
+
+FF_LENOSKY-vssd:
+  Keys to ignore:
+  - WARNINGS
+
+FF_LENOSKY-sdcg:
+  Keys to ignore:
+  - WARNINGS

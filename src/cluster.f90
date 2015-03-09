@@ -1031,7 +1031,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,energs,fxyz,strten,fnoise,press
         !start the Casida's treatment 
         if (in%tddft_approach=='TDA') then
 
-           !does it makes sense to use GPU only for a one-shot sumrho?
+           !does it make sense to use GPU only for a one-shot sumrho?
            if (GPU%OCLconv) then
               call allocate_data_OCL(KSwfn%Lzd%Glr%d%n1,KSwfn%Lzd%Glr%d%n2,KSwfn%Lzd%Glr%d%n3,&
                    atoms%astruct%geocode,&

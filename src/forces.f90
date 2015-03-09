@@ -123,15 +123,15 @@ subroutine calculate_forces(iproc,nproc,psolver_groupsize,Glr,atoms,orbs,nlpsp,r
   !!    write(4400+iproc,'(a,i8,3es15.6)') 'iat, fxyz(:,iat)', iat, fxyz(:,iat)
   !!end do
 
-  ! @ NEW: POSSIBLE CONSTRAINTS IN INTERNAL COORDINATES ############
-  if (atoms%astruct%inputfile_format=='int') then
-      if (iproc==0) call yaml_map('cleaning using internal coordinates','Yes')
-      !if (bigdft_mpi%iproc==0) call yaml_map('force start',fxyz)
-      !if (bigdft_mpi%iproc==0) call yaml_map('BEFORE: MAX COMPONENT',maxval(fxyz))
-      call internal_forces(atoms%astruct%nat, rxyz, atoms%astruct%ixyz_int, atoms%astruct%ifrztyp, fxyz)
-      !if (bigdft_mpi%iproc==0) call yaml_map('AFTER: MAX COMPONENT',maxval(fxyz))
-  end if
-  ! @ ##############################################################
+!!$  ! @ NEW: POSSIBLE CONSTRAINTS IN INTERNAL COORDINATES ############
+!!$  if (atoms%astruct%inputfile_format=='int') then
+!!$      if (iproc==0) call yaml_map('Cleaning using internal coordinates','Yes')
+!!$      !if (bigdft_mpi%iproc==0) call yaml_map('force start',fxyz)
+!!$      !if (bigdft_mpi%iproc==0) call yaml_map('BEFORE: MAX COMPONENT',maxval(fxyz))
+!!$      call internal_forces(atoms%astruct%nat, rxyz, atoms%astruct%ixyz_int, atoms%astruct%ifrztyp, fxyz)
+!!$      !if (bigdft_mpi%iproc==0) call yaml_map('AFTER: MAX COMPONENT',maxval(fxyz))
+!!$  end if
+!!$  ! @ ##############################################################
 
   !clean the center mass shift and the torque in isolated directions
   !no need to do it twice
@@ -140,10 +140,10 @@ subroutine calculate_forces(iproc,nproc,psolver_groupsize,Glr,atoms,orbs,nlpsp,r
   !!    write(4500+iproc,'(a,i8,3es15.6)') 'iat, fxyz(:,iat)', iat, fxyz(:,iat)
   !!end do
 
-  ! Apply symmetries when needed
-  if (atoms%astruct%sym%symObj >= 0) call symmetrise_forces(fxyz,atoms)
+!!$  ! Apply symmetries when needed
+!!$  if (atoms%astruct%sym%symObj >= 0) call symmetrise_forces(fxyz,atoms%astruct)
 
-  if (iproc == 0) call write_forces(atoms,fxyz)
+  !if (iproc == 0) call write_forces(atoms%astruct,fxyz)
 
   !volume element for local stress
   strtens(:,1)=strtens(:,1)/real(Glr%d%n1i*Glr%d%n2i*Glr%d%n3i,dp)
@@ -3648,18 +3648,18 @@ end subroutine symm_stress
 
 
 !> Symmetrise the atomic forces (needed with special k points)
-subroutine symmetrise_forces(fxyz, at)
+subroutine symmetrise_forces(fxyz, astruct)
   use defs_basis
   use m_ab6_symmetry
   use module_defs, only: gp
-  use module_types, only: atoms_data
+  use module_atoms, only: atomic_structure
   use yaml_output
 
   implicit none
 
   !Arguments
-  type(atoms_data), intent(in) :: at
-  real(gp), intent(inout) :: fxyz(3, at%astruct%nat)
+  type(atomic_structure), intent(in) :: astruct
+  real(gp), intent(inout) :: fxyz(3, astruct%nat)
   !Local variables
   integer :: ia, mu, isym, errno, ind, nsym
   integer :: indsym(4, AB6_MAX_SYMMETRIES)
@@ -3671,7 +3671,7 @@ subroutine symmetrise_forces(fxyz, at)
   integer, pointer  :: symAfm(:)
   real(gp), pointer :: transNon(:,:)
 
-  call symmetry_get_matrices_p(at%astruct%sym%symObj, nsym, sym, transNon, symAfm, errno)
+  call symmetry_get_matrices_p(astruct%sym%symObj, nsym, sym, transNon, symAfm, errno)
   if (errno /= AB7_NO_ERROR) stop
   if (nsym < 2) return
  !if (iproc == 0) write(*,"(1x,A,I0,A)") "Symmetrise forces with ", nsym, " symmetries."
@@ -3683,18 +3683,18 @@ subroutine symmetrise_forces(fxyz, at)
      call mati3inv(sym(:,:,isym), symrec(:,:,isym))
   end do
 
-  alat = (/ at%astruct%cell_dim(1), at%astruct%cell_dim(2), at%astruct%cell_dim(3) /)
-  if (at%astruct%geocode == 'S') alat(2) = real(1, gp)
+  alat =astruct%cell_dim
+  if (astruct%geocode == 'S') alat(2) = real(1, gp)
 
   !Save fxyz into dedt.
-  allocate(dedt(3,at%astruct%nat))
-  do ia = 1, at%astruct%nat
+  allocate(dedt(3,astruct%nat))
+  do ia = 1, astruct%nat
      dedt(:, ia) = fxyz(:, ia) / alat
   end do
 
   ! actually conduct symmetrization
-  do ia = 1, at%astruct%nat
-     call symmetry_get_equivalent_atom(at%astruct%sym%symObj, indsym, ia, errno)
+  do ia = 1, astruct%nat
+     call symmetry_get_equivalent_atom(astruct%sym%symObj, indsym, ia, errno)
      if (errno /= AB7_NO_ERROR) stop
      do mu = 1, 3
         summ = real(0, gp)
@@ -3713,7 +3713,7 @@ subroutine symmetrise_forces(fxyz, at)
   deallocate(symrec)
   
   ! fxyz is in reduced coordinates, we expand here.
-  do ia = 1, at%astruct%nat
+  do ia = 1, astruct%nat
      fxyz(:, ia) = fxyz(:, ia) * alat
   end do
 end subroutine symmetrise_forces
@@ -4816,10 +4816,6 @@ subroutine nonlocal_forces_linear(iproc,nproc,npsidim_orbs,lr,hx,hy,hz,at,rxyz,&
       end subroutine calculate_forces
 
 END SUBROUTINE nonlocal_forces_linear
-
-
-
-
 
 subroutine internal_forces(nat, rxyz, ixyz_int, ifrozen, fxyz)
   use module_base
