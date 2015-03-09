@@ -44,7 +44,6 @@ subroutine write_orbital_density(iproc, transform_to_global, iformat, &
   ! Transform to the global region
   if (transform_to_global) then
       psi_g = f_malloc_ptr(orbs%norbp*(lzd_g%glr%wfd%nvctr_c+7*lzd_g%glr%wfd%nvctr_f), id='psi_g')
-      write(*,*) 'npsidim',npsidim
       call small_to_large_locreg(iproc, npsidim, &
            orbs%norbp*(lzd_l%glr%wfd%nvctr_c+7*lzd_l%glr%wfd%nvctr_f), lzd_l, &
            lzd_g, orbs, psi, psi_g, to_global=.true.)
@@ -52,7 +51,6 @@ subroutine write_orbital_density(iproc, transform_to_global, iformat, &
       psi_g => psi
   end if
 
-  write(*,*) 'iproc, HERE'
 
   binary = (iformat==WF_FORMAT_BINARY)
 
@@ -989,6 +987,7 @@ subroutine build_ks_orbitals(iproc, nproc, tmb, KSwfn, at, rxyz, denspot, GPU, &
   character(len=*),parameter :: subname='build_ks_orbitals'
   real(wp), dimension(:,:,:), pointer :: mom_vec_fake
   type(work_mpiaccumulate) :: energs_work
+  integer,dimension(:,:),allocatable :: ioffset_isf
 
 
   nullify(mom_vec_fake)
@@ -1120,6 +1119,14 @@ subroutine build_ks_orbitals(iproc, nproc, tmb, KSwfn, at, rxyz, denspot, GPU, &
       call write_orbital_density(iproc, .false., mod(input%lin%plotBasisFunctions,10), 'KSDens', &
            KSwfn%orbs%npsidim_orbs, phiwork_global, input, KSwfn%orbs, KSwfn%lzd, at, rxyz)
   end if
+
+  if (input%wf_extent_analysis) then
+      ioffset_isf = f_malloc0((/3,KSwfn%orbs%norbp/),id='ioffset_isf')
+      call analyze_wavefunctions('Kohn Sham orbitals extent analysis', 'global', &
+           KSwfn%lzd, KSwfn%orbs, KSwfn%orbs%npsidim_orbs, phiwork_global, ioffset_isf)
+      call f_free(ioffset_isf)
+  end if
+
 
 
    call f_free_ptr(phiwork_global)
@@ -2106,6 +2113,161 @@ subroutine support_function_multipoles(iproc, tmb, atoms, denspot)
   call f_free(quadropole_net)
   call f_release_routine()
 
-  
-
 end subroutine support_function_multipoles
+
+
+
+
+subroutine analyze_wavefunctions(output, region, lzd, orbs, npsidim, psi, ioffset)
+  use module_base
+  use module_types
+  use yaml_output
+  implicit none
+
+  ! Calling arguments
+  character(len=*),intent(in) :: output, region
+  type(local_zone_descriptors),intent(in) :: lzd
+  type(orbitals_data),intent(in) :: orbs
+  integer,intent(in) :: npsidim
+  real(kind=8),dimension(npsidim),intent(in) :: psi
+  integer,dimension(3,orbs%norbp),intent(in) :: ioffset
+  
+  ! Local variables
+  integer :: ist, iorb, iiorb, ilr, ncount
+  real(kind=8),dimension(3) :: center, sigma
+  real(kind=8),dimension(:),allocatable :: sigma_arr
+  real(kind=8) :: dnrm2
+
+
+  if (trim(region)=='global') then
+      ! Need to create the convolution bounds
+      call locreg_bounds(lzd%glr%d%n1, lzd%glr%d%n2, lzd%glr%d%n3, &
+           lzd%glr%d%nfl1, lzd%glr%d%nfu1, &
+           lzd%glr%d%nfl2, lzd%glr%d%nfu2, &
+           lzd%glr%d%nfl3, lzd%glr%d%nfu3, &
+           lzd%glr%wfd, lzd%glr%bounds)
+  end if
+
+  sigma_arr = f_malloc0(orbs%norb,id='sigma_arr')
+
+  ist = 1
+  do iorb=1,orbs%norbp
+      iiorb = orbs%isorb + iorb
+      ilr = orbs%inwhichlocreg(iiorb)
+      if (trim(region)=='local') then
+          ncount = lzd%llr(ilr)%wfd%nvctr_c + 7*lzd%llr(ilr)%wfd%nvctr_f
+          call analyze_one_wavefunction(lzd%llr(ilr), lzd%hgrids, ncount, psi(ist), ioffset(1,iorb), center, sigma)
+      else if (trim(region)=='global') then
+          ncount = lzd%glr%wfd%nvctr_c + 7*lzd%glr%wfd%nvctr_f
+          call analyze_one_wavefunction(lzd%glr, lzd%hgrids, ncount, psi(ist), ioffset(1,iorb), center, sigma)
+      else
+          call f_err_throw('wrong value of region',err_name='BIGDFT_RUNTIME_ERROR')
+      end if
+      sigma_arr(iiorb) = dnrm2(3, sigma(1), 1)
+      ist = ist + ncount
+  end do
+
+  call mpiallred(sigma_arr, mpi_sum, bigdft_mpi%mpi_comm)
+
+  if (trim(region)=='global') then
+      call deallocate_bounds(lzd%glr%geocode, lzd%glr%hybrid_on, lzd%glr%bounds)
+  end if
+
+  if (bigdft_mpi%iproc==0) then
+      call yaml_sequence_open(trim(output),flow=.true.)
+      call yaml_newline()
+      do iorb=1,orbs%norb
+          call yaml_sequence()
+          call yaml_mapping_open(flow=.true.)
+          call yaml_map('eval',orbs%eval(iorb),fmt='(es19.12)')
+          call yaml_map('sigma',sigma_arr(iorb),fmt='(es11.4)')
+          call yaml_mapping_close()
+          call yaml_comment(yaml_toa(iorb))
+          call yaml_newline()
+      end do
+      call yaml_sequence_close()
+  end if
+
+  call f_free(sigma_arr)
+
+end subroutine analyze_wavefunctions
+
+
+subroutine analyze_one_wavefunction(lr, hgrids, npsidim, psi, ioffset, center, sigma)
+  use module_base
+  use module_types
+  implicit none
+
+  ! Calling arguments
+  integer,intent(in) :: npsidim
+  type(locreg_descriptors),intent(in) :: lr
+  real(kind=8),dimension(3),intent(in) :: hgrids
+  real(kind=8),dimension(npsidim),intent(in) :: psi
+  integer,dimension(3),intent(in) :: ioffset
+  real(kind=8),dimension(3),intent(out) :: center, sigma
+
+  ! Local variables
+  type(workarr_sumrho) :: w
+  real(kind=8),dimension(:),allocatable :: psir
+  integer :: ind, i1, i2, i3
+  real(kind=8) :: x, y, z, q
+  real(kind=8),dimension(3) :: hhgrids, var
+
+  call initialize_work_arrays_sumrho(1, lr, .true., w)
+
+  psir = f_malloc(lr%d%n1i*lr%d%n2i*lr%d%n3i,id='psir')
+  ! Initialisation
+  if (lr%geocode == 'F') call f_zero(psir)
+
+  call daub_to_isf(lr, w, psi, psir)
+
+  hhgrids(1:3) = 0.5d0*hgrids(1:3)
+
+  ind = 0
+  center(1:3) = 0.d0
+  q = 0.d0
+  do i3=1,lr%d%n3i
+      z = real(i3+ioffset(3),wp)*hhgrids(3)
+      do i2=1,lr%d%n2i
+          y = real(i3+ioffset(2),wp)*hhgrids(2)
+          do i1=1,lr%d%n1i
+              x = real(i3+ioffset(1),wp)*hhgrids(1)
+              ind = ind + 1
+              center(1) = center(1) + psir(ind)**2*x
+              center(2) = center(2) + psir(ind)**2*y
+              center(3) = center(3) + psir(ind)**2*z
+              q = q + psir(ind)**2
+          end do
+      end do
+  end do
+  ! Normalize
+  center(1:3) = center(1:3)/q
+
+  !Calculate variance
+  ind = 0
+  var(1:3) = 0.d0
+  do i3=1,lr%d%n3i
+      z = real(i3+ioffset(3),wp)*hhgrids(3)
+      do i2=1,lr%d%n2i
+          y = real(i3+ioffset(2),wp)*hhgrids(2)
+          do i1=1,lr%d%n1i
+              x = real(i3+ioffset(1),wp)*hhgrids(1)
+              ind = ind + 1
+              var(1) = var(1) + psir(ind)**2*(x-center(1))**2
+              var(2) = var(2) + psir(ind)**2*(y-center(2))**2
+              var(3) = var(3) + psir(ind)**2*(z-center(3))**2
+          end do
+      end do
+  end do
+  !Normalize
+  var(1:3) = var(1:3)/q
+  ! Take square root
+  sigma(1) = sqrt(var(1))
+  sigma(2) = sqrt(var(2))
+  sigma(3) = sqrt(var(3))
+
+  call f_free(psir)
+  call deallocate_work_arrays_sumrho(w)
+  !write(*,'(a,es16.8,5x,3(3es16.8,3x))') 'q, center(1:3), var(1:3), locregcenter',q, center(1:3), var(1:3), lr%locregcenter
+
+end subroutine analyze_one_wavefunction

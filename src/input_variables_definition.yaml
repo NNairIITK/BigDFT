@@ -937,6 +937,9 @@
    adjust_kernel_iterations:
      COMMENT: enable the addaptive ajustment of the number of kernel iterations
      default: True
+   wf_extent_analysis:
+     COMMENT: perform an analysis of the extent of the support functions (and possibly KS orbitals)
+     default: False
  lin_general:
      hybrid: 
        COMMENT: activate the hybrid mode; if activated, only the low accuracy values will be relevant

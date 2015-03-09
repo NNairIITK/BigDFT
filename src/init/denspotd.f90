@@ -718,44 +718,43 @@ subroutine define_confinement_data(confdatarr,orbs,rxyz,at,hx,hy,hz,&
      confdatarr(iorb)%damping   =1.0_gp
   end do
 
-contains
-
-    subroutine geocode_buffers(geocode_local, geocode_global, nl1, nl2, nl3)
-      implicit none
-      character(len=1), intent(in) :: geocode_local, geocode_global !< @copydoc poisson_solver::doc::geocode
-      integer, intent(out) :: nl1, nl2, nl3
-      !local variables
-      logical :: perx_local, pery_local, perz_local
-      logical :: perx_global,pery_global,perz_global
-      integer :: nr1, nr2, nr3
-
-      !conditions for periodicity in the three directions
-      perx_local=(geocode_local /= 'F')
-      pery_local=(geocode_local == 'P')
-      perz_local=(geocode_local /= 'F')
-      perx_global=(geocode_global /= 'F')
-      pery_global=(geocode_global == 'P')
-      perz_global=(geocode_global /= 'F')
-
-      call ext_buffers(perx_local, nl1, nr1)
-      call ext_buffers(pery_local, nl2, nr2)
-      call ext_buffers(perz_local, nl3, nr3)
-
-      ! If the global box has non-free boundary conditions, the shift is already
-      ! contained in nsi1,nsi2,nsi3 and does not need to be subtracted.
-      if (perx_global) then
-          nl1 = 0
-      end if
-      if (pery_global) then
-          nl2 = 0
-      end if
-      if (perz_global) then
-          nl3 = 0
-      end if
-
-    end subroutine geocode_buffers
-  
 end subroutine define_confinement_data
+
+subroutine geocode_buffers(geocode_local, geocode_global, nl1, nl2, nl3)
+  implicit none
+  character(len=1), intent(in) :: geocode_local, geocode_global !< @copydoc poisson_solver::doc::geocode
+  integer, intent(out) :: nl1, nl2, nl3
+  !local variables
+  logical :: perx_local, pery_local, perz_local
+  logical :: perx_global,pery_global,perz_global
+  integer :: nr1, nr2, nr3
+
+  !conditions for periodicity in the three directions
+  perx_local=(geocode_local /= 'F')
+  pery_local=(geocode_local == 'P')
+  perz_local=(geocode_local /= 'F')
+  perx_global=(geocode_global /= 'F')
+  pery_global=(geocode_global == 'P')
+  perz_global=(geocode_global /= 'F')
+
+  call ext_buffers(perx_local, nl1, nr1)
+  call ext_buffers(pery_local, nl2, nr2)
+  call ext_buffers(perz_local, nl3, nr3)
+
+  ! If the global box has non-free boundary conditions, the shift is already
+  ! contained in nsi1,nsi2,nsi3 and does not need to be subtracted.
+  if (perx_global) then
+      nl1 = 0
+  end if
+  if (pery_global) then
+      nl2 = 0
+  end if
+  if (perz_global) then
+      nl3 = 0
+  end if
+
+end subroutine geocode_buffers
+  
 
 
 !> Print the distribution schemes

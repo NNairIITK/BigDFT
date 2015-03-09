@@ -486,6 +486,9 @@ module module_types
      !> linear scaling: enable the addaptive ajustment of the number of kernel iterations
      logical :: adjust_kernel_iterations
 
+     !> linear scaling: perform an analysis of the extent of the support functions (and possibly KS orbitals)
+     logical :: wf_extent_analysis
+
   end type input_variables
 
 
@@ -2400,6 +2403,9 @@ contains
        case (ADJUST_KERNEL_ITERATIONS) 
            ! linear scaling: enable the addaptive ajustment of the number of kernel iterations
            in%adjust_kernel_iterations = val
+       case(WF_EXTENT_ANALYSIS)
+           ! linear scaling: perform an analysis of the extent of the support functions (and possibly KS orbitals)
+           in%wf_extent_analysis = val
        case DEFAULT
           if (bigdft_mpi%iproc==0) &
                call yaml_warning("unknown input key '" // trim(level) // "/" // trim(dict_key(val)) // "'")

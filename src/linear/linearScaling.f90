@@ -73,12 +73,12 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
   type(workarrays_quartic_convolutions),dimension(:),pointer :: precond_convol_workarrays
   type(workarr_precond),dimension(:),pointer :: precond_workarrays
   type(work_transpose) :: wt_philarge, wt_hpsinoprecond, wt_hphi, wt_phi
-
+  integer,dimension(:,:),allocatable :: ioffset_isf
   
   real(kind=gp) :: ebs, vgrad_old, vgrad, valpha, vold, vgrad2, vold_tmp, conv_crit_TMB, best_charge_diff, cdft_charge_thresh
   real(kind=gp), allocatable, dimension(:,:) :: coeff_tmp
   integer :: jorb, cdft_it, nelec, iat, ityp, norder_taylor, ispin, ishift
-  integer :: dmin_diag_it, dmin_diag_freq, ioffset
+  integer :: dmin_diag_it, dmin_diag_freq, ioffset, nl1, nl2, nl3
   logical :: reorder, rho_negative
   real(wp), dimension(:,:,:), pointer :: mom_vec_fake
   type(matrices) :: weight_matrix_
@@ -86,6 +86,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
   integer :: nit_energyoscillation
   integer(kind=8) :: nsize
   type(work_mpiaccumulate) :: fnrm_work, energs_work
+  integer :: ilr, iiorb
 
   real(8),dimension(:),allocatable :: rho_tmp, tmparr
   real(8) :: tt, ddot
@@ -1175,6 +1176,22 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
   call deallocate_work_transpose(wt_phi)
 
 
+  if (input%wf_extent_analysis) then
+      ioffset_isf = f_malloc((/3,tmb%orbs%norbp/),id='ioffset_isf')
+      do iorb=1,tmb%orbs%norbp
+          iiorb = tmb%orbs%isorb + iorb
+          ilr = tmb%orbs%inwhichlocreg(iiorb)
+          call geocode_buffers(tmb%lzd%Llr(ilr)%geocode, tmb%lzd%glr%geocode, nl1, nl2, nl3)
+          ioffset_isf(1,iorb) = tmb%lzd%llr(ilr)%nsi1 - nl1 - 1
+          ioffset_isf(2,iorb) = tmb%lzd%llr(ilr)%nsi2 - nl2 - 1
+          ioffset_isf(3,iorb) = tmb%lzd%llr(ilr)%nsi3 - nl3 - 1
+          !write(*,'(a,i8,2es16.8)') 'iorb, rxyzConf(3), locregcenter(3)', iorb, tmb%confdatarr(iorb)%rxyzConf(3), tmb%lzd%llr(ilr)%locregcenter(3)
+      end do
+      call analyze_wavefunctions('Support functions extent analysis', 'local', &
+           tmb%lzd, tmb%orbs, tmb%npsidim_orbs, tmb%psi, ioffset_isf)
+      call f_free(ioffset_isf)
+  end if
+
 
   if (input%write_orbitals>0) then
       call build_ks_orbitals(iproc, nproc, tmb, KSwfn, at, rxyz, denspot, GPU, &
@@ -1182,6 +1199,19 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
                energy, energyDiff, energyold)
       !call write_orbital_density(iproc, .false., input%lin%plotBasisFunctions, 'KS', &
       !     KSwfn%orbs%npsidim_orbs, KSwfn%psi, KSwfn%orbs, KSwfn%lzd, at)
+
+      !ioffset_isf = f_malloc((/3,orbs%norbp/),id='ioffset_isf')
+      !do iorb=1,orbs%norbp
+      !    !iiorb = tmb%orbs%isorb + iorb
+      !    !ilr = tmb%orbs%inwhichlocreg(iiorb)
+      !    !call geocode_buffers(tmb%lzd%Llr(ilr)%geocode, tmb%lzd%glr%geocode, nl1, nl2, nl3)
+      !    ioffset_isf(1,iorb) = 0 !tmb%lzd%llr(ilr)%nsi1 - nl1 - 1
+      !    ioffset_isf(2,iorb) = 0 !tmb%lzd%llr(ilr)%nsi2 - nl2 - 1
+      !    ioffset_isf(3,iorb) = 0 !tmb%lzd%llr(ilr)%nsi3 - nl3 - 1
+      !    !write(*,'(a,3es16.8)') 'iorb, rxyzConf(3), locregcenter(3)', iorb, tmb%confdatarr(iorb)%rxyzConf(3), tmb%lzd%llr(ilr)%locregcenter(3)
+      !end do
+      !call analyze_wavefunctions('global', tmb%lzd, orbs, KSwfn%orbs%npsidim_orbs, %psi, ioffset_isf)
+      !call f_free(ioffset_isf)
   end if
 
 
