@@ -760,6 +760,7 @@ subroutine input_memory_linear(iproc, nproc, at, KSwfn, tmb, tmb_old, denspot, i
                           gather_matrix_from_taskgroups_inplace, extract_taskgroup_inplace, &
                           uncompress_matrix_distributed2, uncompress_matrix2
   use transposed_operations, only: calculate_overlap_transposed, normalize_transposed
+  use matrix_operations, only: overlapPowerGeneral, deviation_from_unity_parallel
   implicit none
 
   ! Calling arguments
@@ -1514,6 +1515,7 @@ subroutine input_wf_diag(iproc,nproc,at,denspot,&
            use communications_base, only: comms_cubic
            use communications_init, only: orbitals_communicators
            use communications, only: transpose_v
+  use communications, only: toglobal_and_transpose
   implicit none
   !Arguments
   integer, intent(in) :: iproc,nproc,ixc

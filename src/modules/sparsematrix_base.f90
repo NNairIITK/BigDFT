@@ -47,6 +47,8 @@ module sparsematrix_base
       integer :: nvctrp !< number of compressed matrix elements per MPI task
       integer :: isvctr !< starting entry of the compressed matrix elements
       integer,dimension(:),pointer :: isvctr_par, nvctr_par !<array that contains the values of nvctrp and isvctr of all MPI tasks
+      integer :: nconsecutive_max !< max number of blocks (i.e. consecutive entries) for the sparse matmul
+      integer,dimension(:,:,:),pointer :: consecutive_lookup !< lookup arrays for these blocks
   end type sparse_matrix_matrix_multiplication
 
   type,public :: sparse_matrix
@@ -199,6 +201,7 @@ module sparsematrix_base
       nullify(smmm%luccomm_smmm)
       nullify(smmm%keyv)
       nullify(smmm%keyg)
+      nullify(smmm%consecutive_lookup)
     end subroutine nullify_sparse_matrix_matrix_multiplication
 
 
@@ -238,7 +241,7 @@ module sparsematrix_base
       smmm%ivectorindex=f_malloc_ptr(smmm%nseq,id='smmm%ivectorindex')
       smmm%ivectorindex_new=f_malloc_ptr(smmm%nseq,id='smmm%ivectorindex_new')
       smmm%onedimindices=f_malloc_ptr((/4,smmm%nout/),id='smmm%onedimindices')
-      smmm%onedimindices_new=f_malloc_ptr((/3,smmm%nout/),id='smmm%onedimindices_new')
+      smmm%onedimindices_new=f_malloc_ptr((/4,smmm%nout/),id='smmm%onedimindices_new')
       !smmm%line_and_column_mm=f_malloc_ptr((/2,smmm%nvctrp_mm/),id='smmm%line_and_column_mm')
       smmm%nsegline=f_malloc_ptr(norb,id='smmm%nsegline')
       smmm%istsegline=f_malloc_ptr(norb,id='smmm%istsegline')
@@ -362,6 +365,7 @@ module sparsematrix_base
       call f_free_ptr(smmm%luccomm_smmm)
       call f_free_ptr(smmm%keyv)
       call f_free_ptr(smmm%keyg)
+      call f_free_ptr(smmm%consecutive_lookup)
     end subroutine deallocate_sparse_matrix_matrix_multiplication
 
     subroutine allocate_smat_d1_ptr(smat_ptr,smat_info_ptr)

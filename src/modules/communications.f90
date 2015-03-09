@@ -28,6 +28,7 @@ module communications
   public :: communicate_locreg_descriptors_keys
   public :: transpose_v
   public :: untranspose_v
+  public :: toglobal_and_transpose
 
 
   contains
@@ -1024,6 +1025,7 @@ module communications
       integer :: ioffset_send, ist, i2, i3, ist2, ist3, info, nsize, size_of_double, isend_shift
       integer :: islices, ilines, ist1, ish1, ish2
       integer,dimension(:),allocatable :: npotarr
+      integer(kind=mpi_address_kind) :: lb, extent
 
 !!integer :: itemsize
 !!type(c_ptr) :: baseptr
@@ -1062,7 +1064,7 @@ module communications
 
           ispin_shift = (ispin-1)*comm%nrecvbuf
     
-          nproc_if: if (nproc>1) then
+          !nproc_if: if (nproc>1) then
     
               ! Allocate MPI memory window. Only necessary in the first iteration.
               if (ispin==1) then
@@ -1106,25 +1108,48 @@ module communications
                   !if (iproc==mpidest .and. iproc==1 .and. iproc/=mpisource) then
                       if (.not.bgq) then
                            call mpi_type_size(comm%mpi_datatypes(joverlap), nsize, ierr)
+                           call mpi_type_get_extent(comm%mpi_datatypes(joverlap), lb, extent, ierr)
+                           extent=extent/size_of_double
                            nsize=nsize/size_of_double
                            if(nsize>0) then
-                               !!write(*,'(7(a,i0))') 'proc ',iproc,' gets ',nsize,' elements at ',ispin_shift+istdest, &
-                               !!                     ' from proc ',mpisource,' at ',isend_shift+istsource,&
-                               !!                     '; size(send)=',size(sendbuf),', size(recv)=',size(recvbuf)
-                               if (ispin_shift+istdest+nsize-1>nrecvbuf) stop 'ispin_shift+istdest+nsize-1>nrecvbuf'
+                               !write(*,'(a,6i9)') 'iproc, joverlap, nsize, extent, comm%nrecvbuf, total', &
+                               !        iproc, joverlap, nsize, extent, comm%nrecvbuf, lzd%glr%d%n1i*lzd%glr%d%n2i*lzd%glr%d%n1i
+                               !write(*,'(7(a,i0))') 'proc ',iproc,' gets ',nsize,' elements at ',ispin_shift+istdest, &
+                               !                     ' from proc ',mpisource,' at ',isend_shift+istsource,&
+                               !                     '; size(send)=',size(sendbuf),', size(recv)=',size(recvbuf)
+                               !if (ispin_shift+istdest+nsize-1>nrecvbuf) then
+                               !    write(*,*) 'ispin_shift+istdest, nsize, nrecvbuf', ispin_shift+istdest, nsize, nrecvbuf
+                               !    stop 'ispin_shift+istdest+nsize-1>nrecvbuf'
+                               !end if
                                !!write(*,*) 'val, limit', isend_shift+istsource + &
                                !!    (nit-1)*lzd%glr%d%n1i*lzd%glr%d%n2i + &
                                !!    (comm%ise(4)-comm%ise(3))*lzd%glr%d%n1i + &
                                !!    comm%ise(2)-comm%ise(1) , npotarr(mpisource)*comm%nspin 
-                               if (isend_shift+istsource + &
-                                   (nit-1)*lzd%glr%d%n1i*lzd%glr%d%n2i + &
-                                   (comm%ise(4)-comm%ise(3))*lzd%glr%d%n1i + &
-                                   comm%ise(2)-comm%ise(1) > npotarr(mpisource)*comm%nspin) stop 'out of window'
+                               !!if (isend_shift+istsource + &
+                               !!    (nit-1)*lzd%glr%d%n1i*lzd%glr%d%n2i + &
+                               !!    (comm%ise(4)-comm%ise(3))*lzd%glr%d%n1i + &
+                               !!    comm%ise(2)-comm%ise(1) > npotarr(mpisource)*comm%nspin) then
+                               !!    call f_err_throw('out of window: ist='//trim(yaml_toa(isend_shift+istsource,fmt='(i0)'))//&
+                               !!         &', n='//trim(yaml_toa((nit-1)*lzd%glr%d%n1i*lzd%glr%d%n2i+&
+                               !!         (comm%ise(4)-comm%ise(3))*lzd%glr%d%n1i+comm%ise(2)-comm%ise(1),fmt='(i0)'))//&
+                               !!         &', nwin='//trim(yaml_toa(npotarr(mpisource)*comm%nspin,fmt='(i0)')),&
+                               !!         err_name='BIGDFT_RUNTIME_ERROR')
+                               !!    !stop 'out of window'
+                               !!end if
+                               if (isend_shift+istsource+extent-1 > npotarr(mpisource)*comm%nspin) then
+                                   call f_err_throw('out of window: ist='//trim(yaml_toa(isend_shift+istsource,fmt='(i0)'))//&
+                                        &', n='//trim(yaml_toa(int(extent,kind=8),fmt='(i0)'))//&
+                                        &', nwin='//trim(yaml_toa(npotarr(mpisource)*comm%nspin,fmt='(i0)')),&
+                                        err_name='BIGDFT_RUNTIME_ERROR')
+                                   !stop 'out of window'
+                               end if
                                if (rma_sync==RMA_SYNC_PASSIVE) then
                                    !write(*,'(2(a,i0))') 'BEFORE: proc ',iproc,' calls lock for proc ',mpisource
                                    call mpi_win_lock(MPI_LOCK_EXCLUSIVE, mpisource, 0, comm%window, ierr)
                                    !write(*,'(2(a,i0))') 'AFTER: proc ',iproc,' calls lock for proc ',mpisource
                                end if
+                               !write(*,'(a,5i10)') 'iproc, mpisource, ispin_shift+istdest, nsize, isend_shift+istsource-1', &
+                               !!    iproc, mpisource, ispin_shift+istdest, nsize, isend_shift+istsource-1
                                call mpi_get(recvbuf(ispin_shift+istdest), nsize, &
                                     mpi_double_precision, mpisource, int((isend_shift+istsource-1),kind=mpi_address_kind), &
                                     1, comm%mpi_datatypes(joverlap), comm%window, ierr)
@@ -1174,31 +1199,31 @@ module communications
                   end if
               end do
     
-          else nproc_if
+          !else nproc_if
     
-              ist=1
-              isend_shift = (ispin-1)*npotarr(iproc)
-              do i3=comm%ise(5),comm%ise(6)
-                  ist3=(i3-1)*lzd%glr%d%n1i*lzd%glr%d%n2i
-                  do i2=comm%ise(3),comm%ise(4)
-                      ist2=(i2-1)*lzd%glr%d%n1i
-                      !call vcopy(comm%ise(2,iproc)-comm%ise(1,iproc)+1, sendbuf(ist3+ist2+1), 1, recvbuf(ist), 1)
-                      !write(*,'(5(a,i0))') 'proc ',iproc,' gets ',comm%ise(2,iproc)-comm%ise(1,iproc)+1, &
-                      !                     ' elements at ',ispin_shift+ist,' from proc ',iproc,' at ', &
-                      !                     isend_shift+ist3+ist2+comm%ise(1,iproc)
-                      call vcopy(comm%ise(2)-comm%ise(1)+1, &
-                                 sendbuf(isend_shift+ist3+ist2+comm%ise(1)), 1, recvbuf(ispin_shift+ist), 1)
-                      ist=ist+comm%ise(2)-comm%ise(1)+1
-                  end do
-              end do
+          !    ist=1
+          !    isend_shift = (ispin-1)*npotarr(iproc)
+          !    do i3=comm%ise(5),comm%ise(6)
+          !        ist3=(i3-1)*lzd%glr%d%n1i*lzd%glr%d%n2i
+          !        do i2=comm%ise(3),comm%ise(4)
+          !            ist2=(i2-1)*lzd%glr%d%n1i
+          !            !call vcopy(comm%ise(2,iproc)-comm%ise(1,iproc)+1, sendbuf(ist3+ist2+1), 1, recvbuf(ist), 1)
+          !            !write(*,'(5(a,i0))') 'proc ',iproc,' gets ',comm%ise(2,iproc)-comm%ise(1,iproc)+1, &
+          !            !                     ' elements at ',ispin_shift+ist,' from proc ',iproc,' at ', &
+          !            !                     isend_shift+ist3+ist2+comm%ise(1,iproc)
+          !            call vcopy(comm%ise(2)-comm%ise(1)+1, &
+          !                       sendbuf(isend_shift+ist3+ist2+comm%ise(1)), 1, recvbuf(ispin_shift+ist), 1)
+          !            ist=ist+comm%ise(2)-comm%ise(1)+1
+          !        end do
+          !    end do
     
-          end if nproc_if
+          !end if nproc_if
       
       end do spin_loop
       
       ! Flag indicating whether the communication is complete or not
       !if(nproc>1 .and. (.not. bgq)) then
-      if(nproc>1) then
+!!#      if(nproc>1) then
           comm%communication_complete=.false.
       !else if (nproc>1) then
       !    call mpi_win_fence(mpi_mode_nosucceed, comm%window, ierr)
@@ -1207,9 +1232,9 @@ module communications
       !    end do
       !    call mpi_win_free(comm%window, ierr)
       !    comm%communication_complete=.true.
-      else
-          comm%communication_complete=.true.
-      end if
+!!#      else
+!!#          comm%communication_complete=.true.
+!!#      end if
 
       call f_free(npotarr)
     
@@ -1895,6 +1920,108 @@ module communications
     END SUBROUTINE untranspose_v
     
 
+    !> Transposition of the arrays, variable version (non homogeneous)
+    subroutine toglobal_and_transpose(iproc,nproc,orbs,Lzd,comms,psi,&
+         work,outadd) !optional
+      use module_base
+      use module_types
+      use communications_base, only: comms_cubic
+      implicit none
+      integer, intent(in) :: iproc,nproc
+      type(orbitals_data), intent(in) :: orbs
+      type(local_zone_descriptors), intent(in) :: Lzd
+      type(comms_cubic), intent(in) :: comms
+      real(wp), dimension(:), pointer :: psi
+      real(wp), dimension(:), pointer, optional :: work
+      real(wp), dimension(*), intent(out), optional :: outadd
+      !local variables
+      character(len=*), parameter :: subname='toglobal_and_transpose'
+      integer :: psishift1,totshift,iorb,ilr,ldim,Gdim
+      real(wp) :: workdum
+      real(wp), dimension(:), pointer :: workarr
+    
+      call timing(iproc,'Un-TransSwitch','ON')
+    
+      !for linear scaling must project the wavefunctions to whole simulation box
+      if(Lzd%linear) then
+    !     if(.not. present(work) .or. .not. associated(work)) stop 'transpose_v needs optional argument work with Linear Scaling'
+         psishift1 = 1
+         totshift = 1
+         Gdim = max((Lzd%Glr%wfd%nvctr_c+7*Lzd%Glr%wfd%nvctr_f)*orbs%norb_par(iproc,0)*orbs%nspinor,&
+               sum(comms%ncntt(0:nproc-1)))
+         workarr = f_malloc0_ptr(Gdim,id='workarr')
+         !call to_zero(Gdim,workarr)
+         do iorb=1,orbs%norbp
+            ilr = orbs%inwhichlocreg(iorb+orbs%isorb)
+            ldim = (Lzd%Llr(ilr)%wfd%nvctr_c+7*Lzd%Llr(ilr)%wfd%nvctr_f)*orbs%nspinor
+    
+            !!call Lpsi_to_global(Lzd%Glr,Gdim,Lzd%Llr(ilr),psi(psishift1),&
+            !!     ldim,orbs%norbp,orbs%nspinor,orbs%nspin,totshift,workarr)
+            call Lpsi_to_global2(iproc, ldim, gdim, orbs%norbp, orbs%nspinor, &
+                 orbs%nspin, lzd%glr, lzd%llr(ilr), psi(psishift1), workarr(totshift))
+            psishift1 = psishift1 + ldim
+            totshift = totshift + (Lzd%Glr%wfd%nvctr_c+7*Lzd%Glr%wfd%nvctr_f)*orbs%nspinor
+         end do
+    
+         !reallocate psi to the global dimensions
+         call f_free_ptr(psi)
+         psi = f_malloc_ptr(Gdim,id='psi')
+         call vcopy(Gdim,workarr(1),1,psi(1),1) !psi=work
+         call f_free_ptr(workarr)
+      end if
+    
+      if (nproc > 1 .and. .not. associated(work)) then
+         call f_err_throw('The working pointer must be associated',&
+              err_name='BIGDFT_RUNTIME_ERROR')
+      end if
+    
+      if (present(outadd)) then
+          call transpose_v(iproc,nproc,orbs,lzd%glr%wfd,comms,psi(1),work(1),outadd(1))
+      else
+         if (.not. associated(work)) then
+            call transpose_v(iproc,nproc,orbs,lzd%glr%wfd,comms,psi(1),workdum)
+         else
+            call transpose_v(iproc,nproc,orbs,lzd%glr%wfd,comms,psi(1),work(1))
+         end if
+      end if
+    
+      !!if (nproc > 1) then
+      !!   !control check
+      !!   if (.not. present(work) .or. .not. associated(work)) then
+      !!      if(iproc == 0) write(*,'(1x,a)')&
+      !!           "ERROR: Unproper work array for transposing in parallel"
+      !!      stop
+      !!   end if
+    
+    
+      !!   !!call switch_waves_v(nproc,orbs,&
+      !!   !!     Lzd%Glr%wfd%nvctr_c+7*Lzd%Glr%wfd%nvctr_f,comms%nvctr_par(0,1),psi,work)
+      !!   call switch_waves_v(nproc,orbs,&
+      !!        Lzd%Glr%wfd%nvctr_c+7*Lzd%Glr%wfd%nvctr_f,comms%nvctr_par,psi,work)
+    
+      !!   call timing(iproc,'Un-TransSwitch','OF')
+      !!   call timing(iproc,'Un-TransComm  ','ON')
+      !!   if (present(outadd)) then
+      !!      call MPI_ALLTOALLV(work,comms%ncntd,comms%ndspld,mpidtypw, &
+      !!           outadd,comms%ncntt,comms%ndsplt,mpidtypw,bigdft_mpi%mpi_comm,ierr)
+      !!   else
+      !!      call MPI_ALLTOALLV(work,comms%ncntd,comms%ndspld,mpidtypw, &
+      !!           psi,comms%ncntt,comms%ndsplt,mpidtypw,bigdft_mpi%mpi_comm,ierr)
+      !!   end if
+    
+      !!   call timing(iproc,'Un-TransComm  ','OF')
+      !!   call timing(iproc,'Un-TransSwitch','ON')
+      !!else
+      !!   if(orbs%nspinor /= 1) then
+      !!      !for only one processor there is no need to transform this
+      !!      call psitransspi(Lzd%Glr%wfd%nvctr_c+7*Lzd%Glr%wfd%nvctr_f,orbs,psi,.true.)
+      !!   end if
+      !!end if
+    
+      !!call timing(iproc,'Un-TransSwitch','OF')
+    
+    END SUBROUTINE toglobal_and_transpose
+
 
 end module communications
 
@@ -2163,105 +2290,3 @@ END SUBROUTINE psitransspi
 
 
 
-!> Transposition of the arrays, variable version (non homogeneous)
-subroutine toglobal_and_transpose(iproc,nproc,orbs,Lzd,comms,psi,&
-     work,outadd) !optional
-  use module_base
-  use module_types
-  use communications_base, only: comms_cubic
-  use communications, only: transpose_v
-  implicit none
-  integer, intent(in) :: iproc,nproc
-  type(orbitals_data), intent(in) :: orbs
-  type(local_zone_descriptors), intent(in) :: Lzd
-  type(comms_cubic), intent(in) :: comms
-  real(wp), dimension(:), pointer :: psi
-  real(wp), dimension(:), pointer, optional :: work
-  real(wp), dimension(*), intent(out), optional :: outadd
-  !local variables
-  character(len=*), parameter :: subname='toglobal_and_transpose'
-  integer :: psishift1,totshift,iorb,ilr,ldim,Gdim
-  real(wp) :: workdum
-  real(wp), dimension(:), pointer :: workarr
-
-  call timing(iproc,'Un-TransSwitch','ON')
-
-  !for linear scaling must project the wavefunctions to whole simulation box
-  if(Lzd%linear) then
-!     if(.not. present(work) .or. .not. associated(work)) stop 'transpose_v needs optional argument work with Linear Scaling'
-     psishift1 = 1
-     totshift = 1
-     Gdim = max((Lzd%Glr%wfd%nvctr_c+7*Lzd%Glr%wfd%nvctr_f)*orbs%norb_par(iproc,0)*orbs%nspinor,&
-           sum(comms%ncntt(0:nproc-1)))
-     workarr = f_malloc0_ptr(Gdim,id='workarr')
-     !call to_zero(Gdim,workarr)
-     do iorb=1,orbs%norbp
-        ilr = orbs%inwhichlocreg(iorb+orbs%isorb)
-        ldim = (Lzd%Llr(ilr)%wfd%nvctr_c+7*Lzd%Llr(ilr)%wfd%nvctr_f)*orbs%nspinor
-
-        !!call Lpsi_to_global(Lzd%Glr,Gdim,Lzd%Llr(ilr),psi(psishift1),&
-        !!     ldim,orbs%norbp,orbs%nspinor,orbs%nspin,totshift,workarr)
-        call Lpsi_to_global2(iproc, ldim, gdim, orbs%norbp, orbs%nspinor, &
-             orbs%nspin, lzd%glr, lzd%llr(ilr), psi(psishift1), workarr(totshift))
-        psishift1 = psishift1 + ldim
-        totshift = totshift + (Lzd%Glr%wfd%nvctr_c+7*Lzd%Glr%wfd%nvctr_f)*orbs%nspinor
-     end do
-
-     !reallocate psi to the global dimensions
-     call f_free_ptr(psi)
-     psi = f_malloc_ptr(Gdim,id='psi')
-     call vcopy(Gdim,workarr(1),1,psi(1),1) !psi=work
-     call f_free_ptr(workarr)
-  end if
-
-  if (nproc > 1 .and. .not. associated(work)) then
-     call f_err_throw('The working pointer must be associated',&
-          err_name='BIGDFT_RUNTIME_ERROR')
-  end if
-
-  if (present(outadd)) then
-      call transpose_v(iproc,nproc,orbs,lzd%glr%wfd,comms,psi(1),work(1),outadd(1))
-  else
-     if (.not. associated(work)) then
-        call transpose_v(iproc,nproc,orbs,lzd%glr%wfd,comms,psi(1),workdum)
-     else
-        call transpose_v(iproc,nproc,orbs,lzd%glr%wfd,comms,psi(1),work(1))
-     end if
-  end if
-
-  !!if (nproc > 1) then
-  !!   !control check
-  !!   if (.not. present(work) .or. .not. associated(work)) then
-  !!      if(iproc == 0) write(*,'(1x,a)')&
-  !!           "ERROR: Unproper work array for transposing in parallel"
-  !!      stop
-  !!   end if
-
-
-  !!   !!call switch_waves_v(nproc,orbs,&
-  !!   !!     Lzd%Glr%wfd%nvctr_c+7*Lzd%Glr%wfd%nvctr_f,comms%nvctr_par(0,1),psi,work)
-  !!   call switch_waves_v(nproc,orbs,&
-  !!        Lzd%Glr%wfd%nvctr_c+7*Lzd%Glr%wfd%nvctr_f,comms%nvctr_par,psi,work)
-
-  !!   call timing(iproc,'Un-TransSwitch','OF')
-  !!   call timing(iproc,'Un-TransComm  ','ON')
-  !!   if (present(outadd)) then
-  !!      call MPI_ALLTOALLV(work,comms%ncntd,comms%ndspld,mpidtypw, &
-  !!           outadd,comms%ncntt,comms%ndsplt,mpidtypw,bigdft_mpi%mpi_comm,ierr)
-  !!   else
-  !!      call MPI_ALLTOALLV(work,comms%ncntd,comms%ndspld,mpidtypw, &
-  !!           psi,comms%ncntt,comms%ndsplt,mpidtypw,bigdft_mpi%mpi_comm,ierr)
-  !!   end if
-
-  !!   call timing(iproc,'Un-TransComm  ','OF')
-  !!   call timing(iproc,'Un-TransSwitch','ON')
-  !!else
-  !!   if(orbs%nspinor /= 1) then
-  !!      !for only one processor there is no need to transform this
-  !!      call psitransspi(Lzd%Glr%wfd%nvctr_c+7*Lzd%Glr%wfd%nvctr_f,orbs,psi,.true.)
-  !!   end if
-  !!end if
-
-  !!call timing(iproc,'Un-TransSwitch','OF')
-
-END SUBROUTINE toglobal_and_transpose

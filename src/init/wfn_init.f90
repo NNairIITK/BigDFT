@@ -209,7 +209,7 @@ subroutine LDiagHam(iproc,nproc,natsc,nspin,orbs,Lzd,Lzde,comms,&
   use module_interfaces, except_this_one => LDiagHam
   use yaml_output
   use communications_base, only: comms_cubic
-  use communications, only: transpose_v, untranspose_v
+  use communications, only: transpose_v, untranspose_v, toglobal_and_transpose
   implicit none
   integer, intent(in) :: iproc,nproc,natsc,nspin,occopt,iscf
   real(gp), intent(in) :: Tel

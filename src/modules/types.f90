@@ -430,7 +430,7 @@ module module_types
      integer :: check_sumrho               !< (LS) Perform a check of sumrho (no check, light check or full check)
      integer :: check_overlap              !< (LS) Perform a check of the overlap calculation
      logical :: experimental_mode          !< (LS) Activate the experimental mode
-     logical :: write_orbitals             !< (LS) Write KS orbitals for cubic restart
+     integer :: write_orbitals             !< (LS) write KS orbitals for cubic restart (0: no, 1: wvl, 2: wvl+isf)
      logical :: explicit_locregcenters     !< (LS) Explicitely specify localization centers
      logical :: calculate_KS_residue       !< (LS) Calculate Kohn-Sham residue
      logical :: intermediate_forces        !< (LS) Calculate intermediate forces
@@ -485,6 +485,9 @@ module module_types
 
      !> linear scaling: enable the addaptive ajustment of the number of kernel iterations
      logical :: adjust_kernel_iterations
+
+     !> linear scaling: perform an analysis of the extent of the support functions (and possibly KS orbitals)
+     logical :: wf_extent_analysis
 
   end type input_variables
 
@@ -2403,6 +2406,9 @@ contains
        case (ADJUST_KERNEL_ITERATIONS) 
            ! linear scaling: enable the addaptive ajustment of the number of kernel iterations
            in%adjust_kernel_iterations = val
+       case(WF_EXTENT_ANALYSIS)
+           ! linear scaling: perform an analysis of the extent of the support functions (and possibly KS orbitals)
+           in%wf_extent_analysis = val
        case DEFAULT
           if (bigdft_mpi%iproc==0) &
                call yaml_warning("unknown input key '" // trim(level) // "/" // trim(dict_key(val)) // "'")

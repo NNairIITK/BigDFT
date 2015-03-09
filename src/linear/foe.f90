@@ -762,6 +762,7 @@ subroutine foe(iproc, nproc, tmprtr, &
         subroutine overlap_minus_onehalf()
           use sparsematrix_base, only: sparsematrix_malloc, SPARSE_FULL
           use sparsematrix, only: extract_taskgroup_inplace
+          use matrix_operations, only: overlapPowerGeneral
           implicit none
           real(kind=8) :: max_error, mean_error
           integer :: i, j, ii
@@ -813,7 +814,6 @@ subroutine foe(iproc, nproc, tmprtr, &
           ! Local variables
           real(kind=8),dimension(:,:),pointer :: inv_ovrlpp, tempp
           real(kind=8),dimension(:),pointer :: inv_ovrlpp_new, tempp_new
-          integer,dimension(:,:),pointer :: onedimindices
           real(kind=8),dimension(:),allocatable :: inv_ovrlp_compr_seq, kernel_compr_seq
           integer,dimension(:,:,:),allocatable :: istindexarr
           integer :: nout, nseq
@@ -1486,7 +1486,7 @@ end subroutine compress_polynomial_vector_new
 
 
 !< Calculates the trace of the matrix product amat*bmat.
-!< WARNING: It is mandatory that the sparsity pattern of amat is contained
+!< WARNING: It is mandatory that the sparsity pattern of amat be contained
 !< within the sparsity pattern of bmat!
 function trace_sparse(iproc, nproc, orbs, asmat, bsmat, amat, bmat, ispin)
   use module_base
@@ -1536,8 +1536,8 @@ function trace_sparse(iproc, nproc, orbs, asmat, bsmat, amat, bmat, ispin)
               iiorb = asmat%keyg(1,2,iseg)
               jjorb = jorb
               iilarge = ibshift + matrixindex_in_compressed(bsmat, iiorb, jjorb)
-              !write(*,'(a,4i8,3es16.8)') 'iproc, ii, iilarge, iend, vals, sumn', &
-              !    iproc, ii, iilarge, asmat%smmm%isvctr_mm+asmat%smmm%nvctrp_mm, amat(ii-asmat%isvctrp_tg), bmat(iilarge-bsmat%isvctrp_tg), sumn
+              !!write(*,'(a,4i8,3es16.8)') 'iproc, ii, iilarge, iend, vals, sumn', &
+              !!    iproc, ii, iilarge, asmat%smmm%isvctr_mm+asmat%smmm%nvctrp_mm, amat(ii-asmat%isvctrp_tg), bmat(iilarge-bsmat%isvctrp_tg), sumn
               sumn = sumn + amat(ii-asmat%isvctrp_tg)*bmat(iilarge-bsmat%isvctrp_tg)
           end do  
       end do

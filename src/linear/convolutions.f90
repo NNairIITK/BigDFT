@@ -8,7 +8,7 @@
 !!   For the list of contributors, see ~/AUTHORS
 
 subroutine ConvolQuartic4(iproc, nproc, n1, n2, n3, nfl1, nfu1, nfl2, nfu2, nfl3, nfu3,  &
-           hgrid, offsetx, offsety, offsetz, ibyz_c, ibxz_c, ibxy_c, ibyz_f, ibxz_f, ibxy_f, &
+           hx, hy, hz, offsetx, offsety, offsetz, ibyz_c, ibxz_c, ibxy_c, ibyz_f, ibxz_f, ibxy_f, &
            rxyzConf, potentialPrefac, with_kinetic, cprecr, maxdim, &
            xx_c, xx_f1, xx_f, xy_c, xy_f2, xy_f,  xz_c, xz_f4, xz_f, &
            aeff0array, beff0array, ceff0array, eeff0array, &
@@ -615,7 +615,7 @@ subroutine ConvolQuartic4(iproc, nproc, n1, n2, n3, nfl1, nfu1, nfl2, nfu2, nfl3
 
   ! Calling arguments
   integer,intent(in) :: iproc, nproc, n1, n2, n3, nfl1, nfu1, nfl2, nfu2, nfl3, nfu3, offsetx, offsety, offsetz, maxdim
-  real(gp),intent(in) :: hgrid, potentialPrefac, cprecr
+  real(gp),intent(in) :: hx, hy, hz, potentialPrefac, cprecr
   logical,intent(in) :: with_kinetic
   real(8),dimension(3) :: rxyzConf
   integer,dimension(2,0:n2,0:n3), intent(in) :: ibyz_c,ibyz_f
@@ -690,7 +690,9 @@ subroutine ConvolQuartic4(iproc, nproc, n1, n2, n3, nfl1, nfu1, nfl2, nfu2, nfl3
   real(kind=8) :: tt6a0, tt6b0, tt6c0, tt6e0                     
   real(kind=8) :: tt7a0, tt7b0, tt7c0, tt7e0                     
   logical:: with_confpot
-  real(kind=8) :: ddot,prefac1,hgrid2,hgrid3
+  real(kind=8) :: prefacx1, hgridx2, hgridx3, ddot
+  real(kind=8) :: prefacy1, hgridy2, hgridy3
+  real(kind=8) :: prefacz1, hgridz2, hgridz3
 
 
   call f_routine(id='ConvolQuartic4')
@@ -699,9 +701,15 @@ subroutine ConvolQuartic4(iproc, nproc, n1, n2, n3, nfl1, nfu1, nfl2, nfu2, nfl3
   with_confpot=(potentialPrefac/=0.d0)
 
 
-  prefac1=-.5d0/hgrid**2
-  hgrid2=hgrid**2
-  hgrid3=hgrid**3
+  prefacx1=-.5d0/hx**2
+  hgridx2=hx**2
+  hgridx3=hx**3
+  prefacy1=-.5d0/hy**2
+  hgridy2=hy**2
+  hgridy3=hy**3
+  prefacz1=-.5d0/hz**2
+  hgridz2=hz**2
+  hgridz3=hz**3
 
 
   !initialize the arrays to zero.
@@ -733,23 +741,23 @@ subroutine ConvolQuartic4(iproc, nproc, n1, n2, n3, nfl1, nfu1, nfl2, nfu2, nfl3
  
   !$omp do
   do i1=0,n1
-     x0=hgrid*(i1+offsetx)-rxyzConf(1)
+     x0=hx*(i1+offsetx)-rxyzConf(1)
      if(.not. with_kinetic) then
-        call position_dependent_filters(potentialPrefac, x0, aeff0array(lowfil,i1), 'a')
-        call position_dependent_filters(potentialPrefac, x0, beff0array(lowfil,i1), 'b')
-        call position_dependent_filters(potentialPrefac, x0, ceff0array(lowfil,i1), 'c')
-        call position_dependent_filters(potentialPrefac, x0, eeff0array(lowfil,i1), 'e')
+        call position_dependent_filters(potentialPrefac, x0, hx, hgridx2, hgridx3, prefacx1, aeff0array(lowfil,i1), 'a')
+        call position_dependent_filters(potentialPrefac, x0, hx, hgridx2, hgridx3, prefacx1, beff0array(lowfil,i1), 'b')
+        call position_dependent_filters(potentialPrefac, x0, hx, hgridx2, hgridx3, prefacx1, ceff0array(lowfil,i1), 'c')
+        call position_dependent_filters(potentialPrefac, x0, hx, hgridx2, hgridx3, prefacx1, eeff0array(lowfil,i1), 'e')
      else
-        call position_dependent_filters(potentialPrefac,x0, aeff0array(lowfil,i1), 'aeff')
-        call position_dependent_filters(potentialPrefac,x0, beff0array(lowfil,i1), 'beff')
-        call position_dependent_filters(potentialPrefac,x0, ceff0array(lowfil,i1), 'ceff')
-        call position_dependent_filters(potentialPrefac,x0, eeff0array(lowfil,i1), 'eeff')
+        call position_dependent_filters(potentialPrefac,x0, hx, hgridx2, hgridx3, prefacx1, aeff0array(lowfil,i1), 'aeff')
+        call position_dependent_filters(potentialPrefac,x0, hx, hgridx2, hgridx3, prefacx1, beff0array(lowfil,i1), 'beff')
+        call position_dependent_filters(potentialPrefac,x0, hx, hgridx2, hgridx3, prefacx1, ceff0array(lowfil,i1), 'ceff')
+        call position_dependent_filters(potentialPrefac,x0, hx, hgridx2, hgridx3, prefacx1, eeff0array(lowfil,i1), 'eeff')
      end if
      if(with_confpot) then
-        call position_dependent_filters(1.d0,x0, aeff0_2auxarray(lowfil,i1), 'a2')
-        call position_dependent_filters(1.d0,x0, beff0_2auxarray(lowfil,i1), 'b2')
-        call position_dependent_filters(1.d0,x0, ceff0_2auxarray(lowfil,i1), 'c2')
-        call position_dependent_filters(1.d0,x0, eeff0_2auxarray(lowfil,i1), 'e2')
+        call position_dependent_filters(1.d0,x0, hx, hgridx2, hgridx3, prefacx1, aeff0_2auxarray(lowfil,i1), 'a2')
+        call position_dependent_filters(1.d0,x0, hx, hgridx2, hgridx3, prefacx1, beff0_2auxarray(lowfil,i1), 'b2')
+        call position_dependent_filters(1.d0,x0, hx, hgridx2, hgridx3, prefacx1, ceff0_2auxarray(lowfil,i1), 'c2')
+        call position_dependent_filters(1.d0,x0, hx, hgridx2, hgridx3, prefacx1, eeff0_2auxarray(lowfil,i1), 'e2')
      end if
   end do
   !$omp end do
@@ -1034,29 +1042,29 @@ subroutine ConvolQuartic4(iproc, nproc, n1, n2, n3, nfl1, nfu1, nfl2, nfu2, nfl3
   !$omp do 
   do i2=0,n2
 
-     y0=hgrid*(i2+offsety)-rxyzConf(2)
+     y0=hy*(i2+offsety)-rxyzConf(2)
      if(.not. with_kinetic) then
-        call position_dependent_filters(potentialPrefac,y0, aeff0array(lowfil,i2), 'a')
-        call position_dependent_filters(potentialPrefac,y0, beff0array(lowfil,i2), 'b')
-        call position_dependent_filters(potentialPrefac,y0, ceff0array(lowfil,i2), 'c')
-        call position_dependent_filters(potentialPrefac,y0, eeff0array(lowfil,i2), 'e')
+        call position_dependent_filters(potentialPrefac,y0, hy, hgridy2, hgridy3, prefacy1, aeff0array(lowfil,i2), 'a')
+        call position_dependent_filters(potentialPrefac,y0, hy, hgridy2, hgridy3, prefacy1, beff0array(lowfil,i2), 'b')
+        call position_dependent_filters(potentialPrefac,y0, hy, hgridy2, hgridy3, prefacy1, ceff0array(lowfil,i2), 'c')
+        call position_dependent_filters(potentialPrefac,y0, hy, hgridy2, hgridy3, prefacy1, eeff0array(lowfil,i2), 'e')
      else
-        call position_dependent_filters(potentialPrefac,y0, aeff0array(lowfil,i2), 'aeff')
-        call position_dependent_filters(potentialPrefac,y0, beff0array(lowfil,i2), 'beff')
-        call position_dependent_filters(potentialPrefac,y0, ceff0array(lowfil,i2), 'ceff')
-        call position_dependent_filters(potentialPrefac,y0, eeff0array(lowfil,i2), 'eeff')
+        call position_dependent_filters(potentialPrefac,y0, hy, hgridy2, hgridy3, prefacy1, aeff0array(lowfil,i2), 'aeff')
+        call position_dependent_filters(potentialPrefac,y0, hy, hgridy2, hgridy3, prefacy1, beff0array(lowfil,i2), 'beff')
+        call position_dependent_filters(potentialPrefac,y0, hy, hgridy2, hgridy3, prefacy1, ceff0array(lowfil,i2), 'ceff')
+        call position_dependent_filters(potentialPrefac,y0, hy, hgridy2, hgridy3, prefacy1, eeff0array(lowfil,i2), 'eeff')
      end if
 
      if(with_confpot) then
-        call position_dependent_filters(potentialPrefac,y0, aeff0_2array(lowfil,i2), 'a2')
-        call position_dependent_filters(potentialPrefac,y0, beff0_2array(lowfil,i2), 'b2')
-        call position_dependent_filters(potentialPrefac,y0, ceff0_2array(lowfil,i2), 'c2')
-        call position_dependent_filters(potentialPrefac,y0, eeff0_2array(lowfil,i2), 'e2')
+        call position_dependent_filters(potentialPrefac,y0, hy, hgridy2, hgridy3, prefacy1, aeff0_2array(lowfil,i2), 'a2')
+        call position_dependent_filters(potentialPrefac,y0, hy, hgridy2, hgridy3, prefacy1, beff0_2array(lowfil,i2), 'b2')
+        call position_dependent_filters(potentialPrefac,y0, hy, hgridy2, hgridy3, prefacy1, ceff0_2array(lowfil,i2), 'c2')
+        call position_dependent_filters(potentialPrefac,y0, hy, hgridy2, hgridy3, prefacy1, eeff0_2array(lowfil,i2), 'e2')
 
-        call position_dependent_filters(1.d0,y0, aeff0_2auxarray(lowfil,i2), 'a2')
-        call position_dependent_filters(1.d0,y0, beff0_2auxarray(lowfil,i2), 'b2')
-        call position_dependent_filters(1.d0,y0, ceff0_2auxarray(lowfil,i2), 'c2')
-        call position_dependent_filters(1.d0,y0, eeff0_2auxarray(lowfil,i2), 'e2')
+        call position_dependent_filters(1.d0,y0, hy, hgridy2, hgridy3, prefacy1, aeff0_2auxarray(lowfil,i2), 'a2')
+        call position_dependent_filters(1.d0,y0, hy, hgridy2, hgridy3, prefacy1, beff0_2auxarray(lowfil,i2), 'b2')
+        call position_dependent_filters(1.d0,y0, hy, hgridy2, hgridy3, prefacy1, ceff0_2auxarray(lowfil,i2), 'c2')
+        call position_dependent_filters(1.d0,y0, hy, hgridy2, hgridy3, prefacy1, eeff0_2auxarray(lowfil,i2), 'e2')
      end if
 
   end do
@@ -1429,23 +1437,23 @@ subroutine ConvolQuartic4(iproc, nproc, n1, n2, n3, nfl1, nfu1, nfl2, nfu2, nfl3
 
   !$omp do 
   do i3=0,n3
-     z0=hgrid*(i3+offsetz)-rxyzConf(3)
+     z0=hz*(i3+offsetz)-rxyzConf(3)
      if(.not. with_kinetic) then
-        call position_dependent_filters(potentialPrefac,z0, aeff0array(lowfil,i3), 'a')
-        call position_dependent_filters(potentialPrefac,z0, beff0array(lowfil,i3), 'b')
-        call position_dependent_filters(potentialPrefac,z0, ceff0array(lowfil,i3), 'c')
-        call position_dependent_filters(potentialPrefac,z0, eeff0array(lowfil,i3), 'e')
+        call position_dependent_filters(potentialPrefac,z0, hz, hgridz2, hgridz3, prefacz1, aeff0array(lowfil,i3), 'a')
+        call position_dependent_filters(potentialPrefac,z0, hz, hgridz2, hgridz3, prefacz1, beff0array(lowfil,i3), 'b')
+        call position_dependent_filters(potentialPrefac,z0, hz, hgridz2, hgridz3, prefacz1, ceff0array(lowfil,i3), 'c')
+        call position_dependent_filters(potentialPrefac,z0, hz, hgridz2, hgridz3, prefacz1, eeff0array(lowfil,i3), 'e')
      else
-        call position_dependent_filters(potentialPrefac, z0, aeff0array(lowfil,i3), 'aeff')
-        call position_dependent_filters(potentialPrefac, z0, beff0array(lowfil,i3), 'beff')
-        call position_dependent_filters(potentialPrefac, z0, ceff0array(lowfil,i3), 'ceff')
-        call position_dependent_filters(potentialPrefac, z0, eeff0array(lowfil,i3), 'eeff')
+        call position_dependent_filters(potentialPrefac, z0, hz, hgridz2, hgridz3, prefacz1, aeff0array(lowfil,i3), 'aeff')
+        call position_dependent_filters(potentialPrefac, z0, hz, hgridz2, hgridz3, prefacz1, beff0array(lowfil,i3), 'beff')
+        call position_dependent_filters(potentialPrefac, z0, hz, hgridz2, hgridz3, prefacz1, ceff0array(lowfil,i3), 'ceff')
+        call position_dependent_filters(potentialPrefac, z0, hz, hgridz2, hgridz3, prefacz1, eeff0array(lowfil,i3), 'eeff')
      end if
      if(with_confpot) then
-        call position_dependent_filters(potentialPrefac,z0, aeff0_2array(lowfil,i3), 'a2')
-        call position_dependent_filters(potentialPrefac,z0, beff0_2array(lowfil,i3), 'b2')
-        call position_dependent_filters(potentialPrefac,z0, ceff0_2array(lowfil,i3), 'c2')
-        call position_dependent_filters(potentialPrefac,z0, eeff0_2array(lowfil,i3), 'e2')
+        call position_dependent_filters(potentialPrefac,z0, hz, hgridz2, hgridz3, prefacz1, aeff0_2array(lowfil,i3), 'a2')
+        call position_dependent_filters(potentialPrefac,z0, hz, hgridz2, hgridz3, prefacz1, beff0_2array(lowfil,i3), 'b2')
+        call position_dependent_filters(potentialPrefac,z0, hz, hgridz2, hgridz3, prefacz1, ceff0_2array(lowfil,i3), 'c2')
+        call position_dependent_filters(potentialPrefac,z0, hz, hgridz2, hgridz3, prefacz1, eeff0_2array(lowfil,i3), 'e2')
      end if
   end do
   !$omp end do
@@ -1756,12 +1764,16 @@ subroutine ConvolQuartic4(iproc, nproc, n1, n2, n3, nfl1, nfu1, nfl2, nfu2, nfl3
 
   contains
     !> identify and evaluate filters associated to the position
-    pure subroutine position_dependent_filters(parabPrefac, x0, eff, filterCode)
+    pure subroutine position_dependent_filters(parabPrefac, x0, hgrid, hgrid2, hgrid3, prefac1, eff, filterCode)
 !      use filterModule, only:lb,ub,a,b,c,e,a1,a2,a3,a4,b1,b2,b3,b4,c1,c2,c3,c4,e1,e2,e3,e4
       implicit none
       ! Calling arguments
       real(kind=8),intent(in) :: parabPrefac !<prefactor of the potential
       real(kind=8),intent(in) :: x0          !< Center of the parabolic potential (x-x0)^2
+      real(kind=8),intent(in) :: hgrid       !< grid spacing
+      real(kind=8),intent(in) :: hgrid2      !< hgrid**2
+      real(kind=8),intent(in) :: hgrid3      !< hgrid**3
+      real(kind=8),intent(in) :: prefac1     !< prefactor related to hgrid
       real(kind=8),dimension(lb:ub),intent(out) :: eff  !< The effective filter
       character(len=*), intent(in) :: filterCode
       ! Local variables

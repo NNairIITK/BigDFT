@@ -1744,8 +1744,8 @@ contains
     call input_var("experimental_mode", .false., "linear scaling: activate the experimental mode", dummy_bool)
     call set(dict // EXPERIMENTAL_MODE, dummy_bool)
 
-    call input_var("write_orbitals", .false., "linear scaling: write KS orbitals for cubic restart", dummy_bool)
-    call set(dict // WRITE_ORBITALS, dummy_bool)
+    call input_var("write_orbitals", 0, "(LS): write KS orbitals for cubic restart (0: no, 1: wvl, 2: wvl+isf)", dummy_int)
+    call set(dict // WRITE_ORBITALS, dummy_int)
 
     call input_var("explicit_locregcenters", .false., "linear scaling: explicitely specify localization centers", dummy_bool)
     call set(dict // EXPLICIT_LOCREGCENTERS, dummy_bool)
@@ -1803,6 +1803,9 @@ contains
 
     call input_var("adjust_kernel_iterations", .true., "addaptive ajustment of the number of kernel iterations", dummy_bool)
     call set(dict // ADJUST_KERNEL_ITERATIONS, dummy_bool)
+
+    call input_var("wf_extent_analysis", .false., "extent analysis of the support functions / KS orbitals)", dummy_bool)
+    call set(dict // WF_EXTENT_ANALYSIS, dummy_bool)
 
     call input_free(.false.)
 
@@ -1954,9 +1957,9 @@ contains
     call input_var(dummy_real,'1.d-2',dict//LIN_KERNEL//FSCALE_FOE,ranges=(/0.d0,1.d0/),comment=comments)
 
     !plot basis functions: true or false
-    comments='Output basis functions: 0 no output, 1 formatted output, 2 Fortran bin, 3 ETSF ;'//&
+    comments='Output support functions (i: wvl, i+10: wvl+isf): i=0 No, i=1 formatted, i=2 Fortran bin, i=3 ETSF ;'//&
              'calculate dipole ; pulay correction (old and new); diagonalization at the end (dmin, FOE)'
-    call input_var(dummy_int,'0',dict//LIN_GENERAL//OUTPUT_WF,ranges=(/0,3/))
+    call input_var(dummy_int,'0',dict//LIN_GENERAL//OUTPUT_WF,exclusive=(/0,1,2,3,10,11,12,13/))
     call input_var(dummy_bool,'F',dict//LIN_GENERAL//CALC_DIPOLE)
     call input_var(dummy_bool,'T',dict//LIN_GENERAL//CALC_PULAY//0)
     call input_var(dummy_bool,'F',dict//LIN_GENERAL//CALC_PULAY//1)

@@ -1225,3 +1225,79 @@ log_model:
  System pseudo energy (Ha): 3.6e-11
  Keys to ignore:
   - Reference Paper
+
+periodic_silicon:
+ Epot: 3.0e-10
+ Enl: 1.1e-9
+ EXC: 1.1e-10
+ Omega: 4.3e-11
+ ebs_check: 1.1e-10
+ charge diff: 1.4e-10
+ ebs: 1.2e-10
+ Energy (Hartree): 2.9e-11
+ energy: 2.9e-11
+ charge diff: 3.8e-10
+ PV (Ha): 3.0e-11
+ Total ionic charge: 1.3e-11
+
+periodic_wateredge:
+ Epot: 1.1e-9
+ Omega: 1.8e-10
+ Enl: 1.1e-10
+ EH: 1.0e-9
+ EXC: 1.1e-10
+ EvXC: 1.1e-10
+ Ekin: 1.0e-9
+ energy: 1.6e-10
+ Total charge: 1.1e-10
+ PV (Ha): 2.7e-9
+ Energy (Hartree): 7.1e-11
+ Total ionic charge: 2.7e-11
+
+periodic_water:
+ EH: 3.1e-9
+ Epot: 2.1e-9
+ EXC: 1.1e-9
+ EvXC: 1.0e-9
+ Ekin: 2.0e-9
+ Enl: 1.1e-9
+ Energy (Hartree): 7.3e-11
+ Omega: 2.0e-10
+ ebs_check: 2.5e-9
+ ebs: 2.5e-9
+ eF: 8.8e-9
+ D eF: 1.0e-8
+ energy: 1.4e-10
+ guess for new ef: 9.1e-9
+ number of corrected points: 1
+ charge diff: 5.2e-7
+ diff: 1.1e-10
+ Tr(K): 5.0e-7
+ D Tr: 2.1e-7
+ PV (Ha): 5.3e-10
+ Total ionic charge: 6.0e-11
+
+surface_boronnitride:
+ Enl: 1.0e-9
+ Epot: 1.0e-9
+ Omega: 6.0e-11
+ energy: 2.2e-11
+ Energy (Hartree): 2.2e-11
+ Total charge: 1.0e-10
+ Total ionic charge: 2.4e-11
+ Keys to ignore:
+  - Calculating wavelets expansion of projectors, found warnings
+  - found warnings
+
+surface_graphene:
+ Epot: 1.0e-9
+ Enl: 1.1e-9
+ Omega: 8.5e-11
+ ebs_check: 1.2e-10
+ ebs: 1.0e-10
+ charge diff: 1.5e-7
+ Tr(K): 2.0e-7
+ guess for new ef: 1.1e-9
+ eF: 7.1e-10
+ D eF: 1.1e-9
+ diff: 2.1e-11

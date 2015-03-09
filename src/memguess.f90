@@ -509,10 +509,10 @@ program memguess
       call filename_of_iorb(.false.,"wavefunction",runObj%rst%KSwfn%orbs,iorbp, &
            & export_wf_ispinor,filename_wfn,iorb_out)
 
-      call plot_wf(filename_wfn,1,runObj%atoms,1.0_wp,runObj%rst%KSwfn%Lzd%Glr, &
+      call plot_wf(.false.,filename_wfn,1,runObj%atoms,1.0_wp,runObj%rst%KSwfn%Lzd%Glr, &
            & runObj%inputs%hx,runObj%inputs%hy,runObj%inputs%hz,runObj%atoms%astruct%rxyz, &
            & runObj%rst%KSwfn%psi((runObj%rst%KSwfn%Lzd%Glr%wfd%nvctr_c+&
-           & 7*runObj%rst%KSwfn%Lzd%Glr%wfd%nvctr_f) * (export_wf_ispinor - 1) + 1))
+           & 7*runObj%rst%KSwfn%Lzd%Glr%wfd%nvctr_f) * (export_wf_ispinor - 1) + 1:))
       deallocate(ref_frags)
       nullify(ref_frags)
    end if
