@@ -38,7 +38,7 @@ program MP_gaussian
   fj_phi=f_malloc(-npts .to. npts,id='fj_phi')
   fj_coll=f_malloc(-npts .to. npts,id='fj_coll')
   call polynomial_exactness(npts,8,0,itype_scf,8,8,iplot)
-  stop
+  !stop
 
 
   !initialize the work arrays needed to integrate with isf
@@ -178,8 +178,9 @@ contains
 
 end program MP_gaussian
 
-!>verify the property x**p = sum_j x_j**p \phi_j(x) for different families
-!!of interpolating functions
+
+!> Verify the property x**p = sum_j x_j**p \phi_j(x) for different families
+!! of interpolating functions
 subroutine polynomial_exactness(npts,itype_scf,nmoms,p,itype_scf_dual,nmoms_dual,iplot)
   use module_base
   use yaml_output
@@ -290,8 +291,6 @@ subroutine polynomial_exactness(npts,itype_scf,nmoms,p,itype_scf_dual,nmoms_dual
   call f_free(x_scf,scf_dat)
   call f_free(pol_dat)
   call f_free(pol_sp)
-
-
 
   contains
 

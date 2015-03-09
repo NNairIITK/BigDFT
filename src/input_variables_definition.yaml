@@ -794,8 +794,22 @@
      COMMENT: (EXPERIMENTAL) Preserve the multipole moment of the ionic density
      default: No
    mp_isf:
-     COMMENT: (EXPERIMENTAL) Interpolating scalig function order for the multipole preserving
+     COMMENT: (EXPERIMENTAL) Interpolating scaling function or lifted dual order for the multipole preserving
      EXCLUSIVE:
+       -2: lifted dual 2
+       -4: lifted dual 4
+       -6: lifted dual 6
+       -8: lifted dual 8
+       -14: lifted dual 14
+       -16: lifted dual 16
+       -20: lifted dual 20
+       -24: lifted dual 24
+       -30: lifted dual 30
+       -40: lifted dual 40
+       -50: lifted dual 50
+       -60: lifted dual 60
+       -100: lifted dual 100
+       0: isf 16
        2: isf 2
        4: isf 4
        6: isf 6

@@ -11,7 +11,8 @@
 !> Build the kernel of the Poisson operator with
 !! surfaces Boundary conditions
 !! in an interpolating scaling functions basis.
-!! @warning Beware of the fact that the nonperiodic direction is y!
+!! @warning 
+!!  Beware of the fact that the nonperiodic direction is y!
 subroutine Periodic_Kernel(n1,n2,n3,nker1,nker2,nker3,h1,h2,h3,itype_scf,karray,iproc,nproc,mu0_screening,alpha, &
            beta,gamma,n3pr2,n3pr1)
   use Poisson_Solver, only: dp
@@ -52,7 +53,6 @@ subroutine Periodic_Kernel(n1,n2,n3,nker1,nker2,nker3,h1,h2,h3,itype_scf,karray,
   else
    iproc1=iproc
   endif
-
 
   !first control that the domain is not shorter than the scaling function
   !add also a temporary flag for the allowed ISF types for the kernel
@@ -112,7 +112,6 @@ subroutine Periodic_Kernel(n1,n2,n3,nker1,nker2,nker3,h1,h2,h3,itype_scf,karray,
   ! gd(2,1) = gd(1,2)
   ! gd(3,1) = gd(1,3)
   ! gd(3,2) = gd(2,3)
-  
   
   !
   !contravariant metric
@@ -262,7 +261,7 @@ subroutine Periodic_Kernel(n1,n2,n3,nker1,nker2,nker3,h1,h2,h3,itype_scf,karray,
 END SUBROUTINE Periodic_Kernel
 
 
-!> Calculate the fourier transform
+!> Calculate the Fourier transform
 !! Suppose the output symmetric and real
 subroutine fourtrans_isf(n,ftisf)
   use Poisson_Solver, only: dp
@@ -538,7 +537,6 @@ subroutine Surfaces_Kernel(iproc,nproc,mpi_comm,inplane_comm,n1,n2,n3,m3,nker1,n
 
   !arrays for the halFFT
   call ctrig_sg(n3/2,ntrig,btrig,after,before,now,1,ic)
-
  
   !build the phases for the HalFFT reconstruction 
   pion=2._dp*pi/real(n3,dp)
@@ -1047,20 +1045,12 @@ END SUBROUTINE indices
 
 
 !> Build the kernel (karray) of a gaussian function
-!! for interpolating scaling functions.
+!! for interpolating scaling functions
+!! @f$ K(j) = \sum_k \omega_k \int \int \phi(x) g_k(x'-x) \delta(x'- j) dx dx' @f$
+!!
 !! Do the parallel HalFFT of the symmetrized function and stores into
 !! memory only 1/8 of the grid divided by the number of processes nproc
 !!
-!! SYNOPSIS
-!!    Build the kernel (karray) of a gaussian function
-!!    for interpolating scaling functions
-!!    @f$ K(j) = \sum_k \omega_k \int \int \phi(x) g_k(x'-x) \delta(x'- j) dx dx' @f$
-!!
-!!   @param n01,n02,n03        Mesh dimensions of the density
-!!   @param nfft1,nfft2,nfft3  Dimensions of the FFT grid (HalFFT in the third direction)
-!!   @param n1k,n2k,n3k        Dimensions of the kernel FFT
-!!   @param hgrid              Mesh step
-!!   @param itype_scf          Order of the scaling function (8,14,16)
 !! MODIFICATION
 !!    Different calculation of the gaussian times ISF integral, LG, Dec 2009
 subroutine Free_Kernel(n01,n02,n03,nfft1,nfft2,nfft3,n1k,n2k,n3k,&
@@ -1070,9 +1060,13 @@ subroutine Free_Kernel(n01,n02,n03,nfft1,nfft2,nfft3,n1k,n2k,n3k,&
   use dynamic_memory
  implicit none
  !Arguments
- integer, intent(in) :: n01, n02, n03, nfft1, nfft2, nfft3, n1k, n2k, n3k, itype_scf, iproc, nproc
+ integer, intent(in) :: n01, n02, n03       !< Mesh dimensions of the density
+ integer, intent(in) :: nfft1, nfft2, nfft3 !< Dimensions of the FFT grid (HalFFT in the third direction)
+ integer, intent(in) :: n1k, n2k, n3k       !< Dimensions of the kernel FFT
+ integer, intent(in) :: itype_scf           !< Order of the scaling function
+ integer, intent(in) :: iproc, nproc
  integer, intent(in) :: n3pr2,n3pr1
- real(dp), intent(in) :: hx,hy,hz
+ real(dp), intent(in) :: hx,hy,hz           !< Mesh steps
  real(dp), dimension(n1k,n2k,n3k/nproc), intent(out) :: karray
  real(dp), intent(in) :: mu0_screening
  !Local variables
@@ -1692,7 +1686,8 @@ subroutine gauss_conv_scf(itype_scf,pgauss,hgrid,dx,n_range,n_scf,x_scf,y_scf,ke
   real(dp), dimension(-n_range:n_range), intent(inout) :: work
   real(dp), dimension(-n_range:n_range), intent(inout) :: kernel_scf
   !local variables
-  real(dp), parameter :: p0_ref = 1.0_dp,mx_expo=634.71369555645470d0! = -log(tiny(1.0_dp)*1.d32)
+  real(dp), parameter :: p0_ref = 1.0_dp
+  real(dp), parameter :: mx_expo=634.71369555645470d0! = -log(tiny(1.0_dp)*1.d32)
   integer :: n_iter,i_kern,i
   real(dp) :: p0_cell,p0gauss,absci,kern,x_limit
 

@@ -72,10 +72,9 @@ subroutine H_potential(datacode,kernel,rhopot,pot_ion,eh,offset,sumpion,&
    real(dp), parameter :: max_ratioex = 1.0e10_dp
    logical :: wrtmsg,cudasolver
    integer :: m1,m2,m3,md1,md2,md3,n1,n2,n3,nd1,nd2,nd3
-   integer :: ierr,ind,ind2,ind3,indp,ind2p,ind3p,i
-   integer :: i1,i2,i3,j2,istart,iend,i3start,jend,jproc,i3xcsh
-   integer :: nxc,istden,istglo,ip,irho,i3s,i23,i23s,n23
-   real(dp) :: ehartreeLOC,pot,rhores2,zeta,epsc,pval,qval,rval,beta,kappa
+   integer :: i1,i3start
+   integer :: ip,irho,i23,i23s,n23
+   real(dp) :: ehartreeLOC,rhores2,zeta,epsc,pval,qval,rval,beta,kappa
    real(dp) :: beta0,alpha,ratio,normb,normr
    !real(dp) :: scal
    real(dp), dimension(6) :: strten
@@ -419,6 +418,7 @@ subroutine H_potential(datacode,kernel,rhopot,pot_ion,eh,offset,sumpion,&
 
 END SUBROUTINE H_potential
 
+
 !regroup the psolver from here -------------
 subroutine apply_kernel(gpu,kernel,rho,offset,strten,zf,updaterho)
   use f_utils, only: f_zero
@@ -437,7 +437,6 @@ subroutine apply_kernel(gpu,kernel,rho,offset,strten,zf,updaterho)
   !local variables
   integer, dimension(3) :: n
   integer :: size1,size2,switch_alg,i_stat,ierr,i23,j23,j3,i1,n3delta
-  real(dp) :: pt,rh
   real(dp), dimension(:), allocatable :: zf1
 
   call f_zero(zf)
@@ -562,6 +561,7 @@ subroutine apply_kernel(gpu,kernel,rho,offset,strten,zf,updaterho)
 
 end subroutine apply_kernel
 
+
 subroutine finalize_hartree_results(sumpion,pot_ion,m1,m2,m3p,md1,md2,md3p,&
      rho,zf,pot,eh)
   implicit none
@@ -615,6 +615,7 @@ subroutine finalize_hartree_results(sumpion,pot_ion,m1,m2,m3p,md1,md2,md3p,&
      !$omp end parallel do
   end if
 end subroutine finalize_hartree_results
+
 
 subroutine EPS_iter_output(iter,normb,normr,ratio,alpha,beta)
   use yaml_output
@@ -1166,22 +1167,6 @@ END SUBROUTINE W_FFT_dimensions
 !> Calculate four sets of dimension needed for the calculation of the
 !! zero-padded convolution
 !!
-!!    @param n01,n02,n03 original real dimensions (input)
-!!
-!!    @param m1,m2,m3 original real dimension with the dimension 2 and 3 exchanged
-!!
-!!    @param n1,n2 the first FFT even dimensions greater that 2*m1, 2*m2
-!!    @param n3    the double of the first FFT even dimension greater than m3
-!!          (improved for the HalFFT procedure)
-!!
-!!    @param md1,md2,md3 half of n1,n2,n3 dimension. They contain the real unpadded space,
-!!                which has been properly enlarged to be compatible with the FFT dimensions n_i.
-!!                md2 is further enlarged to be a multiple of nproc
-!!
-!!    @param nd1,nd2,nd3 fourier dimensions for which the kernel FFT is injective,
-!!                formally 1/8 of the fourier grid. Here the dimension nd3 is
-!!                enlarged to be a multiple of nproc
-!!
 !! @warning
 !!    The dimension m2 and m3 correspond to n03 and n02 respectively
 !!    this is needed since the convolution routine manage arrays of dimension
@@ -1190,9 +1175,21 @@ END SUBROUTINE W_FFT_dimensions
 !! @date February 2006
 subroutine F_FFT_dimensions(n01,n02,n03,m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd3,nproc,gpu,enlarge_md2)
  implicit none
+ !Arguments
  logical, intent(in) :: enlarge_md2
- integer, intent(in) :: n01,n02,n03,nproc,gpu
- integer, intent(out) :: m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd3
+ integer, intent(in) :: n01,n02,n03  !< Original real dimensions
+ integer, intent(in) :: nproc,gpu
+ integer, intent(out) :: m1,m2,m3    !< Original real dimension with the dimension 2 and 3 exchanged
+ integer, intent(out) :: n1,n2       !< The first FFT even dimensions greater that 2*m1, 2*m2
+ integer, intent(out) :: n3          !< The double of the first FFT even dimension greater than m3
+                                     !! (improved for the HalFFT procedure)
+ integer, intent(out) :: md1,md2,md3 !< Half of n1,n2,n3 dimension. They contain the real unpadded space,
+                                     !! which has been properly enlarged to be compatible with the FFT dimensions n_i.
+                                     !! md2 is further enlarged to be a multiple of nproc
+ integer, intent(out) :: nd1,nd2,nd3 !< Fourier dimensions for which the kernel FFT is injective,
+                                     !! formally 1/8 of the fourier grid. Here the dimension nd3 is
+                                     !! enlarged to be a multiple of nproc
+ !Local variables
  integer :: l1,l2,l3
 
  !dimensions of the density in the real space, inverted for convenience

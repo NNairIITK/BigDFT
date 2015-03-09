@@ -170,7 +170,7 @@ subroutine write_jobs(mhgpsst,runObj,cobj)
     type(run_objects), intent(in)     :: runObj
     type(connect_object), optional, intent(in) :: cobj
     !local
-    integer :: ijob, u, ntodo
+    integer :: ijob, u
     character(len=1) :: comment
     character(len=21)  :: filenameR, filenameL
     logical :: lw

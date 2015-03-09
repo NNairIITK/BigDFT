@@ -423,28 +423,55 @@ contains
   !> Prepare the array for the evaluation with the interpolating Scaling Functions
   !! one might add also the function to be converted and the 
   !! prescription for integrating knowing the scaling relation of the function
-  subroutine initialize_real_space_conversion(npoints,isf_m,nmoms)
+  subroutine initialize_real_space_conversion(npoints,isf_m,nmoms,nrange)
     implicit none
     !Arguments
     integer, intent(in), optional :: npoints !< Number of points for the integration per unity (default 2**6)
     integer, intent(in), optional :: isf_m   !< Interpolating Scaling Function order
     integer, intent(in), optional :: nmoms   !< Number of preserved moments for the definition of the dual
+    integer, intent(out), optional :: nrange !< Give the range of the dual functions
     !Local variables
     real(gp), dimension(:), allocatable :: x_scf !< to be removed in a future implementation
     real(gp) :: tt
+    logical :: lifted
     integer :: n_range,i,nmm
 
     !Define the order of isf
-    if (present(isf_m)) then
-       itype_scf=isf_m
-    else
-       itype_scf=16
-    end if
+    !if (present(isf_m)) then
+    !   itype_scf=isf_m
+    !else
+    !   itype_scf=16
+    !end if
     !Define the number of preserved moments for the dual function
+    !if (present(nmoms)) then
+    !   nmm=nmoms
+    !else
+    !   nmm=0
+    !end if
+
+    !nmoms define all properties
     if (present(nmoms)) then
-       nmm=nmoms
+      if (nmoms < 0) then
+        !We use the dual lifted
+        lifted = .true.
+        nmm = abs(nmoms)
+        itype_scf = 16
+      else if (nmoms == 0) then
+        !Use isf = 16 but from ISF_family
+        lifted = .false.
+        itype_scf = 16
+        nmm = 0
+      else
+        !We use the isf itself
+        lifted = .false.
+        itype_scf = nmoms
+        nmm = 0
+      end if
     else
-       nmm=0
+      !Use isf = 16
+      lifted = .false.
+      itype_scf = 16
+      nmm = 0
     end if
     !Define the number of integrated points per unity
     if (present(npoints)) then
@@ -459,13 +486,20 @@ contains
     scf_data = f_malloc(0.to.n_scf,id='scf_data')
 
     !Build the dual scaling function external routine coming from Poisson Solver. To be customized accordingly
-    !call scaling_function(itype_scf,n_scf,n_range,x_scf,scf_data)
+    if (lifted) then
+      call ISF_family(itype_scf,nmm,n_scf,n_range,x_scf,scf_data)
+    else
+      call scaling_function(itype_scf,n_scf,n_range,x_scf,scf_data)
     !call wavelet_function(itype_scf,n_scf,x_scf,scf_data)
-    call ISF_family(itype_scf,nmm,n_scf,n_range,x_scf,scf_data)
+    end if
     !stop 
     call f_free(x_scf)
 
     nrange_scf=n_range
+    if (present(nrange)) then
+      nrange=nrange_scf
+    end if
+
     !define the log of the smallest nonzero value as the 
     !cutoff for multiplying with it
     !this means that the values which are 

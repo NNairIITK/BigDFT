@@ -284,7 +284,8 @@ subroutine write_path_a(mhgpsst,runObj,outs,npath,path,energies,tangent)
              forces=tangent(:,:,ipath))
     enddo
 end subroutine
-!=====================================================================
+
+
 subroutine write_path_b(mhgpsst,runObj,outs,npath,path,energies,tangent)
     use module_atoms, only: astruct_dump_to_file
     use module_mhgps_state
@@ -298,7 +299,7 @@ subroutine write_path_b(mhgpsst,runObj,outs,npath,path,energies,tangent)
     real(gp), intent(in) :: energies(npath)
     real(gp), intent(in) :: tangent(3,runObj%atoms%astruct%nat,npath)
     !internal
-    integer :: ipath,iat
+    integer :: ipath
     character(len=4) :: fn4
     character(len=150) :: comment
 
@@ -314,7 +315,6 @@ subroutine write_path_b(mhgpsst,runObj,outs,npath,path,energies,tangent)
              forces=tangent(:,:,ipath))
     enddo
 end subroutine
-!=====================================================================
 
 
 subroutine grow_freezstring(mhgpsst,uinp,runObj,outs,gammainv,perpnrmtol,trust,&
@@ -682,7 +682,6 @@ subroutine get_ts_guess_linsyn(mhgpsst,uinp,runObj,outs,left,right,tsguess,minmo
     real(gp) :: tau
     real(gp) :: lambda
     real(gp) :: emax
-    real(gp) :: step
     !functions
     real(gp) :: dnrm2
 
@@ -772,7 +771,8 @@ subroutine get_ts_guess_linsyn(mhgpsst,uinp,runObj,outs,left,right,tsguess,minmo
     call f_free(energies) 
     call f_free(tangent) 
 end subroutine
-!=====================================================================
+
+
 subroutine lst_interpol_freez(runObj,mhgpsst,uinp,left,right,step,interleft,interright,&
                         tangentleft,tangentright,finished)
     !Given two distinct structures, lst_interpol interpolates

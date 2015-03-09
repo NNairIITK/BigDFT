@@ -364,12 +364,12 @@ subroutine local_forces(iproc,at,rxyz,hxh,hyh,hzh,&
   real(kind=8) :: prefactor,cutoff,rloc,Vel,rhoel
   real(kind=8) :: fxerf,fyerf,fzerf,fxion,fyion,fzion,fxgau,fygau,fzgau,forceleaked,forceloc
   real(kind=8) :: rx,ry,rz,x,y,z,arg,r2,xp,tt,Txx,Tyy,Tzz,Txy,Txz,Tyz
-  integer :: i1,i2,i3,ind,iat,ityp,nloc,iloc
+  integer :: i1,i2,i3,ind,iat,ityp,nloc,iloc,nrange
   integer :: nbl1,nbr1,nbl2,nbr2,nbl3,nbr3,j1,j2,j3,isx,isy,isz,iex,iey,iez
   !array of coefficients of the derivative
   real(kind=8), dimension(4) :: cprime 
 
-  if (at%multipole_preserving) call initialize_real_space_conversion(nmoms=at%mp_isf)
+  if (at%multipole_preserving) call initialize_real_space_conversion(nmoms=at%mp_isf,nrange=nrange)
   
   locstrten=0.0_gp
 
@@ -443,7 +443,7 @@ subroutine local_forces(iproc,at,rxyz,hxh,hyh,hzh,&
      cutoff=10.d0*rloc
      if (at%multipole_preserving) then
         !We want to have a good accuracy of the last point rloc*10
-        cutoff=cutoff+max(hxh,hyh,hzh)*real(16+at%mp_isf,kind=gp)
+        cutoff=cutoff+max(hxh,hyh,hzh)*real(nrange/2,kind=gp)
      end if
 
      isx=floor((rx-cutoff)/hxh)
