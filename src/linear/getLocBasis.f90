@@ -547,7 +547,7 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
     gnrm_dynamic, min_gnrm_for_dynamic, can_use_ham, order_taylor, max_inversion_error, kappa_conv, method_updatekernel,&
     purification_quickreturn, correction_co_contra, &
     precond_convol_workarrays, precond_workarrays, &
-    wt_philarge, wt_hpsinoprecond, wt_hphi, wt_phi, fnrm, energs_work, &
+    wt_philarge, wt_hpsinoprecond, wt_hphi, wt_phi, fnrm, energs_work, frag_calc, &
     cdft, input_frag, ref_frags)
   !
   ! Purpose:
@@ -604,6 +604,7 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
   type(workarr_precond),dimension(tmb%orbs%norbp),intent(inout) :: precond_workarrays
   type(work_transpose),intent(inout) :: wt_philarge, wt_hpsinoprecond, wt_hphi, wt_phi
   type(work_mpiaccumulate),intent(inout) :: fnrm, energs_work
+  logical, intent(in) :: frag_calc
   !these must all be present together
   type(cdft_data),intent(inout),optional :: cdft
   type(fragmentInputParameters),optional,intent(in) :: input_frag
@@ -618,7 +619,7 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
   real(kind=8),dimension(:),allocatable :: hpsit_c_tmp, hpsit_f_tmp, hpsi_tmp, psidiff, tmparr1, tmparr2
   real(kind=8),dimension(:),allocatable :: delta_energy_arr, hpsi_noprecond, kernel_compr_tmp, kernel_best, hphi_nococontra
   logical :: energy_increased, overlap_calculated, energy_diff, energy_increased_previous, complete_reset, even
-  logical :: calculate_inverse
+  logical :: calculate_inverse, allow_increase
   real(kind=8),dimension(:),pointer :: lhphiold, lphiold, hpsit_c, hpsit_f, hpsi_small
   type(energy_terms) :: energs
   real(kind=8), dimension(2):: reducearr
@@ -661,6 +662,7 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
   alphaDIIS=ldiis%alphaDIIS
   ldiis%resetDIIS=.false.
   ldiis%immediateSwitchToSD=.false.
+  allow_increase=.false.
  
   call timing(iproc,'getlocbasinit','OF')
 
@@ -1043,7 +1045,7 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
           end if
       end if
 
-      if (energy_increased .and. ldiis%isx==0) then
+      if (energy_increased .and. ldiis%isx==0 .and. (.not. allow_increase)) then
           !if (iproc==0) write(*,*) 'WARNING: ENERGY INCREASED'
           !if (iproc==0) call yaml_warning('The target function increased, D='&
           !              //trim(adjustl(yaml_toa(trH-ldiis%trmin,fmt='(es10.3)'))))
@@ -1076,7 +1078,11 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
               call untranspose_localized(iproc, nproc, tmb%ham_descr%npsidim_orbs, tmb%orbs, tmb%ham_descr%collcom, &
                    TRANSPOSE_GATHER, hpsit_c, hpsit_f, hpsi_tmp, tmb%ham_descr%lzd, wt_hpsinoprecond)
 
-             cycle
+              ! for fragment calculations tmbs may be far from orthonormality so allow an increase in energy for a few iterations
+              if (frag_calc .and. itout<4) then
+                 allow_increase=.true.
+              end if
+              cycle
           else if(it_tot<3*nit_basis) then ! stop orthonormalizing the tmbs
              if (iproc==0) call yaml_newline()
              if (iproc==0) call yaml_warning('Energy increasing, switching off orthonormalization of tmbs')
@@ -2242,7 +2248,7 @@ subroutine reorthonormalize_coeff(iproc, nproc, norb, blocksize_dsyev, blocksize
           call timing(iproc,'renormCoefCom1','ON')
       end if
 
-      !if (iproc==0) call yaml_map('ovrlp_coeff',ovrlp_coeff)
+      !!if (iproc==0) call yaml_map('ovrlp_coeff',ovrlp_coeff)
       !!do iorb=1,norbx
       !!    do jorb=1,norbx
       !!        write(8000+10*iproc+ispin,'(a,2i8,es16.6)') 'iorb, jorb, ovrlp_coeff(jorb,iorb)',iorb, jorb, ovrlp_coeff(jorb,iorb)
@@ -2324,6 +2330,7 @@ subroutine reorthonormalize_coeff(iproc, nproc, norb, blocksize_dsyev, blocksize
              !!        write(8100+10*iproc+ispin,'(a,2i8,es16.6)') 'iorb, jorb, inv_ovrlp_%matrix(jorb,iorb,1)',iorb, jorb, inv_ovrlp_%matrix(jorb,iorb,1)
              !!    end do
              !!end do
+
          else
              ! It is not possible to use the standard parallelization scheme, so do serial
              ovrlp_matrix = f_malloc_ptr((/norbx,norbx/), id='ovrlp_matrix')

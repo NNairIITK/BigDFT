@@ -1562,6 +1562,7 @@ module sparsematrix
       integer :: i, ii, ind, iline, icolumn
 
       call f_routine(id='transform_sparsity_pattern')
+      call timing(bigdft_mpi%iproc, 'transformspars', 'ON')
 
         if (direction=='large_to_small') then
 
@@ -1607,6 +1608,7 @@ module sparsematrix
             stop 'wrong direction'
         end if
 
+      call timing(bigdft_mpi%iproc, 'transformspars', 'OF')
       call f_release_routine()
 
     end subroutine transform_sparsity_pattern

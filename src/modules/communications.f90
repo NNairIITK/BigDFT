@@ -1231,7 +1231,8 @@ module communications
       ! Local variables
       integer:: ierr, joverlap, mpisource, mpidest
       
-      
+      call timing(iproc, 'Pot_comm start', 'ON')      
+
       if(.not.comm%communication_complete) then
           if (rma_sync==RMA_SYNC_ACTIVE) then
               call mpi_win_fence(mpi_mode_nosucceed, comm%window, ierr)
@@ -1259,7 +1260,9 @@ module communications
     
       ! Flag indicating that the communication is complete
       comm%communication_complete=.true.
-    
+          
+      call timing(iproc, 'Pot_comm start', 'OF')      
+
     end subroutine synchronize_onesided_communication
 
 

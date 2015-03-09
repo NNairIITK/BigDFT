@@ -1937,6 +1937,7 @@ subroutine determine_sparsity_pattern(iproc, nproc, orbs, lzd, nnonzero, nonzero
       !character(len=*), parameter :: subname='determine_overlap_from_descriptors'
 
       call f_routine('determine_sparsity_pattern')
+      call timing(iproc,'determinespars','ON')
     
       overlapMatrix = f_malloc((/orbs%norbu,maxval(orbs%norbu_par(:,0))/),id='overlapMatrix')
       noverlapsarr = f_malloc(orbs%norbup,id='noverlapsarr')
@@ -2009,6 +2010,7 @@ subroutine determine_sparsity_pattern(iproc, nproc, orbs, lzd, nnonzero, nonzero
       call f_free(overlaps_op)
     
       call f_release_routine()
+      call timing(iproc,'determinespars','OF')
 
 end subroutine determine_sparsity_pattern
 
@@ -2032,6 +2034,7 @@ subroutine determine_sparsity_pattern_distance(orbs, lzd, astruct, cutoff, nnonz
   real(kind=8) :: tt, cut
 
   call f_routine('determine_sparsity_pattern_distance')
+  call timing(bigdft_mpi%iproc,'determinespars','ON')
 
       nnonzero=0
       do iorb=1,orbs%norbup
@@ -2080,6 +2083,7 @@ subroutine determine_sparsity_pattern_distance(orbs, lzd, astruct, cutoff, nnonz
       end do
 
   call f_release_routine()
+  call timing(bigdft_mpi%iproc,'determinespars','OF')
 
 end subroutine determine_sparsity_pattern_distance
 

@@ -269,6 +269,7 @@ module chebyshev
       integer :: ipl, icalc
     
       call f_routine(id='chebyshev_fast')
+      call timing(iproc, 'chebyshev_comp', 'ON')    
     
       if (nsize_polynomial>0) then
           call f_zero(kernel_compressed)
@@ -282,8 +283,9 @@ module chebyshev
     
       end if
     
+      call timing(iproc, 'chebyshev_comp', 'OF')    
       call f_release_routine()
-    
+
     end subroutine chebyshev_fast
 
 end module chebyshev

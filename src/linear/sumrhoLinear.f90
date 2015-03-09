@@ -214,7 +214,7 @@ subroutine calculate_density_kernel(iproc, nproc, isKernel, orbs, orbs_tmb, &
   if (communication_strategy==ALLGATHERV) then
       if (iproc==0) call yaml_map('communication strategy kernel','ALLGATHERV')
       stop 'calculate_density_kernel: ALLGATHERV option needs reworking due to the spin'
-      call timing(iproc,'calc_kernel','ON') !lr408t
+      call timing(iproc,'calc_kernel','ON')
       !if(iproc==0) write(*,'(1x,a)',advance='no') 'calculate density kernel... '
       density_kernel_partial=f_malloc((/orbs_tmb%norb,max(orbs_tmb%norbp,1)/), id='density_kernel_partial')
       fcoeff=f_malloc0((/orbs_tmb%norbp,orbs%norb/), id='fcoeff')
@@ -239,7 +239,7 @@ subroutine calculate_density_kernel(iproc, nproc, isKernel, orbs, orbs_tmb, &
                fcoeff(1,1), orbs_tmb%norbp, 0.d0, density_kernel_partial(1,1), orbs_tmb%norb)
       end if
       call f_free(fcoeff)
-      call timing(iproc,'calc_kernel','OF') !lr408t
+      call timing(iproc,'calc_kernel','OF')
 
       call timing(iproc,'waitAllgatKern','ON')
       call mpi_barrier(bigdft_mpi%mpi_comm,ierr)
@@ -252,7 +252,7 @@ subroutine calculate_density_kernel(iproc, nproc, isKernel, orbs, orbs_tmb, &
       end if
 
       if (nproc > 1) then
-         call timing(iproc,'commun_kernel','ON') !lr408t
+         call timing(iproc,'commun_kernel','ON')
          recvcounts=f_malloc((/0.to.nproc-1/),id='recvcounts')
          dspls=f_malloc((/0.to.nproc-1/),id='dspls')
          do jproc=0,nproc-1
@@ -265,7 +265,7 @@ subroutine calculate_density_kernel(iproc, nproc, isKernel, orbs, orbs_tmb, &
               bigdft_mpi%mpi_comm, ierr)
          call f_free(recvcounts)
          call f_free(dspls)
-         call timing(iproc,'commun_kernel','OF') !lr408t
+         call timing(iproc,'commun_kernel','OF')
       else
          call vcopy(orbs_tmb%norb*orbs_tmb%norbp,density_kernel_partial(1,1),1,denskern_%matrix(1,1,1),1)
       end if
@@ -278,7 +278,7 @@ subroutine calculate_density_kernel(iproc, nproc, isKernel, orbs, orbs_tmb, &
       end if
   else if (communication_strategy==ALLREDUCE) then
       if (iproc==0) call yaml_map('communication strategy kernel','ALLREDUCE')
-      call timing(iproc,'calc_kernel','ON') !lr408t
+      call timing(iproc,'calc_kernel','ON')
       !!if(iproc==0) write(*,'(1x,a)',advance='no') 'calculate density kernel... '
       !denskern_%matrix=f_malloc_ptr((/orbs_tmb%norb,orbs_tmb%norb/), id='denskern_%matrix_compr')
       if (.not.keep_uncompressed) then
@@ -324,7 +324,7 @@ subroutine calculate_density_kernel(iproc, nproc, isKernel, orbs, orbs_tmb, &
       else
           call f_zero(denskern%nspin*denskern%nfvctr**2, denskern_%matrix(1,1,1))
       end if
-      call timing(iproc,'calc_kernel','OF') !lr408t
+      call timing(iproc,'calc_kernel','OF')
 
       !!if (iproc==0) then
       !!    do ispin=1,denskern%nspin
@@ -344,18 +344,18 @@ subroutine calculate_density_kernel(iproc, nproc, isKernel, orbs, orbs_tmb, &
       call compress_matrix(iproc,denskern,inmat=denskern_%matrix,outmat=tmparr)
       if (keep_uncompressed) then
           if (nproc > 1) then
-              call timing(iproc,'commun_kernel','ON') !lr408t
+              call timing(iproc,'commun_kernel','ON')
               call mpiallred(denskern_%matrix(1,1,1), denskern%nspin*denskern%nfvctr**2, mpi_sum, bigdft_mpi%mpi_comm)
-              call timing(iproc,'commun_kernel','OF') !lr408t
+              call timing(iproc,'commun_kernel','OF')
           end if
       end if
       if (.not.keep_uncompressed) then
           call f_free_ptr(denskern_%matrix)
       end if
       if (nproc > 1) then
-          call timing(iproc,'commun_kernel','ON') !lr408t
+          call timing(iproc,'commun_kernel','ON')
           call mpiallred(tmparr(1), denskern%nspin*denskern%nvctr, mpi_sum, bigdft_mpi%mpi_comm)
-          call timing(iproc,'commun_kernel','OF') !lr408t
+          call timing(iproc,'commun_kernel','OF')408t
       end if
       call extract_taskgroup(denskern, tmparr, denskern_%matrix_compr)
       call f_free(tmparr)
@@ -430,7 +430,7 @@ end subroutine calculate_density_kernel
 !!
 !!  if (communication_strategy==ALLGATHERV) then
 !!      if (iproc==0) call yaml_map('calculate density kernel, communication strategy','ALLGATHERV')
-!!      call timing(iproc,'calc_kernel','ON') !lr408t
+!!      call timing(iproc,'calc_kernel','ON')
 !!      !if(iproc==0) write(*,'(1x,a)',advance='no') 'calculate density kernel... '
 !!      density_kernel_partial = f_malloc((/ orbs_tmb%norb, max(orbs_tmb%norbp, 1) /),id='density_kernel_partial')
 !!      fcoeff = f_malloc0((/ orbs_tmb%norb, orbs%norb /),id='fcoeff')
@@ -455,14 +455,14 @@ end subroutine calculate_density_kernel
 !!               fcoeff(orbs_tmb%isorb+1,1), orbs_tmb%norb, 0.d0, density_kernel_partial(1,1), orbs_tmb%norb)
 !!      end if
 !!      call f_free(fcoeff)
-!!      call timing(iproc,'calc_kernel','OF') !lr408t
+!!      call timing(iproc,'calc_kernel','OF')
 !!
 !!      call timing(iproc,'waitAllgatKern','ON')
 !!      call mpi_barrier(bigdft_mpi%mpi_comm,ierr)
 !!      call timing(iproc,'waitAllgatKern','OF')
 !!
 !!      if (nproc > 1) then
-!!         call timing(iproc,'commun_kernel','ON') !lr408t
+!!         call timing(iproc,'commun_kernel','ON')
 !!         recvcounts = f_malloc(0.to.nproc-1,id='recvcounts')
 !!         dspls = f_malloc(0.to.nproc-1,id='dspls')
 !!         do jproc=0,nproc-1
@@ -475,7 +475,7 @@ end subroutine calculate_density_kernel
 !!              bigdft_mpi%mpi_comm, ierr)
 !!         call f_free(recvcounts)
 !!         call f_free(dspls)
-!!         call timing(iproc,'commun_kernel','OF') !lr408t
+!!         call timing(iproc,'commun_kernel','OF')
 !!      else
 !!         call vcopy(orbs_tmb%norb*orbs_tmb%norbp,density_kernel_partial(1,1),1,kernel(1,1),1)
 !!      end if
@@ -483,7 +483,7 @@ end subroutine calculate_density_kernel
 !!      call f_free(density_kernel_partial)
 !!  else if (communication_strategy==ALLREDUCE) then
 !!      if (iproc==0) call yaml_map('calculate density kernel, communication strategy','ALLREDUCE')
-!!      call timing(iproc,'calc_kernel','ON') !lr408t
+!!      call timing(iproc,'calc_kernel','ON')
 !!      !!if(iproc==0) write(*,'(1x,a)',advance='no') 'calculate density kernel... '
 !!      if(orbs%norbp>0) then
 !!          fcoeff = f_malloc0((/ orbs_tmb%norb, orbs%norb /),id='fcoeff')
@@ -511,15 +511,15 @@ end subroutine calculate_density_kernel
 !!      else
 !!          call f_zero(orbs_tmb%norb**2, kernel(1,1))
 !!      end if
-!!      call timing(iproc,'calc_kernel','OF') !lr408t
+!!      call timing(iproc,'calc_kernel','OF')
 !!
 !!      call timing(iproc,'waitAllgatKern','ON')
 !!      call mpi_barrier(bigdft_mpi%mpi_comm,ierr)
 !!      call timing(iproc,'waitAllgatKern','OF')
 !!      if (nproc > 1) then
-!!          call timing(iproc,'commun_kernel','ON') !lr408t
+!!          call timing(iproc,'commun_kernel','ON')
 !!          call mpiallred(kernel(1,1),orbs_tmb%norb**2, mpi_sum, bigdft_mpi%mpi_comm)
-!!          call timing(iproc,'commun_kernel','OF') !lr408t
+!!          call timing(iproc,'commun_kernel','OF')
 !!      end if
 !!  end if
 !!

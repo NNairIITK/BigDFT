@@ -1318,7 +1318,7 @@ subroutine calculate_coeff_gradient(iproc,nproc,tmb,order_taylor,max_inversion_e
   end do
 
   call timing(iproc,'dirmin_lagmat1','OF')
-  call timing(iproc,'dirmin_dgesv','ON') !lr408t
+  call timing(iproc,'dirmin_dgesv','ON')
 
   ! Solve the linear system ovrlp*grad=grad_cov
   if(tmb%orthpar%blocksize_pdsyev<0) then
@@ -1520,7 +1520,7 @@ subroutine calculate_coeff_gradient(iproc,nproc,tmb,order_taylor,max_inversion_e
 
   call deallocate_matrices(inv_ovrlp_(1))
 
-  call timing(iproc,'dirmin_dgesv','OF') !lr408t
+  call timing(iproc,'dirmin_dgesv','OF')
   call f_release_routine()
 
 end subroutine calculate_coeff_gradient
@@ -1668,7 +1668,7 @@ subroutine calculate_coeff_gradient_extra(iproc,nproc,num_extra,tmb,order_taylor
   end do
 
   call timing(iproc,'dirmin_lagmat1','OF')
-  call timing(iproc,'dirmin_dgesv','ON') !lr408t
+  call timing(iproc,'dirmin_dgesv','ON')
 
 
   info = 0 ! needed for when some processors have orbs%norbp=0
@@ -1724,7 +1724,7 @@ subroutine calculate_coeff_gradient_extra(iproc,nproc,num_extra,tmb,order_taylor
 
   call deallocate_matrices(inv_ovrlp_(1))
 
-  call timing(iproc,'dirmin_dgesv','OF') !lr408t
+  call timing(iproc,'dirmin_dgesv','OF')
   call f_release_routine()
 
 end subroutine calculate_coeff_gradient_extra

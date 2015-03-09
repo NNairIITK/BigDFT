@@ -112,28 +112,30 @@ contains
         type(sparse_matrix),intent(in) :: sparsemat
       
         ! Local variables
-        integer(kind=8) :: ii, istart, iend
+        integer(kind=8) :: ii, istart, iend, norb8
         integer :: iseg
       
-        ii = int((jcol-1),kind=8)*int(norb,kind=8)+int(irow,kind=8)
+        norb8 = int(norb,kind=8)
+        ii = int((jcol-1),kind=8)*norb8+int(irow,kind=8)
       
         iseg=sparsemat%istsegline(jcol)
         do
-            istart = int((sparsemat%keyg(1,2,iseg)-1),kind=8)*int(norb,kind=8) + &
+            istart = int((sparsemat%keyg(1,2,iseg)-1),kind=8)*norb8 + &
                      int(sparsemat%keyg(1,1,iseg),kind=8)
-            iend = int((sparsemat%keyg(2,2,iseg)-1),kind=8)*int(norb,kind=8) + &
+            if (ii<istart) then
+                compressed_index_fn=0
+                return
+            end if
+            iend = int((sparsemat%keyg(2,2,iseg)-1),kind=8)*norb8 + &
                    int(sparsemat%keyg(2,1,iseg),kind=8)
-            if (ii>=istart .and. ii<=iend) then
+            !if (ii>=istart .and. ii<=iend) then
+            if (ii<=iend) then
                 ! The matrix element is in sparsemat segment
                  compressed_index_fn = sparsemat%keyv(iseg) + int(ii-istart,kind=4)
                 return
             end if
             iseg=iseg+1
             if (iseg>sparsemat%nseg) exit
-            if (ii<istart) then
-                compressed_index_fn=0
-                return
-            end if
         end do
       
         ! Not found
@@ -155,29 +157,35 @@ contains
       integer,dimension(norb),intent(in) :: istsegline
 
       ! Local variables
-      integer(kind=8) :: ii, istart, iend
+      integer(kind=8) :: ii, istart, iend, norb8
       integer :: iseg
 
-      ii = int((jcol-1),kind=8)*int(norb,kind=8)+int(irow,kind=8)
+      norb8=int(norb,kind=8)
+      ii = int((jcol-1),kind=8)*norb8+int(irow,kind=8)
 
       !do iseg=1,nseg
       iseg=istsegline(jcol)
       do
-          istart = int((keyg(1,2,iseg)-1),kind=8)*int(norb,kind=8) + &
+          istart = int((keyg(1,2,iseg)-1),kind=8)*norb8 + &
                    int(keyg(1,1,iseg),kind=8)
-          iend = int((keyg(2,2,iseg)-1),kind=8)*int(norb,kind=8) + &
-                 int(keyg(2,1,iseg),kind=8)
-          if (ii>=istart .and. ii<=iend) then
-              ! The matrix element is in this segment
-               micf = keyv(iseg) + int(ii-istart,kind=4)
-              return
-          end if
-          iseg = iseg + 1
-          if (iseg>nseg) exit
+          !iend = int((keyg(2,2,iseg)-1),kind=8)*int(norb,kind=8) + &
+          !       int(keyg(2,1,iseg),kind=8)
+          !if (ii>=istart .and. ii<=iend) then
           if (ii<istart) then
               micf=0
               return
           end if
+          !if (ii>=istart) then
+             iend = int((keyg(2,2,iseg)-1),kind=8)*norb8 + &
+                    int(keyg(2,1,iseg),kind=8)
+             if (ii<=iend) then
+                ! The matrix element is in this segment
+                micf = keyv(iseg) + int(ii-istart,kind=4)
+                return
+             end if
+          !end if
+          iseg = iseg + 1
+          if (iseg>nseg) exit
       end do
 
       ! Not found
@@ -2080,6 +2088,7 @@ contains
       integer,dimension(:),pointer :: isvctr_par, nvctr_par
 
       call f_routine(id='init_matrix_taskgroups')
+      call timing(iproc,'inittaskgroup','ON')
 
       ! First determine the minimal and maximal value oft the matrix which is used by each process
       iuse_startend = f_malloc0((/1.to.2,0.to.nproc-1/),id='iuse_startend')
@@ -2872,7 +2881,7 @@ contains
       !!call f_free(ranks)
 
 
-
+      call timing(iproc,'inittaskgroup','OF')
       call f_release_routine()
 
 

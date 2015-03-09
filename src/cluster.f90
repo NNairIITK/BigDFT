@@ -110,7 +110,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,energs,fxyz,strten,fnoise,press
   integer,dimension(2) :: irow, icol, iirow, iicol
   character(len=20) :: comment
 
-  integer :: ishift
+  integer :: ishift, extra_states
 
   !debug
   !real(kind=8) :: ddot
@@ -408,7 +408,18 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,energs,fxyz,strten,fnoise,press
      if (in%lin%scf_mode/=LINEAR_FOE .or. in%lin%pulay_correction .or.  in%lin%new_pulay_correction .or. &
          (in%lin%plotBasisFunctions /= WF_FORMAT_NONE) .or. in%lin%diag_end .or. in%write_orbitals &
          .or. inputpsi == INPUT_PSI_DISK_LINEAR) then
-         call init_sparse_matrix_for_KSorbs(iproc, nproc, KSwfn%orbs, in, in%lin%extra_states, &
+
+         if (in%lin%fragment_calculation) then
+            if (in%lin%extra_states/=0) then
+               if (iproc==0) call yaml_comment('ERROR: extra_states must be zero for fragment calculation')
+               call MPI_ABORT(bigdft_mpi%mpi_comm,10,ierr)
+            end if
+
+            extra_states = tmb%orbs%norb - KSwfn%orbs%norb
+         else
+            extra_states = in%lin%extra_states
+         end if
+         call init_sparse_matrix_for_KSorbs(iproc, nproc, KSwfn%orbs, in, extra_states, &
               tmb%linmat%ks, tmb%linmat%ks_e)
      end if
 
@@ -754,7 +765,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,energs,fxyz,strten,fnoise,press
 
   !project the wavefunctions on a gaussian basis and keep in memory
   if (in%gaussian_help) then
-     call timing(iproc,'gauss_proj','ON') !lr408t
+     call timing(iproc,'gauss_proj','ON')
      if (iproc == 0.and.verbose >1) then
         call yaml_comment('Gaussian Basis Projection',hfill='-')
         !write( *,'(1x,a)') '---------------------------------------------------------- Gaussian Basis Projection'
@@ -791,7 +802,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,energs,fxyz,strten,fnoise,press
           KSwfn%Lzd%Glr%wfd,KSwfn%psi,KSwfn%gaucoeffs)
 
      call f_free(thetaphi)
-     call timing(iproc,'gauss_proj','OF') !lr408t
+     call timing(iproc,'gauss_proj','OF')
   end if
 
   !  write all the wavefunctions into files
