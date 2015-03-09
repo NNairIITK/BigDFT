@@ -1862,28 +1862,6 @@ module module_interfaces
       type(comms_cubic),intent(inout):: comms
     end subroutine deallocate_comms_cubic
 
-    !!subroutine nullify_foe(foe_obj)
-    !!  use module_base
-    !!  use module_types
-    !!  implicit none
-    !!  type(foe_data),intent(out):: foe_obj
-    !!end subroutine nullify_foe
-
-    subroutine nullify_sparse_matrix(sparsemat)
-      use module_base
-      use module_types
-      use sparsematrix_base, only: sparse_matrix
-      implicit none
-      type(sparse_matrix),intent(out):: sparsemat
-    end subroutine nullify_sparse_matrix
-
-!    subroutine nullify_comms_linear(collcom)
-!      use module_base
-!      use module_types
-!      implicit none
-!      type(comms_linear),intent(inout):: collcom
-!    end subroutine nullify_comms_linear
-
     subroutine nullify_orbitals_data(orbs)
       use module_base
       use module_types
@@ -1948,18 +1926,6 @@ module module_interfaces
         type(work_transpose),intent(out) :: wt_hphi, wt_hpsinoprecond
       end subroutine orthoconstraintNonorthogonal
 
-
-      subroutine dsygv_parallel(iproc, nproc, blocksize, nprocMax, comm, itype, jobz, uplo, n, a, lda, b, ldb, w, info)
-        use module_base
-        use module_types
-        implicit none
-        integer,intent(in):: iproc, nproc, blocksize, nprocMax, comm, itype, n, lda, ldb
-        integer,intent(out):: info
-        character(len=1),intent(in):: jobz, uplo
-        real(8),dimension(lda,n),intent(inout):: a
-        real(8),dimension(ldb,n),intent(inout):: b
-        real(8),dimension(n),intent(out):: w
-      end subroutine dsygv_parallel
 
      subroutine choosePreconditioner2(iproc, nproc, orbs, lr, hx, hy, hz, ncong, hpsi, &
                 confpotorder, potentialprefac, iorb, eval_zero)
@@ -2228,14 +2194,6 @@ module module_interfaces
          character(len = *), intent(in) :: dir_output
          type(orbitals_data), intent(in) :: orbs, lorbs
        end subroutine input_check_psi_id
-
-       subroutine nullify_p2pComms(p2pcomm)
-         use module_base
-         use module_types
-         use communications_base, only: p2pComms
-         implicit none
-         type(p2pComms),intent(inout):: p2pcomm
-       end subroutine nullify_p2pComms
 
        subroutine extract_potential_for_spectra(iproc,nproc,at,rhod,dpbox,&
             orbs,nvirt,comms,Lzd,hx,hy,hz,rxyz,rhopot,rhocore,pot_ion,&
@@ -2607,22 +2565,6 @@ module module_interfaces
          real(kind=8), dimension(nlr), intent(out) :: locrad
          integer, intent(out) :: target_function, nit_basis
        end subroutine set_optimization_variables
-
-       subroutine determine_num_orbs_per_gridpoint(iproc, nproc, orbs, lzd, istartend_c, istartend_f, &
-                  istartp_seg_c, iendp_seg_c, istartp_seg_f, iendp_seg_f, &
-                  weightp_c, weightp_f, nptsp_c, nptsp_f, &
-                  norb_per_gridpoint_c, norb_per_gridpoint_f)
-         use module_base
-         use module_types
-         implicit none
-         integer,intent(in):: iproc, nproc, nptsp_c, nptsp_f, istartp_seg_c, iendp_seg_c, istartp_seg_f, iendp_seg_f
-         type(orbitals_data),intent(in):: orbs
-         type(local_zone_descriptors),intent(in):: lzd
-         integer,dimension(2,0:nproc-1),intent(in):: istartend_c, istartend_f
-         real(8),intent(in):: weightp_c, weightp_f
-         integer,dimension(nptsp_c),intent(out):: norb_per_gridpoint_c
-         integer,dimension(nptsp_f),intent(out):: norb_per_gridpoint_f
-       end subroutine determine_num_orbs_per_gridpoint
 
        subroutine initialize_linear_from_file(iproc,nproc,input_frag,astruct,rxyz,orbs,Lzd,&
               iformat,dir_output,filename,ref_frags,orblist)
@@ -3679,20 +3621,6 @@ end subroutine build_ks_orbitals_laura_tmp
           real(kind=8),dimension(3,at%astruct%nat),intent(out) :: fpulay
         end subroutine pulay_correction_new
 
-        subroutine toglobal_and_transpose(iproc,nproc,orbs,Lzd,comms,psi,&
-             work,outadd) !optional
-          use module_base
-          use module_types
-          implicit none
-          integer, intent(in) :: iproc,nproc
-          type(orbitals_data), intent(in) :: orbs
-          type(local_zone_descriptors), intent(in) :: Lzd
-          type(comms_cubic), intent(in) :: comms
-          real(wp), dimension(:), pointer :: psi
-          real(wp), dimension(:), pointer, optional :: work
-          real(wp), dimension(*), intent(out), optional :: outadd
-        end subroutine
-
         subroutine increase_FOE_cutoff(iproc, nproc, lzd, astruct, input, orbs_KS, orbs, foe_obj, init)
           use module_base
           use module_types
@@ -3814,23 +3742,6 @@ end subroutine build_ks_orbitals_laura_tmp
           type(orbitals_data), intent(inout) :: orbs
           real(wp), dimension(nvctr,orbs%nspinor,orbs%norbp), intent(in) :: psi
         end subroutine eigensystem_info
-
-
-        subroutine check_accur_overlap_minus_one_sparse(iproc, nproc, smat, norb, norbp, isorb, nseq, nout, &
-                   ivectorindex, amat_seq, bmatp, power, &
-                   max_error, mean_error, dmat_seq, cmatp)
-          use module_base
-          use sparsematrix_base, only: sparse_matrix
-          implicit none
-          integer,intent(in) :: iproc, nproc, norb, norbp, isorb, nseq, nout, power
-          type(sparse_matrix) :: smat
-          integer,dimension(nseq),intent(in) :: ivectorindex
-          real(kind=8),dimension(nseq),intent(in) :: amat_seq
-          real(kind=8),dimension(norb,norbp),intent(in) :: bmatp
-          real(kind=8),intent(out) :: max_error, mean_error
-          real(kind=8),dimension(nseq),intent(in),optional :: dmat_seq
-          real(kind=8),dimension(norb,norbp),intent(in),optional :: cmatp
-        end subroutine check_accur_overlap_minus_one_sparse
 
         subroutine calculate_kernel_and_energy(iproc,nproc,denskern,ham,denskern_mat,ham_mat,&
                    energy,coeff,orbs,tmb_orbs,calculate_kernel)
@@ -3954,18 +3865,6 @@ end subroutine build_ks_orbitals_laura_tmp
           type(sparse_matrix),intent(in) :: smat
           real(8),intent(out):: max_deviation, mean_deviation
         end subroutine max_matrix_diff_parallel
-
-        subroutine deviation_from_unity_parallel(iproc, nproc, norb, norbp, isorb, ovrlp, &
-                   smat, max_deviation, mean_deviation)
-          use module_base
-          use module_types
-          use sparsematrix_base, only: sparse_matrix
-          implicit none
-          integer,intent(in):: iproc, nproc, norb, norbp, isorb
-          real(8),dimension(norb,norbp),intent(in):: ovrlp
-          type(sparse_matrix),intent(in) :: smat
-          real(8),intent(out):: max_deviation, mean_deviation
-        end subroutine deviation_from_unity_parallel
 
         subroutine estimate_energy_change(npsidim_orbs, orbs, lzd, nspin, psidiff, hpsi_noprecond, delta_energy)
           use module_base

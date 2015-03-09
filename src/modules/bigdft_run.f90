@@ -779,7 +779,7 @@ contains
   !! in particular this routine identifies the input and the atoms structure
   subroutine set_run_objects(runObj)
     use module_base, only: f_err_throw
-    use module_interfaces, only: atoms_new, inputs_new, inputs_from_dict
+    use module_interfaces, only: inputs_new, inputs_from_dict, atoms_new
     use module_atoms, only: deallocate_atoms_data
     use module_input_dicts, only: dict_run_validate
     use dynamic_memory

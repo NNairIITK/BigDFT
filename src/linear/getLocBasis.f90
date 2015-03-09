@@ -29,6 +29,8 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
                           extract_taskgroup, uncompress_matrix2, &
                           write_sparsematrix
   use transposed_operations, only: calculate_overlap_transposed
+  use parallel_linalg, only: dsygv_parallel
+  use matrix_operations, only: deviation_from_unity_parallel
   implicit none
 
   ! Calling arguments
@@ -2074,7 +2076,7 @@ subroutine reorthonormalize_coeff(iproc, nproc, norb, blocksize_dsyev, blocksize
   use sparsematrix_base, only: sparse_matrix, matrices, matrices_null, &
        allocate_matrices, deallocate_matrices
   use yaml_output, only: yaml_newline, yaml_map
-  use matrix_operations, only: overlapPowerGeneral, overlap_minus_one_half_serial
+  use matrix_operations, only: overlapPowerGeneral, overlap_minus_one_half_serial, deviation_from_unity_parallel
   implicit none
 
   ! Calling arguments

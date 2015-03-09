@@ -1146,6 +1146,7 @@ subroutine calculate_coeff_gradient(iproc,nproc,tmb,order_taylor,max_inversion_e
                                matrices_null, allocate_matrices, deallocate_matrices
   use sparsematrix, only: extract_taskgroup_inplace, gather_matrix_from_taskgroups_inplace
   use matrix_operations, only: overlapPowerGeneral
+  use parallel_linalg, only: dgesv_parallel
   implicit none
 
   integer, intent(in) :: iproc, nproc
@@ -1538,6 +1539,7 @@ subroutine calculate_coeff_gradient_extra(iproc,nproc,num_extra,tmb,order_taylor
                                matrices_null, allocate_matrices, deallocate_matrices
   use sparsematrix, only: extract_taskgroup_inplace, gather_matrix_from_taskgroups_inplace
   use matrix_operations, only: overlapPowerGeneral
+  use parallel_linalg, only: dgesv_parallel
   implicit none
 
   integer, intent(in) :: iproc, nproc, num_extra

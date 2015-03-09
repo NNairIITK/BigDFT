@@ -8,6 +8,7 @@ module matrix_operations
     public :: overlapPowerGeneral
     public :: overlap_minus_one_half_serial
     public :: overlap_plus_minus_one_half_exact
+    public :: deviation_from_unity_parallel
 
 
     contains
@@ -39,6 +40,7 @@ module matrix_operations
                                 gather_matrix_from_taskgroups, gather_matrix_from_taskgroups_inplace, &
                                 uncompress_matrix2, transform_sparsity_pattern, &
                                 sparsemm_new
+        use parallel_linalg, only: dpotrf_parallel, dpotri_parallel
         use yaml_output
         implicit none
         
@@ -185,9 +187,9 @@ module matrix_operations
                    else
                       stop 'check if working - upper half may not be filled'
                       call dpotrf_parallel(iproc, nproc, blocksize, bigdft_mpi%mpi_comm, 'l', &
-                           ovrlp_smat%nfvctr, inv_ovrlp_mat(1)%matrix(1,1,1), ovrlp_smat%nfvctr)
+                           ovrlp_smat%nfvctr, inv_ovrlp_mat(1)%matrix(1:,1:,1), ovrlp_smat%nfvctr)
                       call dpotri_parallel(iproc, nproc, blocksize, bigdft_mpi%mpi_comm, 'l', &
-                           ovrlp_smat%nfvctr, inv_ovrlp_mat(1)%matrix(1,1,1), ovrlp_smat%nfvctr)
+                           ovrlp_smat%nfvctr, inv_ovrlp_mat(1)%matrix(1:,1:,1), ovrlp_smat%nfvctr)
                    end if
                 else if (power(1)==2) then
                     do ispin=1,nspin
@@ -467,9 +469,9 @@ module matrix_operations
                            else
                               stop 'check if working - upper half may not be filled'
                               call dpotrf_parallel(iproc, nproc, blocksize, bigdft_mpi%mpi_comm, 'l', &
-                                   ovrlp_smat%nfvctr, inv_ovrlp_local(1,1,ispin), ovrlp_smat%nfvctr)
+                                   ovrlp_smat%nfvctr, inv_ovrlp_local(1:,1:,ispin), ovrlp_smat%nfvctr)
                               call dpotri_parallel(iproc, nproc, blocksize, bigdft_mpi%mpi_comm, 'l', &
-                                   ovrlp_smat%nfvctr, inv_ovrlp_local(1,1,ispin), ovrlp_smat%nfvctr)
+                                   ovrlp_smat%nfvctr, inv_ovrlp_local(1:,1:,ispin), ovrlp_smat%nfvctr)
                            end if
                         else if (power(icalc)==2) then
                             call overlap_plus_minus_one_half_exact(bigdft_mpi%nproc,ovrlp_smat%nfvctr, &
@@ -1635,6 +1637,7 @@ module matrix_operations
         use module_base
         use module_types
         use sparsematrix_base, only: sparse_matrix
+        use parallel_linalg, only: dgemm_parallel, dsyev_parallel
         implicit none
         integer,intent(in) :: nproc,norb,blocksize
         real(kind=8),dimension(norb,norb) :: inv_ovrlp_half
@@ -1884,6 +1887,69 @@ module matrix_operations
       end subroutine overlap_plus_minus_one_half_exact
 
 
+      subroutine deviation_from_unity_parallel(iproc, nproc, norb, norbp, isorb, ovrlp, smat, max_deviation, mean_deviation)
+        use module_base
+        use module_types
+        use sparsematrix_base, only: sparse_matrix
+        use sparsematrix_init, only: matrixindex_in_compressed
+        implicit none
+      
+        ! Calling arguments
+        integer,intent(in):: iproc, nproc, norb, norbp, isorb
+        real(8),dimension(norb,norbp),intent(in):: ovrlp
+        type(sparse_matrix),intent(in) :: smat
+        real(8),intent(out):: max_deviation, mean_deviation
+      
+        ! Local variables
+        integer:: iorb, iiorb, jorb, ierr, ind
+        real(8):: error, num
+        real(kind=8),dimension(2) :: reducearr
+      
+        call f_routine(id='deviation_from_unity_parallel')
+      
+        call timing(iproc,'dev_from_unity','ON') 
+        max_deviation=0.d0
+        mean_deviation=0.d0
+        num=0.d0
+        do iorb=1,norbp
+           iiorb=iorb+isorb
+           !$omp parallel default(private) shared(norb, iiorb, ovrlp, iorb, max_deviation, mean_deviation, num, smat)
+           !$omp do reduction(max:max_deviation) reduction(+:mean_deviation,num)
+           do jorb=1,norb
+              ind=matrixindex_in_compressed(smat,jorb,iiorb)
+              if (ind>0) then
+                  ! This entry is within the sparsity pattern, i.e. it matters for the error.
+                  if(iiorb==jorb) then
+                     error=(ovrlp(jorb,iorb)-1.d0)**2
+                  else
+                     error=ovrlp(jorb,iorb)**2
+                  end if
+                  max_deviation=max(error,max_deviation)
+                  mean_deviation=mean_deviation+error
+                  num=num+1.d0
+              end if
+           end do
+           !$omp end do
+           !$omp end parallel
+        end do
+        if (nproc>1) then
+            reducearr(1)=mean_deviation
+            reducearr(2)=num
+            call mpiallred(max_deviation, 1, mpi_max, bigdft_mpi%mpi_comm)
+            call mpiallred(reducearr(1), 2, mpi_sum, bigdft_mpi%mpi_comm)
+            mean_deviation=reducearr(1)
+            num=reducearr(2)
+        end if
+      
+        mean_deviation=mean_deviation/num
+        mean_deviation=sqrt(mean_deviation)
+        max_deviation=sqrt(max_deviation)
+      
+        call timing(iproc,'dev_from_unity','OF') 
+      
+        call f_release_routine()
+      
+      end subroutine deviation_from_unity_parallel
 
 
 end module matrix_operations

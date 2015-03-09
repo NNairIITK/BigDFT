@@ -69,6 +69,7 @@ libmodules_a_SOURCES = base.f90 \
 	chebyshev.f90 \
 	unitary_tests.f90 \
 	matrix_operations.f90 \
+	parallel_linalg.f90 \
 	bigdft_run.f90 \
 	$(bindings_headers) \
 	$(LIBXC_MODULE) \
@@ -119,6 +120,7 @@ modules = MODULE_BASE.@MODULE_EXT@ \
 	CHEBYSHEV.@MODULE_EXT@ \
 	UNITARY_TESTS.@MODULE_EXT@ \
 	MATRIX_OPERATIONS.@MODULE_EXT@ \
+	PARALLEL_LINALG.@MODULE_EXT@ \
 	BIGDFT_RUN.@MODULE_EXT@ \
 	MODULE_LJ.@MODULE_EXT@ \
 	MODULE_LENOSKY_SI.@MODULE_EXT@
@@ -165,6 +167,7 @@ modules = module_base.@MODULE_EXT@ \
 	chebyshev.@MODULE_EXT@ \
 	unitary_tests.@MODULE_EXT@ \
 	matrix_operations.@MODULE_EXT@ \
+	parallel_linalg.@MODULE_EXT@ \
 	bigdft_run.@MODULE_EXT@ \
 	module_lj.@MODULE_EXT@ \
 	module_morse_bulk.@MODULE_EXT@ \
@@ -241,7 +244,8 @@ transposed_operations.o: base.o types.o sparsematrix_base.o sparsematrix.o
 module_forces.o: base.o types.o 
 chebyshev.o: base.o types.o sparsematrix_base.o sparsematrix_init.o sparsematrix.o
 unitary_tests.o: base.o types.o interfaces.o communications_init.o communications.o sparsematrix_base.o sparsematrix_init.o sparsematrix.o transposed_operations.o
-matrix_operations.o: base.o types.o interfaces.o sparsematrix_base.o sparsematrix_init.o sparsematrix.o
+matrix_operations.o: base.o types.o interfaces.o sparsematrix_base.o sparsematrix_init.o sparsematrix.o parallel_linalg.o
+parallel_linalg.o: base.o types.o
 
 # Copy modules in a common include directory.
 all: all-am insmod

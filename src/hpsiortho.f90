@@ -1538,6 +1538,7 @@ subroutine calculate_energy_and_gradient(iter,iproc,nproc,GPU,ncong,iscf,&
   use module_interfaces, except_this_one => calculate_energy_and_gradient
   use yaml_output
   use communications, only: transpose_v, untranspose_v
+  use communications, only: toglobal_and_transpose
   implicit none
   integer, intent(in) :: iproc,nproc,ncong,iscf,iter
   type(energy_terms), intent(inout) :: energs
