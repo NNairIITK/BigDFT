@@ -4167,6 +4167,7 @@ subroutine nonlocal_forces_linear(iproc,nproc,npsidim_orbs,lr,hx,hy,hz,at,rxyz,&
        PSPCODE_PAW
   use yaml_output
   use communications_init, only: check_whether_bounds_overlap
+  use psp_projectors, only: projector_has_overlap
   implicit none
   !Arguments-------------
   type(atoms_data), intent(in) :: at
@@ -4363,7 +4364,7 @@ subroutine nonlocal_forces_linear(iproc,nproc,npsidim_orbs,lr,hx,hy,hz,at,rxyz,&
       subroutine determine_dimension_scalprod()
         implicit none
         integer :: ii
-        logical :: projector_has_overlap
+        !logical :: projector_has_overlap
 
         call f_routine(id='determine_dimension_scalprod')
 
@@ -4390,7 +4391,7 @@ subroutine nonlocal_forces_linear(iproc,nproc,npsidim_orbs,lr,hx,hy,hz,at,rxyz,&
                         iiorb=orbs%isorb+iorb
                         ilr=orbs%inwhichlocreg(iiorb)
                         ! Check whether there is an overlap between projector and support functions
-                        if (.not.projector_has_overlap(iat, ilr, lzd, nlpsp, at)) then
+                        if (.not.projector_has_overlap(iat, ilr, lzd%llr(ilr), lzd%glr, nlpsp)) then
                             cycle 
                         else
                             ii = ii +1
@@ -4460,7 +4461,7 @@ subroutine nonlocal_forces_linear(iproc,nproc,npsidim_orbs,lr,hx,hy,hz,at,rxyz,&
       subroutine calculate_scalprod()
         implicit none
         integer :: iii
-        logical :: projector_has_overlap, increase
+        logical :: increase
         integer,dimension(:),allocatable :: is_supfun_per_atom_tmp
         real(kind=8) :: scpr
 
@@ -4516,7 +4517,7 @@ subroutine nonlocal_forces_linear(iproc,nproc,npsidim_orbs,lr,hx,hy,hz,at,rxyz,&
                            iiorb=orbs%isorb+iorb
                            ilr=orbs%inwhichlocreg(iiorb)
                            ! Check whether there is an overlap between projector and support functions
-                           if (.not.projector_has_overlap(iat, ilr, lzd, nlpsp, at)) then
+                           if (.not.projector_has_overlap(iat, ilr, lzd%llr(ilr), lzd%glr, nlpsp)) then
                                jorb=jorb+1
                                ispsi=ispsi+(lzd%llr(ilr)%wfd%nvctr_c+7*lzd%llr(ilr)%wfd%nvctr_f)*ncplx
                                cycle 
@@ -5264,45 +5265,3 @@ subroutine keep_internal_coordinates_constraints(nat, rxyz_int, ixyz_int, ifroze
   call f_release_routine()
 
 end subroutine keep_internal_coordinates_constraints
-
-
-
-
-function projector_has_overlap(iat, ilr, lzd, nl, at) result(overlap)
-  use module_base
-  use module_types
-  use psp_projectors, only: PSP_APPLY_SKIP
-  implicit none
-  ! Calling arguments
-  integer,intent(in) :: iat, ilr
-  type(local_zone_descriptors),intent(in) :: lzd
-  type(DFT_PSP_projectors),intent(in) :: nl
-  type(atoms_data),intent(in) :: at
-  logical :: overlap
-  ! Local variables
-  logical :: goon
-  integer :: iatype, mproj, jlr, iilr
-
-  overlap = .false.
-
-  ! Check whether the projectors of this atom have an overlap with locreg ilr
-  goon=.false.
-  do jlr=1,nl%pspd(iat)%noverlap
-      if (nl%pspd(iat)%lut_tolr(jlr)==ilr) then
-          goon=.true.
-          iilr=jlr
-          exit
-      end if
-  end do
-  if (.not.goon) return
-
-  iatype=at%astruct%iatype(iat)
-
-  mproj=nl%pspd(iat)%mproj
-  !no projector on this atom
-  if(mproj == 0) return
-  if(nl%pspd(iat)%tolr(iilr)%strategy == PSP_APPLY_SKIP) return
-
-  call check_overlap(lzd%Llr(ilr), nl%pspd(iat)%plr, lzd%Glr, overlap)
-
-  end function projector_has_overlap

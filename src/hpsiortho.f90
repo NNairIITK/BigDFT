@@ -677,7 +677,7 @@ subroutine NonLocalHamiltonianApplication(iproc,at,npsidim_orbs,orbs,&
   use module_types
   use yaml_output
   use module_interfaces, except_this_one => NonLocalHamiltonianApplication
-  use psp_projectors, only: PSPCODE_PAW,PSP_APPLY_SKIP
+  use psp_projectors, only: PSPCODE_PAW,PSP_APPLY_SKIP, projector_has_overlap
   implicit none
   integer, intent(in) :: iproc, npsidim_orbs
   type(atoms_data), intent(in) :: at
@@ -767,35 +767,46 @@ subroutine NonLocalHamiltonianApplication(iproc,at,npsidim_orbs,orbs,&
            loop_atoms_1: do iat=1,at%astruct%nat
 
               ! Check whether the projectors of this atom have an overlap with locreg ilr
-              goon=.false.
-              do jlr=1,nl%pspd(iat)%noverlap
-                  if (nl%pspd(iat)%lut_tolr(jlr)==ilr) then
-                      goon=.true.
-                      iilr=jlr
-                      exit
-                  end if
-              end do
-              if (.not.goon) cycle loop_atoms_1
+              !!!goon=.false.
+              !!!do jlr=1,nl%pspd(iat)%noverlap
+              !!!    if (nl%pspd(iat)%lut_tolr(jlr)==ilr) then
+              !!!        goon=.true.
+              !!!        iilr=jlr
+              !!!        exit
+              !!!    end if
+              !!!end do
+              !!!if (.not.goon) cycle loop_atoms_1
 
-              iatype=at%astruct%iatype(iat)
+              !!!iatype=at%astruct%iatype(iat)
 
-              mproj=nl%pspd(iat)%mproj
-              !no projector on this atom
-              if(mproj == 0) cycle
-              !projector not overlapping with the locreg
-              !!iilr=nl%pspd(iat)%lut_tolr(ilr)
-              !!if (iilr==PSP_APPLY_SKIP) cycle
-              if(nl%pspd(iat)%tolr(iilr)%strategy == PSP_APPLY_SKIP) cycle
-              !check if the atom projector intersect with the given localisation region
-              !this part can be moved at the place of the analysis between psp and lrs
-              !call cpu_time(tr0)
+              !!!mproj=nl%pspd(iat)%mproj
+              !!!!no projector on this atom
+              !!!if(mproj == 0) cycle
+              !!!!projector not overlapping with the locreg
+              !!!!!iilr=nl%pspd(iat)%lut_tolr(ilr)
+              !!!!!if (iilr==PSP_APPLY_SKIP) cycle
+              !!!if(nl%pspd(iat)%tolr(iilr)%strategy == PSP_APPLY_SKIP) cycle
+              !!!!check if the atom projector intersect with the given localisation region
+              !!!!this part can be moved at the place of the analysis between psp and lrs
+              !!!!call cpu_time(tr0)
 
-              call check_overlap(Lzd%Llr(ilr), nl%pspd(iat)%plr, Lzd%Glr, overlap)
+              !!!call check_overlap(Lzd%Llr(ilr), nl%pspd(iat)%plr, Lzd%Glr, overlap)
+
+              ! Check whether the projectors of this atom have an overlap with locreg ilr
+              overlap = projector_has_overlap(iat, ilr, lzd%llr(ilr), lzd%glr, nl)
               if(.not. overlap) cycle
               !call cpu_time(tr1)
               !time1=time1+real(tr1-tr0,kind=8)
               ! Now create the projector
               istart_c=1
+              iatype=at%astruct%iatype(iat)
+              do jlr=1,nl%pspd(iat)%noverlap
+                  if (nl%pspd(iat)%lut_tolr(jlr)==ilr) then
+                      iilr=jlr
+                      exit
+                  end if
+              end do
+              mproj=nl%pspd(iat)%mproj
               call atom_projector(nl, iatype, iat, at%astruct%atomnames(iatype), &
                    & at%astruct%geocode, 0, Lzd%Glr, Lzd%hgrids(1),Lzd%hgrids(2),Lzd%hgrids(3), &
                    & orbs%kpts(1,ikpt), orbs%kpts(2,ikpt), orbs%kpts(3,ikpt), &
@@ -866,30 +877,39 @@ subroutine NonLocalHamiltonianApplication(iproc,at,npsidim_orbs,orbs,&
               loop_atoms_2: do iat=1,at%astruct%nat
 
 
-                  ! Check whether the projectors of this atom have an overlap with locreg ilr
-                  goon=.false.
-                  do jlr=1,nl%pspd(iat)%noverlap
-                      if (nl%pspd(iat)%lut_tolr(jlr)==ilr) then
-                          goon=.true.
-                          iilr=jlr
-                          exit
-                      end if
-                  end do
-                  if (.not.goon) cycle loop_atoms_2
+                 !! ! Check whether the projectors of this atom have an overlap with locreg ilr
+                 !! goon=.false.
+                 !! do jlr=1,nl%pspd(iat)%noverlap
+                 !!     if (nl%pspd(iat)%lut_tolr(jlr)==ilr) then
+                 !!         goon=.true.
+                 !!         iilr=jlr
+                 !!         exit
+                 !!     end if
+                 !! end do
+                 !! if (.not.goon) cycle loop_atoms_2
 
-                 iatype=at%astruct%iatype(iat)
-                 ! Check if atom has projectors, if not cycle
-                 mproj=nl%pspd(iat)%mproj
-                 if(mproj == 0) cycle
-                 !projector not overlapping with the locreg
-                 !!iilr=nl%pspd(iat)%lut_tolr(ilr)
-                 !!if (iilr==PSP_APPLY_SKIP) cycle
-                 if(nl%pspd(iat)%tolr(iilr)%strategy == PSP_APPLY_SKIP) cycle
+                 !!iatype=at%astruct%iatype(iat)
+                 !!! Check if atom has projectors, if not cycle
+                 !!mproj=nl%pspd(iat)%mproj
+                 !!if(mproj == 0) cycle
+                 !!!projector not overlapping with the locreg
+                 !!!!iilr=nl%pspd(iat)%lut_tolr(ilr)
+                 !!!!if (iilr==PSP_APPLY_SKIP) cycle
+                 !!if(nl%pspd(iat)%tolr(iilr)%strategy == PSP_APPLY_SKIP) cycle
 
-                 !check if the atom intersect with the given localisation region
-                 call check_overlap(Lzd%Llr(ilr), nl%pspd(iat)%plr, Lzd%Glr, overlap)
+                 !!!check if the atom intersect with the given localisation region
+                 !!call check_overlap(Lzd%Llr(ilr), nl%pspd(iat)%plr, Lzd%Glr, overlap)
+                 overlap = projector_has_overlap(iat, ilr, lzd%llr(ilr), lzd%glr, nl)
                  if(.not. overlap) stop 'ERROR all atoms should be in global'
 
+                 iatype=at%astruct%iatype(iat)
+                 do jlr=1,nl%pspd(iat)%noverlap
+                     if (nl%pspd(iat)%lut_tolr(jlr)==ilr) then
+                         iilr=jlr
+                         exit
+                     end if
+                 end do
+                 mproj=nl%pspd(iat)%mproj
                  call nl_psp_application()
 
                  !print *,'iorb,iat,eproj',iorb+orbs%isorb,iat,eproj_sum

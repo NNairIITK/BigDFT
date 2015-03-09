@@ -220,7 +220,7 @@ constrained_dft.o: base.o types.o sparsematrix_base.o
 input_dicts.o: $(top_builddir)/flib/src/dynamic_memory.o defs.o ao_inguess.o interfaces.o atoms_data.o input.o public_keys.o
 psp_projectors.o: locregs.o gaussians.o defs.o
 locregs.o: base.o
-ao_inguess.o: $(AO_INCLUDES) base.o psp_projectors.o
+ao_inguess.o: $(AO_INCLUDES) base.o psp_projectors.o psp_projectors.o
 atoms_data.o: $(ATOMS_INCLUDES) ao_inguess.o internal_coordinates.o
 reformatting.o: base.o
 communications_base.o: base.o
