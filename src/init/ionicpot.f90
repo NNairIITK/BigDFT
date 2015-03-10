@@ -533,7 +533,7 @@ subroutine createIonicPotential(geocode,iproc,nproc,verb,at,rxyz,&
   real(wp), dimension(*), intent(inout) :: pot_ion
 
   !Local variables
-  real(gp), parameter :: mp_tiny = 1.e-20_gp
+  real(gp), parameter :: mp_tiny = 1.e-30_gp
   character(len = 3) :: quiet
   logical :: perx,pery,perz,gox,goy,goz,efwrite
   logical :: htoobig=.false.,check_potion=.false.
@@ -1275,7 +1275,7 @@ subroutine CounterIonPotential(geocode,iproc,nproc,in,shift,&
   type(coulomb_operator), intent(in) :: pkernel
   real(wp), dimension(*), intent(inout) :: pot_ion
   !Local variables
-  real(gp), parameter :: mp_tiny = 1.e-20_gp
+  real(gp), parameter :: mp_tiny = 1.e-30_gp
   logical :: htoobig=.false.,check_potion=.false.
   logical :: perx,pery,perz,gox,goy,goz
   integer :: iat,i1,i2,i3,j1,j2,j3,isx,isy,isz,iex,iey,iez,ityp,nspin

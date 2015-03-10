@@ -6,6 +6,9 @@
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
+
+
+!> Calculate atomic forces
 subroutine calculate_forces(iproc,nproc,psolver_groupsize,Glr,atoms,orbs,nlpsp,rxyz,hx,hy,hz,i3s,n3p,nspin,&
      refill_proj,ngatherarr,rho,pot,potxc,nsize_psi,psi,fion,fdisp,fxyz,&
      ewaldstr,hstrten,xcstr,strten,fnoise,pressure,psoffset,imode,tmb,fpulay)
@@ -38,13 +41,11 @@ subroutine calculate_forces(iproc,nproc,psolver_groupsize,Glr,atoms,orbs,nlpsp,r
   real(gp), dimension(6,4) :: strtens!local,nonlocal,kin,erf
   character(len=16), dimension(4) :: messages
 
-
   call f_zero(strten)
   call f_zero(strtens)
 
   call local_forces(iproc,atoms,rxyz,0.5_gp*hx,0.5_gp*hy,0.5_gp*hz,&
        Glr%d%n1,Glr%d%n2,Glr%d%n3,n3p,i3s,Glr%d%n1i,Glr%d%n2i,rho,pot,fxyz,strtens(1,1),charge)
-
 
   !!do iat=1,atoms%astruct%nat
   !!    write(4100+iproc,'(a,i8,3es15.6)') 'iat, fxyz(:,iat)', iat, fxyz(:,iat)
@@ -200,7 +201,7 @@ subroutine calculate_forces(iproc,nproc,psolver_groupsize,Glr,atoms,orbs,nlpsp,r
 end subroutine calculate_forces
 
 
-!> calculate the contribution to the forces given by the core density charge
+!> Calculate the contribution to the forces given by the core density charge
 subroutine rhocore_forces(iproc,atoms,nspin,n1,n2,n3,n1i,n2i,n3p,i3s,hxh,hyh,hzh,rxyz,potxc,fxyz)
   use module_base
   use module_types
@@ -350,7 +351,7 @@ subroutine local_forces(iproc,at,rxyz,hxh,hyh,hzh,&
   use yaml_output
   use gaussians, only: initialize_real_space_conversion, finalize_real_space_conversion,mp_exp
   implicit none
-  !Arguments---------
+  !Arguments
   type(atoms_data), intent(in) :: at
   integer, intent(in) :: iproc,n1,n2,n3,n3pi,i3s,n1i,n2i
   real(gp), intent(in) :: hxh,hyh,hzh 
@@ -359,15 +360,16 @@ subroutine local_forces(iproc,at,rxyz,hxh,hyh,hzh,&
   real(dp), dimension(*), intent(in) :: rho,pot
   real(gp), dimension(3,at%astruct%nat), intent(out) :: floc
   real(gp), dimension(6), intent(out) :: locstrten
-  !Local variables---------
+  !Local variables
   logical :: perx,pery,perz,gox,goy,goz
-  real(kind=8) :: prefactor,cutoff,rloc,Vel,rhoel
-  real(kind=8) :: fxerf,fyerf,fzerf,fxion,fyion,fzion,fxgau,fygau,fzgau,forceleaked,forceloc
-  real(kind=8) :: rx,ry,rz,x,y,z,arg,r2,xp,tt,Txx,Tyy,Tzz,Txy,Txz,Tyz
+  real(gp) :: prefactor,cutoff,rloc,rlocinvsq,rlocinv2sq,Vel,rhoel
+  real(gp) :: fxerf,fyerf,fzerf,fxion,fyion,fzion,fxgau,fygau,fzgau,forceleaked,forceloc
+  real(gp) :: rx,ry,rz,x,y,z,arg,r2,xp,yp,zp,zsq,yzsq,tt,Txx,Tyy,Tzz,Txy,Txz,Tyz
   integer :: i1,i2,i3,ind,iat,ityp,nloc,iloc,nrange
   integer :: nbl1,nbr1,nbl2,nbr2,nbl3,nbr3,j1,j2,j3,isx,isy,isz,iex,iey,iez
-  !array of coefficients of the derivative
-  real(kind=8), dimension(4) :: cprime 
+  real(dp), dimension(:), allocatable  :: mpx,mpy,mpz
+  !Array of coefficients of the derivative
+  real(gp), dimension(4) :: cprime 
 
   if (at%multipole_preserving) call initialize_real_space_conversion(nmoms=at%mp_isf,nrange=nrange)
   
@@ -384,7 +386,6 @@ subroutine local_forces(iproc,at,rxyz,hxh,hyh,hzh,&
   enddo
   charge=charge*hxh*hyh*hzh
 
- !if (iproc == 0 .and. verbose > 1) write(*,'(1x,a)',advance='no')'Calculate local forces...'
   if (iproc == 0 .and. verbose > 1) call yaml_mapping_open('Calculate local forces',flow=.true.)
   forceleaked=0.d0
 
@@ -438,6 +439,8 @@ subroutine local_forces(iproc,at,rxyz,hxh,hyh,hzh,&
 
      !local part
      rloc=at%psppar(0,0,ityp)
+     rlocinvsq=1.0_gp/rloc**2
+     rlocinv2sq=0.5_gp/rloc**2
      prefactor=real(at%nelpsp(ityp),kind=8)/(2.d0*pi*sqrt(2.d0*pi)*rloc**5)
      !maximum extension of the gaussian
      cutoff=10.d0*rloc
@@ -454,30 +457,55 @@ subroutine local_forces(iproc,at,rxyz,hxh,hyh,hzh,&
      iey=ceiling((ry+cutoff)/hyh)
      iez=ceiling((rz+cutoff)/hzh)
 
+     !Separable function: do 1-D integrals before and store it.
+     mpx = f_malloc( (/ isx.to.iex /),id='mpx')
+     mpy = f_malloc( (/ isy.to.iey /),id='mpy')
+     mpz = f_malloc( (/ isz.to.iez /),id='mpz')
+     if (at%multipole_preserving) then
+        do i1=isx,iex
+           mpx(i1) = mp_exp(hxh,rx,rlocinv2sq,i1,0,.true.)
+        end do
+        do i2=isy,iey
+           mpy(i2) = mp_exp(hyh,ry,rlocinv2sq,i2,0,.true.)
+        end do
+        do i3=isz,iez
+           mpz(i3) = mp_exp(hzh,rz,rlocinv2sq,i3,0,.true.)
+        end do
+     else
+        do i1=isx,iex
+           x=real(i1,kind=8)*hxh-rx
+           mpx(i1) = exp(-rlocinv2sq*x**2)
+        end do
+        do i2=isy,iey
+           y=real(i2,kind=8)*hyh-ry
+           mpy(i2) = exp(-rlocinv2sq*y**2)
+        end do
+        do i3=isz,iez
+           z=real(i3,kind=8)*hzh-rz
+           mpz(i3) = exp(-rlocinv2sq*z**2)
+        end do
+     end if
+
      !calculate the forces near the atom due to the error function part of the potential
      !calculate forces for all atoms only in the distributed part of the simulation box
      if (n3pi > 0) then
         do i3=isz,iez
+           zp = mpz(i3)
            z=real(i3,kind=8)*hzh-rz
+           zsq=z**2
            call ind_positions(perz,i3,n3,j3,goz) 
            j3=j3+nbl3+1
            do i2=isy,iey
+              yp = zp*mpy(i2)
               y=real(i2,kind=8)*hyh-ry
+              yzsq=y**2+zsq
               call ind_positions(pery,i2,n2,j2,goy)
               do i1=isx,iex
                  x=real(i1,kind=8)*hxh-rx
+                 xp = yp*mpx(i1)
                  call ind_positions(perx,i1,n1,j1,gox)
-                 r2=x**2+y**2+z**2
-                 arg=r2/rloc**2
-
-                 if (at%multipole_preserving) then
-                    !use multipole-preserving function
-                    xp=mp_exp(hxh,rx,0.5_gp/(rloc**2),i1,0,.true.)*&
-                       mp_exp(hyh,ry,0.5_gp/(rloc**2),i2,0,.true.)*&
-                       mp_exp(hzh,rz,0.5_gp/(rloc**2),i3,0,.true.)
-                 else
-                    xp=exp(-.5d0*arg)
-                 end if
+                 r2=x**2+yzsq
+                 arg=r2*rlocinvsq
 
                  if (j3 >= i3s .and. j3 <= i3s+n3pi-1  .and. goy  .and. gox ) then
                     ind=j1+1+nbl1+(j2+nbl2)*n1i+(j3-i3s+1-1)*n1i*n2i
@@ -537,6 +565,9 @@ subroutine local_forces(iproc,at,rxyz,hxh,hyh,hzh,&
 !!!     write(10+iat,'(2(1x,3(1x,1pe12.5)))') &
 !!!          (hxh*hyh*hzh*prefactor)*fxerf,(hxh*hyh*hzh*prefactor)*fyerf,&
 !!!          (hxh*hyh*hzh*prefactor)*fzerf,(hxh*hyh*hzh/rloc**2)*fxgau,(hxh*hyh*hzh/rloc**2)*fygau,(hxh*hyh*hzh/rloc**2)*fzgau
+
+     !De-allocate the 1D temporary arrays for separability
+     call f_free(mpx,mpy,mpz)
 
   end do !iat
 
@@ -827,8 +858,10 @@ subroutine nonlocal_forces(lr,hx,hy,hz,at,rxyz,&
                              ! scalar product with the derivatives in all the directions
                              sp0=real(scalprod(icplx,0,m,i,l,iat,jorb),gp)
                              !!write(200+iproc,'(a,9i6,es18.8)') 'iorb,jorb,icplx,0,m,i,l,iat,iiat,sp0', &
-                             !!                                   iorb,jorb,icplx,0,m,i,l,iat,iat,sp0
-                             !write(250+iproc,'(a,7i8,es20.10)') 'icplx,0,m,i,l,iat,iorb,scalprod(icplx,0,m,i,l,iat,iorb)',icplx,0,m,i,l,iat,iorb,scalprod(icplx,0,m,i,l,iat,iorb)
+                             !                                   iorb,jorb,icplx,0,m,i,l,iat,iat,sp0
+                             !write(250+iproc,'(a,7i8,es20.10)') & 
+                             !      'icplx,0,m,i,l,iat,iorb,scalprod(icplx,0,m,i,l,iat,iorb)',&
+                             !        icplx,0,m,i,l,iat,iorb,scalprod(icplx,0,m,i,l,iat,iorb)
                              do idir=1,3
                                 spi=real(scalprod(icplx,idir,m,i,l,iat,jorb),gp)
                                 !write(*,'(a,10i6,es18.8)') 'iorb,jorb,icplx,0,m,i,l,iat,iiat,&
@@ -839,15 +872,14 @@ subroutine nonlocal_forces(lr,hx,hy,hz,at,rxyz,&
                                      at%psppar(l,i,ityp)*sp0*spi
                              end do
 
-Enl=Enl+sp0*sp0*at%psppar(l,i,ityp)*&
-orbs%occup(iorb+orbs%isorb)*orbs%kwgts(orbs%iokpt(iorb))
-                            do idir=4,9 !for stress
-strc=real(scalprod(icplx,idir,m,i,l,iat,jorb),gp)
-sab(idir-3)=&
-sab(idir-3)+&   
-at%psppar(l,i,ityp)*sp0*2.0_gp*strc*&
-orbs%occup(iorb+orbs%isorb)*orbs%kwgts(orbs%iokpt(iorb))
-                            end do
+                             Enl=Enl+sp0*sp0*at%psppar(l,i,ityp)*&
+                             orbs%occup(iorb+orbs%isorb)*orbs%kwgts(orbs%iokpt(iorb))
+                             do idir=4,9 !for stress
+                                strc=real(scalprod(icplx,idir,m,i,l,iat,jorb),gp)
+                                sab(idir-3) = sab(idir-3)+&   
+                                   at%psppar(l,i,ityp)*sp0*2.0_gp*strc*&
+                                   orbs%occup(iorb+orbs%isorb)*orbs%kwgts(orbs%iokpt(iorb))
+                             end do
                           end do
                        end do
                     end if
