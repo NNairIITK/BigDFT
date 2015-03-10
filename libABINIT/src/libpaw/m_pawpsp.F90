@@ -1785,6 +1785,7 @@ subroutine pawpsp_calc(core_mesh,epsatm,ffspl,imainmesh,ixc,lnmax,&
  real(dp),allocatable :: rtncor(:),rtnval(:),rvlocr(:)
  real(dp),allocatable :: vbare(:),vh(:),vhnzc(:)
  real(dp),allocatable :: vxc1(:),vxc2(:),work1(:),work2(:),work3(:),work4(:)
+ real(dp) :: tmp_qgrid(1)
  logical :: tmp_lmselect(1)
 
 ! *************************************************************************
@@ -2415,7 +2416,13 @@ subroutine pawpsp_calc(core_mesh,epsatm,ffspl,imainmesh,ixc,lnmax,&
 !  Compute second derivative of Vlspl(q)
    call paw_spline(qgrid_vl,vlspl(:,1),mqgrid_vl,yp1,ypn,vlspl(:,2))
  else
-   epsatm=zero
+    ! Only to compute epsatm
+    if (reduced_vloc) then
+       call pawpsp_lo(epsatm,1,tmp_qgrid,tmp_qgrid,rvloc_mesh,rvlocr,yp1,ypn,zion)
+    else
+       call pawpsp_lo(epsatm,1,tmp_qgrid,tmp_qgrid,vloc_mesh,vlocr,yp1,ypn,zion)
+    end if
+    !epsatm=zero
  end if
 
 !==========================================================
