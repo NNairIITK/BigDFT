@@ -150,7 +150,7 @@ module parallel_linalg
       
       ! Gather the result on all processes.
       if (nproc > 1) then
-         call mpiallred(c, mpi_sum, comm)
+         call mpiallred(c, mpi_sum, comm=comm)
       end if
     
       !call blacs_exit(0)
@@ -304,7 +304,7 @@ module parallel_linalg
       
       ! Gather the eigenvectors on all processes.
       if (nproc > 1) then
-         call mpiallred(a, mpi_sum, comm)
+         call mpiallred(a, mpi_sum, comm=comm)
       end if
       
       ! Broadcast the eigenvalues if required. If nproc_scalapack==nproc, then all processes
@@ -610,7 +610,7 @@ module parallel_linalg
       
       ! Gather the result on all processes
       if (nproc > 1) then
-         call mpiallred(b, mpi_sum, comm)
+         call mpiallred(b, mpi_sum, comm=comm)
       end if
       
       !call blacs_exit(0)
@@ -720,7 +720,7 @@ module parallel_linalg
       
       ! Gather the result on all processes.
       if (nproc > 1) then
-         call mpiallred(a, mpi_sum, comm)
+         call mpiallred(a, mpi_sum, comm=comm)
       end if
     
       !call blacs_exit(0)
@@ -827,7 +827,7 @@ module parallel_linalg
       
       ! Gather the result on all processes.
       if (nproc > 1) then
-         call mpiallred(a, mpi_sum, comm)
+         call mpiallred(a, mpi_sum, comm=comm)
       end if
     
       !call blacs_exit(0)

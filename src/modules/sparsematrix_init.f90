@@ -726,6 +726,7 @@ contains
       call determine_sequential_length_new2(sparsemat%smmm%nout, ispt, nseg, norb, keyv, keyg, &
            sparsemat, istsegline, sparsemat%smmm%nseq, nseq_per_line)
       !write(*,'(a,i3,3x,200i10)') 'iproc, nseq_per_line', iproc, nseq_per_line
+      if (nproc>1) call mpiallred(nseq_per_line(1), norb, mpi_sum, comm=bigdft_mpi%mpi_comm)
       rseq=real(sparsemat%smmm%nseq,kind=8) !real to prevent integer overflow
       if (nproc>1) call mpiallred(rseq, 1, mpi_sum, comm=bigdft_mpi%mpi_comm)
 
@@ -797,7 +798,7 @@ contains
       !!call determine_sequential_length_new(sparsemat%smmm%nout, ispt, nseg, keyv, keyg, &
       !!     sparsemat, sum(nout_par), sparsemat%smmm%nseq, nseq_per_pt)
       !write(*,*) 'norb, sparsemat%nfvctr', norb, sparsemat%nfvctr
-      call determine_sequential_length_new3(sparsemat%smmm%nout, ispt, nseg, norb, keyv, keyg, &
+      call determine_sequential_length_new2(sparsemat%smmm%nout, ispt, nseg, norb, keyv, keyg, &
            sparsemat, istsegline, sparsemat%smmm%nseq, nseq_per_line)
       !write(*,'(a,i3,3x,200i10)') 'iproc, nseq_per_line', iproc, nseq_per_line
       !!call f_free(nout_par)
@@ -1691,60 +1692,6 @@ contains
     end subroutine determine_sequential_length_new2
 
 
-    subroutine determine_sequential_length_new3(npt, ispt, nseg, nline, keyv, keyg, smat, istsegline, nseq, nseq_per_line)
-      implicit none
-    
-      ! Calling arguments
-      integer,intent(in) :: npt, ispt, nseg, nline
-      integer,dimension(nseg),intent(in) :: keyv
-      integer,dimension(2,2,nseg),intent(in) :: keyg
-      type(sparse_matrix),intent(in) :: smat
-      integer,dimension(smat%nfvctr),intent(in) :: istsegline
-      integer,intent(out) :: nseq
-      integer,dimension(nline),intent(out) :: nseq_per_line
-    
-      ! Local variables
-      integer :: ipt, iipt, iline, icolumn, nseq_pt, jseg, jorb, ii, iseg_start
-
-      call f_routine(id='determine_sequential_length_new3')
-
-      call f_zero(nseq_per_line)
-
-      ! In the following OMP loop, do a reduction of nseq_per_line to avoid the
-      ! need of putting a critical statement around its update.
-
-      nseq = 0
-      iseg_start = 1
-      !!$omp parallel default(none) &
-      !!$omp shared(npt, ispt, nseg, keyv, keyg, smat, nline, istsegline, nseq, nseq_per_line) &
-      !!$omp private(ipt, iipt, iline, icolumn, jseg, jorb, ii) &
-      !!$omp firstprivate(iseg_start)
-      !!$omp do reduction(+:nseq,nseq_per_line)
-      do ipt=1,npt
-          iipt = ispt + ipt
-          call get_line_and_column(iipt, nseg, keyv, keyg, iseg_start, iline, icolumn)
-      !!    ! Take the column due to the symmetry of the sparsity pattern
-      !!    do jseg=smat%istsegline(icolumn),smat%istsegline(icolumn)+smat%nsegline(icolumn)-1
-      !!        ! A segment is always on one line, therefore no double loop
-      !!        do jorb = smat%keyg(1,1,jseg),smat%keyg(2,1,jseg)
-      !!            ! Calculate the index in the large compressed format
-      !!            ii = matrixindex_in_compressed_lowlevel(jorb, iline, nline, nseg, keyv, keyg, istsegline)
-      !!            if (ii>0) then
-      !!                nseq = nseq + 1
-      !!                nseq_per_line(iline) = nseq_per_line(iline) + 1
-      !!            end if
-      !!        end do
-      !!    end do
-      end do
-      !!$omp end do
-      !!$omp end parallel
-
-      call f_release_routine()
-    
-    end subroutine determine_sequential_length_new3
-
-
-
 
     !> Determines the line and column indices on an elements iel for a sparsity
     !! pattern defined by nseg, kev, keyg.
@@ -1788,7 +1735,12 @@ contains
       end do search_loop
 
       if (.not.found) then
-          call f_err_throw('get_line_and_column failed to determine the indices', err_id=BIGDFT_RUNTIME_ERROR)
+          !write(*,*) 'iseg_start, nseg', iseg_start, nseg
+          !do iseg=iseg_start,nseg
+          !    write(*,'(a,4i8)') 'iseg, keyv, keyg', iseg, keyv(iseg), keyg(1,1,iseg), keyg(2,1,iseg)
+          !end do
+          call f_err_throw('get_line_and_column failed to determine the indices, iel='//yaml_toa(iel), &
+              err_id=BIGDFT_RUNTIME_ERROR)
       end if
       
       iseg_start = ii

@@ -41,6 +41,8 @@ Keys to ignore:
  - sparse matmul load balancing naive / optimized
  - preconditioning load balancing before
  - preconditioning load balancing after
+ - preconditioning load balancing min/max before # to be deleted as soon as refs are updated
+ - preconditioning load balancing min/max after # to be deleted as soon as refs are updated
  - task with max load
  - nonlocal forces; maximal number of atoms per iteration, number of iterations
  - number of taskgroups
