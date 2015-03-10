@@ -2275,7 +2275,7 @@ end subroutine analyze_one_wavefunction
 
 !> Use the (non-sparse) coefficients to calculate a non-sparse kernel, then
 !! analyze the magnitude of the elements.
-subroutine analyze_coeffs(iproc, nproc, KSwfn, tmb)
+subroutine analyze_kernel(iproc, nproc, KSwfn, tmb)
   use module_base
   use module_types
   use module_interfaces, only: calculate_density_kernel
@@ -2294,9 +2294,15 @@ subroutine analyze_coeffs(iproc, nproc, KSwfn, tmb)
   type(matrices) :: kernel
   character(len=*),parameter :: filename='kernel_analysis.dat'
 
+  call f_routine(id='analyze_kernel')
+
   kernel = matrices_null()
   call allocate_matrices(tmb%linmat%l, .true., 'kernel', kernel)
 
+  ! Check whether the coeffs are associated
+  if (.not.associated(tmb%coeff)) then
+      call f_err_throw('coefficients not associated',err_name='BIGDFT_RUNTIME_ERROR')
+  end if
   call calculate_density_kernel(iproc, nproc, .true., KSwfn%orbs, tmb%orbs, &
        tmb%coeff, tmb%linmat%l, kernel, keep_uncompressed_=.true.)
 
@@ -2323,4 +2329,7 @@ subroutine analyze_coeffs(iproc, nproc, KSwfn, tmb)
   end if
 
   call deallocate_matrices(kernel)
-end subroutine analyze_coeffs
+
+  call f_release_routine()
+
+end subroutine analyze_kernel

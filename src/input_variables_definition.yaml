@@ -944,6 +944,9 @@
    wf_extent_analysis:
      COMMENT: perform an analysis of the extent of the support functions (and possibly KS orbitals)
      default: False
+   kernel_analysis:
+     COMMENT: perform an analysis of the kernel at the end
+     default: False
  lin_general:
      hybrid: 
        COMMENT: activate the hybrid mode; if activated, only the low accuracy values will be relevant
