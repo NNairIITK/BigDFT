@@ -35,7 +35,7 @@ module communications_init
       
       ! Local variables
       integer :: iorb, iiorb, ilr, istartp_seg_c, iendp_seg_c, istartp_seg_f, iendp_seg_f, i3, ii3
-      integer :: ipt, nvalp_c, nvalp_f, i3s, n3p, ii, i, jjproc, jproc, ii3min, ii3max, np, n1p1, iseg, j0, j1, ierr
+      integer :: ipt, nvalp_c, nvalp_f, i3s, n3p, ii, i, jjproc, jproc, ii3min, ii3max, np, n1p1, iseg, j0, j1
       real(kind=8),dimension(:,:,:),allocatable :: weightppp_c, weightppp_f
       real(kind=8) :: weight_c_tot, weight_f_tot, weightp_c, weightp_f, tt
       integer,dimension(:,:),allocatable :: istartend_c, istartend_f
@@ -252,8 +252,8 @@ module communications_init
       
       ! Local variables
       integer :: iorb, iiorb, i0, i1, i2, i3, ii, iseg, ilr, istart, iend, i, j0, j1, ii1, ii2, ii3, n1p1, np
-      integer :: i3e, ii3s, ii3e, is, ie, size_of_double, ierr, info, window, jproc, ncount
-      integer :: request_c, request_f
+      integer :: i3e, ii3s, ii3e, is, ie, jproc, ncount
+      !integer :: ierr, request_c, request_f, size_of_double, info, window
       real(kind=8),dimension(:),allocatable :: reducearr
       !real(kind=8),dimension(:,:,:),allocatable :: weightloc
       integer,dimension(:,:),allocatable :: i3startend
@@ -652,7 +652,7 @@ module communications_init
       integer :: jproc, i1, i2, i3, ii, istart, iend, j0, j1, ii_c, ii_f, n1p1, np, jjproc
       !!$$integer :: ii2, iiseg, jprocdone
       integer :: i, iseg, i0, iitot, ii3, ierr
-      real(kind=8) :: tt, tt2, weight_c_ideal, weight_f_ideal, ttt, weight_prev
+      real(kind=8) :: tt, weight_c_ideal, weight_f_ideal, weight_prev
       real(kind=8),dimension(:,:),allocatable :: weights_c_startend, weights_f_startend
       character(len=*),parameter :: subname='assign_weight_to_process'
       integer,dimension(:),allocatable :: points_per_process, nval_c, nval_f
@@ -1115,12 +1115,12 @@ module communications_init
       integer,intent(out) :: nvalp_c, nvalp_f
       
       ! Local variables
-      integer :: jproc, i1, i2, i3, ii, istart, iend, j0, j1, ii_c, ii_f, n1p1, np, it, npr
-      integer :: iseg, eproc, sproc, ith, nth, eseg, iitotseg
-      real(kind=8) :: tt, ttseg, tt2, weight_c_ideal, weight_f_ideal, nproc_block, ttt
+      integer :: jproc, i1, i2, i3, ii, istart, iend, ii_c, ii_f
+      integer :: eproc, sproc, ith, nth, eseg, iitotseg
+      real(kind=8) :: tt, ttseg, weight_c_ideal, weight_f_ideal, nproc_block, ttt
       real(kind=8),dimension(:,:),allocatable :: weights_c_startend, weights_f_startend
-      real(kind=4) :: tr0, tr1
-      !$ real(kind=8) :: time1, time2
+      !real(kind=4) :: tr0, tr1
+      ! !$ real(kind=8) :: time1, time2
       !$ integer  :: omp_get_thread_num,omp_get_max_threads
     
       ! Ideal weight per process.
@@ -1164,9 +1164,10 @@ module communications_init
          nproc_block=real(nproc,kind=8)/nth
 
          !$omp parallel default(none) &
-         !$omp private(sproc,eproc,iitotseg,ttseg,eseg,ith,time1,tr0,tr1,time2) &
+         !$omp private(sproc,eproc,iitotseg,ttseg,eseg,ith) &
          !$omp shared(nproc_block,istart,iend,lzd,weight_c,iproc,nproc,weights_c_startend,weight_tot_c) &
          !$omp shared(istartp_seg_c,iendp_seg_c,weightp_c,istartend_c,nth,nvalp_c)
+         ! !$ omp private(tr0,tr1,time1,time2)
          ith=0
          !$ ith = OMP_GET_THREAD_NUM()
          !check we have enough MPI tasks for each thread

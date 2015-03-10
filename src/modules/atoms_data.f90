@@ -91,7 +91,7 @@ module module_atoms
      type(pawtab_type), dimension(:), pointer :: pawtab  !< PAW objects for something.
      type(pawang_type) :: pawang                         !< PAW angular mesh definition.
 
-     !! for abscalc with pawpatch
+     !> for abscalc with pawpatch
      integer, dimension(:), pointer ::  paw_NofL, paw_l, paw_nofchannels
      integer, dimension(:), pointer ::  paw_nofgaussians
      real(gp), dimension(:), pointer :: paw_Greal, paw_Gimag, paw_Gcoeffs
@@ -99,16 +99,16 @@ module module_atoms
      integer :: iat_absorber 
   end type atoms_data
 
-  !> iterator on atoms object
+  !> Iterator on atoms object
   type, public :: atoms_iterator
-     integer :: iat !< atom number
-     integer :: ityp !<atom type
-     character(len=20) :: name !< atom name
-     logical, dimension(3) :: frz !< array of frozen coordinate of the atom
+     integer :: iat                 !< atom number
+     integer :: ityp                !< atom type
+     character(len=20) :: name      !< atom name
+     logical, dimension(3) :: frz   !< array of frozen coordinate of the atom
      real(gp), dimension(3) :: rxyz !< atom positions
-     !> private pointer to the atomic structure from which it derives
-     type(atomic_structure), pointer :: astruct_ptr
+     type(atomic_structure), pointer :: astruct_ptr !< private pointer to the atomic structure from which it derives
   end type atoms_iterator
+
 
   public :: atoms_data_null,nullify_atoms_data,deallocate_atoms_data
   public :: atomic_structure_null,nullify_atomic_structure,deallocate_atomic_structure
@@ -122,7 +122,8 @@ module module_atoms
 
 contains
 
-  !> iterate on atomic positions
+
+  !> Iterate on atomic positions
   function atoms_iter(astruct) result(it)
     implicit none
     type(atomic_structure), intent(in), target :: astruct
@@ -134,12 +135,16 @@ contains
     it%iat=0
     it%ityp=0
   end function atoms_iter
+
+
   pure function atoms_iterator_null() result(it)
     implicit none
     type(atoms_iterator) :: it
     
     call nullify_atoms_iterator(it)
   end function atoms_iterator_null
+
+
   pure subroutine nullify_atoms_iterator(it)
     implicit none
     type(atoms_iterator), intent(out) :: it
@@ -151,7 +156,8 @@ contains
     nullify(it%astruct_ptr)
   end subroutine nullify_atoms_iterator
 
-  !> increment a valid iterator
+
+  !> Increment a valid iterator
   !! the control for validity has to be done outside
   pure subroutine refresh_iterator(it)
     use yaml_strings, only: f_strcpy
@@ -165,8 +171,9 @@ contains
     it%rxyz=it%astruct_ptr%rxyz(:,it%iat)
   end subroutine refresh_iterator
 
-  !increment, and nullify if ended
-  !if the iterator is nullified, it does nothing
+
+  !> Increment, and nullify if ended
+  !! if the iterator is nullified, it does nothing
   pure subroutine increment_atoms_iter(it)
     implicit none
     type(atoms_iterator), intent(inout) :: it
@@ -182,7 +189,8 @@ contains
     end if
   end subroutine increment_atoms_iter
 
-  !>logical function, returns .true. if the iterator is still valid
+
+  !> Logical function, returns .true. if the iterator is still valid
   pure function atoms_iter_is_valid(it)
     implicit none
     type(atoms_iterator), intent(in) :: it
@@ -191,7 +199,8 @@ contains
     atoms_iter_is_valid=associated(it%astruct_ptr)
   end function atoms_iter_is_valid
 
-  !>logical function for iterating above atoms
+
+  !> Logical function for iterating above atoms
   function atoms_iter_next(it)
     implicit none
     type(atoms_iterator), intent(inout) :: it
@@ -200,6 +209,7 @@ contains
     call increment_atoms_iter(it)
     atoms_iter_next=atoms_iter_is_valid(it)
   end function atoms_iter_next
+
 
   !> Creators and destructors
   pure function symmetry_data_null() result(sym)
@@ -322,7 +332,6 @@ contains
     !local variables
     character(len=*), parameter :: subname='deallocate_atomic_structure' !remove
 
-
     ! Deallocations for the geometry part.
     if (astruct%nat >= 0) then
        call f_free_ptr(astruct%ifrztyp)
@@ -411,6 +420,7 @@ contains
     call pawang_destroy(atoms%pawang)
     END SUBROUTINE deallocate_atoms_data
 
+
     subroutine atomic_data_set_from_dict(dict, key, atoms, nspin)
       use module_defs, only: gp
       use ao_inguess, only: ao_ig_charge,atomic_info,aoig_set_from_dict,&
@@ -438,9 +448,9 @@ contains
 
       !iterate above atoms
       it=atoms_iter(atoms%astruct)
-      !python metod
+      !python method
       do while(atoms_iter_next(it))
-!!$      !fortran metod
+!!$      !fortran method
 !!$      call increment_atoms_iter(it)
 !!$      do while(atoms_iter_is_valid(it))
 
@@ -525,7 +535,8 @@ contains
 
     end subroutine atomic_data_set_from_dict
 
-    !> set irreductible Brillouin zone
+
+    !> Set irreductible Brillouin zone
     subroutine set_symmetry_data(sym, geocode, n1i, n2i, n3i, nspin)
       use module_base
       use m_ab6_kpoints
@@ -800,6 +811,7 @@ contains
 
     END SUBROUTINE set_astruct_from_file
 
+
     !> Write an atomic file
     !! Yaml output included
     subroutine astruct_dump_to_file(astruct,filename,comment,energy,rxyz,forces,fmt,unit)
@@ -902,6 +914,7 @@ contains
       end if
     END SUBROUTINE astruct_dump_to_file
 
+
     !> Convert astruct to dictionary for later dump.
     subroutine astruct_merge_to_dict(dict, astruct, rxyz, comment)
       use module_defs, only: gp, UNINITIALIZED, Bohr_Ang
@@ -1003,6 +1016,7 @@ contains
            & call set(dict // ASTRUCT_PROPERTIES // "format", astruct%inputfile_format)
     end subroutine astruct_merge_to_dict
 
+
     subroutine astruct_at_from_dict(dict, symbol, rxyz, rxyz_add, ifrztyp, igspin, igchrg, &
                ixyz, ixyz_add, rxyz_int, rxyz_int_add)
       use dictionaries
@@ -1100,7 +1114,9 @@ contains
       end do
     end subroutine astruct_at_from_dict
 
+
     include 'astruct-inc.f90'
+
 
     !> Terminate the allocation of the memory in the pointers of atoms
     subroutine allocate_atoms_data(atoms)
@@ -1148,7 +1164,7 @@ subroutine astruct_set_n_atoms(astruct, nat)
 END SUBROUTINE astruct_set_n_atoms
 
 
-!> allocation of the memory space associated to the number of types astruct%ntypes
+!> Allocation of the memory space associated to the number of types astruct%ntypes
 subroutine astruct_set_n_types(astruct, ntypes)
   use module_base
   use module_atoms, only: atomic_structure
@@ -1357,6 +1373,7 @@ subroutine atoms_free(atoms)
   call deallocate_atoms_data(atoms)
   deallocate(atoms)
 END SUBROUTINE atoms_free
+
 
 !> Add a displacement of atomic positions and put in the box
 subroutine astruct_set_displacement(astruct, randdis)

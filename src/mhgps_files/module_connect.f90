@@ -570,20 +570,19 @@ subroutine connect(mhgpsst,fsw,uinp,runObj,outs,rcov,&
     integer, intent(out)      :: nsad
     !local
     integer, parameter :: npushmax=3
-    integer  :: infocode
+!    integer  :: infocode
     real(gp) :: displ,ener_count
     real(gp) :: fnrm,fmax
     logical  :: converged
     logical  :: lnl, rnr, lnr, rnl 
     character(len=200) :: comment
-    integer :: ntodo
     real(gp) :: fp1cur(mhgpsst%nid), fp2cur(mhgpsst%nid)
     real(gp) :: ener1cur, ener2cur
     integer :: isame
-    integer :: ipush
+!    integer :: ipush
     integer :: iloop
     integer :: istat
-    real(gp) :: scl
+!    real(gp) :: scl
 
     connected=.false.
     premature_exit = .false.
@@ -1465,13 +1464,14 @@ enddo connectloop
         endif
     endif
 end subroutine
-!=====================================================================
+
+
+!> This function compares rxyz1 an rxyz2 with a non-permutational
+!! invariant rmsd if the have been tried to be connected previously.
+!! a non-permutationally invariant rmsd is used such that
+!! transition states between different premuational variants of the 
+!! same structures are computed
 function previously_connected(mhgpsst,uinp,runObj,rxyz1,rxyz2)
-    !this function compares rxyz1 an rxyz2 with a non-permutational
-    !invariant rmsd if the have been tried to be connected previously.
-    !a non-permutationally invariant rmsd is used such that
-    !transition states between different premuational variants of the 
-    !same structures are computed
     use module_base
     use bigdft_run, only: run_objects
     use module_mhgps_state
@@ -1487,8 +1487,7 @@ function previously_connected(mhgpsst,uinp,runObj,rxyz1,rxyz2)
     !local
     integer :: iatt
     integer :: i
-    logical :: match
-    real(gp),allocatable :: attempted_connections_tmp(:,:,:,:)
+    real(gp), dimension(:,:,:,:), allocatable :: attempted_connections_tmp
 
     previously_connected = .false.
     outer: do iatt = 1 , mhgpsst%nattempted
@@ -1779,7 +1778,6 @@ subroutine pushoff_and_relax_bothSides(uinp,mhgpsst,runObj,outs,rcov,&
     integer, intent(out)  :: istat
     !internal variables
     real(gp) :: scl
-    integer :: ipush
     integer :: istatint
     istat=0
     if(mhgpsst%iproc==0)&
