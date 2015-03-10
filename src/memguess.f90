@@ -262,7 +262,7 @@ program memguess
             i_arg = i_arg + 1
             call get_command_argument(i_arg, value = npdos_)
             read(npdos_,fmt=*,iostat=ierror) npdos
-            write(*,'(1x,3(a,i0),a)')&
+            write(*,'(1x,3(a,i0),3a)')&
                &   'calculate ', npdos,' PDOS based on the coeffs (', ntmb, 'x', norbks, ') in the file "', trim(coeff_file),'"'
             calculate_pdos=.true.
             exit loop_getargs
@@ -455,12 +455,13 @@ program memguess
    end if
 
    if (calculate_pdos) then
+       write(*,*) 'coeff_file',trim(coeff_file)
        call f_open_file(iunit, file=trim(coeff_file), binary=.false.)
        coeff = f_malloc((/ntmb,norbks/),id='coeff')
        eval = f_malloc(norbks,id='eval')
        kernel = f_malloc((/ntmb,ntmb/),id='kernel')
        ham = f_malloc((/ntmb,ntmb/),id='ham')
-       call read_coeff_minbasis(iunit, .false., bigdft_mpi%iproc, norbks, norb_dummy, ntmb, coeff, eval)
+       call read_coeff_minbasis(iunit, .true., bigdft_mpi%iproc, norbks, norb_dummy, ntmb, coeff, eval)
        ! Calculate a partial kernel for each KS orbital
        do iorb=1,norbks
            call gemm('n', 't', ntmb, ntmb, 1, 1.d0, coeff(1,iorb), ntmb, &
@@ -471,6 +472,7 @@ program memguess
                    tt = tt + kernel(itmb,jtmb)*ham(jtmb,itmb)
                end do
            end do
+           write(*,'(a,i6,2es16.8)')'iorb, tt, eval(iorb)', iorb, tt, eval(iorb)
        end do
    end if
 

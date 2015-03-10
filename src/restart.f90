@@ -2139,6 +2139,7 @@ subroutine io_read_descr_coeff(unitwf, formatted, norb_old, ntmb_old, &
     write(error, "(A)") "cannot read coeff description."
     if (formatted) then
        read(unitwf,*,iostat=i_stat) ntmb_old, norb_old
+       write(*,*) 'ntmb_old, norb_old, i_stat', ntmb_old, norb_old, i_stat
        if (i_stat /= 0) return
        !write(*,*) 'reading ',nat,' atomic positions'
        if (present(nat) .And. present(rxyz_old)) then

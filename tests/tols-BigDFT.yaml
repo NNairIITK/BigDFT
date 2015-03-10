@@ -1086,9 +1086,9 @@ geoptconstrained_BFGS:
  Ekin: 1.7e-9
  EXC: 2.9e-10
  Epot: 9.0e-9
- EH: 1.9e-9
+ EH: 2.1e-9
  Enl: 9.1e-11
- EvXC: 3.7e-10
+ EvXC: 3.8e-10
  eF: 2.8e-8
  guess for new ef: 2.8e-8
  D eF: 2.0e-8
@@ -1102,9 +1102,9 @@ geoptconstrained_BFGS:
  Clean forces norm (Ha/Bohr): 7.8e-10
  ebs_check: 7.0e-10
  ebs: 7.0e-10
- Ion-Ion interaction energy: 1.9e-9
+ Ion-Ion interaction energy: 2.2e-9
  Positions: 1.1e-8
- Omega: 1.2e-9
+ Omega: 1.6e-9
  energy: 1.3e-11
 
 geoptconstrained_SDCG:
@@ -1127,8 +1127,8 @@ geoptconstrained_SDCG:
  Raw forces norm (Ha/Bohr): 6.9e-11
  ebs_check: 7.8e-11
  ebs: 7.8e-11
- Ion-Ion interaction energy: 2.0e-10
- Atomic structure: 2.1e-9
+ Ion-Ion interaction energy: 2.3e-10
+ Atomic structure: 3.1e-9
 
 O2spin_diag:
  Atomic Forces (Ha/Bohr): 2.2e-7
@@ -1232,8 +1232,8 @@ verysparse:
   - found warnings
 
 expfoegeopt:
- guess for new ef: 2.1e-8
- eF: 2.1e-8
+ guess for new ef: 2.5e-8
+ eF: 2.5e-8
  D eF: 2.3e-8
  charge diff: 2.3e-8
  ebs: 2.3e-8
@@ -1248,8 +1248,8 @@ expfoegeopt:
  Omega: 2.4e-11
  energy: 2.2e-11
  epred: 1.9e-11
- trace(KS): 2.7e-11
- Total charge: 2.1e-11
+ trace(KS): 3.3e-11
+ Total charge: 3.1e-11
 
 log_model:
  System pseudo energy (Ha): 3.6e-11
