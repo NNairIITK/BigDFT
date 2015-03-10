@@ -526,11 +526,11 @@ subroutine fire(mhgpsst,uinp,runObj,rxyzR,rxyzP,lambda,rxyz,fxyz,epot)
     real(gp) :: dt
     real(gp) :: ddot,dnrm2
     real(gp) :: epotold
-!<-DEBUG START------------------------------------------------------>
-character(len=5), allocatable :: xat(:)
-character(len=5) :: fc5
-character(len=50) :: filename
-!<-DEBUG END-------------------------------------------------------->
+!!!<-DEBUG START------------------------------------------------------>
+!!character(len=5), allocatable :: xat(:)
+!!character(len=5) :: fc5
+!!character(len=50) :: filename
+!!!<-DEBUG END-------------------------------------------------------->
 
     count_fr=0._gp
    ! dt_max = 0.5_gp !for lj
@@ -553,17 +553,17 @@ character(len=50) :: filename
 !!!! 1000   continue !!!to be avoided 
         call daxpy(3*runObj%atoms%astruct%nat,dt,vxyz(1,1),1,rxyz(1,1),1)
         call daxpy(3*runObj%atoms%astruct%nat,0.5_gp*dt*dt,ff(1,1),1,rxyz(1,1),1)
-!<-DEBUG START------------------------------------------------------>
-write(fc5,'(i5.5)')iter
-write(filename,*)'pos_'//fc5//'.xyz'
-open(99,file=trim(adjustl((filename))))
-write(99,*)runObj%atoms%astruct%nat,'angstroem'
-write(99,'(a)')'surface  1.94030189514160192E+01  0.00000000000000000E+00  1.92000007629394496E+01'
-do iat=1,runObj%atoms%astruct%nat
-write(99,'(a,3(1xes24.17))')'Pt',rxyz(1,iat)/1.88972612_gp ,rxyz(2,iat)/1.88972612_gp ,rxyz(3,iat)/1.88972612_gp 
-enddo
-close(99)
-!<-DEBUG END-------------------------------------------------------->
+!!!<-DEBUG START------------------------------------------------------>
+!!write(fc5,'(i5.5)')iter
+!!write(filename,*)'pos_'//fc5//'.xyz'
+!!open(99,file=trim(adjustl((filename))))
+!!write(99,*)runObj%atoms%astruct%nat,'angstroem'
+!!write(99,'(a)')'surface  1.94030189514160192E+01  0.00000000000000000E+00  1.92000007629394496E+01'
+!!do iat=1,runObj%atoms%astruct%nat
+!!write(99,'(a,3(1xes24.17))')'Pt',rxyz(1,iat)/1.88972612_gp ,rxyz(2,iat)/1.88972612_gp ,rxyz(3,iat)/1.88972612_gp 
+!!enddo
+!!close(99)
+!!!<-DEBUG END-------------------------------------------------------->
 
 
 !        call valforce(nat,rxyz,fxyz,epot)
@@ -586,21 +586,21 @@ close(99)
         fnrm=sqrt(fnrm)
         call convcheck(fmax,uinp%lst_fmax_tol,check)
         if(check > 5)then
-!<-DEBUG START------------------------------------------------------>
-            write(*,'(a,x,i0,5(1x,es14.7))')&
-            'FIRE converged # e evals, epot, &
-            fmax, fnrm, dt, alpha: ',&
-            int(count_fr),epot,fmax,sqrt(fnrm),dt,alpha
-!<-DEBUG END-------------------------------------------------------->
+!!!<-DEBUG START------------------------------------------------------>
+!!            write(*,'(a,x,i0,5(1x,es14.7))')&
+!!            'FIRE converged # e evals, epot, &
+!!            fmax, fnrm, dt, alpha: ',&
+!!            int(count_fr),epot,fmax,sqrt(fnrm),dt,alpha
+!!!<-DEBUG END-------------------------------------------------------->
             success=.true.
             return
-!<-DEBUG START------------------------------------------------------>
-        else
-            write(*,'(a,x,i0,5(1x,es14.7))')&
-            'FIRE # e evals, epot, &
-            fmax, fnrm, dt, alpha: ',&
-            int(count_fr),epot,fmax,sqrt(fnrm),dt,alpha
-!<-DEBUG END-------------------------------------------------------->
+!!!<-DEBUG START------------------------------------------------------>
+!!        else
+!!            write(*,'(a,x,i0,5(1x,es14.7))')&
+!!            'FIRE # e evals, epot, &
+!!            fmax, fnrm, dt, alpha: ',&
+!!            int(count_fr),epot,fmax,sqrt(fnrm),dt,alpha
+!!!<-DEBUG END-------------------------------------------------------->
         endif
         power = ddot(3*runObj%atoms%astruct%nat,fxyz,1,vxyz,1)
         vxyz_norm = dnrm2(3*runObj%atoms%astruct%nat,vxyz,1)
