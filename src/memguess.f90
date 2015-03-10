@@ -30,14 +30,15 @@ program memguess
    character(len=30) :: tatonam, radical
    character(len=40) :: comment
    character(len=1024) :: fcomment
-   character(len=128) :: fileFrom, fileTo,filename_wfn
+   character(len=128) :: fileFrom, fileTo,filename_wfn,coeff_file, ntmb_, norbks_, npdos_
    logical :: optimise,GPUtest,atwf,convert=.false.,exportwf=.false.,logfile=.false.
    logical :: disable_deprecation = .false.,convertpos=.false.,transform_coordinates=.false.
+   logical :: calculate_pdos = .false.
    integer :: ntimes,nproc,output_grid, i_arg,istat
    integer :: nspin,iorb,norbu,norbd,nspinor,norb,iorbp,iorb_out
    integer :: norbgpu,ng
    integer :: export_wf_iband, export_wf_ispin, export_wf_ikpt, export_wf_ispinor,irad
-   real(gp) :: hx,hy,hz,energy
+   real(gp) :: hx,hy,hz,energy,tt
    type(memory_estimation) :: mem
    type(run_objects) :: runObj
    type(orbitals_data) :: orbstst
@@ -61,10 +62,11 @@ program memguess
    !real(gp) :: tcpu0,tcpu1,tel
    !integer :: ncount0,ncount1,ncount_max,ncount_rate
    !! By Ali
-   integer :: ierror, iat
+   integer :: ierror, iat, itmb, jtmb, ntmb, norbks, npdos, iunit, norb_dummy
    integer,dimension(:),allocatable :: na, nb, nc
    integer,dimension(:,:),allocatable :: atoms_ref
-   real(kind=8),dimension(:,:),allocatable :: rxyz_int
+   real(kind=8),dimension(:,:),allocatable :: rxyz_int, kernel, ham, overlap, coeff
+   real(kind=8),dimension(:),allocatable :: eval
    !real(kind=8),parameter :: degree=57.295779513d0
    real(kind=8),parameter :: degree=1.d0
    character(len=6) :: direction
@@ -114,6 +116,11 @@ program memguess
            &   '"convert-positions" <from.[xyz,ascii,yaml]> <to.[xyz,ascii,yaml]>" ' 
       write(*,'(1x,a)')&
            & 'converts input positions file "from" to file "to" using the given formats'
+      write(*,'(1x,a)')&
+           &   '"pdos" <ntmb> <norb> <coeffs.bin> <npdos>" ' 
+      write(*,'(1x,a)')&
+           & 'reads in the expansion coefficients "coeffs.bin" of dimension (nmtb x norb) &
+           &and calculate "npdos" partial density of states'
 
       stop
    else
@@ -242,6 +249,22 @@ program memguess
             write(*,'(1x,5a)')&
                &   'convert input file "', trim(fileFrom),'" file to "', trim(fileTo),'"'
             transform_coordinates=.true.
+            exit loop_getargs
+         else if (trim(tatonam)=='pdos') then
+            i_arg = i_arg + 1
+            call get_command_argument(i_arg, value = coeff_file)
+            i_arg = i_arg + 1
+            call get_command_argument(i_arg, value = ntmb_)
+            read(ntmb_,fmt=*,iostat=ierror) ntmb
+            i_arg = i_arg + 1
+            call get_command_argument(i_arg, value = norbks_)
+            read(norbks_,fmt=*,iostat=ierror) norbks
+            i_arg = i_arg + 1
+            call get_command_argument(i_arg, value = npdos_)
+            read(npdos_,fmt=*,iostat=ierror) npdos
+            write(*,'(1x,3(a,i0),a)')&
+               &   'calculate ', npdos,' PDOS based on the coeffs (', ntmb, 'x', norbks, ') in the file "', trim(coeff_file),'"'
+            calculate_pdos=.true.
             exit loop_getargs
          else if (trim(tatonam) == 'dd') then
             ! dd: disable deprecation message
@@ -429,6 +452,26 @@ program memguess
        call f_free(nc)
        call f_free(rxyz_int)
        stop
+   end if
+
+   if (calculate_pdos) then
+       call f_open_file(iunit, file=trim(coeff_file), binary=.false.)
+       coeff = f_malloc((/ntmb,norbks/),id='coeff')
+       eval = f_malloc(norbks,id='eval')
+       kernel = f_malloc((/ntmb,ntmb/),id='kernel')
+       ham = f_malloc((/ntmb,ntmb/),id='ham')
+       call read_coeff_minbasis(iunit, .false., bigdft_mpi%iproc, norbks, norb_dummy, ntmb, coeff, eval)
+       ! Calculate a partial kernel for each KS orbital
+       do iorb=1,norbks
+           call gemm('n', 't', ntmb, ntmb, 1, 1.d0, coeff(1,iorb), ntmb, &
+                coeff(1,iorb), ntmb, 1.d0, kernel(1,1), ntmb)
+           tt = 0.d0
+           do itmb=1,ntmb
+               do jtmb=1,ntmb
+                   tt = tt + kernel(itmb,jtmb)*ham(jtmb,itmb)
+               end do
+           end do
+       end do
    end if
 
    nullify(run)
