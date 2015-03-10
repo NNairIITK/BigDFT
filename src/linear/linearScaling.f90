@@ -1260,6 +1260,8 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
        end if
   end if
 
+  call analyze_coeffs(iproc, nproc, KSwfn, tmb)
+
   ! only print eigenvalues if they have meaning, i.e. diag or the case above
   if (input%lin%scf_mode==LINEAR_MIXPOT_SIMPLE.or.input%lin%scf_mode==LINEAR_MIXDENS_SIMPLE) then
      if (bigdft_mpi%iproc ==0) then 
@@ -1823,7 +1825,8 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
 
 
     subroutine intermediate_forces()
-
+      use module_forces, only: clean_forces
+      implicit none
       ! Local variables
       real(kind=8) :: eh_tmp, exc_tmp, evxc_tmp, eexctX_tmp
       real(kind=8) :: fnoise, pressure, ehart_fake
@@ -1898,6 +1901,9 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
            denspot%dpbox%nrhodim,.false.,denspot%dpbox%ngatherarr,denspot%rho_work,&
            denspot%pot_work,denspot%V_XC,size(KSwfn%psi),KSwfn%psi,fion,fdisp,fxyz,&
            ewaldstr,hstrten,xcstr,strten,fnoise,pressure,denspot%psoffset,1,tmb,fpulay)
+      call clean_forces(iproc,at%astruct,rxyz,fxyz,fnoise)
+      if (iproc == 0) call write_forces(at%astruct,fxyz)
+
       call f_free(fxyz)
       call f_free_ptr(KSwfn%psi)
 

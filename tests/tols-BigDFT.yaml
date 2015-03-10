@@ -1083,27 +1083,51 @@ test-bigdft-tool:
  positions: 5.1e-8
 
 geoptconstrained_BFGS:
+ Ekin: 1.4e-9
+ EXC: 2.3e-10
+ Epot: 9.0e-9
+ EH: 1.6e-9
+ Enl: 7.1e-11
+ EvXC: 3.0e-10
  eF: 2.8e-8
  guess for new ef: 2.8e-8
- Epot: 1.1e-10
- EH: 1.1e-10
  D eF: 2.0e-8
  charge diff: 1.1e-10
  D Tr: 3.1e-11
  D: 1.1e-10
  Positions: 1.1e-9
+ Atomic Forces (Ha/Bohr): 2.6e-9
+ Average noise forces: 1.6e-9
+ Raw forces norm (Ha/Bohr): 6.7e-10
+ Clean forces norm (Ha/Bohr): 6.1e-10
+ ebs_check: 5.5e-10
+ ebs: 5.5e-10
+ Ion-Ion interaction energy: 1.7e-9
+ Positions: 1.1e-8
+ Omega: 1.2e-9
 
 geoptconstrained_SDCG:
  eF: 8.7e-8
  guess for new ef: 8.7e-8
  D eF: 1.0e-7
- EH: 1.1e-10
+ EH: 2.1e-10
  Epot: 1.1e-10
+ Ekin: 2.1e-10
+ EXC: 3.1e-11
+ EvXC: 3.1e-11
  charge diff: 7.2e-11
  D Tr: 1.1e-9
- Omega: 1.2e-11
+ Omega: 1.3e-10
  D: 1.1e-10
  tr(KS) before purification: 1.2e-11
+ Clean forces norm (Ha/Bohr): 2.1e-9
+ Atomic Forces (Ha/Bohr): 2.6e-9
+ Average noise forces: 1.6e-9
+ Raw forces norm (Ha/Bohr): 5.5e-11
+ ebs_check: 6.1e-11
+ ebs: 6.1e-11
+ Ion-Ion interaction energy: 1.8e-10
+ Atomic structure: 2.1e-9
 
 O2spin_diag:
  Atomic Forces (Ha/Bohr): 2.2e-7

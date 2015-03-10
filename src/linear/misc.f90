@@ -2271,3 +2271,56 @@ subroutine analyze_one_wavefunction(lr, hgrids, npsidim, psi, ioffset, center, s
   !write(*,'(a,es16.8,5x,3(3es16.8,3x))') 'q, center(1:3), var(1:3), locregcenter',q, center(1:3), var(1:3), lr%locregcenter
 
 end subroutine analyze_one_wavefunction
+
+
+!> Use the (non-sparse) coefficients to calculate a non-sparse kernel, then
+!! analyze the magnitude of the elements.
+subroutine analyze_coeffs(iproc, nproc, KSwfn, tmb)
+  use module_base
+  use module_types
+  use module_interfaces, only: calculate_density_kernel
+  use sparsematrix_base, only: matrices, matrices_null, allocate_matrices, &
+                               deallocate_matrices
+  use yaml_output
+  implicit none
+  ! Calling arguments
+  integer,intent(in) :: iproc, nproc
+  type(DFT_wavefunction),intent(in) :: KSwfn, tmb
+
+  ! Local variables
+  integer :: iorb, iiorb, ilr, jorb, jjorb, jlr, iunit
+  real(kind=8) :: d, diff
+  real(kind=8),dimension(3) :: dist
+  type(matrices) :: kernel
+  character(len=*),parameter :: filename='kernel_analysis.dat'
+
+  kernel = matrices_null()
+  call allocate_matrices(tmb%linmat%l, .true., 'kernel', kernel)
+
+  call calculate_density_kernel(iproc, nproc, .true., KSwfn%orbs, tmb%orbs, &
+       tmb%coeff, tmb%linmat%l, kernel, keep_uncompressed_=.true.)
+
+  if (iproc==0) then
+      call yaml_map('Output file for kernel analysis',trim(filename))
+      call f_open_file(iunit, file=trim(filename), binary=.false.)
+      write(iunit,'(a)') '#     iorb,   jorb,                d,              val'
+      do iorb=1,tmb%orbs%norb
+          iiorb = tmb%orbs%isorb + iorb
+          ilr = tmb%orbs%inwhichlocreg(iiorb)
+          do jorb=1,iorb!tmb%orbs%norb
+              jjorb = tmb%orbs%isorb + jorb
+              jlr = tmb%orbs%inwhichlocreg(jjorb)
+              dist(1:3) = tmb%lzd%llr(ilr)%locregcenter(1:3) - tmb%lzd%llr(jlr)%locregcenter(1:3)
+              d = nrm2(3, dist(1), 1)
+              diff = abs(kernel%matrix(jorb,iorb,1)-kernel%matrix(iorb,jorb,1))
+              if (diff>1.d-15) then
+                  call yaml_warning('kernel not symmetric, diff='//yaml_toa(diff,fmt='(es9.2)'))
+              end if
+              write(iunit,'(2x,2i8,2es18.10)') iorb, jorb, d, kernel%matrix(jorb,iorb,1)
+          end do
+      end do
+      call f_close(iunit)
+  end if
+
+  call deallocate_matrices(kernel)
+end subroutine analyze_coeffs

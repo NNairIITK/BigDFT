@@ -2903,7 +2903,7 @@ module module_interfaces
           integer,intent(in):: iproc, nproc
           logical, intent(in) :: isKernel
           type(orbitals_data),intent(in):: orbs, orbs_tmb
-          type(sparse_matrix), intent(inout) :: denskern
+          type(sparse_matrix), intent(in) :: denskern
           real(kind=8),dimension(denskern%nfvctr,orbs%norb),intent(in):: coeff   !only use the first (occupied) orbitals
           type(matrices), intent(out) :: denskern_
           logical,intent(in),optional :: keep_uncompressed_ !< keep the uncompressed kernel in denskern_%matrix (requires that this array is already allocated outside of the routine)
