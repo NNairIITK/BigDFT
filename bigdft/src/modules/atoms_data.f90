@@ -107,6 +107,7 @@ module module_atoms
      type(pawrad_type), dimension(:), pointer :: pawrad  !< PAW radial objects.
      type(pawtab_type), dimension(:), pointer :: pawtab  !< PAW objects for something.
      type(pawang_type) :: pawang                         !< PAW angular mesh definition.
+     real(gp), dimension(:), pointer :: epsatm !< PAW pseudoatom energy for each type of atom
 
      !! for abscalc with pawpatch
      integer, dimension(:), pointer ::  paw_NofL, paw_l, paw_nofchannels
@@ -316,6 +317,7 @@ contains
     nullify(at%paw_Sm1_matrices)
     nullify(at%pawrad)
     nullify(at%pawtab)
+    nullify(at%epsatm)
     !call pawang_nullify(at%pawang) !not needed in fact
   end subroutine nullify_atoms_data
 
@@ -450,6 +452,9 @@ contains
        deallocate(atoms%pawtab)
     end if
     call pawang_free(atoms%pawang)
+    if (associated(atoms%epsatm)) then
+       call f_free_ptr(atoms%epsatm)
+    end if
     END SUBROUTINE deallocate_atoms_data
 
     !> Start the iterator of an astruct_neighbours structure.
