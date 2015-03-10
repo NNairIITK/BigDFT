@@ -150,6 +150,8 @@ def parse():
                      help="number of support functions [default: %default]")
     group.add_option("--norb", type="int", default=1, metavar="NUM",
                      help="number of orbitals [default: %default]")
+    group.add_option("--interval", type="float", default=0.01, metavar="NUM",
+                     help="energy interval [default: %default]")
     group.add_option("--npdos", type="int", default=1, metavar="NUM",
                      help="number of DOS to be calculated [default: %default]")
 
@@ -625,7 +627,7 @@ options:
         print 'calling memguess for PDOS'
         #infile_names = options.infile.split(".")
         #infile_extension = infile_names[len(infile_names)-1]
-        command = "%s 1 %s dd pdos %s %d %d %d" % (memguess, options.name, options.coeff_file, options.nbasis, options.norb, options.npdos)
+        command = "%s 1 %s dd pdos %s %d %d %e %d" % (memguess, options.name, options.coeff_file, options.nbasis, options.norb, options.interval, options.npdos)
         print command
     if command is not None:
         os.system(command)

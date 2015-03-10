@@ -2139,7 +2139,6 @@ subroutine io_read_descr_coeff(unitwf, formatted, norb_old, ntmb_old, &
     write(error, "(A)") "cannot read coeff description."
     if (formatted) then
        read(unitwf,*,iostat=i_stat) ntmb_old, norb_old
-       write(*,*) 'ntmb_old, norb_old, i_stat', ntmb_old, norb_old, i_stat
        if (i_stat /= 0) return
        !write(*,*) 'reading ',nat,' atomic positions'
        if (present(nat) .And. present(rxyz_old)) then
@@ -3534,3 +3533,28 @@ subroutine psi_to_psig(n,nvctr_c,nvctr_f,nseg_c,nseg_f,keyvloc,keygloc,jstart,ps
   end do
 
 end subroutine psi_to_psig
+
+
+
+
+subroutine read_linear_matrix_dense(iunit, ntmb, matrix)
+  use module_base
+  use module_types
+  implicit none
+
+  ! Calling arguments
+  integer,intent(in) :: iunit, ntmb
+  real(kind=8),dimension(ntmb,ntmb),intent(out) :: matrix
+
+  ! Local variables
+  integer :: itmb, jtmb, ii, jj
+
+  do itmb=1,ntmb
+      do jtmb=1,ntmb
+          read(iunit,*) ii, jj, matrix(ii,jj)
+          if (ii/=itmb) call f_err_throw('ii/=itmb',err_name='BIGDFT_RUNTIME_ERROR')
+          if (jj/=jtmb) call f_err_throw('jj/=jtmb',err_name='BIGDFT_RUNTIME_ERROR')
+      end do
+  end do
+
+end subroutine read_linear_matrix_dense
