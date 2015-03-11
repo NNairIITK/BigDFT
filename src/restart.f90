@@ -3536,8 +3536,7 @@ end subroutine psi_to_psig
 
 
 
-
-subroutine read_linear_matrix_dense(iunit, ntmb, matrix)
+subroutine read_linear_matrix_dense(iunit, ntmb, matrix, on_which_atom)
   use module_base
   use module_types
   implicit none
@@ -3545,13 +3544,21 @@ subroutine read_linear_matrix_dense(iunit, ntmb, matrix)
   ! Calling arguments
   integer,intent(in) :: iunit, ntmb
   real(kind=8),dimension(ntmb,ntmb),intent(out) :: matrix
+  integer,dimension(ntmb),intent(out),optional :: on_which_atom
 
   ! Local variables
   integer :: itmb, jtmb, ii, jj
+  logical :: optional_present
+
+  optional_present = present(on_which_atom)
 
   do itmb=1,ntmb
       do jtmb=1,ntmb
-          read(iunit,*) ii, jj, matrix(ii,jj)
+          if(optional_present .and. jtmb==1) then
+              read(iunit,*) ii, jj, matrix(ii,jj), on_which_atom(itmb)
+          else
+              read(iunit,*) ii, jj, matrix(ii,jj)
+          end if
           if (ii/=itmb) call f_err_throw('ii/=itmb',err_name='BIGDFT_RUNTIME_ERROR')
           if (jj/=jtmb) call f_err_throw('jj/=jtmb',err_name='BIGDFT_RUNTIME_ERROR')
       end do

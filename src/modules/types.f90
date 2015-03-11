@@ -488,9 +488,6 @@ module module_types
 
      !> linear scaling: perform an analysis of the extent of the support functions (and possibly KS orbitals)
      logical :: wf_extent_analysis
-     
-     !> linear scaling: perform an analysis of the kernel at the end
-     logical :: kernel_analysis
 
   end type input_variables
 
@@ -2411,9 +2408,6 @@ contains
        case(WF_EXTENT_ANALYSIS)
            ! linear scaling: perform an analysis of the extent of the support functions (and possibly KS orbitals)
            in%wf_extent_analysis = val
-       case(KERNEL_ANALYSIS)
-           ! linean scaling: perform an analysis of the kernel at the end
-           in%kernel_analysis = val
        case DEFAULT
           if (bigdft_mpi%iproc==0) &
                call yaml_warning("unknown input key '" // trim(level) // "/" // trim(dict_key(val)) // "'")

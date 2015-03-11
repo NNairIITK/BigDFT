@@ -1260,9 +1260,9 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
        end if
   end if
 
-  if (input%kernel_analysis) then
-      call analyze_kernel(iproc, nproc, KSwfn, tmb)
-  end if
+  !!if (input%kernel_analysis) then
+  !!    call analyze_kernel(iproc, nproc, KSwfn, tmb)
+  !!end if
 
   ! only print eigenvalues if they have meaning, i.e. diag or the case above
   if (input%lin%scf_mode==LINEAR_MIXPOT_SIMPLE.or.input%lin%scf_mode==LINEAR_MIXDENS_SIMPLE) then

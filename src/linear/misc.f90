@@ -2275,7 +2275,9 @@ end subroutine analyze_one_wavefunction
 
 !> Use the (non-sparse) coefficients to calculate a non-sparse kernel, then
 !! analyze the magnitude of the elements.
-subroutine analyze_kernel(iproc, nproc, KSwfn, tmb)
+!! WARNING: This routine must not be called in parallel
+!! WARNING: This routine is not tested with spin polarization
+subroutine analyze_kernel(ntmb, norb, nat, coeff, kernel, rxyz, on_which_atom)
   use module_base
   use module_types
   use module_interfaces, only: calculate_density_kernel
@@ -2284,51 +2286,68 @@ subroutine analyze_kernel(iproc, nproc, KSwfn, tmb)
   use yaml_output
   implicit none
   ! Calling arguments
-  integer,intent(in) :: iproc, nproc
-  type(DFT_wavefunction),intent(in) :: KSwfn, tmb
+  integer,intent(in) :: ntmb, norb, nat
+  real(kind=8),dimension(ntmb,norb),intent(in) :: coeff
+  real(kind=8),dimension(ntmb,ntmb),intent(in) :: kernel
+  real(kind=8),dimension(3,nat),intent(in) :: rxyz
+  integer,dimension(ntmb),intent(in) :: on_which_atom
 
   ! Local variables
-  integer :: iorb, iiorb, ilr, jorb, jjorb, jlr, iunit
-  real(kind=8) :: d, diff
+  integer :: iorb, itmb, jtmb, iat, jat, iunit, nproc, ierr
+  logical :: mpi_init
+  real(kind=8) :: d, asymm, maxdiff, diff
   real(kind=8),dimension(3) :: dist
-  type(matrices) :: kernel
+  real(kind=8),dimension(:,:),allocatable :: kernel_full
   character(len=*),parameter :: filename='kernel_analysis.dat'
 
   call f_routine(id='analyze_kernel')
 
-  kernel = matrices_null()
-  call allocate_matrices(tmb%linmat%l, .true., 'kernel', kernel)
-
-  ! Check whether the coeffs are associated
-  if (.not.associated(tmb%coeff)) then
-      call f_err_throw('coefficients not associated',err_name='BIGDFT_RUNTIME_ERROR')
+  ! Check that this is a monoproc run
+  call mpi_initialized(mpi_init, ierr)
+  if (mpi_init) then
+      call mpi_comm_size(mpi_comm_world, nproc, ierr)
+  else
+      nproc = 1
   end if
-  call calculate_density_kernel(iproc, nproc, .true., KSwfn%orbs, tmb%orbs, &
-       tmb%coeff, tmb%linmat%l, kernel, keep_uncompressed_=.true.)
 
-  if (iproc==0) then
-      call yaml_map('Output file for kernel analysis',trim(filename))
-      call f_open_file(iunit, file=trim(filename), binary=.false.)
-      write(iunit,'(a)') '#     iorb,   jorb,                d,              val'
-      do iorb=1,tmb%orbs%norb
-          iiorb = tmb%orbs%isorb + iorb
-          ilr = tmb%orbs%inwhichlocreg(iiorb)
-          do jorb=1,iorb!tmb%orbs%norb
-              jjorb = tmb%orbs%isorb + jorb
-              jlr = tmb%orbs%inwhichlocreg(jjorb)
-              dist(1:3) = tmb%lzd%llr(ilr)%locregcenter(1:3) - tmb%lzd%llr(jlr)%locregcenter(1:3)
-              d = nrm2(3, dist(1), 1)
-              diff = abs(kernel%matrix(jorb,iorb,1)-kernel%matrix(iorb,jorb,1))
-              if (diff>1.d-15) then
-                  call yaml_warning('kernel not symmetric, diff='//yaml_toa(diff,fmt='(es9.2)'))
-              end if
-              write(iunit,'(2x,2i8,2es18.10)') iorb, jorb, d, kernel%matrix(jorb,iorb,1)
-          end do
+  write(*,*) 'nproc', nproc
+  if (nproc/=1) then
+      call f_err_throw('analyze_kernel should only be called using 1 MPI task',err_name='BIGDT_RUNTIME_ERROR')
+  end if
+
+  kernel_full = f_malloc0((/ntmb,ntmb/),id='kernel_full')
+
+  do iorb=1,norb
+      call yaml_map('orbital being processed',iorb)
+      call gemm('n', 't', ntmb, ntmb, 1, 1.d0, coeff(1,iorb), ntmb, &
+           coeff(1,iorb), ntmb, 1.d0, kernel_full(1,1), ntmb)
+  end do
+  !call mpiallred(kernel%matrix, mpi_sum, comm=bigdft_mpi%mpi_comm)
+
+  call yaml_map('Output file for kernel analysis',trim(filename))
+  call f_open_file(iunit, file=trim(filename), binary=.false.)
+  write(iunit,'(a)') '#     itmb,   jtmb,                d,              val'
+  maxdiff = 0.d0
+  do itmb=1,ntmb
+      call yaml_map('basis function being processed',itmb)
+      iat = on_which_atom(itmb)
+      do jtmb=1,itmb
+          jat = on_which_atom(jtmb)
+          dist(1:3) = rxyz(1:3,iat)-rxyz(1:3,jat)
+          d = nrm2(3, dist(1), 1)
+          asymm = abs(kernel_full(jtmb,itmb)-kernel_full(itmb,jtmb))
+          if (asymm>1.d-15) then
+              call yaml_warning('kernel not symmetric, diff='//yaml_toa(asymm,fmt='(es9.2)'))
+          end if
+          diff = abs(kernel_full(jtmb,itmb)-kernel(jtmb,itmb))
+          maxdiff = max(diff,maxdiff)
+          write(iunit,'(2x,2i8,2es18.10)') itmb, jtmb, d, kernel_full(jtmb,itmb)
       end do
-      call f_close(iunit)
-  end if
+  end do
+  call yaml_map('maxdiff of sparse and full kernel',maxdiff)
+  call f_close(iunit)
 
-  call deallocate_matrices(kernel)
+  call f_free(kernel_full)
 
   call f_release_routine()
 

@@ -4000,5 +4000,14 @@ end subroutine build_ks_orbitals_laura_tmp
           type(local_zone_descriptors),intent(in),optional :: lzd_l !< local descriptors
         end subroutine write_orbital_density
 
+        subroutine read_linear_matrix_dense(iunit, ntmb, matrix, on_which_atom)
+          use module_base
+          use module_types
+          implicit none
+          integer,intent(in) :: iunit, ntmb
+          real(kind=8),dimension(ntmb,ntmb),intent(out) :: matrix
+          integer,dimension(ntmb),intent(out),optional :: on_which_atom
+        end subroutine read_linear_matrix_dense
+
   end interface
 END MODULE module_interfaces

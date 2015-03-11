@@ -31,11 +31,11 @@ program memguess
    character(len=2) :: num
    character(len=40) :: comment
    character(len=1024) :: fcomment
-   character(len=128) :: fileFrom, fileTo,filename_wfn,coeff_file, ntmb_, norbks_, interval_, npdos_
+   character(len=128) :: fileFrom, fileTo,filename_wfn, coeff_file, kernel_file, ntmb_, norbks_, interval_, npdos_, nat_
    character(len=128) :: output_pdos
    logical :: optimise,GPUtest,atwf,convert=.false.,exportwf=.false.,logfile=.false.
    logical :: disable_deprecation = .false.,convertpos=.false.,transform_coordinates=.false.
-   logical :: calculate_pdos = .false.
+   logical :: calculate_pdos = .false., kernel_analysis = .false.
    integer :: ntimes,nproc,output_grid, i_arg,istat
    integer :: nspin,iorb,norbu,norbd,nspinor,norb,iorbp,iorb_out
    integer :: norbgpu,ng
@@ -64,15 +64,16 @@ program memguess
    !real(gp) :: tcpu0,tcpu1,tel
    !integer :: ncount0,ncount1,ncount_max,ncount_rate
    !! By Ali
-   integer :: ierror, iat, itmb, jtmb, ntmb, norbks, npdos, iunit01, iunit02, norb_dummy, ipt, npt, ipdos
-   integer,dimension(:),allocatable :: na, nb, nc
+   integer :: ierror, iat, itmb, jtmb, ntmb, norbks, npdos, iunit01, iunit02, norb_dummy, ipt, npt, ipdos, nat
+   integer :: iproc
+   integer,dimension(:),allocatable :: na, nb, nc, on_which_atom
    integer,dimension(:,:),allocatable :: atoms_ref
-   real(kind=8),dimension(:,:),allocatable :: rxyz_int, kernel, ham, overlap, coeff, pdos, energy_bins
+   real(kind=8),dimension(:,:),allocatable :: rxyz, rxyz_int, kernel, ham, overlap, coeff, pdos, energy_bins
    real(kind=8),dimension(:),allocatable :: eval
    !real(kind=8),parameter :: degree=57.295779513d0
    real(kind=8),parameter :: degree=1.d0
    character(len=6) :: direction
-   logical :: file_exists, found_bin
+   logical :: file_exists, found_bin, mpi_init
    real(kind=8),parameter :: eps_roundoff=1.d-5
 
    call f_lib_initialize()
@@ -124,6 +125,11 @@ program memguess
       write(*,'(1x,a)')&
            & 'reads in the expansion coefficients "coeffs.bin" of dimension (nmtb x norb) &
            &and calculate "npdos" partial density of states'
+      write(*,'(1x,a)')&
+           &   '"kernel-analysis" <coeffs.bin> <kernel.bin>" ' 
+      write(*,'(1x,a)')&
+           & 'calculates a full kernel from the expansion coefficients "coeffs.bin" of dimension (nmtb x norb) &
+           &and compare it with the sparse kernel in "kernel.bin"'
 
       stop
    else
@@ -271,6 +277,24 @@ program memguess
             write(*,'(1x,3(a,i0),3a)')&
                &   'calculate ', npdos,' PDOS based on the coeffs (', ntmb, 'x', norbks, ') in the file "', trim(coeff_file),'"'
             calculate_pdos=.true.
+            exit loop_getargs
+         else if (trim(tatonam)=='kernel-analysis') then
+            i_arg = i_arg + 1
+            call get_command_argument(i_arg, value = coeff_file)
+            i_arg = i_arg + 1
+            call get_command_argument(i_arg, value = kernel_file)
+            i_arg = i_arg + 1
+            call get_command_argument(i_arg, value = ntmb_)
+            read(ntmb_,fmt=*,iostat=ierror) ntmb
+            i_arg = i_arg + 1
+            call get_command_argument(i_arg, value = norbks_)
+            read(norbks_,fmt=*,iostat=ierror) norbks
+            i_arg = i_arg + 1
+            call get_command_argument(i_arg, value = nat_)
+            read(nat_,fmt=*,iostat=ierror) nat
+            write(*,'(1x,5a)')&
+               &   'calculate a full kernel from the coeffs in "', trim(coeff_file),'" and compres it to the sparse kernel in "', trim(kernel_file),'"'
+            kernel_analysis = .true.
             exit loop_getargs
          else if (trim(tatonam) == 'dd') then
             ! dd: disable deprecation message
@@ -461,13 +485,19 @@ program memguess
    end if
 
    if (calculate_pdos) then
+       call mpi_initialized(mpi_init, ierror)
+       if (mpi_init) then
+           call mpi_comm_rank(mpi_comm_world, iproc, ierror)
+       else
+           iproc = 0
+       end if
        coeff = f_malloc((/ntmb,norbks/),id='coeff')
        eval = f_malloc(norbks,id='eval')
        kernel = f_malloc((/ntmb,ntmb/),id='kernel')
        ham = f_malloc((/ntmb,ntmb/),id='ham')
        overlap = f_malloc((/ntmb,ntmb/),id='overlap')
        call f_open_file(iunit01, file=trim(coeff_file), binary=.false.)
-       call read_coeff_minbasis(iunit01, .true., bigdft_mpi%iproc, norbks, norb_dummy, ntmb, coeff, eval)
+       call read_coeff_minbasis(iunit01, .true., iproc, norbks, norb_dummy, ntmb, coeff, eval)
        call f_close(iunit01)
        call f_open_file(iunit01, file='hamiltonian.bin', binary=.false.)
        call read_linear_matrix_dense(iunit01, ntmb, ham)
@@ -555,6 +585,28 @@ program memguess
        call f_close(iunit02)
        call yaml_map('sum of total DoS',sum(pdos(:,:)))
 
+       stop
+   end if
+
+   if (kernel_analysis) then
+       call mpi_initialized(mpi_init, ierror)
+       if (mpi_init) then
+           call mpi_comm_rank(mpi_comm_world, iproc, ierror)
+       else
+           iproc = 0
+       end if
+       coeff = f_malloc((/ntmb,norbks/),id='coeff')
+       eval = f_malloc(norbks,id='eval')
+       kernel = f_malloc((/ntmb,ntmb/),id='kernel')
+       rxyz = f_malloc((/3,nat/),id='rxyz')
+       on_which_atom = f_malloc(ntmb,id='on_which_atom')
+       call f_open_file(iunit01, file=trim(coeff_file), binary=.false.)
+       call read_coeff_minbasis(iunit01, .true., iproc, norbks, norb_dummy, ntmb, coeff, eval, nat, rxyz)
+       call f_close(iunit01)
+       call f_open_file(iunit01, file=trim(kernel_file), binary=.false.)
+       call read_linear_matrix_dense(iunit01, ntmb, kernel, on_which_atom)
+       call f_close(iunit01)
+       call analyze_kernel(ntmb, norbks, nat, coeff, kernel, rxyz, on_which_atom)
        stop
    end if
 

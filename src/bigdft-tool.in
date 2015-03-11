@@ -20,7 +20,7 @@ from optparse import OptionParser, OptionGroup
 actions = ["memory-estimation", "rotate", "convert-field",
            "export-wf", "export-grid", "atomic-wf", "GPU-test", 
            "convert-positions", "manual", "wizard", "transform-coordinates",
-		   "pdos"]
+		   "pdos", "kernel-analysis"]
 
 # Processed lines
 abs_srcdir = "@abs_srcdir@"
@@ -154,6 +154,20 @@ def parse():
                      help="energy interval [default: %default]")
     group.add_option("--npdos", type="int", default=1, metavar="NUM",
                      help="number of DOS to be calculated [default: %default]")
+
+    # calculate a full kernel from the coeffs and compare it to the sparse one
+    group = OptionGroup(parser, "bigdft-tool -a %s <input> <output>" % actions[12],
+                        "calculate a dense kernel from the coefficients and compare it to the sparse one")
+    #group.add_option("--coeff_file", type="str", default="coeff.bin", metavar="COEFFNAME",
+    #         		 help="input file with the coefficients [default: %default]")
+    group.add_option("--kernel_file", type="str", default="kernel.bin", metavar="KERNELNAME",
+             		 help="input file with the coefficients [default: %default]")
+    #group.add_option("--nbasis", type="int", default=1, metavar="NUM",
+    #                 help="number of support functions [default: %default]")
+    #group.add_option("--norb", type="int", default=1, metavar="NUM",
+    #                 help="number of orbitals [default: %default]")
+    group.add_option("--nat", type="int", default=1, metavar="NUM",
+                     help="number of atoms [default: %default]")
 
     return parser
 
@@ -628,6 +642,10 @@ options:
         #infile_names = options.infile.split(".")
         #infile_extension = infile_names[len(infile_names)-1]
         command = "%s 1 %s dd pdos %s %d %d %e %d" % (memguess, options.name, options.coeff_file, options.nbasis, options.norb, options.interval, options.npdos)
+        print command
+    if options.action == actions[12]:
+        print 'calling memguess for kernel analysis'
+        command = "%s 1 %s dd kernel-analysis %s %s %d %d %d" % (memguess, options.name, options.coeff_file, options.kernel_file, options.nbasis, options.norb, options.nat)
         print command
     if command is not None:
         os.system(command)
