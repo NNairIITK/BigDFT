@@ -1681,6 +1681,7 @@ subroutine pawtab_bcast(pawtab,comm_mpi,only_from_file)
 !Datastructures (read from psp file)
 !-------------------------------------------------------------------------
    siz_wvl_pngau=0 ; siz_wvl_parg=0 ; siz_wvl_pfac=0
+   siz_wvl_rholoc_rad=0 ; siz_wvl_rholoc_d=0
    siz_wvlpaw=0
    nn_int=nn_int+1
    if (associated(pawtab%wvl)) then
@@ -1703,16 +1704,9 @@ subroutine pawtab_bcast(pawtab,comm_mpi,only_from_file)
        if (siz_wvl_pfac/=2*pawtab%wvl%ptotgau) msg=trim(msg)//' wvl_pfac'
        nn_dpr_arr=nn_dpr_arr+siz_wvl_pfac
      end if
-   end if
-
-!Datastructures (depending on the parameters of the calculation)
-!-------------------------------------------------------------------------
-   siz_wvl_rholoc_rad=0 ; siz_wvl_rholoc_d=0
-   if (full_broadcast) then
-     nn_int=nn_int+2
-     if (associated(pawtab%wvl)) then
 !      wvl%rholoc%msz
        nn_int=nn_int+1
+     nn_int=nn_int+2
        if (pawtab%wvl%rholoc%msz>0) then
          if (allocated(pawtab%wvl%rholoc%rad)) then
            siz_wvl_rholoc_rad=size(pawtab%wvl%rholoc%rad) !(msz)
@@ -1726,7 +1720,9 @@ subroutine pawtab_bcast(pawtab,comm_mpi,only_from_file)
          end if
        end if
      end if
-   end if ! full_broadcast
+
+!Datastructures (depending on the parameters of the calculation)
+!-------------------------------------------------------------------------
 
 !  Are the sizes OK ?
    if (trim(msg)/='') then
@@ -1826,6 +1822,9 @@ subroutine pawtab_bcast(pawtab,comm_mpi,only_from_file)
        list_int(ii:ii+siz_wvl_pngau-1)=pawtab%wvl%pngau(1:siz_wvl_pngau)
        ii=ii+siz_wvl_pngau
      end if
+     list_int(ii)=siz_wvl_rholoc_rad  ;ii=ii+1
+     list_int(ii)=siz_wvl_rholoc_d  ;ii=ii+1
+     list_int(ii)=pawtab%wvl%rholoc%msz  ;ii=ii+1
    end if
 
 !Then the data initialized later
@@ -1883,12 +1882,6 @@ subroutine pawtab_bcast(pawtab,comm_mpi,only_from_file)
      if (siz_lnproju>0) then
        list_int(ii:ii+siz_lnproju-1)=pawtab%lnproju(1:siz_lnproju)
        ii=ii+siz_lnproju
-     end if
-!Integers in datastructures
-     if (siz_wvlpaw==1) then
-       list_int(ii)=siz_wvl_rholoc_rad  ;ii=ii+1
-       list_int(ii)=siz_wvl_rholoc_d  ;ii=ii+1
-       list_int(ii)=pawtab%wvl%rholoc%msz  ;ii=ii+1
      end if
    end if ! full_broadcast
    ii=ii-1
@@ -1989,6 +1982,9 @@ subroutine pawtab_bcast(pawtab,comm_mpi,only_from_file)
        pawtab%wvl%pngau=list_int(ii:ii+pawtab%basis_size-1)
        ii=ii+siz_wvl_pngau
      end if
+     siz_wvl_rholoc_rad=list_int(ii)  ;ii=ii+1
+     siz_wvl_rholoc_d=list_int(ii)  ;ii=ii+1
+     pawtab%wvl%rholoc%msz=list_int(ii)  ;ii=ii+1
    end if
 
 !Then the data initialized later
@@ -2062,12 +2058,6 @@ subroutine pawtab_bcast(pawtab,comm_mpi,only_from_file)
        LIBPAW_ALLOCATE(pawtab%lnproju,(pawtab%nproju))
        pawtab%lnproju=list_int(ii:ii+pawtab%nproju-1)
        ii=ii+siz_lnproju
-     end if
-!Integers in datastructures
-     if (siz_wvlpaw==1) then
-       siz_wvl_rholoc_rad=list_int(ii)  ;ii=ii+1
-       siz_wvl_rholoc_d=list_int(ii)  ;ii=ii+1
-       pawtab%wvl%rholoc%msz=list_int(ii)  ;ii=ii+1
      end if
    end if ! full_broadcast
    ii=ii-1
@@ -2176,8 +2166,16 @@ subroutine pawtab_bcast(pawtab,comm_mpi,only_from_file)
        ii=ii+siz_wvl_parg
      end if
      if (siz_wvl_pfac>0) then
-       list_dpr(ii:ii+siz_wvl_pfac-1)=reshape(pawtab%wvl%parg,(/siz_wvl_pfac/))
+       list_dpr(ii:ii+siz_wvl_pfac-1)=reshape(pawtab%wvl%pfac,(/siz_wvl_pfac/))
        ii=ii+siz_wvl_pfac
+     end if
+     if (siz_wvl_rholoc_rad>0) then
+        list_dpr(ii:ii+siz_wvl_rholoc_rad-1)=pawtab%wvl%rholoc%rad(1:siz_wvl_rholoc_rad)
+        ii=ii+siz_wvl_rholoc_rad
+     end if
+     if (siz_wvl_rholoc_d>0) then
+        list_dpr(ii:ii+siz_wvl_rholoc_d-1)=reshape(pawtab%wvl%rholoc%d,(/siz_wvl_rholoc_d/))
+        ii=ii+siz_wvl_rholoc_d
      end if
    end if
 
@@ -2267,17 +2265,6 @@ subroutine pawtab_bcast(pawtab,comm_mpi,only_from_file)
      if (siz_zioneff>0) then
        list_dpr(ii:ii+siz_zioneff-1)=pawtab%zioneff(1:siz_zioneff)
        ii=ii+siz_zioneff
-     end if
-!Reals in datastructures
-     if (siz_wvlpaw==1) then
-       if (siz_wvl_rholoc_rad>0) then
-         list_dpr(ii:ii+siz_wvl_rholoc_rad-1)=pawtab%wvl%rholoc%rad(1:siz_wvl_rholoc_rad)
-         ii=ii+siz_wvl_rholoc_rad
-       end if
-       if (siz_wvl_rholoc_d>0) then
-         list_dpr(ii:ii+siz_wvl_rholoc_d-1)=reshape(pawtab%wvl%rholoc%d,(/siz_wvl_rholoc_d/))
-         ii=ii+siz_wvl_rholoc_d
-       end if
      end if
 
    end if ! full_broadcast
@@ -2464,6 +2451,24 @@ subroutine pawtab_bcast(pawtab,comm_mpi,only_from_file)
        pawtab%wvl%pfac=reshape(list_dpr(ii:ii+siz_wvl_pfac-1),(/2,pawtab%wvl%ptotgau/))
        ii=ii+siz_wvl_pfac
      end if
+     if (allocated(pawtab%wvl%rholoc%rad)) then
+        LIBPAW_DEALLOCATE(pawtab%wvl%rholoc%rad)
+     end if
+     if (siz_wvl_rholoc_rad>0) then
+        sz1=pawtab%wvl%rholoc%msz
+        LIBPAW_ALLOCATE(pawtab%wvl%rholoc%rad,(sz1))
+        pawtab%wvl%rholoc%rad=list_dpr(ii:ii+sz1-1)
+        ii=ii+siz_wvl_rholoc_rad
+     end if
+     if (allocated(pawtab%wvl%rholoc%d)) then
+        LIBPAW_DEALLOCATE(pawtab%wvl%rholoc%d)
+     end if
+     if (siz_wvl_rholoc_d>0) then
+        sz1=pawtab%wvl%rholoc%msz
+        LIBPAW_ALLOCATE(pawtab%wvl%rholoc%d,(sz1,4))
+        pawtab%wvl%rholoc%d=reshape(list_dpr(ii:ii+siz_wvl_rholoc_d-1),(/sz1,4/))
+        ii=ii+siz_wvl_rholoc_d
+     end if
    end if
 
 !Then the data initialized later
@@ -2630,27 +2635,6 @@ subroutine pawtab_bcast(pawtab,comm_mpi,only_from_file)
        LIBPAW_ALLOCATE(pawtab%zioneff,(pawtab%ij_proj))
        pawtab%zioneff=list_dpr(ii:ii+pawtab%ij_proj-1)
        ii=ii+siz_zioneff
-     end if
-!Reals in datastructures
-     if (siz_wvlpaw==1) then
-       if (allocated(pawtab%wvl%rholoc%rad)) then
-         LIBPAW_DEALLOCATE(pawtab%wvl%rholoc%rad)
-       end if
-       if (siz_wvl_rholoc_rad>0) then
-         sz1=pawtab%wvl%rholoc%msz
-         LIBPAW_ALLOCATE(pawtab%wvl%rholoc%rad,(sz1))
-         pawtab%wvl%rholoc%rad=list_dpr(ii:ii+sz1-1)
-         ii=ii+siz_wvl_rholoc_rad
-       end if
-       if (allocated(pawtab%wvl%rholoc%d)) then
-         LIBPAW_DEALLOCATE(pawtab%wvl%rholoc%d)
-       end if
-       if (siz_wvl_rholoc_d>0) then
-         sz1=pawtab%wvl%rholoc%msz
-         LIBPAW_ALLOCATE(pawtab%wvl%rholoc%d,(sz1,4))
-         pawtab%wvl%rholoc%d=reshape(list_dpr(ii:ii+siz_wvl_rholoc_d-1),(/sz1,4/))
-         ii=ii+siz_wvl_rholoc_d
-       end if
      end if
 
    end if ! full_broadcast

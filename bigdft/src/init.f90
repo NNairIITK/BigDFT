@@ -313,7 +313,7 @@ subroutine createProjectorsArrays(lr,rxyz,at,orbs,&
      if (nl%pspd(iat)%mproj > 0) then 
 
         call bounds_to_plr_limits(.false.,1,nl%pspd(iat)%plr,&
-             nl1,nl2,nl3,nu1,nu2,nu3)         
+             nl1,nl2,nl3,nu1,nu2,nu3)
 
 !!$        !most likely the call can here be replaced by
 !!$        call fill_logrid(at%astruct%geocode,n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3,0,1,  &
@@ -2567,6 +2567,7 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
       call f_free_ptr(KSwfn%hpsi)
       
       ! Orthogonalize
+      if (nproc > 1) call f_free_ptr(KSwfn%psit)
       call first_orthon(iproc, nproc, KSwfn%orbs, KSwfn%Lzd, KSwfn%comms, &
            & KSwfn%psi, KSwfn%hpsi, KSwfn%psit, KSwfn%orthpar, KSwfn%paw)
    end if

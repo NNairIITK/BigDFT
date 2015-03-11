@@ -30,12 +30,13 @@ program memguess
    character(len=30) :: tatonam, radical
    character(len=40) :: comment
    character(len=1024) :: fcomment
-   character(len=128) :: fileFrom, fileTo,filename_wfn
-   logical :: optimise,GPUtest,atwf,convert=.false.,exportwf=.false.,logfile=.false.
+   character(len=128) :: fileFrom, fileTo,filename_wfn,filename_proj
+   logical :: optimise,GPUtest,atwf
+   logical :: convert=.false.,exportwf=.false.,logfile=.false.,exportproj=.false.
    logical :: disable_deprecation = .false.,convertpos=.false.,transform_coordinates=.false.
    integer :: ntimes,nproc,output_grid, i_arg,istat
    integer :: nspin,iorb,norbu,norbd,nspinor,norb,iorbp,iorb_out
-   integer :: norbgpu,ng
+   integer :: norbgpu,ng, icplx, ikpt, iproj
    integer :: export_wf_iband, export_wf_ispin, export_wf_ikpt, export_wf_ispinor,irad
    real(gp) :: hx,hy,hz,energy
    type(memory_estimation) :: mem
@@ -209,6 +210,12 @@ program memguess
             else
                read(unit=tatonam,fmt=*) export_wf_ispinor
             end if
+            exit loop_getargs
+         else if (trim(tatonam)=='exportproj') then
+            !Export wavefunctions (cube format)
+            exportproj=.true.
+            i_arg = i_arg + 1
+            call get_command_argument(i_arg, value = filename_proj)
             exit loop_getargs
          else if (trim(tatonam)=='atwf') then
             atwf=.true.
@@ -473,9 +480,11 @@ program memguess
         & runObj%rst%KSwfn%orbs%nkpts,nlpsp%nprojel,&
         runObj%inputs%nspin,runObj%inputs%itrpmax,runObj%inputs%iscf,mem)
    
-   if (.not. exportwf) then
+   if (.not. exportwf .and. .not. exportproj) then
       call print_memory_estimation(mem)
-   else
+   end if
+
+   if (exportwf) then
       runObj%rst%KSwfn%psi = f_malloc_ptr((runObj%rst%KSwfn%Lzd%Glr%wfd%nvctr_c+&
            & 7*runObj%rst%KSwfn%Lzd%Glr%wfd%nvctr_f)*runObj%rst%KSwfn%orbs%nspinor,&
            id='runObj%rst%KSwfn%psi')
@@ -515,6 +524,29 @@ program memguess
            & 7*runObj%rst%KSwfn%Lzd%Glr%wfd%nvctr_f) * (export_wf_ispinor - 1) + 1))
       deallocate(ref_frags)
       nullify(ref_frags)
+   end if
+
+   if (exportproj) then
+      call free_DFT_PSP_projectors(nlpsp)
+      DistProjApply = .true.
+      call createProjectorsArrays(runObj%rst%KSwfn%Lzd%Glr, &
+           & runObj%atoms%astruct%rxyz,runObj%atoms,runObj%rst%KSwfn%orbs, &
+           & runObj%inputs%frmult,runObj%inputs%frmult, &
+           & runObj%rst%KSwfn%Lzd%hgrids(1),runObj%rst%KSwfn%Lzd%hgrids(2), &
+           & runObj%rst%KSwfn%Lzd%hgrids(3),.false.,nlpsp)
+      call f_free_ptr(nlpsp%proj)
+      call take_proj_from_file(filename_proj, &
+           & runObj%inputs%hx,runObj%inputs%hy,runObj%inputs%hz, &
+           & nlpsp, runObj%atoms, runObj%atoms%astruct%rxyz, &
+           & ikpt,iat,iproj,icplx)
+      call filename_of_proj(.false.,"proj",ikpt,iat,iproj,icplx,filename_wfn)
+      nlpsp%pspd(iat)%plr%wfd%keygloc = nlpsp%pspd(iat)%plr%wfd%keyglob
+      nlpsp%pspd(iat)%plr%wfd%keyvloc = nlpsp%pspd(iat)%plr%wfd%keyvglob
+      ! Doing this is buggy.
+      runObj%rst%KSwfn%Lzd%Glr%wfd = nlpsp%pspd(iat)%plr%wfd
+      call plot_wf(filename_wfn,1,runObj%atoms,1.0_wp,runObj%rst%KSwfn%Lzd%Glr, &
+           & runObj%inputs%hx,runObj%inputs%hy,runObj%inputs%hz,&
+           & runObj%atoms%astruct%rxyz, nlpsp%proj(1))
    end if
 
    if (GPUtest) then
@@ -1322,6 +1354,78 @@ subroutine compare_data_and_gflops(CPUtime,GPUtime,GFlopsfactor,&
 
 END SUBROUTINE compare_data_and_gflops
 
+!> Extract the compressed projector from the given file
+subroutine take_proj_from_file(filename, hx, hy, hz, nl, at, rxyz, &
+     & ikpt, iat, iproj, icplx)
+  use module_types
+  use module_defs
+  use dynamic_memory
+  implicit none
+  real(gp), intent(in) :: hx,hy,hz
+  integer, intent(inout) :: ikpt, iat, iproj, icplx
+  character(len=*), intent(in) :: filename
+  type(DFT_PSP_projectors), intent(inout) :: nl
+  type(atoms_data), intent(in) :: at
+  real(gp), dimension(3,at%astruct%nat), intent(in) :: rxyz
+  
+  integer :: wave_format_from_filename
+  integer :: iformat, i
+  integer :: nb1,nb2,nb3
+  logical :: perx,pery,perz
+  real(wp) :: eproj
+  real(wp), dimension(:,:,:), allocatable :: psifscf
+  real(gp), dimension(:,:), allocatable :: rxyz_file
+
+  rxyz_file = f_malloc((/ at%astruct%nat, 3 /),id='rxyz_file')
+
+  iformat = wave_format_from_filename(0, filename)
+  if (iformat == WF_FORMAT_PLAIN .or. iformat == WF_FORMAT_BINARY) then
+     i = index(filename, "-k", back = .true.)+2
+     read(filename(i:i+2),*) ikpt
+     i = index(filename, "-a", back = .true.)+2
+     read(filename(i:i+3),*) iat
+     i = index(filename, "-", back = .true.)+1
+     if (filename(i:i) == "R") icplx = 1
+     if (filename(i:i) == "I") icplx = 2
+     i = index(filename, ".", back = .true.)+1
+     read(filename(i:i+2),*) iproj
+
+     nl%proj = f_malloc_ptr(nl%pspd(iat)%plr%wfd%nvctr_c + &
+          & 7 * nl%pspd(iat)%plr%wfd%nvctr_f, id = "proj")
+
+     !conditions for periodicity in the three directions
+     perx=(at%astruct%geocode /= 'F')
+     pery=(at%astruct%geocode == 'P')
+     perz=(at%astruct%geocode /= 'F')
+
+     !buffers related to periodicity
+     !WARNING: the boundary conditions are not assumed to change between new and old
+     call ext_buffers_coarse(perx,nb1)
+     call ext_buffers_coarse(pery,nb2)
+     call ext_buffers_coarse(perz,nb3)
+
+     psifscf = f_malloc((/ -nb1.to.2*nl%pspd(iat)%plr%d%n1+1+nb1, &
+          & -nb2.to.2*nl%pspd(iat)%plr%d%n2+1+nb2, &
+          & -nb3.to.2*nl%pspd(iat)%plr%d%n3+1+nb3 /),id='psifscf')
+
+     if (iformat == WF_FORMAT_BINARY) then
+        open(unit=99,file=trim(filename),status='unknown',form="unformatted")
+     else
+        open(unit=99,file=trim(filename),status='unknown')
+     end if
+
+     call readonewave(99, (iformat == WF_FORMAT_PLAIN),iproj,0,&
+          & nl%pspd(iat)%plr%d%n1,nl%pspd(iat)%plr%d%n2,nl%pspd(iat)%plr%d%n3, &
+          & hx,hy,hz,at,nl%pspd(iat)%plr%wfd,rxyz_file,rxyz,nl%proj,eproj,psifscf)
+
+     close(99)
+     
+  else if (iformat == WF_FORMAT_ETSF) then
+     stop "No ETSF proj implementation"
+  end if
+
+  call f_free(rxyz_file)
+end subroutine take_proj_from_file
 
 !> Extract the compressed wavefunction from the given file 
 subroutine take_psi_from_file(filename,in_frag,hx,hy,hz,lr,at,rxyz,orbs,psi,iorbp,ispinor,ref_frags)

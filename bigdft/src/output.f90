@@ -1430,8 +1430,11 @@ subroutine print_atomic_variables(atoms, hmax, ixc, dispersion)
      ! PAW case.
      if (atoms%npspcode(ityp) == PSPCODE_PAW) then
         call yaml_map('No. of gaussians', atoms%pawtab(ityp)%wvl%pngau)
-        call yaml_map('complex coefficients (1..5)', atoms%pawtab(ityp)%wvl%parg(:,1:5))
-        call yaml_map('complex factors (1..5)', atoms%pawtab(ityp)%wvl%pfac(:,1:5))
+        i = min(5, atoms%pawtab(ityp)%wvl%pngau(1))
+        call yaml_map('complex coefficients (1..5)', &
+             & atoms%pawtab(ityp)%wvl%parg(:,1:i))
+        call yaml_map('complex factors (1..5)', &
+             & atoms%pawtab(ityp)%wvl%pfac(:,1:i))
      end if
      mproj = 0
      do l=1,4 
@@ -1550,7 +1553,7 @@ subroutine print_atoms_and_grid(Glr, atoms, rxyz, shift, hx, hy, hz)
   real(gp), dimension(3), intent(in) :: shift
   real(gp), intent(in) :: hx, hy, hz
   !Local variables
-  integer :: iat, iunit
+  integer :: iunit
 
   if (atoms%astruct%ntypes > 0) then
      call yaml_comment('Atom Positions',hfill='-')

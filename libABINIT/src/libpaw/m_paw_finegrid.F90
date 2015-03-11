@@ -1176,7 +1176,7 @@ subroutine pawrfgd_wvl(geocode,hh,ifftsph,i3s,n1,n1i,n2,n2i,n3,n3pi,&
    integer,intent(out) :: j
    logical,intent(out) :: go
    if (periodic) then
-     j=modulo(i,2*n+2)+1 ; go=.true.
+     j=modulo(i,2*n+2) ; go=.true.
    else
      j=i ; go=(i>=-14.and.i<=2*n+16)
    end if

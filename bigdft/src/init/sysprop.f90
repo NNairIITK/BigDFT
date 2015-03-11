@@ -308,6 +308,10 @@ subroutine system_initialization(iproc,nproc,dump,inputpsi,input_wf_format,dry_r
        in%frmult,in%frmult,Lzd%hgrids(1),Lzd%hgrids(2),&
        Lzd%hgrids(3),dry_run,nlpsp,init_projectors_completely)
   if (iproc == 0 .and. dump) call print_nlpsp(nlpsp)
+  if (iproc == 0 .and. .not. nlpsp%on_the_fly .and. .false.) then
+     call writemyproj("proj",WF_FORMAT_BINARY,orbs,Lzd%hgrids(1),Lzd%hgrids(2),&
+       Lzd%hgrids(3),atoms,rxyz,nlpsp)
+  end if
   !the complicated part of the descriptors has not been filled
   if (dry_run) then
      call f_release_routine()
@@ -692,7 +696,7 @@ subroutine psp_from_stream(ios, nzatom, nelpsp, npspcode, &
   end if
 END SUBROUTINE psp_from_stream
 
-subroutine paw_from_file(pawrad, pawtab, filename, nzatom, nelpsp, ixc)
+subroutine paw_from_file(pawrad, pawtab, epsatm, filename, nzatom, nelpsp, ixc)
   use module_base
   use abi_defs_basis, only: tol14, fnlen
   use m_pawpsp, only: pawpsp_main
@@ -703,6 +707,7 @@ subroutine paw_from_file(pawrad, pawtab, filename, nzatom, nelpsp, ixc)
 
   type(pawrad_type), intent(out) :: pawrad
   type(pawtab_type), intent(out) :: pawtab
+  real(gp), intent(out) :: epsatm
   character(len = *), intent(in) :: filename
   integer, intent(in) :: nzatom, nelpsp, ixc
 
@@ -710,7 +715,7 @@ subroutine paw_from_file(pawrad, pawtab, filename, nzatom, nelpsp, ixc)
   integer:: pawxcdev,usewvl,usexcnhat,xclevel
   integer::pspso
   real(dp):: xc_denpos
-  real(dp)::epsatm,xcccrc
+  real(dp)::xcccrc
   character(len=fnlen):: filpsp   ! name of the psp file
   !  type(paw_setup_t),optional,intent(in) :: psxml
   !!arrays

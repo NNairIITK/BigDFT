@@ -1,4 +1,4 @@
-module m_ab7_mixing
+module module_mixing
 
   use dynamic_memory!m_profiling !this has been moved. No idea how should be treated 
   use module_defs, only: bigdft_mpi
@@ -910,4 +910,4 @@ contains
     end if
   end function fdot_denpot_forlinear
 
-end module m_ab7_mixing
+end module module_mixing

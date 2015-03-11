@@ -507,8 +507,8 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,energs,fxyz,strten,fnoise,press
      case default
          stop 'ERROR: wrong in%lin%scf_mode'
      end select
-     call denspot_set_history(denspot,linear_iscf,in%nspin, &
-          KSwfn%Lzd%Glr%d%n1i,KSwfn%Lzd%Glr%d%n2i,npulayit=in%lin%mixHist_lowaccuracy)
+     call denspot_set_history(denspot,linear_iscf, &
+          & npulayit=in%lin%mixHist_lowaccuracy)
      call input_wf(iproc,nproc,in,GPU,atoms,rxyz,denspot,denspot0,nlpsp,KSwfn,tmb,energs,&
           inputpsi,input_wf_format,norbv,lzd_old,psi_old,rxyz_old,tmb_old,ref_frags,cdft,&
           locregcenters)
@@ -1321,10 +1321,10 @@ contains
 
   !> construct the dictionary needed for the timing information
   subroutine build_dict_info(dict_info)
+    use wrapper_MPI
     use dynamic_memory
     use dictionaries
     implicit none
-    include 'mpif.h'
     type(dictionary), pointer :: dict_info
     !local variables
     integer :: ierr,namelen,nthreads
@@ -1396,8 +1396,7 @@ subroutine kswfn_optimization_loop(iproc, nproc, opt, &
 !  if (iproc==0) call PAPIF_flops(rtime, ptime, flpops, mflops,ierr)
 
   ! Setup the mixing, if necessary
-  call denspot_set_history(denspot,opt%iscf,in%nspin, &
-       KSwfn%Lzd%Glr%d%n1i,KSwfn%Lzd%Glr%d%n2i)
+  call denspot_set_history(denspot,opt%iscf)
 
   ! allocate arrays necessary for DIIS convergence acceleration
   call allocate_diis_objects(idsx,in%alphadiis,sum(KSwfn%comms%ncntt(0:nproc-1)),&

@@ -22,7 +22,7 @@ subroutine copy_old_wavefunctions(nproc,orbs,psi,&
   !Local variables
   character(len=*), parameter :: subname='copy_old_wavefunctions'
   !real(kind=8), parameter :: eps_mach=1.d-12
-  integer :: iseg,j,ind1,iorb,oidx,sidx !n(c) nvctrp_old
+  integer :: j,ind1,iorb,oidx,sidx !n(c) nvctrp_old
   real(kind=8) :: tt
   call f_routine(id=subname)
 
@@ -2066,7 +2066,7 @@ subroutine readmywaves_linear_new(iproc,nproc,dir_output,filename,iformat,at,tmb
   logical :: lstat
   character(len=*), parameter :: subname='readmywaves_linear_new'
   ! to eventually be part of the fragment structure?
-  integer :: ndim_old, iiorb, ifrag, ifrag_ref, isfat, iorbp, iforb, isforb, iiat, iat,ind
+  integer :: ndim_old, iiorb, ifrag, ifrag_ref, isfat, iorbp, iforb, isforb, iiat, iat
   type(local_zone_descriptors) :: lzd_old
   real(wp), dimension(:), pointer :: psi_old
   type(phi_array), dimension(:), pointer :: phi_array_old
@@ -3278,3 +3278,154 @@ subroutine psi_to_psig(n,nvctr_c,nvctr_f,nseg_c,nseg_f,keyvloc,keygloc,jstart,ps
   end do
 
 end subroutine psi_to_psig
+
+!> Associate to the absolute value of orbital a filename which depends of the k-point and 
+!! of the spin sign
+subroutine filename_of_proj(lbin,filename,ikpt,iat,iproj,icplx,filename_out)
+  use module_base
+  use module_types
+  implicit none
+  character(len=*), intent(in) :: filename
+  logical, intent(in) :: lbin
+  integer, intent(in) :: ikpt,iat,iproj,icplx
+  character(len=*), intent(out) :: filename_out
+  !local variables
+  character(len=1) :: realimag
+  character(len=3) :: f2
+  character(len=4) :: f3
+  character(len=5) :: f4
+  character(len=13) :: completename
+
+  !calculate k-point
+  write(f3,'(a1,i3.3)') "k", ikpt !not more than 999 kpts
+
+  !see if the wavefunction is real or imaginary
+  if(icplx==2) then
+     realimag='I'
+  else
+     realimag='R'
+  end if
+
+  !value of the atom
+  write(f4,'(a1,i4.4)') "a", iat
+
+  !value of the atom
+  write(f2,'(i3.3)') iproj
+
+  !complete the information in the name of the orbital
+  completename='-'//f3//'-'//f4//'-'//realimag
+  if (lbin) then
+     filename_out = trim(filename)//completename//".bin."//f2
+     !print *,'complete name <',trim(filename_out),'> end'
+ else
+     filename_out = trim(filename)//completename//"."//f2
+     !print *,'complete name <',trim(filename_out),'> end'
+ end if
+
+  !print *,'filename: ',filename_out
+end subroutine filename_of_proj
+
+!> Write all projectors
+subroutine writemyproj(filename,iformat,orbs,hx,hy,hz,at,rxyz,nl)
+  use module_types
+  use module_base
+  use yaml_output
+  use gaussians
+  implicit none
+  integer, intent(in) :: iformat
+  real(gp), intent(in) :: hx,hy,hz
+  type(atoms_data), intent(in) :: at
+  type(orbitals_data), intent(in) :: orbs
+  type(DFT_PSP_projectors), intent(in) :: nl
+  real(gp), dimension(3,at%astruct%nat), intent(in) :: rxyz
+  character(len=*), intent(in) :: filename
+  !Local variables
+  type(gaussian_basis_iter) :: iter
+  integer :: ncount1,ncount2,ncount_rate,ncount_max
+  integer :: iat,ikpt,iproj,iskpt,iekpt,istart,ncplx_k,icplx,l
+  integer :: mbseg_c,mbseg_f,mbvctr_c,mbvctr_f
+  real(kind=4) :: tr0,tr1
+  real(kind=8) :: tel
+  character(len=500) :: filename_out
+  logical :: lbin
+
+  call yaml_map('Write projectors to file', trim(filename) // '.*')
+  !if (iproc == 0) write(*,"(1x,A,A,a)") "Write wavefunctions to file: ", trim(filename),'.*'
+  if (iformat == WF_FORMAT_ETSF) then
+     !call write_waves_etsf(iproc,filename,orbs,n1,n2,n3,hx,hy,hz,at,rxyz,wfd,psi)
+     stop "not implemented proj in ETSF"
+  else
+     call cpu_time(tr0)
+     call system_clock(ncount1,ncount_rate,ncount_max)
+
+     !create projectors for any of the k-point hosted by the processor
+     !starting kpoint
+     if (orbs%norbp > 0) then
+        iskpt=orbs%iokpt(1)
+        iekpt=orbs%iokpt(orbs%norbp)
+     else
+        iskpt=1
+        iekpt=1
+     end if
+     lbin = (iformat == WF_FORMAT_BINARY)
+
+     do ikpt=iskpt,iekpt
+        ncplx_k = 2
+        if (orbs%kpts(1,ikpt) == 0 .and. orbs%kpts(2,ikpt) == 0 .and. &
+             & orbs%kpts(3,ikpt) == 0) ncplx_k = 1
+        do iat=1,at%astruct%nat
+
+           call plr_segs_and_vctrs(nl%pspd(iat)%plr,mbseg_c,mbseg_f,mbvctr_c,mbvctr_f)
+           ! Start a gaussian iterator.
+           call gaussian_iter_start(nl%proj_G, iat, iter)
+           iproj = 0
+           istart = 1
+           do
+              if (.not. gaussian_iter_next_shell(nl%proj_G, iter)) exit
+              do l = 1, 2*iter%l-1
+                 iproj = iproj + 1
+                 do icplx = 1, ncplx_k
+                    call filename_of_proj(lbin,filename,&
+                         & ikpt,iat,iproj,icplx,filename_out)
+                    if (lbin) then
+                       open(unit=99,file=trim(filename_out),&
+                            & status='unknown',form="unformatted")
+                    else
+                       open(unit=99,file=trim(filename_out),status='unknown')
+                    end if
+                    call writeonewave(99,.not.lbin,iproj,&
+                         & nl%pspd(iat)%plr%d%n1, &
+                         & nl%pspd(iat)%plr%d%n2, &
+                         & nl%pspd(iat)%plr%d%n3, &
+                         & hx,hy,hz, at%astruct%nat,rxyz, &
+                         & mbseg_c, mbvctr_c, &
+                         & nl%pspd(iat)%plr%wfd%keyglob(1,1), &
+                         & nl%pspd(iat)%plr%wfd%keyvglob(1), & 
+                         & mbseg_f, mbvctr_f, &
+                         & nl%pspd(iat)%plr%wfd%keyglob(1,mbseg_c+1), &
+                         & nl%pspd(iat)%plr%wfd%keyvglob(mbseg_c+1), & 
+                         & nl%proj(istart), nl%proj(istart + mbvctr_c), &
+                         & UNINITIALIZED(1._wp))
+
+                    close(99)
+                    istart = istart + (mbvctr_c+7*mbvctr_f)
+                 end do
+              end do
+           end do
+        end do
+     enddo
+
+     call cpu_time(tr1)
+     call system_clock(ncount2,ncount_rate,ncount_max)
+     tel=dble(ncount2-ncount1)/dble(ncount_rate)
+     call yaml_sequence_open('Write Proj Time')
+     call yaml_sequence(advance='no')
+     call yaml_mapping_open(flow=.true.)
+     call yaml_map('Timing',(/ real(tr1-tr0,kind=8),tel /),fmt='(1pe10.3)')
+     call yaml_mapping_close()
+     call yaml_sequence_close()
+     !write(*,'(a,i4,2(1x,1pe10.3))') '- WRITE WAVES TIME',iproc,tr1-tr0,tel
+     !write(*,'(a,1x,i0,a)') '- iproc',iproc,' finished writing waves'
+  end if
+
+END SUBROUTINE writemyproj

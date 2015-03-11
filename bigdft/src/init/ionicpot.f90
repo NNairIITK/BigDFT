@@ -19,6 +19,7 @@ subroutine IonicEnergyandForces(iproc,nproc,dpbox,at,elecfield,&
   use abi_interfaces_common, only: abi_ewald, abi_ewald2
   use vdwcorrection
   use yaml_output
+  use psp_projectors, only: PSPCODE_PAW
   implicit none
   type(denspot_distribution), intent(in) :: dpbox
   type(atoms_data), intent(in) :: at
@@ -115,21 +116,36 @@ subroutine IonicEnergyandForces(iproc,nproc,dpbox,at,elecfield,&
      shortlength=0.0_gp
      charge=0.0_gp
      twopitothreehalf=2.0_gp*pi*sqrt(2.0_gp*pi)
-     do iat=1,at%astruct%nat
-        ityp=at%astruct%iatype(iat)
-        rloc=at%psppar(0,0,ityp)
-        atint=at%psppar(0,1,ityp)+3.0_gp*at%psppar(0,2,ityp)+&
-             15.0_gp*at%psppar(0,3,ityp)+105.0_gp*at%psppar(0,4,ityp)
-        psoffset=psoffset+rloc**3*atint
-        shortlength=shortlength+real(at%nelpsp(ityp),gp)*rloc**2
-        charge=charge+real(at%nelpsp(ityp),gp)
-     end do
-     psoffset=twopitothreehalf*psoffset
-     shortlength=shortlength*2.d0*pi
+     if (any(at%npspcode == PSPCODE_PAW)) then
+        do iat=1,at%astruct%nat
+           ityp=at%astruct%iatype(iat)
+           !rloc = at%pawtab(ityp)%rpaw
+           !psoffset = 0.
+           shortlength = shortlength + at%epsatm(ityp)
+           !shortlength=shortlength+real(at%nelpsp(ityp),gp)*rloc**2
+           charge=charge+real(at%nelpsp(ityp),gp)
+        end do
+        !shortlength=shortlength*2.d0*pi
+        !psoffset=psoffset-shortlength
+     else
+        do iat=1,at%astruct%nat
+           ityp=at%astruct%iatype(iat)
+           rloc=at%psppar(0,0,ityp)
+           atint=at%psppar(0,1,ityp)+3.0_gp*at%psppar(0,2,ityp)+&
+                15.0_gp*at%psppar(0,3,ityp)+105.0_gp*at%psppar(0,4,ityp)
+           psoffset=psoffset+rloc**3*atint
+           shortlength=shortlength+real(at%nelpsp(ityp),gp)*rloc**2
+           charge=charge+real(at%nelpsp(ityp),gp)
+        end do
+        psoffset=twopitothreehalf*psoffset
+        shortlength=shortlength*2.d0*pi
+     end if
 
      !print *,'psoffset',psoffset,'pspcore',(psoffset+shortlength)*charge/(at%astruct%cell_dim(1)*at%astruct%cell_dim(2)*at%astruct%cell_dim(3))
      !if (iproc ==0) print *,'eion',eion,charge/ucvol*(psoffset+shortlength)
      !correct ionic energy taking into account the PSP core correction
+     !write(*,*) "EION", eion
+     !write(*,*) "PSP CORE", charge/ucvol*(psoffset+shortlength), psoffset, shortlength
      eion=eion+charge/ucvol*(psoffset+shortlength)
 
      !symmetrization of ewald stress (probably not needed)

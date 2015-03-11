@@ -28,7 +28,7 @@ include $(srcdir)/libpaw/libpaw.src
 libpaw_files_1 = $(LIBPAW_SRC_FILES:%.h=libpaw/%.h)
 libpaw_files = $(libpaw_files_1:%.F90=libpaw/%.F90)
 ##Activate libPAW BigDFT sections
-LIBPAW_DEFS += -DHAVE_LIBPAW_BIGDFT -DHAVE_DFT_LIBXC
+LIBPAW_DEFS += @LIBPAW_HOST_DEFS@ -DHAVE_DFT_LIBXC
 ##  Deactivate libXC libPAW code sections (for testing purpose)
 ##  LIBPAW_DEFS += -UHAVE_DFT_LIBXC
 ##  LIBXC_DEFS =
@@ -48,7 +48,7 @@ DEFS = $(LIBPAW_DEFS) $(MPI_DEFS)
 DEFS_1 = $(DEFS:-D%=@FCDEFS@-D%)
 DEFS_FORTRAN = $(DEFS_1:-U%=@FCDEFS@-U%)
 
-AM_FCFLAGS = @MPI_INCLUDE@ -I$(srcdir)/abi_geomoptim @LIB_FLIB_CFLAGS@
+AM_FCFLAGS = @MPI_INCLUDE@ -I$(srcdir)/abi_geomoptim @LIB_FLIB_CFLAGS@ @LIB_XC_CFLAGS@
 
 ## Hack for XLF strange DEFS option
 PPFCCOMPILE = $(FC) $(DEFS_FORTRAN) $(DEFAULT_INCLUDES) $(INCLUDES) \

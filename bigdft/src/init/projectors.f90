@@ -432,7 +432,6 @@ subroutine projector(geocode,iat,idir,l,i,factor,gau_a,rpaw,rxyz,&
   !integer :: nl1_c,nu1_c,nl2_c,nu2_c,nl3_c,nu3_c,nl1_f,nu1_f,nl2_f,nu2_f,nl3_f,nu3_f
   integer :: istart_c,nterm,idir2
   real(gp) :: fpi,fgamma,rx,ry,rz
-  real(dp) :: scpr
   integer, dimension(3) :: nterm_arr
   integer, dimension(nterm_max) :: lx,ly,lz
   integer, dimension(3,nterm_max,3) :: lxyz_arr

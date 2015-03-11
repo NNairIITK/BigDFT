@@ -17,7 +17,7 @@ subroutine psitohpsi(iproc,nproc,atoms,scf,denspot,itrp,itwfn,iscf,alphamix,&
   use module_types
   use module_interfaces, fake_name => psitohpsi
   use Poisson_Solver, except_dp => dp, except_gp => gp, except_wp => wp
-  use m_ab7_mixing
+  use module_mixing
   use yaml_output
   use psp_projectors, only: PSPCODE_PAW,PSP_APPLY_SKIP
   implicit none
@@ -166,9 +166,9 @@ subroutine psitohpsi(iproc,nproc,atoms,scf,denspot,itrp,itwfn,iscf,alphamix,&
      call denspot_set_rhov_status(denspot, ELECTRONIC_DENSITY, itwfn, iproc, nproc)
 
      if (wfn%paw%usepaw) then
-        write(*,*) "DENSITY", sum(denspot%rhov) * product(denspot%dpbox%hgrids)
+        !write(*,*) "DENSITY", sum(denspot%rhov) * product(denspot%dpbox%hgrids)
         call paw_compute_rhoij(wfn%paw, wfn%orbs, atoms, denspot)
-        write(*,*) "DENSITY", sum(denspot%rhov) * product(denspot%dpbox%hgrids)
+        !write(*,*) "DENSITY", sum(denspot%rhov) * product(denspot%dpbox%hgrids)
      end if
 
      !before creating the potential, save the density in the second part 
@@ -924,6 +924,10 @@ subroutine NonLocalHamiltonianApplication(iproc,at,npsidim_orbs,orbs,&
      ispsi_k=ispsi
 
   end do loop_kpt
+
+  if(paw%usepaw) then  
+     call gather_cprj(orbs, paw)
+  end if
 
   if (.not. nl%on_the_fly) then !TO BE REMOVED WITH NEW PROJECTOR APPLICATION
      if (istart_ck-1 /= nl%nprojel) then
@@ -1699,7 +1703,7 @@ subroutine hpsitopsi(iproc,nproc,iter,idsx,wfn,&
    !local variables
    !character(len=*), parameter :: subname='hpsitopsi'
    !debug
-   integer :: jorb,iat
+!!$   integer :: jorb,iat
    !end debug
 
    if(wfn%paw%usepaw) then
@@ -1754,8 +1758,6 @@ subroutine hpsitopsi(iproc,nproc,iter,idsx,wfn,&
 
 !    Transpose spsi:     
      call transpose_v(iproc,nproc,wfn%orbs,wfn%lzd%glr%wfd,wfn%comms,wfn%paw%spsi(1),wfn%hpsi(1))
-!    Gather cprj:
-     call gather_cprj()
    end if
 
    call timing(iproc,'Diis          ','OF')
@@ -1773,25 +1775,24 @@ subroutine hpsitopsi(iproc,nproc,iter,idsx,wfn,&
    end if
 
    !call checkortho_p(iproc,nproc,norb,nvctrp,psit)
-   if(wfn%paw%usepaw) then
-      !debug: 
-      call checkortho_paw(iproc,wfn%orbs%norb*wfn%orbs%nspinor,&
-           wfn%comms%nvctr_par(iproc,0),wfn%psit,wfn%paw%spsi)
-      if (iproc == 0 .and. verbose > 1) then
-!!$      write(*,*)'hpsiortho, l1478 erase me:'
-         call yaml_sequence_open('cprj(:,1) (5 first orbitals)')
-         do iat=1,wfn%paw%natom
-            call yaml_mapping_open("atom" // trim(yaml_toa(iat, fmt = "(I0)")))
-            do jorb=1,min(5, wfn%orbs%norbu)
-               call yaml_map("iorb" // trim(yaml_toa(jorb, fmt = "(I0)")), yaml_toa(wfn%paw%cprj(iat,jorb)%cp(:,1)))
-               !write(*,'(a,2(i4,1x),1000f20.12)')' cprj(iat,jorb)%cp(:,:)=',iat,jorb,wfn%paw%cprj(iat,jorb)%cp(:,:)
-               !call yaml_comment("iorb #" // yaml_toa(jorb, fmt = "(I0)"))
-            end do
-            call yaml_mapping_close()
-         end do
-         call yaml_sequence_close()
-      end if
-   end if
+!!$   if(wfn%paw%usepaw) then
+!!$      !debug: 
+!!$      call checkortho_paw(iproc,wfn%orbs%norb*wfn%orbs%nspinor,&
+!!$           wfn%comms%nvctr_par(iproc,0),wfn%psit,wfn%paw%spsi)
+!!$      if (iproc == 0 .and. verbose > 1) then
+!!$         call yaml_sequence_open('cprj(:,1) (5 first orbitals)')
+!!$         do iat=1,wfn%paw%natom
+!!$            call yaml_mapping_open("atom" // trim(yaml_toa(iat, fmt = "(I0)")))
+!!$            do jorb=1,min(5, wfn%orbs%norbu)
+!!$               call yaml_map("iorb" // trim(yaml_toa(jorb, fmt = "(I0)")), yaml_toa(wfn%paw%cprj(iat,jorb)%cp(:,1)))
+!!$               !write(*,'(a,2(i4,1x),1000f20.12)')' cprj(iat,jorb)%cp(:,:)=',iat,jorb,wfn%paw%cprj(iat,jorb)%cp(:,:)
+!!$               !call yaml_comment("iorb #" // yaml_toa(jorb, fmt = "(I0)"))
+!!$            end do
+!!$            call yaml_mapping_close()
+!!$         end do
+!!$         call yaml_sequence_close()
+!!$      end if
+!!$   end if
 
    call untranspose_v(iproc,nproc,wfn%orbs,wfn%Lzd%Glr%wfd,wfn%comms,&
         wfn%psit(1),wfn%hpsi(1),out_add=wfn%psi(1))
@@ -1834,104 +1835,6 @@ subroutine hpsitopsi(iproc,nproc,iter,idsx,wfn,&
 
    !end if
    !END DEBUG
-
-contains
-
-   !> In this routine cprj will be communicated to all processors
-   subroutine gather_cprj()
-     use module_base
-     use module_types
-     implicit none
-   ! Local variables:
-     integer::iatom,ilmn,iorb,ierr,ikpts,jproc
-     character(len=*), parameter :: subname='gather_cprj'
-   ! Tabulated data to be send/received for mpi
-     integer,allocatable,dimension(:):: ndsplt
-     integer,allocatable,dimension(:):: ncntd 
-     integer,allocatable,dimension(:):: ncntt 
-   ! auxiliar arrays
-     real(dp),allocatable,dimension(:,:,:,:)::raux,raux2  
-
-     if (nproc > 1) then
-
-   !   Allocate temporary arrays
-       ndsplt = f_malloc(0.to.nproc-1,id='ndsplt')
-       ncntd = f_malloc(0.to.nproc-1,id='ncntd')
-       ncntt = f_malloc(0.to.nproc-1,id='ncntt')
-       raux = f_malloc((/ 2, wfn%paw%lmnmax, wfn%paw%natom, wfn%orbs%norbp /),id='raux')
-       raux2 = f_malloc((/ 2, wfn%paw%lmnmax, wfn%paw%natom, wfn%orbs%norb /),id='raux2')
-
-   !   Set tables for mpi operations:
-   !   Send buffer:
-       do jproc=0,nproc-1
-         ncntd(jproc)=0
-         do ikpts=1,wfn%orbs%nkpts
-           ncntd(jproc)=ncntd(jproc)+&
-                2*wfn%paw%lmnmax*wfn%paw%natom*wfn%orbs%norb_par(iproc,ikpts)*wfn%orbs%nspinor
-         end do
-       end do
-   !   receive buffer:
-       do jproc=0,nproc-1
-          ncntt(jproc)=0
-          do ikpts=1,wfn%orbs%nkpts
-             ncntt(jproc)=ncntt(jproc)+&
-                  2*wfn%paw%lmnmax*wfn%paw%natom*wfn%orbs%norb_par(jproc,ikpts)*wfn%orbs%nspinor
-          end do
-       end do
-   !   Displacements table:
-   !    ndspld(0)=0
-   !    do jproc=1,nproc-1
-   !      ndspld(jproc)=ndspld(jproc-1)+ncntd(jproc-1)
-   !    end do
-       ndsplt(0)=0
-       do jproc=1,nproc-1
-          ndsplt(jproc)=ndsplt(jproc-1)+ncntt(jproc-1)
-       end do
-
-   !   Transfer cprj to raux:
-       raux=0.0_dp
-   !Missing nspinor
-       do iorb=1,wfn%orbs%norbp
-         do iatom=1,wfn%paw%natom
-           do ilmn=1,wfn%paw%cprj(iatom,iorb)%nlmn
-             raux(:,ilmn,iatom,iorb)=wfn%paw%cprj(iatom,iorb)%cp(:,ilmn)
-           end do
-         end do
-       end do
-   !
-   !    sendcnt=2*lmnmax*natom*orbs%norbp !N. of data to send
-   !    recvcnt=2*lmnmax*natom*orbs%norb  !N. of data to receive
-   !   
-   !    call MPI_ALLGATHER(raux,sendcnt,MPI_DOUBLE_PRECISION,&
-   !&     raux2,recvcnt,MPI_DOUBLE_PRECISION,MPI_COMM_WORLD,ierr)
-       call MPI_ALLGATHERV(raux,ncntd,mpidtypw,&
-   &     raux2,ncntt,ndsplt,mpidtypw,MPI_COMM_WORLD,ierr)
-   !
-   !   Transfer back, raux2 to cprj:
-   !   First set cprj to zero
-       do iorb=1,wfn%orbs%norbp
-         do iatom=1,wfn%paw%natom
-           wfn%paw%cprj(iatom,iorb)%cp(:,:)=0.0_dp
-         end do
-       end do
-   !
-       do iorb=1,wfn%orbs%norb
-         do iatom=1,wfn%paw%natom
-           do ilmn=1,wfn%paw%cprj(iatom,iorb)%nlmn
-             wfn%paw%cprj(iatom,iorb)%cp(:,ilmn)=raux2(:,ilmn,iatom,iorb)
-           end do
-         end do
-       end do
-   !   Deallocate arrays:
-       call f_free(ndsplt)
-       call f_free(ncntd)
-       call f_free(ncntt)
-       call f_free(raux)
-       call f_free(raux2)
-     end if
-
-
-   end subroutine gather_cprj
 
 END SUBROUTINE hpsitopsi
 
@@ -1979,6 +1882,8 @@ subroutine first_orthon(iproc,nproc,orbs,lzd,comms,psi,hpsi,psit,orthpar,paw)
    if (nproc>1) then
        call transpose_v(iproc,nproc,orbs,lzd%glr%wfd,comms,psi(1),&
           &   hpsi(1),out_add=psit(1))
+       if (usepaw) call transpose_v(iproc,nproc,orbs,lzd%glr%wfd,comms,&
+            & paw%spsi(1), hpsi(1))
    else
        ! work array not nedded for nproc==1, so pass the same address
        call transpose_v(iproc,nproc,orbs,lzd%glr%wfd,comms,psi(1),&
@@ -3329,7 +3234,7 @@ end subroutine integral_equation
 !> Compute the Dij coefficients from the current KS potential.
 subroutine paw_compute_dij(paw, at, denspot, vxc, e_paw, e_pawdc, compch_sph)
   use module_types, only: paw_objects, atoms_data, DFT_local_fields, KS_POTENTIAL
-  use module_defs, only: gp, Ha_eV
+  use module_defs, only: gp, Ha_eV, bigdft_mpi
   use m_paw_an, only: paw_an_reset_flags
   use m_paw_ij, only: paw_ij_reset_flags
   use m_pawdij, only: pawdij
@@ -3375,8 +3280,8 @@ subroutine paw_compute_dij(paw, at, denspot, vxc, e_paw, e_pawdc, compch_sph)
   !&     mpi_comm_atom=mpi_enreg%comm_atom,mpi_atmtab=mpi_enreg%my_atmtab,&
   !&     vpotzero=vpotzero)
 
-  call yaml_map('average electrostatic smooth potential [Ha] , [eV]', &
-       & (/ SUM(vpotzero(:)),SUM(vpotzero(:))*Ha_eV /))
+  !call yaml_map('average electrostatic smooth potential [Ha] , [eV]', &
+  !     & (/ SUM(vpotzero(:)),SUM(vpotzero(:))*Ha_eV /))
 
   denspot%rhov(:) = denspot%rhov(:) + SUM(vpotzero(:))
   if(option/=1)then
@@ -3386,17 +3291,21 @@ subroutine paw_compute_dij(paw, at, denspot, vxc, e_paw, e_pawdc, compch_sph)
      !      neutral systems)
      e_pawdc = e_pawdc - SUM(vpotzero) * sum(at%nelpsp) + vpotzero(2) * charge
   end if
-  call yaml_map('PAW energies', (/ e_paw, e_pawdc /))
-  call yaml_map('Compensation charge in spheres', compch_sph)
+  if (bigdft_mpi%iproc == 0) then
+     call yaml_newline()
+     call yaml_map('PAW energies', (/ e_paw, e_pawdc /))
+     call yaml_map('Compensation charge in spheres', compch_sph)
+     call yaml_newline()
+  end if
 
   if (denspot%rhov_is /= KS_POTENTIAL) stop "rhov must be KS pot here."
   call pawdij(cplex, enunit, gprimd, ipert, size(paw%pawrhoij), at%astruct%nat, nfft, nfftot, &
        & denspot%dpbox%nrhodim, at%astruct%ntypes, paw%paw_an, paw%paw_ij, at%pawang, &
        & paw%pawfgrtab, pawprtvol, at%pawrad, paw%pawrhoij, pawspnorb, at%pawtab, pawxcdev, &
-       & qphon, spnorbscl, ucvol, charge, denspot%rhov, vxc, xred) !, &
+       & qphon, spnorbscl, ucvol, charge, denspot%rhov, vxc, xred, &
+       & mpi_comm_grid = bigdft_mpi%mpi_comm) !, &
   !&     natvshift=dtset%natvshift,atvshift=dtset%atvshift,fatvshift=fatvshift) !,&
   !&     mpi_comm_atom=mpi_enreg%comm_atom,mpi_atmtab=mpi_enreg%my_atmtab,&
-  !&     mpi_comm_grid=spaceComm_grid)
 
   call f_free(xred)
 
@@ -3410,6 +3319,7 @@ subroutine paw_compute_rhoij(paw, orbs, atoms, denspot)
   use m_pawrhoij, only: pawrhoij_type, pawrhoij_init_unpacked, pawrhoij_mpisum_unpacked, &
        & pawrhoij_free
   use dynamic_memory
+  use yaml_output
   use abi_defs_basis, only: AB7_NO_ERROR
   use m_ab6_symmetry
   use abi_interfaces_add_libpaw, only: abi_pawaccrhoij, abi_pawmkrho
@@ -3434,6 +3344,7 @@ subroutine paw_compute_rhoij(paw, orbs, atoms, denspot)
   integer, pointer  :: sym(:,:,:), indsym(:,:,:)
   integer, pointer  :: symAfm(:)
   real(gp), pointer :: transNon(:,:)
+!!$  real(gp), dimension(:,:), allocatable :: nhat
 
   !Build and initialize unpacked rhoij (to be computed here)
   call pawrhoij_init_unpacked(paw%pawrhoij)
@@ -3491,7 +3402,7 @@ subroutine paw_compute_rhoij(paw, orbs, atoms, denspot)
      sym(3,3,1) = 1
      indsym = f_malloc_ptr((/ 4, nsym, atoms%astruct%nat /), id = "indsym")
      allocate(symObj)
-     symObj%xred = f_malloc_ptr((/ 3, atoms%astruct%nat /), id = "xred")
+     symObj%xred = f_malloc0_ptr((/ 3, atoms%astruct%nat /), id = "xred")
   end if
 
   !Get the symmetry matrices in terms of reciprocal basis
@@ -3501,13 +3412,21 @@ subroutine paw_compute_rhoij(paw, orbs, atoms, denspot)
   end do
 
   if (denspot%rhov_is /= ELECTRONIC_DENSITY) stop "rhov must be density here."
+  if (bigdft_mpi%iproc == 0) then
+     call yaml_newline()
+  end if
+!!$  nhat = f_malloc((/ nfft, denspot%dpbox%nrhodim /), id = "nhat")
   call abi_pawmkrho(compch_fft,cplex,symObj%gprimd,idir,indsym,ipert,&
 &          nfft, nfft / 8, ngfft, &
 &          size(paw%pawrhoij),atoms%astruct%nat,denspot%dpbox%nrhodim,nsym,atoms%astruct%ntypes, &
 & 0,atoms%pawang,paw%pawfgrtab,pawprtvol,&
 &          paw%pawrhoij,paw%pawrhoij,&
 &          atoms%pawtab,qphon,denspot%rhov,denspot%rhov,denspot%rhov,&
-& symObj%rprimd,symAfm,symrec,atoms%astruct%iatype,ucvol,usewvl,symObj%xred)
+& symObj%rprimd,symAfm,symrec,atoms%astruct%iatype,ucvol,usewvl,symObj%xred)!,&
+!!$& pawnhat = nhat)
+!!$  call plot_density(bigdft_mpi%iproc,bigdft_mpi%nproc,"nhat.cube",atoms,&
+!!$       & symObj%xred,denspot%dpbox,denspot%dpbox%nrhodim,nhat)
+!!$  call f_free(nhat)
 
   call f_free(symrec)
 

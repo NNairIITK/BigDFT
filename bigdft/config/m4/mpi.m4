@@ -152,7 +152,7 @@ end
       AC_MSG_WARN([  set --disable-mpi in the configure line.])
       ac_use_mpi="warn"
       MPI_LIBS=
-      MPI_INCLUDE='-I$(top_builddir)/src/modules'
+      MPI_INCLUDE=
       MPI_LDFLAGS=
     fi
   
@@ -160,8 +160,9 @@ end
     LDFLAGS="$LDFLAGS_OLD"
     FCFLAGS="$FCFLAGS_OLD"
   else
-    dnl We put an include in case of no MPI to have access to mpi fake.
-    MPI_INCLUDE='-I$(top_builddir)/src/modules'
+    MPI_LIBS=
+    MPI_INCLUDE=
+    MPI_LDFLAGS=
   fi
   
   AM_CONDITIONAL(USE_MPI, test "$ac_use_mpi" = "yes")

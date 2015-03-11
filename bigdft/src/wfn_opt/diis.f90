@@ -449,7 +449,7 @@ subroutine mix_rhopot(iproc,nproc,npoints,alphamix,mix,rhopot,istep,&
   use module_base
   use module_types
   use abi_defs_basis, only: AB7_NO_ERROR
-  use m_ab7_mixing
+  use module_mixing
   implicit none
   integer, intent(in) :: npoints, istep, n1, n2, n3, nproc, iproc
   real(gp), intent(in) :: alphamix, ucvol

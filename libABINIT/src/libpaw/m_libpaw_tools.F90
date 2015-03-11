@@ -258,6 +258,9 @@ subroutine libpaw_write_lines(unit,msg)
 !Local variables ------------------------------
 !scalars
  integer :: msg_size,ii,jj,rtnpos
+#if defined HAVE_LIBPAW_BIGDFT
+ character(len = len_trim(msg)) :: msg_out
+#endif
 
 !******************************************************************
 
@@ -265,7 +268,15 @@ subroutine libpaw_write_lines(unit,msg)
 
 #if defined HAVE_YAML
  if (msg_size>0 .and. unit==std_out) then
-    call yaml_comment(msg)
+    ! Change any carriage return into space.
+    do ii = 1, msg_size
+       if (msg(ii:ii) /= char(10)) then
+          msg_out(ii:ii) = msg(ii:ii)
+       else
+          msg_out(ii:ii) = " "
+       end if
+    end do
+    call yaml_comment(msg_out)
  end if
  return
 #endif

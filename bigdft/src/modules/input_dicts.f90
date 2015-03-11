@@ -690,11 +690,11 @@ contains
           end if
        end do
     end if
-    if (maxrad == 0.0_gp) then
-       radii_cf(3)=0.0_gp
-    else
+!!$    if (maxrad == 0.0_gp) then
+!!$       radii_cf(3)=0.0_gp
+!!$    else
        radii_cf(3)=max(min(radii_cf(3),projrad*maxrad/frmult),radii_cf(2))
-    end if
+!!$    end if
     radii => dict_psp // RADII_KEY
     call set(radii // COARSE, radii_cf(1))
     call set(radii // FINE, radii_cf(2))
@@ -714,6 +714,7 @@ contains
     use m_pawtab, only: pawtab_type, pawtab_nullify
     use psp_projectors, only: PSPCODE_PAW
     use public_keys, only: SOURCE_KEY
+    use dynamic_memory
     implicit none
     !Arguments
     type(dictionary), pointer :: dict        !< Input dictionary
@@ -759,12 +760,14 @@ contains
                 !call pawrad_nullify(atoms%pawrad(ityp2))
                 call pawtab_nullify(atoms%pawtab(ityp2))
              end do
+             atoms%epsatm = f_malloc_ptr(atoms%astruct%ntypes, id = "epsatm")
           end if
           ! Re-read the pseudo for PAW arrays.
           fpaw = dict // filename // SOURCE_KEY
           !write(*,*) 'Reading of PAW atomic-data, under development', trim(fpaw)
           call libxc_functionals_init(atoms%ixcpsp(ityp), 1)
-          call paw_from_file(atoms%pawrad(ityp), atoms%pawtab(ityp), trim(fpaw), &
+          call paw_from_file(atoms%pawrad(ityp), atoms%pawtab(ityp), &
+               & atoms%epsatm(ityp), trim(fpaw), &
                & atoms%nzatom(ityp), atoms%nelpsp(ityp), atoms%ixcpsp(ityp))
           call libxc_functionals_end()
        end if

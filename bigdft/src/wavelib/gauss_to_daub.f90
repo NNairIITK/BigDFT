@@ -918,14 +918,23 @@ contains
     !modification of the calculation.
     !at this stage the values of c are fixed to zero
     !print *,'ncplx',ncplx,n_left,n_right,nwork,length
-    do icplx=1,ncplx_w
-       do i=n_left,n_right
-          j=modulo(i,nmax+1)
-          c(icplx,j,1)=c(icplx,j,1)+ww(i-n_left       ,2,icplx)
-          c(icplx,j,2)=c(icplx,j,2)+ww(i-n_left+length,2,icplx)
+    if (ncplx_g == 1) then
+       do icplx=1,ncplx_w
+          do i=n_left,n_right
+             j=modulo(i,nmax+1)
+             c(icplx,j,1)=c(icplx,j,1)+ww(i-n_left       ,2,icplx)
+             c(icplx,j,2)=c(icplx,j,2)+ww(i-n_left+length,2,icplx)
+          end do
        end do
-    end do
-
+    else
+       do icplx=1,ncplx_w
+          do i=n_left,n_right
+             j=modulo(i,nmax+1)
+             cc(icplx,j,1)=cc(icplx,j,1)+ww(i-n_left       ,2,icplx)
+             cc(icplx,j,2)=cc(icplx,j,2)+ww(i-n_left+length,2,icplx)
+          end do
+       end do
+    end if
 
   END SUBROUTINE fold_tail
 
