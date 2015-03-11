@@ -25,20 +25,22 @@ program memguess
    use gaussians, only: gaussian_basis, deallocate_gwf
    use communications_base, only: deallocate_comms
    use psp_projectors, only: free_DFT_PSP_projectors
+   use io, only: read_linear_matrix_dense, read_coeff_minbasis
    implicit none
    character(len=*), parameter :: subname='memguess'
    character(len=30) :: tatonam, radical
    character(len=2) :: num
    character(len=40) :: comment
    character(len=1024) :: fcomment
-   character(len=128) :: fileFrom, fileTo,filename_wfn, coeff_file, kernel_file, ntmb_, norbks_, interval_, npdos_, nat_
+   character(len=128) :: fileFrom, fileTo,filename_wfn, coeff_file, kernel_file, matrix_file
+   character(len=128) :: ntmb_, norbks_, interval_, npdos_, nat_, nsubmatrices_
    character(len=128) :: output_pdos
    logical :: optimise,GPUtest,atwf,convert=.false.,exportwf=.false.,logfile=.false.
    logical :: disable_deprecation = .false.,convertpos=.false.,transform_coordinates=.false.
-   logical :: calculate_pdos = .false., kernel_analysis = .false.
+   logical :: calculate_pdos = .false., kernel_analysis = .false., extract_submatrix = .false.
    integer :: ntimes,nproc,output_grid, i_arg,istat
    integer :: nspin,iorb,norbu,norbd,nspinor,norb,iorbp,iorb_out
-   integer :: norbgpu,ng
+   integer :: norbgpu,ng, nsubmatrices
    integer :: export_wf_iband, export_wf_ispin, export_wf_ikpt, export_wf_ispinor,irad
    real(gp) :: hx,hy,hz,energy,occup,interval
    type(memory_estimation) :: mem
@@ -65,10 +67,10 @@ program memguess
    !integer :: ncount0,ncount1,ncount_max,ncount_rate
    !! By Ali
    integer :: ierror, iat, itmb, jtmb, ntmb, norbks, npdos, iunit01, iunit02, norb_dummy, ipt, npt, ipdos, nat
-   integer :: iproc
+   integer :: iproc, isub, jat
    integer,dimension(:),allocatable :: na, nb, nc, on_which_atom
    integer,dimension(:,:),allocatable :: atoms_ref
-   real(kind=8),dimension(:,:),allocatable :: rxyz, rxyz_int, kernel, ham, overlap, coeff, pdos, energy_bins
+   real(kind=8),dimension(:,:),allocatable :: rxyz, rxyz_int, kernel, ham, overlap, coeff, pdos, energy_bins, matrix
    real(kind=8),dimension(:),allocatable :: eval
    !real(kind=8),parameter :: degree=57.295779513d0
    real(kind=8),parameter :: degree=1.d0
@@ -295,6 +297,19 @@ program memguess
             write(*,'(1x,5a)')&
                &   'calculate a full kernel from the coeffs in "', trim(coeff_file),'" and compres it to the sparse kernel in "', trim(kernel_file),'"'
             kernel_analysis = .true.
+            exit loop_getargs
+         else if (trim(tatonam)=='extract-submatrix') then
+            i_arg = i_arg + 1
+            call get_command_argument(i_arg, value = matrix_file)
+            i_arg = i_arg + 1
+            call get_command_argument(i_arg, value = ntmb_)
+            read(ntmb_,fmt=*,iostat=ierror) ntmb
+            i_arg = i_arg + 1
+            call get_command_argument(i_arg, value = nsubmatrices_)
+            read(nsubmatrices_,fmt=*,iostat=ierror) nsubmatrices
+            write(*,'(1x,a,i0,3a,2(i0,a))')&
+               &   'extract ',nsubmatrices,' submatrices from the matrix in "', trim(matrix_file),'" (size ',ntmb,'x',ntmb,')'
+            extract_submatrix = .true.
             exit loop_getargs
          else if (trim(tatonam) == 'dd') then
             ! dd: disable deprecation message
@@ -607,6 +622,27 @@ program memguess
        call read_linear_matrix_dense(iunit01, ntmb, kernel, on_which_atom)
        call f_close(iunit01)
        call analyze_kernel(ntmb, norbks, nat, coeff, kernel, rxyz, on_which_atom)
+       stop
+   end if
+
+   if (extract_submatrix) then
+       matrix = f_malloc((/ntmb,ntmb/),id='matrix')
+       on_which_atom = f_malloc(ntmb,id='on_which_atom')
+       call f_open_file(iunit01, file=trim(matrix_file), binary=.false.)
+       call read_linear_matrix_dense(iunit01, ntmb, matrix, on_which_atom)
+       call f_close(iunit01)
+       do isub=1,nsubmatrices
+           write(num,fmt='(i2.2)') isub
+           call f_open_file(iunit01, file=trim(matrix_file)//'_sub'//num, binary=.false.)
+           do itmb=isub,ntmb,nsubmatrices
+               iat = on_which_atom(itmb)
+               do jtmb=isub,ntmb,nsubmatrices
+                   jat = on_which_atom(jtmb)
+                   write(iunit01,'(2(i6,1x),e19.12,2(1x,i6))') itmb,jtmb,matrix(itmb,jtmb),iat,jat
+               end do
+           end do
+           call f_close(iunit01)
+       end do
        stop
    end if
 

@@ -2583,31 +2583,6 @@ module module_interfaces
          integer, dimension(orbs%norb), optional :: orblist
        end subroutine initialize_linear_from_file
 
-       subroutine io_read_descr_linear(unitwf, formatted, iorb_old, eval, n_old1, n_old2, n_old3, &
-            ns_old1, ns_old2, ns_old3, hgrids_old, lstat, error, onwhichatom, locrad, locregCenter, &
-            confPotOrder, confPotprefac, nvctr_c_old, nvctr_f_old, nat, rxyz_old)
-         use module_base
-         use module_types
-         implicit none
-         integer, intent(in) :: unitwf
-         logical, intent(in) :: formatted
-         integer, intent(out) :: iorb_old
-         integer, intent(out) :: n_old1, n_old2, n_old3, ns_old1, ns_old2, ns_old3
-         real(gp), dimension(3), intent(out) :: hgrids_old
-         logical, intent(out) :: lstat
-         real(wp), intent(out) :: eval
-         real(gp), intent(out) :: locrad
-         real(gp), dimension(3), intent(out) :: locregCenter
-         character(len =256), intent(out) :: error
-         integer, intent(out) :: onwhichatom
-         integer, intent(out) :: confPotOrder
-         real(gp), intent(out) :: confPotprefac
-         ! Optional arguments
-         integer, intent(out), optional :: nvctr_c_old, nvctr_f_old
-         integer, intent(in), optional :: nat
-         real(gp), dimension(:,:), intent(out), optional :: rxyz_old
-       end subroutine io_read_descr_linear
-
         subroutine readmywaves_linear_new(iproc,nproc,dir_output,filename,iformat,at,tmb,rxyz,&
                ref_frags,input_frag,frag_calc,orblist)
           use module_base
@@ -2660,34 +2635,6 @@ module module_interfaces
           type(local_zone_descriptors),intent(inout):: lzd_out
           character(len=*),intent(in):: subname
         end subroutine copy_local_zone_descriptors
-
-        subroutine io_read_descr_coeff(unitwf, formatted, norb_old, ntmb_old, &
-            & lstat, error, nat, rxyz_old)
-         use module_base
-         use module_types
-         implicit none
-         integer, intent(in) :: unitwf
-         logical, intent(in) :: formatted
-         integer, intent(out) :: norb_old, ntmb_old
-         logical, intent(out) :: lstat
-         character(len =256), intent(out) :: error
-         ! Optional arguments
-         integer, intent(in), optional :: nat
-         real(gp), dimension(:,:), intent(out), optional :: rxyz_old
-        end subroutine io_read_descr_coeff
-
-        subroutine read_coeff_minbasis(unitwf,useFormattedInput,iproc,ntmb,norb_old,nfvctr,coeff,eval,nat,rxyz_old)
-          use module_base
-          use module_types
-          implicit none
-          logical, intent(in) :: useFormattedInput
-          integer, intent(in) :: unitwf,iproc,ntmb,nfvctr
-          integer, intent(out) :: norb_old
-          real(wp), dimension(ntmb,ntmb), intent(out) :: coeff
-          real(wp), dimension(ntmb), intent(out) :: eval
-          integer, optional, intent(in) :: nat
-          real(gp), dimension(:,:), optional, intent(out) :: rxyz_old
-        end subroutine read_coeff_minbasis
 
         subroutine local_potential_dimensions(iproc,Lzd,orbs,xc,ndimfirstproc)
           use module_base
@@ -3999,15 +3946,6 @@ end subroutine build_ks_orbitals_laura_tmp
           real(kind=8),dimension(3,at%astruct%nat),intent(in) :: rxyz
           type(local_zone_descriptors),intent(in),optional :: lzd_l !< local descriptors
         end subroutine write_orbital_density
-
-        subroutine read_linear_matrix_dense(iunit, ntmb, matrix, on_which_atom)
-          use module_base
-          use module_types
-          implicit none
-          integer,intent(in) :: iunit, ntmb
-          real(kind=8),dimension(ntmb,ntmb),intent(out) :: matrix
-          integer,dimension(ntmb),intent(out),optional :: on_which_atom
-        end subroutine read_linear_matrix_dense
 
   end interface
 END MODULE module_interfaces
