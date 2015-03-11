@@ -1,7 +1,7 @@
 !> @file
 !!  Define the fortran types
 !! @author
-!!    Copyright (C) 2008-2013 BigDFT group (LG)
+!!    Copyright (C) 2008-2015 BigDFT group (LG)
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
@@ -553,7 +553,7 @@ module module_types
      !! the same holds for non-collinear calculations
      integer :: i3rho_add
      integer :: ndimpot,ndimgrid,ndimrhopot 
-     integer, dimension(3) :: ndims !< box containing the grid dimensions in ISF basis
+     integer, dimension(3) :: ndims   !< box containing the grid dimensions in ISF basis
      real(gp), dimension(3) :: hgrids !< grid spacings of the box (half of wavelet ones)
      integer, dimension(:,:), pointer :: nscatterarr, ngatherarr
      type(mpi_environment) :: mpi_env
@@ -926,19 +926,6 @@ module module_types
   end type DFT_optimization_loop
 
 
-  !> Define an iterator over the points of the grid which should be also inside a given box (for instance centered on an atom)
-  type, public :: dpbox_iterator
-    integer :: ix,iy,iz                  !< Indices of the three-dimensional arrays in distributed PSolver data scheme
-    integer :: ind                       !< One dimensional index (for pot_ion)
-    integer, dimension(3)  :: ibox       !< 3D indices in the given box specified by boxat
-    integer, dimension(2,3) :: box       !< Specify a sub-box to iterate over the points (ex. around atoms)
-    character(len=1), pointer :: geocode !< Original BC
-    logical :: perx,pery,perz            !< Conditions for periodicity in the three directions
-    real(gp) :: x,y,z                    !< Coordinates in the domain
-    type(denspot_distribution), pointer :: dpbox !< Pointer to the original dpbox on which we are iterating
-  end type dpbox_iterator
-
-
  !> Define generic subroutine
  interface input_set
     module procedure input_set_char, input_set_int, input_set_dbl, input_set_bool, &
@@ -1138,94 +1125,6 @@ module module_types
 
 
 contains
-
-   !> Function nullify an iterator over dpbox
-   pure function dpbox_iterator_null() result (boxit)
-     implicit none
-     type(dpbox_iterator) :: boxit
-     call  nullify_dpbox_iterator(boxit)
-   end function dpbox_iterator_null
-
-   !> Nullify the iterator dpbox type
-   pure subroutine nullify_dpbox_iterator(boxit)
-     implicit none
-     type(dpbox_iterator), intent(out) :: boxit
-     boxit%ix = -1
-     boxit%iy = -1
-     boxit%iz = -1
-     boxit%ind = -1
-     boxit%ibox(:) = -1
-     boxit%box(:,:) = -1
-     boxit%x = 0.0_gp
-     boxit%y = 0.0_gp
-     boxit%z = 0.0_gp
-     nullify(boxit%geocode)
-     nullify(boxit%dpbox)
-   end subroutine nullify_dpbox_iterator
-
-
-   !> Create an iterator dpbox to iterate over points of the (potential) grid 
-   function dpbox_iter(geocode,dpbox,box) result(boxit)
-     implicit none
-     type(denspot_distribution), intent(in), target :: dpbox
-     character(len=1), intent(in), target :: geocode
-     !> Box of start and end point which have to be considered
-     integer, dimension(2,3), intent(in), optional :: box
-     type(dpbox_iterator) :: boxit
-
-     call nullify_dpbox_iterator(boxit)
-
-     ! Associate the original objects
-     boxit%geocode => geocode
-     boxit%dpbox => dpbox
-     if (present(box)) then
-       boxit%box = box
-     else
-       boxit%box = 0
-     end if
-     !conditions for periodicity in the three directions
-     boxit%perx=(geocode /= 'F')
-     boxit%pery=(geocode == 'P')
-     boxit%perz=(geocode /= 'F')
-
-     ! Start counting
-
-   end function dpbox_iter
-
-
-  !> Increment a valid iterator
-  !! the control for validity has to be done outside
-  pure subroutine refresh_iterator(boxit)
-    implicit none
-    type(dpbox_iterator), intent(inout) :: boxit
-  end subroutine 
-
-
-  !> Increment, and nullify if ended
-  !! if the iterator is nullified, it does nothing
-   pure subroutine increment_boxit_iter(boxit)
-     implicit none
-     type(dpbox_iterator), intent(inout) :: boxit
-   end subroutine increment_boxit_iter
-
-
-  !> Logical function, returns .true. if the iterator is still valid
-  pure function dpbox_iter_is_valid(boxit)
-    implicit none
-    type(dpbox_iterator), intent(in) :: boxit
-    logical :: dpbox_iter_is_valid
-    
-    dpbox_iter_is_valid=associated(boxit%dpbox)
-  end function dpbox_iter_is_valid
-
-
-  !> Logical function for iterating above atoms
-  function dpbox_iter_next(boxit)
-    implicit none
-    type(dpbox_iterator), intent(inout) :: boxit
-    logical :: dpbox_iter_next
-  end function dpbox_iter_next
-
 
   !> Nullify all energy terms
   pure function energy_terms_null() result(en)

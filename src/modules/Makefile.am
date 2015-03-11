@@ -31,6 +31,7 @@ libmodules_a_SOURCES = base.f90 \
 	ab7_mixing.f90 \
 	gaussians.f90 \
 	locregs.f90 \
+	dpbox.f90 \
 	psp_projectors.f90 \
 	input_keys.f90 \
 	gaussdaub.f90 \
@@ -97,6 +98,7 @@ modules = MODULE_BASE.@MODULE_EXT@ \
 	MODULE_INPUT_DICTS.@MODULE_EXT@ \
 	PSP_PROJECTORS.@MODULE_EXT@ \
 	LOCREGS.@MODULE_EXT@ \
+	MODULE_DPBOX.@MODULE_EXT@ \
 	AO_INGUESS.@MODULE_EXT@ \
 	REFORMATTING.@MODULE_EXT@ \
 	MODULE_ATOMS.@MODULE_EXT@ \
@@ -140,6 +142,7 @@ modules = module_base.@MODULE_EXT@ \
 	module_input_dicts.@MODULE_EXT@ \
 	psp_projectors.@MODULE_EXT@ \
 	locregs.@MODULE_EXT@ \
+	module_dpbox.@MODULE_EXT@ \
 	ao_inguess.@MODULE_EXT@ \
 	reformatting.@MODULE_EXT@ \
 	module_atoms.@MODULE_EXT@ \
@@ -210,6 +213,7 @@ constrained_dft.o: base.o types.o sparsematrix_base.o
 input_dicts.o: $(top_builddir)/flib/src/dynamic_memory.o defs.o ao_inguess.o interfaces.o atoms_data.o input.o public_keys.o
 psp_projectors.o: locregs.o gaussians.o defs.o
 locregs.o: base.o
+dpbox.o: base.o types.o
 ao_inguess.o: $(AO_INCLUDES) base.o psp_projectors.o
 atoms_data.o: $(ATOMS_INCLUDES) ao_inguess.o internal_coordinates.o
 reformatting.o: base.o

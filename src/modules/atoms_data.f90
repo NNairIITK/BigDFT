@@ -161,7 +161,7 @@ contains
 
   !> Increment a valid iterator
   !! the control for validity has to be done outside
-  pure subroutine refresh_iterator(it)
+  pure subroutine atoms_refresh_iterator(it)
     use yaml_strings, only: f_strcpy
     implicit none
     type(atoms_iterator), intent(inout) :: it
@@ -171,7 +171,7 @@ contains
     it%frz(2)=move_this_coordinate(it%astruct_ptr%ifrztyp(it%iat),2)
     it%frz(3)=move_this_coordinate(it%astruct_ptr%ifrztyp(it%iat),3)    
     it%rxyz=it%astruct_ptr%rxyz(:,it%iat)
-  end subroutine refresh_iterator
+  end subroutine atoms_refresh_iterator
 
 
   !> Increment, and nullify if ended
@@ -183,7 +183,7 @@ contains
     if (associated(it%astruct_ptr)) then
        if (it%iat < it%astruct_ptr%nat) then
           it%iat=it%iat+1
-          call refresh_iterator(it)
+          call atoms_refresh_iterator(it)
        else
           !end iteration, the iterator is destroyed
           call nullify_atoms_iterator(it)

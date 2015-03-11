@@ -12,6 +12,7 @@
 module locregs
   use module_base
   implicit none
+
   private 
 
   !> Bounds for coarse and fine grids for kinetic operations
@@ -25,6 +26,7 @@ module locregs
      integer, dimension(:,:,:), pointer :: ibxy_f !< fine (2,0:n1,0:n2)
   end type kinetic_bounds
 
+
   !> Bounds to compress the wavefunctions
   !! Useful only for isolated systems AND in CPU
   type, public :: shrink_bounds
@@ -32,12 +34,14 @@ module locregs
      integer, dimension(:,:,:), pointer :: ibxy_ff,ibzzx_f,ibyyzz_f
   end type shrink_bounds
 
+
   !> Bounds to uncompress the wavefunctions
   !! Useful only for isolated systems AND in CPU
   type, public :: grow_bounds
      integer, dimension(:,:,:), pointer :: ibzxx_c,ibxxyy_c
      integer, dimension(:,:,:), pointer :: ibyz_ff,ibzxx_f,ibxxyy_f
   end type grow_bounds
+
 
   !> Bounds for convolutions operations
   !! Useful only for isolated systems AND in CPU
@@ -48,6 +52,7 @@ module locregs
      integer, dimension(:,:,:), pointer :: ibyyzz_r !< real space border
   end type convolutions_bounds
 
+
   !> Used for lookup table for compressed wavefunctions
   type, public :: wavefunctions_descriptors
      integer :: nvctr_c,nvctr_f,nseg_c,nseg_f
@@ -56,12 +61,14 @@ module locregs
      integer, dimension(:), pointer :: keyvloc,keyvglob
   end type wavefunctions_descriptors
 
+
   !> Grid dimensions in old different wavelet basis
   type, public :: grid_dimensions
      integer :: n1,n2,n3                      !< Coarse grid dimensions
      integer :: nfl1,nfu1,nfl2,nfu2,nfl3,nfu3 !< Lower and upper indices of fine grid in 3D 
      integer :: n1i,n2i,n3i                   !< ISF grid dimension (roughly 2*n+buffer)
   end type grid_dimensions
+
 
   !> Contains the information needed for describing completely a wavefunction localisation region
   type, public :: locreg_descriptors
@@ -75,17 +82,20 @@ module locregs
      real(gp) :: locrad                     !< Cutoff radius of the localization region
      real(gp) :: locrad_kernel              !< Cutoff radius of the localization region (kernel)
      real(gp) :: locrad_mult                !< Cutoff radius of the localization region for the sparse matrix multiplications
-     type(grid_dimensions) :: d
+     type(grid_dimensions) :: d             !< Grid dimensions in old different wavelet basis
      type(wavefunctions_descriptors) :: wfd
      type(convolutions_bounds) :: bounds
   end type locreg_descriptors
+
 
   public :: nullify_locreg_descriptors,locreg_null
   public :: deallocate_locreg_descriptors,deallocate_wfd
   public :: allocate_wfd,copy_locreg_descriptors,copy_grid_dimensions,nullify_wfd
 
+
 contains
   
+
   !constructors
   pure function convolutions_bounds_null() result(bounds)
     implicit none

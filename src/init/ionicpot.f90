@@ -602,15 +602,15 @@ subroutine createIonicPotential(geocode,iproc,nproc,verb,at,rxyz,&
 !!TD          mpz(i3) = mp_exp(hzh,rz,rlocinv2sq,i3,0,.true.)
 !!TD       end do
 !!TD    else
-!!TD       do i1=isx,iex
+!!TD       do i1=boxat(1,1),boxat(2,1)
 !!TD          x=real(i1,kind=8)*hxh-rx
 !!TD          mpx(i1) = exp(-rlocinv2sq*x**2)
 !!TD       end do
-!!TD       do i2=isy,iey
+!!TD       do i2=boxat(1,2),boxat(2,2)
 !!TD          y=real(i2,kind=8)*hyh-ry
 !!TD          mpy(i2) = exp(-rlocinv2sq*y**2)
 !!TD       end do
-!!TD       do i3=isz,iez
+!!TD       do i3=boxat(1,3),boxat(2,3)
 !!TD          z=real(i3,kind=8)*hzh-rz
 !!TD          mpz(i3) = exp(-rlocinv2sq*z**2)
 !!TD       end do
@@ -1297,6 +1297,7 @@ subroutine sum_erfcr(nat,ntypes,x,y,z,iatype,nelpsp,psppar,rxyz,potxyz)
 END SUBROUTINE sum_erfcr
 
 
+!> Calculate the size of the buffers in each direction
 subroutine ext_buffers(periodic,nl,nr)
   implicit none
   logical, intent(in) :: periodic
