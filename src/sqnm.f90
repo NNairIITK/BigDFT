@@ -1,17 +1,18 @@
 !> @file
 !!  Routines for Stefan's new minimization method
 !! @author Stefan Goedecker and Bastian Schaefer
-!! @section LICENCE
-!!    Copyright (C) 2014 BigDFT group
+!!    Copyright (C) 2014-2015 BigDFT group
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS
-!subroutine geopt(nat,wpos,etot,fout,fnrmtol,count,count_sd,displr)
+
+
+!> bigdft_state has to be run once on runObj and outs
+!! before calling this routine. sqnm will return to the caller the energies
+!! and coordinates used/obtained at the last accepted iteration step
 subroutine sqnm(runObj,outsIO,nproc,iproc,verbosity,ncount_bigdft,fail)
-!bigdft_state has to be run once on runObj and outs
-!before calling this routine. sqnm will return to the caller the energies
-!and coordinates used/obtained at the last accepted iteration step
+!subroutine geopt(nat,wpos,etot,fout,fnrmtol,count,count_sd,displr)
    use module_base
    use bigdft_run!module_types
    use yaml_output
@@ -27,15 +28,14 @@ subroutine sqnm(runObj,outsIO,nproc,iproc,verbosity,ncount_bigdft,fail)
    logical, intent(out)                   :: fail
    !local variables
    character(len=*), parameter :: subname='sqnm'
-   integer :: infocode,info !< variables containing state codes
-   integer :: nhistx !< maximum history length
-   integer :: nhist  !< actual history length
-   integer :: ndim   !< dimension of significant subspace
-   integer :: nit    !< maximum number of iterations
-   integer :: nat    !< number of atoms
-   integer :: istat,iall
+   integer :: infocode !< Variables containing state codes
+   integer :: nhistx   !< Maximum history length
+   integer :: nhist    !< Actual history length
+   integer :: ndim     !< Dimension of significant subspace
+   integer :: nit      !< Maximum number of iterations
+   integer :: nat      !< Number of atoms
    integer :: lwork
-   integer :: it,i,iat,l,j,idim,jdim,ihist,icheck !<counter variables
+   integer :: it,iat,l,ihist,icheck !< Counter variables
    integer :: itswitch
    integer :: imode
    integer :: nbond
@@ -44,16 +44,15 @@ subroutine sqnm(runObj,outsIO,nproc,iproc,verbosity,ncount_bigdft,fail)
    logical :: debug !< set .true. for debug output to fort.100
    logical :: steep !< steepest descent flag
    real(gp) :: displr !< (non-physical) integrated path length,
-                      !< includes displacements from rejctions
-                      !< (denoted as dsplr in geopt.mon)
+                      !! includes displacements from rejctions
+                      !! (denoted as dsplr in geopt.mon)
    real(gp) :: displp !< (physical) integrated path length,
-                      !< includes NO displacements from rejections
-                      !< (denoted as dsplp in geopt.mon)
+                      !! includes NO displacements from rejections
+                      !! (denoted as dsplp in geopt.mon)
    real(gp) :: etot 
    real(gp) :: fnrm
    real(gp) :: fmax
    real(gp) :: fluct
-   real(gp) :: fnoise
    real(gp) :: betax !< initial step size (gets not changed)
    real(gp) :: beta_stretchx
    real(gp) :: beta  !< current step size
@@ -103,7 +102,7 @@ subroutine sqnm(runObj,outsIO,nproc,iproc,verbosity,ncount_bigdft,fail)
    character(len=8)                        :: cdmy8
    integer :: ifail
     !functions
-    real(gp) :: ddot,dnrm2
+    real(gp) :: dnrm2
 
 
    !set parameters

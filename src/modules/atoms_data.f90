@@ -1,7 +1,7 @@
 !> @file
 !! Routines associated to the generation of data for atoms of the system
 !! @author
-!!    Copyright (C) 2007-2014 BigDFT group
+!!    Copyright (C) 2007-2015 BigDFT group
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
@@ -101,12 +101,12 @@ module module_atoms
 
   !> Iterator on atoms object
   type, public :: atoms_iterator
-     integer :: iat                 !< atom number
-     integer :: ityp                !< atom type
-     character(len=20) :: name      !< atom name
-     logical, dimension(3) :: frz   !< array of frozen coordinate of the atom
-     real(gp), dimension(3) :: rxyz !< atom positions
-     type(atomic_structure), pointer :: astruct_ptr !< private pointer to the atomic structure from which it derives
+     integer :: iat                                 !< Atom number
+     integer :: ityp                                !< Atom type
+     character(len=20) :: name                      !< Atom name
+     logical, dimension(3) :: frz                   !< Array of frozen coordinate of the atom
+     real(gp), dimension(3) :: rxyz                 !< Atom positions
+     type(atomic_structure), pointer :: astruct_ptr !< Private pointer to the atomic structure from which it derives
   end type atoms_iterator
 
 
@@ -123,28 +123,7 @@ module module_atoms
 contains
 
 
-  !> Iterate on atomic positions
-  function atoms_iter(astruct) result(it)
-    implicit none
-    type(atomic_structure), intent(in), target :: astruct
-    type(atoms_iterator) :: it
-
-    it=atoms_iterator_null()
-    !start counting
-    it%astruct_ptr => astruct
-    it%iat=0
-    it%ityp=0
-  end function atoms_iter
-
-
-  pure function atoms_iterator_null() result(it)
-    implicit none
-    type(atoms_iterator) :: it
-    
-    call nullify_atoms_iterator(it)
-  end function atoms_iterator_null
-
-
+  !> Nullify an iterator over atoms
   pure subroutine nullify_atoms_iterator(it)
     implicit none
     type(atoms_iterator), intent(out) :: it
@@ -155,6 +134,29 @@ contains
     it%rxyz=0.0_gp
     nullify(it%astruct_ptr)
   end subroutine nullify_atoms_iterator
+
+
+  !> Function to nullify an iterator avor atoms
+  pure function atoms_iterator_null() result(it)
+    implicit none
+    type(atoms_iterator) :: it
+    
+    call nullify_atoms_iterator(it)
+  end function atoms_iterator_null
+
+
+  !> Create an iterator over atoms (atomic_structure)
+  function atoms_iter(astruct) result(it)
+    implicit none
+    type(atomic_structure), intent(in), target :: astruct
+    type(atoms_iterator) :: it
+
+    it=atoms_iterator_null()
+    ! Start counting
+    it%astruct_ptr => astruct
+    it%iat=0
+    it%ityp=0
+  end function atoms_iter
 
 
   !> Increment a valid iterator

@@ -299,7 +299,7 @@ module module_types
      integer :: nrepmax
      integer :: ncong       !< Number of conjugate gradient iterations for the preconditioner
      integer :: idsx        !< DIIS history
-     integer :: ncongt      !< Number of conjugate garident for the tail treatment
+     integer :: ncongt      !< Number of conjugate gradient for the tail treatment
      integer :: inputpsiid  !< Input PSI choice
                             !!   - 0 : compute input guess for Psi by subspace diagonalization of atomic orbitals
                             !!   - 1 : read waves from argument psi, using n1, n2, n3, hgrid and rxyz_old
@@ -495,22 +495,22 @@ module module_types
      real(gp) :: exc     !< Exchange-correlation energy
      real(gp) :: evxc    !< Energy from the exchange-correlation potential
      real(gp) :: eion    !< Ion-Ion interaction
-     real(gp) :: edisp   !< Dispersion force
+     real(gp) :: edisp   !< Dispersion force energy
      real(gp) :: ekin    !< Kinetic term
      real(gp) :: epot    
      real(gp) :: eproj   
      real(gp) :: eexctX  
      real(gp) :: ebs     
      real(gp) :: eKS     
-     real(gp) :: trH     
+     real(gp) :: trH     !< Trace of Hamiltonian i.e. band structure 
      real(gp) :: evsum   
      real(gp) :: evsic   
      real(gp) :: excrhoc 
      real(gp) :: eTS     
-     real(gp) :: ePV     !< pressure term
-     real(gp) :: energy  !< the functional which is minimized
-     real(gp) :: e_prev  !< the previous value, to show the delta
-     real(gp) :: trH_prev!< the previous value, to show the delta
+     real(gp) :: ePV     !< Pressure term
+     real(gp) :: energy  !< The functional which is minimized
+     real(gp) :: e_prev  !< The previous value, to show the delta
+     real(gp) :: trH_prev!< The previous value, to show the delta
      !real(gp), dimension(:,:), pointer :: fion,f
 
      integer(kind = 8) :: c_obj !< Storage of the C wrapper object.
@@ -541,7 +541,6 @@ module module_types
      integer, dimension(:,:), pointer :: spkey,dpkey
      integer, dimension(:), pointer :: cseg_b,fseg_b
   end type rho_descriptors
-
 
 
   !> Define the structure used for the atomic positions
@@ -927,13 +926,28 @@ module module_types
   end type DFT_optimization_loop
 
 
+  !> Define an iterator over the points of the grid which should be also inside a given box (for instance centered on an atom)
+  type, public :: dpbox_iterator
+    integer :: ix,iy,iz                  !< Indices of the three-dimensional arrays in distributed PSolver data scheme
+    integer :: ind                       !< One dimensional index (for pot_ion)
+    integer, dimension(3)  :: ibox       !< 3D indices in the given box specified by boxat
+    integer, dimension(2,3) :: box       !< Specify a sub-box to iterate over the points (ex. around atoms)
+    character(len=1), pointer :: geocode !< Original BC
+    logical :: perx,pery,perz            !< Conditions for periodicity in the three directions
+    real(gp) :: x,y,z                    !< Coordinates in the domain
+    type(denspot_distribution), pointer :: dpbox !< Pointer to the original dpbox on which we are iterating
+  end type dpbox_iterator
+
+
+ !> Define generic subroutine
  interface input_set
     module procedure input_set_char, input_set_int, input_set_dbl, input_set_bool, &
          & input_set_int_array, input_set_dbl_array, input_set_bool_array, &
          & input_set_dict
  end interface input_set
 
- !>timing categories
+
+ !> Timing categories
  character(len=*), parameter, private :: tgrp_pot='Potential'
  integer, save, public :: TCAT_EXCHANGECORR=TIMING_UNINITIALIZED
  integer, parameter, private :: ncls_max=6,ncat_bigdft=146   ! define timimg categories and classes
@@ -1122,8 +1136,98 @@ module module_types
  public :: energy_terms_null, work_mpiaccumulate_null
  public :: allocate_work_mpiaccumulate, deallocate_work_mpiaccumulate
 
+
 contains
 
+   !> Function nullify an iterator over dpbox
+   pure function dpbox_iterator_null() result (boxit)
+     implicit none
+     type(dpbox_iterator) :: boxit
+     call  nullify_dpbox_iterator(boxit)
+   end function dpbox_iterator_null
+
+   !> Nullify the iterator dpbox type
+   pure subroutine nullify_dpbox_iterator(boxit)
+     implicit none
+     type(dpbox_iterator), intent(out) :: boxit
+     boxit%ix = -1
+     boxit%iy = -1
+     boxit%iz = -1
+     boxit%ind = -1
+     boxit%ibox(:) = -1
+     boxit%box(:,:) = -1
+     boxit%x = 0.0_gp
+     boxit%y = 0.0_gp
+     boxit%z = 0.0_gp
+     nullify(boxit%geocode)
+     nullify(boxit%dpbox)
+   end subroutine nullify_dpbox_iterator
+
+
+   !> Create an iterator dpbox to iterate over points of the (potential) grid 
+   function dpbox_iter(geocode,dpbox,box) result(boxit)
+     implicit none
+     type(denspot_distribution), intent(in), target :: dpbox
+     character(len=1), intent(in), target :: geocode
+     !> Box of start and end point which have to be considered
+     integer, dimension(2,3), intent(in), optional :: box
+     type(dpbox_iterator) :: boxit
+
+     call nullify_dpbox_iterator(boxit)
+
+     ! Associate the original objects
+     boxit%geocode => geocode
+     boxit%dpbox => dpbox
+     if (present(box)) then
+       boxit%box = box
+     else
+       boxit%box = 0
+     end if
+     !conditions for periodicity in the three directions
+     boxit%perx=(geocode /= 'F')
+     boxit%pery=(geocode == 'P')
+     boxit%perz=(geocode /= 'F')
+
+     ! Start counting
+
+   end function dpbox_iter
+
+
+  !> Increment a valid iterator
+  !! the control for validity has to be done outside
+  pure subroutine refresh_iterator(boxit)
+    implicit none
+    type(dpbox_iterator), intent(inout) :: boxit
+  end subroutine 
+
+
+  !> Increment, and nullify if ended
+  !! if the iterator is nullified, it does nothing
+   pure subroutine increment_boxit_iter(boxit)
+     implicit none
+     type(dpbox_iterator), intent(inout) :: boxit
+   end subroutine increment_boxit_iter
+
+
+  !> Logical function, returns .true. if the iterator is still valid
+  pure function dpbox_iter_is_valid(boxit)
+    implicit none
+    type(dpbox_iterator), intent(in) :: boxit
+    logical :: dpbox_iter_is_valid
+    
+    dpbox_iter_is_valid=associated(boxit%dpbox)
+  end function dpbox_iter_is_valid
+
+
+  !> Logical function for iterating above atoms
+  function dpbox_iter_next(boxit)
+    implicit none
+    type(dpbox_iterator), intent(inout) :: boxit
+    logical :: dpbox_iter_next
+  end function dpbox_iter_next
+
+
+  !> Nullify all energy terms
   pure function energy_terms_null() result(en)
     implicit none
     type(energy_terms) :: en
@@ -1150,6 +1254,8 @@ contains
     en%c_obj   =int(0,kind=8) 
   end function energy_terms_null
 
+
+  !> Nullify the data structure associated to Self-Interaction Correction (SIC)
   pure function SIC_data_null() result(SIC)
     implicit none
     type(SIC_data) :: SIC

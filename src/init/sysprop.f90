@@ -388,6 +388,7 @@ subroutine system_initialization(iproc,nproc,dump,inputpsi,input_wf_format,dry_r
 
   contains
 
+
     subroutine init_linear_orbs(linear_partition)
      implicit none
      integer,intent(in) :: linear_partition
@@ -679,12 +680,14 @@ subroutine system_initialization(iproc,nproc,dump,inputpsi,input_wf_format,dry_r
 
      end subroutine optimize_loadbalancing2
 
+
      subroutine redistribute2(norb, time_ideal, norb_par)
        implicit none
        integer,intent(in) :: norb
        real(kind=8),intent(in) :: time_ideal
        integer,dimension(0:nproc-1),intent(out) :: norb_par
-       integer :: jjorbtot, jjorb, jproc, jlr, jorb
+       integer :: jjorbtot, jjorb, jproc, jorb
+       !integer :: jlr
        real(kind=8) :: tcount
 
        call f_zero(norb_par)

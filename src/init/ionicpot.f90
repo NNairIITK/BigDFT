@@ -563,6 +563,67 @@ subroutine createIonicPotential(geocode,iproc,nproc,verb,at,rxyz,&
   !Creates charge density arising from the ionic PSP cores
   call f_zero(n1i*n2i*n3pi,pot_ion(1))
 
+!!TD atit = atoms_iter(at%astruct)
+!!TD do while(atoms_iter_next(atit))
+!!TD    rx=atit%rxyz(1) 
+!!TD    ry=atit%rxyz(2)
+!!TD    rz=atit%rxyz(3)
+!!TD
+!!TD    rloc=at%psppar(0,0,atit%ityp)
+!!TD    rlocinv2sq=0.5_gp/rloc**2
+!!TD    charge=real(at%nelpsp(atit%ityp),kind=8)/(2.d0*pi*sqrt(2.d0*pi)*rloc**3)
+!!TD
+!!TD    !cutoff of the range
+!!TD    cutoff=10.d0*rloc
+!!TD    if (at%multipole_preserving) then
+!!TD       !We want to have a good accuracy of the last point rloc*10
+!!TD        cutoff=cutoff+max(hxh,hyh,hzh)*real(nrange/2,kind=gp)
+!!TD    end if
+!!TD
+!!TD    boxat(1,1)=floor((rx-cutoff)/hxh)
+!!TD    boxat(1,2)=floor((ry-cutoff)/hyh)
+!!TD    boxat(1,3)=floor((rz-cutoff)/hzh)
+!!TD    boxat(2,1)=ceiling((rx+cutoff)/hxh)
+!!TD    boxat(2,2)=ceiling((ry+cutoff)/hyh)
+!!TD    boxat(2,3)=ceiling((rz+cutoff)/hzh)
+!!TD
+!!TD    !Separable function: do 1-D integrals before and store it.
+!!TD    mpx = f_malloc( (/ boaxat(1,1).to.boxat(2,1) /),id='mpx')
+!!TD    mpy = f_malloc( (/ boaxat(1,2).to.boxat(2,2) /),id='mpy')
+!!TD    mpz = f_malloc( (/ boaxat(1,3).to.boxat(2,3) /),id='mpz')
+!!TD    if (at%multipole_preserving) then
+!!TD       do i1=boxat(1,1),boxat(2,1)
+!!TD          mpx(i1) = mp_exp(hxh,rx,rlocinv2sq,i1,0,.true.)
+!!TD       end do
+!!TD       do i2=boxat(1,2),boxat(2,2)
+!!TD          mpy(i2) = mp_exp(hyh,ry,rlocinv2sq,i2,0,.true.)
+!!TD       end do
+!!TD       do i3=boxat(1,3),boxat(2,3)
+!!TD          mpz(i3) = mp_exp(hzh,rz,rlocinv2sq,i3,0,.true.)
+!!TD       end do
+!!TD    else
+!!TD       do i1=isx,iex
+!!TD          x=real(i1,kind=8)*hxh-rx
+!!TD          mpx(i1) = exp(-rlocinv2sq*x**2)
+!!TD       end do
+!!TD       do i2=isy,iey
+!!TD          y=real(i2,kind=8)*hyh-ry
+!!TD          mpy(i2) = exp(-rlocinv2sq*y**2)
+!!TD       end do
+!!TD       do i3=isz,iez
+!!TD          z=real(i3,kind=8)*hzh-rz
+!!TD          mpz(i3) = exp(-rlocinv2sq*z**2)
+!!TD       end do
+!!TD    end if
+!!TD
+!!TD    boxit = dpbox_iter(geocode,dpbox,boxat)
+!!TD    do while(dpbox_iter_next(boxit))
+!!TD       xp = mpx(boxit%ibox(1))* mpy(boxit%ibox(2)) *  mpz(boxit%ibox(3))
+!!TD       pot_ion(boxit%ind) = pot_ion(boxit%ind) - xp*charge
+!!TD    end do
+!!TD
+!!TD end do 
+
   !conditions for periodicity in the three directions
   perx=(geocode /= 'F')
   pery=(geocode == 'P')
@@ -1334,6 +1395,7 @@ subroutine CounterIonPotential(geocode,iproc,nproc,in,shift,&
   pery=(geocode == 'P')
   perz=(geocode /= 'F')
 
+  !Calculate external buffers for each direction
   call ext_buffers(perx,nbl1,nbr1)
   call ext_buffers(pery,nbl2,nbr2)
   call ext_buffers(perz,nbl3,nbr3)
