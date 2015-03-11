@@ -830,6 +830,14 @@ subroutine write_linear_matrices(iproc,nproc,imethod_overlap,filename,iformat,tm
      !open(99, file=filename//'hamiltonian.bin', status='unknown',form='unformatted')
      !end if
 
+     do iat=1,at%astruct%nat
+         if (.not. binary) then
+             write(unitm,'(a,3es24.16)') '#  ',rxyz(1:3,iat)
+         else
+             write(unitm) '#  ',rxyz(1:3,iat)
+         end if
+     end do
+
      do ispin=1,tmb%linmat%m%nspin
         do iorb=1,tmb%linmat%m%nfvctr
            iat=tmb%orbs%onwhichatom(iorb)
@@ -866,6 +874,14 @@ subroutine write_linear_matrices(iproc,nproc,imethod_overlap,filename,iformat,tm
      !open(99, file=filename//'overlap.bin', status='unknown',form='unformatted')
      !end if
 
+     do iat=1,at%astruct%nat
+         if (.not. binary) then
+             write(unitm,'(a,3es24.16)') '#  ',rxyz(1:3,iat)
+         else
+             write(unitm) '#  ',rxyz(1:3,iat)
+         end if
+     end do
+
      do ispin=1,tmb%linmat%s%nspin
         do iorb=1,tmb%linmat%s%nfvctr
            iat=tmb%orbs%onwhichatom(iorb)
@@ -899,6 +915,14 @@ subroutine write_linear_matrices(iproc,nproc,imethod_overlap,filename,iformat,tm
      !else
      !open(99, file=filename//'density_kernel.bin', status='unknown',form='unformatted')
      !end if
+
+     do iat=1,at%astruct%nat
+         if (.not. binary) then
+             write(unitm,'(a,3es24.16)') '#  ',rxyz(1:3,iat)
+         else
+             write(unitm) '#  ',rxyz(1:3,iat)
+         end if
+     end do
 
      do ispin=1,tmb%linmat%l%nspin
         do iorb=1,tmb%linmat%l%nfvctr
@@ -937,6 +961,14 @@ subroutine write_linear_matrices(iproc,nproc,imethod_overlap,filename,iformat,tm
      !else
      !open(99, file=filename//'overlap_onsite.bin', status='unknown',form='unformatted')
      !end if
+
+     do iat=1,at%astruct%nat
+         if (.not. binary) then
+             write(unitm,'(a,3es24.16)') '#  ',rxyz(1:3,iat)
+         else
+             write(unitm) '#  ',rxyz(1:3,iat)
+         end if
+     end do
 
      do ispin=1,tmb%linmat%l%nspin
         do iorb=1,tmb%linmat%l%nfvctr

@@ -32,12 +32,13 @@ program memguess
    character(len=2) :: num
    character(len=40) :: comment
    character(len=1024) :: fcomment
-   character(len=128) :: fileFrom, fileTo,filename_wfn, coeff_file, kernel_file, matrix_file
+   character(len=128) :: fileFrom, fileTo,filename_wfn, coeff_file, ham_file, overlap_file, kernel_file, matrix_file
    character(len=128) :: ntmb_, norbks_, interval_, npdos_, nat_, nsubmatrices_
    character(len=128) :: output_pdos
    logical :: optimise,GPUtest,atwf,convert=.false.,exportwf=.false.,logfile=.false.
    logical :: disable_deprecation = .false.,convertpos=.false.,transform_coordinates=.false.
    logical :: calculate_pdos = .false., kernel_analysis = .false., extract_submatrix = .false.
+   logical :: solve_eigensystem = .false.
    integer :: ntimes,nproc,output_grid, i_arg,istat
    integer :: nspin,iorb,norbu,norbd,nspinor,norb,iorbp,iorb_out
    integer :: norbgpu,ng, nsubmatrices
@@ -132,6 +133,10 @@ program memguess
       write(*,'(1x,a)')&
            & 'calculates a full kernel from the expansion coefficients "coeffs.bin" of dimension (nmtb x norb) &
            &and compare it with the sparse kernel in "kernel.bin"'
+      write(*,'(1x,a)')&
+           &   '"solve-eigensystem" <ham.bin> <overlap.bin> <coeffs.bin>" ' 
+      write(*,'(1x,a)')&
+           & 'solve the eigensystem Hc = lSc and write the coeffs c to disk'
 
       stop
    else
@@ -311,6 +316,24 @@ program memguess
             write(*,'(1x,a,i0,3a,2(i0,a))')&
                &   'extract ',nsubmatrices,' submatrices from the matrix in "', trim(matrix_file),'" (size ',ntmb,'x',ntmb,')'
             extract_submatrix = .true.
+            exit loop_getargs
+         else if (trim(tatonam)=='solve-eigensystem') then
+            i_arg = i_arg + 1
+            call get_command_argument(i_arg, value = ham_file)
+            i_arg = i_arg + 1
+            call get_command_argument(i_arg, value = overlap_file)
+            i_arg = i_arg + 1
+            call get_command_argument(i_arg, value = ntmb_)
+            read(ntmb_,fmt=*,iostat=ierror) ntmb
+            i_arg = i_arg + 1
+            call get_command_argument(i_arg, value = nat_)
+            read(ntmb_,fmt=*,iostat=ierror) nat
+            i_arg = i_arg + 1
+            call get_command_argument(i_arg, value = coeff_file)
+            read(nsubmatrices_,fmt=*,iostat=ierror) nsubmatrices
+            write(*,'(1x,2(a,i0))')&
+               &   'solve the eigensystem Hc=lSc of size ',ntmb,'x',ntmb
+            solve_eigensystem = .true.
             exit loop_getargs
          else if (trim(tatonam) == 'dd') then
             ! dd: disable deprecation message
@@ -513,13 +536,13 @@ program memguess
        ham = f_malloc((/ntmb,ntmb/),id='ham')
        overlap = f_malloc((/ntmb,ntmb/),id='overlap')
        call f_open_file(iunit01, file=trim(coeff_file), binary=.false.)
-       call read_coeff_minbasis(iunit01, .true., iproc, norbks, norb_dummy, ntmb, coeff, eval)
+       call read_coeff_minbasis(iunit01, .true., iproc, norbks, norb_dummy, ntmb, coeff, eval, nat)
        call f_close(iunit01)
        call f_open_file(iunit01, file='hamiltonian.bin', binary=.false.)
-       call read_linear_matrix_dense(iunit01, ntmb, ham)
+       call read_linear_matrix_dense(iunit01, ntmb, nat, ham)
        call f_close(iunit01)
        call f_open_file(iunit01, file='overlap.bin', binary=.false.)
-       call read_linear_matrix_dense(iunit01, ntmb, overlap)
+       call read_linear_matrix_dense(iunit01, ntmb, nat, overlap)
        call f_close(iunit01)
        npt = ceiling((eval(ntmb)-eval(1))/interval)
        pdos = f_malloc0((/npt,npdos/),id='pdos')
@@ -620,7 +643,7 @@ program memguess
        call read_coeff_minbasis(iunit01, .true., iproc, norbks, norb_dummy, ntmb, coeff, eval, nat, rxyz)
        call f_close(iunit01)
        call f_open_file(iunit01, file=trim(kernel_file), binary=.false.)
-       call read_linear_matrix_dense(iunit01, ntmb, kernel, on_which_atom)
+       call read_linear_matrix_dense(iunit01, ntmb, nat, kernel, on_which_atom=on_which_atom)
        call f_close(iunit01)
        call analyze_kernel(ntmb, norbks, nat, coeff, kernel, rxyz, on_which_atom)
        stop
@@ -630,7 +653,7 @@ program memguess
        matrix = f_malloc((/ntmb,ntmb/),id='matrix')
        on_which_atom = f_malloc(ntmb,id='on_which_atom')
        call f_open_file(iunit01, file=trim(matrix_file), binary=.false.)
-       call read_linear_matrix_dense(iunit01, ntmb, matrix, on_which_atom)
+       call read_linear_matrix_dense(iunit01, ntmb, nat, matrix, on_which_atom=on_which_atom)
        call f_close(iunit01)
        do isub=1,nsubmatrices
            write(num,fmt='(i2.2)') isub
@@ -644,6 +667,10 @@ program memguess
            end do
            call f_close(iunit01)
        end do
+       stop
+   end if
+
+   if (solve_eigensystem) then
        stop
    end if
 
