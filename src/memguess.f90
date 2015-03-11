@@ -64,7 +64,7 @@ program memguess
    !real(gp) :: tcpu0,tcpu1,tel
    !integer :: ncount0,ncount1,ncount_max,ncount_rate
    !! By Ali
-   integer :: ierror, iat, itmb, jtmb, ntmb, norbks, npdos, iunit, norb_dummy, ipt, npt, ipdos
+   integer :: ierror, iat, itmb, jtmb, ntmb, norbks, npdos, iunit01, iunit02, norb_dummy, ipt, npt, ipdos
    integer,dimension(:),allocatable :: na, nb, nc
    integer,dimension(:,:),allocatable :: atoms_ref
    real(kind=8),dimension(:,:),allocatable :: rxyz_int, kernel, ham, overlap, coeff, pdos, energy_bins
@@ -466,15 +466,15 @@ program memguess
        kernel = f_malloc((/ntmb,ntmb/),id='kernel')
        ham = f_malloc((/ntmb,ntmb/),id='ham')
        overlap = f_malloc((/ntmb,ntmb/),id='overlap')
-       call f_open_file(iunit, file=trim(coeff_file), binary=.false.)
-       call read_coeff_minbasis(iunit, .true., bigdft_mpi%iproc, norbks, norb_dummy, ntmb, coeff, eval)
-       call f_close(iunit)
-       call f_open_file(iunit, file='hamiltonian.bin', binary=.false.)
-       call read_linear_matrix_dense(iunit, ntmb, ham)
-       call f_close(iunit)
-       call f_open_file(iunit, file='overlap.bin', binary=.false.)
-       call read_linear_matrix_dense(iunit, ntmb, overlap)
-       call f_close(iunit)
+       call f_open_file(iunit01, file=trim(coeff_file), binary=.false.)
+       call read_coeff_minbasis(iunit01, .true., bigdft_mpi%iproc, norbks, norb_dummy, ntmb, coeff, eval)
+       call f_close(iunit01)
+       call f_open_file(iunit01, file='hamiltonian.bin', binary=.false.)
+       call read_linear_matrix_dense(iunit01, ntmb, ham)
+       call f_close(iunit01)
+       call f_open_file(iunit01, file='overlap.bin', binary=.false.)
+       call read_linear_matrix_dense(iunit01, ntmb, overlap)
+       call f_close(iunit01)
        npt = ceiling((eval(ntmb)-eval(1))/interval)
        pdos = f_malloc0((/npt,npdos/),id='pdos')
        energy_bins = f_malloc((/2,npt/),id='energy_bins')
@@ -483,12 +483,20 @@ program memguess
            energy_bins(1,ipt) = eval(1) + real(ipt-1,kind=8)*interval - eps_roundoff
            energy_bins(2,ipt) = energy_bins(1,ipt) + interval
        end do
+       output_pdos='PDoS.gp'
+       call yaml_map('output file',trim(output_pdos))
+       call f_open_file(iunit02, file=trim(output_pdos), binary=.false.)
+       write(iunit02,'(a)') '# plot the DOS as a sum of Gaussians'
+       write(iunit02,'(a,2(es12.5,a))') 'set xrange[',eval(1),':',eval(ntmb),']'
+       write(iunit02,'(a)') 'sigma=0.01'
        ! Calculate a partial kernel for each KS orbital
        do ipdos=1,npdos
            call yaml_map('PDoS number',ipdos)
            call yaml_map('start, increment',(/ipdos,npdos/))
+           write(num,fmt='(i2.2)') ipdos
+           write(iunit02,'(a,i0,a)') 'f',ipdos,'(x) = \'
            do iorb=1,norbks
-               call yamL_map('orbital being processed',iorb)
+               call yaml_map('orbital being processed',iorb)
                call gemm('n', 't', ntmb, ntmb, 1, 1.d0, coeff(1,iorb), ntmb, &
                     coeff(1,iorb), ntmb, 0.d0, kernel(1,1), ntmb)
                energy = 0.d0
@@ -522,19 +530,29 @@ program memguess
                if (.not.found_bin) then
                    call f_err_throw('could not determine energy bin, energy='//yaml_toa(energy),err_name='BIGDFT_RUNTIME_ERROR')
                end if
+               if (iorb<norbks) then
+                   write(iunit02,'(2(a,es16.9),a)') '  ',occup,'*exp(-(x-',energy,')**2/(2*sigma**2)) + \'
+               else
+                   write(iunit02,'(2(a,es16.9),a)') '  ',occup,'*exp(-(x-',energy,')**2/(2*sigma**2))'
+               end if
                !write(*,'(a,i6,3es16.8)')'iorb, eval(iorb), energy, occup', iorb, eval(iorb), energy, occup
            end do
-           write(num,fmt='(i2.2)') ipdos
-           output_pdos='PDoS_'//num//'.dat'
+           if (ipdos==1) then
+               write(iunit02,'(a,i0,a)') 'plot f',ipdos,'(x) w l'
+           else
+               write(iunit02,'(a,i0,a)') 'replot f',ipdos,'(x) w l'
+           end if
            call yaml_map('sum of PDoS',sum(pdos(:,ipdos)))
+           output_pdos='PDoS_'//num//'.dat'
            call yaml_map('output file',trim(output_pdos))
-           call f_open_file(iunit, file=trim(output_pdos), binary=.false.)
-           write(iunit,'(a)') '#             energy                pdos'
+           call f_open_file(iunit01, file=trim(output_pdos), binary=.false.)
+           write(iunit01,'(a)') '#             energy                pdos'
            do ipt=1,npt
-               write(iunit,'(2es20.12)') energy_bins(1,ipt), pdos(ipt,ipdos)
+               write(iunit01,'(2es20.12)') energy_bins(1,ipt), pdos(ipt,ipdos)
            end do
-           call f_close(iunit)
+           call f_close(iunit01)
        end do
+       call f_close(iunit02)
        call yaml_map('sum of total DoS',sum(pdos(:,:)))
 
        stop

@@ -1131,19 +1131,19 @@ geoptconstrained_SDCG:
  Atomic structure: 3.1e-9
 
 O2spin_diag:
- Atomic Forces (Ha/Bohr): 2.2e-7
+ Atomic Forces (Ha/Bohr): 2.6e-7
  Average noise forces: 7.7e-8
  Clean forces norm (Ha/Bohr): 8.0e-7
  Raw forces norm (Ha/Bohr): 7.8e-7
  Orbitals: 2.7e-7
- EH: 1.7e-6
+ EH: 1.8e-6
  EXC: 3.4e-7
- Ekin: 1.9e-6
+ Ekin: 2.1e-6
  Enl: 1.4e-6
- Epot: 2.3e-6
+ Epot: 2.4e-6
  EvXC: 1.4e-6
- Omega: 2.4e-7
- energy: 6.7e-8
+ Omega: 2.5e-7
+ energy: 7.3e-8
  multiplicator for the confinement: 1.4e-6
  D: 1.1e-9
  kappa: 1.1e-4
@@ -1292,7 +1292,7 @@ periodic_wateredge:
  PV (Ha): 2.7e-9
  Energy (Hartree): 7.1e-11
  Total ionic charge: 2.7e-11
- Pressure: 7.3e-10
+ Pressure: 7.4e-10
 
 periodic_water:
  EH: 3.1e-9
@@ -1316,7 +1316,7 @@ periodic_water:
  D Tr: 2.1e-7
  PV (Ha): 5.3e-10
  Total ionic charge: 6.0e-11
- Pressure: 5.5e-10
+ Pressure: 5.6e-10
 
 surface_boronnitride:
  Enl: 1.0e-9
