@@ -295,7 +295,8 @@ program memguess
             call get_command_argument(i_arg, value = nat_)
             read(nat_,fmt=*,iostat=ierror) nat
             write(*,'(1x,5a)')&
-               &   'calculate a full kernel from the coeffs in "', trim(coeff_file),'" and compres it to the sparse kernel in "', trim(kernel_file),'"'
+               &   'calculate a full kernel from the coeffs in "', trim(coeff_file), &
+               &'" and compres it to the sparse kernel in "', trim(kernel_file),'"'
             kernel_analysis = .true.
             exit loop_getargs
          else if (trim(tatonam)=='extract-submatrix') then
