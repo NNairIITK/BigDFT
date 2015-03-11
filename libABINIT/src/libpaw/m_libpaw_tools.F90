@@ -258,7 +258,7 @@ subroutine libpaw_write_lines(unit,msg)
 !Local variables ------------------------------
 !scalars
  integer :: msg_size,ii,jj,rtnpos
-#if defined HAVE_LIBPAW_BIGDFT
+#if defined HAVE_YAML
  character(len = len_trim(msg)) :: msg_out
 #endif
 

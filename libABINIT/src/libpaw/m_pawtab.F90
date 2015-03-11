@@ -1704,25 +1704,25 @@ subroutine pawtab_bcast(pawtab,comm_mpi,only_from_file)
        if (siz_wvl_pfac/=2*pawtab%wvl%ptotgau) msg=trim(msg)//' wvl_pfac'
        nn_dpr_arr=nn_dpr_arr+siz_wvl_pfac
      end if
-!      wvl%rholoc%msz
-       nn_int=nn_int+1
-     nn_int=nn_int+2
-       if (pawtab%wvl%rholoc%msz>0) then
-         if (allocated(pawtab%wvl%rholoc%rad)) then
-           siz_wvl_rholoc_rad=size(pawtab%wvl%rholoc%rad) !(msz)
-           if (siz_wvl_rholoc_rad/=pawtab%wvl%rholoc%msz) msg=trim(msg)//' wvl_rholoc_rad'
-           nn_dpr_arr=nn_dpr_arr+siz_wvl_rholoc_rad
-         end if
-         if (allocated(pawtab%wvl%rholoc%d)) then
-           siz_wvl_rholoc_d=size(pawtab%wvl%rholoc%d)     !(msz,4)
-           if (siz_wvl_rholoc_d/=4*pawtab%wvl%rholoc%msz) msg=trim(msg)//' wvl_rholoc_d'
-           nn_dpr_arr=nn_dpr_arr+siz_wvl_rholoc_d
-         end if
+!    wvl%rholoc%msz
+     nn_int=nn_int+3
+     if (pawtab%wvl%rholoc%msz>0) then
+       if (allocated(pawtab%wvl%rholoc%rad)) then
+         siz_wvl_rholoc_rad=size(pawtab%wvl%rholoc%rad) !(msz)
+         if (siz_wvl_rholoc_rad/=pawtab%wvl%rholoc%msz) msg=trim(msg)//' wvl_rholoc_rad'
+         nn_dpr_arr=nn_dpr_arr+siz_wvl_rholoc_rad
+       end if
+       if (allocated(pawtab%wvl%rholoc%d)) then
+         siz_wvl_rholoc_d=size(pawtab%wvl%rholoc%d)     !(msz,4)
+         if (siz_wvl_rholoc_d/=4*pawtab%wvl%rholoc%msz) msg=trim(msg)//' wvl_rholoc_d'
+         nn_dpr_arr=nn_dpr_arr+siz_wvl_rholoc_d
        end if
      end if
+   end if
 
 !Datastructures (depending on the parameters of the calculation)
 !-------------------------------------------------------------------------
+!  Nothing
 
 !  Are the sizes OK ?
    if (trim(msg)/='') then
