@@ -67,6 +67,10 @@ libmodules_a_SOURCES = base.f90 \
 	transposed_operations.f90 \
 	module_forces.f90 \
 	chebyshev.f90 \
+	unitary_tests.f90 \
+	matrix_operations.f90 \
+	parallel_linalg.f90 \
+	io.f90 \
 	bigdft_run.f90 \
 	$(bindings_headers) \
 	$(LIBXC_MODULE) \
@@ -111,9 +115,14 @@ modules = MODULE_BASE.@MODULE_EXT@ \
 	FERMI_LEVEL.@MODULE_EXT@ \
 	COPY_UTILS.@MODULE_EXT@ \
 	MODULE_SQN.@MODULE_EXT@ \
+	MODULE_FORCES.@MODULE_EXT@ \
 	MODULE_FINGERPRINTS.@MODULE_EXT@ \
 	TRANSPOSED_OPERATIONS.@MODULE_EXT@ \
 	CHEBYSHEV.@MODULE_EXT@ \
+	UNITARY_TESTS.@MODULE_EXT@ \
+	MATRIX_OPERATIONS.@MODULE_EXT@ \
+	PARALLEL_LINALG.@MODULE_EXT@ \
+	IO.@MODULE_EXT@ \
 	BIGDFT_RUN.@MODULE_EXT@ \
 	MODULE_LJ.@MODULE_EXT@ \
 	MODULE_LENOSKY_SI.@MODULE_EXT@
@@ -158,6 +167,10 @@ modules = module_base.@MODULE_EXT@ \
 	module_fingerprints.@MODULE_EXT@ \
 	transposed_operations.@MODULE_EXT@ \
 	chebyshev.@MODULE_EXT@ \
+	unitary_tests.@MODULE_EXT@ \
+	matrix_operations.@MODULE_EXT@ \
+	parallel_linalg.@MODULE_EXT@ \
+	io.@MODULE_EXT@ \
 	bigdft_run.@MODULE_EXT@ \
 	module_lj.@MODULE_EXT@ \
 	module_morse_bulk.@MODULE_EXT@ \
@@ -210,7 +223,7 @@ constrained_dft.o: base.o types.o sparsematrix_base.o
 input_dicts.o: $(top_builddir)/flib/src/dynamic_memory.o defs.o ao_inguess.o interfaces.o atoms_data.o input.o public_keys.o
 psp_projectors.o: locregs.o gaussians.o defs.o
 locregs.o: base.o
-ao_inguess.o: $(AO_INCLUDES) base.o psp_projectors.o
+ao_inguess.o: $(AO_INCLUDES) base.o psp_projectors.o psp_projectors.o
 atoms_data.o: $(ATOMS_INCLUDES) ao_inguess.o internal_coordinates.o
 reformatting.o: base.o
 communications_base.o: base.o
@@ -233,6 +246,10 @@ module_fingerprints.o: base.o
 transposed_operations.o: base.o types.o sparsematrix_base.o sparsematrix.o
 module_forces.o: base.o types.o 
 chebyshev.o: base.o types.o sparsematrix_base.o sparsematrix_init.o sparsematrix.o
+unitary_tests.o: base.o types.o interfaces.o communications_init.o communications.o sparsematrix_base.o sparsematrix_init.o sparsematrix.o transposed_operations.o
+matrix_operations.o: base.o types.o interfaces.o sparsematrix_base.o sparsematrix_init.o sparsematrix.o parallel_linalg.o
+parallel_linalg.o: base.o types.o
+io.o: base.o types.o interfaces.o
 
 # Copy modules in a common include directory.
 all: all-am insmod

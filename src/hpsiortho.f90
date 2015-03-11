@@ -604,10 +604,10 @@ subroutine LocalHamiltonianApplication(iproc,nproc,at,npsidim_orbs,orbs,&
    else if (GPU%OCLconv) then
 
       !pin potential
-      call timing(iproc,'ApplyLocPotKin','ON') 
+      !call timing(iproc,'ApplyLocPotKin','ON') 
       call local_hamiltonian_OCL(orbs,Lzd%Glr,Lzd%hgrids(1),Lzd%hgrids(2),Lzd%hgrids(3),&
            orbs%nspin,pot,psi,GPU%hpsi_ASYNC,energs%ekin,energs%epot,GPU)
-      call timing(iproc,'ApplyLocPotKin','OF') 
+      !call timing(iproc,'ApplyLocPotKin','OF') 
    else
 
 !!$      !temporary allocation
@@ -677,7 +677,7 @@ subroutine NonLocalHamiltonianApplication(iproc,at,npsidim_orbs,orbs,&
   use module_types
   use yaml_output
   use module_interfaces, except_this_one => NonLocalHamiltonianApplication
-  use psp_projectors, only: PSPCODE_PAW,PSP_APPLY_SKIP
+  use psp_projectors, only: PSPCODE_PAW,PSP_APPLY_SKIP, projector_has_overlap
   implicit none
   integer, intent(in) :: iproc, npsidim_orbs
   type(atoms_data), intent(in) :: at
@@ -767,35 +767,46 @@ subroutine NonLocalHamiltonianApplication(iproc,at,npsidim_orbs,orbs,&
            loop_atoms_1: do iat=1,at%astruct%nat
 
               ! Check whether the projectors of this atom have an overlap with locreg ilr
-              goon=.false.
-              do jlr=1,nl%pspd(iat)%noverlap
-                  if (nl%pspd(iat)%lut_tolr(jlr)==ilr) then
-                      goon=.true.
-                      iilr=jlr
-                      exit
-                  end if
-              end do
-              if (.not.goon) cycle loop_atoms_1
+              !!!goon=.false.
+              !!!do jlr=1,nl%pspd(iat)%noverlap
+              !!!    if (nl%pspd(iat)%lut_tolr(jlr)==ilr) then
+              !!!        goon=.true.
+              !!!        iilr=jlr
+              !!!        exit
+              !!!    end if
+              !!!end do
+              !!!if (.not.goon) cycle loop_atoms_1
 
-              iatype=at%astruct%iatype(iat)
+              !!!iatype=at%astruct%iatype(iat)
 
-              mproj=nl%pspd(iat)%mproj
-              !no projector on this atom
-              if(mproj == 0) cycle
-              !projector not overlapping with the locreg
-              !!iilr=nl%pspd(iat)%lut_tolr(ilr)
-              !!if (iilr==PSP_APPLY_SKIP) cycle
-              if(nl%pspd(iat)%tolr(iilr)%strategy == PSP_APPLY_SKIP) cycle
-              !check if the atom projector intersect with the given localisation region
-              !this part can be moved at the place of the analysis between psp and lrs
-              !call cpu_time(tr0)
+              !!!mproj=nl%pspd(iat)%mproj
+              !!!!no projector on this atom
+              !!!if(mproj == 0) cycle
+              !!!!projector not overlapping with the locreg
+              !!!!!iilr=nl%pspd(iat)%lut_tolr(ilr)
+              !!!!!if (iilr==PSP_APPLY_SKIP) cycle
+              !!!if(nl%pspd(iat)%tolr(iilr)%strategy == PSP_APPLY_SKIP) cycle
+              !!!!check if the atom projector intersect with the given localisation region
+              !!!!this part can be moved at the place of the analysis between psp and lrs
+              !!!!call cpu_time(tr0)
 
-              call check_overlap(Lzd%Llr(ilr), nl%pspd(iat)%plr, Lzd%Glr, overlap)
+              !!!call check_overlap(Lzd%Llr(ilr), nl%pspd(iat)%plr, Lzd%Glr, overlap)
+
+              ! Check whether the projectors of this atom have an overlap with locreg ilr
+              overlap = projector_has_overlap(iat, ilr, lzd%llr(ilr), lzd%glr, nl)
               if(.not. overlap) cycle
               !call cpu_time(tr1)
               !time1=time1+real(tr1-tr0,kind=8)
               ! Now create the projector
               istart_c=1
+              iatype=at%astruct%iatype(iat)
+              do jlr=1,nl%pspd(iat)%noverlap
+                  if (nl%pspd(iat)%lut_tolr(jlr)==ilr) then
+                      iilr=jlr
+                      exit
+                  end if
+              end do
+              mproj=nl%pspd(iat)%mproj
               call atom_projector(nl, iatype, iat, at%astruct%atomnames(iatype), &
                    & at%astruct%geocode, 0, Lzd%Glr, Lzd%hgrids(1),Lzd%hgrids(2),Lzd%hgrids(3), &
                    & orbs%kpts(1,ikpt), orbs%kpts(2,ikpt), orbs%kpts(3,ikpt), &
@@ -866,30 +877,39 @@ subroutine NonLocalHamiltonianApplication(iproc,at,npsidim_orbs,orbs,&
               loop_atoms_2: do iat=1,at%astruct%nat
 
 
-                  ! Check whether the projectors of this atom have an overlap with locreg ilr
-                  goon=.false.
-                  do jlr=1,nl%pspd(iat)%noverlap
-                      if (nl%pspd(iat)%lut_tolr(jlr)==ilr) then
-                          goon=.true.
-                          iilr=jlr
-                          exit
-                      end if
-                  end do
-                  if (.not.goon) cycle loop_atoms_2
+                 !! ! Check whether the projectors of this atom have an overlap with locreg ilr
+                 !! goon=.false.
+                 !! do jlr=1,nl%pspd(iat)%noverlap
+                 !!     if (nl%pspd(iat)%lut_tolr(jlr)==ilr) then
+                 !!         goon=.true.
+                 !!         iilr=jlr
+                 !!         exit
+                 !!     end if
+                 !! end do
+                 !! if (.not.goon) cycle loop_atoms_2
 
-                 iatype=at%astruct%iatype(iat)
-                 ! Check if atom has projectors, if not cycle
-                 mproj=nl%pspd(iat)%mproj
-                 if(mproj == 0) cycle
-                 !projector not overlapping with the locreg
-                 !!iilr=nl%pspd(iat)%lut_tolr(ilr)
-                 !!if (iilr==PSP_APPLY_SKIP) cycle
-                 if(nl%pspd(iat)%tolr(iilr)%strategy == PSP_APPLY_SKIP) cycle
+                 !!iatype=at%astruct%iatype(iat)
+                 !!! Check if atom has projectors, if not cycle
+                 !!mproj=nl%pspd(iat)%mproj
+                 !!if(mproj == 0) cycle
+                 !!!projector not overlapping with the locreg
+                 !!!!iilr=nl%pspd(iat)%lut_tolr(ilr)
+                 !!!!if (iilr==PSP_APPLY_SKIP) cycle
+                 !!if(nl%pspd(iat)%tolr(iilr)%strategy == PSP_APPLY_SKIP) cycle
 
-                 !check if the atom intersect with the given localisation region
-                 call check_overlap(Lzd%Llr(ilr), nl%pspd(iat)%plr, Lzd%Glr, overlap)
+                 !!!check if the atom intersect with the given localisation region
+                 !!call check_overlap(Lzd%Llr(ilr), nl%pspd(iat)%plr, Lzd%Glr, overlap)
+                 overlap = projector_has_overlap(iat, ilr, lzd%llr(ilr), lzd%glr, nl)
                  if(.not. overlap) stop 'ERROR all atoms should be in global'
 
+                 iatype=at%astruct%iatype(iat)
+                 do jlr=1,nl%pspd(iat)%noverlap
+                     if (nl%pspd(iat)%lut_tolr(jlr)==ilr) then
+                         iilr=jlr
+                         exit
+                     end if
+                 end do
+                 mproj=nl%pspd(iat)%mproj
                  call nl_psp_application()
 
                  !print *,'iorb,iat,eproj',iorb+orbs%isorb,iat,eproj_sum
@@ -917,7 +937,7 @@ subroutine NonLocalHamiltonianApplication(iproc,at,npsidim_orbs,orbs,&
 
   end do loop_kpt
 
-  if (.not. nl%on_the_fly) then !TO BE REMOVED WITH NEW PROJECTOR APPLICATION
+  if (.not. nl%on_the_fly .and. Lzd%nlr==1) then !TO BE REMOVED WITH NEW PROJECTOR APPLICATION
      if (istart_ck-1 /= nl%nprojel) then
         call yaml_warning('Incorrect once-and-for-all psp application')
         stop
@@ -1085,7 +1105,7 @@ subroutine SynchronizeHamiltonianApplication(nproc,npsidim_orbs,orbs,Lzd,GPU,xc,
          wrkallred(3)=eproj_sum
          wrkallred(4)=evsic
 
-         call mpiallred(wrkallred(1),4,MPI_SUM,bigdft_mpi%mpi_comm)
+         call mpiallred(wrkallred,MPI_SUM,comm=bigdft_mpi%mpi_comm)
 
          ekin_sum=wrkallred(1)
          epot_sum=wrkallred(2)
@@ -1538,6 +1558,7 @@ subroutine calculate_energy_and_gradient(iter,iproc,nproc,GPU,ncong,iscf,&
   use module_interfaces, except_this_one => calculate_energy_and_gradient
   use yaml_output
   use communications, only: transpose_v, untranspose_v
+  use communications, only: toglobal_and_transpose
   implicit none
   integer, intent(in) :: iproc,nproc,ncong,iscf,iter
   type(energy_terms), intent(inout) :: energs
@@ -1694,7 +1715,7 @@ subroutine calculate_energy_and_gradient(iter,iproc,nproc,GPU,ncong,iscf,&
   if (nproc > 1) then
       garray(1)=gnrm
       garray(2)=gnrm_zero
-     call mpiallred(garray(1),2,MPI_SUM,bigdft_mpi%mpi_comm)
+     call mpiallred(garray,MPI_SUM,comm=bigdft_mpi%mpi_comm)
       gnrm     =garray(1)
       gnrm_zero=garray(2)
   endif
@@ -2413,7 +2434,8 @@ subroutine evaltoocc(iproc,nproc,filewrite,wf0,orbs,occopt)
          do iorb=1,orbs%norbu + orbs%norbd
             if (occopt == SMEARING_DIST_ERF) then
                !error function
-               orbs%eTS=orbs%eTS+full*wf0/(2._gp*sqrt(pi))*exp(-((orbs%eval((ikpt-1)*orbs%norb+iorb)-ef)/wf0)**2)
+               orbs%eTS=orbs%eTS+full*wf0/(2._gp*sqrt(pi))*&
+                    safe_exp(-((orbs%eval((ikpt-1)*orbs%norb+iorb)-ef)/wf0)**2)
             else if (occopt == SMEARING_DIST_FERMI) then
                !Fermi function
                tt=orbs%occup((ikpt-1)*orbs%norb+iorb)
@@ -3361,7 +3383,7 @@ subroutine integral_equation(iproc,nproc,atoms,wfn,ngatherarr,local_potential,GP
 
 !     call axpy(wfn%Lzd%Llr(ilr)%wfd%nvctr_c+7*wfn%Lzd%Llr(ilr)%wfd%nvctr_f,-eks,wfn%psi(1+ist),1,vpsi(1+ist),1)
 
-     call plot_wf('Vpsi'//trim(adjustl(yaml_toa(iorb))),1,atoms,1.0_gp,wfn%Lzd%llr(ilr),&
+     call plot_wf(.false.,'Vpsi'//trim(adjustl(yaml_toa(iorb))),1,atoms,1.0_gp,wfn%Lzd%llr(ilr),&
           wfn%Lzd%hgrids(1),wfn%Lzd%hgrids(2),wfn%Lzd%hgrids(3),rxyz,vpsi(1+ist))
 
 

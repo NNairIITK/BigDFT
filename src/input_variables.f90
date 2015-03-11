@@ -452,9 +452,9 @@ subroutine check_for_data_writing_directory(iproc,in)
        in%inputPsiId == 12 .or.  &                     !read in gaussian basis
        in%gaussian_help .or. &                         !Mulliken and local density of states
        bigdft_mpi%ngroup > 1   .or. &                  !taskgroups have been inserted
-       in%lin%plotBasisFunctions > 0 .or. &            !dumping of basis functions for locreg runs
+       mod(in%lin%plotBasisFunctions,10) > 0 .or. &    !dumping of basis functions for locreg runs
        in%inputPsiId == 102 .or. &                     !reading of basis functions
-       in%write_orbitals                               !writing the KS orbitals in the linear case
+       in%write_orbitals>0                             !writing the KS orbitals in the linear case
 
   !here you can check whether the etsf format is compiled
 
@@ -997,8 +997,8 @@ subroutine kpt_input_analyse(iproc, in, dict, sym, geocode, alat)
            stop
         end if
         !assumes that the allocation went through (arrays allocated by abinit routines)
-        in%gen_kpt=f_malloc_ptr(src=gen_kpt,id='gen_kpt')
-        in%gen_wkpt=f_malloc_ptr(src=gen_wkpt,id='gen_wkpt')
+        in%gen_kpt=f_malloc_ptr(src_ptr=gen_kpt,id='gen_kpt')
+        in%gen_wkpt=f_malloc_ptr(src_ptr=gen_wkpt,id='gen_wkpt')
         deallocate(gen_kpt,gen_wkpt)
 !!$        call memocc(0,in%gen_kpt,'in%gen_kpt',subname)
 !!$        call memocc(0,in%gen_wkpt,'in%gen_wkpt',subname)
@@ -1041,8 +1041,8 @@ subroutine kpt_input_analyse(iproc, in, dict, sym, geocode, alat)
         end if
         !assumes that the allocation went through 
         !(arrays allocated by abinit routines)
-        in%gen_kpt=f_malloc_ptr(src=gen_kpt,id='gen_kpt')
-        in%gen_wkpt=f_malloc_ptr(src=gen_wkpt,id='gen_wkpt')
+        in%gen_kpt=f_malloc_ptr(src_ptr=gen_kpt,id='gen_kpt')
+        in%gen_wkpt=f_malloc_ptr(src_ptr=gen_wkpt,id='gen_wkpt')
         deallocate(gen_kpt,gen_wkpt)
 !!$        call memocc(0,in%gen_kpt,'in%gen_kpt',subname)
 !!$        call memocc(0,in%gen_wkpt,'in%gen_wkpt',subname)

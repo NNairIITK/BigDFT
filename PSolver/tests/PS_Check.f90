@@ -175,8 +175,8 @@ program PS_Check
   potential(:)=rhopot(1:n01*n02*n03)
   extra_ref=potential
 
-  !now the parallel calculation part
-  call f_free(rhopot)
+      !now the parallel calculation part
+      call f_free(rhopot)
 !!$      i_all=-product(shape(rhopot))*kind(rhopot)
 !!$      deallocate(rhopot,stat=i_stat)
 !!$      call memocc(i_stat,i_all,'rhopot',subname)

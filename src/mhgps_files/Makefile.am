@@ -7,7 +7,7 @@ mhgps_objects = \
                module_hessian.f90 \
                module_io.f90 \
                module_energyandforces.f90 \
-	       module_minimizers.f90 \
+	   		   module_minimizers.f90 \
                module_saddle.f90 \
                module_interpol.f90 \
                module_ls_rmsd.f90 \
@@ -35,14 +35,14 @@ EXTRA_DIST = \
 libmhgps_a_SOURCES = $(mhgps_SOURCES)
 #dependencies
 
-module_mhgps_state.o : ../modules/BigDFT_API.o
+module_mhgps_state.o : ../modules/BigDFT_API.o mhgps_version_number-inc.f90
 
 module_energyandforces.o : module_mhgps_state.o \
                            ../modules/BigDFT_API.o
 module_userinput.o : module_mhgps_state.o ../modules/BigDFT_API.o 
 module_saddle.o : module_userinput.o module_mhgps_state.o\
                   module_energyandforces.o ../modules/module_sqn.o\
-                  ../modules/BigDFT_API.o
+                  ../modules/module_forces.o ../modules/BigDFT_API.o
 module_minimizers.o : module_userinput.o module_mhgps_state.o\
                       module_energyandforces.o\
                       ../modules/module_sqn.o\
@@ -50,8 +50,8 @@ module_minimizers.o : module_userinput.o module_mhgps_state.o\
 module_io.o : module_userinput.o module_mhgps_state.o module_connect_object.o ../modules/BigDFT_API.o
 module_freezingstring.o : module_energyandforces.o module_interpol.o \
                           module_userinput.o module_mhgps_state.o\
-                          ../modules/BigDFT_API.o
-module_interpol.o : module_userinput.o module_mhgps_state.o ../modules/BigDFT_API.o
+                          ../modules/module_forces.o ../modules/BigDFT_API.o
+module_interpol.o : module_userinput.o module_mhgps_state.o ../modules/module_forces.o ../modules/BigDFT_API.o
 module_connect_object.o: ../modules/BigDFT_API.o
 module_connect.o: module_connect_object.o module_io.o module_userinput.o module_misc.o module_ls_rmsd.o\
                   module_mhgps_state.o module_saddle.o\

@@ -55,7 +55,7 @@ subroutine system_initialization(iproc,nproc,dump,inputpsi,input_wf_format,dry_r
   real(kind=8), dimension(:), allocatable :: locrad, times_convol
   integer :: ilr, iilr
   real(kind=8),dimension(:),allocatable :: totaltimes
-  real(kind=8),dimension(2) :: time_max, time_min
+  real(kind=8),dimension(2) :: time_max, time_average
   real(kind=8) :: ratio_before, ratio_after
   logical :: init_projectors_completely
   call f_routine(id=subname)
@@ -174,8 +174,8 @@ subroutine system_initialization(iproc,nproc,dump,inputpsi,input_wf_format,dry_r
      if (inputpsi == INPUT_PSI_LINEAR_AO .or. inputpsi == INPUT_PSI_DISK_LINEAR) then
          times_convol = f_malloc(lorbs%norb,id='times_convol')
          call test_preconditioning()
-         time_min(1) = sum(times_convol(lorbs%isorb+1:lorbs%isorb+lorbs%norbp))
-         time_max(1) = time_min(1)
+         time_max(1) = sum(times_convol(lorbs%isorb+1:lorbs%isorb+lorbs%norbp))
+         time_average(1) = time_max(1)/real(nproc,kind=8)
          norb_par = f_malloc(0.to.nproc-1,id='norb_par')
          norbu_par = f_malloc(0.to.nproc-1,id='norbu_par')
          norbd_par = f_malloc(0.to.nproc-1,id='norbd_par')
@@ -209,18 +209,20 @@ subroutine system_initialization(iproc,nproc,dump,inputpsi,input_wf_format,dry_r
          call fragment_stuff()
          call init_lzd_linear()
          call test_preconditioning()
-         time_min(2) = sum(times_convol(lorbs%isorb+1:lorbs%isorb+lorbs%norbp))
-         time_max(2) = time_min(2)
-         totaltimes(iproc+1) = time_min(2)
+         time_max(2) = sum(times_convol(lorbs%isorb+1:lorbs%isorb+lorbs%norbp))
+         time_average(2) = time_max(2)/real(nproc,kind=8)
+         totaltimes(iproc+1) = time_max(2)
          if (nproc>1) then
-             call mpiallred(time_min(1), 2, mpi_min, bigdft_mpi%mpi_comm)
-             call mpiallred(time_max(1), 2, mpi_max, bigdft_mpi%mpi_comm)
-             call mpiallred(totaltimes(1), nproc, mpi_sum, bigdft_mpi%mpi_comm)
+             call mpiallred(time_max, mpi_max, comm=bigdft_mpi%mpi_comm)
+             call mpiallred(time_average, mpi_sum, comm=bigdft_mpi%mpi_comm)
+             call mpiallred(totaltimes, mpi_sum, comm=bigdft_mpi%mpi_comm)
          end if
-         ratio_before = real(time_max(1),kind=8)/real(max(1.d0,time_min(1)),kind=8) !max to prevent divide by zero
-         ratio_after = real(time_max(2),kind=8)/real(max(1.d0,time_min(2)),kind=8) !max to prevent divide by zero
-         if (iproc==0) call yaml_map('preconditioning load balancing min/max before',(/time_min(1),time_max(1)/),fmt='(es9.2)')
-         if (iproc==0) call yaml_map('preconditioning load balancing min/max after',(/time_min(2),time_max(2)/),fmt='(es9.2)')
+         !ratio_before = real(time_max(1),kind=8)/real(max(1.d0,time_min(1)),kind=8) !max to prevent divide by zero
+         !ratio_after = real(time_max(2),kind=8)/real(max(1.d0,time_min(2)),kind=8) !max to prevent divide by zero
+         !if (iproc==0) call yaml_map('preconditioning load balancing min/max before',(/time_min(1),time_max(1)/),fmt='(es9.2)')
+         !if (iproc==0) call yaml_map('preconditioning load balancing min/max after',(/time_min(2),time_max(2)/),fmt='(es9.2)')
+         if (iproc==0) call yaml_map('preconditioning load balancing before',time_max(1)/time_average(1),fmt='(es9.2)')
+         if (iproc==0) call yaml_map('preconditioning load balancing after',time_max(2)/time_average(2),fmt='(es9.2)')
          if (iproc==0) call yaml_map('task with max load',maxloc(totaltimes)-1)
          call f_free(norb_par)
          call f_free(norbu_par)
@@ -445,6 +447,7 @@ subroutine system_initialization(iproc,nproc,dump,inputpsi,input_wf_format,dry_r
      end subroutine init_linear_orbs
 
      subroutine init_lzd_linear()
+       use locregs, only: copy_locreg_descriptors
        implicit none
        call copy_locreg_descriptors(Lzd%Glr, lzd_lin%glr)
        call lzd_set_hgrids(lzd_lin, Lzd%hgrids)
@@ -500,7 +503,7 @@ subroutine system_initialization(iproc,nproc,dump,inputpsi,input_wf_format,dry_r
           times_convol(iiorb) = real(ii+jj,kind=8)
       end do
       if (nproc>1) then
-          call mpiallred(times_convol, mpi_sum, bigdft_mpi%mpi_comm)
+          call mpiallred(times_convol, mpi_sum, comm=bigdft_mpi%mpi_comm)
       end if
 
       return !###############################################3
@@ -598,7 +601,7 @@ subroutine system_initialization(iproc,nproc,dump,inputpsi,input_wf_format,dry_r
        call f_free(phi)
 
        if (nproc>1) then
-           call mpiallred(times_convol, mpi_sum, bigdft_mpi%mpi_comm)
+           call mpiallred(times_convol, mpi_sum, comm=bigdft_mpi%mpi_comm)
        end if
 
      end subroutine test_preconditioning
@@ -925,7 +928,7 @@ subroutine calculate_rhocore(at,d,rxyz,hxh,hyh,hzh,i3s,i3xcsh,n3d,n3p,rhocore)
         enddo
      enddo
 
-     if (bigdft_mpi%nproc > 1) call mpiallred(tt,1,MPI_SUM,bigdft_mpi%mpi_comm)
+     if (bigdft_mpi%nproc > 1) call mpiallred(tt,1,MPI_SUM,comm=bigdft_mpi%mpi_comm)
      tt=tt*hxh*hyh*hzh
      if (bigdft_mpi%iproc == 0) call yaml_map('Total core charge on the grid (To be compared with analytic one)', tt,fmt='(f15.7)')
 

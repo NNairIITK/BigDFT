@@ -67,6 +67,7 @@ subroutine calculate_weight_matrix_lowdin(weight_matrix,weight_matrix_,nfrag_cha
   use sparsematrix, only: compress_matrix, uncompress_matrix, &
                           gather_matrix_from_taskgroups_inplace, uncompress_matrix2
   use transposed_operations, only: calculate_overlap_transposed
+  use matrix_operations, only: overlapPowerGeneral
   implicit none
   type(sparse_matrix), intent(inout) :: weight_matrix
   type(matrices), intent(inout) :: weight_matrix_
@@ -192,6 +193,7 @@ subroutine calculate_weight_matrix_lowdin_gradient_fd(weight_matrix,weight_matri
   use sparsematrix, only: compress_matrix, uncompress_matrix, &
                           gather_matrix_from_taskgroups_inplace, extract_taskgroup_inplace, &
                           uncompress_matrix2
+   use matrix_operations, only: overlapPowerGeneral
   implicit none
   type(sparse_matrix), intent(inout) :: weight_matrix
   type(matrices), intent(inout) :: weight_matrix_
@@ -405,6 +407,7 @@ subroutine calculate_weight_matrix_lowdin_gradient(weight_matrix,weight_matrix_,
   use sparsematrix, only: compress_matrix, uncompress_matrix, gather_matrix_from_taskgroups_inplace, &
                           gather_matrix_from_taskgroups_inplace, uncompress_matrix2
   use transposed_operations, only: calculate_overlap_transposed, build_linear_combination_transposed
+  use matrix_operations, only: overlapPowerGeneral
   implicit none
   type(sparse_matrix), intent(inout) :: weight_matrix
   type(matrices), intent(inout) :: weight_matrix_
@@ -760,7 +763,6 @@ subroutine calculate_weight_function(in,ref_frags,cdft,ndimrho_all_fragments,rho
   use module_types
   use module_fragments
   use constrained_dft
-  use module_interfaces, only: plot_density
   implicit none
   type(input_variables), intent(in) :: in
   type(system_fragment), dimension(in%frag%nfrag_ref), intent(inout) :: ref_frags

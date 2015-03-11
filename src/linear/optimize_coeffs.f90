@@ -145,7 +145,7 @@ subroutine optimize_coeffs(iproc, nproc, orbs, tmb, ldiis_coeff, fnrm, fnrm_crit
      end if
 
      if (nproc > 1) then
-        call mpiallred(tt, 1, mpi_sum, bigdft_mpi%mpi_comm)
+        call mpiallred(tt, 1, mpi_sum, comm=bigdft_mpi%mpi_comm)
      end if
      fnrm=2.0_gp*tt
 
@@ -454,6 +454,7 @@ subroutine coeff_weight_analysis(iproc, nproc, input, ksorbs, tmb, ref_frags)
                                sparsematrix_malloc_ptr, DENSE_FULL, SPARSE_FULL, assignment(=), &
                                matrices_null, allocate_matrices, deallocate_matrices
   use sparsematrix, only: uncompress_matrix, uncompress_matrix2
+  use matrix_operations, only: overlapPowerGeneral
   implicit none
 
   ! Calling arguments
@@ -701,7 +702,7 @@ subroutine calculate_coeffMatcoeff(nproc,matrix,basis_orbs,ksorbs,coeff,mat_coef
   call f_free(coeff_tmp)
 
   if (nproc>1) then
-      call mpiallred(mat_coeff, mpi_sum, bigdft_mpi%mpi_comm)
+      call mpiallred(mat_coeff, mpi_sum, comm=bigdft_mpi%mpi_comm)
   end if
 
 end subroutine calculate_coeffMatcoeff
@@ -753,7 +754,7 @@ subroutine calculate_coeffMatcoeff_diag(matrix,basis_orbs,ksorbs,coeff,mat_coeff
         call mpi_allgatherv(mat_coeff_diagp, ksorbs%norbp, mpi_double_precision, mat_coeff_diag, &
              ksorbs%norb_par(:,0), ksorbs%isorb_par, mpi_double_precision, bigdft_mpi%mpi_comm, ierr)
      else
-        call mpiallred(mat_coeff_diag(1), ksorbs%norb, mpi_sum, bigdft_mpi%mpi_comm)
+        call mpiallred(mat_coeff_diag, mpi_sum, comm=bigdft_mpi%mpi_comm)
      end if
   else
      if (allgather) then
@@ -1128,7 +1129,7 @@ subroutine calculate_kernel_and_energy(iproc,nproc,denskern,ham,denskern_mat,ham
      !$omp end parallel
   end do
   if (nproc>1) then
-     call mpiallred(energy, 1, mpi_sum, bigdft_mpi%mpi_comm)
+     call mpiallred(energy, 1, mpi_sum, comm=bigdft_mpi%mpi_comm)
   end if
   call timing(iproc,'calc_energy','OF')
 
@@ -1144,6 +1145,8 @@ subroutine calculate_coeff_gradient(iproc,nproc,tmb,order_taylor,max_inversion_e
   use sparsematrix_base, only: matrices, sparsematrix_malloc_ptr, DENSE_FULL, assignment(=), &
                                matrices_null, allocate_matrices, deallocate_matrices
   use sparsematrix, only: extract_taskgroup_inplace, gather_matrix_from_taskgroups_inplace
+  use matrix_operations, only: overlapPowerGeneral
+  use parallel_linalg, only: dgesv_parallel
   implicit none
 
   integer, intent(in) :: iproc, nproc
@@ -1535,6 +1538,8 @@ subroutine calculate_coeff_gradient_extra(iproc,nproc,num_extra,tmb,order_taylor
   use sparsematrix_base, only: matrices, sparsematrix_malloc_ptr, DENSE_FULL, assignment(=), &
                                matrices_null, allocate_matrices, deallocate_matrices
   use sparsematrix, only: extract_taskgroup_inplace, gather_matrix_from_taskgroups_inplace
+  use matrix_operations, only: overlapPowerGeneral
+  use parallel_linalg, only: dgesv_parallel
   implicit none
 
   integer, intent(in) :: iproc, nproc, num_extra

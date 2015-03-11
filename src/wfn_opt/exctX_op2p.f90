@@ -306,7 +306,7 @@ subroutine exact_exchange_potential_op2p(iproc,nproc,xc,lr,orbs,pkernel,psi,dpsi
   !recuperate the exctX energy and purge allocated variables
   call OP2P_exctx_clear(OP2P,eexctX)
 
-  if (nproc>1) call mpiallred(eexctX,1,MPI_SUM,bigdft_mpi%mpi_comm)
+  if (nproc>1) call mpiallred(eexctX,1,MPI_SUM,comm=bigdft_mpi%mpi_comm)
 
   exctXfac = xc_exctXfac(xc)
   eexctX=-exctXfac*eexctX

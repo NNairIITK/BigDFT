@@ -51,7 +51,7 @@ module sparsematrix
       
       ! Calling arguments
       integer, intent(in) :: iproc
-      type(sparse_matrix),intent(inout) :: sparsemat
+      type(sparse_matrix),intent(in) :: sparsemat
       real(kind=8),dimension(sparsemat%nfvctr,sparsemat%nfvctr,sparsemat%nspin),target,intent(in) :: inmat
       real(kind=8),dimension(sparsemat%nvctr*sparsemat%nspin),target,intent(out) :: outmat
     
@@ -1053,33 +1053,67 @@ module sparsematrix
    
      !Local variables
      !character(len=*), parameter :: subname='sparsemm'
-     integer :: i,jorb,jjorb,m,mp1,ist,iend, icontiguous, j, iline, icolumn
+     integer :: i,jorb,jjorb,m,mp1,ist,iend, icontiguous, j, iline, icolumn, nblock, iblock, ncount
      integer :: iorb, ii, ilen, jjorb0, jjorb1, jjorb2, jjorb3, jjorb4, jjorb5, jjorb6, iout
-     real(kind=8) :: tt0, tt1, tt2, tt3, tt4, tt5, tt6, tt7
+     real(kind=8) :: tt0, tt1, tt2, tt3, tt4, tt5, tt6, tt7, ddot
    
      call f_routine(id='sparsemm')
      call timing(bigdft_mpi%iproc, 'sparse_matmul ', 'IR')
 
+     ! @NEW ####################################
 
      !$omp parallel default(private) shared(smat, a_seq, b, c)
-     !$omp do
+     !$omp do schedule(guided)
      do iout=1,smat%smmm%nout
          i=smat%smmm%onedimindices_new(1,iout)
          ilen=smat%smmm%onedimindices_new(2,iout)
          ii=smat%smmm%onedimindices_new(3,iout)
+         nblock=smat%smmm%onedimindices_new(4,iout)
          tt0=0.d0
 
-         iend=ii+ilen-1
-
-         do jorb=ii,iend
-            jjorb=smat%smmm%ivectorindex_new(jorb)
-            tt0 = tt0 + b(jjorb)*a_seq(jorb)
+         !write(*,*) 'iout, nblock', iout, nblock
+         do iblock=1,nblock
+             jorb = smat%smmm%consecutive_lookup(1,iblock,iout)
+             jjorb = smat%smmm%consecutive_lookup(2,iblock,iout)
+             ncount = smat%smmm%consecutive_lookup(3,iblock,iout)
+             !write(*,'(a,4i9)') 'iblock, ncount, jjorb, jorb', iblock, ncount, jjorb, jorb
+             tt0 = tt0 + ddot(ncount, b(jjorb), 1, a_seq(jorb), 1)
          end do
+
+         !iend=ii+ilen-1
+
+         !do jorb=ii,iend
+         !   jjorb=smat%smmm%ivectorindex_new(jorb)
+         !   tt0 = tt0 + b(jjorb)*a_seq(jorb)
+         !end do
 
          c(i) = tt0
      end do 
      !$omp end do
      !$omp end parallel
+
+     ! @END NEW ################################
+
+
+!!     !$omp parallel default(private) shared(smat, a_seq, b, c)
+!!     !$omp do
+!!     do iout=1,smat%smmm%nout
+!!         i=smat%smmm%onedimindices_new(1,iout)
+!!         ilen=smat%smmm%onedimindices_new(2,iout)
+!!         ii=smat%smmm%onedimindices_new(3,iout)
+!!         tt0=0.d0
+!!
+!!         iend=ii+ilen-1
+!!
+!!         do jorb=ii,iend
+!!            jjorb=smat%smmm%ivectorindex_new(jorb)
+!!            tt0 = tt0 + b(jjorb)*a_seq(jorb)
+!!         end do
+!!         !if (abs(c(i)-tt0)>1.d-15) write(*,'(a,3es24.16)') 'ERROR, vals', c(i), tt0, abs(c(i)-tt0)
+!!         c(i) = tt0
+!!     end do 
+!!     !$omp end do
+!!     !$omp end parallel
 
    
      call timing(bigdft_mpi%iproc, 'sparse_matmul ', 'RS')
@@ -1127,7 +1161,7 @@ module sparsematrix
          !call to_zero(nproc, recvdspls(0))
          ncount = smat%smmm%istartend_mm_dj(2) - smat%smmm%istartend_mm_dj(1) + 1
          recvcounts(iproc) = ncount
-         call mpiallred(recvcounts(0), nproc, mpi_sum, bigdft_mpi%mpi_comm)
+         call mpiallred(recvcounts(0), nproc, mpi_sum, comm=bigdft_mpi%mpi_comm)
          recvdspls(0) = 0
          do jproc=1,nproc-1
              recvdspls(jproc) = recvdspls(jproc-1) + recvcounts(jproc-1)
@@ -1175,7 +1209,7 @@ module sparsematrix
          !call to_zero(nproc, recvdspls(0))
          ncount = smat%smmm%istartend_mm_dj(2) - smat%smmm%istartend_mm_dj(1) + 1
          recvcounts(iproc) = ncount
-         call mpiallred(recvcounts(0), nproc, mpi_sum, bigdft_mpi%mpi_comm)
+         call mpiallred(recvcounts(0), nproc, mpi_sum, comm=bigdft_mpi%mpi_comm)
          recvdspls(0) = 0
          do jproc=1,nproc-1
              recvdspls(jproc) = recvdspls(jproc-1) + recvcounts(jproc-1)

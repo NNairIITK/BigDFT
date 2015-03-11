@@ -31,6 +31,7 @@ module yaml_output
   integer, parameter :: SEQUENCE_ELEM          = -1010
   integer, parameter :: NEWLINE                = -1011
   integer, parameter :: COMMA_TO_BE_PUT        =  10
+  integer, parameter :: DEFAULT_STREAM_ID      =  0
 
   integer, parameter :: tot_max_record_length=95   !< Max record length by default
   integer, parameter :: tot_max_flow_events=500    !< Max flow events
@@ -249,21 +250,6 @@ contains
     call dict_init(stream_files)
     module_initialized=.true.
   end subroutine yaml_output_errors
-
-!!$  function stream_next_free_unit()
-!!$    integer :: stream_next_free_unit
-!!$    logical :: unit_is_open
-!!$    integer :: ierr
-!!$
-!!$    stream_next_free_unit = 75214
-!!$    unit_is_open = .true.
-!!$    do while (unit_is_open)
-!!$       stream_next_free_unit = stream_next_free_unit + 1
-!!$       inquire(unit=stream_next_free_unit,opened=unit_is_open,iostat=ierr)
-!!$       if (f_err_raise(ierr /=0,'error in unit inquiring, ierr='//trim(yaml_toa(ierr)),&
-!!$            YAML_INVALID)) return
-!!$    end do
-!!$  end function stream_next_free_unit
   
   !> Set the default stream of the module. Return  a STREAM_ALREADY_PRESENT errcode if
   !! The stream has not be initialized.
@@ -281,7 +267,6 @@ contains
     end if
 
   end subroutine yaml_set_default_stream
-
 
   !> Get the default stream unit
   pure subroutine yaml_get_default_stream(unit)
@@ -307,7 +292,7 @@ contains
 
     if (present(istat)) istat = NO_ERRORS !so far
 
-    unit = 0
+    unit = DEFAULT_STREAM_ID
     if (has_key(stream_files, trim(filename))) then
        unit = stream_files // trim(filename)
     else
@@ -487,10 +472,10 @@ contains
     integer, dimension(tot_max_record_length/tab) :: linetab
 
     !writing unit
-    unt=0
+    unt=DEFAULT_STREAM_ID
     if (present(unit)) unt=unit
     !stream to be analyzed
-    sunt=0
+    sunt=DEFAULT_STREAM_ID
     if (present(stream_unit)) sunt=unit
     call get_stream(sunt,strm)
 
@@ -575,7 +560,7 @@ contains
     !local variables
     integer :: unt,strm
 
-    unt=0
+    unt=DEFAULT_STREAM_ID
     if (present(unit)) unt=unit
     call get_stream(unt,strm)
 
@@ -600,7 +585,7 @@ contains
     !local variables
     integer :: unt,strm
 
-    unt=0
+    unt=DEFAULT_STREAM_ID
     if (present(unit)) unt=unit
     call get_stream(unt,strm)
 
@@ -619,7 +604,7 @@ contains
     !local variables
     integer :: unt,strm,unit_prev
 
-    unt=0
+    unt=DEFAULT_STREAM_ID
     if (present(unit)) unt=unit
     call get_stream(unt,strm)
 
@@ -648,7 +633,7 @@ contains
     integer :: unt,istatus,strm,funt
     type(dictionary), pointer :: iter
 
-    unt=0
+    unt=DEFAULT_STREAM_ID
     if (present(unit)) unt=unit
     call get_stream(unt,strm,istat=istatus)
 
@@ -750,7 +735,7 @@ contains
     integer :: idx
     type(dictionary), pointer :: dict_tmp
 
-    unt=0
+    unt=DEFAULT_STREAM_ID
     if (present(unit)) unt=unit
     call get_stream(unt,strm)
 
@@ -773,7 +758,6 @@ contains
        dict_tmp = streams(strm)%dict_warning .get. 'WARNINGS'
        idx=dict_tmp .index. trim(message)
        if (idx < 0) call add(streams(strm)%dict_warning//'WARNINGS',trim(message))
-
     end if
     if (present(level)) then
        if (level <= streams(strm)%Wall) then
@@ -800,7 +784,7 @@ contains
     character(len=3) :: adv
     character(len=tot_max_record_length) :: towrite
 
-    unt=0
+    unt=DEFAULT_STREAM_ID
     if (present(unit)) unt=unit
     call get_stream(unt,strm)
 
@@ -880,7 +864,7 @@ contains
     integer :: unt,strm,hmax
     character(len=3) :: adv
 
-    unt=0
+    unt=DEFAULT_STREAM_ID
     if (present(unit)) unt=unit
     call get_stream(unt,strm)
 
@@ -935,7 +919,7 @@ contains
 !!$    character(len=3) :: adv
 !!$    character(len=tot_max_record_length) :: towrite
 !!$
-!!$    unt=0
+!!$    unt=DEFAULT_STREAM_ID
 !!$    if (present(unit)) unt=unit
 !!$    call get_stream(unt,strm)
 !!$
@@ -985,7 +969,7 @@ contains
     character(len=3) :: adv
     logical :: doflow
 
-    unt=0
+    unt=DEFAULT_STREAM_ID
     if (present(unit)) unt=unit
     call get_stream(unt,strm)
 
@@ -1030,7 +1014,7 @@ contains
     character(len=3) :: adv
     logical :: doflow
 
-    unt=0
+    unt=DEFAULT_STREAM_ID
     if (present(unit)) unt=unit
     call get_stream(unt,strm)
 
@@ -1058,7 +1042,7 @@ contains
     !local variables
     integer :: unt,strm
 
-    unt=0
+    unt=DEFAULT_STREAM_ID
     if (present(unit)) unt=unit
     call get_stream(unt,strm)
 
@@ -1078,11 +1062,11 @@ contains
     character(len=*), optional, intent(in) :: advance   !<@copydoc doc::advance
     integer, intent(in), optional :: padding            !<pad the seqvalue with blanks to have more readable output
     !local variables
-    integer :: msg_lgt,unt,strm,tb
+    integer :: msg_lgt,unt,strm,tb,istat,ipos,jpos,kpos
     character(len=3) :: adv
     character(len=tot_max_record_length) :: towrite
 
-    unt=0
+    unt=DEFAULT_STREAM_ID
     if (present(unit)) unt=unit
     call get_stream(unt,strm)
 
@@ -1103,8 +1087,26 @@ contains
        tb=padding-len_trim(seqvalue)
        if (tb > 0) call buffer_string(towrite,len(towrite),repeat(' ',tb),msg_lgt)
     end if
-
-    call dump(streams(strm),towrite(1:msg_lgt),advance=trim(adv),event=SEQUENCE_ELEM)
+    !try to see if the line is too long
+    call dump(streams(strm),towrite(1:msg_lgt),advance=trim(adv),event=SEQUENCE_ELEM,istat=istat)
+    if (istat /=0 .and. .not. streams(strm)%flowrite) then
+       ipos=1
+       jpos=msg_lgt
+       kpos=jpos
+       loop_seq: do
+          call dump(streams(strm),towrite(ipos:kpos),advance=trim(adv),event=SCALAR,istat=istat)
+          if (istat /=0) then
+             !continue searching
+             kpos=index(towrite(ipos:jpos),' ',back=.true.)
+             if (kpos == 0) kpos=jpos-1
+          else
+             ipos=kpos+1
+             jpos=msg_lgt
+             kpos=jpos
+          end if
+          if (ipos > msg_lgt) exit loop_seq
+       end do loop_seq
+    end if
   end subroutine yaml_sequence
 
 
@@ -1124,7 +1126,7 @@ contains
     character(len=3) :: adv
     character(len=tot_max_record_length) :: towrite
 
-    unt=0
+    unt=DEFAULT_STREAM_ID
     if (present(unit)) unt=unit
     call get_stream(unt,strm)
 
@@ -1229,7 +1231,7 @@ contains
     integer :: strm,unt
     character(len=max_field_length) :: lbl
 
-    unt=0
+    unt=DEFAULT_STREAM_ID
     if (present(unit)) unt=unit
     call get_stream(unt,strm)
 
@@ -1359,7 +1361,7 @@ contains
 
     if (present(istat)) istat=0
 
-    if (unt==0) then
+    if (unt==DEFAULT_STREAM_ID) then
        !if there are no active streams activate them (to circumvent g95 bug)
        if (active_streams==0) call yaml_set_stream(record_length=92,istat=ierr)
        strm=default_stream
@@ -1626,6 +1628,7 @@ contains
           else
              !crop the writing
              towrite_lgt=stream%max_record_length
+             !print *,'towrite', repeat(' ',max(indent_lgt,0))//towrite(1:towrite_lgt),' end'
              !stop 'ERROR (dump): writing exceeds record size'
           end if
        else
@@ -1978,7 +1981,7 @@ contains
        flowrite=flow
        default_flow=.false.
     end if
-    unt=0
+    unt=DEFAULT_STREAM_ID
     if (present(unit)) unt=unit
     verb=.false.
     if (present(verbatim)) verb=verbatim
@@ -2206,7 +2209,7 @@ contains
 
     flowrite=.false.
     if (present(flow)) flowrite=flow
-    unt=0
+    unt=DEFAULT_STREAM_ID
     if (present(unit)) unt=unit
     verb=.false.
     if (present(verbatim)) verb=verbatim

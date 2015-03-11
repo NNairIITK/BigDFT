@@ -199,7 +199,7 @@ contains
        ispsidst=ispsidst+ncomp*diis%idsx
     end do
     if (nproc > 1) then
-       call mpiallred(rds(1,1),(diis%idsx+1)*ngrp,MPI_SUM,bigdft_mpi%mpi_comm)
+       call mpiallred(rds,MPI_SUM,comm=bigdft_mpi%mpi_comm)
        if (f_err_raise(f_err_check(err_name='ERR_MPI_WRAPPERS'),&
             'Error in allreduce operation, '//subname,BIGDFT_MPI_ERROR)) then
           call free_and_exit()

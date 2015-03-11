@@ -129,13 +129,17 @@
      linear: 100
      linear_restart: 102
    output_wf:
-     COMMENT: Output of the wavefunctions
+     COMMENT: Output of the support functions
      default: 0
      EXCLUSIVE:
        0: None
-       1: Plain text
-       2: Fortran binary
-       3: ETSF file format
+       1: Wavelet, Plain text
+       2: Wavelet, Fortran binary
+       3: Wavelet, ETSF file format
+       10: None
+       11: Wavelet and Interpolating Scaling Function, Plain text
+       12: Wavelet and Interpolating Scaling Function, Fortran binary
+       13: Wavelet and Interpolating Scaling Function, ETSF file format
    output_denspot:
      COMMENT: Output of the density or the potential
      default: 0
@@ -661,6 +665,7 @@
        lensib: Lenosky Tight-Binding for Si bulk
        amber: AMBER Force Fields Package (requires AMBERtools)
        morse_bulk: Morse bulk
+       morse_slab: Morse slab
      default: dft
    mm_paramset:
      COMMENT: Name of the hard-coded parameter set. Must be compatible to the chosen force field.
@@ -795,6 +800,9 @@
    mp_isf:
      COMMENT: (EXPERIMENTAL) Interpolating scalig function order for the multipole preserving
      EXCLUSIVE:
+       2: isf 2
+       4: isf 4
+       6: isf 6
        8: isf 8
        14: isf 14
        16: isf 16
@@ -855,7 +863,11 @@
      default: No
    write_orbitals:
      COMMENT: Linear scaling write KS orbitals for cubic restart (might take lot of disk space!)
-     default: No
+     default: 0
+     EXCLUSIVE:
+       0: No output
+       1: Output in in wavelet basis
+       2: In addition output in interpolating scaling functions (cube file)
    explicit_locregcenters:
      COMMENT: Linear scaling explicitely specify localization centers 
      default: No
@@ -929,6 +941,12 @@
    adjust_kernel_iterations:
      COMMENT: enable the addaptive ajustment of the number of kernel iterations
      default: True
+   wf_extent_analysis:
+     COMMENT: perform an analysis of the extent of the support functions (and possibly KS orbitals)
+     default: False
+   kernel_analysis:
+     COMMENT: perform an analysis of the kernel at the end
+     default: False
  lin_general:
      hybrid: 
        COMMENT: activate the hybrid mode; if activated, only the low accuracy values will be relevant
@@ -987,16 +1005,24 @@
        DESCRIPTION: |
                     possible value: 1 nonnegative-integer number
                     Indicates how the support functions should be written to disk at the end of the run:
-                     * 0 => no output
-                     * 1 => formatted output
-                     * 2 => Fortran bin
-                     * 3 => ETSF
-       EXCLUSIVE:
-         0: no output
-         1: formatted output
-         2: Fortran bin
-         3: ETSF
+                     *  0 => None
+                     *  1 => Wavelet, Plain text
+                     *  2 => Wavelet, Fortran binary
+                     *  3 => Wavelet, ETSF file format
+                     * 10 => None
+                     * 11 => Wavelet and Interpolating Scaling Function, Plain text
+                     * 12 => Wavelet and Interpolating Scaling Function, Fortran binary
+                     * 13 => Wavelet and Interpolating Scaling Function, ETSF file format
        default: 0
+       EXCLUSIVE:
+         0:  None
+         1:  Wavelet, Plain text
+         2:  Wavelet, Fortran binary
+         3:  Wavelet, ETSF file format
+         10: None
+         11: Wavelet and Interpolating Scaling Function, Plain text
+         12: Wavelet and Interpolating Scaling Function, Fortran binary
+         13: Wavelet and Interpolating Scaling Function, ETSF file format
      calc_dipole:
        DESCRIPTION: |
                     possible value: 1 logical
