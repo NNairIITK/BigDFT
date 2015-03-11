@@ -1504,105 +1504,20 @@ subroutine convcheck_sad(fmax,curv,fluctfrac_fluct,forcemax,check)
   endif
 end subroutine convcheck_sad
 !=====================================================================
-!!subroutine elim_torque_bastian(nat,ratin,vat)
-!!    implicit none
-!!    integer, intent(in) :: nat
-!!    real(gp), intent(in) :: ratin(3,nat)
-!!    real(gp), intent(inout) :: vat(3,nat)
-!!    !internal
-!!    integer :: iat
-!!    real(gp) :: ddx,ddy,ddz
-!!    real(gp) :: xrot(3,nat), yrot(3,nat), zrot(3,nat)
-!!    real(gp) :: xroto(3,nat), yroto(3,nat), zroto(3,nat)
-!!    real(gp) :: rat(3,nat),cmx,cmy,cmz
-!!    !functions
-!!    real(gp) :: ddot, dnrm2
-!!
-!!    !shift cm to origin
-!!    cmx=0.0_gp; cmy=0.0_gp; cmz=0.0_gp
-!!    do iat=1,nat
-!!        cmx = cmx + ratin(1,iat)
-!!        cmy = cmy + ratin(2,iat)
-!!        cmz = cmz + ratin(3,iat)
-!!    enddo
-!!    cmx=cmx/nat; cmy=cmy/nat; cmz=cmz/nat
-!!    do iat=1,nat
-!!        rat(1,iat) = ratin(1,iat)-cmx
-!!        rat(2,iat) = ratin(2,iat)-cmy
-!!        rat(3,iat) = ratin(3,iat)-cmz
-!!    enddo
-!!
-!!    !set up rotational hessian eigenvectors
-!!    do iat=1,nat
-!!        xrot(1,iat)=0.0_gp
-!!        xrot(2,iat)=-rat(3,iat)
-!!        xrot(3,iat)=rat(2,iat)
-!!        yrot(1,iat)=rat(3,iat)
-!!        yrot(2,iat)=0.0_gp
-!!        yrot(3,iat)=-rat(1,iat)
-!!        zrot(1,iat)=-rat(2,iat)
-!!        zrot(2,iat)=rat(1,iat)
-!!        zrot(3,iat)=0.0_gp
-!!    enddo
-!!    
-!!    !gram schmidt orthogonalization of hessian eigenvectors
-!!    !these orhtogonalized vector span the "rotational subspace"
-!!    ddx=dnrm2(3*nat, xrot, 1)
-!!    if(ddx>1.e-10_gp)then
-!!        xroto=xrot/ddx
-!!    else
-!!        xroto=0.0_gp
-!!    endif
-!!    yroto=yrot-ddot(3*nat,yrot(1,1), 1, xroto(1,1), 1)*xroto
-!!    ddy=dnrm2(3*nat, yroto, 1)
-!!    if(ddy>1.e-10_gp)then
-!!        yroto=yroto/ddy
-!!    else
-!!        yroto=0.0_gp
-!!    endif    
-!!    zroto=zrot-ddot(3*nat,zrot(1,1), 1, xroto(1,1), 1)*xroto-&
-!!          ddot(3*nat,zrot(1,1), 1, yroto(1,1), 1)*yroto
-!!    ddz=dnrm2(3*nat, zroto, 1)
-!!    if(ddz>1.e-10_gp)then
-!!        zroto=zroto/ddz
-!!    else
-!!        zroto=0.0_gp
-!!    endif
-!!
-!!
-!!    !project vat onto "rotational subspace"
-!!    ddx=ddot(3*nat,vat(1,1), 1, xroto(1,1), 1)
-!!    ddy=ddot(3*nat,vat(1,1), 1, yroto(1,1), 1)
-!!    ddz=ddot(3*nat,vat(1,1), 1, zroto(1,1), 1)
-!!    vat=vat-ddx*xroto-ddy*yroto-ddz*zroto
-!!
-!!end subroutine
-!=====================================================================
 subroutine elim_torque_bastian(nat,ratin,vat)
 use module_base
-!theory:
-!(in the following: x represents cross product)
-!L = sum(r_i x p_i) = I w
-!w = I^-1 L
-!v_ortho = w x r
-!v_tot = v_ortho + v_radial
-!=> vradial = v_tot - w x r
-!note: routine must be modified before using for cases
-!where masses /= 1
     implicit none
     integer, intent(in) :: nat
     real(gp), intent(in) :: ratin(3,nat)
     real(gp), intent(inout) :: vat(3,nat)
     !internal
     integer :: iat
+    real(gp) :: ddx,ddy,ddz
+    real(gp) :: xrot(3,nat), yrot(3,nat), zrot(3,nat)
+    real(gp) :: xroto(3,nat), yroto(3,nat), zroto(3,nat)
     real(gp) :: rat(3,nat),cmx,cmy,cmz
-    real(gp) :: tt,tinv(3,3),dettinI,w(3),vo(3),angmom(3)
-    real(gp) :: tin11,tin22,tin33,tin12,tin13
-    real(gp) :: tin23,tin21,tin31,tin32
-    real(gp), dimension(:), allocatable :: amass
-
-    amass = f_malloc((/1.to.nat/),id='amass')
-    amass(1:nat)=1.0_gp
+    !functions
+    real(gp) :: ddot, dnrm2
 
     !shift cm to origin
     cmx=0.0_gp; cmy=0.0_gp; cmz=0.0_gp
@@ -1617,70 +1532,155 @@ use module_base
         rat(2,iat) = ratin(2,iat)-cmy
         rat(3,iat) = ratin(3,iat)-cmz
     enddo
+
+    !set up rotational hessian eigenvectors
+    do iat=1,nat
+        xrot(1,iat)=0.0_gp
+        xrot(2,iat)=-rat(3,iat)
+        xrot(3,iat)=rat(2,iat)
+        yrot(1,iat)=rat(3,iat)
+        yrot(2,iat)=0.0_gp
+        yrot(3,iat)=-rat(1,iat)
+        zrot(1,iat)=-rat(2,iat)
+        zrot(2,iat)=rat(1,iat)
+        zrot(3,iat)=0.0_gp
+    enddo
     
-    
-    !calculate inertia tensor
-    tin11=0.0_gp; tin22=0.0_gp; tin33=0.0_gp
-    tin12=0.0_gp; tin13=0.0_gp; tin23=0.0_gp
-    tin21=0.0_gp; tin31=0.0_gp; tin32=0.0_gp
-    do iat=1,nat
-        tt=amass(iat)
-        tin11=tin11+tt*(rat(2,iat)*rat(2,iat)+rat(3,iat)*rat(3,iat))
-        tin22=tin22+tt*(rat(1,iat)*rat(1,iat)+rat(3,iat)*rat(3,iat))
-        tin33=tin33+tt*(rat(1,iat)*rat(1,iat)+rat(2,iat)*rat(2,iat))
-        tin12=tin12-tt*(rat(1,iat)*rat(2,iat))
-        tin13=tin13-tt*(rat(1,iat)*rat(3,iat))
-        tin23=tin23-tt*(rat(2,iat)*rat(3,iat))
-        tin21=tin12
-        tin31=tin13
-        tin32=tin23
-    enddo
+    !gram schmidt orthogonalization of hessian eigenvectors
+    !these orhtogonalized vector span the "rotational subspace"
+    ddx=dnrm2(3*nat, xrot, 1)
+    if(ddx>1.e-10_gp)then
+        xroto=xrot/ddx
+    else
+        xroto=0.0_gp
+    endif
+    yroto=yrot-ddot(3*nat,yrot(1,1), 1, xroto(1,1), 1)*xroto
+    ddy=dnrm2(3*nat, yroto, 1)
+    if(ddy>1.e-10_gp)then
+        yroto=yroto/ddy
+    else
+        yroto=0.0_gp
+    endif    
+    zroto=zrot-ddot(3*nat,zrot(1,1), 1, xroto(1,1), 1)*xroto-&
+          ddot(3*nat,zrot(1,1), 1, yroto(1,1), 1)*yroto
+    ddz=dnrm2(3*nat, zroto, 1)
+    if(ddz>1.e-10_gp)then
+        zroto=zroto/ddz
+    else
+        zroto=0.0_gp
+    endif
 
-    !invert inertia tensor
-    dettinI = 1.0_gp/(tin11*tin22*tin33+tin12*tin23*tin31&
-              +tin13*tin21*tin32-tin13*tin22*tin31-&
-              tin12*tin21*tin33-tin11*tin23*tin32)
-    tinv(1,1)=dettinI*(tin22*tin33-tin23*tin32)
-    tinv(2,2)=dettinI*(tin11*tin33-tin13*tin31)
-    tinv(3,3)=dettinI*(tin11*tin22-tin12*tin21)
-    tinv(1,2)=dettinI*(tin13*tin32-tin12*tin33)
-    tinv(1,3)=dettinI*(tin12*tin23-tin13*tin22)
-    tinv(2,3)=dettinI*(tin13*tin21-tin11*tin23)
-    tinv(2,1)=dettinI*(tin23*tin31-tin21*tin33)
-    tinv(3,1)=dettinI*(tin21*tin32-tin22*tin31)
-    tinv(3,2)=dettinI*(tin12*tin31-tin11*tin32)
 
-    !Compute angular momentum
-    angmom=0.0_gp
-    vo=0.0_gp
-    do iat=1,nat
-        vo(1)=rat(2,iat)*vat(3,iat)-rat(3,iat)*vat(2,iat)
-        vo(2)=rat(3,iat)*vat(1,iat)-rat(1,iat)*vat(3,iat)
-        vo(3)=rat(1,iat)*vat(2,iat)-rat(2,iat)*vat(1,iat)
-        angmom(1)=angmom(1)+vo(1)
-        angmom(2)=angmom(2)+vo(2)
-        angmom(3)=angmom(3)+vo(3)
-    enddo
-
-    !matrix product w= I^-1 L
-    w(1)=tinv(1,1)*angmom(1)+tinv(1,2)*angmom(2)+tinv(1,3)*angmom(3)
-    w(2)=tinv(2,1)*angmom(1)+tinv(2,2)*angmom(2)+tinv(2,3)*angmom(3)
-    w(3)=tinv(3,1)*angmom(1)+tinv(3,2)*angmom(2)+tinv(3,3)*angmom(3)
-
-    vo=0.0_gp
-    do iat=1,nat
-        !tangential velocity v_ortho = w x r_i
-        vo(1)=w(2)*rat(3,iat)-w(3)*rat(2,iat)
-        vo(2)=w(3)*rat(1,iat)-w(1)*rat(3,iat)
-        vo(3)=w(1)*rat(2,iat)-w(2)*rat(1,iat)
-        !remove tangential velocity from velocity of atom iat
-        vat(1,iat) = vat(1,iat) - vo(1)
-        vat(2,iat) = vat(2,iat) - vo(2)
-        vat(3,iat) = vat(3,iat) - vo(3)
-    enddo
-    call f_free(amass)
+    !project vat onto "rotational subspace"
+    ddx=ddot(3*nat,vat(1,1), 1, xroto(1,1), 1)
+    ddy=ddot(3*nat,vat(1,1), 1, yroto(1,1), 1)
+    ddz=ddot(3*nat,vat(1,1), 1, zroto(1,1), 1)
+    vat=vat-ddx*xroto-ddy*yroto-ddz*zroto
 end subroutine
-!=====================================================================
+!!!=====================================================================
+!!subroutine elim_torque_bastian(nat,ratin,vat)
+!!use module_base
+!!!theory:
+!!!(in the following: x represents cross product)
+!!!L = sum(r_i x p_i) = I w
+!!!w = I^-1 L
+!!!v_ortho = w x r
+!!!v_tot = v_ortho + v_radial
+!!!=> vradial = v_tot - w x r
+!!!note: routine must be modified before using for cases
+!!!where masses /= 1
+!!    implicit none
+!!    integer, intent(in) :: nat
+!!    real(gp), intent(in) :: ratin(3,nat)
+!!    real(gp), intent(inout) :: vat(3,nat)
+!!    !internal
+!!    integer :: iat
+!!    real(gp) :: rat(3,nat),cmx,cmy,cmz
+!!    real(gp) :: tt,tinv(3,3),dettinI,w(3),vo(3),angmom(3)
+!!    real(gp) :: tin11,tin22,tin33,tin12,tin13
+!!    real(gp) :: tin23,tin21,tin31,tin32
+!!    real(gp), dimension(:), allocatable :: amass
+!!
+!!    amass = f_malloc((/1.to.nat/),id='amass')
+!!    amass(1:nat)=1.0_gp
+!!
+!!    !shift cm to origin
+!!    cmx=0.0_gp; cmy=0.0_gp; cmz=0.0_gp
+!!    do iat=1,nat
+!!        cmx = cmx + ratin(1,iat)
+!!        cmy = cmy + ratin(2,iat)
+!!        cmz = cmz + ratin(3,iat)
+!!    enddo
+!!    cmx=cmx/nat; cmy=cmy/nat; cmz=cmz/nat
+!!    do iat=1,nat
+!!        rat(1,iat) = ratin(1,iat)-cmx
+!!        rat(2,iat) = ratin(2,iat)-cmy
+!!        rat(3,iat) = ratin(3,iat)-cmz
+!!    enddo
+!!    
+!!    
+!!    !calculate inertia tensor
+!!    tin11=0.0_gp; tin22=0.0_gp; tin33=0.0_gp
+!!    tin12=0.0_gp; tin13=0.0_gp; tin23=0.0_gp
+!!    tin21=0.0_gp; tin31=0.0_gp; tin32=0.0_gp
+!!    do iat=1,nat
+!!        tt=amass(iat)
+!!        tin11=tin11+tt*(rat(2,iat)*rat(2,iat)+rat(3,iat)*rat(3,iat))
+!!        tin22=tin22+tt*(rat(1,iat)*rat(1,iat)+rat(3,iat)*rat(3,iat))
+!!        tin33=tin33+tt*(rat(1,iat)*rat(1,iat)+rat(2,iat)*rat(2,iat))
+!!        tin12=tin12-tt*(rat(1,iat)*rat(2,iat))
+!!        tin13=tin13-tt*(rat(1,iat)*rat(3,iat))
+!!        tin23=tin23-tt*(rat(2,iat)*rat(3,iat))
+!!        tin21=tin12
+!!        tin31=tin13
+!!        tin32=tin23
+!!    enddo
+!!
+!!    !invert inertia tensor
+!!    dettinI = 1.0_gp/(tin11*tin22*tin33+tin12*tin23*tin31&
+!!              +tin13*tin21*tin32-tin13*tin22*tin31-&
+!!              tin12*tin21*tin33-tin11*tin23*tin32)
+!!    tinv(1,1)=dettinI*(tin22*tin33-tin23*tin32)
+!!    tinv(2,2)=dettinI*(tin11*tin33-tin13*tin31)
+!!    tinv(3,3)=dettinI*(tin11*tin22-tin12*tin21)
+!!    tinv(1,2)=dettinI*(tin13*tin32-tin12*tin33)
+!!    tinv(1,3)=dettinI*(tin12*tin23-tin13*tin22)
+!!    tinv(2,3)=dettinI*(tin13*tin21-tin11*tin23)
+!!    tinv(2,1)=dettinI*(tin23*tin31-tin21*tin33)
+!!    tinv(3,1)=dettinI*(tin21*tin32-tin22*tin31)
+!!    tinv(3,2)=dettinI*(tin12*tin31-tin11*tin32)
+!!
+!!    !Compute angular momentum
+!!    angmom=0.0_gp
+!!    vo=0.0_gp
+!!    do iat=1,nat
+!!        vo(1)=rat(2,iat)*vat(3,iat)-rat(3,iat)*vat(2,iat)
+!!        vo(2)=rat(3,iat)*vat(1,iat)-rat(1,iat)*vat(3,iat)
+!!        vo(3)=rat(1,iat)*vat(2,iat)-rat(2,iat)*vat(1,iat)
+!!        angmom(1)=angmom(1)+vo(1)
+!!        angmom(2)=angmom(2)+vo(2)
+!!        angmom(3)=angmom(3)+vo(3)
+!!    enddo
+!!
+!!    !matrix product w= I^-1 L
+!!    w(1)=tinv(1,1)*angmom(1)+tinv(1,2)*angmom(2)+tinv(1,3)*angmom(3)
+!!    w(2)=tinv(2,1)*angmom(1)+tinv(2,2)*angmom(2)+tinv(2,3)*angmom(3)
+!!    w(3)=tinv(3,1)*angmom(1)+tinv(3,2)*angmom(2)+tinv(3,3)*angmom(3)
+!!
+!!    vo=0.0_gp
+!!    do iat=1,nat
+!!        !tangential velocity v_ortho = w x r_i
+!!        vo(1)=w(2)*rat(3,iat)-w(3)*rat(2,iat)
+!!        vo(2)=w(3)*rat(1,iat)-w(1)*rat(3,iat)
+!!        vo(3)=w(1)*rat(2,iat)-w(2)*rat(1,iat)
+!!        !remove tangential velocity from velocity of atom iat
+!!        vat(1,iat) = vat(1,iat) - vo(1)
+!!        vat(2,iat) = vat(2,iat) - vo(2)
+!!        vat(3,iat) = vat(3,iat) - vo(3)
+!!    enddo
+!!    call f_free(amass)
+!!end subroutine
+!!!=====================================================================
 subroutine elim_moment_fs(nat,vxyz)
     use module_base
     implicit none
