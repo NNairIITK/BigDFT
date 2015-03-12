@@ -248,51 +248,51 @@ contains
 
   !> Determine the index in which the potential must be inserted, following the BC
   !! Determine also whether the index is inside or outside the box for free BC
-  pure subroutine ind_positions(periodic,i,n,j,go)
+  !!!pure subroutine ind_positions(periodic,i,n,j,go)
+  !!!  implicit none
+  !!!  logical, intent(in) :: periodic !< Periodic or not
+  !!!  integer, intent(in) :: i
+  !!!  integer, intent(in) :: n      
+  !!!  logical, intent(out) :: go      !< True if in the box
+  !!!  integer, intent(out) :: j
+  !!!
+  !!!  if (periodic) then
+  !!!     go=.true.
+  !!!     j=modulo(i,2*n+2)
+  !!!  else
+  !!!     j=i
+  !!!     if (i >= -14 .and. i <= 2*n+16) then
+  !!!        go=.true.
+  !!!     else
+  !!!        go=.false.
+  !!!     end if
+  !!!  end if
+  !!!
+  !!!END SUBROUTINE ind_positions
+
+
+  !> Determine the index in which the potential must be inserted, following the BC
+  !! Determine also whether the index is inside or outside the box for free BC
+  pure subroutine ind_positions_new(periodic,i,ni,j,go)
     implicit none
-    logical, intent(in) :: periodic !< Periodic or not
-    integer, intent(in) :: i
-    integer, intent(in) :: n      
-    logical, intent(out) :: go      !< True if in the box
+    logical, intent(in) :: periodic
+    integer, intent(in) :: i,ni
+    logical, intent(out) :: go
     integer, intent(out) :: j
 
     if (periodic) then
        go=.true.
-       j=modulo(i,2*n+2)
+       j=modulo(i,ni)
     else
        j=i
-       if (i >= -14 .and. i <= 2*n+16) then
+       if (i >= -14 .and. i <= ni-15) then
           go=.true.
        else
           go=.false.
        end if
     end if
 
-  END SUBROUTINE ind_positions
-
-
-  !> Determine the index in which the potential must be inserted, following the BC
-  !! Determine also whether the index is inside or outside the box for free BC
-  !!!pure subroutine ind_positions_new(periodic,i,ni,j,go)
-  !!!  implicit none
-  !!!  logical, intent(in) :: periodic
-  !!!  integer, intent(in) :: i,ni
-  !!!  logical, intent(out) :: go
-  !!!  integer, intent(out) :: j
-
-  !!!  if (periodic) then
-  !!!     go=.true.
-  !!!     j=modulo(i,ni)
-  !!!  else
-  !!!     j=i
-  !!!     if (i >= -14 .and. i <= ni-15) then
-  !!!        go=.true.
-  !!!     else
-  !!!        go=.false.
-  !!!     end if
-  !!!  end if
-
-  !!!END SUBROUTINE ind_positions_new
+  END SUBROUTINE ind_positions_new
 
 
 end module module_dpbox

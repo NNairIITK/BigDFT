@@ -320,30 +320,15 @@ subroutine IonicEnergyandForces(iproc,dpbox,at,elecfield,&
            mpx = f_malloc( (/ isx.to.iex /),id='mpx')
            mpy = f_malloc( (/ isy.to.iey /),id='mpy')
            mpz = f_malloc( (/ isz.to.iez /),id='mpz')
-           if (at%multipole_preserving) then
-              do i1=isx,iex
-                 mpx(i1) = mp_exp(hxh,rx,rlocinv2sq,i1,0,.true.)
-              end do
-              do i2=isy,iey
-                 mpy(i2) = mp_exp(hyh,ry,rlocinv2sq,i2,0,.true.)
-              end do
-              do i3=isz,iez
-                 mpz(i3) = mp_exp(hzh,rz,rlocinv2sq,i3,0,.true.)
-              end do
-           else
-              do i1=isx,iex
-                 x=real(i1,kind=8)*hxh-rx
-                 mpx(i1) = exp(-rlocinv2sq*x**2)
-              end do
-              do i2=isy,iey
-                 y=real(i2,kind=8)*hyh-ry
-                 mpy(i2) = exp(-rlocinv2sq*y**2)
-              end do
-              do i3=isz,iez
-                 z=real(i3,kind=8)*hzh-rz
-                 mpz(i3) = exp(-rlocinv2sq*z**2)
-              end do
-           end if
+           do i1=isx,iex
+              mpx(i1) = mp_exp(hxh,rx,rlocinv2sq,i1,0,at%multipole_preserving)
+           end do
+           do i2=isy,iey
+              mpy(i2) = mp_exp(hyh,ry,rlocinv2sq,i2,0,at%multipole_preserving)
+           end do
+           do i3=isz,iez
+              mpz(i3) = mp_exp(hzh,rz,rlocinv2sq,i3,0,at%multipole_preserving)
+           end do
 
            !These nested loops will be used also for the actual ionic forces, to be recalculated
            do i3=isz,iez
@@ -428,31 +413,15 @@ subroutine IonicEnergyandForces(iproc,dpbox,at,elecfield,&
            mpx = f_malloc( (/ isx.to.iex /),id='mpx')
            mpy = f_malloc( (/ isy.to.iey /),id='mpy')
            mpz = f_malloc( (/ isz.to.iez /),id='mpz')
-           if (at%multipole_preserving) then
-              do i1=isx,iex
-                 mpx(i1) = mp_exp(hxh,rx,rlocinv2sq,i1,0,.true.)
-              end do
-              do i2=isy,iey
-                 mpy(i2) = mp_exp(hyh,ry,rlocinv2sq,i2,0,.true.)
-              end do
-              do i3=isz,iez
-                 mpz(i3) = mp_exp(hzh,rz,rlocinv2sq,i3,0,.true.)
-              end do
-           else
-              do i1=isx,iex
-                 x=real(i1,kind=8)*hxh-rx
-                 mpx(i1) = exp(-rlocinv2sq*x**2)
-              end do
-              do i2=isy,iey
-                 y=real(i2,kind=8)*hyh-ry
-                 mpy(i2) = exp(-rlocinv2sq*y**2)
-              end do
-              do i3=isz,iez
-                 z=real(i3,kind=8)*hzh-rz
-                 mpz(i3) = exp(-rlocinv2sq*z**2)
-              end do
-           end if
-
+           do i1=isx,iex
+              mpx(i1) = mp_exp(hxh,rx,rlocinv2sq,i1,0,at%multipole_preserving)
+           end do
+           do i2=isy,iey
+              mpy(i2) = mp_exp(hyh,ry,rlocinv2sq,i2,0,at%multipole_preserving)
+           end do
+           do i3=isz,iez
+              mpz(i3) = mp_exp(hzh,rz,rlocinv2sq,i3,0,at%multipole_preserving)
+           end do
 
            do i3=isz,iez
               z=real(i3,gp)*hzh-rz
@@ -689,30 +658,15 @@ subroutine createIonicPotential(geocode,iproc,verb,at,rxyz,&
 !!TD    mpx = f_malloc( (/ boaxat(1,1).to.boxat(2,1) /),id='mpx')
 !!TD    mpy = f_malloc( (/ boaxat(1,2).to.boxat(2,2) /),id='mpy')
 !!TD    mpz = f_malloc( (/ boaxat(1,3).to.boxat(2,3) /),id='mpz')
-!!TD    if (at%multipole_preserving) then
-!!TD       do i1=boxat(1,1),boxat(2,1)
-!!TD          mpx(i1) = mp_exp(hxh,rx,rlocinv2sq,i1,0,.true.)
-!!TD       end do
-!!TD       do i2=boxat(1,2),boxat(2,2)
-!!TD          mpy(i2) = mp_exp(hyh,ry,rlocinv2sq,i2,0,.true.)
-!!TD       end do
-!!TD       do i3=boxat(1,3),boxat(2,3)
-!!TD          mpz(i3) = mp_exp(hzh,rz,rlocinv2sq,i3,0,.true.)
-!!TD       end do
-!!TD    else
-!!TD       do i1=boxat(1,1),boxat(2,1)
-!!TD          x=real(i1,kind=8)*hxh-rx
-!!TD          mpx(i1) = exp(-rlocinv2sq*x**2)
-!!TD       end do
-!!TD       do i2=boxat(1,2),boxat(2,2)
-!!TD          y=real(i2,kind=8)*hyh-ry
-!!TD          mpy(i2) = exp(-rlocinv2sq*y**2)
-!!TD       end do
-!!TD       do i3=boxat(1,3),boxat(2,3)
-!!TD          z=real(i3,kind=8)*hzh-rz
-!!TD          mpz(i3) = exp(-rlocinv2sq*z**2)
-!!TD       end do
-!!TD    end if
+!!TD    do i1=boxat(1,1),boxat(2,1)
+!!TD       mpx(i1) = mp_exp(hxh,rx,rlocinv2sq,i1,0,at%multipole_preserving)
+!!TD    end do
+!!TD    do i2=boxat(1,2),boxat(2,2)
+!!TD       mpy(i2) = mp_exp(hyh,ry,rlocinv2sq,i2,0,at%multipole_preserving)
+!!TD    end do
+!!TD    do i3=boxat(1,3),boxat(2,3)
+!!TD       mpz(i3) = mp_exp(hzh,rz,rlocinv2sq,i3,0,at%multipole_preserving)
+!!TD    end do
 !!TD
 !!TD    boxit = dpbox_iter(geocode,dpbox,boxat)
 !!TD    do while(dpbox_iter_next(boxit))
@@ -764,30 +718,15 @@ subroutine createIonicPotential(geocode,iproc,verb,at,rxyz,&
         mpx = f_malloc( (/ isx.to.iex /),id='mpx')
         mpy = f_malloc( (/ isy.to.iey /),id='mpy')
         mpz = f_malloc( (/ isz.to.iez /),id='mpz')
-        if (at%multipole_preserving) then
-           do i1=isx,iex
-              mpx(i1) = mp_exp(hxh,rx,rlocinv2sq,i1,0,.true.)
-           end do
-           do i2=isy,iey
-              mpy(i2) = mp_exp(hyh,ry,rlocinv2sq,i2,0,.true.)
-           end do
-           do i3=isz,iez
-              mpz(i3) = mp_exp(hzh,rz,rlocinv2sq,i3,0,.true.)
-           end do
-        else
-           do i1=isx,iex
-              x=real(i1,kind=8)*hxh-rx
-              mpx(i1) = exp(-rlocinv2sq*x**2)
-           end do
-           do i2=isy,iey
-              y=real(i2,kind=8)*hyh-ry
-              mpy(i2) = exp(-rlocinv2sq*y**2)
-           end do
-           do i3=isz,iez
-              z=real(i3,kind=8)*hzh-rz
-              mpz(i3) = exp(-rlocinv2sq*z**2)
-           end do
-        end if
+        do i1=isx,iex
+           mpx(i1) = mp_exp(hxh,rx,rlocinv2sq,i1,0,at%multipole_preserving)
+        end do
+        do i2=isy,iey
+           mpy(i2) = mp_exp(hyh,ry,rlocinv2sq,i2,0,at%multipole_preserving)
+        end do
+        do i3=isz,iez
+           mpz(i3) = mp_exp(hzh,rz,rlocinv2sq,i3,0,at%multipole_preserving)
+        end do
 
 !       Calculate Ionic Density
 !       using HGH parameters.
@@ -1032,30 +971,15 @@ subroutine createIonicPotential(geocode,iproc,verb,at,rxyz,&
            mpx = f_malloc( (/ isx.to.iex /),id='mpx')
            mpy = f_malloc( (/ isy.to.iey /),id='mpy')
            mpz = f_malloc( (/ isz.to.iez /),id='mpz')
-           if (at%multipole_preserving) then
-              do i1=isx,iex
-                 mpx(i1) = mp_exp(hxh,rx,rlocinv2sq,i1,0,.true.)
-              end do
-              do i2=isy,iey
-                 mpy(i2) = mp_exp(hyh,ry,rlocinv2sq,i2,0,.true.)
-              end do
-              do i3=isz,iez
-                 mpz(i3) = mp_exp(hzh,rz,rlocinv2sq,i3,0,.true.)
-              end do
-           else
-              do i1=isx,iex
-                 x=real(i1,kind=8)*hxh-rx
-                 mpx(i1) = exp(-rlocinv2sq*x**2)
-              end do
-              do i2=isy,iey
-                 y=real(i2,kind=8)*hyh-ry
-                 mpy(i2) = exp(-rlocinv2sq*y**2)
-              end do
-              do i3=isz,iez
-                 z=real(i3,kind=8)*hzh-rz
-                 mpz(i3) = exp(-rlocinv2sq*z**2)
-              end do
-           end if
+           do i1=isx,iex
+              mpx(i1) = mp_exp(hxh,rx,rlocinv2sq,i1,0,at%multipole_preserving)
+           end do
+           do i2=isy,iey
+              mpy(i2) = mp_exp(hyh,ry,rlocinv2sq,i2,0,at%multipole_preserving)
+           end do
+           do i3=isz,iez
+              mpz(i3) = mp_exp(hzh,rz,rlocinv2sq,i3,0,at%multipole_preserving)
+           end do
         
            ! Add the remaining local terms of Eq. (9) in JCP 129, 014109(2008)
 
@@ -1550,30 +1474,15 @@ subroutine CounterIonPotential(geocode,iproc,in,shift,&
         mpx = f_malloc( (/ isx.to.iex /),id='mpx')
         mpy = f_malloc( (/ isy.to.iey /),id='mpy')
         mpz = f_malloc( (/ isz.to.iez /),id='mpz')
-        if (at%multipole_preserving) then
-           do i1=isx,iex
-              mpx(i1) = mp_exp(hxh,rx,rlocinv2sq,i1,0,.true.)
-           end do
-           do i2=isy,iey
-              mpy(i2) = mp_exp(hyh,ry,rlocinv2sq,i2,0,.true.)
-           end do
-           do i3=isz,iez
-              mpz(i3) = mp_exp(hzh,rz,rlocinv2sq,i3,0,.true.)
-           end do
-        else
-           do i1=isx,iex
-              x=real(i1,kind=8)*hxh-rx
-              mpx(i1) = exp(-rlocinv2sq*x**2)
-           end do
-           do i2=isy,iey
-              y=real(i2,kind=8)*hyh-ry
-              mpy(i2) = exp(-rlocinv2sq*y**2)
-           end do
-           do i3=isz,iez
-              z=real(i3,kind=8)*hzh-rz
-              mpz(i3) = exp(-rlocinv2sq*z**2)
-           end do
-        end if
+        do i1=isx,iex
+           mpx(i1) = mp_exp(hxh,rx,rlocinv2sq,i1,0,at%multipole_preserving)
+        end do
+        do i2=isy,iey
+           mpy(i2) = mp_exp(hyh,ry,rlocinv2sq,i2,0,at%multipole_preserving)
+        end do
+        do i3=isz,iez
+           mpz(i3) = mp_exp(hzh,rz,rlocinv2sq,i3,0,at%multipole_preserving)
+        end do
 
         do i3=isz,iez
            zp = mpz(i3)

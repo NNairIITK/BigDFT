@@ -464,30 +464,15 @@ subroutine local_forces(iproc,at,rxyz,hxh,hyh,hzh,&
      mpx = f_malloc( (/ isx.to.iex /),id='mpx')
      mpy = f_malloc( (/ isy.to.iey /),id='mpy')
      mpz = f_malloc( (/ isz.to.iez /),id='mpz')
-     if (at%multipole_preserving) then
-        do i1=isx,iex
-           mpx(i1) = mp_exp(hxh,rx,rlocinv2sq,i1,0,.true.)
-        end do
-        do i2=isy,iey
-           mpy(i2) = mp_exp(hyh,ry,rlocinv2sq,i2,0,.true.)
-        end do
-        do i3=isz,iez
-           mpz(i3) = mp_exp(hzh,rz,rlocinv2sq,i3,0,.true.)
-        end do
-     else
-        do i1=isx,iex
-           x=real(i1,kind=8)*hxh-rx
-           mpx(i1) = exp(-rlocinv2sq*x**2)
-        end do
-        do i2=isy,iey
-           y=real(i2,kind=8)*hyh-ry
-           mpy(i2) = exp(-rlocinv2sq*y**2)
-        end do
-        do i3=isz,iez
-           z=real(i3,kind=8)*hzh-rz
-           mpz(i3) = exp(-rlocinv2sq*z**2)
-        end do
-     end if
+     do i1=isx,iex
+        mpx(i1) = mp_exp(hxh,rx,rlocinv2sq,i1,0,at%multipole_preserving)
+     end do
+     do i2=isy,iey
+        mpy(i2) = mp_exp(hyh,ry,rlocinv2sq,i2,0,at%multipole_preserving)
+     end do
+     do i3=isz,iez
+        mpz(i3) = mp_exp(hzh,rz,rlocinv2sq,i3,0,at%multipole_preserving)
+     end do
 
      !calculate the forces near the atom due to the error function part of the potential
      !calculate forces for all atoms only in the distributed part of the simulation box
