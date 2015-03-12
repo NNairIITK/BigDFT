@@ -1952,4 +1952,178 @@ module matrix_operations
       end subroutine deviation_from_unity_parallel
 
 
+      subroutine max_matrix_diff(iproc, norb, mat1, mat2, smat, max_deviation, mean_deviation)
+        use module_base
+        use module_types
+        use sparsematrix_base, only: sparse_matrix
+        use sparsematrix_init, only: matrixindex_in_compressed
+        implicit none
+      
+        ! Calling arguments
+        integer,intent(in):: iproc, norb
+        real(8),dimension(norb,norb),intent(in):: mat1, mat2
+        type(sparse_matrix),intent(in) :: smat
+        real(8),intent(out):: max_deviation, mean_deviation
+      
+        ! Local variables
+        integer:: iorb, jorb, ind
+        real(8):: error, num
+      
+        call timing(iproc,'dev_from_unity','ON') 
+        max_deviation=0.d0
+        mean_deviation=0.d0
+        num=0.d0
+        do iorb=1,norb
+           do jorb=1,norb
+              ind=matrixindex_in_compressed(smat,jorb,iorb)
+              if (ind>0) then
+                  error=(mat1(jorb,iorb)-mat2(jorb,iorb))**2
+                  max_deviation=max(error,max_deviation)
+                  mean_deviation=mean_deviation+error
+                  num=num+1.d0
+              end if
+           end do
+        end do
+        mean_deviation=mean_deviation/num
+        mean_deviation=sqrt(mean_deviation)
+        max_deviation=sqrt(max_deviation)
+        call timing(iproc,'dev_from_unity','OF') 
+      
+      end subroutine max_matrix_diff
+
+
+      subroutine max_matrix_diff_parallel(iproc, norb, norbp, isorb, mat1, mat2, &
+                 smat, max_deviation, mean_deviation)
+        use module_base
+        use module_types
+        use sparsematrix_base, only: sparse_matrix
+        use sparsematrix_init, only: matrixindex_in_compressed
+        implicit none
+      
+        ! Calling arguments
+        integer,intent(in):: iproc, norb, norbp, isorb
+        real(8),dimension(norb,norbp),intent(in):: mat1, mat2
+        type(sparse_matrix),intent(in) :: smat
+        real(8),intent(out):: max_deviation, mean_deviation
+      
+        ! Local variables
+        integer:: iorb, iiorb, jorb, ierr, ind
+        real(8):: error, num
+        real(kind=8),dimension(2) :: reducearr
+      
+        call timing(iproc,'dev_from_unity','ON') 
+        max_deviation=0.d0
+        mean_deviation=0.d0
+        num=0.d0
+        do iorb=1,norbp
+           iiorb=iorb+isorb
+           !$omp parallel default(private) shared(iorb, iiorb, norb, mat1, mat2, max_deviation, mean_deviation, num, smat)
+           !$omp do reduction(max:max_deviation) reduction(+:mean_deviation,num)
+           do jorb=1,norb
+              ind=matrixindex_in_compressed(smat,jorb,iiorb)
+              if (ind>0) then
+                  ! This entry is within the sparsity pattern, i.e. it matters for the error.
+                  error=(mat1(jorb,iorb)-mat2(jorb,iorb))**2
+                  max_deviation=max(error,max_deviation)
+                  mean_deviation=mean_deviation+error
+                  num=num+1.d0
+              end if
+           end do
+           !$omp end do
+           !$omp end parallel
+        end do
+      
+        if (bigdft_mpi%nproc>1) then
+            reducearr(1)=mean_deviation
+            reducearr(2)=num
+            call mpiallred(max_deviation, 1, mpi_max, comm=bigdft_mpi%mpi_comm)
+            call mpiallred(reducearr, mpi_sum, comm=bigdft_mpi%mpi_comm)
+            mean_deviation=reducearr(1)
+            num=reducearr(2)
+        end if
+      
+        mean_deviation=mean_deviation/num
+        mean_deviation=sqrt(mean_deviation)
+        max_deviation=sqrt(max_deviation)
+      
+        call timing(iproc,'dev_from_unity','OF') 
+      
+      end subroutine max_matrix_diff_parallel
+
+
+      subroutine max_matrix_diff_parallel_new(iproc, norb, norbp, isorb, mat1, mat2, &
+                 smat, max_deviation, mean_deviation)
+        use module_base
+        use module_types
+        use sparsematrix_base, only: sparse_matrix
+        use sparsematrix_init, only: matrixindex_in_compressed, get_line_and_column
+        implicit none
+      
+        ! Calling arguments
+        integer,intent(in):: iproc, norb, norbp, isorb
+        type(sparse_matrix),intent(in) :: smat
+        real(8),dimension(smat%smmm%nvctrp),intent(in):: mat1, mat2
+        real(8),intent(out):: max_deviation, mean_deviation
+      
+        ! Local variables
+        integer:: iorb, iiorb, jorb, ierr, ind, iline, icolumn, i, ii
+        real(8):: error, num
+        real(kind=8),dimension(2) :: reducearr
+      
+        call timing(iproc,'dev_from_unity','ON') 
+        max_deviation=0.d0
+        mean_deviation=0.d0
+        num=0.d0
+        !!do iorb=1,norbp
+        !!   iiorb=iorb+isorb
+        !!   !$omp parallel default(private) shared(iorb, iiorb, norb, mat1, mat2, max_deviation, mean_deviation, num, smat)
+        !!   !$omp do reduction(max:max_deviation) reduction(+:mean_deviation,num)
+        !!   do jorb=1,norb
+        !!      ind=matrixindex_in_compressed(smat,jorb,iiorb)
+        !!      if (ind>0) then
+        !!          ! This entry is within the sparsity pattern, i.e. it matters for the error.
+        !!          error=(mat1(jorb,iorb)-mat2(jorb,iorb))**2
+        !!          max_deviation=max(error,max_deviation)
+        !!          mean_deviation=mean_deviation+error
+        !!          num=num+1.d0
+        !!      end if
+        !!   end do
+        !!   !$omp end do
+        !!   !$omp end parallel
+        !!end do
+      
+        do i=1,smat%smmm%nvctrp
+            ii = smat%smmm%isvctr + i
+            !!call get_line_and_column(ii, smat%smmm%nseg, smat%smmm%keyv, smat%smmm%keyg, iline, icolumn)
+            iline = smat%smmm%line_and_column(1,i)
+            icolumn = smat%smmm%line_and_column(2,i)
+            ind=matrixindex_in_compressed(smat,icolumn,iline)
+            if (ind>0) then
+                ! This entry is within the sparsity pattern, i.e. it matters for the error.
+                error=(mat1(i)-mat2(i))**2
+                max_deviation=max(error,max_deviation)
+                mean_deviation=mean_deviation+error
+                num=num+1.d0
+            end if
+        end do
+      
+        if (bigdft_mpi%nproc>1) then
+            reducearr(1)=mean_deviation
+            reducearr(2)=num
+            call mpiallred(max_deviation, 1, mpi_max, comm=bigdft_mpi%mpi_comm)
+            call mpiallred(reducearr, mpi_sum, comm=bigdft_mpi%mpi_comm)
+            mean_deviation=reducearr(1)
+            num=reducearr(2)
+        end if
+      
+        mean_deviation=mean_deviation/num
+        mean_deviation=sqrt(mean_deviation)
+        max_deviation=sqrt(max_deviation)
+      
+        call timing(iproc,'dev_from_unity','OF') 
+      
+      end subroutine max_matrix_diff_parallel_new
+
+
+
 end module matrix_operations

@@ -33,17 +33,18 @@ program memguess
    character(len=40) :: comment
    character(len=1024) :: fcomment
    character(len=128) :: fileFrom, fileTo,filename_wfn, coeff_file, ham_file, overlap_file, kernel_file, matrix_file
-   character(len=128) :: ntmb_, norbks_, interval_, npdos_, nat_, nsubmatrices_, ncategories_, cutoff_
-   character(len=128) :: output_pdos
+   character(len=128) :: ntmb_, norbks_, interval_, npdos_, nat_, nsubmatrices_, ncategories_, cutoff_, power_
+   character(len=128) :: output_pdos, amatrix_file, bmatrix_file, cmatrix_file, inmatrix_file, outmatrix_file
    logical :: optimise,GPUtest,atwf,convert=.false.,exportwf=.false.,logfile=.false.
    logical :: disable_deprecation = .false.,convertpos=.false.,transform_coordinates=.false.
    logical :: calculate_pdos = .false., kernel_analysis = .false., extract_submatrix = .false.
    logical :: solve_eigensystem = .false., analyze_coeffs = .false., peel_matrix = .false.
+   logical :: multiply_matrices = .false., matrixpower = .false.
    integer :: ntimes,nproc,output_grid, i_arg,istat
-   integer :: nspin,iorb,norbu,norbd,nspinor,norb,iorbp,iorb_out
+   integer :: nspin,iorb,norbu,norbd,nspinor,norb,iorbp,iorb_out,lwork
    integer :: norbgpu,ng, nsubmatrices, ncategories
    integer :: export_wf_iband, export_wf_ispin, export_wf_ikpt, export_wf_ispinor,irad
-   real(gp) :: hx,hy,hz,energy,occup,interval,tt,cutoff
+   real(gp) :: hx,hy,hz,energy,occup,interval,tt,cutoff,power
    type(memory_estimation) :: mem
    type(run_objects) :: runObj
    type(orbitals_data) :: orbstst
@@ -68,11 +69,12 @@ program memguess
    !integer :: ncount0,ncount1,ncount_max,ncount_rate
    !! By Ali
    integer :: ierror, iat, itmb, jtmb, iitmb, jjtmb, ntmb, norbks, npdos, iunit01, iunit02, norb_dummy, ipt, npt, ipdos, nat
-   integer :: iproc, isub, jat, icat
+   integer :: iproc, isub, jat, icat, info
    integer,dimension(:),allocatable :: na, nb, nc, on_which_atom
    integer,dimension(:,:),allocatable :: atoms_ref
    real(kind=8),dimension(:,:),allocatable :: rxyz, rxyz_int, kernel, ham, overlap, coeff, pdos, energy_bins, matrix
-   real(kind=8),dimension(:),allocatable :: eval, coeff_cat
+   real(kind=8),dimension(:,:),allocatable :: amatrix, bmatrix, cmatrix, temparr
+   real(kind=8),dimension(:),allocatable :: eval, coeff_cat, work
    !real(kind=8),parameter :: degree=57.295779513d0
    real(kind=8),parameter :: degree=1.d0
    character(len=6) :: direction
@@ -145,6 +147,14 @@ program memguess
            &   '"peel-matrix" <matrix.bin>" ' 
       write(*,'(1x,a)')&
            & 'peel a matrix by stripping off elements which are outside of a cutoff'
+      write(*,'(1x,a)')&
+           &   '"multiply-matrices" <matrix.bin>" ' 
+      write(*,'(1x,a)')&
+           & 'multiply two matrices'
+      write(*,'(1x,a)')&
+           &   '"matrixpower" <matrix.bin>" ' 
+      write(*,'(1x,a)')&
+           & 'caluclate the power of a matrix'
 
       stop
    else
@@ -387,6 +397,43 @@ program memguess
             write(*,'(1x,a)')&
                &   'peel the matrix'
             peel_matrix = .true.
+            exit loop_getargs
+         else if (trim(tatonam)=='multiply-matrices') then
+            i_arg = i_arg + 1
+            call get_command_argument(i_arg, value = amatrix_file)
+            i_arg = i_arg + 1
+            call get_command_argument(i_arg, value = bmatrix_file)
+            i_arg = i_arg + 1
+            call get_command_argument(i_arg, value = cmatrix_file)
+            i_arg = i_arg + 1
+            call get_command_argument(i_arg, value = ntmb_)
+            read(ntmb_,fmt=*,iostat=ierror) ntmb
+            i_arg = i_arg + 1
+            call get_command_argument(i_arg, value = nat_)
+            read(nat_,fmt=*,iostat=ierror) nat
+            i_arg = i_arg + 1
+            write(*,'(1x,a,s(i0,a))')&
+               &   'multiply the matrices (size ',ntmb,'x',ntmb,')'
+            multiply_matrices = .true.
+            exit loop_getargs
+         else if (trim(tatonam)=='matrixpower') then
+            i_arg = i_arg + 1
+            call get_command_argument(i_arg, value = inmatrix_file)
+            i_arg = i_arg + 1
+            call get_command_argument(i_arg, value = outmatrix_file)
+            i_arg = i_arg + 1
+            call get_command_argument(i_arg, value = ntmb_)
+            read(ntmb_,fmt=*,iostat=ierror) ntmb
+            i_arg = i_arg + 1
+            call get_command_argument(i_arg, value = nat_)
+            read(nat_,fmt=*,iostat=ierror) nat
+            i_arg = i_arg + 1
+            call get_command_argument(i_arg, value = power_)
+            read(power_,fmt=*,iostat=ierror) power
+            i_arg = i_arg + 1
+            write(*,'(1x,a,s(i0,a))')&
+               &   'calculate the power of a matrix'
+            matrixpower = .true.
             exit loop_getargs
          else if (trim(tatonam) == 'dd') then
             ! dd: disable deprecation message
@@ -816,6 +863,81 @@ program memguess
            do jtmb=1,ntmb
                jat = on_which_atom(jtmb)
                write(iunit01,'(2(i6,1x),e19.12,2(1x,i6))') itmb,jtmb,matrix(itmb,jtmb),iat,jat
+           end do
+       end do
+       call f_close(iunit01)
+       stop
+   end if
+
+   if (multiply_matrices) then
+       amatrix = f_malloc((/ntmb,ntmb/),id='amatrix')
+       bmatrix = f_malloc((/ntmb,ntmb/),id='bmatrix')
+       cmatrix = f_malloc((/ntmb,ntmb/),id='cmatrix')
+       on_which_atom = f_malloc(ntmb,id='on_which_atom')
+       rxyz = f_malloc((/3,nat/),id='rxyz')
+       call f_open_file(iunit01, file=trim(amatrix_file), binary=.false.)
+       call read_linear_matrix_dense(iunit01, ntmb, nat, amatrix, rxyz=rxyz, on_which_atom=on_which_atom)
+       call f_close(iunit01)
+       call f_open_file(iunit01, file=trim(bmatrix_file), binary=.false.)
+       call read_linear_matrix_dense(iunit01, ntmb, nat, bmatrix, rxyz=rxyz, on_which_atom=on_which_atom)
+       call f_close(iunit01)
+       call gemm('n', 'n', ntmb, ntmb, ntmb, 1.d0, amatrix(1,1), ntmb, &
+            bmatrix(1,1), ntmb, 0.d0, cmatrix(1,1), ntmb)
+       call f_open_file(iunit01, file=trim(cmatrix_file), binary=.false.)
+       write(iunit01,'(a,2i10,a)') '#  ',ntmb, nat, &
+           '    number of basis functions, number of atoms'
+       do iat=1,nat
+               write(iunit01,'(a,3es24.16)') '#  ',rxyz(1:3,iat)
+       end do
+!cmatrix=0.d0
+       do itmb=1,ntmb
+!cmatrix(itmb,itmb)=1.d0
+           iat = on_which_atom(itmb)
+           do jtmb=1,ntmb
+               jat = on_which_atom(jtmb)
+               write(iunit01,'(2(i6,1x),e19.12,2(1x,i6))') itmb,jtmb,cmatrix(itmb,jtmb),iat,jat
+           end do
+       end do
+       call f_close(iunit01)
+       stop
+   end if
+
+   if (matrixpower) then
+       amatrix = f_malloc((/ntmb,ntmb/),id='amatrix')
+       bmatrix = f_malloc((/ntmb,ntmb/),id='bmatrix')
+       on_which_atom = f_malloc(ntmb,id='on_which_atom')
+       rxyz = f_malloc((/3,nat/),id='rxyz')
+       eval = f_malloc(ntmb,id='eval')
+       call f_open_file(iunit01, file=trim(inmatrix_file), binary=.false.)
+       call read_linear_matrix_dense(iunit01, ntmb, nat, amatrix, rxyz=rxyz, on_which_atom=on_which_atom)
+       call f_close(iunit01)
+
+
+       lwork = 10*ntmb
+       work = f_malloc(lwork,id='work')
+       tempArr=f_malloc((/ntmb,ntmb/), id='tempArr')
+       call dsyev('v', 'l', ntmb, amatrix(1,1), ntmb, eval, work, lwork, info)
+       do itmb=1,ntmb
+          do jtmb=1,ntmb
+             tempArr(jtmb,itmb)=amatrix(jtmb,itmb)**1.d0/sqrt(abs(eval(itmb)))
+          end do
+       end do
+       call gemm('n', 't', ntmb, ntmb, ntmb, 1.d0, amatrix(1,1), &
+            ntmb, tempArr(1,1), ntmb, 0.d0, bmatrix(1,1), ntmb)
+       call f_free(tempArr)
+       call f_open_file(iunit01, file=trim(outmatrix_file), binary=.false.)
+       write(iunit01,'(a,2i10,a)') '#  ',ntmb, nat, &
+           '    number of basis functions, number of atoms'
+       do iat=1,nat
+               write(iunit01,'(a,3es24.16)') '#  ',rxyz(1:3,iat)
+       end do
+!cmatrix=0.d0
+       do itmb=1,ntmb
+!cmatrix(itmb,itmb)=1.d0
+           iat = on_which_atom(itmb)
+           do jtmb=1,ntmb
+               jat = on_which_atom(jtmb)
+               write(iunit01,'(2(i6,1x),e19.12,2(1x,i6))') itmb,jtmb,bmatrix(itmb,jtmb),iat,jat
            end do
        end do
        call f_close(iunit01)

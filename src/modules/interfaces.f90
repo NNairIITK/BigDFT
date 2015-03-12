@@ -3792,29 +3792,6 @@ end subroutine build_ks_orbitals_laura_tmp
           logical, intent(in) :: use_tmbs_as_coeffs
         end subroutine fragment_coeffs_to_kernel
 
-        subroutine max_matrix_diff(iproc, norb, mat1, mat2, smat, max_deviation, mean_deviation)
-          use module_base
-          use module_types
-          use sparsematrix_base, only: sparse_matrix
-          implicit none
-          integer,intent(in):: iproc, norb
-          real(8),dimension(norb,norb),intent(in):: mat1, mat2
-          type(sparse_matrix),intent(in) :: smat
-          real(8),intent(out):: max_deviation, mean_deviation
-        end subroutine max_matrix_diff
-
-        subroutine max_matrix_diff_parallel(iproc, norb, norbp, isorb, mat1, mat2, &
-                   smat, max_deviation, mean_deviation)
-          use module_base
-          use module_types
-          use sparsematrix_base, only: sparse_matrix
-          implicit none
-          integer,intent(in):: iproc, norb, norbp, isorb
-          real(8),dimension(norb,norbp),intent(in):: mat1, mat2
-          type(sparse_matrix),intent(in) :: smat
-          real(8),intent(out):: max_deviation, mean_deviation
-        end subroutine max_matrix_diff_parallel
-
         subroutine estimate_energy_change(npsidim_orbs, orbs, lzd, nspin, psidiff, hpsi_noprecond, delta_energy)
           use module_base
           use module_types
