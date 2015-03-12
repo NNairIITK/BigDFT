@@ -234,7 +234,7 @@ module module_interfaces
         type(confpot_data), dimension(norbp), intent(out) :: confdatarr
       end subroutine default_confinement_data
 
-       subroutine IonicEnergyandForces(iproc,nproc,dpbox,at,elecfield,&
+       subroutine IonicEnergyandForces(iproc,dpbox,at,elecfield,&
             & rxyz,eion,fion,dispersion,edisp,fdisp,ewaldstr,n1,n2,n3,&
             & pot_ion,pkernel,psoffset)
          use module_defs, only: gp,dp
@@ -242,7 +242,7 @@ module module_interfaces
          implicit none
          type(denspot_distribution), intent(in) :: dpbox
          type(atoms_data), intent(in) :: at
-         integer, intent(in) :: iproc,nproc,n1,n2,n3,dispersion
+         integer, intent(in) :: iproc,n1,n2,n3,dispersion
          real(gp), dimension(3), intent(in) :: elecfield
          real(gp), dimension(3,at%astruct%nat), intent(in) :: rxyz
          type(coulomb_operator), intent(in) :: pkernel
@@ -252,14 +252,14 @@ module module_interfaces
          real(dp), dimension(*), intent(out) :: pot_ion
        END SUBROUTINE IonicEnergyandForces
 
-       subroutine createIonicPotential(geocode,iproc,nproc,verb,at,rxyz,&
+       subroutine createIonicPotential(geocode,iproc,verb,at,rxyz,&
             hxh,hyh,hzh,elecfield,n1,n2,n3,n3pi,i3s,n1i,n2i,n3i,pkernel,&
             pot_ion,psoffset)
          use module_defs, only: gp,wp
          use module_types
          implicit none
          character(len=1), intent(in) :: geocode !< @copydoc poisson_solver::doc::geocode
-         integer, intent(in) :: iproc,nproc,n1,n2,n3,n3pi,i3s,n1i,n2i,n3i
+         integer, intent(in) :: iproc,n1,n2,n3,n3pi,i3s,n1i,n2i,n3i
          logical, intent(in) :: verb
          real(gp), intent(in) :: hxh,hyh,hzh,psoffset
          type(atoms_data), intent(in) :: at

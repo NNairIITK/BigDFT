@@ -492,7 +492,7 @@ contains
       call scaling_function(itype_scf,n_scf,n_range,x_scf,scf_data)
     !call wavelet_function(itype_scf,n_scf,x_scf,scf_data)
     end if
-    !stop 
+    
     call f_free(x_scf)
 
     nrange_scf=n_range

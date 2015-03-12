@@ -546,15 +546,17 @@ module module_types
   !> Define the structure used for the atomic positions
   !> Structure to store the density / potential distribution among processors.
   type, public :: denspot_distribution
-     integer :: n3d,n3p,n3pi,i3xcsh,i3s,nrhodim
+     integer :: n3d,n3p
+     integer :: n3pi                 !< Number of distributed planes in z dimension
+     integer :: i3xcsh,i3s,nrhodim
      !> Integer which controls the presence of a density after the potential array
      !! if different than zero, at the address ndimpot*nspin+i3rho_add starts the spin up component of the density
      !! the spin down component can be found at the ndimpot*nspin+i3rho_add+ndimpot, contiguously
      !! the same holds for non-collinear calculations
      integer :: i3rho_add
      integer :: ndimpot,ndimgrid,ndimrhopot 
-     integer, dimension(3) :: ndims   !< box containing the grid dimensions in ISF basis
-     real(gp), dimension(3) :: hgrids !< grid spacings of the box (half of wavelet ones)
+     integer, dimension(3) :: ndims   !< Box containing the grid dimensions in ISF basis in x,y and z direction
+     real(gp), dimension(3) :: hgrids !< Grid spacings of the box (half of wavelet ones)
      integer, dimension(:,:), pointer :: nscatterarr, ngatherarr
      type(mpi_environment) :: mpi_env
   end type denspot_distribution

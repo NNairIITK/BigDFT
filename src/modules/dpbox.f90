@@ -24,6 +24,8 @@ module module_dpbox
     integer :: ix,iy,iz                  !< Indices of the three-dimensional arrays in distributed PSolver data scheme
     integer :: ind                       !< One dimensional index (for pot_ion)
     integer, dimension(3)  :: ibox       !< 3D indices in the given box specified by boxat
+    real(gp) :: x,y,z                    !< Coordinates inside the given box
+    !private
     integer, dimension(2,3) :: nbox      !< Specify a sub-box to iterate over the points (ex. around atoms)
     integer :: n1i,n2i,n3i               !< 3D dimension of the whole grid
     integer :: i3s                       !< ???
@@ -70,6 +72,9 @@ contains
     boxit%nbr2 = -1
     boxit%nbl3 = -1
     boxit%nbr3 = -1
+    boxit%x = 0.0_gp
+    boxit%y = 0.0_gp
+    boxit%z = 0.0_gp
     nullify(boxit%geocode)
     nullify(boxit%dpbox_ptr)
   end subroutine nullify_dpbox_iterator
@@ -93,8 +98,15 @@ contains
     boxit%n1i = boxit%dpbox_ptr%ndims(1)
     boxit%n2i = boxit%dpbox_ptr%ndims(2)
     boxit%n3i = boxit%dpbox_ptr%ndims(3)
+    !This is correct for potential
     boxit%i3s = boxit%dpbox_ptr%i3s + boxit%dpbox_ptr%i3xcsh
+
     boxit%n3pi = boxit%dpbox_ptr%n3pi
+    if (boxit%n3pi == 0) then
+      !No iteration, the iterator is destroyed and we leave!
+      call nullify_dpbox_iterator(boxit)
+      return
+    end if
 
     !Conditions for periodicity in the three directions
     boxit%perx=(geocode /= 'F')
@@ -113,20 +125,26 @@ contains
     else
       !We iterate over the whole box
       boxit%whole = .true.
-      boxit%nbox(1,3) = 1
-      boxit%nbox(2,3) = dpbox%ndims(3)
-      boxit%nbox(1,2) = 1
-      boxit%nbox(2,2) = dpbox%ndims(2)
-      boxit%nbox(1,1) = 1
-      boxit%nbox(2,1) = dpbox%ndims(1)
+      boxit%nbox(1,3) = -boxit%nbl3
+      boxit%nbox(2,3) = dpbox%ndims(3) - boxit%nbl3-1
+      boxit%nbox(1,2) = -boxit%nbl2
+      !ndims(2) contains nbr2
+      boxit%nbox(2,2) = dpbox%ndims(2) - boxit%nbl2-1
+      boxit%nbox(1,1) = -boxit%nbl1
+      !ndims(1) contains nbr1
+      boxit%nbox(2,1) = dpbox%ndims(1) - boxit%nbl1-1
     end if
 
     ! Start counting
     boxit%ix=0
     boxit%iy=0
     boxit%iz=0
+    boxit%x=0.0_gp
+    boxit%y=0.0_gp
+    boxit%z=0.0_gp
     boxit%ind=0
     ! Iterate
+    !boxit%ibox(3) = boxit%nbox(1,3)
     boxit%ibox(3) = boxit%nbox(1,3)
     boxit%ibox(2) = boxit%nbox(1,2)
     !First indices to change
@@ -153,11 +171,6 @@ contains
      logical :: gox,goy,goz
     
     if (associated(boxit%dpbox_ptr)) then
-      if (boxit%n3pi == 0) then
-        !No iteration, the iterator is destroyed and we leave!
-        call nullify_dpbox_iterator(boxit)
-        return
-      end if
       !There are distributed z planes in this proc: we start a loop
       loop_ind: do
         if (boxit%ibox(1) < boxit%nbox(2,1)) then
@@ -181,9 +194,14 @@ contains
         boxit%iz = boxit%iz + boxit%nbl3 + 1
         call ind_positions_new(boxit%pery,boxit%ibox(2),boxit%n2i,boxit%iy,goy)
         call ind_positions_new(boxit%perx,boxit%ibox(1),boxit%n1i,boxit%ix,gox)
-        if (boxit%iz >= boxit%i3s .and. boxit%iz <= boxit%i3s+boxit%n3pi-1  .and. goy  .and. gox ) then
-          !This point is valid: we calculate ind and leave!
-          boxit%ind = boxit%ix+1 + boxit%nbl1 + (boxit%iy+boxit%nbl2)*boxit%n1i + (boxit%iz-boxit%i3s)*boxit%n1i*boxit%n2i
+        if (boxit%iz >= boxit%i3s .and. boxit%iz <= boxit%i3s+boxit%n3pi-1 .and. goy .and. gox ) then
+          !This point is valid: we calculate ind (index for pot_ion) and leave!
+          boxit%ind = boxit%ix+1 + boxit%nbl1 &
+                  & + (boxit%iy+boxit%nbl2)*boxit%n1i &
+                  & + (boxit%iz-boxit%i3s)*boxit%n1i*boxit%n2i
+          boxit%x = real(boxit%ibox(1),gp)*boxit%dpbox_ptr%hgrids(1)
+          boxit%y = real(boxit%ibox(2),gp)*boxit%dpbox_ptr%hgrids(2)
+          boxit%z = real(boxit%ibox(3),gp)*boxit%dpbox_ptr%hgrids(3)
           return
         end if
       end do loop_ind

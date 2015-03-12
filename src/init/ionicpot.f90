@@ -9,18 +9,20 @@
 
 
 !> Calculate the ionic contribution to the energy and the forces
-subroutine IonicEnergyandForces(iproc,nproc,dpbox,at,elecfield,&
+subroutine IonicEnergyandForces(iproc,dpbox,at,elecfield,&
      & rxyz,eion,fion,dispersion,edisp,fdisp,ewaldstr,n1,n2,n3,&
      & pot_ion,pkernel,psoffset)
   use module_base, pi => pi_param
   use module_types
   use Poisson_Solver, except_dp => dp, except_gp => gp, except_wp => wp
+  use gaussians, only: initialize_real_space_conversion, finalize_real_space_conversion,mp_exp
   use vdwcorrection
   use yaml_output
   implicit none
+  !Arguments
   type(denspot_distribution), intent(in) :: dpbox
   type(atoms_data), intent(in) :: at
-  integer, intent(in) :: iproc,nproc,n1,n2,n3,dispersion
+  integer, intent(in) :: iproc,n1,n2,n3,dispersion
   real(gp), dimension(3), intent(in) :: elecfield
   real(gp), dimension(3,at%astruct%nat), intent(in) :: rxyz
   type(coulomb_operator), intent(in) :: pkernel
@@ -28,25 +30,30 @@ subroutine IonicEnergyandForces(iproc,nproc,dpbox,at,elecfield,&
   real(dp), dimension(6),intent(out) :: ewaldstr
   real(gp), dimension(:,:), pointer :: fion,fdisp
   real(dp), dimension(*), intent(out) :: pot_ion
-  !local variables
+  !Local variables
+  real(gp), parameter :: mp_tiny = 1.e-30_gp
   logical :: slowion=.false.
   logical :: perx,pery,perz,gox,goy,goz
-  integer :: n1i,n2i,n3i,i3s,n3pi
+  integer :: n1i,n2i,n3i,i3s,n3pi,nrange
   integer :: i,iat,ii,ityp,jat,jtyp,nbl1,nbr1,nbl2,nbr2,nbl3,nbr3
   integer :: isx,iex,isy,iey,isz,iez,i1,i2,i3,j1,j2,j3,ind
-  real(gp) :: ucvol,rloc,twopitothreehalf,atint,shortlength,charge,eself,rx,ry,rz
+  real(gp) :: ucvol,rloc,rlocinv2sq,twopitothreehalf,atint,shortlength,charge,eself,rx,ry,rz
   real(gp) :: fxion,fyion,fzion,dist,fxerf,fyerf,fzerf,cutoff
   real(gp) :: hxh,hyh,hzh
   real(gp) :: hxx,hxy,hxz,hyy,hyz,hzz,chgprod
-  real(gp) :: x,y,z,xp,Vel,prefactor,r2,arg,ehart,de
+  real(gp) :: x,y,z,xp,yp,zp,Vel,prefactor,r2,arg,ehart,de
   !real(gp) :: Mz,cmassy
   real(gp), dimension(3,3) :: gmet,rmet,rprimd,gprimd
   !other arrays for the ewald treatment
   real(gp), dimension(:,:), allocatable :: fewald,xred
+  real(dp), dimension(:), allocatable  :: mpx,mpy,mpz
   real(gp), dimension(3) :: cc
 
   fion = f_malloc_ptr((/ 3, at%astruct%nat /),id='fion')
   fdisp = f_malloc_ptr((/ 3, at%astruct%nat /),id='fdisp')
+
+  !initialize the work arrays needed to integrate with isf
+  if (at%multipole_preserving) call initialize_real_space_conversion(nmoms=at%mp_isf,nrange=nrange)
 
   ! Aliasing
   hxh = dpbox%hgrids(1)
@@ -186,7 +193,7 @@ subroutine IonicEnergyandForces(iproc,nproc,dpbox,at,elecfield,&
         hyz=0.0_gp
         hzz=0.0_gp
 
-        !    ion-ion interaction
+        ! Ion-ion interaction
         do jat=1,iat-1
            dist=sqrt((rx-rxyz(1,jat))**2+(ry-rxyz(2,jat))**2+(rz-rxyz(3,jat))**2)
            jtyp=at%astruct%iatype(jat)
@@ -292,8 +299,13 @@ subroutine IonicEnergyandForces(iproc,nproc,dpbox,at,elecfield,&
            rz=rxyz(3,iat)
 
            rloc=at%psppar(0,0,ityp)
+           rlocinv2sq=0.5_gp/rloc**2
            charge=real(at%nelpsp(ityp),gp)/(2.0_gp*pi*sqrt(2.0_gp*pi)*rloc**3)
            cutoff=10.0_gp*rloc
+           if (at%multipole_preserving) then
+              !We want to have a good accuracy of the last point rloc*10
+              cutoff=cutoff+max(hxh,hyh,hzh)*real(nrange/2,kind=gp)
+           end if
 
            isx=floor((rx-cutoff)/hxh)
            isy=floor((ry-cutoff)/hyh)
@@ -303,23 +315,55 @@ subroutine IonicEnergyandForces(iproc,nproc,dpbox,at,elecfield,&
            iey=ceiling((ry+cutoff)/hyh)
            iez=ceiling((rz+cutoff)/hzh)
 
-           !these nested loops will be used also for the actual ionic forces, to be recalculated
+           !Separable function: do 1-D integrals before and store it.
+           mpx = f_malloc( (/ isx.to.iex /),id='mpx')
+           mpy = f_malloc( (/ isy.to.iey /),id='mpy')
+           mpz = f_malloc( (/ isz.to.iez /),id='mpz')
+           if (at%multipole_preserving) then
+              do i1=isx,iex
+                 mpx(i1) = mp_exp(hxh,rx,rlocinv2sq,i1,0,.true.)
+              end do
+              do i2=isy,iey
+                 mpy(i2) = mp_exp(hyh,ry,rlocinv2sq,i2,0,.true.)
+              end do
+              do i3=isz,iez
+                 mpz(i3) = mp_exp(hzh,rz,rlocinv2sq,i3,0,.true.)
+              end do
+           else
+              do i1=isx,iex
+                 x=real(i1,kind=8)*hxh-rx
+                 mpx(i1) = exp(-rlocinv2sq*x**2)
+              end do
+              do i2=isy,iey
+                 y=real(i2,kind=8)*hyh-ry
+                 mpy(i2) = exp(-rlocinv2sq*y**2)
+              end do
+              do i3=isz,iez
+                 z=real(i3,kind=8)*hzh-rz
+                 mpz(i3) = exp(-rlocinv2sq*z**2)
+              end do
+           end if
+
+           !These nested loops will be used also for the actual ionic forces, to be recalculated
            do i3=isz,iez
+              zp = mpz(i3)
+              if (abs(zp) < mp_tiny) cycle
               z=real(i3,gp)*hzh-rz
               !call ind_positions(perz,i3,n3,j3,goz) 
               call ind_positions_new(perz,i3,n3i,j3,goz) 
               j3=j3+nbl3+1
               do i2=isy,iey
+                 yp = zp*mpy(i2)
+                 if (abs(yp) < mp_tiny) cycle
                  y=real(i2,gp)*hyh-ry
                  !call ind_positions(pery,i2,n2,j2,goy)
                  call ind_positions_new(pery,i2,n2i,j2,goy)
                  do i1=isx,iex
+                    xp = yp*mpx(i1)
+                    if (abs(xp) < mp_tiny) cycle
                     x=real(i1,gp)*hxh-rx
                     !call ind_positions(perx,i1,n1,j1,gox)
                     call ind_positions_new(perx,i1,n1i,j1,gox)
-                    r2=x**2+y**2+z**2
-                    arg=r2/rloc**2
-                    xp=exp(-.5_gp*arg)
                     if (j3 >= i3s .and. j3 <= i3s+n3pi-1  .and. goy  .and. gox ) then
                        ind=j1+1+nbl1+(j2+nbl2)*n1i+(j3-i3s)*n1i*n2i
                        pot_ion(ind)=pot_ion(ind)-xp*charge
@@ -327,6 +371,9 @@ subroutine IonicEnergyandForces(iproc,nproc,dpbox,at,elecfield,&
                  enddo
               enddo
            enddo
+
+           !De-allocate the 1D temporary arrays for separability
+           call f_free(mpx,mpy,mpz)
 
         enddo
 
@@ -342,45 +389,86 @@ subroutine IonicEnergyandForces(iproc,nproc,dpbox,at,elecfield,&
      !if (nproc==1) 
      !print *,'iproc,eion',iproc,eion
 
-     do iat=1,at%astruct%nat
-        ityp=at%astruct%iatype(iat)
-        !coordinates of the center
-        rx=rxyz(1,iat) 
-        ry=rxyz(2,iat) 
-        rz=rxyz(3,iat)
-        !inizialization of the forces
+     !calculate the forces near the atom due to the error function part of the potential
+     !calculate forces for all atoms only in the distributed part of the simulation box
+     if (n3pi >0 ) then
+        do iat=1,at%astruct%nat
+           ityp=at%astruct%iatype(iat)
+           !coordinates of the center
+           rx=rxyz(1,iat) 
+           ry=rxyz(2,iat) 
+           rz=rxyz(3,iat)
+           !inizialization of the forces
 
-        fxerf=0.0_gp
-        fyerf=0.0_gp
-        fzerf=0.0_gp
+           fxerf=0.0_gp
+           fyerf=0.0_gp
+           fzerf=0.0_gp
 
-        !local part
-        rloc=at%psppar(0,0,ityp)
-        prefactor=real(at%nelpsp(ityp),gp)/(2.0_gp*pi*sqrt(2.0_gp*pi)*rloc**5)
-        !maximum extension of the gaussian
-        cutoff=10.0_gp*rloc
+           !local part
+           rloc=at%psppar(0,0,ityp)
+           rlocinv2sq=0.5_gp/rloc**2
+           prefactor=real(at%nelpsp(ityp),gp)/(2.0_gp*pi*sqrt(2.0_gp*pi)*rloc**5)
+           !maximum extension of the gaussian
+           cutoff=10.0_gp*rloc
+           if (at%multipole_preserving) then
+              !We want to have a good accuracy of the last point rloc*10
+              cutoff=cutoff+max(hxh,hyh,hzh)*real(nrange/2,kind=gp)
+           end if
 
-        isx=floor((rx-cutoff)/hxh)
-        isy=floor((ry-cutoff)/hyh)
-        isz=floor((rz-cutoff)/hzh)
+           isx=floor((rx-cutoff)/hxh)
+           isy=floor((ry-cutoff)/hyh)
+           isz=floor((rz-cutoff)/hzh)
 
-        iex=ceiling((rx+cutoff)/hxh)
-        iey=ceiling((ry+cutoff)/hyh)
-        iez=ceiling((rz+cutoff)/hzh)
+           iex=ceiling((rx+cutoff)/hxh)
+           iey=ceiling((ry+cutoff)/hyh)
+           iez=ceiling((rz+cutoff)/hzh)
 
-        !calculate the forces near the atom due to the error function part of the potential
-        !calculate forces for all atoms only in the distributed part of the simulation box
-        if (n3pi >0 ) then
+           !Separable function: do 1-D integrals before and store it.
+           mpx = f_malloc( (/ isx.to.iex /),id='mpx')
+           mpy = f_malloc( (/ isy.to.iey /),id='mpy')
+           mpz = f_malloc( (/ isz.to.iez /),id='mpz')
+           if (at%multipole_preserving) then
+              do i1=isx,iex
+                 mpx(i1) = mp_exp(hxh,rx,rlocinv2sq,i1,0,.true.)
+              end do
+              do i2=isy,iey
+                 mpy(i2) = mp_exp(hyh,ry,rlocinv2sq,i2,0,.true.)
+              end do
+              do i3=isz,iez
+                 mpz(i3) = mp_exp(hzh,rz,rlocinv2sq,i3,0,.true.)
+              end do
+           else
+              do i1=isx,iex
+                 x=real(i1,kind=8)*hxh-rx
+                 mpx(i1) = exp(-rlocinv2sq*x**2)
+              end do
+              do i2=isy,iey
+                 y=real(i2,kind=8)*hyh-ry
+                 mpy(i2) = exp(-rlocinv2sq*y**2)
+              end do
+              do i3=isz,iez
+                 z=real(i3,kind=8)*hzh-rz
+                 mpz(i3) = exp(-rlocinv2sq*z**2)
+              end do
+           end if
+
+
            do i3=isz,iez
               z=real(i3,gp)*hzh-rz
+              zp = mpz(i3)
+              if (abs(zp) < mp_tiny) cycle
               !call ind_positions(perz,i3,n3,j3,goz) 
               call ind_positions_new(perz,i3,n3i,j3,goz) 
               j3=j3+nbl3+1
               do i2=isy,iey
+                 yp = zp*mpy(i2)
+                 if (abs(yp) < mp_tiny) cycle
                  y=real(i2,gp)*hyh-ry
                  !call ind_positions(pery,i2,n2,j2,goy)
                  call ind_positions_new(pery,i2,n2i,j2,goy)
                  do i1=isx,iex
+                    xp = yp*mpx(i1)
+                    if (abs(xp) < mp_tiny) cycle
                     x=real(i1,gp)*hxh-rx
                     !call ind_positions(perx,i1,n1,j1,gox)
                     call ind_positions_new(perx,i1,n1i,j1,gox)
@@ -398,20 +486,25 @@ subroutine IonicEnergyandForces(iproc,nproc,dpbox,at,elecfield,&
                  end do
               end do
            end do
-        end if
-        !final result of the forces
 
-        fion(1,iat)=fion(1,iat)+(hxh*hyh*hzh*prefactor)*fxerf
-        fion(2,iat)=fion(2,iat)+(hxh*hyh*hzh*prefactor)*fyerf
-        fion(3,iat)=fion(3,iat)+(hxh*hyh*hzh*prefactor)*fzerf
+           !De-allocate the 1D temporary arrays for separability
+           call f_free(mpx,mpy,mpz)
 
-        !if (nproc==1) print *,'iat,fion',iat,(fion(j1,iat),j1=1,3)
+           !final result of the forces
 
-!!!        write(10+iat,'(1x,f8.3,i5,(1x,3(1x,1pe12.5)))',advance='no') &
-!!!             hxh,iat,(fion(j1,iat),j1=1,3)
+           fion(1,iat)=fion(1,iat)+(hxh*hyh*hzh*prefactor)*fxerf
+           fion(2,iat)=fion(2,iat)+(hxh*hyh*hzh*prefactor)*fyerf
+           fion(3,iat)=fion(3,iat)+(hxh*hyh*hzh*prefactor)*fzerf
+
+           !if (nproc==1) print *,'iat,fion',iat,(fion(j1,iat),j1=1,3)
+
+   !!!        write(10+iat,'(1x,f8.3,i5,(1x,3(1x,1pe12.5)))',advance='no') &
+   !!!             hxh,iat,(fion(j1,iat),j1=1,3)
 
 
-     end do
+        end do !do iat
+
+     end if !if n3pi
 
      if (pkernel%mpi_env%nproc > 1) then
         call mpiallred(fion(1,1),3*at%astruct%nat,MPI_SUM,pkernel%mpi_env%mpi_comm)
@@ -457,17 +550,21 @@ subroutine IonicEnergyandForces(iproc,nproc,dpbox,at,elecfield,&
 
   call vdwcorrection_calculate_forces(fdisp,rxyz,at,dispersion)
   call vdwcorrection_freeparams() 
+
+  if (at%multipole_preserving) call finalize_real_space_conversion()
+
 END SUBROUTINE IonicEnergyandForces
 
 
-subroutine createEffectiveIonicPotential(iproc, nproc, verb, in, atoms, rxyz, shift, &
+!> Create the effective ionic potential (main ionic + counter ions)
+subroutine createEffectiveIonicPotential(iproc, verb, in, atoms, rxyz, shift, &
      & Glr, hxh, hyh, hzh, rhopotd, pkernel, pot_ion, elecfield, psoffset)
   use module_base
   use module_types
 
   implicit none
 
-  integer, intent(in) :: iproc,nproc
+  integer, intent(in) :: iproc
   logical, intent(in) :: verb
   real(gp), intent(in) :: hxh,hyh,hzh,psoffset
   type(atoms_data), intent(in) :: atoms
@@ -484,7 +581,7 @@ subroutine createEffectiveIonicPotential(iproc, nproc, verb, in, atoms, rxyz, sh
   real(dp), dimension(:), allocatable :: counter_ions
 
   ! Compute the main ionic potential.
-  call createIonicPotential(atoms%astruct%geocode, iproc, nproc, verb, atoms, rxyz, hxh, hyh, hzh, &
+  call createIonicPotential(atoms%astruct%geocode, iproc, verb, atoms, rxyz, hxh, hyh, hzh, &
        & elecfield, Glr%d%n1, Glr%d%n2, Glr%d%n3, rhopotd%n3pi, rhopotd%i3s + rhopotd%i3xcsh, &
        & Glr%d%n1i, Glr%d%n2i, Glr%d%n3i, pkernel, pot_ion, psoffset)
 
@@ -497,7 +594,7 @@ subroutine createEffectiveIonicPotential(iproc, nproc, verb, in, atoms, rxyz, sh
         counter_ions = f_malloc(1,id='counter_ions')
      end if
 
-     call CounterIonPotential(atoms%astruct%geocode,iproc,nproc,in,shift,&
+     call CounterIonPotential(atoms%astruct%geocode,iproc,in,shift,&
           &   hxh,hyh,hzh,Glr%d,rhopotd%n3pi,rhopotd%i3s + rhopotd%i3xcsh,pkernel,counter_ions)
 
      !sum that to the ionic potential
@@ -510,7 +607,7 @@ END SUBROUTINE createEffectiveIonicPotential
 
 
 !> Create the ionic potential
-subroutine createIonicPotential(geocode,iproc,nproc,verb,at,rxyz,&
+subroutine createIonicPotential(geocode,iproc,verb,at,rxyz,&
      hxh,hyh,hzh,elecfield,n1,n2,n3,n3pi,i3s,n1i,n2i,n3i,pkernel,pot_ion,psoffset)
   use module_base, pi => pi_param
   use m_splines, only: splint
@@ -523,7 +620,7 @@ subroutine createIonicPotential(geocode,iproc,nproc,verb,at,rxyz,&
   implicit none
   !Arguments
   character(len=1), intent(in) :: geocode !< @copydoc poisson_solver::doc::geocode
-  integer, intent(in) :: iproc,nproc,n1,n2,n3,n3pi,i3s,n1i,n2i,n3i
+  integer, intent(in) :: iproc,n1,n2,n3,n3pi,i3s,n1i,n2i,n3i
   logical, intent(in) :: verb
   real(gp), intent(in) :: hxh,hyh,hzh,psoffset
   type(atoms_data), intent(in) :: at
@@ -621,6 +718,8 @@ subroutine createIonicPotential(geocode,iproc,nproc,verb,at,rxyz,&
 !!TD       xp = mpx(boxit%ibox(1))* mpy(boxit%ibox(2)) *  mpz(boxit%ibox(3))
 !!TD       pot_ion(boxit%ind) = pot_ion(boxit%ind) - xp*charge
 !!TD    end do
+!!TD
+!!TD    call f_free(mpx,mpy,mpz)
 !!TD
 !!TD end do 
 
@@ -772,8 +871,7 @@ subroutine createIonicPotential(geocode,iproc,nproc,verb,at,rxyz,&
            enddo
 
         end if
-
-        !De-allocate the 1D temporary arrays for separability
+        !De-allocate for multipole preserving
         call f_free(mpx,mpy,mpz)
 
      enddo
@@ -1314,7 +1412,7 @@ END SUBROUTINE ext_buffers
 
 
 !> Read and initialize counter-ions potentials (read psp files)
-subroutine CounterIonPotential(geocode,iproc,nproc,in,shift,&
+subroutine CounterIonPotential(geocode,iproc,in,shift,&
      hxh,hyh,hzh,grid,n3pi,i3s,pkernel,pot_ion)
   use module_base, pi => pi_param
   use module_types
@@ -1329,7 +1427,7 @@ subroutine CounterIonPotential(geocode,iproc,nproc,in,shift,&
   implicit none
   !Arguments
   character(len=1), intent(in) :: geocode !< @copydoc poisson_solver::doc::geocode
-  integer, intent(in) :: iproc,nproc,n3pi,i3s
+  integer, intent(in) :: iproc,n3pi,i3s
   real(gp), intent(in) :: hxh,hyh,hzh
   real(gp), dimension(3), intent(in) :: shift
   type(input_variables), intent(in) :: in
@@ -1486,6 +1584,9 @@ subroutine CounterIonPotential(geocode,iproc,nproc,in,shift,&
               enddo
            enddo
         enddo
+
+        !De-allocate for multipole preserving
+        call f_free(mpx,mpy,mpz)
 
      enddo
 

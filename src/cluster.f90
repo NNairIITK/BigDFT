@@ -1,14 +1,11 @@
 !> @file 
 !!   Routines to use BigDFT as a blackbox
 !! @author
-!!   Copyright (C) 2005-2011 BigDFT group 
+!!   Copyright (C) 2005-2015 BigDFT group 
 !!   This file is distributed under the terms of the
 !!   GNU General Public License, see ~/COPYING file
 !!   or http://www.gnu.org/copyleft/gpl.txt .
 !!   For the list of contributors, see ~/AUTHORS 
- 
-
-
 
 
 !>  Main routine which does self-consistent loop.
@@ -29,7 +26,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,energs,fxyz,strten,fnoise,press
   use module_xc
   use communications_init, only: orbitals_communicators
   use communications_base, only: deallocate_comms
-!  use vdwcorrection
+  !  use vdwcorrection
   use yaml_output
   use psp_projectors
   use sparsematrix_base, only: sparse_matrix_null, matrices_null, allocate_matrices, &
@@ -62,7 +59,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,energs,fxyz,strten,fnoise,press
   !!       Input wavefunctions need to be recalculated. Routine exits.
   !!   - 3 (present only for inputPsiId=INPUT_PSI_LCAO) gnrm > 4. SCF error. Routine exits.
   integer, intent(out) :: infocode
-  !local variables
+  !Local variables
   character(len=*), parameter :: subname='cluster'
   character(len=5) :: gridformat, wfformat
   logical :: refill_proj, calculate_dipole !,potential_from_disk=.false.
@@ -71,7 +68,8 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,energs,fxyz,strten,fnoise,press
   integer :: i, input_wf_format, output_denspot
   integer :: n1,n2,n3
   integer :: ncount0,ncount1,ncount_rate,ncount_max,n1i,n2i,n3i
-  integer :: ierr,inputpsi,igroup,ikpt,nproctiming,ifrag
+  integer :: ierr,inputpsi,igroup,ikpt,ifrag
+  !integer :: nproctiming
   real :: tcpu0,tcpu1
   real(kind=8) :: tel
   type(local_zone_descriptors) :: lzd_old
@@ -139,11 +137,11 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,energs,fxyz,strten,fnoise,press
   end if
 
   !Time initialization
-  if (verbose > 2) then
-     nproctiming=-nproc !timing in debug mode
-  else
-     nproctiming=nproc
-  end if
+  !if (verbose > 2) then
+  !   nproctiming=-nproc !timing in debug mode
+  !else
+  !   nproctiming=nproc
+  !end if
   !call timing(nproctiming,trim(in%dir_output)//'time.yaml','IN')
   call f_timing_reset(filename=trim(in%dir_output)//'time.yaml',master=iproc==0,&
        verbose_mode=verbose>2 .and. nproc>1)
@@ -317,9 +315,6 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,energs,fxyz,strten,fnoise,press
 
 
 
-
-
-
      ! check the extent of the kernel cutoff (must be at least shamop radius)
      call check_kernel_cutoff(iproc, tmb%orbs, atoms, in%hamapp_radius_incr, tmb%lzd)
 
@@ -421,7 +416,6 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,energs,fxyz,strten,fnoise,press
      end if
 
 
-
      if (in%check_sumrho>0) then
          call check_communication_potential(iproc,denspot,tmb)
          call check_communication_sumrho(iproc, nproc, tmb%orbs, tmb%lzd, tmb%collcom_sr, &
@@ -492,18 +486,17 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,energs,fxyz,strten,fnoise,press
      !if (iproc==0) write(*,*)'value for Exc[rhoc]',energs%excrhoc
   end if
 
-  !here calculate the ionic energy and forces accordingly
-  call IonicEnergyandForces(iproc,nproc,denspot%dpbox,atoms,in%elecfield,rxyz,&
+  !Calculate the ionic energy and forces accordingly
+  call IonicEnergyandForces(iproc,denspot%dpbox,atoms,in%elecfield,rxyz,&
        energs%eion,fion,in%dispersion,energs%edisp,fdisp,ewaldstr,&
        n1,n2,n3,denspot%V_ext,denspot%pkernel,denspot%psoffset)
-  !calculate effective ionic potential, including counter ions if any.
-  call createEffectiveIonicPotential(iproc,nproc,(iproc == 0),in,atoms,rxyz,shift,KSwfn%Lzd%Glr,&
+  !Calculate effective ionic potential, including counter ions if any.
+  call createEffectiveIonicPotential(iproc,(iproc == 0),in,atoms,rxyz,shift,KSwfn%Lzd%Glr,&
        denspot%dpbox%hgrids(1),denspot%dpbox%hgrids(2),denspot%dpbox%hgrids(3),&
        denspot%dpbox,denspot%pkernel,denspot%V_ext,in%elecfield,denspot%psoffset)
   if (denspot%c_obj /= 0) then
      call denspot_emit_v_ext(denspot, iproc, nproc)
   end if
-
 
 
   norbv=abs(in%norbv)
@@ -1827,8 +1820,8 @@ subroutine kswfn_post_treatments(iproc, nproc, KSwfn, tmb, linear, &
   real(gp), dimension(3, atoms%astruct%nat), intent(out) :: fxyz
 
   !Local variables
-  character(len = *), parameter :: subname = "kswfn_post_treatments"
-  integer ::  jproc, nsize_psi, imode, i, ispin,i3xcsh_old
+  integer ::  jproc, nsize_psi, imode, i3xcsh_old
+  !integer :: i,ispin
   real(dp), dimension(6) :: hstrten
   real(gp) :: ehart_fake
 
