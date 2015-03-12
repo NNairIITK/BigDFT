@@ -531,7 +531,7 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
 
    call IonicEnergyandForces(iproc,dpcom,atoms,in%elecfield,rxyz,&
         energs%eion,fion,in%dispersion,energs%edisp,fdisp,ewaldstr,&
-        n1,n2,n3,pot_ion,pkernel,psoffset)
+        pot_ion,pkernel,psoffset)
 
    call createIonicPotential(atoms%astruct%geocode,iproc, (iproc == 0), atoms,rxyz,hxh,hyh,hzh,&
         in%elecfield,n1,n2,n3,dpcom%n3pi,dpcom%i3s+dpcom%i3xcsh,n1i,n2i,n3i,pkernel,pot_ion,psoffset)

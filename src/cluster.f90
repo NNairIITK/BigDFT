@@ -489,7 +489,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,energs,fxyz,strten,fnoise,press
   !Calculate the ionic energy and forces accordingly
   call IonicEnergyandForces(iproc,denspot%dpbox,atoms,in%elecfield,rxyz,&
        energs%eion,fion,in%dispersion,energs%edisp,fdisp,ewaldstr,&
-       n1,n2,n3,denspot%V_ext,denspot%pkernel,denspot%psoffset)
+       denspot%V_ext,denspot%pkernel,denspot%psoffset)
   !Calculate effective ionic potential, including counter ions if any.
   call createEffectiveIonicPotential(iproc,(iproc == 0),in,atoms,rxyz,shift,KSwfn%Lzd%Glr,&
        denspot%dpbox%hgrids(1),denspot%dpbox%hgrids(2),denspot%dpbox%hgrids(3),&

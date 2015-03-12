@@ -108,7 +108,8 @@ subroutine unpair(pairID,IDmin1,IDmin2)
     IDmin1 = min(k1,k2)
     IDmin2 = max(k1,k2)
 end subroutine unpair
-!=====================================================================
+
+
 subroutine count_poslocm(gdat)
     use module_base
     use yaml_output
@@ -118,7 +119,6 @@ subroutine count_poslocm(gdat)
     !local
     character(len=600) :: filename
     integer :: idict,ifile
-    character(len=4) :: cifile
     logical :: exists
 
     call yaml_comment('Counting poslocms ....',hfill='-')
@@ -139,7 +139,8 @@ subroutine count_poslocm(gdat)
     enddo
     call yaml_map('Total poslocms found',gdat%nminmax)
 end subroutine count_poslocm
-!=====================================================================
+
+
 subroutine construct_filename(gdat,idict,ifile,filename)
     implicit none
     !parameters
@@ -255,7 +256,8 @@ subroutine finalize_gt_data(gdat)
     call f_free(gdat%mn)
     call f_free_str(1,gdat%gmon_stat)
 end subroutine finalize_gt_data
-!=====================================================================
+
+
 subroutine read_globaltool_uinp(gdat)
     use module_base
     implicit none
@@ -264,7 +266,6 @@ subroutine read_globaltool_uinp(gdat)
     !local
     integer :: u, istat, idict
     character(len=500) :: line
-    real(gp) :: rdmy
     logical :: exists
 
     inquire(file='globaltool.inp',exist=exists)
@@ -575,8 +576,7 @@ subroutine read_globalmon(gdat,idict)
     real(gp) :: ristep
     real(gp) :: energy
     real(gp) :: rdmy
-    real(gp) :: fp(gdat%nid)
-integer :: itmp
+    integer :: itmp
 
  
     u=f_get_free_unit()

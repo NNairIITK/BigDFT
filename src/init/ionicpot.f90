@@ -10,7 +10,7 @@
 
 !> Calculate the ionic contribution to the energy and the forces
 subroutine IonicEnergyandForces(iproc,dpbox,at,elecfield,&
-     & rxyz,eion,fion,dispersion,edisp,fdisp,ewaldstr,n1,n2,n3,&
+     & rxyz,eion,fion,dispersion,edisp,fdisp,ewaldstr,&
      & pot_ion,pkernel,psoffset)
   use module_base, pi => pi_param
   use module_types
@@ -22,7 +22,7 @@ subroutine IonicEnergyandForces(iproc,dpbox,at,elecfield,&
   !Arguments
   type(denspot_distribution), intent(in) :: dpbox
   type(atoms_data), intent(in) :: at
-  integer, intent(in) :: iproc,n1,n2,n3,dispersion
+  integer, intent(in) :: iproc,dispersion
   real(gp), dimension(3), intent(in) :: elecfield
   real(gp), dimension(3,at%astruct%nat), intent(in) :: rxyz
   type(coulomb_operator), intent(in) :: pkernel
@@ -131,7 +131,8 @@ subroutine IonicEnergyandForces(iproc,dpbox,at,elecfield,&
      psoffset=twopitothreehalf*psoffset
      shortlength=shortlength*2.d0*pi
 
-     !print *,'psoffset',psoffset,'pspcore',(psoffset+shortlength)*charge/(at%astruct%cell_dim(1)*at%astruct%cell_dim(2)*at%astruct%cell_dim(3))
+     !print *,'psoffset',psoffset,'pspcore', &
+     !    (psoffset+shortlength)*charge/(at%astruct%cell_dim(1)*at%astruct%cell_dim(2)*at%astruct%cell_dim(3))
      !if (iproc ==0) print *,'eion',eion,charge/ucvol*(psoffset+shortlength)
      !correct ionic energy taking into account the PSP core correction
      eion=eion+charge/ucvol*(psoffset+shortlength)
@@ -512,7 +513,7 @@ subroutine IonicEnergyandForces(iproc,dpbox,at,elecfield,&
 
      !if (iproc ==0) print *,'eion',eion,psoffset,shortlength
 
-  end if
+  end if !if (slowion)
 
   ! Add contribution from constant electric field to the forces
   call center_of_charge(at,rxyz,cc)
@@ -796,20 +797,23 @@ subroutine createIonicPotential(geocode,iproc,verb,at,rxyz,&
            do i3=isz,iez
               zp = mpz(i3)
               if (abs(zp) < mp_tiny) cycle
-              call ind_positions(perz,i3,n3,j3,goz) 
+              !call ind_positions(perz,i3,n3,j3,goz)
+              call ind_positions_new(perz,i3,n3i,j3,goz) 
               j3=j3+nbl3+1
               if ( goz .and. (j3<i3s.or.j3>i3s+n3pi-1) ) cycle
               indj3=(j3-i3s)*n1i*n2i
               do i2=isy,iey
                  yp = zp*mpy(i2)
                  if (abs(yp) < mp_tiny) cycle
-                 call ind_positions(pery,i2,n2,j2,goy)
+                 !call ind_positions(pery,i2,n2,j2,goy)
+                 call ind_positions_new(pery,i2,n2i,j2,goy)
                  if (goz.and.(.not.goy)) cycle
                  indj23=1+nbl1+(j2+nbl2)*n1i+indj3
                  do i1=isx,iex
                     xp = yp*mpx(i1)
                     if (abs(xp) < mp_tiny) cycle
-                    call ind_positions(perx,i1,n1,j1,gox)
+                    !call ind_positions(perx,i1,n1,j1,gox)
+                    call ind_positions_new(perx,i1,n1i,j1,gox)
                     if (j3 >= i3s .and. j3 <= i3s+n3pi-1 .and. goy .and. gox) then
                        ind=j1+indj23
                        pot_ion(ind)=pot_ion(ind)-xp*charge
@@ -827,7 +831,8 @@ subroutine createIonicPotential(geocode,iproc,verb,at,rxyz,&
            do i3=isz,iez
               zp = mpz(i3)
               if (abs(zp) < mp_tiny) cycle
-              call ind_positions(perz,i3,n3,j3,goz)
+              !call ind_positions(perz,i3,n3,j3,goz)
+              call ind_positions_new(perz,i3,n3i,j3,goz) 
               j3=j3+nbl3+1
               indj3=(j3-i3s)*n1i*n2i
               z=real(i3,kind=8)*hzh-rz
@@ -835,14 +840,16 @@ subroutine createIonicPotential(geocode,iproc,verb,at,rxyz,&
               do i2=isy,iey
                  yp = zp*mpy(i2)
                  if (abs(yp) < mp_tiny) cycle
-                 call ind_positions(pery,i2,n2,j2,goy)
+                 !call ind_positions(pery,i2,n2,j2,goy)
+                 call ind_positions_new(pery,i2,n2i,j2,goy)
                  indj23=1+nbl1+(j2+nbl2)*n1i+indj3
                  y=real(i2,kind=8)*hyh-ry
                  yzsq=y**2+zsq
                  do i1=isx,iex
                     xp = yp*mpx(i1)
                     if (abs(xp) < mp_tiny) cycle
-                    call ind_positions(perx,i1,n1,j1,gox)
+                    !call ind_positions(perx,i1,n1,j1,gox)
+                    call ind_positions_new(perx,i1,n1i,j1,gox)
                     x=real(i1,kind=8)*hxh-rx
                     r2=x**2+yzsq
                     !if(r2>r2paw) cycle
@@ -1062,7 +1069,8 @@ subroutine createIonicPotential(geocode,iproc,verb,at,rxyz,&
            if (nloc /= 0) then
 
               do i3=isz,iez
-                 call ind_positions(perz,i3,n3,j3,goz) 
+                 !call ind_positions(perz,i3,n3,j3,goz) 
+                 call ind_positions_new(perz,i3,n3i,j3,goz) 
                  j3=j3+nbl3+1
                  indj3=(j3-i3s)*n1i*n2i
                  if (goz .and. j3 >= i3s .and. j3 <=  i3s+n3pi-1) then
@@ -1071,7 +1079,8 @@ subroutine createIonicPotential(geocode,iproc,verb,at,rxyz,&
                     z=real(i3,kind=8)*hzh-rz
                     zsq=z**2
                     do i2=isy,iey
-                       call ind_positions(pery,i2,n2,j2,goy)
+                       !call ind_positions(pery,i2,n2,j2,goy)
+                       call ind_positions_new(pery,i2,n2i,j2,goy)
                        indj23=1+nbl1+(j2+nbl2)*n1i+indj3
                        if (goy) then
                           yp = zp*mpy(i2)
@@ -1079,7 +1088,8 @@ subroutine createIonicPotential(geocode,iproc,verb,at,rxyz,&
                           y=real(i2,kind=8)*hyh-ry
                           yzsq=y**2+zsq
                           do i1=isx,iex
-                             call ind_positions(perx,i1,n1,j1,gox)
+                             !call ind_positions(perx,i1,n1,j1,gox)
+                             call ind_positions_new(perx,i1,n1i,j1,gox)
                              if (gox) then
                                 xp = yp*mpx(i1)
                                 if (abs(xp) < mp_tiny) cycle
@@ -1108,20 +1118,23 @@ subroutine createIonicPotential(geocode,iproc,verb,at,rxyz,&
            charge=real(at%nelpsp(ityp),kind=8)
            do i3=isz,iez
               z=real(i3,kind=8)*hzh-rz
-              call ind_positions(perz,i3,n3,j3,goz) 
+              !call ind_positions(perz,i3,n3,j3,goz) 
+              call ind_positions_new(perz,i3,n3i,j3,goz) 
               j3=j3+nbl3+1
               indj3=(j3-i3s)*n1i*n2i
               zsq=z**2
               if (goz .and. j3 >= i3s .and. j3 <=  i3s+n3pi-1) then
                  do i2=isy,iey
                     y=real(i2,kind=8)*hyh-ry
-                    call ind_positions(pery,i2,n2,j2,goy)
+                    !call ind_positions(pery,i2,n2,j2,goy)
+                    call ind_positions_new(pery,i2,n2i,j2,goy)
                     indj23=1+nbl1+(j2+nbl2)*n1i+indj3
                     yzsq=y**2+zsq
                     if (goy) then
                        do i1=isx,iex
                           x=real(i1,kind=8)*hxh-rx
-                          call ind_positions(perx,i1,n1,j1,gox)
+                          !call ind_positions(perx,i1,n1,j1,gox)
+                          call ind_positions_new(perx,i1,n1i,j1,gox)
                           if (gox) then
                              r2=x**2+yzsq
                              rr(1)=sqrt(r2)
@@ -1306,26 +1319,26 @@ END SUBROUTINE createIonicPotential
 
 !> Determine the index in which the potential must be inserted, following the BC
 !! Determine also whether the index is inside or outside the box for free BC
-subroutine ind_positions(periodic,i,n,j,go)
-  implicit none
-  logical, intent(in) :: periodic
-  integer, intent(in) :: i,n
-  logical, intent(out) :: go
-  integer, intent(out) :: j
-
-  if (periodic) then
-     go=.true.
-     j=modulo(i,2*n+2)
-  else
-     j=i
-     if (i >= -14 .and. i <= 2*n+16) then
-        go=.true.
-     else
-        go=.false.
-     end if
-  end if
-
-END SUBROUTINE ind_positions
+!!! subroutine ind_positions(periodic,i,n,j,go)
+!!!   implicit none
+!!!   logical, intent(in) :: periodic
+!!!   integer, intent(in) :: i,n
+!!!   logical, intent(out) :: go
+!!!   integer, intent(out) :: j
+!!! 
+!!!   if (periodic) then
+!!!      go=.true.
+!!!      j=modulo(i,2*n+2)
+!!!   else
+!!!      j=i
+!!!      if (i >= -14 .and. i <= 2*n+16) then
+!!!         go=.true.
+!!!      else
+!!!         go=.false.
+!!!      end if
+!!!   end if
+!!! 
+!!! END SUBROUTINE ind_positions
 
 
 !> Determine the index in which the potential must be inserted, following the BC
@@ -1565,16 +1578,19 @@ subroutine CounterIonPotential(geocode,iproc,in,shift,&
         do i3=isz,iez
            zp = mpz(i3)
            if (abs(zp) < mp_tiny) cycle
-           call ind_positions(perz,i3,grid%n3,j3,goz) 
+           !call ind_positions(perz,i3,grid%n3,j3,goz) 
+           call ind_positions_new(perz,i3,grid%n3i,j3,goz) 
            j3=j3+nbl3+1
            do i2=isy,iey
               yp = zp*mpy(i2)
               if (abs(yp) < mp_tiny) cycle
-              call ind_positions(pery,i2,grid%n2,j2,goy)
+              !call ind_positions(pery,i2,grid%n2,j2,goy)
+              call ind_positions_new(pery,i2,grid%n2i,j2,goy)
               do i1=isx,iex
                  xp = yp*mpx(i1)
                  if (abs(xp) < mp_tiny) cycle
-                 call ind_positions(perx,i1,grid%n1,j1,gox)
+                 !call ind_positions(perx,i1,grid%n1,j1,gox)
+                 call ind_positions_new(perx,i1,grid%n1i,j1,gox)
                  if (j3 >= i3s .and. j3 <= i3s+n3pi-1  .and. goy  .and. gox ) then
                     ind=j1+1+nbl1+(j2+nbl2)*grid%n1i+(j3-i3s)*grid%n1i*grid%n2i
                     pot_ion(ind)=pot_ion(ind)-xp*charge

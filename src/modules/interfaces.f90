@@ -235,14 +235,14 @@ module module_interfaces
       end subroutine default_confinement_data
 
        subroutine IonicEnergyandForces(iproc,dpbox,at,elecfield,&
-            & rxyz,eion,fion,dispersion,edisp,fdisp,ewaldstr,n1,n2,n3,&
+            & rxyz,eion,fion,dispersion,edisp,fdisp,ewaldstr,&
             & pot_ion,pkernel,psoffset)
          use module_defs, only: gp,dp
          use module_types
          implicit none
          type(denspot_distribution), intent(in) :: dpbox
          type(atoms_data), intent(in) :: at
-         integer, intent(in) :: iproc,n1,n2,n3,dispersion
+         integer, intent(in) :: iproc,dispersion
          real(gp), dimension(3), intent(in) :: elecfield
          real(gp), dimension(3,at%astruct%nat), intent(in) :: rxyz
          type(coulomb_operator), intent(in) :: pkernel
@@ -2820,13 +2820,13 @@ module module_interfaces
         end subroutine nonlocal_forces
 
         subroutine local_forces(iproc,at,rxyz,hxh,hyh,hzh,&
-             n1,n2,n3,n3pi,i3s,n1i,n2i,rho,pot,floc,locstrten,charge)
+             n1,n2,n3,n3pi,i3s,n1i,n2i,n3i,rho,pot,floc,locstrten,charge)
           use module_base
           use module_types
           implicit none
           !Arguments---------
           type(atoms_data), intent(in) :: at
-          integer, intent(in) :: iproc,n1,n2,n3,n3pi,i3s,n1i,n2i
+          integer, intent(in) :: iproc,n1,n2,n3,n3pi,i3s,n1i,n2i,n3i
           real(gp), intent(in) :: hxh,hyh,hzh
           real(gp),intent(out) :: charge
           real(gp), dimension(3,at%astruct%nat), intent(in) :: rxyz

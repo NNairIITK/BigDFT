@@ -45,14 +45,14 @@ subroutine calculate_forces(iproc,nproc,psolver_groupsize,Glr,atoms,orbs,nlpsp,r
   call f_zero(strtens)
 
   call local_forces(iproc,atoms,rxyz,0.5_gp*hx,0.5_gp*hy,0.5_gp*hz,&
-       Glr%d%n1,Glr%d%n2,Glr%d%n3,n3p,i3s,Glr%d%n1i,Glr%d%n2i,rho,pot,fxyz,strtens(1,1),charge)
+       Glr%d%n1,Glr%d%n2,Glr%d%n3,n3p,i3s,Glr%d%n1i,Glr%d%n2i,Glr%d%n3i,rho,pot,fxyz,strtens(1,1),charge)
 
   !!do iat=1,atoms%astruct%nat
   !!    write(4100+iproc,'(a,i8,3es15.6)') 'iat, fxyz(:,iat)', iat, fxyz(:,iat)
   !!end do
 
   !calculate forces originated by rhocore
-  call rhocore_forces(iproc,atoms,nspin,Glr%d%n1,Glr%d%n2,Glr%d%n3,Glr%d%n1i,Glr%d%n2i,n3p,i3s,&
+  call rhocore_forces(iproc,atoms,nspin,Glr%d%n1,Glr%d%n2,Glr%d%n3,Glr%d%n1i,Glr%d%n2i,Glr%d%n3i,n3p,i3s,&
        0.5_gp*hx,0.5_gp*hy,0.5_gp*hz,rxyz,potxc,fxyz)
 
   !for a taksgroup Poisson Solver, multiply by the ratio.
@@ -202,12 +202,12 @@ end subroutine calculate_forces
 
 
 !> Calculate the contribution to the forces given by the core density charge
-subroutine rhocore_forces(iproc,atoms,nspin,n1,n2,n3,n1i,n2i,n3p,i3s,hxh,hyh,hzh,rxyz,potxc,fxyz)
+subroutine rhocore_forces(iproc,atoms,nspin,n1,n2,n3,n1i,n2i,n3i,n3p,i3s,hxh,hyh,hzh,rxyz,potxc,fxyz)
   use module_base
   use module_types
   use yaml_output
   implicit none
-  integer, intent(in) :: iproc,n1i,n2i,n3p,i3s,nspin,n1,n2,n3
+  integer, intent(in) :: iproc,n1i,n2i,n3i,n3p,i3s,nspin,n1,n2,n3
   real(gp), intent(in) :: hxh,hyh,hzh
   type(atoms_data), intent(in) :: atoms
   real(wp), dimension(n1i*n2i*n3p*nspin), intent(in) :: potxc
@@ -288,16 +288,19 @@ subroutine rhocore_forces(iproc,atoms,nspin,n1,n2,n3,n1i,n2i,n3p,i3s,hxh,hyh,hzh
                  if (ispin==2) ispinsh=n1i*n2i*n3p
                  do i3=isz,iez
                     z=real(i3,kind=8)*hzh-rz
-                    call ind_positions(perz,i3,n3,j3,goz)
+                    !call ind_positions(perz,i3,n3,j3,goz)
+                    call ind_positions_new(perz,i3,n3i,j3,goz)
                     j3=j3+nbl3+1
                     if (j3 >= i3s .and. j3 <= i3s+n3p-1) then
                        do i2=isy,iey
                           y=real(i2,kind=8)*hyh-ry
-                          call ind_positions(pery,i2,n2,j2,goy)
+                          !call ind_positions(pery,i2,n2,j2,goy)
+                          call ind_positions_new(pery,i2,n2i,j2,goy)
                           if (goy) then
                              do i1=isx,iex
                                 x=real(i1,kind=8)*hxh-rx
-                                call ind_positions(perx,i1,n1,j1,gox)
+                                !call ind_positions(perx,i1,n1,j1,gox)
+                                call ind_positions_new(perx,i1,n1i,j1,gox)
                                 if (gox) then
                                    r2=x**2+y**2+z**2
                                    ilcc=islcc
@@ -345,7 +348,7 @@ end subroutine rhocore_forces
 
 !> Calculates the local forces acting on the atoms belonging to iproc
 subroutine local_forces(iproc,at,rxyz,hxh,hyh,hzh,&
-     n1,n2,n3,n3pi,i3s,n1i,n2i,rho,pot,floc,locstrten,charge)
+     n1,n2,n3,n3pi,i3s,n1i,n2i,n3i,rho,pot,floc,locstrten,charge)
   use module_base, pi => pi_param
   use module_types
   use yaml_output
@@ -353,7 +356,7 @@ subroutine local_forces(iproc,at,rxyz,hxh,hyh,hzh,&
   implicit none
   !Arguments
   type(atoms_data), intent(in) :: at
-  integer, intent(in) :: iproc,n1,n2,n3,n3pi,i3s,n1i,n2i
+  integer, intent(in) :: iproc,n1,n2,n3,n3pi,i3s,n1i,n2i,n3i
   real(gp), intent(in) :: hxh,hyh,hzh 
   real(gp),intent(out) :: charge
   real(gp), dimension(3,at%astruct%nat), intent(in) :: rxyz
@@ -493,17 +496,20 @@ subroutine local_forces(iproc,at,rxyz,hxh,hyh,hzh,&
            zp = mpz(i3)
            z=real(i3,kind=8)*hzh-rz
            zsq=z**2
-           call ind_positions(perz,i3,n3,j3,goz) 
+           !call ind_positions(perz,i3,n3,j3,goz) 
+           call ind_positions_new(perz,i3,n3i,j3,goz) 
            j3=j3+nbl3+1
            do i2=isy,iey
               yp = zp*mpy(i2)
               y=real(i2,kind=8)*hyh-ry
               yzsq=y**2+zsq
-              call ind_positions(pery,i2,n2,j2,goy)
+              !call ind_positions(pery,i2,n2,j2,goy)
+              call ind_positions_new(pery,i2,n2i,j2,goy)
               do i1=isx,iex
                  x=real(i1,kind=8)*hxh-rx
                  xp = yp*mpx(i1)
-                 call ind_positions(perx,i1,n1,j1,gox)
+                 !call ind_positions(perx,i1,n1,j1,gox)
+                 call ind_positions_new(perx,i1,n1i,j1,gox)
                  r2=x**2+yzsq
                  arg=r2*rlocinvsq
 
@@ -4016,7 +4022,7 @@ subroutine nonlocal_forces_linear(iproc,nproc,npsidim_orbs,lr,hx,hy,hz,at,rxyz,&
   !local variables--------------
   integer :: istart_c,iproj,iat,ityp,i,j,l,m,iorbout,iiorb,ilr
   integer :: mbseg_c,mbseg_f,jseg_c,jseg_f,ind,iseg,jjorb,ispin
-  integer :: mbvctr_c,mbvctr_f,iorb,nwarnings,nspinor,ispinor,jorbd,ncount,ist_send
+  integer :: mbvctr_c,mbvctr_f,iorb,nwarnings,nspinor,ispinor,jorbd,ncount
   real(gp) :: offdiagcoeff,hij,sp0,spi,sp0i,sp0j,spj,Enl,vol
   !real(gp) :: orbfac,strc
   integer :: idir,ncplx,icplx,isorb,ikpt,ieorb,istart_ck,ispsi_k,ispsi,jorb,jproc,ii,ist,ierr,iiat,iiiat
@@ -4027,12 +4033,11 @@ subroutine nonlocal_forces_linear(iproc,nproc,npsidim_orbs,lr,hx,hy,hz,at,rxyz,&
   integer,dimension(:),allocatable :: nat_par, isat_par, sendcounts, recvcounts, senddspls, recvdspls
   integer,dimension(:,:),allocatable :: iat_startend
   real(dp),dimension(:,:,:,:,:,:,:),allocatable :: scalprod_sendbuf
-  real(dp),dimension(:),allocatable :: scalprod_recvbuf
   integer,parameter :: ndir=3 !3 for forces, 9 for forces and stresses
   real(kind=8),dimension(:),allocatable :: denskern_gathered
   integer,dimension(:,:),allocatable :: iorbminmax, iatminmax
-  integer :: iorbmin, jorbmin, iorbmax, jorbmax
-  integer :: nat_per_iteration, isat, natp, iat_out, nat_out, norbp_max
+  integer :: iorbmin, iorbmax
+  integer :: isat, natp
   integer,parameter :: MAX_SIZE=268435456 !max size of the array scalprod, in elements
 
   !integer :: ldim, gdim
@@ -4168,7 +4173,6 @@ subroutine nonlocal_forces_linear(iproc,nproc,npsidim_orbs,lr,hx,hy,hz,at,rxyz,&
   call f_free(recvdspls)
   
   call calculate_forces()
-  
   
   
   !Adding Enl to the diagonal components of strten after loop over kpts is finished...
@@ -4869,9 +4873,6 @@ subroutine nonlocal_forces_linear(iproc,nproc,npsidim_orbs,lr,hx,hy,hz,at,rxyz,&
 END SUBROUTINE nonlocal_forces_linear
 
 
-
-
-
 subroutine internal_forces(nat, rxyz, ixyz_int, ifrozen, fxyz)
   use module_base
   use dynamic_memory
@@ -5049,10 +5050,10 @@ subroutine keep_internal_coordinates_constraints(nat, rxyz_int, ixyz_int, ifroze
   real(gp),dimension(3,nat),intent(inout) :: rxyz
 
   ! Local variables
-  integer :: iat, i, ii
+  integer :: iat, ii
   integer,dimension(:),allocatable :: na, nb, nc
   real(gp),parameter :: degree=57.29578d0
-  real(gp),dimension(:,:),allocatable :: geo, geo_ref
+  real(gp),dimension(:,:),allocatable :: geo
   real(gp),parameter :: alpha=1.d0
   real(kind=8),dimension(3) :: shift
   logical :: fix_bond, fix_phi, fix_theta
