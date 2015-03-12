@@ -397,22 +397,34 @@ module io
       ! Calling arguments
       integer,intent(in) :: iunit, ntmb, nat
       real(kind=8),dimension(ntmb,ntmb),intent(out) :: matrix
-      real(kind=8),dimension(nat,nat),intent(out),optional :: rxyz
+      real(kind=8),dimension(3,nat),intent(out),optional :: rxyz
       integer,dimension(ntmb),intent(out),optional :: on_which_atom
     
       ! Local variables
-      integer :: itmb, jtmb, ii, jj, iat
+      integer :: itmb, jtmb, ii, jj, iat, ntmb_check, nat_check
       logical :: read_rxyz, read_on_which_atom
       real(kind=8),dimension(3) :: dummy
+      character(len=128) :: dummy_char
     
       read_on_which_atom = present(on_which_atom)
       read_rxyz = present(rxyz)
 
+      read(iunit,*) dummy_char, ntmb_check, nat_check
+      if (ntmb/=ntmb_check) then
+          call f_err_throw('number of basis function specified ('//trim(yaml_toa(ntmb,fmt='(i0)'))//&
+              &') does not agree with the number indicated in the file ('//trim(yaml_toa(ntmb_check,fmt='(i0)'))//')',&
+              err_name='BIGDFT_RUNTIME_ERROR')
+      end if
+      if (nat/=nat_check) then
+          call f_err_throw('number of atoms specified ('//trim(yaml_toa(nat,fmt='(i0)'))//&
+              &') does not agree with the number indicated in the file ('//trim(yaml_toa(nat_check))//')',&
+              err_name='BIGDFT_RUNTIME_ERROR')
+      end if
       do iat=1,nat
           if (read_rxyz) then
-              read(iunit,*) rxyz(1:3,iat)
+              read(iunit,*) dummy_char, rxyz(1:3,iat)
           else
-              read(iunit,*) dummy(1:3)
+              read(iunit,*) dummy_char, dummy(1:3)
           end if
       end do
     

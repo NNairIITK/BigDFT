@@ -830,6 +830,13 @@ subroutine write_linear_matrices(iproc,nproc,imethod_overlap,filename,iformat,tm
      !open(99, file=filename//'hamiltonian.bin', status='unknown',form='unformatted')
      !end if
 
+     if (.not. binary) then
+         write(unitm,'(a,2i10,a)') '#  ',tmb%linmat%m%nfvctr, at%astruct%nat, &
+             '    number of basis functions, number of atoms'
+     else
+         write(unitm) '#  ',tmb%linmat%m%nfvctr, at%astruct%nat, &
+             '    number of basis functions, number of atoms'
+     end if
      do iat=1,at%astruct%nat
          if (.not. binary) then
              write(unitm,'(a,3es24.16)') '#  ',rxyz(1:3,iat)
@@ -874,6 +881,13 @@ subroutine write_linear_matrices(iproc,nproc,imethod_overlap,filename,iformat,tm
      !open(99, file=filename//'overlap.bin', status='unknown',form='unformatted')
      !end if
 
+     if (.not. binary) then
+         write(unitm,'(a,2i10,a)') '#  ',tmb%linmat%m%nfvctr, at%astruct%nat, &
+             '    number of basis functions, number of atoms'
+     else
+         write(unitm) '#  ',tmb%linmat%m%nfvctr, at%astruct%nat, &
+             '    number of basis functions, number of atoms'
+     end if
      do iat=1,at%astruct%nat
          if (.not. binary) then
              write(unitm,'(a,3es24.16)') '#  ',rxyz(1:3,iat)
@@ -916,6 +930,13 @@ subroutine write_linear_matrices(iproc,nproc,imethod_overlap,filename,iformat,tm
      !open(99, file=filename//'density_kernel.bin', status='unknown',form='unformatted')
      !end if
 
+     if (.not. binary) then
+         write(unitm,'(a,2i10,a)') '#  ',tmb%linmat%m%nfvctr, at%astruct%nat, &
+             '    number of basis functions, number of atoms'
+     else
+         write(unitm) '#  ',tmb%linmat%m%nfvctr, at%astruct%nat, &
+             '    number of basis functions, number of atoms'
+     end if
      do iat=1,at%astruct%nat
          if (.not. binary) then
              write(unitm,'(a,3es24.16)') '#  ',rxyz(1:3,iat)
@@ -962,6 +983,13 @@ subroutine write_linear_matrices(iproc,nproc,imethod_overlap,filename,iformat,tm
      !open(99, file=filename//'overlap_onsite.bin', status='unknown',form='unformatted')
      !end if
 
+     if (.not. binary) then
+         write(unitm,'(a,2i10,a)') '#  ',tmb%linmat%m%nfvctr, at%astruct%nat, &
+             '    number of basis functions, number of atoms'
+     else
+         write(unitm) '#  ',tmb%linmat%m%nfvctr, at%astruct%nat, &
+             '    number of basis functions, number of atoms'
+     end if
      do iat=1,at%astruct%nat
          if (.not. binary) then
              write(unitm,'(a,3es24.16)') '#  ',rxyz(1:3,iat)

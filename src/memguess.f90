@@ -67,7 +67,7 @@ program memguess
    !real(gp) :: tcpu0,tcpu1,tel
    !integer :: ncount0,ncount1,ncount_max,ncount_rate
    !! By Ali
-   integer :: ierror, iat, itmb, jtmb, ntmb, norbks, npdos, iunit01, iunit02, norb_dummy, ipt, npt, ipdos, nat
+   integer :: ierror, iat, itmb, jtmb, iitmb, jjtmb, ntmb, norbks, npdos, iunit01, iunit02, norb_dummy, ipt, npt, ipdos, nat
    integer :: iproc, isub, jat
    integer,dimension(:),allocatable :: na, nb, nc, on_which_atom
    integer,dimension(:,:),allocatable :: atoms_ref
@@ -270,11 +270,18 @@ program memguess
             i_arg = i_arg + 1
             call get_command_argument(i_arg, value = coeff_file)
             i_arg = i_arg + 1
+            call get_command_argument(i_arg, value = ham_file)
+            i_arg = i_arg + 1
+            call get_command_argument(i_arg, value = overlap_file)
+            i_arg = i_arg + 1
             call get_command_argument(i_arg, value = ntmb_)
             read(ntmb_,fmt=*,iostat=ierror) ntmb
             i_arg = i_arg + 1
             call get_command_argument(i_arg, value = norbks_)
             read(norbks_,fmt=*,iostat=ierror) norbks
+            i_arg = i_arg + 1
+            call get_command_argument(i_arg, value = nat_)
+            read(nat_,fmt=*,iostat=ierror) nat
             i_arg = i_arg + 1
             call get_command_argument(i_arg, value = interval_)
             read(interval_,fmt=*,iostat=ierror) interval
@@ -311,6 +318,9 @@ program memguess
             call get_command_argument(i_arg, value = ntmb_)
             read(ntmb_,fmt=*,iostat=ierror) ntmb
             i_arg = i_arg + 1
+            call get_command_argument(i_arg, value = nat_)
+            read(nat_,fmt=*,iostat=ierror) nat
+            i_arg = i_arg + 1
             call get_command_argument(i_arg, value = nsubmatrices_)
             read(nsubmatrices_,fmt=*,iostat=ierror) nsubmatrices
             write(*,'(1x,a,i0,3a,2(i0,a))')&
@@ -327,7 +337,7 @@ program memguess
             read(ntmb_,fmt=*,iostat=ierror) ntmb
             i_arg = i_arg + 1
             call get_command_argument(i_arg, value = nat_)
-            read(ntmb_,fmt=*,iostat=ierror) nat
+            read(nat_,fmt=*,iostat=ierror) nat
             i_arg = i_arg + 1
             call get_command_argument(i_arg, value = coeff_file)
             read(nsubmatrices_,fmt=*,iostat=ierror) nsubmatrices
@@ -538,10 +548,10 @@ program memguess
        call f_open_file(iunit01, file=trim(coeff_file), binary=.false.)
        call read_coeff_minbasis(iunit01, .true., iproc, norbks, norb_dummy, ntmb, coeff, eval, nat)
        call f_close(iunit01)
-       call f_open_file(iunit01, file='hamiltonian.bin', binary=.false.)
+       call f_open_file(iunit01, file=ham_file, binary=.false.)
        call read_linear_matrix_dense(iunit01, ntmb, nat, ham)
        call f_close(iunit01)
-       call f_open_file(iunit01, file='overlap.bin', binary=.false.)
+       call f_open_file(iunit01, file=overlap_file, binary=.false.)
        call read_linear_matrix_dense(iunit01, ntmb, nat, overlap)
        call f_close(iunit01)
        npt = ceiling((eval(ntmb)-eval(1))/interval)
@@ -556,6 +566,7 @@ program memguess
        call yaml_map('output file',trim(output_pdos))
        call f_open_file(iunit02, file=trim(output_pdos), binary=.false.)
        write(iunit02,'(a)') '# plot the DOS as a sum of Gaussians'
+       write(iunit02,'(a)') 'set samples 1000'
        write(iunit02,'(a,2(es12.5,a))') 'set xrange[',eval(1),':',eval(ntmb),']'
        write(iunit02,'(a)') 'sigma=0.01'
        ! Calculate a partial kernel for each KS orbital
@@ -650,19 +661,33 @@ program memguess
    end if
 
    if (extract_submatrix) then
+       if (mod(ntmb,nsubmatrices)/=0) then
+           call f_err_throw('nsubmatrices must be a divisor of the number of basis function',&
+                err_name='BIGDFT_RUNETIME_ERROR')
+       end if
        matrix = f_malloc((/ntmb,ntmb/),id='matrix')
        on_which_atom = f_malloc(ntmb,id='on_which_atom')
+       rxyz = f_malloc((/3,nat/),id='rxyz')
        call f_open_file(iunit01, file=trim(matrix_file), binary=.false.)
-       call read_linear_matrix_dense(iunit01, ntmb, nat, matrix, on_which_atom=on_which_atom)
+       call read_linear_matrix_dense(iunit01, ntmb, nat, matrix, rxyz=rxyz, on_which_atom=on_which_atom)
        call f_close(iunit01)
        do isub=1,nsubmatrices
            write(num,fmt='(i2.2)') isub
            call f_open_file(iunit01, file=trim(matrix_file)//'_sub'//num, binary=.false.)
+           write(iunit01,'(a,2i10,a)') '#  ',ntmb/nsubmatrices, nat, &
+               '    number of basis functions, number of atoms'
+           do iat=1,nat
+                   write(iunit01,'(a,3es24.16)') '#  ',rxyz(1:3,iat)
+           end do
+           iitmb = 0
            do itmb=isub,ntmb,nsubmatrices
+               iitmb = iitmb + 1
                iat = on_which_atom(itmb)
+               jjtmb = 0
                do jtmb=isub,ntmb,nsubmatrices
+                   jjtmb = jjtmb + 1
                    jat = on_which_atom(jtmb)
-                   write(iunit01,'(2(i6,1x),e19.12,2(1x,i6))') itmb,jtmb,matrix(itmb,jtmb),iat,jat
+                   write(iunit01,'(2(i6,1x),e19.12,2(1x,i6))') iitmb,jjtmb,matrix(itmb,jtmb),iat,jat
                end do
            end do
            call f_close(iunit01)
@@ -671,6 +696,20 @@ program memguess
    end if
 
    if (solve_eigensystem) then
+       ham = f_malloc((/ntmb,ntmb/),id='ham')
+       overlap = f_malloc((/ntmb,ntmb/),id='overlap')
+       eval = f_malloc(ntmb,id='eval')
+       rxyz = f_malloc((/3,nat/),id='rxyz')
+       call f_open_file(iunit01, file=trim(ham_file), binary=.false.)
+       call read_linear_matrix_dense(iunit01, ntmb, nat, ham, rxyz=rxyz)
+       call f_close(iunit01)
+       call f_open_file(iunit01, file=trim(overlap_file), binary=.false.)
+       call read_linear_matrix_dense(iunit01, ntmb, nat, overlap)
+       call f_close(iunit01)
+       call diagonalizeHamiltonian2(iproc, ntmb, ham, overlap, eval)
+       call f_open_file(iunit01, file=trim(coeff_file), binary=.false.)
+       call writeLinearCoefficients(iunit01, .true., nat, rxyz, &
+            ntmb, ntmb, ntmb, ham, eval)
        stop
    end if
 
