@@ -555,7 +555,7 @@ module module_types
      !! the same holds for non-collinear calculations
      integer :: i3rho_add
      integer :: ndimpot,ndimgrid,ndimrhopot 
-     integer, dimension(3) :: ndims   !< Box containing the grid dimensions in ISF basis in x,y and z direction
+     integer, dimension(3) :: ndims   !< Box containing the grid dimensions in ISF basis in x,y and z direction (n1i,n2i,n3i)
      real(gp), dimension(3) :: hgrids !< Grid spacings of the box (half of wavelet ones)
      integer, dimension(:,:), pointer :: nscatterarr, ngatherarr
      type(mpi_environment) :: mpi_env

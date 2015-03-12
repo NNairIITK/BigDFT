@@ -527,58 +527,62 @@ END SUBROUTINE IonicEnergyandForces
 
 
 !> Create the effective ionic potential (main ionic + counter ions)
-subroutine createEffectiveIonicPotential(iproc, verb, in, atoms, rxyz, shift, &
-     & Glr, hxh, hyh, hzh, rhopotd, pkernel, pot_ion, elecfield, psoffset)
+subroutine createEffectiveIonicPotential(iproc, verb, input, atoms, rxyz, shift, &
+     & Glr, hxh, hyh, hzh, dpbox, pkernel, pot_ion, elecfield, psoffset)
+
   use module_base
   use module_types
 
   implicit none
 
+  !Arguments
   integer, intent(in) :: iproc
   logical, intent(in) :: verb
   real(gp), intent(in) :: hxh,hyh,hzh,psoffset
   type(atoms_data), intent(in) :: atoms
   type(locreg_descriptors), intent(in) :: Glr
-  type(input_variables), intent(in) :: in
-  type(denspot_distribution), intent(in) :: rhopotd
+  type(input_variables), intent(in) :: input
+  type(denspot_distribution), intent(in) :: dpbox
   real(gp), intent(in) :: elecfield(3)
   real(gp), dimension(3), intent(in) :: shift
   real(gp), dimension(3,atoms%astruct%nat), intent(in) :: rxyz
   type(coulomb_operator), intent(in) :: pkernel
   real(wp), dimension(*), intent(inout) :: pot_ion
 
+  !Local variables
   logical :: counterions
   real(dp), dimension(:), allocatable :: counter_ions
 
   ! Compute the main ionic potential.
-  call createIonicPotential(atoms%astruct%geocode, iproc, verb, atoms, rxyz, hxh, hyh, hzh, &
-       & elecfield, Glr%d%n1, Glr%d%n2, Glr%d%n3, rhopotd%n3pi, rhopotd%i3s + rhopotd%i3xcsh, &
-       & Glr%d%n1i, Glr%d%n2i, Glr%d%n3i, pkernel, pot_ion, psoffset)
+  call createIonicPotential(atoms%astruct%geocode, iproc, verb, atoms, rxyz, &
+       & elecfield, Glr%d%n1, Glr%d%n2, Glr%d%n3, dpbox, pkernel, pot_ion, psoffset)
 
   !inquire for the counter_ion potential calculation (for the moment only xyz format)
   inquire(file='posinp_ci.xyz',exist=counterions)
   if (counterions) then
-     if (rhopotd%n3pi > 0) then
-        counter_ions = f_malloc(Glr%d%n1i*Glr%d%n2i*rhopotd%n3pi,id='counter_ions')
+     if (dpbox%n3pi > 0) then
+        counter_ions = f_malloc(Glr%d%n1i*Glr%d%n2i*dpbox%n3pi,id='counter_ions')
      else
         counter_ions = f_malloc(1,id='counter_ions')
      end if
 
-     call CounterIonPotential(atoms%astruct%geocode,iproc,in,shift,&
-          &   hxh,hyh,hzh,Glr%d,rhopotd%n3pi,rhopotd%i3s + rhopotd%i3xcsh,pkernel,counter_ions)
+     call CounterIonPotential(atoms%astruct%geocode,iproc,input,shift,&
+          &   hxh,hyh,hzh,Glr%d,dpbox%n3pi,dpbox%i3s + dpbox%i3xcsh,pkernel,counter_ions)
 
      !sum that to the ionic potential
-     call axpy(Glr%d%n1i*Glr%d%n2i*rhopotd%n3pi,1.0_dp,counter_ions(1),1,&
+     call axpy(Glr%d%n1i*Glr%d%n2i*dpbox%n3pi,1.0_dp,counter_ions(1),1,&
           &   pot_ion(1),1)
 
      call f_free(counter_ions)
   end if
+
 END SUBROUTINE createEffectiveIonicPotential
 
 
 !> Create the ionic potential
 subroutine createIonicPotential(geocode,iproc,verb,at,rxyz,&
-     hxh,hyh,hzh,elecfield,n1,n2,n3,n3pi,i3s,n1i,n2i,n3i,pkernel,pot_ion,psoffset)
+     elecfield,n1,n2,n3,dpbox,pkernel,pot_ion,psoffset)
+
   use module_base, pi => pi_param
   use m_splines, only: splint
   use module_types
@@ -587,15 +591,18 @@ subroutine createIonicPotential(geocode,iproc,verb,at,rxyz,&
 !  use module_interfaces, except_this_one => createIonicPotential
   use Poisson_Solver, except_dp => dp, except_gp => gp, except_wp => wp
   use psp_projectors, only: PSPCODE_PAW
+
   implicit none
+
   !Arguments
   character(len=1), intent(in) :: geocode !< @copydoc poisson_solver::doc::geocode
-  integer, intent(in) :: iproc,n1,n2,n3,n3pi,i3s,n1i,n2i,n3i
+  integer, intent(in) :: iproc,n1,n2,n3
   logical, intent(in) :: verb
-  real(gp), intent(in) :: hxh,hyh,hzh,psoffset
+  real(gp), intent(in) :: psoffset
   type(atoms_data), intent(in) :: at
   real(gp), dimension(3), intent(in) :: elecfield
   real(gp), dimension(3,at%astruct%nat), intent(in) :: rxyz
+  type(denspot_distribution), intent(in) :: dpbox
   type(coulomb_operator), intent(in) :: pkernel
   real(wp), dimension(*), intent(inout) :: pot_ion
 
@@ -606,6 +613,9 @@ subroutine createIonicPotential(geocode,iproc,verb,at,rxyz,&
   logical :: htoobig=.false.,check_potion=.false.
   integer :: iat,i1,i2,i3,j1,j2,j3,isx,isy,isz,iex,iey,iez,ierr,ityp !n(c) nspin
   integer :: ind,nbl1,nbr1,nbl2,nbr2,nbl3,nbr3,nloc,iloc,indj3,indj23,nrange
+  !integer :: n1,n2,n3
+  integer :: n3pi,i3s,n1i,n2i,n3i
+  real(gp) :: hxh,hyh,hzh
   real(gp) :: rholeaked,rloc,charge,cutoff,x,y,z,r2,arg,xp,yp,zp,tt,rx,ry,rz
   real(gp) :: tt_tot,rholeaked_tot,potxyz
   real(gp) :: raux2,r2paw,rlocinvsq,rlocinv2sq,zsq,yzsq
@@ -622,6 +632,16 @@ subroutine createIonicPotential(geocode,iproc,verb,at,rxyz,&
 
   !initialize the work arrays needed to integrate with isf
   if (at%multipole_preserving) call initialize_real_space_conversion(nmoms=at%mp_isf,nrange=nrange)
+
+  ! Aliasing
+  hxh = dpbox%hgrids(1)
+  hyh = dpbox%hgrids(2)
+  hzh = dpbox%hgrids(3)
+  n1i = dpbox%ndims(1)
+  n2i = dpbox%ndims(2)
+  n3i = dpbox%ndims(3)
+  i3s = dpbox%i3s+dpbox%i3xcsh
+  n3pi = dpbox%n3pi
 
   ! Ionic charge (must be calculated for the PS active processes)
   rholeaked=0.d0

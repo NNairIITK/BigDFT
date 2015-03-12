@@ -1,7 +1,7 @@
 !> @file
 !!  Linear version: Define Chebyshev polynomials
 !! @author
-!!    Copyright (C) 2012-2013 BigDFT group
+!!    Copyright (C) 2012-2015 BigDFT group
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
@@ -44,7 +44,7 @@ module chebyshev
       real(kind=8),dimension(nsize_polynomial,npl),intent(out) :: chebyshev_polynomials
       logical,intent(out) :: emergency_stop
       ! Local variables
-      integer :: iorb,iiorb, jorb, ipl, ierr, nseq, nmaxvalk
+      integer :: iorb,iiorb, jorb, ipl
       integer :: isegstart, isegend, iseg, ii, jjorb, icalc
       character(len=*),parameter :: subname='chebyshev_clean'
       real(8), dimension(:,:,:), allocatable :: vectors

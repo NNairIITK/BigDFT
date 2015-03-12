@@ -253,18 +253,19 @@ module module_interfaces
        END SUBROUTINE IonicEnergyandForces
 
        subroutine createIonicPotential(geocode,iproc,verb,at,rxyz,&
-            hxh,hyh,hzh,elecfield,n1,n2,n3,n3pi,i3s,n1i,n2i,n3i,pkernel,&
+            elecfield,n1,n2,n3,dpbox,pkernel,&
             pot_ion,psoffset)
          use module_defs, only: gp,wp
          use module_types
          implicit none
          character(len=1), intent(in) :: geocode !< @copydoc poisson_solver::doc::geocode
-         integer, intent(in) :: iproc,n1,n2,n3,n3pi,i3s,n1i,n2i,n3i
+         integer, intent(in) :: iproc,n1,n2,n3
          logical, intent(in) :: verb
-         real(gp), intent(in) :: hxh,hyh,hzh,psoffset
+         real(gp), intent(in) :: psoffset
          type(atoms_data), intent(in) :: at
          real(gp), dimension(3), intent(in) :: elecfield
          real(gp), dimension(3,at%astruct%nat), intent(in) :: rxyz
+         type(denspot_distribution), intent(in) :: dpbox
          type(coulomb_operator), intent(in) :: pkernel
          real(wp), dimension(*), intent(inout) :: pot_ion
        END SUBROUTINE createIonicPotential
