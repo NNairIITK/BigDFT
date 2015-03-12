@@ -33,17 +33,17 @@ program memguess
    character(len=40) :: comment
    character(len=1024) :: fcomment
    character(len=128) :: fileFrom, fileTo,filename_wfn, coeff_file, ham_file, overlap_file, kernel_file, matrix_file
-   character(len=128) :: ntmb_, norbks_, interval_, npdos_, nat_, nsubmatrices_, ncategories_
+   character(len=128) :: ntmb_, norbks_, interval_, npdos_, nat_, nsubmatrices_, ncategories_, cutoff_
    character(len=128) :: output_pdos
    logical :: optimise,GPUtest,atwf,convert=.false.,exportwf=.false.,logfile=.false.
    logical :: disable_deprecation = .false.,convertpos=.false.,transform_coordinates=.false.
    logical :: calculate_pdos = .false., kernel_analysis = .false., extract_submatrix = .false.
-   logical :: solve_eigensystem = .false., analyze_coeffs = .false.
+   logical :: solve_eigensystem = .false., analyze_coeffs = .false., peel_matrix = .false.
    integer :: ntimes,nproc,output_grid, i_arg,istat
    integer :: nspin,iorb,norbu,norbd,nspinor,norb,iorbp,iorb_out
    integer :: norbgpu,ng, nsubmatrices, ncategories
    integer :: export_wf_iband, export_wf_ispin, export_wf_ikpt, export_wf_ispinor,irad
-   real(gp) :: hx,hy,hz,energy,occup,interval,tt
+   real(gp) :: hx,hy,hz,energy,occup,interval,tt,cutoff
    type(memory_estimation) :: mem
    type(run_objects) :: runObj
    type(orbitals_data) :: orbstst
@@ -58,7 +58,7 @@ program memguess
    real(gp), dimension(:), pointer :: gbd_occ
    type(system_fragment), dimension(:), pointer :: ref_frags
    character(len=3) :: in_name !lr408
-   integer :: i, inputpsi, input_wf_format
+   integer :: i, inputpsi, input_wf_format, nneighbor_min, nneighbor_max, nneighbor
    integer,parameter :: nconfig=1
    type(dictionary), pointer :: run
    !character(len=60),dimension(nconfig) :: arr_radical,arr_posinp
@@ -141,6 +141,10 @@ program memguess
            &   '"analyse-coeffs" <coeff.bin>" ' 
       write(*,'(1x,a)')&
            & 'analyse the coefficients by assiging them in to ncategories categories'
+      write(*,'(1x,a)')&
+           &   '"peel-matrix" <matrix.bin>" ' 
+      write(*,'(1x,a)')&
+           & 'peel a matrix by stripping off elements which are outside of a cutoff'
 
       stop
    else
@@ -367,6 +371,22 @@ program memguess
             write(*,'(1x,a)')&
                &   'analyze the coeffs'
             analyze_coeffs = .true.
+            exit loop_getargs
+         else if (trim(tatonam)=='peel-matrix') then
+            i_arg = i_arg + 1
+            call get_command_argument(i_arg, value = matrix_file)
+            i_arg = i_arg + 1
+            call get_command_argument(i_arg, value = ntmb_)
+            read(ntmb_,fmt=*,iostat=ierror) ntmb
+            i_arg = i_arg + 1
+            call get_command_argument(i_arg, value = nat_)
+            read(nat_,fmt=*,iostat=ierror) nat
+            i_arg = i_arg + 1
+            call get_command_argument(i_arg, value = cutoff_)
+            read(cutoff_,fmt=*,iostat=ierror) cutoff
+            write(*,'(1x,a)')&
+               &   'peel the matrix'
+            peel_matrix = .true.
             exit loop_getargs
          else if (trim(tatonam) == 'dd') then
             ! dd: disable deprecation message
@@ -753,6 +773,52 @@ program memguess
            end do
            write(*,'(a,i8,4es12.4)') 'iorb, vals', iorb, coeff_cat(1:ncategories)
        end do
+       stop
+   end if
+
+   if (peel_matrix) then
+       matrix = f_malloc((/ntmb,ntmb/),id='matrix')
+       on_which_atom = f_malloc(ntmb,id='on_which_atom')
+       rxyz = f_malloc((/3,nat/),id='rxyz')
+       call f_open_file(iunit01, file=trim(matrix_file), binary=.false.)
+       call read_linear_matrix_dense(iunit01, ntmb, nat, matrix, rxyz=rxyz, on_which_atom=on_which_atom)
+       call f_close(iunit01)
+       nneighbor_min = huge(nneighbor_min)
+       nneighbor_max = -huge(nneighbor_max)
+       do itmb=1,ntmb
+           iat = on_which_atom(itmb)
+           nneighbor = 0
+           do jtmb=1,ntmb
+               jat = on_which_atom(jtmb)
+               tt = sqrt((rxyz(1,jat)-rxyz(1,iat))**2 + &
+                         (rxyz(2,jat)-rxyz(2,iat))**2 + &
+                         (rxyz(3,jat)-rxyz(3,iat))**2)
+               if (tt>cutoff) then
+                   matrix(jtmb,itmb) = 0.d0
+               else
+                   nneighbor = nneighbor + 1
+               end if
+           end do
+           write(*,*) 'itmb, nneighbor', itmb, nneighbor
+           nneighbor_min = min (nneighbor_min,nneighbor)
+           nneighbor_max = max (nneighbor_max,nneighbor)
+       end do
+       call yaml_map('min number of neighbors',nneighbor_min)
+       call yaml_map('max number of neighbors',nneighbor_max)
+       call f_open_file(iunit01, file=trim(matrix_file)//'_peeled', binary=.false.)
+       write(iunit01,'(a,2i10,a)') '#  ',ntmb, nat, &
+           '    number of basis functions, number of atoms'
+       do iat=1,nat
+               write(iunit01,'(a,3es24.16)') '#  ',rxyz(1:3,iat)
+       end do
+       do itmb=1,ntmb
+           iat = on_which_atom(itmb)
+           do jtmb=1,ntmb
+               jat = on_which_atom(jtmb)
+               write(iunit01,'(2(i6,1x),e19.12,2(1x,i6))') itmb,jtmb,matrix(itmb,jtmb),iat,jat
+           end do
+       end do
+       call f_close(iunit01)
        stop
    end if
 

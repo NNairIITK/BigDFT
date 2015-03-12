@@ -21,7 +21,7 @@ actions = ["memory-estimation", "rotate", "convert-field",
            "export-wf", "export-grid", "atomic-wf", "GPU-test", 
            "convert-positions", "manual", "wizard", "transform-coordinates",
 		   "pdos", "kernel-analysis", "extract-submatrix", "solve-eigensystem", 
-		   "analyze-coeffs"]
+		   "analyze-coeffs", "peel-matrix"]
 
 # Processed lines
 abs_srcdir = "@abs_srcdir@"
@@ -185,6 +185,12 @@ def parse():
                         "analyze the coeffs")
     group.add_option("--ncategories", type="int", default="1", metavar="NUM",
              		 help="number of categories[default: %default]")
+
+    # peel a matrix
+    group = OptionGroup(parser, "bigdft-tool -a %s <input> <output>" % actions[15],
+                        "peel a matrix by stripping off elements which are outside of a cutoffs")
+    group.add_option("--cutoff", type="float", default="1", metavar="NUM",
+             		 help="cutoff radius[default: %default]")
 
     return parser
 
@@ -674,6 +680,10 @@ options:
     if options.action == actions[15]:
         print 'calling memguess to analyse the coeffs'
         command = "%s 1 %s dd analyze-coeffs %s %d %d %d %d" % (memguess, options.name, options.coeff_file, options.nbasis, options.norb, options.nat, options.ncategories)
+        print command
+    if options.action == actions[16]:
+        print 'calling memguess to peel a matrix'
+        command = "%s 1 %s dd peel-matrix %s %d %d %e" % (memguess, options.name, options.matrix_file, options.nbasis, options.nat, options.cutoff)
         print command
     if command is not None:
         os.system(command)
