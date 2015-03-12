@@ -2299,6 +2299,7 @@ subroutine analyze_kernel(ntmb, norb, nat, coeff, kernel, rxyz, on_which_atom)
   real(kind=8),dimension(3) :: dist
   real(kind=8),dimension(:,:),allocatable :: kernel_full
   character(len=*),parameter :: filename='kernel_analysis.dat'
+  real(kind=8),parameter :: print_limit=1.d-8
 
   call f_routine(id='analyze_kernel')
 
@@ -2341,7 +2342,9 @@ subroutine analyze_kernel(ntmb, norb, nat, coeff, kernel, rxyz, on_which_atom)
           end if
           diff = abs(kernel_full(jtmb,itmb)-kernel(jtmb,itmb))
           maxdiff = max(diff,maxdiff)
-          write(iunit,'(2x,2i8,2es18.10)') itmb, jtmb, d, kernel_full(jtmb,itmb)
+          if (abs(kernel_full(jtmb,itmb))>print_limit) then
+              write(iunit,'(2x,2i8,2es18.10)') itmb, jtmb, d, kernel_full(jtmb,itmb)
+          end if
       end do
   end do
   call yaml_map('maxdiff of sparse and full kernel',maxdiff)

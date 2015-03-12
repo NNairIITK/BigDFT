@@ -33,17 +33,17 @@ program memguess
    character(len=40) :: comment
    character(len=1024) :: fcomment
    character(len=128) :: fileFrom, fileTo,filename_wfn, coeff_file, ham_file, overlap_file, kernel_file, matrix_file
-   character(len=128) :: ntmb_, norbks_, interval_, npdos_, nat_, nsubmatrices_
+   character(len=128) :: ntmb_, norbks_, interval_, npdos_, nat_, nsubmatrices_, ncategories_
    character(len=128) :: output_pdos
    logical :: optimise,GPUtest,atwf,convert=.false.,exportwf=.false.,logfile=.false.
    logical :: disable_deprecation = .false.,convertpos=.false.,transform_coordinates=.false.
    logical :: calculate_pdos = .false., kernel_analysis = .false., extract_submatrix = .false.
-   logical :: solve_eigensystem = .false.
+   logical :: solve_eigensystem = .false., analyze_coeffs = .false.
    integer :: ntimes,nproc,output_grid, i_arg,istat
    integer :: nspin,iorb,norbu,norbd,nspinor,norb,iorbp,iorb_out
-   integer :: norbgpu,ng, nsubmatrices
+   integer :: norbgpu,ng, nsubmatrices, ncategories
    integer :: export_wf_iband, export_wf_ispin, export_wf_ikpt, export_wf_ispinor,irad
-   real(gp) :: hx,hy,hz,energy,occup,interval
+   real(gp) :: hx,hy,hz,energy,occup,interval,tt
    type(memory_estimation) :: mem
    type(run_objects) :: runObj
    type(orbitals_data) :: orbstst
@@ -68,11 +68,11 @@ program memguess
    !integer :: ncount0,ncount1,ncount_max,ncount_rate
    !! By Ali
    integer :: ierror, iat, itmb, jtmb, iitmb, jjtmb, ntmb, norbks, npdos, iunit01, iunit02, norb_dummy, ipt, npt, ipdos, nat
-   integer :: iproc, isub, jat
+   integer :: iproc, isub, jat, icat
    integer,dimension(:),allocatable :: na, nb, nc, on_which_atom
    integer,dimension(:,:),allocatable :: atoms_ref
    real(kind=8),dimension(:,:),allocatable :: rxyz, rxyz_int, kernel, ham, overlap, coeff, pdos, energy_bins, matrix
-   real(kind=8),dimension(:),allocatable :: eval
+   real(kind=8),dimension(:),allocatable :: eval, coeff_cat
    !real(kind=8),parameter :: degree=57.295779513d0
    real(kind=8),parameter :: degree=1.d0
    character(len=6) :: direction
@@ -137,6 +137,10 @@ program memguess
            &   '"solve-eigensystem" <ham.bin> <overlap.bin> <coeffs.bin>" ' 
       write(*,'(1x,a)')&
            & 'solve the eigensystem Hc = lSc and write the coeffs c to disk'
+      write(*,'(1x,a)')&
+           &   '"analyse-coeffs" <coeff.bin>" ' 
+      write(*,'(1x,a)')&
+           & 'analyse the coefficients by assiging them in to ncategories categories'
 
       stop
    else
@@ -344,6 +348,25 @@ program memguess
             write(*,'(1x,2(a,i0))')&
                &   'solve the eigensystem Hc=lSc of size ',ntmb,'x',ntmb
             solve_eigensystem = .true.
+            exit loop_getargs
+         else if (trim(tatonam)=='analyze-coeffs') then
+            i_arg = i_arg + 1
+            call get_command_argument(i_arg, value = coeff_file)
+            i_arg = i_arg + 1
+            call get_command_argument(i_arg, value = ntmb_)
+            read(ntmb_,fmt=*,iostat=ierror) ntmb
+            i_arg = i_arg + 1
+            call get_command_argument(i_arg, value = norbks_)
+            read(norbks_,fmt=*,iostat=ierror) norbks
+            i_arg = i_arg + 1
+            call get_command_argument(i_arg, value = nat_)
+            read(nat_,fmt=*,iostat=ierror) nat
+            i_arg = i_arg + 1
+            call get_command_argument(i_arg, value = ncategories_)
+            read(ncategories_,fmt=*,iostat=ierror) ncategories
+            write(*,'(1x,a)')&
+               &   'analyze the coeffs'
+            analyze_coeffs = .true.
             exit loop_getargs
          else if (trim(tatonam) == 'dd') then
             ! dd: disable deprecation message
@@ -710,6 +733,26 @@ program memguess
        call f_open_file(iunit01, file=trim(coeff_file), binary=.false.)
        call writeLinearCoefficients(iunit01, .true., nat, rxyz, &
             ntmb, ntmb, ntmb, ham, eval)
+       stop
+   end if
+
+   if (analyze_coeffs) then
+       coeff = f_malloc((/ntmb,norbks/),id='coeff')
+       coeff_cat = f_malloc(ncategories,id='coeff_cat')
+       eval = f_malloc(ntmb,id='eval')
+       call f_open_file(iunit01, file=trim(coeff_file), binary=.false.)
+       call read_coeff_minbasis(iunit01, .true., iproc, norbks, norb_dummy, ntmb, coeff, eval, nat)
+       call f_close(iunit01)
+       do iorb=1,norbks
+           do icat=1,ncategories
+               tt = 0.d0
+               do itmb=icat,ntmb,ncategories
+                   tt = tt + coeff(itmb,iorb)**2
+               end do
+               coeff_cat(icat) = tt
+           end do
+           write(*,'(a,i8,4es12.4)') 'iorb, vals', iorb, coeff_cat(1:ncategories)
+       end do
        stop
    end if
 

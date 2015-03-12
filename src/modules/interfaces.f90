@@ -1435,7 +1435,7 @@ module module_interfaces
           gnrm_dynamic, min_gnrm_for_dynamic, can_use_ham, order_taylor, max_inversion_error, kappa_conv, method_updatekernel,&
           purification_quickreturn, correction_co_contra, &
           precond_convol_workarrays, precond_workarrays, &
-          wt_philarge, wt_hpsinoprecond, wt_hphi, wt_phi, fnrm, energs_work, &
+          wt_philarge, wt_hpsinoprecond, wt_hphi, wt_phi, fnrm, energs_work, frag_calc, &
           cdft, input_frag, ref_frags)
         use module_base
         use module_types
@@ -1476,6 +1476,7 @@ module module_interfaces
         type(workarr_precond),dimension(tmb%orbs%norbp),intent(inout) :: precond_workarrays
         type(work_transpose),intent(inout) :: wt_philarge, wt_hpsinoprecond, wt_hphi, wt_phi
         type(work_mpiaccumulate),intent(inout) :: fnrm, energs_work
+        logical, intent(in) :: frag_calc
         !these must all be present together
         type(cdft_data),intent(inout),optional :: cdft
         type(fragmentInputParameters),optional,intent(in) :: input_frag
@@ -3773,7 +3774,7 @@ end subroutine build_ks_orbitals_laura_tmp
         end subroutine calculate_weight_matrix_using_density
 
         subroutine fragment_coeffs_to_kernel(iproc,input,input_frag_charge,ref_frags,tmb,ksorbs,overlap_calculated,&
-          nstates_max,cdft)
+          nstates_max,cdft,use_tmbs_as_coeffs)
           use yaml_output
           use module_base
           use module_types
@@ -3788,6 +3789,7 @@ end subroutine build_ks_orbitals_laura_tmp
           integer, intent(in) :: iproc
           integer, intent(out) :: nstates_max ! number of states in total if we consider all partially occupied fragment states to be fully occupied
           logical, intent(in) :: cdft
+          logical, intent(in) :: use_tmbs_as_coeffs
         end subroutine fragment_coeffs_to_kernel
 
         subroutine max_matrix_diff(iproc, norb, mat1, mat2, smat, max_deviation, mean_deviation)

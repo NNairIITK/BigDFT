@@ -1911,11 +1911,6 @@ subroutine corrections_for_negative_charge(iproc, nproc, KSwfn, at, input, tmb, 
 
 end subroutine corrections_for_negative_charge
 
-
-
-
-
-
 subroutine set_confdatarr(input, at, lorbs, onwhichatom, potential_prefac, locrad, text, add_sequence, confdatarr)
   use module_base
   use module_types

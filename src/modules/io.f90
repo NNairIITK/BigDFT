@@ -540,7 +540,7 @@ module io
            & lstat, error, nat, rxyz_old)
       if (.not. lstat) call io_error(trim(error))
     
-      if (ntmb_old /= ntmb_old) then
+      if (ntmb_old /= ntmb) then
          if (iproc == 0) write(error,"(A)") 'error in read coeffs, ntmb_old/=ntmb'
          call io_error(trim(error))
       end if

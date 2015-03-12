@@ -20,7 +20,8 @@ from optparse import OptionParser, OptionGroup
 actions = ["memory-estimation", "rotate", "convert-field",
            "export-wf", "export-grid", "atomic-wf", "GPU-test", 
            "convert-positions", "manual", "wizard", "transform-coordinates",
-		   "pdos", "kernel-analysis", "extract-submatrix", "solve-eigensystem"]
+		   "pdos", "kernel-analysis", "extract-submatrix", "solve-eigensystem", 
+		   "analyze-coeffs"]
 
 # Processed lines
 abs_srcdir = "@abs_srcdir@"
@@ -178,6 +179,12 @@ def parse():
              		 help="input file with the hamiltonian[default: %default]")
     group.add_option("--overlap_file", type="str", default="ham.bin", metavar="MATRIXNAME",
              		 help="input file with the overlap matrix[default: %default]")
+
+    # solve the eigensystem to get the coefficients
+    group = OptionGroup(parser, "bigdft-tool -a %s <input> <output>" % actions[15],
+                        "analyze the coeffs")
+    group.add_option("--ncategories", type="int", default="1", metavar="NUM",
+             		 help="number of categories[default: %default]")
 
     return parser
 
@@ -664,6 +671,9 @@ options:
     if options.action == actions[14]:
         print 'calling memguess to solve the eigensystem'
         command = "%s 1 %s dd solve-eigensystem %s %s %d %d %s" % (memguess, options.name, options.ham_file, options.overlap_file, options.nbasis, options.nat, options.coeff_file)
+    if options.action == actions[15]:
+        print 'calling memguess to analyse the coeffs'
+        command = "%s 1 %s dd analyze-coeffs %s %d %d %d %d" % (memguess, options.name, options.coeff_file, options.nbasis, options.norb, options.nat, options.ncategories)
         print command
     if command is not None:
         os.system(command)
