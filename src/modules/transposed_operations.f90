@@ -1,3 +1,14 @@
+!> @file
+!!  Defining transposed operations (for linear scaling)
+!! @author
+!!    Copyright (C) 2014-2015 BigDFT group
+!!    This file is distributed under the terms of the
+!!    GNU General Public License, see ~/COPYING file
+!!    or http://www.gnu.org/copyleft/gpl.txt .
+!!    For the list of contributors, see ~/AUTHORS
+
+
+!> Module for transposed operations
 module transposed_operations
 
   implicit none
@@ -30,9 +41,10 @@ module transposed_operations
       type(matrices),intent(inout) :: ovrlp
     
       ! Local variables
-      integer :: i0, ipt, ii, iiorb, j, jjorb, i, ierr, istat, m, tid, norb, nthreads, ispin, ishift_mat
-      integer :: istart, iend, orb_rest, ind0, ind1, ind2, ind3, ind4, ind5, ind6, i07i, i07j, i0i, i0j
+      integer :: i0, ipt, ii, iiorb, j, jjorb, i, m, tid, nthreads, ispin, ishift_mat
+      integer :: istart, iend, ind0, ind1, ind2, ind3, ind4, ind5, ind6, i07i, i07j, i0i, i0j
       integer :: jjorb0, jjorb1, jjorb2, jjorb3, jjorb4, jjorb5, jjorb6
+      !integer :: ierr, norb, orb_rest
       real(kind=8) :: tt00, tt01, tt02, tt03, tt04, tt05, tt06
       real(kind=8) :: tt10, tt11, tt12, tt13, tt14, tt15, tt16
       real(kind=8) :: tt20, tt21, tt22, tt23, tt24, tt25, tt26
@@ -45,12 +57,13 @@ module transposed_operations
       integer(kind=8) :: totops
       integer :: avops, ops, opsn
       integer, allocatable, dimension(:) :: numops
-      logical :: ifnd, jfnd
-      integer :: iorb, jorb, imat, iseg, iorb_shift, itg, iitg, ist_send, ist_recv, ncount, ishift
+      !logical :: ifnd, jfnd
+      integer :: iorb_shift
+      !integer :: iorb, jorb, imat, iitg, iseg, ist_send, ist_recv, ishift, itg, ncount
       real(kind=8) :: res
-      integer,dimension(:),allocatable :: request
-      real(kind=8),dimension(:),allocatable :: recvbuf
-      integer,dimension(2) :: irowcol
+      !integer,dimension(:),allocatable :: request
+      !real(kind=8),dimension(:),allocatable :: recvbuf
+      !integer,dimension(2) :: irowcol
       integer,parameter :: GLOBAL_MATRIX=101, SUBMATRIX=102
       integer,parameter :: data_strategy=SUBMATRIX!GLOBAL_MATRIX
     
@@ -618,7 +631,7 @@ module transposed_operations
       real(8),dimension(orbs%norb),intent(out):: norm
       
       ! Local variables
-      integer:: i0, ipt, ii, iiorb, i, ierr, iorb, i07i, i0i, ispin
+      integer:: i0, ipt, ii, iiorb, i, iorb, i07i, i0i, ispin
     
       call timing(iproc,'norm_trans','ON')
     
