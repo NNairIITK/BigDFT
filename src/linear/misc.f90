@@ -32,8 +32,8 @@ subroutine write_orbital_density(iproc, transform_to_global, iformat, &
   ! Local variables
   logical :: binary
   real(kind=8),dimension(:),pointer :: psi_g
-  integer :: iunit0, iunitx, iunity, iunitz, iorb, ispinor, ist, ncount
-  integer :: iorb_out0, iorb_outx, iorb_outy, iorb_outz
+  integer :: iunit0, iunitx, iunity, iunitz, iorb, ispinor, ist, ncount, iiorb, ilr
+  integer :: iorb_out0, iorb_outx, iorb_outy, iorb_outz, sdim, ldim
   character(len=500) :: filebase0, filebasex, filebasey, filebasez
   character(len=500) :: file0, filex, filey, filez
 
@@ -41,15 +41,17 @@ subroutine write_orbital_density(iproc, transform_to_global, iformat, &
       if (.not.present(lzd_l)) call f_err_throw('lzd_l not present',err_name='BIGDFT_RUNTIME_ERROR')
   end if
 
-  ! Transform to the global region
-  if (transform_to_global) then
-      psi_g = f_malloc_ptr(orbs%norbp*(lzd_g%glr%wfd%nvctr_c+7*lzd_g%glr%wfd%nvctr_f), id='psi_g')
-      call small_to_large_locreg(iproc, npsidim, &
-           orbs%norbp*(lzd_l%glr%wfd%nvctr_c+7*lzd_l%glr%wfd%nvctr_f), lzd_l, &
-           lzd_g, orbs, psi, psi_g, to_global=.true.)
-  else
-      psi_g => psi
-  end if
+  !!! Transform to the global region
+  !!if (transform_to_global) then
+  !!    psi_g = f_malloc_ptr(orbs%norbp*(lzd_g%glr%wfd%nvctr_c+7*lzd_g%glr%wfd%nvctr_f), id='psi_g')
+  !!    call small_to_large_locreg(iproc, npsidim, &
+  !!         orbs%norbp*(lzd_l%glr%wfd%nvctr_c+7*lzd_l%glr%wfd%nvctr_f), lzd_l, &
+  !!         lzd_g, orbs, psi, psi_g, to_global=.true.)
+  !!else
+  !!    psi_g => psi
+  !!end if
+
+  psi_g = f_malloc_ptr(lzd_g%glr%wfd%nvctr_c+7*lzd_g%glr%wfd%nvctr_f, id='psi_g')
 
 
   binary = (iformat==WF_FORMAT_BINARY)
@@ -64,38 +66,54 @@ subroutine write_orbital_density(iproc, transform_to_global, iformat, &
   ist = 1
   ncount = lzd_g%glr%wfd%nvctr_c+7*lzd_g%glr%wfd%nvctr_f
   do iorb=1,orbs%norbp
+      iiorb = orbs%isorb + iorb
+      ilr = orbs%inwhichlocreg(iiorb)
+      if (transform_to_global) then
+          sdim=lzd_l%llr(ilr)%wfd%nvctr_c+7*lzd_l%llr(ilr)%wfd%nvctr_f
+          ldim=lzd_l%glr%wfd%nvctr_c+7*lzd_l%glr%wfd%nvctr_f
+          call f_zero(psi_g)
+          call lpsi_to_global2(iproc, sdim, ldim, orbs%norb, orbs%nspinor, 1, lzd_l%glr, &
+               lzd_l%llr(ilr), psi(ist), psi_g(1))
+      else
+          sdim=lzd_g%llr(ilr)%wfd%nvctr_c+7*lzd_g%llr(ilr)%wfd%nvctr_f
+          call vcopy(sdim, psi(ist), 1, psi_g(1), 1)
+      end if
+      ist = ist + sdim
       do ispinor=1,orbs%nspinor
-          iunit0 = 101
-          iunit0 = 102
-          iunit0 = 103
-          iunit0 = 104
-          !!call open_filename_of_iorb(iunit0, binary, filename, orbs, iorb, ispinor, iorb_out0)
-          !!call open_filename_of_iorb(iunitx, binary, filename, orbs, iorb, ispinor, iorb_outx)
-          !!call open_filename_of_iorb(iunity, binary, filename, orbs, iorb, ispinor, iorb_outy)
-          !!call open_filename_of_iorb(iunitz, binary, filename, orbs, iorb, ispinor, iorb_outz)
-          call filename_of_iorb(binary, trim(input%dir_output)//filename, orbs, iorb, ispinor, filebase0, iorb_out0)
-          call filename_of_iorb(binary, trim(input%dir_output)//filename, orbs, iorb, ispinor, filebasex, iorb_outx)
-          call filename_of_iorb(binary, trim(input%dir_output)//filename, orbs, iorb, ispinor, filebasey, iorb_outy)
-          call filename_of_iorb(binary, trim(input%dir_output)//filename, orbs, iorb, ispinor, filebasez, iorb_outz)
-          file0 = trim(filebase0)//'.cube'
-          filex = trim(filebasex)//'.cube'
-          filey = trim(filebasey)//'.cube'
-          filez = trim(filebasez)//'.cube'
-          write(*,*) 'file0',file0
-          call f_open_file(iunit0, file=file0, binary=binary)
-          call f_open_file(iunitx, file=filex, binary=binary)
-          call f_open_file(iunity, file=filey, binary=binary)
-          call f_open_file(iunitz, file=filez, binary=binary)
-          write(*,'(a,6i9)') 'iproc, iorb, iunit0, iunitx, iunity, iunitz',iproc, iorb, iunit0, iunitx, iunity, iunitz
-          call plot_wf(.true.,'', 2, at, 1.d0, lzd_g%glr, &
-               lzd_g%hgrids(1), lzd_g%hgrids(2), lzd_g%hgrids(2), &
-               rxyz, psi_g(ist:ist+ncount-1), &
-               iunit0, iunitx, iunity, iunitz)
-          call f_close(iunit0)
-          call f_close(iunitx)
-          call f_close(iunity)
-          call f_close(iunitz)
-          ist = ist + ncount
+          if (orbs%nspinor/=1) stop 'write_orbital_density not implemented for nspinor/=1'
+          call plot_one_orbdens(lzd_g%glr, at, orbs, rxyz, lzd_g%hgrids, trim(input%dir_output)//filename, &
+               iorb, ispinor, binary, psi_g)
+          !iunit0 = 101
+          !iunit0 = 102
+          !iunit0 = 103
+          !iunit0 = 104
+          !!!call open_filename_of_iorb(iunit0, binary, filename, orbs, iorb, ispinor, iorb_out0)
+          !!!call open_filename_of_iorb(iunitx, binary, filename, orbs, iorb, ispinor, iorb_outx)
+          !!!call open_filename_of_iorb(iunity, binary, filename, orbs, iorb, ispinor, iorb_outy)
+          !!!call open_filename_of_iorb(iunitz, binary, filename, orbs, iorb, ispinor, iorb_outz)
+          !call filename_of_iorb(binary, trim(input%dir_output)//filename, orbs, iorb, ispinor, filebase0, iorb_out0)
+          !call filename_of_iorb(binary, trim(input%dir_output)//filename, orbs, iorb, ispinor, filebasex, iorb_outx)
+          !call filename_of_iorb(binary, trim(input%dir_output)//filename, orbs, iorb, ispinor, filebasey, iorb_outy)
+          !call filename_of_iorb(binary, trim(input%dir_output)//filename, orbs, iorb, ispinor, filebasez, iorb_outz)
+          !file0 = trim(filebase0)//'.cube'
+          !filex = trim(filebasex)//'.cube'
+          !filey = trim(filebasey)//'.cube'
+          !filez = trim(filebasez)//'.cube'
+          !write(*,*) 'file0',file0
+          !call f_open_file(iunit0, file=file0, binary=binary)
+          !call f_open_file(iunitx, file=filex, binary=binary)
+          !call f_open_file(iunity, file=filey, binary=binary)
+          !call f_open_file(iunitz, file=filez, binary=binary)
+          !!write(*,'(a,6i9)') 'iproc, iorb, iunit0, iunitx, iunity, iunitz',iproc, iorb, iunit0, iunitx, iunity, iunitz
+          !call plot_wf(.true.,'', 2, at, 1.d0, lzd_g%glr, &
+          !     lzd_g%hgrids(1), lzd_g%hgrids(2), lzd_g%hgrids(2), &
+          !     rxyz, psi_g, &
+          !     iunit0, iunitx, iunity, iunitz)
+          !call f_close(iunit0)
+          !call f_close(iunitx)
+          !call f_close(iunity)
+          !call f_close(iunitz)
+          !!ist = ist + ncount
       end do
   end do
 
@@ -105,6 +123,58 @@ subroutine write_orbital_density(iproc, transform_to_global, iformat, &
       call f_free_ptr(psi_g)
   end if
 end subroutine write_orbital_density
+
+
+
+subroutine plot_one_orbdens(lr, at, orbs, rxyz, hgrids, filename, iorb, ispinor, binary, psi_g)
+  use module_base
+  use module_types
+  use module_interfaces, only: filename_of_iorb
+  implicit none
+
+  ! Calling arguments
+  type(locreg_descriptors),intent(in) :: lr
+  type(atoms_data),intent(in) :: at
+  type(orbitals_data),intent(in) :: orbs
+  real(kind=8),dimension(3,at%astruct%nat),intent(in) :: rxyz
+  real(kind=8),dimension(3),intent(in) :: hgrids
+  character(len=*),intent(in) :: filename
+  integer,intent(in) :: iorb, ispinor
+  logical,intent(in) :: binary
+  real(kind=8),dimension(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f),intent(in) :: psi_g
+
+  ! Local variables
+  integer :: iunit0, iunitx, iunity, iunitz, iorb_out0, iorb_outx, iorb_outy, iorb_outz
+  character(len=500) :: filebase0, filebasex, filebasey, filebasez
+  character(len=500) :: file0, filex, filey, filez
+
+  iunit0 = 101
+  iunitx = 102
+  iunity = 103
+  iunitz = 104
+  call filename_of_iorb(binary, filename, orbs, iorb, ispinor, filebase0, iorb_out0)
+  call filename_of_iorb(binary, filename//'_x', orbs, iorb, ispinor, filebasex, iorb_outx)
+  call filename_of_iorb(binary, filename//'_y', orbs, iorb, ispinor, filebasey, iorb_outy)
+  call filename_of_iorb(binary, filename//'_z', orbs, iorb, ispinor, filebasez, iorb_outz)
+  file0 = trim(filebase0)//'.cube'
+  filex = trim(filebasex)//'.cube'
+  filey = trim(filebasey)//'.cube'
+  filez = trim(filebasez)//'.cube'
+  write(*,*) 'file0',file0
+  call f_open_file(iunit0, file=file0, binary=binary)
+  call f_open_file(iunitx, file=filex, binary=binary)
+  call f_open_file(iunity, file=filey, binary=binary)
+  call f_open_file(iunitz, file=filez, binary=binary)
+  call plot_wf(.true.,'', 2, at, 1.d0, lr, &
+       hgrids(1), hgrids(2), hgrids(2), &
+       rxyz, psi_g, &
+       iunit0, iunitx, iunity, iunitz)
+  call f_close(iunit0)
+  call f_close(iunitx)
+  call f_close(iunity)
+  call f_close(iunitz)
+
+end subroutine plot_one_orbdens
 
  
 

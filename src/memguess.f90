@@ -34,12 +34,12 @@ program memguess
    character(len=1024) :: fcomment
    character(len=128) :: fileFrom, fileTo,filename_wfn, coeff_file, ham_file, overlap_file, kernel_file, matrix_file
    character(len=128) :: ntmb_, norbks_, interval_, npdos_, nat_, nsubmatrices_, ncategories_, cutoff_, power_
-   character(len=128) :: output_pdos, amatrix_file, bmatrix_file, cmatrix_file, inmatrix_file, outmatrix_file
+   character(len=128) :: output_pdos, amatrix_file, bmatrix_file, cmatrix_file, inmatrix_file, outmatrix_file, wf_file
    logical :: optimise,GPUtest,atwf,convert=.false.,exportwf=.false.,logfile=.false.
    logical :: disable_deprecation = .false.,convertpos=.false.,transform_coordinates=.false.
    logical :: calculate_pdos = .false., kernel_analysis = .false., extract_submatrix = .false.
    logical :: solve_eigensystem = .false., analyze_coeffs = .false., peel_matrix = .false.
-   logical :: multiply_matrices = .false., matrixpower = .false.
+   logical :: multiply_matrices = .false., matrixpower = .false., plot_wavefunction = .false.
    integer :: ntimes,nproc,output_grid, i_arg,istat
    integer :: nspin,iorb,norbu,norbd,nspinor,norb,iorbp,iorb_out,lwork
    integer :: norbgpu,ng, nsubmatrices, ncategories
@@ -434,6 +434,13 @@ program memguess
             write(*,'(1x,a,s(i0,a))')&
                &   'calculate the power of a matrix'
             matrixpower = .true.
+            exit loop_getargs
+         else if (trim(tatonam)=='plot-wavefunction') then
+            i_arg = i_arg + 1
+            call get_command_argument(i_arg, value = wf_file)
+            write(*,'(1x,a,s(i0,a))')&
+               &   'plot the wave function from file ',trim(wf_file)
+            plot_wavefunction = .true.
             exit loop_getargs
          else if (trim(tatonam) == 'dd') then
             ! dd: disable deprecation message
@@ -919,7 +926,7 @@ program memguess
        call dsyev('v', 'l', ntmb, amatrix(1,1), ntmb, eval, work, lwork, info)
        do itmb=1,ntmb
           do jtmb=1,ntmb
-             tempArr(jtmb,itmb)=amatrix(jtmb,itmb)**1.d0/sqrt(abs(eval(itmb)))
+             tempArr(jtmb,itmb)=amatrix(jtmb,itmb)*eval(itmb)**power
           end do
        end do
        call gemm('n', 't', ntmb, ntmb, ntmb, 1.d0, amatrix(1,1), &
@@ -942,6 +949,9 @@ program memguess
        end do
        call f_close(iunit01)
        stop
+   end if
+
+   if (plot_wavefunction) then
    end if
 
    nullify(run)

@@ -1675,7 +1675,7 @@ subroutine small_to_large_locreg(iproc, npsidim_orbs_small, npsidim_orbs_large, 
   ists=1
   istl=1
   do iorb=1,orbs%norbp
-      ilr = orbs%inWhichLocreg(orbs%isorb+iorb)
+      ilr = orbs%inwhichLocreg(orbs%isorb+iorb)
       sdim=lzdsmall%llr(ilr)%wfd%nvctr_c+7*lzdsmall%llr(ilr)%wfd%nvctr_f
       if (global) then
           ldim=lzdsmall%glr%wfd%nvctr_c+7*lzdsmall%glr%wfd%nvctr_f
