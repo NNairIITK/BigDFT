@@ -10,11 +10,13 @@ module io
   public :: writemywaves_linear_fragments
   public :: read_coeff_minbasis
   public :: io_read_descr_linear
+  public :: write_sparse_matrix
 
   public :: io_error, io_warning, io_open
   public :: io_read_descr, read_psi_compress
   public :: io_gcoordToLocreg
   public :: read_psig
+
 
   contains
 
@@ -1054,6 +1056,54 @@ module io
   !!$       return
   !!$    end if
     END SUBROUTINE io_open
+
+
+    subroutine write_sparse_matrix(orbs, at, rxyz, smat, mat, filename)
+      use module_base
+      use module_types
+      use sparsematrix_base, only: sparse_matrix, matrices
+      implicit none
+      
+      ! Calling arguments
+      type(orbitals_data),intent(in) :: orbs !one should better avoid to use orbs here...
+      type(atoms_data),intent(in) :: at
+      real(kind=8),dimension(3,at%astruct%nat),intent(in) :: rxyz
+      type(sparse_matrix),intent(in) :: smat
+      type(matrices),intent(in) :: mat
+      character(len=*),intent(in) :: filename
+
+      ! Local variables
+      integer :: iunit, iseg, icol, irow, jorb, iat, jat, ind, ispin
+
+      call f_open_file(iunit, file=trim(filename), binary=.false.)
+
+      write(iunit,'(i12,a)') at%astruct%nat, &
+          '   # number of atoms'
+      do iat=1,at%astruct%nat
+          write(iunit,'(3es24.16,a,i0)') rxyz(1:3,iat), '   # atom no. ',iat
+      end do
+      write(iunit,'(3i12,a)') smat%nfvctr, smat%nseg, smat%nvctr, '   # nfvctr, nseg, nvctr'
+      do iseg=1,smat%nseg
+          write(iunit,'(5i12,a)') smat%keyv(iseg), smat%keyg(1,1,iseg), smat%keyg(2,1,iseg), &
+              smat%keyg(1,2,iseg), smat%keyg(2,2,iseg), '   # keyv, keyg(1,1), keyg(2,1), keyg(1,2), keyg(2,2)'
+      end do
+      ind = 0
+      do ispin=1,smat%nspin
+          do iseg=1,smat%nseg
+              icol = smat%keyg(1,2,iseg)
+              iat = orbs%onwhichatom(icol)
+              do jorb=smat%keyg(1,1,iseg),smat%keyg(2,1,iseg)
+                  irow = jorb
+                  jat = orbs%onwhichatom(irow)
+                  ind = ind + 1
+                  write(iunit,'(es24.16,2i12,a)') mat%matrix_compr(ind), jat, iat, '   # matrix, jat, iat'
+              end do
+          end do
+      end do
+
+      call f_close(iunit)
+
+    end subroutine write_sparse_matrix
 
 
 end module io

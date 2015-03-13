@@ -21,7 +21,8 @@ actions = ["memory-estimation", "rotate", "convert-field",
            "export-wf", "export-grid", "atomic-wf", "GPU-test", 
            "convert-positions", "manual", "wizard", "transform-coordinates",
 		   "pdos", "kernel-analysis", "extract-submatrix", "solve-eigensystem", 
-		   "analyze-coeffs", "peel-matrix", "multiply-matrices", "matrixpower"]
+		   "analyze-coeffs", "peel-matrix", "multiply-matrices", "matrixpower", 
+		   "plot-wavefunction", "suggest-cutoff"]
 
 # Processed lines
 abs_srcdir = "@abs_srcdir@"
@@ -209,8 +210,17 @@ def parse():
              		 help="matrix A[default: %default]")
     group.add_option("--outmatrix_file", type="str", default="outmatrix.bin", metavar="MATRIXNAME",
              		 help="matrix B[default: %default]")
-    group.add_option("--power", type="float", default="1.0", metavar="NUM",
-             		 help="power[default: %default]")
+    group.add_option("--power", type="float", default="1.0", metavar="NUM",)
+
+    # plot wavefunction, to be improved
+    group = OptionGroup(parser, "bigdft-tool -a %s <input> <output>" % actions[19],
+                        "plot wavefunction")
+
+    # suggest cutoff radii for the linear scaling version
+    group = OptionGroup(parser, "bigdft-tool -a %s <input> <output>" % actions[20],
+                        "suggest cutoff radii")
+    group.add_option("--posinp_file", type="str", default="posinp.xyz", metavar="NAME",
+             		 help="posinp file[default: %default]")
 
     return parser
 
@@ -711,6 +721,12 @@ options:
     if options.action == actions[18]:
         print 'calling memguess to calculate matrix**power'
         command = "%s 1 %s dd matrixpower %s %s %d %d %e" % (memguess, options.name, options.inmatrix_file, options.outmatrix_file, options.nbasis, options.nat, options.power)
+        print command
+    if options.action == actions[19]:
+        print 'not implemented yet'
+    if options.action == actions[20]:
+        print 'calling memguess to suggest cutoff radii'
+        command = "%s 1 %s dd suggest-cutoff %s" % (memguess, options.name, options.posinp_file)
         print command
     if command is not None:
         os.system(command)

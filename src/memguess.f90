@@ -35,16 +35,18 @@ program memguess
    character(len=128) :: fileFrom, fileTo,filename_wfn, coeff_file, ham_file, overlap_file, kernel_file, matrix_file
    character(len=128) :: ntmb_, norbks_, interval_, npdos_, nat_, nsubmatrices_, ncategories_, cutoff_, power_
    character(len=128) :: output_pdos, amatrix_file, bmatrix_file, cmatrix_file, inmatrix_file, outmatrix_file, wf_file
+   character(len=128) :: posinp_file
    logical :: optimise,GPUtest,atwf,convert=.false.,exportwf=.false.,logfile=.false.
    logical :: disable_deprecation = .false.,convertpos=.false.,transform_coordinates=.false.
    logical :: calculate_pdos = .false., kernel_analysis = .false., extract_submatrix = .false.
    logical :: solve_eigensystem = .false., analyze_coeffs = .false., peel_matrix = .false.
    logical :: multiply_matrices = .false., matrixpower = .false., plot_wavefunction = .false.
+   logical :: suggest_cutoff = .false.
    integer :: ntimes,nproc,output_grid, i_arg,istat
    integer :: nspin,iorb,norbu,norbd,nspinor,norb,iorbp,iorb_out,lwork
    integer :: norbgpu,ng, nsubmatrices, ncategories
    integer :: export_wf_iband, export_wf_ispin, export_wf_ikpt, export_wf_ispinor,irad
-   real(gp) :: hx,hy,hz,energy,occup,interval,tt,cutoff,power
+   real(gp) :: hx,hy,hz,energy,occup,interval,tt,cutoff,power,d
    type(memory_estimation) :: mem
    type(run_objects) :: runObj
    type(orbitals_data) :: orbstst
@@ -69,12 +71,12 @@ program memguess
    !integer :: ncount0,ncount1,ncount_max,ncount_rate
    !! By Ali
    integer :: ierror, iat, itmb, jtmb, iitmb, jjtmb, ntmb, norbks, npdos, iunit01, iunit02, norb_dummy, ipt, npt, ipdos, nat
-   integer :: iproc, isub, jat, icat, info
+   integer :: iproc, isub, jat, icat, info, itype, iiat, jjat
    integer,dimension(:),allocatable :: na, nb, nc, on_which_atom
-   integer,dimension(:,:),allocatable :: atoms_ref
+   integer,dimension(:,:),allocatable :: atoms_ref, imin_list
    real(kind=8),dimension(:,:),allocatable :: rxyz, rxyz_int, kernel, ham, overlap, coeff, pdos, energy_bins, matrix
-   real(kind=8),dimension(:,:),allocatable :: amatrix, bmatrix, cmatrix, temparr
-   real(kind=8),dimension(:),allocatable :: eval, coeff_cat, work
+   real(kind=8),dimension(:,:),allocatable :: amatrix, bmatrix, cmatrix, temparr, d1min_list
+   real(kind=8),dimension(:),allocatable :: eval, coeff_cat, work, d2min_list, dtype
    !real(kind=8),parameter :: degree=57.295779513d0
    real(kind=8),parameter :: degree=1.d0
    character(len=6) :: direction
@@ -155,6 +157,10 @@ program memguess
            &   '"matrixpower" <matrix.bin>" ' 
       write(*,'(1x,a)')&
            & 'caluclate the power of a matrix'
+      write(*,'(1x,a)')&
+           &   '"suggest-cutoff" <posinp.xyz>" ' 
+      write(*,'(1x,a)')&
+           & 'suggest cutoff radii for the linear scaling version'
 
       stop
    else
@@ -438,9 +444,16 @@ program memguess
          else if (trim(tatonam)=='plot-wavefunction') then
             i_arg = i_arg + 1
             call get_command_argument(i_arg, value = wf_file)
-            write(*,'(1x,a,s(i0,a))')&
+            write(*,'(1x,a,2(i0,a))')&
                &   'plot the wave function from file ',trim(wf_file)
             plot_wavefunction = .true.
+            exit loop_getargs
+         else if (trim(tatonam)=='suggest-cutoff') then
+            i_arg = i_arg + 1
+            call get_command_argument(i_arg, value = posinp_file)
+            write(*,'(1x,2a)')&
+               &   'suggest cutoff radii based on the atomic positions in ',trim(posinp_file)
+            suggest_cutoff = .true.
             exit loop_getargs
          else if (trim(tatonam) == 'dd') then
             ! dd: disable deprecation message
@@ -952,6 +965,68 @@ program memguess
    end if
 
    if (plot_wavefunction) then
+       stop
+   end if
+
+   if (suggest_cutoff) then
+       call set_astruct_from_file(trim(posinp_file),0,at%astruct,fcomment,energy,fxyz)
+
+       d1min_list = f_malloc((/2,at%astruct%nat/),id='d2min_list')
+       d2min_list = f_malloc(at%astruct%nat,id='d1min_list')
+       imin_list = f_malloc((/2,at%astruct%nat/),id='imin_list')
+       dtype = f_malloc(at%astruct%ntypes,id='dtype')
+
+       d1min_list = huge(d1min_list)
+       imin_list = 0
+       do iat=1,at%astruct%nat
+           do jat=1,at%astruct%nat
+               if (jat/=iat) then
+                   d = (at%astruct%rxyz(1,jat)-at%astruct%rxyz(1,iat))**2 + &
+                       (at%astruct%rxyz(2,jat)-at%astruct%rxyz(2,iat))**2 + &
+                       (at%astruct%rxyz(3,jat)-at%astruct%rxyz(3,iat))**2
+                   d = sqrt(d)
+                   if (d<d1min_list(1,iat)) then
+                       d1min_list(2,iat) = d1min_list(1,iat)
+                       d1min_list(1,iat) = d
+                       imin_list(2,iat) = imin_list(1,iat)
+                       imin_list(1,iat) = jat
+                   else if (d<d1min_list(2,iat)) then
+                       d1min_list(2,iat) = d
+                       imin_list(2,iat) = jat
+                   end if
+               end if
+           end do
+       end do
+
+       d2min_list = huge(d2min_list)
+       do iat=1,at%astruct%nat
+           iiat = imin_list(1,iat)
+           write(*,'(a,i5,2es12.4)') 'iat, d1min_list(1:2,iat)', iat, d1min_list(1:2,iat)
+           do jat=1,2
+               jjat = imin_list(jat,iiat)
+               if (jjat/=iat) then
+                   d = (at%astruct%rxyz(1,iat)-at%astruct%rxyz(1,jjat))**2 + &
+                       (at%astruct%rxyz(2,iat)-at%astruct%rxyz(2,jjat))**2 + &
+                       (at%astruct%rxyz(3,iat)-at%astruct%rxyz(3,jjat))**2
+                   d = sqrt(d)
+                   write(*,'(a,4i8,es12.4)') 'iat, iiat, jat, jjat, d', iat, iiat, jat, jjat, d
+                   d2min_list(iat) = d
+               end if
+           end do
+       end do
+
+       dtype = -huge(dtype)
+       do iat=1,at%astruct%nat
+           itype = at%astruct%iatype(iat)
+           d = d2min_list(iat)
+           dtype(itype) = max(d,dtype(itype))
+       end do
+
+       do itype=1,at%astruct%ntypes
+           write(*,'(a,i7,a,es12.4)') 'itype, name, dtype(itype)', itype, at%astruct%atomnames(itype), dtype(itype)
+       end do
+
+       stop
    end if
 
    nullify(run)

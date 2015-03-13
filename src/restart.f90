@@ -799,6 +799,7 @@ subroutine write_linear_matrices(iproc,nproc,imethod_overlap,filename,iformat,tm
   use module_interfaces, except_this_one => writeonewave
   use sparsematrix_base, only: sparsematrix_malloc_ptr, DENSE_FULL, assignment(=)
   use sparsematrix, only: uncompress_matrix, uncompress_matrix2
+  use io, only: write_sparse_matrix
   implicit none
   integer, intent(in) :: iproc,nproc,imethod_overlap,iformat
   character(len=*), intent(in) :: filename 
@@ -861,6 +862,8 @@ subroutine write_linear_matrices(iproc,nproc,imethod_overlap,filename,iformat,tm
 
      call f_close(unitm)
 
+     call write_sparse_matrix(tmb%orbs, at, rxyz, tmb%linmat%m, tmb%linmat%ham_, filename//'hamiltonian_sparse.bin')
+
   end if
 
   call f_free_ptr(tmb%linmat%ham_%matrix)
@@ -912,6 +915,8 @@ subroutine write_linear_matrices(iproc,nproc,imethod_overlap,filename,iformat,tm
 
      call f_close(unitm)
 
+     call write_sparse_matrix(tmb%orbs, at, rxyz, tmb%linmat%m, tmb%linmat%ham_, filename//'overlap_sparse.bin')
+
   end if
 
   call f_free_ptr(tmb%linmat%ovrlp_%matrix)
@@ -960,6 +965,8 @@ subroutine write_linear_matrices(iproc,nproc,imethod_overlap,filename,iformat,tm
      end do
 
      call f_close(unitm)
+
+     call write_sparse_matrix(tmb%orbs, at, rxyz, tmb%linmat%m, tmb%linmat%ham_, filename//'density_kernel_sparse.bin')
 
  end if
 
@@ -1013,6 +1020,9 @@ subroutine write_linear_matrices(iproc,nproc,imethod_overlap,filename,iformat,tm
      end do
 
      call f_close(unitm)
+
+     call write_sparse_matrix(tmb%orbs, at, rxyz, tmb%linmat%m, tmb%linmat%ham_, filename//'overlap_onsite.bin')
+
   end if
 
   !!i_all = -product(shape(tmb%linmat%ovrlp%matrix))*kind(tmb%linmat%ovrlp%matrix)
