@@ -16,6 +16,8 @@ subroutine IonicEnergyandForces(iproc,dpbox,at,elecfield,&
   use module_types
   use Poisson_Solver, except_dp => dp, except_gp => gp, except_wp => wp
   use gaussians, only: initialize_real_space_conversion, finalize_real_space_conversion,mp_exp
+  use module_atoms
+  use module_dpbox
   use vdwcorrection
   use yaml_output
   implicit none
@@ -48,6 +50,9 @@ subroutine IonicEnergyandForces(iproc,dpbox,at,elecfield,&
   real(gp), dimension(:,:), allocatable :: fewald,xred
   real(gp), dimension(:), allocatable  :: mpx,mpy,mpz
   real(gp), dimension(3) :: cc
+  type(atoms_iterator) :: atit
+  type(dpbox_iterator) :: boxit
+  integer, dimension(2,3) :: nbox
 
   fion = f_malloc_ptr((/ 3, at%astruct%nat /),id='fion')
   fdisp = f_malloc_ptr((/ 3, at%astruct%nat /),id='fdisp')
@@ -92,10 +97,10 @@ subroutine IonicEnergyandForces(iproc,dpbox,at,elecfield,&
 
      !calculate ewald energy and forces + stress
      call ewald(eion,gmet,fewald,at%astruct%nat,at%astruct%ntypes,rmet,at%astruct%iatype,ucvol,&
-          xred,real(at%nelpsp,kind=8))
+          xred,real(at%nelpsp,gp))
      ewaldstr=0.0_dp
      call ewald2(gmet,at%astruct%nat,at%astruct%ntypes,rmet,rprimd,ewaldstr,at%astruct%iatype,&
-          ucvol,xred,real(at%nelpsp,kind=8))
+          ucvol,xred,real(at%nelpsp,gp))
 
 ! our sequence of strten elements : 11 22 33 12 13 23
 ! abinit output                   : 11 22 33 23 13 12
@@ -129,7 +134,7 @@ subroutine IonicEnergyandForces(iproc,dpbox,at,elecfield,&
         charge=charge+real(at%nelpsp(ityp),gp)
      end do
      psoffset=twopitothreehalf*psoffset
-     shortlength=shortlength*2.d0*pi
+     shortlength=shortlength*2.0_gp*pi
 
      !print *,'psoffset',psoffset,'pspcore', &
      !    (psoffset+shortlength)*charge/(at%astruct%cell_dim(1)*at%astruct%cell_dim(2)*at%astruct%cell_dim(3))
@@ -293,70 +298,110 @@ subroutine IonicEnergyandForces(iproc,dpbox,at,elecfield,&
         !then calculate the hartree energy and forces of the charge distributions
         !(and save the values for the ionic potential)
 
-        do iat=1,at%astruct%nat
-           ityp=at%astruct%iatype(iat)
-           rx=rxyz(1,iat) 
-           ry=rxyz(2,iat)
-           rz=rxyz(3,iat)
-
-           rloc=at%psppar(0,0,ityp)
+        atit = atoms_iter(at%astruct)
+        do while(atoms_iter_next(atit))
+       
+!!!        do iat=1,at%astruct%nat
+!!!           ityp=at%astruct%iatype(iat)
+!!!          rx=rxyz(1,iat) 
+!!!          ry=rxyz(2,iat)
+!!!          rz=rxyz(3,iat)
+  
+           rx=rxyz(1,atit%iat) 
+           ry=rxyz(2,atit%iat)
+           rz=rxyz(3,atit%iat)
+    
+!!!           rloc=at%psppar(0,0,ityp)
+!!!           charge=real(at%nelpsp(ityp),gp)/(2.0_gp*pi*sqrt(2.0_gp*pi)*rloc**3)
+           rloc=at%psppar(0,0,atit%ityp)
            rlocinv2sq=0.5_gp/rloc**2
-           charge=real(at%nelpsp(ityp),gp)/(2.0_gp*pi*sqrt(2.0_gp*pi)*rloc**3)
+           charge=real(at%nelpsp(atit%ityp),gp)/(2.0_gp*pi*sqrt(2.0_gp*pi)*rloc**3)
+        
+           !cutoff of the range
            cutoff=10.0_gp*rloc
            if (at%multipole_preserving) then
               !We want to have a good accuracy of the last point rloc*10
               cutoff=cutoff+max(hxh,hyh,hzh)*real(nrange/2,kind=gp)
            end if
 
-           isx=floor((rx-cutoff)/hxh)
-           isy=floor((ry-cutoff)/hyh)
-           isz=floor((rz-cutoff)/hzh)
-
-           iex=ceiling((rx+cutoff)/hxh)
-           iey=ceiling((ry+cutoff)/hyh)
-           iez=ceiling((rz+cutoff)/hzh)
-
+!!!           isx=floor((rx-cutoff)/hxh)
+!!!           isy=floor((ry-cutoff)/hyh)
+!!!           isz=floor((rz-cutoff)/hzh)
+!!!           
+!!!           iex=ceiling((rx+cutoff)/hxh)
+!!!           iey=ceiling((ry+cutoff)/hyh)
+!!!           iez=ceiling((rz+cutoff)/hzh)
+              
+!!!           !Separable function: do 1-D integrals before and store it.
+!!!           !call mp_calculate(rx,ry,rz,hxh,hyh,hzh,cutoff,rlocinv2sq,at%multipole_preserving,mpx,mpy,mpz)
+!!!           mpx = f_malloc( (/ isx.to.iex /),id='mpx')
+!!!           mpy = f_malloc( (/ isy.to.iey /),id='mpy')
+!!!           mpz = f_malloc( (/ isz.to.iez /),id='mpz')
+!!!           do i1=isx,iex
+!!!              mpx(i1) = mp_exp(hxh,rx,rlocinv2sq,i1,0,at%multipole_preserving)
+!!!           end do
+!!!           do i2=isy,iey
+!!!              mpy(i2) = mp_exp(hyh,ry,rlocinv2sq,i2,0,at%multipole_preserving)
+!!!           end do
+!!!           do i3=isz,iez
+!!!              mpz(i3) = mp_exp(hzh,rz,rlocinv2sq,i3,0,at%multipole_preserving)
+!!!           end do
+    
+           nbox(1,1)=floor((rx-cutoff)/hxh)
+           nbox(1,2)=floor((ry-cutoff)/hyh)
+           nbox(1,3)=floor((rz-cutoff)/hzh)
+           nbox(2,1)=ceiling((rx+cutoff)/hxh)
+           nbox(2,2)=ceiling((ry+cutoff)/hyh)
+           nbox(2,3)=ceiling((rz+cutoff)/hzh)
+    
            !Separable function: do 1-D integrals before and store it.
-           mpx = f_malloc( (/ isx.to.iex /),id='mpx')
-           mpy = f_malloc( (/ isy.to.iey /),id='mpy')
-           mpz = f_malloc( (/ isz.to.iez /),id='mpz')
-           do i1=isx,iex
+           mpx = f_malloc( (/ nbox(1,1).to.nbox(2,1) /),id='mpx')
+           mpy = f_malloc( (/ nbox(1,2).to.nbox(2,2) /),id='mpy')
+           mpz = f_malloc( (/ nbox(1,3).to.nbox(2,3) /),id='mpz')
+           do i1=nbox(1,1),nbox(2,1)
               mpx(i1) = mp_exp(hxh,rx,rlocinv2sq,i1,0,at%multipole_preserving)
            end do
-           do i2=isy,iey
+           do i2=nbox(1,2),nbox(2,2)
               mpy(i2) = mp_exp(hyh,ry,rlocinv2sq,i2,0,at%multipole_preserving)
            end do
-           do i3=isz,iez
+           do i3=nbox(1,3),nbox(2,3)
               mpz(i3) = mp_exp(hzh,rz,rlocinv2sq,i3,0,at%multipole_preserving)
            end do
-
+       
+           boxit = dpbox_iter(at%astruct%geocode,dpbox,nbox)
+ 
            !These nested loops will be used also for the actual ionic forces, to be recalculated
-           do i3=isz,iez
-              zp = mpz(i3)
-              if (abs(zp) < mp_tiny) cycle
-              z=real(i3,gp)*hzh-rz
-              !call ind_positions(perz,i3,n3,j3,goz) 
-              call ind_positions_new(perz,i3,n3i,j3,goz) 
-              j3=j3+nbl3+1
-              do i2=isy,iey
-                 yp = zp*mpy(i2)
-                 if (abs(yp) < mp_tiny) cycle
-                 y=real(i2,gp)*hyh-ry
-                 !call ind_positions(pery,i2,n2,j2,goy)
-                 call ind_positions_new(pery,i2,n2i,j2,goy)
-                 do i1=isx,iex
-                    xp = yp*mpx(i1)
-                    if (abs(xp) < mp_tiny) cycle
-                    x=real(i1,gp)*hxh-rx
-                    !call ind_positions(perx,i1,n1,j1,gox)
-                    call ind_positions_new(perx,i1,n1i,j1,gox)
-                    if (j3 >= i3s .and. j3 <= i3s+n3pi-1  .and. goy  .and. gox ) then
-                       ind=j1+1+nbl1+(j2+nbl2)*n1i+(j3-i3s)*n1i*n2i
-                       pot_ion(ind)=pot_ion(ind)-xp*charge
-                    endif
-                 enddo
-              enddo
-           enddo
+!!!           do i3=isz,iez
+!!!              zp = mpz(i3)
+!!!              if (abs(zp) < mp_tiny) cycle
+!!!              z=real(i3,gp)*hzh-rz
+!!!              !call ind_positions(perz,i3,n3,j3,goz) 
+!!!              call ind_positions_new(perz,i3,n3i,j3,goz) 
+!!!              j3=j3+nbl3+1
+!!!              do i2=isy,iey
+!!!                 yp = zp*mpy(i2)
+!!!                 if (abs(yp) < mp_tiny) cycle
+!!!                 y=real(i2,gp)*hyh-ry
+!!!                 !call ind_positions(pery,i2,n2,j2,goy)
+!!!                 call ind_positions_new(pery,i2,n2i,j2,goy)
+!!!                 do i1=isx,iex
+!!!                    xp = yp*mpx(i1)
+!!!                    if (abs(xp) < mp_tiny) cycle
+!!!                    x=real(i1,gp)*hxh-rx
+!!!                    !call ind_positions(perx,i1,n1,j1,gox)
+!!!                    call ind_positions_new(perx,i1,n1i,j1,gox)
+!!!                    if (j3 >= i3s .and. j3 <= i3s+n3pi-1  .and. goy  .and. gox ) then
+!!!                       ind=j1+1+nbl1+(j2+nbl2)*n1i+(j3-i3s)*n1i*n2i
+!!!                       pot_ion(ind)=pot_ion(ind)-xp*charge
+!!!                    endif
+!!!                 enddo
+!!!              enddo
+!!!           enddo
+
+           do while(dpbox_iter_next(boxit))
+              xp = mpx(boxit%ibox(1))* mpy(boxit%ibox(2)) *  mpz(boxit%ibox(3))
+              pot_ion(boxit%ind) = pot_ion(boxit%ind) - xp*charge
+           end do
 
            !De-allocate the 1D temporary arrays for separability
            call f_free(mpx,mpy,mpz)
@@ -378,22 +423,30 @@ subroutine IonicEnergyandForces(iproc,dpbox,at,elecfield,&
      !calculate the forces near the atom due to the error function part of the potential
      !calculate forces for all atoms only in the distributed part of the simulation box
      if (n3pi >0 ) then
-        do iat=1,at%astruct%nat
-           ityp=at%astruct%iatype(iat)
-           !coordinates of the center
-           rx=rxyz(1,iat) 
-           ry=rxyz(2,iat) 
-           rz=rxyz(3,iat)
-           !inizialization of the forces
+        atit = atoms_iter(at%astruct)
+        do while(atoms_iter_next(atit))
+       
+!!!        do iat=1,at%astruct%nat
+!!!           ityp=at%astruct%iatype(iat)
+!!!          rx=rxyz(1,iat) 
+!!!          ry=rxyz(2,iat)
+!!!          rz=rxyz(3,iat)
+  
+           rx=rxyz(1,atit%iat) 
+           ry=rxyz(2,atit%iat)
+           rz=rxyz(3,atit%iat)
 
+           !inizialization of the forces
            fxerf=0.0_gp
            fyerf=0.0_gp
            fzerf=0.0_gp
 
            !local part
-           rloc=at%psppar(0,0,ityp)
+!!!           rloc=at%psppar(0,0,ityp)
+!!!           prefactor=real(at%nelpsp(ityp),gp)/(2.0_gp*pi*sqrt(2.0_gp*pi)*rloc**5)
+           rloc=at%psppar(0,0,atit%ityp)
+           prefactor=real(at%nelpsp(atit%ityp),gp)/(2.0_gp*pi*sqrt(2.0_gp*pi)*rloc**5)
            rlocinv2sq=0.5_gp/rloc**2
-           prefactor=real(at%nelpsp(ityp),gp)/(2.0_gp*pi*sqrt(2.0_gp*pi)*rloc**5)
            !maximum extension of the gaussian
            cutoff=10.0_gp*rloc
            if (at%multipole_preserving) then
@@ -401,60 +454,92 @@ subroutine IonicEnergyandForces(iproc,dpbox,at,elecfield,&
               cutoff=cutoff+max(hxh,hyh,hzh)*real(nrange/2,kind=gp)
            end if
 
-           isx=floor((rx-cutoff)/hxh)
-           isy=floor((ry-cutoff)/hyh)
-           isz=floor((rz-cutoff)/hzh)
-
-           iex=ceiling((rx+cutoff)/hxh)
-           iey=ceiling((ry+cutoff)/hyh)
-           iez=ceiling((rz+cutoff)/hzh)
-
+!!!           isx=floor((rx-cutoff)/hxh)
+!!!           isy=floor((ry-cutoff)/hyh)
+!!!           isz=floor((rz-cutoff)/hzh)
+!!!           
+!!!           iex=ceiling((rx+cutoff)/hxh)
+!!!           iey=ceiling((ry+cutoff)/hyh)
+!!!           iez=ceiling((rz+cutoff)/hzh)
+              
+!!!           !Separable function: do 1-D integrals before and store it.
+!!!           !call mp_calculate(rx,ry,rz,hxh,hyh,hzh,cutoff,rlocinv2sq,at%multipole_preserving,mpx,mpy,mpz)
+!!!           mpx = f_malloc( (/ isx.to.iex /),id='mpx')
+!!!           mpy = f_malloc( (/ isy.to.iey /),id='mpy')
+!!!           mpz = f_malloc( (/ isz.to.iez /),id='mpz')
+!!!           do i1=isx,iex
+!!!              mpx(i1) = mp_exp(hxh,rx,rlocinv2sq,i1,0,at%multipole_preserving)
+!!!           end do
+!!!           do i2=isy,iey
+!!!              mpy(i2) = mp_exp(hyh,ry,rlocinv2sq,i2,0,at%multipole_preserving)
+!!!           end do
+!!!           do i3=isz,iez
+!!!              mpz(i3) = mp_exp(hzh,rz,rlocinv2sq,i3,0,at%multipole_preserving)
+!!!           end do
+    
+           nbox(1,1)=floor((rx-cutoff)/hxh)
+           nbox(1,2)=floor((ry-cutoff)/hyh)
+           nbox(1,3)=floor((rz-cutoff)/hzh)
+           nbox(2,1)=ceiling((rx+cutoff)/hxh)
+           nbox(2,2)=ceiling((ry+cutoff)/hyh)
+           nbox(2,3)=ceiling((rz+cutoff)/hzh)
+    
            !Separable function: do 1-D integrals before and store it.
-           mpx = f_malloc( (/ isx.to.iex /),id='mpx')
-           mpy = f_malloc( (/ isy.to.iey /),id='mpy')
-           mpz = f_malloc( (/ isz.to.iez /),id='mpz')
-           do i1=isx,iex
+           mpx = f_malloc( (/ nbox(1,1).to.nbox(2,1) /),id='mpx')
+           mpy = f_malloc( (/ nbox(1,2).to.nbox(2,2) /),id='mpy')
+           mpz = f_malloc( (/ nbox(1,3).to.nbox(2,3) /),id='mpz')
+           do i1=nbox(1,1),nbox(2,1)
               mpx(i1) = mp_exp(hxh,rx,rlocinv2sq,i1,0,at%multipole_preserving)
            end do
-           do i2=isy,iey
+           do i2=nbox(1,2),nbox(2,2)
               mpy(i2) = mp_exp(hyh,ry,rlocinv2sq,i2,0,at%multipole_preserving)
            end do
-           do i3=isz,iez
+           do i3=nbox(1,3),nbox(2,3)
               mpz(i3) = mp_exp(hzh,rz,rlocinv2sq,i3,0,at%multipole_preserving)
            end do
+       
+           boxit = dpbox_iter(at%astruct%geocode,dpbox,nbox)
+ 
+!!!           do i3=isz,iez
+!!!              z=real(i3,gp)*hzh-rz
+!!!              zp = mpz(i3)
+!!!              if (abs(zp) < mp_tiny) cycle
+!!!              !call ind_positions(perz,i3,n3,j3,goz) 
+!!!              call ind_positions_new(perz,i3,n3i,j3,goz) 
+!!!              j3=j3+nbl3+1
+!!!              do i2=isy,iey
+!!!                 yp = zp*mpy(i2)
+!!!                 if (abs(yp) < mp_tiny) cycle
+!!!                 y=real(i2,gp)*hyh-ry
+!!!                 !call ind_positions(pery,i2,n2,j2,goy)
+!!!                 call ind_positions_new(pery,i2,n2i,j2,goy)
+!!!                 do i1=isx,iex
+!!!                    xp = yp*mpx(i1)
+!!!                    if (abs(xp) < mp_tiny) cycle
+!!!                    x=real(i1,gp)*hxh-rx
+!!!                    !call ind_positions(perx,i1,n1,j1,gox)
+!!!                    call ind_positions_new(perx,i1,n1i,j1,gox)
+!!!                    r2=x**2+y**2+z**2
+!!!                    arg=r2/rloc**2
+!!!                    xp=exp(-.5_gp*arg)
+!!!                    if (j3 >= i3s .and. j3 <= i3s+n3pi-1  .and. goy  .and. gox ) then
+!!!                       ind=j1+1+nbl1+(j2+nbl2)*n1i+(j3-i3s)*n1i*n2i
+!!!                       !error function part
+!!!                       Vel=pot_ion(ind)
+!!!                       fxerf=fxerf+xp*Vel*x
+!!!                       fyerf=fyerf+xp*Vel*y
+!!!                       fzerf=fzerf+xp*Vel*z
+!!!                    endif
+!!!                 end do
+!!!              end do
+!!!           end do
 
-           do i3=isz,iez
-              z=real(i3,gp)*hzh-rz
-              zp = mpz(i3)
-              if (abs(zp) < mp_tiny) cycle
-              !call ind_positions(perz,i3,n3,j3,goz) 
-              call ind_positions_new(perz,i3,n3i,j3,goz) 
-              j3=j3+nbl3+1
-              do i2=isy,iey
-                 yp = zp*mpy(i2)
-                 if (abs(yp) < mp_tiny) cycle
-                 y=real(i2,gp)*hyh-ry
-                 !call ind_positions(pery,i2,n2,j2,goy)
-                 call ind_positions_new(pery,i2,n2i,j2,goy)
-                 do i1=isx,iex
-                    xp = yp*mpx(i1)
-                    if (abs(xp) < mp_tiny) cycle
-                    x=real(i1,gp)*hxh-rx
-                    !call ind_positions(perx,i1,n1,j1,gox)
-                    call ind_positions_new(perx,i1,n1i,j1,gox)
-                    r2=x**2+y**2+z**2
-                    arg=r2/rloc**2
-                    xp=exp(-.5_gp*arg)
-                    if (j3 >= i3s .and. j3 <= i3s+n3pi-1  .and. goy  .and. gox ) then
-                       ind=j1+1+nbl1+(j2+nbl2)*n1i+(j3-i3s)*n1i*n2i
-                       !error function part
-                       Vel=pot_ion(ind)
-                       fxerf=fxerf+xp*Vel*x
-                       fyerf=fyerf+xp*Vel*y
-                       fzerf=fzerf+xp*Vel*z
-                    endif
-                 end do
-              end do
+           do while(dpbox_iter_next(boxit))
+              xp = mpx(boxit%ibox(1))* mpy(boxit%ibox(2)) *  mpz(boxit%ibox(3))
+              Vel = pot_ion(boxit%ind)
+              fxerf = fxerf + xp*Vel*boxit%x
+              fyerf = fyerf + xp*Vel*boxit%y
+              fzerf = fzerf + xp*Vel*boxit%z
            end do
 
            !De-allocate the 1D temporary arrays for separability
@@ -462,9 +547,13 @@ subroutine IonicEnergyandForces(iproc,dpbox,at,elecfield,&
 
            !final result of the forces
 
-           fion(1,iat)=fion(1,iat)+(hxh*hyh*hzh*prefactor)*fxerf
-           fion(2,iat)=fion(2,iat)+(hxh*hyh*hzh*prefactor)*fyerf
-           fion(3,iat)=fion(3,iat)+(hxh*hyh*hzh*prefactor)*fzerf
+!!!           fion(1,iat)=fion(1,iat)+(hxh*hyh*hzh*prefactor)*fxerf
+!!!           fion(2,iat)=fion(2,iat)+(hxh*hyh*hzh*prefactor)*fyerf
+!!!           fion(3,iat)=fion(3,iat)+(hxh*hyh*hzh*prefactor)*fzerf
+
+           fion(1,atit%iat) = fion(1,atit%iat) + (hxh*hyh*hzh*prefactor)*fxerf
+           fion(2,atit%iat) = fion(2,atit%iat) + (hxh*hyh*hzh*prefactor)*fyerf
+           fion(3,atit%iat) = fion(3,atit%iat) + (hxh*hyh*hzh*prefactor)*fzerf
 
            !if (nproc==1) print *,'iat,fion',iat,(fion(j1,iat),j1=1,3)
 
@@ -681,25 +770,25 @@ subroutine createIonicPotential(geocode,iproc,verb,at,rxyz,&
         rz=rxyz(3,atit%iat)
     
 !!!        rloc=at%psppar(0,0,ityp)
-!!!        charge=real(at%nelpsp(ityp),kind=8)/(2.d0*pi*sqrt(2.d0*pi)*rloc**3)
+!!!        charge=real(at%nelpsp(ityp),gp)/(2.0_gp*pi*sqrt(2.0_gp*pi)*rloc**3)
         rloc=at%psppar(0,0,atit%ityp)
         rlocinv2sq=0.5_gp/rloc**2
-        charge=real(at%nelpsp(atit%ityp),kind=8)/(2.d0*pi*sqrt(2.d0*pi)*rloc**3)
+        charge=real(at%nelpsp(atit%ityp),gp)/(2.0_gp*pi*sqrt(2.0_gp*pi)*rloc**3)
         
         !cutoff of the range
-        cutoff=10.d0*rloc
+        cutoff=10.0_gp*rloc
         if (at%multipole_preserving) then
            !We want to have a good accuracy of the last point rloc*10
            cutoff=cutoff+max(hxh,hyh,hzh)*real(nrange/2,kind=gp)
         end if
 
-        isx=floor((rx-cutoff)/hxh)
-        isy=floor((ry-cutoff)/hyh)
-        isz=floor((rz-cutoff)/hzh)
-        
-        iex=ceiling((rx+cutoff)/hxh)
-        iey=ceiling((ry+cutoff)/hyh)
-        iez=ceiling((rz+cutoff)/hzh)
+!!!        isx=floor((rx-cutoff)/hxh)
+!!!        isy=floor((ry-cutoff)/hyh)
+!!!        isz=floor((rz-cutoff)/hzh)
+!!!        
+!!!        iex=ceiling((rx+cutoff)/hxh)
+!!!        iey=ceiling((ry+cutoff)/hyh)
+!!!        iez=ceiling((rz+cutoff)/hzh)
         
 !!!        !Separable function: do 1-D integrals before and store it.
 !!!        !call mp_calculate(rx,ry,rz,hxh,hyh,hzh,cutoff,rlocinv2sq,at%multipole_preserving,mpx,mpy,mpz)
@@ -763,7 +852,7 @@ subroutine createIonicPotential(geocode,iproc,verb,at,rxyz,&
 !!!                   if (j3 >= i3s .and. j3 <= i3s+n3pi-1 .and. goy .and. gox) then
 !!!                      ind=j1+indj23
 !!!                      pot_ion(ind)=pot_ion(ind)-xp*charge
-!!!                      write(*,'(4(i0,1x),2(1pe20.10))') i1,i2,i3,ind,xp,pot_ion(ind)
+!!!                      !write(*,'(4(i0,1x),2(1pe20.10))') i1,i2,i3,ind,xp,pot_ion(ind)
 !!!                   else if (.not. goz ) then
 !!!                      rholeaked=rholeaked+xp*charge
 !!!                   endif
@@ -774,7 +863,7 @@ subroutine createIonicPotential(geocode,iproc,verb,at,rxyz,&
            do while(dpbox_iter_next(boxit))
               xp = mpx(boxit%ibox(1))* mpy(boxit%ibox(2)) *  mpz(boxit%ibox(3))
               pot_ion(boxit%ind) = pot_ion(boxit%ind) - xp*charge
-!!!              write(*,'(4(i0,1x),2(1pe20.10))') boxit%ibox(1),boxit%ibox(2),boxit%ibox(3),boxit%ind,xp,pot_ion(boxit%ind)
+              !write(*,'(4(i0,1x),2(1pe20.10))') boxit%ibox(1),boxit%ibox(2),boxit%ibox(3),boxit%ind,xp,pot_ion(boxit%ind)
            end do
 
        else
@@ -788,7 +877,7 @@ subroutine createIonicPotential(geocode,iproc,verb,at,rxyz,&
 !!!             call ind_positions_new(perz,i3,n3i,j3,goz) 
 !!!             j3=j3+nbl3+1
 !!!             indj3=(j3-i3s)*n1i*n2i
-!!!             z=real(i3,kind=8)*hzh-rz
+!!!             z=real(i3,gp)*hzh-rz
 !!!             zsq=z**2
 !!!             do i2=isy,iey
 !!!                yp = zp*mpy(i2)
@@ -796,14 +885,14 @@ subroutine createIonicPotential(geocode,iproc,verb,at,rxyz,&
 !!!                !call ind_positions(pery,i2,n2,j2,goy)
 !!!                call ind_positions_new(pery,i2,n2i,j2,goy)
 !!!                indj23=1+nbl1+(j2+nbl2)*n1i+indj3
-!!!                y=real(i2,kind=8)*hyh-ry
+!!!                y=real(i2,gp)*hyh-ry
 !!!                yzsq=y**2+zsq
 !!!                do i1=isx,iex
 !!!                   xp = yp*mpx(i1)
 !!!                   if (abs(xp) < mp_tiny) cycle
 !!!                   !call ind_positions(perx,i1,n1,j1,gox)
 !!!                   call ind_positions_new(perx,i1,n1i,j1,gox)
-!!!                   x=real(i1,kind=8)*hxh-rx
+!!!                   x=real(i1,gp)*hxh-rx
 !!!                   r2=x**2+yzsq
 !!!                   !if(r2>r2paw) cycle
 !!!                   rr=sqrt(r2)
@@ -862,16 +951,21 @@ subroutine createIonicPotential(geocode,iproc,verb,at,rxyz,&
 
   ! Check
   tt=0.d0
-  do j3=1,n3pi
-     indj3=(j3-1)*n1i*n2i
-     do i2= -nbl2,2*n2+1+nbr2
-        indj23=1+nbl1+(i2+nbl2)*n1i+indj3
-        do i1= -nbl1,2*n1+1+nbr1
-           ind=i1+indj23
-           tt=tt+pot_ion(ind)
-        enddo
-     enddo
-  enddo
+!!!  do j3=1,n3pi
+!!!     indj3=(j3-1)*n1i*n2i
+!!!     do i2= -nbl2,2*n2+1+nbr2
+!!!        indj23=1+nbl1+(i2+nbl2)*n1i+indj3
+!!!        do i1= -nbl1,2*n1+1+nbr1
+!!!           ind=i1+indj23
+!!!           tt=tt+pot_ion(ind)
+!!!        enddo
+!!!     enddo
+!!!  enddo
+
+  boxit = dpbox_iter(geocode,dpbox)
+  do while(dpbox_iter_next(boxit))
+     tt = tt + pot_ion(boxit%ind)
+  end do
 
   tt=tt*hxh*hyh*hzh
   rholeaked=rholeaked*hxh*hyh*hzh
@@ -882,6 +976,7 @@ subroutine createIonicPotential(geocode,iproc,verb,at,rxyz,&
      charges_mpi(1)=tt
      charges_mpi(2)=rholeaked
 
+     !Reduce from all mpi proc
      call mpiallred(charges_mpi(1),2,MPI_SUM,pkernel%mpi_env%mpi_comm)
 
      tt_tot=charges_mpi(1)
@@ -895,9 +990,6 @@ subroutine createIonicPotential(geocode,iproc,verb,at,rxyz,&
      call yaml_comment('Ionic Potential Creation',hfill='-')
      call yaml_map('Total ionic charge',tt_tot,fmt='(f26.12)')
      if (rholeaked_tot /= 0.0_gp) call yaml_map('Leaked charge',rholeaked_tot,fmt='(1pe10.3)')
-     !write(*,'(1x,a)')&
-     !     '----------------------------------------------------------- Ionic Potential Creation'
-     !write(*,'(1x,a,f26.12,2x,1pe10.3)') 'total ionic charge, leaked charge ',tt_tot,rholeaked_tot
      quiet = "no "
   else
      quiet = "yes"
@@ -923,35 +1015,47 @@ subroutine createIonicPotential(geocode,iproc,verb,at,rxyz,&
 
         !calculate pot_ion with an explicit error function to correct in the case of big grid spacings
         !for the moment works only in the isolated BC case
-        do i3=1,n3pi
-           z=real(i3+i3s-1-nbl3-1,gp)*hzh
-           do i2=1,n2i
-              y=real(i2-nbl2-1,gp)*hyh
-              do i1=1,n1i
-                 x=real(i1-nbl1-1,gp)*hxh
-                 ind=i1+(i2-1)*n1i+(i3-1)*n1i*n2i
-                 !if (i1==49 .and. i2==46 .and. i3==44) then
-                    call sum_erfcr(at%astruct%nat,at%astruct%ntypes,x,y,z,at%astruct%iatype,at%nelpsp,at%psppar,rxyz,potxyz)
-                 !   stop
-                 !end if
-                 potion_corr(ind)=potion_corr(ind)+potxyz
-                 !write(18,'(3(i6),i12,3(1x,1pe24.17))')i1,i2,i3,ind,potion_corr(ind),pot_ion(ind)
-              end do
-           end do
+!!!        do i3=1,n3pi
+!!!           z=real(i3+i3s-1-nbl3-1,gp)*hzh
+!!!           do i2=1,n2i
+!!!              y=real(i2-nbl2-1,gp)*hyh
+!!!              do i1=1,n1i
+!!!                 x=real(i1-nbl1-1,gp)*hxh
+!!!                 ind=i1+(i2-1)*n1i+(i3-1)*n1i*n2i
+!!!                 !if (i1==49 .and. i2==46 .and. i3==44) then
+!!!                    call sum_erfcr(at%astruct%nat,at%astruct%ntypes,x,y,z,at%astruct%iatype,at%nelpsp,at%psppar,rxyz,potxyz)
+!!!                 !   stop
+!!!                 !end if
+!!!                 potion_corr(ind)=potion_corr(ind)+potxyz
+!!!                 !write(18,'(3(i6),i12,3(1x,1pe24.17))')i1,i2,i3,ind,potion_corr(ind),pot_ion(ind)
+!!!              end do
+!!!           end do
+!!!        end do
+        
+        boxit = dpbox_iter(geocode,dpbox)
+        do while(dpbox_iter_next(boxit))
+           call sum_erfcr(at%astruct%nat,at%astruct%ntypes, &
+                &         boxit%x,boxit%y,boxit%z, &
+                &         at%astruct%iatype,at%nelpsp,at%psppar,rxyz,potxyz)
+           potion_corr(boxit%ind) = potion_corr(boxit%ind )+ potxyz
         end do
 
         !then calculate the maximum difference in the sup norm
         maxdiff=0.0_wp
-        do i3=1,n3pi
-           do i2=1,n2i
-              do i1=1,n1i
-                 ind=i1+(i2-1)*n1i+(i3-1)*n1i*n2i
-                 maxdiff=max(maxdiff,abs(potion_corr(ind)-pot_ion(ind)))
-                 !write(17,'(3(i6),i12,3(1x,1pe24.17))')i1,i2,i3,ind,potion_corr(ind),pot_ion(ind),maxdiff
-              end do
-           end do
+!!!        do i3=1,n3pi
+!!!           do i2=1,n2i
+!!!              do i1=1,n1i
+!!!                 ind=i1+(i2-1)*n1i+(i3-1)*n1i*n2i
+!!!                 maxdiff=max(maxdiff,abs(potion_corr(ind)-pot_ion(ind)))
+!!!                 !write(17,'(3(i6),i12,3(1x,1pe24.17))')i1,i2,i3,ind,potion_corr(ind),pot_ion(ind),maxdiff
+!!!              end do
+!!!           end do
+!!!        end do
+        boxit = dpbox_iter(geocode,dpbox)
+        do while(dpbox_iter_next(boxit))
+           maxdiff=max(maxdiff,abs(potion_corr(boxit%ind)-pot_ion(boxit%ind)))
         end do
-
+ 
         if (pkernel%mpi_env%nproc > 1) then
            call mpiallred(maxdiff,1,MPI_MAX,pkernel%mpi_env%mpi_comm)
         end if
@@ -977,152 +1081,224 @@ subroutine createIonicPotential(geocode,iproc,verb,at,rxyz,&
 
   if (n3pi > 0) then
      ! Only for HGH pseudos
-     do iat=1,at%astruct%nat
-        ityp=at%astruct%iatype(iat)
+     atit = atoms_iter(at%astruct)
+     do while(atoms_iter_next(atit))
 
-        rx=rxyz(1,iat)
-        ry=rxyz(2,iat)
-        rz=rxyz(3,iat)
+!!!     do iat=1,at%astruct%nat
+!!!        ityp=at%astruct%iatype(iat)
+!!!        rx=rxyz(1,iat)
+!!!        ry=rxyz(2,iat)
+!!!        rz=rxyz(3,iat)
 
-        rloc=at%psppar(0,0,ityp)
+        rx=rxyz(1,atit%iat) 
+        ry=rxyz(2,atit%iat)
+        rz=rxyz(3,atit%iat)
+
+!!!        rloc=at%psppar(0,0,ityp)
+        rloc=at%psppar(0,0,atit%ityp)
         rlocinvsq=1.0_gp/rloc**2
         rlocinv2sq=0.5_gp/rloc**2
-        cutoff=10.d0*rloc
+        cutoff=10.0_gp*rloc
         if (at%multipole_preserving) then
            !We want to have a good accuracy of the last point rloc*10
            cutoff=cutoff+max(hxh,hyh,hzh)*real(nrange/2,kind=gp)
         end if
 
-        isx=floor((rx-cutoff)/hxh)
-        isy=floor((ry-cutoff)/hyh)
-        isz=floor((rz-cutoff)/hzh)
+!!!        isx=floor((rx-cutoff)/hxh)
+!!!        isy=floor((ry-cutoff)/hyh)
+!!!        isz=floor((rz-cutoff)/hzh)
+!!!        iex=ceiling((rx+cutoff)/hxh)
+!!!        iey=ceiling((ry+cutoff)/hyh)
+!!!        iez=ceiling((rz+cutoff)/hzh)
 
-        iex=ceiling((rx+cutoff)/hxh)
-        iey=ceiling((ry+cutoff)/hyh)
-        iez=ceiling((rz+cutoff)/hzh)
+        nbox(1,1)=floor((rx-cutoff)/hxh)
+        nbox(1,2)=floor((ry-cutoff)/hyh)
+        nbox(1,3)=floor((rz-cutoff)/hzh)
+        nbox(2,1)=ceiling((rx+cutoff)/hxh)
+        nbox(2,2)=ceiling((ry+cutoff)/hyh)
+        nbox(2,3)=ceiling((rz+cutoff)/hzh)
 
         if ( at%npspcode(1) /= PSPCODE_PAW) then
 
            !Separable function: do 1-D integrals before and store it.
-           mpx = f_malloc( (/ isx.to.iex /),id='mpx')
-           mpy = f_malloc( (/ isy.to.iey /),id='mpy')
-           mpz = f_malloc( (/ isz.to.iez /),id='mpz')
-           do i1=isx,iex
+!!!           mpx = f_malloc( (/ isx.to.iex /),id='mpx')
+!!!           mpy = f_malloc( (/ isy.to.iey /),id='mpy')
+!!!           mpz = f_malloc( (/ isz.to.iez /),id='mpz')
+!!!           do i1=isx,iex
+!!!              mpx(i1) = mp_exp(hxh,rx,rlocinv2sq,i1,0,at%multipole_preserving)
+!!!           end do
+!!!           do i2=isy,iey
+!!!              mpy(i2) = mp_exp(hyh,ry,rlocinv2sq,i2,0,at%multipole_preserving)
+!!!           end do
+!!!           do i3=isz,iez
+!!!              mpz(i3) = mp_exp(hzh,rz,rlocinv2sq,i3,0,at%multipole_preserving)
+!!!           end do
+        
+           mpx = f_malloc( (/ nbox(1,1).to.nbox(2,1) /),id='mpx')
+           mpy = f_malloc( (/ nbox(1,2).to.nbox(2,2) /),id='mpy')
+           mpz = f_malloc( (/ nbox(1,3).to.nbox(2,3) /),id='mpz')
+           do i1=nbox(1,1),nbox(2,1)
               mpx(i1) = mp_exp(hxh,rx,rlocinv2sq,i1,0,at%multipole_preserving)
            end do
-           do i2=isy,iey
+           do i2=nbox(1,2),nbox(2,2)
               mpy(i2) = mp_exp(hyh,ry,rlocinv2sq,i2,0,at%multipole_preserving)
            end do
-           do i3=isz,iez
+           do i3=nbox(1,3),nbox(2,3)
               mpz(i3) = mp_exp(hzh,rz,rlocinv2sq,i3,0,at%multipole_preserving)
            end do
-        
+
            ! Add the remaining local terms of Eq. (9) in JCP 129, 014109(2008)
 
            ! Determine the number of local terms
            nloc=0
            do iloc=1,4
-              if (at%psppar(0,iloc,ityp) /= 0.d0) nloc=iloc
+!!!              if (at%psppar(0,iloc,ityp) /= 0.d0) nloc=iloc
+              if (at%psppar(0,iloc,atit%ityp) /= 0.d0) nloc=iloc
            enddo
 
            !do not add the local part for the vacancy
            if (nloc /= 0) then
 
-              do i3=isz,iez
-                 !call ind_positions(perz,i3,n3,j3,goz) 
-                 call ind_positions_new(perz,i3,n3i,j3,goz) 
-                 j3=j3+nbl3+1
-                 indj3=(j3-i3s)*n1i*n2i
-                 if (goz .and. j3 >= i3s .and. j3 <=  i3s+n3pi-1) then
-                    zp = mpz(i3)
-                    if (abs(zp) < mp_tiny) cycle
-                    z=real(i3,kind=8)*hzh-rz
-                    zsq=z**2
-                    do i2=isy,iey
-                       !call ind_positions(pery,i2,n2,j2,goy)
-                       call ind_positions_new(pery,i2,n2i,j2,goy)
-                       indj23=1+nbl1+(j2+nbl2)*n1i+indj3
-                       if (goy) then
-                          yp = zp*mpy(i2)
-                          if (abs(yp) < mp_tiny) cycle
-                          y=real(i2,kind=8)*hyh-ry
-                          yzsq=y**2+zsq
-                          do i1=isx,iex
-                             !call ind_positions(perx,i1,n1,j1,gox)
-                             call ind_positions_new(perx,i1,n1i,j1,gox)
-                             if (gox) then
-                                xp = yp*mpx(i1)
-                                if (abs(xp) < mp_tiny) cycle
-                                x=real(i1,kind=8)*hxh-rx
-                                r2=x**2+yzsq
-                                arg=r2*rlocinvsq
-                                tt=at%psppar(0,nloc,ityp)
-                                do iloc=nloc-1,1,-1
-                                   tt=arg*tt+at%psppar(0,iloc,ityp)
-                                enddo
-                                ind=j1+indj23
-                                pot_ion(ind)=pot_ion(ind)+xp*tt
-                             end if
-                          enddo
-                       end if
-                    enddo
-                 end if
-              end do
+!!!              do i3=isz,iez
+!!!                 !call ind_positions(perz,i3,n3,j3,goz) 
+!!!                 call ind_positions_new(perz,i3,n3i,j3,goz) 
+!!!                 j3=j3+nbl3+1
+!!!                 indj3=(j3-i3s)*n1i*n2i
+!!!                 if (goz .and. j3 >= i3s .and. j3 <=  i3s+n3pi-1) then
+!!!                    zp = mpz(i3)
+!!!                    if (abs(zp) < mp_tiny) cycle
+!!!                    z=real(i3,gp)*hzh-rz
+!!!                    zsq=z**2
+!!!                    do i2=isy,iey
+!!!                       !call ind_positions(pery,i2,n2,j2,goy)
+!!!                       call ind_positions_new(pery,i2,n2i,j2,goy)
+!!!                       indj23=1+nbl1+(j2+nbl2)*n1i+indj3
+!!!                       if (goy) then
+!!!                          yp = zp*mpy(i2)
+!!!                          if (abs(yp) < mp_tiny) cycle
+!!!                          y=real(i2,gp)*hyh-ry
+!!!                          yzsq=y**2+zsq
+!!!                          do i1=isx,iex
+!!!                             !call ind_positions(perx,i1,n1,j1,gox)
+!!!                             call ind_positions_new(perx,i1,n1i,j1,gox)
+!!!                             if (gox) then
+!!!                                xp = yp*mpx(i1)
+!!!                                if (abs(xp) < mp_tiny) cycle
+!!!                                x=real(i1,gp)*hxh-rx
+!!!                                r2=x**2+yzsq
+!!!                                arg=r2*rlocinvsq
+!!!                                tt=at%psppar(0,nloc,ityp)
+!!!                                do iloc=nloc-1,1,-1
+!!!                                   tt=arg*tt+at%psppar(0,iloc,ityp)
+!!!                                enddo
+!!!                                ind=j1+indj23
+!!!                                pot_ion(ind)=pot_ion(ind)+xp*tt
+!!!                             end if
+!!!                          enddo
+!!!                       end if
+!!!                    enddo
+!!!                 end if
+!!!              end do
+
+
+             boxit = dpbox_iter(geocode,dpbox,nbox)
+             do while(dpbox_iter_next(boxit))
+                xp = mpx(boxit%ibox(1))* mpy(boxit%ibox(2)) *  mpz(boxit%ibox(3))
+                r2 = (boxit%x-rx)**2 + (boxit%y-ry)**2 + (boxit%z-rz)**2
+                arg = r2*rlocinvsq
+                tt=at%psppar(0,nloc,atit%ityp)
+                do iloc=nloc-1,1,-1
+                   tt=arg*tt+at%psppar(0,iloc,atit%ityp)
+                enddo
+                pot_ion(boxit%ind)=pot_ion(boxit%ind)+xp*tt
+                !write(*,'(4(i0,1x),2(1pe20.10))') boxit%ibox(1),boxit%ibox(2),boxit%ibox(3),boxit%ind,xp,pot_ion(boxit%ind)
+             end do
+
            end if !nloc
 
            !De-allocate the 1D temporary arrays for separability
            call f_free(mpx,mpy,mpz)
 
         else !HGH or PAW
+
            ! For PAW, add V^PAW-V_L^HGH
-           charge=real(at%nelpsp(ityp),kind=8)
-           do i3=isz,iez
-              z=real(i3,kind=8)*hzh-rz
-              !call ind_positions(perz,i3,n3,j3,goz) 
-              call ind_positions_new(perz,i3,n3i,j3,goz) 
-              j3=j3+nbl3+1
-              indj3=(j3-i3s)*n1i*n2i
-              zsq=z**2
-              if (goz .and. j3 >= i3s .and. j3 <=  i3s+n3pi-1) then
-                 do i2=isy,iey
-                    y=real(i2,kind=8)*hyh-ry
-                    !call ind_positions(pery,i2,n2,j2,goy)
-                    call ind_positions_new(pery,i2,n2i,j2,goy)
-                    indj23=1+nbl1+(j2+nbl2)*n1i+indj3
-                    yzsq=y**2+zsq
-                    if (goy) then
-                       do i1=isx,iex
-                          x=real(i1,kind=8)*hxh-rx
-                          !call ind_positions(perx,i1,n1,j1,gox)
-                          call ind_positions_new(perx,i1,n1i,j1,gox)
-                          if (gox) then
-                             r2=x**2+yzsq
-                             rr(1)=sqrt(r2)
-                             !1) V_L^HGH
-                             if(rr(1)>0.01d0) then
-                               arg=rr(1)/(sqrt(2.0_gp)*rloc)
-                               call derf_ab(tt,arg)
-                               raux2=-charge/rr(1)*tt  
-                             else
-                               !In this case we deduce the values
-                               !from a quadratic interpolation (due to 1/rr factor)
-                               call interpol_vloc(rr(1),rloc,charge,raux2)
-                             end if
-                             !2) V^PAW from splines
-                             call splint(at%pawtab(ityp)%wvl%rholoc%msz, &
-                                  & at%pawtab(ityp)%wvl%rholoc%rad, &
-                                  & at%pawtab(ityp)%wvl%rholoc%d(:,3), &
-                                  & at%pawtab(ityp)%wvl%rholoc%d(:,4), &
-                                  & 1,rr,raux,ierr)
-                             
-                             ind=j1+indj23
-                             pot_ion(ind)=pot_ion(ind)+raux(1)-raux2
-                          end if
-                       enddo
-                    end if
-                 enddo
-              end if
-           end do
+           charge=real(at%nelpsp(atit%ityp),gp)
+!!!           charge=real(at%nelpsp(ityp),gp)
+!!!           do i3=isz,iez
+!!!              z=real(i3,gp)*hzh-rz
+!!!              !call ind_positions(perz,i3,n3,j3,goz) 
+!!!              call ind_positions_new(perz,i3,n3i,j3,goz) 
+!!!              j3=j3+nbl3+1
+!!!              indj3=(j3-i3s)*n1i*n2i
+!!!              zsq=z**2
+!!!              if (goz .and. j3 >= i3s .and. j3 <=  i3s+n3pi-1) then
+!!!                 do i2=isy,iey
+!!!                    y=real(i2,gp)*hyh-ry
+!!!                    !call ind_positions(pery,i2,n2,j2,goy)
+!!!                    call ind_positions_new(pery,i2,n2i,j2,goy)
+!!!                    indj23=1+nbl1+(j2+nbl2)*n1i+indj3
+!!!                    yzsq=y**2+zsq
+!!!                    if (goy) then
+!!!                       do i1=isx,iex
+!!!                          x=real(i1,gp)*hxh-rx
+!!!                          !call ind_positions(perx,i1,n1,j1,gox)
+!!!                          call ind_positions_new(perx,i1,n1i,j1,gox)
+!!!                          if (gox) then
+!!!                             r2=x**2+yzsq
+!!!                             rr(1)=sqrt(r2)
+!!!                             !1) V_L^HGH
+!!!                             if(rr(1)>0.01d0) then
+!!!                               arg=rr(1)/(sqrt(2.0_gp)*rloc)
+!!!                               call derf_ab(tt,arg)
+!!!                               raux2=-charge/rr(1)*tt  
+!!!                             else
+!!!                               !In this case we deduce the values
+!!!                               !from a quadratic interpolation (due to 1/rr factor)
+!!!                               call interpol_vloc(rr(1),rloc,charge,raux2)
+!!!                             end if
+!!!                             !2) V^PAW from splines
+!!!                             call splint(at%pawtab(ityp)%wvl%rholoc%msz, &
+!!!                                  & at%pawtab(ityp)%wvl%rholoc%rad, &
+!!!                                  & at%pawtab(ityp)%wvl%rholoc%d(:,3), &
+!!!                                  & at%pawtab(ityp)%wvl%rholoc%d(:,4), &
+!!!                                  & 1,rr,raux,ierr)
+!!!                             
+!!!                             ind=j1+indj23
+!!!                             pot_ion(ind)=pot_ion(ind)+raux(1)-raux2
+!!!                          end if
+!!!                       enddo
+!!!                    end if
+!!!                 enddo
+!!!              end if
+!!!           end do
+
+            boxit = dpbox_iter(geocode,dpbox,nbox)
+            do while(dpbox_iter_next(boxit))
+               xp = mpx(boxit%ibox(1))* mpy(boxit%ibox(2)) *  mpz(boxit%ibox(3))
+               r2 = (boxit%x-rx)**2 + (boxit%y-ry)**2 + (boxit%z-rz)**2
+               arg = r2*rlocinvsq
+               rr(1)=sqrt(r2)
+               !1) V_L^HGH
+               if(rr(1)>0.01d0) then
+                 arg=rr(1)/(sqrt(2.0_gp)*rloc)
+                 call derf_ab(tt,arg)
+                 raux2=-charge/rr(1)*tt  
+               else
+                 !In this case we deduce the values
+                 !from a quadratic interpolation (due to 1/rr factor)
+                 call interpol_vloc(rr(1),rloc,charge,raux2)
+               end if
+               !2) V^PAW from splines
+               call splint(at%pawtab(atit%ityp)%wvl%rholoc%msz, &
+                    & at%pawtab(atit%ityp)%wvl%rholoc%rad, &
+                    & at%pawtab(atit%ityp)%wvl%rholoc%d(:,3), &
+                    & at%pawtab(atit%ityp)%wvl%rholoc%d(:,4), &
+                    & 1,rr,raux,ierr)
+               
+               pot_ion(boxit%ind)=pot_ion(boxit%ind)+raux(1)-raux2
+               !write(*,'(4(i0,1x),2(1pe20.10))') boxit%ibox(1),boxit%ibox(2),boxit%ibox(3),boxit%ind,xp,pot_ion(boxit%ind)
+            end do
+
         end if ! at%npspcode(iat) /= PSPCODE_PAW
      end do !iat
      !debug exit
@@ -1130,17 +1306,24 @@ subroutine createIonicPotential(geocode,iproc,verb,at,rxyz,&
      if (htoobig) then
         !add to pot_ion an explicit error function to correct in the case of big grid spacing
         !for the moment works only in the isolated BC case
-        do i3=1,n3pi
-           z=real(i3+i3s-1-nbl3-1,gp)*hzh
-           do i2=1,n2i
-              y=real(i2-nbl2-1,gp)*hyh
-              do i1=1,n1i
-                 x=real(i1-nbl1-1,gp)*hxh
-                 ind=i1+(i2-1)*n1i+(i3-1)*n1i*n2i
-                 call sum_erfcr(at%astruct%nat,at%astruct%ntypes,x,y,z,at%astruct%iatype,at%nelpsp,at%psppar,rxyz,potxyz)
-                 pot_ion(ind)=pot_ion(ind)+potxyz
-              end do
-           end do
+!!!        do i3=1,n3pi
+!!!           z=real(i3+i3s-1-nbl3-1,gp)*hzh
+!!!           do i2=1,n2i
+!!!              y=real(i2-nbl2-1,gp)*hyh
+!!!              do i1=1,n1i
+!!!                 x=real(i1-nbl1-1,gp)*hxh
+!!!                 ind=i1+(i2-1)*n1i+(i3-1)*n1i*n2i
+!!!                 call sum_erfcr(at%astruct%nat,at%astruct%ntypes,x,y,z,at%astruct%iatype,at%nelpsp,at%psppar,rxyz,potxyz)
+!!!                 pot_ion(ind)=pot_ion(ind)+potxyz
+!!!              end do
+!!!           end do
+!!!        end do
+        boxit = dpbox_iter(geocode,dpbox)
+        do while(dpbox_iter_next(boxit))
+           call sum_erfcr(at%astruct%nat,at%astruct%ntypes, &
+                &         boxit%x,boxit%y,boxit%z, &
+                &         at%astruct%iatype,at%nelpsp,at%psppar,rxyz,potxyz)
+           pot_ion(boxit%ind) = pot_ion(boxit%ind) + potxyz
         end do
      end if
      
@@ -1180,20 +1363,26 @@ subroutine createIonicPotential(geocode,iproc,verb,at,rxyz,&
      efwrite=.false.!true.
 
      if (n3pi > 0) then
-        do i3=1,n3pi
-           z=real(i3+i3s-1-nbl3-1,gp)*hzh
-           do i2=1,n2i
-              y=real(i2-nbl2-1,gp)*hyh
-                 do i1=1,n1i
-                    x=real(i1-nbl1-1,gp)*hxh
-                    ind=i1+(i2-1)*n1i+(i3-1)*n1i*n2i
-                    pot_ion(ind)=pot_ion(ind)+elecfield(1)*x+elecfield(2)*y+elecfield(3)*z
-!                    parabola: these two lines replace the above line 
-!                              comment out the if case and calculate x, z
-!                    r2=(x-rx)**2+(y-ry)**2+(z-rz)**2
-!                    pot_ion(ind)=pot_ion(ind)+0.5_gp/(elecfield**4)*r2
-                 end do
-           end do
+!!!        do i3=1,n3pi
+!!!           z=real(i3+i3s-1-nbl3-1,gp)*hzh
+!!!           do i2=1,n2i
+!!!              y=real(i2-nbl2-1,gp)*hyh
+!!!                 do i1=1,n1i
+!!!                    x=real(i1-nbl1-1,gp)*hxh
+!!!                    ind=i1+(i2-1)*n1i+(i3-1)*n1i*n2i
+!!!                    pot_ion(ind)=pot_ion(ind)+elecfield(1)*x+elecfield(2)*y+elecfield(3)*z
+!!!!                    parabola: these two lines replace the above line comment out the if case and calculate x, z
+!!!!                    r2=(x-rx)**2+(y-ry)**2+(z-rz)**2
+!!!!                    pot_ion(ind)=pot_ion(ind)+0.5_gp/(elecfield**4)*r2
+!!!                 end do
+!!!           end do
+!!!        end do
+        boxit = dpbox_iter(geocode,dpbox)
+        do while(dpbox_iter_next(boxit))
+           pot_ion(boxit%ind)=pot_ion(boxit%ind)+elecfield(1)*boxit%x+elecfield(2)*boxit%y+elecfield(3)*boxit%z
+!           parabola: these two lines replace the above line comment out the if case and calculate x, z
+!           r2=(boxit%x-rx)**2+(boxit%y-ry)**2+(boxit%z-rz)**2
+!           pot_ion(boxit%ind)=pot_ion(boxit%ind)+0.5_gp/(elecfield**4)*r2
         end do
 
         if (efwrite .and. iproc == 0) then
@@ -1353,7 +1542,7 @@ END SUBROUTINE ind_positions_new
 !!! !  lc = .true.
 !!!   do i1=isx,iex
 !!!      mpx(i1) = mp_exp(hxh,rx,rlocinv2sq,i1,0,mp)
-!!! !     if (mpx(i1) < mp_tiny) then
+!!! !     if (abs(mpx(i1)) < mp_tiny) then
 !!! !        if (lc) istart = i1+1
 !!! !     else
 !!! !        lc = .false.
@@ -1365,7 +1554,7 @@ END SUBROUTINE ind_positions_new
 !!! !  lc = .true.
 !!!   do i2=isy,iey
 !!!      mpy(i2) = mp_exp(hyh,ry,rlocinv2sq,i2,0,mp)
-!!! !     if (mpy(i2) < mp_tiny) then
+!!! !     if (abs(mpy(i2)) < mp_tiny) then
 !!! !        if (lc) istart = i2+1
 !!! !     else
 !!! !        lc = .false.
@@ -1377,7 +1566,7 @@ END SUBROUTINE ind_positions_new
 !!! !  lc = .true.
 !!!   do i3=isz,iez
 !!!      mpz(i3) = mp_exp(hzh,rz,rlocinv2sq,i3,0,mp)
-!!! !     if (mpz(i3) < mp_tiny) then
+!!! !     if (abs(mpz(i3)) < mp_tiny) then
 !!! !        if (lc) istart = i3+1
 !!! !     else
 !!! !        lc = .false.
@@ -1552,10 +1741,10 @@ subroutine CounterIonPotential(geocode,iproc,in,shift,&
 
         rloc=at%psppar(0,0,ityp)
         rlocinv2sq=0.5_gp/rloc**2
-        charge=real(at%nelpsp(ityp),kind=8)/(2.d0*pi*sqrt(2.d0*pi)*rloc**3)
+        charge=real(at%nelpsp(ityp),gp)/(2.0_gp*pi*sqrt(2.0_gp*pi)*rloc**3)
 
         !cutoff of the range
-        cutoff=10.d0*rloc
+        cutoff=10.0_gp*rloc
         if (at%multipole_preserving) then
            !We want to have a good accuracy of the last point rloc*10
            cutoff=cutoff+max(hxh,hyh,hzh)*real(nrange/2,kind=gp)

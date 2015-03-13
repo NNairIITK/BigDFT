@@ -533,8 +533,8 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
         energs%eion,fion,in%dispersion,energs%edisp,fdisp,ewaldstr,&
         pot_ion,pkernel,psoffset)
 
-   call createIonicPotential(atoms%astruct%geocode,iproc, (iproc == 0), atoms,rxyz,hxh,hyh,hzh,&
-        in%elecfield,n1,n2,n3,dpcom%n3pi,dpcom%i3s+dpcom%i3xcsh,n1i,n2i,n3i,pkernel,pot_ion,psoffset)
+   call createIonicPotential(atoms%astruct%geocode,iproc, (iproc == 0), atoms,rxyz, &
+        in%elecfield,n1,n2,n3,dpcom,pkernel,pot_ion,psoffset)
 
 
    !Allocate Charge density, Potential in real space
@@ -782,9 +782,7 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
 
             rhopottmp = f_malloc_ptr((/ max(n1i_bB, n1i), max(n2i_bB, n2i), max(n3i_bB, n3i), in%nspin /),id='rhopottmp')
 
-
             rhotarget=0.0_gp
-
 
             itype=16
             nd=2**20
