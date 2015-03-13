@@ -270,6 +270,15 @@ module module_interfaces
          real(wp), dimension(*), intent(inout) :: pot_ion
        END SUBROUTINE createIonicPotential
 
+!       subroutine mp_calculate(rx,ry,rz,hxh,hyh,hzh,cutoff,rlocinv2sq,mp,mpx,mpy,mpz)
+!         use module_base
+!         use gaussians, only: mp_exp
+!         !Arguments
+!         real(gp), intent(in) :: rx,ry,rz,hxh,hyh,hzh,cutoff,rlocinv2sq
+!         logical, intent(in) :: mp
+!         real(gp), dimension(:), allocatable, intent(out) :: mpx,mpy,mpz
+!       end subroutine mp_calculate
+
        subroutine input_wf_empty(iproc, nproc, psi, hpsi, psit, orbs, &
             & band_structure_filename, input_spin, atoms, d, denspot)
          use module_defs, only: wp

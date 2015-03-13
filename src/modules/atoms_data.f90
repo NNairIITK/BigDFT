@@ -110,6 +110,7 @@ module module_atoms
   end type atoms_iterator
 
 
+  !Public routines
   public :: atoms_data_null,nullify_atoms_data,deallocate_atoms_data
   public :: atomic_structure_null,nullify_atomic_structure,deallocate_atomic_structure
   public :: astruct_merge_to_dict, astruct_at_from_dict
@@ -118,6 +119,9 @@ module module_atoms
   public :: allocate_atoms_data,move_this_coordinate,frozen_itof
   public :: rxyz_inside_box,check_atoms_positions
   public :: atomic_data_set_from_dict
+
+  public :: atoms_iter,atoms_iter_next
+  public atoms_iterator_null,nullify_atoms_iterator
 
 
 contains

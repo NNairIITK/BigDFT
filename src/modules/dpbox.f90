@@ -39,7 +39,12 @@ module module_dpbox
     type(denspot_distribution), pointer :: dpbox_ptr !< Private pointer to the original dpbox on which we are iterating
   end type dpbox_iterator
 
- 
+
+  !Public routines
+  public :: dpbox_iter,dpbox_iter_next
+  public :: dpbox_iterator_null, nullify_dpbox_iterator
+  
+
 contains
 
 
