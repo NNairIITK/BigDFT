@@ -35,7 +35,7 @@ program memguess
    character(len=128) :: fileFrom, fileTo,filename_wfn, coeff_file, ham_file, overlap_file, kernel_file, matrix_file
    character(len=128) :: ntmb_, norbks_, interval_, npdos_, nat_, nsubmatrices_, ncategories_, cutoff_, power_
    character(len=128) :: output_pdos, amatrix_file, bmatrix_file, cmatrix_file, inmatrix_file, outmatrix_file, wf_file
-   character(len=128) :: posinp_file
+   character(len=128) :: posinp_file, pdos_file, cc
    logical :: optimise,GPUtest,atwf,convert=.false.,exportwf=.false.,logfile=.false.
    logical :: disable_deprecation = .false.,convertpos=.false.,transform_coordinates=.false.
    logical :: calculate_pdos = .false., kernel_analysis = .false., extract_submatrix = .false.
@@ -71,16 +71,17 @@ program memguess
    !integer :: ncount0,ncount1,ncount_max,ncount_rate
    !! By Ali
    integer :: ierror, iat, itmb, jtmb, iitmb, jjtmb, ntmb, norbks, npdos, iunit01, iunit02, norb_dummy, ipt, npt, ipdos, nat
-   integer :: iproc, isub, jat, icat, info, itype, iiat, jjat
+   integer :: iproc, isub, jat, icat, info, itype, iiat, jjat, jtype, ios, ival, iat_prev, ii, iitype
    integer,dimension(:),allocatable :: na, nb, nc, on_which_atom
    integer,dimension(:,:),allocatable :: atoms_ref, imin_list
    real(kind=8),dimension(:,:),allocatable :: rxyz, rxyz_int, kernel, ham, overlap, coeff, pdos, energy_bins, matrix
    real(kind=8),dimension(:,:),allocatable :: amatrix, bmatrix, cmatrix, temparr, d1min_list
-   real(kind=8),dimension(:),allocatable :: eval, coeff_cat, work, d2min_list, dtype
+   real(kind=8),dimension(:),allocatable :: eval, coeff_cat, work, d2min_list, dtype, rcov
    !real(kind=8),parameter :: degree=57.295779513d0
    real(kind=8),parameter :: degree=1.d0
    character(len=6) :: direction
    logical :: file_exists, found_bin, mpi_init
+   logical,dimension(:),allocatable :: calc_array
    real(kind=8),parameter :: eps_roundoff=1.d-5
 
    call f_lib_initialize()
@@ -310,8 +311,10 @@ program memguess
             call get_command_argument(i_arg, value = interval_)
             read(interval_,fmt=*,iostat=ierror) interval
             i_arg = i_arg + 1
-            call get_command_argument(i_arg, value = npdos_)
-            read(npdos_,fmt=*,iostat=ierror) npdos
+            call get_command_argument(i_arg, value = pdos_file)
+            i_arg = i_arg + 1
+            call get_command_argument(i_arg, value = posinp_file)
+            npdos = 1
             write(*,'(1x,3(a,i0),3a)')&
                &   'calculate ', npdos,' PDOS based on the coeffs (', ntmb, 'x', norbks, ') in the file "', trim(coeff_file),'"'
             calculate_pdos=.true.
@@ -655,15 +658,54 @@ program memguess
        kernel = f_malloc((/ntmb,ntmb/),id='kernel')
        ham = f_malloc((/ntmb,ntmb/),id='ham')
        overlap = f_malloc((/ntmb,ntmb/),id='overlap')
+       on_which_atom = f_malloc(ntmb,id='on_which_atom')
+       calc_array = f_malloc(ntmb,id='calc_array')
        call f_open_file(iunit01, file=trim(coeff_file), binary=.false.)
        call read_coeff_minbasis(iunit01, .true., iproc, norbks, norb_dummy, ntmb, coeff, eval, nat)
        call f_close(iunit01)
        call f_open_file(iunit01, file=ham_file, binary=.false.)
-       call read_linear_matrix_dense(iunit01, ntmb, nat, ham)
+       call read_linear_matrix_dense(iunit01, ntmb, nat, ham, on_which_atom=on_which_atom)
        call f_close(iunit01)
        call f_open_file(iunit01, file=overlap_file, binary=.false.)
        call read_linear_matrix_dense(iunit01, ntmb, nat, overlap)
        call f_close(iunit01)
+
+       call set_astruct_from_file(trim(posinp_file),0,at%astruct,fcomment,energy,fxyz)
+       call f_open_file(iunit01, file=pdos_file, binary=.false.)
+
+       calc_array = .false.
+       do 
+           read(iunit01,*,iostat=ios) cc, ival
+           if (ios/=0) exit
+           do itype=1,at%astruct%ntypes
+               if (trim(at%astruct%atomnames(itype))==trim(cc)) then
+                   iitype = itype
+                   exit
+               end if
+           end do
+           iat_prev = -1
+           do itmb=1,ntmb
+               iat = on_which_atom(itmb)
+               if (iat/=iat_prev) then
+                   ii = 0
+               end if
+               iat_prev = iat
+               itype = at%astruct%iatype(iat)
+               ii = ii + 1
+               if (itype==iitype .and. ii==ival) then
+                   if (calc_array(itmb)) stop 'calc_array(itmb)'
+                   calc_array(itmb) = .true.
+               end if
+           end do
+       end do
+       call f_close(iunit01)
+
+       do itmb=1,ntmb
+           iat = on_which_atom(itmb)
+           itype = at%astruct%iatype(iat)
+           write(*,'(a,3i8,l5)') 'itmb, iat, itype, calc_array(itmb)', itmb, iat, itype, calc_array(itmb)
+       end do
+
        npt = ceiling((eval(ntmb)-eval(1))/interval)
        pdos = f_malloc0((/npt,npdos/),id='pdos')
        energy_bins = f_malloc((/2,npt/),id='energy_bins')
@@ -691,24 +733,26 @@ program memguess
                     coeff(1,iorb), ntmb, 0.d0, kernel(1,1), ntmb)
                energy = 0.d0
                occup = 0.d0
-               !$omp parallel default(none) &
-               !$omp shared(ntmb,kernel,ham,overlap,ipdos,npdos,energy,occup) &
-               !$omp private(itmb,jtmb)
-               !$omp do reduction(+:energy)
+               !!$omp parallel default(none) &
+               !!$omp shared(ntmb,kernel,ham,overlap,ipdos,npdos,energy,occup) &
+               !!$omp private(itmb,jtmb)
+               !!$omp do reduction(+:energy)
                do itmb=1,ntmb
                    do jtmb=1,ntmb
                        energy = energy + kernel(itmb,jtmb)*ham(jtmb,itmb)
                    end do
                end do
-               !$omp end do
-               !$omp do reduction(+:occup)
-               do itmb=ipdos,ntmb,npdos
-                   do jtmb=ipdos,ntmb,npdos
+               !!$omp end do
+               !!$omp do reduction(+:occup)
+               do itmb=1,ntmb!ipdos,ntmb,npdos
+                   if (.not.calc_array(itmb)) cycle
+                   do jtmb=1,ntmb!ipdos,ntmb,npdos
+                       if (.not.calc_array(jtmb)) cycle
                        occup = occup + kernel(itmb,jtmb)*overlap(jtmb,itmb)
                    end do
                end do
-               !$omp end do
-               !$omp end parallel
+               !!$omp end do
+               !!$omp end parallel
                found_bin = .false.
                do ipt=1,npt
                    if (energy>=energy_bins(1,ipt) .and. energy<energy_bins(2,ipt)) then
@@ -727,10 +771,11 @@ program memguess
                end if
                !write(*,'(a,i6,3es16.8)')'iorb, eval(iorb), energy, occup', iorb, eval(iorb), energy, occup
            end do
+           plot f1(x) lc rgb 'violet' lt 1 lw 2 w l title 'Pb'
            if (ipdos==1) then
-               write(iunit02,'(a,i0,a)') 'plot f',ipdos,'(x) w l'
+               write(iunit02,'(a,i0,a)') "plot f",ipdos,"(x) lt 1 lw 2 w l title 'name'"
            else
-               write(iunit02,'(a,i0,a)') 'replot f',ipdos,'(x) w l'
+               write(iunit02,'(a,i0,a)') "replot f",ipdos,"(x) lt 1 lw 2 w l title 'name'"
            end if
            call yaml_map('sum of PDoS',sum(pdos(:,ipdos)))
            output_pdos='PDoS_'//num//'.dat'
@@ -970,6 +1015,13 @@ program memguess
 
    if (suggest_cutoff) then
        call set_astruct_from_file(trim(posinp_file),0,at%astruct,fcomment,energy,fxyz)
+       rcov = f_malloc(at%astruct%ntypes,id='rcov')
+       rcov(1) = 3.30d0
+       rcov(2) = 2.50d0
+       rcov(3) = 1.45d0
+       rcov(4) = 1.42d0
+       rcov(5) = 0.75d0
+       !rcov(1) = 1.45d0
 
        d1min_list = f_malloc((/2,at%astruct%nat/),id='d2min_list')
        d2min_list = f_malloc(at%astruct%nat,id='d1min_list')
@@ -979,12 +1031,18 @@ program memguess
        d1min_list = huge(d1min_list)
        imin_list = 0
        do iat=1,at%astruct%nat
+           itype = at%astruct%iatype(iat)
            do jat=1,at%astruct%nat
+               jtype = at%astruct%iatype(jat)
                if (jat/=iat) then
-                   d = (at%astruct%rxyz(1,jat)-at%astruct%rxyz(1,iat))**2 + &
-                       (at%astruct%rxyz(2,jat)-at%astruct%rxyz(2,iat))**2 + &
-                       (at%astruct%rxyz(3,jat)-at%astruct%rxyz(3,iat))**2
-                   d = sqrt(d)
+                   !if (rcov(jtype)<=rcov(itype)) then
+                       d = (at%astruct%rxyz(1,jat)-at%astruct%rxyz(1,iat))**2 + &
+                           (at%astruct%rxyz(2,jat)-at%astruct%rxyz(2,iat))**2 + &
+                           (at%astruct%rxyz(3,jat)-at%astruct%rxyz(3,iat))**2
+                       d = sqrt(d)
+                   !else
+                   !    d = 3.d0*rcov(itype)
+                   !end if
                    if (d<d1min_list(1,iat)) then
                        d1min_list(2,iat) = d1min_list(1,iat)
                        d1min_list(1,iat) = d
@@ -1001,15 +1059,23 @@ program memguess
        d2min_list = huge(d2min_list)
        do iat=1,at%astruct%nat
            iiat = imin_list(1,iat)
+           itype = at%astruct%iatype(iat)
+           iitype = at%astruct%iatype(iiat)
            write(*,'(a,i5,2es12.4)') 'iat, d1min_list(1:2,iat)', iat, d1min_list(1:2,iat)
            do jat=1,2
                jjat = imin_list(jat,iiat)
+               jtype = at%astruct%iatype(jjat)
                if (jjat/=iat) then
-                   d = (at%astruct%rxyz(1,iat)-at%astruct%rxyz(1,jjat))**2 + &
-                       (at%astruct%rxyz(2,iat)-at%astruct%rxyz(2,jjat))**2 + &
-                       (at%astruct%rxyz(3,iat)-at%astruct%rxyz(3,jjat))**2
-                   d = sqrt(d)
-                   write(*,'(a,4i8,es12.4)') 'iat, iiat, jat, jjat, d', iat, iiat, jat, jjat, d
+                   !if (rcov(jtype)<=rcov(itype)) then
+                   if (rcov(iitype)<=rcov(itype)) then
+                       d = (at%astruct%rxyz(1,iat)-at%astruct%rxyz(1,jjat))**2 + &
+                           (at%astruct%rxyz(2,iat)-at%astruct%rxyz(2,jjat))**2 + &
+                           (at%astruct%rxyz(3,iat)-at%astruct%rxyz(3,jjat))**2
+                       d = sqrt(d)
+                   else
+                       d = 3.d0*rcov(itype)
+                   end if
+                   write(*,'(a,5i8,es12.4)') 'itype, iat, iiat, jat, jjat, d', itype, iat, iiat, jat, jjat, d
                    d2min_list(iat) = d
                end if
            end do
@@ -1023,7 +1089,7 @@ program memguess
        end do
 
        do itype=1,at%astruct%ntypes
-           write(*,'(a,i7,a,es12.4)') 'itype, name, dtype(itype)', itype, at%astruct%atomnames(itype), dtype(itype)
+           write(*,'(a,i7,a,f7.2,es12.4)') 'itype, name, rcov dtype(itype)', itype, at%astruct%atomnames(itype), rcov(itype), dtype(itype)
        end do
 
        stop
