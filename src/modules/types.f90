@@ -548,8 +548,11 @@ module module_types
   type, public :: denspot_distribution
      integer :: n3d                  !< Number of z planes for density
      integer :: n3p                  !< Number of z planes for potential
-     integer :: n3pi                 !< Number of distributed planes in z dimension for pot_ion
-     integer :: i3xcsh,i3s,nrhodim
+     integer :: n3pi                 !< Number of distributed planes in z dimension for pot_ion AND to calculate charges
+                                     !! BECAUSE n3d has an overlap!
+     integer :: i3xcsh
+     integer :: i3s                  !< Index of the first z plane in parallel
+     integer :: nrhodim
      !> Integer which controls the presence of a density after the potential array
      !! if different than zero, at the address ndimpot*nspin+i3rho_add starts the spin up component of the density
      !! the spin down component can be found at the ndimpot*nspin+i3rho_add+ndimpot, contiguously
@@ -558,6 +561,7 @@ module module_types
      integer :: ndimpot,ndimgrid,ndimrhopot 
      integer, dimension(3) :: ndims   !< Box containing the grid dimensions in ISF basis in x,y and z direction (n1i,n2i,n3i)
      real(gp), dimension(3) :: hgrids !< Grid spacings of the box (half of wavelet ones)
+     character(len=1) :: geocode !< @copydoc poisson_solver::doc::geocode
      integer, dimension(:,:), pointer :: nscatterarr, ngatherarr
      type(mpi_environment) :: mpi_env
   end type denspot_distribution
@@ -628,13 +632,13 @@ module module_types
 
   !> Contains all the descriptors necessary for splitting the calculation in different locregs 
   type, public :: local_zone_descriptors
-     logical :: linear                         !< if true, use linear part of the code
-     integer :: nlr                            !< Number of localization regions 
-     integer :: lintyp                         !< If 0 cubic, 1 locreg and 2 TMB
-     integer :: ndimpotisf                     !< Total dimension of potential in isf (including exctX)
-     real(gp), dimension(3) :: hgrids          !< Grid spacings of wavelet grid
-     type(locreg_descriptors) :: Glr           !< Global region descriptors
-     type(locreg_descriptors), dimension(:), pointer :: Llr                !< Local region descriptors (dimension = nlr)
+     logical :: linear                                      !< if true, use linear part of the code
+     integer :: nlr                                         !< Number of localization regions 
+     integer :: lintyp                                      !< If 0 cubic, 1 locreg and 2 TMB
+     integer :: ndimpotisf                                  !< Total dimension of potential in isf (including exctX)
+     real(gp), dimension(3) :: hgrids                       !< Grid spacings of wavelet grid
+     type(locreg_descriptors) :: Glr                        !< Global region descriptors
+     type(locreg_descriptors), dimension(:), pointer :: Llr !< Local region descriptors (dimension = nlr)
   end type local_zone_descriptors
 
 
@@ -827,12 +831,12 @@ module module_types
   integer, parameter, public :: LINEAR_HIGHACCURACY = 102 !< High accuracy after restart
 
 
-  !check if all comms are necessary here
+  !> Check if all comms are necessary here
   type, public :: hamiltonian_descriptors
      integer :: npsidim_orbs             !< Number of elements inside psi in the orbitals distribution scheme
      integer :: npsidim_comp             !< Number of elements inside psi in the components distribution scheme
      type(local_zone_descriptors) :: Lzd !< Data on the localisation regions, if associated
-     type(comms_linear) :: collcom ! describes collective communication
+     type(comms_linear) :: collcom       !< describes collective communication
      type(p2pComms) :: comgp             !< Describing p2p communications for distributing the potential
      real(wp), dimension(:), pointer :: psi,psit_c,psit_f !< these should eventually be eliminated
      logical :: can_use_transposed
@@ -1177,24 +1181,25 @@ contains
   end function old_wavefunction_null
 
 
-  function dpbox_null() result(dd)
+  function dpbox_null() result(dpbox)
     implicit none
-    type(denspot_distribution) :: dd
-    dd%n3d=0
-    dd%n3p=0
-    dd%n3pi=0
-    dd%i3xcsh=0
-    dd%i3s=0
-    dd%nrhodim=0
-    dd%i3rho_add=0
-    dd%ndimpot=0
-    dd%ndimgrid=0
-    dd%ndimrhopot=0
-    dd%ndims=(/0,0,0/)
-    dd%hgrids=(/0.0_gp,0.0_gp,0.0_gp/)
-    nullify(dd%nscatterarr)
-    nullify(dd%ngatherarr)
-    dd%mpi_env=mpi_environment_null()
+    type(denspot_distribution) :: dpbox
+    dpbox%n3d=0
+    dpbox%n3p=0
+    dpbox%n3pi=0
+    dpbox%i3xcsh=0
+    dpbox%i3s=0
+    dpbox%nrhodim=0
+    dpbox%i3rho_add=0
+    dpbox%ndimpot=0
+    dpbox%ndimgrid=0
+    dpbox%ndimrhopot=0
+    dpbox%ndims=(/0,0,0/)
+    dpbox%hgrids=(/0.0_gp,0.0_gp,0.0_gp/)
+    dpbox%geocode = "F"
+    nullify(dpbox%nscatterarr)
+    nullify(dpbox%ngatherarr)
+    dpbox%mpi_env=mpi_environment_null()
   end function dpbox_null
 
 

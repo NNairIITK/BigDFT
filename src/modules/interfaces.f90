@@ -622,7 +622,9 @@ module module_interfaces
         real(gp), dimension(3, atoms%astruct%nat), intent(out) :: fxyz
       END SUBROUTINE kswfn_post_treatments
 
-      subroutine calculate_forces(iproc,nproc,psolver_groupsize,Glr,atoms,orbs,nlpsp,rxyz,hx,hy,hz,i3s,n3p,nspin,&
+      subroutine calculate_forces(iproc,nproc,psolver_groupsize,Glr,atoms,orbs,nlpsp,rxyz,hx,hy,hz,&
+           dpbox,&
+           i3s,n3p,nspin,&
            refill_proj,ngatherarr,rho,pot,potxc,nsize_psi,psi,fion,fdisp,fxyz,&
            ewaldstr,hstrten,xcstr,strten,fnoise,pressure,psoffset,imode,tmb,fpulay)
         use module_base
@@ -631,6 +633,7 @@ module module_interfaces
         logical, intent(in) :: refill_proj
         integer, intent(in) :: iproc,nproc,i3s,n3p,nspin,psolver_groupsize,imode,nsize_psi
         real(gp), intent(in) :: hx,hy,hz,psoffset
+        type(denspot_distribution), intent(in) :: dpbox
         type(locreg_descriptors), intent(in) :: Glr
         type(atoms_data), intent(in) :: atoms
         type(orbitals_data), intent(in) :: orbs
@@ -1102,17 +1105,17 @@ module module_interfaces
         type(xc_info), intent(in) :: xc
       end subroutine direct_minimization
 
-      subroutine CounterIonPotential(geocode,iproc,nproc,in,shift,&
-            &   hxh,hyh,hzh,grid,n3pi,i3s,pkernel,pot_ion)
+      subroutine CounterIonPotential(iproc,in,shift,&
+            &   hxh,hyh,hzh,grid,dpbox,pkernel,pot_ion)
         use module_defs, only: gp,wp
          use module_types
          implicit none
-         character(len=1), intent(in) :: geocode !< @copydoc poisson_solver::doc::geocode
-         integer, intent(in) :: iproc,nproc,n3pi,i3s
+         integer, intent(in) :: iproc
          real(gp), intent(in) :: hxh,hyh,hzh
          real(gp), dimension(3), intent(in) :: shift
          type(input_variables), intent(in) :: in
          type(grid_dimensions), intent(in) :: grid
+         type(denspot_distribution), intent(in) :: dpbox
          type(coulomb_operator), intent(in) :: pkernel
          real(wp), dimension(*), intent(inout) :: pot_ion
       END SUBROUTINE CounterIonPotential
@@ -2830,6 +2833,7 @@ module module_interfaces
         end subroutine nonlocal_forces
 
         subroutine local_forces(iproc,at,rxyz,hxh,hyh,hzh,&
+             dpbox,&
              n1,n2,n3,n3pi,i3s,n1i,n2i,n3i,rho,pot,floc,locstrten,charge)
           use module_base
           use module_types
@@ -2838,6 +2842,7 @@ module module_interfaces
           type(atoms_data), intent(in) :: at
           integer, intent(in) :: iproc,n1,n2,n3,n3pi,i3s,n1i,n2i,n3i
           real(gp), intent(in) :: hxh,hyh,hzh
+          type(denspot_distribution), intent(in) :: dpbox
           real(gp),intent(out) :: charge
           real(gp), dimension(3,at%astruct%nat), intent(in) :: rxyz
           real(dp), dimension(*), intent(in) :: rho,pot

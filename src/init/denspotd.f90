@@ -139,6 +139,7 @@ subroutine dpbox_free(dpbox)
 END SUBROUTINE dpbox_free
 
 
+!> Initialize dpbox (density pot distribution) i.e. the parameters defining the grid
 subroutine dpbox_set_box(dpbox,Lzd)
   use module_base
   use module_types
@@ -152,6 +153,7 @@ subroutine dpbox_set_box(dpbox,Lzd)
   dpbox%ndims(1)=Lzd%Glr%d%n1i
   dpbox%ndims(2)=Lzd%Glr%d%n2i
   dpbox%ndims(3)=Lzd%Glr%d%n3i
+  dpbox%geocode=Lzd%Glr%geocode
 
 end subroutine dpbox_set_box
 

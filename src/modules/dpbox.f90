@@ -33,7 +33,6 @@ module module_dpbox
     integer :: nbl1,nbr1                 !< Size of left and right buffers in x direction
     integer :: nbl2,nbr2                 !< Size of left and right buffers in y direction
     integer :: nbl3,nbr3                 !< Size of left and right buffers in z direction
-    character(len=1), pointer :: geocode !< Original BC
     logical :: perx,pery,perz            !< Conditions for periodicity in the three directions
     logical :: whole                     !< Iterate over the whole box or not
     type(denspot_distribution), pointer :: dpbox_ptr !< Private pointer to the original dpbox on which we are iterating
@@ -80,17 +79,15 @@ contains
     boxit%x = 0.0_gp
     boxit%y = 0.0_gp
     boxit%z = 0.0_gp
-    nullify(boxit%geocode)
     nullify(boxit%dpbox_ptr)
   end subroutine nullify_dpbox_iterator
 
 
   !> Create an iterator dpbox to iterate over points of the (potential) grid 
-  function dpbox_iter(dpbox,geocode,nbox) result(boxit)
+  function dpbox_iter(dpbox,nbox) result(boxit)
     implicit none
     !Arguments
     type(denspot_distribution), intent(in), target :: dpbox
-    character(len=1), intent(in), target :: geocode
     !> Box of start and end point which have to be considered
     integer, dimension(2,3), intent(in), optional :: nbox
     type(dpbox_iterator) :: boxit
@@ -98,7 +95,6 @@ contains
     call nullify_dpbox_iterator(boxit)
 
     !Associate the original objects
-    boxit%geocode => geocode
     boxit%dpbox_ptr => dpbox
     !Distributed dimension over dpbox%ndims(3) in parallel
     boxit%n1i = boxit%dpbox_ptr%ndims(1)
@@ -116,9 +112,9 @@ contains
     end if
 
     !Conditions for periodicity in the three directions
-    boxit%perx=(geocode /= 'F')
-    boxit%pery=(geocode == 'P')
-    boxit%perz=(geocode /= 'F')
+    boxit%perx=(boxit%dpbox_ptr%geocode /= 'F')
+    boxit%pery=(boxit%dpbox_ptr%geocode == 'P')
+    boxit%perz=(boxit%dpbox_ptr%geocode /= 'F')
 
     !Calculate external buffers for each direction
     call ext_buffers(boxit%perx,boxit%nbl1,boxit%nbr1)
