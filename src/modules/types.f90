@@ -546,8 +546,9 @@ module module_types
   !> Define the structure used for the atomic positions
   !> Structure to store the density / potential distribution among processors.
   type, public :: denspot_distribution
-     integer :: n3d,n3p
-     integer :: n3pi                 !< Number of distributed planes in z dimension
+     integer :: n3d                  !< Number of z planes for density
+     integer :: n3p                  !< Number of z planes for potential
+     integer :: n3pi                 !< Number of distributed planes in z dimension for pot_ion
      integer :: i3xcsh,i3s,nrhodim
      !> Integer which controls the presence of a density after the potential array
      !! if different than zero, at the address ndimpot*nspin+i3rho_add starts the spin up component of the density

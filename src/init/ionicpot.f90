@@ -35,15 +35,17 @@ subroutine IonicEnergyandForces(iproc,dpbox,at,elecfield,&
   !Local variables
   real(gp), parameter :: mp_tiny = 1.e-30_gp
   logical :: slowion=.false.
-  logical :: perx,pery,perz,gox,goy,goz
+!!! logical :: perx,pery,perz,gox,goy,goz
+!!! integer ::  nbl1,nbr1,nbl2,nbr2,nbl3,nbr3
   integer :: n1i,n2i,n3i,i3s,n3pi,nrange
-  integer :: i,iat,ii,ityp,jat,jtyp,nbl1,nbr1,nbl2,nbr2,nbl3,nbr3
-  integer :: isx,iex,isy,iey,isz,iez,i1,i2,i3,j1,j2,j3,ind
+  integer :: i,i1,i2,i3,iat,ii,ityp,jat,jtyp
+!!!  integer :: isx,iex,isy,iey,isz,iez,j1,j2,j3,ind
   real(gp) :: ucvol,rloc,rlocinv2sq,twopitothreehalf,atint,shortlength,charge,eself,rx,ry,rz
   real(gp) :: fxion,fyion,fzion,dist,fxerf,fyerf,fzerf,cutoff
   real(gp) :: hxh,hyh,hzh
   real(gp) :: hxx,hxy,hxz,hyy,hyz,hzz,chgprod
-  real(gp) :: x,y,z,xp,yp,zp,Vel,prefactor,r2,arg,ehart,de
+  real(gp) :: xp,Vel,prefactor,ehart,de
+!!! real(gp) :: x,y,z,yp,zp,r2,arg
   !real(gp) :: Mz,cmassy
   real(gp), dimension(3,3) :: gmet,rmet,rprimd,gprimd
   !other arrays for the ewald treatment
@@ -67,7 +69,7 @@ subroutine IonicEnergyandForces(iproc,dpbox,at,elecfield,&
   n1i = dpbox%ndims(1)
   n2i = dpbox%ndims(2)
   n3i = dpbox%ndims(3)
-  i3s = dpbox%i3s+dpbox%i3xcsh
+  i3s = dpbox%i3s + dpbox%i3xcsh
   n3pi = dpbox%n3pi
 
   psoffset=0.0_gp
@@ -258,13 +260,13 @@ subroutine IonicEnergyandForces(iproc,dpbox,at,elecfield,&
 
      !case of slow ionic calculation
      !conditions for periodicity in the three directions
-     perx=(at%astruct%geocode /= 'F')
-     pery=(at%astruct%geocode == 'P')
-     perz=(at%astruct%geocode /= 'F')
-
-     call ext_buffers(perx,nbl1,nbr1)
-     call ext_buffers(pery,nbl2,nbr2)
-     call ext_buffers(perz,nbl3,nbr3)
+!!!     perx=(at%astruct%geocode /= 'F')
+!!!     pery=(at%astruct%geocode == 'P')
+!!!     perz=(at%astruct%geocode /= 'F')
+!!! 
+!!!     call ext_buffers(perx,nbl1,nbr1)
+!!!     call ext_buffers(pery,nbl2,nbr2)
+!!!     call ext_buffers(perz,nbl3,nbr3)
 
      !the ions corresponds to gaussian charges disposed in the same way as the pseudopotentials
 
@@ -368,7 +370,7 @@ subroutine IonicEnergyandForces(iproc,dpbox,at,elecfield,&
               mpz(i3) = mp_exp(hzh,rz,rlocinv2sq,i3,0,at%multipole_preserving)
            end do
        
-           boxit = dpbox_iter(at%astruct%geocode,dpbox,nbox)
+           boxit = dpbox_iter(dpbox,at%astruct%geocode,nbox)
  
            !These nested loops will be used also for the actual ionic forces, to be recalculated
 !!!           do i3=isz,iez
@@ -498,7 +500,7 @@ subroutine IonicEnergyandForces(iproc,dpbox,at,elecfield,&
               mpz(i3) = mp_exp(hzh,rz,rlocinv2sq,i3,0,at%multipole_preserving)
            end do
        
-           boxit = dpbox_iter(at%astruct%geocode,dpbox,nbox)
+           boxit = dpbox_iter(dpbox,at%astruct%geocode,nbox)
  
 !!!           do i3=isz,iez
 !!!              z=real(i3,gp)*hzh-rz
@@ -632,7 +634,7 @@ subroutine createEffectiveIonicPotential(iproc, verb, input, atoms, rxyz, shift,
   type(locreg_descriptors), intent(in) :: Glr
   type(input_variables), intent(in) :: input
   type(denspot_distribution), intent(in) :: dpbox
-  real(gp), intent(in) :: elecfield(3)
+  real(gp), dimension(3), intent(in) :: elecfield
   real(gp), dimension(3), intent(in) :: shift
   real(gp), dimension(3,atoms%astruct%nat), intent(in) :: rxyz
   type(coulomb_operator), intent(in) :: pkernel
@@ -644,7 +646,7 @@ subroutine createEffectiveIonicPotential(iproc, verb, input, atoms, rxyz, shift,
 
   ! Compute the main ionic potential.
   call createIonicPotential(atoms%astruct%geocode, iproc, verb, atoms, rxyz, &
-       & elecfield, Glr%d%n1, Glr%d%n2, Glr%d%n3, dpbox, pkernel, pot_ion, psoffset)
+       & elecfield, dpbox, pkernel, pot_ion, psoffset)
 
   !inquire for the counter_ion potential calculation (for the moment only xyz format)
   inquire(file='posinp_ci.xyz',exist=counterions)
@@ -656,7 +658,7 @@ subroutine createEffectiveIonicPotential(iproc, verb, input, atoms, rxyz, shift,
      end if
 
      call CounterIonPotential(atoms%astruct%geocode,iproc,input,shift,&
-          &   hxh,hyh,hzh,Glr%d,dpbox%n3pi,dpbox%i3s + dpbox%i3xcsh,pkernel,counter_ions)
+          &   hxh,hyh,hzh,Glr%d,dpbox,pkernel,counter_ions)
 
      !sum that to the ionic potential
      call axpy(Glr%d%n1i*Glr%d%n2i*dpbox%n3pi,1.0_dp,counter_ions(1),1,&
@@ -670,7 +672,7 @@ END SUBROUTINE createEffectiveIonicPotential
 
 !> Create the ionic potential
 subroutine createIonicPotential(geocode,iproc,verb,at,rxyz,&
-     elecfield,n1,n2,n3,dpbox,pkernel,pot_ion,psoffset)
+     elecfield,dpbox,pkernel,pot_ion,psoffset)
 
   use module_base, pi => pi_param
   use m_splines, only: splint
@@ -688,7 +690,8 @@ subroutine createIonicPotential(geocode,iproc,verb,at,rxyz,&
 
   !Arguments
   character(len=1), intent(in) :: geocode !< @copydoc poisson_solver::doc::geocode
-  integer, intent(in) :: iproc,n1,n2,n3
+  integer, intent(in) :: iproc
+!!!  integer, intent(in) :: n1,n2,n3
   logical, intent(in) :: verb
   real(gp), intent(in) :: psoffset
   type(atoms_data), intent(in) :: at
@@ -701,16 +704,19 @@ subroutine createIonicPotential(geocode,iproc,verb,at,rxyz,&
   !Local variables
   real(gp), parameter :: mp_tiny = 1.e-30_gp
   character(len = 3) :: quiet
-  logical :: perx,pery,perz,gox,goy,goz,efwrite
+!  logical, parameter :: efwrite=.false.
+!!!  logical :: perx,pery,perz,gox,goy,goz
   logical :: htoobig=.false.,check_potion=.false.
-  integer :: iat,i1,i2,i3,j1,j2,j3,isx,isy,isz,iex,iey,iez,ierr,ityp !n(c) nspin
-  integer :: ind,nbl1,nbr1,nbl2,nbr2,nbl3,nbr3,nloc,iloc,indj3,indj23,nrange
-  !integer :: n1,n2,n3
+  integer :: i1,i2,i3,ierr,ityp !n(c) nspin
+  integer :: nloc,iloc,nrange
+!! integer  :: nbl1,nbr1,nbl2,nbl3,nbr2,nbr3
+!!! integer :: n1,n2,n3,iat,iex,iey,iez,ind,indj3,indj23,isx,isy,isz,j1,j2,j3
   integer :: n3pi,i3s,n1i,n2i,n3i
   real(gp) :: hxh,hyh,hzh
-  real(gp) :: rholeaked,rloc,charge,cutoff,x,y,z,r2,arg,xp,yp,zp,tt,rx,ry,rz
+  real(gp) :: rholeaked,rloc,charge,cutoff,r2,arg,xp,tt,rx,ry,rz
   real(gp) :: tt_tot,rholeaked_tot,potxyz
-  real(gp) :: raux2,r2paw,rlocinvsq,rlocinv2sq,zsq,yzsq
+  real(gp) :: raux2,r2paw,rlocinvsq,rlocinv2sq
+!!! real(gp) :: x,y,z,yp,zp,zsq,yzsq
   real(gp), dimension(1) :: raux,rr
   real(wp) :: maxdiff
   real(gp) :: ehart
@@ -746,13 +752,13 @@ subroutine createIonicPotential(geocode,iproc,verb,at,rxyz,&
   call f_zero(n1i*n2i*n3pi,pot_ion(1))
 
   !conditions for periodicity in the three directions
-  perx=(geocode /= 'F')
-  pery=(geocode == 'P')
-  perz=(geocode /= 'F')
-
-  call ext_buffers(perx,nbl1,nbr1)
-  call ext_buffers(pery,nbl2,nbr2)
-  call ext_buffers(perz,nbl3,nbr3)
+!!!  perx=(geocode /= 'F')
+!!!  pery=(geocode == 'P')
+!!!  perz=(geocode /= 'F')
+!!! 
+!!!  call ext_buffers(perx,nbl1,nbr1)
+!!!  call ext_buffers(pery,nbl2,nbr2)
+!!!  call ext_buffers(perz,nbl3,nbr3)
 
   if (n3pi >0 .and. .not. htoobig) then
 
@@ -826,7 +832,7 @@ subroutine createIonicPotential(geocode,iproc,verb,at,rxyz,&
            mpz(i3) = mp_exp(hzh,rz,rlocinv2sq,i3,0,at%multipole_preserving)
         end do
     
-        boxit = dpbox_iter(geocode,dpbox,nbox)
+        boxit = dpbox_iter(dpbox,geocode,nbox)
  
         if ( .not. any(at%npspcode == PSPCODE_PAW) ) then
 
@@ -962,7 +968,7 @@ subroutine createIonicPotential(geocode,iproc,verb,at,rxyz,&
 !!!     enddo
 !!!  enddo
 
-  boxit = dpbox_iter(geocode,dpbox)
+  boxit = dpbox_iter(dpbox,geocode)
   do while(dpbox_iter_next(boxit))
      tt = tt + pot_ion(boxit%ind)
   end do
@@ -1032,7 +1038,7 @@ subroutine createIonicPotential(geocode,iproc,verb,at,rxyz,&
 !!!           end do
 !!!        end do
         
-        boxit = dpbox_iter(geocode,dpbox)
+        boxit = dpbox_iter(dpbox,geocode)
         do while(dpbox_iter_next(boxit))
            call sum_erfcr(at%astruct%nat,at%astruct%ntypes, &
                 &         boxit%x,boxit%y,boxit%z, &
@@ -1051,7 +1057,8 @@ subroutine createIonicPotential(geocode,iproc,verb,at,rxyz,&
 !!!              end do
 !!!           end do
 !!!        end do
-        boxit = dpbox_iter(geocode,dpbox)
+
+        boxit = dpbox_iter(dpbox,geocode)
         do while(dpbox_iter_next(boxit))
            maxdiff=max(maxdiff,abs(potion_corr(boxit%ind)-pot_ion(boxit%ind)))
         end do
@@ -1201,7 +1208,7 @@ subroutine createIonicPotential(geocode,iproc,verb,at,rxyz,&
 !!!              end do
 
 
-             boxit = dpbox_iter(geocode,dpbox,nbox)
+             boxit = dpbox_iter(dpbox,geocode,nbox)
              do while(dpbox_iter_next(boxit))
                 xp = mpx(boxit%ibox(1))* mpy(boxit%ibox(2)) *  mpz(boxit%ibox(3))
                 r2 = (boxit%x-rx)**2 + (boxit%y-ry)**2 + (boxit%z-rz)**2
@@ -1272,7 +1279,7 @@ subroutine createIonicPotential(geocode,iproc,verb,at,rxyz,&
 !!!              end if
 !!!           end do
 
-            boxit = dpbox_iter(geocode,dpbox,nbox)
+            boxit = dpbox_iter(dpbox,geocode,nbox)
             do while(dpbox_iter_next(boxit))
                xp = mpx(boxit%ibox(1))* mpy(boxit%ibox(2)) *  mpz(boxit%ibox(3))
                r2 = (boxit%x-rx)**2 + (boxit%y-ry)**2 + (boxit%z-rz)**2
@@ -1318,13 +1325,15 @@ subroutine createIonicPotential(geocode,iproc,verb,at,rxyz,&
 !!!              end do
 !!!           end do
 !!!        end do
-        boxit = dpbox_iter(geocode,dpbox)
+
+        boxit = dpbox_iter(dpbox,geocode)
         do while(dpbox_iter_next(boxit))
            call sum_erfcr(at%astruct%nat,at%astruct%ntypes, &
                 &         boxit%x,boxit%y,boxit%z, &
                 &         at%astruct%iatype,at%nelpsp,at%psppar,rxyz,potxyz)
            pot_ion(boxit%ind) = pot_ion(boxit%ind) + potxyz
         end do
+
      end if
      
   end if
@@ -1360,7 +1369,6 @@ subroutine createIonicPotential(geocode,iproc,verb,at,rxyz,&
 !           ';  v_conf(r)= 1/(2*rprb**4) * r**2'
 
      !write or not electric field in a separate file
-     efwrite=.false.!true.
 
      if (n3pi > 0) then
 !!!        do i3=1,n3pi
@@ -1377,7 +1385,7 @@ subroutine createIonicPotential(geocode,iproc,verb,at,rxyz,&
 !!!                 end do
 !!!           end do
 !!!        end do
-        boxit = dpbox_iter(geocode,dpbox)
+        boxit = dpbox_iter(dpbox,geocode)
         do while(dpbox_iter_next(boxit))
            pot_ion(boxit%ind)=pot_ion(boxit%ind)+elecfield(1)*boxit%x+elecfield(2)*boxit%y+elecfield(3)*boxit%z
 !           parabola: these two lines replace the above line comment out the if case and calculate x, z
@@ -1385,30 +1393,30 @@ subroutine createIonicPotential(geocode,iproc,verb,at,rxyz,&
 !           pot_ion(boxit%ind)=pot_ion(boxit%ind)+0.5_gp/(elecfield**4)*r2
         end do
 
-        if (efwrite .and. iproc == 0) then
-           open(unit=17,file='elecpotential_x',status='unknown')
-           write(17,*) "# x , external electric potential(x,y=0,z=0)"
-           do i1=nbl1+1,n1i-nbr1-1
-              x=real(i1-nbl1-1,gp)*hxh
-              write(17,*)x,-elecfield(1)*x
-           end do
-           close(17)
-           open(unit=17,file='elecpotential_y',status='unknown')
-           write(17,*) "# y , external electric potential(x=0,y,z=0)"
-           do i2=nbl2+1,n2i-nbr2-1
-              y=real(i2-nbl2-1,gp)*hyh
-              write(17,*)y,-elecfield(2)*y
-           end do
-           close(17)
-           open(unit=17,file='elecpotential_z',status='unknown')
-           write(17,*) "# z , external electric potential(x=0,y=0,z)"
-           do i3=1,n3pi
-              z=real(i3+i3s-1-nbl3-1,gp)*hzh
-              write(17,*)z,-elecfield(3)*z
-           end do
-           close(17)
-        end if
-
+!        if (efwrite .and. iproc == 0) then
+!           open(unit=17,file='elecpotential_x',status='unknown')
+!           write(17,*) "# x , external electric potential(x,y=0,z=0)"
+!           do i1=nbl1+1,n1i-nbr1-1
+!              x=real(i1-nbl1-1,gp)*hxh
+!              write(17,*)x,-elecfield(1)*x
+!           end do
+!           close(17)
+!           open(unit=17,file='elecpotential_y',status='unknown')
+!           write(17,*) "# y , external electric potential(x=0,y,z=0)"
+!           do i2=nbl2+1,n2i-nbr2-1
+!              y=real(i2-nbl2-1,gp)*hyh
+!              write(17,*)y,-elecfield(2)*y
+!           end do
+!           close(17)
+!           open(unit=17,file='elecpotential_z',status='unknown')
+!           write(17,*) "# z , external electric potential(x=0,y=0,z)"
+!           do i3=1,n3pi
+!              z=real(i3+i3s-1-nbl3-1,gp)*hzh
+!              write(17,*)z,-elecfield(3)*z
+!           end do
+!           close(17)
+!        end if
+! 
      end if
   end if
 
@@ -1640,7 +1648,7 @@ END SUBROUTINE ext_buffers
 
 !> Read and initialize counter-ions potentials (read psp files)
 subroutine CounterIonPotential(geocode,iproc,in,shift,&
-     hxh,hyh,hzh,grid,n3pi,i3s,pkernel,pot_ion)
+     hxh,hyh,hzh,grid,dpbox,pkernel,pot_ion)
   use module_base, pi => pi_param
   use module_types
   use module_interfaces, except_this_one => CounterIonPotential
@@ -1651,23 +1659,29 @@ subroutine CounterIonPotential(geocode,iproc,in,shift,&
   use yaml_output
   use module_atoms, only: deallocate_atoms_data,atomic_data_set_from_dict,atoms_data_null
   use gaussians, only: initialize_real_space_conversion, finalize_real_space_conversion,mp_exp
+  use module_atoms
+  use module_dpbox
   implicit none
   !Arguments
   character(len=1), intent(in) :: geocode !< @copydoc poisson_solver::doc::geocode
-  integer, intent(in) :: iproc,n3pi,i3s
+  integer, intent(in) :: iproc
   real(gp), intent(in) :: hxh,hyh,hzh
   real(gp), dimension(3), intent(in) :: shift
   type(input_variables), intent(in) :: in
   type(grid_dimensions), intent(in) :: grid
+  type(denspot_distribution), intent(in) :: dpbox
   type(coulomb_operator), intent(in) :: pkernel
   real(wp), dimension(*), intent(inout) :: pot_ion
   !Local variables
   real(gp), parameter :: mp_tiny = 1.e-30_gp
   logical :: htoobig=.false.,check_potion=.false.
-  logical :: perx,pery,perz,gox,goy,goz
-  integer :: iat,i1,i2,i3,j1,j2,j3,isx,isy,isz,iex,iey,iez,ityp,nspin
-  integer :: ind,nbl1,nbr1,nbl2,nbr2,nbl3,nbr3,nrange
-  real(kind=8) :: rholeaked,rloc,rlocinv2sq,charge,cutoff,x,y,z,xp,yp,zp,tt,rx,ry,rz
+!!!  logical :: perx,pery,perz,gox,goy,goz
+!!!  integer :: iat,j1,j2,j3,isx,isy,isz,iex,iey,iez
+  integer :: i1,i2,i3,ityp,nspin,nrange
+!!!  integer :: ind,nbl1,nbr1,nbl2,nbr2,nbl3,nbr3
+  integer :: n3pi,i3s
+  real(kind=8) :: rholeaked,rloc,rlocinv2sq,charge,cutoff,tt,rx,ry,rz,xp
+!!!  real(kind=8) :: x,y,z,yp,zp
   real(kind=8) :: tt_tot,rholeaked_tot,potxyz
   real(wp) :: maxdiff
   real(gp) :: ehart
@@ -1677,8 +1691,14 @@ subroutine CounterIonPotential(geocode,iproc,in,shift,&
   real(dp), dimension(:), allocatable :: potion_corr
   real(dp), dimension(:), allocatable  :: mpx,mpy,mpz
 !  real(gp), dimension(:,:), allocatable :: radii_cf
+  type(atoms_iterator) :: atit
+  type(dpbox_iterator) :: boxit
+  integer, dimension(2,3) :: nbox
 
   call timing(iproc,'CrtLocPot     ','ON')
+
+  n3pi = dpbox%n3pi
+  i3s = dpbox%i3s + dpbox%i3xcsh
   
   !initialize the work arrays needed to integrate with isf
   if (at%multipole_preserving) call initialize_real_space_conversion(nmoms=at%mp_isf,nrange=nrange)
@@ -1717,31 +1737,40 @@ subroutine CounterIonPotential(geocode,iproc,in,shift,&
 
 
   !conditions for periodicity in the three directions
-  perx=(geocode /= 'F')
-  pery=(geocode == 'P')
-  perz=(geocode /= 'F')
+!!!  perx=(geocode /= 'F')
+!!!  pery=(geocode == 'P')
+!!!  perz=(geocode /= 'F')
 
   !Calculate external buffers for each direction
-  call ext_buffers(perx,nbl1,nbr1)
-  call ext_buffers(pery,nbl2,nbr2)
-  call ext_buffers(perz,nbl3,nbr3)
+!!! call ext_buffers(perx,nbl1,nbr1)
+!!! call ext_buffers(pery,nbl2,nbr2)
+!!! call ext_buffers(perz,nbl3,nbr3)
 
   if (n3pi >0 .and. .not. htoobig) then
 
-     do iat=1,at%astruct%nat
-        ityp=at%astruct%iatype(iat)
+     atit = atoms_iter(at%astruct)
+     do while(atoms_iter_next(atit))
+       
+!!!     do iat=1,at%astruct%nat
+!!!        ityp=at%astruct%iatype(iat)
+
         !shift the positions of the counter_ion wrt the box
-        rx=at%astruct%rxyz(1,iat)-shift(1)
-        ry=at%astruct%rxyz(2,iat)-shift(2)
-        rz=at%astruct%rxyz(3,iat)-shift(3)
+!!!        rx=at%astruct%rxyz(1,iat)-shift(1)
+!!!        ry=at%astruct%rxyz(2,iat)-shift(2)
+!!!        rz=at%astruct%rxyz(3,iat)-shift(3)
+        rx=at%astruct%rxyz(1,atit%iat)-shift(1)
+        ry=at%astruct%rxyz(2,atit%iat)-shift(2)
+        rz=at%astruct%rxyz(3,atit%iat)-shift(3)
 
         if (iproc == 0) then
-           write(*,'(1x,a,i6,3(1pe14.7))')'counter ion No. ',iat,rx,ry,rz
+           write(*,'(1x,a,i6,3(1pe14.7))')'counter ion No. ',atit%iat,rx,ry,rz
         end if
 
-        rloc=at%psppar(0,0,ityp)
+!!!        rloc=at%psppar(0,0,ityp)
+!!!        charge=real(at%nelpsp(ityp),gp)/(2.0_gp*pi*sqrt(2.0_gp*pi)*rloc**3)
+        rloc=at%psppar(0,0,atit%ityp)
         rlocinv2sq=0.5_gp/rloc**2
-        charge=real(at%nelpsp(ityp),gp)/(2.0_gp*pi*sqrt(2.0_gp*pi)*rloc**3)
+        charge=real(at%nelpsp(atit%ityp),gp)/(2.0_gp*pi*sqrt(2.0_gp*pi)*rloc**3)
 
         !cutoff of the range
         cutoff=10.0_gp*rloc
@@ -1750,73 +1779,107 @@ subroutine CounterIonPotential(geocode,iproc,in,shift,&
            cutoff=cutoff+max(hxh,hyh,hzh)*real(nrange/2,kind=gp)
         end if
 
-        isx=floor((rx-cutoff)/hxh)
-        isy=floor((ry-cutoff)/hyh)
-        isz=floor((rz-cutoff)/hzh)
-
-        iex=ceiling((rx+cutoff)/hxh)
-        iey=ceiling((ry+cutoff)/hyh)
-        iez=ceiling((rz+cutoff)/hzh)
-
-        !print *,'rloc,iat,nelpsp',isx,iex,isy,iey,isz,iez,shift(:),iproc
-
+!!!        isx=floor((rx-cutoff)/hxh)
+!!!        isy=floor((ry-cutoff)/hyh)
+!!!        isz=floor((rz-cutoff)/hzh)
+!!!        
+!!!        iex=ceiling((rx+cutoff)/hxh)
+!!!        iey=ceiling((ry+cutoff)/hyh)
+!!!        iez=ceiling((rz+cutoff)/hzh)
+        
+!!!        !Separable function: do 1-D integrals before and store it.
+!!!        !call mp_calculate(rx,ry,rz,hxh,hyh,hzh,cutoff,rlocinv2sq,at%multipole_preserving,mpx,mpy,mpz)
+!!!        mpx = f_malloc( (/ isx.to.iex /),id='mpx')
+!!!        mpy = f_malloc( (/ isy.to.iey /),id='mpy')
+!!!        mpz = f_malloc( (/ isz.to.iez /),id='mpz')
+!!!        do i1=isx,iex
+!!!           mpx(i1) = mp_exp(hxh,rx,rlocinv2sq,i1,0,at%multipole_preserving)
+!!!        end do
+!!!        do i2=isy,iey
+!!!           mpy(i2) = mp_exp(hyh,ry,rlocinv2sq,i2,0,at%multipole_preserving)
+!!!        end do
+!!!        do i3=isz,iez
+!!!           mpz(i3) = mp_exp(hzh,rz,rlocinv2sq,i3,0,at%multipole_preserving)
+!!!        end do
+    
+        nbox(1,1)=floor((rx-cutoff)/hxh)
+        nbox(1,2)=floor((ry-cutoff)/hyh)
+        nbox(1,3)=floor((rz-cutoff)/hzh)
+        nbox(2,1)=ceiling((rx+cutoff)/hxh)
+        nbox(2,2)=ceiling((ry+cutoff)/hyh)
+        nbox(2,3)=ceiling((rz+cutoff)/hzh)
+    
         !Separable function: do 1-D integrals before and store it.
-        mpx = f_malloc( (/ isx.to.iex /),id='mpx')
-        mpy = f_malloc( (/ isy.to.iey /),id='mpy')
-        mpz = f_malloc( (/ isz.to.iez /),id='mpz')
-        do i1=isx,iex
+        mpx = f_malloc( (/ nbox(1,1).to.nbox(2,1) /),id='mpx')
+        mpy = f_malloc( (/ nbox(1,2).to.nbox(2,2) /),id='mpy')
+        mpz = f_malloc( (/ nbox(1,3).to.nbox(2,3) /),id='mpz')
+        do i1=nbox(1,1),nbox(2,1)
            mpx(i1) = mp_exp(hxh,rx,rlocinv2sq,i1,0,at%multipole_preserving)
         end do
-        do i2=isy,iey
+        do i2=nbox(1,2),nbox(2,2)
            mpy(i2) = mp_exp(hyh,ry,rlocinv2sq,i2,0,at%multipole_preserving)
         end do
-        do i3=isz,iez
+        do i3=nbox(1,3),nbox(2,3)
            mpz(i3) = mp_exp(hzh,rz,rlocinv2sq,i3,0,at%multipole_preserving)
         end do
+    
+        boxit = dpbox_iter(dpbox,geocode,nbox)
+ 
+!!!        do i3=isz,iez
+!!!           zp = mpz(i3)
+!!!           if (abs(zp) < mp_tiny) cycle
+!!!           !call ind_positions(perz,i3,grid%n3,j3,goz) 
+!!!           call ind_positions_new(perz,i3,grid%n3i,j3,goz) 
+!!!           j3=j3+nbl3+1
+!!!           do i2=isy,iey
+!!!              yp = zp*mpy(i2)
+!!!              if (abs(yp) < mp_tiny) cycle
+!!!              !call ind_positions(pery,i2,grid%n2,j2,goy)
+!!!              call ind_positions_new(pery,i2,grid%n2i,j2,goy)
+!!!              do i1=isx,iex
+!!!                 xp = yp*mpx(i1)
+!!!                 if (abs(xp) < mp_tiny) cycle
+!!!                 !call ind_positions(perx,i1,grid%n1,j1,gox)
+!!!                 call ind_positions_new(perx,i1,grid%n1i,j1,gox)
+!!!                 if (j3 >= i3s .and. j3 <= i3s+n3pi-1  .and. goy  .and. gox ) then
+!!!                    ind=j1+1+nbl1+(j2+nbl2)*grid%n1i+(j3-i3s)*grid%n1i*grid%n2i
+!!!                    pot_ion(ind)=pot_ion(ind)-xp*charge
+!!!                 else if (.not. goz ) then
+!!!                    rholeaked=rholeaked+xp*charge
+!!!                 endif
+!!!              enddo
+!!!           enddo
+!!!        enddo
 
-        do i3=isz,iez
-           zp = mpz(i3)
-           if (abs(zp) < mp_tiny) cycle
-           !call ind_positions(perz,i3,grid%n3,j3,goz) 
-           call ind_positions_new(perz,i3,grid%n3i,j3,goz) 
-           j3=j3+nbl3+1
-           do i2=isy,iey
-              yp = zp*mpy(i2)
-              if (abs(yp) < mp_tiny) cycle
-              !call ind_positions(pery,i2,grid%n2,j2,goy)
-              call ind_positions_new(pery,i2,grid%n2i,j2,goy)
-              do i1=isx,iex
-                 xp = yp*mpx(i1)
-                 if (abs(xp) < mp_tiny) cycle
-                 !call ind_positions(perx,i1,grid%n1,j1,gox)
-                 call ind_positions_new(perx,i1,grid%n1i,j1,gox)
-                 if (j3 >= i3s .and. j3 <= i3s+n3pi-1  .and. goy  .and. gox ) then
-                    ind=j1+1+nbl1+(j2+nbl2)*grid%n1i+(j3-i3s)*grid%n1i*grid%n2i
-                    pot_ion(ind)=pot_ion(ind)-xp*charge
-                 else if (.not. goz ) then
-                    rholeaked=rholeaked+xp*charge
-                 endif
-              enddo
-           enddo
-        enddo
+        do while(dpbox_iter_next(boxit))
+           xp = mpx(boxit%ibox(1))* mpy(boxit%ibox(2)) *  mpz(boxit%ibox(3))
+           pot_ion(boxit%ind) = pot_ion(boxit%ind) - xp*charge
+        end do
 
         !De-allocate for multipole preserving
         call f_free(mpx,mpy,mpz)
 
-     enddo
+     end do
 
   end if
 
   ! Check
   tt=0.d0
-  do j3=1,n3pi
-     do i2= -nbl2,2*grid%n2+1+nbr2
-        do i1= -nbl1,2*grid%n1+1+nbr1
-           ind=i1+1+nbl1+(i2+nbl2)*grid%n1i+(j3-1)*grid%n1i*grid%n2i
-           tt=tt+pot_ion(ind)
-        enddo
-     enddo
-  enddo
+!!!  do j3=1,n3pi
+!!!     indj3=(j3-1)*n1i*n2i
+!!!     do i2= -nbl2,2*n2+1+nbr2
+!!!        indj23=1+nbl1+(i2+nbl2)*n1i+indj3
+!!!        do i1= -nbl1,2*n1+1+nbr1
+!!!           ind=i1+indj23
+!!!           tt=tt+pot_ion(ind)
+!!!        enddo
+!!!     enddo
+!!!  enddo
+
+  boxit = dpbox_iter(dpbox,geocode)
+  do while(dpbox_iter_next(boxit))
+     tt = tt + pot_ion(boxit%ind)
+  end do
 
   tt=tt*hxh*hyh*hzh
   rholeaked=rholeaked*hxh*hyh*hzh
@@ -1855,34 +1918,47 @@ subroutine CounterIonPotential(geocode,iproc,in,shift,&
 
         !calculate pot_ion with an explicit error function to correct in the case of big grid spacings
         !for the moment works only in the isolated BC case
-        do i3=1,n3pi
-           z=real(i3+i3s-1-nbl3-1,gp)*hzh
-           do i2=1,grid%n2i
-              y=real(i2-nbl2-1,gp)*hyh
-              do i1=1,grid%n1i
-                 x=real(i1-nbl1-1,gp)*hxh
-                 ind=i1+(i2-1)*grid%n1i+(i3-1)*grid%n1i*grid%n2i
-                 !if (i1==49 .and. i2==46 .and. i3==44) then
-                    call sum_erfcr(at%astruct%nat,at%astruct%ntypes,x,y,z,at%astruct%iatype,at%nelpsp,at%psppar,&
-                          at%astruct%rxyz,potxyz)
-                 !   stop
-                 !end if
-                 potion_corr(ind)=potion_corr(ind)+potxyz
-                 !write(18,'(3(i6),i12,3(1x,1pe24.17))')i1,i2,i3,ind,potion_corr(ind),pot_ion(ind)
-              end do
-           end do
+!!!        do i3=1,n3pi
+!!!           z=real(i3+i3s-1-nbl3-1,gp)*hzh
+!!!           do i2=1,grid%n2i
+!!!              y=real(i2-nbl2-1,gp)*hyh
+!!!              do i1=1,grid%n1i
+!!!                 x=real(i1-nbl1-1,gp)*hxh
+!!!                 ind=i1+(i2-1)*grid%n1i+(i3-1)*grid%n1i*grid%n2i
+!!!                 !if (i1==49 .and. i2==46 .and. i3==44) then
+!!!                    call sum_erfcr(at%astruct%nat,at%astruct%ntypes,x,y,z,at%astruct%iatype,at%nelpsp,at%psppar,&
+!!!                          at%astruct%rxyz,potxyz)
+!!!                 !   stop
+!!!                 !end if
+!!!                 potion_corr(ind)=potion_corr(ind)+potxyz
+!!!                 !write(18,'(3(i6),i12,3(1x,1pe24.17))')i1,i2,i3,ind,potion_corr(ind),pot_ion(ind)
+!!!              end do
+!!!           end do
+!!!        end do
+
+        boxit = dpbox_iter(dpbox,geocode)
+        do while(dpbox_iter_next(boxit))
+           call sum_erfcr(at%astruct%nat,at%astruct%ntypes, &
+                &         boxit%x,boxit%y,boxit%z, &
+                &         at%astruct%iatype,at%nelpsp,at%psppar,at%astruct%rxyz,potxyz)
+           potion_corr(boxit%ind) = potion_corr(boxit%ind )+ potxyz
         end do
 
         !then calculate the maximum difference in the sup norm
         maxdiff=0.0_wp
-        do i3=1,n3pi
-           do i2=1,grid%n2i
-              do i1=1,grid%n1i
-                 ind=i1+(i2-1)*grid%n1i+(i3-1)*grid%n1i*grid%n2i
-                 maxdiff=max(maxdiff,abs(potion_corr(ind)-pot_ion(ind)))
-                 !write(17,'(3(i6),i12,3(1x,1pe24.17))')i1,i2,i3,ind,potion_corr(ind),pot_ion(ind),maxdiff
-              end do
-           end do
+!!!        do i3=1,n3pi
+!!!           do i2=1,grid%n2i
+!!!              do i1=1,grid%n1i
+!!!                 ind=i1+(i2-1)*grid%n1i+(i3-1)*grid%n1i*grid%n2i
+!!!                 maxdiff=max(maxdiff,abs(potion_corr(ind)-pot_ion(ind)))
+!!!                 !write(17,'(3(i6),i12,3(1x,1pe24.17))')i1,i2,i3,ind,potion_corr(ind),pot_ion(ind),maxdiff
+!!!              end do
+!!!           end do
+!!!        end do
+
+        boxit = dpbox_iter(dpbox,geocode)
+        do while(dpbox_iter_next(boxit))
+           maxdiff=max(maxdiff,abs(potion_corr(boxit%ind)-pot_ion(boxit%ind)))
         end do
 
         if (pkernel%mpi_env%nproc > 1) then
@@ -1903,18 +1979,27 @@ subroutine CounterIonPotential(geocode,iproc,in,shift,&
   if (n3pi > 0 .and. htoobig) then
      !add to pot_ion an explicit error function to correct in the case of big grid spacing
      !for the moment works only in the isolated BC case
-     do i3=1,n3pi
-        z=real(i3+i3s-1-nbl3-1,gp)*hzh
-        do i2=1,grid%n2i
-           y=real(i2-nbl2-1,gp)*hyh
-           do i1=1,grid%n1i
-              x=real(i1-nbl1-1,gp)*hxh
-              ind=i1+(i2-1)*grid%n1i+(i3-1)*grid%n1i*grid%n2i
-              call sum_erfcr(at%astruct%nat,at%astruct%ntypes,x,y,z,at%astruct%iatype,at%nelpsp,at%psppar,at%astruct%rxyz,potxyz)
-              pot_ion(ind)=pot_ion(ind)+potxyz
-           end do
-        end do
+!!!     do i3=1,n3pi
+!!!        z=real(i3+i3s-1-nbl3-1,gp)*hzh
+!!!        do i2=1,grid%n2i
+!!!           y=real(i2-nbl2-1,gp)*hyh
+!!!           do i1=1,grid%n1i
+!!!              x=real(i1-nbl1-1,gp)*hxh
+!!!              ind=i1+(i2-1)*grid%n1i+(i3-1)*grid%n1i*grid%n2i
+!!!              call sum_erfcr(at%astruct%nat,at%astruct%ntypes,x,y,z,at%astruct%iatype,at%nelpsp,at%psppar,at%astruct%rxyz,potxyz)
+!!!              pot_ion(ind)=pot_ion(ind)+potxyz
+!!!           end do
+!!!        end do
+!!!     end do
+
+     boxit = dpbox_iter(dpbox,geocode)
+     do while(dpbox_iter_next(boxit))
+        call sum_erfcr(at%astruct%nat,at%astruct%ntypes, &
+             &         boxit%x,boxit%y,boxit%z, &
+             &         at%astruct%iatype,at%nelpsp,at%psppar,at%astruct%rxyz,potxyz)
+        pot_ion(boxit%ind) = pot_ion(boxit%ind) + potxyz
      end do
+
   end if
 
   !deallocations

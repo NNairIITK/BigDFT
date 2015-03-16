@@ -1793,7 +1793,7 @@ void FC_FUNC_(input_wf, INPUT_WF)(const int *iproc,
                                   const double *locregcenters);
 /* ionicenergyandforces src/init/ionicpot.f90:12 */
 /* Fortran header:
-subroutine IonicEnergyandForces(iproc,nproc,dpbox,at,elecfield, rxyz,eion,fion,dispersion,edisp,fdisp,ewaldstr,n1,n2,n3, pot_ion,pkernel,psoffset)
+subroutine IonicEnergyandForces(iproc,dpbox,at,elecfield, rxyz,eion,fion,dispersion,edisp,fdisp,ewaldstr, pot_ion,pkernel,psoffset)
 use module_base
 use module_types
 use Poisson_Solver, except_dp => dp, except_gp => gp, except_wp => wp
@@ -1802,7 +1802,7 @@ use yaml_output
 implicit none
 type(denspot_distribution), intent(in) :: dpbox
 type(atoms_data), intent(in) :: at
-integer, intent(in) :: iproc,nproc,n1,n2,n3,dispersion
+integer, intent(in) :: iproc,dispersion
 real(gp), dimension(3), intent(in) :: elecfield
 real(gp), dimension(3,at%astruct%nat), intent(in) :: rxyz
 type(coulomb_operator), intent(in) :: pkernel
@@ -1813,9 +1813,7 @@ real(dp), dimension(*), intent(out) :: pot_ion
 
 character(len=*), parameter :: subname='IonicEnergyandForces'
 logical :: slowion=.false.
-logical :: perx,pery,perz,gox,goy,goz
-integer :: n1i,n2i,n3i,i3s,n3pi
-integer :: i,iat,ii,i_all,i_stat,ityp,jat,jtyp,nbl1,nbr1,nbl2,nbr2,nbl3,nbr3
+integer :: i,iat,ii,i_all,i_stat,ityp,jat,jtyp
 integer :: isx,iex,isy,iey,isz,iez,i1,i2,i3,j1,j2,j3,ind,ierr
 real(gp) :: ucvol,rloc,twopitothreehalf,pi,atint,shortlength,charge,eself,rx,ry,rz
 real(gp) :: fxion,fyion,fzion,dist,fxerf,fyerf,fzerf,cutoff
@@ -1829,7 +1827,6 @@ real(gp), dimension(:,:), allocatable :: fewald,xred
 real(gp), dimension(3) :: cc
 */
 void FC_FUNC(ionicenergyandforces, IONICENERGYANDFORCES)(const int *iproc, 
-                                                         const int *nproc, 
                                                          const f90_denspot_distribution *dpbox, 
                                                          const f90_atoms_data *at, 
                                                          const double *elecfield, 
@@ -1840,9 +1837,6 @@ void FC_FUNC(ionicenergyandforces, IONICENERGYANDFORCES)(const int *iproc,
                                                          double *edisp, 
                                                          f90_pointer_double_2D *fdisp, 
                                                          double *ewaldstr, 
-                                                         const int *n1, 
-                                                         const int *n2, 
-                                                         const int *n3, 
                                                          double *pot_ion, 
                                                          const f90_coulomb_operator *pkernel, 
                                                          double *psoffset);

@@ -86,8 +86,9 @@ contains
 
 
   !> Create an iterator dpbox to iterate over points of the (potential) grid 
-  function dpbox_iter(geocode,dpbox,nbox) result(boxit)
+  function dpbox_iter(dpbox,geocode,nbox) result(boxit)
     implicit none
+    !Arguments
     type(denspot_distribution), intent(in), target :: dpbox
     character(len=1), intent(in), target :: geocode
     !> Box of start and end point which have to be considered
