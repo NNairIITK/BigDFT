@@ -370,7 +370,7 @@ subroutine IonicEnergyandForces(iproc,dpbox,at,elecfield,&
               mpz(i3) = mp_exp(hzh,rz,rlocinv2sq,i3,0,at%multipole_preserving)
            end do
        
-           boxit = dpbox_iter(dpbox,nbox)
+           boxit = dpbox_iter(dpbox,DPB_POT_ION,nbox)
  
            !These nested loops will be used also for the actual ionic forces, to be recalculated
 !!!           do i3=isz,iez
@@ -500,7 +500,7 @@ subroutine IonicEnergyandForces(iproc,dpbox,at,elecfield,&
               mpz(i3) = mp_exp(hzh,rz,rlocinv2sq,i3,0,at%multipole_preserving)
            end do
        
-           boxit = dpbox_iter(dpbox,nbox)
+           boxit = dpbox_iter(dpbox,DPB_POT_ION,nbox)
  
 !!!           do i3=isz,iez
 !!!              z=real(i3,gp)*hzh-rz
@@ -833,7 +833,7 @@ subroutine createIonicPotential(geocode,iproc,verb,at,rxyz,&
            mpz(i3) = mp_exp(hzh,rz,rlocinv2sq,i3,0,at%multipole_preserving)
         end do
     
-        boxit = dpbox_iter(dpbox,nbox)
+        boxit = dpbox_iter(dpbox,DPB_POT_ION,nbox)
  
         if ( .not. any(at%npspcode == PSPCODE_PAW) ) then
 
@@ -969,7 +969,7 @@ subroutine createIonicPotential(geocode,iproc,verb,at,rxyz,&
 !!!     enddo
 !!!  enddo
 
-  boxit = dpbox_iter(dpbox)
+  boxit = dpbox_iter(dpbox,DPB_POT_ION)
   do while(dpbox_iter_next(boxit))
      tt = tt + pot_ion(boxit%ind)
   end do
@@ -1039,7 +1039,7 @@ subroutine createIonicPotential(geocode,iproc,verb,at,rxyz,&
 !!!           end do
 !!!        end do
         
-        boxit = dpbox_iter(dpbox)
+        boxit = dpbox_iter(dpbox,DPB_POT_ION)
         do while(dpbox_iter_next(boxit))
            call sum_erfcr(at%astruct%nat,at%astruct%ntypes, &
                 &         boxit%x,boxit%y,boxit%z, &
@@ -1059,7 +1059,7 @@ subroutine createIonicPotential(geocode,iproc,verb,at,rxyz,&
 !!!           end do
 !!!        end do
 
-        boxit = dpbox_iter(dpbox)
+        boxit = dpbox_iter(dpbox,DPB_POT_ION)
         do while(dpbox_iter_next(boxit))
            maxdiff=max(maxdiff,abs(potion_corr(boxit%ind)-pot_ion(boxit%ind)))
         end do
@@ -1209,7 +1209,7 @@ subroutine createIonicPotential(geocode,iproc,verb,at,rxyz,&
 !!!              end do
 
 
-             boxit = dpbox_iter(dpbox,nbox)
+             boxit = dpbox_iter(dpbox,DPB_POT_ION,nbox)
              do while(dpbox_iter_next(boxit))
                 xp = mpx(boxit%ibox(1))* mpy(boxit%ibox(2)) *  mpz(boxit%ibox(3))
                 r2 = (boxit%x-rx)**2 + (boxit%y-ry)**2 + (boxit%z-rz)**2
@@ -1280,7 +1280,7 @@ subroutine createIonicPotential(geocode,iproc,verb,at,rxyz,&
 !!!              end if
 !!!           end do
 
-            boxit = dpbox_iter(dpbox,nbox)
+            boxit = dpbox_iter(dpbox,DPB_POT_ION,nbox)
             do while(dpbox_iter_next(boxit))
                xp = mpx(boxit%ibox(1))* mpy(boxit%ibox(2)) *  mpz(boxit%ibox(3))
                r2 = (boxit%x-rx)**2 + (boxit%y-ry)**2 + (boxit%z-rz)**2
@@ -1327,7 +1327,7 @@ subroutine createIonicPotential(geocode,iproc,verb,at,rxyz,&
 !!!           end do
 !!!        end do
 
-        boxit = dpbox_iter(dpbox)
+        boxit = dpbox_iter(dpbox,DPB_POT_ION)
         do while(dpbox_iter_next(boxit))
            call sum_erfcr(at%astruct%nat,at%astruct%ntypes, &
                 &         boxit%x,boxit%y,boxit%z, &
@@ -1386,7 +1386,7 @@ subroutine createIonicPotential(geocode,iproc,verb,at,rxyz,&
 !!!                 end do
 !!!           end do
 !!!        end do
-        boxit = dpbox_iter(dpbox)
+        boxit = dpbox_iter(dpbox,DPB_POT_ION)
         do while(dpbox_iter_next(boxit))
            pot_ion(boxit%ind)=pot_ion(boxit%ind)+elecfield(1)*boxit%x+elecfield(2)*boxit%y+elecfield(3)*boxit%z
 !           parabola: these two lines replace the above line comment out the if case and calculate x, z
@@ -1822,7 +1822,7 @@ subroutine CounterIonPotential(iproc,in,shift,&
            mpz(i3) = mp_exp(hzh,rz,rlocinv2sq,i3,0,at%multipole_preserving)
         end do
     
-        boxit = dpbox_iter(dpbox,nbox)
+        boxit = dpbox_iter(dpbox,DPB_POT_ION,nbox)
  
 !!!        do i3=isz,iez
 !!!           zp = mpz(i3)
@@ -1875,7 +1875,7 @@ subroutine CounterIonPotential(iproc,in,shift,&
 !!!     enddo
 !!!  enddo
 
-  boxit = dpbox_iter(dpbox)
+  boxit = dpbox_iter(dpbox,DPB_POT_ION)
   do while(dpbox_iter_next(boxit))
      tt = tt + pot_ion(boxit%ind)
   end do
@@ -1935,7 +1935,7 @@ subroutine CounterIonPotential(iproc,in,shift,&
 !!!           end do
 !!!        end do
 
-        boxit = dpbox_iter(dpbox)
+        boxit = dpbox_iter(dpbox,DPB_POT_ION)
         do while(dpbox_iter_next(boxit))
            call sum_erfcr(at%astruct%nat,at%astruct%ntypes, &
                 &         boxit%x,boxit%y,boxit%z, &
@@ -1955,7 +1955,7 @@ subroutine CounterIonPotential(iproc,in,shift,&
 !!!           end do
 !!!        end do
 
-        boxit = dpbox_iter(dpbox)
+        boxit = dpbox_iter(dpbox,DPB_POT_ION)
         do while(dpbox_iter_next(boxit))
            maxdiff=max(maxdiff,abs(potion_corr(boxit%ind)-pot_ion(boxit%ind)))
         end do
@@ -1991,7 +1991,7 @@ subroutine CounterIonPotential(iproc,in,shift,&
 !!!        end do
 !!!     end do
 
-     boxit = dpbox_iter(dpbox)
+     boxit = dpbox_iter(dpbox,DPB_POT_ION)
      do while(dpbox_iter_next(boxit))
         call sum_erfcr(at%astruct%nat,at%astruct%ntypes, &
              &         boxit%x,boxit%y,boxit%z, &

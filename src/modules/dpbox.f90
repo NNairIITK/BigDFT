@@ -11,21 +11,24 @@
 !> Module which contains the data structure associated to the dnesity and potential grid
 module module_dpbox
 
-  use module_base, only: gp,mpi_environment,mpi_environment_null
+  use module_base, only: gp,mpi_environment,mpi_environment_null,f_err_throw
 
   implicit none
 
-  private
+  integer, parameter, public :: DPB_POT_ION = 0 !< Use n3pi for the iterations over z planes
+  integer, parameter, public :: DPB_RHO     = 1 !< Use n3d  for the iterations over z planes
+  integer, parameter, public :: DPB_POT     = 2 !< Use n3p  for the iterations over z planes
 
+  private
 
   !> Structure to store the density / potential distribution among processors.
   type, public :: denspot_distribution
-     integer :: n3d                  !< Number of z planes for density
-     integer :: n3p                  !< Number of z planes for potential
+     integer :: n3d                  !< Number of z planes distributed for density
+     integer :: n3p                  !< Number of z planes distirbuted for potential
      integer :: n3pi                 !< Number of distributed planes in z dimension for pot_ion AND to calculate charges
                                      !! BECAUSE n3d has an overlap!
      integer :: i3xcsh
-     integer :: i3s                  !< Index of the first z plane in parallel
+     integer :: i3s                  !< Index of the first z plane for the mpi process i.e. from i3s:i3s+n3pi-1 
      integer :: nrhodim
      !> Integer which controls the presence of a density after the potential array
      !! if different than zero, at the address ndimpot*nspin+i3rho_add starts the spin up component of the density
@@ -51,7 +54,7 @@ module module_dpbox
     integer, dimension(2,3) :: nbox      !< Specify a sub-box to iterate over the points (ex. around atoms)
     integer :: n1i,n2i,n3i               !< 3D dimension of the whole grid
     integer :: i3s                       !< Index of the first z plane for the mpi process i.e. from i3s:i3s+n3pi-1 
-    integer :: n3pi                      !< Distributed dimension in parallel (plane number for the proc in 1:n3)
+    integer :: n3_iter                   !< Indicate Z dimension when iter depending on should be n3pi,n3p,n3d
     integer :: nbl1,nbr1                 !< Size of left and right buffers in x direction
     integer :: nbl2,nbr2                 !< Size of left and right buffers in y direction
     integer :: nbl3,nbr3                 !< Size of left and right buffers in z direction
@@ -84,7 +87,6 @@ contains
     type(denspot_distribution),intent(out) :: dpbox
     dpbox%n3d=0
     dpbox%n3p=0
-    dpbox%n3pi=0
     dpbox%i3xcsh=0
     dpbox%i3s=0
     dpbox%nrhodim=0
@@ -162,7 +164,6 @@ contains
     boxit%n2i = -1
     boxit%n3i = -1
     boxit%i3s = -1
-    boxit%n3pi = -1
     boxit%nbl1 = -1
     boxit%nbr1 = -1
     boxit%nbl2 = -1
@@ -177,10 +178,12 @@ contains
 
 
   !> Create an iterator dpbox to iterate over points of the (potential) grid 
-  function dpbox_iter(dpbox,nbox) result(boxit)
+  function dpbox_iter(dpbox,idpbox,nbox) result(boxit)
     implicit none
     !Arguments
     type(denspot_distribution), intent(in), target :: dpbox
+    !> Indicate if we iterate over pot_ion (n3pi), over rho (n3d) or over rhov (n3p)
+    integer, intent(in) :: idpbox 
     !> Box of start and end point which have to be considered
     integer, dimension(2,3), intent(in), optional :: nbox
     type(dpbox_iterator) :: boxit
@@ -194,11 +197,22 @@ contains
     boxit%n2i = boxit%dpbox_ptr%ndims(2)
     boxit%n3i = boxit%dpbox_ptr%ndims(3)
     !This is correct for a potential not a density
-    !Index of the first z plane between 1:n3pi
+    !Index of the first z plane between 1:n3_iter
     boxit%i3s = boxit%dpbox_ptr%i3s + boxit%dpbox_ptr%i3xcsh
 
-    boxit%n3pi = boxit%dpbox_ptr%n3pi
-    if (boxit%n3pi == 0) then
+    select case(idpbox)
+    case(DPB_POT_ION)
+      boxit%n3_iter = boxit%dpbox_ptr%n3pi
+    case(DPB_RHO)
+      boxit%n3_iter = boxit%dpbox_ptr%n3d
+    case(DPB_POT)
+      boxit%n3_iter = boxit%dpbox_ptr%n3p
+    case default
+      call f_err_throw('dpbox_iterator: Wrong choice for the iterations over the z dimension', &
+           err_name='BIGDFT_RUNTIME_ERROR')
+    end select
+
+    if (boxit%n3_iter== 0) then
       !No iteration, the iterator is destroyed and we leave!
       call nullify_dpbox_iterator(boxit)
       return
@@ -287,12 +301,12 @@ contains
         !Check if this point is inside the box
         call ind_positions_new(boxit%perz,boxit%ibox(3),boxit%n3i,boxit%iz,goz) 
         boxit%iz = boxit%iz + boxit%nbl3 + 1
-        if ( .not.(boxit%iz >= boxit%i3s .and. boxit%iz <= boxit%i3s+boxit%n3pi-1) ) cycle
+        if ( .not.(boxit%iz >= boxit%i3s .and. boxit%iz <= boxit%i3s+boxit%n3_iter-1) ) cycle
         call ind_positions_new(boxit%pery,boxit%ibox(2),boxit%n2i,boxit%iy,goy)
         if (.not.goy) cycle
         call ind_positions_new(boxit%perx,boxit%ibox(1),boxit%n1i,boxit%ix,gox)
         !Check if in the box
-        !if (boxit%iz >= boxit%i3s .and. boxit%iz <= boxit%i3s+boxit%n3pi-1 .and. goy .and. gox ) then
+        !if (boxit%iz >= boxit%i3s .and. boxit%iz <= boxit%i3s+boxit%n3_iter-1 .and. goy .and. gox ) then
         if (gox) then
           !This point is valid: we calculate ind (index for pot_ion) and leave!
           boxit%ind = boxit%ix+1 + boxit%nbl1 &

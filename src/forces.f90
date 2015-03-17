@@ -21,6 +21,7 @@ subroutine calculate_forces(iproc,nproc,psolver_groupsize,Glr,atoms,orbs,nlpsp,r
   use communications_base
   use yaml_output
   use module_forces
+  !Arguments
   implicit none
   logical, intent(in) :: refill_proj
   integer, intent(in) :: iproc,nproc,i3s,n3p,nspin,psolver_groupsize,imode,nsize_psi
@@ -39,7 +40,7 @@ subroutine calculate_forces(iproc,nproc,psolver_groupsize,Glr,atoms,orbs,nlpsp,r
   real(gp), dimension(6), intent(out) :: strten
   real(gp), dimension(3,atoms%astruct%nat), intent(out) :: fxyz
   type(DFT_wavefunction),intent(inout) :: tmb
-  !local variables
+  !Local variables
   integer :: iat,i,j
   real(gp) :: charge,ucvol,maxdiff
   real(gp), dimension(6,4) :: strtens!local,nonlocal,kin,erf
@@ -65,26 +66,26 @@ subroutine calculate_forces(iproc,nproc,psolver_groupsize,Glr,atoms,orbs,nlpsp,r
   if (psolver_groupsize < nproc) call vscal(3*atoms%astruct%nat,real(psolver_groupsize,gp)/real(nproc,gp),fxyz(1,1),1)
   
   !if (iproc == 0 .and. verbose > 1) write( *,'(1x,a)',advance='no')'Calculate nonlocal forces...'
- 
-  if (imode==0) then
-      !cubic version of nonlocal forces
-      call nonlocal_forces(Glr,hx,hy,hz,atoms,rxyz,&
-           orbs,nlpsp,Glr%wfd,psi,fxyz,refill_proj,strtens(1,2))
-  else if (imode==1) then
-      !linear version of nonlocal forces
-      call nonlocal_forces_linear(iproc,nproc,tmb%npsidim_orbs,tmb%lzd%glr,hx,hy,hz,atoms,rxyz,&
-           tmb%orbs,nlpsp,tmb%lzd,tmb%psi,tmb%linmat%l,tmb%linmat%kernel_,fxyz,refill_proj,&
-           strtens(1,2))
-      !!do iat=1,atoms%astruct%nat
-      !!    write(4200+iproc,'(a,i8,3es15.6)') 'iat, fxyz(:,iat)', iat, fxyz(:,iat)
-      !!end do
-  else
-      stop 'wrong imode'
-  end if
 
-  !if (iproc == 0 .and. verbose > 1) write( *,'(1x,a)')'done.'
-  !if (iproc == 0 .and. verbose > 1) call yaml_map('Non Local forces calculated',.true.)
-   if (iproc == 0 .and. verbose > 1) call yaml_map('Calculate Non Local forces',(nlpsp%nprojel > 0))
+  select case(imode)
+  case(0)
+     !cubic version of nonlocal forces
+     call nonlocal_forces(Glr,hx,hy,hz,atoms,rxyz,&
+          orbs,nlpsp,Glr%wfd,psi,fxyz,refill_proj,strtens(1,2))
+  case(1)
+     !linear version of nonlocal forces
+     call nonlocal_forces_linear(iproc,nproc,tmb%npsidim_orbs,tmb%lzd%glr,hx,hy,hz,atoms,rxyz,&
+          tmb%orbs,nlpsp,tmb%lzd,tmb%psi,tmb%linmat%l,tmb%linmat%kernel_,fxyz,refill_proj,&
+          strtens(1,2))
+     !!do iat=1,atoms%astruct%nat
+     !!    write(4200+iproc,'(a,i8,3es15.6)') 'iat, fxyz(:,iat)', iat, fxyz(:,iat)
+     !!end do
+  case default
+     call f_err_throw('Wrong imode',err_name='BIGDFT_RUNTIME_ERROR')
+     !stop 'wrong imode'
+  end select
+
+  if (iproc == 0 .and. verbose > 1) call yaml_map('Calculate Non Local forces',(nlpsp%nprojel > 0))
 
   if (atoms%astruct%geocode == 'P' .and. psolver_groupsize == nproc) then
      call local_hamiltonian_stress(orbs,Glr,hx,hy,hz,psi,strtens(1,3))
@@ -354,7 +355,7 @@ end subroutine rhocore_forces
 !> Calculates the local forces acting on the atoms belonging to iproc
 subroutine local_forces(iproc,at,rxyz,hxh,hyh,hzh,&
      dpbox, &
-     n1,n2,n3,n3pi,i3s,n1i,n2i,n3i,rho,pot,floc,locstrten,charge)
+     n1,n2,n3,n3p,i3s,n1i,n2i,n3i,rho,pot,floc,locstrten,charge)
   use module_base, pi => pi_param
   use module_types
   use yaml_output
@@ -363,7 +364,7 @@ subroutine local_forces(iproc,at,rxyz,hxh,hyh,hzh,&
   implicit none
   !Arguments
   type(atoms_data), intent(in) :: at
-  integer, intent(in) :: iproc,n1,n2,n3,n3pi,i3s,n1i,n2i,n3i
+  integer, intent(in) :: iproc,n1,n2,n3,n3p,i3s,n1i,n2i,n3i
   real(gp), intent(in) :: hxh,hyh,hzh 
   type(denspot_distribution), intent(in) :: dpbox
   real(gp),intent(out) :: charge
@@ -391,18 +392,18 @@ subroutine local_forces(iproc,at,rxyz,hxh,hyh,hzh,&
   locstrten=0.0_gp
 
   charge=0.d0
-!!!  do i3=1,n3pi
-!!!     do i2=1,n2i
-!!!        do i1=1,n1i
-!!!           ind=i1+(i2-1)*n1i+(i3-1)*n1i*n2i
-!!!           charge=charge+rho(ind)
-!!!        enddo
-!!!     enddo
-!!!  enddo
-  boxit = dpbox_iter(dpbox)
-  do while(dpbox_iter_next(boxit))
-     charge = charge + rho(boxit%ind)
-  end do
+  do i3=1,n3p
+     do i2=1,n2i
+        do i1=1,n1i
+           ind=i1+(i2-1)*n1i+(i3-1)*n1i*n2i
+           charge=charge+rho(ind)
+        enddo
+     enddo
+  enddo
+!!!  boxit = dpbox_iter(dpbox,DPB_POT)
+!!!  do while(dpbox_iter_next(boxit))
+!!!     charge = charge + rho(boxit%ind)
+!!!  end do
   
   charge=charge*hxh*hyh*hzh
 
@@ -413,7 +414,7 @@ subroutine local_forces(iproc,at,rxyz,hxh,hyh,hzh,&
   perx=(at%astruct%geocode /= 'F')
   pery=(at%astruct%geocode == 'P')
   perz=(at%astruct%geocode /= 'F')
- 
+
   call ext_buffers(perx,nbl1,nbr1)
   call ext_buffers(pery,nbl2,nbr2)
   call ext_buffers(perz,nbl3,nbr3)
@@ -514,7 +515,7 @@ subroutine local_forces(iproc,at,rxyz,hxh,hyh,hzh,&
      
      !calculate the forces near the atom due to the error function part of the potential
      !calculate forces for all atoms only in the distributed part of the simulation box
-!!!     boxit = dpbox_iter(dpbox,nbox)
+!!!     boxit = dpbox_iter(dpbox,DPB_POT,nbox)
 !!!     do while(dpbox_iter_next(boxit))
 !!!        xp = mpx(boxit%ibox(1))* mpy(boxit%ibox(2)) *  mpz(boxit%ibox(3))
 !!!        r2 = (boxit%x-rx)**2 + (boxit%y-ry)**2 + (boxit%z-rz)**2
@@ -548,7 +549,7 @@ subroutine local_forces(iproc,at,rxyz,hxh,hyh,hzh,&
 !!!        fzerf = fzerf + xp*Vel*boxit%z
 !!!     end do
 
-     if (n3pi > 0) then
+     if (n3p > 0) then
         do i3=isz,iez
            zp = mpz(i3)
            z=real(i3,kind=8)*hzh-rz
@@ -570,7 +571,7 @@ subroutine local_forces(iproc,at,rxyz,hxh,hyh,hzh,&
                  r2=x**2+yzsq
                  arg=r2*rlocinvsq
  
-                 if (j3 >= i3s .and. j3 <= i3s+n3pi-1  .and. goy  .and. gox ) then
+                 if (j3 >= i3s .and. j3 <= i3s+n3p-1  .and. goy  .and. gox ) then
                     ind=j1+1+nbl1+(j2+nbl2)*n1i+(j3-i3s+1-1)*n1i*n2i
                     !gaussian part
                     tt=0.d0
@@ -636,7 +637,7 @@ subroutine local_forces(iproc,at,rxyz,hxh,hyh,hzh,&
 
 !write(*,*) 'iproc,charge:',iproc,charge
 
-!locstrten(1:3)=locstrten(1:3)+charge*psoffset/(hxh*hyh*hzh)/real(n1i*n2i*n3pi,kind=8)
+!locstrten(1:3)=locstrten(1:3)+charge*psoffset/(hxh*hyh*hzh)/real(n1i*n2i*n3p,kind=8)
 
 !!!  forceleaked=forceleaked*hxh*hyh*hzh
   !if (iproc == 0 .and. verbose > 1) write(*,'(a,1pe12.5)') 'done. Leaked force: ',forceleaked

@@ -210,8 +210,7 @@ subroutine clean_forces_dft(iproc,at,rxyz,fxyz,fnoise)
      enddo
   end if
 
-  call clean_forces_base(at,fxyz(1,1))
-  
+  call clean_forces_base(at,fxyz)
   
   !the noise of the forces is the norm of the translational force
 !  fnoise=real(at%astruct%nat,gp)**2*(sumx**2+sumy**2+sumz**2)
