@@ -25,7 +25,7 @@ program memguess
    use gaussians, only: gaussian_basis, deallocate_gwf
    use communications_base, only: deallocate_comms
    use psp_projectors, only: free_DFT_PSP_projectors
-   use io, only: read_linear_matrix_dense, read_coeff_minbasis
+   use io, only: read_linear_matrix_dense, read_coeff_minbasis, writeLinearCoefficients
    implicit none
    character(len=*), parameter :: subname='memguess'
    character(len=30) :: tatonam, radical
@@ -421,7 +421,7 @@ program memguess
             call get_command_argument(i_arg, value = nat_)
             read(nat_,fmt=*,iostat=ierror) nat
             i_arg = i_arg + 1
-            write(*,'(1x,a,s(i0,a))')&
+            write(*,'(1x,a,2(i0,a))')&
                &   'multiply the matrices (size ',ntmb,'x',ntmb,')'
             multiply_matrices = .true.
             exit loop_getargs
@@ -440,7 +440,7 @@ program memguess
             call get_command_argument(i_arg, value = power_)
             read(power_,fmt=*,iostat=ierror) power
             i_arg = i_arg + 1
-            write(*,'(1x,a,s(i0,a))')&
+            write(*,'(1x,a,2(i0,a))')&
                &   'calculate the power of a matrix'
             matrixpower = .true.
             exit loop_getargs
@@ -726,7 +726,7 @@ program memguess
            call yaml_map('PDoS number',ipdos)
            call yaml_map('start, increment',(/ipdos,npdos/))
            write(num,fmt='(i2.2)') ipdos
-           write(iunit02,'(a,i0,a)') 'f',ipdos,'(x) = \'
+           write(iunit02,'(a,i0,a)') 'f',ipdos,'(x) = \ '
            do iorb=1,norbks
                call yaml_map('orbital being processed',iorb)
                call gemm('n', 't', ntmb, ntmb, 1, 1.d0, coeff(1,iorb), ntmb, &
@@ -765,13 +765,12 @@ program memguess
                    call f_err_throw('could not determine energy bin, energy='//yaml_toa(energy),err_name='BIGDFT_RUNTIME_ERROR')
                end if
                if (iorb<norbks) then
-                   write(iunit02,'(2(a,es16.9),a)') '  ',occup,'*exp(-(x-',energy,')**2/(2*sigma**2)) + \'
+                   write(iunit02,'(2(a,es16.9),a)') '  ',occup,'*exp(-(x-',energy,')**2/(2*sigma**2)) + \ '
                else
                    write(iunit02,'(2(a,es16.9),a)') '  ',occup,'*exp(-(x-',energy,')**2/(2*sigma**2))'
                end if
                !write(*,'(a,i6,3es16.8)')'iorb, eval(iorb), energy, occup', iorb, eval(iorb), energy, occup
            end do
-           plot f1(x) lc rgb 'violet' lt 1 lw 2 w l title 'Pb'
            if (ipdos==1) then
                write(iunit02,'(a,i0,a)') "plot f",ipdos,"(x) lt 1 lw 2 w l title 'name'"
            else

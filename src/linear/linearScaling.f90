@@ -29,7 +29,8 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
                                matrices_null, allocate_matrices, deallocate_matrices, &
                                sparsematrix_malloc, sparsematrix_malloc_ptr, assignment(=), SPARSE_FULL, DENSE_FULL
   use sparsematrix, only: gather_matrix_from_taskgroups_inplace, extract_taskgroup_inplace, uncompress_matrix2
-  use io, only: writemywaves_linear, writemywaves_linear_fragments
+  use io, only: writemywaves_linear, writemywaves_linear_fragments, write_linear_matrices
+  use postprocessing_linear, only: loewdin_charge_analysis, support_function_multipoles, build_ks_orbitals
   implicit none
 
   ! Calling arguments

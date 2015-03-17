@@ -31,6 +31,7 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
   use transposed_operations, only: calculate_overlap_transposed
   use parallel_linalg, only: dsygv_parallel
   use matrix_operations, only: deviation_from_unity_parallel
+  use foe, only: fermi_operator_expansion
   implicit none
 
   ! Calling arguments
@@ -500,7 +501,7 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
       !!    call yaml_map('write overlap matrix',.true.)
       !!    call write_sparsematrix('overlap.dat', tmb%linmat%s, tmb%linmat%ovrlp_)
       !!end if
-      call foe(iproc, nproc, tmprtr, &
+      call fermi_operator_expansion(iproc, nproc, tmprtr, &
            energs%ebs, itout,it_scc, order_taylor, max_inversion_error, purification_quickreturn, &
            invert_overlap_matrix, 2, FOE_ACCURATE, tmb, tmb%foe_obj)
 
@@ -580,6 +581,7 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
   use sparsematrix,only: gather_matrix_from_taskgroups_inplace, extract_taskgroup_inplace
   use transposed_operations, only: calculate_overlap_transposed
   use matrix_operations, only: overlapPowerGeneral
+  use foe, only: fermi_operator_expansion
   !  use Poisson_Solver
   !use allocModule
   implicit none
@@ -893,7 +895,7 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
                   end if
                   call renormalize_kernel(iproc, nproc, order_taylor, max_inversion_error, tmb, tmb%linmat%ovrlp_, ovrlp_old)
               else if (method_updatekernel==UPDATE_BY_FOE) then
-                  call foe(iproc, nproc, 0.d0, &
+                  call fermi_operator_expansion(iproc, nproc, 0.d0, &
                        energs%ebs, -1, -10, order_taylor, max_inversion_error, purification_quickreturn, &
                        .true., 0, &
                        FOE_FAST, tmb, tmb%foe_obj)
@@ -2579,7 +2581,7 @@ subroutine purify_kernel(iproc, nproc, tmb, overlap_calculated, it_shift, it_opt
   use sparsematrix_base, only: sparsematrix_malloc_ptr, DENSE_FULL, assignment(=), matrices, &
                                matrices_null, allocate_matrices, deallocate_matrices
   use sparsematrix, only: uncompress_matrix, gather_matrix_from_taskgroups_inplace, &
-                          uncompress_matrix2, compress_matrix2
+                          uncompress_matrix2, compress_matrix2, trace_sparse
   use foe_base, only: foe_data_get_real
   use transposed_operations, only: calculate_overlap_transposed
   use matrix_operations, only: overlapPowerGeneral
@@ -2598,7 +2600,7 @@ subroutine purify_kernel(iproc, nproc, tmb, overlap_calculated, it_shift, it_opt
   ! Local variables
   integer :: it, iorb, jorb, jsegstart, jsegend, jseg, jjorb, iiorb !info, lwork, 
   integer :: ishift, isshift, ilshift
-  real(kind=8) :: trace_sparse, alpha, shift
+  real(kind=8) :: alpha, shift
   real(kind=8),dimension(:,:),allocatable :: ks, ksk, ksksk, kernel_prime
   !real(kind=8),dimension(:),allocatable :: eval, work
   character(len=*),parameter :: subname='purify_kernel'
@@ -3170,6 +3172,7 @@ subroutine renormalize_kernel(iproc, nproc, order_taylor, max_inversion_error, t
   use sparsematrix_init, only: matrixindex_in_compressed
   use sparsematrix, only: uncompress_matrix
   use matrix_operations, only: overlapPowerGeneral
+  use foe_common, only: retransform_ext
   implicit none
 
   ! Calling arguments

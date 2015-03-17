@@ -3818,6 +3818,7 @@ subroutine local_hamiltonian_stress_linear(iproc, nproc, orbs, lzd, hx, hy, hz, 
   use module_interfaces
   !use module_xc
   use sparsematrix_base, only: sparse_matrix, matrices
+  use sparsematrix, only: trace_sparse
   use communications_base, only: TRANSPOSE_FULL
   use communications, only: transpose_localized
   use transposed_operations, only: calculate_overlap_transposed
@@ -3840,7 +3841,7 @@ subroutine local_hamiltonian_stress_linear(iproc, nproc, orbs, lzd, hx, hy, hz, 
   character(len=*), parameter :: subname='local_hamiltonian_stress'
   integer :: iorb, npot, i_f, iseg_f, iiorb, ilr, ist, idir, iidim
   !real(wp) :: kinstr(6)
-  real(gp) :: ekin,kx,ky,kz,etest, tt, trace_sparse,ekino
+  real(gp) :: ekin,kx,ky,kz,etest, tt, ekino
   type(workarr_locham) :: w
   real(wp), dimension(:,:), allocatable :: psir
   real(kind=8),dimension(0:3) :: scal=1.d0

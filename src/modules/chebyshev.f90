@@ -288,4 +288,35 @@ module chebyshev
 
     end subroutine chebyshev_fast
 
+
+    subroutine compress_polynomial_vector_new(iproc, nproc, nsize_polynomial, norb, norbp, &
+               fermi, vector_compr, vector_compressed)
+      use module_base
+      !use module_types
+      use sparsematrix_base, only: sparse_matrix
+      use sparsematrix_init, only: get_line_and_column
+      use sparsematrix, only: transform_sparsity_pattern
+      implicit none
+    
+      ! Calling arguments
+      integer,intent(in) :: iproc, nproc, nsize_polynomial, norb, norbp
+      type(sparse_matrix),intent(in) :: fermi
+      real(kind=8),dimension(fermi%smmm%nvctrp),intent(inout) :: vector_compr
+      real(kind=8),dimension(nsize_polynomial),intent(out) :: vector_compressed
+    
+      ! Local variables
+      integer :: isegstart, isegend, iseg, ii, jorb, iiorb, jjorb, iel, i, iline, icolumn
+      real(kind=8),dimension(:,:),allocatable :: vector
+    
+      call f_routine(id='compress_polynomial_vector_new')
+    
+      call transform_sparsity_pattern(fermi%nfvctr, fermi%smmm%nvctrp_mm, fermi%smmm%isvctr_mm, &
+           fermi%nseg, fermi%keyv, fermi%keyg, fermi%smmm%line_and_column_mm, &
+           fermi%smmm%nvctrp, fermi%smmm%isvctr, fermi%smmm%nseg, fermi%smmm%keyv, fermi%smmm%keyg, &
+           fermi%smmm%istsegline, 'large_to_small', vector_compressed, vector_compr)
+    
+      call f_release_routine()
+    
+    end subroutine compress_polynomial_vector_new
+
 end module chebyshev
