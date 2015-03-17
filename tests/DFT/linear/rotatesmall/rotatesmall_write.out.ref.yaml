@@ -885,7 +885,7 @@
    BC                                  : Free
    Box                                 :  [  111,  111,  111 ]
    MPI tasks                           :  4
- Calculate local forces: {Leaked force:  0.00000E+00}
+ Calculate local forces: Yes
  Calculate Non Local forces            :  Yes
  Average noise forces: {x:  1.25022272E-03, y: -1.27870691E-03, z:  5.17500267E-04, 
                     total:  1.86170748E-03}

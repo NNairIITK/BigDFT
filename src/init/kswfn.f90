@@ -1,7 +1,7 @@
 !> @file
 !!  Routines which handles the structure DFT_wavefunction related to the Kohn-Sham wavefunctions
 !! @author
-!!    Copyright (C) 2013-2013 BigDFT group
+!!    Copyright (C) 2013-2015 BigDFT group
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
@@ -114,6 +114,7 @@ END SUBROUTINE kswfn_mpi_copy
 
 
 subroutine kswfn_init_comm(wfn, dpbox, iproc, nproc, nspin, imethod_overlap)
+  use module_dpbox, only: denspot_distribution
   use module_types
   use module_interfaces, except_this_one => kswfn_init_comm
   use communications_base, only: comms_linear_null

@@ -1514,7 +1514,7 @@
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
    MPI tasks                           :  4
- Calculate local forces: {Leaked force:  0.00000E+00}
+ Calculate local forces: Yes
  Calculate Non Local forces            :  Yes
  Average noise forces: {x: -2.67525321E-04, y: -1.32208771E-03, z: -4.56842606E-04, 
                     total:  1.42414567E-03}
@@ -2068,7 +2068,7 @@
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
    MPI tasks                           :  4
- Calculate local forces: {Leaked force:  0.00000E+00}
+ Calculate local forces: Yes
  Calculate Non Local forces            :  Yes
  Average noise forces: {x: -6.26560466E-04, y: -9.01878570E-04, z:  6.95819620E-04, 
                     total:  1.30004920E-03}
@@ -3547,7 +3547,7 @@
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
    MPI tasks                           :  4
- Calculate local forces: {Leaked force:  0.00000E+00}
+ Calculate local forces: Yes
  Calculate Non Local forces            :  Yes
  Average noise forces: {x:  2.55736738E-03, y:  3.08589489E-03, z:  2.82654516E-03, 
                     total:  4.90430757E-03}
@@ -5026,7 +5026,7 @@
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
    MPI tasks                           :  4
- Calculate local forces: {Leaked force:  0.00000E+00}
+ Calculate local forces: Yes
  Calculate Non Local forces            :  Yes
  Average noise forces: {x:  2.69381655E-03, y:  3.15413149E-03, z:  2.53399689E-03, 
                     total:  4.86069268E-03}
@@ -6150,7 +6150,7 @@
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
    MPI tasks                           :  4
- Calculate local forces: {Leaked force:  0.00000E+00}
+ Calculate local forces: Yes
  Calculate Non Local forces            :  Yes
  Average noise forces: {x:  3.45417614E-03, y:  2.40686345E-03, z:  1.88160925E-03, 
                     total:  4.61137483E-03}

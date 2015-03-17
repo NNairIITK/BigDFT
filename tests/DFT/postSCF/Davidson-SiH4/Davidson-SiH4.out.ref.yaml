@@ -480,7 +480,7 @@
    norm(P)                             :  3.710363E-03
  Writing electronic density in file    : electronic_density
  Writing Hartree potential in file     : hartree_potential
- Calculate local forces: {Leaked force:  0.0}
+ Calculate local forces: Yes
  Calculate Non Local forces            :  Yes
  Average noise forces: {x:  4.29633498E-05, y:  4.29633498E-05, z:  4.29633498E-05, 
                     total:  7.44147047E-05}

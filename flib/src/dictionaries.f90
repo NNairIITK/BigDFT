@@ -339,7 +339,7 @@ contains
        character(len=*), intent(in) :: key
        logical, intent(in) :: dst
        !local variables
-       type(dictionary), pointer :: dict_first !<in case of first occurrence
+!!$       type(dictionary), pointer :: dict_first !<in case of first occurrence
        type(dictionary), pointer :: iter !to iterate over the dictionaries
        logical :: key_found
        type(dictionary), pointer :: dict_update      !< iterator for list renumbering
@@ -848,7 +848,7 @@ contains
        integer, intent(in) :: item
        logical, intent(in) :: dst
        !local variables
-       type(dictionary), pointer :: dict_first !<in case of first occurrence
+!!$       type(dictionary), pointer :: dict_first !<in case of first occurrence
        type(dictionary), pointer :: iter !to iterate over the dictionaries
        logical :: item_found
        type(dictionary), pointer :: dict_update      !< iterator for list renumbering
@@ -1096,7 +1096,7 @@ contains
      type(dictionary), pointer :: dict
      type(dictionary), pointer :: brother
      !local variables
-     type(dictionary), pointer :: iter
+!!$     type(dictionary), pointer :: iter
 
      if (.not. associated(dict)) then
         !this should be verifyed by passing a dictionary which is not in the beginning
@@ -1144,7 +1144,8 @@ contains
      type(dictionary), pointer :: dict
      type(dictionary), pointer :: brother
      !local variables
-     type(dictionary), pointer :: dict_tmp,iter
+     type(dictionary), pointer :: dict_tmp
+!!$     type(dictionary), pointer :: iter
 
      if (.not. associated(brother)) return
 
@@ -1735,7 +1736,7 @@ contains
          character(max_field_length), dimension(:), allocatable :: keys
          character(len = max_field_length) :: val
          !local variables
-         type(dictionary), pointer :: iter
+!!$         type(dictionary), pointer :: iter
 
          if (dict_len(ref) > 0) then
             ! List case.

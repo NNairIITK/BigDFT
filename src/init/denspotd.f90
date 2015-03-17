@@ -11,6 +11,7 @@
 !> Denspot initialization
 subroutine initialize_DFT_local_fields(denspot, ixc, nspden)
   use module_base
+  use module_dpbox, only: dpbox_null
   use module_types
   use module_xc
   implicit none
@@ -84,6 +85,7 @@ end subroutine initialize_rho_descriptors
 
 subroutine dpbox_set(dpbox,Lzd,xc,iproc,nproc,mpi_comm,PS_groupsize,SICapproach,geocode,nspin)
   use module_base
+  use module_dpbox, only: denspot_distribution,dpbox_null
   use module_types
   use module_xc
   implicit none
@@ -115,33 +117,10 @@ subroutine dpbox_set(dpbox,Lzd,xc,iproc,nproc,mpi_comm,PS_groupsize,SICapproach,
 end subroutine dpbox_set
 
 
-!> Free the desnpot_distribution structure
-subroutine dpbox_free(dpbox)
-  use module_base
-  use module_types
-  implicit none
-  type(denspot_distribution), intent(inout) :: dpbox
-
-  if (associated(dpbox%nscatterarr)) then
-     call f_free_ptr(dpbox%nscatterarr)
-  end if
-
-  if (associated(dpbox%ngatherarr)) then
-     call f_free_ptr(dpbox%ngatherarr)
-  end if
-  
-  if (dpbox%mpi_env%mpi_comm /= bigdft_mpi%mpi_comm) then
-     call mpi_environment_free(dpbox%mpi_env)
-  end if
-
-  dpbox=dpbox_null()
-
-END SUBROUTINE dpbox_free
-
-
 !> Initialize dpbox (density pot distribution) i.e. the parameters defining the grid
 subroutine dpbox_set_box(dpbox,Lzd)
   use module_base
+  use module_dpbox, only: denspot_distribution
   use module_types
   implicit none
   type(local_zone_descriptors), intent(in) :: Lzd
@@ -213,6 +192,7 @@ end subroutine denspot_free_history
 
 subroutine denspot_communications(iproc,nproc,xc,nspin,geocode,SICapproach,dpbox)
   use module_base
+  use module_dpbox, only: denspot_distribution
   use module_types
   use module_xc
   use module_interfaces, except_this_one => denspot_communications
@@ -510,6 +490,7 @@ END SUBROUTINE allocateRhoPot
 subroutine dpbox_repartition(iproc,nproc,geocode,datacode,xc,dpbox)
 
   use module_base
+  use module_dpbox, only: denspot_distribution
   use module_types
   use Poisson_Solver
   use module_xc
@@ -568,9 +549,11 @@ end subroutine dpbox_repartition
 
 !END SUBROUTINE createDensPotDescriptors
 
+
 subroutine density_descriptors(iproc,nproc,xc,nspin,crmult,frmult,atoms,dpbox,&
      rho_commun,rxyz,rhodsc)
   use module_base
+  use module_dpbox, only:  denspot_distribution
   use module_types
   use module_xc
   use module_interfaces, except_this_one_A => density_descriptors

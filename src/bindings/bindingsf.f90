@@ -948,6 +948,7 @@ end subroutine kernel_get_comm
 
 
 subroutine localfields_new(self, denspotd, rhod, dpbox)
+  use module_dpbox
   use module_types
   implicit none
   integer(kind = 8), intent(in) :: self
@@ -963,6 +964,7 @@ END SUBROUTINE localfields_new
 
 
 subroutine localfields_get_data(denspotd, rhod, dpbox)
+  use module_dpbox
   use module_types
   implicit none
   type(DFT_local_fields), intent(in), target :: denspotd
@@ -976,6 +978,7 @@ END SUBROUTINE localfields_get_data
 
 subroutine localfields_free(denspotd, fion, fdisp)
   use module_base
+  use module_dpbox, only: dpbox_free
   use module_types
   use Poisson_Solver, except_dp => dp, except_gp => gp, except_wp => wp
   use memory_profiling

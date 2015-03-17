@@ -905,7 +905,7 @@
    BC                                  : Free
    Box                                 :  [  135,  143,  141 ]
    MPI tasks                           :  4
- Calculate local forces: {Leaked force:  0.00000E+00}
+ Calculate local forces: Yes
  Calculate Non Local forces            :  Yes
  Average noise forces: {x: -3.06303192E-03, y: -5.19690892E-03, z: -4.60771411E-03, 
                     total:  7.59085345E-03}
@@ -1528,7 +1528,7 @@
    BC                                  : Free
    Box                                 :  [  135,  143,  141 ]
    MPI tasks                           :  4
- Calculate local forces: {Leaked force:  0.00000E+00}
+ Calculate local forces: Yes
  Calculate Non Local forces            :  Yes
  Average noise forces: {x: -4.11788220E-03, y: -5.67440295E-03, z: -4.89828573E-03, 
                     total:  8.55271920E-03}
@@ -2159,7 +2159,7 @@
    BC                                  : Free
    Box                                 :  [  135,  145,  143 ]
    MPI tasks                           :  4
- Calculate local forces: {Leaked force:  0.00000E+00}
+ Calculate local forces: Yes
  Calculate Non Local forces            :  Yes
  Average noise forces: {x: -1.01406500E-02, y: -2.60556857E+00, z: -2.66702458E+00, 
                     total:  3.72855341E+00}
@@ -2790,7 +2790,7 @@
    BC                                  : Free
    Box                                 :  [  135,  143,  141 ]
    MPI tasks                           :  4
- Calculate local forces: {Leaked force:  0.00000E+00}
+ Calculate local forces: Yes
  Calculate Non Local forces            :  Yes
  Average noise forces: {x: -6.42045028E-03, y:  4.43310269E-01, z:  4.42789988E-01, 
                     total:  6.26600503E-01}
@@ -3421,7 +3421,7 @@
    BC                                  : Free
    Box                                 :  [  135,  145,  143 ]
    MPI tasks                           :  4
- Calculate local forces: {Leaked force:  0.00000E+00}
+ Calculate local forces: Yes
  Calculate Non Local forces            :  Yes
  Average noise forces: {x: -1.60785188E-02, y: -3.62917529E+00, z: -3.83854520E+00, 
                     total:  5.28257523E+00}

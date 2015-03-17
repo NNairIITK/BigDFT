@@ -7756,7 +7756,7 @@
    Box                                 :  [  111,  107,  107 ]
    MPI tasks                           :  4
  Writing electronic density in file    : electronic_density
- Calculate local forces: {Leaked force:  0.00000E+00}
+ Calculate local forces: Yes
  Calculate Non Local forces            :  Yes
  Average noise forces: {x: -6.84677908E-04, y:  4.91253865E-04, z:  4.90475559E-04, 
                     total:  9.75028447E-04}

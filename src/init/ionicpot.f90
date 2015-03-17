@@ -622,6 +622,7 @@ subroutine createEffectiveIonicPotential(iproc, verb, input, atoms, rxyz, shift,
      & Glr, hxh, hyh, hzh, dpbox, pkernel, pot_ion, elecfield, psoffset)
 
   use module_base
+  use module_dpbox, only: denspot_distribution
   use module_types
 
   implicit none

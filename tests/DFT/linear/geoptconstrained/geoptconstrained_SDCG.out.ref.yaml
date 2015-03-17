@@ -2124,7 +2124,7 @@
    BC                                  : Free
    Box                                 :  [  97,  99,  101 ]
    MPI tasks                           :  4
- Calculate local forces: {Leaked force:  0.00000E+00}
+ Calculate local forces: Yes
  Calculate Non Local forces            :  Yes
  cleaning using internal coordinates   : Yes
  keep internal coordinate fixed        :  [  1,  2 ]
@@ -3928,7 +3928,7 @@
    BC                                  : Free
    Box                                 :  [  97,  99,  101 ]
    MPI tasks                           :  4
- Calculate local forces: {Leaked force:  0.00000E+00}
+ Calculate local forces: Yes
  Calculate Non Local forces            :  Yes
  cleaning using internal coordinates   : Yes
  keep internal coordinate fixed        :  [  1,  2 ]
@@ -5786,7 +5786,7 @@
    BC                                  : Free
    Box                                 :  [  97,  99,  101 ]
    MPI tasks                           :  4
- Calculate local forces: {Leaked force:  0.00000E+00}
+ Calculate local forces: Yes
  Calculate Non Local forces            :  Yes
  cleaning using internal coordinates   : Yes
  keep internal coordinate fixed        :  [  1,  2 ]
@@ -7578,7 +7578,7 @@
    BC                                  : Free
    Box                                 :  [  97,  99,  101 ]
    MPI tasks                           :  4
- Calculate local forces: {Leaked force:  0.00000E+00}
+ Calculate local forces: Yes
  Calculate Non Local forces            :  Yes
  cleaning using internal coordinates   : Yes
  keep internal coordinate fixed        :  [  1,  2 ]
@@ -9248,7 +9248,7 @@
    BC                                  : Free
    Box                                 :  [  97,  99,  101 ]
    MPI tasks                           :  4
- Calculate local forces: {Leaked force:  0.00000E+00}
+ Calculate local forces: Yes
  Calculate Non Local forces            :  Yes
  cleaning using internal coordinates   : Yes
  keep internal coordinate fixed        :  [  1,  2 ]

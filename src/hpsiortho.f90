@@ -447,6 +447,7 @@ subroutine LocalHamiltonianApplication(iproc,nproc,at,npsidim_orbs,orbs,&
      Lzd,confdatarr,ngatherarr,pot,psi,hpsi,&
      energs,SIC,GPU,PotOrKin,xc,pkernel,orbsocc,psirocc,dpbox,potential,comgp,hpsi_noconf,econf)
    use module_base
+   use module_dpbox, only: denspot_distribution
    use module_types
    use module_xc
    use module_interfaces, except_this_one => LocalHamiltonianApplication
@@ -1113,6 +1114,7 @@ subroutine full_local_potential(iproc,nproc,orbs,Lzd,iflag,dpbox,xc,potential,po
   !   ndimrhopot,i3rho_add,orbs,&
   !   Lzd,iflag,ngatherarr,potential,pot,comgp)
    use module_base
+  use module_dpbox, only: denspot_distribution
    use module_types
    use module_xc
    use communications_base, only: p2pComms

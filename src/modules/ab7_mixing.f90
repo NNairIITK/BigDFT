@@ -790,7 +790,8 @@ contains
     double precision, dimension(*), intent(in) :: x
     integer, dimension(:), intent(in) :: user_data
     !Local variables
-    integer :: ierr, ie, iproc, npoints, ishift, ioffset, ispin
+    integer :: ierr, iproc, npoints, ishift, ioffset, ispin
+!!$ integer ie
     double precision :: fnrm_denpot_forlinear, ar, nrm_local, dnrm2, tt
 
     ! In case of density, we use nscatterarr.
@@ -852,7 +853,8 @@ contains
     double precision, intent(in) :: x(*), y(*)
     integer, intent(in) :: user_data(:)
 
-    integer :: ierr, ie, iproc, npoints, ishift, ioffset, ispin
+    integer :: ierr, iproc, npoints, ishift, ioffset, ispin
+  !!$ integer ie
     double precision :: fdot_denpot_forlinear, ar, dot_local, ddot
 
     ! In case of density, we use nscatterarr.

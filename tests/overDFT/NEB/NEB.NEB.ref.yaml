@@ -401,7 +401,7 @@
  Electric Dipole Moment (Debye):
    P vector                            :  [ -6.3737E-01, -1.8970E-02,  9.4896E-02 ]
    norm(P)                             :  6.446730E-01
- Calculate local forces: {Leaked force:  0.00000E+00}
+ Calculate local forces: Yes
  Calculate Non Local forces            :  No
  Average noise forces: {x:  5.59633082E-03, y:  8.61214232E-03, z:  8.62337441E-03, 
                     total:  1.34108352E-02}
@@ -829,7 +829,7 @@
  Electric Dipole Moment (Debye):
    P vector                            :  [ -7.0859E-01, -1.9397E-02,  1.9321E-01 ]
    norm(P)                             :  7.347141E-01
- Calculate local forces: {Leaked force:  0.00000E+00}
+ Calculate local forces: Yes
  Calculate Non Local forces            :  No
  Average noise forces: {x:  5.77962837E-03, y:  6.27512430E-03, z:  6.33308256E-03, 
                     total:  1.06249341E-02}
@@ -1257,7 +1257,7 @@
  Electric Dipole Moment (Debye):
    P vector                            :  [ -1.1422E-01, -1.9561E-02,  4.1160E-02 ]
    norm(P)                             :  1.229740E-01
- Calculate local forces: {Leaked force:  0.00000E+00}
+ Calculate local forces: Yes
  Calculate Non Local forces            :  No
  Average noise forces: {x:  2.75646550E-03, y:  6.80250797E-03, z:  5.17621761E-03, 
                     total:  8.98139441E-03}
@@ -1694,7 +1694,7 @@
  Electric Dipole Moment (Debye):
    P vector                            :  [  4.6792E-01, -1.9469E-02, -1.2627E-01 ]
    norm(P)                             :  4.850508E-01
- Calculate local forces: {Leaked force:  0.00000E+00}
+ Calculate local forces: Yes
  Calculate Non Local forces            :  No
  Average noise forces: {x:  3.85964704E-03, y:  5.55436857E-03, z:  5.23618135E-03, 
                     total:  8.55368229E-03}
@@ -2122,7 +2122,7 @@
  Electric Dipole Moment (Debye):
    P vector                            :  [  2.3677E-01, -1.7857E-02, -9.9464E-02 ]
    norm(P)                             :  2.574290E-01
- Calculate local forces: {Leaked force:  0.00000E+00}
+ Calculate local forces: Yes
  Calculate Non Local forces            :  No
  Average noise forces: {x:  6.16501057E-03, y:  8.59666647E-03, z:  8.44843721E-03, 
                     total:  1.35383205E-02}

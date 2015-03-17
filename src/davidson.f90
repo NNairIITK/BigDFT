@@ -1,7 +1,7 @@
 !> @file
 !!  Routines to do diagonalisation with Davidson algorithm
 !! @author
-!!    Copyright (C) 2007-2013 BigDFT group
+!!    Copyright (C) 2007-2015 BigDFT group
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
@@ -13,6 +13,7 @@
 subroutine direct_minimization(iproc,nproc,in,at,nvirt,rxyz,rhopot,nlpsp, &
      pkernel,dpcom,xc,GPU,KSwfn,VTwfn)
    use module_base
+   use module_dpbox, only: denspot_distribution
    use module_types
    use module_interfaces, except_this_one => direct_minimization
    use module_xc
@@ -398,6 +399,7 @@ subroutine davidson(iproc,nproc,in,at,&
      & orbs,orbsv,nvirt,Lzd,comms,commsv,&
      & rxyz,rhopot,nlpsp,pkernel,psi,v,dpcom,xc,GPU)
    use module_base
+   use module_dpbox, only: denspot_distribution
    use module_types
    use module_interfaces, except_this_one => davidson
    use module_xc

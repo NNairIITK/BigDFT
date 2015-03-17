@@ -13,6 +13,7 @@
 program memguess
 
    use module_base
+   use module_dpbox, only: denspot_distribution
    use module_types
    use module_interfaces
    use module_xc

@@ -65,7 +65,6 @@ MODULE NEB_routines
   CONTAINS
 
     SUBROUTINE read_input(options)
-       use module_defs, only: BIGDFT_INPUT_VARIABLES_ERROR
       use yaml_output
       use dictionaries
       use module_interfaces

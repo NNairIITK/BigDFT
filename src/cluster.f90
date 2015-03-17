@@ -17,6 +17,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,energs,fxyz,strten,fnoise,press
      KSwfn,tmb,rxyz_old,in,GPU,infocode)
   use module_base
   use locregs, only: deallocate_locreg_descriptors
+  use module_dpbox, only: dpbox_free
   use module_types
   use module_interfaces
   use gaussians, only: deallocate_gwf

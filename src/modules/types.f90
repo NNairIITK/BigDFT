@@ -21,6 +21,7 @@ module module_types
   use locregs
   use psp_projectors
   use module_atoms, only: atoms_data,symmetry_data,atomic_structure
+  use module_dpbox, only: denspot_distribution,dpbox_null
   use communications_base, only: comms_linear, comms_cubic, p2pComms
   use sparsematrix_base, only: matrices, sparse_matrix
   use foe_base, only: foe_data
@@ -541,30 +542,6 @@ module module_types
      integer, dimension(:,:), pointer :: spkey,dpkey
      integer, dimension(:), pointer :: cseg_b,fseg_b
   end type rho_descriptors
-
-
-  !> Define the structure used for the atomic positions
-  !> Structure to store the density / potential distribution among processors.
-  type, public :: denspot_distribution
-     integer :: n3d                  !< Number of z planes for density
-     integer :: n3p                  !< Number of z planes for potential
-     integer :: n3pi                 !< Number of distributed planes in z dimension for pot_ion AND to calculate charges
-                                     !! BECAUSE n3d has an overlap!
-     integer :: i3xcsh
-     integer :: i3s                  !< Index of the first z plane in parallel
-     integer :: nrhodim
-     !> Integer which controls the presence of a density after the potential array
-     !! if different than zero, at the address ndimpot*nspin+i3rho_add starts the spin up component of the density
-     !! the spin down component can be found at the ndimpot*nspin+i3rho_add+ndimpot, contiguously
-     !! the same holds for non-collinear calculations
-     integer :: i3rho_add
-     integer :: ndimpot,ndimgrid,ndimrhopot 
-     integer, dimension(3) :: ndims   !< Box containing the grid dimensions in ISF basis in x,y and z direction (n1i,n2i,n3i)
-     real(gp), dimension(3) :: hgrids !< Grid spacings of the box (half of wavelet ones)
-     character(len=1) :: geocode !< @copydoc poisson_solver::doc::geocode
-     integer, dimension(:,:), pointer :: nscatterarr, ngatherarr
-     type(mpi_environment) :: mpi_env
-  end type denspot_distribution
 
 
   !> Structures of basis of gaussian functions of the form exp(-a*r2)cos/sin(b*r2)
@@ -1115,7 +1092,7 @@ module module_types
  public :: wavefunctions_descriptors,atoms_data,DFT_PSP_projectors
  public :: grid_dimensions,p2pComms,comms_linear,sparse_matrix,matrices
  public :: coulomb_operator,symmetry_data,atomic_structure,comms_cubic
- public :: nonlocal_psp_descriptors,dpbox_null
+ public :: nonlocal_psp_descriptors
  public :: default_lzd,find_category,old_wavefunction_null,old_wavefunction_free
  public :: material_acceleration_null,input_psi_names
  public :: wf_format_names,bigdft_init_errors,bigdft_init_timing_categories
@@ -1179,28 +1156,6 @@ contains
     nullify(wfn%psi)
     nullify(wfn%rxyz)
   end function old_wavefunction_null
-
-
-  function dpbox_null() result(dpbox)
-    implicit none
-    type(denspot_distribution) :: dpbox
-    dpbox%n3d=0
-    dpbox%n3p=0
-    dpbox%n3pi=0
-    dpbox%i3xcsh=0
-    dpbox%i3s=0
-    dpbox%nrhodim=0
-    dpbox%i3rho_add=0
-    dpbox%ndimpot=0
-    dpbox%ndimgrid=0
-    dpbox%ndimrhopot=0
-    dpbox%ndims=(/0,0,0/)
-    dpbox%hgrids=(/0.0_gp,0.0_gp,0.0_gp/)
-    dpbox%geocode = "F"
-    nullify(dpbox%nscatterarr)
-    nullify(dpbox%ngatherarr)
-    dpbox%mpi_env=mpi_environment_null()
-  end function dpbox_null
 
 
   function material_acceleration_null() result(ma)
@@ -1527,25 +1482,12 @@ contains
     nullify(denspot%rho_work)
     nullify(denspot%pot_work)
     call nullify_rho_descriptors(denspot%rhod)
-    call nullify_denspot_distribution(denspot%dpbox)
+    !call nullify_denspot_distribution(denspot%dpbox)
+    denspot%dpbox=dpbox_null()
     call nullify_coulomb_operator(denspot%pkernel)
     call nullify_coulomb_operator(denspot%pkernelseq)
     
   end subroutine nullify_DFT_local_fields
-
-
-  subroutine deallocate_denspot_distribution(dpbox)
-    implicit none
-    type(denspot_distribution),intent(inout)::dpbox
-    
-    if(associated(dpbox%nscatterarr)) then
-      call f_free_ptr(dpbox%nscatterarr)
-    end if
-    if(associated(dpbox%ngatherarr)) then
-      call f_free_ptr(dpbox%ngatherarr)
-    end if
-
-  end subroutine deallocate_denspot_distribution
 
 
   subroutine nullify_coulomb_operator(coul_op)
@@ -1597,15 +1539,6 @@ contains
     end if
     call nullify_coulomb_operator(coul_op)
   end subroutine deallocate_coulomb_operator
-
-
-  subroutine nullify_denspot_distribution(dpbox)
-    implicit none
-    type(denspot_distribution),intent(out) :: dpbox
-    
-    nullify(dpbox%nscatterarr)
-    nullify(dpbox%ngatherarr)
-  end subroutine nullify_denspot_distribution
 
 
   subroutine nullify_rho_descriptors(rhod)

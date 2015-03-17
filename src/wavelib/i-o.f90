@@ -1,7 +1,7 @@
 !> @file
 !!  Routines to reformat wavefunctions
 !! @author
-!!    Copyright (C) 2010-2013 BigDFT group 
+!!    Copyright (C) 2010-2015 BigDFT group 
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
@@ -623,21 +623,10 @@ contains
     logical, intent(in) :: formatted
     integer, intent(out) :: unitwf
 
-    integer :: i_stat
-
     ! We open the Fortran file
     unitwf = 99
     call f_open_file(unitwf,file=trim(filename),binary=.not. formatted)
-!!$    if (.not. formatted) then
-!!$       open(unit=unitwf,file=trim(filename),status='unknown',form="unformatted", iostat=i_stat)
-!!$    else
-!!$       open(unit=unitwf,file=trim(filename),status='unknown', iostat=i_stat)
-!!$    end if
-!!$    if (i_stat /= 0) then
-!!$       call io_warning("Cannot open file '" // trim(filename) // "'.")
-!!$       unitwf = -1
-!!$       return
-!!$    end if
+
   END SUBROUTINE io_open
 
 END MODULE internal_io
@@ -1324,8 +1313,9 @@ subroutine reformat_one_supportfunction(llr,llr_old,geocode,hgrids_old,n_old,psi
       real(gp), dimension(3,3), intent(in) :: rmat !< rotation matrix
       integer, dimension(3) :: irp
       !local variables
-      integer :: i,isgn
+      integer :: i
       integer, dimension(3) :: ib1,ib3
+!!$      integer :: isgn
 !!$      real(gp), dimension(3) :: rrow
 
       !determine ideal sequence for rotation, for important rows

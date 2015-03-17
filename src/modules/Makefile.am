@@ -199,7 +199,7 @@ $(modules): $(libmodules_a_OBJECTS)
 input_keys.o: defs.o $(top_builddir)/flib/src/dynamic_memory.o base.o public_keys.o
 base.o: defs.o $(top_builddir)/flib/src/dynamic_memory.o public_keys.o
 types.o: base.o gaussians.o locregs.o psp_projectors.o ao_inguess.o atoms_data.o communications_base.o \
-	sparsematrix_base.o xc.o foe_base.o ab7_mixing.o
+	sparsematrix_base.o xc.o foe_base.o ab7_mixing.o input_keys.o dpbox.o
 input.o: base.o types.o input_keys.o
 interfaces.o: base.o types.o xc.o fragments.o diis_module.o constrained_dft.o sparsematrix_base.o foe_base.o
 gaussians.o: base.o
@@ -213,7 +213,7 @@ constrained_dft.o: base.o types.o sparsematrix_base.o
 input_dicts.o: $(top_builddir)/flib/src/dynamic_memory.o defs.o ao_inguess.o interfaces.o atoms_data.o input.o public_keys.o
 psp_projectors.o: locregs.o gaussians.o defs.o
 locregs.o: base.o
-dpbox.o: base.o types.o
+dpbox.o: base.o 
 ao_inguess.o: $(AO_INCLUDES) base.o psp_projectors.o
 atoms_data.o: $(ATOMS_INCLUDES) ao_inguess.o internal_coordinates.o
 reformatting.o: base.o

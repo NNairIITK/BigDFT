@@ -112,7 +112,7 @@ subroutine call_abscalc(nproc,iproc,runObj,energy,fxyz,infocode)
    !local variables
    character(len=*), parameter :: subname='call_abscalc'
    character(len=40) :: comment
-   integer :: ierr,inputPsiId_orig,icycle
+   integer :: inputPsiId_orig,icycle
    real(gp) :: hx_old, hy_old, hz_old
 
    !put a barrier for all the processes
@@ -203,6 +203,7 @@ END SUBROUTINE call_abscalc
 subroutine abscalc(nproc,iproc,atoms,rxyz,&
      KSwfn,hx_old,hy_old,hz_old,in,GPU,infocode)
    use module_base
+   use module_dpbox, only: denspot_distribution
    use module_types
    use module_interfaces
    use Poisson_Solver, except_dp => dp, except_gp => gp, except_wp => wp
@@ -1518,6 +1519,7 @@ subroutine extract_potential_for_spectra(iproc,nproc,at,rhod,dpcom,&
      nspin,potshortcut,symObj,GPU,input)
    use module_base
    use module_interfaces, except_this_one => extract_potential_for_spectra
+   use module_dpbox, only: denspot_distribution
    use module_types
    use module_xc
    use gaussians, only: gaussian_basis, deallocate_gwf

@@ -457,7 +457,7 @@
    BC                                  : Surface
    Box                                 :  [  36,  113,  36 ]
    MPI tasks                           :  2
- Calculate local forces: {Leaked force:  0.00000E+00}
+ Calculate local forces: Yes
  Calculate Non Local forces            :  Yes
  Average noise forces: {x:  9.84115901E-07, y: -5.99733087E-04, z:  3.09869786E-06, 
                     total:  5.99741899E-04}
@@ -727,7 +727,7 @@
    BC                                  : Surface
    Box                                 :  [  36,  113,  36 ]
    MPI tasks                           :  2
- Calculate local forces: {Leaked force:  0.00000E+00}
+ Calculate local forces: Yes
  Calculate Non Local forces            :  Yes
  Average noise forces: {x: -3.38795917E-05, y: -4.77295553E-04, z: -4.04481128E-06, 
                     total:  4.78513565E-04}
@@ -993,7 +993,7 @@
    BC                                  : Surface
    Box                                 :  [  36,  113,  36 ]
    MPI tasks                           :  2
- Calculate local forces: {Leaked force:  0.00000E+00}
+ Calculate local forces: Yes
  Calculate Non Local forces            :  Yes
  Average noise forces: {x: -5.79366286E-05, y: -3.64163197E-04, z: -9.34802203E-06, 
                     total:  3.68861590E-04}
@@ -1207,7 +1207,7 @@
    norm(P)                             :  9.651905E-01
  Writing electronic density in file    : electronic_density
  Writing Hartree potential in file     : hartree_potential
- Calculate local forces: {Leaked force:  0.00000E+00}
+ Calculate local forces: Yes
  Calculate Non Local forces            :  Yes
  Average noise forces: {x: -5.01163454E-05, y: -3.21917486E-04, z: -8.59971741E-06, 
                     total:  3.25908685E-04}

@@ -462,7 +462,7 @@ subroutine mix_rhopot(iproc,nproc,npoints,alphamix,mix,rhopot,istep,&
   character(len = *), parameter :: subname = "mix_rhopot"
   character(len = 500) :: errmess
   integer, allocatable :: user_data(:)
-  real(8) :: ddot !debug
+  !real(8) :: ddot !debug
   integer(kind=8) :: nsize
 
   call f_routine(id='mix_rhopot')
@@ -747,7 +747,7 @@ subroutine diisstp(iproc,nproc,orbs,comms,diis)
         if (ncplx==1) then
            rds(1,i-ist+1,1,ikpt)=0.0_tp
         else
-           zdres=cmplx(0.0_tp,0.0_tp)
+           zdres=cmplx(0.0_tp,0.0_tp,kind=tp)
         end if
         
         ipsi_spin_sh=0

@@ -11,12 +11,34 @@
 !> Module which contains the data structure associated to the dnesity and potential grid
 module module_dpbox
 
-  use module_base, only: gp
-  use module_types, only: denspot_distribution
+  use module_base, only: gp,mpi_environment,mpi_environment_null
 
   implicit none
 
   private
+
+
+  !> Structure to store the density / potential distribution among processors.
+  type, public :: denspot_distribution
+     integer :: n3d                  !< Number of z planes for density
+     integer :: n3p                  !< Number of z planes for potential
+     integer :: n3pi                 !< Number of distributed planes in z dimension for pot_ion AND to calculate charges
+                                     !! BECAUSE n3d has an overlap!
+     integer :: i3xcsh
+     integer :: i3s                  !< Index of the first z plane in parallel
+     integer :: nrhodim
+     !> Integer which controls the presence of a density after the potential array
+     !! if different than zero, at the address ndimpot*nspin+i3rho_add starts the spin up component of the density
+     !! the spin down component can be found at the ndimpot*nspin+i3rho_add+ndimpot, contiguously
+     !! the same holds for non-collinear calculations
+     integer :: i3rho_add
+     integer :: ndimpot,ndimgrid,ndimrhopot 
+     integer, dimension(3) :: ndims   !< Box containing the grid dimensions in ISF basis in x,y and z direction (n1i,n2i,n3i)
+     real(gp), dimension(3) :: hgrids !< Grid spacings of the box (half of wavelet ones)
+     character(len=1) :: geocode !< @copydoc poisson_solver::doc::geocode
+     integer, dimension(:,:), pointer :: nscatterarr, ngatherarr
+     type(mpi_environment) :: mpi_env
+  end type denspot_distribution
 
 
   !> Define an iterator over the points of the grid which should be also inside a given box (for instance centered on an atom)
@@ -40,11 +62,82 @@ module module_dpbox
 
 
   !Public routines
+  public :: dpbox_null,deallocate_denspot_distribution,dpbox_free
   public :: dpbox_iter,dpbox_iter_next
   public :: dpbox_iterator_null, nullify_dpbox_iterator
   
 
 contains
+
+
+  !> Nullify the denspot_distribution structure
+  function dpbox_null() result(dpbox)
+    implicit none
+    type(denspot_distribution) :: dpbox
+    call nullify_denspot_distribution(dpbox)
+  end function dpbox_null
+
+
+  !> Nullify the denspot_distribution structure
+  subroutine nullify_denspot_distribution(dpbox)
+    implicit none
+    type(denspot_distribution),intent(out) :: dpbox
+    dpbox%n3d=0
+    dpbox%n3p=0
+    dpbox%n3pi=0
+    dpbox%i3xcsh=0
+    dpbox%i3s=0
+    dpbox%nrhodim=0
+    dpbox%i3rho_add=0
+    dpbox%ndimpot=0
+    dpbox%ndimgrid=0
+    dpbox%ndimrhopot=0
+    dpbox%ndims=(/0,0,0/)
+    dpbox%hgrids=(/0.0_gp,0.0_gp,0.0_gp/)
+    dpbox%geocode = "F"
+    nullify(dpbox%nscatterarr)
+    nullify(dpbox%ngatherarr)
+    dpbox%mpi_env=mpi_environment_null()
+  end subroutine nullify_denspot_distribution
+
+
+  !> Deallocate the denspot_distribution structure
+  subroutine deallocate_denspot_distribution(dpbox)
+    use module_base, only: f_free_ptr
+    implicit none
+    type(denspot_distribution),intent(inout)::dpbox
+    
+    if(associated(dpbox%nscatterarr)) then
+      call f_free_ptr(dpbox%nscatterarr)
+    end if
+    if(associated(dpbox%ngatherarr)) then
+      call f_free_ptr(dpbox%ngatherarr)
+    end if
+
+  end subroutine deallocate_denspot_distribution
+
+
+  !> Free the denspot_distribution structure
+  subroutine dpbox_free(dpbox)
+    use module_base, only: f_free_ptr,mpi_environment_free,bigdft_mpi
+    implicit none
+    type(denspot_distribution), intent(inout) :: dpbox
+
+    if (associated(dpbox%nscatterarr)) then
+       call f_free_ptr(dpbox%nscatterarr)
+    end if
+
+    if (associated(dpbox%ngatherarr)) then
+       call f_free_ptr(dpbox%ngatherarr)
+    end if
+    
+    if (dpbox%mpi_env%mpi_comm /= bigdft_mpi%mpi_comm) then
+       call mpi_environment_free(dpbox%mpi_env)
+    end if
+
+    dpbox=dpbox_null()
+
+  END SUBROUTINE dpbox_free
 
 
   !> Function nullify an iterator over dpbox
