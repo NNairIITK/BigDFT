@@ -809,22 +809,29 @@ subroutine epsilon_cavity(atoms,rxyz,pkernel)
   use module_defs, only : Bohr_Ang
   use f_utils
   use yaml_output
+  use dictionaries, only: f_err_throw
   implicit none
   type(atoms_data), intent(in) :: atoms
   real(gp), dimension(3,atoms%astruct%nat), intent(in) :: rxyz
   type(coulomb_operator), intent(inout) :: pkernel
   !local variables
-  real(gp), parameter :: epsilon0=80.d0
-  integer :: i1,i2,i3,unt
+  real(gp), parameter :: epsilon0=78.36d0 ! Constant dielectric permittivity of water.
+  real(gp), parameter :: fact=1.2d0 ! Multiplying factor to enlarge the rigid cavity.
+  integer :: i1,i2,i3,unt,i
   real(gp) :: delta
   type(atoms_iterator) :: it
   real(gp), dimension(:), allocatable :: radii
-  real(gp), dimension(:,:,:), allocatable :: eps
+  real(gp), dimension(:,:,:), allocatable :: eps,oneoeps,oneosqrteps,corr
+  real(gp), dimension(:,:,:,:), allocatable :: dlogeps
   !set the vdW radii for the cavity definition
   !iterate above atoms
 
   radii=f_malloc(atoms%astruct%nat,id='radii')
   eps=f_malloc(pkernel%ndims,id='eps')
+  dlogeps=f_malloc([3,pkernel%ndims(1),pkernel%ndims(2),pkernel%ndims(3)],id='dlogeps')
+  oneoeps=f_malloc(pkernel%ndims,id='oneoeps')
+  oneosqrteps=f_malloc(pkernel%ndims,id='oneosqrteps')
+  corr=f_malloc(pkernel%ndims,id='corr')
 
   it=atoms_iter(atoms%astruct)
   !python metod
@@ -834,14 +841,54 @@ subroutine epsilon_cavity(atoms,rxyz,pkernel)
           rcov=radii(it%iat))
   end do
   call yaml_map('Bohr_Ang',Bohr_Ang)
-  radii=3.0d0/Bohr_Ang
+
+!  radii(1)=1.5d0/Bohr_Ang
+!  radii(2)=1.2d0/Bohr_Ang
+!  radii(3)=1.2d0/Bohr_Ang
+
+  do i=1,atoms%astruct%nat
+!   write(*,*)atoms%astruct%atomnames(atoms%astruct%iatype(i))
+   ! Set the Pauling's set of atomic radii [R.C. Weast, ed., Handbook of chemistry and physics (CRC Press, Cleveland, 1981)].
+   select case(trim(atoms%astruct%atomnames(atoms%astruct%iatype(i))))
+   case('H')
+    radii(i)=1.2d0
+   case('C')
+    radii(i)=1.5d0
+   case('N')
+    radii(i)=1.5d0
+   case('O')
+    radii(i)=1.4d0
+   case('P')
+    radii(i)=1.8d0
+   case('Cl')
+    radii(i)=1.8d0
+   case default
+    call f_err_throw('For rigid cavity a radius should be fixed for each atom type')
+   end select
+   call yaml_map('Atomic type',atoms%astruct%atomnames(atoms%astruct%iatype(i)))
+   radii(i) = fact*radii(i)/Bohr_Ang
+  end do
   call yaml_map('Covalent radii',radii)
-  delta=3.0*maxval(pkernel%hgrids)
-  call epsilon_rigid_cavity(atoms%astruct%geocode,pkernel%ndims,pkernel%hgrids,atoms%astruct%nat,rxyz,radii,&
-       epsilon0,delta,eps)
+
+  delta=4.0*maxval(pkernel%hgrids)
+  call yaml_map('Delta cavity',delta)
+
+!  call epsilon_rigid_cavity(atoms%astruct%geocode,pkernel%ndims,pkernel%hgrids,atoms%astruct%nat,rxyz,radii,&
+!       epsilon0,delta,eps)
+  call epsilon_rigid_cavity_error_multiatoms(atoms%astruct%geocode,pkernel%ndims,pkernel%hgrids,atoms%astruct%nat,rxyz,radii,&
+       epsilon0,delta,eps,dlogeps,oneoeps,oneosqrteps,corr)
+!  call epsilon_rigid_cavity_new_multiatoms(atoms%astruct%geocode,pkernel%ndims,pkernel%hgrids,atoms%astruct%nat,rxyz,radii,&
+!       epsilon0,delta,eps,dlogeps,oneoeps,oneosqrteps,corr)
 
   !set the epsilon to the poisson solver kernel
-  call pkernel_set_epsilon(pkernel,eps=eps)
+!  call pkernel_set_epsilon(pkernel,eps=eps)
+
+  select case(trim(pkernel%method))
+  case('PCG')
+   call pkernel_set_epsilon(pkernel,oneosqrteps=oneosqrteps,corr=corr)
+  case('PI') 
+   call pkernel_set_epsilon(pkernel,oneoeps=oneoeps,dlogeps=dlogeps)
+  end select
 
 !!$  unt=f_get_free_unit(21)
 !!$  call f_open_file(unt,file='oneoepsilon.dat')
@@ -857,6 +904,10 @@ subroutine epsilon_cavity(atoms,rxyz,pkernel)
 
   call f_free(radii)
   call f_free(eps)
+  call f_free(dlogeps)
+  call f_free(oneoeps)
+  call f_free(oneosqrteps)
+  call f_free(corr)
 end subroutine epsilon_cavity
 
 

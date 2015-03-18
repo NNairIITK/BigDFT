@@ -25,8 +25,8 @@ program GPS_3D
    integer :: SetEps! = 1!3 
 
    real(kind=8), parameter :: acell = 10.d0
-   real(kind=8), parameter :: rad_cav = 0.75d0 ! Radius of the dielectric rigid cavity = rad_cav*acell (with nat=1).
-   integer :: nat = 1 ! Number of atoms to build rigid cavity with nat=1.
+   real(kind=8), parameter :: rad_cav = 1.2d0 ! Radius of the dielectric rigid cavity = rad_cav*acell (with nat=1).
+   integer :: nat = 3 ! Number of atoms to build rigid cavity with nat=1.
    real(kind=8) :: erfL  ! To set 1 for Vacuum and correct analitic comparison with gaussian potential.
    real(kind=8) :: erfR  
    real(kind=8), parameter :: sigmaeps = 0.05d0*acell
@@ -45,8 +45,8 @@ program GPS_3D
    integer :: itype_scf,i_all,i_stat,n_cell,iproc,nproc,ixc,n01,n02,n03
    real(kind=8) :: hx,hy,hz,freq,fz,fz1,fz2,pi,curr,average,CondNum,wcurr,ave1,ave2,rhores2,En1,En2,dVnorm,hgrid,sume
    real(kind=8) :: Adiag,ersqrt,ercurr,factor,r,r2,max_diff,max_diffpot,fact,x1,x2,x3,derf_tt,diffcurr,diffcurrS,divprod,sum,einit
-   real(kind=8) :: ehartree,offset
-   real(kind=8), dimension(:,:,:,:), allocatable :: density,rhopot,rvApp,rhoele,rhoion
+   real(kind=8) :: ehartree,offset,epol
+   real(kind=8), dimension(:,:,:,:), allocatable :: density,rhopot,rvApp,rhoele,rhoion,potsol
 
    ! Now start modification for check.
    real(kind=8), dimension(:,:,:,:,:), allocatable :: dens_check,pot_check
@@ -58,7 +58,7 @@ program GPS_3D
    type(coulomb_operator) :: pkernel
 !   type(mpi_environment), intent(in), optional :: mpi_env
    real(kind=8), dimension(:,:,:), allocatable :: eps,potential,pot_ion
-   integer :: i1,i2,i3,whichone,i,ii,j,info,icurr,ip,isd,i1_max,i2_max,i3_max,n3d,n3p,n3pi,i3xcsh,i3s,n3pr2,n3pr1,ierr
+   integer :: i1,i2,i3,isp,whichone,i,ii,j,info,icurr,ip,isd,i1_max,i2_max,i3_max,n3d,n3p,n3pi,i3xcsh,i3s,n3pr2,n3pr1,ierr
 !   type(mpi_environment) :: bigdft_mpi
   type(dictionary), pointer :: options
 
@@ -114,7 +114,9 @@ program GPS_3D
 
    erfL = 80.0d0 
    erfR = 1.0d0  
-   call yaml_map('rad_cav',rad_cav)
+   if (iproc ==0) then
+    call yaml_map('rad_cav',rad_cav)
+   end if
 !   call MPI_INIT(ierr)
 !   call MPI_COMM_RANK(MPI_COMM_WORLD,iproc,ierr)
 !   call MPI_COMM_SIZE(MPI_COMM_WORLD,nproc,ierr)
@@ -125,6 +127,7 @@ program GPS_3D
 
    density=f_malloc([n01,n02,n03,nspden],id='density')
    rhopot =f_malloc([n01,n02,n03,nspden],id='rhopot')
+   potsol =f_malloc([n01,n02,n03,nspden],id='potsol')
    rvApp  =f_malloc([n01,n02,n03,nspden],id='rvApp')
    rhoele =f_malloc([n01,n02,n03,nspden],id='rhoele')
    rhoion =f_malloc([n01,n02,n03,nspden],id='rhoion')
@@ -160,7 +163,7 @@ program GPS_3D
    ! Set environment, namely permittivity epsilon, rhoele = electron charge density and rhoion = ion charge density .
 
    if (SetEps.eq.3) then
-      call get_rho(n01,n02,n03,nspden,nat,acell,a_gauss,hx,hy,hz,rhoele,rhoion,sume,rxyz)
+      call get_rho(n01,n02,n03,nspden,nat,acell,a_gauss,hx,hy,hz,rhoele,rhoion,sume,rxyz,iproc)
    else
     rhoele(:,:,:,:) = 0.d0
     rhoion(:,:,:,:) = 0.d0
@@ -168,7 +171,7 @@ program GPS_3D
 
 !   SetEps=4
 
-    call SetEpsilon(n01,n02,n03,nspden,nord,nat,acell,a_gauss,hx,hy,hz,erfL,erfR,sigmaeps,4,geocode,PSol,eps,dlogeps,oneoeps,oneosqrteps,corr,rhoele,rad_cav,rxyz)
+    call SetEpsilon(n01,n02,n03,nspden,nord,nat,iproc,acell,a_gauss,hx,hy,hz,erfL,erfR,sigmaeps,4,geocode,PSol,eps,dlogeps,oneoeps,oneosqrteps,corr,rhoele,rad_cav,rxyz)
 
     if ( trim(PSol)=='VAC') then
        eps=1.d0
@@ -182,7 +185,7 @@ program GPS_3D
 !------------------------------------------------------------------------
 
    ! Set initial density, and the associated analitical potential for the Standard Poisson Equation.
-   call SetInitDensPot(n01,n02,n03,nspden,eps,dlogeps,sigmaeps,SetEps,erfL,erfR,acell,a_gauss,a2,hx,hy,hz,Setrho,density,potential,geocode,offset,einit)
+   call SetInitDensPot(n01,n02,n03,nspden,iproc,eps,dlogeps,sigmaeps,SetEps,erfL,erfR,acell,a_gauss,a2,hx,hy,hz,Setrho,density,potential,geocode,offset,einit)
 !  call SetRhoSoluto(n03,rhosol,acell)
 
 !------------------------------------------------------------------------
@@ -190,8 +193,9 @@ program GPS_3D
    ! Calculate the charge starting from the potential applying the proper Laplace operator.
    call ApplyLaplace(n01,n02,n03,nspden,hx,hy,hz,potential,rvApp,acell,eps,nord)
 
+  if (iproc==0) then
    call writeroutinePot(n01,n02,n03,1,density,0,rvApp)
-
+  end if
 !!$   max_diffpot = 0.d0
 !!$   i1_max = 1
 !!$   i2_max = 1
@@ -213,6 +217,7 @@ program GPS_3D
 !!$   write(*,'(3(1x,I4),2(1x,e14.7))')i1_max,i2_max,i3_max,max_diffpot,abs(density(n01/2,n02/2,n03/2,1)-rvApp(n01/2,n02/2,n03/2,1))
   if (n_check.eq.1) then
    dens_check(:,:,:,:,1) = rhoion(:,:,:,:) - rhoele(:,:,:,:)
+!   dens_check(:,:,:,:,1) = density(:,:,:,:)
   else if (n_check.eq.3) then
    dens_check(:,:,:,:,1) = rhoion(:,:,:,:)
    dens_check(:,:,:,:,2) = -rhoele(:,:,:,:)
@@ -304,10 +309,11 @@ program GPS_3D
 
  call Polarization_charge(n01,n02,n03,nspden,hx,hy,hz,rhopot,rvApp,acell,eps,nord)
 
+!------------------------------------------------------------------
  if (n_check.eq.3 .and. SetEps.eq.3) then
 
   write(*,'(a)')'--------------------------------------------------------------------------------------------'
-  write(*,'(a)')'Difference between V[\rho,\epsilon] + V[\rho_ion,epsilon] and  V[\rho + \rho_ion, epsilon]'
+  write(*,'(a)')'Difference between V[\rho,\epsilon] + V[\rho_ion,epsilon] and V[\rho + \rho_ion, epsilon]'
   potential(:,:,:)= pot_check(:,:,:,1,1) + pot_check(:,:,:,1,2)
   call writeroutinePot(n01,n02,n03,nspden,rhopot,pkernel%max_iter,potential)
 
@@ -330,9 +336,45 @@ program GPS_3D
 
  end if
 
+!------------------------------------------------------------------
+
+  call pkernel_free(pkernel)
+
+  PSol='VAC'
+  eps=1.d0
+  erfL=1.d0
+  pkernel=pkernel_init(.true.,iproc,nproc,0,geocode,ndims,hgrids,itype_scf,method=PSol)
+  call pkernel_set(pkernel,verbose=.true.)
+
+  potsol(:,:,:,:)=dens_check(:,:,:,:,1)
+
+  call H_potential('G',pkernel,potsol,potsol,ehartree,offset,.false.)
+
+!-------------------------------------------------
+    !calculate polarization energy.
+    epol=0.d0
+    isp=1
+    do i3=1,n03
+     do i2=1,n02
+      do i1=1,n01
+       epol= epol + potsol(i1,i2,i3,isp)*rvApp(i1,i2,i3,isp)
+      end do
+     end do
+    end do
+    epol=0.5*hx*hy*hz*epol
+  if (iproc==0) then
+     call yaml_map('Computed polarization energy in hartree',epol)
+     epol=epol*627.509469d0
+     call yaml_map('Computed polarization energy in kcal/mol',epol)
+
+  end if
+
+!-------------------------------------------------
+
   call pkernel_free(pkernel)
   call f_free(density)
   call f_free(rhopot)
+  call f_free(potsol)
   call f_free(rhoele)
   call f_free(rhoion)
   call f_free(dens_check)
@@ -2055,7 +2097,7 @@ subroutine fssnord3DmatDiv3var(n01,n02,n03,nspden,hx,hy,hz,u,du,nord,acell)
 
 end subroutine fssnord3DmatDiv3var
 
-subroutine SetInitDensPot(n01,n02,n03,nspden,eps,dlogeps,sigmaeps,SetEps,erfL,erfR,acell,a_gauss,a2,hx,hy,hz,Setrho,density,potential,geocode,offset,einit)
+subroutine SetInitDensPot(n01,n02,n03,nspden,iproc,eps,dlogeps,sigmaeps,SetEps,erfL,erfR,acell,a_gauss,a2,hx,hy,hz,Setrho,density,potential,geocode,offset,einit)
   use dynamic_memory
   use yaml_output
   use f_utils
@@ -2063,7 +2105,7 @@ subroutine SetInitDensPot(n01,n02,n03,nspden,eps,dlogeps,sigmaeps,SetEps,erfL,er
   integer, intent(in) :: n01
   integer, intent(in) :: n02
   integer, intent(in) :: n03
-  integer, intent(in) :: nspden
+  integer, intent(in) :: nspden,iproc
   integer, intent(in) :: Setrho
   real(kind=8), intent(in) :: acell,a_gauss,a2,hx,hy,hz,sigmaeps,erfL,erfR
   integer, intent(in) :: SetEps
@@ -2152,7 +2194,7 @@ subroutine SetInitDensPot(n01,n02,n03,nspden,eps,dlogeps,sigmaeps,SetEps,erfL,er
 
    sigma = 0.03d0*acell
    x0 = 0.d0 ! hx*real(25-n01/2,kind=8)
-print *,'we should be here for vacuum'
+!print *,'we should be here for vacuum'
          !Normalization
          factor = 1.d0/((sigma**3)*sqrt((2.d0*pi)**3))
          !gaussian function for the potential.
@@ -2367,9 +2409,9 @@ print *,'we should be here for vacuum'
 ! Set initial potential as gaussian and density as the correct Generalized
 ! Laplace operator. It works with a gaussian epsilon.
 
-   sigma = 0.03d0*acell
+   sigma = 0.05d0*acell
    x0 = 0.d0 ! hx*real(25-n01/2,kind=8)
-print *,'we should be here for cavity'
+!print *,'we should be here for cavity'
          !Normalization
          factor = 1.d0/((sigma**3)*sqrt((2.d0*pi)**3))
          !gaussian function for the potential.
@@ -2446,11 +2488,13 @@ print *,'we should be here for cavity'
  end do
  einit=0.5*hx*hy*hz*einit
 
-  call yaml_map('Total Charge',sumd*hx*hy*hz)
-  call yaml_map('Potential monopole',sump*hx*hy*hz)
-  call yaml_map('Potential at the boundary 1 n02/2 1',&
+   if (iproc ==0) then
+    call yaml_map('Total Charge',sumd*hx*hy*hz)
+    call yaml_map('Potential monopole',sump*hx*hy*hz)
+    call yaml_map('Potential at the boundary 1 n02/2 1',&
        potential(1,n02/2,1))
-  call yaml_map('Density at the boundary 1 n02/2 1',density(1,n02/2,1,1))
+    call yaml_map('Density at the boundary 1 n02/2 1',density(1,n02/2,1,1))
+   end if
   !write(*,*) 'charge sumd',sumd*hx*hy*hz,'potential sum',sump*hx*hy*hz
   !write(*,'(1x,a,1x,e14.7)')'Potential at the boundary 1 n02/2 1',poteantial(1,n02/2,1)
   !write(*,'(1x,a,1x,e14.7)')'Density at the boundary 1 n02/2 1',density(1,n02/2,1,1)
@@ -2541,16 +2585,18 @@ subroutine functions(x,a,b,f,f1,f2,whichone)
 
 end subroutine functions
 
-subroutine SetEpsilon(n01,n02,n03,nspden,nord,nat,acell,a_gauss,hx,hy,hz,erfL,erfR,sigmaeps,SetEps,geocode,PSol,eps,dlogeps,oneoeps,oneosqrteps,corr,rhoele,rad_cav,rxyz)
+subroutine SetEpsilon(n01,n02,n03,nspden,nord,nat,iproc,acell,a_gauss,hx,hy,hz,erfL,erfR,sigmaeps,SetEps,geocode,PSol,eps,dlogeps,oneoeps,oneosqrteps,corr,rhoele,rad_cav,rxyz)
 
   use dynamic_memory
+  use yaml_output
+
   implicit none
   integer, intent(in) :: n01
   integer, intent(in) :: n02
   integer, intent(in) :: n03
   integer, intent(in) :: nspden
   integer, intent(in) :: nord
-  integer, intent(in) :: nat
+  integer, intent(in) :: nat,iproc
   real(kind=8), intent(in) :: acell,a_gauss,hx,hy,hz,erfL,erfR,sigmaeps,rad_cav
   integer, intent(in) :: SetEps
   character(len=2), intent(in) :: geocode
@@ -2572,7 +2618,7 @@ subroutine SetEpsilon(n01,n02,n03,nspden,nord,nat,acell,a_gauss,hx,hy,hz,erfL,er
   real(kind=8), dimension(n01,n02,n03), intent(out), optional :: corr
 
   real(kind=8), dimension(n01,n02,n03,nspden), intent(in), optional :: rhoele
-  real(kind=8), dimension(3,nat), intent(in), optional :: rxyz
+  real(kind=8), dimension(3,nat), intent(inout), optional :: rxyz
 
   ! local variables.
   real(kind=8), dimension(n01,n02,n03,nspden) :: edens
@@ -2580,12 +2626,12 @@ subroutine SetEpsilon(n01,n02,n03,nspden,nord,nat,acell,a_gauss,hx,hy,hz,erfL,er
   real(kind=8), dimension(n01,n02,n03,nspden) :: ddt_edens ! Laplacian of the electron density.
   real(kind=8), dimension(n01,n02,n03,3) :: deps ! Nabla of the electron density.
   integer :: i,i1,i2,i3,ifx,ify,ifz,isp,iat
-  real(kind=8), parameter :: edensmax = 0.0035d0!!!!
-  real(kind=8), parameter :: edensmin = 0.0001d0
-  real(kind=8), parameter :: eps0 = 80.0d0
+  real(kind=8) :: edensmax = 0.0035d0!!!!
+  real(kind=8) :: edensmin = 0.0001d0
+  real(kind=8), parameter :: eps0 = 78.36d0
   real(kind=8) :: x1,x2,x3,r,t,pi,r2,sigma,x0,factor,length,oneoeps0,oneosqrteps0
   real(kind=8) :: x,y,fx,fx2,fy,fy2,fz,fz2,a,ax,ay,az,bx,by,bz,tt,fx1,fy1,fz1
-  real(kind=8) :: fact1,fact2,fact3,dtx,d2,dd,coeff,coeff1
+  real(kind=8) :: fact1,fact2,fact3,dtx,d2,dd,coeff,coeff1,delta
   real(kind=8), dimension(nat) :: radii
 
 
@@ -2719,6 +2765,12 @@ subroutine SetEpsilon(n01,n02,n03,nspden,nord,nat,acell,a_gauss,hx,hy,hz,erfL,er
     call fssnord3DmatDiv(n01,n02,n03,nspden,hx,hy,hz,nabla_edens,ddt_edens,nord,acell)
    end if
 
+!   r2=(rad_cav/0.52917721092d0)**2
+!   edensmax = max(exp(-0.5d0*r2/(0.16d0)),1d-24)
+!   delta=12.d0*max(hx,hy,hz)
+!   r2=((rad_cav+delta)/0.52917721092d0)**2
+!   edensmin = max(exp(-0.5d0*r2/(0.16d0)),1d-24)
+
    pi = 4.d0*datan(1.d0)
    r=0.d0
    t=0.d0
@@ -2808,20 +2860,44 @@ subroutine SetEpsilon(n01,n02,n03,nspden,nord,nat,acell,a_gauss,hx,hy,hz,erfL,er
    end if
 
 else if (SetEps ==4) then
-!!$      rxyz(1:3,1)=[7.300000d0, 7.300337d0, 7.243250d0]-[2.30d0,2.85d0,3.7d0]
-!!$      rxyz(1:3,2)=[7.300000d0, 8.415319d0, 8.700265d0]-[2.30d0,2.85d0,3.7d0]
-!!$      rxyz(1:3,3)=[7.300000d0, 7.299663d0,10.156750d0]-[2.30d0,2.85d0,3.7d0]
-!!$      radii=[2.0d0,2.5d0,2.0d0]
+
+!      rxyz(1:3,1)=[7.300000d0, 7.300337d0, 7.243250d0]-[2.30d0,2.85d0,3.7d0]
+!      rxyz(1:3,2)=[7.300000d0, 8.415319d0, 8.700265d0]-[2.30d0,2.85d0,3.7d0]
+!      rxyz(1:3,3)=[7.300000d0, 7.299663d0,10.156750d0]-[2.30d0,2.85d0,3.7d0]
+!      rxyz(1:3,4)=[7.300000d0, 7.299663d0,9.156750d0]-[2.30d0,2.85d0,3.7d0]
+!      rxyz(1:3,5)=[7.300000d0, 7.299663d0,8.156750d0]-[2.30d0,2.85d0,3.7d0]
+      radii=[1.2d0,1.5d0,1.2d0]
+!      radii=[1.5d0,2.0d0,1.5d0,1.5d0]
+!      radii=[1.5d0,1.2d0,1.2d0,1.2d0,1.2d0]
 !      rxyz(1,1) = hx*real(n01/2,kind=8)
 !      rxyz(2,1) = hy*real(n02/2,kind=8)
 !      rxyz(3,1) = hz*real(n03/2,kind=8)
+!      rxyz(1:3,2)=[5.00000d0, 5.00000d0 + 0.2d0, 5.000000d0]
 
       do iat=1,nat
-       write(*,*)rxyz(:,iat)
-       radii(iat)=rad_cav/0.52917721092d0
+       if (iproc==0) then
+!        write(*,*)rxyz(:,iat)
+       call yaml_map('atom',iat)
+       call yaml_map('rxyz',rxyz(:,iat))
+       end if
+!       radii(iat)=rad_cav/0.52917721092d0
+       radii(iat)=rad_cav*radii(iat)/0.52917721092d0
       end do
+      delta=4.d0*max(hx,hy,hz)
 
-      call Eps_rigid_cavity([n01,n02,n03],nspden,nord,acell,[hx,hy,hz],nat,rxyz,radii,eps0,3.d0*max(hx,hy,hz),eps,dlogeps,oneoeps,oneosqrteps,corr)
+      if (iproc==0) then
+       call yaml_map('radii',radii)
+       call yaml_map('delta',delta)
+      end if
+
+!      radii=radii/acell
+
+!      call Eps_rigid_cavity([n01,n02,n03],nspden,nord,acell,[hx,hy,hz],nat,rxyz,radii,eps0,delta,eps,dlogeps,oneoeps,oneosqrteps,corr)
+       call Eps_rigid_cavity_multiatoms([n01,n02,n03],nspden,nord,acell,[hx,hy,hz],nat,rxyz,radii,eps0,delta,eps,dlogeps,oneoeps,oneosqrteps,corr)
+!      call Eps_rigid_cavity_new([n01,n02,n03],nspden,nord,acell,[hx,hy,hz],nat,rxyz,radii,eps0,delta,eps,dlogeps,oneoeps,oneosqrteps,corr)
+!      call Eps_rigid_cavity_new_multiatoms([n01,n02,n03],nspden,nord,acell,[hx,hy,hz],nat,rxyz,radii,eps0,delta,eps,dlogeps,oneoeps,oneosqrteps,corr)
+!      call Eps_rigid_cavity_new2([n01,n02,n03],nspden,nord,acell,[hx,hy,hz],nat,rxyz,radii,eps0,delta,eps,dlogeps,oneoeps,oneosqrteps,corr)
+!      call Eps_rigid_cavity_new2_multiatoms([n01,n02,n03],nspden,nord,acell,[hx,hy,hz],nat,rxyz,radii,eps0,delta,eps,dlogeps,oneoeps,oneosqrteps,corr)
 !!$
 !!$print *,'New dlogeps calculation'
 !!$      call fssnord3DmatNabla3var(n01,n02,n03,nspden,hx,hy,hz,eps,deps,nord,acell)
@@ -2965,78 +3041,78 @@ subroutine Eps_rigid_cavity(ndims,nspden,nord,acell,hgrids,nat,rxyz,radii,epsilo
      end do
   end do
 
-  call fssnordEpsilonDerivative(ndims(1),ndims(2),ndims(3),1,hgrids(1),hgrids(2),hgrids(3),eps,v_de2,v_ddeps,nord,acell)
-
-  do i3=1,ndims(3)
-     z=hgrids(3)*i3 !(i3-1) for 0 axis start.
-     z2=z*z
-     v(3)=z
-     do i2=1,ndims(2)
-        y=hgrids(2)*i2 !*(i2-1) for 0 axis start.
-        y2=y*y
-        v(2)=y
-        do i1=1,ndims(1)
-           x=hgrids(1)*i1 !(i1-1) for 0 axis start.
-           v(1)=x
-           r2=x*x+y2+z2
-           !choose the closest atom
-           eps_min=1.d100
-           do iat=1,nat
-            d2=(x-rxyz(1,iat))**2+(y-rxyz(2,iat))**2+(z-rxyz(3,iat))**2
-            if (d2.eq.0.d0) then
-               d2=1.0d-30
-               eps1=epsl(sqrt(d2),radii(iat),delta,epsilon0)
-               d1=d1eps(sqrt(d2),radii(iat),delta,epsilon0)
-               oneod=1.d0/sqrt(d2)
-!               coeff=-2.d0*((sqrt(d2)-radii(iat))/(delta**2))
-!               coeff=oneod+2.d0*((sqrt(d2)-radii(iat))/(delta**2))
-               do i=1,3
-                h=0.d0
-                deps(i) =0.d0
-                ddeps(i)=0.d0
-               end do
-               eps_min=eps1
-             exit
-            else
-               oneod=1.d0/sqrt(d2)
-               eps1=epsl(sqrt(d2),radii(iat),delta,epsilon0)
-              if (eps1< eps_min) then
-                 d1=d1eps(sqrt(d2),radii(iat),delta,epsilon0)
-                 coeff=oneod+2.d0*((sqrt(d2)-radii(iat))/(delta**2))
-                 do i=1,3
-                  h=(v(i)-rxyz(i,iat))*oneod
-                  deps(i) =d1*h
-                  ddeps(i)=d1*(oneod-coeff*(h**2))
-                 end do
-                 eps_min=eps1
-              end if
-              if (abs(eps_min-1.d0) < epsilon(1.d0)) exit
-            end if
-           end do
-
-           if (nat==0) then
-              eps_min=1.d0
-              deps=0.d0
-              ddeps=0.d0
-           end if
-           eps(i1,i2,i3)=eps_min
-           oneoeps(i1,i2,i3)=1.d0/eps_min
-           oneosqrteps(i1,i2,i3)=1.d0/sqrt(eps_min)
-           dde=v_ddeps(i1,i2,i3)
-!           de2=v_de2(i1,i2,i3)
-           de2=0.d0
-!           dde=0.d0
-           do i=1,3
-            dlogeps(i,i1,i2,i3)=deps(i)/eps_min
-            de2 = de2 + deps(i)**2
-!            dde = dde + ddeps(i)
-           end do
-!            de2 = d1**2
-!            dde = d1*(3.d0*oneod-coeff*(h**2))
-            corr(i1,i2,i3)=-(0.125d0/pi)*(0.5d0/eps_min*de2-dde)
-        end do
-     end do
-  end do
+!!$  call fssnordEpsilonDerivative(ndims(1),ndims(2),ndims(3),1,hgrids(1),hgrids(2),hgrids(3),eps,v_de2,v_ddeps,nord,acell)
+!!$
+!!$  do i3=1,ndims(3)
+!!$     z=hgrids(3)*i3 !(i3-1) for 0 axis start.
+!!$     z2=z*z
+!!$     v(3)=z
+!!$     do i2=1,ndims(2)
+!!$        y=hgrids(2)*i2 !*(i2-1) for 0 axis start.
+!!$        y2=y*y
+!!$        v(2)=y
+!!$        do i1=1,ndims(1)
+!!$           x=hgrids(1)*i1 !(i1-1) for 0 axis start.
+!!$           v(1)=x
+!!$           r2=x*x+y2+z2
+!!$           !choose the closest atom
+!!$           eps_min=1.d100
+!!$           do iat=1,nat
+!!$            d2=(x-rxyz(1,iat))**2+(y-rxyz(2,iat))**2+(z-rxyz(3,iat))**2
+!!$            if (d2.eq.0.d0) then
+!!$               d2=1.0d-30
+!!$               eps1=epsl(sqrt(d2),radii(iat),delta,epsilon0)
+!!$               d1=d1eps(sqrt(d2),radii(iat),delta,epsilon0)
+!!$               oneod=1.d0/sqrt(d2)
+!!$!               coeff=-2.d0*((sqrt(d2)-radii(iat))/(delta**2))
+!!$!               coeff=oneod+2.d0*((sqrt(d2)-radii(iat))/(delta**2))
+!!$               do i=1,3
+!!$                h=0.d0
+!!$                deps(i) =0.d0
+!!$                ddeps(i)=0.d0
+!!$               end do
+!!$               eps_min=eps1
+!!$             exit
+!!$            else
+!!$               oneod=1.d0/sqrt(d2)
+!!$               eps1=epsl(sqrt(d2),radii(iat),delta,epsilon0)
+!!$              if (eps1< eps_min) then
+!!$                 d1=d1eps(sqrt(d2),radii(iat),delta,epsilon0)
+!!$                 coeff=oneod+2.d0*((sqrt(d2)-radii(iat))/(delta**2))
+!!$                 do i=1,3
+!!$                  h=(v(i)-rxyz(i,iat))*oneod
+!!$                  deps(i) =d1*h
+!!$                  ddeps(i)=d1*(oneod-coeff*(h**2))
+!!$                 end do
+!!$                 eps_min=eps1
+!!$              end if
+!!$              if (abs(eps_min-1.d0) < epsilon(1.d0)) exit
+!!$            end if
+!!$           end do
+!!$
+!!$           if (nat==0) then
+!!$              eps_min=1.d0
+!!$              deps=0.d0
+!!$              ddeps=0.d0
+!!$           end if
+!!$           eps(i1,i2,i3)=eps_min
+!!$           oneoeps(i1,i2,i3)=1.d0/eps_min
+!!$           oneosqrteps(i1,i2,i3)=1.d0/sqrt(eps_min)
+!!$           dde=v_ddeps(i1,i2,i3)
+!!$!           de2=v_de2(i1,i2,i3)
+!!$           de2=0.d0
+!!$!           dde=0.d0
+!!$           do i=1,3
+!!$            dlogeps(i,i1,i2,i3)=deps(i)/eps_min
+!!$            de2 = de2 + deps(i)**2
+!!$!            dde = dde + ddeps(i)
+!!$           end do
+!!$!            de2 = d1**2
+!!$!            dde = d1*(3.d0*oneod-coeff*(h**2))
+!!$            corr(i1,i2,i3)=-(0.125d0/pi)*(0.5d0/eps_min*de2-dde)
+!!$        end do
+!!$     end do
+!!$  end do
 
   contains
 
@@ -3063,6 +3139,630 @@ subroutine Eps_rigid_cavity(ndims,nspden,nord,acell,hgrids,nat,rxyz,radii,epsilo
     end function d1eps
 
 end subroutine Eps_rigid_cavity
+
+!> calculates the value of the dielectric function for a smoothed cavity 
+!! given a set of centres and radii. Based on the Andreussi epsilon function
+!! with a gaussian \rho^{elec}.
+!! Need the epsilon0 as well as the radius of the cavit and its smoothness
+subroutine Eps_rigid_cavity_new(ndims,nspden,nord,acell,hgrids,nat,rxyz,radii,epsilon0,delta,eps,dlogeps,oneoeps,oneosqrteps,corr)
+  implicit none
+  integer, intent(in) :: nat !< number of centres defining the cavity
+  integer, intent(in) :: nspden
+  integer, intent(in) :: nord
+  real(kind=8), intent(in) :: acell
+  real(kind=8), intent(in) :: epsilon0 !< dielectric constant of th solvent
+  real(kind=8), intent(in) :: delta !< smoothness factor of the cavity
+  integer, dimension(3), intent(in) :: ndims   !< dimensions of the simulation box
+  real(kind=8), dimension(3), intent(in) :: hgrids !< grid spacings
+  real(kind=8), dimension(nat), intent(in) :: radii !< radii of each of the atoms
+  !> position of all the atoms in the grid coordinates
+  real(kind=8), dimension(3,nat), intent(in) :: rxyz
+  real(kind=8), dimension(ndims(1),ndims(2),ndims(3)), intent(out) :: eps !< dielectric function
+  real(kind=8), dimension(3,ndims(1),ndims(2),ndims(3)), intent(out) :: dlogeps !< dlogeps
+  real(kind=8), dimension(ndims(1),ndims(2),ndims(3)), intent(out) :: oneoeps !< inverse of epsilon. Needed for PI method.
+  real(kind=8), dimension(ndims(1),ndims(2),ndims(3)), intent(out) :: oneosqrteps !< inverse square root of epsilon. Needed for PCG method.
+  real(kind=8), dimension(ndims(1),ndims(2),ndims(3)), intent(out) :: corr !< correction term of the Generalized Laplacian.
+  !local variables
+  integer :: i,i1,i2,i3,iat
+  real(kind=8) :: r2,x,y2,z2,d,d2,d12,y,z,eps_min,eps1,pi,de2,dde,d1,oneod,h,coeff,dmin,dmax,oneoeps0,oneosqrteps0
+  real(kind=8) :: r,t,fact1,fact2,fact3,dd,dtx
+  real(kind=8), dimension(3) :: deps,ddeps,v
+  real(kind=8), dimension(ndims(1),ndims(2),ndims(3)) :: v_de2
+  real(kind=8), dimension(ndims(1),ndims(2),ndims(3)) :: v_ddeps
+
+   pi = 4.d0*datan(1.d0)
+   r=0.d0
+   t=0.d0
+   oneoeps0=1.d0/epsilon0
+   oneosqrteps0=1.d0/dsqrt(epsilon0)
+
+  do i3=1,ndims(3)
+   z=hgrids(3)*i3 !(i3-1) for 0 axis start.
+   v(3)=z
+   do i2=1,ndims(2)
+    y=hgrids(2)*i2 !*(i2-1) for 0 axis start.
+    v(2)=y
+    do i1=1,ndims(1)
+     x=hgrids(1)*i1 !(i1-1) for 0 axis start.
+     v(1)=x
+     !choose the closest atom
+     do iat=1,nat
+      dmax = radii(iat) - 3.d0*delta
+      dmin = radii(iat) + 1.d0*delta
+      fact1=2.d0*pi/(-(dmax**2) + dmin**2)
+      fact2=(dlog(epsilon0))/(2.d0*pi)
+      fact3=(dlog(epsilon0))/(-(dmax**2) + dmin**2)
+      d2=(x-rxyz(1,iat))**2+(y-rxyz(2,iat))**2+(z-rxyz(3,iat))**2
+      if (d2.eq.0.d0) d2=1.0d-30
+      d=dsqrt(d2)
+
+      if (d.lt.dmax) then
+       eps(i1,i2,i3)=1.d0
+       oneoeps(i1,i2,i3)=1.d0
+       oneosqrteps(i1,i2,i3)=1.d0
+       do i=1,3
+        dlogeps(i,i1,i2,i3)=0.d0
+       end do
+       corr(i1,i2,i3)=0.d0
+      else if (d.gt.dmin) then
+       eps(i1,i2,i3)=epsilon0
+       oneoeps(i1,i2,i3)=oneoeps0
+       oneosqrteps(i1,i2,i3)=oneosqrteps0
+       do i=1,3
+        dlogeps(i,i1,i2,i3)=0.d0
+       end do
+       corr(i1,i2,i3)=0.d0
+      else
+       write(40,*)d,dmin,dmax
+       r=fact1*(-(dmax**2) + d2)
+       t=fact2*(r-dsin(r))
+       eps(i1,i2,i3)=dexp(t)
+       oneoeps(i1,i2,i3)=dexp(-t)
+       oneosqrteps(i1,i2,i3)=dexp(-0.5d0*t)
+!       coeff=fact3*(1.d0-dcos(r))
+       dtx=fact3*(1.d0-dcos(r))
+!       dtx=-coeff
+!       d12=0.d0
+       do i=1,3
+        dlogeps(i,i1,i2,i3)=dtx*2.d0*(v(i)-rxyz(i,iat))
+!        d12 = d12+(dtx*2.d0*(v(i)-rxyz(i,iat)))**2
+       end do
+       d12 = 4.d0*(dtx**2)*d2
+       dd =  4.d0*fact1*fact3*dsin(r)*d2 + 6.d0*dtx
+       corr(i1,i2,i3)=(0.125d0/pi)*dexp(t)*(0.5d0*d12+dd)
+      end if
+
+     end do
+    end do
+   end do
+  end do
+
+end subroutine Eps_rigid_cavity_new
+
+!> calculates the value of the dielectric function for a smoothed cavity 
+!! given a set of centres and radii. Based on the Andreussi paper (Eq. 40) epsilon function
+!! with a gaussian \rho^{elec}.
+!! Need the epsilon0 as well as the radius of the cavit and its smoothness
+subroutine Eps_rigid_cavity_new2(ndims,nspden,nord,acell,hgrids,nat,rxyz,radii,epsilon0,delta,eps,dlogeps,oneoeps,oneosqrteps,corr)
+  implicit none
+  integer, intent(in) :: nat !< number of centres defining the cavity
+  integer, intent(in) :: nspden
+  integer, intent(in) :: nord
+  real(kind=8), intent(in) :: acell
+  real(kind=8), intent(in) :: epsilon0 !< dielectric constant of th solvent
+  real(kind=8), intent(in) :: delta !< smoothness factor of the cavity
+  integer, dimension(3), intent(in) :: ndims   !< dimensions of the simulation box
+  real(kind=8), dimension(3), intent(in) :: hgrids !< grid spacings
+  real(kind=8), dimension(nat), intent(in) :: radii !< radii of each of the atoms
+  !> position of all the atoms in the grid coordinates
+  real(kind=8), dimension(3,nat), intent(in) :: rxyz
+  real(kind=8), dimension(ndims(1),ndims(2),ndims(3)), intent(out) :: eps !< dielectric function
+  real(kind=8), dimension(3,ndims(1),ndims(2),ndims(3)), intent(out) :: dlogeps !< dlogeps
+  real(kind=8), dimension(ndims(1),ndims(2),ndims(3)), intent(out) :: oneoeps !< inverse of epsilon. Needed for PI method.
+  real(kind=8), dimension(ndims(1),ndims(2),ndims(3)), intent(out) :: oneosqrteps !< inverse square root of epsilon. Needed for PCG method.
+  real(kind=8), dimension(ndims(1),ndims(2),ndims(3)), intent(out) :: corr !< correction term of the Generalized Laplacian.
+  !local variables
+  integer :: i,i1,i2,i3,iat
+  real(kind=8) :: r2,x,y2,z2,d,d2,d12,y,z,eps_min,eps1,pi,de2,dde,d1,oneod,h,coeff,dmin,dmax,oneoeps0,oneosqrteps0
+  real(kind=8) :: r,t,fact1,fact2,fact3,dd,dtx
+  real(kind=8), dimension(3) :: deps,ddeps,v
+  real(kind=8), dimension(ndims(1),ndims(2),ndims(3)) :: v_de2
+  real(kind=8), dimension(ndims(1),ndims(2),ndims(3)) :: v_ddeps
+
+   pi = 4.d0*datan(1.d0)
+   r=0.d0
+   t=0.d0
+   oneoeps0=1.d0/epsilon0
+   oneosqrteps0=1.d0/dsqrt(epsilon0)
+
+  do i3=1,ndims(3)
+   z=hgrids(3)*i3 !(i3-1) for 0 axis start.
+   v(3)=z
+   do i2=1,ndims(2)
+    y=hgrids(2)*i2 !*(i2-1) for 0 axis start.
+    v(2)=y
+    do i1=1,ndims(1)
+     x=hgrids(1)*i1 !(i1-1) for 0 axis start.
+     v(1)=x
+     !choose the closest atom
+     do iat=1,nat
+      dmax = radii(iat) - 2.d0*delta
+      dmin = radii(iat) + 2.d0*delta
+      fact1=2.d0*pi/(-(dmax**2) + dmin**2)
+      fact2=(epsilon0-1.d0)/(2.d0*pi)
+      fact3=(epsilon0-1.d0)/(-(dmax**2) + dmin**2)
+      d2=(x-rxyz(1,iat))**2+(y-rxyz(2,iat))**2+(z-rxyz(3,iat))**2
+      if (d2.eq.0.d0) d2=1.0d-30
+      d=dsqrt(d2)
+
+      if (d.lt.dmax) then
+       eps(i1,i2,i3)=1.d0
+       oneoeps(i1,i2,i3)=1.d0
+       oneosqrteps(i1,i2,i3)=1.d0
+       do i=1,3
+        dlogeps(i,i1,i2,i3)=0.d0
+       end do
+       corr(i1,i2,i3)=0.d0
+      else if (d.gt.dmin) then
+       eps(i1,i2,i3)=epsilon0
+       oneoeps(i1,i2,i3)=oneoeps0
+       oneosqrteps(i1,i2,i3)=oneosqrteps0
+       do i=1,3
+        dlogeps(i,i1,i2,i3)=0.d0
+       end do
+       corr(i1,i2,i3)=0.d0
+      else
+       write(40,*)d,dmin,dmax
+       r=fact1*(-(dmax**2) + d2)
+       t=fact2*(r-dsin(r))
+       eps(i1,i2,i3)=1.d0 + t
+       oneoeps(i1,i2,i3)=1.d0/eps(i1,i2,i3)
+       oneosqrteps(i1,i2,i3)=1.d0/dsqrt(eps(i1,i2,i3))
+       dtx=fact3*(1.d0-dcos(r))
+       do i=1,3
+        dlogeps(i,i1,i2,i3)=dtx*2.d0*(v(i)-rxyz(i,iat))/eps(i1,i2,i3)
+       end do
+       d12 = 4.d0*(dtx**2)*d2
+       dd =  4.d0*fact1*fact3*dsin(r)*d2 + 6.d0*dtx
+       corr(i1,i2,i3)=(-0.125d0/pi)*(0.5d0*d12/eps(i1,i2,i3)-dd)
+      end if
+
+     end do
+    end do
+   end do
+  end do
+
+end subroutine Eps_rigid_cavity_new2
+
+!> calculates the value of the dielectric function for a smoothed cavity 
+!! given a set of centres and radii. Based on error function.
+!! Need the epsilon0 as well as the radius of the cavit and its smoothness
+subroutine Eps_rigid_cavity_multiatoms(ndims,nspden,nord,acell,hgrids,nat,rxyz,radii,epsilon0,delta,eps,dlogeps,oneoeps,oneosqrteps,corr)
+  implicit none
+  integer, intent(in) :: nat !< number of centres defining the cavity
+  integer, intent(in) :: nspden
+  integer, intent(in) :: nord
+  real(kind=8), intent(in) :: acell
+  real(kind=8), intent(in) :: epsilon0 !< dielectric constant of th solvent
+  real(kind=8), intent(in) :: delta !< smoothness factor of the cavity
+  integer, dimension(3), intent(in) :: ndims   !< dimensions of the simulation box
+  real(kind=8), dimension(3), intent(in) :: hgrids !< grid spacings
+  real(kind=8), dimension(nat), intent(in) :: radii !< radii of each of the atoms
+  !> position of all the atoms in the grid coordinates
+  real(kind=8), dimension(3,nat), intent(in) :: rxyz
+  real(kind=8), dimension(ndims(1),ndims(2),ndims(3)), intent(out) :: eps !< dielectric function
+  real(kind=8), dimension(3,ndims(1),ndims(2),ndims(3)), intent(out) :: dlogeps !< dlogeps
+  real(kind=8), dimension(ndims(1),ndims(2),ndims(3)), intent(out) :: oneoeps !< inverse of epsilon. Needed for PI method.
+  real(kind=8), dimension(ndims(1),ndims(2),ndims(3)), intent(out) :: oneosqrteps !< inverse square root of epsilon. Needed for PCG method.
+  real(kind=8), dimension(ndims(1),ndims(2),ndims(3)), intent(out) :: corr !< correction term of the Generalized Laplacian.
+  !local variables
+  integer :: i,i1,i2,i3,iat,jat,ii
+  real(kind=8) :: r2,x,y2,z2,d,d2,d12,y,z,eps_min,eps1,pi,de2,dde,d1,oneod,h,coeff,dmin,dmax,oneoeps0,oneosqrteps0
+  real(kind=8) :: r,t,fact1,fact2,fact3,dd,dtx,curr
+  real(kind=8), dimension(3) :: deps,ddeps,v
+  real(kind=8), dimension(ndims(1),ndims(2),ndims(3)) :: v_de2
+  real(kind=8), dimension(ndims(1),ndims(2),ndims(3)) :: v_ddeps
+  real(kind=8), dimension(nat) :: ep,ddep
+  real(kind=8), dimension(3,nat) :: dep
+
+   pi = 4.d0*datan(1.d0)
+   r=0.d0
+   t=0.d0
+   oneoeps0=1.d0/epsilon0
+   oneosqrteps0=1.d0/dsqrt(epsilon0)
+
+  do i3=1,ndims(3)
+   z=hgrids(3)*i3 !(i3-1) for 0 axis start.
+   v(3)=z
+   do i2=1,ndims(2)
+    y=hgrids(2)*i2 !*(i2-1) for 0 axis start.
+    v(2)=y
+    do i1=1,ndims(1)
+     x=hgrids(1)*i1 !(i1-1) for 0 axis start.
+     v(1)=x
+     !choose the closest atom
+     do iat=1,nat
+      d2=(x-rxyz(1,iat))**2+(y-rxyz(2,iat))**2+(z-rxyz(3,iat))**2
+      d=dsqrt(d2)
+
+      if (d2.eq.0.d0) then
+       d2=1.0d-30
+       ep(iat)=epsl(d,radii(iat),delta)
+       do i=1,3
+        dep(i,iat)=0.d0
+       end do
+       ddep(iat)=0.d0
+      else
+       oneod=1.d0/d
+       ep(iat)=epsl(d,radii(iat),delta)
+       d1=d1eps(d,radii(iat),delta)
+       coeff=2.d0*((sqrt(d2)-radii(iat))/(delta**2))
+       do i=1,3
+        h=(v(i)-rxyz(i,iat))*oneod
+        dep(i,iat) =d1*h
+       end do
+       ddep(iat)=d1*(2.d0*oneod-coeff)
+      end if
+
+     end do
+
+     eps(i1,i2,i3)=(epsilon0-1.d0)*product(ep)+1.d0
+     oneoeps(i1,i2,i3)=1.d0/eps(i1,i2,i3)
+     oneosqrteps(i1,i2,i3)=1.d0/dsqrt(eps(i1,i2,i3))
+
+     do i=1,3
+      deps(i)=0.d0
+      do jat=0,nat-1
+       curr=dep(i,jat+1)
+       do iat=1,nat-1
+        curr=curr*ep(modulo(iat+jat,nat)+1)
+       end do
+        deps(i) = deps(i) + curr
+      end do
+      deps(i) = deps(i)*(epsilon0-1.d0)
+     end do
+
+     d12=0.d0
+     do i=1,3
+      dlogeps(i,i1,i2,i3)=deps(i)/eps(i1,i2,i3)
+      d12 = d12 + deps(i)**2
+     end do
+
+     dd=0.d0
+     do jat=1,nat
+      curr=ddep(jat)
+      do iat=1,nat-1
+       curr=curr*ep(modulo(iat+jat-1,nat)+1)
+      end do
+      dd = dd + curr
+     end do
+
+      do i=1,3
+       do iat=1,nat-1
+        do jat=iat+1,nat
+         curr=dep(i,iat)*dep(i,jat)
+         do ii=1,nat
+          if ((ii.eq.iat).or.(ii.eq.jat)) then
+          else
+           curr=curr*ep(ii)
+          end if
+         end do
+         curr=curr*2.d0
+         dd = dd + curr
+        end do
+       end do
+      end do
+
+     dd=dd*(epsilon0-1.d0)
+     corr(i1,i2,i3)=(-0.125d0/pi)*(0.5d0*d12/eps(i1,i2,i3)-dd)
+
+    end do
+   end do
+  end do
+
+  contains
+
+    pure function epsl(r,rc,delta)
+      implicit none
+      real(kind=8), intent(in) :: r,rc,delta
+      real(kind=8) :: epsl
+      !local variables
+      real(kind=8) :: d
+
+      d=(r-rc)/delta
+      epsl=0.5d0*(erf(d)+1.d0)
+    end function epsl
+
+    pure function d1eps(r,rc,delta)
+      implicit none
+      real(kind=8), intent(in) :: r,rc,delta
+      real(kind=8) :: d1eps
+      !local variables
+      real(kind=8) :: d
+
+      d=(r-rc)/delta
+      d1eps=(1.d0/(delta*sqrt(pi)))*max(exp(-d**2),1.0d-24)
+    end function d1eps
+
+end subroutine Eps_rigid_cavity_multiatoms
+
+!> calculates the value of the dielectric function for a smoothed cavity 
+!! given a set of centres and radii. Based on the Andreussi epsilon function
+!! with a gaussian \rho^{elec}.
+!! Need the epsilon0 as well as the radius of the cavit and its smoothness
+subroutine Eps_rigid_cavity_new_multiatoms(ndims,nspden,nord,acell,hgrids,nat,rxyz,radii,epsilon0,delta,eps,dlogeps,oneoeps,oneosqrteps,corr)
+  implicit none
+  integer, intent(in) :: nat !< number of centres defining the cavity
+  integer, intent(in) :: nspden
+  integer, intent(in) :: nord
+  real(kind=8), intent(in) :: acell
+  real(kind=8), intent(in) :: epsilon0 !< dielectric constant of th solvent
+  real(kind=8), intent(in) :: delta !< smoothness factor of the cavity
+  integer, dimension(3), intent(in) :: ndims   !< dimensions of the simulation box
+  real(kind=8), dimension(3), intent(in) :: hgrids !< grid spacings
+  real(kind=8), dimension(nat), intent(in) :: radii !< radii of each of the atoms
+  !> position of all the atoms in the grid coordinates
+  real(kind=8), dimension(3,nat), intent(in) :: rxyz
+  real(kind=8), dimension(ndims(1),ndims(2),ndims(3)), intent(out) :: eps !< dielectric function
+  real(kind=8), dimension(3,ndims(1),ndims(2),ndims(3)), intent(out) :: dlogeps !< dlogeps
+  real(kind=8), dimension(ndims(1),ndims(2),ndims(3)), intent(out) :: oneoeps !< inverse of epsilon. Needed for PI method.
+  real(kind=8), dimension(ndims(1),ndims(2),ndims(3)), intent(out) :: oneosqrteps !< inverse square root of epsilon. Needed for PCG method.
+  real(kind=8), dimension(ndims(1),ndims(2),ndims(3)), intent(out) :: corr !< correction term of the Generalized Laplacian.
+  !local variables
+  integer :: i,i1,i2,i3,iat,jat,ii
+  real(kind=8) :: r2,x,y2,z2,d,d2,d12,y,z,eps_min,eps1,pi,de2,dde,d1,oneod,h,coeff,dmin,dmax,oneoeps0,oneosqrteps0
+  real(kind=8) :: r,t,fact1,fact2,fact3,dd,dtx,curr
+  real(kind=8), dimension(3) :: deps,ddeps,v
+  real(kind=8), dimension(ndims(1),ndims(2),ndims(3)) :: v_de2
+  real(kind=8), dimension(ndims(1),ndims(2),ndims(3)) :: v_ddeps
+  real(kind=8), dimension(nat) :: ep,ddep
+  real(kind=8), dimension(3,nat) :: dep
+
+   pi = 4.d0*datan(1.d0)
+   r=0.d0
+   t=0.d0
+   oneoeps0=1.d0/epsilon0
+   oneosqrteps0=1.d0/dsqrt(epsilon0)
+
+  do i3=1,ndims(3)
+   z=hgrids(3)*i3 !(i3-1) for 0 axis start.
+   v(3)=z
+   do i2=1,ndims(2)
+    y=hgrids(2)*i2 !*(i2-1) for 0 axis start.
+    v(2)=y
+    do i1=1,ndims(1)
+     x=hgrids(1)*i1 !(i1-1) for 0 axis start.
+     v(1)=x
+     !choose the closest atom
+     do iat=1,nat
+      dmax = radii(iat) - 2.36d0*delta
+      dmin = radii(iat) + 1.64d0*delta
+      fact1=2.d0*pi/(-(dmax**2) + dmin**2)
+      fact2=(dlog(2.d0))/(2.d0*pi)
+      fact3=(dlog(2.d0))/(-(dmax**2) + dmin**2)
+      d2=(x-rxyz(1,iat))**2+(y-rxyz(2,iat))**2+(z-rxyz(3,iat))**2
+      if (d2.eq.0.d0) d2=1.0d-30
+      d=dsqrt(d2)
+
+      if (d.lt.dmax) then
+       ep(iat)=0.d0
+       do i=1,3
+        dep(i,iat)=0.d0
+       end do
+       ddep(iat)=0.d0
+      else if (d.gt.dmin) then
+       ep(iat)=1.d0
+       do i=1,3
+        dep(i,iat)=0.d0
+       end do
+       ddep(iat)=0.d0
+      else
+       r=fact1*(-(dmax**2) + d2)
+       t=fact2*(r-dsin(r))
+       ep(iat)=dexp(t)-1.d0
+       dtx=fact3*(1.d0-dcos(r))
+       do i=1,3
+        dep(i,iat)=dexp(t)*dtx*2.d0*(v(i)-rxyz(i,iat))
+       end do
+       ddep(iat) = dexp(t)*(4.d0*(dtx**2)*d2 + 4.d0*fact1*fact3*dsin(r)*d2 + 6.d0*dtx)
+      end if
+     end do
+
+     eps(i1,i2,i3)=(epsilon0-1.d0)*product(ep)+1.d0
+     oneoeps(i1,i2,i3)=1.d0/eps(i1,i2,i3)
+     oneosqrteps(i1,i2,i3)=1.d0/dsqrt(eps(i1,i2,i3))
+
+     do i=1,3
+      deps(i)=0.d0
+      do jat=0,nat-1
+       curr=dep(i,jat+1)
+       do iat=1,nat-1
+        curr=curr*ep(modulo(iat+jat,nat)+1)
+       end do
+        deps(i) = deps(i) + curr
+      end do
+      deps(i) = deps(i)*(epsilon0-1.d0)
+     end do
+
+     d12=0.d0
+     do i=1,3
+      dlogeps(i,i1,i2,i3)=deps(i)/eps(i1,i2,i3)
+      d12 = d12 + deps(i)**2
+     end do
+
+     dd=0.d0
+     do jat=1,nat
+      curr=ddep(jat)
+      do iat=1,nat-1
+       curr=curr*ep(modulo(iat+jat-1,nat)+1)
+      end do
+      dd = dd + curr
+     end do
+
+      do i=1,3
+       do iat=1,nat-1
+        do jat=iat+1,nat
+         curr=dep(i,iat)*dep(i,jat)
+         do ii=1,nat
+          if ((ii.eq.iat).or.(ii.eq.jat)) then
+          else
+           curr=curr*ep(ii)
+          end if
+         end do
+         curr=curr*2.d0
+         dd = dd + curr
+        end do
+       end do
+      end do
+
+     dd=dd*(epsilon0-1.d0)
+     corr(i1,i2,i3)=(-0.125d0/pi)*(0.5d0*d12/eps(i1,i2,i3)-dd)
+
+    end do
+   end do
+  end do
+
+end subroutine Eps_rigid_cavity_new_multiatoms
+
+!> calculates the value of the dielectric function for a smoothed cavity 
+!! given a set of centres and radii. Based on the Andreussi paper (Eq. 40) epsilon function
+!! with a gaussian \rho^{elec}.
+!! Need the epsilon0 as well as the radius of the cavit and its smoothness
+subroutine Eps_rigid_cavity_new2_multiatoms(ndims,nspden,nord,acell,hgrids,nat,rxyz,radii,epsilon0,delta,eps,dlogeps,oneoeps,oneosqrteps,corr)
+  implicit none
+  integer, intent(in) :: nat !< number of centres defining the cavity
+  integer, intent(in) :: nspden
+  integer, intent(in) :: nord
+  real(kind=8), intent(in) :: acell
+  real(kind=8), intent(in) :: epsilon0 !< dielectric constant of th solvent
+  real(kind=8), intent(in) :: delta !< smoothness factor of the cavity
+  integer, dimension(3), intent(in) :: ndims   !< dimensions of the simulation box
+  real(kind=8), dimension(3), intent(in) :: hgrids !< grid spacings
+  real(kind=8), dimension(nat), intent(in) :: radii !< radii of each of the atoms
+  !> position of all the atoms in the grid coordinates
+  real(kind=8), dimension(3,nat), intent(in) :: rxyz
+  real(kind=8), dimension(ndims(1),ndims(2),ndims(3)), intent(out) :: eps !< dielectric function
+  real(kind=8), dimension(3,ndims(1),ndims(2),ndims(3)), intent(out) :: dlogeps !< dlogeps
+  real(kind=8), dimension(ndims(1),ndims(2),ndims(3)), intent(out) :: oneoeps !< inverse of epsilon. Needed for PI method.
+  real(kind=8), dimension(ndims(1),ndims(2),ndims(3)), intent(out) :: oneosqrteps !< inverse square root of epsilon. Needed for PCG method.
+  real(kind=8), dimension(ndims(1),ndims(2),ndims(3)), intent(out) :: corr !< correction term of the Generalized Laplacian.
+  !local variables
+  integer :: i,i1,i2,i3,iat,jat,ii
+  real(kind=8) :: r2,x,y2,z2,d,d2,d12,y,z,eps_min,eps1,pi,de2,dde,d1,oneod,h,coeff,dmin,dmax,oneoeps0,oneosqrteps0
+  real(kind=8) :: r,t,fact1,fact2,fact3,dd,dtx,curr
+  real(kind=8), dimension(3) :: deps,ddeps,v
+  real(kind=8), dimension(ndims(1),ndims(2),ndims(3)) :: v_de2
+  real(kind=8), dimension(ndims(1),ndims(2),ndims(3)) :: v_ddeps
+  real(kind=8), dimension(nat) :: ep,ddep
+  real(kind=8), dimension(3,nat) :: dep
+
+   pi = 4.d0*datan(1.d0)
+   r=0.d0
+   t=0.d0
+   oneoeps0=1.d0/epsilon0
+   oneosqrteps0=1.d0/dsqrt(epsilon0)
+
+  do i3=1,ndims(3)
+   z=hgrids(3)*i3 !(i3-1) for 0 axis start.
+   v(3)=z
+   do i2=1,ndims(2)
+    y=hgrids(2)*i2 !*(i2-1) for 0 axis start.
+    v(2)=y
+    do i1=1,ndims(1)
+     x=hgrids(1)*i1 !(i1-1) for 0 axis start.
+     v(1)=x
+     !choose the closest atom
+     do iat=1,nat
+      dmax = radii(iat) - 2.d0*delta
+      dmin = radii(iat) + 2.d0*delta
+      fact1=2.d0*pi/(-(dmax**2) + dmin**2)
+      fact2=1.d0/(2.d0*pi)
+      fact3=1.d0/(-(dmax**2) + dmin**2)
+      d2=(x-rxyz(1,iat))**2+(y-rxyz(2,iat))**2+(z-rxyz(3,iat))**2
+      if (d2.eq.0.d0) d2=1.0d-30
+      d=dsqrt(d2)
+
+      if (d.lt.dmax) then
+       ep(iat)=0.d0
+       do i=1,3
+        dep(i,iat)=0.d0
+       end do
+       ddep(iat)=0.d0
+      else if (d.gt.dmin) then
+       ep(iat)=1.d0
+       do i=1,3
+        dep(i,iat)=0.d0
+       end do
+       ddep(iat)=0.d0
+      else
+       write(40,*)d,dmin,dmax
+       r=fact1*(-(dmax**2) + d2)
+       t=fact2*(r-dsin(r))
+       ep(iat)=t
+       dtx=fact3*(1.d0-dcos(r))
+       do i=1,3
+        dep(i,iat)=dtx*2.d0*(v(i)-rxyz(i,iat))
+       end do
+       ddep(iat) =  4.d0*fact1*fact3*dsin(r)*d2 + 6.d0*dtx
+      end if
+     end do
+
+     eps(i1,i2,i3)=(epsilon0-1.d0)*product(ep)+1.d0
+     oneoeps(i1,i2,i3)=1.d0/eps(i1,i2,i3)
+     oneosqrteps(i1,i2,i3)=1.d0/dsqrt(eps(i1,i2,i3))
+
+     do i=1,3
+      deps(i)=0.d0
+      do jat=0,nat-1
+       curr=dep(i,jat+1)
+       do iat=1,nat-1
+        curr=curr*ep(modulo(iat+jat,nat)+1)
+       end do
+        deps(i) = deps(i) + curr
+      end do
+      deps(i) = deps(i)*(epsilon0-1.d0)
+     end do
+
+     d12=0.d0
+     do i=1,3
+      dlogeps(i,i1,i2,i3)=deps(i)/eps(i1,i2,i3)
+      d12 = d12 + deps(i)**2
+     end do
+
+     dd=0.d0
+     do jat=1,nat
+      curr=ddep(jat)
+      do iat=1,nat-1
+       curr=curr*ep(modulo(iat+jat-1,nat)+1)
+      end do
+      dd = dd + curr
+     end do
+
+      do i=1,3
+       do iat=1,nat-1
+        do jat=iat+1,nat
+         curr=dep(i,iat)*dep(i,jat)
+         do ii=1,nat
+!          if ((ii.ne.iat).or.(ii.ne.jat)) then
+          if ((ii.eq.iat).or.(ii.eq.jat)) then
+          else
+           curr=curr*ep(ii)
+          end if
+         end do
+         curr=curr*2.d0
+         dd = dd + curr
+        end do
+       end do
+      end do
+
+     dd=dd*(epsilon0-1.d0)
+     corr(i1,i2,i3)=(-0.125d0/pi)*(0.5d0*d12/eps(i1,i2,i3)-dd)
+
+    end do
+   end do
+  end do
+
+end subroutine Eps_rigid_cavity_new2_multiatoms
 
 subroutine SetEledens(n01,n02,n03,nspden,nord,acell,a_gauss,hx,hy,hz,SetEps,edens,nabla,ddt)
 
@@ -3178,7 +3878,7 @@ subroutine get_size_from_cube(n01,n02,n03,hx,hy,hz,nat)
 
 end subroutine get_size_from_cube
 
-subroutine get_rho(n01,n02,n03,nspden,natoms,acell,a_gauss,hx,hy,hz,rhoele,rhoion,sume,rxyz)
+subroutine get_rho(n01,n02,n03,nspden,natoms,acell,a_gauss,hx,hy,hz,rhoele,rhoion,sume,rxyz,iproc)
 
   use yaml_output
   use f_utils
@@ -3188,7 +3888,7 @@ subroutine get_rho(n01,n02,n03,nspden,natoms,acell,a_gauss,hx,hy,hz,rhoele,rhoio
   integer, intent(in) :: n02
   integer, intent(in) :: n03
   integer, intent(in) :: nspden
-  integer, intent(in) :: natoms
+  integer, intent(in) :: natoms,iproc
   real(kind=8), intent(in) :: acell,a_gauss,hx,hy,hz
   real(kind=8), dimension(n01,n02,n03,nspden), intent(out) :: rhoele
   real(kind=8), dimension(n01,n02,n03,nspden), intent(out) :: rhoion
@@ -3278,19 +3978,25 @@ subroutine get_rho(n01,n02,n03,nspden,natoms,acell,a_gauss,hx,hy,hz,rhoele,rhoio
   zcent=-zcent*hgridx_h*hgridy_h*hgridz_h
   sume = total
 
-  write(*,*) 'total, centers  Without ions'
-  write(*,*)  total,xcent,ycent,zcent
+  if (iproc ==0) then
+   write(*,*) 'total, centers  Without ions'
+   write(*,*)  total,xcent,ycent,zcent
+  end if
 
   do iat= 1,nat
-   write(*,*) ATOM_info(:,iat)
+   if (iproc ==0) then
+    write(*,*) ATOM_info(:,iat)
+   end if
    total=total+ATOM_info(2,iat)
    xcent=xcent+ATOM_info(2,iat)*ATOM_info(3,iat)
    ycent=ycent+ATOM_info(2,iat)*ATOM_info(4,iat)
    zcent=zcent+ATOM_info(2,iat)*ATOM_info(5,iat)
  end do
 
-  write(*,*) 'total, centers  with    ions'
-  write(*,*)  total,xcent,ycent,zcent
+   if (iproc ==0) then
+    write(*,*) 'total, centers  with    ions'
+    write(*,*)  total,xcent,ycent,zcent
+   end if
 
 !-----------------------------------------------------------------------
 ! Compute ion charge density
@@ -3377,8 +4083,10 @@ subroutine get_rho(n01,n02,n03,nspden,natoms,acell,a_gauss,hx,hy,hz,rhoele,rhoio
      call f_close(unt)
 
 
-  write(*,*)'Total ions charge'
-  write(*,*)sumi*hgridx_h*hgridy_h*hgridz_h
+   if (iproc ==0) then
+    write(*,*)'Total ions charge'
+    write(*,*)sumi*hgridx_h*hgridy_h*hgridz_h
+   end if
 
   deallocate(chg,ATOM_info,sigat)
 

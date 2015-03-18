@@ -100,6 +100,7 @@ subroutine H_potential(datacode,kernel,rhopot,pot_ion,eh,offset,sumpion,&
    else
       wrtmsg=.true.
    end if
+      wrtmsg=.true. ! giuseppe fisicaro just to check for my purpose.
    wrtmsg=wrtmsg .and. kernel%mpi_env%iproc==0 .and. kernel%mpi_env%igroup==0
    ! rewrite
    if (wrtmsg) call yaml_mapping_open('Poisson Solver')
