@@ -1,7 +1,7 @@
 !>  @file
 !!  Routines to calculate the local part of atomic forces
 !! @author
-!!    Copyright (C) 2007-2012 BigDFT group
+!!    Copyright (C) 2007-2015 BigDFT group
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
@@ -58,7 +58,7 @@ subroutine calculate_forces(iproc,nproc,psolver_groupsize,Glr,atoms,orbs,nlpsp,r
   !!end do
 
   !calculate forces originated by rhocore
-  call rhocore_forces(iproc,atoms,nspin,Glr%d%n1,Glr%d%n2,Glr%d%n3,Glr%d%n1i,Glr%d%n2i,Glr%d%n3i,n3p,i3s,&
+  call rhocore_forces(iproc,atoms,dpbox,nspin,Glr%d%n1,Glr%d%n2,Glr%d%n3,Glr%d%n1i,Glr%d%n2i,Glr%d%n3i,n3p,i3s,&
        0.5_gp*hx,0.5_gp*hy,0.5_gp*hz,rxyz,potxc,fxyz)
 
   !for a taksgroup Poisson Solver, multiply by the ratio.
@@ -91,7 +91,7 @@ subroutine calculate_forces(iproc,nproc,psolver_groupsize,Glr,atoms,orbs,nlpsp,r
      call local_hamiltonian_stress(orbs,Glr,hx,hy,hz,psi,strtens(1,3))
 
      call erf_stress(atoms,rxyz,0.5_gp*hx,0.5_gp*hy,0.5_gp*hz,Glr%d%n1i,Glr%d%n2i,Glr%d%n3i,n3p,&
-          iproc,nproc,ngatherarr,rho,strtens(1,4)) !shouud not be reduced for the moment
+          iproc,nproc,ngatherarr,rho,strtens(1,4)) !should not be reduced for the moment
   end if
 
   !add to the forces the ionic and dispersion contribution
@@ -170,9 +170,11 @@ subroutine calculate_forces(iproc,nproc,psolver_groupsize,Glr,atoms,orbs,nlpsp,r
      ucvol=atoms%astruct%cell_dim(1)*atoms%astruct%cell_dim(2)*atoms%astruct%cell_dim(3) !orthorombic cell
      if (iproc==0) call yaml_mapping_open('Stress Tensor')
      !sum and symmetrize results
-     if (iproc==0 .and. verbose > 2)call write_strten_info(.false.,ewaldstr,ucvol,pressure,'Ewald')
-     if (iproc==0 .and. verbose > 2)call write_strten_info(.false.,hstrten,ucvol,pressure,'Hartree')
-     if (iproc==0 .and. verbose > 2)call write_strten_info(.false.,xcstr,ucvol,pressure,'XC')
+     if (iproc==0 .and. verbose > 2) then
+        call write_strten_info(.false.,ewaldstr,ucvol,pressure,'Ewald')
+        call write_strten_info(.false.,hstrten,ucvol,pressure,'Hartree')
+        call write_strten_info(.false.,xcstr,ucvol,pressure,'XC')
+     end if
      do j=1,6
         strten(j)=ewaldstr(j)+hstrten(j)+xcstr(j)
      end do
@@ -208,19 +210,26 @@ end subroutine calculate_forces
 
 
 !> Calculate the contribution to the forces given by the core density charge
-subroutine rhocore_forces(iproc,atoms,nspin,n1,n2,n3,n1i,n2i,n3i,n3p,i3s,hxh,hyh,hzh,rxyz,potxc,fxyz)
+subroutine rhocore_forces(iproc,atoms,&
+                          dpbox,&
+                          nspin,n1,n2,n3,n1i,n2i,n3i,n3p,i3s,hxh,hyh,hzh,rxyz,potxc,fxyz)
   use module_base
+  use module_dpbox, only: denspot_distribution,dpbox_iterator,dpbox_iter_next
   use module_types
   use yaml_output
   implicit none
-  integer, intent(in) :: iproc,n1i,n2i,n3i,n3p,i3s,nspin,n1,n2,n3
+  !Arguments
+  integer, intent(in) :: iproc,nspin
+  integer, intent(in) :: n1i,n2i,n3i,n3p,i3s,n1,n2,n3
+  type(denspot_distribution), intent(in) :: dpbox
   real(gp), intent(in) :: hxh,hyh,hzh
   type(atoms_data), intent(in) :: atoms
   real(wp), dimension(n1i*n2i*n3p*nspin), intent(in) :: potxc
   real(gp), dimension(3,atoms%astruct%nat), intent(in) :: rxyz
   real(gp), dimension(3,atoms%astruct%nat), intent(inout) :: fxyz
-  !local variables
+  !Local variables
   real(gp), parameter :: oneo4pi=.079577471545947_wp
+  type(dpbox_iterator) :: boxit
   logical :: perx,pery,perz,gox,goy,goz
   integer :: ispin,ilcc,ityp,iat,jtyp,islcc,ngv,ngc,ig,ispinsh,ind
   integer :: nbl1,nbl2,nbl3,nbr1,nbr2,nbr3,isx,isy,isz,iex,iey,iez
@@ -289,6 +298,32 @@ subroutine rhocore_forces(iproc,atoms,nspin,n1,n2,n3,n1i,n2i,n3i,n3p,i3s,hxh,hyh
               iex=ceiling((rx+cutoff)/hxh)
               iey=ceiling((ry+cutoff)/hyh)
               iez=ceiling((rz+cutoff)/hzh)
+
+!!!              boxit = dpbox_iter(dpbox,DPB_POT,nspin=nspin)
+!!!              do while(dpbox_iter_next(boxit))
+!!!                 r2 = boxit%x**2+boxit%y**2+boxit%z**2
+!!!                 ilcc=islcc
+!!!                 drhov=0.0_dp
+!!!                 do ig=1,(ngv*(ngv+1))/2
+!!!                    ilcc=ilcc+1
+!!!                    !derivative wrt r2
+!!!                    drhov=drhov+&
+!!!                         spherical_gaussian_value(r2,atoms%nlccpar(0,ilcc),atoms%nlccpar(1,ilcc),1)
+!!!                 end do
+!!!                 drhoc=0.0_dp
+!!!                 do ig=1,(ngc*(ngc+1))/2
+!!!                    ilcc=ilcc+1
+!!!                    !derivative wrt r2
+!!!                    drhoc=drhoc+&
+!!!                         spherical_gaussian_value(r2,atoms%nlccpar(0,ilcc),atoms%nlccpar(1,ilcc),1)
+!!!                 end do
+!!!                 !forces in all the directions for the given atom
+!!!                 drhodr2=drhoc-drhov
+!!!                 frcx = frcx + potxc(boxit%ind)*boxit%x*drhodr2
+!!!                 frcy = frcy + potxc(boxit%ind)*boxit%y*drhodr2
+!!!                 frcz = frcz + potxc(boxit%ind)*boxit%z*drhodr2
+!!!              end do
+              
               do ispin=1,nspin
                  ispinsh=0
                  if (ispin==2) ispinsh=n1i*n2i*n3p
@@ -392,18 +427,18 @@ subroutine local_forces(iproc,at,rxyz,hxh,hyh,hzh,&
   locstrten=0.0_gp
 
   charge=0.d0
-  do i3=1,n3p
-     do i2=1,n2i
-        do i1=1,n1i
-           ind=i1+(i2-1)*n1i+(i3-1)*n1i*n2i
-           charge=charge+rho(ind)
-        enddo
-     enddo
-  enddo
-!!!  boxit = dpbox_iter(dpbox,DPB_POT)
-!!!  do while(dpbox_iter_next(boxit))
-!!!     charge = charge + rho(boxit%ind)
-!!!  end do
+!!!  do i3=1,n3p
+!!!     do i2=1,n2i
+!!!        do i1=1,n1i
+!!!           ind=i1+(i2-1)*n1i+(i3-1)*n1i*n2i
+!!!           charge=charge+rho(ind)
+!!!        enddo
+!!!     enddo
+!!!  enddo
+  boxit = dpbox_iter(dpbox,DPB_POT)
+  do while(dpbox_iter_next(boxit))
+     charge = charge + rho(boxit%ind)
+  end do
   
   charge=charge*hxh*hyh*hzh
 
@@ -1018,7 +1053,6 @@ subroutine nonlocal_forces(lr,hx,hy,hz,at,rxyz,&
      ikpt=ikpt+1
      ispsi_k=ispsi
   end do loop_kptF
-
 
 !Adding Enl to the diagonal components of strten after loop over kpts is finished...
 do i=1,3
