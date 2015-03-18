@@ -1077,6 +1077,9 @@ module io
       ! Local variables
       integer :: iunit, iseg, icol, irow, jorb, iat, jat, ind, ispin
 
+      call f_routine(id='write_sparse_matrix')
+
+      iunit = 99
       call f_open_file(iunit, file=trim(filename), binary=.false.)
 
       write(iunit,'(i12,a)') at%astruct%nat, &
@@ -1105,6 +1108,8 @@ module io
 
       call f_close(iunit)
 
+      call f_routine(id='write_sparse_matrix')
+
     end subroutine write_sparse_matrix
 
 
@@ -1128,6 +1133,7 @@ module io
       !!integer :: i_stat, i_all
       character(len=*),parameter :: subname='write_linear_matrices'
     
+      call f_routine(id='write_linear_matrices')
     
       unitm=99
       binary=(iformat /= WF_FORMAT_PLAIN)
@@ -1178,7 +1184,7 @@ module io
     
          call f_close(unitm)
     
-         call write_sparse_matrix(tmb%orbs, at, rxyz, tmb%linmat%m, tmb%linmat%ham_, filename//'hamiltonian_sparse.bin')
+         call write_sparse_matrix(tmb%orbs, at, rxyz, tmb%linmat%m, tmb%linmat%ham_, trim(filename//'hamiltonian_sparse.bin'))
     
       end if
     
@@ -1345,6 +1351,8 @@ module io
       !!deallocate(tmb%linmat%ovrlp%matrix,stat=i_stat)
       !!call memocc(i_stat,i_all,'tmb%linmat%ovrlp%matrix',subname)
       call f_free_ptr(tmb%linmat%ovrlp_%matrix)
+
+      call f_release_routine()
     
     end subroutine write_linear_matrices
 
