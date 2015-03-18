@@ -1284,8 +1284,6 @@ subroutine calc_dipole(dpbox,nspin,at,rxyz,rho,calculate_quadropole)
           call yaml_sequence_close()
       end if
 
-
-
   endif
 
   if (dpbox%mpi_env%nproc > 1) then
