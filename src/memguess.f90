@@ -1088,7 +1088,8 @@ program memguess
        end do
 
        do itype=1,at%astruct%ntypes
-           write(*,'(a,i7,a,f7.2,es12.4)') 'itype, name, rcov dtype(itype)', itype, at%astruct%atomnames(itype), rcov(itype), dtype(itype)
+           write(*,'(a,i7,a,f7.2,es12.4)') 'itype, name, rcov dtype(itype)', &
+               itype, at%astruct%atomnames(itype), rcov(itype), dtype(itype)
        end do
 
        stop
