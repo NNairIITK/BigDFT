@@ -539,9 +539,9 @@ subroutine IonicEnergyandForces(iproc,dpbox,at,elecfield,&
            do while(dpbox_iter_next(boxit))
               xp = mpx(boxit%ibox(1))* mpy(boxit%ibox(2)) *  mpz(boxit%ibox(3))
               Vel = pot_ion(boxit%ind)
-              fxerf = fxerf + xp*Vel*boxit%x
-              fyerf = fyerf + xp*Vel*boxit%y
-              fzerf = fzerf + xp*Vel*boxit%z
+              fxerf = fxerf + xp*Vel*(boxit%x-rx)
+              fyerf = fyerf + xp*Vel*(boxit%y-ry)
+              fzerf = fzerf + xp*Vel*(boxit%z-rz)
            end do
 
            !De-allocate the 1D temporary arrays for separability
