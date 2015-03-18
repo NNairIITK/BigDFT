@@ -4838,6 +4838,7 @@ subroutine nonlocal_forces_linear(iproc,nproc,npsidim_orbs,lr,hx,hy,hz,at,rxyz,&
                call orbs_in_kpt(ikpt,orbs,isorb,ieorb,nspinor)
     
                call ncplx_kpt(ikpt,orbs,ncplx)
+               strten_loc(:) = 0.d0
 
                ! Do the OMP loop over supfun_per_atom, as nat_par(iproc) is typically rather small
     
@@ -4847,7 +4848,6 @@ subroutine nonlocal_forces_linear(iproc,nproc,npsidim_orbs,lr,hx,hy,hz,at,rxyz,&
                !$omp shared(offdiagarr, strten, strten_loc, vol, Enl, nspinor,ncplx) &
                !$omp private(ispin, iat, iiat, ityp, iorb, ii, iiorb, jorb, jj, jjorb, ind, sab, ispinor) &
                !$omp private(l, i, m, icplx, sp0, idir, spi, strc, j, hij, sp0i, sp0j, spj, iispin, jjspin)
-               strten_loc(:) = 0.d0
                spin_loop2: do ispin=1,denskern%nspin
 
 

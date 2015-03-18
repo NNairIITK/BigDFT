@@ -196,7 +196,9 @@ module foe
         
             
                   ! Don't let this value become too small.
-                  call foe_data_set_real(foe_obj,"bisection_shift",max(foe_data_get_real(foe_obj,"bisection_shift",ispin),1.d-4),ispin)
+                  call foe_data_set_real(foe_obj, &
+                       "bisection_shift",max(foe_data_get_real(foe_obj,"bisection_shift",ispin),1.d-4), &
+                       ispin)
             
                   efarr(1)=foe_data_get_real(foe_obj,"ef",ispin)-foe_data_get_real(foe_obj,"bisection_shift",ispin)
                   efarr(2)=foe_data_get_real(foe_obj,"ef",ispin)+foe_data_get_real(foe_obj,"bisection_shift",ispin)
@@ -294,10 +296,12 @@ module foe
                           if (foe_verbosity>=1) then
                               call yaml_map('bisec/eval bounds',&
                                    (/fermilevel_get_real(f,"efarr(1)"),fermilevel_get_real(f,"efarr(2)"),&
-                                   foe_data_get_real(foe_obj,"evlow",ispin),foe_data_get_real(foe_obj,"evhigh",ispin)/),fmt='(f5.2)')
+                                   foe_data_get_real(foe_obj,"evlow",ispin), &
+                                   foe_data_get_real(foe_obj,"evhigh",ispin)/),fmt='(f5.2)')
                           else
                               call yaml_map('eval bounds',&
-                                   (/foe_data_get_real(foe_obj,"evlow",ispin),foe_data_get_real(foe_obj,"evhigh",ispin)/),fmt='(f5.2)')
+                                   (/foe_data_get_real(foe_obj,"evlow",ispin), &
+                                   foe_data_get_real(foe_obj,"evhigh",ispin)/),fmt='(f5.2)')
                           end if
                           call yaml_map('pol deg',npl,fmt='(i3)')
                           if (foe_verbosity>=1) call yaml_map('eF',foe_data_get_real(foe_obj,"ef",ispin),fmt='(es16.9)')
@@ -455,7 +459,8 @@ module foe
                       if (restart) then
                           if(evbounds_shrinked) then
                               ! this shrink was not good, increase the saturation counter
-                              call foe_data_set_int(foe_obj,"evboundsshrink_isatur",foe_data_get_int(foe_obj,"evboundsshrink_isatur")+1)
+                              call foe_data_set_int(foe_obj,"evboundsshrink_isatur", &
+                                   foe_data_get_int(foe_obj,"evboundsshrink_isatur")+1)
                           end if
                           call foe_data_set_int(foe_obj,"evbounds_isatur",0)
                           if (iproc==0) then
