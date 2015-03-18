@@ -246,6 +246,7 @@ subroutine rhocore_forces(iproc,atoms,&
      else if (nspin ==2) then
         spinfac=1.0_gp
      end if
+
      !perform the loop on any of the atoms which have this feature
      do iat=1,atoms%astruct%nat
         rx=rxyz(1,iat) 
@@ -290,7 +291,7 @@ subroutine rhocore_forces(iproc,atoms,&
 !!!           call ext_buffers(pery,nbl2,nbr2)
 !!!           call ext_buffers(perz,nbl3,nbr3)
 
-!!!           if (n3p > 0) then
+           if (n3p > 0) then
 
 !!!              isx=floor((rx-cutoff)/hxh)
 !!!              isy=floor((ry-cutoff)/hyh)
@@ -307,9 +308,9 @@ subroutine rhocore_forces(iproc,atoms,&
             nbox(2,3) = ceiling((rz+cutoff)/hzh)
             boxit = dpbox_iter(dpbox,DPB_POT,nbox=nbox,nspin=nspin)
             do while(dpbox_iter_next(boxit))
-               x = boxit%x -rx
-               y = boxit%y -ry
-               z = boxit%z -rz
+               x = boxit%x - rx
+               y = boxit%y - ry
+               z = boxit%z - rz
                r2 = x**2 + y**2 + z**2
                ilcc=islcc
                drhov=0.0_dp
@@ -331,6 +332,7 @@ subroutine rhocore_forces(iproc,atoms,&
                frcx = frcx + potxc(boxit%ind)*x*drhodr2
                frcy = frcy + potxc(boxit%ind)*y*drhodr2
                frcz = frcz + potxc(boxit%ind)*z*drhodr2
+               !write(*,'(i0,1x,6(1x,1pe24.17))') boxit%ind,potxc(boxit%ind),drhoc,drhov,x,y,z
             end do
               
 !!!              do ispin=1,nspin
@@ -374,6 +376,7 @@ subroutine rhocore_forces(iproc,atoms,&
 !!!                                   frcx=frcx+potxc(ind)*x*drhodr2
 !!!                                   frcy=frcy+potxc(ind)*y*drhodr2
 !!!                                   frcz=frcz+potxc(ind)*z*drhodr2
+!!!                write(*,'(i0,1x,6(1x,1pe24.17))') ind,potxc(ind),drhoc,drhov,x,y,z
 !!!                                endif
 !!!                             enddo
 !!!                          end if
@@ -381,7 +384,7 @@ subroutine rhocore_forces(iproc,atoms,&
 !!!                    end if
 !!!                 enddo
 !!!              end do
-!!!           end if
+           end if
         end if
 
         !assign contribution per atom
@@ -393,7 +396,6 @@ subroutine rhocore_forces(iproc,atoms,&
      end do
 
      if (iproc == 0 .and. verbose > 1) call yaml_map('Calculate NLCC forces',.true.)
-     !if (iproc == 0 .and. verbose > 1) write( *,'(1x,a)')'done.'
   end if
 end subroutine rhocore_forces
 

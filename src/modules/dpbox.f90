@@ -307,6 +307,9 @@ contains
           boxit%ibox(3) = boxit%ibox(3) + 1
         else if (boxit%ispin < boxit%nspin) then
           !Increment spin components if needed
+          boxit%ibox(1) = boxit%nbox(1,1)
+          boxit%ibox(2) = boxit%nbox(1,2)
+          boxit%ibox(3) = boxit%nbox(1,3)
           boxit%ispin = boxit%ispin + 1
         else
           !End iteration, the iterator is destroyed and we leave!
