@@ -224,14 +224,14 @@ subroutine rhocore_forces(iproc,atoms,&
   type(denspot_distribution), intent(in) :: dpbox
   real(gp), intent(in) :: hxh,hyh,hzh
   type(atoms_data), intent(in) :: atoms
-  real(wp), dimension(n1i*n2i*n3p*nspin), intent(in) :: potxc
+  real(wp), dimension(n1i*n2i*n3p,nspin), intent(in) :: potxc
   real(gp), dimension(3,atoms%astruct%nat), intent(in) :: rxyz
   real(gp), dimension(3,atoms%astruct%nat), intent(inout) :: fxyz
   !Local variables
   real(gp), parameter :: oneo4pi=.079577471545947_wp
   type(dpbox_iterator) :: boxit
   integer, dimension(2,3) :: nbox
-  integer :: ilcc,ityp,iat,jtyp,islcc,ngv,ngc,ig
+  integer :: ilcc,ityp,iat,jtyp,islcc,ngv,ngc,ig,ispin
 !!!  logical :: perx,pery,perz,gox,goy,goz
 !!!  integer :: nbl1,nbl2,nbl3,nbr1,nbr2,nbr3,isx,isy,isz,iex,iey,iez
 !!!  integer :: ispin,i1,i2,i3,j1,j2,j3,ispinsh,ind
@@ -306,34 +306,36 @@ subroutine rhocore_forces(iproc,atoms,&
             nbox(2,1) = ceiling((rx+cutoff)/hxh)
             nbox(2,2) = ceiling((ry+cutoff)/hyh)
             nbox(2,3) = ceiling((rz+cutoff)/hzh)
-            boxit = dpbox_iter(dpbox,DPB_POT,nbox=nbox,nspin=nspin)
-            do while(dpbox_iter_next(boxit))
-               x = boxit%x - rx
-               y = boxit%y - ry
-               z = boxit%z - rz
-               r2 = x**2 + y**2 + z**2
-               ilcc=islcc
-               drhov=0.0_dp
-               do ig=1,(ngv*(ngv+1))/2
-                  ilcc=ilcc+1
-                  !derivative wrt r2
-                  drhov=drhov+&
-                       spherical_gaussian_value(r2,atoms%nlccpar(0,ilcc),atoms%nlccpar(1,ilcc),1)
+            do ispin=1,nspin
+               boxit = dpbox_iter(dpbox,DPB_POT,nbox=nbox)
+               do while(dpbox_iter_next(boxit))
+                  x = boxit%x - rx
+                  y = boxit%y - ry
+                  z = boxit%z - rz
+                  r2 = x**2 + y**2 + z**2
+                  ilcc=islcc
+                  drhov=0.0_dp
+                  do ig=1,(ngv*(ngv+1))/2
+                     ilcc=ilcc+1
+                     !derivative wrt r2
+                     drhov=drhov+&
+                          spherical_gaussian_value(r2,atoms%nlccpar(0,ilcc),atoms%nlccpar(1,ilcc),1)
+                  end do
+                  drhoc=0.0_dp
+                  do ig=1,(ngc*(ngc+1))/2
+                     ilcc=ilcc+1
+                     !derivative wrt r2
+                     drhoc=drhoc+&
+                          spherical_gaussian_value(r2,atoms%nlccpar(0,ilcc),atoms%nlccpar(1,ilcc),1)
+                  end do
+                  !forces in all the directions for the given atom
+                  drhodr2=drhoc-drhov
+                  frcx = frcx + potxc(boxit%ind,ispin)*x*drhodr2
+                  frcy = frcy + potxc(boxit%ind,ispin)*y*drhodr2
+                  frcz = frcz + potxc(boxit%ind,ispin)*z*drhodr2
+                  !write(*,'(i0,1x,6(1x,1pe24.17))') boxit%ind,potxc(boxit%ind),drhoc,drhov,x,y,z
                end do
-               drhoc=0.0_dp
-               do ig=1,(ngc*(ngc+1))/2
-                  ilcc=ilcc+1
-                  !derivative wrt r2
-                  drhoc=drhoc+&
-                       spherical_gaussian_value(r2,atoms%nlccpar(0,ilcc),atoms%nlccpar(1,ilcc),1)
-               end do
-               !forces in all the directions for the given atom
-               drhodr2=drhoc-drhov
-               frcx = frcx + potxc(boxit%ind)*x*drhodr2
-               frcy = frcy + potxc(boxit%ind)*y*drhodr2
-               frcz = frcz + potxc(boxit%ind)*z*drhodr2
-               !write(*,'(i0,1x,6(1x,1pe24.17))') boxit%ind,potxc(boxit%ind),drhoc,drhov,x,y,z
-            end do
+             end do
               
 !!!              do ispin=1,nspin
 !!!                 ispinsh=0

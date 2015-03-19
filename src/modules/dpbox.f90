@@ -55,8 +55,6 @@ module module_dpbox
     integer :: n1i,n2i,n3i               !< 3D dimension of the whole grid
     integer :: i3s                       !< Index of the first z plane for the mpi process i.e. from i3s:i3s+n3pi-1 
     integer :: n3_iter                   !< Indicate Z dimension when iter depending on should be n3pi,n3p,n3d
-    integer :: nspin                     !< Number of spin components
-    integer :: ispin                     !< Counter for spin components
     integer :: nbl1,nbr1                 !< Size of left and right buffers in x direction
     integer :: nbl2,nbr2                 !< Size of left and right buffers in y direction
     integer :: nbl3,nbr3                 !< Size of left and right buffers in z direction
@@ -172,8 +170,6 @@ contains
     boxit%nbr2 = -1
     boxit%nbl3 = -1
     boxit%nbr3 = -1
-    boxit%nspin = -1
-    boxit%ispin = -1
     boxit%x = 0.0_gp
     boxit%y = 0.0_gp
     boxit%z = 0.0_gp
@@ -182,7 +178,7 @@ contains
 
 
   !> Create an iterator dpbox to iterate over points of the (potential) grid 
-  function dpbox_iter(dpbox,idpbox,nbox,nspin) result(boxit)
+  function dpbox_iter(dpbox,idpbox,nbox) result(boxit)
     implicit none
     !Arguments
     type(denspot_distribution), intent(in), target :: dpbox !< Density-potential descriptors for the box
@@ -190,7 +186,6 @@ contains
     integer, intent(in) :: idpbox 
     !> Box of start and end points which have to be considered
     integer, dimension(2,3), intent(in), optional :: nbox
-    integer, intent(in), optional :: nspin !< Number of spin components to be considered
     type(dpbox_iterator) :: boxit
 
     call nullify_dpbox_iterator(boxit)
@@ -250,12 +245,6 @@ contains
       boxit%nbox(2,1) = dpbox%ndims(1) - boxit%nbl1-1
     end if
 
-    if (present(nspin)) then
-      boxit%nspin = nspin
-    else
-      boxit%nspin = 1
-    end if
-
     ! Start counting
     boxit%ix=0
     boxit%iy=0
@@ -269,7 +258,6 @@ contains
     boxit%ibox(1) = boxit%nbox(1,1) - 1
     boxit%ibox(2) = boxit%nbox(1,2)
     boxit%ibox(3) = boxit%nbox(1,3)
-    boxit%ispin=1
 
   end function dpbox_iter
 
@@ -305,12 +293,6 @@ contains
           boxit%ibox(1) = boxit%nbox(1,1)
           boxit%ibox(2) = boxit%nbox(1,2)
           boxit%ibox(3) = boxit%ibox(3) + 1
-        else if (boxit%ispin < boxit%nspin) then
-          !Increment spin components if needed
-          boxit%ibox(1) = boxit%nbox(1,1)
-          boxit%ibox(2) = boxit%nbox(1,2)
-          boxit%ibox(3) = boxit%nbox(1,3)
-          boxit%ispin = boxit%ispin + 1
         else
           !End iteration, the iterator is destroyed and we leave!
           call nullify_dpbox_iterator(boxit)
@@ -329,8 +311,7 @@ contains
           !This point is valid: we calculate ind (index for pot_ion) and leave!
           boxit%ind = boxit%ix+1 + boxit%nbl1 &
                   & + (boxit%iy+boxit%nbl2)*boxit%n1i &
-                  & + (boxit%iz-boxit%i3s)*boxit%n1i*boxit%n2i &
-                  & + (boxit%ispin-1)*boxit%n1i*boxit%n2i*boxit%n3_iter
+                  & + (boxit%iz-boxit%i3s)*boxit%n1i*boxit%n2i
           boxit%x = real(boxit%ibox(1),gp)*boxit%dpbox_ptr%hgrids(1)
           boxit%y = real(boxit%ibox(2),gp)*boxit%dpbox_ptr%hgrids(2)
           boxit%z = real(boxit%ibox(3),gp)*boxit%dpbox_ptr%hgrids(3)

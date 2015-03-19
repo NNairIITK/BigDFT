@@ -79,7 +79,8 @@ module sparsematrix
          do ispin=1,sparsemat%nspin
              ishift=(ispin-1)*sparsemat%nvctr
              !OpenMP broken on Vesta
-             !$omp parallel default(none) private(iseg,j,jj,irowcol) &
+             !!! !$omp parallel default(none) private(irowcol) &
+             !$omp parallel default(none) private(iseg,j,jj) &
              !$omp shared(sparsemat,inm,outm,ishift,ispin)
              !$omp do
              do iseg=1,sparsemat%nseg
@@ -196,7 +197,8 @@ module sparsematrix
          do ispin=1,sparsemat%nspin
              ishift=(ispin-1)*sparsemat%nvctr
              !OpenMP broken on Vesta
-             !$omp parallel default(none) private(iseg,i,ii,irowcol) shared(sparsemat,inm,outm,ispin,ishift)
+             !!! !$omp parallel default(none) private(irowcol)
+             !$omp parallel default(none) private(iseg,i,ii) shared(sparsemat,inm,outm,ispin,ishift)
              !$omp do
              do iseg=1,sparsemat%nseg
                  ii=sparsemat%keyv(iseg)
