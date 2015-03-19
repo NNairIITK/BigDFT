@@ -3,7 +3,7 @@
 EXTRA_DIST = test-overlapgeneral.ref.yaml \
 	inputdata1.fake inputdata2.fake inputdata3.fake
 
-check_PROGRAMS = driver driver_singlerun
+check_PROGRAMS = driver driver_singlerun smatmul
 
 if BUILD_LIBYAML
 LD_LIBRARY_PATH := ${LD_LIBRARY_PATH}:$(abs_top_builddir)/yaml-0.1.4/src/.libs
@@ -23,6 +23,9 @@ driver_LDADD = -lbigdft-1 @LINALG_LIBS@
 
 driver_singlerun_SOURCES = driver_singlerun.f90
 driver_singlerun_LDADD = -lbigdft-1 @LINALG_LIBS@
+
+smatmul_SOURCES = smatmul.f90
+smatmul_LDADD = -lbigdft-1 @LINALG_LIBS@
 
 
 CLEANFILES = test-overlapgeneral.out.yaml test-overlapgeneral.report.yaml test-overlapgeneral.report

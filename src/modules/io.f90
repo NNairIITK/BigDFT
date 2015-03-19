@@ -18,6 +18,7 @@ module io
   public :: io_read_descr, read_psi_compress
   public :: io_gcoordToLocreg
   public :: read_psig
+  public :: read_sparse_matrix
 
 
   contains
@@ -1082,8 +1083,8 @@ module io
       iunit = 99
       call f_open_file(iunit, file=trim(filename), binary=.false.)
 
-      write(iunit,'(i12,a)') at%astruct%nat, &
-          '   # number of atoms'
+      write(iunit,'(i12,i6,a)') at%astruct%nat, smat%nspin, &
+          '   # number of atoms, nspin'
       do iat=1,at%astruct%nat
           write(iunit,'(3es24.16,a,i0)') rxyz(1:3,iat), '   # atom no. ',iat
       end do
@@ -1108,9 +1109,102 @@ module io
 
       call f_close(iunit)
 
-      call f_routine(id='write_sparse_matrix')
+      call f_release_routine()
 
     end subroutine write_sparse_matrix
+
+
+    subroutine read_sparse_matrix(filename, nspin, nfvctr, nseg, nvctr, keyv, keyg, mat_compr, nat, rxyz, on_which_atom)
+      use module_base
+      use module_types
+      implicit none
+      
+      ! Calling arguments
+      character(len=*),intent(in) :: filename
+      integer,intent(out) :: nspin, nfvctr, nseg, nvctr
+      integer,dimension(:),pointer,intent(out) :: keyv
+      integer,dimension(:,:,:),pointer,intent(out) :: keyg
+      real(kind=8),dimension(:),pointer,intent(out) :: mat_compr
+      integer,intent(out),optional :: nat
+      real(kind=8),dimension(:,:),pointer,intent(out),optional :: rxyz
+      integer,dimension(:),pointer,intent(out),optional :: on_which_atom
+
+      ! Local variables
+      integer :: iunit, dummy_int, iseg, icol, irow, jorb, ind, ispin, iat
+      real(kind=8) :: dummy_double
+      logical :: read_rxyz, read_on_which_atom
+
+      call f_routine(id='read_sparse_matrix')
+
+      if (present(nat) .and. present(rxyz)) then
+          read_rxyz = .true.
+      else if (present(nat) .or. present(rxyz)) then
+          call f_err_throw("'nat' and 'rxyz' must be present at the same time", &
+               err_name='BIGDFT_RUNTIME_ERROR')
+      else
+          read_rxyz = .false.
+      end if
+      
+      if (present(on_which_atom)) then
+          read_on_which_atom = .true.
+      else
+          read_on_which_atom = .false.
+      end if
+
+      iunit = 99
+      call f_open_file(iunit, file=trim(filename), binary=.false.)
+
+      if (read_rxyz) then
+          read(iunit,*) nat, nspin
+          rxyz = f_malloc_ptr((/3,nat/),id='rxyz')
+          do iat=1,nat
+              read(iunit,*) rxyz(1,iat), rxyz(2,iat), rxyz(3,iat)
+          end do
+      else
+          read(iunit,*) dummy_int, nspin
+          do iat=1,dummy_int
+              read(iunit,*) dummy_double, dummy_double, dummy_double
+          end do
+      end if
+      read(iunit,*) nfvctr, nseg, nvctr
+      keyv = f_malloc_ptr(nseg,id='keyv')
+      keyg = f_malloc_ptr((/2,2,nseg/),id='keyg')
+      do iseg=1,nseg
+          read(iunit,*) keyv(iseg), keyg(1,1,iseg), keyg(2,1,iseg), keyg(1,2,iseg), keyg(2,2,iseg)
+      end do
+      mat_compr = f_malloc_ptr(nvctr,id='mat_compr')
+      if (read_on_which_atom) then
+          on_which_atom = f_malloc_ptr(nfvctr,id='on_which_atom')
+          ind = 0
+          do ispin=1,nspin
+              do iseg=1,nseg
+                  icol = keyg(1,2,iseg)
+                  do jorb=keyg(1,1,iseg),keyg(2,1,iseg)
+                      irow = jorb
+                      ind = ind + 1
+                      read(iunit,*) mat_compr(ind), on_which_atom(irow), on_which_atom(icol)
+                  end do
+              end do
+          end do
+      else
+          ind = 0
+          do ispin=1,nspin
+              do iseg=1,nseg
+                  icol = keyg(1,2,iseg)
+                  do jorb=keyg(1,1,iseg),keyg(2,1,iseg)
+                      irow = jorb
+                      ind = ind + 1
+                      read(iunit,*) mat_compr(ind), dummy_int, dummy_int
+                  end do
+              end do
+          end do
+      end if
+
+      call f_close(iunit)
+
+      call f_release_routine()
+
+    end subroutine read_sparse_matrix
 
 
     !> Write Hamiltonian, overlap and kernel matrices in tmb basis
