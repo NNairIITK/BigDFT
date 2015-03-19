@@ -37,6 +37,8 @@ subroutine write_orbital_density(iproc, transform_to_global, iformat, &
   character(len=500) :: filebase0, filebasex, filebasey, filebasez
   character(len=500) :: file0, filex, filey, filez
 
+  call f_routine(id='write_orbital_density')
+
   if (transform_to_global) then
       if (.not.present(lzd_l)) call f_err_throw('lzd_l not present',err_name='BIGDFT_RUNTIME_ERROR')
   end if
@@ -119,9 +121,12 @@ subroutine write_orbital_density(iproc, transform_to_global, iformat, &
 
   !call deallocate_bounds(lzd_g%glr%geocode, lzd_g%glr%hybrid_on, lzd_g%glr%bounds)
 
-  if (transform_to_global) then
+  !if (transform_to_global) then
       call f_free_ptr(psi_g)
-  end if
+  !end if
+
+  call f_release_routine()
+
 end subroutine write_orbital_density
 
 

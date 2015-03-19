@@ -4521,7 +4521,7 @@ subroutine nonlocal_forces_linear(iproc,nproc,npsidim_orbs,lr,hx,hy,hz,at,rxyz,&
                                                nlpsp%pspd(iiat)%plr%wfd%keyglob(1,jseg_c),&
                                                nlpsp%proj(istart_c),&
                                                scpr)
-                                          if (scpr/=0.d0) then
+                                          !if (scpr/=0.d0) then
                                               if (increase) then
                                                   is_supfun_per_atom_tmp(iat) = is_supfun_per_atom_tmp(iat)+1
                                                   increase = .false.
@@ -4529,9 +4529,9 @@ subroutine nonlocal_forces_linear(iproc,nproc,npsidim_orbs,lr,hx,hy,hz,at,rxyz,&
                                               iii = is_supfun_per_atom_tmp(iat)
                                               scalprod_sendbuf_new(1,idir,m,i,l,iii) = scpr
                                               scalprod_send_lookup(iii) = iiorb
-                                          else
-                                              stop 'scalprod should not be zero'
-                                          end if
+                                          !else
+                                          !    stop 'scalprod should not be zero'
+                                          !end if
                                           istart_c=istart_c+(mbvctr_c+7*mbvctr_f)*ncplx
                                        end do
                                     end if
