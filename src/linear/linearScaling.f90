@@ -29,6 +29,8 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
                                matrices_null, allocate_matrices, deallocate_matrices, &
                                sparsematrix_malloc, sparsematrix_malloc_ptr, assignment(=), SPARSE_FULL, DENSE_FULL
   use sparsematrix, only: gather_matrix_from_taskgroups_inplace, extract_taskgroup_inplace, uncompress_matrix2
+  use io, only: writemywaves_linear, writemywaves_linear_fragments, write_linear_matrices
+  use postprocessing_linear, only: loewdin_charge_analysis, support_function_multipoles, build_ks_orbitals
   implicit none
 
   ! Calling arguments
@@ -883,7 +885,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
                    end if
 
                    if (nproc > 1) then
-                      call mpiallred(pnrm_out, 1, mpi_sum, bigdft_mpi%mpi_comm)
+                      call mpiallred(pnrm_out, 1, mpi_sum, comm=bigdft_mpi%mpi_comm)
                    end if
                    !pnrm_out = pnrm_out/dble(input%nspin)
 
@@ -961,7 +963,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
                    end if
 
                    if (nproc > 1) then
-                      call mpiallred(pnrm_out, 1, mpi_sum, bigdft_mpi%mpi_comm)
+                      call mpiallred(pnrm_out, 1, mpi_sum, comm=bigdft_mpi%mpi_comm)
                    end if
 
                    pnrm_out=sqrt(pnrm_out)/(KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*KSwfn%Lzd%Glr%d%n3i)!)*input%nspin)
@@ -1263,6 +1265,10 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
           call write_eigenvalues_data(0.1d0,tmb%orbs,mom_vec_fake)
        end if
   end if
+
+  !!if (input%kernel_analysis) then
+  !!    call analyze_kernel(iproc, nproc, KSwfn, tmb)
+  !!end if
 
   ! only print eigenvalues if they have meaning, i.e. diag or the case above
   if (input%lin%scf_mode==LINEAR_MIXPOT_SIMPLE.or.input%lin%scf_mode==LINEAR_MIXDENS_SIMPLE) then
@@ -1692,7 +1698,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
       end do
 
       if (nproc > 1) then
-         call mpiallred(mean_conf, 1, mpi_sum, bigdft_mpi%mpi_comm)
+         call mpiallred(mean_conf, 1, mpi_sum, comm=bigdft_mpi%mpi_comm)
       end if
       mean_conf=mean_conf/dble(tmb%orbs%norb)
 
@@ -1841,7 +1847,8 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
 
 
     subroutine intermediate_forces()
-
+      use module_forces, only: clean_forces
+      implicit none
       ! Local variables
       real(kind=8) :: eh_tmp, exc_tmp, evxc_tmp, eexctX_tmp
       real(kind=8) :: fnoise, pressure, ehart_fake
@@ -1916,6 +1923,9 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
            denspot%dpbox%nrhodim,.false.,denspot%dpbox%ngatherarr,denspot%rho_work,&
            denspot%pot_work,denspot%V_XC,size(KSwfn%psi),KSwfn%psi,fion,fdisp,fxyz,&
            ewaldstr,hstrten,xcstr,strten,fnoise,pressure,denspot%psoffset,1,tmb,fpulay)
+      call clean_forces(iproc,at%astruct,rxyz,fxyz,fnoise)
+      if (iproc == 0) call write_forces(at%astruct,fxyz)
+
       call f_free(fxyz)
       call f_free_ptr(KSwfn%psi)
 
@@ -1942,7 +1952,7 @@ subroutine output_fragment_rotations(iproc,nat,rxyz,iformat,filename,input_frag,
   use module_types
   use yaml_output
   use module_fragments
-  use internal_io
+  !use internal_io
   use module_interfaces
   implicit none
 

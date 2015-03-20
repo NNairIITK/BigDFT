@@ -585,7 +585,7 @@ contains
 
 
     !> Read atomic file
-    subroutine set_astruct_from_file(file,iproc,astruct,comment,energy,fxyz)
+    subroutine set_astruct_from_file(file,iproc,astruct,comment,energy,fxyz,disableTrans)
       use module_base
       use dictionaries, only: set, dictionary
       use yaml_output, only : yaml_toa
@@ -598,6 +598,7 @@ contains
       real(gp), intent(out), optional :: energy
       real(gp), dimension(:,:), pointer, optional :: fxyz
       character(len = *), intent(out), optional :: comment
+      logical, intent(in), optional :: disableTrans
       !Local variables
       integer, parameter :: iunit=99
       integer :: l, extract
@@ -712,25 +713,25 @@ contains
       case("xyz")
          !read atomic positions
          if (.not.archive) then
-            call read_xyz_positions(iunit,filename,astruct,comment_,energy_,fxyz_,directGetLine)
+            call read_xyz_positions(iunit,filename,astruct,comment_,energy_,fxyz_,directGetLine,disableTrans)
          else
-            call read_xyz_positions(iunit,filename,astruct,comment_,energy_,fxyz_,archiveGetLine)
+            call read_xyz_positions(iunit,filename,astruct,comment_,energy_,fxyz_,archiveGetLine,disableTrans)
          end if
 
       case("ascii")
          !read atomic positions
          if (.not.archive) then
-            call read_ascii_positions(iunit,filename,astruct,comment_,energy_,fxyz_,directGetLine)
+            call read_ascii_positions(iunit,filename,astruct,comment_,energy_,fxyz_,directGetLine,disableTrans)
          else
-            call read_ascii_positions(iunit,filename,astruct,comment_,energy_,fxyz_,archiveGetLine)
+            call read_ascii_positions(iunit,filename,astruct,comment_,energy_,fxyz_,archiveGetLine,disableTrans)
          end if
 
       case("int")
          !read atomic positions
          if (.not.archive) then
-            call read_int_positions(iproc,99,astruct,comment_,energy_,fxyz_,directGetLine)
+            call read_int_positions(iproc,99,astruct,comment_,energy_,fxyz_,directGetLine,disableTrans)
          else
-            call read_int_positions(iproc,99,astruct,comment_,energy_,fxyz_,archiveGetLine)
+            call read_int_positions(iproc,99,astruct,comment_,energy_,fxyz_,archiveGetLine,disableTrans)
          end if
          ! Fill the ordinary rxyz array
          !!! convert to rad

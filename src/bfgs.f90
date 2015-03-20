@@ -377,8 +377,8 @@ subroutine bfgs_reza(iproc,dir_output,nr,x,epot,f,nwork,work,alphax,fnrm,fmax,nc
    real(kind=8) :: DDOT,tt1,tt2,de,fnrm,fmax,beta
    real(kind=8) :: tt3,tt4,tt5,tt6
    real(kind=8), save::epotold,alpha,alphamax,zeta
-   logical, save::reset
-   integer, save::isatur
+   logical, save::reset=.false.
+   integer, save::isatur=0
    if(nwork/=nr*nr+3*nr+3*nr*nr+3*nr) then
        stop 'ERROR: size of work array is insufficient.'
    endif
@@ -654,7 +654,7 @@ subroutine lbfgsdriver(runObj,outs,nproc,iproc,ncount_bigdft,fail)
   NDIM=nr
   NWORK=NDIM*(2*parmin%MSAVE +1)+2*parmin%MSAVE
    
-  X = f_malloc(NDIM,id='X')
+  X = f_malloc0(NDIM,id='X')
   G = f_malloc(NDIM,id='G')
   DIAG = f_malloc(NDIM,id='DIAG')
   W = f_malloc(NWORK,id='W')

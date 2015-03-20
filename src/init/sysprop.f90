@@ -213,9 +213,9 @@ subroutine system_initialization(iproc,nproc,dump,inputpsi,input_wf_format,dry_r
          time_average(2) = time_max(2)/real(nproc,kind=8)
          totaltimes(iproc+1) = time_max(2)
          if (nproc>1) then
-             call mpiallred(time_max, mpi_max, bigdft_mpi%mpi_comm)
-             call mpiallred(time_average, mpi_sum, bigdft_mpi%mpi_comm)
-             call mpiallred(totaltimes, mpi_sum, bigdft_mpi%mpi_comm)
+             call mpiallred(time_max, mpi_max, comm=bigdft_mpi%mpi_comm)
+             call mpiallred(time_average, mpi_sum, comm=bigdft_mpi%mpi_comm)
+             call mpiallred(totaltimes, mpi_sum, comm=bigdft_mpi%mpi_comm)
          end if
          !ratio_before = real(time_max(1),kind=8)/real(max(1.d0,time_min(1)),kind=8) !max to prevent divide by zero
          !ratio_after = real(time_max(2),kind=8)/real(max(1.d0,time_min(2)),kind=8) !max to prevent divide by zero
@@ -447,6 +447,7 @@ subroutine system_initialization(iproc,nproc,dump,inputpsi,input_wf_format,dry_r
      end subroutine init_linear_orbs
 
      subroutine init_lzd_linear()
+       use locregs, only: copy_locreg_descriptors
        implicit none
        call copy_locreg_descriptors(Lzd%Glr, lzd_lin%glr)
        call lzd_set_hgrids(lzd_lin, Lzd%hgrids)
@@ -502,7 +503,7 @@ subroutine system_initialization(iproc,nproc,dump,inputpsi,input_wf_format,dry_r
           times_convol(iiorb) = real(ii+jj,kind=8)
       end do
       if (nproc>1) then
-          call mpiallred(times_convol, mpi_sum, bigdft_mpi%mpi_comm)
+          call mpiallred(times_convol, mpi_sum, comm=bigdft_mpi%mpi_comm)
       end if
 
       return !###############################################3
@@ -600,7 +601,7 @@ subroutine system_initialization(iproc,nproc,dump,inputpsi,input_wf_format,dry_r
        call f_free(phi)
 
        if (nproc>1) then
-           call mpiallred(times_convol, mpi_sum, bigdft_mpi%mpi_comm)
+           call mpiallred(times_convol, mpi_sum, comm=bigdft_mpi%mpi_comm)
        end if
 
      end subroutine test_preconditioning
@@ -927,7 +928,7 @@ subroutine calculate_rhocore(at,d,rxyz,hxh,hyh,hzh,i3s,i3xcsh,n3d,n3p,rhocore)
         enddo
      enddo
 
-     if (bigdft_mpi%nproc > 1) call mpiallred(tt,1,MPI_SUM,bigdft_mpi%mpi_comm)
+     if (bigdft_mpi%nproc > 1) call mpiallred(tt,1,MPI_SUM,comm=bigdft_mpi%mpi_comm)
      tt=tt*hxh*hyh*hzh
      if (bigdft_mpi%iproc == 0) call yaml_map('Total core charge on the grid (To be compared with analytic one)', tt,fmt='(f15.7)')
 

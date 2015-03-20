@@ -82,7 +82,7 @@ module parallel_linalg
       ! c will be partially (only at the position that process was working on) overwritten with the result. 
       ! At the end we can the make an allreduce to get the correct result on all processes.
       !if(irow==-1) call to_zero(ldc*n, c(1,1))
-      if(irow==-1) call vscal(ldc*n,0.0_wp,c(1,1),1)
+      if(irow==-1) call f_zero(c) !call vscal(ldc*n,0.0_wp,c(1,1),1)
       
       ! Only execute this part if this process has a part of the matrix to work on. 
       processIf: if(irow/=-1) then
@@ -150,7 +150,7 @@ module parallel_linalg
       
       ! Gather the result on all processes.
       if (nproc > 1) then
-         call mpiallred(c(1,1), m*n, mpi_sum, comm)
+         call mpiallred(c, mpi_sum, comm=comm)
       end if
     
       !call blacs_exit(0)
@@ -221,7 +221,7 @@ module parallel_linalg
       ! it will be partially (only at the position that process was working on) overwritten with the result. 
       ! At the end we can the make an allreduce to get the correct result on all processes.
       !if(irow==-1) call to_zero(lda*n, a(1,1))
-      if(irow==-1) call vscal(lda*n,0.0_wp, a(1,1),1)
+      if(irow==-1) call f_zero(a)
       ! Everything that follows is only done if the current process is part of the grid.
       processIf: if(irow/=-1) then
           ! Determine the size of the matrix (lnrow x lncol):
@@ -304,7 +304,7 @@ module parallel_linalg
       
       ! Gather the eigenvectors on all processes.
       if (nproc > 1) then
-         call mpiallred(a(1,1), n**2, mpi_sum, comm)
+         call mpiallred(a, mpi_sum, comm=comm)
       end if
       
       ! Broadcast the eigenvalues if required. If nproc_scalapack==nproc, then all processes
@@ -385,7 +385,7 @@ module parallel_linalg
       ! it will be partially (only at the position that process was working on) overwritten with the result. 
       ! At the end we can the make an allreduce to get the correct result on all processes.
       !if(irow==-1) call to_zero(lda*n, a(1,1))
-      if(irow==-1) call vscal(lda*n,0.0_wp, a(1,1),1)  
+      if(irow==-1) call f_zero(a)
     
       ! Everything that follows is only done if the current process is part of the grid.
       processIf: if(irow/=-1) then
@@ -472,7 +472,7 @@ module parallel_linalg
       
       ! Gather the eigenvectors on all processes.
       if (nproc > 1) then
-         call mpiallred(a(1,1), n**2, mpi_sum, bigdft_mpi%mpi_comm)
+         call mpiallred(a, mpi_sum, comm=bigdft_mpi%mpi_comm)
       end if
       
       ! Broadcast the eigenvalues if required. If nproc_scalapack==nproc, then all processes
@@ -550,7 +550,7 @@ module parallel_linalg
       ! it will be partially (only at the position that process was working on) overwritten with the result. 
       ! At the end we can the make an allreduce to get the correct result on all processes.
       !if(irow==-1) call to_zero(ldb*nrhs, b(1,1))
-      if(irow==-1) call vscal(ldb*nrhs,0.0_wp, b(1,1),1)
+      if(irow==-1) call f_zero(b)
       
       ! Everything that follows is only done if the current process is part of the grid.
       processIf: if(irow/=-1) then
@@ -610,7 +610,7 @@ module parallel_linalg
       
       ! Gather the result on all processes
       if (nproc > 1) then
-         call mpiallred(b(1,1), n*nrhs, mpi_sum, comm)
+         call mpiallred(b, mpi_sum, comm=comm)
       end if
       
       !call blacs_exit(0)
@@ -673,7 +673,7 @@ module parallel_linalg
       !!! At the end we can the make an allreduce to get the correct result on all processes.
       !!if(irow==-1) call to_zero(ldc*n, c(1,1))
       !if(irow==-1) call to_zero(lda*n, a(1,1))
-      if(irow==-1) call vscal(lda*n,0.0_wp, a(1,1),1)
+      if(irow==-1) call f_zero(a)!call vscal(lda*n,0.0_wp, a(1,1),1)
       
       ! Only execute this part if this process has a part of the matrix to work on. 
       processIf: if(irow/=-1) then
@@ -720,7 +720,7 @@ module parallel_linalg
       
       ! Gather the result on all processes.
       if (nproc > 1) then
-         call mpiallred(a(1,1), n*n, mpi_sum, comm)
+         call mpiallred(a, mpi_sum, comm=comm)
       end if
     
       !call blacs_exit(0)
@@ -780,7 +780,7 @@ module parallel_linalg
       !!! c will be partially (only at the position that process was working on) overwritten with the result. 
       !!! At the end we can the make an allreduce to get the correct result on all processes.
       !if(irow==-1) call to_zero(lda*n, a(1,1))
-      if(irow==-1) call vscal(lda*n,0.0_wp, a(1,1),1)
+      if(irow==-1) call f_zero(a)
       
       ! Only execute this part if this process has a part of the matrix to work on. 
       processIf: if(irow/=-1) then
@@ -827,7 +827,7 @@ module parallel_linalg
       
       ! Gather the result on all processes.
       if (nproc > 1) then
-         call mpiallred(a(1,1), n*n, mpi_sum, comm)
+         call mpiallred(a, mpi_sum, comm=comm)
       end if
     
       !call blacs_exit(0)

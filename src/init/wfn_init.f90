@@ -349,8 +349,7 @@ subroutine LDiagHam(iproc,nproc,natsc,nspin,orbs,Lzd,Lzde,comms,&
 
   if (nproc > 1) then
      !reduce the overlap matrix between all the processors
-     call mpiallred(hamovr(1,1,1),2*nspin*ndim_hamovr*orbse%nkpts,&
-          MPI_SUM,bigdft_mpi%mpi_comm)
+     call mpiallred(hamovr,MPI_SUM,comm=bigdft_mpi%mpi_comm)
   end if
 
 ! DEBUG
@@ -466,8 +465,7 @@ subroutine LDiagHam(iproc,nproc,natsc,nspin,orbs,Lzd,Lzde,comms,&
               hamovr(:,:,ikpt) = 0._gp
            end if
         end do
-        call mpiallred(hamovr(1,1,1),2*nspin*ndim_hamovr*orbse%nkpts,&
-             MPI_SUM,bigdft_mpi%mpi_comm)
+        call mpiallred(hamovr,MPI_SUM,comm=bigdft_mpi%mpi_comm)
      end if
 
      do ikptp=1,orbse%nkptsp

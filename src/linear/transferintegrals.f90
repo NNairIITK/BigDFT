@@ -272,7 +272,7 @@ subroutine calc_transfer_integral(iproc,nproc,nstates,orbs,ham,ham_mat,ovrlp,ovr
   use module_types
   use yaml_output
   use module_fragments
-  use internal_io
+  !use internal_io
   use module_interfaces, except_this_one => calc_transfer_integral
   use sparsematrix_base, only: sparse_matrix
   implicit none
@@ -308,7 +308,7 @@ subroutine calc_transfer_integral(iproc,nproc,nstates,orbs,ham,ham_mat,ovrlp,ovr
   end if
 
   if (nproc>1) then
-      call mpiallred(homo_ham, mpi_sum, bigdft_mpi%mpi_comm)
+      call mpiallred(homo_ham, mpi_sum, comm=bigdft_mpi%mpi_comm)
   end if
 
   !call f_free_ptr(ham%matrix)
@@ -328,7 +328,7 @@ subroutine calc_transfer_integral(iproc,nproc,nstates,orbs,ham,ham_mat,ovrlp,ovr
   end if
 
   if (nproc>1) then
-      call mpiallred(homo_ovrlp, mpi_sum, bigdft_mpi%mpi_comm)
+      call mpiallred(homo_ovrlp, mpi_sum, comm=bigdft_mpi%mpi_comm)
   end if
 
   !call f_free_ptr(ovrlp%matrix)
@@ -347,7 +347,7 @@ subroutine calc_site_energies_transfer_integrals(iproc,nproc,meth_overlap,input_
   use module_types
   use yaml_output
   use module_fragments
-  use internal_io
+  !use internal_io
   use module_interfaces, except_this_one => calc_site_energies_transfer_integrals
   use sparsematrix_base, only: sparse_matrix, matrices, sparsematrix_malloc_ptr, &
                                DENSE_FULL, assignment(=)

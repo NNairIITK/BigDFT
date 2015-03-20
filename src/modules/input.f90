@@ -1804,7 +1804,7 @@ contains
     call input_var("adjust_kernel_iterations", .true., "addaptive ajustment of the number of kernel iterations", dummy_bool)
     call set(dict // ADJUST_KERNEL_ITERATIONS, dummy_bool)
 
-    call input_var("wf_extent_analysis", .false., "extent analysis of the support functions / KS orbitals)", dummy_bool)
+    call input_var("wf_extent_analysis", .false., "extent analysis of the support functions / KS orbitals", dummy_bool)
     call set(dict // WF_EXTENT_ANALYSIS, dummy_bool)
 
     call input_free(.false.)

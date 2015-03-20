@@ -19,6 +19,7 @@
 subroutine cluster(nproc,iproc,atoms,rxyz,energy,energs,fxyz,strten,fnoise,pressure,&
      KSwfn,tmb,rxyz_old,in,GPU,infocode)
   use module_base
+  use locregs, only: deallocate_locreg_descriptors
   use module_types
   use module_interfaces
   use gaussians, only: deallocate_gwf
@@ -181,18 +182,18 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,energs,fxyz,strten,fnoise,press
 
         !to maintain the same treatment destroy wfd afterwards (to be unified soon)
         !deallocation
-        call deallocate_wfd(KSwfn%Lzd%Glr%wfd)
-        !already here due to new input guess
-        call deallocate_bounds(KSwfn%Lzd%Glr%geocode, KSwfn%Lzd%Glr%hybrid_on, KSwfn%lzd%glr%bounds)
+        call deallocate_locreg_descriptors(KSwfn%Lzd%Glr)
+!!$        call deallocate_wfd(KSwfn%Lzd%Glr%wfd)
+!!$        !already here due to new input guess
+!!$        call deallocate_convolutions_bounds(KSwfn%lzd%glr%bounds)
      else
         inputpsi = INPUT_PSI_LCAO
      end if
   else if (in%inputPsiId == INPUT_PSI_MEMORY_GAUSS) then
      if (associated(KSwfn%psi)) then
         !deallocate wavefunction and descriptors for placing the gaussians
-        
-        call deallocate_wfd(KSwfn%Lzd%Glr%wfd)
-
+        call deallocate_locreg_descriptors(KSwfn%Lzd%Glr)
+        !call deallocate_wfd(KSwfn%Lzd%Glr%wfd)
         call f_free_ptr(KSwfn%psi)
      else
         inputpsi = INPUT_PSI_LCAO
@@ -217,7 +218,8 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,energs,fxyz,strten,fnoise,press
         call copy_tmbs(iproc, tmb, tmb_old, subname)
         call destroy_DFT_wavefunction(tmb)
         call f_free_ptr(KSwfn%psi)
-        call deallocate_wfd(KSwfn%Lzd%Glr%wfd)
+        call deallocate_locreg_descriptors(KSwfn%Lzd%Glr)
+        !call deallocate_wfd(KSwfn%Lzd%Glr%wfd)
      else
         inputpsi = INPUT_PSI_LINEAR_AO
      end if
@@ -620,7 +622,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,energs,fxyz,strten,fnoise,press
 
      ! Treat the info code from the optimization routine.
      if (infocode == 2 .or. infocode == 3) then
-        call deallocate_bounds(KSwfn%Lzd%Glr%geocode, KSwfn%Lzd%Glr%hybrid_on, KSwfn%lzd%glr%bounds)
+        !call deallocate_convolutions_bounds(KSwfn%lzd%glr%bounds)
         call deallocate_before_exiting
         return
      end if
@@ -752,7 +754,8 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,energs,fxyz,strten,fnoise,press
         call f_free_ptr(fpulay)
         call destroy_DFT_wavefunction(tmb)
         call f_free_ptr(KSwfn%psi)
-        call deallocate_wfd(KSwfn%Lzd%Glr%wfd)
+        !call deallocate_wfd(KSwfn%Lzd%Glr%wfd)
+        call deallocate_locreg_descriptors(KSwfn%Lzd%Glr)
         call f_free_ptr(denspot%rho_work)
         call f_free_ptr(KSwfn%orbs%eval)
         call deallocate_before_exiting()
@@ -1057,7 +1060,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,energs,fxyz,strten,fnoise,press
         !start the Casida's treatment 
         if (in%tddft_approach=='TDA') then
 
-           !does it makes sense to use GPU only for a one-shot sumrho?
+           !does it make sense to use GPU only for a one-shot sumrho?
            if (GPU%OCLconv) then
               call allocate_data_OCL(KSwfn%Lzd%Glr%d%n1,KSwfn%Lzd%Glr%d%n2,KSwfn%Lzd%Glr%d%n3,&
                    atoms%astruct%geocode,&
@@ -1323,10 +1326,9 @@ contains
 !!write(*,*) 'WARNING HERE!!!!!'
     !if(inputpsi == INPUT_PSI_LINEAR_AO .or. inputpsi == INPUT_PSI_DISK_LINEAR &
     !                 .or. inputpsi == INPUT_PSI_MEMORY_LINEAR) then
-    if (in%inguess_geopt/=1) then
-        call deallocate_bounds(KSwfn%Lzd%Glr%geocode,KSwfn%Lzd%Glr%hybrid_on,&
-             KSwfn%Lzd%Glr%bounds)
-     end if
+    !!if (in%inguess_geopt/=1) then
+    !!    call deallocate_convolutions_bounds(KSwfn%Lzd%Glr%bounds)
+    !! end if
     call deallocate_Lzd_except_Glr(KSwfn%Lzd)
 
 !    i_all=-product(shape(KSwfn%Lzd%Glr%projflg))*kind(KSwfn%Lzd%Glr%projflg)
@@ -1856,7 +1858,7 @@ subroutine kswfn_post_treatments(iproc, nproc, KSwfn, tmb, linear, &
 
   !Local variables
   character(len = *), parameter :: subname = "kswfn_post_treatments"
-  integer ::  jproc, nsize_psi, imode, i, ispin
+  integer ::  jproc, nsize_psi, imode, i, ispin,i3xcsh_old
   real(dp), dimension(6) :: hstrten
   real(gp) :: ehart_fake, exc_fake, evxc_fake
 
@@ -1867,6 +1869,8 @@ subroutine kswfn_post_treatments(iproc, nproc, KSwfn, tmb, linear, &
   denspot%dpbox%n3d=denspot%dpbox%n3p
   !i3xcsh=0
   denspot%dpbox%i3s=denspot%dpbox%i3s+denspot%dpbox%i3xcsh
+  !save the value for future reference for the core density
+  i3xcsh_old=denspot%dpbox%i3xcsh
   denspot%dpbox%i3xcsh=0
   do jproc=0,denspot%dpbox%mpi_env%nproc-1
      !n3d=n3p
@@ -1933,10 +1937,10 @@ subroutine kswfn_post_treatments(iproc, nproc, KSwfn, tmb, linear, &
      call plot_density(iproc,nproc,trim(dir_output)//'electronic_density' // gridformat,&
           atoms,rxyz,denspot%dpbox,denspot%dpbox%nrhodim,denspot%rho_work)
 
-     if (associated(denspot%rho_C)) then
-        if (iproc == 0) call yaml_map('Writing core density in file','grid core_density'//gridformat)
+     if (associated(denspot%rho_C) .and. denspot%dpbox%n3d>0) then
+        if (iproc == 0) call yaml_map('Writing core density in file','core_density'//gridformat)
         call plot_density(iproc,nproc,trim(dir_output)//'core_density' // gridformat,&
-             atoms,rxyz,denspot%dpbox,1,denspot%rho_C(1,1,denspot%dpbox%i3xcsh:,1))
+             atoms,rxyz,denspot%dpbox,1,denspot%rho_C(1,1,i3xcsh_old+1,1))
      end if
   end if
   !plot also the electrostatic potential

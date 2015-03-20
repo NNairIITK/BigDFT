@@ -538,7 +538,7 @@ module transposed_operations
     
       if (data_strategy==GLOBAL_MATRIX) then
           if(nproc > 1) then
-              call mpiallred(ovrlp%matrix_compr(1), smat%nvctr*smat%nspin, mpi_sum, bigdft_mpi%mpi_comm)
+              call mpiallred(ovrlp%matrix_compr(1), smat%nvctr*smat%nspin, mpi_sum,comm=bigdft_mpi%mpi_comm)
           end if
     
       else if (data_strategy==SUBMATRIX) then
@@ -669,7 +669,7 @@ module transposed_operations
       end do spin_loop
       
       if(nproc>1) then
-          call mpiallred(norm(1), orbs%norb, mpi_sum, bigdft_mpi%mpi_comm)
+          call mpiallred(norm, mpi_sum, comm=bigdft_mpi%mpi_comm)
       end if
     
       do iorb=1,orbs%norb

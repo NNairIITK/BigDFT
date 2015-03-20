@@ -16,7 +16,7 @@ subroutine determine_wfd_periodicity(ilr,nlr,Glr,Llr)!,outofzone)
 
   use module_base
   use module_types
- 
+  use locregs, only: allocate_wfd
   implicit none
 
   ! Subroutine Scalar Arguments
@@ -431,7 +431,7 @@ subroutine determine_locregSphere_parallel(iproc,nproc,nlr,hx,hy,hz,astruct,orbs
   ! This communication is uneffective. Instead of using bcast we should be using mpialltoallv.
   call timing(iproc,'comm_llr      ','ON')
   if (nproc > 1) then
-     call mpiallred(rootarr(1), nlr, mpi_min, bigdft_mpi%mpi_comm)
+     call mpiallred(rootarr(1), nlr, mpi_min, comm=bigdft_mpi%mpi_comm)
      
      ! Communicate those parts of the locregs that all processes need.
      call communicate_locreg_descriptors_basics(iproc, nlr, rootarr, orbs, llr)
@@ -527,7 +527,7 @@ subroutine determine_wfdSphere(ilr,nlr,Glr,hx,hy,hz,Llr)!,outofzone)
 
   use module_base
   use module_types
- 
+  use locregs, only: allocate_wfd
   implicit none
 
   ! Subroutine Scalar Arguments

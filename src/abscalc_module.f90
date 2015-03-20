@@ -653,7 +653,7 @@ contains
 !!$                           Plr%wfd%nvctr_f  =PPD%pc_nlpspd%nvctr_p(2*iat  )-PPD%pc_nlpspd%nvctr_p(2*iat-1)
 !!$                           Plr%wfd%nseg_c   =PPD%pc_nlpspd%nseg_p(2*iat-1 )-PPD%pc_nlpspd%nseg_p(2*iat-2)
 !!$                           Plr%wfd%nseg_f   =PPD%pc_nlpspd%nseg_p(2*iat  ) -PPD%pc_nlpspd%nseg_p(2*iat-1)
-                            call allocate_wfd(Plr%wfd)
+                           ! call allocate_wfd(Plr%wfd)
 !!$                           Plr%wfd%keyv(:)=PPD%pc_nlpspd%keyv_p(PPD%pc_nlpspd%nseg_p(2*iat-2)+1:&
 !!$                              &   PPD%pc_nlpspd%nseg_p(2*iat)   )
 !!$                           Plr%wfd%keyg(1:2, :)  = PPD%pc_nlpspd%keyg_p( 1:2,  PPD%pc_nlpspd%nseg_p(2*iat-2)+1:&
@@ -661,7 +661,7 @@ contains
                             Plr%bounds = Glr%bounds
                             Plr%d          = Glr%d                    
                             !! call plot_wf_cube(orbname,at,Plr,hx,hy,hz,rxyz, PPD%pc_proj(istart_c) ,"1234567890" ) 
-                            call deallocate_wfd(Plr%wfd)
+                            !call deallocate_wfd(Plr%wfd)
                          endif
                       endif
 

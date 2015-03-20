@@ -25,19 +25,28 @@ program memguess
    use gaussians, only: gaussian_basis, deallocate_gwf
    use communications_base, only: deallocate_comms
    use psp_projectors, only: free_DFT_PSP_projectors
+   use io, only: read_linear_matrix_dense, read_coeff_minbasis, writeLinearCoefficients
    implicit none
    character(len=*), parameter :: subname='memguess'
    character(len=30) :: tatonam, radical
+   character(len=2) :: num
    character(len=40) :: comment
    character(len=1024) :: fcomment
-   character(len=128) :: fileFrom, fileTo,filename_wfn
+   character(len=128) :: fileFrom, fileTo,filename_wfn, coeff_file, ham_file, overlap_file, kernel_file, matrix_file
+   character(len=128) :: ntmb_, norbks_, interval_, npdos_, nat_, nsubmatrices_, ncategories_, cutoff_, power_
+   character(len=128) :: output_pdos, amatrix_file, bmatrix_file, cmatrix_file, inmatrix_file, outmatrix_file, wf_file
+   character(len=128) :: posinp_file, pdos_file, cc
    logical :: optimise,GPUtest,atwf,convert=.false.,exportwf=.false.,logfile=.false.
    logical :: disable_deprecation = .false.,convertpos=.false.,transform_coordinates=.false.
+   logical :: calculate_pdos = .false., kernel_analysis = .false., extract_submatrix = .false.
+   logical :: solve_eigensystem = .false., analyze_coeffs = .false., peel_matrix = .false.
+   logical :: multiply_matrices = .false., matrixpower = .false., plot_wavefunction = .false.
+   logical :: suggest_cutoff = .false.
    integer :: ntimes,nproc,output_grid, i_arg,istat
-   integer :: nspin,iorb,norbu,norbd,nspinor,norb,iorbp,iorb_out
-   integer :: norbgpu,ng
+   integer :: nspin,iorb,norbu,norbd,nspinor,norb,iorbp,iorb_out,lwork
+   integer :: norbgpu,ng, nsubmatrices, ncategories
    integer :: export_wf_iband, export_wf_ispin, export_wf_ikpt, export_wf_ispinor,irad
-   real(gp) :: hx,hy,hz,energy
+   real(gp) :: hx,hy,hz,energy,occup,interval,tt,cutoff,power,d
    type(memory_estimation) :: mem
    type(run_objects) :: runObj
    type(orbitals_data) :: orbstst
@@ -52,7 +61,7 @@ program memguess
    real(gp), dimension(:), pointer :: gbd_occ
    type(system_fragment), dimension(:), pointer :: ref_frags
    character(len=3) :: in_name !lr408
-   integer :: i, inputpsi, input_wf_format
+   integer :: i, inputpsi, input_wf_format, nneighbor_min, nneighbor_max, nneighbor
    integer,parameter :: nconfig=1
    type(dictionary), pointer :: run
    !character(len=60),dimension(nconfig) :: arr_radical,arr_posinp
@@ -61,14 +70,20 @@ program memguess
    !real(gp) :: tcpu0,tcpu1,tel
    !integer :: ncount0,ncount1,ncount_max,ncount_rate
    !! By Ali
-   integer :: ierror, iat
-   integer,dimension(:),allocatable :: na, nb, nc
-   integer,dimension(:,:),allocatable :: atoms_ref
-   real(kind=8),dimension(:,:),allocatable :: rxyz_int
+   integer :: ierror, iat, itmb, jtmb, iitmb, jjtmb, ntmb, norbks, npdos, iunit01, iunit02, norb_dummy, ipt, npt, ipdos, nat
+   integer :: iproc, isub, jat, icat, info, itype, iiat, jjat, jtype, ios, ival, iat_prev, ii, iitype
+   integer,dimension(:),allocatable :: na, nb, nc, on_which_atom
+   integer,dimension(:,:),allocatable :: atoms_ref, imin_list
+   real(kind=8),dimension(:,:),allocatable :: rxyz, rxyz_int, kernel, ham, overlap, coeff, pdos, energy_bins, matrix
+   real(kind=8),dimension(:,:),allocatable :: amatrix, bmatrix, cmatrix, temparr, d1min_list
+   real(kind=8),dimension(:),allocatable :: eval, coeff_cat, work, d2min_list, dtype, rcov
    !real(kind=8),parameter :: degree=57.295779513d0
    real(kind=8),parameter :: degree=1.d0
    character(len=6) :: direction
-   logical :: file_exists
+   character(len=2) :: backslash
+   logical :: file_exists, found_bin, mpi_init
+   logical,dimension(:),allocatable :: calc_array
+   real(kind=8),parameter :: eps_roundoff=1.d-5
 
    call f_lib_initialize()
    !initialize errors and timings as bigdft routines are called
@@ -114,6 +129,40 @@ program memguess
            &   '"convert-positions" <from.[xyz,ascii,yaml]> <to.[xyz,ascii,yaml]>" ' 
       write(*,'(1x,a)')&
            & 'converts input positions file "from" to file "to" using the given formats'
+      write(*,'(1x,a)')&
+           &   '"pdos" <ntmb> <norb> <coeffs.bin> <npdos>" ' 
+      write(*,'(1x,a)')&
+           & 'reads in the expansion coefficients "coeffs.bin" of dimension (nmtb x norb) &
+           &and calculate "npdos" partial density of states'
+      write(*,'(1x,a)')&
+           &   '"kernel-analysis" <coeffs.bin> <kernel.bin>" ' 
+      write(*,'(1x,a)')&
+           & 'calculates a full kernel from the expansion coefficients "coeffs.bin" of dimension (nmtb x norb) &
+           &and compare it with the sparse kernel in "kernel.bin"'
+      write(*,'(1x,a)')&
+           &   '"solve-eigensystem" <ham.bin> <overlap.bin> <coeffs.bin>" ' 
+      write(*,'(1x,a)')&
+           & 'solve the eigensystem Hc = lSc and write the coeffs c to disk'
+      write(*,'(1x,a)')&
+           &   '"analyse-coeffs" <coeff.bin>" ' 
+      write(*,'(1x,a)')&
+           & 'analyse the coefficients by assiging them in to ncategories categories'
+      write(*,'(1x,a)')&
+           &   '"peel-matrix" <matrix.bin>" ' 
+      write(*,'(1x,a)')&
+           & 'peel a matrix by stripping off elements which are outside of a cutoff'
+      write(*,'(1x,a)')&
+           &   '"multiply-matrices" <matrix.bin>" ' 
+      write(*,'(1x,a)')&
+           & 'multiply two matrices'
+      write(*,'(1x,a)')&
+           &   '"matrixpower" <matrix.bin>" ' 
+      write(*,'(1x,a)')&
+           & 'caluclate the power of a matrix'
+      write(*,'(1x,a)')&
+           &   '"suggest-cutoff" <posinp.xyz>" ' 
+      write(*,'(1x,a)')&
+           & 'suggest cutoff radii for the linear scaling version'
 
       stop
    else
@@ -242,6 +291,173 @@ program memguess
             write(*,'(1x,5a)')&
                &   'convert input file "', trim(fileFrom),'" file to "', trim(fileTo),'"'
             transform_coordinates=.true.
+            exit loop_getargs
+         else if (trim(tatonam)=='pdos') then
+            i_arg = i_arg + 1
+            call get_command_argument(i_arg, value = coeff_file)
+            i_arg = i_arg + 1
+            call get_command_argument(i_arg, value = ham_file)
+            i_arg = i_arg + 1
+            call get_command_argument(i_arg, value = overlap_file)
+            i_arg = i_arg + 1
+            call get_command_argument(i_arg, value = ntmb_)
+            read(ntmb_,fmt=*,iostat=ierror) ntmb
+            i_arg = i_arg + 1
+            call get_command_argument(i_arg, value = norbks_)
+            read(norbks_,fmt=*,iostat=ierror) norbks
+            i_arg = i_arg + 1
+            call get_command_argument(i_arg, value = nat_)
+            read(nat_,fmt=*,iostat=ierror) nat
+            i_arg = i_arg + 1
+            call get_command_argument(i_arg, value = interval_)
+            read(interval_,fmt=*,iostat=ierror) interval
+            i_arg = i_arg + 1
+            call get_command_argument(i_arg, value = pdos_file)
+            i_arg = i_arg + 1
+            call get_command_argument(i_arg, value = posinp_file)
+            npdos = 1
+            write(*,'(1x,3(a,i0),3a)')&
+               &   'calculate ', npdos,' PDOS based on the coeffs (', ntmb, 'x', norbks, ') in the file "', trim(coeff_file),'"'
+            calculate_pdos=.true.
+            exit loop_getargs
+         else if (trim(tatonam)=='kernel-analysis') then
+            i_arg = i_arg + 1
+            call get_command_argument(i_arg, value = coeff_file)
+            i_arg = i_arg + 1
+            call get_command_argument(i_arg, value = kernel_file)
+            i_arg = i_arg + 1
+            call get_command_argument(i_arg, value = ntmb_)
+            read(ntmb_,fmt=*,iostat=ierror) ntmb
+            i_arg = i_arg + 1
+            call get_command_argument(i_arg, value = norbks_)
+            read(norbks_,fmt=*,iostat=ierror) norbks
+            i_arg = i_arg + 1
+            call get_command_argument(i_arg, value = nat_)
+            read(nat_,fmt=*,iostat=ierror) nat
+            write(*,'(1x,5a)')&
+               &   'calculate a full kernel from the coeffs in "', trim(coeff_file), &
+               &'" and compres it to the sparse kernel in "', trim(kernel_file),'"'
+            kernel_analysis = .true.
+            exit loop_getargs
+         else if (trim(tatonam)=='extract-submatrix') then
+            i_arg = i_arg + 1
+            call get_command_argument(i_arg, value = matrix_file)
+            i_arg = i_arg + 1
+            call get_command_argument(i_arg, value = ntmb_)
+            read(ntmb_,fmt=*,iostat=ierror) ntmb
+            i_arg = i_arg + 1
+            call get_command_argument(i_arg, value = nat_)
+            read(nat_,fmt=*,iostat=ierror) nat
+            i_arg = i_arg + 1
+            call get_command_argument(i_arg, value = nsubmatrices_)
+            read(nsubmatrices_,fmt=*,iostat=ierror) nsubmatrices
+            write(*,'(1x,a,i0,3a,2(i0,a))')&
+               &   'extract ',nsubmatrices,' submatrices from the matrix in "', trim(matrix_file),'" (size ',ntmb,'x',ntmb,')'
+            extract_submatrix = .true.
+            exit loop_getargs
+         else if (trim(tatonam)=='solve-eigensystem') then
+            i_arg = i_arg + 1
+            call get_command_argument(i_arg, value = ham_file)
+            i_arg = i_arg + 1
+            call get_command_argument(i_arg, value = overlap_file)
+            i_arg = i_arg + 1
+            call get_command_argument(i_arg, value = ntmb_)
+            read(ntmb_,fmt=*,iostat=ierror) ntmb
+            i_arg = i_arg + 1
+            call get_command_argument(i_arg, value = nat_)
+            read(nat_,fmt=*,iostat=ierror) nat
+            i_arg = i_arg + 1
+            call get_command_argument(i_arg, value = coeff_file)
+            read(nsubmatrices_,fmt=*,iostat=ierror) nsubmatrices
+            write(*,'(1x,2(a,i0))')&
+               &   'solve the eigensystem Hc=lSc of size ',ntmb,'x',ntmb
+            solve_eigensystem = .true.
+            exit loop_getargs
+         else if (trim(tatonam)=='analyze-coeffs') then
+            i_arg = i_arg + 1
+            call get_command_argument(i_arg, value = coeff_file)
+            i_arg = i_arg + 1
+            call get_command_argument(i_arg, value = ntmb_)
+            read(ntmb_,fmt=*,iostat=ierror) ntmb
+            i_arg = i_arg + 1
+            call get_command_argument(i_arg, value = norbks_)
+            read(norbks_,fmt=*,iostat=ierror) norbks
+            i_arg = i_arg + 1
+            call get_command_argument(i_arg, value = nat_)
+            read(nat_,fmt=*,iostat=ierror) nat
+            i_arg = i_arg + 1
+            call get_command_argument(i_arg, value = ncategories_)
+            read(ncategories_,fmt=*,iostat=ierror) ncategories
+            write(*,'(1x,a)')&
+               &   'analyze the coeffs'
+            analyze_coeffs = .true.
+            exit loop_getargs
+         else if (trim(tatonam)=='peel-matrix') then
+            i_arg = i_arg + 1
+            call get_command_argument(i_arg, value = matrix_file)
+            i_arg = i_arg + 1
+            call get_command_argument(i_arg, value = ntmb_)
+            read(ntmb_,fmt=*,iostat=ierror) ntmb
+            i_arg = i_arg + 1
+            call get_command_argument(i_arg, value = nat_)
+            read(nat_,fmt=*,iostat=ierror) nat
+            i_arg = i_arg + 1
+            call get_command_argument(i_arg, value = cutoff_)
+            read(cutoff_,fmt=*,iostat=ierror) cutoff
+            write(*,'(1x,a)')&
+               &   'peel the matrix'
+            peel_matrix = .true.
+            exit loop_getargs
+         else if (trim(tatonam)=='multiply-matrices') then
+            i_arg = i_arg + 1
+            call get_command_argument(i_arg, value = amatrix_file)
+            i_arg = i_arg + 1
+            call get_command_argument(i_arg, value = bmatrix_file)
+            i_arg = i_arg + 1
+            call get_command_argument(i_arg, value = cmatrix_file)
+            i_arg = i_arg + 1
+            call get_command_argument(i_arg, value = ntmb_)
+            read(ntmb_,fmt=*,iostat=ierror) ntmb
+            i_arg = i_arg + 1
+            call get_command_argument(i_arg, value = nat_)
+            read(nat_,fmt=*,iostat=ierror) nat
+            i_arg = i_arg + 1
+            write(*,'(1x,a,2(i0,a))')&
+               &   'multiply the matrices (size ',ntmb,'x',ntmb,')'
+            multiply_matrices = .true.
+            exit loop_getargs
+         else if (trim(tatonam)=='matrixpower') then
+            i_arg = i_arg + 1
+            call get_command_argument(i_arg, value = inmatrix_file)
+            i_arg = i_arg + 1
+            call get_command_argument(i_arg, value = outmatrix_file)
+            i_arg = i_arg + 1
+            call get_command_argument(i_arg, value = ntmb_)
+            read(ntmb_,fmt=*,iostat=ierror) ntmb
+            i_arg = i_arg + 1
+            call get_command_argument(i_arg, value = nat_)
+            read(nat_,fmt=*,iostat=ierror) nat
+            i_arg = i_arg + 1
+            call get_command_argument(i_arg, value = power_)
+            read(power_,fmt=*,iostat=ierror) power
+            i_arg = i_arg + 1
+            write(*,'(1x,a,2(i0,a))')&
+               &   'calculate the power of a matrix'
+            matrixpower = .true.
+            exit loop_getargs
+         else if (trim(tatonam)=='plot-wavefunction') then
+            i_arg = i_arg + 1
+            call get_command_argument(i_arg, value = wf_file)
+            write(*,'(1x,a,2(i0,a))')&
+               &   'plot the wave function from file ',trim(wf_file)
+            plot_wavefunction = .true.
+            exit loop_getargs
+         else if (trim(tatonam)=='suggest-cutoff') then
+            i_arg = i_arg + 1
+            call get_command_argument(i_arg, value = posinp_file)
+            write(*,'(1x,2a)')&
+               &   'suggest cutoff radii based on the atomic positions in ',trim(posinp_file)
+            suggest_cutoff = .true.
             exit loop_getargs
          else if (trim(tatonam) == 'dd') then
             ! dd: disable deprecation message
@@ -428,6 +644,456 @@ program memguess
        call f_free(nb)
        call f_free(nc)
        call f_free(rxyz_int)
+       stop
+   end if
+
+   if (calculate_pdos) then
+       call mpi_initialized(mpi_init, ierror)
+       if (mpi_init) then
+           call mpi_comm_rank(mpi_comm_world, iproc, ierror)
+       else
+           iproc = 0
+       end if
+       coeff = f_malloc((/ntmb,norbks/),id='coeff')
+       eval = f_malloc(norbks,id='eval')
+       kernel = f_malloc((/ntmb,ntmb/),id='kernel')
+       ham = f_malloc((/ntmb,ntmb/),id='ham')
+       overlap = f_malloc((/ntmb,ntmb/),id='overlap')
+       on_which_atom = f_malloc(ntmb,id='on_which_atom')
+       calc_array = f_malloc(ntmb,id='calc_array')
+       call f_open_file(iunit01, file=trim(coeff_file), binary=.false.)
+       call read_coeff_minbasis(iunit01, .true., iproc, norbks, norb_dummy, ntmb, coeff, eval, nat)
+       call f_close(iunit01)
+       call f_open_file(iunit01, file=ham_file, binary=.false.)
+       call read_linear_matrix_dense(iunit01, ntmb, nat, ham, on_which_atom=on_which_atom)
+       call f_close(iunit01)
+       call f_open_file(iunit01, file=overlap_file, binary=.false.)
+       call read_linear_matrix_dense(iunit01, ntmb, nat, overlap)
+       call f_close(iunit01)
+
+       call set_astruct_from_file(trim(posinp_file),0,at%astruct,fcomment,energy,fxyz)
+       call f_open_file(iunit01, file=pdos_file, binary=.false.)
+
+       calc_array = .false.
+       do 
+           read(iunit01,*,iostat=ios) cc, ival
+           if (ios/=0) exit
+           do itype=1,at%astruct%ntypes
+               if (trim(at%astruct%atomnames(itype))==trim(cc)) then
+                   iitype = itype
+                   exit
+               end if
+           end do
+           iat_prev = -1
+           do itmb=1,ntmb
+               iat = on_which_atom(itmb)
+               if (iat/=iat_prev) then
+                   ii = 0
+               end if
+               iat_prev = iat
+               itype = at%astruct%iatype(iat)
+               ii = ii + 1
+               if (itype==iitype .and. ii==ival) then
+                   if (calc_array(itmb)) stop 'calc_array(itmb)'
+                   calc_array(itmb) = .true.
+               end if
+           end do
+       end do
+       call f_close(iunit01)
+
+       do itmb=1,ntmb
+           iat = on_which_atom(itmb)
+           itype = at%astruct%iatype(iat)
+           write(*,'(a,3i8,l5)') 'itmb, iat, itype, calc_array(itmb)', itmb, iat, itype, calc_array(itmb)
+       end do
+
+       npt = ceiling((eval(ntmb)-eval(1))/interval)
+       pdos = f_malloc0((/npt,npdos/),id='pdos')
+       energy_bins = f_malloc((/2,npt/),id='energy_bins')
+       ! Determine the energy bins
+       do ipt=1,npt
+           energy_bins(1,ipt) = eval(1) + real(ipt-1,kind=8)*interval - eps_roundoff
+           energy_bins(2,ipt) = energy_bins(1,ipt) + interval
+       end do
+       output_pdos='PDoS.gp'
+       call yaml_map('output file',trim(output_pdos))
+       call f_open_file(iunit02, file=trim(output_pdos), binary=.false.)
+       write(iunit02,'(a)') '# plot the DOS as a sum of Gaussians'
+       write(iunit02,'(a)') 'set samples 1000'
+       write(iunit02,'(a,2(es12.5,a))') 'set xrange[',eval(1),':',eval(ntmb),']'
+       write(iunit02,'(a)') 'sigma=0.01'
+       write(backslash,'(a)') '\ '
+       ! Calculate a partial kernel for each KS orbital
+       do ipdos=1,npdos
+           call yaml_map('PDoS number',ipdos)
+           call yaml_map('start, increment',(/ipdos,npdos/))
+           write(num,fmt='(i2.2)') ipdos
+           write(iunit02,'(a,i0,a)') 'f',ipdos,'(x) = '//trim(backslash)
+           do iorb=1,norbks
+               call yaml_map('orbital being processed',iorb)
+               call gemm('n', 't', ntmb, ntmb, 1, 1.d0, coeff(1,iorb), ntmb, &
+                    coeff(1,iorb), ntmb, 0.d0, kernel(1,1), ntmb)
+               energy = 0.d0
+               occup = 0.d0
+               !!$omp parallel default(none) &
+               !!$omp shared(ntmb,kernel,ham,overlap,ipdos,npdos,energy,occup) &
+               !!$omp private(itmb,jtmb)
+               !!$omp do reduction(+:energy)
+               do itmb=1,ntmb
+                   do jtmb=1,ntmb
+                       energy = energy + kernel(itmb,jtmb)*ham(jtmb,itmb)
+                   end do
+               end do
+               !!$omp end do
+               !!$omp do reduction(+:occup)
+               do itmb=1,ntmb!ipdos,ntmb,npdos
+                   if (.not.calc_array(itmb)) cycle
+                   do jtmb=1,ntmb!ipdos,ntmb,npdos
+                       if (.not.calc_array(jtmb)) cycle
+                       occup = occup + kernel(itmb,jtmb)*overlap(jtmb,itmb)
+                   end do
+               end do
+               !!$omp end do
+               !!$omp end parallel
+               found_bin = .false.
+               do ipt=1,npt
+                   if (energy>=energy_bins(1,ipt) .and. energy<energy_bins(2,ipt)) then
+                       pdos(ipt,ipdos) = pdos(ipt,ipdos) + occup
+                       found_bin = .true.
+                       exit
+                   end if
+               end do
+               if (.not.found_bin) then
+                   call f_err_throw('could not determine energy bin, energy='//yaml_toa(energy),err_name='BIGDFT_RUNTIME_ERROR')
+               end if
+               if (iorb<norbks) then
+                   write(iunit02,'(2(a,es16.9),a)') '  ',occup,'*exp(-(x-',energy,')**2/(2*sigma**2)) + '//trim(backslash)
+               else
+                   write(iunit02,'(2(a,es16.9),a)') '  ',occup,'*exp(-(x-',energy,')**2/(2*sigma**2))'
+               end if
+               !write(*,'(a,i6,3es16.8)')'iorb, eval(iorb), energy, occup', iorb, eval(iorb), energy, occup
+           end do
+           if (ipdos==1) then
+               write(iunit02,'(a,i0,a)') "plot f",ipdos,"(x) lt 1 lw 2 w l title 'name'"
+           else
+               write(iunit02,'(a,i0,a)') "replot f",ipdos,"(x) lt 1 lw 2 w l title 'name'"
+           end if
+           call yaml_map('sum of PDoS',sum(pdos(:,ipdos)))
+           output_pdos='PDoS_'//num//'.dat'
+           call yaml_map('output file',trim(output_pdos))
+           call f_open_file(iunit01, file=trim(output_pdos), binary=.false.)
+           write(iunit01,'(a)') '#             energy                pdos'
+           do ipt=1,npt
+               write(iunit01,'(2es20.12)') energy_bins(1,ipt), pdos(ipt,ipdos)
+           end do
+           call f_close(iunit01)
+       end do
+       call f_close(iunit02)
+       call yaml_map('sum of total DoS',sum(pdos(:,:)))
+
+       stop
+   end if
+
+   if (kernel_analysis) then
+       call mpi_initialized(mpi_init, ierror)
+       if (mpi_init) then
+           call mpi_comm_rank(mpi_comm_world, iproc, ierror)
+       else
+           iproc = 0
+       end if
+       coeff = f_malloc((/ntmb,norbks/),id='coeff')
+       eval = f_malloc(norbks,id='eval')
+       kernel = f_malloc((/ntmb,ntmb/),id='kernel')
+       rxyz = f_malloc((/3,nat/),id='rxyz')
+       on_which_atom = f_malloc(ntmb,id='on_which_atom')
+       call f_open_file(iunit01, file=trim(coeff_file), binary=.false.)
+       call read_coeff_minbasis(iunit01, .true., iproc, norbks, norb_dummy, ntmb, coeff, eval, nat, rxyz)
+       call f_close(iunit01)
+       call f_open_file(iunit01, file=trim(kernel_file), binary=.false.)
+       call read_linear_matrix_dense(iunit01, ntmb, nat, kernel, on_which_atom=on_which_atom)
+       call f_close(iunit01)
+       call analyze_kernel(ntmb, norbks, nat, coeff, kernel, rxyz, on_which_atom)
+       stop
+   end if
+
+   if (extract_submatrix) then
+       if (mod(ntmb,nsubmatrices)/=0) then
+           call f_err_throw('nsubmatrices must be a divisor of the number of basis function',&
+                err_name='BIGDFT_RUNETIME_ERROR')
+       end if
+       matrix = f_malloc((/ntmb,ntmb/),id='matrix')
+       on_which_atom = f_malloc(ntmb,id='on_which_atom')
+       rxyz = f_malloc((/3,nat/),id='rxyz')
+       call f_open_file(iunit01, file=trim(matrix_file), binary=.false.)
+       call read_linear_matrix_dense(iunit01, ntmb, nat, matrix, rxyz=rxyz, on_which_atom=on_which_atom)
+       call f_close(iunit01)
+       do isub=1,nsubmatrices
+           write(num,fmt='(i2.2)') isub
+           call f_open_file(iunit01, file=trim(matrix_file)//'_sub'//num, binary=.false.)
+           write(iunit01,'(a,2i10,a)') '#  ',ntmb/nsubmatrices, nat, &
+               '    number of basis functions, number of atoms'
+           do iat=1,nat
+                   write(iunit01,'(a,3es24.16)') '#  ',rxyz(1:3,iat)
+           end do
+           iitmb = 0
+           do itmb=isub,ntmb,nsubmatrices
+               iitmb = iitmb + 1
+               iat = on_which_atom(itmb)
+               jjtmb = 0
+               do jtmb=isub,ntmb,nsubmatrices
+                   jjtmb = jjtmb + 1
+                   jat = on_which_atom(jtmb)
+                   write(iunit01,'(2(i6,1x),e19.12,2(1x,i6))') iitmb,jjtmb,matrix(itmb,jtmb),iat,jat
+               end do
+           end do
+           call f_close(iunit01)
+       end do
+       stop
+   end if
+
+   if (solve_eigensystem) then
+       ham = f_malloc((/ntmb,ntmb/),id='ham')
+       overlap = f_malloc((/ntmb,ntmb/),id='overlap')
+       eval = f_malloc(ntmb,id='eval')
+       rxyz = f_malloc((/3,nat/),id='rxyz')
+       call f_open_file(iunit01, file=trim(ham_file), binary=.false.)
+       call read_linear_matrix_dense(iunit01, ntmb, nat, ham, rxyz=rxyz)
+       call f_close(iunit01)
+       call f_open_file(iunit01, file=trim(overlap_file), binary=.false.)
+       call read_linear_matrix_dense(iunit01, ntmb, nat, overlap)
+       call f_close(iunit01)
+       call diagonalizeHamiltonian2(iproc, ntmb, ham, overlap, eval)
+       call f_open_file(iunit01, file=trim(coeff_file), binary=.false.)
+       call writeLinearCoefficients(iunit01, .true., nat, rxyz, &
+            ntmb, ntmb, ntmb, ham, eval)
+       stop
+   end if
+
+   if (analyze_coeffs) then
+       coeff = f_malloc((/ntmb,norbks/),id='coeff')
+       coeff_cat = f_malloc(ncategories,id='coeff_cat')
+       eval = f_malloc(ntmb,id='eval')
+       call f_open_file(iunit01, file=trim(coeff_file), binary=.false.)
+       call read_coeff_minbasis(iunit01, .true., iproc, norbks, norb_dummy, ntmb, coeff, eval, nat)
+       call f_close(iunit01)
+       do iorb=1,norbks
+           do icat=1,ncategories
+               tt = 0.d0
+               do itmb=icat,ntmb,ncategories
+                   tt = tt + coeff(itmb,iorb)**2
+               end do
+               coeff_cat(icat) = tt
+           end do
+           write(*,'(a,i8,4es12.4)') 'iorb, vals', iorb, coeff_cat(1:ncategories)
+       end do
+       stop
+   end if
+
+   if (peel_matrix) then
+       matrix = f_malloc((/ntmb,ntmb/),id='matrix')
+       on_which_atom = f_malloc(ntmb,id='on_which_atom')
+       rxyz = f_malloc((/3,nat/),id='rxyz')
+       call f_open_file(iunit01, file=trim(matrix_file), binary=.false.)
+       call read_linear_matrix_dense(iunit01, ntmb, nat, matrix, rxyz=rxyz, on_which_atom=on_which_atom)
+       call f_close(iunit01)
+       nneighbor_min = huge(nneighbor_min)
+       nneighbor_max = -huge(nneighbor_max)
+       do itmb=1,ntmb
+           iat = on_which_atom(itmb)
+           nneighbor = 0
+           do jtmb=1,ntmb
+               jat = on_which_atom(jtmb)
+               tt = sqrt((rxyz(1,jat)-rxyz(1,iat))**2 + &
+                         (rxyz(2,jat)-rxyz(2,iat))**2 + &
+                         (rxyz(3,jat)-rxyz(3,iat))**2)
+               if (tt>cutoff) then
+                   matrix(jtmb,itmb) = 0.d0
+               else
+                   nneighbor = nneighbor + 1
+               end if
+           end do
+           write(*,*) 'itmb, nneighbor', itmb, nneighbor
+           nneighbor_min = min (nneighbor_min,nneighbor)
+           nneighbor_max = max (nneighbor_max,nneighbor)
+       end do
+       call yaml_map('min number of neighbors',nneighbor_min)
+       call yaml_map('max number of neighbors',nneighbor_max)
+       call f_open_file(iunit01, file=trim(matrix_file)//'_peeled', binary=.false.)
+       write(iunit01,'(a,2i10,a)') '#  ',ntmb, nat, &
+           '    number of basis functions, number of atoms'
+       do iat=1,nat
+               write(iunit01,'(a,3es24.16)') '#  ',rxyz(1:3,iat)
+       end do
+       do itmb=1,ntmb
+           iat = on_which_atom(itmb)
+           do jtmb=1,ntmb
+               jat = on_which_atom(jtmb)
+               write(iunit01,'(2(i6,1x),e19.12,2(1x,i6))') itmb,jtmb,matrix(itmb,jtmb),iat,jat
+           end do
+       end do
+       call f_close(iunit01)
+       stop
+   end if
+
+   if (multiply_matrices) then
+       amatrix = f_malloc((/ntmb,ntmb/),id='amatrix')
+       bmatrix = f_malloc((/ntmb,ntmb/),id='bmatrix')
+       cmatrix = f_malloc((/ntmb,ntmb/),id='cmatrix')
+       on_which_atom = f_malloc(ntmb,id='on_which_atom')
+       rxyz = f_malloc((/3,nat/),id='rxyz')
+       call f_open_file(iunit01, file=trim(amatrix_file), binary=.false.)
+       call read_linear_matrix_dense(iunit01, ntmb, nat, amatrix, rxyz=rxyz, on_which_atom=on_which_atom)
+       call f_close(iunit01)
+       call f_open_file(iunit01, file=trim(bmatrix_file), binary=.false.)
+       call read_linear_matrix_dense(iunit01, ntmb, nat, bmatrix, rxyz=rxyz, on_which_atom=on_which_atom)
+       call f_close(iunit01)
+       call gemm('n', 'n', ntmb, ntmb, ntmb, 1.d0, amatrix(1,1), ntmb, &
+            bmatrix(1,1), ntmb, 0.d0, cmatrix(1,1), ntmb)
+       call f_open_file(iunit01, file=trim(cmatrix_file), binary=.false.)
+       write(iunit01,'(a,2i10,a)') '#  ',ntmb, nat, &
+           '    number of basis functions, number of atoms'
+       do iat=1,nat
+               write(iunit01,'(a,3es24.16)') '#  ',rxyz(1:3,iat)
+       end do
+!cmatrix=0.d0
+       do itmb=1,ntmb
+!cmatrix(itmb,itmb)=1.d0
+           iat = on_which_atom(itmb)
+           do jtmb=1,ntmb
+               jat = on_which_atom(jtmb)
+               write(iunit01,'(2(i6,1x),e19.12,2(1x,i6))') itmb,jtmb,cmatrix(itmb,jtmb),iat,jat
+           end do
+       end do
+       call f_close(iunit01)
+       stop
+   end if
+
+   if (matrixpower) then
+       amatrix = f_malloc((/ntmb,ntmb/),id='amatrix')
+       bmatrix = f_malloc((/ntmb,ntmb/),id='bmatrix')
+       on_which_atom = f_malloc(ntmb,id='on_which_atom')
+       rxyz = f_malloc((/3,nat/),id='rxyz')
+       eval = f_malloc(ntmb,id='eval')
+       call f_open_file(iunit01, file=trim(inmatrix_file), binary=.false.)
+       call read_linear_matrix_dense(iunit01, ntmb, nat, amatrix, rxyz=rxyz, on_which_atom=on_which_atom)
+       call f_close(iunit01)
+
+
+       lwork = 10*ntmb
+       work = f_malloc(lwork,id='work')
+       tempArr=f_malloc((/ntmb,ntmb/), id='tempArr')
+       call dsyev('v', 'l', ntmb, amatrix(1,1), ntmb, eval, work, lwork, info)
+       do itmb=1,ntmb
+          do jtmb=1,ntmb
+             tempArr(jtmb,itmb)=amatrix(jtmb,itmb)*eval(itmb)**power
+          end do
+       end do
+       call gemm('n', 't', ntmb, ntmb, ntmb, 1.d0, amatrix(1,1), &
+            ntmb, tempArr(1,1), ntmb, 0.d0, bmatrix(1,1), ntmb)
+       call f_free(tempArr)
+       call f_open_file(iunit01, file=trim(outmatrix_file), binary=.false.)
+       write(iunit01,'(a,2i10,a)') '#  ',ntmb, nat, &
+           '    number of basis functions, number of atoms'
+       do iat=1,nat
+               write(iunit01,'(a,3es24.16)') '#  ',rxyz(1:3,iat)
+       end do
+!cmatrix=0.d0
+       do itmb=1,ntmb
+!cmatrix(itmb,itmb)=1.d0
+           iat = on_which_atom(itmb)
+           do jtmb=1,ntmb
+               jat = on_which_atom(jtmb)
+               write(iunit01,'(2(i6,1x),e19.12,2(1x,i6))') itmb,jtmb,bmatrix(itmb,jtmb),iat,jat
+           end do
+       end do
+       call f_close(iunit01)
+       stop
+   end if
+
+   if (plot_wavefunction) then
+       stop
+   end if
+
+   if (suggest_cutoff) then
+       call set_astruct_from_file(trim(posinp_file),0,at%astruct,fcomment,energy,fxyz)
+       rcov = f_malloc(at%astruct%ntypes,id='rcov')
+       rcov(1) = 3.30d0
+       rcov(2) = 2.50d0
+       rcov(3) = 1.45d0
+       rcov(4) = 1.42d0
+       rcov(5) = 0.75d0
+       !rcov(1) = 1.45d0
+
+       d1min_list = f_malloc((/2,at%astruct%nat/),id='d2min_list')
+       d2min_list = f_malloc(at%astruct%nat,id='d1min_list')
+       imin_list = f_malloc((/2,at%astruct%nat/),id='imin_list')
+       dtype = f_malloc(at%astruct%ntypes,id='dtype')
+
+       d1min_list = huge(d1min_list)
+       imin_list = 0
+       do iat=1,at%astruct%nat
+           itype = at%astruct%iatype(iat)
+           do jat=1,at%astruct%nat
+               jtype = at%astruct%iatype(jat)
+               if (jat/=iat) then
+                   !if (rcov(jtype)<=rcov(itype)) then
+                       d = (at%astruct%rxyz(1,jat)-at%astruct%rxyz(1,iat))**2 + &
+                           (at%astruct%rxyz(2,jat)-at%astruct%rxyz(2,iat))**2 + &
+                           (at%astruct%rxyz(3,jat)-at%astruct%rxyz(3,iat))**2
+                       d = sqrt(d)
+                   !else
+                   !    d = 3.d0*rcov(itype)
+                   !end if
+                   if (d<d1min_list(1,iat)) then
+                       d1min_list(2,iat) = d1min_list(1,iat)
+                       d1min_list(1,iat) = d
+                       imin_list(2,iat) = imin_list(1,iat)
+                       imin_list(1,iat) = jat
+                   else if (d<d1min_list(2,iat)) then
+                       d1min_list(2,iat) = d
+                       imin_list(2,iat) = jat
+                   end if
+               end if
+           end do
+       end do
+
+       d2min_list = huge(d2min_list)
+       do iat=1,at%astruct%nat
+           iiat = imin_list(1,iat)
+           itype = at%astruct%iatype(iat)
+           iitype = at%astruct%iatype(iiat)
+           write(*,'(a,i5,2es12.4)') 'iat, d1min_list(1:2,iat)', iat, d1min_list(1:2,iat)
+           do jat=1,2
+               jjat = imin_list(jat,iiat)
+               jtype = at%astruct%iatype(jjat)
+               if (jjat/=iat) then
+                   !if (rcov(jtype)<=rcov(itype)) then
+                   if (rcov(iitype)<=rcov(itype)) then
+                       d = (at%astruct%rxyz(1,iat)-at%astruct%rxyz(1,jjat))**2 + &
+                           (at%astruct%rxyz(2,iat)-at%astruct%rxyz(2,jjat))**2 + &
+                           (at%astruct%rxyz(3,iat)-at%astruct%rxyz(3,jjat))**2
+                       d = sqrt(d)
+                   else
+                       d = 3.d0*rcov(itype)
+                   end if
+                   write(*,'(a,5i8,es12.4)') 'itype, iat, iiat, jat, jjat, d', itype, iat, iiat, jat, jjat, d
+                   d2min_list(iat) = d
+               end if
+           end do
+       end do
+
+       dtype = -huge(dtype)
+       do iat=1,at%astruct%nat
+           itype = at%astruct%iatype(iat)
+           d = d2min_list(iat)
+           dtype(itype) = max(d,dtype(itype))
+       end do
+
+       do itype=1,at%astruct%ntypes
+           write(*,'(a,i7,a,f7.2,es12.4)') 'itype, name, rcov dtype(itype)', &
+               itype, at%astruct%atomnames(itype), rcov(itype), dtype(itype)
+       end do
+
        stop
    end if
 

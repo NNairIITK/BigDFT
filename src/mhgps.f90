@@ -16,7 +16,6 @@ program mhgps
     use module_atoms, only: deallocate_atoms_data,&
                             deallocate_atomic_structure,&
                             atomic_structure,&
-                            read_atomic_file=>set_astruct_from_file,&
                             astruct_dump_to_file
     use module_connect_object
     use module_mhgps_state
@@ -28,18 +27,19 @@ program mhgps
     use module_saddle, only: findsad_work, findsad,&
                              allocate_finsad_workarrays,&
                              deallocate_finsad_workarrays
-    use module_connect, only: connect_recursively, connect
+    use module_connect, only: connect,&
+                              pushoff_and_relax_bothSides
     use module_fingerprints, only: fingerprint
     use module_hessian, only: cal_hessian_fd 
     use module_minimizers
     use bigdft_run
     implicit none
     integer                   :: u
+    integer                   :: istat
     integer                   :: nfree
     integer                   :: iat
     integer                   :: info
     integer                   :: isame
-    integer                   :: nbond
     integer                   :: nsad
     integer                   :: infocode
     integer                   :: ifolder
@@ -71,6 +71,10 @@ program mhgps
     real(gp), allocatable :: rxyz(:,:),fxyz(:,:)
     real(gp), allocatable :: fat(:,:)
     real(gp), allocatable :: rxyz2(:,:),fxyz2(:,:)
+    real(gp), allocatable :: rxyz_minL(:,:),fxyz_minL(:,:),fp_minL(:)
+    real(gp)              :: ener_minL
+    real(gp), allocatable :: rxyz_minR(:,:),fxyz_minR(:,:),fp_minR(:)
+    real(gp)              :: ener_minR
     real(gp), allocatable :: tsguess(:,:),minmodeguess(:,:)
     real(gp), allocatable :: minmode(:,:)
     real(gp), allocatable :: tsgforces(:,:)
@@ -79,14 +83,13 @@ program mhgps
     real(gp), allocatable :: rotforce(:,:),hess(:,:)
     real(gp), allocatable :: eval(:)
     real(gp)              :: energy, energy2, ec, displ
-    real(gp)              :: fnoise, fnrm, fmax
+    real(gp)              :: fnrm, fmax
     integer :: idum=0
     real(kind=4) :: builtin_rand
 
     !functions
     real(gp) :: dnrm2
 
-    nbond=1
     converged = .false.
     premature_exit=.false.
 
@@ -168,6 +171,18 @@ program mhgps
     iconnect = f_malloc((/ 1.to.2, 1.to.1000/),id='iconnect')
     rotforce = f_malloc((/ 1.to.3, 1.to.bigdft_nat(runObj)/),&
                 id='rotforce')
+    rxyz_minL     = f_malloc((/ 1.to.3, 1.to.bigdft_nat(runObj)/),&
+                id='rxyz_minL')
+    fxyz_minL     = f_malloc((/ 1.to.3, 1.to.bigdft_nat(runObj)/),&
+                id='fxyz_minL')
+    fp_minL       = f_malloc((/ 1.to.mhgpsst%nid/),&
+                id='fp_minL')
+    rxyz_minR     = f_malloc((/ 1.to.3, 1.to.bigdft_nat(runObj)/),&
+                id='rxyz_minR')
+    fxyz_minR     = f_malloc((/ 1.to.3, 1.to.bigdft_nat(runObj)/),&
+                id='fxyz_minR')
+    fp_minR       = f_malloc((/ 1.to.mhgpsst%nid/),&
+                id='fp_minR')
 
 
     call allocate_connect_object(bigdft_nat(runObj),mhgpsst%nid,uinp%nsadmax,cobj)
@@ -177,11 +192,11 @@ program mhgps
     !if in biomode, determine bonds betweens atoms once and for all
     !(it isassuemed that all conifugrations over which will be
     !iterated have the same bonds)
-    if(uinp%saddle_biomode)then
-        call findbonds('(MHGPS)',mhgpsst%iproc,uinp%mhgps_verbosity,bigdft_nat(runObj),rcov,&
-        bigdft_get_rxyz_ptr(runObj),nbond,iconnect)
-    endif
-    call allocate_finsad_workarrays(runObj,uinp,nbond,fsw)
+!    if(uinp%saddle_biomode)then
+!        call findbonds('(MHGPS)',mhgpsst%iproc,uinp%mhgps_verbosity,bigdft_nat(runObj),rcov,&
+!        bigdft_get_rxyz_ptr(runObj),nbond,iconnect)
+!    endif
+    call allocate_finsad_workarrays(runObj,uinp,fsw)
 
     ifolderstart=mhgpsst%ifolder
     outer: do ifolder = ifolderstart,999
@@ -201,12 +216,12 @@ program mhgps
            endif
            mhgpsst%ijob=ijob
            call bigdft_get_rxyz(filename=&
-                trim(adjustl(mhgpsst%joblist(1,ijob))),rxyz=rxyz)
+                trim(adjustl(mhgpsst%joblist(1,ijob))),rxyz=rxyz,disableTrans=.true.)
 
            select case(trim(adjustl(uinp%operation_mode)))
            case('guessonly')
               call bigdft_get_rxyz(filename=mhgpsst%joblist(2,ijob),&
-                   rxyz=rxyz2)
+                   rxyz=rxyz2,disableTrans=.true.)
 
               mhgpsst%isad=mhgpsst%isad+1
               write(mhgpsst%isadc,'(i5.5)')mhgpsst%isad
@@ -232,16 +247,16 @@ program mhgps
               endif
            case('connect')
               call bigdft_get_rxyz(filename=mhgpsst%joblist(2,ijob),&
-                   rxyz=rxyz2)
+                   rxyz=rxyz2,disableTrans=.true.)
 
               !Evalute energies. They are needed in connect
               !for identification
               runObj%inputs%inputPsiId=0
               call mhgpsenergyandforces(mhgpsst,runObj,outs,rxyz,&
-                                        fat,fnoise,energy,infocode)
+                                        fat,energy,infocode)
               runObj%inputs%inputPsiId=0
               call mhgpsenergyandforces(mhgpsst,runObj,outs,rxyz2,&
-                                        fat,fnoise,energy2,infocode)
+                                        fat,energy2,infocode)
               call fingerprint(bigdft_nat(runObj),mhgpsst%nid,&
                               runObj%atoms%astruct%cell_dim,&
                               bigdft_get_geocode(runObj),rcov,&
@@ -261,11 +276,11 @@ program mhgps
               if(trim(adjustl(mhgpsst%joblist(1,ijob)(10:16)))/='restart')then
                   mhgpsst%nsad=0
               endif
-              call connect(mhgpsst,fsw,uinp,runObj,outs,rcov,nbond,&
-                   iconnect,rxyz,rxyz2,energy,energy2,fp,fp2,&
+              call connect(mhgpsst,fsw,uinp,runObj,outs,rcov,&
+                   rxyz,rxyz2,energy,energy2,fp,fp2,&
                    cobj,connected,premature_exit,nsad)
 !              call connect_recursively(mhgpsst,fsw,uinp,runObj,outs,rcov,&
-!                   nbond,isame,iconnect,rxyz,rxyz2,energy,energy2,fp,&
+!                   isame,rxyz,rxyz2,energy,energy2,fp,&
 !                   fp2,cobj,connected)
               if(connected)then
                 ltmp=.true.
@@ -293,7 +308,7 @@ program mhgps
               if(premature_exit)then
                  exit outer
               endif
-           case('simple')
+           case('simple','simpleandminimize')
               mhgpsst%isad=mhgpsst%isad+1
               write(mhgpsst%isadc,'(i3.3)')mhgpsst%isad
               if(uinp%random_minmode_guess)then
@@ -317,11 +332,12 @@ program mhgps
               minmode = minmode/dnrm2(3*bigdft_nat(runObj),minmode(1,1),1)
               ec=0.0_gp
               displ=0.0_gp
-              call findsad(mhgpsst,fsw,uinp,runObj,outs,rcov,nbond,iconnect,&
+              call findsad(mhgpsst,fsw,uinp,runObj,outs,rcov,&
                    rxyz(1,1),energy,fxyz(1,1),minmode(1,1),displ,ec,&
                    rotforce(1,1),converged)
               if(.not.converged)then
-                 call yaml_warning('Saddle '//yaml_toa(mhgpsst%isad)//&
+                 if(mhgpsst%iproc==0)&
+                 call yaml_warning('(MHGPS) Saddle '//yaml_toa(mhgpsst%isad)//&
                       ' not converged')
               endif
               call fnrmandforcemax(fxyz(1,1),fnrm,&
@@ -349,17 +365,31 @@ program mhgps
                       trim(adjustl(mhgpsst%isadc))//'_mode_final',&
                       minmode(1,1),rotforce(1,1))
               endif
+              if(trim(adjustl(uinp%operation_mode))=='simpleandminimize')then
+                call fingerprint(bigdft_nat(runObj),mhgpsst%nid,&
+                              runObj%atoms%astruct%cell_dim,&
+                              bigdft_get_geocode(runObj),rcov,&
+                              rxyz(1,1),fp(1))
+                call pushoff_and_relax_bothSides(uinp,mhgpsst,runObj,outs,rcov,& 
+                     rxyz(1,1),energy,fp(1),minmode(1,1),rxyz_minL,fxyz_minL,&      
+                     ener_minL,fp_minL,rxyz_minR,fxyz_minR,ener_minR,fp_minR,istat)
+                if(istat/=0)then
+                    if(mhgpsst%iproc==0)&
+                    call yaml_warning('(MHGPS) Pushoff not successful.')
+                endif
+              endif
            case('minimize')
               mhgpsst%isad=mhgpsst%isad+1
               write(mhgpsst%isadc,'(i3.3)')mhgpsst%isad
               ec=0.0_gp
               runObj%inputs%inputPsiId=0
               call mhgpsenergyandforces(mhgpsst,runObj,outs,rxyz,&
-                   fxyz,fnoise,energy,infocode)
-              call minimize(mhgpsst,uinp,runObj,outs,nbond,&
-                   iconnect,rxyz(1,1),fxyz(1,1),fnoise,energy,ec,&
+                   fxyz,energy,infocode)
+              call minimize(mhgpsst,uinp,runObj,outs,rcov,&
+                   rxyz(1,1),fxyz(1,1),energy,ec,&
                    converged,'')
               if(.not.converged)then
+                 if(mhgpsst%iproc==0)&
                  call yaml_warning('Minimization '//yaml_toa(mhgpsst%isad)&
                       //' not converged')
               endif
@@ -376,7 +406,7 @@ program mhgps
            case('hessian')
               runObj%inputs%inputPsiId=0
               call mhgpsenergyandforces(mhgpsst,runObj,outs,rxyz,&
-                   fxyz,fnoise,energy,infocode)
+                   fxyz,energy,infocode)
               runObj%inputs%inputPsiId=0
               call cal_hessian_fd(mhgpsst,runObj,outs,rxyz,&
                    hess,nfree)
@@ -442,6 +472,12 @@ program mhgps
     call f_free(iconnect)
     call f_free(rotforce)
     call f_free(hess)
+    call f_free(rxyz_minL)
+    call f_free(fxyz_minL)
+    call f_free(rxyz_minR)
+    call f_free(fxyz_minR)
+    call f_free(fp_minL)
+    call f_free(fp_minR)
     call deallocate_connect_object(cobj)
     call deallocate_finsad_workarrays(fsw)
 

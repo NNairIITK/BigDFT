@@ -367,7 +367,8 @@ subroutine steepdes(runObj,outs,nproc,iproc,ncount_bigdft,fnrm,forcemax_sw,nitsd
   etotitm1=1.e100_gp
   fnrmitm1=1.e100_gp
 
-  call vcopy(3 * runObj%atoms%astruct%nat, runObj%atoms%astruct%rxyz(1,1), 1, tpos(1,1), 1)
+  call f_memcpy(src=runObj%atoms%astruct%rxyz,dest=tpos)
+  !call vcopy(3 * runObj%atoms%astruct%nat, runObj%atoms%astruct%rxyz(1,1), 1, tpos(1,1), 1)
 
   itot=0
 
@@ -403,19 +404,14 @@ subroutine steepdes(runObj,outs,nproc,iproc,ncount_bigdft,fnrm,forcemax_sw,nitsd
 
         runObj%inputs%inputPsiId=1
         call bigdft_state(runObj,outs,infocode)
-!!$        if (iproc == 0) then
-!!$           call transforce(at,ff,sumx,sumy,sumz)
-!!$           write(*,'(a,1x,1pe24.17)') 'translational force along x=', sumx
-!!$           write(*,'(a,1x,1pe24.17)') 'translational force along y=', sumy
-!!$           write(*,'(a,1x,1pe24.17)') 'translational force along z=', sumz
-!!$        end if
         ncount_bigdft=ncount_bigdft+1
 
         !if the energy goes up (a small tolerance is allowed by anoise)
         !reduce the value of beta
         !this procedure stops in the case beta is much too small compared with the initial one
         if (care .and. outs%energy > etotitm1+anoise) then
-           call vcopy(3 * runObj%atoms%astruct%nat, tpos(1,1), 1, runObj%atoms%astruct%rxyz(1,1), 1)
+           call f_memcpy(src=tpos,dest=runObj%atoms%astruct%rxyz)
+           !call vcopy(3 * runObj%atoms%astruct%nat, tpos(1,1), 1, runObj%atoms%astruct%rxyz(1,1), 1)
            beta=.5_gp*beta
            if (iproc == 0) write(16,'(a,1x,e9.2,1x,i5,2(1x,e21.14))') &
                 'SD reset, beta,itsd,etot,etotitm1= ',beta,itsd,outs%energy,etotitm1
@@ -562,31 +558,11 @@ subroutine steepdes(runObj,outs,nproc,iproc,ncount_bigdft,fnrm,forcemax_sw,nitsd
         endif
 !        if (iproc == 0 .and. parmrunObj%inputs%verbosity > 0) write(16,*) 'beta=',beta
 
-
-        call vcopy(3 * runObj%atoms%astruct%nat, runObj%atoms%astruct%rxyz(1,1), 1, tpos(1,1), 1)
+        call f_memcpy(src=runObj%atoms%astruct%rxyz,dest=tpos)
+        !call vcopy(3 * runObj%atoms%astruct%nat, runObj%atoms%astruct%rxyz(1,1), 1, tpos(1,1), 1)
         !call atomic_axpy(at,rxyz,beta,ff,rxyz)
         call axpy(3 * runObj%atoms%astruct%nat,beta,outs%fxyz(1,1),1,runObj%atoms%astruct%rxyz(1,1),1)
 
-!!!        do iat=1,runObj%atoms%nat
-!!!           tpos(1,iat)=rxyz(1,iat)
-!!!           tpos(2,iat)=rxyz(2,iat)
-!!!           tpos(3,iat)=rxyz(3,iat)
-!!!           if ( .not. runObj%atoms%lfrztyp(iat)) then
-!!!              if (runObj%atoms%geocode == 'P') then
-!!!                 rxyz(1,iat)=modulo(rxyz(1,iat)+beta*ff(1,iat),runObj%atoms%alat1)
-!!!                 rxyz(2,iat)=modulo(rxyz(2,iat)+beta*ff(2,iat),runObj%atoms%alat2)
-!!!                 rxyz(3,iat)=modulo(rxyz(3,iat)+beta*ff(3,iat),runObj%atoms%alat3)
-!!!              else if (runObj%atoms%geocode == 'S') then
-!!!                 rxyz(1,iat)=modulo(rxyz(1,iat)+beta*ff(1,iat),runObj%atoms%alat1)
-!!!                 rxyz(2,iat)=rxyz(2,iat)+beta*ff(2,iat)
-!!!                 rxyz(3,iat)=modulo(rxyz(3,iat)+beta*ff(3,iat),runObj%atoms%alat3)
-!!!              else
-!!!                 rxyz(1,iat)=rxyz(1,iat)+beta*ff(1,iat)
-!!!                 rxyz(2,iat)=rxyz(2,iat)+beta*ff(2,iat)
-!!!                 rxyz(3,iat)=rxyz(3,iat)+beta*ff(3,iat)
-!!!              end if
-!!!           end if
-!!!        end do
      end do loop_sd
      exit redo_sd
   end do redo_sd
@@ -716,13 +692,13 @@ subroutine vstepsd(runObj,outs,nproc,iproc,ncount_bigdft)
      if (fmax < 3.d-1) call updatefluctsum(outs%fnoise,fluct) !n(m)
 !     if (iproc==0) write(16,'(1x,a,3(1x,1pe14.5))') 'fnrm2,fluct*frac_fluct,fluct',fnrm,fluct*runObj%inputs%frac_fluct,fluct
      call convcheck(fmax,fluct*runObj%inputs%frac_fluct, runObj%inputs%forcemax,check) !n(m)
+     call mpibarrier()
      if (check > 5) exit loop_ntsd
      if (ncount_bigdft >= runObj%inputs%ncount_cluster_x) then 
         if (iproc==0)  write(16,*) 'VSSD exited before the geometry optimization converged because more than ',& 
              runObj%inputs%ncount_cluster_x,' wavefunction optimizations were required'
         exit loop_ntsd
      endif
-
 
      if (outs%energy > outsold%energy) then
         !n(c) reset=.true.
@@ -799,7 +775,6 @@ subroutine vstepsd(runObj,outs,nproc,iproc,ncount_bigdft)
      call MPI_BCAST(tt,1,MPI_DOUBLE_PRECISION,0,bigdft_mpi%mpi_comm,i_stat)
      if(tt<0) exit loop_ntsd
 
-
   enddo loop_ntsd
 
   if (iproc == 0.and.parmin%verbosity > 0) & 
@@ -839,7 +814,6 @@ subroutine vstepsd(runObj,outs,nproc,iproc,ncount_bigdft)
 !!$          runObj%atoms,trim(comment),&
 !!$          forces=outs%fxyz)
   endif
-
 
   call f_free(posold)
   call deallocate_state_properties(outsold)

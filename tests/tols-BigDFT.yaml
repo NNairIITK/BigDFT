@@ -39,8 +39,10 @@ Keys to ignore:
  - Size of the global database
  - Total No. of Taskgroups created
  - sparse matmul load balancing naive / optimized
- - preconditioning load balancing min/max before
- - preconditioning load balancing min/max after
+ - preconditioning load balancing before
+ - preconditioning load balancing after
+ - preconditioning load balancing min/max before # to be deleted as soon as refs are updated
+ - preconditioning load balancing min/max after # to be deleted as soon as refs are updated
  - task with max load
  - nonlocal forces; maximal number of atoms per iteration, number of iterations
  - number of taskgroups
@@ -122,6 +124,7 @@ SiBulk:
  Optimization of virtual orbitals: 7.0101e-8
  e_occupied: 1.42e-11
  Orbitals: 1.42e-11	
+ GPa: 7.0e-10
  # Necessary for GPU runs, to be updated...
  Keys to ignore:
   - Residues per orbital
@@ -317,6 +320,7 @@ NLCC: &NLCCs
  EKS: 5.9e-11
  Total electronic charge: 1.2e-11
  norm(P): 1.0e-10
+ GPa: 3.0e-11
 
 NLCC: &NLCCsnew
  EH: 5.1e-10
@@ -334,6 +338,7 @@ NLCC: &NLCCsnew
  PV (Ha): 5.9e-11
  Exc(rhoc): 3.8e-9
  norm(P): 1.0e-10
+ GPa: 3.0e-11
 
 #deepcopy of the above defined cases
 NLCC_free-O2: *NLCCs
@@ -546,9 +551,9 @@ molecule_foe:
  energy: 6.9e-10
  Omega: 8.6e-9
  Total charge: 2.5e-10
- eF: 3.0e-9
+ eF: 3.5e-9
  guess for new ef: 3.0e-9
- D eF: 3.0e-9
+ D eF: 4.1e-9
  Tr(K): 1.1e-07
  D Tr: 1.1e-7
  tr(KS) before purification: 5.1e-10
@@ -1078,42 +1083,67 @@ test-bigdft-tool:
  positions: 5.1e-8
 
 geoptconstrained_BFGS:
+ Ekin: 1.7e-9
+ EXC: 2.9e-10
+ Epot: 9.0e-9
+ EH: 2.1e-9
+ Enl: 9.1e-11
+ EvXC: 3.8e-10
  eF: 2.8e-8
  guess for new ef: 2.8e-8
- Epot: 1.1e-10
- EH: 1.1e-10
  D eF: 2.0e-8
  charge diff: 1.1e-10
  D Tr: 3.1e-11
  D: 1.1e-10
  Positions: 1.1e-9
+ Atomic Forces (Ha/Bohr): 3.4e-9
+ Average noise forces: 2.0e-9
+ Raw forces norm (Ha/Bohr): 8.5e-10
+ Clean forces norm (Ha/Bohr): 7.8e-10
+ ebs_check: 7.0e-10
+ ebs: 7.0e-10
+ Ion-Ion interaction energy: 2.2e-9
+ Positions: 1.1e-8
+ Omega: 1.6e-9
+ energy: 1.3e-11
 
 geoptconstrained_SDCG:
  eF: 8.7e-8
  guess for new ef: 8.7e-8
  D eF: 1.0e-7
- EH: 1.1e-10
+ EH: 2.1e-10
  Epot: 1.1e-10
+ Ekin: 2.1e-10
+ EXC: 3.1e-11
+ EvXC: 4.1e-11
  charge diff: 7.2e-11
  D Tr: 1.1e-9
- Omega: 1.2e-11
+ Omega: 1.7e-10
  D: 1.1e-10
  tr(KS) before purification: 1.2e-11
+ Clean forces norm (Ha/Bohr): 2.1e-9
+ Atomic Forces (Ha/Bohr): 3.4e-9
+ Average noise forces: 2.0e-9
+ Raw forces norm (Ha/Bohr): 6.9e-11
+ ebs_check: 7.8e-11
+ ebs: 7.8e-11
+ Ion-Ion interaction energy: 2.3e-10
+ Atomic structure: 3.1e-9
 
 O2spin_diag:
- Atomic Forces (Ha/Bohr): 2.2e-7
- Average noise forces: 7.7e-8
- Clean forces norm (Ha/Bohr): 8.0e-7
- Raw forces norm (Ha/Bohr): 7.8e-7
+ Atomic Forces (Ha/Bohr): 2.6e-7
+ Average noise forces: 8.6e-8
+ Clean forces norm (Ha/Bohr): 9.0e-7
+ Raw forces norm (Ha/Bohr): 9.0e-7
  Orbitals: 2.7e-7
- EH: 1.7e-6
+ EH: 1.8e-6
  EXC: 3.4e-7
- Ekin: 1.9e-6
+ Ekin: 2.1e-6
  Enl: 1.4e-6
- Epot: 2.3e-6
+ Epot: 2.5e-6
  EvXC: 1.4e-6
- Omega: 2.4e-7
- energy: 6.7e-8
+ Omega: 2.5e-7
+ energy: 7.3e-8
  multiplicator for the confinement: 1.4e-6
  D: 1.1e-9
  kappa: 1.1e-4
@@ -1202,8 +1232,8 @@ verysparse:
   - found warnings
 
 expfoegeopt:
- guess for new ef: 2.1e-8
- eF: 2.1e-8
+ guess for new ef: 2.5e-8
+ eF: 2.5e-8
  D eF: 2.3e-8
  charge diff: 2.3e-8
  ebs: 2.3e-8
@@ -1218,14 +1248,22 @@ expfoegeopt:
  Omega: 2.4e-11
  energy: 2.2e-11
  epred: 1.9e-11
- trace(KS): 2.7e-11
- Total charge: 2.1e-11
+ trace(KS): 3.3e-11
+ Total charge: 3.1e-11
 
 log_model:
  System pseudo energy (Ha): 3.6e-11
  Keys to ignore:
   - Reference Paper
 
+FF_LENOSKY-vssd:
+  Keys to ignore:
+  - WARNINGS
+
+FF_LENOSKY-sdcg:
+  Keys to ignore:
+  - WARNINGS
+  
 periodic_silicon:
  Epot: 3.0e-10
  Enl: 1.1e-9
@@ -1238,7 +1276,8 @@ periodic_silicon:
  energy: 2.9e-11
  charge diff: 3.8e-10
  PV (Ha): 3.0e-11
- Total ionic charge: 1.3e-11
+ Total ionic charge: 1.4e-11
+ Pressure: 1.1e-10
 
 periodic_wateredge:
  Epot: 1.1e-9
@@ -1247,12 +1286,13 @@ periodic_wateredge:
  EH: 1.0e-9
  EXC: 1.1e-10
  EvXC: 1.1e-10
- Ekin: 1.0e-9
+ Ekin: 1.1e-9
  energy: 1.6e-10
  Total charge: 1.1e-10
  PV (Ha): 2.7e-9
  Energy (Hartree): 7.1e-11
  Total ionic charge: 2.7e-11
+ Pressure: 7.4e-10
 
 periodic_water:
  EH: 3.1e-9
@@ -1265,7 +1305,7 @@ periodic_water:
  Omega: 2.0e-10
  ebs_check: 2.5e-9
  ebs: 2.5e-9
- eF: 8.8e-9
+ eF: 8.9e-9
  D eF: 1.0e-8
  energy: 1.4e-10
  guess for new ef: 9.1e-9
@@ -1276,13 +1316,14 @@ periodic_water:
  D Tr: 2.1e-7
  PV (Ha): 5.3e-10
  Total ionic charge: 6.0e-11
+ Pressure: 5.6e-10
 
 surface_boronnitride:
  Enl: 1.0e-9
  Epot: 1.0e-9
- Omega: 6.0e-11
- energy: 2.2e-11
- Energy (Hartree): 2.2e-11
+ Omega: 8.8e-11
+ energy: 2.6e-11
+ Energy (Hartree): 2.7e-11
  Total charge: 1.0e-10
  Total ionic charge: 2.4e-11
  Keys to ignore:

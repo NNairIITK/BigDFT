@@ -40,6 +40,7 @@ subroutine calculate_forces(iproc,nproc,psolver_groupsize,Glr,atoms,orbs,nlpsp,r
 
   !real(gp), dimension(3,atoms%astruct%nat) :: fxyz_tmp
 
+  call f_routine(id='calculate_forces')
 
   call f_zero(strten)
   call f_zero(strtens)
@@ -113,7 +114,8 @@ subroutine calculate_forces(iproc,nproc,psolver_groupsize,Glr,atoms,orbs,nlpsp,r
      !!end do
   else
      if (iproc==0) then
-        call vcopy(3*atoms%astruct%nat,fion(1,1),1,fxyz(1,1),1)
+        !call vcopy(3*atoms%astruct%nat,fion(1,1),1,fxyz(1,1),1)
+        call f_memcpy(src=fion,dest=fxyz)
      else
         call f_zero(fxyz)
      end if
@@ -123,48 +125,38 @@ subroutine calculate_forces(iproc,nproc,psolver_groupsize,Glr,atoms,orbs,nlpsp,r
   if (nproc > 1) then
      !TD: fxyz(1,1) not used in case of no atoms
      !if (atoms%astruct%nat>0) then
-     call mpiallred(fxyz,MPI_SUM,bigdft_mpi%mpi_comm)
+     call mpiallred(sendbuf=fxyz,op=MPI_SUM,comm=bigdft_mpi%mpi_comm)
      !end if
      if (atoms%astruct%geocode == 'P') &
-         call mpiallred(strtens(1,1),6*3,MPI_SUM,bigdft_mpi%mpi_comm) !do not reduce erfstr
-     call mpiallred(charge,1,MPI_SUM,bigdft_mpi%mpi_comm)
+         call mpiallred(strtens(1,1),6*3,MPI_SUM,comm=bigdft_mpi%mpi_comm) !do not reduce erfstr
+     call mpiallred(charge,1,MPI_SUM,comm=bigdft_mpi%mpi_comm)
   end if
 
   !!do iat=1,atoms%astruct%nat
   !!    write(4400+iproc,'(a,i8,3es15.6)') 'iat, fxyz(:,iat)', iat, fxyz(:,iat)
   !!end do
 
-  ! @ NEW: POSSIBLE CONSTRAINTS IN INTERNAL COORDINATES ############
-  if (atoms%astruct%inputfile_format=='int') then
-      if (iproc==0) call yaml_map('cleaning using internal coordinates','Yes')
-      !if (bigdft_mpi%iproc==0) call yaml_map('force start',fxyz)
-      !if (bigdft_mpi%iproc==0) call yaml_map('BEFORE: MAX COMPONENT',maxval(fxyz))
-      call internal_forces(atoms%astruct%nat, rxyz, atoms%astruct%ixyz_int, atoms%astruct%ifrztyp, fxyz)
-      !if (bigdft_mpi%iproc==0) call yaml_map('AFTER: MAX COMPONENT',maxval(fxyz))
-  end if
-  ! @ ##############################################################
-
+!!$  ! @ NEW: POSSIBLE CONSTRAINTS IN INTERNAL COORDINATES ############
+!!$  if (atoms%astruct%inputfile_format=='int') then
+!!$      if (iproc==0) call yaml_map('Cleaning using internal coordinates','Yes')
+!!$      !if (bigdft_mpi%iproc==0) call yaml_map('force start',fxyz)
+!!$      !if (bigdft_mpi%iproc==0) call yaml_map('BEFORE: MAX COMPONENT',maxval(fxyz))
+!!$      call internal_forces(atoms%astruct%nat, rxyz, atoms%astruct%ixyz_int, atoms%astruct%ifrztyp, fxyz)
+!!$      !if (bigdft_mpi%iproc==0) call yaml_map('AFTER: MAX COMPONENT',maxval(fxyz))
+!!$  end if
+!!$  ! @ ##############################################################
 
   !clean the center mass shift and the torque in isolated directions
-  call clean_forces(iproc,atoms,rxyz,fxyz,fnoise)
+  !no need to do it twice
+  !call clean_forces(iproc,atoms,rxyz,fxyz,fnoise)
   !!do iat=1,atoms%astruct%nat
   !!    write(4500+iproc,'(a,i8,3es15.6)') 'iat, fxyz(:,iat)', iat, fxyz(:,iat)
   !!end do
 
+!!$  ! Apply symmetries when needed
+!!$  if (atoms%astruct%sym%symObj >= 0) call symmetrise_forces(fxyz,atoms%astruct)
 
-  ! Apply symmetries when needed
-  if (atoms%astruct%sym%symObj >= 0) call symmetrise_forces(fxyz,atoms)
-
-  ! Check forces consistency.
-  if (bigdft_mpi%nproc >1) then
-     call mpibcast(fxyz,comm=bigdft_mpi%mpi_comm,maxdiff=maxdiff)
-     !maxdiff=mpimaxdiff(fxyz,comm=bigdft_mpi%mpi_comm)
-     !call check_array_consistency(maxdiff, nproc, fxyz, bigdft_mpi%mpi_comm)
-     if (iproc==0 .and. maxdiff > epsilon(1.0_gp)) &
-          call yaml_warning('Output forces were not identical! (broadcasted) '//&
-          '(difference:'//trim(yaml_toa(maxdiff))//' )')
-  end if
-  if (iproc == 0) call write_forces(atoms,fxyz)
+  !if (iproc == 0) call write_forces(atoms%astruct,fxyz)
 
   !volume element for local stress
   strtens(:,1)=strtens(:,1)/real(Glr%d%n1i*Glr%d%n2i*Glr%d%n3i,dp)
@@ -204,16 +196,9 @@ subroutine calculate_forces(iproc,nproc,psolver_groupsize,Glr,atoms,orbs,nlpsp,r
      !!    if (iproc==0) call yaml_map('Stress Tensor calculated',.false.)
      !!end if
   end if
-!!$  if (iproc == 0) then
-!!$     sumx=0.d0 ; sumy=0.d0 ; sumz=0.d0
-!!$     fumx=0.d0 ; fumy=0.d0 ; fumz=0.d0
-!!$     do iat=1,atoms%astruct%nat
-!!$        sumx=sumx+fxyz(1,iat) ; sumy=sumy+fxyz(2,iat) ; sumz=sumz+fxyz(3,iat)
-!!$        fumx=fumx+fion(1,iat) ; fumy=fumy+fion(2,iat) ; fumz=fumz+fion(3,iat)
-!!$     enddo
-!!$     write(77,'(a30,3(1x,e10.3))') 'translat. force total pot ',sumx,sumy,sumz
-!!$     write(77,'(a30,3(1x,e10.3))') 'translat. force ionic pot ',fumx,fumy,fumz
-!!$  endif
+
+  call f_release_routine()
+
 end subroutine calculate_forces
 
 
@@ -3685,18 +3670,18 @@ end subroutine symm_stress
 
 
 !> Symmetrise the atomic forces (needed with special k points)
-subroutine symmetrise_forces(fxyz, at)
+subroutine symmetrise_forces(fxyz, astruct)
   use defs_basis
   use m_ab6_symmetry
   use module_defs, only: gp
-  use module_types, only: atoms_data
+  use module_atoms, only: atomic_structure
   use yaml_output
 
   implicit none
 
   !Arguments
-  type(atoms_data), intent(in) :: at
-  real(gp), intent(inout) :: fxyz(3, at%astruct%nat)
+  type(atomic_structure), intent(in) :: astruct
+  real(gp), intent(inout) :: fxyz(3, astruct%nat)
   !Local variables
   integer :: ia, mu, isym, errno, ind, nsym
   integer :: indsym(4, AB6_MAX_SYMMETRIES)
@@ -3708,7 +3693,7 @@ subroutine symmetrise_forces(fxyz, at)
   integer, pointer  :: symAfm(:)
   real(gp), pointer :: transNon(:,:)
 
-  call symmetry_get_matrices_p(at%astruct%sym%symObj, nsym, sym, transNon, symAfm, errno)
+  call symmetry_get_matrices_p(astruct%sym%symObj, nsym, sym, transNon, symAfm, errno)
   if (errno /= AB7_NO_ERROR) stop
   if (nsym < 2) return
  !if (iproc == 0) write(*,"(1x,A,I0,A)") "Symmetrise forces with ", nsym, " symmetries."
@@ -3720,18 +3705,18 @@ subroutine symmetrise_forces(fxyz, at)
      call mati3inv(sym(:,:,isym), symrec(:,:,isym))
   end do
 
-  alat = (/ at%astruct%cell_dim(1), at%astruct%cell_dim(2), at%astruct%cell_dim(3) /)
-  if (at%astruct%geocode == 'S') alat(2) = real(1, gp)
+  alat =astruct%cell_dim
+  if (astruct%geocode == 'S') alat(2) = real(1, gp)
 
   !Save fxyz into dedt.
-  allocate(dedt(3,at%astruct%nat))
-  do ia = 1, at%astruct%nat
+  allocate(dedt(3,astruct%nat))
+  do ia = 1, astruct%nat
      dedt(:, ia) = fxyz(:, ia) / alat
   end do
 
   ! actually conduct symmetrization
-  do ia = 1, at%astruct%nat
-     call symmetry_get_equivalent_atom(at%astruct%sym%symObj, indsym, ia, errno)
+  do ia = 1, astruct%nat
+     call symmetry_get_equivalent_atom(astruct%sym%symObj, indsym, ia, errno)
      if (errno /= AB7_NO_ERROR) stop
      do mu = 1, 3
         summ = real(0, gp)
@@ -3750,7 +3735,7 @@ subroutine symmetrise_forces(fxyz, at)
   deallocate(symrec)
   
   ! fxyz is in reduced coordinates, we expand here.
-  do ia = 1, at%astruct%nat
+  do ia = 1, astruct%nat
      fxyz(:, ia) = fxyz(:, ia) * alat
   end do
 end subroutine symmetrise_forces
@@ -3837,6 +3822,7 @@ subroutine local_hamiltonian_stress_linear(iproc, nproc, orbs, lzd, hx, hy, hz, 
   use module_interfaces
   !use module_xc
   use sparsematrix_base, only: sparse_matrix, matrices
+  use sparsematrix, only: trace_sparse
   use communications_base, only: TRANSPOSE_FULL
   use communications, only: transpose_localized
   use transposed_operations, only: calculate_overlap_transposed
@@ -3859,7 +3845,7 @@ subroutine local_hamiltonian_stress_linear(iproc, nproc, orbs, lzd, hx, hy, hz, 
   character(len=*), parameter :: subname='local_hamiltonian_stress'
   integer :: iorb, npot, i_f, iseg_f, iiorb, ilr, ist, idir, iidim
   !real(wp) :: kinstr(6)
-  real(gp) :: ekin,kx,ky,kz,etest, tt, trace_sparse,ekino
+  real(gp) :: ekin,kx,ky,kz,etest, tt, ekino
   type(workarr_locham) :: w
   real(wp), dimension(:,:), allocatable :: psir
   real(kind=8),dimension(0:3) :: scal=1.d0
@@ -4450,7 +4436,7 @@ subroutine nonlocal_forces_linear(iproc,nproc,npsidim_orbs,lr,hx,hy,hz,at,rxyz,&
         end if norbp_if
 
         !if (nproc>1) then
-        !    call mpiallred(iat_startend(1,0), 2*nproc, mpi_sum, bigdft_mpi%mpi_comm)
+        !   call mpiallred(iat_startend, mpi_sum, bigdft_mpi%mpi_comm)
         !end if
 
         call f_release_routine()
@@ -4539,7 +4525,7 @@ subroutine nonlocal_forces_linear(iproc,nproc,npsidim_orbs,lr,hx,hy,hz,at,rxyz,&
                                                nlpsp%pspd(iiat)%plr%wfd%keyglob(1,jseg_c),&
                                                nlpsp%proj(istart_c),&
                                                scpr)
-                                          if (scpr/=0.d0) then
+                                          !if (scpr/=0.d0) then
                                               if (increase) then
                                                   is_supfun_per_atom_tmp(iat) = is_supfun_per_atom_tmp(iat)+1
                                                   increase = .false.
@@ -4547,9 +4533,9 @@ subroutine nonlocal_forces_linear(iproc,nproc,npsidim_orbs,lr,hx,hy,hz,at,rxyz,&
                                               iii = is_supfun_per_atom_tmp(iat)
                                               scalprod_sendbuf_new(1,idir,m,i,l,iii) = scpr
                                               scalprod_send_lookup(iii) = iiorb
-                                          else
-                                              stop 'scalprod should not be zero'
-                                          end if
+                                          !else
+                                          !    stop 'scalprod should not be zero'
+                                          !end if
                                           istart_c=istart_c+(mbvctr_c+7*mbvctr_f)*ncplx
                                        end do
                                     end if
@@ -4774,7 +4760,7 @@ subroutine nonlocal_forces_linear(iproc,nproc,npsidim_orbs,lr,hx,hy,hz,at,rxyz,&
 
         ! Now the value of supfun_per_atom can be summed up, since each task has all scalprods for a given atom.
         ! In principle this is only necessary for the atoms handled by a given task, but do it for the moment for all...
-        call mpiallred(supfun_per_atom, mpi_sum, bigdft_mpi%mpi_comm)
+        call mpiallred(supfun_per_atom, mpi_sum, comm=bigdft_mpi%mpi_comm)
         ! The starting points have to be recalculated.
         is_supfun_per_atom(1) = 0
         do jat=2,at%astruct%nat
@@ -4856,6 +4842,7 @@ subroutine nonlocal_forces_linear(iproc,nproc,npsidim_orbs,lr,hx,hy,hz,at,rxyz,&
                call orbs_in_kpt(ikpt,orbs,isorb,ieorb,nspinor)
     
                call ncplx_kpt(ikpt,orbs,ncplx)
+               strten_loc(:) = 0.d0
 
                ! Do the OMP loop over supfun_per_atom, as nat_par(iproc) is typically rather small
     
@@ -4865,7 +4852,6 @@ subroutine nonlocal_forces_linear(iproc,nproc,npsidim_orbs,lr,hx,hy,hz,at,rxyz,&
                !$omp shared(offdiagarr, strten, strten_loc, vol, Enl, nspinor,ncplx) &
                !$omp private(ispin, iat, iiat, ityp, iorb, ii, iiorb, jorb, jj, jjorb, ind, sab, ispinor) &
                !$omp private(l, i, m, icplx, sp0, idir, spi, strc, j, hij, sp0i, sp0j, spj, iispin, jjspin)
-               strten_loc(:) = 0.d0
                spin_loop2: do ispin=1,denskern%nspin
 
 
@@ -5013,10 +4999,6 @@ subroutine nonlocal_forces_linear(iproc,nproc,npsidim_orbs,lr,hx,hy,hz,at,rxyz,&
       end subroutine calculate_forces
 
 END SUBROUTINE nonlocal_forces_linear
-
-
-
-
 
 subroutine internal_forces(nat, rxyz, ixyz_int, ifrozen, fxyz)
   use module_base
@@ -5178,7 +5160,13 @@ subroutine internal_forces(nat, rxyz, ixyz_int, ifrozen, fxyz)
 
 end subroutine internal_forces
 
-
+!> wrapper for the routine below
+subroutine constraints_internal(astruct)
+  use module_atoms, only: atomic_structure
+  implicit none
+  type(atomic_structure), intent(inout) :: astruct
+  call keep_internal_coordinates_constraints(astruct%nat, astruct%rxyz_int, astruct%ixyz_int, astruct%ifrztyp, astruct%rxyz)
+end subroutine constraints_internal
 
 subroutine keep_internal_coordinates_constraints(nat, rxyz_int, ixyz_int, ifrozen, rxyz)
   use module_base

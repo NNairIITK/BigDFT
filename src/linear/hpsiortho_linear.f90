@@ -478,7 +478,7 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
       reducearr(1) = fnrmOvrlp_tot
       reducearr(2) = fnrm%sendbuf(1)
       if (nproc>1) then
-          call mpiallred(reducearr(1), 2, mpi_sum, bigdft_mpi%mpi_comm)
+          call mpiallred(reducearr, mpi_sum, comm=bigdft_mpi%mpi_comm)
       end if
       !tt2=fnrmOvrlp_tot/sqrt(fnrm*fnrmOld_tot)
       tt2=reducearr(1)/sqrt(reducearr(2)*fnrm_old)
@@ -501,8 +501,8 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
   tt=sum(alpha)
   alpha_max=maxval(alpha)
   if (nproc > 1) then
-     call mpiallred(tt, 1, mpi_sum, bigdft_mpi%mpi_comm)
-     call mpiallred(alpha_max, 1, mpi_max, bigdft_mpi%mpi_comm)
+     call mpiallred(tt, 1, mpi_sum, comm=bigdft_mpi%mpi_comm)
+     call mpiallred(alpha_max, 1, mpi_max, comm=bigdft_mpi%mpi_comm)
   end if
   alpha_mean=tt/dble(tmb%orbs%norb)
 
@@ -657,8 +657,8 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
     tt=sum(alpha)
     alpha_max=maxval(alpha)
     if (nproc > 1) then
-       call mpiallred(tt, 1, mpi_sum, bigdft_mpi%mpi_comm)
-       call mpiallred(alpha_max, 1, mpi_max, bigdft_mpi%mpi_comm)
+       call mpiallred(tt, 1, mpi_sum, comm=bigdft_mpi%mpi_comm)
+       call mpiallred(alpha_max, 1, mpi_max, comm=bigdft_mpi%mpi_comm)
     end if
     call f_release_routine()
   end subroutine communicate_alpha
@@ -753,7 +753,7 @@ subroutine calculate_residue_ks(iproc, nproc, num_extra, ksorbs, tmb, hpsit_c, h
   call deallocate_matrices(grad_ovrlp_)
 
   if (nproc>1) then
-      call mpiallred(grad_coeff, mpi_sum, bigdft_mpi%mpi_comm)
+      call mpiallred(grad_coeff, mpi_sum, comm=bigdft_mpi%mpi_comm)
   end if
 
   ! now calculate sqrt(<g_i|g_i>) and mean value

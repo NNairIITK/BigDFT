@@ -36,6 +36,7 @@ module sparsematrix
   public :: write_sparsematrix_CCS
   public :: transform_sparsity_pattern
   public :: matrix_matrix_mult_wrapper
+  public :: trace_sparse
 
 
   interface compress_matrix_distributed_wrapper
@@ -51,7 +52,7 @@ module sparsematrix
       
       ! Calling arguments
       integer, intent(in) :: iproc
-      type(sparse_matrix),intent(inout) :: sparsemat
+      type(sparse_matrix),intent(in) :: sparsemat
       real(kind=8),dimension(sparsemat%nfvctr,sparsemat%nfvctr,sparsemat%nspin),target,intent(in) :: inmat
       real(kind=8),dimension(sparsemat%nvctr*sparsemat%nspin),target,intent(out) :: outmat
     
@@ -1056,64 +1057,61 @@ module sparsematrix
      integer :: i,jorb,jjorb,m,mp1,ist,iend, icontiguous, j, iline, icolumn, nblock, iblock, ncount
      integer :: iorb, ii, ilen, jjorb0, jjorb1, jjorb2, jjorb3, jjorb4, jjorb5, jjorb6, iout
      real(kind=8) :: tt0, tt1, tt2, tt3, tt4, tt5, tt6, tt7, ddot
+     integer,parameter :: MATMUL_NEW = 101
+     integer,parameter :: MATMUL_OLD = 102
+     integer,parameter :: matmul_version = MATMUL_NEW!OLD!NEW
    
      call f_routine(id='sparsemm')
      call timing(bigdft_mpi%iproc, 'sparse_matmul ', 'IR')
 
-     ! @NEW ####################################
 
-     !$omp parallel default(private) shared(smat, a_seq, b, c)
-     !$omp do schedule(guided)
-     do iout=1,smat%smmm%nout
-         i=smat%smmm%onedimindices_new(1,iout)
-         ilen=smat%smmm%onedimindices_new(2,iout)
-         ii=smat%smmm%onedimindices_new(3,iout)
-         nblock=smat%smmm%onedimindices_new(4,iout)
-         tt0=0.d0
+     if (matmul_version==MATMUL_NEW) then
 
-         !write(*,*) 'iout, nblock', iout, nblock
-         do iblock=1,nblock
-             jorb = smat%smmm%consecutive_lookup(1,iblock,iout)
-             jjorb = smat%smmm%consecutive_lookup(2,iblock,iout)
-             ncount = smat%smmm%consecutive_lookup(3,iblock,iout)
-             !write(*,'(a,4i9)') 'iblock, ncount, jjorb, jorb', iblock, ncount, jjorb, jorb
-             tt0 = tt0 + ddot(ncount, b(jjorb), 1, a_seq(jorb), 1)
-         end do
+         !$omp parallel default(private) shared(smat, a_seq, b, c)
+         !$omp do schedule(guided)
+         do iout=1,smat%smmm%nout
+             i=smat%smmm%onedimindices_new(1,iout)
+             nblock=smat%smmm%onedimindices_new(4,iout)
+             tt0=0.d0
 
-         !iend=ii+ilen-1
+             do iblock=1,nblock
+                 jorb = smat%smmm%consecutive_lookup(1,iblock,iout)
+                 jjorb = smat%smmm%consecutive_lookup(2,iblock,iout)
+                 ncount = smat%smmm%consecutive_lookup(3,iblock,iout)
+                 tt0 = tt0 + ddot(ncount, b(jjorb), 1, a_seq(jorb), 1)
+             end do
 
-         !do jorb=ii,iend
-         !   jjorb=smat%smmm%ivectorindex_new(jorb)
-         !   tt0 = tt0 + b(jjorb)*a_seq(jorb)
-         !end do
+             c(i) = tt0
+         end do 
+         !$omp end do
+         !$omp end parallel
 
-         c(i) = tt0
-     end do 
-     !$omp end do
-     !$omp end parallel
+     else if (matmul_version==MATMUL_OLD) then
 
-     ! @END NEW ################################
+         !$omp parallel default(private) shared(smat, a_seq, b, c)
+         !$omp do
+         do iout=1,smat%smmm%nout
+             i=smat%smmm%onedimindices_new(1,iout)
+             ilen=smat%smmm%onedimindices_new(2,iout)
+             ii=smat%smmm%onedimindices_new(3,iout)
+             tt0=0.d0
 
+             iend=ii+ilen-1
 
-!!     !$omp parallel default(private) shared(smat, a_seq, b, c)
-!!     !$omp do
-!!     do iout=1,smat%smmm%nout
-!!         i=smat%smmm%onedimindices_new(1,iout)
-!!         ilen=smat%smmm%onedimindices_new(2,iout)
-!!         ii=smat%smmm%onedimindices_new(3,iout)
-!!         tt0=0.d0
-!!
-!!         iend=ii+ilen-1
-!!
-!!         do jorb=ii,iend
-!!            jjorb=smat%smmm%ivectorindex_new(jorb)
-!!            tt0 = tt0 + b(jjorb)*a_seq(jorb)
-!!         end do
-!!         !if (abs(c(i)-tt0)>1.d-15) write(*,'(a,3es24.16)') 'ERROR, vals', c(i), tt0, abs(c(i)-tt0)
-!!         c(i) = tt0
-!!     end do 
-!!     !$omp end do
-!!     !$omp end parallel
+             do jorb=ii,iend
+                jjorb=smat%smmm%ivectorindex_new(jorb)
+                tt0 = tt0 + b(jjorb)*a_seq(jorb)
+             end do
+             c(i) = tt0
+         end do 
+         !$omp end do
+         !$omp end parallel
+
+     else
+
+         stop 'wrong value of matmul_version'
+
+     end if
 
    
      call timing(bigdft_mpi%iproc, 'sparse_matmul ', 'RS')
@@ -1145,7 +1143,7 @@ module sparsematrix
      ! Calling arguments
      integer,intent(in) :: iproc, nproc
      type(sparse_matrix),intent(in) :: smat
-     real(kind=8),dimension(smat%nvctr*smat%nspin),intent(in) :: mat_tg !< matrix distributed over the taskgroups
+     real(kind=8),dimension(smat%nvctrp_tg*smat%nspin),intent(in) :: mat_tg !< matrix distributed over the taskgroups
      real(kind=8),dimension(smat%nvctr*smat%nspin),intent(out) :: mat_global !< global matrix gathered together
    
      ! Local variables
@@ -1161,7 +1159,7 @@ module sparsematrix
          !call to_zero(nproc, recvdspls(0))
          ncount = smat%smmm%istartend_mm_dj(2) - smat%smmm%istartend_mm_dj(1) + 1
          recvcounts(iproc) = ncount
-         call mpiallred(recvcounts(0), nproc, mpi_sum, bigdft_mpi%mpi_comm)
+         call mpiallred(recvcounts(0), nproc, mpi_sum, comm=bigdft_mpi%mpi_comm)
          recvdspls(0) = 0
          do jproc=1,nproc-1
              recvdspls(jproc) = recvdspls(jproc-1) + recvcounts(jproc-1)
@@ -1209,7 +1207,7 @@ module sparsematrix
          !call to_zero(nproc, recvdspls(0))
          ncount = smat%smmm%istartend_mm_dj(2) - smat%smmm%istartend_mm_dj(1) + 1
          recvcounts(iproc) = ncount
-         call mpiallred(recvcounts(0), nproc, mpi_sum, bigdft_mpi%mpi_comm)
+         call mpiallred(recvcounts(0), nproc, mpi_sum, comm=bigdft_mpi%mpi_comm)
          recvdspls(0) = 0
          do jproc=1,nproc-1
              recvdspls(jproc) = recvdspls(jproc-1) + recvcounts(jproc-1)
@@ -1683,5 +1681,76 @@ module sparsematrix
 
 
     end subroutine matrix_matrix_mult_wrapper
+
+
+    !< Calculates the trace of the matrix product amat*bmat.
+    !< WARNING: It is mandatory that the sparsity pattern of amat be contained
+    !< within the sparsity pattern of bmat!
+    function trace_sparse(iproc, nproc, orbs, asmat, bsmat, amat, bmat, ispin)
+      use module_base
+      use module_types
+      use sparsematrix_base, only: sparse_matrix, matrices
+      use sparsematrix_init, only: matrixindex_in_compressed
+      implicit none
+    
+      ! Calling arguments
+      integer,intent(in) :: iproc,  nproc, ispin
+      type(orbitals_data),intent(in) :: orbs
+      type(sparse_matrix),intent(in) :: asmat, bsmat
+      real(kind=8),dimension(asmat%nvctrp_tg),intent(in) :: amat
+      real(kind=8),dimension(bsmat%nvctrp_tg),intent(in) :: bmat
+    
+      ! Local variables
+      integer :: isegstart, isegend, iseg, ii, jorb, iiorb, jjorb, iilarge
+      integer :: ierr, iashift, ibshift, iel
+      real(kind=8) :: sumn, trace_sparse
+    
+    
+      call f_routine(id='trace_sparse')
+    
+      iashift = 0!(ispin-1)*asmat%nvctr
+      ibshift = 0!(ispin-1)*bsmat%nvctr
+    
+    
+      sumn=0.d0
+      !if (asmat%smmm%nfvctrp>0) then
+          !$omp parallel default(none) &
+          !$omp private(iseg, ii, jorb, iiorb, jjorb, iilarge, iel) &
+          !$omp shared(bsmat, asmat, amat, bmat, iashift, ibshift, sumn)
+          !$omp do reduction(+:sumn)
+          !do iseg=isegstart,isegend
+          do iseg=asmat%smmm%isseg,asmat%smmm%ieseg
+              iel = asmat%keyv(iseg) - 1
+              ii=iashift+asmat%keyv(iseg)-1
+              ! A segment is always on one line, therefore no double loop
+              do jorb=asmat%keyg(1,1,iseg),asmat%keyg(2,1,iseg)
+                  iel = iel + 1
+                  if (iel<asmat%smmm%isvctr_mm+1) cycle
+                  if (iel>asmat%smmm%isvctr_mm+asmat%smmm%nvctrp_mm) then
+                      !write(*,*) 'exit with iel',iel
+                      exit
+                  end if
+                  ii=ii+1
+                  iiorb = asmat%keyg(1,2,iseg)
+                  jjorb = jorb
+                  iilarge = ibshift + matrixindex_in_compressed(bsmat, iiorb, jjorb)
+                  !!write(*,'(a,4i8,3es16.8)') 'iproc, ii, iilarge, iend, vals, sumn', &
+                  !!    iproc, ii, iilarge, asmat%smmm%isvctr_mm+asmat%smmm%nvctrp_mm, amat(ii-asmat%isvctrp_tg), bmat(iilarge-bsmat%isvctrp_tg), sumn
+                  sumn = sumn + amat(ii-asmat%isvctrp_tg)*bmat(iilarge-bsmat%isvctrp_tg)
+              end do  
+          end do
+          !$omp end do
+          !$omp end parallel
+      !end if
+    
+      if (nproc > 1) then
+          call mpiallred(sumn, 1, mpi_sum, comm=bigdft_mpi%mpi_comm)
+      end if
+    
+      trace_sparse = sumn
+    
+      call f_release_routine()
+    
+    end function trace_sparse
 
 end module sparsematrix

@@ -389,6 +389,7 @@ subroutine createProjectorsArrays(lr,rxyz,at,orbs,&
     end subroutine nullify_structure
 
     subroutine allocate_arrays()
+      use locregs, only: allocate_wfd
       implicit none
 
       call f_routine(id='allocate_arrays')
@@ -1283,13 +1284,13 @@ subroutine input_memory_linear(iproc, nproc, at, KSwfn, tmb, tmb_old, denspot, i
            tmb%orbs, tmb%psi, tmb%collcom_sr)
       !tmb%linmat%kernel_%matrix_compr = tmb%linmat%denskern_large%matrix_compr
 
-      tmparr = sparsematrix_malloc(tmb%linmat%l,iaction=SPARSE_FULL,id='tmparr')
-      call vcopy(tmb%linmat%l%nvctr, tmb%linmat%kernel_%matrix_compr(1), 1, tmparr(1), 1)
+      tmparr = sparsematrix_malloc(tmb%linmat%l,iaction=SPARSE_TASKGROUP,id='tmparr')
+      call vcopy(tmb%linmat%l%nvctrp_tg, tmb%linmat%kernel_%matrix_compr(1), 1, tmparr(1), 1)
       !call gather_matrix_from_taskgroups_inplace(iproc, nproc, tmb%linmat%l, tmb%linmat%kernel_)
       call sumrho_for_TMBs(iproc, nproc, KSwfn%Lzd%hgrids(1), KSwfn%Lzd%hgrids(2), KSwfn%Lzd%hgrids(3), &
            tmb%collcom_sr, tmb%linmat%l, tmb%linmat%kernel_, denspot%dpbox%ndimrhopot, &
            denspot%rhov, rho_negative)
-      call vcopy(tmb%linmat%l%nvctr, tmparr(1), 1, tmb%linmat%kernel_%matrix_compr(1), 1)
+      call vcopy(tmb%linmat%l%nvctrp_tg, tmparr(1), 1, tmb%linmat%kernel_%matrix_compr(1), 1)
       call f_free(tmparr)
 
      if (rho_negative) then
@@ -1477,7 +1478,7 @@ subroutine input_wf_disk(iproc, nproc, input_wf_format, d, hx, hy, hz, &
        & orbs,d%n1,d%n2,d%n3,hx,hy,hz,atoms,rxyz_old,rxyz,wfd,psi)
 
   !reduce the value for all the eigenvectors
-  if (nproc > 1) call mpiallred(orbs%eval(1),orbs%norb*orbs%nkpts,MPI_SUM,bigdft_mpi%mpi_comm)
+  if (nproc > 1) call mpiallred(orbs%eval,MPI_SUM,comm=bigdft_mpi%mpi_comm)
 
   if (in%iscf > SCF_KIND_DIRECT_MINIMIZATION) then
      !recalculate orbitals occupation numbers
@@ -2089,7 +2090,7 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
   use gaussians, only: gaussian_basis
   use sparsematrix_base, only: sparse_matrix, &
                                sparsematrix_malloc, assignment(=), SPARSE_FULL, &
-                               sparsematrix_malloc_ptr, DENSE_FULL
+                               sparsematrix_malloc_ptr, DENSE_FULL, SPARSE_TASKGROUP
 use sparsematrix, only: uncompress_matrix2
   use communications_base, only: TRANSPOSE_FULL
   use communications, only: transpose_localized, untranspose_localized
@@ -2302,7 +2303,7 @@ use sparsematrix, only: uncompress_matrix2
         call timing(iproc,'restart_rsp   ','ON')
         call input_wf_memory_new(nproc, iproc, atoms, &
              rxyz_old, lzd_old%hgrids(1), lzd_old%hgrids(2), lzd_old%hgrids(3), &
-             & psi_old,lzd_old, &
+             psi_old,lzd_old, &
              rxyz,KSwfn%psi, KSwfn%orbs,KSwfn%lzd)
         call timing(iproc,'restart_rsp   ','OF')
      else
@@ -2595,13 +2596,13 @@ use sparsematrix, only: uncompress_matrix2
           tmb%orbs, tmb%psi, tmb%collcom_sr)
 
      !tmb%linmat%kernel_%matrix_compr = tmb%linmat%denskern_large%matrix_compr
-     tmparr = sparsematrix_malloc(tmb%linmat%l,iaction=SPARSE_FULL,id='tmparr')
-     call vcopy(tmb%linmat%l%nvctr, tmb%linmat%kernel_%matrix_compr(1), 1, tmparr(1), 1)
+     tmparr = sparsematrix_malloc(tmb%linmat%l,iaction=SPARSE_TASKGROUP,id='tmparr')
+     call vcopy(tmb%linmat%l%nvctrp_tg, tmb%linmat%kernel_%matrix_compr(1), 1, tmparr(1), 1)
      !call gather_matrix_from_taskgroups_inplace(iproc, nproc, tmb%linmat%l, tmb%linmat%kernel_)
      call sumrho_for_TMBs(iproc, nproc, KSwfn%Lzd%hgrids(1), KSwfn%Lzd%hgrids(2), KSwfn%Lzd%hgrids(3), &
           tmb%collcom_sr, tmb%linmat%l, tmb%linmat%kernel_, denspot%dpbox%ndimrhopot, &
           denspot%rhov, rho_negative)
-     call vcopy(tmb%linmat%l%nvctr, tmparr(1), 1, tmb%linmat%kernel_%matrix_compr(1), 1)
+     call vcopy(tmb%linmat%l%nvctrp_tg, tmparr(1), 1, tmb%linmat%kernel_%matrix_compr(1), 1)
      call f_free(tmparr)
      if (rho_negative) then
          if (iproc==0) call yaml_warning('Charge density contains negative points, need to increase FOE cutoff')
@@ -3042,15 +3043,26 @@ subroutine input_wf_memory_new(nproc, iproc, atoms, &
               expfct = ex(exp_val, exp_cutoff) 
 
               norm = expfct
-              recnormsqr = 1/expfct**2
+!!$              if (expfct > sqrt(huge(1.0_wp))) then
+!!$                 recnormsqr = 0.0_wp
+!!$              else if (expfct < sqrt(tiny(1.0_wp))) then
+!!$                 expfct=1.0_wp
+!!$                 recnormsqr = 1.0_wp
+!!$              else
+!!$                 recnormsqr = 1/expfct**2
+!!$              end if
 
-              s1_new = (rxyz(1,k) - rxyz_old(1,k))*expfct
-              s2_new = (rxyz(2,k) - rxyz_old(2,k))*expfct
-              s3_new = (rxyz(3,k) - rxyz_old(3,k))*expfct
+              !LG: seems that expfct is not needed in the variables below
+              !as it is multiplied by its inverse at the end of the day
+              !therefore it is metter to have it disappearing from the formulae
+              !as it might create floating point exceptions
+              s1_new = (rxyz(1,k) - rxyz_old(1,k))!*expfct
+              s2_new = (rxyz(2,k) - rxyz_old(2,k))!*expfct
+              s3_new = (rxyz(3,k) - rxyz_old(3,k))!*expfct
 
-              norm_1 =  expfct*((xz-rxyz(1,k))*radius)
-              norm_2 =  expfct*((yz-rxyz(2,k))*radius)
-              norm_3 =  expfct*((zz-rxyz(3,k))*radius)
+              norm_1 =  ((xz-rxyz(1,k))*radius)!expfct*
+              norm_2 =  ((yz-rxyz(2,k))*radius)!expfct*
+              norm_3 =  ((zz-rxyz(3,k))*radius)!expfct*
 
               s1d1 = s1_new*((xz-rxyz(1,k))*radius)
               s1d2 = s1_new*((yz-rxyz(2,k))*radius)
@@ -3064,21 +3076,39 @@ subroutine input_wf_memory_new(nproc, iproc, atoms, &
               s3d2 = s3_new*((yz-rxyz(2,k))*radius)
               s3d3 = s3_new*((zz-rxyz(3,k))*radius)
 
-              s1d1 =       (s1d1*expfct - s1_new*norm_1)*recnormsqr
-              s1d2 =       (s1d2*expfct - s1_new*norm_2)*recnormsqr
-              s1d3 =       (s1d3*expfct - s1_new*norm_3)*recnormsqr
-         
-              s2d1 =       (s2d1*expfct - s2_new*norm_1)*recnormsqr
-              s2d2 =       (s2d2*expfct - s2_new*norm_2)*recnormsqr
-              s2d3 =       (s2d3*expfct - s2_new*norm_3)*recnormsqr
-         
-              s3d1 =       (s3d1*expfct - s3_new*norm_1)*recnormsqr
-              s3d2 =       (s3d2*expfct - s3_new*norm_2)*recnormsqr
-              s3d3 =       (s3d3*expfct - s3_new*norm_3)*recnormsqr
+              s1d1 = (s1d1 - s1_new*norm_1)
+              s1d2 = (s1d2 - s1_new*norm_2)
+              s1d3 = (s1d3 - s1_new*norm_3)
+                     
+              s2d1 = (s2d1 - s2_new*norm_1)
+              s2d2 = (s2d2 - s2_new*norm_2)
+              s2d3 = (s2d3 - s2_new*norm_3)
+                     
+              s3d1 = (s3d1 - s3_new*norm_1)
+              s3d2 = (s3d2 - s3_new*norm_2)
+              s3d3 = (s3d3 - s3_new*norm_3)
+!!$              s1d1 = (s1d1*expfct - s1_new*norm_1)*recnormsqr
+!!$              s1d2 = (s1d2*expfct - s1_new*norm_2)*recnormsqr
+!!$              s1d3 = (s1d3*expfct - s1_new*norm_3)*recnormsqr
+!!$
+!!$              s2d1 = (s2d1*expfct - s2_new*norm_1)*recnormsqr
+!!$              s2d2 = (s2d2*expfct - s2_new*norm_2)*recnormsqr
+!!$              s2d3 = (s2d3*expfct - s2_new*norm_3)*recnormsqr
+!!$
+!!$              s3d1 = (s3d1*expfct - s3_new*norm_1)*recnormsqr
+!!$              s3d2 = (s3d2*expfct - s3_new*norm_2)*recnormsqr
+!!$              s3d3 = (s3d3*expfct - s3_new*norm_3)*recnormsqr
         
  
-              jacdet = s1d1*s2d2*s3d3 + s1d2*s2d3*s3d1 + s1d3*s2d1*s3d2 - s1d3*s2d2*s3d1-s1d2*s2d1*s3d3 - s1d1*s2d3*s3d2&
-                        &  + s1d1 + s2d2 + s3d3 +s1d1*s2d2+s3d3*s1d1+s3d3*s2d2 - s1d2*s2d1 - s3d2*s2d3 - s3d1*s1d3
+              !LG: is it a properly calculated determinant?
+              jacdet = s1d1*s2d2*s3d3 + s1d2*s2d3*s3d1 + s1d3*s2d1*s3d2&
+                   - s1d3*s2d2*s3d1-s1d2*s2d1*s3d3 - s1d1*s2d3*s3d2&
+                   + s1d1 + s2d2 + s3d3 +s1d1*s2d2+s3d3*s1d1+s3d3*s2d2 - s1d2*s2d1 - s3d2*s2d3 - s3d1*s1d3
+
+              !LG added expfct in the s1_new definitions
+              s1_new = s1_new*expfct
+              s2_new = s2_new*expfct
+              s3_new = s3_new*expfct
 
               shift(i1+iy+iz,1) = simple(s1_new) +  shift(i1+iy+iz,1)  
               shift(i1+iy+iz,2) = simple(s2_new) +  shift(i1+iy+iz,2)  
@@ -3092,7 +3122,7 @@ subroutine input_wf_memory_new(nproc, iproc, atoms, &
   end do
 
   if (nproc > 1) then
-      call mpiallred(shift(1,1),lzd%glr%d%n1i*lzd%glr%d%n2i*lzd%glr%d%n3i*5, MPI_SUM,bigdft_mpi%mpi_comm) 
+      call mpiallred(shift, MPI_SUM,comm=bigdft_mpi%mpi_comm) 
   end if
 
 !Interpolation

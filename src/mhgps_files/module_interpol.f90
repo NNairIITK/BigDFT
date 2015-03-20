@@ -155,7 +155,7 @@ subroutine lstpthpnt(runObj,mhgpsst,uinp,rxyzR,rxyzP,lambda,rxyz)
     !clean forces is just a precaution. In principle
     !the coressponding frozen coordinates should already be
     !identical in rxyzP and rxyzR
-    call clean_forces_base(runObj%atoms,drxyz)
+    call clean_forces_base(bigdft_get_astruct_ptr(runObj),drxyz)
 
     rxyz = rxyzR + lambda * drxyz
 
@@ -345,7 +345,7 @@ subroutine lst_penalty(runObj,rxyzR,rxyzP,rxyz,lambda,val,force)
     !$omp end do
     !$omp end parallel
 
-    call clean_forces_base(runObj%atoms,force)
+    call clean_forces_base(bigdft_get_astruct_ptr(runObj),force)
 end subroutine lst_penalty
 !=====================================================================
 subroutine fire(mhgpsst,uinp,runObj,rxyzR,rxyzP,lambda,rxyz,fxyz,epot)

@@ -777,7 +777,7 @@ subroutine diisstp(iproc,nproc,orbs,comms,diis)
      ispsidst=ispsidst+nvctrp*orbs%norb*orbs%nspinor*diis%idsx
   end do
   if (nproc > 1) then
-     call mpiallred(rds(1,1,1,1),ncplx*ngroup*(diis%idsx+1)*orbs%nkpts,MPI_SUM,bigdft_mpi%mpi_comm)
+     call mpiallred(rds,MPI_SUM,comm=bigdft_mpi%mpi_comm)
   endif
 
   ispsi=1
