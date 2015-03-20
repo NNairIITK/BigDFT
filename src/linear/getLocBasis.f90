@@ -24,11 +24,13 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
   use communications, only: transpose_localized, start_onesided_communication
   use sparsematrix_base, only: sparse_matrix, sparsematrix_malloc_ptr, sparsematrix_malloc, &
                                DENSE_FULL, DENSE_PARALLEL, DENSE_MATMUL, assignment(=), SPARSE_FULL
-  use sparsematrix, only: uncompress_matrix, uncompress_matrix_distributed, gather_matrix_from_taskgroups_inplace, &
+  use sparsematrix, only: uncompress_matrix, gather_matrix_from_taskgroups_inplace, &
                           extract_taskgroup_inplace, uncompress_matrix_distributed2, gather_matrix_from_taskgroups, &
                           extract_taskgroup, uncompress_matrix2, &
                           write_sparsematrix
   use transposed_operations, only: calculate_overlap_transposed
+  use parallel_linalg, only: dsygv_parallel
+  use matrix_operations, only: deviation_from_unity_parallel
   implicit none
 
   ! Calling arguments
@@ -68,7 +70,7 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
   logical :: update_kernel
   character(len=*),parameter :: subname='get_coeff'
   real(kind=gp) :: tmprtr, factor
-  real(kind=8) :: max_deviation, mean_deviation, KSres, max_deviation_p,  mean_deviation_p
+  real(kind=8) :: max_deviation, mean_deviation, KSres, max_deviation_p,  mean_deviation_p, maxdiff
 
   call f_routine(id='get_coeff')
 
@@ -265,12 +267,12 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
           ishifts = (ispin-1)*tmb%linmat%s%nvctrp_tg
           ishiftm = (ispin-1)*tmb%linmat%m%nvctrp_tg
           call f_zero(tmb%linmat%m%nfvctr**2, tmb%linmat%ham_%matrix(1,1,ispin))
-          tempmat = sparsematrix_malloc(tmb%linmat%m, iaction=DENSE_MATMUL, id='tempmat')
-          call uncompress_matrix_distributed2(iproc, tmb%linmat%m, DENSE_MATMUL, &
+          tempmat = sparsematrix_malloc(tmb%linmat%m, iaction=DENSE_PARALLEL, id='tempmat')
+          call uncompress_matrix_distributed2(iproc, tmb%linmat%m, DENSE_PARALLEL, &
                tmb%linmat%ham_%matrix_compr(ishiftm+1:ishiftm+tmb%linmat%m%nvctrp_tg), tempmat)
-          if (tmb%linmat%m%smmm%nfvctrp>0) then
-              call vcopy(tmb%linmat%m%nfvctr*tmb%linmat%m%smmm%nfvctrp, tempmat(1,1), 1, &
-                   tmb%linmat%ham_%matrix(1,tmb%linmat%m%smmm%isfvctr+1,ispin), 1)
+          if (tmb%linmat%m%nfvctrp>0) then
+              call vcopy(tmb%linmat%m%nfvctr*tmb%linmat%m%nfvctrp, tempmat(1,1), 1, &
+                   tmb%linmat%ham_%matrix(1,tmb%linmat%m%isfvctr+1,ispin), 1)
           end if
           call f_free(tempmat)
           if (nproc>1) then
@@ -279,12 +281,12 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
           end if
 
           call f_zero(tmb%linmat%s%nfvctr**2, tmb%linmat%ovrlp_%matrix(1,1,ispin))
-          tempmat = sparsematrix_malloc(tmb%linmat%s, iaction=DENSE_MATMUL, id='tempmat')
-          call uncompress_matrix_distributed2(iproc, tmb%linmat%s, DENSE_MATMUL, &
+          tempmat = sparsematrix_malloc(tmb%linmat%s, iaction=DENSE_PARALLEL, id='tempmat')
+          call uncompress_matrix_distributed2(iproc, tmb%linmat%s, DENSE_PARALLEL, &
                tmb%linmat%ovrlp_%matrix_compr(ishifts+1:), tempmat)
-          if (tmb%linmat%m%smmm%nfvctrp>0) then
-              call vcopy(tmb%linmat%s%nfvctr*tmb%linmat%s%smmm%nfvctrp, tempmat(1,1), 1, &
-                   tmb%linmat%ovrlp_%matrix(1,tmb%linmat%s%smmm%isfvctr+1,ispin), 1)
+          if (tmb%linmat%m%nfvctrp>0) then
+              call vcopy(tmb%linmat%s%nfvctr*tmb%linmat%s%nfvctrp, tempmat(1,1), 1, &
+                   tmb%linmat%ovrlp_%matrix(1,tmb%linmat%s%isfvctr+1,ispin), 1)
           end if
           call f_free(tempmat)
           if (nproc>1) then
@@ -332,6 +334,15 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
                    matrixElements(1,1,1), tmb%linmat%m%nfvctr, matrixElements(1,1,2), tmb%linmat%m%nfvctr, &
                    eval, info)
           end if
+
+          ! Broadcast the results (eigenvectors and eigenvalues) from task 0 to
+          ! all other tasks (in this way avoiding that different MPI tasks have different values)
+          if (iproc==0) call yaml_mapping_open('Cross-check among MPI tasks')
+          call mpibcast(matrixElements(:,:,1), comm=bigdft_mpi%mpi_comm, maxdiff=maxdiff)
+          if (iproc==0) call yaml_map('max diff of eigenvectors',maxdiff,fmt='(es8.2)')
+          call mpibcast(eval, comm=bigdft_mpi%mpi_comm, maxdiff=maxdiff)
+          if (iproc==0) call yaml_map('max diff of eigenvalues',maxdiff,fmt='(es8.2)')
+          if (iproc==0) call yaml_mapping_close()
           !if (iproc==0) write(*,'(a,3i6,100f9.2)') 'ispin, ishift+1, ishift+ii, evals', ispin, ishift+1, ishift+ii, tmb%orbs%eval(ishift+1:ishift+ii)
 
           ! copy all the eigenvalues
@@ -568,6 +579,7 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
   use module_fragments, only: system_fragment
   use sparsematrix,only: gather_matrix_from_taskgroups_inplace, extract_taskgroup_inplace
   use transposed_operations, only: calculate_overlap_transposed
+  use matrix_operations, only: overlapPowerGeneral
   !  use Poisson_Solver
   !use allocModule
   implicit none
@@ -954,7 +966,7 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
               energy_first=trH
           end if
           if (iproc==0) call yaml_map('rel D',(trH-energy_first)/energy_first,fmt='(es9.2)')
-          if ((trH-energy_first)/energy_first>early_stop .and. itout>0) then
+          if ((trH-energy_first)<0.d0 .and. abs((trH-energy_first)/energy_first)>early_stop .and. itout>0) then
               energy_diff=.true.
           end if
       end if
@@ -1298,7 +1310,7 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
   end do
 
   if (nproc > 1) then
-      call mpiallred(reducearr, mpi_sum, bigdft_mpi%mpi_comm)
+      call mpiallred(reducearr, mpi_sum, comm=bigdft_mpi%mpi_comm)
   end if
 
   reducearr(1)=reducearr(1)/dble(tmb%orbs%norb)
@@ -2063,8 +2075,8 @@ subroutine reorthonormalize_coeff(iproc, nproc, norb, blocksize_dsyev, blocksize
   use module_interfaces, except_this_one => reorthonormalize_coeff
   use sparsematrix_base, only: sparse_matrix, matrices, matrices_null, &
        allocate_matrices, deallocate_matrices
-  use sparsematrix, only: orb_from_index
   use yaml_output, only: yaml_newline, yaml_map
+  use matrix_operations, only: overlapPowerGeneral, overlap_minus_one_half_serial, deviation_from_unity_parallel
   implicit none
 
   ! Calling arguments
@@ -2238,7 +2250,7 @@ subroutine reorthonormalize_coeff(iproc, nproc, norb, blocksize_dsyev, blocksize
       if (nproc > 1) then
           call timing(iproc,'renormCoefCom1','OF')
           call timing(iproc,'renormCoefComm','ON')
-          call mpiallred(ovrlp_coeff, mpi_sum, bigdft_mpi%mpi_comm)
+          call mpiallred(ovrlp_coeff, mpi_sum, comm=bigdft_mpi%mpi_comm)
           call timing(iproc,'renormCoefComm','OF')
           call timing(iproc,'renormCoefCom1','ON')
       end if
@@ -2367,7 +2379,7 @@ subroutine reorthonormalize_coeff(iproc, nproc, norb, blocksize_dsyev, blocksize
             end if
 
             if (nproc > 1) then
-               call mpiallred(coeff_tmp, mpi_sum, bigdft_mpi%mpi_comm)
+               call mpiallred(coeff_tmp, mpi_sum, comm=bigdft_mpi%mpi_comm)
             end if
             call vcopy(basis_overlap%nfvctr*norbx,coeff_tmp(1,1),1,coeff(1,1),1)
          else
@@ -2458,10 +2470,10 @@ subroutine reorthonormalize_coeff(iproc, nproc, norb, blocksize_dsyev, blocksize
          call f_free(coeff_tmp)
 
          if (nproc>1) then
-            call mpiallred(ovrlp_coeff, MPI_SUM, bigdft_mpi%mpi_comm)
+            call mpiallred(ovrlp_coeff, MPI_SUM, comm=bigdft_mpi%mpi_comm)
          end if
 
-         if (norb==orbs%norb) then
+         if (norb==orbs%norb .and. basis_overlap%nspin==1) then
             ! Parallelization for nspin/=1 not done
             if (orbs%norbp>0) then
                call deviation_from_unity_parallel(iproc, nproc, orbs%norb, orbs%norbp, orbs%isorb, &
@@ -2563,6 +2575,7 @@ subroutine purify_kernel(iproc, nproc, tmb, overlap_calculated, it_shift, it_opt
                           uncompress_matrix2, compress_matrix2
   use foe_base, only: foe_data_get_real
   use transposed_operations, only: calculate_overlap_transposed
+  use matrix_operations, only: overlapPowerGeneral
   implicit none
 
   ! Calling arguments
@@ -2700,7 +2713,7 @@ subroutine purify_kernel(iproc, nproc, tmb, overlap_calculated, it_shift, it_opt
       end if
 
       if (nproc > 1) then
-          call mpiallred(kernel_prime, mpi_sum, bigdft_mpi%mpi_comm)
+          call mpiallred(kernel_prime, mpi_sum, comm=bigdft_mpi%mpi_comm)
       end if
   end if
 
@@ -2761,7 +2774,7 @@ subroutine purify_kernel(iproc, nproc, tmb, overlap_calculated, it_shift, it_opt
           end if
 
           if (nproc > 1) then
-              call mpiallred(ks, mpi_sum, bigdft_mpi%mpi_comm)
+              call mpiallred(ks, mpi_sum, comm=bigdft_mpi%mpi_comm)
           end if
 
           if (tmb%linmat%l%nfvctrp>0) then
@@ -3038,7 +3051,7 @@ subroutine get_KS_residue(iproc, nproc, tmb, KSorbs, hpsit_c, hpsit_f, KSres)
   end if
 
   if (nproc > 1) then
-      call mpiallred(KH, mpi_sum, bigdft_mpi%mpi_comm)
+      call mpiallred(KH, mpi_sum, comm=bigdft_mpi%mpi_comm)
   end if
 
   if (tmb%orbs%norbp>0) then
@@ -3060,7 +3073,7 @@ subroutine get_KS_residue(iproc, nproc, tmb, KSorbs, hpsit_c, hpsit_f, KSres)
   end if
 
   if (nproc > 1) then
-      call mpiallred(KHKH, mpi_sum, bigdft_mpi%mpi_comm)
+      call mpiallred(KHKH, mpi_sum, comm=bigdft_mpi%mpi_comm)
   end if
   call f_free(KH)
   Kgrad=f_malloc0((/tmb%linmat%l%nfvctr,tmb%linmat%l%nfvctr,tmb%linmat%l%nspin/),id='Kgrad')
@@ -3083,7 +3096,7 @@ subroutine get_KS_residue(iproc, nproc, tmb, KSorbs, hpsit_c, hpsit_f, KSres)
   end if
 
   if (nproc > 1) then
-      call mpiallred(Kgrad, mpi_sum, bigdft_mpi%mpi_comm)
+      call mpiallred(Kgrad, mpi_sum, comm=bigdft_mpi%mpi_comm)
   end if
 
   !!if (iproc==0) then
@@ -3144,14 +3157,12 @@ end subroutine get_KS_residue
 subroutine renormalize_kernel(iproc, nproc, order_taylor, max_inversion_error, tmb, ovrlp, ovrlp_old)
   use module_base
   use module_types
-  use module_interfaces, only: overlapPowerGeneral
   use sparsematrix_base, only: sparsematrix_malloc_ptr, sparsematrix_malloc, assignment(=), &
                                SPARSE_FULL, DENSE_FULL, DENSE_MATMUL, SPARSEMM_SEQ, &
                                matrices
   use sparsematrix_init, only: matrixindex_in_compressed
-  use sparsematrix, only: uncompress_matrix, compress_matrix_distributed, &
-                          uncompress_matrix_distributed
-
+  use sparsematrix, only: uncompress_matrix
+  use matrix_operations, only: overlapPowerGeneral
   implicit none
 
   ! Calling arguments
@@ -3169,6 +3180,7 @@ subroutine renormalize_kernel(iproc, nproc, order_taylor, max_inversion_error, t
   !!real(8) :: tr
   !!integer :: ind, iorb
 
+
   call f_routine(id='renormalize_kernel')
 
   !!inv_ovrlp%matrix_compr = sparsematrix_malloc_ptr(tmb%linmat%l, &
@@ -3184,7 +3196,12 @@ subroutine renormalize_kernel(iproc, nproc, order_taylor, max_inversion_error, t
   ! Calculate S^1/2 * K * S^1/2. Take the value of S^1/2 from memory (was
   ! calculated in the last call to this routine or (it it is the first call)
   ! just before the call.
-  call retransform_local(tmb%linmat%ovrlppowers_(1))
+  !!call retransform_local(tmb%linmat%ovrlppowers_(1))
+  !!call retransform_ext(iproc, nproc, tmb%linmat%l, &
+  !!     tmb%linmat%kernel_%matrix_compr, tmb%linmat%ovrlppowers_(1)%matrix_compr)
+  call retransform_ext(iproc, nproc, tmb%linmat%l, &
+       tmb%linmat%ovrlppowers_(1)%matrix_compr, tmb%linmat%kernel_%matrix_compr)
+
 
   ! Calculate S^1/2 for the overlap matrix
   call overlapPowerGeneral(iproc, nproc, order_taylor, 3, (/2,-2,1/), -1, &
@@ -3209,7 +3226,11 @@ subroutine renormalize_kernel(iproc, nproc, order_taylor, max_inversion_error, t
   !!call check_taylor_order(mean_error, max_inversion_error, order_taylor)
 
   ! Calculate S^-1/2 * K * S^-1/2
-  call retransform_local(tmb%linmat%ovrlppowers_(2))
+  !!call retransform_local(tmb%linmat%ovrlppowers_(2))
+  !!call retransform_ext(iproc, nproc, tmb%linmat%l, &
+  !!     tmb%linmat%kernel_%matrix_compr, tmb%linmat%ovrlppowers_(2)%matrix_compr)
+  call retransform_ext(iproc, nproc, tmb%linmat%l, &
+       tmb%linmat%ovrlppowers_(2)%matrix_compr, tmb%linmat%kernel_%matrix_compr)
 
 
   call f_free_ptr(inv_ovrlpp)
@@ -3220,40 +3241,40 @@ subroutine renormalize_kernel(iproc, nproc, order_taylor, max_inversion_error, t
 
   call f_release_routine()
 
-  contains
+  !!contains
 
-      subroutine retransform_local(mat)
-          use sparsematrix, only: sequential_acces_matrix_fast2, sparsemm, &
-               uncompress_matrix_distributed2, compress_matrix_distributed, &
-               sequential_acces_matrix_fast
-          type(matrices),intent(in) :: mat
-          integer :: ncount
+  !!    subroutine retransform_local(mat)
+  !!        use sparsematrix, only: sequential_acces_matrix_fast2, sparsemm, &
+  !!             uncompress_matrix_distributed2, compress_matrix_distributed, &
+  !!             sequential_acces_matrix_fast
+  !!        type(matrices),intent(in) :: mat
+  !!        integer :: ncount
 
-          call f_routine(id='retransform_local')
+  !!        call f_routine(id='retransform_local')
 
-          call sequential_acces_matrix_fast2(tmb%linmat%l, tmb%linmat%kernel_%matrix_compr, kernel_compr_seq)
-          call sequential_acces_matrix_fast2(tmb%linmat%l, &
-               mat%matrix_compr, inv_ovrlp_compr_seq)
-          call uncompress_matrix_distributed2(iproc, tmb%linmat%l, DENSE_MATMUL, &
-               mat%matrix_compr, inv_ovrlpp)
+  !!        call sequential_acces_matrix_fast2(tmb%linmat%l, tmb%linmat%kernel_%matrix_compr, kernel_compr_seq)
+  !!        call sequential_acces_matrix_fast2(tmb%linmat%l, &
+  !!             mat%matrix_compr, inv_ovrlp_compr_seq)
+  !!        call uncompress_matrix_distributed2(iproc, tmb%linmat%l, DENSE_MATMUL, &
+  !!             mat%matrix_compr, inv_ovrlpp)
 
-          ncount=tmb%linmat%l%nfvctr*tmb%linmat%l%smmm%nfvctrp
-          if (ncount>0) then
-              call f_zero(ncount, tempp(1,1))
-          end if
-          call sparsemm(tmb%linmat%l, kernel_compr_seq, inv_ovrlpp, tempp)
-          if (ncount>0) then
-              call f_zero(ncount, inv_ovrlpp(1,1))
-          end if
-          call sparsemm(tmb%linmat%l, inv_ovrlp_compr_seq, tempp, inv_ovrlpp)
+  !!        ncount=tmb%linmat%l%nfvctr*tmb%linmat%l%smmm%nfvctrp
+  !!        if (ncount>0) then
+  !!            call f_zero(ncount, tempp(1,1))
+  !!        end if
+  !!        call sparsemm(tmb%linmat%l, kernel_compr_seq, inv_ovrlpp, tempp)
+  !!        if (ncount>0) then
+  !!            call f_zero(ncount, inv_ovrlpp(1,1))
+  !!        end if
+  !!        call sparsemm(tmb%linmat%l, inv_ovrlp_compr_seq, tempp, inv_ovrlpp)
 
-          !call f_zero(tmb%linmat%l%nvctr, tmb%linmat%kernel_%matrix_compr(1))
-          call compress_matrix_distributed(iproc, nproc, tmb%linmat%l, DENSE_MATMUL, &
-               inv_ovrlpp, tmb%linmat%kernel_%matrix_compr)
+  !!        !call f_zero(tmb%linmat%l%nvctr, tmb%linmat%kernel_%matrix_compr(1))
+  !!        call compress_matrix_distributed(iproc, nproc, tmb%linmat%l, DENSE_MATMUL, &
+  !!             inv_ovrlpp, tmb%linmat%kernel_%matrix_compr)
 
-          call f_release_routine()
+  !!        call f_release_routine()
 
-      end subroutine retransform_local
+  !!    end subroutine retransform_local
 
 end subroutine renormalize_kernel
 

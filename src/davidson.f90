@@ -650,7 +650,7 @@ subroutine davidson(iproc,nproc,in,at,&
    if(nproc > 1)then
       !sum up the contributions of nproc sets with 
       !commsv%nvctr_par(iproc,1) wavelet coefficients each
-      call mpiallred(e,MPI_SUM,bigdft_mpi%mpi_comm)
+      call mpiallred(e,MPI_SUM,comm=bigdft_mpi%mpi_comm)
    end if
 
    !if(iproc==0)write(*,'(1x,a)')"done."
@@ -996,7 +996,7 @@ subroutine davidson(iproc,nproc,in,at,&
 
       if(nproc > 1)then
          !sum up the contributions of nproc sets with nvctrp wavelet coefficients each
-         call mpiallred(hamovr,MPI_SUM,bigdft_mpi%mpi_comm)
+         call mpiallred(hamovr,MPI_SUM,comm=bigdft_mpi%mpi_comm)
       end if
 
       !if(iproc==0)write(*,'(1x,a)')"done."
@@ -1846,6 +1846,7 @@ subroutine dump_eigenfunctions(dir_output,nplot,at,hgrids,lr,orbs,orbsv,rxyz,psi
   use module_base, only: gp,wp
   use locregs, only: locreg_descriptors
   use module_types, only: atoms_data,orbitals_data
+  use module_interfaces
   implicit none
   integer, intent(in) :: nplot !<number of eigenfuncitions to be plotted close to the fermi level
   type(atoms_data), intent(in) :: at !<descriptor of atomic properties
@@ -1878,8 +1879,8 @@ subroutine dump_eigenfunctions(dir_output,nplot,at,hgrids,lr,orbs,orbsv,rxyz,psi
      write(denname,'(A,i4.4)')trim(dir_output)//'denvirt',iorb+orbsv%isorb
      !write(comment,'(1pe10.3)')orbsv%eval(iorb+orbsv%isorb)!e(modulo(iorb+orbsv%isorb-1,orbsv%norb)+1,orbsv%iokpt(iorb),1)
 
-     call plot_wf(trim(orbname),1,at,1.0_wp,lr,hx,hy,hz,rxyz,psivirt(ind:))
-     call plot_wf(trim(denname),2,at,1.0_wp,lr,hx,hy,hz,rxyz,psivirt(ind:))
+     call plot_wf(.false.,trim(orbname),1,at,1.0_wp,lr,hx,hy,hz,rxyz,psivirt(ind:))
+     call plot_wf(.false.,trim(denname),2,at,1.0_wp,lr,hx,hy,hz,rxyz,psivirt(ind:))
 
   end do
 
@@ -1891,8 +1892,8 @@ subroutine dump_eigenfunctions(dir_output,nplot,at,hgrids,lr,orbs,orbsv,rxyz,psi
         write(denname,'(A,i4.4)')trim(dir_output)//'densocc',iorb+orbs%isorb
         !write(comment,'(1pe10.3)')orbs%eval(iorb+orbs%isorb)
 
-        call plot_wf(trim(orbname),1,at,1.0_wp,lr,hx,hy,hz,rxyz,psi(ind:))
-        call plot_wf(trim(denname),2,at,1.0_wp,lr,hx,hy,hz,rxyz,psi(ind:))
+        call plot_wf(.false.,trim(orbname),1,at,1.0_wp,lr,hx,hy,hz,rxyz,psi(ind:))
+        call plot_wf(.false.,trim(denname),2,at,1.0_wp,lr,hx,hy,hz,rxyz,psi(ind:))
 
      endif
   end do

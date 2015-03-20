@@ -1084,7 +1084,7 @@ subroutine tmb_overlap_onsite(iproc, nproc, imethod_overlap, at, tmb, rxyz)
                                matrices_null, sparse_matrix_null, &
                                deallocate_matrices, deallocate_sparse_matrix, &
                                assignment(=), sparsematrix_malloc_ptr, SPARSE_TASKGROUP
-  use sparsematrix_init, only: init_sparse_matrix, init_matrix_taskgroups, check_local_matrix_extents
+  use sparsematrix_init, only: init_sparse_matrix_wrapper, init_matrix_taskgroups, check_local_matrix_extents
   use transposed_operations, only: calculate_overlap_transposed, normalize_transposed
   implicit none
 
@@ -2837,7 +2837,7 @@ subroutine initialize_linear_from_file(iproc,nproc,input_frag,astruct,rxyz,orbs,
 
   ! Communication of the quantities
   if (nproc > 1)  call mpiallred(orbs%onwhichatom(1),orbs%norb,MPI_SUM,comm=bigdft_mpi%mpi_comm)
-  if (nproc > 1)  call mpiallred(locrad,MPI_SUM,bigdft_mpi%mpi_comm)
+  if (nproc > 1)  call mpiallred(locrad,MPI_SUM,comm=bigdft_mpi%mpi_comm)
 
   cxyz = f_malloc((/ 3, Lzd%nlr /),id='cxyz')
   lrad = f_malloc(Lzd%nlr,id='lrad')
@@ -3457,7 +3457,7 @@ subroutine print_reformat_summary(iproc,nproc,reformat_reason)
   integer, intent(in) :: iproc,nproc
   integer, dimension(0:6), intent(inout) :: reformat_reason ! array giving reasons for reformatting
 
-  if (nproc > 1) call mpiallred(reformat_reason, mpi_sum, bigdft_mpi%mpi_comm)
+  if (nproc > 1) call mpiallred(reformat_reason, mpi_sum, comm=bigdft_mpi%mpi_comm)
 
   if (iproc==0) then
         call yaml_mapping_open('Overview of the reformatting (several categories may apply)')
@@ -3533,3 +3533,28 @@ subroutine psi_to_psig(n,nvctr_c,nvctr_f,nseg_c,nseg_f,keyvloc,keygloc,jstart,ps
   end do
 
 end subroutine psi_to_psig
+
+
+
+
+subroutine read_linear_matrix_dense(iunit, ntmb, matrix)
+  use module_base
+  use module_types
+  implicit none
+
+  ! Calling arguments
+  integer,intent(in) :: iunit, ntmb
+  real(kind=8),dimension(ntmb,ntmb),intent(out) :: matrix
+
+  ! Local variables
+  integer :: itmb, jtmb, ii, jj
+
+  do itmb=1,ntmb
+      do jtmb=1,ntmb
+          read(iunit,*) ii, jj, matrix(ii,jj)
+          if (ii/=itmb) call f_err_throw('ii/=itmb',err_name='BIGDFT_RUNTIME_ERROR')
+          if (jj/=jtmb) call f_err_throw('jj/=jtmb',err_name='BIGDFT_RUNTIME_ERROR')
+      end do
+  end do
+
+end subroutine read_linear_matrix_dense

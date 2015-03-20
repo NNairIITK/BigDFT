@@ -17,6 +17,7 @@
    kappa_conv: 0.5
    evbounds_nsatur: 100
    correction_co_contra: Yes
+   kernel_analysis: Yes
  lin_general:
    hybrid: Yes
    nit: 1
@@ -46,14 +47,14 @@
      confinement: 3.9E-002
      rloc: 2.5
      rloc_kernel: 4.5
-     rloc_kernel_foe: 6.0
+     rloc_kernel_foe: 6.5
    H:
      nbasis: 1
      ao_confinement: 3.9E-002
      confinement: 3.9E-002
      rloc: 2.5
      rloc_kernel: 4.5
-     rloc_kernel_foe: 6.0
+     rloc_kernel_foe: 6.5
  posinp:
    units: angstroem
    positions:

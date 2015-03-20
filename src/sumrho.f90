@@ -237,8 +237,8 @@ subroutine communicate_density(dpbox,nspin,rhodsc,rho_p,rho,keep_rhop)
 
         !call system_clock(ncount1,ncount_rate,ncount_max)
         !write(*,*) 'TIMING:ARED1',real(ncount1-ncount0)/real(ncount_rate)
-        call mpiallred(sprho_comp,MPI_SUM,bigdft_mpi%mpi_comm)
-        call mpiallred(dprho_comp,MPI_SUM,bigdft_mpi%mpi_comm)
+        call mpiallred(sprho_comp,MPI_SUM,comm=bigdft_mpi%mpi_comm)
+        call mpiallred(dprho_comp,MPI_SUM,comm=bigdft_mpi%mpi_comm)
         !call system_clock(ncount2,ncount_rate,ncount_max)
         !write(*,*) 'TIMING:ARED2',real(ncount2-ncount1)/real(ncount_rate)
 

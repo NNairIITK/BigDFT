@@ -988,7 +988,7 @@ subroutine exact_exchange_potential_round(iproc,nproc,xc,nspin,lr,orbs,&
 
      end do
 
-     if (nproc > 1) call mpiallred(ndatas,MPI_SUM,bigdft_mpi%mpi_comm)
+     if (nproc > 1) call mpiallred(ndatas,MPI_SUM,comm=bigdft_mpi%mpi_comm)
      !if(iproc ==0)print *,'iproc,datas',iproc,ndatas
 
      do igroup=1,ngroupp

@@ -38,7 +38,7 @@ module module_atoms
   !> Quantities used for the symmetry operators. To be used in atomic_structure derived type.
   type, public :: symmetry_data
      integer :: symObj                             !< The symmetry object from ABINIT
-     integer :: nSym                               !< Number of symmetry (0 if disable)
+     integer :: nSym                               !< Number ofsymmetry (0 if disable)
      character(len=15) :: spaceGroup               !< Space group (disabled if not useful)
      integer, dimension(:,:,:), pointer :: irrzon
      real(dp), dimension(:,:,:), pointer :: phnons
@@ -759,6 +759,8 @@ contains
          end if
 
       end select
+      !if an error has been produced return
+      if (f_err_check()) return
 
       !Check the number of atoms
       if (f_err_raise(astruct%nat < 0, &

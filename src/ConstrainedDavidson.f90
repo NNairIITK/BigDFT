@@ -323,7 +323,7 @@ subroutine constrained_davidson(iproc,nproc,in,at,&
   if(nproc > 1)then
      !sum up the contributions of nproc sets with 
      !commsv%nvctr_par(iproc,1) wavelet coefficients each
-     call mpiallred(e,MPI_SUM,bigdft_mpi%mpi_comm)
+     call mpiallred(e,MPI_SUM,comm=bigdft_mpi%mpi_comm)
   end if
   !
   ! inform
@@ -614,7 +614,7 @@ subroutine constrained_davidson(iproc,nproc,in,at,&
      ! reduce result if necessary 
      !
      if(nproc > 1)then
-        call mpiallred(hamovr,MPI_SUM,bigdft_mpi%mpi_comm)
+        call mpiallred(hamovr,MPI_SUM,comm=bigdft_mpi%mpi_comm)
      end if
      !
      ! check asymmetry
@@ -861,8 +861,8 @@ subroutine constrained_davidson(iproc,nproc,in,at,&
      if(nproc > 1)then
         !sum up the contributions of nproc sets with 
         !commsv%nvctr_par(iproc,1) wavelet coefficients each
-        call mpiallred( e,MPI_SUM,bigdft_mpi%mpi_comm)
-        call mpiallred(eg,MPI_SUM,bigdft_mpi%mpi_comm)
+        call mpiallred( e,MPI_SUM,comm=bigdft_mpi%mpi_comm)
+        call mpiallred(eg,MPI_SUM,comm=bigdft_mpi%mpi_comm)
      end if
      !
      ! End Hamiltonian application:

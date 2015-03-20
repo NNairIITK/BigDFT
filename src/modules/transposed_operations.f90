@@ -17,7 +17,6 @@ module transposed_operations
       use module_base
       use module_types
       use sparsematrix_base, only: sparse_matrix
-      use sparsematrix, only : orb_from_index
       implicit none
       
       ! Calling arguments

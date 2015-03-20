@@ -6,6 +6,106 @@
 !!   GNU General Public License, see ~/COPYING file
 !!   or http://www.gnu.org/copyleft/gpl.txt .
 !!   For the list of contributors, see ~/AUTHORS 
+
+
+!> Write the square of the wave functions (i.e. the orbital densities).
+!! This routine can also be used to print the "support functions densities".
+subroutine write_orbital_density(iproc, transform_to_global, iformat, &
+           filename, npsidim, psi, input, orbs, lzd_g, at, rxyz, lzd_l)
+  use module_base
+  use module_types
+  use module_interfaces, except_this_one => write_orbital_density
+  implicit none
+
+  ! Calling arguments
+  logical,intent(in) :: transform_to_global
+  character(len=*),intent(in) :: filename
+  integer,intent(in) :: iproc, npsidim, iformat
+  real(kind=8),dimension(npsidim),intent(in),target :: psi
+  type(input_variables),intent(in) :: input
+  type(orbitals_data),intent(in) :: orbs !< orbitals descriptors
+  type(local_zone_descriptors),intent(inout) :: lzd_g !< global descriptors
+  type(atoms_data),intent(in) :: at
+  real(kind=8),dimension(3,at%astruct%nat),intent(in) :: rxyz
+  type(local_zone_descriptors),intent(in),optional :: lzd_l !< local descriptors
+
+  ! Local variables
+  logical :: binary
+  real(kind=8),dimension(:),pointer :: psi_g
+  integer :: iunit0, iunitx, iunity, iunitz, iorb, ispinor, ist, ncount
+  integer :: iorb_out0, iorb_outx, iorb_outy, iorb_outz
+  character(len=500) :: filebase0, filebasex, filebasey, filebasez
+  character(len=500) :: file0, filex, filey, filez
+
+  if (transform_to_global) then
+      if (.not.present(lzd_l)) call f_err_throw('lzd_l not present',err_name='BIGDFT_RUNTIME_ERROR')
+  end if
+
+  ! Transform to the global region
+  if (transform_to_global) then
+      psi_g = f_malloc_ptr(orbs%norbp*(lzd_g%glr%wfd%nvctr_c+7*lzd_g%glr%wfd%nvctr_f), id='psi_g')
+      call small_to_large_locreg(iproc, npsidim, &
+           orbs%norbp*(lzd_l%glr%wfd%nvctr_c+7*lzd_l%glr%wfd%nvctr_f), lzd_l, &
+           lzd_g, orbs, psi, psi_g, to_global=.true.)
+  else
+      psi_g => psi
+  end if
+
+
+  binary = (iformat==WF_FORMAT_BINARY)
+
+  ! Need to create the convolution bounds
+  call locreg_bounds(lzd_g%glr%d%n1, lzd_g%glr%d%n2, lzd_g%glr%d%n3, &
+       lzd_g%glr%d%nfl1, lzd_g%glr%d%nfu1, &
+       lzd_g%glr%d%nfl2, lzd_g%glr%d%nfu2, &
+       lzd_g%glr%d%nfl3, lzd_g%glr%d%nfu3, &
+       lzd_g%glr%wfd, lzd_g%glr%bounds)
+
+  ist = 1
+  ncount = lzd_g%glr%wfd%nvctr_c+7*lzd_g%glr%wfd%nvctr_f
+  do iorb=1,orbs%norbp
+      do ispinor=1,orbs%nspinor
+          iunit0 = 101
+          iunit0 = 102
+          iunit0 = 103
+          iunit0 = 104
+          !!call open_filename_of_iorb(iunit0, binary, filename, orbs, iorb, ispinor, iorb_out0)
+          !!call open_filename_of_iorb(iunitx, binary, filename, orbs, iorb, ispinor, iorb_outx)
+          !!call open_filename_of_iorb(iunity, binary, filename, orbs, iorb, ispinor, iorb_outy)
+          !!call open_filename_of_iorb(iunitz, binary, filename, orbs, iorb, ispinor, iorb_outz)
+          call filename_of_iorb(binary, trim(input%dir_output)//filename, orbs, iorb, ispinor, filebase0, iorb_out0)
+          call filename_of_iorb(binary, trim(input%dir_output)//filename, orbs, iorb, ispinor, filebasex, iorb_outx)
+          call filename_of_iorb(binary, trim(input%dir_output)//filename, orbs, iorb, ispinor, filebasey, iorb_outy)
+          call filename_of_iorb(binary, trim(input%dir_output)//filename, orbs, iorb, ispinor, filebasez, iorb_outz)
+          file0 = trim(filebase0)//'.cube'
+          filex = trim(filebasex)//'.cube'
+          filey = trim(filebasey)//'.cube'
+          filez = trim(filebasez)//'.cube'
+          write(*,*) 'file0',file0
+          call f_open_file(iunit0, file=file0, binary=binary)
+          call f_open_file(iunitx, file=filex, binary=binary)
+          call f_open_file(iunity, file=filey, binary=binary)
+          call f_open_file(iunitz, file=filez, binary=binary)
+          write(*,'(a,6i9)') 'iproc, iorb, iunit0, iunitx, iunity, iunitz',iproc, iorb, iunit0, iunitx, iunity, iunitz
+          call plot_wf(.true.,'', 2, at, 1.d0, lzd_g%glr, &
+               lzd_g%hgrids(1), lzd_g%hgrids(2), lzd_g%hgrids(2), &
+               rxyz, psi_g(ist:ist+ncount-1), &
+               iunit0, iunitx, iunity, iunitz)
+          call f_close(iunit0)
+          call f_close(iunitx)
+          call f_close(iunity)
+          call f_close(iunitz)
+          ist = ist + ncount
+      end do
+  end do
+
+  !call deallocate_bounds(lzd_g%glr%geocode, lzd_g%glr%hybrid_on, lzd_g%glr%bounds)
+
+  if (transform_to_global) then
+      call f_free_ptr(psi_g)
+  end if
+end subroutine write_orbital_density
+
  
 
 !> Plots the orbitals
@@ -887,6 +987,7 @@ subroutine build_ks_orbitals(iproc, nproc, tmb, KSwfn, at, rxyz, denspot, GPU, &
   character(len=*),parameter :: subname='build_ks_orbitals'
   real(wp), dimension(:,:,:), pointer :: mom_vec_fake
   type(work_mpiaccumulate) :: energs_work
+  integer,dimension(:,:),allocatable :: ioffset_isf
 
 
   nullify(mom_vec_fake)
@@ -1013,6 +1114,20 @@ subroutine build_ks_orbitals(iproc, nproc, tmb, KSwfn, at, rxyz, denspot, GPU, &
        KSwfn%orbs, KSwfn%Lzd%Glr%d%n1, KSwfn%Lzd%Glr%d%n2, KSwfn%Lzd%Glr%d%n3, &
        KSwfn%Lzd%hgrids(1), KSwfn%Lzd%hgrids(2), KSwfn%Lzd%hgrids(3), &
        at, rxyz, KSwfn%Lzd%Glr%wfd, phiwork_global)
+
+  if (input%write_orbitals==2) then
+      call write_orbital_density(iproc, .false., mod(input%lin%plotBasisFunctions,10), 'KSDens', &
+           KSwfn%orbs%npsidim_orbs, phiwork_global, input, KSwfn%orbs, KSwfn%lzd, at, rxyz)
+  end if
+
+  if (input%wf_extent_analysis) then
+      ioffset_isf = f_malloc0((/3,KSwfn%orbs%norbp/),id='ioffset_isf')
+      call analyze_wavefunctions('Kohn Sham orbitals extent analysis', 'global', &
+           KSwfn%lzd, KSwfn%orbs, KSwfn%orbs%npsidim_orbs, phiwork_global, ioffset_isf)
+      call f_free(ioffset_isf)
+  end if
+
+
 
    call f_free_ptr(phiwork_global)
    call deallocate_orbitals_data(orbs)
@@ -1185,7 +1300,7 @@ real(kind=8),dimension(:),pointer :: phiwork_global
 !print*,KSwfn%orbs%occup(KSwfn%orbs%isorb+iorb)
                 end do
              end do
-          call mpiallred(coeffs_occs, mpi_sum, bigdft_mpi%mpi_comm)
+          call mpiallred(coeffs_occs, mpi_sum, comm=bigdft_mpi%mpi_comm)
 
   nvctrp=comms%nvctr_par(iproc,0)*orbs%nspinor
   !call dgemm('n', 'n', nvctrp, KSwfn%orbs%norb, tmb%orbs%norb, 1.d0, phi_global, nvctrp, tmb%coeff(1,1), &
@@ -1376,6 +1491,7 @@ subroutine loewdin_charge_analysis(iproc,tmb,atoms,denspot,&
   use sparsematrix, only: compress_matrix, uncompress_matrix, gather_matrix_from_taskgroups_inplace, &
                           uncompress_matrix2
   use transposed_operations, only: calculate_overlap_transposed
+  use matrix_operations, only: overlapPowerGeneral
   use yaml_output
   implicit none
   integer,intent(in) :: iproc
@@ -1968,8 +2084,8 @@ subroutine support_function_multipoles(iproc, tmb, atoms, denspot)
 
 
   if (bigdft_mpi%nproc>1) then
-      call mpiallred(dipole_net, mpi_sum, bigdft_mpi%mpi_comm)
-      call mpiallred(quadropole_net, mpi_sum, bigdft_mpi%mpi_comm)
+      call mpiallred(dipole_net, mpi_sum, comm=bigdft_mpi%mpi_comm)
+      call mpiallred(quadropole_net, mpi_sum, comm=bigdft_mpi%mpi_comm)
   end if
 
   if (iproc==0) then
@@ -1997,6 +2113,223 @@ subroutine support_function_multipoles(iproc, tmb, atoms, denspot)
   call f_free(quadropole_net)
   call f_release_routine()
 
-  
-
 end subroutine support_function_multipoles
+
+
+
+
+subroutine analyze_wavefunctions(output, region, lzd, orbs, npsidim, psi, ioffset)
+  use module_base
+  use module_types
+  use yaml_output
+  implicit none
+
+  ! Calling arguments
+  character(len=*),intent(in) :: output, region
+  type(local_zone_descriptors),intent(in) :: lzd
+  type(orbitals_data),intent(in) :: orbs
+  integer,intent(in) :: npsidim
+  real(kind=8),dimension(npsidim),intent(in) :: psi
+  integer,dimension(3,orbs%norbp),intent(in) :: ioffset
+  
+  ! Local variables
+  integer :: ist, iorb, iiorb, ilr, ncount
+  real(kind=8),dimension(3) :: center, sigma
+  real(kind=8),dimension(:),allocatable :: sigma_arr
+  real(kind=8) :: dnrm2
+
+
+  if (trim(region)=='global') then
+      ! Need to create the convolution bounds
+      call locreg_bounds(lzd%glr%d%n1, lzd%glr%d%n2, lzd%glr%d%n3, &
+           lzd%glr%d%nfl1, lzd%glr%d%nfu1, &
+           lzd%glr%d%nfl2, lzd%glr%d%nfu2, &
+           lzd%glr%d%nfl3, lzd%glr%d%nfu3, &
+           lzd%glr%wfd, lzd%glr%bounds)
+  end if
+
+  sigma_arr = f_malloc0(orbs%norb,id='sigma_arr')
+
+  ist = 1
+  do iorb=1,orbs%norbp
+      iiorb = orbs%isorb + iorb
+      ilr = orbs%inwhichlocreg(iiorb)
+      if (trim(region)=='local') then
+          ncount = lzd%llr(ilr)%wfd%nvctr_c + 7*lzd%llr(ilr)%wfd%nvctr_f
+          call analyze_one_wavefunction(lzd%llr(ilr), lzd%hgrids, ncount, psi(ist), ioffset(1,iorb), center, sigma)
+      else if (trim(region)=='global') then
+          ncount = lzd%glr%wfd%nvctr_c + 7*lzd%glr%wfd%nvctr_f
+          call analyze_one_wavefunction(lzd%glr, lzd%hgrids, ncount, psi(ist), ioffset(1,iorb), center, sigma)
+      else
+          call f_err_throw('wrong value of region',err_name='BIGDFT_RUNTIME_ERROR')
+      end if
+      sigma_arr(iiorb) = dnrm2(3, sigma(1), 1)
+      ist = ist + ncount
+  end do
+
+  call mpiallred(sigma_arr, mpi_sum, comm=bigdft_mpi%mpi_comm)
+
+  if (trim(region)=='global') then
+      !call deallocate_bounds(lzd%glr%geocode, lzd%glr%hybrid_on, lzd%glr%bounds)
+  end if
+
+  if (bigdft_mpi%iproc==0) then
+      call yaml_sequence_open(trim(output),flow=.true.)
+      call yaml_newline()
+      do iorb=1,orbs%norb
+          call yaml_sequence()
+          call yaml_mapping_open(flow=.true.)
+          call yaml_map('eval',orbs%eval(iorb),fmt='(es19.12)')
+          call yaml_map('sigma',sigma_arr(iorb),fmt='(es11.4)')
+          call yaml_mapping_close()
+          call yaml_comment(yaml_toa(iorb))
+          call yaml_newline()
+      end do
+      call yaml_sequence_close()
+  end if
+
+  call f_free(sigma_arr)
+
+end subroutine analyze_wavefunctions
+
+
+subroutine analyze_one_wavefunction(lr, hgrids, npsidim, psi, ioffset, center, sigma)
+  use module_base
+  use module_types
+  implicit none
+
+  ! Calling arguments
+  integer,intent(in) :: npsidim
+  type(locreg_descriptors),intent(in) :: lr
+  real(kind=8),dimension(3),intent(in) :: hgrids
+  real(kind=8),dimension(npsidim),intent(in) :: psi
+  integer,dimension(3),intent(in) :: ioffset
+  real(kind=8),dimension(3),intent(out) :: center, sigma
+
+  ! Local variables
+  type(workarr_sumrho) :: w
+  real(kind=8),dimension(:),allocatable :: psir
+  integer :: ind, i1, i2, i3
+  real(kind=8) :: x, y, z, q
+  real(kind=8),dimension(3) :: hhgrids, var
+
+  call initialize_work_arrays_sumrho(1, lr, .true., w)
+
+  psir = f_malloc(lr%d%n1i*lr%d%n2i*lr%d%n3i,id='psir')
+  ! Initialisation
+  if (lr%geocode == 'F') call f_zero(psir)
+
+  call daub_to_isf(lr, w, psi, psir)
+
+  hhgrids(1:3) = 0.5d0*hgrids(1:3)
+
+  ind = 0
+  center(1:3) = 0.d0
+  q = 0.d0
+  do i3=1,lr%d%n3i
+      z = real(i3+ioffset(3),wp)*hhgrids(3)
+      do i2=1,lr%d%n2i
+          y = real(i3+ioffset(2),wp)*hhgrids(2)
+          do i1=1,lr%d%n1i
+              x = real(i3+ioffset(1),wp)*hhgrids(1)
+              ind = ind + 1
+              center(1) = center(1) + psir(ind)**2*x
+              center(2) = center(2) + psir(ind)**2*y
+              center(3) = center(3) + psir(ind)**2*z
+              q = q + psir(ind)**2
+          end do
+      end do
+  end do
+  ! Normalize
+  center(1:3) = center(1:3)/q
+
+  !Calculate variance
+  ind = 0
+  var(1:3) = 0.d0
+  do i3=1,lr%d%n3i
+      z = real(i3+ioffset(3),wp)*hhgrids(3)
+      do i2=1,lr%d%n2i
+          y = real(i3+ioffset(2),wp)*hhgrids(2)
+          do i1=1,lr%d%n1i
+              x = real(i3+ioffset(1),wp)*hhgrids(1)
+              ind = ind + 1
+              var(1) = var(1) + psir(ind)**2*(x-center(1))**2
+              var(2) = var(2) + psir(ind)**2*(y-center(2))**2
+              var(3) = var(3) + psir(ind)**2*(z-center(3))**2
+          end do
+      end do
+  end do
+  !Normalize
+  var(1:3) = var(1:3)/q
+  ! Take square root
+  sigma(1) = sqrt(var(1))
+  sigma(2) = sqrt(var(2))
+  sigma(3) = sqrt(var(3))
+
+  call f_free(psir)
+  call deallocate_work_arrays_sumrho(w)
+  !write(*,'(a,es16.8,5x,3(3es16.8,3x))') 'q, center(1:3), var(1:3), locregcenter',q, center(1:3), var(1:3), lr%locregcenter
+
+end subroutine analyze_one_wavefunction
+
+
+!> Use the (non-sparse) coefficients to calculate a non-sparse kernel, then
+!! analyze the magnitude of the elements.
+subroutine analyze_kernel(iproc, nproc, KSwfn, tmb)
+  use module_base
+  use module_types
+  use module_interfaces, only: calculate_density_kernel
+  use sparsematrix_base, only: matrices, matrices_null, allocate_matrices, &
+                               deallocate_matrices
+  use yaml_output
+  implicit none
+  ! Calling arguments
+  integer,intent(in) :: iproc, nproc
+  type(DFT_wavefunction),intent(in) :: KSwfn, tmb
+
+  ! Local variables
+  integer :: iorb, iiorb, ilr, jorb, jjorb, jlr, iunit
+  real(kind=8) :: d, diff
+  real(kind=8),dimension(3) :: dist
+  type(matrices) :: kernel
+  character(len=*),parameter :: filename='kernel_analysis.dat'
+
+  call f_routine(id='analyze_kernel')
+
+  kernel = matrices_null()
+  call allocate_matrices(tmb%linmat%l, .true., 'kernel', kernel)
+
+  ! Check whether the coeffs are associated
+  if (.not.associated(tmb%coeff)) then
+      call f_err_throw('coefficients not associated',err_name='BIGDFT_RUNTIME_ERROR')
+  end if
+  call calculate_density_kernel(iproc, nproc, .true., KSwfn%orbs, tmb%orbs, &
+       tmb%coeff, tmb%linmat%l, kernel, keep_uncompressed_=.true.)
+
+  if (iproc==0) then
+      call yaml_map('Output file for kernel analysis',trim(filename))
+      call f_open_file(iunit, file=trim(filename), binary=.false.)
+      write(iunit,'(a)') '#     iorb,   jorb,                d,              val'
+      do iorb=1,tmb%orbs%norb
+          iiorb = tmb%orbs%isorb + iorb
+          ilr = tmb%orbs%inwhichlocreg(iiorb)
+          do jorb=1,iorb!tmb%orbs%norb
+              jjorb = tmb%orbs%isorb + jorb
+              jlr = tmb%orbs%inwhichlocreg(jjorb)
+              dist(1:3) = tmb%lzd%llr(ilr)%locregcenter(1:3) - tmb%lzd%llr(jlr)%locregcenter(1:3)
+              d = nrm2(3, dist(1), 1)
+              diff = abs(kernel%matrix(jorb,iorb,1)-kernel%matrix(iorb,jorb,1))
+              if (diff>1.d-15) then
+                  call yaml_warning('kernel not symmetric, diff='//yaml_toa(diff,fmt='(es9.2)'))
+              end if
+              write(iunit,'(2x,2i8,2es18.10)') iorb, jorb, d, kernel%matrix(jorb,iorb,1)
+          end do
+      end do
+      call f_close(iunit)
+  end if
+
+  call deallocate_matrices(kernel)
+
+  call f_release_routine()
+
+end subroutine analyze_kernel

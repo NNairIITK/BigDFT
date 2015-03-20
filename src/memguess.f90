@@ -28,16 +28,19 @@ program memguess
    implicit none
    character(len=*), parameter :: subname='memguess'
    character(len=30) :: tatonam, radical
+   character(len=2) :: num
    character(len=40) :: comment
    character(len=1024) :: fcomment
-   character(len=128) :: fileFrom, fileTo,filename_wfn
+   character(len=128) :: fileFrom, fileTo,filename_wfn,coeff_file, ntmb_, norbks_, interval_, npdos_
+   character(len=128) :: output_pdos
    logical :: optimise,GPUtest,atwf,convert=.false.,exportwf=.false.,logfile=.false.
    logical :: disable_deprecation = .false.,convertpos=.false.,transform_coordinates=.false.
+   logical :: calculate_pdos = .false.
    integer :: ntimes,nproc,output_grid, i_arg,istat
    integer :: nspin,iorb,norbu,norbd,nspinor,norb,iorbp,iorb_out
    integer :: norbgpu,ng
    integer :: export_wf_iband, export_wf_ispin, export_wf_ikpt, export_wf_ispinor,irad
-   real(gp) :: hx,hy,hz,energy
+   real(gp) :: hx,hy,hz,energy,occup,interval
    type(memory_estimation) :: mem
    type(run_objects) :: runObj
    type(orbitals_data) :: orbstst
@@ -61,14 +64,16 @@ program memguess
    !real(gp) :: tcpu0,tcpu1,tel
    !integer :: ncount0,ncount1,ncount_max,ncount_rate
    !! By Ali
-   integer :: ierror, iat
+   integer :: ierror, iat, itmb, jtmb, ntmb, norbks, npdos, iunit01, iunit02, norb_dummy, ipt, npt, ipdos
    integer,dimension(:),allocatable :: na, nb, nc
    integer,dimension(:,:),allocatable :: atoms_ref
-   real(kind=8),dimension(:,:),allocatable :: rxyz_int
+   real(kind=8),dimension(:,:),allocatable :: rxyz_int, kernel, ham, overlap, coeff, pdos, energy_bins
+   real(kind=8),dimension(:),allocatable :: eval
    !real(kind=8),parameter :: degree=57.295779513d0
    real(kind=8),parameter :: degree=1.d0
    character(len=6) :: direction
-   logical :: file_exists
+   logical :: file_exists, found_bin
+   real(kind=8),parameter :: eps_roundoff=1.d-5
 
    call f_lib_initialize()
    !initialize errors and timings as bigdft routines are called
@@ -114,6 +119,11 @@ program memguess
            &   '"convert-positions" <from.[xyz,ascii,yaml]> <to.[xyz,ascii,yaml]>" ' 
       write(*,'(1x,a)')&
            & 'converts input positions file "from" to file "to" using the given formats'
+      write(*,'(1x,a)')&
+           &   '"pdos" <ntmb> <norb> <coeffs.bin> <npdos>" ' 
+      write(*,'(1x,a)')&
+           & 'reads in the expansion coefficients "coeffs.bin" of dimension (nmtb x norb) &
+           &and calculate "npdos" partial density of states'
 
       stop
    else
@@ -242,6 +252,25 @@ program memguess
             write(*,'(1x,5a)')&
                &   'convert input file "', trim(fileFrom),'" file to "', trim(fileTo),'"'
             transform_coordinates=.true.
+            exit loop_getargs
+         else if (trim(tatonam)=='pdos') then
+            i_arg = i_arg + 1
+            call get_command_argument(i_arg, value = coeff_file)
+            i_arg = i_arg + 1
+            call get_command_argument(i_arg, value = ntmb_)
+            read(ntmb_,fmt=*,iostat=ierror) ntmb
+            i_arg = i_arg + 1
+            call get_command_argument(i_arg, value = norbks_)
+            read(norbks_,fmt=*,iostat=ierror) norbks
+            i_arg = i_arg + 1
+            call get_command_argument(i_arg, value = interval_)
+            read(interval_,fmt=*,iostat=ierror) interval
+            i_arg = i_arg + 1
+            call get_command_argument(i_arg, value = npdos_)
+            read(npdos_,fmt=*,iostat=ierror) npdos
+            write(*,'(1x,3(a,i0),3a)')&
+               &   'calculate ', npdos,' PDOS based on the coeffs (', ntmb, 'x', norbks, ') in the file "', trim(coeff_file),'"'
+            calculate_pdos=.true.
             exit loop_getargs
          else if (trim(tatonam) == 'dd') then
             ! dd: disable deprecation message
@@ -431,6 +460,104 @@ program memguess
        stop
    end if
 
+   if (calculate_pdos) then
+       coeff = f_malloc((/ntmb,norbks/),id='coeff')
+       eval = f_malloc(norbks,id='eval')
+       kernel = f_malloc((/ntmb,ntmb/),id='kernel')
+       ham = f_malloc((/ntmb,ntmb/),id='ham')
+       overlap = f_malloc((/ntmb,ntmb/),id='overlap')
+       call f_open_file(iunit01, file=trim(coeff_file), binary=.false.)
+       call read_coeff_minbasis(iunit01, .true., bigdft_mpi%iproc, norbks, norb_dummy, ntmb, coeff, eval)
+       call f_close(iunit01)
+       call f_open_file(iunit01, file='hamiltonian.bin', binary=.false.)
+       call read_linear_matrix_dense(iunit01, ntmb, ham)
+       call f_close(iunit01)
+       call f_open_file(iunit01, file='overlap.bin', binary=.false.)
+       call read_linear_matrix_dense(iunit01, ntmb, overlap)
+       call f_close(iunit01)
+       npt = ceiling((eval(ntmb)-eval(1))/interval)
+       pdos = f_malloc0((/npt,npdos/),id='pdos')
+       energy_bins = f_malloc((/2,npt/),id='energy_bins')
+       ! Determine the energy bins
+       do ipt=1,npt
+           energy_bins(1,ipt) = eval(1) + real(ipt-1,kind=8)*interval - eps_roundoff
+           energy_bins(2,ipt) = energy_bins(1,ipt) + interval
+       end do
+       output_pdos='PDoS.gp'
+       call yaml_map('output file',trim(output_pdos))
+       call f_open_file(iunit02, file=trim(output_pdos), binary=.false.)
+       write(iunit02,'(a)') '# plot the DOS as a sum of Gaussians'
+       write(iunit02,'(a,2(es12.5,a))') 'set xrange[',eval(1),':',eval(ntmb),']'
+       write(iunit02,'(a)') 'sigma=0.01'
+       ! Calculate a partial kernel for each KS orbital
+       do ipdos=1,npdos
+           call yaml_map('PDoS number',ipdos)
+           call yaml_map('start, increment',(/ipdos,npdos/))
+           write(num,fmt='(i2.2)') ipdos
+           write(iunit02,'(a,i0,a)') 'f',ipdos,'(x) = \'
+           do iorb=1,norbks
+               call yaml_map('orbital being processed',iorb)
+               call gemm('n', 't', ntmb, ntmb, 1, 1.d0, coeff(1,iorb), ntmb, &
+                    coeff(1,iorb), ntmb, 0.d0, kernel(1,1), ntmb)
+               energy = 0.d0
+               occup = 0.d0
+               !$omp parallel default(none) &
+               !$omp shared(ntmb,kernel,ham,overlap,ipdos,npdos,energy,occup) &
+               !$omp private(itmb,jtmb)
+               !$omp do reduction(+:energy)
+               do itmb=1,ntmb
+                   do jtmb=1,ntmb
+                       energy = energy + kernel(itmb,jtmb)*ham(jtmb,itmb)
+                   end do
+               end do
+               !$omp end do
+               !$omp do reduction(+:occup)
+               do itmb=ipdos,ntmb,npdos
+                   do jtmb=ipdos,ntmb,npdos
+                       occup = occup + kernel(itmb,jtmb)*overlap(jtmb,itmb)
+                   end do
+               end do
+               !$omp end do
+               !$omp end parallel
+               found_bin = .false.
+               do ipt=1,npt
+                   if (energy>=energy_bins(1,ipt) .and. energy<energy_bins(2,ipt)) then
+                       pdos(ipt,ipdos) = pdos(ipt,ipdos) + occup
+                       found_bin = .true.
+                       exit
+                   end if
+               end do
+               if (.not.found_bin) then
+                   call f_err_throw('could not determine energy bin, energy='//yaml_toa(energy),err_name='BIGDFT_RUNTIME_ERROR')
+               end if
+               if (iorb<norbks) then
+                   write(iunit02,'(2(a,es16.9),a)') '  ',occup,'*exp(-(x-',energy,')**2/(2*sigma**2)) + \'
+               else
+                   write(iunit02,'(2(a,es16.9),a)') '  ',occup,'*exp(-(x-',energy,')**2/(2*sigma**2))'
+               end if
+               !write(*,'(a,i6,3es16.8)')'iorb, eval(iorb), energy, occup', iorb, eval(iorb), energy, occup
+           end do
+           if (ipdos==1) then
+               write(iunit02,'(a,i0,a)') 'plot f',ipdos,'(x) w l'
+           else
+               write(iunit02,'(a,i0,a)') 'replot f',ipdos,'(x) w l'
+           end if
+           call yaml_map('sum of PDoS',sum(pdos(:,ipdos)))
+           output_pdos='PDoS_'//num//'.dat'
+           call yaml_map('output file',trim(output_pdos))
+           call f_open_file(iunit01, file=trim(output_pdos), binary=.false.)
+           write(iunit01,'(a)') '#             energy                pdos'
+           do ipt=1,npt
+               write(iunit01,'(2es20.12)') energy_bins(1,ipt), pdos(ipt,ipdos)
+           end do
+           call f_close(iunit01)
+       end do
+       call f_close(iunit02)
+       call yaml_map('sum of total DoS',sum(pdos(:,:)))
+
+       stop
+   end if
+
    nullify(run)
    call bigdft_set_run_properties(run, run_id = trim(radical), run_from_files = .true., log_to_disk = logfile)
 
@@ -509,10 +636,10 @@ program memguess
       call filename_of_iorb(.false.,"wavefunction",runObj%rst%KSwfn%orbs,iorbp, &
            & export_wf_ispinor,filename_wfn,iorb_out)
 
-      call plot_wf(filename_wfn,1,runObj%atoms,1.0_wp,runObj%rst%KSwfn%Lzd%Glr, &
+      call plot_wf(.false.,filename_wfn,1,runObj%atoms,1.0_wp,runObj%rst%KSwfn%Lzd%Glr, &
            & runObj%inputs%hx,runObj%inputs%hy,runObj%inputs%hz,runObj%atoms%astruct%rxyz, &
            & runObj%rst%KSwfn%psi((runObj%rst%KSwfn%Lzd%Glr%wfd%nvctr_c+&
-           & 7*runObj%rst%KSwfn%Lzd%Glr%wfd%nvctr_f) * (export_wf_ispinor - 1) + 1))
+           & 7*runObj%rst%KSwfn%Lzd%Glr%wfd%nvctr_f) * (export_wf_ispinor - 1) + 1:))
       deallocate(ref_frags)
       nullify(ref_frags)
    end if

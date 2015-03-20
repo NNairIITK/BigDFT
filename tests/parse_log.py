@@ -302,7 +302,7 @@ class BigDFTiming:
     #  icat +=1
     #dssad
     #shallow copies of important parts
-    self.routines=self.log["Routines timing and number of calls"]
+    self.routines=self.log.get("Routines timing and number of calls")
     self.hostnames=self.log.get("Hostnames")
     self.scf=self.log.get("WFN_OPT")
     self.classes=["Communications","Convolutions","BLAS-LAPACK","Linear Algebra",
@@ -343,7 +343,7 @@ class BigDFTiming:
 
   def unbalanced(self,val):
     """Criterion for unbalancing"""
-    return val > 1.5 or val < 0.5
+    return val > 1.1 or val < 0.9
 
   def find_unbalanced(self,data):
     """Determine lookup array of unbalanced categories"""
@@ -362,6 +362,8 @@ class BigDFTiming:
     values_legend=[]
     icol=1.0
     print "dict",dict
+    #open a new figure
+    pylab.figure()
     for cat in self.classes:
       try:
         dat=pylab.np.array([dict[cat][0]])
@@ -370,7 +372,7 @@ class BigDFTiming:
         print 'unbalancing',unb
         unb2=self.find_unbalanced(unb)
         print 'unbalanced objects',cat
-        if self.hostnames is not None:
+        if self.hostnames is not None and (cat=='Convolutions' or cat =='Communications'):
           print 'vals',[ [i,unb[i],self.hostnames[i]] for i in unb2]
         ind=pylab.np.arange(len(unb))
         plt=pylab.bar(ind,unb,width,color=pylab.cm.jet(icol/len(self.classes)))
@@ -385,12 +387,15 @@ class BigDFTiming:
         print "cat",cat,"not found"
 
     if len(ind) > 2:
-      tmp=pylab.np.array(self.hostnames)
+      if self.hostnames is not None:
+        tmp=pylab.np.array(self.hostnames)
+      else:
+        tmp=None
     else:
       tmp=pylab.np.array(["max","min"])
     pylab.ylabel('Load Unbalancing wrt average')
     pylab.title('Work Load of different classes')
-    pylab.xticks(ind+width/2., tmp)
+    if tmp is not None: pylab.xticks(ind+width/2., tmp)
     pylab.yticks(pylab.np.arange(0,2,0.25))
     pylab.legend(pylab.np.array(key_legend), pylab.np.array(values_legend))
 
@@ -403,6 +408,7 @@ if __name__ == "__main__":
 #logfile
 #check if timedata is given
 if args.timedata:
+  import pylab
   print 'args of time',args.timedata,argcl
   #load the first yaml document
   bt=BigDFTiming(argcl[0])
@@ -412,16 +418,14 @@ if args.timedata:
   #sys.stdout.write(yaml.dump(timing["WFN_OPT"]["Classes"],default_flow_style=False,explicit_start=True))
   if bt.scf is not None:
     bt.bars_data(bt.scf["Classes"]) #timing["WFN_OPT"]["Classes"])
-  #bt.load_unbalancing(bt.scf["Classes"]) #timing["WFN_OPT"]["Classes"])
-  data=dump_timing_level(bt.routines) #dict_routines)
-  #sys.stdout.write(yaml.dump(data,default_flow_style=False,explicit_start=True))
-  #ilev=1
-  #for lev in data["names"]:
-  #  sys.stdout.write(yaml.dump({"Level "+str(ilev):lev},default_flow_style=False,explicit_start=True))
-  #  ilev+=1
-  plt=polar_axis(data)
-  print 'data initialized'
-  plt.show()
+    bt.load_unbalancing(bt.scf["Classes"]) #timing["WFN_OPT"]["Classes"])
+  if bt.routines is not None:
+    data=dump_timing_level(bt.routines) #dict_routines)
+    plt=polar_axis(data)
+    plt.show()
+  else:
+    pylab.show()
+
   #print allev
   #dump the loaded info
 

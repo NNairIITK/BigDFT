@@ -43,6 +43,7 @@ module wrapper_MPI
   integer, public, save :: TCAT_ALLGATHERV  =TIMING_UNINITIALIZED
   integer, public, save :: TCAT_ALLGATHER   =TIMING_UNINITIALIZED
   integer, public, save :: TCAT_GATHER      =TIMING_UNINITIALIZED
+  integer, public, save :: TCAT_SCATTER     =TIMING_UNINITIALIZED
   
   !error codes
   integer, public, save :: ERR_MPI_WRAPPERS
@@ -86,6 +87,10 @@ module wrapper_MPI
      module procedure mpibcast_c1,mpibcast_d1,mpibcast_d2,mpibcast_i1
   end interface mpibcast
 
+  interface mpiscatter
+      module procedure mpiscatter_i1i1 
+  end interface mpiscatter
+
   interface mpi_get_to_allgatherv
      module procedure mpi_get_to_allgatherv_double
   end interface mpi_get_to_allgatherv
@@ -95,11 +100,11 @@ module wrapper_MPI
   end interface mpiget
 
   interface mpitypesize
-    module procedure mpitypesize_d0, mpitypesize_d1
+    module procedure mpitypesize_d0, mpitypesize_d1, mpitypesize_i0, mpitypesize_l0
   end interface mpitypesize
 
   interface mpiwindow
-    module procedure mpiwindow_d0
+    module procedure mpiwindow_d0, mpiwindow_i0, mpiwindow_l0
   end interface mpiwindow
 
   !> Interface for MPI_ALLGATHERV routine
@@ -554,6 +559,9 @@ contains
     call f_timing_category('Gather',tgrp_mpi_name,&
          'Gather operations, in general moderate size arrays',&
          TCAT_GATHER)
+    call f_timing_category('Scatter',tgrp_mpi_name,&
+         'Scatter operations, in general moderate size arrays',&
+         TCAT_SCATTER)
 
     call f_err_define(err_name='ERR_MPI_WRAPPERS',err_msg='Error of MPI library',&
          err_id=ERR_MPI_WRAPPERS,&
@@ -1266,6 +1274,16 @@ contains
     include 'bcast-inc.f90'
   end subroutine mpibcast_d2
 
+
+  subroutine mpiscatter_i1i1(sendbuf, recvbuf, root, comm)
+    use dictionaries, only: f_err_throw,f_err_define
+    use yaml_output, only: yaml_toa
+    implicit none
+    integer,dimension(:),intent(in) :: sendbuf
+    integer,dimension(:),intent(inout) :: recvbuf
+    include 'scatter-inc.f90'
+  end subroutine mpiscatter_i1i1
+
   !> Detect the maximum difference between arrays all over a given communicator
   function mpimaxdiff_i0(n,array,root,source,comm,bcast) result(maxdiff)
     use dynamic_memory
@@ -1423,6 +1441,32 @@ contains
       sizeof=mpitypesize(1.d0)
   end function mpitypesize_d1
 
+  function mpitypesize_i0(foo) result(sizeof)
+    use dictionaries, only: f_err_throw,f_err_define
+    implicit none
+    integer, intent(in) :: foo
+    integer :: sizeof, ierr
+    
+    call mpi_type_size(mpi_integer, sizeof, ierr)
+    if (ierr/=0) then
+        call f_err_throw('Error in mpi_type_size',&
+             err_id=ERR_MPI_WRAPPERS)
+    end if
+  end function mpitypesize_i0
+
+  function mpitypesize_l0(foo) result(sizeof)
+    use dictionaries, only: f_err_throw,f_err_define
+    implicit none
+    logical, intent(in) :: foo
+    integer :: sizeof, ierr
+    
+    call mpi_type_size(mpi_logical, sizeof, ierr)
+    if (ierr/=0) then
+        call f_err_throw('Error in mpi_type_size',&
+             err_id=ERR_MPI_WRAPPERS)
+    end if
+  end function mpitypesize_l0
+
   function mpiinfo(key,val) result(info)
     use dictionaries, only: f_err_throw,f_err_define
     implicit none
@@ -1474,6 +1518,7 @@ contains
 
     call mpi_win_create(base, int(size,kind=mpi_address_kind)*int(sizeof,kind=mpi_address_kind), &
          sizeof, info,comm, window, ierr)
+
     if (ierr/=0) then
        call f_err_throw('Error in mpi_win_create',&
             err_id=ERR_MPI_WRAPPERS)
@@ -1489,6 +1534,70 @@ contains
 
     
   end function mpiwindow_d0
+
+  function mpiwindow_i0(size,base,comm) result(window)
+    use dictionaries, only: f_err_throw,f_err_define
+    implicit none
+    integer,intent(in) :: size
+    integer,intent(in) :: base
+    integer,intent(in) :: comm
+    !local variables
+    integer :: sizeof,info,ierr
+    integer :: window
+
+    sizeof=mpitypesize(base)
+    info=mpiinfo("no_locks", "true")
+
+    call mpi_win_create(base, int(size,kind=mpi_address_kind)*int(sizeof,kind=mpi_address_kind), &
+         sizeof, info,comm, window, ierr)
+
+    if (ierr/=0) then
+       call f_err_throw('Error in mpi_win_create',&
+            err_id=ERR_MPI_WRAPPERS)
+    end if
+
+    call mpiinfofree(info)
+
+    call mpi_win_fence(MPI_MODE_NOPRECEDE, window, ierr)
+    if (ierr/=0) then
+       call f_err_throw('Error in mpi_win_fence',&
+            err_id=ERR_MPI_WRAPPERS)
+    end if
+
+    
+  end function mpiwindow_i0
+
+  function mpiwindow_l0(size,base,comm) result(window)
+    use dictionaries, only: f_err_throw,f_err_define
+    implicit none
+    integer,intent(in) :: size
+    logical,intent(in) :: base
+    integer,intent(in) :: comm
+    !local variables
+    integer :: sizeof,info,ierr
+    integer :: window
+
+    sizeof=mpitypesize(base)
+    info=mpiinfo("no_locks", "true")
+
+    call mpi_win_create(base, int(size,kind=mpi_address_kind)*int(sizeof,kind=mpi_address_kind), &
+         sizeof, info,comm, window, ierr)
+
+    if (ierr/=0) then
+       call f_err_throw('Error in mpi_win_create',&
+            err_id=ERR_MPI_WRAPPERS)
+    end if
+
+    call mpiinfofree(info)
+
+    call mpi_win_fence(MPI_MODE_NOPRECEDE, window, ierr)
+    if (ierr/=0) then
+       call f_err_throw('Error in mpi_win_fence',&
+            err_id=ERR_MPI_WRAPPERS)
+    end if
+
+    
+  end function mpiwindow_l0
 
   subroutine mpi_fenceandfree(window)
     use dictionaries, only: f_err_throw,f_err_define

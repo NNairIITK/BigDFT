@@ -8,7 +8,7 @@ program driver_singlerun
                                read_bigdft_format, bigdft_to_sparsebigdft
   use sparsematrix, only: write_matrix_compressed, check_symmetry, &
                           write_sparsematrix_CCS, write_sparsematrix
-  use module_interfaces, only: overlapPowerGeneral
+  use matrix_operations, only: overlapPowerGeneral
   use yaml_output
   implicit none
 

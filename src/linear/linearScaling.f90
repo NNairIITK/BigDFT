@@ -73,12 +73,12 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
   type(workarrays_quartic_convolutions),dimension(:),pointer :: precond_convol_workarrays
   type(workarr_precond),dimension(:),pointer :: precond_workarrays
   type(work_transpose) :: wt_philarge, wt_hpsinoprecond, wt_hphi, wt_phi
-
+  integer,dimension(:,:),allocatable :: ioffset_isf
   
   real(kind=gp) :: ebs, vgrad_old, vgrad, valpha, vold, vgrad2, vold_tmp, conv_crit_TMB, best_charge_diff, cdft_charge_thresh
   real(kind=gp), allocatable, dimension(:,:) :: coeff_tmp
   integer :: jorb, cdft_it, nelec, iat, ityp, norder_taylor, ispin, ishift
-  integer :: dmin_diag_it, dmin_diag_freq, ioffset
+  integer :: dmin_diag_it, dmin_diag_freq, ioffset, nl1, nl2, nl3
   logical :: reorder, rho_negative
   real(wp), dimension(:,:,:), pointer :: mom_vec_fake
   type(matrices) :: weight_matrix_
@@ -86,6 +86,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
   integer :: nit_energyoscillation
   integer(kind=8) :: nsize
   type(work_mpiaccumulate) :: fnrm_work, energs_work
+  integer :: ilr, iiorb
 
   real(8),dimension(:),allocatable :: rho_tmp, tmparr
   real(8) :: tt, ddot
@@ -1175,12 +1176,45 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
   call deallocate_work_transpose(wt_phi)
 
 
+  if (input%wf_extent_analysis) then
+      ioffset_isf = f_malloc((/3,tmb%orbs%norbp/),id='ioffset_isf')
+      do iorb=1,tmb%orbs%norbp
+          iiorb = tmb%orbs%isorb + iorb
+          ilr = tmb%orbs%inwhichlocreg(iiorb)
+          call geocode_buffers(tmb%lzd%Llr(ilr)%geocode, tmb%lzd%glr%geocode, nl1, nl2, nl3)
+          ioffset_isf(1,iorb) = tmb%lzd%llr(ilr)%nsi1 - nl1 - 1
+          ioffset_isf(2,iorb) = tmb%lzd%llr(ilr)%nsi2 - nl2 - 1
+          ioffset_isf(3,iorb) = tmb%lzd%llr(ilr)%nsi3 - nl3 - 1
+          !write(*,'(a,i8,2es16.8)') 'iorb, rxyzConf(3), locregcenter(3)', iorb, tmb%confdatarr(iorb)%rxyzConf(3), tmb%lzd%llr(ilr)%locregcenter(3)
+      end do
+      call analyze_wavefunctions('Support functions extent analysis', 'local', &
+           tmb%lzd, tmb%orbs, tmb%npsidim_orbs, tmb%psi, ioffset_isf)
+      call f_free(ioffset_isf)
+  end if
 
-  if (input%write_orbitals) then
+
+  if (input%write_orbitals>0) then
       call build_ks_orbitals(iproc, nproc, tmb, KSwfn, at, rxyz, denspot, GPU, &
                energs, nlpsp, input, norder_taylor,&
                energy, energyDiff, energyold)
+      !call write_orbital_density(iproc, .false., input%lin%plotBasisFunctions, 'KS', &
+      !     KSwfn%orbs%npsidim_orbs, KSwfn%psi, KSwfn%orbs, KSwfn%lzd, at)
+
+      !ioffset_isf = f_malloc((/3,orbs%norbp/),id='ioffset_isf')
+      !do iorb=1,orbs%norbp
+      !    !iiorb = tmb%orbs%isorb + iorb
+      !    !ilr = tmb%orbs%inwhichlocreg(iiorb)
+      !    !call geocode_buffers(tmb%lzd%Llr(ilr)%geocode, tmb%lzd%glr%geocode, nl1, nl2, nl3)
+      !    ioffset_isf(1,iorb) = 0 !tmb%lzd%llr(ilr)%nsi1 - nl1 - 1
+      !    ioffset_isf(2,iorb) = 0 !tmb%lzd%llr(ilr)%nsi2 - nl2 - 1
+      !    ioffset_isf(3,iorb) = 0 !tmb%lzd%llr(ilr)%nsi3 - nl3 - 1
+      !    !write(*,'(a,3es16.8)') 'iorb, rxyzConf(3), locregcenter(3)', iorb, tmb%confdatarr(iorb)%rxyzConf(3), tmb%lzd%llr(ilr)%locregcenter(3)
+      !end do
+      !call analyze_wavefunctions('global', tmb%lzd, orbs, KSwfn%orbs%npsidim_orbs, %psi, ioffset_isf)
+      !call f_free(ioffset_isf)
   end if
+
+
 
 
   !TEMPORARY, to be cleaned/removed
@@ -1202,7 +1236,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
   ! Diagonalize the matrix for the FOE/direct min case to get the coefficients. Only necessary if
   ! the Pulay forces are to be calculated, or if we are printing eigenvalues for restart
   if ((input%lin%scf_mode==LINEAR_FOE.or.input%lin%scf_mode==LINEAR_DIRECT_MINIMIZATION)& 
-       .and. (input%lin%pulay_correction.or.input%lin%plotBasisFunctions /= WF_FORMAT_NONE&
+       .and. (input%lin%pulay_correction.or.mod(input%lin%plotBasisFunctions,10) /= WF_FORMAT_NONE&
        .or. input%lin%diag_end)) then
 
        !!if (input%lin%scf_mode==LINEAR_FOE) then
@@ -1224,6 +1258,10 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
        if (bigdft_mpi%iproc ==0) then 
           call write_eigenvalues_data(0.1d0,tmb%orbs,mom_vec_fake)
        end if
+  end if
+
+  if (input%kernel_analysis) then
+      call analyze_kernel(iproc, nproc, KSwfn, tmb)
   end if
 
   ! only print eigenvalues if they have meaning, i.e. diag or the case above
@@ -1315,21 +1353,25 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
 
 
   !Write the linear wavefunctions to file if asked, also write Hamiltonian and overlap matrices
-  if (input%lin%plotBasisFunctions /= WF_FORMAT_NONE) then
+  if (mod(input%lin%plotBasisFunctions,10) /= WF_FORMAT_NONE) then
      nelec=0
      do iat=1,at%astruct%nat
         ityp=at%astruct%iatype(iat)
         nelec=nelec+at%nelpsp(ityp)
      enddo
      if (write_full_system) then
-        call writemywaves_linear(iproc,trim(input%dir_output) // 'minBasis',input%lin%plotBasisFunctions,&
+        call writemywaves_linear(iproc,trim(input%dir_output) // 'minBasis',mod(input%lin%plotBasisFunctions,10),&
              max(tmb%npsidim_orbs,tmb%npsidim_comp),tmb%Lzd,tmb%orbs,nelec,at,rxyz,tmb%psi,tmb%linmat%l%nfvctr,tmb%coeff)
         call write_linear_matrices(iproc,nproc,input%imethod_overlap,trim(input%dir_output),&
-             input%lin%plotBasisFunctions,tmb,at,rxyz)
+             mod(input%lin%plotBasisFunctions,10),tmb,at,rxyz)
+        if (input%lin%plotBasisFunctions>10) then
+            call write_orbital_density(iproc, .true., mod(input%lin%plotBasisFunctions,10), 'SupFunDens', &
+                 tmb%npsidim_orbs, tmb%psi, input, tmb%orbs, KSwfn%lzd, at, rxyz, tmb%lzd)
+        end if
      end if
      !write as fragments - for now don't write matrices, think later if this is useful/worth the effort
      if (write_fragments .and. input%lin%fragment_calculation) then
-        call writemywaves_linear_fragments(iproc,'minBasis',input%lin%plotBasisFunctions,&
+        call writemywaves_linear_fragments(iproc,'minBasis',mod(input%lin%plotBasisFunctions,10),&
              max(tmb%npsidim_orbs,tmb%npsidim_comp),tmb%Lzd,tmb%orbs,nelec,at,rxyz,tmb%psi,tmb%coeff, &
              trim(input%dir_output),input%frag,ref_frags)
      end if
@@ -1785,7 +1827,8 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
 
 
     subroutine intermediate_forces()
-
+      use module_forces, only: clean_forces
+      implicit none
       ! Local variables
       real(kind=8) :: eh_tmp, exc_tmp, evxc_tmp, eexctX_tmp
       real(kind=8) :: fnoise, pressure, ehart_fake
@@ -1860,6 +1903,9 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
            denspot%dpbox%nrhodim,.false.,denspot%dpbox%ngatherarr,denspot%rho_work,&
            denspot%pot_work,denspot%V_XC,size(KSwfn%psi),KSwfn%psi,fion,fdisp,fxyz,&
            ewaldstr,hstrten,xcstr,strten,fnoise,pressure,denspot%psoffset,1,tmb,fpulay)
+      call clean_forces(iproc,at%astruct,rxyz,fxyz,fnoise)
+      if (iproc == 0) call write_forces(at%astruct,fxyz)
+
       call f_free(fxyz)
       call f_free_ptr(KSwfn%psi)
 

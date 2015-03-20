@@ -92,6 +92,7 @@ module psp_projectors
   public :: nonlocal_psp_descriptors_null,bounds_to_plr_limits,set_nlpsp_to_wfd,pregion_size
   public :: deallocate_nonlocal_psp_descriptors
   public :: workarrays_projectors_null, allocate_workarrays_projectors, deallocate_workarrays_projectors
+  public :: projector_has_overlap
 
 
 contains
@@ -913,7 +914,41 @@ contains
     call f_free_ptr(wp%work)
   end subroutine deallocate_workarrays_projectors
 
-end module psp_projectors
+
+  function projector_has_overlap(iat, ilr, llr, glr, nl) result(overlap)
+    implicit none
+    ! Calling arguments
+    integer,intent(in) :: iat, ilr
+    type(locreg_descriptors),intent(in) :: llr, glr
+    type(DFT_PSP_projectors),intent(in) :: nl
+    logical :: overlap
+    ! Local variables
+    logical :: goon
+    integer :: mproj, jlr, iilr
+  
+    overlap = .false.
+  
+    ! Check whether the projectors of this atom have an overlap with locreg ilr
+    goon=.false.
+    do jlr=1,nl%pspd(iat)%noverlap
+        if (nl%pspd(iat)%lut_tolr(jlr)==ilr) then
+            goon=.true.
+            iilr=jlr
+            exit
+        end if
+    end do
+    if (.not.goon) return
+  
+    mproj=nl%pspd(iat)%mproj
+    !no projector on this atom
+    if(mproj == 0) return
+    if(nl%pspd(iat)%tolr(iilr)%strategy == PSP_APPLY_SKIP) return
+  
+    call check_overlap(llr, nl%pspd(iat)%plr, glr, overlap)
+  
+    end function projector_has_overlap
+  
+  end module psp_projectors
 
 
 !> External routine as the psppar parameters are often passed by address

@@ -454,6 +454,7 @@ subroutine coeff_weight_analysis(iproc, nproc, input, ksorbs, tmb, ref_frags)
                                sparsematrix_malloc_ptr, DENSE_FULL, SPARSE_FULL, assignment(=), &
                                matrices_null, allocate_matrices, deallocate_matrices
   use sparsematrix, only: uncompress_matrix, uncompress_matrix2
+  use matrix_operations, only: overlapPowerGeneral
   implicit none
 
   ! Calling arguments
@@ -519,8 +520,8 @@ subroutine coeff_weight_analysis(iproc, nproc, input, ksorbs, tmb, ref_frags)
   if (iproc==0) call yaml_newline()
   if (iproc==0) call yaml_comment ('coeff, occ, eval, frac for each frag')
   ! only care about diagonal elements
-  !weight_sum=f_malloc(input%frag%nfrag,id='weight_sum')
-  !weight_sum=0.0d0
+  weight_sum=f_malloc(input%frag%nfrag,id='weight_sum')
+  weight_sum=0.0d0
   do iorb=1,ksorbs%norb
      if (iproc==0) then
          call yaml_mapping_open(flow=.true.)
@@ -530,26 +531,24 @@ subroutine coeff_weight_analysis(iproc, nproc, input, ksorbs, tmb, ref_frags)
      end if
      do ifrag=1,input%frag%nfrag
         if (iproc==0) call yaml_map('frac',weight_coeff_diag(iorb,ifrag),fmt='(f6.4)')
-        !weight_sum(ifrag)=weight_sum(ifrag)+KSorbs%occup(iorb)*weight_coeff_diag(iorb,ifrag)
+        weight_sum(ifrag)=weight_sum(ifrag)+KSorbs%occup(iorb)*weight_coeff_diag(iorb,ifrag)
      end do
      if (iproc==0) call yaml_mapping_close()
      if (iproc==0) call yaml_newline()
   end do
      
-  !tidy this up before keeping
-  !if (iproc==0) then
-  !   call yaml_mapping_open(flow=.true.)
-  !   call yaml_map('sum',iorb,fmt='(i4)')
-  !   occsum=sum(KSorbs%occup(1:ksorbs%norb))
-  !   call yaml_map('occ',occsum,fmt='(f6.4)')
-  !   call yaml_map('eval',0.0,fmt='(f10.6)') !something more relevant here?
-  !end if
-  !do ifrag=1,input%frag%nfrag
-  !   if (iproc==0) call yaml_map('frac',weight_sum(ifrag),fmt='(f6.4)')
-  !end do
-  !if (iproc==0) call yaml_mapping_close()
-  !if (iproc==0) call yaml_newline()
-  !call f_free(weight_sum)
+  !sum for each fragment
+  occsum=sum(KSorbs%occup(1:ksorbs%norb))
+  if (iproc==0) then
+     call yaml_mapping_open(flow=.true.)
+     call yaml_map('sum',occsum,fmt='(f8.4)')
+  end if
+  do ifrag=1,input%frag%nfrag
+     if (iproc==0) call yaml_map('frac',weight_sum(ifrag),fmt='(f6.4)')
+  end do
+  if (iproc==0) call yaml_mapping_close()
+  if (iproc==0) call yaml_newline()
+  call f_free(weight_sum)
 
   if (iproc==0) call yaml_sequence_close()
 
@@ -703,7 +702,7 @@ subroutine calculate_coeffMatcoeff(nproc,matrix,basis_orbs,ksorbs,coeff,mat_coef
   call f_free(coeff_tmp)
 
   if (nproc>1) then
-      call mpiallred(mat_coeff, mpi_sum, bigdft_mpi%mpi_comm)
+      call mpiallred(mat_coeff, mpi_sum, comm=bigdft_mpi%mpi_comm)
   end if
 
 end subroutine calculate_coeffMatcoeff
@@ -755,7 +754,7 @@ subroutine calculate_coeffMatcoeff_diag(matrix,basis_orbs,ksorbs,coeff,mat_coeff
         call mpi_allgatherv(mat_coeff_diagp, ksorbs%norbp, mpi_double_precision, mat_coeff_diag, &
              ksorbs%norb_par(:,0), ksorbs%isorb_par, mpi_double_precision, bigdft_mpi%mpi_comm, ierr)
      else
-        call mpiallred(mat_coeff_diag, mpi_sum, bigdft_mpi%mpi_comm)
+        call mpiallred(mat_coeff_diag, mpi_sum, comm=bigdft_mpi%mpi_comm)
      end if
   else
      if (allgather) then
@@ -1146,6 +1145,8 @@ subroutine calculate_coeff_gradient(iproc,nproc,tmb,order_taylor,max_inversion_e
   use sparsematrix_base, only: matrices, sparsematrix_malloc_ptr, DENSE_FULL, assignment(=), &
                                matrices_null, allocate_matrices, deallocate_matrices
   use sparsematrix, only: extract_taskgroup_inplace, gather_matrix_from_taskgroups_inplace
+  use matrix_operations, only: overlapPowerGeneral
+  use parallel_linalg, only: dgesv_parallel
   implicit none
 
   integer, intent(in) :: iproc, nproc
@@ -1537,6 +1538,8 @@ subroutine calculate_coeff_gradient_extra(iproc,nproc,num_extra,tmb,order_taylor
   use sparsematrix_base, only: matrices, sparsematrix_malloc_ptr, DENSE_FULL, assignment(=), &
                                matrices_null, allocate_matrices, deallocate_matrices
   use sparsematrix, only: extract_taskgroup_inplace, gather_matrix_from_taskgroups_inplace
+  use matrix_operations, only: overlapPowerGeneral
+  use parallel_linalg, only: dgesv_parallel
   implicit none
 
   integer, intent(in) :: iproc, nproc, num_extra

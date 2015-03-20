@@ -415,7 +415,7 @@ subroutine IonicEnergyandForces(iproc,nproc,dpbox,at,elecfield,&
      end do
 
      if (pkernel%mpi_env%nproc > 1) then
-        call mpiallred(fion,MPI_SUM,pkernel%mpi_env%mpi_comm)
+        call mpiallred(fion,MPI_SUM,comm=pkernel%mpi_env%mpi_comm)
      end if
 
      !if (iproc ==0) print *,'eion',eion,psoffset,shortlength
@@ -721,7 +721,7 @@ subroutine createIonicPotential(geocode,iproc,nproc,verb,at,rxyz,&
      charges_mpi(1)=tt
      charges_mpi(2)=rholeaked
 
-     call mpiallred(charges_mpi,MPI_SUM,pkernel%mpi_env%mpi_comm)
+     call mpiallred(charges_mpi,MPI_SUM,comm=pkernel%mpi_env%mpi_comm)
 
      tt_tot=charges_mpi(1)
      rholeaked_tot=charges_mpi(2)
@@ -1370,7 +1370,7 @@ subroutine CounterIonPotential(geocode,iproc,nproc,in,shift,&
      charges_mpi(1)=tt
      charges_mpi(2)=rholeaked
 
-     call mpiallred(charges_mpi,MPI_SUM,pkernel%mpi_env%mpi_comm)
+     call mpiallred(charges_mpi,MPI_SUM,comm=pkernel%mpi_env%mpi_comm)
 
      tt_tot=charges_mpi(1)
      rholeaked_tot=charges_mpi(2)
