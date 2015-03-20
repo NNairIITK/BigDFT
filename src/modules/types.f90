@@ -488,9 +488,6 @@ module module_types
 
      !> linear scaling: perform an analysis of the extent of the support functions (and possibly KS orbitals)
      logical :: wf_extent_analysis
-     
-     !> linear scaling: perform an analysis of the kernel at the end
-     logical :: kernel_analysis
 
   end type input_variables
 
@@ -942,7 +939,7 @@ module module_types
  !>timing categories
  character(len=*), parameter, private :: tgrp_pot='Potential'
  integer, save, public :: TCAT_EXCHANGECORR=TIMING_UNINITIALIZED
- integer, parameter, private :: ncls_max=6,ncat_bigdft=146   ! define timimg categories and classes
+ integer, parameter, private :: ncls_max=6,ncat_bigdft=149   ! define timimg categories and classes
  character(len=14), dimension(ncls_max), parameter, private :: clss = (/ &
       'Communications'    ,  &
       'Convolutions  '    ,  &
@@ -1104,6 +1101,9 @@ module module_types
       'transform_matr','Other         ' ,'small to large' ,  &
       'calctrace_comp','Other         ' ,'Miscellaneous ' ,  &
       'calctrace_comm','Communications' ,'allreduce     ' ,  &
+      'determinespars','Other         ' ,'Miscellaneous ' ,  &
+      'inittaskgroup ','Other         ' ,'Miscellaneous ' ,  &
+      'transformspars','Other         ' ,'Miscellaneous ' ,  &
       'calc_bounds   ','Other         ' ,'Miscellaneous ' /),(/3,ncat_bigdft/))
  integer, dimension(ncat_bigdft), private, save :: cat_ids !< id of the categories to be converted
 
@@ -2411,9 +2411,6 @@ contains
        case(WF_EXTENT_ANALYSIS)
            ! linear scaling: perform an analysis of the extent of the support functions (and possibly KS orbitals)
            in%wf_extent_analysis = val
-       case(KERNEL_ANALYSIS)
-           ! linean scaling: perform an analysis of the kernel at the end
-           in%kernel_analysis = val
        case DEFAULT
           if (bigdft_mpi%iproc==0) &
                call yaml_warning("unknown input key '" // trim(level) // "/" // trim(dict_key(val)) // "'")

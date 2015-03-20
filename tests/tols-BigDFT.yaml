@@ -551,9 +551,9 @@ molecule_foe:
  energy: 6.9e-10
  Omega: 8.6e-9
  Total charge: 2.5e-10
- eF: 3.0e-9
+ eF: 3.5e-9
  guess for new ef: 3.0e-9
- D eF: 3.0e-9
+ D eF: 4.1e-9
  Tr(K): 1.1e-07
  D Tr: 1.1e-7
  tr(KS) before purification: 5.1e-10
@@ -1132,15 +1132,15 @@ geoptconstrained_SDCG:
 
 O2spin_diag:
  Atomic Forces (Ha/Bohr): 2.6e-7
- Average noise forces: 7.7e-8
- Clean forces norm (Ha/Bohr): 8.0e-7
- Raw forces norm (Ha/Bohr): 7.8e-7
+ Average noise forces: 8.6e-8
+ Clean forces norm (Ha/Bohr): 9.0e-7
+ Raw forces norm (Ha/Bohr): 9.0e-7
  Orbitals: 2.7e-7
  EH: 1.8e-6
  EXC: 3.4e-7
  Ekin: 2.1e-6
  Enl: 1.4e-6
- Epot: 2.4e-6
+ Epot: 2.5e-6
  EvXC: 1.4e-6
  Omega: 2.5e-7
  energy: 7.3e-8
@@ -1286,7 +1286,7 @@ periodic_wateredge:
  EH: 1.0e-9
  EXC: 1.1e-10
  EvXC: 1.1e-10
- Ekin: 1.0e-9
+ Ekin: 1.1e-9
  energy: 1.6e-10
  Total charge: 1.1e-10
  PV (Ha): 2.7e-9
@@ -1321,9 +1321,9 @@ periodic_water:
 surface_boronnitride:
  Enl: 1.0e-9
  Epot: 1.0e-9
- Omega: 6.0e-11
+ Omega: 8.8e-11
  energy: 2.2e-11
- Energy (Hartree): 2.2e-11
+ Energy (Hartree): 2.7e-11
  Total charge: 1.0e-10
  Total ionic charge: 2.4e-11
  Keys to ignore:

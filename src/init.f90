@@ -2089,7 +2089,9 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
   use yaml_output
   use gaussians, only: gaussian_basis
   use sparsematrix_base, only: sparse_matrix, &
-                               sparsematrix_malloc, assignment(=), SPARSE_FULL
+                               sparsematrix_malloc, assignment(=), SPARSE_FULL, &
+                               sparsematrix_malloc_ptr, DENSE_FULL
+use sparsematrix, only: uncompress_matrix2
   use communications_base, only: TRANSPOSE_FULL
   use communications, only: transpose_localized, untranspose_localized
   use m_paw_ij, only: paw_ij_init
@@ -2129,12 +2131,13 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
   logical :: overlap_calculated, perx,pery,perz, rho_negative
   real(gp) :: tx,ty,tz,displ,mindist
   real(gp), dimension(:), pointer :: in_frag_charge
-  integer :: infoCoeff, iorb, nstates_max, order_taylor, npspcode
+  integer :: infoCoeff, iorb, nstates_max, order_taylor, npspcode, scf_mode
   real(kind=8) :: pnrm
   type(work_mpiaccumulate) :: energs_work
   !!real(gp), dimension(:,:), allocatable :: ks, ksk
   !!real(gp) :: nonidem
-
+  logical :: use_tmbs_as_coeffs
+  !integer :: itmb, jtmb
   call f_routine(id='input_wf')
 
  !determine the orthogonality parameters
@@ -2480,9 +2483,28 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
      ! we have to copy the coeffs from the fragment structure to the tmb structure and reconstruct each 'mini' kernel
      ! this is overkill as we are recalculating the kernel anyway - fix at some point
      ! or just put into fragment structure to save recalculating for CDFT
+
+     ! should eventually be input variable? - stabilize first
+     use_tmbs_as_coeffs=.false.
      if (in%lin%fragment_calculation) then
         call fragment_coeffs_to_kernel(iproc,in,in_frag_charge,ref_frags,tmb,KSwfn%orbs,overlap_calculated,&
-             nstates_max,in%lin%constrained_dft)
+             nstates_max,in%lin%constrained_dft, use_tmbs_as_coeffs)
+
+        !! debug
+        !tmb%linmat%kernel_%matrix = sparsematrix_malloc_ptr(tmb%linmat%l, DENSE_FULL, id='tmb%linmat%kernel__%matrix')
+        !!call uncompress_matrix(bigdft_mpi%iproc,tmb%linmat%kernel_)
+        !call uncompress_matrix2(iproc, nproc, tmb%linmat%l, tmb%linmat%kernel_%matrix_compr, tmb%linmat%kernel_%matrix)
+        !if (iproc==0) then
+        !    do itmb=1,tmb%orbs%norb
+        !      do jtmb=1,tmb%orbs%norb
+        !         write(30,*) itmb,jtmb,tmb%coeff(itmb,jtmb),tmb%linmat%kernel_%matrix(itmb,jtmb,1)
+        !      end do
+        !    end do
+        !   write(30,*) ''
+        !end if 
+        !call f_free_ptr(tmb%linmat%kernel_%matrix) 
+        !! end debug
+
         if (in%lin%calc_transfer_integrals.and.in%lin%constrained_dft) then
            call f_free_ptr(in_frag_charge)
         else
@@ -2498,15 +2520,45 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
      ! hack occup to make density neutral with full occupations, then unhack after extra diagonalization (using nstates max)
      ! use nstates_max - tmb%orbs%occup set in fragment_coeffs_to_kernel
      tmb%can_use_transposed=.false.
-     if (in%lin%diag_start) then
+     if (in%lin%diag_start .or. use_tmbs_as_coeffs) then
         ! not worrying about this case as not currently used anyway
-        call reconstruct_kernel(iproc, nproc, in%lin%order_taylor, tmb%orthpar%blocksize_pdsyev, &
-             tmb%orthpar%blocksize_pdgemm, tmb%orbs, tmb, overlap_calculated)  
+        !call reconstruct_kernel(iproc, nproc, in%lin%order_taylor, tmb%orthpar%blocksize_pdsyev, &
+        !     tmb%orthpar%blocksize_pdgemm, tmb%orbs, tmb, overlap_calculated)  
+
+        ! already calculated in fragment_coeffs_to_kernel
+        tmb%linmat%ovrlp_%matrix = sparsematrix_malloc_ptr(tmb%linmat%s, iaction=DENSE_FULL, id='tmb%linmat%ovrlp_%matrix')
+        call uncompress_matrix2(iproc, nproc, tmb%linmat%s, &
+             tmb%linmat%ovrlp_%matrix_compr, tmb%linmat%ovrlp_%matrix)
+
+        ! can't call reconstruct directly as need to use ks_e (which has size of tmb) not ks
+        call reorthonormalize_coeff(iproc, nproc, tmb%orbs%norb, tmb%orthpar%blocksize_pdsyev, tmb%orthpar%blocksize_pdgemm, &
+             in%lin%order_taylor, tmb%orbs, tmb%linmat%s, tmb%linmat%ks_e, tmb%linmat%ovrlp_, tmb%coeff, tmb%orbs)
+
+        call f_free_ptr(tmb%linmat%ovrlp_%matrix)
+
+        ! Recalculate the kernel
+        call calculate_density_kernel(iproc, nproc, .true., tmb%orbs, tmb%orbs, tmb%coeff, tmb%linmat%l, tmb%linmat%kernel_)
      else
         ! come back to this - reconstruct kernel too expensive with exact version, but Taylor needs to be done ~ 3 times here...
         call reconstruct_kernel(iproc, nproc, in%lin%order_taylor, tmb%orthpar%blocksize_pdsyev, &
              tmb%orthpar%blocksize_pdgemm, KSwfn%orbs, tmb, overlap_calculated)
      end if
+
+     !! debug
+     !tmb%linmat%kernel_%matrix = sparsematrix_malloc_ptr(tmb%linmat%l, DENSE_FULL, id='tmb%linmat%kernel__%matrix')
+     !!call uncompress_matrix(bigdft_mpi%iproc,tmb%linmat%kernel_)
+     !call uncompress_matrix2(iproc, nproc, tmb%linmat%l, tmb%linmat%kernel_%matrix_compr, tmb%linmat%kernel_%matrix)
+     !if (iproc==0) then
+     !   do itmb=1,tmb%orbs%norb
+     !      do jtmb=1,tmb%orbs%norb
+     !         write(31,*) itmb,jtmb,tmb%coeff(itmb,jtmb),tmb%linmat%kernel_%matrix(itmb,jtmb,1)
+     !      end do
+     !   end do
+     !   write(31,*) ''
+     !end if 
+     !call f_free_ptr(tmb%linmat%kernel_%matrix) 
+     !! end debug
+
      !!tmb%linmat%ovrlp%matrix=f_malloc_ptr((/tmb%orbs%norb,tmb%orbs%norb/),id='tmb%linmat%ovrlp%matrix')
      !!tmb%linmat%denskern%matrix=f_malloc_ptr((/tmb%orbs%norb,tmb%orbs%norb/),id='tmb%linmat%denskern%matrix')
      !!ks=f_malloc((/tmb%orbs%norb,tmb%orbs%norb/),id='ks')
@@ -2614,7 +2666,7 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
     !     atoms,rxyz,denspot%dpbox,1,denspot%V_ext)
 
      !! if we want to ignore read in coeffs and diag at start - EXPERIMENTAL
-     if (in%lin%diag_start) then
+     if (in%lin%diag_start .or. use_tmbs_as_coeffs) then
         !if (iproc==0) then
         !print*,'coeffs before extra diag:'
         !do iorb=1,KSwfn%orbs%norb
@@ -2633,7 +2685,15 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
         energs_work%ncount = 4
         call allocate_work_mpiaccumulate(energs_work)
 
-        call get_coeff(iproc,nproc,LINEAR_MIXDENS_SIMPLE,KSwfn%orbs,atoms,rxyz,denspot,GPU,&
+        if (in%lin%diag_start) then
+           scf_mode=LINEAR_MIXDENS_SIMPLE
+        else if (in%lin%scf_mode==LINEAR_DIRECT_MINIMIZATION) then
+           scf_mode=LINEAR_FOE
+        else
+           scf_mode=in%lin%scf_mode
+        end if
+
+        call get_coeff(iproc,nproc,scf_mode,KSwfn%orbs,atoms,rxyz,denspot,GPU,&
              infoCoeff,energs,nlpsp,in%SIC,tmb,pnrm,.false.,.true.,.false.,&
              .true.,0,0,0,0,order_taylor,in%lin%max_inversion_error,&
              in%purification_quickreturn,in%calculate_KS_residue,in%calculate_gap, &
@@ -2667,6 +2727,21 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
             tmb%orthpar%blocksize_pdgemm, KSwfn%orbs, tmb, overlap_calculated)     
         !then redo density and potential with correct charge? - for ease doing in linear scaling
      end if
+
+     !! debug
+     !tmb%linmat%kernel_%matrix = sparsematrix_malloc_ptr(tmb%linmat%l, DENSE_FULL, id='tmb%linmat%kernel__%matrix')
+     !!call uncompress_matrix(bigdft_mpi%iproc,tmb%linmat%kernel_)
+     !call uncompress_matrix2(iproc, nproc, tmb%linmat%l, tmb%linmat%kernel_%matrix_compr, tmb%linmat%kernel_%matrix)
+     !if (iproc==0) then
+     !   do itmb=1,tmb%orbs%norb
+     !      do jtmb=1,tmb%orbs%norb
+     !         write(32,*) itmb,jtmb,tmb%coeff(itmb,jtmb),tmb%linmat%kernel_%matrix(itmb,jtmb,1)
+     !      end do
+     !   end do
+     !   write(32,*) ''
+     !end if 
+     !call f_free_ptr(tmb%linmat%kernel_%matrix) 
+     !! end debug
 
   case default
      call input_psi_help()

@@ -36,6 +36,7 @@ module sparsematrix
   public :: write_sparsematrix_CCS
   public :: transform_sparsity_pattern
   public :: matrix_matrix_mult_wrapper
+  public :: trace_sparse
 
 
   interface compress_matrix_distributed_wrapper
@@ -1596,6 +1597,7 @@ module sparsematrix
       integer :: i, ii, ind, iline, icolumn
 
       call f_routine(id='transform_sparsity_pattern')
+      call timing(bigdft_mpi%iproc, 'transformspars', 'ON')
 
         if (direction=='large_to_small') then
 
@@ -1641,6 +1643,7 @@ module sparsematrix
             stop 'wrong direction'
         end if
 
+      call timing(bigdft_mpi%iproc, 'transformspars', 'OF')
       call f_release_routine()
 
     end subroutine transform_sparsity_pattern
@@ -1681,5 +1684,76 @@ module sparsematrix
 
 
     end subroutine matrix_matrix_mult_wrapper
+
+
+    !< Calculates the trace of the matrix product amat*bmat.
+    !< WARNING: It is mandatory that the sparsity pattern of amat be contained
+    !< within the sparsity pattern of bmat!
+    function trace_sparse(iproc, nproc, orbs, asmat, bsmat, amat, bmat, ispin)
+      use module_base
+      use module_types
+      use sparsematrix_base, only: sparse_matrix, matrices
+      use sparsematrix_init, only: matrixindex_in_compressed
+      implicit none
+    
+      ! Calling arguments
+      integer,intent(in) :: iproc,  nproc, ispin
+      type(orbitals_data),intent(in) :: orbs
+      type(sparse_matrix),intent(in) :: asmat, bsmat
+      real(kind=8),dimension(asmat%nvctrp_tg),intent(in) :: amat
+      real(kind=8),dimension(bsmat%nvctrp_tg),intent(in) :: bmat
+    
+      ! Local variables
+      integer :: isegstart, isegend, iseg, ii, jorb, iiorb, jjorb, iilarge
+      integer :: ierr, iashift, ibshift, iel
+      real(kind=8) :: sumn, trace_sparse
+    
+    
+      call f_routine(id='trace_sparse')
+    
+      iashift = 0!(ispin-1)*asmat%nvctr
+      ibshift = 0!(ispin-1)*bsmat%nvctr
+    
+    
+      sumn=0.d0
+      !if (asmat%smmm%nfvctrp>0) then
+          !$omp parallel default(none) &
+          !$omp private(iseg, ii, jorb, iiorb, jjorb, iilarge, iel) &
+          !$omp shared(bsmat, asmat, amat, bmat, iashift, ibshift, sumn)
+          !$omp do reduction(+:sumn)
+          !do iseg=isegstart,isegend
+          do iseg=asmat%smmm%isseg,asmat%smmm%ieseg
+              iel = asmat%keyv(iseg) - 1
+              ii=iashift+asmat%keyv(iseg)-1
+              ! A segment is always on one line, therefore no double loop
+              do jorb=asmat%keyg(1,1,iseg),asmat%keyg(2,1,iseg)
+                  iel = iel + 1
+                  if (iel<asmat%smmm%isvctr_mm+1) cycle
+                  if (iel>asmat%smmm%isvctr_mm+asmat%smmm%nvctrp_mm) then
+                      !write(*,*) 'exit with iel',iel
+                      exit
+                  end if
+                  ii=ii+1
+                  iiorb = asmat%keyg(1,2,iseg)
+                  jjorb = jorb
+                  iilarge = ibshift + matrixindex_in_compressed(bsmat, iiorb, jjorb)
+                  !!write(*,'(a,4i8,3es16.8)') 'iproc, ii, iilarge, iend, vals, sumn', &
+                  !!    iproc, ii, iilarge, asmat%smmm%isvctr_mm+asmat%smmm%nvctrp_mm, amat(ii-asmat%isvctrp_tg), bmat(iilarge-bsmat%isvctrp_tg), sumn
+                  sumn = sumn + amat(ii-asmat%isvctrp_tg)*bmat(iilarge-bsmat%isvctrp_tg)
+              end do  
+          end do
+          !$omp end do
+          !$omp end parallel
+      !end if
+    
+      if (nproc > 1) then
+          call mpiallred(sumn, 1, mpi_sum, comm=bigdft_mpi%mpi_comm)
+      end if
+    
+      trace_sparse = sumn
+    
+      call f_release_routine()
+    
+    end function trace_sparse
 
 end module sparsematrix

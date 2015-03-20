@@ -3818,6 +3818,7 @@ subroutine local_hamiltonian_stress_linear(iproc, nproc, orbs, lzd, hx, hy, hz, 
   use module_interfaces
   !use module_xc
   use sparsematrix_base, only: sparse_matrix, matrices
+  use sparsematrix, only: trace_sparse
   use communications_base, only: TRANSPOSE_FULL
   use communications, only: transpose_localized
   use transposed_operations, only: calculate_overlap_transposed
@@ -3840,7 +3841,7 @@ subroutine local_hamiltonian_stress_linear(iproc, nproc, orbs, lzd, hx, hy, hz, 
   character(len=*), parameter :: subname='local_hamiltonian_stress'
   integer :: iorb, npot, i_f, iseg_f, iiorb, ilr, ist, idir, iidim
   !real(wp) :: kinstr(6)
-  real(gp) :: ekin,kx,ky,kz,etest, tt, trace_sparse,ekino
+  real(gp) :: ekin,kx,ky,kz,etest, tt, ekino
   type(workarr_locham) :: w
   real(wp), dimension(:,:), allocatable :: psir
   real(kind=8),dimension(0:3) :: scal=1.d0
@@ -4519,7 +4520,7 @@ subroutine nonlocal_forces_linear(iproc,nproc,npsidim_orbs,lr,hx,hy,hz,at,rxyz,&
                                                nlpsp%pspd(iiat)%plr%wfd%keyglob(1,jseg_c),&
                                                nlpsp%proj(istart_c),&
                                                scpr)
-                                          if (scpr/=0.d0) then
+                                          !if (scpr/=0.d0) then
                                               if (increase) then
                                                   is_supfun_per_atom_tmp(iat) = is_supfun_per_atom_tmp(iat)+1
                                                   increase = .false.
@@ -4527,9 +4528,9 @@ subroutine nonlocal_forces_linear(iproc,nproc,npsidim_orbs,lr,hx,hy,hz,at,rxyz,&
                                               iii = is_supfun_per_atom_tmp(iat)
                                               scalprod_sendbuf_new(1,idir,m,i,l,iii) = scpr
                                               scalprod_send_lookup(iii) = iiorb
-                                          else
-                                              stop 'scalprod should not be zero'
-                                          end if
+                                          !else
+                                          !    stop 'scalprod should not be zero'
+                                          !end if
                                           istart_c=istart_c+(mbvctr_c+7*mbvctr_f)*ncplx
                                        end do
                                     end if
@@ -4836,6 +4837,7 @@ subroutine nonlocal_forces_linear(iproc,nproc,npsidim_orbs,lr,hx,hy,hz,at,rxyz,&
                call orbs_in_kpt(ikpt,orbs,isorb,ieorb,nspinor)
     
                call ncplx_kpt(ikpt,orbs,ncplx)
+               strten_loc(:) = 0.d0
 
                ! Do the OMP loop over supfun_per_atom, as nat_par(iproc) is typically rather small
     
@@ -4845,7 +4847,6 @@ subroutine nonlocal_forces_linear(iproc,nproc,npsidim_orbs,lr,hx,hy,hz,at,rxyz,&
                !$omp shared(offdiagarr, strten, strten_loc, vol, Enl, nspinor,ncplx) &
                !$omp private(ispin, iat, iiat, ityp, iorb, ii, iiorb, jorb, jj, jjorb, ind, sab, ispinor) &
                !$omp private(l, i, m, icplx, sp0, idir, spi, strc, j, hij, sp0i, sp0j, spj, iispin, jjspin)
-               strten_loc(:) = 0.d0
                spin_loop2: do ispin=1,denskern%nspin
 
 

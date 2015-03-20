@@ -328,7 +328,7 @@ program MINHOP
        rcov,pos,fp)
 
   !retrieve the eigenvalues from this run
-  if((trim(adjustl(char(run_opt%run_mode)))=='QM_RUN_MODE'))then
+  if(run_opt%run_mode=='QM_RUN_MODE') then
       nksevals=bigdft_norb(run_opt)
       ksevals = f_malloc(nksevals,id='ksevals')
       call bigdft_get_eval(run_opt,ksevals)
@@ -364,7 +364,7 @@ program MINHOP
 !!$     call write_atomic_file('poslocm_'//fn4//'_'//trim(bigdft_run_id_toa()),&
 !!$          outs%energy,atoms%astruct%rxyz,atoms%astruct%ixyz_int,atoms,trim(comment),forces=outs%fxyz)
      !open(unit=864,file='kseloc_'//fn4//'_'//trim(bigdft_run_id_toa()))
-    if((trim(adjustl(char(run_opt%run_mode)))=='QM_RUN_MODE'))then
+    if(run_opt%run_mode=='QM_RUN_MODE') then
       open(unit=864,file='kseloc_'//fn4//trim(naming_id))
       do i=1,nksevals
       write(864,*) ksevals(i)
@@ -614,7 +614,7 @@ program MINHOP
   if (bigdft_mpi%iproc == 0) call yaml_map('(MH) Wvfnctn Opt. steps for accurate geo. rel of MD conf',ncount_bigdft)
   count_bfgs=count_bfgs+ncount_bigdft
   
-  if(trim(adjustl(char(run_opt%run_mode)))=='QM_RUN_MODE')then 
+  if(run_opt%run_mode=='QM_RUN_MODE') then 
       call bigdft_get_eval(run_opt,ksevals)
     !!$  if (i_stat /= BIGDFT_SUCCESS) then
     !!$     write(*,*)'error(ksevals), i_stat',i_stat
@@ -636,7 +636,7 @@ program MINHOP
 
 !!$     call write_atomic_file('poslocm_'//fn4//'_'//trim(bigdft_run_id_toa()),&
 !!$          outs%energy,atoms%astruct%rxyz,atoms%astruct%ixyz_int,atoms,trim(comment),forces=outs%fxyz)
-    if((trim(adjustl(char(run_opt%run_mode)))=='QM_RUN_MODE'))then
+    if(run_opt%run_mode=='QM_RUN_MODE') then
         !open(unit=864,file='kseloc_'//fn4//'_'//trim(bigdft_run_id_toa()))
         open(unit=864,file='kseloc_'//fn4//trim(naming_id))
         do i=1,nksevals
@@ -861,7 +861,7 @@ end do hopping_loop
 !  if (iproc==0) write(*,*) 'quit 1'
   call release_run_objects(run_md)
 !  if (iproc==0) write(*,*) 'quit 2'
-  if((trim(adjustl(char(run_opt%run_mode)))=='QM_RUN_MODE'))then
+  if(run_opt%run_mode=='QM_RUN_MODE') then
    call f_free(ksevals) 
   endif
   call free_run_objects(run_opt)

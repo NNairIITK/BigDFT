@@ -53,7 +53,7 @@ module transposed_operations
       integer,parameter :: GLOBAL_MATRIX=101, SUBMATRIX=102
       integer,parameter :: data_strategy=SUBMATRIX!GLOBAL_MATRIX
     
-      call timing(iproc,'ovrlptransComp','ON') !lr408t
+      call timing(iproc,'ovrlptransComp','ON')
     
       call f_routine(id='calculate_overlap_transposed')
     
@@ -532,9 +532,9 @@ module transposed_operations
           stop 'wrong value of imethod_if'
       end if method_if
     
-      call timing(iproc,'ovrlptransComp','OF') !lr408t
+      call timing(iproc,'ovrlptransComp','OF')
     
-      call timing(iproc,'ovrlptransComm','ON') !lr408t
+      call timing(iproc,'ovrlptransComm','ON')
     
       if (data_strategy==GLOBAL_MATRIX) then
           if(nproc > 1) then
@@ -597,7 +597,7 @@ module transposed_operations
       smat%can_use_dense=.false.
     
       call f_release_routine()
-      call timing(iproc,'ovrlptransComm','OF') !lr408t
+      call timing(iproc,'ovrlptransComm','OF')
     
     end subroutine calculate_overlap_transposed
     
@@ -751,7 +751,7 @@ module transposed_operations
       real(kind=8) :: tt60, tt61, tt62, tt63, tt64, tt65, tt66
     
       call f_routine(id='build_linear_combination_transposed')
-      call timing(iproc,'lincombtrans  ','ON') !lr408t
+      call timing(iproc,'lincombtrans  ','ON')
       if(reset) then
          call f_zero(psit_c)
          call f_zero(psit_f)
@@ -975,7 +975,7 @@ module transposed_operations
       end do spin_loop
     
       call f_release_routine()
-      call timing(iproc,'lincombtrans  ','OF') !lr408t
+      call timing(iproc,'lincombtrans  ','OF')
     
     end subroutine build_linear_combination_transposed
 

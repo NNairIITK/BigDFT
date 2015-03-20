@@ -425,7 +425,8 @@ contains
             position=f_position,iostat=ierror)
        if (ierror /= 0) then
           call f_err_throw('Error in opening file='//&
-               trim(file)//' iostat='//trim(yaml_toa(ierror)),&
+               trim(file)//' with unit='//trim(yaml_toa(unt,fmt='(i0)'))//&
+               ', iostat='//trim(yaml_toa(ierror)),&
                err_id=INPUT_OUTPUT_ERROR)
        else
           !when everything succeded, assign the unit

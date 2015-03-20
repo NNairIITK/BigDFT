@@ -27,8 +27,10 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
   !use communications_init, only: orbitals_communicators
   use sparsematrix_base, only: sparse_matrix, sparse_matrix_null, deallocate_sparse_matrix, &
                                matrices_null, allocate_matrices, deallocate_matrices, &
-                               sparsematrix_malloc, sparsematrix_malloc_ptr, assignment(=), SPARSE_FULL
-  use sparsematrix, only: gather_matrix_from_taskgroups_inplace, extract_taskgroup_inplace
+                               sparsematrix_malloc, sparsematrix_malloc_ptr, assignment(=), SPARSE_FULL, DENSE_FULL
+  use sparsematrix, only: gather_matrix_from_taskgroups_inplace, extract_taskgroup_inplace, uncompress_matrix2
+  use io, only: writemywaves_linear, writemywaves_linear_fragments, write_linear_matrices
+  use postprocessing_linear, only: loewdin_charge_analysis, support_function_multipoles, build_ks_orbitals
   implicit none
 
   ! Calling arguments
@@ -105,7 +107,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
 
   !!rho_tmp = f_malloc(size(denspot%rhov),id='rho_tmp')
 
-  call timing(iproc,'linscalinit','ON') !lr408t
+  call timing(iproc,'linscalinit','ON')
 
   call f_routine(id='linear_scaling')
 
@@ -162,12 +164,12 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
   !nullify(tmb%psit_c)
   !nullify(tmb%psit_f)
 
-  call timing(iproc,'linscalinit','OF') !lr408t
+  call timing(iproc,'linscalinit','OF')
 
   ! Check the quality of the input guess
   call check_inputguess()
 
-  call timing(iproc,'linscalinit','ON') !lr408t
+  call timing(iproc,'linscalinit','ON')
 
   if(input%lin%scf_mode/=LINEAR_MIXPOT_SIMPLE) then
       call vcopy(max(denspot%dpbox%ndimrhopot,denspot%dpbox%nrhodim),rhopotold(1),1,rhopotold_out(1),1)
@@ -220,6 +222,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
      !tmb%linmat%denskern_large%matrix_compr = tmb%linmat%kernel_%matrix_compr
      call deallocate_matrices(weight_matrix_)
 
+     call timing(iproc,'linscalinit','OF')
      call timing(iproc,'constraineddft','ON')
      vgrad_old=ebs-cdft%charge
 
@@ -239,6 +242,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
      coeff_tmp=f_malloc((/tmb%orbs%norb,tmb%orbs%norb/),id='coeff_tmp')
      cdft_charge_thresh=1.e-2
      call timing(iproc,'constraineddft','OF')
+     call timing(iproc,'linscalinit','ON')
   end if
 
 
@@ -287,7 +291,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
      call updatePotential(input%nspin,denspot,energs%eh,energs%exc,energs%evxc)
   end if
 
-  call timing(iproc,'linscalinit','OF') !lr408t
+  call timing(iproc,'linscalinit','OF')
 
 
   ! Add one iteration if no low accuracy is desired since we need then a first fake iteration, with istart=0
@@ -301,6 +305,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
   end if
   outerLoop: do itout=istart,nit_lowaccuracy+nit_highaccuracy
 
+      call timing(iproc,'linscalinit','ON')
       if (input%lin%nlevel_accuracy==2) then
           ! Check whether the low accuracy part (i.e. with strong confining potential) has converged.
           call check_whether_lowaccuracy_converged(itout, nit_lowaccuracy, input%lin%lowaccuracy_conv_crit, &
@@ -344,6 +349,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
           call allocate_work_transpose(nproc, tmb%ham_descr%collcom, wt_hphi)
           call allocate_work_transpose(nproc, tmb%collcom, wt_phi)
       end if
+      call timing(iproc,'linscalinit','OF')
 
       ! Do one fake iteration if no low accuracy is desired.
       if(nit_lowaccuracy==0 .and. itout==0) then
@@ -557,7 +563,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
                   input%method_updatekernel,input%purification_quickreturn, &
                   input%correction_co_contra, &
                   precond_convol_workarrays, precond_workarrays, &
-                  wt_philarge, wt_hpsinoprecond, wt_hphi, wt_phi, fnrm_work, energs_work, &
+                  wt_philarge, wt_hpsinoprecond, wt_hphi, wt_phi, fnrm_work, energs_work, input%lin%fragment_calculation, &
                   cdft, input%frag, ref_frags)
            else
               call getLocalizedBasis(iproc,nproc,at,KSwfn%orbs,rxyz,denspot,GPU,trace,trace_old,fnrm_tmb,&
@@ -569,7 +575,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
                   can_use_ham, norder_taylor, input%lin%max_inversion_error, input%kappa_conv,&
                   input%method_updatekernel,input%purification_quickreturn, &
                   input%correction_co_contra, precond_convol_workarrays, precond_workarrays, &
-                  wt_philarge, wt_hpsinoprecond, wt_hphi, wt_phi, fnrm_work, energs_work)
+                  wt_philarge, wt_hpsinoprecond, wt_hphi, wt_phi, fnrm_work, energs_work, input%lin%fragment_calculation)
            end if
            !!call gather_matrix_from_taskgroups_inplace(iproc, nproc, tmb%linmat%l, tmb%linmat%kernel_)
            reduce_conf=.true.
@@ -1260,9 +1266,9 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
        end if
   end if
 
-  if (input%kernel_analysis) then
-      call analyze_kernel(iproc, nproc, KSwfn, tmb)
-  end if
+  !!if (input%kernel_analysis) then
+  !!    call analyze_kernel(iproc, nproc, KSwfn, tmb)
+  !!end if
 
   ! only print eigenvalues if they have meaning, i.e. diag or the case above
   if (input%lin%scf_mode==LINEAR_MIXPOT_SIMPLE.or.input%lin%scf_mode==LINEAR_MIXDENS_SIMPLE) then
@@ -1377,6 +1383,20 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
      end if
   end if
 
+       ! debug
+       !tmb%linmat%kernel_%matrix = sparsematrix_malloc_ptr(tmb%linmat%l, DENSE_FULL, id='tmb%linmat%kernel__%matrix')
+       !!call uncompress_matrix(bigdft_mpi%iproc,tmb%linmat%kernel_)
+       !call uncompress_matrix2(iproc, nproc, tmb%linmat%l, tmb%linmat%kernel_%matrix_compr, tmb%linmat%kernel_%matrix)
+       !if (iproc==0) then
+       !   do iorb=1,tmb%orbs%norb
+       !      do jorb=1,tmb%orbs%norb
+       !         write(33,*) iorb,jorb,tmb%coeff(iorb,jorb),tmb%linmat%kernel_%matrix(iorb,jorb,1)
+       !      end do
+       !   end do
+       !   write(33,*) ''
+       !end if 
+       !call f_free_ptr(tmb%linmat%kernel_%matrix) 
+       !! end debug
 
   ! TEMPORARY DEBUG - plot in global box - CHECK WITH REFORMAT ETC IN LRs
   !nullify(gpsi_virt)
@@ -1932,7 +1952,7 @@ subroutine output_fragment_rotations(iproc,nat,rxyz,iformat,filename,input_frag,
   use module_types
   use yaml_output
   use module_fragments
-  use internal_io
+  !use internal_io
   use module_interfaces
   implicit none
 
