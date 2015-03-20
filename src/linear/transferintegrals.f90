@@ -419,11 +419,32 @@ subroutine calc_site_energies_transfer_integrals(iproc,nproc,meth_overlap,input_
   ! orthogonalize
   coeffs_tmp=f_malloc0((/orbs%norb,orbs%norb/), id='coeffs_tmp')
   call vcopy(orbs%norb*nstates,homo_coeffs(1,1),1,coeffs_tmp(1,1),1)
+
+  !debug
+  !open(8000+bigdft_mpi%iproc)
+  !do istate=1,nstates
+  !do ih=1,orbs%norb
+  !write(8000+bigdft_mpi%iproc,*) istate,ih,coeffs_tmp(ih,istate)
+  !end do
+  !write(8000+bigdft_mpi%iproc,*) ''
+  !end do
+  !close(8000+bigdft_mpi%iproc)
+
   call reorthonormalize_coeff(iproc, nproc, nstates, -8, -8, meth_overlap, orbs, ovrlp, KS_overlap, &
        ovrlp_mat, coeffs_tmp(1,1), orbs)
   coeffs_orthog=f_malloc((/orbs%norb,nstates/), id='coeffs_orthog')
   call vcopy(orbs%norb*nstates,coeffs_tmp(1,1),1,coeffs_orthog(1,1),1)
   call f_free(coeffs_tmp)
+
+  !debug
+  !open(9000+bigdft_mpi%iproc)
+  !do istate=1,nstates
+  !do ih=1,orbs%norb
+  !write(9000+bigdft_mpi%iproc,*) istate,ih,coeffs_orthog(ih,istate)
+  !end do
+  !write(9000+bigdft_mpi%iproc,*) ''
+  !end do
+  !close(9000+bigdft_mpi%iproc)
 
   ! only calculate site energies separately if specified or if not calculating them below
   if (separate_site_energies .or. input_frag%nfrag==1) then
