@@ -534,8 +534,8 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
         energs%eion,fion,in%dispersion,energs%edisp,fdisp,ewaldstr,&
         pot_ion,pkernel,psoffset)
 
-   call createIonicPotential(atoms%astruct%geocode,iproc, (iproc == 0), atoms,rxyz, &
-        in%elecfield,n1,n2,n3,dpcom,pkernel,pot_ion,psoffset)
+   call createIonicPotential(iproc, (iproc == 0), atoms,rxyz, &
+        in%elecfield,dpcom,pkernel,pot_ion,psoffset)
 
 
    !Allocate Charge density, Potential in real space

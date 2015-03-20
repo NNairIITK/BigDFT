@@ -647,7 +647,7 @@ subroutine createEffectiveIonicPotential(iproc, verb, input, atoms, rxyz, shift,
   real(dp), dimension(:), allocatable :: counter_ions
 
   ! Compute the main ionic potential.
-  call createIonicPotential(atoms%astruct%geocode, iproc, verb, atoms, rxyz, &
+  call createIonicPotential(iproc, verb, atoms, rxyz, &
        & elecfield, dpbox, pkernel, pot_ion, psoffset)
 
   !inquire for the counter_ion potential calculation (for the moment only xyz format)
@@ -672,7 +672,7 @@ END SUBROUTINE createEffectiveIonicPotential
 
 
 !> Create the ionic potential
-subroutine createIonicPotential(geocode,iproc,verb,at,rxyz,&
+subroutine createIonicPotential(iproc,verb,at,rxyz,&
      elecfield,dpbox,pkernel,pot_ion,psoffset)
 
   use module_base, pi => pi_param
@@ -690,7 +690,7 @@ subroutine createIonicPotential(geocode,iproc,verb,at,rxyz,&
   implicit none
 
   !Arguments
-  character(len=1), intent(in) :: geocode !< @copydoc poisson_solver::doc::geocode
+!!!  character(len=1), intent(in) :: geocode !< @copydoc poisson_solver::doc::geocode
   integer, intent(in) :: iproc
 !!!  integer, intent(in) :: n1,n2,n3
   logical, intent(in) :: verb
@@ -714,10 +714,10 @@ subroutine createIonicPotential(geocode,iproc,verb,at,rxyz,&
 !!! integer :: n1,n2,n3,iat,iex,iey,iez,ind,indj3,indj23,isx,isy,isz,j1,j2,j3
   integer :: n1i,n2i,n3i
   real(gp) :: hxh,hyh,hzh
-  real(gp) :: rholeaked,rloc,charge,cutoff,r2,arg,xp,tt,rx,ry,rz
-  real(gp) :: tt_tot,rholeaked_tot,potxyz
+  real(gp) :: rloc,charge,cutoff,r2,arg,xp,tt,rx,ry,rz
+  real(gp) :: tt_tot,potxyz
   real(gp) :: raux2,r2paw,rlocinvsq,rlocinv2sq
-!!! real(gp) :: x,y,z,yp,zp,zsq,yzsq
+!!! real(gp) :: x,y,z,yp,zp,zsq,yzsq,rholeaked,rholeaked_tot
   real(gp), dimension(1) :: raux,rr
   real(wp) :: maxdiff
   real(gp) :: ehart
@@ -746,7 +746,7 @@ subroutine createIonicPotential(geocode,iproc,verb,at,rxyz,&
 !!!  n3pi = dpbox%n3pi
 
   ! Ionic charge (must be calculated for the PS active processes)
-  rholeaked=0.d0
+!!!  rholeaked=0.d0
   ! Ionic energy (can be calculated for all the processors)
 
   !Creates charge density arising from the ionic PSP cores
@@ -975,28 +975,28 @@ subroutine createIonicPotential(geocode,iproc,verb,at,rxyz,&
   end do
 
   tt=tt*hxh*hyh*hzh
-  rholeaked=rholeaked*hxh*hyh*hzh
+!!!  rholeaked=rholeaked*hxh*hyh*hzh
 
   !print *,'test case input_rho_ion',iproc,i3start,i3end,n3pi,2*n3+16,tt
 
   if (pkernel%mpi_env%nproc > 1) then
      charges_mpi(1)=tt
-     charges_mpi(2)=rholeaked
+!!!     charges_mpi(2)=rholeaked
 
      !Reduce from all mpi proc
-     call mpiallred(charges_mpi(1),2,MPI_SUM,pkernel%mpi_env%mpi_comm)
+     call mpiallred(charges_mpi(1),1,MPI_SUM,pkernel%mpi_env%mpi_comm)
 
      tt_tot=charges_mpi(1)
-     rholeaked_tot=charges_mpi(2)
+!!!     rholeaked_tot=charges_mpi(2)
   else
      tt_tot=tt
-     rholeaked_tot=rholeaked
+!!!     rholeaked_tot=rholeaked
   end if
 
   if (verb) then
      call yaml_comment('Ionic Potential Creation',hfill='-')
      call yaml_map('Total ionic charge',tt_tot,fmt='(f26.12)')
-     if (rholeaked_tot /= 0.0_gp) call yaml_map('Leaked charge',rholeaked_tot,fmt='(1pe10.3)')
+!!!     if (rholeaked_tot /= 0.0_gp) call yaml_map('Leaked charge',rholeaked_tot,fmt='(1pe10.3)')
      quiet = "no "
   else
      quiet = "yes"
@@ -1350,18 +1350,22 @@ subroutine createIonicPotential(geocode,iproc,verb,at,rxyz,&
   !use rhopot to calculate the potential from a constant electric field along y direction
   if (.not. all(elecfield(1:3) == 0.0_gp)) then
      !constant electric field allowed only for surface and free BC
-     if (geocode == 'P') then
-     !if (iproc == 0) 
-           write(*,'(1x,a)') &
-          'The constant electric field is not allowed for Fully Periodic BC.'
-          !'The constant electric field is allowed only for Free and Surfaces BC'
-     stop
-      !constant electric field allowed for surface BC only normal to the surface
-     elseif (geocode == 'S' .and. (elecfield(1) /= 0.0_gp .or. elecfield(3) /= 0.0_gp) ) then
-     !if (iproc == 0) 
-           write(*,'(1x,a)') &
-          'Only normal constant electric field (Ex=Ez=0) is allowed for Surface BC.'
-     stop
+     if (dpbox%geocode == 'P') then
+        !if (iproc == 0) 
+        call f_err_throw('The constant electric field is not allowed for Fully Periodic BC.', &
+             err_name='BIGDFT_RUNTIME_ERROR')
+        ! write(*,'(1x,a)') &
+        !'The constant electric field is not allowed for Fully Periodic BC.'
+        !'The constant electric field is allowed only for Free and Surfaces BC'
+        !stop
+        !constant electric field allowed for surface BC only normal to the surface
+     elseif (dpbox%geocode == 'S' .and. (elecfield(1) /= 0.0_gp .or. elecfield(3) /= 0.0_gp) ) then
+        !if (iproc == 0) 
+        call f_err_throw('Only normal constant electric field (Ex=Ez=0) is allowed for Surface BC.', &
+             err_name='BIGDFT_RUNTIME_ERROR')
+        !write(*,'(1x,a)') &
+        !'Only normal constant electric field (Ex=Ez=0) is allowed for Surface BC.'
+        !stop
      end if
      if (verb) call yaml_map('Constant electric field (Ha/Bohr)',elecfield(1:3),fmt='(es10.2)')
      !if (verb) write(*,'(1x,a,"(",es10.2,", ",es10.2,", ",es10.2,") ", a)') &
@@ -1371,7 +1375,7 @@ subroutine createIonicPotential(geocode,iproc,verb,at,rxyz,&
 
      !write or not electric field in a separate file
 
-     if (dpbox%n3pi > 0) then
+!!!     if (dpbox%n3pi > 0) then
 !!!        do i3=1,n3pi
 !!!           z=real(i3+i3s-1-nbl3-1,gp)*hzh
 !!!           do i2=1,n2i
@@ -1418,7 +1422,7 @@ subroutine createIonicPotential(geocode,iproc,verb,at,rxyz,&
 !           close(17)
 !        end if
 ! 
-     end if
+!!!     end if
   end if
 
   if (at%multipole_preserving) call finalize_real_space_conversion()
@@ -1657,7 +1661,6 @@ subroutine CounterIonPotential(iproc,in,shift,dpbox,pkernel,pot_ion)
   use public_keys, only: IG_OCCUPATION
   use dictionaries
   use yaml_output
-  use module_atoms, only: deallocate_atoms_data,atomic_data_set_from_dict,atoms_data_null
   use gaussians, only: initialize_real_space_conversion, finalize_real_space_conversion,mp_exp
   use module_atoms
   use module_dpbox
@@ -1678,9 +1681,9 @@ subroutine CounterIonPotential(iproc,in,shift,dpbox,pkernel,pot_ion)
 !!!  integer :: iat,j1,j2,j3,isx,isy,isz,iex,iey,iez
   integer :: i1,i2,i3,ityp,nspin,nrange
 !!!  integer :: ind,nbl1,nbr1,nbl2,nbr2,n3pi,nbl3,nbr3,i3s
-  real(kind=8) :: rholeaked,rloc,rlocinv2sq,charge,cutoff,tt,rx,ry,rz,xp
-!!!  real(kind=8) :: x,y,z,yp,zp
-  real(kind=8) :: hxh,hyh,hzh,tt_tot,rholeaked_tot,potxyz
+  real(kind=8) :: rloc,rlocinv2sq,charge,cutoff,tt,rx,ry,rz,xp
+!!!  real(kind=8) :: x,y,z,yp,zp,rholeaked,rholeaked_tot
+  real(kind=8) :: hxh,hyh,hzh,tt_tot,potxyz
   real(wp) :: maxdiff
   real(gp) :: ehart
   type(atoms_data) :: at
@@ -1730,7 +1733,7 @@ subroutine CounterIonPotential(iproc,in,shift,dpbox,pkernel,pot_ion)
   if (iproc == 0) call print_atomic_variables(at, max(in%hx,in%hy,in%hz), in%ixc, in%dispersion)
 
   ! Ionic charge (must be calculated for the PS active processes)
-  rholeaked=0.d0
+!!!  rholeaked=0.d0
   ! Ionic energy (can be calculated for all the processors)
 
   !Creates charge density arising from the ionic PSP cores
@@ -1883,23 +1886,24 @@ subroutine CounterIonPotential(iproc,in,shift,dpbox,pkernel,pot_ion)
   end do
 
   tt=tt*hxh*hyh*hzh
-  rholeaked=rholeaked*hxh*hyh*hzh
+!!!  rholeaked=rholeaked*hxh*hyh*hzh
 
   if (pkernel%mpi_env%nproc > 1) then
      charges_mpi(1)=tt
-     charges_mpi(2)=rholeaked
+!!!     charges_mpi(2)=rholeaked
 
-     call mpiallred(charges_mpi(1),2,MPI_SUM,pkernel%mpi_env%mpi_comm)
+     call mpiallred(charges_mpi(1),1,MPI_SUM,pkernel%mpi_env%mpi_comm)
 
      tt_tot=charges_mpi(1)
-     rholeaked_tot=charges_mpi(2)
+!!!     rholeaked_tot=charges_mpi(2)
   else
      tt_tot=tt
-     rholeaked_tot=rholeaked
+!!!     rholeaked_tot=rholeaked
   end if
 
-  if (iproc == 0) write(*,'(1x,a,f26.12,2x,1pe10.3)') &
-       'total ionic charge, leaked charge ',tt_tot,rholeaked_tot
+!!!  if (iproc == 0) write(*,'(1x,a,f26.12,2x,1pe10.3)') &
+!!!       'total ionic charge, leaked charge ',tt_tot,rholeaked_tot
+  if (iproc == 0) call yaml_map('total ionic charge',tt_tot)
 
   if (.not. htoobig) then
      call timing(iproc,'CrtLocPot     ','OF')

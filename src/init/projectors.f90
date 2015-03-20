@@ -304,6 +304,7 @@ subroutine fill_projectors(lr,hx,hy,hz,at,orbs,rxyz,nlpsp,idir)
 
 END SUBROUTINE fill_projectors
 
+
 !> Create projectors from gaussian decomposition.
 subroutine atom_projector(nl, ityp, iat, atomname, &
      & geocode, idir, lr, hx, hy, hz, kx, ky, kz, &
@@ -313,6 +314,7 @@ subroutine atom_projector(nl, ityp, iat, atomname, &
   use locregs
   use gaussians, only: gaussian_basis_new, gaussian_basis_iter, &
        & gaussian_iter_start, gaussian_iter_next_shell, gaussian_iter_next_gaussian
+  use yaml_output, only: yaml_warning, yaml_toa
   implicit none
   type(DFT_PSP_projectors), intent(inout) :: nl
   integer, intent(in) :: ityp, iat
@@ -388,12 +390,17 @@ subroutine atom_projector(nl, ityp, iat, atomname, &
            if (abs(1.d0-scpr) > 1.d-2) then
               if (abs(1.d0-scpr) > 1.d-1) then
                  !if (iproc == 0) then
-                 write(*,'(1x,a)')'error found!'
-                 write(*,'(1x,a,i4,a,a6,a,i1,a,i1,a,f6.3)')&
-                      'The norm of the nonlocal PSP for atom n=',iat,&
-                      ' (',trim(atomname),') labeled by l=',iter%l,' m=',iter%n,' is ',scpr
-                 write(*,'(1x,a)')&
-                      'while it is supposed to be about 1.0. Control PSP data or reduce grid spacing.'
+                 call yaml_warning( &
+                      'The norm of the nonlocal PSP for atom n=' // trim(yaml_toa(iat)) // &
+                      ' (' // trim(atomname) // ') labeled by l=' // trim(yaml_toa(iter%l)) // &
+                      ' m=' // trim(yaml_toa(iter%n)) // ' is ' // trim(yaml_toa(scpr)) // &
+                      'while it is supposed to be about 1.0. Control PSP data or reduce grid spacing.')
+                 !write(*,'(1x,a)')'error found!'
+                 !write(*,'(1x,a,i4,a,a6,a,i1,a,i1,a,f6.3)')&
+                 !     'The norm of the nonlocal PSP for atom n=',iat,&
+                 !     ' (',trim(atomname),') labeled by l=',iter%l,' m=',iter%n,' is ',scpr
+                 !write(*,'(1x,a)')&
+                 !     'while it is supposed to be about 1.0. Control PSP data or reduce grid spacing.'
                  !end if
                  !stop commented for the moment
                  !restore the norm of the projector
@@ -413,6 +420,7 @@ subroutine atom_projector(nl, ityp, iat, atomname, &
   call f_release_routine()
 
 end subroutine atom_projector
+
 
 subroutine projector(geocode,iat,idir,l,i,factor,gau_a,rpaw,rxyz,&
      ns1,ns2,ns3,n1,n2,n3,hx,hy,hz,kx,ky,kz,ncplx_k,ncplx_g,&
@@ -525,9 +533,17 @@ subroutine projector(geocode,iat,idir,l,i,factor,gau_a,rpaw,rxyz,&
 !        endif
 !endif
 !seq : 11 22 33 12 23 13
-if (idir == 4 .or. idir == 9) lx(iterm)=lx(iterm)+1
-if (idir == 5 .or. idir == 7) ly(iterm)=ly(iterm)+1
-if (idir == 6 .or. idir == 8) lz(iterm)=lz(iterm)+1
+select case(idir)
+case(4,9)
+   lx(iterm)=lx(iterm)+1
+case(5,7)
+   ly(iterm)=ly(iterm)+1
+case(6,8)
+   lz(iterm)=lz(iterm)+1
+end select
+!if (idir == 4 .or. idir == 9) lx(iterm)=lx(iterm)+1
+!if (idir == 5 .or. idir == 7) ly(iterm)=ly(iterm)+1
+!if (idir == 6 .or. idir == 8) lz(iterm)=lz(iterm)+1
 
         end do
      end if
