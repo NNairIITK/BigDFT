@@ -26,7 +26,7 @@ program GPS_3D
 
    real(kind=8), parameter :: acell = 10.d0
    real(kind=8), parameter :: rad_cav = 1.2d0 ! Radius of the dielectric rigid cavity = rad_cav*acell (with nat=1).
-   integer :: nat = 3 ! Number of atoms to build rigid cavity with nat=1.
+   integer :: nat = 1 ! Number of atoms to build rigid cavity with nat=1.
    real(kind=8) :: erfL  ! To set 1 for Vacuum and correct analitic comparison with gaussian potential.
    real(kind=8) :: erfR  
    real(kind=8), parameter :: sigmaeps = 0.05d0*acell
@@ -330,7 +330,7 @@ program GPS_3D
       unt=f_get_free_unit(22)
       call f_open_file(unt,file='final_ion_ele_line.dat')
       do i2=1,n02
-       write(unt,'(1x,I8,3(1x,e22.15))')i2,pot_check(n01/2,i2,n03/2,1,1),pot_check(n01/2,i2,n03/2,1,2)
+       write(unt,'(1x,I8,2(1x,e22.15))')i2,pot_check(n01/2,i2,n03/2,1,1),pot_check(n01/2,i2,n03/2,1,2)
       end do
       call f_close(unt)
 
@@ -350,6 +350,14 @@ program GPS_3D
 
   call H_potential('G',pkernel,potsol,potsol,ehartree,offset,.false.)
 
+  unt=f_get_free_unit(23)
+  call f_open_file(unt,file='finalpot_vacuum_line.dat')
+  do i2=1,n02
+   write(unt,'(1x,I8,2(1x,e22.15))')i2,potsol(n01/2,i2,n03/2,1),potsol(1,i2,n03/2,1)
+  end do
+  call f_close(unt)
+
+
 !-------------------------------------------------
     !calculate polarization energy.
     epol=0.d0
@@ -363,7 +371,8 @@ program GPS_3D
     end do
     epol=0.5*hx*hy*hz*epol
   if (iproc==0) then
-     call yaml_map('Computed polarization energy in hartree',epol)
+    call yaml_map('Vacuum Hartree energy',ehartree)
+    call yaml_map('Computed polarization energy in hartree',epol)
      epol=epol*627.509469d0
      call yaml_map('Computed polarization energy in kcal/mol',epol)
 
@@ -2866,13 +2875,19 @@ else if (SetEps ==4) then
 !      rxyz(1:3,3)=[7.300000d0, 7.299663d0,10.156750d0]-[2.30d0,2.85d0,3.7d0]
 !      rxyz(1:3,4)=[7.300000d0, 7.299663d0,9.156750d0]-[2.30d0,2.85d0,3.7d0]
 !      rxyz(1:3,5)=[7.300000d0, 7.299663d0,8.156750d0]-[2.30d0,2.85d0,3.7d0]
-      radii=[1.2d0,1.5d0,1.2d0]
+!      radii=[1.4d0,1.0d0,1.0d0]
 !      radii=[1.5d0,2.0d0,1.5d0,1.5d0]
 !      radii=[1.5d0,1.2d0,1.2d0,1.2d0,1.2d0]
-!      rxyz(1,1) = hx*real(n01/2,kind=8)
-!      rxyz(2,1) = hy*real(n02/2,kind=8)
-!      rxyz(3,1) = hz*real(n03/2,kind=8)
+      rxyz(1,1) = hx*real(n01/2,kind=8)
+      rxyz(2,1) = hy*real(n02/2,kind=8)
+      rxyz(3,1) = hz*real(n03/2,kind=8)
 !      rxyz(1:3,2)=[5.00000d0, 5.00000d0 + 0.2d0, 5.000000d0]
+
+      delta=2.0d0
+      if (iproc==0) then
+       call yaml_map('Delta cavity',delta)
+      end if
+      delta=delta*0.25d0 ! Divided by 4 because both rigid cavities are 4*delta widespread
 
       do iat=1,nat
        if (iproc==0) then
@@ -2880,14 +2895,15 @@ else if (SetEps ==4) then
        call yaml_map('atom',iat)
        call yaml_map('rxyz',rxyz(:,iat))
        end if
-!       radii(iat)=rad_cav/0.52917721092d0
-       radii(iat)=rad_cav*radii(iat)/0.52917721092d0
+       radii(iat)=rad_cav*1.5d0/0.52917721092d0
+!       radii(iat) = rad_cav*radii(iat)/0.52917721092d0 + 1.22d0*delta
+!       radii(iat)=rad_cav*radii(iat)/0.52917721092d0
       end do
-      delta=4.d0*max(hx,hy,hz)
+!      delta=4.d0*max(hx,hy,hz)
 
       if (iproc==0) then
        call yaml_map('radii',radii)
-       call yaml_map('delta',delta)
+!       call yaml_map('delta',delta)
       end if
 
 !      radii=radii/acell

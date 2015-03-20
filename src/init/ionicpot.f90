@@ -572,7 +572,7 @@ subroutine epsilon_rigid_cavity(geocode,ndims,hgrids,nat,rxyz,radii,epsilon0,del
 !> calculates the value of the dielectric function for a smoothed cavity 
 !! given a set of centres and radii. Based on error function.
 !! Need the epsilon0 as well as the radius of the cavit and its smoothness
-subroutine epsilon_rigid_cavity_error_multiatoms(geocode,ndims,hgrids,nat,rxyz,radii,epsilon0,delta,eps,dlogeps,oneoeps,oneosqrteps,corr)
+subroutine epsilon_rigid_cavity_error_multiatoms(geocode,ndims,hgrids,nat,rxyz,radii,epsilon0,delta,eps,dlogeps,oneoeps,oneosqrteps,corr,IntSur,IntVol)
   use f_utils
   implicit none
   character(len=1), intent(in) :: geocode !< @copydoc poisson_solver::doc::geocode
@@ -589,6 +589,7 @@ subroutine epsilon_rigid_cavity_error_multiatoms(geocode,ndims,hgrids,nat,rxyz,r
   real(kind=8), dimension(ndims(1),ndims(2),ndims(3)), intent(out) :: oneoeps !< inverse of epsilon. Needed for PI method.
   real(kind=8), dimension(ndims(1),ndims(2),ndims(3)), intent(out) :: oneosqrteps !< inverse square root of epsilon. Needed for PCG method.
   real(kind=8), dimension(ndims(1),ndims(2),ndims(3)), intent(out) :: corr !< correction term of the Generalized Laplacian.
+  real(kind=8), intent(out) :: IntSur,IntVol !< Surface and volume integral needed for non-electrostatic contributions to the energy.
 
   !local variables
   logical :: perx,pery,perz
@@ -609,6 +610,8 @@ subroutine epsilon_rigid_cavity_error_multiatoms(geocode,ndims,hgrids,nat,rxyz,r
   call ext_buffers(pery,nbl2,nbr2)
   call ext_buffers(perz,nbl3,nbr3)
 
+  IntSur=0.d0
+  IntVol=0.d0
   pi = 4.d0*datan(1.d0)
   r=0.d0
   t=0.d0
@@ -650,6 +653,8 @@ subroutine epsilon_rigid_cavity_error_multiatoms(geocode,ndims,hgrids,nat,rxyz,r
 
      end do
 
+     IntVol = IntVol + (1.d0-product(ep))
+
      eps(i1,i2,i3)=(epsilon0-1.d0)*product(ep)+1.d0
      oneoeps(i1,i2,i3)=1.d0/eps(i1,i2,i3)
      oneosqrteps(i1,i2,i3)=1.d0/dsqrt(eps(i1,i2,i3))
@@ -671,6 +676,8 @@ subroutine epsilon_rigid_cavity_error_multiatoms(geocode,ndims,hgrids,nat,rxyz,r
       dlogeps(i,i1,i2,i3)=deps(i)/eps(i1,i2,i3)
       d12 = d12 + deps(i)**2
      end do
+
+     IntSur = IntSur + dsqrt(d12)
 
      dd=0.d0
      do jat=1,nat
@@ -703,6 +710,9 @@ subroutine epsilon_rigid_cavity_error_multiatoms(geocode,ndims,hgrids,nat,rxyz,r
     end do
    end do
   end do
+
+  IntSur=IntSur*hgrids(1)*hgrids(2)*hgrids(3)/(epsilon0-1.d0)
+  IntVol=IntVol*hgrids(1)*hgrids(2)*hgrids(3)
 
   unt=f_get_free_unit(21)
   call f_open_file(unt,file='epsilon.dat')
@@ -750,7 +760,7 @@ end subroutine epsilon_rigid_cavity_error_multiatoms
 !! given a set of centres and radii. Based on the Andreussi epsilon function
 !! with a gaussian \rho^{elec}.
 !! Need the epsilon0 as well as the radius of the cavit and its smoothness
-subroutine epsilon_rigid_cavity_new_multiatoms(geocode,ndims,hgrids,nat,rxyz,radii,epsilon0,delta,eps,dlogeps,oneoeps,oneosqrteps,corr)
+subroutine epsilon_rigid_cavity_new_multiatoms(geocode,ndims,hgrids,nat,rxyz,radii,epsilon0,delta,eps,dlogeps,oneoeps,oneosqrteps,corr,IntSur,IntVol)
   use f_utils
   implicit none
   character(len=1), intent(in) :: geocode !< @copydoc poisson_solver::doc::geocode
@@ -767,6 +777,7 @@ subroutine epsilon_rigid_cavity_new_multiatoms(geocode,ndims,hgrids,nat,rxyz,rad
   real(kind=8), dimension(ndims(1),ndims(2),ndims(3)), intent(out) :: oneoeps !< inverse of epsilon. Needed for PI method.
   real(kind=8), dimension(ndims(1),ndims(2),ndims(3)), intent(out) :: oneosqrteps !< inverse square root of epsilon. Needed for PCG method.
   real(kind=8), dimension(ndims(1),ndims(2),ndims(3)), intent(out) :: corr !< correction term of the Generalized Laplacian.
+  real(kind=8), intent(out) :: IntSur,IntVol !< Surface and volume integral needed for non-electrostatic contributions to the energy.
 
   !local variables
   logical :: perx,pery,perz
@@ -787,6 +798,8 @@ subroutine epsilon_rigid_cavity_new_multiatoms(geocode,ndims,hgrids,nat,rxyz,rad
   call ext_buffers(pery,nbl2,nbr2)
   call ext_buffers(perz,nbl3,nbr3)
 
+  IntSur=0.d0
+  IntVol=0.d0
   pi = 4.d0*datan(1.d0)
   r=0.d0
   t=0.d0
@@ -803,8 +816,8 @@ subroutine epsilon_rigid_cavity_new_multiatoms(geocode,ndims,hgrids,nat,rxyz,rad
      x=hgrids(1)*(i1-1-nbl1)
      v(1)=x
      do iat=1,nat
-      dmax = radii(iat) - 2.36d0*delta
-      dmin = radii(iat) + 1.64d0*delta
+      dmax = radii(iat) - 2.40d0*delta
+      dmin = radii(iat) + 1.60d0*delta
       fact1=2.d0*pi/(-(dmax**2) + dmin**2)
       fact2=(dlog(2.d0))/(2.d0*pi)
       fact3=(dlog(2.d0))/(-(dmax**2) + dmin**2)
@@ -835,6 +848,8 @@ subroutine epsilon_rigid_cavity_new_multiatoms(geocode,ndims,hgrids,nat,rxyz,rad
       end if
      end do
 
+     IntVol = IntVol + (1.d0-product(ep))
+
      eps(i1,i2,i3)=(epsilon0-1.d0)*product(ep)+1.d0
      oneoeps(i1,i2,i3)=1.d0/eps(i1,i2,i3)
      oneosqrteps(i1,i2,i3)=1.d0/dsqrt(eps(i1,i2,i3))
@@ -856,6 +871,8 @@ subroutine epsilon_rigid_cavity_new_multiatoms(geocode,ndims,hgrids,nat,rxyz,rad
       dlogeps(i,i1,i2,i3)=deps(i)/eps(i1,i2,i3)
       d12 = d12 + deps(i)**2
      end do
+
+     IntSur = IntSur + dsqrt(d12)
 
      dd=0.d0
      do jat=1,nat
@@ -888,6 +905,9 @@ subroutine epsilon_rigid_cavity_new_multiatoms(geocode,ndims,hgrids,nat,rxyz,rad
     end do
    end do
   end do
+
+  IntSur=IntSur*hgrids(1)*hgrids(2)*hgrids(3)/(epsilon0-1.d0)
+  IntVol=IntVol*hgrids(1)*hgrids(2)*hgrids(3)
 
   unt=f_get_free_unit(21)
   call f_open_file(unt,file='epsilon.dat')
@@ -1881,14 +1901,6 @@ subroutine CounterIonPotential(geocode,iproc,nproc,in,shift,&
            call mpiallred(maxdiff,1,MPI_MAX,pkernel%mpi_env%mpi_comm)
         end if
 
-        if (iproc == 0) call yaml_map('Check the ionic potential',maxdiff,fmt='(1pe24.17)')
-        !if (iproc == 0) write(*,'(1x,a,1pe24.17)')'...done. MaxDiff=',maxdiff
-
-        stop
-
-        call f_free(potion_corr)
-
-     end if
         if (iproc == 0) call yaml_map('Check the ionic potential',maxdiff,fmt='(1pe24.17)')
         !if (iproc == 0) write(*,'(1x,a,1pe24.17)')'...done. MaxDiff=',maxdiff
 
