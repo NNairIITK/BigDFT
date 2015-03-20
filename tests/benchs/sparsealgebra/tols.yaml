@@ -1,3 +1,9 @@
 ---
 Default tolerances:
  Epsilon: 1.1e-11
+
+Keys to ignore:
+ - sparse matmul load balancing naive / optimized
+ - Max No. of dictionaries used
+ - number of tasks
+ - Memory Consumption Report

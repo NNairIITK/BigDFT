@@ -23,10 +23,12 @@ smatmul_LDADD = -lbigdft-1 @LINALG_LIBS@
 CLEANFILES = *.dat *.yaml report
 
 test-smatmul.out.yaml: smatmul
-	cp -f $(srcdir)/mat_6_36.dat $(PWD)
-	$(run_parallel) ./smatmul --filename=mat_6_36.dat > test-smatmul.out.yaml
-	cp -f $(srcdir)/mat_392_24542.dat $(PWD)
-	$(run_parallel) ./smatmul --filename=mat_392_24542.dat >> test-smatmul.out.yaml
+	cp -f $(srcdir)/mat_114_8986.dat $(PWD)
+	$(run_parallel) ./smatmul --filename=mat_114_8986.dat --nit=10 > test-smatmul.out.yaml
+	cp -f $(srcdir)/mat_600_33620.dat $(PWD)
+	$(run_parallel) ./smatmul --filename=mat_600_33620.dat --nit=100 --verbosity=1 >> test-smatmul.out.yaml
+	cp -f $(srcdir)/mat_1202_77462.dat  $(PWD)
+	$(run_parallel) ./smatmul --filename=mat_1202_77462.dat --nit=20 --verbosity=1 >> test-smatmul.out.yaml
 
 
 check: $(srcdir)/test-smatmul.ref.yaml test-smatmul.out.yaml

@@ -6,13 +6,15 @@ program smatmul
   use yaml_output
   use sparsematrix_base, only: sparse_matrix, matrices, &
                                matrices_null, deallocate_sparse_matrix, deallocate_matrices, &
-                               assignment(=), sparsematrix_malloc_ptr, sparsematrix_malloc, SPARSE_FULL, SPARSEMM_SEQ
+                               assignment(=), sparsematrix_malloc_ptr, sparsematrix_malloc, SPARSE_FULL, SPARSEMM_SEQ, &
+                               SPARSE_MATMUL_SMALL
   !use sparsematrix_init, only: read_ccs_format, ccs_to_sparsebigdft, ccs_values_to_bigdft, &
   !                             read_bigdft_format, bigdft_to_sparsebigdft
   use sparsematrix_init, only: bigdft_to_sparsebigdft
   use sparsematrix, only: write_matrix_compressed, check_symmetry, &
                           write_sparsematrix_CCS, write_sparsematrix, &
-                          sparsemm_new, sequential_acces_matrix_fast2
+                          sparsemm_new, sequential_acces_matrix_fast2, &
+                          compress_matrix_distributed_wrapper
   !use matrix_operations, only: overlapPowerGeneral
   use io, only: read_sparse_matrix
   implicit none
@@ -20,7 +22,7 @@ program smatmul
   external :: gather_timings
 
   ! Variables
-  integer :: iproc, nproc, ncol, nnonzero, nseg, ncolp, iscol, ierr, nspin, nfvctr, nvctr, isfvctr, nfvctrp
+  integer :: iproc, nproc, ncol, nnonzero, nseg, ncolp, iscol, ierr, nspin, nfvctr, nvctr, isfvctr, nfvctrp, nit, it, verbosity
   !character(len=*),parameter :: filename='matrix.dat'
   character(len=1024) :: filename
   integer,dimension(:),pointer :: col_ptr, row_ind, keyv
@@ -33,7 +35,7 @@ program smatmul
   logical :: symmetric
   real(kind=8) :: time_start, time_end
   real(kind=8),dimension(:),pointer :: mat_compr
-  real(kind=8),dimension(:),allocatable :: mat_seq, vectors
+  real(kind=8),dimension(:),allocatable :: mat_seq, vector_in, vector_out
   type(dictionary), pointer :: dict_timing_info
   type(dictionary), pointer :: options
   type(yaml_cl_parse) :: parser !< command line parser
@@ -48,13 +50,23 @@ program smatmul
   call yaml_cl_parse_free(parser)
 
   filename = options//'filename'
+  nit = options//'nit'
+  verbosity = options//'verbosity'
   call dict_free(options)
 
+  if (verbosity<1 .or. verbosity>2) then
+      call f_err_throw('wrong value for the verbosity, only 1 or 2 is allowed', &
+          err_name='GENERIC_ERROR')
+  end if
 
   call bigdft_init()!mpi_info,nconfig,run_id,ierr)
   !just for backward compatibility
   iproc=bigdft_mpi%iproc!mpi_info(1)
   nproc=bigdft_mpi%nproc!mpi_info(2)
+
+  if (iproc==0) then
+      call yaml_new_document()
+  end if
 
   call f_timing_reset(filename='time.yaml',master=iproc==0,verbose_mode=.true. .and. nproc>1)
 
@@ -107,37 +119,40 @@ program smatmul
   !!     check_accur=.true., max_error=max_error, mean_error=mean_error)
 
   mat_seq = sparsematrix_malloc(smat, iaction=SPARSEMM_SEQ, id='mat_seq')
-  vectors = f_malloc0(smat%smmm%nvctrp,id='vectors')
+  vector_in = f_malloc0(smat%smmm%nvctrp,id='vector_in')
+  vector_out = f_malloc0(smat%smmm%nvctrp,id='vector_out')
   call sequential_acces_matrix_fast2(smat, mat_compr, mat_seq)
-  call sparsemm_new(smat, mat_seq, mat_compr, vectors)
+
+  call vcopy(smat%smmm%nvctrp, mat_compr(smat%smmm%isvctr_mm_par(iproc)+1), 1, vector_in(1), 1)
+  do it=1,nit
+      call sparsemm_new(smat, mat_seq, vector_in, vector_out)
+      call vcopy(smat%smmm%nvctrp, vector_out(1), 1, vector_in(1), 1)
+  end do
 
 
-  !!call overlapPowerGeneral(iproc, nproc, 0, 1, (/1/), -8, &
-  !!     1, ovrlp_smat=smat, inv_ovrlp_smat=smat, ovrlp_mat=matA, inv_ovrlp_mat=matB, &
-  !!     check_accur=.true., max_error=max_error, mean_error=mean_error)
+  call compress_matrix_distributed_wrapper(iproc, nproc, smat, SPARSE_MATMUL_SMALL, &
+       vector_out, matA%matrix_compr)
+  if (iproc==0 .and. verbosity==2) then
+      call write_matrix_compressed('final result', smat, matA)
+  end if
+
   call mpibarrier(bigdft_mpi%mpi_comm)
   time_end = mpi_wtime()
   call timing(bigdft_mpi%mpi_comm,'CALC','PR')
-  !if (iproc==0) write(*,*) 'walltime',time_end-time_start
-
-  ! Write the results
-  !if (iproc==0) call write_matrix_compressed('Result', smat, matB(1))
-
-  !if (iproc==0) call write_sparsematrix_CCS('result_css.dat', smat, matB(1))
-  !if (iproc==0) call write_sparsematrix('result_bigdft.dat', smat, matB(1))
 
   ! Deallocations
   call deallocate_sparse_matrix(smat)
   call deallocate_matrices(matA)
   !call deallocate_matrices(matB(1))
-  call f_free_ptr(col_ptr)
-  call f_free_ptr(row_ind)
+  !call f_free_ptr(col_ptr)
+  !call f_free_ptr(row_ind)
   call f_free_ptr(keyv)
   call f_free_ptr(keyg)
   call f_free_ptr(val)
   call f_free(mat_seq)
   call f_free_ptr(mat_compr)
-  call f_free(vectors)
+  call f_free(vector_in)
+  call f_free(vector_out)
 
   call timing(bigdft_mpi%mpi_comm,'FINISH','PR')
 
@@ -155,8 +170,12 @@ program smatmul
   !   call yaml_flush_document()
   !end if
 
+  if (iproc==0) then
+      call yaml_release_document()
+  end if
 
   call bigdft_finalize(ierr)
+
   call f_lib_finalize()
 
   contains
@@ -250,5 +269,19 @@ subroutine commandline_options(parser)
        'File name from which the sparse matrix is read',&
        'Allowed values' .is. &
        'String'))
+
+  call yaml_cl_parse_option(parser,'nit','1',&
+       'number of iterations','n',&
+       dict_new('Usage' .is. &
+       'Number of matrix matrix multiplications to be performed',&
+       'Allowed values' .is. &
+       'Integer'))
+
+  call yaml_cl_parse_option(parser,'verbosity','2',&
+       'verbosity of the output','v',&
+       dict_new('Usage' .is. &
+       'If the verbosity is high, the final result will be printed to the scree',&
+       'Allowed values' .is. &
+       'Integer. Only 1 or 2 is possible'))
 
 end subroutine commandline_options

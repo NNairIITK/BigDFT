@@ -40,6 +40,7 @@ subroutine calculate_forces(iproc,nproc,psolver_groupsize,Glr,atoms,orbs,nlpsp,r
 
   !real(gp), dimension(3,atoms%astruct%nat) :: fxyz_tmp
 
+  call f_routine(id='calculate_forces')
 
   call f_zero(strten)
   call f_zero(strtens)
@@ -195,6 +196,9 @@ subroutine calculate_forces(iproc,nproc,psolver_groupsize,Glr,atoms,orbs,nlpsp,r
      !!    if (iproc==0) call yaml_map('Stress Tensor calculated',.false.)
      !!end if
   end if
+
+  call f_release_routine()
+
 end subroutine calculate_forces
 
 
