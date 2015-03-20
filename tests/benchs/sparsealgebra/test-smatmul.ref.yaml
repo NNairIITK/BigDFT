@@ -8,15 +8,14 @@
    taskgroups overview:
    -  {number of tasks:  1, IDs: { 0: {s:  1, e:  36}},
  start / end:  [  1,  36 ], start / end disjoint:  [  1,  36 ]}
-Memory Consumption Report:
-  Tot. No. of Allocations              :  89
-  Tot. No. of Deallocations            :  89
-  Remaining Memory (B)                 :  0
-  Memory occupation:
-    Peak Value (MB)                    :  0.010
-    for the array                      : group_names
-    in the routine                     : timing_dump_results
-    Memory Peak of process             : 16.664 MB
-Max No. of dictionaries used           :  1065 #( 857 still in use)
-Number of dictionary folders allocated :  1
-
+ Memory Consumption Report:
+   Tot. No. of Allocations              :  89
+   Tot. No. of Deallocations            :  89
+   Remaining Memory (B)                 :  0
+   Memory occupation:
+     Peak Value (MB)                    :  0.010
+     for the array                      : group_names
+     in the routine                     : timing_dump_results
+     Memory Peak of process             : 16.664 MB
+ Max No. of dictionaries used           :  1065 #( 857 still in use)
+ Number of dictionary folders allocated :  1

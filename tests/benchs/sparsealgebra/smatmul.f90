@@ -146,14 +146,14 @@ program smatmul
        gather_routine=gather_timings, dict_info=dict_timing_info)
   call dict_free(dict_timing_info)
 
-  if (iproc == 0) then
-     !call yaml_comment('Timing for root process',hfill='-')
-     !call yaml_mapping_open('Timings for root process')
-     !call yaml_map('CPU time (s)',tcpu1-tcpu0,fmt='(f12.2)')
-     !call yaml_map('Elapsed time (s)',tel,fmt='(f12.2)')
-     call yaml_mapping_close()
-     call yaml_flush_document()
-  end if
+  !if (iproc == 0) then
+  !   !call yaml_comment('Timing for root process',hfill='-')
+  !   !call yaml_mapping_open('Timings for root process')
+  !   !call yaml_map('CPU time (s)',tcpu1-tcpu0,fmt='(f12.2)')
+  !   !call yaml_map('Elapsed time (s)',tel,fmt='(f12.2)')
+  !   call yaml_mapping_close()
+  !   call yaml_flush_document()
+  !end if
 
 
   call bigdft_finalize(ierr)

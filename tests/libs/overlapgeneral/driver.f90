@@ -18,7 +18,7 @@ program driver
                                SPARSE_FULL, sparsematrix_malloc, assignment(=)
   use sparsematrix, only: compress_matrix, uncompress_matrix, extract_taskgroup_inplace, &
                           write_matrix_compressed, check_symmetry
-  use matrix_operations, only: overlapPowerGeneral
+  use matrix_operations, only: overlapPowerGeneral, deviation_from_unity_parallel
   use yaml_output
   implicit none
 

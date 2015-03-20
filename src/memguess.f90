@@ -80,6 +80,7 @@ program memguess
    !real(kind=8),parameter :: degree=57.295779513d0
    real(kind=8),parameter :: degree=1.d0
    character(len=6) :: direction
+   character(len=2) :: backslash
    logical :: file_exists, found_bin, mpi_init
    logical,dimension(:),allocatable :: calc_array
    real(kind=8),parameter :: eps_roundoff=1.d-5
@@ -721,12 +722,13 @@ program memguess
        write(iunit02,'(a)') 'set samples 1000'
        write(iunit02,'(a,2(es12.5,a))') 'set xrange[',eval(1),':',eval(ntmb),']'
        write(iunit02,'(a)') 'sigma=0.01'
+       write(backslash,'(a)') '\ '
        ! Calculate a partial kernel for each KS orbital
        do ipdos=1,npdos
            call yaml_map('PDoS number',ipdos)
            call yaml_map('start, increment',(/ipdos,npdos/))
            write(num,fmt='(i2.2)') ipdos
-           write(iunit02,'(a,i0,a)') 'f',ipdos,'(x) = \ '
+           write(iunit02,'(a,i0,a)') 'f',ipdos,'(x) = '//trim(backslash)
            do iorb=1,norbks
                call yaml_map('orbital being processed',iorb)
                call gemm('n', 't', ntmb, ntmb, 1, 1.d0, coeff(1,iorb), ntmb, &
@@ -765,7 +767,7 @@ program memguess
                    call f_err_throw('could not determine energy bin, energy='//yaml_toa(energy),err_name='BIGDFT_RUNTIME_ERROR')
                end if
                if (iorb<norbks) then
-                   write(iunit02,'(2(a,es16.9),a)') '  ',occup,'*exp(-(x-',energy,')**2/(2*sigma**2)) + \ '
+                   write(iunit02,'(2(a,es16.9),a)') '  ',occup,'*exp(-(x-',energy,')**2/(2*sigma**2)) + '//trim(backslash)
                else
                    write(iunit02,'(2(a,es16.9),a)') '  ',occup,'*exp(-(x-',energy,')**2/(2*sigma**2))'
                end if
