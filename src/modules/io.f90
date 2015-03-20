@@ -1060,10 +1060,11 @@ module io
   !!$    end if
     END SUBROUTINE io_open
 
+
     !> Write a sparse matrix to disk.
     !! ATTENTION: This routine must be called by all MPI tasks due to the fact that the matrix 
     !! in distributed among the matrix taksgroups
-    subroutine write_sparse_matrix(orbs, at, rxyz, smat, mat, filename)
+    subroutine write_sparse_matrix(at, rxyz, smat, mat, filename)
       use module_base
       use module_types
       use sparsematrix_base, only: sparse_matrix, matrices, SPARSE_FULL, &
@@ -1072,7 +1073,6 @@ module io
       implicit none
       
       ! Calling arguments
-      type(orbitals_data),intent(in) :: orbs !one should better avoid to use orbs here...
       type(atoms_data),intent(in) :: at
       real(kind=8),dimension(3,at%astruct%nat),intent(in) :: rxyz
       type(sparse_matrix),intent(in) :: smat
@@ -1108,10 +1108,10 @@ module io
           do ispin=1,smat%nspin
               do iseg=1,smat%nseg
                   icol = smat%keyg(1,2,iseg)
-                  iat = orbs%onwhichatom(icol)
+                  iat = smat%on_which_atom(icol)
                   do jorb=smat%keyg(1,1,iseg),smat%keyg(2,1,iseg)
                       irow = jorb
-                      jat = orbs%onwhichatom(irow)
+                      jat = smat%on_which_atom(irow)
                       ind = ind + 1
                       write(iunit,'(es24.16,2i12,a)') matrix_compr(ind), jat, iat, '   # matrix, jat, iat'
                   end do
@@ -1141,8 +1141,8 @@ module io
       integer,dimension(:,:,:),pointer,intent(out) :: keyg
       real(kind=8),dimension(:),pointer,intent(out) :: mat_compr
       integer,intent(out),optional :: nat
-      real(kind=8),dimension(:,:),pointer,intent(out),optional :: rxyz
-      integer,dimension(:),pointer,intent(out),optional :: on_which_atom
+      real(kind=8),dimension(:,:),pointer,intent(inout),optional :: rxyz
+      integer,dimension(:),pointer,intent(inout),optional :: on_which_atom
 
       ! Local variables
       integer :: iunit, dummy_int, iseg, icol, irow, jorb, ind, ispin, iat
@@ -1189,6 +1189,7 @@ module io
       end do
       mat_compr = f_malloc_ptr(nvctr,id='mat_compr')
       if (read_on_which_atom) then
+          nullify(on_which_atom)
           on_which_atom = f_malloc_ptr(nfvctr,id='on_which_atom')
           ind = 0
           do ispin=1,nspin
@@ -1295,7 +1296,7 @@ module io
     
       end if
 
-      call write_sparse_matrix(tmb%orbs, at, rxyz, tmb%linmat%m, tmb%linmat%ham_, trim(filename//'hamiltonian_sparse.bin'))
+      call write_sparse_matrix(at, rxyz, tmb%linmat%m, tmb%linmat%ham_, trim(filename//'hamiltonian_sparse.bin'))
     
       call f_free_ptr(tmb%linmat%ham_%matrix)
     
@@ -1348,7 +1349,7 @@ module io
     
       end if
 
-      call write_sparse_matrix(tmb%orbs, at, rxyz, tmb%linmat%m, tmb%linmat%ham_, filename//'overlap_sparse.bin')
+      call write_sparse_matrix(at, rxyz, tmb%linmat%m, tmb%linmat%ham_, filename//'overlap_sparse.bin')
     
       call f_free_ptr(tmb%linmat%ovrlp_%matrix)
     
@@ -1399,7 +1400,7 @@ module io
     
      end if
 
-      call write_sparse_matrix(tmb%orbs, at, rxyz, tmb%linmat%m, tmb%linmat%ham_, filename//'density_kernel_sparse.bin')
+      call write_sparse_matrix(at, rxyz, tmb%linmat%m, tmb%linmat%ham_, filename//'density_kernel_sparse.bin')
     
       call f_free_ptr(tmb%linmat%kernel_%matrix)
     
@@ -1454,7 +1455,7 @@ module io
     
       end if
 
-      call write_sparse_matrix(tmb%orbs, at, rxyz, tmb%linmat%m, tmb%linmat%ham_, filename//'overlap_onsite.bin')
+      call write_sparse_matrix(at, rxyz, tmb%linmat%m, tmb%linmat%ham_, filename//'overlap_onsite.bin')
     
       !!i_all = -product(shape(tmb%linmat%ovrlp%matrix))*kind(tmb%linmat%ovrlp%matrix)
       !!deallocate(tmb%linmat%ovrlp%matrix,stat=i_stat)

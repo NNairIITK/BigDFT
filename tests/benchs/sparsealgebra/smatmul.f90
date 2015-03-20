@@ -25,9 +25,8 @@ program smatmul
   integer :: iproc, nproc, ncol, nnonzero, nseg, ncolp, iscol, ierr, nspin, nfvctr, nvctr, isfvctr, nfvctrp, nit, it, verbosity
   !character(len=*),parameter :: filename='matrix.dat'
   character(len=1024) :: filename
-  integer,dimension(:),pointer :: col_ptr, row_ind, keyv
+  integer,dimension(:),pointer :: col_ptr, row_ind, keyv, on_which_atom
   integer,dimension(:,:,:),pointer :: keyg
-  real(kind=8),dimension(:),pointer :: val
   type(sparse_matrix) :: smat
   type(matrices) :: matA
   type(matrices),dimension(1) :: matB
@@ -71,32 +70,23 @@ program smatmul
   call f_timing_reset(filename='time.yaml',master=iproc==0,verbose_mode=.true. .and. nproc>1)
 
   ! Nullify all pointers
-  !!nullify(col_ptr)
-  !!nullify(row_ind)
   nullify(keyv)
   nullify(keyg)
   nullify(mat_compr)
-  !nullify(val)
+  nullify(on_which_atom)
 
   
   ! Read in a file in the sparse BigDFT format
-  !call read_bigdft_format(filename, ncol, nnonzero, nseg, keyv, keyg, val)
-  call read_sparse_matrix(filename, nspin, nfvctr, nseg, nvctr, keyv, keyg, mat_compr)
+  call read_sparse_matrix(filename, nspin, nfvctr, nseg, nvctr, keyv, keyg, mat_compr, on_which_atom=on_which_atom)
 
   ! Create the corresponding BigDFT sparsity pattern
-  !call ccs_to_sparsebigdft(iproc, nproc, ncol, ncol, 0, nnonzero, row_ind, col_ptr, smat)
-  !call distribute_columns_on_processes(iproc, nproc, ncol, ncolp, iscol)
   call distribute_columns_on_processes(iproc, nproc, nfvctr, nfvctrp, isfvctr)
-  !write(*,'(a,4i9)') 'iproc, nfvctr, nfvctrp, isfvctr', iproc, nfvctr, nfvctrp, isfvctr
-  !call bigdft_to_sparsebigdft(iproc, nproc, ncol, ncolp, iscol, nnonzero, nseg, keyg, smat)
-  call bigdft_to_sparsebigdft(iproc, nproc, nfvctr, nfvctrp, isfvctr, nvctr, nseg, keyg, smat)
+  call bigdft_to_sparsebigdft(iproc, nproc, nfvctr, nfvctrp, isfvctr, on_which_atom, nvctr, nseg, keyg, smat)
 
   matA = matrices_null()
-  !matB(1) = matrices_null()
 
   ! Assign the values
   matA%matrix_compr = sparsematrix_malloc_ptr(smat, iaction=SPARSE_FULL, id='matA%matrix_compr')
-  !call ccs_values_to_bigdft(ncol, nnonzero, row_ind, col_ptr, smat, val, matA)
   matA%matrix_compr = mat_compr
 
   ! Check the symmetry
@@ -104,19 +94,13 @@ program smatmul
   if (.not.symmetric) stop 'ERROR not symmetric'
   
   ! Write the original matrix
-  !if (iproc==0) call write_matrix_compressed('Original matrix', smat, matA)
-  !if (iproc==0) call write_sparsematrix_CCS('original_css.dat', smat, matA)
   if (iproc==0) call write_sparsematrix('original_bigdft.dat', smat, matA)
 
   call timing(bigdft_mpi%mpi_comm,'INIT','PR')
 
   ! Calculate the inverse
-  !matB(1)%matrix_compr = sparsematrix_malloc_ptr(smat, iaction=SPARSE_FULL, id='matB(1)%matrix_compr')
   call mpibarrier(bigdft_mpi%mpi_comm)
   time_start = mpi_wtime()
-  !!call overlapPowerGeneral(iproc, nproc, 1020, 1, (/1/), -8, &
-  !!     1, ovrlp_smat=smat, inv_ovrlp_smat=smat, ovrlp_mat=matA, inv_ovrlp_mat=matB, &
-  !!     check_accur=.true., max_error=max_error, mean_error=mean_error)
 
   mat_seq = sparsematrix_malloc(smat, iaction=SPARSEMM_SEQ, id='mat_seq')
   vector_in = f_malloc0(smat%smmm%nvctrp,id='vector_in')
@@ -143,16 +127,13 @@ program smatmul
   ! Deallocations
   call deallocate_sparse_matrix(smat)
   call deallocate_matrices(matA)
-  !call deallocate_matrices(matB(1))
-  !call f_free_ptr(col_ptr)
-  !call f_free_ptr(row_ind)
   call f_free_ptr(keyv)
   call f_free_ptr(keyg)
-  call f_free_ptr(val)
   call f_free(mat_seq)
   call f_free_ptr(mat_compr)
   call f_free(vector_in)
   call f_free(vector_out)
+  call f_free_ptr(on_which_atom)
 
   call timing(bigdft_mpi%mpi_comm,'FINISH','PR')
 
@@ -160,15 +141,6 @@ program smatmul
   call f_timing_stop(mpi_comm=bigdft_mpi%mpi_comm, nproc=bigdft_mpi%nproc, &
        gather_routine=gather_timings, dict_info=dict_timing_info)
   call dict_free(dict_timing_info)
-
-  !if (iproc == 0) then
-  !   !call yaml_comment('Timing for root process',hfill='-')
-  !   !call yaml_mapping_open('Timings for root process')
-  !   !call yaml_map('CPU time (s)',tcpu1-tcpu0,fmt='(f12.2)')
-  !   !call yaml_map('Elapsed time (s)',tel,fmt='(f12.2)')
-  !   call yaml_mapping_close()
-  !   call yaml_flush_document()
-  !end if
 
   if (iproc==0) then
       call yaml_release_document()

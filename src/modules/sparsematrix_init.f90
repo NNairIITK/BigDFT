@@ -98,7 +98,7 @@ contains
       end if
       call init_sparse_matrix(iproc, nproc, nspin, orbs%norb, orbs%norbp, orbs%isorb, &
            orbs%norbu, orbs%norbup, orbs%isorbu, store_index, &
-           nnonzero, nonzero, nnonzero_mult, nonzero_mult, smat)
+           orbs%onwhichatom, nnonzero, nonzero, nnonzero_mult, nonzero_mult, smat)
       call f_free_ptr(nonzero)
       call f_free_ptr(nonzero_mult)
       call f_free(cutoff)
@@ -1239,7 +1239,7 @@ contains
 
     !> Currently assuming square matrices
     subroutine init_sparse_matrix(iproc, nproc, nspin, norb, norbp, isorb, norbu, norbup, isorbu, store_index, &
-               nnonzero, nonzero, nnonzero_mult, nonzero_mult, sparsemat, &
+               on_which_atom, nnonzero, nonzero, nnonzero_mult, nonzero_mult, sparsemat, &
                allocate_full_, print_info_)
       use yaml_output
       implicit none
@@ -1247,6 +1247,7 @@ contains
       ! Calling arguments
       integer,intent(in) :: iproc, nproc, nspin, norb, norbp, isorb, norbu, norbup, isorbu, nnonzero, nnonzero_mult
       logical,intent(in) :: store_index
+      integer,dimension(norbu),intent(in) :: on_which_atom
       integer,dimension(2,nnonzero),intent(in) :: nonzero
       integer,dimension(2,nnonzero_mult),intent(in) :: nonzero_mult
       type(sparse_matrix), intent(out) :: sparsemat
@@ -1293,7 +1294,8 @@ contains
       end if
 
       call allocate_sparse_matrix_basic(store_index, norbu, nproc, sparsemat)
-    
+
+      call vcopy(norbu, on_which_atom(1), 1, sparsemat%on_which_atom(1), 1)
 
       sparsemat%nseg=0
       sparsemat%nvctr=0
@@ -3451,10 +3453,12 @@ contains
 
 
     !> Uses the CCS sparsity pattern to create a BigDFT sparse_matrix type
-    subroutine ccs_to_sparsebigdft(iproc, nproc, ncol, ncolp, iscol, nnonzero, row_ind, col_ptr, smat)
+    subroutine ccs_to_sparsebigdft(iproc, nproc, ncol, ncolp, iscol, nnonzero, &
+               on_which_atom, row_ind, col_ptr, smat)
       use communications_base, only: comms_linear, comms_linear_null
       implicit none
       integer,intent(in) :: iproc, nproc, ncol, ncolp, iscol, nnonzero
+      integer,dimension(ncol),intent(in) :: on_which_atom
       !logical,intent(in) :: store_index
       integer,dimension(nnonzero),intent(in) :: row_ind
       integer,dimension(ncol),intent(in) :: col_ptr
@@ -3466,6 +3470,7 @@ contains
       logical,dimension(:,:),allocatable :: mat
       type(comms_linear) :: collcom_dummy
 
+      stop 'must be reworked'
 
       ! Calculate the values of nonzero and nonzero_mult which are required for
       ! the init_sparse_matrix routine.
@@ -3498,7 +3503,7 @@ contains
       call f_free(mat)
 
       call init_sparse_matrix(iproc, nproc, 1, ncol, ncolp, iscol, ncol, ncolp, iscol, .false., &
-                 nnonzero, nonzero, nnonzero, nonzero, smat)
+           on_which_atom, nnonzero, nonzero, nnonzero, nonzero, smat)
 
       collcom_dummy = comms_linear_null()
       ! since no taskgroups are used, the values of iirow and iicol are just set to
@@ -3512,10 +3517,12 @@ contains
 
 
     !> Uses the BigDFT sparsity pattern to create a BigDFT sparse_matrix type
-    subroutine bigdft_to_sparsebigdft(iproc, nproc, ncol, ncolp, iscol, nvctr, nseg, keyg, smat)
+    subroutine bigdft_to_sparsebigdft(iproc, nproc, ncol, ncolp, iscol, &
+               on_which_atom, nvctr, nseg, keyg, smat)
       use communications_base, only: comms_linear, comms_linear_null
       implicit none
       integer,intent(in) :: iproc, nproc, ncol, ncolp, iscol, nvctr, nseg
+      integer,dimension(ncol),intent(in) :: on_which_atom
       !logical,intent(in) :: store_index
       integer,dimension(2,2,nseg),intent(in) :: keyg
       type(sparse_matrix),intent(out) :: smat
@@ -3575,7 +3582,7 @@ contains
       !!end do
 
       call init_sparse_matrix(iproc, nproc, 1, ncol, ncolp, iscol, ncol, ncolp, iscol, .false., &
-           nvctr, nonzero, nvctr, nonzero, smat)
+           on_which_atom, nvctr, nonzero, nvctr, nonzero, smat)
 
       collcom_dummy = comms_linear_null()
       ! since no taskgroups are used, the values of iirow and iicol are just set to
@@ -4059,7 +4066,7 @@ contains
           end do
           call init_sparse_matrix(iproc, nproc, input%nspin, orbs%norb, orbs%norbp, orbs%isorb, &
                norb, norbp, isorb, input%store_index, &
-               norb*norbp, nonzero, norb*norbp, nonzero, smat(ispin), print_info_=.false.)
+               orbs%onwhichatom, norb*norbp, nonzero, norb*norbp, nonzero, smat(ispin), print_info_=.false.)
           call f_free(nonzero)
     
     
@@ -4090,7 +4097,7 @@ contains
           !!     orbs_aux%norbu*orbs_aux%norbup, nonzero, orbs_aux%norbu, nonzero, smat_extra(ispin), print_info_=.false.)
           call init_sparse_matrix(iproc, nproc, input%nspin, orbs_aux%norb, orbs_aux%norbp, orbs_aux%isorb, &
                orbs_aux%norb, orbs_aux%norbp, orbs_aux%isorb, input%store_index, &
-               orbs_aux%norbu*orbs_aux%norbup, nonzero, orbs_aux%norbu*orbs_aux%norbup, nonzero, &
+               orbs_aux%onwhichatom, orbs_aux%norbu*orbs_aux%norbup, nonzero, orbs_aux%norbu*orbs_aux%norbup, nonzero, &
                smat_extra(ispin), print_info_=.false.)
           call f_free(nonzero)
           call deallocate_orbitals_data(orbs_aux)
