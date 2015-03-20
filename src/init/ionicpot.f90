@@ -33,13 +33,13 @@ subroutine IonicEnergyandForces(iproc,dpbox,at,elecfield,&
   real(gp), dimension(:,:), pointer :: fion,fdisp
   real(dp), dimension(*), intent(out) :: pot_ion
   !Local variables
-  real(gp), parameter :: mp_tiny = 1.e-30_gp
+!!!  real(gp), parameter :: mp_tiny = 1.e-30_gp
   logical :: slowion=.false.
-!!! logical :: perx,pery,perz,gox,goy,goz
-!!! integer ::  nbl1,nbr1,nbl2,nbr2,nbl3,nbr3,n3i,n3pi,i3s
-  integer :: n1i,n2i,nrange
+!!!  logical :: perx,pery,perz,gox,goy,goz
+!!!  integer ::  nbl1,nbr1,nbl2,nbr2,nbl3,nbr3,n3i,n3pi,i3s
+!!!  integer :: isx,iex,isy,iey,isz,iez,j1,j2,j3,ind,n1i,n2i
+  integer :: nrange
   integer :: i,i1,i2,i3,iat,ii,ityp,jat,jtyp
-!!!  integer :: isx,iex,isy,iey,isz,iez,j1,j2,j3,ind
   real(gp) :: ucvol,rloc,rlocinv2sq,twopitothreehalf,atint,shortlength,charge,eself,rx,ry,rz
   real(gp) :: fxion,fyion,fzion,dist,fxerf,fyerf,fzerf,cutoff
   real(gp) :: hxh,hyh,hzh
@@ -66,8 +66,8 @@ subroutine IonicEnergyandForces(iproc,dpbox,at,elecfield,&
   hxh = dpbox%hgrids(1)
   hyh = dpbox%hgrids(2)
   hzh = dpbox%hgrids(3)
-  n1i = dpbox%ndims(1)
-  n2i = dpbox%ndims(2)
+!!!  n1i = dpbox%ndims(1)
+!!!  n2i = dpbox%ndims(2)
 !!!  n3i = dpbox%ndims(3)
 !!!  i3s = dpbox%i3s + dpbox%i3xcsh
 !!!  n3pi = dpbox%n3pi
@@ -294,7 +294,7 @@ subroutine IonicEnergyandForces(iproc,dpbox,at,elecfield,&
 
      !if (nproc==1) 
      !print *,'iproc,eself',iproc,eself
-     call f_zero(n1i*n2i*dpbox%n3pi,pot_ion(1))
+     call f_zero(dpbox%ndims(1)*dpbox%ndims(2)*dpbox%n3pi,pot_ion(1))
 
      if (dpbox%n3pi >0 ) then
         !then calculate the hartree energy and forces of the charge distributions
@@ -619,7 +619,7 @@ END SUBROUTINE IonicEnergyandForces
 
 !> Create the effective ionic potential (main ionic + counter ions)
 subroutine createEffectiveIonicPotential(iproc, verb, input, atoms, rxyz, shift, &
-     & Glr, hxh, hyh, hzh, dpbox, pkernel, pot_ion, elecfield, psoffset)
+     & dpbox, pkernel, pot_ion, elecfield, psoffset)
 
   use module_base
   use module_dpbox, only: denspot_distribution
@@ -630,9 +630,10 @@ subroutine createEffectiveIonicPotential(iproc, verb, input, atoms, rxyz, shift,
   !Arguments
   integer, intent(in) :: iproc
   logical, intent(in) :: verb
-  real(gp), intent(in) :: hxh,hyh,hzh,psoffset
+!!!  real(gp), intent(in) :: hxh,hyh,hzh
+  real(gp), intent(in) :: psoffset
   type(atoms_data), intent(in) :: atoms
-  type(locreg_descriptors), intent(in) :: Glr
+!!!  type(locreg_descriptors), intent(in) :: Glr
   type(input_variables), intent(in) :: input
   type(denspot_distribution), intent(in) :: dpbox
   real(gp), dimension(3), intent(in) :: elecfield
@@ -653,16 +654,15 @@ subroutine createEffectiveIonicPotential(iproc, verb, input, atoms, rxyz, shift,
   inquire(file='posinp_ci.xyz',exist=counterions)
   if (counterions) then
      if (dpbox%n3pi > 0) then
-        counter_ions = f_malloc(Glr%d%n1i*Glr%d%n2i*dpbox%n3pi,id='counter_ions')
+        counter_ions = f_malloc(dpbox%ndims(1)*dpbox%ndims(2)*dpbox%n3pi,id='counter_ions')
      else
         counter_ions = f_malloc(1,id='counter_ions')
      end if
 
-     call CounterIonPotential(iproc,input,shift,&
-          &   hxh,hyh,hzh,Glr%d,dpbox,pkernel,counter_ions)
+     call CounterIonPotential(iproc,input,shift,dpbox,pkernel,counter_ions)
 
      !sum that to the ionic potential
-     call axpy(Glr%d%n1i*Glr%d%n2i*dpbox%n3pi,1.0_dp,counter_ions(1),1,&
+     call axpy(dpbox%ndims(1)*dpbox%ndims(2)*dpbox%n3pi,1.0_dp,counter_ions(1),1,&
           &   pot_ion(1),1)
 
      call f_free(counter_ions)
@@ -1648,8 +1648,7 @@ END SUBROUTINE ext_buffers
 
 
 !> Read and initialize counter-ions potentials (read psp files)
-subroutine CounterIonPotential(iproc,in,shift,&
-     hxh,hyh,hzh,grid,dpbox,pkernel,pot_ion)
+subroutine CounterIonPotential(iproc,in,shift,dpbox,pkernel,pot_ion)
   use module_base, pi => pi_param
   use module_types
   use module_interfaces, except_this_one => CounterIonPotential
@@ -1665,23 +1664,23 @@ subroutine CounterIonPotential(iproc,in,shift,&
   implicit none
   !Arguments
   integer, intent(in) :: iproc
-  real(gp), intent(in) :: hxh,hyh,hzh
+!!!  real(gp), intent(in) :: hxh,hyh,hzh
   real(gp), dimension(3), intent(in) :: shift
   type(input_variables), intent(in) :: in
-  type(grid_dimensions), intent(in) :: grid
+!!!  type(grid_dimensions), intent(in) :: grid
   type(denspot_distribution), intent(in) :: dpbox
   type(coulomb_operator), intent(in) :: pkernel
   real(wp), dimension(*), intent(inout) :: pot_ion
   !Local variables
-  real(gp), parameter :: mp_tiny = 1.e-30_gp
-  logical :: htoobig=.false.,check_potion=.false.
+!!!  real(gp), parameter :: mp_tiny = 1.e-30_gp
+  logical, parameter :: htoobig=.false.,check_potion=.false.
 !!!  logical :: perx,pery,perz,gox,goy,goz
 !!!  integer :: iat,j1,j2,j3,isx,isy,isz,iex,iey,iez
   integer :: i1,i2,i3,ityp,nspin,nrange
 !!!  integer :: ind,nbl1,nbr1,nbl2,nbr2,n3pi,nbl3,nbr3,i3s
   real(kind=8) :: rholeaked,rloc,rlocinv2sq,charge,cutoff,tt,rx,ry,rz,xp
 !!!  real(kind=8) :: x,y,z,yp,zp
-  real(kind=8) :: tt_tot,rholeaked_tot,potxyz
+  real(kind=8) :: hxh,hyh,hzh,tt_tot,rholeaked_tot,potxyz
   real(wp) :: maxdiff
   real(gp) :: ehart
   type(atoms_data) :: at
@@ -1698,6 +1697,9 @@ subroutine CounterIonPotential(iproc,in,shift,&
 
 !!!  n3pi = dpbox%n3pi
 !!!  i3s = dpbox%i3s + dpbox%i3xcsh
+  hxh = dpbox%hgrids(1)
+  hyh = dpbox%hgrids(2)
+  hzh = dpbox%hgrids(3)
   
   !initialize the work arrays needed to integrate with isf
   if (at%multipole_preserving) call initialize_real_space_conversion(nmoms=at%mp_isf,nrange=nrange)
@@ -1732,7 +1734,7 @@ subroutine CounterIonPotential(iproc,in,shift,&
   ! Ionic energy (can be calculated for all the processors)
 
   !Creates charge density arising from the ionic PSP cores
-  call f_zero(grid%n1i*grid%n2i*dpbox%n3pi,pot_ion(1))
+  call f_zero(dpbox%ndims(1)*dpbox%ndims(2)*dpbox%n3pi,pot_ion(1))
 
 
   !conditions for periodicity in the three directions
@@ -1911,7 +1913,7 @@ subroutine CounterIonPotential(iproc,in,shift,&
      if (check_potion) then
         !if (iproc == 0) write(*,'(1x,a)',advance='no') 'Check the ionic potential...'
           
-        potion_corr = f_malloc0(grid%n1i*grid%n2i*dpbox%n3pi,id='potion_corr')
+        potion_corr = f_malloc0(dpbox%ndims(1)*dpbox%ndims(2)*dpbox%n3pi,id='potion_corr')
 
         !call to_zero(grid%n1i*grid%n2i*n3pi,potion_corr)
 

@@ -83,6 +83,7 @@ subroutine initialize_rho_descriptors(rhod)
 end subroutine initialize_rho_descriptors
 
 
+!> Initialize dpbox from the local zone descriptors
 subroutine dpbox_set(dpbox,Lzd,xc,iproc,nproc,mpi_comm,PS_groupsize,SICapproach,geocode,nspin)
   use module_base
   use module_dpbox, only: denspot_distribution,dpbox_null
@@ -125,10 +126,12 @@ subroutine dpbox_set_box(dpbox,Lzd)
   implicit none
   type(local_zone_descriptors), intent(in) :: Lzd
   type(denspot_distribution), intent(inout) :: dpbox
-  
+ 
+  !The grid for the potential is twice finer
   dpbox%hgrids(1)=0.5_gp*Lzd%hgrids(1)
   dpbox%hgrids(2)=0.5_gp*Lzd%hgrids(2)
   dpbox%hgrids(3)=0.5_gp*Lzd%hgrids(3)
+  !Same dimension
   dpbox%ndims(1)=Lzd%Glr%d%n1i
   dpbox%ndims(2)=Lzd%Glr%d%n2i
   dpbox%ndims(3)=Lzd%Glr%d%n3i
@@ -137,28 +140,30 @@ subroutine dpbox_set_box(dpbox,Lzd)
 end subroutine dpbox_set_box
 
 
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-!>todo: remove n1i and n2i
+!> Set the history for mixing in denspot%mix
 subroutine denspot_set_history(denspot, iscf, nspin, &
-     & n1i, n2i, & !to be removed arguments when denspot has dimensions
      npulayit)
   use module_base
   use module_types
   use m_ab7_mixing
   implicit none
   type(DFT_local_fields), intent(inout) :: denspot
-  integer, intent(in) :: iscf, n1i, n2i, nspin
+  integer, intent(in) :: iscf, nspin
   integer,intent(in),optional :: npulayit
   
   integer :: potden, npoints, ierr
   character(len=500) :: errmess
 
   if (iscf < 10) then
+     ! Mixing over potential so use dimension of pot (n3p)
      potden = AB7_MIXING_POTENTIAL
-     npoints = n1i*n2i*denspot%dpbox%n3p
+     npoints = denspot%dpbox%ndims(1)*denspot%dpbox%ndims(2)*denspot%dpbox%n3p
+!!!     npoints = n1i*n2i*denspot%dpbox%n3p
   else
+     ! Mixing over density so use dimension of density (n3d)
      potden = AB7_MIXING_DENSITY
-     npoints = n1i*n2i*denspot%dpbox%n3d
+     npoints = denspot%dpbox%ndims(1)*denspot%dpbox%ndims(2)*denspot%dpbox%n3d
+!!!     npoints = n1i*n2i*denspot%dpbox%n3d
   end if
   if (iscf > SCF_KIND_DIRECT_MINIMIZATION) then
      allocate(denspot%mix)
@@ -177,6 +182,7 @@ subroutine denspot_set_history(denspot, iscf, nspin, &
   end if
 end subroutine denspot_set_history
 
+
 subroutine denspot_free_history(denspot)
   use module_types
   use m_ab7_mixing
@@ -190,6 +196,7 @@ subroutine denspot_free_history(denspot)
 end subroutine denspot_free_history
 
 
+!> Create descriptors for density and potentials (parallel distribution)
 subroutine denspot_communications(iproc,nproc,xc,nspin,geocode,SICapproach,dpbox)
   use module_base
   use module_dpbox, only: denspot_distribution
@@ -202,14 +209,12 @@ subroutine denspot_communications(iproc,nproc,xc,nspin,geocode,SICapproach,dpbox
   character(len=1), intent(in) :: geocode !< @copydoc poisson_solver::doc::geocode
   character(len=4), intent(in) :: SICapproach
   type(denspot_distribution), intent(inout) :: dpbox
-  !local variables
-  character(len = *), parameter :: subname = 'denspot_communications' 
 
   ! Create descriptors for density and potentials.
-  ! ------------------
-  !these arrays should be included in the comms descriptor
-  !allocate values of the array for the data scattering in sumrho
-  !its values are ignored in the datacode='G' case
+
+  ! these arrays should be included in the comms descriptor
+  ! allocate values of the array for the data scattering in sumrho
+  ! its values are ignored in the datacode='G' case
   dpbox%nscatterarr = f_malloc_ptr((/ 0.to.nproc-1, 1.to.4 /),id='dpbox%nscatterarr')
   !allocate array for the communications of the potential
   !also used for the density
@@ -217,20 +222,19 @@ subroutine denspot_communications(iproc,nproc,xc,nspin,geocode,SICapproach,dpbox
 
   call dpbox_repartition(iproc,nproc,geocode,'D',xc,dpbox)
 
-  !Allocate Charge density / Potential in real space
-  !here the full_density treatment should be put
+  ! Allocate Charge density / Potential in real space
+  ! here the full_density treatment should be put
   dpbox%nrhodim=nspin
   dpbox%i3rho_add=0
   if (trim(SICapproach)=='NK') then
-     dpbox%nrhodim=2*dpbox%nrhodim !to be eliminated with a orbital-dependent potential
+     dpbox%nrhodim=2*dpbox%nrhodim !to be eliminated with an orbital-dependent potential
      dpbox%i3rho_add=dpbox%ndims(1)*dpbox%ndims(2)*dpbox%i3xcsh+1
   end if
 
   !fill the full_local_potential dimension
   dpbox%ndimpot=dpbox%ndims(1)*dpbox%ndims(2)*dpbox%n3p
   dpbox%ndimgrid=dpbox%ndims(1)*dpbox%ndims(2)*dpbox%ndims(3)
-  dpbox%ndimrhopot=dpbox%ndims(1)*dpbox%ndims(2)*dpbox%n3d*&
-       dpbox%nrhodim
+  dpbox%ndimrhopot=dpbox%ndims(1)*dpbox%ndims(2)*dpbox%n3d*dpbox%nrhodim
 end subroutine denspot_communications
 
 
@@ -486,7 +490,7 @@ END SUBROUTINE allocateRhoPot
 !!$     n3d,n3p,n3pi,i3xcsh,i3s,nscatterarr,ngatherarr,rhodsc)
 
 
-!> Create the descriptors for the density and the potential
+!> Do the parallel distribution and the descriptors for the density and the potential
 subroutine dpbox_repartition(iproc,nproc,geocode,datacode,xc,dpbox)
 
   use module_base
@@ -516,7 +520,7 @@ subroutine dpbox_repartition(iproc,nproc,geocode,datacode,xc,dpbox)
      end do
   end if
 
-  if (iproc< nproc) then
+  if (iproc < nproc) then
      dpbox%n3d=dpbox%nscatterarr(iproc,1)
      dpbox%n3p=dpbox%nscatterarr(iproc,2)
      dpbox%i3xcsh=dpbox%nscatterarr(iproc,4)
@@ -536,6 +540,7 @@ subroutine dpbox_repartition(iproc,nproc,geocode,datacode,xc,dpbox)
   dpbox%ngatherarr(:,3)=dpbox%ndims(1)*dpbox%ndims(2)*dpbox%nscatterarr(:,1)
 
 end subroutine dpbox_repartition
+
 
 !!$  !calculate dimensions of the complete array to be allocated before the reduction procedure
 !!$  if (rhodsc%icomm==1) then

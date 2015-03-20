@@ -58,8 +58,7 @@ subroutine calculate_forces(iproc,nproc,psolver_groupsize,Glr,atoms,orbs,nlpsp,r
   !!end do
 
   !calculate forces originated by rhocore
-  call rhocore_forces(iproc,atoms,dpbox,nspin,Glr%d%n1,Glr%d%n2,Glr%d%n3,Glr%d%n1i,Glr%d%n2i,Glr%d%n3i,n3p,i3s,&
-       0.5_gp*hx,0.5_gp*hy,0.5_gp*hz,rxyz,potxc,fxyz)
+  call rhocore_forces(iproc,atoms,dpbox,nspin,rxyz,potxc,fxyz)
 
   !for a taksgroup Poisson Solver, multiply by the ratio.
   !it is important that the forces are bitwise identical among the processors.
@@ -210,9 +209,7 @@ end subroutine calculate_forces
 
 
 !> Calculate the contribution to the forces given by the core density charge
-subroutine rhocore_forces(iproc,atoms,&
-                          dpbox,&
-                          nspin,n1,n2,n3,n1i,n2i,n3i,n3p,i3s,hxh,hyh,hzh,rxyz,potxc,fxyz)
+subroutine rhocore_forces(iproc,atoms,dpbox,nspin,rxyz,potxc,fxyz)
   use module_base
   use module_dpbox
   use module_types
@@ -220,11 +217,11 @@ subroutine rhocore_forces(iproc,atoms,&
   implicit none
   !Arguments
   integer, intent(in) :: iproc,nspin
-  integer, intent(in) :: n1i,n2i,n3i,n3p,i3s,n1,n2,n3
+!!!  integer, intent(in) :: n1i,n2i,n3i,n3p,i3s,n1,n2,n3
   type(denspot_distribution), intent(in) :: dpbox
-  real(gp), intent(in) :: hxh,hyh,hzh
+!!!  real(gp), intent(in) :: hxh,hyh,hzh
   type(atoms_data), intent(in) :: atoms
-  real(wp), dimension(n1i*n2i*n3p,nspin), intent(in) :: potxc
+  real(wp), dimension(dpbox%ndims(1)*dpbox%ndims(2)*dpbox%n3p,nspin), intent(in) :: potxc
   real(gp), dimension(3,atoms%astruct%nat), intent(in) :: rxyz
   real(gp), dimension(3,atoms%astruct%nat), intent(inout) :: fxyz
   !Local variables
@@ -235,8 +232,12 @@ subroutine rhocore_forces(iproc,atoms,&
 !!!  logical :: perx,pery,perz,gox,goy,goz
 !!!  integer :: nbl1,nbl2,nbl3,nbr1,nbr2,nbr3,isx,isy,isz,iex,iey,iez
 !!!  integer :: ispin,i1,i2,i3,j1,j2,j3,ispinsh,ind
-  real(gp) :: spinfac,rx,ry,rz,frcx,frcy,frcz,rloc,cutoff,x,y,z,r2
+  real(gp) :: spinfac,rx,ry,rz,frcx,frcy,frcz,rloc,cutoff,x,y,z,r2,hxh,hyh,hzh
   real(gp) :: spherical_gaussian_value,drhoc,drhov,drhodr2
+
+  hxh = dpbox%hgrids(1)
+  hyh = dpbox%hgrids(2)
+  hzh = dpbox%hgrids(3)
 
   if (atoms%donlcc) then
      !if (iproc == 0) write(*,'(1x,a)',advance='no')'Calculate NLCC forces...'
@@ -291,7 +292,7 @@ subroutine rhocore_forces(iproc,atoms,&
 !!!           call ext_buffers(pery,nbl2,nbr2)
 !!!           call ext_buffers(perz,nbl3,nbr3)
 
-           if (n3p > 0) then
+           if (dpbox%n3p > 0) then
 
 !!!              isx=floor((rx-cutoff)/hxh)
 !!!              isy=floor((ry-cutoff)/hyh)

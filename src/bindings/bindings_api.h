@@ -645,7 +645,7 @@ integer, intent(in) :: unitwf
 void FC_FUNC_(close_file, CLOSE_FILE)(const int *unitwf);
 /* createeffectiveionicpotential src/init/ionicpot.f90:474 */
 /* Fortran header:
-subroutine createEffectiveIonicPotential(iproc, nproc, verb, in, atoms, rxyz, shift,  Glr, hxh, hyh, hzh, rhopotd, pkernel, pot_ion, elecfield, psoffset,rholoc)
+subroutine createEffectiveIonicPotential(iproc, nproc, verb, in, atoms, rxyz, shift,  rhopotd, pkernel, pot_ion, elecfield, psoffset,rholoc)
 use module_base
 use module_types
 
@@ -653,9 +653,8 @@ implicit none
 
 integer, intent(in) :: iproc,nproc
 logical, intent(in) :: verb
-real(gp), intent(in) :: hxh,hyh,hzh,psoffset
+real(gp), intent(in) :: psoffset
 type(atoms_data), intent(in) :: atoms
-type(locreg_descriptors), intent(in) :: Glr
 type(input_variables), intent(in) :: in
 type(denspot_distribution), intent(in) :: rhopotd
 real(gp), intent(in) :: elecfield(3)
@@ -678,10 +677,6 @@ void FC_FUNC(createeffectiveionicpotential, CREATEEFFECTIVEIONICPOTENTIAL)(const
                                                                            const f90_atoms_data *atoms, 
                                                                            const double *rxyz, 
                                                                            const double *shift, 
-                                                                           const f90_locreg_descriptors *Glr, 
-                                                                           const double *hxh, 
-                                                                           const double *hyh, 
-                                                                           const double *hzh, 
                                                                            const f90_denspot_distribution *rhopotd, 
                                                                            const f90_coulomb_operator *pkernel, 
                                                                            double *pot_ion, 

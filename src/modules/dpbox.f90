@@ -24,22 +24,26 @@ module module_dpbox
   !> Structure to store the density / potential distribution among processors.
   type, public :: denspot_distribution
      integer :: n3d                  !< Number of z planes distributed for density
-     integer :: n3p                  !< Number of z planes distirbuted for potential
+     integer :: n3p                  !< Number of z planes distirbuted for potential (except pot_ion)
      integer :: n3pi                 !< Number of distributed planes in z dimension for pot_ion AND to calculate charges
                                      !! BECAUSE n3d has an overlap!
-     integer :: i3xcsh
-     integer :: i3s                  !< Index of the first z plane for the mpi process i.e. from i3s:i3s+n3pi-1 
-     integer :: nrhodim
+                                     !! ONLY FOR POT_ION
+     integer :: i3xcsh               !< GGA XC shift between density and potential
+     integer :: i3s                  !< Index of the first z plane (offset) for the mpi process i.e. from i3s:i3s+n3pi-1 
+     integer :: nrhodim              !< nspin !
      !> Integer which controls the presence of a density after the potential array
      !! if different than zero, at the address ndimpot*nspin+i3rho_add starts the spin up component of the density
      !! the spin down component can be found at the ndimpot*nspin+i3rho_add+ndimpot, contiguously
      !! the same holds for non-collinear calculations
-     integer :: i3rho_add
-     integer :: ndimpot,ndimgrid,ndimrhopot 
+     integer :: i3rho_add             !< dpbox%ndims(1)*dpbox%ndims(2)*dpbox%i3xcsh+1
+     integer :: ndimpot               !< n1i*n2i*n3p = dpbox%ndims(1)dpbox%ndims(2)*dpbox%n3p
+     integer :: ndimgrid              !< n1i*n2i*n3i = dpbox%ndims(1)*dpbox%ndims(2)*dpbox%ndims(3)
+     integer :: ndimrhopot            !< dpbox%ndims(1)*dpbox%ndims(2)*dpbox%n3d*dpbox%nrhodim
      integer, dimension(3) :: ndims   !< Box containing the grid dimensions in ISF basis in x,y and z direction (n1i,n2i,n3i)
      real(gp), dimension(3) :: hgrids !< Grid spacings of the box (half of wavelet ones)
-     character(len=1) :: geocode !< @copydoc poisson_solver::doc::geocode
-     integer, dimension(:,:), pointer :: nscatterarr, ngatherarr
+     character(len=1) :: geocode      !< @copydoc poisson_solver::doc::geocode
+     integer, dimension(:,:), pointer :: nscatterarr !< dim(nproc,4) for each proc (n3d,n3p,i3s+i3xcsh-1,i3xcsh) see @link dpbox_repartition @endlink
+     integer, dimension(:,:), pointer :: ngatherarr  !< dim(nproc,3) (dpbox%ndimpot,n1i*n2i*nscatteradd(:,3),n1i*n2i*n3d) see @link dpbox_repartition @endlink
      type(mpi_environment) :: mpi_env
   end type denspot_distribution
 

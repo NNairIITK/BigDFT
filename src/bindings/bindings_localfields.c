@@ -258,7 +258,7 @@ void bigdft_localfields_create_effective_ionic_pot(BigDFT_LocalFields *denspot,
 
   FC_FUNC(createeffectiveionicpotential, CREATEEFFECTIVEIONICPOTENTIAL)
     ((int*)&iproc, (int*)&nproc, &verb, in->data, lzd->parent.parent.data, lzd->parent.parent.rxyz.data,
-     lzd->parent.parent.shift, lzd->parent.data, denspot->h, denspot->h + 1, denspot->h + 2,
+     lzd->parent.parent.shift, 
      denspot->dpbox, denspot->pkernel, denspot->v_ext, in->elecfield,
      &denspot->psoffset, paw);
   

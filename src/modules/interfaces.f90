@@ -1116,17 +1116,14 @@ module module_interfaces
         type(xc_info), intent(in) :: xc
       end subroutine direct_minimization
 
-      subroutine CounterIonPotential(iproc,in,shift,&
-            &   hxh,hyh,hzh,grid,dpbox,pkernel,pot_ion)
+      subroutine CounterIonPotential(iproc,in,shift,dpbox,pkernel,pot_ion)
          use module_defs, only: gp,wp
          use module_dpbox
          use module_types
          implicit none
          integer, intent(in) :: iproc
-         real(gp), intent(in) :: hxh,hyh,hzh
          real(gp), dimension(3), intent(in) :: shift
          type(input_variables), intent(in) :: in
-         type(grid_dimensions), intent(in) :: grid
          type(denspot_distribution), intent(in) :: dpbox
          type(coulomb_operator), intent(in) :: pkernel
          real(wp), dimension(*), intent(inout) :: pot_ion
@@ -2868,13 +2865,11 @@ module module_interfaces
           real(gp), dimension(6), intent(out) :: locstrten
         end subroutine local_forces
 
-        subroutine denspot_set_history(denspot, iscf, nspin, &
-             & n1i, n2i, & !to be removed arguments when denspot has dimensions
-             npulayit)
+        subroutine denspot_set_history(denspot, iscf, nspin, npulayit)
           use module_types
           implicit none
           type(DFT_local_fields), intent(inout) :: denspot
-          integer, intent(in) :: iscf, n1i, n2i, nspin
+          integer, intent(in) :: iscf, nspin
           integer,intent(in),optional :: npulayit
         end subroutine denspot_set_history
 

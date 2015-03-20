@@ -25,17 +25,15 @@ subroutine ISF_family(itype,nmoms,nd,nrange,a,x)
   !! to be preserved. If this value is different from 
   !! 0, then the dual scaling function is given as output
   integer, intent(in) :: nmoms
-  !> Number of points: must be 2**nex
-  integer, intent(in) :: nd
-  integer, intent(out) :: nrange !< Give the minimal range
+  integer, intent(in) :: nd                       !< Number of points: must be 2**nex
+  integer, intent(out) :: nrange                  !< Give the minimal range
   real(kind=8), dimension(0:nd), intent(out) :: a !< Values of the abscissae of the grid
   real(kind=8), dimension(0:nd), intent(out) :: x !< Values of the function at a
   !Local variables
-  integer, parameter :: m_max=200
-  integer :: i,nt,ni,unt,j,m
+  integer :: i,nt,ni,unt,j,m_max,m
   real(kind=8) :: mom
   real(kind=8), dimension(:), allocatable :: y
-  double precision, dimension(-m_max:m_max) :: ch,cg
+  real(kind=8), dimension(:), allocatable :: ch,cg
 
   !Give the range of the scaling function
   !from -itype to itype for the direct case, more general for the dual
@@ -43,6 +41,9 @@ subroutine ISF_family(itype,nmoms,nd,nrange,a,x)
   nrange = ni
 
   y = f_malloc(0.to.nd,id='y')
+  m_max = itype + 2
+  ch = f_malloc(-m_max.to.m_max,id='ch')
+  cg = f_malloc(-m_max.to.m_max,id='cg')
 
   ! plot scaling function
   call f_zero(x)
@@ -85,6 +86,7 @@ subroutine ISF_family(itype,nmoms,nd,nrange,a,x)
   call f_close(unt)
 
   call f_free(y)
+  call f_free(ch,cg)
 
 end subroutine ISF_family
 
@@ -108,21 +110,31 @@ subroutine scaling_function(itype,nd,nrange,a,x)
   integer, intent(out) :: nrange
   real(kind=8), dimension(0:nd), intent(out) :: a,x
   !Local variables
-  integer, parameter :: m_max=200
-  integer :: m
+  integer :: m_max,m
   real(kind=8), dimension(:), allocatable :: y
-  double precision, dimension(-m_max:m_max) :: ch,cg
+  real(kind=8), dimension(:), allocatable :: ch,cg
+  real(kind=8) :: rinvnd,offset
   integer :: i,nt,ni!,unt,j
   !real(kind=8) :: mom
   
   !Only itype=2,8,14,16,20,24,30,40,50,60,100
-  select case(itype)
-  case(2,4,6,8,14,16,20,24,30,40,50,60,100)
-     !O.K.
-  case default
-     call f_err_throw('"Only interpolating functions 2, 4, 6, 8, 14, 16, 20, 24, 30, 40, 50, 60, 100, used:' &
+!!!  select case(itype)
+!!!  case(2,4,6,8,14,16,20,24,30,40,50,60,100)
+!!!     !O.K.
+!!!  case default
+!!!     call f_err_throw('"Only interpolating functions 2, 4, 6, 8, 14, 16, 20, 24, 30, 40, 50, 60, 100, used:' &
+!!!          & // trim(yaml_toa(itype))//'"', err_name='BIGDFT_RUNTIME_ERROR')
+!!!  end select
+  !Only even and psoitive itype
+  if (itype <= 0 .or. modulo(itype,2) == 1) then
+     call f_err_throw('"The type of interpolating functions has to be positive and even, used:' &
           & // trim(yaml_toa(itype))//'"', err_name='BIGDFT_RUNTIME_ERROR')
-  end select
+  end if
+
+  !Allocate filters
+  m_max = itype + 2
+  ch = f_malloc(-m_max.to.m_max,id='ch')
+  cg = f_malloc(-m_max.to.m_max,id='cg')
 
   !Give the range of the scaling function
   !from -itype to itype for the direct case, more general for the dual
@@ -172,7 +184,7 @@ subroutine scaling_function(itype,nd,nrange,a,x)
      do i=0,nt-1
         x(i)=y(i)
      end do
-     if (nt.eq.nd) then
+     if (nt == nd) then
         exit loop1
      end if
   end do loop1
@@ -181,8 +193,10 @@ subroutine scaling_function(itype,nd,nrange,a,x)
 !!$  unt=1
 !!$  call f_open_file(unt,file='scfunction')
 !!$  !open (unit=1,file='scfunction',status='unknown')
+  rinvnd = 1.d0/real(nd,kind=8)
+  offset = (.5d0*real(ni,kind=8)-1.d0)
   do i=0,nd
-     a(i) = real(i*ni,kind=8)/real(nd,kind=8)-(.5d0*real(ni,kind=8)-1.d0)
+     a(i) = rinvnd*real(i*ni,kind=8) - offset
 !!$  write(unt,*) a(i),x(i)
   end do
 !!$  call f_close(unt)
@@ -200,6 +214,8 @@ subroutine scaling_function(itype,nd,nrange,a,x)
 
 
   call f_free(y)
+  call f_free(ch,cg)
+
 END SUBROUTINE scaling_function
 
 
@@ -314,26 +330,35 @@ END SUBROUTINE wavelet_function
 subroutine get_isf_family(m_max,itype,nmoms,m,nrange,ch,cg)
   use dictionaries, only: f_err_throw
   use yaml_output, only: yaml_toa
+  use dynamic_memory
   implicit none
   !Arguments
-  integer, intent(in) :: itype !< order of the iscf
-  integer, intent(in) :: m_max !< range of the filters
-  integer, intent(in) :: nmoms !< Number of required preserved moments for the dual (lifed)
-  integer, intent(out) :: m,nrange
+  integer, intent(in) :: itype   !< Order of the iscf
+  integer, intent(in) :: m_max   !< Range of the filters
+  integer, intent(in) :: nmoms   !< Number of required preserved moments for the dual (lifed)
+  integer, intent(out) :: m      !< Number of 
+  integer, intent(out) :: nrange !< Range of the compact support
   double precision, dimension(-m_max:m_max), intent(out) :: ch,cg
   !Local variables
   integer :: i,dsflb,dsfrb,sflb,sfrb,unsflb,unsfrb,i1,ifac!,sfl,unsfl
-  !double precision :: pref
-  double precision, dimension(-m_max:m_max) :: cht,chu
+  real(kind=8), dimension(:), allocatable :: cht,chu
 
-  !Only itype=2,8,14,16,20,24,30,40,50,60,100
-  select case(itype)
-  case(2,4,6,8,14,16,20,24,30,40,50,60,100)
-     !O.K.
-  case default
-     call f_err_throw('"Only interpolating functions 2, 4, 6, 8, 14, 16, 20, 24, 30, 40, 50, 60, 100, used:' &
+  !Allocations
+  cht = f_malloc(-m_max.to.m_max,id='cht')
+  chu = f_malloc(-m_max.to.m_max,id='chu')
+
+!!!  !Only itype=2,8,14,16,20,24,30,40,50,60,100
+!!!  select case(itype)
+!!!  case(2,4,6,8,14,16,20,24,30,40,50,60,100)
+!!!     !O.K.
+!!!  case default
+!!!     call f_err_throw('"Only interpolating functions 2, 4, 6, 8, 14, 16, 20, 24, 30, 40, 50, 60, 100, used:' &
+!!!          & // trim(yaml_toa(itype))//'"', err_name='BIGDFT_RUNTIME_ERROR')
+!!!  end select
+  if (itype <= 0 .or. modulo(itype,2) == 1) then
+     call f_err_throw('"The type of interpolating functions has to be positive and even, used:' &
           & // trim(yaml_toa(itype))//'"', err_name='BIGDFT_RUNTIME_ERROR')
-  end select
+  end if
 
   !case of the direct function
   ch=0.d0

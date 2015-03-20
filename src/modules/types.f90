@@ -613,7 +613,7 @@ module module_types
      integer :: nlr                                         !< Number of localization regions 
      integer :: lintyp                                      !< If 0 cubic, 1 locreg and 2 TMB
      integer :: ndimpotisf                                  !< Total dimension of potential in isf (including exctX)
-     real(gp), dimension(3) :: hgrids                       !< Grid spacings of wavelet grid
+     real(gp), dimension(3) :: hgrids                       !< Grid spacings of wavelet grid (coarser resolution)
      type(locreg_descriptors) :: Glr                        !< Global region descriptors
      type(locreg_descriptors), dimension(:), pointer :: Llr !< Local region descriptors (dimension = nlr)
   end type local_zone_descriptors
@@ -768,7 +768,7 @@ module module_types
   !> Densities and potentials, and related metadata, needed for their creation/application
   !! Not all these quantities are available, some of them may point to the same memory space
   type, public :: DFT_local_fields
-     real(dp), dimension(:), pointer :: rhov          !< generic workspace. What is there is indicated by rhov_is
+     real(dp), dimension(:), pointer :: rhov          !< Generic workspace. What is there is indicated by rhov_is
      type(ab7_mixing_object), pointer :: mix          !< History of rhov, allocated only when using diagonalisation
      !> Local fields which are associated to their name
      !! normally given in parallel distribution
@@ -779,17 +779,17 @@ module module_types
      real(wp), dimension(:,:,:,:), pointer :: Vloc_KS !< complete local potential of KS Hamiltonian (might point on rho_psi)
      real(wp), dimension(:,:,:,:), pointer :: f_XC    !< dV_XC[rho]/d_rho
      !temporary arrays
-     real(wp), dimension(:), pointer :: rho_work,pot_work !<full grid arrays
+     real(wp), dimension(:), pointer :: rho_work,pot_work !< Full grid arrays
      !metadata
      integer :: rhov_is
-     real(gp) :: psoffset                 !< offset of the Poisson Solver in the case of Periodic BC
-     type(rho_descriptors) :: rhod        !< descriptors of the density for parallel communication
-     type(denspot_distribution) :: dpbox  !< distribution of density and potential box
-     type(xc_info) :: xc                  !< structure about the used xc functionals
+     real(gp) :: psoffset                 !< Offset of the Poisson Solver in the case of Periodic BC
+     type(rho_descriptors) :: rhod        !< Descriptors of the density for parallel communication
+     type(denspot_distribution) :: dpbox  !< Distribution of density and potential box
+     type(xc_info) :: xc                  !< Structure about the used xc functionals
      character(len=3) :: PSquiet
-     !real(gp), dimension(3) :: hgrids    !< grid spacings of denspot grid (half of the wvl grid)
-     type(coulomb_operator) :: pkernel    !< kernel of the Poisson Solver used for V_H[rho]
-     type(coulomb_operator) :: pkernelseq !< for monoproc PS (useful for exactX, SIC,...)
+     !real(gp), dimension(3) :: hgrids    !< Grid spacings of denspot grid (half of the wvl grid)
+     type(coulomb_operator) :: pkernel    !< Kernel of the Poisson Solver used for V_H[rho]
+     type(coulomb_operator) :: pkernelseq !< For monoproc PS (useful for exactX, SIC,...)
 
      integer(kind = 8) :: c_obj = 0       !< Storage of the C wrapper object.
   end type DFT_local_fields
