@@ -9,15 +9,16 @@ program driver_singlerun
   use sparsematrix, only: write_matrix_compressed, check_symmetry, &
                           write_sparsematrix_CCS, write_sparsematrix
   use matrix_operations, only: overlapPowerGeneral
+  use io, only: read_sparse_matrix
   use yaml_output
   implicit none
 
   external :: gather_timings
 
   ! Variables
-  integer :: iproc, nproc, ncol, nnonzero, nseg, ncolp, iscol, ierr
+  integer :: iproc, nproc, ncol, nnonzero, nseg, ncolp, iscol, ierr, nspin
   character(len=*),parameter :: filename='matrix.dat'
-  integer,dimension(:),pointer :: col_ptr, row_ind, keyv
+  integer,dimension(:),pointer :: col_ptr, row_ind, keyv, on_which_atom
   integer,dimension(:,:,:),pointer :: keyg
   real(kind=8),dimension(:),pointer :: val
   type(sparse_matrix) :: smat
@@ -49,13 +50,14 @@ program driver_singlerun
   !call read_ccs_format(filename, ncol, nnonzero, col_ptr, row_ind, val)
 
   ! Read in a file in the BigDFT format
-  call read_bigdft_format(filename, ncol, nnonzero, nseg, keyv, keyg, val)
+  !call read_bigdft_format(filename, ncol, nnonzero, nseg, keyv, keyg, val, on_which_atom=on_which_atom)
+  call read_sparse_matrix(filename, nspin, ncol, nseg, nnonzero, keyv, keyg, val, on_which_atom=on_which_atom)
 
   ! Create the corresponding BigDFT sparsity pattern
   !call ccs_to_sparsebigdft(iproc, nproc, ncol, ncol, 0, nnonzero, row_ind, col_ptr, smat)
   call distribute_columns_on_processes(iproc, nproc, ncol, ncolp, iscol)
   write(*,'(a,4i9)') 'iproc, ncol, ncolp, iscol', iproc, ncol, ncolp, iscol
-  call bigdft_to_sparsebigdft(iproc, nproc, ncol, ncolp, iscol, nnonzero, nseg, keyg, smat)
+  call bigdft_to_sparsebigdft(iproc, nproc, ncol, ncolp, iscol, on_which_atom, nnonzero, nseg, keyg, smat)
 
   matA = matrices_null()
   matB(1) = matrices_null()
@@ -106,6 +108,7 @@ program driver_singlerun
   call f_free_ptr(keyv)
   call f_free_ptr(keyg)
   call f_free_ptr(val)
+  call f_free_ptr(on_which_atom)
 
   call timing(bigdft_mpi%mpi_comm,'FINISH','PR')
 
