@@ -5,5 +5,5 @@ Default tolerances:
 Keys to ignore:
  - sparse matmul load balancing naive / optimized
  - Max No. of dictionaries used
- - number of tasks
+ - taskgroup summary
  - Memory Consumption Report
