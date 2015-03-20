@@ -1060,11 +1060,15 @@ module io
   !!$    end if
     END SUBROUTINE io_open
 
-
+    !> Write a sparse matrix to disk.
+    !! ATTENTION: This routine must be called by all MPI tasks due to the fact that the matrix 
+    !! in distributed among the matrix taksgroups
     subroutine write_sparse_matrix(orbs, at, rxyz, smat, mat, filename)
       use module_base
       use module_types
-      use sparsematrix_base, only: sparse_matrix, matrices
+      use sparsematrix_base, only: sparse_matrix, matrices, SPARSE_FULL, &
+                                   assignment(=), sparsematrix_malloc
+      use sparsematrix, only: gather_matrix_from_taskgroups
       implicit none
       
       ! Calling arguments
@@ -1077,37 +1081,48 @@ module io
 
       ! Local variables
       integer :: iunit, iseg, icol, irow, jorb, iat, jat, ind, ispin
+      real(kind=8),dimension(:),allocatable :: matrix_compr
 
       call f_routine(id='write_sparse_matrix')
 
-      iunit = 99
-      call f_open_file(iunit, file=trim(filename), binary=.false.)
+      matrix_compr = sparsematrix_malloc(smat,iaction=SPARSE_FULL,id='matrix_compr')
+      call gather_matrix_from_taskgroups(bigdft_mpi%iproc, bigdft_mpi%nproc, &
+           smat, mat%matrix_compr, matrix_compr)
 
-      write(iunit,'(i12,i6,a)') at%astruct%nat, smat%nspin, &
-          '   # number of atoms, nspin'
-      do iat=1,at%astruct%nat
-          write(iunit,'(3es24.16,a,i0)') rxyz(1:3,iat), '   # atom no. ',iat
-      end do
-      write(iunit,'(3i12,a)') smat%nfvctr, smat%nseg, smat%nvctr, '   # nfvctr, nseg, nvctr'
-      do iseg=1,smat%nseg
-          write(iunit,'(5i12,a)') smat%keyv(iseg), smat%keyg(1,1,iseg), smat%keyg(2,1,iseg), &
-              smat%keyg(1,2,iseg), smat%keyg(2,2,iseg), '   # keyv, keyg(1,1), keyg(2,1), keyg(1,2), keyg(2,2)'
-      end do
-      ind = 0
-      do ispin=1,smat%nspin
+      if (bigdft_mpi%iproc==0) then
+
+          iunit = 99
+          call f_open_file(iunit, file=trim(filename), binary=.false.)
+
+          write(iunit,'(i12,i6,a)') at%astruct%nat, smat%nspin, &
+              '   # number of atoms, nspin'
+          do iat=1,at%astruct%nat
+              write(iunit,'(3es24.16,a,i0)') rxyz(1:3,iat), '   # atom no. ',iat
+          end do
+          write(iunit,'(3i12,a)') smat%nfvctr, smat%nseg, smat%nvctr, '   # nfvctr, nseg, nvctr'
           do iseg=1,smat%nseg
-              icol = smat%keyg(1,2,iseg)
-              iat = orbs%onwhichatom(icol)
-              do jorb=smat%keyg(1,1,iseg),smat%keyg(2,1,iseg)
-                  irow = jorb
-                  jat = orbs%onwhichatom(irow)
-                  ind = ind + 1
-                  write(iunit,'(es24.16,2i12,a)') mat%matrix_compr(ind), jat, iat, '   # matrix, jat, iat'
+              write(iunit,'(5i12,a)') smat%keyv(iseg), smat%keyg(1,1,iseg), smat%keyg(2,1,iseg), &
+                  smat%keyg(1,2,iseg), smat%keyg(2,2,iseg), '   # keyv, keyg(1,1), keyg(2,1), keyg(1,2), keyg(2,2)'
+          end do
+          ind = 0
+          do ispin=1,smat%nspin
+              do iseg=1,smat%nseg
+                  icol = smat%keyg(1,2,iseg)
+                  iat = orbs%onwhichatom(icol)
+                  do jorb=smat%keyg(1,1,iseg),smat%keyg(2,1,iseg)
+                      irow = jorb
+                      jat = orbs%onwhichatom(irow)
+                      ind = ind + 1
+                      write(iunit,'(es24.16,2i12,a)') matrix_compr(ind), jat, iat, '   # matrix, jat, iat'
+                  end do
               end do
           end do
-      end do
 
-      call f_close(iunit)
+          call f_close(iunit)
+
+          call f_free(matrix_compr)
+
+      end if
 
       call f_release_routine()
 
@@ -1278,9 +1293,9 @@ module io
     
          call f_close(unitm)
     
-         call write_sparse_matrix(tmb%orbs, at, rxyz, tmb%linmat%m, tmb%linmat%ham_, trim(filename//'hamiltonian_sparse.bin'))
-    
       end if
+
+      call write_sparse_matrix(tmb%orbs, at, rxyz, tmb%linmat%m, tmb%linmat%ham_, trim(filename//'hamiltonian_sparse.bin'))
     
       call f_free_ptr(tmb%linmat%ham_%matrix)
     
@@ -1331,9 +1346,9 @@ module io
     
          call f_close(unitm)
     
-         call write_sparse_matrix(tmb%orbs, at, rxyz, tmb%linmat%m, tmb%linmat%ham_, filename//'overlap_sparse.bin')
-    
       end if
+
+      call write_sparse_matrix(tmb%orbs, at, rxyz, tmb%linmat%m, tmb%linmat%ham_, filename//'overlap_sparse.bin')
     
       call f_free_ptr(tmb%linmat%ovrlp_%matrix)
     
@@ -1382,9 +1397,9 @@ module io
     
          call f_close(unitm)
     
-         call write_sparse_matrix(tmb%orbs, at, rxyz, tmb%linmat%m, tmb%linmat%ham_, filename//'density_kernel_sparse.bin')
-    
      end if
+
+      call write_sparse_matrix(tmb%orbs, at, rxyz, tmb%linmat%m, tmb%linmat%ham_, filename//'density_kernel_sparse.bin')
     
       call f_free_ptr(tmb%linmat%kernel_%matrix)
     
@@ -1437,9 +1452,9 @@ module io
     
          call f_close(unitm)
     
-         call write_sparse_matrix(tmb%orbs, at, rxyz, tmb%linmat%m, tmb%linmat%ham_, filename//'overlap_onsite.bin')
-    
       end if
+
+      call write_sparse_matrix(tmb%orbs, at, rxyz, tmb%linmat%m, tmb%linmat%ham_, filename//'overlap_onsite.bin')
     
       !!i_all = -product(shape(tmb%linmat%ovrlp%matrix))*kind(tmb%linmat%ovrlp%matrix)
       !!deallocate(tmb%linmat%ovrlp%matrix,stat=i_stat)
