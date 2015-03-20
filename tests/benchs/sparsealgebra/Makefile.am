@@ -25,6 +25,8 @@ CLEANFILES = *.dat *.yaml report
 test-smatmul.out.yaml: smatmul
 	cp -f $(srcdir)/mat_6_36.dat $(PWD)
 	$(run_parallel) ./smatmul --filename=mat_6_36.dat > test-smatmul.out.yaml
+	cp -f $(srcdir)/mat_392_24542.dat $(PWD)
+	$(run_parallel) ./smatmul --filename=mat_392_24542.dat >> test-smatmul.out.yaml
 
 
 check: $(srcdir)/test-smatmul.ref.yaml test-smatmul.out.yaml

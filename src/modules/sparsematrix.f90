@@ -1146,7 +1146,7 @@ module sparsematrix
      ! Calling arguments
      integer,intent(in) :: iproc, nproc
      type(sparse_matrix),intent(in) :: smat
-     real(kind=8),dimension(smat%nvctr*smat%nspin),intent(in) :: mat_tg !< matrix distributed over the taskgroups
+     real(kind=8),dimension(smat%nvctrp_tg*smat%nspin),intent(in) :: mat_tg !< matrix distributed over the taskgroups
      real(kind=8),dimension(smat%nvctr*smat%nspin),intent(out) :: mat_global !< global matrix gathered together
    
      ! Local variables
