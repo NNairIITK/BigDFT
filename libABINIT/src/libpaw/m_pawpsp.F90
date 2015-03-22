@@ -156,10 +156,9 @@ subroutine pawpsp_nl(ffspl,indlmn,lmnmax,lnmax,mqgrid,qgrid,radmesh,wfll)
  type(pawrad_type),intent(in) :: radmesh
 !arrays
  integer,intent(in) :: indlmn(6,lmnmax)
-!real(dp),intent(in) :: qgrid(mqgrid),wfll(radmesh%mesh_size,lnmax)
- real(dp),intent(in) :: qgrid(mqgrid),wfll(radmesh%mesh_size,*) !vz_d
- real(dp),intent(inout) :: ffspl(mqgrid,2,lnmax) !vz_i
-
+ real(dp),intent(in) :: qgrid(mqgrid),wfll(radmesh%mesh_size,*)
+ real(dp),intent(inout) :: ffspl(mqgrid,2,lnmax)
+ 
 !Local variables-------------------------------
 !scalars
  integer :: ilmn,iln,iln0,iq,ir,ll,meshsz,mmax
@@ -1784,7 +1783,7 @@ subroutine pawpsp_calc(core_mesh,epsatm,ffspl,imainmesh,ixc,lnmax,&
  type(pawang_type) :: pawang_tmp
  type(pawrad_type) :: rcore_mesh,rvale_mesh,rvloc_mesh,tproj_mesh_new
 !arrays
- real(dp) :: tmp_qgrid(1)
+ real(dp) :: tmp_qgrid(1),tmp_q2vq(1)
  real(dp),allocatable :: ncorwk(:),nhat(:),nhatwk(:),nwk(:),r2k(:)
  real(dp),allocatable :: rtncor(:),rtnval(:),rvlocr(:)
  real(dp),allocatable :: vbare(:),vh(:),vhnzc(:)
@@ -2420,12 +2419,12 @@ subroutine pawpsp_calc(core_mesh,epsatm,ffspl,imainmesh,ixc,lnmax,&
    call paw_spline(qgrid_vl,vlspl(:,1),mqgrid_vl,yp1,ypn,vlspl(:,2))
  else
    ! Only to compute epsatm
+   epsatm=zero
    if (reduced_vloc) then
-     call pawpsp_lo(epsatm,1,tmp_qgrid,tmp_qgrid,rvloc_mesh,rvlocr,yp1,ypn,zion)
+     call pawpsp_lo(epsatm,1,tmp_qgrid,tmp_q2vq,rvloc_mesh,rvlocr,yp1,ypn,zion)
    else
-     call pawpsp_lo(epsatm,1,tmp_qgrid,tmp_qgrid,vloc_mesh,vlocr,yp1,ypn,zion)
+     call pawpsp_lo(epsatm,1,tmp_qgrid,tmp_q2vq,vloc_mesh,vlocr,yp1,ypn,zion)
    end if
-   !epsatm=zero
  end if
 
 !==========================================================

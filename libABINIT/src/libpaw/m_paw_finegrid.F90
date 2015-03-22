@@ -552,8 +552,8 @@ subroutine pawgylm(gylm,gylmgr,gylmgr2,lm_size,nfgd,optgr0,optgr1,optgr2,pawtab,
          do ic=1,nfgd
            d2gfact(ic,ll)=pawtab%gnorm(ll+1) &
 &           *(dble(ll*(ll-2))*gfact(ic,0)*rnrm(ic)**(ll-4) &
-&           +dble(2*ll)*dgfact(ic,0)*rnrm(ic)**(ll-2)) &
-&           +d2gfact(ic,0)*rnrm(ic)**ll
+&            +dble(2*ll)*dgfact(ic,0)*rnrm(ic)**(ll-2) &
+&            +d2gfact(ic,0)*rnrm(ic)**ll)
          end do
        end do
      end if
@@ -1208,5 +1208,3 @@ end subroutine pawrfgd_wvl
 
 END MODULE m_paw_finegrid
 !!***
-
-

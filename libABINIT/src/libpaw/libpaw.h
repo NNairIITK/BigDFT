@@ -54,6 +54,8 @@
 #  define LIBPAW_BOUND2_ALLOCATE(ARR,BND1,BND2) ABI_ALLOCATE(ARR,(BND1,BND2))
 #  define BOUNDS(LBND,UBND) LBND : UBND 
 
+/* F2008 support */
+#  define LIBPAW_CONTIGUOUS ABI_CONTIGUOUS
 
 /* =============================
  * ========= BIGDFT ============
@@ -92,6 +94,8 @@
 #  define LIBPAW_BOUND2_ALLOCATE(ARR,BND1,BND2) ARR=f_malloc((/ BND1 , BND2 /))
 #  define BOUNDS(LBND,UBND) LBND .to. UBND 
 
+/* F2008 support */
+#  define LIBPAW_CONTIGUOUS 
 
 /* =============================
  * ========= DEFAULT ===========
@@ -128,6 +132,8 @@
 #  define LIBPAW_BOUND2_ALLOCATE(ARR,BND1,BND2) allocate(ARR(BND1,BND2))
 #  define BOUNDS(LBND,UBND) LBND : UBND 
 
+/* F2008 support */
+#  define LIBPAW_CONTIGUOUS 
 
 /* =============================
  * =========== END =============
