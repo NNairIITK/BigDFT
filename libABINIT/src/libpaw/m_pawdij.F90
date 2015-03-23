@@ -161,11 +161,11 @@ CONTAINS
 !!
 !! SOURCE
 
-subroutine pawdij(cplex,enunit,gprimd,ipert,my_natom,natom,nfft,nfftot,nspden,ntypat,nucdipmom,&
+subroutine pawdij(cplex,enunit,gprimd,ipert,my_natom,natom,nfft,nfftot,nspden,ntypat,&
 &          paw_an,paw_ij,pawang,pawfgrtab,pawprtvol,pawrad,pawrhoij,pawspnorb,pawtab,&
 &          pawxcdev,qphon,spnorbscl,ucvol,charge,vtrial,vxc,xred,&
 &          electronpositron_calctype,electronpositron_pawrhoij,electronpositron_lmselect,&
-&          atvshift,fatvshift,natvshift,&
+&          atvshift,fatvshift,natvshift,nucdipmom,&
 &          mpi_atmtab,comm_atom,mpi_comm_grid,alpha)
 
 
@@ -189,10 +189,11 @@ subroutine pawdij(cplex,enunit,gprimd,ipert,my_natom,natom,nfft,nfftot,nspden,nt
 !arrays
  integer,optional,target,intent(in) :: mpi_atmtab(:)
  logical,optional,intent(in) :: electronpositron_lmselect(:,:)
- real(dp),intent(in) :: gprimd(3,3),nucdipmom(3,my_natom),qphon(3)
+ real(dp),intent(in) :: gprimd(3,3),qphon(3)
  real(dp),intent(in) ::  vxc(:,:),xred(3,natom)
  real(dp),intent(in),target :: vtrial(cplex*nfft,nspden)
  real(dp),intent(in),optional :: atvshift(:,:,:)
+ real(dp),intent(in),optional :: nucdipmom(3,my_natom)
  type(paw_an_type),intent(in) :: paw_an(my_natom)
  type(paw_ij_type),target,intent(inout) :: paw_ij(my_natom)
  type(pawfgrtab_type),intent(inout) :: pawfgrtab(my_natom)
@@ -218,7 +219,7 @@ subroutine pawdij(cplex,enunit,gprimd,ipert,my_natom,natom,nfft,nfftot,nspden,nt
  logical :: dijxchat_available,dijxchat_need,dijxchat_prereq
  logical :: dijxcval_available,dijxcval_need,dijxcval_prereq
  logical :: dijU_available,dijU_need,dijU_prereq
- logical :: my_atmtab_allocated
+ logical :: has_nucdipmom,my_atmtab_allocated
  logical :: need_to_print,paral_atom,v_dijhat_allocated
  character(len=500) :: msg
 !arrays
@@ -253,6 +254,8 @@ subroutine pawdij(cplex,enunit,gprimd,ipert,my_natom,natom,nfft,nfftot,nspden,nt
      MSG_BUG(msg)
    end if
  end if
+
+ has_nucdipmom=present(nucdipmom)
 
 !  === Check complex character of arguments ===
 
@@ -381,8 +384,8 @@ subroutine pawdij(cplex,enunit,gprimd,ipert,my_natom,natom,nfft,nfftot,nspden,nt
 !  Dij^hat_FR: only for RF and when it was previously computed
    dijhatfr_available=(ipert>0.and.paw_ij(iatom)%has_dijfr==2) ; dijhatfr_prereq=.true.
 !  DijND: not available for RF, requires non-zero nucdipmom
-   dijnd_available=(ipert<=0.and.any(abs(nucdipmom(:,iatom))>tol8))
-   dijnd_prereq=.true.
+   dijnd_available=.false. ; dijnd_prereq=.true.
+   if (has_nucdipmom) dijnd_available=(ipert<=0.and.any(abs(nucdipmom(:,iatom))>tol8))
 !  DijSO: not available for RF, positron; only for spin-orbit ; VHartree and Vxc needed
    dijso_available=(pawspnorb>0.and.ipert<=0.and.ipositron/=1)
    dijso_prereq=(paw_ij(iatom)%has_dijso==2.or.&
