@@ -26,8 +26,10 @@ program memguess
    use communications_base, only: deallocate_comms
    use psp_projectors, only: free_DFT_PSP_projectors
    use io, only: read_linear_matrix_dense, read_coeff_minbasis, writeLinearCoefficients, read_sparse_matrix
-   use sparsematrix_base, only: sparse_matrix, matrices_null, assignment(=), SPARSE_FULL, sparsematrix_malloc_ptr
+   use sparsematrix_base, only: sparse_matrix, matrices_null, assignment(=), SPARSE_FULL, &
+                                sparsematrix_malloc_ptr, sparsematrix_malloc0_ptr, DENSE_FULL
    use sparsematrix_init, only: bigdft_to_sparsebigdft, distribute_columns_on_processes_simple
+   use sparsematrix, only: uncompress_matrix
    use postprocessing_linear, only: loewdin_charge_analysis_core
                                 
    implicit none
@@ -77,17 +79,19 @@ program memguess
    !integer :: ncount0,ncount1,ncount_max,ncount_rate
    !! By Ali
    integer :: ierror, iat, itmb, jtmb, iitmb, jjtmb, ntmb, norbks, npdos, iunit01, iunit02, norb_dummy, ipt, npt, ipdos, nat
-   integer :: iproc, isub, jat, icat, info, itype, iiat, jjat, jtype, ios, ival, iat_prev, ii, iitype
-   integer :: nfvctr_s, nseg_s, nvctr_s, nfvctrp_s, isfvctr_s, nfvctr_l, nseg_l, nvctr_l, nfvctrp_l, isfvctr_l
+   integer :: iproc, isub, jat, icat, info, itype, iiat, jjat, jtype, ios, ival, iat_prev, ii, iitype, ispin
+   integer :: nfvctr_s, nseg_s, nvctr_s, nfvctrp_s, isfvctr_s
+   integer :: nfvctr_m, nseg_m, nvctr_m, nfvctrp_m, isfvctr_m
+   integer :: nfvctr_l, nseg_l, nvctr_l, nfvctrp_l, isfvctr_l
    integer,dimension(:),allocatable :: na, nb, nc, on_which_atom
-   integer,dimension(:),pointer :: keyv_s, keyv_l, on_which_atom_s, on_which_atom_l
+   integer,dimension(:),pointer :: keyv_s, keyv_m, keyv_l, on_which_atom_s, on_which_atom_m, on_which_atom_l
    integer,dimension(:,:),allocatable :: atoms_ref, imin_list
-   integer,dimension(:,:,:),pointer :: keyg_s, keyg_l
+   integer,dimension(:,:,:),pointer :: keyg_s, keyg_m, keyg_l
    real(kind=8),dimension(:,:),allocatable :: rxyz, rxyz_int, denskernel, ham, overlap, coeff, pdos, energy_bins, matrix
    real(kind=8),dimension(:,:),allocatable :: amatrix, bmatrix, cmatrix, temparr, d1min_list
    real(kind=8),dimension(:),allocatable :: eval, coeff_cat, work, d2min_list, dtype, rcov
    real(kind=8),dimension(:),pointer :: matrix_compr
-   type(matrices) :: ovrlp, kernel
+   type(matrices) :: ovrlp_mat, ham_mat, kernel_mat
    !real(kind=8),parameter :: degree=57.295779513d0
    real(kind=8),parameter :: degree=1.d0
    character(len=6) :: direction
@@ -95,7 +99,7 @@ program memguess
    logical :: file_exists, found_bin, mpi_init
    logical,dimension(:),allocatable :: calc_array
    real(kind=8),parameter :: eps_roundoff=1.d-5
-   type(sparse_matrix) :: smat_s, smat_l
+   type(sparse_matrix) :: smat_s, smat_m, smat_l
 
    call f_lib_initialize()
    !initialize errors and timings as bigdft routines are called
@@ -480,8 +484,6 @@ program memguess
             call get_command_argument(i_arg, value = overlap_file)
             i_arg = i_arg + 1
             call get_command_argument(i_arg, value = kernel_file)
-            i_arg = i_arg + 1
-            call get_command_argument(i_arg, value = posinp_file)
             write(*,'(1x,2a)')&
                &   'perform a Loewdin charge analysis'
             charge_analysis = .true.
@@ -681,24 +683,50 @@ program memguess
        else
            iproc = 0
        end if
-       coeff = f_malloc((/ntmb,norbks/),id='coeff')
-       eval = f_malloc(norbks,id='eval')
-       denskernel = f_malloc((/ntmb,ntmb/),id='denskernel')
-       ham = f_malloc((/ntmb,ntmb/),id='ham')
-       overlap = f_malloc((/ntmb,ntmb/),id='overlap')
-       on_which_atom = f_malloc(ntmb,id='on_which_atom')
-       calc_array = f_malloc(ntmb,id='calc_array')
+       !coeff = f_malloc((/ntmb,norbks/),id='coeff')
+       !eval = f_malloc(norbks,id='eval')
+       !denskernel = f_malloc((/ntmb,ntmb/),id='denskernel')
+       !ham = f_malloc((/ntmb,ntmb/),id='ham')
+       !overlap = f_malloc((/ntmb,ntmb/),id='overlap')
+       !on_which_atom = f_malloc(ntmb,id='on_which_atom')
+       !calc_array = f_malloc(ntmb,id='calc_array')
        call f_open_file(iunit01, file=trim(coeff_file), binary=.false.)
        call read_coeff_minbasis(iunit01, .true., iproc, norbks, norb_dummy, ntmb, coeff, eval, nat)
        call f_close(iunit01)
-       call f_open_file(iunit01, file=ham_file, binary=.false.)
-       call read_linear_matrix_dense(iunit01, ntmb, nat, ham, on_which_atom=on_which_atom)
-       call f_close(iunit01)
-       call f_open_file(iunit01, file=overlap_file, binary=.false.)
-       call read_linear_matrix_dense(iunit01, ntmb, nat, overlap)
-       call f_close(iunit01)
 
-       call set_astruct_from_file(trim(posinp_file),0,at%astruct,fcomment,energy,fxyz)
+       !call f_open_file(iunit01, file=ham_file, binary=.false.)
+       !call read_linear_matrix_dense(iunit01, ntmb, nat, ham, on_which_atom=on_which_atom)
+       call read_sparse_matrix(trim(ham_file), nspin, nfvctr_m, nseg_m, nvctr_m, keyv_m, keyg_m, matrix_compr, &
+            at%astruct%nat, at%astruct%ntypes, at%nzatom, at%nelpsp, at%astruct%atomnames, at%astruct%iatype, at%astruct%rxyz,  on_which_atom=on_which_atom_m)
+       call distribute_columns_on_processes_simple(iproc, nproc, nfvctr_m, nfvctrp_m, isfvctr_m)
+       call bigdft_to_sparsebigdft(iproc, nproc, nfvctr_m, nfvctrp_m, isfvctr_m, on_which_atom_m, nvctr_m, nseg_m, keyg_m, smat_m)
+       ham_mat = matrices_null()
+       ham_mat%matrix = sparsematrix_malloc0_ptr(smat_m,iaction=DENSE_FULL,id='smat_m%matrix')
+       call uncompress_matrix(iproc, smat_m, matrix_compr, ham_mat%matrix)
+       call f_free_ptr(matrix_compr)
+       !call f_close(iunit01)
+
+       !call f_open_file(iunit01, file=overlap_file, binary=.false.)
+       !call read_linear_matrix_dense(iunit01, ntmb, nat, overlap)
+       call read_sparse_matrix(trim(ham_file), nspin, nfvctr_s, nseg_s, nvctr_s, keyv_s, keyg_s, matrix_compr, &
+            at%astruct%nat, at%astruct%ntypes, at%nzatom, at%nelpsp, at%astruct%atomnames, at%astruct%iatype, at%astruct%rxyz,  on_which_atom=on_which_atom_s)
+       call distribute_columns_on_processes_simple(iproc, nproc, nfvctr_s, nfvctrp_s, isfvctr_s)
+       call bigdft_to_sparsebigdft(iproc, nproc, nfvctr_s, nfvctrp_s, isfvctr_s, on_which_atom_s, nvctr_s, nseg_s, keyg_s, smat_s)
+       ovrlp_mat = matrices_null()
+       ovrlp_mat%matrix = sparsematrix_malloc0_ptr(smat_s,iaction=DENSE_FULL,id='smat_s%matrix')
+       call uncompress_matrix(iproc, smat_s, matrix_compr, ovrlp_mat%matrix)
+       call f_free_ptr(matrix_compr)
+       !call f_close(iunit01)
+
+       coeff = f_malloc((/ntmb,norbks/),id='coeff')
+       eval = f_malloc(norbks,id='eval')
+       denskernel = f_malloc((/ntmb,ntmb/),id='denskernel')
+       !ham = f_malloc((/ntmb,ntmb/),id='ham')
+       !overlap = f_malloc((/ntmb,ntmb/),id='overlap')
+       on_which_atom = f_malloc(ntmb,id='on_which_atom')
+       calc_array = f_malloc(ntmb,id='calc_array')
+
+       !call set_astruct_from_file(trim(posinp_file),0,at%astruct,fcomment,energy,fxyz)
        call f_open_file(iunit01, file=pdos_file, binary=.false.)
 
        calc_array = .false.
@@ -763,24 +791,28 @@ program memguess
                energy = 0.d0
                occup = 0.d0
                !!$omp parallel default(none) &
-               !!$omp shared(ntmb,denskernel,ham,overlap,ipdos,npdos,energy,occup) &
-               !!$omp private(itmb,jtmb)
-               !!$omp do reduction(+:energy)
-               do itmb=1,ntmb
-                   do jtmb=1,ntmb
-                       energy = energy + denskernel(itmb,jtmb)*ham(jtmb,itmb)
+               !!$omp shared(nspin,ntmb,denskernel,ham_matrix,overlap_matrix,ipdos,npdos,energy,occup) &
+               !!$omp private(ispin,tmb,jtmb)
+               do ispin=1,nspin
+                   !!$omp do reduction(+:energy)
+                   do itmb=1,ntmb
+                       do jtmb=1,ntmb
+                           energy = energy + denskernel(itmb,jtmb)*ham_mat%matrix(jtmb,itmb,ispin)
+                       end do
                    end do
+                   !!$omp end do
                end do
-               !!$omp end do
-               !!$omp do reduction(+:occup)
-               do itmb=1,ntmb!ipdos,ntmb,npdos
-                   if (.not.calc_array(itmb)) cycle
-                   do jtmb=1,ntmb!ipdos,ntmb,npdos
-                       if (.not.calc_array(jtmb)) cycle
-                       occup = occup + denskernel(itmb,jtmb)*overlap(jtmb,itmb)
+               do ispin=1,nspin
+                   !!$omp do reduction(+:occup)
+                   do itmb=1,ntmb!ipdos,ntmb,npdos
+                       if (.not.calc_array(itmb)) cycle
+                       do jtmb=1,ntmb!ipdos,ntmb,npdos
+                           if (.not.calc_array(jtmb)) cycle
+                           occup = occup + denskernel(itmb,jtmb)*ovrlp_mat%matrix(jtmb,itmb,ispin)
+                       end do
                    end do
+                   !!$omp end do
                end do
-               !!$omp end do
                !!$omp end parallel
                found_bin = .false.
                do ipt=1,npt
@@ -1125,28 +1157,28 @@ program memguess
    end if
 
    if (charge_analysis) then
-       call set_astruct_from_file(trim(posinp_file),0,at%astruct,fcomment,energy,fxyz)
+       !call set_astruct_from_file(trim(posinp_file),0,at%astruct,fcomment,energy,fxyz)
 
        call read_sparse_matrix(trim(overlap_file), nspin, nfvctr_s, nseg_s, nvctr_s, keyv_s, keyg_s, matrix_compr, &
             at%astruct%nat, at%astruct%ntypes, at%nzatom, at%nelpsp, at%astruct%atomnames, at%astruct%iatype, at%astruct%rxyz,  on_which_atom=on_which_atom_s)
        call distribute_columns_on_processes_simple(iproc, nproc, nfvctr_s, nfvctrp_s, isfvctr_s)
        call bigdft_to_sparsebigdft(iproc, nproc, nfvctr_s, nfvctrp_s, isfvctr_s, on_which_atom_s, nvctr_s, nseg_s, keyg_s, smat_s)
-       ovrlp = matrices_null()
-       ovrlp%matrix_compr = sparsematrix_malloc_ptr(smat_s, iaction=SPARSE_FULL, id='ovrlp%matrix_compr')
-       call vcopy(smat_s%nvctr, matrix_compr(1), 1, ovrlp%matrix_compr(1), 1)
+       ovrlp_mat = matrices_null()
+       ovrlp_mat%matrix_compr = sparsematrix_malloc_ptr(smat_s, iaction=SPARSE_FULL, id='ovrlp%matrix_compr')
+       call vcopy(smat_s%nvctr, matrix_compr(1), 1, ovrlp_mat%matrix_compr(1), 1)
        call f_free_ptr(matrix_compr)
 
        call read_sparse_matrix(trim(kernel_file), nspin, nfvctr_l, nseg_l, nvctr_l, keyv_l, keyg_l, matrix_compr, on_which_atom=on_which_atom_l)
        call distribute_columns_on_processes_simple(iproc, nproc, nfvctr_l, nfvctrp_l, isfvctr_l)
        call bigdft_to_sparsebigdft(iproc, nproc, nfvctr_l, nfvctrp_l, isfvctr_l, on_which_atom_l, nvctr_l, nseg_l, keyg_l, smat_l)
-       kernel = matrices_null()
-       kernel%matrix_compr = sparsematrix_malloc_ptr(smat_l, iaction=SPARSE_FULL, id='kernel%matrix_compr')
-       call vcopy(smat_l%nvctr, matrix_compr(1), 1, kernel%matrix_compr(1), 1)
+       kernel_mat = matrices_null()
+       kernel_mat%matrix_compr = sparsematrix_malloc_ptr(smat_l, iaction=SPARSE_FULL, id='kernel_mat%matrix_compr')
+       call vcopy(smat_l%nvctr, matrix_compr(1), 1, kernel_mat%matrix_compr(1), 1)
        call f_free_ptr(matrix_compr)
 
        call loewdin_charge_analysis_core(iproc, nproc, smat_s%nfvctr, smat_s%nfvctrp, smat_s%isfvctr, &
             smat_s%nfvctr_par, smat_s%isfvctr_par, meth_overlap=0, &
-            smats=smat_s, smatl=smat_l, atoms=at, kernel=kernel, ovrlp=ovrlp)
+            smats=smat_s, smatl=smat_l, atoms=at, kernel=kernel_mat, ovrlp=ovrlp_mat)
        stop
    end if
 

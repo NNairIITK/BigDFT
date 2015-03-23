@@ -472,17 +472,21 @@ subroutine mix_rhopot(iproc,nproc,npoints,alphamix,mix,rhopot,istep,&
   ! Calculate the residue and put it in rhopot
   if (istep > 1) then
      ! rhopot = vin - v(out-1)
-     call axpy(npoints, -1.d0, mix%f_fftgr(1,1, mix%i_vrespc(1)), 1, &
-          & rhopot(1), 1)
-     call dscal(npoints, 1.d0 - alphamix, rhopot(1), 1)
+     if (npoints>0) then
+        call axpy(npoints, -1.d0, mix%f_fftgr(1,1, mix%i_vrespc(1)), 1, &
+              & rhopot(1), 1)
+        call dscal(npoints, 1.d0 - alphamix, rhopot(1), 1)
+     end if
      ! rhopot = alpha(vin - v(out-1))
   !write(*,'(a,i7,es16.7)') 'in mix_rhopot, after axpy: iproc, ddot', iproc, ddot(npoints,rhopot,1,rhopot,1)
   else
      mix%f_fftgr(:,:, mix%i_vrespc(1)) = 0.d0
   end if
   ! rhopot = v(out-1) and fftgr = alpha(vin - v(out-1))
-  call dswap(npoints, mix%f_fftgr(1,1, mix%i_vrespc(1)), 1, &
-       & rhopot(1), 1)
+  if (npoints>0) then
+     call dswap(npoints, mix%f_fftgr(1,1, mix%i_vrespc(1)), 1, &
+          & rhopot(1), 1)
+  end if
 
   ! Store the scattering of rho in user_data
   user_data = f_malloc(3 * nproc,id='user_data')
@@ -509,7 +513,9 @@ subroutine mix_rhopot(iproc,nproc,npoints,alphamix,mix,rhopot,istep,&
 
   call f_free(user_data)
   ! Copy new in vrespc
-  call vcopy(npoints, rhopot(1), 1, mix%f_fftgr(1,1, mix%i_vrespc(1)), 1)
+  if (npoints>0) then
+     call vcopy(npoints, rhopot(1), 1, mix%f_fftgr(1,1, mix%i_vrespc(1)), 1)
+  end if
 
   call f_release_routine()
 

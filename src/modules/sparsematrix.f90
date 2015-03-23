@@ -52,7 +52,7 @@ module sparsematrix
       
       ! Calling arguments
       integer, intent(in) :: iproc
-      type(sparse_matrix),intent(inout) :: sparsemat
+      type(sparse_matrix),intent(in) :: sparsemat
       real(kind=8),dimension(sparsemat%nfvctr,sparsemat%nfvctr,sparsemat%nspin),target,intent(in) :: inmat
       real(kind=8),dimension(sparsemat%nvctr*sparsemat%nspin),target,intent(out) :: outmat
     

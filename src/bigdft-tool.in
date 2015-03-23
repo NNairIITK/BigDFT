@@ -734,7 +734,7 @@ options:
         print command
     if options.action == actions[21]:
         print 'calling memguess to perform a Loewdin charge analysis'
-        command = "%s 1 %s dd charge-analysis %s %s %s" % (memguess, options.name, options.overlap_file, options.kernel_file, options.posinp_file)
+        command = "%s 1 %s dd charge-analysis %s %s" % (memguess, options.name, options.overlap_file, options.kernel_file)
         print command
     if command is not None:
         os.system(command)

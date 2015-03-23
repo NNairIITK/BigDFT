@@ -223,6 +223,8 @@ subroutine rhocore_forces(iproc,atoms,nspin,n1,n2,n3,n1i,n2i,n3p,i3s,hxh,hyh,hzh
   real(gp) :: spinfac,rx,ry,rz,frcx,frcy,frcz,rloc,cutoff,x,y,z,r2
   real(gp) :: spherical_gaussian_value,drhoc,drhov,drhodr2
 
+  call f_routine(id='rhocore_forces')
+
   if (atoms%donlcc) then
      !if (iproc == 0) write(*,'(1x,a)',advance='no')'Calculate NLCC forces...'
 
@@ -341,6 +343,9 @@ subroutine rhocore_forces(iproc,atoms,nspin,n1,n2,n3,n1i,n2i,n3p,i3s,hxh,hyh,hzh
      if (iproc == 0 .and. verbose > 1) call yaml_map('Calculate NLCC forces',.true.)
      !if (iproc == 0 .and. verbose > 1) write( *,'(1x,a)')'done.'
   end if
+
+  call f_release_routine()
+
 end subroutine rhocore_forces
 
 
@@ -370,6 +375,8 @@ subroutine local_forces(iproc,at,rxyz,hxh,hyh,hzh,&
   integer :: nbl1,nbr1,nbl2,nbr2,nbl3,nbr3,j1,j2,j3,isx,isy,isz,iex,iey,iez
   !array of coefficients of the derivative
   real(kind=8), dimension(4) :: cprime 
+
+  call f_routine(id='local_forces')
 
   if (at%multipole_preserving) call initialize_real_space_conversion(isf_m=at%mp_isf)
   
@@ -556,6 +563,8 @@ subroutine local_forces(iproc,at,rxyz,hxh,hyh,hzh,&
   end if
 
   if (at%multipole_preserving) call finalize_real_space_conversion()
+
+  call f_release_routine()
 
 END SUBROUTINE local_forces
 
@@ -3761,6 +3770,8 @@ subroutine local_hamiltonian_stress(orbs,lr,hx,hy,hz,psi,tens)
   type(workarr_locham) :: wrk_lh
   real(wp), dimension(:,:), allocatable :: psir,hpsi
 
+  call f_routine(id='local_hamiltonian_stress')
+
   !initialise the work arrays
   call initialize_work_arrays_locham(1,lr,orbs%nspinor,.true.,wrk_lh)  
 
@@ -3810,6 +3821,8 @@ subroutine local_hamiltonian_stress(orbs,lr,hx,hy,hz,psi,tens)
 
   call deallocate_work_arrays_locham(wrk_lh)
 
+  call f_release_routine()
+
 END SUBROUTINE local_hamiltonian_stress
 
 
@@ -3853,6 +3866,7 @@ subroutine local_hamiltonian_stress_linear(iproc, nproc, orbs, lzd, hx, hy, hz, 
   real(kind=8),dimension(:,:),allocatable :: hpsit_c, hpsit_f, hpsi
   real(kind=8),dimension(:),allocatable :: psit_c, psit_f
 
+  call f_routine(id='local_hamiltonian_stress')
 
   !@ NEW ####################################################
 
@@ -3994,6 +4008,9 @@ subroutine local_hamiltonian_stress_linear(iproc, nproc, orbs, lzd, hx, hy, hz, 
 
   !!call deallocate_work_arrays_locham(wrk_lh)
 
+
+  call f_release_routine()
+
 END SUBROUTINE local_hamiltonian_stress_linear
 
 
@@ -4021,6 +4038,8 @@ subroutine erf_stress(at,rxyz,hxh,hyh,hzh,n1i,n2i,n3i,n3p,iproc,nproc,ngatherarr
   real(kind=8) :: Zion
   integer :: iat,ityp
   integer :: j1,j2,j3,i1,i2,i3,inzee,ind
+
+  call f_routine(id='erf_stress')
 
   !write(*,*) 'iproc,n3i,n3p',iproc,n3i,n3p
   !write(*,*) 'iproc',iproc, ngatherarr(iproc-1,1),ngatherarr(iproc-1,2)
@@ -4136,6 +4155,8 @@ subroutine erf_stress(at,rxyz,hxh,hyh,hzh,n1i,n2i,n3i,n3p,iproc,nproc,ngatherarr
      nullify(rhor)
   end if
   deallocate(rhog)
+
+  call f_release_routine()
 
 END SUBROUTINE erf_stress
 
