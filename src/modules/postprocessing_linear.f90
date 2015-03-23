@@ -5,6 +5,7 @@ module postprocessing_linear
 
   !> Public routines
   public :: loewdin_charge_analysis
+  public :: loewdin_charge_analysis_core
   public :: support_function_multipoles
   public :: build_ks_orbitals
 
@@ -56,8 +57,8 @@ module postprocessing_linear
     
       call f_routine(id='loewdin_charge_analysis')
     
-      inv_ovrlp(1) = matrices_null()
-      call allocate_matrices(tmb%linmat%l, allocate_full=.true., matname='inv_ovrlp', mat=inv_ovrlp(1))
+      !inv_ovrlp(1) = matrices_null()
+      !call allocate_matrices(tmb%linmat%l, allocate_full=.true., matname='inv_ovrlp', mat=inv_ovrlp(1))
     
     
     
@@ -96,93 +97,198 @@ module postprocessing_linear
          !!   tmb%can_use_transposed=.false.
          !!end if
       end if
+
+      call loewdin_charge_analysis_core(bigdft_mpi%iproc, bigdft_mpi%nproc, tmb%orbs%norb, tmb%orbs%norbp, tmb%orbs%isorb, &
+               tmb%orbs%norb_par, tmb%orbs%isorb_par, meth_overlap, tmb%linmat%s, tmb%linmat%l, atoms, &
+               tmb%linmat%kernel_, tmb%linmat%ovrlp_)
     
-      if (calculate_ovrlp_half) then
-         tmb%linmat%ovrlp_%matrix = sparsematrix_malloc_ptr(tmb%linmat%s, iaction=DENSE_FULL, id='tmb%linmat%ovrlp_%matrix')
-         call uncompress_matrix2(bigdft_mpi%iproc, bigdft_mpi%nproc, tmb%linmat%s, &
-              tmb%linmat%ovrlp_%matrix_compr, tmb%linmat%ovrlp_%matrix)
-         call overlapPowerGeneral(bigdft_mpi%iproc, bigdft_mpi%nproc, meth_overlap, 1, (/2/), &
-              tmb%orthpar%blocksize_pdsyev, &
-              imode=2, ovrlp_smat=tmb%linmat%s, inv_ovrlp_smat=tmb%linmat%l, &
-              ovrlp_mat=tmb%linmat%ovrlp_, inv_ovrlp_mat=inv_ovrlp, check_accur=.true., &
-              max_error=max_error, mean_error=mean_error)
-         !!ovrlp_half=tmb%linmat%ovrlp%matrix
-         call f_free_ptr(tmb%linmat%ovrlp_%matrix)
-      end if
+!!!!      if (calculate_ovrlp_half) then
+!!!!         tmb%linmat%ovrlp_%matrix = sparsematrix_malloc_ptr(tmb%linmat%s, iaction=DENSE_FULL, id='tmb%linmat%ovrlp_%matrix')
+!!!!         call uncompress_matrix2(bigdft_mpi%iproc, bigdft_mpi%nproc, tmb%linmat%s, &
+!!!!              tmb%linmat%ovrlp_%matrix_compr, tmb%linmat%ovrlp_%matrix)
+!!!!         call overlapPowerGeneral(bigdft_mpi%iproc, bigdft_mpi%nproc, meth_overlap, 1, (/2/), &
+!!!!              tmb%orthpar%blocksize_pdsyev, &
+!!!!              imode=2, ovrlp_smat=tmb%linmat%s, inv_ovrlp_smat=tmb%linmat%l, &
+!!!!              ovrlp_mat=tmb%linmat%ovrlp_, inv_ovrlp_mat=inv_ovrlp, check_accur=.true., &
+!!!!              max_error=max_error, mean_error=mean_error)
+!!!!         !!ovrlp_half=tmb%linmat%ovrlp%matrix
+!!!!         call f_free_ptr(tmb%linmat%ovrlp_%matrix)
+!!!!      end if
+!!!!    
+!!!!      ! optimize this to just change the matrix multiplication?
+!!!!      proj_mat = sparsematrix_malloc0(tmb%linmat%l,iaction=DENSE_FULL,id='proj_mat')
+!!!!    
+!!!!      call uncompress_matrix2(iproc, bigdft_mpi%nproc, tmb%linmat%l, tmb%linmat%kernel_%matrix_compr, proj_mat)
+!!!!      !!isforb=0
+!!!!      !!do ifrag=1,input%frag%nfrag
+!!!!      !!   ifrag_ref=input%frag%frag_index(ifrag)
+!!!!      !!   if (ifrag==ifrag_charged(1)) then
+!!!!      !!      do iorb=1,ref_frags(ifrag_ref)%fbasis%forbs%norb
+!!!!      !!         proj_mat(iorb+isforb,iorb+isforb)=1.0_gp
+!!!!      !!      end do
+!!!!      !!   end if
+!!!!      !!   !!if (nfrag_charged==2) then
+!!!!      !!   !!   if (ifrag==ifrag_charged(2)) then
+!!!!      !!   !!      do iorb=1,ref_frags(ifrag_ref)%fbasis%forbs%norb
+!!!!      !!   !!         proj_mat(iorb+isforb,iorb+isforb)=-1.0_gp
+!!!!      !!   !!      end do
+!!!!      !!   !!   end if
+!!!!      !!   !!end if
+!!!!      !!   isforb=isforb+ref_frags(ifrag_ref)%fbasis%forbs%norb
+!!!!      !!end do
+!!!!    
+!!!!      proj_ovrlp_half=f_malloc((/tmb%orbs%norb,tmb%orbs%norbp/),id='proj_ovrlp_half')
+!!!!      if (tmb%orbs%norbp>0) then
+!!!!         call dgemm('n', 'n', tmb%orbs%norb, tmb%orbs%norbp, &
+!!!!                tmb%orbs%norb, 1.d0, &
+!!!!                proj_mat(1,1,1), tmb%orbs%norb, &
+!!!!                inv_ovrlp(1)%matrix(1,tmb%orbs%isorb+1,1), tmb%orbs%norb, 0.d0, &
+!!!!                proj_ovrlp_half(1,1), tmb%orbs%norb)
+!!!!      end if
+!!!!      call f_free(proj_mat)
+!!!!      weight_matrixp=f_malloc((/tmb%orbs%norb,tmb%orbs%norbp/), id='weight_matrixp')
+!!!!      if (tmb%orbs%norbp>0) then
+!!!!         call dgemm('n', 'n', tmb%orbs%norb, tmb%orbs%norbp, &
+!!!!              tmb%orbs%norb, 1.d0, &
+!!!!              inv_ovrlp(1)%matrix(1,1,1), tmb%orbs%norb, &
+!!!!              proj_ovrlp_half(1,1), tmb%orbs%norb, 0.d0, &
+!!!!              weight_matrixp(1,1), tmb%orbs%norb)
+!!!!      end if
+!!!!      !call f_free_ptr(ovrlp_half)
+!!!!      call f_free(proj_ovrlp_half)
+!!!!      weight_matrix=f_malloc((/tmb%orbs%norb,tmb%orbs%norb/), id='weight_matrix')
+!!!!      if (bigdft_mpi%nproc>1) then
+!!!!         call mpi_allgatherv(weight_matrixp, tmb%orbs%norb*tmb%orbs%norbp, mpi_double_precision, weight_matrix, &
+!!!!              tmb%orbs%norb*tmb%orbs%norb_par(:,0), tmb%orbs%norb*tmb%orbs%isorb_par, &
+!!!!              mpi_double_precision, bigdft_mpi%mpi_comm, ierr)
+!!!!      else
+!!!!         call vcopy(tmb%orbs%norb*tmb%orbs%norb,weight_matrixp(1,1),1,weight_matrix(1,1),1)
+!!!!      end if
+!!!!      call f_free(weight_matrixp)
+!!!!      !call compress_matrix(bigdft_mpi%iproc,weight_matrix)
+!!!!    
+!!!!      charge_per_atom = f_malloc0(atoms%astruct%nat,id='charge_per_atom')
+!!!!      !!do iorb=1,tmb%orbs%norb
+!!!!      !!    do jorb=1,tmb%orbs%norb
+!!!!      !!        if (iproc==0) write(*,'(a,2i7,es16.7)') 'iorb,jorb,weight_matrix(jorb,iorb)', iorb,jorb,weight_matrix(jorb,iorb)
+!!!!      !!        if (iorb==jorb) then
+!!!!      !!            total_charge = total_charge + weight_matrix(jorb,iorb)
+!!!!      !!            iat=tmb%orbs%onwhichatom(iorb)
+!!!!      !!            charge_per_atom(iat) = charge_per_atom(iat) + weight_matrix(jorb,iorb)
+!!!!      !!        end if
+!!!!      !!    end do
+!!!!      !!end do
+!!!!      !!if (iproc==0) then
+!!!!      !!    do iat=1,atoms%astruct%nat
+!!!!      !!        write(*,*) 'iat, partial total_charge', iat, charge_per_atom(iat)
+!!!!      !!    end do
+!!!!      !!    write(*,*) 'total total_charge',total_charge
+!!!!      !!    if (iproc==0) call write_partial_charges()
+!!!!      !!end if
+!!!!    
+!!!!      do iorb=1,tmb%orbs%norb
+!!!!          iat=tmb%orbs%onwhichatom(iorb)
+!!!!          charge_per_atom(iat) = charge_per_atom(iat) + weight_matrix(iorb,iorb)
+!!!!      end do
+!!!!      if (iproc==0) then
+!!!!          !call write_partial_charges()
+!!!!          call write_partial_charges(atoms, charge_per_atom)
+!!!!          call yaml_sequence_open('Multipole analysis (based on the Loewdin charges)')
+!!!!          call calculate_dipole(iproc, atoms, charge_per_atom)
+!!!!          call calculate_quadropole(iproc, atoms, charge_per_atom)
+!!!!          call yaml_sequence_close()
+!!!!      end if
+!!!!      !!call support_function_multipoles()
+!!!!    
+!!!!      call deallocate_matrices(inv_ovrlp(1))
+!!!!    
+!!!!      call f_free(charge_per_atom)
+!!!!      call f_free(weight_matrix)
+      call f_release_routine()
+    
+    
+    end subroutine loewdin_charge_analysis
+
+
+
+
+    subroutine loewdin_charge_analysis_core(iproc, nproc, norb, norbp, isorb, &
+               norb_par, isorb_par, meth_overlap, smats, smatl, atoms, kernel, ovrlp)
+      use module_base
+      use module_types
+      use sparsematrix_base, only: sparse_matrix, matrices, &
+                                   assignment(=), sparsematrix_malloc0, sparsematrix_malloc_ptr, DENSE_FULL, &
+                                   deallocate_matrices, matrices_null, allocate_matrices
+      use sparsematrix, only: uncompress_matrix2
+      use matrix_operations, only: overlapPowerGeneral
+      use yaml_output
+      implicit none
+      ! Calling arguments
+      integer,intent(in) :: iproc, nproc, norb, norbp, isorb, meth_overlap
+      integer,dimension(norb),intent(in) :: norb_par, isorb_par
+      type(sparse_matrix),intent(inout) :: smats, smatl
+      type(atoms_data),intent(in) :: atoms
+      type(matrices),intent(in) :: kernel
+      type(matrices),intent(inout) :: ovrlp
+
+      ! Local variables
+      integer :: ierr, iorb, iat
+      type(matrices),dimension(1) :: inv_ovrlp
+      real(kind=8),dimension(:,:,:),allocatable :: proj_mat
+      real(kind=8),dimension(:,:),allocatable :: weight_matrix, weight_matrixp, proj_ovrlp_half
+      real(kind=8),dimension(:),allocatable :: charge_per_atom
+      real(kind=8) :: mean_error, max_error
+
+
+      inv_ovrlp(1) = matrices_null()
+      call allocate_matrices(smatl, allocate_full=.true., matname='inv_ovrlp', mat=inv_ovrlp(1))
+
+      ovrlp%matrix = sparsematrix_malloc_ptr(smats, iaction=DENSE_FULL, id='ovrlp%matrix')
+      call uncompress_matrix2(iproc, nproc, smats, &
+           ovrlp%matrix_compr, ovrlp%matrix)
+      call overlapPowerGeneral(iproc, nproc, meth_overlap, 1, (/2/), -1, &
+           imode=2, ovrlp_smat=smats, inv_ovrlp_smat=smatl, &
+           ovrlp_mat=ovrlp, inv_ovrlp_mat=inv_ovrlp, check_accur=.true., &
+           max_error=max_error, mean_error=mean_error)
+      call f_free_ptr(ovrlp%matrix)
     
       ! optimize this to just change the matrix multiplication?
-      proj_mat = sparsematrix_malloc0(tmb%linmat%l,iaction=DENSE_FULL,id='proj_mat')
+      proj_mat = sparsematrix_malloc0(smatl,iaction=DENSE_FULL,id='proj_mat')
     
-      call uncompress_matrix2(iproc, bigdft_mpi%nproc, tmb%linmat%l, tmb%linmat%kernel_%matrix_compr, proj_mat)
-      !!isforb=0
-      !!do ifrag=1,input%frag%nfrag
-      !!   ifrag_ref=input%frag%frag_index(ifrag)
-      !!   if (ifrag==ifrag_charged(1)) then
-      !!      do iorb=1,ref_frags(ifrag_ref)%fbasis%forbs%norb
-      !!         proj_mat(iorb+isforb,iorb+isforb)=1.0_gp
-      !!      end do
-      !!   end if
-      !!   !!if (nfrag_charged==2) then
-      !!   !!   if (ifrag==ifrag_charged(2)) then
-      !!   !!      do iorb=1,ref_frags(ifrag_ref)%fbasis%forbs%norb
-      !!   !!         proj_mat(iorb+isforb,iorb+isforb)=-1.0_gp
-      !!   !!      end do
-      !!   !!   end if
-      !!   !!end if
-      !!   isforb=isforb+ref_frags(ifrag_ref)%fbasis%forbs%norb
-      !!end do
-    
-      proj_ovrlp_half=f_malloc((/tmb%orbs%norb,tmb%orbs%norbp/),id='proj_ovrlp_half')
-      if (tmb%orbs%norbp>0) then
-         call dgemm('n', 'n', tmb%orbs%norb, tmb%orbs%norbp, &
-                tmb%orbs%norb, 1.d0, &
-                proj_mat(1,1,1), tmb%orbs%norb, &
-                inv_ovrlp(1)%matrix(1,tmb%orbs%isorb+1,1), tmb%orbs%norb, 0.d0, &
-                proj_ovrlp_half(1,1), tmb%orbs%norb)
+      call uncompress_matrix2(iproc, nproc, smatl, kernel%matrix_compr, proj_mat)
+
+      proj_ovrlp_half=f_malloc((/norb,norbp/),id='proj_ovrlp_half')
+      if (norbp>0) then
+         call dgemm('n', 'n', norb, norbp, &
+                norb, 1.d0, &
+                proj_mat(1,1,1), norb, &
+                inv_ovrlp(1)%matrix(1,isorb+1,1), norb, 0.d0, &
+                proj_ovrlp_half(1,1), norb)
       end if
       call f_free(proj_mat)
-      weight_matrixp=f_malloc((/tmb%orbs%norb,tmb%orbs%norbp/), id='weight_matrixp')
-      if (tmb%orbs%norbp>0) then
-         call dgemm('n', 'n', tmb%orbs%norb, tmb%orbs%norbp, &
-              tmb%orbs%norb, 1.d0, &
-              inv_ovrlp(1)%matrix(1,1,1), tmb%orbs%norb, &
-              proj_ovrlp_half(1,1), tmb%orbs%norb, 0.d0, &
-              weight_matrixp(1,1), tmb%orbs%norb)
+      weight_matrixp=f_malloc((/norb,norbp/), id='weight_matrixp')
+      if (norbp>0) then
+         call dgemm('n', 'n', norb, norbp, &
+              norb, 1.d0, &
+              inv_ovrlp(1)%matrix(1,1,1), norb, &
+              proj_ovrlp_half(1,1), norb, 0.d0, &
+              weight_matrixp(1,1), norb)
       end if
-      !call f_free_ptr(ovrlp_half)
       call f_free(proj_ovrlp_half)
-      weight_matrix=f_malloc((/tmb%orbs%norb,tmb%orbs%norb/), id='weight_matrix')
-      if (bigdft_mpi%nproc>1) then
-         call mpi_allgatherv(weight_matrixp, tmb%orbs%norb*tmb%orbs%norbp, mpi_double_precision, weight_matrix, &
-              tmb%orbs%norb*tmb%orbs%norb_par(:,0), tmb%orbs%norb*tmb%orbs%isorb_par, &
+      weight_matrix=f_malloc((/norb,norb/), id='weight_matrix')
+      if (nproc>1) then
+         call mpi_allgatherv(weight_matrixp, norb*norbp, mpi_double_precision, weight_matrix, &
+              norb*norb_par(:), norb*isorb_par, &
               mpi_double_precision, bigdft_mpi%mpi_comm, ierr)
       else
-         call vcopy(tmb%orbs%norb*tmb%orbs%norb,weight_matrixp(1,1),1,weight_matrix(1,1),1)
+         call vcopy(norb*norb,weight_matrixp(1,1),1,weight_matrix(1,1),1)
       end if
       call f_free(weight_matrixp)
-      !call compress_matrix(bigdft_mpi%iproc,weight_matrix)
     
       charge_per_atom = f_malloc0(atoms%astruct%nat,id='charge_per_atom')
-      !!do iorb=1,tmb%orbs%norb
-      !!    do jorb=1,tmb%orbs%norb
-      !!        if (iproc==0) write(*,'(a,2i7,es16.7)') 'iorb,jorb,weight_matrix(jorb,iorb)', iorb,jorb,weight_matrix(jorb,iorb)
-      !!        if (iorb==jorb) then
-      !!            total_charge = total_charge + weight_matrix(jorb,iorb)
-      !!            iat=tmb%orbs%onwhichatom(iorb)
-      !!            charge_per_atom(iat) = charge_per_atom(iat) + weight_matrix(jorb,iorb)
-      !!        end if
-      !!    end do
-      !!end do
-      !!if (iproc==0) then
-      !!    do iat=1,atoms%astruct%nat
-      !!        write(*,*) 'iat, partial total_charge', iat, charge_per_atom(iat)
-      !!    end do
-      !!    write(*,*) 'total total_charge',total_charge
-      !!    if (iproc==0) call write_partial_charges()
-      !!end if
     
-      do iorb=1,tmb%orbs%norb
-          iat=tmb%orbs%onwhichatom(iorb)
+      do iorb=1,norb
+          iat=smats%on_which_atom(iorb)
           charge_per_atom(iat) = charge_per_atom(iat) + weight_matrix(iorb,iorb)
       end do
       if (iproc==0) then
@@ -196,13 +302,10 @@ module postprocessing_linear
       !!call support_function_multipoles()
     
       call deallocate_matrices(inv_ovrlp(1))
-    
       call f_free(charge_per_atom)
       call f_free(weight_matrix)
-      call f_release_routine()
-    
-    
-    end subroutine loewdin_charge_analysis
+
+    end subroutine loewdin_charge_analysis_core
 
 
     subroutine write_partial_charges(atoms, charge_per_atom)
@@ -625,8 +728,7 @@ module postprocessing_linear
       use communications_base, only: comms_cubic
       use communications_init, only: orbitals_communicators
       use communications, only: transpose_v, untranspose_v
-      use sparsematrix_base, only: sparse_matrix, &
-                                   sparsematrix_malloc, assignment(=), SPARSE_FULL
+      use sparsematrix_base, only: sparse_matrix, sparsematrix_malloc, assignment(=), SPARSE_FULL
       use sparsematrix, only: gather_matrix_from_taskgroups_inplace, extract_taskgroup_inplace
       use yaml_output
       implicit none

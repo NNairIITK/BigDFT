@@ -1080,7 +1080,7 @@ module io
       character(len=*),intent(in) :: filename
 
       ! Local variables
-      integer :: iunit, iseg, icol, irow, jorb, iat, jat, ind, ispin
+      integer :: iunit, iseg, icol, irow, jorb, iat, jat, ind, ispin, itype
       real(kind=8),dimension(:),allocatable :: matrix_compr
 
       call f_routine(id='write_sparse_matrix')
@@ -1094,10 +1094,14 @@ module io
           iunit = 99
           call f_open_file(iunit, file=trim(filename), binary=.false.)
 
-          write(iunit,'(i12,i6,a)') at%astruct%nat, smat%nspin, &
-              '   # number of atoms, nspin'
+          write(iunit,'(i10,2i6,a)') at%astruct%nat, at%astruct%ntypes, smat%nspin, &
+              '   # number of atoms, number of atom types, nspin'
+          do itype=1,at%astruct%ntypes
+              write(iunit,'(2i8,3x,a,a)') at%nzatom(itype), at%nelpsp(itype), trim(at%astruct%atomnames(itype)), &
+                  '   # nz, nelpsp, name'
+          end do
           do iat=1,at%astruct%nat
-              write(iunit,'(3es24.16,a,i0)') rxyz(1:3,iat), '   # atom no. ',iat
+              write(iunit,'(i5, 3es24.16,a,i0)') at%astruct%iatype(iat), rxyz(1:3,iat), '   # atom no. ',iat
           end do
           write(iunit,'(3i12,a)') smat%nfvctr, smat%nseg, smat%nvctr, '   # nfvctr, nseg, nvctr'
           do iseg=1,smat%nseg
@@ -1129,7 +1133,8 @@ module io
     end subroutine write_sparse_matrix
 
 
-    subroutine read_sparse_matrix(filename, nspin, nfvctr, nseg, nvctr, keyv, keyg, mat_compr, nat, rxyz, on_which_atom)
+    subroutine read_sparse_matrix(filename, nspin, nfvctr, nseg, nvctr, keyv, keyg, mat_compr, &
+               nat, ntypes, nzatom, nelpsp, atomnames, iatype, rxyz, on_which_atom)
       use module_base
       use module_types
       implicit none
@@ -1140,21 +1145,26 @@ module io
       integer,dimension(:),pointer,intent(out) :: keyv
       integer,dimension(:,:,:),pointer,intent(out) :: keyg
       real(kind=8),dimension(:),pointer,intent(out) :: mat_compr
-      integer,intent(out),optional :: nat
+      integer,intent(out),optional :: nat, ntypes
+      integer,dimension(:),pointer,intent(inout),optional :: nzatom, nelpsp, iatype
+      character(len=20),dimension(:),pointer,intent(inout),optional :: atomnames
       real(kind=8),dimension(:,:),pointer,intent(inout),optional :: rxyz
       integer,dimension(:),pointer,intent(inout),optional :: on_which_atom
 
       ! Local variables
-      integer :: iunit, dummy_int, iseg, icol, irow, jorb, ind, ispin, iat
+      integer :: iunit, dummy_int, iseg, icol, irow, jorb, ind, ispin, iat, ntypes_, nat_, itype
       real(kind=8) :: dummy_double
+      character(len=20) :: dummy_char
       logical :: read_rxyz, read_on_which_atom
 
       call f_routine(id='read_sparse_matrix')
 
-      if (present(nat) .and. present(rxyz)) then
+      if (present(nat) .and. present(ntypes) .and. present(nzatom) .and.  &
+          present(nelpsp) .and. present(atomnames) .and. present(iatype) .and. present(rxyz)) then
           read_rxyz = .true.
-      else if (present(nat) .or. present(rxyz)) then
-          call f_err_throw("'nat' and 'rxyz' must be present at the same time", &
+      else if (present(nat) .or. present(ntypes) .or. present(nzatom) .or.  &
+          present(nelpsp) .or. present(atomnames) .or. present(iatype) .or. present(rxyz)) then
+          call f_err_throw("not all optional arguments were given", &
                err_name='BIGDFT_RUNTIME_ERROR')
       else
           read_rxyz = .false.
@@ -1170,15 +1180,26 @@ module io
       call f_open_file(iunit, file=trim(filename), binary=.false.)
 
       if (read_rxyz) then
-          read(iunit,*) nat, nspin
+          read(iunit,*) nat, ntypes, nspin
+          nzatom = f_malloc_ptr(ntypes,id='nzatom')
+          nelpsp = f_malloc_ptr(ntypes,id='nelpsp')
+          atomnames = f_malloc0_str_ptr(len(atomnames),ntypes,id='atomnames')
+
+          do itype=1,ntypes
+              read(iunit,*) nzatom(itype), nelpsp(itype), atomnames(itype)
+          end do
           rxyz = f_malloc_ptr((/3,nat/),id='rxyz')
+          iatype = f_malloc_ptr(nat,id='iatype')
           do iat=1,nat
-              read(iunit,*) rxyz(1,iat), rxyz(2,iat), rxyz(3,iat)
+              read(iunit,*) iatype(iat), rxyz(1,iat), rxyz(2,iat), rxyz(3,iat)
           end do
       else
-          read(iunit,*) dummy_int, nspin
-          do iat=1,dummy_int
-              read(iunit,*) dummy_double, dummy_double, dummy_double
+          read(iunit,*) nat_, ntypes_, nspin
+          do itype=1,ntypes_
+              read(iunit,*) dummy_int, dummy_int, dummy_char
+          end do
+          do iat=1,nat_
+              read(iunit,*) dummy_int, dummy_double, dummy_double, dummy_double
           end do
       end if
       read(iunit,*) nfvctr, nseg, nvctr
@@ -1349,7 +1370,7 @@ module io
     
       end if
 
-      call write_sparse_matrix(at, rxyz, tmb%linmat%m, tmb%linmat%ham_, filename//'overlap_sparse.bin')
+      call write_sparse_matrix(at, rxyz, tmb%linmat%s, tmb%linmat%ovrlp_, filename//'overlap_sparse.bin')
     
       call f_free_ptr(tmb%linmat%ovrlp_%matrix)
     
@@ -1400,7 +1421,7 @@ module io
     
      end if
 
-      call write_sparse_matrix(at, rxyz, tmb%linmat%m, tmb%linmat%ham_, filename//'density_kernel_sparse.bin')
+      call write_sparse_matrix(at, rxyz, tmb%linmat%l, tmb%linmat%kernel_, filename//'density_kernel_sparse.bin')
     
       call f_free_ptr(tmb%linmat%kernel_%matrix)
     
@@ -1455,7 +1476,7 @@ module io
     
       end if
 
-      call write_sparse_matrix(at, rxyz, tmb%linmat%m, tmb%linmat%ham_, filename//'overlap_onsite.bin')
+      call write_sparse_matrix(at, rxyz, tmb%linmat%l, tmb%linmat%ovrlp_, filename//'overlap_onsite.bin')
     
       !!i_all = -product(shape(tmb%linmat%ovrlp%matrix))*kind(tmb%linmat%ovrlp%matrix)
       !!deallocate(tmb%linmat%ovrlp%matrix,stat=i_stat)

@@ -25,7 +25,11 @@ program memguess
    use gaussians, only: gaussian_basis, deallocate_gwf
    use communications_base, only: deallocate_comms
    use psp_projectors, only: free_DFT_PSP_projectors
-   use io, only: read_linear_matrix_dense, read_coeff_minbasis, writeLinearCoefficients
+   use io, only: read_linear_matrix_dense, read_coeff_minbasis, writeLinearCoefficients, read_sparse_matrix
+   use sparsematrix_base, only: sparse_matrix, matrices_null, assignment(=), SPARSE_FULL, sparsematrix_malloc_ptr
+   use sparsematrix_init, only: bigdft_to_sparsebigdft, distribute_columns_on_processes_simple
+   use postprocessing_linear, only: loewdin_charge_analysis_core
+                                
    implicit none
    character(len=*), parameter :: subname='memguess'
    character(len=30) :: tatonam, radical
@@ -41,7 +45,7 @@ program memguess
    logical :: calculate_pdos = .false., kernel_analysis = .false., extract_submatrix = .false.
    logical :: solve_eigensystem = .false., analyze_coeffs = .false., peel_matrix = .false.
    logical :: multiply_matrices = .false., matrixpower = .false., plot_wavefunction = .false.
-   logical :: suggest_cutoff = .false.
+   logical :: suggest_cutoff = .false., charge_analysis = .true.
    integer :: ntimes,nproc,output_grid, i_arg,istat
    integer :: nspin,iorb,norbu,norbd,nspinor,norb,iorbp,iorb_out,lwork
    integer :: norbgpu,ng, nsubmatrices, ncategories
@@ -61,9 +65,11 @@ program memguess
    real(gp), dimension(:), pointer :: gbd_occ
    type(system_fragment), dimension(:), pointer :: ref_frags
    character(len=3) :: in_name !lr408
-   integer :: i, inputpsi, input_wf_format, nneighbor_min, nneighbor_max, nneighbor
+   integer :: i, inputpsi, input_wf_format, nneighbor_min, nneighbor_max, nneighbor, ntypes
    integer,parameter :: nconfig=1
    type(dictionary), pointer :: run
+   integer,dimension(:),pointer :: nzatom, nelpsp, iatype
+   character(len=20),dimension(:),pointer :: atomnames
    !character(len=60),dimension(nconfig) :: arr_radical,arr_posinp
    !character(len=60) :: run_id, infile, outfile
    !integer, dimension(4) :: mpi_info
@@ -72,11 +78,16 @@ program memguess
    !! By Ali
    integer :: ierror, iat, itmb, jtmb, iitmb, jjtmb, ntmb, norbks, npdos, iunit01, iunit02, norb_dummy, ipt, npt, ipdos, nat
    integer :: iproc, isub, jat, icat, info, itype, iiat, jjat, jtype, ios, ival, iat_prev, ii, iitype
+   integer :: nfvctr_s, nseg_s, nvctr_s, nfvctrp_s, isfvctr_s, nfvctr_l, nseg_l, nvctr_l, nfvctrp_l, isfvctr_l
    integer,dimension(:),allocatable :: na, nb, nc, on_which_atom
+   integer,dimension(:),pointer :: keyv_s, keyv_l, on_which_atom_s, on_which_atom_l
    integer,dimension(:,:),allocatable :: atoms_ref, imin_list
-   real(kind=8),dimension(:,:),allocatable :: rxyz, rxyz_int, kernel, ham, overlap, coeff, pdos, energy_bins, matrix
+   integer,dimension(:,:,:),pointer :: keyg_s, keyg_l
+   real(kind=8),dimension(:,:),allocatable :: rxyz, rxyz_int, denskernel, ham, overlap, coeff, pdos, energy_bins, matrix
    real(kind=8),dimension(:,:),allocatable :: amatrix, bmatrix, cmatrix, temparr, d1min_list
    real(kind=8),dimension(:),allocatable :: eval, coeff_cat, work, d2min_list, dtype, rcov
+   real(kind=8),dimension(:),pointer :: matrix_compr
+   type(matrices) :: ovrlp, kernel
    !real(kind=8),parameter :: degree=57.295779513d0
    real(kind=8),parameter :: degree=1.d0
    character(len=6) :: direction
@@ -84,6 +95,7 @@ program memguess
    logical :: file_exists, found_bin, mpi_init
    logical,dimension(:),allocatable :: calc_array
    real(kind=8),parameter :: eps_roundoff=1.d-5
+   type(sparse_matrix) :: smat_s, smat_l
 
    call f_lib_initialize()
    !initialize errors and timings as bigdft routines are called
@@ -163,6 +175,10 @@ program memguess
            &   '"suggest-cutoff" <posinp.xyz>" ' 
       write(*,'(1x,a)')&
            & 'suggest cutoff radii for the linear scaling version'
+      write(*,'(1x,a)')&
+           &   '"charge-analysis"" ' 
+      write(*,'(1x,a)')&
+           & 'perform a Loewdin charge analysis'
 
       stop
    else
@@ -459,6 +475,17 @@ program memguess
                &   'suggest cutoff radii based on the atomic positions in ',trim(posinp_file)
             suggest_cutoff = .true.
             exit loop_getargs
+         else if (trim(tatonam)=='charge-analysis') then
+            i_arg = i_arg + 1
+            call get_command_argument(i_arg, value = overlap_file)
+            i_arg = i_arg + 1
+            call get_command_argument(i_arg, value = kernel_file)
+            i_arg = i_arg + 1
+            call get_command_argument(i_arg, value = posinp_file)
+            write(*,'(1x,2a)')&
+               &   'perform a Loewdin charge analysis'
+            charge_analysis = .true.
+            exit loop_getargs
          else if (trim(tatonam) == 'dd') then
             ! dd: disable deprecation message
             disable_deprecation = .true.
@@ -656,7 +683,7 @@ program memguess
        end if
        coeff = f_malloc((/ntmb,norbks/),id='coeff')
        eval = f_malloc(norbks,id='eval')
-       kernel = f_malloc((/ntmb,ntmb/),id='kernel')
+       denskernel = f_malloc((/ntmb,ntmb/),id='denskernel')
        ham = f_malloc((/ntmb,ntmb/),id='ham')
        overlap = f_malloc((/ntmb,ntmb/),id='overlap')
        on_which_atom = f_malloc(ntmb,id='on_which_atom')
@@ -732,16 +759,16 @@ program memguess
            do iorb=1,norbks
                call yaml_map('orbital being processed',iorb)
                call gemm('n', 't', ntmb, ntmb, 1, 1.d0, coeff(1,iorb), ntmb, &
-                    coeff(1,iorb), ntmb, 0.d0, kernel(1,1), ntmb)
+                    coeff(1,iorb), ntmb, 0.d0, denskernel(1,1), ntmb)
                energy = 0.d0
                occup = 0.d0
                !!$omp parallel default(none) &
-               !!$omp shared(ntmb,kernel,ham,overlap,ipdos,npdos,energy,occup) &
+               !!$omp shared(ntmb,denskernel,ham,overlap,ipdos,npdos,energy,occup) &
                !!$omp private(itmb,jtmb)
                !!$omp do reduction(+:energy)
                do itmb=1,ntmb
                    do jtmb=1,ntmb
-                       energy = energy + kernel(itmb,jtmb)*ham(jtmb,itmb)
+                       energy = energy + denskernel(itmb,jtmb)*ham(jtmb,itmb)
                    end do
                end do
                !!$omp end do
@@ -750,7 +777,7 @@ program memguess
                    if (.not.calc_array(itmb)) cycle
                    do jtmb=1,ntmb!ipdos,ntmb,npdos
                        if (.not.calc_array(jtmb)) cycle
-                       occup = occup + kernel(itmb,jtmb)*overlap(jtmb,itmb)
+                       occup = occup + denskernel(itmb,jtmb)*overlap(jtmb,itmb)
                    end do
                end do
                !!$omp end do
@@ -803,16 +830,16 @@ program memguess
        end if
        coeff = f_malloc((/ntmb,norbks/),id='coeff')
        eval = f_malloc(norbks,id='eval')
-       kernel = f_malloc((/ntmb,ntmb/),id='kernel')
+       denskernel = f_malloc((/ntmb,ntmb/),id='denskernel')
        rxyz = f_malloc((/3,nat/),id='rxyz')
        on_which_atom = f_malloc(ntmb,id='on_which_atom')
        call f_open_file(iunit01, file=trim(coeff_file), binary=.false.)
        call read_coeff_minbasis(iunit01, .true., iproc, norbks, norb_dummy, ntmb, coeff, eval, nat, rxyz)
        call f_close(iunit01)
        call f_open_file(iunit01, file=trim(kernel_file), binary=.false.)
-       call read_linear_matrix_dense(iunit01, ntmb, nat, kernel, on_which_atom=on_which_atom)
+       call read_linear_matrix_dense(iunit01, ntmb, nat, denskernel, on_which_atom=on_which_atom)
        call f_close(iunit01)
-       call analyze_kernel(ntmb, norbks, nat, coeff, kernel, rxyz, on_which_atom)
+       call analyze_kernel(ntmb, norbks, nat, coeff, denskernel, rxyz, on_which_atom)
        stop
    end if
 
@@ -1094,6 +1121,32 @@ program memguess
                itype, at%astruct%atomnames(itype), rcov(itype), dtype(itype)
        end do
 
+       stop
+   end if
+
+   if (charge_analysis) then
+       call set_astruct_from_file(trim(posinp_file),0,at%astruct,fcomment,energy,fxyz)
+
+       call read_sparse_matrix(trim(overlap_file), nspin, nfvctr_s, nseg_s, nvctr_s, keyv_s, keyg_s, matrix_compr, &
+            at%astruct%nat, at%astruct%ntypes, at%nzatom, at%nelpsp, at%astruct%atomnames, at%astruct%iatype, at%astruct%rxyz,  on_which_atom=on_which_atom_s)
+       call distribute_columns_on_processes_simple(iproc, nproc, nfvctr_s, nfvctrp_s, isfvctr_s)
+       call bigdft_to_sparsebigdft(iproc, nproc, nfvctr_s, nfvctrp_s, isfvctr_s, on_which_atom_s, nvctr_s, nseg_s, keyg_s, smat_s)
+       ovrlp = matrices_null()
+       ovrlp%matrix_compr = sparsematrix_malloc_ptr(smat_s, iaction=SPARSE_FULL, id='ovrlp%matrix_compr')
+       call vcopy(smat_s%nvctr, matrix_compr(1), 1, ovrlp%matrix_compr(1), 1)
+       call f_free_ptr(matrix_compr)
+
+       call read_sparse_matrix(trim(kernel_file), nspin, nfvctr_l, nseg_l, nvctr_l, keyv_l, keyg_l, matrix_compr, on_which_atom=on_which_atom_l)
+       call distribute_columns_on_processes_simple(iproc, nproc, nfvctr_l, nfvctrp_l, isfvctr_l)
+       call bigdft_to_sparsebigdft(iproc, nproc, nfvctr_l, nfvctrp_l, isfvctr_l, on_which_atom_l, nvctr_l, nseg_l, keyg_l, smat_l)
+       kernel = matrices_null()
+       kernel%matrix_compr = sparsematrix_malloc_ptr(smat_l, iaction=SPARSE_FULL, id='kernel%matrix_compr')
+       call vcopy(smat_l%nvctr, matrix_compr(1), 1, kernel%matrix_compr(1), 1)
+       call f_free_ptr(matrix_compr)
+
+       call loewdin_charge_analysis_core(iproc, nproc, smat_s%nfvctr, smat_s%nfvctrp, smat_s%isfvctr, &
+            smat_s%nfvctr_par, smat_s%isfvctr_par, meth_overlap=0, &
+            smats=smat_s, smatl=smat_l, atoms=at, kernel=kernel, ovrlp=ovrlp)
        stop
    end if
 

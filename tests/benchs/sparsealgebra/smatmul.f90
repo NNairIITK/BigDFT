@@ -10,7 +10,7 @@ program smatmul
                                SPARSE_MATMUL_SMALL
   !use sparsematrix_init, only: read_ccs_format, ccs_to_sparsebigdft, ccs_values_to_bigdft, &
   !                             read_bigdft_format, bigdft_to_sparsebigdft
-  use sparsematrix_init, only: bigdft_to_sparsebigdft
+  use sparsematrix_init, only: bigdft_to_sparsebigdft, distribute_columns_on_processes_simple
   use sparsematrix, only: write_matrix_compressed, check_symmetry, &
                           write_sparsematrix_CCS, write_sparsematrix, &
                           sparsemm_new, sequential_acces_matrix_fast2, &
@@ -80,7 +80,7 @@ program smatmul
   call read_sparse_matrix(filename, nspin, nfvctr, nseg, nvctr, keyv, keyg, mat_compr, on_which_atom=on_which_atom)
 
   ! Create the corresponding BigDFT sparsity pattern
-  call distribute_columns_on_processes(iproc, nproc, nfvctr, nfvctrp, isfvctr)
+  call distribute_columns_on_processes_simple(iproc, nproc, nfvctr, nfvctrp, isfvctr)
   call bigdft_to_sparsebigdft(iproc, nproc, nfvctr, nfvctrp, isfvctr, on_which_atom, nvctr, nseg, keyg, smat)
 
   matA = matrices_null()
@@ -193,39 +193,6 @@ program smatmul
     end subroutine build_dict_info
 
 end program smatmul
-
-
-subroutine distribute_columns_on_processes(iproc, nproc, ncol, ncolp, iscol)
-  implicit none
-  ! Calling arguments
-  integer,intent(in) :: iproc, nproc, ncol
-  integer,intent(out) :: ncolp, iscol
-
-  ! Local variables
-  integer :: ncolpx, ii, i, jproc
-  real(kind=8) :: tt
-
-  ! Determine the number of columns per process
-  tt = real(ncol,kind=8)/real(nproc,kind=8)
-  ncolpx = floor(tt)
-  ii = ncol - nproc*ncolpx
-  if (iproc<ii) then
-      ncolp = ncolpx + 1
-  else
-      ncolp = ncolpx
-  end if
-  
-  ! Determine the first column of each process
-  i = 0
-  do jproc=0,nproc-1
-      if (iproc==jproc) iscol = i
-      if (jproc<ii) then
-          i = i + ncolpx + 1
-      else
-          i = i + ncolpx
-      end if
-  end do
-end subroutine distribute_columns_on_processes
 
 
 
