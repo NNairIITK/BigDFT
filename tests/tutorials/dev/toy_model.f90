@@ -19,6 +19,7 @@ program wvl
   use module_input_dicts
   use module_interfaces, only: inputs_from_dict
   use module_atoms, only: deallocate_atoms_data
+  use module_dpbox, only: denspot_distribution,dpbox_free
   use communications_base, only: deallocate_comms
   use communications_init, only: orbitals_communicators
   use communications, only: transpose_v, untranspose_v
@@ -37,7 +38,7 @@ program wvl
   type(rho_descriptors)                :: rhodsc
   type(denspot_distribution)           :: dpcom
   type(GPU_pointers)                   :: GPU
-  integer :: i, j, ierr, iproc, nproc ,nconfig
+  integer :: i, j, ierr, iproc, nproc 
   real(dp) :: nrm, epot_sum
   real(gp) :: psoffset
 !  real(gp), allocatable :: radii_cf(:,:)
@@ -53,7 +54,6 @@ program wvl
   type(dictionary), pointer :: user_inputs,options
   !temporary variables
   !integer, dimension(4) :: mpi_info
-  character(len=60) :: run_id
 
   call f_lib_initialize()
   nullify(options)
@@ -265,11 +265,8 @@ program wvl
   !     (/inputs%hx / 2._gp,inputs%hy / 2._gp,inputs%hz / 2._gp/)&
   !     ,16,pkernel,.false.)
   allocate(pot_ion(Lzd%Glr%d%n1i * Lzd%Glr%d%n2i * dpcom%n3p))
-  call createIonicPotential(atoms%astruct%geocode,iproc,nproc,(iproc==0),atoms,atoms%astruct%rxyz,&
-       & inputs%hx / 2._gp,inputs%hy / 2._gp,inputs%hz / 2._gp, &
-       & inputs%elecfield,Lzd%Glr%d%n1,Lzd%Glr%d%n2,Lzd%Glr%d%n3, &
-       & dpcom%n3pi,dpcom%i3s+dpcom%i3xcsh,Lzd%Glr%d%n1i,Lzd%Glr%d%n2i,Lzd%Glr%d%n3i, &
-       & pkernel,pot_ion,psoffset)
+  call createIonicPotential(iproc,(iproc==0),atoms,atoms%astruct%rxyz,&
+       & inputs%elecfield, dpcom, pkernel,pot_ion,psoffset)
   !allocate the potential in the full box
   call full_local_potential(iproc,nproc,orbs,Lzd,0,dpcom,xc,pot_ion,potential)
 !!$  call full_local_potential(iproc,nproc,Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*n3p, &
