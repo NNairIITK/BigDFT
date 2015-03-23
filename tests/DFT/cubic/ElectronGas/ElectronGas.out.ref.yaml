@@ -25,10 +25,10 @@
    |     |     |     |     |     |         D               T    T
    |     |     |     |     |     |   DDDDDD       F         TTTT
    |_____|_____|_____|_____|_____|______                    www.bigdft.org   "
-
+ 
  Reference Paper                       : The Journal of Chemical Physics 129, 014109 (2008)
  Version Number                        : 1.7.6.6
- Timestamp of this run                 : 2015-03-12 20:27:39.840
+ Timestamp of this run                 : 2015-03-21 15:14:33.653
  Root process Hostname                 : athelas
  Number of MPI tasks                   :  2
  OpenMP parallelization                :  Yes
@@ -37,19 +37,13 @@
   #------------------------------------------------------------------ Code compiling options
  Compilation options:
    Configure arguments:
-     " 'FCFLAGS=-O2 -fopenmp -g -fbounds-check -fbacktrace 
-     -ffpe-trap=invalid,zero,overflow,denormal' 
-     '--with-ext-linalg=-L/opt/intel/composer_xe_2013.1.117/mkl/lib/intel64 
-     -L/opt/intel/composer_xe_2013.1.117/compiler/lib/intel64 -lmkl_rt -liomp5 -lm' 
-     'CFLAGS=-O2 -fopenmp' 'CC=mpicc.openmpi' 'CXX=mpicxx.openmpi' 'FC=mpif90.openmpi' 
-     'F77=mpif77.openmpi' '--with-blas=no' '--with-lapack=no'"
-
-   Compilers (CC, FC, CXX)             :  [ mpicc.openmpi, mpif90.openmpi, mpicxx.openmpi ]
+     " 'FCFLAGS=-O2 -openmp' 
+     '--with-ext-linalg=-L/opt/intel/composer_xe_2013.1.117/mkl/lib/intel64 -lmkl_rt 
+     -liomp5 -lm' 'CFLAGS=-O2 -openmp' 'CC=mpicc' 'CXX=mpicxx' 'FC=mpifc' 'F77=mpif77'"
+   Compilers (CC, FC, CXX)             :  [ mpicc, mpifc, mpicxx ]
    Compiler flags:
-     CFLAGS                            : -O2 -fopenmp
-                                        
-     FCFLAGS:
-       -O2 -fopenmp -g -fbounds-check -fbacktrace -ffpe-trap=invalid,zero,overflow,denormal
+     CFLAGS                            : -O2 -openmp
+     FCFLAGS                           : -O2 -openmp
      CXXFLAGS                          : -g -O2
   #------------------------------------------------------------------------ Input parameters
  radical                               : null
@@ -154,7 +148,6 @@
    hamapp_radius_incr                  : 8 #      radius enlargement for the Hamiltonian application (in grid points)
    adjust_kernel_iterations            : True #   enable the addaptive ajustment of the number of kernel iterations
    wf_extent_analysis                  : False #  perform an analysis of the extent of the support functions (and possibly KS orbitals)
-   kernel_analysis                     : False #  perform an analysis of the kernel at the end
  mode:
    method                              : dft #    Run method of BigDFT call
    mm_paramset                         : default # Name of the hard-coded parameter set. Must be compatible to the chosen force field.
@@ -418,7 +411,7 @@
  Hamiltonian Applied:  Yes, Orthoconstraint:  Yes, Preconditioning:  Yes, 
  Energies: {Ekin:  1.07573200643E-01, Epot: -2.19710211668E-01, EH:  6.66438321093E-06, 
              EXC: -1.69156424550E-01, EvXC: -2.19723540434E-01}, 
- iter:  2, EKS: -6.15765595236797414E-02, gnrm:  7.10E-01, D: -6.27E+01, 
+ iter:  2, EKS: -6.15765595236794083E-02, gnrm:  7.10E-01, D: -6.27E+01, 
  DIIS weights: [-1.58E-03,  1.00E+00, -1.87E-03], Orthogonalization Method:  0}
        -  { #---------------------------------------------------------------------- iter: 3
  GPU acceleration:  No, Rho Commun: RED_SCT, Total electronic charge:  1.999999846814, 
@@ -426,7 +419,7 @@
  Hamiltonian Applied:  Yes, Orthoconstraint:  Yes, Preconditioning:  Yes, 
  Energies: {Ekin:  6.61792724672E-02, Epot: -2.19626414629E-01, EH:  3.05838716047E-06, 
              EXC: -1.69086277975E-01, EvXC: -2.19632531404E-01}, 
- iter:  3, EKS: -1.02903947120727812E-01, gnrm:  6.01E-02, D: -4.13E-02, 
+ iter:  3, EKS: -1.02903947120729616E-01, gnrm:  6.01E-02, D: -4.13E-02, 
  DIIS weights: [ 4.77E-05, -3.38E-02,  1.03E+00, -4.56E-05], Orthogonalization Method:  0}
        -  { #---------------------------------------------------------------------- iter: 4
  GPU acceleration:  No, Rho Commun: RED_SCT, Total electronic charge:  1.999999999961, 
@@ -434,7 +427,7 @@
  Hamiltonian Applied:  Yes, Orthoconstraint:  Yes, Preconditioning:  Yes, 
  Energies: {Ekin:  6.58345731321E-02, Epot: -2.19625244580E-01, EH:  2.17128945843E-06, 
              EXC: -1.69084008628E-01, EvXC: -2.19629587159E-01}, 
- iter:  4, EKS: -1.03247264206393241E-01, gnrm:  2.17E-03, D: -3.43E-04, 
+ iter:  4, EKS: -1.03247264206393130E-01, gnrm:  2.17E-03, D: -3.43E-04, 
  DIIS weights: [ 2.10E-05, -1.03E-02, -5.50E-01,  1.56E+00, -4.68E-06], 
      Orthogonalization Method:  0}
        -  { #---------------------------------------------------------------------- iter: 5
@@ -443,7 +436,7 @@
  Hamiltonian Applied:  Yes, Orthoconstraint:  Yes, Preconditioning:  Yes, 
  Energies: {Ekin:  6.58044233651E-02, Epot: -2.19625116381E-01, EH:  1.51463761004E-06, 
              EXC: -1.69082897565E-01, EvXC: -2.19628145657E-01}, 
- iter:  5, EKS: -1.03276959561882403E-01, gnrm:  1.87E-03, D: -2.97E-05, 
+ iter:  5, EKS: -1.03276959561883541E-01, gnrm:  1.87E-03, D: -2.97E-05, 
  DIIS weights: [-1.50E-05,  8.19E-03,  2.61E-01, -1.04E+00,  1.77E+00, -4.94E-07], 
      Orthogonalization Method:  0}
        -  { #---------------------------------------------------------------------- iter: 6
@@ -452,7 +445,7 @@
  Hamiltonian Applied:  Yes, Orthoconstraint:  Yes, Preconditioning:  Yes, 
  Energies: {Ekin:  6.57985636617E-02, Epot: -2.19625199190E-01, EH:  1.15591720910E-06, 
              EXC: -1.69082408412E-01, EvXC: -2.19627511024E-01}, 
- iter:  6, EKS: -1.03282688832583791E-01, gnrm:  9.57E-04, D: -5.73E-06, 
+ iter:  6, EKS: -1.03282688832583736E-01, gnrm:  9.57E-04, D: -5.73E-06, 
  DIIS weights: [ 6.57E-06, -3.52E-03, -1.29E-01,  5.78E-01, -1.26E+00,  1.81E+00, 
                 -5.82E-08],           Orthogonalization Method:  0}
        -  { #---------------------------------------------------------------------- iter: 7
@@ -461,7 +454,7 @@
  Hamiltonian Applied:  Yes, Orthoconstraint:  Yes, Preconditioning:  Yes, 
  Energies: {Ekin:  6.57975377575E-02, Epot: -2.19625279441E-01, EH:  9.74963532957E-07, 
              EXC: -1.69082191321E-01, EvXC: -2.19627229368E-01}, 
- iter:  7, EKS: -1.03283678599861151E-01, gnrm:  3.28E-04, D: -9.90E-07, 
+ iter:  7, EKS: -1.03283678599861539E-01, gnrm:  3.28E-04, D: -9.90E-07, 
  DIIS weights: [-5.97E-05,  3.28E-02, -1.64E-01,  4.33E-01, -9.71E-01,  1.67E+00, 
                 -3.47E-09],           Orthogonalization Method:  0}
        -  { #---------------------------------------------------------------------- iter: 8
@@ -470,14 +463,14 @@
  Hamiltonian Applied:  Yes, Orthoconstraint:  Yes, Preconditioning:  Yes, 
  Energies: {Ekin:  6.57974187859E-02, Epot: -2.19625336043E-01, EH:  8.92681450492E-07, 
              EXC: -1.69082108107E-01, EvXC: -2.19627121406E-01}, 
- iter:  8, EKS: -1.03283796639447617E-01, gnrm:  6.43E-05, D: -1.18E-07, 
+ iter:  8, EKS: -1.03283796639447367E-01, gnrm:  6.43E-05, D: -1.18E-07, 
  DIIS weights: [-1.05E-02,  5.47E-02, -1.46E-01,  3.50E-01, -7.16E-01,  1.47E+00, 
                 -2.44E-10],           Orthogonalization Method:  0}
        -  &FINAL001  { #----------------------------------------------------------- iter: 9
  GPU acceleration:  No, Rho Commun: RED_SCT, Total electronic charge:  2.000000000000, 
  Poisson Solver: {BC: Periodic, Box:  [  32,  32,  32 ], MPI tasks:  2}, 
  Hamiltonian Applied:  Yes, 
- iter:  9, EKS: -1.03283817204127826E-01, gnrm:  6.43E-05, D: -2.06E-08,  #FINAL
+ iter:  9, EKS: -1.03283817204126327E-01, gnrm:  6.43E-05, D: -2.06E-08,  #FINAL
  Energies: {Ekin:  6.57974061965E-02, Epot: -2.19625376711E-01, EH:  8.49524751959E-07, 
              EXC: -1.69082072925E-01, EvXC: -2.19627075761E-01}, 
  SCF criterion:  0}
@@ -520,17 +513,35 @@
  Stress Tensor calculated              :  Yes
  Stress Tensor:
    Total stress tensor matrix (Ha/Bohr^3):
-   -  [  1.979203392366E-06,  2.073328897533E-11,  2.137257800963E-11 ]
-   -  [  2.073328897533E-11,  1.979119220891E-06,  8.051501692035E-12 ]
-   -  [  2.137257800963E-11,  8.051501692035E-12,  1.979261561217E-06 ]
+   -  [  1.979203392366E-06,  2.073328897532E-11,  2.137257800962E-11 ]
+   -  [  2.073328897532E-11,  1.979119220891E-06,  8.051501692034E-12 ]
+   -  [  2.137257800962E-11,  8.051501692034E-12,  1.979261561217E-06 ]
    Pressure:
-     Ha/Bohr^3                         :  1.97919472482446E-06
+     Ha/Bohr^3                         :  1.97919472482490E-06
      GPa                               :  5.822991E-02
-     PV (Ha)                           :  6.67978219628256E-03
+     PV (Ha)                           :  6.67978219628405E-03
   #-------------------------------- Warnings obtained during the run, check their relevance!
  WARNINGS:
  - symmetries have been disabled, k points are not irreductible.
   #-------------------------------------------------------------------- Timing for root process
  Timings for root process:
-   CPU time (s)                        :  10.16
-   Elapsed time (s)                    :  5.14
+   CPU time (s)                        :  9.53
+   Elapsed time (s)                    :  4.80
+ BigDFT infocode                       :  0
+ Average noise forces: {x:  0.00000000E+00, y:  0.00000000E+00, z:  0.00000000E+00, 
+                    total:  0.00000000E+00}
+ Clean forces norm (Ha/Bohr): {maxval:  0.000000000000E+00, fnrm2:  0.000000000000E+00}
+  #------------------------------------------------------------------------------ Atomic Forces
+ Atomic Forces (Ha/Bohr):
+ Energy (Hartree)                      : -1.03283817204126327E-01
+ Memory Consumption Report:
+   Tot. No. of Allocations             :  658
+   Tot. No. of Deallocations           :  658
+   Remaining Memory (B)                :  0
+   Memory occupation:
+     Peak Value (MB)                   :  34.945
+     for the array                     : w%ww
+     in the routine                    : preconditionall2
+     Memory Peak of process            : 54.996 MB
+ Max No. of dictionaries used          :  3166 #( 858 still in use)
+ Number of dictionary folders allocated:  1

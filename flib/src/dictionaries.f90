@@ -29,10 +29,6 @@ module dictionaries
      type(dictionary), pointer :: child => null()
    end type dictionary_container
 
-   type, public :: f_dict 
-      type(dictionary), pointer :: d =>null()
-   end type f_dict
-
    !> Error codes
    integer, save, public :: DICT_KEY_ABSENT
    integer, save, public :: DICT_VALUE_ABSENT

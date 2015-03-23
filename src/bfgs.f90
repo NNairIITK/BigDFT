@@ -420,7 +420,7 @@ subroutine bfgs_reza(iproc,dir_output,nr,x,epot,f,nwork,work,alphax,fnrm,fmax,nc
       !    'GEOPT_BFGS',parmin%iter,epot,de,fnrm,fmax,zeta,alpha,isatur
       !       '(I5,1x,I5,2x,a10,2x,1pe21.14,2x,e9.2,1(1pe11.3),3(1pe10.2),2x,a,I3,2x,a,1pe8.2E1)'
       call yaml_mapping_open('Geometry')
-         call yaml_map('Ncount_BigDFT',ncount_bigdft)
+         call yaml_map('Ncount_BigDFT',ncount_bigdft) !universal
          call yaml_map('Geometry step',parmin%iter)
          call yaml_map('Geometry Method','GEOPT_BFGS')
          call yaml_map('etot',epot,fmt='(1es21.14)')

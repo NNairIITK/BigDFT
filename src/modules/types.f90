@@ -2144,6 +2144,10 @@ contains
              in%run_mode=MORSE_BULK_RUN_MODE
           case('morse_slab')
              in%run_mode=MORSE_SLAB_RUN_MODE
+          case('tersoff')
+             in%run_mode=TERSOFF_RUN_MODE
+          case('bmhtf')
+             in%run_mode=BMHTF_RUN_MODE
           end select
        case(MM_PARAMSET)
             in%mm_paramset=val

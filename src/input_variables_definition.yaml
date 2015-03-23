@@ -440,7 +440,7 @@
      COMMENT: Temperature of molecular dynamics
      CONDITION:
        MASTER_KEY: ionmov
-       WHEN: [8, 9, 12, 13]
+       WHEN: [6, 8, 9, 12, 13]
 #       - 6
      RANGE: [0, 1e9]
      default: 300.
@@ -661,11 +661,13 @@
      EXCLUSIVE:
        dft: Density Functional Theory
        lj: Lennard-Jones force field
-       lensic: Lenosky Tight-Binding for Si clusters
-       lensib: Lenosky Tight-Binding for Si bulk
+       lensic: Lenosky Force Field for Si clusters
+       lensib: Lenosky Force Field for Si bulk
        amber: AMBER Force Fields Package (requires AMBERtools)
        morse_bulk: Morse bulk
        morse_slab: Morse slab
+       tersoff: Tersoff potential for C and Si
+       bmhtf: Born Mayer Huggins Tosi Fumi Potential
      default: dft
    mm_paramset:
      COMMENT: Name of the hard-coded parameter set. Must be compatible to the chosen force field.

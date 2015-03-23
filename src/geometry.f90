@@ -216,9 +216,7 @@ subroutine ab6md(runObj,outs,nproc,iproc,ncount_bigdft,fail)
 
   nxfh = 0
   !acell = (/ runObj%atoms%astruct%cell_dim(1), runObj%atoms%astruct%cell_dim(2), runObj%atoms%astruct%cell_dim(3) /)
-  acell(1)=runObj%atoms%astruct%cell_dim(1)
-  acell(2)=runObj%atoms%astruct%cell_dim(2)
-  acell(3)=runObj%atoms%astruct%cell_dim(3)
+  acell=runObj%atoms%astruct%cell_dim
   rprim(:,:) = 0.0_gp
   rprim(1,1) = real(1, gp)
   rprim(2,2) = real(1, gp)
@@ -246,21 +244,18 @@ subroutine ab6md(runObj,outs,nproc,iproc,ncount_bigdft,fail)
         iatfix(2, iat) = 0
      end select
   end do
-
   !read the velocities from input file, if present
   call read_velocities(iproc,'velocities.xyz',runObj%atoms,vel)
   !vel(:,:) = zero
-
   ! Call the ABINIT routine.
   ! currently, we force optcell == 0
   call moldyn(acell, amass, iproc, runObj%inputs%ncount_cluster_x+1, nxfh, runObj%atoms%astruct%nat, &
-       & rprim, outs%energy, iexit, &
-       & 0, runObj%inputs%ionmov, runObj%inputs%ncount_cluster_x, runObj%inputs%dtion, runObj%inputs%noseinert, &
-       & runObj%inputs%mditemp, runObj%inputs%mdftemp, runObj%inputs%friction, runObj%inputs%mdwall, runObj%inputs%nnos, &
-       & runObj%inputs%qmass, runObj%inputs%bmass, runObj%inputs%vmass, iatfix, runObj%inputs%strtarget, &
-       & runObj%inputs%strprecon, runObj%inputs%strfact, runObj%inputs%forcemax, &
-       & 1, symrel, vel, xfhist, fred, xred)
-
+       rprim, outs%energy, iexit, &
+       0, runObj%inputs%ionmov, runObj%inputs%ncount_cluster_x, runObj%inputs%dtion, runObj%inputs%noseinert, &
+       runObj%inputs%mditemp, runObj%inputs%mdftemp, runObj%inputs%friction, runObj%inputs%mdwall, runObj%inputs%nnos, &
+       runObj%inputs%qmass, runObj%inputs%bmass, runObj%inputs%vmass, iatfix, runObj%inputs%strtarget, &
+       runObj%inputs%strprecon, runObj%inputs%strfact, runObj%inputs%forcemax, &
+       1, symrel, vel, xfhist, fred, xred)
   do iat = 1, runObj%atoms%astruct%nat, 1
      outs%fxyz(1, iat) = fred(1, iat) * acell(1)
      outs%fxyz(2, iat) = fred(2, iat) * acell(2)
@@ -660,7 +655,7 @@ subroutine fire(runObj,outs,nproc,iproc,ncount_bigdft,fail)
          & "alpha=",alpha, "dt=",dt, "vnrm=",sqrt(vnrm), "nstep=",nstep,"P=",P
 
          call yaml_mapping_open('Geometry')
-            call yaml_map('Ncount_BigDFT',ncount_bigdft)
+            call yaml_map('Ncount_BigDFT',ncount_bigdft) !universal
             call yaml_map('Geometry step',it)
             call yaml_map('Geometry Method','GEOPT_FIRE')
             call yaml_map('epred',(/ outs%energy,outs%energy-eprev /),fmt='(1pe21.14)')

@@ -443,11 +443,9 @@ contains
 !!$      !fortran metod
 !!$      call increment_atoms_iter(it)
 !!$      do while(atoms_iter_is_valid(it))
-
          !only amu is extracted here
          call atomic_info(atoms%nzatom(it%ityp),atoms%nelpsp(it%ityp),&
               amu=atoms%amu(it%ityp))
-
          !fill the atomic IG configuration from the input_polarization
          !standard form
          atoms%aoig(it%iat)=aoig_set(atoms%nzatom(it%ityp),atoms%nelpsp(it%ityp),&
@@ -1313,7 +1311,7 @@ subroutine allocate_atoms_ntypes(atoms)
 
   ! Allocate pseudo related stuff.
   ! store PSP parameters, modified to accept both GTH and HGHs pseudopotential types
-  atoms%amu = f_malloc_ptr(atoms%astruct%nat,id='atoms%amu')
+  atoms%amu = f_malloc_ptr(atoms%astruct%ntypes,id='atoms%amu')
   atoms%psppar = f_malloc_ptr((/ 0.to.4 , 0.to.6 , 1.to.atoms%astruct%ntypes /),id='atoms%psppar')
   atoms%nelpsp = f_malloc_ptr(atoms%astruct%ntypes,id='atoms%nelpsp')
   atoms%npspcode = f_malloc_ptr(atoms%astruct%ntypes,id='atoms%npspcode')
