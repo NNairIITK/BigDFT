@@ -86,7 +86,7 @@ subroutine calculate_forces(iproc,nproc,psolver_groupsize,Glr,atoms,orbs,nlpsp,r
      call local_hamiltonian_stress(orbs,Glr,hx,hy,hz,psi,strtens(1,3))
 
      call erf_stress(atoms,rxyz,0.5_gp*hx,0.5_gp*hy,0.5_gp*hz,Glr%d%n1i,Glr%d%n2i,Glr%d%n3i,n3p,&
-          iproc,nproc,ngatherarr,rho,strtens(1,4)) !shouud not be reduced for the moment
+          iproc,nproc,ngatherarr,rho,strtens(1,4)) !should not be reduced for the moment
   end if
 
   !add to the forces the ionic and dispersion contribution
@@ -3848,7 +3848,7 @@ subroutine erf_stress(at,rxyz,hxh,hyh,hzh,n1i,n2i,n3i,n3p,iproc,nproc,ngatherarr
   end if
 
   pi = 4.0_gp*atan(1.0_gp)
-  allocate(rhog(2,n1i+1,n2i+1,n3i+1,2))
+  rhog = f_malloc((/2,n1i+1,n2i+1,n3i+1,2/), id = "rhog")
   tens(:)=0.0_dp ; p(:)=0.0_dp
 
   ! calculate total rho(G)
@@ -3948,7 +3948,7 @@ subroutine erf_stress(at,rxyz,hxh,hyh,hzh,n1i,n2i,n3i,n3p,iproc,nproc,ngatherarr
   else
      nullify(rhor)
   end if
-  deallocate(rhog)
+  call f_free(rhog)
 
 END SUBROUTINE erf_stress
 
