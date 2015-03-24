@@ -1118,30 +1118,13 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,energs,fxyz,strten,fnoise,press
      !    Calculate energy correction due to finite size effects
      !    ---reformat potential
      !!denspot%pot_work = f_malloc_ptr(n1i*n2i*n3i*in%nspin,id='denspot%pot_work')
-     denspot%pot_work = f_malloc_ptr(n1i*n2i*n3i*in%nspin,id='denspot%pot_work')
-
-
-     if (nproc > 1) then
-        call MPI_ALLGATHERV(denspot%rhov,n1i*n2i*denspot%dpbox%n3p,&
-             mpidtypd,denspot%pot_work(1),denspot%dpbox%ngatherarr(0,1),denspot%dpbox%ngatherarr(0,2), & 
-             mpidtypd,denspot%dpbox%mpi_env%mpi_comm,ierr)
-        !print '(a,2f12.6)','RHOup',sum(abs(rhopot(:,:,:,1))),sum(abs(pot(:,:,:,1)))
-        if(in%nspin==2) then
-           !print '(a,2f12.6)','RHOdw',sum(abs(rhopot(:,:,:,2))),sum(abs(pot(:,:,:,2)))
-           call MPI_ALLGATHERV(denspot%rhov(1+n1i*n2i*denspot%dpbox%n3p),n1i*n2i*denspot%dpbox%n3p,&
-                mpidtypd,denspot%pot_work(1+n1i*n2i*n3i),&
-                denspot%dpbox%ngatherarr(0,1),denspot%dpbox%ngatherarr(0,2), & 
-                mpidtypd,denspot%dpbox%mpi_env%mpi_comm,ierr)
-        end if
-     else
-        call vcopy(n1i*n2i*n3i*in%nspin,denspot%rhov(1),1,denspot%pot_work(1),1)
-     end if
+     call full_local_potential(iproc,nproc,KSwfn%orbs,KSwfn%Lzd,0,&
+          & denspot%dpbox,denspot%xc,denspot%rhov,denspot%pot_work)
 
      call dpbox_free(denspot%dpbox)
 
-     call f_free_ptr(denspot%rhov)
-
      call f_free_ptr(denspot%V_XC)
+     if (nproc > 1) call f_free_ptr(denspot%rhov)
 
      !pass hx instead of hgrid since we are only in free BC
      call CalculateTailCorrection(iproc,nproc,atoms,in%rbuf,KSwfn%orbs,&
@@ -1149,9 +1132,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,energs,fxyz,strten,fnoise,press
           rxyz,in%crmult,in%frmult,in%nspin,&
           KSwfn%psi,(in%output_denspot /= 0),energs%ekin,energs%epot,energs%eproj)
 
-     !call f_free_ptr(denspot%pot_work)
      call f_free_ptr(denspot%pot_work)
-
 
      energs%ebs=energs%ekin+energs%epot+energs%eproj
      energy=energs%ebs-energs%eh+energs%exc-energs%evxc-energs%evsic+energs%eion+energs%edisp-energs%eTS+energs%ePV
