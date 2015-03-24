@@ -684,8 +684,10 @@ program memguess
        call mpi_initialized(mpi_init, ierror)
        if (mpi_init) then
            call mpi_comm_rank(mpi_comm_world, iproc, ierror)
+           call mpi_comm_size(mpi_comm_world, nproc, ierror)
        else
            iproc = 0
+           nproc = 1
        end if
        !coeff = f_malloc((/ntmb,norbks/),id='coeff')
        !eval = f_malloc(norbks,id='eval')
@@ -890,8 +892,10 @@ program memguess
        call mpi_initialized(mpi_init, ierror)
        if (mpi_init) then
            call mpi_comm_rank(mpi_comm_world, iproc, ierror)
+           call mpi_comm_size(mpi_comm_world, nproc, ierror)
        else
            iproc = 0
+           nproc = 1
        end if
        coeff = f_malloc((/ntmb,norbks/),id='coeff')
        eval = f_malloc(norbks,id='eval')
@@ -944,6 +948,14 @@ program memguess
    end if
 
    if (solve_eigensystem) then
+       call mpi_initialized(mpi_init, ierror)
+       if (mpi_init) then
+           call mpi_comm_rank(mpi_comm_world, iproc, ierror)
+           call mpi_comm_size(mpi_comm_world, nproc, ierror)
+       else
+           iproc = 0
+           nproc = 1
+       end if
        ham = f_malloc((/ntmb,ntmb/),id='ham')
        overlap = f_malloc((/ntmb,ntmb/),id='overlap')
        eval = f_malloc(ntmb,id='eval')
@@ -962,6 +974,14 @@ program memguess
    end if
 
    if (analyze_coeffs) then
+       call mpi_initialized(mpi_init, ierror)
+       if (mpi_init) then
+           call mpi_comm_rank(mpi_comm_world, iproc, ierror)
+           call mpi_comm_size(mpi_comm_world, nproc, ierror)
+       else
+           iproc = 0
+           nproc = 1
+       end if
        coeff = f_malloc((/ntmb,norbks/),id='coeff')
        coeff_cat = f_malloc(ncategories,id='coeff_cat')
        eval = f_malloc(ntmb,id='eval')
@@ -1190,6 +1210,14 @@ program memguess
    end if
 
    if (charge_analysis) then
+       call mpi_initialized(mpi_init, ierror)
+       if (mpi_init) then
+           call mpi_comm_rank(mpi_comm_world, iproc, ierror)
+           call mpi_comm_size(mpi_comm_world, nproc, ierror)
+       else
+           iproc = 0
+           nproc = 1
+       end if
        !call set_astruct_from_file(trim(posinp_file),0,at%astruct,fcomment,energy,fxyz)
 
        call read_sparse_matrix(trim(overlap_file), nspin, nfvctr_s, nseg_s, nvctr_s, keyv_s, keyg_s, &
