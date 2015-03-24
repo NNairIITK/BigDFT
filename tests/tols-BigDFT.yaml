@@ -1275,9 +1275,8 @@ periodic_silicon:
  Energy (Hartree): 2.9e-11
  energy: 2.9e-11
  charge diff: 3.8e-10
- PV (Ha): 3.0e-11
  Total ionic charge: 1.4e-11
- Pressure: 1.1e-10
+ Pressure: 1.5e-10
 
 periodic_wateredge:
  Epot: 1.1e-9
