@@ -1314,9 +1314,8 @@ periodic_water:
  diff: 1.1e-10
  Tr(K): 5.0e-7
  D Tr: 2.1e-7
- PV (Ha): 5.3e-10
  Total ionic charge: 6.0e-11
- Pressure: 5.6e-10
+ Pressure: 6.4e-10
 
 surface_boronnitride:
  Enl: 1.0e-9
