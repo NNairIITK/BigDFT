@@ -7,14 +7,14 @@
 !!  atompaw related operations
 !!
 !! COPYRIGHT
-!!  Copyright (C) 2012-2014 ABINIT group (T. Rangel, MT, JWZ, GJ)
+!!  Copyright (C) 2012-2015 ABINIT group (T. Rangel, MT, JWZ, GJ)
 !!  This file is distributed under the terms of the
 !!  GNU General Public License, see ~abinit/COPYING
 !!  or http://www.gnu.org/copyleft/gpl.txt .
 !!
 !! NOTES
 !!  FOR DEVELOPPERS: in order to preserve the portability of libPAW library,
-!!  please consult ~abinit/src/42_??libpaw/libpaw-coding-rules.txt
+!!  please consult ~abinit/src/??_libpaw/libpaw-coding-rules.txt
 !!
 !! SOURCE
 

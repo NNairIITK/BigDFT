@@ -8,6 +8,7 @@ pseudo-*.tar.*
 tmp*
 Makefile.in
 Makefile
+jhbuildrc
 aclocal.m4
 autom4te.cache
 bigdft/config/*

@@ -343,7 +343,7 @@ subroutine abi_bonds_lgth_angles(coordn,fnameabo_app_geo,natom,ntypat,&
  deallocate(iden,list_neighb,sqrlength)
  close(tmp_unit)
 
- contains
+!contains
  
  
 end subroutine abi_bonds_lgth_angles

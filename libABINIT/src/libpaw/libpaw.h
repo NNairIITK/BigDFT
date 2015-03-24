@@ -34,8 +34,9 @@
 #define USE_MPI_WRAPPERS use m_xmpi
 
 /* Messages, errors */
-#define USE_MSG_HANDLING use m_errors, only : msg_hndl
 /* Other macros already defined in abi_common.h */
+#define USE_MSG_HANDLING use m_errors, only : msg_hndl
+#undef  HAVE_YAML
 
 /* Allocation/deallocation with memory profiling */
 #define USE_MEMORY_PROFILING use m_profiling_abi
@@ -53,6 +54,8 @@
 #  define LIBPAW_BOUND2_ALLOCATE(ARR,BND1,BND2) ABI_ALLOCATE(ARR,(BND1,BND2))
 #  define BOUNDS(LBND,UBND) LBND : UBND 
 
+/* F2008 support */
+#  define LIBPAW_CONTIGUOUS ABI_CONTIGUOUS
 
 /* =============================
  * ========= BIGDFT ============
@@ -67,12 +70,13 @@
 
 /* Messages, errors */
 #define USE_MSG_HANDLING use m_libpaw_tools, only : wrtout => libpaw_wrtout, libpaw_msg_hndl
-#define MSG_COMMENT(msg) call libpaw_msg_hndl(msg,"COMMENT","PERS",line=__LINE__)
-#define MSG_WARNING(msg) call libpaw_msg_hndl(msg,"WARNING","PERS",line=__LINE__)
-#define MSG_ERROR(msg)   call libpaw_msg_hndl(msg,"ERROR"  ,"PERS",line=__LINE__)
-#define MSG_BUG(msg)     call libpaw_msg_hndl(msg,"BUG"    ,"PERS",line=__LINE__)
+#define MSG_COMMENT(msg) call libpaw_msg_hndl(msg,"COMMENT","PERS")
+#define MSG_WARNING(msg) call libpaw_msg_hndl(msg,"WARNING","PERS")
+#define MSG_ERROR(msg)   call libpaw_msg_hndl(msg,"ERROR"  ,"PERS")
+#define MSG_BUG(msg)     call libpaw_msg_hndl(msg,"BUG"    ,"PERS")
 /*BigDFT should accept long lines...*/
 /*#define MSG_ERROR(msg) call libpaw_msg_hndl(msg,"ERROR","PERS",__FILE__,__LINE__)*/
+#define HAVE_YAML
 
 /* Allocation/deallocation with memory profiling */
 #define USE_MEMORY_PROFILING use dynamic_memory
@@ -88,8 +92,10 @@
 /* Use this to allocate user-defined-type arrays with explicit bounds */
 #  define LIBPAW_BOUND1_ALLOCATE(ARR,BND1) ARR=f_malloc((/ BND1 /))
 #  define LIBPAW_BOUND2_ALLOCATE(ARR,BND1,BND2) ARR=f_malloc((/ BND1 , BND2 /))
-#  define BOUNDS(LBND,UBND) LBND .to . UBND 
+#  define BOUNDS(LBND,UBND) LBND .to. UBND 
 
+/* F2008 support */
+#  define LIBPAW_CONTIGUOUS 
 
 /* =============================
  * ========= DEFAULT ===========
@@ -108,6 +114,7 @@
 #define MSG_WARNING(msg) call libpaw_msg_hndl(msg,"WARNING","PERS")
 #define MSG_ERROR(msg)   call libpaw_msg_hndl(msg,"ERROR"  ,"PERS")
 #define MSG_BUG(msg)     call libpaw_msg_hndl(msg,"BUG"    ,"PERS")
+#undef  HAVE_YAML
 
 /* Allocation/deallocation */
 #define USE_MEMORY_PROFILING
@@ -125,6 +132,8 @@
 #  define LIBPAW_BOUND2_ALLOCATE(ARR,BND1,BND2) allocate(ARR(BND1,BND2))
 #  define BOUNDS(LBND,UBND) LBND : UBND 
 
+/* F2008 support */
+#  define LIBPAW_CONTIGUOUS 
 
 /* =============================
  * =========== END =============

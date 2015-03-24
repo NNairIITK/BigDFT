@@ -8,14 +8,14 @@
 !!  spherical harmonics Ylm (resp. Slm) (and gradients).
 !!
 !! COPYRIGHT
-!! Copyright (C) 2013-2014 ABINIT group (MT, FJ, TRangel)
+!! Copyright (C) 2013-2015 ABINIT group (MT, FJ, TRangel)
 !! This file is distributed under the terms of the
 !! GNU General Public License, see ~abinit/COPYING
 !! or http://www.gnu.org/copyleft/gpl.txt .
 !!
 !! NOTES
 !!  FOR DEVELOPPERS: in order to preserve the portability of libPAW library,
-!!  please consult ~abinit/src/42_??libpaw/libpaw-coding-rules.txt
+!!  please consult ~abinit/src/??_libpaw/libpaw-coding-rules.txt
 !!
 !! SOURCE
 
@@ -794,24 +794,32 @@ subroutine ys(lp,mp,ll,mm,ys_val)
 
 !Local variables ---------------------------------------
 !scalars
- real(dp) :: mone
+ complex(dpc) :: dmpmm,dmpmmm,m1mm
 
 ! *********************************************************************
 
- mone = -one
+ 
  ys_val = czero
 
- if (lp == ll) then 
+ if(lp==ll .AND. (mp==mm .OR. mp==-mm) ) then
+  ! (-1)**mm
+   m1mm=cone; if(abs(mod(mm,2))==1) m1mm=-m1mm
+  
+  ! delta(mp,mm)
+   dmpmm=czero; if(mp==mm) dmpmm=cone
+  
+  ! delta(mp,-mm)
+   dmpmmm=czero; if(mp==-mm) dmpmmm=cone
+
    select case (mm)
-     case (0) ! case for S_l0
-       if (mp == mm) ys_val = cmplx(1.0,0.0)
-     case (:-1) ! case for S_lm with m < 0
-       if (mp == -mm) ys_val = cmplx(0.0,-mone**mm*sqrthalf)
-       if (mp == mm) ys_val = cmplx(0.0,sqrthalf)
-     case (1:) ! case for S_lm with m > 0
-       if (mp == mm) ys_val = cmplx(mone**mm*sqrthalf,0.0)
-       if (mp == -mm) ys_val = cmplx(sqrthalf,0.0)
+       case (0) ! case for S_l0
+         ys_val = dmpmm
+       case (:-1) ! case for S_lm with m < 0
+         ys_val = -(zero,one)*m1mm*sqrthalf*(dmpmmm-m1mm*dmpmm)
+       case (1:) ! case for S_lm with m > 0
+         ys_val = m1mm*sqrthalf*(dmpmm+m1mm*dmpmmm)
    end select
+
  end if
  
 end subroutine ys
@@ -860,20 +868,27 @@ subroutine lxyz(lp,mp,idir,ll,mm,lidir)
  integer,intent(in) :: idir,ll,lp,mm,mp
  complex(dpc),intent(out) :: lidir
 
+!Local variables ---------------------------------------
+!scalars
+ complex(dpc) :: jmme, jpme
+
 ! *********************************************************************
 
- lidir = czero
+ jpme=czero; jmme=czero
+ if (lp==ll) then
+   if (mp==mm+1) jpme=cone*sqrt((ll-mm)*(ll+mm+one))
+   if (mp==mm-1) jmme=cone*sqrt((ll-mm+one)*(ll+mm))
+ end if
  
+ lidir = czero
  if (lp == ll) then 
    select case (idir)
      case (1) ! Lx
-       if (mp == mm + 1) lidir = cmplx(0.5*sqrt(dble((ll-mm)*(ll+mm+1))),0.0)
-       if (mp == mm - 1) lidir = cmplx(0.5*sqrt(dble((ll+mm)*(ll-mm+1))),0.0)
+       lidir = cone*half*(jpme+jmme)
      case (2) ! Ly
-       if (mp == mm + 1) lidir = cmplx(0.0,-0.5*sqrt(dble((ll-mm)*(ll+mm+1))))
-       if (mp == mm - 1) lidir = cmplx(0.0,+0.5*sqrt(dble((ll+mm)*(ll-mm+1))))
+       lidir = -(zero,one)*half*(jpme-jmme)
      case (3) ! Lz
-       if (mp == mm) lidir = cmplx(mm,0.0)
+       if (mp == mm) lidir = mm*cone
    end select
  end if
 
@@ -1568,8 +1583,8 @@ subroutine mat_mlms2jmj(lcor,mat_mlms,mat_jmj,ndij,option,optspin,prtvol,unitfi,
 !scalars
  integer :: ii,im,im1,im2,ispden,jc1,jc2,jj,jm,ll,ml1,ml2,ms1,ms2
  real(dp),parameter :: invsqrt2=one/sqrt2
- real(dp) :: invsqrt2lp1,mat_tmp,xj,xmj
- complex(dpc) :: tmp2
+ real(dp) :: invsqrt2lp1,xj,xmj
+ complex(dpc) :: mat_tmp,tmp2
  character(len=9),parameter :: dspinold(6)=(/"up       ","down     ","up-up    ","down-down","up-dn    ","dn-up    "/)
  character(len=9),parameter :: dspin(6)=(/"dn       ","up       ","dn-dn    ","up-up    ","dn-up    ","up-dn    "/)
  character(len=500) :: msg

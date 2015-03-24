@@ -7,14 +7,14 @@
 !!  Module to read PAW atomic data
 !!
 !! COPYRIGHT
-!!  Copyright (C) 2012-2014 ABINIT group (T. Rangel, MT, FJ, GJ, FB, FrD, AF, GMR, DRH)
+!!  Copyright (C) 2012-2015 ABINIT group (MT, FJ,TR, GJ, FB, FrD, AF, GMR, DRH)
 !!  This file is distributed under the terms of the
 !!  GNU General Public License, see ~abinit/COPYING
 !!  or http://www.gnu.org/copyleft/gpl.txt .
 !!
 !! NOTES
 !!  FOR DEVELOPPERS: in order to preserve the portability of libPAW library,
-!!  please consult ~abinit/src/42_??libpaw/libpaw-coding-rules.txt
+!!  please consult ~abinit/src/??_libpaw/libpaw-coding-rules.txt
 !!
 !! SOURCE
 
@@ -156,10 +156,9 @@ subroutine pawpsp_nl(ffspl,indlmn,lmnmax,lnmax,mqgrid,qgrid,radmesh,wfll)
  type(pawrad_type),intent(in) :: radmesh
 !arrays
  integer,intent(in) :: indlmn(6,lmnmax)
-!real(dp),intent(in) :: qgrid(mqgrid),wfll(radmesh%mesh_size,lnmax)
- real(dp),intent(in) :: qgrid(mqgrid),wfll(radmesh%mesh_size,*) !vz_d
- real(dp),intent(inout) :: ffspl(mqgrid,2,lnmax) !vz_i
-
+ real(dp),intent(in) :: qgrid(mqgrid),wfll(radmesh%mesh_size,*)
+ real(dp),intent(inout) :: ffspl(mqgrid,2,lnmax)
+ 
 !Local variables-------------------------------
 !scalars
  integer :: ilmn,iln,iln0,iq,ir,ll,meshsz,mmax
@@ -780,17 +779,16 @@ subroutine pawpsp_read(core_mesh,funit,imainmesh,lmax,&
  implicit none
 
 !Arguments ------------------------------------
- integer,intent(in):: funit
- integer,intent(in):: lmax,usexcnhat_in
+ integer,intent(in):: funit,lmax,usexcnhat_in
  integer,intent(out) :: imainmesh,pspversion,usexcnhat_out,vlocopt
  logical,intent(in) :: save_core_msz
  real(dp),intent(in):: znucl
 !arrays
- real(dp),pointer :: ncore(:),tncore(:),tnvale(:),tproj(:,:),vlocr(:)   !vz_i
- type(pawrad_type),intent(inout) :: pawrad !vz_i
+ real(dp),pointer :: ncore(:),tncore(:),tnvale(:),tproj(:,:),vlocr(:)
+ type(pawrad_type),intent(inout) :: pawrad
  type(pawrad_type),intent(out)::core_mesh,tproj_mesh,vale_mesh,vloc_mesh
- type(pawrad_type),pointer :: radmesh(:)   !vz_i
- type(pawtab_type),intent(inout) :: pawtab !vz_i
+ type(pawrad_type),pointer :: radmesh(:)
+ type(pawtab_type),intent(inout) :: pawtab
  integer,intent(out)::nmesh
 
 !Local variables-------------------------------
@@ -803,7 +801,7 @@ subroutine pawpsp_read(core_mesh,funit,imainmesh,lmax,&
  real(dp) :: yp1,ypn
 !arrays
  integer,allocatable :: nprj(:)
- real(dp),allocatable:: shpf(:,:),vhnzc(:)
+ real(dp),allocatable :: shpf(:,:),val(:),vhnzc(:)
  real(dp),allocatable :: work1(:),work2(:),work3(:),work4(:)
  character :: blank=' ',numb=' '
  character(len=80) :: pspline
@@ -1155,8 +1153,12 @@ subroutine pawpsp_read(core_mesh,funit,imainmesh,lmax,&
    else
 !    If pawtab%has_wvl=0, we skip the lines
      do ib=1,pawtab%basis_size
-       if(ib/=1) read(funit,*) 
-       read(funit,*);read(funit,*);read(funit,*)
+       if(ib/=1) read(funit,*)
+       read(funit,*) pngau_, ptotgau_
+       LIBPAW_ALLOCATE(val, (pngau_  *2))
+       read(funit,*) val
+       read(funit,*) val
+       LIBPAW_DEALLOCATE(val)
      end do
    end if
  end if
@@ -1781,11 +1783,11 @@ subroutine pawpsp_calc(core_mesh,epsatm,ffspl,imainmesh,ixc,lnmax,&
  type(pawang_type) :: pawang_tmp
  type(pawrad_type) :: rcore_mesh,rvale_mesh,rvloc_mesh,tproj_mesh_new
 !arrays
+ real(dp) :: tmp_qgrid(1),tmp_q2vq(1)
  real(dp),allocatable :: ncorwk(:),nhat(:),nhatwk(:),nwk(:),r2k(:)
  real(dp),allocatable :: rtncor(:),rtnval(:),rvlocr(:)
  real(dp),allocatable :: vbare(:),vh(:),vhnzc(:)
  real(dp),allocatable :: vxc1(:),vxc2(:),work1(:),work2(:),work3(:),work4(:)
- real(dp) :: tmp_qgrid(1)
  logical :: tmp_lmselect(1)
 
 ! *************************************************************************
@@ -2416,13 +2418,13 @@ subroutine pawpsp_calc(core_mesh,epsatm,ffspl,imainmesh,ixc,lnmax,&
 !  Compute second derivative of Vlspl(q)
    call paw_spline(qgrid_vl,vlspl(:,1),mqgrid_vl,yp1,ypn,vlspl(:,2))
  else
-    ! Only to compute epsatm
-    if (reduced_vloc) then
-       call pawpsp_lo(epsatm,1,tmp_qgrid,tmp_qgrid,rvloc_mesh,rvlocr,yp1,ypn,zion)
-    else
-       call pawpsp_lo(epsatm,1,tmp_qgrid,tmp_qgrid,vloc_mesh,vlocr,yp1,ypn,zion)
-    end if
-    !epsatm=zero
+   ! Only to compute epsatm
+   epsatm=zero
+   if (reduced_vloc) then
+     call pawpsp_lo(epsatm,1,tmp_qgrid,tmp_q2vq,rvloc_mesh,rvlocr,yp1,ypn,zion)
+   else
+     call pawpsp_lo(epsatm,1,tmp_qgrid,tmp_q2vq,vloc_mesh,vlocr,yp1,ypn,zion)
+   end if
  end if
 
 !==========================================================
@@ -4312,7 +4314,7 @@ implicit none
  integer,intent(out):: lloc,lmax,pspcod,pspxc
  real(dp),intent(out):: r2well,zion,znucl
 !Local variables-------------------------------
- integer :: il, ii
+ integer :: ii,il
  character(len=100) :: xclibxc
  character(len=500) :: msg
 !arrays

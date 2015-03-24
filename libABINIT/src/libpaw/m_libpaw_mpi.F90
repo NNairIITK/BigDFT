@@ -18,7 +18,7 @@
 !!  This file comes directly from m_xmpi.F90 module delivered with ABINIT.
 !!
 !!  FOR DEVELOPPERS: in order to preserve the portability of libPAW library,
-!!  please consult ~abinit/src/42_??libpaw/libpaw-coding-rules.txt
+!!  please consult ~abinit/src/??_libpaw/libpaw-coding-rules.txt
 !!
 !! SOURCE
 
@@ -2759,7 +2759,7 @@ subroutine xpaw_mpi_isend_int1d(xval,dest,tag,spaceComm,request,ierr)
  end subroutine xpaw_mpi_isend_int1d
 !!***
 
-!!****f* ABINIT/xsiend_mpi_dp1d
+!!****f* ABINIT/xpaw_mpi_isend_dp1d
 !! NAME
 !!  xpaw_mpi_isend_dp1d
 !!
@@ -2813,7 +2813,7 @@ subroutine xpaw_mpi_isend_dp1d(xval,dest,tag,spaceComm,request,ierr)
 end subroutine xpaw_mpi_isend_dp1d
 !!***
 
-!!****f* ABINIT/xsiend_mpi_dp2d
+!!****f* ABINIT/xpaw_mpi_isend_dp2d
 !! NAME
 !!  xpaw_mpi_isend_dp2d
 !!

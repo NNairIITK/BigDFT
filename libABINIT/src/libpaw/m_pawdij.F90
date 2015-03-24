@@ -9,7 +9,7 @@
 !!         VNL = Sum_ij [ Dij |pi><pj| ],  with pi, pj= projectors
 !!
 !! COPYRIGHT
-!! Copyright (C) 2013-2014 ABINIT group (MT, FJ, BA)
+!! Copyright (C) 2013-2015 ABINIT group (MT, FJ, BA, JWZ)
 !! This file is distributed under the terms of the
 !! GNU General Public License, see ~abinit/COPYING
 !! or http://www.gnu.org/copyleft/gpl.txt .
@@ -17,7 +17,7 @@
 !!
 !! NOTES
 !!  FOR DEVELOPPERS: in order to preserve the portability of libPAW library,
-!!  please consult ~abinit/src/42_??libpaw/libpaw-coding-rules.txt
+!!  please consult ~abinit/src/??_libpaw/libpaw-coding-rules.txt
 !!
 !! SOURCE
 
@@ -40,6 +40,7 @@ MODULE m_pawdij
  use m_pawfgrtab,    only : pawfgrtab_type
  use m_pawrhoij,     only : pawrhoij_type
  use m_paw_finegrid, only : pawgylm, pawexpiqr
+ use m_paw_sphharm,  only : slxyzs
 
  implicit none
 
@@ -52,8 +53,9 @@ MODULE m_pawdij
  public :: pawdijxc       ! Dij eXchange-Correlation (using (r,theta,phi) grid)
  public :: pawdijxcm      ! Dij eXchange-Correlation (using (l,m) moments)
  public :: pawdijhat      ! Dij^hat (compensation charge contribution)
- public :: pawdiju        ! Dij LDA+U
+ public :: pawdijnd       ! Dij nuclear dipole
  public :: pawdijso       ! Dij spin-orbit
+ public :: pawdiju        ! Dij LDA+U
  public :: pawdijexxc     ! Dij local exact-exchange
  public :: pawdijfr       ! 1st-order frozen Dij
  public :: pawpupot       ! On-site LDA+U potential
@@ -163,7 +165,7 @@ subroutine pawdij(cplex,enunit,gprimd,ipert,my_natom,natom,nfft,nfftot,nspden,nt
 &          paw_an,paw_ij,pawang,pawfgrtab,pawprtvol,pawrad,pawrhoij,pawspnorb,pawtab,&
 &          pawxcdev,qphon,spnorbscl,ucvol,charge,vtrial,vxc,xred,&
 &          electronpositron_calctype,electronpositron_pawrhoij,electronpositron_lmselect,&
-&          atvshift,fatvshift,natvshift,&
+&          atvshift,fatvshift,natvshift,nucdipmom,&
 &          mpi_atmtab,comm_atom,mpi_comm_grid,alpha)
 
 
@@ -191,6 +193,7 @@ subroutine pawdij(cplex,enunit,gprimd,ipert,my_natom,natom,nfft,nfftot,nspden,nt
  real(dp),intent(in) ::  vxc(:,:),xred(3,natom)
  real(dp),intent(in),target :: vtrial(cplex*nfft,nspden)
  real(dp),intent(in),optional :: atvshift(:,:,:)
+ real(dp),intent(in),optional :: nucdipmom(3,my_natom)
  type(paw_an_type),intent(in) :: paw_an(my_natom)
  type(paw_ij_type),target,intent(inout) :: paw_ij(my_natom)
  type(pawfgrtab_type),intent(inout) :: pawfgrtab(my_natom)
@@ -210,12 +213,13 @@ subroutine pawdij(cplex,enunit,gprimd,ipert,my_natom,natom,nfft,nfftot,nspden,nt
  logical :: dijhartree_available,dijhartree_need,dijhartree_prereq
  logical :: dijhat_available,dijhat_need,dijhat_prereq
  logical :: dijhatfr_available,dijhatfr_need,dijhatfr_prereq
+ logical :: dijnd_available,dijnd_need,dijnd_prereq
  logical :: dijso_available,dijso_need,dijso_prereq
  logical :: dijxc_available,dijxc_need,dijxc_prereq
  logical :: dijxchat_available,dijxchat_need,dijxchat_prereq
  logical :: dijxcval_available,dijxcval_need,dijxcval_prereq
  logical :: dijU_available,dijU_need,dijU_prereq
- logical :: my_atmtab_allocated
+ logical :: has_nucdipmom,my_atmtab_allocated
  logical :: need_to_print,paral_atom,v_dijhat_allocated
  character(len=500) :: msg
 !arrays
@@ -223,7 +227,7 @@ subroutine pawdij(cplex,enunit,gprimd,ipert,my_natom,natom,nfft,nfftot,nspden,nt
  logical,allocatable :: lmselect(:)
  real(dp),allocatable :: dij0(:),dijhartree(:)
  real(dp),allocatable :: dijhat(:,:),dijexxc(:,:),dijfock(:,:),dijfock1(:,:),dijpawu(:,:)
- real(dp),allocatable :: dijso(:,:),dijxc(:,:),dij_ep(:),dijxchat(:,:),dijxcval(:,:)
+ real(dp),allocatable :: dijnd(:,:),dijso(:,:),dijxc(:,:),dij_ep(:),dijxchat(:,:),dijxcval(:,:)
  real(dp),pointer :: v_dijhat(:,:),vpawu(:,:,:,:),vpawx(:,:,:)
 
 ! *************************************************************************
@@ -250,6 +254,8 @@ subroutine pawdij(cplex,enunit,gprimd,ipert,my_natom,natom,nfft,nfftot,nspden,nt
      MSG_BUG(msg)
    end if
  end if
+
+ has_nucdipmom=present(nucdipmom)
 
 !  === Check complex character of arguments ===
 
@@ -329,7 +335,12 @@ subroutine pawdij(cplex,enunit,gprimd,ipert,my_natom,natom,nfft,nfftot,nspden,nt
        end if
        LIBPAW_POINTER_ALLOCATE(v_dijhat,(cplex*nfft,nspden))
        v_dijhat_allocated=.true.
-       v_dijhat=vtrial-vxc
+       !v_dijhat=vtrial-vxc
+       do idij=1,nspden
+         do klmn=1,cplex*nfft
+           v_dijhat(klmn,idij)=vtrial(klmn,idij)-vxc(klmn,idij)
+         end do
+       end do
      else
        v_dijhat => vtrial
      end if
@@ -353,25 +364,28 @@ subroutine pawdij(cplex,enunit,gprimd,ipert,my_natom,natom,nfft,nfftot,nspden,nt
    need_to_print=((abs(pawprtvol)>=1).and. &
 &   (iatom_tot==1.or.iatom_tot==natom.or.pawprtvol<0))
 
-!  === Determine which conditions and prerequesites are fulfilled for Dij ===
+!  === Determine which conditions and prerequisites are fulfilled for Dij ===
 
  if (my_natom>0) then
-!  Total Dij: no condition ; no prerequesites
+!  Total Dij: no condition ; no prerequisites
    dij_available=.true.;dij_prereq=.true.
 !  Dij0: not available for RF ; need kij for the positron
    dij0_available=(ipert<=0);dij0_prereq=(ipositron/=1.or.pawtab(itypat)%has_kij==2)
 !  DijFock:not available for RF, positron; only for Fock exact exch. ; Vxc_ex needed
    dijfock_available=(paw_ij(iatom)%has_dijfock>0.and.ipert<=0.and.ipositron/=1)
    dijfock_prereq=(paw_ij(iatom)%has_dijfock==2)
-!  DijHartree: no condition ; no prerequesites
+!  DijHartree: no condition ; no prerequisites
    dijhartree_available=.true.;dijhartree_prereq=.true.
 !  DijXC: no condition ; Vxc needed
    dijxc_available=.true.
    dijxc_prereq=(paw_ij(iatom)%has_dijxc==2.or.paw_an(iatom)%has_vxc>0)
-!  Dij^hat: no condition ; no prerequesites
+!  Dij^hat: no condition ; no prerequisites
    dijhat_available=.true.;dijhat_prereq=.true.
 !  Dij^hat_FR: only for RF and when it was previously computed
    dijhatfr_available=(ipert>0.and.paw_ij(iatom)%has_dijfr==2) ; dijhatfr_prereq=.true.
+!  DijND: not available for RF, requires non-zero nucdipmom
+   dijnd_available=.false. ; dijnd_prereq=.true.
+   if (has_nucdipmom) dijnd_available=(ipert<=0.and.any(abs(nucdipmom(:,iatom))>tol8))
 !  DijSO: not available for RF, positron; only for spin-orbit ; VHartree and Vxc needed
    dijso_available=(pawspnorb>0.and.ipert<=0.and.ipositron/=1)
    dijso_prereq=(paw_ij(iatom)%has_dijso==2.or.&
@@ -395,7 +409,7 @@ subroutine pawdij(cplex,enunit,gprimd,ipert,my_natom,natom,nfft,nfftot,nspden,nt
    dij_need=.false.;dij0_need=.false.;dijexxc_need=.false.;dijfock_need=.false.
    dijhartree_need=.false.;dijhat_need=.false.;dijhatfr_need=.false.;
    dijso_need=.false.;dijU_need=.false.;dijxc_need=.false.;dijxchat_need=.false.
-   dijxcval_need=.false.
+   dijxcval_need=.false.; dijnd_need=.false.
 
    if (dij_available) then
      if (paw_ij(iatom)%has_dij==1) then
@@ -469,6 +483,18 @@ subroutine pawdij(cplex,enunit,gprimd,ipert,my_natom,natom,nfft,nfftot,nspden,nt
      paw_ij(iatom)%dijhat=zero
    end if
 
+   if (dijnd_available) then
+     if (paw_ij(iatom)%has_dijnd==1) then
+       dijnd_need=.true.;paw_ij(iatom)%dijnd(:,:)=zero
+     else if (paw_ij(iatom)%has_dijnd==0.and.need_to_print) then
+       LIBPAW_ALLOCATE(paw_ij(iatom)%dijnd,(cplex_dij*lmn2_size,ndij))
+       dijnd_need=.true.;paw_ij(iatom)%dijnd(:,:)=zero
+       paw_ij(iatom)%has_dijnd=-1
+     end if
+   else if (paw_ij(iatom)%has_dijnd==1) then
+     paw_ij(iatom)%dijnd=zero
+   end if
+
    if (dijso_available) then
      if (paw_ij(iatom)%has_dijso==1) then
        dijso_need=.true.;paw_ij(iatom)%dijso(:,:)=zero
@@ -529,55 +555,59 @@ subroutine pawdij(cplex,enunit,gprimd,ipert,my_natom,natom,nfft,nfftot,nspden,nt
      paw_ij(iatom)%dijxc_val=zero
    end if
 
-!  === Print error messages if prerequesites are not fulfilled ===
+!  === Print error messages if prerequisites are not fulfilled ===
 
    if (dij_need.and.(.not.dij_prereq)) then
-     msg='Dij prerequesites missing!'
+     msg='Dij prerequisites missing!'
      MSG_BUG(msg)
    end if
    if (dij0_need.and.(.not.dij0_prereq)) then
-     msg='Dij0 prerequesites missing!'
+     msg='Dij0 prerequisites missing!'
      MSG_BUG(msg)
    end if
    if (dijfock_need.and.(.not.dijfock_prereq)) then
-     msg='DijFock prerequesites missing!'
+     msg='DijFock prerequisites missing!'
      MSG_BUG(msg)
    end if
 
    if (dijhartree_need.and.(.not.dijhartree_prereq)) then
-     msg='DijHartree prerequesites missing!'
+     msg='DijHartree prerequisites missing!'
      MSG_BUG(msg)
    end if
    if (dijxc_need.and.(.not.dijxc_prereq)) then
-     msg='Dij^XC prerequesites missing!'
+     msg='Dij^XC prerequisites missing!'
      MSG_BUG(msg)
    end if
    if (dijhat_need.and.(.not.dijhat_prereq)) then
-     msg='Dij^hat prerequesites missing!'
+     msg='Dij^hat prerequisites missing!'
      MSG_BUG(msg)
    end if
    if (dijhatfr_need.and.(.not.dijhatfr_prereq)) then
-     msg='DijFR^hat prerequesites missing!'
+     msg='DijFR^hat prerequisites missing!'
+     MSG_BUG(msg)
+   end if
+   if (dijnd_need.and.(.not.dijnd_prereq)) then
+     msg='DijND prerequisites missing!'
      MSG_BUG(msg)
    end if
    if (dijso_need.and.(.not.dijso_prereq)) then
-     msg='DijSO prerequesites missing!'
+     msg='DijSO prerequisites missing!'
      MSG_BUG(msg)
    end if
    if (dijU_need.and.(.not.dijU_prereq)) then
-     msg='DijU prerequesites missing!'
+     msg='DijU prerequisites missing!'
      MSG_BUG(msg)
    end if
    if (dijexxc_need.and.(.not.dijexxc_prereq)) then
-     msg='DijExcc prerequesites missing!'
+     msg='DijExcc prerequisites missing!'
      MSG_BUG(msg)
    end if
    if (dijxchat_need.and.(.not.dijxchat_prereq)) then
-     msg='DijXC^hat prerequesites missing!'
+     msg='DijXC^hat prerequisites missing!'
      MSG_BUG(msg)
    end if
    if (dijxcval_need.and.(.not.dijxcval_prereq)) then
-     msg='DijXC_val prerequesites missing!'
+     msg='DijXC_val prerequisites missing!'
      MSG_BUG(msg)
    end if
 
@@ -765,6 +795,28 @@ subroutine pawdij(cplex,enunit,gprimd,ipert,my_natom,natom,nfft,nfftot,nspden,nt
    end if
 
 !  ------------------------------------------------------------------------
+!  ----------- Add Dij nuclear dipole moments to Dij
+!  ------------------------------------------------------------------------
+
+   if ((dijnd_need.or.dij_need).and.dijnd_available) then
+
+!    ===== Dijnd already computed
+     if (paw_ij(iatom)%has_dijnd==2) then
+       if (dij_need) paw_ij(iatom)%dij(:,:)=paw_ij(iatom)%dij(:,:)+paw_ij(iatom)%dijnd(:,:)
+     else
+
+!    ===== Need to compute Dijnd
+       LIBPAW_ALLOCATE(dijnd,(cplex_dij*lmn2_size,ndij))
+       call pawdijnd(cplex_dij,dijnd,ndij,nucdipmom(:,iatom),pawrad(itypat),pawtab(itypat))
+       if (dijnd_need) paw_ij(iatom)%dijnd(:,:)=dijnd(:,:)
+       if (dij_need) paw_ij(iatom)%dij(:,:)=paw_ij(iatom)%dij(:,:)+dijnd(:,:)
+       LIBPAW_DEALLOCATE(dijnd)
+     end if
+ 
+   end if
+ 
+
+!  ------------------------------------------------------------------------
 !  ----------- Add Dij spin-orbit to Dij
 !  ------------------------------------------------------------------------
 
@@ -930,6 +982,7 @@ subroutine pawdij(cplex,enunit,gprimd,ipert,my_natom,natom,nfft,nfftot,nspden,nt
    if (dijhartree_need.and.paw_ij(iatom)%has_dijhartree>=1) paw_ij(iatom)%has_dijhartree=2
    if (dijxc_need.and.paw_ij(iatom)%has_dijxc>=1) paw_ij(iatom)%has_dijxc=2
    if (dijhat_need.and.paw_ij(iatom)%has_dijhat>=1) paw_ij(iatom)%has_dijhat=2
+   if (dijnd_need.and.paw_ij(iatom)%has_dijnd>=1) paw_ij(iatom)%has_dijnd=2
    if (dijso_need.and.paw_ij(iatom)%has_dijso>=1) paw_ij(iatom)%has_dijso=2
    if (dijU_need.and.paw_ij(iatom)%has_dijU>=1) paw_ij(iatom)%has_dijU=2
    if (dijexxc_need.and.paw_ij(iatom)%has_dijexxc>=1) paw_ij(iatom)%has_dijexxc=2
@@ -1450,13 +1503,6 @@ end subroutine pawdijxc
 !! FUNCTION
 !! Compute Fock exact-exchange contribution to the PAW pseudopotential strength Dij
 !! (for one atom only)
-!!
-!! COPYRIGHT
-!! Copyright (C) 1998-2014 ABINIT group (MT)
-!! This file is distributed under the terms of the
-!! GNU General Public License, see ~abinit/COPYING
-!! or http://www.gnu.org/copyleft/gpl.txt .
-!! For the initials of contributors, see ~abinit/doc/developers/contributors.txt.
 !!
 !! INPUTS
 !!  cplex=(RF calculations only) - 1 if RF 1st-order quantities are REAL, 2 if COMPLEX
@@ -2338,183 +2384,129 @@ end subroutine pawdijhat
 
 !----------------------------------------------------------------------
 
-!!****f* m_pawdij/pawdiju
+!!****f* m_pawdij/pawdijnd
 !! NAME
-!! pawdiju
+!! pawdijnd
 !!
 !! FUNCTION
-!! Compute the LDA+U contribution to the PAW pseudopotential strength Dij,
-!! (for one atom only):
-!!   Dijpawu^{\sigma}_{mi,ni,mj,nj}=
-!!     \sum_{m,m'} [vpawu^{\sigma}_{m,m'}*phiphjint_{ni,nj}^{m,m'}]=
-!!     [vpawu^{\sigma}_{mi,mj}*phiphjint_{ni,nj}]
+!! Compute the nuclear dipole contribution to the PAW
+!! pseudopotential strength Dij
+!! (for one atom only)
 !!
 !! INPUTS
-!!  cplex_dij=1 if dij is REAL, 2 if complex (2 for spin-orbit)
-!!  ndij= number of spin components for Dij^hat
-!!  nspden=number of spin density components
-!!  nsppol=number of independent spin WF components
+!!  ndij= number of spin components
+!!  nucdipmom(3) nuclear magnetic dipole moment for current atom
+!!  pawrad <type(pawrad_type)>=paw radial mesh and related data, for current atom
 !!  pawtab <type(pawtab_type)>=paw tabulated starting data, for current atom
-!!  vpawu(cplex_dij,lpawu*2+1,lpawu*2+1,nspden)=moments of LDA+U potential for current atom
-!!  --- Optional arguments ---
-!!    atvshift(natvshift,nsppol)=potential energy shift for lm channel & spin (current atom)
-!!    fatvshift=factor that multiplies atvshift
-!!    natvshift=number of atomic potential energy shifts (per atom) 
 !!
 !! OUTPUT
-!!  dijpawu(cplex_dij*lmn2_size,ndij)=  D_ij^XC terms
+!!  dijnd(cplex_dij*lmn2_size,ndij)= nuclear dipole moment Dij terms
+!!  cplex_dij=2 must be 2
 !!
 !! PARENTS
-!!      m_pawdij
 !!
 !! CHILDREN
-!!      free_my_atmtab,get_my_atmtab
 !!
 !! SOURCE
 
-subroutine pawdiju(cplex_dij,dijpawu,ndij,nspden,nsppol,pawtab,vpawu,&
-&                  natvshift,atvshift,fatvshift) ! optional arguments
+subroutine pawdijnd(cplex_dij,dijnd,ndij,nucdipmom,pawrad,pawtab)
 
 
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
 #undef ABI_FUNC
-#define ABI_FUNC 'pawdiju'
+#define ABI_FUNC 'pawdijnd'
 !End of the abilint section
 
  implicit none
 
 !Arguments ---------------------------------------------
 !scalars
- integer,intent(in) :: cplex_dij,ndij,nspden,nsppol
- integer,intent(in),optional :: natvshift
- real(dp),intent(in),optional :: fatvshift
+ integer,intent(in) :: cplex_dij,ndij
+ type(pawrad_type),intent(in) :: pawrad
+ type(pawtab_type),target,intent(in) :: pawtab
 !arrays
- real(dp),intent(out) :: dijpawu(:,:)
- real(dp),intent(in) :: vpawu(:,:,:,:)
- real(dp),intent(in),optional :: atvshift(:,:)
- type(pawtab_type),intent(in) :: pawtab
+ real(dp),intent(out) :: dijnd(:,:)
+ real(dp),intent(in) :: nucdipmom(3)
 
 !Local variables ---------------------------------------
 !scalars
- integer :: icount,idij,idijeff,idijend,im1,im2,in1,in2,klmn,klmn1,lmax,lmin,lmn2_size
- integer :: lpawu,natvshift_,nsploop
- character(len=500) :: msg
+ integer :: idir,ilmn,il,im,iln,ilm,jlmn,jl,jm,jlm,jln,j0lmn,klmn,kln,mesh_size
+ real(dp) :: light_speed=2.99792458d8/2.1876912633d6 ! speed of light in atomic units
+ real(dp) :: intgr3
+ complex(dpc) :: lms
+ logical :: ndmom
 !arrays
- real(dp),allocatable :: coeffpawu(:),dijpawu_idij(:),dijsymU(:,:)
+ integer, LIBPAW_CONTIGUOUS pointer :: indlmn(:,:)
+ real(dp),allocatable :: ff(:)
+ character(len=500) :: msg
 
 ! *************************************************************************
 
 !Useful data
- lpawu=pawtab%lpawu
- lmn2_size=pawtab%lmn2_size
- natvshift_=0;if (present(natvshift)) natvshift_=natvshift
+ indlmn => pawtab%indlmn
+ mesh_size=pawrad%mesh_size
+ LIBPAW_ALLOCATE(ff,(mesh_size))
 
 !Check data consistency
- if (size(dijpawu,1)/=cplex_dij*lmn2_size.or.size(dijpawu,2)/=ndij) then
-   msg='invalid sizes for dijpawu !'
+ if (cplex_dij/=2) then
+   msg='cplex_dij must be 2 for nuclear dipole moments !'
    MSG_BUG(msg)
  end if
- if (size(vpawu,1)/=cplex_dij.or.size(vpawu,2)/=2*lpawu+1.or.&
-&    size(vpawu,3)/=2*lpawu+1.or.size(vpawu,4)/=nspden) then
-   msg='invalid sizes for vpawu !'
+ if (size(dijnd,1)/=cplex_dij*pawtab%lmn2_size.or.size(dijnd,2)/=ndij) then
+   msg='invalid sizes for Dijnd !'
    MSG_BUG(msg)
  end if
- if (natvshift_>0) then
-   if ((.not.present(atvshift)).or.(.not.present(fatvshift))) then
-     msg='when natvshift>0, atvshift and fatvshift arguments must be present !'
-     MSG_BUG(msg)
-   end if
-   if (size(atvshift,1)/=natvshift.or.size(atvshift,2)/=nsppol) then
-     msg='invalid sizes for atvshift !'
-     MSG_BUG(msg)
-   end if
- end if
 
-!Init memory
- dijpawu=zero
- LIBPAW_ALLOCATE(dijpawu_idij,(cplex_dij*lmn2_size))
- LIBPAW_ALLOCATE(coeffpawu,(cplex_dij))
- if (ndij==4) then
-   LIBPAW_ALLOCATE(dijsymU,(cplex_dij*lmn2_size,4))
- end if
+ dijnd = zero
+ ndmom=(any(abs(nucdipmom)>tol8))
 
-!Loop over spin components
-!----------------------------------------------------------
- nsploop=nsppol;if (ndij==4) nsploop=4
- do idij=1,nsploop
-   if (idij<=nsppol.or.(ndij==4.and.idij<=3)) then
+ if (ndmom) then ! only do the computation if at least one component of nuclear dipole is nonzero
 
-     idijend=idij+idij/3
-     do idijeff=idij,idijend ! if ndij==4, idijeff is used to compute updn and dnup contributions
+!  loop over basis state pairs for this type
+   do jlmn=1,pawtab%lmn_size
+     jl=indlmn(1,jlmn)
+     jm=indlmn(2,jlmn)
+     jlm=indlmn(4,jlmn)
+     jln=indlmn(5,jlmn)
+     j0lmn=jlmn*(jlmn-1)/2
+     do ilmn=1,jlmn
+       il=indlmn(1,ilmn)
+       im=indlmn(2,ilmn)
+       iln=indlmn(5,ilmn)
+       ilm=indlmn(4,ilmn)
+       klmn=j0lmn+ilmn
+       kln = pawtab%indklmn(2,klmn)
 
-       dijpawu_idij=zero
+  !    Computation of (<phi_i|phi_j>-<tphi_i|tphi_j>)/r^3 radial integral
 
-!      Loop over (l,m,n) moments
-!      ----------------------------------------------------------
-       klmn1=1
-       do klmn=1,lmn2_size
-         im1=pawtab%klmntomn(1,klmn)
-         im2=pawtab%klmntomn(2,klmn)
-         lmin=pawtab%indklmn(3,klmn)
-         lmax=pawtab%indklmn(4,klmn)
+       ff(2:mesh_size)=(pawtab%phiphj(2:mesh_size,kln)-&
+  &     pawtab%tphitphj(2:mesh_size,kln))/pawrad%rad(2:mesh_size)**3
+       call pawrad_deducer0(ff,mesh_size,pawrad)
+       call simp_gen(intgr3,ff,pawrad)
 
-!        Select l=lpawu
-         if (lmin==0.and.lmax==2*lpawu) then
+       do idir = 1, 3
 
-!          Check consistency
-           in1=pawtab%klmntomn(3,klmn)
-           in2=pawtab%klmntomn(4,klmn)
-           icount=in1+(in2*(in2-1))/2
-           if (pawtab%ij_proj<icount)  then
-             msg='LDA+U: Problem while computing dijexxc !'
-             MSG_BUG(msg)
-           end if
+! matrix element <S il im|L_idir|S jl jm>
+         call slxyzs(il,im,idir,jl,jm,lms)
 
-!          coeffpawu(:)=vpawu(:,im1,im2,idijeff) ! use real and imaginary part
-           coeffpawu(:)=vpawu(:,im2,im1,idijeff) ! because of transposition in setnoccmmp (for the cplex_dij==2)
+         dijnd(2*klmn-1,1) = dijnd(2*klmn-1,1) - intgr3*real(lms,kind=dp)*nucdipmom(idir)/light_speed
+         dijnd(2*klmn,1) = dijnd(2*klmn,1) - intgr3*dimag(lms)*nucdipmom(idir)/light_speed
 
-           if (natvshift_/=0.and.idij<3.and.im1==im2) then
-             coeffpawu(1)=coeffpawu(1)+fatvshift*atvshift(im1,idij)
-           end if
-           if (cplex_dij==1) then   !cplex_dij=nspinor=1
-             dijpawu_idij(klmn1)=pawtab%phiphjint(icount)*coeffpawu(1) ! *dtset%userra
-           elseif (cplex_dij==2) then   !cplex_dij=nspinor=2
-             dijpawu_idij(klmn1  )=pawtab%phiphjint(icount)*coeffpawu(1)
-             dijpawu_idij(klmn1+1)=pawtab%phiphjint(icount)*coeffpawu(2) !  spinor==2
-           end if
+       end do
 
-         end if ! l selection
-         klmn1=klmn1+cplex_dij
-       end do ! klmn
+     end do ! end loop over ilmn
+   end do ! end loop over jlmn
 
-       dijpawu(:,idij)=dijpawu_idij(:)
-       if (ndij==4) dijsymU(:,idijeff)=dijpawu_idij(:)
+! in case of ndij > 1, note that there is no spin-flip in this term
+! so therefore down-down = up-up, and up-down and down-up terms are still zero
+   if(ndij > 1) dijnd(:,2)=dijnd(:,1)
 
-     end do ! idijeff
+ end if ! end check for a nonzero nuclear dipole moment
 
-   end if ! idij
+ LIBPAW_DEALLOCATE(ff)
 
-   if (nspden==4.or.ndij==4.or.cplex_dij==2) then
-     if (idij<=2)  then
-       dijpawu(:,idij)=dijpawu(:,idij) 
-     else
-       dijpawu(:,idij)=dijsymU(:,idij)
-     end if
-   end if
-
-!End loop over spin components
-!----------------------------------------------------------
- end do
-
-!Free temporary memory spaces
- LIBPAW_DEALLOCATE(dijpawu_idij)
- LIBPAW_DEALLOCATE(coeffpawu)
- if (ndij==4) then
-   LIBPAW_DEALLOCATE(dijsymU)
- end if
-
-end subroutine pawdiju
+end subroutine pawdijnd
 !!***
 
 !----------------------------------------------------------------------
@@ -2582,7 +2574,6 @@ subroutine pawdijso(cplex_dij,dijso,ndij,nspden,&
  real(dp),intent(in) :: vh1(:,:,:),vxc1(:,:,:)
  type(pawrad_type),intent(in) :: pawrad
  type(pawtab_type),target,intent(in) :: pawtab
-
 !Local variables ---------------------------------------
 !scalars
  integer :: angl_size,cplex,idij,ij_size,ilm,ipts,ispden,jlm,klm,klmn,klmn1,kln
@@ -2723,6 +2714,187 @@ subroutine pawdijso(cplex_dij,dijso,ndij,nspden,&
  LIBPAW_DEALLOCATE(dijso_rad)
 
 end subroutine pawdijso
+!!***
+
+!----------------------------------------------------------------------
+
+!!****f* m_pawdij/pawdiju
+!! NAME
+!! pawdiju
+!!
+!! FUNCTION
+!! Compute the LDA+U contribution to the PAW pseudopotential strength Dij,
+!! (for one atom only):
+!!   Dijpawu^{\sigma}_{mi,ni,mj,nj}=
+!!     \sum_{m,m'} [vpawu^{\sigma}_{m,m'}*phiphjint_{ni,nj}^{m,m'}]=
+!!     [vpawu^{\sigma}_{mi,mj}*phiphjint_{ni,nj}]
+!! 
+!! INPUTS
+!!  cplex_dij=1 if dij is REAL, 2 if complex (2 for spin-orbit)
+!!  ndij= number of spin components for Dij^hat
+!!  nspden=number of spin density components
+!!  nsppol=number of independent spin WF components
+!!  pawtab <type(pawtab_type)>=paw tabulated starting data, for current atom
+!!  vpawu(cplex_dij,lpawu*2+1,lpawu*2+1,nspden)=moments of LDA+U potential for current atom
+!!  --- Optional arguments ---
+!!    atvshift(natvshift,nsppol)=potential energy shift for lm channel & spin (current atom)
+!!    fatvshift=factor that multiplies atvshift
+!!    natvshift=number of atomic potential energy shifts (per atom)
+!! 
+!! OUTPUT
+!!  dijpawu(cplex_dij*lmn2_size,ndij)=  D_ij^XC terms
+!!   
+!! PARENTS
+!!      m_pawdij
+!!
+!! CHILDREN
+!!      free_my_atmtab,get_my_atmtab
+!!
+!! SOURCE
+
+subroutine pawdiju(cplex_dij,dijpawu,ndij,nspden,nsppol,pawtab,vpawu,&
+&                  natvshift,atvshift,fatvshift) ! optional arguments
+
+
+!This section has been created automatically by the script Abilint (TD).
+!Do not modify the following lines by hand.
+#undef ABI_FUNC
+#define ABI_FUNC 'pawdiju'
+!End of the abilint section
+
+ implicit none
+
+!Arguments ---------------------------------------------
+!scalars
+ integer,intent(in) :: cplex_dij,ndij,nspden,nsppol
+ integer,intent(in),optional :: natvshift
+ real(dp),intent(in),optional :: fatvshift
+!arrays
+ real(dp),intent(out) :: dijpawu(:,:)
+ real(dp),intent(in) :: vpawu(:,:,:,:)
+ real(dp),intent(in),optional :: atvshift(:,:)
+ type(pawtab_type),intent(in) :: pawtab
+
+!Local variables ---------------------------------------
+!scalars
+ integer :: icount,idij,idijeff,idijend,im1,im2,in1,in2,klmn,klmn1,lmax,lmin,lmn2_size
+ integer :: lpawu,natvshift_,nsploop
+ character(len=500) :: msg
+!arrays
+ real(dp),allocatable :: coeffpawu(:),dijpawu_idij(:),dijsymU(:,:)
+
+! *************************************************************************
+
+!Useful data
+ lpawu=pawtab%lpawu
+ lmn2_size=pawtab%lmn2_size
+ natvshift_=0;if (present(natvshift)) natvshift_=natvshift
+
+!Check data consistency
+ if (size(dijpawu,1)/=cplex_dij*lmn2_size.or.size(dijpawu,2)/=ndij) then
+   msg='invalid sizes for dijpawu !'
+   MSG_BUG(msg)
+ end if
+ if (size(vpawu,1)/=cplex_dij.or.size(vpawu,2)/=2*lpawu+1.or.&
+&    size(vpawu,3)/=2*lpawu+1.or.size(vpawu,4)/=nspden) then
+   msg='invalid sizes for vpawu !'
+   MSG_BUG(msg)
+ end if
+ if (natvshift_>0) then
+   if ((.not.present(atvshift)).or.(.not.present(fatvshift))) then
+     msg='when natvshift>0, atvshift and fatvshift arguments must be present !'
+     MSG_BUG(msg)
+   end if
+   if (size(atvshift,1)/=natvshift.or.size(atvshift,2)/=nsppol) then
+     msg='invalid sizes for atvshift !'
+     MSG_BUG(msg)
+   end if
+ end if
+
+!Init memory
+ dijpawu=zero
+ LIBPAW_ALLOCATE(dijpawu_idij,(cplex_dij*lmn2_size))
+ LIBPAW_ALLOCATE(coeffpawu,(cplex_dij))
+ if (ndij==4) then
+   LIBPAW_ALLOCATE(dijsymU,(cplex_dij*lmn2_size,4))
+ end if
+
+!Loop over spin components
+!----------------------------------------------------------
+ nsploop=nsppol;if (ndij==4) nsploop=4
+ do idij=1,nsploop
+   if (idij<=nsppol.or.(ndij==4.and.idij<=3)) then
+
+     idijend=idij+idij/3
+     do idijeff=idij,idijend ! if ndij==4, idijeff is used to compute updn and dnup contributions
+
+       dijpawu_idij=zero
+
+!      Loop over (l,m,n) moments
+!      ----------------------------------------------------------
+       klmn1=1
+       do klmn=1,lmn2_size
+         im1=pawtab%klmntomn(1,klmn)
+         im2=pawtab%klmntomn(2,klmn)
+         lmin=pawtab%indklmn(3,klmn)
+         lmax=pawtab%indklmn(4,klmn)
+
+!        Select l=lpawu
+         if (lmin==0.and.lmax==2*lpawu) then
+
+!          Check consistency
+           in1=pawtab%klmntomn(3,klmn)
+           in2=pawtab%klmntomn(4,klmn)
+           icount=in1+(in2*(in2-1))/2
+           if (pawtab%ij_proj<icount)  then
+             msg='LDA+U: Problem while computing dijexxc !'
+             MSG_BUG(msg)
+           end if
+
+!          coeffpawu(:)=vpawu(:,im1,im2,idijeff) ! use real and imaginary part
+           coeffpawu(:)=vpawu(:,im2,im1,idijeff) ! because of transposition in setnoccmmp (for the cplex_dij==2)
+
+           if (natvshift_/=0.and.idij<3.and.im1==im2) then
+             coeffpawu(1)=coeffpawu(1)+fatvshift*atvshift(im1,idij)
+           end if
+           if (cplex_dij==1) then   !cplex_dij=nspinor=1
+             dijpawu_idij(klmn1)=pawtab%phiphjint(icount)*coeffpawu(1) ! *dtset%userra
+           elseif (cplex_dij==2) then   !cplex_dij=nspinor=2
+             dijpawu_idij(klmn1  )=pawtab%phiphjint(icount)*coeffpawu(1)
+             dijpawu_idij(klmn1+1)=pawtab%phiphjint(icount)*coeffpawu(2) !  spinor==2
+           end if
+
+         end if ! l selection
+         klmn1=klmn1+cplex_dij
+       end do ! klmn
+
+       dijpawu(:,idij)=dijpawu_idij(:)
+       if (ndij==4) dijsymU(:,idijeff)=dijpawu_idij(:)
+
+     end do ! idijeff
+
+   end if ! idij
+
+   if (nspden==4.or.ndij==4.or.cplex_dij==2) then
+     if (idij<=2)  then
+       dijpawu(:,idij)=dijpawu(:,idij)
+     else
+       dijpawu(:,idij)=dijsymU(:,idij)
+     end if
+   end if
+
+!End loop over spin components
+!----------------------------------------------------------
+ end do
+
+!Free temporary memory spaces
+ LIBPAW_DEALLOCATE(dijpawu_idij)
+ LIBPAW_DEALLOCATE(coeffpawu)
+ if (ndij==4) then
+   LIBPAW_DEALLOCATE(dijsymU)
+ end if
+
+end subroutine pawdiju
 !!***
 
 !----------------------------------------------------------------------
@@ -3732,15 +3904,17 @@ end subroutine pawdijfr
  end if
  if (size(vpawu,1)/=cplex_dij.or.size(vpawu,2)/=2*lpawu+1.or.&
 &    size(vpawu,3)/=2*lpawu+1.or.size(vpawu,4)/=nspden) then
-   msg='invalid sizes for vpawu !'
+   write (msg,'(a,4I5, a,4I5)') ' invalid sizes for vpawu !',cplex_dij,2*lpawu+1,2*lpawu+1,nspden, &
+&    ' /= ', size(vpawu,1), size(vpawu,2), size(vpawu,3), size(vpawu,4)
    MSG_BUG(msg)
  end if
  if (size(noccmmp,1)/=cplex_dij.or.size(noccmmp,2)/=2*lpawu+1.or.&
-&    size(noccmmp,3)/=2*lpawu+1.or.size(noccmmp,4)/=nspden) then
-   msg='invalid sizes for noccmmp !'
+&    size(noccmmp,3)/=2*lpawu+1.or.size(noccmmp,4)/=ndij) then
+   write (msg,'(a,4I5, a,4I5)') ' invalid sizes for noccmmp !',cplex_dij,2*lpawu+1,2*lpawu+1,ndij, &
+&    ' /= ', size(noccmmp,1), size(noccmmp,2), size(noccmmp,3), size(noccmmp,4)
    MSG_BUG(msg)
  end if
- if (size(nocctot,1)/=nspden) then
+ if (size(nocctot,1)/=ndij) then
    msg='invalid size for nocctot !'
    MSG_BUG(msg)
  end if 
@@ -4105,6 +4279,7 @@ end subroutine pawdijfr
 !!             6: dij spin-orbit (dijso)
 !!             7: dij exact exchange (dijexxc)
 !!             8: dij, RF frozen part (dijfr)
+!!             9: dij due to nuclear dipoles
 !!  paw_ij(natom)%cplex_dij=1 if dij are REAL, 2 if they are COMPLEX
 !!  paw_ij(natom)%lmn_size=number of (l,m,n) elements for the paw basis
 !!  paw_ij(natom)%nspden=number of spin-density components
@@ -4159,7 +4334,7 @@ subroutine symdij(gprimd,indsym,ipert,my_natom,natom,nsym,ntypat,option_dij,&
 
 !Local variables ---------------------------------------
 !scalars
- integer :: at_indx,cplex,cplex_dij,iafm,iatom,iatom_tot,ierr
+ integer :: at_indx,cplex,cplex_dij,iafm,iatom,iatom_tot
  integer :: il,il0,ilmn,iln,iln0,ilpm,indexi,indexii,indexj,indexjj,indexjj0,indexk,indexkc
  integer :: iplex,irot,ispden,itypat,j0lmn,jl,jl0,jlmn,jln,jln0,jlpm,jspden
  integer :: klmn,klmnc,kspden,lmn_size,mi,mj,my_comm_atom,mu,natinc,ndij0,ndij1,nu,optsym,sz1,sz2
@@ -4204,7 +4379,8 @@ subroutine symdij(gprimd,indsym,ipert,my_natom,natom,nsym,ntypat,option_dij,&
 &   (option_dij==5.and.paw_ij(1)%has_dijxc_val==0).or.&
 &   (option_dij==6.and.paw_ij(1)%has_dijso==0).or.&
 &   (option_dij==7.and.paw_ij(1)%has_dijexxc==0).or.&
-&   (option_dij==8.and.paw_ij(1)%has_dijfr==0)) then
+&   (option_dij==8.and.paw_ij(1)%has_dijfr==0).or.&
+&   (option_dij==9.and.paw_ij(1)%has_dijnd==0)) then
      msg='Incompatibilty between option_dij and allocation of Dij!'
      MSG_BUG(msg)
    end if
@@ -4287,6 +4463,8 @@ subroutine symdij(gprimd,indsym,ipert,my_natom,natom,nsym,ntypat,option_dij,&
        dijtmp(:,:)=paw_ij(iatom)%dijexxc(:,:)
      else if (option_dij==8) then
        dijtmp(:,:)=paw_ij(iatom)%dijfr(:,:)
+     else if (option_dij==9) then
+       dijtmp(:,:)=paw_ij(iatom)%dijnd(:,:)
      end if
      !Has to translate Dij^{alpha,beta} into (Dij, Dij magnetic field) format
      if (paw_ij(1)%ndij==4) then
@@ -4591,6 +4769,8 @@ subroutine symdij(gprimd,indsym,ipert,my_natom,natom,nsym,ntypat,option_dij,&
              paw_ij(iatom)%dijexxc(klmnc+1:klmnc+cplex_dij,ispden:ispden+ndij0)=dijnew(1:cplex_dij,1:ndij1)
            else if (option_dij==8) then
              paw_ij(iatom)%dijfr(klmnc+1:klmnc+cplex_dij,ispden:ispden+ndij0)=dijnew(1:cplex_dij,1:ndij1)
+           else if (option_dij==9) then
+             paw_ij(iatom)%dijnd(klmnc+1:klmnc+cplex_dij,ispden:ispden+ndij0)=dijnew(1:cplex_dij,1:ndij1)
            end if
 
            il0=il;iln0=iln  ! End loops over (il,im) and (jl,jm)
@@ -4682,6 +4862,10 @@ subroutine symdij(gprimd,indsym,ipert,my_natom,natom,nsym,ntypat,option_dij,&
        else if (option_dij==8) then
          do klmn=1,paw_ij(iatom)%lmn2_size*paw_ij(iatom)%cplex_dij
            if (abs(paw_ij(iatom)%dijfr(klmn,ispden))<=tol10) paw_ij(iatom)%dijfr(klmn,ispden)=zero
+         end do
+       else if (option_dij==9) then
+         do klmn=1,paw_ij(iatom)%lmn2_size*paw_ij(iatom)%cplex_dij
+           if (abs(paw_ij(iatom)%dijnd(klmn,ispden))<=tol10) paw_ij(iatom)%dijnd(klmn,ispden)=zero
          end do
        end if
 

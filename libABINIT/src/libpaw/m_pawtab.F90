@@ -9,14 +9,14 @@
 !!  pawtab_type variables define TABulated data for PAW (from pseudopotential)
 !!
 !! COPYRIGHT
-!! Copyright (C) 2013-2014 ABINIT group (MT)
+!! Copyright (C) 2013-2015 ABINIT group (MT)
 !! This file is distributed under the terms of the
 !! GNU General Public License, see ~abinit/COPYING
 !! or http://www.gnu.org/copyleft/gpl.txt .
 !!
 !! NOTES
 !!  FOR DEVELOPPERS: in order to preserve the portability of libPAW library,
-!!  please consult ~abinit/src/42_??libpaw/libpaw-coding-rules.txt
+!!  please consult ~abinit/src/??_libpaw/libpaw-coding-rules.txt
 !!
 !! SOURCE
 
@@ -32,7 +32,6 @@ MODULE m_pawtab
  implicit none
 
  private
- public :: pawtab_get_lsize
 !!***
 
 !----------------------------------------------------------------------
@@ -59,8 +58,8 @@ MODULE m_pawtab
 
  end type wvlpaw_rholoc_type
 
- public :: wvlpaw_rholoc_free   ! Free memory
- public :: wvlpaw_rholoc_nullify   
+ public :: wvlpaw_rholoc_free    ! Free memory
+ public :: wvlpaw_rholoc_nullify ! Nullify content
 !!***
 
 !----------------------------------------------------------------------
@@ -515,8 +514,9 @@ MODULE m_pawtab
 
  end type pawtab_type
 
- public :: pawtab_nullify
- public :: pawtab_free      ! Free memory
+ public :: pawtab_free         ! Free memory
+ public :: pawtab_nullify      ! Nullify content
+ public :: pawtab_get_lsize    ! Get the max. l for a product of 2 partial waves
  public :: pawtab_set_flags    ! Set the value of the internal flags
  public :: pawtab_print        ! Printout of the object.
  public :: pawtab_bcast        ! MPI broadcast the object
@@ -1704,25 +1704,25 @@ subroutine pawtab_bcast(pawtab,comm_mpi,only_from_file)
        if (siz_wvl_pfac/=2*pawtab%wvl%ptotgau) msg=trim(msg)//' wvl_pfac'
        nn_dpr_arr=nn_dpr_arr+siz_wvl_pfac
      end if
-!      wvl%rholoc%msz
-       nn_int=nn_int+1
-     nn_int=nn_int+2
-       if (pawtab%wvl%rholoc%msz>0) then
-         if (allocated(pawtab%wvl%rholoc%rad)) then
-           siz_wvl_rholoc_rad=size(pawtab%wvl%rholoc%rad) !(msz)
-           if (siz_wvl_rholoc_rad/=pawtab%wvl%rholoc%msz) msg=trim(msg)//' wvl_rholoc_rad'
-           nn_dpr_arr=nn_dpr_arr+siz_wvl_rholoc_rad
-         end if
-         if (allocated(pawtab%wvl%rholoc%d)) then
-           siz_wvl_rholoc_d=size(pawtab%wvl%rholoc%d)     !(msz,4)
-           if (siz_wvl_rholoc_d/=4*pawtab%wvl%rholoc%msz) msg=trim(msg)//' wvl_rholoc_d'
-           nn_dpr_arr=nn_dpr_arr+siz_wvl_rholoc_d
-         end if
+!    wvl%rholoc%msz
+     nn_int=nn_int+3
+     if (pawtab%wvl%rholoc%msz>0) then
+       if (allocated(pawtab%wvl%rholoc%rad)) then
+         siz_wvl_rholoc_rad=size(pawtab%wvl%rholoc%rad) !(msz)
+         if (siz_wvl_rholoc_rad/=pawtab%wvl%rholoc%msz) msg=trim(msg)//' wvl_rholoc_rad'
+         nn_dpr_arr=nn_dpr_arr+siz_wvl_rholoc_rad
+       end if
+       if (allocated(pawtab%wvl%rholoc%d)) then
+         siz_wvl_rholoc_d=size(pawtab%wvl%rholoc%d)     !(msz,4)
+         if (siz_wvl_rholoc_d/=4*pawtab%wvl%rholoc%msz) msg=trim(msg)//' wvl_rholoc_d'
+         nn_dpr_arr=nn_dpr_arr+siz_wvl_rholoc_d
        end if
      end if
+   end if
 
 !Datastructures (depending on the parameters of the calculation)
 !-------------------------------------------------------------------------
+!  Nothing
 
 !  Are the sizes OK ?
    if (trim(msg)/='') then
