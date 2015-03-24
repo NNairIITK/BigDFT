@@ -13,6 +13,8 @@ module io
   public :: write_sparse_matrix
   public :: write_linear_matrices
   public :: writeLinearCoefficients
+  public :: write_linear_coefficients
+  public :: read_linear_coefficients
 
   public :: io_error, io_warning, io_open
   public :: io_read_descr, read_psi_compress
@@ -1476,8 +1478,6 @@ module io
     
       end if
 
-      call write_sparse_matrix(at, rxyz, tmb%linmat%l, tmb%linmat%ovrlp_, filename//'overlap_onsite.bin')
-    
       !!i_all = -product(shape(tmb%linmat%ovrlp%matrix))*kind(tmb%linmat%ovrlp%matrix)
       !!deallocate(tmb%linmat%ovrlp%matrix,stat=i_stat)
       !!call memocc(i_stat,i_all,'tmb%linmat%ovrlp%matrix',subname)
@@ -1549,6 +1549,189 @@ module io
     END SUBROUTINE writeLinearCoefficients
 
 
+    !> Basically the same as writeLinearCoefficients, but with a slightly different format
+    subroutine write_linear_coefficients(iroot, filename, at, rxyz, nfvctr, ntmb, nspin, coeff, eval)
+      use module_base
+      use module_types
+      use yaml_output
+      implicit none
+      ! Calling arguments
+      character(len=*),intent(in) :: filename
+      type(atoms_data),intent(in) :: at
+      real(gp), dimension(3,at%astruct%nat), intent(in) :: rxyz
+      integer,intent(in) :: iroot, nfvctr, ntmb, nspin
+      real(wp), dimension(nfvctr,ntmb), intent(in) :: coeff
+      real(wp), dimension(ntmb), intent(in) :: eval
+      ! Local variables
+      integer :: iunit, itype, iat, i, j
+      logical :: scaled
+
+      call f_routine(id='write_linear_coefficients')
+
+
+      if (bigdft_mpi%iproc==iroot) then
+
+          iunit = 99
+          call f_open_file(iunit, file=trim(filename), binary=.false.)
+    
+          ! Write the Header
+          write(iunit,'(i10,2i6,a)') at%astruct%nat, at%astruct%ntypes, nspin, &
+              '   # number of atoms, number of atom types, nspin'
+          do itype=1,at%astruct%ntypes
+              write(iunit,'(2i8,3x,a,a)') at%nzatom(itype), at%nelpsp(itype), trim(at%astruct%atomnames(itype)), &
+                  '   # nz, nelpsp, name'
+          end do
+          do iat=1,at%astruct%nat
+              write(iunit,'(i5, 3es24.16,a,i0)') at%astruct%iatype(iat), rxyz(1:3,iat), '   # atom no. ',iat
+          end do
+          write(iunit,'(2i12,a)') nfvctr, ntmb, '   # nfvctr, ntmb'
+          do i=1,ntmb
+              write(iunit,'(es24.16,a,i0)') eval(i), '   # eval no. ', i
+          enddo
+    
+          ! Now write the coefficients
+          do i=1,ntmb
+             ! First element always positive, for consistency when using for transfer integrals;
+             ! unless 1st element below some threshold, in which case first significant element.
+             scaled = .false.
+             do j=1,nfvctr
+                if (abs(coeff(j,i))>1.0d-3) then
+                   if (coeff(j,i)<0.0_gp) call dscal(ntmb,-1.0_gp,coeff(1,i),1)
+                   scaled = .true.
+                   exit
+                end if
+             end do
+             if (.not.scaled) then
+                 call yaml_warning('Consistency between the written coefficients not guaranteed')
+             end if
+    
+             do j = 1,nfvctr
+                 write(iunit,'(es24.16,2i9,a)') coeff(j,i), j, i, '   # coeff, j, i'
+             end do
+          end do  
+          if (verbose >= 2 .and. bigdft_mpi%iproc==0) call yaml_map('Wavefunction coefficients written',.true.)
+
+          call f_close(iunit)
+
+      end if
+
+      call f_release_routine()
+    
+    end subroutine write_linear_coefficients
+
+
+    subroutine read_linear_coefficients(filename, nspin, nfvctr, ntmb, coeff, &
+               nat, ntypes, nzatom, nelpsp, iatype, atomnames, rxyz, eval)
+      use module_base
+      use module_types
+      use yaml_output
+      implicit none
+      ! Calling arguments
+      character(len=*),intent(in) :: filename
+      integer,intent(out) :: nspin, nfvctr, ntmb
+      real(kind=8),dimension(:,:),pointer,intent(inout) :: coeff
+      integer,intent(out),optional :: nat, ntypes
+      integer,dimension(:),pointer,intent(inout),optional :: nzatom, nelpsp, iatype
+      character(len=20),dimension(:),pointer,intent(inout),optional :: atomnames
+      real(kind=8),dimension(:,:),pointer,intent(inout),optional :: rxyz
+      real(kind=8),dimension(:),pointer,intent(inout),optional :: eval
+      ! Local variables
+      real(kind=8) :: dummy_double
+      character(len=20) :: dummy_char
+      integer :: iunit, itype, iat, i, j, dummy_int, ntypes_, nat_
+      logical :: scaled, read_rxyz, read_eval
+
+      call f_routine(id='write_linear_coefficients')
+
+      if (present(nat) .and. present(ntypes) .and. present(nzatom) .and.  &
+          present(nelpsp) .and. present(atomnames) .and. present(iatype) .and. present(rxyz)) then
+          read_rxyz = .true.
+      else if (present(nat) .or. present(ntypes) .or. present(nzatom) .or.  &
+          present(nelpsp) .or. present(atomnames) .or. present(iatype) .or. present(rxyz)) then
+          call f_err_throw("not all optional arguments were given", &
+               err_name='BIGDFT_RUNTIME_ERROR')
+      else
+          read_rxyz = .false.
+      end if
+
+      if (present(eval)) then
+          read_eval = .true.
+      else
+          read_eval = .false.
+      end if
+
+      iunit = 99
+      call f_open_file(iunit, file=trim(filename), binary=.false.)
+    
+      ! Read the Header
+      if (read_rxyz) then
+          read(iunit,*) nat, ntypes, nspin
+          nzatom = f_malloc_ptr(ntypes,id='nzatom')
+          nelpsp = f_malloc_ptr(ntypes,id='nelpsp')
+          atomnames = f_malloc0_str_ptr(len(atomnames),ntypes,id='atomnames')
+
+          do itype=1,ntypes
+              read(iunit,*) nzatom(itype), nelpsp(itype), atomnames(itype)
+          end do
+          rxyz = f_malloc_ptr((/3,nat/),id='rxyz')
+          iatype = f_malloc_ptr(nat,id='iatype')
+          do iat=1,nat
+              read(iunit,*) iatype(iat), rxyz(1,iat), rxyz(2,iat), rxyz(3,iat)
+          end do
+      else
+          read(iunit,*) nat_, ntypes_, nspin
+          do itype=1,ntypes_
+              read(iunit,*) dummy_int, dummy_int, dummy_char
+          end do
+          do iat=1,nat_
+              read(iunit,*) dummy_int, dummy_double, dummy_double, dummy_double
+          end do
+      end if
+
+      read(iunit,*) nfvctr, ntmb
+
+      if (read_eval) then
+          eval = f_malloc_ptr(ntmb,id='eval')
+          do i=1,ntmb
+              read(iunit,*) eval(i)
+          end do
+      else
+          do i=1,ntmb
+              read(iunit,*) dummy_double
+          end do
+      end if
+    
+      ! Now read the coefficients
+      coeff = f_malloc_ptr((/nfvctr,ntmb/),id='coeff')
+
+      do i=1,ntmb
+
+         do j = 1,nfvctr
+             read(iunit,*) coeff(j,i)
+         end do
+
+         ! First element always positive, for consistency when using for transfer integrals;
+         ! unless 1st element below some threshold, in which case first significant element.
+         scaled = .false.
+         do j=1,nfvctr
+            if (abs(coeff(j,i))>1.0d-3) then
+               if (coeff(j,i)<0.0_gp) call dscal(ntmb,-1.0_gp,coeff(1,i),1)
+               scaled = .true.
+               exit
+            end if
+         end do
+         if (.not.scaled) then
+             call yaml_warning('Consistency between the written coefficients not guaranteed')
+         end if
+    
+      end do  
+
+      call f_close(iunit)
+
+
+      call f_release_routine()
+    
+    end subroutine read_linear_coefficients
 
 
 end module io

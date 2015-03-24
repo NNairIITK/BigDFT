@@ -225,7 +225,7 @@ module postprocessing_linear
       implicit none
       ! Calling arguments
       integer,intent(in) :: iproc, nproc, norb, norbp, isorb, meth_overlap
-      integer,dimension(norb),intent(in) :: norb_par, isorb_par
+      integer,dimension(0:nproc-1),intent(in) :: norb_par, isorb_par
       type(sparse_matrix),intent(inout) :: smats, smatl
       type(atoms_data),intent(in) :: atoms
       type(matrices),intent(in) :: kernel
