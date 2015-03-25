@@ -303,7 +303,7 @@ module foe
                                    (/foe_data_get_real(foe_obj,"evlow",ispin), &
                                    foe_data_get_real(foe_obj,"evhigh",ispin)/),fmt='(f5.2)')
                           end if
-                          call yaml_map('pol deg',npl,fmt='(i3)')
+                          call yaml_map('pol deg',npl,fmt='(i0)')
                           if (foe_verbosity>=1) call yaml_map('eF',foe_data_get_real(foe_obj,"ef",ispin),fmt='(es16.9)')
                       end if
             

@@ -31,6 +31,7 @@ module sparsematrix_init
   public :: read_bigdft_format
   public :: bigdft_to_sparsebigdft
   public :: get_line_and_column
+  public :: distribute_columns_on_processes_simple
 
 contains
 
@@ -4107,5 +4108,38 @@ contains
       call f_release_routine()
     
     end subroutine init_sparse_matrix_for_KSorbs
+
+
+    subroutine distribute_columns_on_processes_simple(iproc, nproc, ncol, ncolp, iscol)
+      implicit none
+      ! Calling arguments
+      integer,intent(in) :: iproc, nproc, ncol
+      integer,intent(out) :: ncolp, iscol
+    
+      ! Local variables
+      integer :: ncolpx, ii, i, jproc
+      real(kind=8) :: tt
+    
+      ! Determine the number of columns per process
+      tt = real(ncol,kind=8)/real(nproc,kind=8)
+      ncolpx = floor(tt)
+      ii = ncol - nproc*ncolpx
+      if (iproc<ii) then
+          ncolp = ncolpx + 1
+      else
+          ncolp = ncolpx
+      end if
+      
+      ! Determine the first column of each process
+      i = 0
+      do jproc=0,nproc-1
+          if (iproc==jproc) iscol = i
+          if (jproc<ii) then
+              i = i + ncolpx + 1
+          else
+              i = i + ncolpx
+          end if
+      end do
+    end subroutine distribute_columns_on_processes_simple
 
 end module sparsematrix_init

@@ -5,7 +5,7 @@ program driver_singlerun
                                matrices_null, deallocate_sparse_matrix, deallocate_matrices, &
                                assignment(=), sparsematrix_malloc_ptr, SPARSE_FULL
   use sparsematrix_init, only: read_ccs_format, ccs_to_sparsebigdft, ccs_values_to_bigdft, &
-                               read_bigdft_format, bigdft_to_sparsebigdft
+                               read_bigdft_format, bigdft_to_sparsebigdft, distribute_columns_on_processes_simple
   use sparsematrix, only: write_matrix_compressed, check_symmetry, &
                           write_sparsematrix_CCS, write_sparsematrix
   use matrix_operations, only: overlapPowerGeneral
@@ -55,8 +55,7 @@ program driver_singlerun
 
   ! Create the corresponding BigDFT sparsity pattern
   !call ccs_to_sparsebigdft(iproc, nproc, ncol, ncol, 0, nnonzero, row_ind, col_ptr, smat)
-  call distribute_columns_on_processes(iproc, nproc, ncol, ncolp, iscol)
-  write(*,'(a,4i9)') 'iproc, ncol, ncolp, iscol', iproc, ncol, ncolp, iscol
+  call distribute_columns_on_processes_simple(iproc, nproc, ncol, ncolp, iscol)
   call bigdft_to_sparsebigdft(iproc, nproc, ncol, ncolp, iscol, on_which_atom, nnonzero, nseg, keyg, smat)
 
   matA = matrices_null()
