@@ -68,6 +68,7 @@ program memguess
    real(gp), dimension(:), pointer :: gbd_occ
    type(system_fragment), dimension(:), pointer :: ref_frags
    character(len=3) :: in_name !lr408
+   character(len=128) :: line
    integer :: i, inputpsi, input_wf_format, nneighbor_min, nneighbor_max, nneighbor, ntypes
    integer,parameter :: nconfig=1
    type(dictionary), pointer :: run
@@ -100,7 +101,7 @@ program memguess
    character(len=6) :: direction
    character(len=2) :: backslash
    logical :: file_exists, found_bin, mpi_init
-   logical,dimension(:),allocatable :: calc_array
+   logical,dimension(:,:),allocatable :: calc_array
    real(kind=8),parameter :: eps_roundoff=1.d-5
    type(sparse_matrix) :: smat_s, smat_m, smat_l
 
@@ -755,44 +756,58 @@ program memguess
        !ham = f_malloc((/ntmb,ntmb/),id='ham')
        !overlap = f_malloc((/ntmb,ntmb/),id='overlap')
        !on_which_atom = f_malloc(ntmb,id='on_which_atom')
-       calc_array = f_malloc(ntmb,id='calc_array')
 
        !call set_astruct_from_file(trim(posinp_file),0,at%astruct,fcomment,energy,fxyz)
        !write(*,*) 'trim(pdos_file)', trim(pdos_file)
        call f_open_file(iunit01, file=pdos_file, binary=.false.)
 
-       calc_array = .false.
-       do 
-           read(iunit01,*,iostat=ios) cc, ival
-           if (ios/=0) exit
-           do itype=1,at%astruct%ntypes
-               if (trim(at%astruct%atomnames(itype))==trim(cc)) then
-                   iitype = itype
-                   exit
-               end if
-           end do
-           iat_prev = -1
-           do itmb=1,ntmb
-               iat = on_which_atom_s(itmb)
-               if (iat/=iat_prev) then
-                   ii = 0
-               end if
-               iat_prev = iat
-               itype = at%astruct%iatype(iat)
-               ii = ii + 1
-               if (itype==iitype .and. ii==ival) then
-                   if (calc_array(itmb)) stop 'calc_array(itmb)'
-                   calc_array(itmb) = .true.
-               end if
-           end do
-       end do
-       call f_close(iunit01)
+       read(iunit01,*) npdos
 
-       do itmb=1,ntmb
-           iat = on_which_atom_m(itmb)
-           itype = at%astruct%iatype(iat)
-           !write(*,'(a,3i8,l5)') 'itmb, iat, itype, calc_array(itmb)', itmb, iat, itype, calc_array(itmb)
+       calc_array = f_malloc((/ntmb,npdos/),id='calc_array')
+
+       calc_array = .false.
+       npdos_loop: do ipdos=1,npdos
+           do 
+               !read(iunit01,*,iostat=ios) cc, ival
+               read(iunit01,'(a128)',iostat=ios) line
+               if (ios/=0) exit
+               write(*,*) 'line',line
+               read(line,*,iostat=ios) cc, ival
+               if (cc=='#') cycle npdos_loop
+               do itype=1,at%astruct%ntypes
+                   if (trim(at%astruct%atomnames(itype))==trim(cc)) then
+                       iitype = itype
+                       exit
+                   end if
+               end do
+               !write(*,'(a,i7,a,2i7)') 'ipdos, cc, ival, iitype', ipdos, trim(cc), ival, iitype
+               iat_prev = -1
+               do itmb=1,ntmb
+                   iat = on_which_atom_s(itmb)
+                   if (iat/=iat_prev) then
+                       ii = 0
+                   end if
+                   iat_prev = iat
+                   itype = at%astruct%iatype(iat)
+                   ii = ii + 1
+                   if (itype==iitype .and. ii==ival) then
+                       if (calc_array(itmb,ipdos)) stop 'calc_array(itmb)'
+                       calc_array(itmb,ipdos) = .true.
+                   end if
+               end do
+           end do
+
+       end do npdos_loop
+
+       do ipdos=1,npdos
+           do itmb=1,ntmb
+               iat = on_which_atom_m(itmb)
+               itype = at%astruct%iatype(iat)
+               write(*,'(a,4i8,l5)') 'ipdos, itmb, iat, itype, calc_array(itmb,ipdos)', ipdos, itmb, iat, itype, calc_array(itmb,ipdos)
+           end do
        end do
+
+       call f_close(iunit01)
 
        npt = ceiling((eval_ptr(ntmb)-eval_ptr(1))/interval)
        pdos = f_malloc0((/npt,npdos/),id='pdos')
@@ -839,9 +854,9 @@ program memguess
                do ispin=1,nspin
                    !!$omp do reduction(+:occup)
                    do itmb=1,ntmb!ipdos,ntmb,npdos
-                       if (.not.calc_array(itmb)) cycle
+                       if (.not.calc_array(itmb,ipdos)) cycle
                        do jtmb=1,ntmb!ipdos,ntmb,npdos
-                           if (.not.calc_array(jtmb)) cycle
+                           if (.not.calc_array(jtmb,ipdos)) cycle
                            occup = occup + denskernel(itmb,jtmb)*ovrlp_mat%matrix(jtmb,itmb,ispin)
                        end do
                    end do
@@ -868,9 +883,9 @@ program memguess
                !write(*,'(a,i6,3es16.8)')'iorb, eval(iorb), energy, occup', iorb, eval(iorb), energy, occup
            end do
            if (ipdos==1) then
-               write(iunit02,'(a,i0,a)') "plot f",ipdos,"(x) lt 1 lw 2 w l title 'name'"
+               write(iunit02,'(a,i0,a)') "plot f",ipdos,"(x) lc rgb 'color' lt 1 lw 2 w l title 'name'"
            else
-               write(iunit02,'(a,i0,a)') "replot f",ipdos,"(x) lt 1 lw 2 w l title 'name'"
+               write(iunit02,'(a,i0,a)') "replot f",ipdos,"(x) lc rgb 'color' lt 1 lw 2 w l title 'name'"
            end if
            call yaml_map('sum of PDoS',sum(pdos(:,ipdos)))
            output_pdos='PDoS_'//num//'.dat'
