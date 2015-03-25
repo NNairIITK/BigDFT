@@ -351,7 +351,7 @@ module postprocessing_linear
           output='chargeanalysis.gp'
           call yaml_map('output file',trim(output))
           call f_open_file(iunit, file=trim(output), binary=.false.)
-          write(iunit,'(a)') '# plot the fractional charge as a sum of normalized Gaussians'
+          write(iunit,'(a)') '# plot the fractional charge as a normalized sum of Gaussians'
           write(iunit,'(a)') 'set samples 500000'
           range_min = minval(-(charge_per_atom(:)-real(atoms%nelpsp(atoms%astruct%iatype(:)),kind=8))) - 0.1d0
           range_max = maxval(-(charge_per_atom(:)-real(atoms%nelpsp(atoms%astruct%iatype(:)),kind=8))) + 0.1d0
@@ -359,7 +359,6 @@ module postprocessing_linear
           write(iunit,'(a)') 'sigma=0.005'
           write(backslash,'(a)') '\ '
           do itypes=1,atoms%astruct%ntypes
-              write(iunit,'(a,i0,a)') 'f',itypes,'(x) = '//trim(backslash)
               nntype = 0
               do iat=1,atoms%astruct%nat
                   iitype = (atoms%astruct%iatype(iat))
@@ -367,6 +366,7 @@ module postprocessing_linear
                       nntype = nntype + 1
                   end if
               end do
+              write(iunit,'(a,i0,a,i0,2a)') 'f',itypes,'(x) = 1/',nntype,'.0*( '//trim(backslash)
               intype = 0
               do iat=1,atoms%astruct%nat
                   iitype = (atoms%astruct%iatype(iat))
@@ -376,7 +376,7 @@ module postprocessing_linear
                       if (intype<nntype) then
                           write(iunit,'(a,es16.9,a)') '  1.0*exp(-(x-',frac_charge,')**2/(2*sigma**2)) + '//trim(backslash)
                       else
-                          write(iunit,'(a,es16.9,a)') '  1.0*exp(-(x-',frac_charge,')**2/(2*sigma**2))'
+                          write(iunit,'(a,es16.9,a)') '  1.0*exp(-(x-',frac_charge,')**2/(2*sigma**2)))'
                       end if
                   end if
               end do
