@@ -293,7 +293,7 @@ module postprocessing_linear
       end do
       if (iproc==0) then
           !call write_partial_charges()
-          call write_partial_charges(atoms, charge_per_atom)
+          call write_partial_charges(atoms, charge_per_atom, .true.)
           call yaml_sequence_open('Multipole analysis (based on the Loewdin charges)')
           call calculate_dipole(iproc, atoms, charge_per_atom)
           call calculate_quadropole(iproc, atoms, charge_per_atom)
@@ -308,18 +308,24 @@ module postprocessing_linear
     end subroutine loewdin_charge_analysis_core
 
 
-    subroutine write_partial_charges(atoms, charge_per_atom)
+    subroutine write_partial_charges(atoms, charge_per_atom, write_gnuplot)
       use module_base
       use module_types
       use yaml_output
       ! Calling arguments
       type(atoms_data),intent(in) :: atoms
       real(kind=8),dimension(atoms%astruct%nat),intent(in) :: charge_per_atom
+      logical,intent(in) :: write_gnuplot
       ! Local variables
-      integer :: iat
-      real(kind=8) :: total_charge, total_net_charge
-      character(len=20) :: atomname
+      integer :: iat, itypes, iitype, nntype, intype, iunit
+      real(kind=8) :: total_charge, total_net_charge, frac_charge, range_min, range_max
+      character(len=20) :: atomname, colorname
       real(kind=8),dimension(2) :: charges
+      character(len=128) :: output
+      character(len=2) :: backslash
+      integer,parameter :: ncolors = 7
+      character(len=20),dimension(ncolors),parameter :: colors=(/'violet','blue','cyan','green','yellow','orange','red'/)
+
       call yaml_sequence_open('Loewdin charge analysis (charge / net charge)')
       total_charge=0.d0
       total_net_charge=0.d0
@@ -340,6 +346,53 @@ module postprocessing_linear
       call yaml_sequence(advance='no')
       call yaml_map('total net charge',total_net_charge,fmt='(es16.8)')
       call yaml_sequence_close()
+
+      if (write_gnuplot) then
+          output='chargeanalysis.gp'
+          call yaml_map('output file',trim(output))
+          call f_open_file(iunit, file=trim(output), binary=.false.)
+          write(iunit,'(a)') '# plot the fractional charge as a sum of normalized Gaussians'
+          write(iunit,'(a)') 'set samples 500000'
+          range_min = minval(-(charge_per_atom(:)-real(atoms%nelpsp(atoms%astruct%iatype(:)),kind=8))) - 0.1d0
+          range_max = maxval(-(charge_per_atom(:)-real(atoms%nelpsp(atoms%astruct%iatype(:)),kind=8))) + 0.1d0
+          write(iunit,'(a,2(es12.5,a))') 'set xrange[',range_min,':',range_max,']'
+          write(iunit,'(a)') 'sigma=0.005'
+          write(backslash,'(a)') '\ '
+          do itypes=1,atoms%astruct%ntypes
+              write(iunit,'(a,i0,a)') 'f',itypes,'(x) = '//trim(backslash)
+              nntype = 0
+              do iat=1,atoms%astruct%nat
+                  iitype = (atoms%astruct%iatype(iat))
+                  if (iitype==itypes) then
+                      nntype = nntype + 1
+                  end if
+              end do
+              intype = 0
+              do iat=1,atoms%astruct%nat
+                  iitype = (atoms%astruct%iatype(iat))
+                  if (iitype==itypes) then
+                      intype = intype + 1
+                      frac_charge = -(charge_per_atom(iat)-real(atoms%nelpsp(atoms%astruct%iatype(iat)),kind=8))
+                      if (intype<nntype) then
+                          write(iunit,'(a,es16.9,a)') '  1.0*exp(-(x-',frac_charge,')**2/(2*sigma**2)) + '//trim(backslash)
+                      else
+                          write(iunit,'(a,es16.9,a)') '  1.0*exp(-(x-',frac_charge,')**2/(2*sigma**2))'
+                      end if
+                  end if
+              end do
+              atomname=atoms%astruct%atomnames(itypes)
+              if (itypes<ncolors) then
+                  colorname = colors(itypes)
+              else
+                  colorname = 'color'
+              end if
+              if (itypes==1) then
+                  write(iunit,'(a,i0,5a)') "plot f",itypes,"(x) lc rgb '",trim(colorname),"' lt 1 lw 2 w l title '",trim(atomname),"'"
+              else
+                  write(iunit,'(a,i0,5a)') "replot f",itypes,"(x) lc rgb '",trim(colorname),"' lt 1 lw 2 w l title '",trim(atomname),"'"
+              end if
+          end do
+      end if
     end subroutine write_partial_charges
 
 
