@@ -1,7 +1,9 @@
 !> @file
 !! Test the dictionaries of flib
+!! @example dicts.f90
+!! Some examples about dictionaries
 !! @author
-!!    Copyright (C) 2013-2014 BigDFT group
+!!    Copyright (C) 2013-2014 BigDFT group <br>
 !!    This file is distributed oneder the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
@@ -46,9 +48,11 @@ subroutine test_dictionaries0()
   !alternative way of initializing a dictionary
   !call dict_init(dict1)
 
+!!! [Creation]
   dict1=>dict_new()
   call f_err_open_try()
-  ival=dict1//'Toto' 
+  ival=dict1//'Toto'
+!!! [Creation]
 
   call yaml_map('ival not existing, fake value',ival)
 

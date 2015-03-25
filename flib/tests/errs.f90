@@ -1,8 +1,10 @@
 !> @file
 !! Test the error handling part of flib
+!! @example errs.f90
+!! This is an example how to use the error handling.
 !! @author
-!!    Copyright (C) 2013-2014 BigDFT group
-!!    This file is distributed oneder the terms of the
+!!    Copyright (C) 2013-2014 BigDFT group <br>
+!!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS

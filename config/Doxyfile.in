@@ -90,7 +90,7 @@ BRIEF_MEMBER_DESC      = NO
 # Note: if both HIDE_UNDOC_MEMBERS and BRIEF_MEMBER_DESC are set to NO, the
 # brief descriptions will be completely suppressed.
 
-REPEAT_BRIEF           = NO
+REPEAT_BRIEF           = YES
 
 # This tag implements a quasi-intelligent brief description abbreviator
 # that is used to form the text in various listings. Each string
@@ -395,14 +395,14 @@ EXTRACT_ANON_NSPACES   = NO
 # various overviews, but no documentation section is generated.
 # This option has no effect if EXTRACT_ALL is enabled.
 
-HIDE_UNDOC_MEMBERS     = YES
+HIDE_UNDOC_MEMBERS     = NO
 
 # If the HIDE_UNDOC_CLASSES tag is set to YES, Doxygen will hide all
 # undocumented classes that are normally visible in the class hierarchy.
 # If set to NO (the default) these classes will be included in the various
 # overviews. This option has no effect if EXTRACT_ALL is enabled.
 
-HIDE_UNDOC_CLASSES     = YES
+HIDE_UNDOC_CLASSES     = NO
 
 # If the HIDE_FRIEND_COMPOUNDS tag is set to YES, Doxygen will hide all
 # friend (class|struct|union) declarations.
@@ -443,7 +443,7 @@ HIDE_SCOPE_NAMES       = YES
 # will put a list of the files that are included by a file in the documentation
 # of that file.
 
-SHOW_INCLUDE_FILES     = YES
+SHOW_INCLUDE_FILES     = NO
 
 # If the FORCE_LOCAL_INCLUDES tag is set to YES then Doxygen
 # will list include files with double quotes in the documentation
@@ -468,7 +468,7 @@ SORT_MEMBER_DOCS       = YES
 # by member name. If set to NO (the default) the members will appear in
 # declaration order.
 
-SORT_BRIEF_DOCS        = NO
+SORT_BRIEF_DOCS        = YES
 
 # If the SORT_MEMBERS_CTORS_1ST tag is set to YES then doxygen
 # will sort the (brief and detailed) documentation of class members so that
@@ -555,7 +555,7 @@ SHOW_USED_FILES        = YES
 # This will remove the Files entry from the Quick Index and from the
 # Folder Tree View (if specified). The default is YES.
 
-SHOW_FILES             = YES
+SHOW_FILES             = NO
 
 # Set the SHOW_NAMESPACES tag to NO to disable the generation of the
 # Namespaces page.
@@ -662,7 +662,8 @@ WARN_LOGFILE           = doxygen.warnings
 # INPUT                  = @abs_top_srcdir@/README @abs_top_srcdir@/doc/README \
 #                          @abs_top_srcdir@/AUTHORS @abs_top_srcdir@/NEWS @abs_top_srcdir@/COPYING @abs_top_srcdir@/INSTALL \
 #                          @abs_top_srcdir@/flib @abs_top_srcdir@/src/modules @abs_top_srcdir@/PSolver @abs_top_srcdir@/tests @abs_top_srcdir@/src/external.f90
- INPUT                 = @abs_top_srcdir@/AUTHORS @abs_top_srcdir@/NEWS @abs_top_srcdir@/COPYING @abs_top_srcdir@/INSTALL \
+ INPUT                 = @abs_top_srcdir@/README @abs_top_srcdir@/doc/README \
+                         @abs_top_srcdir@/AUTHORS @abs_top_srcdir@/NEWS @abs_top_srcdir@/COPYING @abs_top_srcdir@/INSTALL \
                          @abs_top_srcdir@/flib @abs_top_srcdir@/PSolver
 
 # This tag can be used to specify the character encoding of the source files
@@ -681,7 +682,7 @@ INPUT_ENCODING         = UTF-8
 # *.hxx *.hpp *.h++ *.idl *.odl *.cs *.php *.php3 *.inc *.m *.mm *.dox *.py
 # *.f90 *.f *.for *.vhd *.vhdl
 
-FILE_PATTERNS          = *.F90 *.f90 INSTALL README README.*
+FILE_PATTERNS          = *.F90 *.f90 README README.*
 
 # The RECURSIVE tag can be used to turn specify whether or not subdirectories
 # should be searched for input files as well. Possible values are YES and NO.
@@ -709,7 +710,7 @@ EXCLUDE_SYMLINKS       = NO
 # against the file with absolute path, so to exclude all test directories
 # for example use the pattern */test/*
 
-EXCLUDE_PATTERNS       = bindings OpenCL CUDA cudafortran unused global.f90 *fake* *-inc.f90
+EXCLUDE_PATTERNS       = bindings OpenCL CUDA cudafortran unused *fake* *-inc.f90
 
 # The EXCLUDE_SYMBOLS tag can be used to specify one or more symbol names
 # (namespaces, classes, functions, etc.) that should be excluded from the
@@ -723,7 +724,7 @@ EXCLUDE_SYMBOLS        =
 # directories that contain example code fragments that are included (see
 # the \include command).
 
-EXAMPLE_PATH           =
+EXAMPLE_PATH           = @abs_top_srcdir@/flib/tests
 
 # If the value of the EXAMPLE_PATH tag contains directories, you can use the
 # EXAMPLE_PATTERNS tag to specify one or more wildcard pattern (like *.cpp
