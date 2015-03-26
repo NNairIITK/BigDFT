@@ -1,7 +1,9 @@
 !> @file
 !! Test yaml output module
+!! @example yaml_invoice.f90
+!! Extended tests about yaml output generation
 !! @author
-!!    Copyright (C) 2013-2013 BigDFT group
+!!    Copyright (C) 2013-2015 BigDFT group
 !!    This file is distributed oneder the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .

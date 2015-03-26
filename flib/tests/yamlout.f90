@@ -1,5 +1,7 @@
 !> @file
 !! Routine to tests yaml_output module
+!! @example yamlout.f90
+!! Other series of tests on yaml output generation
 !! @author
 !!    Copyright (C) 2013-2013 BigDFT group
 !!    This file is distributed oneder the terms of the

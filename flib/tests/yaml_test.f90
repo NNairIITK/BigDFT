@@ -1,7 +1,9 @@
 !> @file
 !! Test yaml_output module
+!! @example yaml_test.f90
+!! Extensive tests about yaml output generations
 !! @author
-!!    Copyright (C) 2012-2013 BigDFT group
+!!    Copyright (C) 2012-2015 BigDFT group
 !!    This file is distributed oneder the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .

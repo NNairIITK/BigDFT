@@ -1,7 +1,9 @@
 !> @file
 !! Test the dynamic memory allocation of the flib library
+!! @example dynmem.f90
+!! Examples abou the dynamic memory allocations
 !! @author
-!!    Copyright (C) 2013-2014 BigDFT group
+!!    Copyright (C) 2013-2015 BigDFT group <br>
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .

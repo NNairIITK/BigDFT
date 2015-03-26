@@ -3,7 +3,7 @@
 !! @example dicts.f90
 !! Some examples about dictionaries
 !! @author
-!!    Copyright (C) 2013-2014 BigDFT group <br>
+!!    Copyright (C) 2013-2015 BigDFT group <br>
 !!    This file is distributed oneder the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
