@@ -2,7 +2,7 @@
 !! Define the modules (yaml_strings and yaml_output) and the methods to write yaml output
 !! yaml: Yet Another Markup Language -> Y Ain't a Markup Language (Human readable ML)
 !! @author
-!!    Copyright (C) 2011-2013 BigDFT group
+!!    Copyright (C) 2011-2015 BigDFT group <br>
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
@@ -150,7 +150,7 @@ module yaml_output
   !! @link yaml_output::yaml_warning @endlink, 
   !! @link yaml_output::yaml_scalar @endlink, 
   !! @link yaml_output::yaml_newline @endlink, 
-  !! @link yaml_output::yaml_toa @endlink, 
+  !! @link yaml_strings::yaml_toa @endlink, 
   !! @link yaml_output::yaml_date_and_time_toa @endlink, @link yaml_output::yaml_date_toa @endlink, @link yaml_output::yaml_time_toa @endlink.
   !! @n@n
   !! There are also @link yaml_output::yaml_set_stream routine @endlink, @link yaml_output::yaml_set_default_stream @endlink, 

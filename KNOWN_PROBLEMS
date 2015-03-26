@@ -1,0 +1,13 @@
+/*! @file
+
+@brief List of known problems
+
+@todo Documentation not complete
+   @parbox
+      We use doxygen to generate the documentation. Doxygen has some bugs related to the parsing of the Fortran files.
+      It can not include the file specified by the command <tt>include</tt>.<br>
+      It has some trouble to detect private subroutines.<br>
+      Generic interfaces are not detected.<br>
+   @endparblock
+
+*/
