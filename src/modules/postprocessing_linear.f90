@@ -324,7 +324,13 @@ module postprocessing_linear
       character(len=128) :: output
       character(len=2) :: backslash
       integer,parameter :: ncolors = 7
-      character(len=20),dimension(ncolors),parameter :: colors=(/'violet','blue','cyan','green','yellow','orange','red'/)
+      character(len=20),dimension(ncolors),parameter :: colors=(/'violet', &
+                                                                 'blue  ', &
+                                                                 'cyan  ', &
+                                                                 'green ', &
+                                                                 'yellow', &
+                                                                 'orange', &
+                                                                 'red   '/)
 
       call yaml_sequence_open('Loewdin charge analysis (charge / net charge)')
       total_charge=0.d0
@@ -387,9 +393,11 @@ module postprocessing_linear
                   colorname = 'color'
               end if
               if (itypes==1) then
-                  write(iunit,'(a,i0,5a)') "plot f",itypes,"(x) lc rgb '",trim(colorname),"' lt 1 lw 2 w l title '",trim(atomname),"'"
+                  write(iunit,'(a,i0,5a)') "plot f",itypes,"(x) lc rgb '",trim(colorname), &
+                      "' lt 1 lw 2 w l title '",trim(atomname),"'"
               else
-                  write(iunit,'(a,i0,5a)') "replot f",itypes,"(x) lc rgb '",trim(colorname),"' lt 1 lw 2 w l title '",trim(atomname),"'"
+                  write(iunit,'(a,i0,5a)') "replot f",itypes,"(x) lc rgb '",trim(colorname), &
+                      "' lt 1 lw 2 w l title '",trim(atomname),"'"
               end if
           end do
       end if

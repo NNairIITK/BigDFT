@@ -799,13 +799,14 @@ program memguess
 
        end do npdos_loop
 
-       do ipdos=1,npdos
-           do itmb=1,ntmb
-               iat = on_which_atom_m(itmb)
-               itype = at%astruct%iatype(iat)
-               write(*,'(a,4i8,l5)') 'ipdos, itmb, iat, itype, calc_array(itmb,ipdos)', ipdos, itmb, iat, itype, calc_array(itmb,ipdos)
-           end do
-       end do
+       !do ipdos=1,npdos
+       !    do itmb=1,ntmb
+       !        iat = on_which_atom_m(itmb)
+       !        itype = at%astruct%iatype(iat)
+       !        write(*,'(a,4i8,l5)') 'ipdos, itmb, iat, itype, calc_array(itmb,ipdos)', &
+       !            ipdos, itmb, iat, itype, calc_array(itmb,ipdos)
+       !    end do
+       !end do
 
        call f_close(iunit01)
 
