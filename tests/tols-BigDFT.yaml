@@ -338,7 +338,7 @@ NLCC: &NLCCsnew
  PV (Ha): 5.9e-11
  Exc(rhoc): 3.8e-9
  norm(P): 1.0e-10
- GPa: 3.0e-11
+ GPa: 1.6e-10
 
 #deepcopy of the above defined cases
 NLCC_free-O2: *NLCCs

@@ -48,7 +48,7 @@ program memguess
    logical :: calculate_pdos = .false., kernel_analysis = .false., extract_submatrix = .false.
    logical :: solve_eigensystem = .false., analyze_coeffs = .false., peel_matrix = .false.
    logical :: multiply_matrices = .false., matrixpower = .false., plot_wavefunction = .false.
-   logical :: suggest_cutoff = .false., charge_analysis = .true.
+   logical :: suggest_cutoff = .false., charge_analysis = .false.
    integer :: ntimes,nproc,output_grid, i_arg,istat
    integer :: nspin,iorb,norbu,norbd,nspinor,norb,iorbp,iorb_out,lwork
    integer :: norbgpu,ng, nsubmatrices, ncategories
@@ -1286,6 +1286,7 @@ program memguess
 !!$           runObj%atoms%astruct%ixyz_int,runObj%atoms,trim(comment))
       !call wtxyz('posopt',0.d0,rxyz,atoms,trim(comment))
    end if
+
 
    call print_dft_parameters(runObj%inputs,runObj%atoms)
 

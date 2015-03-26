@@ -900,7 +900,7 @@ subroutine NonLocalHamiltonianApplication(iproc,at,npsidim_orbs,orbs,&
                  !!!check if the atom intersect with the given localisation region
                  !!call check_overlap(Lzd%Llr(ilr), nl%pspd(iat)%plr, Lzd%Glr, overlap)
                  overlap = projector_has_overlap(iat, ilr, lzd%llr(ilr), lzd%glr, nl)
-                 if(.not. overlap) stop 'ERROR all atoms should be in global'
+                 if(.not. overlap) cycle loop_atoms_2 !stop 'ERROR all atoms should be in global'
 
                  iatype=at%astruct%iatype(iat)
                  do jlr=1,nl%pspd(iat)%noverlap
