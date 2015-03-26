@@ -1499,13 +1499,16 @@ module communications
        integer :: ierr, jorb, ilr, jlr, root, max_sim_comms
        !integer :: icomm, ilr_old, jtask, nalloc, nrecv
        integer :: maxrecvdim, maxsenddim, ioffset, window, ist_dest, ist_source
-       integer :: iorb, jjorb, ncount, iiorb, size_of_int, info
+       integer :: iorb, jjorb, ncount, iiorb, size_of_int, info, jproc, ii, iilr
        logical :: isoverlap
        character(len=*), parameter:: subname='communicate_locreg_descriptors_keys'
        !integer,dimension(:),allocatable :: requests
        !integer,dimension(:,:),allocatable :: worksend_int, workrecv_int
-       integer,dimension(:),allocatable :: worksend, workrecv
+       integer,dimension(:),allocatable :: worksend, workrecv, ncomm, nrecvcounts, types, derived_types!, tmparr_int, istarr
+       integer,dimension(:,:),allocatable :: blocklengths
+       integer(kind=mpi_address_kind),dimension(:,:),allocatable :: displacements
        logical,dimension(:,:),allocatable :: covered
+       !integer(kind=mpi_address_kind),dimension(:),allocatable :: tmparr_long
        !integer :: total_sent, total_recv
 
        call f_routine(id=subname)
@@ -1552,16 +1555,23 @@ module communications
        end do
        worksend = f_malloc(max(maxsenddim,1),id='worksend_int')
 
+       ! Copy the keys to a contiguous array, ordered by the locreg ID (which
+       ! is not necessarily identical to the orbital ID order).
        ioffset=0
-       do iorb=1,orbs%norbp
-           iiorb=orbs%isorb+iorb
-           ilr=orbs%inwhichlocreg(iiorb)
-           ncount=llr(ilr)%wfd%nseg_c+llr(ilr)%wfd%nseg_f
-           call vcopy(2*ncount, llr(ilr)%wfd%keygloc(1,1), 1, worksend(ioffset+1), 1)
-           call vcopy(2*ncount, llr(ilr)%wfd%keyglob(1,1), 1, worksend(ioffset+2*ncount+1), 1)
-           call vcopy(ncount, llr(ilr)%wfd%keyvloc(1), 1, worksend(ioffset+4*ncount+1), 1)
-           call vcopy(ncount, llr(ilr)%wfd%keyvglob(1), 1, worksend(ioffset+5*ncount+1), 1)
-           ioffset=ioffset+6*ncount
+       do iilr=1,nlr
+           do iorb=1,orbs%norbp
+               iiorb=orbs%isorb+iorb
+               ilr=orbs%inwhichlocreg(iiorb)
+               if (ilr==iilr) then
+                   !write(*,*) 'COPY: iproc, ilr', iproc, ilr
+                   ncount=llr(ilr)%wfd%nseg_c+llr(ilr)%wfd%nseg_f
+                   call vcopy(2*ncount, llr(ilr)%wfd%keygloc(1,1), 1, worksend(ioffset+1), 1)
+                   call vcopy(2*ncount, llr(ilr)%wfd%keyglob(1,1), 1, worksend(ioffset+2*ncount+1), 1)
+                   call vcopy(ncount, llr(ilr)%wfd%keyvloc(1), 1, worksend(ioffset+4*ncount+1), 1)
+                   call vcopy(ncount, llr(ilr)%wfd%keyvglob(1), 1, worksend(ioffset+5*ncount+1), 1)
+                   ioffset=ioffset+6*ncount
+               end if
+           end do
        end do
 
        ! Initialize the MPI window
@@ -1584,37 +1594,127 @@ module communications
        end do
        workrecv = f_malloc(maxrecvdim,id='workrecv')
 
-       ! Do the communication
-       ist_dest=1
+       ! Do the communication. Communicate only once for each pair of MPI tasks using a derived datatype.
+       ncomm = f_malloc0(0.to.nproc-1,id='ncomm')
+       nrecvcounts = f_malloc0(0.to.nproc-1,id='nrecvcounts')
+       blocklengths = f_malloc0((/1.to.maxval(orbs%norb_par(:,0)),0.to.nproc-1/),id='blocklengths')
+       displacements = f_malloc0((/1.to.maxval(orbs%norb_par(:,0)),0.to.nproc-1/),id='displacements')
        do ilr=1,nlr
            root=rootarr(ilr)
            if (covered(ilr,iproc)) then
+               ncomm(root) = ncomm(root) + 1
                ncount=6*(llr(ilr)%wfd%nseg_c+llr(ilr)%wfd%nseg_f)
                ist_source=get_offset(root,ilr)
-               call mpi_get(workrecv(ist_dest), ncount, mpi_integer, root, &
-                    int(ist_source,kind=mpi_address_kind), ncount, mpi_integer, window, ierr)
-               ist_dest=ist_dest+ncount
+               !write(*,'(a,4i8)') 'iproc, ilr, root, ist_source', iproc, ilr, root, ist_source
+               blocklengths(ncomm(root),root) = ncount
+               displacements(ncomm(root),root) = int(ist_source*size_of_int,kind=mpi_address_kind)
+               nrecvcounts(root) = nrecvcounts(root) + ncount
            end if
        end do
+       !!! The values in displacements must be sorted...
+       !!!tmparr_long = f_malloc(maxval(ncomm(:)),id='tmparr')
+       !!!tmparr_int = f_malloc(maxval(ncomm(:)),id='tmparr')
+       !!!istarr = f_malloc(maxval(ncomm(:)),id='istarr')
+       !!do jproc=0,nproc-1
+       !!    !tmparr_long = displacements(1:ncomm(jproc),jproc)
+       !!    !tmparr_int = blocklengths(1:ncomm(jproc),jproc)
+       !!    ii = 0
+       !!    do icomm=1,ncomm(jproc)
+       !!        iloc = minloc(tmparr_long(1:ncomm(jproc),1)
+       !!        displacements(icomm,jproc) = tmparr_long(iloc)
+       !!        blocklengths(icomm,jproc) = tmparr_int(iloc)
+       !!        !istarr(icomm) = ii
+       !!        ii = ii + tmparr_int(iloc)
+       !!    end do
+       !!end do
+
+       derived_types = f_malloc(0.to.nproc-1,id='derived_types')
+       types = f_malloc(maxval(ncomm),id='types')
+       types(:) = mpi_integer
+       ist_dest=1
+       do jproc=0,nproc-1
+           !write(*,'(a,11i8)') 'iproc, jproc, ist_dest, blocklengths(1:ncomm(jproc)), displacements(1:ncomm(jproc))', iproc, jproc, ist_dest, blocklengths(1:ncomm(jproc),jproc), displacements(1:ncomm(jproc),jproc)
+           call mpi_type_create_struct(ncomm(jproc), blocklengths(1,jproc), displacements(1,jproc), &
+                types, derived_types(jproc), ierr)
+           call mpi_type_commit(derived_types(jproc), ierr)
+           !call mpi_type_size(types(1), ii, ierr)
+           !write(*,*) 'size types', ii
+           call mpi_type_size(derived_types(jproc), ii, ierr)
+           if (ii/=nrecvcounts(jproc)*size_of_int) then
+               !write(*,'(a,5i8)') 'iproc, jproc, ncomm(jproc), ii, nrecvcounts(jproc)*size_of_int', iproc, jproc, ncomm(jproc), ii, nrecvcounts(jproc)*size_of_int
+               !write(*,'(a,10i8)') 'iproc, jproc, blocklengths(1:ncomm(jproc)), displacements(1:ncomm(jproc))', iproc, jproc, blocklengths(1:ncomm(jproc),jproc), displacements(1:ncomm(jproc),jproc)
+               call f_err_throw('wrong size of derived_types(jproc)',err_name='BIGDFT_RUNTIME_ERROR')
+           end if
+           if (nrecvcounts(jproc)>0) then
+               call mpi_get(workrecv(ist_dest), nrecvcounts(jproc), mpi_integer, jproc, &
+                    int(0,kind=mpi_address_kind), 1, derived_types(jproc), window, ierr)
+           end if
+           ist_dest = ist_dest + nrecvcounts(jproc)
+       end do
+
+           !    call mpi_get(workrecv(ist_dest), ncount, mpi_integer, root, &
+           !         int(ist_source,kind=mpi_address_kind), ncount, mpi_integer, window, ierr)
+           !    ist_dest=ist_dest+ncount
+           !end if
+       !end do
 
        ! Synchronize the communication
        call mpi_win_fence(mpi_mode_nosucceed, window, ierr)
+       do jproc=0,nproc-1
+           call mpi_type_free(derived_types(jproc), ierr)
+       end do
        call mpi_win_free(window, ierr)
+       call f_free(derived_types)
+
+       call f_free(ncomm)
+       call f_free(nrecvcounts)
+       call f_free(blocklengths)
+       call f_free(displacements)
+       call f_free(types)
+
+       !do ii=1,size(workrecv)
+       !    write(100+iproc,*) ii, workrecv(ii)
+       !end do
 
 
        ! Copy the date from the workarrays to the correct locations
        call f_free(worksend)
        ist_dest=0
-       do ilr=1,nlr
-           if (covered(ilr,iproc)) then
-               call allocate_wfd(llr(ilr)%wfd)
-               ncount=llr(ilr)%wfd%nseg_c+llr(ilr)%wfd%nseg_f
-               call vcopy(2*ncount, workrecv(ist_dest+1), 1, llr(ilr)%wfd%keygloc(1,1), 1)
-               call vcopy(2*ncount, workrecv(ist_dest+2*ncount+1), 1, llr(ilr)%wfd%keyglob(1,1), 1)
-               call vcopy(ncount, workrecv(ist_dest+4*ncount+1), 1, llr(ilr)%wfd%keyvloc(1), 1)
-               call vcopy(ncount, workrecv(ist_dest+5*ncount+1), 1, llr(ilr)%wfd%keyvglob(1), 1)
-               ist_dest=ist_dest+6*ncount
-           end if
+       do jproc=0,nproc-1
+           do ilr=1,nlr
+               if (.not.covered(ilr,iproc)) cycle
+               do jorb=1,orbs%norb_par(jproc,0)
+                   jjorb = orbs%isorb_par(jproc) + jorb
+                   jlr = orbs%inwhichlocreg(jjorb)
+                   if (ilr==jlr) then
+                       !!write(*,*) 'iproc, jproc, ilr', iproc, jproc, ilr
+                       !do ilr=1,nlr
+                       !if (covered(ilr,iproc)) then
+                           call allocate_wfd(llr(ilr)%wfd)
+                           ncount=llr(ilr)%wfd%nseg_c+llr(ilr)%wfd%nseg_f
+                           call vcopy(2*ncount, workrecv(ist_dest+1), 1, llr(ilr)%wfd%keygloc(1,1), 1)
+                           call vcopy(2*ncount, workrecv(ist_dest+2*ncount+1), 1, llr(ilr)%wfd%keyglob(1,1), 1)
+                           call vcopy(ncount, workrecv(ist_dest+4*ncount+1), 1, llr(ilr)%wfd%keyvloc(1), 1)
+                           call vcopy(ncount, workrecv(ist_dest+5*ncount+1), 1, llr(ilr)%wfd%keyvglob(1), 1)
+                           ist_dest=ist_dest+6*ncount
+                       !end if
+                       !do ii=1,llr(ilr)%wfd%nseg_c+llr(ilr)%wfd%nseg_f
+                       !    write(200+iproc,*) ilr, llr(ilr)%wfd%keygloc(1,ii)
+                       !    write(200+iproc,*) ilr, llr(ilr)%wfd%keygloc(2,ii)
+                       !end do
+                       !do ii=1,llr(ilr)%wfd%nseg_c+llr(ilr)%wfd%nseg_f
+                       !    write(200+iproc,*) ilr, llr(ilr)%wfd%keyglob(1,ii)
+                       !    write(200+iproc,*) ilr, llr(ilr)%wfd%keyglob(2,ii)
+                       !end do
+                       !do ii=1,llr(ilr)%wfd%nseg_c+llr(ilr)%wfd%nseg_f
+                       !    write(200+iproc,*) ilr, llr(ilr)%wfd%keyvloc(ii)
+                       !end do
+                       !do ii=1,llr(ilr)%wfd%nseg_c+llr(ilr)%wfd%nseg_f
+                       !    write(200+iproc,*) ilr, llr(ilr)%wfd%keyvglob(ii)
+                       !end do
+                   end if
+               end do
+           end do
        end do
        call f_free(workrecv)
        call f_free(covered)
@@ -1804,16 +1904,21 @@ module communications
        integer,intent(in) :: iiproc, iilr
        integer :: get_offset
        ! Local variables
-       integer :: jorb, jjorb, jlr, ncount
+       integer :: ilr, jorb, jjorb, jlr, ncount
 
        get_offset=0
-       do jorb=1,orbs%norb_par(iiproc,0)
-           jjorb=orbs%isorb_par(iiproc)+jorb
-           jlr=orbs%inwhichlocreg(jjorb)
-           if (jlr==iilr) exit ! locreg found
-           ncount=6*(llr(jlr)%wfd%nseg_c+llr(jlr)%wfd%nseg_f)
-           get_offset=get_offset+ncount
-       end do
+       ilr_loop: do ilr=1,nlr
+           do jorb=1,orbs%norb_par(iiproc,0)
+               jjorb=orbs%isorb_par(iiproc)+jorb
+               jlr=orbs%inwhichlocreg(jjorb)
+               !if (iproc==0) write(*,*) 'ilr, jlr, go', ilr, jlr, get_offset
+               if (jlr==ilr) then
+                   if (jlr==iilr) exit ilr_loop! locreg found
+                   ncount=6*(llr(jlr)%wfd%nseg_c+llr(jlr)%wfd%nseg_f)
+                   get_offset=get_offset+ncount
+               end if
+           end do
+       end do ilr_loop
      end function get_offset
     
     END SUBROUTINE communicate_locreg_descriptors_keys
