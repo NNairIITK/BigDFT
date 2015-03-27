@@ -70,7 +70,7 @@ function pkernel_init(verb,iproc,nproc,igpu,geocode,ndims,hgrids,itype_scf,&
         !here the parameters can be specified from command line
         kernel%max_iter=50
         kernel%minres=1.0e-12_dp
-        kernel%PI_eta=1.0_dp
+        kernel%PI_eta=0.6_dp
      case('PCG')
         kernel%nord=16 
         kernel%max_iter=50
