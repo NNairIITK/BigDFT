@@ -14,8 +14,8 @@ module bigdft_run
   use dictionaries
   use module_types, only: input_variables,DFT_wavefunction,GPU_pointers,energy_terms
   use module_atoms, only: atoms_data
-  use dynamic_memory, only: f_reference_counter,f_ref_new,f_ref,f_unref,&
-       nullify_f_ref
+  use f_refcnts, only: f_reference_counter,f_ref_new,f_ref,f_unref,&
+       nullify_f_ref,f_ref_free
   use f_utils
   use module_input_dicts, only: bigdft_set_run_properties => dict_set_run_properties,&
        bigdft_get_run_properties => dict_get_run_properties

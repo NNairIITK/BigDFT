@@ -37,15 +37,6 @@ module f_utils
      integer :: id
   end type f_enumerator
   
-  !> structure version for the dictionary
-  !! does not require the pointer attribute and can therefore be more easily binded
-  !! a reference counter is added to preserve the association status
-  !! in a modern (sic!) version of fortran this structure might have its methods as type
-  !! procedures
-  type, public :: f_tree
-     type(dictionary), pointer :: d =>null() !< the actual dictionary implementation
-  end type f_tree
-
   integer, parameter, private :: NULL_INT=-1024
   character(len=*), parameter, private :: null_name='nullified enumerator'
 

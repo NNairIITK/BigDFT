@@ -51,6 +51,11 @@ program MP_gaussian
   real(gp), dimension(:), allocatable :: x_scf
   call f_lib_initialize()
 
+  call bacasable_valence()
+
+  call f_lib_finalize()
+  stop
+
   pow=0
   unit=iunit+1
   untplot=iplot
@@ -989,3 +994,61 @@ end subroutine invert_vandermonde
 !!$  end do
 !!$
 !!$END SUBROUTINE my_analytic_integral
+
+!> determine the valence of any of the atoms and the corresponding symbol
+subroutine bacasable_valence()
+  use ao_inguess
+  use module_base
+  use yaml_output
+  implicit none
+  integer :: izatom,ival,ierr,stderr,stdout
+  integer :: nzatom, nelpsp, npspcode,ixc
+  logical :: exists
+  character(len=2) :: symbol
+  character(len=256) :: msg
+  type(dictionary), pointer :: semicores
+  real(gp), dimension(0:4,0:6) :: psppar
+
+  semicores=>list_new(.item. ["Ru","Rh","Pd","In","Ir","Pt","Au","Tl"])
+
+  stderr=f_get_free_unit(17)
+  !open error queue, leave it as default queue
+  call yaml_set_stream(unit=stderr,filename='errors') 
+  stdout=6
+  call yaml_set_stream(unit=stdout,setdefault=.false.,tabbing=0)
+  ixc=-101130
+  izatom=1
+  call f_err_open_try()
+  do while(izatom <= 86)
+     ival=0
+     find_symbol: do while (ival <= 30)
+        !see if an atom exists with this value
+        call atomic_info(izatom,ival,symbol=symbol)
+        if (f_err_check()) then
+           ierr=f_err_pop(add_msg=msg)
+           call yaml_map('Error for'//trim(yaml_toa([izatom,ival])),msg)
+        else
+           !call yaml_map(symbol,[izatom,ival],unit=stdout)
+           exit find_symbol
+        end if
+        ival=ival+1
+     end do find_symbol
+     if (ival /= 31) then
+        !the symbol has been found therefore we can inspect the number of electrons
+        if (symbol .in. semicores) then
+           call f_strcpy(src=trim(symbol)//'_sc',dest=msg)
+        else
+           call f_strcpy(src=trim(symbol),dest=msg)
+        end if
+        call psp_from_data(trim(msg), nzatom, nelpsp, npspcode, ixc, psppar, exists)
+        if (nzatom /= 0) call yaml_map(trim(msg),[nzatom, nelpsp, npspcode],unit=stdout)
+     end if
+     izatom=izatom+1
+  end do
+  call f_err_close_try()
+
+  call yaml_close_stream(unit=stderr)
+
+  call dict_free(semicores)
+  
+end subroutine bacasable_valence

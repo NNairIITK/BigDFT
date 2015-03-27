@@ -16,7 +16,7 @@ module module_atoms
   use m_pawrad, only: pawrad_type
   use m_pawtab, only: pawtab_type
   use m_pawang, only: pawang_type
-  use dynamic_memory, only: f_reference_counter,nullify_f_ref,f_ref_new
+  use f_refcnts, only: f_reference_counter,nullify_f_ref,f_ref_new
   use public_keys, only : ASTRUCT_CELL,ASTRUCT_POSITIONS, &
        & ASTRUCT_PROPERTIES,ASTRUCT_UNITS, ASTRUCT_ATT_FROZEN, &
        & ASTRUCT_ATT_IGSPIN, ASTRUCT_ATT_IGCHRG, ASTRUCT_ATT_IXYZ_1, &
@@ -1345,7 +1345,7 @@ END SUBROUTINE atoms_new
 !> Free an allocated atoms_data type.
 subroutine atoms_free(atoms)
   use module_atoms, only: atoms_data,deallocate_atoms_data
-  use dynamic_memory, only: f_ref_count, f_ref_new
+  use f_refcnts, only: f_ref_count, f_ref_new
   implicit none
   type(atoms_data), pointer :: atoms
   

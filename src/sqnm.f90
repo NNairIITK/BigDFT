@@ -103,9 +103,11 @@ subroutine sqnm(runObj,outsIO,nproc,iproc,verbosity,ncount_bigdft,fail)
    character(len=9)                        :: cdmy9
    character(len=8)                        :: cdmy8
    integer :: ifail
-    !functions
-    real(gp) :: dnrm2
+   !functions
+   real(gp) :: dnrm2
+   type(f_tree) :: f_info
 
+   f_info=f_tree_new()
 
    !set parameters
    nit=runObj%inputs%ncount_cluster_x
@@ -341,19 +343,27 @@ subroutine sqnm(runObj,outsIO,nproc,iproc,verbosity,ncount_bigdft,fail)
              'maxd=',trim(adjustl(cdmy8)),'dsplr=',trim(adjustl(cdmy12_1)),&
              'dsplp=',trim(adjustl(cdmy12_2))
             call f_utils_flush(16)
-            call yaml_mapping_open('Geometry')
-               call yaml_map('Ncount_BigDFT',ncount_bigdft) !universal
-               call yaml_map('Geometry step',it)
-               call yaml_map('Geometry Method','GEOPT_SQNM')
-               call yaml_map('ndim',ndim)
-               call yaml_map('etot', etotp,fmt='(1pe21.14)')
-               call yaml_map('detot',detot,fmt='(1pe21.14)')
-               call yaml_map('fmax',fmax,fmt='(1pe21.14)')
-               call yaml_map('fnrm',fnrm,fmt='(1pe21.14)')
-               call yaml_map('beta',beta,fmt='(1pe21.14)')
-               call yaml_map('beta_stretch',beta_stretch,fmt='(1pe21.14)')
-               call geometry_output(fmax,fnrm,fluct)
-            call yaml_mapping_close()
+
+            call f_tree_push(f_info//'ndim'        ,yaml_toa(ndim))
+            call f_tree_push(f_info//'etot'        ,yaml_toa(etotp,fmt='(1pe21.14)'))
+            call f_tree_push(f_info//'detot'       ,yaml_toa(detot,fmt='(1pe21.14)'))
+            call f_tree_push(f_info//'beta'        ,yaml_toa(beta,fmt='(1pe21.14)'))
+            call f_tree_push(f_info//'beta_stretch',yaml_toa(beta_stretch,fmt='(1pe21.14)'))
+            call geometry_output('GEOPT_SQNM',ncount_bigdft,it,fmax,fnrm,fluct,f_info)
+
+!!$            call yaml_mapping_open('Geometry')
+!!$               call yaml_map('Ncount_BigDFT',ncount_bigdft) !universal
+!!$               call yaml_map('Geometry step',it)
+!!$               call yaml_map('Geometry Method','GEOPT_SQNM')
+!!$               call yaml_map('ndim',ndim)
+!!$               call yaml_map('etot', etotp,fmt='(1pe21.14)')
+!!$               call yaml_map('detot',detot,fmt='(1pe21.14)')
+!!$               call yaml_map('fmax',fmax,fmt='(1pe21.14)')
+!!$               call yaml_map('fnrm',fnrm,fmt='(1pe21.14)')
+!!$               call yaml_map('beta',beta,fmt='(1pe21.14)')
+!!$               call yaml_map('beta_stretch',beta_stretch,fmt='(1pe21.14)')
+!!$               call geometry_output(fmax,fnrm,fluct)
+!!$            call yaml_mapping_close()
          end if
     
          if(ncount_bigdft >= nit)then!no convergence within ncount_cluster_x energy evaluations
@@ -407,19 +417,27 @@ subroutine sqnm(runObj,outsIO,nproc,iproc,verbosity,ncount_bigdft,fail)
           trim(adjustl(cdmy8)),'dsplr=',trim(adjustl(cdmy12_1)),&
           'dsplp=',trim(adjustl(cdmy12_2))
          call f_utils_flush(16)
-         call yaml_mapping_open('Geometry')
-            call yaml_map('Ncount_BigDFT',ncount_bigdft)
-            call yaml_map('Geometry step',it)
-            call yaml_map('Geometry Method','GEOPT_SQNM')
-            call yaml_map('ndim',ndim)
-            call yaml_map('etot', etotp,fmt='(1pe21.14)')
-            call yaml_map('detot',detot,fmt='(1pe21.14)')
-            call yaml_map('fmax',fmax,fmt='(1pe21.14)')
-            call yaml_map('fnrm',fnrm,fmt='(1pe21.14)')
-            call yaml_map('beta',beta,fmt='(1pe21.14)')
-            call yaml_map('beta_stretch',beta_stretch,fmt='(1pe21.14)')
-            call geometry_output(fmax,fnrm,fluct)
-         call yaml_mapping_close()
+
+         call f_tree_push(f_info//'ndim'        ,yaml_toa(ndim))
+         call f_tree_push(f_info//'etot'        ,yaml_toa(etotp,fmt='(1pe21.14)'))
+         call f_tree_push(f_info//'detot'       ,yaml_toa(detot,fmt='(1pe21.14)'))
+         call f_tree_push(f_info//'beta'        ,yaml_toa(beta,fmt='(1pe21.14)'))
+         call f_tree_push(f_info//'beta_stretch',yaml_toa(beta_stretch,fmt='(1pe21.14)'))
+         call geometry_output('GEOPT_SQNM',ncount_bigdft,it,fmax,fnrm,fluct,f_info)
+
+!!$         call yaml_mapping_open('Geometry')
+!!$            call yaml_map('Ncount_BigDFT',ncount_bigdft)
+!!$            call yaml_map('Geometry step',it)
+!!$            call yaml_map('Geometry Method','GEOPT_SQNM')
+!!$            call yaml_map('ndim',ndim)
+!!$            call yaml_map('etot', etotp,fmt='(1pe21.14)')
+!!$            call yaml_map('detot',detot,fmt='(1pe21.14)')
+!!$            call yaml_map('fmax',fmax,fmt='(1pe21.14)')
+!!$            call yaml_map('fnrm',fnrm,fmt='(1pe21.14)')
+!!$            call yaml_map('beta',beta,fmt='(1pe21.14)')
+!!$            call yaml_map('beta_stretch',beta_stretch,fmt='(1pe21.14)')
+!!$            call geometry_output(fmax,fnrm,fluct)
+!!$         call yaml_mapping_close()
       end if
 
       etot    = etotp
@@ -512,6 +530,7 @@ subroutine sqnm(runObj,outsIO,nproc,iproc,verbosity,ncount_bigdft,fail)
    call f_free(wold)
    call f_free(rcov )   
    call f_free(iconnect)
+   call f_tree_free(f_info)
    call deallocate_state_properties(outs)
 end subroutine
 subroutine minenergyandforces(iproc,nproc,eeval,imode,runObj,outs,nat,rat,fat,fstretch,&
