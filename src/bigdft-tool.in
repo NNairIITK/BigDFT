@@ -22,7 +22,7 @@ actions = ["memory-estimation", "rotate", "convert-field",
            "convert-positions", "manual", "wizard", "transform-coordinates",
 		   "pdos", "kernel-analysis", "extract-submatrix", "solve-eigensystem", 
 		   "analyze-coeffs", "peel-matrix", "multiply-matrices", "matrixpower", 
-		   "plot-wavefunction", "suggest-cutoff"]
+		   "plot-wavefunction", "suggest-cutoff", "charge-analysis"]
 
 # Processed lines
 abs_srcdir = "@abs_srcdir@"
@@ -221,6 +221,10 @@ def parse():
                         "suggest cutoff radii")
     group.add_option("--posinp_file", type="str", default="posinp.xyz", metavar="NAME",
              		 help="posinp file[default: %default]")
+
+    # suggest cutoff radii for the linear scaling version
+    group = OptionGroup(parser, "bigdft-tool -a %s <input> <output>" % actions[21],
+                        "Loewdin charge analysis")
 
     return parser
 
@@ -694,7 +698,8 @@ options:
         print 'calling memguess for PDOS'
         #infile_names = options.infile.split(".")
         #infile_extension = infile_names[len(infile_names)-1]
-        command = "%s 1 %s dd pdos %s %s %s %d %d %d %e %s %s" % (memguess, options.name, options.coeff_file, options.ham_file, options.overlap_file, options.nbasis, options.norb, options.nat, options.interval, options.pdos_file, options.posinp_file)
+        #command = "%s 1 %s dd pdos %s %s %s %d %d %d %e %s %s" % (memguess, options.name, options.coeff_file, options.ham_file, options.overlap_file, options.nbasis, options.norb, options.nat, options.interval, options.pdos_file, options.posinp_file)
+        command = "%s 1 %s dd pdos %s %s %s %e %s" % (memguess, options.name, options.coeff_file, options.ham_file, options.overlap_file, options.interval, options.pdos_file)
         print command
     if options.action == actions[12]:
         print 'calling memguess for kernel analysis'
@@ -727,6 +732,10 @@ options:
     if options.action == actions[20]:
         print 'calling memguess to suggest cutoff radii'
         command = "%s 1 %s dd suggest-cutoff %s" % (memguess, options.name, options.posinp_file)
+        print command
+    if options.action == actions[21]:
+        print 'calling memguess to perform a Loewdin charge analysis'
+        command = "%s 1 %s dd charge-analysis %s %s" % (memguess, options.name, options.overlap_file, options.kernel_file)
         print command
     if command is not None:
         os.system(command)

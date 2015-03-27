@@ -269,7 +269,7 @@ subroutine ab6md(runObj,outs,nproc,iproc,ncount_bigdft,fail)
   call f_free(vel)
   call f_free(amass)
   call f_free(xfhist)
-
+  call scfloop_finalise()
   fail = (iexit == 0)
 END SUBROUTINE ab6md
 

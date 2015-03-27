@@ -338,7 +338,7 @@ NLCC: &NLCCsnew
  PV (Ha): 5.9e-11
  Exc(rhoc): 3.8e-9
  norm(P): 1.0e-10
- GPa: 3.0e-11
+ GPa: 1.6e-10
 
 #deepcopy of the above defined cases
 NLCC_free-O2: *NLCCs
@@ -1280,6 +1280,32 @@ FF_LENOSKY-lbfgs:
   Keys to ignore:
   - WARNINGS
 
+FF_LJ-bfgs:
+  etot: 6.3e-6
+  Keys to ignore:
+  - WARNINGS
+
+FF_LJ-diis:
+  Keys to ignore:
+  - WARNINGS
+
+FF_LJ-fire:
+  Keys to ignore:
+  - WARNINGS
+
+FF_LJ-sdcg:
+  Keys to ignore:
+  - WARNINGS
+
+FF_LJ-lbfgs:
+  Keys to ignore:
+  - WARNINGS
+
+FF_LJ-sqnm:
+  Geometry: 1.e-8
+  Keys to ignore:
+  - WARNINGS
+
 
 FF_LJ-vssd:
   Keys to ignore:
@@ -1296,9 +1322,8 @@ periodic_silicon:
  Energy (Hartree): 2.9e-11
  energy: 2.9e-11
  charge diff: 3.8e-10
- PV (Ha): 3.0e-11
  Total ionic charge: 1.4e-11
- Pressure: 1.1e-10
+ Pressure: 1.5e-10
 
 periodic_wateredge:
  Epot: 1.1e-9
@@ -1335,16 +1360,15 @@ periodic_water:
  diff: 1.1e-10
  Tr(K): 5.0e-7
  D Tr: 2.1e-7
- PV (Ha): 5.3e-10
  Total ionic charge: 6.0e-11
- Pressure: 5.6e-10
+ Pressure: 6.4e-10
 
 surface_boronnitride:
  Enl: 1.01e-9
  Epot: 1.0e-9
- Omega: 9.5e-11
- energy: 2.8e-11
- Energy (Hartree): 2.8e-11
+ Omega: 1.2e-10
+ energy: 3.2e-11
+ Energy (Hartree): 3.2e-11
  Total charge: 1.0e-10
  Total ionic charge: 2.4e-11
  Keys to ignore:

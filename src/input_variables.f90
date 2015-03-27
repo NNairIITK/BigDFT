@@ -596,6 +596,13 @@ subroutine geopt_input_variables_default(in)
   in%ionmov = -1
   in%dtion = 0.0_gp
   in%strtarget(:)=0.0_gp
+  in%nhistx =0
+  in%biomode=.false.
+  in%beta_stretchx=0.0_gp
+  in%maxrise=0.0_gp
+  in%cutoffratio=0.0_gp
+  in%steepthresh=0.0_gp
+  in%trustr=0.0_gp
   in%mditemp = UNINITIALIZED(in%mditemp)
   in%mdftemp = UNINITIALIZED(in%mdftemp)
   nullify(in%qmass)

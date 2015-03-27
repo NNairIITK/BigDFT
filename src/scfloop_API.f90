@@ -21,15 +21,27 @@ module scfloop_API
   ! Storage of required variables for a SCF loop calculation.
   logical :: scfloop_initialised = .false.
   integer :: scfloop_nproc, itime_shift_for_restart
+  character(len=*), parameter :: ab6file='ab6_moldyn.log'
   type(run_objects), pointer :: scfloop_obj
 
   public :: scfloop_init
-!!!  public :: scfloop_finalise
+  public :: scfloop_finalise
 contains
 
   subroutine scfloop_init(nproc, obj)
+    use f_utils, only: f_open_file
+    use defs_basis, only: abi_io_redirect
+    implicit none
     integer, intent(in) :: nproc
     type(run_objects), intent(in), target :: obj
+    !local variables
+    integer :: unt
+
+    !this routine set up the file for dump of the moldyn
+    unt=7
+    call f_open_file(unt,file=ab6file)
+    !reaffect the value of stdout in abinit
+    call abi_io_redirect(new_ab_out=unt,new_std_out=unt)
 
     scfloop_nproc = nproc
     scfloop_obj => obj
@@ -37,8 +49,16 @@ contains
     scfloop_initialised = .true.
   END SUBROUTINE scfloop_init
 
-!!!  subroutine scfloop_finalise()
-!!!  END SUBROUTINE scfloop_finalise
+  subroutine scfloop_finalise()
+    use f_utils, only: f_close,f_file_unit
+    implicit none
+    !local variables
+    integer :: unit
+
+    call f_file_unit(ab6file,unit)
+    if (unit >0 .and. unit /=6 ) call f_close(unit)
+
+  END SUBROUTINE scfloop_finalise
 end module scfloop_API
 
 

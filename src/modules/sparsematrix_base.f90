@@ -82,6 +82,7 @@ module sparsematrix_base
       integer,dimension(:),pointer :: nranks !< number of task on each taskgroup
       integer :: nccomm !<number of communications required for the compress distributed in the dense parallel format
       integer,dimension(:,:),pointer :: luccomm !<lookup array for the communications required for the compress distributed in the dense parallel format
+      integer,dimension(:),pointer :: on_which_atom !<dimension ntmb, indicates to which atoms a row/column of the matrix belongs
   end type sparse_matrix
 
 
@@ -178,6 +179,7 @@ module sparsematrix_base
       nullify(sparsemat%tgranks)
       nullify(sparsemat%nranks)
       nullify(sparsemat%luccomm)
+      nullify(sparsemat%on_which_atom)
       call nullify_sparse_matrix_matrix_multiplication(sparsemat%smmm) 
     end subroutine nullify_sparse_matrix
 
@@ -217,6 +219,7 @@ module sparsematrix_base
       end if
       sparsemat%nvctr_par=f_malloc_ptr((/0.to.nproc-1/),id='sparsemat%nvctr_par')
       sparsemat%isvctr_par=f_malloc_ptr((/0.to.nproc-1/),id='sparsemat%isvctr_par')
+      sparsemat%on_which_atom=f_malloc_ptr(norb,id='sparsemat%on_which_atom')
     end subroutine allocate_sparse_matrix_basic
 
 
@@ -343,6 +346,7 @@ module sparsematrix_base
       call f_free_ptr(sparseMat%tgranks)
       call f_free_ptr(sparseMat%nranks)
       call f_free_ptr(sparseMat%luccomm)
+      call f_free_ptr(sparseMat%on_which_atom)
     end subroutine deallocate_sparse_matrix
 
     subroutine deallocate_sparse_matrix_matrix_multiplication(smmm)

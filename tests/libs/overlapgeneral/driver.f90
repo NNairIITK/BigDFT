@@ -18,7 +18,7 @@ program driver
                                SPARSE_FULL, sparsematrix_malloc, assignment(=)
   use sparsematrix, only: compress_matrix, uncompress_matrix, extract_taskgroup_inplace, &
                           write_matrix_compressed, check_symmetry
-  use matrix_operations, only: overlapPowerGeneral
+  use matrix_operations, only: overlapPowerGeneral, deviation_from_unity_parallel
   use yaml_output
   implicit none
 
@@ -466,7 +466,7 @@ subroutine sparse_matrix_init_fake(iproc,nproc,norb, norbp, isorb, nseg, nvctr, 
 
   ! Local variables
   integer :: nnonzero, nspin, norbu, norbup, isorbu
-  integer,dimension(:),allocatable :: nvctr_per_segment
+  integer,dimension(:),allocatable :: nvctr_per_segment, on_which_atom
   integer,dimension(:,:),pointer :: nonzero
   type(comms_linear) :: collcom_dummy
 
@@ -509,9 +509,12 @@ subroutine sparse_matrix_init_fake(iproc,nproc,norb, norbp, isorb, nseg, nvctr, 
   norbu=norb
   norbup=norbp
   isorbu=isorb
+  on_which_atom = f_malloc0(norbu,id='on_which_atom')
+  ! on_which_atoms set to zero is of course not meaningful, but just be ok for this test...
   call init_sparse_matrix(iproc, nproc, nspin, norb, norbp, isorb, norbu, norbup, isorbu, .false., &
-             nnonzero, nonzero, nnonzero, nonzero, smat, allocate_full_=.true.)
+             on_which_atom, nnonzero, nonzero, nnonzero, nonzero, smat, allocate_full_=.true.)
   call f_free_ptr(nonzero)
+  call f_free(on_which_atom)
 
   call f_free(nvctr_per_segment)
 

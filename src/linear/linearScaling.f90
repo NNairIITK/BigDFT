@@ -29,7 +29,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
                                matrices_null, allocate_matrices, deallocate_matrices, &
                                sparsematrix_malloc, sparsematrix_malloc_ptr, assignment(=), SPARSE_FULL, DENSE_FULL
   use sparsematrix, only: gather_matrix_from_taskgroups_inplace, extract_taskgroup_inplace, uncompress_matrix2
-  use io, only: writemywaves_linear, writemywaves_linear_fragments, write_linear_matrices
+  use io, only: writemywaves_linear, writemywaves_linear_fragments, write_linear_matrices, write_linear_coefficients
   use postprocessing_linear, only: loewdin_charge_analysis, support_function_multipoles, build_ks_orbitals
   implicit none
 
@@ -1370,6 +1370,8 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
              max(tmb%npsidim_orbs,tmb%npsidim_comp),tmb%Lzd,tmb%orbs,nelec,at,rxyz,tmb%psi,tmb%linmat%l%nfvctr,tmb%coeff)
         call write_linear_matrices(iproc,nproc,input%imethod_overlap,trim(input%dir_output),&
              mod(input%lin%plotBasisFunctions,10),tmb,at,rxyz)
+        call write_linear_coefficients(0, trim(input%dir_output)//'KS_coeffs.bin', at, rxyz, &
+             tmb%linmat%l%nfvctr, tmb%orbs%norb, tmb%linmat%l%nspin, tmb%coeff, tmb%orbs%eval)
         if (input%lin%plotBasisFunctions>10) then
             call write_orbital_density(iproc, .true., mod(input%lin%plotBasisFunctions,10), 'SupFunDens', &
                  tmb%npsidim_orbs, tmb%psi, input, tmb%orbs, KSwfn%lzd, at, rxyz, tmb%lzd)

@@ -1284,13 +1284,13 @@ subroutine input_memory_linear(iproc, nproc, at, KSwfn, tmb, tmb_old, denspot, i
            tmb%orbs, tmb%psi, tmb%collcom_sr)
       !tmb%linmat%kernel_%matrix_compr = tmb%linmat%denskern_large%matrix_compr
 
-      tmparr = sparsematrix_malloc(tmb%linmat%l,iaction=SPARSE_FULL,id='tmparr')
-      call vcopy(tmb%linmat%l%nvctr, tmb%linmat%kernel_%matrix_compr(1), 1, tmparr(1), 1)
+      tmparr = sparsematrix_malloc(tmb%linmat%l,iaction=SPARSE_TASKGROUP,id='tmparr')
+      call vcopy(tmb%linmat%l%nvctrp_tg, tmb%linmat%kernel_%matrix_compr(1), 1, tmparr(1), 1)
       !call gather_matrix_from_taskgroups_inplace(iproc, nproc, tmb%linmat%l, tmb%linmat%kernel_)
       call sumrho_for_TMBs(iproc, nproc, KSwfn%Lzd%hgrids(1), KSwfn%Lzd%hgrids(2), KSwfn%Lzd%hgrids(3), &
            tmb%collcom_sr, tmb%linmat%l, tmb%linmat%kernel_, denspot%dpbox%ndimrhopot, &
            denspot%rhov, rho_negative)
-      call vcopy(tmb%linmat%l%nvctr, tmparr(1), 1, tmb%linmat%kernel_%matrix_compr(1), 1)
+      call vcopy(tmb%linmat%l%nvctrp_tg, tmparr(1), 1, tmb%linmat%kernel_%matrix_compr(1), 1)
       call f_free(tmparr)
 
      if (rho_negative) then
@@ -2090,7 +2090,7 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
   use gaussians, only: gaussian_basis
   use sparsematrix_base, only: sparse_matrix, &
                                sparsematrix_malloc, assignment(=), SPARSE_FULL, &
-                               sparsematrix_malloc_ptr, DENSE_FULL
+                               sparsematrix_malloc_ptr, DENSE_FULL, SPARSE_TASKGROUP
 use sparsematrix, only: uncompress_matrix2
   use communications_base, only: TRANSPOSE_FULL
   use communications, only: transpose_localized, untranspose_localized
@@ -2596,13 +2596,13 @@ use sparsematrix, only: uncompress_matrix2
           tmb%orbs, tmb%psi, tmb%collcom_sr)
 
      !tmb%linmat%kernel_%matrix_compr = tmb%linmat%denskern_large%matrix_compr
-     tmparr = sparsematrix_malloc(tmb%linmat%l,iaction=SPARSE_FULL,id='tmparr')
-     call vcopy(tmb%linmat%l%nvctr, tmb%linmat%kernel_%matrix_compr(1), 1, tmparr(1), 1)
+     tmparr = sparsematrix_malloc(tmb%linmat%l,iaction=SPARSE_TASKGROUP,id='tmparr')
+     call vcopy(tmb%linmat%l%nvctrp_tg, tmb%linmat%kernel_%matrix_compr(1), 1, tmparr(1), 1)
      !call gather_matrix_from_taskgroups_inplace(iproc, nproc, tmb%linmat%l, tmb%linmat%kernel_)
      call sumrho_for_TMBs(iproc, nproc, KSwfn%Lzd%hgrids(1), KSwfn%Lzd%hgrids(2), KSwfn%Lzd%hgrids(3), &
           tmb%collcom_sr, tmb%linmat%l, tmb%linmat%kernel_, denspot%dpbox%ndimrhopot, &
           denspot%rhov, rho_negative)
-     call vcopy(tmb%linmat%l%nvctr, tmparr(1), 1, tmb%linmat%kernel_%matrix_compr(1), 1)
+     call vcopy(tmb%linmat%l%nvctrp_tg, tmparr(1), 1, tmb%linmat%kernel_%matrix_compr(1), 1)
      call f_free(tmparr)
      if (rho_negative) then
          if (iproc==0) call yaml_warning('Charge density contains negative points, need to increase FOE cutoff')
