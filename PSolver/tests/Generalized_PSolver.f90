@@ -2529,7 +2529,7 @@ subroutine SetInitDensPot(n01,n02,n03,nspden,iproc,eps,dlogeps,sigmaeps,SetEps,e
                   end do
                end do
             end do
-          end do
+         end do
 
  end if
 

@@ -117,7 +117,7 @@ module module_atoms
   public :: set_astruct_from_file,astruct_dump_to_file
   public :: allocate_atoms_data,move_this_coordinate,frozen_itof
   public :: rxyz_inside_box,check_atoms_positions
-  public :: atomic_data_set_from_dict
+  public :: atomic_data_set_from_dict,atoms_iter,atoms_iter_next
 
 
 contains
