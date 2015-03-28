@@ -241,5 +241,4 @@ module foe_base
 
     end function foe_data_get_logical
 
-
 end module foe_base

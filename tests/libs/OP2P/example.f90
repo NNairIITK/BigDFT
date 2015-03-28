@@ -201,7 +201,7 @@ program example_op2p
   !   stop 'ERROR'
   !end if
   
-  if (nproc > 1) call mpiallred(maxerr,1,MPI_SUM)
+  if (nproc > 1) call mpiallred(maxerr,1,comm=MPI_SUM)
 
   if (iproc==0) print *,'FINAL result,maxerr',iproc,maxerr
   

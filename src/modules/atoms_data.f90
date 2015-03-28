@@ -16,7 +16,7 @@ module module_atoms
   use m_pawrad, only: pawrad_type
   use m_pawtab, only: pawtab_type
   use m_pawang, only: pawang_type
-  use dynamic_memory, only: f_reference_counter,nullify_f_ref,f_ref_new
+  use f_refcnts, only: f_reference_counter,nullify_f_ref,f_ref_new
   use public_keys, only : ASTRUCT_CELL,ASTRUCT_POSITIONS, &
        & ASTRUCT_PROPERTIES,ASTRUCT_UNITS, ASTRUCT_ATT_FROZEN, &
        & ASTRUCT_ATT_IGSPIN, ASTRUCT_ATT_IGCHRG, ASTRUCT_ATT_IXYZ_1, &
@@ -38,7 +38,7 @@ module module_atoms
   !> Quantities used for the symmetry operators. To be used in atomic_structure derived type.
   type, public :: symmetry_data
      integer :: symObj                             !< The symmetry object from ABINIT
-     integer :: nSym                               !< Number of symmetry (0 if disable)
+     integer :: nSym                               !< Number ofsymmetry (0 if disable)
      character(len=15) :: spaceGroup               !< Space group (disabled if not useful)
      integer, dimension(:,:,:), pointer :: irrzon
      real(dp), dimension(:,:,:), pointer :: phnons
@@ -118,7 +118,6 @@ module module_atoms
   public :: allocate_atoms_data,move_this_coordinate,frozen_itof
   public :: rxyz_inside_box,check_atoms_positions
   public :: atomic_data_set_from_dict
-  public :: atoms_iter, atoms_iter_next
 
 
 contains
@@ -444,11 +443,9 @@ contains
 !!$      !fortran metod
 !!$      call increment_atoms_iter(it)
 !!$      do while(atoms_iter_is_valid(it))
-
          !only amu is extracted here
          call atomic_info(atoms%nzatom(it%ityp),atoms%nelpsp(it%ityp),&
               amu=atoms%amu(it%ityp))
-
          !fill the atomic IG configuration from the input_polarization
          !standard form
          atoms%aoig(it%iat)=aoig_set(atoms%nzatom(it%ityp),atoms%nelpsp(it%ityp),&
@@ -760,6 +757,8 @@ contains
          end if
 
       end select
+      !if an error has been produced return
+      if (f_err_check()) return
 
       !Check the number of atoms
       if (f_err_raise(astruct%nat < 0, &
@@ -1312,7 +1311,7 @@ subroutine allocate_atoms_ntypes(atoms)
 
   ! Allocate pseudo related stuff.
   ! store PSP parameters, modified to accept both GTH and HGHs pseudopotential types
-  atoms%amu = f_malloc_ptr(atoms%astruct%nat,id='atoms%amu')
+  atoms%amu = f_malloc_ptr(atoms%astruct%ntypes,id='atoms%amu')
   atoms%psppar = f_malloc_ptr((/ 0.to.4 , 0.to.6 , 1.to.atoms%astruct%ntypes /),id='atoms%psppar')
   atoms%nelpsp = f_malloc_ptr(atoms%astruct%ntypes,id='atoms%nelpsp')
   atoms%npspcode = f_malloc_ptr(atoms%astruct%ntypes,id='atoms%npspcode')
@@ -1346,7 +1345,7 @@ END SUBROUTINE atoms_new
 !> Free an allocated atoms_data type.
 subroutine atoms_free(atoms)
   use module_atoms, only: atoms_data,deallocate_atoms_data
-  use dynamic_memory, only: f_ref_count, f_ref_new
+  use f_refcnts, only: f_ref_count, f_ref_new
   implicit none
   type(atoms_data), pointer :: atoms
   

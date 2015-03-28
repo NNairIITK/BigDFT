@@ -21,15 +21,27 @@ module scfloop_API
   ! Storage of required variables for a SCF loop calculation.
   logical :: scfloop_initialised = .false.
   integer :: scfloop_nproc, itime_shift_for_restart
+  character(len=*), parameter :: ab6file='ab6_moldyn.log'
   type(run_objects), pointer :: scfloop_obj
 
   public :: scfloop_init
-!!!  public :: scfloop_finalise
+  public :: scfloop_finalise
 contains
 
   subroutine scfloop_init(nproc, obj)
+    use f_utils, only: f_open_file
+    use defs_basis, only: abi_io_redirect
+    implicit none
     integer, intent(in) :: nproc
     type(run_objects), intent(in), target :: obj
+    !local variables
+    integer :: unt
+
+    !this routine set up the file for dump of the moldyn
+    unt=7
+    call f_open_file(unt,file=ab6file)
+    !reaffect the value of stdout in abinit
+    call abi_io_redirect(new_ab_out=unt,new_std_out=unt)
 
     scfloop_nproc = nproc
     scfloop_obj => obj
@@ -37,8 +49,16 @@ contains
     scfloop_initialised = .true.
   END SUBROUTINE scfloop_init
 
-!!!  subroutine scfloop_finalise()
-!!!  END SUBROUTINE scfloop_finalise
+  subroutine scfloop_finalise()
+    use f_utils, only: f_close,f_file_unit
+    implicit none
+    !local variables
+    integer :: unit
+
+    call f_file_unit(ab6file,unit)
+    if (unit >0 .and. unit /=6 ) call f_close(unit)
+
+  END SUBROUTINE scfloop_finalise
 end module scfloop_API
 
 
@@ -46,6 +66,7 @@ subroutine scfloop_main(acell, epot, fcart, grad, itime, me, natom, rprimd, xred
   use scfloop_API
   use module_base
   use bigdft_run
+  use yaml_output
 
   implicit none
 
@@ -67,15 +88,15 @@ subroutine scfloop_main(acell, epot, fcart, grad, itime, me, natom, rprimd, xred
   end if
 
   if (me == 0) then
-     write( *,'(1x,a,1x,i0)') &
-          & 'SCFloop API, call force calculation step=', itime
+     !write( *,'(1x,a,1x,i0)') &
+     !     & 'SCFloop API, call force calculation step=', itime
+     call yaml_map('SCFloop API, call force calculation step',itime)
   end if
 
   ! We transfer acell into at
   scfloop_obj%atoms%astruct%cell_dim(1) = acell(1)
   scfloop_obj%atoms%astruct%cell_dim(2)= rprimd(2,2)
   scfloop_obj%atoms%astruct%cell_dim(3)= acell(3)
-
   scfloop_obj%inputs%inputPsiId=1
   ! need to transform xred into xcart
   do i = 1, scfloop_obj%atoms%astruct%nat, 1
@@ -87,7 +108,6 @@ subroutine scfloop_main(acell, epot, fcart, grad, itime, me, natom, rprimd, xred
         end if
      end do
   end do
-
 !!$  open(100+me)
 !!$  write(100+me,*)xcart
 !!$  close(100+me)
@@ -97,7 +117,6 @@ subroutine scfloop_main(acell, epot, fcart, grad, itime, me, natom, rprimd, xred
   epot = outs%energy
   nullify(outs%fxyz)
   call deallocate_state_properties(outs)
-
   ! need to transform the forces into reduced ones.
   favg(:) = real(0, dp)
   do i = 1, scfloop_obj%atoms%astruct%nat, 1
@@ -186,14 +205,15 @@ subroutine read_velocities(iproc,filename,atoms,vxyz)
   character(len=50) :: extra
   character(len=150) :: line
   logical :: lpsdbl,exists
-  integer :: iat,i,ierrsfx,nat
+  integer :: iat,i,ierrsfx,nat,unt
 ! To read the file posinp (avoid differences between compilers)
   real(kind=4) :: vx,vy,vz,alat1,alat2,alat3
 ! case for which the atomic positions are given whithin general precision
   real(gp) :: vxd0,vyd0,vzd0,alat1d0,alat2d0,alat3d0
 
   !inquire whether the input file is present, otherwise put velocities to zero
-  inquire(file=filename,exist=exists)
+  call f_file_exists(filename,exists)
+  !inquire(file=filename,exist=exists)
   if (.not. exists) then  
      call f_zero(vxyz)
      return
@@ -206,9 +226,11 @@ subroutine read_velocities(iproc,filename,atoms,vxyz)
      lpsdbl=.false.
   end if
 
-  open(unit=99,file=trim(filename),status='old',action='read')
+  unt=99
+  call f_open_file(unt,file=trim(filename),status='old',action='read')
+  !open(unit=99,file=trim(filename),status='old',action='read')
 
-  read(99,*) nat,units,extra,itime_shift_for_restart
+  read(unt,*) nat,units,extra,itime_shift_for_restart
  
   !check whether the number of atoms is different 
   if (nat /= atoms%astruct%nat) then
@@ -217,7 +239,7 @@ subroutine read_velocities(iproc,filename,atoms,vxyz)
   end if
 
   !read from positions of .xyz format, but accepts also the old .ascii format
-  read(99,'(a150)')line
+  read(unt,'(a150)')line
 
   if (lpsdbl) then
      read(line,*,iostat=ierrsfx) tatonam,alat1d0,alat2d0,alat3d0
@@ -238,7 +260,7 @@ subroutine read_velocities(iproc,filename,atoms,vxyz)
   endif
   do iat=1,atoms%astruct%nat
      !xyz input file, allow extra information
-     read(99,'(a150)')line 
+     read(unt,'(a150)')line 
      if (lpsdbl) then
         read(line,*,iostat=ierrsfx)symbol,vxd0,vyd0,vzd0
      else
@@ -267,7 +289,7 @@ subroutine read_velocities(iproc,filename,atoms,vxyz)
      endif
   enddo
 
-  close(unit=99)
+  call f_close(unit=99)
 END SUBROUTINE read_velocities
 
 subroutine wtvel(filename,vxyz,atoms,comment)

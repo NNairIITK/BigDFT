@@ -2126,7 +2126,7 @@
    MPI tasks                           :  4
  Calculate local forces: {Leaked force:  0.00000E+00}
  Calculate Non Local forces            :  Yes
- cleaning using internal coordinates   : Yes
+ Cleaning using internal coordinates   : Yes
  keep internal coordinate fixed        :  [  1,  2 ]
  keep internal coordinate fixed        :  [  2,  5 ]
  keep internal coordinate fixed        :  [  1,  7 ]
@@ -3929,7 +3929,7 @@
    MPI tasks                           :  4
  Calculate local forces: {Leaked force:  0.00000E+00}
  Calculate Non Local forces            :  Yes
- cleaning using internal coordinates   : Yes
+ Cleaning using internal coordinates   : Yes
  keep internal coordinate fixed        :  [  1,  2 ]
  keep internal coordinate fixed        :  [  2,  5 ]
  keep internal coordinate fixed        :  [  1,  7 ]
@@ -5758,7 +5758,7 @@
    MPI tasks                           :  4
  Calculate local forces: {Leaked force:  0.00000E+00}
  Calculate Non Local forces            :  Yes
- cleaning using internal coordinates   : Yes
+ Cleaning using internal coordinates   : Yes
  keep internal coordinate fixed        :  [  1,  2 ]
  keep internal coordinate fixed        :  [  2,  5 ]
  keep internal coordinate fixed        :  [  1,  7 ]
@@ -7598,7 +7598,7 @@
    MPI tasks                           :  4
  Calculate local forces: {Leaked force:  0.00000E+00}
  Calculate Non Local forces            :  Yes
- cleaning using internal coordinates   : Yes
+ Cleaning using internal coordinates   : Yes
  keep internal coordinate fixed        :  [  1,  2 ]
  keep internal coordinate fixed        :  [  2,  5 ]
  keep internal coordinate fixed        :  [  1,  7 ]
@@ -9306,7 +9306,7 @@
    MPI tasks                           :  4
  Calculate local forces: {Leaked force:  0.00000E+00}
  Calculate Non Local forces            :  Yes
- cleaning using internal coordinates   : Yes
+ Cleaning using internal coordinates   : Yes
  keep internal coordinate fixed        :  [  1,  2 ]
  keep internal coordinate fixed        :  [  2,  5 ]
  keep internal coordinate fixed        :  [  1,  7 ]

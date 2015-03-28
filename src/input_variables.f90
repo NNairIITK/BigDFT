@@ -452,9 +452,9 @@ subroutine check_for_data_writing_directory(iproc,in)
        in%inputPsiId == 12 .or.  &                     !read in gaussian basis
        in%gaussian_help .or. &                         !Mulliken and local density of states
        bigdft_mpi%ngroup > 1   .or. &                  !taskgroups have been inserted
-       in%lin%plotBasisFunctions > 0 .or. &            !dumping of basis functions for locreg runs
+       mod(in%lin%plotBasisFunctions,10) > 0 .or. &    !dumping of basis functions for locreg runs
        in%inputPsiId == 102 .or. &                     !reading of basis functions
-       in%write_orbitals                               !writing the KS orbitals in the linear case
+       in%write_orbitals>0                             !writing the KS orbitals in the linear case
 
   !here you can check whether the etsf format is compiled
 
@@ -596,6 +596,13 @@ subroutine geopt_input_variables_default(in)
   in%ionmov = -1
   in%dtion = 0.0_gp
   in%strtarget(:)=0.0_gp
+  in%nhistx =0
+  in%biomode=.false.
+  in%beta_stretchx=0.0_gp
+  in%maxrise=0.0_gp
+  in%cutoffratio=0.0_gp
+  in%steepthresh=0.0_gp
+  in%trustr=0.0_gp
   in%mditemp = UNINITIALIZED(in%mditemp)
   in%mdftemp = UNINITIALIZED(in%mdftemp)
   nullify(in%qmass)

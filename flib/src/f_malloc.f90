@@ -123,6 +123,7 @@ module module_f_malloc
      module procedure f_malloc_i2,f_malloc_d2
      module procedure f_malloc_d1,f_malloc_i3
      module procedure f_malloc_d3,f_malloc_d4
+     module procedure f_malloc_r1,f_malloc_r2,f_malloc_r3,f_malloc_r4
   end interface
 
   interface f_malloc0
@@ -504,6 +505,42 @@ contains
     include 'f_malloc-base-inc.f90'
     include 'f_malloc-inc.f90'
   end function f_malloc_d4
+
+  function f_malloc_r1(src,lbounds,ubounds,id,routine_id,profile) result(m)
+    implicit none
+    real, dimension(:), intent(in) :: src
+    integer, dimension(:), intent(in), optional :: lbounds,ubounds
+    type(malloc_information_all) :: m
+    include 'f_malloc-base-inc.f90'
+    include 'f_malloc-inc.f90'
+  end function f_malloc_r1
+
+  function f_malloc_r2(src,id,routine_id,lbounds,ubounds,profile) result(m)
+    implicit none
+    real, dimension(:,:), intent(in) :: src
+    integer, dimension(:), intent(in), optional :: lbounds,ubounds
+    type(malloc_information_all) :: m
+    include 'f_malloc-base-inc.f90'
+    include 'f_malloc-inc.f90'
+  end function f_malloc_r2
+
+  function f_malloc_r3(src,id,routine_id,lbounds,ubounds,profile) result(m)
+    implicit none
+    real, dimension(:,:,:), intent(in) :: src
+    integer, dimension(:), intent(in), optional :: lbounds,ubounds
+    type(malloc_information_all) :: m
+    include 'f_malloc-base-inc.f90'
+    include 'f_malloc-inc.f90'
+  end function f_malloc_r3
+
+  function f_malloc_r4(src,id,routine_id,lbounds,ubounds,profile) result(m)
+    implicit none
+    real, dimension(:,:,:,:), intent(in) :: src
+    integer, dimension(:), intent(in), optional :: lbounds,ubounds
+    type(malloc_information_all) :: m
+    include 'f_malloc-base-inc.f90'
+    include 'f_malloc-inc.f90'
+  end function f_malloc_r4
 
   function f_malloc_i2(src,id,routine_id,lbounds,ubounds,profile) result(m)
     implicit none

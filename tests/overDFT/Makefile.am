@@ -1,6 +1,8 @@
 # Give here the list of existing tests
 TESTDIRS = \
 	C6H6-freq \
+	FF-LENOSKY \
+	FF-LJ \
 	GEOPT-all \
 	GEOPT-BFGS \
 	GEOPT-LBFGS \
