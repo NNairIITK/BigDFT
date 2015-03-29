@@ -303,6 +303,19 @@ mixpotential:
 
 IO-wf_plain-read:
  Energies: 1.1e-10
+ GPa: 1.8e-5
+
+IO-wf_plain:
+ GPa: 3.9e-5
+
+IO-wf_binary-read:
+ GPa: 1.8e-5
+
+IO-wf_binary:
+ GPa: 3.9e-5
+
+NEB.NEB.ref.yaml:
+  Energy (eV): 4.7e-9
 
 CH4-D3:
  EH: &ener 1.1e-10
@@ -441,6 +454,8 @@ H2-freq: &freq
  D: 1.e-10
  EKS: 2.6e-11
  (F) Vibrational entropy: 1.1e-8
+ (F) Frequencies (THz): 4.8e-3
+ (F) Frequencies (cm-1): 4.9e-3
 
 C6H6-freq: *freq
 
@@ -1277,11 +1292,20 @@ FF_LENOSKY-sqnm:
   - WARNINGS
 
 FF_LENOSKY-lbfgs:
+  FORCES norm(Ha/Bohr): 9.01e-6
+  Forces: 1.e-4
+  etot: 4.9e-6
   Keys to ignore:
   - WARNINGS
 
 FF_LJ-bfgs:
-  etot: 6.3e-6
+  etot: 3.1e-5
+  Keys to ignore:
+  - WARNINGS
+
+FF_LENOSKY-diis:
+  FORCES norm(Ha/Bohr): 1.01e-6
+  etot: 4.6e-8
   Keys to ignore:
   - WARNINGS
 
@@ -1290,6 +1314,7 @@ FF_LJ-diis:
   - WARNINGS
 
 FF_LJ-fire:
+  epred: 1.2e-11
   Keys to ignore:
   - WARNINGS
 
@@ -1315,7 +1340,7 @@ periodic_silicon:
  Epot: 3.0e-10
  Enl: 1.1e-9
  EXC: 1.1e-10
- Omega: 5.1e-11
+ Omega: 5.9e-11
  ebs_check: 1.1e-10
  charge diff: 1.4e-10
  ebs: 1.2e-10
@@ -1376,11 +1401,10 @@ surface_boronnitride:
   - found warnings
 
 surface_graphene:
- Epot: 1.0e-9
- Enl: 1.1e-9
- Omega: 8.5e-11
- ebs_check: 1.2e-10
- ebs: 1.0e-10
+ Energies: 1.01e-9
+ Omega: 2.21e-10
+ ebs_check: 2.8e-10
+ ebs: 2.8e-10
  charge diff: 1.5e-7
  Tr(K): 2.0e-7
  guess for new ef: 1.1e-9

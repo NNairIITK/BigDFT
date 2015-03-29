@@ -15,17 +15,19 @@ module scfloop_API
   use bigdft_run, only: run_objects
 !!$  use module_base
 !!$  use module_types
-
   implicit none
+
+  private
 
   ! Storage of required variables for a SCF loop calculation.
   logical :: scfloop_initialised = .false.
   integer :: scfloop_nproc, itime_shift_for_restart
-  character(len=*), parameter :: ab6file='ab6_moldyn.log'
-  type(run_objects), pointer :: scfloop_obj
+  character(len=*), parameter :: ab6file='ab6_moldyn'
+  type(run_objects), pointer, save :: scfloop_obj
 
   public :: scfloop_init
   public :: scfloop_finalise
+  public :: scfloop_initialised, scfloop_obj,itime_shift_for_restart
 contains
 
   subroutine scfloop_init(nproc, obj)
@@ -35,13 +37,16 @@ contains
     integer, intent(in) :: nproc
     type(run_objects), intent(in), target :: obj
     !local variables
-    integer :: unt
+    integer :: unt,unt2
+    character(len=10) :: suffix
 
     !this routine set up the file for dump of the moldyn
     unt=7
-    call f_open_file(unt,file=ab6file)
+    call f_open_file(unt,file=trim(ab6log()))
+    unt2=unt+1
+    call f_open_file(unt2,file=trim(ab6out()))
     !reaffect the value of stdout in abinit
-    call abi_io_redirect(new_ab_out=unt,new_std_out=unt)
+    call abi_io_redirect(new_ab_out=unt,new_std_out=unt2)
 
     scfloop_nproc = nproc
     scfloop_obj => obj
@@ -49,14 +54,45 @@ contains
     scfloop_initialised = .true.
   END SUBROUTINE scfloop_init
 
+  function ab6log() result(suffix)
+    use module_defs, only: bigdft_mpi
+    use yaml_strings, only: yaml_toa,f_strcpy
+    implicit none
+    character(len=32) :: suffix
+    if (bigdft_mpi%ngroup>1) then
+       call f_strcpy(src=ab6file//'-'//trim(adjustl(yaml_toa(bigdft_mpi%iproc)))//'-'//&
+            trim(adjustl(yaml_toa(bigdft_mpi%igroup)))//'.log',dest=suffix)
+    else
+       call f_strcpy(src=ab6file//'-'//trim(adjustl(yaml_toa(bigdft_mpi%iproc)))//'.log',dest=suffix)
+    end if
+  end function ab6log
+
+  function ab6out() result(suffix)
+    use module_defs, only: bigdft_mpi
+    use yaml_strings, only: yaml_toa,f_strcpy
+    implicit none
+    character(len=32) :: suffix
+    if (bigdft_mpi%ngroup>1) then
+       call f_strcpy(src=ab6file//'-'//trim(adjustl(yaml_toa(bigdft_mpi%iproc)))//'-'//&
+            trim(adjustl(yaml_toa(bigdft_mpi%igroup)))//'.out',dest=suffix)
+    else
+       call f_strcpy(src=ab6file//'-'//trim(adjustl(yaml_toa(bigdft_mpi%iproc)))//'.out',dest=suffix)
+    end if
+  end function ab6out
+
+
   subroutine scfloop_finalise()
     use f_utils, only: f_close,f_file_unit
     implicit none
     !local variables
     integer :: unit
 
-    call f_file_unit(ab6file,unit)
+    call f_file_unit(trim(ab6out()),unit)
     if (unit >0 .and. unit /=6 ) call f_close(unit)
+
+    call f_file_unit(trim(ab6log()),unit)
+    if (unit >0 .and. unit /=6 ) call f_close(unit)
+
 
   END SUBROUTINE scfloop_finalise
 end module scfloop_API
