@@ -139,6 +139,12 @@ module module_types
   integer,parameter,public :: LINEAR_PARTITION_SIMPLE = 61
   integer,parameter,public :: LINEAR_PARTITION_OPTIMAL = 62
   integer,parameter,public :: LINEAR_PARTITION_NONE = 63
+
+  !> how to set the dielectric function
+  integer, parameter, public :: EPSILON_VACUUM = -1000
+  integer, parameter, public :: EPSILON_RIGID_CAVITY = 1001
+  integer, parameter, public :: EPSILON_SCCS = 1002
+
   
   !> Type used for the orthogonalisation parameters
   type, public :: orthon_data
@@ -322,6 +328,7 @@ module module_types
      real(gp) :: rbuf       !< buffer for tail treatment
      real(gp), dimension(3) :: elecfield   !< Electric Field vector
      logical :: disableSym                 !< .true. disable symmetry
+     integer :: set_epsilon !< method for setting the dielectric constant
 
      !> For absorption calculations
      integer :: iabscalc_type   !< 0 non calc, 1 cheb ,  2 lanc
@@ -430,7 +437,7 @@ module module_types
      integer :: check_sumrho               !< (LS) Perform a check of sumrho (no check, light check or full check)
      integer :: check_overlap              !< (LS) Perform a check of the overlap calculation
      logical :: experimental_mode          !< (LS) Activate the experimental mode
-     integer :: write_orbitals             !< (LS) write KS orbitals for cubic restart (0: no, 1: wvl, 2: wvl+isf)
+     integer :: write_orbitals             !< (LS) Write KS orbitals for cubic restart (0: no, 1: wvl, 2: wvl+isf)
      logical :: explicit_locregcenters     !< (LS) Explicitely specify localization centers
      logical :: calculate_KS_residue       !< (LS) Calculate Kohn-Sham residue
      logical :: intermediate_forces        !< (LS) Calculate intermediate forces
@@ -488,6 +495,9 @@ module module_types
 
      !> linear scaling: perform an analysis of the extent of the support functions (and possibly KS orbitals)
      logical :: wf_extent_analysis
+
+     !> Method for the solution of  generalized poisson Equation
+     character(len=4) :: GPS_Method
 
   end type input_variables
 
@@ -2221,6 +2231,16 @@ contains
           in%nplot = val
        case (DISABLE_SYM)
           in%disableSym = val ! Line to disable symmetries.
+       case (SOLVENT)
+          dummy_char = val
+          select case(trim(dummy_char))
+          case ("vacuum")
+             in%set_epsilon =EPSILON_VACUUM
+          case("rigid")
+             in%set_epsilon =EPSILON_RIGID_CAVITY
+          case("sccs")
+             in%set_epsilon =EPSILON_SCCS
+          end select
        case DEFAULT
           if (bigdft_mpi%iproc==0) &
                call yaml_warning("unknown input key '" // trim(level) // "/" // trim(dict_key(val)) // "'")
@@ -2415,6 +2435,8 @@ contains
        case(WF_EXTENT_ANALYSIS)
            ! linear scaling: perform an analysis of the extent of the support functions (and possibly KS orbitals)
            in%wf_extent_analysis = val
+       case (GPS_METHOD)
+           in%GPS_method = val
        case DEFAULT
           if (bigdft_mpi%iproc==0) &
                call yaml_warning("unknown input key '" // trim(level) // "/" // trim(dict_key(val)) // "'")
