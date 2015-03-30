@@ -106,6 +106,8 @@ subroutine system_initialization(iproc,nproc,dump,inputpsi,input_wf_format,dry_r
      ! Create the Poisson solver kernels.
      call system_initKernels(.true.,iproc,nproc,atoms%astruct%geocode,in,denspot)
      call system_createKernels(denspot, (verbose > 1))
+     if (in%set_epsilon == EPSILON_RIGID_CAVITY) &
+          call epsilon_cavity(atoms,rxyz,denspot%pkernel)
   end if
 
   ! Create wavefunctions descriptors and allocate them inside the global locreg desc.
@@ -776,14 +778,16 @@ subroutine system_initKernels(verb, iproc, nproc, geocode, in, denspot)
   integer, parameter :: ndegree_ip = 16
 
   denspot%pkernel=pkernel_init(verb, iproc,nproc,in%matacc%PSolver_igpu,&
-       geocode,denspot%dpbox%ndims,denspot%dpbox%hgrids,ndegree_ip,mpi_env=denspot%dpbox%mpi_env)
+       geocode,denspot%dpbox%ndims,denspot%dpbox%hgrids,ndegree_ip,&
+       mpi_env=denspot%dpbox%mpi_env,method=in%GPS_method)
   !create the sequential kernel if the exctX parallelisation scheme requires it
   if ((xc_exctXfac(denspot%xc) /= 0.0_gp .and. in%exctxpar=='OP2P' .or. in%SIC%alpha /= 0.0_gp)&
        .and. denspot%dpbox%mpi_env%nproc > 1) then
      !the communicator of this kernel is bigdft_mpi%mpi_comm
      !this might pose problems when using SIC or exact exchange with taskgroups
      denspot%pkernelseq=pkernel_init(iproc==0 .and. verb,0,1,in%matacc%PSolver_igpu,&
-          geocode,denspot%dpbox%ndims,denspot%dpbox%hgrids,ndegree_ip)
+          geocode,denspot%dpbox%ndims,denspot%dpbox%hgrids,ndegree_ip,&
+          method=in%GPS_method)
   else 
      denspot%pkernelseq = denspot%pkernel
   end if
