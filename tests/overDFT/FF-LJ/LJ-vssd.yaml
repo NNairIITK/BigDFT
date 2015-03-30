@@ -1,0 +1,8 @@
+ mode:
+   method: lj
+ geopt:
+   method: VSSD
+   ncount_cluster_x: 1000
+   frac_fluct: 0.0
+   forcemax: 1.0E-3
+   betax: 1.0E-3

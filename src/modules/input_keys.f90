@@ -654,6 +654,7 @@ contains
   subroutine input_keys_set(userDef, dict, file, key)
     use dictionaries
     use yaml_output
+    use yaml_strings, only: f_strcpy
     use dynamic_memory
     implicit none
     logical, intent(out) :: userDef
@@ -671,8 +672,9 @@ contains
 
     ref => parameters // file // key
 
-    profile_(1:max_field_length) = " "
-    if (trim(profile_) == "") profile_(1:max_field_length) = DEFAULT
+    !profile_(1:max_field_length) = " "
+    !if (trim(profile_) == "") profile_(1:max_field_length) = DEFAULT
+    call f_strcpy(src=DEFAULT,dest=profile_)
     
     userDef = (has_key(dict, key))
     if (userDef) then
@@ -719,6 +721,8 @@ contains
     else
        ! Key should be present only for some unmet conditions.
        if (.not.set_(dict, ref)) then
+!!$          call f_err_throw(err_id = INPUT_VAR_ILLEGAL, &
+!!$               & err_msg = trim(file) // "/" // trim(key) // " has to be presentd with a master key.")
 !          call f_release_routine()
           return
        end if

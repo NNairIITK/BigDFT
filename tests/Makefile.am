@@ -15,7 +15,8 @@ SUBDIRS = \
 	  DFT \
 	  overDFT \
 	  tutorials \
-	  libs
+	  libs \
+	  benchs
 
 if USE_OCL
 oclrun_message = oclrun

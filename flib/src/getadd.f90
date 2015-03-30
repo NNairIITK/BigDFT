@@ -100,6 +100,12 @@ module metadata_interfaces
        integer(kind=8), intent(out) :: iadd
      end subroutine getr3
 
+     subroutine getr4(array,iadd)
+       implicit none
+       real, dimension(:,:,:,:), allocatable, intent(in) :: array
+       integer(kind=8), intent(out) :: iadd
+     end subroutine getr4
+
      subroutine getdp1(array,iadd)
        implicit none
        double precision, dimension(:), allocatable, intent(in) :: array
@@ -241,7 +247,7 @@ interface pad_array
 !  module procedure pad_il1, pad_il2
   module procedure pad_c1
   module procedure pad_l1,pad_l2,pad_l3
-  module procedure pad_r1,pad_r2,pad_r3
+  module procedure pad_r1,pad_r2,pad_r3,pad_r4
   module procedure pad_dp1,pad_dp2,pad_dp3,pad_dp4,pad_dp5,pad_dp6,pad_dp7
   module procedure pad_z1, pad_z2
   module procedure pad_li1,pad_li2,pad_li3,pad_li4
@@ -253,7 +259,7 @@ end interface
 interface loc_arr
    module procedure la_i1,la_i2,la_i3,la_i4
 !   module procedure la_il1, la_il2
-   module procedure la_r1,la_r2,la_r3
+   module procedure la_r1,la_r2,la_r3,la_r4
    module procedure la_d1,la_d2,la_d3,la_d4,la_d5,la_d6,la_d7
    module procedure la_l1,la_l2,la_l3
    module procedure la_z1,la_z2
@@ -266,7 +272,7 @@ public :: geti1,geti2,geti3,geti4
 public :: getil1, getil2
 public :: getc1
 public :: getl1,getl2,getl3
-public :: getr1,getr2,getr3
+public :: getr1,getr2,getr3,getr4
 public :: getdp1,getdp2,getdp3,getdp4,getdp5,getdp6,getdp7!,getlongaddress
 public :: getz2
 public :: getdp1ptr,getdp2ptr,getdp3ptr,getdp4ptr,getdp5ptr,getdp6ptr
@@ -422,6 +428,19 @@ contains
          product(shp(1:2))*(shp(3)+ndebug))
 
   end subroutine pad_r3
+
+  subroutine pad_r4(array,init_to_zero,shp,ndebug)
+    implicit none
+    logical, intent(in) :: init_to_zero
+    integer, intent(in) :: ndebug
+    integer, dimension(4), intent(in) :: shp
+    real, dimension(shp(1),shp(2),shp(3),shp(4)+ndebug), intent(out) :: array
+
+    call pad_simple(array,init_to_zero,product(shp),&
+         product(shp(1:3))*(shp(4)+ndebug))
+
+  end subroutine pad_r4
+
 
   subroutine pad_dp1(array,init_to_zero,shp,ndebug)
     implicit none
@@ -847,6 +866,13 @@ contains
     include 'getadd-c-inc.f90' 
     la=f_loc(array(1,1,1))
   end function la_r3
+  function la_r4(array) result(la)
+    implicit none
+    real, dimension(:,:,:,:), intent(in) :: array
+    include 'getadd-c-inc.f90' 
+    la=f_loc(array(1,1,1,1))
+  end function la_r4
+
   function la_d1(array) result(la)
     implicit none
     double precision, dimension(:), intent(in) :: array

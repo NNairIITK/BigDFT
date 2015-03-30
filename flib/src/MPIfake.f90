@@ -331,6 +331,11 @@ subroutine mpi_info_free()
   stop 'MPIFAKE: mpi_info_free'
 END SUBROUTINE  MPI_INFO_FREE
 
+subroutine mpi_type_get_extent
+  implicit none
+  stop 'MPIFAKE: mpi_type_get_extent'
+END SUBROUTINE mpi_type_get_extent
+
 real(kind=8) function mpi_wtime()
   implicit none
   integer(kind=8) :: itns

@@ -1,0 +1,8 @@
+ mode:
+   method: lensib
+ geopt:
+   method: BFGS
+   ncount_cluster_x: 500
+   frac_fluct: 0.0
+   forcemax: 1.0E-4
+   betax: 7.0E+0

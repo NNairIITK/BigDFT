@@ -26,7 +26,8 @@ subroutine CalculateTailCorrection(iproc,nproc,at,rbuf,orbs,&
   type(DFT_PSP_projectors), intent(inout) :: nlpsp
   integer, intent(in) :: iproc,nproc,ncongt,nspin
   logical, intent(in) :: output_denspot
-  real(kind=8), intent(in) :: hgrid,crmult,frmult,rbuf
+  real(kind=8), dimension(3), intent(in) :: hgrid
+  real(kind=8), intent(in) :: crmult,frmult,rbuf
   !real(kind=8), dimension(at%astruct%ntypes,3), intent(in) :: radii_cf
   real(kind=8), dimension(3,at%astruct%nat), intent(in) :: rxyz
   real(kind=8), dimension(Glr%d%n1i,Glr%d%n2i,Glr%d%n3i,nspin), intent(in) :: pot
@@ -70,13 +71,17 @@ subroutine CalculateTailCorrection(iproc,nproc,at,rbuf,orbs,&
   real(kind=8), dimension(:,:,:), allocatable::y_c!output 
   real(kind=8), dimension(:,:,:,:), allocatable :: y_f! output
 
+  !SM This routine had as argument hgrid(1), but must now have all three dur to
+  !the modified calling sequence of convolutions routine. Still only use the
+  !first entry throughout the routine.
+
   call f_routine(id='CalculateTailCorrection')
 
   n1=Glr%d%n1
   n2=Glr%d%n2
   n3=Glr%d%n3
 
-  nbuf=nint(rbuf/hgrid)
+  nbuf=nint(rbuf/hgrid(1))
   !    --- new grid sizes n1,n2,n3
   nb1=n1+2*nbuf
   nb2=n2+2*nbuf
@@ -86,9 +91,9 @@ subroutine CalculateTailCorrection(iproc,nproc,at,rbuf,orbs,&
   call create_Glr(Glr%geocode,nb1,nb2,nb3,Glr%d%nfl1,Glr%d%nfl2,Glr%d%nfl3,Glr%d%nfu1,&
              Glr%d%nfu2,Glr%d%nfu3,Glr%d%n1i,Glr%d%n2i,Glr%d%n3i,Glr%wfd,Glr%bounds,lr)
  
-  alatb1=real(nb1,kind=8)*hgrid 
-  alatb2=real(nb2,kind=8)*hgrid 
-  alatb3=real(nb3,kind=8)*hgrid
+  alatb1=real(nb1,kind=8)*hgrid(1) 
+  alatb2=real(nb2,kind=8)*hgrid(1) 
+  alatb3=real(nb3,kind=8)*hgrid(1)
 
   if (iproc == 0) then
      call yaml_comment('Finite-Size correction',hfill='-')
@@ -156,9 +161,9 @@ subroutine CalculateTailCorrection(iproc,nproc,at,rbuf,orbs,&
   ! change atom coordinates according to the enlarged box
   txyz = f_malloc_ptr((/ 3, at%astruct%nat /),id='txyz')
   do iat=1,at%astruct%nat
-     txyz(1,iat)=rxyz(1,iat)+real(nbuf,kind=8)*hgrid
-     txyz(2,iat)=rxyz(2,iat)+real(nbuf,kind=8)*hgrid
-     txyz(3,iat)=rxyz(3,iat)+real(nbuf,kind=8)*hgrid
+     txyz(1,iat)=rxyz(1,iat)+real(nbuf,kind=8)*hgrid(1)
+     txyz(2,iat)=rxyz(2,iat)+real(nbuf,kind=8)*hgrid(1)
+     txyz(3,iat)=rxyz(3,iat)+real(nbuf,kind=8)*hgrid(1)
   enddo
 
   ! determine localization region for all orbitals, but do not yet fill the descriptor arrays
@@ -190,7 +195,7 @@ subroutine CalculateTailCorrection(iproc,nproc,at,rbuf,orbs,&
 
   ! coarse grid quantities
   call fill_logrid('F',nb1,nb2,nb3,0,nb1,0,nb2,0,nb3,nbuf,at%astruct%nat,at%astruct%ntypes,at%astruct%iatype,txyz, & 
-       at%radii_cf(1,1),crmult,hgrid,hgrid,hgrid,logrid_c)
+       at%radii_cf(1,1),crmult,hgrid(1),hgrid(1),hgrid(1),logrid_c)
   call num_segkeys(nb1,nb2,nb3,0,nb1,0,nb2,0,nb3,logrid_c,nsegb_c,nvctrb_c)
 
   if (iproc == 0) then
@@ -206,7 +211,7 @@ subroutine CalculateTailCorrection(iproc,nproc,at,rbuf,orbs,&
 
   ! fine grid quantities
   call fill_logrid('F',nb1,nb2,nb3,0,nb1,0,nb2,0,nb3,0,at%astruct%nat,at%astruct%ntypes,at%astruct%iatype,txyz, & 
-       at%radii_cf(1,2),frmult,hgrid,hgrid,hgrid,logrid_f)
+       at%radii_cf(1,2),frmult,hgrid(1),hgrid(1),hgrid(1),logrid_f)
   call num_segkeys(nb1,nb2,nb3,0,nb1,0,nb2,0,nb3,logrid_f,nsegb_f,nvctrb_f)
   if (iproc == 0) then
      !Bug in yaml_output solved
@@ -237,7 +242,7 @@ subroutine CalculateTailCorrection(iproc,nproc,at,rbuf,orbs,&
            do i1=0,nb1
               if (logrid_c(i1,i2,i3))&
                    write(22,'(a4,2x,3(1x,e10.3))') &
-                   '  g ',real(i1,kind=8)*hgrid,real(i2,kind=8)*hgrid,real(i3,kind=8)*hgrid
+                   '  g ',real(i1,kind=8)*hgrid(1),real(i2,kind=8)*hgrid(1),real(i3,kind=8)*hgrid(1)
            enddo
         enddo
      end do
@@ -246,7 +251,7 @@ subroutine CalculateTailCorrection(iproc,nproc,at,rbuf,orbs,&
            do i1=0,nb1
               if (logrid_f(i1,i2,i3))&
                    write(22,'(a4,2x,3(1x,e10.3))') &
-                   '  G ',real(i1,kind=8)*hgrid,real(i2,kind=8)*hgrid,real(i3,kind=8)*hgrid
+                   '  G ',real(i1,kind=8)*hgrid(1),real(i2,kind=8)*hgrid(1),real(i3,kind=8)*hgrid(1)
            enddo
         enddo
      enddo
@@ -391,10 +396,10 @@ subroutine CalculateTailCorrection(iproc,nproc,at,rbuf,orbs,&
         if (DistProjApply) then
            if(any(at%npspcode == 7)) then
              call applyprojectorsonthefly(0,orbsb,at,lr,&
-                  txyz,hgrid,hgrid,hgrid,wfdb,nlpsp,psib,hpsib,eproj,paw)
+                  txyz,hgrid(1),hgrid(1),hgrid(1),wfdb,nlpsp,psib,hpsib,eproj,paw)
            else
              call applyprojectorsonthefly(0,orbsb,at,lr,&
-                  txyz,hgrid,hgrid,hgrid,wfdb,nlpsp,psib,hpsib,eproj)
+                  txyz,hgrid(1),hgrid(1),hgrid(1),wfdb,nlpsp,psib,hpsib,eproj)
            end if
            !only the wavefunction descriptors must change
         else
@@ -425,7 +430,7 @@ subroutine CalculateTailCorrection(iproc,nproc,at,rbuf,orbs,&
         cprecr=-orbs%eval(iorb+orbs%isorb)
         call precong(nb1,nb2,nb3,nbfl1,nbfu1,nbfl2,nbfu2,nbfl3,nbfu3, &
              nsegb_c,nvctrb_c,nsegb_f,nvctrb_f,keyg,keyv, &
-             ncongt,cprecr,hgrid,ibbyz_c,ibbxz_c,ibbxy_c,ibbyz_f,ibbxz_f,ibbxy_f,hpsib)
+             ncongt,cprecr,hgrid(1),ibbyz_c,ibbxz_c,ibbxy_c,ibbyz_f,ibbxz_f,ibbxy_f,hpsib)
         !call plot_wf(10,nb1,nb2,nb3,hgrid,nsegb_c,nvctrb_c,keyg,keyv,nsegb_f,nvctrb_f,  & 
         !      txyz(1,1),txyz(2,1),txyz(3,1),psib)
 
@@ -755,7 +760,7 @@ subroutine applylocpotkinone(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,nbuf, &
   implicit none
   integer, intent(in) :: n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,nbuf,nw1,nw2
   integer, intent(in) :: nseg_c,nseg_f,nvctr_c,nvctr_f,nspinor,npot
-  real(gp), intent(in) :: hgrid
+  real(gp), dimension(3), intent(in) :: hgrid
   integer, dimension(nseg_c+nseg_f), intent(in) :: keyv
   integer, dimension(2,nseg_c+nseg_f), intent(in) :: keyg
   integer, dimension(2,0:n2,0:n3), intent(in) :: ibyz_c,ibyz_f
@@ -837,10 +842,10 @@ subroutine applylocpotkinone(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,nbuf, &
           y_c(0,0,0,IDX),y_f(1,nfl1,nfl2,nfl3,IDX))!,ibyz_c,ibyz_f)
      
      call ConvolkineticT(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,  &
-          hgrid,ibyz_c,ibxz_c,ibxy_c,ibyz_f,ibxz_f,ibxy_f, &
+          hgrid(1),hgrid(2),hgrid(3),ibyz_c,ibxz_c,ibxy_c,ibyz_f,ibxz_f,ibxy_f, &
           x_c(0,0,0,IDX),x_f(1,nfl1,nfl2,nfl3,IDX),&
           y_c(0,0,0,IDX),y_f(1,nfl1,nfl2,nfl3,IDX),EKINO, &
-          x_f1(nfl1,nfl2,nfl3,IDX),x_f2(nfl2,nfl1,nfl3,IDX),x_f3(nfl3,nfl1,nfl2,IDX))
+          x_f1(nfl1,nfl2,nfl3,IDX),x_f2(nfl2,nfl1,nfl3,IDX),x_f3(nfl3,nfl1,nfl2,IDX),111)
      ekin=ekin+ekino
      
      call compress_forstandard(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,  &

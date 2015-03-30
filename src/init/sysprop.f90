@@ -55,7 +55,7 @@ subroutine system_initialization(iproc,nproc,dump,inputpsi,input_wf_format,dry_r
   real(kind=8), dimension(:), allocatable :: locrad, times_convol
   integer :: ilr, iilr
   real(kind=8),dimension(:),allocatable :: totaltimes
-  real(kind=8),dimension(2) :: time_max, time_min
+  real(kind=8),dimension(2) :: time_max, time_average
   real(kind=8) :: ratio_before, ratio_after
   logical :: init_projectors_completely
   call f_routine(id=subname)
@@ -83,13 +83,18 @@ subroutine system_initialization(iproc,nproc,dump,inputpsi,input_wf_format,dry_r
   if (present(locregcenters)) then
       do iat=1,atoms%astruct%nat
           locregcenters(1:3,iat)=locregcenters(1:3,iat)-shift(1:3)
-          if (locregcenters(1,iat)<dble(0)*lzd%hgrids(1) .or. locregcenters(1,iat)>dble(lzd%glr%d%n1)*lzd%hgrids(1) .or. &
-              locregcenters(2,iat)<dble(0)*lzd%hgrids(2) .or. locregcenters(2,iat)>dble(lzd%glr%d%n2)*lzd%hgrids(2) .or. &
-              locregcenters(3,iat)<dble(0)*lzd%hgrids(3) .or. locregcenters(3,iat)>dble(lzd%glr%d%n3)*lzd%hgrids(3)) then
+          if (locregcenters(1,iat)<dble(0)*lzd%hgrids(1) .or. locregcenters(1,iat)>dble(lzd%glr%d%n1+1)*lzd%hgrids(1) .or. &
+              locregcenters(2,iat)<dble(0)*lzd%hgrids(2) .or. locregcenters(2,iat)>dble(lzd%glr%d%n2+1)*lzd%hgrids(2) .or. &
+              locregcenters(3,iat)<dble(0)*lzd%hgrids(3) .or. locregcenters(3,iat)>dble(lzd%glr%d%n3+1)*lzd%hgrids(3)) then
+              !write(*,'(a,2es16.6)') 'locregcenters(1,iat), dble(lzd%glr%d%n1+1)*lzd%hgrids(1)', locregcenters(1,iat), dble(lzd%glr%d%n1+1)*lzd%hgrids(1)
+              !write(*,'(a,2es16.6)') 'locregcenters(2,iat), dble(lzd%glr%d%n2+1)*lzd%hgrids(2)', locregcenters(2,iat), dble(lzd%glr%d%n2+1)*lzd%hgrids(2)
+              !write(*,'(a,2es16.6)') 'locregcenters(3,iat), dble(lzd%glr%d%n3+1)*lzd%hgrids(3)', locregcenters(3,iat), dble(lzd%glr%d%n3+1)*lzd%hgrids(3)
+              !write(*,'(a,3es16.6)') 'atoms%astruct%rxyz(1:3,iat)', atoms%astruct%rxyz(1:3,iat)
               stop 'locregcenter outside of global box!'
           end if
       end do
   end if
+
 
   if (present(denspot)) then
      call initialize_DFT_local_fields(denspot, in%ixc, in%nspin)
@@ -101,7 +106,6 @@ subroutine system_initialization(iproc,nproc,dump,inputpsi,input_wf_format,dry_r
      ! Create the Poisson solver kernels.
      call system_initKernels(.true.,iproc,nproc,atoms%astruct%geocode,in,denspot)
      call system_createKernels(denspot, (verbose > 1))
-     if (in%set_epsilon == EPSILON_RIGID_CAVITY) call epsilon_cavity(atoms,rxyz,denspot%pkernel)
   end if
 
   ! Create wavefunctions descriptors and allocate them inside the global locreg desc.
@@ -170,8 +174,8 @@ subroutine system_initialization(iproc,nproc,dump,inputpsi,input_wf_format,dry_r
      if (inputpsi == INPUT_PSI_LINEAR_AO .or. inputpsi == INPUT_PSI_DISK_LINEAR) then
          times_convol = f_malloc(lorbs%norb,id='times_convol')
          call test_preconditioning()
-         time_min(1) = sum(times_convol(lorbs%isorb+1:lorbs%isorb+lorbs%norbp))
-         time_max(1) = time_min(1)
+         time_max(1) = sum(times_convol(lorbs%isorb+1:lorbs%isorb+lorbs%norbp))
+         time_average(1) = time_max(1)/real(nproc,kind=8)
          norb_par = f_malloc(0.to.nproc-1,id='norb_par')
          norbu_par = f_malloc(0.to.nproc-1,id='norbu_par')
          norbd_par = f_malloc(0.to.nproc-1,id='norbd_par')
@@ -205,18 +209,20 @@ subroutine system_initialization(iproc,nproc,dump,inputpsi,input_wf_format,dry_r
          call fragment_stuff()
          call init_lzd_linear()
          call test_preconditioning()
-         time_min(2) = sum(times_convol(lorbs%isorb+1:lorbs%isorb+lorbs%norbp))
-         time_max(2) = time_min(2)
-         totaltimes(iproc+1) = time_min(2)
+         time_max(2) = sum(times_convol(lorbs%isorb+1:lorbs%isorb+lorbs%norbp))
+         time_average(2) = time_max(2)/real(nproc,kind=8)
+         totaltimes(iproc+1) = time_max(2)
          if (nproc>1) then
-             call mpiallred(time_min(1), 2, mpi_min, bigdft_mpi%mpi_comm)
-             call mpiallred(time_max(1), 2, mpi_max, bigdft_mpi%mpi_comm)
-             call mpiallred(totaltimes(1), nproc, mpi_sum, bigdft_mpi%mpi_comm)
+             call mpiallred(time_max, mpi_max, comm=bigdft_mpi%mpi_comm)
+             call mpiallred(time_average, mpi_sum, comm=bigdft_mpi%mpi_comm)
+             call mpiallred(totaltimes, mpi_sum, comm=bigdft_mpi%mpi_comm)
          end if
-         ratio_before = real(time_max(1),kind=8)/real(max(1.d0,time_min(1)),kind=8) !max to prevent divide by zero
-         ratio_after = real(time_max(2),kind=8)/real(max(1.d0,time_min(2)),kind=8) !max to prevent divide by zero
-         if (iproc==0) call yaml_map('preconditioning load balancing min/max before',(/time_min(1),time_max(1)/),fmt='(es9.2)')
-         if (iproc==0) call yaml_map('preconditioning load balancing min/max after',(/time_min(2),time_max(2)/),fmt='(es9.2)')
+         !ratio_before = real(time_max(1),kind=8)/real(max(1.d0,time_min(1)),kind=8) !max to prevent divide by zero
+         !ratio_after = real(time_max(2),kind=8)/real(max(1.d0,time_min(2)),kind=8) !max to prevent divide by zero
+         !if (iproc==0) call yaml_map('preconditioning load balancing min/max before',(/time_min(1),time_max(1)/),fmt='(es9.2)')
+         !if (iproc==0) call yaml_map('preconditioning load balancing min/max after',(/time_min(2),time_max(2)/),fmt='(es9.2)')
+         if (iproc==0) call yaml_map('preconditioning load balancing before',time_max(1)/time_average(1),fmt='(es9.2)')
+         if (iproc==0) call yaml_map('preconditioning load balancing after',time_max(2)/time_average(2),fmt='(es9.2)')
          if (iproc==0) call yaml_map('task with max load',maxloc(totaltimes)-1)
          call f_free(norb_par)
          call f_free(norbu_par)
@@ -476,7 +482,7 @@ subroutine system_initialization(iproc,nproc,dump,inputpsi,input_wf_format,dry_r
        implicit none
 
        !Local variables
-       integer :: iorb, iiorb, ilr, ncplx, ist, i, ierr, ii
+       integer :: iorb, iiorb, ilr, ncplx, ist, i, ierr, ii, jj
        logical :: with_confpot
        real(gp) :: kx, ky, kz
        type(workarrays_quartic_convolutions),dimension(:),allocatable :: precond_convol_workarrays
@@ -491,10 +497,13 @@ subroutine system_initialization(iproc,nproc,dump,inputpsi,input_wf_format,dry_r
           iiorb=lorbs%isorb+iorb
           ilr=lorbs%inwhichlocreg(iiorb)
           ii = (lzd_lin%llr(ilr)%d%n1+1)*(lzd_lin%llr(ilr)%d%n2+1)*(lzd_lin%llr(ilr)%d%n3+1)
-          times_convol(iiorb) = real(ii,kind=8)
+          jj = 7*(lzd_lin%llr(ilr)%d%nfu1-lzd_lin%llr(ilr)%d%nfl1+1)*&
+                 (lzd_lin%llr(ilr)%d%nfu2-lzd_lin%llr(ilr)%d%nfl2+1)*&
+                 (lzd_lin%llr(ilr)%d%nfu3-lzd_lin%llr(ilr)%d%nfl3+1)
+          times_convol(iiorb) = real(ii+jj,kind=8)
       end do
       if (nproc>1) then
-          call mpiallred(times_convol, mpi_sum, bigdft_mpi%mpi_comm)
+          call mpiallred(times_convol, mpi_sum, comm=bigdft_mpi%mpi_comm)
       end if
 
       return !###############################################3
@@ -592,7 +601,7 @@ subroutine system_initialization(iproc,nproc,dump,inputpsi,input_wf_format,dry_r
        call f_free(phi)
 
        if (nproc>1) then
-           call mpiallred(times_convol, mpi_sum, bigdft_mpi%mpi_comm)
+           call mpiallred(times_convol, mpi_sum, comm=bigdft_mpi%mpi_comm)
        end if
 
      end subroutine test_preconditioning
@@ -767,14 +776,14 @@ subroutine system_initKernels(verb, iproc, nproc, geocode, in, denspot)
   integer, parameter :: ndegree_ip = 16
 
   denspot%pkernel=pkernel_init(verb, iproc,nproc,in%matacc%PSolver_igpu,&
-       geocode,denspot%dpbox%ndims,denspot%dpbox%hgrids,ndegree_ip,mpi_env=denspot%dpbox%mpi_env,method=in%GPS_method)
+       geocode,denspot%dpbox%ndims,denspot%dpbox%hgrids,ndegree_ip,mpi_env=denspot%dpbox%mpi_env)
   !create the sequential kernel if the exctX parallelisation scheme requires it
   if ((xc_exctXfac(denspot%xc) /= 0.0_gp .and. in%exctxpar=='OP2P' .or. in%SIC%alpha /= 0.0_gp)&
        .and. denspot%dpbox%mpi_env%nproc > 1) then
      !the communicator of this kernel is bigdft_mpi%mpi_comm
      !this might pose problems when using SIC or exact exchange with taskgroups
      denspot%pkernelseq=pkernel_init(iproc==0 .and. verb,0,1,in%matacc%PSolver_igpu,&
-          geocode,denspot%dpbox%ndims,denspot%dpbox%hgrids,ndegree_ip,method=in%GPS_method)
+          geocode,denspot%dpbox%ndims,denspot%dpbox%hgrids,ndegree_ip)
   else 
      denspot%pkernelseq = denspot%pkernel
   end if
@@ -937,6 +946,8 @@ subroutine epsilon_cavity(atoms,rxyz,pkernel)
   call f_free(corr)
 end subroutine epsilon_cavity
 
+
+
 !> Calculate the important objects related to the physical properties of the system
 subroutine system_properties(iproc,nproc,in,atoms,orbs)!,radii_cf)
   use module_base
@@ -1056,7 +1067,7 @@ subroutine calculate_rhocore(at,d,rxyz,hxh,hyh,hzh,i3s,i3xcsh,n3d,n3p,rhocore)
         enddo
      enddo
 
-     if (bigdft_mpi%nproc > 1) call mpiallred(tt,1,MPI_SUM,bigdft_mpi%mpi_comm)
+     if (bigdft_mpi%nproc > 1) call mpiallred(tt,1,MPI_SUM,comm=bigdft_mpi%mpi_comm)
      tt=tt*hxh*hyh*hzh
      if (bigdft_mpi%iproc == 0) call yaml_map('Total core charge on the grid (To be compared with analytic one)', tt,fmt='(f15.7)')
 
@@ -2487,10 +2498,12 @@ subroutine redistribute(nproc, norb, workload, workload_ideal, norb_par)
   integer,dimension(0:nproc-1),intent(out) :: norb_par
 
   ! Local variables
-  real(kind=8) :: tcount, jcount, wli, ratio, ratio_old
+  real(kind=8) :: tcount, jcount, wli, ratio, ratio_old, average
   real(kind=8),dimension(:),allocatable :: workload_par
   integer,dimension(:),allocatable :: norb_par_trial
   integer :: jproc, jjorb, jjorbtot, jorb, ii, imin, imax
+
+  call f_routine(id='redistribute')
 
   wli = workload_ideal
 
@@ -2534,8 +2547,9 @@ subroutine redistribute(nproc, norb, workload, workload_ideal, norb_par)
       !        jproc, jjorb+(norb-jjorbtot), sum(workload)-tcount, workload_ideal
 
       ! Now take away one element from the maximum and add it to the minimum.
-      ! Repeat this as long as the ratio max/min decreases 
-      ratio_old = maxval(workload_par)/minval(workload_par)
+      ! Repeat this as long as the ratio max/average decreases 
+      average = sum(workload_par)/real(nproc,kind=8)
+      ratio_old = maxval(workload_par)/average
       adjust_loop: do
           imin = minloc(workload_par,1) - 1 !subtract 1 because the array starts a 0
           imax = maxloc(workload_par,1) - 1 !subtract 1 because the array starts a 0
@@ -2551,7 +2565,8 @@ subroutine redistribute(nproc, norb, workload, workload_ideal, norb_par)
                   workload_par(jproc) = workload_par(jproc) + workload(ii)
               end do
           end do
-          ratio = maxval(workload_par)/minval(workload_par)
+          average = sum(workload_par)/real(nproc,kind=8)
+          ratio = maxval(workload_par)/average
           !if (bigdft_mpi%iproc==0) write(*,*) 'ratio, ratio_old', ratio, ratio_old
           if (ratio<ratio_old) then
               call vcopy(nproc, norb_par_trial(0), 1, norb_par(0), 1)
@@ -2567,6 +2582,8 @@ subroutine redistribute(nproc, norb, workload, workload_ideal, norb_par)
       ! Equal distribution
       norb_par(0:norb-1) = 1
   end if
+
+  call f_release_routine()
 
   contains
 
