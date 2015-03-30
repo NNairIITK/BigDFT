@@ -343,10 +343,6 @@ subroutine get_isf_family(m_max,itype,nmoms,m,nrange,ch,cg)
   integer :: i,dsflb,dsfrb,sflb,sfrb,unsflb,unsfrb,i1,ifac!,sfl,unsfl
   real(kind=8), dimension(:), allocatable :: cht,chu
 
-  !Allocations
-  cht = f_malloc(-m_max.to.m_max,id='cht')
-  chu = f_malloc(-m_max.to.m_max,id='chu')
-
 !!!  !Only itype=2,8,14,16,20,24,30,40,50,60,100
 !!!  select case(itype)
 !!!  case(2,4,6,8,14,16,20,24,30,40,50,60,100)
@@ -359,6 +355,10 @@ subroutine get_isf_family(m_max,itype,nmoms,m,nrange,ch,cg)
      call f_err_throw('"The type of interpolating functions has to be positive and even, used:' &
           & // trim(yaml_toa(itype))//'"', err_name='BIGDFT_RUNTIME_ERROR')
   end if
+
+  !Allocations
+  cht = f_malloc(-m_max.to.m_max,id='cht')
+  chu = f_malloc(-m_max.to.m_max,id='chu')
 
   !case of the direct function
   ch=0.d0
@@ -421,7 +421,10 @@ subroutine get_isf_family(m_max,itype,nmoms,m,nrange,ch,cg)
   ! g coefficients from h coefficients
   do i=-m,m-1
      cg(i+1)=cht(-i)*(-1.d0)**(i+1)
-  enddo
+  end do
+
+  !De-allocations
+  call f_free(chu,cht)
 
 !!$  do i=-m,m
 !!$     print *,'i',i,ch(i),cg(i)

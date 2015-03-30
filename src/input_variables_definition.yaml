@@ -68,18 +68,18 @@
      B97-D: -170 #to be verified
      B3LYP: -402
      HF: 100 #Hartree-Fock
-   ncharge:
-     COMMENT: Charge of the system
+   qcharge:
+     COMMENT: Charge of the system. Can be integer or real.
      DESCRIPTION: | 
-      Total charge of the system and uniform electric field Ex, Ey, Ez in units of Ha/Bohr.
-      The electric field can not have components in periodic directions, e.g. Ex = Ez = 0 in case surface BC is used.
-      
-      A positive ncharge means that electrons are taken away.
-      A negative value means that extra electrons are added.
+      Total charge of the system.
+      A positive qcharge means that electrons are taken away and a negative one means that extra electrons are added.
      RANGE: [-500., 500.]
      default: 0
    elecfield:
      COMMENT: Electric field (Ex,Ey,Ez)
+     DESCRIPTION: | 
+      Uniform electric field Ex, Ey, Ez in units of Ha/Bohr.
+      The electric field can not have components in periodic directions, e.g. Ex = Ez = 0 in case surface BC is used.
      default: [0., 0., 0.]
    nspin:
      COMMENT: Spin polarization treatment

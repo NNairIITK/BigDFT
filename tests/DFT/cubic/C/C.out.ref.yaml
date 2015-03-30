@@ -169,9 +169,11 @@
    No. of projectors                   :  1
    PSP XC                              : "XC: Teter 93"
   #-------------------------------------------------------------------------- Atom Positions
- Atomic positions within the cell (Atomic and Grid Units):
- - C: {AU:  [  7.2000,  7.2000,  7.2000 ], GU:  [  16.000,  16.000,  16.000 ]} # 0001
- Rigid Shift Applied (AU)              :  [  7.2000,  7.2000,  7.2000 ]
+ Atomic structure:
+   Positions:
+   -  {C: [ 7.200000000,  7.200000000,  7.200000000],  # [  16.00,  16.00,  16.00 ] 0001
+ IGSpin:  2}
+   Rigid Shift Applied (AU)            :  [  7.2000,  7.2000,  7.2000 ]
   #------------------------------------------------------------------------- Grid properties
  Box Grid spacings                     :  [  0.4500,  0.4500,  0.4500 ]
  Sizes of the simulation domain:
