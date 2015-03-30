@@ -825,6 +825,27 @@ subroutine test_dictionary_for_atoms()
 
 end subroutine test_dictionary_for_atoms
 
+!> test the usage of the new f_trees structure
+subroutine test_f_trees()
+  use f_trees
+  use yaml_output
+  implicit none
+  type(f_tree) :: dict1,dict2
+
+  !initialization
+  dict1=f_tree_new()
+
+  call f_tree_push(dict1//'Key1','val1')
+  !to be updated with proper method for trees
+  call yaml_map('Initialized tree',dict1%d)
+
+  call yaml_mapping_open('Test of dump')
+  call f_tree_dump(dict1)
+  call yaml_mapping_close()
+
+  call f_tree_free(dict1)
+end subroutine test_f_trees
+
 !> this routine consider the usage of dictionaries for intensive data storage (of course to be avoided)
 !! and compares it to the usage of an array for doing similar things
 subroutine profile_dictionary_usage()

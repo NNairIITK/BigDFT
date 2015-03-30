@@ -4204,10 +4204,9 @@ subroutine nonlocal_forces_linear(iproc,nproc,npsidim_orbs,lr,hx,hy,hz,at,rxyz,&
   use sparsematrix_base, only: sparse_matrix, matrices, sparsematrix_malloc, assignment(=), SPARSE_FULL
   use sparsematrix, only: gather_matrix_from_taskgroups
   use psp_projectors, only: PSPCODE_HGH,PSPCODE_HGH_K,PSPCODE_HGH_K_NLCC,&
-       PSPCODE_PAW
+       PSPCODE_PAW,projector_has_overlap
   use yaml_output
   use communications_init, only: check_whether_bounds_overlap
-  use psp_projectors, only: projector_has_overlap
   implicit none
   !Arguments-------------
   type(atoms_data), intent(in) :: at

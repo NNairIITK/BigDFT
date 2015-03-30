@@ -808,6 +808,147 @@ subroutine system_createKernels(denspot, verb)
 
 END SUBROUTINE system_createKernels
 
+!> calculate the dielectric function for the cavitBy
+subroutine epsilon_cavity(atoms,rxyz,pkernel)
+  use dynamic_memory
+  use Poisson_Solver
+  use module_atoms
+  use ao_inguess, only: atomic_info
+  !use yaml_output
+  use module_defs, only : Bohr_Ang
+  use f_utils
+  use yaml_output
+  use dictionaries, only: f_err_throw
+  implicit none
+  type(atoms_data), intent(in) :: atoms
+  real(gp), dimension(3,atoms%astruct%nat), intent(in) :: rxyz
+  type(coulomb_operator), intent(inout) :: pkernel
+  !local variables
+  real(gp), parameter :: epsilon0=78.36d0 ! Constant dielectric permittivity of water.
+  real(gp), parameter :: fact=1.2d0 ! Multiplying factor to enlarge the rigid cavity.
+  integer :: i1,i2,i3,unt,i
+  real(gp) :: delta,IntSur,IntVol,noeleene,Cavene,Repene,Disene
+  type(atoms_iterator) :: it
+  real(gp), dimension(:), allocatable :: radii,radii_nofact
+  real(gp), dimension(:,:,:), allocatable :: eps,oneoeps,oneosqrteps,corr
+  real(gp), dimension(:,:,:,:), allocatable :: dlogeps
+  !set the vdW radii for the cavity definition
+  !iterate above atoms
+
+  radii=f_malloc(atoms%astruct%nat,id='radii')
+  radii_nofact=f_malloc(atoms%astruct%nat,id='radii_nofact')
+  eps=f_malloc(pkernel%ndims,id='eps')
+  dlogeps=f_malloc([3,pkernel%ndims(1),pkernel%ndims(2),pkernel%ndims(3)],id='dlogeps')
+  oneoeps=f_malloc(pkernel%ndims,id='oneoeps')
+  oneosqrteps=f_malloc(pkernel%ndims,id='oneosqrteps')
+  corr=f_malloc(pkernel%ndims,id='corr')
+
+  it=atoms_iter(atoms%astruct)
+  !python metod
+  do while(atoms_iter_next(it))
+     !only amu is extracted here
+     call atomic_info(atoms%nzatom(it%ityp),atoms%nelpsp(it%ityp),&
+          rcov=radii(it%iat))
+  end do
+  call yaml_map('Bohr_Ang',Bohr_Ang)
+
+!  radii(1)=1.5d0/Bohr_Ang
+!  radii(2)=1.2d0/Bohr_Ang
+!  radii(3)=1.2d0/Bohr_Ang
+
+!  delta=4.0*maxval(pkernel%hgrids)
+  delta=2.0d0
+  call yaml_map('Delta cavity',delta)
+  delta=delta*0.25d0 ! Divided by 4 because both rigid cavities are 4*delta widespread 
+
+  do i=1,atoms%astruct%nat
+!   write(*,*)atoms%astruct%atomnames(atoms%astruct%iatype(i))
+   ! Set the Pauling's set of atomic radii [R.C. Weast, ed., Handbook of chemistry and physics (CRC Press, Cleveland, 1981)].
+   select case(trim(atoms%astruct%atomnames(atoms%astruct%iatype(i))))
+   case('H')
+    radii(i)=1.0d0
+   case('C')
+    radii(i)=1.5d0
+   case('N')
+    radii(i)=1.5d0
+   case('O')
+    radii(i)=1.4d0
+   case('P')
+    radii(i)=1.8d0
+   case('Cl')
+    radii(i)=1.8d0
+   case default
+    call f_err_throw('For rigid cavity a radius should be fixed for each atom type')
+   end select
+   call yaml_map('Atomic type',atoms%astruct%atomnames(atoms%astruct%iatype(i)))
+   radii_nofact(i) = radii(i)/Bohr_Ang +1.05d0*delta
+   radii(i) = fact*radii(i)/Bohr_Ang + 1.22d0*delta
+  end do
+  call yaml_map('Covalent radii',radii)
+
+!--------------------------------------------
+
+! Calculation of non-electrostatic contribution. Use of raddi without fact
+! multiplication.
+!  call epsilon_rigid_cavity_error_multiatoms(atoms%astruct%geocode,pkernel%ndims,pkernel%hgrids,atoms%astruct%nat,rxyz,radii_nofact,&
+!       epsilon0,delta,eps,dlogeps,oneoeps,oneosqrteps,corr,IntSur,IntVol)
+  call epsilon_rigid_cavity_new_multiatoms(atoms%astruct%geocode,pkernel%ndims,pkernel%hgrids,atoms%astruct%nat,rxyz,radii_nofact,&
+       epsilon0,delta,eps,dlogeps,oneoeps,oneosqrteps,corr,IntSur,IntVol)
+
+  call yaml_map('Surface integral',IntSur)
+  call yaml_map('Volume integral',IntVol)
+
+  Cavene= 72.d-13*Bohr_Ang*IntSur/8.238722514d-8*627.509469d0
+  Repene=-22.d-13*Bohr_Ang*IntSur/8.238722514d-8*627.509469d0
+  Disene=-0.35d9*IntVol*2.942191219d-13*627.509469d0
+  noeleene=Cavene+Repene+Disene
+  call yaml_map('Cavity energy',Cavene)
+  call yaml_map('Repulsion energy',Repene)
+  call yaml_map('Dispersion energy',Disene)
+  call yaml_map('Total non-electrostatic energy',noeleene)
+
+!--------------------------------------------
+
+!  call epsilon_rigid_cavity(atoms%astruct%geocode,pkernel%ndims,pkernel%hgrids,atoms%astruct%nat,rxyz,radii,&
+!       epsilon0,delta,eps)
+!  call epsilon_rigid_cavity_error_multiatoms(atoms%astruct%geocode,pkernel%ndims,pkernel%hgrids,atoms%astruct%nat,rxyz,radii,&
+!       epsilon0,delta,eps,dlogeps,oneoeps,oneosqrteps,corr,IntSur,IntVol)
+  call epsilon_rigid_cavity_new_multiatoms(atoms%astruct%geocode,pkernel%ndims,pkernel%hgrids,atoms%astruct%nat,rxyz,radii,&
+       epsilon0,delta,eps,dlogeps,oneoeps,oneosqrteps,corr,IntSur,IntVol)
+
+  !set the epsilon to the poisson solver kernel
+!  call pkernel_set_epsilon(pkernel,eps=eps)
+
+  select case(trim(pkernel%method))
+  case('PCG')
+   call pkernel_set_epsilon(pkernel,oneosqrteps=oneosqrteps,corr=corr)
+  case('PI') 
+   call pkernel_set_epsilon(pkernel,oneoeps=oneoeps,dlogeps=dlogeps)
+  end select
+
+!!$  unt=f_get_free_unit(21)
+!!$  call f_open_file(unt,file='oneoepsilon.dat')
+!!$  i1=1!n03/2
+!!$  do i2=1,pkernel%ndims(2)
+!!$     do i3=1,pkernel%ndims(3)
+!!$        write(unt,'(2(1x,I4),2(1x,e14.7))')i2,i3,pkernel%oneoeps(i1,i2+(i3-1)*pkernel%ndims(2)),&
+!!$             pkernel%oneoeps(pkernel%ndims(1)/2,i2+(i3-1)*pkernel%ndims(2))
+!!$     end do
+!!$  end do
+!!$  call f_close(unt)
+
+
+  call f_free(radii)
+  call f_free(radii_nofact)
+  call f_free(eps)
+  call f_free(dlogeps)
+  call f_free(oneoeps)
+  call f_free(oneosqrteps)
+  call f_free(corr)
+end subroutine epsilon_cavity
+
+
+
 
 !> Calculate the important objects related to the physical properties of the system
 subroutine system_properties(iproc,nproc,in,atoms,orbs)!,radii_cf)

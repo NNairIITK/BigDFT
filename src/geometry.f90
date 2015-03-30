@@ -216,9 +216,7 @@ subroutine ab6md(runObj,outs,nproc,iproc,ncount_bigdft,fail)
 
   nxfh = 0
   !acell = (/ runObj%atoms%astruct%cell_dim(1), runObj%atoms%astruct%cell_dim(2), runObj%atoms%astruct%cell_dim(3) /)
-  acell(1)=runObj%atoms%astruct%cell_dim(1)
-  acell(2)=runObj%atoms%astruct%cell_dim(2)
-  acell(3)=runObj%atoms%astruct%cell_dim(3)
+  acell=runObj%atoms%astruct%cell_dim
   rprim(:,:) = 0.0_gp
   rprim(1,1) = real(1, gp)
   rprim(2,2) = real(1, gp)
@@ -246,21 +244,18 @@ subroutine ab6md(runObj,outs,nproc,iproc,ncount_bigdft,fail)
         iatfix(2, iat) = 0
      end select
   end do
-
   !read the velocities from input file, if present
   call read_velocities(iproc,'velocities.xyz',runObj%atoms,vel)
   !vel(:,:) = zero
-
   ! Call the ABINIT routine.
   ! currently, we force optcell == 0
   call moldyn(acell, amass, iproc, runObj%inputs%ncount_cluster_x+1, nxfh, runObj%atoms%astruct%nat, &
-       & rprim, outs%energy, iexit, &
-       & 0, runObj%inputs%ionmov, runObj%inputs%ncount_cluster_x, runObj%inputs%dtion, runObj%inputs%noseinert, &
-       & runObj%inputs%mditemp, runObj%inputs%mdftemp, runObj%inputs%friction, runObj%inputs%mdwall, runObj%inputs%nnos, &
-       & runObj%inputs%qmass, runObj%inputs%bmass, runObj%inputs%vmass, iatfix, runObj%inputs%strtarget, &
-       & runObj%inputs%strprecon, runObj%inputs%strfact, runObj%inputs%forcemax, &
-       & 1, symrel, vel, xfhist, fred, xred)
-
+       rprim, outs%energy, iexit, &
+       0, runObj%inputs%ionmov, runObj%inputs%ncount_cluster_x, runObj%inputs%dtion, runObj%inputs%noseinert, &
+       runObj%inputs%mditemp, runObj%inputs%mdftemp, runObj%inputs%friction, runObj%inputs%mdwall, runObj%inputs%nnos, &
+       runObj%inputs%qmass, runObj%inputs%bmass, runObj%inputs%vmass, iatfix, runObj%inputs%strtarget, &
+       runObj%inputs%strprecon, runObj%inputs%strfact, runObj%inputs%forcemax, &
+       1, symrel, vel, xfhist, fred, xred)
   do iat = 1, runObj%atoms%astruct%nat, 1
      outs%fxyz(1, iat) = fred(1, iat) * acell(1)
      outs%fxyz(2, iat) = fred(2, iat) * acell(2)
@@ -274,7 +269,7 @@ subroutine ab6md(runObj,outs,nproc,iproc,ncount_bigdft,fail)
   call f_free(vel)
   call f_free(amass)
   call f_free(xfhist)
-
+  call scfloop_finalise()
   fail = (iexit == 0)
 END SUBROUTINE ab6md
 
@@ -411,9 +406,11 @@ subroutine rundiis(runObj,outs,nproc,iproc,ncount_bigdft,fail)
   real(kind=8), dimension(:,:), allocatable :: matrice
   !logical :: check
   integer :: check
+  type(f_tree) :: f_info
   check=0
   fluct=0.0_gp
 
+  f_info=f_tree_new()
   ! We save pointers on data used to call bigdft() routine.
   ! Set to zero the arrays
   previous_forces = f_malloc0((/ 3, outs%fdim, runObj%inputs%history /),id='previous_forces')
@@ -522,8 +519,10 @@ subroutine rundiis(runObj,outs,nproc,iproc,ncount_bigdft,fail)
           ncount_bigdft,lter,"GEOPT_DIIS",outs%energy,outs%energy-etotprev, &
           & fmax,sqrt(fnrm),fluct*runObj%inputs%frac_fluct,fluct,check
 
-!        write(*,'(1x,a,1pe14.5,2(1x,a,1pe14.5))') 'FORCES norm(Ha/Bohr): maxval=', &
-!             & fmax,'fnrm=',    fnrm    ,'fluct=', fluct
+        call f_tree_push(f_info//'etot',     yaml_toa((/ outs%energy,outs%energy-etotprev /),fmt='(1pe21.14)'))
+        call f_tree_push(f_info//'Forces' ,yaml_toa( (/ fmax,sqrt(fnrm),fluct*runObj%inputs%frac_fluct,fluct /), fmt='(1pe10.2)'))
+        call geometry_output('GEOPT_DIIS',ncount_bigdft,lter,fmax,fnrm,fluct,f_info)
+
         write(fn4,'(i4.4)') ncount_bigdft
         write(comment,'(a,1pe10.3)')'DIIS:fnrm= ',sqrt(fnrm)
         call bigdft_write_atomic_file(runObj,outs,&
@@ -553,6 +552,7 @@ subroutine rundiis(runObj,outs,nproc,iproc,ncount_bigdft,fail)
   call f_free(previous_forces)
   call f_free(previous_pos)
   call f_free(product_matrix)
+  call f_tree_free(f_info)
 
   fail = (ncount_bigdft>runObj%inputs%ncount_cluster_x-1)
 END SUBROUTINE rundiis
@@ -586,6 +586,7 @@ subroutine fire(runObj,outs,nproc,iproc,ncount_bigdft,fail)
   integer :: infocode,iat
   character(len=4) :: fn4
   character(len=40) :: comment
+  type(f_tree) :: info
 
   !n(c) character(len=*), parameter :: subname='fire'
 
@@ -622,6 +623,7 @@ subroutine fire(runObj,outs,nproc,iproc,ncount_bigdft,fail)
   !n(c) ecur=etot
   eprev=0.0_gp
 
+  info=f_tree_new()
 
   Big_loop: do it=1,runObj%inputs%ncount_cluster_x-1
      do iat=1,3*runObj%atoms%astruct%nat
@@ -659,23 +661,26 @@ subroutine fire(runObj,outs,nproc,iproc,ncount_bigdft,fail)
          & ncount_bigdft,it,"GEOPT_FIRE",outs%energy,outs%energy-eprev,fmax,sqrt(fnrm),fluct*runObj%inputs%frac_fluct,fluct, &
          & "alpha=",alpha, "dt=",dt, "vnrm=",sqrt(vnrm), "nstep=",nstep,"P=",P
 
-         call yaml_mapping_open('Geometry')
-            call yaml_map('Ncount_BigDFT',ncount_bigdft)
-            call yaml_map('Geometry step',it)
-            call yaml_map('Geometry Method','GEOPT_FIRE')
-            call yaml_map('epred',(/ outs%energy,outs%energy-eprev /),fmt='(1pe21.14)')
-            call yaml_map('Alpha', alpha, fmt='(es7.2e1)')
-            call yaml_map('dt',dt, fmt='(es7.2e1)')
-            call yaml_map('vnrm',sqrt(vnrm), fmt='(es8.2)')
-            call yaml_map('nstep',nstep, fmt='(I5)')
-            call yaml_map('P',P, fmt='(es9.2)')
-            call geometry_output(fmax,fnrm,fluct)
-         call yaml_mapping_close()
-         !write(* ,'(I5,1x,I5,2x,a10,2x,1pe21.14,2x,e9.2,1(1pe11.3),3(1pe10.2), & 
-         !& 2x,a6,es7.2e1,2x,a3,es7.2e1,2x,a6,es8.2,2x,a6,I5,2x,a2,es9.2)') &
-         !& ncount_bigdft,it,"GEOPT_FIRE",epred,epred-eprev,fmax,sqrt(fnrm),fluct*runObj%inputs%frac_fluct,fluct, &
-         !& "alpha=",alpha, "dt=",dt, "vnrm=",sqrt(vnrm), "nstep=",nstep,"P=",P 
-         !eprev=epred
+         call f_tree_push(info//'epred',yaml_toa([outs%energy,outs%energy-eprev],fmt='(1pe21.14)'))
+         call f_tree_push(info//'Alpha',yaml_toa(alpha, fmt='(es7.2e1)'))
+         call f_tree_push(info//'dt'   ,yaml_toa(dt, fmt='(es7.2e1)'))
+         call f_tree_push(info//'vnrm' ,yaml_toa(sqrt(vnrm), fmt='(es8.2)'))
+         call f_tree_push(info//'nstep',yaml_toa(nstep, fmt='(I5)'))
+         call f_tree_push(info//'P'    ,yaml_toa(P, fmt='(es9.2)'))
+         call geometry_output('GEOPT_FIRE',ncount_bigdft,it,fmax,fnrm,fluct,info)
+         
+!!$         call yaml_mapping_open('Geometry')
+!!$            call yaml_map('Ncount_BigDFT',ncount_bigdft) !universal
+!!$            call yaml_map('Geometry step',it)
+!!$            call yaml_map('Geometry Method','GEOPT_FIRE')
+!!$            call yaml_map('epred',(/ outs%energy,outs%energy-eprev /),fmt='(1pe21.14)')
+!!$            call yaml_map('Alpha', alpha, fmt='(es7.2e1)')
+!!$            call yaml_map('dt',dt, fmt='(es7.2e1)')
+!!$            call yaml_map('vnrm',sqrt(vnrm), fmt='(es8.2)')
+!!$            call yaml_map('nstep',nstep, fmt='(I5)')
+!!$            call yaml_map('P',P, fmt='(es9.2)')
+!!$            call geometry_output(fmax,fnrm,fluct)
+!!$         call yaml_mapping_close()
      end if
 
      eprev=outs%energy
@@ -730,7 +735,7 @@ subroutine fire(runObj,outs,nproc,iproc,ncount_bigdft,fail)
      !if (iproc==0) write(10,*) epred, vnrm*0.5d0
    end do Big_loop
 
-        
+   call f_tree_free(info)
 ! Output the final energy, atomic positions and forces
    call vcopy(3*runObj%atoms%astruct%nat, pospred(1), 1, runObj%atoms%astruct%rxyz(1,1), 1)
    call vcopy(3*outs%fdim, fpred(1), 1, outs%fxyz(1,1), 1)
@@ -739,17 +744,27 @@ END SUBROUTINE fire
 
 
 !> Display geometry quantities
-subroutine geometry_output(fmax,fnrm,fluct)
+subroutine geometry_output(method,ncount_bigdft,it,fmax,fnrm,fluct,extra_tree)
    use module_base
    use yaml_output
    implicit none
+   character(len=*), intent(in) :: method !<description of the geometry
+   integer, intent(in) :: ncount_bigdft !<number of external calls
+   integer, intent(in) :: it !< number of the iteration
    real(gp), intent(in) :: fmax    !< Maximal absolute value of atomic forces
    real(gp), intent(in) :: fnrm    !< Norm of atomic forces
    real(gp), intent(in) :: fluct   !< Fluctuation of atomic forces
-   !write(*,'(1x,a,1pe14.5,2(1x,a,1pe14.5))') 'FORCES norm(Ha/Bohr): maxval=',fmax,'fnrm2=',fnrm,'fluct=', fluct
-   call yaml_mapping_open('FORCES norm(Ha/Bohr)',flow=.true.)
-      call yaml_map(' maxval',fmax,fmt='(1pe14.5)')
-      call yaml_map('fnrm2',fnrm,fmt='(1pe14.5)')
-      call yaml_map('fluct',fluct,fmt='(1pe14.5)')
+   type(f_tree), intent(in) :: extra_tree !<extra information on the geometry step
+
+   call yaml_mapping_open('Geometry')
+     call yaml_map('Geometry Method',method)
+     call yaml_map('Ncount_BigDFT',ncount_bigdft) !universal
+     call yaml_map('Geometry step',it)
+     call yaml_mapping_open('FORCES norm(Ha/Bohr)',flow=.true.)
+        call yaml_map(' maxval',fmax,fmt='(1pe14.5)')
+        call yaml_map('fnrm2',fnrm,fmt='(1pe14.5)')
+        call yaml_map('fluct',fluct,fmt='(1pe14.5)')
+     call yaml_mapping_close()
+     call f_tree_dump(extra_tree)
    call yaml_mapping_close()
 end subroutine geometry_output

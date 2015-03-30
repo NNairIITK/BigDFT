@@ -36,12 +36,13 @@ module f_utils
      character(len=64) :: name
      integer :: id
   end type f_enumerator
-
+  
   integer, parameter, private :: NULL_INT=-1024
   character(len=*), parameter, private :: null_name='nullified enumerator'
 
   type(f_enumerator), parameter, private :: &
        f_enum_null=f_enumerator(null_name,NULL_INT)
+
 
   !>interface for difference between two intrinsic types
   interface f_diff
@@ -315,7 +316,7 @@ contains
     unt=7
     if (present(unit)) unt=unit
     inquire(unit=unt,opened=unit_is_open,iostat=ierr)
-    do while(unit_is_open .and. ierr==0)      
+    do while(unit_is_open .and. ierr==0)     
        unt=unt+1
        inquire(unit=unt,opened=unit_is_open,iostat=ierr)
     end do
@@ -378,7 +379,7 @@ contains
   end subroutine f_rewind
   
   !> open a filename and retrieve the unteger for the unit
-  subroutine f_open_file(unit,file,status,position,binary)
+  subroutine f_open_file(unit,file,status,position,action,binary)
     use yaml_strings, only: f_strcpy
     implicit none
     !> integer of the unit. On entry, it indicates the 
@@ -391,6 +392,8 @@ contains
     character(len=*), intent(in), optional :: status
     !> position
     character(len=*), intent(in), optional :: position
+    !> action
+    character(len=*), intent(in), optional :: action
     !> if true, the file will be opened in the unformatted i/o
     !! if false or absent, the file will be opened for formatted i/o
     logical, intent(in), optional :: binary
@@ -399,6 +402,7 @@ contains
     character(len=7) :: f_status
     character(len=11) :: f_form
     character(len=6) :: f_position
+    character(len=9) :: f_action
 
     !first, determine if the file is already opened.
     call f_file_unit(file,unt)
@@ -420,9 +424,12 @@ contains
        call f_strcpy(src='asis',dest=f_position)
        if (present(position)) call f_strcpy(src=position,dest=f_position)
 
+       call f_strcpy(src='readwrite',dest=f_action)
+       if (present(action)) call f_strcpy(src=action,dest=f_action)
+
        !then open the file with the given unit
        open(unit=unt,file=trim(file),status=f_status,form=f_form,&
-            position=f_position,iostat=ierror)
+            position=f_position,action=f_action,iostat=ierror)
        if (ierror /= 0) then
           call f_err_throw('Error in opening file='//&
                trim(file)//' with unit='//trim(yaml_toa(unt,fmt='(i0)'))//&

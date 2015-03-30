@@ -408,6 +408,7 @@ subroutine read_ascii_positions(ifile,filename,astruct,comment,energy,fxyz,getli
   else
      read(lines(2),*) alat1,alat2,alat3
      read(lines(3),*) alat4,alat5,alat6
+
      if (f_err_raise( (alat2 /= 0. .or. alat4 /= 0. .or. alat5 /= 0.), &
         & "File '" // trim(filename) // "': Only orthorombic boxes are possible but alat2, alat4 and alat5 = " // &
         & trim(yaml_toa( (/ alat2, alat4, alat5 /) )), err_id=BIGDFT_INPUT_VARIABLES_ERROR)) then

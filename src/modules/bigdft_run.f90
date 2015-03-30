@@ -14,8 +14,8 @@ module bigdft_run
   use dictionaries
   use module_types, only: input_variables,DFT_wavefunction,GPU_pointers,energy_terms
   use module_atoms, only: atoms_data
-  use dynamic_memory, only: f_reference_counter,f_ref_new,f_ref,f_unref,&
-       nullify_f_ref
+  use f_refcnts, only: f_reference_counter,f_ref_new,f_ref,f_unref,&
+       nullify_f_ref,f_ref_free
   use f_utils
   use module_input_dicts, only: bigdft_set_run_properties => dict_set_run_properties,&
        bigdft_get_run_properties => dict_get_run_properties
@@ -135,6 +135,8 @@ contains
     use dynamic_memory
     use public_enums
     use module_morse_bulk
+    use module_tersoff
+    use module_BornMayerHugginsTosiFumi
     use module_lj
     use module_lenosky_si
     use module_base, only: bigdft_mpi
@@ -197,6 +199,18 @@ contains
        mm_rst%refcnt=f_ref_new('mm_rst')
         call init_morse_bulk(runObj%inputs%mm_paramset,&
              runObj%inputs%mm_paramfile,runObj%atoms%astruct%geocode)
+    case('TERSOFF_RUN_MODE')
+       call nullify_MM_restart_objects(mm_rst)
+       !create reference counter
+       mm_rst%refcnt=f_ref_new('mm_rst')
+       call init_tersoff(nat,runObj%atoms%astruct,runObj%inputs%mm_paramset,&
+            runObj%inputs%mm_paramfile,runObj%atoms%astruct%geocode) 
+    case('BMHTF_RUN_MODE')
+       call nullify_MM_restart_objects(mm_rst)
+       !create reference counter
+       mm_rst%refcnt=f_ref_new('mm_rst')
+       call init_bmhtf(nat,runObj%atoms%astruct,runObj%inputs%mm_paramset,&
+            runObj%inputs%mm_paramfile,runObj%atoms%astruct%geocode) 
     case('AMBER_RUN_MODE')
        if (associated(mm_rst%rf_extra)) then
           if (size(mm_rst%rf_extra) == nat) then
@@ -973,7 +987,6 @@ contains
 
     if (bigdft_mpi%iproc==0 .and. runObj%run_mode /= 'QM_RUN_MODE') &
          call yaml_sequence_open('Initializing '//trim(char(runObj%run_mode)))
-
     call f_release_routine()
 
   END SUBROUTINE run_objects_init
@@ -1310,6 +1323,8 @@ contains
     use yaml_output
     use module_forces, only: clean_forces
     use module_morse_bulk
+    use module_tersoff
+    use module_BornMayerHugginsTosiFumi
     implicit none
     !parameters
     type(run_objects), intent(inout) :: runObj
@@ -1348,8 +1363,8 @@ contains
     end if
     !#########################################################
 
-
     call clean_state_properties(outs) !zero the state first
+
     !BS: is new document necessary (high overhead for FF)?
     !LG: unfortunately it it important to make testing possible. We should probably investigate 
     !    the reasons for such high overhead
@@ -1373,6 +1388,10 @@ contains
         call morse_slab_wrapper(nat,bigdft_get_cell(runObj),rxyz_ptr, outs%fxyz, outs%energy)
     case('MORSE_BULK_RUN_MODE')
         call morse_bulk_wrapper(nat,bigdft_get_cell(runObj),rxyz_ptr, outs%fxyz, outs%energy)
+    case('TERSOFF_RUN_MODE')
+        call tersoff(nat,bigdft_get_cell(runObj),rxyz_ptr,outs%fxyz,outs%strten,outs%energy)
+    case('BMHTF_RUN_MODE')
+        call energyandforces_bmhtf(nat,rxyz_ptr,outs%fxyz,outs%energy)
     case('LENOSKY_SI_CLUSTERS_RUN_MODE')
        !else if(trim(adjustl(efmethod))=='LENSIc')then!for clusters
        call f_memcpy(src=rxyz_ptr,dest=runObj%mm_rst%rf_extra)

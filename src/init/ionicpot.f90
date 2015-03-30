@@ -238,9 +238,9 @@ subroutine IonicEnergyandForces(iproc,nproc,dpbox,at,elecfield,&
 
   !for the surfaces BC,
   !activate for the moment only the slow calculation of the ionic energy and forces
+  !the slowion command has also to be activated for the cavity calculation
   !if (at%astruct%geocode == 'S' .or. at%astruct%geocode == 'P') slowion=.true.
-  if (at%astruct%geocode == 'S') slowion=.true.
-  !slowion=.true.
+  if (at%astruct%geocode == 'S' .or. pkernel%method /= 'VAC') slowion=.true.
 
   if (slowion) then
 
@@ -459,6 +459,479 @@ subroutine IonicEnergyandForces(iproc,nproc,dpbox,at,elecfield,&
   call vdwcorrection_calculate_forces(fdisp,rxyz,at,dispersion)
   call vdwcorrection_freeparams() 
 END SUBROUTINE IonicEnergyandForces
+
+!> calculates the value of the dielectric funnction for a smoothed cavity 
+!! given a set of centres and radii.
+!! Need the epsilon0 as well as the radius of the cavit and its smoothness
+subroutine epsilon_rigid_cavity(geocode,ndims,hgrids,nat,rxyz,radii,epsilon0,delta,eps)
+  use f_utils
+  implicit none
+  character(len=1), intent(in) :: geocode !< @copydoc poisson_solver::doc::geocode
+  integer, intent(in) :: nat !< number of centres defining the cavity
+  real(kind=8), intent(in) :: epsilon0 !< dielectric constant of th solvent
+  real(kind=8), intent(in) :: delta !< smoothness factor of the cavity
+  integer, dimension(3), intent(in) :: ndims   !< dimensions of the simulation box
+  real(kind=8), dimension(3), intent(in) :: hgrids !< grid spacings
+  real(kind=8), dimension(nat), intent(in) :: radii !< radii of each of the atoms
+  !> position of all the atoms in the grid coordinates
+  real(kind=8), dimension(3,nat), intent(in) :: rxyz
+  real(kind=8), dimension(ndims(1),ndims(2),ndims(3)), intent(out) :: eps !< dielectric function
+  !local variables
+  logical :: perx,pery,perz
+  integer :: i1,i2,i3,iat,nbl1,nbl2,nbl3,nbr1,nbr2,nbr3,unt
+  real(kind=8) :: r2,x,y2,z2,d2,y,z,eps_min,eps1
+  !  real(kind=8), dimension(3) :: deps
+
+  !buffers associated to the geocode
+  !conditions for periodicity in the three directions
+  perx=(geocode /= 'F')
+  pery=(geocode == 'P')
+  perz=(geocode /= 'F')
+
+  call ext_buffers(perx,nbl1,nbr1)
+  call ext_buffers(pery,nbl2,nbr2)
+  call ext_buffers(perz,nbl3,nbr3)
+
+
+  do i3=1,ndims(3)
+     z=hgrids(3)*(i3-1-nbl3)
+     z2=z*z
+     do i2=1,ndims(2)
+        y=hgrids(2)*(i2-1-nbl2)
+        y2=y*y
+        do i1=1,ndims(1)
+           x=hgrids(1)*(i1-1-nbl1)
+           r2=x*x+y2+z2
+           !choose the closest atom
+           eps_min=1.d100
+           do iat=1,nat
+              d2=(x-rxyz(1,iat))**2+(y-rxyz(2,iat))**2+(z-rxyz(3,iat))**2
+              if (d2.eq.0.d0) d2=1.0d-30
+              eps1=epsl(sqrt(d2),radii(iat),delta,epsilon0)
+              if (eps1< eps_min) then
+                 !deps(1)=depsoeps(sqrt(d2),radii(iat),delta,epsilon0)*(x-rxyz(1,iat))/sqrt(d2)
+                 !deps(2)=depsoeps(sqrt(d2),radii(iat),delta,epsilon0)*(y-rxyz(2,iat))/sqrt(d2)
+                 !deps(3)=depsoeps(sqrt(d2),radii(iat),delta,epsilon0)*(z-rxyz(3,iat))/sqrt(d2)
+                 eps_min=eps1
+              end if
+              if (abs(eps_min-1.d0) < epsilon(1.d0)) exit
+           end do
+           if (nat==0) then
+              eps_min=1.d0
+              !deps=0.d0
+           end if
+           eps(i1,i2,i3)=eps_min
+           !dlogeps(1:3,i1,i2,i3)=deps(1:3)
+        end do
+     end do
+  end do
+
+  unt=f_get_free_unit(21)
+  call f_open_file(unt,file='epsilon.dat')
+  i1=1!n03/2
+  do i2=1,ndims(2)
+     do i3=1,ndims(3)
+        write(unt,'(2(1x,I4),2(1x,e14.7))')i2,i3,eps(i1,i2,i3),eps(ndims(1)/2,i2,i3)
+     end do
+  end do
+  call f_close(unt)
+
+  unt=f_get_free_unit(22)
+  call f_open_file(unt,file='epsilon_line.dat')
+  do i2=1,ndims(2)
+   write(unt,'(1x,I8,1(1x,e22.15))')i2,eps(ndims(1)/2,i2,ndims(3)/2)
+  end do
+  call f_close(unt)
+
+  contains
+
+    pure function epsl(r,rc,delta,epsilon0)
+      implicit none
+      real(kind=8), intent(in) :: r,rc,delta,epsilon0
+      real(kind=8) :: epsl
+      !local variables
+      real(kind=8) :: d
+
+      d=(r-rc)/delta
+      epsl=0.5d0*(epsilon0-1.d0)*(erf(d)+1.d0)+1.d0
+    end function epsl
+
+    pure function depsoeps(r,rc,delta,epsilon0)
+      implicit none
+      real(kind=8), intent(in) :: r,rc,delta,epsilon0
+      real(kind=8) :: depsoeps
+      !local variables
+      real(kind=8) :: d
+
+      d=(r-rc)/delta
+      depsoeps=(epsilon0-1.d0)/delta*exp(-d**2)/epsl(r,rc,delta,epsilon0)
+    end function depsoeps
+ end subroutine epsilon_rigid_cavity
+
+!> calculates the value of the dielectric function for a smoothed cavity 
+!! given a set of centres and radii. Based on error function.
+!! Need the epsilon0 as well as the radius of the cavit and its smoothness
+subroutine epsilon_rigid_cavity_error_multiatoms(geocode,ndims,hgrids,nat,rxyz,radii,epsilon0,delta,&
+     eps,dlogeps,oneoeps,oneosqrteps,corr,IntSur,IntVol)
+  use f_utils
+  implicit none
+  character(len=1), intent(in) :: geocode !< @copydoc poisson_solver::doc::geocode
+  integer, intent(in) :: nat !< number of centres defining the cavity
+  real(kind=8), intent(in) :: epsilon0 !< dielectric constant of the solvent
+  real(kind=8), intent(in) :: delta !< smoothness factor of the cavity
+  integer, dimension(3), intent(in) :: ndims   !< dimensions of the simulation box
+  real(kind=8), dimension(3), intent(in) :: hgrids !< grid spacings
+  real(kind=8), dimension(nat), intent(in) :: radii !< radii of each of the atoms
+  !> position of all the atoms in the grid coordinates
+  real(kind=8), dimension(3,nat), intent(in) :: rxyz
+  real(kind=8), dimension(ndims(1),ndims(2),ndims(3)), intent(out) :: eps !< dielectric function
+  real(kind=8), dimension(3,ndims(1),ndims(2),ndims(3)), intent(out) :: dlogeps !< dlogeps
+  real(kind=8), dimension(ndims(1),ndims(2),ndims(3)), intent(out) :: oneoeps !< inverse of epsilon. Needed for PI method.
+  !> inverse square root of epsilon. Needed for PCG method.
+  real(kind=8), dimension(ndims(1),ndims(2),ndims(3)), intent(out) :: oneosqrteps
+  real(kind=8), dimension(ndims(1),ndims(2),ndims(3)), intent(out) :: corr !< correction term of the Generalized Laplacian.
+  !> Surface and volume integral needed for non-electrostatic contributions to the energy.
+  real(kind=8), intent(out) :: IntSur,IntVol 
+
+  !local variables
+  logical :: perx,pery,perz
+  integer :: i,i1,i2,i3,iat,jat,ii,nbl1,nbl2,nbl3,nbr1,nbr2,nbr3,unt
+  real(kind=8) :: r2,x,y2,z2,d,d2,d12,y,z,eps_min,eps1,pi,de2,dde,d1,oneod,h,coeff,dmin,dmax,oneoeps0,oneosqrteps0
+  real(kind=8) :: r,t,fact1,fact2,fact3,dd,dtx,curr
+  real(kind=8), dimension(3) :: deps,ddeps,v
+  real(kind=8), dimension(nat) :: ep,ddep
+  real(kind=8), dimension(3,nat) :: dep
+
+  !buffers associated to the geocode
+  !conditions for periodicity in the three directions
+  perx=(geocode /= 'F')
+  pery=(geocode == 'P')
+  perz=(geocode /= 'F')
+
+  call ext_buffers(perx,nbl1,nbr1)
+  call ext_buffers(pery,nbl2,nbr2)
+  call ext_buffers(perz,nbl3,nbr3)
+
+  IntSur=0.d0
+  IntVol=0.d0
+  pi = 4.d0*datan(1.d0)
+  r=0.d0
+  t=0.d0
+  oneoeps0=1.d0/epsilon0
+  oneosqrteps0=1.d0/dsqrt(epsilon0)
+
+  do i3=1,ndims(3)
+   z=hgrids(3)*(i3-1-nbl3)
+   v(3)=z
+   do i2=1,ndims(2)
+    y=hgrids(2)*(i2-1-nbl2)
+    v(2)=y
+    do i1=1,ndims(1)
+     x=hgrids(1)*(i1-1-nbl1)
+     v(1)=x
+
+     do iat=1,nat
+      d2=(x-rxyz(1,iat))**2+(y-rxyz(2,iat))**2+(z-rxyz(3,iat))**2
+      d=dsqrt(d2)
+
+      if (d2.eq.0.d0) then
+       d2=1.0d-30
+       ep(iat)=epsl(d,radii(iat),delta)
+       do i=1,3
+        dep(i,iat)=0.d0
+       end do
+       ddep(iat)=0.d0
+      else
+       oneod=1.d0/d
+       ep(iat)=epsl(d,radii(iat),delta)
+       d1=d1eps(d,radii(iat),delta)
+       coeff=2.d0*((sqrt(d2)-radii(iat))/(delta**2))
+       do i=1,3
+        h=(v(i)-rxyz(i,iat))*oneod
+        dep(i,iat) =d1*h
+       end do
+       ddep(iat)=d1*(2.d0*oneod-coeff)
+      end if
+
+     end do
+
+     IntVol = IntVol + (1.d0-product(ep))
+
+     eps(i1,i2,i3)=(epsilon0-1.d0)*product(ep)+1.d0
+     oneoeps(i1,i2,i3)=1.d0/eps(i1,i2,i3)
+     oneosqrteps(i1,i2,i3)=1.d0/dsqrt(eps(i1,i2,i3))
+
+     do i=1,3
+      deps(i)=0.d0
+      do jat=0,nat-1
+       curr=dep(i,jat+1)
+       do iat=1,nat-1
+        curr=curr*ep(modulo(iat+jat,nat)+1)
+       end do
+        deps(i) = deps(i) + curr
+      end do
+      deps(i) = deps(i)*(epsilon0-1.d0)
+     end do
+
+     d12=0.d0
+     do i=1,3
+      dlogeps(i,i1,i2,i3)=deps(i)/eps(i1,i2,i3)
+      d12 = d12 + deps(i)**2
+     end do
+
+     IntSur = IntSur + dsqrt(d12)
+
+     dd=0.d0
+     do jat=1,nat
+      curr=ddep(jat)
+      do iat=1,nat-1
+       curr=curr*ep(modulo(iat+jat-1,nat)+1)
+      end do
+      dd = dd + curr
+     end do
+
+      do i=1,3
+       do iat=1,nat-1
+        do jat=iat+1,nat
+         curr=dep(i,iat)*dep(i,jat)
+         do ii=1,nat
+          if ((ii.eq.iat).or.(ii.eq.jat)) then
+          else
+           curr=curr*ep(ii)
+          end if
+         end do
+         curr=curr*2.d0
+         dd = dd + curr
+        end do
+       end do
+      end do
+
+     dd=dd*(epsilon0-1.d0)
+     corr(i1,i2,i3)=(-0.125d0/pi)*(0.5d0*d12/eps(i1,i2,i3)-dd)
+
+    end do
+   end do
+  end do
+
+  IntSur=IntSur*hgrids(1)*hgrids(2)*hgrids(3)/(epsilon0-1.d0)
+  IntVol=IntVol*hgrids(1)*hgrids(2)*hgrids(3)
+
+  unt=f_get_free_unit(21)
+  call f_open_file(unt,file='epsilon.dat')
+  i1=1!n03/2
+  do i2=1,ndims(2)
+     do i3=1,ndims(3)
+        write(unt,'(2(1x,I4),2(1x,e14.7))')i2,i3,eps(i1,i2,i3),eps(ndims(1)/2,i2,i3)
+     end do
+  end do
+  call f_close(unt)
+
+  unt=f_get_free_unit(22)
+  call f_open_file(unt,file='epsilon_line.dat')
+  do i2=1,ndims(2)
+   write(unt,'(1x,I8,1(1x,e22.15))')i2,eps(ndims(1)/2,i2,ndims(3)/2)
+  end do
+  call f_close(unt)
+
+  contains
+    pure function epsl(r,rc,delta)
+      implicit none
+      real(kind=8), intent(in) :: r,rc,delta
+      real(kind=8) :: epsl
+      !local variables
+      real(kind=8) :: d
+
+      d=(r-rc)/delta
+      epsl=0.5d0*(erf(d)+1.d0)
+    end function epsl
+
+    pure function d1eps(r,rc,delta)
+      implicit none
+      real(kind=8), intent(in) :: r,rc,delta
+      real(kind=8) :: d1eps
+      !local variables
+      real(kind=8) :: d
+
+      d=(r-rc)/delta
+      d1eps=(1.d0/(delta*sqrt(pi)))*max(exp(-d**2),1.0d-24)
+    end function d1eps
+
+end subroutine epsilon_rigid_cavity_error_multiatoms
+
+!> calculates the value of the dielectric function for a smoothed cavity 
+!! given a set of centres and radii. Based on the Andreussi epsilon function
+!! with a gaussian \rho^{elec}.
+!! Need the epsilon0 as well as the radius of the cavit and its smoothness
+subroutine epsilon_rigid_cavity_new_multiatoms(geocode,ndims,hgrids,nat,rxyz,radii,epsilon0,delta,&
+     eps,dlogeps,oneoeps,oneosqrteps,corr,IntSur,IntVol)
+  use f_utils
+  implicit none
+  character(len=1), intent(in) :: geocode !< @copydoc poisson_solver::doc::geocode
+  integer, intent(in) :: nat !< number of centres defining the cavity
+  real(kind=8), intent(in) :: epsilon0 !< dielectric constant of the solvent
+  real(kind=8), intent(in) :: delta !< smoothness factor of the cavity
+  integer, dimension(3), intent(in) :: ndims   !< dimensions of the simulation box
+  real(kind=8), dimension(3), intent(in) :: hgrids !< grid spacings
+  real(kind=8), dimension(nat), intent(in) :: radii !< radii of each of the atoms
+  !> position of all the atoms in the grid coordinates
+  real(kind=8), dimension(3,nat), intent(in) :: rxyz
+  real(kind=8), dimension(ndims(1),ndims(2),ndims(3)), intent(out) :: eps !< dielectric function
+  real(kind=8), dimension(3,ndims(1),ndims(2),ndims(3)), intent(out) :: dlogeps !< dlogeps
+  real(kind=8), dimension(ndims(1),ndims(2),ndims(3)), intent(out) :: oneoeps !< inverse of epsilon. Needed for PI method.
+  !> inverse square root of epsilon. Needed for PCG method.
+  real(kind=8), dimension(ndims(1),ndims(2),ndims(3)), intent(out) :: oneosqrteps 
+  real(kind=8), dimension(ndims(1),ndims(2),ndims(3)), intent(out) :: corr !< correction term of the Generalized Laplacian.
+  !> Surface and volume integral needed for non-electrostatic contributions to the energy.
+  real(kind=8), intent(out) :: IntSur,IntVol 
+
+  !local variables
+  logical :: perx,pery,perz
+  integer :: i,i1,i2,i3,iat,jat,ii,nbl1,nbl2,nbl3,nbr1,nbr2,nbr3,unt
+  real(kind=8) :: r2,x,y2,z2,d,d2,d12,y,z,eps_min,eps1,pi,de2,dde,d1,oneod,h,coeff,dmin,dmax,oneoeps0,oneosqrteps0
+  real(kind=8) :: r,t,fact1,fact2,fact3,dd,dtx,curr
+  real(kind=8), dimension(3) :: deps,ddeps,v
+  real(kind=8), dimension(nat) :: ep,ddep
+  real(kind=8), dimension(3,nat) :: dep
+
+  !buffers associated to the geocode
+  !conditions for periodicity in the three directions
+  perx=(geocode /= 'F')
+  pery=(geocode == 'P')
+  perz=(geocode /= 'F')
+
+  call ext_buffers(perx,nbl1,nbr1)
+  call ext_buffers(pery,nbl2,nbr2)
+  call ext_buffers(perz,nbl3,nbr3)
+
+  IntSur=0.d0
+  IntVol=0.d0
+  pi = 4.d0*datan(1.d0)
+  r=0.d0
+  t=0.d0
+  oneoeps0=1.d0/epsilon0
+  oneosqrteps0=1.d0/dsqrt(epsilon0)
+
+  do i3=1,ndims(3)
+   z=hgrids(3)*(i3-1-nbl3)
+   v(3)=z
+   do i2=1,ndims(2)
+    y=hgrids(2)*(i2-1-nbl2)
+    v(2)=y
+    do i1=1,ndims(1)
+     x=hgrids(1)*(i1-1-nbl1)
+     v(1)=x
+     do iat=1,nat
+      dmax = radii(iat) - 2.40d0*delta
+      dmin = radii(iat) + 1.60d0*delta
+      fact1=2.d0*pi/(-(dmax**2) + dmin**2)
+      fact2=(dlog(2.d0))/(2.d0*pi)
+      fact3=(dlog(2.d0))/(-(dmax**2) + dmin**2)
+      d2=(x-rxyz(1,iat))**2+(y-rxyz(2,iat))**2+(z-rxyz(3,iat))**2
+      if (d2.eq.0.d0) d2=1.0d-30
+      d=dsqrt(d2)
+      if (d.lt.dmax) then
+       ep(iat)=0.d0
+       do i=1,3
+        dep(i,iat)=0.d0
+       end do
+       ddep(iat)=0.d0
+      else if (d.gt.dmin) then
+       ep(iat)=1.d0
+       do i=1,3
+        dep(i,iat)=0.d0
+       end do
+       ddep(iat)=0.d0
+      else
+       r=fact1*(-(dmax**2) + d2)
+       t=fact2*(r-dsin(r)) 
+       ep(iat)=dexp(t)-1.d0
+       dtx=fact3*(1.d0-dcos(r))
+       do i=1,3
+        dep(i,iat)=dexp(t)*dtx*2.d0*(v(i)-rxyz(i,iat))
+       end do
+       ddep(iat) = dexp(t)*(4.d0*(dtx**2)*d2 + 4.d0*fact1*fact3*dsin(r)*d2 + 6.d0*dtx)
+      end if
+     end do
+
+     IntVol = IntVol + (1.d0-product(ep))
+
+     eps(i1,i2,i3)=(epsilon0-1.d0)*product(ep)+1.d0
+     oneoeps(i1,i2,i3)=1.d0/eps(i1,i2,i3)
+     oneosqrteps(i1,i2,i3)=1.d0/dsqrt(eps(i1,i2,i3))
+
+     do i=1,3
+      deps(i)=0.d0
+      do jat=0,nat-1
+       curr=dep(i,jat+1)
+       do iat=1,nat-1
+        curr=curr*ep(modulo(iat+jat,nat)+1)
+       end do
+        deps(i) = deps(i) + curr
+      end do
+      deps(i) = deps(i)*(epsilon0-1.d0)
+     end do
+
+     d12=0.d0
+     do i=1,3
+      dlogeps(i,i1,i2,i3)=deps(i)/eps(i1,i2,i3)
+      d12 = d12 + deps(i)**2
+     end do
+
+     IntSur = IntSur + dsqrt(d12)
+
+     dd=0.d0
+     do jat=1,nat
+      curr=ddep(jat)
+      do iat=1,nat-1
+       curr=curr*ep(modulo(iat+jat-1,nat)+1)
+      end do
+      dd = dd + curr
+     end do
+
+      do i=1,3
+       do iat=1,nat-1
+        do jat=iat+1,nat
+         curr=dep(i,iat)*dep(i,jat)
+         do ii=1,nat
+          if ((ii.eq.iat).or.(ii.eq.jat)) then
+          else
+           curr=curr*ep(ii)
+          end if
+         end do
+         curr=curr*2.d0
+         dd = dd + curr
+        end do
+       end do
+      end do
+
+     dd=dd*(epsilon0-1.d0)
+     corr(i1,i2,i3)=(-0.125d0/pi)*(0.5d0*d12/eps(i1,i2,i3)-dd)
+
+    end do
+   end do
+  end do
+
+  IntSur=IntSur*hgrids(1)*hgrids(2)*hgrids(3)/(epsilon0-1.d0)
+  IntVol=IntVol*hgrids(1)*hgrids(2)*hgrids(3)
+
+  unt=f_get_free_unit(21)
+  call f_open_file(unt,file='epsilon.dat')
+  i1=1!n03/2
+  do i2=1,ndims(2)
+     do i3=1,ndims(3)
+        write(unt,'(2(1x,I4),2(1x,e14.7))')i2,i3,eps(i1,i2,i3),eps(ndims(1)/2,i2,i3)
+     end do
+  end do
+  call f_close(unt)
+
+  unt=f_get_free_unit(22)
+  call f_open_file(unt,file='epsilon_line.dat')
+  do i2=1,ndims(2)
+   write(unt,'(1x,I8,1(1x,e22.15))')i2,eps(ndims(1)/2,i2,ndims(3)/2)
+  end do
+  call f_close(unt)
+
+end subroutine epsilon_rigid_cavity_new_multiatoms
 
 
 subroutine createEffectiveIonicPotential(iproc, nproc, verb, in, atoms, rxyz, shift, &
