@@ -2,7 +2,7 @@
 !!  Input/Output for minima hopping
 !!
 !! @author
-!!    Copyright (C) 2013-2014 BigDFT group
+!!    Copyright (C) 2015-2015 BigDFT group
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
@@ -342,8 +342,8 @@ subroutine check_struct_file_exists(filename,exists)
     character(len=*), intent(in) :: filename
     logical, optional, intent(out) :: exists
     !local
-    logical :: xyzexists=.false.,asciiexists=.false.
-    integer :: indx,inda
+    logical :: xyzexists=.false.,asciiexists=.false., intexists=.false.
+    integer :: indx,inda,indi
 
     if(present(exists))then
         exists=.true.
@@ -351,6 +351,7 @@ subroutine check_struct_file_exists(filename,exists)
 
     indx=index(filename,'.xyz')
     inda=index(filename,'.ascii')
+    indi=index(filename,'.int')
     if(indx==0)then
         inquire(file=trim(adjustl(filename))//'.xyz',exist=xyzexists)
     else
@@ -362,7 +363,13 @@ subroutine check_struct_file_exists(filename,exists)
     else
         inquire(file=trim(adjustl(filename)),exist=asciiexists)
     endif
-    if(.not. (xyzexists .or. asciiexists))then
+    if(indi==0)then
+        inquire(file=trim(adjustl(filename))//'.int',&
+                exist=intexists)
+    else
+        inquire(file=trim(adjustl(filename)),exist=intexists)
+    endif
+    if(.not. (xyzexists .or. asciiexists .or. intexists))then
         if(present(exists))then
             exists=.false.
         else

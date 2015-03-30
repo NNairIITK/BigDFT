@@ -1,7 +1,7 @@
 !> @file
 !!  Routines for Stefan's new minimization method
 !! @author Stefan Goedecker and Bastian Schaefer
-!!    Copyright (C) 2014-2015 BigDFT group
+!!    Copyright (C) 2014-2015 BigDFT group <br>
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
@@ -35,7 +35,7 @@ subroutine sqnm(runObj,outsIO,nproc,iproc,verbosity,ncount_bigdft,fail)
    integer :: nit      !< Maximum number of iterations
    integer :: nat      !< Number of atoms
    integer :: lwork
-   integer :: it,iat,l,ihist,icheck !< Counter variables
+   integer :: it,i,iat,l,ihist,icheck !< Counter variables
    integer :: itswitch
    integer :: imode
    integer :: nbond
@@ -73,9 +73,10 @@ subroutine sqnm(runObj,outsIO,nproc,iproc,verbosity,ncount_bigdft,fail)
    real(gp) :: maxrise !< energy ist not allowed to rise more than maxrise in single step
    real(gp) :: steepthresh !< if fnrm is larger that steepthresh, steepest descent is used
    real(gp) :: trustr !< a single atoms is not allowed to be dsiplaced more than by trustr
+   integer :: idxtmp
    integer,  allocatable, dimension(:,:)   :: iconnect
+   integer,  allocatable, dimension(:)     :: idx!index array for keeping track of history
    real(gp), allocatable, dimension(:,:,:) :: rxyz
-   real(gp), allocatable, dimension(:,:,:) :: rxyzraw
    real(gp), allocatable, dimension(:,:,:) :: fxyz
    real(gp), allocatable, dimension(:,:,:) :: fxyzraw
    real(gp), allocatable, dimension(:,:,:) :: fstretch
@@ -101,9 +102,11 @@ subroutine sqnm(runObj,outsIO,nproc,iproc,verbosity,ncount_bigdft,fail)
    character(len=9)                        :: cdmy9
    character(len=8)                        :: cdmy8
    integer :: ifail
-    !functions
-    real(gp) :: dnrm2
+   !functions
+   real(gp) :: dnrm2
+   type(f_tree) :: f_info
 
+   f_info=f_tree_new()
 
    !set parameters
    nit=runObj%inputs%ncount_cluster_x
@@ -150,7 +153,7 @@ subroutine sqnm(runObj,outsIO,nproc,iproc,verbosity,ncount_bigdft,fail)
    ! allocate arrays
    lwork=1000+10*nat**2
    rxyz = f_malloc((/ 1.to.3, 1.to.nat, 0.to.nhistx /),id='rxyz')
-   rxyzraw = f_malloc((/ 1.to.3, 1.to.nat, 0.to.nhistx /),id='rxyzraw')
+   idx = f_malloc((/ 0.to.nhistx /),id='ixyz')
    fxyz = f_malloc((/ 1.to.3, 1.to.nat, 0.to.nhistx /),id='fxyz')
    fxyzraw = f_malloc((/ 1.to.3, 1.to.nat, 0.to.nhistx /),id='fxyzraw')
    fstretch = f_malloc((/ 1.to.3, 1.to.nat, 0.to.nhistx /),id='fstretch')
@@ -176,6 +179,9 @@ subroutine sqnm(runObj,outsIO,nproc,iproc,verbosity,ncount_bigdft,fail)
    endif 
    wold = f_malloc((/ 1.to.nbond/),id='wold')
    wold =0.0_gp
+   do i=0,nhistx
+    idx(i)=i
+   enddo
 
 
    call init_state_properties(outs, runObj%atoms%astruct%nat)
@@ -191,17 +197,17 @@ subroutine sqnm(runObj,outsIO,nproc,iproc,verbosity,ncount_bigdft,fail)
 !   ncount_bigdft=ncount_bigdft+1
 
 !! copy to internal variables
-   call vcopy(3*runObj%atoms%astruct%nat, runObj%atoms%astruct%rxyz(1,1), 1,rxyz(1,1,0), 1)
+   call vcopy(3*runObj%atoms%astruct%nat, runObj%atoms%astruct%rxyz(1,1), 1,rxyz(1,1,idx(0)), 1)
    call vcopy(3*runObj%atoms%astruct%nat, runObj%atoms%astruct%rxyz(1,1), 1,rxyzOld(1,1), 1)
-   call vcopy(3*outs%fdim, outs%fxyz(1,1), 1, fxyz(1,1,0), 1)
+   call vcopy(3*outs%fdim, outs%fxyz(1,1), 1, fxyz(1,1,idx(0)), 1)
    etot=outs%energy
 
-   call minenergyandforces(iproc,nproc,.false.,imode,runObj,outs,nat,rxyz(1,1,0),&
-       rxyzraw(1,1,0),fxyz(1,1,0),fstretch(1,1,0),fxyzraw(1,1,0),&
+   call minenergyandforces(iproc,nproc,.false.,imode,runObj,outs,nat,rxyz(1,1,idx(0)),&
+       fxyz(1,1,idx(0)),fstretch(1,1,idx(0)),fxyzraw(1,1,idx(0)),&
        etot,iconnect,nbond,wold,beta_stretchx,beta_stretch,infocode)
-   if(imode==2)rxyz(:,:,0)=rxyz(:,:,0)+beta_stretch*fstretch(:,:,0)
+   if(imode==2)rxyz(:,:,idx(0))=rxyz(:,:,idx(0))+beta_stretch*fstretch(:,:,idx(0))
 
-   call fnrmandforcemax(fxyzraw(1,1,0),fnrm,fmax,nat)
+   call fnrmandforcemax(fxyzraw(1,1,idx(0)),fnrm,fmax,nat)
    fnrm=sqrt(fnrm)
    if (fmax < 3.e-1_gp) call updatefluctsum(outs%fnoise,fluct)
 
@@ -238,25 +244,19 @@ subroutine sqnm(runObj,outsIO,nproc,iproc,verbosity,ncount_bigdft,fail)
          steep=.false.
       endif
 
-      ! make space in the history list
+      ! cycle the index array
       if (nhist.gt.nhistx) then
          nhist=nhistx
+         idxtmp=idx(0)
          do ihist=0,nhist-1
-            do iat=1,nat
-               do l=1,3
-                  rxyz(l,iat,ihist)=rxyz(l,iat,ihist+1)
-                  rxyzraw(l,iat,ihist)=rxyzraw(l,iat,ihist+1)
-                  fxyz(l,iat,ihist)=fxyz(l,iat,ihist+1)
-                  fxyzraw(l,iat,ihist)=fxyzraw(l,iat,ihist+1)
-                  fstretch(l,iat,ihist)=fstretch(l,iat,ihist+1)
-               enddo
-            enddo
+            idx(ihist)=idx(ihist+1)
          enddo
+         idx(nhist)=idxtmp
       endif
    
       ! decompose gradient
 500 continue
-    call modify_gradient(nat,ndim,rrr(1,1,1),eval(1),res(1),fxyz(1,1,nhist-1),beta,dd(1,1))
+    call modify_gradient(nat,ndim,rrr(1,1,1),eval(1),res(1),fxyz(1,1,idx(nhist-1)),beta,dd(1,1))
    
       tt=0.0_gp
       dt=0.0_gp
@@ -286,31 +286,22 @@ subroutine sqnm(runObj,outsIO,nproc,iproc,verbosity,ncount_bigdft,fail)
    
       !update positions
       do iat=1,nat
-         rxyz(1,iat,nhist)=rxyz(1,iat,nhist-1)-dd(1,iat)
-         rxyz(2,iat,nhist)=rxyz(2,iat,nhist-1)-dd(2,iat)
-         rxyz(3,iat,nhist)=rxyz(3,iat,nhist-1)-dd(3,iat)
+         rxyz(1,iat,idx(nhist))=rxyz(1,iat,idx(nhist-1))-dd(1,iat)
+         rxyz(2,iat,idx(nhist))=rxyz(2,iat,idx(nhist-1))-dd(2,iat)
+         rxyz(3,iat,idx(nhist))=rxyz(3,iat,idx(nhist-1))-dd(3,iat)
       enddo
    
-!      call energyandforces(nat,rxyz(1,1,nhist),fxyz(1,1,nhist),etotp)
-!      call vcopy(3 * runObj%atoms%astruct%nat, rxyz(1,1,nhist), 1,runObj%atoms%astruct%rxyz(1,1), 1)
-!      runObj%inputs%inputPsiId=1
-!      call bigdft_state(runObj,outs,nproc,iproc,infocode)
-!      ncount_bigdft=ncount_bigdft+1
-!      call vcopy(3 * outs%fdim, outs%fxyz(1,1), 1, fxyz(1,1,nhist), 1)
-!      etotp=outs%energy
-!      detot=etotp-etotold
-
-      delta=rxyz(:,:,nhist)-rxyzOld
+      delta=rxyz(:,:,idx(nhist))-rxyzOld
       displr=displr+dnrm2(3*nat,delta(1,1),1)
       runObj%inputs%inputPsiId=1
-      call minenergyandforces(iproc,nproc,.true.,imode,runObj,outs,nat,rxyz(1,1,nhist),rxyzraw(1,1,nhist),&
-                             fxyz(1,1,nhist),fstretch(1,1,nhist),fxyzraw(1,1,nhist),&
+      call minenergyandforces(iproc,nproc,.true.,imode,runObj,outs,nat,rxyz(1,1,idx(nhist)),&
+                             fxyz(1,1,idx(nhist)),fstretch(1,1,idx(nhist)),fxyzraw(1,1,idx(nhist)),&
                              etotp,iconnect,nbond,wold,beta_stretchx,beta_stretch,infocode)
       detot=etotp-etotold
       ncount_bigdft=ncount_bigdft+1
 
 
-      call fnrmandforcemax(fxyzraw(1,1,nhist),fnrm,fmax,nat)
+      call fnrmandforcemax(fxyzraw(1,1,idx(nhist)),fnrm,fmax,nat)
       fnrm=sqrt(fnrm)
 
       if (iproc == 0) then
@@ -318,10 +309,6 @@ subroutine sqnm(runObj,outsIO,nproc,iproc,verbosity,ncount_bigdft,fail)
          write(comment,'(a,1pe10.3)')'SQNM:fnrm= ',fnrm
          call bigdft_write_atomic_file(runObj,outs,'posout_'//fn4,&
               trim(comment))
-!!$
-!!$         call write_atomic_file(trim(runObj%inputs%dir_output)//'posout_'//fn4, &
-!!$              outs%energy,runObj%atoms%astruct%rxyz,runObj%atoms%astruct%ixyz_int,&
-!!$              runObj%atoms,trim(comment),forces=outs%fxyz)
       endif
       if(infocode==0)then
         ifail=0
@@ -329,8 +316,8 @@ subroutine sqnm(runObj,outsIO,nproc,iproc,verbosity,ncount_bigdft,fail)
         ifail=ifail+1
       endif
       if ((infocode==0 .or. ifail>20).and.(fmax < 3.e-1_gp)) call updatefluctsum(outs%fnoise,fluct)
-      cosangle=-dot_double(3*nat,fxyz(1,1,nhist),1,dd(1,1),1)/&
-              sqrt(dot_double(3*nat,fxyz(1,1,nhist),1,fxyz(1,1,nhist),1)*&
+      cosangle=-dot_double(3*nat,fxyz(1,1,idx(nhist)),1,dd(1,1),1)/&
+              sqrt(dot_double(3*nat,fxyz(1,1,idx(nhist)),1,fxyz(1,1,idx(nhist)),1)*&
               dot_double(3*nat,dd(1,1),1,dd(1,1),1))
 
       if (detot.gt.maxrise .and. beta > 1.e-1_gp*betax) then !
@@ -355,26 +342,34 @@ subroutine sqnm(runObj,outsIO,nproc,iproc,verbosity,ncount_bigdft,fail)
              'maxd=',trim(adjustl(cdmy8)),'dsplr=',trim(adjustl(cdmy12_1)),&
              'dsplp=',trim(adjustl(cdmy12_2))
             call f_utils_flush(16)
-            call yaml_mapping_open('Geometry')
-               call yaml_map('Ncount_BigDFT',ncount_bigdft)
-               call yaml_map('Geometry step',it)
-               call yaml_map('Geometry Method','GEOPT_SQNM')
-               call yaml_map('ndim',ndim)
-               call yaml_map('etot', etotp,fmt='(1pe21.14)')
-               call yaml_map('detot',detot,fmt='(1pe21.14)')
-               call yaml_map('fmax',fmax,fmt='(1pe21.14)')
-               call yaml_map('fnrm',fnrm,fmt='(1pe21.14)')
-               call yaml_map('beta',beta,fmt='(1pe21.14)')
-               call yaml_map('beta_stretch',beta_stretch,fmt='(1pe21.14)')
-               call geometry_output(fmax,fnrm,fluct)
-            call yaml_mapping_close()
+
+            call f_tree_push(f_info//'ndim'        ,yaml_toa(ndim))
+            call f_tree_push(f_info//'etot'        ,yaml_toa(etotp,fmt='(1pe21.14)'))
+            call f_tree_push(f_info//'detot'       ,yaml_toa(detot,fmt='(1pe21.14)'))
+            call f_tree_push(f_info//'beta'        ,yaml_toa(beta,fmt='(1pe21.14)'))
+            call f_tree_push(f_info//'beta_stretch',yaml_toa(beta_stretch,fmt='(1pe21.14)'))
+            call geometry_output('GEOPT_SQNM',ncount_bigdft,it,fmax,fnrm,fluct,f_info)
+
+!!$            call yaml_mapping_open('Geometry')
+!!$               call yaml_map('Ncount_BigDFT',ncount_bigdft) !universal
+!!$               call yaml_map('Geometry step',it)
+!!$               call yaml_map('Geometry Method','GEOPT_SQNM')
+!!$               call yaml_map('ndim',ndim)
+!!$               call yaml_map('etot', etotp,fmt='(1pe21.14)')
+!!$               call yaml_map('detot',detot,fmt='(1pe21.14)')
+!!$               call yaml_map('fmax',fmax,fmt='(1pe21.14)')
+!!$               call yaml_map('fnrm',fnrm,fmt='(1pe21.14)')
+!!$               call yaml_map('beta',beta,fmt='(1pe21.14)')
+!!$               call yaml_map('beta_stretch',beta_stretch,fmt='(1pe21.14)')
+!!$               call geometry_output(fmax,fnrm,fluct)
+!!$            call yaml_mapping_close()
          end if
     
          if(ncount_bigdft >= nit)then!no convergence within ncount_cluster_x energy evaluations
             !following copy of rxyz(1,1,nhist-1) to runObj is necessary for returning to the caller
             !the energies and coordinates used/obtained from/in the last ACCEPTED iteration step
             !(otherwise coordinates of last call to bigdft_state would be returned)
-            call vcopy(3 * runObj%atoms%astruct%nat, rxyz(1,1,nhist-1), 1,runObj%atoms%astruct%rxyz(1,1), 1)
+            call vcopy(3 * runObj%atoms%astruct%nat, rxyz(1,1,idx(nhist-1)), 1,runObj%atoms%astruct%rxyz(1,1), 1)
             goto 900  !sqnm will return to caller the energies and coordinates used/obtained from the last ACCEPTED iteration step
          endif
 
@@ -384,28 +379,28 @@ subroutine sqnm(runObj,outsIO,nproc,iproc,verbosity,ncount_bigdft,fail)
          wold=0.0_gp
          if(.not.steep)then
             do iat=1,nat
-               rxyz(1,iat,0)=rxyz(1,iat,nhist-1)
-               rxyz(2,iat,0)=rxyz(2,iat,nhist-1)
-               rxyz(3,iat,0)=rxyz(3,iat,nhist-1)
-               rxyzraw(1,iat,0)=rxyzraw(1,iat,nhist-1)
-               rxyzraw(2,iat,0)=rxyzraw(2,iat,nhist-1)
-               rxyzraw(3,iat,0)=rxyzraw(3,iat,nhist-1)
+               rxyz(1,iat,0)=rxyz(1,iat,idx(nhist-1))
+               rxyz(2,iat,0)=rxyz(2,iat,idx(nhist-1))
+               rxyz(3,iat,0)=rxyz(3,iat,idx(nhist-1))
    
-               fxyz(1,iat,0)=fxyz(1,iat,nhist-1)
-               fxyz(2,iat,0)=fxyz(2,iat,nhist-1)
-               fxyz(3,iat,0)=fxyz(3,iat,nhist-1)
-               fxyzraw(1,iat,0)=fxyzraw(1,iat,nhist-1)
-               fxyzraw(2,iat,0)=fxyzraw(2,iat,nhist-1)
-               fxyzraw(3,iat,0)=fxyzraw(3,iat,nhist-1)
+               fxyz(1,iat,0)=fxyz(1,iat,idx(nhist-1))
+               fxyz(2,iat,0)=fxyz(2,iat,idx(nhist-1))
+               fxyz(3,iat,0)=fxyz(3,iat,idx(nhist-1))
+               fxyzraw(1,iat,0)=fxyzraw(1,iat,idx(nhist-1))
+               fxyzraw(2,iat,0)=fxyzraw(2,iat,idx(nhist-1))
+               fxyzraw(3,iat,0)=fxyzraw(3,iat,idx(nhist-1))
             enddo
             nhist=1
+            do i=0,nhistx
+                idx(i)=i
+            enddo
          endif
          goto  500
       endif
 
-      delta=rxyz(:,:,nhist)-rxyzOld
+      delta=rxyz(:,:,idx(nhist))-rxyzOld
       displp=displp+dnrm2(3*nat,delta(1,1),1)
-      rxyzOld=rxyz(:,:,nhist)
+      rxyzOld=rxyz(:,:,idx(nhist))
 !      displp=displp+tt
       if (iproc==0.and.verbosity > 0) then
          !avoid space for leading sign (numbers are positive, anyway)
@@ -421,19 +416,27 @@ subroutine sqnm(runObj,outsIO,nproc,iproc,verbosity,ncount_bigdft,fail)
           trim(adjustl(cdmy8)),'dsplr=',trim(adjustl(cdmy12_1)),&
           'dsplp=',trim(adjustl(cdmy12_2))
          call f_utils_flush(16)
-         call yaml_mapping_open('Geometry')
-            call yaml_map('Ncount_BigDFT',ncount_bigdft)
-            call yaml_map('Geometry step',it)
-            call yaml_map('Geometry Method','GEOPT_SQNM')
-            call yaml_map('ndim',ndim)
-            call yaml_map('etot', etotp,fmt='(1pe21.14)')
-            call yaml_map('detot',detot,fmt='(1pe21.14)')
-            call yaml_map('fmax',fmax,fmt='(1pe21.14)')
-            call yaml_map('fnrm',fnrm,fmt='(1pe21.14)')
-            call yaml_map('beta',beta,fmt='(1pe21.14)')
-            call yaml_map('beta_stretch',beta_stretch,fmt='(1pe21.14)')
-            call geometry_output(fmax,fnrm,fluct)
-         call yaml_mapping_close()
+
+         call f_tree_push(f_info//'ndim'        ,yaml_toa(ndim))
+         call f_tree_push(f_info//'etot'        ,yaml_toa(etotp,fmt='(1pe21.14)'))
+         call f_tree_push(f_info//'detot'       ,yaml_toa(detot,fmt='(1pe21.14)'))
+         call f_tree_push(f_info//'beta'        ,yaml_toa(beta,fmt='(1pe21.14)'))
+         call f_tree_push(f_info//'beta_stretch',yaml_toa(beta_stretch,fmt='(1pe21.14)'))
+         call geometry_output('GEOPT_SQNM',ncount_bigdft,it,fmax,fnrm,fluct,f_info)
+
+!!$         call yaml_mapping_open('Geometry')
+!!$            call yaml_map('Ncount_BigDFT',ncount_bigdft)
+!!$            call yaml_map('Geometry step',it)
+!!$            call yaml_map('Geometry Method','GEOPT_SQNM')
+!!$            call yaml_map('ndim',ndim)
+!!$            call yaml_map('etot', etotp,fmt='(1pe21.14)')
+!!$            call yaml_map('detot',detot,fmt='(1pe21.14)')
+!!$            call yaml_map('fmax',fmax,fmt='(1pe21.14)')
+!!$            call yaml_map('fnrm',fnrm,fmt='(1pe21.14)')
+!!$            call yaml_map('beta',beta,fmt='(1pe21.14)')
+!!$            call yaml_map('beta_stretch',beta_stretch,fmt='(1pe21.14)')
+!!$            call geometry_output(fmax,fnrm,fluct)
+!!$         call yaml_mapping_close()
       end if
 
       etot    = etotp
@@ -456,9 +459,10 @@ subroutine sqnm(runObj,outsIO,nproc,iproc,verbosity,ncount_bigdft,fail)
       if(icheck>5)then
          goto 1000
       endif
-     if(imode==2)rxyz(:,:,nhist)=rxyz(:,:,nhist)+beta_stretch*fstretch(:,:,nhist) !has to be after convergence check,
-                                                                       !otherwise energy will not match
-                                                                       !the true energy of rxyz(:,:,nhist)
+     if(imode==2)rxyz(:,:,idx(nhist))=rxyz(:,:,idx(nhist))+&
+                 beta_stretch*fstretch(:,:,idx(nhist)) !has to be after convergence check,
+                                                       !otherwise energy will not match
+                                                       !the true energy of rxyz(:,:,idx(nhist))
 
       if(ncount_bigdft >= nit)then!no convergence within ncount_cluster_x energy evaluations
             goto 900  !sqnm will return to caller the energies and coordinates used/obtained from the last accepted iteration step
@@ -472,8 +476,9 @@ subroutine sqnm(runObj,outsIO,nproc,iproc,verbosity,ncount_bigdft,fail)
    
       if (debug.and.iproc==0) write(100,*) 'cosangle ',cosangle,beta
 
-      call getSubSpaceEvecEval('(SQNM)',iproc,verbosity,nat,nhist,nhistx,ndim,cutoffratio,lwork,work,rxyz,&
-                   &fxyz,aa,rr,ff,rrr,fff,eval,res,success)
+      call getSubSpaceEvecEval('(SQNM)',iproc,verbosity,nat,nhist,&
+           nhistx,ndim,cutoffratio,lwork,work,idx,rxyz,fxyz,aa,rr,ff,&
+           rrr,fff,eval,res,success)
       if(.not.success)stop 'subroutine minimizer_sqnm: no success in getSubSpaceEvecEval.'
 
    enddo!end main loop
@@ -501,19 +506,12 @@ subroutine sqnm(runObj,outsIO,nproc,iproc,verbosity,ncount_bigdft,fail)
    if(iproc==0)  call yaml_map('Iterations when SQNM converged',it)
    fail=.false.
    
-!   etot=etotp
-!   do iat=1,nat
-!      do l=1,3
-!         wpos(l,iat)= rxyz(l,iat,nhist)
-!         fout(l,iat)= fxyz(l,iat,nhist)
-!      enddo
-!   enddo
 2000 continue
 !deallocations
    call f_free(rxyz)
+   call f_free(idx)
    call f_free(rxyzOld)
    call f_free(delta)
-   call f_free(rxyzraw)
    call f_free(fxyz)
    call f_free(fxyzraw)
    call f_free(fstretch)
@@ -531,9 +529,10 @@ subroutine sqnm(runObj,outsIO,nproc,iproc,verbosity,ncount_bigdft,fail)
    call f_free(wold)
    call f_free(rcov )   
    call f_free(iconnect)
+   call f_tree_free(f_info)
    call deallocate_state_properties(outs)
 end subroutine
-subroutine minenergyandforces(iproc,nproc,eeval,imode,runObj,outs,nat,rat,rxyzraw,fat,fstretch,&
+subroutine minenergyandforces(iproc,nproc,eeval,imode,runObj,outs,nat,rat,fat,fstretch,&
            fxyzraw,epot,iconnect,nbond_,wold,alpha_stretch0,alpha_stretch,infocode)
     use module_base
     use bigdft_run!module_types
@@ -548,7 +547,6 @@ subroutine minenergyandforces(iproc,nproc,eeval,imode,runObj,outs,nat,rat,rxyzra
     integer, intent(in)           :: nbond_
     integer, intent(in)           :: iconnect(2,nbond_)
     real(gp),intent(inout)        :: rat(3,nat)
-    real(gp),intent(out)          :: rxyzraw(3,nat)
     real(gp),intent(out)          :: fxyzraw(3,nat)
     real(gp),intent(inout)        :: fat(3,nat)
     real(gp),intent(out)          :: fstretch(3,nat)
@@ -560,12 +558,7 @@ subroutine minenergyandforces(iproc,nproc,eeval,imode,runObj,outs,nat,rat,rxyzra
     integer,intent(out) :: infocode
     !internal
 
-!    rxyzraw=rat
-!    if(eeval)call energyandforces(nat,alat,rat,fat,fnoise,epot)
-!    fxyzraw=fat
-!    fstretch=0.0_gp
     infocode=0
-    call vcopy(3 * runObj%atoms%astruct%nat, rat(1,1), 1,rxyzraw(1,1), 1)
     if(eeval)then
         call vcopy(3 * runObj%atoms%astruct%nat, rat(1,1), 1,runObj%atoms%astruct%rxyz(1,1), 1)
         runObj%inputs%inputPsiId=1

@@ -50,7 +50,7 @@ subroutine ISF_family(itype,nmoms,nd,nrange,a,x)
   call f_zero(y)
   nt=ni
   x(nt/2-1)=1.d0
-  !x(nt+nt/2-1)=1.d0
+  !x(nt+nt/2-1)=1.d0 !to obtain the wavelet
   loop1: do
      nt=2*nt
      call back_trans(m,ch(-m),cg(-m),nd,nt,x,y)
@@ -63,27 +63,27 @@ subroutine ISF_family(itype,nmoms,nd,nrange,a,x)
   end do loop1
 
   !Plot the interpolating scaling function if needed
-  unt=1
-  call f_open_file(unt,file='scfunction')
-  !open (unit=1,file='scfunction',status='unknown')
+!!$  unt=1
+!!$  call f_open_file(unt,file='scfunction')
+!!$  !open (unit=1,file='scfunction',status='unknown')
   do i=0,nd
      a(i) = real(i*ni,kind=8)/real(nd,kind=8)-(.5d0*real(ni,kind=8)-1.d0)
-     write(unt,*) a(i),x(i)
+!!$     write(unt,*) a(i),x(i)
   end do
-  call f_close(unt)
-  !now calculate the moments
-  call f_open_file(unt,file='scf_moments'//&
-       trim(adjustl(yaml_toa(itype)))//'-'//&
-       trim(adjustl(yaml_toa(nmoms))))
-  do j=0,itype
-     mom=0.d0
-     do i=0,nd
-        a(i) = real(i*ni,kind=8)/real(nd,kind=8)-(.5d0*real(ni,kind=8)-1.d0)
-        mom=mom+a(i)**j/real(ni,kind=8)*x(i)
-     end do
-     write(unt,*)j,mom!*real(nd,kind=8)
-  end do
-  call f_close(unt)
+!!$  call f_close(unt)
+!!$  !now calculate the moments
+!!$  call f_open_file(unt,file='scf_moments'//&
+!!$       trim(adjustl(yaml_toa(itype)))//'-'//&
+!!$       trim(adjustl(yaml_toa(nmoms))))
+!!$  do j=0,itype
+!!$     mom=0.d0
+!!$     do i=0,nd
+!!$        a(i) = real(i*ni,kind=8)/real(nd,kind=8)-(.5d0*real(ni,kind=8)-1.d0)
+!!$        mom=mom+a(i)**j/real(ni,kind=8)*x(i)
+!!$     end do
+!!$     write(unt,*)j,mom!*real(nd,kind=8)
+!!$  end do
+!!$  call f_close(unt)
 
   call f_free(y)
   call f_free(ch,cg)

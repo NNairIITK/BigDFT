@@ -44,6 +44,8 @@ libmodules_a_SOURCES = base.f90 \
 	module_lj.f90 \
 	module_morse_bulk.f90 \
 	module_lenosky_si.f90 \
+	module_tersoff.f90 \
+	module_bornmayerhugginstosifumi.f90 \
 	op2p_module.f90 \
 	BigDFT_API.f90 \
 	vdwcorrection.f90 \
@@ -60,6 +62,7 @@ libmodules_a_SOURCES = base.f90 \
 	sparsematrix_init.f90 \
 	sparsematrix.f90 \
 	foe_base.f90 \
+	foe_common.f90 \
 	internal_coordinates.f90 \
 	fermi_level.f90 \
 	copy_utils.f90 \
@@ -68,6 +71,13 @@ libmodules_a_SOURCES = base.f90 \
 	transposed_operations.f90 \
 	module_forces.f90 \
 	chebyshev.f90 \
+	unitary_tests.f90 \
+	matrix_operations.f90 \
+	parallel_linalg.f90 \
+	io.f90 \
+	postprocessing_linear.f90 \
+	foe.f90 \
+	ice.f90 \
 	bigdft_run.f90 \
 	$(bindings_headers) \
 	$(LIBXC_MODULE) \
@@ -109,16 +119,28 @@ modules = MODULE_BASE.@MODULE_EXT@ \
 	SPARSEMATRIX_INIT.@MODULE_EXT@ \
 	SPARSEMATRIX.@MODULE_EXT@ \
 	FOE_BASE.@MODULE_EXT@ \
+	FOE_COMMON.@MODULE_EXT@ \
 	INTERNAL_COORDINATES.@MODULE_EXT@ \
 	FERMI_LEVEL.@MODULE_EXT@ \
 	COPY_UTILS.@MODULE_EXT@ \
 	MODULE_SQN.@MODULE_EXT@ \
+	MODULE_FORCES.@MODULE_EXT@ \
 	MODULE_FINGERPRINTS.@MODULE_EXT@ \
 	TRANSPOSED_OPERATIONS.@MODULE_EXT@ \
 	CHEBYSHEV.@MODULE_EXT@ \
+	UNITARY_TESTS.@MODULE_EXT@ \
+	MATRIX_OPERATIONS.@MODULE_EXT@ \
+	PARALLEL_LINALG.@MODULE_EXT@ \
+	IO.@MODULE_EXT@ \
+	POSTPROCESSING_LINEAR.@MODULE_EXT@ \
+	FOE.@MODULE_EXT@ \
+	ICE.@MODULE_EXT@ \
 	BIGDFT_RUN.@MODULE_EXT@ \
 	MODULE_LJ.@MODULE_EXT@ \
-	MODULE_LENOSKY_SI.@MODULE_EXT@
+	MODULE_LENOSKY_SI.@MODULE_EXT@\
+	MODULE_MORSE_BULK.@MODULE_EXT@\
+	MODULE_TERSOFF.@MODULE_EXT@\
+	MODULE_BORNMAYERHUGGINSTOSIFUMI.@MODULE_EXT@
 else
 modules = module_base.@MODULE_EXT@ \
 	module_defs.@MODULE_EXT@ \
@@ -153,6 +175,7 @@ modules = module_base.@MODULE_EXT@ \
 	sparsematrix_init.@MODULE_EXT@ \
 	sparsematrix.@MODULE_EXT@ \
 	foe_base.@MODULE_EXT@ \
+	foe_common.@MODULE_EXT@ \
 	internal_coordinates.@MODULE_EXT@ \
 	fermi_level.@MODULE_EXT@ \
 	copy_utils.@MODULE_EXT@ \
@@ -161,9 +184,18 @@ modules = module_base.@MODULE_EXT@ \
 	module_fingerprints.@MODULE_EXT@ \
 	transposed_operations.@MODULE_EXT@ \
 	chebyshev.@MODULE_EXT@ \
+	unitary_tests.@MODULE_EXT@ \
+	matrix_operations.@MODULE_EXT@ \
+	parallel_linalg.@MODULE_EXT@ \
+	io.@MODULE_EXT@ \
+	postprocessing_linear.@MODULE_EXT@ \
+	foe.@MODULE_EXT@ \
+	ice.@MODULE_EXT@ \
 	bigdft_run.@MODULE_EXT@ \
 	module_lj.@MODULE_EXT@ \
 	module_morse_bulk.@MODULE_EXT@ \
+	module_tersoff.@MODULE_EXT@ \
+	module_bornmayerhugginstosifumi.@MODULE_EXT@ \
 	module_lenosky_si.@MODULE_EXT@
 else
 
@@ -214,7 +246,7 @@ input_dicts.o: $(top_builddir)/flib/src/dynamic_memory.o defs.o ao_inguess.o int
 psp_projectors.o: locregs.o gaussians.o defs.o
 locregs.o: base.o
 dpbox.o: base.o 
-ao_inguess.o: $(AO_INCLUDES) base.o psp_projectors.o
+ao_inguess.o: $(AO_INCLUDES) base.o psp_projectors.o psp_projectors.o
 atoms_data.o: $(ATOMS_INCLUDES) ao_inguess.o internal_coordinates.o
 reformatting.o: base.o
 communications_base.o: base.o
@@ -222,21 +254,31 @@ communications_init.o: base.o types.o communications_base.o
 communications.o: base.o types.o communications_base.o
 sparsematrix_base.o: base.o
 sparsematrix_init.o: base.o types.o interfaces.o sparsematrix_base.o
-sparsematrix.o: base.o types.o sparsematrix_base.o
+sparsematrix.o: base.o types.o sparsematrix_base.o sparsematrix_init.o
 foe_base.o: base.o defs.o
-fermi_level.o: base.o
+foe_common.o: base.o defs.o foe_base.o sparsematrix_base.o sparsematrix_init.o sparsematrix.o
+fermi_level.o: base.o foe_common.o
 copy_utils.o: base.o
 gaussdaub.o: base.o
 module_sqn.o: base.o
-bigdft_run.o: types.o input_dicts.o interfaces.o module_forces.o module_lenosky_si.o module_lj.o module_morse_bulk.o
+bigdft_run.o: types.o input_dicts.o interfaces.o module_forces.o module_lenosky_si.o module_lj.o module_morse_bulk.o module_tersoff.o module_bornmayerhugginstosifumi.o
 ab7_mixing.o: defs.o
 module_lj.o: base.o defs.o
 module_morse_bulk.o: base.o
+module_tersoff.o: base.o atoms_data.o
+module_bornmayerhugginstosifumi.o: base.o atoms_data.o
 module_lenosky_si.o: base.o defs.o
 module_fingerprints.o: base.o
 transposed_operations.o: base.o types.o sparsematrix_base.o sparsematrix.o
 module_forces.o: base.o types.o 
-chebyshev.o: base.o types.o sparsematrix_base.o sparsematrix.o
+chebyshev.o: base.o types.o sparsematrix_base.o sparsematrix_init.o sparsematrix.o
+unitary_tests.o: base.o types.o interfaces.o communications_init.o communications.o sparsematrix_base.o sparsematrix_init.o sparsematrix.o transposed_operations.o
+matrix_operations.o: base.o types.o interfaces.o sparsematrix_base.o sparsematrix_init.o sparsematrix.o parallel_linalg.o ice.o
+parallel_linalg.o: base.o types.o
+io.o: base.o types.o interfaces.o sparsematrix_base.o sparsematrix.o
+postprocessing_linear.o: base.o types.o interfaces.o communications_base.o communications.o sparsematrix_base.o sparsematrix.o transposed_operations.o matrix_operations.o
+foe.o: base.o types.o interfaces.o sparsematrix_base.o sparsematrix_init.o sparsematrix.o foe_base.o foe_common.o fermi_level.o chebyshev.o matrix_operations.o
+ice.o: base.o types.o interfaces.o sparsematrix_base.o sparsematrix_init.o sparsematrix.o foe_base.o foe_common.o fermi_level.o chebyshev.o
 
 # Copy modules in a common include directory.
 all: all-am insmod

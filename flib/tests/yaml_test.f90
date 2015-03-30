@@ -161,6 +161,12 @@ program yaml_test
       call yaml_new_document()
       call test_copy_merge()
       call yaml_release_document()
+
+
+      call yaml_new_document()
+      call test_f_trees()
+      call yaml_release_document()
+
    end if
 
    if (YAML_PARSER .in. run) then

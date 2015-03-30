@@ -2,7 +2,7 @@
 !!    Module calculating the rmsd
 !!
 !! @author
-!!    Copyright (C) 2007-2015 BigDFT group
+!!    Copyright (C) 2015-2015 BigDFT group
 !!    Copyright (C) 2004, 2005 Chaok Seok, Evangelos Coutsias
 !!                  and Ken Dill
 !!                  UCSF, Univeristy of New Mexico, Seoul National

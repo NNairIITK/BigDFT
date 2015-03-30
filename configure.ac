@@ -1197,6 +1197,8 @@ tests/libs/wrappers/Makefile
 tests/libs/psp/Makefile
 tests/libs/overlapgeneral/Makefile
 tests/libs/coordinatetransform/Makefile
+tests/benchs/Makefile
+tests/benchs/sparsealgebra/Makefile
 tests/DFT/Makefile
 tests/DFT/cubic/Makefile
 tests/DFT/linear/Makefile

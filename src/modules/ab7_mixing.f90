@@ -770,7 +770,7 @@ contains
     ! Summarize on processors
     fdot_denpot = dot_local
     if (bigdft_mpi%nproc>1) then
-       call mpiallred(dot_local,1,MPI_SUM,bigdft_mpi%mpi_comm,&
+       call mpiallred(dot_local,1,MPI_SUM,comm=bigdft_mpi%mpi_comm,&
             recvbuf=fdot_denpot)
 !!$       call MPI_ALLREDUCE(dot_local, fdot_denpot, 1, &
 !!$            & MPI_DOUBLE_PRECISION, MPI_SUM, bigdft_mpi%mpi_comm, ierr)
@@ -921,7 +921,7 @@ contains
     ! Summarize on processors
     fdot_denpot_forlinear = dot_local
     if (bigdft_mpi%nproc>1) then
-        call mpiallred(dot_local,1,MPI_SUM,bigdft_mpi%mpi_comm,&
+        call mpiallred(dot_local,1,MPI_SUM,comm=bigdft_mpi%mpi_comm,&
              recvbuf=fdot_denpot_forlinear)
     else
         fdot_denpot_forlinear = dot_local

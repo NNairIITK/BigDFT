@@ -1,6 +1,6 @@
 !! @file
 !! @author Bastian Schaefer
-!!    Copyright (C) 2014-2015 BigDFT group
+!!    Copyright (C) 2014-2015 BigDFT group <br>
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
@@ -246,6 +246,7 @@ subroutine read_and_merge_data(folders,nsad,mdat)
             call set_astruct_from_file(trim(fminL),0,mdat%astruct,&
                  energy=epot)
             if (mdat%astruct%nat /= mdat%nat) then
+write(*,*)trim(fminL)
                 call f_err_throw('Error in read_and_merge_data:'//&
                      ' wrong size ('//trim(yaml_toa(mdat%astruct%nat))&
                      //' /= '//trim(yaml_toa(mdat%nat))//')',&
@@ -276,6 +277,7 @@ write(*,*)'***'
             call set_astruct_from_file(trim(fminR),0,mdat%astruct,&
                  energy=epot)
             if (mdat%astruct%nat /= mdat%nat) then
+write(*,*)trim(fminR)
                 call f_err_throw('Error in read_and_merge_data:'//&
                      ' wrong size ('//trim(yaml_toa(mdat%astruct%nat))&
                      //' /= '//trim(yaml_toa(mdat%nat))//')',&
@@ -307,6 +309,7 @@ write(*,*)'***'
             call set_astruct_from_file(trim(fsaddle),0,mdat%astruct,&
                  energy=epot)
             if (mdat%astruct%nat /= mdat%nat) then
+write(*,*)trim(fsaddle)
                 call f_err_throw('Error in read_and_merge_data:'//&
                      ' wrong size ('//trim(yaml_toa(mdat%astruct%nat))&
                      //' /= '//trim(yaml_toa(mdat%nat))//')',&

@@ -51,7 +51,6 @@ program BigDFT
          if (trim(char(runObj%run_mode))/='QM_RUN_MODE)')then
             if (bigdft_mpi%iproc ==0 ) call yaml_map('Energy (Hartree)',outs%energy,fmt='(es24.17)')
          endif
-
          if (runObj%inputs%ncount_cluster_x > 1) then
             if (bigdft_mpi%iproc ==0 ) call yaml_map('Wavefunction Optimization Finished, exit signal',infocode)
             ! geometry optimization
@@ -77,7 +76,6 @@ program BigDFT
                  'Geometry + metaData forces',cwd_path=.true.)
 
          end if
-
          ! Deallocations.
          call deallocate_state_properties(outs)
          call free_run_objects(runObj)

@@ -5,81 +5,12 @@
 !!     
 !! @author Bastian Schaefer
 !! @section LICENCE
-!!    Copyright (C) 2014 BigDFT group
+!!    Copyright (C) 2015-2015 BigDFT group <br>
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS
 
-!> @file
-!> minor module for wrapping the lst_penalty routine
-!! intended as a temporary patch to conceptual problem in using transforce
-!! routine
-!!module lst_penalty_wrapper
-!!  use module_defs, only: gp
-!!  implicit none  
-!!
-!!  !usage of pointers, just for fun
-!!!  real(gp), pointer, private :: lambda_ptr=>null()
-!!!  real(gp), dimension(:,:), pointer, private :: rxyzR_ptr=>null(),rxyzP_ptr=>null()
-!!!  real(gp), private :: lambda_int
-!!!  real(gp), dimension(:,:), allocatable, private :: rxyzR_int,rxyzP_int
-!! 
-!!contains
-!!
-!!!subroutine init_lst_wrapper(nat,rxyzR,rxyzP,lambda)
-!!!    use module_base
-!!!    implicit none
-!!!    integer, intent(in) :: nat
-!!!!    real(gp), intent(in), target :: rxyzR(3,nat) !reactant
-!!!!    real(gp), intent(in), target :: rxyzP(3,nat) !product
-!!!!    real(gp), intent(in), target :: lambda !interpolation parameter
-!!!    real(gp), intent(in), target :: rxyzR(3,nat) !reactant
-!!!    real(gp), intent(in), target :: rxyzP(3,nat) !product
-!!!    real(gp), intent(in), target :: lambda !interpolation parameter
-!!!
-!!!!pointer lead to segault after some hours
-!!!!(intel ifort 14)
-!!!!    rxyzR_ptr => rxyzR
-!!!!    rxyzP_ptr => rxyzP
-!!!!    lambda_ptr=> lambda
-!!!    rxyzR_int = f_malloc((/ 1.to.3, 1.to.nat/),id='rxyzR_int')
-!!!    rxyzP_int = f_malloc((/ 1.to.3, 1.to.nat/),id='rxyzP_int')
-!!!
-!!!    rxyzR_int = rxyzR
-!!!    rxyzP_int = rxyzP
-!!!    lambda_int = lambda
-!!!
-!!!end subroutine init_lst_wrapper
-!!!!=====================================================================
-!!!subroutine finalize_lst_wrapper()
-!!!    use module_base
-!!!    implicit none
-!!!
-!!!    call f_free(rxyzR_int)
-!!!    call f_free(rxyzP_int)
-!!!end subroutine finalize_lst_wrapper
-!!!!=====================================================================
-!!!subroutine valforce(nat,rxyzR,rxyzP,lambda,rat,fat,epot)
-!!!     !wrapper function for lst_penalty
-!!!    use module_base
-!!!    implicit none
-!!!    !parameters
-!!!    integer, intent(in) :: nat
-!!!    real(gp), intent(in) :: rxyzR(3,nat) !reactant
-!!!    real(gp), intent(in) :: rxyzP(3,nat) !product
-!!!    real(gp), intent(in)  :: lambda !interpolation parameter
-!!!    real(gp), intent(in) :: rat(3,nat)
-!!!    real(gp), intent(out) :: fat(3,nat)
-!!!    real(gp), intent(out) :: epot
-!!!    !local variables
-!!!!    call lst_penalty(nat,rxyzR_ptr,rxyzP_ptr,rat,lambda_ptr,epot,fat)
-!!!    call lst_penalty(nat,rxyzR,rxyzP,rat,lambda,epot,fat)
-!!!end subroutine valforce
-!!
-!!!=====================================================================
-!!
-!!end module lst_penalty_wrapper
 module module_interpol
     implicit none
 
@@ -100,7 +31,6 @@ subroutine lstpthpnt(runObj,mhgpsst,uinp,rxyzR,rxyzP,lambda,rxyz)
     use module_forces
     use module_mhgps_state
     use module_userinput
-!!    use lst_penalty_wrapper
     implicit none
     !parameters
     type(run_objects), intent(in) :: runObj
@@ -115,105 +45,78 @@ subroutine lstpthpnt(runObj,mhgpsst,uinp,rxyzR,rxyzP,lambda,rxyz)
                                           !to lambda
     !internal
 !    real(gp) :: oml
-!    real(gp), parameter :: fmax_tol=1.e-4_gp
-!    real(gp), parameter :: fmax_tol=5.e-3_gp
     real(gp) :: fxyz(3,runObj%atoms%astruct%nat), epot
     real(gp) :: drxyz(3,runObj%atoms%astruct%nat)
-
-!<-DEBUG START------------------------------------------------------>
-!character(len=5) :: fc5
-!character(len=200) :: filename,line
-!integer :: iat,istat
-!integer, save :: ic
-!real(gp) :: dmy
-!character(len=5):: xat(22)
-!<-DEBUG END-------------------------------------------------------->
-
-!    oml = 1._gp-lambda
-
-!<-DEBUG START------------------------------------------------------>
-!ic=ic+1
-!close(33)
-!open(unit=33,file='input001/pos001.ascii')
-!read(33,*)
-!read(33,*)
-!read(33,*)
-!read(33,*)
-!do iat=1,22
-!    read(33,'(a)',iostat=istat)line
-!    if(istat/=0)exit
-!    read(line,*)dmy,dmy,dmy,xat(iat)
-!enddo
-!close(33)
-!<-DEBUG END-------------------------------------------------------->
-
-
-    !input guess
-!    rxyz = oml*rxyzR+lambda*rxyzP
 
     drxyz = rxyzP-rxyzR
     !clean forces is just a precaution. In principle
     !the coressponding frozen coordinates should already be
     !identical in rxyzP and rxyzR
-    call clean_forces_base(runObj%atoms,drxyz)
+    call clean_forces_base(bigdft_get_astruct_ptr(runObj),drxyz)
 
     rxyz = rxyzR + lambda * drxyz
-
-!<-DEBUG START------------------------------------------------------>
-!if(mod(ic,10)==0)then
-!write(fc5,'(i5.5)')ic
-!write(filename,*)'posn_'//fc5//'.ascii'
-!open(99,file=trim(adjustl((filename))))
-!write(99,*)
-!write(99,*)10.0 ,0, 10.0 
-!write(99,*)0, 0, 10.0 
-!do iat=1,nat
-!write(99,'(3(1xes24.17),a)')rxyz(1,iat),rxyz(2,iat),&
-!          rxyz(3,iat),xat(iat)
-!enddo
-!close(99)
-!endif
-!<-DEBUG END-------------------------------------------------------->
-!    call init_lst_wrapper(nat,rxyzR,rxyzP,lambda)
     call fire(mhgpsst,uinp,runObj,rxyzR,rxyzP,lambda,rxyz,fxyz,epot)
-!    call finalize_lst_wrapper()
-!<-DEBUG START------------------------------------------------------>
-!if(mod(ic,10)==0)then
-!write(fc5,'(i5.5)')ic
-!write(filename,*)'posl_'//fc5//'.ascii'
-!open(99,file=trim(adjustl((filename))))
-!write(99,*)
-!write(99,*)10.0 ,0, 10.0 
-!write(99,*)0, 0, 10.0 
-!do iat=1,nat
-!write(99,'(3(1xes24.17),1x,a)')rxyz(1,iat)*0.529_gp,rxyz(2,iat)&
-!          *0.529_gp,rxyz(3,iat)*0.529_gp,xat(iat)
-!enddo
-!close(99)
-!endif
-!<-DEBUG END-------------------------------------------------------->
-
-!!$contains
-!!$
-!!$  !Fortran specifications forbids to pass internal routines as arguments
-!!$  !otherwise, better to leave it included in module but require interface in fire
-!!$  subroutine valforce(nat,rat,fat,epot)
-!!$    !wrapper function for lst_penalty
-!!$    use module_base
-!!$    implicit none
-!!$    !parameters
-!!$    integer, intent(in) :: nat
-!!$    real(gp), intent(in) :: rat(3,nat)
-!!$    real(gp), intent(out) :: fat(3,nat)
-!!$    real(gp), intent(out) :: epot
-!!$    !local variables
-!!$    call lst_penalty(nat,rxyzR,rxyzP,rat,lambda,epot,fat)
-!!$  end subroutine valforce
   end subroutine lstpthpnt
 
 
 !=====================================================================
 subroutine lst_penalty(runObj,rxyzR,rxyzP,rxyz,lambda,val,force)
+    !computes the linear synchronous penalty function
+    !and gradient
+    !openmp parallelized
+    !
+    !see:
+    !
+    !Halgren, T. A., & Lipscomb, W. N. (1977). The synchronous-transit
+    !method for determining reaction pathways and locating molecular
+    !transition states. Chemical Physics Letters, 49(2), 225–232.
+    !doi:10.1016/0009-2614(77)80574-5
+    !
+    !and
+    !
+    !Behn, A., Zimmerman, P. M., Bell, A. T., & Head-Gordon, M. (2011)
+    !Incorporating Linear Synchronous Transit Interpolation into
+    !the Growing String Method: Algorithm and Applications.
+    !Journal of Chemical Theory and Computation, 7(12), 4019–4025.
+    !doi:10.1021/ct200654u
+    !
+    !and
+    !
+    !BS: For computation of gradient see also personal notes in intel
+    !notebook (paper version) from June 18th, 2014
+    !
+    use module_base
+    use bigdft_run
+    use module_forces
+    implicit none
+    !parameters
+    type(run_objects), intent(in) :: runObj
+    real(gp), intent(in) :: rxyzR(3,runObj%atoms%astruct%nat) !reactant
+    real(gp), intent(in) :: rxyzP(3,runObj%atoms%astruct%nat) !product
+    real(gp), intent(in) :: rxyz(3,runObj%atoms%astruct%nat)  !the positon at which
+    !the penalty fct. is to
+    !be evaluated
+    real(gp), intent(in)  :: lambda !interpolation parameter
+    !(0<=lambda<=1)
+    real(gp), intent(out) :: val  !the value of the penalty function
+    real(gp), intent(out) :: force(3,runObj%atoms%astruct%nat) !the negative gradient of
+    !the penal. fct. at
+    !rxyz
+
+!    if(bigdft_get_geocode(runObj)=='F')then
+        !the periodic version can also handle free BC, however, the free BC version of
+        !lst_penalty is twice as fast
+        call lst_penalty_free(runObj,rxyzR,rxyzP,rxyz,lambda,val,force)
+!    else if (bigdft_get_geocode(runObj)=='S' .or. bigdft_get_geocode(runObj)=='P')then
+!        call lst_penalty_periodic(runObj,rxyzR,rxyzP,rxyz,lambda,val,force)
+!    else
+!        call f_err_throw('lst_penalty: specified boundary conditions'//&
+!             ' not supported.')
+!    endif
+end subroutine lst_penalty
+
+!=====================================================================
+subroutine lst_penalty_free(runObj,rxyzR,rxyzP,rxyz,lambda,val,force)
     !computes the linear synchronous penalty function
     !and gradient
     !openmp parallelized
@@ -345,8 +248,242 @@ subroutine lst_penalty(runObj,rxyzR,rxyzP,rxyz,lambda,val,force)
     !$omp end do
     !$omp end parallel
 
-    call clean_forces_base(runObj%atoms,force)
-end subroutine lst_penalty
+    call clean_forces_base(bigdft_get_astruct_ptr(runObj),force)
+end subroutine lst_penalty_free
+!=====================================================================
+subroutine lst_penalty_periodic(runObj,rxyzR_,rxyzP_,rxyz_,lambda,val,force)
+    !computes the linear synchronous penalty function
+    !and gradient.
+    !OpenMP parallelized.
+    !Attention: Cells of rxyzR and rxyzP and rxyz must be identical
+    !
+    !see:
+    !
+    !Halgren, T. A., & Lipscomb, W. N. (1977). The synchronous-transit
+    !method for determining reaction pathways and locating molecular
+    !transition states. Chemical Physics Letters, 49(2), 225–232.
+    !doi:10.1016/0009-2614(77)80574-5
+    !
+    !and
+    !
+    !Behn, A., Zimmerman, P. M., Bell, A. T., & Head-Gordon, M. (2011)
+    !Incorporating Linear Synchronous Transit Interpolation into
+    !the Growing String Method: Algorithm and Applications.
+    !Journal of Chemical Theory and Computation, 7(12), 4019–4025.
+    !doi:10.1021/ct200654u
+    !
+    !and
+    !
+    !BS: For computation of gradient see also personal notes in intel
+    !notebook (paper version) from June 18th, 2014
+    !
+    !HISTORY:
+    !June 2014   : finished non-periodic version
+    !January 2015: OpenMP parallelized
+    !March 2015  : generalized to full periodicity
+    use module_base
+    use bigdft_run
+    use module_forces
+    implicit none
+    !parameters
+    type(run_objects), intent(in) :: runObj
+    real(gp), intent(in) :: rxyzR_(3,runObj%atoms%astruct%nat) !reactant
+    real(gp), intent(in) :: rxyzP_(3,runObj%atoms%astruct%nat) !product
+    real(gp), intent(in) :: rxyz_(3,runObj%atoms%astruct%nat)  !the positon at which
+    !the penalty fct. is to
+    !be evaluated
+    real(gp), intent(in)  :: lambda !interpolation parameter
+    !(0<=lambda<=1)
+    real(gp), intent(out) :: val  !the value of the penalty function
+    real(gp), intent(out) :: force(3,runObj%atoms%astruct%nat) !the negative gradient of
+                                                               !the penal. fct. at
+                                                               !rxyz
+    !internal
+    integer, parameter :: necmin=1
+    integer :: b !outer loop
+    integer :: a !inner loop
+    integer :: i,j,k !loops over periodic images
+    real(gp) :: rabi !interpolated interatomic distances
+    real(gp) :: rabim4 !rim4=ri**(-4)
+    real(gp) :: rabC !computed interatomic distances
+    real(gp) :: rabR !interatomic dist. of reactant
+    real(gp) :: rabP !interatomic dist. of product
+    real(gp) :: oml
+    real(gp) :: rxRb, ryRb, rzRb
+    real(gp) :: rxPb, ryPb, rzPb
+    real(gp) :: rxb, ryb, rzb
+    real(gp) :: rxd, ryd, rzd
+    real(gp) :: rabiMrabC
+    real(gp) :: tt, ttx, tty, ttz
+    real(gp) :: waxi, wayi, wazi 
+    real(gp) :: latvec(3,3), cell(3), weight, trans(3)
+    integer :: nec1, nec2, nec3
+    real(gp) :: rcut
+    real(gp) :: rxyzR(3,runObj%atoms%astruct%nat)
+    real(gp) :: rxyzP(3,runObj%atoms%astruct%nat)
+    real(gp) :: rxyz(3,runObj%atoms%astruct%nat) 
+rxyzR=rxyzR_
+rxyzP=rxyzP_
+rxyz=rxyz_
+
+
+    !BigDFT only supports orthorombic unit cells (as of Mar. 2015).
+    !Therefore, the corresponding cell(:) data structure can only hold three numbers.
+    !We therefore build here the full lattice vectors.
+    !If the BigDFT data structure is changed one day, or if the code
+    !is used outside of the bigdft suite, the lattice vectors should
+    !be passed and not be constructed here.
+    !In principle, this subroutine should also support
+    !non-orthorombic unit cells, if latvec is passed appropriately.
+    cell = bigdft_get_cell(runObj)
+    rcut=huge(1.0_gp)
+    if(bigdft_get_geocode(runObj)=='P')then
+        latvec(1,1)=cell(1)
+        latvec(2,1)=0.0_gp
+        latvec(3,1)=0.0_gp
+        latvec(1,2)=0.0_gp
+        latvec(2,2)=cell(2)
+        latvec(3,2)=0.0_gp
+        latvec(1,3)=0.0_gp
+        latvec(2,3)=0.0_gp
+        latvec(3,3)=cell(3)
+        call give_rcut(latvec,necmin,rcut)
+        call n_rep_dim(latvec,rcut,nec1,nec2,nec3)
+        call backtocell_cart(runObj%atoms%astruct%nat,latvec,rxyzR)
+        call backtocell_cart(runObj%atoms%astruct%nat,latvec,rxyzP)
+        call backtocell_cart(runObj%atoms%astruct%nat,latvec,rxyz)
+    else if(bigdft_get_geocode(runObj)=='S')then
+        !in BigDFT, the non-periodic direction is the y-direction
+        !=> cell(2)=0.0_gp on input
+        latvec(1,1)=cell(1)
+        latvec(2,1)=0.0_gp
+        latvec(3,1)=0.0_gp
+        latvec(1,2)=0.0_gp
+        latvec(2,2)=1.0_gp
+        latvec(3,2)=0.0_gp
+        latvec(1,3)=0.0_gp
+        latvec(2,3)=0.0_gp
+        latvec(3,3)=cell(3)
+        call give_rcut(latvec,necmin,rcut)
+        call n_rep_dim(latvec,rcut,nec1,nec2,nec3)
+        nec2=1
+        call backtocell_cart_surface(runObj%atoms%astruct%nat,latvec,rxyzR)
+        call backtocell_cart_surface(runObj%atoms%astruct%nat,latvec,rxyzP)
+        call backtocell_cart_surface(runObj%atoms%astruct%nat,latvec,rxyz)
+    else if(bigdft_get_geocode(runObj)=='F')then                                                                                         
+        latvec(1,1)=0.0_gp                                                                                                          
+        latvec(2,1)=0.0_gp                                                                                                          
+        latvec(3,1)=0.0_gp                                                                                                          
+        latvec(1,2)=0.0_gp                                                                                                          
+        latvec(2,2)=0.0_gp                                                                                                          
+        latvec(3,2)=0.0_gp                                                                                                          
+        latvec(1,3)=0.0_gp                                                                                                          
+        latvec(2,3)=0.0_gp                                                                                                          
+        latvec(3,3)=0.0_gp                                                                                                          
+        nec1=1                                                                                                                      
+        nec2=1                                                                                                                      
+        nec3=1                                                                                                                      
+    else
+        call f_err_throw('lst_penalty: specified boundary conditions'//&
+             ' not supported.')
+    endif
+!write(199,*)nec1,nec2,nec3
+
+    !activate the following three lines if periodic images should be ignored
+!    nec1=1
+!    nec2=1
+!    nec3=1
+
+    oml=1.0_gp-lambda!one minus lambda
+    val=0.0_gp!function value
+    force=0.0_gp!negative gradient
+    !$omp parallel default(private) shared(runObj, rxyzR, rxyzP, rxyz, &
+    !$omp val, force, oml, lambda, latvec, nec1, nec2, nec3, rcut)
+    !$omp do schedule(dynamic) reduction(+:force,val)
+    !first sum
+    do b =1,runObj%atoms%astruct%nat
+       rxRb = rxyzR(1,b)
+       ryRb = rxyzR(2,b)
+       rzRb = rxyzR(3,b)
+       rxPb = rxyzP(1,b)
+       ryPb = rxyzP(2,b)
+       rzPb = rxyzP(3,b)
+       rxb = rxyz(1,b)
+       ryb = rxyz(2,b)
+       rzb = rxyz(3,b)
+       do i=0,nec1-1
+        do j=0,nec2-1
+          do k=0,nec3-1
+           do a = 1,runObj%atoms%astruct%nat
+              trans(1) = latvec(1,1)*real(i,gp)+latvec(1,2)*real(j,gp)+latvec(1,3)*real(k,gp)
+              trans(2) = latvec(2,1)*real(i,gp)+latvec(2,2)*real(j,gp)+latvec(2,3)*real(k,gp)
+              trans(3) = latvec(3,1)*real(i,gp)+latvec(3,2)*real(j,gp)+latvec(3,3)*real(k,gp)
+              !compute interatomic distances of reactant
+              rabR = (rxyzR(1,a)+trans(1)-rxRb)**2+&
+                     (rxyzR(2,a)+trans(2)-ryRb)**2+&
+                     (rxyzR(3,a)+trans(3)-rzRb)**2
+              rabR = sqrt(rabR)
+              !compute interatomic distances of product
+              rabP = (rxyzP(1,a)+trans(1)-rxPb)**2+&
+                     (rxyzP(2,a)+trans(2)-ryPb)**2+&
+                     (rxyzP(3,a)+trans(3)-rzPb)**2
+              rabP = sqrt(rabP)
+              !compute interpolated interatomic distances
+              rabi = oml*rabR+lambda*rabP
+              if(rabi>rcut .or. a==b)cycle
+              rabim4 = 1.0_gp / (rabi**4)
+
+              !compute interatomic distances at rxyz
+              rxd = rxyz(1,a)+trans(1)-rxb
+              ryd = rxyz(2,a)+trans(2)-ryb
+              rzd = rxyz(3,a)+trans(3)-rzb
+              rabC = rxd**2+ryd**2+rzd**2
+              rabC = sqrt(rabC)
+
+              if(i==0 .and. j==0 .and. k==0)then
+                  weight = rabim4
+              else
+                  weight = rabim4 - 1.0_gp/ (rcut**4)
+              endif
+              !compute function value
+              rabiMrabC = rabi - rabC
+              val = val + rabiMrabC**2 * weight 
+              !compute negative gradient
+              rabiMrabC = -2.0_gp*rabiMrabC * rabim4 / rabC
+              ttx = rabiMrabC * rxd
+              tty = rabiMrabC * ryd
+              ttz = rabiMrabC * rzd
+              force(1,b) = force(1,b) + ttx
+              force(2,b) = force(2,b) + tty
+              force(3,b) = force(3,b) + ttz
+           enddo
+          enddo
+         enddo
+        enddo
+    enddo
+    !$omp end do
+
+    !$omp do schedule(dynamic) reduction(+:force,val)
+    !second sum
+    do a = 1, runObj%atoms%astruct%nat
+       waxi = oml*rxyzR(1,a) + lambda*rxyzP(1,a)
+       wayi = oml*rxyzR(2,a) + lambda*rxyzP(2,a)
+       wazi = oml*rxyzR(3,a) + lambda*rxyzP(3,a)
+       ttx = waxi-rxyz(1,a)
+       tty = wayi-rxyz(2,a)
+       ttz = wazi-rxyz(3,a)
+       tt   =  ttx**2 + tty**2 + ttz**2
+       val = val + 1.e-6_gp * tt
+       force(1,a) = force(1,a) + 2.e-6_gp * ttx
+       force(2,a) = force(2,a) + 2.e-6_gp * tty
+       force(3,a) = force(3,a) + 2.e-6_gp * ttz
+    enddo
+    !$omp end do
+    !$omp end parallel
+    val=val*0.5_gp
+
+    call clean_forces_base(bigdft_get_astruct_ptr(runObj),force)
+end subroutine lst_penalty_periodic
 !=====================================================================
 subroutine fire(mhgpsst,uinp,runObj,rxyzR,rxyzP,lambda,rxyz,fxyz,epot)
     use module_base
@@ -416,19 +553,17 @@ subroutine fire(mhgpsst,uinp,runObj,rxyzR,rxyzP,lambda,rxyz,fxyz,epot)
 !!!! 1000   continue !!!to be avoided 
         call daxpy(3*runObj%atoms%astruct%nat,dt,vxyz(1,1),1,rxyz(1,1),1)
         call daxpy(3*runObj%atoms%astruct%nat,0.5_gp*dt*dt,ff(1,1),1,rxyz(1,1),1)
-!!<-DEBUG START------------------------------------------------------>
-!write(fc5,'(i5.5)')iter
-!write(filename,*)'pos_'//fc5//'.ascii'
-!open(99,file=trim(adjustl((filename))))
-!write(99,*)
-!write(99,*)10.0 ,0, 10.0 
-!write(99,*)0, 0, 10.0 
-!do iat=1,nat
-!write(99,'(3(1xes24.17),a)')rxyz(1,iat),rxyz(2,iat),rxyz(3,iat),&
-!xat(iat)
-!enddo
-!close(99)
-!!<-DEBUG END-------------------------------------------------------->
+!!!<-DEBUG START------------------------------------------------------>
+!!write(fc5,'(i5.5)')iter
+!!write(filename,*)'pos_'//fc5//'.xyz'
+!!open(99,file=trim(adjustl((filename))))
+!!write(99,*)runObj%atoms%astruct%nat,'angstroem'
+!!write(99,'(a)')'surface  1.94030189514160192E+01  0.00000000000000000E+00  1.92000007629394496E+01'
+!!do iat=1,runObj%atoms%astruct%nat
+!!write(99,'(a,3(1xes24.17))')'Pt',rxyz(1,iat)/1.88972612_gp ,rxyz(2,iat)/1.88972612_gp ,rxyz(3,iat)/1.88972612_gp 
+!!enddo
+!!close(99)
+!!!<-DEBUG END-------------------------------------------------------->
 
 
 !        call valforce(nat,rxyz,fxyz,epot)
@@ -448,24 +583,24 @@ subroutine fire(mhgpsst,uinp,runObj,rxyzR,rxyzP,lambda,rxyz,fxyz,epot)
            ff(3,iat) = at3
         end do
         call fnrmandforcemax(fxyz,fnrm,fmax,runObj%atoms%astruct%nat)
-        fnrm=sqrt(fnrm) 
+        fnrm=sqrt(fnrm)
         call convcheck(fmax,uinp%lst_fmax_tol,check)
         if(check > 5)then
-!!<-DEBUG START------------------------------------------------------>
-!            write(*,'(a,x,i0,5(1x,es14.7))')&
-!            'FIRE converged # e evals, epot, &
-!            fmax, fnrm, dt, alpha: ',&
-!            int(count_fr),epot,fmax,sqrt(fnrm),dt,alpha
-!!<-DEBUG END-------------------------------------------------------->
+!!!<-DEBUG START------------------------------------------------------>
+!!            write(*,'(a,x,i0,5(1x,es14.7))')&
+!!            'FIRE converged # e evals, epot, &
+!!            fmax, fnrm, dt, alpha: ',&
+!!            int(count_fr),epot,fmax,sqrt(fnrm),dt,alpha
+!!!<-DEBUG END-------------------------------------------------------->
             success=.true.
             return
-!!<-DEBUG START------------------------------------------------------>
-!        else
-!            write(*,'(a,x,i0,5(1x,es14.7))')&
-!            'FIRE # e evals, epot, &
-!            fmax, fnrm, dt, alpha: ',&
-!            int(count_fr),epot,fmax,sqrt(fnrm),dt,alpha
-!!<-DEBUG END-------------------------------------------------------->
+!!!<-DEBUG START------------------------------------------------------>
+!!        else
+!!            write(*,'(a,x,i0,5(1x,es14.7))')&
+!!            'FIRE # e evals, epot, &
+!!            fmax, fnrm, dt, alpha: ',&
+!!            int(count_fr),epot,fmax,sqrt(fnrm),dt,alpha
+!!!<-DEBUG END-------------------------------------------------------->
         endif
         power = ddot(3*runObj%atoms%astruct%nat,fxyz,1,vxyz,1)
         vxyz_norm = dnrm2(3*runObj%atoms%astruct%nat,vxyz,1)
@@ -533,6 +668,186 @@ subroutine fnrmandforcemax(ff,fnrm,fmax,nat)
   fnrm=ddot(3*nat,ff(1,1),1,ff(1,1),1)
 end subroutine fnrmandforcemax
 !=====================================================================
+subroutine dist2plane(point,nvec,ppoint,dist)
+!This subroutine will calculate  the distance between a plane and a point in
+!space. The point is 'point', the normalized normal vector of the plane is
+!'nvec', 'ppoint' is an arbitrary point on the plane !and the output is the
+!distance 'dist' 
+    use module_base
+    implicit none
+    !parameters 
+    real(gp), intent(in) :: point(3),nvec(3),ppoint(3)
+    real(gp), intent(out):: dist
+    !local
+    real(gp) :: p
+    !functions
+    real(gp) :: ddot
+    
+    p=ddot(3,nvec(1),1,ppoint(1),1)
+    dist=ddot(3,nvec(1),1,point(1),1)-p
+end subroutine
+!=====================================================================
+subroutine nveclatvec(latvec,nvec)
+!Calculates the normalized normal vectors to the 3 planes of the cell
+    use module_base
+    implicit none
+    !parameters
+    real(gp), intent(in) :: latvec(3,3)
+    real(gp), intent(out):: nvec(3,3)
+    !internal
+    real(gp) :: a(3),b(3),crossp(3),norm
+    integer  :: i
+    !functions
+    real(gp) :: dnrm2
+    do i=1,3
+        a=latvec(:,i)
+        b=latvec(:,mod(i,3)+1)
+        crossp(1)=a(2)*b(3)-a(3)*b(2)
+        crossp(2)=a(3)*b(1)-a(1)*b(3)
+        crossp(3)=a(1)*b(2)-a(2)*b(1)
+        norm=dnrm2(3,crossp(1),1)
+        nvec(:,i)=crossp(:)/norm
+    enddo
+end subroutine
+!=====================================================================
+subroutine give_rcut(latvec,necmin,rcut)
+    use module_base
+    implicit none
+    !parameters
+    real(gp), intent(in) :: latvec(3,3)
+    integer, intent(in) :: necmin
+    real(gp), intent(out) :: rcut
+    !internal
+    integer :: i
+    real(gp) :: nvec(3,3), point0(3),dist(3)
+    !calculate normal vectors
+    call nveclatvec(latvec,nvec)
+    point0=(/0.0_gp,0.0_gp,0.0_gp/)
+    do i=1,3
+        call dist2plane(latvec(1,mod(i+1,3)+1),nvec(1,i),point0(1),dist(i))
+    enddo
+    dist=abs(dist)
+    rcut=real(max(1,necmin-1),gp)*maxval(dist)
+end subroutine give_rcut
+!=====================================================================
+subroutine n_rep_dim(latvec,cut,nec1,nec2,nec3)
+!This subroutine will return how many periodic expansions for each lattice
+!vector direction are necessary for the periodic boundary conditions
+!for the given cut. nec1,nec2,nec3 for latvec(:,1),latvec(:,2),latvec(:,3)
+    use module_base
+    implicit none
+    !parameters
+    real(gp), intent(in) :: latvec(3,3)
+    real(gp), intent(in) :: cut
+    integer, intent(out)  :: nec1,nec2,nec3
+    !internal
+    real(gp) :: nvec(3,3)
+    real(gp) :: point0(3)
+    real(gp) :: dist(3)
+    integer:: i
+    nec1=0
+    nec2=0
+    nec3=0
+    !calculate normal vectors
+    call nveclatvec(latvec,nvec)
+    point0=(/0.0_gp,0.0_gp,0.0_gp/)
+    do i=1,3
+        call dist2plane(latvec(1,mod(i+1,3)+1),nvec(1,i),point0(1),dist(i))
+    enddo
+    dist=abs(dist)
+    nec1=int(cut/dist(2))+1
+    nec2=int(cut/dist(3))+1
+    nec3=int(cut/dist(1))+1
+end subroutine
+!=====================================================================
+subroutine rxyz_cart2int(nat,latvec,rxyzint,rxyzcart)
+    use module_base
+!This subrouine will convert cartesian to internal coordinates
+    implicit none
+    !parameters
+    integer, intent(in) :: nat
+    real(gp), intent(in) :: latvec(3,3)
+    real(gp), intent(out) :: rxyzint(3,nat)
+    real(gp), intent(in) :: rxyzcart(3,nat)
+    !internal
+    real(gp) :: latvecinv(3,3)
+    real(gp) :: div
+    integer:: iat
+
+    !compute latvecinv, the inverse of matrix latvec
+    div=(latvec(1,1)*latvec(2,2)*latvec(3,3)-latvec(1,1)*latvec(2,3)*latvec(3,2)-&
+        latvec(1,2)*latvec(2,1)*latvec(3,3)+latvec(1,2)*latvec(2,3)*latvec(3,1)+&
+        latvec(1,3)*latvec(2,1)*latvec(3,2)-latvec(1,3)*latvec(2,2)*latvec(3,1))
+    div=1.0_gp/div
+    latvecinv(1,1) = (latvec(2,2)*latvec(3,3)-latvec(2,3)*latvec(3,2))*div
+    latvecinv(1,2) =-(latvec(1,2)*latvec(3,3)-latvec(1,3)*latvec(3,2))*div
+    latvecinv(1,3) = (latvec(1,2)*latvec(2,3)-latvec(1,3)*latvec(2,2))*div
+    latvecinv(2,1) =-(latvec(2,1)*latvec(3,3)-latvec(2,3)*latvec(3,1))*div
+    latvecinv(2,2) = (latvec(1,1)*latvec(3,3)-latvec(1,3)*latvec(3,1))*div
+    latvecinv(2,3) =-(latvec(1,1)*latvec(2,3)-latvec(1,3)*latvec(2,1))*div
+    latvecinv(3,1) = (latvec(2,1)*latvec(3,2)-latvec(2,2)*latvec(3,1))*div
+    latvecinv(3,2) =-(latvec(1,1)*latvec(3,2)-latvec(1,2)*latvec(3,1))*div
+    latvecinv(3,3) = (latvec(1,1)*latvec(2,2)-latvec(1,2)*latvec(2,1))*div
+
+    do iat=1,nat
+!        call dgemv('n',3,3,1.0_gp,latvecinv(1,1),3,rxyzcart(1,iat),1,&
+!             0.0_gp, rxyzint(1,iat),1)
+        rxyzint(:,iat)=matmul(latvecinv,rxyzcart(:,iat))
+    enddo
+end subroutine rxyz_cart2int
+!=====================================================================
+subroutine rxyz_int2cart(nat,latvec,rxyzint,rxyzcart)
+    !This subrouine will convert the internal coordinates into cartesian coordinates
+    use module_base
+    implicit none
+    real(gp):: rxyzint(3,nat), rxyzcart(3,nat),latvec(3,3)
+    integer:: nat,iat
+    do iat=1,nat
+     rxyzcart(:,iat)=matmul(latvec,rxyzint(:,iat))
+    enddo
+end subroutine rxyz_int2cart
+!=====================================================================
+subroutine backtocell_cart(nat,latvec,rxyz)
+!This subroutine will transform back all atoms into the periodic cell
+!defined by the 3 lattice vectors in latvec=[v1.v2.v3]
+    use module_base
+    implicit none
+    integer:: nat,i,iat,j
+    real(gp) :: latvec(3,3), rxyz(3,nat), crossp(3),a(3),b(3), nvec(3,3), dist(6),eps,count
+    real(gp) :: v(3,3),vol,rxyz_red(3,nat)
+    logical:: neccesary
+!      !First check if the volume is positive
+!      if(vol.le.0.d0) stop "Negative volume during backtocell"
+  call rxyz_cart2int(nat,latvec,rxyz_red,rxyz)
+  do iat=1,nat
+      rxyz_red(1,iat)=modulo(modulo(rxyz_red(1,iat),1.d0),1.d0)
+      rxyz_red(2,iat)=modulo(modulo(rxyz_red(2,iat),1.d0),1.d0)
+      rxyz_red(3,iat)=modulo(modulo(rxyz_red(3,iat),1.d0),1.d0)
+  enddo
+  call rxyz_int2cart(nat,latvec,rxyz_red,rxyz)
+end subroutine backtocell_cart
+!=====================================================================
+subroutine backtocell_cart_surface(nat,latvec,rxyz)
+!This subroutine will transform back all atoms into the periodic cell
+!defined by the 3 lattice vectors in latvec=[v1.v2.v3]
+    use module_base
+    implicit none
+    integer:: nat,i,iat,j
+    real(gp) :: latvec(3,3), rxyz(3,nat), crossp(3),a(3),b(3), nvec(3,3), dist(6),eps,count
+    real(gp) :: v(3,3),vol,rxyz_red(3,nat)
+    logical:: neccesary
+!      !First check if the volume is positive
+!      if(vol.le.0.d0) stop "Negative volume during backtocell"
+  call rxyz_cart2int(nat,latvec,rxyz_red,rxyz)
+  do iat=1,nat
+      rxyz_red(1,iat)=modulo(modulo(rxyz_red(1,iat),1.d0),1.d0)
+      rxyz_red(3,iat)=modulo(modulo(rxyz_red(3,iat),1.d0),1.d0)
+  enddo
+  call rxyz_int2cart(nat,latvec,rxyz_red,rxyz)
+end subroutine backtocell_cart_surface
+
+
+
 
 end module module_interpol
 

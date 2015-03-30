@@ -23,7 +23,7 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
   use yaml_output
   use sparsematrix_base, only: sparse_matrix, sparse_matrix_null, deallocate_sparse_matrix, &
                                sparsematrix_malloc, assignment(=), SPARSE_FULL
-  use sparsematrix_init, only: matrixindex_in_compressed, matrixindex_in_compressed2
+  use sparsematrix_init, only: matrixindex_in_compressed
   use sparsematrix, only: gather_matrix_from_taskgroups_inplace, extract_taskgroup_inplace
   use communications_base, only: work_transpose, &
                                  work_transpose_null, allocate_work_transpose, deallocate_work_transpose
@@ -832,7 +832,7 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
           can_use_ham, order_taylor, input%lin%max_inversion_error, input%kappa_conv, input%method_updatekernel,&
           input%purification_quickreturn, input%correction_co_contra, &
           precond_convol_workarrays, precond_workarrays, &
-          wt_philarge, wt_hpsinoprecond, wt_hphi, wt_phi, fnrm_work, energs_work)
+          wt_philarge, wt_hpsinoprecond, wt_hphi, wt_phi, fnrm_work, energs_work, input%lin%fragment_calculation)
      call deallocate_work_mpiaccumulate(fnrm_work)
      call deallocate_precond_arrays(tmb%orbs, tmb%lzd, precond_convol_workarrays, precond_workarrays)
      call deallocate_work_transpose(wt_philarge)

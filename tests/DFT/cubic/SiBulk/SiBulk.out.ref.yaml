@@ -828,7 +828,7 @@
    -  [ -4.119807354391E-09, -4.119807808111E-09, -3.559199076407E-04 ]
    Pressure:
      Ha/Bohr^3                         : -3.55919907640732E-04
-     GPa                               : -10.4715
+     GPa                               : -10.4715234835
      PV (Ha)                           : -0.38450569840247
   #------------ Iterative subspace diagonalization of virtual orbitals (Direct Minimization)
  Generation of input wavefunction data for atom: Si

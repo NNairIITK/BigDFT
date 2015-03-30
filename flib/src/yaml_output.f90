@@ -758,7 +758,6 @@ contains
        dict_tmp = streams(strm)%dict_warning .get. 'WARNINGS'
        idx=dict_tmp .index. trim(message)
        if (idx < 0) call add(streams(strm)%dict_warning//'WARNINGS',trim(message))
-
     end if
     if (present(level)) then
        if (level <= streams(strm)%Wall) then
@@ -1063,7 +1062,7 @@ contains
     character(len=*), optional, intent(in) :: advance   !<@copydoc doc::advance
     integer, intent(in), optional :: padding            !<pad the seqvalue with blanks to have more readable output
     !local variables
-    integer :: msg_lgt,unt,strm,tb
+    integer :: msg_lgt,unt,strm,tb,istat,ipos,jpos,kpos
     character(len=3) :: adv
     character(len=tot_max_record_length) :: towrite
 
@@ -1088,8 +1087,26 @@ contains
        tb=padding-len_trim(seqvalue)
        if (tb > 0) call buffer_string(towrite,len(towrite),repeat(' ',tb),msg_lgt)
     end if
-
-    call dump(streams(strm),towrite(1:msg_lgt),advance=trim(adv),event=SEQUENCE_ELEM)
+    !try to see if the line is too long
+    call dump(streams(strm),towrite(1:msg_lgt),advance=trim(adv),event=SEQUENCE_ELEM,istat=istat)
+    if (istat /=0 .and. .not. streams(strm)%flowrite) then
+       ipos=1
+       jpos=msg_lgt
+       kpos=jpos
+       loop_seq: do
+          call dump(streams(strm),towrite(ipos:kpos),advance=trim(adv),event=SCALAR,istat=istat)
+          if (istat /=0) then
+             !continue searching
+             kpos=index(towrite(ipos:jpos),' ',back=.true.)
+             if (kpos == 0) kpos=jpos-1
+          else
+             ipos=kpos+1
+             jpos=msg_lgt
+             kpos=jpos
+          end if
+          if (ipos > msg_lgt) exit loop_seq
+       end do loop_seq
+    end if
   end subroutine yaml_sequence
 
 
@@ -1611,6 +1628,7 @@ contains
           else
              !crop the writing
              towrite_lgt=stream%max_record_length
+             !print *,'towrite', repeat(' ',max(indent_lgt,0))//towrite(1:towrite_lgt),' end'
              !stop 'ERROR (dump): writing exceeds record size'
           end if
        else

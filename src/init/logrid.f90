@@ -383,6 +383,7 @@ subroutine wfd_to_logrids(n1,n2,n3,wfd,logrid_c,logrid_f)
   logrid_c(:,:,:)=.false.
   !control variable
   nvctr_check=0
+  !write(*,*) 'np, n1p1', np, n1p1
   do iseg=1,wfd%nseg_c
      j0=wfd%keygloc(1,iseg)
      j1=wfd%keygloc(2,iseg)

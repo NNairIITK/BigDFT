@@ -24,21 +24,21 @@ subroutine init_lj(paramset,paramfile,units)
     character(len=*), intent(in) :: paramfile
     character(len=*), intent(in) :: units
     !local
-    call yaml_comment('Initializing LJ',hfill='-')
+    if (bigdft_mpi%iproc ==0) call yaml_comment('Initializing LJ',hfill='-')
     if(units/= 'atomicd0' .and. &
         units/= 'atomic' .and. &
         units/= 'bohrd0' .and. &
         units/= 'bohr')then
         call f_err_throw('For LJ, units must be atomic(d0) or bohr(d0)')
     endif
-    call yaml_scalar('Unit checks passed.')
+    !call yaml_scalar('Unit checks passed.')
     if(trim(paramfile)/='none')then
         call f_err_throw('Reading Parameters from file not '//&
              'implemented for LJ')
     else
         select case(trim(paramset))
         case('default')
-            call yaml_scalar('Using normalized Units for LJ (sigma=1, epsilon=1)')
+           if (bigdft_mpi%iproc ==0) call yaml_comment('Using normalized Units for LJ (sigma=1, epsilon=1)')
         case default
             call f_err_throw('Following parameter set for LJ force field '//&
                 'is unknown: '//trim(paramset))
