@@ -3,7 +3,7 @@
   #the run. The code would produce the same output if this file is used as input.
  dft:
    hgrids: 0.60
-   rmult: [3.0, 3.0]
+   rmult: 3.0
    ixc: PBE
    nrepmax: accurate
    ncong: 5
@@ -42,9 +42,9 @@
    idsx_coeff: [6, 0]
    idsx: 6
    alphamix: 0.05
+   linear_method: FOE
    eval_range_foe: [-1.0, 1.0]
    fscale_foe: 1.0E-002
-   linear_method: FOE
  lin_basis_params:
    C:
      ao_confinement: 5.e-2
@@ -53,7 +53,7 @@
      rloc_kernel: 7.0
      rloc_kernel_foe: 9.0
  posinp:
-   cell: [ 23.069401, .inf,  23.97438]
+   cell: [23.069401, .inf, 23.97438]
    positions:
    - C: [9.2277603, 0.0, 7.9914598]
    - C: [9.2277603, 0.0, 10.65528]

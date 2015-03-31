@@ -1,7 +1,0 @@
-ef_interpol_chargediff 1.0
-check_sumrho 1
-calculate_KS_residue F
-method_updatekernel 2
-purification_quickreturn T
-check_matrix_compression F
-correction_co_contra T
