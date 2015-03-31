@@ -1059,6 +1059,10 @@
                     If the hybrid mode is used, only the first value is taken into account.
        RANGE: [0,100]
        default: [4,5]
+     nit_ig:
+       COMMENT:  maximal number of iterations to optimize the support functions in the extended input guess (experimental mode only)
+       RANGE: [0,100]
+       default: 50 #just for backward compatibility, should be smaller
      idsx:
        COMMENT: DIIS history for optimization of the support functions (low/high accuracy); 0 -> SD
        DESCRIPTION: |
@@ -1077,6 +1081,10 @@
                     When the hybrid mode is used, only the first entry is taken into account.
        RANGE: [1.e-6,1.0]
        default: [1.e-2,1.e-4]
+     gnrm_ig:
+       COMMENT: convergence criterion for the optimization of the support functions in the extended input guess (experimental mode only)
+       RANGE: [1.e-5,10.0]
+       default: 1.e-3 #just for backward compatibility, should be larger
      deltae_cv:
        COMMENT: total relative energy difference to stop the optimization ('experimental_mode' only)
        DESCRIPTION: |

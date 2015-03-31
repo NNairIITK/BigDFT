@@ -45,38 +45,39 @@ subroutine set_inputfile(filename, radical, ext)
        & write(filename, "(A,A,A)") "default", ".", trim(ext)
 end subroutine set_inputfile
 
-subroutine fragment_variables_from_old_text_format(in, run_name)
-  use dictionaries
-  use module_base, only: bigdft_mpi
-  use module_types
-  use input_old_text_format
-  implicit none
-  type(input_variables), intent(inout) :: in
-  character(len = *), intent(in) :: run_name
-  type(dictionary), pointer :: dict_frag
-  integer :: ierr
-
-  call set_inputfile(in%file_lin, run_name,    "lin")
-  call set_inputfile(in%file_frag, run_name,   "frag")
-
-  ! To avoid race conditions where procs create the default file and other test its
-  ! presence, we put a barrier here.
-  if (bigdft_mpi%nproc > 1) call MPI_BARRIER(bigdft_mpi%mpi_comm, ierr)
-
-  ! Linear scaling (if given)
-  !in%lin%fragment_calculation=.false. ! to make sure that if we're not doing a linear calculation we don't read fragment information
-  call fragment_input_variables_check(bigdft_mpi%iproc,in%inputPsiId == INPUT_PSI_LINEAR_AO .or. &
-       & in%inputPsiId == INPUT_PSI_DISK_LINEAR, trim(in%file_lin),in%lin)
-
-  ! Fragment information (if given)
-  nullify(dict_frag)
-  call fragment_input_variables_from_text_format(bigdft_mpi%iproc,(in%inputPsiId == INPUT_PSI_LINEAR_AO .or. &
-       & in%inputPsiId == INPUT_PSI_DISK_LINEAR).and.in%lin%fragment_calculation,&
-       trim(in%file_frag),in%lin%fragment_calculation,dict_frag)
-
-  call frag_from_dict(dict_frag,in%frag)  
-  call dict_free(dict_frag)
-END SUBROUTINE fragment_variables_from_old_text_format
+!SM: Seems not to be used any more
+!!subroutine fragment_variables_from_old_text_format(in, run_name)
+!!  use dictionaries
+!!  use module_base, only: bigdft_mpi
+!!  use module_types
+!!  use input_old_text_format
+!!  implicit none
+!!  type(input_variables), intent(inout) :: in
+!!  character(len = *), intent(in) :: run_name
+!!  type(dictionary), pointer :: dict_frag
+!!  integer :: ierr
+!!
+!!  call set_inputfile(in%file_lin, run_name,    "lin")
+!!  call set_inputfile(in%file_frag, run_name,   "frag")
+!!
+!!  ! To avoid race conditions where procs create the default file and other test its
+!!  ! presence, we put a barrier here.
+!!  if (bigdft_mpi%nproc > 1) call MPI_BARRIER(bigdft_mpi%mpi_comm, ierr)
+!!
+!!  ! Linear scaling (if given)
+!!  !in%lin%fragment_calculation=.false. ! to make sure that if we're not doing a linear calculation we don't read fragment information
+!!  call fragment_input_variables_check(bigdft_mpi%iproc,in%inputPsiId == INPUT_PSI_LINEAR_AO .or. &
+!!       & in%inputPsiId == INPUT_PSI_DISK_LINEAR, trim(in%file_lin),in%lin)
+!!
+!!  ! Fragment information (if given)
+!!  nullify(dict_frag)
+!!  call fragment_input_variables_from_text_format(bigdft_mpi%iproc,(in%inputPsiId == INPUT_PSI_LINEAR_AO .or. &
+!!       & in%inputPsiId == INPUT_PSI_DISK_LINEAR).and.in%lin%fragment_calculation,&
+!!       trim(in%file_frag),in%lin%fragment_calculation,dict_frag)
+!!
+!!  call frag_from_dict(dict_frag,in%frag)  
+!!  call dict_free(dict_frag)
+!!END SUBROUTINE fragment_variables_from_old_text_format
 
 !> Read fragment input parameters from old format
 subroutine fragment_input_variables_check(iproc,dump,filename,lin)
