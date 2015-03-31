@@ -1260,7 +1260,7 @@ program memguess
        call loewdin_charge_analysis_core(iproc, nproc, smat_s%nfvctr, smat_s%nfvctrp, smat_s%isfvctr, &
             smat_s%nfvctr_par, smat_s%isfvctr_par, meth_overlap=0, &
             smats=smat_s, smatl=smat_l, atoms=at, kernel=kernel_mat, ovrlp=ovrlp_mat)
-       stop
+       !stop
    end if
 
    nullify(run)
