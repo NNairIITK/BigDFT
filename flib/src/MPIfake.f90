@@ -115,8 +115,13 @@ subroutine MPI_REDUCE()
   stop 'MPIFAKE: REDUCE'
 END SUBROUTINE MPI_REDUCE
 
-subroutine  MPI_ALLREDUCE()
+subroutine  MPI_ALLREDUCE(i1,i2,i3,i4,op,mpi_comm,ierr)
   implicit none
+  integer :: i1,i2,i3,i4
+  integer, intent(in) :: op, mpi_comm
+  integer, intent(out) :: ierr
+  !Initialize ierr in case when MPI_ALLREDUCE is called
+  ierr = 0
   !stop 'MPIFAKE: ALLREDUCE' eliminated due to ABINIT module
 END SUBROUTINE MPI_ALLREDUCE
 

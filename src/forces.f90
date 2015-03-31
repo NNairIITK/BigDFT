@@ -4241,7 +4241,7 @@ subroutine erf_stress(at,rxyz,hxh,hyh,hzh,n1i,n2i,n3i,n3p,iproc,nproc,ngatherarr
   nout_par(iproc) = noutp
   call mpiallred(nout_par(0), nproc, mpi_sum, comm=bigdft_mpi%mpi_comm)
   if (sum(nout_par)/=nout) then
-      call f_err_throw('wrong partition of the outer loop',err_name='BIGDT_RUNTIME_ERROR')
+      call f_err_throw('wrong partition of the outer loop',err_name='BIGDFT_RUNTIME_ERROR')
   end if
   isout = 0
   do jproc=0,iproc-1
