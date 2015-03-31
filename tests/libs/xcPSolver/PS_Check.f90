@@ -115,7 +115,7 @@ program PS_Check
    hy=acell/real(n02,kind=8)
    hz=acell/real(n03,kind=8)
 
-   if (mp) call initialize_real_space_conversion(isf_m=itype_scf,nmoms=dual_scf,npoints=npoints)
+   if (mp) call initialize_real_space_conversion(isf_m=dual_scf,npoints=npoints)
 
    !calculate the kernel in parallel for each processor
    ndims=(/n01,n02,n03/)

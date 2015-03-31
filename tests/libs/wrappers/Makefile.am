@@ -17,7 +17,8 @@ check_wrappers_CPPFLAGS = -I$(top_builddir) -I$(top_srcdir)/src/modules -I$(top_
 check_wrappers_LDADD = -lbigdft-1
 
 EXTRA_DIST = wrappers.out.ref.yaml posinp.ref.yaml
-CLEANFILES = default.* posinp.yaml time.yaml wrappers.out.yaml *report.yaml input_minimal.yaml input.yaml
+CLEANFILES = default.* posinp.yaml time.yaml wrappers.out.yaml *report.yaml input_minimal.yaml input.yaml \
+			 report report_remarks
 
 check: wrappers.out.report.yaml posinp.report.yaml
 

@@ -1602,6 +1602,7 @@ subroutine run_objects_dump_to_file(iostat, dict, fname, userOnly,ln)
      return
   end if
   !call f_strcpy(src=fname(1:ln),dest=filetmp)
+  filetmp=''
   do iln=1,ln
      filetmp(iln:iln)=fname(iln)
   end do
