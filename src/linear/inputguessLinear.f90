@@ -826,8 +826,9 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
      call getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trace,trace_old,fnrm_tmb,&
           info_basis_functions,nlpsp,input%lin%scf_mode,ldiis,input%SIC,tmb,energs, &
           input%lin%nItPrecond,TARGET_FUNCTION_IS_TRACE,input%lin%correctionOrthoconstraint,&
-          50,&
-          ratio_deltas,ortho_on,input%lin%extra_states,0,1.d-3,input%experimental_mode,input%lin%early_stop,&
+          input%lin%nit_extendedIG,&
+          ratio_deltas,ortho_on,input%lin%extra_states,0,input%lin%convCrit_extendedIG,&
+          input%experimental_mode,input%lin%early_stop,&
           input%lin%gnrm_dynamic, input%lin%min_gnrm_for_dynamic, &
           can_use_ham, order_taylor, input%lin%max_inversion_error, input%kappa_conv, input%method_updatekernel,&
           input%purification_quickreturn, input%correction_co_contra, &
