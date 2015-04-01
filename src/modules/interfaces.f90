@@ -254,7 +254,7 @@ module module_interfaces
 
        subroutine createIonicPotential(geocode,iproc,nproc,verb,at,rxyz,&
             hxh,hyh,hzh,elecfield,n1,n2,n3,n3pi,i3s,n1i,n2i,n3i,pkernel,&
-            pot_ion,psoffset)
+            pot_ion,rho_ion,psoffset)
          use module_defs, only: gp,wp
          use module_types
          implicit none
@@ -267,6 +267,7 @@ module module_interfaces
          real(gp), dimension(3,at%astruct%nat), intent(in) :: rxyz
          type(coulomb_operator), intent(in) :: pkernel
          real(wp), dimension(*), intent(inout) :: pot_ion
+         real(gp), dimension(*), intent(out) :: rho_ion
        END SUBROUTINE createIonicPotential
 
        subroutine input_wf_empty(iproc, nproc, psi, hpsi, psit, orbs, &

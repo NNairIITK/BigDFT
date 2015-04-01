@@ -197,9 +197,11 @@ subroutine psitohpsi(iproc,nproc,atoms,scf,denspot,itrp,itwfn,iscf,alphamix,&
              denspot%dpbox%hgrids(1),denspot%dpbox%hgrids(2),denspot%dpbox%hgrids(3),&
              denspot%rhov,energs%exc,energs%evxc,wfn%orbs%nspin,denspot%rho_C,denspot%V_XC,xcstr)
         call denspot_set_rhov_status(denspot, CHARGE_DENSITY, itwfn, iproc, nproc)
+
         call H_potential('D',denspot%pkernel,&
              denspot%rhov,denspot%V_ext,energs%eh,0.0_dp,.true.,&
-             quiet=denspot%PSquiet) !optional argument
+             quiet=denspot%PSquiet,rho_ion=denspot%rho_ion) !optional argument
+
         !this is not true, there is also Vext
         call denspot_set_rhov_status(denspot, HARTREE_POTENTIAL, itwfn, iproc, nproc)
 
@@ -354,10 +356,26 @@ subroutine psitohpsi(iproc,nproc,atoms,scf,denspot,itrp,itwfn,iscf,alphamix,&
   call SynchronizeHamiltonianApplication(nproc,wfn%orbs%npsidim_orbs,wfn%orbs,wfn%Lzd,&
        & GPU,denspot%xc,wfn%hpsi,&
        energs%ekin,energs%epot,energs%eproj,energs%evsic,energs%eexctX)
+
+  if (trim(denspot%pkernel%method) /= 'VAC') then
+     energs%eh=energs%epot-energs%eh-energs%evxc
+  end if
+!!$  if (iproc ==0) then
+!!$     !compute the proper hartree energy in the case of a cavity calculation
+!!$     !energs%eh=energs%epot-energs%eh-energs%evxc
+!!$     call yaml_map('Potential',energs%epot)
+!!$     call yaml_map('Ionic',energs%eion)
+!!$     call yaml_map('Evxc',energs%evxc)
+!!$     call yaml_map('Old EH',energs%eh)
+!!$     call yaml_map('rho Vext+static',energs%epot-2*energs%eh-energs%evxc)
+!!$     call yaml_map('EHtot',energs%epot-energs%eh-energs%evxc)
+!!$  end if
+
   ! Emit that hpsi are ready.
   if (wfn%c_obj /= 0) then
      call kswfn_emit_psi(wfn, itwfn, 1, iproc, nproc)
   end if
+
 
   !deallocate potential
   call free_full_potential(denspot%dpbox%mpi_env%nproc,linflag,denspot%xc,denspot%pot_work,subname)
@@ -437,6 +455,10 @@ subroutine FullHamiltonianApplication(iproc,nproc,at,orbs,&
   call SynchronizeHamiltonianApplication(nproc,orbs%npsidim_orbs,orbs,Lzd,GPU,xc,hpsi,&
        energs%ekin,energs%epot,energs%eproj,energs%evsic,energs%eexctX)
 
+  !to be adjusted
+!!$  if (trim(denspot%pkernel%method) /= 'VAC') then
+     energs%eh=energs%epot-energs%eh-energs%evxc
+!!$  end if
 
 
 END SUBROUTINE FullHamiltonianApplication

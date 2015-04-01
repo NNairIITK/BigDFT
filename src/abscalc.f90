@@ -266,7 +266,7 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
    !real(kind=8), dimension(:,:), allocatable :: gxyz
    real(gp), dimension(:,:),pointer :: fdisp,fion
    ! Charge density/potential,ionic potential, pkernel
-   real(kind=8), dimension(:), allocatable :: pot_ion
+   real(kind=8), dimension(:), allocatable :: pot_ion,rho_ion
 
    real(kind=8), dimension(:,:,:,:), allocatable, target :: rhopot, rhopotTOTO, rhoXanes
    real(kind=8), dimension(:,:,:,:), pointer ::  rhopottmp, rhopotExtra, rhotarget
@@ -490,6 +490,7 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
    else
       pot_ion = f_malloc(1,id='pot_ion')
    end if
+   rho_ion = f_malloc(1,id='rho_ion')
 
    !calculation of the Poisson kernel anticipated to reduce memory peak for small systems
    ndegree_ip=16 !default value
@@ -534,7 +535,7 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
         n1,n2,n3,pot_ion,pkernel,psoffset)
 
    call createIonicPotential(atoms%astruct%geocode,iproc,nproc, (iproc == 0), atoms,rxyz,hxh,hyh,hzh,&
-        in%elecfield,n1,n2,n3,dpcom%n3pi,dpcom%i3s+dpcom%i3xcsh,n1i,n2i,n3i,pkernel,pot_ion,psoffset)
+        in%elecfield,n1,n2,n3,dpcom%n3pi,dpcom%i3s+dpcom%i3xcsh,n1i,n2i,n3i,pkernel,pot_ion,rho_ion,psoffset)
 
 
    !Allocate Charge density, Potential in real space
@@ -695,6 +696,7 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
    nullify(psit)
 
    call f_free(pot_ion)
+   call f_free(rho_ion)
 
    call pkernel_free(pkernel)
 !!$   i_all=-product(shape(pkernel))*kind(pkernel)
@@ -1122,46 +1124,6 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
       !! if (infocode /=0 .and. infocode /=1) then
       if (.true.) then
 
-         !!$       if (idsx_actual > 0) then
-         !!$          i_all=-product(shape(psidst))*kind(psidst)
-         !!$          deallocate(psidst,stat=i_stat)
-         !!$          call memocc(i_stat,i_all,'psidst',subname)
-         !!$          i_all=-product(shape(hpsidst))*kind(hpsidst)
-         !!$          deallocate(hpsidst,stat=i_stat)
-         !!$          call memocc(i_stat,i_all,'hpsidst',subname)
-         !!$          i_all=-product(shape(ads))*kind(ads)
-         !!$          deallocate(ads,stat=i_stat)
-         !!$          call memocc(i_stat,i_all,'ads',subname)
-         !!$       end if
-
-         !!$       if (nproc > 1) then
-         !!$          i_all=-product(shape(psit))*kind(psit)
-         !!$          deallocate(psit,stat=i_stat)
-         !!$          call memocc(i_stat,i_all,'psit',subname)
-         !!$       end if
-         !!$       
-         !!$       i_all=-product(shape(hpsi))*kind(hpsi)
-         !!$       deallocate(hpsi,stat=i_stat)
-         !!$       call memocc(i_stat,i_all,'hpsi',subname)
-
-
-
-
-         !!$       i_all=-product(shape(pot_ion))*kind(pot_ion)
-         !!$       deallocate(pot_ion,stat=i_stat)
-         !!$       call memocc(i_stat,i_all,'pot_ion',subname)
-         !!$       
-         !!$       i_all=-product(shape(pkernel))*kind(pkernel)
-         !!$       deallocate(pkernel,stat=i_stat)
-         !!$       call memocc(i_stat,i_all,'pkernel',subname)
-         !!$
-
-         !!$       if (in%read_ref_den) then
-         !!$          i_all=-product(shape(pkernel_ref))*kind(pkernel_ref)
-         !!$          deallocate(pkernel_ref,stat=i_stat)
-         !!$          call memocc(i_stat,i_all,'pkernel_ref',subname)
-         !!$       end if
-
          ! calc_tail false
          call f_free(rhopot)
 
@@ -1170,12 +1132,6 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
          endif
 
          call f_free(rhoXanes)
-
-         !!$       if (in%read_ref_den) then
-         !!$          i_all=-product(shape(rhoref))*kind(rhoref)
-         !!$          deallocate(rhoref,stat=i_stat)
-         !!$          call memocc(i_stat,i_all,'rhoref',subname)
-         !!$       end if
 
          call f_free_ptr(dpcom%nscatterarr)
 

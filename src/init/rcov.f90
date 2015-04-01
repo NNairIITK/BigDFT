@@ -61,73 +61,39 @@ subroutine covalent_radius(symbol,rcov)
   case( "Te" ); rcov=2.53d0
   case( "I" ); rcov=2.50d0
   case( "Xe" ); rcov=2.50d0
-
   case( "Cs" ); rcov=4.50d0
-
   case( "Ba" ); rcov=4.00d0
-
   case( "La" ); rcov=3.50d0
-
   case( "Ce" ); rcov=3.50d0
-
   case( "Pr" ); rcov=3.44d0
-
   case( "Nd" ); rcov=3.38d0
-
   case( "Pm" ); rcov=3.33d0
-
   case( "Sm" ); rcov=3.27d0
-
   case( "Eu" ); rcov=3.21d0
-
   case( "Gd" ); rcov=3.15d0
-
   case( "Tb" ); rcov=3.09d0
-
   case( "Dy" ); rcov=3.03d0
-
   case( "Ho" ); rcov=2.97d0
-
   case( "Er" ); rcov=2.92d0
-
   case( "Tm" ); rcov=2.92d0
-
   case( "Yb" ); rcov=2.80d0
-
   case( "Lu" ); rcov=2.80d0
-
   case( "Hf" ); rcov=2.90d0
-
   case( "Ta" ); rcov=3.10d0
-
   case( "W" ); rcov=2.60d0
-
   case( "Re" ); rcov=2.60d0
-
   case( "Os" ); rcov=2.50d0
-
   case( "Ir" ); rcov=2.60d0
-
   case( "Pt" ); rcov=2.60d0
-
   case( "Au" ); rcov=4.00d0
-
   case( "Hg" ); rcov=3.20d0
-
   case( "Tl" ); rcov=3.20d0
-
   case( "Pb" ); rcov=3.30d0
-
   case( "Bi" ); rcov=2.90d0
-
   case( "Po" ); rcov=2.80d0
-
   case( "At" ); rcov=2.60d0
-
   case( "Rn" ); rcov=2.60d0
-
   case default
-     rcov=0.d0
-     !stop 'covalent radius cannot be determined, invalid symbol'
+     stop 'covalent radius cannot be determined, invalid symbol'
   end select
 end subroutine covalent_radius

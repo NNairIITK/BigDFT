@@ -24,6 +24,7 @@ subroutine system_initialization(iproc,nproc,dump,inputpsi,input_wf_format,dry_r
   use module_atoms, only: set_symmetry_data
   use communications_base, only: comms_cubic
   use communications_init, only: orbitals_communicators
+  use Poisson_Solver, only: pkernel_allocate_cavity
   implicit none
   integer, intent(in) :: iproc,nproc 
   logical, intent(in) :: dry_run, dump
@@ -108,6 +109,9 @@ subroutine system_initialization(iproc,nproc,dump,inputpsi,input_wf_format,dry_r
      call system_createKernels(denspot, (verbose > 1))
      if (in%set_epsilon == EPSILON_RIGID_CAVITY) &
           call epsilon_cavity(atoms,rxyz,denspot%pkernel)
+     !allocate cavity
+     if (in%set_epsilon == EPSILON_SCCS) &
+          call pkernel_allocate_cavity(denspot%pkernel)
   end if
 
   ! Create wavefunctions descriptors and allocate them inside the global locreg desc.
@@ -819,7 +823,7 @@ subroutine epsilon_cavity(atoms,rxyz,pkernel)
   use module_atoms
   use ao_inguess, only: atomic_info
   !use yaml_output
-  use module_defs, only : Bohr_Ang
+  use module_defs, only : Bohr_Ang,bigdft_mpi
   use f_utils
   use yaml_output
   use dictionaries, only: f_err_throw
@@ -854,7 +858,7 @@ subroutine epsilon_cavity(atoms,rxyz,pkernel)
      call atomic_info(atoms%nzatom(it%ityp),atoms%nelpsp(it%ityp),&
           rcov=radii(it%iat))
   end do
-  call yaml_map('Bohr_Ang',Bohr_Ang)
+  if(bigdft_mpi%iproc==0) call yaml_map('Bohr_Ang',Bohr_Ang)
 
 !  radii(1)=1.5d0/Bohr_Ang
 !  radii(2)=1.2d0/Bohr_Ang
@@ -862,7 +866,7 @@ subroutine epsilon_cavity(atoms,rxyz,pkernel)
 
 !  delta=4.0*maxval(pkernel%hgrids)
   delta=2.0d0
-  call yaml_map('Delta cavity',delta)
+  if(bigdft_mpi%iproc==0) call yaml_map('Delta cavity',delta)
   delta=delta*0.25d0 ! Divided by 4 because both rigid cavities are 4*delta widespread 
 
   do i=1,atoms%astruct%nat
@@ -884,44 +888,52 @@ subroutine epsilon_cavity(atoms,rxyz,pkernel)
    case default
     call f_err_throw('For rigid cavity a radius should be fixed for each atom type')
    end select
-   call yaml_map('Atomic type',atoms%astruct%atomnames(atoms%astruct%iatype(i)))
+   if (bigdft_mpi%iproc==0) call yaml_map('Atomic type',atoms%astruct%atomnames(atoms%astruct%iatype(i)))
    radii_nofact(i) = radii(i)/Bohr_Ang +1.05d0*delta
    radii(i) = fact*radii(i)/Bohr_Ang + 1.22d0*delta
   end do
-  call yaml_map('Covalent radii',radii)
+  if (bigdft_mpi%iproc==0) call yaml_map('Covalent radii',radii)
 
 !--------------------------------------------
 
 ! Calculation of non-electrostatic contribution. Use of raddi without fact
 ! multiplication.
-!  call epsilon_rigid_cavity_error_multiatoms(atoms%astruct%geocode,pkernel%ndims,pkernel%hgrids,atoms%astruct%nat,rxyz,radii_nofact,&
-!       epsilon0,delta,eps,dlogeps,oneoeps,oneosqrteps,corr,IntSur,IntVol)
-  call epsilon_rigid_cavity_new_multiatoms(atoms%astruct%geocode,pkernel%ndims,pkernel%hgrids,atoms%astruct%nat,rxyz,radii_nofact,&
+  call epsilon_rigid_cavity_error_multiatoms(atoms%astruct%geocode,pkernel%ndims,pkernel%hgrids,&
+       atoms%astruct%nat,rxyz,radii_nofact,&
        epsilon0,delta,eps,dlogeps,oneoeps,oneosqrteps,corr,IntSur,IntVol)
+!  call epsilon_rigid_cavity_new_multiatoms(atoms%astruct%geocode,pkernel%ndims,pkernel%hgrids,atoms%astruct%nat,rxyz,radii_nofact,&
+!       epsilon0,delta,eps,dlogeps,oneoeps,oneosqrteps,corr,IntSur,IntVol)
 
-  call yaml_map('Surface integral',IntSur)
-  call yaml_map('Volume integral',IntVol)
-
+  if (bigdft_mpi%iproc==0) then
+     call yaml_map('Surface integral',IntSur)
+     call yaml_map('Volume integral',IntVol)
+  end if
   Cavene= 72.d-13*Bohr_Ang*IntSur/8.238722514d-8*627.509469d0
   Repene=-22.d-13*Bohr_Ang*IntSur/8.238722514d-8*627.509469d0
   Disene=-0.35d9*IntVol*2.942191219d-13*627.509469d0
   noeleene=Cavene+Repene+Disene
-  call yaml_map('Cavity energy',Cavene)
-  call yaml_map('Repulsion energy',Repene)
-  call yaml_map('Dispersion energy',Disene)
-  call yaml_map('Total non-electrostatic energy',noeleene)
+  if (bigdft_mpi%iproc==0) then
+     call yaml_map('Cavity energy',Cavene)
+     call yaml_map('Repulsion energy',Repene)
+     call yaml_map('Dispersion energy',Disene)
+     call yaml_map('Total non-electrostatic energy',noeleene)
+  end if
 
 !--------------------------------------------
 
 !  call epsilon_rigid_cavity(atoms%astruct%geocode,pkernel%ndims,pkernel%hgrids,atoms%astruct%nat,rxyz,radii,&
 !       epsilon0,delta,eps)
-!  call epsilon_rigid_cavity_error_multiatoms(atoms%astruct%geocode,pkernel%ndims,pkernel%hgrids,atoms%astruct%nat,rxyz,radii,&
-!       epsilon0,delta,eps,dlogeps,oneoeps,oneosqrteps,corr,IntSur,IntVol)
-  call epsilon_rigid_cavity_new_multiatoms(atoms%astruct%geocode,pkernel%ndims,pkernel%hgrids,atoms%astruct%nat,rxyz,radii,&
+  call epsilon_rigid_cavity_error_multiatoms(atoms%astruct%geocode,pkernel%ndims,pkernel%hgrids,atoms%astruct%nat,rxyz,radii,&
        epsilon0,delta,eps,dlogeps,oneoeps,oneosqrteps,corr,IntSur,IntVol)
+!  call epsilon_rigid_cavity_new_multiatoms(atoms%astruct%geocode,pkernel%ndims,pkernel%hgrids,atoms%astruct%nat,rxyz,radii,&
+!       epsilon0,delta,eps,dlogeps,oneoeps,oneosqrteps,corr,IntSur,IntVol)
 
   !set the epsilon to the poisson solver kernel
 !  call pkernel_set_epsilon(pkernel,eps=eps)
+
+  !!!!!set the fake cavity to restore the value in vacuum
+!!$  corr=0.d0
+!!$  oneosqrteps=1.d0
 
   select case(trim(pkernel%method))
   case('PCG')
@@ -941,7 +953,6 @@ subroutine epsilon_cavity(atoms,rxyz,pkernel)
 !!$  end do
 !!$  call f_close(unt)
 
-
   call f_free(radii)
   call f_free(radii_nofact)
   call f_free(eps)
@@ -950,7 +961,6 @@ subroutine epsilon_cavity(atoms,rxyz,pkernel)
   call f_free(oneosqrteps)
   call f_free(corr)
 end subroutine epsilon_cavity
-
 
 
 

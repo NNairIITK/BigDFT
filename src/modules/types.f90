@@ -808,6 +808,7 @@ module module_types
      real(wp), dimension(:,:,:,:), pointer :: V_XC    !< eXchange and Correlation potential (local)
      real(wp), dimension(:,:,:,:), pointer :: Vloc_KS !< complete local potential of KS Hamiltonian (might point on rho_psi)
      real(wp), dimension(:,:,:,:), pointer :: f_XC    !< dV_XC[rho]/d_rho
+     real(wp), dimension(:,:,:,:), pointer :: rho_ion !< charge density of the ions, to be passed to PSolver
      !temporary arrays
      real(wp), dimension(:), pointer :: rho_work,pot_work !<full grid arrays
      !metadata
