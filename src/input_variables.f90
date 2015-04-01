@@ -682,7 +682,7 @@ subroutine deallocateInputFragArrays(input_frag)
 
 end subroutine deallocateInputFragArrays
 
-!> initialize fragment input parameters to their default value
+!> Initialize fragment input parameters to their default value
 subroutine default_fragmentInputParameters(frag)
   use module_types, only: fragmentInputParameters
   implicit none
@@ -722,7 +722,7 @@ end subroutine nullifyInputFragParameters
 
 
 !> Creation of the log file (by default log.yaml)
-!>  Free all dynamically allocated memory from the kpt input file.
+!! Free all dynamically allocated memory from the kpt input file.
 subroutine free_kpt_variables(in)
   use module_base
   use module_types
@@ -740,7 +740,8 @@ subroutine free_kpt_variables(in)
   nullify(in%nkptsv_group)
 end subroutine free_kpt_variables
 
-!>  Free all dynamically allocated memory from the geopt input file.
+
+!> Free all dynamically allocated memory from the geopt input file.
 subroutine free_geopt_variables(in)
   use module_base
   use module_types
@@ -756,7 +757,7 @@ subroutine free_geopt_variables(in)
 end subroutine free_geopt_variables
 
 
-!>  Free all dynamically allocated memory from the input variable structure.
+!> Free all dynamically allocated memory from the input variable structure.
 subroutine free_input_variables(in)
   use module_base
   use module_types

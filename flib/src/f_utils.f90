@@ -44,7 +44,7 @@ module f_utils
        f_enum_null=f_enumerator(null_name,NULL_INT)
 
 
-  !>interface for difference between two intrinsic types
+  !> Interface for difference between two intrinsic types
   interface f_diff
      module procedure f_diff_i,f_diff_r,f_diff_d,f_diff_li,f_diff_l
      module procedure f_diff_d2d3,f_diff_d2d1,f_diff_d1d2,f_diff_d2,f_diff_d1
@@ -153,14 +153,14 @@ contains
   end function enum_is_not_char
 
 
-  !>integer of f_enumerator type.
+  !> Integer of f_enumerator type.
   elemental pure function int_enum(en)
     type(f_enumerator), intent(in) :: en
     integer :: int_enum
     int_enum=en%id
   end function int_enum
 
-  !>char of f_enumerator type.
+  !> Char of f_enumerator type.
   elemental pure function char_enum(en)
     type(f_enumerator), intent(in) :: en
     character(len=len(en%name)) :: char_enum
@@ -276,7 +276,7 @@ contains
     end if
   end subroutine f_close
 
-  !>search the unit associated to a filename.
+  !> Search the unit associated to a filename.
   !! the unit is -1 if the file does not exists or if the file is
   !! not connected
   subroutine f_file_unit(file,unit)
@@ -301,7 +301,7 @@ contains
     end if
   end subroutine f_file_unit
 
-  !>get a unit which is not opened at present
+  !> Get a unit which is not opened at present
   !! start the search from the unit
   function f_get_free_unit(unit) result(unt2)
     implicit none
@@ -328,7 +328,7 @@ contains
     unt2=unt
   end function f_get_free_unit
 
-  !> delete an existing file. If the file does not exists, it does nothing
+  !> Delete an existing file. If the file does not exists, it does nothing
   subroutine f_delete_file(file)
     implicit none
     character(len=*), intent(in) :: file

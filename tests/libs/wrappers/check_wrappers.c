@@ -36,7 +36,7 @@ int main(int argc, const char **argv)
   /* BigDFT_DictIter root, coords; */
 
   BigDFT_Atoms *atoms;
-  BigDFT_Inputs *ins;
+  BigDFT_Inputs *inputs;
 
   BigDFT_Run *run;
 
@@ -83,12 +83,12 @@ int main(int argc, const char **argv)
 
 
   /* Test changing a value of input_variables. */
-  ins = bigdft_run_get_inputs(run);
+  inputs = bigdft_run_get_inputs(run);
 
 
-  bigdft_inputs_set(ins, "dft", "gnrm_cv", "1.e-5");
+  bigdft_inputs_set(inputs, "dft", "gnrm_cv", "1.e-5");
 
-  bigdft_inputs_unref(ins);
+  bigdft_inputs_unref(inputs);
 
   if (iproc == 0) bigdft_run_dump(run, "input.yaml", TRUE);
   /* bigdft_run_memoryEstimation(run, iproc, nproc); */
