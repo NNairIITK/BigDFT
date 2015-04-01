@@ -1021,7 +1021,7 @@ module communications
       !character(len=*), parameter :: subname='start_onesided_communication'
       integer :: joverlap, mpisource, istsource, mpidest, istdest, ierr, nit, ispin, ispin_shift
       integer :: ioffset_send, ist, i2, i3, ist2, ist3, info, nsize, size_of_double, isend_shift
-      !integer :: islices,ilines, ist1, ish1, ish2
+      !integer :: islices, ilines, ist1, ish1, ish2
       integer,dimension(:),allocatable :: npotarr
       integer(kind=mpi_address_kind) :: lb, extent
 
