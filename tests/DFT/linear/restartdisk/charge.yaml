@@ -20,6 +20,7 @@
    output_wf: 1
    calc_dipole: Yes
    calc_pulay: old
+   calculate_onsite_overlap: Yes
  lin_basis:
    nit: [0, 3]
    idsx: [5, 0]

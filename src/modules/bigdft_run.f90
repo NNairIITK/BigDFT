@@ -78,6 +78,14 @@ module bigdft_run
   public :: bigdft_get_astruct_ptr,bigdft_write_atomic_file,bigdft_set_run_properties
   public :: bigdft_norb,bigdft_get_eval,bigdft_run_id_toa,bigdft_get_rxyz
   public :: bigdft_dot,bigdft_nrm2
+  public :: bigdft_get_input_policy
+  public :: bigdft_set_input_policy
+
+  !> Input policies
+  integer,parameter,public :: INPUT_POLICY_SCRATCH = 10000 !< Start the calculation from scratch
+  integer,parameter,public :: INPUT_POLICY_MEMORY  = 10001 !< Start the calculation from data in memory
+  integer,parameter,public :: INPUT_POLICY_DISK    = 10002 !< Start the calculation from data on disk
+
 !!$  ! interfaces of external routines
 !!$  interface
 !!$     subroutine geopt(runObj,outs,nproc,iproc,ncount_bigdft)
@@ -1885,6 +1893,153 @@ contains
     end function functional_definition
 
   end subroutine forces_via_finite_differences
+
+
+  !> Get the current run policy
+  subroutine bigdft_get_input_policy(runObj, policy)
+    use module_base
+    use module_types, only: INPUT_PSI_EMPTY, INPUT_PSI_RANDOM, INPUT_PSI_LCAO, &
+                            INPUT_PSI_LCAO_GAUSS, INPUT_PSI_LINEAR_AO, INPUT_PSI_MEMORY_WVL, &
+                            INPUT_PSI_MEMORY_GAUSS, INPUT_PSI_MEMORY_LINEAR, INPUT_PSI_CP2K, &
+                            INPUT_PSI_DISK_WVL, INPUT_PSI_DISK_GAUSS, INPUT_PSI_DISK_LINEAR
+    implicit none
+    ! Calling arguments
+    type(run_objects),intent(in) :: runObj
+    integer,intent(out) :: policy
+
+    select case(runObj%inputs%inputPsiId)
+    case(INPUT_PSI_EMPTY, INPUT_PSI_RANDOM, INPUT_PSI_LCAO, INPUT_PSI_LINEAR_AO)
+        ! Start the calculation from scratch
+        policy = INPUT_POLICY_SCRATCH
+    case(INPUT_PSI_MEMORY_WVL, INPUT_PSI_MEMORY_GAUSS, INPUT_PSI_MEMORY_LINEAR)
+        ! Start the calculation from data in memory
+        policy = INPUT_POLICY_MEMORY
+    case(INPUT_PSI_CP2K, INPUT_PSI_DISK_WVL, INPUT_PSI_DISK_GAUSS, INPUT_PSI_DISK_LINEAR)
+        ! Start the calculation from data on disk
+        policy = INPUT_POLICY_DISK
+    case default
+        call f_err_throw('The specified value of inputPsiId ('//&
+            &trim(yaml_toa(runObj%inputs%inputPsiId))//') is not valid', &
+            err_name='BIGDFT_RUNTIME_ERROR')
+    end select
+  end subroutine bigdft_get_input_policy
+
+
+  !> Set the current run policy
+  subroutine bigdft_set_input_policy(policy, runObj)
+    use module_base
+    use module_types, only: INPUT_PSI_EMPTY, INPUT_PSI_RANDOM, INPUT_PSI_LCAO, &
+                            INPUT_PSI_LCAO_GAUSS, INPUT_PSI_LINEAR_AO, INPUT_PSI_MEMORY_WVL, &
+                            INPUT_PSI_MEMORY_GAUSS, INPUT_PSI_MEMORY_LINEAR, INPUT_PSI_CP2K, &
+                            INPUT_PSI_DISK_WVL, INPUT_PSI_DISK_GAUSS, INPUT_PSI_DISK_LINEAR
+    implicit none
+    ! Calling arguments
+    integer,intent(in) :: policy
+    type(run_objects),intent(inout) :: runObj
+    ! Local variables
+    integer :: mode
+    integer,parameter :: MODE_CUBIC    = 201
+    integer,parameter :: MODE_LINEAR   = 202
+    integer,parameter :: MODE_GAUSSIAN = 203
+    integer,parameter :: MODE_CP2K     = 204
+    integer,parameter :: MODE_EMPTY    = 205
+    integer,parameter :: MODE_RANDOM   = 206
+
+
+    ! Check which type of run this is, based on the current value of inputPsiId
+    select case (runObj%inputs%inputPsiId)
+    case(INPUT_PSI_LCAO, INPUT_PSI_MEMORY_WVL, INPUT_PSI_DISK_WVL)
+        ! This is like a cubic run
+        mode = MODE_CUBIC
+    case(INPUT_PSI_LINEAR_AO, INPUT_PSI_MEMORY_LINEAR, INPUT_PSI_DISK_LINEAR)
+        ! This is a linear run
+        mode = MODE_LINEAR
+    case(INPUT_PSI_LCAO_GAUSS, INPUT_PSI_MEMORY_GAUSS, INPUT_PSI_DISK_GAUSS)
+        ! This is a run based on a Gaussian input guess
+        mode = MODE_GAUSSIAN
+    case(INPUT_PSI_CP2K)
+        ! This is a run based on an input guess coming from CP2K
+        mode = MODE_CP2K
+    case(INPUT_PSI_EMPTY)
+        ! This is a run based on an empty input guess
+        mode = MODE_EMPTY
+    case(INPUT_PSI_RANDOM)
+        ! This is a run based on a random input guess
+        mode = MODE_RANDOM
+    case default
+        call f_err_throw('The specified value of inputPsiId ('//&
+            &trim(yaml_toa(runObj%inputs%inputPsiId))//') is not valid', &
+            err_name='BIGDFT_RUNTIME_ERROR')
+    end select
+
+    ! Set the new ID for the input guess
+    select case(policy)
+    case(INPUT_POLICY_SCRATCH)
+        ! Start the calculation from scratch
+        select case(mode)
+        case(MODE_CUBIC)
+            runObj%inputs%inputPsiId = INPUT_PSI_LCAO
+        case(MODE_LINEAR)
+            runObj%inputs%inputPsiId = INPUT_PSI_LINEAR_AO
+        case(MODE_GAUSSIAN)
+            runObj%inputs%inputPsiId = INPUT_PSI_LCAO_GAUSS
+        case(MODE_CP2K)
+            runObj%inputs%inputPsiId = INPUT_PSI_CP2K
+        case(MODE_EMPTY)
+            runObj%inputs%inputPsiId = INPUT_PSI_EMPTY
+        case(MODE_RANDOM)
+            runObj%inputs%inputPsiId = INPUT_PSI_RANDOM
+        case default
+        call f_err_throw('The specified value of mode ('//&
+            &trim(yaml_toa(mode))//') is not valid', &
+            err_name='BIGDFT_RUNTIME_ERROR')
+        end select
+
+    case(INPUT_POLICY_MEMORY)
+        ! Start the calculation from data in memory
+        select case(mode)
+        case(MODE_CUBIC)
+            runObj%inputs%inputPsiId = INPUT_PSI_MEMORY_WVL
+        case(MODE_LINEAR)
+            runObj%inputs%inputPsiId = INPUT_PSI_MEMORY_LINEAR
+        case(MODE_GAUSSIAN)
+            runObj%inputs%inputPsiId = INPUT_PSI_MEMORY_GAUSS
+        case(MODE_CP2K, MODE_EMPTY, MODE_RANDOM)
+        call f_err_throw('The specified value of mode ('//&
+            &trim(yaml_toa(mode))//') is not compatible with the input policy ('//&
+            &trim(yaml_toa(policy))//')', &
+            err_name='BIGDFT_RUNTIME_ERROR')
+        case default
+        call f_err_throw('The specified value of mode ('//&
+            &trim(yaml_toa(mode))//') is not valid', &
+            err_name='BIGDFT_RUNTIME_ERROR')
+        end select
+
+    case(INPUT_POLICY_DISK)
+        select case(mode)
+        case(MODE_CUBIC)
+            runObj%inputs%inputPsiId = INPUT_PSI_DISK_WVL
+        case(MODE_LINEAR)
+            runObj%inputs%inputPsiId = INPUT_PSI_DISK_LINEAR
+        case(MODE_GAUSSIAN)
+            runObj%inputs%inputPsiId = INPUT_PSI_DISK_GAUSS
+        case(MODE_CP2K, MODE_EMPTY, MODE_RANDOM)
+        call f_err_throw('The specified value of mode ('//&
+            &trim(yaml_toa(mode))//') is not compatible with the input policy ('//&
+            &trim(yaml_toa(policy))//')', &
+            err_name='BIGDFT_RUNTIME_ERROR')
+        case default
+        call f_err_throw('The specified value of mode ('//&
+            &trim(yaml_toa(mode))//') is not valid', &
+            err_name='BIGDFT_RUNTIME_ERROR')
+        end select
+
+    case default
+        call f_err_throw('The specified value of inputPsiId ('//&
+            &yaml_toa(runObj%inputs%inputPsiId)//') is not valid', &
+            err_name='BIGDFT_RUNTIME_ERROR')
+    end select
+  end subroutine bigdft_set_input_policy
 
 
 end module bigdft_run

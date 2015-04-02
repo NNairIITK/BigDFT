@@ -17,6 +17,7 @@
    rpnrm_cv: [1.0000000000000001E-009, 1.0E-010]
    conf_damping: 0.5
    output_wf: 1
+   calculate_onsite_overlap: Yes
  lin_basis:
    nit: [4, 2]
    idsx: 0

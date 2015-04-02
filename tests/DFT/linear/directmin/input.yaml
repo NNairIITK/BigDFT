@@ -18,6 +18,7 @@
    calc_dipole: Yes
    calc_pulay: old
    extra_states: 2
+   calculate_onsite_overlap: Yes
  lin_basis:
    nit: 3
    idsx: [5, 0]

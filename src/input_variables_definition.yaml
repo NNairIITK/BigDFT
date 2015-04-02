@@ -1048,6 +1048,9 @@
        COMMENT: extra states to optimize (dmin only)
        default: 0
        RANGE: [0, 10000]
+     calculate_onsite_overlap:
+       COMMENT: calculate the onsite overlap matrix (has only an effect if the matrices are all written to disk)
+       default: No
 #Parameters for the localised basis set (or support function) for the linear scaling version
  lin_basis:
      nit:

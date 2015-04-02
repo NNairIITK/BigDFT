@@ -843,7 +843,7 @@ contains
       call f_free(rseq_per_line)
 
 
-      call allocate_sparse_matrix_matrix_multiplication(nproc, norb, nseg, nsegline, istsegline, sparsemat%smmm)
+      call allocate_sparse_matrix_matrix_multiplication(nproc, norb, nseg, sparsemat%smmm)
       call vcopy(nseg, keyv(1), 1, sparsemat%smmm%keyv(1), 1)
       call vcopy(4*nseg, keyg(1,1,1), 1, sparsemat%smmm%keyg(1,1,1), 1)
       call vcopy(norb, istsegline(1), 1, sparsemat%smmm%istsegline(1), 1)

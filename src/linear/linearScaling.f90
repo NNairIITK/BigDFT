@@ -1369,7 +1369,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
         call writemywaves_linear(iproc,trim(input%dir_output) // 'minBasis',mod(input%lin%plotBasisFunctions,10),&
              max(tmb%npsidim_orbs,tmb%npsidim_comp),tmb%Lzd,tmb%orbs,nelec,at,rxyz,tmb%psi,tmb%linmat%l%nfvctr,tmb%coeff)
         call write_linear_matrices(iproc,nproc,input%imethod_overlap,trim(input%dir_output),&
-             mod(input%lin%plotBasisFunctions,10),tmb,at,rxyz)
+             mod(input%lin%plotBasisFunctions,10),tmb,at,rxyz,input%lin%calculate_onsite_overlap)
         call write_linear_coefficients(0, trim(input%dir_output)//'KS_coeffs.bin', at, rxyz, &
              tmb%linmat%l%nfvctr, tmb%orbs%norb, tmb%linmat%l%nspin, tmb%coeff, tmb%orbs%eval)
         if (input%lin%plotBasisFunctions>10) then

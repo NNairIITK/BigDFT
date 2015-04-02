@@ -221,6 +221,7 @@ module public_keys
   character(len=*), parameter :: HAMAPP_RADIUS_INCR='hamapp_radius_incr'
   character(len=*), parameter :: ADJUST_KERNEL_ITERATIONS='adjust_kernel_iterations'
   character(len=*), parameter :: WF_EXTENT_ANALYSIS='wf_extent_analysis'
+  character(len=*), parameter :: CALCULATE_ONSITE_OVERLAP='calculate_onsite_overlap'
 
   !> Parameters to avoid typos in dictionary keys
   character(len=*), parameter :: ASTRUCT_UNITS = 'units' 

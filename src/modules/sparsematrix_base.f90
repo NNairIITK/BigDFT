@@ -236,10 +236,9 @@ module sparsematrix_base
 
 
 
-    subroutine allocate_sparse_matrix_matrix_multiplication(nproc, norb, nseg, nsegline, istsegline, smmm)
+    subroutine allocate_sparse_matrix_matrix_multiplication(nproc, norb, nseg, smmm)
       implicit none
       integer,intent(in) :: nproc, norb, nseg
-      integer,dimension(norb),intent(in) :: nsegline, istsegline
       type(sparse_matrix_matrix_multiplication),intent(inout):: smmm
       smmm%ivectorindex=f_malloc_ptr(smmm%nseq,id='smmm%ivectorindex')
       smmm%ivectorindex_new=f_malloc_ptr(smmm%nseq,id='smmm%ivectorindex_new')

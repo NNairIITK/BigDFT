@@ -897,7 +897,7 @@ module communications_init
       integer,intent(out) :: nvalp_c, nvalp_f
       
       ! Local variables
-      integer :: jproc, i1, i2, i3, ii, istart, iend, j0, j1, ii_c, ii_f, n1p1, np, jjproc
+      integer :: jproc, i1, i2, i3, ii, istart, iend, j0, j1, ii_c, ii_f, n1p1, np, jjproc, jjjproc
       !!$$integer :: ii2, iiseg, jprocdone
       integer :: i, iseg, i0, iitot, ii3, ierr
       real(kind=8) :: tt, tt2, weight_c_ideal, weight_f_ideal, ttt, weight_prev
@@ -1047,6 +1047,7 @@ module communications_init
           end if
           n1p1=lzd%glr%d%n1+1
           np=n1p1*(lzd%glr%d%n2+1)
+          jjjproc = 0
           do iseg=1,lzd%glr%wfd%nseg_c
               j0=lzd%glr%wfd%keyglob(1,iseg)
               j1=lzd%glr%wfd%keyglob(2,iseg)
@@ -1066,6 +1067,7 @@ module communications_init
                       if (tt>=weights_c_startend(1,jjproc+1)) then
                           !write(*,'(a,2i6,2f10.1)') 'iproc, jjproc, tt, weights_c_startend(1,jjproc+1)', iproc, jjproc, tt, weights_c_startend(1,jjproc+1)
                           jjproc = jjproc + 1
+                          jjjproc = jjproc
                           istartend_c(1,jjproc) = iitot
                           istartendseg_c(1,jjproc) = iseg
                       end if
@@ -1089,13 +1091,26 @@ module communications_init
               call mpiallred(istartendseg_c, mpi_sum, comm=bigdft_mpi%mpi_comm) !a bit wasteful to communicate the zeros of the second entry...
               call mpiallred(nval_c(0), nproc, mpi_sum, comm=bigdft_mpi%mpi_comm)
               call mpiallred(weightpp_c(0), nproc, mpi_sum, comm=bigdft_mpi%mpi_comm)
+              call mpiallred(jjjproc, 1, mpi_max, comm=bigdft_mpi%mpi_comm)
           end if
-          do jproc=0,nproc-2
+          ! jjjproc is the last task which has been assigned
+          !do jproc=0,nproc-2
+          do jproc=0,jjjproc-1
               istartend_c(2,jproc) = istartend_c(1,jproc+1)-1
               istartendseg_c(2,jproc) = istartendseg_c(1,jproc+1)
           end do
-          istartend_c(2,nproc-1) = lzd%glr%wfd%nvctr_c
-          istartendseg_c(2,nproc-1) = lzd%glr%wfd%nseg_c
+          ! Take the rest
+          !!istartend_c(2,nproc-1) = lzd%glr%wfd%nvctr_c
+          !!istartendseg_c(2,nproc-1) = lzd%glr%wfd%nseg_c
+          istartend_c(2,jjjproc) = lzd%glr%wfd%nvctr_c
+          istartendseg_c(2,jjjproc) = lzd%glr%wfd%nseg_c
+          ! Fill with "empty" values
+          do jproc=jjjproc+1,nproc-1
+              istartend_c(1,jproc) = lzd%glr%wfd%nvctr_c + 1
+              istartend_c(2,jproc) = lzd%glr%wfd%nvctr_c
+              istartendseg_c(1,jproc) = lzd%glr%wfd%nseg_c + 1
+              istartendseg_c(2,jproc) = lzd%glr%wfd%nseg_c
+          end do
           istartp_seg_c = istartendseg_c(1,iproc)
           iendp_seg_c = istartendseg_c(2,iproc)
           nvalp_c = nval_c(iproc)
@@ -1283,6 +1298,7 @@ module communications_init
               istartend_f(1,0) = 1
               istartendseg_f(1,0) = istart
           end if
+          jjjproc = 0
           if (istart<=iend) then
               do iseg=istart,iend
                   j0=lzd%glr%wfd%keyglob(1,iseg)
@@ -1303,6 +1319,7 @@ module communications_init
                           if (tt>=weights_f_startend(1,jjproc+1)) then
                               !write(*,'(a,2i6,2f10.1)') 'iproc, jjproc, tt, weights_f_startend(1,jjproc+1)', iproc, jjproc, tt, weights_f_startend(1,jjproc+1)
                               jjproc = jjproc + 1
+                              jjjproc = jjproc
                               istartend_f(1,jjproc) = iitot
                               istartendseg_f(1,jjproc) = iseg
                           end if
@@ -1321,13 +1338,26 @@ module communications_init
               call mpiallred(istartendseg_f(1,0), 2*nproc, mpi_sum, comm=bigdft_mpi%mpi_comm) !a bit wasteful to communicate the zeros of the second entry...
               call mpiallred(nval_f(0), nproc, mpi_sum, comm=bigdft_mpi%mpi_comm)
               call mpiallred(weightpp_f(0), nproc, mpi_sum, comm=bigdft_mpi%mpi_comm)
+              call mpiallred(jjjproc, 1, mpi_max, comm=bigdft_mpi%mpi_comm)
           end if
-          do jproc=0,nproc-2
+          ! jjjproc is the last task which has been assigned
+          !!do jproc=0,nproc-2
+          do jproc=0,jjjproc-1
               istartend_f(2,jproc) = istartend_f(1,jproc+1)-1
               istartendseg_f(2,jproc) = istartendseg_f(1,jproc+1)
           end do
-          istartend_f(2,nproc-1) = lzd%glr%wfd%nvctr_f
-          istartendseg_f(2,nproc-1) = lzd%glr%wfd%nseg_c + lzd%glr%wfd%nseg_f
+          ! Take the rest
+          !!istartend_f(2,nproc-1) = lzd%glr%wfd%nvctr_f
+          !!istartendseg_f(2,nproc-1) = lzd%glr%wfd%nseg_c + lzd%glr%wfd%nseg_f
+          istartend_f(2,jjjproc) = lzd%glr%wfd%nvctr_f
+          istartendseg_f(2,jjjproc) = lzd%glr%wfd%nseg_c + lzd%glr%wfd%nseg_f
+          ! Fill with "empty" values
+          do jproc=jjjproc+1,nproc-1
+              istartend_f(1,jproc) = lzd%glr%wfd%nvctr_f + 1
+              istartend_f(2,jproc) = lzd%glr%wfd%nvctr_f
+              istartendseg_f(1,jproc) = lzd%glr%wfd%nseg_c + lzd%glr%wfd%nseg_f + 1
+              istartendseg_f(2,jproc) = lzd%glr%wfd%nseg_c + lzd%glr%wfd%nseg_f
+          end do
           istartp_seg_f = istartendseg_f(1,iproc)
           iendp_seg_f = istartendseg_f(2,iproc)
           nvalp_f = nval_f(iproc)

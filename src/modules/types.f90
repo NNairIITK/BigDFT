@@ -58,6 +58,7 @@ module module_types
   integer, parameter, public :: INPUT_PSI_MEMORY_LINEAR= 101    !< Input PSI for linear in memory
   integer, parameter, public :: INPUT_PSI_DISK_LINEAR  = 102    !< Input PSI for linear from disk
 
+
   !> All possible values of input psi (determination of the input guess)
   integer, dimension(12), parameter :: input_psi_values = &
        (/ INPUT_PSI_EMPTY, INPUT_PSI_RANDOM, INPUT_PSI_CP2K, &
@@ -223,6 +224,7 @@ module module_types
     integer :: extra_states, order_taylor, mixing_after_inputguess
     !> linear scaling: maximal error of the Taylor approximations to calculate the inverse of the overlap matrix
     real(kind=8) :: max_inversion_error
+    logical :: calculate_onsite_overlap
   end type linearInputParameters
 
 
@@ -2568,6 +2570,8 @@ contains
        case (MAX_INVERSION_ERROR)
            ! maximal error of the Taylor approximations to calculate the inverse of the overlap matrix
            in%lin%max_inversion_error = val
+       case (CALCULATE_ONSITE_OVERLAP)
+           in%lin%calculate_onsite_overlap = val
        case DEFAULT
           if (bigdft_mpi%iproc==0) &
                call yaml_warning("unknown input key '" // trim(level) // "/" // trim(dict_key(val)) // "'")
