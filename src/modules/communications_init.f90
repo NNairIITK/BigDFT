@@ -298,6 +298,7 @@ module communications_init
                weight_c_tot_check, weight_f_tot_check)
       use module_base
       use module_types
+      use yaml_output, only: yaml_map
       implicit none
       
       ! Calling arguments

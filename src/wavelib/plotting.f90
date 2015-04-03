@@ -1303,7 +1303,7 @@ subroutine calc_dipole(dpbox,nspin,at,rxyz,rho,calculate_quadropole)
 
   end if
 
-  if(dpbox%mpi_env%iproc==0) then
+  if(bigdft_mpi%iproc==0) then
      !dipole_el=dipole_el        !/0.393430307_gp  for e.bohr to Debye2or  /0.20822678_gp  for e.A2Debye
      !dipole_cores=dipole_cores  !/0.393430307_gp  for e.bohr to Debye2or  /0.20822678_gp  for e.A2Debye
      !write(*,*) 'dipole_cores', dipole_cores

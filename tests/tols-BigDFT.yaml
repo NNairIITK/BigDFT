@@ -319,6 +319,7 @@ NEB.NEB.ref.yaml:
   Energy (eV): 4.7e-9
 
 CH4-D3:
+ Energy (Hartree): 1.7e-11
  EH: &ener 1.1e-10
  Epot: *ener
  EKS: &ener2 3.3e-11

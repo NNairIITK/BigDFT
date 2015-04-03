@@ -193,11 +193,11 @@ contains
     use dynamic_memory
     use yaml_output
     implicit none
-    integer, intent(in) :: iproc     !<  Proc id
-    integer, intent(in) :: nproc     !<  Total number of MPI processes
-    integer, intent(in) :: mpi_comm  !<  Global MPI_communicator
-    integer, intent(in) :: groupsize !<  Number of MPI processes by (task)group
-                                     !!  if 0 one taskgroup (MPI_COMM_WORLD)   
+    integer, intent(in) :: iproc                   !< Proc id
+    integer, intent(in) :: nproc                   !< Total number of MPI processes
+    integer, intent(in) :: mpi_comm                !< Global MPI_communicator
+    integer, intent(in) :: groupsize               !< Number of MPI processes by (task)group
+                                                   !! if 0 one taskgroup (MPI_COMM_WORLD)   
     type(mpi_environment), intent(out) :: mpi_env  !< MPI environment (out)
     !local variables
     integer :: j

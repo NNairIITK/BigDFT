@@ -44,7 +44,7 @@ module module_dpbox
      character(len=1) :: geocode      !< @copydoc poisson_solver::doc::geocode
      integer, dimension(:,:), pointer :: nscatterarr !< dim(nproc,4) for each proc (n3d,n3p,i3s+i3xcsh-1,i3xcsh) see @link dpbox_repartition @endlink
      integer, dimension(:,:), pointer :: ngatherarr  !< dim(nproc,3) (dpbox%ndimpot,n1i*n2i*nscatteradd(:,3),n1i*n2i*n3d) see @link dpbox_repartition @endlink
-     type(mpi_environment) :: mpi_env
+     type(mpi_environment) :: mpi_env !< MPI environment for the psolver i.e. mpi_env%iproc /= bigdft_mpi%iproc
   end type denspot_distribution
 
 
