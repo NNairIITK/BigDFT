@@ -215,7 +215,6 @@ module foe_common
     
     !> Calculates the error function complement with an error of less than 1.2E-7
     function erfcc(x)
-      use module_defs, only: safe_exp
       implicit none
     
       ! Calling arguments

@@ -245,7 +245,7 @@ module module_interfaces
          integer, intent(in) :: iproc,nproc,n1,n2,n3,dispersion
          real(gp), dimension(3), intent(in) :: elecfield
          real(gp), dimension(3,at%astruct%nat), intent(in) :: rxyz
-         type(coulomb_operator), intent(in) :: pkernel
+         type(coulomb_operator), intent(inout) :: pkernel
          real(gp), intent(out) :: eion,edisp,psoffset
          real(dp), dimension(6),intent(out) :: ewaldstr
          real(gp), dimension(:,:), pointer :: fion,fdisp
@@ -265,7 +265,7 @@ module module_interfaces
          type(atoms_data), intent(in) :: at
          real(gp), dimension(3), intent(in) :: elecfield
          real(gp), dimension(3,at%astruct%nat), intent(in) :: rxyz
-         type(coulomb_operator), intent(in) :: pkernel
+         type(coulomb_operator), intent(inout) :: pkernel
          real(wp), dimension(*), intent(inout) :: pot_ion
          real(gp), dimension(*), intent(out) :: rho_ion
        END SUBROUTINE createIonicPotential
@@ -444,7 +444,7 @@ module module_interfaces
         type(orbitals_data), intent(in) :: orbs
         type(local_zone_descriptors), intent(in) :: Lzd
         type(symmetry_data), intent(in) :: symObj
-        type(coulomb_operator), intent(in) :: pkernel
+        type(coulomb_operator), intent(inout) :: pkernel
         type(xc_info), intent(in) :: xc
         real(wp), dimension(orbs%npsidim_orbs), intent(in) :: psi
         type(GPU_pointers), intent(inout) :: GPU
@@ -729,7 +729,7 @@ module module_interfaces
         type(comms_cubic), intent(in) :: comms, commsv
         type(denspot_distribution), intent(in) :: dpbox
         real(gp), dimension(3,at%astruct%nat), intent(in) :: rxyz
-        type(coulomb_operator), intent(in) :: pkernel
+        type(coulomb_operator), intent(inout) :: pkernel
         real(dp), dimension(*), intent(in) :: rhopot
         type(orbitals_data), intent(inout) :: orbsv
         type(GPU_pointers), intent(inout) :: GPU
@@ -1089,7 +1089,7 @@ module module_interfaces
         type(denspot_distribution), intent(in) :: dpbox
         type(DFT_wavefunction), intent(inout) :: KSwfn,VTwfn
         real(gp), dimension(3,at%astruct%nat), intent(in) :: rxyz
-        type(coulomb_operator), intent(in) :: pkernel
+        type(coulomb_operator), intent(inout) :: pkernel
         real(dp), dimension(*), intent(in), target :: rhopot
         type(GPU_pointers), intent(inout) :: GPU
         type(xc_info), intent(in) :: xc
@@ -1106,7 +1106,7 @@ module module_interfaces
          real(gp), dimension(3), intent(in) :: shift
          type(input_variables), intent(in) :: in
          type(grid_dimensions), intent(in) :: grid
-         type(coulomb_operator), intent(in) :: pkernel
+         type(coulomb_operator), intent(inout) :: pkernel
          real(wp), dimension(*), intent(inout) :: pot_ion
       END SUBROUTINE CounterIonPotential
 
@@ -1253,7 +1253,7 @@ module module_interfaces
         !real(wp), dimension(lr%d%n1i*lr%d%n2i*lr%d%n3i*nspin) :: pot
         real(gp), intent(out) :: ekin_sum,epot_sum,eSIC_DC
         real(wp), dimension(orbs%npsidim_orbs), intent(inout) :: hpsi
-        type(coulomb_operator), intent(in) :: pkernel !< the PSolver kernel which should be associated for the SIC schemes
+        type(coulomb_operator), intent(inout) :: pkernel !< the PSolver kernel which should be associated for the SIC schemes
         type(denspot_distribution),intent(in),optional :: dpbox
         !!real(wp), dimension(max(dpbox%ndimrhopot,orbs%nspin)), intent(in), optional, target :: potential !< Distributed potential. Might contain the density for the SIC treatments
         real(wp), dimension(*), intent(in), optional, target :: potential !< Distributed potential. Might contain the density for the SIC treatments
@@ -1268,7 +1268,7 @@ module module_interfaces
          real(gp), intent(in) :: hxh,hyh,hzh,fref
          type(locreg_descriptors), intent(in) :: lr
          type(orbitals_data), intent(in) :: orbs
-         type(coulomb_operator), intent(in) :: pkernel
+         type(coulomb_operator), intent(inout) :: pkernel
          type(xc_info), intent(in) :: xc
          real(wp), dimension(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,orbs%nspinor,orbs%norbp), intent(in) :: psi
          !real(wp), dimension((lr%d%n1i*lr%d%n2i*lr%d%n3i*((orbs%nspinor/3)*3+1)),max(orbs%norbp,orbs%nspin)), intent(inout) :: poti
@@ -2224,7 +2224,7 @@ module module_interfaces
          type(gaussian_basis), intent(out) :: G !basis for davidson IG
          real(wp), dimension(:), pointer :: psi
          real(wp), dimension(:,:,:,:), pointer :: rhocore
-         type(coulomb_operator), intent(in) :: pkernel
+         type(coulomb_operator), intent(inout) :: pkernel
          integer, intent(in) ::potshortcut
        end subroutine extract_potential_for_spectra
 
@@ -2513,7 +2513,7 @@ module module_interfaces
          real(wp), dimension(*) :: pot !< the potential, with the dimension compatible with the ipotmethod flag
          real(gp), intent(out) :: epot_sum,evSIC
          real(wp), dimension(orbs%npsidim_orbs), intent(inout) :: vpsi
-         type(coulomb_operator), intent(in) ::  pkernel !< the PSolver kernel which should be associated for the SIC schemes
+         type(coulomb_operator), intent(inout) ::  pkernel !< the PSolver kernel which should be associated for the SIC schemes
          real(wp), dimension(orbs%npsidim_orbs), intent(inout),optional :: vpsi_noconf
          real(gp),intent(out),optional :: econf_sum
        end subroutine psi_to_vlocpsi

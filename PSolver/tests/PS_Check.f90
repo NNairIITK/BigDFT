@@ -307,7 +307,7 @@ contains
     real(kind=8), intent(in) :: ehref,offset
     real(kind=8), dimension(n01*n02*n03), intent(in) :: potential
     real(kind=8), dimension(n01*n02*n03*2), intent(in) :: density
-    type(coulomb_operator), intent(in) :: pkernel
+    type(coulomb_operator), intent(inout) :: pkernel
     !local varaibles
     character(len=*), parameter :: subname='compare_cplx_calculations'
     character(len=20) :: message
@@ -420,7 +420,7 @@ contains
     real(kind=8), dimension(n01*n02*n03), intent(in) :: potential
     real(kind=8), dimension(n01*n02*n03*nspden), intent(in) :: density
     real(kind=8), dimension(n01*n02*n03), intent(inout) :: pot_ion
-    type(coulomb_operator), intent(in) :: pkernel
+    type(coulomb_operator), intent(inout) :: pkernel
     !local variables
     character(len=*), parameter :: subname='compare_with_reference'
     character(len=100) :: message

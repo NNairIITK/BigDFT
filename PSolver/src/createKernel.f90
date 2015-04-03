@@ -11,9 +11,10 @@
 !> Initialization of the Poisson kernel
 !! @ingroup PSOLVER
 function pkernel_init(verb,iproc,nproc,igpu,geocode,ndims,hgrids,itype_scf,&
-     method,mu0_screening,angrad,mpi_env,taskgroup_size) result(kernel)
+     alg,cavity,mu0_screening,angrad,mpi_env,taskgroup_size) result(kernel)
   use yaml_output
   use yaml_strings, only: f_strcpy
+  use dictionaries, only: f_loc
   implicit none
   logical, intent(in) :: verb       !< verbosity
   integer, intent(in) :: itype_scf
@@ -23,7 +24,10 @@ function pkernel_init(verb,iproc,nproc,igpu,geocode,ndims,hgrids,itype_scf,&
   character(len=1), intent(in) :: geocode !< @copydoc poisson_solver::doc::geocode
   integer, dimension(3), intent(in) :: ndims
   real(gp), dimension(3), intent(in) :: hgrids
-  character(len=*), intent(in), optional :: method
+  !> algorithm of the Solver. Might accept the values "VAC" (default), "PCG", or "PI"
+  character(len=*), intent(in), optional :: alg
+  !> cavity used, possible values "none" (default), "rigid", "sccs"
+  character(len=*), intent(in), optional :: cavity
   real(kind=8), intent(in), optional :: mu0_screening
   real(gp), dimension(3), intent(in), optional :: angrad
   type(mpi_environment), intent(in), optional :: mpi_env
@@ -62,25 +66,46 @@ function pkernel_init(verb,iproc,nproc,igpu,geocode,ndims,hgrids,itype_scf,&
   end if
   kernel%mu=mu0t
 
-  if (present(method)) then
-     select case(trim(method))
+  if (present(alg)) then
+     select case(trim(alg))
      case('VAC')
+        kernel%method=PS_VAC_ENUM
      case('PI')
+        kernel%method=PS_PI_ENUM
         kernel%nord=16 
         !here the parameters can be specified from command line
         kernel%max_iter=50
         kernel%minres=1.0e-12_dp
         kernel%PI_eta=0.6_dp
      case('PCG')
+        kernel%method=PS_PCG_ENUM
         kernel%nord=16 
         kernel%max_iter=50
         kernel%minres=1.0e-12_dp
      case default
-        call f_err_throw('Error, kernel method '//trim(method)//&
+        call f_err_throw('Error, kernel algorithm '//trim(alg)//&
              'not valid')
      end select
-     call f_strcpy(src=trim(method),dest=kernel%method)
+  else
+     kernel%method=PS_VAC_ENUM
   end if
+
+  if (present(cavity)) then
+     select case(trim(cavity))
+     case('vacuum')
+        call f_enum_attr(kernel%method,PS_NONE_ENUM)
+     case('rigid')
+        call f_enum_attr(kernel%method,PS_RIGID_ENUM)
+     case('sccs')   
+        call f_enum_attr(kernel%method,PS_SCCS_ENUM)
+     case default
+        call f_err_throw('Error, cavity method '//trim(cavity)//&
+             ' not valid')
+     end select
+  else
+     call f_enum_attr(kernel%method,PS_NONE_ENUM)
+  end if
+
   !geocode and ISF family
   kernel%geocode=geocode
   kernel%itype_scf=itype_scf
@@ -122,7 +147,9 @@ function pkernel_init(verb,iproc,nproc,igpu,geocode,ndims,hgrids,itype_scf,&
      call yaml_map('MPI tasks',kernel%mpi_env%nproc)
      if (nthreads /=0) call yaml_map('OpenMP threads per MPI task',nthreads)
      if (kernel%igpu==1) call yaml_map('Kernel copied on GPU',.true.)
-     if (kernel%method /= 'VAC') call yaml_map('Iterative method for Generalised Equation',kernel%method)
+     if (kernel%method /= 'VAC') call yaml_map('Iterative method for Generalised Equation',char(kernel%method))
+     if (kernel%method .hasattr. PS_RIGID_ENUM) call yaml_map('Cavity determination','rigid')
+     if (kernel%method .hasattr. PS_SCCS_ENUM) call yaml_map('Cavity determination','sccs')
      call yaml_mapping_close() !kernel
   end if
 
@@ -699,7 +726,7 @@ endif
      kernel%displs(jproc)=kernel%grid%m1*kernel%grid%m3*istart
   end do
 
-  select case(trim(kernel%method))
+  select case(trim(char(kernel%method)))
   case('PCG')
   if (present(eps)) then
      if (present(oneosqrteps)) then
@@ -803,7 +830,7 @@ subroutine pkernel_set_epsilon(kernel,eps,dlogeps,oneoeps,oneosqrteps,corr)
   !starting point in third direction
   i3s=kernel%grid%istart+1
   if (kernel%grid%n3p==0) i3s=1
-  select case(trim(kernel%method))
+  select case(trim(char(kernel%method)))
   case('PCG')
      if (present(corr)) then
         kernel%corr=f_malloc_ptr([n1,n23],id='corr')
@@ -915,7 +942,7 @@ subroutine pkernel_allocate_cavity(kernel)
 
   n1=kernel%ndims(1)
   n23=kernel%ndims(2)*kernel%grid%n3p
-  select case(trim(kernel%method))
+  select case(trim(char(kernel%method)))
   case('PCG')
      kernel%corr=f_malloc_ptr([n1,n23],id='corr')
      kernel%oneoeps=f_malloc_ptr([n1,n23],id='oneosqrteps')
@@ -927,13 +954,12 @@ subroutine pkernel_allocate_cavity(kernel)
 end subroutine pkernel_allocate_cavity
 
 !>put in depsdrho array the extra potential
-subroutine sccs_extra_potential(kernel,pot,depsdrho,pot_p)
+subroutine sccs_extra_potential(kernel,pot,depsdrho)
   implicit none
   type(coulomb_operator), intent(in) :: kernel
   !>complete potential, needed to calculate the derivative
   real(dp), dimension(kernel%ndims(1),kernel%ndims(2),kernel%ndims(3)), intent(in) :: pot
-  real(dp), dimension(kernel%ndims(1),kernel%ndims(2)*kernel%grid%n3p), intent(in) :: depsdrho
-  real(dp), dimension(kernel%ndims(1),kernel%ndims(2)*kernel%grid%n3p), intent(inout) :: pot_p
+  real(dp), dimension(kernel%ndims(1),kernel%ndims(2)*kernel%grid%n3p), intent(inout) :: depsdrho
   !local variables
   integer :: i3,i3s,i2,i1,i23,i,n01,n02,n03
   real(dp) :: d2
@@ -957,7 +983,7 @@ subroutine sccs_extra_potential(kernel,pot,depsdrho,pot_p)
            do i=1,3
               d2 = d2+nabla_pot(i1,i2,i3,i)**2
            end do
-           pot_p(i1,i23)=pot_p(i1,i23)+depsdrho(i1,i23)*d2
+           depsdrho(i1,i23)=depsdrho(i1,i23)*d2
         end do
         i23=i23+1
      end do
@@ -975,7 +1001,7 @@ end subroutine sccs_extra_potential
 !! @warning: for the moment the density is supposed to be not distributed as the 
 !! derivatives are calculated sequentially
 subroutine pkernel_build_epsilon(kernel,edens,eps0,depsdrho)
-  use module_defs, only: safe_exp
+  use numerics, only: safe_exp
   implicit none
   !> Poisson Solver kernel
   real(dp), intent(in) :: eps0
@@ -1020,11 +1046,11 @@ subroutine pkernel_build_epsilon(kernel,edens,eps0,depsdrho)
   fact3=(dlog(eps0))/(dlog(edensmax)-dlog(edensmin))
 
   if (kernel%mpi_env%iproc==0 .and. kernel%mpi_env%igroup==0) &
-       call yaml_map('Rebuilding the cavity for method',trim(kernel%method))
+       call yaml_map('Rebuilding the cavity for method',trim(char(kernel%method)))
 
   !now fill the pkernel arrays according the the chosen method
   !if ( trim(PSol)=='PCG') then
-  select case(trim(kernel%method))
+  select case(trim(char(kernel%method)))
   case('PCG')
      !in PCG we only need corr, oneosqrtepsilon
      i23=1
@@ -1561,7 +1587,7 @@ subroutine fssnord3DmatNabla_LG(n01,n02,n03,u,nord,hgrids,eta,dlogeps,rhopol,rho
   !real(kind=8), parameter :: oneo4pi=0.25d0/pi_param
   real(kind=8), dimension(-nord/2:nord/2,-nord/2:nord/2) :: c1D,c1DF
   real(kind=8) :: hx,hy,hz,max_diff,fact,dx,dy,dz,res,rho
-  real(kind=8) :: oneo4pi
+  real(kind=8) :: oneo4pi,rpoints
 
   oneo4pi=1.0d0/(16.d0*atan(1.d0))
 
@@ -1571,6 +1597,7 @@ subroutine fssnord3DmatNabla_LG(n01,n02,n03,u,nord,hgrids,eta,dlogeps,rhopol,rho
   hy = hgrids(2)!acell/real(n02,kind=8)
   hz = hgrids(3)!acell/real(n03,kind=8)
   n_cell = max(n01,n02,n03)
+  rpoints=product(real([n01,n02,n03],dp))
 
   ! Beware that n_cell has to be > than n.
   if (n_cell.lt.n) then
@@ -1661,5 +1688,6 @@ subroutine fssnord3DmatNabla_LG(n01,n02,n03,u,nord,hgrids,eta,dlogeps,rhopol,rho
         end do
      end do
   end do
+  rhores2=rhores2/rpoints
 
 end subroutine fssnord3DmatNabla_LG

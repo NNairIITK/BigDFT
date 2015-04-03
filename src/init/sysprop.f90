@@ -107,10 +107,10 @@ subroutine system_initialization(iproc,nproc,dump,inputpsi,input_wf_format,dry_r
      ! Create the Poisson solver kernels.
      call system_initKernels(.true.,iproc,nproc,atoms%astruct%geocode,in,denspot)
      call system_createKernels(denspot, (verbose > 1))
-     if (in%set_epsilon == EPSILON_RIGID_CAVITY) &
+     if (denspot%pkernel%method .hasattr. 'rigid') &
           call epsilon_cavity(atoms,rxyz,denspot%pkernel)
      !allocate cavity
-     if (in%set_epsilon == EPSILON_SCCS) &
+     if (denspot%pkernel%method .hasattr. 'sccs') &
           call pkernel_allocate_cavity(denspot%pkernel)
   end if
 
@@ -783,7 +783,7 @@ subroutine system_initKernels(verb, iproc, nproc, geocode, in, denspot)
 
   denspot%pkernel=pkernel_init(verb, iproc,nproc,in%matacc%PSolver_igpu,&
        geocode,denspot%dpbox%ndims,denspot%dpbox%hgrids,ndegree_ip,&
-       mpi_env=denspot%dpbox%mpi_env,method=in%GPS_method)
+       mpi_env=denspot%dpbox%mpi_env,alg=in%GPS_method,cavity=in%set_epsilon)
   !create the sequential kernel if the exctX parallelisation scheme requires it
   if ((xc_exctXfac(denspot%xc) /= 0.0_gp .and. in%exctxpar=='OP2P' .or. in%SIC%alpha /= 0.0_gp)&
        .and. denspot%dpbox%mpi_env%nproc > 1) then
@@ -791,7 +791,7 @@ subroutine system_initKernels(verb, iproc, nproc, geocode, in, denspot)
      !this might pose problems when using SIC or exact exchange with taskgroups
      denspot%pkernelseq=pkernel_init(iproc==0 .and. verb,0,1,in%matacc%PSolver_igpu,&
           geocode,denspot%dpbox%ndims,denspot%dpbox%hgrids,ndegree_ip,&
-          method=in%GPS_method)
+          alg=in%GPS_method,cavity=in%set_epsilon)
   else 
      denspot%pkernelseq = denspot%pkernel
   end if
@@ -935,7 +935,7 @@ subroutine epsilon_cavity(atoms,rxyz,pkernel)
 !!$  corr=0.d0
 !!$  oneosqrteps=1.d0
 
-  select case(trim(pkernel%method))
+  select case(trim(char(pkernel%method)))
   case('PCG')
    call pkernel_set_epsilon(pkernel,oneosqrteps=oneosqrteps,corr=corr)
   case('PI') 

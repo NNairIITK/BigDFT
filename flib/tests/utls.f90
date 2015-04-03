@@ -10,8 +10,36 @@ subroutine f_utils_test()
   use f_utils
   use yaml_output
   implicit none
+  !local variables
+  type(f_enumerator) :: greetings=f_enumerator('Greetings',10) 
+  type(f_enumerator) :: f1=f_enumerator('Ciao',1)              
+  type(f_enumerator) :: f2=f_enumerator('Hello',2)             
+  type(f_enumerator) :: f3=f_enumerator('Pizza',3)             
   integer :: unt,unt2,u
   double precision :: t0
+
+
+  !see if the attribute can live outside a given scope
+  call f_enum_attr(f1,attr=greetings)
+  call f_enum_attr(f2,attr=greetings)
+
+  call yaml_map('Enum1 char',char(f1))
+  call yaml_map('Enum1 int',int(f1))
+  call yaml_map('Enum1 check',f1=='Ciao')
+
+  call yaml_map('Greetings 1a',f1 .hasattr. 'Greetings') 
+  call yaml_map('Greetings 1b',f1 .hasattr. 10)
+  call yaml_map('Greetings 1c',f1 .hasattr. greetings) 
+
+  call yaml_map('Greetings 2a',f2 .hasattr. 'Greetings') 
+  call yaml_map('Greetings 2b',f2 .hasattr. 10)
+  call yaml_map('Greetings 2c',f2 .hasattr. greetings) 
+
+  call yaml_map('Greetings 3a',f3 .hasattr. 'Greetings') 
+  call yaml_map('Greetings 3b',f3 .hasattr. 10)
+  call yaml_map('Greetings 3c',f3 .hasattr. greetings) 
+
+  
 
   !wait one second
   t0=dble(f_time())*1.d-9

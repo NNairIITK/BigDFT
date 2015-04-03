@@ -139,12 +139,6 @@ module module_types
   integer,parameter,public :: LINEAR_PARTITION_SIMPLE = 61
   integer,parameter,public :: LINEAR_PARTITION_OPTIMAL = 62
   integer,parameter,public :: LINEAR_PARTITION_NONE = 63
-
-  !> how to set the dielectric function
-  integer, parameter, public :: EPSILON_VACUUM = -1000
-  integer, parameter, public :: EPSILON_RIGID_CAVITY = 1001
-  integer, parameter, public :: EPSILON_SCCS = 1002
-
   
   !> Type used for the orthogonalisation parameters
   type, public :: orthon_data
@@ -328,7 +322,7 @@ module module_types
      real(gp) :: rbuf       !< buffer for tail treatment
      real(gp), dimension(3) :: elecfield   !< Electric Field vector
      logical :: disableSym                 !< .true. disable symmetry
-     integer :: set_epsilon !< method for setting the dielectric constant
+     character(len=8) :: set_epsilon !< method for setting the dielectric constant
 
      !> For absorption calculations
      integer :: iabscalc_type   !< 0 non calc, 1 cheb ,  2 lanc
@@ -2233,15 +2227,16 @@ contains
        case (DISABLE_SYM)
           in%disableSym = val ! Line to disable symmetries.
        case (SOLVENT)
-          dummy_char = val
-          select case(trim(dummy_char))
-          case ("vacuum")
-             in%set_epsilon =EPSILON_VACUUM
-          case("rigid")
-             in%set_epsilon =EPSILON_RIGID_CAVITY
-          case("sccs")
-             in%set_epsilon =EPSILON_SCCS
-          end select
+          in%set_epsilon= val
+!!$          dummy_char = val
+!!$          select case(trim(dummy_char))
+!!$          case ("vacuum")
+!!$             in%set_epsilon =EPSILON_VACUUM
+!!$          case("rigid")
+!!$             in%set_epsilon =EPSILON_RIGID_CAVITY
+!!$          case("sccs")
+!!$             in%set_epsilon =EPSILON_SCCS
+!!$          end select
        case DEFAULT
           if (bigdft_mpi%iproc==0) &
                call yaml_warning("unknown input key '" // trim(level) // "/" // trim(dict_key(val)) // "'")

@@ -357,7 +357,7 @@ subroutine psitohpsi(iproc,nproc,atoms,scf,denspot,itrp,itwfn,iscf,alphamix,&
        & GPU,denspot%xc,wfn%hpsi,&
        energs%ekin,energs%epot,energs%eproj,energs%evsic,energs%eexctX)
 
-  if (trim(denspot%pkernel%method) /= 'VAC') then
+  if (denspot%pkernel%method /= 'VAC') then
      energs%eh=energs%epot-energs%eh-energs%evxc
   end if
 !!$  if (iproc ==0) then
@@ -417,7 +417,7 @@ subroutine FullHamiltonianApplication(iproc,nproc,at,orbs,&
   !real(gp), intent(out) :: ekin_sum,epot_sum,eexctX,eproj_sum,evsic
   real(wp), target, dimension(max(1,orbs%npsidim_orbs)), intent(out) :: hpsi
   type(GPU_pointers), intent(inout) :: GPU
-  type(coulomb_operator), intent(in), optional :: pkernel
+  type(coulomb_operator), intent(inout), optional :: pkernel
   type(orbitals_data), intent(in), optional :: orbsocc
   real(wp), dimension(:), pointer, optional :: psirocc
   !PAW variables:
@@ -457,7 +457,7 @@ subroutine FullHamiltonianApplication(iproc,nproc,at,orbs,&
 
   !to be adjusted
 !!$  if (trim(denspot%pkernel%method) /= 'VAC') then
-     energs%eh=energs%epot-energs%eh-energs%evxc
+!     energs%eh=energs%epot-energs%eh-energs%evxc
 !!$  end if
 
 
@@ -491,7 +491,7 @@ subroutine LocalHamiltonianApplication(iproc,nproc,at,npsidim_orbs,orbs,&
    type(energy_terms), intent(inout) :: energs
    real(wp), target, dimension(max(1,npsidim_orbs)), intent(inout) :: hpsi
    type(GPU_pointers), intent(inout) :: GPU
-   type(coulomb_operator), intent(in), optional :: pkernel
+   type(coulomb_operator), intent(inout), optional :: pkernel
    type(orbitals_data), intent(in), optional :: orbsocc
    real(wp), dimension(:), pointer, optional :: psirocc
    type(denspot_distribution),intent(in),optional :: dpbox
