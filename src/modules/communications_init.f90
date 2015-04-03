@@ -455,8 +455,10 @@ module communications_init
       ! First a local check, then reduction for later
       weight_c_tot_check = sum(weightloc_c)
       if (nint(weight_c_tot_check)/=isize) then
-          write(*,'(a,2i12)') 'weight_c_tot_check, isize', nint(weight_c_tot_check), isize
-          stop 'weight_c_tot_check/=isize'
+         !write(*,'(a,2i12)') 'weight_c_tot_check, isize', nint(weight_c_tot_check), isize
+         !stop 'weight_c_tot_check/=isize'
+         call yaml_map('weight_c_tot_check, isize:', (/ nint(weight_c_tot_check), isize /) )
+         call f_err_throw('weight_c_tot_check/=isize',err_name='BIGDFT_RUNTIME_ERROR')
       end if
 
       if (nproc>1) then
@@ -4438,10 +4440,12 @@ module communications_init
           !!if (iproc==0) write(*,*) 'ie3max,comgp%ise(6,jproc)', ie3max,comgp%ise(6,jproc)
           !if (comgp%ise(5,jproc)/=is3min) stop 'ERROR 1'
           !if (comgp%ise(6,jproc)/=ie3max) stop 'ERROR 2'
-          if(ioverlap/=comgp%noverlaps) stop 'ioverlap/=comgp%noverlaps'
+          !if(ioverlap/=comgp%noverlaps) stop 'ioverlap/=comgp%noverlaps'
+          if (ioverlap/=comgp%noverlaps) call f_err_throw( &
+             'initialize_communication_potential: ioverlap /= comgp%noverlaps! ', err_name='BIGDFT_RUNTIME_ERROR')
     
       !else nproc_if ! monoproc
-    
+      !
       !    comgp%nrecvbuf = (comgp%ise(2)-comgp%ise(1)+1)*(comgp%ise(4)-comgp%ise(3)+1)*&
       !                     (comgp%ise(6)-comgp%ise(5)+1)
       !

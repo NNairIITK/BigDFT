@@ -1308,7 +1308,7 @@ subroutine Polarization_charge(n01,n02,n03,nspden,hx,hy,hz,x,y,acell,eps,nord)
      end do
 
      do i1=1,n01
-      write(24,'(1x,I8,2(1x,e22.15))')i1,y(i1,n02/2,n03/2,1),y(n01/2,i1,n03/2,1)
+      write(24,'(1x,I8,2(1x,e22.15))') i1,y(i1,n02/2,n03/2,1)!,y(n01/2,i1,n03/2,1)
      end do
 
   close(unit=23)
@@ -2551,8 +2551,8 @@ subroutine SetInitDensPot(n01,n02,n03,nspden,iproc,eps,dlogeps,sigmaeps,SetEps,e
 
  unt=f_get_free_unit(22)
  call f_open_file(unt,file='initial_line.dat')
- do i1=1,n01
-  write(unt,'(1x,I8,3(1x,e22.15))') i1,density(n01/2,i1,n03/2,1),potential(n01/2,i1,n03/2),eps(n01/2,i1,n03/2)
+ do i2=1,n02
+  write(unt,'(1x,I8,3(1x,e22.15))') i1,density(n01/2,i2,n03/2,1),potential(n01/2,i2,n03/2),eps(n01/2,i2,n03/2)
  end do
  call f_close(unt)
 
@@ -3017,7 +3017,7 @@ end if
 
 
      do i1=1,n01
-      write(22,'(1x,I8,2(1x,e22.15))') i1,eps(i1,n02/2,n03/2),eps(n01/2,i1,n03/2)
+      write(22,'(1x,I8,2(1x,e22.15))') i1,eps(i1,n02/2,n03/2),eps(i1,n02/2,n03/2)
      end do
 
   close(unit=21)
@@ -3025,7 +3025,8 @@ end if
 
 end subroutine SetEpsilon
 
-!> calculates the value of the dielectric function for a smoothed cavity 
+
+!> Calculates the value of the dielectric function for a smoothed cavity 
 !! given a set of centres and radii.
 !! Need the epsilon0 as well as the radius of the cavit and its smoothness
 subroutine Eps_rigid_cavity(ndims,nspden,nord,acell,hgrids,nat,rxyz,radii,epsilon0,delta,eps,dlogeps,oneoeps,oneosqrteps,corr)

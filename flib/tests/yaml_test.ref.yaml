@@ -283,6 +283,12 @@
      Id                                : 16
      Message                           : Error in yaml parsing of the command line
      Action                            : Check the allowed options and their values (--help)
+ - ERR_REFERENCE_COUNTERS:
+     Id                                : 17
+     Message                           : Error in the usage of the reference counter
+     Action:
+       When a reference counter is present each pointer association should be tracked, check 
+       for it
  - ERR_ALLOCATE:
      Id                                : 17
      Message                           : Allocation error
@@ -317,14 +323,7 @@
      Message                           : Internal error of memory profiler
      Action:
        An invalid operation occurs, submit bug report to developers
-     Callback Procedure Address        : 4590240
- - ERR_REFERENCE_COUNTERS:
-     Id                                : 23
-     Message                           : Error in the usage of the reference counter
-     Action:
-       When a reference counter is present each pointer association should be tracked, check 
-       for it
-     Callback Procedure Address        : 4590240
+     Callback Procedure Address        : 4981582
  - TIMING_INVALID:
      Id                                : 24
      Message                           : Error in timing routines
@@ -878,6 +877,11 @@
      __exclusive__:
        123                             : operation 123
        456                             : operation 456
+---
+ Initialized tree:
+   Key1                                : val1
+ Test of dump:
+   Key1                                : val1
   #------------------------------------------------------------------------------- Yaml parsing
 ---
  Key1                                  : field1

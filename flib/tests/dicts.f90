@@ -203,14 +203,12 @@ subroutine test_dictionaries0()
 
   call dict_free(dict1)
 
-
 !!$
 !!$  !new test, build list on-the-fly
 !!$  dict1=list_new((/ .item. 'Val1', .item. 'Val2', .item. 'Val3' ,&
 !!$       .item. 'Val4'/))
 !!$  call yaml_dict_dump(dict1)
 !!$  call dict_free(dict1)
-
   
 end subroutine test_dictionaries0
 
@@ -790,7 +788,7 @@ subroutine test_dictionary_for_atoms()
     end subroutine print_one_atom
 
     !> when str represents a real number, clean it if there are lot of zeroes after the decimal point
-    !pure 
+    !! pure 
     function clean_zeroes(str)
       implicit none
       integer, parameter:: max_value_length=95
@@ -829,12 +827,13 @@ subroutine test_dictionary_for_atoms()
 
 end subroutine test_dictionary_for_atoms
 
-!> test the usage of the new f_trees structure
+
+!> Test the usage of the new f_trees structure
 subroutine test_f_trees()
   use f_trees
   use yaml_output
   implicit none
-  type(f_tree) :: dict1,dict2
+  type(f_tree) :: dict1
 
   !initialization
   dict1=f_tree_new()
@@ -850,7 +849,8 @@ subroutine test_f_trees()
   call f_tree_free(dict1)
 end subroutine test_f_trees
 
-!> this routine consider the usage of dictionaries for intensive data storage (of course to be avoided)
+
+!> This routine consider the usage of dictionaries for intensive data storage (of course to be avoided)
 !! and compares it to the usage of an array for doing similar things
 subroutine profile_dictionary_usage()
   use dictionaries

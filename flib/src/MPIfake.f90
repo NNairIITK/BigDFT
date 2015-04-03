@@ -1,7 +1,7 @@
 !> @file
 !!    Fake functions for MPI in the case of serial version
 !! @author
-!!    Copyright (C) 2007-2013 BigDFT group 
+!!    Copyright (C) 2007-2015 BigDFT group 
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
@@ -107,9 +107,9 @@ subroutine  MPI_BARRIER(MPI_COMM_WORLD,ierr)
 END SUBROUTINE MPI_BARRIER
 
 
-! These routines in serial version should not be called.
-! A stop is added when necessary, otherwise for copying routines, the corresponding copy 
-! is implemented whenever possible
+!> These routines in serial version should not be called.
+!! A stop is added when necessary, otherwise for copying routines, the corresponding copy 
+!! is implemented whenever possible
 subroutine MPI_REDUCE()
   implicit none
   stop 'MPIFAKE: REDUCE'
@@ -221,7 +221,7 @@ subroutine mpi_attr_get ()
   stop 'MPIFAKE: mpi_attr_get'
 END SUBROUTINE  MPI_ATTR_GET
 
-subroutine mpi_type_size ()
+subroutine mpi_type_size()
   implicit none
   stop 'MPIFAKE: mpi_type_size'
 END SUBROUTINE  MPI_TYPE_SIZE

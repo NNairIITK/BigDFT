@@ -3,7 +3,7 @@
 !! @example yamlout.f90
 !! Other series of tests on yaml output generation
 !! @author
-!!    Copyright (C) 2013-2013 BigDFT group
+!!    Copyright (C) 2013-2015 BigDFT group
 !!    This file is distributed oneder the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
@@ -14,8 +14,6 @@
 subroutine test_yaml_output1()
   use yaml_output
   implicit none
-  !local variables
-  character, dimension(5) :: totarr
 
   call yaml_mapping_open("Test")
    call yaml_map("Short sentence",.true.)

@@ -8,7 +8,6 @@
 !!    For the list of contributors, see ~/AUTHORS
 
 
-
 subroutine glr_get_psi_size(glr, psisize)
   use module_types
   implicit none
