@@ -57,6 +57,7 @@
 module Poisson_Solver
    use dictionaries, only: f_err_throw
    use f_utils
+   use f_enums
    use wrapper_linalg
    use wrapper_MPI
    use dynamic_memory

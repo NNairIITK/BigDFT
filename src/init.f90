@@ -1756,8 +1756,6 @@ subroutine input_wf_diag(iproc,nproc,at,denspot,&
      !Now update the potential
      call updatePotential(nspin,denspot,energs%eh,energs%exc,energs%evxc)
 
-     call yaml_map('hartree energy before',[energs%eh,energs%exc,energs%evxc])
-
   else
      !Put to zero the density if no Hartree
      irho_add = 1

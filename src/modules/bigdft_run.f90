@@ -17,6 +17,7 @@ module bigdft_run
   use f_refcnts, only: f_reference_counter,f_ref_new,f_ref,f_unref,&
        nullify_f_ref,f_ref_free
   use f_utils
+  use f_enums
   use module_input_dicts, only: bigdft_set_run_properties => dict_set_run_properties,&
        bigdft_get_run_properties => dict_get_run_properties
   private
@@ -482,7 +483,7 @@ contains
     data(1)=outs%energy
     data(2)=outs%pressure
     data(3)=outs%fnoise
-    call f_memcpy(n=size(outs%fxyz),src=outs%fxyz(1,1),dest=data(4))
+    if (size(outs%fxyz)>0) call f_memcpy(n=size(outs%fxyz),src=outs%fxyz(1,1),dest=data(4))
     call f_memcpy(n=size(outs%strten),src=outs%strten(1),dest=data(4+size(outs%fxyz)))
 
     call mpibcast(data,comm=bigdft_mpi%mpi_comm,&
@@ -755,7 +756,6 @@ contains
   !> Routines to handle the argument objects of bigdft_state().
   pure subroutine nullify_run_objects(runObj)
     use module_types
-    use f_utils, only: f_enumerator_null
     implicit none
     type(run_objects), intent(out) :: runObj
     nullify(runObj%run_mode)

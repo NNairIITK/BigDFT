@@ -1658,7 +1658,7 @@ subroutine pushoff_assym(uinp,nat,saddle,minmode,scll,sclr,left,right)
 end subroutine
 !=====================================================================
 subroutine write_todo(mhgpsst,runObj,outs,left,right,eleft,eright)
-    use module_base, only: gp
+    use module_defs, only: gp
     use module_atoms, only: astruct_dump_to_file
     use bigdft_run, only: bigdft_get_astruct_ptr, run_objects,&
                           state_properties
@@ -1686,7 +1686,7 @@ subroutine write_todo(mhgpsst,runObj,outs,left,right,eleft,eright)
              mhgpsst%currDir//'/todo'//trim(adjustl(mhgpsst%ntodoc))//'_R',comment,&
              energy=eright,rxyz=right)
     endif
-end subroutine
+  end subroutine write_todo
 !=====================================================================
 subroutine write_todoList(uinp,mhgpsst,runObj,cobj)
     use module_base, only: gp

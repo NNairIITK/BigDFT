@@ -52,6 +52,7 @@ endif
 libflib_1_a_SOURCES = utils.c utilsadd.c \
 	yaml_strings.f90 dictionaries_base.f90 dictionaries.f90 \
 	callbacks.f90 f_malloc.f90 \
+	f_enums.f90 f_precisions.f90 \
 	f_utils.f90 f_refcnts.f90 f_trees.f90 \
 	yaml_output.f90 mem_profiling.f90 dynamic_memory.f90 \
 	razero.f90 getadd.f90 time.f90 f_lib_highlev.f90 \
@@ -91,6 +92,8 @@ modules = YAML_STRINGS.@MODULE_EXT@ \
 	DICTIONARIES.@MODULE_EXT@ \
 	DICTIONARIES_BASE.@MODULE_EXT@ \
 	YAML_OUTPUT.@MODULE_EXT@ \
+	F_ENUMS.@MODULE_EXT@ \
+	F_PRECISIONS.@MODULE_EXT@ \
 	YAML_PARSE.@MODULE_EXT@ \
 	METADATA_INTERFACES.@MODULE_EXT@ \
 	MODULE_F_MALLOC.@MODULE_EXT@ \
@@ -106,6 +109,8 @@ else
 modules = yaml_strings.@MODULE_EXT@ \
 	dictionaries.@MODULE_EXT@ \
 	dictionaries_base.@MODULE_EXT@ \
+	f_enums.@MODULE_EXT@ \
+	f_precisions.@MODULE_EXT@ \
 	yaml_output.@MODULE_EXT@ \
 	yaml_parse.@MODULE_EXT@ \
 	metadata_interfaces.@MODULE_EXT@ \
@@ -146,6 +151,7 @@ install-data-hook:
 # Dependencies
 $(modules): $(libflib_1_a_OBJECTS)
 yaml_strings.o: $(STRINGS_INCLUDES)
+f_enums.o: yaml_strings.o
 dictionaries_base.o: yaml_strings.o
 dictionaries.o: yaml_strings.o dictionaries_base.o $(DICT_INCLUDES) callbacks.o
 dictionaries_base.o: yaml_strings.o

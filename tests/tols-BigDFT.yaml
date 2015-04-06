@@ -327,6 +327,7 @@ CH4-D3:
  etot: 2.92e-11
  Etot: 2.9e-11
  Ion-Ion interaction energy: 9.0e-11
+ Energy (Hartree): 1.22e-11
 
 NLCC: &NLCCs
  Energies: 1.2e-10
@@ -1303,6 +1304,12 @@ FF_LJ-bfgs:
   Keys to ignore:
   - WARNINGS
 
+FF_LENOSKY-bfgs:
+  etot: 2.4e-11
+  Keys to ignore:
+  - WARNINGS
+
+
 FF_LENOSKY-diis:
   FORCES norm(Ha/Bohr): 1.01e-6
   etot: 4.6e-8
@@ -1340,7 +1347,7 @@ periodic_silicon:
  Epot: 3.0e-10
  Enl: 1.1e-9
  EXC: 1.1e-10
- Omega: 5.9e-11
+ Omega: 5.91e-11
  ebs_check: 1.1e-10
  charge diff: 1.4e-10
  ebs: 1.2e-10
@@ -1361,7 +1368,7 @@ periodic_wateredge:
  energy: 1.6e-10
  Total charge: 1.1e-10
  PV (Ha): 2.7e-9
- Energy (Hartree): 7.1e-11
+ Energy (Hartree): 7.95e-11
  Total ionic charge: 2.7e-11
  Pressure: 7.4e-10
 
@@ -1376,7 +1383,7 @@ periodic_water:
  Omega: 2.0e-10
  ebs_check: 2.5e-9
  ebs: 2.5e-9
- eF: 8.9e-9
+ eF: 9.2e-9
  D eF: 1.0e-8
  energy: 1.4e-10
  guess for new ef: 9.1e-9

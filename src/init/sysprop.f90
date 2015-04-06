@@ -824,7 +824,7 @@ subroutine epsilon_cavity(atoms,rxyz,pkernel)
   use ao_inguess, only: atomic_info
   !use yaml_output
   use module_defs, only : Bohr_Ang,bigdft_mpi
-  use f_utils
+  use f_enums
   use yaml_output
   use dictionaries, only: f_err_throw
   implicit none

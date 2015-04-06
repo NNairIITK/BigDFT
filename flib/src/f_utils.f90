@@ -13,7 +13,7 @@
 module f_utils
   use dictionaries, only: f_err_throw,f_err_define, &
        & dictionary, dict_len, dict_iter, dict_next, dict_value, max_field_length
-  use yaml_strings, only: yaml_toa, operator(.eqv.)
+  use yaml_strings, only: yaml_toa
   implicit none
 
   private
@@ -31,18 +31,6 @@ module f_utils
      type(dictionary), pointer :: lstring => null()
   end type io_stream
   
-  integer, parameter, private :: NULL_INT=-1024
-  character(len=*), parameter, private :: null_name='nullified enumerator'
-
-  !> enumerator type, useful to define different modes
-  type, public :: f_enumerator
-     character(len=64) :: name=null_name
-     integer :: id=null_int
-     type(f_enumerator), pointer :: family => null()
-  end type f_enumerator
-
-  type(f_enumerator), parameter, private :: &
-       f_enum_null=f_enumerator(null_name,NULL_INT)
 
   !>interface for difference between two intrinsic types
   interface f_diff
@@ -73,183 +61,14 @@ module f_utils
      end subroutine nanosec
   end interface
 
-  interface operator(==)
-     module procedure enum_is_int,enum_is_enum,enum_is_char
-  end interface operator(==)
-
-  interface operator(/=)
-     module procedure enum_is_not_int,enum_is_not_enum,enum_is_not_char
-  end interface operator(/=)
-
-  interface operator(.hasattr.)
-     module procedure enum_has_attribute,enum_has_char,enum_has_int
-  end interface operator(.hasattr.)
-
-  interface int
-     module procedure int_enum
-  end interface int
-
-  interface char
-     module procedure char_enum
-  end interface char
-
-  public :: f_diff,int,char,f_enumerator_null,operator(==),operator(/=),f_file_unit
+  public :: f_diff,f_file_unit
   public :: f_utils_errors,f_utils_recl,f_file_exists,f_close,f_zero
   public :: f_get_free_unit,f_delete_file,f_getpid,f_rewind,f_open_file
   public :: f_iostream_from_file,f_iostream_from_lstring
   public :: f_iostream_get_line,f_iostream_release,f_time,f_pause
-  public :: f_enum_attr,operator(.hasattr.),nullify_f_enum
 
 contains
-
-  pure subroutine nullify_f_enum(en)
-    implicit none
-    type(f_enumerator), intent(out) :: en
-    en=f_enumerator_null()
-  end subroutine nullify_f_enum
-        
-  pure function f_enumerator_null() result(en)
-    use yaml_strings, only: f_strcpy
-    implicit none
-    type(f_enumerator) :: en
-    call f_strcpy(src=null_name,dest=en%name)
-    en%id=null_int
-    nullify(en%family)
-  end function f_enumerator_null
-
-  !>associate the enumerator to a family
-  subroutine f_enum_attr(dest,attr)
-    implicit none
-    type(f_enumerator), intent(inout), target :: attr !< to avoid the parameter attribute
-    type(f_enumerator), intent(inout) :: dest
-    !local variables
-    type(f_enumerator), pointer :: iter
-    !print *,'ASSOCIATING',trim(char(dest)),trim(char(attr))
-    !search the first iterator that has no family
-    if (.not. associated(dest%family)) then
-       !print *,'here'
-       dest%family=>attr
-    else
-       !print *,'there'
-       iter => dest%family
-       do while(associated(iter%family))
-          iter => iter%family
-       end do
-       iter%family=>attr
-    end if
-  end subroutine f_enum_attr
-
-  function enum_has_attribute(en,family) result(ok)
-    implicit none
-    type(f_enumerator), intent(in) :: family
-    type(f_enumerator), intent(in) :: en
-    logical :: ok
-    !local variables
-    type(f_enumerator), pointer :: iter
-
-    ok=.false.
-    iter=>en%family
-    do while(associated(iter) .and. .not. ok)
-       ok= iter == family
-       iter => iter%family
-    end do
-  end function enum_has_attribute
-
-  function enum_has_char(en,family) result(ok)
-    implicit none
-    character(len=*), intent(in) :: family
-    type(f_enumerator), intent(in) :: en
-    logical :: ok
-    !local variables
-    type(f_enumerator), pointer :: iter
-
-    ok=.false.
-    iter=>en%family
-    do while(associated(iter) .and. .not. ok)
-       ok= iter == family
-       iter => iter%family
-    end do
-  end function enum_has_char
-
-  function enum_has_int(en,family) result(ok)
-    implicit none
-    integer, intent(in) :: family
-    type(f_enumerator), intent(in) :: en
-    logical :: ok
-    !local variables
-    type(f_enumerator), pointer :: iter
-
-    ok=.false.
-    iter=>en%family
-    do while(associated(iter) .and. .not. ok)
-       ok= iter == family
-       iter => iter%family
-    end do
-  end function enum_has_int
-
-  elemental pure function enum_is_enum(en,en1) result(ok)
-    implicit none
-    type(f_enumerator), intent(in) :: en
-    type(f_enumerator), intent(in) :: en1
-    logical :: ok
-    ok = (en == en1%id) .and. (en == en1%name)
-  end function enum_is_enum
-
-  elemental pure function enum_is_int(en,int) result(ok)
-    implicit none
-    type(f_enumerator), intent(in) :: en
-    integer, intent(in) :: int
-    logical :: ok
-    ok = en%id == int
-  end function enum_is_int
-
-  elemental pure function enum_is_char(en,char) result(ok)
-    implicit none
-    type(f_enumerator), intent(in) :: en
-    character(len=*), intent(in) :: char
-    logical :: ok
-    ok = trim(en%name) .eqv. trim(char)
-  end function enum_is_char
-
-  elemental pure function enum_is_not_enum(en,en1) result(ok)
-    implicit none
-    type(f_enumerator), intent(in) :: en
-    type(f_enumerator), intent(in) :: en1
-    logical :: ok
-    ok = .not. (en == en1)
-  end function enum_is_not_enum
-
-  elemental pure function enum_is_not_int(en,int) result(ok)
-    implicit none
-    type(f_enumerator), intent(in) :: en
-    integer, intent(in) :: int
-    logical :: ok
-    ok = .not. (en == int)
-  end function enum_is_not_int
-
-  elemental pure function enum_is_not_char(en,char) result(ok)
-    implicit none
-    type(f_enumerator), intent(in) :: en
-    character(len=*), intent(in) :: char
-    logical :: ok
-    ok = .not. (en == char)
-  end function enum_is_not_char
-
-
-  !>integer of f_enumerator type.
-  elemental pure function int_enum(en)
-    type(f_enumerator), intent(in) :: en
-    integer :: int_enum
-    int_enum=en%id
-  end function int_enum
-
-  !>char of f_enumerator type.
-  elemental pure function char_enum(en)
-    type(f_enumerator), intent(in) :: en
-    character(len=len(en%name)) :: char_enum
-    char_enum=en%name
-  end function char_enum
-  
+ 
   subroutine f_utils_errors()
 
     call f_err_define('INPUT_OUTPUT_ERROR',&

@@ -13,7 +13,7 @@
 module module_defs
   use wrapper_MPI
   use wrapper_linalg
-
+  use f_precisions
   implicit none  
 
   include 'configure.inc' !< Include variables set from configure.
@@ -21,10 +21,10 @@ module module_defs
   integer :: verbose=2    !< Verbosity of the output, control the level of writing (minimal by default)
 
   ! General precision, density and the wavefunctions types
-  integer, parameter :: gp=kind(1.0d0)  !< general-type precision
-  integer, parameter :: dp=kind(1.0d0)  !< density-type precision
-  integer, parameter :: wp=kind(1.0d0)  !< wavefunction-type precision
-  integer, parameter :: tp=kind(1.0d0)  !< DIIS precision (single in this context, if double is only for non-regression)
+  integer, parameter :: gp=double!kind(1.0d0)  !< general-type precision
+  integer, parameter :: dp=double!kind(1.0d0)  !< density-type precision
+  integer, parameter :: wp=double!kind(1.0d0)  !< wavefunction-type precision
+  integer, parameter :: tp=double!kind(1.0d0)  !< DIIS precision (single in this context, if double is only for non-regression)
 
   !> Define type of data for MPI
   integer, parameter :: mpidtypw=MPI_DOUBLE_PRECISION
@@ -84,6 +84,8 @@ module module_defs
 
   !> Code constants.
   !real(gp), parameter :: UNINITIALISED = -123456789._gp
+
+  private :: double,simple,long,short,four
 
   !interface for uninitialized variable
   interface UNINITIALIZED
