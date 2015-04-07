@@ -26,7 +26,7 @@ program GPS_3D
 
    real(kind=8), parameter :: acell = 10.d0
    real(kind=8), parameter :: rad_cav = 0.5d0 ! Radius of the dielectric rigid cavity = rad_cav*acell (with nat=1).
-   real(kind=8), parameter :: multp = 10.d0
+   real(kind=8), parameter :: multp = 1.d0
    integer :: nat = 1 ! Number of atoms to build rigid cavity with nat=1.
    real(kind=8) :: erfL  ! To set 1 for Vacuum and correct analitic comparison with gaussian potential.
    real(kind=8) :: erfR  
@@ -194,7 +194,8 @@ program GPS_3D
 !------------------------------------------------------------------------
 
    ! Set initial density, and the associated analitical potential for the Standard Poisson Equation.
-   call SetInitDensPot(n01,n02,n03,nspden,iproc,eps,dlogeps,sigmaeps,SetEps,erfL,erfR,acell,a_gauss,a2,hx,hy,hz,Setrho,density,potential,geocode,offset,einit,multp)
+!   call SetInitDensPot(n01,n02,n03,nspden,iproc,eps,dlogeps,sigmaeps,SetEps,erfL,erfR,acell,a_gauss,a2,hx,hy,hz,Setrho,density,potential,geocode,offset,einit,multp)
+   call SetInitDensPot(n01,n02,n03,nspden,iproc,eps,dlogeps,sigmaeps,1,erfL,erfR,acell,a_gauss,a2,hx,hy,hz,1,density,potential,geocode,offset,einit,multp)
 !  call SetRhoSoluto(n03,rhosol,acell)
 
 !------------------------------------------------------------------------
@@ -319,6 +320,22 @@ program GPS_3D
   end if
 
  end do ! End do check
+
+   ! Calculate the charge starting from the potential applying the proper Laplace operator.
+   call ApplyLaplace(n01,n02,n03,nspden,hx,hy,hz,rhopot(:,:,:,1),rvApp,acell,eps,nord,5,multp)
+
+  if (iproc==0) then
+   write(*,*)'Comparison between numerical and starting density'
+   call writeroutinePot(n01,n02,n03,1,density,0,rvApp)
+  end if
+
+   ! Calculate the charge starting from the potential applying the proper Laplace operator.
+   call ApplyLaplace(n01,n02,n03,nspden,hx,hy,hz,rhopot(:,:,:,1),rvApp,acell,eps,nord,SetEps,multp)
+
+  if (iproc==0) then
+   write(*,*)'Comparison between numerical and starting density'
+   call writeroutinePot(n01,n02,n03,1,density,0,rvApp)
+  end if
 
  call Polarization_charge(n01,n02,n03,nspden,hx,hy,hz,rhopot,rvApp,acell,eps,nord)
 
@@ -693,9 +710,9 @@ subroutine Prec_conjugate_gradient(n01,n02,n03,nspden,iproc,hx,hy,hz,b,acell,eps
   real(kind=8), dimension(:,:,:,:), allocatable :: x,r,z,p,q,qold,lv,corr,deps
   !real(kind=8), dimension(n01,n02,n03,3) :: deps
   real(kind=8), dimension(:,:,:), allocatable :: de2,ddeps
-  integer, parameter :: max_iter = 50
+  integer, parameter :: max_iter = 100
   real(kind=8), parameter :: max_ratioex = 1.0d10
-  real(kind=8) :: alpha,beta,beta0,betanew,normb,normr,ratio,k,epsc,zeta,pval,qval,rval,pbval
+  real(kind=8) :: alpha,beta,beta0,betanew,normb,normr,ratio,k,epsc,zeta,pval,qval,rval,pbval,multvar
   integer :: i,ii,j,i1,i2,i3,isp
   real(kind=8), parameter :: error = 1.0d-20
   real(kind=8), parameter :: eps0 = 78.36d0
@@ -847,11 +864,24 @@ subroutine Prec_conjugate_gradient(n01,n02,n03,nspden,iproc,hx,hy,hz,b,acell,eps
      end do
   end do
 
+  multvar=1.d0
+  if (iproc ==0) then
+   call yaml_map('iter',i)
+   call yaml_map('multvar',multvar)
+  end if
 
   do i=1,max_iter
 
    if (ratio.lt.error) exit
    if (ratio.gt.max_ratioex) exit
+
+   if ((modulo(i,20).eq.0) .and.(i.lt.61)) then
+    multvar=multvar*10.d0
+    if (iproc ==0) then
+     call yaml_map('iter',i)
+     call yaml_map('multvar',multvar)
+    end if
+   end if
 
    !write(*,'(a)')'--------------------------------------------------------------------------------------------!'
    !write(*,*)'Starting PCG iteration ',i
@@ -892,8 +922,8 @@ subroutine Prec_conjugate_gradient(n01,n02,n03,nspden,iproc,hx,hy,hz,b,acell,eps
         qval=q(i1,i2,i3,isp)
         rval=r(i1,i2,i3,isp)
         pval = zeta+(beta/beta0)*pval
-!        pbval=switch*((eps(i1,i2,i3)-1.0d0)/(eps0-1.0d0))*dsinh(multp*zeta) ! Additional contribution to the Generalized Poisson operator
-        pbval=switch*((eps(i1,i2,i3)-1.0d0)/(eps0-1.0d0))*multp*zeta*dcosh(multp*x(i1,i2,i3,isp)) ! Additional contribution to the Generalized Poisson operator
+        pbval=switch*((eps(i1,i2,i3)-1.0d0)/(eps0-1.0d0))*dsinh(multp*zeta) ! Additional contribution to the Generalized Poisson operator
+!        pbval=switch*((eps(i1,i2,i3)-1.0d0)/(eps0-1.0d0))*multp*zeta*dcosh(multp*x(i1,i2,i3,isp)) ! Additional contribution to the Generalized Poisson operator
 !                                                                      ! for the Poisson-Boltzmann solution.
 !        pbval=switch*((eps(i1,i2,i3)-1.0d0)/(eps0-1.0d0))*dtanh(multp*zeta)
 !        pbval=switch*((eps(i1,i2,i3)-1.0d0)/(eps0-1.0d0))*multp*zeta
@@ -2216,7 +2246,7 @@ subroutine SetInitDensPot(n01,n02,n03,nspden,iproc,eps,dlogeps,sigmaeps,SetEps,e
 ! Set initial density as gaussian (or double gaussian with zero total charge) and potential as error function. It works only
 ! in a vacuum environment.
 
-   sigma1 = 0.03d0*acell
+   sigma1 = 0.05d0*acell
    sigma2 = 2.d0*sigma1
    x0 = 0.d0 ! hx*real(25-n01/2,kind=8)
 
