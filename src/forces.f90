@@ -4407,6 +4407,8 @@ subroutine nonlocal_forces_linear(iproc,nproc,npsidim_orbs,lr,hx,hy,hz,at,rxyz,&
 
         call f_routine(id='determine_dimension_scalprod')
 
+        nscalprod_send = 0
+        nat_overlap = 0
         norbp_if: if (orbs%norbp>0) then
     
             !look for the strategy of projectors application
@@ -4419,8 +4421,6 @@ subroutine nonlocal_forces_linear(iproc,nproc,npsidim_orbs,lr,hx,hy,hz,at,rxyz,&
                   call orbs_in_kpt(ikpt,orbs,isorb,ieorb,nspinor)
           
           
-                  nat_overlap = 0
-                  nscalprod_send = 0
                   do iat=1,natp
                      iiat = iat+isat-1
           

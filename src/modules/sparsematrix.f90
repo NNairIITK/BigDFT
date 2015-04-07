@@ -1060,12 +1060,20 @@ module sparsematrix
      integer,parameter :: MATMUL_NEW = 101
      integer,parameter :: MATMUL_OLD = 102
      integer,parameter :: matmul_version = MATMUL_NEW!OLD!NEW
+     logical,parameter :: count_flops = .false.
+     real(kind=8) :: ts, te, op, gflops
+     real(kind=8),parameter :: flop_per_op = 2.d0 !<number of FLOPS per operations
    
      call f_routine(id='sparsemm')
      call timing(bigdft_mpi%iproc, 'sparse_matmul ', 'IR')
 
 
      if (matmul_version==MATMUL_NEW) then
+
+         if (count_flops) then
+             ! Start time
+             ts = mpi_wtime()
+         end if
 
          !$omp parallel default(private) shared(smat, a_seq, b, c)
          !$omp do schedule(guided)
@@ -1085,6 +1093,22 @@ module sparsematrix
          end do 
          !$omp end do
          !$omp end parallel
+
+         if (count_flops) then
+             ! End time
+             te = mpi_wtime()
+             ! Count the operations
+             op = 0.d0
+             do iout=1,smat%smmm%nout
+                 nblock=smat%smmm%onedimindices_new(4,iout)
+                 do iblock=1,nblock
+                     ncount = smat%smmm%consecutive_lookup(3,iblock,iout)
+                     op = op + real(ncount,kind=8)
+                 end do
+             end do
+             gflops = 1.d-9*op/(te-ts)*flop_per_op
+             call yaml_map('GFLOPS',gflops)
+         end if
 
      else if (matmul_version==MATMUL_OLD) then
 
