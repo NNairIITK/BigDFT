@@ -48,12 +48,12 @@ program memguess
    logical :: calculate_pdos = .false., kernel_analysis = .false., extract_submatrix = .false.
    logical :: solve_eigensystem = .false., analyze_coeffs = .false., peel_matrix = .false.
    logical :: multiply_matrices = .false., matrixpower = .false., plot_wavefunction = .false.
-   logical :: suggest_cutoff = .false., charge_analysis = .true.
+   logical :: suggest_cutoff = .false., charge_analysis = .false.
    integer :: ntimes,nproc,output_grid, i_arg,istat
    integer :: nspin,iorb,norbu,norbd,nspinor,norb,iorbp,iorb_out,lwork
    integer :: norbgpu,ng, nsubmatrices, ncategories
    integer :: export_wf_iband, export_wf_ispin, export_wf_ikpt, export_wf_ispinor,irad
-   real(gp) :: hx,hy,hz,energy,occup,interval,tt,cutoff,power,d
+   real(gp) :: hx,hy,hz,energy,occup,interval,tt,cutoff,power,d,occup_pdos, total_occup
    type(memory_estimation) :: mem
    type(run_objects) :: runObj
    type(orbitals_data) :: orbstst
@@ -68,6 +68,7 @@ program memguess
    real(gp), dimension(:), pointer :: gbd_occ
    type(system_fragment), dimension(:), pointer :: ref_frags
    character(len=3) :: in_name !lr408
+   character(len=128) :: line
    integer :: i, inputpsi, input_wf_format, nneighbor_min, nneighbor_max, nneighbor, ntypes
    integer,parameter :: nconfig=1
    type(dictionary), pointer :: run
@@ -100,7 +101,7 @@ program memguess
    character(len=6) :: direction
    character(len=2) :: backslash
    logical :: file_exists, found_bin, mpi_init
-   logical,dimension(:),allocatable :: calc_array
+   logical,dimension(:,:),allocatable :: calc_array
    real(kind=8),parameter :: eps_roundoff=1.d-5
    type(sparse_matrix) :: smat_s, smat_m, smat_l
 
@@ -331,9 +332,9 @@ program memguess
             !i_arg = i_arg + 1
             !call get_command_argument(i_arg, value = nat_)
             !read(nat_,fmt=*,iostat=ierror) nat
-            i_arg = i_arg + 1
-            call get_command_argument(i_arg, value = interval_)
-            read(interval_,fmt=*,iostat=ierror) interval
+            !i_arg = i_arg + 1
+            !call get_command_argument(i_arg, value = interval_)
+            !read(interval_,fmt=*,iostat=ierror) interval
             i_arg = i_arg + 1
             call get_command_argument(i_arg, value = pdos_file)
             !i_arg = i_arg + 1
@@ -755,55 +756,71 @@ program memguess
        !ham = f_malloc((/ntmb,ntmb/),id='ham')
        !overlap = f_malloc((/ntmb,ntmb/),id='overlap')
        !on_which_atom = f_malloc(ntmb,id='on_which_atom')
-       calc_array = f_malloc(ntmb,id='calc_array')
 
        !call set_astruct_from_file(trim(posinp_file),0,at%astruct,fcomment,energy,fxyz)
        !write(*,*) 'trim(pdos_file)', trim(pdos_file)
        call f_open_file(iunit01, file=pdos_file, binary=.false.)
 
+       read(iunit01,*) npdos
+
+       calc_array = f_malloc((/ntmb,npdos/),id='calc_array')
+
        calc_array = .false.
-       do 
-           read(iunit01,*,iostat=ios) cc, ival
-           if (ios/=0) exit
-           do itype=1,at%astruct%ntypes
-               if (trim(at%astruct%atomnames(itype))==trim(cc)) then
-                   iitype = itype
-                   exit
-               end if
+       npdos_loop: do ipdos=1,npdos
+           do 
+               !read(iunit01,*,iostat=ios) cc, ival
+               read(iunit01,'(a128)',iostat=ios) line
+               if (ios/=0) exit
+               write(*,*) 'line',line
+               read(line,*,iostat=ios) cc, ival
+               if (cc=='#') cycle npdos_loop
+               do itype=1,at%astruct%ntypes
+                   if (trim(at%astruct%atomnames(itype))==trim(cc)) then
+                       iitype = itype
+                       exit
+                   end if
+               end do
+               !write(*,'(a,i7,a,2i7)') 'ipdos, cc, ival, iitype', ipdos, trim(cc), ival, iitype
+               iat_prev = -1
+               do itmb=1,ntmb
+                   iat = on_which_atom_s(itmb)
+                   if (iat/=iat_prev) then
+                       ii = 0
+                   end if
+                   iat_prev = iat
+                   itype = at%astruct%iatype(iat)
+                   ii = ii + 1
+                   if (itype==iitype .and. ii==ival) then
+                       if (calc_array(itmb,ipdos)) stop 'calc_array(itmb)'
+                       calc_array(itmb,ipdos) = .true.
+                   end if
+               end do
            end do
-           iat_prev = -1
-           do itmb=1,ntmb
-               iat = on_which_atom_s(itmb)
-               if (iat/=iat_prev) then
-                   ii = 0
-               end if
-               iat_prev = iat
-               itype = at%astruct%iatype(iat)
-               ii = ii + 1
-               if (itype==iitype .and. ii==ival) then
-                   if (calc_array(itmb)) stop 'calc_array(itmb)'
-                   calc_array(itmb) = .true.
-               end if
-           end do
-       end do
+
+       end do npdos_loop
+
+       !do ipdos=1,npdos
+       !    do itmb=1,ntmb
+       !        iat = on_which_atom_m(itmb)
+       !        itype = at%astruct%iatype(iat)
+       !        write(*,'(a,4i8,l5)') 'ipdos, itmb, iat, itype, calc_array(itmb,ipdos)', &
+       !            ipdos, itmb, iat, itype, calc_array(itmb,ipdos)
+       !    end do
+       !end do
+
        call f_close(iunit01)
 
-       do itmb=1,ntmb
-           iat = on_which_atom_m(itmb)
-           itype = at%astruct%iatype(iat)
-           !write(*,'(a,3i8,l5)') 'itmb, iat, itype, calc_array(itmb)', itmb, iat, itype, calc_array(itmb)
-       end do
-
-       npt = ceiling((eval_ptr(ntmb)-eval_ptr(1))/interval)
+       !!npt = ceiling((eval_ptr(ntmb)-eval_ptr(1))/interval)
        pdos = f_malloc0((/npt,npdos/),id='pdos')
-       energy_bins = f_malloc((/2,npt/),id='energy_bins')
-       ! Determine the energy bins
-       do ipt=1,npt
-           energy_bins(1,ipt) = eval_ptr(1) + real(ipt-1,kind=8)*interval - eps_roundoff
-           energy_bins(2,ipt) = energy_bins(1,ipt) + interval
-       end do
+       !!energy_bins = f_malloc((/2,npt/),id='energy_bins')
+       !!! Determine the energy bins
+       !!do ipt=1,npt
+       !!    energy_bins(1,ipt) = eval_ptr(1) + real(ipt-1,kind=8)*interval - eps_roundoff
+       !!    energy_bins(2,ipt) = energy_bins(1,ipt) + interval
+       !!end do
        output_pdos='PDoS.gp'
        call yaml_map('output file',trim(output_pdos))
+       iunit02 = 99
        call f_open_file(iunit02, file=trim(output_pdos), binary=.false.)
        write(iunit02,'(a)') '# plot the DOS as a sum of Gaussians'
        write(iunit02,'(a)') 'set samples 1000'
@@ -811,11 +828,13 @@ program memguess
        write(iunit02,'(a)') 'sigma=0.01'
        write(backslash,'(a)') '\ '
        ! Calculate a partial kernel for each KS orbital
+       total_occup = 0.d0
        do ipdos=1,npdos
            call yaml_map('PDoS number',ipdos)
            call yaml_map('start, increment',(/ipdos,npdos/))
            write(num,fmt='(i2.2)') ipdos
            write(iunit02,'(a,i0,a)') 'f',ipdos,'(x) = '//trim(backslash)
+           occup_pdos = 0.d0
            do iorb=1,norbks
                call yaml_map('orbital being processed',iorb)
                call gemm('n', 't', ntmb, ntmb, 1, 1.d0, coeff_ptr(1,iorb), ntmb, &
@@ -839,9 +858,9 @@ program memguess
                do ispin=1,nspin
                    !!$omp do reduction(+:occup)
                    do itmb=1,ntmb!ipdos,ntmb,npdos
-                       if (.not.calc_array(itmb)) cycle
+                       if (.not.calc_array(itmb,ipdos)) cycle
                        do jtmb=1,ntmb!ipdos,ntmb,npdos
-                           if (.not.calc_array(jtmb)) cycle
+                           if (.not.calc_array(jtmb,ipdos)) cycle
                            occup = occup + denskernel(itmb,jtmb)*ovrlp_mat%matrix(jtmb,itmb,ispin)
                        end do
                    end do
@@ -849,17 +868,18 @@ program memguess
                end do
                !write(*,*) 'OCCUP',occup, energy, eval_ptr(iorb)
                !!$omp end parallel
-               found_bin = .false.
-               do ipt=1,npt
-                   if (energy>=energy_bins(1,ipt) .and. energy<energy_bins(2,ipt)) then
-                       pdos(ipt,ipdos) = pdos(ipt,ipdos) + occup
-                       found_bin = .true.
-                       exit
-                   end if
-               end do
-               if (.not.found_bin) then
-                   call f_err_throw('could not determine energy bin, energy='//yaml_toa(energy),err_name='BIGDFT_RUNTIME_ERROR')
-               end if
+               !!found_bin = .false.
+               !!do ipt=1,npt
+               !!    if (energy>=energy_bins(1,ipt) .and. energy<energy_bins(2,ipt)) then
+               !!        pdos(ipt,ipdos) = pdos(ipt,ipdos) + occup
+               !!        found_bin = .true.
+               !!        exit
+               !!    end if
+               !!end do
+               !!if (.not.found_bin) then
+               !!    call f_err_throw('could not determine energy bin, energy='//yaml_toa(energy),err_name='BIGDFT_RUNTIME_ERROR')
+               !!end if
+               occup_pdos = occup_pdos + occup
                if (iorb<norbks) then
                    write(iunit02,'(2(a,es16.9),a)') '  ',occup,'*exp(-(x-',energy,')**2/(2*sigma**2)) + '//trim(backslash)
                else
@@ -867,23 +887,24 @@ program memguess
                end if
                !write(*,'(a,i6,3es16.8)')'iorb, eval(iorb), energy, occup', iorb, eval(iorb), energy, occup
            end do
+           total_occup = total_occup + occup_pdos
            if (ipdos==1) then
-               write(iunit02,'(a,i0,a)') "plot f",ipdos,"(x) lt 1 lw 2 w l title 'name'"
+               write(iunit02,'(a,i0,a)') "plot f",ipdos,"(x) lc rgb 'color' lt 1 lw 2 w l title 'name'"
            else
-               write(iunit02,'(a,i0,a)') "replot f",ipdos,"(x) lt 1 lw 2 w l title 'name'"
+               write(iunit02,'(a,i0,a)') "replot f",ipdos,"(x) lc rgb 'color' lt 1 lw 2 w l title 'name'"
            end if
-           call yaml_map('sum of PDoS',sum(pdos(:,ipdos)))
-           output_pdos='PDoS_'//num//'.dat'
-           call yaml_map('output file',trim(output_pdos))
-           call f_open_file(iunit01, file=trim(output_pdos), binary=.false.)
-           write(iunit01,'(a)') '#             energy                pdos'
-           do ipt=1,npt
-               write(iunit01,'(2es20.12)') energy_bins(1,ipt), pdos(ipt,ipdos)
-           end do
-           call f_close(iunit01)
+           call yaml_map('sum of PDoS',occup_pdos)
+           !!output_pdos='PDoS_'//num//'.dat'
+           !!call yaml_map('output file',trim(output_pdos))
+           !!call f_open_file(iunit01, file=trim(output_pdos), binary=.false.)
+           !!write(iunit01,'(a)') '#             energy                pdos'
+           !!do ipt=1,npt
+           !!    write(iunit01,'(2es20.12)') energy_bins(1,ipt), pdos(ipt,ipdos)
+           !!end do
+           !!call f_close(iunit01)
        end do
        call f_close(iunit02)
-       call yaml_map('sum of total DoS',sum(pdos(:,:)))
+       call yaml_map('sum of total DoS',total_occup)
 
        stop
    end if
@@ -1271,6 +1292,7 @@ program memguess
 !!$           runObj%atoms%astruct%ixyz_int,runObj%atoms,trim(comment))
       !call wtxyz('posopt',0.d0,rxyz,atoms,trim(comment))
    end if
+
 
    call print_dft_parameters(runObj%inputs,runObj%atoms)
 

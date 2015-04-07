@@ -12,6 +12,7 @@
 !! This dictionary is constructed from a updated version of the input variables dictionary
 !! following the input files as defined  by the user
 subroutine read_input_dict_from_files(radical,mpi_env,dict)
+  use module_base
   use dictionaries
   use wrapper_MPI
   !use module_input_keys
@@ -99,8 +100,12 @@ subroutine read_input_dict_from_files(radical,mpi_env,dict)
      call read_tddft_from_text_format(mpi_env%iproc,vals, trim(f0))
      if (associated(vals)) call set(dict//TDDFT_VARIABLES, vals)
 
+     if (bigdft_mpi%iproc==0) then
+         call yaml_warning('Do not read the linear input files in the old format. &
+             &If you use the .yaml format you can ignore this message.')
+     end if
      !call set_inputfile(f0, radical, 'lin')
-     call read_lin_and_frag_from_text_format(mpi_env%iproc,dict,trim(radical)) !as it also reads fragment
+     !call read_lin_and_frag_from_text_format(mpi_env%iproc,dict,trim(radical)) !as it also reads fragment
 
      call set_inputfile(f0, radical, 'neb')
      nullify(vals)
@@ -596,6 +601,13 @@ subroutine geopt_input_variables_default(in)
   in%ionmov = -1
   in%dtion = 0.0_gp
   in%strtarget(:)=0.0_gp
+  in%nhistx =0
+  in%biomode=.false.
+  in%beta_stretchx=0.0_gp
+  in%maxrise=0.0_gp
+  in%cutoffratio=0.0_gp
+  in%steepthresh=0.0_gp
+  in%trustr=0.0_gp
   in%mditemp = UNINITIALIZED(in%mditemp)
   in%mdftemp = UNINITIALIZED(in%mdftemp)
   nullify(in%qmass)

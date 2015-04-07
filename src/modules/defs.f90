@@ -50,7 +50,7 @@ module module_defs
   !> experimental variables to test the add of new functionalities
   logical :: experimental_modulebase_var_onlyfion=.false.
 
-  type(mpi_environment) :: bigdft_mpi !< Contains all data needed for MPI processes
+  type(mpi_environment), save :: bigdft_mpi !< Contains all data needed for MPI processes
 
   !> Physical constants.
   real(gp), parameter :: Bohr_Ang = 0.52917721092_gp                    !< 1 AU in angstroem

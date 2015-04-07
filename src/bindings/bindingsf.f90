@@ -511,7 +511,7 @@ END SUBROUTINE lzd_get_llr
 subroutine inputs_new(in)
   use module_types
   use dictionaries
-  use dynamic_memory
+  use f_refcnts, only: nullify_f_ref
   implicit none
   type(input_variables), pointer :: in
   allocate(in)

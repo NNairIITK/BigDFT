@@ -1830,6 +1830,9 @@ contains
     character(len=256) :: comments,dummy_char,filename
     type(dictionary), pointer :: dict_basis
 
+    !call f_err_throw('For the linear version the input parameters must be read in the .yaml format, &
+    !    &the old version is deprecated', err_name='BIGDFT_INPUT_VARIABLES_ERROR')
+
     filename=repeat(' ',len(filename))
     call set_inputfile(filename, trim(run_name),    "lin")
     ! This name seems to be too long..

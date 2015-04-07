@@ -105,6 +105,10 @@ IO-wf-ETSF_write.out.post-out:
 NH3.out.post-out:
 	mv -f data/geopt.mon NH3.geopt.mon.out
 
+# Additional H2O-slab in.
+H2O-slab.out.post-out:
+	cat ab6_moldyn-0.log >> H2O-slab.out.out
+
 InputGenPot.xabs.post-out:
 	mv -f local_potentialb2B.cube b2B_xanes.cube
 	cp InputGenPot.xyz b2B_xanes.xyz

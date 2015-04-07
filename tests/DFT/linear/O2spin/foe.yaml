@@ -14,10 +14,8 @@
    inputpsiid: linear
    disablesym: Yes
  perf:
-   ef_interpol_chargediff: 1.0
    ef_interpol_det: 1.e-10
-   check_sumrho: 2
-   calculate_KS_residue: Yes
+   ef_interpol_chargediff: 1.0
    method_updatekernel: 2
    purification_quickreturn: Yes
    check_matrix_compression: No
@@ -44,9 +42,9 @@
    idsx_coeff: [6, 0]
    idsx: 6
    alphamix: 0.05
+   linear_method: FOE
    eval_range_foe: [-1.0, 1.0]
    fscale_foe: 5.0E-002
-   linear_method: FOE
  lin_basis_params:
    O:
      nbasis: 9
@@ -55,6 +53,17 @@
      rloc: 5.5
      rloc_kernel: 8.0
      rloc_kernel_foe: 15.0
+ ig_occupation:
+   O:
+     2s: [1.0, 1.0]
+     2p:
+     - 1.0
+     - 1.0
+     - 1.0
+     - 1/3
+     - 1/3
+     - 1/3
+     3d: 0.0
  posinp:
    units: angstroem
    positions:
@@ -65,8 +74,3 @@
    properties:
      format: xyz
      source: posinp
- ig_occupation:
-   O:
-     2s: [1.0, 1.0]
-     2p: [1.0, 1.0, 1.0, 1/3, 1/3, 1/3]
-     3d: 0.0 

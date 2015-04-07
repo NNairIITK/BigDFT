@@ -4204,10 +4204,9 @@ subroutine nonlocal_forces_linear(iproc,nproc,npsidim_orbs,lr,hx,hy,hz,at,rxyz,&
   use sparsematrix_base, only: sparse_matrix, matrices, sparsematrix_malloc, assignment(=), SPARSE_FULL
   use sparsematrix, only: gather_matrix_from_taskgroups
   use psp_projectors, only: PSPCODE_HGH,PSPCODE_HGH_K,PSPCODE_HGH_K_NLCC,&
-       PSPCODE_PAW
+       PSPCODE_PAW,projector_has_overlap
   use yaml_output
   use communications_init, only: check_whether_bounds_overlap
-  use psp_projectors, only: projector_has_overlap
   implicit none
   !Arguments-------------
   type(atoms_data), intent(in) :: at
@@ -4408,6 +4407,8 @@ subroutine nonlocal_forces_linear(iproc,nproc,npsidim_orbs,lr,hx,hy,hz,at,rxyz,&
 
         call f_routine(id='determine_dimension_scalprod')
 
+        nscalprod_send = 0
+        nat_overlap = 0
         norbp_if: if (orbs%norbp>0) then
     
             !look for the strategy of projectors application
@@ -4420,8 +4421,6 @@ subroutine nonlocal_forces_linear(iproc,nproc,npsidim_orbs,lr,hx,hy,hz,at,rxyz,&
                   call orbs_in_kpt(ikpt,orbs,isorb,ieorb,nspinor)
           
           
-                  nat_overlap = 0
-                  nscalprod_send = 0
                   do iat=1,natp
                      iiat = iat+isat-1
           

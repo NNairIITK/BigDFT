@@ -1709,6 +1709,7 @@ neleconf(7,0)=1.d-18
      call f_err_throw("Electronic configuration "//&
           trim(yaml_toa([nzatom,nvalelec]))//" not found!",&
           err_name='BIGDFT_RUNTIME_ERROR')
+     return
   end select
 
   !as now the symbol has been found overridde the psp rcov with the physical

@@ -94,6 +94,7 @@ subroutine initialize_flib_errors()
   use f_utils, only: f_utils_errors
   use yaml_parse, only: yaml_parse_errors
   use dynamic_memory, only: dynamic_memory_errors
+  use f_refcnts, only: refcnts_errors
   use time_profiling, only: timing_errors
   implicit none
 
@@ -102,6 +103,7 @@ subroutine initialize_flib_errors()
   call yaml_output_errors()
   !Intilialize the error to parse yaml documents
   call yaml_parse_errors()
+  call refcnts_errors()
   call dynamic_memory_errors()
   call timing_errors()
   

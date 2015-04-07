@@ -58,6 +58,7 @@ module module_types
   integer, parameter, public :: INPUT_PSI_MEMORY_LINEAR= 101    !< Input PSI for linear in memory
   integer, parameter, public :: INPUT_PSI_DISK_LINEAR  = 102    !< Input PSI for linear from disk
 
+
   !> All possible values of input psi (determination of the input guess)
   integer, dimension(12), parameter :: input_psi_values = &
        (/ INPUT_PSI_EMPTY, INPUT_PSI_RANDOM, INPUT_PSI_CP2K, &
@@ -201,8 +202,8 @@ module module_types
     integer :: blocksize_pdgemm, blocksize_pdsyev
     integer :: correctionOrthoconstraint, nproc_pdsyev, nproc_pdgemm
     integer :: nit_lowaccuracy, nit_highaccuracy, nItdmin_lowaccuracy, nItdmin_highaccuracy
-    integer :: nItSCCWhenFixed_lowaccuracy, nItSCCWhenFixed_highaccuracy
-    real(kind=8) :: convCrit_lowaccuracy, convCrit_highaccuracy
+    integer :: nItSCCWhenFixed_lowaccuracy, nItSCCWhenFixed_highaccuracy, nit_extendedIG
+    real(kind=8) :: convCrit_lowaccuracy, convCrit_highaccuracy, convCrit_extendedIG
     real(kind=8) :: alphaSD, alphaDIIS, evlow, evhigh, ef_interpol_chargediff
     real(kind=8) :: alpha_mix_lowaccuracy, alpha_mix_highaccuracy, reduce_confinement_factor, ef_interpol_det
     integer :: plotBasisFunctions
@@ -214,7 +215,7 @@ module module_types
     real(kind=8), dimension(:,:), pointer :: locrad_type
     real(kind=8), dimension(:), pointer :: potentialPrefac_lowaccuracy, potentialPrefac_highaccuracy, potentialPrefac_ao
     real(kind=8), dimension(:),pointer :: kernel_cutoff, locrad_kernel, locrad_mult
-    real(kind=8) :: early_stop, gnrm_dynamic, min_gnrm_for_dynamic
+    real(kind=8) :: early_stop, gnrm_dynamic, min_gnrm_for_dynamic 
     integer, dimension(:), pointer :: norbsPerType
     integer :: kernel_mode, mixing_mode
     integer :: scf_mode, nlevel_accuracy
@@ -223,6 +224,7 @@ module module_types
     integer :: extra_states, order_taylor, mixing_after_inputguess
     !> linear scaling: maximal error of the Taylor approximations to calculate the inverse of the overlap matrix
     real(kind=8) :: max_inversion_error
+    logical :: calculate_onsite_overlap
   end type linearInputParameters
 
 
@@ -2144,6 +2146,10 @@ contains
              in%run_mode=MORSE_BULK_RUN_MODE
           case('morse_slab')
              in%run_mode=MORSE_SLAB_RUN_MODE
+          case('tersoff')
+             in%run_mode=TERSOFF_RUN_MODE
+          case('bmhtf')
+             in%run_mode=BMHTF_RUN_MODE
           end select
        case(MM_PARAMSET)
             in%mm_paramset=val
@@ -2564,6 +2570,8 @@ contains
        case (MAX_INVERSION_ERROR)
            ! maximal error of the Taylor approximations to calculate the inverse of the overlap matrix
            in%lin%max_inversion_error = val
+       case (CALCULATE_ONSITE_OVERLAP)
+           in%lin%calculate_onsite_overlap = val
        case DEFAULT
           if (bigdft_mpi%iproc==0) &
                call yaml_warning("unknown input key '" // trim(level) // "/" // trim(dict_key(val)) // "'")
@@ -2582,6 +2590,10 @@ contains
           dummy_gp(1:2) = val
           in%lin%convCrit_lowaccuracy = dummy_gp(1)
           in%lin%convCrit_highaccuracy = dummy_gp(2)
+       case (GNRM_IG)
+          in%lin%convCrit_extendedIG = val
+       case (NIT_IG)
+          in%lin%nit_extendedIG = val
        case (DELTAE_CV)
           in%lin%early_stop = val
        case (GNRM_DYN)

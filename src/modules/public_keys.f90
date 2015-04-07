@@ -26,6 +26,8 @@ module public_keys
   character(len = *), parameter :: ELECFIELD = "elecfield"
   character(len = *), parameter :: NSPIN = "nspin", MPOL = "mpol"
   character(len = *), parameter :: GNRM_CV = "gnrm_cv"
+  character(len = *), parameter :: GNRM_IG = "gnrm_ig"
+  character(len = *), parameter :: NIT_IG = "nit_ig"
   character(len = *), parameter :: ITERMAX = "itermax",ITERMIN = "itermin", NREPMAX = "nrepmax"
   character(len = *), parameter :: NCONG = "ncong", IDSX = "idsx"
   character(len = *), parameter :: DISPERSION = "dispersion"
@@ -219,6 +221,7 @@ module public_keys
   character(len=*), parameter :: HAMAPP_RADIUS_INCR='hamapp_radius_incr'
   character(len=*), parameter :: ADJUST_KERNEL_ITERATIONS='adjust_kernel_iterations'
   character(len=*), parameter :: WF_EXTENT_ANALYSIS='wf_extent_analysis'
+  character(len=*), parameter :: CALCULATE_ONSITE_OVERLAP='calculate_onsite_overlap'
 
   !> Parameters to avoid typos in dictionary keys
   character(len=*), parameter :: ASTRUCT_UNITS = 'units' 
@@ -269,6 +272,8 @@ module public_enums
   type(f_enumerator), parameter :: MORSE_BULK_RUN_MODE         =f_enumerator('MORSE_BULK_RUN_MODE',-996)
   type(f_enumerator), parameter :: MORSE_SLAB_RUN_MODE         =f_enumerator('MORSE_SLAB_RUN_MODE',-995)
   type(f_enumerator), parameter :: QM_RUN_MODE                 =f_enumerator('QM_RUN_MODE',-994)
+  type(f_enumerator), parameter :: TERSOFF_RUN_MODE         =f_enumerator('TERSOFF_RUN_MODE',-993)
+  type(f_enumerator), parameter :: BMHTF_RUN_MODE         =f_enumerator('BMHTF_RUN_MODE',-992)
   
 end module public_enums
 
