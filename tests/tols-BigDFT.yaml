@@ -410,7 +410,7 @@ cleanup:
  Omega: 2.12e-9
  Pulay Forces (Ha/Bohr): 1.9e-9
  energy: 2.3e-9
- Energy (Hartree): 8.8e-11
+ Energy (Hartree): 1.2e-10
 
 directmin:
  Patterns to ignore:
@@ -1057,7 +1057,7 @@ PBE_densmixlin:
  EXC: 1.01e-10
  EH: 1.0e-9
  Total charge: 2.1e-11
- Energy (Hartree): 1.6e-11
+ Energy (Hartree): 2.6e-11
  Keys to ignore:
   - Calculating wavelets expansion of projectors, found warnings
   - found warnings
@@ -1164,14 +1164,14 @@ O2spin_diag:
  Clean forces norm (Ha/Bohr): 9.0e-7
  Raw forces norm (Ha/Bohr): 9.0e-7
  Orbitals: 2.7e-7
- EH: 1.8e-6
- EXC: 3.4e-7
- Ekin: 2.1e-6
+ EH: 1.9e-6
+ EXC: 3.5e-7
+ Ekin: 2.3e-6
  Enl: 1.4e-6
- Epot: 2.5e-6
+ Epot: 2.8e-6
  EvXC: 1.4e-6
- Omega: 2.5e-7
- energy: 7.3e-8
+ Omega: 2.8e-7
+ energy: 8.0e-8
  Energy (Hartree): 8.0e-8
  multiplicator for the confinement: 1.4e-6
  D: 1.1e-9
