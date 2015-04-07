@@ -300,6 +300,7 @@ mixpotential:
  EXC: 1.1e-10
  EvXC: 1.1e-10
  Enl: 2.1e-11
+ Energy (Hartree): 1.4e-11
 
 IO-wf_plain-read:
  Energies: 1.1e-10
@@ -409,7 +410,7 @@ cleanup:
  Omega: 2.12e-9
  Pulay Forces (Ha/Bohr): 1.9e-9
  energy: 2.3e-9
- Energy (Hartree): 4.4e-11
+ Energy (Hartree): 8.8e-11
 
 directmin:
  Patterns to ignore:
@@ -590,7 +591,7 @@ hybrid-directmin:
  Clean forces norm (Ha/Bohr): 8.0e-11
  Raw forces norm (Ha/Bohr): 3.3e-11
  Average noise forces: 1.1e-10
- Energy (Hartree): 1.6e-11
+ Energy (Hartree): 2.1e-11
 
 cdft_ohoh:
  Epsilon: 7.1e-10
@@ -626,7 +627,7 @@ fructose:
  ebs: 1.1e-8
  ebs_check: 1.1e-8
  net quadropole: 1.1e-10
- Energy (Hartree): 3.1e-11
+ Energy (Hartree): 4.5e-11
  Keys to ignore:
   - Calculating wavelets expansion of projectors, found warnings
   - found warnings
@@ -849,7 +850,7 @@ experimentalfoe_long:
  decay length of error function: 1.1e-5
  ebs: 2.1e-9
  relative diff: 2.1e-11
- Energy (Hartree): 5.6e-11
+ Energy (Hartree): 9.3e-11
 
 experimentalfoe_short:
  EH: 2.0e-05
@@ -893,7 +894,7 @@ experimentalfoe_medium:
  energy: 2.9e-10
  Omega: 8.1e-10
  decay length of error function: 1.1e-5
- Energy (Hartree): 5.7e-11
+ Energy (Hartree): 1.3e-10
 
 newpulay:
  EXC: 1.1e-10
@@ -1024,7 +1025,7 @@ DIIShistory:
  EH: 2.0e-8
  Pulay forces (Ha/Bohr): 7.8e-09
  Max deviation from unity in reorthonormalize_coeff: 1.1e-9
- Energy (Hartree): 3.0e-11
+ Energy (Hartree): 3.8e-11
 
 sparsity:
  Total charge: 1.1e-10
@@ -1045,7 +1046,7 @@ sparsity:
  ebs: 2.1e-10
  diff: 1.1e-9
  D Tr: 1.1e-10
- Energy (Hartree): 2.0e-10
+ Energy (Hartree): 3.7e-10
 
 PBE_densmixlin:
  Ekin: 1.1e-10
@@ -1071,7 +1072,7 @@ PBE_potmixlin:
  Omega: 1.1e-10
  delta out: 1.1e-9
  Total charge: 2.1e-11
- Energy (Hartree): 1.5e-11
+ Energy (Hartree): 2.7-e1i
  Keys to ignore:
   - Calculating wavelets expansion of projectors, found warnings
   - found warnings
@@ -1104,7 +1105,7 @@ PBE_densmixdiis:
  Ekin: 1.1e-9
  Total charge: 2.1e-11
  EH: 1.0e-9
- Energy (Hartree): 1.5e-11
+ Energy (Hartree): 2.8e-11
 
 test-bigdft-tool:
  positions: 5.1e-8
@@ -1158,7 +1159,7 @@ geoptconstrained_SDCG:
  Atomic structure: 3.1e-9
 
 O2spin_diag:
- Atomic Forces (Ha/Bohr): 2.6e-7
+ Atomic Forces (Ha/Bohr): 2.8e-7
  Average noise forces: 8.6e-8
  Clean forces norm (Ha/Bohr): 9.0e-7
  Raw forces norm (Ha/Bohr): 9.0e-7
@@ -1171,7 +1172,7 @@ O2spin_diag:
  EvXC: 1.4e-6
  Omega: 2.5e-7
  energy: 7.3e-8
- Energy (Hartree): 2.7e-8
+ Energy (Hartree): 8.0e-8
  multiplicator for the confinement: 1.4e-6
  D: 1.1e-9
  kappa: 1.1e-4
@@ -1220,7 +1221,7 @@ O2spin_dirmin:
  EvXC: 6.0e-6
  energydiff: 6.0e-6
  energy: 1.1e-6
- Energy (Hartree): 2.0e-7
+ Energy (Hartree): 5.8e-7
  Omega: 6.1e-6
  Raw forces norm (Ha/Bohr): 5.1e-5
  D: 2.1e-6
