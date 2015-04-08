@@ -1093,7 +1093,7 @@ PBE_potmixdiis:
  Enl: 2.2e-9
  Total charge: 2.1e-11
  multiplicator for the confinement: 4.3e-8
- Energy (Hartree): 5.5e-10
+ Energy (Hartree): 6.3e-10
 
 PBE_densmixdiis:
  Epot: 1.1e-10
@@ -1160,9 +1160,9 @@ geoptconstrained_SDCG:
 
 O2spin_diag:
  Atomic Forces (Ha/Bohr): 2.8e-7
- Average noise forces: 8.6e-8
- Clean forces norm (Ha/Bohr): 9.0e-7
- Raw forces norm (Ha/Bohr): 9.0e-7
+ Average noise forces: 9.5e-8
+ Clean forces norm (Ha/Bohr): 9.9e-7
+ Raw forces norm (Ha/Bohr): 9.9e-7
  Orbitals: 2.7e-7
  EH: 1.9e-6
  EXC: 3.5e-7
