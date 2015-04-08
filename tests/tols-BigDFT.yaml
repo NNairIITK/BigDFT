@@ -1363,7 +1363,7 @@ periodic_silicon:
  Energy (Hartree): 2.9e-11
  energy: 2.9e-11
  charge diff: 3.8e-10
- Total ionic charge: 1.4e-11
+ Total ionic charge: 1.9e-11
  Pressure: 1.5e-10
 
 periodic_wateredge:
@@ -1389,12 +1389,12 @@ periodic_water:
  Ekin: 2.0e-9
  Enl: 1.1e-9
  Energy (Hartree): 7.3e-11
- Omega: 2.0e-10
+ Omega: 2.6e-10
  ebs_check: 2.5e-9
  ebs: 2.5e-9
  eF: 8.9e-9
  D eF: 1.0e-8
- energy: 1.4e-10
+ energy: 2.8e-10
  guess for new ef: 9.1e-9
  number of corrected points: 1
  charge diff: 5.2e-7
@@ -1403,11 +1403,12 @@ periodic_water:
  D Tr: 2.1e-7
  Total ionic charge: 6.0e-11
  Pressure: 6.4e-10
+ Clean forces norm (Ha/Bohr): 1.8e-11
 
 surface_boronnitride:
  Enl: 1.01e-9
  Epot: 1.0e-9
- Omega: 1.2e-10
+ Omega: 1.4e-10
  energy: 3.2e-11
  Energy (Hartree): 3.2e-11
  Total charge: 1.0e-10
