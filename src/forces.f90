@@ -4086,7 +4086,9 @@ subroutine erf_stress(at,rxyz,hxh,hyh,hzh,n1i,n2i,n3i,n3p,iproc,nproc,ngatherarr
   if (iproc<ii) noutp = noutp + 1
   nout_par = f_malloc0(0.to.nproc,id='nout_par')
   nout_par(iproc) = noutp
-  call mpiallred(nout_par(0), nproc, mpi_sum, comm=bigdft_mpi%mpi_comm)
+  if (nproc>1) then
+      call mpiallred(nout_par(0), nproc, mpi_sum, comm=bigdft_mpi%mpi_comm)
+  end if
   if (sum(nout_par)/=nout) then
       call f_err_throw('wrong partition of the outer loop',err_name='BIGDT_RUNTIME_ERROR')
   end if
@@ -4169,7 +4171,9 @@ subroutine erf_stress(at,rxyz,hxh,hyh,hzh,n1i,n2i,n3i,n3p,iproc,nproc,ngatherarr
 
   end do !iat -atoms
 
-  call mpiallred(tens(1), 6, mpi_sum, comm=bigdft_mpi%mpi_comm)
+  if (nproc>1) then
+      call mpiallred(tens(1), 6, mpi_sum, comm=bigdft_mpi%mpi_comm)
+  end if
 
 !!$  if (iproc ==0) then
 !!$     write(*,*)
@@ -4829,7 +4833,9 @@ subroutine nonlocal_forces_linear(iproc,nproc,npsidim_orbs,lr,hx,hy,hz,at,rxyz,&
 
         ! Now the value of supfun_per_atom can be summed up, since each task has all scalprods for a given atom.
         ! In principle this is only necessary for the atoms handled by a given task, but do it for the moment for all...
-        call mpiallred(supfun_per_atom, mpi_sum, comm=bigdft_mpi%mpi_comm)
+        if (nproc>1) then
+            call mpiallred(supfun_per_atom, mpi_sum, comm=bigdft_mpi%mpi_comm)
+        end if
         ! The starting points have to be recalculated.
         is_supfun_per_atom(1) = 0
         do jat=2,at%astruct%nat

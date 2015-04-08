@@ -785,7 +785,7 @@ subroutine input_memory_linear(iproc, nproc, at, KSwfn, tmb, tmb_old, denspot, i
   real(wp), allocatable, dimension(:) :: norm
   type(fragment_transformation), dimension(:), pointer :: frag_trans
   character(len=*),parameter:: subname='input_memory_linear'
-  real(kind=8) :: pnrm, max_inversion_error, max_deviation, mean_deviation, max_deviation_p, mean_deviation_p
+  real(kind=8) :: pnrm, max_deviation, mean_deviation, max_deviation_p, mean_deviation_p
   logical :: rho_negative
   integer,parameter :: RESTART_AO = 0
   integer,parameter :: RESTART_REFORMAT = 1
@@ -808,7 +808,7 @@ subroutine input_memory_linear(iproc, nproc, at, KSwfn, tmb, tmb_old, denspot, i
   real(kind=8),dimension(:),allocatable :: eval
   integer,parameter :: lwork=10000
   real(kind=8),dimension(lwork) :: work
-  integer :: info
+  integer :: info, norder_taylor
 
   call f_routine(id='input_memory_linear')
 
@@ -1210,10 +1210,11 @@ subroutine input_memory_linear(iproc, nproc, at, KSwfn, tmb, tmb_old, denspot, i
             imode=1, ovrlp_smat=tmb%linmat%s, inv_ovrlp_smat=tmb%linmat%l, &
             ovrlp_mat=ovrlp_old, inv_ovrlp_mat=tmb%linmat%ovrlppowers_(1), &
             check_accur=.true., max_error=max_error, mean_error=mean_error)
-       call check_taylor_order(mean_error, max_inversion_error, order_taylor)
+       call check_taylor_order(mean_error, input%lin%max_inversion_error, order_taylor)
 
        !!call extract_taskgroup_inplace(tmb%linmat%l, tmb%linmat%kernel_)
-       call renormalize_kernel(iproc, nproc, input%lin%order_taylor, max_inversion_error, tmb, &
+       norder_taylor = input%lin%order_taylor !since it is inout
+       call renormalize_kernel(iproc, nproc, norder_taylor, input%lin%max_inversion_error, tmb, &
             tmb%linmat%ovrlp_, tmb_old%linmat%ovrlp_)
        !!call gather_matrix_from_taskgroups_inplace(iproc, nproc, tmb%linmat%l, tmb%linmat%kernel_)
 
