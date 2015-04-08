@@ -548,8 +548,8 @@ module module_interfaces
       END SUBROUTINE NonLocalHamiltonianApplication
 
       subroutine SynchronizeHamiltonianApplication(nproc,npsidim_orbs,orbs,Lzd,GPU,xc,hpsi,&
-           ekin_sum,epot_sum,eproj_sum,eSIC_DC,eexctX,energs_work)
-        use module_base
+           energs,energs_work)
+        use module_defs, only: gp,wp
         use module_types
         use module_xc
         implicit none
@@ -558,7 +558,8 @@ module module_interfaces
         type(local_zone_descriptors), intent(in) :: Lzd
         type(GPU_pointers), intent(inout) :: GPU
         type(xc_info), intent(in) :: xc
-        real(gp), intent(inout) :: ekin_sum,epot_sum,eproj_sum,eSIC_DC,eexctX
+        type(energy_terms), intent(inout) :: energs
+        !real(gp), intent(inout) :: ekin_sum,epot_sum,eproj_sum,eSIC_DC,eexctX
         real(wp), dimension(orbs%npsidim_orbs), intent(inout) :: hpsi
         type(work_mpiaccumulate),optional,intent(inout) :: energs_work
       END SUBROUTINE SynchronizeHamiltonianApplication
@@ -1730,14 +1731,15 @@ module module_interfaces
        integer, dimension(natsc+1,nspin), intent(in) :: norbsc_arr
      end subroutine LDiagHam
 
-     subroutine updatePotential(nspin,denspot,ehart,eexcu,vexcu)
+     subroutine updatePotential(nspin,denspot,energs)!ehart,eexcu,vexcu)
        use module_base
        use module_types
        implicit none
        ! Calling arguments
        integer, intent(in) :: nspin
        type(DFT_local_fields), intent(inout) :: denspot
-       real(8),intent(out):: ehart, eexcu, vexcu
+       type(energy_terms), intent(inout) :: energs
+       !real(8),intent(out):: ehart, eexcu, vexcu
      end subroutine updatePotential
 
      subroutine setCommsParameters(mpisource, mpidest, istsource, istdest, ncount, tag, comarr)

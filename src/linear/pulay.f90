@@ -534,7 +534,7 @@ subroutine pulay_correction(iproc, nproc, orbs, at, rxyz, nlpsp, SIC, denspot, G
   call timing(iproc,'glsynchham1','ON')
   call SynchronizeHamiltonianApplication(nproc,tmb%ham_descr%npsidim_orbs,&
        & tmb%orbs,tmb%ham_descr%lzd,GPU,denspot%xc,lhphilarge,&
-       energs%ekin,energs%epot,energs%eproj,energs%evsic,energs%eexctX)
+       energs)!%ekin,energs%epot,energs%eproj,energs%evsic,energs%eexctX)
   call timing(iproc,'glsynchham1','OF')
   deallocate(confdatarrtmp)
   

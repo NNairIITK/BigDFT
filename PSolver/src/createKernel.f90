@@ -934,11 +934,12 @@ end subroutine pkernel_set_epsilon
 
 !> create the memory space needed to store the arrays for the 
 !! description of the cavity
-subroutine pkernel_allocate_cavity(kernel)
+subroutine pkernel_allocate_cavity(kernel,vacuum)
   implicit none
   type(coulomb_operator), intent(inout) :: kernel
+  logical, intent(in), optional :: vacuum !<if .true. the cavity is allocated as no cavity exists, i.e. only vacuum
   !local variables
-  integer :: n1,n23
+  integer :: n1,n23,i1,i23
 
   n1=kernel%ndims(1)
   n23=kernel%ndims(2)*kernel%grid%n3p
@@ -951,6 +952,22 @@ subroutine pkernel_allocate_cavity(kernel)
           id='dlogeps')
      kernel%oneoeps=f_malloc_ptr([n1,n23],id='oneoeps')
   end select
+  if (present(vacuum)) then
+     if (vacuum) then
+        select case(trim(char(kernel%method)))
+        case('PCG')
+           call f_zero(kernel%corr)
+        case('PI')
+           call f_zero(kernel%dlogeps)
+        end select
+        do i23=1,n23
+           do i1=1,n1
+              kernel%oneoeps(i1,i23)=1.0_dp
+           end do
+        end do
+     end if
+  end if
+
 end subroutine pkernel_allocate_cavity
 
 !>put in depsdrho array the extra potential

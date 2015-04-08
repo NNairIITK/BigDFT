@@ -158,7 +158,7 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
       call timing(iproc,'glsynchham1','ON')
       call SynchronizeHamiltonianApplication(nproc,tmb%ham_descr%npsidim_orbs,&
            & tmb%orbs,tmb%ham_descr%lzd,GPU,denspot%xc,tmb%hpsi,&
-           energs%ekin,energs%epot,energs%eproj,energs%evsic,energs%eexctX, energs_work)
+           energs, energs_work)
       call timing(iproc,'glsynchham1','OF')
       deallocate(confdatarrtmp)
 
@@ -813,7 +813,7 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
 
       call timing(iproc,'glsynchham2','ON')
       call SynchronizeHamiltonianApplication(nproc,tmb%ham_descr%npsidim_orbs,tmb%orbs,tmb%ham_descr%lzd,GPU,denspot%xc,tmb%hpsi,&
-           energs%ekin,energs%epot,energs%eproj,energs%evsic,energs%eexctX, energs_work)
+           energs,energs_work)
       call timing(iproc,'glsynchham2','OF')
 
       if (iproc==0) then

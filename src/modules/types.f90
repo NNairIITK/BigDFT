@@ -504,9 +504,10 @@ module module_types
      real(gp) :: eion    !< Ion-Ion interaction
      real(gp) :: edisp   !< Dispersion force
      real(gp) :: ekin    !< Kinetic term
-     real(gp) :: epot    
-     real(gp) :: eproj   
-     real(gp) :: eexctX  
+     real(gp) :: epot    !< local potential energy
+     real(gp) :: eproj   !< energy of PSP projectors
+     real(gp) :: eexctX  !< exact exchange energy
+     real(gp) :: eelec   !< electrostatic energy. Replaces the hartree energy for cavities
      real(gp) :: ebs     
      real(gp) :: eKS     
      real(gp) :: trH     
@@ -1147,6 +1148,7 @@ contains
     en%epot    =0.0_gp
     en%eproj   =0.0_gp
     en%eexctX  =0.0_gp
+    en%eelec   =0.0_gp
     en%ebs     =0.0_gp
     en%eKS     =0.0_gp
     en%trH     =0.0_gp

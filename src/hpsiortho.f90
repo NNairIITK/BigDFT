@@ -40,6 +40,7 @@ subroutine psitohpsi(iproc,nproc,atoms,scf,denspot,itrp,itwfn,iscf,alphamix,&
   character(len=*), parameter :: subname='psitohpsi'
   logical :: unblock_comms_den,unblock_comms_pot,whilepot,savefields
   integer :: nthread_max,ithread,nthread,irhotot_add,irho_add,ispin,correcth
+  real(gp) :: ehart_ps
   !integer :: ii,jj
   !$ integer :: omp_get_max_threads,omp_get_thread_num,omp_get_num_threads
 
@@ -199,8 +200,17 @@ subroutine psitohpsi(iproc,nproc,atoms,scf,denspot,itrp,itwfn,iscf,alphamix,&
         call denspot_set_rhov_status(denspot, CHARGE_DENSITY, itwfn, iproc, nproc)
 
         call H_potential('D',denspot%pkernel,&
-             denspot%rhov,denspot%V_ext,energs%eh,0.0_dp,.true.,&
+             denspot%rhov,denspot%V_ext,ehart_ps,0.0_dp,.true.,&
              quiet=denspot%PSquiet,rho_ion=denspot%rho_ion) !optional argument
+        
+        if (denspot%pkernel%method /= 'VAC') then
+           energs%eelec=ehart_ps
+           energs%eh=0.0_gp
+        else
+           energs%eelec=0.0_gp
+           energs%eh=ehart_ps
+        end if
+
 
         !this is not true, there is also Vext
         call denspot_set_rhov_status(denspot, HARTREE_POTENTIAL, itwfn, iproc, nproc)
@@ -355,11 +365,8 @@ subroutine psitohpsi(iproc,nproc,atoms,scf,denspot,itrp,itwfn,iscf,alphamix,&
 
   call SynchronizeHamiltonianApplication(nproc,wfn%orbs%npsidim_orbs,wfn%orbs,wfn%Lzd,&
        & GPU,denspot%xc,wfn%hpsi,&
-       energs%ekin,energs%epot,energs%eproj,energs%evsic,energs%eexctX)
+       energs)!%ekin,energs%epot,energs%eproj,energs%evsic,energs%eexctX)
 
-  if (denspot%pkernel%method /= 'VAC') then
-     energs%eh=energs%epot-energs%eh-energs%evxc
-  end if
 !!$  if (iproc ==0) then
 !!$     !compute the proper hartree energy in the case of a cavity calculation
 !!$     !energs%eh=energs%epot-energs%eh-energs%evxc
@@ -453,7 +460,7 @@ subroutine FullHamiltonianApplication(iproc,nproc,at,orbs,&
       Lzd,nlpsp,psi,hpsi,energs%eproj,paw)
 
   call SynchronizeHamiltonianApplication(nproc,orbs%npsidim_orbs,orbs,Lzd,GPU,xc,hpsi,&
-       energs%ekin,energs%epot,energs%eproj,energs%evsic,energs%eexctX)
+       energs)!%ekin,energs%epot,energs%eproj,energs%evsic,energs%eexctX)
 
   !to be adjusted
 !!$  if (trim(denspot%pkernel%method) /= 'VAC') then
@@ -1066,7 +1073,7 @@ END SUBROUTINE NonLocalHamiltonianApplication
 !> routine which puts a barrier to ensure that both local and nonlocal hamiltonians have been applied
 !! in the GPU case puts a barrier to end the overlapped Local and nonlocal applications
 subroutine SynchronizeHamiltonianApplication(nproc,npsidim_orbs,orbs,Lzd,GPU,xc,&
-     & hpsi,ekin_sum,epot_sum,eproj_sum,evsic,eexctX, energs_work)
+     hpsi,energs,energs_work)
    use module_base
    use module_types
    use module_xc
@@ -1076,7 +1083,8 @@ subroutine SynchronizeHamiltonianApplication(nproc,npsidim_orbs,orbs,Lzd,GPU,xc,
    type(local_zone_descriptors), intent(in) :: Lzd
    type(GPU_pointers), intent(inout) :: GPU
    type(xc_info), intent(in) :: xc
-   real(gp), intent(inout) :: ekin_sum,epot_sum,eproj_sum,evsic,eexctX
+   type(energy_terms), intent(inout) :: energs
+   !real(gp), intent(inout) :: ekin_sum,epot_sum,eproj_sum,evsic,eexctX
    real(wp), dimension(npsidim_orbs), intent(inout) :: hpsi
    type(work_mpiaccumulate),optional,intent(inout) :: energs_work
    !local variables
@@ -1088,7 +1096,7 @@ subroutine SynchronizeHamiltonianApplication(nproc,npsidim_orbs,orbs,Lzd,GPU,xc,
    call f_routine(id='SynchronizeHamiltonianApplication')
 
    if(GPU%OCLconv .or. GPUconv) then! needed also in the non_ASYNC since now NlPSP is before .and. ASYNCconv)) then
-      if (GPU%OCLconv) call finish_hamiltonian_OCL(orbs,ekin_sum,epot_sum,GPU)
+      if (GPU%OCLconv) call finish_hamiltonian_OCL(orbs,energs%ekin,energs%epot,GPU)
       ispsi=1
       do iorb=1,orbs%norbp
          ilr=orbs%inWhichLocreg(orbs%isorb+iorb)
@@ -1108,40 +1116,44 @@ subroutine SynchronizeHamiltonianApplication(nproc,npsidim_orbs,orbs,Lzd,GPU,xc,
    !exact exchange operator (twice the exact exchange energy)
    !this operation should be done only here since the exctX energy is already reduced
    !SM: Divide by nproc due to the reduction later on
-   if (exctX) epot_sum=epot_sum+2.0_gp*eexctX/real(nproc,kind=8)
+   if (exctX) energs%epot=energs%epot+2.0_gp*energs%eexctX/real(nproc,kind=8)
 
    !energies reduction
    if (nproc > 1) then
       if (present(energs_work)) then
-         energs_work%sendbuf(1) = ekin_sum
-         energs_work%sendbuf(2) = epot_sum
-         energs_work%sendbuf(3) = eproj_sum
-         energs_work%sendbuf(4) = evsic
+         energs_work%sendbuf(1) = energs%ekin
+         energs_work%sendbuf(2) = energs%epot
+         energs_work%sendbuf(3) = energs%eproj
+         energs_work%sendbuf(4) = energs%evsic
          energs_work%receivebuf(:) = 0.d0
          energs_work%window = mpiwindow(1, energs_work%receivebuf(1), bigdft_mpi%mpi_comm)
          call mpiaccumulate_double(energs_work%sendbuf(1), 4, 0, & 
               int(0,kind=mpi_address_kind), 4, mpi_sum, energs_work%window)
       else
-         wrkallred(1)=ekin_sum 
-         wrkallred(2)=epot_sum 
-         wrkallred(3)=eproj_sum
-         wrkallred(4)=evsic
+         wrkallred(1)=energs%ekin
+         wrkallred(2)=energs%epot
+         wrkallred(3)=energs%eproj
+         wrkallred(4)=energs%evsic
 
          call mpiallred(wrkallred,MPI_SUM,comm=bigdft_mpi%mpi_comm)
 
-         ekin_sum=wrkallred(1)
-         epot_sum=wrkallred(2)
-         eproj_sum=wrkallred(3) 
-         evsic=wrkallred(4) 
+         energs%ekin=wrkallred(1)
+         energs%epot=wrkallred(2)
+         energs%eproj=wrkallred(3) 
+         energs%evsic=wrkallred(4) 
       end if
    else if (present(energs_work)) then
        ! Do a "fake communication"
-       energs_work%receivebuf(1) = ekin_sum
-       energs_work%receivebuf(2) = epot_sum
-       energs_work%receivebuf(3) = eproj_sum
-       energs_work%receivebuf(4) = evsic
+       energs_work%receivebuf(1) = energs%ekin
+       energs_work%receivebuf(2) = energs%epot
+       energs_work%receivebuf(3) = energs%eproj
+       energs_work%receivebuf(4) = energs%evsic
    end if
 
+   !define the correct the hartree energy in the case of electrostatic contribution
+   if (energs%eelec /= 0.0_gp) then
+      energs%eh=energs%epot-energs%eelec-energs%evxc
+   end if
 
    call f_release_routine()
 
