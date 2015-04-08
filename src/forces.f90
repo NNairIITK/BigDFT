@@ -4770,8 +4770,12 @@ subroutine nonlocal_forces_linear(iproc,nproc,npsidim_orbs,lr,hx,hy,hz,at,rxyz,&
             nrecvcounts_tmp(jproc) = 1
             nrecvdspls_tmp(jproc) = jproc
         end do
-        call mpialltoallv(nsendcounts(0), nsendcounts_tmp, nsenddspls_tmp, &
-             nrecvcounts(0), nrecvcounts_tmp, nrecvdspls_tmp, bigdft_mpi%mpi_comm)
+        if (nproc>1) then
+            call mpialltoallv(nsendcounts(0), nsendcounts_tmp, nsenddspls_tmp, &
+                 nrecvcounts(0), nrecvcounts_tmp, nrecvdspls_tmp, bigdft_mpi%mpi_comm)
+        else
+            call f_memcpy(n=nsendcounts_tmp(0), src=nsendcounts(0), dest=nrecvcounts(0))
+        end if
         nrecvdspls(0) = 0
         do jproc=1,nproc-1
             nrecvdspls(jproc) = nrecvdspls(jproc-1) + nrecvcounts(jproc-1)
@@ -4785,8 +4789,12 @@ subroutine nonlocal_forces_linear(iproc,nproc,npsidim_orbs,lr,hx,hy,hz,at,rxyz,&
             nrecvcounts_tmp(jproc) = nat_par(iproc)
             nrecvdspls_tmp(jproc) = jproc*nat_par(iproc)
         end do
-        call mpialltoallv(supfun_per_atom(1), nsendcounts_tmp, nsenddspls_tmp, &
-             supfun_per_atom_recv(1), nrecvcounts_tmp, nrecvdspls_tmp, bigdft_mpi%mpi_comm)
+        if (nproc>1) then
+            call mpialltoallv(supfun_per_atom(1), nsendcounts_tmp, nsenddspls_tmp, &
+                 supfun_per_atom_recv(1), nrecvcounts_tmp, nrecvdspls_tmp, bigdft_mpi%mpi_comm)
+        else
+            call f_memcpy(n=nsendcounts_tmp(0), src=supfun_per_atom(1), dest=supfun_per_atom_recv(1))
+        end if
 
         ! Determine the size of the receive buffer
         nscalprod_recv = sum(nrecvcounts)
@@ -4797,8 +4805,12 @@ subroutine nonlocal_forces_linear(iproc,nproc,npsidim_orbs,lr,hx,hy,hz,at,rxyz,&
         scalprod_lookup = f_malloc(max(nscalprod_recv,1), id='scalprod_lookup')
 
         ! Communicate the lookup array
-        call mpialltoallv(scalprod_send_lookup(1), nsendcounts, nsenddspls, &
-             scalprod_lookup_recvbuf(1), nrecvcounts, nrecvdspls, bigdft_mpi%mpi_comm)
+        if (nproc>1) then
+            call mpialltoallv(scalprod_send_lookup(1), nsendcounts, nsenddspls, &
+                 scalprod_lookup_recvbuf(1), nrecvcounts, nrecvdspls, bigdft_mpi%mpi_comm)
+        else
+            call f_memcpy(n=nsendcounts(0), src=scalprod_send_lookup(1), dest=scalprod_lookup_recvbuf(1))
+        end if
         
         ! Communicate the scalprods
         ncount = 2*(ndir+1)*m_max*i_max*l_max
@@ -4806,8 +4818,12 @@ subroutine nonlocal_forces_linear(iproc,nproc,npsidim_orbs,lr,hx,hy,hz,at,rxyz,&
         nsenddspls(:) = nsenddspls(:)*ncount
         nrecvcounts(:) = nrecvcounts(:)*ncount
         nrecvdspls(:) = nrecvdspls(:)*ncount
-        call mpialltoallv(scalprod_sendbuf_new(1,0,1,1,1,1), nsendcounts, nsenddspls, &
-             scalprod_recvbuf(1), nrecvcounts, nrecvdspls, bigdft_mpi%mpi_comm)
+        if (nproc>1) then
+            call mpialltoallv(scalprod_sendbuf_new(1,0,1,1,1,1), nsendcounts, nsenddspls, &
+                 scalprod_recvbuf(1), nrecvcounts, nrecvdspls, bigdft_mpi%mpi_comm)
+        else
+            call f_memcpy(n=nsendcounts(0), src=scalprod_sendbuf_new(1,0,1,1,1,1), dest=scalprod_recvbuf(1))
+        end if
 
 
 
