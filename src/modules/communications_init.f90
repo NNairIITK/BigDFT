@@ -4483,9 +4483,13 @@ module communications_init
           if(ioverlap/=comgp%noverlaps) stop 'ioverlap/=comgp%noverlaps'
     
       else nproc_if ! monoproc
+
+          write(*,*) 'comgp%ise',comgp%ise
     
-          comgp%nrecvbuf = (comgp%ise(2)-comgp%ise(1)+1)*(comgp%ise(4)-comgp%ise(3)+1)*&
-                           (comgp%ise(6)-comgp%ise(5)+1)
+          !comgp%nrecvbuf = (comgp%ise(2)-comgp%ise(1)+1)*(comgp%ise(4)-comgp%ise(3)+1)*&
+          !                 (comgp%ise(6)-comgp%ise(5)+1)
+          ! Probably too much, but ok for the moment
+          comgp%nrecvbuf = (lzd%glr%d%n1i+1)*(lzd%glr%d%n2i+1)*(lzd%glr%d%n3i+1)
       
       end if nproc_if
     
