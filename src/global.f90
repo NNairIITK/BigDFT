@@ -44,7 +44,7 @@ program MINHOP
   integer :: istepnext,istep
   character(len=*), parameter :: subname='global'
   character(len=41) :: filename
-  character(len=4) :: fn4
+  character(len=4) :: fn6
   character(len=5) :: fn5
 !  character(len=16) :: fn16
 !  character(len=18) :: fn18
@@ -245,9 +245,9 @@ program MINHOP
 
   ngeopt=0
   do 
-     write(fn4,'(i4.4)') ngeopt+1
+     write(fn6,'(i6.6)') ngeopt+1
      !filename='poslocm_'//fn4//'_'//trim(bigdft_run_id_toa())//'.xyz'
-     filename='poslocm_'//fn4//trim(naming_id)//'.xyz'
+     filename='poslocm_'//fn6//trim(naming_id)//'.xyz'
 !     write(*,*) 'filename: ',filename
      inquire(file=trim(filename),exist=exist_poslocm)
      if (exist_poslocm) then
@@ -260,9 +260,9 @@ program MINHOP
 
   nposacc=0
   do 
-     write(fn4,'(i4.4)') nposacc+1
+     write(fn6,'(i6.6)') nposacc+1
      !filename='posacc_'//fn4//'_'//trim(bigdft_run_id_toa())//'.xyz'
-     filename='posacc_'//fn4//trim(naming_id)//'.xyz'
+     filename='posacc_'//fn6//trim(naming_id)//'.xyz'
 !     write(*,*) 'filename: ',filename
      inquire(file=trim(filename),exist=exist_posacc)
      if (exist_posacc) then
@@ -338,14 +338,14 @@ program MINHOP
     nposacc=nposacc+1
   if (bigdft_mpi%iproc == 0) then
      tt=dnrm2(3*outs%fdim,outs%fxyz,1)
-     write(fn4,'(i4.4)')nposacc
+     write(fn6,'(i6.6)')nposacc
      if(disable_hatrans)then
          write(comment,'(a,1pe10.3)')'ha_trans disabled, fnrm= ',tt
      else
          write(comment,'(a,1pe10.3)')'ha_trans enabled, fnrm= ',tt
      endif
      call bigdft_write_atomic_file(run_opt,outs,&
-          'posacc_'//fn4//trim(naming_id),&
+          'posacc_'//fn6//trim(naming_id),&
           !'posacc_'//fn4//'_'//trim(bigdft_run_id_toa()),&
           trim(comment),cwd_path=.true.)
 !!$     call write_atomic_file('posacc_'//fn4//'_'//trim(bigdft_run_id_toa()),&
@@ -355,17 +355,17 @@ program MINHOP
 
   if (bigdft_mpi%iproc == 0) then 
      tt=dnrm2(3*outs%fdim,outs%fxyz,1)
-     write(fn4,'(i4.4)') ngeopt
+     write(fn6,'(i6.6)') ngeopt
      write(comment,'(a,1pe10.3)')'fnrm= ',tt
      call bigdft_write_atomic_file(run_opt,outs,&
-          'poslocm_'//fn4//trim(naming_id),&
+          'poslocm_'//fn6//trim(naming_id),&
           !'poslocm_'//fn4//'_'//trim(bigdft_run_id_toa()),&
           trim(comment),cwd_path=.true.)
 !!$     call write_atomic_file('poslocm_'//fn4//'_'//trim(bigdft_run_id_toa()),&
 !!$          outs%energy,atoms%astruct%rxyz,atoms%astruct%ixyz_int,atoms,trim(comment),forces=outs%fxyz)
      !open(unit=864,file='kseloc_'//fn4//'_'//trim(bigdft_run_id_toa()))
     if((trim(adjustl(char(run_opt%run_mode)))=='QM_RUN_MODE'))then
-      open(unit=864,file='kseloc_'//fn4//trim(naming_id))
+      open(unit=864,file='kseloc_'//fn6//trim(naming_id))
       do i=1,nksevals
       write(864,*) ksevals(i)
       enddo
@@ -557,12 +557,12 @@ program MINHOP
                 ngeopt,bigdft_mpi%iproc)
   if (bigdft_mpi%iproc == 0) then 
      tt=dnrm2(3*outs%fdim,outs%fxyz,1)
-     write(fn4,'(i4.4)') nint(escape)
+     write(fn6,'(i6.6)') nint(escape)
      write(comment,'(a,1pe10.3)')'fnrm= ',tt
      
      call bigdft_write_atomic_file(run_md,outs,&
           !'posaftermd_'//fn4//'_'//trim(bigdft_run_id_toa()),&
-          'posaftermd_'//fn4//trim(naming_id),&
+          'posaftermd_'//fn6//trim(naming_id),&
           trim(comment),cwd_path=.true.)
 
 !!$     call write_atomic_file('posaftermd_'//fn4//'_'//trim(bigdft_run_id_toa()),&
@@ -627,18 +627,18 @@ program MINHOP
 
   if (bigdft_mpi%iproc == 0) then 
      tt=dnrm2(3*outs%fdim,outs%fxyz,1)
-     write(fn4,'(i4.4)') ngeopt
+     write(fn6,'(i6.6)') ngeopt
      write(comment,'(a,1pe10.3)')'fnrm= ',tt
      call bigdft_write_atomic_file(run_opt,outs,&
           !'poslocm_'//fn4//'_'//trim(bigdft_run_id_toa()),trim(comment),&
-          'poslocm_'//fn4//trim(naming_id),trim(comment),&
+          'poslocm_'//fn6//trim(naming_id),trim(comment),&
           cwd_path=.true.)
 
 !!$     call write_atomic_file('poslocm_'//fn4//'_'//trim(bigdft_run_id_toa()),&
 !!$          outs%energy,atoms%astruct%rxyz,atoms%astruct%ixyz_int,atoms,trim(comment),forces=outs%fxyz)
     if((trim(adjustl(char(run_opt%run_mode)))=='QM_RUN_MODE'))then
         !open(unit=864,file='kseloc_'//fn4//'_'//trim(bigdft_run_id_toa()))
-        open(unit=864,file='kseloc_'//fn4//trim(naming_id))
+        open(unit=864,file='kseloc_'//fn6//trim(naming_id))
         do i=1,nksevals
           write(864,*) ksevals(i)
         enddo
@@ -761,7 +761,7 @@ program MINHOP
      enddo
   nposacc=nposacc+1
   if (bigdft_mpi%iproc == 0) then
-     write(fn4,'(i4.4)')nposacc
+     write(fn6,'(i6.6)')nposacc
      if(disable_hatrans)then
          write(comment,'(a)')'ha_trans disabled'
      else
@@ -769,7 +769,7 @@ program MINHOP
      endif
      call astruct_dump_to_file(bigdft_get_astruct_ptr(run_opt),&
           !'posacc_'//fn4//'_'//trim(bigdft_run_id_toa()),&
-          'posacc_'//fn4//trim(naming_id),&
+          'posacc_'//fn6//trim(naming_id),&
           trim(comment),energy=e_pos,rxyz=pos)
 !!$     call write_atomic_file('posacc_'//fn4//'_'//trim(bigdft_run_id_toa()),&
 !!$          e_pos,pos,atoms%astruct%ixyz_int,atoms,trim(comment))
@@ -912,7 +912,7 @@ contains
     type(run_objects), intent(inout) :: runObj
     type(state_properties), intent(inout) :: outs
     real(kind=8), dimension(3,natoms) :: gg,vxyz
-    character(len=4) :: fn4
+    character(len=4) :: fn6
     real(gp) :: e0,enmin1,en0000,econs_max,econs_min,rkin,enmin2
     real(kind=8) :: devcon,at1,at2,at3
     real(gp), dimension(:,:), pointer :: rxyz_run
@@ -980,8 +980,8 @@ contains
        call bigdft_state(runObj, outs,infocode)
 
        if (iproc == 0) then
-          write(fn4,'(i4.4)') istep
-          call bigdft_write_atomic_file(runObj,outs,'posmd_'//fn4,'')
+          write(fn6,'(i6.6)') istep
+          call bigdft_write_atomic_file(runObj,outs,'posmd_'//fn6,'')
 !!$          call write_atomic_file(trim(inputs_md%dir_output)//'posmd_'//fn4,outs%energy,&
 !!$              atoms%astruct%rxyz,atoms%astruct%ixyz_int,atoms,'',forces=outs%fxyz)
        end if
@@ -992,11 +992,11 @@ contains
 !  write configuration file for data base
        if (istep >= 3 .and. enmin1 < enmin2 .and. enmin1 < en0000)  then
           ngeopt=ngeopt+1
-          write(fn4,'(i4.4)') ngeopt
+          write(fn6,'(i6.6)') ngeopt
           write(comment,'(a,i3)')'nummin= ',nummin
           call bigdft_write_atomic_file(runObj,outs,&
                !'poslocm_'//fn4//'_'//trim(bigdft_run_id_toa()),&
-               'poslocm_'//fn4//trim(naming_id),&
+               'poslocm_'//fn6//trim(naming_id),&
                trim(comment),cwd_path=.true.)
 !!$          call write_atomic_file('poslocm_'//fn4//'_'//trim(bigdft_run_id_toa()), & 
 !!$               outs%energy,atoms%astruct%rxyz,atoms%astruct%ixyz_int,atoms,trim(comment),forces=outs%fxyz)
@@ -1165,10 +1165,10 @@ contains
 !       call atomic_dot(atoms,fxyz,fxyz,res)
        res=sqrt(res)
 
-       write(fn4,'(i4.4)') it
+       write(fn6,'(i6.6)') it
        write(comment,'(a,1pe10.3)')'res= ',res
        if (iproc == 0) &
-            call bigdft_write_atomic_file(runObj,outs,'possoft_'//fn4,trim(comment))
+            call bigdft_write_atomic_file(runObj,outs,'possoft_'//fn6,trim(comment))
        
 !!$            call write_atomic_file(trim(inputs_md%dir_output)//'possoft_'//fn4,&
 !!$            outs%energy,atoms%astruct%rxyz,atoms%astruct%ixyz_int,atoms,trim(comment),forces=outs%fxyz)
