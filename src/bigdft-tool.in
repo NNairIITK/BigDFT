@@ -19,7 +19,10 @@ from optparse import OptionParser, OptionGroup
 # This list can be converted in a dictionary with also the extra arguments
 actions = ["memory-estimation", "rotate", "convert-field",
            "export-wf", "export-grid", "atomic-wf", "GPU-test", 
-           "convert-positions", "manual", "wizard", "transform-coordinates"]
+           "convert-positions", "manual", "wizard", "transform-coordinates",
+		   "pdos", "kernel-analysis", "extract-submatrix", "solve-eigensystem", 
+		   "analyze-coeffs", "peel-matrix", "multiply-matrices", "matrixpower", 
+		   "plot-wavefunction", "suggest-cutoff", "charge-analysis"]
 
 # Processed lines
 abs_srcdir = "@abs_srcdir@"
@@ -139,6 +142,89 @@ def parse():
     group.add_option("--outfile", type="str", default="posout.xyz", metavar="NAME",
                      help="output file to write the coordinates to [default: %default]")
     parser.add_option_group(group)
+
+    # (partial) density of states for the linear scaling version
+    group = OptionGroup(parser, "bigdft-tool -a %s <input> <output>" % actions[11],
+                        "(partial) density of states for the linear scaling version")
+    group.add_option("--coeff_file", type="str", default="coeff.bin", metavar="COEFFNAME",
+             		 help="input file with the coefficients [default: %default]")
+    group.add_option("--nbasis", type="int", default=1, metavar="NUM",
+                     help="number of support functions [default: %default]")
+    group.add_option("--norb", type="int", default=1, metavar="NUM",
+                     help="number of orbitals [default: %default]")
+    group.add_option("--interval", type="float", default=0.01, metavar="NUM",
+                     help="energy interval [default: %default]")
+    group.add_option("--pdos_file", type="string", default=1, metavar="PDOSFILE",
+                     help="TMBs to be considered for PDOS [default: %default]")
+
+    # calculate a full kernel from the coeffs and compare it to the sparse one
+    group = OptionGroup(parser, "bigdft-tool -a %s <input> <output>" % actions[12],
+                        "calculate a dense kernel from the coefficients and compare it to the sparse one")
+    group.add_option("--kernel_file", type="str", default="kernel.bin", metavar="KERNELNAME",
+             		 help="input file with the coefficients [default: %default]")
+    group.add_option("--nat", type="int", default=1, metavar="NUM",
+                     help="number of atoms [default: %default]")
+
+    # extract a submatrix
+    group = OptionGroup(parser, "bigdft-tool -a %s <input> <output>" % actions[13],
+                        "extract a submatrix")
+    group.add_option("--matrix_file", type="str", default="matrix.bin", metavar="MATRIXNAME",
+             		 help="input file with the matrix[default: %default]")
+    group.add_option("--nsubmatrices", type="int", default=1, metavar="NUM",
+                     help="number of submatrices [default: %default]")
+
+    # solve the eigensystem to get the coefficients
+    group = OptionGroup(parser, "bigdft-tool -a %s <input> <output>" % actions[14],
+                        "solve eigensystem")
+    group.add_option("--ham_file", type="str", default="ham.bin", metavar="MATRIXNAME",
+             		 help="input file with the hamiltonian[default: %default]")
+    group.add_option("--overlap_file", type="str", default="ham.bin", metavar="MATRIXNAME",
+             		 help="input file with the overlap matrix[default: %default]")
+
+    # solve the eigensystem to get the coefficients
+    group = OptionGroup(parser, "bigdft-tool -a %s <input> <output>" % actions[15],
+                        "analyze the coeffs")
+    group.add_option("--ncategories", type="int", default="1", metavar="NUM",
+             		 help="number of categories[default: %default]")
+
+    # peel a matrix
+    group = OptionGroup(parser, "bigdft-tool -a %s <input> <output>" % actions[16],
+                        "peel a matrix by stripping off elements which are outside of a cutoffs")
+    group.add_option("--cutoff", type="float", default="1", metavar="NUM",
+             		 help="cutoff radius[default: %default]")
+
+    # multiply two matrices
+    group = OptionGroup(parser, "bigdft-tool -a %s <input> <output>" % actions[17],
+                        "multiply two matrices")
+    group.add_option("--amatrix_file", type="str", default="amatrix.bin", metavar="MATRIXNAME",
+             		 help="matrix A[default: %default]")
+    group.add_option("--bmatrix_file", type="str", default="bmatrix.bin", metavar="MATRIXNAME",
+             		 help="matrix B[default: %default]")
+    group.add_option("--cmatrix_file", type="str", default="cmatrix.bin", metavar="MATRIXNAME",
+             		 help="matrix C[default: %default]")
+
+    # apply an operator to a matrix (M^x)
+    group = OptionGroup(parser, "bigdft-tool -a %s <input> <output>" % actions[18],
+                        "calculate matrix**power")
+    group.add_option("--inmatrix_file", type="str", default="inmatrix.bin", metavar="MATRIXNAME",
+             		 help="matrix A[default: %default]")
+    group.add_option("--outmatrix_file", type="str", default="outmatrix.bin", metavar="MATRIXNAME",
+             		 help="matrix B[default: %default]")
+    group.add_option("--power", type="float", default="1.0", metavar="NUM",)
+
+    # plot wavefunction, to be improved
+    group = OptionGroup(parser, "bigdft-tool -a %s <input> <output>" % actions[19],
+                        "plot wavefunction")
+
+    # suggest cutoff radii for the linear scaling version
+    group = OptionGroup(parser, "bigdft-tool -a %s <input> <output>" % actions[20],
+                        "suggest cutoff radii")
+    group.add_option("--posinp_file", type="str", default="posinp.xyz", metavar="NAME",
+             		 help="posinp file[default: %default]")
+
+    # suggest cutoff radii for the linear scaling version
+    group = OptionGroup(parser, "bigdft-tool -a %s <input> <output>" % actions[21],
+                        "Loewdin charge analysis")
 
     return parser
 
@@ -607,6 +693,49 @@ options:
         else:
             direction = 'not supported'
         command = "%s 1 %s dd transform-coordinates %s  %s %s" % (memguess, options.name, direction, options.infile, options.outfile)
+        print command
+    if options.action == actions[11]:
+        print 'calling memguess for PDOS'
+        #infile_names = options.infile.split(".")
+        #infile_extension = infile_names[len(infile_names)-1]
+        #command = "%s 1 %s dd pdos %s %s %s %d %d %d %e %s %s" % (memguess, options.name, options.coeff_file, options.ham_file, options.overlap_file, options.nbasis, options.norb, options.nat, options.interval, options.pdos_file, options.posinp_file)
+        command = "%s 1 %s dd pdos %s %s %s %e %s" % (memguess, options.name, options.coeff_file, options.ham_file, options.overlap_file, options.interval, options.pdos_file)
+        print command
+    if options.action == actions[12]:
+        print 'calling memguess for kernel analysis'
+        command = "%s 1 %s dd kernel-analysis %s %s %d %d %d" % (memguess, options.name, options.coeff_file, options.kernel_file, options.nbasis, options.norb, options.nat)
+        print command
+    if options.action == actions[13]:
+        print 'calling memguess for submatrix extraction'
+        command = "%s 1 %s dd extract-submatrix %s %d %d %d" % (memguess, options.name, options.matrix_file, options.nbasis, options.nat, options.nsubmatrices)
+        print command
+    if options.action == actions[14]:
+        print 'calling memguess to solve the eigensystem'
+        command = "%s 1 %s dd solve-eigensystem %s %s %d %d %s" % (memguess, options.name, options.ham_file, options.overlap_file, options.nbasis, options.nat, options.coeff_file)
+    if options.action == actions[15]:
+        print 'calling memguess to analyse the coeffs'
+        command = "%s 1 %s dd analyze-coeffs %s %d %d %d %d" % (memguess, options.name, options.coeff_file, options.nbasis, options.norb, options.nat, options.ncategories)
+        print command
+    if options.action == actions[16]:
+        print 'calling memguess to peel a matrix'
+        command = "%s 1 %s dd peel-matrix %s %d %d %e" % (memguess, options.name, options.matrix_file, options.nbasis, options.nat, options.cutoff)
+        print command
+    if options.action == actions[17]:
+        print 'calling memguess to multiply two matrices'
+        command = "%s 1 %s dd multiply-matrices %s %s %s %d %d" % (memguess, options.name, options.amatrix_file, options.bmatrix_file, options.cmatrix_file, options.nbasis, options.nat)
+    if options.action == actions[18]:
+        print 'calling memguess to calculate matrix**power'
+        command = "%s 1 %s dd matrixpower %s %s %d %d %e" % (memguess, options.name, options.inmatrix_file, options.outmatrix_file, options.nbasis, options.nat, options.power)
+        print command
+    if options.action == actions[19]:
+        print 'not implemented yet'
+    if options.action == actions[20]:
+        print 'calling memguess to suggest cutoff radii'
+        command = "%s 1 %s dd suggest-cutoff %s" % (memguess, options.name, options.posinp_file)
+        print command
+    if options.action == actions[21]:
+        print 'calling memguess to perform a Loewdin charge analysis'
+        command = "%s 1 %s dd charge-analysis %s %s" % (memguess, options.name, options.overlap_file, options.kernel_file)
         print command
     if command is not None:
         os.system(command)

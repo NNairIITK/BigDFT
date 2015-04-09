@@ -1259,6 +1259,115 @@ kstrten(3)=kstrten(3)+ekin3
 
 END SUBROUTINE convolut_kinetic_per_T
 
+!< same as convolut_kinetic_per_T, but apply the kinetic energy operator only
+!! along the dimension specified by jdim
+subroutine convolut_kinetic_per_T_1D(n1,n2,n3,hgrid,jdim,x,y)
+  !   applies the kinetic energy operator onto x to get y. Works for periodic BC
+  !   y:=y-1/2Delta x
+  use module_base
+  implicit none
+
+  integer, intent(in) :: n1,n2,n3,jdim
+  real(gp), intent(in) :: hgrid
+  real(wp), dimension(0:n1,0:n2,0:n3), intent(in) :: x
+  real(wp), dimension(0:n1,0:n2,0:n3), intent(inout) :: y
+  !real(wp),intent(out)::ekin_out
+  !real(wp), dimension(6), intent(out) :: kstrten
+  !local variables
+  integer, parameter :: lowfil=-14,lupfil=14
+  integer :: k!,i !for non OMP case
+  integer, dimension(lowfil:n1+lupfil) :: mod_arr1
+  integer, dimension(lowfil:n2+lupfil) :: mod_arr2
+  integer, dimension(lowfil:n3+lupfil) :: mod_arr3
+  real(wp) :: ekin1,ekin2,ekin3
+  real(wp) :: scale
+  real(wp), dimension(lowfil:lupfil,3) :: fil
+  !real(wp), dimension(8,3) :: ekin_array
+!$ integer :: ithread=0
+!$ integer :: omp_get_thread_num
+
+  !ekin_out=0._wp
+  !kstrten=0.0_gp
+
+  !do i=1,8
+  !ekin_array(i,1)=10._wp
+  !ekin_array(i,2)=10._wp
+  !ekin_array(i,3)=10._wp
+  !end do
+ !$omp parallel default(private) shared(x,y,n1,n2,n3,hgrid,jdim,fil,mod_arr1,mod_arr2,mod_arr3)
+!$  ithread = omp_get_thread_num()
+  select case(jdim)
+  case(1)
+      call fill_mod_arr(mod_arr1,lowfil,n1+lupfil,n1+1)
+  case(2)
+      call fill_mod_arr(mod_arr2,lowfil,n2+lupfil,n2+1)
+  case(3)
+      call fill_mod_arr(mod_arr3,lowfil,n3+lupfil,n3+1)
+  case default
+      stop 'wrong value of jdim'
+  end select
+
+  scale=real(-.5_gp/hgrid**2,wp)
+
+  ! second derivative filters for Daubechies 16
+  fil(0 ,:)=   -3.5536922899131901941296809374e0_wp*scale
+  fil(1 ,:)=    2.2191465938911163898794546405e0_wp*scale
+  fil(2 ,:)=   -0.6156141465570069496314853949e0_wp*scale
+  fil(3 ,:)=    0.2371780582153805636239247476e0_wp*scale
+  fil(4 ,:)=   -0.0822663999742123340987663521e0_wp*scale
+  fil(5 ,:)=    0.02207029188482255523789911295638968409e0_wp*scale
+  fil(6 ,:)=   -0.409765689342633823899327051188315485e-2_wp*scale
+  fil(7 ,:)=    0.45167920287502235349480037639758496e-3_wp*scale
+  fil(8 ,:)=   -0.2398228524507599670405555359023135e-4_wp*scale
+  fil(9 ,:)=    2.0904234952920365957922889447361e-6_wp*scale
+  fil(10,:)=  -3.7230763047369275848791496973044e-7_wp*scale
+  fil(11,:)=  -1.05857055496741470373494132287e-8_wp*scale
+  fil(12,:)=  -5.813879830282540547959250667e-11_wp*scale
+  fil(13,:)=   2.70800493626319438269856689037647576e-13_wp*scale
+  fil(14,:)=  -6.924474940639200152025730585882e-18_wp*scale
+
+  do k=1,14
+     fil(-k,:)=fil(k,:)
+  end do
+
+  ekin2=0.0_wp
+  ekin3=0.0_wp
+  ekin1=0.0_wp
+  select case (jdim)
+  case(1)
+      call conv_kin_x(x,y,n1,n2,n3,ekin1,fil,mod_arr1)
+  case(2)
+      call conv_kin_y(x,y,n1,n2,n3,ekin2,fil,mod_arr2)
+  case(3)
+      call conv_kin_z(x,y,n1,n2,n3,ekin3,fil,mod_arr3)
+  case default
+      stop 'wrong value of jdim'
+  end select
+  !ekin_array(ithread+1,1)=ekin1
+  !ekin_array(ithread+1,2)=ekin2
+  !ekin_array(ithread+1,3)=ekin3
+  !$omp critical 
+
+!yk
+!!kstrten(1)=kstrten(1)+ekin1
+!!kstrten(2)=kstrten(2)+ekin2
+!!kstrten(3)=kstrten(3)+ekin3
+
+!     ekin_out=ekin_out+ekin1+ekin2+ekin3
+  !$omp end critical
+  !$omp end parallel
+
+
+!dee
+!!$!  open(unit=97,file='check_ekin3',status='unknown')
+!!$    write(197,*) '-------------------------------------------------------------------'
+!!$do i=1,8
+!!$    write(197,'(3(1X,e24.17))') ekin_array(i,1),ekin_array(i,2),ekin_array(i,3)
+!!$end do
+!  close(97)
+
+END SUBROUTINE convolut_kinetic_per_T_1D
+
 
 subroutine conv_kin_x(x,y,n1,n2,n3,ekin,fil,mod_arr1)
   use module_base

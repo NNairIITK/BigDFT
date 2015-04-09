@@ -25,7 +25,7 @@ program GPS_3D
    integer :: SetEps! = 1!3 
 
    real(kind=8), parameter :: acell = 10.d0
-   real(kind=8), parameter :: rad_cav = 0.5d0 ! Radius of the dielectric rigid cavity = rad_cav*acell (with nat=1).
+   real(kind=8), parameter :: rad_cav = 1.0d0 ! Radius of the dielectric rigid cavity = rad_cav*acell (with nat=1).
    real(kind=8), parameter :: multp = 1.d0
    integer :: nat = 1 ! Number of atoms to build rigid cavity with nat=1.
    real(kind=8) :: erfL  ! To set 1 for Vacuum and correct analitic comparison with gaussian potential.
@@ -52,7 +52,8 @@ program GPS_3D
    ! Now start modification for check.
    real(kind=8), dimension(:,:,:,:,:), allocatable :: dens_check,pot_check
    integer :: i_check,unt
-   integer, parameter :: n_check = 1 ! To set 1 for normal run, 3 for check V[\rho,\epsilon] + V[\rho_ion,epsilon] is = to V[\rho + \rho_ion, epsilon]
+   ! To set 1 for normal run, 3 for check V[\rho,\epsilon] + V[\rho_ion,epsilon] is = to V[\rho + \rho_ion, epsilon]
+   integer, parameter :: n_check = 1 
 
    real(kind=8), dimension(:,:), allocatable :: rxyz
    real(kind=8), pointer :: kernel(:)
@@ -178,7 +179,8 @@ program GPS_3D
 
 !   SetEps=4
 
-    call SetEpsilon(n01,n02,n03,nspden,nord,nat,iproc,acell,a_gauss,hx,hy,hz,erfL,erfR,sigmaeps,4,geocode,PSol,eps,dlogeps,oneoeps,oneosqrteps,corr,rhoele,rad_cav,rxyz)
+    call SetEpsilon(n01,n02,n03,nspden,nord,nat,iproc,acell,a_gauss,hx,hy,hz,erfL,erfR,sigmaeps,&
+         4,geocode,PSol,eps,dlogeps,oneoeps,oneosqrteps,corr,rhoele,rad_cav,rxyz)
 
     if (SetEps.lt.5) then
      if ( trim(PSol)=='VAC') then
@@ -194,9 +196,8 @@ program GPS_3D
 !------------------------------------------------------------------------
 
    ! Set initial density, and the associated analitical potential for the Standard Poisson Equation.
-!   call SetInitDensPot(n01,n02,n03,nspden,iproc,eps,dlogeps,sigmaeps,SetEps,erfL,erfR,acell,a_gauss,a2,hx,hy,hz,Setrho,density,potential,geocode,offset,einit,multp)
-   call SetInitDensPot(n01,n02,n03,nspden,iproc,eps,dlogeps,sigmaeps,1,erfL,erfR,acell,a_gauss,a2,hx,hy,hz,1,density,potential,geocode,offset,einit,multp)
-!  call SetRhoSoluto(n03,rhosol,acell)
+   call SetInitDensPot(n01,n02,n03,nspden,iproc,eps,dlogeps,sigmaeps,SetEps,erfL,erfR,acell,a_gauss,a2,hx,hy,hz,Setrho,density,potential,geocode,offset,einit,multp)
+!   call SetInitDensPot(n01,n02,n03,nspden,iproc,eps,dlogeps,sigmaeps,1,erfL,erfR,acell,a_gauss,a2,hx,hy,hz,1,density,potential,geocode,offset,einit,multp)
 
 !------------------------------------------------------------------------
 
@@ -717,7 +718,7 @@ subroutine Prec_conjugate_gradient(n01,n02,n03,nspden,iproc,hx,hy,hz,b,acell,eps
   real(kind=8), parameter :: error = 1.0d-20
   real(kind=8), parameter :: eps0 = 78.36d0
   real(kind=8), dimension(n01,n02,n03) ::pot_ion
-  real(kind=8) :: ehartree,offset,pi,switch
+  real(kind=8) :: ehartree,offset,pi,switch,rpoints
 
   !allocate heap arrays
   x=f_malloc([n01,n02,n03,nspden],id='x')
@@ -733,11 +734,13 @@ subroutine Prec_conjugate_gradient(n01,n02,n03,nspden,iproc,hx,hy,hz,b,acell,eps
   de2=f_malloc([n01,n02,n03],id='de2')
 
   pi = 4.d0*datan(1.d0)   
+  rpoints=product(real([n01,n02,n03],kind=8))
 
 !  open(unit=18,file='PCGConvergence.out',status='unknown')
 !  open(unit=38,file='MaxAnalysisPCG.out',status='unknown')
 
   if (iproc ==0) then
+   call yaml_map('rpoints',rpoints)
    call yaml_sequence_open('Embedded PSolver, Preconditioned Conjugate Gradient Method')
   end if
 
@@ -789,7 +792,8 @@ subroutine Prec_conjugate_gradient(n01,n02,n03,nspden,iproc,hx,hy,hz,b,acell,eps
     end do
    end do
   end do
-  normb=dsqrt(normb)
+!!  normb=dsqrt(normb)
+  normb=sqrt(normb/rpoints)
 
 !!$  call yaml_sequence(advance='no')
 !!$  call H_potential('G',pkernel,lv,pot_ion,ehartree,offset,.false.)
@@ -956,7 +960,8 @@ subroutine Prec_conjugate_gradient(n01,n02,n03,nspden,iproc,hx,hy,hz,b,acell,eps
      end do
     end do
    end do
-   normr=dsqrt(normr)
+!   normr=dsqrt(normr)
+   normb=sqrt(normb/rpoints)
 
    ratio=normr/normb
    if (iproc ==0) then
@@ -2197,7 +2202,8 @@ subroutine fssnord3DmatDiv3var(n01,n02,n03,nspden,hx,hy,hz,u,du,nord,acell)
 
 end subroutine fssnord3DmatDiv3var
 
-subroutine SetInitDensPot(n01,n02,n03,nspden,iproc,eps,dlogeps,sigmaeps,SetEps,erfL,erfR,acell,a_gauss,a2,hx,hy,hz,Setrho,density,potential,geocode,offset,einit,multp)
+subroutine SetInitDensPot(n01,n02,n03,nspden,iproc,eps,dlogeps,sigmaeps,SetEps,erfL,erfR,&
+     acell,a_gauss,a2,hx,hy,hz,Setrho,density,potential,geocode,offset,einit,multp)
   use dynamic_memory
   use yaml_output
   use f_utils
@@ -2559,7 +2565,7 @@ subroutine SetInitDensPot(n01,n02,n03,nspden,iproc,eps,dlogeps,sigmaeps,SetEps,e
                   end do
                end do
             end do
-          end do
+         end do
 
  end if
 
@@ -2576,8 +2582,8 @@ subroutine SetInitDensPot(n01,n02,n03,nspden,iproc,eps,dlogeps,sigmaeps,SetEps,e
 
  unt=f_get_free_unit(22)
  call f_open_file(unt,file='initial_line.dat')
- do i1=1,n01
-  write(unt,'(1x,I8,3(1x,e22.15))') i1,density(n01/2,i1,n03/2,1),potential(n01/2,i1,n03/2),eps(n01/2,i1,n03/2)
+ do i2=1,n02
+  write(unt,'(1x,I8,3(1x,e22.15))') i2,density(n01/2,i2,n03/2,1),potential(n01/2,i2,n03/2),eps(n01/2,i2,n03/2)
  end do
  call f_close(unt)
 
@@ -2689,7 +2695,9 @@ subroutine functions(x,a,b,f,f1,f2,whichone)
 
 end subroutine functions
 
-subroutine SetEpsilon(n01,n02,n03,nspden,nord,nat,iproc,acell,a_gauss,hx,hy,hz,erfL,erfR,sigmaeps,SetEps,geocode,PSol,eps,dlogeps,oneoeps,oneosqrteps,corr,rhoele,rad_cav,rxyz)
+subroutine SetEpsilon(n01,n02,n03,nspden,nord,nat,iproc,acell,a_gauss,hx,hy,hz,&
+     erfL,erfR,sigmaeps,SetEps,geocode,PSol,eps,dlogeps,oneoeps,oneosqrteps,corr,&
+     rhoele,rad_cav,rxyz)
 
   use dynamic_memory
   use yaml_output
@@ -2710,19 +2718,19 @@ subroutine SetEpsilon(n01,n02,n03,nspden,nord,nat,iproc,acell,a_gauss,hx,hy,hz,e
   real(kind=8), dimension(n01,n02,n03), intent(out) :: eps
   !> logarithmic derivative of epsilon. Needed for PCG method.
   !! if absent, it will be calculated from the array of epsilon
-  real(kind=8), dimension(3,n01,n02,n03), intent(out), optional :: dlogeps
+  real(kind=8), dimension(3,n01,n02,n03), intent(out) :: dlogeps
   !> inverse of epsilon. Needed for PI method.
   !! if absent, it will be calculated from the array of epsilon
-  real(kind=8), dimension(n01,n02,n03), intent(out), optional :: oneoeps
+  real(kind=8), dimension(n01,n02,n03), intent(out) :: oneoeps
   !> inverse square root of epsilon. Needed for PCG method.
   !! if absent, it will be calculated from the array of epsilon
-  real(kind=8), dimension(n01,n02,n03), intent(out), optional :: oneosqrteps
+  real(kind=8), dimension(n01,n02,n03), intent(out) :: oneosqrteps
   !> correction term of the Generalized Laplacian
   !! if absent, it will be calculated from the array of epsilon
-  real(kind=8), dimension(n01,n02,n03), intent(out), optional :: corr
+  real(kind=8), dimension(n01,n02,n03), intent(out) :: corr
 
-  real(kind=8), dimension(n01,n02,n03,nspden), intent(in), optional :: rhoele
-  real(kind=8), dimension(3,nat), intent(inout), optional :: rxyz
+  real(kind=8), dimension(n01,n02,n03,nspden), intent(in) :: rhoele
+  real(kind=8), dimension(3,nat), intent(inout) :: rxyz
 
   ! local variables.
   real(kind=8), dimension(n01,n02,n03,nspden) :: edens
@@ -2999,7 +3007,8 @@ else if (SetEps ==4) then
       end if
 
 !      call Eps_rigid_cavity([n01,n02,n03],nspden,nord,acell,[hx,hy,hz],nat,rxyz,radii,eps0,delta,eps,dlogeps,oneoeps,oneosqrteps,corr)
-       call Eps_rigid_cavity_multiatoms([n01,n02,n03],nspden,nord,acell,[hx,hy,hz],nat,rxyz,radii,eps0,delta,eps,dlogeps,oneoeps,oneosqrteps,corr)
+      call Eps_rigid_cavity_multiatoms([n01,n02,n03],nspden,nord,acell,[hx,hy,hz],&
+           nat,rxyz,radii,eps0,delta,eps,dlogeps,oneoeps,oneosqrteps,corr)
 !      call Eps_rigid_cavity_new([n01,n02,n03],nspden,nord,acell,[hx,hy,hz],nat,rxyz,radii,eps0,delta,eps,dlogeps,oneoeps,oneosqrteps,corr)
 !      call Eps_rigid_cavity_new_multiatoms([n01,n02,n03],nspden,nord,acell,[hx,hy,hz],nat,rxyz,radii,eps0,delta,eps,dlogeps,oneoeps,oneosqrteps,corr)
 !      call Eps_rigid_cavity_new2([n01,n02,n03],nspden,nord,acell,[hx,hy,hz],nat,rxyz,radii,eps0,delta,eps,dlogeps,oneoeps,oneosqrteps,corr)
@@ -3066,7 +3075,8 @@ subroutine Eps_rigid_cavity(ndims,nspden,nord,acell,hgrids,nat,rxyz,radii,epsilo
   real(kind=8), dimension(ndims(1),ndims(2),ndims(3)), intent(out) :: eps !< dielectric function
   real(kind=8), dimension(3,ndims(1),ndims(2),ndims(3)), intent(out) :: dlogeps !< dlogeps
   real(kind=8), dimension(ndims(1),ndims(2),ndims(3)), intent(out) :: oneoeps !< inverse of epsilon. Needed for PI method.
-  real(kind=8), dimension(ndims(1),ndims(2),ndims(3)), intent(out) :: oneosqrteps !< inverse square root of epsilon. Needed for PCG method.
+  !> inverse square root of epsilon. Needed for PCG method.
+  real(kind=8), dimension(ndims(1),ndims(2),ndims(3)), intent(out) :: oneosqrteps 
   real(kind=8), dimension(ndims(1),ndims(2),ndims(3)), intent(out) :: corr !< correction term of the Generalized Laplacian.
   !local variables
   integer :: i,i1,i2,i3,iat
@@ -3266,7 +3276,8 @@ subroutine Eps_rigid_cavity_new(ndims,nspden,nord,acell,hgrids,nat,rxyz,radii,ep
   real(kind=8), dimension(ndims(1),ndims(2),ndims(3)), intent(out) :: eps !< dielectric function
   real(kind=8), dimension(3,ndims(1),ndims(2),ndims(3)), intent(out) :: dlogeps !< dlogeps
   real(kind=8), dimension(ndims(1),ndims(2),ndims(3)), intent(out) :: oneoeps !< inverse of epsilon. Needed for PI method.
-  real(kind=8), dimension(ndims(1),ndims(2),ndims(3)), intent(out) :: oneosqrteps !< inverse square root of epsilon. Needed for PCG method.
+  !> inverse square root of epsilon. Needed for PCG method.
+  real(kind=8), dimension(ndims(1),ndims(2),ndims(3)), intent(out) :: oneosqrteps 
   real(kind=8), dimension(ndims(1),ndims(2),ndims(3)), intent(out) :: corr !< correction term of the Generalized Laplacian.
   !local variables
   integer :: i,i1,i2,i3,iat
@@ -3443,7 +3454,8 @@ end subroutine Eps_rigid_cavity_new2
 !> calculates the value of the dielectric function for a smoothed cavity 
 !! given a set of centres and radii. Based on error function.
 !! Need the epsilon0 as well as the radius of the cavit and its smoothness
-subroutine Eps_rigid_cavity_multiatoms(ndims,nspden,nord,acell,hgrids,nat,rxyz,radii,epsilon0,delta,eps,dlogeps,oneoeps,oneosqrteps,corr)
+subroutine Eps_rigid_cavity_multiatoms(ndims,nspden,nord,acell,hgrids,nat,rxyz,&
+     radii,epsilon0,delta,eps,dlogeps,oneoeps,oneosqrteps,corr)
   implicit none
   integer, intent(in) :: nat !< number of centres defining the cavity
   integer, intent(in) :: nspden
@@ -3459,7 +3471,8 @@ subroutine Eps_rigid_cavity_multiatoms(ndims,nspden,nord,acell,hgrids,nat,rxyz,r
   real(kind=8), dimension(ndims(1),ndims(2),ndims(3)), intent(out) :: eps !< dielectric function
   real(kind=8), dimension(3,ndims(1),ndims(2),ndims(3)), intent(out) :: dlogeps !< dlogeps
   real(kind=8), dimension(ndims(1),ndims(2),ndims(3)), intent(out) :: oneoeps !< inverse of epsilon. Needed for PI method.
-  real(kind=8), dimension(ndims(1),ndims(2),ndims(3)), intent(out) :: oneosqrteps !< inverse square root of epsilon. Needed for PCG method.
+  !> inverse square root of epsilon. Needed for PCG method.
+  real(kind=8), dimension(ndims(1),ndims(2),ndims(3)), intent(out) :: oneosqrteps 
   real(kind=8), dimension(ndims(1),ndims(2),ndims(3)), intent(out) :: corr !< correction term of the Generalized Laplacian.
   !local variables
   integer :: i,i1,i2,i3,iat,jat,ii
@@ -3596,7 +3609,8 @@ end subroutine Eps_rigid_cavity_multiatoms
 !! given a set of centres and radii. Based on the Andreussi epsilon function
 !! with a gaussian \rho^{elec}.
 !! Need the epsilon0 as well as the radius of the cavit and its smoothness
-subroutine Eps_rigid_cavity_new_multiatoms(ndims,nspden,nord,acell,hgrids,nat,rxyz,radii,epsilon0,delta,eps,dlogeps,oneoeps,oneosqrteps,corr)
+subroutine Eps_rigid_cavity_new_multiatoms(ndims,nspden,nord,acell,hgrids,nat,&
+     rxyz,radii,epsilon0,delta,eps,dlogeps,oneoeps,oneosqrteps,corr)
   implicit none
   integer, intent(in) :: nat !< number of centres defining the cavity
   integer, intent(in) :: nspden
@@ -3612,7 +3626,8 @@ subroutine Eps_rigid_cavity_new_multiatoms(ndims,nspden,nord,acell,hgrids,nat,rx
   real(kind=8), dimension(ndims(1),ndims(2),ndims(3)), intent(out) :: eps !< dielectric function
   real(kind=8), dimension(3,ndims(1),ndims(2),ndims(3)), intent(out) :: dlogeps !< dlogeps
   real(kind=8), dimension(ndims(1),ndims(2),ndims(3)), intent(out) :: oneoeps !< inverse of epsilon. Needed for PI method.
-  real(kind=8), dimension(ndims(1),ndims(2),ndims(3)), intent(out) :: oneosqrteps !< inverse square root of epsilon. Needed for PCG method.
+  !> inverse square root of epsilon. Needed for PCG method.
+  real(kind=8), dimension(ndims(1),ndims(2),ndims(3)), intent(out) :: oneosqrteps 
   real(kind=8), dimension(ndims(1),ndims(2),ndims(3)), intent(out) :: corr !< correction term of the Generalized Laplacian.
   !local variables
   integer :: i,i1,i2,i3,iat,jat,ii
@@ -3734,7 +3749,8 @@ end subroutine Eps_rigid_cavity_new_multiatoms
 !! given a set of centres and radii. Based on the Andreussi paper (Eq. 40) epsilon function
 !! with a gaussian \rho^{elec}.
 !! Need the epsilon0 as well as the radius of the cavit and its smoothness
-subroutine Eps_rigid_cavity_new2_multiatoms(ndims,nspden,nord,acell,hgrids,nat,rxyz,radii,epsilon0,delta,eps,dlogeps,oneoeps,oneosqrteps,corr)
+subroutine Eps_rigid_cavity_new2_multiatoms(ndims,nspden,nord,acell,hgrids,nat,&
+     rxyz,radii,epsilon0,delta,eps,dlogeps,oneoeps,oneosqrteps,corr)
   implicit none
   integer, intent(in) :: nat !< number of centres defining the cavity
   integer, intent(in) :: nspden
@@ -3750,7 +3766,8 @@ subroutine Eps_rigid_cavity_new2_multiatoms(ndims,nspden,nord,acell,hgrids,nat,r
   real(kind=8), dimension(ndims(1),ndims(2),ndims(3)), intent(out) :: eps !< dielectric function
   real(kind=8), dimension(3,ndims(1),ndims(2),ndims(3)), intent(out) :: dlogeps !< dlogeps
   real(kind=8), dimension(ndims(1),ndims(2),ndims(3)), intent(out) :: oneoeps !< inverse of epsilon. Needed for PI method.
-  real(kind=8), dimension(ndims(1),ndims(2),ndims(3)), intent(out) :: oneosqrteps !< inverse square root of epsilon. Needed for PCG method.
+  !> inverse square root of epsilon. Needed for PCG method.
+  real(kind=8), dimension(ndims(1),ndims(2),ndims(3)), intent(out) :: oneosqrteps
   real(kind=8), dimension(ndims(1),ndims(2),ndims(3)), intent(out) :: corr !< correction term of the Generalized Laplacian.
   !local variables
   integer :: i,i1,i2,i3,iat,jat,ii

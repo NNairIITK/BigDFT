@@ -26,13 +26,14 @@
 !! @todo
 !!    Wire boundary condition is missing
 subroutine H_potential(datacode,kernel,rhopot,pot_ion,eh,offset,sumpion,&
-      quiet,stress_tensor) !optional argument
+      quiet,rho_ion,stress_tensor) !optional argument
    implicit none
 
    !> kernel of the Poisson equation. It is provided in distributed case, with
    !! dimensions that are related to the output of the PS_dim4allocation routine
    !! it MUST be created by following the same geocode as the Poisson Solver.
-   type(coulomb_operator), intent(in) :: kernel
+   !! it is declared as inout as in the cavity treatment it might be modified
+   type(coulomb_operator), intent(inout) :: kernel
 
    !> @copydoc poisson_solver::doc::datacode
    !! To be used only in the periodic case, ignored for other boundary conditions.
@@ -64,23 +65,28 @@ subroutine H_potential(datacode,kernel,rhopot,pot_ion,eh,offset,sumpion,&
    !> Optional argument to avoid output writings
    character(len=3), intent(in), optional :: quiet
 
+   !> Additional external density added to the input, regardless of the value of sumpion,
+   !! without the overlapping terms which are needed only for the XC part
+   real(wp), dimension(kernel%grid%m1,kernel%grid%m3*kernel%grid%n3p), intent(inout), optional :: rho_ion
+
+
    !> Stress tensor: Add the stress tensor part from the Hartree potential
    real(dp), dimension(6), intent(out), optional :: stress_tensor
 
    !local variables
    character(len=*), parameter :: subname='H_potential'
-   real(dp), parameter :: max_ratioex = 1.0e10_dp
+   real(dp), parameter :: max_ratioex = 1.0e10_dp,eps0=78.36d0 !to be inserted in pkernel
    logical :: wrtmsg,cudasolver
    integer :: m1,m2,m3,md1,md2,md3,n1,n2,n3,nd1,nd2,nd3
    integer :: ierr,ind,ind2,ind3,indp,ind2p,ind3p,i
    integer :: i1,i2,i3,j2,istart,iend,i3start,jend,jproc,i3xcsh
    integer :: nxc,istden,istglo,ip,irho,i3s,i23,i23s,n23
    real(dp) :: ehartreeLOC,pot,rhores2,zeta,epsc,pval,qval,rval,beta,kappa
-   real(dp) :: beta0,alpha,ratio,normb,normr,norm_nonvac
+   real(dp) :: beta0,alpha,ratio,normb,normr,norm_nonvac,e_static,rpoints
    !real(dp) :: scal
    real(dp), dimension(6) :: strten
-   real(dp), dimension(:,:), allocatable :: rho,rhopol,x,q,p,r,z
-   real(dp), dimension(:,:,:), allocatable :: zf
+   real(dp), dimension(:,:), allocatable :: rho,rhopol,x,q,p,r,z,depsdrho
+   real(dp), dimension(:,:,:), allocatable :: zf,work_full
    !integer, dimension(:,:), allocatable :: gather_arr
 
    call f_routine(id='H_potential')
@@ -100,9 +106,9 @@ subroutine H_potential(datacode,kernel,rhopot,pot_ion,eh,offset,sumpion,&
    else
       wrtmsg=.true.
    end if
-      wrtmsg=.true. ! giuseppe fisicaro just to check for my purpose.
    wrtmsg=wrtmsg .and. kernel%mpi_env%iproc==0 .and. kernel%mpi_env%igroup==0
    ! rewrite
+
    if (wrtmsg) call yaml_mapping_open('Poisson Solver')
    
    !call timing(kernel%mpi_env%iproc,'PSolv_comput  ','ON')
@@ -135,6 +141,10 @@ subroutine H_potential(datacode,kernel,rhopot,pot_ion,eh,offset,sumpion,&
       call f_err_throw('geometry code ("'//kernel%geocode//'" not admitted in PSolver')
       !stop 'PSolver: geometry code not admitted'
    end select
+
+   if (trim(kernel%method) /= 'VAC' .and. .not. present(rho_ion) .and. sumpion) then
+      call f_err_throw('Error in H_potential, for a cavity treatment the array rho_ion is needed')
+   end if
    
    cudasolver= (kernel%igpu==1 .and. .not. present(stress_tensor))
    
@@ -157,11 +167,39 @@ subroutine H_potential(datacode,kernel,rhopot,pot_ion,eh,offset,sumpion,&
       !distributed i/o
       i3start=1
    case default
-      call f_err_throw('datacode ("'//datacode//'" not admitted in PSolver')
+      call f_err_throw('datacode ("'//datacode//'") not admitted in PSolver')
    end select
+
+   rpoints=product(real(kernel%ndims,dp))
 
    n23=kernel%grid%m3*kernel%grid%n3p
    n1=kernel%grid%m1
+
+   !in the case of SC cavity, gather the full density and determine the depsdrho
+   !here the if statement for the SC cavity should be put
+   work_full=f_malloc(kernel%ndims,id='work_full')
+   depsdrho=f_malloc([n1,n23],id='depsdrho')
+   if (kernel%mpi_env%nproc > 1) then
+      call mpiallgather(rhopot(i3start),recvbuf=work_full(1,1,1),recvcounts=kernel%counts,&
+           displs=kernel%displs,comm=kernel%mpi_env%mpi_comm)
+   else
+      call f_memcpy(n=product(kernel%ndims),src=rhopot(i3start),dest=work_full(1,1,1))
+   end if
+   call pkernel_build_epsilon(kernel,work_full,eps0,depsdrho)
+
+   !add the ionic density to the potential
+   e_static=0.0_dp
+   if (trim(kernel%method) /= 'VAC' .and. kernel%grid%n3p>0 .and. sumpion) then
+      !call yaml_map('Rho_ion monopole',sum(rho_ion)*product(kernel%hgrids))
+      call finalize_hartree_results(.true.,rho_ion,kernel%grid%m1,kernel%grid%m3,kernel%grid%n3p,&
+           kernel%grid%m1,kernel%grid%m3,kernel%grid%n3p,&
+           pot_ion,rhopot(i3start),rhopot(i3start),e_static)
+      if (wrtmsg) then
+         call yaml_map('Summing up ionic density',.true.)
+         call yaml_map('Estatic',e_static*product(kernel%hgrids))
+         !call yaml_map('Total monopole',sum(rhopot(i3start:i3start+n1*n23-1)*product(kernel%hgrids)))
+      end if
+   end if
 
    !now switch the treatment according to the method used
    select case(trim(kernel%method))
@@ -243,6 +281,10 @@ subroutine H_potential(datacode,kernel,rhopot,pot_ion,eh,offset,sumpion,&
 
       end do pi_loop
       if (wrtmsg) call yaml_sequence_close()
+
+      !if statement for SC cavity
+      call add_extra_sccs_potential(kernel,work_full,depsdrho,rhopot(i3start))
+
       !here the harteee energy can be calculated and the ionic potential
       !added
       call finalize_hartree_results(sumpion,pot_ion,&
@@ -283,7 +325,7 @@ subroutine H_potential(datacode,kernel,rhopot,pot_ion,eh,offset,sumpion,&
       normb=dot(n1*n23,rhopot(i3start),1,rhopot(i3start),1)
       if (kernel%mpi_env%nproc > 1) &
            call mpiallred(normb,1,MPI_SUM,comm=kernel%mpi_env%mpi_comm)
-      normb=sqrt(normb)
+      normb=sqrt(normb/rpoints)
 
       call f_memcpy(n=kernel%grid%m1*kernel%grid%m3*kernel%grid%n3p,&
            src=rhopot(i3start),dest=r)
@@ -364,7 +406,7 @@ subroutine H_potential(datacode,kernel,rhopot,pot_ion,eh,offset,sumpion,&
          if (kernel%mpi_env%nproc > 1) &
               call mpiallred(normr,1,MPI_SUM,comm=kernel%mpi_env%mpi_comm)
 
-         normr=sqrt(normr)
+         normr=sqrt(normr/rpoints)
 
          ratio=normr/normb
          if (wrtmsg) then
@@ -374,6 +416,10 @@ subroutine H_potential(datacode,kernel,rhopot,pot_ion,eh,offset,sumpion,&
          end if
       end do PCG_loop
       if (wrtmsg) call yaml_sequence_close()
+
+      !if statement for SC cavity
+      call add_extra_sccs_potential(kernel,work_full,depsdrho,x)
+
       !here the harteee energy can be calculated and the ionic potential
       !added
       call finalize_hartree_results(sumpion,pot_ion,&
@@ -394,12 +440,15 @@ subroutine H_potential(datacode,kernel,rhopot,pot_ion,eh,offset,sumpion,&
 
    call f_free(zf)
 
+   !if statement for SC cavity to be added
+   call f_free(work_full)
+   call f_free(depsdrho)
 
    !check for the presence of the stress tensor
    if (present(stress_tensor)) call f_memcpy(src=strten,dest=stress_tensor)
 
-   !evaluating the total ehartree
-   eh=real(ehartreeLOC,gp)*0.5_dp*product(kernel%hgrids)
+   !evaluating the total ehartree + e_static if needed
+   eh=(ehartreeLOC*0.5_dp+e_static)*product(kernel%hgrids)
    if (kernel%mpi_env%nproc > 1) then
 
       call mpiallred(eh,1,MPI_SUM,comm=kernel%mpi_env%mpi_comm)
@@ -442,6 +491,26 @@ subroutine H_potential(datacode,kernel,rhopot,pot_ion,eh,offset,sumpion,&
    call f_release_routine()
 
 END SUBROUTINE H_potential
+
+subroutine add_extra_sccs_potential(kernel,work_full,depsdrho,pot)
+  implicit none
+  type(coulomb_operator), intent(in) :: kernel
+  real(dp), dimension(kernel%ndims(1),kernel%ndims(2),kernel%ndims(3)), intent(out) :: work_full
+  real(dp), dimension(kernel%ndims(1),kernel%ndims(2)*kernel%grid%n3p), intent(in) :: depsdrho
+  real(dp), dimension(kernel%ndims(1),kernel%ndims(2)*kernel%grid%n3p), intent(inout) :: pot
+
+  !first gather the potential to calculate the derivative
+  if (kernel%mpi_env%nproc > 1) then
+     call mpiallgather(pot,recvbuf=work_full,recvcounts=kernel%counts,&
+          displs=kernel%displs,comm=kernel%mpi_env%mpi_comm)
+  else
+     call f_memcpy(src=pot,dest=work_full)
+  end if
+
+  !then calculate the extra potential and add it to pot
+  call sccs_extra_potential(kernel,work_full,depsdrho,pot)
+  
+end subroutine add_extra_sccs_potential
 
 !> verify that the density is considerably zero in the region where epsilon is different from one
 subroutine nonvacuum_projection(n1,n23,rho,oneoeps,norm)
@@ -610,9 +679,13 @@ subroutine apply_kernel(gpu,kernel,rho,offset,strten,zf,updaterho)
 
 end subroutine apply_kernel
 
+!> calculate the integral between the array in zf and the array in rho
+!! copy the zf array in pot and sum with the array pot_ion if needed
 subroutine finalize_hartree_results(sumpion,pot_ion,m1,m2,m3p,md1,md2,md3p,&
      rho,zf,pot,eh)
   implicit none
+  !if .true. the array pot is zf+pot_ion
+  !if .false., pot is only zf
   logical, intent(in) :: sumpion
   integer, intent(in) :: m1,m2,m3p !< dimension of the grid
   integer, intent(in) :: md1,md2,md3p !< dimension of the zf array

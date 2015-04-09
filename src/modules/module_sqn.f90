@@ -73,7 +73,7 @@ subroutine modify_gradient(nat,ndim,rrr,eval,res,fxyz,alpha,dd)
 end subroutine
 
 subroutine getSubSpaceEvecEval(label,iproc,verbosity,nat,nhist,nhistx&
-                              ,ndim,cutoffratio,lwork,work,rxyz,&
+                              ,ndim,cutoffratio,lwork,work,idx,rxyz,&
                               fxyz,aa,rr,ff,rrr,fff,eval,res,success)
     use module_base
     use yaml_output
@@ -85,6 +85,7 @@ subroutine getSubSpaceEvecEval(label,iproc,verbosity,nat,nhist,nhistx&
     integer, intent(in) :: iproc,verbosity,nat,nhist,nhistx,lwork
     character(len=*), intent(in) :: label
     integer, intent(out) :: ndim
+    integer, intent(in) :: idx(0:nhistx)
     real(gp), intent(in) :: rxyz(3,nat,0:nhistx),fxyz(3,nat,0:nhistx)
     real(gp), intent(out) :: aa(nhistx,nhistx),eval(nhistx)
     real(gp), intent(out) :: work(lwork)
@@ -105,7 +106,7 @@ subroutine getSubSpaceEvecEval(label,iproc,verbosity,nat,nhist,nhistx&
         rnorm(i)=0.0_gp
          do iat=1,nat
              do l=1,3
-                rnorm(i)=rnorm(i) + (rxyz(l,iat,i)-rxyz(l,iat,i-1))**2
+                rnorm(i)=rnorm(i) + (rxyz(l,iat,idx(i))-rxyz(l,iat,idx(i-1)))**2
              enddo
          enddo
          rnorm(i)=1.0_gp/sqrt(rnorm(i))
@@ -118,8 +119,8 @@ subroutine getSubSpaceEvecEval(label,iproc,verbosity,nat,nhist,nhistx&
             aa(i,j)=0.0_gp
             do iat=1,nat
                 do l=1,3
-                aa(i,j)=aa(i,j) + (rxyz(l,iat,i)-rxyz(l,iat,i-1))&
-                &*(rxyz(l,iat,j)-rxyz(l,iat,j-1))
+                aa(i,j)=aa(i,j) + (rxyz(l,iat,idx(i))-rxyz(l,iat,idx(i-1)))&
+                &*(rxyz(l,iat,idx(j))-rxyz(l,iat,idx(j-1)))
                 enddo
             enddo
             aa(i,j)=aa(i,j)*rnorm(i)*rnorm(j)
@@ -163,10 +164,10 @@ subroutine getSubSpaceEvecEval(label,iproc,verbosity,nat,nhist,nhistx&
                     do l=1,3
                          rr(l,iat,ndim)=rr(l,iat,ndim)+&
                                  aa(jdim,idim)*rnorm(jdim)*&
-                                 (rxyz(l,iat,jdim)-rxyz(l,iat,jdim-1))
+                                 (rxyz(l,iat,idx(jdim))-rxyz(l,iat,idx(jdim-1)))
                          ff(l,iat,ndim)=ff(l,iat,ndim)-&
                                  aa(jdim,idim)*rnorm(jdim)*&
-                                 (fxyz(l,iat,jdim)-fxyz(l,iat,jdim-1))
+                                 (fxyz(l,iat,idx(jdim))-fxyz(l,iat,idx(jdim-1)))
 
                     enddo
                 enddo

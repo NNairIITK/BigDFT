@@ -1,0 +1,8 @@
+ mode:
+   method: lensib
+ geopt:
+   method: VSSD
+   ncount_cluster_x: 500
+   frac_fluct: 0.0
+   forcemax: 1.0E-4
+   betax: 2.0E+0

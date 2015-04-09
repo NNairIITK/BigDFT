@@ -140,12 +140,12 @@ module module_types
   integer,parameter,public :: LINEAR_PARTITION_OPTIMAL = 62
   integer,parameter,public :: LINEAR_PARTITION_NONE = 63
 
-
   !> how to set the dielectric function
   integer, parameter, public :: EPSILON_VACUUM = -1000
   integer, parameter, public :: EPSILON_RIGID_CAVITY = 1001
   integer, parameter, public :: EPSILON_SCCS = 1002
 
+  
   !> Type used for the orthogonalisation parameters
   type, public :: orthon_data
      !> directDiag decides which input guess is chosen:
@@ -437,7 +437,7 @@ module module_types
      integer :: check_sumrho               !< (LS) Perform a check of sumrho (no check, light check or full check)
      integer :: check_overlap              !< (LS) Perform a check of the overlap calculation
      logical :: experimental_mode          !< (LS) Activate the experimental mode
-     logical :: write_orbitals             !< (LS) Write KS orbitals for cubic restart
+     integer :: write_orbitals             !< (LS) Write KS orbitals for cubic restart (0: no, 1: wvl, 2: wvl+isf)
      logical :: explicit_locregcenters     !< (LS) Explicitely specify localization centers
      logical :: calculate_KS_residue       !< (LS) Calculate Kohn-Sham residue
      logical :: intermediate_forces        !< (LS) Calculate intermediate forces
@@ -492,6 +492,9 @@ module module_types
 
      !> linear scaling: enable the addaptive ajustment of the number of kernel iterations
      logical :: adjust_kernel_iterations
+
+     !> linear scaling: perform an analysis of the extent of the support functions (and possibly KS orbitals)
+     logical :: wf_extent_analysis
 
      !> Method for the solution of  generalized poisson Equation
      character(len=4) :: GPS_Method
@@ -805,6 +808,7 @@ module module_types
      real(wp), dimension(:,:,:,:), pointer :: V_XC    !< eXchange and Correlation potential (local)
      real(wp), dimension(:,:,:,:), pointer :: Vloc_KS !< complete local potential of KS Hamiltonian (might point on rho_psi)
      real(wp), dimension(:,:,:,:), pointer :: f_XC    !< dV_XC[rho]/d_rho
+     real(wp), dimension(:,:,:,:), pointer :: rho_ion !< charge density of the ions, to be passed to PSolver
      !temporary arrays
      real(wp), dimension(:), pointer :: rho_work,pot_work !<full grid arrays
      !metadata
@@ -946,7 +950,7 @@ module module_types
  !>timing categories
  character(len=*), parameter, private :: tgrp_pot='Potential'
  integer, save, public :: TCAT_EXCHANGECORR=TIMING_UNINITIALIZED
- integer, parameter, private :: ncls_max=6,ncat_bigdft=146   ! define timimg categories and classes
+ integer, parameter, private :: ncls_max=6,ncat_bigdft=149   ! define timimg categories and classes
  character(len=14), dimension(ncls_max), parameter, private :: clss = (/ &
       'Communications'    ,  &
       'Convolutions  '    ,  &
@@ -1049,8 +1053,8 @@ module module_types
       'ovrlptransComp','Other         ' ,'Miscellaneous ' ,  &
       'ovrlptransComm','Communications' ,'mpi_allreduce ' ,  &
       'lincombtrans  ','Other         ' ,'Miscellaneous ' ,  &
-      'glsynchham1   ','Other         ' ,'Miscellaneous ' ,  &
-      'glsynchham2   ','Other         ' ,'Miscellaneous ' ,  &
+      'glsynchham1   ','Communications' ,'load balancing' ,  &
+      'glsynchham2   ','Communications' ,'load balancing' ,  &
       'gauss_proj    ','Other         ' ,'Miscellaneous ' ,  &
       'sumrho_allred ','Communications' ,'mpiallred     ' ,  &
       'deallocprec   ','Other         ' ,'Miscellaneous ' ,  &
@@ -1108,6 +1112,9 @@ module module_types
       'transform_matr','Other         ' ,'small to large' ,  &
       'calctrace_comp','Other         ' ,'Miscellaneous ' ,  &
       'calctrace_comm','Communications' ,'allreduce     ' ,  &
+      'determinespars','Other         ' ,'Miscellaneous ' ,  &
+      'inittaskgroup ','Other         ' ,'Miscellaneous ' ,  &
+      'transformspars','Other         ' ,'Miscellaneous ' ,  &
       'calc_bounds   ','Other         ' ,'Miscellaneous ' /),(/3,ncat_bigdft/))
  integer, dimension(ncat_bigdft), private, save :: cat_ids !< id of the categories to be converted
 
@@ -2148,6 +2155,10 @@ contains
              in%run_mode=MORSE_BULK_RUN_MODE
           case('morse_slab')
              in%run_mode=MORSE_SLAB_RUN_MODE
+          case('tersoff')
+             in%run_mode=TERSOFF_RUN_MODE
+          case('bmhtf')
+             in%run_mode=BMHTF_RUN_MODE
           end select
        case(MM_PARAMSET)
             in%mm_paramset=val
@@ -2422,7 +2433,10 @@ contains
        case (ADJUST_KERNEL_ITERATIONS) 
            ! linear scaling: enable the addaptive ajustment of the number of kernel iterations
            in%adjust_kernel_iterations = val
-        case (GPS_METHOD)
+       case(WF_EXTENT_ANALYSIS)
+           ! linear scaling: perform an analysis of the extent of the support functions (and possibly KS orbitals)
+           in%wf_extent_analysis = val
+       case (GPS_METHOD)
            in%GPS_method = val
        case DEFAULT
           if (bigdft_mpi%iproc==0) &

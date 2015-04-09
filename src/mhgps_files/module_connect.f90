@@ -2,8 +2,8 @@
 !! Module implementing the connection algorithm(s)
 !!
 !! @author 
-!!    Copyright (C) 2014 UNIBAS, Bastian Schaefer 
-!!    Copyright (C) 2014 BigDFT group
+!!    Copyright (C) 2014-2015 UNIBAS, Bastian Schaefer 
+!!    Copyright (C) 2015-2015 BigDFT group
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    This file is distributed under the terms of the
@@ -30,6 +30,7 @@ contains
 !> This recursive subroutine does not fully support a restart.
 !! (subroutine is depracted, use non-recursive version, instead.
 !! Before using recursive routine, again, it has to be updated to
+
 !! the full functionality of the non-recursive function
 !! ATTENTION: RECURSIVE ROUTINE IS DEPRECATED AND SHOULD NOT BE USED
 !! BEFORE THOROUGH TESTING
@@ -601,12 +602,12 @@ subroutine connect(mhgpsst,fsw,uinp,runObj,outs,rcov,&
     iloop=0
 connectloop: do while(cobj%ntodo>=1)
     iloop=iloop+1
-    if(mhgpsst%iproc==0)then
-        call write_restart(mhgpsst,runObj,cobj)
-    endif
     if(mhgpsst%nsad>=uinp%nsadmax)then
         connected=.false.
         exit connectloop
+    endif
+    if(mhgpsst%iproc==0)then
+        call write_restart(mhgpsst,runObj,cobj)
     endif
     !following if must be AFTER check for
     !mhgpsst%nsad>=uinp%nsadmax
@@ -1445,23 +1446,23 @@ enddo connectloop
     endif
     if(.not. premature_exit)then
         if(connected)then
-        !only write if connection really connected
-        !(that is, no premature exit)
-        !if connected, the write_restart inside the connectloop
-        !has not been callled a last time.
-        !Therefore, it has to be done here.
-        if(cobj%ntodo>=1) stop 'bastian'
+            !only write if connection really connected
+            !(that is, no premature exit)
+            !if connected, the write_restart inside the connectloop
+            !has not been callled a last time.
+            !Therefore, it has to be done here.
+            if(cobj%ntodo>=1) stop 'bastian'
             if(mhgpsst%iproc==0)then
                 call write_restart(mhgpsst,runObj,cobj)
-        !        call write_restart(mhgpsst,runObj)
+            !        call write_restart(mhgpsst,runObj)
             endif
         else
-        !only write if connection really failed
-        !(that is, no premature exit)
-            call write_todoList(uinp,mhgpsst,runObj,cobj)
-            if(mhgpsst%iproc==0)then
-                call write_restart(mhgpsst,runObj)
-            endif
+            !only write if connection really failed
+            !(that is, no premature exit)
+                call write_todoList(uinp,mhgpsst,runObj,cobj)
+                if(mhgpsst%iproc==0)then
+                    call write_restart(mhgpsst,runObj)
+                endif
         endif
     endif
 end subroutine

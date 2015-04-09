@@ -1090,7 +1090,7 @@ subroutine update_wavefunctions_size(lzd,npsidim_orbs,npsidim_comp,orbs,iproc,np
      nvctr_tot = max(nvctr_tot,lzd%llr(ilr)%wfd%nvctr_c+7*lzd%llr(ilr)%wfd%nvctr_f)
   end do
   if (nproc > 1) then
-     call mpiallred(nvctr_tot, 1, mpi_max, bigdft_mpi%mpi_comm)
+     call mpiallred(nvctr_tot, 1, mpi_max, comm=bigdft_mpi%mpi_comm)
   end if
 
   nvctr_par = f_malloc((/ 0.to.nproc-1, 1.to.1 /),id='nvctr_par')
@@ -1150,7 +1150,7 @@ subroutine create_large_tmbs(iproc, nproc, KSwfn, tmb, denspot,nlpsp,input, at, 
       locregCenter(:,ilr)=tmb%lzd%llr(ilr)%locregCenter
   end do
   do ilr=1,tmb%lzd%nlr
-      locrad_tmp(ilr,1)=tmb%lzd%llr(ilr)%locrad+real(input%hamapp_radius_incr,kind=8)*tmb%lzd%hgrids(1)
+      locrad_tmp(ilr,1)=tmb%lzd%llr(ilr)%locrad+real(input%hamapp_radius_incr,kind=8)*maxval(tmb%lzd%hgrids(:))
       locrad_tmp(ilr,2)=tmb%lzd%llr(ilr)%locrad_kernel
       locrad_tmp(ilr,3)=tmb%lzd%llr(ilr)%locrad_mult
   end do
@@ -1384,8 +1384,8 @@ subroutine adjust_locregs_and_confinement(iproc, nproc, hx, hy, hz, at, input, &
   use communications_base, only: deallocate_comms_linear, deallocate_p2pComms
   use communications, only: synchronize_onesided_communication
   use sparsematrix_base, only: sparse_matrix_null, deallocate_sparse_matrix, allocate_matrices, deallocate_matrices
-  use sparsematrix_init, only: init_sparse_matrix, check_kernel_cutoff, init_matrix_taskgroups, &
-                               check_local_matrix_extents
+  use sparsematrix_init, only: init_sparse_matrix_wrapper, init_sparse_matrix_for_KSorbs, check_kernel_cutoff, &
+                               init_matrix_taskgroups, check_local_matrix_extents
   use foe_base, only: foe_data_deallocate
   implicit none
   
@@ -1570,7 +1570,7 @@ subroutine adjust_locregs_and_confinement(iproc, nproc, hx, hy, hz, at, input, &
 
      call check_kernel_cutoff(iproc, tmb%orbs, at, input%hamapp_radius_incr, tmb%lzd)
      call init_sparse_matrix_wrapper(iproc, nproc, input%nspin, tmb%orbs, tmb%lzd, at%astruct, &
-          input%store_index, imode=2, smat=tmb%linmat%l)
+          input%store_index, imode=2, smat=tmb%linmat%l, smat_ref=tmb%linmat%m)
      call allocate_matrices(tmb%linmat%l, allocate_full=.false., &
           matname='tmb%linmat%kernel_', mat=tmb%linmat%kernel_)
      do i=1,size(tmb%linmat%ovrlppowers_)
@@ -1616,7 +1616,7 @@ subroutine adjust_locregs_and_confinement(iproc, nproc, hx, hy, hz, at, input, &
      nullify(tmb%linmat%ks)
      nullify(tmb%linmat%ks_e)
      if (input%lin%scf_mode/=LINEAR_FOE .or. input%lin%pulay_correction .or.  input%lin%new_pulay_correction .or. &
-         (input%lin%plotBasisFunctions /= WF_FORMAT_NONE) .or. input%lin%diag_end) then
+         (mod(input%lin%plotBasisFunctions,10) /= WF_FORMAT_NONE) .or. input%lin%diag_end) then
          call init_sparse_matrix_for_KSorbs(iproc, nproc, KSwfn%orbs, input, input%lin%extra_states, &
               tmb%linmat%ks, tmb%linmat%ks_e)
      end if
@@ -1873,8 +1873,8 @@ subroutine clean_rho(iproc, nproc, npt, rho)
   end do
 
   if (nproc > 1) then
-      call mpiallred(ncorrection, 1, mpi_sum, bigdft_mpi%mpi_comm)
-      call mpiallred(charge_correction, 1, mpi_sum, bigdft_mpi%mpi_comm)
+      call mpiallred(ncorrection, 1, mpi_sum, comm=bigdft_mpi%mpi_comm)
+      call mpiallred(charge_correction, 1, mpi_sum, comm=bigdft_mpi%mpi_comm)
   end if
 
   if (iproc==0) then
@@ -1910,331 +1910,6 @@ subroutine corrections_for_negative_charge(iproc, nproc, KSwfn, at, input, tmb, 
   call f_release_routine()
 
 end subroutine corrections_for_negative_charge
-
-
-subroutine determine_sparsity_pattern(iproc, nproc, orbs, lzd, nnonzero, nonzero)
-      use module_base
-      use module_types
-      use module_interfaces, except_this_one => determine_sparsity_pattern
-      implicit none
-    
-      ! Calling arguments
-      integer, intent(in) :: iproc, nproc
-      type(orbitals_data), intent(in) :: orbs
-      type(local_zone_descriptors), intent(in) :: lzd
-      integer, intent(out) :: nnonzero
-      integer, dimension(:,:), pointer,intent(out) :: nonzero
-    
-      ! Local variables
-      integer :: iorb, jorb, ioverlaporb, ilr, jlr, ilrold
-      integer :: iiorb, ii
-      !!integer :: istat
-      logical :: isoverlap
-      integer :: onseg
-      logical, dimension(:,:), allocatable :: overlapMatrix
-      integer, dimension(:), allocatable :: noverlapsarr
-      integer, dimension(:,:), allocatable :: overlaps_op
-      !character(len=*), parameter :: subname='determine_overlap_from_descriptors'
-
-      call f_routine('determine_sparsity_pattern')
-    
-      overlapMatrix = f_malloc((/orbs%norbu,maxval(orbs%norbu_par(:,0))/),id='overlapMatrix')
-      noverlapsarr = f_malloc(orbs%norbup,id='noverlapsarr')
-    
-      overlapMatrix=.false.
-      do iorb=1,orbs%norbup
-         ioverlaporb=0 ! counts the overlaps for the given orbital.
-         iiorb=orbs%isorbu+iorb
-         ilr=orbs%inWhichLocreg(iiorb)
-         do jorb=1,orbs%norbu
-            jlr=orbs%inWhichLocreg(jorb)
-            call check_overlap_cubic_periodic(lzd%Glr,lzd%llr(ilr),lzd%llr(jlr),isoverlap)
-            if(isoverlap) then
-               ! From the viewpoint of the box boundaries, an overlap between ilr and jlr is possible.
-               ! Now explicitly check whether there is an overlap by using the descriptors.
-               call check_overlap_from_descriptors_periodic(lzd%llr(ilr)%wfd%nseg_c, lzd%llr(jlr)%wfd%nseg_c,&
-                    lzd%llr(ilr)%wfd%keyglob, lzd%llr(jlr)%wfd%keyglob, &
-                    isoverlap, onseg)
-               if(isoverlap) then
-                  ! There is really an overlap
-                  overlapMatrix(jorb,iorb)=.true.
-                  ioverlaporb=ioverlaporb+1
-               else
-                  overlapMatrix(jorb,iorb)=.false.
-               end if
-            else
-               overlapMatrix(jorb,iorb)=.false.
-            end if
-         end do
-         noverlapsarr(iorb)=ioverlaporb
-      end do
-
-
-      overlaps_op = f_malloc((/maxval(noverlapsarr),orbs%norbup/),id='overlaps_op')
-    
-      ! Now we know how many overlaps have to be calculated, so determine which orbital overlaps
-      ! with which one. This is essentially the same loop as above, but we use the array 'overlapMatrix'
-      ! which indicates the overlaps.
-      iiorb=0
-      ilrold=-1
-      do iorb=1,orbs%norbup
-         ioverlaporb=0 ! counts the overlaps for the given orbital.
-         iiorb=orbs%isorbu+iorb
-         do jorb=1,orbs%norbu
-            if(overlapMatrix(jorb,iorb)) then
-               ioverlaporb=ioverlaporb+1
-               overlaps_op(ioverlaporb,iorb)=jorb
-            end if
-         end do 
-      end do
-
-
-      nnonzero=0
-      do iorb=1,orbs%norbup
-          nnonzero=nnonzero+noverlapsarr(iorb)
-      end do
-      nonzero = f_malloc_ptr((/2,nnonzero/),id='nonzero')
-      ii=0
-      do iorb=1,orbs%norbup
-          iiorb=orbs%isorbu+iorb
-          do jorb=1,noverlapsarr(iorb)
-              ii=ii+1
-              nonzero(1,ii)=overlaps_op(jorb,iorb)
-              nonzero(2,ii)=iiorb
-          end do
-      end do
-
-      call f_free(overlapMatrix)
-      call f_free(noverlapsarr)
-      call f_free(overlaps_op)
-    
-      call f_release_routine()
-
-end subroutine determine_sparsity_pattern
-
-
-
-subroutine determine_sparsity_pattern_distance(orbs, lzd, astruct, cutoff, nnonzero, nonzero)
-  use module_base
-  use module_types
-  implicit none
-
-  ! Calling arguments
-  type(orbitals_data), intent(in) :: orbs
-  type(local_zone_descriptors), intent(in) :: lzd
-  type(atomic_structure), intent(in) :: astruct
-  real(kind=8),dimension(lzd%nlr), intent(in) :: cutoff
-  integer, intent(out) :: nnonzero
-  integer, dimension(:,:), pointer,intent(out) :: nonzero
-
-  ! Local variables
-  integer :: iorb, iiorb, ilr, iwa, itype, jjorb, jlr, jwa, jtype, ii
-  real(kind=8) :: tt, cut
-
-  call f_routine('determine_sparsity_pattern_distance')
-
-      nnonzero=0
-      do iorb=1,orbs%norbup
-         iiorb=orbs%isorbu+iorb
-         ilr=orbs%inwhichlocreg(iiorb)
-         iwa=orbs%onwhichatom(iiorb)
-         itype=astruct%iatype(iwa)
-         do jjorb=1,orbs%norbu
-            jlr=orbs%inwhichlocreg(jjorb)
-            jwa=orbs%onwhichatom(jjorb)
-            jtype=astruct%iatype(jwa)
-            tt = (lzd%llr(ilr)%locregcenter(1)-lzd%llr(jlr)%locregcenter(1))**2 + &
-                 (lzd%llr(ilr)%locregcenter(2)-lzd%llr(jlr)%locregcenter(2))**2 + &
-                 (lzd%llr(ilr)%locregcenter(3)-lzd%llr(jlr)%locregcenter(3))**2
-            cut = cutoff(ilr)+cutoff(jlr)!+2.d0*incr
-            tt=sqrt(tt)
-            if (tt<=cut) then
-               nnonzero=nnonzero+1
-            end if
-         end do
-      end do
-      !call mpiallred(nnonzero, 1, mpi_sum, bigdft_mpi%mpi_comm, ierr)
-      nonzero = f_malloc_ptr((/2,nnonzero/),id='nonzero')
-
-      ii=0
-      do iorb=1,orbs%norbup
-         iiorb=orbs%isorbu+iorb
-         ilr=orbs%inwhichlocreg(iiorb)
-         iwa=orbs%onwhichatom(iiorb)
-         itype=astruct%iatype(iwa)
-         do jjorb=1,orbs%norbu
-            jlr=orbs%inwhichlocreg(jjorb)
-            jwa=orbs%onwhichatom(jjorb)
-            jtype=astruct%iatype(jwa)
-            tt = (lzd%llr(ilr)%locregcenter(1)-lzd%llr(jlr)%locregcenter(1))**2 + &
-                 (lzd%llr(ilr)%locregcenter(2)-lzd%llr(jlr)%locregcenter(2))**2 + &
-                 (lzd%llr(ilr)%locregcenter(3)-lzd%llr(jlr)%locregcenter(3))**2
-            cut = cutoff(ilr)+cutoff(jlr)!+2.d0*incr
-            tt=sqrt(tt)
-            if (tt<=cut) then
-               ii=ii+1
-               nonzero(1,ii)=jjorb
-               nonzero(2,ii)=iiorb
-            end if
-         end do
-      end do
-
-  call f_release_routine()
-
-end subroutine determine_sparsity_pattern_distance
-
-
-subroutine init_sparse_matrix_wrapper(iproc, nproc, nspin, orbs, lzd, astruct, store_index, imode, smat)
-  use module_base
-  use module_types
-  use sparsematrix_init, only: init_sparse_matrix
-  use module_interfaces, except_this_one => init_sparse_matrix_wrapper
-  implicit none
-
-  ! Calling arguments
-  integer, intent(in) :: iproc, nproc, nspin, imode
-  type(orbitals_data), intent(in) :: orbs
-  type(local_zone_descriptors), intent(in) :: lzd
-  type(atomic_structure), intent(in) :: astruct
-  logical,intent(in) :: store_index
-  type(sparse_matrix), intent(out) :: smat
-  
-  ! Local variables
-  integer :: nnonzero, nnonzero_mult, ilr
-  integer, dimension(:,:), pointer :: nonzero, nonzero_mult
-  real(kind=8),dimension(:), allocatable :: cutoff
-  integer, parameter :: KEYS=1
-  integer, parameter :: DISTANCE=2
-
-  call f_routine(id='init_sparse_matrix_wrapper')
-
-  cutoff = f_malloc(lzd%nlr,id='cutoff')
-
-  do ilr=1,lzd%nlr
-      cutoff(ilr)=lzd%llr(ilr)%locrad_mult
-  end do
-
-  if (imode==KEYS) then
-      call determine_sparsity_pattern(iproc, nproc, orbs, lzd, nnonzero, nonzero)
-  else if (imode==DISTANCE) then
-      call determine_sparsity_pattern_distance(orbs, lzd, astruct, lzd%llr(:)%locrad_kernel, nnonzero, nonzero)
-  else
-      stop 'wrong imode'
-  end if
-  call determine_sparsity_pattern_distance(orbs, lzd, astruct, lzd%llr(:)%locrad_mult, nnonzero_mult, nonzero_mult)
-  call init_sparse_matrix(iproc, nproc, nspin, orbs%norb, orbs%norbp, orbs%isorb, &
-       orbs%norbu, orbs%norbup, orbs%isorbu, store_index, &
-       nnonzero, nonzero, nnonzero_mult, nonzero_mult, smat)
-  call f_free_ptr(nonzero)
-  call f_free_ptr(nonzero_mult)
-  call f_free(cutoff)
-
-  call f_release_routine()
-
-end subroutine init_sparse_matrix_wrapper
-
-
-!> Initializes a sparse matrix type compatible with the ditribution of the KS orbitals
-subroutine init_sparse_matrix_for_KSorbs(iproc, nproc, orbs, input, nextra, smat, smat_extra)
-  use module_base
-  use module_types
-  use module_interfaces, except_this_one => init_sparse_matrix_for_KSorbs
-  use sparsematrix_base, only: sparse_matrix
-  use sparsematrix_init, only: init_sparse_matrix
-  use sparsematrix_base, only: sparse_matrix_null
-  implicit none
-
-  ! Calling arguments
-  integer, intent(in) :: iproc, nproc, nextra
-  type(orbitals_data), intent(in) :: orbs
-  type(input_variables), intent(in) :: input
-  type(sparse_matrix),dimension(:),pointer,intent(out) :: smat, smat_extra
-
-  ! Local variables
-  integer :: i, iorb, iiorb, jorb, ind, norb, norbp, isorb, ispin
-  integer,dimension(:,:),allocatable :: nonzero
-  type(orbitals_data) :: orbs_aux
-  character(len=*), parameter :: subname='init_sparse_matrix_for_KSorbs'
-
-  call f_routine('init_sparse_matrix_for_KSorbs')
-
-
-  allocate(smat(input%nspin))
-  allocate(smat_extra(input%nspin))
-
-
-  ! First the type for the normal KS orbitals distribution
-  do ispin=1,input%nspin
-
-      smat(ispin) = sparse_matrix_null()
-      smat_extra(ispin) = sparse_matrix_null()
-
-      if (ispin==1) then
-          norb=orbs%norbu
-          norbp=orbs%norbup
-          isorb=orbs%isorbu
-      else
-          norb=orbs%norbd
-          norbp=orbs%norbdp
-          isorb=orbs%isorbd
-      end if
-
-      nonzero = f_malloc((/2,norb*norbp/), id='nonzero')
-      i=0
-      do iorb=1,norbp
-          iiorb=isorb+iorb
-          do jorb=1,norb
-              i=i+1
-              ind=(iiorb-1)*norb+jorb
-              nonzero(1,i)=jorb
-              nonzero(2,i)=iiorb
-          end do
-      end do
-      call init_sparse_matrix(iproc, nproc, input%nspin, orbs%norb, orbs%norbp, orbs%isorb, &
-           norb, norbp, isorb, input%store_index, &
-           norb*norbp, nonzero, norb*norbp, nonzero, smat(ispin), print_info_=.false.)
-      call f_free(nonzero)
-
-
-      !SM: WARNING: not tested whether the spin works here! Mainly just to create a
-      !spin down part and make the compiler happy at another location.
-      ! Now the distribution for the KS orbitals including the extr states. Requires
-      ! first to calculate a corresponding orbs type.
-      call nullify_orbitals_data(orbs_aux)
-      call orbitals_descriptors(iproc, nproc, norb+nextra, norb+nextra, 0, input%nspin, orbs%nspinor,&
-           input%gen_nkpt, input%gen_kpt, input%gen_wkpt, orbs_aux, LINEAR_PARTITION_NONE)
-      nonzero = f_malloc((/2,orbs_aux%norbu*orbs_aux%norbup/), id='nonzero')
-      !write(*,*) 'iproc, norb, norbp, norbu, norbup', iproc, orbs_aux%norb, orbs_aux%norbp, orbs_aux%norbu, orbs_aux%norbup
-      i=0
-      do iorb=1,orbs_aux%norbup
-          iiorb=orbs_aux%isorbu+iorb
-          do jorb=1,orbs_aux%norbu
-              i=i+1
-              ind=(iiorb-1)*orbs_aux%norbu+jorb
-              nonzero(1,i)=jorb
-              nonzero(2,i)=iiorb
-          end do
-      end do
-      !!call init_sparse_matrix(iproc, nproc, input%nspin, orbs_aux%norb, orbs_aux%norbp, orbs_aux%isorb, &
-      !!     orbs%norbu, orbs%norbup, orbs%isorbu, input%store_index, &
-      !!     orbs_aux%norbu*orbs_aux%norbup, nonzero, orbs_aux%norbu, nonzero, smat_extra, print_info_=.false.)
-      !!call init_sparse_matrix(iproc, nproc, input%nspin, orbs_aux%norb, orbs_aux%norbp, orbs_aux%isorb, &
-      !!     norb, norbp, isorb, input%store_index, &
-      !!     orbs_aux%norbu*orbs_aux%norbup, nonzero, orbs_aux%norbu, nonzero, smat_extra(ispin), print_info_=.false.)
-      call init_sparse_matrix(iproc, nproc, input%nspin, orbs_aux%norb, orbs_aux%norbp, orbs_aux%isorb, &
-           orbs_aux%norb, orbs_aux%norbp, orbs_aux%isorb, input%store_index, &
-           orbs_aux%norbu*orbs_aux%norbup, nonzero, orbs_aux%norbu*orbs_aux%norbup, nonzero, &
-           smat_extra(ispin), print_info_=.false.)
-      call f_free(nonzero)
-      call deallocate_orbitals_data(orbs_aux)
-
-  end do
-
-  call f_release_routine()
-
-end subroutine init_sparse_matrix_for_KSorbs
-
-
 
 subroutine set_confdatarr(input, at, lorbs, onwhichatom, potential_prefac, locrad, text, add_sequence, confdatarr)
   use module_base

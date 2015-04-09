@@ -229,7 +229,7 @@ subroutine IonicEnergyandForces(iproc,nproc,dpbox,at,elecfield,&
 
         !if (nproc==1 .and. slowion) print *,'iat,fion',iat,(fion(j1,iat),j1=1,3)
         !energy which comes from the self-interaction of the spread charge
-        eself=eself+real(at%nelpsp(ityp)**2,gp)*0.5_gp*sqrt(1.d0/pi)/at%psppar(0,0,ityp)
+       eself=eself+real(at%nelpsp(ityp)**2,gp)*0.5_gp*sqrt(1.d0/pi)/at%psppar(0,0,ityp)
      end do
 
      !if (nproc==1 .and. slowion) print *,'eself',eself
@@ -242,7 +242,7 @@ subroutine IonicEnergyandForces(iproc,nproc,dpbox,at,elecfield,&
   !if (at%astruct%geocode == 'S' .or. at%astruct%geocode == 'P') slowion=.true.
   if (at%astruct%geocode == 'S' .or. pkernel%method /= 'VAC') slowion=.true.
 
-  if (slowion) then
+   slowion_if: if (slowion) then
 
      !case of slow ionic calculation
      !conditions for periodicity in the three directions
@@ -282,7 +282,7 @@ subroutine IonicEnergyandForces(iproc,nproc,dpbox,at,elecfield,&
      !print *,'iproc,eself',iproc,eself
      call f_zero(n1i*n2i*n3pi,pot_ion(1))
 
-     if (n3pi >0 ) then
+     if (n3pi >0 ) then 
         !then calculate the hartree energy and forces of the charge distributions
         !(and save the values for the ionic potential)
 
@@ -333,11 +333,15 @@ subroutine IonicEnergyandForces(iproc,nproc,dpbox,at,elecfield,&
 
      end if
 
-     !now call the Poisson Solver for the global energy forces
-     call H_potential('D',pkernel,pot_ion,pot_ion,ehart,-2.0_gp*psoffset,.false.)
-
-     eion=ehart-eself
-
+     !in the case of cavity the ionic energy is only considered as the self energy
+     if (pkernel%method /= 'VAC') then
+        eion=-eself
+        exit slowion_if
+     else
+        !now call the Poisson Solver for the global energy forces
+        call H_potential('D',pkernel,pot_ion,pot_ion,ehart,-2.0_gp*psoffset,.false.)
+        eion=ehart-eself
+     end if
      !print *,'ehart,eself',iproc,ehart,eself
 
      !if (nproc==1) 
@@ -415,12 +419,12 @@ subroutine IonicEnergyandForces(iproc,nproc,dpbox,at,elecfield,&
      end do
 
      if (pkernel%mpi_env%nproc > 1) then
-        call mpiallred(fion(1,1),3*at%astruct%nat,MPI_SUM,pkernel%mpi_env%mpi_comm)
+        call mpiallred(fion,MPI_SUM,comm=pkernel%mpi_env%mpi_comm)
      end if
 
      !if (iproc ==0) print *,'eion',eion,psoffset,shortlength
 
-  end if
+  end if slowion_if
 
   ! Add contribution from constant electric field to the forces
   call center_of_charge(at,rxyz,cc)
@@ -459,7 +463,6 @@ subroutine IonicEnergyandForces(iproc,nproc,dpbox,at,elecfield,&
   call vdwcorrection_calculate_forces(fdisp,rxyz,at,dispersion)
   call vdwcorrection_freeparams() 
 END SUBROUTINE IonicEnergyandForces
-
 
 !> calculates the value of the dielectric funnction for a smoothed cavity 
 !! given a set of centres and radii.
@@ -572,7 +575,8 @@ subroutine epsilon_rigid_cavity(geocode,ndims,hgrids,nat,rxyz,radii,epsilon0,del
 !> calculates the value of the dielectric function for a smoothed cavity 
 !! given a set of centres and radii. Based on error function.
 !! Need the epsilon0 as well as the radius of the cavit and its smoothness
-subroutine epsilon_rigid_cavity_error_multiatoms(geocode,ndims,hgrids,nat,rxyz,radii,epsilon0,delta,eps,dlogeps,oneoeps,oneosqrteps,corr,IntSur,IntVol)
+subroutine epsilon_rigid_cavity_error_multiatoms(geocode,ndims,hgrids,nat,rxyz,radii,epsilon0,delta,&
+     eps,dlogeps,oneoeps,oneosqrteps,corr,IntSur,IntVol)
   use f_utils
   implicit none
   character(len=1), intent(in) :: geocode !< @copydoc poisson_solver::doc::geocode
@@ -587,9 +591,11 @@ subroutine epsilon_rigid_cavity_error_multiatoms(geocode,ndims,hgrids,nat,rxyz,r
   real(kind=8), dimension(ndims(1),ndims(2),ndims(3)), intent(out) :: eps !< dielectric function
   real(kind=8), dimension(3,ndims(1),ndims(2),ndims(3)), intent(out) :: dlogeps !< dlogeps
   real(kind=8), dimension(ndims(1),ndims(2),ndims(3)), intent(out) :: oneoeps !< inverse of epsilon. Needed for PI method.
-  real(kind=8), dimension(ndims(1),ndims(2),ndims(3)), intent(out) :: oneosqrteps !< inverse square root of epsilon. Needed for PCG method.
+  !> inverse square root of epsilon. Needed for PCG method.
+  real(kind=8), dimension(ndims(1),ndims(2),ndims(3)), intent(out) :: oneosqrteps
   real(kind=8), dimension(ndims(1),ndims(2),ndims(3)), intent(out) :: corr !< correction term of the Generalized Laplacian.
-  real(kind=8), intent(out) :: IntSur,IntVol !< Surface and volume integral needed for non-electrostatic contributions to the energy.
+  !> Surface and volume integral needed for non-electrostatic contributions to the energy.
+  real(kind=8), intent(out) :: IntSur,IntVol 
 
   !local variables
   logical :: perx,pery,perz
@@ -744,6 +750,7 @@ subroutine epsilon_rigid_cavity_error_multiatoms(geocode,ndims,hgrids,nat,rxyz,r
     end function epsl
 
     pure function d1eps(r,rc,delta)
+      use module_defs, only: safe_exp
       implicit none
       real(kind=8), intent(in) :: r,rc,delta
       real(kind=8) :: d1eps
@@ -751,7 +758,7 @@ subroutine epsilon_rigid_cavity_error_multiatoms(geocode,ndims,hgrids,nat,rxyz,r
       real(kind=8) :: d
 
       d=(r-rc)/delta
-      d1eps=(1.d0/(delta*sqrt(pi)))*max(exp(-d**2),1.0d-24)
+      d1eps=(1.d0/(delta*sqrt(pi)))*max(safe_exp(-d**2),1.0d-24)
     end function d1eps
 
 end subroutine epsilon_rigid_cavity_error_multiatoms
@@ -760,7 +767,8 @@ end subroutine epsilon_rigid_cavity_error_multiatoms
 !! given a set of centres and radii. Based on the Andreussi epsilon function
 !! with a gaussian \rho^{elec}.
 !! Need the epsilon0 as well as the radius of the cavit and its smoothness
-subroutine epsilon_rigid_cavity_new_multiatoms(geocode,ndims,hgrids,nat,rxyz,radii,epsilon0,delta,eps,dlogeps,oneoeps,oneosqrteps,corr,IntSur,IntVol)
+subroutine epsilon_rigid_cavity_new_multiatoms(geocode,ndims,hgrids,nat,rxyz,radii,epsilon0,delta,&
+     eps,dlogeps,oneoeps,oneosqrteps,corr,IntSur,IntVol)
   use f_utils
   implicit none
   character(len=1), intent(in) :: geocode !< @copydoc poisson_solver::doc::geocode
@@ -775,9 +783,11 @@ subroutine epsilon_rigid_cavity_new_multiatoms(geocode,ndims,hgrids,nat,rxyz,rad
   real(kind=8), dimension(ndims(1),ndims(2),ndims(3)), intent(out) :: eps !< dielectric function
   real(kind=8), dimension(3,ndims(1),ndims(2),ndims(3)), intent(out) :: dlogeps !< dlogeps
   real(kind=8), dimension(ndims(1),ndims(2),ndims(3)), intent(out) :: oneoeps !< inverse of epsilon. Needed for PI method.
-  real(kind=8), dimension(ndims(1),ndims(2),ndims(3)), intent(out) :: oneosqrteps !< inverse square root of epsilon. Needed for PCG method.
+  !> inverse square root of epsilon. Needed for PCG method.
+  real(kind=8), dimension(ndims(1),ndims(2),ndims(3)), intent(out) :: oneosqrteps 
   real(kind=8), dimension(ndims(1),ndims(2),ndims(3)), intent(out) :: corr !< correction term of the Generalized Laplacian.
-  real(kind=8), intent(out) :: IntSur,IntVol !< Surface and volume integral needed for non-electrostatic contributions to the energy.
+  !> Surface and volume integral needed for non-electrostatic contributions to the energy.
+  real(kind=8), intent(out) :: IntSur,IntVol 
 
   !local variables
   logical :: perx,pery,perz
@@ -928,8 +938,9 @@ subroutine epsilon_rigid_cavity_new_multiatoms(geocode,ndims,hgrids,nat,rxyz,rad
 
 end subroutine epsilon_rigid_cavity_new_multiatoms
 
+
 subroutine createEffectiveIonicPotential(iproc, nproc, verb, in, atoms, rxyz, shift, &
-     & Glr, hxh, hyh, hzh, rhopotd, pkernel, pot_ion, elecfield, psoffset)
+     Glr, hxh, hyh, hzh, rhopotd, pkernel, pot_ion, rho_ion, elecfield, psoffset)
   use module_base
   use module_types
 
@@ -947,6 +958,7 @@ subroutine createEffectiveIonicPotential(iproc, nproc, verb, in, atoms, rxyz, sh
   real(gp), dimension(3,atoms%astruct%nat), intent(in) :: rxyz
   type(coulomb_operator), intent(in) :: pkernel
   real(wp), dimension(*), intent(inout) :: pot_ion
+  real(wp), dimension(*), intent(inout) :: rho_ion
 
   character(len = *), parameter :: subname = "createEffectiveIonicPotential"
   logical :: counterions
@@ -955,7 +967,7 @@ subroutine createEffectiveIonicPotential(iproc, nproc, verb, in, atoms, rxyz, sh
   ! Compute the main ionic potential.
   call createIonicPotential(atoms%astruct%geocode, iproc, nproc, verb, atoms, rxyz, hxh, hyh, hzh, &
        & elecfield, Glr%d%n1, Glr%d%n2, Glr%d%n3, rhopotd%n3pi, rhopotd%i3s + rhopotd%i3xcsh, &
-       & Glr%d%n1i, Glr%d%n2i, Glr%d%n3i, pkernel, pot_ion, psoffset)
+       & Glr%d%n1i, Glr%d%n2i, Glr%d%n3i, pkernel, pot_ion, rho_ion, psoffset)
 
   !inquire for the counter_ion potential calculation (for the moment only xyz format)
   inquire(file='posinp_ci.xyz',exist=counterions)
@@ -975,12 +987,14 @@ subroutine createEffectiveIonicPotential(iproc, nproc, verb, in, atoms, rxyz, sh
 
      call f_free(counter_ions)
   end if
+
+
 END SUBROUTINE createEffectiveIonicPotential
 
 
 !> Create the ionic potential
 subroutine createIonicPotential(geocode,iproc,nproc,verb,at,rxyz,&
-     hxh,hyh,hzh,elecfield,n1,n2,n3,n3pi,i3s,n1i,n2i,n3i,pkernel,pot_ion,psoffset)
+     hxh,hyh,hzh,elecfield,n1,n2,n3,n3pi,i3s,n1i,n2i,n3i,pkernel,pot_ion,rho_ion,psoffset)
   use module_base, pi => pi_param
   use m_splines, only: splint
   use module_types
@@ -999,7 +1013,7 @@ subroutine createIonicPotential(geocode,iproc,nproc,verb,at,rxyz,&
   real(gp), dimension(3,at%astruct%nat), intent(in) :: rxyz
   type(coulomb_operator), intent(in) :: pkernel
   real(wp), dimension(*), intent(inout) :: pot_ion
-
+  real(dp), dimension(*), intent(out) :: rho_ion
   !local variables
   character(len=*), parameter :: subname='createIonicPotential'
   character(len = 3) :: quiet
@@ -1183,12 +1197,16 @@ subroutine createIonicPotential(geocode,iproc,nproc,verb,at,rxyz,&
   rholeaked=rholeaked*hxh*hyh*hzh
 
   !print *,'test case input_rho_ion',iproc,i3start,i3end,n3pi,2*n3+16,tt
+  !if rho_ion is needed for the SCF cycle copy in the array
+  if (trim(pkernel%method) /= 'VAC') then
+     call f_memcpy(n=n1i*n2i*n3pi,src=pot_ion(1),dest=rho_ion(1))
+  end if
 
   if (pkernel%mpi_env%nproc > 1) then
      charges_mpi(1)=tt
      charges_mpi(2)=rholeaked
 
-     call mpiallred(charges_mpi(1),2,MPI_SUM,pkernel%mpi_env%mpi_comm)
+     call mpiallred(charges_mpi,MPI_SUM,comm=pkernel%mpi_env%mpi_comm)
 
      tt_tot=charges_mpi(1)
      rholeaked_tot=charges_mpi(2)
@@ -1209,6 +1227,8 @@ subroutine createIonicPotential(geocode,iproc,nproc,verb,at,rxyz,&
      quiet = "yes"
   end if
 
+  
+
   if (.not. htoobig) then
      call timing(iproc,'CrtLocPot     ','OF')
      !here the value of the datacode must be kept fixed
@@ -1216,7 +1236,14 @@ subroutine createIonicPotential(geocode,iproc,nproc,verb,at,rxyz,&
 
      !if (nproc > 1) call MPI_BARRIER(bigdft_mpi%mpi_env%mpi_comm,ierr)
 
-     call H_potential('D',pkernel,pot_ion,pot_ion,ehart,-psoffset,.false.,quiet=quiet)
+     !in the case of vacuum the pot_ion treatment is as usual
+     !otherwise the pot_ion array is set to zero and can be filled with external potentials
+     !like the gaussian part of the PSP ad/or external electric fields
+     if (trim(pkernel%method) /= 'VAC') then
+        call f_zero(n1i*n2i*n3pi,pot_ion(1))
+     else
+        call H_potential('D',pkernel,pot_ion,pot_ion,ehart,-psoffset,.false.,quiet=quiet)
+     end if
 
      call timing(iproc,'CrtLocPot     ','ON')
      
@@ -1259,7 +1286,7 @@ subroutine createIonicPotential(geocode,iproc,nproc,verb,at,rxyz,&
         end do
 
         if (pkernel%mpi_env%nproc > 1) then
-           call mpiallred(maxdiff,1,MPI_MAX,pkernel%mpi_env%mpi_comm)
+           call mpiallred(maxdiff,1,MPI_MAX,comm=pkernel%mpi_env%mpi_comm)
         end if
 
         if (iproc == 0) call yaml_map('Check the ionic potential',maxdiff,fmt='(1pe24.17)')
@@ -1837,7 +1864,7 @@ subroutine CounterIonPotential(geocode,iproc,nproc,in,shift,&
      charges_mpi(1)=tt
      charges_mpi(2)=rholeaked
 
-     call mpiallred(charges_mpi(1),2,MPI_SUM,pkernel%mpi_env%mpi_comm)
+     call mpiallred(charges_mpi,MPI_SUM,comm=pkernel%mpi_env%mpi_comm)
 
      tt_tot=charges_mpi(1)
      rholeaked_tot=charges_mpi(2)
@@ -1898,7 +1925,7 @@ subroutine CounterIonPotential(geocode,iproc,nproc,in,shift,&
         end do
 
         if (pkernel%mpi_env%nproc > 1) then
-           call mpiallred(maxdiff,1,MPI_MAX,pkernel%mpi_env%mpi_comm)
+           call mpiallred(maxdiff,1,MPI_MAX,comm=pkernel%mpi_env%mpi_comm)
         end if
 
         if (iproc == 0) call yaml_map('Check the ionic potential',maxdiff,fmt='(1pe24.17)')

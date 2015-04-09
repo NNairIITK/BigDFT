@@ -13,6 +13,7 @@ subroutine test_yaml_output1()
   use yaml_output
   implicit none
   !local variables
+  character, dimension(5) :: totarr
 
   call yaml_mapping_open("Test")
    call yaml_map("Short sentence",.true.)
@@ -71,6 +72,10 @@ subroutine test_yaml_output1()
   call yaml_map('Is 1 with spaces a real string',is_atof(' 1 '))
   call yaml_map('Is 1 a integer string',is_atoi('1'))
   call yaml_map('Is 1 with spaces a integer string',is_atoi(' 1 '))
+
+!!$  !f_strcpy might be generalized that way
+!!$  totarr='truncate'
+!!$  call yaml_map('Can we concatenate a string with a character array','toto'//totarr)
 
 end subroutine test_yaml_output1
 
