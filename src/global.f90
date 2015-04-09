@@ -43,8 +43,8 @@ program MINHOP
   ! integer :: ierror,ixyz, nproc,natp
   integer :: istepnext,istep
   character(len=*), parameter :: subname='global'
-  character(len=41) :: filename
-  character(len=4) :: fn6
+  character(len=43) :: filename
+  character(len=6) :: fn6
   character(len=5) :: fn5
 !  character(len=16) :: fn16
 !  character(len=18) :: fn18
