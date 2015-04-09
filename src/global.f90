@@ -912,7 +912,7 @@ contains
     type(run_objects), intent(inout) :: runObj
     type(state_properties), intent(inout) :: outs
     real(kind=8), dimension(3,natoms) :: gg,vxyz
-    character(len=4) :: fn6
+    character(len=6) :: fn6
     real(gp) :: e0,enmin1,en0000,econs_max,econs_min,rkin,enmin2
     real(kind=8) :: devcon,at1,at2,at3
     real(gp), dimension(:,:), pointer :: rxyz_run
