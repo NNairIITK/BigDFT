@@ -121,7 +121,7 @@ module unitary_tests
                      !     (i2+tmb%ham_descr%Lzd%Llr(ilr)%nsi2-1)*n1i+&
                      !     (i3+tmb%ham_descr%Lzd%Llr(ilr)%nsi3-1)*n1i*n2i),dp)
                      testval=real((-1)**(ispin+1)*(ii1+(ii2-1)*n1i+(ii3-1)*n1i*n2i),dp)
-                     !if (iproc==0) write(*,'(a,4i8,2es14.3)') 'i1, i2, i3, ind, val, ref', i1, i2, i3, ind, denspot%pot_work(ind), testval
+                     !if (iproc==0) write(*,'(a,5i8,2es14.3)') 'ispin, i1, i2, i3, ind, val, ref', ispin, i1, i2, i3, ind, denspot%pot_work(ind), testval
                      testval=abs(denspot%pot_work(ind)-testval)
                      maxdiff=max(maxdiff,testval)
                      sumdiff=sumdiff+testval

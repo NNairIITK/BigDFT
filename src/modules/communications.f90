@@ -1208,7 +1208,8 @@ module communications
       else nproc_if
 
           !call vcopy(lzd%glr%d%n1i*lzd%glr%d%n2i*lzd%glr%d%n3i, sendbuf(1), 1, recvbuf(1), 1)
-          call f_memcpy(n=lzd%glr%d%n1i*lzd%glr%d%n2i*lzd%glr%d%n3i, src=sendbuf(1), dest=recvbuf(1))
+          !write(*,*) 'lzd%glr%d%n1i*lzd%glr%d%n2i*lzd%glr%d%n3i*comm%nspin', lzd%glr%d%n1i*lzd%glr%d%n2i*lzd%glr%d%n3i*comm%nspin
+          call f_memcpy(n=lzd%glr%d%n1i*lzd%glr%d%n2i*lzd%glr%d%n3i*comm%nspin, src=sendbuf(1), dest=recvbuf(1))
           comm%communication_complete=.true.
 
       end if nproc_if
