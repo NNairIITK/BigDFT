@@ -2258,7 +2258,7 @@ if(nfrag.ne.1) then          !"if there is fragmentation..."
             invert(ifrag)=.false.
          endif
          if (iproc==0) then
-           write(*,*) '(MH) ifrag, angle ',ifrag, angle,invert(ifrag)
+!           write(*,*) '(MH) ifrag, angle ',ifrag, angle,invert(ifrag)
            call yaml_mapping_open('(MH) Frag. Info',flow=.true.)
             call yaml_map('ifrag',ifrag)
             call yaml_map('angle',angle)
@@ -2365,6 +2365,7 @@ if(nfrag.ne.1) then          !"if there is fragmentation..."
       if(iproc==0) call yaml_scalar('(MH) FIX: Velocity component towards the center of mass inverted! Keep on hopping...')
    endif
 endif
+call yaml_mapping_close()
 end subroutine fixfrag_posvel
 
 
