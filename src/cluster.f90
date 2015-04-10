@@ -524,12 +524,10 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,energs,fxyz,strten,fnoise,press
   !calculate effective ionic potential, including counter ions if any.
   call createEffectiveIonicPotential(iproc,nproc,(iproc == 0),in,atoms,rxyz,shift,KSwfn%Lzd%Glr,&
        denspot%dpbox%hgrids(1),denspot%dpbox%hgrids(2),denspot%dpbox%hgrids(3),&
-       denspot%dpbox,denspot%pkernel,denspot%V_ext,in%elecfield,denspot%psoffset)
+       denspot%dpbox,denspot%pkernel,denspot%V_ext,denspot%rho_ion,in%elecfield,denspot%psoffset)
   if (denspot%c_obj /= 0) then
      call denspot_emit_v_ext(denspot, iproc, nproc)
   end if
-
-
 
   norbv=abs(in%norbv)
   if (in%inputPsiId == INPUT_PSI_LINEAR_AO .or. &
@@ -878,7 +876,6 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,energs,fxyz,strten,fnoise,press
   end if
 
   call f_free_ptr(denspot%V_ext)
-  nullify(denspot%V_ext)
 
   !variables substitution for the PSolver part
   n1i=KSwfn%Lzd%Glr%d%n1i
@@ -1307,6 +1304,8 @@ contains
        call f_free_ptr(fdisp)
     end if
     call xc_end(denspot%xc)
+    !@todo fix a method for freeing the denspot structure
+    call f_free_ptr(denspot%rho_ion)
 
     !free GPU if it is the case
     if (GPUconv .and. .not.(DoDavidson)) then

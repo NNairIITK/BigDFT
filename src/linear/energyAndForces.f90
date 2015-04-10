@@ -10,7 +10,7 @@
 
 !> Calculates the potential and energy and writes them. This is subroutine is copied
 !! from cluster.
-subroutine updatePotential(nspin,denspot,ehart,eexcu,vexcu)
+subroutine updatePotential(nspin,denspot,energs)!ehart,eexcu,vexcu)
 
 use module_base
 use module_types
@@ -21,12 +21,14 @@ implicit none
 ! Calling arguments
 integer, intent(in) :: nspin                     !< Spin number
 type(DFT_local_fields), intent(inout) :: denspot !< in=density, out=pot
-real(kind=8), intent(out) :: ehart, eexcu, vexcu !> Energies (Hartree, XC and XC potential energy)
+type(energy_terms), intent(inout) :: energs
+!real(kind=8), intent(out) :: ehart, eexcu, vexcu !> Energies (Hartree, XC and XC potential energy)
 
 ! Local variables
 character(len=*), parameter :: subname='updatePotential'
 logical :: nullifyVXC
 integer :: istat, iall
+real(gp) :: ehart_ps
 real(dp), dimension(6) :: xcstr
 
 call f_routine(id='updatePotential')
@@ -39,7 +41,7 @@ if(nspin==4) then
         denspot%dpbox%ndims(1),denspot%dpbox%ndims(2),denspot%dpbox%ndims(3),&
         denspot%dpbox%n3d,denspot%xc,&
         denspot%dpbox%hgrids(1),denspot%dpbox%hgrids(2),denspot%dpbox%hgrids(3),&
-        denspot%rhov,denspot%pkernel%kernel,denspot%V_ext,ehart,eexcu,vexcu,0.d0,.true.,4)
+        denspot%rhov,denspot%pkernel%kernel,denspot%V_ext,energs%eh,energs%exc,energs%evxc,0.d0,.true.,4)
 
 else
    if (.not. associated(denspot%V_XC)) then   
@@ -57,10 +59,18 @@ else
         denspot%pkernel%mpi_env%mpi_comm,&
         denspot%dpbox%ndims(1),denspot%dpbox%ndims(2),denspot%dpbox%ndims(3),denspot%xc,&
         denspot%dpbox%hgrids(1),denspot%dpbox%hgrids(2),denspot%dpbox%hgrids(3),&
-        denspot%rhov,eexcu,vexcu,nspin,denspot%rho_C,denspot%V_XC,xcstr)
-    
-   call H_potential('D',denspot%pkernel,denspot%rhov,denspot%V_ext,ehart,0.0_dp,.true.,&
-        quiet=denspot%PSquiet) !optional argument
+        denspot%rhov,energs%exc,energs%evxc,nspin,denspot%rho_C,denspot%V_XC,xcstr)
+
+   call H_potential('D',denspot%pkernel,denspot%rhov,denspot%V_ext,ehart_ps,0.0_dp,.true.,&
+        quiet=denspot%PSquiet,rho_ion=denspot%rho_ion) !optional argument
+
+   if (denspot%pkernel%method /= 'VAC') then
+      energs%eelec=ehart_ps
+      energs%eh=0.0_gp
+   else
+      energs%eelec=0.0_gp
+      energs%eh=ehart_ps
+   end if
    
    !sum the two potentials in rhopot array
    !fill the other part, for spin, polarised

@@ -288,7 +288,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
      !if(iproc==0) write(*,'(1x,a)') '---------------------------------------------------------------- Updating potential.'
      !if (iproc==0) call yaml_map('update potential',.true.)
      if (iproc==0) call yaml_mapping_open('update pot',flow=.true.)
-     call updatePotential(input%nspin,denspot,energs%eh,energs%exc,energs%evxc)
+     call updatePotential(input%nspin,denspot,energs)!%eh,energs%exc,energs%evxc)
   end if
 
   call timing(iproc,'linscalinit','OF')
@@ -910,7 +910,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
              if (iproc==0) call yaml_newline()
              
 
-             call updatePotential(input%nspin,denspot,energs%eh,energs%exc,energs%evxc)
+             call updatePotential(input%nspin,denspot,energs)!%eh,energs%exc,energs%evxc)
              if (iproc==0) call yaml_mapping_close()
 
 
@@ -1093,7 +1093,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
                  rhopotOld_out(1), 1, denspot%rhov(1), 1)
             call timing(iproc,'constraineddft','OF')
 
-            call updatePotential(input%nspin,denspot,energs%eh,energs%exc,energs%evxc)
+            call updatePotential(input%nspin,denspot,energs)!%eh,energs%exc,energs%evxc)
 
             call timing(iproc,'constraineddft','ON')
             ! reset coeffs as well
@@ -1907,7 +1907,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
           call axpy(denspot%dpbox%ndimpot,1.d0,denspot%rhov(ioffset+denspot%dpbox%ndimpot+1),1,denspot%rho_work(1),1)
       end if
 
-      call updatePotential(input%nspin,denspot,energs%eh,energs%exc,energs%evxc)
+      call updatePotential(input%nspin,denspot,energs)!%eh,energs%exc,energs%evxc)
 
       ! Density already present in denspot%rho_work
       call vcopy(denspot%dpbox%ndimpot,denspot%rho_work(1),1,denspot%pot_work(1),1)
