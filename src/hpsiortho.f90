@@ -338,7 +338,7 @@ subroutine psitohpsi(iproc,nproc,atoms,scf,denspot,itrp,itwfn,iscf,alphamix,&
 
      !nonlocal hamiltonian
      !$ if (verbose > 2 .and. iproc==0 .and. unblock_comms_pot)&
-     !$ & print *,'NonLocalHamiltonian with nthread:, out to:' ,omp_get_max_threads(),nthread_max
+     !$ & call yaml_map('NonLocalHamiltonian with nthread out to',[omp_get_max_threads(),nthread_max])
      call NonLocalHamiltonianApplication(iproc,atoms,wfn%orbs%npsidim_orbs,wfn%orbs,&
           wfn%Lzd,nlpsp,wfn%psi,wfn%hpsi,energs%eproj,wfn%paw)
   end if
@@ -2262,7 +2262,7 @@ subroutine evaltoocc(iproc,nproc,filewrite,wf0,orbs,occopt)
    real(gp), parameter :: sqrtpi=sqrt(pi)
    real(gp), dimension(1,1,1) :: fakepsi
    integer :: ikpt,iorb,ii !,info_fermi
-   real(gp) :: charge, chargef,wf
+   real(gp) :: charge, chargef,wf,deltac
    real(gp) :: ef,electrons,dlectrons,factor,arg,argu,argd,corr,cutoffu,cutoffd,diff,full,res,resu,resd
    real(gp) :: a, x, xu, xd, f, df, tt
    !integer :: ierr
@@ -2488,7 +2488,12 @@ subroutine evaltoocc(iproc,nproc,filewrite,wf0,orbs,occopt)
             chargef=chargef+orbs%kwgts(ikpt) * orbs%occup(iorb+(ikpt-1)*orbs%norb)
          end do
       end do
-      if (abs(charge - chargef) > 1e-9)  then
+      deltac=abs(charge - chargef)
+      if (deltac > 1.e-9_gp .and. deltac < 1.e-6_gp) then
+         if (orbs%nspinor /= 4) call eigensystem_info(iproc,nproc,1.e-8_gp,0,orbs,fakepsi)
+         if (iproc==0) call yaml_warning('Failed to determine correctly the occupation number, expected='//yaml_toa(charge)// &
+              ', found='//yaml_toa(chargef))
+      else if (deltac >= 1.e-6_gp) then
       !if (abs(real(melec,gp)- chargef) > 1e-6)  then
          if (orbs%nspinor /= 4) call eigensystem_info(iproc,nproc,1.e-8_gp,0,orbs,fakepsi)
          call f_err_throw('Failed to determine correctly the occupation number, expected='//yaml_toa(charge)// &
@@ -2514,6 +2519,65 @@ subroutine evaltoocc(iproc,nproc,filewrite,wf0,orbs,occopt)
    end if
 
  END SUBROUTINE evaltoocc
+
+!> find the gap once the fermi level has been found
+ subroutine orbs_get_gap(orbs,ikpt_homo,ikpt_lumo,ispin_homo,ispin_lumo,homo,lumo)
+   use module_defs, only: gp
+   use module_types, only: orbitals_data
+   use dictionaries, only: f_err_throw
+   implicit none
+   integer, intent(out) :: ikpt_lumo,ikpt_homo,ispin_homo,ispin_lumo
+   real(gp), intent(out) :: homo,lumo
+   type(orbitals_data), intent(inout) :: orbs
+   !local variables
+   integer :: ikpt,iorb,jorb
+
+   homo=1.e100_gp
+   lumo=-1.e100_gp
+   do ikpt=1,orbs%nkpts
+      do iorb=1,orbs%norbu
+         if (orbs%occup(iorb) < 0.5_gp) then
+            if (iorb ==1) call f_err_throw(&
+                 'Fermi level badly calculated, first orbital is already above',&
+                 err_name='BIGDFT_RUNTIME_ERROR')
+            if (orbs%eval(iorb-1) < homo) then
+               homo=orbs%eval(iorb-1)
+               ikpt_homo=ikpt
+               ispin_homo=1
+            end if
+            if (orbs%eval(iorb) > lumo) then
+               lumo=orbs%eval(iorb)
+               ikpt_lumo=ikpt
+               ispin_lumo=1
+            end if
+            exit
+         end if
+      end do
+      do iorb=1,orbs%norbd
+         jorb=orbs%norbu+iorb
+         if (orbs%occup(jorb) < 0.5_gp) then
+            if (iorb ==1) call f_err_throw(&
+                 'Fermi level badly calculated (down spin), first orbital is already above',&
+                 err_name='BIGDFT_RUNTIME_ERROR')
+            if (orbs%eval(jorb-1) < homo) then
+               homo=orbs%eval(jorb-1)
+               ikpt_homo=ikpt
+               ispin_homo=-1
+            end if
+            if (orbs%eval(jorb) > lumo) then
+               lumo=orbs%eval(jorb)
+               ikpt_lumo=ikpt
+               ispin_lumo=-1
+            end if
+            exit
+         end if
+      end do
+   end do
+   !now verify that the gap has been found
+   if (lumo < homo) call f_err_throw('Error in determining homo-lumo gap',&
+        err_name='BIGDFT_RUNTIME_ERROR')
+
+ end subroutine orbs_get_gap
 
 
 subroutine eFermi_nosmearing(iproc,orbs)
