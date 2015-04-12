@@ -488,7 +488,7 @@ module rhopotential
       ! Calling arguments
       integer,intent(in) :: iproc, nproc, ndimrho
       real(kind=8),intent(in) :: hx, hy, hz
-      type(comms_linear),intent(in) :: collcom_sr
+      type(comms_linear),intent(inout) :: collcom_sr
       type(sparse_matrix),intent(in) :: denskern
       type(matrices),intent(in) :: denskern_
       real(kind=8),dimension(ndimrho),intent(out) :: rho
@@ -638,14 +638,15 @@ module rhopotential
         
         
           if (nproc>1) then
+              !!call mpi_type_size(mpi_double_precision, size_of_double, ierr)
+              !!call mpi_info_create(info, ierr)
+              !!call mpi_info_set(info, "no_locks", "true", ierr)
+              !!call mpi_win_create(rho_local(1), int(collcom_sr%nptsp_c*denskern%nspin*size_of_double,kind=mpi_address_kind), &
+              !!     size_of_double, info, bigdft_mpi%mpi_comm, collcom_sr%window, ierr)
+              !!call mpi_info_free(info, ierr)
+              !!call mpi_win_fence(mpi_mode_noprecede, collcom_sr%window, ierr)
               call mpi_type_size(mpi_double_precision, size_of_double, ierr)
-              call mpi_info_create(info, ierr)
-              call mpi_info_set(info, "no_locks", "true", ierr)
-              call mpi_win_create(rho_local(1), int(collcom_sr%nptsp_c*denskern%nspin*size_of_double,kind=mpi_address_kind), &
-                   size_of_double, info, bigdft_mpi%mpi_comm, collcom_sr%window, ierr)
-              call mpi_info_free(info, ierr)
-        
-              call mpi_win_fence(mpi_mode_noprecede, collcom_sr%window, ierr)
+              collcom_sr%window = mpiwindow(collcom_sr%nptsp_c*denskern%nspin, rho_local(1), bigdft_mpi%mpi_comm)
         
               ! This is a bit quick and dirty. Could be done in a better way, but
               ! would probably required to pass additional arguments to the subroutine
@@ -673,10 +674,9 @@ module rhopotential
                       end if
                   end do
               end do
-              call mpi_win_fence(0, collcom_sr%window, ierr)
-              !!write(*,'(a,i0)') 'mpi_win_fence error code: ',ierr
-              call mpi_win_free(collcom_sr%window, ierr)
-              !!write(*,'(a,i0)') 'mpi_win_free error code: ',ierr
+              !!call mpi_win_fence(0, collcom_sr%window, ierr)
+              !!call mpi_win_free(collcom_sr%window, ierr)
+              call mpi_fenceandfree(collcom_sr%window)
         
               call f_free(isend_total)
           else

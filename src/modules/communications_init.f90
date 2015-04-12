@@ -888,7 +888,7 @@ module communications_init
       ! Calling arguments
       integer,intent(in) :: iproc, nproc, i3s, n3p
       type(local_zone_descriptors),intent(in) :: lzd
-      integer,intent(in) :: window_c, window_f
+      integer,intent(inout) :: window_c, window_f
       real(kind=8),intent(in) :: weight_c_tot_check, weight_f_tot_check
       real(kind=8),dimension(0:lzd%glr%d%n1,0:lzd%glr%d%n2,1:max(1,n3p)),intent(inout) :: weightppp_c, weightppp_f
       real(kind=8),intent(out) :: weight_tot_c, weight_tot_f
@@ -915,8 +915,9 @@ module communications_init
 
       ! Wait for the completion of the mpi_accumulate call started in get_weights
       if (nproc>1) then
-          call mpi_win_fence(0, window_c, ierr)
-          call mpi_win_free(window_c, ierr)
+          !!call mpi_win_fence(0, window_c, ierr)
+          !!call mpi_win_free(window_c, ierr)
+          call mpi_fenceandfree(window_c)
       end if
 
       tt=sum(weightppp_c)
@@ -1169,8 +1170,9 @@ module communications_init
 
       ! Wait for the completion of the mpi_accumulate call started in get_weights
       if (nproc>1) then
-          call mpi_win_fence(0, window_f, ierr)
-          call mpi_win_free(window_f, ierr)
+          !!call mpi_win_fence(0, window_f, ierr)
+          !!call mpi_win_free(window_f, ierr)
+          call mpi_fenceandfree(window_f)
       end if
 
 
@@ -2154,14 +2156,16 @@ module communications_init
            n3_par(iproc)=n3p
            call mpiallred(n3_par, mpi_sum, comm=bigdft_mpi%mpi_comm)
 
+           !!call mpi_type_size(mpi_double_precision, size_of_double, ierr)
+           !!call mpi_info_create(info, ierr)
+           !!call mpi_info_set(info, "no_locks", "true", ierr)
+           !!call mpi_win_create(weightppp_c(0,0,1), &
+           !!     int((lzd%glr%d%n1+1)*(lzd%glr%d%n2+1)*n3p*size_of_double,kind=mpi_address_kind), size_of_double, &
+           !!     info, bigdft_mpi%mpi_comm, window, ierr)
+           !!call mpi_info_free(info, ierr)
+           !!call mpi_win_fence(mpi_mode_noprecede, window, ierr)
            call mpi_type_size(mpi_double_precision, size_of_double, ierr)
-           call mpi_info_create(info, ierr)
-           call mpi_info_set(info, "no_locks", "true", ierr)
-           call mpi_win_create(weightppp_c(0,0,1), &
-                int((lzd%glr%d%n1+1)*(lzd%glr%d%n2+1)*n3p*size_of_double,kind=mpi_address_kind), size_of_double, &
-                info, bigdft_mpi%mpi_comm, window, ierr)
-           call mpi_info_free(info, ierr)
-           call mpi_win_fence(mpi_mode_noprecede, window, ierr)
+           window = mpiwindow((lzd%glr%d%n1+1)*(lzd%glr%d%n2+1)*n3p, weightppp_c(0,0,1), bigdft_mpi%mpi_comm)
 
            do jproc=0,nproc-1
                ! Check whether ther is an overlap
@@ -2183,8 +2187,9 @@ module communications_init
                end if
            end do
            ! Synchronize the communication
-           call mpi_win_fence(0, window, ierr)
-           call mpi_win_free(window, ierr)
+           !!call mpi_win_fence(0, window, ierr)
+           !!call mpi_win_free(window, ierr)
+           call mpi_fenceandfree(window)
 
        else
            workrecv_c => weightppp_c
@@ -2254,14 +2259,16 @@ module communications_init
            call mpiallred(n3_par, mpi_sum, comm=bigdft_mpi%mpi_comm)
 
            ! Initialize the MPI window
+           !!call mpi_type_size(mpi_double_precision, size_of_double, ierr)
+           !!call mpi_info_create(info, ierr)
+           !!call mpi_info_set(info, "no_locks", "true", ierr)
+           !!call mpi_win_create(weightppp_f(0,0,1), &
+           !!     int((lzd%glr%d%n1+1)*(lzd%glr%d%n2+1)*n3p*size_of_double,kind=mpi_address_kind), size_of_double, &
+           !!     info, bigdft_mpi%mpi_comm, window, ierr)
+           !!call mpi_info_free(info, ierr)
+           !!call mpi_win_fence(mpi_mode_noprecede, window, ierr)
            call mpi_type_size(mpi_double_precision, size_of_double, ierr)
-           call mpi_info_create(info, ierr)
-           call mpi_info_set(info, "no_locks", "true", ierr)
-           call mpi_win_create(weightppp_f(0,0,1), &
-                int((lzd%glr%d%n1+1)*(lzd%glr%d%n2+1)*n3p*size_of_double,kind=mpi_address_kind), size_of_double, &
-                info, bigdft_mpi%mpi_comm, window, ierr)
-           call mpi_info_free(info, ierr)
-           call mpi_win_fence(mpi_mode_noprecede, window, ierr)
+           window = mpiwindow((lzd%glr%d%n1+1)*(lzd%glr%d%n2+1)*n3p, weightppp_f(0,0,1), bigdft_mpi%mpi_comm)
 
            do jproc=0,nproc-1
                ! Check whether ther is an overlap
@@ -2278,8 +2285,9 @@ module communications_init
                end if
            end do
            ! Synchronize the communication
-           call mpi_win_fence(0, window, ierr)
-           call mpi_win_free(window, ierr)
+           !!call mpi_win_fence(0, window, ierr)
+           !!call mpi_win_free(window, ierr)
+           call mpi_fenceandfree(window)
        else
            workrecv_f => weightppp_f
        end if

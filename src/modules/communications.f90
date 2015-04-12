@@ -1072,21 +1072,22 @@ module communications
                   if (ispin==1) then
                       call mpi_type_size(mpi_double_precision, size_of_double, ierr)
                       if (rma_sync==RMA_SYNC_ACTIVE) then
-                          call mpi_info_create(info, ierr)
-                          call mpi_info_set(info, "no_locks", "true", ierr)
-                          call mpi_win_create(sendbuf(1), int(n1*n2*n3p(iproc)*comm%nspin*size_of_double,kind=mpi_address_kind), &
-                               size_of_double, info, bigdft_mpi%mpi_comm, comm%window, ierr)
-                          !!call mpi_win_allocate(int(n1*n2*n3p(iproc)*comm%nspin*size_of_double,kind=mpi_address_kind), &
-                          !!     size_of_double, info, bigdft_mpi%mpi_comm, sendbuf(1), comm%window, ierr)
-                          call mpi_info_free(info, ierr)
+                          !!call mpi_info_create(info, ierr)
+                          !!call mpi_info_set(info, "no_locks", "true", ierr)
+                          !!call mpi_win_create(sendbuf(1), int(n1*n2*n3p(iproc)*comm%nspin*size_of_double,kind=mpi_address_kind), &
+                          !!     size_of_double, info, bigdft_mpi%mpi_comm, comm%window, ierr)
+                          !!!!call mpi_win_allocate(int(n1*n2*n3p(iproc)*comm%nspin*size_of_double,kind=mpi_address_kind), &
+                          !!!!     size_of_double, info, bigdft_mpi%mpi_comm, sendbuf(1), comm%window, ierr)
+                          !!call mpi_info_free(info, ierr)
+                          comm%window = mpiwindow(n1*n2*n3p(iproc)*comm%nspin, sendbuf(1), bigdft_mpi%mpi_comm)
                       else if (rma_sync==RMA_SYNC_PASSIVE) then
                           call mpi_win_create(sendbuf(1), int(n1*n2*n3p(iproc)*comm%nspin*size_of_double,kind=mpi_address_kind), &
                                size_of_double, MPI_INFO_NULL, bigdft_mpi%mpi_comm, comm%window, ierr)
                       end if
     
-                      if (rma_sync==RMA_SYNC_ACTIVE) then
-                          call mpi_win_fence(mpi_mode_noprecede, comm%window, ierr)
-                      end if
+                      !!if (rma_sync==RMA_SYNC_ACTIVE) then
+                      !!    call mpi_win_fence(mpi_mode_noprecede, comm%window, ierr)
+                      !!end if
                       !!if (rma_sync==RMA_SYNC_PASSIVE) then
                       !!    call mpi_win_lock_all(0, comm%window, ierr)
                       !!end if
@@ -1238,8 +1239,13 @@ module communications
       call timing(iproc, 'Pot_comm start', 'ON')      
 
       if(.not.comm%communication_complete) then
+          do joverlap=1,comm%noverlaps
+              call mpi_type_free(comm%mpi_datatypes(joverlap), ierr)
+          end do
           if (rma_sync==RMA_SYNC_ACTIVE) then
-              call mpi_win_fence(mpi_mode_nosucceed, comm%window, ierr)
+              !!call mpi_win_fence(mpi_mode_nosucceed, comm%window, ierr)
+              !!call mpi_win_free(comm%window, ierr)
+              call mpi_fenceandfree(comm%window, mpi_mode_nosucceed)
           else if (rma_sync==RMA_SYNC_PASSIVE) then
             !!  !!call mpi_win_unlock_all(comm%window, ierr)
             !!  do joverlap=1,comm%noverlaps
@@ -1251,15 +1257,8 @@ module communications
             !!           end if
             !!      end if
             !!  end do
+            call mpi_win_free(comm%window, ierr)
           end if
-
-          do joverlap=1,comm%noverlaps
-              call mpi_type_free(comm%mpi_datatypes(joverlap), ierr)
-          end do
-          call mpibarrier(bigdft_mpi%mpi_comm)
-          !call mpi_win_fence(mpi_mode_nosucceed, comm%window, ierr)
-          call mpi_win_free(comm%window, ierr)
-
       end if
     
       ! Flag indicating that the communication is complete
@@ -1554,13 +1553,15 @@ module communications
        end do
 
        ! Initialize the MPI window
+       !!call mpi_type_size(mpi_integer, size_of_int, ierr)
+       !!call mpi_info_create(info, ierr)
+       !!call mpi_info_set(info, "no_locks", "true", ierr)
+       !!call mpi_win_create(worksend(1), int(maxsenddim*size_of_int,kind=mpi_address_kind), size_of_int, &
+       !!     info, bigdft_mpi%mpi_comm, window, ierr)
+       !!call mpi_info_free(info, ierr)
+       !!call mpi_win_fence(mpi_mode_noprecede, window, ierr)
        call mpi_type_size(mpi_integer, size_of_int, ierr)
-       call mpi_info_create(info, ierr)
-       call mpi_info_set(info, "no_locks", "true", ierr)
-       call mpi_win_create(worksend(1), int(maxsenddim*size_of_int,kind=mpi_address_kind), size_of_int, &
-            info, bigdft_mpi%mpi_comm, window, ierr)
-       call mpi_info_free(info, ierr)
-       call mpi_win_fence(mpi_mode_noprecede, window, ierr)
+       window =  mpiwindow(maxsenddim, worksend(1),  bigdft_mpi%mpi_comm)
 
        ! Allocate the receive buffer
        maxrecvdim=0
