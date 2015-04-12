@@ -656,10 +656,11 @@ subroutine calculate_weight_matrix_using_density(iproc,cdft,tmb,at,input,GPU,den
   use module_interfaces, except_this_one => calculate_weight_matrix_using_density
   use module_fragments
   use communications_base, only: TRANSPOSE_FULL
-  use communications, only: transpose_localized, start_onesided_communication, full_local_potential
+  use communications, only: transpose_localized, start_onesided_communication
   use sparsematrix_base, only : matrices_null, allocate_matrices, deallocate_matrices
   use sparsematrix, only: gather_matrix_from_taskgroups_inplace
   use transposed_operations, only: calculate_overlap_transposed
+  use potential, only: full_local_potential
   implicit none
   integer,intent(in) :: iproc
   type(cdft_data), intent(inout) :: cdft

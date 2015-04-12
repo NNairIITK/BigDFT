@@ -762,6 +762,7 @@ subroutine input_memory_linear(iproc, nproc, at, KSwfn, tmb, tmb_old, denspot, i
                           uncompress_matrix_distributed2, uncompress_matrix2
   use transposed_operations, only: calculate_overlap_transposed, normalize_transposed
   use matrix_operations, only: overlapPowerGeneral, deviation_from_unity_parallel
+  use potential, only: updatepotential
   implicit none
 
   ! Calling arguments
@@ -1517,7 +1518,8 @@ subroutine input_wf_diag(iproc,nproc,at,denspot,&
            use communications_base, only: comms_cubic
            use communications_init, only: orbitals_communicators
            use communications, only: transpose_v
-  use communications, only: toglobal_and_transpose, full_local_potential
+  use communications, only: toglobal_and_transpose
+  use potential, only: full_local_potential, updatePotential
   implicit none
   !Arguments
   integer, intent(in) :: iproc,nproc,ixc
@@ -2099,6 +2101,7 @@ use sparsematrix, only: uncompress_matrix2
   use psp_projectors, only: PSPCODE_PAW, PSPCODE_HGH, free_DFT_PSP_projectors
   use sparsematrix, only: gather_matrix_from_taskgroups_inplace, extract_taskgroup_inplace
   use transposed_operations, only: normalize_transposed
+  use potential, only: updatepotential
   implicit none
 
   integer, intent(in) :: iproc, nproc, inputpsi, input_wf_format

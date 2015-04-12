@@ -21,7 +21,8 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
   use diis_sd_optimization
   use yaml_output
   use communications_base, only: TRANSPOSE_FULL
-  use communications, only: transpose_localized, start_onesided_communication, full_local_potential
+  use communications, only: transpose_localized, start_onesided_communication
+  use potential, only: full_local_potential
   use sparsematrix_base, only: sparse_matrix, sparsematrix_malloc_ptr, sparsematrix_malloc, &
                                DENSE_FULL, DENSE_PARALLEL, DENSE_MATMUL, assignment(=), SPARSE_FULL
   use sparsematrix, only: uncompress_matrix, gather_matrix_from_taskgroups_inplace, &
@@ -575,7 +576,8 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
   use module_interfaces, except_this_one => getLocalizedBasis, except_this_one_A => writeonewave
   use communications_base, only: work_transpose, TRANSPOSE_FULL, TRANSPOSE_POST, TRANSPOSE_GATHER
   use communications, only: transpose_localized, untranspose_localized, start_onesided_communication, &
-                            synchronize_onesided_communication, full_local_potential
+                            synchronize_onesided_communication
+  use potential, only: full_local_potential
   use sparsematrix_base, only: assignment(=), sparsematrix_malloc, sparsematrix_malloc_ptr, SPARSE_FULL, &
                                SPARSE_TASKGROUP
   use constrained_dft, only: cdft_data

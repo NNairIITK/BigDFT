@@ -20,7 +20,8 @@ module unitary_tests
       use module_interfaces
       use yaml_output
       use dictionaries, only: f_err_throw
-      use communications, only: start_onesided_communication, full_local_potential
+      use communications, only: start_onesided_communication
+      use potential, only: full_local_potential
       implicit none
       integer,intent(in) :: iproc
       type(DFT_wavefunction), intent(inout) :: tmb

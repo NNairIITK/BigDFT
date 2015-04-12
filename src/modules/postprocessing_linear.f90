@@ -792,6 +792,7 @@ module postprocessing_linear
       use sparsematrix_base, only: sparse_matrix, sparsematrix_malloc, assignment(=), SPARSE_FULL
       use sparsematrix, only: gather_matrix_from_taskgroups_inplace, extract_taskgroup_inplace
       use yaml_output
+      use potential, only: updatePotential
       implicit none
       
       ! Calling arguments
@@ -1017,6 +1018,7 @@ module postprocessing_linear
       use communications, only: transpose_v, untranspose_v
       use sparsematrix_base, only: sparse_matrix
       use yaml_output
+      use potential, only: updatepotential
       implicit none
       
       ! Calling arguments

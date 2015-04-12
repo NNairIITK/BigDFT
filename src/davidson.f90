@@ -17,7 +17,8 @@ subroutine direct_minimization(iproc,nproc,in,at,nvirt,rxyz,rhopot,nlpsp, &
    use module_interfaces, except_this_one => direct_minimization
    use module_xc
    use yaml_output
-   use communications, only: transpose_v, untranspose_v, full_local_potential
+   use communications, only: transpose_v, untranspose_v
+   use potential, only: full_local_potential
    implicit none
    integer, intent(in) :: iproc,nproc,nvirt
    type(input_variables), intent(in) :: in
@@ -403,7 +404,8 @@ subroutine davidson(iproc,nproc,in,at,&
    use module_xc
    use yaml_output
    use communications_base, only: comms_cubic
-   use communications, only: transpose_v, untranspose_v, full_local_potential
+   use communications, only: transpose_v, untranspose_v
+   use potential, only: full_local_potential
    implicit none
    integer, intent(in) :: iproc,nproc
    integer, intent(in) :: nvirt

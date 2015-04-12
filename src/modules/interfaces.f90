@@ -1715,17 +1715,6 @@ module module_interfaces
        integer, dimension(natsc+1,nspin), intent(in) :: norbsc_arr
      end subroutine LDiagHam
 
-     subroutine updatePotential(nspin,denspot,energs)!ehart,eexcu,vexcu)
-       use module_base
-       use module_types
-       implicit none
-       ! Calling arguments
-       integer, intent(in) :: nspin
-       type(DFT_local_fields), intent(inout) :: denspot
-       type(energy_terms), intent(inout) :: energs
-       !real(8),intent(out):: ehart, eexcu, vexcu
-     end subroutine updatePotential
-
      subroutine setCommsParameters(mpisource, mpidest, istsource, istdest, ncount, tag, comarr)
        use module_base
        use module_types
