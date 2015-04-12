@@ -20,7 +20,7 @@ module unitary_tests
       use module_interfaces
       use yaml_output
       use dictionaries, only: f_err_throw
-      use communications, only: start_onesided_communication
+      use communications, only: start_onesided_communication, full_local_potential
       implicit none
       integer,intent(in) :: iproc
       type(DFT_wavefunction), intent(inout) :: tmb
@@ -186,7 +186,7 @@ module unitary_tests
       use module_types
       use module_interfaces
       use yaml_output
-      use communications_init, only: check_whether_bounds_overlap
+      use locregs, only: check_whether_bounds_overlap
       use communications, only: transpose_switch_psir, transpose_communicate_psir, transpose_unswitch_psirt
       use sparsematrix_base, only: sparse_matrix, matrices
       use sparsematrix_init, only: matrixindex_in_compressed
@@ -819,6 +819,8 @@ module unitary_tests
        use sparsematrix_base, only : sparse_matrix, matrices, DENSE_PARALLEL
        use sparsematrix, only : compress_matrix_distributed_wrapper, gather_matrix_from_taskgroups_inplace
        use transposed_operations, only: calculate_overlap_transposed
+       use locregs, only: check_overlap_cubic_periodic
+       use locreg_operations, only: Lpsi_to_global2
        !use dynamic_memory
        implicit none
        integer, intent(in) :: iproc,nproc,nspin,check_overlap

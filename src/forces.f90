@@ -4210,7 +4210,7 @@ subroutine nonlocal_forces_linear(iproc,nproc,npsidim_orbs,lr,hx,hy,hz,at,rxyz,&
   use psp_projectors, only: PSPCODE_HGH,PSPCODE_HGH_K,PSPCODE_HGH_K_NLCC,&
        PSPCODE_PAW,projector_has_overlap
   use yaml_output
-  use communications_init, only: check_whether_bounds_overlap
+  use locregs, only: check_whether_bounds_overlap
   implicit none
   !Arguments-------------
   type(atoms_data), intent(in) :: at

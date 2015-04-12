@@ -1154,22 +1154,6 @@ module module_interfaces
          real(wp), dimension(:), pointer :: psi,psivirt
        END SUBROUTINE write_eigen_objects
 
-       subroutine full_local_potential(iproc,nproc,orbs,Lzd,iflag,dpbox,xc,potential,pot,comgp)
-         use module_base
-         use module_types
-         use module_xc
-         implicit none
-         integer, intent(in) :: iproc,nproc,iflag
-         type(orbitals_data),intent(in) :: orbs
-         type(local_zone_descriptors),intent(in) :: Lzd
-         type(denspot_distribution), intent(in) :: dpbox
-         type(xc_info), intent(in) :: xc
-         real(wp), dimension(max(dpbox%ndimrhopot,orbs%nspin)), intent(in), target :: potential
-         real(wp), dimension(:), pointer :: pot
-         !type(p2pCommsGatherPot),intent(inout), optional:: comgp
-         type(p2pComms),intent(inout), optional:: comgp
-       END SUBROUTINE full_local_potential
-
       subroutine free_full_potential(nproc,flag,xc,pot,subname)
          use module_base
          use module_xc

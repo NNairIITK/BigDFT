@@ -1517,7 +1517,7 @@ subroutine input_wf_diag(iproc,nproc,at,denspot,&
            use communications_base, only: comms_cubic
            use communications_init, only: orbitals_communicators
            use communications, only: transpose_v
-  use communications, only: toglobal_and_transpose
+  use communications, only: toglobal_and_transpose, full_local_potential
   implicit none
   !Arguments
   integer, intent(in) :: iproc,nproc,ixc
