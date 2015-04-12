@@ -244,7 +244,7 @@ end subroutine paw_spline
 !!    The input value is incremented by the number of such points.
 !!
 !! PARENTS
-!!      m_paw_atom,m_paw_gaussfit,m_paw_finegrid,m_paw_pwaves_lmn,m_pawpsp
+!!      m_paw_atom,m_paw_finegrid,m_paw_gaussfit,m_paw_pwaves_lmn,m_pawpsp
 !!      m_pawxmlps
 !!
 !! CHILDREN

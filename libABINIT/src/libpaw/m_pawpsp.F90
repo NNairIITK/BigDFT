@@ -2190,7 +2190,7 @@ subroutine pawpsp_calc(core_mesh,epsatm,ffspl,imainmesh,ixc,lnmax,&
 
 !    Compute Vxc without nhat (vxc1) and with nhat (vxc2)
      nspden=1
-#if defined HAVE_DFT_LIBXC
+#if defined LIBPAW_HAVE_LIBXC
      if (ixc<0) nspden=libxc_functionals_nspin()
 #endif
      if (ixc<0) then
@@ -2472,7 +2472,7 @@ subroutine pawpsp_calc(core_mesh,epsatm,ffspl,imainmesh,ixc,lnmax,&
 !Compute Ex-correlation energy for the core density
 
  nspden=1
-#if defined HAVE_DFT_LIBXC
+#if defined LIBPAW_HAVE_LIBXC
  if (ixc<0) nspden=libxc_functionals_nspin()
 #endif
 
@@ -4336,24 +4336,24 @@ implicit none
  select case(trim(psxml%xc_functional%name))
    case('PZ')
      pspxc = 2
-#if defined HAVE_DFT_LIBXC
+#if defined LIBPAW_HAVE_LIBXC
      pspxc = -(libxc_functionals_getid('XC_LDA_X')*1000 &
 &             +libxc_functionals_getid('XC_LDA_C_PZ'))
 #endif
    case('W')
      pspxc = 4
-#if defined HAVE_DFT_LIBXC
+#if defined LIBPAW_HAVE_LIBXC
      pspxc = -(libxc_functionals_getid('XC_LDA_X')*1000 &
 &             +libxc_functionals_getid('XC_LDA_C_WIGNER'))
 #endif
    case('HL')
      pspxc = 5
-#if defined HAVE_DFT_LIBXC
+#if defined LIBPAW_HAVE_LIBXC
      pspxc = -(libxc_functionals_getid('XC_LDA_X')*1000 &
 &             +libxc_functionals_getid('XC_LDA_C_HL'))
 #endif
    case('GL')
-#if defined HAVE_DFT_LIBXC
+#if defined LIBPAW_HAVE_LIBXC
      pspxc = -(libxc_functionals_getid('XC_LDA_X')*1000 &
 &             +libxc_functionals_getid('XC_LDA_C_GL'))
 #else
@@ -4365,7 +4365,7 @@ implicit none
      MSG_ERROR(msg)
 #endif
    case('VWN')
-#if defined HAVE_DFT_LIBXC
+#if defined LIBPAW_HAVE_LIBXC
      pspxc = -(libxc_functionals_getid('XC_LDA_X')*1000 &
 &             +libxc_functionals_getid('XC_LDA_C_VWN'))
 #else
@@ -4378,30 +4378,30 @@ implicit none
 #endif
    case('PW')
      pspxc = 7
-#if defined HAVE_DFT_LIBXC
+#if defined LIBPAW_HAVE_LIBXC
      pspxc = -(libxc_functionals_getid('XC_LDA_X')*1000 &
 &             +libxc_functionals_getid('XC_LDA_C_PW'))
 #endif
    case('PBE')
      pspxc = 11
-#if defined HAVE_DFT_LIBXC
+#if defined LIBPAW_HAVE_LIBXC
      pspxc = -(libxc_functionals_getid('XC_GGA_X_PBE')*1000 &
 &             +libxc_functionals_getid('XC_GGA_C_PBE'))
 #endif
    case('revPBE')
      pspxc = 14
-#if defined HAVE_DFT_LIBXC
+#if defined LIBPAW_HAVE_LIBXC
      pspxc = -(libxc_functionals_getid('XC_GGA_X_PBE_R')*1000 &
 &             +libxc_functionals_getid('XC_GGA_C_PBE'))
 #endif
    case('RPBE')
      pspxc = 15
-#if defined HAVE_DFT_LIBXC
+#if defined LIBPAW_HAVE_LIBXC
      pspxc = -(libxc_functionals_getid('XC_GGA_X_RPBE')*1000 &
 &             +libxc_functionals_getid('XC_GGA_C_PBE'))
 #endif
    case('PW91')
-#if defined HAVE_DFT_LIBXC
+#if defined LIBPAW_HAVE_LIBXC
      pspxc = -(libxc_functionals_getid('XC_GGA_X_PW91')*1000 &
 &             +libxc_functionals_getid('XC_GGA_C_PW91'))
 #else
@@ -4413,7 +4413,7 @@ implicit none
      MSG_ERROR(msg)
 #endif
    case('BLYP')
-#if defined HAVE_DFT_LIBXC
+#if defined LIBPAW_HAVE_LIBXC
      pspxc = -(libxc_functionals_getid('XC_GGA_X_B88')*1000 &
 &             +libxc_functionals_getid('XC_GGA_C_LYP'))
 #else
@@ -4431,7 +4431,7 @@ implicit none
 &        xclibxc(1:5)=='lda_x'.or.xclibxc(1:5)=='lda_c'.or. &
 &        xclibxc(1:5)=='GGA_X'.or.xclibxc(1:5)=='GGA_C'.or. &
 &        xclibxc(1:5)=='gga_x'.or.xclibxc(1:5)=='gga_c') then
-#if defined HAVE_DFT_LIBXC
+#if defined LIBPAW_HAVE_LIBXC
        ii=index(xclibxc,'+')
        if (ii>0) then
          pspxc=-(libxc_functionals_getid(xclibxc(1:ii-1))*1000 &
@@ -4445,7 +4445,7 @@ implicit none
 #endif
 !      To be eliminated later (temporary)
      else if(trim(psxml%xc_functional%functionaltype)=='LIBXC')then
-#if defined HAVE_DFT_LIBXC
+#if defined LIBPAW_HAVE_LIBXC
        xclibxc=trim(psxml%xc_functional%name)
        read(unit=xclibxc,fmt=*) pspxc
        pspxc=-pspxc

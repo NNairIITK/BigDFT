@@ -177,8 +177,8 @@ CONTAINS
 !!    %rmax = Max. value of r = rad(mesh_size)
 !!
 !! PARENTS
-!!      eltfrxc3,m_atom,m_paw_gaussfit,m_paw_pwij,m_pawpsp,m_pawxmlps,mkcore_paw
-!!      mkcore_wvl,wvl_initro
+!!      eltfrxc3,m_atom,m_paw_gaussfit,m_paw_pwij,m_pawpsp,m_pawxmlps
+!!      mkcore_paw,mkcore_wvl,wvl_initro
 !!
 !! CHILDREN
 !!      poisson,simp_gen
@@ -697,7 +697,7 @@ end subroutine pawrad_copy
 !!  func(funcsz)=array containing values of function to extrapolate
 !!
 !! PARENTS
-!!      Lij,denfgr,m_paw_atom,m_paw_gaussfit,m_paw_pwaves_lmn,m_paw_slater,m_pawdij
+!!      denfgr,m_paw_atom,m_paw_gaussfit,m_paw_pwaves_lmn,m_paw_slater,m_pawdij
 !!      m_pawpsp,m_pawrad,m_pawxc,make_efg_onsite,optics_paw,optics_paw_core
 !!      pawdenpot,pawdensities,pawnabla_init,pawtwdij,pawtwdij_2a,pawtwdij_2c
 !!      pawtwdij_2d
@@ -926,7 +926,7 @@ end subroutine pawrad_bcast
 !!  intg=resulting integral by Simpson rule
 !!
 !! PARENTS
-!!      Lij,m_atom,m_paw_atom,m_paw_commutator,m_paw_pwij,m_paw_slater,m_pawdij
+!!      m_atom,m_paw_atom,m_paw_commutator,m_paw_pwij,m_paw_slater,m_pawdij
 !!      m_pawpsp,m_pawrad,m_pawxc,m_plowannier,make_efg_onsite,mlwfovlp_projpaw
 !!      optics_paw,optics_paw_core,partial_dos_fractions_paw,pawdensities
 !!      pawinit,pawnabla_init,pawpuxinit,pawtwdij,pawtwdij_1,pawtwdij_2a

@@ -120,16 +120,15 @@ CONTAINS
 !! PARENTS
 !!      accrho3,berryphase_new,calc_optical_mels,calc_sigc_me,calc_sigx_me
 !!      calc_vhxc_me,calc_wf_qp,cchi0,cchi0q0,cchi0q0_intraband,cgwf,cgwf3
-!!      chebfi,classify_bands,cohsex_me,ctocprj,d2frnl,datafordmft
-!!      debug_tools,energy,exc_build_block,exc_build_ham,exc_plot,extrapwf
-!!      fock_updatecwaveocc,getgh1c,getghc,getgsc,initberry,initorbmag
-!!      ks_ddiago,loper3,m_electronpositron,m_fock,m_invovl,m_pawcprj
-!!      m_plowannier,m_shirley,m_wfs,make_grad_berry,nstpaw3,optics_paw
-!!      optics_paw_core,outkss,partial_dos_fractions_paw,paw_symcprj,pawmkaewf
+!!      chebfi,classify_bands,cohsex_me,ctocprj,d2frnl,datafordmft,debug_tools
+!!      energy,exc_build_block,exc_build_ham,exc_plot,extrapwf
+!!      fock_updatecwaveocc,getgh1c,getghc,getgsc,initberry,ks_ddiago,loper3
+!!      m_bfield,m_electronpositron,m_fock,m_invovl,m_pawcprj,m_plowannier
+!!      m_shirley,m_wfs,make_grad_berry,nstpaw3,optics_paw,optics_paw_core
+!!      orbmag_calc,outkss,partial_dos_fractions_paw,paw_symcprj,pawmkaewf
 !!      pawmkrhoij,posdoppler,prep_calc_ucrpa,scfcv,scfcv3,setup_positron,sigma
-!!      smatrix_pawinit,store_bfield_cprj,suscep_stat,update_eb_field_vars
-!!      update_orbmag,vtorho,vtowfk,vtowfk3,wfd_pawrhoij,wfd_vnlpsi,wfkfermi3
-!!      wvl_hpsitopsi
+!!      smatrix_pawinit,suscep_stat,update_e_field_vars,vtorho,vtowfk,vtowfk3
+!!      wfd_pawrhoij,wfd_vnlpsi,wfkfermi3,wvl_hpsitopsi
 !!
 !! CHILDREN
 !!      xpaw_mpi_sum
@@ -205,15 +204,16 @@ end subroutine pawcprj_alloc
 !! PARENTS
 !!      accrho3,berryphase_new,calc_optical_mels,calc_sigc_me,calc_sigx_me
 !!      calc_vhxc_me,calc_wf_qp,cchi0,cchi0q0,cchi0q0_intraband,cgwf,cgwf3
-!!      chebfi,classify_bands,cohsex_me,ctocprj,d2frnl,datafordmft
-!!      debug_tools,energy,exc_build_block,exc_build_ham,exc_plot,extrapwf
+!!      chebfi,classify_bands,cohsex_me,ctocprj,d2frnl,datafordmft,debug_tools
+!!      energy,exc_build_block,exc_build_ham,exc_plot,extrapwf
 !!      fock_updatecwaveocc,getgh1c,getghc,getgsc,ks_ddiago,loper3,m_bfield
 !!      m_efield,m_electronpositron,m_fock,m_invovl,m_pawcprj,m_plowannier
 !!      m_scf_history,m_shirley,m_wfs,make_grad_berry,nstpaw3,optics_paw
-!!      optics_paw_core,outkss,partial_dos_fractions_paw,paw_symcprj,pawmkaewf
-!!      pawmkrhoij,posdoppler,prep_calc_ucrpa,scfcv,scfcv3,setup_positron,sigma
-!!      smatrix_pawinit,store_bfield_cprj,suscep_stat,update_eb_field_vars
-!!      update_orbmag,vtorho,vtowfk,vtowfk3,wfd_pawrhoij,wfd_vnlpsi,wfkfermi3
+!!      optics_paw_core,orbmag_calc,outkss,partial_dos_fractions_paw
+!!      paw_symcprj,pawmkaewf,pawmkrhoij,posdoppler,prep_calc_ucrpa,scfcv
+!!      scfcv3,setup_positron,sigma,smatrix_pawinit,suscep_stat
+!!      update_e_field_vars,vtorho,vtowfk,vtowfk3,wfd_pawrhoij,wfd_vnlpsi
+!!      wfkfermi3
 !!
 !! CHILDREN
 !!      xpaw_mpi_sum
@@ -338,9 +338,9 @@ end subroutine pawcprj_set_zero
 !! PARENTS
 !!      berryphase_new,calc_sigc_me,calc_sigx_me,cchi0q0,cchi0q0_intraband,cgwf
 !!      chebfi,classify_bands,cohsex_me,corrmetalwf1,d2frnl,extrapwf
-!!      fock_updatecwaveocc,getgh1c,getgsc,loper3,m_electronpositron,m_pawcprj
-!!      m_wfs,make_grad_berry,nstpaw3,outkss,paw_symcprj,posdoppler
-!!      prep_calc_ucrpa,setup_positron,update_orbmag,wfkfermi3
+!!      fock_updatecwaveocc,getgh1c,getgsc,loper3,m_bfield,m_electronpositron
+!!      m_pawcprj,m_wfs,make_grad_berry,nstpaw3,orbmag_calc,outkss,paw_symcprj
+!!      posdoppler,prep_calc_ucrpa,setup_positron,wfkfermi3
 !!
 !! CHILDREN
 !!      xpaw_mpi_sum
@@ -763,9 +763,11 @@ end subroutine pawcprj_zaxpby
 !!  whether it is implemented correctly for nonsymmorphic symmetries.
 !!
 !! PARENTS
-!!      berryphase_new,cgwf,fock_updatecwaveocc,make_grad_berry,update_orbmag
+!!      berryphase_new,cgwf,fock_updatecwaveocc,m_bfield,make_grad_berry
+!!      orbmag_calc
 !!
 !! CHILDREN
+!!      xpaw_mpi_sum
 !!
 !! SOURCE
 
@@ -900,7 +902,7 @@ end subroutine pawcprj_zaxpby
 !!      fock_updatecwaveocc
 !!
 !! CHILDREN
-!!     
+!!      xpaw_mpi_sum
 !!
 !! SOURCE
 
@@ -1175,10 +1177,9 @@ end subroutine pawcprj_output
 !!  cprj_k(dimcp,nspinor*nband) <type(pawcprj_type)>= output cprj datastructure
 !!
 !! PARENTS
-!!      berryphase_new,cgwf,datafordmft,extrapwf,m_plowannier,make_grad_berry
-!!      nstpaw3,optics_paw,optics_paw_core,pawmkrhoij,posdoppler
-!!      smatrix_pawinit,store_bfield_cprj,suscep_stat,update_orbmag,vtowfk3
-!!      wfkfermi3
+!!      berryphase_new,cgwf,datafordmft,extrapwf,m_bfield,m_plowannier
+!!      make_grad_berry,nstpaw3,optics_paw,optics_paw_core,orbmag_calc
+!!      pawmkrhoij,posdoppler,smatrix_pawinit,suscep_stat,vtowfk3,wfkfermi3
 !!
 !! CHILDREN
 !!      xpaw_mpi_sum
@@ -1412,7 +1413,7 @@ end subroutine pawcprj_get
 !!  cprj(dimcp,nspinor*mband*mkmem*nsppol)=output cprj (used if mkmem/=0)
 !!
 !! PARENTS
-!!      berryphase_new,cgwf,ctocprj,extrapwf,store_bfield_cprj,vtowfk,vtowfk3
+!!      berryphase_new,cgwf,ctocprj,extrapwf,vtowfk,vtowfk3
 !!
 !! CHILDREN
 !!      xpaw_mpi_sum
@@ -1871,7 +1872,7 @@ end subroutine pawcprj_mpi_exch
 !!   convenient for coding to have separate send and recieve routines.
 !!
 !! PARENTS
-!!      berryphase_new,posdoppler
+!!      berryphase_new,m_bfield,posdoppler
 !!
 !! CHILDREN
 !!      xpaw_mpi_sum
@@ -1992,7 +1993,7 @@ end subroutine pawcprj_mpi_send
 !!   convenient for coding to have separate send and receive routines.
 !!
 !! PARENTS
-!!      berryphase_new,posdoppler
+!!      berryphase_new,m_bfield,posdoppler
 !!
 !! CHILDREN
 !!      xpaw_mpi_sum
@@ -2104,6 +2105,7 @@ end subroutine pawcprj_mpi_recv
 !!  ierr=Error status.
 !!
 !! PARENTS
+!!      ctocprj
 !!
 !! CHILDREN
 !!      xpaw_mpi_sum
@@ -2196,8 +2198,7 @@ end subroutine pawcprj_mpi_sum
 !!  ierr=Error status.
 !!
 !! PARENTS
-!!      berryphase_new,cgwf,optics_paw,optics_paw_core,store_bfield_cprj
-!!      suscep_stat
+!!      berryphase_new,cgwf,optics_paw,optics_paw_core,suscep_stat
 !!
 !! CHILDREN
 !!      xpaw_mpi_sum
@@ -2849,8 +2850,8 @@ end subroutine pawcprj_bcast
 !!  dimcprj(natom)=Number of nlm elements in the <p_{lmn}^i|\psi> matrix elements for i=1,...,natom.
 !!
 !! PARENTS
-!!      berryphase_new,extrapwf,initberry,initorbmag,ks_ddiago,m_fock
-!!      mlwfovlp_qp,outkss,respfn,scfcv,smatrix_pawinit
+!!      berryphase_new,extrapwf,getghc,initberry,ks_ddiago,m_fock,mlwfovlp_qp
+!!      orbmag_calc,outkss,respfn,scfcv,smatrix_pawinit
 !!
 !! CHILDREN
 !!      xpaw_mpi_sum

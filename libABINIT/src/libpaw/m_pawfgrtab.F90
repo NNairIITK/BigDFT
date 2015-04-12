@@ -174,7 +174,7 @@ CONTAINS
 !!  Pawfgrtab(natom) <type(pawfgrtab_type)>=atomic data given on fine rectangular grid
 !!
 !! PARENTS
-!!      bethe_salpeter,classify_bands,d2frnl,denfgr,exc_plot,m_wfs
+!!      bethe_salpeter,classify_bands,d2frnl,denfgr,exc_plot,m_fock,m_wfs
 !!      pawmkaewf,respfn,scfcv,screening,sigma
 !!
 !! CHILDREN
@@ -273,7 +273,7 @@ end subroutine pawfgrtab_init
 !!  Pawfgrtab(natom) <type(pawfgrtab_type)>=atomic data given on fine rectangular grid
 !!
 !! PARENTS
-!!      bethe_salpeter,classify_bands,d2frnl,denfgr,exc_plot
+!!      bethe_salpeter,classify_bands,d2frnl,denfgr,exc_plot,m_fock
 !!      m_paral_pert,m_pawfgrtab,m_wfs,pawgrnl,pawmkaewf,respfn,scfcv,screening
 !!      sigma
 !!
@@ -355,7 +355,7 @@ end subroutine pawfgrtab_free
 !!  Pawfgrtab(:) <type(pawfgrtab_type)>=atomic data given on fine rectangular grid
 !!
 !! PARENTS
-!!      m_pawfgrtab,pawgrnl
+!!      m_fock,m_pawfgrtab,pawgrnl
 !!
 !! CHILDREN
 !!

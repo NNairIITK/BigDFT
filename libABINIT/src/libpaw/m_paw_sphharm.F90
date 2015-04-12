@@ -916,7 +916,7 @@ end subroutine lxyz
 !! The subroutine computes <S_l'm'|L_idir|S_lm>
 !!
 !! PARENTS
-!!      Lij
+!!      m_pawdij
 !!
 !! CHILDREN
 !!      wrtout

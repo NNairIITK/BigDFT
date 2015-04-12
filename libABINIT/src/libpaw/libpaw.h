@@ -25,21 +25,21 @@
 #if defined HAVE_LIBPAW_ABINIT
 
 /* ABINIT specific macros */
-#include "abi_common.h"
+#  include "abi_common.h"
 
 /* Constants and defs */
-#define USE_DEFS use defs_basis
+#  define USE_DEFS use defs_basis
 
 /* MPI wrappers */
-#define USE_MPI_WRAPPERS use m_xmpi
+#  define USE_MPI_WRAPPERS use m_xmpi
 
 /* Messages, errors */
 /* Other macros already defined in abi_common.h */
-#define USE_MSG_HANDLING use m_errors, only : msg_hndl
-#undef  HAVE_YAML
+#  define USE_MSG_HANDLING use m_errors, only : msg_hndl
+#  undef  HAVE_YAML
 
 /* Allocation/deallocation with memory profiling */
-#define USE_MEMORY_PROFILING use m_profiling_abi
+#  define USE_MEMORY_PROFILING use m_profiling_abi
 /* Use this to allocate/deallocate basic-type arrays with sizes */
 #  define LIBPAW_ALLOCATE(ARR,SIZE) ABI_ALLOCATE(ARR,SIZE)
 #  define LIBPAW_DEALLOCATE(ARR) ABI_DEALLOCATE(ARR)
@@ -54,6 +54,13 @@
 #  define LIBPAW_BOUND2_ALLOCATE(ARR,BND1,BND2) ABI_ALLOCATE(ARR,(BND1,BND2))
 #  define BOUNDS(LBND,UBND) LBND : UBND 
 
+/* libXC support */
+#  if defined HAVE_DFT_LIBXC
+#    define LIBPAW_HAVE_LIBXC HAVE_DFT_LIBXC
+#  else
+#    undef LIBPAW_HAVE_LIBXC
+#  endif
+
 /* F2008 support */
 #  define LIBPAW_CONTIGUOUS ABI_CONTIGUOUS
 
@@ -63,23 +70,23 @@
 #elif HAVE_LIBPAW_BIGDFT
 
 /* Constants and defs */
-#define USE_DEFS use m_libpaw_defs
+#  define USE_DEFS use m_libpaw_defs
 
 /* MPI wrappers */
-#define USE_MPI_WRAPPERS use m_libpaw_mpi
+#  define USE_MPI_WRAPPERS use m_libpaw_mpi
 
 /* Messages, errors */
-#define USE_MSG_HANDLING use m_libpaw_tools, only : wrtout => libpaw_wrtout, libpaw_msg_hndl
-#define MSG_COMMENT(msg) call libpaw_msg_hndl(msg,"COMMENT","PERS")
-#define MSG_WARNING(msg) call libpaw_msg_hndl(msg,"WARNING","PERS")
-#define MSG_ERROR(msg)   call libpaw_msg_hndl(msg,"ERROR"  ,"PERS")
-#define MSG_BUG(msg)     call libpaw_msg_hndl(msg,"BUG"    ,"PERS")
+#  define USE_MSG_HANDLING use m_libpaw_tools, only : wrtout => libpaw_wrtout, libpaw_msg_hndl
+#  define MSG_COMMENT(msg) call libpaw_msg_hndl(msg,"COMMENT","PERS")
+#  define MSG_WARNING(msg) call libpaw_msg_hndl(msg,"WARNING","PERS")
+#  define MSG_ERROR(msg)   call libpaw_msg_hndl(msg,"ERROR"  ,"PERS")
+#  define MSG_BUG(msg)     call libpaw_msg_hndl(msg,"BUG"    ,"PERS")
 /*BigDFT should accept long lines...*/
 /*#define MSG_ERROR(msg) call libpaw_msg_hndl(msg,"ERROR","PERS",__FILE__,__LINE__)*/
-#define HAVE_YAML
+#  define HAVE_YAML
 
 /* Allocation/deallocation with memory profiling */
-#define USE_MEMORY_PROFILING use dynamic_memory
+#  define USE_MEMORY_PROFILING use dynamic_memory
 /* Use this to allocate/deallocate basic-type arrays with sizes */
 #  define LIBPAW_ALLOCATE(ARR,SIZE) ARR=f_malloc(to_array SIZE ) 
 #  define LIBPAW_DEALLOCATE(ARR) call f_free(ARR)
@@ -94,6 +101,9 @@
 #  define LIBPAW_BOUND2_ALLOCATE(ARR,BND1,BND2) ARR=f_malloc((/ BND1 , BND2 /))
 #  define BOUNDS(LBND,UBND) LBND .to. UBND 
 
+/* libXC support */
+#  define LIBPAW_HAVE_LIBXC
+
 /* F2008 support */
 #  define LIBPAW_CONTIGUOUS 
 
@@ -103,21 +113,21 @@
 #else
 
 /* Constants and defs */
-#define USE_DEFS use m_libpaw_defs
+#  define USE_DEFS use m_libpaw_defs
 
 /* MPI wrappers */
-#define USE_MPI_WRAPPERS use m_libpaw_mpi
+#  define USE_MPI_WRAPPERS use m_libpaw_mpi
 
 /* Messages, errors */
-#define USE_MSG_HANDLING use m_libpaw_tools, only : wrtout => libpaw_wrtout, libpaw_msg_hndl
-#define MSG_COMMENT(msg) call libpaw_msg_hndl(msg,"COMMENT","PERS")
-#define MSG_WARNING(msg) call libpaw_msg_hndl(msg,"WARNING","PERS")
-#define MSG_ERROR(msg)   call libpaw_msg_hndl(msg,"ERROR"  ,"PERS")
-#define MSG_BUG(msg)     call libpaw_msg_hndl(msg,"BUG"    ,"PERS")
-#undef  HAVE_YAML
+#  define USE_MSG_HANDLING use m_libpaw_tools, only : wrtout => libpaw_wrtout, libpaw_msg_hndl
+#  define MSG_COMMENT(msg) call libpaw_msg_hndl(msg,"COMMENT","PERS")
+#  define MSG_WARNING(msg) call libpaw_msg_hndl(msg,"WARNING","PERS")
+#  define MSG_ERROR(msg)   call libpaw_msg_hndl(msg,"ERROR"  ,"PERS")
+#  define MSG_BUG(msg)     call libpaw_msg_hndl(msg,"BUG"    ,"PERS")
+#  undef  HAVE_YAML
 
 /* Allocation/deallocation */
-#define USE_MEMORY_PROFILING
+#  define USE_MEMORY_PROFILING
 /* Use this to allocate/deallocate basic-type arrays with sizes */
 #  define LIBPAW_ALLOCATE(ARR,SIZE) allocate(ARR SIZE)
 #  define LIBPAW_DEALLOCATE(ARR) deallocate(ARR)
@@ -131,6 +141,9 @@
 #  define LIBPAW_BOUND1_ALLOCATE(ARR,BND1) allocate(ARR(BND1))
 #  define LIBPAW_BOUND2_ALLOCATE(ARR,BND1,BND2) allocate(ARR(BND1,BND2))
 #  define BOUNDS(LBND,UBND) LBND : UBND 
+
+/* libXC support */
+#  undef LIBPAW_HAVE_LIBXC
 
 /* F2008 support */
 #  define LIBPAW_CONTIGUOUS 

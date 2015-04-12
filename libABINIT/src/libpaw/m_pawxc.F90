@@ -113,7 +113,7 @@ CONTAINS !===========================================================
 !!      m_pawxc
 !!
 !! CHILDREN
-!!      xcpositron
+!!      libxc_functionals_getvxc
 !!
 !! SOURCE
 
@@ -161,6 +161,12 @@ contains
 !! FUNCTION
 !!  ABINIT version of electron-positron correlation
 !!
+!! PARENTS
+!!      m_pawxc
+!!
+!! CHILDREN
+!!      libxc_functionals_getvxc
+!!
 !! SOURCE
 
 subroutine pawxc_xcpositron_abinit()
@@ -201,6 +207,12 @@ end subroutine pawxc_xcpositron_abinit
 !! FUNCTION
 !!  Local version of electron-positron correlation (to use outside ABINIT)
 !!  NOT AVAILABLE
+!!
+!! PARENTS
+!!      m_pawxc
+!!
+!! CHILDREN
+!!      libxc_functionals_getvxc
 !!
 !! SOURCE
 
@@ -256,7 +268,7 @@ end subroutine pawxc_xcpositron_wrapper
 !!      m_pawxc
 !!
 !! CHILDREN
-!!      size_dvxc
+!!      libxc_functionals_getvxc
 !!
 !! SOURCE
 
@@ -296,6 +308,12 @@ contains
 !! FUNCTION
 !!  Local version of size_dvxc routine (to use outside ABINIT)
 !!
+!! PARENTS
+!!      m_pawxc
+!!
+!! CHILDREN
+!!      libxc_functionals_getvxc
+!!
 !! SOURCE
 
 subroutine pawxc_size_dvxc_local()
@@ -316,7 +334,7 @@ subroutine pawxc_size_dvxc_local()
 !Dimension for the gradient of the density (only allocated for GGA or mGGA)
  if ((ixc>=11.and.ixc<=17).or.(ixc>=23.and.ixc<=24).or.ixc==26.or.ixc==27.or. &
 & (ixc>=31.and.ixc<=34)) ngr2=2*min(nspden,2)-1
-#if defined HAVE_DFT_LIBXC
+#if defined LIBPAW_HAVE_LIBXC
  if (ixc<0.and.(libxc_functionals_isgga().or.libxc_functionals_ismgga())) ngr2=2*min(nspden,2)-1
 #endif
 
@@ -352,7 +370,7 @@ subroutine pawxc_size_dvxc_local()
    else if(ixc==16 .or. ixc==17 .or. ixc==26 .or. ixc==27 ) then
      ndvxc=0
      nvxcdgr=2
-#if defined HAVE_DFT_LIBXC
+#if defined LIBPAW_HAVE_LIBXC
    else if (ixc<0) then
      if(libxc_functionals_isgga() .or. libxc_functionals_ismgga()) then
        ndvxc=15
@@ -369,7 +387,7 @@ subroutine pawxc_size_dvxc_local()
      if ((ixc>=7 .and. ixc<=10) .or. (ixc==13)) nd2vxc=3*min(nspden,2)-2
 !    Following line to be corrected when the calculation of d2vxcar is implemented for these functionals
      if ((ixc>=11 .and. ixc<=15 .and. ixc/=13) .or. (ixc==23.and.ixc<=24)) nd2vxc=1
-#if defined HAVE_DFT_LIBXC
+#if defined LIBPAW_HAVE_LIBXC
      if ((ixc<0.and.(.not.(libxc_functionals_isgga().or.libxc_functionals_ismgga())))) nd2vxc=3*min(nspden,2)-2
 #endif
    end if
@@ -433,7 +451,7 @@ end subroutine pawxc_size_dvxc_wrapper
 !!      m_pawxc
 !!
 !! CHILDREN
-!!      xcmult
+!!      libxc_functionals_getvxc
 !!
 !! SOURCE
 
@@ -475,6 +493,12 @@ contains
 !!
 !! FUNCTION
 !!  Local version of xcmult routine (to use outside ABINIT)
+!!
+!! PARENTS
+!!      m_pawxc
+!!
+!! CHILDREN
+!!      libxc_functionals_getvxc
 !!
 !! SOURCE
 
@@ -556,7 +580,7 @@ end subroutine pawxc_xcmult_wrapper
 !!      m_pawxc
 !!
 !! CHILDREN
-!!      mkdenpos
+!!      libxc_functionals_getvxc
 !!
 !! SOURCE
 
@@ -599,6 +623,12 @@ contains
 !!
 !! FUNCTION
 !!  Local version of mkdenpos routine (to use outside ABINIT)
+!!
+!! PARENTS
+!!      m_pawxc
+!!
+!! CHILDREN
+!!      libxc_functionals_getvxc
 !!
 !! SOURCE
 
@@ -774,7 +804,7 @@ end subroutine pawxc_mkdenpos_wrapper
 !!      m_pawpsp,pawdenpot
 !!
 !! CHILDREN
-!!      drivexc
+!!      libxc_functionals_getvxc
 !!
 !! SOURCE
 
@@ -1341,7 +1371,7 @@ end subroutine pawxc
 !!      pawdenpot
 !!
 !! CHILDREN
-!!      drivexc
+!!      libxc_functionals_getvxc
 !!
 !! SOURCE
 
@@ -1611,7 +1641,7 @@ end subroutine pawxcpositron
 !!      m_pawxc
 !!
 !! CHILDREN
-!!      drivexc
+!!      libxc_functionals_getvxc
 !!
 !! SOURCE
 
@@ -2444,7 +2474,7 @@ end subroutine pawxc3_gga
 !!      pawdenpot,pawenergy3
 !!
 !! CHILDREN
-!!      drivexc
+!!      libxc_functionals_getvxc
 !!
 !! SOURCE
 
@@ -2854,7 +2884,7 @@ end subroutine pawxc3
 !!      m_pawxc
 !!
 !! CHILDREN
-!!      drivexc
+!!      libxc_functionals_getvxc
 !!
 !! SOURCE
 
@@ -3102,7 +3132,7 @@ end subroutine pawxcsph
 !! PARENTS
 !!
 !! CHILDREN
-!!      drivexc
+!!      libxc_functionals_getvxc
 !!
 !! SOURCE
 
@@ -3385,7 +3415,7 @@ end subroutine pawxcsph3
 !!      m_pawxc
 !!
 !! CHILDREN
-!!      drivexc
+!!      libxc_functionals_getvxc
 !!
 !! SOURCE
 
@@ -3515,7 +3545,7 @@ end subroutine pawxcsphpositron
 !!      m_pawxc,poslifetime
 !!
 !! CHILDREN
-!!      drivexc
+!!      libxc_functionals_getvxc
 !!
 !! SOURCE
 
@@ -3872,7 +3902,7 @@ end subroutine pawxcsphpositron
 !!      m_pawpsp,pawdenpot
 !!
 !! CHILDREN
-!!      drivexc
+!!      libxc_functionals_getvxc
 !!
 !! SOURCE
 
@@ -4674,7 +4704,7 @@ end subroutine pawxcsphpositron
 !!      pawdenpot,pawenergy3
 !!
 !! CHILDREN
-!!      drivexc
+!!      libxc_functionals_getvxc
 !!
 !! SOURCE
 
@@ -5006,7 +5036,7 @@ end subroutine pawxcsphpositron
 !!      pawdenpot
 !!
 !! CHILDREN
-!!      drivexc
+!!      libxc_functionals_getvxc
 !!
 !! SOURCE
 
@@ -5469,7 +5499,7 @@ end subroutine pawxcmpositron
 !!      m_pawxc
 !!
 !! CHILDREN
-!!  drivexc_main
+!!      libxc_functionals_getvxc
 !!
 !! SOURCE
 
@@ -5506,7 +5536,7 @@ end subroutine pawxcmpositron
 !One could add here a section for other codes (i.e. BigDFT, ...)
 #if defined HAVE_LIBPAW_ABINIT
  call pawxc_drivexc_abinit()
-#elif defined HAVE_DFT_LIBXC
+#elif defined LIBPAW_HAVE_LIBXC
  call pawxc_drivexc_libxc()
 #else
  write(msg,'(5a)') 'libPAW XC driving routine only implemented in the following cases:',ch10, &
@@ -5527,6 +5557,12 @@ contains
 !!
 !! FUNCTION
 !!  ABINIT version of XC driving routine
+!!
+!! PARENTS
+!!      m_pawxc
+!!
+!! CHILDREN
+!!      libxc_functionals_getvxc
 !!
 !! SOURCE
 
@@ -5570,13 +5606,19 @@ end subroutine pawxc_drivexc_abinit
 !!***
 #endif
 
-#if defined HAVE_DFT_LIBXC
+#if defined LIBPAW_HAVE_LIBXC
 !!****f* pawxc_drivexc_wrapper/pawxc_drivexc_libxc
 !! NAME
 !!  pawxc_drivexc_libxc
 !!
 !! FUNCTION
 !!  LibXC version of XC driving routine
+!!
+!! PARENTS
+!!      m_pawxc
+!!
+!! CHILDREN
+!!      libxc_functionals_getvxc
 !!
 !! SOURCE
 

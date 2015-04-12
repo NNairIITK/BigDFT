@@ -77,6 +77,12 @@ CONTAINS !===========================================================
 !! NOTES
 !!  This routine comes directly from the WRTOUT routine delivered with ABINIT.
 !!
+!! PARENTS
+!!      m_libpaw_tools
+!!
+!! CHILDREN
+!!      flush,flush_
+!!
 !! SOURCE
 
 subroutine libpaw_wrtout(unit,msg,mode_paral)
@@ -151,6 +157,12 @@ end subroutine libpaw_wrtout
 !!
 !! NOTES
 !!  This routine comes directly from the WRTOUT_MYPROC routine delivered with ABINIT.
+!!
+!! PARENTS
+!!      m_libpaw_tools
+!!
+!! CHILDREN
+!!      flush,flush_
 !!
 !! SOURCE
 
@@ -236,6 +248,12 @@ end subroutine libpaw_wrtout_myproc
 !!
 !! NOTES
 !!  This routine comes directly from the WRITE_LINES routine delivered with ABINIT.
+!!
+!! PARENTS
+!!      m_libpaw_tools
+!!
+!! CHILDREN
+!!      flush,flush_
 !!
 !! SOURCE
 
@@ -336,6 +354,11 @@ end subroutine libpaw_write_lines
 !! NOTES
 !!  This routine comes directly from the MSG_HNDL routine delivered with ABINIT.
 !!
+!! PARENTS
+!!
+!! CHILDREN
+!!      flush,flush_
+!!
 !! SOURCE
 
 subroutine libpaw_msg_hndl(msg,level,mode_paral,file,line)
@@ -414,6 +437,12 @@ end subroutine libpaw_msg_hndl
 !! NOTES
 !!  This routine comes directly from the LEAVE_NEW routine delivered with ABINIT.
 !!
+!! PARENTS
+!!      m_libpaw_tools
+!!
+!! CHILDREN
+!!      flush,flush_
+!!
 !! SOURCE
 
 subroutine libpaw_leave(mode_paral,exit_status)
@@ -469,6 +498,12 @@ end subroutine libpaw_leave
 !!
 !! NOTES
 !!  This routine comes directly from the DIE routine delivered with ABINIT.
+!!
+!! PARENTS
+!!      m_libpaw_tools
+!!
+!! CHILDREN
+!!      flush,flush_
 !!
 !! SOURCE
 
@@ -528,6 +563,12 @@ end subroutine libpaw_die
 !!
 !! NOTES
 !!  This routine comes directly from the FLUSH_UNIT routine delivered with ABINIT.
+!!
+!! PARENTS
+!!      m_pawrhoij
+!!
+!! CHILDREN
+!!      flush,flush_
 !!
 !! SOURCE
 
