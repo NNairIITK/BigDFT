@@ -31,7 +31,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
   use sparsematrix, only: gather_matrix_from_taskgroups_inplace, extract_taskgroup_inplace, uncompress_matrix2
   use io, only: writemywaves_linear, writemywaves_linear_fragments, write_linear_matrices, write_linear_coefficients
   use postprocessing_linear, only: loewdin_charge_analysis, support_function_multipoles, build_ks_orbitals
-  use potential, only: updatePotential
+  use rhopotential, only: updatePotential, sumrho_for_TMBs, corrections_for_negative_charge
   implicit none
 
   ! Calling arguments

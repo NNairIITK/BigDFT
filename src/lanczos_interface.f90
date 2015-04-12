@@ -1611,7 +1611,7 @@ contains
 
   !> Lanczos diagonalization
   subroutine xabs_lanczos(iproc,nproc,at,hx,hy,hz,rxyz,&
-       nlpsp,Lzd,dpcom,potd,&
+       nlpsp,Lzd,dpcom,potential,&
        energs,xc,nspin,GPU,in_iat_absorber,&
        in , PAWD , orbs )! add to interface
     use module_base
@@ -1621,7 +1621,7 @@ contains
     use module_interfaces
     use communications_init, only: orbitals_communicators
     use communications_base, only: deallocate_comms
-    use potential, only: full_local_potential
+    use rhopotential, only: full_local_potential
     implicit none
     integer, intent(in) :: iproc,nproc,nspin
     real(gp), intent(in) :: hx,hy,hz
@@ -1631,7 +1631,7 @@ contains
     type(denspot_distribution), intent(in), target :: dpcom
     type(xc_info), intent(in), target :: xc
     real(gp), dimension(3,at%astruct%nat), intent(in), target :: rxyz
-    real(wp), dimension(max(dpcom%ndimpot,1),nspin), target :: potd
+    real(wp), dimension(max(dpcom%ndimpot,1),nspin), target :: potential
     type(energy_terms), intent(inout) :: energs
     type(GPU_pointers), intent(inout) , target :: GPU
     integer, intent(in) :: in_iat_absorber
@@ -1684,7 +1684,7 @@ contains
        STOP     
     endif
 
-    call full_local_potential(iproc,nproc,orbs,Lzd,0,dpcom,xc,potd,pot)
+    call full_local_potential(iproc,nproc,orbs,Lzd,0,dpcom,xc,potential,pot)
 
 !!$   call full_local_potential(iproc,nproc,ndimpot,Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*Lzd%Glr%d%n3i,&
 !!$        in%nspin,Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*Lzd%Glr%d%n3i*in%nspin,0,&
@@ -1766,7 +1766,7 @@ contains
 
   !> Chebychev polynomials to calculate the density of states
   subroutine xabs_chebychev(iproc,nproc,at,hx,hy,hz,rxyz,&
-       nlpsp,Lzd,dpcom,potd,&
+       nlpsp,Lzd,dpcom,potential,&
        energs,xc,nspin,GPU,in_iat_absorber,in, PAWD , orbs  )
 
     use module_base
@@ -1777,7 +1777,7 @@ contains
     use module_interfaces
     use communications_init, only: orbitals_communicators
     use communications_base, only: deallocate_comms
-    use potential, only: full_local_potential
+    use rhopotential, only: full_local_potential
 
     implicit none
     integer  :: iproc,nproc,nspin
@@ -1788,7 +1788,7 @@ contains
     type(denspot_distribution), intent(in), target :: dpcom
     type(xc_info), intent(in), target :: xc
     real(gp), dimension(3,at%astruct%nat), target :: rxyz
-    real(wp), dimension(max(dpcom%ndimpot,1),nspin), target :: potd
+    real(wp), dimension(max(dpcom%ndimpot,1),nspin), target :: potential
     type(energy_terms), intent(inout) :: energs
     type(GPU_pointers), intent(inout) , target :: GPU
     integer, intent(in) :: in_iat_absorber 
@@ -1845,7 +1845,7 @@ contains
        STOP     
     endif
 
-    call full_local_potential(iproc,nproc,orbs,Lzd,0,dpcom,xc,potd,pot)
+    call full_local_potential(iproc,nproc,orbs,Lzd,0,dpcom,xc,potential,pot)
 !!$   call full_local_potential(iproc,nproc,ndimpot,Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*Lzd%Glr%d%n3i,&
 !!$        in%nspin,Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*Lzd%Glr%d%n3i*in%nspin,0,&
 !!$        orbs,Lzd,0,ngatherarr,potential,pot)
@@ -2008,7 +2008,7 @@ contains
 
   !> Finds the spectra solving  (H-omega)x=b
   subroutine xabs_cg(iproc,nproc,at,hx,hy,hz,rxyz,&
-       nlpsp,Lzd,dpcom,potd,&
+       nlpsp,Lzd,dpcom,potential,&
        energs,xc,nspin,GPU,in_iat_absorber,&
        in , rhoXanes, PAWD , PPD, orbs )
     use module_base
@@ -2019,7 +2019,7 @@ contains
     ! per togliere il bug 
     use module_interfaces
     use communications_init, only: orbitals_communicators
-    use potential, only: full_local_potential
+    use rhopotential, only: full_local_potential
 
     implicit none
 
@@ -2032,7 +2032,7 @@ contains
     type(denspot_distribution), intent(in), target :: dpcom
     type(xc_info), intent(in), target :: xc
     real(gp), dimension(3,at%astruct%nat), target :: rxyz
-    real(wp), dimension(max(dpcom%ndimpot,1),nspin), target :: potd
+    real(wp), dimension(max(dpcom%ndimpot,1),nspin), target :: potential
     real(wp), dimension(max(dpcom%ndimpot,1),nspin), target :: rhoXanes
     type(energy_terms), intent(inout) :: energs
     type(GPU_pointers), intent(inout) , target :: GPU
@@ -2055,7 +2055,7 @@ contains
 
     if( iand( in%potshortcut,16)>0) then
        potentialclone = f_malloc_ptr((/ max(dpcom%ndimpot, 1), nspin /),id='potentialclone')
-       potentialclone=potd
+       potentialclone=potential
     endif
 
     if(iproc==0) print *, " IN ROUTINE xabs_cg "
@@ -2094,7 +2094,7 @@ contains
        STOP     
     endif
 
-    call full_local_potential(iproc,nproc,orbs,Lzd,0,dpcom,xc,potd,pot)
+    call full_local_potential(iproc,nproc,orbs,Lzd,0,dpcom,xc,potential,pot)
 !!$   call full_local_potential(iproc,nproc,ndimpot,Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*Lzd%Glr%d%n3i,&
 !!$        in%nspin,Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*Lzd%Glr%d%n3i*in%nspin,0,&
 !!$        orbs,Lzd,0,ngatherarr,potential,pot)
@@ -2137,13 +2137,13 @@ contains
           ene = 0.22_gp + i*0.03_gp
 
           if( iand( in%potshortcut,16)>0) then
-             potd=potentialclone
+             potential=potentialclone
              do j=1, dpcom%ndimpot
 
                 if( mod(j-1,100)==0) then
                    print *, " dirac_hara punto",j
                 endif
-                call dirac_hara (rhoXanes(j,1), ene , potd(j,1))
+                call dirac_hara (rhoXanes(j,1), ene , potential(j,1))
              enddo
           endif
 

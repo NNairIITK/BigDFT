@@ -56,7 +56,7 @@ subroutine constrained_davidson(iproc,nproc,in,at,&
   use module_xc
   use yaml_output
   use communications, only: transpose_v, untranspose_v
-  use potential, only: full_local_potential
+  use rhopotential, only: full_local_potential
   implicit none
   integer, intent(in) :: iproc,nproc
   integer, intent(in) :: nvirt

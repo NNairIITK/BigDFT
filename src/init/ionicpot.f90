@@ -1468,7 +1468,7 @@ subroutine createIonicPotential(geocode,iproc,nproc,verb,at,rxyz,&
 !!!  end do
 !!!  print *,'actual offset',tt_tot*hxh*hyh*hzh
 
-  !use rhopot to calculate the potential from a constant electric field along y direction
+  !use rhopotential to calculate the potential from a constant electric field along y direction
   if (.not. all(elecfield(1:3) == 0.0_gp)) then
      !constant electric field allowed only for surface and free BC
      if (geocode == 'P') then

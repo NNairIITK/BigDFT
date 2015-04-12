@@ -79,7 +79,7 @@ libmodules_a_SOURCES = base.f90 \
 	ice.f90 \
 	locreg_operations.f90 \
 	bigdft_run.f90 \
-	potential.f90 \
+	rhopotential.f90 \
 	$(bindings_headers) \
 	$(LIBXC_MODULE) \
 	$(BLACS) \
@@ -194,7 +194,7 @@ modules = module_base.@MODULE_EXT@ \
 	ice.@MODULE_EXT@ \
 	locreg_operations.@MODULE_EXT@ \
 	bigdft_run.@MODULE_EXT@ \
-	potential.@MODULE_EXT@ \
+	rhopotential.@MODULE_EXT@ \
 	module_lj.@MODULE_EXT@ \
 	module_morse_bulk.@MODULE_EXT@ \
 	module_tersoff.@MODULE_EXT@ \
@@ -274,15 +274,15 @@ module_fingerprints.o: base.o
 transposed_operations.o: base.o types.o sparsematrix_base.o sparsematrix.o
 module_forces.o: base.o types.o 
 chebyshev.o: base.o types.o sparsematrix_base.o sparsematrix_init.o sparsematrix.o
-unitary_tests.o: base.o types.o interfaces.o communications_init.o communications.o sparsematrix_base.o sparsematrix_init.o sparsematrix.o transposed_operations.o locregs.o locreg_operations.o potential.o
+unitary_tests.o: base.o types.o interfaces.o communications_init.o communications.o sparsematrix_base.o sparsematrix_init.o sparsematrix.o transposed_operations.o locregs.o locreg_operations.o rhopotential.o
 matrix_operations.o: base.o types.o interfaces.o sparsematrix_base.o sparsematrix_init.o sparsematrix.o parallel_linalg.o ice.o
 parallel_linalg.o: base.o types.o
 io.o: base.o types.o interfaces.o sparsematrix_base.o sparsematrix.o
-postprocessing_linear.o: base.o types.o interfaces.o communications_base.o communications.o sparsematrix_base.o sparsematrix.o transposed_operations.o matrix_operations.o potential.o
+postprocessing_linear.o: base.o types.o interfaces.o communications_base.o communications.o sparsematrix_base.o sparsematrix.o transposed_operations.o matrix_operations.o rhopotential.o
 foe.o: base.o types.o interfaces.o sparsematrix_base.o sparsematrix_init.o sparsematrix.o foe_base.o foe_common.o fermi_level.o chebyshev.o matrix_operations.o
 ice.o: base.o types.o interfaces.o sparsematrix_base.o sparsematrix_init.o sparsematrix.o foe_base.o foe_common.o fermi_level.o chebyshev.o
 locreg_operations.o: base.o locregs.o
-potential.o: base.o types.o interfaces.o xc.o communications_base.o communications.o locreg_operations.o
+rhopotential.o: base.o types.o interfaces.o xc.o communications_base.o communications.o locreg_operations.o sparsematrix_base.o
 
 # Copy modules in a common include directory.
 all: all-am insmod

@@ -6,7 +6,7 @@
 !!   or http://www.gnu.org/copyleft/gpl.txt .
 !!   For the list of contributors, see ~/AUTHORS 
  
-module potential
+module rhopotential
 
   implicit none
 
@@ -14,6 +14,9 @@ module potential
 
   public :: updatePotential
   public :: full_local_potential
+  public :: sumrho_for_TMBs
+  public :: clean_rho
+  public :: corrections_for_negative_charge
 
   contains
 
@@ -473,4 +476,325 @@ module potential
     
     END SUBROUTINE full_local_potential
 
-end module potential
+
+    subroutine sumrho_for_TMBs(iproc, nproc, hx, hy, hz, collcom_sr, denskern, denskern_, ndimrho, rho, rho_negative, &
+            print_results)
+      use module_base
+      use module_types
+      use yaml_output
+      use sparsematrix_base, only: sparse_matrix
+      implicit none
+    
+      ! Calling arguments
+      integer,intent(in) :: iproc, nproc, ndimrho
+      real(kind=8),intent(in) :: hx, hy, hz
+      type(comms_linear),intent(in) :: collcom_sr
+      type(sparse_matrix),intent(in) :: denskern
+      type(matrices),intent(in) :: denskern_
+      real(kind=8),dimension(ndimrho),intent(out) :: rho
+      logical,intent(out) :: rho_negative
+      logical,intent(in),optional :: print_results
+    
+      ! Local variables
+      integer :: ipt, ii, i0, iiorb, jjorb, istat, iall, i, j, ierr, ind, ispin, ishift, ishift_mat, iorb_shift
+      real(8) :: tt, total_charge, hxh, hyh, hzh, factor, tt1, rho_neg
+      integer,dimension(:),allocatable :: isend_total
+      real(kind=8),dimension(:),allocatable :: rho_local
+      character(len=*),parameter :: subname='sumrho_for_TMBs'
+      logical :: print_local
+      integer :: size_of_double, info, mpisource, istsource, istdest, nsize, jproc, ishift_dest, ishift_source
+    
+      call f_routine('sumrho_for_TMBs')
+    
+      ! check whether all entries of the charge density are positive
+      rho_negative=.false.
+    
+      if (present(print_results)) then
+          if (print_results) then
+              print_local=.true.
+          else
+              print_local=.false.
+          end if
+      else
+          print_local=.true.
+      end if
+    
+    
+      rho_local = f_malloc(collcom_sr%nptsp_c*denskern%nspin,id='rho_local')
+    
+      ! Define some constant factors.
+      hxh=.5d0*hx
+      hyh=.5d0*hy
+      hzh=.5d0*hz
+      factor=1.d0/(hxh*hyh*hzh)
+    
+      call timing(iproc,'sumrho_TMB    ','ON')
+      
+      ! Initialize rho. (not necessary for the moment)
+      !if (xc_isgga()) then
+      !    call f_zero(collcom_sr%nptsp_c, rho_local)
+      !else
+       !   ! There is no mpi_allreduce, therefore directly initialize to
+       !   ! 10^-20 and not 10^-20/nproc.
+      !    rho_local=1.d-20
+      !end if
+    
+    
+      !!if (print_local .and. iproc==0) write(*,'(a)', advance='no') 'Calculating charge density... '
+    
+      total_charge=0.d0
+      rho_neg=0.d0
+    
+    !ispin=1
+      !SM: check if the modulo operations take a lot of time. If so, try to use an
+      !auxiliary array with shifted bounds in order to access smat%matrixindex_in_compressed_fortransposed
+      do ispin=1,denskern%nspin
+          if (ispin==1) then
+              ishift=0
+          else
+              ishift=collcom_sr%ndimind_c/2
+          end if
+          iorb_shift=(ispin-1)*denskern%nfvctr
+          ishift_mat=(ispin-1)*denskern%nvctr
+          !$omp parallel default(private) &
+          !$omp shared(total_charge, collcom_sr, factor, denskern, denskern_, rho_local, rho_neg, ispin, ishift, ishift_mat, iorb_shift)
+          !$omp do schedule(static,200) reduction(+:total_charge, rho_neg)
+          do ipt=1,collcom_sr%nptsp_c
+              ii=collcom_sr%norb_per_gridpoint_c(ipt)
+        
+              i0=collcom_sr%isptsp_c(ipt)+ishift
+              tt=1.e-20_dp
+              do i=1,ii
+                  iiorb=collcom_sr%indexrecvorbital_c(i0+i) - iorb_shift
+                  !iiorb=mod(iiorb-1,denskern%nfvctr)+1
+        !ispin=spinsgn(iiorb) 
+                  tt1=collcom_sr%psit_c(i0+i)
+                  ind=denskern%matrixindex_in_compressed_fortransposed(iiorb,iiorb)
+                  ind=ind+ishift_mat-denskern%isvctrp_tg
+                  tt=tt+denskern_%matrix_compr(ind)*tt1*tt1
+        !tt(ispin)=tt(ispin)+denskern_%matrix_compr(ind)*tt1*tt1
+                  do j=i+1,ii
+                      jjorb=collcom_sr%indexrecvorbital_c(i0+j) - iorb_shift
+                      !jjorb=mod(jjorb-1,denskern%nfvctr)+1
+                      ind=denskern%matrixindex_in_compressed_fortransposed(jjorb,iiorb)
+                      if (ind==0) cycle
+                      ind=ind+ishift_mat-denskern%isvctrp_tg
+                      tt=tt+2.0_dp*denskern_%matrix_compr(ind)*tt1*collcom_sr%psit_c(i0+j)
+                  end do
+              end do
+              tt=factor*tt
+              total_charge=total_charge+tt
+              rho_local(ipt+(ispin-1)*collcom_sr%nptsp_c)=tt
+        !rho_local(ipt,ispin)=tt(ispin)
+              if (tt<0.d0) rho_neg=rho_neg+1.d0
+          end do
+          !$omp end do
+          !$omp end parallel
+      end do
+    
+    
+      !if (print_local .and. iproc==0) write(*,'(a)') 'done.'
+    
+      call timing(iproc,'sumrho_TMB    ','OF')
+    
+    
+      call communicate_density()
+    
+    
+      !!if (nproc > 1) then
+      !!   call mpiallred(irho, 1, mpi_sum, bigdft_mpi%mpi_comm)
+      !!end if
+    
+      if (rho_neg>0.d0) then
+          rho_negative=.true.
+      end if
+    
+      call f_free(rho_local)
+    
+      call f_release_routine()
+    
+      contains
+    
+        subroutine communicate_density()
+          implicit none
+          real(kind=8),dimension(2) :: reducearr
+    
+          call f_routine(id='communicate_density')
+          call timing(iproc,'sumrho_allred','ON')
+        
+          ! Communicate the density to meet the shape required by the Poisson solver.
+          !!if (nproc>1) then
+          !!    call mpi_alltoallv(rho_local, collcom_sr%nsendcounts_repartitionrho, collcom_sr%nsenddspls_repartitionrho, &
+          !!                       mpi_double_precision, rho, collcom_sr%nrecvcounts_repartitionrho, &
+          !!                       collcom_sr%nrecvdspls_repartitionrho, mpi_double_precision, bigdft_mpi%mpi_comm, ierr)
+          !!else
+          !!    call vcopy(ndimrho, rho_local(1), 1, rho(1), 1)
+          !!end if
+        
+          !!!!do ierr=1,size(rho)
+          !!!!    write(200+iproc,*) ierr, rho(ierr)
+          !!!!end do
+        
+        
+        
+          if (nproc>1) then
+              call mpi_type_size(mpi_double_precision, size_of_double, ierr)
+              call mpi_info_create(info, ierr)
+              call mpi_info_set(info, "no_locks", "true", ierr)
+              call mpi_win_create(rho_local(1), int(collcom_sr%nptsp_c*denskern%nspin*size_of_double,kind=mpi_address_kind), &
+                   size_of_double, info, bigdft_mpi%mpi_comm, collcom_sr%window, ierr)
+              call mpi_info_free(info, ierr)
+        
+              call mpi_win_fence(mpi_mode_noprecede, collcom_sr%window, ierr)
+        
+              ! This is a bit quick and dirty. Could be done in a better way, but
+              ! would probably required to pass additional arguments to the subroutine
+              isend_total = f_malloc0(0.to.nproc-1,id='isend_total')
+              isend_total(iproc)=collcom_sr%nptsp_c
+              call mpiallred(isend_total, mpi_sum, comm=bigdft_mpi%mpi_comm)
+        
+        
+              do ispin=1,denskern%nspin
+                  !ishift_dest=(ispin-1)*sum(collcom_sr%commarr_repartitionrho(4,:)) !spin shift for the receive buffer
+                  ishift_dest=(ispin-1)*ndimrho/denskern%nspin
+                  do jproc=1,collcom_sr%ncomms_repartitionrho
+                      mpisource=collcom_sr%commarr_repartitionrho(1,jproc)
+                      istsource=collcom_sr%commarr_repartitionrho(2,jproc)
+                      istdest=collcom_sr%commarr_repartitionrho(3,jproc)
+                      nsize=collcom_sr%commarr_repartitionrho(4,jproc)
+                      ishift_source=(ispin-1)*isend_total(mpisource) !spin shift for the send buffer
+                      if (nsize>0) then
+                          !!write(*,'(6(a,i0))') 'process ',iproc, ' gets ',nsize,' elements at position ',istdest+ishift_dest, &
+                          !!                     ' from position ',istsource+ishift_source,' on process ',mpisource, &
+                          !!                     '; error code=',ierr
+                          call mpi_get(rho(istdest+ishift_dest), nsize, mpi_double_precision, mpisource, &
+                               int((istsource-1+ishift_source),kind=mpi_address_kind), &
+                               nsize, mpi_double_precision, collcom_sr%window, ierr)
+                      end if
+                  end do
+              end do
+              call mpi_win_fence(0, collcom_sr%window, ierr)
+              !!write(*,'(a,i0)') 'mpi_win_fence error code: ',ierr
+              call mpi_win_free(collcom_sr%window, ierr)
+              !!write(*,'(a,i0)') 'mpi_win_free error code: ',ierr
+        
+              call f_free(isend_total)
+          else
+              call vcopy(ndimrho, rho_local(1), 1, rho(1), 1)
+          end if
+        
+          !do ierr=1,size(rho)
+          !    write(300+iproc,*) ierr, rho(ierr)
+          !end do
+          !call mpi_finalize(ierr)
+          !stop
+        
+          if (nproc > 1) then
+              reducearr(1) = total_charge
+              reducearr(2) = rho_neg
+              call mpiallred(reducearr, mpi_sum, comm=bigdft_mpi%mpi_comm)
+              total_charge = reducearr(1)
+              rho_neg = reducearr(2)
+             !call mpiallred(total_charge, 1, mpi_sum, bigdft_mpi%mpi_comm)
+          end if
+        
+          !!if(print_local .and. iproc==0) write(*,'(3x,a,es20.12)') 'Calculation finished. TOTAL CHARGE = ', total_charge*hxh*hyh*hzh
+          if (iproc==0 .and. print_local) then
+              call yaml_map('Total charge',total_charge*hxh*hyh*hzh,fmt='(es20.12)')
+          end if
+          
+          call timing(iproc,'sumrho_allred','OF')
+          call f_release_routine()
+    
+        end subroutine communicate_density
+    
+      !!write(*,*) 'after deallocate'
+      !!call mpi_finalize(ierr)
+      !!stop
+    
+    
+    end subroutine sumrho_for_TMBs
+
+
+    subroutine corrections_for_negative_charge(iproc, nproc, KSwfn, at, input, tmb, denspot)
+      use module_types
+      use module_interfaces
+      use yaml_output
+      use dynamic_memory
+      implicit none
+    
+      ! Calling arguments
+      integer, intent(in) :: iproc, nproc
+      type(DFT_wavefunction), intent(in) :: KSwfn
+      type(atoms_data), intent(in) :: at
+      type(input_variables), intent(in) :: input
+      type(DFT_wavefunction), intent(inout) :: tmb
+      type(DFT_local_fields), intent(inout) :: denspot
+    
+      call f_routine(id='corrections_for_negative_charge')
+    
+      if (iproc==0) call yaml_warning('No increase of FOE cutoff')
+      call clean_rho(iproc, nproc, denspot%dpbox%ndimrhopot, denspot%rhov)
+    
+      call f_release_routine()
+    
+    end subroutine corrections_for_negative_charge
+
+
+    !> Set negative entries to zero
+    subroutine clean_rho(iproc, nproc, npt, rho)
+      use module_base
+      use yaml_output
+      implicit none
+    
+      ! Calling arguments
+      integer, intent(in) :: iproc, nproc, npt
+      real(kind=8),dimension(npt), intent(inout) :: rho
+    
+      ! Local variables
+      integer :: ncorrection, ipt
+      real(kind=8) :: charge_correction
+    
+      if (iproc==0) then
+          call yaml_newline()
+          call yaml_map('Need to correct charge density',.true.)
+          call yaml_warning('set to 1.d-20 instead of 0.d0')
+      end if
+    
+      ncorrection=0
+      charge_correction=0.d0
+      do ipt=1,npt
+          if (rho(ipt)<0.d0) then
+              if (rho(ipt)>=-1.d-9) then
+                  ! negative, but small, so simply set to zero
+                  charge_correction=charge_correction+rho(ipt)
+                  !rho(ipt)=0.d0
+                  rho(ipt)=1.d-20
+                  ncorrection=ncorrection+1
+              else
+                  ! negative, but non-negligible, so issue a warning
+                  call yaml_warning('considerable negative rho, value: '//trim(yaml_toa(rho(ipt),fmt='(es12.4)'))) 
+                  charge_correction=charge_correction+rho(ipt)
+                  !rho(ipt)=0.d0
+                  rho(ipt)=1.d-20
+                  ncorrection=ncorrection+1
+              end if
+          end if
+      end do
+    
+      if (nproc > 1) then
+          call mpiallred(ncorrection, 1, mpi_sum, comm=bigdft_mpi%mpi_comm)
+          call mpiallred(charge_correction, 1, mpi_sum, comm=bigdft_mpi%mpi_comm)
+      end if
+    
+      if (iproc==0) then
+          call yaml_newline()
+          call yaml_map('number of corrected points',ncorrection)
+          call yaml_newline()
+          call yaml_map('total charge correction',abs(charge_correction),fmt='(es14.5)')
+          call yaml_newline()
+      end if
+      
+    end subroutine clean_rho
+
+end module rhopotential

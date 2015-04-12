@@ -3053,22 +3053,6 @@ module module_interfaces
           type(comms_linear),intent(inout) :: collcom_sr
         end subroutine communicate_basis_for_density_collective
 
-        subroutine sumrho_for_TMBs(iproc, nproc, hx, hy, hz, collcom_sr, denskern, denskern_, ndimrho, rho, rho_negative, &
-                   print_results)
-          use module_base
-          use module_types
-          use sparsematrix_base, only: sparse_matrix
-          implicit none
-          integer,intent(in) :: iproc, nproc, ndimrho
-          real(kind=8),intent(in) :: hx, hy, hz
-          type(comms_linear),intent(in) :: collcom_sr
-          type(sparse_matrix),intent(in) :: denskern
-          type(matrices),intent(in) :: denskern_
-          real(kind=8),dimension(ndimrho),intent(out) :: rho
-          logical,intent(out) :: rho_negative
-          logical,intent(in),optional :: print_results
-        end subroutine sumrho_for_TMBs
-
         subroutine kswfn_init_comm(wfn, dpbox, iproc, nproc, nspin, imethod_overlap)
           use module_types
           implicit none

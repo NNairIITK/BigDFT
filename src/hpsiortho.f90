@@ -20,7 +20,7 @@ subroutine psitohpsi(iproc,nproc,atoms,scf,denspot,itrp,itwfn,iscf,alphamix,&
   use m_ab7_mixing
   use yaml_output
   use psp_projectors, only: PSPCODE_PAW,PSP_APPLY_SKIP
-  use potential, only: full_local_potential
+  use rhopotential, only: full_local_potential
   implicit none
   !Arguments
   logical, intent(in) :: scf  !< If .false. do not calculate the self-consistent potential

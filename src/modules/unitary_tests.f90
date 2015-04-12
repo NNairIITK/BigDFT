@@ -21,7 +21,7 @@ module unitary_tests
       use yaml_output
       use dictionaries, only: f_err_throw
       use communications, only: start_onesided_communication
-      use potential, only: full_local_potential
+      use rhopotential, only: full_local_potential
       implicit none
       integer,intent(in) :: iproc
       type(DFT_wavefunction), intent(inout) :: tmb
@@ -191,6 +191,7 @@ module unitary_tests
       use communications, only: transpose_switch_psir, transpose_communicate_psir, transpose_unswitch_psirt
       use sparsematrix_base, only: sparse_matrix, matrices
       use sparsematrix_init, only: matrixindex_in_compressed
+      use rhopotential, only: sumrho_for_TMBs
       implicit none
     
       ! Calling arguments
