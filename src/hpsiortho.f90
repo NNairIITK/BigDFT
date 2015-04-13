@@ -2532,50 +2532,51 @@ subroutine evaltoocc(iproc,nproc,filewrite,wf0,orbs,occopt)
    !local variables
    integer :: ikpt,iorb,jorb
 
-   homo=1.e100_gp
-   lumo=-1.e100_gp
+   homo=-1.e100_gp
+   lumo=1.e100_gp
    do ikpt=1,orbs%nkpts
-      do iorb=1,orbs%norbu
-         if (orbs%occup(iorb) < 0.5_gp) then
+      find_up: do iorb=1,orbs%norbu
+         jorb=iorb+(ikpt-1)*orbs%norb
+         if (orbs%occup(jorb) < 0.5_gp) then
             if (iorb ==1) call f_err_throw(&
                  'Fermi level badly calculated, first orbital is already above',&
                  err_name='BIGDFT_RUNTIME_ERROR')
-            if (orbs%eval(iorb-1) < homo) then
-               homo=orbs%eval(iorb-1)
+            if (orbs%eval(jorb-1) > homo) then
+               homo=orbs%eval(jorb-1)
                ikpt_homo=ikpt
                ispin_homo=1
             end if
-            if (orbs%eval(iorb) > lumo) then
-               lumo=orbs%eval(iorb)
+            if (orbs%eval(jorb) < lumo) then
+               lumo=orbs%eval(jorb)
                ikpt_lumo=ikpt
                ispin_lumo=1
             end if
-            exit
+            exit find_up
          end if
-      end do
-      do iorb=1,orbs%norbd
-         jorb=orbs%norbu+iorb
+      end do find_up
+      find_down: do iorb=1,orbs%norbd
+         jorb=orbs%norbu+iorb+(ikpt-1)*orbs%norb
          if (orbs%occup(jorb) < 0.5_gp) then
             if (iorb ==1) call f_err_throw(&
                  'Fermi level badly calculated (down spin), first orbital is already above',&
                  err_name='BIGDFT_RUNTIME_ERROR')
-            if (orbs%eval(jorb-1) < homo) then
+            if (orbs%eval(jorb-1) > homo) then
                homo=orbs%eval(jorb-1)
                ikpt_homo=ikpt
                ispin_homo=-1
             end if
-            if (orbs%eval(jorb) > lumo) then
+            if (orbs%eval(jorb) < lumo) then
                lumo=orbs%eval(jorb)
                ikpt_lumo=ikpt
                ispin_lumo=-1
             end if
-            exit
+            exit find_down
          end if
-      end do
+      end do find_down
    end do
    !now verify that the gap has been found
-   if (lumo < homo) call f_err_throw('Error in determining homo-lumo gap',&
-        err_name='BIGDFT_RUNTIME_ERROR')
+   !if (lumo < homo) call f_err_throw('Error in determining homo-lumo gap',&
+   !     err_name='BIGDFT_RUNTIME_ERROR')
 
  end subroutine orbs_get_gap
 
