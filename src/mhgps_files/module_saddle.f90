@@ -947,8 +947,8 @@ real(gp) :: alpha0int
                 fsw%fstretch_rot(:,:,fsw%idx_rot(fsw%nhist_rot))
         endif
 
-!        if (cosangle.gt..20_gp) then
-        if (cosangle.gt..40_gp) then
+        if (cosangle.gt..20_gp) then
+!        if (cosangle.gt..40_gp) then
             fsw%alpha_rot=fsw%alpha_rot*1.10_gp
         else
             fsw%alpha_rot=max(fsw%alpha_rot*.85_gp,alpha0int)
@@ -1166,6 +1166,16 @@ end do loop_nfrag
 !   if(mhgpsst%iproc==0) write(*,*) '(MH) nfrag=',nfrag
 occured=.false.
 if(nfrag.ne.1) then          !"if there is fragmentation..."
+
+!!DISABLE FIX FRAGMENTATION
+!!      if(mhgpsst%iproc==0) then
+!!         call yaml_comment('(MHGPS) FIX: Fragmentation DISABLED!')
+!!         call yaml_mapping_close()
+!!      end if
+!!      return
+!!END DISBALE FIX FRAGEMENTATION
+
+
    occured=.true.
    if(mhgpsst%iproc==0) then
       call yaml_mapping_open('(MHGPS) FIX')
