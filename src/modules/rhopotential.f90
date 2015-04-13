@@ -557,7 +557,8 @@ module rhopotential
           iorb_shift=(ispin-1)*denskern%nfvctr
           ishift_mat=(ispin-1)*denskern%nvctr
           !$omp parallel default(private) &
-          !$omp shared(total_charge, collcom_sr, factor, denskern, denskern_, rho_local, rho_neg, ispin, ishift, ishift_mat, iorb_shift)
+          !$omp shared(total_charge, collcom_sr, factor, denskern, denskern_, rho_local) &
+          !$omp shared(rho_neg, ispin, ishift, ishift_mat, iorb_shift) 
           !$omp do schedule(static,200) reduction(+:total_charge, rho_neg)
           do ipt=1,collcom_sr%nptsp_c
               ii=collcom_sr%norb_per_gridpoint_c(ipt)
