@@ -457,7 +457,7 @@ subroutine read_ascii_positions(ifile,filename,astruct,comment,energy,fxyz,getli
            astruct%rxyz(2,iat)=real(ry,gp)
            astruct%rxyz(3,iat)=real(rz,gp)
         end if
-        if (astruct%units=='angstroem' .or. astruct%units=='angstroemd0') then
+        if ((astruct%units=='angstroem' .or. astruct%units=='angstroemd0') .and. .not. reduced) then
            ! if Angstroem convert to Bohr
            astruct%rxyz(1,iat)=astruct%rxyz(1,iat) / Bohr_Ang
            astruct%rxyz(2,iat)=astruct%rxyz(2,iat) / Bohr_Ang
