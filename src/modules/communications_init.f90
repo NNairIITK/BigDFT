@@ -4036,8 +4036,8 @@ module communications_init
       
       ! Local variables
       integer:: is1, ie1, is2, ie2, is3, ie3, ilr, ii, iorb, iiorb, jproc, kproc, istsource, is, ie, iie3j
-      integer:: ioverlap, is3j, ie3j, is3k, ie3k, mpidest, istdest, ioffsetx, ioffsety, ioffsetz
-      integer :: is3min, ie3max, tag, ncount, ierr, nmaxoverlap, nlen, iseg, j3
+      integer:: ioverlap, is3j, ie3j, is3k, ie3k, mpidest, istdest, ioffsetx, ioffsety, ioffsetz, iel
+      integer :: is3min, ie3max, tag, ncount, ierr, nmaxoverlap, nlen, iseg, j3, ileny, ioffset, isegx
       logical :: datatype_defined
       character(len=*),parameter:: subname='initialize_communication_potential'
       integer,dimension(6) :: ise
@@ -4207,6 +4207,9 @@ module communications_init
       !call memocc(istat, comgp%mpi_datatypes, 'comgp%mpi_datatypes', subname)
       !call to_zero((nmaxoverlap+1)*nproc, comgp%mpi_datatypes(0,0))
       comgp%mpi_datatypes = f_malloc0_ptr(0.to.comgp%noverlaps,id='comgp%mpi_datatypes')
+      comgp%mpi_datatypes_new = f_malloc0_ptr(0.to.comgp%noverlaps,id='comgp%mpi_datatypes')
+      comgp%onedtypearr = f_malloc_ptr((/2,2*lzd%glr%d%n2i,comgp%noverlaps/),id='comgp%onedtypearr')
+      comgp%onedtypeovrlp = f_malloc0_ptr(comgp%noverlaps,id='comgp%onedtypeovrlp')
       comgp%nrecvBuf = 0
       is3min=0
       ie3max=0
@@ -4385,6 +4388,7 @@ module communications_init
                           !!     xline_type, comgp%mpi_datatypes(0), ierr)
                           ! Now create a type describing one block
                           xyblock_type(:)=0 !just to initialize
+                          iel = 0
                           do iseg=1,nsegy
                               !!write(*,*) 'iproc, iseg, blocklengthsy(iseg)', iproc, iseg, blocklengthsy(iseg)
                               call mpi_type_create_hvector(blocklengthsy(iseg), 1, &
@@ -4396,7 +4400,22 @@ module communications_init
                               !!write(*,'(a,4i14)') 'iproc, size, lb, extent, of xyblock_type(iseg)', iproc, ii, lb, extent
                               types(iseg)=xyblock_type(iseg)
                               nblocksy(iseg)=1
+                              do ileny=1,blocklengthsy(iseg)
+                                  do isegx=1,nsegx
+                                      iel = iel + 1
+                                      ioffset = int(displacementsy(iseg)/size_of_double,kind=4) + &
+                                                (ileny-1)*lzd%glr%d%n1i + &
+                                                int(displacementsx(isegx)/size_of_double,kind=4)
+                                      comgp%onedtypearr(1,iel,ioverlap) = ioffset
+                                      comgp%onedtypearr(2,iel,ioverlap) = blocklengthsx(isegx)
+                                      !write(*,*) 'isegx, blocklengthsx(isegx)', isegx, blocklengthsx(isegx)
+                                      write(*,*) 'iproc, ioverlap, comgp%noverlaps', iproc, ioverlap, comgp%noverlaps
+                                      write(*,'(a,3i5,2i12)') 'iproc, iel, ioverlap, 1darr', &
+                                          iproc, iel, ioverlap, comgp%onedtypearr(:,iel,ioverlap)
+                                  end do
+                              end do
                           end do
+                          comgp%onedtypeovrlp(ioverlap) = iel
                           types(:)=xyblock_type
                           call mpi_type_create_struct(nsegy, nblocksy, displacementsy, &
                                types, comgp%mpi_datatypes(0), ierr)

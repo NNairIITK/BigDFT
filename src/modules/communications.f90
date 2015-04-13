@@ -1023,9 +1023,17 @@ module communications
       !character(len=*), parameter :: subname='start_onesided_communication'
       integer :: joverlap, mpisource, istsource, mpidest, istdest, ierr, nit, ispin, ispin_shift
       integer :: ioffset_send, ist, i2, i3, ist2, ist3, info, nsize, size_of_double, isend_shift
-      integer :: islices, ilines, ist1, ish1, ish2
-      integer,dimension(:),allocatable :: npotarr
+      integer :: islices, ilines, ist1, ish1, ish2, i, iel, it
+      integer,dimension(:),allocatable :: npotarr, blocklengths, types
+      integer(kind=mpi_address_kind),dimension(:),allocatable :: displacements
       integer(kind=mpi_address_kind) :: lb, extent
+
+      write(*,*) 'maxval(comm%onedtypeovrlp), maxval(comm%comarr(5,:))', &
+           maxval(comm%onedtypeovrlp), maxval(comm%comarr(5,:))
+      blocklengths = f_malloc(maxval(comm%onedtypeovrlp)*maxval(comm%comarr(5,:)),id='blocklengths')
+      displacements = f_malloc(maxval(comm%onedtypeovrlp)*maxval(comm%comarr(5,:)),id='displacements')
+      types = f_malloc(maxval(comm%onedtypeovrlp)*maxval(comm%comarr(5,:)),id='types')
+      types(:) = mpi_double_precision
 
 !!integer :: itemsize
 !!type(c_ptr) :: baseptr
@@ -1106,12 +1114,53 @@ module communications
                           call mpi_type_create_hvector(nit, 1, int(size_of_double*ioffset_send,kind=mpi_address_kind), &
                                comm%mpi_datatypes(0), comm%mpi_datatypes(joverlap), ierr)
                           call mpi_type_commit(comm%mpi_datatypes(joverlap), ierr)
+                          call mpi_type_size(comm%mpi_datatypes(joverlap), nsize, ierr)
+                          call mpi_type_get_extent(comm%mpi_datatypes(joverlap), lb, extent, ierr)
+                          write(*,*) 'OLD: iproc, nit, nsize, lb, extent', iproc, nit, nsize, lb, extent
+                          iel=0
+                          write(*,*) 'joverlap, nit, onedtypeovrlp(joverlap)', joverlap, nit, comm%onedtypeovrlp(joverlap)
+                          do it=1,nit
+                              do i=1,comm%onedtypeovrlp(1)
+                                  iel = iel + 1
+                                  displacements(iel) = int(((it-1)*ioffset_send+comm%onedtypearr(1,i,1))*&
+                                                           size_of_double, &
+                                                           kind=mpi_address_kind)
+                                  blocklengths(iel) = comm%onedtypearr(2,i,1)
+                                  !write(*,*) 'iproc, it, i, iel, displ, blocklen', &
+                                  !    iproc, it, i, iel, displacements(iel), blocklengths(iel)
+                              end do
+                          end do
+                          if (iel>0) then
+                              write(*,*) 'iproc, nit, comm%onedtypeovrlp(joverlap), iel, displacements(iel), blocklengths(iel)', &
+                                          iproc, nit, comm%onedtypeovrlp(joverlap), iel, displacements(iel), blocklengths(iel)
+                          end if
+                          !!call mpi_type_create_struct(iel, blocklengths, displacements, types, &
+                          !!     comm%mpi_datatypes_new(joverlap), ierr)
+                          write(*,*) 'iel, size(blocklengths), size(displacements)', iel, size(blocklengths), size(displacements)
+                          blocklengths = 1
+                          displacements = int(8,kind=mpi_address_kind)
+                          call mpi_type_create_struct(iel, blocklengths, displacements, types, &
+                               comm%mpi_datatypes_new(joverlap), ierr)
+                          !!write(*,*) 'iproc, blocklengths(1:2), displacements(1:2), types(1:2)', &
+                          !!            iproc, blocklengths(1:2), displacements(1:2), types(1:2)
+                          !!call mpi_type_create_struct(4, blocklengths, displacements, types, &
+                          !!     comm%mpi_datatypes_new(joverlap), ierr)
+                          !!call mpi_type_struct(2, (/85,85/), (/int(0,kind=mpi_address_kind),int(680,kind=mpi_address_kind)/),&
+                          !!     types, comm%mpi_datatypes_new(joverlap), ierr)
+                          call mpi_type_commit(comm%mpi_datatypes_new(joverlap), ierr)
+                          call mpi_type_size(comm%mpi_datatypes_new(joverlap), nsize, ierr)
+                          call mpi_type_get_extent(comm%mpi_datatypes_new(joverlap), lb, extent, ierr)
+                          write(*,*) 'NEW: iproc, nit, nsize, lb, extent', iproc, nit, nsize, lb, extent
                       end if
                       if (iproc==mpidest) then
                       !if (iproc==mpidest .and. iproc==1 .and. iproc/=mpisource) then
                           if (.not.bgq) then
                                call mpi_type_size(comm%mpi_datatypes(joverlap), nsize, ierr)
                                call mpi_type_get_extent(comm%mpi_datatypes(joverlap), lb, extent, ierr)
+                               write(*,*) 'iproc, nit, nsize_old, lb, extent_old', iproc, nit, nsize, lb, extent
+                               call mpi_type_size(comm%mpi_datatypes_new(joverlap), nsize, ierr)
+                               call mpi_type_get_extent(comm%mpi_datatypes_new(joverlap), lb, extent, ierr)
+                               write(*,*) 'iproc, nit, nsize_new, lb, extent_new', iproc, nit, nsize, lb, extent
                                extent=extent/size_of_double
                                nsize=nsize/size_of_double
                                if(nsize>0) then
@@ -1151,11 +1200,14 @@ module communications
                                        call mpi_win_lock(MPI_LOCK_EXCLUSIVE, mpisource, 0, comm%window, ierr)
                                        !write(*,'(2(a,i0))') 'AFTER: proc ',iproc,' calls lock for proc ',mpisource
                                    end if
-                                   !write(*,'(a,5i10)') 'iproc, mpisource, ispin_shift+istdest, nsize, isend_shift+istsource-1', &
-                                   !!    iproc, mpisource, ispin_shift+istdest, nsize, isend_shift+istsource-1
+                                   write(*,'(a,5i10)') 'iproc, mpisource, ispin_shift+istdest, nsize, isend_shift+istsource-1', &
+                                       iproc, mpisource, ispin_shift+istdest, nsize, isend_shift+istsource-1
+                                   !call mpi_get(recvbuf(ispin_shift+istdest), nsize, &
+                                   !     mpi_double_precision, mpisource, int((isend_shift+istsource-1),kind=mpi_address_kind), &
+                                   !     1, comm%mpi_datatypes(joverlap), comm%window, ierr)
                                    call mpi_get(recvbuf(ispin_shift+istdest), nsize, &
                                         mpi_double_precision, mpisource, int((isend_shift+istsource-1),kind=mpi_address_kind), &
-                                        1, comm%mpi_datatypes(joverlap), comm%window, ierr)
+                                        1, comm%mpi_datatypes_new(joverlap), comm%window, ierr)
                                    if (rma_sync==RMA_SYNC_PASSIVE) then
                                        !write(*,'(2(a,i0))') 'BEFORE: proc ',iproc,' calls unlock for proc ',mpisource
                                        call mpi_win_unlock(mpisource, comm%window, ierr)
@@ -1241,10 +1293,12 @@ module communications
       if(.not.comm%communication_complete) then
           do joverlap=1,comm%noverlaps
               call mpi_type_free(comm%mpi_datatypes(joverlap), ierr)
+              call mpi_type_free(comm%mpi_datatypes_new(joverlap), ierr)
           end do
           if (rma_sync==RMA_SYNC_ACTIVE) then
               !!call mpi_win_fence(mpi_mode_nosucceed, comm%window, ierr)
               !!call mpi_win_free(comm%window, ierr)
+              write(*,*) 'before fende, iproc', iproc
               call mpi_fenceandfree(comm%window, mpi_mode_nosucceed)
           else if (rma_sync==RMA_SYNC_PASSIVE) then
             !!  !!call mpi_win_unlock_all(comm%window, ierr)
