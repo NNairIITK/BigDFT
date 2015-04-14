@@ -50,6 +50,7 @@ Keys to ignore:
  - outdir
  - Atomic positions within the cell (Atomic and Grid Units)
  - Rigid Shift Applied (AU)
+ - Walltime since initialization
  #- number of tasks
  #- IDs
  #- start / end
@@ -584,7 +585,7 @@ molecule_foe:
  ebs_check: 5.0e-10
  ebs: 5.0e-10
  Energy (Hartree): 5.1e-11
- diff: 1.6e-11
+ diff: 1.7e-11
 
 hybrid-directmin:
  Epsilon: 1.4e-11

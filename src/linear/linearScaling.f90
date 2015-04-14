@@ -781,8 +781,8 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
              if(input%lin%scf_mode==LINEAR_DIRECT_MINIMIZATION .and. it_scc>1 .and.&
                   ldiis_coeff%idsx == 0 .and. (.not. input%lin%curvefit_dmin)) then
                 ! apply a cap so that alpha_coeff never goes below around 1.d-2 or above 2
-                !SM <= due to the tests...
-                if (energyDiff<=0.d0 .and. ldiis_coeff%alpha_coeff < 1.8d0) then
+                !SM <=1.d-10 due to the tests...
+                if (energyDiff<=1.d-10 .and. ldiis_coeff%alpha_coeff < 1.8d0) then
                    ldiis_coeff%alpha_coeff=1.1d0*ldiis_coeff%alpha_coeff
                 else if (ldiis_coeff%alpha_coeff > 1.7d-3) then
                    ldiis_coeff%alpha_coeff=0.5d0*ldiis_coeff%alpha_coeff
