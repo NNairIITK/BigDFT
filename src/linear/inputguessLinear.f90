@@ -27,6 +27,7 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
   use sparsematrix, only: gather_matrix_from_taskgroups_inplace, extract_taskgroup_inplace
   use communications_base, only: work_transpose, &
                                  work_transpose_null, allocate_work_transpose, deallocate_work_transpose
+  use rhopotential, only: updatePotential, sumrho_for_TMBs, corrections_for_negative_charge
   implicit none
   !Arguments
   integer, intent(in) :: iproc,nproc

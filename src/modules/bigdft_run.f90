@@ -509,7 +509,7 @@ contains
     outs%energy=data(1)
     outs%pressure=data(2)
     outs%fnoise=data(3)
-    call f_memcpy(n=size(outs%fxyz),dest=outs%fxyz(1,1),src=data(4))
+    if (size(outs%fxyz)>0) call f_memcpy(n=size(outs%fxyz),dest=outs%fxyz(1,1),src=data(4))
     call f_memcpy(n=size(outs%strten),dest=outs%strten(1),src=data(4+size(outs%fxyz)))
 
     call f_free(data)

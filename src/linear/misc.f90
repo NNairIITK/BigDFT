@@ -15,6 +15,7 @@ subroutine write_orbital_density(iproc, transform_to_global, iformat, &
   use module_base
   use module_types
   use module_interfaces, except_this_one => write_orbital_density
+  use locreg_operations, only: lpsi_to_global2
   implicit none
 
   ! Calling arguments
@@ -75,7 +76,7 @@ subroutine write_orbital_density(iproc, transform_to_global, iformat, &
           ldim=lzd_l%glr%wfd%nvctr_c+7*lzd_l%glr%wfd%nvctr_f
           call f_zero(psi_g)
           call lpsi_to_global2(iproc, sdim, ldim, orbs%norb, orbs%nspinor, 1, lzd_l%glr, &
-               lzd_l%llr(ilr), psi(ist), psi_g(1))
+               lzd_l%llr(ilr), psi(ist:), psi_g)
       else
           sdim=lzd_g%llr(ilr)%wfd%nvctr_c+7*lzd_g%llr(ilr)%wfd%nvctr_f
           call vcopy(sdim, psi(ist), 1, psi_g(1), 1)
@@ -737,6 +738,7 @@ end subroutine plotOrbitals
 subroutine plotGrid(iproc, norb, nspinor, nspin, orbitalNumber, llr, glr, atoms, rxyz, hx, hy, hz)
   use module_base
   use module_types
+  use locreg_operations, only: lpsi_to_global2
   implicit none
   
   ! Calling arguments

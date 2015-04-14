@@ -3719,6 +3719,7 @@ contains
           use module_base
           use module_types
           use module_interfaces
+          use locregs, only: check_overlap_cubic_periodic
           implicit none
         
           ! Calling arguments

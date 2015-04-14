@@ -22,7 +22,7 @@ module f_enums
   end type f_enumerator
 
   type(f_enumerator), parameter, private :: &
-       f_enum_null=f_enumerator(null_name,NULL_INT)
+       f_enum_null=f_enumerator(null_name,NULL_INT,null())
 
   interface operator(==)
      module procedure enum_is_int,enum_is_enum,enum_is_char

@@ -22,6 +22,7 @@ program wvl
   use communications_base, only: deallocate_comms
   use communications_init, only: orbitals_communicators
   use communications, only: transpose_v, untranspose_v
+  use rhopotential, only: full_local_potential
   implicit none
 
   type(input_variables)             :: inputs

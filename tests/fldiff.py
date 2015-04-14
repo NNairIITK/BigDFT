@@ -146,6 +146,8 @@ if bigdft:
             or "WARNING:" in line \
             or "/logfiles/" in line \
             or "--" in line \
+            or "Walltime since initialization" in line \
+            or "Max No. of dictionaries used" in line \
             or "Version Number" in line
 #	    or "GEOPT" in line
 elif neb:
