@@ -59,8 +59,7 @@ module communications_base
     integer :: nrecvBuf
     integer :: window
     integer, dimension(6) :: ise !< Starting / ending index of recvBuf in x,y,z dimension after communication (glocal coordinates)
-    integer, dimension(:), pointer :: mpi_datatypes, onedtypeovrlp, mpi_datatypes_new
-    integer,dimension(:,:,:),pointer :: onedtypearr
+    integer, dimension(:), pointer :: mpi_datatypes
     logical :: communication_complete
     integer :: nspin !< spin polarization (this information is redundant, just for handyness)
   end type p2pComms
@@ -190,9 +189,6 @@ contains
     nullify(comms%recvBuf)
     nullify(comms%comarr)
     nullify(comms%mpi_datatypes)
-    nullify(comms%mpi_datatypes_new)
-    nullify(comms%onedtypearr)
-    nullify(comms%onedtypeovrlp)
   end subroutine nullify_p2pComms
 
   pure function work_transpose_null() result(wt)
@@ -379,9 +375,6 @@ contains
         stop 'cannot deallocate mpi data types if communication has not completed'
     end if
     call f_free_ptr(p2pcomm%mpi_datatypes)
-    call f_free_ptr(p2pcomm%mpi_datatypes_new)
-    call f_free_ptr(p2pcomm%onedtypearr)
-    call f_free_ptr(p2pcomm%onedtypeovrlp)
   end subroutine deallocate_p2pComms
 
 
