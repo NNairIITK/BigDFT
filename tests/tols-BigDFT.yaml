@@ -1094,7 +1094,7 @@ PBE_potmixdiis:
  Enl: 2.2e-9
  Total charge: 2.1e-11
  multiplicator for the confinement: 4.3e-8
- Energy (Hartree): 6.3e-10
+ Energy (Hartree): 8.6e-10
 
 PBE_densmixdiis:
  Epot: 1.1e-10
