@@ -27,8 +27,8 @@
    |_____|_____|_____|_____|_____|______                    www.bigdft.org   "
  
  Reference Paper                       : The Journal of Chemical Physics 129, 014109 (2008)
- Version Number                        : 1.7.6.6
- Timestamp of this run                 : 2015-03-31 11:23:33.560
+ Version Number                        : 1.7.6.8
+ Timestamp of this run                 : 2015-04-15 17:58:49.495
  Root process Hostname                 : phys-comp-03
  Number of MPI tasks                   :  4
  OpenMP parallelization                :  Yes
@@ -81,6 +81,7 @@
    norbv                               : 0 #      Davidson subspace dimension (No. virtual orbitals)
    nvirt                               : 0 #      No. of virtual orbs
    nplot                               : 0 #      No. of plotted orbs
+   solvent                             : vacuum # Electrostatic environment for Poisson Equation
  perf:
    ef_interpol_det                     : 0.10E-19 # FOE max determinant of cubic interpolation matrix
    mixing_after_inputguess             : 2 #      Mixing step after linear input gues
@@ -144,6 +145,7 @@
    hamapp_radius_incr                  : 8 #      radius enlargement for the Hamiltonian application (in grid points)
    adjust_kernel_iterations            : True #   enable the addaptive ajustment of the number of kernel iterations
    wf_extent_analysis                  : False #  perform an analysis of the extent of the support functions (and possibly KS orbitals)
+   gps_method                          : VAC #    method for the Generalized Poisson Equation
  lin_general:
    nit: [1, 3] #                                  number of iteration with low/high accuracy
    rpnrm_cv                            : 1.0E-008 # convergence criterion for low/high accuracy
@@ -158,12 +160,18 @@
    calc_pulay: [No, No] #                         calculate Pulay forces (old/new version)
    subspace_diag                       : No #     diagonalization at the end
    extra_states                        : 0 #      extra states to optimize (dmin only)
+   calculate_onsite_overlap            : No #     calculate the onsite overlap matrix (has only an effect if the matrices are all 
+    #                                              written to disk)
  lin_basis:
    nit: [5, 2] #                                  maximal number of iterations in the optimization of the 
     #                                              support functions
    idsx                                : 0 #      DIIS history for optimization of the support functions (low/high accuracy); 0 -> SD
    gnrm_cv: [5.0000000000000004E-006, 9.9999999999999995E-007] # convergence criterion for the optimization of the support functions (low/high accuracy)
    nstep_prec                          : 3 #      number of iterations in the preconditioner
+   nit_ig                              : 50 #     maximal number of iterations to optimize the support functions in the extended input 
+    #                                              guess (experimental mode only)
+   gnrm_ig                             : 1.e-3 #  convergence criterion for the optimization of the support functions in the extended 
+    #                                              input guess (experimental mode only)
    deltae_cv                           : 1.e-4 #  total relative energy difference to stop the optimization ('experimental_mode' only)
    gnrm_dyn                            : 1.e-4 #  dynamic convergence criterion ('experimental_mode' only)
    min_gnrm_for_dynamic                : 1.e-3 #  minimal gnrm to active the dynamic gnrm criterion
@@ -811,7 +819,7 @@
  error estimation: [
  max / mean error:  [  6.46E-06,  2.44E-07 ]]}, 
  Preconditioning:  Yes, 
- iter:  1, fnrm:  9.99E-01, Omega: -1.483638540356076E+02, D: -1.48E+02, D best: -1.48E+02, 
+ iter:  1, fnrm:  9.99E-01, Omega: -1.483638540356078E+02, D: -1.48E+02, D best: -1.48E+02, 
  Optimization: {algorithm: SD, mean alpha:  1.000E+00, max alpha:  1.000E+00, 
     consecutive successes:  1}, 
  calculate S^x: {mode: sparse, powers: {x: -1/2}, order:  5, 
@@ -826,7 +834,7 @@
  error estimation: [
  max / mean error:  [  3.79E-08,  1.68E-09 ]]}, 
  Preconditioning:  Yes, 
- iter:  2, fnrm:  3.60E-01, Omega: -1.616932093550672E+02, D: -1.33E+01, D best: -1.33E+01, 
+ iter:  2, fnrm:  3.60E-01, Omega: -1.616932093550674E+02, D: -1.33E+01, D best: -1.33E+01, 
  Optimization: {algorithm: SD, mean alpha:  6.000E-01, max alpha:  6.000E-01, 
     consecutive successes:  2}, 
  calculate S^x: {mode: sparse, powers: {x: -1/2}, order:  5, 
@@ -856,7 +864,7 @@
  error estimation: [
  max / mean error:  [  1.43E-08,  7.71E-10 ]]}, 
  Preconditioning:  Yes, 
- iter:  4, fnrm:  1.64E-01, Omega: -1.647181880741864E+02, D: -8.16E-01, D best: -8.16E-01, 
+ iter:  4, fnrm:  1.64E-01, Omega: -1.647181880741866E+02, D: -8.16E-01, D best: -8.16E-01, 
  Optimization: {algorithm: SD, mean alpha:  7.260E-01, max alpha:  7.260E-01, 
     consecutive successes:  4}, 
  calculate S^x: {mode: sparse, powers: {x: -1/2}, order:  5, 
@@ -878,6 +886,7 @@
  Energies: {Ekin:  1.90943100990E+02, Epot: -2.34340082549E+02, Enl:  1.34727197920E+01}, 
  iter:  5, fnrm:  1.46E-01, Omega: -1.652100667507495E+02, D: -4.92E-01, D best: -4.92E-01}
       #Support functions created
+      #WARNING: The support function localization radii might be too small, got 87 warnings
     #=================================================================== kernel optimization
  - kernel optimization: &it_kernel001
    -  #--------------------------------------------------------------------- kernel iter: 1
@@ -959,7 +968,7 @@
  {e: -2.542064645179E-01, f:  2.0000},  # 00056
  {e: -2.450083136471E-01, f:  2.0000}] # 00057
      summary: [ {kernel method: DIAG, mix entity: POT, mix hist:  0, conv crit:  1.46E-13, 
- iter:  1, delta:  3.00E-05, energy: -1.77042711807938531E+02, D: -1.770E+02}]
+ iter:  1, delta:  3.00E-05, energy: -1.77042711807938758E+02, D: -1.770E+02}]
    -  #--------------------------------------------------------------------- kernel iter: 2
      Kernel update:
        Hamiltonian application required:  Yes
@@ -1024,7 +1033,7 @@
  {e: -3.945305618511E-01, f:  2.0000},  # 00042
  {e: -3.819404586561E-01, f:  2.0000},  # 00043
  {e: -3.784431929404E-01, f:  2.0000},  # 00044
- {e: -3.649563688385E-01, f:  2.0000},  # 00045
+ {e: -3.649563688384E-01, f:  2.0000},  # 00045
  {e: -3.535285167225E-01, f:  2.0000},  # 00046
  {e: -3.440331026587E-01, f:  2.0000},  # 00047
  {e: -3.262645489896E-01, f:  2.0000},  # 00048
@@ -1038,7 +1047,7 @@
  {e: -2.431325142637E-01, f:  2.0000},  # 00056
  {e: -2.335091644997E-01, f:  2.0000}] # 00057
      summary: [ {kernel method: DIAG, mix entity: POT, mix hist:  0, conv crit:  1.46E-13, 
- iter:  2, delta:  1.79E-05, energy: -1.90875038214436017E+02, D: -1.383E+01}]
+ iter:  2, delta:  1.79E-05, energy: -1.90875038214436699E+02, D: -1.383E+01}]
    -  #--------------------------------------------------------------------- kernel iter: 3
      Kernel update:
        Hamiltonian application required:  Yes
@@ -1059,10 +1068,10 @@
  Poisson Solver: {BC: Free, Box:  [  197,  197,  109 ], MPI tasks:  4}}
       #Eigenvalues and New Occupation Numbers
      Orbitals: [
- {e: -9.877052501137E-01, f:  2.0000},  # 00001
+ {e: -9.877052501136E-01, f:  2.0000},  # 00001
  {e: -9.452789999485E-01, f:  2.0000},  # 00002
  {e: -9.341627587699E-01, f:  2.0000},  # 00003
- {e: -9.056187260522E-01, f:  2.0000},  # 00004
+ {e: -9.056187260521E-01, f:  2.0000},  # 00004
  {e: -8.943127183058E-01, f:  2.0000},  # 00005
  {e: -8.576701436508E-01, f:  2.0000},  # 00006
  {e: -8.495603452594E-01, f:  2.0000},  # 00007
@@ -1089,7 +1098,7 @@
  {e: -4.707367962472E-01, f:  2.0000},  # 00028
  {e: -4.692842768969E-01, f:  2.0000},  # 00029
  {e: -4.634971121478E-01, f:  2.0000},  # 00030
- {e: -4.482396074620E-01, f:  2.0000},  # 00031
+ {e: -4.482396074619E-01, f:  2.0000},  # 00031
  {e: -4.336850852342E-01, f:  2.0000},  # 00032
  {e: -4.326671789313E-01, f:  2.0000},  # 00033
  {e: -4.292549002437E-01, f:  2.0000},  # 00034
@@ -1104,7 +1113,7 @@
  {e: -3.530240918784E-01, f:  2.0000},  # 00043
  {e: -3.191133463966E-01, f:  2.0000},  # 00044
  {e: -3.167103589214E-01, f:  2.0000},  # 00045
- {e: -3.022446413108E-01, f:  2.0000},  # 00046
+ {e: -3.022446413107E-01, f:  2.0000},  # 00046
  {e: -2.886859873983E-01, f:  2.0000},  # 00047
  {e: -2.749534801746E-01, f:  2.0000},  # 00048
  {e: -2.682284393342E-01, f:  2.0000},  # 00049
@@ -1117,15 +1126,15 @@
  {e: -2.237740435238E-01, f:  2.0000},  # 00056
  {e: -2.174766782133E-01, f:  2.0000}] # 00057
      summary: [ {kernel method: DIAG, mix entity: POT, mix hist:  0, conv crit:  1.46E-13, 
- iter:  3, delta:  1.46E-05, energy: -1.80911900493120584E+02, D:  9.963E+00}]
+ iter:  3, delta:  1.46E-05, energy: -1.80911900493121266E+02, D:  9.963E+00}]
    -  &final_kernel001  { #-------------------------------------------------------- iter: 4
  summary: [ {kernel method: DIAG, mix entity: POT, mix hist:  0, conv crit:  1.46E-13, 
- iter:  4, delta:  1.46E-05, energy: -1.80911900493120584E+02, D:  9.963E+00}]}
+ iter:  4, delta:  1.46E-05, energy: -1.80911900493121266E+02, D:  9.963E+00}]}
     #================================================================= Summary of both steps
    self consistency summary: &it_sc001
    -  {iter:  1, Omega: TRACE,  #WARNING: support function optimization not converged
  kernel optimization: DIAG,  #WARNING: density optimization not converged
- iter low:  1, delta out:  1.330E-05, energy: -1.80911900493120584E+02, D: -1.809E+02}
+ iter low:  1, delta out:  1.330E-05, energy: -1.80911900493121266E+02, D: -1.809E+02}
     #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Set the confinement prefactors
  - Confinement prefactor for high accuracy:
    -  {max diff damping:  0.00E+00, damping value:  1.00E+00}
@@ -1215,7 +1224,7 @@
  error estimation: [
  max / mean error:  [  1.47E-08,  5.83E-10 ]]}, 
  Preconditioning:  Yes, 
- iter:  1, fnrm:  3.67E-01, Omega: -1.785466834583290E+02, D: -1.38E+01, D best: -1.38E+01, 
+ iter:  1, fnrm:  3.67E-01, Omega: -1.785466834583281E+02, D: -1.38E+01, D best: -1.38E+01, 
  Optimization: {algorithm: SD, mean alpha:  7.986E-01, max alpha:  7.986E-01, 
     consecutive successes:  1}, 
  calculate S^x: {mode: sparse, powers: {x: -1/2}, order:  5, 
@@ -1234,13 +1243,14 @@
  error estimation: [
  max / mean error:  [  3.51E-09,  1.36E-10 ]]}, 
  Preconditioning:  Yes, 
- iter:  2, fnrm:  2.38E-01, Omega: -1.793145860326654E+02, D: -7.68E-01, D best: -7.68E-01, 
+ iter:  2, fnrm:  2.38E-01, Omega: -1.793145860326645E+02, D: -7.68E-01, D best: -7.68E-01, 
  exit criterion: net number of iterations}
    -  &final_supfun002  { #-------------------------------------------------------- iter: 2
  target function: ENERGY, 
  Energies: {Ekin:  1.91341884459E+02, Epot: -2.19707690567E+02, Enl:  1.29255285654E+01}, 
- iter:  2, fnrm:  2.38E-01, Omega: -1.793145860326654E+02, D: -7.68E-01, D best: -7.68E-01}
+ iter:  2, fnrm:  2.38E-01, Omega: -1.793145860326645E+02, D: -7.68E-01, D best: -7.68E-01}
       #Support functions created
+      #WARNING: The support function localization radii might be too small, got 8 warnings
     #=================================================================== kernel optimization
  - kernel optimization: &it_kernel002
    -  #--------------------------------------------------------------------- kernel iter: 1
@@ -1264,7 +1274,7 @@
       #Eigenvalues and New Occupation Numbers
      Orbitals: [
  {e: -9.703483722569E-01, f:  2.0000},  # 00001
- {e: -9.355666028842E-01, f:  2.0000},  # 00002
+ {e: -9.355666028841E-01, f:  2.0000},  # 00002
  {e: -9.195589285850E-01, f:  2.0000},  # 00003
  {e: -8.956729551345E-01, f:  2.0000},  # 00004
  {e: -8.851328392184E-01, f:  2.0000},  # 00005
@@ -1295,7 +1305,7 @@
  {e: -4.502551938629E-01, f:  2.0000},  # 00030
  {e: -4.351424034443E-01, f:  2.0000},  # 00031
  {e: -4.238176947205E-01, f:  2.0000},  # 00032
- {e: -4.157831508909E-01, f:  2.0000},  # 00033
+ {e: -4.157831508908E-01, f:  2.0000},  # 00033
  {e: -4.089880276835E-01, f:  2.0000},  # 00034
  {e: -4.087285575622E-01, f:  2.0000},  # 00035
  {e: -4.070648996539E-01, f:  2.0000},  # 00036
@@ -1321,7 +1331,7 @@
  {e: -2.129619410290E-01, f:  2.0000},  # 00056
  {e: -2.123140128144E-01, f:  2.0000}] # 00057
      summary: [ {kernel method: DIAG, mix entity: POT, mix hist:  0, conv crit:  2.38E-13, 
- iter:  1, delta:  1.46E-05, energy: -1.79318224921619731E+02, D:  1.594E+00}]
+ iter:  1, delta:  1.46E-05, energy: -1.79318224921619048E+02, D:  1.594E+00}]
    -  #--------------------------------------------------------------------- kernel iter: 2
      Kernel update:
        Hamiltonian application required:  Yes
@@ -1348,7 +1358,7 @@
  {e: -8.921544841697E-01, f:  2.0000},  # 00004
  {e: -8.801709984416E-01, f:  2.0000},  # 00005
  {e: -8.441190374327E-01, f:  2.0000},  # 00006
- {e: -8.315388969861E-01, f:  2.0000},  # 00007
+ {e: -8.315388969862E-01, f:  2.0000},  # 00007
  {e: -7.943517525069E-01, f:  2.0000},  # 00008
  {e: -7.657181503208E-01, f:  2.0000},  # 00009
  {e: -7.231303055693E-01, f:  2.0000},  # 00010
@@ -1400,7 +1410,7 @@
  {e: -2.119657133297E-01, f:  2.0000},  # 00056
  {e: -2.037011650134E-01, f:  2.0000}] # 00057
      summary: [ {kernel method: DIAG, mix entity: POT, mix hist:  0, conv crit:  2.38E-13, 
- iter:  2, delta:  1.44E-05, energy: -1.76969401719713005E+02, D:  2.349E+00}]
+ iter:  2, delta:  1.44E-05, energy: -1.76969401719711641E+02, D:  2.349E+00}]
    -  #--------------------------------------------------------------------- kernel iter: 3
      Kernel update:
        Hamiltonian application required:  Yes
@@ -1431,7 +1441,7 @@
  {e: -7.966921082967E-01, f:  2.0000},  # 00008
  {e: -7.555330628422E-01, f:  2.0000},  # 00009
  {e: -7.176884324163E-01, f:  2.0000},  # 00010
- {e: -7.106068203185E-01, f:  2.0000},  # 00011
+ {e: -7.106068203186E-01, f:  2.0000},  # 00011
  {e: -6.965570462624E-01, f:  2.0000},  # 00012
  {e: -6.906669837441E-01, f:  2.0000},  # 00013
  {e: -6.485854104677E-01, f:  2.0000},  # 00014
@@ -1479,7 +1489,7 @@
  {e: -2.095577108912E-01, f:  2.0000},  # 00056
  {e: -2.084707700183E-01, f:  2.0000}] # 00057
      summary: [ {kernel method: DIAG, mix entity: POT, mix hist:  0, conv crit:  2.38E-13, 
- iter:  3, delta:  1.30E-05, energy: -1.76859401281412602E+02, D:  1.100E-01}]
+ iter:  3, delta:  1.30E-05, energy: -1.76859401281412829E+02, D:  1.100E-01}]
    -  #--------------------------------------------------------------------- kernel iter: 4
      Kernel update:
        Hamiltonian application required:  Yes
@@ -1506,7 +1516,7 @@
  {e: -8.873010994759E-01, f:  2.0000},  # 00004
  {e: -8.733561178954E-01, f:  2.0000},  # 00005
  {e: -8.389707258468E-01, f:  2.0000},  # 00006
- {e: -8.244809853659E-01, f:  2.0000},  # 00007
+ {e: -8.244809853660E-01, f:  2.0000},  # 00007
  {e: -7.900552668501E-01, f:  2.0000},  # 00008
  {e: -7.552570649855E-01, f:  2.0000},  # 00009
  {e: -7.142941467523E-01, f:  2.0000},  # 00010
@@ -1516,14 +1526,14 @@
  {e: -6.457726827788E-01, f:  2.0000},  # 00014
  {e: -6.409197155084E-01, f:  2.0000},  # 00015
  {e: -5.792595584436E-01, f:  2.0000},  # 00016
- {e: -5.723444944340E-01, f:  2.0000},  # 00017
+ {e: -5.723444944341E-01, f:  2.0000},  # 00017
  {e: -5.697277800241E-01, f:  2.0000},  # 00018
  {e: -5.631497789777E-01, f:  2.0000},  # 00019
  {e: -5.390078423509E-01, f:  2.0000},  # 00020
  {e: -5.292442078196E-01, f:  2.0000},  # 00021
  {e: -5.141712942534E-01, f:  2.0000},  # 00022
  {e: -5.062642283704E-01, f:  2.0000},  # 00023
- {e: -4.973375536739E-01, f:  2.0000},  # 00024
+ {e: -4.973375536740E-01, f:  2.0000},  # 00024
  {e: -4.783023824441E-01, f:  2.0000},  # 00025
  {e: -4.748925571521E-01, f:  2.0000},  # 00026
  {e: -4.589182540198E-01, f:  2.0000},  # 00027
@@ -1539,18 +1549,18 @@
  {e: -3.753579079227E-01, f:  2.0000},  # 00037
  {e: -3.741691853270E-01, f:  2.0000},  # 00038
  {e: -3.654009061873E-01, f:  2.0000},  # 00039
- {e: -3.589001159552E-01, f:  2.0000},  # 00040
+ {e: -3.589001159553E-01, f:  2.0000},  # 00040
  {e: -3.516519987659E-01, f:  2.0000},  # 00041
  {e: -3.431262124900E-01, f:  2.0000},  # 00042
  {e: -3.275581831665E-01, f:  2.0000},  # 00043
- {e: -3.046278133135E-01, f:  2.0000},  # 00044
+ {e: -3.046278133136E-01, f:  2.0000},  # 00044
  {e: -3.015684798301E-01, f:  2.0000},  # 00045
  {e: -2.782847638713E-01, f:  2.0000},  # 00046
  {e: -2.768965748911E-01, f:  2.0000},  # 00047
  {e: -2.617503259623E-01, f:  2.0000},  # 00048
  {e: -2.478209885813E-01, f:  2.0000},  # 00049
  {e: -2.468390148588E-01, f:  2.0000},  # 00050
- {e: -2.349119208569E-01, f:  2.0000},  # 00051
+ {e: -2.349119208570E-01, f:  2.0000},  # 00051
  {e: -2.344295556159E-01, f:  2.0000},  # 00052
  {e: -2.335745442368E-01, f:  2.0000},  # 00053
  {e: -2.279436624694E-01, f:  2.0000},  # 00054
@@ -1558,15 +1568,15 @@
  {e: -2.060056419943E-01, f:  2.0000},  # 00056
  {e: -2.012912597999E-01, f:  2.0000}] # 00057
      summary: [ {kernel method: DIAG, mix entity: POT, mix hist:  0, conv crit:  2.38E-13, 
- iter:  4, delta:  1.26E-05, energy: -1.76690385566404984E+02, D:  1.690E-01}]
+ iter:  4, delta:  1.26E-05, energy: -1.76690385566403847E+02, D:  1.690E-01}]
    -  &final_kernel002  { #-------------------------------------------------------- iter: 5
  summary: [ {kernel method: DIAG, mix entity: POT, mix hist:  0, conv crit:  2.38E-13, 
- iter:  5, delta:  1.26E-05, energy: -1.76690385566404984E+02, D:  1.690E-01}]}
+ iter:  5, delta:  1.26E-05, energy: -1.76690385566403847E+02, D:  1.690E-01}]}
     #================================================================= Summary of both steps
    self consistency summary: &it_sc002
    -  {iter:  2, Omega: ENERGY,  #WARNING: support function optimization not converged
  kernel optimization: DIAG,  #WARNING: density optimization not converged
- iter high:  2, delta out:  2.797E-06, energy: -1.76690385566404984E+02, D:  4.222E+00}
+ iter high:  2, delta out:  2.797E-06, energy: -1.76690385566403847E+02, D:  4.222E+00}
     #WARNING: oscillation of the energy, increase counter
    energy_scillation_counter           :  1
     #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Set the confinement prefactors
@@ -1585,7 +1595,7 @@
  error estimation: [
  max / mean error:  [  3.51E-09,  1.36E-10 ]]}, 
  Preconditioning:  Yes, 
- iter:  1, fnrm:  2.37E-01, Omega: -1.764134897705981E+02, D:  2.13E+00, D best:  2.13E+00, 
+ iter:  1, fnrm:  2.37E-01, Omega: -1.764134897705992E+02, D:  2.13E+00, D best:  2.13E+00, 
  Optimization: {algorithm: SD, mean alpha:  4.792E-01, max alpha:  4.792E-01, 
     consecutive successes:  1}, 
  calculate S^x: {mode: sparse, powers: {x: -1/2}, order:  5, 
@@ -1604,13 +1614,14 @@
  error estimation: [
  max / mean error:  [  8.73E-10,  4.28E-11 ]]}, 
  Preconditioning:  Yes, 
- iter:  2, fnrm:  1.02E-01, Omega: -1.766297161349419E+02, D: -2.16E-01, D best: -2.16E-01, 
+ iter:  2, fnrm:  1.02E-01, Omega: -1.766297161349430E+02, D: -2.16E-01, D best: -2.16E-01, 
  exit criterion: net number of iterations}
    -  &final_supfun003  { #-------------------------------------------------------- iter: 2
  target function: ENERGY, 
  Energies: {Ekin:  1.91706373008E+02, Epot: -2.18832825145E+02, Enl:  1.31093139537E+01}, 
- iter:  2, fnrm:  1.02E-01, Omega: -1.766297161349419E+02, D: -2.16E-01, D best: -2.16E-01}
+ iter:  2, fnrm:  1.02E-01, Omega: -1.766297161349430E+02, D: -2.16E-01, D best: -2.16E-01}
       #Support functions created
+      #WARNING: The support function localization radii might be too small, got 2 warnings
     #=================================================================== kernel optimization
  - kernel optimization: &it_kernel003
    -  #--------------------------------------------------------------------- kernel iter: 1
@@ -1644,7 +1655,7 @@
  {e: -7.514471970630E-01, f:  2.0000},  # 00009
  {e: -7.164050232622E-01, f:  2.0000},  # 00010
  {e: -7.074316333971E-01, f:  2.0000},  # 00011
- {e: -6.938955304476E-01, f:  2.0000},  # 00012
+ {e: -6.938955304475E-01, f:  2.0000},  # 00012
  {e: -6.896547288329E-01, f:  2.0000},  # 00013
  {e: -6.460972565733E-01, f:  2.0000},  # 00014
  {e: -6.418344176903E-01, f:  2.0000},  # 00015
@@ -1662,7 +1673,7 @@
  {e: -4.628669392636E-01, f:  2.0000},  # 00027
  {e: -4.463545551243E-01, f:  2.0000},  # 00028
  {e: -4.440842746507E-01, f:  2.0000},  # 00029
- {e: -4.340863725390E-01, f:  2.0000},  # 00030
+ {e: -4.340863725389E-01, f:  2.0000},  # 00030
  {e: -4.149852812048E-01, f:  2.0000},  # 00031
  {e: -4.121497724530E-01, f:  2.0000},  # 00032
  {e: -4.042204233828E-01, f:  2.0000},  # 00033
@@ -1680,7 +1691,7 @@
  {e: -3.017971017705E-01, f:  2.0000},  # 00045
  {e: -2.735541880968E-01, f:  2.0000},  # 00046
  {e: -2.704484400224E-01, f:  2.0000},  # 00047
- {e: -2.604207663602E-01, f:  2.0000},  # 00048
+ {e: -2.604207663601E-01, f:  2.0000},  # 00048
  {e: -2.463582400469E-01, f:  2.0000},  # 00049
  {e: -2.458832203736E-01, f:  2.0000},  # 00050
  {e: -2.361746648764E-01, f:  2.0000},  # 00051
@@ -1691,7 +1702,7 @@
  {e: -2.102979210442E-01, f:  2.0000},  # 00056
  {e: -2.051866563931E-01, f:  2.0000}] # 00057
      summary: [ {kernel method: DIAG, mix entity: POT, mix hist:  0, conv crit:  1.02E-13, 
- iter:  1, delta:  1.14E-05, energy: -1.76675507539248656E+02, D:  1.488E-02}]
+ iter:  1, delta:  1.14E-05, energy: -1.76675507539249566E+02, D:  1.488E-02}]
    -  #--------------------------------------------------------------------- kernel iter: 2
      Kernel update:
        Hamiltonian application required:  Yes
@@ -1833,7 +1844,7 @@
  {e: -3.544725326745E-01, f:  2.0000},  # 00040
  {e: -3.499620646641E-01, f:  2.0000},  # 00041
  {e: -3.397012233902E-01, f:  2.0000},  # 00042
- {e: -3.296269401384E-01, f:  2.0000},  # 00043
+ {e: -3.296269401385E-01, f:  2.0000},  # 00043
  {e: -3.001396106497E-01, f:  2.0000},  # 00044
  {e: -2.986458534383E-01, f:  2.0000},  # 00045
  {e: -2.687202380147E-01, f:  2.0000},  # 00046
@@ -1849,7 +1860,7 @@
  {e: -2.076621226668E-01, f:  2.0000},  # 00056
  {e: -2.012873689751E-01, f:  2.0000}] # 00057
      summary: [ {kernel method: DIAG, mix entity: POT, mix hist:  0, conv crit:  1.02E-13, 
- iter:  3, delta:  1.02E-05, energy: -1.76543258494230940E+02, D:  2.865E-01}]
+ iter:  3, delta:  1.02E-05, energy: -1.76543258494231395E+02, D:  2.865E-01}]
    -  #--------------------------------------------------------------------- kernel iter: 4
      Kernel update:
        Hamiltonian application required:  Yes
@@ -1884,7 +1895,7 @@
  {e: -6.903827055461E-01, f:  2.0000},  # 00012
  {e: -6.853754547264E-01, f:  2.0000},  # 00013
  {e: -6.406729319058E-01, f:  2.0000},  # 00014
- {e: -6.373134679336E-01, f:  2.0000},  # 00015
+ {e: -6.373134679335E-01, f:  2.0000},  # 00015
  {e: -5.749768395818E-01, f:  2.0000},  # 00016
  {e: -5.665287458566E-01, f:  2.0000},  # 00017
  {e: -5.631546692630E-01, f:  2.0000},  # 00018
@@ -1896,7 +1907,7 @@
  {e: -4.963982265454E-01, f:  2.0000},  # 00024
  {e: -4.714107722183E-01, f:  2.0000},  # 00025
  {e: -4.696113449817E-01, f:  2.0000},  # 00026
- {e: -4.608381204038E-01, f:  2.0000},  # 00027
+ {e: -4.608381204037E-01, f:  2.0000},  # 00027
  {e: -4.406516595547E-01, f:  2.0000},  # 00028
  {e: -4.386361419709E-01, f:  2.0000},  # 00029
  {e: -4.289381036750E-01, f:  2.0000},  # 00030
@@ -1904,7 +1915,7 @@
  {e: -4.084162591873E-01, f:  2.0000},  # 00032
  {e: -4.012733838178E-01, f:  2.0000},  # 00033
  {e: -3.928771762638E-01, f:  2.0000},  # 00034
- {e: -3.904774069742E-01, f:  2.0000},  # 00035
+ {e: -3.904774069741E-01, f:  2.0000},  # 00035
  {e: -3.841346991781E-01, f:  2.0000},  # 00036
  {e: -3.718830895468E-01, f:  2.0000},  # 00037
  {e: -3.715976598930E-01, f:  2.0000},  # 00038
@@ -1928,15 +1939,15 @@
  {e: -2.038851523005E-01, f:  2.0000},  # 00056
  {e: -2.009596357659E-01, f:  2.0000}] # 00057
      summary: [ {kernel method: DIAG, mix entity: POT, mix hist:  0, conv crit:  1.02E-13, 
- iter:  4, delta:  9.70E-06, energy: -1.76447405902176342E+02, D:  9.585E-02}]
+ iter:  4, delta:  9.70E-06, energy: -1.76447405902177707E+02, D:  9.585E-02}]
    -  &final_kernel003  { #-------------------------------------------------------- iter: 5
  summary: [ {kernel method: DIAG, mix entity: POT, mix hist:  0, conv crit:  1.02E-13, 
- iter:  5, delta:  9.70E-06, energy: -1.76447405902176342E+02, D:  9.585E-02}]}
+ iter:  5, delta:  9.70E-06, energy: -1.76447405902177707E+02, D:  9.585E-02}]}
     #================================================================= Summary of both steps
    self consistency summary: &it_sc003
    -  {iter:  3, Omega: ENERGY,  #WARNING: support function optimization not converged
  kernel optimization: DIAG,  #WARNING: density optimization not converged
- iter high:  3, delta out:  9.370E-07, energy: -1.76447405902176342E+02, D:  2.430E-01}
+ iter high:  3, delta out:  9.370E-07, energy: -1.76447405902177707E+02, D:  2.430E-01}
     #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Set the confinement prefactors
  - Confinement prefactor for high accuracy:
    -  {max diff damping:  0.00E+00, damping value:  1.00E+00}
@@ -1953,7 +1964,7 @@
  error estimation: [
  max / mean error:  [  8.73E-10,  4.28E-11 ]]}, 
  Preconditioning:  Yes, 
- iter:  1, fnrm:  1.02E-01, Omega: -1.763585282131378E+02, D:  5.50E-02, D best:  5.50E-02, 
+ iter:  1, fnrm:  1.02E-01, Omega: -1.763585282131376E+02, D:  5.50E-02, D best:  5.50E-02, 
  Optimization: {algorithm: SD, mean alpha:  3.869E-01, max alpha:  3.869E-01, 
     consecutive successes:  1}, 
  calculate S^x: {mode: sparse, powers: {x: -1/2}, order:  5, 
@@ -1972,13 +1983,14 @@
  error estimation: [
  max / mean error:  [  4.77E-10,  2.28E-11 ]]}, 
  Preconditioning:  Yes, 
- iter:  2, fnrm:  8.92E-02, Omega: -1.763821855693634E+02, D: -2.37E-02, D best: -2.37E-02, 
+ iter:  2, fnrm:  8.92E-02, Omega: -1.763821855693632E+02, D: -2.37E-02, D best: -2.37E-02, 
  exit criterion: net number of iterations}
    -  &final_supfun004  { #-------------------------------------------------------- iter: 2
  target function: ENERGY, 
  Energies: {Ekin:  1.91894058144E+02, Epot: -2.18419659826E+02, Enl:  1.30549455478E+01}, 
- iter:  2, fnrm:  8.92E-02, Omega: -1.763821855693634E+02, D: -2.37E-02, D best: -2.37E-02}
+ iter:  2, fnrm:  8.92E-02, Omega: -1.763821855693632E+02, D: -2.37E-02, D best: -2.37E-02}
       #Support functions created
+      #WARNING: The support function localization radii might be too small, got 2 warnings
     #=================================================================== kernel optimization
  - kernel optimization: &it_kernel004
    -  #--------------------------------------------------------------------- kernel iter: 1
@@ -2001,7 +2013,7 @@
  Poisson Solver: {BC: Free, Box:  [  197,  197,  109 ], MPI tasks:  4}}
       #Eigenvalues and New Occupation Numbers
      Orbitals: [
- {e: -9.522260767376E-01, f:  2.0000},  # 00001
+ {e: -9.522260767375E-01, f:  2.0000},  # 00001
  {e: -9.206034197291E-01, f:  2.0000},  # 00002
  {e: -9.075944566135E-01, f:  2.0000},  # 00003
  {e: -8.844765233292E-01, f:  2.0000},  # 00004
@@ -2012,7 +2024,7 @@
  {e: -7.443605008758E-01, f:  2.0000},  # 00009
  {e: -7.134549724040E-01, f:  2.0000},  # 00010
  {e: -7.005467891408E-01, f:  2.0000},  # 00011
- {e: -6.916659439745E-01, f:  2.0000},  # 00012
+ {e: -6.916659439744E-01, f:  2.0000},  # 00012
  {e: -6.841071014828E-01, f:  2.0000},  # 00013
  {e: -6.413115322690E-01, f:  2.0000},  # 00014
  {e: -6.369738558644E-01, f:  2.0000},  # 00015
@@ -2029,7 +2041,7 @@
  {e: -4.692880762372E-01, f:  2.0000},  # 00026
  {e: -4.618682272027E-01, f:  2.0000},  # 00027
  {e: -4.401292430131E-01, f:  2.0000},  # 00028
- {e: -4.392838093458E-01, f:  2.0000},  # 00029
+ {e: -4.392838093457E-01, f:  2.0000},  # 00029
  {e: -4.272250670902E-01, f:  2.0000},  # 00030
  {e: -4.088044620079E-01, f:  2.0000},  # 00031
  {e: -4.084468447211E-01, f:  2.0000},  # 00032
@@ -2059,7 +2071,7 @@
  {e: -2.081635255245E-01, f:  2.0000},  # 00056
  {e: -2.009239481224E-01, f:  2.0000}] # 00057
      summary: [ {kernel method: DIAG, mix entity: POT, mix hist:  0, conv crit:  8.92E-14, 
- iter:  1, delta:  9.20E-06, energy: -1.76410414457069464E+02, D:  3.699E-02}]
+ iter:  1, delta:  9.20E-06, energy: -1.76410414457069237E+02, D:  3.699E-02}]
    -  #--------------------------------------------------------------------- kernel iter: 2
      Kernel update:
        Hamiltonian application required:  Yes
@@ -2090,7 +2102,7 @@
  {e: -7.920559119984E-01, f:  2.0000},  # 00008
  {e: -7.448295469732E-01, f:  2.0000},  # 00009
  {e: -7.123435404019E-01, f:  2.0000},  # 00010
- {e: -6.999810419042E-01, f:  2.0000},  # 00011
+ {e: -6.999810419041E-01, f:  2.0000},  # 00011
  {e: -6.911013685417E-01, f:  2.0000},  # 00012
  {e: -6.844252157027E-01, f:  2.0000},  # 00013
  {e: -6.406366573332E-01, f:  2.0000},  # 00014
@@ -2138,7 +2150,7 @@
  {e: -2.059115371091E-01, f:  2.0000},  # 00056
  {e: -2.007149147920E-01, f:  2.0000}] # 00057
      summary: [ {kernel method: DIAG, mix entity: POT, mix hist:  0, conv crit:  8.92E-14, 
- iter:  2, delta:  8.78E-06, energy: -1.76420999986059769E+02, D: -1.059E-02}]
+ iter:  2, delta:  8.78E-06, energy: -1.76420999986059087E+02, D: -1.059E-02}]
    -  #--------------------------------------------------------------------- kernel iter: 3
      Kernel update:
        Hamiltonian application required:  Yes
@@ -2213,11 +2225,11 @@
  {e: -2.314912125072E-01, f:  2.0000},  # 00052
  {e: -2.269112006208E-01, f:  2.0000},  # 00053
  {e: -2.268125213683E-01, f:  2.0000},  # 00054
- {e: -2.185754942429E-01, f:  2.0000},  # 00055
+ {e: -2.185754942428E-01, f:  2.0000},  # 00055
  {e: -2.092024449421E-01, f:  2.0000},  # 00056
  {e: -2.003089439833E-01, f:  2.0000}] # 00057
      summary: [ {kernel method: DIAG, mix entity: POT, mix hist:  0, conv crit:  8.92E-14, 
- iter:  3, delta:  8.45E-06, energy: -1.76392074033819199E+02, D:  2.893E-02}]
+ iter:  3, delta:  8.45E-06, energy: -1.76392074033818972E+02, D:  2.893E-02}]
    -  #--------------------------------------------------------------------- kernel iter: 4
      Kernel update:
        Hamiltonian application required:  Yes
@@ -2283,7 +2295,7 @@
  {e: -3.301125581206E-01, f:  2.0000},  # 00043
  {e: -2.994478652252E-01, f:  2.0000},  # 00044
  {e: -2.977008023559E-01, f:  2.0000},  # 00045
- {e: -2.656320012048E-01, f:  2.0000},  # 00046
+ {e: -2.656320012047E-01, f:  2.0000},  # 00046
  {e: -2.623800673808E-01, f:  2.0000},  # 00047
  {e: -2.551309741630E-01, f:  2.0000},  # 00048
  {e: -2.415680228787E-01, f:  2.0000},  # 00049
@@ -2296,15 +2308,15 @@
  {e: -2.068568008235E-01, f:  2.0000},  # 00056
  {e: -2.003129768125E-01, f:  2.0000}] # 00057
      summary: [ {kernel method: DIAG, mix entity: POT, mix hist:  0, conv crit:  8.92E-14, 
- iter:  4, delta:  8.11E-06, energy: -1.76385470515517909E+02, D:  6.604E-03}]
+ iter:  4, delta:  8.11E-06, energy: -1.76385470515517227E+02, D:  6.604E-03}]
    -  &final_kernel004  { #-------------------------------------------------------- iter: 5
  summary: [ {kernel method: DIAG, mix entity: POT, mix hist:  0, conv crit:  8.92E-14, 
- iter:  5, delta:  8.11E-06, energy: -1.76385470515517909E+02, D:  6.604E-03}]}
+ iter:  5, delta:  8.11E-06, energy: -1.76385470515517227E+02, D:  6.604E-03}]}
     #================================================================= Summary of both steps
    self consistency summary: &it_sc004
    -  {iter:  4, Omega: ENERGY,  #WARNING: support function optimization not converged
  kernel optimization: DIAG,  #WARNING: density optimization not converged
- iter high:  4, delta out:  4.167E-07, energy: -1.76385470515517909E+02, D:  6.194E-02}
+ iter high:  4, delta out:  4.167E-07, energy: -1.76385470515517227E+02, D:  6.194E-02}
     #Eigenvalues and New Occupation Numbers
    Orbitals: [
  {e: -9.527458200227E-01, f:  1.0000},  # 00001
@@ -2352,7 +2364,7 @@
  {e: -3.301125581206E-01, f:  1.0000},  # 00043
  {e: -2.994478652252E-01, f:  1.0000},  # 00044
  {e: -2.977008023559E-01, f:  1.0000},  # 00045
- {e: -2.656320012048E-01, f:  1.0000},  # 00046
+ {e: -2.656320012047E-01, f:  1.0000},  # 00046
  {e: -2.623800673808E-01, f:  1.0000},  # 00047
  {e: -2.551309741630E-01, f:  1.0000},  # 00048
  {e: -2.415680228787E-01, f:  1.0000},  # 00049
@@ -2366,13 +2378,13 @@
  {e: -2.003129768125E-01, f:  1.0000},  # 00057
  {e: -1.287971633816E-01, f:  1.0000},  # 00058
  {e: -1.237452818989E-01, f:  1.0000},  # 00059
- {e: -7.048858163131E-02, f:  1.0000},  # 00060
- {e:  9.081808719790E-03, f:  1.0000},  # 00061
- {e:  2.963032940736E-02, f:  1.0000},  # 00062
+ {e: -7.048858163130E-02, f:  1.0000},  # 00060
+ {e:  9.081808719797E-03, f:  1.0000},  # 00061
+ {e:  2.963032940737E-02, f:  1.0000},  # 00062
  {e:  3.727974409418E-02, f:  1.0000},  # 00063
  {e:  5.451692876184E-02, f:  1.0000},  # 00064
- {e:  9.078257203863E-02, f:  1.0000},  # 00065
- {e:  9.771697809842E-02, f:  1.0000},  # 00066
+ {e:  9.078257203864E-02, f:  1.0000},  # 00065
+ {e:  9.771697809843E-02, f:  1.0000},  # 00066
  {e:  1.095526317519E-01, f:  1.0000},  # 00067
  {e:  1.146071934217E-01, f:  1.0000},  # 00068
  {e:  1.214499154138E-01, f:  1.0000},  # 00069
@@ -2419,7 +2431,7 @@
  Energies: {Ekin:  1.91894058144E+02, Epot: -2.18348888841E+02, Enl:  1.30549455478E+01, 
               EH:  1.08359262943E+03,  EXC: -5.12132852657E+01, EvXC: -6.70376150009E+01}, 
        iter high:  4,            delta out:  4.167E-07, 
-          energy: -1.76385470515517909E+02,                       D:  0.000E+00,  #FINAL
+          energy: -1.76385470515517227E+02,                       D:  0.000E+00,  #FINAL
  }
  Total charge                          :  1.139999983241E+02
   #---------------------------------------------------------------------- Forces Calculation
@@ -2432,63 +2444,67 @@
   #-------------------------------- Warnings obtained during the run, check their relevance!
  WARNINGS:
  - Do not call check_communications in the linear scaling version!
+ - The support function localization radii might be too small, got 87 warnings
  - support function optimization not converged
  - density optimization not converged
+ - The support function localization radii might be too small, got 8 warnings
  - oscillation of the energy, increase counter
+ - The support function localization radii might be too small, got 2 warnings
   #-------------------------------------------------------------------- Timing for root process
  Timings for root process:
-   CPU time (s)                        :  273.37
-   Elapsed time (s)                    :  248.22
+   CPU time (s)                        :  192.87
+   Elapsed time (s)                    :  112.30
  BigDFT infocode                       :  0
  Average noise forces: {x:  1.59255196E-02, y:  1.05551090E-01, z:  6.20658947E-03, 
                     total:  1.06926033E-01}
- Clean forces norm (Ha/Bohr): {maxval:  7.090170181840E-02, fnrm2:  5.040112929322E-02}
- Raw forces norm (Ha/Bohr): {maxval:  8.921314042616E-02, fnrm2:  6.183443423002E-02}
+ Clean forces norm (Ha/Bohr): {maxval:  7.090170181839E-02, fnrm2:  5.040112929320E-02}
+ Raw forces norm (Ha/Bohr): {maxval:  8.921314042615E-02, fnrm2:  6.183443422999E-02}
   #------------------------------------------------------------------------------ Atomic Forces
  Atomic Forces (Ha/Bohr):
- -  {N: [ 2.854864136587E-02,  5.475968583513E-02,  1.412099860530E-05]} # 0001
- -  {N: [-3.820030293202E-02, -1.287848437206E-02, -4.781240757023E-04]} # 0002
- -  {N: [-2.877706850201E-02,  7.516322440348E-04, -3.678994029098E-04]} # 0003
- -  {N: [ 8.817595447888E-03,  3.144693021251E-02,  1.519482820056E-03]} # 0004
- -  {N: [ 3.113683733064E-02,  1.303274360069E-02, -2.243355582540E-04]} # 0005
- -  {C: [-3.935272130468E-04,  3.996747337076E-02, -2.195245804670E-04]} # 0006
- -  {C: [ 3.402801946834E-03,  3.182750432368E-02,  4.173963392143E-04]} # 0007
- -  {C: [-2.409605012663E-02,  1.379150454173E-02,  9.371552076213E-04]} # 0008
- -  {C: [-7.964653985560E-03,  2.733912999021E-02, -1.266935755374E-04]} # 0009
- -  {C: [-2.406880745716E-03,  2.384316883791E-03,  4.375079629982E-05]} # 0010
- -  {C: [ 6.086715403316E-03, -6.527923958665E-02,  3.878927910813E-04]} # 0011
- -  {C: [ 2.774844783952E-03, -5.904538702009E-02,  5.011114362711E-04]} # 0012
- -  {C: [ 1.514597736401E-02,  4.797739126256E-03,  1.191830766691E-04]} # 0013
- -  {C: [-7.845479951420E-04,  3.731890993880E-02, -2.310944369579E-04]} # 0014
- -  {H: [ 2.615321318646E-03, -1.555805593541E-02, -4.256548642491E-04]} # 0015
- -  {H: [-9.991436558074E-03, -1.865981244631E-02, -3.933903872793E-04]} # 0016
- -  {H: [-1.129568158123E-02, -3.440531188334E-02, -6.856199239023E-04]} # 0017
- -  {H: [ 6.294915822873E-03, -3.197715355623E-02, -7.182288153309E-04]} # 0018
- -  {H: [ 4.468147102393E-04, -7.026017125369E-03, -3.757906815194E-04]} # 0019
- -  {N: [-1.774570020852E-02,  5.523754255033E-02, -2.814680490447E-05]} # 0020
- -  {N: [ 8.456275433560E-03,  7.039259662251E-02,  6.519718383672E-04]} # 0021
- -  {N: [ 4.009806974953E-02, -1.376225541874E-03, -4.964916337909E-04]} # 0022
- -  {C: [ 7.354945487823E-03,  3.040028993515E-02, -1.913938608246E-04]} # 0023
- -  {C: [ 2.554216485047E-03,  1.498653242313E-02,  1.014068977825E-03]} # 0024
- -  {C: [-2.558985336060E-02,  3.179639462489E-02,  4.407987662520E-04]} # 0025
- -  {C: [-8.170721340191E-03,  1.082876950425E-03,  3.240857046789E-05]} # 0026
- -  {C: [-7.728718587742E-03, -6.802966614451E-02,  7.666848099577E-04]} # 0027
- -  {C: [ 1.578035231033E-02, -6.331801512250E-02,  5.971735658638E-04]} # 0028
- -  {C: [ 2.076190938447E-02,  3.127396022384E-03, -1.303529212004E-04]} # 0029
- -  {H: [ 8.522822507320E-05, -1.541307672217E-02, -3.240202716844E-04]} # 0030
- -  {H: [-1.284877602781E-02, -1.877480454281E-02, -3.595552973607E-04]} # 0031
- -  {H: [-1.092378163438E-02, -3.138802929020E-02, -6.626818324819E-04]} # 0032
- -  {H: [ 6.063040338349E-03, -2.920399204142E-02, -6.619530296736E-04]} # 0033
- -  {H: [ 4.931978902504E-04,  7.892072134515E-03, -3.422480405215E-04]} # 0034
- Energy (Hartree)                      : -1.76385470515517909E+02
+ -  {N: [ 2.854864136586E-02,  5.475968583511E-02,  1.412099855973E-05]} # 0001
+ -  {N: [-3.820030293200E-02, -1.287848437203E-02, -4.781240756442E-04]} # 0002
+ -  {N: [-2.877706850200E-02,  7.516322440325E-04, -3.678994028994E-04]} # 0003
+ -  {N: [ 8.817595447877E-03,  3.144693021250E-02,  1.519482820088E-03]} # 0004
+ -  {N: [ 3.113683733063E-02,  1.303274360068E-02, -2.243355581901E-04]} # 0005
+ -  {C: [-3.935272130486E-04,  3.996747337074E-02, -2.195245804773E-04]} # 0006
+ -  {C: [ 3.402801946844E-03,  3.182750432366E-02,  4.173963392078E-04]} # 0007
+ -  {C: [-2.409605012662E-02,  1.379150454174E-02,  9.371552076080E-04]} # 0008
+ -  {C: [-7.964653985554E-03,  2.733912999023E-02, -1.266935755400E-04]} # 0009
+ -  {C: [-2.406880745719E-03,  2.384316883800E-03,  4.375079626756E-05]} # 0010
+ -  {C: [ 6.086715403322E-03, -6.527923958664E-02,  3.878927910949E-04]} # 0011
+ -  {C: [ 2.774844783951E-03, -5.904538702009E-02,  5.011114362421E-04]} # 0012
+ -  {C: [ 1.514597736400E-02,  4.797739126243E-03,  1.191830766725E-04]} # 0013
+ -  {C: [-7.845479951464E-04,  3.731890993878E-02, -2.310944369756E-04]} # 0014
+ -  {H: [ 2.615321318648E-03, -1.555805593541E-02, -4.256548642502E-04]} # 0015
+ -  {H: [-9.991436558070E-03, -1.865981244631E-02, -3.933903872837E-04]} # 0016
+ -  {H: [-1.129568158123E-02, -3.440531188333E-02, -6.856199239013E-04]} # 0017
+ -  {H: [ 6.294915822874E-03, -3.197715355622E-02, -7.182288153244E-04]} # 0018
+ -  {H: [ 4.468147102367E-04, -7.026017125367E-03, -3.757906815172E-04]} # 0019
+ -  {N: [-1.774570020852E-02,  5.523754255030E-02, -2.814680493602E-05]} # 0020
+ -  {N: [ 8.456275433547E-03,  7.039259662250E-02,  6.519718383079E-04]} # 0021
+ -  {N: [ 4.009806974951E-02, -1.376225541887E-03, -4.964916337650E-04]} # 0022
+ -  {C: [ 7.354945487818E-03,  3.040028993516E-02, -1.913938608559E-04]} # 0023
+ -  {C: [ 2.554216485043E-03,  1.498653242314E-02,  1.014068977861E-03]} # 0024
+ -  {C: [-2.558985336060E-02,  3.179639462489E-02,  4.407987662592E-04]} # 0025
+ -  {C: [-8.170721340191E-03,  1.082876950426E-03,  3.240857045855E-05]} # 0026
+ -  {C: [-7.728718587737E-03, -6.802966614449E-02,  7.666848099700E-04]} # 0027
+ -  {C: [ 1.578035231032E-02, -6.331801512249E-02,  5.971735658476E-04]} # 0028
+ -  {C: [ 2.076190938446E-02,  3.127396022381E-03, -1.303529211885E-04]} # 0029
+ -  {H: [ 8.522822507338E-05, -1.541307672216E-02, -3.240202716840E-04]} # 0030
+ -  {H: [-1.284877602780E-02, -1.877480454280E-02, -3.595552973601E-04]} # 0031
+ -  {H: [-1.092378163437E-02, -3.138802929019E-02, -6.626818324764E-04]} # 0032
+ -  {H: [ 6.063040338350E-03, -2.920399204141E-02, -6.619530296701E-04]} # 0033
+ -  {H: [ 4.931978902486E-04,  7.892072134507E-03, -3.422480405056E-04]} # 0034
+ Energy (Hartree)                      : -1.76385470515517227E+02
  Memory Consumption Report:
-   Tot. No. of Allocations             :  29584
-   Tot. No. of Deallocations           :  29584
+   Tot. No. of Allocations             :  29646
+   Tot. No. of Deallocations           :  29646
    Remaining Memory (B)                :  0
    Memory occupation:
-     Peak Value (MB)                   :  1200.361
+     Peak Value (MB)                   :  1200.367
      for the array                     : psi_f
      in the routine                    : untranspose_localized
-     Memory Peak of process            : 1805.468 MB
- Max No. of dictionaries used          :  6916 #( 857 still in use)
+     Memory Peak of process            : 1806.884 MB
+ Walltime since initialization         : 00:01:54.143505244
+ Max No. of dictionaries used          :  6919 #( 857 still in use)
  Number of dictionary folders allocated:  1
