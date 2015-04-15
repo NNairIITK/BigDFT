@@ -1112,7 +1112,7 @@ module communications
                           call mpi_type_commit(comm%mpi_datatypes(joverlap), ierr)
                       end if
                       iel=0
-                      nsize = 0
+                      !nsize = 0
                       ii = 1
                       do it=1,nit
                           do i=1,comm%onedtypeovrlp
@@ -1121,7 +1121,7 @@ module communications
                                                        size_of_double, &
                                                        kind=mpi_address_kind)
                               blocklengths(iel) = comm%onedtypearr(2,i)
-                              nsize = nsize + blocklengths(iel)
+                              !nsize = nsize + blocklengths(iel)
                               !if (iproc==0) write(*,*) 'ist, ncount, ind', &
                               !int(displacements(iel)/size_of_double,kind=8)+1, blocklengths(iel), ii
                               ii = ii + blocklengths(iel)
@@ -1136,12 +1136,20 @@ module communications
                   if (iproc==mpidest) then
                       if (.not.bgq) then
                            if (nproc>1) then
-                               ii = nsize
+                               !ii = nsize
                                call mpi_type_size(comm%mpi_datatypes(joverlap), nsize, ierr)
                                call mpi_type_get_extent(comm%mpi_datatypes(joverlap), lb, extent, ierr)
                                extent=extent/size_of_double
                                nsize=nsize/size_of_double
-                               if (ii/=nsize) stop 'ii/=nsize'
+                               !if (ii/=nsize) then
+                               !    write(*,*) 'ispin, ii, nsize', ispin, ii, nsize
+                               !    stop 'ii/=nsize'
+                               !end if
+                           else
+                               nsize = 0
+                               do i=1,comm%onedtypeovrlp
+                                   nsize = nsize + nit*comm%onedtypearr(2,i)
+                               end do
                            end if
                            if(nsize>0) then
                                if (nproc>1) then
