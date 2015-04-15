@@ -1048,9 +1048,9 @@ module communications
       call f_routine(id='start_onesided_communication')
       call timing(iproc, 'Pot_comm start', 'ON')
 
-      blocklengths = f_malloc(maxval(comm%onedtypeovrlp)*maxval(comm%comarr(5,:)),id='blocklengths')
-      displacements = f_malloc(maxval(comm%onedtypeovrlp)*maxval(comm%comarr(5,:)),id='displacements')
-      types = f_malloc(maxval(comm%onedtypeovrlp)*maxval(comm%comarr(5,:)),id='types')
+      blocklengths = f_malloc(comm%onedtypeovrlp*maxval(comm%comarr(5,:)),id='blocklengths')
+      displacements = f_malloc(comm%onedtypeovrlp*maxval(comm%comarr(5,:)),id='displacements')
+      types = f_malloc(comm%onedtypeovrlp*maxval(comm%comarr(5,:)),id='types')
       types(:) = mpi_double_precision
 
 !!call mpi_type_extent(mpi_double_precision, itemsize, ierr)
@@ -1115,12 +1115,12 @@ module communications
                       nsize = 0
                       ii = 1
                       do it=1,nit
-                          do i=1,comm%onedtypeovrlp(1)
+                          do i=1,comm%onedtypeovrlp
                               iel = iel + 1
-                              displacements(iel) = int(((it-1)*ioffset_send+comm%onedtypearr(1,i,1))*&
+                              displacements(iel) = int(((it-1)*ioffset_send+comm%onedtypearr(1,i))*&
                                                        size_of_double, &
                                                        kind=mpi_address_kind)
-                              blocklengths(iel) = comm%onedtypearr(2,i,1)
+                              blocklengths(iel) = comm%onedtypearr(2,i)
                               nsize = nsize + blocklengths(iel)
                               !if (iproc==0) write(*,*) 'ist, ncount, ind', &
                               !int(displacements(iel)/size_of_double,kind=8)+1, blocklengths(iel), ii

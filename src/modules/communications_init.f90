@@ -4207,8 +4207,7 @@ module communications_init
       !call memocc(istat, comgp%mpi_datatypes, 'comgp%mpi_datatypes', subname)
       !call to_zero((nmaxoverlap+1)*nproc, comgp%mpi_datatypes(0,0))
       comgp%mpi_datatypes = f_malloc0_ptr(0.to.comgp%noverlaps,id='comgp%mpi_datatypes')
-      comgp%onedtypearr = f_malloc_ptr((/2,2*lzd%glr%d%n2i,comgp%noverlaps/),id='comgp%onedtypearr')
-      comgp%onedtypeovrlp = f_malloc0_ptr(comgp%noverlaps,id='comgp%onedtypeovrlp')
+      comgp%onedtypearr = f_malloc_ptr((/2,2*lzd%glr%d%n2i/),id='comgp%onedtypearr')
       comgp%nrecvBuf = 0
       is3min=0
       ie3max=0
@@ -4413,8 +4412,8 @@ module communications_init
                                       ioffset = int(displacementsy(iseg)/size_of_double,kind=4) + &
                                                 (ileny-1)*lzd%glr%d%n1i + &
                                                 int(displacementsx(isegx)/size_of_double,kind=4)
-                                      comgp%onedtypearr(1,iel,ioverlap) = ioffset
-                                      comgp%onedtypearr(2,iel,ioverlap) = blocklengthsx(isegx)
+                                      comgp%onedtypearr(1,iel) = ioffset
+                                      comgp%onedtypearr(2,iel) = blocklengthsx(isegx)
                                       !write(*,*) 'isegx, blocklengthsx(isegx)', isegx, blocklengthsx(isegx)
                                       !write(*,*) 'iproc, ioverlap, comgp%noverlaps', iproc, ioverlap, comgp%noverlaps
                                       !write(*,'(a,3i5,2i12)') 'iproc, iel, ioverlap, 1darr', &
@@ -4422,7 +4421,7 @@ module communications_init
                                   end do
                               end do
                           end do
-                          comgp%onedtypeovrlp(ioverlap) = iel
+                          comgp%onedtypeovrlp = iel
                           types(:)=xyblock_type
                           if (nproc>1) then
                               call mpi_type_create_struct(nsegy, nblocksy, displacementsy, &
@@ -4448,8 +4447,8 @@ module communications_init
                       size_datatype=size_datatype/size_of_double
                   else
                       size_datatype = 0
-                      do i=1,comgp%onedtypeovrlp(1)
-                          size_datatype = size_datatype + comgp%onedtypearr(2,i,1)
+                      do i=1,comgp%onedtypeovrlp
+                          size_datatype = size_datatype + comgp%onedtypearr(2,i)
                       end do
                   end if
                   istdest = istdest + nlen3(j3)*size_datatype
