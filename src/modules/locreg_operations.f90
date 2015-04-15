@@ -7,6 +7,7 @@ module locreg_operations
 
   public :: Lpsi_to_global2
   public :: global_to_local_parallel
+  public :: get_boundary_weight
 
   contains
 
@@ -325,6 +326,76 @@ module locreg_operations
      end do
     
     END SUBROUTINE global_to_local_parallel
+
+
+    !> Check the relative weight which the support functions have at the
+    !! boundaries of the localization regions.
+    subroutine get_boundary_weight(orbs, lzd)
+      use module_base
+      use module_types, only: orbitals_data, local_zone_descriptors
+      implicit none
+
+      ! Calling arguments
+      type(orbitals_data),intent(in) :: orbs
+      type(local_zone_descriptors),intent(in) :: lzd
+
+      ! Local variables
+      integer :: iorb, iiorb, ilr, iseg, jj, j0, j1, ii, i3, i2, i0, i1, i
+      real(kind=8) :: h, x, y, z, d
+
+      ! mean value of the grid spacing
+      h = sqrt(lzd%hgrids(1)**2+lzd%hgrids(2)**2+lzd%hgrids(3)**2)
+
+      do iorb=1,orbs%norbp
+          iiorb = orbs%isorb + iorb
+          ilr = orbs%inwhichlocreg(iiorb)
+
+          do iseg=1,lzd%llr(ilr)%wfd%nseg_c
+              jj=lzd%llr(ilr)%wfd%keyvglob(iseg)
+              j0=lzd%llr(ilr)%wfd%keyglob(1,iseg)
+              j1=lzd%llr(ilr)%wfd%keyglob(2,iseg)
+              ii=j0-1
+              i3=ii/((lzd%llr(ilr)%d%n1+1)*(lzd%llr(ilr)%d%n2+1))
+              ii=ii-i3*(lzd%llr(ilr)%d%n1+1)*(lzd%llr(ilr)%d%n2+1)
+              i2=ii/(lzd%llr(ilr)%d%n1+1)
+              i0=ii-i2*(lzd%llr(ilr)%d%n1+1)
+              i1=i0+j1-j0
+              do i=i0,i1
+                  x = real(i,kind=8)*lzd%hgrids(1)
+                  y = real(i2,kind=8)*lzd%hgrids(2)
+                  z = real(i3,kind=8)*lzd%hgrids(3)
+                  d = sqrt((x-lzd%llr(ilr)%locregcenter(1))**2 + &
+                           (y-lzd%llr(ilr)%locregcenter(2))**2 + &
+                           (z-lzd%llr(ilr)%locregcenter(3))**2)
+                  if (abs(d-lzd%llr(ilr)%locrad)<h) then
+                      ! This value is on the boundary
+                      write(*,'(a,3i8,3es16.8)') 'on boudary: i1, i2, i3, x, y, z', i, i2, i3, x, y, z
+                  end if
+              end do
+          end do
+          !! fine part, to be done only if nseg_f is nonzero
+          !do iseg=lzd%llr(ilr)%wfd%nseg_c+1,lzd%llr(ilr)%wfd%nseg_c+lzd%llr(ilr)%wfd%nseg_f
+          !   jj=lzd%llr(ilr)%wfd%keyvglob(iseg)
+          !   j0=lzd%llr(ilr)%wfd%keyglob(1,iseg)
+          !   j1=lzd%llr(ilr)%wfd%keyglob(2,iseg)
+          !   ii=j0-1
+          !   i3=ii/((lzd%llr(ilr)%d%n1+1)*(lzd%llr(ilr)%d%n2+1))
+          !   ii=ii-i3*(lzd%llr(ilr)%d%n1+1)*(lzd%llr(ilr)%d%n2+1)
+          !   i2=ii/(lzd%llr(ilr)%d%n1+1)
+          !   i0=ii-i2*(lzd%llr(ilr)%d%n1+1)
+          !   i1=i0+j1-j0
+          !   do i=i0,i1
+          !      psig_f(1,i,i2,i3)=psi_f(1,i-i0+jj)*scal(1)
+          !      psig_f(2,i,i2,i3)=psi_f(2,i-i0+jj)*scal(1)
+          !      psig_f(3,i,i2,i3)=psi_f(3,i-i0+jj)*scal(2)
+          !      psig_f(4,i,i2,i3)=psi_f(4,i-i0+jj)*scal(1)
+          !      psig_f(5,i,i2,i3)=psi_f(5,i-i0+jj)*scal(2)
+          !      psig_f(6,i,i2,i3)=psi_f(6,i-i0+jj)*scal(2)
+          !      psig_f(7,i,i2,i3)=psi_f(7,i-i0+jj)*scal(3)
+          !   end do
+          !end do
+      end do
+    end subroutine get_boundary_weight
 
 
 end module locreg_operations

@@ -32,6 +32,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
   use io, only: writemywaves_linear, writemywaves_linear_fragments, write_linear_matrices, write_linear_coefficients
   use postprocessing_linear, only: loewdin_charge_analysis, support_function_multipoles, build_ks_orbitals
   use rhopotential, only: updatePotential, sumrho_for_TMBs, corrections_for_negative_charge
+  use locreg_operations, only: get_boundary_weight
   implicit none
 
   ! Calling arguments
@@ -577,6 +578,8 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
                   input%method_updatekernel,input%purification_quickreturn, &
                   input%correction_co_contra, precond_convol_workarrays, precond_workarrays, &
                   wt_philarge, wt_hpsinoprecond, wt_hphi, wt_phi, fnrm_work, energs_work, input%lin%fragment_calculation)
+              if (iproc==0) call yaml_scalar('call boundary analysis')
+              call get_boundary_weight(tmb%orbs, tmb%lzd)
            end if
            !!call gather_matrix_from_taskgroups_inplace(iproc, nproc, tmb%linmat%l, tmb%linmat%kernel_)
            reduce_conf=.true.
