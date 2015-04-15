@@ -508,10 +508,10 @@ module locreg_operations
           if (weight_normalized>crit) then
               nwarnings = nwarnings + 1
           end if
-          write(*,'(a,i7,2f9.1,4es16.6)') 'iiorb, pi, pb, weight_inside, weight_boundary, ratio, xi', &
-              iiorb, points_inside, points_boundary, weight_inside, weight_boundary, &
-              points_boundary/(points_boundary+points_inside), &
-              weight_boundary/ratio
+          !write(*,'(a,i7,2f9.1,4es16.6)') 'iiorb, pi, pb, weight_inside, weight_boundary, ratio, xi', &
+          !    iiorb, points_inside, points_boundary, weight_inside, weight_boundary, &
+          !    points_boundary/(points_boundary+points_inside), &
+          !    weight_boundary/ratio
       end do
       if (ind/=nsize_psi) then
           call f_err_throw('ind/=nsize_psi ('//trim(yaml_toa(ind))//'/='//trim(yaml_toa(nsize_psi))//')', &
