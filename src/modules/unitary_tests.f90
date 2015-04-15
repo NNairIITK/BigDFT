@@ -53,7 +53,7 @@ module unitary_tests
                    ind=ind+1
                    !denspot%rhov(ind)=real(ishift+i1+(i2-1)*n1i+(i3-1)*n1i*n2i,dp)
                    denspot%rhov(ind)=real((-1)**(ispin+1)*(i1+(i2-1)*n1i+(i3-1)*n1i*n2i),dp)
-                   write(500,'(es16.8)') denspot%rhov(ind)
+                   !write(500,'(es16.8)') denspot%rhov(ind)
                 end do
              end do
           end do
