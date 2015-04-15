@@ -53,11 +53,12 @@ module unitary_tests
                    ind=ind+1
                    !denspot%rhov(ind)=real(ishift+i1+(i2-1)*n1i+(i3-1)*n1i*n2i,dp)
                    denspot%rhov(ind)=real((-1)**(ispin+1)*(i1+(i2-1)*n1i+(i3-1)*n1i*n2i),dp)
-                   !!write(500,'(es16.8)') denspot%rhov(ind)
+                   write(500,'(es16.8)') denspot%rhov(ind)
                 end do
              end do
           end do
       end do
+
     
       !!write(*,'(a,3i12)') 'iproc, denspot%dpbox%ndimpot*denspot%dpbox%nrhodim, size(denspot%rhov)', iproc, denspot%dpbox%ndimpot*denspot%dpbox%nrhodim, size(denspot%rhov)
     
@@ -123,6 +124,8 @@ module unitary_tests
                      !     (i3+tmb%ham_descr%Lzd%Llr(ilr)%nsi3-1)*n1i*n2i),dp)
                      testval=real((-1)**(ispin+1)*(ii1+(ii2-1)*n1i+(ii3-1)*n1i*n2i),dp)
                      !if (iproc==0) write(*,'(a,5i8,2es14.3)') 'ispin, i1, i2, i3, ind, val, ref', ispin, i1, i2, i3, ind, denspot%pot_work(ind), testval
+                     !write(2000+iproc,'(a,6i8,2es14.3)') 'ispin, ilr, i1, i2, i3, ind, val, ref', &
+                     !    ispin, ilr, i1, i2, i3, ind, denspot%pot_work(ind), testval
                      testval=abs(denspot%pot_work(ind)-testval)
                      maxdiff=max(maxdiff,testval)
                      sumdiff=sumdiff+testval

@@ -325,9 +325,9 @@ module rhopotential
           if(.not.associated(pot)) then !otherwise this has been done already... Should be improved.
              pot = f_malloc_ptr(lzd%ndimpotisf,id='pot')
     
-             !!do i=1,comgp%nspin*comgp%nrecvBuf
-             !!    write(5300+iproc,'(a,i12,es15.7)') 'i, comgp%recvbuf(i)', i, comgp%recvbuf(i)
-             !!end do
+             do i=1,comgp%nspin*comgp%nrecvBuf
+                 write(5300+iproc,'(es16.8)') comgp%recvbuf(i)
+             end do
     
              !write(*,*) 'ne full_local_potential: comgp%nrecvbuf',comgp%nrecvbuf
     

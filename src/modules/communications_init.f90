@@ -4044,7 +4044,7 @@ module communications_init
       integer,dimension(2) :: blocklengthsx, blocklengthsy, types, xyblock_type, nblocksy
       integer(kind=mpi_address_kind),dimension(2) :: displacementsx, displacementsy
       integer(kind=mpi_address_kind) :: lb, extent
-      integer :: nsegx, nsegy, xline_type, size_of_double, size_datatype, n1, n2, n3
+      integer :: nsegx, nsegy, xline_type, size_of_double, size_datatype, n1, n2, n3, i
       integer,dimension(2) :: iis3, iie3, iis2, iie2, iis1, iie1, nlen1, nlen2, nlen3
       !integer,dimension(:),allocatable :: derived_types
 
@@ -4214,7 +4214,7 @@ module communications_init
       ie3max=0
     
       ! Only do this if we have more than one MPI task
-      nproc_if: if (nproc>1) then
+      !nproc_if: if (nproc>1) then
           is3j=comgp%ise(5)
           ie3j=comgp%ise(6)
           if (ie3j>lzd%glr%d%n3i) then
@@ -4299,7 +4299,11 @@ module communications_init
                           ii=comgp%ise(2)
                       end if
                       !if (comgp%ise(1)>is1 .and. ii<ie1) then
-                      call mpi_type_size(mpi_double_precision, size_of_double, ierr)
+                      if (nproc>1) then
+                          call mpi_type_size(mpi_double_precision, size_of_double, ierr)
+                      else
+                          size_of_double = 8
+                      end if
                       !!write(*,'(a,5i8)') 'ii, is1, ie1, comgp%ise(1:2)', ii, is1, ie1, comgp%ise(1:2)
                       if (ii<comgp%ise(1) .and. ii>=is1 .and. comgp%ise(1)<ie1) then
                           !!write(*,'(a,5i8)') 'hole in x, iproc, is1, ie1, comgp%ise(1), ii', iproc, is1, ie1, comgp%ise(1), ii
@@ -4371,11 +4375,13 @@ module communications_init
                           !!write(*,'(a,8i8)') 'iproc, nsegx, blocklengthsx, displacementsx, comgp%ise(1), comgp%ise(2)', &
                           !!                    iproc, nsegx, blocklengthsx, displacementsx, comgp%ise(1), comgp%ise(2)
                           types(:)=mpi_double_precision
-                          call mpi_type_create_struct(nsegx, blocklengthsx, displacementsx, &
-                               types, xline_type, ierr)
-                          call mpi_type_commit(xline_type, ierr)
-                          call mpi_type_size(xline_type, ii, ierr)
-                          call mpi_type_get_extent(xline_type, lb, extent, ierr)
+                          if (nproc>1) then
+                              call mpi_type_create_struct(nsegx, blocklengthsx, displacementsx, &
+                                   types, xline_type, ierr)
+                              call mpi_type_commit(xline_type, ierr)
+                              call mpi_type_size(xline_type, ii, ierr)
+                              call mpi_type_get_extent(xline_type, lb, extent, ierr)
+                          end if
                           !!write(*,'(a,4i10)') 'iproc, size, lb, extent, of xline_type', iproc, ii, lb, extent
                           !write(*,*) 'iproc, size of xline_type', iproc, ii
                           !!call mpi_type_vector(comgp%ise(4)-comgp%ise(3)+1, comgp%ise(2)-comgp%ise(1)+1, &
@@ -4390,12 +4396,14 @@ module communications_init
                           iel = 0
                           do iseg=1,nsegy
                               !!write(*,*) 'iproc, iseg, blocklengthsy(iseg)', iproc, iseg, blocklengthsy(iseg)
-                              call mpi_type_create_hvector(blocklengthsy(iseg), 1, &
-                                   int(size_of_double*lzd%glr%d%n1i,kind=mpi_address_kind), &
-                                   xline_type, xyblock_type(iseg), ierr)
-                              call mpi_type_commit(xyblock_type(iseg), ierr)
-                              call mpi_type_size(xyblock_type(iseg), ii, ierr)
-                              call mpi_type_get_extent(xyblock_type(iseg), lb, extent, ierr)
+                              if (nproc>1) then
+                                  call mpi_type_create_hvector(blocklengthsy(iseg), 1, &
+                                       int(size_of_double*lzd%glr%d%n1i,kind=mpi_address_kind), &
+                                       xline_type, xyblock_type(iseg), ierr)
+                                  call mpi_type_commit(xyblock_type(iseg), ierr)
+                                  call mpi_type_size(xyblock_type(iseg), ii, ierr)
+                                  call mpi_type_get_extent(xyblock_type(iseg), lb, extent, ierr)
+                              end if
                               !!write(*,'(a,4i14)') 'iproc, size, lb, extent, of xyblock_type(iseg)', iproc, ii, lb, extent
                               types(iseg)=xyblock_type(iseg)
                               nblocksy(iseg)=1
@@ -4416,25 +4424,34 @@ module communications_init
                           end do
                           comgp%onedtypeovrlp(ioverlap) = iel
                           types(:)=xyblock_type
-                          call mpi_type_create_struct(nsegy, nblocksy, displacementsy, &
-                               types, comgp%mpi_datatypes(0), ierr)
-                          !call f_free(derived_types)
-                          call mpi_type_commit(comgp%mpi_datatypes(0), ierr)
-                          call mpi_type_size(comgp%mpi_datatypes(0), ii, ierr)
-                          call mpi_type_get_extent(comgp%mpi_datatypes(0), lb, extent, ierr)
-                          !!write(*,'(a,4i14)') 'iproc, size, lb, extent, of comgp%mpi_datatypes(0)', iproc, ii, lb, extent
-                          do iseg=1,nsegy
-                              call mpi_type_free(xyblock_type(iseg), ierr)
-                          end do
-                          call mpi_type_free(xline_type, ierr)
+                          if (nproc>1) then
+                              call mpi_type_create_struct(nsegy, nblocksy, displacementsy, &
+                                   types, comgp%mpi_datatypes(0), ierr)
+                              !call f_free(derived_types)
+                              call mpi_type_commit(comgp%mpi_datatypes(0), ierr)
+                              call mpi_type_size(comgp%mpi_datatypes(0), ii, ierr)
+                              call mpi_type_get_extent(comgp%mpi_datatypes(0), lb, extent, ierr)
+                              !!write(*,'(a,4i14)') 'iproc, size, lb, extent, of comgp%mpi_datatypes(0)', iproc, ii, lb, extent
+                              do iseg=1,nsegy
+                                  call mpi_type_free(xyblock_type(iseg), ierr)
+                              end do
+                              call mpi_type_free(xline_type, ierr)
+                          end if
                           datatype_defined=.true.
                   end if
                   !!istdest = istdest + &
                   !!          (ie3-is3+1)*(comgp%ise(2)-comgp%ise(1)+1)*(comgp%ise(4)-comgp%ise(3)+1)
                   !!comgp%nrecvBuf = comgp%nrecvBuf + &
                   !!          (ie3-is3+1)*(comgp%ise(2)-comgp%ise(1)+1)*(comgp%ise(4)-comgp%ise(3)+1)
-                  call mpi_type_size(comgp%mpi_datatypes(0), size_datatype, ierr)
-                  size_datatype=size_datatype/size_of_double
+                  if (nproc>1) then
+                      call mpi_type_size(comgp%mpi_datatypes(0), size_datatype, ierr)
+                      size_datatype=size_datatype/size_of_double
+                  else
+                      size_datatype = 0
+                      do i=1,comgp%onedtypeovrlp(1)
+                          size_datatype = size_datatype + comgp%onedtypearr(2,i,1)
+                      end do
+                  end if
                   istdest = istdest + nlen3(j3)*size_datatype
                   comgp%nrecvBuf = comgp%nrecvBuf + nlen3(j3)*size_datatype
                   !!write(*,'(a,4i9)') 'j3, nlen3(j3), size_datatype, comgp%nrecvBuf', j3, nlen3(j3), size_datatype, comgp%nrecvBuf
@@ -4504,16 +4521,16 @@ module communications_init
           !if (comgp%ise(6,jproc)/=ie3max) stop 'ERROR 2'
           if(ioverlap/=comgp%noverlaps) stop 'ioverlap/=comgp%noverlaps'
     
-      else nproc_if ! monoproc
+      !else nproc_if ! monoproc
 
-          !write(*,*) 'comgp%ise',comgp%ise
+      !    !write(*,*) 'comgp%ise',comgp%ise
     
-          !comgp%nrecvbuf = (comgp%ise(2)-comgp%ise(1)+1)*(comgp%ise(4)-comgp%ise(3)+1)*&
-          !                 (comgp%ise(6)-comgp%ise(5)+1)
-          ! Probably too much, but ok for the moment
-          comgp%nrecvbuf = lzd%glr%d%n1i*lzd%glr%d%n2i*lzd%glr%d%n3i
-      
-      end if nproc_if
+      !    !comgp%nrecvbuf = (comgp%ise(2)-comgp%ise(1)+1)*(comgp%ise(4)-comgp%ise(3)+1)*&
+      !    !                 (comgp%ise(6)-comgp%ise(5)+1)
+      !    ! Probably too much, but ok for the moment
+      !    comgp%nrecvbuf = lzd%glr%d%n1i*lzd%glr%d%n2i*lzd%glr%d%n3i
+      !
+      !end if nproc_if
     
       ! This is the size of the communication buffer without spin
       comgp%nrecvbuf=max(comgp%nrecvbuf,1)
