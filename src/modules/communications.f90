@@ -1008,7 +1008,8 @@ module communications
     subroutine start_onesided_communication(iproc, nproc, n1, n2, n3p, sendbuf, nrecvbuf, recvbuf, comm, lzd)
       use module_base
       use module_types, only: local_zone_descriptors
-      use communications_base, only: p2pComms, bgq, RMA_SYNC_ACTIVE, RMA_SYNC_PASSIVE, rma_sync
+      use communications_base, only: p2pComms, bgq, RMA_SYNC_ACTIVE, RMA_SYNC_PASSIVE, rma_sync, &
+                                     TYPES_NESTED, TYPES_SIMPLE, type_strategy
       implicit none
       
       ! Calling arguments
@@ -1023,9 +1024,11 @@ module communications
       !character(len=*), parameter :: subname='start_onesided_communication'
       integer :: joverlap, mpisource, istsource, mpidest, istdest, ierr, nit, ispin, ispin_shift
       integer :: ioffset_send, ist, i2, i3, ist2, ist3, info, nsize, size_of_double, isend_shift
-      integer :: islices, ilines, ist1, ish1, ish2
-      integer,dimension(:),allocatable :: npotarr
+      integer :: islices, ilines, ist1, ish1, ish2, i, iel, it
+      integer,dimension(:),allocatable :: npotarr, blocklengths, types
+      integer(kind=mpi_address_kind),dimension(:),allocatable :: displacements
       integer(kind=mpi_address_kind) :: lb, extent
+
 
 !!integer :: itemsize
 !!type(c_ptr) :: baseptr
@@ -1044,6 +1047,11 @@ module communications
     
       call f_routine(id='start_onesided_communication')
       call timing(iproc, 'Pot_comm start', 'ON')
+
+      blocklengths = f_malloc(maxval(comm%onedtypeovrlp)*maxval(comm%comarr(5,:)),id='blocklengths')
+      displacements = f_malloc(maxval(comm%onedtypeovrlp)*maxval(comm%comarr(5,:)),id='displacements')
+      types = f_malloc(maxval(comm%onedtypeovrlp)*maxval(comm%comarr(5,:)),id='types')
+      types(:) = mpi_double_precision
 
 !!call mpi_type_extent(mpi_double_precision, itemsize, ierr)
 !!!call mpi_type_size(mpi_double_precision, itemsize, ierr)
@@ -1103,15 +1111,54 @@ module communications
                       isend_shift = (ispin-1)*npotarr(mpisource)
                       ! only create the derived data types in the first iteration, otherwise simply reuse them
                       if (ispin==1) then
-                          call mpi_type_create_hvector(nit, 1, int(size_of_double*ioffset_send,kind=mpi_address_kind), &
-                               comm%mpi_datatypes(0), comm%mpi_datatypes(joverlap), ierr)
-                          call mpi_type_commit(comm%mpi_datatypes(joverlap), ierr)
+                          if (type_strategy==TYPES_NESTED) then
+                              call mpi_type_create_hvector(nit, 1, int(size_of_double*ioffset_send,kind=mpi_address_kind), &
+                                   comm%mpi_datatypes(0), comm%mpi_datatypes(joverlap), ierr)
+                              call mpi_type_commit(comm%mpi_datatypes(joverlap), ierr)
+                          end if
+                          !!call mpi_type_size(comm%mpi_datatypes(joverlap), nsize, ierr)
+                          !!call mpi_type_get_extent(comm%mpi_datatypes(joverlap), lb, extent, ierr)
+                          !!write(*,*) 'OLD: iproc, nit, nsize, lb, extent', iproc, nit, nsize, lb, extent
+                          iel=0
+                          !!write(*,*) 'joverlap, nit, onedtypeovrlp(joverlap)', joverlap, nit, comm%onedtypeovrlp(joverlap)
+                          do it=1,nit
+                              do i=1,comm%onedtypeovrlp(1)
+                                  iel = iel + 1
+                                  displacements(iel) = int(((it-1)*ioffset_send+comm%onedtypearr(1,i,1))*&
+                                                           size_of_double, &
+                                                           kind=mpi_address_kind)
+                                  blocklengths(iel) = comm%onedtypearr(2,i,1)
+                                  !write(*,*) 'iproc, it, i, iel, displ, blocklen', &
+                                  !    iproc, it, i, iel, displacements(iel), blocklengths(iel)
+                              end do
+                          end do
+                          !!if (iel>0) then
+                          !!    write(*,*) 'iproc, nit, comm%onedtypeovrlp(joverlap), iel, displacements(iel), blocklengths(iel)', &
+                          !!                iproc, nit, comm%onedtypeovrlp(joverlap), iel, displacements(iel), blocklengths(iel)
+                          !!end if
+                          !!call mpi_type_create_struct(iel, blocklengths, displacements, types, &
+                          !!     comm%mpi_datatypes_new(joverlap), ierr)
+                          !!write(*,*) 'iel, size(blocklengths), size(displacements)', iel, size(blocklengths), size(displacements)
+                          !!blocklengths = 1
+                          !!displacements = int(8,kind=mpi_address_kind)
+                          if (type_strategy==TYPES_SIMPLE) then
+                              call mpi_type_create_struct(iel, blocklengths, displacements, types, &
+                                   comm%mpi_datatypes(joverlap), ierr)
+                              call mpi_type_commit(comm%mpi_datatypes(joverlap), ierr)
+                          end if
+                          !call mpi_type_size(comm%mpi_datatypes_new(joverlap), nsize, ierr)
+                          !call mpi_type_get_extent(comm%mpi_datatypes_new(joverlap), lb, extent, ierr)
+                          !!write(*,*) 'NEW: iproc, nit, nsize, lb, extent', iproc, nit, nsize, lb, extent
                       end if
                       if (iproc==mpidest) then
                       !if (iproc==mpidest .and. iproc==1 .and. iproc/=mpisource) then
                           if (.not.bgq) then
+                               !!call mpi_type_size(comm%mpi_datatypes(joverlap), nsize, ierr)
+                               !!call mpi_type_get_extent(comm%mpi_datatypes(joverlap), lb, extent, ierr)
+                               !!write(*,*) 'iproc, nit, nsize_old, lb, extent_old', iproc, nit, nsize, lb, extent
                                call mpi_type_size(comm%mpi_datatypes(joverlap), nsize, ierr)
                                call mpi_type_get_extent(comm%mpi_datatypes(joverlap), lb, extent, ierr)
+                               !write(*,*) 'iproc, nit, nsize_new, lb, extent_new', iproc, nit, nsize, lb, extent
                                extent=extent/size_of_double
                                nsize=nsize/size_of_double
                                if(nsize>0) then
@@ -1152,7 +1199,7 @@ module communications
                                        !write(*,'(2(a,i0))') 'AFTER: proc ',iproc,' calls lock for proc ',mpisource
                                    end if
                                    !write(*,'(a,5i10)') 'iproc, mpisource, ispin_shift+istdest, nsize, isend_shift+istsource-1', &
-                                   !!    iproc, mpisource, ispin_shift+istdest, nsize, isend_shift+istsource-1
+                                   !    iproc, mpisource, ispin_shift+istdest, nsize, isend_shift+istsource-1
                                    call mpi_get(recvbuf(ispin_shift+istdest), nsize, &
                                         mpi_double_precision, mpisource, int((isend_shift+istsource-1),kind=mpi_address_kind), &
                                         1, comm%mpi_datatypes(joverlap), comm%window, ierr)
@@ -1217,6 +1264,9 @@ module communications
       
 
       call f_free(npotarr)
+      call f_free(blocklengths)
+      call f_free(displacements)
+      call f_free(types)
     
       call timing(iproc, 'Pot_comm start', 'OF')
       call f_release_routine()
@@ -1242,6 +1292,7 @@ module communications
           if (rma_sync==RMA_SYNC_ACTIVE) then
               !!call mpi_win_fence(mpi_mode_nosucceed, comm%window, ierr)
               !!call mpi_win_free(comm%window, ierr)
+
               call mpi_fenceandfree(comm%window, mpi_mode_nosucceed)
           else if (rma_sync==RMA_SYNC_PASSIVE) then
             !!  !!call mpi_win_unlock_all(comm%window, ierr)
