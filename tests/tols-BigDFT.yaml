@@ -472,7 +472,7 @@ rotate_read1:
  energydiff: 8.3e-11
  Omega: 8.1e-11
  D: 1.1e-10
- Energy (Hartree): 2.5e-11
+ Energy (Hartree): 2.6e-11
 
 rotate_read2:
  eBS: 2.6e-11
@@ -1159,7 +1159,7 @@ PBE_potmixdiis:
  Enl: 2.2e-9
  Total charge: 2.1e-11
  multiplicator for the confinement: 4.3e-8
- Energy (Hartree): 8.6e-10
+ Energy (Hartree): 9.3e-10
 
 PBE_densmixdiis:
  Epot: 1.1e-10
