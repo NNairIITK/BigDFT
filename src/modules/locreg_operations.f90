@@ -351,8 +351,12 @@ module locreg_operations
       integer :: iorb, iiorb, ilr, iseg, jj, j0, j1, ii, i3, i2, i0, i1, i, ind, iat, iatype
       integer :: ij3, ij2, ij1, jj3, jj2, jj1, ijs3, ijs2, ijs1, ije3, ije2, ije1, nwarnings
       real(kind=8) :: h, x, y, z, d, weight_inside, weight_boundary, points_inside, points_boundary, ratio
-      real(kind=8) :: atomrad, rad, boundary, weight_normalized
+      real(kind=8) :: atomrad, rad, boundary, weight_normalized, maxweight, meanweight
       logical :: perx, pery, perz, on_boundary
+
+      if (iproc==0) then
+          call yaml_sequence(advance='no')
+      end if
 
       ! mean value of the grid spacing
       h = sqrt(lzd%hgrids(1)**2+lzd%hgrids(2)**2+lzd%hgrids(3)**2)
@@ -387,140 +391,154 @@ module locreg_operations
       end if
 
       nwarnings = 0
-      ind = 0
-      do iorb=1,orbs%norbp
-          iiorb = orbs%isorb + iorb
-          ilr = orbs%inwhichlocreg(iiorb)
+      maxweight = 0.d0
+      meanweight = 0.d0
+      if (orbs%norbp>0) then
+          ind = 0
+          do iorb=1,orbs%norbp
+              iiorb = orbs%isorb + iorb
+              ilr = orbs%inwhichlocreg(iiorb)
 
-          iat = orbs%onwhichatom(iiorb)
-          iatype = atoms%astruct%iatype(iat)
-          atomrad = atoms%radii_cf(iatype,1)*crmult
-          rad = atoms%radii_cf(atoms%astruct%iatype(iat),1)*crmult
+              iat = orbs%onwhichatom(iiorb)
+              iatype = atoms%astruct%iatype(iat)
+              atomrad = atoms%radii_cf(iatype,1)*crmult
+              rad = atoms%radii_cf(atoms%astruct%iatype(iat),1)*crmult
 
-          boundary = min(rad,lzd%llr(ilr)%locrad)
-          !write(*,*) 'rad, locrad, boundary', rad, lzd%llr(ilr)%locrad, boundary
+              boundary = min(rad,lzd%llr(ilr)%locrad)
+              !write(*,*) 'rad, locrad, boundary', rad, lzd%llr(ilr)%locrad, boundary
 
-          weight_boundary = 0.d0
-          weight_inside = 0.d0
-          points_inside = 0.d0
-          points_boundary = 0.d0
-          do iseg=1,lzd%llr(ilr)%wfd%nseg_c
-              jj=lzd%llr(ilr)%wfd%keyvglob(iseg)
-              j0=lzd%llr(ilr)%wfd%keyglob(1,iseg)
-              j1=lzd%llr(ilr)%wfd%keyglob(2,iseg)
-              ii=j0-1
-              i3=ii/((lzd%glr%d%n1+1)*(lzd%glr%d%n2+1))
-              ii=ii-i3*(lzd%glr%d%n1+1)*(lzd%glr%d%n2+1)
-              i2=ii/(lzd%glr%d%n1+1)
-              i0=ii-i2*(lzd%glr%d%n1+1)
-              i1=i0+j1-j0
-              do i=i0,i1
-                  ind = ind + 1
-                  on_boundary = .false.
-                  do ij3=ijs3,ije3!-1,1
-                      jj3=i3+ij3*(lzd%glr%d%n3+1)
-                      z = real(jj3,kind=8)*lzd%hgrids(3)
-                      do ij2=ijs2,ije2!-1,1
-                          jj2=i2+ij2*(lzd%glr%d%n2+1)
-                          y = real(jj2,kind=8)*lzd%hgrids(2)
-                          do ij1=ijs1,ije1!-1,1
-                              jj1=i+ij1*(lzd%glr%d%n1+1)
-                              x = real(i,kind=8)*lzd%hgrids(1)
-                              d = sqrt((x-lzd%llr(ilr)%locregcenter(1))**2 + &
-                                       (y-lzd%llr(ilr)%locregcenter(2))**2 + &
-                                       (z-lzd%llr(ilr)%locregcenter(3))**2)
-                              if (abs(d-boundary)<h) then
-                                  on_boundary=.true.
-                              end if
+              weight_boundary = 0.d0
+              weight_inside = 0.d0
+              points_inside = 0.d0
+              points_boundary = 0.d0
+              do iseg=1,lzd%llr(ilr)%wfd%nseg_c
+                  jj=lzd%llr(ilr)%wfd%keyvglob(iseg)
+                  j0=lzd%llr(ilr)%wfd%keyglob(1,iseg)
+                  j1=lzd%llr(ilr)%wfd%keyglob(2,iseg)
+                  ii=j0-1
+                  i3=ii/((lzd%glr%d%n1+1)*(lzd%glr%d%n2+1))
+                  ii=ii-i3*(lzd%glr%d%n1+1)*(lzd%glr%d%n2+1)
+                  i2=ii/(lzd%glr%d%n1+1)
+                  i0=ii-i2*(lzd%glr%d%n1+1)
+                  i1=i0+j1-j0
+                  do i=i0,i1
+                      ind = ind + 1
+                      on_boundary = .false.
+                      do ij3=ijs3,ije3!-1,1
+                          jj3=i3+ij3*(lzd%glr%d%n3+1)
+                          z = real(jj3,kind=8)*lzd%hgrids(3)
+                          do ij2=ijs2,ije2!-1,1
+                              jj2=i2+ij2*(lzd%glr%d%n2+1)
+                              y = real(jj2,kind=8)*lzd%hgrids(2)
+                              do ij1=ijs1,ije1!-1,1
+                                  jj1=i+ij1*(lzd%glr%d%n1+1)
+                                  x = real(i,kind=8)*lzd%hgrids(1)
+                                  d = sqrt((x-lzd%llr(ilr)%locregcenter(1))**2 + &
+                                           (y-lzd%llr(ilr)%locregcenter(2))**2 + &
+                                           (z-lzd%llr(ilr)%locregcenter(3))**2)
+                                  if (abs(d-boundary)<h) then
+                                      on_boundary=.true.
+                                  end if
+                              end do
                           end do
                       end do
+                      if (on_boundary) then
+                          ! This value is on the boundary
+                          !write(*,'(a,2f9.2,3i8,3es16.8)') 'on boundary: boundary, d, i1, i2, i3, x, y, z', &
+                          !    boundary, d, i, i2, i3, x, y, z
+                          weight_boundary = weight_boundary + psi(ind)**2
+                          points_boundary = points_boundary + 1.d0
+                      else
+                          weight_inside = weight_inside + psi(ind)**2
+                          points_inside = points_inside + 1.d0
+                      end if
                   end do
-                  if (on_boundary) then
-                      ! This value is on the boundary
-                      !write(*,'(a,2f9.2,3i8,3es16.8)') 'on boundary: boundary, d, i1, i2, i3, x, y, z', &
-                      !    boundary, d, i, i2, i3, x, y, z
-                      weight_boundary = weight_boundary + psi(ind)**2
-                      points_boundary = points_boundary + 1.d0
-                  else
-                      weight_inside = weight_inside + psi(ind)**2
-                      points_inside = points_inside + 1.d0
-                  end if
               end do
-          end do
-          ! fine part, to be done only if nseg_f is nonzero
-          do iseg=lzd%llr(ilr)%wfd%nseg_c+1,lzd%llr(ilr)%wfd%nseg_c+lzd%llr(ilr)%wfd%nseg_f
-              jj=lzd%llr(ilr)%wfd%keyvglob(iseg)
-              j0=lzd%llr(ilr)%wfd%keyglob(1,iseg)
-              j1=lzd%llr(ilr)%wfd%keyglob(2,iseg)
-              ii=j0-1
-              i3=ii/((lzd%glr%d%n1+1)*(lzd%glr%d%n2+1))
-              ii=ii-i3*(lzd%glr%d%n1+1)*(lzd%glr%d%n2+1)
-              i2=ii/(lzd%glr%d%n1+1)
-              i0=ii-i2*(lzd%glr%d%n1+1)
-              i1=i0+j1-j0
-              do i=i0,i1
-                  ind = ind + 7
-                  on_boundary = .false.
-                  do ij3=ijs3,ije3!-1,1
-                      jj3=i3+ij3*(lzd%glr%d%n3+1)
-                      z = real(jj3,kind=8)*lzd%hgrids(3)
-                      do ij2=ijs2,ije2!-1,1
-                          jj2=i2+ij2*(lzd%glr%d%n2+1)
-                          y = real(jj2,kind=8)*lzd%hgrids(2)
-                          do ij1=ijs1,ije1!-1,1
-                              jj1=i+ij1*(lzd%glr%d%n1+1)
-                              x = real(i,kind=8)*lzd%hgrids(1)
-                              d = sqrt((x-lzd%llr(ilr)%locregcenter(1))**2 + &
-                                       (y-lzd%llr(ilr)%locregcenter(2))**2 + &
-                                       (z-lzd%llr(ilr)%locregcenter(3))**2)
-                              if (abs(d-boundary)<h) then
-                                  on_boundary=.true.
-                              end if
+              ! fine part, to be done only if nseg_f is nonzero
+              do iseg=lzd%llr(ilr)%wfd%nseg_c+1,lzd%llr(ilr)%wfd%nseg_c+lzd%llr(ilr)%wfd%nseg_f
+                  jj=lzd%llr(ilr)%wfd%keyvglob(iseg)
+                  j0=lzd%llr(ilr)%wfd%keyglob(1,iseg)
+                  j1=lzd%llr(ilr)%wfd%keyglob(2,iseg)
+                  ii=j0-1
+                  i3=ii/((lzd%glr%d%n1+1)*(lzd%glr%d%n2+1))
+                  ii=ii-i3*(lzd%glr%d%n1+1)*(lzd%glr%d%n2+1)
+                  i2=ii/(lzd%glr%d%n1+1)
+                  i0=ii-i2*(lzd%glr%d%n1+1)
+                  i1=i0+j1-j0
+                  do i=i0,i1
+                      ind = ind + 7
+                      on_boundary = .false.
+                      do ij3=ijs3,ije3!-1,1
+                          jj3=i3+ij3*(lzd%glr%d%n3+1)
+                          z = real(jj3,kind=8)*lzd%hgrids(3)
+                          do ij2=ijs2,ije2!-1,1
+                              jj2=i2+ij2*(lzd%glr%d%n2+1)
+                              y = real(jj2,kind=8)*lzd%hgrids(2)
+                              do ij1=ijs1,ije1!-1,1
+                                  jj1=i+ij1*(lzd%glr%d%n1+1)
+                                  x = real(i,kind=8)*lzd%hgrids(1)
+                                  d = sqrt((x-lzd%llr(ilr)%locregcenter(1))**2 + &
+                                           (y-lzd%llr(ilr)%locregcenter(2))**2 + &
+                                           (z-lzd%llr(ilr)%locregcenter(3))**2)
+                                  if (abs(d-boundary)<h) then
+                                      on_boundary=.true.
+                                  end if
+                              end do
                           end do
                       end do
+                      if (on_boundary) then
+                          ! This value is on the boundary
+                          !write(*,'(a,f9.2,3i8,3es16.8)') 'on boundary: d, i1, i2, i3, x, y, z', d, i, i2, i3, x, y, z
+                          weight_boundary = weight_boundary + psi(ind-6)**2
+                          weight_boundary = weight_boundary + psi(ind-5)**2
+                          weight_boundary = weight_boundary + psi(ind-4)**2
+                          weight_boundary = weight_boundary + psi(ind-3)**2
+                          weight_boundary = weight_boundary + psi(ind-2)**2
+                          weight_boundary = weight_boundary + psi(ind-1)**2
+                          weight_boundary = weight_boundary + psi(ind-0)**2
+                          points_boundary = points_boundary + 7.d0
+                      else
+                          weight_inside = weight_inside + psi(ind-6)**2
+                          weight_inside = weight_inside + psi(ind-5)**2
+                          weight_inside = weight_inside + psi(ind-4)**2
+                          weight_inside = weight_inside + psi(ind-3)**2
+                          weight_inside = weight_inside + psi(ind-2)**2
+                          weight_inside = weight_inside + psi(ind-1)**2
+                          weight_inside = weight_inside + psi(ind-0)**2
+                          points_inside = points_inside + 7.d0
+                      end if
                   end do
-                  if (on_boundary) then
-                      ! This value is on the boundary
-                      !write(*,'(a,f9.2,3i8,3es16.8)') 'on boundary: d, i1, i2, i3, x, y, z', d, i, i2, i3, x, y, z
-                      weight_boundary = weight_boundary + psi(ind-6)**2
-                      weight_boundary = weight_boundary + psi(ind-5)**2
-                      weight_boundary = weight_boundary + psi(ind-4)**2
-                      weight_boundary = weight_boundary + psi(ind-3)**2
-                      weight_boundary = weight_boundary + psi(ind-2)**2
-                      weight_boundary = weight_boundary + psi(ind-1)**2
-                      weight_boundary = weight_boundary + psi(ind-0)**2
-                      points_boundary = points_boundary + 7.d0
-                  else
-                      weight_inside = weight_inside + psi(ind-6)**2
-                      weight_inside = weight_inside + psi(ind-5)**2
-                      weight_inside = weight_inside + psi(ind-4)**2
-                      weight_inside = weight_inside + psi(ind-3)**2
-                      weight_inside = weight_inside + psi(ind-2)**2
-                      weight_inside = weight_inside + psi(ind-1)**2
-                      weight_inside = weight_inside + psi(ind-0)**2
-                      points_inside = points_inside + 7.d0
-                  end if
               end do
+              ! Ratio of the points on the boundary with resepct to the total number of points
+              ratio = points_boundary/(points_boundary+points_inside)
+              weight_normalized = weight_boundary/ratio
+              meanweight = meanweight + weight_normalized
+              maxweight = max(maxweight,weight_normalized)
+              if (weight_normalized>crit) then
+                  nwarnings = nwarnings + 1
+              end if
+              !write(*,'(a,i7,2f9.1,4es16.6)') 'iiorb, pi, pb, weight_inside, weight_boundary, ratio, xi', &
+              !    iiorb, points_inside, points_boundary, weight_inside, weight_boundary, &
+              !    points_boundary/(points_boundary+points_inside), &
+              !    weight_boundary/ratio
           end do
-          ! Ratio of the points on the boundary with resepct to the total number of points
-          ratio = points_boundary/(points_boundary+points_inside)
-          weight_normalized = weight_boundary/ratio
-          if (weight_normalized>crit) then
-              nwarnings = nwarnings + 1
+          if (ind/=nsize_psi) then
+              call f_err_throw('ind/=nsize_psi ('//trim(yaml_toa(ind))//'/='//trim(yaml_toa(nsize_psi))//')', &
+                   err_name='BIGDFT_RUNTIME_ERROR')
           end if
-          !write(*,'(a,i7,2f9.1,4es16.6)') 'iiorb, pi, pb, weight_inside, weight_boundary, ratio, xi', &
-          !    iiorb, points_inside, points_boundary, weight_inside, weight_boundary, &
-          !    points_boundary/(points_boundary+points_inside), &
-          !    weight_boundary/ratio
-      end do
-      if (ind/=nsize_psi) then
-          call f_err_throw('ind/=nsize_psi ('//trim(yaml_toa(ind))//'/='//trim(yaml_toa(nsize_psi))//')', &
-               err_name='BIGDFT_RUNTIME_ERROR')
       end if
 
       ! Sum up among all tasks
       if (nproc>1) then
-          call mpiallred(nwarnings, 1, mpi_sum, bigdft_mpi%mpi_comm)
+          call mpiallred(nwarnings, 1, mpi_sum, comm=bigdft_mpi%mpi_comm)
+          call mpiallred(meanweight, 1, mpi_sum, comm=bigdft_mpi%mpi_comm)
+          call mpiallred(maxweight, 1, mpi_max, comm=bigdft_mpi%mpi_comm)
+      end if
+      meanweight = meanweight/real(orbs%norb,kind=8)
+      if (iproc==0) then
+          call yaml_mapping_open('Check boundary values')
+          call yaml_map('mean / max value',(/meanweight,maxweight/),fmt='(2es9.2)')
+          call yaml_mapping_close()
       end if
 
       ! Print the warnings

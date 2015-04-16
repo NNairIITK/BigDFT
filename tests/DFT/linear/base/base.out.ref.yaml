@@ -672,6 +672,8 @@
  Energies: {Ekin:  2.04908629341E+01, Epot: -1.54096611590E+01, Enl:  3.18147850959E+00}, 
  iter:  4, fnrm:  1.47E-01, Omega:  1.247816049896242E+01, D: -9.10E-02, D best: -9.10E-02}
       #Support functions created
+   - Check boundary values:
+       mean / max value                :  [  2.0E-05,  5.60E-05 ]
     #=================================================================== kernel optimization
  - kernel optimization: &it_kernel001
    -  #--------------------------------------------------------------------- kernel iter: 1
@@ -880,6 +882,8 @@
  Energies: {Ekin:  2.04554597527E+01, Epot: -1.42237808037E+01, Enl:  3.15531042855E+00}, 
  iter:  4, fnrm:  1.60E-02, Omega:  1.458628740912252E+01, D: -1.71E-03, D best: -1.71E-03}
       #Support functions created
+   - Check boundary values:
+       mean / max value                :  [  1.67E-06,  4.42E-06 ]
     #=================================================================== kernel optimization
  - kernel optimization: &it_kernel002
    -  #--------------------------------------------------------------------- kernel iter: 1
@@ -1189,6 +1193,8 @@
  Energies: {Ekin:  1.93016166297E+01, Epot: -1.68777029865E+01, Enl:  2.62980997175E+00}, 
  iter:  5, fnrm:  2.72E-02, Omega: -6.282708820008660E+00, D: -5.17E-03, D best: -5.17E-03}
       #Support functions created
+   - Check boundary values:
+       mean / max value                :  [  2.46E-03,  5.90E-03 ]
     #=================================================================== kernel optimization
  - kernel optimization: &it_kernel003
    -  #--------------------------------------------------------------------- kernel iter: 1
@@ -1427,6 +1433,8 @@
  Energies: {Ekin:  1.94420792546E+01, Epot: -1.85905858370E+01, Enl:  2.63651673472E+00}, 
  iter:  5, fnrm:  4.16E-03, Omega: -6.238934066777460E+00, D: -1.66E-04, D best: -1.66E-04}
       #Support functions created
+   - Check boundary values:
+       mean / max value                :  [  2.24E-03,  5.59E-03 ]
     #=================================================================== kernel optimization
  - kernel optimization: &it_kernel004
    -  #--------------------------------------------------------------------- kernel iter: 1
@@ -1665,6 +1673,8 @@
  Energies: {Ekin:  1.94062620241E+01, Epot: -1.81761848821E+01, Enl:  2.63172391995E+00}, 
  iter:  5, fnrm:  1.63E-03, Omega: -6.237127862725908E+00, D: -2.00E-05, D best: -2.00E-05}
       #Support functions created
+   - Check boundary values:
+       mean / max value                :  [  2.42E-03,  5.96E-03 ]
     #=================================================================== kernel optimization
  - kernel optimization: &it_kernel005
    -  #--------------------------------------------------------------------- kernel iter: 1

@@ -412,7 +412,7 @@ cleanup:
  Omega: 2.12e-9
  Pulay Forces (Ha/Bohr): 1.9e-9
  energy: 2.3e-9
- Energy (Hartree): 1.2e-10
+ Energy (Hartree): 1.8e-10
 
 directmin:
  Patterns to ignore:
@@ -603,7 +603,7 @@ hybrid-directmin:
  Clean forces norm (Ha/Bohr): 8.0e-11
  Raw forces norm (Ha/Bohr): 3.3e-11
  Average noise forces: 1.1e-10
- Energy (Hartree): 2.1e-11
+ Energy (Hartree): 2.3e-11
 
 cdft_ohoh:
  Epsilon: 7.1e-10
@@ -639,7 +639,7 @@ fructose:
  ebs: 1.1e-8
  ebs_check: 1.1e-8
  net quadropole: 1.1e-10
- Energy (Hartree): 4.5e-11
+ Energy (Hartree): 4.7e-11
  Keys to ignore:
   - Calculating wavelets expansion of projectors, found warnings
   - found warnings
@@ -799,6 +799,7 @@ foe:
  ebs_check: 1.1e-10
  guess for new ef: 4.2e-8
  D: 1.1e-10
+ Energy (Hartree): 2.7e-11
 
 onlyhigh:
  Energies: 2.1e-9
@@ -896,7 +897,7 @@ experimentalfoe_short:
  diff from idempotency: 3.1e-09
  D: 1.1e-4
  decay length of error function: 1.1e-5
- Energy (Hartree): 1.3e-11
+ Energy (Hartree): 1.4e-11
 
 experimentalfoe_medium:
  charge diff: 2.5e-7
@@ -915,7 +916,7 @@ experimentalfoe_medium:
  energy: 2.9e-10
  Omega: 8.1e-10
  decay length of error function: 1.1e-5
- Energy (Hartree): 1.3e-10
+ Energy (Hartree): 1.4e-10
 
 newpulay:
  EXC: 1.1e-10
@@ -1091,7 +1092,7 @@ DIIShistory:
  EH: 2.0e-8
  Pulay forces (Ha/Bohr): 7.8e-09
  Max deviation from unity in reorthonormalize_coeff: 1.1e-9
- Energy (Hartree): 3.8e-11
+ Energy (Hartree): 4.4e-11
 
 sparsity:
  Total charge: 1.1e-10
@@ -1112,7 +1113,7 @@ sparsity:
  ebs: 2.1e-10
  diff: 1.1e-9
  D Tr: 1.1e-10
- Energy (Hartree): 3.7e-10
+ Energy (Hartree): 4.0e-10
 
 PBE_densmixlin:
  Ekin: 1.1e-10
@@ -1123,7 +1124,7 @@ PBE_densmixlin:
  EXC: 1.01e-10
  EH: 1.0e-9
  Total charge: 2.1e-11
- Energy (Hartree): 2.6e-11
+ Energy (Hartree): 2.8e-11
  Keys to ignore:
   - Calculating wavelets expansion of projectors, found warnings
   - found warnings
@@ -1159,7 +1160,7 @@ PBE_potmixdiis:
  Enl: 2.2e-9
  Total charge: 2.1e-11
  multiplicator for the confinement: 4.3e-8
- Energy (Hartree): 9.3e-10
+ Energy (Hartree): 1.5e-10
 
 PBE_densmixdiis:
  Epot: 1.1e-10
@@ -1171,7 +1172,7 @@ PBE_densmixdiis:
  Ekin: 1.1e-9
  Total charge: 2.1e-11
  EH: 1.0e-9
- Energy (Hartree): 2.8e-11
+ Energy (Hartree): 3.0e-11
 
 test-bigdft-tool:
  positions: 5.1e-8
@@ -1287,7 +1288,7 @@ O2spin_dirmin:
  EvXC: 6.0e-6
  energydiff: 6.0e-6
  energy: 1.1e-6
- Energy (Hartree): 5.8e-7
+ Energy (Hartree): 6.9e-7
  Omega: 6.1e-6
  Raw forces norm (Ha/Bohr): 5.1e-5
  D: 2.1e-6
@@ -1430,12 +1431,11 @@ periodic_silicon:
  EXC: 1.1e-10
  Omega: 5.91e-11
  ebs_check: 1.1e-10
- charge diff: 1.4e-10
+ charge diff: 4.6e-10
  ebs: 1.2e-10
  Energy (Hartree): 2.9e-11
  energy: 2.9e-11
- charge diff: 3.8e-10
- Total ionic charge: 1.9e-11
+ Total ionic charge: 2.1e-11
  Pressure: 1.5e-10
 
 periodic_wateredge:
@@ -1461,7 +1461,7 @@ periodic_water:
  Ekin: 2.0e-9
  Enl: 1.1e-9
  Energy (Hartree): 7.3e-11
- Omega: 2.6e-10
+ Omega: 2.7e-10
  ebs_check: 2.5e-9
  ebs: 2.5e-9
  eF: 9.2e-9
@@ -1500,3 +1500,4 @@ surface_graphene:
  eF: 7.1e-10
  D eF: 1.1e-9
  diff: 2.1e-11
+ Total ionic charge: 1.2e-11
