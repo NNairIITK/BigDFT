@@ -28,7 +28,7 @@
  
  Reference Paper                       : The Journal of Chemical Physics 129, 014109 (2008)
  Version Number                        : 1.7.6.8
- Timestamp of this run                 : 2015-04-15 17:39:39.855
+ Timestamp of this run                 : 2015-04-16 09:28:18.375
  Root process Hostname                 : phys-comp-03
  Number of MPI tasks                   :  4
  OpenMP parallelization                :  Yes
@@ -585,7 +585,7 @@
      Molecule was shifted              :  24
      Molecule was rotated              :  18
    Reading Waves Time:
-   -  {Process:  0, Timing:  [  1.681E+01,  9.482E+00 ]}
+   -  {Process:  0, Timing:  [  1.829E+01,  1.091E+01 ]}
    Max deviation from unity in reorthonormalize_coeff:  4.75E-06
    Mean deviation from unity in reorthonormalize_coeff:  2.36E-06
    Max deviation from unity in reorthonormalize_coeff:  1.67E-06
@@ -704,13 +704,15 @@
  error estimation: [
  max / mean error:  [  7.86E-04,  1.22E-04 ]]}, 
  Preconditioning:  Yes, 
- iter:  1, fnrm:  1.85E-01, Omega: -6.872039803209701E+01, D: -6.87E+01, D best: -6.87E+01, 
+ iter:  1, fnrm:  1.85E-01, Omega: -6.872039803209698E+01, D: -6.87E+01, D best: -6.87E+01, 
  exit criterion: net number of iterations}
    -  &final_supfun001  { #-------------------------------------------------------- iter: 1
  target function: ENERGY, 
  Energies: {Ekin:  3.75282244111E+01, Epot: -4.81105877954E+01, Enl:  2.75407380664E+00}, 
- iter:  1, fnrm:  1.85E-01, Omega: -6.872039803209701E+01, D: -6.87E+01, D best: -6.87E+01}
+ iter:  1, fnrm:  1.85E-01, Omega: -6.872039803209698E+01, D: -6.87E+01, D best: -6.87E+01}
       #Support functions created
+   - Check boundary values:
+       mean / max value                :  [  7.35E-03,  1.52E-02 ]
       #WARNING: The support function localization radii might be too small, got 8 warnings
     #=================================================================== kernel optimization
  - kernel optimization: &it_kernel001
@@ -730,7 +732,7 @@
  Mean deviation from unity in reorthonormalize_coeff:  8.66E-06, 
  calculate S^x: {mode: dense, powers: {x: -1/2}, order:  8}, 
  communication strategy kernel: ALLREDUCE, method: DminSD, 
- iter:  1, fnrm:  2.45E-02, eBS: -1.62501138574662392E+01, D: -1.771E-03, 
+ iter:  1, fnrm:  2.45E-02, eBS: -1.62501138574662285E+01, D: -1.771E-03, 
           alpha:  2.000E-01}
        Coefficients available          :  Yes
      Hamiltonian update: {
@@ -834,27 +836,27 @@
  - density optimization not converged
   #-------------------------------------------------------------------- Timing for root process
  Timings for root process:
-   CPU time (s)                        :  35.80
-   Elapsed time (s)                    :  21.78
+   CPU time (s)                        :  37.52
+   Elapsed time (s)                    :  23.12
  BigDFT infocode                       :  0
  Average noise forces: {x:  1.20278655E-02, y: -5.91923346E-02, z:  3.59651424E-02, 
                     total:  7.02986023E-02}
- Clean forces norm (Ha/Bohr): {maxval:  8.121005566156E-02, fnrm2:  1.231921464396E-02}
+ Clean forces norm (Ha/Bohr): {maxval:  8.121005566158E-02, fnrm2:  1.231921464397E-02}
  Raw forces norm (Ha/Bohr): {maxval:  1.152449525836E-01, fnrm2:  2.128975873394E-02}
   #------------------------------------------------------------------------------ Atomic Forces
  Atomic Forces (Ha/Bohr):
- -  {O: [ 2.609712336335E-02, -7.265592630816E-02,  2.520177900496E-02]} # 0001
- -  {H: [-4.503763038898E-03,  1.146852342184E-02, -1.210865456994E-02]} # 0002
- -  {H: [-3.466087151707E-03,  8.139859419733E-03, -5.937587682082E-03]} # 0003
- -  {O: [ 3.753009501311E-03, -3.900839278427E-02,  2.557758364295E-02]} # 0004
- -  {H: [-2.306897671986E-02,  7.942005489060E-03, -1.183170852573E-02]} # 0005
- -  {H: [-1.115481207197E-02,  5.341036408039E-03, -8.477019369533E-03]} # 0006
- -  {O: [-1.547237566391E-02,  1.101990643498E-02, -2.244874547805E-03]} # 0007
- -  {H: [ 8.548810779043E-03,  2.344898880538E-02, -6.266878142369E-03]} # 0008
- -  {H: [ 3.674000227900E-03,  2.535783370542E-02, -1.093530398138E-02]} # 0009
- -  {O: [ 1.219349164931E-02,  9.605721877663E-03,  1.058706934611E-03]} # 0010
- -  {H: [ 2.136054208346E-04,  2.185178234299E-03,  6.979871942592E-03]} # 0011
- -  {H: [ 3.185973704597E-03,  7.155265296015E-03, -1.015914706280E-03]} # 0012
+ -  {O: [ 2.609712336335E-02, -7.265592630818E-02,  2.520177900497E-02]} # 0001
+ -  {H: [-4.503763038897E-03,  1.146852342184E-02, -1.210865456993E-02]} # 0002
+ -  {H: [-3.466087151707E-03,  8.139859419734E-03, -5.937587682083E-03]} # 0003
+ -  {O: [ 3.753009501313E-03, -3.900839278427E-02,  2.557758364292E-02]} # 0004
+ -  {H: [-2.306897671986E-02,  7.942005489060E-03, -1.183170852572E-02]} # 0005
+ -  {H: [-1.115481207197E-02,  5.341036408040E-03, -8.477019369522E-03]} # 0006
+ -  {O: [-1.547237566393E-02,  1.101990643500E-02, -2.244874547823E-03]} # 0007
+ -  {H: [ 8.548810779051E-03,  2.344898880538E-02, -6.266878142368E-03]} # 0008
+ -  {H: [ 3.674000227908E-03,  2.535783370542E-02, -1.093530398138E-02]} # 0009
+ -  {O: [ 1.219349164932E-02,  9.605721877648E-03,  1.058706934603E-03]} # 0010
+ -  {H: [ 2.136054208362E-04,  2.185178234306E-03,  6.979871942598E-03]} # 0011
+ -  {H: [ 3.185973704600E-03,  7.155265296012E-03, -1.015914706272E-03]} # 0012
  Energy (Hartree)                      : -6.87221689290771138E+01
  Memory Consumption Report:
    Tot. No. of Allocations             :  4229
@@ -864,7 +866,7 @@
      Peak Value (MB)                   :  626.039
      for the array                     : psir
      in the routine                    : psi_to_vlocpsi
-     Memory Peak of process            : 672.820 MB
- Walltime since initialization         : 00:00:22.986130788
+     Memory Peak of process            : 672.784 MB
+ Walltime since initialization         : 00:00:24.313488403
  Max No. of dictionaries used          :  4479 #( 857 still in use)
  Number of dictionary folders allocated:  1

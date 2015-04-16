@@ -25,10 +25,10 @@
    |     |     |     |     |     |         D               T    T
    |     |     |     |     |     |   DDDDDD       F         TTTT
    |_____|_____|_____|_____|_____|______                    www.bigdft.org   "
-
+ 
  Reference Paper                       : The Journal of Chemical Physics 129, 014109 (2008)
- Version Number                        : 1.7.6.7
- Timestamp of this run                 : 2015-04-11 12:27:59.783
+ Version Number                        : 1.7.6.8
+ Timestamp of this run                 : 2015-04-16 10:08:58.815
  Root process Hostname                 : phys-comp-03
  Number of MPI tasks                   :  4
  OpenMP parallelization                :  Yes
@@ -37,18 +37,20 @@
   #------------------------------------------------------------------ Code compiling options
  Compilation options:
    Configure arguments:
-     " 'FC=/opt/openmpi-1.5.4-gnu/bin/mpif90' 'CC=gcc' 'FCFLAGS=-O2 -Wno-error -fopenmp' 
+     " 'FC=/opt/openmpi-1.6.4/bin/mpif90' 'CC=icc' 'FCFLAGS=-O2 -i_dynamic -msse4.2 
+     -heap-arrays 1024 -openmp' 
      '--with-ext-linalg=/opt/intel/composer_xe_2011_sp1.11.339/mkl/lib/intel64/libmkl_scalapa
      ck_lp64.a  -Wl,--start-group  
+     /opt/intel/composer_xe_2011_sp1.11.339/mkl/lib/intel64/libmkl_cdft_core.a 
      /opt/intel/composer_xe_2011_sp1.11.339/mkl/lib/intel64/libmkl_intel_lp64.a 
-     /opt/intel/composer_xe_2011_sp1.11.339/mkl/lib/intel64/libmkl_sequential.a 
+     /opt/intel/composer_xe_2011_sp1.11.339/mkl/lib/intel64/libmkl_intel_thread.a 
      /opt/intel/composer_xe_2011_sp1.11.339/mkl/lib/intel64/libmkl_core.a 
      /opt/intel/composer_xe_2011_sp1.11.339/mkl/lib/intel64/libmkl_blacs_openmpi_lp64.a 
-     -Wl,--end-group -lpthread'"
-   Compilers (CC, FC, CXX)             :  [ gcc, /opt/openmpi-1.5.4-gnu/bin/mpif90, g++ ]
+     -Wl,--end-group -openmp -lpthread -lm'"
+   Compilers (CC, FC, CXX)             :  [ icc, /opt/openmpi-1.6.4/bin/mpif90, g++ ]
    Compiler flags:
      CFLAGS                            : -g -O2
-     FCFLAGS                           : -O2 -Wno-error -fopenmp
+     FCFLAGS                           : -O2 -i_dynamic -msse4.2 -heap-arrays 1024 -openmp
      CXXFLAGS                          : -g -O2
   #------------------------------------------------------------------------ Input parameters
  radical                               : read2
@@ -568,24 +570,24 @@
    transposition check, mean error     :  0.000000000000000000E+00
    transposition check, max error      :  0.000000000000000000E+00
    Tolerance for the following test    :  9.999999999999999799E-13
-   calculation check, error sum        :  0.000000000000000000E+00
+   calculation check, error sum        :  4.443059129747991500E-14
    Tolerance for the following test    :  1.000000000000000036E-10
-   calculation check, error max        :  0.000000000000000000E+00
+   calculation check, error max        :  1.591615728102624416E-12
  Checking Communications of Minimal Basis:
    Number of coarse and fine DoF (MasterMPI task):  [  40078,  1207 ]
    Tolerances for this check: [ 3.28460671052086921E-06,  1.33226762955018785E-14]
    Maxdiff for transpose (checksum)    :  1.16415321826934814E-09
-   Maxdiff for overlap calculation     :  4.47034835815429688E-07
+   Maxdiff for overlap calculation     :  2.38418579101562500E-07
    Maxdiff for untranspose             :  0.00000000000000000E+00
  Checking Communications of Enlarged Minimal Basis:
    Number of coarse and fine DoF (MasterMPI task):  [  34100,  1158 ]
    Tolerances for this check: [ 8.10070677482270067E-06,  1.33226762955018785E-14]
    Maxdiff for transpose (checksum)    :  1.86264514923095703E-09
-   Maxdiff for overlap calculation     :  1.46031379699707031E-06
+   Maxdiff for overlap calculation     :  1.13248825073242188E-06
    Maxdiff for untranspose             :  0.00000000000000000E+00
  Ion-Ion interaction energy            :  3.06908988504720E+02
   #---------------------------------------------------------------- Ionic Potential Creation
- Total ionic charge                    : -60.00000069486116
+ Total ionic charge                    : -60.00000069486263
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  143,  143,  145 ]
@@ -603,7 +605,7 @@
      Molecule was shifted              :  60
      Molecule was rotated              :  30
    Reading Waves Time:
-   -  {Process:  0, Timing:  [  2.258E+01,  1.348E+01 ]}
+   -  {Process:  0, Timing:  [  2.407E+01,  1.386E+01 ]}
    Max deviation from unity in reorthonormalize_coeff:  7.23E-07
    Mean deviation from unity in reorthonormalize_coeff:  1.33E-07
    Max deviation from unity in reorthonormalize_coeff:  2.16E-04
@@ -622,16 +624,16 @@
   {index:  8, value: -5.323384340607E-01}, 
   {index:  9, value: -5.321807490032E-01}, 
   {index:  10, value: -5.321807490032E-01}, 
-  {index:  11, value: -4.687911254069E-01}, 
-  {index:  12, value: -4.687911254069E-01}, 
+  {index:  11, value: -4.687911254070E-01}, 
+  {index:  12, value: -4.687911254070E-01}, 
   {index:  13, value: -3.975490209535E-01}, 
   {index:  14, value: -3.975490209535E-01}, 
   {index:  15, value: -3.959502874573E-01}, 
   {index:  16, value: -3.959502874573E-01}, 
   {index:  17, value: -3.677854737847E-01}, 
   {index:  18, value: -3.677854737847E-01}, 
-  {index:  19, value: -3.676200995861E-01}, 
-  {index:  20, value: -3.676200995861E-01}, 
+  {index:  19, value: -3.676200995862E-01}, 
+  {index:  20, value: -3.676200995862E-01}, 
   {index:  21, value: -3.198570511570E-01}, 
   {index:  22, value: -3.198570511570E-01}, 
   {index:  23, value: -2.948018059594E-01}, 
@@ -642,28 +644,28 @@
   {index:  28, value: -2.159343425173E-01}, 
   {index:  29, value: -2.157983311563E-01}, 
   {index:  30, value: -2.157983311563E-01},  #  <-- last occupied orbital
-  {index:  31, value: -8.869650472195E-04},  #  <-- first virtual orbital
-  {index:  32, value: -8.869650472195E-04}, 
-  {index:  33, value: -8.593025328218E-04}, 
-  {index:  34, value: -8.593025328218E-04}, 
-  {index:  35, value:  1.483455457470E-01}, 
-  {index:  36, value:  1.483455457470E-01}, 
+  {index:  31, value: -8.869650472409E-04},  #  <-- first virtual orbital
+  {index:  32, value: -8.869650472409E-04}, 
+  {index:  33, value: -8.593025328429E-04}, 
+  {index:  34, value: -8.593025328429E-04}, 
+  {index:  35, value:  1.483455457469E-01}, 
+  {index:  36, value:  1.483455457469E-01}, 
   {index:  37, value:  1.765058567286E-01}, 
   {index:  38, value:  1.765058567286E-01}, 
-  {index:  39, value:  2.341033510855E-01}, 
-  {index:  40, value:  2.341033510855E-01}, 
+  {index:  39, value:  2.341033510854E-01}, 
+  {index:  40, value:  2.341033510854E-01}, 
   {index:  41, value:  2.344336005306E-01}, 
   {index:  42, value:  2.344336005306E-01}, 
   {index:  43, value:  3.263024946851E-01}, 
   {index:  44, value:  3.263024946851E-01}, 
-  {index:  45, value:  3.416226321180E-01}, 
-  {index:  46, value:  3.416226321180E-01}, 
+  {index:  45, value:  3.416226321179E-01}, 
+  {index:  46, value:  3.416226321179E-01}, 
   {index:  47, value:  3.422653281325E-01}, 
   {index:  48, value:  3.422653281325E-01}, 
   {index:  49, value:  4.571846572809E-01}, 
   {index:  50, value:  4.571846572809E-01}, 
-  {index:  51, value:  4.578391344956E-01}, 
-  {index:  52, value:  4.578391344956E-01}, 
+  {index:  51, value:  4.578391344955E-01}, 
+  {index:  52, value:  4.578391344955E-01}, 
   {index:  53, value:  4.933572667224E-01}, 
   {index:  54, value:  4.933572667224E-01}, 
   {index:  55, value:  4.940148243913E-01}, 
@@ -685,16 +687,16 @@
  {e: -5.323384340607E-01, f:  2.0000},  # 00008
  {e: -5.321807490032E-01, f:  2.0000},  # 00009
  {e: -5.321807490032E-01, f:  2.0000},  # 00010
- {e: -4.687911254069E-01, f:  2.0000},  # 00011
- {e: -4.687911254069E-01, f:  2.0000},  # 00012
+ {e: -4.687911254070E-01, f:  2.0000},  # 00011
+ {e: -4.687911254070E-01, f:  2.0000},  # 00012
  {e: -3.975490209535E-01, f:  2.0000},  # 00013
  {e: -3.975490209535E-01, f:  2.0000},  # 00014
  {e: -3.959502874573E-01, f:  2.0000},  # 00015
  {e: -3.959502874573E-01, f:  2.0000},  # 00016
  {e: -3.677854737847E-01, f:  2.0000},  # 00017
  {e: -3.677854737847E-01, f:  2.0000},  # 00018
- {e: -3.676200995861E-01, f:  2.0000},  # 00019
- {e: -3.676200995861E-01, f:  2.0000},  # 00020
+ {e: -3.676200995862E-01, f:  2.0000},  # 00019
+ {e: -3.676200995862E-01, f:  2.0000},  # 00020
  {e: -3.198570511570E-01, f:  2.0000},  # 00021
  {e: -3.198570511570E-01, f:  2.0000},  # 00022
  {e: -2.948018059594E-01, f:  2.0000},  # 00023
@@ -749,7 +751,7 @@
      -  { #-------------------------------------------------------------------- it coeff: 1
  communication strategy kernel: ALLREDUCE, 
  calculate S^x: {mode: dense, powers: {x: -1}, order:  0, 
- max / mean error:  [  1.55E-15,  6.62E-17 ]}, 
+ max / mean error:  [  2.0E-15,  8.38E-17 ]}, 
  Max deviation from unity in reorthonormalize_coeff:  3.89E-08, 
  Mean deviation from unity in reorthonormalize_coeff:  4.73E-09, 
  calculate S^x: {mode: dense, powers: {x: -1/2}, order:  0}, 
@@ -766,15 +768,17 @@
  Orthoconstraint:  Yes, calculation of S^-1: direct calculation, 
  calculate S^x: {mode: sparse, powers: {x: -1}, order:  0, 
  error estimation: [
- max / mean error:  [  8.88E-16,  4.99E-17 ]]}, 
+ max / mean error:  [  2.0E-15,  6.66E-17 ]]}, 
  Preconditioning:  Yes, 
- iter:  1, fnrm:  2.40E-01, Omega: -7.485421205088028E+01, D: -7.49E+01, D best: -7.49E+01, 
+ iter:  1, fnrm:  2.40E-01, Omega: -7.485421205091586E+01, D: -7.49E+01, D best: -7.49E+01, 
  exit criterion: net number of iterations}
    -  &final_supfun001  { #-------------------------------------------------------- iter: 1
  target function: ENERGY, 
  Energies: {Ekin:  9.83805033528E+01, Epot: -1.05457619103E+02, Enl:  4.47587607207E+00}, 
- iter:  1, fnrm:  2.40E-01, Omega: -7.485421205088028E+01, D: -7.49E+01, D best: -7.49E+01}
+ iter:  1, fnrm:  2.40E-01, Omega: -7.485421205091586E+01, D: -7.49E+01, D best: -7.49E+01}
       #Support functions created
+   - Check boundary values:
+       mean / max value                :  [  8.86E-05,  1.51E-04 ]
     #=================================================================== kernel optimization
  - kernel optimization: &it_kernel001
    -  #--------------------------------------------------------------------- kernel iter: 1
@@ -788,12 +792,12 @@
        -  { #------------------------------------------------------------------ it coeff: 1
  communication strategy kernel: ALLREDUCE, 
  calculate S^x: {mode: dense, powers: {x: -1}, order:  0, 
- max / mean error:  [  1.55E-15,  6.62E-17 ]}, 
+ max / mean error:  [  2.0E-15,  8.38E-17 ]}, 
  Max deviation from unity in reorthonormalize_coeff:  1.19E-07, 
  Mean deviation from unity in reorthonormalize_coeff:  1.46E-08, 
  calculate S^x: {mode: dense, powers: {x: -1/2}, order:  0}, 
  communication strategy kernel: ALLREDUCE, method: DminSD, 
- iter:  1, fnrm:  1.64E-03, eBS: -2.57126139004030954E+01, D: -1.419E-05, 
+ iter:  1, fnrm:  1.64E-03, eBS: -2.57126139004055005E+01, D: -1.419E-05, 
           alpha:  2.000E-01}
        Coefficients available          :  Yes
      Hamiltonian update: {
@@ -802,7 +806,7 @@
     Total charge:  5.999999966307E+01, 
  Poisson Solver: {BC: Free, Box:  [  143,  143,  145 ], MPI tasks:  4}}
      summary: [ {kernel method: DMIN, mix entity: DENS, mix hist:  0, conv crit:  2.40E-11, 
- iter:  1, delta:  4.16E-09, energy: -7.48542262404245093E+01, D: -7.485E+01}]
+ iter:  1, delta:  4.16E-09, energy: -7.48542262404600933E+01, D: -7.485E+01}]
    -  #--------------------------------------------------------------------- kernel iter: 2
      Kernel update:
        Hamiltonian application required:  Yes
@@ -813,24 +817,24 @@
        -  { #------------------------------------------------------------------ it coeff: 1
  communication strategy kernel: ALLREDUCE, 
  calculate S^x: {mode: dense, powers: {x: -1}, order:  0, 
- max / mean error:  [  1.55E-15,  6.62E-17 ]}, 
+ max / mean error:  [  2.0E-15,  8.38E-17 ]}, 
  Max deviation from unity in reorthonormalize_coeff:  6.06E-08, 
  Mean deviation from unity in reorthonormalize_coeff:  7.01E-09, 
  calculate S^x: {mode: dense, powers: {x: -1/2}, order:  0}, 
  communication strategy kernel: ALLREDUCE, method: DminSD, 
- iter:  1, fnrm:  1.10E-03, eBS: -2.57126280899472945E+01, D: -9.021E-03, 
+ iter:  1, fnrm:  1.10E-03, eBS: -2.57126280899496962E+01, D: -9.021E-03, 
           alpha:  2.000E-01}
        Kohn-Sham residue               :  1.702E-01
        Coefficients available          :  Yes
      alpha                             :  0.22
-     energydiff                        : -4.500597924561589E-006
+     energydiff                        : -4.5005917854723521E-006
      Hamiltonian update: {
  Energies: {Ekin:  9.83805033528E+01, Epot: -1.05466648932E+02, Enl:  4.47587607207E+00, 
               EH:  3.63614040969E+02,  EXC: -2.45921043642E+01, EvXC: -3.21645755853E+01}, 
     Total charge:  5.999999966307E+01, 
  Poisson Solver: {BC: Free, Box:  [  143,  143,  145 ], MPI tasks:  4}}
      summary: [ {kernel method: DMIN, mix entity: DENS, mix hist:  0, conv crit:  2.40E-11, 
- iter:  2, delta:  4.56E-09, energy: -7.48542307410224339E+01, D: -4.501E-06}]
+ iter:  2, delta:  4.56E-09, energy: -7.48542307410518788E+01, D: -4.501E-06}]
    -  #--------------------------------------------------------------------- kernel iter: 3
      Kernel update:
        Hamiltonian application required:  Yes
@@ -841,24 +845,24 @@
        -  { #------------------------------------------------------------------ it coeff: 1
  communication strategy kernel: ALLREDUCE, 
  calculate S^x: {mode: dense, powers: {x: -1}, order:  0, 
- max / mean error:  [  1.55E-15,  6.62E-17 ]}, 
+ max / mean error:  [  2.0E-15,  8.38E-17 ]}, 
  Max deviation from unity in reorthonormalize_coeff:  3.62E-08, 
  Mean deviation from unity in reorthonormalize_coeff:  3.95E-09, 
  calculate S^x: {mode: dense, powers: {x: -1/2}, order:  0}, 
  communication strategy kernel: ALLREDUCE, method: DminSD, 
- iter:  1, fnrm:  7.00E-04, eBS: -2.57216494982710948E+01, D: -9.881E-03, 
+ iter:  1, fnrm:  7.00E-04, eBS: -2.57216494982732442E+01, D: -9.881E-03, 
           alpha:  2.200E-01}
        Kohn-Sham residue               :  1.702E-01
        Coefficients available          :  Yes
      alpha                             :  0.242
-     energydiff                        : -5.4829962436997448E-007
+     energydiff                        : -5.4830377393955132E-007
      Hamiltonian update: {
  Energies: {Ekin:  9.83805033528E+01, Epot: -1.05476542705E+02, Enl:  4.47587607207E+00, 
               EH:  3.63603981921E+02,  EXC: -2.45915432038E+01, EvXC: -3.21638355457E+01}, 
     Total charge:  5.999999966307E+01, 
  Poisson Solver: {BC: Free, Box:  [  143,  143,  145 ], MPI tasks:  4}}
      summary: [ {kernel method: DMIN, mix entity: DENS, mix hist:  0, conv crit:  2.40E-11, 
- iter:  3, delta:  4.20E-09, energy: -7.48542312893220583E+01, D: -5.483E-07}]
+ iter:  3, delta:  4.20E-09, energy: -7.48542312893556527E+01, D: -5.483E-07}]
    -  #--------------------------------------------------------------------- kernel iter: 4
      Kernel update:
        Hamiltonian application required:  Yes
@@ -869,38 +873,38 @@
        -  { #------------------------------------------------------------------ it coeff: 1
  communication strategy kernel: ALLREDUCE, 
  calculate S^x: {mode: dense, powers: {x: -1}, order:  0, 
- max / mean error:  [  1.55E-15,  6.62E-17 ]}, 
+ max / mean error:  [  2.0E-15,  8.38E-17 ]}, 
  Max deviation from unity in reorthonormalize_coeff:  2.00E-08, 
  Mean deviation from unity in reorthonormalize_coeff:  2.11E-09, 
  calculate S^x: {mode: dense, powers: {x: -1/2}, order:  0}, 
  communication strategy kernel: ALLREDUCE, method: DminSD, 
- iter:  1, fnrm:  4.23E-04, eBS: -2.57315302154331036E+01, D: -9.048E-03, 
+ iter:  1, fnrm:  4.23E-04, eBS: -2.57315302154349013E+01, D: -9.048E-03, 
           alpha:  2.420E-01}
        Kohn-Sham residue               :  1.702E-01
        Coefficients available          :  Yes
      alpha                             :  0.121
-     energydiff                        :  8.2293757941442891E-007
+     energydiff                        :  8.2293917103015701E-007
      Hamiltonian update: {
  Energies: {Ekin:  9.83805033528E+01, Epot: -1.05485602738E+02, Enl:  4.47587607207E+00, 
-              EH:  3.63594771325E+02,  EXC: -2.45910360189E+01, EvXC: -3.21631666874E+01}, 
+              EH:  3.63594771325E+02,  EXC: -2.45910360190E+01, EvXC: -3.21631666874E+01}, 
     Total charge:  5.999999966307E+01, 
  Poisson Solver: {BC: Free, Box:  [  143,  143,  145 ], MPI tasks:  4}}
      summary: [ {kernel method: DMIN, mix entity: DENS, mix hist:  0, conv crit:  2.40E-11, 
- iter:  4, delta:  3.41E-09, energy: -7.48542304663844789E+01, D:  8.229E-07}]
+ iter:  4, delta:  3.41E-09, energy: -7.48542304664164817E+01, D:  8.229E-07}]
    -  &final_kernel001  { #-------------------------------------------------------- iter: 5
  summary: [ {kernel method: DMIN, mix entity: DENS, mix hist:  0, conv crit:  2.40E-11, 
- iter:  5, delta:  3.41E-09, energy: -7.48542304663844789E+01, D:  8.229E-07}]}
+ iter:  5, delta:  3.41E-09, energy: -7.48542304664164817E+01, D:  8.229E-07}]}
     #================================================================= Summary of both steps
    self consistency summary: &it_sc001
    -  {iter:  1, Omega: ENERGY,  #WARNING: support function optimization not converged
  kernel optimization: DIRMIN,  #WARNING: density optimization not converged
- iter high:  1, delta out:  4.891E-09, energy: -7.48542304663844789E+01, D: -7.485E+01}
+ iter high:  1, delta out:  4.891E-09, energy: -7.48542304664164817E+01, D: -7.485E+01}
    calculate S^x:
      mode                              : dense
      powers:
        x                               : 1/2
      order                             :  0
-     max / mean error                  :  [  1.5E-15,  2.45E-16 ]
+     max / mean error                  :  [  1.72E-15,  2.53E-16 ]
    calculate S^x:
      mode                              : dense
      powers:
@@ -943,7 +947,7 @@
   {iorb:  28, occ:  2.0000, eval: -0.215934, frac:  0.0000, frac:  1.0000}, 
   {iorb:  29, occ:  2.0000, eval: -0.215798, frac:  1.0000, frac:  0.0000}, 
   {iorb:  30, occ:  2.0000, eval: -0.215798, frac:  0.0000, frac:  1.0000}, 
-  {sum:  60.0000, frac:  30.00000022336033, frac:  29.99999977663971}, 
+  {sum:  60.0000, frac:  30.00000022336029, frac:  29.99999977663967}, 
  ]
     #========================================================================= final results
    self consistency summary:
@@ -951,7 +955,7 @@
  Energies: {Ekin:  9.83805033528E+01, Epot: -1.05485602738E+02, Enl:  4.47587607207E+00, 
               EH:  3.63587395549E+02,  EXC: -2.45906381763E+01, EvXC: -3.21626420265E+01}, 
        iter high:  1,            delta out:  4.891E-09, 
-          energy: -7.48542304663844789E+01,                       D:  0.000E+00,  #FINAL
+          energy: -7.48542304664164817E+01,                       D:  0.000E+00,  #FINAL
  }
  Total charge                          :  5.999999966307E+01
  Max deviation from unity in reorthonormalize_coeff:  3.18E-03
@@ -961,21 +965,21 @@
   {
  label: benzene, i:  1, s1: HOMO, label: benzene, j:  1, s1: HOMO, 
   trans_int_energy: -0.211517851927, trans_int_energy_orthog: -0.211512389268, 
-   trans_int_ovrlp:  1.000000147693, trans_int_ovrlp_orthog:  1.000000000000, occ1:  2.00, 
+   trans_int_ovrlp:  1.000000147694, trans_int_ovrlp_orthog:  1.000000000000, occ1:  2.00, 
   occ2:  2.00}, 
   {
  label: benzene, i:  1, s1: LUMO, label: benzene, j:  1, s1: HOMO, 
   trans_int_energy: -0.000033381188, trans_int_energy_orthog: -0.000033256857, 
-   trans_int_ovrlp:  0.000000030568, trans_int_ovrlp_orthog:  0.000000000000, occ1:  0.00, 
+   trans_int_ovrlp:  0.000000030567, trans_int_ovrlp_orthog:  0.000000000000, occ1:  0.00, 
   occ2:  2.00}, 
   {
  label: benzene, i:  1, s1: HOMO, label: benzene, j:  1, s1: LUMO, 
   trans_int_energy: -0.000033381188, trans_int_energy_orthog: -0.000033256857, 
-   trans_int_ovrlp:  0.000000030568, trans_int_ovrlp_orthog:  0.000000000000, occ1:  2.00, 
+   trans_int_ovrlp:  0.000000030567, trans_int_ovrlp_orthog:  0.000000000000, occ1:  2.00, 
   occ2:  0.00}, 
   {
  label: benzene, i:  1, s1: LUMO, label: benzene, j:  1, s1: LUMO, 
-  trans_int_energy:  0.003293805502, trans_int_energy_orthog:  0.003295015143, 
+  trans_int_energy:  0.003293805501, trans_int_energy_orthog:  0.003295015143, 
    trans_int_ovrlp:  1.000000138127, trans_int_ovrlp_orthog:  1.000000000000, occ1:  0.00, 
   occ2:  0.00}, 
   {
@@ -986,7 +990,7 @@
   {
  label: benzene, i:  2, s1: LUMO, label: benzene, j:  1, s1: HOMO, 
   trans_int_energy: -0.000065946641, trans_int_energy_orthog: -0.000052942820, 
-   trans_int_ovrlp:  0.000127277554, trans_int_ovrlp_orthog: -0.000000000000, occ1:  0.00, 
+   trans_int_ovrlp:  0.000127277554, trans_int_ovrlp_orthog:  0.000000000000, occ1:  0.00, 
   occ2:  2.00}, 
   {
  label: benzene, i:  2, s1: HOMO, label: benzene, j:  1, s1: LUMO, 
@@ -996,22 +1000,22 @@
   {
  label: benzene, i:  2, s1: LUMO, label: benzene, j:  1, s1: LUMO, 
   trans_int_energy: -0.000944662839, trans_int_energy_orthog: -0.000948001433, 
-   trans_int_ovrlp:  0.000896540480, trans_int_ovrlp_orthog: -0.000000000000, occ1:  0.00, 
+   trans_int_ovrlp:  0.000896540480, trans_int_ovrlp_orthog:  0.000000000000, occ1:  0.00, 
   occ2:  0.00}, 
   {
  label: benzene, i:  2, s1: HOMO, label: benzene, j:  2, s1: HOMO, 
   trans_int_energy: -0.211365409356, trans_int_energy_orthog: -0.211362938548, 
-   trans_int_ovrlp:  0.999985710850, trans_int_ovrlp_orthog:  1.000000000000, occ1:  2.00, 
+   trans_int_ovrlp:  0.999985710851, trans_int_ovrlp_orthog:  1.000000000000, occ1:  2.00, 
   occ2:  2.00}, 
   {
  label: benzene, i:  2, s1: LUMO, label: benzene, j:  2, s1: HOMO, 
   trans_int_energy: -0.000085723967, trans_int_energy_orthog: -0.000086021516, 
-   trans_int_ovrlp: -0.000000877318, trans_int_ovrlp_orthog:  0.000000000000, occ1:  0.00, 
+   trans_int_ovrlp: -0.000000877319, trans_int_ovrlp_orthog:  0.000000000000, occ1:  0.00, 
   occ2:  2.00}, 
   {
  label: benzene, i:  2, s1: HOMO, label: benzene, j:  2, s1: LUMO, 
   trans_int_energy: -0.000085723967, trans_int_energy_orthog: -0.000086021516, 
-   trans_int_ovrlp: -0.000000877318, trans_int_ovrlp_orthog:  0.000000000000, occ1:  2.00, 
+   trans_int_ovrlp: -0.000000877319, trans_int_ovrlp_orthog:  0.000000000000, occ1:  2.00, 
   occ2:  0.00}, 
   {
  label: benzene, i:  2, s1: LUMO, label: benzene, j:  2, s1: LUMO, 
@@ -1033,49 +1037,49 @@
  - density optimization not converged
   #-------------------------------------------------------------------- Timing for root process
  Timings for root process:
-   CPU time (s)                        :  97.93
-   Elapsed time (s)                    :  69.23
+   CPU time (s)                        :  93.02
+   Elapsed time (s)                    :  61.37
  BigDFT infocode                       :  0
  Average noise forces: {x: -2.47953996E-03, y:  4.52277060E-03, z:  2.65022587E-03, 
                     total:  5.79890244E-03}
- Clean forces norm (Ha/Bohr): {maxval:  6.357243945432E-02, fnrm2:  5.033384161911E-02}
- Raw forces norm (Ha/Bohr): {maxval:  6.236533075269E-02, fnrm2:  5.037855005785E-02}
+ Clean forces norm (Ha/Bohr): {maxval:  6.357243945449E-02, fnrm2:  5.033384161926E-02}
+ Raw forces norm (Ha/Bohr): {maxval:  6.236533075287E-02, fnrm2:  5.037855005800E-02}
   #------------------------------------------------------------------------------ Atomic Forces
  Atomic Forces (Ha/Bohr):
- -  {C: [ 3.248050541524E-03,  2.142120091925E-02,  3.317831085038E-03]} # 0001
- -  {C: [ 3.609070471676E-03,  9.051076273978E-03,  2.100871990930E-02]} # 0002
- -  {C: [ 3.541884740521E-03, -1.182245702697E-02,  1.685437105268E-02]} # 0003
- -  {C: [ 3.367476682734E-03, -1.825757672476E-02, -3.971319930394E-03]} # 0004
- -  {C: [ 2.898467509248E-03, -4.764241312375E-03, -2.240636011906E-02]} # 0005
- -  {C: [ 2.935283695778E-03,  1.572962443940E-02, -1.671791907799E-02]} # 0006
- -  {H: [ 6.214822023699E-04,  5.825184432855E-02,  9.962384756086E-03]} # 0007
- -  {H: [ 1.273686225384E-03,  2.076332129462E-02,  5.608654542178E-02]} # 0008
- -  {H: [ 1.432394458938E-03, -4.046829247043E-02,  4.720490262131E-02]} # 0009
- -  {H: [ 9.725905414817E-04, -6.266272865672E-02, -1.067199902109E-02]} # 0010
- -  {H: [ 3.979701754830E-04, -2.311392778774E-02, -5.699570711095E-02]} # 0011
- -  {H: [ 2.381871317833E-04,  3.726246199454E-02, -4.645043761255E-02]} # 0012
- -  {C: [-3.649544100908E-03,  1.919116038750E-03,  2.173589587289E-02]} # 0013
- -  {C: [-3.567508053925E-03, -1.827495770912E-02,  1.436097382707E-02]} # 0014
- -  {C: [-4.038249989759E-03, -1.988224878801E-02, -6.775173445585E-03]} # 0015
- -  {C: [-4.311555982177E-03, -1.225335258821E-03, -1.854926176615E-02]} # 0016
- -  {C: [-4.491100220249E-03,  2.009926848349E-02, -1.024799255641E-02]} # 0017
- -  {C: [-4.070818738805E-03,  2.010326426603E-02,  1.100937525896E-02]} # 0018
- -  {H: [ 4.611496390146E-04,  5.167635023513E-03,  5.887232968263E-02]} # 0019
- -  {H: [ 5.793496353924E-04, -4.899704772196E-02,  3.466380554216E-02]} # 0020
- -  {H: [-1.863412905051E-06, -5.645840121372E-02, -2.664048622248E-02]} # 0021
- -  {H: [-6.467108805519E-04, -6.397543082809E-03, -6.294617539760E-02]} # 0022
- -  {H: [-6.817410056122E-04,  4.846659021641E-02, -3.680131202512E-02]} # 0023
- -  {H: [-1.179512664361E-04,  5.408935447491E-02,  2.409700925547E-02]} # 0024
- Energy (Hartree)                      : -7.48542304663844789E+01
+ -  {C: [ 3.248050541311E-03,  2.142120091953E-02,  3.317831085141E-03]} # 0001
+ -  {C: [ 3.609070471682E-03,  9.051076273814E-03,  2.100871990972E-02]} # 0002
+ -  {C: [ 3.541884740678E-03, -1.182245702673E-02,  1.685437105275E-02]} # 0003
+ -  {C: [ 3.367476682750E-03, -1.825757672474E-02, -3.971319930238E-03]} # 0004
+ -  {C: [ 2.898467509083E-03, -4.764241312044E-03, -2.240636011923E-02]} # 0005
+ -  {C: [ 2.935283695786E-03,  1.572962443900E-02, -1.671791907832E-02]} # 0006
+ -  {H: [ 6.214822024352E-04,  5.825184432857E-02,  9.962384756046E-03]} # 0007
+ -  {H: [ 1.273686225394E-03,  2.076332129463E-02,  5.608654542189E-02]} # 0008
+ -  {H: [ 1.432394458913E-03, -4.046829247043E-02,  4.720490262124E-02]} # 0009
+ -  {H: [ 9.725905415718E-04, -6.266272865688E-02, -1.067199902115E-02]} # 0010
+ -  {H: [ 3.979701754942E-04, -2.311392778773E-02, -5.699570711112E-02]} # 0011
+ -  {H: [ 2.381871318192E-04,  3.726246199458E-02, -4.645043761255E-02]} # 0012
+ -  {C: [-3.649544101128E-03,  1.919116038788E-03,  2.173589587314E-02]} # 0013
+ -  {C: [-3.567508053904E-03, -1.827495770965E-02,  1.436097382701E-02]} # 0014
+ -  {C: [-4.038249989575E-03, -1.988224878805E-02, -6.775173445307E-03]} # 0015
+ -  {C: [-4.311555982150E-03, -1.225335258994E-03, -1.854926176621E-02]} # 0016
+ -  {C: [-4.491100220429E-03,  2.009926848366E-02, -1.024799255612E-02]} # 0017
+ -  {C: [-4.070818738824E-03,  2.010326426624E-02,  1.100937525844E-02]} # 0018
+ -  {H: [ 4.611496390718E-04,  5.167635023538E-03,  5.887232968262E-02]} # 0019
+ -  {H: [ 5.793496354232E-04, -4.899704772207E-02,  3.466380554220E-02]} # 0020
+ -  {H: [-1.863412892459E-06, -5.645840121367E-02, -2.664048622249E-02]} # 0021
+ -  {H: [-6.467108804571E-04, -6.397543082797E-03, -6.294617539778E-02]} # 0022
+ -  {H: [-6.817410056231E-04,  4.846659021655E-02, -3.680131202518E-02]} # 0023
+ -  {H: [-1.179512664310E-04,  5.408935447491E-02,  2.409700925548E-02]} # 0024
+ Energy (Hartree)                      : -7.48542304664164817E+01
  Memory Consumption Report:
-   Tot. No. of Allocations             :  8818
-   Tot. No. of Deallocations           :  8818
+   Tot. No. of Allocations             :  8838
+   Tot. No. of Deallocations           :  8838
    Remaining Memory (B)                :  0
    Memory occupation:
-     Peak Value (MB)                   :  1183.208
+     Peak Value (MB)                   :  1183.212
      for the array                     : psir
      in the routine                    : psi_to_vlocpsi
-     Memory Peak of process            : 1129.824 MB
- Walltime since initialization         : 00:01:10.462692413
- Max No. of dictionaries used          :  5155 #( 857 still in use)
+     Memory Peak of process            : 1180.984 MB
+ Walltime since initialization         : 00:01:02.790117662
+ Max No. of dictionaries used          :  5157 #( 857 still in use)
  Number of dictionary folders allocated:  1
