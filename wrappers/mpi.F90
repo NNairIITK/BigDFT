@@ -109,7 +109,7 @@ module wrapper_MPI
 
   !> Interface for MPI_ALLGATHERV routine
   interface mpiallgather
-     module procedure mpiallgatherv_d0,mpiallgatherv_d1
+     module procedure mpiallgatherv_d0,mpiallgatherv_d1,mpiallgatherv_d2d3
   end interface mpiallgather
   
   interface mpiiallred
@@ -978,6 +978,18 @@ contains
     double precision, dimension(:), allocatable :: copybuf
     include 'allgather-inc.f90'
   end subroutine mpiallgatherv_d1
+  subroutine mpiallgatherv_d2d3(sendbuf,sendcount,recvbuf,recvcount,&
+       recvcounts,displs,comm)
+    use yaml_strings, only: yaml_toa
+    use dictionaries, only: f_err_throw
+    use dynamic_memory
+    implicit none
+    double precision, dimension(:,:), intent(inout) :: sendbuf
+    double precision, dimension(:,:,:), intent(inout), optional :: recvbuf
+    double precision, dimension(:), allocatable :: copybuf
+    include 'allgather-inc.f90'
+  end subroutine mpiallgatherv_d2d3
+
 
 
   subroutine mpialltoallv_int(sendbuf, sendcounts, sdispls, recvbuf, recvcounts, rdispls, comm)
@@ -1599,16 +1611,23 @@ contains
     
   end function mpiwindow_l0
 
-  subroutine mpi_fenceandfree(window)
+  subroutine mpi_fenceandfree(window, assert)
     use dictionaries, only: f_err_throw,f_err_define
     ! Calling arguments
     integer,intent(inout) :: window !<window to be synchronized and freed
+    integer,intent(in),optional :: assert
 
     ! Local variables
-    integer :: ierr
+    integer :: ierr, assert_
+
+    if (present(assert)) then
+        assert_ = assert
+    else
+        assert_ = 0
+    end if
 
     ! Synchronize the communication
-    call mpi_win_fence(0, window, ierr)
+    call mpi_win_fence(assert_, window, ierr)
     if (ierr/=0) then
        call f_err_throw('Error in mpi_win_fence',&
             err_id=ERR_MPI_WRAPPERS)  

@@ -27,6 +27,7 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
   use sparsematrix, only: gather_matrix_from_taskgroups_inplace, extract_taskgroup_inplace
   use communications_base, only: work_transpose, &
                                  work_transpose_null, allocate_work_transpose, deallocate_work_transpose
+  use rhopotential, only: updatePotential, sumrho_for_TMBs, corrections_for_negative_charge
   implicit none
   !Arguments
   integer, intent(in) :: iproc,nproc
@@ -599,7 +600,7 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
   !!        !end if
   !!    end do
   !!end do
-  call updatePotential(input%nspin,denspot,energs%eh,energs%exc,energs%evxc)
+  call updatePotential(input%nspin,denspot,energs)!%eh,energs%exc,energs%evxc)
 
   !write(9000+iproc,*) denspot%rhov
   !read(9000+iproc,*) denspot%rhov(1:denspot%dpbox%ndimpot*input%nspin)
@@ -986,7 +987,7 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
       pnrm=pnrm*sqrt(real(denspot%mix%nspden,kind=8))
   end if
   if (iproc==0) call yaml_newline()
-  call updatePotential(input%nspin,denspot,energs%eh,energs%exc,energs%evxc)
+  call updatePotential(input%nspin,denspot,energs)!%eh,energs%exc,energs%evxc)
   if(iproc==0) call yaml_mapping_close()
   ! Mix the potential.
   if (input%lin%scf_mode==LINEAR_MIXPOT_SIMPLE) then

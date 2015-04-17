@@ -324,6 +324,7 @@ module module_types
      real(gp) :: rbuf       !< buffer for tail treatment
      real(gp), dimension(3) :: elecfield   !< Electric Field vector
      logical :: disableSym                 !< .true. disable symmetry
+     character(len=8) :: set_epsilon !< method for setting the dielectric constant
 
      !> For absorption calculations
      integer :: iabscalc_type   !< 0 non calc, 1 cheb ,  2 lanc
@@ -432,7 +433,7 @@ module module_types
      integer :: check_sumrho               !< (LS) Perform a check of sumrho (no check, light check or full check)
      integer :: check_overlap              !< (LS) Perform a check of the overlap calculation
      logical :: experimental_mode          !< (LS) Activate the experimental mode
-     integer :: write_orbitals             !< (LS) write KS orbitals for cubic restart (0: no, 1: wvl, 2: wvl+isf)
+     integer :: write_orbitals             !< (LS) Write KS orbitals for cubic restart (0: no, 1: wvl, 2: wvl+isf)
      logical :: explicit_locregcenters     !< (LS) Explicitely specify localization centers
      logical :: calculate_KS_residue       !< (LS) Calculate Kohn-Sham residue
      logical :: intermediate_forces        !< (LS) Calculate intermediate forces
@@ -491,6 +492,12 @@ module module_types
      !> linear scaling: perform an analysis of the extent of the support functions (and possibly KS orbitals)
      logical :: wf_extent_analysis
 
+     !> Method for the solution of  generalized poisson Equation
+     character(len=4) :: GPS_Method
+
+     !> Use the FOE method to calculate the HOMO-LUMO gap at the end
+     logical :: foe_gap
+
   end type input_variables
 
 
@@ -502,9 +509,10 @@ module module_types
      real(gp) :: eion    !< Ion-Ion interaction
      real(gp) :: edisp   !< Dispersion force
      real(gp) :: ekin    !< Kinetic term
-     real(gp) :: epot    
-     real(gp) :: eproj   
-     real(gp) :: eexctX  
+     real(gp) :: epot    !< local potential energy
+     real(gp) :: eproj   !< energy of PSP projectors
+     real(gp) :: eexctX  !< exact exchange energy
+     real(gp) :: eelec   !< electrostatic energy. Replaces the hartree energy for cavities
      real(gp) :: ebs     
      real(gp) :: eKS     
      real(gp) :: trH     
@@ -800,6 +808,7 @@ module module_types
      real(wp), dimension(:,:,:,:), pointer :: V_XC    !< eXchange and Correlation potential (local)
      real(wp), dimension(:,:,:,:), pointer :: Vloc_KS !< complete local potential of KS Hamiltonian (might point on rho_psi)
      real(wp), dimension(:,:,:,:), pointer :: f_XC    !< dV_XC[rho]/d_rho
+     real(wp), dimension(:,:,:,:), pointer :: rho_ion !< charge density of the ions, to be passed to PSolver
      !temporary arrays
      real(wp), dimension(:), pointer :: rho_work,pot_work !<full grid arrays
      !metadata
@@ -1144,6 +1153,7 @@ contains
     en%epot    =0.0_gp
     en%eproj   =0.0_gp
     en%eexctX  =0.0_gp
+    en%eelec   =0.0_gp
     en%ebs     =0.0_gp
     en%eKS     =0.0_gp
     en%trH     =0.0_gp
@@ -2223,6 +2233,17 @@ contains
           in%nplot = val
        case (DISABLE_SYM)
           in%disableSym = val ! Line to disable symmetries.
+       case (SOLVENT)
+          in%set_epsilon= val
+!!$          dummy_char = val
+!!$          select case(trim(dummy_char))
+!!$          case ("vacuum")
+!!$             in%set_epsilon =EPSILON_VACUUM
+!!$          case("rigid")
+!!$             in%set_epsilon =EPSILON_RIGID_CAVITY
+!!$          case("sccs")
+!!$             in%set_epsilon =EPSILON_SCCS
+!!$          end select
        case DEFAULT
           if (bigdft_mpi%iproc==0) &
                call yaml_warning("unknown input key '" // trim(level) // "/" // trim(dict_key(val)) // "'")
@@ -2417,6 +2438,11 @@ contains
        case(WF_EXTENT_ANALYSIS)
            ! linear scaling: perform an analysis of the extent of the support functions (and possibly KS orbitals)
            in%wf_extent_analysis = val
+       case (GPS_METHOD)
+           in%GPS_method = val
+       case (FOE_GAP)
+           ! linear scaling: Use the FOE method to calculate the HOMO-LUMO gap at the end
+           in%foe_gap = val
        case DEFAULT
           if (bigdft_mpi%iproc==0) &
                call yaml_warning("unknown input key '" // trim(level) // "/" // trim(dict_key(val)) // "'")

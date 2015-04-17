@@ -370,19 +370,19 @@ rxyz=rxyz_
         call backtocell_cart_surface(runObj%atoms%astruct%nat,latvec,rxyzR)
         call backtocell_cart_surface(runObj%atoms%astruct%nat,latvec,rxyzP)
         call backtocell_cart_surface(runObj%atoms%astruct%nat,latvec,rxyz)
-    else if(bigdft_get_geocode(runObj)=='F')then                                                                                         
-        latvec(1,1)=0.0_gp                                                                                                          
-        latvec(2,1)=0.0_gp                                                                                                          
-        latvec(3,1)=0.0_gp                                                                                                          
-        latvec(1,2)=0.0_gp                                                                                                          
-        latvec(2,2)=0.0_gp                                                                                                          
-        latvec(3,2)=0.0_gp                                                                                                          
-        latvec(1,3)=0.0_gp                                                                                                          
-        latvec(2,3)=0.0_gp                                                                                                          
-        latvec(3,3)=0.0_gp                                                                                                          
-        nec1=1                                                                                                                      
-        nec2=1                                                                                                                      
-        nec3=1                                                                                                                      
+    else if(bigdft_get_geocode(runObj)=='F')then
+        latvec(1,1)=0.0_gp
+        latvec(2,1)=0.0_gp
+        latvec(3,1)=0.0_gp
+        latvec(1,2)=0.0_gp
+        latvec(2,2)=0.0_gp
+        latvec(3,2)=0.0_gp
+        latvec(1,3)=0.0_gp
+        latvec(2,3)=0.0_gp
+        latvec(3,3)=0.0_gp
+        nec1=1
+        nec2=1
+        nec3=1
     else
         call f_err_throw('lst_penalty: specified boundary conditions'//&
              ' not supported.')

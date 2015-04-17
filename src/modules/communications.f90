@@ -1008,7 +1008,8 @@ module communications
     subroutine start_onesided_communication(iproc, nproc, n1, n2, n3p, sendbuf, nrecvbuf, recvbuf, comm, lzd)
       use module_base
       use module_types, only: local_zone_descriptors
-      use communications_base, only: p2pComms, bgq, RMA_SYNC_ACTIVE, RMA_SYNC_PASSIVE, rma_sync
+      use communications_base, only: p2pComms, bgq, RMA_SYNC_ACTIVE, RMA_SYNC_PASSIVE, rma_sync, &
+                                     TYPES_NESTED, TYPES_SIMPLE, type_strategy
       implicit none
       
       ! Calling arguments
@@ -1023,9 +1024,11 @@ module communications
       !character(len=*), parameter :: subname='start_onesided_communication'
       integer :: joverlap, mpisource, istsource, mpidest, istdest, ierr, nit, ispin, ispin_shift
       integer :: ioffset_send, ist, i2, i3, ist2, ist3, info, nsize, size_of_double, isend_shift
-      integer :: islices, ilines, ist1, ish1, ish2
-      integer,dimension(:),allocatable :: npotarr
+      integer :: islices, ilines, ist1, ish1, ish2, i, iel, it, ind, ii, ncount
+      integer,dimension(:),allocatable :: npotarr, blocklengths, types
+      integer(kind=mpi_address_kind),dimension(:),allocatable :: displacements
       integer(kind=mpi_address_kind) :: lb, extent
+
 
 !!integer :: itemsize
 !!type(c_ptr) :: baseptr
@@ -1045,6 +1048,11 @@ module communications
       call f_routine(id='start_onesided_communication')
       call timing(iproc, 'Pot_comm start', 'ON')
 
+      blocklengths = f_malloc(comm%onedtypeovrlp*maxval(comm%comarr(5,:)),id='blocklengths')
+      displacements = f_malloc(comm%onedtypeovrlp*maxval(comm%comarr(5,:)),id='displacements')
+      types = f_malloc(comm%onedtypeovrlp*maxval(comm%comarr(5,:)),id='types')
+      types(:) = mpi_double_precision
+
 !!call mpi_type_extent(mpi_double_precision, itemsize, ierr)
 !!!call mpi_type_size(mpi_double_precision, itemsize, ierr)
 !!call mpi_alloc_mem(int(n1*n2*n3p(iproc)*comm%nspin*itemsize,kind=mpi_address_kind), MPI_INFO_NULL, baseptr, ierr)
@@ -1060,161 +1068,183 @@ module communications
     
       if(.not.comm%communication_complete) stop 'ERROR: there is already a p2p communication going on...'
 
-      nproc_if: if (nproc>1) then
+      !nproc_if: if (nproc>1) then
 
           spin_loop: do ispin=1,comm%nspin
 
               ispin_shift = (ispin-1)*comm%nrecvbuf
     
-              !nproc_if: if (nproc>1) then
-    
-                  ! Allocate MPI memory window. Only necessary in the first iteration.
-                  if (ispin==1) then
+              ! Allocate MPI memory window. Only necessary in the first iteration.
+              if (ispin==1) then
+                  if (nproc>1) then
                       call mpi_type_size(mpi_double_precision, size_of_double, ierr)
-                      if (rma_sync==RMA_SYNC_ACTIVE) then
-                          call mpi_info_create(info, ierr)
-                          call mpi_info_set(info, "no_locks", "true", ierr)
-                          call mpi_win_create(sendbuf(1), int(n1*n2*n3p(iproc)*comm%nspin*size_of_double,kind=mpi_address_kind), &
-                               size_of_double, info, bigdft_mpi%mpi_comm, comm%window, ierr)
-                          !!call mpi_win_allocate(int(n1*n2*n3p(iproc)*comm%nspin*size_of_double,kind=mpi_address_kind), &
-                          !!     size_of_double, info, bigdft_mpi%mpi_comm, sendbuf(1), comm%window, ierr)
-                          call mpi_info_free(info, ierr)
-                      else if (rma_sync==RMA_SYNC_PASSIVE) then
-                          call mpi_win_create(sendbuf(1), int(n1*n2*n3p(iproc)*comm%nspin*size_of_double,kind=mpi_address_kind), &
-                               size_of_double, MPI_INFO_NULL, bigdft_mpi%mpi_comm, comm%window, ierr)
-                      end if
-    
-                      if (rma_sync==RMA_SYNC_ACTIVE) then
-                          call mpi_win_fence(mpi_mode_noprecede, comm%window, ierr)
-                      end if
-                      !!if (rma_sync==RMA_SYNC_PASSIVE) then
-                      !!    call mpi_win_lock_all(0, comm%window, ierr)
-                      !!end if
+                  else
+                      size_of_double = 8
                   end if
-                  
-                  do joverlap=1,comm%noverlaps
-                      mpisource=comm%comarr(1,joverlap)
-                      istsource=comm%comarr(2,joverlap)
-                      mpidest=comm%comarr(3,joverlap)
-                      istdest=comm%comarr(4,joverlap)
-                      nit=comm%comarr(5,joverlap)
-                      ioffset_send=comm%comarr(6,joverlap)
-                      isend_shift = (ispin-1)*npotarr(mpisource)
-                      ! only create the derived data types in the first iteration, otherwise simply reuse them
-                      if (ispin==1) then
+                  if (nproc>1 .and. rma_sync==RMA_SYNC_ACTIVE) then
+                      comm%window = mpiwindow(n1*n2*n3p(iproc)*comm%nspin, sendbuf(1), bigdft_mpi%mpi_comm)
+                  else if (nproc>1 .and. rma_sync==RMA_SYNC_PASSIVE) then
+                      call mpi_win_create(sendbuf(1), int(n1*n2*n3p(iproc)*comm%nspin*size_of_double,kind=mpi_address_kind), &
+                           size_of_double, MPI_INFO_NULL, bigdft_mpi%mpi_comm, comm%window, ierr)
+                  end if
+    
+                  !!if (rma_sync==RMA_SYNC_ACTIVE) then
+                  !!    call mpi_win_fence(mpi_mode_noprecede, comm%window, ierr)
+                  !!end if
+                  !!if (rma_sync==RMA_SYNC_PASSIVE) then
+                  !!    call mpi_win_lock_all(0, comm%window, ierr)
+                  !!end if
+              end if
+              
+              do joverlap=1,comm%noverlaps
+                  mpisource=comm%comarr(1,joverlap)
+                  istsource=comm%comarr(2,joverlap)
+                  mpidest=comm%comarr(3,joverlap)
+                  istdest=comm%comarr(4,joverlap)
+                  nit=comm%comarr(5,joverlap)
+                  ioffset_send=comm%comarr(6,joverlap)
+                  isend_shift = (ispin-1)*npotarr(mpisource)
+                  ! only create the derived data types in the first iteration, otherwise simply reuse them
+                  if (ispin==1) then
+                      if (nproc>1 .and. type_strategy==TYPES_NESTED) then
                           call mpi_type_create_hvector(nit, 1, int(size_of_double*ioffset_send,kind=mpi_address_kind), &
                                comm%mpi_datatypes(0), comm%mpi_datatypes(joverlap), ierr)
                           call mpi_type_commit(comm%mpi_datatypes(joverlap), ierr)
                       end if
-                      if (iproc==mpidest) then
-                      !if (iproc==mpidest .and. iproc==1 .and. iproc/=mpisource) then
-                          if (.not.bgq) then
+                      iel=0
+                      !nsize = 0
+                      ii = 1
+                      do it=1,nit
+                          do i=1,comm%onedtypeovrlp
+                              iel = iel + 1
+                              displacements(iel) = int(((it-1)*ioffset_send+comm%onedtypearr(1,i))*&
+                                                       size_of_double, &
+                                                       kind=mpi_address_kind)
+                              blocklengths(iel) = comm%onedtypearr(2,i)
+                              !nsize = nsize + blocklengths(iel)
+                              !if (iproc==0) write(*,*) 'ist, ncount, ind', &
+                              !int(displacements(iel)/size_of_double,kind=8)+1, blocklengths(iel), ii
+                              ii = ii + blocklengths(iel)
+                          end do
+                      end do
+                      if (nproc>1 .and. type_strategy==TYPES_SIMPLE) then
+                          call mpi_type_create_struct(iel, blocklengths, displacements, types, &
+                               comm%mpi_datatypes(joverlap), ierr)
+                          call mpi_type_commit(comm%mpi_datatypes(joverlap), ierr)
+                      end if
+                  end if
+                  if (iproc==mpidest) then
+                      if (.not.bgq) then
+                           if (nproc>1) then
+                               !ii = nsize
                                call mpi_type_size(comm%mpi_datatypes(joverlap), nsize, ierr)
                                call mpi_type_get_extent(comm%mpi_datatypes(joverlap), lb, extent, ierr)
                                extent=extent/size_of_double
                                nsize=nsize/size_of_double
-                               if(nsize>0) then
-                                   !write(*,'(a,6i9)') 'iproc, joverlap, nsize, extent, comm%nrecvbuf, total', &
-                                   !        iproc, joverlap, nsize, extent, comm%nrecvbuf, lzd%glr%d%n1i*lzd%glr%d%n2i*lzd%glr%d%n1i
-                                   !write(*,'(7(a,i0))') 'proc ',iproc,' gets ',nsize,' elements at ',ispin_shift+istdest, &
-                                   !                     ' from proc ',mpisource,' at ',isend_shift+istsource,&
-                                   !                     '; size(send)=',size(sendbuf),', size(recv)=',size(recvbuf)
-                                   !if (ispin_shift+istdest+nsize-1>nrecvbuf) then
-                                   !    write(*,*) 'ispin_shift+istdest, nsize, nrecvbuf', ispin_shift+istdest, nsize, nrecvbuf
-                                   !    stop 'ispin_shift+istdest+nsize-1>nrecvbuf'
-                                   !end if
-                                   !!write(*,*) 'val, limit', isend_shift+istsource + &
-                                   !!    (nit-1)*lzd%glr%d%n1i*lzd%glr%d%n2i + &
-                                   !!    (comm%ise(4)-comm%ise(3))*lzd%glr%d%n1i + &
-                                   !!    comm%ise(2)-comm%ise(1) , npotarr(mpisource)*comm%nspin 
-                                   !!if (isend_shift+istsource + &
-                                   !!    (nit-1)*lzd%glr%d%n1i*lzd%glr%d%n2i + &
-                                   !!    (comm%ise(4)-comm%ise(3))*lzd%glr%d%n1i + &
-                                   !!    comm%ise(2)-comm%ise(1) > npotarr(mpisource)*comm%nspin) then
-                                   !!    call f_err_throw('out of window: ist='//trim(yaml_toa(isend_shift+istsource,fmt='(i0)'))//&
-                                   !!         &', n='//trim(yaml_toa((nit-1)*lzd%glr%d%n1i*lzd%glr%d%n2i+&
-                                   !!         (comm%ise(4)-comm%ise(3))*lzd%glr%d%n1i+comm%ise(2)-comm%ise(1),fmt='(i0)'))//&
-                                   !!         &', nwin='//trim(yaml_toa(npotarr(mpisource)*comm%nspin,fmt='(i0)')),&
-                                   !!         err_name='BIGDFT_RUNTIME_ERROR')
-                                   !!    !stop 'out of window'
-                                   !!end if
+                               !if (ii/=nsize) then
+                               !    write(*,*) 'ispin, ii, nsize', ispin, ii, nsize
+                               !    stop 'ii/=nsize'
+                               !end if
+                           else
+                               nsize = 0
+                               do i=1,comm%onedtypeovrlp
+                                   nsize = nsize + nit*comm%onedtypearr(2,i)
+                               end do
+                           end if
+                           if(nsize>0) then
+                               if (nproc>1) then
                                    if (isend_shift+istsource+extent-1 > npotarr(mpisource)*comm%nspin) then
                                        call f_err_throw('out of window: ist='//trim(yaml_toa(isend_shift+istsource,fmt='(i0)'))//&
                                             &', n='//trim(yaml_toa(int(extent,kind=8),fmt='(i0)'))//&
                                             &', nwin='//trim(yaml_toa(npotarr(mpisource)*comm%nspin,fmt='(i0)')),&
                                             err_name='BIGDFT_RUNTIME_ERROR')
-                                       !stop 'out of window'
                                    end if
-                                   if (rma_sync==RMA_SYNC_PASSIVE) then
-                                       !write(*,'(2(a,i0))') 'BEFORE: proc ',iproc,' calls lock for proc ',mpisource
-                                       call mpi_win_lock(MPI_LOCK_EXCLUSIVE, mpisource, 0, comm%window, ierr)
-                                       !write(*,'(2(a,i0))') 'AFTER: proc ',iproc,' calls lock for proc ',mpisource
-                                   end if
-                                   !write(*,'(a,5i10)') 'iproc, mpisource, ispin_shift+istdest, nsize, isend_shift+istsource-1', &
-                                   !!    iproc, mpisource, ispin_shift+istdest, nsize, isend_shift+istsource-1
+                               end if
+                               if (nproc> 1 .and. rma_sync==RMA_SYNC_PASSIVE) then
+                                   call mpi_win_lock(MPI_LOCK_EXCLUSIVE, mpisource, 0, comm%window, ierr)
+                               end if
+                               if (nproc>1) then
                                    call mpi_get(recvbuf(ispin_shift+istdest), nsize, &
                                         mpi_double_precision, mpisource, int((isend_shift+istsource-1),kind=mpi_address_kind), &
                                         1, comm%mpi_datatypes(joverlap), comm%window, ierr)
-                                   if (rma_sync==RMA_SYNC_PASSIVE) then
-                                       !write(*,'(2(a,i0))') 'BEFORE: proc ',iproc,' calls unlock for proc ',mpisource
-                                       call mpi_win_unlock(mpisource, comm%window, ierr)
-                                       !write(*,'(2(a,i0))') 'AFTER: proc ',iproc,' calls unlock for proc ',mpisource
-                                   end if
+                               else
+                                   ind = 0
+                                   do i=1,iel
+                                      ist = int(displacements(i)/size_of_double,kind=4) + 1
+                                      ncount = blocklengths(i)
+                                      !!write(*,*) 'joverlap, ist, ncount, ind', &
+                                      !!    joverlap, isend_shift+istsource-1+ist, ncount, ispin_shift+istdest+ind, &
+                                      call f_memcpy(n=ncount, src=sendbuf(isend_shift+istsource-1+ist), &
+                                           dest=recvbuf(ispin_shift+istdest+ind))
+                                      ind = ind + ncount
+                                   end do
                                end if
-                           else
-                               call mpi_get(recvbuf(ispin_shift+istdest), nit*lzd%glr%d%n1i*lzd%glr%d%n2i, &
-                                    mpi_double_precision, mpisource, int((isend_shift+istsource-1),kind=mpi_address_kind), &
-                                    nit*lzd%glr%d%n1i*lzd%glr%d%n2i, mpi_double_precision, comm%window, ierr)
+                               if (nproc> 1 .and. rma_sync==RMA_SYNC_PASSIVE) then
+                                   call mpi_win_unlock(mpisource, comm%window, ierr)
+                               end if
                            end if
-                           !!else
-                           !!    call mpi_type_size(comm%mpi_datatypes(joverlap), nsize, ierr)
-                           !!    nsize=nsize/size_of_double
-                           !!    if(nsize>0) then
-                           !!        nsize=nsize/nit
-                           !!        ist1=ispin_shift+istdest
-                           !!        ish1=isend_shift+istsource-1
-                           !!        do islices=1,nit
-                           !!            ist2=ist1
-                           !!            ish2=ish1
-                           !!            if (islices<nit) then
-                           !!                call mpi_get(recvbuf(ist1), nsize, &
-                           !!                     mpi_double_precision, mpisource,&
-                           !!                     int(ish1,kind=mpi_address_kind), &
-                           !!                     1, comm%mpi_datatypes(0), comm%window,ierr)
-                           !!            else
-                           !!                do ilines=1,comm%ise(4)-comm%ise(3)+1
-                           !!                    write(*,'(5(a,i0))') 'proc ',iproc,' gets ',comm%ise(2)-comm%ise(1)+1, &
-                           !!                        ' elements at position ',ist2,' from position ',ish2+1,' on proc ',mpisource
-                           !!                    call mpi_get(recvbuf(ist2), comm%ise(2)-comm%ise(1)+1, &
-                           !!                         mpi_double_precision, mpisource,&
-                           !!                         int(ish2,kind=mpi_address_kind), &
-                           !!                         comm%ise(2)-comm%ise(1)+1, mpi_double_precision, comm%window,ierr)
-                           !!                    ist2=ist2+comm%ise(2)-comm%ise(1)+1
-                           !!                    ish2=ish2+lzd%glr%d%n1i
-                           !!                end do
-                           !!            end if
-                           !!            ist1=ist1+nsize
-                           !!            ish1=ish1+ioffset_send
-                           !!        end do
-                           !!    end if
-                           !!end if
-                      end if
-                  end do
+                       else
+                           call mpi_get(recvbuf(ispin_shift+istdest), nit*lzd%glr%d%n1i*lzd%glr%d%n2i, &
+                                mpi_double_precision, mpisource, int((isend_shift+istsource-1),kind=mpi_address_kind), &
+                                nit*lzd%glr%d%n1i*lzd%glr%d%n2i, mpi_double_precision, comm%window, ierr)
+                       end if
+                       !!else
+                       !!    call mpi_type_size(comm%mpi_datatypes(joverlap), nsize, ierr)
+                       !!    nsize=nsize/size_of_double
+                       !!    if(nsize>0) then
+                       !!        nsize=nsize/nit
+                       !!        ist1=ispin_shift+istdest
+                       !!        ish1=isend_shift+istsource-1
+                       !!        do islices=1,nit
+                       !!            ist2=ist1
+                       !!            ish2=ish1
+                       !!            if (islices<nit) then
+                       !!                call mpi_get(recvbuf(ist1), nsize, &
+                       !!                     mpi_double_precision, mpisource,&
+                       !!                     int(ish1,kind=mpi_address_kind), &
+                       !!                     1, comm%mpi_datatypes(0), comm%window,ierr)
+                       !!            else
+                       !!                do ilines=1,comm%ise(4)-comm%ise(3)+1
+                       !!                    write(*,'(5(a,i0))') 'proc ',iproc,' gets ',comm%ise(2)-comm%ise(1)+1, &
+                       !!                        ' elements at position ',ist2,' from position ',ish2+1,' on proc ',mpisource
+                       !!                    call mpi_get(recvbuf(ist2), comm%ise(2)-comm%ise(1)+1, &
+                       !!                         mpi_double_precision, mpisource,&
+                       !!                         int(ish2,kind=mpi_address_kind), &
+                       !!                         comm%ise(2)-comm%ise(1)+1, mpi_double_precision, comm%window,ierr)
+                       !!                    ist2=ist2+comm%ise(2)-comm%ise(1)+1
+                       !!                    ish2=ish2+lzd%glr%d%n1i
+                       !!                end do
+                       !!            end if
+                       !!            ist1=ist1+nsize
+                       !!            ish1=ish1+ioffset_send
+                       !!        end do
+                       !!    end if
+                       !!end if
+                  end if
+              end do
     
           end do spin_loop
 
-          comm%communication_complete=.false.
+          if (nproc>1) then
+              comm%communication_complete=.false.
+          else
+              comm%communication_complete=.true.
+          end if
 
-      else nproc_if
+      !else nproc_if
 
-          !call vcopy(lzd%glr%d%n1i*lzd%glr%d%n2i*lzd%glr%d%n3i, sendbuf(1), 1, recvbuf(1), 1)
-          call f_memcpy(n=lzd%glr%d%n1i*lzd%glr%d%n2i*lzd%glr%d%n3i, src=sendbuf(1), dest=recvbuf(1))
-          comm%communication_complete=.true.
+      !    !call vcopy(lzd%glr%d%n1i*lzd%glr%d%n2i*lzd%glr%d%n3i, sendbuf(1), 1, recvbuf(1), 1)
+      !    !write(*,*) 'lzd%glr%d%n1i*lzd%glr%d%n2i*lzd%glr%d%n3i*comm%nspin', lzd%glr%d%n1i*lzd%glr%d%n2i*lzd%glr%d%n3i*comm%nspin
+      !    call f_memcpy(n=lzd%glr%d%n1i*lzd%glr%d%n2i*lzd%glr%d%n3i*comm%nspin, src=sendbuf(1), dest=recvbuf(1))
+      !    comm%communication_complete=.true.
 
-      end if nproc_if
+      !end if nproc_if
       
 
       call f_free(npotarr)
+      call f_free(blocklengths)
+      call f_free(displacements)
+      call f_free(types)
     
       call timing(iproc, 'Pot_comm start', 'OF')
       call f_release_routine()
@@ -1238,7 +1268,10 @@ module communications
 
       if(.not.comm%communication_complete) then
           if (rma_sync==RMA_SYNC_ACTIVE) then
-              call mpi_win_fence(mpi_mode_nosucceed, comm%window, ierr)
+              !!call mpi_win_fence(mpi_mode_nosucceed, comm%window, ierr)
+              !!call mpi_win_free(comm%window, ierr)
+
+              call mpi_fenceandfree(comm%window, mpi_mode_nosucceed)
           else if (rma_sync==RMA_SYNC_PASSIVE) then
             !!  !!call mpi_win_unlock_all(comm%window, ierr)
             !!  do joverlap=1,comm%noverlaps
@@ -1250,15 +1283,11 @@ module communications
             !!           end if
             !!      end if
             !!  end do
+            call mpi_win_free(comm%window, ierr)
           end if
-
           do joverlap=1,comm%noverlaps
               call mpi_type_free(comm%mpi_datatypes(joverlap), ierr)
           end do
-          call mpibarrier(bigdft_mpi%mpi_comm)
-          !call mpi_win_fence(mpi_mode_nosucceed, comm%window, ierr)
-          call mpi_win_free(comm%window, ierr)
-
       end if
     
       ! Flag indicating that the communication is complete
@@ -1461,7 +1490,7 @@ module communications
     subroutine communicate_locreg_descriptors_keys(iproc, nproc, nlr, glr, llr, orbs, rootarr, onwhichmpi)
        use module_base
        use module_types, only: orbitals_data, locreg_descriptors
-       use locregs, only: allocate_wfd
+       use locregs, only: allocate_wfd, check_overlap_cubic_periodic
        use yaml_output
        implicit none
     
@@ -1553,13 +1582,15 @@ module communications
        end do
 
        ! Initialize the MPI window
+       !!call mpi_type_size(mpi_integer, size_of_int, ierr)
+       !!call mpi_info_create(info, ierr)
+       !!call mpi_info_set(info, "no_locks", "true", ierr)
+       !!call mpi_win_create(worksend(1), int(maxsenddim*size_of_int,kind=mpi_address_kind), size_of_int, &
+       !!     info, bigdft_mpi%mpi_comm, window, ierr)
+       !!call mpi_info_free(info, ierr)
+       !!call mpi_win_fence(mpi_mode_noprecede, window, ierr)
        call mpi_type_size(mpi_integer, size_of_int, ierr)
-       call mpi_info_create(info, ierr)
-       call mpi_info_set(info, "no_locks", "true", ierr)
-       call mpi_win_create(worksend(1), int(maxsenddim*size_of_int,kind=mpi_address_kind), size_of_int, &
-            info, bigdft_mpi%mpi_comm, window, ierr)
-       call mpi_info_free(info, ierr)
-       call mpi_win_fence(mpi_mode_noprecede, window, ierr)
+       window =  mpiwindow(maxsenddim, worksend(1),  bigdft_mpi%mpi_comm)
 
        ! Allocate the receive buffer
        maxrecvdim=0
@@ -2009,6 +2040,7 @@ module communications
       use module_base
       use module_types
       use communications_base, only: comms_cubic
+      use locreg_operations, only: Lpsi_to_global2
       implicit none
       integer, intent(in) :: iproc,nproc
       type(orbitals_data), intent(in) :: orbs
@@ -2041,7 +2073,7 @@ module communications
             !!call Lpsi_to_global(Lzd%Glr,Gdim,Lzd%Llr(ilr),psi(psishift1),&
             !!     ldim,orbs%norbp,orbs%nspinor,orbs%nspin,totshift,workarr)
             call Lpsi_to_global2(iproc, ldim, gdim, orbs%norbp, orbs%nspinor, &
-                 orbs%nspin, lzd%glr, lzd%llr(ilr), psi(psishift1), workarr(totshift))
+                 orbs%nspin, lzd%glr, lzd%llr(ilr), psi(psishift1:), workarr(totshift:))
             psishift1 = psishift1 + ldim
             totshift = totshift + (Lzd%Glr%wfd%nvctr_c+7*Lzd%Glr%wfd%nvctr_f)*orbs%nspinor
          end do
@@ -2104,6 +2136,8 @@ module communications
       !!call timing(iproc,'Un-TransSwitch','OF')
     
     END SUBROUTINE toglobal_and_transpose
+
+
 
 
 end module communications

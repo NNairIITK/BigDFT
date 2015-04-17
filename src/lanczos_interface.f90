@@ -1621,6 +1621,7 @@ contains
     use module_interfaces
     use communications_init, only: orbitals_communicators
     use communications_base, only: deallocate_comms
+    use rhopotential, only: full_local_potential
     implicit none
     integer, intent(in) :: iproc,nproc,nspin
     real(gp), intent(in) :: hx,hy,hz
@@ -1776,6 +1777,7 @@ contains
     use module_interfaces
     use communications_init, only: orbitals_communicators
     use communications_base, only: deallocate_comms
+    use rhopotential, only: full_local_potential
 
     implicit none
     integer  :: iproc,nproc,nspin
@@ -2017,6 +2019,7 @@ contains
     ! per togliere il bug 
     use module_interfaces
     use communications_init, only: orbitals_communicators
+    use rhopotential, only: full_local_potential
 
     implicit none
 

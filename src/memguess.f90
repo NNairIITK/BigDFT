@@ -2167,6 +2167,7 @@ subroutine take_psi_from_file(filename,in_frag,hx,hy,hz,lr,at,rxyz,orbs,psi,iorb
    use module_types
    use module_interfaces
    use module_fragments
+   use locreg_operations, only: lpsi_to_global2
    implicit none
    integer, intent(inout) :: iorbp, ispinor
    real(gp), intent(in) :: hx,hy,hz

@@ -182,7 +182,14 @@
      COMMENT: Disable the symmetry detection
      DESCRIPTION: Disable the symmetry detection (by default No except for isolated systems)
      default: No
-
+   solvent:
+     COMMENT: Electrostatic environment for Poisson Equation
+     DESCRIPTION: Define the method to set the dielectric function as a function of the position
+     EXCLUSIVE:
+       vacuum: No Solvent method, ordinary Poisson Equation
+       rigid:  Rigid (smoothed) cavity around the atoms, given as superposition of spheres
+       sccs: Self-Consistent Continuum Solvation (accordig to the model of Andreussi et. al JCP 136, 064102 (2012)
+     default: vacuum
 #K points parameters
  kpt:
    DESCRIPTION: K points defined in the Brillouin zone for periodic system calculations
@@ -945,6 +952,16 @@
      default: True
    wf_extent_analysis:
      COMMENT: perform an analysis of the extent of the support functions (and possibly KS orbitals)
+     default: False
+   gps_method:
+     COMMENT: method for the Generalized Poisson Equation
+     EXCLUSIVE:
+        VAC: Vacuum (ordinary treatment)
+        PI: Polarization Iteration
+        PCG: Preconditioned Conjugate Gradient
+     default: VAC
+   foe_gap:
+     COMMENT: Use the FOE method to calculate the HOMO-LUMO gap at the end of a calculation
      default: False
  lin_general:
      hybrid: 

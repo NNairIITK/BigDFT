@@ -503,7 +503,7 @@ program PS_Check
       real(kind=8), intent(in) :: ehref,offset
       real(kind=8), dimension(n01*n02*n03), intent(in) :: potential
       real(kind=8), dimension(n01*n02*n03*2), intent(in) :: density
-      type(coulomb_operator), intent(in) :: pkernel
+      type(coulomb_operator), intent(inout) :: pkernel
       !local varaibles
       character(len=*), parameter :: subname='compare_cplx_calculations'
       character(len=20) :: message
@@ -615,7 +615,7 @@ program PS_Check
       real(kind=8), dimension(n01*n02*n03*nspden), intent(in) :: density
       real(kind=8), dimension(n01*n02*n03), intent(inout) :: pot_ion
       real(kind=8), dimension(n01*n02*n03*nspden), target, intent(in) :: xc_pot
-      type(coulomb_operator), intent(in) :: pkernel
+      type(coulomb_operator), intent(inout) :: pkernel
       type(xc_info), intent(in) :: xc
       !local variables
       character(len=*), parameter :: subname='compare_with_reference'

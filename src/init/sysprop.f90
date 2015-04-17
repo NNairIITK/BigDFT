@@ -24,6 +24,7 @@ subroutine system_initialization(iproc,nproc,dump,inputpsi,input_wf_format,dry_r
   use module_atoms, only: set_symmetry_data
   use communications_base, only: comms_cubic
   use communications_init, only: orbitals_communicators
+  use Poisson_Solver, only: pkernel_allocate_cavity
   implicit none
   integer, intent(in) :: iproc,nproc 
   logical, intent(in) :: dry_run, dump
@@ -106,6 +107,15 @@ subroutine system_initialization(iproc,nproc,dump,inputpsi,input_wf_format,dry_r
      ! Create the Poisson solver kernels.
      call system_initKernels(.true.,iproc,nproc,atoms%astruct%geocode,in,denspot)
      call system_createKernels(denspot, (verbose > 1))
+     if (denspot%pkernel%method .hasattr. 'rigid') then
+        call epsilon_cavity(atoms,rxyz,denspot%pkernel)
+        !allocate cavity, in the case of nonvacuum treatment
+     else if (denspot%pkernel%method /= 'VAC') then 
+          call pkernel_allocate_cavity(denspot%pkernel,&
+          vacuum=.not. (denspot%pkernel%method .hasattr. 'sccs'))
+        !if (denspot%pkernel%method .hasattr. 'sccs') &
+        !     call pkernel_allocate_cavity(denspot%pkernel)
+     end if
   end if
 
   ! Create wavefunctions descriptors and allocate them inside the global locreg desc.
@@ -664,6 +674,7 @@ subroutine system_initialization(iproc,nproc,dump,inputpsi,input_wf_format,dry_r
 
 
      subroutine optimize_loadbalancing2()
+       use sparsematrix_init, only: redistribute
        implicit none
 
        ! Local variables
@@ -688,43 +699,43 @@ subroutine system_initialization(iproc,nproc,dump,inputpsi,input_wf_format,dry_r
 
      end subroutine optimize_loadbalancing2
 
-     subroutine redistribute2(norb, time_ideal, norb_par)
-       implicit none
-       integer,intent(in) :: norb
-       real(kind=8),intent(in) :: time_ideal
-       integer,dimension(0:nproc-1),intent(out) :: norb_par
-       integer :: jjorbtot, jjorb, jproc, jlr, jorb
-       real(kind=8) :: tcount
+     !!subroutine redistribute2(norb, time_ideal, norb_par)
+     !!  implicit none
+     !!  integer,intent(in) :: norb
+     !!  real(kind=8),intent(in) :: time_ideal
+     !!  integer,dimension(0:nproc-1),intent(out) :: norb_par
+     !!  integer :: jjorbtot, jjorb, jproc, jlr, jorb
+     !!  real(kind=8) :: tcount
 
-       call f_zero(norb_par)
-       if (norb>=nproc) then
-           tcount = 0.d0
-           jproc = 0
-           jjorb = 0
-           jjorbtot = 0
-           do jorb=1,norb
-               if (jproc==nproc-1) exit
-               jjorb = jjorb + 1
-               if(jorb==norb) exit !just to besure that no out of bound happens
-               tcount = tcount + times_convol(jorb)
-               !if (iproc==0) write(*,'(a,2i8,2es14.5)') 'jorb, jproc, tcount, diff to target', jorb, jproc, tcount, abs(tcount-time_ideal*real(jproc+1,kind=8))
-               if (abs(tcount-time_ideal*real(jproc+1,kind=8)) <= &
-                       abs(tcount+times_convol(jorb+1)-time_ideal*real(jproc+1,kind=8))) then
-                   norb_par(jproc) = jjorb
-                   jjorbtot = jjorbtot + jjorb
-                   jjorb = 0
-                   jproc = jproc + 1
-               end if
-           end do
-           norb_par(nproc-1) = jjorb + (norb - jjorbtot) !take the rest
-           !do jproc=0,nproc-1
-           !    if (iproc==0) write(*,*) 'jproc, norb_par(jproc)', jproc, norb_par(jproc)
-           !end do
-       else
-           ! Equal distribution
-           norb_par(0:norb-1) = 1
-       end if
-     end subroutine redistribute2
+     !!  call f_zero(norb_par)
+     !!  if (norb>=nproc) then
+     !!      tcount = 0.d0
+     !!      jproc = 0
+     !!      jjorb = 0
+     !!      jjorbtot = 0
+     !!      do jorb=1,norb
+     !!          if (jproc==nproc-1) exit
+     !!          jjorb = jjorb + 1
+     !!          if(jorb==norb) exit !just to besure that no out of bound happens
+     !!          tcount = tcount + times_convol(jorb)
+     !!          !if (iproc==0) write(*,'(a,2i8,2es14.5)') 'jorb, jproc, tcount, diff to target', jorb, jproc, tcount, abs(tcount-time_ideal*real(jproc+1,kind=8))
+     !!          if (abs(tcount-time_ideal*real(jproc+1,kind=8)) <= &
+     !!                  abs(tcount+times_convol(jorb+1)-time_ideal*real(jproc+1,kind=8))) then
+     !!              norb_par(jproc) = jjorb
+     !!              jjorbtot = jjorbtot + jjorb
+     !!              jjorb = 0
+     !!              jproc = jproc + 1
+     !!          end if
+     !!      end do
+     !!      norb_par(nproc-1) = jjorb + (norb - jjorbtot) !take the rest
+     !!      !do jproc=0,nproc-1
+     !!      !    if (iproc==0) write(*,*) 'jproc, norb_par(jproc)', jproc, norb_par(jproc)
+     !!      !end do
+     !!  else
+     !!      ! Equal distribution
+     !!      norb_par(0:norb-1) = 1
+     !!  end if
+     !!end subroutine redistribute2
 
 
      subroutine fragment_stuff()
@@ -776,14 +787,16 @@ subroutine system_initKernels(verb, iproc, nproc, geocode, in, denspot)
   integer, parameter :: ndegree_ip = 16
 
   denspot%pkernel=pkernel_init(verb, iproc,nproc,in%matacc%PSolver_igpu,&
-       geocode,denspot%dpbox%ndims,denspot%dpbox%hgrids,ndegree_ip,mpi_env=denspot%dpbox%mpi_env)
+       geocode,denspot%dpbox%ndims,denspot%dpbox%hgrids,ndegree_ip,&
+       mpi_env=denspot%dpbox%mpi_env,alg=in%GPS_method,cavity=in%set_epsilon)
   !create the sequential kernel if the exctX parallelisation scheme requires it
   if ((xc_exctXfac(denspot%xc) /= 0.0_gp .and. in%exctxpar=='OP2P' .or. in%SIC%alpha /= 0.0_gp)&
        .and. denspot%dpbox%mpi_env%nproc > 1) then
      !the communicator of this kernel is bigdft_mpi%mpi_comm
      !this might pose problems when using SIC or exact exchange with taskgroups
      denspot%pkernelseq=pkernel_init(iproc==0 .and. verb,0,1,in%matacc%PSolver_igpu,&
-          geocode,denspot%dpbox%ndims,denspot%dpbox%hgrids,ndegree_ip)
+          geocode,denspot%dpbox%ndims,denspot%dpbox%hgrids,ndegree_ip,&
+          alg=in%GPS_method,cavity=in%set_epsilon)
   else 
      denspot%pkernelseq = denspot%pkernel
   end if
@@ -815,8 +828,8 @@ subroutine epsilon_cavity(atoms,rxyz,pkernel)
   use module_atoms
   use ao_inguess, only: atomic_info
   !use yaml_output
-  use module_defs, only : Bohr_Ang
-  use f_utils
+  use module_defs, only : Bohr_Ang,bigdft_mpi
+  use f_enums
   use yaml_output
   use dictionaries, only: f_err_throw
   implicit none
@@ -850,7 +863,7 @@ subroutine epsilon_cavity(atoms,rxyz,pkernel)
      call atomic_info(atoms%nzatom(it%ityp),atoms%nelpsp(it%ityp),&
           rcov=radii(it%iat))
   end do
-  call yaml_map('Bohr_Ang',Bohr_Ang)
+  if(bigdft_mpi%iproc==0) call yaml_map('Bohr_Ang',Bohr_Ang)
 
 !  radii(1)=1.5d0/Bohr_Ang
 !  radii(2)=1.2d0/Bohr_Ang
@@ -858,7 +871,7 @@ subroutine epsilon_cavity(atoms,rxyz,pkernel)
 
 !  delta=4.0*maxval(pkernel%hgrids)
   delta=2.0d0
-  call yaml_map('Delta cavity',delta)
+  if(bigdft_mpi%iproc==0) call yaml_map('Delta cavity',delta)
   delta=delta*0.25d0 ! Divided by 4 because both rigid cavities are 4*delta widespread 
 
   do i=1,atoms%astruct%nat
@@ -880,46 +893,54 @@ subroutine epsilon_cavity(atoms,rxyz,pkernel)
    case default
     call f_err_throw('For rigid cavity a radius should be fixed for each atom type')
    end select
-   call yaml_map('Atomic type',atoms%astruct%atomnames(atoms%astruct%iatype(i)))
+   if (bigdft_mpi%iproc==0) call yaml_map('Atomic type',atoms%astruct%atomnames(atoms%astruct%iatype(i)))
    radii_nofact(i) = radii(i)/Bohr_Ang +1.05d0*delta
    radii(i) = fact*radii(i)/Bohr_Ang + 1.22d0*delta
   end do
-  call yaml_map('Covalent radii',radii)
+  if (bigdft_mpi%iproc==0) call yaml_map('Covalent radii',radii)
 
 !--------------------------------------------
 
 ! Calculation of non-electrostatic contribution. Use of raddi without fact
 ! multiplication.
-!  call epsilon_rigid_cavity_error_multiatoms(atoms%astruct%geocode,pkernel%ndims,pkernel%hgrids,atoms%astruct%nat,rxyz,radii_nofact,&
-!       epsilon0,delta,eps,dlogeps,oneoeps,oneosqrteps,corr,IntSur,IntVol)
-  call epsilon_rigid_cavity_new_multiatoms(atoms%astruct%geocode,pkernel%ndims,pkernel%hgrids,atoms%astruct%nat,rxyz,radii_nofact,&
+  call epsilon_rigid_cavity_error_multiatoms(atoms%astruct%geocode,pkernel%ndims,pkernel%hgrids,&
+       atoms%astruct%nat,rxyz,radii_nofact,&
        epsilon0,delta,eps,dlogeps,oneoeps,oneosqrteps,corr,IntSur,IntVol)
+!  call epsilon_rigid_cavity_new_multiatoms(atoms%astruct%geocode,pkernel%ndims,pkernel%hgrids,atoms%astruct%nat,rxyz,radii_nofact,&
+!       epsilon0,delta,eps,dlogeps,oneoeps,oneosqrteps,corr,IntSur,IntVol)
 
-  call yaml_map('Surface integral',IntSur)
-  call yaml_map('Volume integral',IntVol)
-
+  if (bigdft_mpi%iproc==0) then
+     call yaml_map('Surface integral',IntSur)
+     call yaml_map('Volume integral',IntVol)
+  end if
   Cavene= 72.d-13*Bohr_Ang*IntSur/8.238722514d-8*627.509469d0
   Repene=-22.d-13*Bohr_Ang*IntSur/8.238722514d-8*627.509469d0
   Disene=-0.35d9*IntVol*2.942191219d-13*627.509469d0
   noeleene=Cavene+Repene+Disene
-  call yaml_map('Cavity energy',Cavene)
-  call yaml_map('Repulsion energy',Repene)
-  call yaml_map('Dispersion energy',Disene)
-  call yaml_map('Total non-electrostatic energy',noeleene)
+  if (bigdft_mpi%iproc==0) then
+     call yaml_map('Cavity energy',Cavene)
+     call yaml_map('Repulsion energy',Repene)
+     call yaml_map('Dispersion energy',Disene)
+     call yaml_map('Total non-electrostatic energy',noeleene)
+  end if
 
 !--------------------------------------------
 
 !  call epsilon_rigid_cavity(atoms%astruct%geocode,pkernel%ndims,pkernel%hgrids,atoms%astruct%nat,rxyz,radii,&
 !       epsilon0,delta,eps)
-!  call epsilon_rigid_cavity_error_multiatoms(atoms%astruct%geocode,pkernel%ndims,pkernel%hgrids,atoms%astruct%nat,rxyz,radii,&
-!       epsilon0,delta,eps,dlogeps,oneoeps,oneosqrteps,corr,IntSur,IntVol)
-  call epsilon_rigid_cavity_new_multiatoms(atoms%astruct%geocode,pkernel%ndims,pkernel%hgrids,atoms%astruct%nat,rxyz,radii,&
+  call epsilon_rigid_cavity_error_multiatoms(atoms%astruct%geocode,pkernel%ndims,pkernel%hgrids,atoms%astruct%nat,rxyz,radii,&
        epsilon0,delta,eps,dlogeps,oneoeps,oneosqrteps,corr,IntSur,IntVol)
+!  call epsilon_rigid_cavity_new_multiatoms(atoms%astruct%geocode,pkernel%ndims,pkernel%hgrids,atoms%astruct%nat,rxyz,radii,&
+!       epsilon0,delta,eps,dlogeps,oneoeps,oneosqrteps,corr,IntSur,IntVol)
 
   !set the epsilon to the poisson solver kernel
 !  call pkernel_set_epsilon(pkernel,eps=eps)
 
-  select case(trim(pkernel%method))
+  !!!!!set the fake cavity to restore the value in vacuum
+!!$  corr=0.d0
+!!$  oneosqrteps=1.d0
+
+  select case(trim(char(pkernel%method)))
   case('PCG')
    call pkernel_set_epsilon(pkernel,oneosqrteps=oneosqrteps,corr=corr)
   case('PI') 
@@ -937,7 +958,6 @@ subroutine epsilon_cavity(atoms,rxyz,pkernel)
 !!$  end do
 !!$  call f_close(unt)
 
-
   call f_free(radii)
   call f_free(radii_nofact)
   call f_free(eps)
@@ -946,7 +966,6 @@ subroutine epsilon_cavity(atoms,rxyz,pkernel)
   call f_free(oneosqrteps)
   call f_free(corr)
 end subroutine epsilon_cavity
-
 
 
 
@@ -2486,125 +2505,3 @@ subroutine system_signaling(iproc, signaling, gmainloop, KSwfn, tmb, energs, den
 END SUBROUTINE system_signaling
 
 
-!> Given the array workload which indicates the workload on each MPI task for a
-!! given distribution of the orbitals (or a similar quantity), this subroutine
-!! redistributes the orbitals such that the load unbalancing is optimal
-subroutine redistribute(nproc, norb, workload, workload_ideal, norb_par)
-  use module_base
-  implicit none
-
-  ! Calling arguments
-  integer,intent(in) :: nproc, norb
-  real(kind=8),dimension(norb),intent(in) :: workload
-  real(kind=8),intent(in) :: workload_ideal
-  integer,dimension(0:nproc-1),intent(out) :: norb_par
-
-  ! Local variables
-  real(kind=8) :: tcount, jcount, wli, ratio, ratio_old, average
-  real(kind=8),dimension(:),allocatable :: workload_par
-  integer,dimension(:),allocatable :: norb_par_trial
-  integer :: jproc, jjorb, jjorbtot, jorb, ii, imin, imax
-
-  call f_routine(id='redistribute')
-
-  wli = workload_ideal
-
-  call f_zero(norb_par)
-  if (norb>=nproc) then
-      workload_par = f_malloc(0.to.nproc-1,id='workload_par')
-      norb_par_trial = f_malloc(0.to.nproc-1,id='norbpar_par_trial')
-      tcount = 0.d0
-      jcount = 0.d0
-      jproc = 0
-      jjorb = 0
-      jjorbtot = 0
-      do jorb=1,norb
-          if (jproc==nproc-1) exit
-          jjorb = jjorb + 1
-          if(jorb==norb) exit !just to besure that no out of bound happens
-          tcount = tcount + workload(jorb)
-          jcount = jcount + workload(jorb)
-          if (abs(tcount-wli*real(jproc+1,kind=8)) <= &
-                  abs(tcount+workload(jorb+1)-wli*real(jproc+1,kind=8))) then
-          !!if (abs(tcount-workload_ideal*real(jproc+1,kind=8)) <= &
-          !!        abs(tcount+workload(jorb+1)-workload_ideal*real(jproc+1,kind=8))) then
-          !!if (tcount-workload_ideal*real(jproc+1,kind=8)<0.d0 .and. &
-          !!        tcount+workload(jorb+1)-workload_ideal*real(jproc+1,kind=8)>0.d0) then
-              norb_par(jproc) = jjorb
-              workload_par(jproc) = jcount
-              jjorbtot = jjorbtot + jjorb
-              !if (bigdft_mpi%iproc==0) write(*,'(a,2i6,2es14.6)') 'jproc, jjorb, tcount/(jproc+1), wli', jproc, jjorb, tcount/(jproc+1), wli
-              jcount = 0.d0
-              jjorb = 0
-              jproc = jproc + 1
-              wli = get_dynamic_ideal_workload(jproc, tcount, workload_ideal)
-          end if
-      end do
-      norb_par(nproc-1) = jjorb + (norb - jjorbtot) !take the rest
-      workload_par(nproc-1) = sum(workload) - tcount
-      !do jproc=0,nproc-1
-      !    if (iproc==0) write(*,*) 'jproc, norb_par(jproc)', jproc, norb_par(jproc)
-      !end do
-      !if (bigdft_mpi%iproc==0) write(*,'(a,2i6,2es14.6)') 'jproc, jjorb, tcount/(jproc+1), workload_ideal', &
-      !        jproc, jjorb+(norb-jjorbtot), sum(workload)-tcount, workload_ideal
-
-      ! Now take away one element from the maximum and add it to the minimum.
-      ! Repeat this as long as the ratio max/average decreases 
-      average = sum(workload_par)/real(nproc,kind=8)
-      ratio_old = maxval(workload_par)/average
-      adjust_loop: do
-          imin = minloc(workload_par,1) - 1 !subtract 1 because the array starts a 0
-          imax = maxloc(workload_par,1) - 1 !subtract 1 because the array starts a 0
-          call vcopy(nproc, norb_par(0), 1, norb_par_trial(0), 1)
-          norb_par_trial(imin) = norb_par(imin) + 1
-          norb_par_trial(imax) = norb_par(imax) - 1
-
-          call f_zero(workload_par)
-          ii = 0
-          do jproc=0,nproc-1
-              do jorb=1,norb_par_trial(jproc)
-                  ii = ii + 1
-                  workload_par(jproc) = workload_par(jproc) + workload(ii)
-              end do
-          end do
-          average = sum(workload_par)/real(nproc,kind=8)
-          ratio = maxval(workload_par)/average
-          !if (bigdft_mpi%iproc==0) write(*,*) 'ratio, ratio_old', ratio, ratio_old
-          if (ratio<ratio_old) then
-              call vcopy(nproc, norb_par_trial(0), 1, norb_par(0), 1)
-              ratio_old = ratio
-          else
-              exit adjust_loop
-          end if
-      end do adjust_loop
-
-      call f_free(workload_par)
-      call f_free(norb_par_trial)
-  else
-      ! Equal distribution
-      norb_par(0:norb-1) = 1
-  end if
-
-  call f_release_routine()
-
-  contains
-
-    ! Get dynamically a new ideal workload
-    function get_dynamic_ideal_workload(jproc, wltot, wli) result(wl)
-      implicit none
-      integer,intent(in) :: jproc !<currently handled task
-      real(kind=8),intent(in) :: wltot !<total workload assigned so far
-      real(kind=8),intent(in) :: wli !< theoretical ideal workload
-      real(kind=8) :: wl !<new ideal workload
-      real(kind=8) :: wls
-
-      ! Average workload so far
-      wls = wltot/real(jproc,kind=8)
- 
-      ! The new ideal workload is a weighted sum of the average workload so far
-      ! and the theoretical ideal workload
-      wl = (nproc-jproc)*wls + jproc*wli
-      wl = wl/real(nproc,kind=8) 
-
-    end function get_dynamic_ideal_workload
-end subroutine redistribute

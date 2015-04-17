@@ -22,6 +22,7 @@ program wvl
   use communications_base, only: deallocate_comms
   use communications_init, only: orbitals_communicators
   use communications, only: transpose_v, untranspose_v
+  use rhopotential, only: full_local_potential
   implicit none
 
   type(input_variables)             :: inputs
@@ -43,7 +44,7 @@ program wvl
 !  real(gp), allocatable :: radii_cf(:,:)
   real(gp), dimension(3) :: shift
   real(gp), dimension(:,:), pointer :: rxyz_old
-  real(dp), dimension(:), pointer   :: rhor, pot_ion, potential
+  real(dp), dimension(:), pointer   :: rhor, pot_ion, potential,rho_ion
   real(wp), dimension(:), pointer   :: w
   real(wp), dimension(:,:), pointer :: ovrlp
   real(dp), dimension(:,:), pointer :: rho_p => null() !needs to be nullified
@@ -265,11 +266,12 @@ program wvl
   !     (/inputs%hx / 2._gp,inputs%hy / 2._gp,inputs%hz / 2._gp/)&
   !     ,16,pkernel,.false.)
   allocate(pot_ion(Lzd%Glr%d%n1i * Lzd%Glr%d%n2i * dpcom%n3p))
+  allocate(rho_ion(Lzd%Glr%d%n1i * Lzd%Glr%d%n2i * dpcom%n3p))
   call createIonicPotential(atoms%astruct%geocode,iproc,nproc,(iproc==0),atoms,atoms%astruct%rxyz,&
        & inputs%hx / 2._gp,inputs%hy / 2._gp,inputs%hz / 2._gp, &
        & inputs%elecfield,Lzd%Glr%d%n1,Lzd%Glr%d%n2,Lzd%Glr%d%n3, &
        & dpcom%n3pi,dpcom%i3s+dpcom%i3xcsh,Lzd%Glr%d%n1i,Lzd%Glr%d%n2i,Lzd%Glr%d%n3i, &
-       & pkernel,pot_ion,psoffset)
+       & pkernel,pot_ion,rho_ion,psoffset)
   !allocate the potential in the full box
   call full_local_potential(iproc,nproc,orbs,Lzd,0,dpcom,xc,pot_ion,potential)
 !!$  call full_local_potential(iproc,nproc,Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*n3p, &
@@ -293,7 +295,7 @@ program wvl
   !if (iproc == 0) write(*,*) "System pseudo energy is", epot_sum, "Ht."
   if (iproc == 0) call yaml_map("System pseudo energy (Ha)", epot_sum)
 
-  deallocate(pot_ion)
+  deallocate(pot_ion,rho_ion)
   deallocate(psir)
   call deallocate_work_arrays_sumrho(wisf)
 

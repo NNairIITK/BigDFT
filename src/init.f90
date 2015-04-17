@@ -762,6 +762,7 @@ subroutine input_memory_linear(iproc, nproc, at, KSwfn, tmb, tmb_old, denspot, i
                           uncompress_matrix_distributed2, uncompress_matrix2
   use transposed_operations, only: calculate_overlap_transposed, normalize_transposed
   use matrix_operations, only: overlapPowerGeneral, deviation_from_unity_parallel
+  use rhopotential, only: updatepotential, sumrho_for_TMBs, corrections_for_negative_charge
   implicit none
 
   ! Calling arguments
@@ -785,7 +786,7 @@ subroutine input_memory_linear(iproc, nproc, at, KSwfn, tmb, tmb_old, denspot, i
   real(wp), allocatable, dimension(:) :: norm
   type(fragment_transformation), dimension(:), pointer :: frag_trans
   character(len=*),parameter:: subname='input_memory_linear'
-  real(kind=8) :: pnrm, max_inversion_error, max_deviation, mean_deviation, max_deviation_p, mean_deviation_p
+  real(kind=8) :: pnrm, max_deviation, mean_deviation, max_deviation_p, mean_deviation_p
   logical :: rho_negative
   integer,parameter :: RESTART_AO = 0
   integer,parameter :: RESTART_REFORMAT = 1
@@ -808,7 +809,7 @@ subroutine input_memory_linear(iproc, nproc, at, KSwfn, tmb, tmb_old, denspot, i
   real(kind=8),dimension(:),allocatable :: eval
   integer,parameter :: lwork=10000
   real(kind=8),dimension(lwork) :: work
-  integer :: info
+  integer :: info, norder_taylor
 
   call f_routine(id='input_memory_linear')
 
@@ -1210,10 +1211,11 @@ subroutine input_memory_linear(iproc, nproc, at, KSwfn, tmb, tmb_old, denspot, i
             imode=1, ovrlp_smat=tmb%linmat%s, inv_ovrlp_smat=tmb%linmat%l, &
             ovrlp_mat=ovrlp_old, inv_ovrlp_mat=tmb%linmat%ovrlppowers_(1), &
             check_accur=.true., max_error=max_error, mean_error=mean_error)
-       call check_taylor_order(mean_error, max_inversion_error, order_taylor)
+       call check_taylor_order(mean_error, input%lin%max_inversion_error, order_taylor)
 
        !!call extract_taskgroup_inplace(tmb%linmat%l, tmb%linmat%kernel_)
-       call renormalize_kernel(iproc, nproc, input%lin%order_taylor, max_inversion_error, tmb, &
+       norder_taylor = input%lin%order_taylor !since it is inout
+       call renormalize_kernel(iproc, nproc, norder_taylor, input%lin%max_inversion_error, tmb, &
             tmb%linmat%ovrlp_, tmb_old%linmat%ovrlp_)
        !!call gather_matrix_from_taskgroups_inplace(iproc, nproc, tmb%linmat%l, tmb%linmat%kernel_)
 
@@ -1334,7 +1336,7 @@ subroutine input_memory_linear(iproc, nproc, at, KSwfn, tmb, tmb_old, denspot, i
               at%astruct%cell_dim(1)*at%astruct%cell_dim(2)*at%astruct%cell_dim(3),&
               pnrm,denspot%dpbox%nscatterarr)
       end if
-      call updatePotential(input%nspin,denspot,energs%eh,energs%exc,energs%evxc)
+      call updatePotential(input%nspin,denspot,energs)!%eh,energs%exc,energs%evxc)
       if (input%lin%scf_mode==LINEAR_MIXPOT_SIMPLE) then
          ! set the initial potential
          call mix_rhopot(iproc,nproc,denspot%mix%nfft*denspot%mix%nspden,0.d0,denspot%mix,&
@@ -1517,6 +1519,7 @@ subroutine input_wf_diag(iproc,nproc,at,denspot,&
            use communications_init, only: orbitals_communicators
            use communications, only: transpose_v
   use communications, only: toglobal_and_transpose
+  use rhopotential, only: full_local_potential, updatePotential
   implicit none
   !Arguments
   integer, intent(in) :: iproc,nproc,ixc
@@ -1754,7 +1757,7 @@ subroutine input_wf_diag(iproc,nproc,at,denspot,&
      end if
 
      !Now update the potential
-     call updatePotential(nspin,denspot,energs%eh,energs%exc,energs%evxc)
+     call updatePotential(nspin,denspot,energs)!%eh,energs%exc,energs%evxc)
 
   else
      !Put to zero the density if no Hartree
@@ -2098,6 +2101,7 @@ use sparsematrix, only: uncompress_matrix2
   use psp_projectors, only: PSPCODE_PAW, PSPCODE_HGH, free_DFT_PSP_projectors
   use sparsematrix, only: gather_matrix_from_taskgroups_inplace, extract_taskgroup_inplace
   use transposed_operations, only: normalize_transposed
+  use rhopotential, only: updatepotential, sumrho_for_TMBs, clean_rho
   implicit none
 
   integer, intent(in) :: iproc, nproc, inputpsi, input_wf_format
@@ -2650,7 +2654,7 @@ use sparsematrix, only: uncompress_matrix2
      end if
      !!call deallocateCommunicationbufferSumrho(tmb%comsr, subname)
 
-     call updatePotential(in%nspin,denspot,energs%eh,energs%exc,energs%evxc)
+     call updatePotential(in%nspin,denspot,energs)!%eh,energs%exc,energs%evxc)
      if (in%lin%scf_mode==LINEAR_MIXPOT_SIMPLE) then
         ! set the initial potential
         call mix_rhopot(iproc,nproc,denspot%mix%nfft*denspot%mix%nspden,0.d0,denspot%mix,&

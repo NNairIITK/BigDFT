@@ -23,7 +23,7 @@ subroutine IonicEnergyandForces(iproc,nproc,dpbox,at,elecfield,&
   integer, intent(in) :: iproc,nproc,n1,n2,n3,dispersion
   real(gp), dimension(3), intent(in) :: elecfield
   real(gp), dimension(3,at%astruct%nat), intent(in) :: rxyz
-  type(coulomb_operator), intent(in) :: pkernel
+  type(coulomb_operator), intent(inout) :: pkernel
   real(gp), intent(out) :: eion,edisp,psoffset
   real(dp), dimension(6),intent(out) :: ewaldstr
   real(gp), dimension(:,:), pointer :: fion,fdisp
@@ -229,7 +229,7 @@ subroutine IonicEnergyandForces(iproc,nproc,dpbox,at,elecfield,&
 
         !if (nproc==1 .and. slowion) print *,'iat,fion',iat,(fion(j1,iat),j1=1,3)
         !energy which comes from the self-interaction of the spread charge
-        eself=eself+real(at%nelpsp(ityp)**2,gp)*0.5_gp*sqrt(1.d0/pi)/at%psppar(0,0,ityp)
+       eself=eself+real(at%nelpsp(ityp)**2,gp)*0.5_gp*sqrt(1.d0/pi)/at%psppar(0,0,ityp)
      end do
 
      !if (nproc==1 .and. slowion) print *,'eself',eself
@@ -242,7 +242,7 @@ subroutine IonicEnergyandForces(iproc,nproc,dpbox,at,elecfield,&
   !if (at%astruct%geocode == 'S' .or. at%astruct%geocode == 'P') slowion=.true.
   if (at%astruct%geocode == 'S' .or. pkernel%method /= 'VAC') slowion=.true.
 
-  if (slowion) then
+   slowion_if: if (slowion) then
 
      !case of slow ionic calculation
      !conditions for periodicity in the three directions
@@ -282,7 +282,7 @@ subroutine IonicEnergyandForces(iproc,nproc,dpbox,at,elecfield,&
      !print *,'iproc,eself',iproc,eself
      call f_zero(n1i*n2i*n3pi,pot_ion(1))
 
-     if (n3pi >0 ) then
+     if (n3pi >0 ) then 
         !then calculate the hartree energy and forces of the charge distributions
         !(and save the values for the ionic potential)
 
@@ -333,16 +333,21 @@ subroutine IonicEnergyandForces(iproc,nproc,dpbox,at,elecfield,&
 
      end if
 
+  end if slowion_if
+
+  !in the case of cavity the ionic energy is only considered as the self energy
+  nocavity_if: if (pkernel%method /= 'VAC') then
+     eion=-eself
+  else if (slowion) then
      !now call the Poisson Solver for the global energy forces
      call H_potential('D',pkernel,pot_ion,pot_ion,ehart,-2.0_gp*psoffset,.false.)
-
      eion=ehart-eself
-
+     
      !print *,'ehart,eself',iproc,ehart,eself
-
+     
      !if (nproc==1) 
      !print *,'iproc,eion',iproc,eion
-
+     
      do iat=1,at%astruct%nat
         ityp=at%astruct%iatype(iat)
         !coordinates of the center
@@ -420,7 +425,7 @@ subroutine IonicEnergyandForces(iproc,nproc,dpbox,at,elecfield,&
 
      !if (iproc ==0) print *,'eion',eion,psoffset,shortlength
 
-  end if
+  end if nocavity_if
 
   ! Add contribution from constant electric field to the forces
   call center_of_charge(at,rxyz,cc)
@@ -746,6 +751,7 @@ subroutine epsilon_rigid_cavity_error_multiatoms(geocode,ndims,hgrids,nat,rxyz,r
     end function epsl
 
     pure function d1eps(r,rc,delta)
+      use numerics, only: safe_exp
       implicit none
       real(kind=8), intent(in) :: r,rc,delta
       real(kind=8) :: d1eps
@@ -753,7 +759,7 @@ subroutine epsilon_rigid_cavity_error_multiatoms(geocode,ndims,hgrids,nat,rxyz,r
       real(kind=8) :: d
 
       d=(r-rc)/delta
-      d1eps=(1.d0/(delta*sqrt(pi)))*max(exp(-d**2),1.0d-24)
+      d1eps=(1.d0/(delta*sqrt(pi)))*max(safe_exp(-d**2),1.0d-24)
     end function d1eps
 
 end subroutine epsilon_rigid_cavity_error_multiatoms
@@ -935,7 +941,7 @@ end subroutine epsilon_rigid_cavity_new_multiatoms
 
 
 subroutine createEffectiveIonicPotential(iproc, nproc, verb, in, atoms, rxyz, shift, &
-     & Glr, hxh, hyh, hzh, rhopotd, pkernel, pot_ion, elecfield, psoffset)
+     Glr, hxh, hyh, hzh, rhopotd, pkernel, pot_ion, rho_ion, elecfield, psoffset)
   use module_base
   use module_types
 
@@ -951,8 +957,9 @@ subroutine createEffectiveIonicPotential(iproc, nproc, verb, in, atoms, rxyz, sh
   real(gp), intent(in) :: elecfield(3)
   real(gp), dimension(3), intent(in) :: shift
   real(gp), dimension(3,atoms%astruct%nat), intent(in) :: rxyz
-  type(coulomb_operator), intent(in) :: pkernel
+  type(coulomb_operator), intent(inout) :: pkernel
   real(wp), dimension(*), intent(inout) :: pot_ion
+  real(wp), dimension(*), intent(inout) :: rho_ion
 
   character(len = *), parameter :: subname = "createEffectiveIonicPotential"
   logical :: counterions
@@ -961,7 +968,7 @@ subroutine createEffectiveIonicPotential(iproc, nproc, verb, in, atoms, rxyz, sh
   ! Compute the main ionic potential.
   call createIonicPotential(atoms%astruct%geocode, iproc, nproc, verb, atoms, rxyz, hxh, hyh, hzh, &
        & elecfield, Glr%d%n1, Glr%d%n2, Glr%d%n3, rhopotd%n3pi, rhopotd%i3s + rhopotd%i3xcsh, &
-       & Glr%d%n1i, Glr%d%n2i, Glr%d%n3i, pkernel, pot_ion, psoffset)
+       & Glr%d%n1i, Glr%d%n2i, Glr%d%n3i, pkernel, pot_ion, rho_ion, psoffset)
 
   !inquire for the counter_ion potential calculation (for the moment only xyz format)
   inquire(file='posinp_ci.xyz',exist=counterions)
@@ -981,12 +988,14 @@ subroutine createEffectiveIonicPotential(iproc, nproc, verb, in, atoms, rxyz, sh
 
      call f_free(counter_ions)
   end if
+
+
 END SUBROUTINE createEffectiveIonicPotential
 
 
 !> Create the ionic potential
 subroutine createIonicPotential(geocode,iproc,nproc,verb,at,rxyz,&
-     hxh,hyh,hzh,elecfield,n1,n2,n3,n3pi,i3s,n1i,n2i,n3i,pkernel,pot_ion,psoffset)
+     hxh,hyh,hzh,elecfield,n1,n2,n3,n3pi,i3s,n1i,n2i,n3i,pkernel,pot_ion,rho_ion,psoffset)
   use module_base, pi => pi_param
   use m_splines, only: splint
   use module_types
@@ -1003,9 +1012,9 @@ subroutine createIonicPotential(geocode,iproc,nproc,verb,at,rxyz,&
   type(atoms_data), intent(in) :: at
   real(gp), dimension(3), intent(in) :: elecfield
   real(gp), dimension(3,at%astruct%nat), intent(in) :: rxyz
-  type(coulomb_operator), intent(in) :: pkernel
+  type(coulomb_operator), intent(inout) :: pkernel
   real(wp), dimension(*), intent(inout) :: pot_ion
-
+  real(dp), dimension(*), intent(out) :: rho_ion
   !local variables
   character(len=*), parameter :: subname='createIonicPotential'
   character(len = 3) :: quiet
@@ -1189,6 +1198,10 @@ subroutine createIonicPotential(geocode,iproc,nproc,verb,at,rxyz,&
   rholeaked=rholeaked*hxh*hyh*hzh
 
   !print *,'test case input_rho_ion',iproc,i3start,i3end,n3pi,2*n3+16,tt
+  !if rho_ion is needed for the SCF cycle copy in the array
+  if (pkernel%method /= 'VAC') then
+     call f_memcpy(n=n1i*n2i*n3pi,src=pot_ion(1),dest=rho_ion(1))
+  end if
 
   if (pkernel%mpi_env%nproc > 1) then
      charges_mpi(1)=tt
@@ -1215,6 +1228,8 @@ subroutine createIonicPotential(geocode,iproc,nproc,verb,at,rxyz,&
      quiet = "yes"
   end if
 
+  
+
   if (.not. htoobig) then
      call timing(iproc,'CrtLocPot     ','OF')
      !here the value of the datacode must be kept fixed
@@ -1222,7 +1237,14 @@ subroutine createIonicPotential(geocode,iproc,nproc,verb,at,rxyz,&
 
      !if (nproc > 1) call MPI_BARRIER(bigdft_mpi%mpi_env%mpi_comm,ierr)
 
-     call H_potential('D',pkernel,pot_ion,pot_ion,ehart,-psoffset,.false.,quiet=quiet)
+     !in the case of vacuum the pot_ion treatment is as usual
+     !otherwise the pot_ion array is set to zero and can be filled with external potentials
+     !like the gaussian part of the PSP ad/or external electric fields
+     if (pkernel%method /= 'VAC') then
+        call f_zero(n1i*n2i*n3pi,pot_ion(1))
+     else
+        call H_potential('D',pkernel,pot_ion,pot_ion,ehart,-psoffset,.false.,quiet=quiet)
+     end if
 
      call timing(iproc,'CrtLocPot     ','ON')
      
@@ -1446,7 +1468,7 @@ subroutine createIonicPotential(geocode,iproc,nproc,verb,at,rxyz,&
 !!!  end do
 !!!  print *,'actual offset',tt_tot*hxh*hyh*hzh
 
-  !use rhopot to calculate the potential from a constant electric field along y direction
+  !use rhopotential to calculate the potential from a constant electric field along y direction
   if (.not. all(elecfield(1:3) == 0.0_gp)) then
      !constant electric field allowed only for surface and free BC
      if (geocode == 'P') then
@@ -1693,7 +1715,7 @@ subroutine CounterIonPotential(geocode,iproc,nproc,in,shift,&
   real(gp), dimension(3), intent(in) :: shift
   type(input_variables), intent(in) :: in
   type(grid_dimensions), intent(in) :: grid
-  type(coulomb_operator), intent(in) :: pkernel
+  type(coulomb_operator), intent(inout) :: pkernel
   real(wp), dimension(*), intent(inout) :: pot_ion
   !local variables
   character(len=*), parameter :: subname='CounterIonPotential'

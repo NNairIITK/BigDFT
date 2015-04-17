@@ -245,7 +245,7 @@ module module_interfaces
          integer, intent(in) :: iproc,nproc,n1,n2,n3,dispersion
          real(gp), dimension(3), intent(in) :: elecfield
          real(gp), dimension(3,at%astruct%nat), intent(in) :: rxyz
-         type(coulomb_operator), intent(in) :: pkernel
+         type(coulomb_operator), intent(inout) :: pkernel
          real(gp), intent(out) :: eion,edisp,psoffset
          real(dp), dimension(6),intent(out) :: ewaldstr
          real(gp), dimension(:,:), pointer :: fion,fdisp
@@ -254,7 +254,7 @@ module module_interfaces
 
        subroutine createIonicPotential(geocode,iproc,nproc,verb,at,rxyz,&
             hxh,hyh,hzh,elecfield,n1,n2,n3,n3pi,i3s,n1i,n2i,n3i,pkernel,&
-            pot_ion,psoffset)
+            pot_ion,rho_ion,psoffset)
          use module_defs, only: gp,wp
          use module_types
          implicit none
@@ -265,8 +265,9 @@ module module_interfaces
          type(atoms_data), intent(in) :: at
          real(gp), dimension(3), intent(in) :: elecfield
          real(gp), dimension(3,at%astruct%nat), intent(in) :: rxyz
-         type(coulomb_operator), intent(in) :: pkernel
+         type(coulomb_operator), intent(inout) :: pkernel
          real(wp), dimension(*), intent(inout) :: pot_ion
+         real(gp), dimension(*), intent(out) :: rho_ion
        END SUBROUTINE createIonicPotential
 
        subroutine input_wf_empty(iproc, nproc, psi, hpsi, psit, orbs, &
@@ -443,7 +444,7 @@ module module_interfaces
         type(orbitals_data), intent(in) :: orbs
         type(local_zone_descriptors), intent(in) :: Lzd
         type(symmetry_data), intent(in) :: symObj
-        type(coulomb_operator), intent(in) :: pkernel
+        type(coulomb_operator), intent(inout) :: pkernel
         type(xc_info), intent(in) :: xc
         real(wp), dimension(orbs%npsidim_orbs), intent(in) :: psi
         type(GPU_pointers), intent(inout) :: GPU
@@ -547,8 +548,8 @@ module module_interfaces
       END SUBROUTINE NonLocalHamiltonianApplication
 
       subroutine SynchronizeHamiltonianApplication(nproc,npsidim_orbs,orbs,Lzd,GPU,xc,hpsi,&
-           ekin_sum,epot_sum,eproj_sum,eSIC_DC,eexctX,energs_work)
-        use module_base
+           energs,energs_work)
+        use module_defs, only: gp,wp
         use module_types
         use module_xc
         implicit none
@@ -557,7 +558,8 @@ module module_interfaces
         type(local_zone_descriptors), intent(in) :: Lzd
         type(GPU_pointers), intent(inout) :: GPU
         type(xc_info), intent(in) :: xc
-        real(gp), intent(inout) :: ekin_sum,epot_sum,eproj_sum,eSIC_DC,eexctX
+        type(energy_terms), intent(inout) :: energs
+        !real(gp), intent(inout) :: ekin_sum,epot_sum,eproj_sum,eSIC_DC,eexctX
         real(wp), dimension(orbs%npsidim_orbs), intent(inout) :: hpsi
         type(work_mpiaccumulate),optional,intent(inout) :: energs_work
       END SUBROUTINE SynchronizeHamiltonianApplication
@@ -728,7 +730,7 @@ module module_interfaces
         type(comms_cubic), intent(in) :: comms, commsv
         type(denspot_distribution), intent(in) :: dpbox
         real(gp), dimension(3,at%astruct%nat), intent(in) :: rxyz
-        type(coulomb_operator), intent(in) :: pkernel
+        type(coulomb_operator), intent(inout) :: pkernel
         real(dp), dimension(*), intent(in) :: rhopot
         type(orbitals_data), intent(inout) :: orbsv
         type(GPU_pointers), intent(inout) :: GPU
@@ -1088,7 +1090,7 @@ module module_interfaces
         type(denspot_distribution), intent(in) :: dpbox
         type(DFT_wavefunction), intent(inout) :: KSwfn,VTwfn
         real(gp), dimension(3,at%astruct%nat), intent(in) :: rxyz
-        type(coulomb_operator), intent(in) :: pkernel
+        type(coulomb_operator), intent(inout) :: pkernel
         real(dp), dimension(*), intent(in), target :: rhopot
         type(GPU_pointers), intent(inout) :: GPU
         type(xc_info), intent(in) :: xc
@@ -1105,7 +1107,7 @@ module module_interfaces
          real(gp), dimension(3), intent(in) :: shift
          type(input_variables), intent(in) :: in
          type(grid_dimensions), intent(in) :: grid
-         type(coulomb_operator), intent(in) :: pkernel
+         type(coulomb_operator), intent(inout) :: pkernel
          real(wp), dimension(*), intent(inout) :: pot_ion
       END SUBROUTINE CounterIonPotential
 
@@ -1151,22 +1153,6 @@ module module_interfaces
          real(gp), dimension(3,at%astruct%nat), intent(in) :: rxyz
          real(wp), dimension(:), pointer :: psi,psivirt
        END SUBROUTINE write_eigen_objects
-
-       subroutine full_local_potential(iproc,nproc,orbs,Lzd,iflag,dpbox,xc,potential,pot,comgp)
-         use module_base
-         use module_types
-         use module_xc
-         implicit none
-         integer, intent(in) :: iproc,nproc,iflag
-         type(orbitals_data),intent(in) :: orbs
-         type(local_zone_descriptors),intent(in) :: Lzd
-         type(denspot_distribution), intent(in) :: dpbox
-         type(xc_info), intent(in) :: xc
-         real(wp), dimension(max(dpbox%ndimrhopot,orbs%nspin)), intent(in), target :: potential
-         real(wp), dimension(:), pointer :: pot
-         !type(p2pCommsGatherPot),intent(inout), optional:: comgp
-         type(p2pComms),intent(inout), optional:: comgp
-       END SUBROUTINE full_local_potential
 
       subroutine free_full_potential(nproc,flag,xc,pot,subname)
          use module_base
@@ -1252,7 +1238,7 @@ module module_interfaces
         !real(wp), dimension(lr%d%n1i*lr%d%n2i*lr%d%n3i*nspin) :: pot
         real(gp), intent(out) :: ekin_sum,epot_sum,eSIC_DC
         real(wp), dimension(orbs%npsidim_orbs), intent(inout) :: hpsi
-        type(coulomb_operator), intent(in) :: pkernel !< the PSolver kernel which should be associated for the SIC schemes
+        type(coulomb_operator), intent(inout) :: pkernel !< the PSolver kernel which should be associated for the SIC schemes
         type(denspot_distribution),intent(in),optional :: dpbox
         !!real(wp), dimension(max(dpbox%ndimrhopot,orbs%nspin)), intent(in), optional, target :: potential !< Distributed potential. Might contain the density for the SIC treatments
         real(wp), dimension(*), intent(in), optional, target :: potential !< Distributed potential. Might contain the density for the SIC treatments
@@ -1267,7 +1253,7 @@ module module_interfaces
          real(gp), intent(in) :: hxh,hyh,hzh,fref
          type(locreg_descriptors), intent(in) :: lr
          type(orbitals_data), intent(in) :: orbs
-         type(coulomb_operator), intent(in) :: pkernel
+         type(coulomb_operator), intent(inout) :: pkernel
          type(xc_info), intent(in) :: xc
          real(wp), dimension(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,orbs%nspinor,orbs%norbp), intent(in) :: psi
          !real(wp), dimension((lr%d%n1i*lr%d%n2i*lr%d%n3i*((orbs%nspinor/3)*3+1)),max(orbs%norbp,orbs%nspin)), intent(inout) :: poti
@@ -1728,16 +1714,6 @@ module module_interfaces
        type(comms_cubic), intent(in) :: commse
        integer, dimension(natsc+1,nspin), intent(in) :: norbsc_arr
      end subroutine LDiagHam
-
-     subroutine updatePotential(nspin,denspot,ehart,eexcu,vexcu)
-       use module_base
-       use module_types
-       implicit none
-       ! Calling arguments
-       integer, intent(in) :: nspin
-       type(DFT_local_fields), intent(inout) :: denspot
-       real(8),intent(out):: ehart, eexcu, vexcu
-     end subroutine updatePotential
 
      subroutine setCommsParameters(mpisource, mpidest, istsource, istdest, ncount, tag, comarr)
        use module_base
@@ -2223,7 +2199,7 @@ module module_interfaces
          type(gaussian_basis), intent(out) :: G !basis for davidson IG
          real(wp), dimension(:), pointer :: psi
          real(wp), dimension(:,:,:,:), pointer :: rhocore
-         type(coulomb_operator), intent(in) :: pkernel
+         type(coulomb_operator), intent(inout) :: pkernel
          integer, intent(in) ::potshortcut
        end subroutine extract_potential_for_spectra
 
@@ -2512,7 +2488,7 @@ module module_interfaces
          real(wp), dimension(*) :: pot !< the potential, with the dimension compatible with the ipotmethod flag
          real(gp), intent(out) :: epot_sum,evSIC
          real(wp), dimension(orbs%npsidim_orbs), intent(inout) :: vpsi
-         type(coulomb_operator), intent(in) ::  pkernel !< the PSolver kernel which should be associated for the SIC schemes
+         type(coulomb_operator), intent(inout) ::  pkernel !< the PSolver kernel which should be associated for the SIC schemes
          real(wp), dimension(orbs%npsidim_orbs), intent(inout),optional :: vpsi_noconf
          real(gp),intent(out),optional :: econf_sum
        end subroutine psi_to_vlocpsi
@@ -3076,22 +3052,6 @@ module module_interfaces
           real(kind=8),dimension(npsidim),intent(in) :: lphi
           type(comms_linear),intent(inout) :: collcom_sr
         end subroutine communicate_basis_for_density_collective
-
-        subroutine sumrho_for_TMBs(iproc, nproc, hx, hy, hz, collcom_sr, denskern, denskern_, ndimrho, rho, rho_negative, &
-                   print_results)
-          use module_base
-          use module_types
-          use sparsematrix_base, only: sparse_matrix
-          implicit none
-          integer,intent(in) :: iproc, nproc, ndimrho
-          real(kind=8),intent(in) :: hx, hy, hz
-          type(comms_linear),intent(in) :: collcom_sr
-          type(sparse_matrix),intent(in) :: denskern
-          type(matrices),intent(in) :: denskern_
-          real(kind=8),dimension(ndimrho),intent(out) :: rho
-          logical,intent(out) :: rho_negative
-          logical,intent(in),optional :: print_results
-        end subroutine sumrho_for_TMBs
 
         subroutine kswfn_init_comm(wfn, dpbox, iproc, nproc, nspin, imethod_overlap)
           use module_types
