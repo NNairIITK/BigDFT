@@ -375,6 +375,8 @@ base:
   Ekin: 1.1e-10
   energy: 1.4e-11
   Omega: 1.32e-11
+  charge diff: 1.4e-11
+  trace(KS): 1.4e-11
 
 Davidson-SiH4:
   e_virtual: 1.7e-11
@@ -1288,9 +1290,9 @@ O2spin_dirmin:
  EvXC: 6.0e-6
  energydiff: 6.0e-6
  energy: 1.1e-6
- Energy (Hartree): 6.9e-7
+ Energy (Hartree): 8.8e-7
  Omega: 6.1e-6
- Raw forces norm (Ha/Bohr): 5.1e-5
+ Raw forces norm (Ha/Bohr): 5.4e-5
  D: 2.1e-6
  DIIS weights: 1.5
  Max deviation from unity in reorthonormalize_coeff: 1.1e-6
