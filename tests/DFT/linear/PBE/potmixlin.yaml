@@ -12,6 +12,7 @@
    disablesym: Yes
  perf:
    ef_interpol_det: 0.10E-19
+   foe_gap: yes
  lin_general:
    hybrid: Yes
    nit: [10, 0]

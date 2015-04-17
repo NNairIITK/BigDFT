@@ -9,9 +9,9 @@ module foe
   contains
 
     subroutine fermi_operator_expansion(iproc, nproc, tmprtr, &
-               ebs, itout, it_scc, order_taylor, max_inversion_error, purification_quickreturn, &
+               ebs, order_taylor, max_inversion_error, purification_quickreturn, &
                calculate_minusonehalf, foe_verbosity, &
-               accuracy_level, tmb, foe_obj)
+               accuracy_level, label, tmb, ham_, ovrlp_, kernel_, foe_obj)
       use module_base
       use module_types
       use module_interfaces
@@ -34,7 +34,7 @@ module foe
       implicit none
     
       ! Calling arguments
-      integer,intent(in) :: iproc, nproc,itout,it_scc
+      integer,intent(in) :: iproc, nproc
       integer,intent(inout) :: order_taylor
       real(kind=8),intent(in) :: max_inversion_error
       real(kind=8),intent(in) :: tmprtr
@@ -43,7 +43,10 @@ module foe
       logical,intent(in) :: calculate_minusonehalf
       integer,intent(in) :: foe_verbosity
       integer,intent(in) :: accuracy_level
+      character(len=*),intent(in) :: label
       type(DFT_wavefunction),intent(inout) :: tmb
+      type(matrices),intent(inout) :: ham_, ovrlp_
+      type(matrices),intent(inout) :: kernel_
       type(foe_data),intent(inout) :: foe_obj
     
       ! Local variables
@@ -216,15 +219,19 @@ module foe
                   calculate_SHS=.true.
             
                   !if (tmb%linmat%l%smmm%nfvctrp>0) then
-                  !    call f_zero(tmb%linmat%l%nfvctr*tmb%linmat%l%smmm%nfvctrp*tmb%linmat%l%nspin,tmb%linmat%kernel_%matrixp(1,1,1))
+                  !    call f_zero(tmb%linmat%l%nfvctr*tmb%linmat%l%smmm%nfvctrp*tmb%linmat%l%nspin,kernel_%matrixp(1,1,1))
                   !end if
             
                   if (iproc==0) then
                       !call yaml_sequence(advance='no')
                       if (foe_verbosity>=1) then
-                          call yaml_sequence_open('FOE to determine density kernel',label=&
-                               'it_foe'//trim(adjustl(yaml_toa(itout,fmt='(i3.3)')))//'-'//&
-                               trim(adjustl(yaml_toa(it_scc,fmt='(i3.3)')))//'-'//&
+                          !!call yaml_sequence_open('FOE to determine density kernel',label=&
+                          !!     'it_foe'//trim(adjustl(yaml_toa(itout,fmt='(i3.3)')))//'-'//&
+                          !!     trim(adjustl(yaml_toa(it_scc,fmt='(i3.3)')))//'-'//&
+                          !!     trim(adjustl(yaml_toa(itemp,fmt='(i2.2)')))//'-'//&
+                          !!     trim(adjustl(yaml_toa(ispin,fmt='(i2.2)'))))
+                          call yaml_sequence_open('FOE to determine density kernel',&
+                               label='it_foe'//trim(label)//'-'//&
                                trim(adjustl(yaml_toa(itemp,fmt='(i2.2)')))//'-'//&
                                trim(adjustl(yaml_toa(ispin,fmt='(i2.2)'))))
                       else
@@ -255,8 +262,8 @@ module foe
                           foe_data_get_real(foe_obj,"evhigh",ispin)/=evhigh_old) then
                           !!call scale_and_shift_hamiltonian()
                           call scale_and_shift_matrix(iproc, nproc, ispin, foe_obj, tmb%linmat%l, &
-                               tmb%linmat%m, tmb%linmat%ham_, imshift, &
-                               smat2=tmb%linmat%s, mat2=tmb%linmat%ovrlp_, i2shift=isshift, &
+                               tmb%linmat%m, ham_, imshift, &
+                               smat2=tmb%linmat%s, mat2=ovrlp_, i2shift=isshift, &
                                matscal_compr=hamscal_compr, scale_factor=scale_factor, shift_value=shift_value)
                           calculate_SHS=.true.
                       else
@@ -396,7 +403,7 @@ module foe
                           !!do i=1,tmb%linmat%l%smmm%nvctrp
                           !!    ii = tmb%linmat%l%smmm%isvctr + i
                           !!    call get_line_and_column(ii, tmb%linmat%l%smmm%nseg, tmb%linmat%l%smmm%keyv, tmb%linmat%l%smmm%keyg, iline, icolumn)
-                          !!!!    tmb%linmat%kernel_%matrixp(icolumn,iline-tmb%linmat%l%smmm%isfvctr,1) = fermi_new(i)
+                          !!!!    kernel_%matrixp(icolumn,iline-tmb%linmat%l%smmm%isfvctr,1) = fermi_new(i)
                           !!    penalty_ev(icolumn,iline-tmb%linmat%l%smmm%isfvctr,1) = penalty_ev_new(i,1)
                           !!    penalty_ev(icolumn,iline-tmb%linmat%l%smmm%isfvctr,2) = penalty_ev_new(i,2)
                           !!end do
@@ -411,9 +418,9 @@ module foe
                           !!write(*,*) 'trace debug', sumn
     
                           !!call uncompress_polynomial_vector(iproc, nproc, nsize_polynomial, &
-                          !!     tmb%linmat%l, fermi_small_new, tmb%linmat%kernel_%matrixp(:,:,1))
-                          !!!!call calculate_trace_distributed(tmb%linmat%kernel_%matrixp, sumn)
-                          !!write(*,'(a,2es16.8)') 'sum(fermi_new), sum(tmb%linmat%kernel_%matrix(:,:,1)', sum(abs(fermi_new)), sum(abs(tmb%linmat%kernel_%matrixp(:,:,1)))
+                          !!     tmb%linmat%l, fermi_small_new, kernel_%matrixp(:,:,1))
+                          !!!!call calculate_trace_distributed(kernel_%matrixp, sumn)
+                          !!write(*,'(a,2es16.8)') 'sum(fermi_new), sum(kernel_%matrix(:,:,1)', sum(abs(fermi_new)), sum(abs(kernel_%matrixp(:,:,1)))
                       end if 
         
         
@@ -446,10 +453,10 @@ module foe
                       ! (otherwise this has already been checked in the previous iteration).
                       if (calculate_SHS) then
                           !!call check_eigenvalue_spectrum()
-                          !!call check_eigenvalue_spectrum(nproc, tmb%linmat%l, tmb%linmat%s, tmb%linmat%ovrlp_, ispin, &
+                          !!call check_eigenvalue_spectrum(nproc, tmb%linmat%l, tmb%linmat%s, ovrlp_, ispin, &
                           !!      isshift, 1.2d0, 1.2d0, penalty_ev, anoise, .true., emergency_stop, &
                           !!      foe_obj, restart, eval_bounds_ok)
-                          call check_eigenvalue_spectrum_new(nproc, tmb%linmat%l, tmb%linmat%s, tmb%linmat%ovrlp_, ispin, &
+                          call check_eigenvalue_spectrum_new(nproc, tmb%linmat%l, tmb%linmat%s, ovrlp_, ispin, &
                                 isshift, 1.2d0, 1.2d0, penalty_ev_new, anoise, .true., emergency_stop, &
                                 foe_obj, restart, eval_bounds_ok)
                       end if
@@ -478,7 +485,7 @@ module foe
                           call foe_data_set_int(foe_obj,"evbounds_isatur",foe_data_get_int(foe_obj,"evbounds_isatur")+1)
                       end if
                     
-                      !call calculate_trace_distributed(tmb%linmat%kernel_%matrixp, sumn)
+                      !call calculate_trace_distributed(kernel_%matrixp, sumn)
                       call calculate_trace_distributed_new(fermi_small_new, sumn)
             
         
@@ -542,7 +549,7 @@ module foe
                           !do iorb=1,tmb%linmat%l%smmm%nfvctrp
                           !    do jorb=1,tmb%linmat%l%nfvctr
                           !        !SM: need to fix the spin here
-                          !        diff = diff + (tmb%linmat%kernel_%matrixp(jorb,iorb,1)-fermip_check(jorb,iorb))**2
+                          !        diff = diff + (kernel_%matrixp(jorb,iorb,1)-fermip_check(jorb,iorb))**2
                           !    end do
                           !end do
                           do i=1,tmb%linmat%l%smmm%nvctrp_mm
@@ -567,7 +574,7 @@ module foe
         
              call compress_matrix_distributed_wrapper(iproc, nproc, tmb%linmat%l, SPARSE_MATMUL_SMALL, &
                   fermi_small_new, &
-                  tmb%linmat%kernel_%matrix_compr(ilshift+1:))
+                  kernel_%matrix_compr(ilshift+1:))
              call compress_matrix_distributed_wrapper(iproc, nproc, tmb%linmat%l, SPARSE_MATMUL_SMALL, &
                   fermi_check_new, fermi_check_compr)
         
@@ -577,7 +584,7 @@ module foe
               ! Calculate S^-1/2 * K * S^-1/2^T
               ! Since S^-1/2 is symmetric, don't use the transpose
               call retransform_ext(iproc, nproc, tmb%linmat%l, &
-                   tmb%linmat%ovrlppowers_(2)%matrix_compr(ilshift2+1:), tmb%linmat%kernel_%matrix_compr(ilshift+1:))
+                   tmb%linmat%ovrlppowers_(2)%matrix_compr(ilshift2+1:), kernel_%matrix_compr(ilshift+1:))
     
         
               call retransform_ext(iproc, nproc, tmb%linmat%l, &
@@ -587,10 +594,10 @@ module foe
     
               !@NEW ##########################
               sumn = trace_sparse(iproc, nproc, tmb%orbs, tmb%linmat%s, tmb%linmat%l, &
-                     tmb%linmat%ovrlp_%matrix_compr(isshift+1:), &
-                     tmb%linmat%kernel_%matrix_compr(ilshift+1:), ispin)
+                     ovrlp_%matrix_compr(isshift+1:), &
+                     kernel_%matrix_compr(ilshift+1:), ispin)
               sumn_check = trace_sparse(iproc, nproc, tmb%orbs, tmb%linmat%s, tmb%linmat%l, &
-                           tmb%linmat%ovrlp_%matrix_compr(isshift+1:), &
+                           ovrlp_%matrix_compr(isshift+1:), &
                            fermi_check_compr, ispin)
               !@ENDNEW #######################
             
@@ -599,9 +606,9 @@ module foe
               ! symmetric, this is a simple ddot.
               ncount = tmb%linmat%l%smmm%istartend_mm_dj(2) - tmb%linmat%l%smmm%istartend_mm_dj(1) + 1
               istl = tmb%linmat%l%smmm%istartend_mm_dj(1)-tmb%linmat%l%isvctrp_tg
-              ebsp = ddot(ncount, tmb%linmat%kernel_%matrix_compr(ilshift+istl), 1, hamscal_compr(istl), 1)
+              ebsp = ddot(ncount, kernel_%matrix_compr(ilshift+istl), 1, hamscal_compr(istl), 1)
               !!write(*,'(a,3i8,3es16.8)') 'iproc, ncount, istl, sum(k), sum(h), ebsp', &
-              !!    iproc, ncount, istl, sum(tmb%linmat%kernel_%matrix_compr(ilshift+istl:)), sum(hamscal_compr(istl:)), ebsp
+              !!    iproc, ncount, istl, sum(kernel_%matrix_compr(ilshift+istl:)), sum(hamscal_compr(istl:)), ebsp
     
               ncount = tmb%linmat%l%smmm%istartend_mm_dj(2) - tmb%linmat%l%smmm%istartend_mm_dj(1) + 1
               istl = tmb%linmat%l%smmm%istartend_mm_dj(1)
@@ -698,8 +705,8 @@ module foe
             
               ! Calculate trace(KS).
               sumn = trace_sparse(iproc, nproc, tmb%orbs, tmb%linmat%s, tmb%linmat%l, &
-                     tmb%linmat%ovrlp_%matrix_compr(isshift+1:), &
-                     tmb%linmat%kernel_%matrix_compr(ilshift+1:), ispin)
+                     ovrlp_%matrix_compr(isshift+1:), &
+                     kernel_%matrix_compr(ilshift+1:), ispin)
     
     
               ! Recalculate trace(KH) (needed since the kernel was modified in the above purification). 
@@ -708,7 +715,7 @@ module foe
               ! symmetric, the trace is a simple ddot.
               ncount = tmb%linmat%l%smmm%istartend_mm_dj(2) - tmb%linmat%l%smmm%istartend_mm_dj(1) + 1
               istl = tmb%linmat%l%smmm%istartend_mm_dj(1) - tmb%linmat%l%isvctrp_tg
-              ebsp = ddot(ncount, tmb%linmat%kernel_%matrix_compr(ilshift+istl), 1, hamscal_compr(istl), 1)
+              ebsp = ddot(ncount, kernel_%matrix_compr(ilshift+istl), 1, hamscal_compr(istl), 1)
               if (nproc>1) then
                   call mpiallred(ebsp, 1, mpi_sum, comm=bigdft_mpi%mpi_comm)
               end if
@@ -784,7 +791,7 @@ module foe
               if (imode==SPARSE) then
                   call overlapPowerGeneral(iproc, nproc, order_taylor, 1, (/-2/), -1, &
                        imode=1, ovrlp_smat=tmb%linmat%s, inv_ovrlp_smat=tmb%linmat%l, &
-                       ovrlp_mat=tmb%linmat%ovrlp_, inv_ovrlp_mat=tmb%linmat%ovrlppowers_(2), &
+                       ovrlp_mat=ovrlp_, inv_ovrlp_mat=tmb%linmat%ovrlppowers_(2), &
                        check_accur=.true., max_error=max_error, mean_error=mean_error)
               end if
               call check_taylor_order(mean_error, max_inversion_error, order_taylor)

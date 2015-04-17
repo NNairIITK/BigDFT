@@ -171,6 +171,7 @@ module public_keys
   character(len = *), parameter :: CHECK_MATRIX_COMPRESSION = "check_matrix_compression"
   character(len = *), parameter :: CORRECTION_CO_CONTRA = "correction_co_contra"
   character(len = *), parameter :: GPS_METHOD = "gps_method"
+  character(len = *), parameter :: FOE_GAP = "foe_gap"
 
   !keys for linear input variables
   !level keys

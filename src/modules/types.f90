@@ -495,6 +495,9 @@ module module_types
      !> Method for the solution of  generalized poisson Equation
      character(len=4) :: GPS_Method
 
+     !> Use the FOE method to calculate the HOMO-LUMO gap at the end
+     logical :: foe_gap
+
   end type input_variables
 
 
@@ -2437,6 +2440,9 @@ contains
            in%wf_extent_analysis = val
        case (GPS_METHOD)
            in%GPS_method = val
+       case (FOE_GAP)
+           ! linear scaling: Use the FOE method to calculate the HOMO-LUMO gap at the end
+           in%foe_gap = val
        case DEFAULT
           if (bigdft_mpi%iproc==0) &
                call yaml_warning("unknown input key '" // trim(level) // "/" // trim(dict_key(val)) // "'")

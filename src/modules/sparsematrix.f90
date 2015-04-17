@@ -396,7 +396,7 @@ module sparsematrix
       implicit none
     
       ! Calling arguments
-      type(sparse_matrix),intent(inout) :: smat, lmat
+      type(sparse_matrix),intent(in) :: smat, lmat
       real(kind=8),dimension(smat%nspin*smat%nvctr),intent(inout) :: smatrix_compr
       real(kind=8),dimension(lmat%nspin*lmat%nvctr),intent(inout) :: lmatrix_compr
       character(len=14),intent(in) :: cmode
@@ -522,7 +522,7 @@ module sparsematrix
       implicit none
     
       ! Calling arguments
-      type(sparse_matrix),intent(inout) :: smat, lmat
+      type(sparse_matrix),intent(in) :: smat, lmat
       real(kind=8),dimension(smat%nspin*smat%nvctrp_tg),intent(inout) :: smatrix_compr
       real(kind=8),dimension(lmat%nspin*lmat%nvctrp_tg),intent(inout) :: lmatrix_compr
       character(len=14),intent(in) :: cmode

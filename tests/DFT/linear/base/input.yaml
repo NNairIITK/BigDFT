@@ -13,6 +13,7 @@
    psp_onfly: No
    ef_interpol_det: 0.10E-19
    mixing_after_inputguess: 2
+   foe_gap: yes
  lin_general:
    nit: [2, 3]
    rpnrm_cv: 9.9999999999999994E-012

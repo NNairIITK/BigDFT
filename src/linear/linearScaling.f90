@@ -1179,6 +1179,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
 
   end do outerLoop
 
+
   
   call deallocate_precond_arrays(tmb%orbs, tmb%lzd, precond_convol_workarrays, precond_workarrays)
   call deallocate_work_transpose(wt_philarge)
@@ -1321,6 +1322,10 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
 
 
   if (iproc==0) call yaml_sequence_close()
+
+  if (input%foe_gap) then
+      call calculate_gap_FOE(iproc, nproc, input, KSwfn%orbs, tmb)
+  end if
 
   if (input%loewdin_charge_analysis) then
       call loewdin_charge_analysis(iproc, tmb, at, denspot, calculate_overlap_matrix=.true., &

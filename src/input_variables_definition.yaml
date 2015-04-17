@@ -960,6 +960,9 @@
         PI: Polarization Iteration
         PCG: Preconditioned Conjugate Gradient
      default: VAC
+   foe_gap:
+     COMMENT: Use the FOE method to calculate the HOMO-LUMO gap at the end of a calculation
+     default: False
  lin_general:
      hybrid: 
        COMMENT: activate the hybrid mode; if activated, only the low accuracy values will be relevant
