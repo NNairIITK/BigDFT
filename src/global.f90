@@ -41,7 +41,7 @@ program MINHOP
   integer :: n_unique,n_nonuni,nputback,ncount_bigdft,ngeopt,nid,nlmin,nlminx
   integer :: ilmin,k,nvisit,kid,k_e,nlmin_old,ndfree,ndfroz,nummax,nummin
   ! integer :: ierror,ixyz, nproc,natp
-  integer :: istepnext,istep
+  integer :: istepnext,istep,run_policy
   character(len=*), parameter :: subname='global'
   character(len=41) :: filename
   character(len=4) :: fn4
@@ -229,7 +229,19 @@ program MINHOP
   count_md=0.d0
   nputback=0
 
-  run_opt%inputs%inputPsiId=0
+  call bigdft_get_input_policy(run_opt, run_policy)
+  if (run_policy/=INPUT_POLICY_SCRATCH) then
+      call f_err_throw('Wrong run policy ('//trim(yaml_toa(run_policy))//'), only '&
+          //trim(yaml_toa(INPUT_POLICY_SCRATCH,fmt='(i0)'))//' is possible',&
+          err_name='BIGDFT_RUNTIME_ERROR')
+  end if
+  call bigdft_get_input_policy(run_md, run_policy)
+  if (run_policy/=INPUT_POLICY_SCRATCH) then
+      call f_err_throw('Wrong run policy ('//trim(yaml_toa(run_policy))//'), only '&
+          //trim(yaml_toa(INPUT_POLICY_SCRATCH,fmt='(i0)'))//' is possible',&
+          err_name='BIGDFT_RUNTIME_ERROR')
+  end if
+  !run_opt%inputs%inputPsiId=0
 
 !!$  call init_restart_objects(bigdft_mpi%iproc,inputs_opt,atoms,rst)
 !!$  call nullify_run_objects(runObj)
@@ -795,7 +807,8 @@ program MINHOP
       ediff=ediff*alpha_A
   else
      !C          local minima rejected -------------------------------------------------------
-     run_opt%inputs%inputPsiId=0  !ALEX says: Better do an input guess for the next escape
+     !run_opt%inputs%inputPsiId=0  !ALEX says: Better do an input guess for the next escape
+     call bigdft_set_input_policy(INPUT_POLICY_SCRATCH, run_opt)
      if (bigdft_mpi%iproc == 0) then 
           write(2,'((1x,f10.0),1x,1pe21.14,2(1x,1pe10.3),3(1x,0pf5.2),a,i5)')  &
           escape,outs%energy,ediff,ekinetic, &
@@ -976,7 +989,8 @@ contains
        enmin2=enmin1
        enmin1=en0000
        !    if (iproc == 0) write(*,*) 'CLUSTER FOR  MD'
-       runObj%inputs%inputPsiId=1
+       !runObj%inputs%inputPsiId=1
+       call bigdft_set_input_policy(INPUT_POLICY_MEMORY, runObj)
        call bigdft_state(runObj, outs,infocode)
 
        if (iproc == 0) then
@@ -1105,7 +1119,8 @@ contains
     call bigdft_get_rxyz(runObj,rxyz_add=pos0(1))
     !call vcopy(3*natoms, atoms%astruct%rxyz(1,1), 1, pos0(1), 1)
 
-    runObj%inputs%inputPsiId=1
+    !runObj%inputs%inputPsiId=1
+    call bigdft_set_input_policy(INPUT_POLICY_MEMORY, runObj)
     if(iproc==0) call yaml_comment('(MH) soften initial step ',hfill='~')
     call bigdft_state(runObj,outs,infocode)
     etot0 = outs%energy

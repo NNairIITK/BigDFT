@@ -15,13 +15,21 @@ module communications_base
 
   private
 
-  ! Parameter for changing the communication of the potential on IBM BlueGene Q
-  logical,parameter,public :: bgq = .false.
 
-  ! Parameter to choose between active or passive target communication
+  ! Parameter to toggle between active or passive target communication
   integer,parameter,public :: RMA_SYNC_ACTIVE = 51
   integer,parameter,public :: RMA_SYNC_PASSIVE = 52
   integer,parameter,public :: rma_sync = RMA_SYNC_ACTIVE
+
+  ! Parameter to toggle between nested or simple (1D) derived data types
+  integer,parameter,public :: TYPES_NESTED = 1001
+  integer,parameter,public :: TYPES_SIMPLE = 1002
+
+  ! Here are some parameters to be set at compile time
+  ! Parameter for changing the communication of the potential on IBM BlueGene Q
+  logical,parameter,public :: bgq = .false.
+  ! Choose the type strategy. Attention: OpenMPI has a bug for TYPES_SIMPLE
+  integer,parameter,public :: type_strategy = TYPES_NESTED
 
   !> Contains the information needed for communicating the wavefunctions
   !! between processors for the transposition
@@ -57,9 +65,10 @@ module communications_base
     real(kind=8), dimension(:), pointer :: recvBuf
     integer, dimension(:,:), pointer :: comarr
     integer :: nrecvBuf
-    integer :: window
+    integer :: window, onedtypeovrlp
     integer, dimension(6) :: ise !< Starting / ending index of recvBuf in x,y,z dimension after communication (glocal coordinates)
     integer, dimension(:), pointer :: mpi_datatypes
+    integer,dimension(:,:),pointer :: onedtypearr
     logical :: communication_complete
     integer :: nspin !< spin polarization (this information is redundant, just for handyness)
   end type p2pComms
@@ -189,6 +198,7 @@ contains
     nullify(comms%recvBuf)
     nullify(comms%comarr)
     nullify(comms%mpi_datatypes)
+    nullify(comms%onedtypearr)
   end subroutine nullify_p2pComms
 
   pure function work_transpose_null() result(wt)
@@ -375,6 +385,7 @@ contains
         stop 'cannot deallocate mpi data types if communication has not completed'
     end if
     call f_free_ptr(p2pcomm%mpi_datatypes)
+    call f_free_ptr(p2pcomm%onedtypearr)
   end subroutine deallocate_p2pComms
 
 

@@ -21,6 +21,7 @@ module unitary_tests
       use yaml_output
       use dictionaries, only: f_err_throw
       use communications, only: start_onesided_communication
+      use rhopotential, only: full_local_potential
       implicit none
       integer,intent(in) :: iproc
       type(DFT_wavefunction), intent(inout) :: tmb
@@ -52,11 +53,12 @@ module unitary_tests
                    ind=ind+1
                    !denspot%rhov(ind)=real(ishift+i1+(i2-1)*n1i+(i3-1)*n1i*n2i,dp)
                    denspot%rhov(ind)=real((-1)**(ispin+1)*(i1+(i2-1)*n1i+(i3-1)*n1i*n2i),dp)
-                   !!write(500,'(es16.8)') denspot%rhov(ind)
+                   !write(500,'(es16.8)') denspot%rhov(ind)
                 end do
              end do
           end do
       end do
+
     
       !!write(*,'(a,3i12)') 'iproc, denspot%dpbox%ndimpot*denspot%dpbox%nrhodim, size(denspot%rhov)', iproc, denspot%dpbox%ndimpot*denspot%dpbox%nrhodim, size(denspot%rhov)
     
@@ -121,7 +123,9 @@ module unitary_tests
                      !     (i2+tmb%ham_descr%Lzd%Llr(ilr)%nsi2-1)*n1i+&
                      !     (i3+tmb%ham_descr%Lzd%Llr(ilr)%nsi3-1)*n1i*n2i),dp)
                      testval=real((-1)**(ispin+1)*(ii1+(ii2-1)*n1i+(ii3-1)*n1i*n2i),dp)
-                     !if (iproc==0) write(*,'(a,4i8,2es14.3)') 'i1, i2, i3, ind, val, ref', i1, i2, i3, ind, denspot%pot_work(ind), testval
+                     !if (iproc==0) write(*,'(a,5i8,2es14.3)') 'ispin, i1, i2, i3, ind, val, ref', ispin, i1, i2, i3, ind, denspot%pot_work(ind), testval
+                     !write(2000+iproc,'(a,6i8,2es14.3)') 'ispin, ilr, i1, i2, i3, ind, val, ref', &
+                     !    ispin, ilr, i1, i2, i3, ind, denspot%pot_work(ind), testval
                      testval=abs(denspot%pot_work(ind)-testval)
                      maxdiff=max(maxdiff,testval)
                      sumdiff=sumdiff+testval
@@ -186,10 +190,11 @@ module unitary_tests
       use module_types
       use module_interfaces
       use yaml_output
-      use communications_init, only: check_whether_bounds_overlap
+      use locregs, only: check_whether_bounds_overlap
       use communications, only: transpose_switch_psir, transpose_communicate_psir, transpose_unswitch_psirt
       use sparsematrix_base, only: sparse_matrix, matrices
       use sparsematrix_init, only: matrixindex_in_compressed
+      use rhopotential, only: sumrho_for_TMBs
       implicit none
     
       ! Calling arguments
@@ -819,6 +824,8 @@ module unitary_tests
        use sparsematrix_base, only : sparse_matrix, matrices, DENSE_PARALLEL
        use sparsematrix, only : compress_matrix_distributed_wrapper, gather_matrix_from_taskgroups_inplace
        use transposed_operations, only: calculate_overlap_transposed
+       use locregs, only: check_overlap_cubic_periodic
+       use locreg_operations, only: Lpsi_to_global2
        !use dynamic_memory
        implicit none
        integer, intent(in) :: iproc,nproc,nspin,check_overlap

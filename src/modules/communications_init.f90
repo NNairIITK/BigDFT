@@ -19,17 +19,7 @@ module communications_init
   public :: init_comms_linear_sumrho
   public :: initialize_communication_potential
   public :: orbitals_communicators
-  public :: check_whether_bounds_overlap
 
-  interface check_whether_bounds_overlap
-    module procedure check_whether_bounds_overlap_int
-    module procedure check_whether_bounds_overlap_long
-  end interface check_whether_bounds_overlap
-  
-  interface get_extent_of_overlap
-    module procedure get_extent_of_overlap_int
-    module procedure get_extent_of_overlap_long
-  end interface get_extent_of_overlap
 
   contains
 
@@ -298,6 +288,7 @@ module communications_init
                weight_c_tot_check, weight_f_tot_check)
       use module_base
       use module_types
+      use locregs, only: get_extent_of_overlap
       implicit none
       
       ! Calling arguments
@@ -510,9 +501,9 @@ module communications_init
       !!call mpi_info_free(info, ierr)
       !!call mpi_win_fence(mpi_mode_noprecede, window_c, ierr)
 
-      !if (nproc>1) then
+      if (nproc>1) then
           window_c = mpiwindow((lzd%glr%d%n1+1)*(lzd%glr%d%n2+1)*n3p, weightppp_c(0,0,1), bigdft_mpi%mpi_comm)
-      !end if
+      end if
 
 
       !write(*,*) 'sum(weightloc_c)', sum(weightloc_c)
@@ -554,9 +545,14 @@ module communications_init
                       !end if
                       ii=modulo(ks(k)-i3start-1,(lzd%glr%d%n3+1))+1
                       !write(*,'(a,9i9)') 'k, ks(k), ke(k), nlen(k), i3start, ii, ks(k), i3startend(3,jproc), n3p', k, ks(k), ke(k), nlen(k), i3start, ii, ks(k), i3startend(3,jproc), n3p
-                      call mpiaccumulate(weightloc_c(0,0,ii), (lzd%glr%d%n1+1)*(lzd%glr%d%n2+1)*nlen(k), &
-                           jproc, int((lzd%glr%d%n1+1)*(lzd%glr%d%n2+1)*(ks(k)-i3startend(3,jproc)),kind=mpi_address_kind), &
-                           (lzd%glr%d%n1+1)*(lzd%glr%d%n2+1)*nlen(k), mpi_sum, window_c)
+                      if (nproc>1) then
+                          call mpiaccumulate(weightloc_c(0,0,ii), (lzd%glr%d%n1+1)*(lzd%glr%d%n2+1)*nlen(k), &
+                               jproc, int((lzd%glr%d%n1+1)*(lzd%glr%d%n2+1)*(ks(k)-i3startend(3,jproc)),kind=mpi_address_kind), &
+                               (lzd%glr%d%n1+1)*(lzd%glr%d%n2+1)*nlen(k), mpi_sum, window_c)
+                      else
+                          call axpy((lzd%glr%d%n1+1)*(lzd%glr%d%n2+1)*nlen(k), 1.d0, weightloc_c(0,0,ii), 1, &
+                               weightppp_c(0,0,1+(ks(k)-i3startend(3,jproc))), 1)
+                      end if
                       !!call mpiaccumulate(weightloc_c(0,0,ks(k)-modulo(i3start-1,lzd%glr%d%n1+1)+1), (lzd%glr%d%n1+1)*(lzd%glr%d%n2+1)*nlen(k), &
                       !!     jproc, int((lzd%glr%d%n1+1)*(lzd%glr%d%n2+1)*(ks(k)-i3startend(3,jproc)),kind=mpi_address_kind), &
                       !!     (lzd%glr%d%n1+1)*(lzd%glr%d%n2+1)*nlen(k), mpi_sum, window_c)
@@ -575,10 +571,11 @@ module communications_init
           end do
       end if
       !else
-      !    is = i3startend(1,iproc)
-      !    ie = i3startend(2,iproc)
-      !    call vcopy((lzd%glr%d%n1+1)*(lzd%glr%d%n2+1)*(ie-is+1), weightloc_c(0,0,is-i3start), 1, &
-      !         weightppp_c(0,0,is-i3startend(3,iproc)+1), 1)
+      !    !!is = i3startend(1,iproc)
+      !    !!ie = i3startend(2,iproc)
+      !    !!call vcopy((lzd%glr%d%n1+1)*(lzd%glr%d%n2+1)*(ie-is+1), weightloc_c(0,0,is-i3start), 1, &
+      !    !!     weightppp_c(0,0,is-i3startend(3,iproc)+1), 1)
+      !    call f_memcpy(n=(lzd%glr%d%n1+1)*(lzd%glr%d%n2+1)*(j3end-j3start+1), src=weightloc_c(0,0,j3start), dest=weightppp_c(0,0,1))
       !end if
 
 
@@ -761,9 +758,9 @@ module communications_init
       !call mpi_info_free(info, ierr)
       !call mpi_win_fence(mpi_mode_noprecede, window_f, ierr)
 
-      !if (nproc>1) then
+      if (nproc>1) then
           window_f = mpiwindow((lzd%glr%d%n1+1)*(lzd%glr%d%n2+1)*n3p, weightppp_f(0,0,1), bigdft_mpi%mpi_comm)
-      !end if
+      end if
 
       !!i3startend = f_malloc0((/1.to.4,0.to.nproc-1/),id='i3startend')
       !!i3startend(1,iproc) = i3start+1
@@ -772,7 +769,6 @@ module communications_init
       !!i3startend(4,iproc) = i3s+n3p-1
       !!call mpiallred(i3startend(1,0), 4*nproc, mpi_sum, bigdft_mpi%mpi_comm)
 
-      !if (nproc>1) then
       if (communicate) then
           do jproc=0,nproc-1
               !Check whether there is an overlap
@@ -801,9 +797,14 @@ module communications_init
                       !end if
                       ii=modulo(ks(k)-i3start-1,(lzd%glr%d%n3+1))+1
                       !write(*,'(a,7i9)') 'k, ks(k), ke(k), nlen(k), i3start, ks(k)-i3startend(3,jproc), ii', k, ks(k), ke(k), nlen(k), i3start, ks(k)-i3startend(3,jproc), ii
-                      call mpiaccumulate(weightloc_f(0,0,ii), (lzd%glr%d%n1+1)*(lzd%glr%d%n2+1)*nlen(k), &
-                           jproc, int((lzd%glr%d%n1+1)*(lzd%glr%d%n2+1)*(ks(k)-i3startend(3,jproc)),kind=mpi_address_kind), &
-                           (lzd%glr%d%n1+1)*(lzd%glr%d%n2+1)*nlen(k), mpi_sum, window_f)
+                      if (nproc>1) then
+                          call mpiaccumulate(weightloc_f(0,0,ii), (lzd%glr%d%n1+1)*(lzd%glr%d%n2+1)*nlen(k), &
+                               jproc, int((lzd%glr%d%n1+1)*(lzd%glr%d%n2+1)*(ks(k)-i3startend(3,jproc)),kind=mpi_address_kind), &
+                               (lzd%glr%d%n1+1)*(lzd%glr%d%n2+1)*nlen(k), mpi_sum, window_f)
+                      else
+                          call axpy((lzd%glr%d%n1+1)*(lzd%glr%d%n2+1)*nlen(k), 1.d0, weightloc_f(0,0,ii), 1, &
+                               weightppp_f(0,0,1+(ks(k)-i3startend(3,jproc))), 1)
+                      end if
                       !!call mpiaccumulate(weightloc_c(0,0,ks(k)-modulo(i3start-1,lzd%glr%d%n1+1)+1), (lzd%glr%d%n1+1)*(lzd%glr%d%n2+1)*nlen(k), &
                       !!     jproc, int((lzd%glr%d%n1+1)*(lzd%glr%d%n2+1)*(ks(k)-i3startend(3,jproc)),kind=mpi_address_kind), &
                       !!     (lzd%glr%d%n1+1)*(lzd%glr%d%n2+1)*nlen(k), mpi_sum, window_c)
@@ -834,12 +835,13 @@ module communications_init
               !!end if
           end do
       end if
-      !else
-      !    is = i3startend(1,iproc)
-      !    ie = i3startend(2,iproc)
-      !    call vcopy((lzd%glr%d%n1+1)*(lzd%glr%d%n2+1)*(ie-is+1), weightloc_f(0,0,is-i3start), 1, &
-      !         weightppp_f(0,0,is-i3startend(3,iproc)+1), 1)
-      !end if
+      !!else
+      !!    !!is = i3startend(1,iproc)
+      !!    !!ie = i3startend(2,iproc)
+      !!    !!call vcopy((lzd%glr%d%n1+1)*(lzd%glr%d%n2+1)*(ie-is+1), weightloc_f(0,0,is-i3start), 1, &
+      !!    !!     weightppp_f(0,0,is-i3startend(3,iproc)+1), 1)
+      !!    call f_memcpy(n=(lzd%glr%d%n1+1)*(lzd%glr%d%n2+1)*(j3end-j3start+1), src=weightloc_f(0,0,j3start), dest=weightppp_f(0,0,1))
+      !!end if
       call f_free(i3startend)
       !call mpi_win_fence(0, window, ierr)
       !call mpi_win_free(window, ierr)
@@ -886,7 +888,7 @@ module communications_init
       ! Calling arguments
       integer,intent(in) :: iproc, nproc, i3s, n3p
       type(local_zone_descriptors),intent(in) :: lzd
-      integer,intent(in) :: window_c, window_f
+      integer,intent(inout) :: window_c, window_f
       real(kind=8),intent(in) :: weight_c_tot_check, weight_f_tot_check
       real(kind=8),dimension(0:lzd%glr%d%n1,0:lzd%glr%d%n2,1:max(1,n3p)),intent(inout) :: weightppp_c, weightppp_f
       real(kind=8),intent(out) :: weight_tot_c, weight_tot_f
@@ -897,7 +899,7 @@ module communications_init
       integer,intent(out) :: nvalp_c, nvalp_f
       
       ! Local variables
-      integer :: jproc, i1, i2, i3, ii, istart, iend, j0, j1, ii_c, ii_f, n1p1, np, jjproc
+      integer :: jproc, i1, i2, i3, ii, istart, iend, j0, j1, ii_c, ii_f, n1p1, np, jjproc, jjjproc
       !!$$integer :: ii2, iiseg, jprocdone
       integer :: i, iseg, i0, iitot, ii3, ierr
       real(kind=8) :: tt, tt2, weight_c_ideal, weight_f_ideal, ttt, weight_prev
@@ -912,10 +914,11 @@ module communications_init
       call f_routine(id='assign_weight_to_process')
 
       ! Wait for the completion of the mpi_accumulate call started in get_weights
-      !if (nproc>1) then
-          call mpi_win_fence(0, window_c, ierr)
-          call mpi_win_free(window_c, ierr)
-      !end if
+      if (nproc>1) then
+          !!call mpi_win_fence(0, window_c, ierr)
+          !!call mpi_win_free(window_c, ierr)
+          call mpi_fenceandfree(window_c)
+      end if
 
       tt=sum(weightppp_c)
       if (nproc>1) then
@@ -1047,6 +1050,7 @@ module communications_init
           end if
           n1p1=lzd%glr%d%n1+1
           np=n1p1*(lzd%glr%d%n2+1)
+          jjjproc = 0
           do iseg=1,lzd%glr%wfd%nseg_c
               j0=lzd%glr%wfd%keyglob(1,iseg)
               j1=lzd%glr%wfd%keyglob(2,iseg)
@@ -1066,6 +1070,7 @@ module communications_init
                       if (tt>=weights_c_startend(1,jjproc+1)) then
                           !write(*,'(a,2i6,2f10.1)') 'iproc, jjproc, tt, weights_c_startend(1,jjproc+1)', iproc, jjproc, tt, weights_c_startend(1,jjproc+1)
                           jjproc = jjproc + 1
+                          jjjproc = jjproc
                           istartend_c(1,jjproc) = iitot
                           istartendseg_c(1,jjproc) = iseg
                       end if
@@ -1089,13 +1094,26 @@ module communications_init
               call mpiallred(istartendseg_c, mpi_sum, comm=bigdft_mpi%mpi_comm) !a bit wasteful to communicate the zeros of the second entry...
               call mpiallred(nval_c(0), nproc, mpi_sum, comm=bigdft_mpi%mpi_comm)
               call mpiallred(weightpp_c(0), nproc, mpi_sum, comm=bigdft_mpi%mpi_comm)
+              call mpiallred(jjjproc, 1, mpi_max, comm=bigdft_mpi%mpi_comm)
           end if
-          do jproc=0,nproc-2
+          ! jjjproc is the last task which has been assigned
+          !do jproc=0,nproc-2
+          do jproc=0,jjjproc-1
               istartend_c(2,jproc) = istartend_c(1,jproc+1)-1
               istartendseg_c(2,jproc) = istartendseg_c(1,jproc+1)
           end do
-          istartend_c(2,nproc-1) = lzd%glr%wfd%nvctr_c
-          istartendseg_c(2,nproc-1) = lzd%glr%wfd%nseg_c
+          ! Take the rest
+          !!istartend_c(2,nproc-1) = lzd%glr%wfd%nvctr_c
+          !!istartendseg_c(2,nproc-1) = lzd%glr%wfd%nseg_c
+          istartend_c(2,jjjproc) = lzd%glr%wfd%nvctr_c
+          istartendseg_c(2,jjjproc) = lzd%glr%wfd%nseg_c
+          ! Fill with "empty" values
+          do jproc=jjjproc+1,nproc-1
+              istartend_c(1,jproc) = lzd%glr%wfd%nvctr_c + 1
+              istartend_c(2,jproc) = lzd%glr%wfd%nvctr_c
+              istartendseg_c(1,jproc) = lzd%glr%wfd%nseg_c + 1
+              istartendseg_c(2,jproc) = lzd%glr%wfd%nseg_c
+          end do
           istartp_seg_c = istartendseg_c(1,iproc)
           iendp_seg_c = istartendseg_c(2,iproc)
           nvalp_c = nval_c(iproc)
@@ -1151,10 +1169,11 @@ module communications_init
       ! Same for fine region
 
       ! Wait for the completion of the mpi_accumulate call started in get_weights
-      !if (nproc>1) then
-          call mpi_win_fence(0, window_f, ierr)
-          call mpi_win_free(window_f, ierr)
-      !end if
+      if (nproc>1) then
+          !!call mpi_win_fence(0, window_f, ierr)
+          !!call mpi_win_free(window_f, ierr)
+          call mpi_fenceandfree(window_f)
+      end if
 
 
       tt=sum(weightppp_f)
@@ -1283,6 +1302,7 @@ module communications_init
               istartend_f(1,0) = 1
               istartendseg_f(1,0) = istart
           end if
+          jjjproc = 0
           if (istart<=iend) then
               do iseg=istart,iend
                   j0=lzd%glr%wfd%keyglob(1,iseg)
@@ -1303,6 +1323,7 @@ module communications_init
                           if (tt>=weights_f_startend(1,jjproc+1)) then
                               !write(*,'(a,2i6,2f10.1)') 'iproc, jjproc, tt, weights_f_startend(1,jjproc+1)', iproc, jjproc, tt, weights_f_startend(1,jjproc+1)
                               jjproc = jjproc + 1
+                              jjjproc = jjproc
                               istartend_f(1,jjproc) = iitot
                               istartendseg_f(1,jjproc) = iseg
                           end if
@@ -1321,13 +1342,26 @@ module communications_init
               call mpiallred(istartendseg_f(1,0), 2*nproc, mpi_sum, comm=bigdft_mpi%mpi_comm) !a bit wasteful to communicate the zeros of the second entry...
               call mpiallred(nval_f(0), nproc, mpi_sum, comm=bigdft_mpi%mpi_comm)
               call mpiallred(weightpp_f(0), nproc, mpi_sum, comm=bigdft_mpi%mpi_comm)
+              call mpiallred(jjjproc, 1, mpi_max, comm=bigdft_mpi%mpi_comm)
           end if
-          do jproc=0,nproc-2
+          ! jjjproc is the last task which has been assigned
+          !!do jproc=0,nproc-2
+          do jproc=0,jjjproc-1
               istartend_f(2,jproc) = istartend_f(1,jproc+1)-1
               istartendseg_f(2,jproc) = istartendseg_f(1,jproc+1)
           end do
-          istartend_f(2,nproc-1) = lzd%glr%wfd%nvctr_f
-          istartendseg_f(2,nproc-1) = lzd%glr%wfd%nseg_c + lzd%glr%wfd%nseg_f
+          ! Take the rest
+          !!istartend_f(2,nproc-1) = lzd%glr%wfd%nvctr_f
+          !!istartendseg_f(2,nproc-1) = lzd%glr%wfd%nseg_c + lzd%glr%wfd%nseg_f
+          istartend_f(2,jjjproc) = lzd%glr%wfd%nvctr_f
+          istartendseg_f(2,jjjproc) = lzd%glr%wfd%nseg_c + lzd%glr%wfd%nseg_f
+          ! Fill with "empty" values
+          do jproc=jjjproc+1,nproc-1
+              istartend_f(1,jproc) = lzd%glr%wfd%nvctr_f + 1
+              istartend_f(2,jproc) = lzd%glr%wfd%nvctr_f
+              istartendseg_f(1,jproc) = lzd%glr%wfd%nseg_c + lzd%glr%wfd%nseg_f + 1
+              istartendseg_f(2,jproc) = lzd%glr%wfd%nseg_c + lzd%glr%wfd%nseg_f
+          end do
           istartp_seg_f = istartendseg_f(1,iproc)
           iendp_seg_f = istartendseg_f(2,iproc)
           nvalp_f = nval_f(iproc)
@@ -2122,14 +2156,16 @@ module communications_init
            n3_par(iproc)=n3p
            call mpiallred(n3_par, mpi_sum, comm=bigdft_mpi%mpi_comm)
 
+           !!call mpi_type_size(mpi_double_precision, size_of_double, ierr)
+           !!call mpi_info_create(info, ierr)
+           !!call mpi_info_set(info, "no_locks", "true", ierr)
+           !!call mpi_win_create(weightppp_c(0,0,1), &
+           !!     int((lzd%glr%d%n1+1)*(lzd%glr%d%n2+1)*n3p*size_of_double,kind=mpi_address_kind), size_of_double, &
+           !!     info, bigdft_mpi%mpi_comm, window, ierr)
+           !!call mpi_info_free(info, ierr)
+           !!call mpi_win_fence(mpi_mode_noprecede, window, ierr)
            call mpi_type_size(mpi_double_precision, size_of_double, ierr)
-           call mpi_info_create(info, ierr)
-           call mpi_info_set(info, "no_locks", "true", ierr)
-           call mpi_win_create(weightppp_c(0,0,1), &
-                int((lzd%glr%d%n1+1)*(lzd%glr%d%n2+1)*n3p*size_of_double,kind=mpi_address_kind), size_of_double, &
-                info, bigdft_mpi%mpi_comm, window, ierr)
-           call mpi_info_free(info, ierr)
-           call mpi_win_fence(mpi_mode_noprecede, window, ierr)
+           window = mpiwindow((lzd%glr%d%n1+1)*(lzd%glr%d%n2+1)*n3p, weightppp_c(0,0,1), bigdft_mpi%mpi_comm)
 
            do jproc=0,nproc-1
                ! Check whether ther is an overlap
@@ -2151,8 +2187,9 @@ module communications_init
                end if
            end do
            ! Synchronize the communication
-           call mpi_win_fence(0, window, ierr)
-           call mpi_win_free(window, ierr)
+           !!call mpi_win_fence(0, window, ierr)
+           !!call mpi_win_free(window, ierr)
+           call mpi_fenceandfree(window)
 
        else
            workrecv_c => weightppp_c
@@ -2222,14 +2259,16 @@ module communications_init
            call mpiallred(n3_par, mpi_sum, comm=bigdft_mpi%mpi_comm)
 
            ! Initialize the MPI window
+           !!call mpi_type_size(mpi_double_precision, size_of_double, ierr)
+           !!call mpi_info_create(info, ierr)
+           !!call mpi_info_set(info, "no_locks", "true", ierr)
+           !!call mpi_win_create(weightppp_f(0,0,1), &
+           !!     int((lzd%glr%d%n1+1)*(lzd%glr%d%n2+1)*n3p*size_of_double,kind=mpi_address_kind), size_of_double, &
+           !!     info, bigdft_mpi%mpi_comm, window, ierr)
+           !!call mpi_info_free(info, ierr)
+           !!call mpi_win_fence(mpi_mode_noprecede, window, ierr)
            call mpi_type_size(mpi_double_precision, size_of_double, ierr)
-           call mpi_info_create(info, ierr)
-           call mpi_info_set(info, "no_locks", "true", ierr)
-           call mpi_win_create(weightppp_f(0,0,1), &
-                int((lzd%glr%d%n1+1)*(lzd%glr%d%n2+1)*n3p*size_of_double,kind=mpi_address_kind), size_of_double, &
-                info, bigdft_mpi%mpi_comm, window, ierr)
-           call mpi_info_free(info, ierr)
-           call mpi_win_fence(mpi_mode_noprecede, window, ierr)
+           window = mpiwindow((lzd%glr%d%n1+1)*(lzd%glr%d%n2+1)*n3p, weightppp_f(0,0,1), bigdft_mpi%mpi_comm)
 
            do jproc=0,nproc-1
                ! Check whether ther is an overlap
@@ -2246,8 +2285,9 @@ module communications_init
                end if
            end do
            ! Synchronize the communication
-           call mpi_win_fence(0, window, ierr)
-           call mpi_win_free(window, ierr)
+           !!call mpi_win_fence(0, window, ierr)
+           !!call mpi_win_free(window, ierr)
+           call mpi_fenceandfree(window)
        else
            workrecv_f => weightppp_f
        end if
@@ -2950,6 +2990,7 @@ module communications_init
                weight_tot, weight_ideal, weights_per_slice, weights_per_zpoint)
       use module_base
       use module_types
+      use locregs, only: check_whether_bounds_overlap
       implicit none
     
       ! Calling arguments
@@ -3063,6 +3104,7 @@ module communications_init
                lzd, orbs, nscatterarr, istartend, nptsp)
       use module_base
       use module_types
+      use locregs, only: check_whether_bounds_overlap
       implicit none
     
       ! Calling arguments
@@ -3214,6 +3256,7 @@ module communications_init
                istartend, weight_tot, weights_per_zpoint, norb_per_gridpoint)
       use module_base
       use module_types
+      use locregs, only: check_whether_bounds_overlap
       use yaml_output
       implicit none
     
@@ -3749,6 +3792,7 @@ module communications_init
                ncomms_repartitionrho, commarr_repartitionrho)
       use module_base
       use module_types
+      use locregs, only: get_extent_of_overlap
       implicit none
     
       ! Calling arguments
@@ -3979,6 +4023,7 @@ module communications_init
       use module_base
       use module_types
       use communications_base, only: p2pComms_null, bgq
+      use locregs, only: get_extent_of_overlap, check_whether_bounds_overlap
       implicit none
       
       ! Calling arguments
@@ -3991,15 +4036,15 @@ module communications_init
       
       ! Local variables
       integer:: is1, ie1, is2, ie2, is3, ie3, ilr, ii, iorb, iiorb, jproc, kproc, istsource, is, ie, iie3j
-      integer:: ioverlap, is3j, ie3j, is3k, ie3k, mpidest, istdest, ioffsetx, ioffsety, ioffsetz
-      integer :: is3min, ie3max, tag, ncount, ierr, nmaxoverlap, nlen, iseg, j3
+      integer:: ioverlap, is3j, ie3j, is3k, ie3k, mpidest, istdest, ioffsetx, ioffsety, ioffsetz, iel
+      integer :: is3min, ie3max, tag, ncount, ierr, nmaxoverlap, nlen, iseg, j3, ileny, ioffset, isegx
       logical :: datatype_defined
       character(len=*),parameter:: subname='initialize_communication_potential'
       integer,dimension(6) :: ise
       integer,dimension(2) :: blocklengthsx, blocklengthsy, types, xyblock_type, nblocksy
       integer(kind=mpi_address_kind),dimension(2) :: displacementsx, displacementsy
       integer(kind=mpi_address_kind) :: lb, extent
-      integer :: nsegx, nsegy, xline_type, size_of_double, size_datatype, n1, n2, n3
+      integer :: nsegx, nsegy, xline_type, size_of_double, size_datatype, n1, n2, n3, i
       integer,dimension(2) :: iis3, iie3, iis2, iie2, iis1, iie1, nlen1, nlen2, nlen3
       !integer,dimension(:),allocatable :: derived_types
 
@@ -4162,6 +4207,7 @@ module communications_init
       !call memocc(istat, comgp%mpi_datatypes, 'comgp%mpi_datatypes', subname)
       !call to_zero((nmaxoverlap+1)*nproc, comgp%mpi_datatypes(0,0))
       comgp%mpi_datatypes = f_malloc0_ptr(0.to.comgp%noverlaps,id='comgp%mpi_datatypes')
+      comgp%onedtypearr = f_malloc_ptr((/2,2*lzd%glr%d%n2i/),id='comgp%onedtypearr')
       comgp%nrecvBuf = 0
       is3min=0
       ie3max=0
@@ -4252,7 +4298,11 @@ module communications_init
                           ii=comgp%ise(2)
                       end if
                       !if (comgp%ise(1)>is1 .and. ii<ie1) then
-                      call mpi_type_size(mpi_double_precision, size_of_double, ierr)
+                      if (nproc>1) then
+                          call mpi_type_size(mpi_double_precision, size_of_double, ierr)
+                      else
+                          size_of_double = 8
+                      end if
                       !!write(*,'(a,5i8)') 'ii, is1, ie1, comgp%ise(1:2)', ii, is1, ie1, comgp%ise(1:2)
                       if (ii<comgp%ise(1) .and. ii>=is1 .and. comgp%ise(1)<ie1) then
                           !!write(*,'(a,5i8)') 'hole in x, iproc, is1, ie1, comgp%ise(1), ii', iproc, is1, ie1, comgp%ise(1), ii
@@ -4324,11 +4374,13 @@ module communications_init
                           !!write(*,'(a,8i8)') 'iproc, nsegx, blocklengthsx, displacementsx, comgp%ise(1), comgp%ise(2)', &
                           !!                    iproc, nsegx, blocklengthsx, displacementsx, comgp%ise(1), comgp%ise(2)
                           types(:)=mpi_double_precision
-                          call mpi_type_create_struct(nsegx, blocklengthsx, displacementsx, &
-                               types, xline_type, ierr)
-                          call mpi_type_commit(xline_type, ierr)
-                          call mpi_type_size(xline_type, ii, ierr)
-                          call mpi_type_get_extent(xline_type, lb, extent, ierr)
+                          if (nproc>1) then
+                              call mpi_type_create_struct(nsegx, blocklengthsx, displacementsx, &
+                                   types, xline_type, ierr)
+                              call mpi_type_commit(xline_type, ierr)
+                              call mpi_type_size(xline_type, ii, ierr)
+                              call mpi_type_get_extent(xline_type, lb, extent, ierr)
+                          end if
                           !!write(*,'(a,4i10)') 'iproc, size, lb, extent, of xline_type', iproc, ii, lb, extent
                           !write(*,*) 'iproc, size of xline_type', iproc, ii
                           !!call mpi_type_vector(comgp%ise(4)-comgp%ise(3)+1, comgp%ise(2)-comgp%ise(1)+1, &
@@ -4340,38 +4392,65 @@ module communications_init
                           !!     xline_type, comgp%mpi_datatypes(0), ierr)
                           ! Now create a type describing one block
                           xyblock_type(:)=0 !just to initialize
+                          iel = 0
                           do iseg=1,nsegy
                               !!write(*,*) 'iproc, iseg, blocklengthsy(iseg)', iproc, iseg, blocklengthsy(iseg)
-                              call mpi_type_create_hvector(blocklengthsy(iseg), 1, &
-                                   int(size_of_double*lzd%glr%d%n1i,kind=mpi_address_kind), &
-                                   xline_type, xyblock_type(iseg), ierr)
-                              call mpi_type_commit(xyblock_type(iseg), ierr)
-                              call mpi_type_size(xyblock_type(iseg), ii, ierr)
-                              call mpi_type_get_extent(xyblock_type(iseg), lb, extent, ierr)
+                              if (nproc>1) then
+                                  call mpi_type_create_hvector(blocklengthsy(iseg), 1, &
+                                       int(size_of_double*lzd%glr%d%n1i,kind=mpi_address_kind), &
+                                       xline_type, xyblock_type(iseg), ierr)
+                                  call mpi_type_commit(xyblock_type(iseg), ierr)
+                                  call mpi_type_size(xyblock_type(iseg), ii, ierr)
+                                  call mpi_type_get_extent(xyblock_type(iseg), lb, extent, ierr)
+                              end if
                               !!write(*,'(a,4i14)') 'iproc, size, lb, extent, of xyblock_type(iseg)', iproc, ii, lb, extent
                               types(iseg)=xyblock_type(iseg)
                               nblocksy(iseg)=1
+                              do ileny=1,blocklengthsy(iseg)
+                                  do isegx=1,nsegx
+                                      iel = iel + 1
+                                      ioffset = int(displacementsy(iseg)/size_of_double,kind=4) + &
+                                                (ileny-1)*lzd%glr%d%n1i + &
+                                                int(displacementsx(isegx)/size_of_double,kind=4)
+                                      comgp%onedtypearr(1,iel) = ioffset
+                                      comgp%onedtypearr(2,iel) = blocklengthsx(isegx)
+                                      !write(*,*) 'isegx, blocklengthsx(isegx)', isegx, blocklengthsx(isegx)
+                                      !write(*,*) 'iproc, ioverlap, comgp%noverlaps', iproc, ioverlap, comgp%noverlaps
+                                      !write(*,'(a,3i5,2i12)') 'iproc, iel, ioverlap, 1darr', &
+                                      !    iproc, iel, ioverlap, comgp%onedtypearr(:,iel,ioverlap)
+                                  end do
+                              end do
                           end do
+                          comgp%onedtypeovrlp = iel
                           types(:)=xyblock_type
-                          call mpi_type_create_struct(nsegy, nblocksy, displacementsy, &
-                               types, comgp%mpi_datatypes(0), ierr)
-                          !call f_free(derived_types)
-                          call mpi_type_commit(comgp%mpi_datatypes(0), ierr)
-                          call mpi_type_size(comgp%mpi_datatypes(0), ii, ierr)
-                          call mpi_type_get_extent(comgp%mpi_datatypes(0), lb, extent, ierr)
-                          !!write(*,'(a,4i14)') 'iproc, size, lb, extent, of comgp%mpi_datatypes(0)', iproc, ii, lb, extent
-                          do iseg=1,nsegy
-                              call mpi_type_free(xyblock_type(iseg), ierr)
-                          end do
-                          call mpi_type_free(xline_type, ierr)
+                          if (nproc>1) then
+                              call mpi_type_create_struct(nsegy, nblocksy, displacementsy, &
+                                   types, comgp%mpi_datatypes(0), ierr)
+                              !call f_free(derived_types)
+                              call mpi_type_commit(comgp%mpi_datatypes(0), ierr)
+                              call mpi_type_size(comgp%mpi_datatypes(0), ii, ierr)
+                              call mpi_type_get_extent(comgp%mpi_datatypes(0), lb, extent, ierr)
+                              !!write(*,'(a,4i14)') 'iproc, size, lb, extent, of comgp%mpi_datatypes(0)', iproc, ii, lb, extent
+                              do iseg=1,nsegy
+                                  call mpi_type_free(xyblock_type(iseg), ierr)
+                              end do
+                              call mpi_type_free(xline_type, ierr)
+                          end if
                           datatype_defined=.true.
                   end if
                   !!istdest = istdest + &
                   !!          (ie3-is3+1)*(comgp%ise(2)-comgp%ise(1)+1)*(comgp%ise(4)-comgp%ise(3)+1)
                   !!comgp%nrecvBuf = comgp%nrecvBuf + &
                   !!          (ie3-is3+1)*(comgp%ise(2)-comgp%ise(1)+1)*(comgp%ise(4)-comgp%ise(3)+1)
-                  call mpi_type_size(comgp%mpi_datatypes(0), size_datatype, ierr)
-                  size_datatype=size_datatype/size_of_double
+                  if (nproc>1) then
+                      call mpi_type_size(comgp%mpi_datatypes(0), size_datatype, ierr)
+                      size_datatype=size_datatype/size_of_double
+                  else
+                      size_datatype = 0
+                      do i=1,comgp%onedtypeovrlp
+                          size_datatype = size_datatype + comgp%onedtypearr(2,i)
+                      end do
+                  end if
                   istdest = istdest + nlen3(j3)*size_datatype
                   comgp%nrecvBuf = comgp%nrecvBuf + nlen3(j3)*size_datatype
                   !!write(*,'(a,4i9)') 'j3, nlen3(j3), size_datatype, comgp%nrecvBuf', j3, nlen3(j3), size_datatype, comgp%nrecvBuf
@@ -4442,9 +4521,13 @@ module communications_init
           if(ioverlap/=comgp%noverlaps) stop 'ioverlap/=comgp%noverlaps'
     
       !else nproc_if ! monoproc
+
+      !    !write(*,*) 'comgp%ise',comgp%ise
     
-      !    comgp%nrecvbuf = (comgp%ise(2)-comgp%ise(1)+1)*(comgp%ise(4)-comgp%ise(3)+1)*&
-      !                     (comgp%ise(6)-comgp%ise(5)+1)
+      !    !comgp%nrecvbuf = (comgp%ise(2)-comgp%ise(1)+1)*(comgp%ise(4)-comgp%ise(3)+1)*&
+      !    !                 (comgp%ise(6)-comgp%ise(5)+1)
+      !    ! Probably too much, but ok for the moment
+      !    comgp%nrecvbuf = lzd%glr%d%n1i*lzd%glr%d%n2i*lzd%glr%d%n3i
       !
       !end if nproc_if
     
@@ -4808,297 +4891,5 @@ module communications_init
     END SUBROUTINE orbitals_communicators
 
 
-    !!!> Checks whether a segment with bounds i1,i2 (where i2 might be smaller
-    !!!! than i1 due to periodic boundary conditions) overlaps with a segment with
-    !!!! bounds j1,2 (where j1<=j2)
-    !> Checks whether a segment with bounds i1,i2 (where i2 might be smaller
-    !! than i1 due to periodic boundary conditions) overlaps with a segment with
-    !! bounds j1,2 (where j2 might be smaller than j1)
-    function check_whether_bounds_overlap_int(i1, i2, j1, j2) result(overlap)
-      implicit none
-      ! Calling arguments
-      integer,intent(in) :: i1, i2, j1, j2
-      logical :: overlap
-      ! Local variables
-      integer :: periodic
-
-      ! If the end is smaller than the start, we have a periodic wrap around
-      periodic = 0
-      if (i2<i1) then
-          periodic = periodic + 1
-      end if
-      if (j2<j1) then
-          periodic = periodic + 1
-      end if
-
-      ! Check whether there is an overlap
-      select case(periodic)
-      case(2)
-          ! If both segments have a wrap around, they necessarily overlap
-          overlap = .true.
-      case(1)
-          overlap = (i1<=j2 & !i2>=j1 due to periodic wrap around 
-               .or. i2>=j1)   !i1<=j2 due to periodic wrap around
-      case(0)
-          overlap = (i2>=j1 .and. i1<=j2)
-      case default
-          stop 'wrong value of periodic'
-      end select
-
-    end function check_whether_bounds_overlap_int
-
-
-    function check_whether_bounds_overlap_long(i1, i2, j1, j2) result(overlap)
-      implicit none
-      ! Calling arguments
-      integer(kind=8),intent(in) :: i1, i2, j1, j2
-      logical :: overlap
-      ! Local variables
-      integer :: periodic
-
-      ! If the end is smaller than the start, we have a periodic wrap around
-      periodic = 0
-      if (i2<i1) then
-          periodic = periodic + 1
-      end if
-      if (j2<j1) then
-          periodic = periodic + 1
-      end if
-
-      ! Check whether there is an overlap
-      select case(periodic)
-      case(2)
-          ! If both segments have a wrap around, they necessarily overlap
-          overlap = .true.
-      case(1)
-          overlap = (i1<=j2 & !i2>=j1 due to periodic wrap around 
-               .or. i2>=j1)   !i1<=j2 due to periodic wrap around
-      case(0)
-          overlap = (i2>=j1 .and. i1<=j2)
-      case default
-          stop 'wrong value of periodic'
-      end select
-
-    end function check_whether_bounds_overlap_long
-
-
-    !> Checks whether a segment with bounds i1,i2 (where i2 might be smaller
-    !! than i1 due to periodic boundary conditions) overlaps with a segment with
-    !! bounds j1,2 (where j1<=j2). Is so, it gives the starting point, ending
-    !! point and the extent of the (possibly two) overlaps.
-    subroutine get_extent_of_overlap_int(i1, i2, j1, j2, n, ks, ke, nlen)
-      use dictionaries, only: f_err_throw
-      use yaml_output, only: yaml_toa
-      implicit none
-      ! Calling arguments
-      integer,intent(in) :: i1, i2, j1, j2
-      integer,intent(out) :: n !<number of overlaps
-      integer,dimension(2),intent(out) :: ks, ke, nlen
-      ! Local variables
-      integer :: ks1, ke1, ks2, ke2
-      logical :: periodic, case1, case2, found_case
-
-      ks(:) = 0
-      ke(:) = 0
-      nlen(:) = 0
-
-      if (j2<j1) then
-          call f_err_throw('j2<j1: '//&
-               &'i1='//trim(yaml_toa(i1,fmt='(i0)'))//&
-               &', i2='//trim(yaml_toa(i2,fmt='(i0)'))//&
-               &', j1='//trim(yaml_toa(j1,fmt='(i0)'))//&
-               &', j2='//trim(yaml_toa(j2,fmt='(i0)'))&
-               ,err_name='BIGDFT_RUNTIME_ERROR')
-      end if
-
-      ! Check whether there is an overlap
-      if (check_whether_bounds_overlap(i1, i2, j1, j2)) then
-          ! If the end is smaller than the start, we have a periodic wrap around
-          periodic = (i2<i1)
-          if (periodic) then
-              found_case = .false.
-              if (i2>=j1) then
-                  ks1 = j1 !don't need to check i1 due to periodic wrap around
-                  ke1 = min(i2,j2)
-                  found_case = .true.
-                  case1 = .true.
-              else
-                  ks1=huge(i2)
-                  ke1=-huge(i2)
-                  case1 = .false.
-              end if
-              if (i1<=j2) then
-                  ks2 = max(i1,j1)
-                  ke2 = j2 !don't need to check i2 due to periodic wrap around
-                  found_case = .true.
-                  case2 = .true.
-              else
-                  ks2=huge(i1)
-                  ke2=-huge(i1)
-                  case2 = .false.
-              end if
-              if (.not. found_case) then
-                  call f_err_throw('Cannot determine overlap',err_name='BIGDFT_RUNTIME_ERROR')
-              end if
-              if (case1 .and. case2) then
-                  ! There are two overlaps
-                  n = 2
-                  ks(1) = ks1
-                  ke(1) = ke1
-                  nlen(1) = ke(1) - ks(1) + 1
-                  ks(2) = ks2
-                  ke(2) = ke2
-                  nlen(2) = ke(2) - ks(2) + 1
-              else
-                  n = 1
-                  ks = min(ks1,ks2)
-                  ke = max(ke1,ke2)
-                  nlen = ke(1) - ks(1) + 1
-              end if
-          else
-              n = 1
-              ks(1) = max(i1,j1)
-              ke(1) = min(i2,j2)
-              nlen(1) = ke(1) - ks(1) + 1
-          end if
-          !write(*,'(a,7i8)') 'i1, i2, j1, j2, is, ie, n', i1, i2, j1, j2, is, ie, n
-      else
-          n = 0
-          ks(1) = -1
-          ke(1) = -1
-          nlen(1) = 0
-      end if
-
-      if (nlen(1)<0) then
-          call f_err_throw('nlen(1)<0: '//&
-               &'i1='//trim(yaml_toa(i1,fmt='(i0)'))//&
-               &', i2='//trim(yaml_toa(i2,fmt='(i0)'))//&
-               &', j1='//trim(yaml_toa(j1,fmt='(i0)'))//&
-               &', j2='//trim(yaml_toa(j2,fmt='(i0)'))//&
-               &', ks='//trim(yaml_toa(ks(1),fmt='(i0)'))//&
-               &', ke='//trim(yaml_toa(ke(1),fmt='(i0)'))&
-               ,err_name='BIGDFT_RUNTIME_ERROR')
-      end if
-
-      if (nlen(2)<0) then
-          call f_err_throw('nlen(2)<0: '//&
-               &'i1='//trim(yaml_toa(i1,fmt='(i0)'))//&
-               &', i2='//trim(yaml_toa(i2,fmt='(i0)'))//&
-               &', j1='//trim(yaml_toa(j1,fmt='(i0)'))//&
-               &', j2='//trim(yaml_toa(j2,fmt='(i0)'))//&
-               &', ks='//trim(yaml_toa(ks(2),fmt='(i0)'))//&
-               &', ke='//trim(yaml_toa(ke(2),fmt='(i0)'))&
-               ,err_name='BIGDFT_RUNTIME_ERROR')
-      end if
-
-    end subroutine get_extent_of_overlap_int
-
-
-    subroutine get_extent_of_overlap_long(i1, i2, j1, j2, n, ks, ke, nlen)
-      use dictionaries, only: f_err_throw
-      use yaml_output, only: yaml_toa
-      implicit none
-      ! Calling arguments
-      integer(kind=8),intent(in) :: i1, i2, j1, j2
-      integer,intent(out) :: n
-      integer(kind=8),dimension(2),intent(out) :: ks, ke, nlen
-      ! Local variables
-      integer(kind=8) :: ks1, ke1, ks2, ke2
-      logical :: periodic, case1, case2, found_case
-
-      ks(:) = 0
-      ke(:) = 0
-      nlen(:) = 0
-
-      if (j2<j1) then
-          call f_err_throw('j2<j1: '//&
-               &'i1='//trim(yaml_toa(i1,fmt='(i0)'))//&
-               &', i2='//trim(yaml_toa(i2,fmt='(i0)'))//&
-               &', j1='//trim(yaml_toa(j1,fmt='(i0)'))//&
-               &', j2='//trim(yaml_toa(j2,fmt='(i0)'))&
-               ,err_name='BIGDFT_RUNTIME_ERROR')
-      end if
-
-      ! Check whether there is an overlap
-      if (check_whether_bounds_overlap(i1, i2, j1, j2)) then
-          ! If the end is smaller than the start, we have a periodic wrap around
-          periodic = (i2<i1)
-          if (periodic) then
-              found_case = .false.
-              if (i2>=j1) then
-                  ks1 = j1 !don't need to check i1 due to periodic wrap around
-                  ke1 = min(i2,j2)
-                  found_case = .true.
-                  case1 = .true.
-              else
-                  ks1=huge(i2)
-                  ke1=-huge(i2)
-                  case1 = .false.
-              end if
-              if (i1<=j2) then
-                  ks2 = max(i1,j1)
-                  ke2 = j2 !don't need to check i2 due to periodic wrap around
-                  found_case = .true.
-                  case2 = .true.
-              else
-                  ks2=huge(i1)
-                  ke2=-huge(i1)
-                  case2 = .false.
-              end if
-              if (.not. found_case) then
-                  call f_err_throw('Cannot determine overlap',err_name='BIGDFT_RUNTIME_ERROR')
-              end if
-              if (case1 .and. case2) then
-                  ! There are two overlaps
-                  n = 2
-                  ks(1) = ks1
-                  ke(1) = ke1
-                  nlen(1) = ke(1) - ks(1) + 1
-                  ks(2) = ks2
-                  ke(2) = ke2
-                  nlen(2) = ke(2) - ks(2) + 1
-              else
-                  n = 1
-                  ks = min(ks1,ks2)
-                  ke = max(ke1,ke2)
-                  nlen = ke(1) - ks(1) + 1
-              end if
-          else
-              n = 1
-              ks(1) = max(i1,j1)
-              ke(1) = min(i2,j2)
-              nlen(1) = ke(1) - ks(1) + 1
-          end if
-          !write(*,'(a,7i8)') 'i1, i2, j1, j2, is, ie, n', i1, i2, j1, j2, is, ie, n
-      else
-          n = 0
-          ks(1) = -1
-          ke(1) = -1
-          nlen(1) = 0
-      end if
-
-      if (nlen(1)<0) then
-          call f_err_throw('nlen(1)<0: '//&
-               &'i1='//trim(yaml_toa(i1,fmt='(i0)'))//&
-               &', i2='//trim(yaml_toa(i2,fmt='(i0)'))//&
-               &', j1='//trim(yaml_toa(j1,fmt='(i0)'))//&
-               &', j2='//trim(yaml_toa(j2,fmt='(i0)'))//&
-               &', ks='//trim(yaml_toa(ks(1),fmt='(i0)'))//&
-               &', ke='//trim(yaml_toa(ke(1),fmt='(i0)'))&
-               ,err_name='BIGDFT_RUNTIME_ERROR')
-      end if
-
-      if (nlen(2)<0) then
-          call f_err_throw('nlen(2)<0: '//&
-               &'i1='//trim(yaml_toa(i1,fmt='(i0)'))//&
-               &', i2='//trim(yaml_toa(i2,fmt='(i0)'))//&
-               &', j1='//trim(yaml_toa(j1,fmt='(i0)'))//&
-               &', j2='//trim(yaml_toa(j2,fmt='(i0)'))//&
-               &', ks='//trim(yaml_toa(ks(2),fmt='(i0)'))//&
-               &', ke='//trim(yaml_toa(ke(2),fmt='(i0)'))&
-               ,err_name='BIGDFT_RUNTIME_ERROR')
-      end if
-
-    end subroutine get_extent_of_overlap_long
 
 end module communications_init

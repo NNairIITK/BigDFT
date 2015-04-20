@@ -396,7 +396,7 @@ module sparsematrix
       implicit none
     
       ! Calling arguments
-      type(sparse_matrix),intent(inout) :: smat, lmat
+      type(sparse_matrix),intent(in) :: smat, lmat
       real(kind=8),dimension(smat%nspin*smat%nvctr),intent(inout) :: smatrix_compr
       real(kind=8),dimension(lmat%nspin*lmat%nvctr),intent(inout) :: lmatrix_compr
       character(len=14),intent(in) :: cmode
@@ -522,7 +522,7 @@ module sparsematrix
       implicit none
     
       ! Calling arguments
-      type(sparse_matrix),intent(inout) :: smat, lmat
+      type(sparse_matrix),intent(in) :: smat, lmat
       real(kind=8),dimension(smat%nspin*smat%nvctrp_tg),intent(inout) :: smatrix_compr
       real(kind=8),dimension(lmat%nspin*lmat%nvctrp_tg),intent(inout) :: lmatrix_compr
       character(len=14),intent(in) :: cmode
@@ -1057,16 +1057,33 @@ module sparsematrix
      integer :: i,jorb,jjorb,m,mp1,ist,iend, icontiguous, j, iline, icolumn, nblock, iblock, ncount
      integer :: iorb, ii, ilen, jjorb0, jjorb1, jjorb2, jjorb3, jjorb4, jjorb5, jjorb6, iout
      real(kind=8) :: tt0, tt1, tt2, tt3, tt4, tt5, tt6, tt7, ddot
+     integer :: n_dense
+     real(kind=8),dimension(:,:),allocatable :: a_dense, b_dense, c_dense
+     !real(kind=8),dimension(:),allocatable :: b_dense, c_dense
      integer,parameter :: MATMUL_NEW = 101
      integer,parameter :: MATMUL_OLD = 102
      integer,parameter :: matmul_version = MATMUL_NEW!OLD!NEW
+     logical,parameter :: count_flops = .false.
+     real(kind=8) :: ts, te, op, gflops
+     real(kind=8),parameter :: flop_per_op = 2.d0 !<number of FLOPS per operations
    
      call f_routine(id='sparsemm')
+     if (count_flops) then
+         n_dense = nint(sqrt(real(smat%smmm%nseq,kind=8)))
+         !n_dense = smat%nfvctr
+         a_dense = f_malloc((/n_dense,n_dense/),id='a_dense')
+         b_dense = f_malloc((/n_dense,1/),id='b_dense')
+         c_dense = f_malloc((/n_dense,1/),id='c_dense')
+     end if
      call timing(bigdft_mpi%iproc, 'sparse_matmul ', 'IR')
 
 
      if (matmul_version==MATMUL_NEW) then
 
+         if (count_flops) then
+             ! Start time
+             ts = mpi_wtime()
+         end if
          !$omp parallel default(private) shared(smat, a_seq, b, c)
          !$omp do schedule(guided)
          do iout=1,smat%smmm%nout
@@ -1085,6 +1102,37 @@ module sparsematrix
          end do 
          !$omp end do
          !$omp end parallel
+
+         if (count_flops) then
+             ! End time
+             te = mpi_wtime()
+             ! Count the operations
+             op = 0.d0
+             do iout=1,smat%smmm%nout
+                 nblock=smat%smmm%onedimindices_new(4,iout)
+                 do iblock=1,nblock
+                     ncount = smat%smmm%consecutive_lookup(3,iblock,iout)
+                     op = op + real(ncount,kind=8)
+                 end do
+             end do
+             gflops = 1.d-9*op/(te-ts)*flop_per_op
+             call yaml_map('SPARSE: operations',op,fmt='(es9.3)')
+             call yaml_map('SPARSE: time',te-ts,fmt='(es9.3)')
+             call yaml_map('SPARSE: GFLOPS',gflops)
+
+             ! Compare with dgemm of comparable size
+             ts = mpi_wtime()
+             call dgemv('n', n_dense, n_dense, 1.d0, a_dense, n_dense, b_dense, 1, 0.d0, c_dense, 1)
+             !call dgemm('n', 'n', n_dense, n_dense, n_dense, 1.d0, a_dense, n_dense, &
+             !     b_dense, n_dense, 0.d0, c_dense, n_dense)
+             te = mpi_wtime()
+             op = real(n_dense,kind=8)*real(n_dense,kind=8)
+             gflops = 1.d-9*op/(te-ts)*flop_per_op
+             call yaml_map('DGEMV: operations',op,fmt='(es9.3)')
+             call yaml_map('DGEMV: time',te-ts,fmt='(es9.3)')
+             call yaml_map('DGEMV: GFLOPS',gflops)
+         end if
+
 
      else if (matmul_version==MATMUL_OLD) then
 
@@ -1106,6 +1154,7 @@ module sparsematrix
          end do 
          !$omp end do
          !$omp end parallel
+
 
      else
 

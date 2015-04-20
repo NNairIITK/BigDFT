@@ -960,6 +960,9 @@
         PI: Polarization Iteration
         PCG: Preconditioned Conjugate Gradient
      default: VAC
+   foe_gap:
+     COMMENT: Use the FOE method to calculate the HOMO-LUMO gap at the end of a calculation
+     default: False
  lin_general:
      hybrid: 
        COMMENT: activate the hybrid mode; if activated, only the low accuracy values will be relevant
@@ -1062,6 +1065,9 @@
        COMMENT: extra states to optimize (dmin only)
        default: 0
        RANGE: [0, 10000]
+     calculate_onsite_overlap:
+       COMMENT: calculate the onsite overlap matrix (has only an effect if the matrices are all written to disk)
+       default: No
 #Parameters for the localised basis set (or support function) for the linear scaling version
  lin_basis:
      nit:
@@ -1073,6 +1079,10 @@
                     If the hybrid mode is used, only the first value is taken into account.
        RANGE: [0,100]
        default: [4,5]
+     nit_ig:
+       COMMENT:  maximal number of iterations to optimize the support functions in the extended input guess (experimental mode only)
+       RANGE: [0,100]
+       default: 50 #just for backward compatibility, should be smaller
      idsx:
        COMMENT: DIIS history for optimization of the support functions (low/high accuracy); 0 -> SD
        DESCRIPTION: |
@@ -1091,6 +1101,10 @@
                     When the hybrid mode is used, only the first entry is taken into account.
        RANGE: [1.e-6,1.0]
        default: [1.e-2,1.e-4]
+     gnrm_ig:
+       COMMENT: convergence criterion for the optimization of the support functions in the extended input guess (experimental mode only)
+       RANGE: [1.e-5,10.0]
+       default: 1.e-3 #just for backward compatibility, should be larger
      deltae_cv:
        COMMENT: total relative energy difference to stop the optimization ('experimental_mode' only)
        DESCRIPTION: |

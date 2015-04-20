@@ -2242,6 +2242,8 @@ subroutine reformat_supportfunctions(iproc,nproc,at,rxyz_old,rxyz,add_derivative
   character(len=100) :: fragdir
   integer :: ifrag, ifrag_ref, iforb, isforb
   real(kind=gp), dimension(:,:,:), allocatable :: workarraytmp 
+  logical :: gperx, gpery, gperz, lperx, lpery, lperz
+  integer :: gnbl1, gnbr1, gnbl2, gnbr2, gnbl3, gnbr3, lnbl1, lnbr1, lnbl2, lnbr2, lnbl3, lnbr3
 
   real(gp), external :: dnrm2
 !  integer :: iat
@@ -2407,13 +2409,48 @@ subroutine reformat_supportfunctions(iproc,nproc,at,rxyz_old,rxyz,add_derivative
           !   call timing(iproc,'readisffiles','OF')
           !end if
 
-          lzd_old%llr(ilr_old)%nsi1=2*lzd_old%llr(ilr_old)%ns1
-          lzd_old%llr(ilr_old)%nsi2=2*lzd_old%llr(ilr_old)%ns2
-          lzd_old%llr(ilr_old)%nsi3=2*lzd_old%llr(ilr_old)%ns3
 
-          lzd_old%llr(ilr_old)%d%n1i=2*n_old(1)+31
-          lzd_old%llr(ilr_old)%d%n2i=2*n_old(2)+31
-          lzd_old%llr(ilr_old)%d%n3i=2*n_old(3)+31
+          ! Periodicity in the three directions
+          gperx=(tmb%lzd%glr%geocode /= 'F')
+          gpery=(tmb%lzd%glr%geocode == 'P')
+          gperz=(tmb%lzd%glr%geocode /= 'F')
+
+          ! Set the conditions for ext_buffers (conditions for buffer size)
+          lperx=(lzd_old%llr(ilr)%geocode /= 'F')
+          lpery=(lzd_old%llr(ilr)%geocode == 'P')
+          lperz=(lzd_old%llr(ilr)%geocode /= 'F')
+
+          !calculate the size of the buffers of interpolating function grid
+          call ext_buffers(gperx,gnbl1,gnbr1)
+          call ext_buffers(gpery,gnbl2,gnbr2)
+          call ext_buffers(gperz,gnbl3,gnbr3)
+          call ext_buffers(lperx,lnbl1,lnbr1)
+          call ext_buffers(lpery,lnbl2,lnbr2)
+          call ext_buffers(lperz,lnbl3,lnbr3)
+
+
+          lzd_old%llr(ilr_old)%nsi1=2*lzd_old%llr(ilr_old)%ns1 - (Lnbl1 - Gnbl1)
+          lzd_old%llr(ilr_old)%nsi2=2*lzd_old%llr(ilr_old)%ns2 - (Lnbl2 - Gnbl2)
+          lzd_old%llr(ilr_old)%nsi3=2*lzd_old%llr(ilr_old)%ns3 - (Lnbl3 - Gnbl3)
+
+          !lzd_old%llr(ilr_old)%d%n1i=2*n_old(1)+31
+          !lzd_old%llr(ilr_old)%d%n2i=2*n_old(2)+31
+          !lzd_old%llr(ilr_old)%d%n3i=2*n_old(3)+31
+          !dimensions of the interpolating scaling functions grid (reduce to +2 for periodic)
+          if(lzd_old%llr(ilr)%geocode == 'F') then
+             lzd_old%llr(ilr)%d%n1i=2*n_old(1)+31
+             lzd_old%llr(ilr)%d%n2i=2*n_old(2)+31
+             lzd_old%llr(ilr)%d%n3i=2*n_old(3)+31
+          else if(lzd_old%llr(ilr)%geocode == 'S') then
+             lzd_old%llr(ilr)%d%n1i=2*n_old(1)+2
+             lzd_old%llr(ilr)%d%n2i=2*n_old(2)+31
+             lzd_old%llr(ilr)%d%n3i=2*n_old(3)+2
+          else
+             lzd_old%llr(ilr)%d%n1i=2*n_old(1)+2
+             lzd_old%llr(ilr)%d%n2i=2*n_old(2)+2
+             lzd_old%llr(ilr)%d%n3i=2*n_old(3)+2
+          end if
+
 
           psirold_ok=.true.
           workarraytmp=f_malloc((2*n_old+31),id='workarraytmp')
