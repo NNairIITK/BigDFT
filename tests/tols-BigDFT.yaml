@@ -375,7 +375,7 @@ base:
   Ekin: 1.1e-10
   energy: 1.4e-11
   Omega: 1.32e-11
-  charge diff: 1.4e-11
+  charge diff: 2.1e-11
   trace(KS): 4.1e-11
   D Tr: 4.1e-11
 
@@ -417,10 +417,16 @@ cleanup:
  energy: 2.3e-9
  Energy (Hartree): 1.8e-10
  ebs_check: 3.4e-10
- charge diff: 5.5e-9
- Tr(K): 6.1e-9
- guess for new ef: 1.0e-10
- eF: 4.0e-11
+ charge diff: 6.1e-8
+ Tr(K): 6.2e-8
+ guess for new ef: 1.1e-9
+ eF: 6.0e-10
+ D Tr: 1.0e-8
+ ebs: 3.4e-10
+ HOMO energy: 3.9e-11
+ LUMO energy: 1.3e-10
+ HOMO-LUMO gap (eV): 2.4e-9
+ HOMO-LUMO gap (Ha): 8.8e-11
 
 directmin:
  Patterns to ignore:
@@ -611,7 +617,7 @@ hybrid-directmin:
  Clean forces norm (Ha/Bohr): 8.0e-11
  Raw forces norm (Ha/Bohr): 3.3e-11
  Average noise forces: 1.1e-10
- Energy (Hartree): 2.3e-11
+ Energy (Hartree): 2.4e-11
 
 cdft_ohoh:
  Epsilon: 7.1e-10
@@ -1060,6 +1066,7 @@ explicit_locregcenters:
  Total electronic charge: 4.1e-11
  EKS: 1.1e-9
  EH: 1.1e-9
+ Energy (Hartree): 6.1e-11
 
 intermediateforces:
  Atomic Forces (Ha/Bohr): 4.9e-7
@@ -1168,7 +1175,7 @@ PBE_potmixdiis:
  Enl: 2.2e-9
  Total charge: 2.1e-11
  multiplicator for the confinement: 4.3e-8
- Energy (Hartree): 1.3e-9
+ Energy (Hartree): 1.9e-9
 
 PBE_densmixdiis:
  Epot: 1.1e-10
@@ -1278,7 +1285,7 @@ O2spin_foe:
  D Tr: 2.1e-7
  relative diff: 3.6e-11
  fnrm2: 4.19e-8
- Energy (Hartree): 2.3e-10
+ Energy (Hartree): 2.4e-10
 
 O2spin_dirmin:
  Atomic Forces (Ha/Bohr): 1.1e-5
