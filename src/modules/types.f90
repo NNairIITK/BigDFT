@@ -322,6 +322,7 @@ module module_types
      real(gp) :: rbuf       !< buffer for tail treatment
      real(gp), dimension(3) :: elecfield   !< Electric Field vector
      logical :: disableSym                 !< .true. disable symmetry
+     character(len=8) :: set_epsilon !< method for setting the dielectric constant
 
      !> For absorption calculations
      integer :: iabscalc_type   !< 0 non calc, 1 cheb ,  2 lanc
@@ -430,7 +431,7 @@ module module_types
      integer :: check_sumrho               !< (LS) Perform a check of sumrho (no check, light check or full check)
      integer :: check_overlap              !< (LS) Perform a check of the overlap calculation
      logical :: experimental_mode          !< (LS) Activate the experimental mode
-     logical :: write_orbitals             !< (LS) Write KS orbitals for cubic restart
+     integer :: write_orbitals             !< (LS) Write KS orbitals for cubic restart (0: no, 1: wvl, 2: wvl+isf)
      logical :: explicit_locregcenters     !< (LS) Explicitely specify localization centers
      logical :: calculate_KS_residue       !< (LS) Calculate Kohn-Sham residue
      logical :: intermediate_forces        !< (LS) Calculate intermediate forces
@@ -486,6 +487,12 @@ module module_types
      !> linear scaling: enable the addaptive ajustment of the number of kernel iterations
      logical :: adjust_kernel_iterations
 
+     !> linear scaling: perform an analysis of the extent of the support functions (and possibly KS orbitals)
+     logical :: wf_extent_analysis
+
+     !> Method for the solution of  generalized poisson Equation
+     character(len=4) :: GPS_Method
+
   end type input_variables
 
 
@@ -497,9 +504,10 @@ module module_types
      real(gp) :: eion    !< Ion-Ion interaction
      real(gp) :: edisp   !< Dispersion force
      real(gp) :: ekin    !< Kinetic term
-     real(gp) :: epot    
-     real(gp) :: eproj   
-     real(gp) :: eexctX  
+     real(gp) :: epot    !< local potential energy
+     real(gp) :: eproj   !< energy of PSP projectors
+     real(gp) :: eexctX  !< exact exchange energy
+     real(gp) :: eelec   !< electrostatic energy. Replaces the hartree energy for cavities
      real(gp) :: ebs     
      real(gp) :: eKS     
      real(gp) :: trH     
@@ -795,6 +803,7 @@ module module_types
      real(wp), dimension(:,:,:,:), pointer :: V_XC    !< eXchange and Correlation potential (local)
      real(wp), dimension(:,:,:,:), pointer :: Vloc_KS !< complete local potential of KS Hamiltonian (might point on rho_psi)
      real(wp), dimension(:,:,:,:), pointer :: f_XC    !< dV_XC[rho]/d_rho
+     real(wp), dimension(:,:,:,:), pointer :: rho_ion !< charge density of the ions, to be passed to PSolver
      !temporary arrays
      real(wp), dimension(:), pointer :: rho_work,pot_work !<full grid arrays
      !metadata
@@ -936,7 +945,7 @@ module module_types
  !>timing categories
  character(len=*), parameter, private :: tgrp_pot='Potential'
  integer, save, public :: TCAT_EXCHANGECORR=TIMING_UNINITIALIZED
- integer, parameter, private :: ncls_max=6,ncat_bigdft=146   ! define timimg categories and classes
+ integer, parameter, private :: ncls_max=6,ncat_bigdft=149   ! define timimg categories and classes
  character(len=14), dimension(ncls_max), parameter, private :: clss = (/ &
       'Communications'    ,  &
       'Convolutions  '    ,  &
@@ -1039,8 +1048,8 @@ module module_types
       'ovrlptransComp','Other         ' ,'Miscellaneous ' ,  &
       'ovrlptransComm','Communications' ,'mpi_allreduce ' ,  &
       'lincombtrans  ','Other         ' ,'Miscellaneous ' ,  &
-      'glsynchham1   ','Other         ' ,'Miscellaneous ' ,  &
-      'glsynchham2   ','Other         ' ,'Miscellaneous ' ,  &
+      'glsynchham1   ','Communications' ,'load balancing' ,  &
+      'glsynchham2   ','Communications' ,'load balancing' ,  &
       'gauss_proj    ','Other         ' ,'Miscellaneous ' ,  &
       'sumrho_allred ','Communications' ,'mpiallred     ' ,  &
       'deallocprec   ','Other         ' ,'Miscellaneous ' ,  &
@@ -1098,6 +1107,9 @@ module module_types
       'transform_matr','Other         ' ,'small to large' ,  &
       'calctrace_comp','Other         ' ,'Miscellaneous ' ,  &
       'calctrace_comm','Communications' ,'allreduce     ' ,  &
+      'determinespars','Other         ' ,'Miscellaneous ' ,  &
+      'inittaskgroup ','Other         ' ,'Miscellaneous ' ,  &
+      'transformspars','Other         ' ,'Miscellaneous ' ,  &
       'calc_bounds   ','Other         ' ,'Miscellaneous ' /),(/3,ncat_bigdft/))
  integer, dimension(ncat_bigdft), private, save :: cat_ids !< id of the categories to be converted
 
@@ -1112,11 +1124,11 @@ module module_types
  public :: material_acceleration_null,input_psi_names
  public :: wf_format_names,bigdft_init_errors,bigdft_init_timing_categories
  public :: deallocate_orbs,deallocate_locreg_descriptors,nullify_wfd
- public :: deallocate_wfd,update_nlpsp,deallocate_paw_objects
- public :: old_wavefunction_set,allocate_wfd,basis_params_set_dict
- public :: input_set,copy_locreg_descriptors,nullify_locreg_descriptors
+ public :: update_nlpsp,deallocate_paw_objects!,deallocate_wfd,
+ public :: old_wavefunction_set,basis_params_set_dict
+ public :: input_set,nullify_locreg_descriptors
  public :: input_psi_help,deallocate_rho_descriptors
- public :: nullify_paw_objects,frag_from_dict,copy_grid_dimensions
+ public :: nullify_paw_objects,frag_from_dict!,copy_grid_dimensions
  public :: cprj_to_array,deallocate_gwf_c
  public :: SIC_data_null,local_zone_descriptors_null,output_wf_format_help
  public :: energy_terms_null, work_mpiaccumulate_null
@@ -1136,6 +1148,7 @@ contains
     en%epot    =0.0_gp
     en%eproj   =0.0_gp
     en%eexctX  =0.0_gp
+    en%eelec   =0.0_gp
     en%ebs     =0.0_gp
     en%eKS     =0.0_gp
     en%trH     =0.0_gp
@@ -2136,6 +2149,12 @@ contains
              in%run_mode=AMBER_RUN_MODE
           case('morse_bulk')
              in%run_mode=MORSE_BULK_RUN_MODE
+          case('morse_slab')
+             in%run_mode=MORSE_SLAB_RUN_MODE
+          case('tersoff')
+             in%run_mode=TERSOFF_RUN_MODE
+          case('bmhtf')
+             in%run_mode=BMHTF_RUN_MODE
           end select
        case(MM_PARAMSET)
             in%mm_paramset=val
@@ -2209,6 +2228,17 @@ contains
           in%nplot = val
        case (DISABLE_SYM)
           in%disableSym = val ! Line to disable symmetries.
+       case (SOLVENT)
+          in%set_epsilon= val
+!!$          dummy_char = val
+!!$          select case(trim(dummy_char))
+!!$          case ("vacuum")
+!!$             in%set_epsilon =EPSILON_VACUUM
+!!$          case("rigid")
+!!$             in%set_epsilon =EPSILON_RIGID_CAVITY
+!!$          case("sccs")
+!!$             in%set_epsilon =EPSILON_SCCS
+!!$          end select
        case DEFAULT
           if (bigdft_mpi%iproc==0) &
                call yaml_warning("unknown input key '" // trim(level) // "/" // trim(dict_key(val)) // "'")
@@ -2400,6 +2430,11 @@ contains
        case (ADJUST_KERNEL_ITERATIONS) 
            ! linear scaling: enable the addaptive ajustment of the number of kernel iterations
            in%adjust_kernel_iterations = val
+       case(WF_EXTENT_ANALYSIS)
+           ! linear scaling: perform an analysis of the extent of the support functions (and possibly KS orbitals)
+           in%wf_extent_analysis = val
+       case (GPS_METHOD)
+           in%GPS_method = val
        case DEFAULT
           if (bigdft_mpi%iproc==0) &
                call yaml_warning("unknown input key '" // trim(level) // "/" // trim(dict_key(val)) // "'")

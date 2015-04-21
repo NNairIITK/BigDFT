@@ -31,6 +31,7 @@ subroutine conjgrad(runObj,outs,nproc,iproc,ncount_bigdft)
   integer :: check
   character(len=4) :: fn4
   character(len=40) :: comment
+  type(f_tree) :: f_info
 
   check=0
   tpos = f_malloc((/ 3, runObj%atoms%astruct%nat /),id='tpos')
@@ -44,7 +45,7 @@ subroutine conjgrad(runObj,outs,nproc,iproc,ncount_bigdft)
   avnum=0._gp
   nfail=0
   nitsd=500
-
+  f_info=f_tree_new()
   !start with a steepest descent algorithm
   call steepdes(runObj,outs,nproc,iproc,ncount_bigdft,fnrm,runObj%inputs%forcemax,nitsd,fluct)
   if (ncount_bigdft >= runObj%inputs%ncount_cluster_x) then
@@ -204,29 +205,25 @@ subroutine conjgrad(runObj,outs,nproc,iproc,ncount_bigdft)
 
         call fnrmandforcemax(outs%fxyz,fnrm,fmax,outs%fdim)
         if (iproc == 0) then
-           call yaml_mapping_open('Geometry')
+           call f_tree_push(f_info//'etot'  , yaml_toa((/ outs%energy,outs%energy-etotprev /),fmt='(1pe21.14)'))
+           call f_tree_push(f_info//'Forces', yaml_toa((/ fmax,sqrt(fnrm),fluct*runObj%inputs%frac_fluct,fluct /), fmt='(1pe10.2)'))
+           call f_tree_push(f_info//'b/b0'  , yaml_toa(beta/runObj%inputs%betax, fmt='(1pe8.2e1)'))
+           call geometry_output('GEOPT_CG',ncount_bigdft,it,fmax,fnrm,fluct,f_info)
+!!$           call yaml_mapping_open('Geometry')
               if (parmin%verbosity > 0) then
-                 ! write(16,'(i5,1x,e12.5,1x,e21.14,a,1x,e9.2)')it,sqrt(fnrm),etot,' GEOPT CG ',beta/runObj%inputs%betax
-                 ! write(16,'(1x,a,3(1x,1pe14.5))') 'fnrm2,fluct*frac_fluct,fluct', fnrm,fluct*runObj%inputs%frac_fluct,fluct
                  write(16,'(I5,1x,I5,2x,a10,2x,1pe21.14,2x,e9.2,1(1pe11.3),3(1pe10.2),2x,a,1pe8.2E1)') &
                       ncount_bigdft,it,"GEOPT_CG  ",outs%energy,outs%energy-etotprev, &
                       & fmax,sqrt(fnrm),fluct*runObj%inputs%frac_fluct,&
                       fluct,"b/b0=",beta/runObj%inputs%betax
-                 
-                 call yaml_map('Ncount_BigDFT',ncount_bigdft)
-                 call yaml_map('Iteration',it)
-                 call yaml_map('Geometry Method','GEOPT_CG')
-                 call yaml_map('etot',(/ outs%energy,outs%energy-etotprev /),fmt='(1pe21.14)')
-                 call yaml_map('Forces', (/ fmax,sqrt(fnrm),fluct*runObj%inputs%frac_fluct,fluct /), fmt='(1pe10.2)')
-                 call yaml_map('b/b0', beta/runObj%inputs%betax, fmt='(1pe8.2e1)')
-                 !write(* ,'(I5,1x,I5,2x,a10,2x,1pe21.14,2x,e9.2,1(1pe11.3),3(1pe10.2),2x,a,1pe8.2E1)') &
-                 !     ncount_bigdft,it,"GEOPT_CG  ",etot,etot-etotprev,fmax,sqrt(fnrm),fluct*runObj%inputs%frac_fluct,&
-                 !     fluct,"b/b0=",beta/runObj%inputs%betax
+!!$                 call yaml_map('Ncount_BigDFT',ncount_bigdft)
+!!$                 call yaml_map('Iteration',it)
+!!$                 call yaml_map('Geometry Method','GEOPT_CG')
+!!$                 call yaml_map('etot',(/ outs%energy,outs%energy-etotprev /),fmt='(1pe21.14)')
+!!$                 call yaml_map('Forces', (/ fmax,sqrt(fnrm),fluct*runObj%inputs%frac_fluct,fluct /), fmt='(1pe10.2)')
+!!$                 call yaml_map('b/b0', beta/runObj%inputs%betax, fmt='(1pe8.2e1)')
               end if
-              !write(*,'(1x,a,1pe14.5,2(1x,a,1pe14.5))')&
-              !     'FORCES norm(Ha/Bohr): maxval=',    fmax,'fnrm=',    fnrm   , 'fluct=',fluct
-              call geometry_output(fmax,fnrm,fluct)
-           call yaml_mapping_close()
+!!$              call geometry_output(fmax,fnrm,fluct)
+!!$           call yaml_mapping_close()
         end if
 
         call convcheck(fmax,fluct*runObj%inputs%frac_fluct,runObj%inputs%forcemax,check) !n(m)
@@ -317,6 +314,7 @@ contains
     call f_free(tpos)
     call f_free(hh)
     call deallocate_state_properties(l_outs)
+    call f_tree_free(f_info)
   END SUBROUTINE close_and_deallocate
 
 END SUBROUTINE conjgrad
@@ -351,6 +349,7 @@ subroutine steepdes(runObj,outs,nproc,iproc,ncount_bigdft,fnrm,forcemax_sw,nitsd
   character(len=40) :: comment
   real(kind=8),dimension(:,:),allocatable :: geo
   real(kind=8),parameter :: degree=1.d0
+  type(f_tree) :: f_info
 
   tpos = f_malloc((/ 3, runObj%atoms%astruct%nat /),id='tpos')
 
@@ -367,7 +366,8 @@ subroutine steepdes(runObj,outs,nproc,iproc,ncount_bigdft,fnrm,forcemax_sw,nitsd
   etotitm1=1.e100_gp
   fnrmitm1=1.e100_gp
 
-  call vcopy(3 * runObj%atoms%astruct%nat, runObj%atoms%astruct%rxyz(1,1), 1, tpos(1,1), 1)
+  call f_memcpy(src=runObj%atoms%astruct%rxyz,dest=tpos)
+  !call vcopy(3 * runObj%atoms%astruct%nat, runObj%atoms%astruct%rxyz(1,1), 1, tpos(1,1), 1)
 
   itot=0
 
@@ -378,6 +378,7 @@ subroutine steepdes(runObj,outs,nproc,iproc,ncount_bigdft,fnrm,forcemax_sw,nitsd
         if(move_this_coordinate(runObj%atoms%astruct%ifrztyp(iat),ixyz)) nr=nr+1
   enddo
 
+  f_info=f_tree_new()
 
   redo_sd: do
      if (ncount_bigdft.gt.runObj%inputs%ncount_cluster_x) then 
@@ -393,6 +394,7 @@ subroutine steepdes(runObj,outs,nproc,iproc,ncount_bigdft,fnrm,forcemax_sw,nitsd
         end if
 
         call f_free(tpos)
+        call f_tree_free(f_info)
         return
      endif
 
@@ -403,19 +405,14 @@ subroutine steepdes(runObj,outs,nproc,iproc,ncount_bigdft,fnrm,forcemax_sw,nitsd
 
         runObj%inputs%inputPsiId=1
         call bigdft_state(runObj,outs,infocode)
-!!$        if (iproc == 0) then
-!!$           call transforce(at,ff,sumx,sumy,sumz)
-!!$           write(*,'(a,1x,1pe24.17)') 'translational force along x=', sumx
-!!$           write(*,'(a,1x,1pe24.17)') 'translational force along y=', sumy
-!!$           write(*,'(a,1x,1pe24.17)') 'translational force along z=', sumz
-!!$        end if
         ncount_bigdft=ncount_bigdft+1
 
         !if the energy goes up (a small tolerance is allowed by anoise)
         !reduce the value of beta
         !this procedure stops in the case beta is much too small compared with the initial one
         if (care .and. outs%energy > etotitm1+anoise) then
-           call vcopy(3 * runObj%atoms%astruct%nat, tpos(1,1), 1, runObj%atoms%astruct%rxyz(1,1), 1)
+           call f_memcpy(src=tpos,dest=runObj%atoms%astruct%rxyz)
+           !call vcopy(3 * runObj%atoms%astruct%nat, tpos(1,1), 1, runObj%atoms%astruct%rxyz(1,1), 1)
            beta=.5_gp*beta
            if (iproc == 0) write(16,'(a,1x,e9.2,1x,i5,2(1x,e21.14))') &
                 'SD reset, beta,itsd,etot,etotitm1= ',beta,itsd,outs%energy,etotitm1
@@ -442,8 +439,7 @@ subroutine steepdes(runObj,outs,nproc,iproc,ncount_bigdft,fnrm,forcemax_sw,nitsd
               write(16,'(a,6(1x,e10.3),1x,i2)') 'fmax, fnrm/fnrmitm1, de1<0 , de2>0 , df1<0 , df2>0 ,nsatur',  & 
                 & fmax, fnrm/fnrmitm1,de1,de2,df1,df2,nsatur
            end if
-           call geometry_output(fmax,fnrm,fluct)
-           !write(*,'(1x,a,1pe14.5,2(1x,a,1pe14.5))') 'FORCES norm(Ha/Bohr): maxval=',    fmax,'fnrm=',    fnrm    ,'fluct=', fluct
+!!$           call geometry_output(fmax,fnrm,fluct)
         end if
 
         !control whether we are in a situation in which SD do not change things too much
@@ -459,19 +455,10 @@ subroutine steepdes(runObj,outs,nproc,iproc,ncount_bigdft,fnrm,forcemax_sw,nitsd
         endif
 
         if (iproc == 0) then 
-!           if (parmin%verbosity > 0) &
-!                & write(16,'(i5,1x,e12.5,1x,e21.14,a)') itsd,sqrt(fnrm),etot,' GEOPT SD '
            write(fn4,'(i4.4)') ncount_bigdft 
            write(comment,'(a,1pe10.3)')'SD:fnrm= ',sqrt(fnrm)
            call bigdft_write_atomic_file(runObj,outs,'posout_'//fn4,&
                 trim(comment))
-
-!!$           call write_atomic_file(trim(runObj%inputs%dir_output)//'posout_'//fn4, &
-!!$                & outs%energy,runObj%atoms%astruct%rxyz,runObj%atoms%astruct%ixyz_int, &
-!!$                runObj%atoms,trim(comment),&
-!!$                forces=outs%fxyz)
-
-           !write(17,'(a,i5,1x,e17.10,1x,e9.2)') 'SD ',ncount_bigdft,etot,sqrt(fnrm)
         end if
 
         if (iproc == 0) then
@@ -480,21 +467,22 @@ subroutine steepdes(runObj,outs,nproc,iproc,ncount_bigdft,fnrm,forcemax_sw,nitsd
                    ncount_bigdft,itsd,"GEOPT_SD  ",outs%energy, outs%energy-etotprev, &
                    & fmax,sqrt(fnrm),fluct*runObj%inputs%frac_fluct,fluct,& 
                    "b/b0=",beta/runObj%inputs%betax,"nsat=",nsatur
-              call yaml_mapping_open('Geometry')
-                 call yaml_map('Ncount_BigDFT',ncount_bigdft)
-                 call yaml_map('Iteration',itsd)
-                 call yaml_map('Geometry Method','GEOPT_SD')
-                 call yaml_map('etot',(/ outs%energy,outs%energy-etotprev /),fmt='(1pe21.14)')
-                 call yaml_map('Forces', (/ fmax,sqrt(fnrm),fluct*runObj%inputs%frac_fluct,fluct /), fmt='(1pe10.2)')
-                 call yaml_map('b/b0', beta/runObj%inputs%betax, fmt='(1pe8.2e1)')
-                 call yaml_map('nsat',nsatur)
-                 call geometry_output(fmax,fnrm,fluct)
-              call yaml_mapping_close()
-              !write(* ,'(I5,1x,I5,2x,a10,2x,1pe21.14,2x,e9.2,1(1pe11.3),3(1pe10.2),2x,a,1pe8.2E1,2x,a,I2)') &
-              !& ncount_bigdft,itsd,"GEOPT_SD  ",etot, etot-etotprev,fmax,sqrt(fnrm),fluct*runObj%inputs%frac_fluct,fluct, & 
-              !& "b/b0=",beta/runObj%inputs%betax,"nsat=",nsatur
-              !write(16,'(1x,a,3(1x,1pe14.5))') 'fnrm2,fluct*frac_fluct,fluct',&
-              !         fnrm,fluct*runObj%inputs%frac_fluct,fluct
+              call f_tree_push(f_info//'etot'  ,yaml_toa((/ outs%energy,outs%energy-etotprev /),fmt='(1pe21.14)'))
+              call f_tree_push(f_info//'Forces',&
+                   yaml_toa( (/ fmax,sqrt(fnrm),fluct*runObj%inputs%frac_fluct,fluct /), fmt='(1pe10.2)'))
+              call f_tree_push(f_info//'b/b0'  ,yaml_toa( beta/runObj%inputs%betax, fmt='(1pe8.2e1)'))
+              call f_tree_push(f_info//'nsat'  ,yaml_toa(nsatur))
+              call geometry_output('GEOPT_SD',ncount_bigdft,itsd,fmax,fnrm,fluct,f_info)
+!!$              call yaml_mapping_open('Geometry')
+!!$                 call yaml_map('Ncount_BigDFT',ncount_bigdft)
+!!$                 call yaml_map('Iteration',itsd)
+!!$                 call yaml_map('Geometry Method','GEOPT_SD')
+!!$                 call yaml_map('etot',(/ outs%energy,outs%energy-etotprev /),fmt='(1pe21.14)')
+!!$                 call yaml_map('Forces', (/ fmax,sqrt(fnrm),fluct*runObj%inputs%frac_fluct,fluct /), fmt='(1pe10.2)')
+!!$                 call yaml_map('b/b0', beta/runObj%inputs%betax, fmt='(1pe8.2e1)')
+!!$                 call yaml_map('nsat',nsatur)
+!!$                 call geometry_output(fmax,fnrm,fluct)
+!!$              call yaml_mapping_close()
            end if
         end if
         etotprev=outs%energy
@@ -562,31 +550,11 @@ subroutine steepdes(runObj,outs,nproc,iproc,ncount_bigdft,fnrm,forcemax_sw,nitsd
         endif
 !        if (iproc == 0 .and. parmrunObj%inputs%verbosity > 0) write(16,*) 'beta=',beta
 
-
-        call vcopy(3 * runObj%atoms%astruct%nat, runObj%atoms%astruct%rxyz(1,1), 1, tpos(1,1), 1)
+        call f_memcpy(src=runObj%atoms%astruct%rxyz,dest=tpos)
+        !call vcopy(3 * runObj%atoms%astruct%nat, runObj%atoms%astruct%rxyz(1,1), 1, tpos(1,1), 1)
         !call atomic_axpy(at,rxyz,beta,ff,rxyz)
         call axpy(3 * runObj%atoms%astruct%nat,beta,outs%fxyz(1,1),1,runObj%atoms%astruct%rxyz(1,1),1)
 
-!!!        do iat=1,runObj%atoms%nat
-!!!           tpos(1,iat)=rxyz(1,iat)
-!!!           tpos(2,iat)=rxyz(2,iat)
-!!!           tpos(3,iat)=rxyz(3,iat)
-!!!           if ( .not. runObj%atoms%lfrztyp(iat)) then
-!!!              if (runObj%atoms%geocode == 'P') then
-!!!                 rxyz(1,iat)=modulo(rxyz(1,iat)+beta*ff(1,iat),runObj%atoms%alat1)
-!!!                 rxyz(2,iat)=modulo(rxyz(2,iat)+beta*ff(2,iat),runObj%atoms%alat2)
-!!!                 rxyz(3,iat)=modulo(rxyz(3,iat)+beta*ff(3,iat),runObj%atoms%alat3)
-!!!              else if (runObj%atoms%geocode == 'S') then
-!!!                 rxyz(1,iat)=modulo(rxyz(1,iat)+beta*ff(1,iat),runObj%atoms%alat1)
-!!!                 rxyz(2,iat)=rxyz(2,iat)+beta*ff(2,iat)
-!!!                 rxyz(3,iat)=modulo(rxyz(3,iat)+beta*ff(3,iat),runObj%atoms%alat3)
-!!!              else
-!!!                 rxyz(1,iat)=rxyz(1,iat)+beta*ff(1,iat)
-!!!                 rxyz(2,iat)=rxyz(2,iat)+beta*ff(2,iat)
-!!!                 rxyz(3,iat)=rxyz(3,iat)+beta*ff(3,iat)
-!!!              end if
-!!!           end if
-!!!        end do
      end do loop_sd
      exit redo_sd
   end do redo_sd
@@ -594,6 +562,7 @@ subroutine steepdes(runObj,outs,nproc,iproc,ncount_bigdft,fnrm,forcemax_sw,nitsd
   if (iproc == 0 .and. parmin%verbosity > 0) write(16,*) 'SD FINISHED',iproc
 
   call f_free(tpos)
+  call f_tree_free(f_info)
 
 END SUBROUTINE steepdes
 
@@ -622,6 +591,7 @@ subroutine vstepsd(runObj,outs,nproc,iproc,ncount_bigdft)
   integer :: check
   character(len=4) :: fn4
   character(len=40) :: comment
+  type(f_tree) :: f_info
 
   check=0
   etotprev=outs%energy
@@ -630,6 +600,8 @@ subroutine vstepsd(runObj,outs,nproc,iproc,ncount_bigdft)
 
   !n(c) anoise=1.e-4_gp
   fluct=0._gp
+
+  f_info=f_tree_new()
 
   beta=runObj%inputs%betax
   itsd=0
@@ -642,33 +614,26 @@ subroutine vstepsd(runObj,outs,nproc,iproc,ncount_bigdft)
         write(16,'(I5,1x,I5,2x,a10,2x,1pe21.14,2x,e9.2,1(1pe11.3),3(1pe10.2),2x,a,1pe8.2E1)') &
           & ncount_bigdft,itsd,"GEOPT_VSSD",outsold%energy,outsold%energy-etotprev,fmax,sqrt(fnrm), &
           & fluct*runObj%inputs%frac_fluct,fluct,"beta=",beta
-        call yaml_mapping_open('Geometry')
-           call yaml_map('Ncount_BigDFT',ncount_bigdft)
-           call yaml_map('Iteration',itsd)
-           call yaml_map('Geometry Method','GEOPT_VSSD')
-           call yaml_map('etotold',(/ outsold%energy,outsold%energy-etotprev /),fmt='(1pe21.14)')
-           call yaml_map('Forces', (/ fmax,sqrt(fnrm),fluct*runObj%inputs%frac_fluct,fluct /), fmt='(1pe10.2)')
-           call yaml_map('beta', beta, fmt='(1pe8.2e1)')
-        call yaml_mapping_close()
-        !if (parmrunObj%inputs%verbosity > 0)   write(* ,'(I5,1x,I5,2x,a10,2x,1pe21.14,2x,e9.2,1(1pe11.3),3(1pe10.2),2x,a,1pe8.2E1)') &
-        !&ncount_bigdft,itsd,"GEOPT_VSSD",etotold,etotold-etotprev,fmax,sqrt(fnrm),fluct*runObj%inputs%frac_fluct,fluct,"beta=",beta
+        call f_tree_push(f_info//'etotold',yaml_toa((/ outsold%energy,outsold%energy-etotprev /),fmt='(1pe21.14)'))
+        call f_tree_push(f_info//'Forces' ,yaml_toa( (/ fmax,sqrt(fnrm),fluct*runObj%inputs%frac_fluct,fluct /), fmt='(1pe10.2)'))
+        call f_tree_push(f_info//'beta'   ,yaml_toa( beta, fmt='(1pe8.2e1)'))
+        call geometry_output('GEOPT_VSSD',ncount_bigdft,itsd,fmax,fnrm,fluct,f_info)
+
+!!$        call yaml_mapping_open('Geometry')
+!!$           call yaml_map('Ncount_BigDFT',ncount_bigdft)
+!!$           call yaml_map('Iteration',itsd)
+!!$           call yaml_map('Geometry Method','GEOPT_VSSD')
+!!$           call yaml_map('etotold',(/ outsold%energy,outsold%energy-etotprev /),fmt='(1pe21.14)')
+!!$           call yaml_map('Forces', (/ fmax,sqrt(fnrm),fluct*runObj%inputs%frac_fluct,fluct /), fmt='(1pe10.2)')
+!!$           call yaml_map('beta', beta, fmt='(1pe8.2e1)')
+!!$        call yaml_mapping_close()
      end if
      etotprev=outsold%energy
-!!$     call transforce(at,ffold,sumx,sumy,sumz)                         
-!!$     write(*,'(a,1x,1pe24.17)') 'translational force along x=', sumx  
-!!$     write(*,'(a,1x,1pe24.17)') 'translational force along y=', sumy  
-!!$     write(*,'(a,1x,1pe24.17)') 'translational force along z=', sumz  
 
      write(fn4,'(i4.4)') ncount_bigdft
      write(comment,'(a,1pe10.3)')'Initial VSSD:fnrm= ',sqrt(fnrm)
      call bigdft_write_atomic_file(runObj,outsold,'posout_'//fn4,&
           trim(comment))
-!!$     call write_atomic_file(trim(runObj%inputs%dir_output)//'posout_'//fn4, &
-!!$          & outsold%energy,runObj%atoms%astruct%rxyz,runObj%atoms%astruct%ixyz_int,&
-!!$          runObj%atoms,trim(comment),&
-!!$          forces=outsold%fxyz)
-!     if (parmin%verbosity > 0) &
-!          & write(16,'(1x,e12.5,1x,e21.14,a,e10.3)')sqrt(fnrm),etotold,' GEOPT VSSD ',beta
   end if
 
   ncount_bigdft=ncount_bigdft+1
@@ -694,12 +659,6 @@ subroutine vstepsd(runObj,outs,nproc,iproc,ncount_bigdft)
   loop_ntsd: do itsd=1,nitsd
      runObj%inputs%inputPsiId=1
      call bigdft_state(runObj,outs,infocode)
-!!$     if (iproc == 0) then                                        
-!!$        call transforce(at,outs%fxyz,sumx,sumy,sumz)                         
-!!$        write(*,'(a,1x,1pe24.17)') 'translational force along x=', sumx  
-!!$        write(*,'(a,1x,1pe24.17)') 'translational force along y=', sumy  
-!!$        write(*,'(a,1x,1pe24.17)') 'translational force along z=', sumz  
-!!$     end if
      ncount_bigdft=ncount_bigdft+1
      fnrm=0.d0
      scpr=0.d0
@@ -707,8 +666,6 @@ subroutine vstepsd(runObj,outs,nproc,iproc,ncount_bigdft)
         fnrm=fnrm+outs%fxyz(1,iat)**2+outs%fxyz(2,iat)**2+outs%fxyz(3,iat)**2
         scpr=scpr+outsold%fxyz(1,iat)*outs%fxyz(1,iat)+outsold%fxyz(2,iat)*outs%fxyz(2,iat)+outsold%fxyz(3,iat)*outs%fxyz(3,iat)
      enddo
-!!$     call  atomic_dot(at,ff,ff,fnrm)
-!!$     call  atomic_dot(at,ff,ffold,scpr)
      curv=(fnrmold-scpr)/(beta*fnrmold)
      betalast=.5d0/curv
      if (betalast.gt.0.d0) betaxx=min(betaxx,1.5d0*betalast)
@@ -716,13 +673,13 @@ subroutine vstepsd(runObj,outs,nproc,iproc,ncount_bigdft)
      if (fmax < 3.d-1) call updatefluctsum(outs%fnoise,fluct) !n(m)
 !     if (iproc==0) write(16,'(1x,a,3(1x,1pe14.5))') 'fnrm2,fluct*frac_fluct,fluct',fnrm,fluct*runObj%inputs%frac_fluct,fluct
      call convcheck(fmax,fluct*runObj%inputs%frac_fluct, runObj%inputs%forcemax,check) !n(m)
+     call mpibarrier()
      if (check > 5) exit loop_ntsd
      if (ncount_bigdft >= runObj%inputs%ncount_cluster_x) then 
         if (iproc==0)  write(16,*) 'VSSD exited before the geometry optimization converged because more than ',& 
              runObj%inputs%ncount_cluster_x,' wavefunction optimizations were required'
         exit loop_ntsd
      endif
-
 
      if (outs%energy > outsold%energy) then
         !n(c) reset=.true.
@@ -747,11 +704,6 @@ subroutine vstepsd(runObj,outs,nproc,iproc,ncount_bigdft)
            write(comment,'(a,1pe10.3)')'VSSD:fnrm= ',sqrt(fnrm)
            call bigdft_write_atomic_file(runObj,outs,'posout_'//fn4,&
                 trim(comment))
-
-!!$           call write_atomic_file(trim(runObj%inputs%dir_output)//'posout_'//fn4, &
-!!$                & outs%energy,runObj%atoms%astruct%rxyz,runObj%atoms%astruct%ixyz_int,&
-!!$                runObj%atoms,trim(comment),&
-!!$                forces=outs%fxyz)
         endif
 
         do iat=1,runObj%atoms%astruct%nat
@@ -778,19 +730,21 @@ subroutine vstepsd(runObj,outs,nproc,iproc,ncount_bigdft)
      end if
 
      if (iproc == 0.and.parmin%verbosity > 0) then
-        call yaml_mapping_open('Geometry')
-           call yaml_map('Ncount_BigDFT',ncount_bigdft)
-           call yaml_map('Iteration',itsd)
-           call yaml_map('Geometry Method','GEOPT_VSSD')
-           call yaml_map('etot',(/ outs%energy,outs%energy-etotprev /),fmt='(1pe21.14)')
-           call yaml_map('Forces', (/ fmax,sqrt(fnrm),fluct*runObj%inputs%frac_fluct,fluct /), fmt='(1pe10.2)')
-           call yaml_map('beta', beta, fmt='(1pe8.2e1)')
-           call yaml_map('last beta', betalast, fmt='(1pe8.2e1)')
-           call geometry_output(fmax,fnrm,fluct)
-        call yaml_mapping_close()
-        !write(* ,'(I5,1x,I5,2x,a10,2x,1pe21.14,2x,e9.2,1(1pe11.3),3(1pe10.2),2x,a,1pe8.2E1,2x,a,1pe8.2E1)') &
-        !ncount_bigdft,itsd,"GEOPT_VSSD",etot,etot-etotprev,fmax,sqrt(fnrm),fluct*runObj%inputs%frac_fluct,fluct,& 
-        !&"beta=",beta,"last beta=",betalast
+        call f_tree_push(f_info//'etot',     yaml_toa((/ outs%energy,outs%energy-etotprev /),fmt='(1pe21.14)'))
+        call f_tree_push(f_info//'Forces' ,yaml_toa( (/ fmax,sqrt(fnrm),fluct*runObj%inputs%frac_fluct,fluct /), fmt='(1pe10.2)'))
+        call f_tree_push(f_info//'beta'   ,yaml_toa( beta, fmt='(1pe8.2e1)'))
+        call f_tree_push(f_info//'last beta',yaml_toa( betalast, fmt='(1pe8.2e1)'))
+        call geometry_output('GEOPT_VSSD',ncount_bigdft,itsd,fmax,fnrm,fluct,f_info)
+!!$        call yaml_mapping_open('Geometry')
+!!$           call yaml_map('Ncount_BigDFT',ncount_bigdft)
+!!$           call yaml_map('Iteration',itsd)
+!!$           call yaml_map('Geometry Method','GEOPT_VSSD')
+!!$           call yaml_map('etot',(/ outs%energy,outs%energy-etotprev /),fmt='(1pe21.14)')
+!!$           call yaml_map('Forces', (/ fmax,sqrt(fnrm),fluct*runObj%inputs%frac_fluct,fluct /), fmt='(1pe10.2)')
+!!$           call yaml_map('beta', beta, fmt='(1pe8.2e1)')
+!!$           call yaml_map('last beta', betalast, fmt='(1pe8.2e1)')
+!!$           call geometry_output(fmax,fnrm,fluct)
+!!$        call yaml_mapping_close()
     end if
 
     etotprev=outs%energy
@@ -798,7 +752,6 @@ subroutine vstepsd(runObj,outs,nproc,iproc,ncount_bigdft)
      if(iproc==0)call timeleft(tt)
      call MPI_BCAST(tt,1,MPI_DOUBLE_PRECISION,0,bigdft_mpi%mpi_comm,i_stat)
      if(tt<0) exit loop_ntsd
-
 
   enddo loop_ntsd
 
@@ -808,19 +761,22 @@ subroutine vstepsd(runObj,outs,nproc,iproc,ncount_bigdft)
        "beta=",beta,"last beta=",betalast
 
   if (iproc == 0.and.parmin%verbosity > 0) then
-     call yaml_mapping_open('Geometry')
-        call yaml_map('Ncount_BigDFT',ncount_bigdft)
-        call yaml_map('Iteration',itsd)
-        call yaml_map('Geometry Method','GEOPT_VSSD')
-        call yaml_map('etot',(/ outs%energy,outs%energy-etotprev /),fmt='(1pe21.14)')
-        call yaml_map('Forces', (/ fmax,sqrt(fnrm),fluct*runObj%inputs%frac_fluct,fluct /), fmt='(1pe10.2)')
-        call yaml_map('beta', beta, fmt='(1pe8.2e1)')
-        call yaml_map('last beta', betalast, fmt='(1pe8.2e1)')
-        call geometry_output(fmax,fnrm,fluct)
-     call yaml_mapping_close()
-     !write(* ,'(I5,1x,I5,2x,a10,2x,1pe21.14,2x,e9.2,1(1pe11.3),3(1pe10.2),2x,a,1pe8.2E1,2x,a,1pe8.2E1)') &
-     !&ncount_bigdft,itsd,"GEOPT_VSSD",etot,etot-etotprev,fmax,sqrt(fnrm),fluct*runObj%inputs%frac_fluct,fluct,& 
-     !&"beta=",beta,"last beta=",betalast
+     call f_tree_push(f_info//'etot',     yaml_toa((/ outs%energy,outs%energy-etotprev /),fmt='(1pe21.14)'))
+     call f_tree_push(f_info//'Forces' ,yaml_toa( (/ fmax,sqrt(fnrm),fluct*runObj%inputs%frac_fluct,fluct /), fmt='(1pe10.2)'))
+     call f_tree_push(f_info//'beta'   ,yaml_toa( beta, fmt='(1pe8.2e1)'))
+     call f_tree_push(f_info//'last beta',yaml_toa( betalast, fmt='(1pe8.2e1)'))
+     call geometry_output('GEOPT_VSSD',ncount_bigdft,itsd,fmax,fnrm,fluct,f_info)
+
+!!$     call yaml_mapping_open('Geometry')
+!!$        call yaml_map('Ncount_BigDFT',ncount_bigdft)
+!!$        call yaml_map('Iteration',itsd)
+!!$        call yaml_map('Geometry Method','GEOPT_VSSD')
+!!$        call yaml_map('etot',(/ outs%energy,outs%energy-etotprev /),fmt='(1pe21.14)')
+!!$        call yaml_map('Forces', (/ fmax,sqrt(fnrm),fluct*runObj%inputs%frac_fluct,fluct /), fmt='(1pe10.2)')
+!!$        call yaml_map('beta', beta, fmt='(1pe8.2e1)')
+!!$        call yaml_map('last beta', betalast, fmt='(1pe8.2e1)')
+!!$        call geometry_output(fmax,fnrm,fluct)
+!!$     call yaml_mapping_close()
   end if
 
   if (iproc == 0 .and. itsd == nitsd+1) &
@@ -834,14 +790,10 @@ subroutine vstepsd(runObj,outs,nproc,iproc,ncount_bigdft)
      write(comment,'(a,1pe10.3)')'VSSD:fnrm= ',sqrt(fnrm)
      call bigdft_write_atomic_file(runObj,outs,'posout_'//fn4,&
           trim(comment))
-!!$     call write_atomic_file(trim(runObj%inputs%dir_output)//'posout_'//fn4, &
-!!$          & outs%energy,runObj%atoms%astruct%rxyz,runObj%atoms%astruct%ixyz_int,&
-!!$          runObj%atoms,trim(comment),&
-!!$          forces=outs%fxyz)
   endif
-
 
   call f_free(posold)
   call deallocate_state_properties(outsold)
+  call f_tree_free(f_info)
 
 END SUBROUTINE vstepsd

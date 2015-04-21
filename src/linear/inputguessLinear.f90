@@ -23,7 +23,7 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
   use yaml_output
   use sparsematrix_base, only: sparse_matrix, sparse_matrix_null, deallocate_sparse_matrix, &
                                sparsematrix_malloc, assignment(=), SPARSE_FULL
-  use sparsematrix_init, only: matrixindex_in_compressed, matrixindex_in_compressed2
+  use sparsematrix_init, only: matrixindex_in_compressed
   use sparsematrix, only: gather_matrix_from_taskgroups_inplace, extract_taskgroup_inplace
   use communications_base, only: work_transpose, &
                                  work_transpose_null, allocate_work_transpose, deallocate_work_transpose
@@ -599,7 +599,7 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
   !!        !end if
   !!    end do
   !!end do
-  call updatePotential(input%nspin,denspot,energs%eh,energs%exc,energs%evxc)
+  call updatePotential(input%nspin,denspot,energs)!%eh,energs%exc,energs%evxc)
 
   !write(9000+iproc,*) denspot%rhov
   !read(9000+iproc,*) denspot%rhov(1:denspot%dpbox%ndimpot*input%nspin)
@@ -832,7 +832,7 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
           can_use_ham, order_taylor, input%lin%max_inversion_error, input%kappa_conv, input%method_updatekernel,&
           input%purification_quickreturn, input%correction_co_contra, &
           precond_convol_workarrays, precond_workarrays, &
-          wt_philarge, wt_hpsinoprecond, wt_hphi, wt_phi, fnrm_work, energs_work)
+          wt_philarge, wt_hpsinoprecond, wt_hphi, wt_phi, fnrm_work, energs_work, input%lin%fragment_calculation)
      call deallocate_work_mpiaccumulate(fnrm_work)
      call deallocate_precond_arrays(tmb%orbs, tmb%lzd, precond_convol_workarrays, precond_workarrays)
      call deallocate_work_transpose(wt_philarge)
@@ -985,7 +985,7 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
       pnrm=pnrm*sqrt(real(denspot%mix%nspden,kind=8))
   end if
   if (iproc==0) call yaml_newline()
-  call updatePotential(input%nspin,denspot,energs%eh,energs%exc,energs%evxc)
+  call updatePotential(input%nspin,denspot,energs)!%eh,energs%exc,energs%evxc)
   if(iproc==0) call yaml_mapping_close()
   ! Mix the potential.
   if (input%lin%scf_mode==LINEAR_MIXPOT_SIMPLE) then

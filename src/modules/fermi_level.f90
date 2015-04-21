@@ -94,6 +94,7 @@ module fermi_level
 
 
     subroutine determine_fermi_level(f, sumn, ef, info)
+      use foe_common, only: get_roots_of_cubic_polynomial, determinant
       use yaml_output
       implicit none
 
@@ -219,7 +220,7 @@ module fermi_level
         subroutine determine_new_fermi_level()
           implicit none
           integer :: info, i, ii
-          real(kind=8) :: determinant, m, b, ef_interpol, det
+          real(kind=8) :: m, b, ef_interpol, det
           real(kind=8),dimension(4,4) :: tmp_matrix
           real(kind=8),dimension(4) :: interpol_solution
           integer,dimension(4) :: ipiv

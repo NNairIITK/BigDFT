@@ -96,7 +96,8 @@ END PROGRAM abscalc_main
 !> Routines to use abscalc as a blackbox
 subroutine call_abscalc(nproc,iproc,runObj,energy,fxyz,infocode)
    use module_base
-   use module_types, only: input_variables,deallocate_wfd,atoms_data
+   use locregs, only: deallocate_locreg_descriptors
+   use module_types, only: input_variables,atoms_data
    use module_interfaces
    use bigdft_run
    use module_atoms, only: astruct_dump_to_file
@@ -133,7 +134,7 @@ subroutine call_abscalc(nproc,iproc,runObj,energy,fxyz,infocode)
          call f_free_ptr(runObj%rst%KSwfn%orbs%eval)
          nullify(runObj%rst%KSwfn%orbs%eval)
 
-        call deallocate_wfd(runObj%rst%KSwfn%Lzd%Glr%wfd)
+        call deallocate_locreg_descriptors(runObj%rst%KSwfn%Lzd%Glr)
       end if
 
       if(.not. runObj%inputs%c_absorbtion) then 
@@ -175,7 +176,7 @@ subroutine call_abscalc(nproc,iproc,runObj,energy,fxyz,infocode)
          call f_free_ptr(runObj%rst%KSwfn%orbs%eval)
          nullify(runObj%rst%KSwfn%orbs%eval)
 
-        call deallocate_wfd(runObj%rst%KSwfn%Lzd%Glr%wfd)
+        call deallocate_locreg_descriptors(runObj%rst%KSwfn%Lzd%Glr)
 
         !test if stderr works
         write(0,*)'unnormal end'
@@ -192,7 +193,7 @@ subroutine call_abscalc(nproc,iproc,runObj,energy,fxyz,infocode)
    runObj%inputs%inputPsiId=inputPsiId_orig
 
    !put a barrier for all the processes
-   call MPI_BARRIER(MPI_COMM_WORLD,ierr)
+   call mpibarrier()!MPI_COMM_WORLD,ierr)
 
 END SUBROUTINE call_abscalc
 
@@ -265,7 +266,7 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
    !real(kind=8), dimension(:,:), allocatable :: gxyz
    real(gp), dimension(:,:),pointer :: fdisp,fion
    ! Charge density/potential,ionic potential, pkernel
-   real(kind=8), dimension(:), allocatable :: pot_ion
+   real(kind=8), dimension(:), allocatable :: pot_ion,rho_ion
 
    real(kind=8), dimension(:,:,:,:), allocatable, target :: rhopot, rhopotTOTO, rhoXanes
    real(kind=8), dimension(:,:,:,:), pointer ::  rhopottmp, rhopotExtra, rhotarget
@@ -489,6 +490,7 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
    else
       pot_ion = f_malloc(1,id='pot_ion')
    end if
+   rho_ion = f_malloc(1,id='rho_ion')
 
    !calculation of the Poisson kernel anticipated to reduce memory peak for small systems
    ndegree_ip=16 !default value
@@ -533,7 +535,7 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
         n1,n2,n3,pot_ion,pkernel,psoffset)
 
    call createIonicPotential(atoms%astruct%geocode,iproc,nproc, (iproc == 0), atoms,rxyz,hxh,hyh,hzh,&
-        in%elecfield,n1,n2,n3,dpcom%n3pi,dpcom%i3s+dpcom%i3xcsh,n1i,n2i,n3i,pkernel,pot_ion,psoffset)
+        in%elecfield,n1,n2,n3,dpcom%n3pi,dpcom%i3s+dpcom%i3xcsh,n1i,n2i,n3i,pkernel,pot_ion,rho_ion,psoffset)
 
 
    !Allocate Charge density, Potential in real space
@@ -694,6 +696,7 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
    nullify(psit)
 
    call f_free(pot_ion)
+   call f_free(rho_ion)
 
    call pkernel_free(pkernel)
 !!$   i_all=-product(shape(pkernel))*kind(pkernel)
@@ -1113,53 +1116,13 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
    !routine which deallocate the pointers and the arrays before exiting 
    subroutine deallocate_before_exiting
      use communications_base, only: deallocate_comms
-     use locregs, only: deallocate_convolutions_bounds
+     !use locregs, only: deallocate_convolutions_bounds
      implicit none
      external :: gather_timings
       !when this condition is verified we are in the middle of the SCF cycle
 
       !! if (infocode /=0 .and. infocode /=1) then
       if (.true.) then
-
-         !!$       if (idsx_actual > 0) then
-         !!$          i_all=-product(shape(psidst))*kind(psidst)
-         !!$          deallocate(psidst,stat=i_stat)
-         !!$          call memocc(i_stat,i_all,'psidst',subname)
-         !!$          i_all=-product(shape(hpsidst))*kind(hpsidst)
-         !!$          deallocate(hpsidst,stat=i_stat)
-         !!$          call memocc(i_stat,i_all,'hpsidst',subname)
-         !!$          i_all=-product(shape(ads))*kind(ads)
-         !!$          deallocate(ads,stat=i_stat)
-         !!$          call memocc(i_stat,i_all,'ads',subname)
-         !!$       end if
-
-         !!$       if (nproc > 1) then
-         !!$          i_all=-product(shape(psit))*kind(psit)
-         !!$          deallocate(psit,stat=i_stat)
-         !!$          call memocc(i_stat,i_all,'psit',subname)
-         !!$       end if
-         !!$       
-         !!$       i_all=-product(shape(hpsi))*kind(hpsi)
-         !!$       deallocate(hpsi,stat=i_stat)
-         !!$       call memocc(i_stat,i_all,'hpsi',subname)
-
-
-
-
-         !!$       i_all=-product(shape(pot_ion))*kind(pot_ion)
-         !!$       deallocate(pot_ion,stat=i_stat)
-         !!$       call memocc(i_stat,i_all,'pot_ion',subname)
-         !!$       
-         !!$       i_all=-product(shape(pkernel))*kind(pkernel)
-         !!$       deallocate(pkernel,stat=i_stat)
-         !!$       call memocc(i_stat,i_all,'pkernel',subname)
-         !!$
-
-         !!$       if (in%read_ref_den) then
-         !!$          i_all=-product(shape(pkernel_ref))*kind(pkernel_ref)
-         !!$          deallocate(pkernel_ref,stat=i_stat)
-         !!$          call memocc(i_stat,i_all,'pkernel_ref',subname)
-         !!$       end if
 
          ! calc_tail false
          call f_free(rhopot)
@@ -1169,12 +1132,6 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
          endif
 
          call f_free(rhoXanes)
-
-         !!$       if (in%read_ref_den) then
-         !!$          i_all=-product(shape(rhoref))*kind(rhoref)
-         !!$          deallocate(rhoref,stat=i_stat)
-         !!$          call memocc(i_stat,i_all,'rhoref',subname)
-         !!$       end if
 
          call f_free_ptr(dpcom%nscatterarr)
 
@@ -1195,7 +1152,7 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
       end if
 
       !De-allocations
-      call deallocate_convolutions_bounds(KSwfn%Lzd%Glr%bounds)
+      !call deallocate_convolutions_bounds(KSwfn%Lzd%Glr%bounds)
       call deallocate_Lzd_except_Glr(KSwfn%Lzd)
 !      i_all=-product(shape(Lzd%Glr%projflg))*kind(Lzd%Glr%projflg)
 !      deallocate(Lzd%Glr%projflg,stat=i_stat)
@@ -1547,7 +1504,7 @@ subroutine extract_potential_for_spectra(iproc,nproc,at,rhod,dpcom,&
    type(gaussian_basis), intent(out) :: G !basis for davidson IG
    real(wp), dimension(:), pointer :: psi
    real(wp), dimension(:,:,:,:), pointer :: rhocore
-   type(coulomb_operator), intent(in) :: pkernel
+   type(coulomb_operator), intent(inout) :: pkernel
    type(xc_info) :: xc
    integer, intent(in) ::potshortcut
 

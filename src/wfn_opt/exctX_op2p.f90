@@ -32,7 +32,7 @@ contains
   subroutine OP2P_exctx_set(OP2P,orbs_ext,pkernel_ext)
     implicit none
     type(OP2P_descriptors), intent(inout) :: OP2P
-    type(coulomb_operator), intent(in), target :: pkernel_ext
+    type(coulomb_operator), intent(inout), target :: pkernel_ext
     type(orbitals_data), intent(in), target :: orbs_ext
 
     pkernel => pkernel_ext
@@ -270,7 +270,7 @@ subroutine exact_exchange_potential_op2p(iproc,nproc,xc,lr,orbs,pkernel,psi,dpsi
   type(locreg_descriptors), intent(in) :: lr
   type(orbitals_data), intent(in) :: orbs
   real(wp), dimension(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,orbs%nspinor,orbs%norbp), intent(in) :: psi !> wavefunctions in wavelet form
-  type(coulomb_operator), intent(in) :: pkernel !> Poisson Solver kernel, sequential in this case
+  type(coulomb_operator), intent(inout) :: pkernel !> Poisson Solver kernel, sequential in this case
   real(gp), intent(out) :: eexctX !> exact exchange energy
   real(wp), dimension(lr%d%n1i*lr%d%n2i*lr%d%n3i,orbs%norbp), intent(out) :: dpsir !>Fock operator applied on the real-space wavefunctions
   !local variables
@@ -306,7 +306,7 @@ subroutine exact_exchange_potential_op2p(iproc,nproc,xc,lr,orbs,pkernel,psi,dpsi
   !recuperate the exctX energy and purge allocated variables
   call OP2P_exctx_clear(OP2P,eexctX)
 
-  if (nproc>1) call mpiallred(eexctX,1,MPI_SUM,bigdft_mpi%mpi_comm)
+  if (nproc>1) call mpiallred(eexctX,1,MPI_SUM,comm=bigdft_mpi%mpi_comm)
 
   exctXfac = xc_exctXfac(xc)
   eexctX=-exctXfac*eexctX

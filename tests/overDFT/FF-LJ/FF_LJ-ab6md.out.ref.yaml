@@ -1,0 +1,226 @@
+---
+ Code logo:
+   "__________________________________ A fast and precise DFT wavelet code
+   |     |     |     |     |     |
+   |     |     |     |     |     |      BBBB         i       gggggg
+   |_____|_____|_____|_____|_____|     B    B               g
+   |     |  :  |  :  |     |     |    B     B        i     g
+   |     |-0+--|-0+--|     |     |    B    B         i     g        g
+   |_____|__:__|__:__|_____|_____|___ BBBBB          i     g         g
+   |  :  |     |     |  :  |     |    B    B         i     g         g
+   |--+0-|     |     |-0+--|     |    B     B     iiii     g         g
+   |__:__|_____|_____|__:__|_____|    B     B        i      g        g
+   |     |  :  |  :  |     |     |    B BBBB        i        g      g
+   |     |-0+--|-0+--|     |     |    B        iiiii          gggggg
+   |_____|__:__|__:__|_____|_____|__BBBBB
+   |     |     |     |  :  |     |                           TTTTTTTTT
+   |     |     |     |--+0-|     |  DDDDDD          FFFFF        T
+   |_____|_____|_____|__:__|_____| D      D        F        TTTT T
+   |     |     |     |  :  |     |D        D      F        T     T
+   |     |     |     |--+0-|     |D         D     FFFF     T     T
+   |_____|_____|_____|__:__|_____|D___      D     F         T    T
+   |     |     |  :  |     |     |D         D     F          TTTTT
+   |     |     |--+0-|     |     | D        D     F         T    T
+   |_____|_____|__:__|_____|_____|          D     F        T     T
+   |     |     |     |     |     |         D               T    T
+   |     |     |     |     |     |   DDDDDD       F         TTTT
+   |_____|_____|_____|_____|_____|______                    www.bigdft.org   "
+
+ Reference Paper                       : The Journal of Chemical Physics 129, 014109 (2008)
+ Version Number                        : 1.7.6.6
+ Timestamp of this run                 : 2015-03-27 10:53:57.727
+ Root process Hostname                 : athelas
+ Number of MPI tasks                   :  2
+ OpenMP parallelization                :  Yes
+ Maximal OpenMP threads per MPI task   :  2
+ MPI tasks of root process node        :  2
+  #------------------------------------------------------------------ Code compiling options
+ Compilation options:
+   Configure arguments:
+     " 'FCFLAGS=-O2 -fopenmp -g -fbounds-check -fbacktrace 
+     -ffpe-trap=invalid,zero,overflow,denormal' 
+     '--with-ext-linalg=-L/opt/intel/composer_xe_2013.1.117/mkl/lib/intel64 
+     -L/opt/intel/composer_xe_2013.1.117/compiler/lib/intel64 -lmkl_rt -liomp5 -lm' 
+     'CFLAGS=-O2 -fopenmp' 'CC=mpicc.openmpi' 'CXX=mpicxx.openmpi' 'FC=mpif90.openmpi' 
+     'F77=mpif77.openmpi' '--with-blas=no' '--with-lapack=no'"
+
+   Compilers (CC, FC, CXX)             :  [ mpicc.openmpi, mpif90.openmpi, mpicxx.openmpi ]
+   Compiler flags:
+     CFLAGS                            : -O2 -fopenmp
+                                        
+     FCFLAGS:
+       -O2 -fopenmp -g -fbounds-check -fbacktrace -ffpe-trap=invalid,zero,overflow,denormal
+     CXXFLAGS                          : -g -O2
+  #WARNING: geopt/betax is not allowed in this context.
+  #------------------------------------------------------------------------ Input parameters
+ radical                               : LJ-ab6md
+ outdir                                : ./
+ logfile                               : Yes
+ run_from_files                        : Yes
+ mode:
+   method                              : lj #     Run method of BigDFT call
+   mm_paramset                         : default # Name of the hard-coded parameter set. Must be compatible to the chosen force field.
+   mm_paramfile                        : none #   name of parameter file
+ geopt:
+   method                              : AB6MD #  Geometry optimisation method
+   ncount_cluster_x                    : 500 #    Maximum number of force evaluations
+   frac_fluct                          : 0.0 #    Fraction of force fluctuations. Stop if fmax < forces_fluct*frac_fluct
+   forcemax                            : 1.0E-3 # Max forces criterion when stop
+   betax                               : 1.0E-3
+   dtion                               : 1.0E-2 # Time step - Atomic Units (20.670689 AU=0.5 fs)
+   randdis                             : 0. #     Random displacement amplitude
+   ionmov                              : 6 #      Movement ion method
+   mditemp                             : 300. #   Temperature of molecular dynamics
+ posinp:
+   positions:
+   - LJ: [-2.9389518104801747E-003, -7.846637254470154E-002, -0.1104684013727375]
+   - LJ: [-3.5339654118662746E-003, -5.2323602430534421E-003, 1.005782882376979]
+   - LJ: [0.2478892936529572, -0.9132058312006248, 0.4742083983359983]
+   - LJ: [-0.774774295364753, -0.5382654333058956, 0.4748011107904337]
+   - LJ: [-0.7355641410713598, 0.5395574646796022, 0.4088889088703319]
+   - LJ: [0.3070151014162374, 0.8392445948446029, 0.3899534740811968]
+   - LJ: [0.9146732773779529, -5.257729770228188E-002, 0.4439403839386067]
+   - LJ: [-0.8192464740556027, -1.079771005740482, -0.4407255114842359]
+   - LJ: [-0.9808547500746307, 1.1710382851751324E-002, -0.5443415825254738]
+   - LJ: [-0.2841005372477651, 0.8728557338627373, -0.5606640113996139]
+   - LJ: [0.7633864602868988, 0.5121242369105163, -0.5757646386072652]
+   - LJ: [1.211258298274715, -0.4970351445811421, -0.4769038607367634]
+   - LJ: [-3.176520194327781E-002, -4.560307031177404E-002, -1.180466368662702]
+   - LJ: [6.9154451252788325E-003, 2.8096725691109218E-002, 2.108960112109934]
+   - LJ: [0.2676111961423556, -0.9132350581285937, 1.56377452011333]
+   - LJ: [-0.7914635353545764, -0.5277759801080176, 1.565988516990445]
+   - LJ: [-0.7515641090271062, 0.5939339263080183, 1.515950792332507]
+   - LJ: [0.3288510980465937, 0.9045518905946425, 1.49634433640746]
+   - LJ: [0.9598204352214776, -2.4287654860161139E-002, 1.53410912377294]
+   - LJ: [1.220635943295054, -0.9627778787779802, 0.9714052982604325]
+   - LJ: [0.5239809872582188, -1.842853436373277, 0.9650277094002435]
+   - LJ: [-0.5328753825208348, -1.466930134573549, 1.003153512944695]
+   - LJ: [-1.580018092592139, -1.075266549044689, 0.9812693673761494]
+   - LJ: [-1.553068216080037, 4.6447564400094378E-002, 0.9646933886907024]
+   - LJ: [-1.499708483928552, 1.160896652511388, 0.9252519954051598]
+   - LJ: [-0.4296489595696282, 1.470596716237427, 0.903837905168876]
+   - LJ: [0.6416550687636232, 1.776412282226643, 0.8863456682018116]
+   - LJ: [1.279698864028365, 0.8607761082949934, 0.913235118354891]
+   - LJ: [1.89859682526577, -7.5265885969337559E-002, 0.9181510440895526]
+   - LJ: [1.016484801784717, -1.500925072373482, 1.1853870738495014E-003]
+   - LJ: [0.2519270599806615, -0.9946830731631207, -0.6401878027878054]
+   - LJ: [-0.1066556352081414, -1.823498942568663, 2.1176548337658283E-002]
+   - LJ: [-1.756027781869396, -0.535418184275641, 1.4273186143427962E-002]
+   - LJ: [-1.745173851541197, 0.5909419684622135, 3.3804080108061223E-004]
+   - LJ: [-1.038734893656594, 1.484802522614631, -3.9058111012909791E-002]
+   - LJ: [4.6960944631207813E-002, 1.79708925409458, -5.8619278941656874E-002]
+   - LJ: [1.120837517513499, 1.414622996013542, -5.1908139220799857E-002]
+   - LJ: [1.729008907226007, 0.4664651252169732, -4.8745804521419203E-002]
+   properties:
+     format                            : xyz
+     source                            : LJ-ab6md
+ psppar.LJ:
+   Pseudopotential type                : HGH
+   Atomic number                       : 12
+   No. of Electrons                    : 2
+   Pseudopotential XC                  : 1
+   Local Pseudo Potential (HGH convention):
+     Rloc                              : 0.6518119999999999
+     Coefficients (c1 .. c4): [-2.864297, 0.0, 0.0, 0.0]
+   NonLocal PSP Parameters:
+   - Channel (l)                       : 0
+     Rloc                              : 0.556478
+     h_ij terms: [2.970957, 1.329941, 0.0, 0.0, 0.0, 0.0]
+   - Channel (l)                       : 1
+     Rloc                              : 0.677569
+     h_ij terms: [1.049881, 0.0, 0.0, 0.0, 0.0, 0.0]
+   PAW patch                           : No
+   Source                              : psppar.LJ
+   Radii of active regions (AU):
+     Coarse                            : 1.688250099201262
+     Fine                              : 0.556478
+     Coarse PSP                        : 1.055156312000789
+     Source                            : Hard-Coded
+ dft:
+   disablesym                          : Yes #    Disable the symmetry detection
+   hgrids: [0.45, 0.45, 0.45] #                   Grid spacing in the three directions (bohr)
+   rmult: [5., 8.] #                              c(f)rmult*radii_cf(:,1(2))=coarse(fine) atom-based radius
+   ixc                                 : 1 #      Exchange-correlation parameter (LDA=1,PBE=11)
+   qcharge                             : 0 #      Charge of the system. Can be integer or real.
+   elecfield: [0., 0., 0.] #                      Electric field (Ex,Ey,Ez)
+   nspin                               : 1 #      Spin polarization treatment
+   mpol                                : 0 #      Total magnetic moment
+   gnrm_cv                             : 1.e-4 #  convergence criterion gradient
+   itermax                             : 50 #     Max. iterations of wfn. opt. steps
+   itermin                             : 0 #      Min. iterations of wfn. opt. steps
+   nrepmax                             : 1 #      Max. number of re-diag. runs
+   ncong                               : 6 #      No. of CG it. for preconditioning eq.
+   idsx                                : 6 #      Wfn. diis history
+   dispersion                          : 0 #      Dispersion correction potential (values 1,2,3,4,5), 0=none
+   inputpsiid                          : 0 #      Input guess wavefunctions
+   output_wf                           : 0 #      Output of the support functions
+   output_denspot                      : 0 #      Output of the density or the potential
+   rbuf                                : 0. #     Length of the tail (AU)
+   ncongt                              : 30 #     No. of tail CG iterations
+   norbv                               : 0 #      Davidson subspace dimension (No. virtual orbitals)
+   nvirt                               : 0 #      No. of virtual orbs
+   nplot                               : 0 #      No. of plotted orbs
+ perf:
+   debug                               : No #     Debug option
+   fftcache                            : 8192 #   Cache size for the FFT
+   accel                               : NO #     Acceleration (hardware)
+   ocl_platform                        : ~ #      Chosen OCL platform
+   ocl_devices                         : ~ #      Chosen OCL devices
+   blas                                : No #     CUBLAS acceleration
+   projrad                             : 15. #    Radius of the projector as a function of the maxrad
+   exctxpar                            : OP2P #   Exact exchange parallelisation scheme
+   ig_diag                             : Yes #    Input guess (T=Direct, F=Iterative) diag. of Ham.
+   ig_norbp                            : 5 #      Input guess Orbitals per process for iterative diag.
+   ig_blocks: [300, 800] #                        Input guess Block sizes for orthonormalisation
+   ig_tol                              : 1.0e-4 # Input guess Tolerance criterion
+   methortho                           : 0 #      Orthogonalisation
+   rho_commun                          : DEF #    Density communication scheme (DBL, RSC, MIX)
+   psolver_groupsize                   : 0 #      Size of Poisson Solver taskgroups (0=nproc)
+   psolver_accel                       : 0 #      Acceleration of the Poisson Solver (0=none, 1=CUDA)
+   unblock_comms                       : OFF #    Overlap Communications of fields (OFF,DEN,POT)
+   linear                              : OFF #    Linear Input Guess approach
+   tolsym                              : 1.0e-8 # Tolerance for symmetry detection
+   signaling                           : No #     Expose calculation results on Network
+   signaltimeout                       : 0 #      Time out on startup for signal connection (in seconds)
+   domain                              : ~ #      Domain to add to the hostname to find the IP
+   inguess_geopt                       : 0 #      Input guess to be used during the optimization
+   store_index                         : Yes #    Store indices or recalculate them for linear scaling
+   verbosity                           : 2 #      Verbosity of the output
+   psp_onfly                           : Yes #    Calculate pseudopotential projectors on the fly
+   multipole_preserving                : No #     (EXPERIMENTAL) Preserve the multipole moment of the ionic density
+   mp_isf                              : 16 #     (EXPERIMENTAL) Interpolating scalig function order for the multipole preserving
+   pdsyev_blocksize                    : -8 #     SCALAPACK linear scaling blocksize
+   pdgemm_blocksize                    : -8 #     SCALAPACK linear scaling blocksize
+   maxproc_pdsyev                      : 4 #      SCALAPACK linear scaling max num procs
+   maxproc_pdgemm                      : 4 #      SCALAPACK linear scaling max num procs
+   ef_interpol_det                     : 1.e-12 # FOE max determinant of cubic interpolation matrix
+   ef_interpol_chargediff              : 10. #    FOE max charge difference for interpolation
+   mixing_after_inputguess             : 1 #      Mixing step after linear input gues
+   iterative_orthogonalization         : No #     Iterative_orthogonalization for input guess orbitals
+   check_sumrho                        : 2 #      Enables linear sumrho check
+   check_overlap                       : 2 #      Enables linear overlap check
+   experimental_mode                   : No #     Activate the experimental mode in linear scaling
+   write_orbitals                      : 0 #      Linear scaling write KS orbitals for cubic restart (might take lot of disk space!)
+   explicit_locregcenters              : No #     Linear scaling explicitely specify localization centers
+   calculate_KS_residue                : Yes #    Linear scaling calculate Kohn-Sham residue
+   intermediate_forces                 : No #     Linear scaling calculate intermediate forces
+   kappa_conv                          : 0.1 #    Exit kappa for extended input guess (experimental mode)
+   evbounds_nsatur                     : 3 #      Number of FOE cycles before the eigenvalue bounds are shrinked (linear)
+   evboundsshrink_nsatur               : 4 #      maximal number of unsuccessful eigenvalue bounds shrinkings
+   method_updatekernel                 : 0 #      linear scaling update density kernel during the sup. func. optimization (0 
+    #                                              purification, 1 FOE, 2 renormalization)
+   purification_quickreturn            : No #     linear scaling quick return in purification
+   adjust_FOE_temperature              : Yes #    linear scaling dynamic adjustment of the decay length of the FOE error function
+   calculate_gap                       : No #     linear scaling calculate the HOMO LUMO gap
+   loewdin_charge_analysis             : No #     linear scaling perform a Loewdin charge analysis at the end of the calculation
+   check_matrix_compression            : Yes #    linear scaling perform a check of the matrix compression routines
+   correction_co_contra                : No #     linear scaling correction covariant / contravariant gradient
+   fscale_lowerbound                   : 5.e-3 #  linear scaling lower bound for the error function decay length
+   fscale_upperbound                   : 5.e-2 #  linear scaling upper bound for the error function decay length
+   FOE_restart                         : 0 #      Restart method to be used for the FOE method
+   imethod_overlap                     : 1 #      method to calculate the overlap matrices (1=old, 2=new)
+   enable_matrix_taskgroups            : True #   enable the matrix taskgroups
+   hamapp_radius_incr                  : 8 #      radius enlargement for the Hamiltonian application (in grid points)
+   adjust_kernel_iterations            : True #   enable the addaptive ajustment of the number of kernel iterations
+   wf_extent_analysis                  : False #  perform an analysis of the extent of the support functions (and possibly KS orbitals)
+ kpt:

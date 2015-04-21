@@ -183,7 +183,7 @@ program test_forces
             !write(*,"('path iter:',i3,'   -F.dr=',e13.5,'    path integral=',e13.5 )") ipath,-fdr, path 
             
             !Print atomic forces
-            call write_forces(runObj%atoms,outs%fxyz)
+            call write_forces(bigdft_get_astruct_ptr(runObj),outs%fxyz)
          end if
       end do !loop over ipath
 

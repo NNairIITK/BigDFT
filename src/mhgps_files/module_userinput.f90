@@ -1,7 +1,7 @@
 !! @file
 !! @author Bastian Schaefer
 !! @section LICENCE
-!!    Copyright (C) 2014 BigDFT group
+!!    Copyright (C) 2015-2015 BigDFT group
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
@@ -214,6 +214,7 @@ contains
             read(u,*)uinp%saddle_cutoffratio
             read(u,*)uinp%saddle_recompIfCurvPos
             read(u,*)uinp%saddle_stepoff, uinp%saddle_scale_stepoff
+            uinp%saddle_scale_stepoff = abs(uinp%saddle_scale_stepoff)
             if(.not.uinp%external_mini)then
                 read(u,*)uinp%mini_nhistx
                 read(u,*)uinp%mini_ncluster_x

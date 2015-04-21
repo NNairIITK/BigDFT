@@ -24,18 +24,19 @@ program yaml_test
    character(len=isize), parameter :: TREES              ='trees'
    character(len=isize), parameter :: TREES_EXTRAS       ='trees_extras'
    character(len=isize), parameter :: ALLOCATIONS        ='allocations'
-   character(len=isize), dimension(7), parameter :: FUNCTIONALITIES=&
+   character(len=isize), parameter :: UTILS              ='utils'
+   character(len=isize), dimension(8), parameter :: FUNCTIONALITIES=&
         [ YAML               ,&
           YAML_EXTRAS        ,&
           YAML_PARSER        ,&
           EXCEPTIONS         ,&
-          TREES       ,&
-          TREES_EXTRAS,&
+          TREES              ,&
+          TREES_EXTRAS       ,&
+          UTILS              ,&
           ALLOCATIONS        ]
    
    type(dictionary), pointer :: dict_tmp,run
    type(yaml_cl_parse) :: parser
-   double precision :: t0
 
    call f_lib_initialize()
    !test output level
@@ -158,6 +159,12 @@ program yaml_test
       call yaml_new_document()
       call test_copy_merge()
       call yaml_release_document()
+
+
+      call yaml_new_document()
+      call test_f_trees()
+      call yaml_release_document()
+
    end if
 
    if (YAML_PARSER .in. run) then
@@ -176,15 +183,11 @@ program yaml_test
 !!$   if (ALLOCATIONS .in. run) then
 !!$      call verify_heap_allocation_status()
 !!$   end if
-
+   if (UTILS .in. run) then
+      call f_utils_test()
+   end if
 
    call dict_free(run)
-   
-   !wait one second
-   t0=dble(f_time())*1.d-9
-   call yaml_map('Time before pause',t0)
-   call f_pause(1)
-   call yaml_map('Time spent after pause',dble(f_time())*1.d-9-t0)
 
    !prepare the finalization of the library
    call f_lib_finalize()

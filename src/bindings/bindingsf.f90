@@ -202,6 +202,7 @@ end subroutine glr_new
 
 subroutine glr_copy(glr, d, wfd, from)
   use module_types
+  use locregs, only: copy_locreg_descriptors
   implicit none
   type(locreg_descriptors), pointer :: glr
   type(grid_dimensions), pointer :: d
@@ -334,6 +335,7 @@ end subroutine glr_get_locreg_data
 
 subroutine glr_set_wfd_dims(glr, nseg_c, nseg_f, nvctr_c, nvctr_f)
   use module_types
+  use locregs, only: allocate_wfd
   implicit none
   type(locreg_descriptors), intent(inout) :: glr
   integer, intent(in) :: nseg_c, nseg_f, nvctr_c, nvctr_f
@@ -509,7 +511,7 @@ END SUBROUTINE lzd_get_llr
 subroutine inputs_new(in)
   use module_types
   use dictionaries
-  use dynamic_memory
+  use f_refcnts, only: nullify_f_ref
   implicit none
   type(input_variables), pointer :: in
   allocate(in)
@@ -935,7 +937,7 @@ subroutine kernel_get_comm(pkernel, igroup, ngroup, iproc_grp, &
      & nproc_grp, mpi_comm)
   use module_types
   implicit none
-  type(coulomb_operator), intent(in) :: pkernel
+  type(coulomb_operator), intent(inout) :: pkernel
   integer, intent(out) :: igroup, ngroup, iproc_grp, nproc_grp, mpi_comm
   igroup = pkernel%mpi_env%igroup
   ngroup = pkernel%mpi_env%ngroup
@@ -1580,11 +1582,11 @@ subroutine run_objects_dump_to_file(iostat, dict, fname, userOnly,ln)
   integer, intent(in) :: ln
   integer, intent(out) :: iostat
   type(dictionary), pointer :: dict
-  character(len = *), intent(in) :: fname
+  character, dimension(ln), intent(in) :: fname
   logical, intent(in) :: userOnly
 
   integer, parameter :: iunit_true = 145214 !< Hopefully being unique...
-  integer :: iunit_def,iunit
+  integer :: iunit_def,iunit,iln
   real(gp), dimension(3), parameter :: dummy = (/ 0._gp, 0._gp, 0._gp /)
   character(len=256) :: filetmp
 
@@ -1596,7 +1598,11 @@ subroutine run_objects_dump_to_file(iostat, dict, fname, userOnly,ln)
      iostat = 1
      return
   end if
-  call f_strcpy(src=fname(1:ln),dest=filetmp)
+  !call f_strcpy(src=fname(1:ln),dest=filetmp)
+  do iln=1,ln
+     filetmp(iln:iln)=fname(iln)
+  end do
+
   open(unit = iunit, file =trim(filetmp), iostat = iostat)
   if (iostat /= 0) return
   call yaml_set_stream(unit = iunit, tabbing = 40, record_length = 100, istat = iostat)

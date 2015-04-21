@@ -2,7 +2,7 @@
 !!  Input/Output for minima hopping
 !!
 !! @author
-!!    Copyright (C) 2013-2014 BigDFT group
+!!    Copyright (C) 2015-2015 BigDFT group
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
@@ -275,6 +275,7 @@ subroutine read_jobs(uinp,mhgpsst)
                 call f_err_throw(trim(adjustl(jobfile))//' empty')
             endif
         else if(trim(adjustl(uinp%operation_mode))=='simple'.or.&
+                trim(adjustl(uinp%operation_mode))=='simpleandminimize'.or.&
                 trim(adjustl(uinp%operation_mode))=='hessian'.or.&
                 trim(adjustl(uinp%operation_mode))=='minimize')then
             do iline=1,999
@@ -310,6 +311,7 @@ subroutine read_jobs(uinp,mhgpsst)
                 mhgpsst%njobs=mhgpsst%njobs+1
             enddo
         else if(trim(adjustl(uinp%operation_mode))=='simple'.or.&
+                trim(adjustl(uinp%operation_mode))=='simpleandminimize'.or.&
                 trim(adjustl(uinp%operation_mode))=='hessian'.or.&
                 trim(adjustl(uinp%operation_mode))=='minimize')then
             do ifile=1,999
@@ -340,8 +342,8 @@ subroutine check_struct_file_exists(filename,exists)
     character(len=*), intent(in) :: filename
     logical, optional, intent(out) :: exists
     !local
-    logical :: xyzexists=.false.,asciiexists=.false.
-    integer :: indx,inda
+    logical :: xyzexists=.false.,asciiexists=.false., intexists=.false.
+    integer :: indx,inda,indi
 
     if(present(exists))then
         exists=.true.
@@ -349,6 +351,7 @@ subroutine check_struct_file_exists(filename,exists)
 
     indx=index(filename,'.xyz')
     inda=index(filename,'.ascii')
+    indi=index(filename,'.int')
     if(indx==0)then
         inquire(file=trim(adjustl(filename))//'.xyz',exist=xyzexists)
     else
@@ -360,7 +363,13 @@ subroutine check_struct_file_exists(filename,exists)
     else
         inquire(file=trim(adjustl(filename)),exist=asciiexists)
     endif
-    if(.not. (xyzexists .or. asciiexists))then
+    if(indi==0)then
+        inquire(file=trim(adjustl(filename))//'.int',&
+                exist=intexists)
+    else
+        inquire(file=trim(adjustl(filename)),exist=intexists)
+    endif
+    if(.not. (xyzexists .or. asciiexists .or. intexists))then
         if(present(exists))then
             exists=.false.
         else
@@ -387,7 +396,8 @@ subroutine read_mode(mhgpsst,nat,filename,minmode)
     type(atomic_structure):: astruct !< Contains all info
 
 
-    call read_atomic_file(filename,mhgpsst%iproc,astruct)
+    call read_atomic_file(filename,mhgpsst%iproc,astruct,&
+         disableTrans=.true.)
     if(nat/=astruct%nat) &
          call f_err_throw('(MHGPS) severe error in read_mode: '//&
          'nat/=astruct%nat')

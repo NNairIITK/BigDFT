@@ -97,7 +97,7 @@
    check_sumrho                        : 1 #      Enables linear sumrho check
    check_overlap                       : 2 #      Enables linear overlap check
    experimental_mode                   : Yes #    Activate the experimental mode in linear scaling
-   write_orbitals                      : Yes #    Linear scaling write KS orbitals for cubic restart (might take lot of disk space!)
+   write_orbitals                      : 2 #      Linear scaling write KS orbitals for cubic restart (might take lot of disk space!)
    explicit_locregcenters              : No #     Linear scaling explicitely specify localization centers
    calculate_KS_residue                : Yes #    Linear scaling calculate Kohn-Sham residue
    intermediate_forces                 : No #     Linear scaling calculate intermediate forces

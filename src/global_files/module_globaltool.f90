@@ -15,6 +15,7 @@ module module_globaltool
 
     !datatypes
     public :: gt_data
+    public :: gt_uinp !SM: Since gt_data contains an element of type gt_uinp, the latter must also be public
 
     !routines
     public :: read_globaltool_uinp
@@ -24,7 +25,7 @@ module module_globaltool
     public :: finalize_gt_data
     public :: write_merged
     public :: write_transitionpairs
-    public :: unpair 
+    public :: unpair
 
     type gt_uinp
         real(gp) :: en_delta
@@ -32,6 +33,12 @@ module module_globaltool
         integer  :: ndir
         character(len=500), allocatable :: directories(:)
         character(len=3) :: fptype
+
+        integer  :: ntranspairs
+        logical  :: search_transpairs
+        character(len=600), allocatable :: trans_pairs_paths(:,:)
+        real(gp), allocatable :: fp_arr_trans_pairs(:,:,:)
+        real(gp), allocatable :: en_arr_trans_pairs(:,:)
     end type
 
     type gt_data
@@ -47,6 +54,8 @@ module module_globaltool
         type(atomic_structure) :: astruct
         type(gt_uinp) :: uinp
         real(gp), allocatable :: rcov(:)
+        logical, allocatable :: input_transpair_found(:)
+        character(len=600), allocatable :: trans_pairs_paths_found(:,:)
 
         real(gp), allocatable :: fp_arr(:,:)
         real(gp), allocatable :: en_arr(:)
@@ -61,9 +70,10 @@ module module_globaltool
                                               !to identify pairs
         integer, allocatable  :: minnumber(:)
         integer, allocatable  :: sadnumber(:)
-    
+
         real(gp), allocatable :: gmon_ener(:)
         real(gp), allocatable :: gmon_fp(:,:)
+        character(len=600), allocatable :: gmon_path(:)
         character(len=1), allocatable :: gmon_stat(:)
         integer :: gmon_nposlocs !nposlocs according to gmon file
                                  !can be different to nposlocs
@@ -196,20 +206,10 @@ subroutine init_gt_data(gdat)
     call nullify_atomic_structure(gdat%astruct)
 
     gdat%nminpd = f_malloc((/gdat%uinp%ndir/),id='nminpd')
-     
+
     call count_poslocm(gdat)
     gdat%nminmaxpd = maxval(gdat%nminpd)
 
-    call init_nat_rcov(gdat)
-    if(trim(adjustl(gdat%uinp%fptype))=='SO')then
-        gdat%nid = gdat%nat !s-overlap
-    elseif(trim(adjustl(gdat%uinp%fptype))=='SPO')then
-        gdat%nid = 4*gdat%nat !sp-overlap
-    else
-        call f_err_throw('Fingerprint type "'//&
-             trim(adjustl(gdat%uinp%fptype))//'" unknown.',&
-             err_name='BIGDFT_RUNTIME_ERROR')
-    endif
 
     gdat%fp_arr = f_malloc((/gdat%nid,gdat%nminmax/),id='fp_arr')
     gdat%en_arr = f_malloc((/gdat%nminmax/),id='en_arr')
@@ -227,6 +227,8 @@ subroutine init_gt_data(gdat)
     gdat%sadnumber = f_malloc((/gdat%nminmax/),id='sadnumber')
     gdat%gmon_ener = f_malloc((/gdat%nminmaxpd/),id='gmon_ener')
     gdat%gmon_fp = f_malloc((/gdat%nid,gdat%nminmaxpd/),id='gmon_fp')
+    gdat%gmon_path = f_malloc_str(600,(/1.to.gdat%nminmaxpd/),&
+                            id='gmon_path')
     gdat%gmon_stat = f_malloc_str(1,(/gdat%nminmaxpd/),id='gmon_stat')
     gdat%gmon_nposlocs=huge(1)
 end subroutine init_gt_data
@@ -240,6 +242,15 @@ subroutine finalize_gt_data(gdat)
     call deallocate_atomic_structure(gdat%astruct)
     call f_free(gdat%nminpd)
     call f_free_str(500,gdat%uinp%directories)
+!    call f_free_str(600,gdat%uinp%trans_pairs_paths)
+    if(gdat%uinp%search_transpairs)then
+    deallocate(gdat%uinp%trans_pairs_paths)
+    deallocate(gdat%trans_pairs_paths_found)
+    endif
+    call f_free(gdat%input_transpair_found)
+!    call f_free(gdat%trans_pairs_paths_found)
+    call f_free(gdat%uinp%fp_arr_trans_pairs)
+    call f_free(gdat%uinp%en_arr_trans_pairs)
     call f_free(gdat%fp_arr)
     call f_free(gdat%en_arr)
     call f_free_str(600,gdat%path_min)
@@ -252,18 +263,25 @@ subroutine finalize_gt_data(gdat)
     call f_free(gdat%sadnumber)
     call f_free(gdat%gmon_ener)
     call f_free(gdat%gmon_fp)
+    call f_free_str(600,gdat%gmon_path)
     call f_free(gdat%mn)
     call f_free_str(1,gdat%gmon_stat)
 end subroutine finalize_gt_data
 !=====================================================================
 subroutine read_globaltool_uinp(gdat)
     use module_base
+    use yaml_output
+    use module_atoms, only: set_astruct_from_file,&
+                            deallocate_atomic_structure
+    use module_fingerprints
     implicit none
     !parameters
     type(gt_data), intent(inout) :: gdat
     !local
-    integer :: u, istat, idict
-    character(len=500) :: line
+    integer :: u, istat, idict, iline, idx
+    character(len=2000) :: line
+    character(len=1024) :: comment
+    real(gp) :: energy
     real(gp) :: rdmy
     logical :: exists
 
@@ -294,6 +312,79 @@ subroutine read_globaltool_uinp(gdat)
         read(u,'(a)')gdat%uinp%directories(idict)
     enddo
     close(u)
+
+    call init_nat_rcov(gdat)
+    if(trim(adjustl(gdat%uinp%fptype))=='SO')then
+        gdat%nid = gdat%nat !s-overlap
+    elseif(trim(adjustl(gdat%uinp%fptype))=='SPO')then
+        gdat%nid = 4*gdat%nat !sp-overlap
+    else
+        call f_err_throw('Fingerprint type "'//&
+             trim(adjustl(gdat%uinp%fptype))//'" unknown.',&
+             err_name='BIGDFT_RUNTIME_ERROR')
+    endif
+
+    !read transition pairs for which MH aligned version should
+    !be found
+    gdat%uinp%ntranspairs=0
+    inquire(file='transition_pairs.inp',exist=gdat%uinp%search_transpairs)
+    if(gdat%uinp%search_transpairs)then
+        open(u,file='transition_pairs.inp')
+        do
+            read(u,'(a)',iostat=istat)line
+            if(istat/=0)exit
+            gdat%uinp%ntranspairs = gdat%uinp%ntranspairs + 1
+        enddo
+!        gdat%uinp%trans_pairs_paths = f_malloc_str(600,(/2,1.to.gdat%uinp%ntranspairs/),&
+!                            id='gdat%uinp%directories')
+        allocate(gdat%uinp%trans_pairs_paths(2,gdat%uinp%ntranspairs))
+        gdat%uinp%fp_arr_trans_pairs = f_malloc((/gdat%nid,2,gdat%uinp%ntranspairs/),&
+                                       id='fp_arr_trans_pairs')
+        gdat%uinp%en_arr_trans_pairs = f_malloc((/2,gdat%uinp%ntranspairs/),&
+                                       id='en_arr_trans_pairs')
+!        gdat%trans_pairs_paths_found = f_malloc_str(600,(/2,1.to.gdat%uinp%ntranspairs/),&
+!                            id='gdat%trans_pairs_paths_found')
+        allocate(gdat%trans_pairs_paths_found(2,gdat%uinp%ntranspairs))
+        gdat%input_transpair_found = f_malloc((/1.to.gdat%uinp%ntranspairs/),&
+                            id='gdat%input_transpair_found')
+        call yaml_map('Number of input transition pairs for which MH aligned versions are looked for',gdat%uinp%ntranspairs)
+        rewind(u)
+        do iline=1,gdat%uinp%ntranspairs
+            read(u,'(a)')line
+            idx=index(line," ")
+            gdat%uinp%trans_pairs_paths(1,iline)=trim(adjustl(line(1:idx)))
+            gdat%uinp%trans_pairs_paths(2,iline)=trim(adjustl(line(idx:2000)))
+            call deallocate_atomic_structure(gdat%astruct)
+            call set_astruct_from_file(trim(adjustl(gdat%uinp%trans_pairs_paths(1,iline))),0,&
+                 gdat%astruct,comment=comment,energy=energy)
+            if (gdat%astruct%nat /= gdat%nat) then
+               call f_err_throw('Error in read_globaltool_uinp:'//&
+                ' wrong nat ('//trim(yaml_toa(gdat%astruct%nat))&
+                //' /= '//trim(yaml_toa(gdat%nat))//')',&
+                err_name='BIGDFT_RUNTIME_ERROR')
+            end if
+            gdat%uinp%en_arr_trans_pairs(1,iline) = energy
+            call fingerprint(gdat%nat,gdat%nid,gdat%astruct%cell_dim,&
+                 gdat%astruct%geocode,gdat%rcov,gdat%astruct%rxyz,&
+                 gdat%uinp%fp_arr_trans_pairs(1,1,iline))
+            call deallocate_atomic_structure(gdat%astruct)
+            call set_astruct_from_file(trim(adjustl(gdat%uinp%trans_pairs_paths(2,iline))),0,&
+                 gdat%astruct,comment=comment,energy=energy)
+            if (gdat%astruct%nat /= gdat%nat) then
+               call f_err_throw('Error in read_globaltool_uinp:'//&
+                ' wrong nat ('//trim(yaml_toa(gdat%astruct%nat))&
+                //' /= '//trim(yaml_toa(gdat%nat))//')',&
+                err_name='BIGDFT_RUNTIME_ERROR')
+            end if
+            gdat%uinp%en_arr_trans_pairs(2,iline) = energy
+            call fingerprint(gdat%nat,gdat%nid,gdat%astruct%cell_dim,&
+                 gdat%astruct%geocode,gdat%rcov,gdat%astruct%rxyz,&
+                 gdat%uinp%fp_arr_trans_pairs(1,2,iline))
+            gdat%input_transpair_found(iline)=.false.
+        enddo
+        close(u)
+    endif
+
 end subroutine read_globaltool_uinp
 !=====================================================================
 subroutine write_globaltool_uinp(gdat)
@@ -363,7 +454,7 @@ subroutine read_poslocs(gdat,idict)
     enddo
     gdat%nposlocs=iposloc
     gdat%ntransmax=gdat%nposlocs
-     
+
 end subroutine read_poslocs
 !=====================================================================
 subroutine write_merged(gdat)
@@ -409,6 +500,18 @@ subroutine write_transitionpairs(gdat)
              IDmin1,IDmin2,gdat%en_arr(kIDmin1),gdat%en_arr(kIDmin2),&
              abs(gdat%en_arr(kIDmin1)-gdat%en_arr(kIDmin2)),fpd,gdat%transpairs(itrans)
     enddo
+
+    if(gdat%uinp%search_transpairs)then
+        call yaml_comment('Identified transition pairs (transition_pairs.inp)  ....',hfill='-')
+        do itrans=1,gdat%uinp%ntranspairs
+            if(.not.gdat%input_transpair_found(itrans))then
+                call f_err_throw('Transition pair no. '//yaml_toa(itrans)//&
+                     ' not found',err_name='BIGDFT_RUNTIME_ERROR')
+            endif
+            write(*,'(2(5x,a))')trim(adjustl(gdat%trans_pairs_paths_found(1,itrans))),&
+                                trim(adjustl(gdat%trans_pairs_paths_found(2,itrans)))
+        enddo
+    endif
 end subroutine write_transitionpairs
 !=====================================================================
 subroutine read_and_merge_data(gdat)
@@ -431,7 +534,7 @@ subroutine read_and_merge_data(gdat)
         call read_globalmon(gdat,idict)
         call add_transpairs_to_database(gdat)
     enddo
-    
+
 end subroutine read_and_merge_data
 !=====================================================================
 subroutine check_filename(gdat,idict)
@@ -484,6 +587,7 @@ subroutine add_transpairs_to_database(gdat)
     logical :: lnew
     integer :: id_transpair
     integer :: iposloc
+    integer :: iposloc_curr, iposloc_next
     integer :: loc_id_transpair
     integer :: i
     real(gp) :: fpd
@@ -510,15 +614,18 @@ subroutine add_transpairs_to_database(gdat)
         endif
         kidnext=kid
         idnext = gdat%minnumber(kid)
+        iposloc_next = iposloc
         !check if restart happened
         if(gdat%gmon_stat(iposloc)=='P')then
             kidcurr = kidnext
             idcurr  = idnext
+            iposloc_curr = iposloc
             ecurr = gdat%gmon_ener(iposloc)
             fpcurr(:) = gdat%gmon_fp(:,iposloc)
             statcurr = gdat%gmon_stat(iposloc)
             cycle
         endif
+        call check_given_pairs(gdat,iposloc_curr,iposloc_next)
         id_transpair = getPairId(idcurr,idnext)
         call fpdistance(gdat%nid,gdat%fp_arr(1,kidcurr),&
              gdat%fp_arr(1,kidnext),fpd)
@@ -543,6 +650,7 @@ subroutine add_transpairs_to_database(gdat)
         if(gdat%gmon_stat(iposloc)=='A')then
             kidcurr = kidnext
             idcurr = idnext
+            iposloc_curr = iposloc
             ecurr = gdat%gmon_ener(iposloc)
             fpcurr(:) = gdat%gmon_fp(:,iposloc)
             statcurr = gdat%gmon_stat(iposloc)
@@ -550,11 +658,59 @@ subroutine add_transpairs_to_database(gdat)
     enddo
 end subroutine add_transpairs_to_database
 !=====================================================================
+subroutine check_given_pairs(gdat,iposloc_curr,iposloc_next)
+    use module_base
+    use yaml_output
+    implicit none
+    !parameters
+    type(gt_data), intent(inout) :: gdat
+    integer, intent(in) :: iposloc_curr, iposloc_next
+    !loal
+    integer :: itrans
+
+    do itrans=1,gdat%uinp%ntranspairs
+        if(.not.gdat%input_transpair_found(itrans))then
+            !check icurr
+            if (equal_gt(gdat%nid,gdat%uinp%en_arr_trans_pairs(1,itrans),&
+                gdat%gmon_ener(iposloc_curr),&
+                gdat%uinp%fp_arr_trans_pairs(1,1,itrans),&
+                gdat%gmon_fp(1,iposloc_curr),&
+                gdat%uinp%en_delta,gdat%uinp%fp_delta))then
+                if(equal_gt(gdat%nid,gdat%uinp%en_arr_trans_pairs(2,itrans),&
+                   gdat%gmon_ener(iposloc_next),&
+                   gdat%uinp%fp_arr_trans_pairs(1,2,itrans),&
+                   gdat%gmon_fp(1,iposloc_next),&
+                   gdat%uinp%en_delta,gdat%uinp%fp_delta))then
+
+                    gdat%trans_pairs_paths_found(1,itrans)=gdat%gmon_path(iposloc_curr)
+                    gdat%trans_pairs_paths_found(2,itrans)=gdat%gmon_path(iposloc_next)
+                    gdat%input_transpair_found(itrans)=.true.
+                endif
+            else if((equal_gt(gdat%nid,gdat%uinp%en_arr_trans_pairs(2,itrans),&
+                gdat%gmon_ener(iposloc_curr),&
+                gdat%uinp%fp_arr_trans_pairs(1,2,itrans),&
+                gdat%gmon_fp(1,iposloc_curr),&
+                gdat%uinp%en_delta,gdat%uinp%fp_delta))) then
+                if(equal_gt(gdat%nid,gdat%uinp%en_arr_trans_pairs(1,itrans),&
+                   gdat%gmon_ener(iposloc_next),&
+                   gdat%uinp%fp_arr_trans_pairs(1,1,itrans),&
+                   gdat%gmon_fp(1,iposloc_next),&
+                   gdat%uinp%en_delta,gdat%uinp%fp_delta))then
+
+                    gdat%trans_pairs_paths_found(1,itrans)=gdat%gmon_path(iposloc_next)
+                    gdat%trans_pairs_paths_found(2,itrans)=gdat%gmon_path(iposloc_curr)
+                    gdat%input_transpair_found(itrans)=.true.
+                endif
+            endif
+        endif
+    enddo
+end subroutine check_given_pairs
+!=====================================================================
 subroutine read_globalmon(gdat,idict)
     use module_base
     use yaml_output
     !reads the global.mon file and
-    !associates each line with the 
+    !associates each line with the
     !corresponding structure from the
     !polocm files
     implicit none
@@ -578,7 +734,7 @@ subroutine read_globalmon(gdat,idict)
     real(gp) :: fp(gdat%nid)
 integer :: itmp
 
- 
+
     u=f_get_free_unit()
     filename=trim(adjustl(gdat%uinp%directories(idict)))//'/data/global.mon'
     call yaml_comment('Parsing '//trim(adjustl(filename))//' ....',&
@@ -634,9 +790,9 @@ write(*,*)'ins',icount,energy
                 call f_err_throw('Could not find istep= '//&
                      trim(yaml_toa(istep))//'of '//trim(adjustl(filename))//&
                      ' among the poslocm files.',err_name='BIGDFT_RUNTIME_ERROR')
-            endif    
+            endif
         endif
-    enddo   
+    enddo
     if(icount/=gdat%nposlocs)then
         !might happen if global was killed after writing the first
         ! poslocm file and before writing global.mon
@@ -650,7 +806,7 @@ write(*,*)'ins',icount,energy
     endif
     gdat%gmon_nposlocs=icount
     close(u)
-     
+
 end subroutine read_globalmon
 !=====================================================================
 subroutine gmon_line_to_fp(gdat,icount,iline,found)
@@ -683,6 +839,7 @@ write(*,'(i4.4,2(1x,es24.17))')iposloc,gdat%en_arr_currDir(iposloc),abs(gdat%en_
                  ' corresponds to '//&
                  trim(adjustl(gdat%path_min_currDir(iposloc))))
             gdat%gmon_fp(:,icount) = gdat%fp_arr_CurrDir(:,iposloc)
+            gdat%gmon_path(icount) = gdat%path_min_currDir(iposloc)
             exit
         endif
     enddo
@@ -745,11 +902,11 @@ subroutine identical(cf,gdat,ndattot,ndat,nid,epot,fp,en_arr,fp_arr,en_delta,&
     character(len=*), intent(in) :: cf
     !local
     integer :: k, klow, khigh, nsm
-    real(gp) :: dmin, d 
+    real(gp) :: dmin, d
     !search in energy array
     call hunt_gt(en_arr,max(1,min(ndat,ndattot)),epot,k_epot)
     lnew=.true.
-    
+
     ! find lowest configuration that might be identical
     klow=k_epot
     do k=k_epot,1,-1
@@ -757,7 +914,7 @@ subroutine identical(cf,gdat,ndattot,ndat,nid,epot,fp,en_arr,fp_arr,en_delta,&
         if (epot-en_arr(k).gt.en_delta) exit
         klow=k
     enddo
-    
+
     ! find highest  configuration that might be identical
     khigh=k_epot+1
     do k=k_epot+1,ndat
@@ -765,17 +922,17 @@ subroutine identical(cf,gdat,ndattot,ndat,nid,epot,fp,en_arr,fp_arr,en_delta,&
         if (en_arr(k)-epot.gt.en_delta) exit
         khigh=k
     enddo
-    
+
     nsm=0
     dmin=huge(1.e0_gp)
     do k=max(1,klow),min(ndat,khigh)
-        if (abs(epot-en_arr(k)).le.en_delta) then 
+        if (abs(epot-en_arr(k)).le.en_delta) then
             call fpdistance(nid,fp,fp_arr(1,k),d)
             write(*,*)'fpdist '//trim(adjustl(cf)),abs(en_arr(k)-epot),d
             if (d.lt.fp_delta) then
                 lnew=.false.
                 nsm=nsm+1
-                if (d.lt.dmin) then 
+                if (d.lt.dmin) then
                     dmin=d
                     kid=k
                 endif
@@ -910,4 +1067,24 @@ subroutine give_rcov(iproc,astruct,rcov)
 !  end do
 
 end subroutine give_rcov
+!=====================================================================
+function equal_gt(nid,ener1,ener2,fp1,fp2,en_delta,fp_delta)
+    use module_base
+    use module_fingerprints
+    implicit none
+    !parameter
+    integer, intent(in) :: nid
+    real(gp), intent(in) :: ener1, ener2
+    real(gp), intent(in) :: fp1(nid),fp2(nid)
+    real(gp), intent(in) :: en_delta,fp_delta   
+    logical :: equal_gt
+    !local
+    real(gp) :: d
+
+    equal_gt=.false.
+    if (abs(ener1-ener2).le.en_delta) then
+        call fpdistance(nid,fp1,fp2,d)
+        if(d.le.fp_delta)equal_gt=.true.
+    endif
+end function equal_gt
 end module

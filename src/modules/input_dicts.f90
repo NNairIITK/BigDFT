@@ -343,7 +343,7 @@ contains
 
 
   subroutine create_log_file(dict,dict_from_files)
-    use module_base
+    use module_base, enum_int => int
     use module_types
     use module_input
     use yaml_strings

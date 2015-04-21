@@ -89,7 +89,7 @@ subroutine assignToLocreg(iproc,nproc,nspinor,nspin,atoms,orbs,Lzd)
   end do
 
   if (nproc > 1) then
-     call mpiallred(orbs%inWhichLocreg(1),orbs%norb,MPI_SUM,bigdft_mpi%mpi_comm)
+     call mpiallred(orbs%inWhichLocreg(1),orbs%norb,MPI_SUM,comm=bigdft_mpi%mpi_comm)
   end if
 
 ! Calculate the dimension of the total wavefunction

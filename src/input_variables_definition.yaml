@@ -129,13 +129,17 @@
      linear: 100
      linear_restart: 102
    output_wf:
-     COMMENT: Output of the wavefunctions
+     COMMENT: Output of the support functions
      default: 0
      EXCLUSIVE:
        0: None
-       1: Plain text
-       2: Fortran binary
-       3: ETSF file format
+       1: Wavelet, Plain text
+       2: Wavelet, Fortran binary
+       3: Wavelet, ETSF file format
+       10: None
+       11: Wavelet and Interpolating Scaling Function, Plain text
+       12: Wavelet and Interpolating Scaling Function, Fortran binary
+       13: Wavelet and Interpolating Scaling Function, ETSF file format
    output_denspot:
      COMMENT: Output of the density or the potential
      default: 0
@@ -178,7 +182,14 @@
      COMMENT: Disable the symmetry detection
      DESCRIPTION: Disable the symmetry detection (by default No except for isolated systems)
      default: No
-
+   solvent:
+     COMMENT: Electrostatic environment for Poisson Equation
+     DESCRIPTION: Define the method to set the dielectric function as a function of the position
+     EXCLUSIVE:
+       vacuum: No Solvent method, ordinary Poisson Equation
+       rigid:  Rigid (smoothed) cavity around the atoms, given as superposition of spheres
+       sccs: Self-Consistent Continuum Solvation (accordig to the model of Andreussi et. al JCP 136, 064102 (2012)
+     default: vacuum
 #K points parameters
  kpt:
    DESCRIPTION: K points defined in the Brillouin zone for periodic system calculations
@@ -436,7 +447,7 @@
      COMMENT: Temperature of molecular dynamics
      CONDITION:
        MASTER_KEY: ionmov
-       WHEN: [8, 9, 12, 13]
+       WHEN: [6, 8, 9, 12, 13]
 #       - 6
      RANGE: [0, 1e9]
      default: 300.
@@ -657,10 +668,13 @@
      EXCLUSIVE:
        dft: Density Functional Theory
        lj: Lennard-Jones force field
-       lensic: Lenosky Tight-Binding for Si clusters
-       lensib: Lenosky Tight-Binding for Si bulk
+       lensic: Lenosky Force Field for Si clusters
+       lensib: Lenosky Force Field for Si bulk
        amber: AMBER Force Fields Package (requires AMBERtools)
        morse_bulk: Morse bulk
+       morse_slab: Morse slab
+       tersoff: Tersoff potential for C and Si
+       bmhtf: Born Mayer Huggins Tosi Fumi Potential
      default: dft
    mm_paramset:
      COMMENT: Name of the hard-coded parameter set. Must be compatible to the chosen force field.
@@ -858,7 +872,11 @@
      default: No
    write_orbitals:
      COMMENT: Linear scaling write KS orbitals for cubic restart (might take lot of disk space!)
-     default: No
+     default: 0
+     EXCLUSIVE:
+       0: No output
+       1: Output in in wavelet basis
+       2: In addition output in interpolating scaling functions (cube file)
    explicit_locregcenters:
      COMMENT: Linear scaling explicitely specify localization centers 
      default: No
@@ -932,6 +950,16 @@
    adjust_kernel_iterations:
      COMMENT: enable the addaptive ajustment of the number of kernel iterations
      default: True
+   wf_extent_analysis:
+     COMMENT: perform an analysis of the extent of the support functions (and possibly KS orbitals)
+     default: False
+   gps_method:
+     COMMENT: method for the Generalized Poisson Equation
+     EXCLUSIVE:
+        VAC: Vacuum (ordinary treatment)
+        PI: Polarization Iteration
+        PCG: Preconditioned Conjugate Gradient
+     default: VAC
  lin_general:
      hybrid: 
        COMMENT: activate the hybrid mode; if activated, only the low accuracy values will be relevant
@@ -990,16 +1018,24 @@
        DESCRIPTION: |
                     possible value: 1 nonnegative-integer number
                     Indicates how the support functions should be written to disk at the end of the run:
-                     * 0 => no output
-                     * 1 => formatted output
-                     * 2 => Fortran bin
-                     * 3 => ETSF
-       EXCLUSIVE:
-         0: no output
-         1: formatted output
-         2: Fortran bin
-         3: ETSF
+                     *  0 => None
+                     *  1 => Wavelet, Plain text
+                     *  2 => Wavelet, Fortran binary
+                     *  3 => Wavelet, ETSF file format
+                     * 10 => None
+                     * 11 => Wavelet and Interpolating Scaling Function, Plain text
+                     * 12 => Wavelet and Interpolating Scaling Function, Fortran binary
+                     * 13 => Wavelet and Interpolating Scaling Function, ETSF file format
        default: 0
+       EXCLUSIVE:
+         0:  None
+         1:  Wavelet, Plain text
+         2:  Wavelet, Fortran binary
+         3:  Wavelet, ETSF file format
+         10: None
+         11: Wavelet and Interpolating Scaling Function, Plain text
+         12: Wavelet and Interpolating Scaling Function, Fortran binary
+         13: Wavelet and Interpolating Scaling Function, ETSF file format
      calc_dipole:
        DESCRIPTION: |
                     possible value: 1 logical

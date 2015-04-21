@@ -6,6 +6,181 @@
 !!   GNU General Public License, see ~/COPYING file
 !!   or http://www.gnu.org/copyleft/gpl.txt .
 !!   For the list of contributors, see ~/AUTHORS 
+
+
+!> Write the square of the wave functions (i.e. the orbital densities).
+!! This routine can also be used to print the "support functions densities".
+subroutine write_orbital_density(iproc, transform_to_global, iformat, &
+           filename, npsidim, psi, input, orbs, lzd_g, at, rxyz, lzd_l)
+  use module_base
+  use module_types
+  use module_interfaces, except_this_one => write_orbital_density
+  implicit none
+
+  ! Calling arguments
+  logical,intent(in) :: transform_to_global
+  character(len=*),intent(in) :: filename
+  integer,intent(in) :: iproc, npsidim, iformat
+  real(kind=8),dimension(npsidim),intent(in),target :: psi
+  type(input_variables),intent(in) :: input
+  type(orbitals_data),intent(in) :: orbs !< orbitals descriptors
+  type(local_zone_descriptors),intent(inout) :: lzd_g !< global descriptors
+  type(atoms_data),intent(in) :: at
+  real(kind=8),dimension(3,at%astruct%nat),intent(in) :: rxyz
+  type(local_zone_descriptors),intent(in),optional :: lzd_l !< local descriptors
+
+  ! Local variables
+  logical :: binary
+  real(kind=8),dimension(:),pointer :: psi_g
+  integer :: iunit0, iunitx, iunity, iunitz, iorb, ispinor, ist, ncount, iiorb, ilr
+  integer :: iorb_out0, iorb_outx, iorb_outy, iorb_outz, sdim, ldim
+  character(len=500) :: filebase0, filebasex, filebasey, filebasez
+  character(len=500) :: file0, filex, filey, filez
+
+  call f_routine(id='write_orbital_density')
+
+  if (transform_to_global) then
+      if (.not.present(lzd_l)) call f_err_throw('lzd_l not present',err_name='BIGDFT_RUNTIME_ERROR')
+  end if
+
+  !!! Transform to the global region
+  !!if (transform_to_global) then
+  !!    psi_g = f_malloc_ptr(orbs%norbp*(lzd_g%glr%wfd%nvctr_c+7*lzd_g%glr%wfd%nvctr_f), id='psi_g')
+  !!    call small_to_large_locreg(iproc, npsidim, &
+  !!         orbs%norbp*(lzd_l%glr%wfd%nvctr_c+7*lzd_l%glr%wfd%nvctr_f), lzd_l, &
+  !!         lzd_g, orbs, psi, psi_g, to_global=.true.)
+  !!else
+  !!    psi_g => psi
+  !!end if
+
+  psi_g = f_malloc_ptr(lzd_g%glr%wfd%nvctr_c+7*lzd_g%glr%wfd%nvctr_f, id='psi_g')
+
+
+  binary = (iformat==WF_FORMAT_BINARY)
+
+  ! Need to create the convolution bounds
+  call locreg_bounds(lzd_g%glr%d%n1, lzd_g%glr%d%n2, lzd_g%glr%d%n3, &
+       lzd_g%glr%d%nfl1, lzd_g%glr%d%nfu1, &
+       lzd_g%glr%d%nfl2, lzd_g%glr%d%nfu2, &
+       lzd_g%glr%d%nfl3, lzd_g%glr%d%nfu3, &
+       lzd_g%glr%wfd, lzd_g%glr%bounds)
+
+  ist = 1
+  ncount = lzd_g%glr%wfd%nvctr_c+7*lzd_g%glr%wfd%nvctr_f
+  do iorb=1,orbs%norbp
+      iiorb = orbs%isorb + iorb
+      ilr = orbs%inwhichlocreg(iiorb)
+      if (transform_to_global) then
+          sdim=lzd_l%llr(ilr)%wfd%nvctr_c+7*lzd_l%llr(ilr)%wfd%nvctr_f
+          ldim=lzd_l%glr%wfd%nvctr_c+7*lzd_l%glr%wfd%nvctr_f
+          call f_zero(psi_g)
+          call lpsi_to_global2(iproc, sdim, ldim, orbs%norb, orbs%nspinor, 1, lzd_l%glr, &
+               lzd_l%llr(ilr), psi(ist), psi_g(1))
+      else
+          sdim=lzd_g%llr(ilr)%wfd%nvctr_c+7*lzd_g%llr(ilr)%wfd%nvctr_f
+          call vcopy(sdim, psi(ist), 1, psi_g(1), 1)
+      end if
+      ist = ist + sdim
+      do ispinor=1,orbs%nspinor
+          if (orbs%nspinor/=1) stop 'write_orbital_density not implemented for nspinor/=1'
+          call plot_one_orbdens(lzd_g%glr, at, orbs, rxyz, lzd_g%hgrids, trim(input%dir_output)//filename, &
+               iorb, ispinor, binary, psi_g)
+          !iunit0 = 101
+          !iunit0 = 102
+          !iunit0 = 103
+          !iunit0 = 104
+          !!!call open_filename_of_iorb(iunit0, binary, filename, orbs, iorb, ispinor, iorb_out0)
+          !!!call open_filename_of_iorb(iunitx, binary, filename, orbs, iorb, ispinor, iorb_outx)
+          !!!call open_filename_of_iorb(iunity, binary, filename, orbs, iorb, ispinor, iorb_outy)
+          !!!call open_filename_of_iorb(iunitz, binary, filename, orbs, iorb, ispinor, iorb_outz)
+          !call filename_of_iorb(binary, trim(input%dir_output)//filename, orbs, iorb, ispinor, filebase0, iorb_out0)
+          !call filename_of_iorb(binary, trim(input%dir_output)//filename, orbs, iorb, ispinor, filebasex, iorb_outx)
+          !call filename_of_iorb(binary, trim(input%dir_output)//filename, orbs, iorb, ispinor, filebasey, iorb_outy)
+          !call filename_of_iorb(binary, trim(input%dir_output)//filename, orbs, iorb, ispinor, filebasez, iorb_outz)
+          !file0 = trim(filebase0)//'.cube'
+          !filex = trim(filebasex)//'.cube'
+          !filey = trim(filebasey)//'.cube'
+          !filez = trim(filebasez)//'.cube'
+          !write(*,*) 'file0',file0
+          !call f_open_file(iunit0, file=file0, binary=binary)
+          !call f_open_file(iunitx, file=filex, binary=binary)
+          !call f_open_file(iunity, file=filey, binary=binary)
+          !call f_open_file(iunitz, file=filez, binary=binary)
+          !!write(*,'(a,6i9)') 'iproc, iorb, iunit0, iunitx, iunity, iunitz',iproc, iorb, iunit0, iunitx, iunity, iunitz
+          !call plot_wf(.true.,'', 2, at, 1.d0, lzd_g%glr, &
+          !     lzd_g%hgrids(1), lzd_g%hgrids(2), lzd_g%hgrids(2), &
+          !     rxyz, psi_g, &
+          !     iunit0, iunitx, iunity, iunitz)
+          !call f_close(iunit0)
+          !call f_close(iunitx)
+          !call f_close(iunity)
+          !call f_close(iunitz)
+          !!ist = ist + ncount
+      end do
+  end do
+
+  !call deallocate_bounds(lzd_g%glr%geocode, lzd_g%glr%hybrid_on, lzd_g%glr%bounds)
+
+  !if (transform_to_global) then
+      call f_free_ptr(psi_g)
+  !end if
+
+  call f_release_routine()
+
+end subroutine write_orbital_density
+
+
+
+subroutine plot_one_orbdens(lr, at, orbs, rxyz, hgrids, filename, iorb, ispinor, binary, psi_g)
+  use module_base
+  use module_types
+  use module_interfaces, only: filename_of_iorb
+  implicit none
+
+  ! Calling arguments
+  type(locreg_descriptors),intent(in) :: lr
+  type(atoms_data),intent(in) :: at
+  type(orbitals_data),intent(in) :: orbs
+  real(kind=8),dimension(3,at%astruct%nat),intent(in) :: rxyz
+  real(kind=8),dimension(3),intent(in) :: hgrids
+  character(len=*),intent(in) :: filename
+  integer,intent(in) :: iorb, ispinor
+  logical,intent(in) :: binary
+  real(kind=8),dimension(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f),intent(in) :: psi_g
+
+  ! Local variables
+  integer :: iunit0, iunitx, iunity, iunitz, iorb_out0, iorb_outx, iorb_outy, iorb_outz
+  character(len=500) :: filebase0, filebasex, filebasey, filebasez
+  character(len=500) :: file0, filex, filey, filez
+
+  iunit0 = 101
+  iunitx = 102
+  iunity = 103
+  iunitz = 104
+  call filename_of_iorb(binary, filename, orbs, iorb, ispinor, filebase0, iorb_out0)
+  call filename_of_iorb(binary, filename//'_x', orbs, iorb, ispinor, filebasex, iorb_outx)
+  call filename_of_iorb(binary, filename//'_y', orbs, iorb, ispinor, filebasey, iorb_outy)
+  call filename_of_iorb(binary, filename//'_z', orbs, iorb, ispinor, filebasez, iorb_outz)
+  file0 = trim(filebase0)//'.cube'
+  filex = trim(filebasex)//'.cube'
+  filey = trim(filebasey)//'.cube'
+  filez = trim(filebasez)//'.cube'
+  write(*,*) 'file0',file0
+  call f_open_file(iunit0, file=file0, binary=binary)
+  call f_open_file(iunitx, file=filex, binary=binary)
+  call f_open_file(iunity, file=filey, binary=binary)
+  call f_open_file(iunitz, file=filez, binary=binary)
+  call plot_wf(.true.,'', 2, at, 1.d0, lr, &
+       hgrids(1), hgrids(2), hgrids(2), &
+       rxyz, psi_g, &
+       iunit0, iunitx, iunity, iunitz)
+  call f_close(iunit0)
+  call f_close(iunitx)
+  call f_close(iunity)
+  call f_close(iunitz)
+
+end subroutine plot_one_orbdens
+
  
 
 !> Plots the orbitals
@@ -847,423 +1022,6 @@ end subroutine print_orbital_distribution
 
 
 
-subroutine build_ks_orbitals(iproc, nproc, tmb, KSwfn, at, rxyz, denspot, GPU, &
-           energs, nlpsp, input, order_taylor, &
-           energy, energyDiff, energyold)
-  use module_base
-  use module_types
-  use module_interfaces, except_this_one => build_ks_orbitals
-  use communications_base, only: comms_cubic
-  use communications_init, only: orbitals_communicators
-  use communications, only: transpose_v, untranspose_v
-  use sparsematrix_base, only: sparse_matrix, &
-                               sparsematrix_malloc, assignment(=), SPARSE_FULL
-  use sparsematrix, only: gather_matrix_from_taskgroups_inplace, extract_taskgroup_inplace
-  use yaml_output
-  implicit none
-  
-  ! Calling arguments
-  integer:: iproc, nproc
-  type(DFT_wavefunction),intent(inout) :: tmb, KSwfn
-  type(atoms_data), intent(in) :: at
-  real(gp), dimension(3,at%astruct%nat), intent(in) :: rxyz
-  type(DFT_local_fields), intent(inout) :: denspot
-  type(GPU_pointers), intent(inout) :: GPU
-  type(energy_terms),intent(inout) :: energs
-  type(DFT_PSP_projectors), intent(inout) :: nlpsp
-  type(input_variables),intent(in) :: input
-  integer,intent(inout) :: order_taylor
-  real(kind=8),intent(out) :: energy, energyDiff
-  real(kind=8), intent(inout) :: energyold
-
-  ! Local variables
-  type(orbitals_data) :: orbs
-  type(comms_cubic) :: comms
-  real(gp) :: fnrm
-  logical :: rho_negative
-  integer :: infoCoeff, nvctrp, npsidim_global
-  real(kind=8),dimension(:),pointer :: phi_global, phiwork_global
-  real(kind=8),dimension(:),allocatable :: tmparr
-  character(len=*),parameter :: subname='build_ks_orbitals'
-  real(wp), dimension(:,:,:), pointer :: mom_vec_fake
-  type(work_mpiaccumulate) :: energs_work
-
-
-  nullify(mom_vec_fake)
-
-  energs_work = work_mpiaccumulate_null()
-  energs_work%ncount = 4
-  call allocate_work_mpiaccumulate(energs_work)
-
-
-  !debug
-  !integer :: iorb, jorb, ist, jst, ierr, i
-  !real(kind=8) :: ddot, tt
-
-
-  ! Get the expansion coefficients
-  ! Start with a "clean" density, i.e. without legacy from previous mixing steps
-  call communicate_basis_for_density_collective(iproc, nproc, tmb%lzd, &
-       max(tmb%npsidim_orbs,tmb%npsidim_comp), tmb%orbs, tmb%psi, tmb%collcom_sr)
-
-  tmparr = sparsematrix_malloc(tmb%linmat%l,iaction=SPARSE_FULL,id='tmparr')
-  call vcopy(tmb%linmat%l%nvctr, tmb%linmat%kernel_%matrix_compr(1), 1, tmparr(1), 1)
-  !!call gather_matrix_from_taskgroups_inplace(iproc, nproc, tmb%linmat%l, tmb%linmat%kernel_)
-  call sumrho_for_TMBs(iproc, nproc, KSwfn%Lzd%hgrids(1), KSwfn%Lzd%hgrids(2), KSwfn%Lzd%hgrids(3), &
-       tmb%collcom_sr, tmb%linmat%l, tmb%linmat%kernel_, denspot%dpbox%ndimrhopot, &
-       denspot%rhov, rho_negative)
-  call vcopy(tmb%linmat%l%nvctr, tmparr(1), 1, tmb%linmat%kernel_%matrix_compr(1), 1)
-  call f_free(tmparr)
-
-  if (rho_negative) then
-      call corrections_for_negative_charge(iproc, nproc, KSwfn, at, input, tmb, denspot)
-      !!if (iproc==0) call yaml_warning('Charge density contains negative points, need to increase FOE cutoff')
-      !!call increase_FOE_cutoff(iproc, nproc, tmb%lzd, at%astruct, input, KSwfn%orbs, tmb%orbs, tmb%foe_obj, init=.false.)
-      !!call clean_rho(iproc, nproc, KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3d, denspot%rhov)
-  end if
-
-  call updatePotential(input%nspin,denspot,energs%eh,energs%exc,energs%evxc)
-
-  tmb%can_use_transposed=.false.
-  !!call extract_taskgroup_inplace(tmb%linmat%l, tmb%linmat%kernel_)
-  call get_coeff(iproc, nproc, LINEAR_MIXDENS_SIMPLE, KSwfn%orbs, at, rxyz, denspot, GPU, infoCoeff, &
-       energs, nlpsp, input%SIC, tmb, fnrm, .true., .true., .false., .true., 0, 0, 0, 0, &
-       order_taylor,input%lin%max_inversion_error,input%purification_quickreturn,&
-       input%calculate_KS_residue,input%calculate_gap, energs_work)
-  !!call gather_matrix_from_taskgroups_inplace(iproc, nproc, tmb%linmat%l, tmb%linmat%kernel_)
-
-  if (bigdft_mpi%iproc ==0) then
-     call write_eigenvalues_data(0.1d0,KSwfn%orbs,mom_vec_fake)
-  end if
-
-
-  !call communicate_basis_for_density_collective(iproc, nproc, tmb%lzd, &
-  !     max(tmb%npsidim_orbs,tmb%npsidim_comp), tmb%orbs, tmb%psi, tmb%collcom_sr)
-  !call sumrho_for_TMBs(iproc, nproc, KSwfn%Lzd%hgrids(1), KSwfn%Lzd%hgrids(2), KSwfn%Lzd%hgrids(3), &
-  !     tmb%collcom_sr, tmb%linmat%denskern, KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3d, denspot%rhov)
-  !call updatePotential(input%ixc,input%nspin,denspot,energs%eh,energs%exc,energs%evxc)
-  !tmb%can_use_transposed=.false.
-  !call get_coeff(iproc, nproc, LINEAR_MIXDENS_SIMPLE, KSwfn%orbs, at, rxyz, denspot, GPU, infoCoeff, &
-  !     energs, nlpspd, proj, input%SIC, tmb, fnrm, .true., .false., .true., ham_small, 0, 0, 0, 0)
-  !energy=energs%ebs-energs%eh+energs%exc-energs%evxc-energs%eexctX+energs%eion+energs%edisp
-  !energyDiff=energy-energyold
-  !energyold=energy
-
-  !!if(tmb%can_use_transposed) then
-  !!    call f_free_ptr(tmb%psit_c)
-  !!    call f_free_ptr(tmb%psit_f)
-  !!end if
-
-  ! Create communication arrays for support functions in the global box
-  
-  call nullify_orbitals_data(orbs)
-  call copy_orbitals_data(tmb%orbs, orbs, subname)
-  call orbitals_communicators(iproc, nproc, tmb%lzd%glr, orbs, comms)
-
-
-  ! Transform the support functions to the global box
-  ! WARNING: WILL NOT WORK WITH K-POINTS, CHECK THIS
-  npsidim_global=max(tmb%orbs%norbp*(tmb%lzd%glr%wfd%nvctr_c+7*tmb%lzd%glr%wfd%nvctr_f), &
-                     tmb%orbs%norb*comms%nvctr_par(iproc,0)*orbs%nspinor)
-  phi_global = f_malloc_ptr(npsidim_global,id='phi_global')
-  phiwork_global = f_malloc_ptr(npsidim_global,id='phiwork_global')
-  call small_to_large_locreg(iproc, tmb%npsidim_orbs, &
-       tmb%orbs%norbp*(tmb%lzd%glr%wfd%nvctr_c+7*tmb%lzd%glr%wfd%nvctr_f), tmb%lzd, &
-       KSwfn%lzd, tmb%orbs, tmb%psi, phi_global, to_global=.true.)
-  call transpose_v(iproc, nproc, orbs, tmb%lzd%glr%wfd, comms, phi_global(1), phiwork_global(1))
-
-
-  ! WARNING: WILL NOT WORK WITH K-POINTS, CHECK THIS
-  nvctrp=comms%nvctr_par(iproc,0)*orbs%nspinor
-  call dgemm('n', 'n', nvctrp, KSwfn%orbs%norb, tmb%orbs%norb, 1.d0, phi_global, nvctrp, tmb%coeff(1,1), &
-             tmb%orbs%norb, 0.d0, phiwork_global, nvctrp)
-  
-  call untranspose_v(iproc, nproc, KSwfn%orbs, tmb%lzd%glr%wfd, KSwfn%comms, phiwork_global(1), phi_global(1))  
-
-  call f_free_ptr(phi_global)
-
-  !!ist=1
-  !!do iorb=1,KSwfn%orbs%norbp
-  !!    do i=1,tmb%lzd%glr%wfd%nvctr_c+7*tmb%lzd%glr%wfd%nvctr_f
-  !!        write(800+iproc,*) iorb, i, phiwork_global(ist)
-  !!        ist=ist+1
-  !!    end do
-  !!end do
-
-
-  !!ierr=tmb%lzd%glr%wfd%nvctr_c+7*tmb%lzd%glr%wfd%nvctr_f
-  !!do i=1,KSwfn%orbs%norb*ierr
-  !!    write(401,*) i, phiwork_global(i)
-  !!end do
-  !!write(*,*) 'GLOBAL DDOT',ddot(KSwfn%orbs%norb*ierr, phi_global, 1, phi_global, 1)
-
-  !!do i=1,KSwfn%orbs%norb*ierr
-  !!     tmb%psi(i)=phi_global(i)
-  !!end do
-  !!call get_coeff(iproc, nproc, LINEAR_MIXDENS_SIMPLE, tmb%orbs, at, rxyz, denspot, GPU, infoCoeff, &
-  !!     energs, nlpspd, proj, input%SIC, tmb, fnrm, .true., .false., .true., ham_small, 0, 0, 0, 0)
-
-  !!do i=1,KSwfn%orbs%norb*(tmb%lzd%glr%wfd%nvctr_c+7*tmb%lzd%glr%wfd%nvctr_f)
-  !!    write(600,'(i10,es16.7)') i, tmb%psi(i)
-  !!end do
-
-
-  !!write(*,*) 'iproc, input%output_wf_format',iproc, WF_FORMAT_PLAIN
-  call writemywaves(iproc,trim(input%dir_output)//"wavefunction", WF_FORMAT_PLAIN, &
-       KSwfn%orbs, KSwfn%Lzd%Glr%d%n1, KSwfn%Lzd%Glr%d%n2, KSwfn%Lzd%Glr%d%n3, &
-       KSwfn%Lzd%hgrids(1), KSwfn%Lzd%hgrids(2), KSwfn%Lzd%hgrids(3), &
-       at, rxyz, KSwfn%Lzd%Glr%wfd, phiwork_global)
-
-   call f_free_ptr(phiwork_global)
-   call deallocate_orbitals_data(orbs)
-   call deallocate_comms_cubic(comms)
-
-  ! To get consistent values of the energy and the Kohn-Sham residue with those
-  ! which will be calculated by the cubic restart.
-  call communicate_basis_for_density_collective(iproc, nproc, tmb%lzd, &
-       max(tmb%npsidim_orbs,tmb%npsidim_comp), tmb%orbs, tmb%psi, tmb%collcom_sr)
-  tmparr = sparsematrix_malloc(tmb%linmat%l,iaction=SPARSE_FULL,id='tmparr')
-  call vcopy(tmb%linmat%l%nvctr, tmb%linmat%kernel_%matrix_compr(1), 1, tmparr(1), 1)
-  !!call gather_matrix_from_taskgroups_inplace(iproc, nproc, tmb%linmat%l, tmb%linmat%kernel_)
-  call sumrho_for_TMBs(iproc, nproc, KSwfn%Lzd%hgrids(1), KSwfn%Lzd%hgrids(2), KSwfn%Lzd%hgrids(3), &
-       tmb%collcom_sr, tmb%linmat%l, tmb%linmat%kernel_, denspot%dpbox%ndimrhopot, &
-       denspot%rhov, rho_negative)
-  call vcopy(tmb%linmat%l%nvctr, tmparr(1), 1, tmb%linmat%kernel_%matrix_compr(1), 1)
-  call f_free(tmparr)
-  if (rho_negative) then
-      call corrections_for_negative_charge(iproc, nproc, KSwfn, at, input, tmb, denspot)
-      !!if (iproc==0) call yaml_warning('Charge density contains negative points, need to increase FOE cutoff')
-      !!call increase_FOE_cutoff(iproc, nproc, tmb%lzd, at%astruct, input, KSwfn%orbs, tmb%orbs, tmb%foe_obj, init=.false.)
-      !!call clean_rho(iproc, nproc, KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3d, denspot%rhov)
-  end if
-  call updatePotential(input%nspin,denspot,energs%eh,energs%exc,energs%evxc)
-  tmb%can_use_transposed=.false.
-  !!call extract_taskgroup_inplace(tmb%linmat%l, tmb%linmat%kernel_)
-  call get_coeff(iproc, nproc, LINEAR_MIXDENS_SIMPLE, KSwfn%orbs, at, rxyz, denspot, GPU, infoCoeff, &
-       energs, nlpsp, input%SIC, tmb, fnrm, .true., .true., .false., .true., 0, 0, 0, 0, &
-       order_taylor, input%lin%max_inversion_error, input%purification_quickreturn, &
-       input%calculate_KS_residue, input%calculate_gap, energs_work, updatekernel=.false.)
-  !!call gather_matrix_from_taskgroups_inplace(iproc, nproc, tmb%linmat%l, tmb%linmat%kernel_)
-  energy=energs%ebs-energs%eh+energs%exc-energs%evxc-energs%eexctX+energs%eion+energs%edisp
-  energyDiff=energy-energyold
-  energyold=energy
-
-  !!if(tmb%can_use_transposed) then
-  !!    call f_free_ptr(tmb%psit_c)
-  !!    call f_free_ptr(tmb%psit_f)
-  !!end if
-
-  call deallocate_work_mpiaccumulate(energs_work)
-
-end subroutine build_ks_orbitals
-
-!TEMPORARY, to be cleaned/removed
-subroutine build_ks_orbitals_laura_tmp(iproc, nproc, tmb, KSwfn, at, rxyz, denspot, GPU, &
-           energs, nlpsp, input, order_taylor, &
-           energy, energyDiff, energyold, npsidim_global, phiwork_global)
-  use module_base
-  use module_types
-  use module_interfaces, except_this_one => build_ks_orbitals_laura_tmp
-  use communications_base, only: comms_cubic
-  use communications_init, only: orbitals_communicators
-  use communications, only: transpose_v, untranspose_v
-  use sparsematrix_base, only: sparse_matrix
-  use yaml_output
-  implicit none
-  
-  ! Calling arguments
-  integer:: iproc, nproc
-  type(DFT_wavefunction),intent(inout) :: tmb, KSwfn
-  type(atoms_data), intent(in) :: at
-  real(gp), dimension(3,at%astruct%nat), intent(in) :: rxyz
-  type(DFT_local_fields), intent(inout) :: denspot
-  type(GPU_pointers), intent(inout) :: GPU
-  type(energy_terms),intent(inout) :: energs
-  type(DFT_PSP_projectors), intent(inout) :: nlpsp
-  type(input_variables),intent(in) :: input
-  integer,intent(inout) :: order_taylor
-  real(kind=8),intent(out) :: energy, energyDiff
-  real(kind=8), intent(inout) :: energyold
-integer, intent(in) :: npsidim_global
-real(kind=8),dimension(:),pointer :: phiwork_global
-
-  ! Local variables
-  type(orbitals_data) :: orbs
-  type(comms_cubic) :: comms
-  real(gp) :: fnrm
-  logical :: rho_negative
-  integer :: infoCoeff, nvctrp
-  real(kind=8),dimension(:),pointer :: phi_global
-  real(kind=8),dimension(:,:),allocatable :: coeffs_occs
-  character(len=*),parameter :: subname='build_ks_orbitals'
-  real(wp), dimension(:,:,:), pointer :: mom_vec_fake
-  integer :: iorb, itmb
-  type(work_mpiaccumulate) :: energs_work
-
-  nullify(mom_vec_fake)
-
-  energs_work = work_mpiaccumulate_null()
-  energs_work%ncount = 4
-  call allocate_work_mpiaccumulate(energs_work)
-
-  !debug
-  !integer :: iorb, jorb, ist, jst, ierr, i
-  !real(kind=8) :: ddot, tt
-
-
-  ! Get the expansion coefficients
-  ! Start with a "clean" density, i.e. without legacy from previous mixing steps
-  call communicate_basis_for_density_collective(iproc, nproc, tmb%lzd, &
-       max(tmb%npsidim_orbs,tmb%npsidim_comp), tmb%orbs, tmb%psi, tmb%collcom_sr)
-  call sumrho_for_TMBs(iproc, nproc, KSwfn%Lzd%hgrids(1), KSwfn%Lzd%hgrids(2), KSwfn%Lzd%hgrids(3), &
-       tmb%collcom_sr, tmb%linmat%l, tmb%linmat%kernel_, denspot%dpbox%ndimrhopot, &
-       denspot%rhov, rho_negative)
-  if (rho_negative) then
-      call corrections_for_negative_charge(iproc, nproc, KSwfn, at, input, tmb, denspot)
-      !!if (iproc==0) call yaml_warning('Charge density contains negative points, need to increase FOE cutoff')
-      !!call increase_FOE_cutoff(iproc, nproc, tmb%lzd, at%astruct, input, KSwfn%orbs, tmb%orbs, tmb%foe_obj, init=.false.)
-      !!call clean_rho(iproc, nproc, KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3d, denspot%rhov)
-  end if
-
-  call updatePotential(input%nspin,denspot,energs%eh,energs%exc,energs%evxc)
-
-  tmb%can_use_transposed=.false.
-  call get_coeff(iproc, nproc, LINEAR_MIXDENS_SIMPLE, KSwfn%orbs, at, rxyz, denspot, GPU, infoCoeff, &
-       energs, nlpsp, input%SIC, tmb, fnrm, .true., .true., .false., .true., 0, 0, 0, 0, &
-       order_taylor,input%lin%max_inversion_error,input%purification_quickreturn,&
-       input%calculate_KS_residue,input%calculate_gap,energs_work)
-
-  if (bigdft_mpi%iproc ==0) then
-     call write_eigenvalues_data(0.1d0,KSwfn%orbs,mom_vec_fake)
-  end if
-
-
-  !call communicate_basis_for_density_collective(iproc, nproc, tmb%lzd, &
-  !     max(tmb%npsidim_orbs,tmb%npsidim_comp), tmb%orbs, tmb%psi, tmb%collcom_sr)
-  !call sumrho_for_TMBs(iproc, nproc, KSwfn%Lzd%hgrids(1), KSwfn%Lzd%hgrids(2), KSwfn%Lzd%hgrids(3), &
-  !     tmb%collcom_sr, tmb%linmat%denskern, KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3d, denspot%rhov)
-  !call updatePotential(input%ixc,input%nspin,denspot,energs%eh,energs%exc,energs%evxc)
-  !tmb%can_use_transposed=.false.
-  !call get_coeff(iproc, nproc, LINEAR_MIXDENS_SIMPLE, KSwfn%orbs, at, rxyz, denspot, GPU, infoCoeff, &
-  !     energs, nlpspd, proj, input%SIC, tmb, fnrm, .true., .false., .true., ham_small, 0, 0, 0, 0)
-  !energy=energs%ebs-energs%eh+energs%exc-energs%evxc-energs%eexctX+energs%eion+energs%edisp
-  !energyDiff=energy-energyold
-  !energyold=energy
-
-  !!if(tmb%can_use_transposed) then
-  !!    call f_free_ptr(tmb%psit_c)
-  !!    call f_free_ptr(tmb%psit_f)
-  !!end if
-
-  ! Create communication arrays for support functions in the global box
-  
-  call nullify_orbitals_data(orbs)
-  call copy_orbitals_data(tmb%orbs, orbs, subname)
-  call orbitals_communicators(iproc, nproc, tmb%lzd%glr, orbs, comms)
-
-
-  ! Transform the support functions to the global box
-  ! WARNING: WILL NOT WORK WITH K-POINTS, CHECK THIS
-  !npsidim_global=max(tmb%orbs%norbp*(tmb%lzd%glr%wfd%nvctr_c+7*tmb%lzd%glr%wfd%nvctr_f), &
-  !                   tmb%orbs%norb*comms%nvctr_par(iproc,0)*orbs%nspinor)
-  phi_global = f_malloc_ptr(npsidim_global,id='phi_global')
-  !phiwork_global = f_malloc_ptr(npsidim_global,id='phiwork_global')
-  call small_to_large_locreg(iproc, tmb%npsidim_orbs, &
-       tmb%orbs%norbp*(tmb%lzd%glr%wfd%nvctr_c+7*tmb%lzd%glr%wfd%nvctr_f), tmb%lzd, &
-       KSwfn%lzd, tmb%orbs, tmb%psi, phi_global, to_global=.true.)
-  call transpose_v(iproc, nproc, orbs, tmb%lzd%glr%wfd, comms, phi_global(1), phiwork_global(1))
-
-!NOT PRINTING, 2xcorrect charge?!
-!print*,'ntmb,ntmbp,norb,norbp',tmb%orbs%norb,tmb%orbs%norbp,KSwfn%orbs%norb,KSwfn%orbs%norbp
-  ! WARNING: WILL NOT WORK WITH K-POINTS, CHECK THIS
-  coeffs_occs=f_malloc0((/tmb%orbs%norb,KSwfn%orbs%norb/),id='coeffs_occs')
-  !call dgemm('n', 'n', nvctrp, KSwfn%orbs%norb, tmb%orbs%norb, 1.d0, KSwfn%orbs%occup(1), nvctrp, tmb%coeff(1,1), &
-  !     tmb%orbs%norb, 0.d0, coeffs_occs, nvctrp)
-             do iorb=1,KSwfn%orbs%norbp
-                do itmb=1,tmb%orbs%norb
-                    coeffs_occs(itmb,iorb) = sqrt(KSwfn%orbs%occup(KSwfn%orbs%isorb+iorb))*tmb%coeff(itmb,KSwfn%orbs%isorb+iorb)
-!print*,KSwfn%orbs%occup(KSwfn%orbs%isorb+iorb)
-                end do
-             end do
-          call mpiallred(coeffs_occs(1,1), KSwfn%orbs%norb*tmb%orbs%norb, mpi_sum, bigdft_mpi%mpi_comm)
-
-  nvctrp=comms%nvctr_par(iproc,0)*orbs%nspinor
-  !call dgemm('n', 'n', nvctrp, KSwfn%orbs%norb, tmb%orbs%norb, 1.d0, phi_global, nvctrp, tmb%coeff(1,1), &
-  call dgemm('n', 'n', nvctrp, KSwfn%orbs%norb, tmb%orbs%norb, 1.d0, phi_global, nvctrp, coeffs_occs(1,1), &
-             tmb%orbs%norb, 0.d0, phiwork_global, nvctrp)
-  call f_free(coeffs_occs)  
-
-  call untranspose_v(iproc, nproc, KSwfn%orbs, tmb%lzd%glr%wfd, KSwfn%comms, phiwork_global(1), phi_global(1))  
-
-  call f_free_ptr(phi_global)
-
-  !!ist=1
-  !!do iorb=1,KSwfn%orbs%norbp
-  !!    do i=1,tmb%lzd%glr%wfd%nvctr_c+7*tmb%lzd%glr%wfd%nvctr_f
-  !!        write(800+iproc,*) iorb, i, phiwork_global(ist)
-  !!        ist=ist+1
-  !!    end do
-  !!end do
-
-
-  !!ierr=tmb%lzd%glr%wfd%nvctr_c+7*tmb%lzd%glr%wfd%nvctr_f
-  !!do i=1,KSwfn%orbs%norb*ierr
-  !!    write(401,*) i, phiwork_global(i)
-  !!end do
-  !!write(*,*) 'GLOBAL DDOT',ddot(KSwfn%orbs%norb*ierr, phi_global, 1, phi_global, 1)
-
-  !!do i=1,KSwfn%orbs%norb*ierr
-  !!     tmb%psi(i)=phi_global(i)
-  !!end do
-  !!call get_coeff(iproc, nproc, LINEAR_MIXDENS_SIMPLE, tmb%orbs, at, rxyz, denspot, GPU, infoCoeff, &
-  !!     energs, nlpspd, proj, input%SIC, tmb, fnrm, .true., .false., .true., ham_small, 0, 0, 0, 0)
-
-  !!do i=1,KSwfn%orbs%norb*(tmb%lzd%glr%wfd%nvctr_c+7*tmb%lzd%glr%wfd%nvctr_f)
-  !!    write(600,'(i10,es16.7)') i, tmb%psi(i)
-  !!end do
-
-
-  !!write(*,*) 'iproc, input%output_wf_format',iproc, WF_FORMAT_PLAIN
-  !call writemywaves(iproc,trim(input%dir_output)//"wavefunction", WF_FORMAT_PLAIN, &
-  !     KSwfn%orbs, KSwfn%Lzd%Glr%d%n1, KSwfn%Lzd%Glr%d%n2, KSwfn%Lzd%Glr%d%n3, &
-  !     KSwfn%Lzd%hgrids(1), KSwfn%Lzd%hgrids(2), KSwfn%Lzd%hgrids(3), &
-  !     at, rxyz, KSwfn%Lzd%Glr%wfd, phiwork_global)
-
-   !call f_free_ptr(phiwork_global)
-   call deallocate_orbitals_data(orbs)
-   call deallocate_comms_cubic(comms)
-
-if (.false.) then
-  ! To get consistent values of the energy and the Kohn-Sham residue with those
-  ! which will be calculated by the cubic restart.
-  call communicate_basis_for_density_collective(iproc, nproc, tmb%lzd, &
-       max(tmb%npsidim_orbs,tmb%npsidim_comp), tmb%orbs, tmb%psi, tmb%collcom_sr)
-  call sumrho_for_TMBs(iproc, nproc, KSwfn%Lzd%hgrids(1), KSwfn%Lzd%hgrids(2), KSwfn%Lzd%hgrids(3), &
-       tmb%collcom_sr, tmb%linmat%l, tmb%linmat%kernel_, denspot%dpbox%ndimrhopot, &
-       denspot%rhov, rho_negative)
-  if (rho_negative) then
-      call corrections_for_negative_charge(iproc, nproc, KSwfn, at, input, tmb, denspot)
-      !!if (iproc==0) call yaml_warning('Charge density contains negative points, need to increase FOE cutoff')
-      !!call increase_FOE_cutoff(iproc, nproc, tmb%lzd, at%astruct, input, KSwfn%orbs, tmb%orbs, tmb%foe_obj, init=.false.)
-      !!call clean_rho(iproc, nproc, KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3d, denspot%rhov)
-  end if
-  call updatePotential(input%nspin,denspot,energs%eh,energs%exc,energs%evxc)
-  tmb%can_use_transposed=.false.
-  call get_coeff(iproc, nproc, LINEAR_MIXDENS_SIMPLE, KSwfn%orbs, at, rxyz, denspot, GPU, infoCoeff, &
-       energs, nlpsp, input%SIC, tmb, fnrm, .true., .true., .false., .true., 0, 0, 0, 0, &
-       order_taylor, input%lin%max_inversion_error, input%purification_quickreturn, &
-       input%calculate_KS_residue, input%calculate_gap, energs_work, updatekernel=.false.)
-  energy=energs%ebs-energs%eh+energs%exc-energs%evxc-energs%eexctX+energs%eion+energs%edisp
-  energyDiff=energy-energyold
-  energyold=energy
-
-  !!if(tmb%can_use_transposed) then
-  !!    call f_free_ptr(tmb%psit_c)
-  !!    call f_free_ptr(tmb%psit_f)
-  !!end if
-end if
-  call allocate_work_mpiaccumulate(energs_work)
-end subroutine build_ks_orbitals_laura_tmp
 
 subroutine cut_at_boundaries(cut, tmb)
   use module_base
@@ -1363,352 +1121,6 @@ end subroutine cut_at_boundaries
 
 
 
-subroutine loewdin_charge_analysis(iproc,tmb,atoms,denspot,&
-           calculate_overlap_matrix,calculate_ovrlp_half,meth_overlap)
-  use module_base
-  use module_types
-  use module_interfaces, except_this_one => loewdin_charge_analysis
-  use communications_base, only: TRANSPOSE_FULL
-  use communications, only: transpose_localized
-  use sparsematrix_base, only: sparse_matrix, sparsematrix_malloc, sparsematrix_malloc0, sparsematrix_malloc_ptr, &
-                               DENSE_FULL, assignment(=), &
-                               matrices_null, allocate_matrices, deallocate_matrices
-  use sparsematrix, only: compress_matrix, uncompress_matrix, gather_matrix_from_taskgroups_inplace, &
-                          uncompress_matrix2
-  use transposed_operations, only: calculate_overlap_transposed
-  use yaml_output
-  implicit none
-  integer,intent(in) :: iproc
-  type(dft_wavefunction),intent(inout) :: tmb
-  type(atoms_data),intent(in) :: atoms
-  type(DFT_local_fields), intent(inout) :: denspot
-  logical,intent(in) :: calculate_overlap_matrix, calculate_ovrlp_half
-  integer,intent(in) :: meth_overlap
-
-  !local variables
-  !integer :: ifrag,ifrag_ref,isforb,jorb
-  integer :: iorb,ierr
-  real(kind=gp), allocatable, dimension(:,:,:) :: proj_mat
-  real(kind=gp), allocatable, dimension(:,:) :: proj_ovrlp_half, weight_matrixp
-  character(len=*),parameter :: subname='calculate_weight_matrix_lowdin'
-  real(kind=gp) :: max_error, mean_error
-  type(matrices),dimension(1) :: inv_ovrlp
-
-  ! new variables
-  integer :: iat
-  real(kind=8),dimension(:,:),allocatable :: weight_matrix
-  !real(kind=gp),dimension(:,:),pointer :: ovrlp
-  real(kind=8) :: total_charge, total_net_charge
-  real(kind=8),dimension(:),allocatable :: charge_per_atom
-  !logical :: psit_c_associated, psit_f_associated
-
-
-  ! needs parallelizing/converting to sparse
-  ! re-use overlap matrix if possible either before or after
-
-  call f_routine(id='loewdin_charge_analysis')
-
-  inv_ovrlp(1) = matrices_null()
-  call allocate_matrices(tmb%linmat%l, allocate_full=.true., matname='inv_ovrlp', mat=inv_ovrlp(1))
-
-
-
-  if (calculate_overlap_matrix) then
-     if(.not.tmb%can_use_transposed) then
-         !!if(.not.associated(tmb%psit_c)) then
-         !!    tmb%psit_c = f_malloc_ptr(sum(tmb%collcom%nrecvcounts_c),id='tmb%psit_c')
-         !!    psit_c_associated=.false.
-         !!else
-         !!    psit_c_associated=.true.
-         !!end if
-         !!if(.not.associated(tmb%psit_f)) then
-         !!    tmb%psit_f = f_malloc_ptr(7*sum(tmb%collcom%nrecvcounts_f),id='tmb%psit_f')
-         !!    psit_f_associated=.false.
-         !!else
-         !!    psit_f_associated=.true.
-         !!end if
-         call transpose_localized(bigdft_mpi%iproc, bigdft_mpi%nproc, tmb%npsidim_orbs, tmb%orbs, tmb%collcom, &
-              TRANSPOSE_FULL, tmb%psi, tmb%psit_c, tmb%psit_f, tmb%lzd)
-         tmb%can_use_transposed=.true.
-     end if
-
-     call calculate_overlap_transposed(bigdft_mpi%iproc, bigdft_mpi%nproc, tmb%orbs, tmb%collcom, tmb%psit_c, &
-          tmb%psit_c, tmb%psit_f, tmb%psit_f, tmb%linmat%s, tmb%linmat%ovrlp_)
-     !!call gather_matrix_from_taskgroups_inplace(bigdft_mpi%iproc, bigdft_mpi%nproc, tmb%linmat%s, tmb%linmat%ovrlp_)
-     ! This can then be deleted if the transition to the new type has been completed.
-     !tmb%linmat%ovrlp%matrix_compr=tmb%linmat%ovrlp_%matrix_compr
-
-
-     !!if (.not.psit_c_associated) then
-     !!   call f_free_ptr(tmb%psit_c)
-     !!   tmb%can_use_transposed=.false.
-     !!end if
-     !!if (.not.psit_f_associated) then
-     !!   call f_free_ptr(tmb%psit_f)
-     !!   tmb%can_use_transposed=.false.
-     !!end if
-  end if
-
-  if (calculate_ovrlp_half) then
-     tmb%linmat%ovrlp_%matrix = sparsematrix_malloc_ptr(tmb%linmat%s, iaction=DENSE_FULL, id='tmb%linmat%ovrlp_%matrix')
-     call uncompress_matrix2(bigdft_mpi%iproc, bigdft_mpi%nproc, tmb%linmat%s, &
-          tmb%linmat%ovrlp_%matrix_compr, tmb%linmat%ovrlp_%matrix)
-     call overlapPowerGeneral(bigdft_mpi%iproc, bigdft_mpi%nproc, meth_overlap, 1, (/2/), &
-          tmb%orthpar%blocksize_pdsyev, &
-          imode=2, ovrlp_smat=tmb%linmat%s, inv_ovrlp_smat=tmb%linmat%l, &
-          ovrlp_mat=tmb%linmat%ovrlp_, inv_ovrlp_mat=inv_ovrlp, check_accur=.true., &
-          max_error=max_error, mean_error=mean_error)
-     !!ovrlp_half=tmb%linmat%ovrlp%matrix
-     call f_free_ptr(tmb%linmat%ovrlp_%matrix)
-  end if
-
-  ! optimize this to just change the matrix multiplication?
-  proj_mat = sparsematrix_malloc0(tmb%linmat%l,iaction=DENSE_FULL,id='proj_mat')
-
-  call uncompress_matrix2(iproc, bigdft_mpi%nproc, tmb%linmat%l, tmb%linmat%kernel_%matrix_compr, proj_mat)
-  !!isforb=0
-  !!do ifrag=1,input%frag%nfrag
-  !!   ifrag_ref=input%frag%frag_index(ifrag)
-  !!   if (ifrag==ifrag_charged(1)) then
-  !!      do iorb=1,ref_frags(ifrag_ref)%fbasis%forbs%norb
-  !!         proj_mat(iorb+isforb,iorb+isforb)=1.0_gp
-  !!      end do
-  !!   end if
-  !!   !!if (nfrag_charged==2) then
-  !!   !!   if (ifrag==ifrag_charged(2)) then
-  !!   !!      do iorb=1,ref_frags(ifrag_ref)%fbasis%forbs%norb
-  !!   !!         proj_mat(iorb+isforb,iorb+isforb)=-1.0_gp
-  !!   !!      end do
-  !!   !!   end if
-  !!   !!end if
-  !!   isforb=isforb+ref_frags(ifrag_ref)%fbasis%forbs%norb
-  !!end do
-
-  proj_ovrlp_half=f_malloc((/tmb%orbs%norb,tmb%orbs%norbp/),id='proj_ovrlp_half')
-  if (tmb%orbs%norbp>0) then
-     call dgemm('n', 'n', tmb%orbs%norb, tmb%orbs%norbp, &
-            tmb%orbs%norb, 1.d0, &
-            proj_mat(1,1,1), tmb%orbs%norb, &
-            inv_ovrlp(1)%matrix(1,tmb%orbs%isorb+1,1), tmb%orbs%norb, 0.d0, &
-            proj_ovrlp_half(1,1), tmb%orbs%norb)
-  end if
-  call f_free(proj_mat)
-  weight_matrixp=f_malloc((/tmb%orbs%norb,tmb%orbs%norbp/), id='weight_matrixp')
-  if (tmb%orbs%norbp>0) then
-     call dgemm('n', 'n', tmb%orbs%norb, tmb%orbs%norbp, &
-          tmb%orbs%norb, 1.d0, &
-          inv_ovrlp(1)%matrix(1,1,1), tmb%orbs%norb, &
-          proj_ovrlp_half(1,1), tmb%orbs%norb, 0.d0, &
-          weight_matrixp(1,1), tmb%orbs%norb)
-  end if
-  !call f_free_ptr(ovrlp_half)
-  call f_free(proj_ovrlp_half)
-  weight_matrix=f_malloc((/tmb%orbs%norb,tmb%orbs%norb/), id='weight_matrix')
-  if (bigdft_mpi%nproc>1) then
-     call mpi_allgatherv(weight_matrixp, tmb%orbs%norb*tmb%orbs%norbp, mpi_double_precision, weight_matrix, &
-          tmb%orbs%norb*tmb%orbs%norb_par(:,0), tmb%orbs%norb*tmb%orbs%isorb_par, &
-          mpi_double_precision, bigdft_mpi%mpi_comm, ierr)
-  else
-     call vcopy(tmb%orbs%norb*tmb%orbs%norb,weight_matrixp(1,1),1,weight_matrix(1,1),1)
-  end if
-  call f_free(weight_matrixp)
-  !call compress_matrix(bigdft_mpi%iproc,weight_matrix)
-
-  charge_per_atom = f_malloc0(atoms%astruct%nat,id='charge_per_atom')
-  !!do iorb=1,tmb%orbs%norb
-  !!    do jorb=1,tmb%orbs%norb
-  !!        if (iproc==0) write(*,'(a,2i7,es16.7)') 'iorb,jorb,weight_matrix(jorb,iorb)', iorb,jorb,weight_matrix(jorb,iorb)
-  !!        if (iorb==jorb) then
-  !!            total_charge = total_charge + weight_matrix(jorb,iorb)
-  !!            iat=tmb%orbs%onwhichatom(iorb)
-  !!            charge_per_atom(iat) = charge_per_atom(iat) + weight_matrix(jorb,iorb)
-  !!        end if
-  !!    end do
-  !!end do
-  !!if (iproc==0) then
-  !!    do iat=1,atoms%astruct%nat
-  !!        write(*,*) 'iat, partial total_charge', iat, charge_per_atom(iat)
-  !!    end do
-  !!    write(*,*) 'total total_charge',total_charge
-  !!    if (iproc==0) call write_partial_charges()
-  !!end if
-
-  do iorb=1,tmb%orbs%norb
-      iat=tmb%orbs%onwhichatom(iorb)
-      charge_per_atom(iat) = charge_per_atom(iat) + weight_matrix(iorb,iorb)
-  end do
-  if (iproc==0) then
-      call write_partial_charges()
-      call yaml_sequence_open('Multipole analysis (based on the Loewdin charges)')
-      call calculate_dipole()
-      call calculate_quadropole()
-      call yaml_sequence_close()
-  end if
-  !!call support_function_multipoles()
-
-  call deallocate_matrices(inv_ovrlp(1))
-
-  call f_free(charge_per_atom)
-  call f_free(weight_matrix)
-  call f_release_routine()
-
-
-
-  contains
-
-    subroutine write_partial_charges
-      use yaml_output
-      character(len=20) :: atomname
-      real(kind=8),dimension(2) :: charges
-      call yaml_sequence_open('Loewdin charge analysis (charge / net charge)')
-      total_charge=0.d0
-      total_net_charge=0.d0
-      do iat=1,atoms%astruct%nat
-          call yaml_sequence(advance='no')
-          call yaml_mapping_open(flow=.true.)
-          atomname=atoms%astruct%atomnames(atoms%astruct%iatype(iat))
-          charges(1)=-charge_per_atom(iat)
-          charges(2)=-(charge_per_atom(iat)-real(atoms%nelpsp(atoms%astruct%iatype(iat)),kind=8))
-          total_charge = total_charge + charges(1)
-          total_net_charge = total_net_charge + charges(2)
-          call yaml_map(trim(atomname),charges,fmt='(1es20.12)')
-          call yaml_mapping_close(advance='no')
-          call yaml_comment(trim(yaml_toa(iat,fmt='(i4.4)')))
-      end do
-      call yaml_sequence(advance='no')
-      call yaml_map('total charge',total_charge,fmt='(es16.8)')
-      call yaml_sequence(advance='no')
-      call yaml_map('total net charge',total_net_charge,fmt='(es16.8)')
-      call yaml_sequence_close()
-    end subroutine write_partial_charges
-
-
-    subroutine calculate_dipole()
-      use yaml_output
-      real(kind=8),dimension(3) :: dipole_elec, dipole_cores, dipole_net
-
-      dipole_cores(1:3)=0._gp
-      do iat=1,atoms%astruct%nat
-         dipole_cores(1:3)=dipole_cores(1:3)+atoms%nelpsp(atoms%astruct%iatype(iat))*atoms%astruct%rxyz(1:3,iat)
-      end do
-
-      dipole_elec=0.d0
-      do iat=1,atoms%astruct%nat
-          dipole_elec(1:3) = dipole_elec(1:3) -charge_per_atom(iat)*atoms%astruct%rxyz(1:3,iat)
-      end do
-
-      dipole_net=dipole_cores+dipole_elec
-
-      if (iproc==0) then
-          !!call yaml_map('core dipole', dipole_cores)
-          !!call yaml_map('electronic dipole', dipole_elec)
-          call yaml_map('net dipole', dipole_net,fmt='(es12.5)')
-      end if
-
-    end subroutine calculate_dipole
-
-
-    subroutine calculate_quadropole()
-      use yaml_output
-      real(kind=8),dimension(3,3) :: quadropole_elec, quadropole_cores, quadropole_net
-      real(kind=8),dimension(3) :: charge_center_cores, charge_center_charge
-      integer :: i, j
-      real(kind=8) :: delta_term, rj, ri, q, qtot
-
-
-      ! charge center of the cores
-      charge_center_cores(1:3)=0.d0
-      qtot=0.d0
-      do iat=1,atoms%astruct%nat
-          q=atoms%nelpsp(atoms%astruct%iatype(iat))
-          charge_center_cores(1:3) = charge_center_cores(1:3) + q*atoms%astruct%rxyz(1:3,iat)
-          qtot=qtot+q
-      end do
-      charge_center_cores=charge_center_cores/qtot
-
-
-      ! charge center of the charge
-      charge_center_charge(1:3)=0.d0
-      qtot=0.d0
-      do iat=1,atoms%astruct%nat
-          q=-charge_per_atom(iat)
-          charge_center_charge(1:3) = charge_center_charge(1:3) + q*atoms%astruct%rxyz(1:3,iat)
-          qtot=qtot+q
-      end do
-      charge_center_charge=charge_center_charge/qtot
-
-
-      quadropole_cores(1:3,1:3)=0._gp
-      do iat=1,atoms%astruct%nat
-         q=atoms%nelpsp(atoms%astruct%iatype(iat))
-         do i=1,3
-             do j=1,3
-                 if (i==j) then
-                     delta_term = atoms%astruct%rxyz(1,iat)**2 + atoms%astruct%rxyz(2,iat)**2 + atoms%astruct%rxyz(3,iat)**2
-                 else
-                     delta_term=0.d0
-                 end if
-                 rj=atoms%astruct%rxyz(j,iat)
-                 ri=atoms%astruct%rxyz(i,iat)
-                 quadropole_cores(j,i) = quadropole_cores(j,i) + q*(3.d0*rj*ri-delta_term)
-                 !!quadropole_cores(j,i) = quadropole_cores(j,i) + &
-                 !!                        atoms%nelpsp(atoms%astruct%iatype(iat))* &
-                 !!                          (3.d0*atoms%astruct%rxyz(j,iat)*atoms%astruct%rxyz(i,iat)-delta_term)
-             end do
-         end do
-      end do
-
-
-      quadropole_elec(1:3,1:3)=0._gp
-      do iat=1,atoms%astruct%nat
-         q=-charge_per_atom(iat)
-         do i=1,3
-             do j=1,3
-                 if (i==j) then
-                     delta_term = (atoms%astruct%rxyz(1,iat)+(charge_center_cores(1)-charge_center_charge(1)))**2 + &
-                                  (atoms%astruct%rxyz(2,iat)+(charge_center_cores(2)-charge_center_charge(2)))**2 + &
-                                  (atoms%astruct%rxyz(3,iat)+(charge_center_cores(3)-charge_center_charge(3)))**2
-                 else
-                     delta_term=0.d0
-                 end if
-                 rj=atoms%astruct%rxyz(j,iat)+(charge_center_cores(j)-charge_center_charge(j))
-                 ri=atoms%astruct%rxyz(i,iat)+(charge_center_cores(i)-charge_center_charge(i))
-                 quadropole_elec(j,i) = quadropole_elec(j,i) + q*(3.d0*rj*ri-delta_term)
-                 !!quadropole_elec(j,i) = quadropole_elec(j,i) + &
-                 !!                       -charge_per_atom(iat)* &
-                 !!                         (3.d0*atoms%astruct%rxyz(j,iat)*atoms%astruct%rxyz(i,iat)-delta_term)
-             end do
-         end do
-      end do
-
-      quadropole_net=quadropole_cores+quadropole_elec
-
-      if (iproc==0) then
-          !!call yaml_sequence_open('core quadropole')
-          !!do i=1,3
-          !!   call yaml_sequence(trim(yaml_toa(quadropole_cores(i,1:3),fmt='(es12.5)')))
-          !!end do
-          !!call yaml_sequence_close()
-
-          !!call yaml_sequence_open('electronic quadropole')
-          !!do i=1,3
-          !!   call yaml_sequence(trim(yaml_toa(quadropole_elec(i,1:3),fmt='(es12.5)')))
-          !!end do
-          !!call yaml_sequence_close()
-
-          call yaml_sequence_open('net quadropole')
-          do i=1,3
-             call yaml_sequence(trim(yaml_toa(quadropole_net(i,1:3),fmt='(es12.5)')))
-          end do
-          call yaml_sequence(advance='no')
-          call yaml_map('trace of quadropole matrix',&
-               quadropole_net(1,1)+quadropole_net(2,2)+quadropole_net(3,3),fmt='(es12.2)')
-          call yaml_sequence_close()
-      end if
-
-    end subroutine calculate_quadropole
-
-end subroutine loewdin_charge_analysis
 
 
 subroutine charge_center(n1i, n2i, n3i, hgrids, phir, charge_center_elec)
@@ -1764,239 +1176,247 @@ subroutine charge_center(n1i, n2i, n3i, hgrids, phir, charge_center_elec)
 end subroutine charge_center
 
 
-subroutine calculate_multipoles(n1i, n2i, n3i, hgrids, phir, charge_center_elec, rxyz_center, &
-           dipole_net, quadropole_net)
-  use yaml_output
-  implicit none
-  ! Calling arguments
-  integer,intent(in) :: n1i, n2i, n3i
-  real(kind=8),dimension(3),intent(in) :: hgrids
-  real(kind=8),dimension(n1i*n2i*n3i),intent(in) :: phir
-  real(kind=8),dimension(3),intent(in) :: charge_center_elec, rxyz_center
-  real(kind=8),dimension(3),intent(out) :: dipole_net
-  real(kind=8),dimension(3,3),intent(out) :: quadropole_net
-
-  integer :: i1, i2, i3, jj, iz, iy, ix, ii, i, j
-  real(kind=8) :: q, x, y, z, qtot, ri, rj, delta_term
-  real(kind=8),dimension(3) :: dipole_center, dipole_el
-  real(kind=8),dimension(3,3) :: quadropole_center, quadropole_el
-
-
-  !!call yaml_map('rxyz_center',rxyz_center,fmt='(es16.6)')
-  !!call yaml_map('charge_center_elec',charge_center_elec,fmt='(es16.6)')
-  !!call yaml_map('sum phir',sum(phir),fmt='(es16.6)')
-
-  ! Dipole and quadropole of the support function
-  dipole_el=0.d0
-  quadropole_el=0.d0
-  qtot=0.d0
-  jj=0
-  do i3=1,n3i
-      do i2=1,n2i
-          do i1=1,n1i
-              jj=jj+1
-              ! z component of point jj
-              iz=jj/(n2i*n1i)
-              ! Subtract the 'lower' xy layers
-              ii=jj-iz*(n2i*n1i)
-              ! y component of point jj
-              iy=ii/n1i
-              ! Subtract the 'lower' y rows
-              ii=ii-iy*n1i
-              ! x component
-              ix=ii
-
-              ! Shift the values due to the convolutions bounds
-              ix=ix-14
-              iy=iy-14
-              iz=iz-14
-
-              q = phir(jj)**2 * product(hgrids)
-              x = ix*hgrids(1) + (rxyz_center(1)-charge_center_elec(1))
-              y = iy*hgrids(2) + (rxyz_center(2)-charge_center_elec(2))
-              z = iz*hgrids(3) + (rxyz_center(3)-charge_center_elec(3))
-
-              ! Dipole part
-              dipole_el(1) = dipole_el(1) + q*x
-              dipole_el(2) = dipole_el(2) + q*y
-              dipole_el(3) = dipole_el(3) + q*z
-              qtot=qtot+q
-
-              ! Quadrupole part
-              do i=1,3
-                  ri=get_r(i, x, y, z)
-                  do j=1,3
-                      rj=get_r(j, x, y, z)
-                      if (i==j) then
-                          delta_term = x**2 + y**2 + z**2
-                      else
-                          delta_term=0.d0
-                      end if
-                      quadropole_el(j,i) = quadropole_el(j,i) + q*(3.d0*rj*ri-delta_term)
-                  end do
-              end do
-          end do
-      end do
-  end do
-
-  ! Dipole of the center
-  dipole_center(1) = -qtot*rxyz_center(1)
-  dipole_center(2) = -qtot*rxyz_center(2)
-  dipole_center(3) = -qtot*rxyz_center(3)
-
-  ! Quadropole of the center
-  quadropole_center=0.d0
-  do i=1,3
-      ri=rxyz_center(i)
-      do j=1,3
-          rj=rxyz_center(j)
-          if (i==j) then
-              delta_term = rxyz_center(1)**2 + rxyz_center(2)**2 + rxyz_center(3)**2
-          else
-              delta_term=0.d0
-          end if
-          quadropole_center(j,i) = quadropole_center(j,i) -qtot*(3.d0*rj*ri-delta_term)
-      end do
-  end do
-
-  ! Net dipole and quadropole
-  dipole_net = dipole_el + dipole_center
-  quadropole_net = quadropole_el + quadropole_center
-
-
-!  call yaml_sequence_open(trim(yaml_toa(it))//'('//trim(atomname)//')')
-!  !call yaml_map('qtot',qtot)
-!  call yaml_sequence(advance='no')
-!  !call yaml_map('center dipole',dipole_center,fmt='(es16.6)')
-!  !call yaml_map('electronic dipole',dipole_el,fmt='(es18.10)')
-!  call yaml_map('net dipole',dipole_net,fmt='(es18.10)')
-!  call yaml_sequence(advance='no')
-!  !call yaml_sequence_open('center quadropole')
-!  !do i=1,3
-!  !   call yaml_sequence(trim(yaml_toa(quadropole_center(i,1:3),fmt='(es15.8)')))
-!  !end do
-!  !call yaml_sequence_close()
-!  !call yaml_sequence_open('electronic quadropole')
-!  !do i=1,3
-!  !   call yaml_sequence(trim(yaml_toa(quadropole_el(i,1:3),fmt='(es15.8)')))
-!  !end do
-!  !call yaml_sequence_close()
-!  call yaml_sequence_open('net quadropole')
-!  do i=1,3
-!     call yaml_sequence(trim(yaml_toa(quadropole_net(i,1:3),fmt='(es15.8)')))
-!  end do
-!  call yaml_sequence_close()
-!  call yaml_sequence_close()
-
-  contains
-
-    function get_r(i, x, y, z)
-      integer,intent(in) :: i
-      real(kind=8),intent(in) :: x, y, z
-      real(kind=8) :: get_r
-
-      select case (i)
-      case (1)
-          get_r=x
-      case (2)
-          get_r=y
-      case (3)
-          get_r=z
-      case default
-          stop 'wrong value of i'
-      end select
-    end function get_r
-
-end subroutine calculate_multipoles
 
 
 
-subroutine support_function_multipoles(iproc, tmb, atoms, denspot)
+
+
+
+
+subroutine analyze_wavefunctions(output, region, lzd, orbs, npsidim, psi, ioffset)
   use module_base
   use module_types
   use yaml_output
-  
+  implicit none
+
   ! Calling arguments
-  integer,intent(in) :: iproc
-  type(DFT_wavefunction),intent(in) :: tmb
-  type(atoms_data),intent(in) :: atoms
-  type(DFT_local_fields), intent(inout) :: denspot
+  character(len=*),intent(in) :: output, region
+  type(local_zone_descriptors),intent(in) :: lzd
+  type(orbitals_data),intent(in) :: orbs
+  integer,intent(in) :: npsidim
+  real(kind=8),dimension(npsidim),intent(in) :: psi
+  integer,dimension(3,orbs%norbp),intent(in) :: ioffset
+  
+  ! Local variables
+  integer :: ist, iorb, iiorb, ilr, ncount
+  real(kind=8),dimension(3) :: center, sigma
+  real(kind=8),dimension(:),allocatable :: sigma_arr
+  real(kind=8) :: dnrm2
 
-  integer :: ist, istr, iorb, iiorb, ilr, i
-  real(kind=8),dimension(3) :: charge_center_elec
-  real(kind=8),dimension(:),allocatable :: phir
-  type(workarr_sumrho) :: w
-  character(len=20) :: atomname
-  real(kind=8),dimension(:,:),allocatable :: dipole_net
-  real(kind=8),dimension(:,:,:),allocatable :: quadropole_net
 
-  call f_routine(id='support_function_multipoles')
+  if (trim(region)=='global') then
+      ! Need to create the convolution bounds
+      call locreg_bounds(lzd%glr%d%n1, lzd%glr%d%n2, lzd%glr%d%n3, &
+           lzd%glr%d%nfl1, lzd%glr%d%nfu1, &
+           lzd%glr%d%nfl2, lzd%glr%d%nfu2, &
+           lzd%glr%d%nfl3, lzd%glr%d%nfu3, &
+           lzd%glr%wfd, lzd%glr%bounds)
+  end if
 
-  phir = f_malloc(tmb%collcom_sr%ndimpsi_c,id='phir')
-  dipole_net = f_malloc0((/3,tmb%orbs%norb/),id='dipole_net')
-  quadropole_net = f_malloc0((/3,3,tmb%orbs%norb/),id='quadropole_net')
+  sigma_arr = f_malloc0(orbs%norb,id='sigma_arr')
 
-  !call to_zero(3*tmb%orbs%norb, dipole_net(1,1))
-  !call to_zero(9*tmb%orbs%norb, quadropole_net(1,1,1))
-
-  ist=1
-  istr=1
-  do iorb=1,tmb%orbs%norbp
-      iiorb=tmb%orbs%isorb+iorb
-      ilr=tmb%orbs%inwhichlocreg(iiorb)
-      iat=tmb%orbs%onwhichatom(iiorb)
-      call initialize_work_arrays_sumrho(1,tmb%lzd%Llr(ilr),.true.,w)
-      ! Transform the support function to real space
-      call daub_to_isf(tmb%lzd%llr(ilr), w, tmb%psi(ist), phir(istr))
-      call deallocate_work_arrays_sumrho(w)
-      ! Calculate the charge center
-      call charge_center(tmb%lzd%llr(ilr)%d%n1i, tmb%lzd%llr(ilr)%d%n2i, tmb%lzd%llr(ilr)%d%n3i, &
-           denspot%dpbox%hgrids, phir(istr), charge_center_elec)
-      !write(*,*) 'ilr, tmb%lzd%llr(ilr)%locregcenter', iat, tmb%lzd%llr(ilr)%locregcenter
-      atomname=trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))
-      call calculate_multipoles(tmb%lzd%llr(ilr)%d%n1i, tmb%lzd%llr(ilr)%d%n2i, tmb%lzd%llr(ilr)%d%n3i, &
-           denspot%dpbox%hgrids, phir(istr), charge_center_elec, tmb%lzd%llr(ilr)%locregcenter, &
-           dipole_net(:,iiorb), quadropole_net(:,:,iiorb))
-      !write(*,*) 'charge_center', charge_center_elec
-      ist = ist + tmb%lzd%Llr(ilr)%wfd%nvctr_c + 7*tmb%lzd%Llr(ilr)%wfd%nvctr_f
-      istr = istr + tmb%lzd%Llr(ilr)%d%n1i*tmb%lzd%Llr(ilr)%d%n2i*tmb%lzd%Llr(ilr)%d%n3i
+  ist = 1
+  do iorb=1,orbs%norbp
+      iiorb = orbs%isorb + iorb
+      ilr = orbs%inwhichlocreg(iiorb)
+      if (trim(region)=='local') then
+          ncount = lzd%llr(ilr)%wfd%nvctr_c + 7*lzd%llr(ilr)%wfd%nvctr_f
+          call analyze_one_wavefunction(lzd%llr(ilr), lzd%hgrids, ncount, psi(ist), ioffset(1,iorb), center, sigma)
+      else if (trim(region)=='global') then
+          ncount = lzd%glr%wfd%nvctr_c + 7*lzd%glr%wfd%nvctr_f
+          call analyze_one_wavefunction(lzd%glr, lzd%hgrids, ncount, psi(ist), ioffset(1,iorb), center, sigma)
+      else
+          call f_err_throw('wrong value of region',err_name='BIGDFT_RUNTIME_ERROR')
+      end if
+      sigma_arr(iiorb) = dnrm2(3, sigma(1), 1)
+      ist = ist + ncount
   end do
-  if(istr/=tmb%collcom_sr%ndimpsi_c+1) then
-      write(*,'(a,i0,a)') 'ERROR on process ',iproc,' : istr/=tmb%collcom_sr%ndimpsi_c+1'
-      stop
+
+  call mpiallred(sigma_arr, mpi_sum, comm=bigdft_mpi%mpi_comm)
+
+  if (trim(region)=='global') then
+      !call deallocate_bounds(lzd%glr%geocode, lzd%glr%hybrid_on, lzd%glr%bounds)
   end if
 
-
-  if (bigdft_mpi%nproc>1) then
-      call mpiallred(dipole_net(1,1), 3*tmb%orbs%norb, mpi_sum, bigdft_mpi%mpi_comm)
-      call mpiallred(quadropole_net(1,1,1), 9*tmb%orbs%norb, mpi_sum, bigdft_mpi%mpi_comm)
-  end if
-
-  if (iproc==0) then
-      call yaml_sequence_open('Support functions moments')
-      do iorb=1,tmb%orbs%norb
-          iat=tmb%orbs%onwhichatom(iorb)
-          atomname=trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))
-          call yaml_sequence_open('number'//trim(yaml_toa(iorb))// &
-               ' (atom number ='//trim(yaml_toa(iat))//', type = '//trim(atomname)//')')
-          call yaml_sequence(advance='no')
-          call yaml_map('net dipole',dipole_net(:,iorb),fmt='(es18.10)')
-          call yaml_sequence(advance='no')
-          call yaml_sequence_open('net quadropole')
-          do i=1,3
-             call yaml_sequence(trim(yaml_toa(quadropole_net(i,1:3,iorb),fmt='(es15.8)')))
-          end do
-          call yaml_sequence_close()
-          call yaml_sequence_close()
+  if (bigdft_mpi%iproc==0) then
+      call yaml_sequence_open(trim(output),flow=.true.)
+      call yaml_newline()
+      do iorb=1,orbs%norb
+          call yaml_sequence()
+          call yaml_mapping_open(flow=.true.)
+          call yaml_map('eval',orbs%eval(iorb),fmt='(es19.12)')
+          call yaml_map('sigma',sigma_arr(iorb),fmt='(es11.4)')
+          call yaml_mapping_close()
+          call yaml_comment(yaml_toa(iorb))
+          call yaml_newline()
       end do
       call yaml_sequence_close()
   end if
 
-  call f_free(phir)
-  call f_free(dipole_net)
-  call f_free(quadropole_net)
+  call f_free(sigma_arr)
+
+end subroutine analyze_wavefunctions
+
+
+subroutine analyze_one_wavefunction(lr, hgrids, npsidim, psi, ioffset, center, sigma)
+  use module_base
+  use module_types
+  implicit none
+
+  ! Calling arguments
+  integer,intent(in) :: npsidim
+  type(locreg_descriptors),intent(in) :: lr
+  real(kind=8),dimension(3),intent(in) :: hgrids
+  real(kind=8),dimension(npsidim),intent(in) :: psi
+  integer,dimension(3),intent(in) :: ioffset
+  real(kind=8),dimension(3),intent(out) :: center, sigma
+
+  ! Local variables
+  type(workarr_sumrho) :: w
+  real(kind=8),dimension(:),allocatable :: psir
+  integer :: ind, i1, i2, i3
+  real(kind=8) :: x, y, z, q
+  real(kind=8),dimension(3) :: hhgrids, var
+
+  call initialize_work_arrays_sumrho(1, lr, .true., w)
+
+  psir = f_malloc(lr%d%n1i*lr%d%n2i*lr%d%n3i,id='psir')
+  ! Initialisation
+  if (lr%geocode == 'F') call f_zero(psir)
+
+  call daub_to_isf(lr, w, psi, psir)
+
+  hhgrids(1:3) = 0.5d0*hgrids(1:3)
+
+  ind = 0
+  center(1:3) = 0.d0
+  q = 0.d0
+  do i3=1,lr%d%n3i
+      z = real(i3+ioffset(3),wp)*hhgrids(3)
+      do i2=1,lr%d%n2i
+          y = real(i3+ioffset(2),wp)*hhgrids(2)
+          do i1=1,lr%d%n1i
+              x = real(i3+ioffset(1),wp)*hhgrids(1)
+              ind = ind + 1
+              center(1) = center(1) + psir(ind)**2*x
+              center(2) = center(2) + psir(ind)**2*y
+              center(3) = center(3) + psir(ind)**2*z
+              q = q + psir(ind)**2
+          end do
+      end do
+  end do
+  ! Normalize
+  center(1:3) = center(1:3)/q
+
+  !Calculate variance
+  ind = 0
+  var(1:3) = 0.d0
+  do i3=1,lr%d%n3i
+      z = real(i3+ioffset(3),wp)*hhgrids(3)
+      do i2=1,lr%d%n2i
+          y = real(i3+ioffset(2),wp)*hhgrids(2)
+          do i1=1,lr%d%n1i
+              x = real(i3+ioffset(1),wp)*hhgrids(1)
+              ind = ind + 1
+              var(1) = var(1) + psir(ind)**2*(x-center(1))**2
+              var(2) = var(2) + psir(ind)**2*(y-center(2))**2
+              var(3) = var(3) + psir(ind)**2*(z-center(3))**2
+          end do
+      end do
+  end do
+  !Normalize
+  var(1:3) = var(1:3)/q
+  ! Take square root
+  sigma(1) = sqrt(var(1))
+  sigma(2) = sqrt(var(2))
+  sigma(3) = sqrt(var(3))
+
+  call f_free(psir)
+  call deallocate_work_arrays_sumrho(w)
+  !write(*,'(a,es16.8,5x,3(3es16.8,3x))') 'q, center(1:3), var(1:3), locregcenter',q, center(1:3), var(1:3), lr%locregcenter
+
+end subroutine analyze_one_wavefunction
+
+
+!> Use the (non-sparse) coefficients to calculate a non-sparse kernel, then
+!! analyze the magnitude of the elements.
+!! WARNING: This routine must not be called in parallel
+!! WARNING: This routine is not tested with spin polarization
+subroutine analyze_kernel(ntmb, norb, nat, coeff, kernel, rxyz, on_which_atom)
+  use module_base
+  use module_types
+  use module_interfaces, only: calculate_density_kernel
+  use sparsematrix_base, only: matrices, matrices_null, allocate_matrices, &
+                               deallocate_matrices
+  use yaml_output
+  implicit none
+  ! Calling arguments
+  integer,intent(in) :: ntmb, norb, nat
+  real(kind=8),dimension(ntmb,norb),intent(in) :: coeff
+  real(kind=8),dimension(ntmb,ntmb),intent(in) :: kernel
+  real(kind=8),dimension(3,nat),intent(in) :: rxyz
+  integer,dimension(ntmb),intent(in) :: on_which_atom
+
+  ! Local variables
+  integer :: iorb, itmb, jtmb, iat, jat, iunit, nproc, ierr
+  logical :: mpi_init
+  real(kind=8) :: d, asymm, maxdiff, diff
+  real(kind=8),dimension(3) :: dist
+  real(kind=8),dimension(:,:),allocatable :: kernel_full
+  character(len=*),parameter :: filename='kernel_analysis.dat'
+  real(kind=8),parameter :: print_limit=1.d-8
+
+  call f_routine(id='analyze_kernel')
+
+  ! Check that this is a monoproc run
+  call mpi_initialized(mpi_init, ierr)
+  if (mpi_init) then
+      call mpi_comm_size(mpi_comm_world, nproc, ierr)
+  else
+      nproc = 1
+  end if
+
+  write(*,*) 'nproc', nproc
+  if (nproc/=1) then
+      call f_err_throw('analyze_kernel should only be called using 1 MPI task',err_name='BIGDT_RUNTIME_ERROR')
+  end if
+
+  kernel_full = f_malloc0((/ntmb,ntmb/),id='kernel_full')
+
+  do iorb=1,norb
+      call yaml_map('orbital being processed',iorb)
+      call gemm('n', 't', ntmb, ntmb, 1, 1.d0, coeff(1,iorb), ntmb, &
+           coeff(1,iorb), ntmb, 1.d0, kernel_full(1,1), ntmb)
+  end do
+  !call mpiallred(kernel%matrix, mpi_sum, comm=bigdft_mpi%mpi_comm)
+
+  call yaml_map('Output file for kernel analysis',trim(filename))
+  call f_open_file(iunit, file=trim(filename), binary=.false.)
+  write(iunit,'(a)') '#     itmb,   jtmb,                d,              val'
+  maxdiff = 0.d0
+  do itmb=1,ntmb
+      call yaml_map('basis function being processed',itmb)
+      iat = on_which_atom(itmb)
+      do jtmb=1,itmb
+          jat = on_which_atom(jtmb)
+          dist(1:3) = rxyz(1:3,iat)-rxyz(1:3,jat)
+          d = nrm2(3, dist(1), 1)
+          asymm = abs(kernel_full(jtmb,itmb)-kernel_full(itmb,jtmb))
+          if (asymm>1.d-15) then
+              call yaml_warning('kernel not symmetric, diff='//yaml_toa(asymm,fmt='(es9.2)'))
+          end if
+          diff = abs(kernel_full(jtmb,itmb)-kernel(jtmb,itmb))
+          maxdiff = max(diff,maxdiff)
+          if (abs(kernel_full(jtmb,itmb))>print_limit) then
+              write(iunit,'(2x,2i8,2es18.10)') itmb, jtmb, d, kernel_full(jtmb,itmb)
+          end if
+      end do
+  end do
+  call yaml_map('maxdiff of sparse and full kernel',maxdiff)
+  call f_close(iunit)
+
+  call f_free(kernel_full)
+
   call f_release_routine()
 
-  
-
-end subroutine support_function_multipoles
+end subroutine analyze_kernel

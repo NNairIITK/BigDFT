@@ -13,7 +13,7 @@
 module f_utils
   use dictionaries, only: f_err_throw,f_err_define, &
        & dictionary, dict_len, dict_iter, dict_next, dict_value, max_field_length
-  use yaml_strings, only: yaml_toa, operator(.eqv.)
+  use yaml_strings, only: yaml_toa
   implicit none
 
   private
@@ -30,18 +30,7 @@ module f_utils
      integer :: iunit = 0
      type(dictionary), pointer :: lstring => null()
   end type io_stream
-
-  !> enumerator type, useful to define different modes
-  type, public :: f_enumerator
-     character(len=64) :: name
-     integer :: id
-  end type f_enumerator
-
-  integer, parameter, private :: NULL_INT=-1024
-  character(len=*), parameter, private :: null_name='nullified enumerator'
-
-  type(f_enumerator), parameter, private :: &
-       f_enum_null=f_enumerator(null_name,NULL_INT)
+  
 
   !>interface for difference between two intrinsic types
   interface f_diff
@@ -72,70 +61,14 @@ module f_utils
      end subroutine nanosec
   end interface
 
-  interface operator(==)
-     module procedure enum_is_int,enum_is_enum
-  end interface operator(==)
-
-  interface int
-     module procedure int_enum
-  end interface int
-
-  interface char
-     module procedure char_enum
-  end interface char
-
-  public :: f_diff,int,char,f_enumerator_null,operator(==),f_file_unit
+  public :: f_diff,f_file_unit
   public :: f_utils_errors,f_utils_recl,f_file_exists,f_close,f_zero
   public :: f_get_free_unit,f_delete_file,f_getpid,f_rewind,f_open_file
   public :: f_iostream_from_file,f_iostream_from_lstring
   public :: f_iostream_get_line,f_iostream_release,f_time,f_pause
 
 contains
-
-  pure function f_enumerator_null() result(en)
-    implicit none
-    type(f_enumerator) :: en
-    en=f_enum_null
-  end function f_enumerator_null
-
-  elemental pure function enum_is_enum(en,en1) result(ok)
-    implicit none
-    type(f_enumerator), intent(in) :: en
-    type(f_enumerator), intent(in) :: en1
-    logical :: ok
-    ok = en == en1%id
-  end function enum_is_enum
-
-  elemental pure function enum_is_int(en,int) result(ok)
-    implicit none
-    type(f_enumerator), intent(in) :: en
-    integer, intent(in) :: int
-    logical :: ok
-    ok = en%id == int
-  end function enum_is_int
-
-  elemental pure function enum_is_char(en,char) result(ok)
-    implicit none
-    type(f_enumerator), intent(in) :: en
-    character(len=*), intent(in) :: char
-    logical :: ok
-    ok = trim(en%name) .eqv. trim(char)
-  end function enum_is_char
-
-  !>integer of f_enumerator type.
-  elemental pure function int_enum(en)
-    type(f_enumerator), intent(in) :: en
-    integer :: int_enum
-    int_enum=en%id
-  end function int_enum
-
-  !>char of f_enumerator type.
-  elemental pure function char_enum(en)
-    type(f_enumerator), intent(in) :: en
-    character(len=len(en%name)) :: char_enum
-    char_enum=en%name
-  end function char_enum
-  
+ 
   subroutine f_utils_errors()
 
     call f_err_define('INPUT_OUTPUT_ERROR',&
@@ -284,16 +217,16 @@ contains
     unit_is_open=.true.
     unt=7
     if (present(unit)) unt=unit
-    do while(unit_is_open)      
-       inquire(unit=unt,opened=unit_is_open,iostat=ierr)
-       if (ierr /=0) then
-          call f_err_throw('Error in inquiring unit='//&
-               trim(yaml_toa(unt))//', iostat='//trim(yaml_toa(ierr)),&
-               err_id=INPUT_OUTPUT_ERROR)
-          exit
-       end if
+    inquire(unit=unt,opened=unit_is_open,iostat=ierr)
+    do while(unit_is_open .and. ierr==0)     
        unt=unt+1
+       inquire(unit=unt,opened=unit_is_open,iostat=ierr)
     end do
+    if (ierr /=0) then
+       call f_err_throw('Error in inquiring unit='//&
+            trim(yaml_toa(unt))//', iostat='//trim(yaml_toa(ierr)),&
+            err_id=INPUT_OUTPUT_ERROR)
+    end if
     unt2=unt
   end function f_get_free_unit
 
@@ -303,11 +236,14 @@ contains
     character(len=*), intent(in) :: file
     !local variables
     logical :: exists
-    integer :: ierr
+    integer :: ierr,unit
     external :: delete
 
     call f_file_exists(trim(file),exists)
     if (exists) then
+       !close the corresponding fortran unit if the file is connected to it
+       call f_file_unit(trim(file),unit)
+       call f_close(unit)
        !c-function in utils.c
        call delete(trim(file),len_trim(file),ierr)
        if (ierr /=0) call f_err_throw('Error in deleting file='//&
@@ -345,7 +281,7 @@ contains
   end subroutine f_rewind
   
   !> open a filename and retrieve the unteger for the unit
-  subroutine f_open_file(unit,file,status,position,binary)
+  subroutine f_open_file(unit,file,status,position,action,binary)
     use yaml_strings, only: f_strcpy
     implicit none
     !> integer of the unit. On entry, it indicates the 
@@ -358,6 +294,8 @@ contains
     character(len=*), intent(in), optional :: status
     !> position
     character(len=*), intent(in), optional :: position
+    !> action
+    character(len=*), intent(in), optional :: action
     !> if true, the file will be opened in the unformatted i/o
     !! if false or absent, the file will be opened for formatted i/o
     logical, intent(in), optional :: binary
@@ -366,6 +304,7 @@ contains
     character(len=7) :: f_status
     character(len=11) :: f_form
     character(len=6) :: f_position
+    character(len=9) :: f_action
 
     !first, determine if the file is already opened.
     call f_file_unit(file,unt)
@@ -387,12 +326,16 @@ contains
        call f_strcpy(src='asis',dest=f_position)
        if (present(position)) call f_strcpy(src=position,dest=f_position)
 
+       call f_strcpy(src='readwrite',dest=f_action)
+       if (present(action)) call f_strcpy(src=action,dest=f_action)
+
        !then open the file with the given unit
        open(unit=unt,file=trim(file),status=f_status,form=f_form,&
-            position=f_position,iostat=ierror)
+            position=f_position,action=f_action,iostat=ierror)
        if (ierror /= 0) then
           call f_err_throw('Error in opening file='//&
-               trim(file)//' iostat='//trim(yaml_toa(ierror)),&
+               trim(file)//' with unit='//trim(yaml_toa(unt,fmt='(i0)'))//&
+               ', iostat='//trim(yaml_toa(ierror)),&
                err_id=INPUT_OUTPUT_ERROR)
        else
           !when everything succeded, assign the unit

@@ -452,9 +452,9 @@ subroutine check_for_data_writing_directory(iproc,in)
        in%inputPsiId == 12 .or.  &                     !read in gaussian basis
        in%gaussian_help .or. &                         !Mulliken and local density of states
        bigdft_mpi%ngroup > 1   .or. &                  !taskgroups have been inserted
-       in%lin%plotBasisFunctions > 0 .or. &            !dumping of basis functions for locreg runs
+       mod(in%lin%plotBasisFunctions,10) > 0 .or. &    !dumping of basis functions for locreg runs
        in%inputPsiId == 102 .or. &                     !reading of basis functions
-       in%write_orbitals                               !writing the KS orbitals in the linear case
+       in%write_orbitals>0                             !writing the KS orbitals in the linear case
 
   !here you can check whether the etsf format is compiled
 
@@ -515,6 +515,7 @@ subroutine default_input_variables(in)
   in%dir_output = "data"
   in%output_wf_format = WF_FORMAT_NONE
   in%output_denspot_format = output_denspot_FORMAT_CUBE
+  call f_zero(in%set_epsilon)
   nullify(in%gen_kpt)
   nullify(in%gen_wkpt)
   nullify(in%kptv)
@@ -596,6 +597,13 @@ subroutine geopt_input_variables_default(in)
   in%ionmov = -1
   in%dtion = 0.0_gp
   in%strtarget(:)=0.0_gp
+  in%nhistx =0
+  in%biomode=.false.
+  in%beta_stretchx=0.0_gp
+  in%maxrise=0.0_gp
+  in%cutoffratio=0.0_gp
+  in%steepthresh=0.0_gp
+  in%trustr=0.0_gp
   in%mditemp = UNINITIALIZED(in%mditemp)
   in%mdftemp = UNINITIALIZED(in%mdftemp)
   nullify(in%qmass)
@@ -791,7 +799,7 @@ subroutine abscalc_input_variables_default(in)
   use module_base
   use module_types
   implicit none
-  type(input_variables), intent(out) :: in
+  type(input_variables), intent(inout) :: in
 
   in%c_absorbtion=.false.
   in%potshortcut=0
@@ -810,7 +818,7 @@ subroutine frequencies_input_variables_default(in)
   use module_base
   use module_types
   implicit none
-  type(input_variables), intent(out) :: in
+  type(input_variables), intent(inout) :: in
 
   in%freq_alpha=1.d0/real(64,kind(1.d0))
   in%freq_order=2
@@ -997,8 +1005,8 @@ subroutine kpt_input_analyse(iproc, in, dict, sym, geocode, alat)
            stop
         end if
         !assumes that the allocation went through (arrays allocated by abinit routines)
-        in%gen_kpt=f_malloc_ptr(src=gen_kpt,id='gen_kpt')
-        in%gen_wkpt=f_malloc_ptr(src=gen_wkpt,id='gen_wkpt')
+        in%gen_kpt=f_malloc_ptr(src_ptr=gen_kpt,id='gen_kpt')
+        in%gen_wkpt=f_malloc_ptr(src_ptr=gen_wkpt,id='gen_wkpt')
         deallocate(gen_kpt,gen_wkpt)
 !!$        call memocc(0,in%gen_kpt,'in%gen_kpt',subname)
 !!$        call memocc(0,in%gen_wkpt,'in%gen_wkpt',subname)
@@ -1041,8 +1049,8 @@ subroutine kpt_input_analyse(iproc, in, dict, sym, geocode, alat)
         end if
         !assumes that the allocation went through 
         !(arrays allocated by abinit routines)
-        in%gen_kpt=f_malloc_ptr(src=gen_kpt,id='gen_kpt')
-        in%gen_wkpt=f_malloc_ptr(src=gen_wkpt,id='gen_wkpt')
+        in%gen_kpt=f_malloc_ptr(src_ptr=gen_kpt,id='gen_kpt')
+        in%gen_wkpt=f_malloc_ptr(src_ptr=gen_wkpt,id='gen_wkpt')
         deallocate(gen_kpt,gen_wkpt)
 !!$        call memocc(0,in%gen_kpt,'in%gen_kpt',subname)
 !!$        call memocc(0,in%gen_wkpt,'in%gen_wkpt',subname)

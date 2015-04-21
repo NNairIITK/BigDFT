@@ -3,7 +3,7 @@
 !!
 !! @author 
 !!    Copyright (C) 2014 UNIBAS, Bastian Schaefer 
-!!    Copyright (C) 2014 BigDFT group
+!!    Copyright (C) 2015-2015 BigDFT group
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    This file is distributed under the terms of the
@@ -95,7 +95,6 @@ subroutine get_ts_guess_freeze(mhgpsst,uinp,runObj,outs,rxyz1,rxyz2,&
     real(gp), allocatable :: arc(:)
     real(gp), allocatable :: y2vec(:,:,:)
     real(gp), allocatable :: tangent(:,:,:)
-    real(gp) :: fnoise
     real(gp) :: emax
     real(gp) :: tau,rdmy
     real(gp) :: yp1=huge(1._gp), ypn=huge(1._gp)!natural splines
@@ -136,11 +135,6 @@ subroutine get_ts_guess_freeze(mhgpsst,uinp,runObj,outs,rxyz1,rxyz2,&
     npath=0
     do istring=1,nstring
         npath=npath+1
-        do iat=1,runObj%atoms%astruct%nat
-            path(npath,1,iat)=string(3*iat-2,1,istring)
-            path(npath,2,iat)=string(3*iat-1,1,istring)
-            path(npath,3,iat)=string(3*iat  ,1,istring)
-        enddo
         !parametrize spline such that the i-th node
         !is at parameter value i:
         arc(npath)=real(npath,gp)
@@ -148,7 +142,7 @@ subroutine get_ts_guess_freeze(mhgpsst,uinp,runObj,outs,rxyz1,rxyz2,&
         !due to column major order,
         !pass string() to energy and forces, not path():
         call mhgpsenergyandforces(mhgpsst,runObj,outs,string(1,1,istring),&
-             forces(1,1,npath),fnoise,energies(npath),infocode)
+             forces(1,1,npath),energies(npath),infocode)
         if(energies(npath)>emax)then
             emax       = energies(npath)
             istringmax = istring
@@ -156,14 +150,17 @@ subroutine get_ts_guess_freeze(mhgpsst,uinp,runObj,outs,rxyz1,rxyz2,&
             ipathmax   = npath
         endif
         endif
+        !copy string to path after call to energy and forces,
+        !because coordinates get synchronized over all processors
+        !in mhgpsenergyandforces
+        do iat=1,runObj%atoms%astruct%nat
+            path(npath,1,iat)=string(3*iat-2,1,istring)
+            path(npath,2,iat)=string(3*iat-1,1,istring)
+            path(npath,3,iat)=string(3*iat  ,1,istring)
+        enddo
     enddo
     do istring=nstring-ncorr,1,-1
         npath=npath+1
-        do iat=1,runObj%atoms%astruct%nat
-            path(npath,1,iat)=string(3*iat-2,2,istring)
-            path(npath,2,iat)=string(3*iat-1,2,istring)
-            path(npath,3,iat)=string(3*iat  ,2,istring)
-        enddo
         !parametrize spline such that the i-th node
         !is at parameter value i:
         arc(npath)=real(npath,gp)
@@ -171,7 +168,7 @@ subroutine get_ts_guess_freeze(mhgpsst,uinp,runObj,outs,rxyz1,rxyz2,&
         !due to column major order,
         !pass string() to energy and forces, not path():
         call mhgpsenergyandforces(mhgpsst,runObj,outs,string(1,2,istring),&
-             forces(1,1,npath),fnoise,energies(npath),infocode)
+             forces(1,1,npath),energies(npath),infocode)
         if(energies(npath)>emax)then
             emax       = energies(npath)
             istringmax = istring
@@ -179,6 +176,14 @@ subroutine get_ts_guess_freeze(mhgpsst,uinp,runObj,outs,rxyz1,rxyz2,&
             ipathmax   = npath
         endif
         endif
+        !copy string to path after call to energy and forces,
+        !because coordinates get synchronized over all processors
+        !in mhgpsenergyandforces
+        do iat=1,runObj%atoms%astruct%nat
+            path(npath,1,iat)=string(3*iat-2,2,istring)
+            path(npath,2,iat)=string(3*iat-1,2,istring)
+            path(npath,3,iat)=string(3*iat  ,2,istring)
+        enddo
     enddo
     energies(1)=1234.0_gp
     energies(npath)=1234.0_gp
@@ -379,7 +384,7 @@ subroutine grow_freezstring(mhgpsst,uinp,runObj,outs,gammainv,perpnrmtol,trust,&
             !parts in interpol are OpenMP parallelized. It might hapenpen
             !that finished is not identical on all processors
             if (bigdft_mpi%nproc >1) then
-               call mpibcast(finished,1,comm=bigdft_mpi%mpi_comm)
+               call mpibcast(finished,comm=bigdft_mpi%mpi_comm)
             end if
         !!$      maxdiff=mpimaxdiff(runObj%atoms%astruct%rxyz,comm=bigdft_mpi%mpi_comm,bcast=.true.)
             if(finished/=0)then
@@ -461,7 +466,6 @@ subroutine optim_cg(mhgpsst,runObj,outs,finished,step,gammainv,&
     real(gp) :: dispnrm_squared
     integer :: istep
     integer :: infocode
-    real(gp) :: fnoise
     !functions
     real(gp) :: dnrm2, ddot
 
@@ -475,7 +479,7 @@ subroutine optim_cg(mhgpsst,runObj,outs,finished,step,gammainv,&
 
     !first steps: steepest descent
     !left
-    call mhgpsenergyandforces(mhgpsst,runObj,outs,rxyz1,fxyz1,fnoise,epot1,infocode)
+    call mhgpsenergyandforces(mhgpsst,runObj,outs,rxyz1,fxyz1,epot1,infocode)
     call perpend(runObj%atoms%astruct%nat,tangent1,fxyz1,perp1)
     perpnrmPrev1_squared = ddot(3*runObj%atoms%astruct%nat,perp1(1),1,perp1(1),1)
     perpnrm1_squared=perpnrmPrev1_squared
@@ -487,7 +491,7 @@ subroutine optim_cg(mhgpsst,runObj,outs,finished,step,gammainv,&
     rxyz1=rxyz1+dispPrev1
     !right
     if(finished==2)then
-        call mhgpsenergyandforces(mhgpsst,runObj,outs,rxyz2,fxyz2,fnoise,epot2,infocode)
+        call mhgpsenergyandforces(mhgpsst,runObj,outs,rxyz2,fxyz2,epot2,infocode)
         call perpend(runObj%atoms%astruct%nat,tangent2,fxyz2,perp2)
         perpnrmPrev2_squared = ddot(3*runObj%atoms%astruct%nat,perp2(1),1,perp2(1),1)
         perpnrm2_squared=perpnrmPrev2_squared
@@ -512,7 +516,7 @@ subroutine optim_cg(mhgpsst,runObj,outs,finished,step,gammainv,&
     do istep=2,nstepsmax
 
         !move left node
-        call mhgpsenergyandforces(mhgpsst,runObj,outs,rxyz1,fxyz1,fnoise,epot1,infocode)
+        call mhgpsenergyandforces(mhgpsst,runObj,outs,rxyz1,fxyz1,epot1,infocode)
         call perpend(runObj%atoms%astruct%nat,tangent1,fxyz1,perp1)
         perpnrm1_squared = ddot(3*runObj%atoms%astruct%nat,perp1(1),1,perp1(1),1)
         if(perpnrm1_squared>perpnrmPrev1_squared)then
@@ -531,7 +535,7 @@ subroutine optim_cg(mhgpsst,runObj,outs,finished,step,gammainv,&
         
         if(finished==2)then 
             !move right node
-            call mhgpsenergyandforces(mhgpsst,runObj,outs,rxyz2,fxyz2,fnoise,epot2,infocode)
+            call mhgpsenergyandforces(mhgpsst,runObj,outs,rxyz2,fxyz2,epot2,infocode)
             call perpend(runObj%atoms%astruct%nat,tangent2,fxyz2,perp2)
             perpnrm2_squared = ddot(3*runObj%atoms%astruct%nat,perp2(1),1,perp2(1),1)
             if(mhgpsst%iproc==0)write(*,'(a,i3.3,4(1x,es10.3))')&
@@ -678,7 +682,6 @@ subroutine get_ts_guess_linsyn(mhgpsst,uinp,runObj,outs,left,right,tsguess,minmo
     real(gp) :: tau
     real(gp) :: lambda
     real(gp) :: emax
-    real(gp) :: fnoise
     real(gp) :: step
     !functions
     real(gp) :: dnrm2
@@ -749,7 +752,7 @@ subroutine get_ts_guess_linsyn(mhgpsst,uinp,runObj,outs,left,right,tsguess,minmo
     emax=-huge(1._gp)
     do j=2,nimagespath-1
         call mhgpsenergyandforces(mhgpsst,runObj,outs,lstpathC(1,1,j),&
-             forces(1,1,j),fnoise,energies(j),infocode)
+             forces(1,1,j),energies(j),infocode)
         if(energies(j)>emax)then
             emax       = energies(j)
             ipathmax   = j
@@ -1065,7 +1068,7 @@ subroutine lst_interpol_freez(runObj,mhgpsst,uinp,left,right,step,interleft,inte
             call splint_wrapper(arcC,lstpathCRM(1,3,i),y2vecC(1,3,i),&
                  nimagestang,tau,rdmy,tangentleft(3,i))
         enddo
-        call clean_forces_base(runObj%atoms,tangentleft(1,1))
+        call clean_forces_base(bigdft_get_astruct_ptr(runObj),tangentleft(1,1))
         rdmy = dnrm2(tnat,tangentleft(1,1),1)
         tangentleft = tangentleft / rdmy
 
@@ -1089,7 +1092,7 @@ subroutine lst_interpol_freez(runObj,mhgpsst,uinp,left,right,step,interleft,inte
             call splint_wrapper(arcC,lstpathCRM(1,3,i),y2vecC(1,3,i),&
                  nimagestang,tau,rdmy,tangentright(3,i))
         enddo
-        call clean_forces_base(runObj%atoms,tangentright(1,1))
+        call clean_forces_base(bigdft_get_astruct_ptr(runObj),tangentright(1,1))
         rdmy = dnrm2(tnat,tangentright(1,1),1)
         tangentright = tangentright / rdmy
 

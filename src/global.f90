@@ -328,7 +328,7 @@ program MINHOP
        rcov,pos,fp)
 
   !retrieve the eigenvalues from this run
-  if((trim(adjustl(char(run_opt%run_mode)))=='QM_RUN_MODE'))then
+  if(run_opt%run_mode=='QM_RUN_MODE') then
       nksevals=bigdft_norb(run_opt)
       ksevals = f_malloc(nksevals,id='ksevals')
       call bigdft_get_eval(run_opt,ksevals)
@@ -364,7 +364,7 @@ program MINHOP
 !!$     call write_atomic_file('poslocm_'//fn4//'_'//trim(bigdft_run_id_toa()),&
 !!$          outs%energy,atoms%astruct%rxyz,atoms%astruct%ixyz_int,atoms,trim(comment),forces=outs%fxyz)
      !open(unit=864,file='kseloc_'//fn4//'_'//trim(bigdft_run_id_toa()))
-    if((trim(adjustl(char(run_opt%run_mode)))=='QM_RUN_MODE'))then
+    if(run_opt%run_mode=='QM_RUN_MODE') then
       open(unit=864,file='kseloc_'//fn4//trim(naming_id))
       do i=1,nksevals
       write(864,*) ksevals(i)
@@ -614,7 +614,7 @@ program MINHOP
   if (bigdft_mpi%iproc == 0) call yaml_map('(MH) Wvfnctn Opt. steps for accurate geo. rel of MD conf',ncount_bigdft)
   count_bfgs=count_bfgs+ncount_bigdft
   
-  if(trim(adjustl(char(run_opt%run_mode)))=='QM_RUN_MODE')then 
+  if(run_opt%run_mode=='QM_RUN_MODE') then 
       call bigdft_get_eval(run_opt,ksevals)
     !!$  if (i_stat /= BIGDFT_SUCCESS) then
     !!$     write(*,*)'error(ksevals), i_stat',i_stat
@@ -636,7 +636,7 @@ program MINHOP
 
 !!$     call write_atomic_file('poslocm_'//fn4//'_'//trim(bigdft_run_id_toa()),&
 !!$          outs%energy,atoms%astruct%rxyz,atoms%astruct%ixyz_int,atoms,trim(comment),forces=outs%fxyz)
-    if((trim(adjustl(char(run_opt%run_mode)))=='QM_RUN_MODE'))then
+    if(run_opt%run_mode=='QM_RUN_MODE') then
         !open(unit=864,file='kseloc_'//fn4//'_'//trim(bigdft_run_id_toa()))
         open(unit=864,file='kseloc_'//fn4//trim(naming_id))
         do i=1,nksevals
@@ -861,7 +861,7 @@ end do hopping_loop
 !  if (iproc==0) write(*,*) 'quit 1'
   call release_run_objects(run_md)
 !  if (iproc==0) write(*,*) 'quit 2'
-  if((trim(adjustl(char(run_opt%run_mode)))=='QM_RUN_MODE'))then
+  if(run_opt%run_mode=='QM_RUN_MODE') then
    call f_free(ksevals) 
   endif
   call free_run_objects(run_opt)
@@ -2597,10 +2597,10 @@ subroutine identical(iproc,nlminx,nlmin,nid,e_wpos,wfp,en_arr,fp_arr,en_delta,fp
   if (abs(e_wpos-en_arr(k)).le.en_delta) then
      call fpdistance(nid,wfp,fp_arr(1,k),d)
      if (iproc == 0) call yaml_map('(MH) Checking fpdistance',(/e_wpos-en_arr(k),d/),fmt='(e11.4)')
-     if (iproc.eq.0) write(*,*) '(MH)  k,d',k,d
-     if (iproc.eq.0) write(*,*) '(MH)  e_wpos,en_arr(k)', e_wpos,en_arr(k)
-     if (iproc.eq.0) write(*,'(a,20(e10.3))') '(MH)    wfp', (wfp(i),i=1,nid)
-     if (iproc.eq.0) write(*,'(a,20(e10.3))') '(MH) fp_arr', (fp_arr(i,k),i=1,nid)
+!     if (iproc.eq.0) write(*,*) '(MH)  k,d',k,d
+!     if (iproc.eq.0) write(*,*) '(MH)  e_wpos,en_arr(k)', e_wpos,en_arr(k)
+!     if (iproc.eq.0) write(*,'(a,20(e10.3))') '(MH)    wfp', (wfp(i),i=1,nid)
+!     if (iproc.eq.0) write(*,'(a,20(e10.3))') '(MH) fp_arr', (fp_arr(i,k),i=1,nid)
      if (d.lt.fp_delta) then
         if (iproc.eq.0) write(*,*) '(MH) identical to ',k
         newmin=.false.
