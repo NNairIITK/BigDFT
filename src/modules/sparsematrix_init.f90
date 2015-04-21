@@ -33,6 +33,7 @@ module sparsematrix_init
   public :: get_line_and_column
   public :: distribute_columns_on_processes_simple
   public :: redistribute
+  public :: distribute_on_threads
 
 contains
 
@@ -2055,7 +2056,9 @@ contains
       ii = 1
       do jthread=0,nthread-1
           if (ithread==jthread) then
-              call f_memcpy(n=iiarr(jthread), src=ivectorindex_work(1,ithread), dest=ivectorindex(ii))
+              if (iiarr(jthread)>0) then
+                  call f_memcpy(n=iiarr(jthread), src=ivectorindex_work(1,ithread), dest=ivectorindex(ii))
+              end if
           end if
           ii = ii + iiarr(jthread)
       end do
@@ -2279,7 +2282,9 @@ contains
       ii = 1
       do jthread=0,nthread-1
           if (ithread==jthread) then
-              call f_memcpy(n=iiarr(jthread), src=indices_extract_sequential_work(1,ithread), dest=indices_extract_sequential(ii))
+              if (iiarr(jthread)>0) then
+                  call f_memcpy(n=iiarr(jthread), src=indices_extract_sequential_work(1,ithread), dest=indices_extract_sequential(ii))
+              end if
           end if
           ii = ii + iiarr(jthread)
       end do
