@@ -552,6 +552,7 @@ module gaussdaub
       ! Called when ncplx_w = 1
       subroutine gauss_to_scf_1
 
+
         !loop for each complex component
         !calculate the expansion coefficients at level 4, positions shifted by 16*i0 
         !corrected for avoiding 0**0 problem

@@ -65,26 +65,23 @@ module chebyshev
       if (calculate_SHS) then
           matrix_new = f_malloc0(kernel%smmm%nvctrp,id='matrix')
       end if
+
       if (kernel%nfvctrp>0) then
-    
-        
-        
           mat_seq = sparsematrix_malloc(kernel, iaction=SPARSEMM_SEQ, id='mat_seq')
-        
           if (calculate_SHS) then
               if (kernel%smmm%nvctrp>0) then
-                  do i=1,kernel%smmm%nvctrp
-                      ii = kernel%smmm%isvctr + i
-                      iline = kernel%smmm%line_and_column(1,i)
-                      icolumn = kernel%smmm%line_and_column(2,i)
-                      jj=matrixindex_in_compressed(kernel, icolumn, iline)
-                      if (jj>0) then
-                          matrix_new(i) = invovrlp_compr(jj-kernel%isvctrp_tg)
-                      else
-                          matrix_new(i) = 0.d0
-                      end if
-                  end do
-
+                  call prepare_matrix(kernel, invovrlp_compr, matrix_new)
+                  !!do i=1,kernel%smmm%nvctrp
+                  !!    ii = kernel%smmm%isvctr + i
+                  !!    iline = kernel%smmm%line_and_column(1,i)
+                  !!    icolumn = kernel%smmm%line_and_column(2,i)
+                  !!    jj=matrixindex_in_compressed(kernel, icolumn, iline)
+                  !!    if (jj>0) then
+                  !!        matrix_new(i) = invovrlp_compr(jj-kernel%isvctrp_tg)
+                  !!    else
+                  !!        matrix_new(i) = 0.d0
+                  !!    end if
+                  !!end do
               end if
           end if
           vectors_new = f_malloc0((/kernel%smmm%nvctrp,4/),id='vectors_new')
@@ -213,6 +210,45 @@ module chebyshev
     
     end subroutine chebyshev_clean
     
+
+    subroutine prepare_matrix(smat, invovrlp_compr, matrix)
+      use sparsematrix_base, only: sparse_matrix
+      use sparsematrix_init, only: matrixindex_in_compressed
+      use dynamic_memory
+      implicit none
+
+      ! Calling arguments
+      type(sparse_matrix),intent(in) :: smat
+      real(kind=8),dimension(smat%nvctrp_tg),intent(in) :: invovrlp_compr
+      real(kind=8),dimension(smat%smmm%nvctrp),intent(inout) :: matrix
+
+      ! Local variables
+      integer :: i, ii, iline, icolumn, jj
+
+      call f_routine(id='prepare_matrix')
+
+      !$omp parallel &
+      !$omp default(none) &
+      !$omp shared(smat, matrix, invovrlp_compr) &
+      !$omp private(i, ii, iline, icolumn, jj)
+      !$omp do schedule(guided)
+      do i=1,smat%smmm%nvctrp
+          ii = smat%smmm%isvctr + i
+          iline = smat%smmm%line_and_column(1,i)
+          icolumn = smat%smmm%line_and_column(2,i)
+          jj=matrixindex_in_compressed(smat, icolumn, iline)
+          if (jj>0) then
+              matrix(i) = invovrlp_compr(jj-smat%isvctrp_tg)
+          else
+              matrix(i) = 0.d0
+          end if
+      end do
+      !$omp end do
+      !$omp end parallel
+
+      call f_release_routine()
+
+    end subroutine prepare_matrix
     
 
     ! Performs z = a*x + b*y
@@ -234,7 +270,7 @@ module chebyshev
       call f_routine(id='axbyz_kernel_vectors_new')
     
       !$omp parallel default(shared) private(i)
-      !$omp do
+      !$omp do schedule(static)
       do i=1,smat%smmm%nvctrp
           z_compr(i) = a*x_compr(i)+b*y_compr(i)
       end do

@@ -1974,13 +1974,63 @@ contains
     
       ! Local variables
       integer :: ii, ipt, iipt, iline, icolumn, jseg, jorb, itest, ind, iseg_start
+      integer :: ithread, jthread, nthread
+      integer,dimension(:),allocatable :: iiarr
+      integer,dimension(:,:),pointer :: ise
+      integer,dimension(:,:),allocatable :: ivectorindex_work
+      !$ integer :: omp_get_thread_num
 
       call f_routine(id='get_arrays_for_sequential_acces_new')
+
+
+      ! OpenMP parallelization using a large workarray
+      !!nthread = 1
+      !!!$ nthread = omp_get_max_threads()
+
+      !!! Determine the number of iterations to be done by each thread
+      !!n = f_malloc(0.to.nthread-1,id='n')
+      !!ii = nout/nthread
+      !!n(0:nthread-1) = ii
+      !!ii = nout - nthread*ii
+      !!n(0:ii-1) = n(0:ii-1) + 1
+      !!! Check
+      !!if (sum(n)/=nout) call f_err_throw('sum(n)/=nout',err_name='BIGDFT_RUNTIME_ERROR')
+
+      !!! Determine the first and last iteration for each thread
+      !!ise = f_malloc((/1.to.2,0.to.nthread-1/),id='ise')
+      !!ise(1,0) = 1
+      !!do jthread=1,nthread-1
+      !!    ise(1,jthread) = ise(1,jthread-1) + n(jthread-1)
+      !!    ise(2,jthread-1) = ise(1,jthread) -1
+      !!end do
+      !!ise(2,nthread-1) = nout
+      !!! Check
+      !!ii = 0
+      !!do jthread=0,nthread-1
+      !!    ii = ii + ise(2,jthread) - ise(1,jthread) + 1
+      !!    if (jthread>1) then
+      !!        if (ise(1,jthread)/=ise(2,jthread-1)+1) then
+      !!            call f_err_throw('ise(1,jthread)/=ise(2,jthread-1)+1',err_name='BIGDFT_RUNTIME_ERROR')
+      !!        end if
+      !!    end if
+      !!end do
+      !!if (ii/=nout) call f_err_throw('ii/=nout',err_name='BIGDFT_RUNTIME_ERROR')
+
+      call distribute_on_threads(nout, nthread, ise)
     
-    
-      ii=1
+      iiarr = f_malloc(0.to.nthread-1,id='iiarr')
+      ii = 0
       iseg_start = 1
-      do ipt=1,nout
+      ithread = 0
+      ivectorindex_work = f_malloc((/1.to.nseq,0.to.nthread-1/),id='ivectorindex_work')
+      !$omp parallel &
+      !$omp default (none) &
+      !$omp shared(ise, ispt, nseg, keyv, keyg, smat, istsegline, iiarr, nthread) &
+      !$omp shared(ivectorindex_work, ivectorindex, nseq) &
+      !$omp private(ipt, iipt, iline, icolumn, ind, jthread) &
+      !$omp firstprivate(ii, iseg_start, ithread)
+      !$ ithread = omp_get_thread_num()
+      do ipt=ise(1,ithread),ise(2,ithread)
           iipt = ispt + ipt
           call get_line_and_column(iipt, nseg, keyv, keyg, iseg_start, iline, icolumn)
           ! Take the column due to the symmetry of the sparsity pattern
@@ -1989,16 +2039,32 @@ contains
               do jorb = smat%keyg(1,1,jseg),smat%keyg(2,1,jseg)
                   ind = matrixindex_in_compressed_lowlevel(jorb, iline, smat%nfvctr, nseg, keyv, keyg, istsegline)
                   if (ind>0) then
-                      ivectorindex(ii) = ind - smat%smmm%isvctr
-                      if (ivectorindex(ii)<=0) then
-                          stop 'ivectorindex(ii)<=0'
-                      end if
                       ii = ii+1
+                      ivectorindex_work(ii,ithread) = ind - smat%smmm%isvctr
+                      if (ivectorindex_work(ii,ithread)<=0) then
+                          stop 'ivectorindex_work(ii,ithread)<=0'
+                      end if
                   end if
               end do
           end do
       end do
-      if (ii/=nseq+1) stop 'ii/=nseq+1'
+      iiarr(ithread) = ii
+      !$omp barrier
+      if (sum(iiarr)/=nseq) stop 'sum(iiarr)/=nseq'
+
+      ii = 1
+      do jthread=0,nthread-1
+          if (ithread==jthread) then
+              call f_memcpy(n=iiarr(jthread), src=ivectorindex_work(1,ithread), dest=ivectorindex(ii))
+          end if
+          ii = ii + iiarr(jthread)
+      end do
+      !$omp end parallel
+
+      call f_free(ivectorindex_work)
+      !call f_free(n)
+      call f_free_ptr(ise)
+      call f_free(iiarr)
 
       call f_release_routine()
 
@@ -2136,12 +2202,61 @@ contains
     
       ! Local variables
       integer :: ii, ipt, iipt, iline, icolumn, jseg, jj, jorb, ind, iseg_start
+      integer :: ithread, jthread, nthread
+      integer,dimension(:),allocatable :: iiarr
+      integer,dimension(:,:),pointer :: ise
+      integer,dimension(:,:),allocatable :: indices_extract_sequential_work
+      !$ integer :: omp_get_thread_num
 
       call f_routine(id='init_sequential_acces_matrix_new')
+
+      ! OpenMP parallelization using a large workarray
+      !!nthread = 1
+      !!!$ nthread = omp_get_max_threads()
+
+      !!! Determine the number of iterations to be done by each thread
+      !!n = f_malloc(0.to.nthread-1,id='n')
+      !!ii = nout/nthread
+      !!n(0:nthread-1) = ii
+      !!ii = nout - nthread*ii
+      !!n(0:ii-1) = n(0:ii-1) + 1
+      !!! Check
+      !!if (sum(n)/=nout) call f_err_throw('sum(n)/=nout',err_name='BIGDFT_RUNTIME_ERROR')
+
+      !!! Determine the first and last iteration for each thread
+      !!ise = f_malloc((/1.to.2,0.to.nthread-1/),id='ise')
+      !!ise(1,0) = 1
+      !!do jthread=1,nthread-1
+      !!    ise(1,jthread) = ise(1,jthread-1) + n(jthread-1)
+      !!    ise(2,jthread-1) = ise(1,jthread) -1
+      !!end do
+      !!ise(2,nthread-1) = nout
+      !!! Check
+      !!ii = 0
+      !!do jthread=0,nthread-1
+      !!    ii = ii + ise(2,jthread) - ise(1,jthread) + 1
+      !!    if (jthread>1) then
+      !!        if (ise(1,jthread)/=ise(2,jthread-1)+1) then
+      !!            call f_err_throw('ise(1,jthread)/=ise(2,jthread-1)+1',err_name='BIGDFT_RUNTIME_ERROR')
+      !!        end if
+      !!    end if
+      !!end do
+      !!if (ii/=nout) call f_err_throw('ii/=nout',err_name='BIGDFT_RUNTIME_ERROR')
+      call distribute_on_threads(nout, nthread, ise)
     
-      ii=1
+      iiarr = f_malloc(0.to.nthread-1,id='iiarr')
+      ii = 0
       iseg_start = 1
-      do ipt=1,nout
+      ithread = 0
+      indices_extract_sequential_work = f_malloc((/1.to.nseq,0.to.nthread-1/),id='indices_extract_sequential_work')
+      !$omp parallel &
+      !$omp default (none) &
+      !$omp shared(ise, ispt, nseg, keyv, keyg, smat, istsegline, iiarr, nthread) &
+      !$omp shared(indices_extract_sequential_work, indices_extract_sequential) &
+      !$omp private(ipt, iipt, iline, icolumn, ind, jj, jthread) &
+      !$omp firstprivate(ii, iseg_start, ithread)
+      !$ ithread = omp_get_thread_num()
+      do ipt=ise(1,ithread),ise(2,ithread)
           iipt = ispt + ipt
           call get_line_and_column(iipt, nseg, keyv, keyg, iseg_start, iline, icolumn)
           ! Take the column due to the symmetry of the sparsity pattern
@@ -2152,13 +2267,31 @@ contains
                   ! Calculate the index in the large compressed format
                   ind = matrixindex_in_compressed_lowlevel(jorb, iline, smat%nfvctr, nseg, keyv, keyg, istsegline)
                   if (ind>0) then
-                      indices_extract_sequential(ii)=smat%keyv(jseg)+jj-1
-                      ii = ii+1
+                      ii = ii + 1
+                      indices_extract_sequential_work(ii,ithread)=smat%keyv(jseg)+jj-1
                   end if
                   jj = jj+1
               end do
           end do
       end do
+      iiarr(ithread) = ii
+      !$omp barrier
+      ii = 1
+      do jthread=0,nthread-1
+          if (ithread==jthread) then
+              call f_memcpy(n=iiarr(jthread), src=indices_extract_sequential_work(1,ithread), dest=indices_extract_sequential(ii))
+          end if
+          ii = ii + iiarr(jthread)
+      end do
+      !$omp end parallel
+      !do ii=1,nseq
+      !    write(100,*) 'ii, indices_extract_sequential(ii)', ii, indices_extract_sequential(ii)
+      !end do
+
+      call f_free(indices_extract_sequential_work)
+      !call f_free(n)
+      call f_free_ptr(ise)
+      call f_free(iiarr)
 
       call f_release_routine()
 
@@ -4267,5 +4400,62 @@ contains
     
         end function get_dynamic_ideal_workload
     end subroutine redistribute
+
+
+
+    subroutine distribute_on_threads(nout, nthread, ise)
+      use dynamic_memory
+      implicit none
+
+      ! Calling arguments
+      integer,intent(in) :: nout
+      integer,intent(out) :: nthread
+      integer,dimension(:,:),pointer :: ise
+
+      ! Local variables
+      integer :: ii, jthread
+      integer,dimension(:),allocatable :: n
+      !$ integer :: omp_get_max_threads
+
+      call f_routine(id='distribute_on_threads')
+
+      ! OpenMP parallelization using a large workarray
+      nthread = 1
+      !$ nthread = omp_get_max_threads()
+
+      ! Determine the number of iterations to be done by each thread
+      n = f_malloc(0.to.nthread-1,id='n')
+      ii = nout/nthread
+      n(0:nthread-1) = ii
+      ii = nout - nthread*ii
+      n(0:ii-1) = n(0:ii-1) + 1
+      ! Check
+      if (sum(n)/=nout) call f_err_throw('sum(n)/=nout',err_name='BIGDFT_RUNTIME_ERROR')
+
+      ! Determine the first and last iteration for each thread
+      ise = f_malloc_ptr((/1.to.2,0.to.nthread-1/),id='ise')
+      ise(1,0) = 1
+      do jthread=1,nthread-1
+          ise(1,jthread) = ise(1,jthread-1) + n(jthread-1)
+          ise(2,jthread-1) = ise(1,jthread) -1
+      end do
+      ise(2,nthread-1) = nout
+      ! Check
+      ii = 0
+      do jthread=0,nthread-1
+          ii = ii + ise(2,jthread) - ise(1,jthread) + 1
+          if (jthread>1) then
+              if (ise(1,jthread)/=ise(2,jthread-1)+1) then
+                  call f_err_throw('ise(1,jthread)/=ise(2,jthread-1)+1',err_name='BIGDFT_RUNTIME_ERROR')
+              end if
+          end if
+      end do
+      if (ii/=nout) call f_err_throw('ii/=nout',err_name='BIGDFT_RUNTIME_ERROR')
+
+      call f_free(n)
+
+      call f_release_routine()
+
+    end subroutine distribute_on_threads
 
 end module sparsematrix_init
