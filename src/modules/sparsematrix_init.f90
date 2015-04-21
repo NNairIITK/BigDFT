@@ -3194,6 +3194,16 @@ contains
       contains
 
         subroutine check_transposed_layout()
+          logical :: found
+          integer :: iiseg1, iiseg2
+
+          call f_routine(id='check_transposed_layout')
+
+          !$omp parallel &
+          !$omp default(none) &
+          !$omp shared(collcom, smat, ind_min, ind_max) &
+          !$omp private(ipt, ii, i0, i, i0i, iiorb, j, i0j, jjorb, ind)
+          !$omp do reduction(min: ind_min) reduction(max: ind_max)
           do ipt=1,collcom%nptsp_c
               ii=collcom%norb_per_gridpoint_c(ipt)
               i0 = collcom%isptsp_c(ipt)
@@ -3210,6 +3220,8 @@ contains
                   end do
               end do
           end do
+          !$omp end do
+          !$omp do reduction(min: ind_min) reduction(max: ind_max)
           do ipt=1,collcom%nptsp_f
               ii=collcom%norb_per_gridpoint_f(ipt)
               i0 = collcom%isptsp_f(ipt)
@@ -3226,28 +3238,55 @@ contains
                   end do
               end do
           end do
+          !$omp end do
+          !$omp end parallel
 
           ! Store these values
           smat%istartend_t(1) = ind_min
           smat%istartend_t(2) = ind_max
+
           ! Determine to which segments this corresponds
+          iiseg1 = smat%nseg
+          iiseg2 = 1
+          !$omp parallel default(none) shared(smat, iiseg1, iiseg2) private(iseg, found)
+          found = .false.
+          !$omp do reduction(min: iiseg1)
           do iseg=1,smat%nseg
               ! A segment is always on one line
-              if (smat%keyv(iseg)+smat%keyg(2,1,iseg)-smat%keyg(1,1,iseg)>=smat%istartend_t(1)) then
-                  smat%istartendseg_t(1)=iseg
-                  exit
+              if (.not.found) then
+                  if (smat%keyv(iseg)+smat%keyg(2,1,iseg)-smat%keyg(1,1,iseg)>=smat%istartend_t(1)) then
+                      !smat%istartendseg_t(1)=iseg
+                      iiseg1=iseg
+                      found = .true.
+                  end if
               end if
           end do
+          !$omp end do
+          found = .false.
+          !$omp do reduction(max: iiseg2)
           do iseg=smat%nseg,1,-1
-              if (smat%keyv(iseg)<=smat%istartend_t(2)) then
-                  smat%istartendseg_t(2)=iseg
-                  exit
+              if (.not.found) then
+                  if (smat%keyv(iseg)<=smat%istartend_t(2)) then
+                      !smat%istartendseg_t(2)=iseg
+                      iiseg2=iseg
+                      found = .true.
+                  end if
               end if
           end do
+          !$omp end do
+          !$omp end parallel
+          smat%istartendseg_t(1) = iiseg1
+          smat%istartendseg_t(2) = iiseg2
+
+          call f_release_routine()
+
         end subroutine check_transposed_layout
 
 
         subroutine check_compress_distributed_layout()
+
+          call f_routine(id='check_compress_distributed_layout')
+
           do i=1,2
               if (i==1) then
                   nfvctrp = smat%nfvctrp
@@ -3259,6 +3298,10 @@ contains
               if (nfvctrp>0) then
                   isegstart=smat%istsegline(isfvctr+1)
                   isegend=smat%istsegline(isfvctr+nfvctrp)+smat%nsegline(isfvctr+nfvctrp)-1
+                  !$omp parallel default(none) &
+                  !$omp shared(isegstart, isegend, smat, ind_min, ind_max) &
+                  !$omp private(iseg, ii)
+                  !$omp do reduction(min: ind_min) reduction(max: ind_max)
                   do iseg=isegstart,isegend
                       ii=smat%keyv(iseg)-1
                       ! A segment is always on one line, therefore no double loop
@@ -3268,20 +3311,41 @@ contains
                           ind_max = max(ii,ind_max)
                       end do
                   end do
+                  !$omp end do
+                  !$omp end parallel
               end if
           end do
+
+          call f_release_routine()
+
         end subroutine check_compress_distributed_layout
 
 
         subroutine check_matmul_layout()
+
+          call f_routine(id='check_matmul_layout')
+
+          !$omp parallel default(none) shared(smat, ind_min, ind_max) private(iseq, ind)
+          !$omp do reduction(min: ind_min) reduction(max: ind_max)
           do iseq=1,smat%smmm%nseq
               ind=smat%smmm%indices_extract_sequential(iseq)
               ind_min = min(ind_min,ind)
               ind_max = max(ind_max,ind)
           end do
+          !$omp end do
+          !$omp end parallel
+
+          call f_release_routine()
+
         end subroutine check_matmul_layout
 
         subroutine check_sumrho_layout()
+
+          call f_routine(id='check_sumrho_layout')
+
+          !$omp parallel default(none) &
+          !$omp shared(collcom_sr, smat, ind_min, ind_max) private(ipt, ii, i0, i, iiorb, ind)
+          !$omp do reduction(min: ind_min) reduction(max: ind_max)
           do ipt=1,collcom_sr%nptsp_c
               ii=collcom_sr%norb_per_gridpoint_c(ipt)
               i0=collcom_sr%isptsp_c(ipt)
@@ -3292,6 +3356,11 @@ contains
                   ind_max = max(ind_max,ind)
               end do
           end do
+          !$omp end do
+          !$omp end parallel
+
+          call f_release_routine()
+
         end subroutine check_sumrho_layout
 
 
@@ -3308,29 +3377,42 @@ contains
 
 
       subroutine check_ortho_inguess()
-        integer :: iorb, iiorb, isegstart, isegsend, iseg, j, i, jorb, korb, ind
-        logical,dimension(:),allocatable :: in_neighborhood
+        integer :: iorb, iiorb, isegstart, isegsend, iseg, j, i, jorb, korb, ind, nthread, ithread
+        logical,dimension(:,:),allocatable :: in_neighborhood
+        !$ integer :: omp_get_max_threads, omp_get_thread_num
 
-        in_neighborhood = f_malloc(smat%nfvctr,id='in_neighborhood')
+        call f_routine(id='check_ortho_inguess')
+
+        ! Allocate the array for all threads to avoid that it has to be declared private
+        nthread = 1
+        !$ nthread = omp_get_max_threads()
+        in_neighborhood = f_malloc((/1.to.smat%nfvctr,0.to.nthread-1/),id='in_neighborhood')
         
+        ithread = 0
+        !$omp parallel default(none) &
+        !$omp shared(smat, in_neighborhood, ind_min, ind_max) &
+        !$omp private(iorb, iiorb, isegstart, isegend, iseg, j, jorb, korb, ind) &
+        !$omp firstprivate(ithread)
+        !$omp do reduction(min: ind_min) reduction(max: ind_max)
         do iorb=1,smat%nfvctrp
+            !$ ithread = omp_get_thread_num()
 
             iiorb = smat%isfvctr + iorb
             isegstart = smat%istsegline(iiorb)
             isegend = smat%istsegline(iiorb) + smat%nsegline(iiorb) -1
-            in_neighborhood = .false.
+            in_neighborhood(:,ithread) = .false.
             do iseg=isegstart,isegend
                 ! A segment is always on one line, therefore no double loop
                 j = smat%keyg(1,2,iseg)
                 do i=smat%keyg(1,1,iseg),smat%keyg(2,1,iseg)
-                    in_neighborhood(i) = .true.
+                    in_neighborhood(i,ithread) = .true.
                 end do
             end do
 
             do jorb=1,smat%nfvctr
-                if (.not.in_neighborhood(jorb)) cycle
+                if (.not.in_neighborhood(jorb,ithread)) cycle
                 do korb=1,smat%nfvctr
-                    if (.not.in_neighborhood(korb)) cycle
+                    if (.not.in_neighborhood(korb,ithread)) cycle
                     ind = matrixindex_in_compressed(smat,korb,jorb)
                     if (ind>0) then
                         ind_min = min(ind_min,ind)
@@ -3340,6 +3422,8 @@ contains
             end do
 
         end do
+        !$omp end do
+        !$omp end parallel
 
         call f_free(in_neighborhood)
 
@@ -3357,6 +3441,8 @@ contains
         !!        end do
         !!    end do
         !!end do
+
+        call f_release_routine()
 
       end subroutine check_ortho_inguess
  
