@@ -2283,7 +2283,9 @@ contains
       do jthread=0,nthread-1
           if (ithread==jthread) then
               if (iiarr(jthread)>0) then
-                  call f_memcpy(n=iiarr(jthread), src=indices_extract_sequential_work(1,ithread), dest=indices_extract_sequential(ii))
+                  call f_memcpy(n=iiarr(jthread), &
+                       src=indices_extract_sequential_work(1,ithread), &
+                       dest=indices_extract_sequential(ii))
               end if
           end if
           ii = ii + iiarr(jthread)
