@@ -375,7 +375,7 @@ base:
   Ekin: 1.1e-10
   energy: 1.4e-11
   Omega: 1.32e-11
-  charge diff: 2.1e-11
+  charge diff: 1.1e-10
   trace(KS): 4.1e-11
   D Tr: 4.1e-11
 
