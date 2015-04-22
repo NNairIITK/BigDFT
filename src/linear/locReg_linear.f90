@@ -1283,7 +1283,7 @@ subroutine segkeys_Sphere(perx, pery, perz, n1, n2, n3, nl1glob, nl2glob, nl3glo
   !$omp firstprivate(ithread, ivctr, jvctr, kvctr, nvctr, nstart, nend, segment) &
   !$omp private(iseg, j0, j1, ii, i3, i2, i1, i0, ii2, ii3, dz, dy, igridgloba, jj1) &
   !$omp private(i, ii1, dx, i1l, igridglob, inside, ij3, jj3, ij2, jj2, ij1, i2l, i3l) &
-  !$omp private(igridpoint, offset, j, kthread)
+  !$omp private(ii1mod, ii2mod, ii3mod, igridpoint, offset, j, kthread)
   !jj1, )
   !$ ithread = omp_get_thread_num()
   do iseg=ise(1,ithread),ise(2,ithread)
@@ -1323,9 +1323,9 @@ subroutine segkeys_Sphere(perx, pery, perz, n1, n2, n3, nl1glob, nl2glob, nl3glo
                       if(dx+dy+dz<=cut) then
                           if (inside) stop 'twice inside'
                           inside=.true.
-                          !!ii1mod=jj1
-                          !!ii2mod=jj2
-                          !!ii3mod=jj3
+                          ii1mod=jj1
+                          ii2mod=jj2
+                          ii3mod=jj3
                           i1l=jj1-nl1
                           i2l=jj2-nl2
                           i3l=jj3-nl3
@@ -1341,28 +1341,28 @@ subroutine segkeys_Sphere(perx, pery, perz, n1, n2, n3, nl1glob, nl2glob, nl3glo
               ivctr=ivctr+1
               kvctr=kvctr+1
               !write(*,*) 'inside: kvctr, igridpoint', kvctr, igridpoint
-              if(jj1<nl1) then
-                  write(*,'(a,i0,a,i0,a)') 'ERROR: jj1=',jj1,'<',nl1,'=nl1'
+              if(ii1mod<nl1) then
+                  write(*,'(a,i0,a,i0,a)') 'ERROR: ii1mod=',ii1mod,'<',nl1,'=nl1'
                   stop
               end if
-              if(jj2<nl2) then
-                  write(*,'(a,i0,a,i0,a)') 'ERROR: jj2=',jj2,'<',nl2,'=nl2'
+              if(ii2mod<nl2) then
+                  write(*,'(a,i0,a,i0,a)') 'ERROR: ii2mod=',ii2mod,'<',nl2,'=nl2'
                   stop
               end if
-              if(jj3<nl3) then
-                  write(*,'(a,i0,a,i0,a)') 'ERROR: jj3=',jj3,'<',nl3,'=nl3'
+              if(ii3mod<nl3) then
+                  write(*,'(a,i0,a,i0,a)') 'ERROR: ii3mod=',ii3mod,'<',nl3,'=nl3'
                   stop
               end if
-              if(jj1>nu1) then
-                  write(*,'(a,i0,a,i0,a)') 'ERROR: jj1=',jj1,'>',nu1,'=nu1'
+              if(ii1mod>nu1) then
+                  write(*,'(a,i0,a,i0,a)') 'ERROR: ii1mod=',ii1mod,'>',nu1,'=nu1'
                   stop
               end if
-              if(jj2>nu2) then
-                  write(*,'(a,i0,a,i0,a)') 'ERROR: jj2=',jj2,'>',nu2,'=nu2'
+              if(ii2mod>nu2) then
+                  write(*,'(a,i0,a,i0,a)') 'ERROR: ii2mod=',ii2mod,'>',nu2,'=nu2'
                   stop
               end if
-              if(jj3>nu3) then
-                  write(*,'(a,i0,a,i0,a)') 'ERROR: jj3=',jj3,'>',nu3,'=nu3'
+              if(ii3mod>nu3) then
+                  write(*,'(a,i0,a,i0,a)') 'ERROR: ii3mod=',ii3mod,'>',nu3,'=nu3'
                   stop
               end if
               nvctr=nvctr+1
