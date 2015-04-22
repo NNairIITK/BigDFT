@@ -376,6 +376,8 @@ module module_types
      real(gp) :: dtinit, dtmax           !< For FIRE
      character(len=10) :: tddft_approach !< TD-DFT variables from *.tddft
      type(SIC_data) :: SIC               !< Parameters for the SIC methods
+     integer:: sockinet, sockport
+     character(len=1032)  :: sockhost
      !variables for SQNM
      integer  :: nhistx
      logical  :: biomode
@@ -2484,6 +2486,12 @@ contains
           in%history = val
        case (DTINIT)
           in%dtinit = val
+       case (SOCKINET)
+          in%sockinet = val
+       case (SOCKPORT)
+          in%sockport = val
+       case (SOCKHOST)
+          in%sockhost = val
        case (DTMAX)
           in%dtmax = val
        case (NHISTX)

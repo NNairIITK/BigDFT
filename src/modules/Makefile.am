@@ -78,6 +78,8 @@ libmodules_a_SOURCES = base.f90 \
 	foe.f90 \
 	ice.f90 \
 	bigdft_run.f90 \
+	sockets.c \
+	fsockets.f90 \
 	$(bindings_headers) \
 	$(LIBXC_MODULE) \
 	$(BLACS) \
@@ -135,6 +137,7 @@ modules = MODULE_BASE.@MODULE_EXT@ \
 	ICE.@MODULE_EXT@ \
 	BIGDFT_RUN.@MODULE_EXT@ \
 	MODULE_LJ.@MODULE_EXT@ \
+	F90SOCKETS.@MODULE_EXT@ \
 	MODULE_LENOSKY_SI.@MODULE_EXT@\
 	MODULE_MORSE_BULK.@MODULE_EXT@\
 	MODULE_TERSOFF.@MODULE_EXT@\
@@ -190,6 +193,7 @@ modules = module_base.@MODULE_EXT@ \
 	ice.@MODULE_EXT@ \
 	bigdft_run.@MODULE_EXT@ \
 	module_lj.@MODULE_EXT@ \
+	f90sockets.@MODULE_EXT@ \
 	module_morse_bulk.@MODULE_EXT@ \
 	module_tersoff.@MODULE_EXT@ \
 	module_bornmayerhugginstosifumi.@MODULE_EXT@ \

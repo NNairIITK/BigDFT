@@ -51,7 +51,9 @@ program BigDFT
       call init_state_properties(outs,bigdft_nat(runObj))
 
       call bigdft_get_run_properties(run, posinp_id = posinp_id)
-      call bigdft_state(runObj,outs,infocode)
+      if(trim(runObj%inputs%geopt_approach)/='SOCK') then
+          call bigdft_state(runObj,outs,infocode)
+      endif
     
          if (trim(char(runObj%run_mode))/='QM_RUN_MODE)')then
             if (bigdft_mpi%iproc ==0 ) call yaml_map('Energy (Hartree)',outs%energy,fmt='(es24.17)')
