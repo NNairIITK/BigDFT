@@ -28,6 +28,7 @@ program MINHOP
 !  type(restart_objects) :: rst
   !C parameters for minima hopping
   integer, parameter :: mdmin=2
+  integer, parameter :: nwrite=1 !write interval
   real(kind=8), parameter :: beta_S=1.05d0,beta_O=1.10d0,beta_N=1.d0/1.10d0
   real(kind=8), parameter :: alpha_A=1.d0/1.10d0,alpha_R=1.10d0
   real(kind=8), allocatable, dimension(:,:) ::vxyz,gg,poshop
@@ -560,10 +561,10 @@ program MINHOP
      write(fn6,'(i6.6)') nint(escape)
      write(comment,'(a,1pe10.3)')'fnrm= ',tt
      
-     call bigdft_write_atomic_file(run_md,outs,&
-          !'posaftermd_'//fn4//'_'//trim(bigdft_run_id_toa()),&
-          'posaftermd_'//fn6//trim(naming_id),&
-          trim(comment),cwd_path=.true.)
+!!     call bigdft_write_atomic_file(run_md,outs,&
+!!          !'posaftermd_'//fn4//'_'//trim(bigdft_run_id_toa()),&
+!!          'posaftermd_'//fn6//trim(naming_id),&
+!!          trim(comment),cwd_path=.true.)
 
 !!$     call write_atomic_file('posaftermd_'//fn4//'_'//trim(bigdft_run_id_toa()),&
 !!$          outs%energy,atoms%astruct%rxyz,atoms%astruct%ixyz_int,atoms,trim(comment),forces=outs%fxyz)
@@ -696,10 +697,12 @@ program MINHOP
       ! write intermediate results
 
       if (bigdft_mpi%iproc == 0) then
+         if(mod(nlmin,nwrite)==0)then
          call yaml_comment('(MH) WINTER')
          call winter(naming_id,natoms,bigdft_get_astruct_ptr(run_opt),&
                                  nid,nlminx,nlmin,singlestep,en_delta,fp_delta,en_arr,ct_arr,&
                                  fp_arr,pl_arr,ediff,ekinetic,dt,nsoften)
+        endif
         !call yaml_stream_attributes()
         call yaml_mapping_open('(MH) New minimum',flow=.true.)
         call yaml_map('(MH) has energy',outs%energy,fmt='(e14.7)')
@@ -990,17 +993,17 @@ contains
        if (istep >= 3 .and. enmin1 > enmin2 .and. enmin1 > en0000)  nummax=nummax+1
        if (istep >= 3 .and. enmin1 < enmin2 .and. enmin1 < en0000)  nummin=nummin+1
 !  write configuration file for data base
-       if (istep >= 3 .and. enmin1 < enmin2 .and. enmin1 < en0000)  then
-          ngeopt=ngeopt+1
-          write(fn6,'(i6.6)') ngeopt
-          write(comment,'(a,i3)')'nummin= ',nummin
-          call bigdft_write_atomic_file(runObj,outs,&
-               !'poslocm_'//fn4//'_'//trim(bigdft_run_id_toa()),&
-               'poslocm_'//fn6//trim(naming_id),&
-               trim(comment),cwd_path=.true.)
+!!       if (istep >= 3 .and. enmin1 < enmin2 .and. enmin1 < en0000)  then
+!!          ngeopt=ngeopt+1
+!!          write(fn6,'(i6.6)') ngeopt
+!!          write(comment,'(a,i3)')'nummin= ',nummin
+!!          call bigdft_write_atomic_file(runObj,outs,&
+!!               !'poslocm_'//fn4//'_'//trim(bigdft_run_id_toa()),&
+!!               'poslocm_'//fn6//trim(naming_id),&
+!!               trim(comment),cwd_path=.true.)
 !!$          call write_atomic_file('poslocm_'//fn4//'_'//trim(bigdft_run_id_toa()), & 
 !!$               outs%energy,atoms%astruct%rxyz,atoms%astruct%ixyz_int,atoms,trim(comment),forces=outs%fxyz)
-       endif
+!!       endif
        econs_max=max(econs_max,rkin+outs%energy)
        econs_min=min(econs_min,rkin+outs%energy)
        devcon=econs_max-econs_min
@@ -2175,13 +2178,13 @@ if(nfrag.ne.1) then          !"if there is fragmentation..."
                endif
             enddo
 
-            if (iproc == 0) then
-               write(444,*) nat, 'atomic '
-               write(444,*) 'A fragmented configuration ',imin(1),imin(2)
-               do iat=1,nat
-                  write(444,'(a5,3(e15.7),l1)') ' Mg  ',pos(1,iat),pos(2,iat),pos(3,iat)
-               enddo
-            endif
+!            if (iproc == 0) then
+!               write(444,*) nat, 'atomic '
+!               write(444,*) 'A fragmented configuration ',imin(1),imin(2)
+!               do iat=1,nat
+!                  write(444,'(a5,3(e15.7),l1)') ' Mg  ',pos(1,iat),pos(2,iat),pos(3,iat)
+!               enddo
+!            endif
 
 
             vec(:)=pos(:,imin(1))-pos(:,imin(2))
