@@ -448,7 +448,7 @@ subroutine projector(geocode,iat,idir,l,i,factor,gau_a,rpaw,rxyz,&
   real(gp), dimension(ncplx_g) :: gau_c
 
 
-  call f_routine(id='projector')
+  !call f_routine(id='projector')
 
   !this value can also be inserted as a parameter
   if (ncplx_g == 1) then
@@ -551,7 +551,7 @@ if (idir == 6 .or. idir == 8) lz(iterm)=lz(iterm)+1
      istart_c=istart_c+(mbvctr_c+7*mbvctr_f)*ncplx_k
   enddo
 
-  call f_release_routine()
+  !call f_release_routine()
 
 END SUBROUTINE projector
 
