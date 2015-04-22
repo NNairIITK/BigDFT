@@ -76,10 +76,10 @@ subroutine add_sadneighb(snghb,ileft,iright,ipair)
 
     if( snghb%npairx < 0)then
 !!write(*,*)'hier a'
-!!        allocate(snghb%neighb(2,npairxdef))
-!!        allocate(snghb%paircounter(npairxdef))
-        snghb%neighb = f_malloc((/2,npairxdef/),id='snghb%neighb')
-        snghb%paircounter = f_malloc((/npairxdef/),id='snghb%neighb')
+        allocate(snghb%neighb(2,npairxdef))
+        allocate(snghb%paircounter(npairxdef))
+!!        snghb%neighb = f_malloc((/2,npairxdef/),id='snghb%neighb')
+!!        snghb%paircounter = f_malloc((/npairxdef/),id='snghb%neighb')
         snghb%paircounter = 0
         snghb%npairx=npairxdef
     else if(ipair>snghb%npairx)then
