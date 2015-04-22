@@ -24,6 +24,12 @@ module module_mhgpstool
     public :: init_mhgpstool_data
     public :: finalize_mhgpstool_data
     public :: write_data
+    
+    type sadneighb
+        integer :: npairx=-1
+        integer, allocatable :: neighb(:,:)
+        integer, allocatable :: paircounter(:) 
+    end type
 
     type mhgpstool_data
         integer :: nid
@@ -40,19 +46,72 @@ module module_mhgpstool
         real(gp), allocatable :: en_arr(:)
         real(gp), allocatable :: fp_arr_sad(:,:)
         real(gp), allocatable :: en_arr_sad(:)
-        integer, allocatable  :: sadneighb(:,:,:)
+!        integer, allocatable  :: sadneighb(:,:,:)
+        type(sadneighb), allocatable :: snghb(:)
         !counts how many distinct neighbored minimum pairs 
         !a saddle has:
         integer, allocatable  :: nneighbpairs(:)
         !counts how often a minimum pair is found:
-        integer, allocatable  :: paircounter(:,:)
+!        integer, allocatable  :: paircounter(:,:)
         integer, allocatable  :: minnumber(:)
         integer, allocatable  :: sadnumber(:)
         integer, allocatable  :: exclude(:)
         character(len=600), allocatable :: path_sad(:)
         character(len=600), allocatable :: path_min(:)
     end type
+
     contains
+!=====================================================================
+subroutine add_sadneighb(snghb,ileft,iright,ipair)
+    use module_base
+    implicit none
+    !parameters
+    type(sadneighb), intent(inout) :: snghb
+    integer, intent(in) :: ileft, iright, ipair
+    !internal
+    integer, parameter :: npairxdef=5
+    integer :: i
+    integer, allocatable :: neighbtmp(:,:)
+    integer, allocatable :: counttmp(:)
+
+    if( snghb%npairx < 0)then
+!!write(*,*)'hier a'
+!!        allocate(snghb%neighb(2,npairxdef))
+!!        allocate(snghb%paircounter(npairxdef))
+        snghb%neighb = f_malloc((/2,npairxdef/),id='snghb%neighb')
+        snghb%paircounter = f_malloc((/npairxdef/),id='snghb%neighb')
+        snghb%paircounter = 0
+        snghb%npairx=npairxdef
+    else if(ipair>snghb%npairx)then
+
+!!write(*,*)'hier b'
+        neighbtmp = f_malloc((/2,snghb%npairx/),id='snghb%neighb') 
+        counttmp = f_malloc((/snghb%npairx/),id='snghb%neighb') 
+    
+        neighbtmp = snghb%neighb
+        counttmp = snghb%paircounter
+       
+        call f_free(snghb%neighb)
+        call f_free(snghb%paircounter)
+        snghb%npairx = snghb%npairx + npairxdef
+        snghb%neighb = f_malloc((/2,npairxdef/),id='snghb%neighb')
+        snghb%paircounter = f_malloc((/npairxdef/),id='snghb%neighb')
+
+        snghb%neighb(:,snghb%npairx-npairxdef) = neighbtmp(:,snghb%npairx-npairxdef)
+        snghb%paircounter(1:snghb%npairx-npairxdef) = counttmp(1:snghb%npairx-npairxdef)
+        snghb%paircounter(snghb%npairx-npairxdef+1:snghb%npairx)=0
+        
+
+    
+        call f_free(neighbtmp)
+        call f_free(counttmp)
+    endif
+
+    snghb%neighb(1,ipair)=ileft
+    snghb%neighb(2,ipair)=iright
+    snghb%paircounter(ipair)=snghb%paircounter(ipair)+1
+    
+end subroutine
 !=====================================================================
 subroutine init_mhgpstool_data(nat,nfolder,nsad,mdat)
     use module_base
@@ -64,6 +123,7 @@ subroutine init_mhgpstool_data(nat,nfolder,nsad,mdat)
     integer, intent(in) :: nsad(:)
     type(mhgpstool_data), intent(inout) :: mdat
     !local
+    integer :: istat
    
     call nullify_atomic_structure(mdat%astruct)
  
@@ -87,11 +147,16 @@ subroutine init_mhgpstool_data(nat,nfolder,nsad,mdat)
     mdat%en_arr_sad = f_malloc((/mdat%nsadtot/),id='en_arr_sad')
     mdat%en_arr_sad = huge(1.0_gp)
 
-    mdat%sadneighb  = f_malloc((/2,mdat%nsadtot,mdat%nsadtot/),id='sadneighb')
+
+!    mdat%snghb = f_malloc((/mdat%nsadtot/),id='snghb')
+    allocate(mdat%snghb(mdat%nsadtot),stat=istat)
+    if(istat/=0)stop 'could not allocate mdat%snghb'
+
+!    mdat%sadneighb  = f_malloc((/2,mdat%nsadtot,mdat%nsadtot/),id='sadneighb')
     mdat%nneighbpairs = f_malloc((/mdat%nsadtot/),id='nneighbpairs')
     mdat%nneighbpairs = 0
-    mdat%paircounter   = f_malloc((/mdat%nsadtot,mdat%nsadtot/),id='paircounter')
-    mdat%paircounter  = 0
+!    mdat%paircounter   = f_malloc((/mdat%nsadtot,mdat%nsadtot/),id='paircounter')
+!    mdat%paircounter  = 0
 
     mdat%minnumber = f_malloc((/mdat%nmintot/),id='minnumber')
     mdat%sadnumber = f_malloc((/mdat%nsadtot/),id='sadnumber')
@@ -118,9 +183,11 @@ subroutine finalize_mhgpstool_data(mdat)
     call f_free(mdat%en_arr)
     call f_free(mdat%en_arr_sad)
 
-    call f_free(mdat%sadneighb)
+!    call f_free(mdat%sadneighb)
     call f_free(mdat%nneighbpairs)
-    call f_free(mdat%paircounter)
+!    call f_free(mdat%paircounter)
+!!    call f_free(mdat%snghb)
+    deallocate(mdat%snghb)
 
     call f_free(mdat%minnumber)
     call f_free(mdat%sadnumber)
@@ -387,7 +454,8 @@ subroutine write_data(mdat)
     isadc=0
     do isad=1,mdat%nsad
         exclude=.false.
-        ipair=maxloc(mdat%paircounter(1:mdat%nneighbpairs(isad),isad),1)
+        ipair=maxloc(mdat%snghb(isad)%paircounter(1:mdat%nneighbpairs(isad)),1)
+!!        ipair=maxloc(mdat%paircounter(1:mdat%nneighbpairs(isad),isad),1)
 if(mdat%nneighbpairs(isad)>5)exclude=.true.
 !        do it = 1, mdat%nneighbpairs(isad)
 !            if(it/=ipair)then
@@ -403,19 +471,19 @@ if(mdat%nneighbpairs(isad)>5)exclude=.true.
 write(*,*)'imaxloc',ipair
         if(exclude)then
             write(u2,'(es24.17,1x,a,2(1x,i0.0))')mdat%en_arr_sad(isad),&
-                 '0   0',mn(mdat%sadneighb(1,ipair,isad)),&
-                  mn(mdat%sadneighb(2,ipair,isad))
+                 '0   0',mn(mdat%snghb(isad)%neighb(1,ipair)),&
+                  mn(mdat%snghb(isad)%neighb(2,ipair))
         else
             isadc=isadc+1
             write(u,'(es24.17,1x,a,2(1x,i0.0))')mdat%en_arr_sad(isad),&
-                 '0   0',mn(mdat%sadneighb(1,ipair,isad)),&
-                  mn(mdat%sadneighb(2,ipair,isad))
+                 '0   0',mn(mdat%snghb(isad)%neighb(1,ipair)),&
+                  mn(mdat%snghb(isad)%neighb(2,ipair))
             write(ci,'(i5.5)')isadc
             write(u3,'(a)')'cp '//trim(adjustl(mdat%path_sad(isad)))//&
                        '.EXT saddlepoints/sad'//ci//'.EXT'
         endif
 do ipair=1,mdat%nneighbpairs(isad)
-write(*,*)ipair,mdat%paircounter(ipair,isad)
+write(*,*)ipair,mdat%snghb(isad)%paircounter(ipair)
 enddo
     
 !        if(.not. any(mdat%exclude .eq. mdat%sadnumber(isad)))then
@@ -519,24 +587,33 @@ write(*,*)
 write(*,*)neighb1,neighb2
 write(*,*)'---'
     neighbloop: do ipair=1,mdat%nneighbpairs(kid)
-        if( ((mdat%sadneighb(1,ipair,kid)==neighb1)&
-               .and.(mdat%sadneighb(2,ipair,kid)==neighb2))&
-           &.or.((mdat%sadneighb(2,ipair,kid)==neighb1) &
-               .and.(mdat%sadneighb(1,ipair,kid)==neighb2)) )then
-            mdat%paircounter(ipair,kid) = mdat%paircounter(ipair,kid)+1
+        if( ((mdat%snghb(kid)%neighb(1,ipair)==neighb1)&
+               .and.(mdat%snghb(kid)%neighb(2,ipair)==neighb2))&
+           &.or.((mdat%snghb(kid)%neighb(2,ipair)==neighb1) &
+               .and.(mdat%snghb(kid)%neighb(1,ipair)==neighb2)) )then
+            mdat%snghb(kid)%paircounter(ipair) = mdat%snghb(kid)%paircounter(ipair)+1
             found=.true.
             exit neighbloop
         endif
+!!        if( ((mdat%sadneighb(1,ipair,kid)==neighb1)&
+!!               .and.(mdat%sadneighb(2,ipair,kid)==neighb2))&
+!!           &.or.((mdat%sadneighb(2,ipair,kid)==neighb1) &
+!!               .and.(mdat%sadneighb(1,ipair,kid)==neighb2)) )then
+!!            mdat%paircounter(ipair,kid) = mdat%paircounter(ipair,kid)+1
+!!            found=.true.
+!!            exit neighbloop
+!!        endif
     enddo neighbloop
 
     if(.not. found) then !pair is new, add it to list
         mdat%nneighbpairs(kid) = mdat%nneighbpairs(kid) + 1
-        mdat%paircounter(mdat%nneighbpairs(kid),kid)  = 1
-        mdat%sadneighb(1,mdat%nneighbpairs(kid),kid) = neighb1
-        mdat%sadneighb(2,mdat%nneighbpairs(kid),kid) = neighb2
+        call add_sadneighb(mdat%snghb(kid),neighb1,neighb2,mdat%nneighbpairs(kid))
+!!        mdat%paircounter(mdat%nneighbpairs(kid),kid)  = 1
+!!        mdat%sadneighb(1,mdat%nneighbpairs(kid),kid) = neighb1
+!!        mdat%sadneighb(2,mdat%nneighbpairs(kid),kid) = neighb2
     endif
 do ipair=1,mdat%nneighbpairs(kid)
-write(*,*)mdat%sadneighb(1,ipair,kid),mdat%sadneighb(2,ipair,kid),mdat%paircounter(ipair,kid)
+write(*,*)mdat%snghb(kid)%neighb(1,ipair),mdat%snghb(kid)%neighb(2,ipair),mdat%snghb(kid)%paircounter(ipair)
 enddo
 end subroutine add_neighbors
 !=====================================================================
@@ -561,9 +638,10 @@ subroutine insert_sad(mdat,k_epot,epot,fp,neighb1,neighb2,path)
         mdat%sadnumber(k+1)=mdat%sadnumber(k)
         mdat%path_sad(k+1)=mdat%path_sad(k)
         mdat%nneighbpairs(k+1) = mdat%nneighbpairs(k)
-        mdat%paircounter(:,k+1) = mdat%paircounter(:,k)
-        mdat%sadneighb(1,:,k+1)=mdat%sadneighb(1,:,k)
-        mdat%sadneighb(2,:,k+1)=mdat%sadneighb(2,:,k)
+        mdat%snghb(k+1) = mdat%snghb(k)
+!!        mdat%snghb(k+1)%paircounter(:) = mdat%snghb(k)%paircounter(:)
+!!        mdat%snghb(k+1)%neighb(1,:)=mdat%snghb(k)%neighb(1,:)
+!!        mdat%snghb(k+1)%neighb(2,:)=mdat%snghb(k)%neighb(2,:)
         do i=1,mdat%nid
             mdat%fp_arr_sad(i,k+1)=mdat%fp_arr_sad(i,k)
          enddo
@@ -572,9 +650,12 @@ subroutine insert_sad(mdat,k_epot,epot,fp,neighb1,neighb2,path)
     mdat%sadnumber(k_epot+1)=mdat%nsad
     mdat%path_sad(k_epot+1)=path
     mdat%nneighbpairs(k_epot+1) = 1
-    mdat%paircounter(1,k_epot+1) = 1
-    mdat%sadneighb(1,1,k_epot+1)=neighb1
-    mdat%sadneighb(2,1,k_epot+1)=neighb2
+
+    call add_sadneighb(mdat%snghb(k_epot+1),neighb1,neighb2,mdat%nneighbpairs(k_epot+1))
+    mdat%snghb(k_epot+1)%paircounter(1) = 1
+!    mdat%snghb(k_epot+1)%paircounter(1) = 1
+!    mdat%snghb(k_epot+1)%sadneighb(1,1)=neighb1
+!    mdat%snghb(k_epot+1)%sadneighb(2,1)=neighb2
     do i=1,mdat%nid
         mdat%fp_arr_sad(i,k+1)=fp(i)
     enddo
