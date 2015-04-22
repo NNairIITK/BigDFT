@@ -29,8 +29,8 @@ program MINHOP
   !C parameters for minima hopping
   integer, parameter :: mdmin=2
   integer, parameter :: nwrite=1 !write interval
-  real(kind=8), parameter :: beta_S=1.05d0,beta_O=1.10d0,beta_N=1.d0/1.10d0
-  real(kind=8), parameter :: alpha_A=1.d0/1.10d0,alpha_R=1.10d0
+  real(kind=8), parameter :: beta_S=1.05d0,beta_O=1.05d0,beta_N=1.d0/1.05d0
+  real(kind=8), parameter :: alpha_A=1.d0/1.05d0,alpha_R=1.05d0
   real(kind=8), allocatable, dimension(:,:) ::vxyz,gg,poshop
   real(kind=8), allocatable, dimension(:) :: rcov,ksevals
   real(kind=8), dimension(:,:), pointer :: pos
